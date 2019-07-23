@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef __nanojit_NativeSparc__
 #define __nanojit_NativeSparc__
 
@@ -67,129 +68,129 @@
 namespace nanojit
 {
 #ifdef MMGC_SPARC
-	const int NJ_LOG2_PAGE_SIZE = 12; 
+    const int NJ_LOG2_PAGE_SIZE = 12; 
 #else
-	const int NJ_LOG2_PAGE_SIZE = 13; 
+    const int NJ_LOG2_PAGE_SIZE = 13; 
 #endif
-	const int NJ_MAX_REGISTERS = 30; 
-	const int NJ_STACK_OFFSET = 0;
-    
-	const int LARGEST_UNDERRUN_PROT = 32;  
+    const int NJ_MAX_REGISTERS = 30; 
+    const int NJ_STACK_OFFSET = 0;
+
+    const int LARGEST_UNDERRUN_PROT = 32;  
 
 #define NJ_MAX_STACK_ENTRY 256
 #define NJ_MAX_PARAMETERS 1
 
-	const int NJ_ALIGN_STACK = 16;
+    const int NJ_ALIGN_STACK = 16;
 
-	typedef uint32_t NIns;
+    typedef uint32_t NIns;
 
-	
-	typedef enum
-		{
-			G0  = 0,
-			G1  = 1,
-			G2  = 2,
-			G3  = 3,
-			G4  = 4,
-			G5  = 5, 
-			G6  = 6, 
-			G7  = 7, 
+    
+    typedef enum
+        {
+            G0  = 0,
+            G1  = 1,
+            G2  = 2,
+            G3  = 3,
+            G4  = 4,
+            G5  = 5, 
+            G6  = 6, 
+            G7  = 7, 
 
-			O0  = 8,
-			O1  = 9,
-			O2  = 10,
-			O3  = 11,
-			O4  = 12,
-			O5  = 13,
-			O6  = 14, 
-			O7  = 15, 
+            O0  = 8,
+            O1  = 9,
+            O2  = 10,
+            O3  = 11,
+            O4  = 12,
+            O5  = 13,
+            O6  = 14, 
+            O7  = 15, 
 
-			L0  = 16,
-			L1  = 17,
-			L2  = 18,
-			L3  = 19,
-			L4  = 20,
-			L5  = 21,
-			L6  = 22,
-			L7  = 23,
+            L0  = 16,
+            L1  = 17,
+            L2  = 18,
+            L3  = 19,
+            L4  = 20,
+            L5  = 21,
+            L6  = 22,
+            L7  = 23,
 
-			I0  = 24,
-			I1  = 25,
-			I2  = 26,
-			I3  = 27,
-			I4  = 28,
-			I5  = 29,
-			I6  = 30, 
-			I7  = 31, 
+            I0  = 24,
+            I1  = 25,
+            I2  = 26,
+            I3  = 27,
+            I4  = 28,
+            I5  = 29,
+            I6  = 30, 
+            I7  = 31, 
 
-			SP  = O6,
-			FP  = I6,
+            SP  = O6,
+            FP  = I6,
 
-			F0  = 0,
-			F1  = 1,
-			F2  = 2,
-			F3  = 3,
-			F4  = 4,
-			F5  = 5,
-			F6  = 6,
-			F7  = 7,
-			F8  = 8,
-			F9  = 9,
-			F10 = 10,
-			F11 = 11,
-			F12 = 12,
-			F13 = 13,
-			F14 = 14,
-			F15 = 15,
-			F16 = 16,
-			F17 = 17,
-			F18 = 18,
-			F19 = 19,
-			F20 = 20,
-			F21 = 21,
-			F22 = 22,
-			F23 = 23,
-			F24 = 24,
-			F25 = 25,
-			F26 = 26,
-			F27 = 27,
-			F28 = 28,
-			F29 = 29,
-			F30 = 30,
-			F31 = 31,
+            F0  = 0,
+            F1  = 1,
+            F2  = 2,
+            F3  = 3,
+            F4  = 4,
+            F5  = 5,
+            F6  = 6,
+            F7  = 7,
+            F8  = 8,
+            F9  = 9,
+            F10 = 10,
+            F11 = 11,
+            F12 = 12,
+            F13 = 13,
+            F14 = 14,
+            F15 = 15,
+            F16 = 16,
+            F17 = 17,
+            F18 = 18,
+            F19 = 19,
+            F20 = 20,
+            F21 = 21,
+            F22 = 22,
+            F23 = 23,
+            F24 = 24,
+            F25 = 25,
+            F26 = 26,
+            F27 = 27,
+            F28 = 28,
+            F29 = 29,
+            F30 = 30,
+            F31 = 31,
 
-			
-			FRAME_PTR = G4,
+            
+            FRAME_PTR = G4,
 
-			FirstReg = 0,
-			LastReg = 29,
-			UnknownReg = 30
-		}
-	Register;
+            FirstReg = 0,
+            LastReg = 29,
+            UnknownReg = 30
+        }
+    Register;
 
-	
-	
-	
-	
-	
-	typedef int RegisterMask;
+    
+    
+    
+    
+    
+    typedef int RegisterMask;
 #define _rmask_(r)        (1<<(r))
 
-	static const int NumSavedRegs = 6;
-	static const RegisterMask SavedRegs = 1<<L1 | 1<<L3 | 1<<L5 | 1<<L7 |
-	1<<I0 | 1<<I1 | 1<<I2 | 1<<I3 |
-	1<<I4 | 1<<I5;
-	static const RegisterMask GpRegs = SavedRegs | 1<<O0 | 1<<O1 | 1<<O2 |
-	1<<O3 | 1<<O4 | 1<<O5;
-	static const RegisterMask FpRegs = 1<<F0  | 1<<F2  | 1<<F4  | 1<<F6  |
-	1<<F14 | 1<<F16 | 1<<F18 | 1<<F20 |
-	1<<F22;
-	static const RegisterMask AllowableFlagRegs = GpRegs;
+    static const int NumSavedRegs = 6;
+    static const RegisterMask SavedRegs = 1<<L1 | 1<<L3 | 1<<L5 | 1<<L7 |
+    1<<I0 | 1<<I1 | 1<<I2 | 1<<I3 |
+    1<<I4 | 1<<I5;
+    static const RegisterMask GpRegs = SavedRegs | 1<<O0 | 1<<O1 | 1<<O2 |
+    1<<O3 | 1<<O4 | 1<<O5;
+    static const RegisterMask FpRegs = 1<<F0  | 1<<F2  | 1<<F4  | 1<<F6  |
+    1<<F14 | 1<<F16 | 1<<F18 | 1<<F20 |
+    1<<F22;
+    static const RegisterMask AllowableFlagRegs = GpRegs;
 
 #define nextreg(r)        Register(r+1)
 #define prevreg(r)        Register(r-1)
 
-	verbose_only( extern const char* regNames[]; )
+    verbose_only( extern const char* regNames[]; )
 
 #define DECLARE_PLATFORM_STATS()
 
@@ -202,9 +203,9 @@ namespace nanojit
     void nativePageSetup(); \
     void underrunProtect(int bytes); \
     void asm_align_code();
-    
+
 #define swapptrs()  { NIns* _tins = _nIns; _nIns=_nExitIns; _nExitIns=_tins; }
-    
+
 #define IMM32(i)    \
     --_nIns;        \
     *((int32_t*)_nIns) = (int32_t)(i)
@@ -401,55 +402,55 @@ namespace nanojit
     do { \
     asm_output("fbe %p", _nIns + dsp22 - 1); \
     Format_2_2(a, 0x9, 0x6, dsp22); \
-    } while(0) 
+    } while(0)
 
 #define FBNE(a, dsp22) \
     do { \
     asm_output("fbne %p", _nIns + dsp22 - 1); \
     Format_2_2(a, 0x1, 0x6, dsp22); \
-    } while(0) 
+    } while(0)
 
 #define FBUE(a, dsp22) \
     do { \
     asm_output("fbue %p", _nIns + dsp22 - 1); \
     Format_2_2(a, 0xA, 0x6, dsp22); \
-    } while(0) 
+    } while(0)
 
 #define FBG(a, dsp22) \
     do { \
     asm_output("fng %p", _nIns + dsp22 - 1); \
     Format_2_2(a, 0x6, 0x6, dsp22); \
-    } while(0) 
+    } while(0)
 
 #define FBUG(a, dsp22) \
     do { \
     asm_output("fbug %p", _nIns + dsp22 - 1); \
     Format_2_2(a, 0x5, 0x6, dsp22); \
-    } while(0) 
+    } while(0)
 
 #define FBGE(a, dsp22) \
     do { \
     asm_output("fbge %p", _nIns + dsp22 - 1); \
     Format_2_2(a, 0xB, 0x6, dsp22); \
-    } while(0) 
+    } while(0)
 
 #define FBUGE(a, dsp22) \
     do { \
     asm_output("fbuge %p", _nIns + dsp22 - 1); \
     Format_2_2(a, 0xC, 0x6, dsp22); \
-    } while(0) 
+    } while(0)
 
 #define FBL(a, dsp22) \
     do { \
     asm_output("fbl %p", _nIns + dsp22 - 1); \
     Format_2_2(a, 0x4, 0x6, dsp22); \
-    } while(0) 
+    } while(0)
 
 #define FBLE(a, dsp22) \
     do { \
     asm_output("fble %p", _nIns + dsp22 - 1); \
     Format_2_2(a, 0xD, 0x6, dsp22); \
-    } while(0) 
+    } while(0)
 
 #define FCMPD(rs1, rs2) \
     do { \
@@ -829,7 +830,7 @@ namespace nanojit
     Format_3_1(2, rd, 0x3, rs1, 0, rs2); \
     } while (0)
 
-		
+        
 #define isIMM13(imm) \
     (imm) <= 4095 && (imm) >= -4096
 
@@ -902,7 +903,7 @@ namespace nanojit
     }
 
 
-		
+        
 #define JMP_long_nocheck(t) do { NOP(); JMPL(G0, G2, G0); ORI(G2, t & 0x3FF, G2); SETHI(t, G2); } while(0)
 #define JMP_long(t) do { underrunProtect(16); JMP_long_nocheck(t); } while(0)
 #define JMP_long_placeholder() JMP_long(0)
@@ -932,5 +933,5 @@ namespace nanojit
 
 #define MR(d, s)   do { underrunProtect(4); ORI(s, 0, d); } while(0)
 
-		}
+        }
 #endif 

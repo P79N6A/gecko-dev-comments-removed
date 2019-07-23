@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef __nanojit_NativeARM__
 #define __nanojit_NativeARM__
 
@@ -107,7 +108,7 @@ typedef enum {
 
     FirstFloatReg = 16,
     LastFloatReg = 22,
-        
+
     FirstReg = 0,
     LastReg = 22,   
     UnknownReg = 31,
@@ -135,7 +136,7 @@ typedef enum {
     GT = 0xC, 
     LE = 0xD, 
     AL = 0xE, 
- 
+
     
     
     
@@ -477,7 +478,7 @@ enum {
 
 
 #define LSLi(_d, _r, _imm) ALUr_shi(AL, mov, 1, _d, 0, _r, LSL_imm, (_imm & 0x1f))
-                    
+
 
 #define TST(_l,_r)      ALUr(AL, tst, 1, 0, _l, _r)
 #define TSTi(_d,_imm)   ALUi(AL, tst, 1, 0, _d, _imm)
@@ -670,7 +671,7 @@ enum {
 
 
 
-#define JP(t)   do {NanoAssert(0); B_cond(NE,t); asm_output("jp 0x%08x",t); } while(0) 
+#define JP(t)   do {NanoAssert(0); B_cond(NE,t); asm_output("jp 0x%08x",t); } while(0)
 
 
 #define JNP(t)  do {NanoAssert(0); B_cond(EQ,t); asm_output("jnp 0x%08x",t); } while(0)

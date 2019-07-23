@@ -37,6 +37,7 @@
 
 
 
+
 #include "nanojit.h"
 
 #ifdef AVMPLUS_PORTING_API
@@ -238,7 +239,7 @@ Assembler::genEpilogue()
     
     
     MOV(R0,R2); 
-    
+
     return _nIns;
 }
 
@@ -564,6 +565,7 @@ Assembler::nPatchBranch(NIns* at, NIns* target)
 
     
     NanoAssert((at[0] & 0xf0000000) == COND_AL);
+
     
     
     
@@ -573,8 +575,7 @@ Assembler::nPatchBranch(NIns* at, NIns* target)
     
     
     
-    
-    
+
     intptr_t offs = PC_OFFSET_FROM(target, at);
     if (isS24(offs>>2)) {
         
@@ -735,7 +736,7 @@ Assembler::asm_load64(LInsp ins)
     Register rb = findRegFor(base, GpRegs);
     NanoAssert(IsGpReg(rb));
     freeRsrcOf(ins, false);
- 
+
     
 
     if (AvmCore::config.vfp && rr != UnknownReg) {
@@ -1025,7 +1026,7 @@ Assembler::resetInstructionPointer()
 void
 Assembler::underrunProtect(int bytes)
 {
-    NanoAssertMsg(bytes<=LARGEST_UNDERRUN_PROT, "constant LARGEST_UNDERRUN_PROT is too small"); 
+    NanoAssertMsg(bytes<=LARGEST_UNDERRUN_PROT, "constant LARGEST_UNDERRUN_PROT is too small");
     intptr_t u = bytes + sizeof(PageHeader)/sizeof(NIns) + 8;
     if ( (samepage(_nIns,_nSlot) && (((intptr_t)_nIns-u) <= intptr_t(_nSlot+1))) ||
          (!samepage((intptr_t)_nIns-u,_nIns)) )
@@ -1583,13 +1584,13 @@ Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ, bool isfar)
 
     
     NanoAssert((cc != AL) && (cc != NV));
-    
+
     
     NanoAssert(AvmCore::config.vfp || !fp_cond);
 
     
     B_cond(cc, targ);
-    
+
     
     
     NIns *at = _nIns;
@@ -1707,7 +1708,7 @@ Assembler::asm_cond(LInsp ins)
         case LIR_ule:   SET(r,LS);      break;
         case LIR_ugt:   SET(r,HI);      break;
         case LIR_uge:   SET(r,HS);      break;
-        default:        NanoAssert(0);  break; 
+        default:        NanoAssert(0);  break;
     }
     asm_cmp(ins);
 }

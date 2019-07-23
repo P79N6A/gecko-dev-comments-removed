@@ -128,7 +128,7 @@ namespace nanojit
         if (verbose)
             avmplus::AvmLog("free %p-%p %d\n", start, end, (int)blk->size());
 
-		AvmAssert(!blk->isFree); 
+        AvmAssert(!blk->isFree);
 
         
         if (blk->lower && blk->lower->isFree) {
@@ -185,20 +185,20 @@ extern "C" void __clear_cache(char *BEG, char *END);
 #endif
 
 #ifdef AVMPLUS_SPARC
-extern  "C"	void sync_instruction_memory(caddr_t v, u_int len);
+extern  "C"    void sync_instruction_memory(caddr_t v, u_int len);
 #endif
 
 #if defined NANOJIT_IA32 || defined NANOJIT_X64
     
-	void CodeAlloc::flushICache(CodeList* &)
+    void CodeAlloc::flushICache(CodeList* &)
     {}
 
 #elif defined NANOJIT_ARM && defined UNDER_CE
     
     
-	void CodeAlloc::flushICache(CodeList* &) {
-		
-		FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
+    void CodeAlloc::flushICache(CodeList* &) {
+        
+        FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
     }
 
 #elif defined AVMPLUS_MAC && defined NANOJIT_PPC
@@ -208,19 +208,19 @@ extern  "C"	void sync_instruction_memory(caddr_t v, u_int len);
     extern "C" void sys_dcache_flush(const void*, size_t len);
 
     
-	void CodeAlloc::flushICache(CodeList* &blocks) {
+    void CodeAlloc::flushICache(CodeList* &blocks) {
         for (CodeList *b = blocks; b != 0; b = b->next) {
             void *start = b->start();
             size_t bytes = b->size();
             sys_dcache_flush(start, bytes);
             sys_icache_invalidate(start, bytes);
-		}
+        }
     }
 #  else
     
     
     
-	void CodeAlloc::flushICache(CodeList* &blocks) {
+    void CodeAlloc::flushICache(CodeList* &blocks) {
         for (CodeList *b = blocks; b != 0; b = b->next)
             MakeDataExecutable(b->start(), b->size());
     }
@@ -228,17 +228,17 @@ extern  "C"	void sync_instruction_memory(caddr_t v, u_int len);
 
 #elif defined AVMPLUS_SPARC
     
-	void CodeAlloc::flushICache(CodeList* &blocks) {
+    void CodeAlloc::flushICache(CodeList* &blocks) {
         for (CodeList *b = blocks; b != 0; b = b->next)
-			sync_instruction_memory((char*)b->start(), b->size());
+            sync_instruction_memory((char*)b->start(), b->size());
     }
 
 #elif defined AVMPLUS_UNIX
     
-	void CodeAlloc::flushICache(CodeList* &blocks) {
+    void CodeAlloc::flushICache(CodeList* &blocks) {
         for (CodeList *b = blocks; b != 0; b = b->next) {
-			__clear_cache((char*)b->start(), (char*)b->start()+b->size());
-		}
+            __clear_cache((char*)b->start(), (char*)b->start()+b->size());
+        }
     }
 #endif 
 
@@ -261,7 +261,7 @@ extern  "C"	void sync_instruction_memory(caddr_t v, u_int len);
         terminator->end = 0; 
         terminator->isFree = false;
         debug_only(sanity_check();)
-        
+
         
         addBlock(heapblocks, terminator);
         return b;

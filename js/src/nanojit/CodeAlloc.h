@@ -90,7 +90,7 @@ namespace nanojit
         bool contains(NIns* p) const  { return containsPtr(&code[0], end, p); }
     };
 
-	
+    
 
 
 
@@ -99,12 +99,12 @@ namespace nanojit
 
 
 
-	class CodeAlloc : public GCFinalizedObject
-	{
+    class CodeAlloc : public GCFinalizedObject
+    {
         static const size_t sizeofMinBlock = offsetof(CodeList, code);
         static const size_t minAllocSize = LARGEST_UNDERRUN_PROT;
 
-		GCHeap* heap;
+        GCHeap* heap;
         CodeList* heapblocks;
 
         
@@ -125,8 +125,8 @@ namespace nanojit
         
         static CodeList* firstBlock(CodeList* term);
 
-	public:
-		CodeAlloc(GCHeap*);
+    public:
+        CodeAlloc(GCHeap*);
         ~CodeAlloc();
 
         
@@ -169,7 +169,7 @@ namespace nanojit
 
         
         void sweep();
-	};
+    };
 }
 
 #endif 

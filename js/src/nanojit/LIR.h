@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef __nanojit_LIR__
 #define __nanojit_LIR__
 
@@ -50,14 +51,14 @@
 
 namespace nanojit
 {
-	enum LOpcode
+    enum LOpcode
 #if defined(_MSC_VER) && _MSC_VER >= 1400
           : unsigned
 #endif
-	{
-		
-		LIR64	= 0x40,			
-		
+    {
+        
+        LIR64    = 0x40,            
+
 #define OPDEF(op, number, args, repkind) \
         LIR_##op = (number),
 #define OPDEF64(op, number, args, repkind) \
@@ -66,77 +67,77 @@ namespace nanojit
         LIR_sentinel
 #undef OPDEF
 #undef OPDEF64
-	};
+    };
 
-	#if defined NANOJIT_64BIT
-	#define LIR_ldp     LIR_ldq
+    #if defined NANOJIT_64BIT
+    #define LIR_ldp     LIR_ldq
     #define LIR_piadd   LIR_qiadd
     #define LIR_piand   LIR_qiand
     #define LIR_pilsh   LIR_qilsh
-	#define LIR_pcmov	LIR_qcmov
+    #define LIR_pcmov    LIR_qcmov
     #define LIR_pior    LIR_qior
-	#else
-	#define LIR_ldp     LIR_ld
+    #else
+    #define LIR_ldp     LIR_ld
     #define LIR_piadd   LIR_add
     #define LIR_piand   LIR_and
     #define LIR_pilsh   LIR_lsh
-	#define LIR_pcmov	LIR_cmov
+    #define LIR_pcmov    LIR_cmov
     #define LIR_pior    LIR_or
-	#endif
+    #endif
 
-	struct GuardRecord;
+    struct GuardRecord;
     struct SideExit;
     struct Page;
 
     enum AbiKind {
         ABI_FASTCALL,
         ABI_THISCALL,
-		ABI_STDCALL,
+        ABI_STDCALL,
         ABI_CDECL
     };
 
     enum ArgSize {
-	    ARGSIZE_NONE = 0,
-	    ARGSIZE_F = 1,
-	    ARGSIZE_LO = 2,
-	    ARGSIZE_Q = 3,
-	    _ARGSIZE_MASK_INT = 2, 
+        ARGSIZE_NONE = 0,
+        ARGSIZE_F = 1,
+        ARGSIZE_LO = 2,
+        ARGSIZE_Q = 3,
+        _ARGSIZE_MASK_INT = 2,
         _ARGSIZE_MASK_ANY = 3
     };
 
     struct CallInfo
-	{
-		uintptr_t	_address;
-        uint32_t	_argtypes:18;	
-        uint8_t		_cse:1;			
-        uint8_t		_fold:1;		
+    {
+        uintptr_t    _address;
+        uint32_t    _argtypes:18;    
+        uint8_t        _cse:1;            
+        uint8_t        _fold:1;        
         AbiKind     _abi:3;
-		verbose_only ( const char* _name; )
-		
-		uint32_t FASTCALL _count_args(uint32_t mask) const;
+        verbose_only ( const char* _name; )
+
+        uint32_t FASTCALL _count_args(uint32_t mask) const;
         uint32_t get_sizes(ArgSize*) const;
 
-		inline uint32_t FASTCALL count_args() const {
+        inline uint32_t FASTCALL count_args() const {
             return _count_args(_ARGSIZE_MASK_ANY);
         }
-		inline uint32_t FASTCALL count_iargs() const {
+        inline uint32_t FASTCALL count_iargs() const {
             return _count_args(_ARGSIZE_MASK_INT);
         }
-		
-	};
+        
+    };
 
-	
+    
 
 
-	struct SwitchInfo
-	{
-		NIns**      table;       
-		uint32_t    count;       
-		
-		
-		
-		uint32_t    index;
-	};
+    struct SwitchInfo
+    {
+        NIns**      table;       
+        uint32_t    count;       
+        
+        
+        
+        uint32_t    index;
+    };
 
     inline bool isCseOpcode(LOpcode op) {
         op = LOpcode(op & ~LIR64);
@@ -156,16 +157,16 @@ namespace nanojit
         uint32_t used:1;        
         LOpcode  opcode:8;
 
-		inline void init() {
-			reg = UnknownReg;
-			arIndex = 0;
-			used = 1;
-		}
+        inline void init() {
+            reg = UnknownReg;
+            arIndex = 0;
+            used = 1;
+        }
 
         inline void clear() {
-			used = 0;
-		}
-	};
+            used = 0;
+        }
+    };
 
     
     
@@ -446,8 +447,8 @@ namespace nanojit
     {
     };
 
-	class LIns
-	{
+    class LIns
+    {
     private:
         
         
@@ -605,9 +606,9 @@ namespace nanojit
             return toLInsI()->imm32 << 2;
         }
 
-		LIns* arg(uint32_t i);
+        LIns* arg(uint32_t i);
 
-        inline int32_t disp() const 
+        inline int32_t disp() const
         {
             if (isLInsSti()) {
                 return toLInsSti()->disp;
@@ -616,17 +617,17 @@ namespace nanojit
                 return toLInsLd()->disp;
             }
         }
-    
-		inline void* constvalp() const
-		{
+
+        inline void* constvalp() const
+        {
         #ifdef AVMPLUS_64BIT
-		    return (void*)imm64();
-		#else
-		    return (void*)imm32();
-        #endif      
-		}
-		
-		bool isCse() const;
+            return (void*)imm64();
+        #else
+            return (void*)imm32();
+        #endif
+        }
+
+        bool isCse() const;
         bool isRet() const { return nanojit::isRetOpcode(opcode()); }
         bool isop(LOpcode o) const { return opcode() == o; }
         
@@ -645,11 +646,11 @@ namespace nanojit
         bool isLInsP()   const;
         bool isLInsI()   const;
         bool isLInsI64() const;
-		bool isQuad() const;
-		bool isCond() const;
+        bool isQuad() const;
+        bool isCond() const;
         bool isFloat() const;
-		bool isCmp() const;
-        bool isCall() const { 
+        bool isCmp() const;
+        bool isCall() const {
             LOpcode op = LOpcode(opcode() & ~LIR64);
             return op == LIR_call;
         }
@@ -657,114 +658,114 @@ namespace nanojit
             LOpcode op = LOpcode(opcode() & ~LIR64);
             return op == LIR_sti;
         }
-        bool isLoad() const { 
+        bool isLoad() const {
             LOpcode op = opcode();
-            return op == LIR_ldq  || op == LIR_ld || op == LIR_ldc || 
+            return op == LIR_ldq  || op == LIR_ld || op == LIR_ldc ||
                    op == LIR_ldqc || op == LIR_ldcs || op == LIR_ldcb;
         }
         bool isGuard() const {
             LOpcode op = opcode();
-            return op == LIR_x || op == LIR_xf || op == LIR_xt || 
+            return op == LIR_x || op == LIR_xf || op == LIR_xt ||
                    op == LIR_loop || op == LIR_xbarrier || op == LIR_xtbl;
         }
-		
+        
         bool isconst() const { return opcode() == LIR_int; }
-		
-		
-		bool isconstval(int32_t val) const;
-		
-		bool isconstq() const;
-		
-		bool isconstp() const;
-		bool isBranch() const {
-			return isop(LIR_jt) || isop(LIR_jf) || isop(LIR_j);
-		}
+        
+        
+        bool isconstval(int32_t val) const;
+        
+        bool isconstq() const;
+        
+        bool isconstp() const;
+        bool isBranch() const {
+            return isop(LIR_jt) || isop(LIR_jf) || isop(LIR_j);
+        }
 
-		void setTarget(LIns* t);
-		LIns* getTarget();
+        void setTarget(LIns* t);
+        LIns* getTarget();
 
         GuardRecord *record();
 
-		inline uint32_t argc() const {
-			NanoAssert(isCall());
+        inline uint32_t argc() const {
+            NanoAssert(isCall());
             return toLInsC()->argc;
-		}
-		const CallInfo *callInfo() const;
-	};
+        }
+        const CallInfo *callInfo() const;
+    };
 
     typedef LIns* LInsp;
 
-	LIns* FASTCALL callArgN(LInsp i, uint32_t n);
-	extern const uint8_t operandCount[];
+    LIns* FASTCALL callArgN(LInsp i, uint32_t n);
+    extern const uint8_t operandCount[];
 
-	class Fragmento;	
+    class Fragmento;    
 
-	
-	class LirWriter : public avmplus::GCObject
-	{
-	public:
-		LirWriter *out;
+    
+    class LirWriter : public avmplus::GCObject
+    {
+    public:
+        LirWriter *out;
 
-		virtual ~LirWriter() {}
-		LirWriter(LirWriter* out) 
-			: out(out) {}
+        virtual ~LirWriter() {}
+        LirWriter(LirWriter* out)
+            : out(out) {}
 
-		virtual LInsp ins0(LOpcode v) {
-			return out->ins0(v);
-		}
-		virtual LInsp ins1(LOpcode v, LIns* a) {
-			return out->ins1(v, a);
-		}
-		virtual LInsp ins2(LOpcode v, LIns* a, LIns* b) {
-			return out->ins2(v, a, b);
-		}
-		virtual LInsp insGuard(LOpcode v, LIns *c, LIns *x) {
-			return out->insGuard(v, c, x);
-		}
-		virtual LInsp insBranch(LOpcode v, LInsp condition, LInsp to) {
-			return out->insBranch(v, condition, to);
-		}
+        virtual LInsp ins0(LOpcode v) {
+            return out->ins0(v);
+        }
+        virtual LInsp ins1(LOpcode v, LIns* a) {
+            return out->ins1(v, a);
+        }
+        virtual LInsp ins2(LOpcode v, LIns* a, LIns* b) {
+            return out->ins2(v, a, b);
+        }
+        virtual LInsp insGuard(LOpcode v, LIns *c, LIns *x) {
+            return out->insGuard(v, c, x);
+        }
+        virtual LInsp insBranch(LOpcode v, LInsp condition, LInsp to) {
+            return out->insBranch(v, condition, to);
+        }
         
         
-		virtual LInsp insParam(int32_t arg, int32_t kind) {
-			return out->insParam(arg, kind);
-		}
-		virtual LInsp insImm(int32_t imm) {
-			return out->insImm(imm);
-		}
-		virtual LInsp insImmq(uint64_t imm) {
-			return out->insImmq(imm);
-		}
-		virtual LInsp insLoad(LOpcode op, LIns* base, int32_t d) {
-			return out->insLoad(op, base, d);
-		}
-		virtual LInsp insStorei(LIns* value, LIns* base, int32_t d) {
-			return out->insStorei(value, base, d);
-		}
-		virtual LInsp insCall(const CallInfo *call, LInsp args[]) {
-			return out->insCall(call, args);
-		}
-		virtual LInsp insAlloc(int32_t size) {
-			return out->insAlloc(size);
-		}
-		virtual LInsp insSkip(size_t size) {
-			return out->insSkip(size);
-		}
+        virtual LInsp insParam(int32_t arg, int32_t kind) {
+            return out->insParam(arg, kind);
+        }
+        virtual LInsp insImm(int32_t imm) {
+            return out->insImm(imm);
+        }
+        virtual LInsp insImmq(uint64_t imm) {
+            return out->insImmq(imm);
+        }
+        virtual LInsp insLoad(LOpcode op, LIns* base, int32_t d) {
+            return out->insLoad(op, base, d);
+        }
+        virtual LInsp insStorei(LIns* value, LIns* base, int32_t d) {
+            return out->insStorei(value, base, d);
+        }
+        virtual LInsp insCall(const CallInfo *call, LInsp args[]) {
+            return out->insCall(call, args);
+        }
+        virtual LInsp insAlloc(int32_t size) {
+            return out->insAlloc(size);
+        }
+        virtual LInsp insSkip(size_t size) {
+            return out->insSkip(size);
+        }
 
-		
+        
 
-		
-		
-	    LIns*		ins_choose(LIns* cond, LIns* iftrue, LIns* iffalse);
-	    
-	    LIns*		ins_eq0(LIns* oprnd1);
-		
-		
+        
+        
+        LIns*        ins_choose(LIns* cond, LIns* iftrue, LIns* iffalse);
+        
+        LIns*        ins_eq0(LIns* oprnd1);
+        
+        
         LIns*       ins2i(LOpcode op, LIns *oprnd1, int32_t);
-		LIns*		qjoin(LInsp lo, LInsp hi);
-		LIns*		insImmPtr(const void *ptr);
-		LIns*		insImmf(double f);
-	};
+        LIns*        qjoin(LInsp lo, LInsp hi);
+        LIns*        insImmPtr(const void *ptr);
+        LIns*        insImmf(double f);
+    };
 
 
     
@@ -779,156 +780,156 @@ namespace nanojit
     
     
     #define NJ_MAX_SKIP_PAYLOAD_SZB     (NJ_MAX_LINS_SZB - sizeof(LInsSk))
- 
+
 
 #ifdef NJ_VERBOSE
-	extern const char* lirNames[];
+    extern const char* lirNames[];
 
-	
+    
 
 
     class LabelMap MMGC_SUBCLASS_DECL
     {
-		class Entry MMGC_SUBCLASS_DECL
-		{
-		public:
-			Entry(int) : name(0), size(0), align(0) {}
-			Entry(avmplus::String *n, size_t s, size_t a) : name(n),size(s),align(a) {}
-            ~Entry(); 
-			DRCWB(avmplus::String*) name;
-			size_t size:29, align:3;
-		};
+        class Entry MMGC_SUBCLASS_DECL
+        {
+        public:
+            Entry(int) : name(0), size(0), align(0) {}
+            Entry(avmplus::String *n, size_t s, size_t a) : name(n),size(s),align(a) {}
+            ~Entry();
+            DRCWB(avmplus::String*) name;
+            size_t size:29, align:3;
+        };
         avmplus::SortedMap<const void*, Entry*, avmplus::LIST_GCObjects> names;
-		bool addrs, pad[3];
-		char buf[1000], *end;
+        bool addrs, pad[3];
+        char buf[1000], *end;
         void formatAddr(const void *p, char *buf);
     public:
         avmplus::AvmCore *core;
         LabelMap(avmplus::AvmCore *);
         ~LabelMap();
         void add(const void *p, size_t size, size_t align, const char *name);
-		void add(const void *p, size_t size, size_t align, avmplus::String*);
-		const char *dup(const char *);
-		const char *format(const void *p);
-		void clear();
+        void add(const void *p, size_t size, size_t align, avmplus::String*);
+        const char *dup(const char *);
+        const char *format(const void *p);
+        void clear();
     };
 
-	class LirNameMap MMGC_SUBCLASS_DECL
-	{
-		template <class Key>
-		class CountMap: public avmplus::SortedMap<Key, int, avmplus::LIST_NonGCObjects> {
-		public:
-			CountMap(avmplus::GC*gc) : avmplus::SortedMap<Key, int, avmplus::LIST_NonGCObjects>(gc) {}
-			int add(Key k) {
-				int c = 1;
-				if (containsKey(k)) {
-					c = 1+get(k);
-				}
-				put(k,c);
-				return c;
-			}
-		};
-		CountMap<int> lircounts;
-		CountMap<const CallInfo *> funccounts;
+    class LirNameMap MMGC_SUBCLASS_DECL
+    {
+        template <class Key>
+        class CountMap: public avmplus::SortedMap<Key, int, avmplus::LIST_NonGCObjects> {
+        public:
+            CountMap(avmplus::GC*gc) : avmplus::SortedMap<Key, int, avmplus::LIST_NonGCObjects>(gc) {}
+            int add(Key k) {
+                int c = 1;
+                if (containsKey(k)) {
+                    c = 1+get(k);
+                }
+                put(k,c);
+                return c;
+            }
+        };
+        CountMap<int> lircounts;
+        CountMap<const CallInfo *> funccounts;
 
-		class Entry MMGC_SUBCLASS_DECL 
-		{
-		public:
-			Entry(int) : name(0) {}
-			Entry(avmplus::String *n) : name(n) {}
+        class Entry MMGC_SUBCLASS_DECL
+        {
+        public:
+            Entry(int) : name(0) {}
+            Entry(avmplus::String *n) : name(n) {}
             ~Entry();
-			DRCWB(avmplus::String*) name;
-		};
-		avmplus::SortedMap<LInsp, Entry*, avmplus::LIST_GCObjects> names;
-		LabelMap *labels;
-		void formatImm(int32_t c, char *buf);
-	public:
+            DRCWB(avmplus::String*) name;
+        };
+        avmplus::SortedMap<LInsp, Entry*, avmplus::LIST_GCObjects> names;
+        LabelMap *labels;
+        void formatImm(int32_t c, char *buf);
+    public:
 
-		LirNameMap(avmplus::GC *gc, LabelMap *r) 
-			: lircounts(gc),
-			funccounts(gc),
-			names(gc),
-			labels(r)
-		{}
+        LirNameMap(avmplus::GC *gc, LabelMap *r)
+            : lircounts(gc),
+            funccounts(gc),
+            names(gc),
+            labels(r)
+        {}
         ~LirNameMap();
 
-		void addName(LInsp i, const char *s);
-		bool addName(LInsp i, avmplus::String *s);
-		void copyName(LInsp i, const char *s, int suffix);
+        void addName(LInsp i, const char *s);
+        bool addName(LInsp i, avmplus::String *s);
+        void copyName(LInsp i, const char *s, int suffix);
         const char *formatRef(LIns *ref);
-		const char *formatIns(LInsp i);
-		void formatGuard(LInsp i, char *buf);
-	};
+        const char *formatIns(LInsp i);
+        void formatGuard(LInsp i, char *buf);
+    };
 
 
-	class VerboseWriter : public LirWriter
-	{
-		InsList code;
-		DWB(LirNameMap*) names;
-		LogControl* logc;
+    class VerboseWriter : public LirWriter
+    {
+        InsList code;
+        DWB(LirNameMap*) names;
+        LogControl* logc;
     public:
-		VerboseWriter(avmplus::GC *gc, LirWriter *out,
-					  LirNameMap* names, LogControl* logc)
-			: LirWriter(out), code(gc), names(names), logc(logc)
-		{}
+        VerboseWriter(avmplus::GC *gc, LirWriter *out,
+                      LirNameMap* names, LogControl* logc)
+            : LirWriter(out), code(gc), names(names), logc(logc)
+        {}
 
-		LInsp add(LInsp i) {
+        LInsp add(LInsp i) {
             if (i)
                 code.add(i);
-			return i;
-		}
+            return i;
+        }
 
         LInsp add_flush(LInsp i) {
-            if ((i = add(i)) != 0) 
+            if ((i = add(i)) != 0)
                 flush();
             return i;
         }
 
-		void flush()
-		{
+        void flush()
+        {
             int n = code.size();
             if (n) {
-			    for (int i=0; i < n; i++)
-				    logc->printf("    %s\n",names->formatIns(code[i]));
-			    code.clear();
+                for (int i=0; i < n; i++)
+                    logc->printf("    %s\n",names->formatIns(code[i]));
+                code.clear();
                 if (n > 1)
-        			logc->printf("\n");
+                    logc->printf("\n");
             }
-		}
+        }
 
-		LIns* insGuard(LOpcode op, LInsp cond, LIns *x) {
-			return add_flush(out->insGuard(op,cond,x));
-		}
+        LIns* insGuard(LOpcode op, LInsp cond, LIns *x) {
+            return add_flush(out->insGuard(op,cond,x));
+        }
 
-		LIns* insBranch(LOpcode v, LInsp condition, LInsp to) {
-			return add_flush(out->insBranch(v, condition, to));
-		}
+        LIns* insBranch(LOpcode v, LInsp condition, LInsp to) {
+            return add_flush(out->insBranch(v, condition, to));
+        }
 
-		LIns* ins0(LOpcode v) {
+        LIns* ins0(LOpcode v) {
             if (v == LIR_label || v == LIR_start) {
                 flush();
             }
-			return add(out->ins0(v));
-		}
+            return add(out->ins0(v));
+        }
 
-		LIns* ins1(LOpcode v, LInsp a) {
+        LIns* ins1(LOpcode v, LInsp a) {
             return isRetOpcode(v) ? add_flush(out->ins1(v, a)) : add(out->ins1(v, a));
-		}
-		LIns* ins2(LOpcode v, LInsp a, LInsp b) {
-			return v == LIR_2 ? out->ins2(v,a,b) : add(out->ins2(v, a, b));
-		}
-		LIns* insCall(const CallInfo *call, LInsp args[]) {
-			return add_flush(out->insCall(call, args));
-		}
-		LIns* insParam(int32_t i, int32_t kind) {
-			return add(out->insParam(i, kind));
-		}
-		LIns* insLoad(LOpcode v, LInsp base, int32_t disp) {
-			return add(out->insLoad(v, base, disp));
-		}
-		LIns* insStorei(LInsp v, LInsp b, int32_t d) {
-			return add(out->insStorei(v, b, d));
-		}
+        }
+        LIns* ins2(LOpcode v, LInsp a, LInsp b) {
+            return v == LIR_2 ? out->ins2(v,a,b) : add(out->ins2(v, a, b));
+        }
+        LIns* insCall(const CallInfo *call, LInsp args[]) {
+            return add_flush(out->insCall(call, args));
+        }
+        LIns* insParam(int32_t i, int32_t kind) {
+            return add(out->insParam(i, kind));
+        }
+        LIns* insLoad(LOpcode v, LInsp base, int32_t disp) {
+            return add(out->insLoad(v, base, disp));
+        }
+        LIns* insStorei(LInsp v, LInsp b, int32_t d) {
+            return add(out->insStorei(v, b, d));
+        }
         LIns* insAlloc(int32_t size) {
             return add(out->insAlloc(size));
         }
@@ -942,194 +943,194 @@ namespace nanojit
 
 #endif
 
-	class ExprFilter: public LirWriter
-	{
-	public:
-		ExprFilter(LirWriter *out) : LirWriter(out) {}
-		LIns* ins1(LOpcode v, LIns* a);
-	    LIns* ins2(LOpcode v, LIns* a, LIns* b);
-		LIns* insGuard(LOpcode, LIns *cond, LIns *);
+    class ExprFilter: public LirWriter
+    {
+    public:
+        ExprFilter(LirWriter *out) : LirWriter(out) {}
+        LIns* ins1(LOpcode v, LIns* a);
+        LIns* ins2(LOpcode v, LIns* a, LIns* b);
+        LIns* insGuard(LOpcode, LIns *cond, LIns *);
         LIns* insBranch(LOpcode, LIns *cond, LIns *target);
-	};
+    };
 
-	
-	class LInsHashSet
-	{
-		
-		
-		
-		static const uint32_t kInitialCap = 64;	
+    
+    class LInsHashSet
+    {
+        
+        
+        
+        static const uint32_t kInitialCap = 64;
 
-		LInsp *m_list; 
-		uint32_t m_used, m_cap;
-		avmplus::GC* m_gc;
+        LInsp *m_list; 
+        uint32_t m_used, m_cap;
+        avmplus::GC* m_gc;
 
-		static uint32_t FASTCALL hashcode(LInsp i);
-		uint32_t FASTCALL find(LInsp name, uint32_t hash, const LInsp *list, uint32_t cap);
-		static bool FASTCALL equals(LInsp a, LInsp b);
-		void FASTCALL grow();
+        static uint32_t FASTCALL hashcode(LInsp i);
+        uint32_t FASTCALL find(LInsp name, uint32_t hash, const LInsp *list, uint32_t cap);
+        static bool FASTCALL equals(LInsp a, LInsp b);
+        void FASTCALL grow();
 
-	public:
+    public:
 
-		LInsHashSet(avmplus::GC* gc);
-		~LInsHashSet();
-		LInsp find32(int32_t a, uint32_t &i);
-		LInsp find64(uint64_t a, uint32_t &i);
-		LInsp find1(LOpcode v, LInsp a, uint32_t &i);
-		LInsp find2(LOpcode v, LInsp a, LInsp b, uint32_t &i);
-		LInsp findLoad(LOpcode v, LInsp a, int32_t b, uint32_t &i);
-		LInsp findcall(const CallInfo *call, uint32_t argc, LInsp args[], uint32_t &i);
-		LInsp add(LInsp i, uint32_t k);
-		void replace(LInsp i);
+        LInsHashSet(avmplus::GC* gc);
+        ~LInsHashSet();
+        LInsp find32(int32_t a, uint32_t &i);
+        LInsp find64(uint64_t a, uint32_t &i);
+        LInsp find1(LOpcode v, LInsp a, uint32_t &i);
+        LInsp find2(LOpcode v, LInsp a, LInsp b, uint32_t &i);
+        LInsp findLoad(LOpcode v, LInsp a, int32_t b, uint32_t &i);
+        LInsp findcall(const CallInfo *call, uint32_t argc, LInsp args[], uint32_t &i);
+        LInsp add(LInsp i, uint32_t k);
+        void replace(LInsp i);
         void clear();
 
-		static uint32_t FASTCALL hashimm(int32_t);
-		static uint32_t FASTCALL hashimmq(uint64_t);
-		static uint32_t FASTCALL hash1(LOpcode v, LInsp);
-		static uint32_t FASTCALL hash2(LOpcode v, LInsp, LInsp);
-		static uint32_t FASTCALL hashLoad(LOpcode v, LInsp, int32_t);
-		static uint32_t FASTCALL hashcall(const CallInfo *call, uint32_t argc, LInsp args[]);
-	};
+        static uint32_t FASTCALL hashimm(int32_t);
+        static uint32_t FASTCALL hashimmq(uint64_t);
+        static uint32_t FASTCALL hash1(LOpcode v, LInsp);
+        static uint32_t FASTCALL hash2(LOpcode v, LInsp, LInsp);
+        static uint32_t FASTCALL hashLoad(LOpcode v, LInsp, int32_t);
+        static uint32_t FASTCALL hashcall(const CallInfo *call, uint32_t argc, LInsp args[]);
+    };
 
-	class CseFilter: public LirWriter
-	{
-	public:
-		LInsHashSet exprs;
-		CseFilter(LirWriter *out, avmplus::GC *gc);
-	    LIns* insImm(int32_t imm);
-	    LIns* insImmq(uint64_t q);
-	    LIns* ins0(LOpcode v);
-		LIns* ins1(LOpcode v, LInsp);
-		LIns* ins2(LOpcode v, LInsp, LInsp);
-		LIns* insLoad(LOpcode op, LInsp cond, int32_t d);
-		LIns* insCall(const CallInfo *call, LInsp args[]);
-		LIns* insGuard(LOpcode op, LInsp cond, LIns *x);
-	};
+    class CseFilter: public LirWriter
+    {
+    public:
+        LInsHashSet exprs;
+        CseFilter(LirWriter *out, avmplus::GC *gc);
+        LIns* insImm(int32_t imm);
+        LIns* insImmq(uint64_t q);
+        LIns* ins0(LOpcode v);
+        LIns* ins1(LOpcode v, LInsp);
+        LIns* ins2(LOpcode v, LInsp, LInsp);
+        LIns* insLoad(LOpcode op, LInsp cond, int32_t d);
+        LIns* insCall(const CallInfo *call, LInsp args[]);
+        LIns* insGuard(LOpcode op, LInsp cond, LIns *x);
+    };
 
-	class LirBuffer : public avmplus::GCFinalizedObject
-	{
-		public:
-			DWB(Fragmento*)		_frago;
-			LirBuffer(Fragmento* frago);
-			virtual ~LirBuffer();
-			void        clear();
+    class LirBuffer : public avmplus::GCFinalizedObject
+    {
+        public:
+            DWB(Fragmento*)        _frago;
+            LirBuffer(Fragmento* frago);
+            virtual ~LirBuffer();
+            void        clear();
             void        rewind();
             uintptr_t   makeRoom(size_t szB);   
-			bool		outOMem() { return _noMem != 0; }
-			
-			debug_only (void validate() const;)
-			verbose_only(DWB(LirNameMap*) names;)
-			
+            bool        outOMem() { return _noMem != 0; }
+
+            debug_only (void validate() const;)
+            verbose_only(DWB(LirNameMap*) names;)
+
             int32_t insCount();
             size_t  byteCount();
 
-			
-			struct 
-			{
-				uint32_t lir;	
-			}
-			_stats;
+            
+            struct
+            {
+                uint32_t lir;    
+            }
+            _stats;
 
             AbiKind abi;
             LInsp state,param1,sp,rp;
             LInsp savedRegs[NumSavedRegs];
             bool explicitSavedRegs;
 
-		protected:
-			Page*		pageAlloc();
+        protected:
+            Page*        pageAlloc();
             void        moveToNewPage(uintptr_t addrOfLastLInsOnCurrentPage);
 
-			PageList	_pages;
-			Page*		_nextPage; 
+            PageList    _pages;
+            Page*        _nextPage; 
             uintptr_t   _unused;    
-			int			_noMem;		
-	};	
+            int            _noMem;        
+    };
 
-	class LirBufWriter : public LirWriter
-	{
-		DWB(LirBuffer*)	_buf;		
+    class LirBufWriter : public LirWriter
+    {
+        DWB(LirBuffer*)    _buf;        
 
-        public:			
-			LirBufWriter(LirBuffer* buf)
-				: LirWriter(0), _buf(buf) {
-			}
+        public:
+            LirBufWriter(LirBuffer* buf)
+                : LirWriter(0), _buf(buf) {
+            }
 
-			
-			LInsp   insLoad(LOpcode op, LInsp base, int32_t disp);
-			LInsp	insStorei(LInsp o1, LInsp o2, int32_t disp);
-			LInsp	ins0(LOpcode op);
-			LInsp	ins1(LOpcode op, LInsp o1);
-			LInsp	ins2(LOpcode op, LInsp o1, LInsp o2);
-			LInsp	insParam(int32_t i, int32_t kind);
-			LInsp	insImm(int32_t imm);
-			LInsp	insImmq(uint64_t imm);
-		    LInsp	insCall(const CallInfo *call, LInsp args[]);
-			LInsp	insGuard(LOpcode op, LInsp cond, LIns *x);
-			LInsp	insBranch(LOpcode v, LInsp condition, LInsp to);
+            
+            LInsp   insLoad(LOpcode op, LInsp base, int32_t disp);
+            LInsp    insStorei(LInsp o1, LInsp o2, int32_t disp);
+            LInsp    ins0(LOpcode op);
+            LInsp    ins1(LOpcode op, LInsp o1);
+            LInsp    ins2(LOpcode op, LInsp o1, LInsp o2);
+            LInsp    insParam(int32_t i, int32_t kind);
+            LInsp    insImm(int32_t imm);
+            LInsp    insImmq(uint64_t imm);
+            LInsp    insCall(const CallInfo *call, LInsp args[]);
+            LInsp    insGuard(LOpcode op, LInsp cond, LIns *x);
+            LInsp    insBranch(LOpcode v, LInsp condition, LInsp to);
             LInsp   insAlloc(int32_t size);
             LInsp   insSkip(size_t);
-	};
+    };
 
-	class LirFilter
-	{
-	public:
-		LirFilter *in;
-		LirFilter(LirFilter *in) : in(in) {}
+    class LirFilter
+    {
+    public:
+        LirFilter *in;
+        LirFilter(LirFilter *in) : in(in) {}
         virtual ~LirFilter(){}
 
-		virtual LInsp read() {
-			return in->read();
-		}
-		virtual LInsp pos() {
-			return in->pos();
-		}
-	};
+        virtual LInsp read() {
+            return in->read();
+        }
+        virtual LInsp pos() {
+            return in->pos();
+        }
+    };
 
-	
-	class LirReader : public LirFilter
-	{
-		LInsp _i; 
+    
+    class LirReader : public LirFilter
+    {
+        LInsp _i; 
 
-	public:
-		LirReader(LInsp i) : LirFilter(0), _i(i) { }
-		virtual ~LirReader() {}
+    public:
+        LirReader(LInsp i) : LirFilter(0), _i(i) { }
+        virtual ~LirReader() {}
 
-		
-		LInsp read(); 
-		LInsp pos() {
-			return _i;
-		}
+        
+        LInsp read(); 
+        LInsp pos() {
+            return _i;
+        }
         void setpos(LIns *i) {
             _i = i;
         }
-	};
+    };
 
     class Assembler;
 
     void compile(Assembler *assm, Fragment *frag);
-	verbose_only(void live(avmplus::GC *gc, LirBuffer *lirbuf);)
+    verbose_only(void live(avmplus::GC *gc, LirBuffer *lirbuf);)
 
-	class StackFilter: public LirFilter
-	{
-	    avmplus::GC *gc;
-		LirBuffer *lirbuf;
-		LInsp sp;
-		avmplus::BitSet stk;
+    class StackFilter: public LirFilter
+    {
+        avmplus::GC *gc;
+        LirBuffer *lirbuf;
+        LInsp sp;
+        avmplus::BitSet stk;
         int top;
-		int getTop(LInsp br);
-	public:
-	    StackFilter(LirFilter *in, avmplus::GC *gc, LirBuffer *lirbuf, LInsp sp); 
-		virtual ~StackFilter() {}
-		LInsp read();
-	};
+        int getTop(LInsp br);
+    public:
+        StackFilter(LirFilter *in, avmplus::GC *gc, LirBuffer *lirbuf, LInsp sp);
+        virtual ~StackFilter() {}
+        LInsp read();
+    };
 
-	class CseReader: public LirFilter
-	{
-		LInsHashSet *exprs;
-	public:
-		CseReader(LirFilter *in, LInsHashSet *exprs);
-		LInsp read();
-	};
+    class CseReader: public LirFilter
+    {
+        LInsHashSet *exprs;
+    public:
+        CseReader(LirFilter *in, LInsHashSet *exprs);
+        LInsp read();
+    };
 
     
     class LoadFilter: public LirWriter
@@ -1146,6 +1147,6 @@ namespace nanojit
         LInsp insLoad(LOpcode, LInsp base, int32_t disp);
         LInsp insStorei(LInsp v, LInsp b, int32_t d);
         LInsp insCall(const CallInfo *call, LInsp args[]);
-    };	
+    };
 }
 #endif 
