@@ -373,8 +373,9 @@ nsClipboard::GetData(nsITransferable *aTransferable, PRInt32 aWhichClipboard)
                     
                     ConvertHTMLtoUCS2((guchar *)selectionData->data, length,
                                       &htmlBody, htmlBodyLen);
+                    
                     if (!htmlBodyLen)
-                        break;
+                        continue;
                     data = (guchar *)htmlBody;
                     length = htmlBodyLen * 2;
                 } else {
