@@ -68,9 +68,14 @@ DownloadProgressListener.prototype = {
       case nsIDM.DOWNLOAD_QUEUED:
         prependList(aDownload);
         break;
+
+      case nsIDM.DOWNLOAD_BLOCKED_POLICY:
+        prependList(aDownload);
+        
+        
       case nsIDM.DOWNLOAD_FAILED:
       case nsIDM.DOWNLOAD_CANCELED:
-      case nsIDM.DOWNLOAD_BLOCKED:
+      case nsIDM.DOWNLOAD_BLOCKED_PARENTAL:
       case nsIDM.DOWNLOAD_DIRTY:
       case nsIDM.DOWNLOAD_FINISHED:
         downloadCompleted(aDownload);

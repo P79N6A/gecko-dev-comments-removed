@@ -94,7 +94,8 @@ let gStr = {
   doneSizeUnknown: "doneSizeUnknown",
   stateFailed: "stateFailed",
   stateCanceled: "stateCanceled",
-  stateBlocked: "stateBlocked",
+  stateBlockedParentalControls: "stateBlocked",
+  stateBlockedPolicy: "stateDirty",
   stateDirty: "stateDirty",
   yesterday: "yesterday",
   monthDate: "monthDate",
@@ -542,6 +543,14 @@ var gContextMenus = [
     , "menuseparator"
     , "menuitem_removeFromList"
     , "menuitem_clearList"
+  ],
+  
+  [
+    "menuitem_openReferrer"
+    , "menuitem_copyLocation"
+    , "menuseparator"
+    , "menuitem_removeFromList"
+    , "menuitem_clearList"
   ]
 ];
 
@@ -864,7 +873,8 @@ function updateStatus(aItem, aDownload) {
     case nsIDM.DOWNLOAD_FINISHED:
     case nsIDM.DOWNLOAD_FAILED:
     case nsIDM.DOWNLOAD_CANCELED:
-    case nsIDM.DOWNLOAD_BLOCKED:
+    case nsIDM.DOWNLOAD_BLOCKED_PARENTAL:
+    case nsIDM.DOWNLOAD_BLOCKED_POLICY:
     case nsIDM.DOWNLOAD_DIRTY:
     {
       let (stateSize = {}) {
@@ -881,7 +891,8 @@ function updateStatus(aItem, aDownload) {
         };
         stateSize[nsIDM.DOWNLOAD_FAILED] = function() gStr.stateFailed;
         stateSize[nsIDM.DOWNLOAD_CANCELED] = function() gStr.stateCanceled;
-        stateSize[nsIDM.DOWNLOAD_BLOCKED] = function() gStr.stateBlocked;
+        stateSize[nsIDM.DOWNLOAD_BLOCKED_PARENTAL] = function() gStr.stateBlockedParentalControls;
+        stateSize[nsIDM.DOWNLOAD_BLOCKED_POLICY] = function() gStr.stateBlockedPolicy;
         stateSize[nsIDM.DOWNLOAD_DIRTY] = function() gStr.stateDirty;
 
         
