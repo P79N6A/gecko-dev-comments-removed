@@ -595,8 +595,6 @@ public:
   
   virtual void BeginUpdate(nsUpdateType aUpdateType) = 0;
   virtual void EndUpdate(nsUpdateType aUpdateType) = 0;
-  virtual PRUint32 GetUpdateNestingLevel() = 0;
-  virtual PRBool AllUpdatesAreContent() = 0;
   virtual void BeginLoad() = 0;
   virtual void EndLoad() = 0;
   

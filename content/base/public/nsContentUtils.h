@@ -1223,6 +1223,29 @@ public:
     return sScriptBlockerCount == 0;
   }
 
+  
+
+
+
+
+
+  static void AddRemovableScriptBlocker()
+  {
+    AddScriptBlocker();
+    ++sRemovableScriptBlockerCount;
+  }
+  static void RemoveRemovableScriptBlocker()
+  {
+    NS_ASSERTION(sRemovableScriptBlockerCount != 0,
+                "Number of removable blockers should never go below zero");
+    --sRemovableScriptBlockerCount;
+    RemoveScriptBlocker();
+  }
+  static PRUint32 GetRemovableScriptBlockerLevel()
+  {
+    return sRemovableScriptBlockerCount;
+  }
+
 private:
 
   static PRBool InitializeEventTable();
@@ -1296,6 +1319,7 @@ private:
 
   static PRBool sInitialized;
   static PRUint32 sScriptBlockerCount;
+  static PRUint32 sRemovableScriptBlockerCount;
   static nsCOMArray<nsIRunnable>* sBlockedScriptRunners;
   static PRUint32 sRunnersCountAtFirstBlocker;
 };
@@ -1375,6 +1399,32 @@ public:
   ~nsAutoScriptBlocker() {
     nsContentUtils::RemoveScriptBlocker();
   }
+};
+
+class mozAutoRemovableBlockerRemover
+{
+public:
+  mozAutoRemovableBlockerRemover()
+  {
+    mNestingLevel = nsContentUtils::GetRemovableScriptBlockerLevel();
+    for (PRUint32 i = 0; i < mNestingLevel; ++i) {
+      nsContentUtils::RemoveRemovableScriptBlocker();
+    }
+
+    NS_ASSERTION(nsContentUtils::IsSafeToRunScript(), "killing mutation events");
+  }
+
+  ~mozAutoRemovableBlockerRemover()
+  {
+    NS_ASSERTION(nsContentUtils::GetRemovableScriptBlockerLevel() == 0,
+                 "Should have had none");
+    for (PRUint32 i = 0; i < mNestingLevel; ++i) {
+      nsContentUtils::AddRemovableScriptBlocker();
+    }
+  }
+
+private:
+  PRUint32 mNestingLevel;
 };
 
 #define NS_AUTO_GCROOT_PASTE2(tok,line) tok##line
