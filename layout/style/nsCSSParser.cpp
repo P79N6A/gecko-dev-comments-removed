@@ -1124,6 +1124,10 @@ CSSParserImpl::ParseProperty(const nsCSSProperty aPropID,
   
   
   
+  if (!aDeclaration->EnsureMutable()) {
+    NS_WARNING("out of memory");
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   void* valueSlot = aDeclaration->SlotForValue(aPropID);
   if (!valueSlot) {
     

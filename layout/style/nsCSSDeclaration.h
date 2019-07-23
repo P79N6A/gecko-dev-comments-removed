@@ -139,6 +139,8 @@ public:
 
 
 
+
+
   void* SlotForValue(nsCSSProperty aProperty) {
     NS_PRECONDITION(mData, "How did that happen?");
     if (nsCSSProps::IsShorthand(aProperty)) {
@@ -157,6 +159,13 @@ public:
     NS_ABORT_IF_FALSE(!nsCSSProps::IsShorthand(aProperty), "must be longhand");
     return !!mData->StorageFor(aProperty);
   }
+
+  
+
+
+
+
+  PRBool EnsureMutable();
 
   
 
