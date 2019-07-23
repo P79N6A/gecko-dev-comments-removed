@@ -3177,7 +3177,7 @@ js_DeleteRecorder(JSContext* cx)
 
 
 
-static inline bool
+static inline JS_REQUIRES_STACK bool
 js_CheckGlobalObjectShape(JSContext* cx, JSTraceMonitor* tm, JSObject* globalObj,
                           uint32 *shape=NULL, SlotList** slots=NULL)
 {
