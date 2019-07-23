@@ -118,7 +118,9 @@ void MozQWidget::keyReleaseEvent(QKeyEvent* aEvent)
 
 void MozQWidget::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* aEvent)
 {
-    mReceiver->mouseDoubleClickEvent(aEvent);
+    
+    mReceiver->OnButtonPressEvent(aEvent);
+    mReceiver->OnMouseDoubleClickEvent(aEvent);
 }
 
 void MozQWidget::mouseMoveEvent(QGraphicsSceneMouseEvent* aEvent)
