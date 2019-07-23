@@ -149,8 +149,10 @@
 #endif 
 
 #ifdef XP_WIN
+#ifndef WINCE
 #include <process.h>
 #include <shlobj.h>
+#endif
 #include "nsThreadUtils.h"
 #endif
 
@@ -2536,8 +2538,10 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
   }
 #endif
 
+#ifndef WINCE
   
   setbuf(stdout, 0);
+#endif
 
 #if defined(FREEBSD)
   
