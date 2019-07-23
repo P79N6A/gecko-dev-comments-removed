@@ -55,7 +55,6 @@
 #include <stdio.h>
 
 #include "pixman-private.h"
-#include "pixman.h"
 
 typedef struct pixman_region16_point {
     int x, y;
