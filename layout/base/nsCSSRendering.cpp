@@ -3904,26 +3904,13 @@ nsCSSRendering::PaintBackgroundColor(nsPresContext* aPresContext,
   }
 
   
-  
-  
-  if (!aBorder.mBorderColors) {
-    for (side = 0; side < 4; ++side) {
-      if (borderRadii[side] > 0) {
-        PaintRoundedBackground(aPresContext, aRenderingContext, aForFrame,
-                               bgClipArea, aColor, aBorder, borderRadii,
-                               aCanPaintNonWhite);
-        return;
-      }
+  for (side = 0; side < 4; ++side) {
+    if (borderRadii[side] > 0) {
+      PaintRoundedBackground(aPresContext, aRenderingContext, aForFrame,
+                             bgClipArea, aColor, aBorder, borderRadii,
+                             aCanPaintNonWhite);
+      return;
     }
-  }
-  else if (aColor.mBackgroundClip == NS_STYLE_BG_CLIP_BORDER) {
-    
-    
-    
-    
-    nsMargin border = aForFrame->GetUsedBorder();
-    aForFrame->ApplySkipSides(border);
-    bgClipArea.Deflate(border);
   }
 
   nscolor color;
