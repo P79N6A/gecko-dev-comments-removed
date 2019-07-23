@@ -1902,18 +1902,16 @@ nsPrintEngine::ReflowPrintObject(nsPrintObject * aPO)
   
   
   
-  PRBool canCreateScrollbars = PR_FALSE;
-  nsIView* parentView;
+  PRBool canCreateScrollbars = PR_TRUE;
+  nsIView* parentView = nsnull;
   
-  if (frame) {
+  if (frame && frame->GetType() == nsGkAtoms::subDocumentFrame) {
     nsIView* view = frame->GetView();
     NS_ENSURE_TRUE(view, NS_ERROR_FAILURE);
     view = view->GetFirstChild();
     NS_ENSURE_TRUE(view, NS_ERROR_FAILURE);
     parentView = view;
-  } else {
-    canCreateScrollbars = PR_TRUE;
-    parentView = nsnull;
+    canCreateScrollbars = PR_FALSE;
   }
 
   
