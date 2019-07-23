@@ -647,18 +647,6 @@ NS_IMETHODIMP nsScrollPortView::ScrollToImpl(nscoord aX, nscoord aY, PRUint32 aU
   
   scrolledView->SetPositionIgnoringChildWidgets(-aX, -aY);
       
-  
-  if (nsnull != mListeners) {
-    if (NS_SUCCEEDED(mListeners->Count(&listenerCount))) {
-      for (PRUint32 i = 0; i < listenerCount; i++) {
-        if (NS_SUCCEEDED(mListeners->QueryElementAt(i, kScrollPositionListenerIID, (void**)&listener))) {
-          listener->ViewPositionDidChange(this);
-          NS_RELEASE(listener);
-        }
-      }
-    }
-  }
-
   nsPoint twipsDelta(aX - mOffsetX, aY - mOffsetY);
 
   

@@ -230,10 +230,7 @@ public:
 
 
 
-
-
-  static nsIFrame* GetCrossDocParentFrame(const nsIFrame* aFrame,
-                                          nsPoint* aCrossDocOffset = nsnull);
+  static nsIFrame* GetCrossDocParentFrame(nsIFrame* aFrame);
   
   
 
