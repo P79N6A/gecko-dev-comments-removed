@@ -34,7 +34,7 @@
 
 
 
-EXPORTED_SYMBOLS = ["baz", "qux"]
+var EXPORTED_SYMBOLS = ["baz", "qux"];
 
 function baz() {
   return "baz";

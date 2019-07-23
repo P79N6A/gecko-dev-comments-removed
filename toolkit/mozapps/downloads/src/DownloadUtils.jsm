@@ -34,7 +34,7 @@
 
 
 
-EXPORTED_SYMBOLS = [ "DownloadUtils" ];
+var EXPORTED_SYMBOLS = [ "DownloadUtils" ];
 
 
 

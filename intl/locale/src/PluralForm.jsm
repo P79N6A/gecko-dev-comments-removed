@@ -34,7 +34,7 @@
 
 
 
-EXPORTED_SYMBOLS = [ "PluralForm" ];
+var EXPORTED_SYMBOLS = [ "PluralForm" ];
 
 
 

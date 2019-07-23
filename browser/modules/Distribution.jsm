@@ -34,7 +34,7 @@
 
 
 
-EXPORTED_SYMBOLS = [ "DistributionCustomizer" ];
+var EXPORTED_SYMBOLS = [ "DistributionCustomizer" ];
 
 const Ci = Components.interfaces;
 const Cc = Components.classes;
