@@ -950,7 +950,7 @@ FindCanvasBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame,
     
     *aBackground = aForFrame->GetStyleBackground();
   }
-  
+
   return PR_TRUE;
 }
 
