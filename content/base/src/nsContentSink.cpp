@@ -904,6 +904,14 @@ nsContentSink::StartLayout(PRBool aIgnorePendingSheets)
 
   mDeferredLayoutStart = PR_FALSE;
 
+  
+  
+  
+  
+  
+  
+  FlushTags();
+
   mLayoutStarted = PR_TRUE;
   mLastNotificationTime = PR_Now();
   
