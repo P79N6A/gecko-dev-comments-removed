@@ -52,7 +52,7 @@
 typedef struct
 {
   const unsigned char* const charToOrderMap;    
-  const char* const precedenceMatrix;           
+  const PRUint8* const precedenceMatrix;  
   float  mTypicalPositiveRatio;     
   PRBool keepEnglishLetter;         
   const char* const charsetName;

@@ -94,7 +94,7 @@ static const unsigned char win1251BulgarianCharToOrderMap[] =
 
 
 
-static const char BulgarianLangModel[] = 
+static const PRUint8 BulgarianLangModel[] = 
 {
 0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,3,3,3,3,3,3,3,3,2,3,3,3,3,3,
 3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,3,3,3,2,2,3,2,2,1,2,2,

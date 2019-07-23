@@ -93,7 +93,7 @@ static const unsigned char win1253_CharToOrderMap[] =
 
 
 
-static const char GreekLangModel[] = 
+static const PRUint8 GreekLangModel[] = 
 {
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
