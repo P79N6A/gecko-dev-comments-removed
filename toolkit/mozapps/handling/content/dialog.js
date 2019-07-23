@@ -234,6 +234,17 @@ var dialog = {
   },
 
   
+
+
+  onDblClick: function onDblClick()
+  {
+    if (this.selectedItem == this._itemChoose)
+      this.chooseApplication();
+    else
+      document.documentElement.acceptDialog();
+  },
+
+  
   
 
  
