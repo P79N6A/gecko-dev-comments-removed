@@ -39,6 +39,7 @@
 
 
 
+
 #include "nsOSHelperAppService.h"
 #include "nsISupports.h"
 #include "nsString.h"
@@ -55,12 +56,13 @@
 #include "nsIWindowsRegKey.h"
 
 
-#include <windows.h>
-
-
 #include <shellapi.h>
 
 #define LOG(args) PR_LOG(mLog, PR_LOG_DEBUG, args)
+
+
+static const CLSID CLSID_AppAssoc = {0x591209C7,0x767B,0x42B2,{0x9F,0xBA,0x44,0xEE,0x46,0x15,0xF2,0xC7}};
+static const IID   IID_IAppAssoc  = {0x4e530b0a,0xe611,0x4c77,{0xa3,0xac,0x90,0x31,0xd0,0x22,0x28,0x1b}};
 
 
 static nsresult GetExtensionFrom4xRegistryInfo(const nsACString& aMimeType, 
@@ -68,11 +70,22 @@ static nsresult GetExtensionFrom4xRegistryInfo(const nsACString& aMimeType,
 static nsresult GetExtensionFromWindowsMimeDatabase(const nsACString& aMimeType,
                                                     nsString& aFileExtension);
 
-nsOSHelperAppService::nsOSHelperAppService() : nsExternalHelperAppService()
-{}
+nsOSHelperAppService::nsOSHelperAppService() : 
+  nsExternalHelperAppService(),
+  mAppAssoc(nsnull)
+{
+  CoInitialize(NULL);
+  CoCreateInstance(CLSID_AppAssoc, NULL, CLSCTX_INPROC,
+                   IID_IAppAssoc, (void**)&mAppAssoc);
+}
 
 nsOSHelperAppService::~nsOSHelperAppService()
-{}
+{
+  if (mAppAssoc)
+    mAppAssoc->Release();
+  mAppAssoc = nsnull;
+  CoUninitialize();
+}
 
 
 
@@ -144,16 +157,31 @@ nsresult nsOSHelperAppService::OSProtocolHandlerExists(const char * aProtocolSch
   *aHandlerExists = PR_FALSE;
   if (aProtocolScheme && *aProtocolScheme)
   {
-     HKEY hKey;
-     LONG err = ::RegOpenKeyEx(HKEY_CLASSES_ROOT, aProtocolScheme, 0,
-                               KEY_QUERY_VALUE, &hKey);
-     if (err == ERROR_SUCCESS)
-     {
-       err = ::RegQueryValueEx(hKey, "URL Protocol", NULL, NULL, NULL, NULL);
-       *aHandlerExists = (err == ERROR_SUCCESS);
-       
-       ::RegCloseKey(hKey);
-     }
+    
+    if (mAppAssoc) {
+      PRUnichar * pResult = nsnull;
+      NS_ConvertASCIItoUTF16 scheme(aProtocolScheme);
+      
+      HRESULT hr = mAppAssoc->QueryCurrentDefault(scheme.get(),
+                                                  AT_URLPROTOCOL, AL_EFFECTIVE,
+                                                  &pResult);
+      if (SUCCEEDED(hr)) {
+        CoTaskMemFree(pResult);
+        *aHandlerExists = PR_TRUE;
+      }
+      return NS_OK;
+    }
+
+    HKEY hKey;
+    LONG err = ::RegOpenKeyEx(HKEY_CLASSES_ROOT, aProtocolScheme, 0,
+                             KEY_QUERY_VALUE, &hKey);
+    if (err == ERROR_SUCCESS)
+    {
+      err = ::RegQueryValueEx(hKey, "URL Protocol", NULL, NULL, NULL, NULL);
+      *aHandlerExists = (err == ERROR_SUCCESS);
+      
+      ::RegCloseKey(hKey);
+    }
   }
 
   return NS_OK;
@@ -167,6 +195,23 @@ NS_IMETHODIMP nsOSHelperAppService::GetApplicationDescription(const nsACString& 
     return NS_ERROR_NOT_AVAILABLE;
 
   NS_ConvertASCIItoUTF16 buf(aScheme);
+
+  
+  if (mAppAssoc) {
+    PRUnichar * pResult = nsnull;
+    
+    HRESULT hr = mAppAssoc->QueryCurrentDefault(buf.get(),
+                                                AT_URLPROTOCOL, AL_EFFECTIVE,
+                                                &pResult);
+    if (SUCCEEDED(hr)) {
+      nsCOMPtr<nsIFile> app;
+      nsAutoString appInfo(pResult);
+      CoTaskMemFree(pResult);
+      if (NS_SUCCEEDED(GetDefaultAppInfo(appInfo, _retval, getter_AddRefs(app))))
+        return NS_OK;
+    }
+    return NS_ERROR_NOT_AVAILABLE;
+  }
 
   nsCOMPtr<nsIFile> app;
   GetDefaultAppInfo(buf, _retval, getter_AddRefs(app));
@@ -369,58 +414,76 @@ static void StripRundll32(nsString& aCommandString)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 nsresult
-nsOSHelperAppService::GetDefaultAppInfo(const nsAString& aTypeName,
+nsOSHelperAppService::GetDefaultAppInfo(const nsAString& aAppInfo,
                                         nsAString& aDefaultDescription, 
                                         nsIFile** aDefaultApplication)
 {
+  nsAutoString handlerCommand;
+
   
   
-  aDefaultDescription = aTypeName;
+  aDefaultDescription = aAppInfo;
   *aDefaultApplication = nsnull;
 
-  nsAutoString handlerKeyName(aTypeName);
-  handlerKeyName.AppendLiteral("\\shell\\open\\command");
-  nsCOMPtr<nsIWindowsRegKey> regKey = 
-    do_CreateInstance("@mozilla.org/windows-registry-key;1");
-  if (!regKey) 
-    return NS_OK;
+  if (aAppInfo.IsEmpty())
+    return NS_ERROR_FAILURE;
 
-  nsresult rv = regKey->Open(nsIWindowsRegKey::ROOT_KEY_CLASSES_ROOT,
+  
+  
+  
+  
+  
+
+  nsAutoString handlerKeyName(aAppInfo);
+
+  nsCOMPtr<nsIWindowsRegKey> chkKey = 
+    do_CreateInstance("@mozilla.org/windows-registry-key;1");
+  if (!chkKey) 
+    return NS_ERROR_FAILURE;
+      
+  nsresult rv = chkKey->Open(nsIWindowsRegKey::ROOT_KEY_CLASSES_ROOT,
                              handlerKeyName, 
                              nsIWindowsRegKey::ACCESS_QUERY_VALUE);
-  if (NS_FAILED(rv))
-    return NS_OK;
-   
-  
-  nsAutoString handlerCommand;
-  rv = regKey->ReadStringValue(EmptyString(), handlerCommand);
-  if (NS_FAILED(rv))
-    return NS_OK;
+  if (NS_FAILED(rv)) {
+    
+    handlerCommand.Assign(aAppInfo);
+  }
+  else {
+    handlerKeyName.AppendLiteral("\\shell\\open\\command");
+    nsCOMPtr<nsIWindowsRegKey> regKey = 
+      do_CreateInstance("@mozilla.org/windows-registry-key;1");
+    if (!regKey) 
+      return NS_ERROR_FAILURE;
+
+    nsresult rv = regKey->Open(nsIWindowsRegKey::ROOT_KEY_CLASSES_ROOT,
+                               handlerKeyName, 
+                               nsIWindowsRegKey::ACCESS_QUERY_VALUE);
+    if (NS_FAILED(rv))
+      return NS_ERROR_FAILURE;
+     
+    
+    rv = regKey->ReadStringValue(EmptyString(), handlerCommand);
+    if (NS_FAILED(rv))
+      return NS_ERROR_FAILURE;
+  }
 
   if (!CleanupCmdHandlerPath(handlerCommand))
     return NS_ERROR_FAILURE;
 
+  
+  
+  
+  
+  
   nsCOMPtr<nsILocalFile> lf;
   NS_NewLocalFile(handlerCommand, PR_TRUE, getter_AddRefs(lf));
   if (!lf)
-    return NS_ERROR_OUT_OF_MEMORY;
+    return NS_ERROR_FILE_NOT_FOUND;
 
   nsILocalFileWin* lfw = nsnull;
   CallQueryInterface(lf, &lfw);
+
   if (lfw) {
     
     lfw->GetVersionInfoField("FileDescription", aDefaultDescription);
@@ -478,35 +541,58 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
 
   
   mimeInfo->AppendExtension(NS_ConvertUTF16toUTF8(Substring(fileExtToUse, 1)));
-
   mimeInfo->SetPreferredAction(nsIMIMEInfo::useSystemDefault);
 
-  nsAutoString description;
-  PRBool found = NS_SUCCEEDED(regKey->ReadStringValue(EmptyString(),
-                                                      description));
+  nsAutoString appInfo;
+  PRBool found;
 
   
-  if (description.EqualsLiteral("XPSViewer.Document")) {
-    NS_IF_RELEASE(mimeInfo);
+  if (mAppAssoc) {
+    
+    
+    nsString assocType(fileExtToUse);
+    PRUnichar * pResult = nsnull;
+    HRESULT hr = mAppAssoc->QueryCurrentDefault(assocType.get(),
+                                                AT_FILEEXTENSION, AL_EFFECTIVE,
+                                                &pResult);
+    if (SUCCEEDED(hr)) {
+      found = PR_TRUE;
+      appInfo.Assign(pResult);
+      CoTaskMemFree(pResult);
+    } 
+    else {
+      found = PR_FALSE;
+    }
+  } 
+  else {
+    found = NS_SUCCEEDED(regKey->ReadStringValue(EmptyString(), 
+                                                 appInfo));
+  }
+
+  
+  if (appInfo.EqualsLiteral("XPSViewer.Document"))
+    found = PR_FALSE;
+
+  if (!found) {
+    NS_IF_RELEASE(mimeInfo); 
     return nsnull;
   }
 
+  
   nsAutoString defaultDescription;
   nsCOMPtr<nsIFile> defaultApplication;
-  GetDefaultAppInfo(description, defaultDescription,
-                    getter_AddRefs(defaultApplication));
+  
+  if (NS_FAILED(GetDefaultAppInfo(appInfo, defaultDescription,
+                                  getter_AddRefs(defaultApplication)))) {
+    NS_IF_RELEASE(mimeInfo);
+    return nsnull;
+  }
 
   mimeInfo->SetDefaultDescription(defaultDescription);
   mimeInfo->SetDefaultApplicationHandler(defaultApplication);
 
   
-  if (found)
-  {
-      GetMIMEInfoFromRegistry(description, mimeInfo);
-  }
-  else {
-    NS_IF_RELEASE(mimeInfo); 
-  }
+  GetMIMEInfoFromRegistry(appInfo, mimeInfo);
 
   return mimeInfo;
 }

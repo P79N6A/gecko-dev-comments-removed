@@ -48,6 +48,9 @@
 #include "nsCOMPtr.h"
 #include <windows.h>
 
+
+#include "IApplicationAssociationRegistration.h"
+ 
 class nsMIMEInfoWin;
 
 class nsOSHelperAppService : public nsExternalHelperAppService
@@ -84,6 +87,9 @@ protected:
   static nsresult GetMIMEInfoFromRegistry(const nsAFlatString& fileType, nsIMIMEInfo *pInfo);
   
   static PRBool typeFromExtEquals(const PRUnichar* aExt, const char *aType);
+
+private:
+  IApplicationAssociationRegistration* mAppAssoc;
 };
 
 #endif 
