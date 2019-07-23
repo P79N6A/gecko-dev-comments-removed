@@ -3810,15 +3810,16 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                              ? JSOP_POP
                              : JSOP_SETNAME;
 
-                    
+                        
 
 
 
 
 
-                    LOCAL_ASSERT(js_CodeSpec[JSOP_NAME].prec ==
-                                 js_CodeSpec[saveop].prec);
-                    saveop = JSOP_NAME;
+
+                        LOCAL_ASSERT(js_CodeSpec[JSOP_NAME].prec ==
+                                     js_CodeSpec[saveop].prec);
+                        saveop = JSOP_NAME;
                     }
 
                     
