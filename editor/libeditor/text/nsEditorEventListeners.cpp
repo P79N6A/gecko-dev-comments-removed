@@ -1079,6 +1079,8 @@ nsTextEditorFocusListener::Focus(nsIDOMEvent* aEvent)
   
   if (mEditor)
   {
+    aEvent->StopPropagation();
+
     PRUint32 flags;
     mEditor->GetFlags(&flags);
     if (! (flags & nsIPlaintextEditor::eEditorDisabledMask))
@@ -1133,6 +1135,8 @@ nsTextEditorFocusListener::Blur(nsIDOMEvent* aEvent)
   
   if (mEditor)
   {
+    aEvent->StopPropagation();
+
     
     
     nsCOMPtr<nsIEditorIMESupport> imeEditor = do_QueryInterface(mEditor);
