@@ -164,49 +164,49 @@ var StarUI = {
 
   _doShowEditBookmarkPanel:
   function SU__doShowEditBookmarkPanel(aItemId, aAnchorElement, aPosition) {
-    this._blockCommands(); 
-
-    var bundle = this._element("bundle_browser");
-
-    
-    
-    
-    
-    this._element("editBookmarkPanelTitle").value =
-      this._batching ?
-        bundle.getString("editBookmarkPanel.pageBookmarkedTitle") :
-        bundle.getString("editBookmarkPanel.editBookmarkTitle");
-
-    
-    
-    this._element("editBookmarkPanelDescription").textContent = "";
-    this._element("editBookmarkPanelBottomButtons").hidden = false;
-    this._element("editBookmarkPanelContent").hidden = false;
-    this._element("editBookmarkPanelEditButton").hidden = true;
-    this._element("editBookmarkPanelUndoRemoveButton").hidden = true;
-
-    
-    
-    this._element("editBookmarkPanelRemoveButton").hidden = this._batching;
-
-    
-    this._element("editBookmarkPanelStarIcon").removeAttribute("unstarred");
-
-    this._itemId = aItemId !== undefined ? aItemId : this._itemId;
-    this.beginBatch();
-
-    
-    
-    
-    
-    
-    PlacesUIUtils.ptm.doTransaction({ doTransaction: function() { },
-                                      undoTransaction: function() { },
-                                      redoTransaction: function() { },
-                                      isTransient: false,
-                                      merge: function() { return false; } });
-
     if (this.panel.state == "closed") {
+      this._blockCommands(); 
+
+      var bundle = this._element("bundle_browser");
+
+      
+      
+      
+      
+      this._element("editBookmarkPanelTitle").value =
+        this._batching ?
+          bundle.getString("editBookmarkPanel.pageBookmarkedTitle") :
+          bundle.getString("editBookmarkPanel.editBookmarkTitle");
+
+      
+      
+      this._element("editBookmarkPanelDescription").textContent = "";
+      this._element("editBookmarkPanelBottomButtons").hidden = false;
+      this._element("editBookmarkPanelContent").hidden = false;
+      this._element("editBookmarkPanelEditButton").hidden = true;
+      this._element("editBookmarkPanelUndoRemoveButton").hidden = true;
+
+      
+      
+      this._element("editBookmarkPanelRemoveButton").hidden = this._batching;
+
+      
+      this._element("editBookmarkPanelStarIcon").removeAttribute("unstarred");
+
+      this._itemId = aItemId !== undefined ? aItemId : this._itemId;
+      this.beginBatch();
+
+      
+      
+      
+      
+      
+      PlacesUIUtils.ptm.doTransaction({ doTransaction: function() { },
+                                        undoTransaction: function() { },
+                                        redoTransaction: function() { },
+                                        isTransient: false,
+                                        merge: function() { return false; } });
+
       
       this.panel.popupBoxObject
           .setConsumeRollupEvent(Ci.nsIPopupBoxObject.ROLLUP_CONSUME);
