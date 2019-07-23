@@ -6085,7 +6085,7 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
     }
 
 #ifdef MOZ_XUL
-    if (aTag == nsGkAtoms::popupgroup &&
+    if (isXULNS && aTag == nsGkAtoms::popupgroup &&
         aContent->IsRootOfNativeAnonymousSubtree()) {
       nsIRootBox* rootBox = nsIRootBox::GetRootBox(mPresShell);
       if (rootBox) {
@@ -6098,12 +6098,8 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
 
     
     nsFrameItems childItems;
-    
-    
-    if (mDocument->BindingManager()->ShouldBuildChildFrames(aContent)) {
-      rv = ProcessChildren(aState, aContent, aStyleContext, newFrame, PR_FALSE,
-                           childItems, PR_FALSE);
-    }
+    rv = ProcessChildren(aState, aContent, aStyleContext, newFrame, PR_FALSE,
+                         childItems, PR_FALSE);
 
     
     newFrame->SetInitialChildList(nsnull, childItems.childList);
@@ -6111,9 +6107,10 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
 
 #ifdef MOZ_XUL
   
-  if (aTag == nsGkAtoms::treechildren || 
-      aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::tooltiptext) ||
-      aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::tooltip))
+  if (isXULNS &&
+      (aTag == nsGkAtoms::treechildren || 
+       aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::tooltiptext) ||
+       aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::tooltip)))
   {
     nsIRootBox* rootBox = nsIRootBox::GetRootBox(mPresShell);
     if (rootBox)
@@ -11205,7 +11202,8 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
   }
 
   nsresult rv = NS_OK;
-  if (!aFrame->IsLeaf()) {
+  if (!aFrame->IsLeaf() &&
+      mDocument->BindingManager()->ShouldBuildChildFrames(aContent)) {
     
     
     
