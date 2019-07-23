@@ -589,6 +589,10 @@ function StartCurrentURI(aState)
 
 function DoneTests()
 {
+    
+    gTestResults.AssertionUnexpected = 0;
+    gTestResults.AssertionUnexpectedFixed = 0;
+
     dump("REFTEST FINISHED: Slowest test took " + gSlowestTestTime +
          "ms (" + gSlowestTestURL + ")\n");
 
@@ -1093,10 +1097,7 @@ function DoAssertionCheck()
     gClearingForAssertionCheck = false;
 
     if (gDebug.isDebugBuild) {
-        
-        
-        
-        var newAssertionCount = 0;
+        var newAssertionCount = gDebug.assertionCount;
         var numAsserts = newAssertionCount - gAssertionCount;
         gAssertionCount = newAssertionCount;
 
@@ -1111,12 +1112,16 @@ function DoAssertionCheck()
 
         if (numAsserts < minAsserts) {
             ++gTestResults.AssertionUnexpectedFixed;
-            dump("REFTEST TEST-UNEXPECTED-PASS | " + gURLs[0].prettyPath +
+            
+            
+            dump("REFTEST TEST-DETCEPXENU-PASS | " + gURLs[0].prettyPath +
                  " | assertion count " + numAsserts + " is less than " +
                  expectedAssertions + "\n");
         } else if (numAsserts > maxAsserts) {
             ++gTestResults.AssertionUnexpected;
-            dump("REFTEST TEST-UNEXPECTED-FAIL | " + gURLs[0].prettyPath +
+            
+            
+            dump("REFTEST TEST-DETCEPXENU-FAIL | " + gURLs[0].prettyPath +
                  " | assertion count " + numAsserts + " is more than " +
                  expectedAssertions + "\n");
         } else if (numAsserts != 0) {
