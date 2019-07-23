@@ -2856,6 +2856,67 @@ void dumpGCTimer(GCTimer *gcT, uint64 firstEnter, bool lastGC)
 
 
 
+static void
+PreGCCleanup(JSContext *cx, JSGCInvocationKind gckind)
+{
+    JSRuntime *rt = cx->runtime;
+
+    
+    rt->gcIsNeeded = JS_FALSE;
+
+    
+    rt->resetGCMallocBytes();
+
+#ifdef JS_DUMP_SCOPE_METERS
+    {
+        extern void js_DumpScopeMeters(JSRuntime *rt);
+        js_DumpScopeMeters(rt);
+    }
+#endif
+
+#ifdef JS_TRACER
+    PurgeJITOracle();
+#endif
+
+    
+
+
+
+
+    if (rt->shapeGen & SHAPE_OVERFLOW_BIT
+#ifdef JS_GC_ZEAL
+        || rt->gcZeal >= 1
+#endif
+        ) {
+        rt->gcRegenShapes = true;
+        rt->gcRegenShapesScopeFlag ^= JSScope::SHAPE_REGEN;
+        rt->shapeGen = 0;
+        rt->protoHazardShape = 0;
+    }
+
+    js_PurgeThreads(cx);
+    {
+        JSContext *iter = NULL;
+        while (JSContext *acx = js_ContextIterator(rt, JS_TRUE, &iter))
+            acx->purge();
+    }
+
+#ifdef JS_TRACER
+    if (gckind == GC_LAST_CONTEXT) {
+        
+        PodArrayZero(rt->builtinFunctions);
+    }
+#endif
+
+    
+    if (!(gckind & GC_KEEP_ATOMS))
+        JS_CLEAR_WEAK_ROOTS(&cx->weakRoots);
+}
+
+
+
+
+
 
 
 
@@ -3316,69 +3377,19 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     JS_UNLOCK_GC(rt);
 
 #ifdef JS_TRACER
-    if (JS_ON_TRACE(cx))
-        goto out;
+    if (!JS_ON_TRACE(cx))
 #endif
-    VOUCH_HAVE_STACK();
-
-    
-    rt->gcIsNeeded = JS_FALSE;
-
-    
-    rt->resetGCMallocBytes();
-
-#ifdef JS_DUMP_SCOPE_METERS
-  { extern void js_DumpScopeMeters(JSRuntime *rt);
-    js_DumpScopeMeters(rt);
-  }
-#endif
-
-#ifdef JS_TRACER
-    PurgeJITOracle();
-#endif
-
-    
-
-
-
-
-    if (rt->shapeGen & SHAPE_OVERFLOW_BIT
-#ifdef JS_GC_ZEAL
-        || rt->gcZeal >= 1
-#endif
-        ) {
-        rt->gcRegenShapes = true;
-        rt->gcRegenShapesScopeFlag ^= JSScope::SHAPE_REGEN;
-        rt->shapeGen = 0;
-        rt->protoHazardShape = 0;
-    }
-
-    js_PurgeThreads(cx);
     {
-        JSContext *iter = NULL, *acx;
-        while ((acx = js_ContextIterator(rt, JS_TRUE, &iter)) != NULL)
-            acx->purge();
+        VOUCH_HAVE_STACK();
+
+        PreGCCleanup(cx, gckind);
+
+        TIMESTAMP(gcTimer.startMark);
+
+      restart:
+        GC(cx, gckind  GCTIMER_ARG);
     }
 
-#ifdef JS_TRACER
-    if (gckind == GC_LAST_CONTEXT) {
-        
-        PodArrayZero(rt->builtinFunctions);
-    }
-#endif
-
-    
-    if (!(gckind & GC_KEEP_ATOMS))
-        JS_CLEAR_WEAK_ROOTS(&cx->weakRoots);
-
-    TIMESTAMP(gcTimer.startMark);
-
-  restart:
-    GC(cx, gckind  GCTIMER_ARG);
-
-#ifdef JS_TRACER
-  out:
-#endif
     JS_LOCK_GC(rt);
 
     
