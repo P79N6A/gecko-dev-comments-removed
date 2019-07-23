@@ -2960,7 +2960,7 @@ nanojit::Fragment::onDestroy()
     delete (TreeInfo *)vmprivate;
 }
 
-void
+bool
 js_DeleteRecorder(JSContext* cx)
 {
     JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
@@ -2968,6 +2968,16 @@ js_DeleteRecorder(JSContext* cx)
     
     delete tm->recorder;
     tm->recorder = NULL;
+
+    
+
+
+    if (JS_TRACE_MONITOR(cx).fragmento->assm()->error() == OutOMem) {
+        js_FlushJITCache(cx);
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -3489,18 +3499,19 @@ js_CloseLoop(JSContext* cx)
     
     if (fragmento->assm()->error()) {
         js_AbortRecording(cx, "Error during recording");
-
-        
-        if (fragmento->assm()->error() == OutOMem)
-            js_FlushJITCache(cx);
         return false;
     }
 
     bool demote = false;
     Fragment* f = r->getFragment();
     r->closeLoop(tm, demote);
-    js_DeleteRecorder(cx);
+
     
+
+
+    if (!js_DeleteRecorder(cx))
+        return false;
+
     
 
 
@@ -4283,8 +4294,17 @@ js_AbortRecording(JSContext* cx, const char* reason)
     
     if (outer != NULL && outer->recordAttempts >= 2)
         js_BlacklistPC(tm, outer);
-    js_DeleteRecorder(cx);
+
     
+
+
+    if (!js_DeleteRecorder(cx))
+        return;
+
+    
+
+
+
     if (!f->code() && (f->root == f)) 
         js_TrashTree(cx, f);
 }

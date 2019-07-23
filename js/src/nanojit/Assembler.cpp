@@ -854,6 +854,11 @@ namespace nanojit
 
 	void Assembler::endAssembly(Fragment* frag, NInsList& loopJumps)
 	{
+		
+		
+		if (error())
+			return;
+
 	    NIns* SOT = 0;
 	    if (frag->isRoot()) {
 	        SOT = frag->loopEntry;
