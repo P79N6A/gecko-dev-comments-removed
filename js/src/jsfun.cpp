@@ -369,7 +369,7 @@ static JS_REQUIRES_STACK JSObject *
 WrapEscapingClosure(JSContext *cx, JSStackFrame *fp, JSObject *funobj, JSFunction *fun)
 {
     JS_ASSERT(GET_FUNCTION_PRIVATE(cx, funobj) == fun);
-    JS_ASSERT(FUN_OPTIMIZED_CLOSURE(fun));
+    JS_ASSERT(fun->optimizedClosure());
     JS_ASSERT(!fun->u.i.wrapper);
 
     
@@ -513,8 +513,7 @@ WrapEscapingClosure(JSContext *cx, JSStackFrame *fp, JSObject *funobj, JSFunctio
 
 
 
-
-    wscript->flags = script->flags | JSSF_ESCAPE_HAZARD;
+    wscript->flags = script->flags;
     wscript->version = script->version;
     wscript->nfixed = script->nfixed;
     wscript->filename = script->filename;
@@ -548,18 +547,19 @@ args_getProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
         return JS_TRUE;
     JS_ASSERT(fp->argsobj);
 
-    
-
-
-
-
-    JS_ASSERT_IF(fp->fun->u.i.skipmin != 0, !FUN_NULL_CLOSURE(fp->fun));
-
     slot = JSVAL_TO_INT(id);
     switch (slot) {
       case ARGS_CALLEE:
         if (!TEST_OVERRIDE_BIT(fp, slot)) {
-            if (FUN_ESCAPE_HAZARD(fp->fun)) {
+            
+
+
+
+
+
+
+
+            if (fp->fun->needsWrapper()) {
                 JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                                      JSMSG_OPTIMIZED_CLOSURE_LEAK);
                 return JS_FALSE;
@@ -790,33 +790,31 @@ CheckForEscapingClosure(JSContext *cx, JSObject *obj, jsval *vp)
     JS_ASSERT(STOBJ_GET_CLASS(obj) == &js_CallClass ||
               STOBJ_GET_CLASS(obj) == &js_DeclEnvClass);
 
-    if (cx->fp && cx->fp->script && (cx->fp->script->flags & JSSF_ESCAPE_HAZARD)) {
-        jsval v = *vp;
+    jsval v = *vp;
 
-        if (VALUE_IS_FUNCTION(cx, v)) {
-            JSObject *funobj = JSVAL_TO_OBJECT(v);
-            JSFunction *fun = GET_FUNCTION_PRIVATE(cx, funobj);
+    if (VALUE_IS_FUNCTION(cx, v)) {
+        JSObject *funobj = JSVAL_TO_OBJECT(v);
+        JSFunction *fun = GET_FUNCTION_PRIVATE(cx, funobj);
 
-            
-
+        
 
 
 
 
-            if (FUN_NEEDS_WRAPPER(fun)) {
-                JSStackFrame *fp = (JSStackFrame *) JS_GetPrivate(cx, obj);
-                if (fp) {
-                    JSObject *wrapper = WrapEscapingClosure(cx, fp, funobj, fun);
-                    if (!wrapper)
-                        return false;
-                    *vp = OBJECT_TO_JSVAL(wrapper);
-                    return true;
-                }
 
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                     JSMSG_OPTIMIZED_CLOSURE_LEAK);
-                return false;
+        if (fun->needsWrapper()) {
+            JSStackFrame *fp = (JSStackFrame *) JS_GetPrivate(cx, obj);
+            if (fp) {
+                JSObject *wrapper = WrapEscapingClosure(cx, fp, funobj, fun);
+                if (!wrapper)
+                    return false;
+                *vp = OBJECT_TO_JSVAL(wrapper);
+                return true;
             }
+
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                 JSMSG_OPTIMIZED_CLOSURE_LEAK);
+            return false;
         }
     }
     return true;
@@ -1128,6 +1126,12 @@ SetCallArg(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 JSBool
 js_GetCallVar(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
 {
+    return CallPropertyOp(cx, obj, id, vp, JSCPK_VAR, JS_FALSE);
+}
+
+JSBool
+js_GetCallVarChecked(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
+{
     if (!CallPropertyOp(cx, obj, id, vp, JSCPK_VAR, JS_FALSE))
         return JS_FALSE;
 
@@ -1196,6 +1200,19 @@ call_resolve(JSContext *cx, JSObject *obj, jsval idval, uintN flags,
             setter = SetCallVar;
             if (localKind == JSLOCAL_CONST)
                 attrs |= JSPROP_READONLY;
+
+            
+
+
+
+
+            jsval v;
+            if (!CallPropertyOp(cx, obj, INT_TO_JSID(slot), &v, JSCPK_VAR, JS_FALSE))
+                return JS_FALSE;
+            if (VALUE_IS_FUNCTION(cx, v) &&
+                GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(v))->needsWrapper()) {
+                getter = js_GetCallVarChecked;
+            }
         }
         if (!js_DefineNativeProperty(cx, obj, id, JSVAL_VOID, getter, setter,
                                      attrs, SPROP_HAS_SHORTID, (int16) slot,
@@ -1350,7 +1367,7 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
 
 
-            if (FUN_ESCAPE_HAZARD(caller)) {
+            if (caller->needsWrapper()) {
                 JSObject *wrapper = WrapEscapingClosure(cx, fp->down, FUN_OBJECT(caller), caller);
                 if (!wrapper)
                     return JS_FALSE;
@@ -2500,9 +2517,8 @@ js_NewFlatClosure(JSContext *cx, JSFunction *fun)
 JSObject *
 js_NewDebuggableFlatClosure(JSContext *cx, JSFunction *fun)
 {
-    JS_ASSERT(cx->fp->script->flags & JSSF_ESCAPE_HAZARD);
     JS_ASSERT(cx->fp->fun->flags & JSFUN_HEAVYWEIGHT);
-    JS_ASSERT(!FUN_OPTIMIZED_CLOSURE(cx->fp->fun));
+    JS_ASSERT(!cx->fp->fun->optimizedClosure());
 
     return WrapEscapingClosure(cx, cx->fp, FUN_OBJECT(fun), fun);
 }
