@@ -245,6 +245,13 @@ public:
 
 
   void PaintFocus(nsIRenderingContext& aRC, nsPoint aPt);
+  
+
+
+
+
+
+  void InvalidateFocus();
 
   
 
