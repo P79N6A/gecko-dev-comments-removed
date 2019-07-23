@@ -1838,7 +1838,7 @@ fun_finalize(JSContext *cx, JSObject *obj)
 }
 
 uint32
-JSFunction::countInterpretedReserveSlots() const
+JSFunction::countInterpretedReservedSlots() const
 {
     JS_ASSERT(FUN_INTERPRETED(this));
 
@@ -1860,7 +1860,7 @@ fun_reserveSlots(JSContext *cx, JSObject *obj)
 
     JSFunction *fun = (JSFunction *) JS_GetPrivate(cx, obj);
     return (fun && FUN_INTERPRETED(fun))
-           ? fun->countInterpretedReserveSlots()
+           ? fun->countInterpretedReservedSlots()
            : 0;
 }
 
@@ -2514,7 +2514,7 @@ js_AllocFlatClosure(JSContext *cx, JSFunction *fun, JSObject *scopeChain)
     if (!closure || fun->u.i.nupvars == 0)
         return closure;
     if (!js_EnsureReservedSlots(cx, closure,
-                                fun->countInterpretedReserveSlots())) {
+                                fun->countInterpretedReservedSlots())) {
         return NULL;
 
     }
