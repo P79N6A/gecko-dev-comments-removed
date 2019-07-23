@@ -723,8 +723,19 @@ var Microformats = {
           parentnode = xpathResult.singleNodeValue;
         }
         
+        
+        
         if (parentnode != mfnode) {
-          propnodes.splice(i,1);
+          var mfNameString = Microformats.getNamesFromNode(parentnode);
+          var mfNames = mfNameString.split(" ");
+          var j;
+          for (j=0; j < mfNames.length; j++) {
+            
+            if (Microformats[mfNames[j]].properties[propname]) {
+              propnodes.splice(i,1);;
+              break;
+            }
+          }
         }
       }
       if (propnodes.length > 0) {
