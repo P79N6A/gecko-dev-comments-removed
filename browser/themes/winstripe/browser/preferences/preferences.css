@@ -264,3 +264,9 @@ filefield[disabled="true"] .fileFieldIcon {
 #chooseClientAppCell {
   -moz-padding-end: 12px;
 }
+
+
+
+.bottomBox {
+  padding-bottom: 2px;
+}
