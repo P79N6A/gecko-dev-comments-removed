@@ -464,6 +464,15 @@ jsds_FilterHook (JSDContext *jsdc, JSDThreadState *state)
 JS_STATIC_DLL_CALLBACK (void)
 jsds_NotifyPendingDeadScripts (JSContext *cx)
 {
+    
+
+
+
+
+
+    if (!gJsds)
+        return;
+
     nsCOMPtr<jsdIScriptHook> hook = 0;   
     gJsds->GetScriptHook (getter_AddRefs(hook));
 
