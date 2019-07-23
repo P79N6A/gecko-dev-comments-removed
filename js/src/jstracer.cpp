@@ -4506,12 +4506,9 @@ TraceRecorder::cmp(LOpcode op, int flags)
         cond = negate;
     } else if (JSVAL_IS_STRING(l) || JSVAL_IS_STRING(r)) {
         
-        
-        
         if (op == LIR_feq &&
             ((JSVAL_IS_NULL(l) && l_ins->isconst()) ||
-             (JSVAL_IS_NULL(r) && r_ins->isconst()) ||
-             (JSVAL_TAG(l) == JSVAL_BOOLEAN || JSVAL_TAG(r) == JSVAL_BOOLEAN))) {
+             (JSVAL_IS_NULL(r) && r_ins->isconst()))) {
             x = INS_CONST(negate);
             cond = negate;
         } else {

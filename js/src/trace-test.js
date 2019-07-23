@@ -2589,6 +2589,14 @@ function testNullRelCmp() {
 testNullRelCmp.expected = "true,false,false,false,true,false,false,false,true,false,false,false";
 test(testNullRelCmp);
 
+function testEqFalseEmptyString() {
+    var x = [];
+    for (var i=0;i<5;++i) x.push(false == "");
+    return x.join(",");
+}
+testEqFalseEmptyString.expected = "true,true,true,true,true";
+test(testEqFalseEmptyString);
+
 
 function testGlobalProtoAccess() {
     return "ok";
