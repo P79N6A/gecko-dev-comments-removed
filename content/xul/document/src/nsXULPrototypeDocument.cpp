@@ -234,6 +234,7 @@ NS_NewXULPrototypeDocument(nsXULPrototypeDocument** aResult)
 
 
 
+
 nsXULPDGlobalObject *
 nsXULPrototypeDocument::NewXULPDGlobalObject()
 {
