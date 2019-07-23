@@ -55,7 +55,6 @@ nsScreenManagerGtk :: nsScreenManagerGtk ( )
   
   
   
-  mNumScreens = 0;
 }
 
 
@@ -73,8 +72,9 @@ NS_IMPL_ISUPPORTS1(nsScreenManagerGtk, nsIScreenManager)
 nsresult
 nsScreenManagerGtk :: EnsureInit(void)
 {
-  if (mNumScreens == 0) {
+  if (mCachedScreenArray.Count() == 0) {
     XineramaScreenInfo *screenInfo = NULL;
+    int numScreens;
 
     
     PRLibrary* xineramalib = PR_LoadLibrary("libXinerama.so.1");
@@ -88,39 +88,34 @@ nsScreenManagerGtk :: EnsureInit(void)
       
       if (_XnrmIsActive && _XnrmQueryScreens &&
           _XnrmIsActive(GDK_DISPLAY())) {
-        screenInfo = _XnrmQueryScreens(GDK_DISPLAY(), &mNumScreens);
+        screenInfo = _XnrmQueryScreens(GDK_DISPLAY(), &numScreens);
       }
     }
     
     
     if (!screenInfo) {
-      mNumScreens = 1;
       nsRefPtr<nsScreenGtk> screen = new nsScreenGtk();
-      if (!screen)
+      if (!screen || !mCachedScreenArray.AppendObject(screen)) {
         return NS_ERROR_OUT_OF_MEMORY;
+      }
 
       screen->Init();
-
-      mCachedScreenArray.AppendObject(screen);
     }
     
     
     
     else {
 #ifdef DEBUG
-      printf("Xinerama superpowers activated for %d screens!\n", mNumScreens);
+      printf("Xinerama superpowers activated for %d screens!\n", numScreens);
 #endif
-      int i;
-      for (i=0; i < mNumScreens; i++) {
+      for (int i = 0; i < numScreens; ++i) {
         nsRefPtr<nsScreenGtk> screen = new nsScreenGtk();
-        if (!screen) {
+        if (!screen || !mCachedScreenArray.AppendObject(screen)) {
           return NS_ERROR_OUT_OF_MEMORY;
         }
 
         
         screen->Init(&screenInfo[i]);
-
-        mCachedScreenArray.AppendObject(screen);
       }
     }
 
@@ -157,7 +152,7 @@ nsScreenManagerGtk :: ScreenForRect ( PRInt32 aX, PRInt32 aY,
   
   
   
-  if (mNumScreens > 1) {
+  if (mCachedScreenArray.Count() > 1) {
     
     
     PRUint32 area = 0;
@@ -219,7 +214,7 @@ nsScreenManagerGtk :: GetNumberOfScreens(PRUint32 *aNumberOfScreens)
     NS_ERROR("nsScreenManagerGtk::EnsureInit() failed from GetNumberOfScreens\n");
     return rv;
   }
-  *aNumberOfScreens = mNumScreens;
+  *aNumberOfScreens = mCachedScreenArray.Count();
   return NS_OK;
   
 } 

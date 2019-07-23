@@ -60,11 +60,7 @@ private:
   nsresult EnsureInit(void);
 
   
-  
   nsCOMArray<nsIScreen> mCachedScreenArray;
-  
-  int mNumScreens;
-
 };
 
 #endif  
