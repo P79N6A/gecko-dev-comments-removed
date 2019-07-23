@@ -52,7 +52,7 @@
 
 
 
-#if defined(MOZ_MEMORY) && defined(XP_WIN)
+#if defined(MOZ_MEMORY) && (defined(XP_WIN) || defined(SOLARIS))
 #define HAVE_JEMALLOC_STATS 1
 #else
 #undef HAVE_JEMALLOC_STATS
