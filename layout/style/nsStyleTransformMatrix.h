@@ -51,6 +51,15 @@
 
 
 
+
+
+
+
+
+
+
+
+
 class nsStyleContext;
 class nsPresContext;
 class nsStyleTransformMatrix
@@ -81,9 +90,11 @@ class nsStyleTransformMatrix
 
 
 
+
   nsStyleTransformMatrix& operator *= (const nsStyleTransformMatrix &aOther);
 
   
+
 
 
 
