@@ -539,9 +539,10 @@ NS_IMETHODIMP
 nsDOMAttribute::IsEqualNode(nsIDOMNode* aOther,
                             PRBool* aReturn)
 {
-  NS_ENSURE_ARG_POINTER(aOther);
-
   *aReturn = PR_FALSE;
+
+  if (!aOther)
+    return NS_OK;
 
   
   nsCOMPtr<nsIAttribute> aOtherAttr = do_QueryInterface(aOther);
