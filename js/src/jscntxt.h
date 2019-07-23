@@ -187,6 +187,7 @@ struct JSRuntime {
     
     JSGCChunkInfo       *gcChunkList;
     JSGCArenaList       gcArenaList[GC_NUM_FREELISTS];
+    JSGCDoubleArenaList gcDoubleArenaList;
     JSDHashTable        gcRootsHash;
     JSDHashTable        *gcLocksHash;
     jsrefcount          gcKeepAtoms;
@@ -786,6 +787,9 @@ struct JSContext {
 
     
     JSTempValueRooter   *tempValueRooters;
+
+    
+    JSGCDoubleCell      *doubleFreeList;
 
     
     JSDebugHooks        *debugHooks;
