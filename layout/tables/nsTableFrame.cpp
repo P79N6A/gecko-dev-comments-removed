@@ -1909,12 +1909,12 @@ NS_METHOD nsTableFrame::Reflow(nsPresContext*          aPresContext,
   
   
   
-  PRBool needToInitiateSpecialReflow =
-    !!(GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
   if (NS_SUBTREE_DIRTY(this) ||
       aReflowState.ShouldReflowAllKids() ||
       IsGeometryDirty() ||
-      (needToInitiateSpecialReflow && aReflowState.mFlags.mVResize)) {
+      aReflowState.mFlags.mVResize) {
+    PRBool needToInitiateSpecialReflow =
+      !!(GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
     
     if (isPaginated && !GetPrevInFlow() && (NS_UNCONSTRAINEDSIZE != aReflowState.availableHeight)) {
       nscoord tableSpecifiedHeight = CalcBorderBoxHeight(aReflowState);
