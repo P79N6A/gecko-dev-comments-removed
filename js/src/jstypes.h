@@ -55,7 +55,7 @@
 #define jstypes_h___
 
 #include <stddef.h>
-#include "jsstdint.h"
+#include "js-config.h"
 
 
 
@@ -279,52 +279,9 @@
 # include "jsautocfg.h" 
 #endif
 
+#include "jsinttypes.h"
+
 JS_BEGIN_EXTERN_C
-
-
-
-
-
-
-
-
-
-typedef uint8_t JSUint8;
-typedef int8_t JSInt8;
-
-
-
-
-
-
-
-
-typedef uint16_t JSUint16;
-typedef int16_t JSInt16;
-
-
-
-
-
-
-
-
-typedef uint32_t JSUint32;
-typedef int32_t JSInt32;
-
-
-
-
-
-
-
-
-
-
-
-
-typedef uint64_t JSUint64;
-typedef int64_t JSInt64;
 
 
 
@@ -367,7 +324,7 @@ typedef ptrdiff_t JSPtrdiff;
 
 
 
-typedef uintptr_t JSUptrdiff;
+typedef JSUintPtr JSUptrdiff;
 
 
 
@@ -392,8 +349,8 @@ typedef JSUint8 JSPackedBool;
 
 
 
-typedef intptr_t JSWord;
-typedef uintptr_t JSUword;
+typedef JSIntPtr JSWord;
+typedef JSUintPtr JSUword;
 
 #include "jsotypes.h"
 
