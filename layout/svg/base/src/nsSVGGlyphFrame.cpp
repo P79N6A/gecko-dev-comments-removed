@@ -1307,7 +1307,8 @@ nsSVGGlyphFrame::GetCharNumAtPosition(nsIDOMSVGPoint *point)
     
     
     PRInt32 limit = i + 1;
-    while (limit < mTextRun->GetLength() && !mTextRun->IsClusterStart(limit)) {
+    while (limit < (PRInt32)mTextRun->GetLength() &&
+           !mTextRun->IsClusterStart(limit)) {
       ++limit;
     }
     gfxTextRun::Metrics metrics =
