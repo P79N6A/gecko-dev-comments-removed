@@ -1531,25 +1531,7 @@ nsHTMLReflowState::ComputeContainingBlockRectangle(nsPresContext*          aPres
       
       
       aContainingBlockWidth += aContainingBlockRS->mComputedPadding.LeftRight();
-
-      
-      
-      
-      
-      if ((NS_AUTOHEIGHT == aContainingBlockHeight) &&
-          nsLayoutUtils::IsInitialContainingBlock(aContainingBlockRS->frame)) {
-
-        
-        const nsHTMLReflowState* rs = aContainingBlockRS->parentReflowState;
-        while (rs) {
-          aContainingBlockHeight = rs->mComputedHeight;
-          rs = rs->parentReflowState;
-        }
-
-      } else {
-        aContainingBlockHeight +=
-          aContainingBlockRS->mComputedPadding.TopBottom();
-      }
+      aContainingBlockHeight += aContainingBlockRS->mComputedPadding.TopBottom();
     }
   } else {
     
