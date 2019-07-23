@@ -77,4 +77,9 @@
 
 #define NS_XPCOMPROXY_CONTRACTID "@mozilla.org/xpcomproxy;1"
 
+
+
+
+#define NS_MEMORY_REPORTER_MANAGER_CONTRACTID "@mozilla.org/memory-reporter-manager;1"
+
 #endif  
