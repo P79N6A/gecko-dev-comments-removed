@@ -75,11 +75,10 @@ class nsPresContext;
 struct nsTimeout;
 class nsScriptObjectHolder;
 class nsXBLPrototypeHandler;
-class nsIArray;
 
 #define NS_PIDOMWINDOW_IID \
-{ 0x70c9f57f, 0xf7b3, 0x4a37, \
-  { 0xbe, 0x36, 0xbb, 0xb2, 0xd7, 0xe9, 0x40, 0x13 } }
+{ 0x249423c9, 0x42a6, 0x8243, \
+  { 0x49, 0x45, 0x71, 0x7f, 0x8d, 0x28, 0x84, 0x43 } }
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -464,15 +463,6 @@ public:
 
 
   virtual void SetHasOrientationEventListener() = 0;
-
-  
-
-
-
-
-
-
-  virtual nsresult SetArguments(nsIArray *aArguments, nsIPrincipal *aOrigin) = 0;
 
 protected:
   

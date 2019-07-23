@@ -895,7 +895,6 @@ nsGlobalWindow::CleanUp()
   }
   mArguments = nsnull;
   mArgumentsLast = nsnull;
-  mArgumentsOrigin = nsnull;
 
   CleanupCachedXBLHandlers(this);
 
@@ -1195,7 +1194,7 @@ nsGlobalWindow::SetScriptContext(PRUint32 lang_id, nsIScriptContext *aScriptCont
     NS_ASSERTION(script_glob, "GetNativeGlobal returned NULL!");
   }
   
-  if (lang_id == nsIProgrammingLanguage::JAVASCRIPT) {
+  if (lang_id==nsIProgrammingLanguage::JAVASCRIPT) {
     mContext = aScriptContext;
     mJSObject = (JSObject *)script_glob;
   }
@@ -2025,12 +2024,8 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       }
 
       if (mArguments) {
-        newInnerWindow->DefineArgumentsProperty(mArguments);
-        newInnerWindow->mArguments = mArguments;
-        newInnerWindow->mArgumentsOrigin = mArgumentsOrigin;
-
+        newInnerWindow->SetNewArguments(mArguments);
         mArguments = nsnull;
-        mArgumentsOrigin = nsnull;
       }
 
       
@@ -2116,8 +2111,7 @@ nsGlobalWindow::SetDocShell(nsIDocShell* aDocShell)
       
       
       mArguments = nsnull;
-      mArgumentsLast = nsnull;
-      mArgumentsOrigin = nsnull;
+      
     }
 
     PRUint32 st_ndx;
@@ -2370,52 +2364,41 @@ nsGlobalWindow::SetScriptsEnabled(PRBool aEnabled, PRBool aFireTimeouts)
 }
 
 nsresult
-nsGlobalWindow::SetArguments(nsIArray *aArguments, nsIPrincipal *aOrigin)
+nsGlobalWindow::SetNewArguments(nsIArray *aArguments)
 {
-  FORWARD_TO_OUTER(SetArguments, (aArguments, aOrigin),
-                   NS_ERROR_NOT_INITIALIZED);
+  FORWARD_TO_OUTER(SetNewArguments, (aArguments), NS_ERROR_NOT_INITIALIZED);
+
+  JSContext *cx;
+  NS_ENSURE_TRUE(aArguments && mContext &&
+                 (cx = (JSContext *)mContext->GetNativeContext()),
+                 NS_ERROR_NOT_INITIALIZED);
+
+  
+  
+  nsGlobalWindow *currentInner = GetCurrentInnerWindowInternal();
+  
+  nsresult rv;
+
+  if (currentInner) {
+    PRUint32 langID;
+    NS_STID_FOR_ID(langID) {
+      void *glob = currentInner->GetScriptGlobal(langID);
+      nsIScriptContext *ctx = GetScriptContext(langID);
+      if (glob && ctx) {
+        if (mIsModalContentWindow) {
+          rv = ctx->SetProperty(glob, "dialogArguments", aArguments);
+        } else {
+          rv = ctx->SetProperty(glob, "arguments", aArguments);
+        }
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+    }
+  }
 
   
   
   mArguments = aArguments;
-  mArgumentsOrigin = aOrigin;
-
-  if (!mIsModalContentWindow) {
-    mArgumentsLast = aArguments;
-  }
-
-  nsGlobalWindow *currentInner = GetCurrentInnerWindowInternal();
-
-  return currentInner ?
-    currentInner->DefineArgumentsProperty(aArguments) : NS_OK;
-}
-
-nsresult
-nsGlobalWindow::DefineArgumentsProperty(nsIArray *aArguments)
-{
-  JSContext *cx;
-  nsIScriptContext *ctx = GetOuterWindowInternal()->mContext;
-  NS_ENSURE_TRUE(aArguments && ctx &&
-                 (cx = (JSContext *)ctx->GetNativeContext()),
-                 NS_ERROR_NOT_INITIALIZED);
-
-  if (mIsModalContentWindow) {
-    
-    
-    
-
-    return NS_OK;
-  }
-
-  PRUint32 langID;
-  NS_STID_FOR_ID(langID) {
-    void *glob = GetScriptGlobal(langID);
-    ctx = GetScriptContext(langID);
-    if (glob && ctx) {
-      nsresult rv = ctx->SetProperty(glob, "arguments", aArguments);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-  }
+  mArgumentsLast = aArguments;
 
   return NS_OK;
 }
@@ -6104,42 +6087,14 @@ nsGlobalWindow::ShowModalDialog(const nsAString& aURI, nsIVariant *aArgs,
   NS_ENSURE_SUCCESS(rv, rv);
   
   if (dlgWin) {
-    nsCOMPtr<nsIPrincipal> subjectPrincipal;
-    rv = nsContentUtils::GetSecurityManager()->
-      GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
+    nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(dlgWin));
 
-    PRBool canAccess = PR_TRUE;
+    nsPIDOMWindow *inner = win->GetCurrentInnerWindow();
 
-    if (subjectPrincipal) {
-      nsCOMPtr<nsIScriptObjectPrincipal> objPrincipal =
-        do_QueryInterface(dlgWin);
-      nsCOMPtr<nsIPrincipal> dialogPrincipal;
+    nsCOMPtr<nsIDOMModalContentWindow> dlgInner(do_QueryInterface(inner));
 
-      if (objPrincipal) {
-        dialogPrincipal = objPrincipal->GetPrincipal();
-
-        rv = subjectPrincipal->Subsumes(dialogPrincipal, &canAccess);
-        NS_ENSURE_SUCCESS(rv, rv);
-      } else {
-        
-        
-
-        canAccess = PR_FALSE;
-      }
-    }
-
-    if (canAccess) {
-      nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(dlgWin));
-      nsPIDOMWindow *inner = win->GetCurrentInnerWindow();
-
-      nsCOMPtr<nsIDOMModalContentWindow> dlgInner(do_QueryInterface(inner));
-
-      if (dlgInner) {
-        dlgInner->GetReturnValue(aRetVal);
-      }
+    if (dlgInner) {
+      dlgInner->GetReturnValue(aRetVal);
     }
   }
   
@@ -7433,7 +7388,7 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
                   "Shouldn't have caller context when called noscript");
 
   *aReturn = nsnull;
-
+  
   nsCOMPtr<nsIWebBrowserChrome> chrome;
   GetWebBrowserChrome(getter_AddRefs(chrome));
   if (!chrome) {
@@ -9068,14 +9023,7 @@ nsGlobalModalWindow::GetDialogArguments(nsIArray **aArguments)
   FORWARD_TO_INNER_MODAL_CONTENT_WINDOW(GetDialogArguments, (aArguments),
                                         NS_ERROR_NOT_INITIALIZED);
 
-  PRBool subsumes = PR_FALSE;
-  nsIPrincipal *self = GetPrincipal();
-  if (self && NS_SUCCEEDED(self->Subsumes(mArgumentsOrigin, &subsumes)) &&
-      subsumes) {
-    NS_IF_ADDREF(*aArguments = mArguments);
-  } else {
-    *aArguments = nsnull;
-  }
+  *aArguments = mArguments;
 
   return NS_OK;
 }
@@ -9098,20 +9046,6 @@ nsGlobalModalWindow::SetReturnValue(nsIVariant *aRetVal)
   mReturnValue = aRetVal;
 
   return NS_OK;
-}
-
-nsresult
-nsGlobalModalWindow::SetNewDocument(nsIDocument *aDocument,
-                                    nsISupports *aState,
-                                    PRBool aClearScopeHint)
-{
-  
-  
-  if (aDocument) {
-    mReturnValue = nsnull;
-  }
-
-  return nsGlobalWindow::SetNewDocument(aDocument, aState, aClearScopeHint);
 }
 
 
