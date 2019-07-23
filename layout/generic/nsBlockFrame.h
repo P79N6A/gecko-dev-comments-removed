@@ -281,9 +281,6 @@ public:
   
   
   nsresult SplitPlaceholder(nsBlockReflowState& aState, nsIFrame* aPlaceholder);
-
-  void UndoSplitPlaceholders(nsBlockReflowState& aState,
-                             nsIFrame*           aLastPlaceholder);
   
   PRBool HandleOverflowPlaceholdersForPulledFrame(
     nsBlockReflowState& aState, nsIFrame* aFrame);
@@ -453,10 +450,10 @@ protected:
                       PRBool* aKeepReflowGoing);
 
   
-  PRBool PlaceLine(nsBlockReflowState& aState,
-                   nsLineLayout&       aLineLayout,
-                   line_iterator       aLine,
-                   PRBool*             aKeepReflowGoing);
+  void PlaceLine(nsBlockReflowState& aState,
+                 nsLineLayout&       aLineLayout,
+                 line_iterator       aLine,
+                 PRBool*             aKeepReflowGoing);
 
   
 
@@ -520,7 +517,6 @@ protected:
   
   void PushTruncatedPlaceholderLine(nsBlockReflowState& aState,
                                     line_iterator       aLine,
-                                    nsIFrame*           aLastPlaceholder,
                                     PRBool&             aKeepReflowGoing);
 
   nsresult SplitLine(nsBlockReflowState& aState,

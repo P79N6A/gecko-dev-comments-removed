@@ -2748,40 +2748,6 @@ nsBlockFrame::GetTopBlockChild(nsPresContext* aPresContext)
   return secondLine->mFirstChild;
 }
 
-
-
-
-void
-nsBlockFrame::UndoSplitPlaceholders(nsBlockReflowState& aState,
-                                    nsIFrame*           aLastPlaceholder)
-{
-  nsIFrame* undoPlaceholder;
-  if (aLastPlaceholder) {
-    undoPlaceholder = aLastPlaceholder->GetNextSibling();
-    aLastPlaceholder->SetNextSibling(nsnull);
-  }
-  else {
-    undoPlaceholder = aState.mOverflowPlaceholders.FirstChild();
-    aState.mOverflowPlaceholders.SetFrames(nsnull);
-  }
-  
-  for (nsPlaceholderFrame* placeholder = static_cast<nsPlaceholderFrame*>(undoPlaceholder);
-       placeholder; ) {
-    NS_ASSERTION(!placeholder->GetNextInFlow(), "Must be the last placeholder");
-
-    nsFrameManager* fm = aState.mPresContext->GetPresShell()->FrameManager();
-    fm->UnregisterPlaceholderFrame(placeholder);
-    placeholder->SetOutOfFlowFrame(nsnull);
-
-    
-
-    nsSplittableFrame::RemoveFromFlow(placeholder);
-    nsIFrame* savePlaceholder = placeholder; 
-    placeholder = static_cast<nsPlaceholderFrame*>(placeholder->GetNextSibling());
-    savePlaceholder->Destroy();
-  }
-}
-
 nsresult
 nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
                                line_iterator aLine,
@@ -2985,9 +2951,6 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     }
     
     
-    nsIFrame* lastPlaceholder = aState.mOverflowPlaceholders.LastChild();
-    
-    
     nsMargin computedOffsets;
     
     
@@ -3019,7 +2982,6 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     NS_ENSURE_SUCCESS(rv, rv);
     
     if (mayNeedRetry && clearanceFrame) {
-      UndoSplitPlaceholders(aState, lastPlaceholder);
       aState.mSpaceManager->PopState(&spaceManagerState);
       aState.mY = startingY;
       aState.mPrevBottomMargin = incomingMargin;
@@ -3034,7 +2996,6 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     
     if (NS_INLINE_IS_BREAK_BEFORE(frameReflowStatus)) {
       
-      UndoSplitPlaceholders(aState, lastPlaceholder);
       PushLines(aState, aLine.prev());
       *aKeepReflowGoing = PR_FALSE;
       NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
@@ -3210,7 +3171,6 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
         else {
           
           
-          UndoSplitPlaceholders(aState, lastPlaceholder);
           PushLines(aState, aLine.prev());
           NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
         }
@@ -3325,11 +3285,8 @@ nsBlockFrame::ReflowInlineFrames(nsBlockReflowState& aState,
 void
 nsBlockFrame::PushTruncatedPlaceholderLine(nsBlockReflowState& aState,
                                            line_iterator       aLine,
-                                           nsIFrame*           aLastPlaceholder,
                                            PRBool&             aKeepReflowGoing)
 {
-  UndoSplitPlaceholders(aState, aLastPlaceholder);
-
   line_iterator prevLine = aLine;
   --prevLine;
   PushLines(aState, prevLine);
@@ -3398,9 +3355,6 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
   }
 
   
-  nsIFrame* lastPlaceholder = aState.mOverflowPlaceholders.LastChild();
-
-  
   nsresult rv = NS_OK;
   LineReflowStatus lineReflowStatus = LINE_REFLOW_OK;
   PRInt32 i;
@@ -3445,7 +3399,7 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
 
       if (LINE_REFLOW_TRUNCATED == lineReflowStatus) {
         
-        PushTruncatedPlaceholderLine(aState, aLine, lastPlaceholder, *aKeepReflowGoing);
+        PushTruncatedPlaceholderLine(aState, aLine, *aKeepReflowGoing);
       }
     }
   }
@@ -3531,8 +3485,7 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
         
         lineReflowStatus = LINE_REFLOW_TRUNCATED;
         
-        PushTruncatedPlaceholderLine(aState, aLine, lastPlaceholder,
-                                     *aKeepReflowGoing);
+        PushTruncatedPlaceholderLine(aState, aLine, *aKeepReflowGoing);
       }
     }
       
@@ -3558,9 +3511,7 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
     
     
     if (!NS_INLINE_IS_BREAK_BEFORE(aState.mReflowStatus)) {
-      if (PlaceLine(aState, aLineLayout, aLine, aKeepReflowGoing)) {
-        UndoSplitPlaceholders(aState, lastPlaceholder); 
-      }
+      PlaceLine(aState, aLineLayout, aLine, aKeepReflowGoing);
     }
   }
 #ifdef DEBUG
@@ -3726,6 +3677,12 @@ nsBlockFrame::ReflowInlineFrame(nsBlockReflowState& aState,
       }
     }
   }
+  else if (NS_FRAME_IS_TRUNCATED(frameReflowStatus) &&
+           nsGkAtoms::placeholderFrame == aFrame->GetType()) {
+    
+    
+    *aLineReflowStatus = LINE_REFLOW_TRUNCATED;
+  }  
   else if (NS_FRAME_IS_NOT_COMPLETE(frameReflowStatus)) {
     
 
@@ -3769,13 +3726,6 @@ nsBlockFrame::ReflowInlineFrame(nsBlockReflowState& aState,
       }
     }
   }
-  else if (NS_FRAME_IS_TRUNCATED(frameReflowStatus)) {
-    
-    
-    if (nsGkAtoms::placeholderFrame == aFrame->GetType()) {
-      *aLineReflowStatus = LINE_REFLOW_TRUNCATED;
-    }
-  }  
 
   return NS_OK;
 }
@@ -3962,7 +3912,7 @@ nsBlockFrame::ShouldJustifyLine(nsBlockReflowState& aState,
   return PR_FALSE;
 }
 
-PRBool
+void
 nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
                         nsLineLayout&       aLineLayout,
                         line_iterator       aLine,
@@ -4088,7 +4038,7 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
       NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
       *aKeepReflowGoing = PR_FALSE;
     }
-    return PR_TRUE;
+    return;
   }
 
   
@@ -4111,9 +4061,7 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
       
       
       
-
-      nsIFrame* lastPlaceholder = aState.mOverflowPlaceholders.LastChild();
-      PushTruncatedPlaceholderLine(aState, aLine, lastPlaceholder, *aKeepReflowGoing);
+      PushTruncatedPlaceholderLine(aState, aLine, *aKeepReflowGoing);
     }
   }
 
@@ -4147,8 +4095,6 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
   if (aLine->HasFloatBreakAfter()) {
     aState.mY = aState.ClearFloats(aState.mY, aLine->GetBreakTypeAfter());
   }
-
-  return PR_FALSE;
 }
 
 void
