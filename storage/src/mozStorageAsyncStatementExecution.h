@@ -45,6 +45,7 @@
 #include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/TimeStamp.h"
 
 #include "mozIStoragePendingStatement.h"
 #include "mozIStorageStatementCallback.h"
@@ -207,12 +208,12 @@ private:
 
 
 
-  const PRIntervalTime mMaxIntervalWait;
+  const TimeDuration mMaxWait;
 
   
 
 
-  PRIntervalTime mIntervalStart;
+  TimeStamp mIntervalStart;
 
   
 
