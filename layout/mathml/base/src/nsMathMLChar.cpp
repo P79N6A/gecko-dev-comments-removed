@@ -210,16 +210,6 @@ LoadProperties(const nsString& aName,
 }
 
 
-static nsStretchDirection
-GetStretchyDirection(PRUnichar aChar)
-{
-  PRInt32 k = nsMathMLOperators::FindStretchyOperator(aChar);
-  return (k == kNotFound)
-    ? NS_STRETCH_DIRECTION_UNSUPPORTED
-    : nsMathMLOperators::GetStretchyDirectionAt(k);
-}
-
-
 
 class nsGlyphTable {
 public:
@@ -251,15 +241,12 @@ public:
   
   
   PRBool Has(nsPresContext* aPresContext, nsMathMLChar* aChar);
-  PRBool Has(nsPresContext* aPresContext, PRUnichar aChar);
 
   
   PRBool HasVariantsOf(nsPresContext* aPresContext, nsMathMLChar* aChar);
-  PRBool HasVariantsOf(nsPresContext* aPresContext, PRUnichar aChar);
 
   
   PRBool HasPartsOf(nsPresContext* aPresContext, nsMathMLChar* aChar);
-  PRBool HasPartsOf(nsPresContext* aPresContext, PRUnichar aChar);
 
   
   PRBool IsComposite(nsPresContext* aPresContext, nsMathMLChar* aChar);
@@ -502,32 +489,10 @@ nsGlyphTable::Has(nsPresContext* aPresContext, nsMathMLChar* aChar)
 }
 
 PRBool
-nsGlyphTable::Has(nsPresContext* aPresContext, PRUnichar aChar)
-{
-  nsMathMLChar tmp;
-  tmp.mData = aChar;
-  tmp.mDirection = GetStretchyDirection(aChar);
-  return (tmp.mDirection == NS_STRETCH_DIRECTION_UNSUPPORTED)
-    ? PR_FALSE
-    : Has(aPresContext, &tmp);
-}
-
-PRBool
 nsGlyphTable::HasVariantsOf(nsPresContext* aPresContext, nsMathMLChar* aChar)
 {
   
   return BigOf(aPresContext, aChar, 1).Exists();
-}
-
-PRBool
-nsGlyphTable::HasVariantsOf(nsPresContext* aPresContext, PRUnichar aChar)
-{
-  nsMathMLChar tmp;
-  tmp.mData = aChar;
-  tmp.mDirection = GetStretchyDirection(aChar);
-  return (tmp.mDirection == NS_STRETCH_DIRECTION_UNSUPPORTED)
-    ? PR_FALSE
-    : HasVariantsOf(aPresContext, &tmp);
 }
 
 PRBool
@@ -538,17 +503,6 @@ nsGlyphTable::HasPartsOf(nsPresContext* aPresContext, nsMathMLChar* aChar)
     BottomOf(aPresContext, aChar).Exists() ||
     MiddleOf(aPresContext, aChar).Exists() ||
     IsComposite(aPresContext, aChar);
-}
-
-PRBool
-nsGlyphTable::HasPartsOf(nsPresContext* aPresContext, PRUnichar aChar)
-{
-  nsMathMLChar tmp;
-  tmp.mData = aChar;
-  tmp.mDirection = GetStretchyDirection(aChar);
-  return (tmp.mDirection == NS_STRETCH_DIRECTION_UNSUPPORTED)
-    ? PR_FALSE
-    : HasPartsOf(aPresContext, &tmp);
 }
 
 
