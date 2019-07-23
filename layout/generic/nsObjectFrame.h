@@ -166,6 +166,11 @@ protected:
 
   void FixupWindow(const nsSize& aSize);
 
+  
+
+
+  void CallSetWindow();
+
   PRBool IsFocusable(PRInt32 *aTabIndex = nsnull, PRBool aWithMouse = PR_FALSE);
 
   
