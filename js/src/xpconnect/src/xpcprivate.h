@@ -757,6 +757,9 @@ private:
 public:
 #endif
 
+    void AddGCCallback(JSGCCallback cb);
+    void RemoveGCCallback(JSGCCallback cb);
+
 private:
     XPCJSRuntime(); 
     XPCJSRuntime(nsXPConnect* aXPConnect);
@@ -794,6 +797,7 @@ private:
     uintN mUnrootedGlobalCount;
     PRCondVar *mWatchdogWakeup;
     PRThread *mWatchdogThread;
+    nsTArray<JSGCCallback> extraGCCallbacks;
 };
 
 
@@ -3435,11 +3439,6 @@ public:
         }
 
         return GetDataImpl(cx);
-    }
-
-    static inline JSBool IsMainThreadContext(JSContext *cx)
-    {
-        return cx->thread == sMainJSThread;
     }
 
     static void CleanupAllThreads();
