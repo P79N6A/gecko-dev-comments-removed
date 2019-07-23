@@ -103,6 +103,15 @@ public:
     SetPluginInstance(aPluginInstance);
     return NS_OK;
   }
+#ifdef MOZ_PLATFORM_HILDON
+#define MOZ_COMPOSITED_PLUGINS
+#endif
+#ifdef MOZ_COMPOSITED_PLUGINS
+  
+
+
+  void *mPlugWindow;
+#endif
 
 protected:
   nsCOMPtr<nsIPluginInstance> mPluginInstance;
