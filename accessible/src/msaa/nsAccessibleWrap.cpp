@@ -1510,19 +1510,19 @@ nsAccessibleWrap::FireAccessibleEvent(nsIAccessibleEvent *aEvent)
     }
   }
 
-+   PRInt32 childID = GetChildIDFor(accessible); 
-+   if (!childID)
-+     return NS_OK; 
-+ 
-+   
-+   nsCOMPtr<nsIAccessible> newAccessible;
-+   if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
-+     
-+     
-+     accessible->GetParent(getter_AddRefs(newAccessible));
-+   } else {
-+     newAccessible = accessible;
-+   }
+  PRInt32 childID = GetChildIDFor(accessible); 
+  if (!childID)
+    return NS_OK; 
+
+  
+  nsCOMPtr<nsIAccessible> newAccessible;
+  if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
+    
+    
+    accessible->GetParent(getter_AddRefs(newAccessible));
+  } else {
+    newAccessible = accessible;
+  }
   
   HWND hWnd = 0;
   nsCOMPtr<nsPIAccessNode> privateAccessNode =
