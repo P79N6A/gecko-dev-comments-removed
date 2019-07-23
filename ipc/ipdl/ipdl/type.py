@@ -298,7 +298,6 @@ With this information, it finally type checks the AST.'''
         
         
         self.errors = [ ]       
-        self.symtab = SymbolTable(self.errors)
 
     def check(self, tu, errout=sys.stderr):
         def runpass(tcheckpass):
@@ -312,15 +311,15 @@ With this information, it finally type checks the AST.'''
 
         
         
-        if not runpass(GatherDecls(builtinUsing, self.symtab, self.errors)):
+        if not runpass(GatherDecls(builtinUsing, self.errors)):
             return False
 
         
-        if not runpass(CheckTypes(self.symtab, self.errors)):
+        if not runpass(CheckTypes(self.errors)):
             return False
 
         if (tu.protocol.startState is not None
-            and not runpass(CheckStateMachine(self.symtab, self.errors))):
+            and not runpass(CheckStateMachine(self.errors))):
             return False
 
         return True
@@ -348,35 +347,35 @@ class TcheckVisitor(Visitor):
         return d
 
 class GatherDecls(TcheckVisitor):
-    def __init__(self, builtinUsing, symtab, errors):
-        TcheckVisitor.__init__(self, symtab, errors)
+    def __init__(self, builtinUsing, errors):
+        
+        
+        TcheckVisitor.__init__(self, None, errors)
         self.builtinUsing = builtinUsing
-        self.depth = 0
+
+    def declareBuiltins(self):
+        for using in self.builtinUsing:
+            fullname = str(using.type)
+            if using.type.basename() == fullname:
+                fullname = None
+            using.decl = self.declareLocalGlobal(
+                loc=using.loc,
+                type=BuiltinCxxType(using.type.spec),
+                shortname=using.type.basename(),
+                fullname=fullname)
+            self.symtab.declare(using.decl)
 
     def visitTranslationUnit(self, tu):
         
-        if hasattr(tu, '_tchecked') and tu._tchecked:
+        if hasattr(tu, 'symtab'):
             return
-        tu._tchecked = True
-        self.depth += 1
+        tu.symtab = SymbolTable(self.errors)
+        savedSymtab = self.symtab
+        self.symtab = tu.symtab
 
         
         
-        
-        
-        
-        
-        
-        if 1 == self.depth:
-            for using in self.builtinUsing:
-                fullname = str(using.type)
-                if using.type.basename() == fullname:
-                    fullname = None
-                using.decl = self.declare(
-                    loc=using.loc,
-                    type=BuiltinCxxType(using.type.spec),
-                    shortname=using.type.basename(),
-                    fullname=fullname)
+        tu.using = self.builtinUsing + tu.using
 
         p = tu.protocol
 
@@ -401,25 +400,20 @@ class GatherDecls(TcheckVisitor):
             pinc.accept(self)
 
         
-        self.symtab.enterScope(tu)
-
-        
         for using in tu.using:
             using.accept(self)
 
         
-        tu.using = self.builtinUsing + tu.using
-
-        
         p.accept(self)
 
-        self.symtab.exitScope(tu)
-
         tu.type = VOID
-        self.depth -= 1
+
+        self.symtab = savedSymtab
+
 
     def visitProtocolInclude(self, pi):
         pi.tu.accept(self)
+        self.symtab.declare(pi.tu.protocol.decl)
 
     def visitUsingStmt(self, using):
         fullname = str(using.type)
@@ -679,8 +673,9 @@ class GatherDecls(TcheckVisitor):
 
 
 class CheckTypes(TcheckVisitor):
-    def __init__(self, symtab, errors):
-        TcheckVisitor.__init__(self, symtab, errors)
+    def __init__(self, errors):
+        
+        TcheckVisitor.__init__(self, None, errors)
         self.visited = set()
 
     def visitProtocolInclude(self, inc):
@@ -797,8 +792,9 @@ class CheckTypes(TcheckVisitor):
 
 
 class CheckStateMachine(TcheckVisitor):
-    def __init__(self, symtab, errors):
-        TcheckVisitor.__init__(self, symtab, errors)
+    def __init__(self, errors):
+        
+        TcheckVisitor.__init__(self, None, errors)
         self.p = None
 
     def visitProtocol(self, p):
