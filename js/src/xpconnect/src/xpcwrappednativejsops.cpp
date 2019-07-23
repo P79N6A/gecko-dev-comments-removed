@@ -1607,7 +1607,8 @@ XPCNativeScriptableInfo::Construct(XPCCallContext& ccx,
     XPCNativeScriptableSharedMap* map = rt->GetNativeScriptableSharedMap();
     {   
         XPCAutoLock lock(rt->GetMapLock());
-        success = map->GetNewOrUsed(sci->GetFlags(), name, isGlobal, newObj);
+        success = map->GetNewOrUsed(sci->GetFlags(), name, isGlobal,
+                                    sci->GetInterfacesBitmap(), newObj);
     }
 
     if(!success)
