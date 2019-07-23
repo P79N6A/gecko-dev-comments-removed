@@ -1,3 +1,98 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+@namespace html url("http://www.w3.org/1999/xhtml");
+
+
 #folderTree {
   margin: 4px;
 }
+
+
+
+
+
+
+
+menulist#namePicker[droppable="false"] {
+  -moz-appearance: none;
+  margin: 0px;
+  border: none;
+  padding: 0px;
+  height: auto !important;
+}
+
+menulist#namePicker[droppable="false"] > .menulist-dropmarker {
+  display: none;
+}
+
+menulist#namePicker[droppable="false"] > .menulist-editable-box {
+  
+
+
+  -moz-appearance: textfield;
+  cursor: text;
+  margin: 2px 4px;
+  border: 2px solid;
+  -moz-border-top-colors: ThreeDShadow ThreeDDarkShadow;
+  -moz-border-right-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-bottom-colors: ThreeDHighlight ThreeDLightShadow;
+  -moz-border-left-colors: ThreeDShadow ThreeDDarkShadow;
+  padding: 2px 2px 3px 4px;
+  background-color: -moz-Field;
+  color: -moz-FieldText;
+}
+
+menulist#namePicker[droppable="false"] > .menulist-editable-box > html|*.textbox-input {
+  margin: 0px !important;
+  border: none !important;
+  padding: 0px !important;
+  background-color: inherit;
+  color: inherit;
+  font: inherit;
+}
+
+
+
+menulist#namePicker[droppable="false"] > .menulist-dropmarker {
+  display: none;
+}
+
+menulist#namePicker[droppable="false"] > menupopup {
+  display: none;
+}
+

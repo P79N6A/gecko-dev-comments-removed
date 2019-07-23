@@ -87,7 +87,6 @@
 
 
 
-
 const BOOKMARK_ITEM = 0;
 const BOOKMARK_FOLDER = 1;
 const LIVEMARK_CONTAINER = 2;
@@ -358,30 +357,12 @@ var BookmarkPropertiesPanel = {
     }
   },
 
-  _initMicrosummaryPicker: function BPP__initMicrosummaryPicker() {
-    var placeURI = null;
-    if (this._action == ACTION_EDIT) {
-      NS_ASSERT(this._bookmarkId, "No bookmark identifier");
-      placeURI = PlacesUtils.bookmarks.getItemURI(this._bookmarkId);
-    }
-    try {
-      this._microsummaries = this._mss.getMicrosummaries(this._bookmarkURI,
-                                                         placeURI);
-    }
-    catch(ex) {
-      
-      
-      
-      
-      
-      
-      
-      
-      this._element("microsummaryRow").hidden = true;
-      return;
-    }
-    this._microsummaries.addObserver(this._microsummaryObserver);
-    this._rebuildMicrosummaryPicker();
+  QueryInterface: function BPP_QueryInterface(aIID) {
+    if (aIID.equals(Ci.nsIMicrosummaryObserver) ||
+        aIID.eqauls(Ci.nsISupports))
+      return this;
+
+    throw Cr.NS_ERROR_NO_INTERFACE;
   },
 
   _element: function BPP__element(aID) {
@@ -398,7 +379,7 @@ var BookmarkPropertiesPanel = {
       return;
 
     if (hiddenRows.indexOf("title") != -1)
-      this._element("titleTextfield").hidden = true;
+      this._element("namePicker").hidden = true;
     if (hiddenRows.indexOf("location") != -1)
       this._element("locationRow").hidden = true;
     if (hiddenRows.indexOf("keyword") != -1)
@@ -411,8 +392,6 @@ var BookmarkPropertiesPanel = {
       this._element("livemarkFeedLocationRow").hidden = true;
     if (hiddenRows.indexOf("siteURI") != -1)
       this._element("livemarkSiteLocationRow").hidden = true;
-    if (hiddenRows.indexOf("microsummary") != -1)
-      this._element("microsummaryRow").hidden = true;
     if (hiddenRows.indexOf("load in sidebar") != -1)
       this._element("loadInSidebarCheckbox").hidden = true;
   },
@@ -423,8 +402,8 @@ var BookmarkPropertiesPanel = {
   _populateProperties: function BPP__populateProperties() {
     document.title = this._getDialogTitle();
     document.documentElement.getButton("accept").label = this._getAcceptLabel();
-    
-    this._element("titleTextfield").value = this._itemTitle;
+
+    this._initNamePicker();
     this._element("descriptionTextfield").value = this._itemDescription;
 
     if (this._itemType == BOOKMARK_ITEM) {
@@ -454,83 +433,127 @@ var BookmarkPropertiesPanel = {
       this._element("livemarkSiteLocationRow").hidden = true;
     }
 
-    if (this._itemType == BOOKMARK_ITEM && this._bookmarkURI) {
-      
-      this._initMicrosummaryPicker();
-    }
-    else
-      this._element("microsummaryRow").hidden = true;
-
     if (this._action == ACTION_EDIT)
       this._element("folderRow").hidden = true;
   },
 
-  
-  _rebuildMicrosummaryPicker: function BPP__rebuildMicrosummaryPicker() {
-    var microsummaryMenuList = this._element("microsummaryMenuList");
-    var microsummaryMenuPopup = this._element("microsummaryMenuPopup");
+  _createMicrosummaryMenuItem:
+  function BPP__createMicrosummaryMenuItem(aMicrosummary) {
+    var menuItem = document.createElement("menuitem");
 
     
     
-    while (microsummaryMenuPopup.childNodes.length > 1)
-      microsummaryMenuPopup.removeChild(microsummaryMenuPopup.lastChild);
+    
+    menuItem.microsummary = aMicrosummary;
 
-    var enumerator = this._microsummaries.Enumerate();
-    while (enumerator.hasMoreElements()) {
-      var microsummary = enumerator.getNext().QueryInterface(Ci.nsIMicrosummary);
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (aMicrosummary.content)
+      menuItem.setAttribute("label", aMicrosummary.content);
+    else {
+      menuItem.setAttribute("label", aMicrosummary.generator.name ||
+                                     aMicrosummary.generator.uri.spec);
+      aMicrosummary.update();
+    }
 
-      var menuItem = document.createElement("menuitem");
+    return menuItem;
+  },
 
-      
-      
-      
-      menuItem.microsummary = microsummary;
+  _initNamePicker: function BPP_initNamePicker() {
+    var userEnteredNameField = this._element("userEnteredName");
+    var namePicker = this._element("namePicker");
+    userEnteredNameField.label = this._itemTitle;
 
+    
+    if (this._itemType != BOOKMARK_ITEM || !this._bookmarkURI) {
+      namePicker.selectedItem = userEnteredNameField;
+      return;
+    }
+
+    var itemToSelect = userEnteredNameField;
+    var placeURI = null;
+    if (this._action == ACTION_EDIT) {
+      NS_ASSERT(this._bookmarkId, "No bookmark identifier");
+      placeURI = PlacesUtils.bookmarks.getItemURI(this._bookmarkId);
+    }
+    try {
+      this._microsummaries = this._mss.getMicrosummaries(this._bookmarkURI,
+                                                         placeURI);
+    }
+    catch(ex) {
       
       
       
       
       
       
-      
-      
-      
-      if (microsummary.content)
-        menuItem.setAttribute("label", microsummary.content);
-      else {
-        menuItem.setAttribute("label", microsummary.generator ?
-                                       microsummary.generator.name :
-                                       microsummary.generatorURI.spec);
-        microsummary.update();
+      this._microsummaries = null;
+    }
+    if (this._microsummaries) {
+      var enumerator = this._microsummaries.Enumerate();
+
+      if (enumerator.hasMoreElements()) {
+        
+        namePicker.setAttribute("droppable", "true");
+
+        var menupopup = namePicker.menupopup;
+        while (enumerator.hasMoreElements()) {
+          var microsummary = enumerator.getNext()
+                                       .QueryInterface(Ci.nsIMicrosummary);
+          var menuItem = this._createMicrosummaryMenuItem(microsummary);
+
+          if (this._action == ACTION_EDIT &&
+              this._mss.isMicrosummary(placeURI, microsummary))
+            itemToSelect = menuItem;
+
+          menupopup.appendChild(menuItem);
+        }
       }
 
-      microsummaryMenuPopup.appendChild(menuItem);
+      this._microsummaries.addObserver(this);
+    }
 
-      if (this._action == ACTION_EDIT) {
-        NS_ASSERT(this._bookmarkId, "No bookmark identifier");
-        var placeURI = PlacesUtils.bookmarks.getItemURI(this._bookmarkId);
+    namePicker.selectedItem = itemToSelect;
+  },
+
+  
+  onContentLoaded: function BPP_onContentLoaded(aMicrosummary) {
+    var namePicker = this._element("namePicker");
+    var childNodes = namePicker.menupopup.childNodes;
+
+    
+    for (var i = 2; i < childNodes.length; i++) {
+      if (childNodes[i].microsummary == aMicrosummary) {
+        var newLabel = aMicrosummary.content;
         
-        if (this._mss.isMicrosummary(placeURI, microsummary))
-          microsummaryMenuList.selectedItem = menuItem;
+        
+        
+        
+        
+        
+        if (namePicker.selectedItem == childNodes[i])
+          namePicker.value = newLabel;
+        
+        childNodes[i].label = newLabel;
+        return;
       }
     }
   },
 
-  _microsummaryObserver: {
-    QueryInterface: function (aIID) {
-      if (!aIID.equals(Ci.nsIMicrosummaryObserver) &&
-          !aIID.equals(Ci.nsISupports))
-        throw Cr.NS_ERROR_NO_INTERFACE;
-      return this;
-    },
+  onElementAppended: function BPP_onElementAppended(aMicrosummary) {
+    var namePicker = this._element("namePicker");
+    namePicker.menupopup
+              .appendChild(this._createMicrosummaryMenuItem(aMicrosummary));
 
-    onContentLoaded: function(aMicrosummary) {
-      BookmarkPropertiesPanel._rebuildMicrosummaryPicker();
-    },
-
-    onElementAppended: function(aMicrosummary) {
-      BookmarkPropertiesPanel._rebuildMicrosummaryPicker();
-    }
+    
+    namePicker.setAttribute("droppable", "true");
   },
 
   
@@ -544,7 +567,7 @@ var BookmarkPropertiesPanel = {
 
   onDialogUnload: function BPP_onDialogUnload() {
     if (this._microsummaries)
-      this._microsummaries.removeObserver(this._microsummaryObserver);
+      this._microsummaries.removeObserver(this);
   },
 
   onDialogAccept: function BPP_onDialogAccept() {
@@ -648,14 +671,13 @@ var BookmarkPropertiesPanel = {
       if (siteURIString)
         siteURI = PlacesUtils._uri(siteURIString);
 
-      var name = this._element("titleTextfield").value;
-
+      var name = this._element("namePicker").value;
       return new PlacesCreateLivemarkTransaction(feedURI, siteURI,
                                                  name, containerId,
                                                  indexInContainer);
     }
     else if (this._itemType == BOOKMARK_FOLDER) { 
-      var name = this._element("titleTextfield").value;
+      var name = this._element("namePicker").value;
       return new PlacesCreateFolderTransaction(name, containerId,
                                                indexInContainer);
     }
@@ -688,7 +710,7 @@ var BookmarkPropertiesPanel = {
     
     
     
-    var newTitle = this._element("titleTextfield").value;
+    var newTitle = this._element("userEnteredName").label;
     if (this._action != ACTION_EDIT || newTitle != this._itemTitle)
       transactions.push(this._getEditTitleTransaction(itemId, newTitle));
 
@@ -736,17 +758,18 @@ var BookmarkPropertiesPanel = {
     }
 
     
-    var menuList = this._element("microsummaryMenuList");
-    if (isElementVisible(menuList)) {
-      
-      
-      
-      if (menuList.selectedIndex == -1)
-        menuList.selectedIndex = 0;
+    if (this._itemType == BOOKMARK_ITEM) {
+      var namePicker = this._element("namePicker");
 
       
       
-      var newMicrosummary = menuList.selectedItem.microsummary;
+      
+      if (namePicker.selectedIndex == -1)
+        namePicker.selectedIndex = 0;
+
+      
+      
+      var newMicrosummary = namePicker.selectedItem.microsummary;
 
       if (this._action == ACTION_ADD && newMicrosummary) {
         transactions.push(
@@ -818,5 +841,9 @@ var BookmarkPropertiesPanel = {
         this._tm.doTransaction(aggregate);
       }
     }
+  },
+
+  onNamePickerInput: function BPP_onNamePickerInput() {
+    this._element("userEnteredName").label = this._element("namePicker").value;
   }
 };
