@@ -178,6 +178,10 @@ Tester.prototype = {
     
     this.currentTest.scope.EventUtils = this.EventUtils;
     this.currentTest.scope.SimpleTest = this.SimpleTest;
+    
+    ["ok", "is", "isnot", "todo", "todo_is", "todo_isnot"].forEach(function(m) {
+      this.SimpleTest[m] = this[m];
+    }, this.currentTest.scope);
 
     
     var currentTestDirPath =
