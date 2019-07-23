@@ -63,6 +63,8 @@ _cairo_font_face_set_error (cairo_font_face_t *font_face,
     if (status == CAIRO_STATUS_SUCCESS)
 	return status;
 
+    
+
     _cairo_status_set_error (&font_face->status, status);
 
     return _cairo_error (status);
@@ -132,7 +134,8 @@ cairo_font_face_destroy (cairo_font_face_t *font_face)
     if (! _cairo_reference_count_dec_and_test (&font_face->ref_count))
 	return;
 
-    font_face->backend->destroy (font_face);
+    if (font_face->backend->destroy)
+	font_face->backend->destroy (font_face);
 
     
 
@@ -534,7 +537,7 @@ _cairo_unscaled_font_destroy (cairo_unscaled_font_t *unscaled_font)
 }
 
 void
-_cairo_font_reset_static_data (void)
+_cairo_font_face_reset_static_data (void)
 {
     _cairo_scaled_font_map_destroy ();
 
