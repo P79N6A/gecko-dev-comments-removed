@@ -120,6 +120,7 @@ struct TreeFragment;
 struct InterpState;
 template<typename T> class Queue;
 typedef Queue<uint16> SlotList;
+struct TypeMap;
 struct REFragment;
 typedef nanojit::HashMap<REHashKey, REFragment*, REHashFn> REHashMap;
 
@@ -282,6 +283,11 @@ struct JSTraceMonitor {
 
 
     REHashMap*              reFragments;
+
+    
+    
+    
+    TypeMap*                cachedTempTypeMap;
 
 #ifdef DEBUG
     

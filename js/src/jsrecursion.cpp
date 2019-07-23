@@ -525,6 +525,10 @@ TraceRecorder::slurpDownFrames(jsbytecode* return_pc)
               &fp->argsobj,
               &info);
     
+    slurpSlot(addName(lir->insLoad(LIR_ldp, fp_ins, offsetof(JSStackFrame, scopeChain)), "scopeChain"),
+              (jsval*) &fp->scopeChain,
+              &info);
+    
     LIns* slots_ins = addName(lir->insLoad(LIR_ldp, fp_ins, offsetof(JSStackFrame, slots)),
                               "slots");
     for (unsigned i = 0; i < fp->script->nfixed; i++)
@@ -596,7 +600,7 @@ TraceRecorder::downRecursion()
 
     
     int slots = NativeStackSlots(cx, 1) - NativeStackSlots(cx, 0);
-    JS_ASSERT(unsigned(slots) == NativeStackSlots(cx, 1) - fp->argc - 2 - fp->script->nfixed - 1);
+    JS_ASSERT(unsigned(slots) == NativeStackSlots(cx, 1) - fp->argc - 2 - fp->script->nfixed - 2);
 
     
     JS_ASSERT(tree->maxNativeStackSlots >= tree->nativeStackBase / sizeof(double));
