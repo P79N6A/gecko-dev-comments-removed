@@ -660,7 +660,7 @@ txMozillaXMLOutput::createTxWrapper()
             
             
             
-            rootLocation = NS_MAX(rootLocation, j + 1);
+            rootLocation = PR_MAX(rootLocation, j + 1);
 #endif
             ++j;
         }
