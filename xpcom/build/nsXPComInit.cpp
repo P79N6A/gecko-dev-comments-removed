@@ -125,6 +125,9 @@ NS_DECL_CLASSINFO(nsStringInputStream)
 
 #include "nsIOUtil.h"
 
+#ifdef GC_LEAK_DETECTOR
+#include "nsLeakDetector.h"
+#endif
 #include "nsRecyclingAllocator.h"
 
 #include "SpecialSystemDirectory.h"
@@ -141,6 +144,22 @@ NS_DECL_CLASSINFO(nsStringInputStream)
 #include "nsMemoryReporterManager.h"
 
 #include <locale.h>
+
+#ifdef MOZ_IPC
+#include "base/at_exit.h"
+#include "base/command_line.h"
+#include "base/message_loop.h"
+
+using base::AtExitManager;
+
+namespace {
+
+static AtExitManager* sExitManager;
+static MessageLoop* sMessageLoop;
+static bool sCommandLineWasInitialized;
+
+} 
+#endif
 
 using mozilla::TimeStamp;
 
@@ -232,7 +251,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsMacUtilsImpl)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsSystemInfo, Init)
 
-NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsMemoryReporterManager, Init)
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsMemoryReporterManager)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsIOUtil)
 
@@ -283,6 +302,85 @@ RegisterGenericFactory(nsIComponentRegistrar* registrar,
                                     fact);
     NS_RELEASE(fact);
     return rv;
+}
+
+
+
+
+
+
+static PRBool CheckUpdateFile()
+{
+    nsresult rv;
+    nsCOMPtr<nsIFile> compregFile;
+    rv = nsDirectoryService::gService->Get(NS_XPCOM_COMPONENT_REGISTRY_FILE,
+                                           NS_GET_IID(nsIFile),
+                                           getter_AddRefs(compregFile));
+
+    if (NS_FAILED(rv)) {
+        NS_WARNING("Getting NS_XPCOM_COMPONENT_REGISTRY_FILE failed");
+        return PR_FALSE;
+    }
+
+    PRInt64 compregModTime;
+    rv = compregFile->GetLastModifiedTime(&compregModTime);
+    if (NS_FAILED(rv))
+        return PR_TRUE;
+    
+    nsCOMPtr<nsIFile> file;
+    rv = nsDirectoryService::gService->Get(NS_XPCOM_CURRENT_PROCESS_DIR, 
+                                           NS_GET_IID(nsIFile), 
+                                           getter_AddRefs(file));
+
+    if (NS_FAILED(rv)) {
+        NS_WARNING("Getting NS_XPCOM_CURRENT_PROCESS_DIR failed");
+        return PR_FALSE;
+    }
+
+    file->AppendNative(nsDependentCString(".autoreg"));
+
+    
+    PRInt64 nowTime = PR_Now() / PR_USEC_PER_MSEC;
+    PRInt64 autoregModTime;
+    rv = file->GetLastModifiedTime(&autoregModTime);
+    if (NS_FAILED(rv))
+        goto next;
+
+    if (autoregModTime > compregModTime) {
+        if (autoregModTime < nowTime) {
+            return PR_TRUE;
+        } else {
+            NS_WARNING("Screwy timestamps, ignoring .autoreg");
+        }
+    }
+
+next:
+    nsCOMPtr<nsIFile> greFile;
+    rv = nsDirectoryService::gService->Get(NS_GRE_DIR,
+                                           NS_GET_IID(nsIFile),
+                                           getter_AddRefs(greFile));
+
+    if (NS_FAILED(rv)) {
+        NS_WARNING("Getting NS_GRE_DIR failed");
+        return PR_FALSE;
+    }
+
+    greFile->AppendNative(nsDependentCString(".autoreg"));
+
+    PRBool equals;
+    rv = greFile->Equals(file, &equals);
+    if (NS_SUCCEEDED(rv) && equals)
+        return PR_FALSE;
+
+    rv = greFile->GetLastModifiedTime(&autoregModTime);
+    if (NS_FAILED(rv))
+        return PR_FALSE;
+
+    if (autoregModTime > nowTime) {
+        NS_WARNING("Screwy timestamps, ignoring .autoreg");
+        return PR_FALSE;
+    }
+    return autoregModTime > compregModTime; 
 }
 
 
@@ -467,6 +565,30 @@ NS_InitXPCOM3(nsIServiceManager* *result,
      
     gXPCOMShuttingDown = PR_FALSE;
 
+#ifdef MOZ_IPC
+    
+    NS_ASSERTION(!sExitManager && !sMessageLoop, "Bad logic!");
+
+    if (!AtExitManager::AlreadyRegistered()) {
+        sExitManager = new AtExitManager();
+        NS_ENSURE_STATE(sExitManager);
+    }
+
+    if ((sCommandLineWasInitialized = !CommandLine::IsInitialized())) {
+#ifdef XP_WIN
+        CommandLine::Init(0, nsnull);
+#else
+        static char const *const argv = { "/really/should/not/exist" };
+        CommandLine::Init(sizeof(argv), &argv);
+#endif
+    }
+
+    if (!MessageLoop::current()) {
+        sMessageLoop = new MessageLoopForUI();
+        NS_ENSURE_STATE(sMessageLoop);
+    }
+#endif
+
     NS_LogInit();
 
     
@@ -559,6 +681,11 @@ NS_InitXPCOM3(nsIServiceManager* *result,
     rv = compMgr->RegisterService(kComponentManagerCID, static_cast<nsIComponentManager*>(compMgr));
     if (NS_FAILED(rv)) return rv;
 
+#ifdef GC_LEAK_DETECTOR
+    rv = NS_InitLeakDetector();
+    if (NS_FAILED(rv)) return rv;
+#endif
+
     rv = nsCycleCollector_startup();
     if (NS_FAILED(rv)) return rv;
 
@@ -605,9 +732,8 @@ NS_InitXPCOM3(nsIServiceManager* *result,
     nsIInterfaceInfoManager* iim =
         xptiInterfaceInfoManager::GetInterfaceInfoManagerNoAddRef();
 
-    
-    rv = nsComponentManagerImpl::gComponentManager->ReadPersistentRegistry();
-    if (NS_FAILED(rv)) {
+    if (CheckUpdateFile() || NS_FAILED(
+        nsComponentManagerImpl::gComponentManager->ReadPersistentRegistry())) {
         
         
         (void) iim->AutoRegisterInterfaces();
@@ -618,6 +744,9 @@ NS_InitXPCOM3(nsIServiceManager* *result,
     
     
     nsDirectoryService::gService->RegisterCategoryProviders();
+
+    
+    nsMemoryImpl::InitFlusher();
 
     
     NS_CreateServicesFromCategory(NS_XPCOM_STARTUP_CATEGORY, 
@@ -679,10 +808,6 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
 
         if (observerService)
         {
-            (void) observerService->
-                NotifyObservers(nsnull, NS_XPCOM_WILL_SHUTDOWN_OBSERVER_ID,
-                                nsnull);
-
             nsCOMPtr<nsIServiceManager> mgr;
             rv = NS_GetServiceManager(getter_AddRefs(mgr));
             if (NS_SUCCEEDED(rv))
@@ -830,6 +955,26 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
 #endif
     
     NS_LogTerm();
+
+#ifdef GC_LEAK_DETECTOR
+    
+    NS_ShutdownLeakDetector();
+#endif
+
+#ifdef MOZ_IPC
+    if (sMessageLoop) {
+        delete sMessageLoop;
+        sMessageLoop = nsnull;
+    }
+    if (sCommandLineWasInitialized) {
+        CommandLine::Terminate();
+        sCommandLineWasInitialized = false;
+    }
+    if (sExitManager) {
+        delete sExitManager;
+        sExitManager = nsnull;
+    }
+#endif
 
     return NS_OK;
 }
