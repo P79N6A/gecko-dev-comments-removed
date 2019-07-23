@@ -289,12 +289,13 @@ namespace avmplus
 {
     struct InterpState
     {
-        void* sp;
-        void* rp;
-        void* gp;
-        JSContext *cx;
-        void* eos;
-        void* eor;
+        void* sp; 
+        void* rp; 
+        void* gp; 
+        JSContext *cx; 
+        void* eos; 
+        void* eor; 
+        nanojit::GuardRecord* nestedExit; 
     };
 
     class String
