@@ -462,6 +462,8 @@ protected:
 
 
 
+
+
   nsresult MarkLineDirty(line_iterator aLine);
 
   

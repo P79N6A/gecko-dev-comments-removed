@@ -1432,6 +1432,7 @@ nsBlockFrame::MarkLineDirty(line_iterator aLine)
 {
   
   aLine->MarkDirty();
+  aLine->SetInvalidateTextRuns(PR_TRUE);
 #ifdef DEBUG
   if (gNoisyReflow) {
     IndentBy(stdout, gNoiseIndent);
@@ -1447,6 +1448,7 @@ nsBlockFrame::MarkLineDirty(line_iterator aLine)
       aLine->IsInline() &&
       aLine.prev()->IsInline()) {
     aLine.prev()->MarkDirty();
+    aLine.prev()->SetInvalidateTextRuns(PR_TRUE);
 #ifdef DEBUG
     if (gNoisyReflow) {
       IndentBy(stdout, gNoiseIndent);
@@ -4857,13 +4859,13 @@ nsBlockFrame::AddFrames(nsIFrame* aFrameList,
       }
       mLines.after_insert(prevSibLine, line);
       prevSibLine->SetChildCount(prevSibLine->GetChildCount() - rem);
-      prevSibLine->MarkDirty();
-    }
-    
-    
-    prevSibLine->SetInvalidateTextRuns(PR_TRUE);
-    if (prevSibLine.next() != end_lines()) {
-      prevSibLine.next()->SetInvalidateTextRuns(PR_TRUE);
+      
+      
+      
+      MarkLineDirty(prevSibLine);
+      
+      
+      line->SetInvalidateTextRuns(PR_TRUE);
     }
 
     
@@ -4911,7 +4913,10 @@ nsBlockFrame::AddFrames(nsIFrame* aFrameList,
     }
     else {
       prevSibLine->SetChildCount(prevSibLine->GetChildCount() + 1);
-      prevSibLine->MarkDirty();
+      
+      
+      
+      MarkLineDirty(prevSibLine);
     }
 
     aPrevSibling = newFrame;
@@ -6208,9 +6213,6 @@ nsBlockFrame::ChildIsDirty(nsIFrame* aChild)
     
     line_iterator fline = FindLineFor(aChild);
     if (fline != end_lines()) {
-      
-      
-      fline->SetInvalidateTextRuns(PR_TRUE);
       MarkLineDirty(fline);
     }
   }
