@@ -1,4 +1,5 @@
-version(180);
+
+
 
 
 
@@ -73,7 +74,7 @@ function add_visit(aURI, aVisitDate, aVisitType) {
 
 var searchTerm = "ユニコード";
 var theTag = "superTag";
-var decoded = "http://www.foobar.com/" + searchTerm + "/";
+var decoded = "http://www.foobar.com/" + searchTerm + "/blocking-firefox3%2B";
 var url = uri(decoded);
 add_visit(url, Date.now(), Ci.nsINavHistoryService.TRANSITION_LINK);
 tagssvc.tagURI(url, [theTag]);
@@ -159,7 +160,7 @@ function run_test() {
     do_check_eq(controller.matchCount, 1);
 
     
-    do_check_eq(controller.getValueAt(0), decoded);
+    do_check_eq(controller.getValueAt(0), url.spec);
 
     do_test_finished();
   };
