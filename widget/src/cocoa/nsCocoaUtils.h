@@ -141,6 +141,9 @@ class nsCocoaUtils
   
   static NSWindow* FindWindowUnderPoint(NSPoint aPoint);
 
+  
+  static void HideOSChromeOnScreen(PRBool aShouldHide, NSScreen* aScreen);
+
   static nsIWidget* GetHiddenWindowWidget();
 
   static void PrepareForNativeAppModalDialog();
