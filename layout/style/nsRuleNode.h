@@ -41,6 +41,7 @@
 
 
 
+
 #ifndef nsRuleNode_h___
 #define nsRuleNode_h___
 
@@ -255,7 +256,6 @@ struct nsCachedStyleData
   nsCachedStyleData() :mInheritedData(nsnull), mResetData(nsnull) {}
   ~nsCachedStyleData() {}
 };
-
 
 
 
