@@ -43,6 +43,9 @@
 
 #include "nsIDOMNode.h"
 #include "nsIContent.h"
+#include "nsIBoxObject.h"
+#include "nsITreeBoxObject.h"
+
 #include "nsIFrame.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIArray.h"
@@ -332,6 +335,10 @@ public:
   static nsIContent *GetHTMLLabelContent(nsIContent *aForNode);
 
   
+
+
+  static already_AddRefed<nsIBoxObject>
+    GetTreeBodyBoxObject(nsITreeBoxObject *aTreeBoxObj);
 };
 
 #endif
