@@ -4289,6 +4289,10 @@ nsNavHistory::AddPageWithDetails(nsIURI *aURI, const PRUnichar *aTitle,
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
   NS_ENSURE_ARG(aURI);
 
+  
+  if (InPrivateBrowsingMode())
+    return NS_OK;
+
   PRInt64 visitID;
   nsresult rv = AddVisit(aURI, aLastVisited, 0, TRANSITION_LINK, PR_FALSE,
                          0, &visitID);
@@ -5255,6 +5259,10 @@ nsNavHistory::SetPageTitle(nsIURI* aURI,
   NS_ENSURE_ARG(aURI);
 
   
+  if (InPrivateBrowsingMode())
+    return NS_OK;
+
+  
   
   
 
@@ -5593,9 +5601,25 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
   }
   else if (strcmp(aTopic, NS_PRIVATE_BROWSING_SWITCH_TOPIC) == 0) {
     if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_ENTER).Equals(aData)) {
+#ifdef LAZY_ADD
+      
+      
+      
+      
+      CommitLazyMessages();
+#endif
+
       mInPrivateBrowsing = PR_TRUE;
     }
     else if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_LEAVE).Equals(aData)) {
+#ifdef LAZY_ADD
+      
+      
+      
+      
+      CommitLazyMessages();
+#endif
+
       mInPrivateBrowsing = PR_FALSE;
     }
   }
