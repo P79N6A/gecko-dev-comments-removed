@@ -52,6 +52,13 @@ EXPORTED_SYMBOLS = [ "PluralForm" ];
 
 
 
+
+
+
+
+
+
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
@@ -93,8 +100,6 @@ let gFunctions = [
   [3, function(n) n%10==1?0:n%10==2?1:2],
 ];
 
-let gNumForms;
-
 let PluralForm = {
   
 
@@ -105,7 +110,7 @@ let PluralForm = {
 
 
 
-  get: (function initGetPluralForm()
+  get get()
   {
     
     
@@ -113,22 +118,41 @@ let PluralForm = {
     
 
     
+    delete PluralForm.numForms;
+    delete PluralForm.get;
+
+    
     let ruleNum = Number(Cc["@mozilla.org/intl/stringbundle;1"].
       getService(Ci.nsIStringBundleService).createBundle(kIntlProperties).
       GetStringFromName("pluralRule"));
 
     
-    if (ruleNum < 0 || ruleNum >= gFunctions.length || isNaN(ruleNum)) {
-      log(["Invalid rule number: ", ruleNum, " -- defaulting to 0"]);
-      ruleNum = 0;
+    [PluralForm.get, PluralForm.numForms] = PluralForm.makeGetter(ruleNum);
+    return PluralForm.get;
+  },
+
+  
+
+
+
+
+
+
+
+  makeGetter: function(aRuleNum)
+  {
+    
+    if (aRuleNum < 0 || aRuleNum >= gFunctions.length || isNaN(aRuleNum)) {
+      log(["Invalid rule number: ", aRuleNum, " -- defaulting to 0"]);
+      aRuleNum = 0;
     }
 
     
-    let pluralFunc;
-    [gNumForms, pluralFunc] = gFunctions[ruleNum];
+    let [numForms, pluralFunc] = gFunctions[aRuleNum];
 
     
-    return function(aNum, aWords) {
+    
+    return [function(aNum, aWords) {
       
       let index = pluralFunc(aNum ? Number(aNum) : 0);
       let words = aWords ? aWords.split(/;/) : [""];
@@ -139,26 +163,31 @@ let PluralForm = {
       
       if ((ret == undefined) || (ret == "")) {
         
-        let caller = this.get.caller ? this.get.caller.name : "top";
+        let caller = PluralForm.get.caller ? PluralForm.get.caller.name : "top";
 
         
         log(["Index #", index, " of '", aWords, "' for value ", aNum,
-            " is invalid -- plural rule #", ruleNum, "; called by ", caller]);
+            " is invalid -- plural rule #", aRuleNum, "; called by ", caller]);
 
         
         ret = words[0];
       }
 
       return ret;
-    };
-  })(),
+    }, function() numForms];
+  },
 
   
 
 
 
 
-  numForms: function() gNumForms,
+  get numForms()
+  {
+    
+    PluralForm.get();
+    return PluralForm.numForms;
+  },
 };
 
 
