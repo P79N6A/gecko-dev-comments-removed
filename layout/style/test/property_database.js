@@ -349,11 +349,9 @@ var gCSSProperties = {
 		inherited: false,
 		type: CSS_TYPE_LONGHAND,
 		initial_values: [ "auto" ],
-		other_values: [ "1", "0", "17" ],
-		invalid_values: [
-			"-1", 
-			"3px"
-		]
+		other_values: [ "1", "17" ],
+		
+		invalid_values: [ "-1", "0", "3px" ]
 	},
 	"-moz-column-gap": {
 		domProp: "MozColumnGap",

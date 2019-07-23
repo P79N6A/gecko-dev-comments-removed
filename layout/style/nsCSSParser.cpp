@@ -5350,7 +5350,13 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
     return ParsePositiveVariant(aValue, VARIANT_HKL,
                                 nsCSSProps::kBorderWidthKTable);
   case eCSSProperty__moz_column_count:
-    return ParsePositiveVariant(aValue, VARIANT_AHI, nsnull);
+    
+    
+    
+    return ParseVariant(aValue, VARIANT_AHI, nsnull) &&
+           (aValue.GetUnit() != eCSSUnit_Integer ||
+            aValue.GetIntValue() > 0 ||
+            (UngetToken(), PR_FALSE));
   case eCSSProperty__moz_column_width:
     return ParsePositiveVariant(aValue, VARIANT_AHL, nsnull);
   case eCSSProperty__moz_column_gap:
