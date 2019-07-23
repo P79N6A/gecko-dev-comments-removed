@@ -670,6 +670,12 @@ nsNavHistory::InitDB()
   NS_ENSURE_SUCCESS(rv, rv);
 #endif
 
+  
+  
+  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "PRAGMA synchronous = FULL"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
   
