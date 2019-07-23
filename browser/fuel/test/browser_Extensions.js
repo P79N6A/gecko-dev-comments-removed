@@ -22,6 +22,7 @@ function test() {
   
   ok(inspector.version, "Check 'Extension.version' for known extension");
   ok(inspector.firstRun, "Check 'Extension.firstRun' for known extension");
+  ok(inspector.enabled, "Check 'Extension.enabled' for known extension");
   
   
   is(Application.extensions.all.length, 1, "Check a find for all extensions");
