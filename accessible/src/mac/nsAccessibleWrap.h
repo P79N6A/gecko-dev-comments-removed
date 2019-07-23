@@ -77,7 +77,7 @@ class nsAccessibleWrap : public nsAccessible
     virtual nsresult Shutdown ();
     virtual void InvalidateChildren();
 
-    virtual nsresult FireAccessibleEvent(nsAccEvent *aEvent);
+    virtual nsresult FireAccessibleEvent(nsIAccessibleEvent *aEvent);
 
     
     
@@ -97,7 +97,7 @@ class nsAccessibleWrap : public nsAccessible
     
   protected:
 
-    virtual nsresult FirePlatformEvent(nsAccEvent *aEvent);
+    virtual nsresult FirePlatformEvent(nsIAccessibleEvent *aEvent);
 
     PRBool AncestorIsFlat() {
       

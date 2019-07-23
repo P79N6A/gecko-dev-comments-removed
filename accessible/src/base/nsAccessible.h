@@ -104,11 +104,11 @@ private:
 
 
 #define NS_ACCESSIBLE_IMPL_CID                          \
-{  /* 133c8bf4-4913-4355-bd50-426bd1d6e1ad */           \
-  0x133c8bf4,                                           \
-  0x4913,                                               \
-  0x4355,                                               \
-  { 0xbd, 0x50, 0x42, 0x6b, 0xd1, 0xd6, 0xe1, 0xad }    \
+{  /* c734df37-7e12-49ec-8983-eea88a186bb8 */           \
+  0xc734df37,                                           \
+  0x7e12,                                               \
+  0x49ec,                                               \
+  { 0x89, 0x83, 0xee, 0xa8, 0x8a, 0x18, 0x6b, 0xb8 }    \
 }
 
 class nsAccessible : public nsAccessNodeWrap, 
@@ -282,8 +282,7 @@ public:
   
 
 
-
-  virtual nsresult HandleAccEvent(nsAccEvent *aAccEvent);
+  virtual nsresult FireAccessibleEvent(nsIAccessibleEvent *aAccEvent);
 
   
 
@@ -453,7 +452,7 @@ protected:
 
 
 
-  virtual nsresult FirePlatformEvent(nsAccEvent *aEvent) = 0;
+  virtual nsresult FirePlatformEvent(nsIAccessibleEvent *aEvent) = 0;
 
   
   nsRefPtr<nsAccessible> mParent;
