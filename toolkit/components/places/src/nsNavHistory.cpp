@@ -3484,10 +3484,17 @@ PlacesSQLQueryBuilder::SelectAsDay()
 {
   mSkipOrderBy = PR_TRUE;
 
+  
+  
+  PRUint16 sortingMode = nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING;
+  if (mSortingMode != nsINavHistoryQueryOptions::SORT_BY_NONE &&
+      mResultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_QUERY)
+    sortingMode = mSortingMode;
+
   PRUint16 resultType =
     mResultType == nsINavHistoryQueryOptions::RESULTS_AS_DATE_QUERY ?
-    nsINavHistoryQueryOptions::RESULTS_AS_URI :
-    nsINavHistoryQueryOptions::RESULTS_AS_SITE_QUERY;
+                   nsINavHistoryQueryOptions::RESULTS_AS_URI :
+                   nsINavHistoryQueryOptions::RESULTS_AS_SITE_QUERY;
 
   
   
@@ -3498,7 +3505,7 @@ PlacesSQLQueryBuilder::SelectAsDay()
       "dayTitle, null, null, beginTime, null, null, null, null "
      "FROM (", 
      resultType,
-      nsINavHistoryQueryOptions::SORT_BY_TITLE_ASCENDING);
+     sortingMode);
  
    nsNavHistory* history = nsNavHistory::GetHistoryService();
    NS_ENSURE_STATE(history);
