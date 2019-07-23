@@ -75,6 +75,7 @@ public:
     mWillHandleInstantiation = PR_FALSE;
   }
 
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsPluginDocument, nsMediaDocument)
 protected:
   nsresult CreateSyntheticPluginDocument();
 
@@ -158,7 +159,15 @@ nsPluginDocument::~nsPluginDocument()
 {
 }
 
+NS_IMPL_CYCLE_COLLECTION_CLASS(nsPluginDocument)
 
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsPluginDocument, nsMediaDocument)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mPluginContent)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsPluginDocument, nsMediaDocument)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mPluginContent)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_ISUPPORTS_INHERITED1(nsPluginDocument, nsMediaDocument,
                              nsIPluginDocument)

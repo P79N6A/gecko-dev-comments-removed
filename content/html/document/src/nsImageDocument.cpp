@@ -118,6 +118,8 @@ public:
   
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
 
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsImageDocument, nsMediaDocument)
+
   friend class ImageListener;
 protected:
   virtual nsresult CreateSyntheticDocument();
@@ -272,7 +274,15 @@ nsImageDocument::~nsImageDocument()
 {
 }
 
+NS_IMPL_CYCLE_COLLECTION_CLASS(nsImageDocument)
 
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsImageDocument, nsMediaDocument)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mImageContent)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsImageDocument, nsMediaDocument)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mImageContent)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_ADDREF_INHERITED(nsImageDocument, nsMediaDocument)
 NS_IMPL_RELEASE_INHERITED(nsImageDocument, nsMediaDocument)
