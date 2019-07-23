@@ -912,6 +912,9 @@ void nsWindow::HideKids(PRBool state)
 
 nsresult nsWindow::Move(PRInt32 aX, PRInt32 aY)
 {
+	if (mWindowType == eWindowType_toplevel || mWindowType == eWindowType_dialog)
+		SetSizeMode(nsSizeMode_Normal);
+
 	
 	
 	

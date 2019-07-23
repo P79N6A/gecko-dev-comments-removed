@@ -572,10 +572,7 @@ NS_IMETHODIMP nsXULWindow::Destroy()
 NS_IMETHODIMP nsXULWindow::SetPosition(PRInt32 aX, PRInt32 aY)
 {
   
-
-
-  mWindow->SetSizeMode(nsSizeMode_Normal);
-
+  
   NS_ENSURE_SUCCESS(mWindow->Move(aX, aY), NS_ERROR_FAILURE);
   if (!mChromeLoaded) {
     
