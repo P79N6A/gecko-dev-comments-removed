@@ -2031,7 +2031,8 @@ nsNavHistory::AddVisit(nsIURI* aURI, PRTime aTime, nsIURI* aReferringURI,
   
   
   
-  if (newItem && aIsRedirect) {
+  
+  if (newItem && (aIsRedirect || aTransitionType == TRANSITION_DOWNLOAD)) {
     nsCOMPtr<nsIObserverService> obsService =
       do_GetService("@mozilla.org/observer-service;1");
     if (obsService)
@@ -3507,19 +3508,9 @@ NS_IMETHODIMP
 nsNavHistory::AddDownload(nsIURI* aSource, nsIURI* aReferrer,
                           PRTime aStartTime)
 {
-  PRInt64 visitID, sessionID = 0;
-  
-  
-  
-  if (!FindLastVisit(aSource, &visitID, &sessionID)) {
-    nsCOMPtr<nsIObserverService> os =
-      do_GetService("@mozilla.org/observer-service;1");
-    if (os)
-      (void)os->NotifyObservers(aSource, NS_LINK_VISITED_EVENT_TOPIC, nsnull);
-  }
-
+  PRInt64 visitID;
   return AddVisit(aSource, aStartTime, aReferrer, TRANSITION_DOWNLOAD, PR_FALSE,
-                  sessionID, &visitID);
+                  0, &visitID);
 }
 
 
