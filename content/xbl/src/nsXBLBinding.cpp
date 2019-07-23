@@ -608,6 +608,9 @@ ChangeDocumentForDefaultContent(nsISupports* aKey,
 void
 nsXBLBinding::GenerateAnonymousContent()
 {
+  NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
+               "Someone forgot a script blocker");
+
   
   nsIContent* content =
     mPrototypeBinding->GetImmediateChild(nsGkAtoms::content);
@@ -678,14 +681,9 @@ nsXBLBinding::GenerateAnonymousContent()
     }
 
     if (hasContent || hasInsertionPoints) {
-      nsIDocument *document = mBoundElement->GetOwnerDoc();
-      if (!document) {
-        return;
-      }
-
       nsCOMPtr<nsIDOMNode> clonedNode;
       nsCOMArray<nsINode> nodesWithProperties;
-      nsNodeUtils::Clone(content, PR_TRUE, document->NodeInfoManager(),
+      nsNodeUtils::Clone(content, PR_TRUE, doc->NodeInfoManager(),
                          nodesWithProperties, getter_AddRefs(clonedNode));
 
       mContent = do_QueryInterface(clonedNode);
@@ -1163,32 +1161,36 @@ nsXBLBinding::ChangeDocument(nsIDocument* aOldDocument, nsIDocument* aNewDocumen
       UnhookEventHandlers();
     }
 
-    
-    
-    if (mNextBinding) {
-      mNextBinding->ChangeDocument(aOldDocument, aNewDocument);
-    }
+    {
+      nsAutoScriptBlocker scriptBlocker;
 
-    
-    
-    nsIContent *anonymous = mContent;
-    if (anonymous) {
       
-      if (mInsertionPointTable)
-        mInsertionPointTable->Enumerate(ChangeDocumentForDefaultContent,
-                                        nsnull);
+      
+      if (mNextBinding) {
+        mNextBinding->ChangeDocument(aOldDocument, aNewDocument);
+      }
 
-      nsXBLBinding::UninstallAnonymousContent(aOldDocument, anonymous);
-    }
+      
+      
+      nsIContent *anonymous = mContent;
+      if (anonymous) {
+        
+        if (mInsertionPointTable)
+          mInsertionPointTable->Enumerate(ChangeDocumentForDefaultContent,
+                                          nsnull);
 
-    
-    
-    nsBindingManager* bindingManager = aOldDocument->BindingManager();
-    for (PRUint32 i = mBoundElement->GetChildCount(); i > 0; --i) {
-      NS_ASSERTION(mBoundElement->GetChildAt(i-1),
-                   "Must have child at i for 0 <= i < GetChildCount()!");
-      bindingManager->SetInsertionParent(mBoundElement->GetChildAt(i-1),
-                                         nsnull);
+        nsXBLBinding::UninstallAnonymousContent(aOldDocument, anonymous);
+      }
+
+      
+      
+      nsBindingManager* bindingManager = aOldDocument->BindingManager();
+      for (PRUint32 i = mBoundElement->GetChildCount(); i > 0; --i) {
+        NS_ASSERTION(mBoundElement->GetChildAt(i-1),
+                     "Must have child at i for 0 <= i < GetChildCount()!");
+        bindingManager->SetInsertionParent(mBoundElement->GetChildAt(i-1),
+                                           nsnull);
+      }
     }
   }
 }

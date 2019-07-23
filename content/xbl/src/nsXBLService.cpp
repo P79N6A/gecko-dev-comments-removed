@@ -620,23 +620,27 @@ nsXBLService::LoadBindings(nsIContent* aContent, nsIURI* aURL,
     }
   }
 
-  
-  newBinding->SetBoundElement(aContent);
+  {
+    nsAutoScriptBlocker scriptBlocker;
 
-  
-  newBinding->GenerateAnonymousContent();
+    
+    newBinding->SetBoundElement(aContent);
 
-  
-  newBinding->InstallEventHandlers();
+    
+    newBinding->GenerateAnonymousContent();
 
-  
-  rv = newBinding->InstallImplementation();
-  NS_ENSURE_SUCCESS(rv, rv);
+    
+    newBinding->InstallEventHandlers();
 
+    
+    rv = newBinding->InstallImplementation();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    *aResolveStyle = newBinding->HasStyleSheets();
   
-  *aResolveStyle = newBinding->HasStyleSheets();
-  
-  newBinding.swap(*aBinding);
+    newBinding.swap(*aBinding);
+  }
 
   return NS_OK; 
 }
