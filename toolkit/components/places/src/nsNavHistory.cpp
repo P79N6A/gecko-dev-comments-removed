@@ -3349,11 +3349,10 @@ nsNavHistory::PerformVacuumIfIdle()
       NS_ENSURE_SUCCESS(rv, rv);
     }
     else {
-#if 0
+      
       
       rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING("VACUUM;"));
       NS_ENSURE_SUCCESS(rv, rv);
-#endif
     }
   }
   return NS_OK;
