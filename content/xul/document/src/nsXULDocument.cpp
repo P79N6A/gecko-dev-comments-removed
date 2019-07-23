@@ -1741,7 +1741,10 @@ nsXULDocument::RemoveSubtreeFromDocument(nsIContent* aElement)
     }
 
     
+    
+    
     RemoveElementFromRefMap(aElement);
+    RemoveFromIdTable(aElement);
 
     
     
