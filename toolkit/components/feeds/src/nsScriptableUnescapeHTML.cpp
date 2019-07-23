@@ -146,7 +146,7 @@ nsScriptableUnescapeHTML::ParseFragment(const nsAString &aFragment,
 
   
   
-  nsAutoTArray<nsAutoString, 2> tagStack;
+  nsAutoTArray<nsString, 2> tagStack;
   nsCAutoString base, spec;
   if (aIsXML) {
     
