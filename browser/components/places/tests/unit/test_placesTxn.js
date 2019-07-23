@@ -121,11 +121,22 @@ var bmStartIndex = 1;
 
 
 function run_test() {
+  const DESCRIPTION_ANNO = "bookmarkProperties/description";
+  var testDescription = "this is my test description";
+  var annotationService = Cc["@mozilla.org/browser/annotation-service;1"].
+                          getService(Ci.nsIAnnotationService);
 
   
-  var txn1 = ptSvc.createFolder("Testing folder", root, bmStartIndex);
+  var annos = [{ name: DESCRIPTION_ANNO,
+                 type: Ci.nsIAnnotationService.TYPE_STRING,
+                flags: 0,
+                value: testDescription,
+              expires: Ci.nsIAnnotationService.EXPIRE_NEVER }];
+  var txn1 = ptSvc.createFolder("Testing folder", root, bmStartIndex, annos);
   txn1.doTransaction();
   var folderId = bmsvc.getChildFolder(root, "Testing folder");
+  do_check_eq(testDescription, 
+              annotationService.getItemAnnotation(folderId, DESCRIPTION_ANNO));
   do_check_eq(observer._itemAddedIndex, bmStartIndex);
   do_check_eq(observer._itemAddedParent, root);
   do_check_eq(observer._itemAddedId, folderId);
