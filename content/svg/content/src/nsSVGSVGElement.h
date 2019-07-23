@@ -47,8 +47,7 @@
 #include "nsIDOMSVGZoomAndPan.h"
 #include "nsIDOMSVGMatrix.h"
 #include "nsSVGLength2.h"
-
-class nsISVGEnum;
+#include "nsSVGEnum.h"
 
 #define QI_AND_CAST_TO_NSSVGSVGELEMENT(base)                                  \
   (nsCOMPtr<nsIDOMSVGSVGElement>(do_QueryInterface(base)) ?                   \
@@ -91,7 +90,6 @@ public:
 
   
   NS_IMETHOD GetCurrentScaleNumber(nsIDOMSVGNumber **aResult);
-  NS_IMETHOD GetZoomAndPanEnum(nsISVGEnum **aResult);
 
   
 
@@ -137,6 +135,7 @@ public:
 
   
   virtual void DidChangeLength(PRUint8 aAttrEnum, PRBool aDoSetAttr);
+  virtual void DidChangeEnum(PRUint8 aAttrEnum, PRBool aDoSetAttr);
 
   
   float GetLength(PRUint8 mCtxType);
@@ -164,6 +163,13 @@ protected:
   nsSVGLength2 mLengthAttributes[4];
   static LengthInfo sLengthInfo[4];
 
+  virtual EnumAttributesInfo GetEnumInfo();
+
+  enum { ZOOMANDPAN };
+  nsSVGEnum mEnumAttributes[1];
+  static nsSVGEnumMapping sZoomAndPanMap[];
+  static EnumInfo sEnumInfo[1];
+
   nsSVGSVGElement                  *mCoordCtx;
   nsCOMPtr<nsIDOMSVGAnimatedRect>   mViewBox;
   nsCOMPtr<nsIDOMSVGAnimatedPreserveAspectRatio> mPreserveAspectRatio;
@@ -174,7 +180,6 @@ protected:
   
   
   
-  nsCOMPtr<nsISVGEnum>              mZoomAndPan;
   nsCOMPtr<nsIDOMSVGPoint>          mCurrentTranslate;
   nsCOMPtr<nsIDOMSVGNumber>         mCurrentScale;
   float                             mPreviousTranslate_x;

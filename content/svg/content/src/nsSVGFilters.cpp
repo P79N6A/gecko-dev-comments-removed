@@ -48,7 +48,6 @@
 #include "nsWeakReference.h"
 #include "nsIDOMSVGFilterElement.h"
 #include "nsSVGEnum.h"
-#include "nsSVGAnimatedEnumeration.h"
 #include "nsSVGNumberList.h"
 #include "nsSVGAnimatedNumberList.h"
 #include "nsISVGValueUtils.h"
@@ -931,9 +930,32 @@ public:
 
 protected:
 
+  virtual EnumAttributesInfo GetEnumInfo();
+
+  enum { MODE };
+  nsSVGEnum mEnumAttributes[1];
+  static nsSVGEnumMapping sModeMap[];
+  static EnumInfo sEnumInfo[1];
+
   nsCOMPtr<nsIDOMSVGAnimatedString> mIn1;
   nsCOMPtr<nsIDOMSVGAnimatedString> mIn2;
-  nsCOMPtr<nsIDOMSVGAnimatedEnumeration> mMode;
+};
+
+nsSVGEnumMapping nsSVGFEBlendElement::sModeMap[] = {
+  {&nsGkAtoms::normal, nsSVGFEBlendElement::SVG_MODE_NORMAL},
+  {&nsGkAtoms::multiply, nsSVGFEBlendElement::SVG_MODE_MULTIPLY},
+  {&nsGkAtoms::screen, nsSVGFEBlendElement::SVG_MODE_SCREEN},
+  {&nsGkAtoms::darken, nsSVGFEBlendElement::SVG_MODE_DARKEN},
+  {&nsGkAtoms::lighten, nsSVGFEBlendElement::SVG_MODE_LIGHTEN},
+  {nsnull, 0}
+};
+
+nsSVGElement::EnumInfo nsSVGFEBlendElement::sEnumInfo[1] =
+{
+  { &nsGkAtoms::mode,
+    sModeMap,
+    nsSVGFEBlendElement::SVG_MODE_NORMAL
+  }
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(FEBlend)
@@ -968,28 +990,7 @@ nsSVGFEBlendElement::Init()
   nsresult rv = nsSVGFEBlendElementBase::Init();
   NS_ENSURE_SUCCESS(rv,rv);
 
-  static struct nsSVGEnumMapping gModeTypes[] = {
-    {&nsGkAtoms::normal, nsSVGFEBlendElement::SVG_MODE_NORMAL},
-    {&nsGkAtoms::multiply, nsSVGFEBlendElement::SVG_MODE_MULTIPLY},
-    {&nsGkAtoms::screen, nsSVGFEBlendElement::SVG_MODE_SCREEN},
-    {&nsGkAtoms::darken, nsSVGFEBlendElement::SVG_MODE_DARKEN},
-    {&nsGkAtoms::lighten, nsSVGFEBlendElement::SVG_MODE_LIGHTEN},
-    {nsnull, 0}
-  };
-
   
-  
-  {
-    nsCOMPtr<nsISVGEnum> modes;
-    rv = NS_NewSVGEnum(getter_AddRefs(modes),
-                       nsSVGFEBlendElement::SVG_MODE_NORMAL,
-                       gModeTypes);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = NS_NewSVGAnimatedEnumeration(getter_AddRefs(mMode), modes);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = AddMappedSVGValue(nsGkAtoms::mode, mMode);
-    NS_ENSURE_SUCCESS(rv,rv);
-  }
 
   
   {
@@ -1038,9 +1039,7 @@ NS_IMETHODIMP nsSVGFEBlendElement::GetIn2(nsIDOMSVGAnimatedString * *aIn)
 
 NS_IMETHODIMP nsSVGFEBlendElement::GetMode(nsIDOMSVGAnimatedEnumeration * *aMode)
 {
-  *aMode = mMode;
-  NS_IF_ADDREF(*aMode);
-  return NS_OK;
+  return mEnumAttributes[MODE].ToDOMAnimatedEnum(aMode, this);
 }
 
 NS_IMETHODIMP
@@ -1070,8 +1069,7 @@ nsSVGFEBlendElement::Filter(nsSVGFilterInstance *instance)
   NS_ENSURE_SUCCESS(rv, rv);
   rect = fr.GetFilterSubregion();
 
-  PRUint16 mode;
-  mMode->GetAnimVal(&mode);
+  PRUint16 mode = mEnumAttributes[MODE].GetAnimValue();
 
   for (PRInt32 x = rect.x; x < rect.XMost(); x++) {
     for (PRInt32 y = rect.y; y < rect.YMost(); y++) {
@@ -1122,6 +1120,13 @@ nsSVGFEBlendElement::GetRequirements(PRUint32 *aRequirements)
   return NS_OK;
 }
 
+nsSVGElement::EnumAttributesInfo
+nsSVGFEBlendElement::GetEnumInfo()
+{
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo,
+                            NS_ARRAY_LENGTH(sEnumInfo));
+}
+
 
 
 typedef nsSVGFE nsSVGFEColorMatrixElementBase;
@@ -1158,11 +1163,31 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
 protected:
-  
+  virtual EnumAttributesInfo GetEnumInfo();
 
-  nsCOMPtr<nsIDOMSVGAnimatedEnumeration> mType;
+  enum { TYPE };
+  nsSVGEnum mEnumAttributes[1];
+  static nsSVGEnumMapping sTypeMap[];
+  static EnumInfo sEnumInfo[1];
+
   nsCOMPtr<nsIDOMSVGAnimatedNumberList>  mValues;
   nsCOMPtr<nsIDOMSVGAnimatedString> mIn1;
+};
+
+nsSVGEnumMapping nsSVGFEColorMatrixElement::sTypeMap[] = {
+  {&nsGkAtoms::matrix, nsSVGFEColorMatrixElement::SVG_FECOLORMATRIX_TYPE_MATRIX},
+  {&nsGkAtoms::saturate, nsSVGFEColorMatrixElement::SVG_FECOLORMATRIX_TYPE_SATURATE},
+  {&nsGkAtoms::hueRotate, nsSVGFEColorMatrixElement::SVG_FECOLORMATRIX_TYPE_HUE_ROTATE},
+  {&nsGkAtoms::luminanceToAlpha, nsSVGFEColorMatrixElement::SVG_FECOLORMATRIX_TYPE_LUMINANCE_TO_ALPHA},
+  {nsnull, 0}
+};
+
+nsSVGElement::EnumInfo nsSVGFEColorMatrixElement::sEnumInfo[1] =
+{
+  { &nsGkAtoms::type,
+    sTypeMap,
+    nsSVGFEColorMatrixElement::SVG_FECOLORMATRIX_TYPE_MATRIX
+  }
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(FEColorMatrix)
@@ -1197,27 +1222,7 @@ nsSVGFEColorMatrixElement::Init()
   nsresult rv = nsSVGFEColorMatrixElementBase::Init();
   NS_ENSURE_SUCCESS(rv,rv);
 
-  static struct nsSVGEnumMapping gTypes[] = {
-    {&nsGkAtoms::matrix, nsSVGFEColorMatrixElement::SVG_FECOLORMATRIX_TYPE_MATRIX},
-    {&nsGkAtoms::saturate, nsSVGFEColorMatrixElement::SVG_FECOLORMATRIX_TYPE_SATURATE},
-    {&nsGkAtoms::hueRotate, nsSVGFEColorMatrixElement::SVG_FECOLORMATRIX_TYPE_HUE_ROTATE},
-    {&nsGkAtoms::luminanceToAlpha, nsSVGFEColorMatrixElement::SVG_FECOLORMATRIX_TYPE_LUMINANCE_TO_ALPHA},
-    {nsnull, 0}
-  };
-
   
-  
-  {
-    nsCOMPtr<nsISVGEnum> types;
-    rv = NS_NewSVGEnum(getter_AddRefs(types),
-                       nsSVGFEColorMatrixElement::SVG_FECOLORMATRIX_TYPE_MATRIX,
-                       gTypes);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = NS_NewSVGAnimatedEnumeration(getter_AddRefs(mType), types);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = AddMappedSVGValue(nsGkAtoms::type, mType);
-    NS_ENSURE_SUCCESS(rv,rv);
-  }
 
   
   {
@@ -1262,9 +1267,7 @@ NS_IMETHODIMP nsSVGFEColorMatrixElement::GetIn1(nsIDOMSVGAnimatedString * *aIn)
 
 NS_IMETHODIMP nsSVGFEColorMatrixElement::GetType(nsIDOMSVGAnimatedEnumeration * *aType)
 {
-  *aType = mType;
-  NS_IF_ADDREF(*aType);
-  return NS_OK;
+  return mEnumAttributes[TYPE].ToDOMAnimatedEnum(aType, this);
 }
 
 
@@ -1280,6 +1283,13 @@ nsSVGFEColorMatrixElement::GetRequirements(PRUint32 *aRequirements)
 {
   *aRequirements = CheckStandardNames(mIn1);
   return NS_OK;
+}
+
+nsSVGElement::EnumAttributesInfo
+nsSVGFEColorMatrixElement::GetEnumInfo()
+{
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo,
+                            NS_ARRAY_LENGTH(sEnumInfo));
 }
 
 
@@ -1298,8 +1308,7 @@ nsSVGFEColorMatrixElement::Filter(nsSVGFilterInstance *instance)
   rv = fr.AcquireTargetImage(mResult, &targetData);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRUint16 type;
-  mType->GetAnimVal(&type);
+  PRUint16 type = mEnumAttributes[TYPE].GetAnimValue();
 
   nsCOMPtr<nsIDOMSVGNumberList> list;
   mValues->GetAnimVal(getter_AddRefs(list));
@@ -1482,14 +1491,19 @@ public:
 
 protected:
   virtual NumberAttributesInfo GetNumberInfo();
+  virtual EnumAttributesInfo GetEnumInfo();
 
   enum { K1, K2, K3, K4 };
   nsSVGNumber2 mNumberAttributes[4];
   static NumberInfo sNumberInfo[4];
 
+  enum { OPERATOR };
+  nsSVGEnum mEnumAttributes[1];
+  static nsSVGEnumMapping sOperatorMap[];
+  static EnumInfo sEnumInfo[1];
+
   nsCOMPtr<nsIDOMSVGAnimatedString> mIn1;
   nsCOMPtr<nsIDOMSVGAnimatedString> mIn2;
-  nsCOMPtr<nsIDOMSVGAnimatedEnumeration> mOperator;
 };
 
 nsSVGElement::NumberInfo nsSVGFECompositeElement::sNumberInfo[4] =
@@ -1498,6 +1512,24 @@ nsSVGElement::NumberInfo nsSVGFECompositeElement::sNumberInfo[4] =
   { &nsGkAtoms::k2, 0 },
   { &nsGkAtoms::k3, 0 },
   { &nsGkAtoms::k4, 0 }
+};
+
+nsSVGEnumMapping nsSVGFECompositeElement::sOperatorMap[] = {
+  {&nsGkAtoms::over, nsSVGFECompositeElement::SVG_OPERATOR_OVER},
+  {&nsGkAtoms::in, nsSVGFECompositeElement::SVG_OPERATOR_IN},
+  {&nsGkAtoms::out, nsSVGFECompositeElement::SVG_OPERATOR_OUT},
+  {&nsGkAtoms::atop, nsSVGFECompositeElement::SVG_OPERATOR_ATOP},
+  {&nsGkAtoms::xor_, nsSVGFECompositeElement::SVG_OPERATOR_XOR},
+  {&nsGkAtoms::arithmetic, nsSVGFECompositeElement::SVG_OPERATOR_ARITHMETIC},
+  {nsnull, 0}
+};
+
+nsSVGElement::EnumInfo nsSVGFECompositeElement::sEnumInfo[1] =
+{
+  { &nsGkAtoms::_operator,
+    sOperatorMap,
+    nsIDOMSVGFECompositeElement::SVG_OPERATOR_OVER
+  }
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(FEComposite)
@@ -1532,30 +1564,8 @@ nsSVGFECompositeElement::Init()
   nsresult rv = nsSVGFECompositeElementBase::Init();
   NS_ENSURE_SUCCESS(rv,rv);
 
-  static struct nsSVGEnumMapping gOperatorTypes[] = {
-    {&nsGkAtoms::over, nsSVGFECompositeElement::SVG_OPERATOR_OVER},
-    {&nsGkAtoms::in, nsSVGFECompositeElement::SVG_OPERATOR_IN},
-    {&nsGkAtoms::out, nsSVGFECompositeElement::SVG_OPERATOR_OUT},
-    {&nsGkAtoms::atop, nsSVGFECompositeElement::SVG_OPERATOR_ATOP},
-    {&nsGkAtoms::xor_, nsSVGFECompositeElement::SVG_OPERATOR_XOR},
-    {&nsGkAtoms::arithmetic, nsSVGFECompositeElement::SVG_OPERATOR_ARITHMETIC},
-    {nsnull, 0}
-  };
   
-  
-  
-  {
-    nsCOMPtr<nsISVGEnum> operators;
-    rv = NS_NewSVGEnum(getter_AddRefs(operators),
-                       nsIDOMSVGFECompositeElement::SVG_OPERATOR_OVER,
-                       gOperatorTypes);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = NS_NewSVGAnimatedEnumeration(getter_AddRefs(mOperator), operators);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = AddMappedSVGValue(nsGkAtoms::_operator, mOperator);
-    NS_ENSURE_SUCCESS(rv,rv);
-  }
-    
+
   
   {
     rv = NS_NewSVGAnimatedString(getter_AddRefs(mIn1));
@@ -1603,9 +1613,7 @@ NS_IMETHODIMP nsSVGFECompositeElement::GetIn2(nsIDOMSVGAnimatedString * *aIn)
 
 NS_IMETHODIMP nsSVGFECompositeElement::GetOperator(nsIDOMSVGAnimatedEnumeration * *aOperator)
 {
-  *aOperator = mOperator;
-  NS_IF_ADDREF(*aOperator);
-  return NS_OK;
+  return mEnumAttributes[OPERATOR].ToDOMAnimatedEnum(aOperator, this);
 }
 
 
@@ -1658,8 +1666,7 @@ nsSVGFECompositeElement::Filter(nsSVGFilterInstance *instance)
                              getter_AddRefs(targetSurface));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRUint16 op;
-  mOperator->GetAnimVal(&op);
+  PRUint16 op = mEnumAttributes[OPERATOR].GetAnimValue();
 
   
   if (op == nsSVGFECompositeElement::SVG_OPERATOR_ARITHMETIC) {
@@ -1736,6 +1743,13 @@ nsSVGFECompositeElement::GetRequirements(PRUint32 *aRequirements)
 {
   *aRequirements = CheckStandardNames(mIn1);
   return NS_OK;
+}
+
+nsSVGElement::EnumAttributesInfo
+nsSVGFECompositeElement::GetEnumInfo()
+{
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo,
+                            NS_ARRAY_LENGTH(sEnumInfo));
 }
 
 
@@ -1931,15 +1945,19 @@ public:
 
 protected:
   virtual NumberAttributesInfo GetNumberInfo();
+  virtual EnumAttributesInfo GetEnumInfo();
 
   
-  nsCOMPtr<nsIDOMSVGAnimatedEnumeration> mType;
   nsCOMPtr<nsIDOMSVGAnimatedNumberList>  mTableValues;
 
   enum { SLOPE, INTERCEPT, AMPLITUDE, EXPONENT, OFFSET };
   nsSVGNumber2 mNumberAttributes[5];
   static NumberInfo sNumberInfo[5];
 
+  enum { TYPE };
+  nsSVGEnum mEnumAttributes[1];
+  static nsSVGEnumMapping sTypeMap[];
+  static EnumInfo sEnumInfo[1];
 };
 
 nsSVGElement::NumberInfo nsSVGComponentTransferFunctionElement::sNumberInfo[5] =
@@ -1949,6 +1967,28 @@ nsSVGElement::NumberInfo nsSVGComponentTransferFunctionElement::sNumberInfo[5] =
   { &nsGkAtoms::amplitude, 0 },
   { &nsGkAtoms::exponent,  0 },
   { &nsGkAtoms::offset,    0 }
+};
+
+nsSVGEnumMapping nsSVGComponentTransferFunctionElement::sTypeMap[] = {
+  {&nsGkAtoms::identity,
+   nsIDOMSVGComponentTransferFunctionElement::SVG_FECOMPONENTTRANSFER_TYPE_IDENTITY},
+  {&nsGkAtoms::table,
+   nsIDOMSVGComponentTransferFunctionElement::SVG_FECOMPONENTTRANSFER_TYPE_TABLE},
+  {&nsGkAtoms::discrete,
+   nsIDOMSVGComponentTransferFunctionElement::SVG_FECOMPONENTTRANSFER_TYPE_DISCRETE},
+  {&nsGkAtoms::linear,
+   nsIDOMSVGComponentTransferFunctionElement::SVG_FECOMPONENTTRANSFER_TYPE_LINEAR},
+  {&nsGkAtoms::gamma,
+   nsIDOMSVGComponentTransferFunctionElement::SVG_FECOMPONENTTRANSFER_TYPE_GAMMA},
+  {nsnull, 0}
+};
+
+nsSVGElement::EnumInfo nsSVGComponentTransferFunctionElement::sEnumInfo[1] =
+{
+  { &nsGkAtoms::type,
+    sTypeMap,
+    nsIDOMSVGComponentTransferFunctionElement::SVG_FECOMPONENTTRANSFER_TYPE_IDENTITY
+  }
 };
 
 
@@ -1975,34 +2015,6 @@ nsSVGComponentTransferFunctionElement::Init()
   NS_ENSURE_SUCCESS(rv,rv);
 
   
-  static struct nsSVGEnumMapping gComponentTransferTypes[] = {
-    {&nsGkAtoms::identity,
-     nsIDOMSVGComponentTransferFunctionElement::SVG_FECOMPONENTTRANSFER_TYPE_IDENTITY},
-    {&nsGkAtoms::table,
-     nsIDOMSVGComponentTransferFunctionElement::SVG_FECOMPONENTTRANSFER_TYPE_TABLE},
-    {&nsGkAtoms::discrete,
-     nsIDOMSVGComponentTransferFunctionElement::SVG_FECOMPONENTTRANSFER_TYPE_DISCRETE},
-    {&nsGkAtoms::linear,
-     nsIDOMSVGComponentTransferFunctionElement::SVG_FECOMPONENTTRANSFER_TYPE_LINEAR},
-    {&nsGkAtoms::gamma,
-     nsIDOMSVGComponentTransferFunctionElement::SVG_FECOMPONENTTRANSFER_TYPE_GAMMA},
-    {nsnull, 0}
-  };
-
-  
-
-  
-  {
-    nsCOMPtr<nsISVGEnum> types;
-    rv = NS_NewSVGEnum(getter_AddRefs(types),
-                       nsIDOMSVGComponentTransferFunctionElement::SVG_FECOMPONENTTRANSFER_TYPE_IDENTITY,
-                       gComponentTransferTypes);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = NS_NewSVGAnimatedEnumeration(getter_AddRefs(mType), types);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = AddMappedSVGValue(nsGkAtoms::type, mType);
-    NS_ENSURE_SUCCESS(rv,rv);
-  }
 
   
   {
@@ -2018,15 +2030,20 @@ nsSVGComponentTransferFunctionElement::Init()
   return NS_OK;
 }
 
+nsSVGElement::EnumAttributesInfo
+nsSVGComponentTransferFunctionElement::GetEnumInfo()
+{
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo,
+                            NS_ARRAY_LENGTH(sEnumInfo));
+}
+
 
 
 
 
 NS_IMETHODIMP nsSVGComponentTransferFunctionElement::GetType(nsIDOMSVGAnimatedEnumeration * *aType)
 {
-  *aType = mType;
-  NS_IF_ADDREF(*aType);
-  return NS_OK;
+  return mEnumAttributes[TYPE].ToDOMAnimatedEnum(aType, this);
 }
 
 
@@ -2070,8 +2087,7 @@ NS_IMETHODIMP nsSVGComponentTransferFunctionElement::GetOffset(nsIDOMSVGAnimated
 NS_IMETHODIMP
 nsSVGComponentTransferFunctionElement::GenerateLookupTable(PRUint8 *aTable)
 {
-  PRUint16 type;
-  mType->GetAnimVal(&type);
+  PRUint16 type = mEnumAttributes[TYPE].GetAnimValue();
 
   float slope, intercept, amplitude, exponent, offset;
   GetAnimatedNumberValues(&slope, &intercept, &amplitude, 
@@ -3080,14 +3096,19 @@ public:
 
 protected:
   virtual NumberAttributesInfo GetNumberInfo();
+  virtual EnumAttributesInfo GetEnumInfo();
 
   enum { BASE_FREQ_X, BASE_FREQ_Y, SEED}; 
   nsSVGNumber2 mNumberAttributes[3];
   static NumberInfo sNumberInfo[3];
 
+  enum { STITCHTILES, TYPE };
+  nsSVGEnum mEnumAttributes[2];
+  static nsSVGEnumMapping sStitchTilesMap[];
+  static nsSVGEnumMapping sTypeMap[];
+  static EnumInfo sEnumInfo[2];
+
   nsCOMPtr<nsIDOMSVGAnimatedInteger> mNumOctaves;
-  nsCOMPtr<nsIDOMSVGAnimatedEnumeration> mStitchTiles;
-  nsCOMPtr<nsIDOMSVGAnimatedEnumeration> mType;
 
 private:
 
@@ -3158,6 +3179,34 @@ nsSVGElement::NumberInfo nsSVGFETurbulenceElement::sNumberInfo[3] =
   { &nsGkAtoms::seed, 0 }
 };
 
+nsSVGEnumMapping nsSVGFETurbulenceElement::sTypeMap[] = {
+  {&nsGkAtoms::fractalNoise,
+   nsIDOMSVGFETurbulenceElement::SVG_TURBULENCE_TYPE_FRACTALNOISE},
+  {&nsGkAtoms::turbulence,
+   nsIDOMSVGFETurbulenceElement::SVG_TURBULENCE_TYPE_TURBULENCE},
+  {nsnull, 0}
+};
+
+nsSVGEnumMapping nsSVGFETurbulenceElement::sStitchTilesMap[] = {
+  {&nsGkAtoms::stitch,
+   nsIDOMSVGFETurbulenceElement::SVG_STITCHTYPE_STITCH},
+  {&nsGkAtoms::noStitch,
+   nsIDOMSVGFETurbulenceElement::SVG_STITCHTYPE_NOSTITCH},
+  {nsnull, 0}
+};
+
+nsSVGElement::EnumInfo nsSVGFETurbulenceElement::sEnumInfo[2] =
+{
+  { &nsGkAtoms::type,
+    sTypeMap,
+    nsIDOMSVGFETurbulenceElement::SVG_TURBULENCE_TYPE_TURBULENCE
+  },
+  { &nsGkAtoms::stitchTiles,
+    sStitchTilesMap,
+    nsIDOMSVGFETurbulenceElement::SVG_STITCHTYPE_NOSTITCH
+  }
+};
+
 NS_IMPL_NS_NEW_SVG_ELEMENT(FETurbulence)
 
 
@@ -3191,49 +3240,6 @@ nsSVGFETurbulenceElement::Init()
   NS_ENSURE_SUCCESS(rv,rv);
 
   
-  static struct nsSVGEnumMapping gTurbulenceTypes[] = {
-    {&nsGkAtoms::fractalNoise,
-     nsIDOMSVGFETurbulenceElement::SVG_TURBULENCE_TYPE_FRACTALNOISE},
-    {&nsGkAtoms::turbulence,
-     nsIDOMSVGFETurbulenceElement::SVG_TURBULENCE_TYPE_TURBULENCE},
-    {nsnull, 0}
-  };
-
-  static struct nsSVGEnumMapping gStitchTypes[] = {
-    {&nsGkAtoms::stitch,
-     nsIDOMSVGFETurbulenceElement::SVG_STITCHTYPE_STITCH},
-    {&nsGkAtoms::noStitch,
-     nsIDOMSVGFETurbulenceElement::SVG_STITCHTYPE_NOSTITCH},
-    {nsnull, 0}
-  };
-
-  
-
-  
-  {
-    nsCOMPtr<nsISVGEnum> stitch;
-    rv = NS_NewSVGEnum(getter_AddRefs(stitch),
-                       nsIDOMSVGFETurbulenceElement::SVG_STITCHTYPE_NOSTITCH,
-                       gStitchTypes);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = NS_NewSVGAnimatedEnumeration(getter_AddRefs(mStitchTiles), stitch);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = AddMappedSVGValue(nsGkAtoms::stitchTiles, mStitchTiles);
-    NS_ENSURE_SUCCESS(rv,rv);
-  }
-
-  
-  {
-    nsCOMPtr<nsISVGEnum> types;
-    rv = NS_NewSVGEnum(getter_AddRefs(types),
-                       nsIDOMSVGFETurbulenceElement::SVG_TURBULENCE_TYPE_TURBULENCE,
-                       gTurbulenceTypes);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = NS_NewSVGAnimatedEnumeration(getter_AddRefs(mType), types);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = AddMappedSVGValue(nsGkAtoms::type, mType);
-    NS_ENSURE_SUCCESS(rv,rv);
-  }
 
   
   {
@@ -3244,6 +3250,13 @@ nsSVGFETurbulenceElement::Init()
   }
 
   return rv;
+}
+
+nsSVGElement::EnumAttributesInfo
+nsSVGFETurbulenceElement::GetEnumInfo()
+{
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo,
+                            NS_ARRAY_LENGTH(sEnumInfo));
 }
 
 
@@ -3283,17 +3296,13 @@ NS_IMETHODIMP nsSVGFETurbulenceElement::GetSeed(nsIDOMSVGAnimatedNumber * *aSeed
 
 NS_IMETHODIMP nsSVGFETurbulenceElement::GetStitchTiles(nsIDOMSVGAnimatedEnumeration * *aStitch)
 {
-  *aStitch = mStitchTiles;
-  NS_IF_ADDREF(*aStitch);
-  return NS_OK;
+  return mEnumAttributes[STITCHTILES].ToDOMAnimatedEnum(aStitch, this);
 }
 
 
 NS_IMETHODIMP nsSVGFETurbulenceElement::GetType(nsIDOMSVGAnimatedEnumeration * *aType)
 {
-  *aType = mType;
-  NS_IF_ADDREF(*aType);
-  return NS_OK;
+  return mEnumAttributes[TYPE].ToDOMAnimatedEnum(aType, this);
 }
 
 PRBool
@@ -3338,12 +3347,11 @@ nsSVGFETurbulenceElement::Filter(nsSVGFilterInstance *instance)
 
   float fX, fY, seed;
   PRInt32 octaves;
-  PRUint16 type, stitch;
+  PRUint16 type = mEnumAttributes[TYPE].GetAnimValue();
+  PRUint16 stitch = mEnumAttributes[STITCHTILES].GetAnimValue();
 
   GetAnimatedNumberValues(&fX, &fY, &seed, nsnull);
   mNumOctaves->GetAnimVal(&octaves);
-  mStitchTiles->GetAnimVal(&stitch);
-  mType->GetAnimVal(&type);
 
   Init((PRInt32)seed);
 
@@ -3621,19 +3629,38 @@ public:
 
 protected:
   virtual NumberAttributesInfo GetNumberInfo();
+  virtual EnumAttributesInfo GetEnumInfo();
 
   enum { RADIUS_X, RADIUS_Y };
   nsSVGNumber2 mNumberAttributes[2];
   static NumberInfo sNumberInfo[2];
 
+  enum { OPERATOR };
+  nsSVGEnum mEnumAttributes[1];
+  static nsSVGEnumMapping sOperatorMap[];
+  static EnumInfo sEnumInfo[1];
+
   nsCOMPtr<nsIDOMSVGAnimatedString> mIn1;
-  nsCOMPtr<nsIDOMSVGAnimatedEnumeration> mOperator;
 };
 
 nsSVGElement::NumberInfo nsSVGFEMorphologyElement::sNumberInfo[2] =
 {
   { &nsGkAtoms::radius, 0 },
   { &nsGkAtoms::radius, 0 }
+};
+
+nsSVGEnumMapping nsSVGFEMorphologyElement::sOperatorMap[] = {
+  {&nsGkAtoms::erode, nsSVGFEMorphologyElement::SVG_OPERATOR_ERODE},
+  {&nsGkAtoms::dilate, nsSVGFEMorphologyElement::SVG_OPERATOR_DILATE},
+  {nsnull, 0}
+};
+
+nsSVGElement::EnumInfo nsSVGFEMorphologyElement::sEnumInfo[1] =
+{
+  { &nsGkAtoms::_operator,
+    sOperatorMap,
+    nsSVGFEMorphologyElement::SVG_OPERATOR_ERODE
+  }
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(FEMorphology)
@@ -3668,25 +3695,7 @@ nsSVGFEMorphologyElement::Init()
   nsresult rv = nsSVGFEMorphologyElementBase::Init();
   NS_ENSURE_SUCCESS(rv,rv);
 
-  static struct nsSVGEnumMapping gOperatorTypes[] = {
-    {&nsGkAtoms::erode, nsSVGFEMorphologyElement::SVG_OPERATOR_ERODE},
-    {&nsGkAtoms::dilate, nsSVGFEMorphologyElement::SVG_OPERATOR_DILATE},
-    {nsnull, 0}
-  };
-
   
-  
-  {
-    nsCOMPtr<nsISVGEnum> operators;
-    rv = NS_NewSVGEnum(getter_AddRefs(operators),
-                       nsSVGFEMorphologyElement::SVG_OPERATOR_ERODE,
-                       gOperatorTypes);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = NS_NewSVGAnimatedEnumeration(getter_AddRefs(mOperator), operators);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = AddMappedSVGValue(nsGkAtoms::_operator, mOperator);
-    NS_ENSURE_SUCCESS(rv,rv);
-  }
 
   
   {
@@ -3720,9 +3729,7 @@ NS_IMETHODIMP nsSVGFEMorphologyElement::GetIn1(nsIDOMSVGAnimatedString * *aIn)
 
 NS_IMETHODIMP nsSVGFEMorphologyElement::GetOperator(nsIDOMSVGAnimatedEnumeration * *aOperator)
 {
-  *aOperator = mOperator;
-  NS_IF_ADDREF(*aOperator);
-  return NS_OK;
+  return mEnumAttributes[OPERATOR].ToDOMAnimatedEnum(aOperator, this);
 }
 
 
@@ -3779,6 +3786,13 @@ nsSVGFEMorphologyElement::GetNumberInfo()
                               NS_ARRAY_LENGTH(sNumberInfo));
 }
 
+nsSVGElement::EnumAttributesInfo
+nsSVGFEMorphologyElement::GetEnumInfo()
+{
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo,
+                            NS_ARRAY_LENGTH(sEnumInfo));
+}
+
 NS_IMETHODIMP
 nsSVGFEMorphologyElement::Filter(nsSVGFilterInstance *instance)
 {
@@ -3810,8 +3824,7 @@ nsSVGFEMorphologyElement::Filter(nsSVGFilterInstance *instance)
   PRInt32 stride = fr.GetDataStride();
   PRUint32 xExt[4], yExt[4];  
   PRUint8 extrema[4];         
-  PRUint16 op;
-  mOperator->GetAnimVal(&op);
+  PRUint16 op = mEnumAttributes[OPERATOR].GetAnimValue();
 
   if (rx == 0 && ry == 0) {
     fr.CopySourceImage();
@@ -3918,17 +3931,22 @@ public:
 
 protected:
   virtual NumberAttributesInfo GetNumberInfo();
+  virtual EnumAttributesInfo GetEnumInfo();
 
   enum { DIVISOR, BIAS, KERNEL_UNIT_LENGTH_X, KERNEL_UNIT_LENGTH_Y };
   nsSVGNumber2 mNumberAttributes[4];
   static NumberInfo sNumberInfo[4];
+
+  enum { EDGEMODE };
+  nsSVGEnum mEnumAttributes[1];
+  static nsSVGEnumMapping sEdgeModeMap[];
+  static EnumInfo sEnumInfo[1];
 
   nsCOMPtr<nsIDOMSVGAnimatedInteger> mOrderX;
   nsCOMPtr<nsIDOMSVGAnimatedInteger> mOrderY;
   nsCOMPtr<nsIDOMSVGAnimatedInteger> mTargetX;
   nsCOMPtr<nsIDOMSVGAnimatedInteger> mTargetY;
   nsCOMPtr<nsIDOMSVGAnimatedNumberList>  mKernelMatrix;
-  nsCOMPtr<nsIDOMSVGAnimatedEnumeration> mEdgeMode;
   nsCOMPtr<nsIDOMSVGAnimatedBoolean> mPreserveAlpha;
 
   nsCOMPtr<nsIDOMSVGAnimatedString> mIn1;
@@ -3940,6 +3958,21 @@ nsSVGElement::NumberInfo nsSVGFEConvolveMatrixElement::sNumberInfo[4] =
   { &nsGkAtoms::bias, 0 },
   { &nsGkAtoms::kernelUnitLength, 0 },
   { &nsGkAtoms::kernelUnitLength, 0 }
+};
+
+nsSVGEnumMapping nsSVGFEConvolveMatrixElement::sEdgeModeMap[] = {
+  {&nsGkAtoms::duplicate, nsSVGFEConvolveMatrixElement::SVG_EDGEMODE_DUPLICATE},
+  {&nsGkAtoms::wrap, nsSVGFEConvolveMatrixElement::SVG_EDGEMODE_WRAP},
+  {&nsGkAtoms::none, nsSVGFEConvolveMatrixElement::SVG_EDGEMODE_NONE},
+  {nsnull, 0}
+};
+
+nsSVGElement::EnumInfo nsSVGFEConvolveMatrixElement::sEnumInfo[1] =
+{
+  { &nsGkAtoms::edgeMode,
+    sEdgeModeMap,
+    nsSVGFEConvolveMatrixElement::SVG_EDGEMODE_DUPLICATE
+  }
 };
 
 NS_IMPL_NS_NEW_SVG_ELEMENT(FEConvolveMatrix)
@@ -3974,26 +4007,7 @@ nsSVGFEConvolveMatrixElement::Init()
   nsresult rv = nsSVGFEConvolveMatrixElementBase::Init();
   NS_ENSURE_SUCCESS(rv,rv);
 
-  static struct nsSVGEnumMapping gEdgeModes[] = {
-    {&nsGkAtoms::duplicate, nsSVGFEConvolveMatrixElement::SVG_EDGEMODE_DUPLICATE},
-    {&nsGkAtoms::wrap, nsSVGFEConvolveMatrixElement::SVG_EDGEMODE_WRAP},
-    {&nsGkAtoms::none, nsSVGFEConvolveMatrixElement::SVG_EDGEMODE_NONE},
-    {nsnull, 0}
-  };
-
   
-  
-  {
-    nsCOMPtr<nsISVGEnum> edgeMode;
-    rv = NS_NewSVGEnum(getter_AddRefs(edgeMode),
-                       nsSVGFEConvolveMatrixElement::SVG_EDGEMODE_DUPLICATE,
-                       gEdgeModes);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = NS_NewSVGAnimatedEnumeration(getter_AddRefs(mEdgeMode), edgeMode);
-    NS_ENSURE_SUCCESS(rv,rv);
-    rv = AddMappedSVGValue(nsGkAtoms::edgeMode, mEdgeMode);
-    NS_ENSURE_SUCCESS(rv,rv);
-  }
 
   
   {
@@ -4100,9 +4114,7 @@ NS_IMETHODIMP nsSVGFEConvolveMatrixElement::GetTargetY(nsIDOMSVGAnimatedInteger 
 
 NS_IMETHODIMP nsSVGFEConvolveMatrixElement::GetEdgeMode(nsIDOMSVGAnimatedEnumeration * *aEdgeMode)
 {
-  *aEdgeMode = mEdgeMode;
-  NS_IF_ADDREF(*aEdgeMode);
-  return NS_OK;
+  return mEnumAttributes[EDGEMODE].ToDOMAnimatedEnum(aEdgeMode, this);
 }
 
 NS_IMETHODIMP nsSVGFEConvolveMatrixElement::GetPreserveAlpha(nsIDOMSVGAnimatedBoolean * *aPreserveAlpha)
@@ -4353,8 +4365,7 @@ nsSVGFEConvolveMatrixElement::Filter(nsSVGFilterInstance *instance)
   }
 #endif
 
-  PRUint16 edgeMode;
-  mEdgeMode->GetAnimVal(&edgeMode);
+  PRUint16 edgeMode = mEnumAttributes[EDGEMODE].GetAnimValue();
 
   float bias = 0;
   if (HasAttr(kNameSpaceID_None, nsGkAtoms::bias)) {
@@ -4393,6 +4404,13 @@ nsSVGFEConvolveMatrixElement::GetNumberInfo()
 {
   return NumberAttributesInfo(mNumberAttributes, sNumberInfo,
                               NS_ARRAY_LENGTH(sNumberInfo));
+}
+
+nsSVGElement::EnumAttributesInfo
+nsSVGFEConvolveMatrixElement::GetEnumInfo()
+{
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo,
+                            NS_ARRAY_LENGTH(sEnumInfo));
 }
 
 

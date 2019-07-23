@@ -37,7 +37,6 @@
 
 
 #include "nsGkAtoms.h"
-#include "nsIDOMSVGAnimatedEnum.h"
 #include "nsIDOMSVGAnimatedRect.h"
 #include "nsIDOMSVGAnimTransformList.h"
 #include "nsSVGTransformList.h"
@@ -388,7 +387,7 @@ nsSVGPatternFrame::GetPatternUnits()
     
     nsSVGPatternElement *patternElement = static_cast<nsSVGPatternElement*>
                                                      (mContent);
-    patternElement->mPatternUnits->GetAnimVal(&rv);
+    rv = patternElement->mEnumAttributes[nsSVGPatternElement::PATTERNUNITS].GetAnimValue();
   } else {
     
     rv = mNextPattern->GetPatternUnits();
@@ -407,7 +406,7 @@ nsSVGPatternFrame::GetPatternContentUnits()
     
     nsSVGPatternElement *patternElement = static_cast<nsSVGPatternElement*>
                                                      (mContent);
-    patternElement->mPatternContentUnits->GetAnimVal(&rv);
+    rv = patternElement->mEnumAttributes[nsSVGPatternElement::PATTERNCONTENTUNITS].GetAnimValue();
   } else {
     
     rv = mNextPattern->GetPatternContentUnits();
@@ -637,7 +636,7 @@ nsSVGPatternFrame::GetPatternRect(nsIDOMSVGRect **patternRect,
   tmpHeight = GetHeight();
   tmpWidth = GetWidth();
 
-  if (type == nsIDOMSVGPatternElement::SVG_PUNITS_OBJECTBOUNDINGBOX) {
+  if (type == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
     x = nsSVGUtils::ObjectSpace(bbox, tmpX);
     y = nsSVGUtils::ObjectSpace(bbox, tmpY);
     width = nsSVGUtils::ObjectSpace(bbox, tmpWidth);
@@ -668,7 +667,7 @@ nsSVGPatternFrame::ConstructCTM(nsIDOMSVGMatrix **aCTM,
   
   PRUint16 type = GetPatternContentUnits();
 
-  if (type == nsIDOMSVGPatternElement::SVG_PUNITS_OBJECTBOUNDINGBOX) {
+  if (type == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
     
     float width, height;
     callerBBox->GetWidth(&width);
@@ -727,7 +726,7 @@ nsSVGPatternFrame::GetPatternMatrix(nsIDOMSVGRect *bbox,
   bbox->GetY(&miny);
 
   PRUint16 type = GetPatternContentUnits();
-  if (type == nsIDOMSVGPatternElement::SVG_PUNITS_OBJECTBOUNDINGBOX) {
+  if (type == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
     float x, y;
     callerBBox->GetX(&x);
     callerBBox->GetY(&y);
@@ -776,7 +775,7 @@ nsSVGPatternFrame::GetCallerGeometry(nsIDOMSVGMatrix **aCTM,
   callerSVGFrame->GetBBox(aBBox);
   
   PRUint16 type = GetPatternUnits();
-  if (type == nsIDOMSVGPatternElement::SVG_PUNITS_OBJECTBOUNDINGBOX) {
+  if (type == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX) {
     float width, height;
     (*aBBox)->GetWidth(&width);
     (*aBBox)->GetHeight(&height);

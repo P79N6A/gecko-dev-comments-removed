@@ -244,7 +244,7 @@ nsSVGGradientFrame::GetGradientTransform(nsSVGGeometryFrame *aSource)
 
   PRUint16 gradientUnits = GetGradientUnits();
   nsIAtom *callerType = aSource->GetType();
-  if (gradientUnits == nsIDOMSVGGradientElement::SVG_GRUNITS_USERSPACEONUSE) {
+  if (gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_USERSPACEONUSE) {
     
     
     
@@ -256,7 +256,7 @@ nsSVGGradientFrame::GetGradientTransform(nsSVGGeometryFrame *aSource)
     NS_ASSERTION(mSourceContent, "Can't get content for gradient");
   }
   else {
-    NS_ASSERTION(gradientUnits == nsIDOMSVGGradientElement::SVG_GRUNITS_OBJECTBOUNDINGBOX,
+    NS_ASSERTION(gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
                  "Unknown gradientUnits type");
     
 
@@ -312,9 +312,7 @@ nsSVGGradientFrame::GetSpreadMethod()
   nsSVGGradientElement *gradElement = static_cast<nsSVGGradientElement*>
                                                  (gradient);
 
-  PRUint16 val;
-  gradElement->mSpreadMethod->GetAnimVal(&val);
-  return val;
+  return gradElement->mEnumAttributes[nsSVGGradientElement::SPREADMETHOD].GetAnimValue();
 }
 
 
@@ -534,9 +532,7 @@ nsSVGGradientFrame::GetGradientUnits()
   nsSVGGradientElement *gradElement = static_cast<nsSVGGradientElement*>
                                                  (gradient);
 
-  PRUint16 units;
-  gradElement->mGradientUnits->GetAnimVal(&units);
-  return units;
+  return gradElement->mEnumAttributes[nsSVGGradientElement::GRADIENTUNITS].GetAnimValue();
 }
 
 
@@ -586,12 +582,12 @@ nsSVGLinearGradientFrame::GradientLookupAttribute(nsIAtom *aAtomName,
   
 
   PRUint16 gradientUnits = GetGradientUnits();
-  if (gradientUnits == nsIDOMSVGGradientElement::SVG_GRUNITS_USERSPACEONUSE) {
+  if (gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_USERSPACEONUSE) {
     return nsSVGUtils::UserSpace(mSourceContent,
                                  &element->mLengthAttributes[aEnumName]);
   }
 
-  NS_ASSERTION(gradientUnits == nsIDOMSVGGradientElement::SVG_GRUNITS_OBJECTBOUNDINGBOX,
+  NS_ASSERTION(gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
                "Unknown gradientUnits type");
 
   return element->mLengthAttributes[aEnumName].
@@ -668,12 +664,12 @@ nsSVGRadialGradientFrame::GradientLookupAttribute(nsIAtom *aAtomName,
   
 
   PRUint16 gradientUnits = GetGradientUnits();
-  if (gradientUnits == nsIDOMSVGGradientElement::SVG_GRUNITS_USERSPACEONUSE) {
+  if (gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_USERSPACEONUSE) {
     return nsSVGUtils::UserSpace(mSourceContent,
                                  &element->mLengthAttributes[aEnumName]);
   }
 
-  NS_ASSERTION(gradientUnits == nsIDOMSVGGradientElement::SVG_GRUNITS_OBJECTBOUNDINGBOX,
+  NS_ASSERTION(gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
                "Unknown gradientUnits type");
 
   return element->mLengthAttributes[aEnumName].

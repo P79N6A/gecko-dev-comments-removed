@@ -34,30 +34,70 @@
 
 
 
-
-
 #ifndef __NS_SVGENUM_H__
 #define __NS_SVGENUM_H__
 
-#include "nsISVGEnum.h"
-#include "nsAString.h"
-#include "nsIAtom.h"
+#include "nsIDOMSVGAnimatedEnum.h"
+#include "nsSVGElement.h"
+#include "nsDOMError.h"
+
+typedef PRUint8 nsSVGEnumValue;
 
 struct nsSVGEnumMapping {
-    nsIAtom **key;
-    PRUint16 val;
+  nsIAtom **mKey;
+  nsSVGEnumValue mVal;
 };
 
-nsresult
-NS_NewSVGEnum(nsISVGEnum** result,
-              PRUint16 value,
-              struct nsSVGEnumMapping *mapping);
+class nsSVGEnum
+{
+public:
+  void Init(PRUint8 aAttrEnum, PRUint16 aValue) {
+    mAnimVal = mBaseVal = static_cast<PRUint8>(aValue);
+    mAttrEnum = aAttrEnum;
+  }
 
-nsresult
-NS_NewSVGEnum(nsISVGEnum** result,
-              const nsAString &value,
-              struct nsSVGEnumMapping *mapping);
+  nsresult SetBaseValueString(const nsAString& aValue,
+                              nsSVGElement *aSVGElement,
+                              PRBool aDoSetAttr);
+  void GetBaseValueString(nsAString& aValue,
+                          nsSVGElement *aSVGElement);
+
+  void SetBaseValue(PRUint16 aValue,
+                    nsSVGElement *aSVGElement,
+                    PRBool aDoSetAttr);
+
+  PRUint16 GetBaseValue()
+    { return mBaseVal; }
+  PRUint16 GetAnimValue()
+    { return mAnimVal; }
+
+  nsresult ToDOMAnimatedEnum(nsIDOMSVGAnimatedEnumeration **aResult,
+                             nsSVGElement* aSVGElement);
+
+private:
+  nsSVGEnumValue mAnimVal;
+  nsSVGEnumValue mBaseVal;
+  PRUint8 mAttrEnum; 
+
+  nsSVGEnumMapping *GetMapping(nsSVGElement *aSVGElement);
+
+  struct DOMAnimatedEnum : public nsIDOMSVGAnimatedEnumeration
+  {
+    NS_DECL_ISUPPORTS
+
+    DOMAnimatedEnum(nsSVGEnum* aVal, nsSVGElement *aSVGElement)
+      : mVal(aVal), mSVGElement(aSVGElement) {}
+
+    nsSVGEnum *mVal; 
+    nsRefPtr<nsSVGElement> mSVGElement;
+
+    NS_IMETHOD GetBaseVal(PRUint16* aResult)
+      { *aResult = mVal->GetBaseValue(); return NS_OK; }
+    NS_IMETHOD SetBaseVal(PRUint16 aValue)
+      { mVal->SetBaseValue(aValue, mSVGElement, PR_TRUE); return NS_OK; }
+    NS_IMETHOD GetAnimVal(PRUint16* aResult)
+      { *aResult = mVal->GetAnimValue(); return NS_OK; }
+  };
+};
 
 #endif 
-
-

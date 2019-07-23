@@ -160,7 +160,6 @@ nsSVGOuterSVGFrame::InitSVG()
     
     if (doc->GetRootContent() == mContent) {
       nsSVGSVGElement *SVGElement = static_cast<nsSVGSVGElement*>(mContent);
-      SVGElement->GetZoomAndPanEnum(getter_AddRefs(mZoomAndPan));
       SVGElement->GetCurrentTranslate(getter_AddRefs(mCurrentTranslate));
       SVGElement->GetCurrentScaleNumber(getter_AddRefs(mCurrentScale));
     }
@@ -568,24 +567,21 @@ nsSVGOuterSVGFrame::GetCanvasTM()
     nsSVGSVGElement *svgElement = static_cast<nsSVGSVGElement*>(mContent);
     svgElement->GetViewboxToViewportTransform(getter_AddRefs(mCanvasTM));
 
-    if (mZoomAndPan) {
-      
-      
-      PRUint16 val;
-      mZoomAndPan->GetIntegerValue(val);
-      if (val == nsIDOMSVGZoomAndPan::SVG_ZOOMANDPAN_MAGNIFY) {
-        nsCOMPtr<nsIDOMSVGMatrix> zoomPanMatrix;
-        nsCOMPtr<nsIDOMSVGMatrix> temp;
-        float scale, x, y;
-        mCurrentScale->GetValue(&scale);
-        mCurrentTranslate->GetX(&x);
-        mCurrentTranslate->GetY(&y);
-        svgElement->CreateSVGMatrix(getter_AddRefs(zoomPanMatrix));
-        zoomPanMatrix->Translate(x, y, getter_AddRefs(temp));
-        temp->Scale(scale, getter_AddRefs(zoomPanMatrix));
-        zoomPanMatrix->Multiply(mCanvasTM, getter_AddRefs(temp));
-        temp.swap(mCanvasTM);
-      }
+    
+    
+    if (svgElement->mEnumAttributes[nsSVGSVGElement::ZOOMANDPAN].GetAnimValue()
+        == nsIDOMSVGZoomAndPan::SVG_ZOOMANDPAN_MAGNIFY) {
+      nsCOMPtr<nsIDOMSVGMatrix> zoomPanMatrix;
+      nsCOMPtr<nsIDOMSVGMatrix> temp;
+      float scale, x, y;
+      mCurrentScale->GetValue(&scale);
+      mCurrentTranslate->GetX(&x);
+      mCurrentTranslate->GetY(&y);
+      svgElement->CreateSVGMatrix(getter_AddRefs(zoomPanMatrix));
+      zoomPanMatrix->Translate(x, y, getter_AddRefs(temp));
+      temp->Scale(scale, getter_AddRefs(zoomPanMatrix));
+      zoomPanMatrix->Multiply(mCanvasTM, getter_AddRefs(temp));
+      temp.swap(mCanvasTM);
     }
   }
   nsIDOMSVGMatrix* retval = mCanvasTM.get();
