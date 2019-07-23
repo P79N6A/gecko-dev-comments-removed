@@ -3335,10 +3335,7 @@ IsSpecialContent(nsIContent*     aContent,
       aTag == nsGkAtoms::menu ||
       aTag == nsGkAtoms::menuitem ||
       aTag == nsGkAtoms::menubutton ||
-  #ifndef XP_MACOSX
-      
       aTag == nsGkAtoms::menubar ||
-  #endif
       aTag == nsGkAtoms::popupgroup ||
       aTag == nsGkAtoms::iframe ||
       aTag == nsGkAtoms::editor ||
@@ -5793,7 +5790,6 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
       }
       else if (aTag == nsGkAtoms::menubar) {
   #ifdef XP_MACOSX
-        
         
         
         PRBool isRootChromeShell = PR_FALSE;
