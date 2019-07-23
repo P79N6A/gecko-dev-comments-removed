@@ -213,6 +213,7 @@ nsWindow::nsWindow() : nsBaseWidget()
     mDragHps            = 0;
     mDragStatus         = 0;
     mCssCursorHPtr      = 0;
+    mUnclippedBounds    = nsIntRect(0,0,0,0);
 
     mIsTopWidgetWindow = PR_FALSE;
     mThebesSurface = nsnull;
@@ -891,7 +892,7 @@ void nsWindow::RealDoCreate( HWND              hwndP,
    
    mBounds = aRect;
    mBounds.height = aRect.height;
-
+   mUnclippedBounds = mBounds;
    mEventCallback = aHandleEventFunction;
 
    if( mParent)
@@ -1994,8 +1995,9 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
     
     const nsTArray<nsIntRect>& rects = configuration.mClipRegion;
     nsIntRect r;
-    for (PRUint32 i = 0; i < rects.Length(); ++i)
-      r.UnionRect(r, rects[i]);
+    for (PRUint32 j = 0; j < rects.Length(); ++j) {
+      r.UnionRect(r, rects[j]);
+    }
 
     
     
@@ -2018,6 +2020,10 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
     
     w->Show(!configuration.mClipRegion.IsEmpty());
     w->StoreWindowClipRegion(configuration.mClipRegion);
+
+    
+    
+    w->mUnclippedBounds = configuration.mBounds;
   }
 
   return NS_OK;
@@ -2028,9 +2034,27 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
 
 
 
-void nsWindow::Scroll(const nsIntPoint& aDelta, const nsIntRect& aSource,
-                      const nsTArray<Configuration>& aConfigurations)
+
+static PRBool
+ClipRegionContainedInRect(const nsTArray<nsIntRect>& aClipRects,
+                          const nsIntRect& aRect)
 {
+  for (PRUint32 i = 0; i < aClipRects.Length(); ++i) {
+    if (!aRect.Contains(aClipRects[i])) {
+      return PR_FALSE;
+    }
+  }
+  return PR_TRUE;
+}
+
+void
+nsWindow::Scroll(const nsIntPoint& aDelta,
+                 const nsTArray<nsIntRect>& aDestRects,
+                 const nsTArray<Configuration>& aConfigurations)
+{
+  
+  
+  
   
   nsTHashtable<nsPtrHashKey<nsWindow> > scrolledWidgets;
   scrolledWidgets.Init();
@@ -2039,34 +2063,10 @@ void nsWindow::Scroll(const nsIntPoint& aDelta, const nsIntRect& aSource,
     nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
     NS_ASSERTION(w->GetParent() == this,
                  "Configured widget is not a child");
-    if (configuration.mBounds.TopLeft() == w->mBounds.TopLeft() + aDelta)
+    if (configuration.mBounds == w->mUnclippedBounds + aDelta) {
       scrolledWidgets.PutEntry(w);
-  }
-
-  nsIntRect affectedRect;
-  affectedRect.UnionRect(aSource, aSource + aDelta);
-  ULONG flags = SW_INVALIDATERGN;
-
-  
-  
-  
-  
-  for (nsWindow* w = static_cast<nsWindow*>(GetFirstChild()); w;
-       w = static_cast<nsWindow*>(w->GetNextSibling())) {
-    if (w->mBounds.Intersects(affectedRect)) {
-      flags |= SW_SCROLLCHILDREN;
-      if (!scrolledWidgets.GetEntry(w)) {
-        flags &= ~SW_SCROLLCHILDREN;
-        break;
-      }
     }
   }
-
-  RECTL clip;
-  clip.xLeft   = affectedRect.x;
-  clip.xRight  = affectedRect.x + affectedRect.width;
-  clip.yTop    = mBounds.height - affectedRect.y;
-  clip.yBottom = clip.yTop - affectedRect.height;
 
   
   
@@ -2075,25 +2075,85 @@ void nsWindow::Scroll(const nsIntPoint& aDelta, const nsIntRect& aSource,
   CheckDragStatus(ACTION_SCROLL, &hps);
 
   
-  
-  
-  
-  HWND hChild;
-  HENUM hEnum = WinBeginEnumWindows(mWnd);
-  while ((hChild = WinGetNextWindow(hEnum)) != 0) {
-    HWND hGrandChild;
-    if ((hGrandChild = WinQueryWindow(hChild, QW_TOP)) != 0)
-      WinSendMsg(hGrandChild, WM_VRNDISABLED, 0, 0);
+  for (PRUint32 i = 0; i < aDestRects.Length(); ++i) {
+    nsIntRect affectedRect;
+    affectedRect.UnionRect(aDestRects[i], aDestRects[i] - aDelta);
+
+    ULONG flags = SW_INVALIDATERGN;
+
+    
+    for (nsWindow* w = static_cast<nsWindow*>(GetFirstChild()); w;
+         w = static_cast<nsWindow*>(w->GetNextSibling())) {
+
+      
+      
+      
+      if (w->mBounds.Intersects(affectedRect)) {
+        nsPtrHashKey<nsWindow>* entry = scrolledWidgets.GetEntry(w);
+
+        
+        
+        
+        if (entry) {
+          flags |= SW_SCROLLCHILDREN;
+          scrolledWidgets.RawRemoveEntry(entry);
+        } else {
+          
+          
+          
+          
+          flags &= ~SW_SCROLLCHILDREN;
+          break;
+        }
+      }
+    }
+
+    if (flags & SW_SCROLLCHILDREN) {
+      for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
+        const Configuration& configuration = aConfigurations[i];
+        nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
+
+        
+        
+        
+        
+        
+        if (w->mBounds.Intersects(affectedRect)) {
+          if (!ClipRegionContainedInRect(configuration.mClipRegion,
+                                         affectedRect - (w->mBounds.TopLeft()
+                                                         + aDelta))) {
+            w->Invalidate(PR_FALSE);
+          }
+
+          
+          
+          
+          
+          HWND hPlugin = WinQueryWindow(w->mWnd, QW_TOP);
+          if (hPlugin) {
+            WinSendMsg(hPlugin, WM_VRNDISABLED, 0, 0);
+          }
+        }
+      }
+    }
+
+    
+    
+    RECTL clip;
+    clip.xLeft   = affectedRect.x;
+    clip.xRight  = affectedRect.x + affectedRect.width;
+    clip.yTop    = mBounds.height - affectedRect.y;
+    clip.yBottom = clip.yTop - affectedRect.height;
+
+    WinScrollWindow(mWnd, aDelta.x, -aDelta.y, &clip, &clip, NULL, NULL, flags);
+    Update();
   }
-  WinEndEnumWindows(hEnum);
 
   
-  WinScrollWindow(mWnd, aDelta.x, -aDelta.y, &clip, &clip, NULL, NULL, flags);
-
+  
   
   
   ConfigureChildren(aConfigurations);
-  Update();
 
   if (hps)
     ReleaseIfDragHPS(hps);

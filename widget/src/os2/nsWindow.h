@@ -169,8 +169,9 @@ class nsWindow : public nsBaseWidget
    NS_IMETHOD              Invalidate( const nsIntRect & aRect, PRBool aIsSynchronous);
    NS_IMETHOD              Update();
    virtual nsresult        ConfigureChildren(const nsTArray<Configuration>& aConfigurations);
-   virtual void            Scroll(const nsIntPoint& aDelta, const nsIntRect& aSource,
-                                  const nsTArray<Configuration>& aConfigurations);
+   virtual void            Scroll(const nsIntPoint& aDelta,
+                                  const nsTArray<nsIntRect>& aDestRects,
+                                  const nsTArray<Configuration>& aReconfigureChildren);
    NS_IMETHOD              GetToggledKeyState(PRUint32 aKeyCode, PRBool* aLEDState);
 
    
@@ -249,6 +250,7 @@ protected:
    PRUint32  mDragStatus;     
    HPOINTER  mCssCursorHPtr;  
    nsCOMPtr<imgIContainer> mCssCursorImg;  
+   nsIntRect mUnclippedBounds; 
 
    HWND      GetParentHWND() const;
    HWND      GetHWND() const   { return mWnd; }
