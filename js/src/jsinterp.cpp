@@ -6958,7 +6958,7 @@ js_Interpret(JSContext *cx)
             }
 
             switch (tn->kind) {
-              case JSTN_CATCH:
+              case JSTRY_CATCH:
                 JS_ASSERT(*regs.pc == JSOP_ENTERBLOCK);
 
 #if JS_HAS_GENERATORS
@@ -6975,7 +6975,7 @@ js_Interpret(JSContext *cx)
                 len = 0;
                 DO_NEXT_OP(len);
 
-              case JSTN_FINALLY:
+              case JSTRY_FINALLY:
                 
 
 
@@ -6986,7 +6986,7 @@ js_Interpret(JSContext *cx)
                 len = 0;
                 DO_NEXT_OP(len);
 
-              case JSTN_ITER:
+              case JSTRY_ITER:
                 
 
 
