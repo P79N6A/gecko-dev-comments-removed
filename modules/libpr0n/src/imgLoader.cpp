@@ -1681,9 +1681,6 @@ nsresult imgLoader::GetMimeTypeFromContent(const char* aContents, PRUint32 aLeng
     aContentType.AssignLiteral("image/x-icon");
   }
 
-  else if (aLength >= 8 && !nsCRT::strncmp(aContents, "#define ", 8)) {
-    aContentType.AssignLiteral("image/x-xbitmap");
-  }
   else {
     
     return NS_ERROR_NOT_AVAILABLE;
