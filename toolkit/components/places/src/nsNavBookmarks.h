@@ -45,7 +45,6 @@
 #include "nsNavHistory.h"
 #include "nsNavHistoryResult.h" 
 #include "nsToolkitCompsCID.h"
-#include "nsCategoryCache.h"
 
 class nsIOutputStream;
 
@@ -297,10 +296,6 @@ private:
     nsString mType;
     PRInt32 mIndex;
   };
-
-  
-  PRBool mCanFireNotifs;
-  nsCategoryCache<nsINavBookmarkObserver> mCacheObservers;
 };
 
 struct nsBookmarksUpdateBatcher
