@@ -2032,6 +2032,8 @@ nsFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
   if (NS_FAILED(rv))
     return rv;
 
+  
+  nsRefPtr<nsFrameSelection> frameSelection = GetFrameSelection();
   nsCOMPtr<nsISelection> selection;
   if (NS_SUCCEEDED(selcon->GetSelection(nsISelectionController::SELECTION_NORMAL,
                                         getter_AddRefs(selection)))){
@@ -2045,7 +2047,7 @@ nsFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
   
 
   
-  return GetFrameSelection()->MaintainSelection(aAmountBack);
+  return frameSelection->MaintainSelection(aAmountBack);
 }
 
 
