@@ -209,6 +209,10 @@ static void debug_only_printf(int mask, const char *fmt, ...) {}
 
 extern nanojit::LogControl js_LogController;
 
+
+
+extern void js_FragProfiling_FragFinalizer(nanojit::Fragment* f, JSTraceMonitor*);
+
 #define debug_only_stmt(stmt) \
     stmt
 

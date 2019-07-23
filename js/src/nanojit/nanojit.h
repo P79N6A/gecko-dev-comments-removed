@@ -262,6 +262,7 @@ namespace nanojit {
 
 
         
+        LC_FragProfile = 1<<7, 
         LC_Activation  = 1<<6, 
         LC_Liveness    = 1<<5, 
         LC_ReadLIR     = 1<<4, 
