@@ -307,7 +307,18 @@ private:
 
     
     
-    nsAutoTArray<bool, 8> mIncallPumpingStack;
+    struct IncallFrame
+    {
+        IncallFrame()
+            : _spinning(false)
+            , _savedNestableTasksAllowed(false)
+        { }
+
+        bool _spinning;
+        bool _savedNestableTasksAllowed;
+    };
+
+    nsAutoTArray<IncallFrame, 8> mIncallPumpingStack;
 
     static LRESULT CALLBACK NestedInputEventHook(int code,
                                                  WPARAM wParam,
