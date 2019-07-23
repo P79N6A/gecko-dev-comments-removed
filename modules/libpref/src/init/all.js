@@ -136,6 +136,9 @@ pref("browser.triple_click_selects_paragraph", true);
 
 pref("media.enforce_same_site_origin", false);
 
+
+pref("media.cache_size", 51200);
+
 #ifdef MOZ_OGG
 pref("media.ogg.enabled", true);
 #endif
