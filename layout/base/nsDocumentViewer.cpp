@@ -2158,7 +2158,11 @@ DocumentViewerImpl::CreateStyleSet(nsIDocument* aDocument,
   }
 
   
+<<<<<<< local
   
+=======
+  
+>>>>>>> other
   nsCOMPtr<nsICSSStyleSheet> quirkClone;
   if (!nsLayoutStylesheetCache::UASheet() ||
       !nsLayoutStylesheetCache::QuirkSheet() ||
