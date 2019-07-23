@@ -407,7 +407,7 @@ DOMWorkerOperationCallback(JSContext* aCx)
   PRBool extraThreadAllowed = PR_FALSE;
   jsrefcount suspendDepth = 0;
 
-  do {
+  for (;;) {
     
     if (worker->IsCanceled()) {
       LOG(("Forcefully killing JS for worker [0x%p]",
@@ -421,6 +421,7 @@ DOMWorkerOperationCallback(JSContext* aCx)
       }
 
       
+      JS_ClearPendingException(aCx);
       return JS_FALSE;
     }
 
@@ -440,6 +441,7 @@ DOMWorkerOperationCallback(JSContext* aCx)
       
       if (worker->IsCanceled()) {
         NS_WARNING("Tried to suspend on a pool that has gone away");
+        JS_ClearPendingException(aCx);
         return JS_FALSE;
       }
 
@@ -461,10 +463,7 @@ DOMWorkerOperationCallback(JSContext* aCx)
 
     nsAutoMonitor mon(pool->Monitor());
     mon.Wait();
-  } while (1);
-
-  NS_NOTREACHED("Shouldn't get here!");
-  return JS_FALSE;
+  }
 }
 
 void
