@@ -275,16 +275,11 @@ FeedConverter.prototype = {
 
       
       
-      if (result.doc && (!this._sniffed ||
-          (result.doc.title && (result.doc.link || result.doc.id)))) {
+      
+      if (result.doc) {
 
         
         
-        
-        
-        
-        
-
         feedService.addFeedResult(result);
 
         
