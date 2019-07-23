@@ -308,6 +308,23 @@ var PlacesUtils = {
 
 
 
+  nodeIsHistoryContainer: function PU_nodeIsHistoryContainer(aNode) {
+    var resultType;
+    return this.nodeIsQuery(aNode) &&
+           ((resultType = asQuery(aNode).queryOptions.resultType) ==
+              Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_SITE_QUERY ||
+            resultType == Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_QUERY ||
+            resultType == Ci.nsINavHistoryQueryOptions.RESULTS_AS_SITE_QUERY ||
+            this.nodeIsDay(aNode) ||
+            this.nodeIsHost(aNode));
+  },
+
+  
+
+
+
+
+
 
 
 
