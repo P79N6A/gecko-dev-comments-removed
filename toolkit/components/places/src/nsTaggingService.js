@@ -242,8 +242,14 @@ TaggingService.prototype = {
       tagNode.QueryInterface(Ci.nsINavHistoryContainerResultNode);
       tagNode.containerOpen = true;
       var cc = tagNode.childCount;
-      for (var i=0; i < cc; i++)
-        uris.push(gIoService.newURI(tagNode.getChild(i).uri, null, null));
+      for (var i = 0; i < cc; i++) {
+        try {
+          uris.push(gIoService.newURI(tagNode.getChild(i).uri, null, null));
+        } catch (ex) {
+          
+          
+        }
+      }
       tagNode.containerOpen = false;
     }
     return uris;

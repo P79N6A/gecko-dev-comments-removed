@@ -1075,11 +1075,26 @@ var PlacesUtils = {
               
               var tags = this._utils.tagging.allTags;
               var uris = [];
+              var bogusTagContainer = false;
               for (let i in tags) {
-                var tagURIs = this._utils.tagging.getURIsForTag(tags[i]);
+                var tagURIs = [];
+                
+                if (tags[i])
+                  tagURIs = this._utils.tagging.getURIsForTag(tags[i]);
+
+                if (!tagURIs.length) {
+                  
+                  
+                  
+                  
+                  
+                  bogusTagContainer = true;
+                }
                 for (let j in tagURIs)
                   this._utils.tagging.untagURI(tagURIs[j], [tags[i]]);
               }
+              if (bogusTagContainer)
+                this._utils.bookmarks.removeFolderChildren(rootItemId);
             }
             else if ([this._utils.toolbarFolderId,
                       this._utils.unfiledBookmarksFolderId,
@@ -1163,7 +1178,11 @@ var PlacesUtils = {
         if (aContainer == PlacesUtils.bookmarks.tagsFolder) {
           if (aData.children) {
             aData.children.forEach(function(aChild) {
-              this.tagging.tagURI(this._uri(aChild.uri), [aData.title]);
+              try {
+                this.tagging.tagURI(this._uri(aChild.uri), [aData.title]);
+              } catch (ex) {
+                
+              }
             }, this);
             return [folderIdMap, searchIds];
           }
@@ -1421,9 +1440,9 @@ var PlacesUtils = {
           var childNode = aSourceNode.getChild(i);
           if (aExcludeItems && aExcludeItems.indexOf(childNode.itemId) != -1)
             continue;
-          if (i != 0)
+          var written = serializeNodeToJSONStream(aSourceNode.getChild(i), i);
+          if (written && i < cc - 1)
             aStream.write(",", 1);
-          serializeNodeToJSONStream(aSourceNode.getChild(i), i);
         }
         if (!wasOpen)
           aSourceNode.containerOpen = false;
@@ -1444,26 +1463,44 @@ var PlacesUtils = {
 
       addGenericProperties(bNode, node);
 
+      var parent = bNode.parent;
+      var grandParent = parent ? parent.parent : null;
+
       if (self.nodeIsURI(bNode)) {
+        
+        if (parent && parent.itemId == self.tagsFolderId)
+          return false;
         
         
         
         try {
           self._uri(bNode.uri);
         } catch (ex) {
-          return;
+          return false;
         }
         addURIProperties(bNode, node);
       }
-      else if (self.nodeIsContainer(bNode))
+      else if (self.nodeIsContainer(bNode)) {
+        
+        if (grandParent && grandParent.itemId == self.tagsFolderId)
+          return false;
         addContainerProperties(bNode, node);
-      else if (self.nodeIsSeparator(bNode))
+      }
+      else if (self.nodeIsSeparator(bNode)) {
+        
+        
+        if ((parent && parent.itemId == self.tagsFolderId) ||
+            (grandParent && grandParent.itemId == self.tagsFolderId))
+          return false;
+
         addSeparatorProperties(bNode, node);
+      }
 
       if (!node.feedURI && node.type == self.TYPE_X_MOZ_PLACE_CONTAINER)
         writeComplexNode(aStream, node, bNode);
       else
         writeScalarNode(aStream, node);
+      return true;
     }
 
     
