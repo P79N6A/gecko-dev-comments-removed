@@ -2797,10 +2797,12 @@ TraceRecorder::record_JSOP_NEW()
 
 
 
+
+
     JS_ASSERT(VALUE_IS_FUNCTION(cx, v));
     JSFunction *fun = GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(v));
 
-    if (guardInterpretedFunction(fun, get(&v))) {
+    if (FUN_INTERPRETED(fun)) {
         LIns* args[] = { get(&v), cx_ins };
         LIns* tv_ins = lir->insCall(F_FastNewObject, args);
         guard(false, lir->ins_eq0(tv_ins), OOM_EXIT);
@@ -3229,10 +3231,12 @@ TraceRecorder::record_JSOP_CALL()
 
 
 
+
+
     JS_ASSERT(VALUE_IS_FUNCTION(cx, fval));
     JSFunction* fun = GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(fval));
 
-    if (guardInterpretedFunction(fun, get(&fval)))
+    if (FUN_INTERPRETED(fun))
         return interpretedFunctionCall(fval, fun, argc);
 
     
