@@ -65,7 +65,6 @@
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 #include "nsIStringBundle.h"
-#include "nsCPasswordManager.h"
 #include "nsAuthInformationHolder.h"
 
 #if defined(PR_LOGGING)
@@ -802,21 +801,6 @@ nsFtpState::R_pass() {
     if (mResponseCode/100 == 5 || mResponseCode==421) {
         
         
-        
-        
-        
-
-        if (!mPassword.IsEmpty()) {
-            nsCOMPtr<nsIPasswordManager> pm =
-                    do_GetService(NS_PASSWORDMANAGER_CONTRACTID);
-            if (pm) {
-                nsCAutoString prePath;
-                nsresult rv = mChannel->URI()->GetPrePath(prePath);
-                NS_ASSERTION(NS_SUCCEEDED(rv), "Failed to get prepath");
-                if (NS_SUCCEEDED(rv))
-                    pm->RemoveUser(prePath, EmptyString());
-            }
-        }
 
         
         if (mAnonymous) {
