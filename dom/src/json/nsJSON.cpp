@@ -87,22 +87,19 @@ nsJSON::Encode(nsAString &aJSON)
   
   nsresult rv;
 
-  nsAutoPtr<nsJSONWriter> writer(new nsJSONWriter());
-  if (!writer)
-    return NS_ERROR_OUT_OF_MEMORY;
-  
-  rv = EncodeInternal(writer);
+  nsJSONWriter writer;
+  rv = EncodeInternal(&writer);
 
   
   if (NS_SUCCEEDED(rv) || rv == NS_ERROR_INVALID_ARG) {
     rv = NS_OK;
     
-    if (!writer->DidWrite()) {
+    if (!writer.DidWrite()) {
       aJSON.Truncate();
       aJSON.SetIsVoid(PR_TRUE);
     } else {
-      writer->FlushBuffer();
-      aJSON.Append(writer->mOutputString);
+      writer.FlushBuffer();
+      aJSON.Append(writer.mOutputString);
     }
   }
 
@@ -172,13 +169,11 @@ nsJSON::EncodeToStream(nsIOutputStream *aStream,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsAutoPtr<nsJSONWriter> writer(new nsJSONWriter(bufferedStream));
-  if (!writer)
-    return NS_ERROR_OUT_OF_MEMORY;
-  rv = writer->SetCharset(aCharset);
+  nsJSONWriter writer(bufferedStream);
+  rv = writer.SetCharset(aCharset);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = EncodeInternal(writer);
+  rv = EncodeInternal(&writer);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = bufferedStream->Flush();
