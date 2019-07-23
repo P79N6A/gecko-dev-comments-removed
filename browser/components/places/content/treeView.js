@@ -294,10 +294,14 @@ PlacesTreeView.prototype = {
       var min = { }, max = { };
       selection.getRangeAt(rangeIndex, min, max);
       var lastIndex = Math.min(max.value, startReplacement + replaceCount -1);
-      if (min.value < startReplacement || min.value > lastIndex)
+      
+      
+      if (max.value < startReplacement || min.value > lastIndex)
         continue;
-
-      for (var nodeIndex = min.value; nodeIndex <= lastIndex; nodeIndex++)
+      
+      
+      var firstIndex = Math.max(min.value, startReplacement);
+      for (var nodeIndex = firstIndex; nodeIndex <= lastIndex; nodeIndex++)
         previouslySelectedNodes.push(
           { node: this._visibleElements[nodeIndex].node, oldIndex: nodeIndex });
     }
@@ -309,7 +313,8 @@ PlacesTreeView.prototype = {
     
     var newElements = [];
     var toOpenElements = [];
-    this._buildVisibleSection(aContainer, newElements, toOpenElements, startReplacement);
+    this._buildVisibleSection(aContainer,
+                              newElements, toOpenElements, startReplacement);
 
     
     this._visibleElements =
@@ -320,7 +325,7 @@ PlacesTreeView.prototype = {
     
     
     if (replaceCount != newElements.length) {
-      for (i = startReplacement + newElements.length;
+      for (var i = startReplacement + newElements.length;
            i < this._visibleElements.length; i ++) {
         this._visibleElements[i].node.viewIndex = i;
       }
