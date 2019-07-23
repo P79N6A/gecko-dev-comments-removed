@@ -108,7 +108,7 @@ function addA11yLoadEvent(aFunc)
 
         aFunc.call();
       },
-      0
+      200
     );
   }
 
@@ -226,19 +226,10 @@ function getAccessible(aAccOrElmOrID, aInterfaces, aElmObj)
 
 function registerA11yEventListener(aEventType, aEventHandler)
 {
-  if (!gA11yEventListenersCount) {
-    gObserverService = Components.classes["@mozilla.org/observer-service;1"].
-      getService(nsIObserverService);
+  listenA11yEvents(true);
 
-    gObserverService.addObserver(gA11yEventObserver, "accessible-event",
-                                 false);
-  }
-
-  if (!(aEventType in gA11yEventListeners))
-    gA11yEventListeners[aEventType] = new Array();
-
-  gA11yEventListeners[aEventType].push(aEventHandler);
-  gA11yEventListenersCount++;
+  gA11yEventApplicantsCount++;
+  addA11yEventListener(aEventType, aEventHandler);
 }
 
 
@@ -248,23 +239,29 @@ function registerA11yEventListener(aEventType, aEventHandler)
 
 function unregisterA11yEventListener(aEventType, aEventHandler)
 {
-  var listenersArray = gA11yEventListeners[aEventType];
-  if (listenersArray) {
-    var index = listenersArray.indexOf(aEventHandler);
-    listenersArray.splice(index, 1);
+  removeA11yEventListener(aEventType, aEventHandler);
 
-    if (!listenersArray.length) {
-      gA11yEventListeners[aEventType] = null;
-      delete gA11yEventListeners[aEventType];
-    }
-  }
-  
-  gA11yEventListenersCount--;
-  if (!gA11yEventListenersCount) {
-    gObserverService.removeObserver(gA11yEventObserver,
-                                    "accessible-event");
-  }
+  gA11yEventApplicantsCount--;
+  listenA11yEvents(false);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -287,6 +284,8 @@ function eventQueue(aEventType)
 {
   
 
+  
+
 
   this.push = function eventQueue_push(aEventInvoker)
   {
@@ -298,28 +297,58 @@ function eventQueue(aEventType)
 
   this.invoke = function eventQueue_invoke()
   {
-    window.setTimeout(
-      function(aQueue)
-      {
-        if (aQueue.mIndex == aQueue.mInvokers.length - 1) {
-          unregisterA11yEventListener(aQueue.mEventType, aQueue.mEventHandler);
+    listenA11yEvents(true);
+    gA11yEventApplicantsCount++;
 
-          for (var idx = 0; idx < aQueue.mInvokers.length; idx++) {
-            var invoker = aQueue.mInvokers[idx];
-            ok(invoker.wasCaught,
-               "test with ID = '" + invoker.getID() + "' failed.");
+    window.setTimeout(function(aQueue) { aQueue.processInvoker(); }, 200, this);
+  }
+
+  
+
+  this.processInvoker = function eventQueue_processInvoker()
+  {
+    this.clearEventHandler();
+      
+    if (this.mIndex == this.mInvokers.length - 1) {
+
+      gA11yEventApplicantsCount--;
+      listenA11yEvents(false);
+
+      for (var idx = 0; idx < this.mInvokers.length; idx++) {
+        var invoker = this.mInvokers[idx];
+        var id = invoker.getID();
+
+        if (invoker.wasCaught) {
+          for (var jdx = 0; jdx < invoker.wasCaught.length; jdx++) {
+            var seq = this.getEventSequence(invoker);
+            var type = seq[jdx][0];
+            var typeStr = gAccRetrieval.getStringEventType(type);
+
+            var msg = "test with ID = '" + id + "' failed. ";
+            if (invoker.doNotExpectEvents) {
+              ok(!invoker.wasCaught[jdx],
+                 msg + "There is unexpected " + typeStr + " event.");
+            } else {
+              ok(invoker.wasCaught[jdx],
+                 msg + "No " + typeStr + " event.");
+            }
           }
-
-          SimpleTest.finish();
-          return;
+        } else {
+          ok(false,
+             "test with ID = '" + id + "' failed. No events were registered.");
         }
+      }
 
-        aQueue.mInvokers[++aQueue.mIndex].invoke();
+      SimpleTest.finish();
+      return;
+    }
 
-        aQueue.invoke();
-      },
-      200, this
-    );
+    this.mIndex++;
+    this.setEventHandler();
+
+    this.mInvokers[this.mIndex].invoke();
+
+    window.setTimeout(function(aQueue) { aQueue.processInvoker(); }, 200, this);
   }
 
   this.getInvoker = function eventQueue_getInvoker()
@@ -327,13 +356,45 @@ function eventQueue(aEventType)
     return this.mInvokers[this.mIndex];
   }
 
-  this.mEventType = aEventType;
-  this.mEventHandler = new eventHandlerForEventQueue(this);
+  this.getEventSequence = function eventQueue_getEventSeq(aInvoker)
+  {
+    if (!aInvoker) 
+      return this.mEventSeq;
 
-  registerA11yEventListener(this.mEventType, this.mEventHandler);
+    return ("eventSeq" in aInvoker) ?
+      aInvoker.eventSeq : [[this.mDefEventType, aInvoker.DOMNode]];
+  }
+
+  this.setEventHandler = function eventQueue_setEventHandler()
+  {
+    var invoker = this.getInvoker();
+    this.mEventSeq = this.getEventSequence(invoker);
+
+    if (this.mEventSeq) {
+      invoker.wasCaught = new Array(this.mEventSeq.length);
+
+      for (var idx = 0; idx < this.mEventSeq.length; idx++)
+        addA11yEventListener(this.mEventSeq[idx][0], this.mEventHandler);
+    }
+  }
+
+  this.clearEventHandler = function eventQueue_clearEventHandler()
+  {
+    if (this.mEventSeq) {
+      for (var idx = 0; idx < this.mEventSeq.length; idx++)
+        removeA11yEventListener(this.mEventSeq[idx][0], this.mEventHandler);
+
+      this.mEventSeq = null;
+    }
+  }
+
+  this.mDefEventType = aEventType;
+  this.mEventHandler = new eventHandlerForEventQueue(this);
 
   this.mInvokers = new Array();
   this.mIndex = -1;
+
+  this.mEventSeq = null;
 }
 
 
@@ -357,7 +418,8 @@ addLoadEvent(initialize);
 var gObserverService = null;
 
 var gA11yEventListeners = {};
-var gA11yEventListenersCount = 0;
+var gA11yEventApplicantsCount = 0;
+var gA11yEventDumpID = ""; 
 
 var gA11yEventObserver =
 {
@@ -368,6 +430,22 @@ var gA11yEventObserver =
 
     var event = aSubject.QueryInterface(nsIAccessibleEvent);
     var listenersArray = gA11yEventListeners[event.eventType];
+
+    if (gA11yEventDumpID) { 
+      var type = gAccRetrieval.getStringEventType(event.eventType);
+      var target = event.DOMNode;
+
+      var info = "event type: " + type + ", target: " + target.localName;
+      if (listenersArray)
+        info += ", registered listeners count is " + listenersArray.length;
+
+      var div = document.createElement("div");      
+      div.textContent = info;
+
+      var dumpElm = document.getElementById(gA11yEventDumpID);
+      dumpElm.appendChild(div);
+    }
+
     if (!listenersArray)
       return;
 
@@ -376,23 +454,92 @@ var gA11yEventObserver =
   }
 };
 
+function listenA11yEvents(aStartToListen)
+{
+  if (aStartToListen && !gObserverService) {
+    gObserverService = Components.classes["@mozilla.org/observer-service;1"].
+      getService(nsIObserverService);
+    
+    gObserverService.addObserver(gA11yEventObserver, "accessible-event",
+                                 false);
+  } else if (!gA11yEventApplicantsCount) {
+    gObserverService.removeObserver(gA11yEventObserver,
+                                    "accessible-event");
+    gObserverService = null;
+  }
+}
+
+function addA11yEventListener(aEventType, aEventHandler)
+{
+  if (!(aEventType in gA11yEventListeners))
+    gA11yEventListeners[aEventType] = new Array();
+  
+  gA11yEventListeners[aEventType].push(aEventHandler);
+}
+
+function removeA11yEventListener(aEventType, aEventHandler)
+{
+  var listenersArray = gA11yEventListeners[aEventType];
+  if (!listenersArray)
+    return false;
+
+  var index = listenersArray.indexOf(aEventHandler);
+  if (index == -1)
+    return false;
+
+  listenersArray.splice(index, 1);
+  
+  if (!listenersArray.length) {
+    gA11yEventListeners[aEventType] = null;
+    delete gA11yEventListeners[aEventType];
+  }
+
+  return true;
+}
+
 function eventHandlerForEventQueue(aQueue)
 {
   this.handleEvent = function eventHandlerForEventQueue_handleEvent(aEvent)
   {
     var invoker = this.mQueue.getInvoker();
-    if (!invoker) 
+    var eventSeq = this.mQueue.getEventSequence();
+
+    if (!invoker && !eventSeq) 
       return;
+
+    if (eventSeq != this.mEventSeq) {
+      this.mEventSeqIdx = -1;
+      this.mEventSeq = eventSeq;
+    }
 
     if ("debugCheck" in invoker)
       invoker.debugCheck(aEvent);
 
-    if (aEvent.DOMNode == invoker.DOMNode) {
-      invoker.check(aEvent);
-      invoker.wasCaught = true;
+    if (invoker.doNotExpectEvents) {
+      
+      
+      for (var idx = 0; idx < this.mEventSeq.length; idx++) {
+        if (aEvent.eventType == eventSeq[idx][0] &&
+            aEvent.DOMNode == eventSeq[idx][1]) {
+          invoker.wasCaught[idx] = true;
+        }
+      }
+    } else {
+      
+      var idx = this.mEventSeqIdx + 1;
+
+      if (aEvent.eventType == eventSeq[idx][0] &&
+          aEvent.DOMNode == eventSeq[idx][1]) {
+        if ("check" in invoker)
+          invoker.check(aEvent);
+
+        invoker.wasCaught[idx] = true;
+        this.mEventSeqIdx++;
+      }
     }
   }
-  
-  this.mQueue = aQueue;
-}
 
+  this.mQueue = aQueue;
+  this.mEventSeq = null;
+  this.mEventSeqIdx = -1;
+}
