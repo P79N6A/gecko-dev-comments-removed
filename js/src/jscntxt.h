@@ -113,7 +113,7 @@ class TypeMap;
 
 
 
-struct JSTraceMonitor {
+typedef struct JSTraceMonitor {
     
 
 
@@ -133,7 +133,7 @@ struct JSTraceMonitor {
 
 
     CLS(nanojit::Fragmento) reFragmento;
-};
+} JSTraceMonitor;
 
 #ifdef JS_TRACER
 # define JS_ON_TRACE(cx)   (JS_TRACE_MONITOR(cx).onTrace)
