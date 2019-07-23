@@ -267,6 +267,18 @@ protected:
 
   static nsSVGEnumMapping sSVGUnitTypesMap[];
 
+  
+  PRBool
+  ParseNumberOptionalNumber(nsIAtom* aAttribute, const nsAString& aValue,
+                            PRUint32 aIndex1, PRUint32 aIndex2,
+                            nsAttrValue& aResult);
+
+  
+  PRBool
+  ParseIntegerOptionalInteger(nsIAtom* aAttribute, const nsAString& aValue,
+                              PRUint32 aIndex1, PRUint32 aIndex2,
+                              nsAttrValue& aResult);
+
   static nsresult ReportAttributeParseFailure(nsIDocument* aDocument,
                                               nsIAtom* aAttribute,
                                               const nsAString& aValue);
