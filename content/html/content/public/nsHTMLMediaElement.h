@@ -140,7 +140,7 @@ public:
 
   
   
-  PRBool IsActivelyPlaying() const;
+  PRBool IsPotentiallyPlaying() const;
 
   
   
