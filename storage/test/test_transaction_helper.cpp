@@ -1,0 +1,215 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "storage_test_harness.h"
+
+#include "mozStorageHelper.h"
+
+
+
+
+
+void
+test_HasTransaction()
+{
+  nsCOMPtr<mozIStorageConnection> db(getMemoryDatabase());
+
+  
+  {
+    mozStorageTransaction transaction(db, PR_FALSE);
+    do_check_true(transaction.HasTransaction());
+    (void)transaction.Commit();
+    
+    do_check_false(transaction.HasTransaction());
+  }
+
+  
+  {
+    mozStorageTransaction transaction(db, PR_FALSE);
+    do_check_true(transaction.HasTransaction());
+    (void)transaction.Rollback();
+    do_check_false(transaction.HasTransaction());
+  }
+
+  
+  mozStorageTransaction outerTransaction(db, PR_FALSE);
+  do_check_true(outerTransaction.HasTransaction());
+  {
+    mozStorageTransaction innerTransaction(db, PR_FALSE);
+    do_check_false(innerTransaction.HasTransaction());
+  }
+}
+
+void
+test_Commit()
+{
+  nsCOMPtr<mozIStorageConnection> db(getMemoryDatabase());
+
+  
+  
+  {
+    mozStorageTransaction transaction(db, PR_FALSE);
+    (void)db->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "CREATE TABLE test (id INTEGER PRIMARY KEY)"
+    ));
+    (void)transaction.Commit();
+  }
+
+  PRBool exists = PR_FALSE;
+  (void)db->TableExists(NS_LITERAL_CSTRING("test"), &exists);
+  do_check_true(exists);
+}
+
+void
+test_Rollback()
+{
+  nsCOMPtr<mozIStorageConnection> db(getMemoryDatabase());
+
+  
+  
+  {
+    mozStorageTransaction transaction(db, PR_TRUE);
+    (void)db->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "CREATE TABLE test (id INTEGER PRIMARY KEY)"
+    ));
+    (void)transaction.Rollback();
+  }
+
+  PRBool exists = PR_TRUE;
+  (void)db->TableExists(NS_LITERAL_CSTRING("test"), &exists);
+  do_check_false(exists);
+}
+
+void
+test_AutoCommit()
+{
+  nsCOMPtr<mozIStorageConnection> db(getMemoryDatabase());
+
+  
+  
+  {
+    mozStorageTransaction transaction(db, PR_TRUE);
+    (void)db->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "CREATE TABLE test (id INTEGER PRIMARY KEY)"
+    ));
+  }
+
+  PRBool exists = PR_FALSE;
+  (void)db->TableExists(NS_LITERAL_CSTRING("test"), &exists);
+  do_check_true(exists);
+}
+
+void
+test_AutoRollback()
+{
+  nsCOMPtr<mozIStorageConnection> db(getMemoryDatabase());
+
+  
+  
+  
+  {
+    mozStorageTransaction transaction(db, PR_FALSE);
+    (void)db->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "CREATE TABLE test (id INTEGER PRIMARY KEY)"
+    ));
+  }
+
+  PRBool exists = PR_TRUE;
+  (void)db->TableExists(NS_LITERAL_CSTRING("test"), &exists);
+  do_check_false(exists);
+}
+
+void
+test_SetDefaultAction()
+{
+  nsCOMPtr<mozIStorageConnection> db(getMemoryDatabase());
+
+  
+  
+  {
+    mozStorageTransaction transaction(db, PR_TRUE);
+    (void)db->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "CREATE TABLE test1 (id INTEGER PRIMARY KEY)"
+    ));
+    transaction.SetDefaultAction(PR_FALSE);
+  }
+  PRBool exists = PR_TRUE;
+  (void)db->TableExists(NS_LITERAL_CSTRING("test1"), &exists);
+  do_check_false(exists);
+
+  
+  
+  {
+    mozStorageTransaction transaction(db, PR_FALSE);
+    (void)db->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "CREATE TABLE test2 (id INTEGER PRIMARY KEY)"
+    ));
+    transaction.SetDefaultAction(PR_TRUE);
+  }
+  exists = PR_FALSE;
+  (void)db->TableExists(NS_LITERAL_CSTRING("test2"), &exists);
+  do_check_true(exists);
+}
+
+void
+test_null_database_connection()
+{
+  
+  
+  mozStorageTransaction transaction(nsnull, PR_FALSE);
+
+  do_check_false(transaction.HasTransaction());
+  do_check_true(NS_SUCCEEDED(transaction.Commit()));
+  do_check_true(NS_SUCCEEDED(transaction.Rollback()));
+}
+
+void (*gTests[])(void) = {
+  test_HasTransaction,
+  test_Commit,
+  test_Rollback,
+  test_AutoCommit,
+  test_AutoRollback,
+  test_SetDefaultAction,
+  test_null_database_connection,
+};
+
+const char *file = __FILE__;
+#define TEST_NAME "transaction helper"
+#define TEST_FILE file
+#include "storage_test_harness_tail.h"
