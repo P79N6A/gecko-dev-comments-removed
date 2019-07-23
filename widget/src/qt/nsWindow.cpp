@@ -1532,175 +1532,20 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
 {
     LOGFOCUS(("OnKeyPressEvent [%p]\n", (void *)this));
 
-#ifdef USE_XIM
-    
-    
-   LOGIM(("key press [%p]: composing %d val %d\n",
-           (void *)this, IMEComposingWindow() != nsnull, aEvent->key()));
-   if (IMEFilterEvent(aEvent))
-       return TRUE;
-   LOGIM(("sending as regular key press event\n"));
-#endif
-
     nsEventStatus status;
 
-    nsCOMPtr<nsIWidget> kungFuDeathGrip = this;
-
-    
-    
-    
-    
+    nsKeyEvent event(PR_TRUE, NS_KEY_PRESS, this);
+    InitKeyEvent(event, aEvent);
+    event.charCode = (PRInt32)aEvent->text()[0].unicode();
     
 
-    PRBool isKeyDownCancelled = PR_FALSE;
-    PRUint32 domVirtualKeyCode = QtKeyCodeToDOMKeyCode(aEvent->key());
-
-    if (!IsKeyDown(domVirtualKeyCode)) {
-        SetKeyDownFlag(domVirtualKeyCode);
-
+    if (!aEvent->isAutoRepeat()) {
         
         nsKeyEvent downEvent(PR_TRUE, NS_KEY_DOWN, this);
         InitKeyEvent(downEvent, aEvent);
         DispatchEvent(&downEvent, status);
-        if (NS_UNLIKELY(mIsDestroyed))
-            return PR_TRUE;
-        isKeyDownCancelled = (status == nsEventStatus_eConsumeNoDefault);
-    }
-
-    
-    
-    
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    switch (aEvent->key()) {
-        case XF86XK_Back:
-            return DispatchCommandEvent(nsWidgetAtoms::Back);
-        case XF86XK_Forward:
-            return DispatchCommandEvent(nsWidgetAtoms::Forward);
-        case XF86XK_Refresh:
-            return DispatchCommandEvent(nsWidgetAtoms::Reload);
-        case XF86XK_Stop:
-            return DispatchCommandEvent(nsWidgetAtoms::Stop);
-        case XF86XK_Search:
-            return DispatchCommandEvent(nsWidgetAtoms::Search);
-        case XF86XK_Favorites:
-            return DispatchCommandEvent(nsWidgetAtoms::Bookmarks);
-        case XF86XK_HomePage:
-            return DispatchCommandEvent(nsWidgetAtoms::Home);
-    }
-
-    nsKeyEvent event(PR_TRUE, NS_KEY_PRESS, this);
-    InitKeyEvent(event, aEvent);
-    if (isKeyDownCancelled) {
-      
-      event.flags |= NS_EVENT_FLAG_NO_DEFAULT;
-    }
-    event.charCode = nsConvertCharCodeToUnicode(aEvent);
-    if (event.charCode) {
-        event.keyCode = 0;
-        
-        
-        
-        
-
-        if (event.isControl || event.isAlt || event.isMeta) {
-            QKeyEvent tmpEvent = *aEvent;
-
-            
-            
-            
-            
-            
-            
-            
-            
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-           
-           
-           
-           
-           
-           
-           
-
-
-
-
-
-
-
-           
-           
-           
-
-
-
-
-
-
-
-
-
+        if (ignoreEvent(status)) { 
+            event.flags |= NS_EVENT_FLAG_NO_DEFAULT;
         }
     }
 
@@ -1733,11 +1578,6 @@ bool
 nsWindow::OnKeyReleaseEvent(QKeyEvent *aEvent)
 {
     LOGFOCUS(("OnKeyReleaseEvent [%p]\n", (void *)this));
-
-#ifdef USE_XIM
-    if (IMEFilterEvent(aEvent))
-        return TRUE;
-#endif
 
     
     nsKeyEvent event(PR_TRUE, NS_KEY_UP, this);
