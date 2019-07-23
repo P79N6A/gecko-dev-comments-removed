@@ -875,7 +875,7 @@ Assembler::asm_call(LInsp ins)
             if (!deprecated_isKnownReg(rr)) {
                 int d = deprecated_disp(ins);
                 NanoAssert(d != 0);
-                deprecated_freeRsrcOf(ins, false);
+                deprecated_freeRsrcOf(ins);
 
                 
                 
@@ -1192,7 +1192,7 @@ Assembler::asm_qjoin(LIns *ins)
     
     r = findRegFor(lo, GpRegs);
     STR(r, FP, d);
-    deprecated_freeRsrcOf(ins, false); 
+    deprecated_freeRsrcOf(ins);     
 }
 
 void
@@ -1279,28 +1279,27 @@ Assembler::asm_spill(Register rr, int d, bool pop, bool quad)
 {
     (void) pop;
     (void) quad;
-    if (d) {
-        if (_config.arm_vfp && IsFpReg(rr)) {
-            if (isS8(d >> 2)) {
-                FSTD(rr, FP, d);
-            } else {
-                FSTD(rr, IP, 0);
-                asm_add_imm(IP, FP, d);
-            }
+    NanoAssert(d);
+    if (_config.arm_vfp && IsFpReg(rr)) {
+        if (isS8(d >> 2)) {
+            FSTD(rr, FP, d);
         } else {
-            NIns merged;
-            STR(rr, FP, d);
-            
-            
-            if (
-                does_next_instruction_exist(_nIns, codeStart, codeEnd,
-                                                   exitStart, exitEnd)
-                && 
-                   do_peep_2_1(&merged, _nIns[0], _nIns[1])) {
-                _nIns[1] = merged;
-                _nIns++;
-                verbose_only( asm_output("merge next into STMDB"); )
-            }
+            FSTD(rr, IP, 0);
+            asm_add_imm(IP, FP, d);
+        }
+    } else {
+        NIns merged;
+        STR(rr, FP, d);
+        
+        
+        if (
+            does_next_instruction_exist(_nIns, codeStart, codeEnd,
+                                               exitStart, exitEnd)
+            && 
+               do_peep_2_1(&merged, _nIns[0], _nIns[1])) {
+            _nIns[1] = merged;
+            _nIns++;
+            verbose_only( asm_output("merge next into STMDB"); )
         }
     }
 }
@@ -1320,7 +1319,7 @@ Assembler::asm_load64(LInsp ins)
 
     Register rb = findRegFor(base, GpRegs);
     NanoAssert(IsGpReg(rb));
-    deprecated_freeRsrcOf(ins, false);
+    deprecated_freeRsrcOf(ins);
 
     
 
@@ -1531,10 +1530,11 @@ Assembler::asm_immf(LInsp ins)
     int d = deprecated_disp(ins);
     Register rr = ins->deprecated_getReg();
 
-    deprecated_freeRsrcOf(ins, false);
+    deprecated_freeRsrcOf(ins);
 
     if (_config.arm_vfp && deprecated_isKnownReg(rr)) {
-        asm_spill(rr, d, false, true);
+        if (d)
+            asm_spill(rr, d, false, true);
 
         underrunProtect(4*4);
         asm_immf_nochk(rr, ins->imm64_0(), ins->imm64_1());

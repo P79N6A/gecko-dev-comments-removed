@@ -1759,17 +1759,16 @@ namespace nanojit
     }
 
     void Assembler::asm_spill(Register rr, int d, bool , bool quad) {
-        if (d) {
-            if (!IsFpReg(rr)) {
-                if (quad)
-                    MOVQMR(rr, d, FP);
-                else
-                    MOVLMR(rr, d, FP);
-            } else {
-                
-                NanoAssert(quad);
-                MOVSDMR(rr, d, FP);
-            }
+        NanoAssert(d);
+        if (!IsFpReg(rr)) {
+            if (quad)
+                MOVQMR(rr, d, FP);
+            else
+                MOVLMR(rr, d, FP);
+        } else {
+            
+            NanoAssert(quad);
+            MOVSDMR(rr, d, FP);
         }
     }
 

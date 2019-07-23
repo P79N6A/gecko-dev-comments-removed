@@ -583,13 +583,13 @@ namespace nanojit
     Register Assembler::deprecated_prepResultReg(LIns *ins, RegisterMask allow)
     {
 #ifdef NANOJIT_IA32
-        const bool pop = (allow & rmask(FST0)) &&
-                         (!ins->isInReg() || ins->getReg() != FST0);
-#else
-        const bool pop = false;
+        
+        
+        
+        NanoAssert(0);
 #endif
         Register r = findRegFor(ins, allow);
-        deprecated_freeRsrcOf(ins, pop);
+        deprecated_freeRsrcOf(ins);
         return r;
     }
 
@@ -627,38 +627,46 @@ namespace nanojit
         
         
         
-        
-        
-        
-        
-        
 #ifdef NANOJIT_IA32
+        
+        
+        
         const bool pop = (allow & rmask(FST0)) &&
                          (!ins->isInReg() || ins->getReg() != FST0);
 #else
         const bool pop = false;
 #endif
         Register r = findRegFor(ins, allow);
-        asm_spilli(ins, pop);
+        asm_maybe_spill(ins, pop);
+#ifdef NANOJIT_IA32
+        if (!ins->isInAr() && pop && r == FST0) {
+            
+            
+            
+            FSTP(FST0);     
+        }
+#endif
         return r;
     }
 
-    void Assembler::asm_spilli(LInsp ins, bool pop)
+    void Assembler::asm_maybe_spill(LInsp ins, bool pop)
     {
         int d = ins->isInAr() ? arDisp(ins) : 0;
         Register r = ins->getReg();
-        verbose_only( RefBuf b;
-                      if (d && (_logc->lcbits & LC_Assembly)) {
-                         setOutputForEOL("  <= spill %s",
-                         _thisfrag->lirbuf->printer->formatRef(&b, ins)); } )
-        asm_spill(r, d, pop, ins->isN64());
+        if (ins->isInAr()) {
+            verbose_only( RefBuf b;
+                          if (_logc->lcbits & LC_Assembly) {
+                             setOutputForEOL("  <= spill %s",
+                             _thisfrag->lirbuf->printer->formatRef(&b, ins)); } )
+            asm_spill(r, d, pop, ins->isN64());
+        }
     }
 
     
-    void Assembler::deprecated_freeRsrcOf(LIns *ins, bool pop)
+    void Assembler::deprecated_freeRsrcOf(LIns *ins)
     {
         if (ins->isInReg()) {
-            asm_spilli(ins, pop);
+            asm_maybe_spill(ins, false);
             _allocator.retire(ins->getReg());   
             ins->clearReg();
         }
