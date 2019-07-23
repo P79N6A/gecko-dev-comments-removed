@@ -272,16 +272,6 @@ nsXULDocument::~nsXULDocument()
         if (mDocumentURI)
             nsXULPrototypeCache::GetInstance()->RemoveFromFastLoadSet(mDocumentURI);
     }
-
-    
-    
-    
-    
-    if (mIsPopup) {
-        mStyleSheets.Clear();
-        mStyleAttrStyleSheet = nsnull;
-        mAttrStyleSheet = nsnull;
-    }
 }
 
 nsresult
