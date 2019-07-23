@@ -39,6 +39,7 @@
 #include "nsMemoryImpl.h"
 #include "nsThreadUtils.h"
 
+#include "nsIObserver.h"
 #include "nsIObserverService.h"
 #include "nsIServiceManager.h"
 #include "nsISupportsArray.h"
@@ -54,106 +55,25 @@
 
 #if defined(XP_WIN)
 #include <windows.h>
-#define NS_MEMORY_FLUSHER
-#elif defined (NS_OSSO)
+#endif
+
+#if defined (NS_OSSO)
 #include <osso-mem.h>
 #include <fcntl.h>
 #include <unistd.h>
 const char* kHighMark = "/sys/kernel/high_watermark";
-#else
-
-#undef NS_MEMORY_FLUSHER
 #endif
 
-#ifdef NS_MEMORY_FLUSHER
+
+
+
+
+#ifdef WINCE
+#define NOTIFY_LOW_MEMORY
+#endif
+
+
 #include "nsITimer.h"
-#endif
-
-
-
-
-#ifdef DEBUG_xwarren
-#define NS_OUT_OF_MEMORY_TESTER
-#endif
-
-#ifdef NS_OUT_OF_MEMORY_TESTER
-
-
-#define NS_FLUSH_FREQUENCY        100000
-
-
-#define NS_FAIL_FREQUENCY         10
-
-PRUint32 gFlushFreq = 0;
-PRUint32 gFailFreq = 0;
-
-static void*
-mallocator(PRSize size, PRUint32& counter, PRUint32 max)
-{
-    if (counter++ >= max) {
-        counter = 0;
-        NS_ERROR("about to fail allocation... watch out");
-        return nsnull;
-    }
-    return PR_Malloc(size);
-}
-
-static void*
-reallocator(void* ptr, PRSize size, PRUint32& counter, PRUint32 max)
-{
-    if (counter++ >= max) {
-        counter = 0;
-        NS_ERROR("about to fail reallocation... watch out");
-        return nsnull;
-    }
-    return PR_Realloc(ptr, size);
-}
-
-#define MALLOC1(s)       mallocator(s, gFlushFreq, NS_FLUSH_FREQUENCY)
-#define REALLOC1(p, s)   reallocator(p, s, gFlushFreq, NS_FLUSH_FREQUENCY)
-
-#else
-
-#define MALLOC1(s)       PR_Malloc(s)
-#define REALLOC1(p, s)   PR_Realloc(p, s)
-
-#endif 
-
-#if defined(XDEBUG_waterson)
-#define NS_TEST_MEMORY_FLUSHER
-#endif
-
-#ifdef NS_MEMORY_FLUSHER
-
-
-
-
-class MemoryFlusher : public nsITimerCallback
-{
-public:
-    
-    NS_IMETHOD QueryInterface(REFNSIID aIID, void** aResult);
-    NS_IMETHOD_(nsrefcnt) AddRef(void) { return 2; }
-    NS_IMETHOD_(nsrefcnt) Release(void) { return 1; }
-
-    NS_DECL_NSITIMERCALLBACK
-
-    nsresult Init();
-    void StopAndJoin();
-
-private:
-    static PRIntervalTime sTimeout;
-    static PRLock*        sLock;
-    static PRCondVar*     sCVar;
-    
-    enum {
-        kTimeout = 60000 
-    };
-};
-
-static MemoryFlusher sGlobalMemoryFlusher;
-
-#endif 
 
 static nsMemoryImpl sGlobalMemory;
 
@@ -199,11 +119,10 @@ nsMemoryImpl::IsLowMemory(PRBool *result)
     
     
     
-#if 0
     MEMORYSTATUS stat;
     GlobalMemoryStatus(&stat);
-    *result = ((float)stat.dwAvailPhys / stat.dwTotalPhys) < 0.1;
-#endif
+    *result = (stat.dwMemoryLoad >= 90);
+
 #elif defined(XP_WIN)
     MEMORYSTATUSEX stat;
     stat.dwLength = sizeof stat;
@@ -223,18 +142,13 @@ nsMemoryImpl::IsLowMemory(PRBool *result)
 #else
     *result = PR_FALSE;
 #endif
-    return NS_OK;
-}
 
-
- nsresult 
-nsMemoryImpl::InitFlusher()
-{
-#ifdef NS_MEMORY_FLUSHER
-    return sGlobalMemoryFlusher.Init();
-#else
-    return NS_OK;
+#ifdef NOTIFY_LOW_MEMORY
+    if (*result) {
+        sGlobalMemory.FlushMemory(NS_LITERAL_STRING("low-memory").get(), PR_FALSE);
+    }
 #endif
+    return NS_OK;
 }
 
  nsresult
@@ -263,16 +177,22 @@ nsMemoryImpl::FlushMemory(const PRUnichar* aReason, PRBool aImmediate)
     if (lastVal)
         return NS_OK;
 
+    PRIntervalTime now = PR_IntervalNow();
+
     
     
     if (aImmediate) {
         rv = RunFlushers(aReason);
     }
     else {
-        sFlushEvent.mReason = aReason;
-        rv = NS_DispatchToMainThread(&sFlushEvent, NS_DISPATCH_NORMAL);
+        
+        if (PR_IntervalToMicroseconds(now - sLastFlushTime) > 100) {
+            sFlushEvent.mReason = aReason;
+            rv = NS_DispatchToMainThread(&sFlushEvent, NS_DISPATCH_NORMAL);
+        }
     }
 
+    sLastFlushTime = now;
     return rv;
 }
 
@@ -281,7 +201,30 @@ nsMemoryImpl::RunFlushers(const PRUnichar* aReason)
 {
     nsCOMPtr<nsIObserverService> os = do_GetService("@mozilla.org/observer-service;1");
     if (os) {
-        os->NotifyObservers(this, "memory-pressure", aReason);
+
+        
+        
+        
+        
+
+        nsCOMPtr<nsISimpleEnumerator> e;
+        os->EnumerateObservers("memory-pressure", getter_AddRefs(e));
+
+        if ( e ) {
+          nsCOMPtr<nsIObserver> observer;
+          PRBool loop = PR_TRUE;
+
+          while (NS_SUCCEEDED(e->HasMoreElements(&loop)) && loop) 
+          {
+              e->GetNext(getter_AddRefs(observer));
+
+              if (!observer)
+                  continue;
+
+              observer->Observe(observer, "memory-pressure", aReason);
+          }
+        }
+        
     }
 
     sIsFlushing = 0;
@@ -303,6 +246,9 @@ nsMemoryImpl::FlushEvent::Run()
 PRInt32
 nsMemoryImpl::sIsFlushing = 0;
 
+PRIntervalTime
+nsMemoryImpl::sLastFlushTime = 0;
+
 nsMemoryImpl::FlushEvent
 nsMemoryImpl::sFlushEvent;
 
@@ -312,7 +258,7 @@ NS_Alloc(PRSize size)
     if (size > PR_INT32_MAX)
         return nsnull;
 
-    void* result = MALLOC1(size);
+    void* result = PR_Malloc(size);
     if (! result) {
         
         sGlobalMemory.FlushMemory(NS_LITERAL_STRING("alloc-failure").get(), PR_FALSE);
@@ -326,7 +272,7 @@ NS_Realloc(void* ptr, PRSize size)
     if (size > PR_INT32_MAX)
         return nsnull;
 
-    void* result = REALLOC1(ptr, size);
+    void* result = PR_Realloc(ptr, size);
     if (! result && size != 0) {
         
         sGlobalMemory.FlushMemory(NS_LITERAL_STRING("alloc-failure").get(), PR_FALSE);
@@ -339,43 +285,6 @@ NS_Free(void* ptr)
 {
     PR_Free(ptr);
 }
-
-#ifdef NS_MEMORY_FLUSHER
-
-NS_IMPL_QUERY_INTERFACE1(MemoryFlusher, nsITimerCallback)
-
-NS_IMETHODIMP
-MemoryFlusher::Notify(nsITimer *timer)
-{
-    PRBool isLowMemory;
-    sGlobalMemory.IsLowMemory(&isLowMemory);
-
-#ifdef NS_TEST_MEMORY_FLUSHER
-    
-    isLowMemory = PR_TRUE;
-#endif
-
-    if (isLowMemory)
-        sGlobalMemory.FlushMemory(NS_LITERAL_STRING("low-memory").get(),
-                                  PR_FALSE);
-    return NS_OK;
-}
-
-nsresult
-MemoryFlusher::Init()
-{
-    nsCOMPtr<nsITimer> timer = do_CreateInstance(NS_TIMER_CONTRACTID);
-    NS_ENSURE_STATE(timer);
-
-    
-    
-    
-
-    return timer->InitWithCallback(this, kTimeout,
-                                   nsITimer::TYPE_REPEATING_SLACK);
-}
-
-#endif 
 
 nsresult
 NS_GetMemoryManager(nsIMemory* *result)
