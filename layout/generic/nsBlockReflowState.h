@@ -110,7 +110,8 @@ public:
 
   
   
-  nscoord ClearFloats(nscoord aY, PRUint8 aBreakType);
+  
+  nscoord ClearFloats(nscoord aY, PRUint8 aBreakType, nscoord aReplacedWidth = 0);
 
   PRBool IsAdjacentWithTop() const {
     return mY ==

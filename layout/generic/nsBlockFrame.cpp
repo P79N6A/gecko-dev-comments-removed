@@ -638,7 +638,7 @@ nsBlockFrame::GetMinWidth(nsIRenderingContext *aRenderingContext)
     ListTag(stdout);
     printf(": GetMinWidth\n");
   }
-  AutoNoisyIndenter indent(gNoisyIntrinsic);
+  AutoNoisyIndenter indenter(gNoisyIntrinsic);
 #endif
 
   if (GetStateBits() & NS_BLOCK_NEEDS_BIDI_RESOLUTION)
@@ -712,7 +712,7 @@ nsBlockFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
     ListTag(stdout);
     printf(": GetPrefWidth\n");
   }
-  AutoNoisyIndenter indent(gNoisyIntrinsic);
+  AutoNoisyIndenter indenter(gNoisyIntrinsic);
 #endif
 
   if (GetStateBits() & NS_BLOCK_NEEDS_BIDI_RESOLUTION)
@@ -1675,8 +1675,11 @@ nsBlockFrame::PropagateFloatDamage(nsBlockReflowState& aState,
 static void PlaceFrameView(nsIFrame* aFrame);
 
 static PRBool LineHasClear(nsLineBox* aLine) {
-  return aLine->GetBreakTypeBefore() || aLine->HasFloatBreakAfter()
-    || (aLine->IsBlock() && (aLine->mFirstChild->GetStateBits() & NS_BLOCK_HAS_CLEAR_CHILDREN));
+  return aLine->IsBlock()
+    ? (aLine->GetBreakTypeBefore() ||
+       (aLine->mFirstChild->GetStateBits() & NS_BLOCK_HAS_CLEAR_CHILDREN) ||
+       !nsBlockFrame::BlockCanIntersectFloats(aLine->mFirstChild))
+    : aLine->HasFloatBreakAfter();
 }
 
 
@@ -1776,9 +1779,18 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
       line->MarkDirty();
     }
 
+    nscoord replacedWidth = 0;
+    if (line->IsBlock() &&
+        !nsBlockFrame::BlockCanIntersectFloats(line->mFirstChild)) {
+      replacedWidth =
+        nsBlockFrame::WidthToClearPastFloats(aState, line->mFirstChild);
+    }
+
     
     
-    if (!line->IsDirty() && line->GetBreakTypeBefore() != NS_STYLE_CLEAR_NONE) {
+    if (!line->IsDirty() &&
+        (line->GetBreakTypeBefore() != NS_STYLE_CLEAR_NONE ||
+         replacedWidth != 0)) {
       nscoord curY = aState.mY;
       
       
@@ -1786,7 +1798,8 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
         curY = aState.ClearFloats(curY, inlineFloatBreakType);
       }
 
-      nscoord newY = aState.ClearFloats(curY, line->GetBreakTypeBefore());
+      nscoord newY =
+        aState.ClearFloats(curY, line->GetBreakTypeBefore(), replacedWidth);
       
       if (line->HasClearance()) {
         
@@ -2816,14 +2829,22 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
     aLine->ClearHasClearance();
   }
   PRBool treatWithClearance = aLine->HasClearance();
+
+  PRBool mightClearFloats = breakType != NS_STYLE_CLEAR_NONE;
+  nscoord replacedWidth = 0;
+  if (!nsBlockFrame::BlockCanIntersectFloats(frame)) {
+    mightClearFloats = PR_TRUE;
+    replacedWidth = nsBlockFrame::WidthToClearPastFloats(aState, frame);
+  }
+
   
   
   
   
-  if (!treatWithClearance && !applyTopMargin && breakType != NS_STYLE_CLEAR_NONE &&
+  if (!treatWithClearance && !applyTopMargin && mightClearFloats &&
       aState.mReflowState.mDiscoveredClearance) {
     nscoord curY = aState.mY + aState.mPrevBottomMargin.get();
-    nscoord clearY = aState.ClearFloats(curY, breakType);
+    nscoord clearY = aState.ClearFloats(curY, breakType, replacedWidth);
     if (clearY != curY) {
       
       
@@ -2894,7 +2915,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
         mayNeedRetry = PR_FALSE;
       }
       
-      if (!treatWithClearance && !clearanceFrame && breakType != NS_STYLE_CLEAR_NONE) {
+      if (!treatWithClearance && !clearanceFrame && mightClearFloats) {
         
         
         
@@ -2902,7 +2923,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
         
         
         nscoord curY = aState.mY + aState.mPrevBottomMargin.get();
-        nscoord clearY = aState.ClearFloats(curY, breakType);
+        nscoord clearY = aState.ClearFloats(curY, breakType, replacedWidth);
         if (clearY != curY) {
           
           
@@ -2930,7 +2951,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
       if (treatWithClearance) {
         nscoord currentY = aState.mY;
         
-        aState.mY = aState.ClearFloats(aState.mY, breakType);
+        aState.mY = aState.ClearFloats(aState.mY, breakType, replacedWidth);
         
         
         
@@ -3491,6 +3512,7 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
     NS_ASSERTION(NS_UNCONSTRAINEDSIZE != aState.mAvailSpaceRect.height,
                  "unconstrained height on totally empty line");
 
+    
     if (aState.mAvailSpaceRect.height > 0) {
       NS_ASSERTION(aState.IsImpactedByFloat(),
                    "redo line on totally empty line with non-empty band...");
@@ -6711,6 +6733,70 @@ nsBlockFrame::BlockNeedsSpaceManager(nsIFrame* aBlock)
   nsIFrame* parent = aBlock->GetParent();
   return (aBlock->GetStateBits() & NS_BLOCK_SPACE_MGR) ||
     (parent && !parent->IsFloatContainingBlock());
+}
+
+
+PRBool
+nsBlockFrame::BlockCanIntersectFloats(nsIFrame* aFrame)
+{
+  return aFrame->IsFrameOfType(nsIFrame::eBlockFrame) &&
+         !aFrame->IsFrameOfType(nsIFrame::eReplaced) &&
+         !(aFrame->GetStateBits() & NS_BLOCK_SPACE_MGR);
+}
+
+static nscoord
+OneWidthToClearPastFloats(nsPresContext* aPresContext,
+                          const nsHTMLReflowState& aParentReflowState,
+                          nscoord aCBWidth,
+                          nsIFrame* aFrame)
+{
+  
+  
+  if (aFrame->GetStylePosition()->mWidth.GetUnit() == eStyleUnit_Percent) {
+    
+    
+    
+    nsSize availSpace(aCBWidth, NS_UNCONSTRAINEDSIZE);
+    nsHTMLReflowState reflowState(aPresContext, aParentReflowState,
+                                  aFrame, availSpace);
+    return reflowState.ComputedWidth();
+  }
+
+  return nsLayoutUtils::IntrinsicForContainer(aParentReflowState.rendContext,
+                                              aFrame,
+                                              nsLayoutUtils::MIN_WIDTH);
+}
+
+
+nscoord
+nsBlockFrame::WidthToClearPastFloats(nsBlockReflowState& aState,
+                                     nsIFrame* aFrame)
+{
+  nscoord result;
+  
+  
+  if (aFrame->GetType() == nsGkAtoms::tableOuterFrame) {
+    nsSize availSpace(aState.mContentArea.width, NS_UNCONSTRAINEDSIZE);
+    nsHTMLReflowState outerRS(aState.mPresContext, aState.mReflowState,
+                              aFrame, availSpace);
+    nsIFrame *innerTable = aFrame->GetFirstChild(nsnull);
+    nsIFrame *caption = aFrame->GetFirstChild(nsGkAtoms::captionList);
+    result = OneWidthToClearPastFloats(aState.mPresContext, outerRS,
+                                       aState.mContentArea.width, innerTable);
+    if (caption) {
+      nscoord captionWidth = OneWidthToClearPastFloats(aState.mPresContext,
+                               outerRS, aState.mContentArea.width, caption);
+      PRUint8 captionSide = caption->GetStyleTableBorder()->mCaptionSide;
+      if (captionSide == NS_SIDE_TOP || captionSide == NS_SIDE_BOTTOM)
+        result = PR_MAX(result, captionWidth);
+      else
+        result += captionWidth;
+    }
+  } else {
+    result = OneWidthToClearPastFloats(aState.mPresContext,
+               aState.mReflowState, aState.mContentArea.width, aFrame);
+  }
+  return result;
 }
  
 

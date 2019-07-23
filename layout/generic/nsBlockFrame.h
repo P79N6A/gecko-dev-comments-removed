@@ -192,7 +192,8 @@ public:
   virtual PRBool IsFrameOfType(PRUint32 aFlags) const
   {
     return nsContainerFrame::IsFrameOfType(aFlags &
-             ~(nsIFrame::eCanContainOverflowContainers));
+             ~(nsIFrame::eCanContainOverflowContainers |
+               nsIFrame::eBlockFrame));
   }
 
 #ifdef DEBUG
@@ -290,6 +291,21 @@ public:
 
   static PRBool BlockIsMarginRoot(nsIFrame* aBlock);
   static PRBool BlockNeedsSpaceManager(nsIFrame* aBlock);
+
+  
+
+
+
+
+  static PRBool BlockCanIntersectFloats(nsIFrame* aFrame);
+
+  
+
+
+
+  static nscoord WidthToClearPastFloats(nsBlockReflowState& aState,
+                                        nsIFrame* aFrame);
+
   
 
 

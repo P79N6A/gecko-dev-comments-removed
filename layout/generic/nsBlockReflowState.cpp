@@ -212,13 +212,17 @@ nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
 
   
   
-
-  nsSplittableType splitType = aFrame->GetSplittableType();
-  if ((NS_FRAME_SPLITTABLE_NON_RECTANGULAR == splitType ||     
-       NS_FRAME_NOT_SPLITTABLE == splitType) &&                
-      !(aFrame->IsFrameOfType(nsIFrame::eReplaced)) &&         
-      aFrame->GetType() != nsGkAtoms::scrollFrame)         
-  {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (nsBlockFrame::BlockCanIntersectFloats(aFrame)) {
     if (mBand.GetFloatCount()) {
       
       
@@ -1035,7 +1039,8 @@ nsBlockReflowState::PlaceBelowCurrentLineFloats(nsFloatCacheFreeList& aList, PRB
 }
 
 nscoord
-nsBlockReflowState::ClearFloats(nscoord aY, PRUint8 aBreakType)
+nsBlockReflowState::ClearFloats(nscoord aY, PRUint8 aBreakType,
+                                nscoord aReplacedWidth)
 {
 #ifdef DEBUG
   if (nsBlockFrame::gNoisyReflow) {
@@ -1052,8 +1057,38 @@ nsBlockReflowState::ClearFloats(nscoord aY, PRUint8 aBreakType)
 #endif
   
   const nsMargin& bp = BorderPadding();
-  nscoord newY = mSpaceManager->ClearFloats(aY - bp.top, aBreakType);
-  newY += bp.top;
+  nscoord newY = aY;
+
+  if (aBreakType != NS_STYLE_CLEAR_NONE) {
+    newY = bp.top + mSpaceManager->ClearFloats(newY - bp.top, aBreakType);
+  }
+
+  if (aReplacedWidth > 0) {
+    for (;;) {
+      GetAvailableSpace(newY, PR_FALSE);
+      if (mAvailSpaceRect.width >= aReplacedWidth || mBand.GetFloatCount() == 0) {
+        break;
+      }
+      
+      if (mAvailSpaceRect.height > 0) {
+        
+        newY += mAvailSpaceRect.height;
+      } else {
+        if (mReflowState.availableHeight != NS_UNCONSTRAINEDSIZE) {
+          
+          
+          break;
+        }
+        NS_NOTREACHED("avail space rect with zero height!");
+        newY += 1;
+      }
+    }
+    
+    
+    
+    
+    GetAvailableSpace();
+  }
 
 #ifdef DEBUG
   if (nsBlockFrame::gNoisyReflow) {

@@ -1563,7 +1563,7 @@ public:
     eLineParticipant =                  1 << 6,
     eXULBox =                           1 << 7,
     eCanContainOverflowContainers =     1 << 8,
-
+    eBlockFrame =                       1 << 9,
 
     
     
