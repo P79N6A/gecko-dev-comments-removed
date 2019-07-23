@@ -44,7 +44,7 @@
 
 
 nsSmartCardEvent::nsSmartCardEvent(const nsAString &aTokenName) 
-    : mTokenName(aTokenName), mInner(nsnull), mPrivate(nsnull)
+    : mInner(nsnull), mPrivate(nsnull), mTokenName(aTokenName)
 {
 }
 
