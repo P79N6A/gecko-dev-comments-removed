@@ -445,13 +445,6 @@ protected:
   
 
 
-
-
-  void DispatchDOMEvent(const nsAString& aName);
-
-  
-
-
   PRBool IsCombobox() {
     PRBool isMultiple = PR_TRUE;
     PRInt32 size = 1;
