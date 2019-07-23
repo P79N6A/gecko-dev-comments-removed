@@ -206,6 +206,9 @@ enum {
 }
 
 
++ (void)initialize;
+
+
 - (void)viewsWindowDidBecomeKey;
 - (void)viewsWindowDidResignKey;
 
