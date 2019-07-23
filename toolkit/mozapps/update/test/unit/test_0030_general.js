@@ -52,7 +52,7 @@ function run_test() {
   startUpdateChecker();
   
   start_httpserver(DIR_DATA);
-  do_timeout(0, "run_test_pt1()");
+  do_timeout(0, run_test_pt1);
 }
 
 function end_test() {
@@ -218,7 +218,7 @@ const downloadListener = {
   onStopRequest: function(request, context, status) {
     gStatusResult = status;
     
-    do_timeout(0, "gCheckFunc()");
+    do_timeout(0, gCheckFunc);
   },
 
   QueryInterface: function(iid) {

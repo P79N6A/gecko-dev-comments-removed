@@ -133,7 +133,7 @@ function run_test()
   
   
   do_test_pending();
-  do_timeout(50, "delayed_test()");
+  do_timeout(50, delayed_test);
 
   } catch (e) {
     throw "FAILED in test #" + testnum + " -- " + e;

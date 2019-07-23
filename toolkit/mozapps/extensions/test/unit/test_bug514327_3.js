@@ -107,7 +107,7 @@ var WindowWatcher = {
     do_check_neq(item.name, "test_bug514327_outdated");
 
     
-    do_timeout(0, "gNextTestPart()");
+    do_timeout(0, gNextTestPart);
   },
 
   QueryInterface: function(iid) {

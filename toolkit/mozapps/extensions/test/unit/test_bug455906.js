@@ -174,7 +174,7 @@ var WindowWatcher = {
     }
 
     
-    do_timeout(0, "gTestCheck()");
+    do_timeout(0, gTestCheck);
   },
 
   QueryInterface: function(iid) {

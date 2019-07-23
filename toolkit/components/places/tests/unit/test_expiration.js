@@ -527,7 +527,7 @@ function startExpireNeither() {
   
 
   
-  do_timeout(600, "checkExpireNeither();");
+  do_timeout(600, checkExpireNeither);
 }
 
 function checkExpireNeither() {
@@ -588,7 +588,7 @@ function startExpireDaysOnly() {
   
 
   
-  do_timeout(600, "checkExpireDaysOnly();");
+  do_timeout(600, checkExpireDaysOnly);
 }
 
 function checkExpireDaysOnly() {
@@ -658,7 +658,7 @@ function startExpireBoth() {
   
 
   
-  do_timeout(600, "checkExpireBoth();"); 
+  do_timeout(600, checkExpireBoth); 
 }
 
 function checkExpireBoth() {
@@ -716,7 +716,7 @@ function startExpireNeitherOver() {
   
 
   
-  do_timeout(600, "checkExpireNeitherOver();");
+  do_timeout(600, checkExpireNeitherOver);
 }
 
 function checkExpireNeitherOver() {
@@ -765,7 +765,7 @@ function startExpireHistoryDisabled() {
   
 
   
-  do_timeout(600, "checkExpireHistoryDisabled();");
+  do_timeout(600, checkExpireHistoryDisabled);
 }
 
 function checkExpireHistoryDisabled() {
@@ -817,7 +817,7 @@ function startExpireBadPrefs() {
   
 
   
-  do_timeout(600, "checkExpireBadPrefs();");
+  do_timeout(600, checkExpireBadPrefs);
 }
 
 function checkExpireBadPrefs() {

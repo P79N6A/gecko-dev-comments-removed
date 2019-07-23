@@ -90,7 +90,7 @@ function run_test() {
   
   
   do_test_pending();
-  do_timeout(3000, "continue_test();");
+  do_timeout(3000, continue_test);
 }
 
 function continue_test() {

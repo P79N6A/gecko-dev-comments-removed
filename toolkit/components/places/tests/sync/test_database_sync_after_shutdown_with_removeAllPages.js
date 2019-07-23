@@ -97,7 +97,7 @@ var observer = {
 
       
       
-      do_timeout(POLLING_TIMEOUT_MS, "check_results();");
+      do_timeout(POLLING_TIMEOUT_MS, check_results);
     }
   }
 }
@@ -111,7 +111,7 @@ function check_results() {
     }
 
     if (hs.QueryInterface(Ci.nsPIPlacesDatabase).DBConnection.connectionReady) {
-      do_timeout(POLLING_TIMEOUT_MS, "check_results();");
+      do_timeout(POLLING_TIMEOUT_MS, check_results);
       return;
     }
 

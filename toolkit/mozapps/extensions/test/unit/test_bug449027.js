@@ -437,7 +437,7 @@ var WindowWatcher = {
       gNewBlocks.push(list[i].name + " " + list[i].version);
 
     
-    do_timeout(0, "gCallback()");
+    do_timeout(0, gCallback);
   },
 
   QueryInterface: function(iid) {

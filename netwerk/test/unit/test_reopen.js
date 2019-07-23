@@ -77,7 +77,7 @@ var listener = {
     
     
     check_async_open_throws(NS_ERROR_ALREADY_OPENED);
-    do_timeout(0, "after_channel_closed()");
+    do_timeout(0, after_channel_closed);
   }
 };
 

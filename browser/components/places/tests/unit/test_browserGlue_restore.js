@@ -71,7 +71,7 @@ function run_test() {
   
   
   do_test_pending();
-  do_timeout(1000, "continue_test();");
+  do_timeout(1000, continue_test);
 }
 
 function continue_test() {
@@ -80,7 +80,7 @@ function continue_test() {
 
   if (bs.getIdForItemAt(bs.toolbarFolder, 0) == -1) {
     
-    do_timeout(1000, "continue_test();");
+    do_timeout(1000, continue_test);
     return;
   }
 

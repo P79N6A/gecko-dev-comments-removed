@@ -124,7 +124,7 @@ function run_test() {
 
   do_test_pending();
   
-  do_timeout(3500, "end_test();");
+  do_timeout(3500, end_test);
 }
 
 function end_test() {

@@ -362,7 +362,7 @@ function run_test() {
   do_test_pending();
 
   
-  do_timeout(DELAY, "run_test_pt2()");
+  do_timeout(DELAY, run_test_pt2);
 }
 
 
