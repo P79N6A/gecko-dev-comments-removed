@@ -566,7 +566,7 @@ function flush_main_thread_events()
 
 
 let randomFailingSyncTests = [
-  " test_results-as-visits.js",
+  "test_results-as-visit.js",
 ];
 let currentTestFilename = do_get_file(_TEST_FILE[0], true).leafName;
 if (randomFailingSyncTests.indexOf(currentTestFilename) != -1) {
