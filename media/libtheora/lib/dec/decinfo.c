@@ -70,12 +70,8 @@ static int oc_info_unpack(oggpack_buffer *_opb,th_info *_info){
   _info->pic_height=(ogg_uint32_t)val;
   theorapackB_read(_opb,8,&val);
   _info->pic_x=(ogg_uint32_t)val;
-  
-
-
-
   theorapackB_read(_opb,8,&val);
-  _info->pic_y=_info->frame_height-_info->pic_height-(ogg_uint32_t)val;
+  _info->pic_y=(ogg_uint32_t)val;
   theorapackB_read(_opb,32,&val);
   _info->fps_numerator=(ogg_uint32_t)val;
   theorapackB_read(_opb,32,&val);
@@ -86,6 +82,11 @@ static int oc_info_unpack(oggpack_buffer *_opb,th_info *_info){
    _info->fps_numerator==0||_info->fps_denominator==0){
     return TH_EBADHEADER;
   }
+  
+
+
+
+  _info->pic_y=_info->frame_height-_info->pic_height-_info->pic_y;
   theorapackB_read(_opb,24,&val);
   _info->aspect_numerator=(ogg_uint32_t)val;
   theorapackB_read(_opb,24,&val);
