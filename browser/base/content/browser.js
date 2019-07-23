@@ -682,8 +682,8 @@ let gGestureSupport = {
     let addRemove = aAddListener ? window.addEventListener :
       window.removeEventListener;
 
-    for each (let event in gestureEvents)
-      addRemove("Moz" + event, this, true);
+    gestureEvents.forEach(function (event) addRemove("Moz" + event, this, true),
+                          this);
   },
 
   
@@ -871,9 +871,10 @@ let gGestureSupport = {
 
   onSwipe: function GS_onSwipe(aEvent) {
     
-    for each (let dir in ["UP", "RIGHT", "DOWN", "LEFT"])
+    ["UP", "RIGHT", "DOWN", "LEFT"].forEach(function (dir) {
       if (aEvent.direction == aEvent["DIRECTION_" + dir])
         return this._doAction(aEvent, ["swipe", dir.toLowerCase()]);
+    }, this);
   },
 
   
@@ -2630,7 +2631,7 @@ function FillInHTMLTooltip(tipElement)
   var tipNode = document.getElementById("aHTMLTooltip");
   tipNode.style.direction = direction;
   
-  for each (var t in [titleText, XLinkTitleText]) {
+  [titleText, XLinkTitleText].forEach(function (t) {
     if (t && /\S/.test(t)) {
 
       
@@ -2644,7 +2645,7 @@ function FillInHTMLTooltip(tipElement)
       tipNode.setAttribute("label", t);
       retVal = true;
     }
-  }
+  });
 
   return retVal;
 }
