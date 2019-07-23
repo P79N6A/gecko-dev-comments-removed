@@ -45,23 +45,12 @@
 #include "nsIFileURL.h"
 
 
-NS_IMPL_THREADSAFE_ADDREF(nsMIMEInfoBase)
-NS_IMPL_THREADSAFE_RELEASE(nsMIMEInfoBase)
-
-NS_INTERFACE_MAP_BEGIN(nsMIMEInfoBase)
-    NS_INTERFACE_MAP_ENTRY(nsIHandlerInfo)
-    
-    NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIMIMEInfo, !mMIMEType.IsEmpty())
-    NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIHandlerInfo)
-NS_INTERFACE_MAP_END_THREADSAFE
-
-
+NS_IMPL_THREADSAFE_ISUPPORTS2(nsMIMEInfoBase, nsIMIMEInfo, nsIHandlerInfo)
 
 
 nsMIMEInfoBase::nsMIMEInfoBase(const char *aMIMEType) :
     mMacType(0),
     mMacCreator(0),
-    mType(aMIMEType),
     mMIMEType(aMIMEType),
     mPreferredAction(nsIMIMEInfo::saveToDisk),
     mAlwaysAskBeforeHandling(PR_TRUE)
@@ -71,27 +60,10 @@ nsMIMEInfoBase::nsMIMEInfoBase(const char *aMIMEType) :
 nsMIMEInfoBase::nsMIMEInfoBase(const nsACString& aMIMEType) :
     mMacType(0),
     mMacCreator(0),
-    mType(aMIMEType),
     mMIMEType(aMIMEType),
     mPreferredAction(nsIMIMEInfo::saveToDisk),
     mAlwaysAskBeforeHandling(PR_TRUE)
 {
-}
-
-
-
-
-
-
-nsMIMEInfoBase::nsMIMEInfoBase(const nsACString& aType, HandlerClass aClass) :
-    mMacType(0),
-    mMacCreator(0),
-    mType(aType),
-    mPreferredAction(nsIMIMEInfo::saveToDisk),
-    mAlwaysAskBeforeHandling(PR_TRUE)
-{
-  if (aClass == eMIMEInfo)
-    mMIMEType = aType;
 }
 
 nsMIMEInfoBase::~nsMIMEInfoBase()
@@ -162,16 +134,6 @@ nsMIMEInfoBase::AppendExtension(const nsACString& aExtension)
 {
   mExtensions.AppendCString(aExtension);
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsMIMEInfoBase::GetType(nsACString& aType)
-{
-    if (mType.IsEmpty())
-        return NS_ERROR_NOT_INITIALIZED;
-
-    aType = mType;
-    return NS_OK;
 }
 
 NS_IMETHODIMP

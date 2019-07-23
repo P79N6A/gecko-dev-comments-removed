@@ -83,9 +83,6 @@ function run_test() {
   
   do_check_true(handlerInfo instanceof Ci.nsIHandlerInfo);
 
-  do_check_eq(handlerInfo.type, "nonexistent/type");
-
-  
   do_check_eq(handlerInfo.MIMEType, "nonexistent/type");
 
   
