@@ -64,6 +64,9 @@
 
 #include "nsIComponentRegistrar.h"
 
+#include "nsIApplicationCache.h"
+#include "nsIApplicationCacheContainer.h"
+
 
 
 
@@ -862,6 +865,24 @@ PRBool imgLoader::ValidateEntry(imgCacheEntry *aEntry,
            ("imgLoader::ValidateEntry -- DANGER!! Unable to use cached "
             "imgRequest [request=%p]\n", address_of(request)));
 
+    return PR_FALSE;
+  }
+
+  
+  
+  nsCOMPtr<nsIApplicationCacheContainer> appCacheContainer;
+  nsCOMPtr<nsIApplicationCache> requestAppCache;
+  nsCOMPtr<nsIApplicationCache> groupAppCache;
+  if ((appCacheContainer = do_GetInterface(request->mRequest)))
+    appCacheContainer->GetApplicationCache(getter_AddRefs(requestAppCache));
+  if ((appCacheContainer = do_QueryInterface(aLoadGroup)))
+    appCacheContainer->GetApplicationCache(getter_AddRefs(groupAppCache));
+
+  if (requestAppCache != groupAppCache) {
+    PR_LOG(gImgLog, PR_LOG_DEBUG,
+           ("imgLoader::ValidateEntry - Unable to use cached imgRequest "
+            "[request=%p] because of mismatched application caches\n",
+            address_of(request)));
     return PR_FALSE;
   }
 
