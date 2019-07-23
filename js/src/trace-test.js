@@ -1626,6 +1626,21 @@ function testInnerMissingArgs()
 testInnerMissingArgs.expected = 1;  
 test(testInnerMissingArgs);
 
+function regexpLastIndex()
+{
+    var n = 0;
+    var re = /hi/g;
+    var ss = " hi hi hi hi hi hi hi hi hi hi";
+    for (var i = 0; i < 10; i++) {
+        
+        n += (re.lastIndex > 0) ? 3 : 0;
+        re.lastIndex = 0;
+    }
+    return n;
+}
+regexpLastIndex.expected = 0; 
+test(regexpLastIndex);
+
 
 print("\npassed:", passes.length && passes.join(","));
 print("\nFAILED:", fails.length && fails.join(","));
