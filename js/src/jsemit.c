@@ -4878,8 +4878,12 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-                    if (!js_Emit1(cx, cg, JSOP_THROWING) < 0)
+
+
+                    if (js_NewSrcNote(cx, cg, SRC_HIDDEN) < 0 ||
+                        js_Emit1(cx, cg, JSOP_THROWING) < 0) {
                         return JS_FALSE;
+                    }
 
                     
 
