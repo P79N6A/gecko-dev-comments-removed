@@ -60,8 +60,13 @@ EXPORTED_SYMBOLS = [ "DownloadUtils" ];
 
 
 
+
+
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
+const Cu = Components.utils
+Cu.import("resource://gre/modules/PluralForm.jsm");
 
 const kDownloadProperties =
   "chrome://mozapps/locale/downloads/downloads.properties";
@@ -73,13 +78,16 @@ let gStr = {
   transferSameUnits: "transferSameUnits",
   transferDiffUnits: "transferDiffUnits",
   transferNoTotal: "transferNoTotal",
-  timeMinutesLeft: "timeMinutesLeft",
-  timeSecondsLeft: "timeSecondsLeft",
+  timePair: "timePair",
+  timeLeftSingle: "timeLeftSingle",
+  timeLeftDouble: "timeLeftDouble",
   timeFewSeconds: "timeFewSeconds",
   timeUnknown: "timeUnknown",
   doneScheme: "doneScheme",
   doneFileScheme: "doneFileScheme",
   units: ["bytes", "kilobyte", "megabyte", "gigabyte"],
+  
+  timeUnits: ["seconds", "minutes", "hours", "days"],
 };
 
 
@@ -122,7 +130,7 @@ let DownloadUtils = {
 
     
     let seconds = (aSpeed > 0) && (aMaxBytes > 0) ?
-      Math.ceil((aMaxBytes - aCurrBytes) / aSpeed) : -1;
+      (aMaxBytes - aCurrBytes) / aSpeed : -1;
 
     
     let (transfer = DownloadUtils.getTransferTotal(aCurrBytes, aMaxBytes)) {
@@ -194,6 +202,7 @@ let DownloadUtils = {
 
 
 
+
   getTimeLeft: function(aSeconds, aLastSec)
   {
     if (isNil(aLastSec))
@@ -205,9 +214,19 @@ let DownloadUtils = {
     
     
     
-    let (diff = aSeconds - aLastSec) {
-      if (diff > 0 && diff <= 10)
-        aSeconds = aLastSec;
+    if (aSeconds > aLastSec / 2) {
+      
+      
+      let (diff = aSeconds - aLastSec) {
+        aSeconds = aLastSec + (diff < 0 ? .3 : .1) * diff;
+      }
+
+      
+      
+      let diff = aSeconds - aLastSec;
+      let diffPct = diff / aLastSec * 100;
+      if (Math.abs(diff) < 5 || Math.abs(diffPct) < 5)
+        aSeconds = aLastSec - (diff < 0 ? .4 : .2);
     }
 
     
@@ -215,13 +234,24 @@ let DownloadUtils = {
     if (aSeconds < 4) {
       
       timeLeft = gStr.timeFewSeconds;
-    } else if (aSeconds <= 60) {
-      
-      timeLeft = replaceInsert(gStr.timeSecondsLeft, 1, aSeconds);
     } else {
       
-      timeLeft = replaceInsert(gStr.timeMinutesLeft, 1,
-                               Math.ceil(aSeconds / 60));
+      let [time1, unit1, time2, unit2] =
+        DownloadUtils.convertTimeUnits(aSeconds);
+
+      let pair1 = replaceInsert(gStr.timePair, 1, time1);
+      pair1 = replaceInsert(pair1, 2, unit1);
+      let pair2 = replaceInsert(gStr.timePair, 1, time2);
+      pair2 = replaceInsert(pair2, 2, unit2);
+
+      
+      if (aSeconds < 3600 || time2 == 0) {
+        timeLeft = replaceInsert(gStr.timeLeftSingle, 1, pair1);
+      } else {
+        
+        timeLeft = replaceInsert(gStr.timeLeftDouble, 1, pair1);
+        timeLeft = replaceInsert(timeLeft, 2, pair2);
+      }
     }
 
     return [timeLeft, aSeconds];
@@ -315,7 +345,75 @@ let DownloadUtils = {
 
     return [aBytes, gStr.units[unitIndex]];
   },
+
+  
+
+
+
+
+
+
+
+  convertTimeUnits: function(aSecs)
+  {
+    
+    
+    let timeSize = [60, 60, 24];
+
+    let time = aSecs;
+    let scale = 1;
+    let unitIndex = 0;
+
+    
+    
+    while ((unitIndex < timeSize.length) && (time >= timeSize[unitIndex])) {
+      time /= timeSize[unitIndex];
+      scale *= timeSize[unitIndex];
+      unitIndex++;
+    }
+
+    let value = convertTimeUnitsValue(time);
+    let units = convertTimeUnitsUnits(value, unitIndex);
+
+    let extra = aSecs - value * scale;
+    let nextIndex = unitIndex - 1;
+
+    
+    for (let index = 0; index < nextIndex; index++)
+      extra /= timeSize[index];
+
+    let value2 = convertTimeUnitsValue(extra);
+    let units2 = convertTimeUnitsUnits(value2, nextIndex);
+
+    return [value, units, value2, units2];
+  },
 };
+
+
+
+
+
+
+
+
+function convertTimeUnitsValue(aTime)
+{
+  return Math.floor(aTime);
+}
+
+
+
+
+
+
+
+
+
+
+function convertTimeUnitsUnits(aTime, aIndex)
+{
+  return PluralForm.get(aTime, gStr.timeUnits[aIndex]);
+}
 
 
 
