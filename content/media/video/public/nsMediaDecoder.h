@@ -169,11 +169,6 @@ protected:
   
   
   
-  void MediaSizeChanged();
-
-  
-  
-  
   
   
   

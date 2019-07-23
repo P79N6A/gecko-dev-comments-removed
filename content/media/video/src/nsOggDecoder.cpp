@@ -271,6 +271,11 @@ public:
   float GetVolume();
   void SetVolume(float aVolume);
 
+  
+  
+  
+  void ClearPositionChangeFlag();
+
 protected:
   
   
@@ -304,6 +309,13 @@ protected:
 
   
   void StopPlayback();
+
+  
+  
+  
+  
+  
+  void UpdatePlaybackPosition(float aTime);
 
 private:
   
@@ -413,6 +425,12 @@ private:
   
   
   float mVolume;
+
+  
+  
+  
+  
+  PRPackedBool mPositionChangeQueued;
 };
 
 nsOggDecodeStateMachine::nsOggDecodeStateMachine(nsOggDecoder* aDecoder, nsChannelReader* aReader) :
@@ -435,7 +453,8 @@ nsOggDecodeStateMachine::nsOggDecodeStateMachine(nsOggDecoder* aDecoder, nsChann
   mState(DECODER_STATE_DECODING_METADATA),
   mSeekTime(0.0),
   mCurrentFrameTime(0.0),
-  mVolume(1.0)
+  mVolume(1.0),
+  mPositionChangeQueued(PR_FALSE)
 {
 }
 
@@ -596,6 +615,7 @@ void nsOggDecodeStateMachine::PlayFrame() {
         
         PlayVideo(mDecodedFrames.IsEmpty() ? frame : mDecodedFrames.Peek());
         PlayAudio(frame);
+        UpdatePlaybackPosition(frame->mDecodedFrameTime);
         delete frame;
       }
       else {
@@ -632,11 +652,6 @@ void nsOggDecodeStateMachine::PlayVideo(FrameData* aFrame)
       nsAutoLock lock(mDecoder->mVideoUpdateLock);
 
       mDecoder->SetRGBData(aFrame->mVideoWidth, aFrame->mVideoHeight, mFramerate, aFrame->mVideoData);
-      mCurrentFrameTime = aFrame->mDecodedFrameTime;
-      nsCOMPtr<nsIRunnable> event =
-        NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, Invalidate);
-
-      NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
     }
   }
 }
@@ -715,6 +730,24 @@ void nsOggDecodeStateMachine::StopPlayback()
   StopAudio();
   mPlaying = PR_FALSE;
   mPauseStartTime = PR_IntervalNow();
+}
+
+void nsOggDecodeStateMachine::UpdatePlaybackPosition(float aTime)
+{
+  
+  mCurrentFrameTime = aTime;
+  if (!mPositionChangeQueued) {
+    mPositionChangeQueued = PR_TRUE;
+    nsCOMPtr<nsIRunnable> event =
+      NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, PlaybackPositionChanged);
+    NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+  }
+}
+
+void nsOggDecodeStateMachine::ClearPositionChangeFlag()
+{
+  
+  mPositionChangeQueued = PR_FALSE;
 }
 
 float nsOggDecodeStateMachine::GetVolume()
@@ -804,7 +837,7 @@ nsresult nsOggDecodeStateMachine::Run()
         FrameData* frame = NextFrame();
         if (frame) {
           mDecodedFrames.Push(frame);
-          mCurrentFrameTime = frame->mDecodedFrameTime;
+          UpdatePlaybackPosition(frame->mDecodedFrameTime);
           PlayVideo(frame);
         }
 
@@ -911,7 +944,7 @@ nsresult nsOggDecodeStateMachine::Run()
         FrameData* frame = NextFrame();
         if (frame) {
           mDecodedFrames.Push(frame);
-          mCurrentFrameTime = frame->mDecodedFrameTime;
+          UpdatePlaybackPosition(frame->mDecodedFrameTime);
           PlayVideo(frame);
         }
         mon.Exit();
@@ -960,9 +993,11 @@ nsresult nsOggDecodeStateMachine::Run()
         while (mState != DECODER_STATE_SHUTDOWN &&
                !mDecodedFrames.IsEmpty()) {
           PlayFrame();
-          if (mState != DECODER_STATE_SHUTDOWN &&
-              mDecoder->GetState() != nsOggDecoder::PLAY_STATE_PLAYING) {
-            mon.Wait();
+          if (mState != DECODER_STATE_SHUTDOWN) {
+            
+            
+            
+            mon.Wait(PR_MillisecondsToInterval(PRInt64(mCallbackPeriod*1000)));
           }
         }
 
@@ -1070,6 +1105,7 @@ float nsOggDecoder::GetDuration()
 nsOggDecoder::nsOggDecoder() :
   nsMediaDecoder(),
   mBytesDownloaded(0),
+  mCurrentTime(0.0),
   mInitialVolume(0.0),
   mRequestedSeekTime(-1.0),
   mContentLength(0),
@@ -1228,17 +1264,9 @@ void nsOggDecoder::Stop()
   UnregisterShutdownObserver();
 }
 
-
-
 float nsOggDecoder::GetCurrentTime()
 {
-  nsAutoMonitor mon(mMonitor);
-
-  if (!mDecodeStateMachine) {
-    return 0.0;
-  }
-
-  return mDecodeStateMachine->GetCurrentTime();
+  return mCurrentTime;
 }
 
 void nsOggDecoder::GetCurrentURI(nsIURI** aURI)
@@ -1461,4 +1489,34 @@ void nsOggDecoder::ChangeState(PlayState aState)
     break;
   }
   mon.NotifyAll();
+}
+
+void nsOggDecoder::PlaybackPositionChanged()
+{
+  float lastTime = mCurrentTime;
+
+  
+  
+  {
+    nsAutoMonitor mon(mMonitor);
+
+    
+    if (mPlayState == PLAY_STATE_SHUTDOWN)
+        return;
+
+    if (mDecodeStateMachine) {
+      mCurrentTime = mDecodeStateMachine->GetCurrentTime();
+      mDecodeStateMachine->ClearPositionChangeFlag();
+    }
+  }
+
+  
+  
+  
+  
+  Invalidate();
+
+  if (mElement && lastTime != mCurrentTime) {
+    mElement->DispatchSimpleEvent(NS_LITERAL_STRING("timeupdate"));
+  }
 }

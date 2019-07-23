@@ -299,8 +299,9 @@ NS_IMETHODIMP nsHTMLMediaElement::SetCurrentTime(float aCurrentTime)
     return NS_ERROR_DOM_INVALID_STATE_ERR;
 
   mPlayingBeforeSeek = IsActivelyPlaying();
+  
+  
   nsresult rv = mDecoder->Seek(aCurrentTime);
-  DispatchAsyncSimpleEvent(NS_LITERAL_STRING("timeupdate"));
   return rv;
 }
 

@@ -400,12 +400,16 @@ protected:
   
   void SeekingStarted();
 
+  
+  
+  
+  void PlaybackPositionChanged();
+
 private:
   
   
   void RegisterShutdownObserver();
   void UnregisterShutdownObserver();
-
 
   
 
@@ -418,6 +422,12 @@ private:
 
   
   nsCOMPtr<nsIThread> mDecodeThread;
+
+  
+  
+  
+  
+  float mCurrentTime;
 
   
   
