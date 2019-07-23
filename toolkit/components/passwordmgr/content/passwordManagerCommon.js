@@ -254,6 +254,7 @@ function SortTree(tree, view, table, column, lastSortColumn, lastSortAscending, 
 
 
 function CompareLowerCase(first, second) {
+  var firstLower, secondLower;
 
   
   if (first.hostname) {
