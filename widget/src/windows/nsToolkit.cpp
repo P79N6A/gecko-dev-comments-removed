@@ -261,7 +261,8 @@ nsToolkit::Startup(HMODULE hModule)
     wc.hbrBackground    = NULL;
     wc.lpszMenuName     = NULL;
     wc.lpszClassName    = L"nsToolkitClass";
-    VERIFY(::RegisterClassW(&wc));
+    VERIFY(::RegisterClassW(&wc) || 
+           GetLastError() == ERROR_CLASS_ALREADY_EXISTS);
 
     
     typedef BOOL (*SetProcessDPIAwareFunc)(VOID);
