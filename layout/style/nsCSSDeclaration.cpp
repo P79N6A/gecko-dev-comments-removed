@@ -251,8 +251,11 @@ nsCSSDeclaration::AppendCSSValueToString(nsCSSProperty aProperty,
     aValue.GetStringValue(buffer);
     if (unit == eCSSUnit_String) {
       nsStyleUtil::AppendEscapedCSSString(buffer, aResult);
-    } else {
+    } else if (unit == eCSSUnit_Families) {
+      
       aResult.Append(buffer);
+    } else {
+      nsStyleUtil::AppendEscapedCSSIdent(buffer, aResult);
     }
   }
   else if (eCSSUnit_Array <= unit && unit <= eCSSUnit_Cubic_Bezier) {
@@ -306,7 +309,9 @@ nsCSSDeclaration::AppendCSSValueToString(nsCSSProperty aProperty,
       
       const nsCSSKeyword functionId =
         static_cast<nsCSSKeyword>(functionName.GetIntValue());
-      AppendASCIItoUTF16(nsCSSKeywords::GetStringValue(functionId), aResult);
+      nsStyleUtil::AppendEscapedCSSIdent(
+        NS_ConvertASCIItoUTF16(nsCSSKeywords::GetStringValue(functionId)),
+        aResult);
     } else {
       AppendCSSValueToString(aProperty, functionName, aResult);
     }

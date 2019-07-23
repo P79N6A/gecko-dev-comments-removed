@@ -82,6 +82,11 @@ public:
   
   static void AppendEscapedCSSString(const nsString& aString,
                                      nsAString& aResult);
+  
+  
+  
+  static void AppendEscapedCSSIdent(const nsString& aIdent,
+                                    nsAString& aResult);
 
   
   static void AppendBitmaskCSSValue(nsCSSProperty aProperty,

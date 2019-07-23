@@ -558,6 +558,63 @@ void nsStyleUtil::AppendEscapedCSSString(const nsString& aString,
 }
 
  void
+nsStyleUtil::AppendEscapedCSSIdent(const nsString& aIdent, nsAString& aReturn)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+
+  const nsString::char_type* in = aIdent.get();
+  const nsString::char_type* const end = in + aIdent.Length();
+
+  
+  
+  if (in != end && *in == '-') {
+    aReturn.Append(PRUnichar('-'));
+    ++in;
+  }
+
+  PRBool first = PR_TRUE;
+  for (; in != end; ++in, first = PR_FALSE)
+  {
+    if (*in < 0x20 || (first && '0' <= *in && *in <= '9'))
+    {
+      
+      
+      
+      
+
+      
+
+
+
+
+      PRUnichar buf[5];
+      nsTextFormatter::snprintf(buf, NS_ARRAY_LENGTH(buf),
+                                NS_LITERAL_STRING("\\%hX ").get(), *in);
+      aReturn.Append(buf);
+    } else {
+      PRUnichar ch = *in;
+      if (!((ch == PRUnichar('_')) ||
+            (PRUnichar('A') <= ch && ch <= PRUnichar('Z')) ||
+            (PRUnichar('a') <= ch && ch <= PRUnichar('z')) ||
+            PRUnichar(0x80) <= ch ||
+            (!first && ch == PRUnichar('-')) ||
+            (PRUnichar('0') <= ch && ch <= PRUnichar('9')))) {
+        
+        aReturn.Append(PRUnichar('\\'));
+      }
+      aReturn.Append(ch);
+    }
+  }
+}
+
+ void
 nsStyleUtil::AppendBitmaskCSSValue(nsCSSProperty aProperty,
                                    PRInt32 aMaskedValue,
                                    PRInt32 aFirstMask,
