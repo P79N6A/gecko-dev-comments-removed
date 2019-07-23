@@ -115,7 +115,7 @@ namespace nanojit
 
         
         const size_t bytesPerPage;
-        
+
         
         const size_t bytesPerAlloc;
 
