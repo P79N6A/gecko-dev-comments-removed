@@ -224,10 +224,13 @@ gint moz_gtk_shutdown();
 
 
 
+
 gint
 moz_gtk_widget_paint(GtkThemeWidgetType widget, GdkDrawable* drawable,
                      GdkRectangle* rect, GdkRectangle* cliprect,
-                     GtkWidgetState* state, gint flags);
+                     GtkWidgetState* state, gint flags,
+                     GtkTextDirection direction);
+
 
 
 
@@ -241,7 +244,8 @@ moz_gtk_widget_paint(GtkThemeWidgetType widget, GdkDrawable* drawable,
 
 
 gint moz_gtk_get_widget_border(GtkThemeWidgetType widget, gint* left, gint* top, 
-                               gint* right, gint* bottom, gboolean inhtml);
+                               gint* right, gint* bottom, GtkTextDirection direction,
+                               gboolean inhtml);
 
 
 
