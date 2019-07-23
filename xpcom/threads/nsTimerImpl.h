@@ -44,7 +44,7 @@
 
 
 #include "nsITimer.h"
-#include "nsIThread.h"
+#include "nsIEventTarget.h"
 #include "nsIObserver.h"
 
 #include "nsCOMPtr.h"
@@ -121,7 +121,7 @@ private:
       NS_RELEASE(mCallback.o);
   }
 
-  nsCOMPtr<nsIThread>   mCallingThread;
+  nsCOMPtr<nsIEventTarget> mEventTarget;
 
   void *                mClosure;
 
