@@ -140,6 +140,11 @@ nsIContent**
 nsHtml5TreeBuilder::createElement(PRInt32 aNamespace, nsIAtom* aName, nsHtml5HtmlAttributes* aAttributes)
 {
   NS_PRECONDITION(aAttributes, "Got null attributes.");
+
+  nsIContent** content = AllocateContentHandle();
+  nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+  
+  treeOp->Init(aNamespace, aName, aAttributes, content);
   
   
   
@@ -152,6 +157,10 @@ nsHtml5TreeBuilder::createElement(PRInt32 aNamespace, nsIAtom* aName, nsHtml5Htm
             Dispatch(new nsHtml5SpeculativeImage(mSpeculativeLoader, *url));
           }
         } else if (nsHtml5Atoms::script == aName) {
+          nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+          
+          treeOp->Init(eTreeOpSetScriptLineNumber, content, tokenizer->getLineNumber());
+
           nsString* url = aAttributes->getValue(nsHtml5AttributeName::ATTR_SRC);
           if (url) {
             nsString* charset = aAttributes->getValue(nsHtml5AttributeName::ATTR_CHARSET);
@@ -179,6 +188,10 @@ nsHtml5TreeBuilder::createElement(PRInt32 aNamespace, nsIAtom* aName, nsHtml5Htm
           if (url) {
             Dispatch(new nsHtml5SpeculativeImage(mSpeculativeLoader, *url));
           }
+        } else if (nsHtml5Atoms::style == aName) {
+          nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+          
+          treeOp->Init(eTreeOpSetStyleLineNumber, content, tokenizer->getLineNumber());
         }
         break;
       case kNameSpaceID_SVG:
@@ -188,6 +201,10 @@ nsHtml5TreeBuilder::createElement(PRInt32 aNamespace, nsIAtom* aName, nsHtml5Htm
             Dispatch(new nsHtml5SpeculativeImage(mSpeculativeLoader, *url));
           }
         } else if (nsHtml5Atoms::script == aName) {
+          nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+          
+          treeOp->Init(eTreeOpSetScriptLineNumber, content, tokenizer->getLineNumber());
+
           nsString* url = aAttributes->getValue(nsHtml5AttributeName::ATTR_XLINK_HREF);
           if (url) {
             nsString* type = aAttributes->getValue(nsHtml5AttributeName::ATTR_TYPE);
@@ -197,6 +214,10 @@ nsHtml5TreeBuilder::createElement(PRInt32 aNamespace, nsIAtom* aName, nsHtml5Htm
                                                   (type) ? *type : EmptyString()));
           }
         } else if (nsHtml5Atoms::style == aName) {
+          nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+          
+          treeOp->Init(eTreeOpSetStyleLineNumber, content, tokenizer->getLineNumber());
+
           nsString* url = aAttributes->getValue(nsHtml5AttributeName::ATTR_XLINK_HREF);
           if (url) {
             Dispatch(new nsHtml5SpeculativeStyle(mSpeculativeLoader, 
@@ -206,14 +227,21 @@ nsHtml5TreeBuilder::createElement(PRInt32 aNamespace, nsIAtom* aName, nsHtml5Htm
         }        
         break;
     }
+  } else if (aNamespace != kNameSpaceID_MathML) {
+    
+    if (nsHtml5Atoms::style == aName) {
+      nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+      
+      treeOp->Init(eTreeOpSetStyleLineNumber, content, tokenizer->getLineNumber());
+    } else if (nsHtml5Atoms::script == aName) {
+      nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
+      
+      treeOp->Init(eTreeOpSetScriptLineNumber, content, tokenizer->getLineNumber());
+    }
   }
 
   
   
-  nsIContent** content = AllocateContentHandle();
-  nsHtml5TreeOperation* treeOp = mOpQueue.AppendElement();
-  
-  treeOp->Init(aNamespace, aName, aAttributes, content);
   return content;
 }
 
@@ -584,11 +612,11 @@ nsHtml5TreeBuilder::NeedsCharsetSwitchTo(const nsACString& aCharset)
 }
 
 void
-nsHtml5TreeBuilder::AddSnapshotToScript(nsAHtml5TreeBuilderState* aSnapshot)
+nsHtml5TreeBuilder::AddSnapshotToScript(nsAHtml5TreeBuilderState* aSnapshot, PRInt32 aLine)
 {
   NS_PRECONDITION(HasScript(), "No script to add a snapshot to!");
   NS_PRECONDITION(aSnapshot, "Got null snapshot.");
-  mOpQueue.ElementAt(mOpQueue.Length() - 1).SetSnapshot(aSnapshot);
+  mOpQueue.ElementAt(mOpQueue.Length() - 1).SetSnapshot(aSnapshot, aLine);
 }
 
 void
