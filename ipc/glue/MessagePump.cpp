@@ -167,8 +167,13 @@ MessagePump::ScheduleWork()
   
   if (mThread) {
     mThread->Dispatch(mDummyEvent, NS_DISPATCH_NORMAL);
-    event_.Signal();
   }
+  else {
+    
+    
+    NS_DispatchToMainThread(mDummyEvent, NS_DISPATCH_NORMAL);
+  }
+  event_.Signal();
 }
 
 #ifdef DEBUG
