@@ -58,8 +58,10 @@ function run_test() {
   
   
   
-  if (!("nsIWindowsRegKey" in Components.interfaces))
-    do_check_true((file.permissions & 0111) != 0);
+  if (!("nsIWindowsRegKey" in Components.interfaces)) {
+    if ((file.permissions & 0111) == 0)
+      do_throw("File should have been executable, permissions were " + file.permissions.toString(8));
+  }
 
   gEM.uninstallItem("bug541420@tests.mozilla.org");
 
