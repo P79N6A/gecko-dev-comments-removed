@@ -139,7 +139,8 @@ dump("%%%aDl.state: DOWNLOAD_FINISHED\n");
         aDl.targetFile.remove(false);
         
         do_test_finished();
-      }
+      } else
+        dump("%%%aDl.state: " + aDl.state + "\n");
     },
     onStateChange: function(a, b, aState, d, aDl) {
 dump("%%%onStateChange\n");
