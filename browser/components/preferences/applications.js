@@ -290,18 +290,16 @@ HandlerInfoWrapper.prototype = {
     
     
     
-    if (!this.wrappedHandlerInfo.preferredAction) {
-      if (gApplicationsPane.isValidHandlerApp(this.preferredApplicationHandler))
-        return Ci.nsIHandlerInfo.useHelperApp;
-      else
-        return Ci.nsIHandlerInfo.useSystemDefault;
-    }
-
+    
     
     
     if (this.wrappedHandlerInfo.preferredAction == Ci.nsIHandlerInfo.useHelperApp &&
-        !gApplicationsPane.isValidHandlerApp(this.preferredApplicationHandler))
-      return Ci.nsIHandlerInfo.useSystemDefault;
+        !gApplicationsPane.isValidHandlerApp(this.preferredApplicationHandler)) {
+      if (this.wrappedHandlerInfo.hasDefaultHandler)
+        return Ci.nsIHandlerInfo.useSystemDefault;
+      else
+        return Ci.nsIHandlerInfo.saveToDisk;
+    }
 
     return this.wrappedHandlerInfo.preferredAction;
   },
@@ -324,6 +322,16 @@ HandlerInfoWrapper.prototype = {
     
     if (this.plugin && this.handledOnlyByPlugin)
       return false;
+
+    
+    
+    
+    
+    
+    
+    if (!(this.wrappedHandlerInfo instanceof Ci.nsIMIMEInfo) &&
+        this.preferredAction == Ci.nsIHandlerInfo.saveToDisk)
+      return true;
 
     return this.wrappedHandlerInfo.alwaysAskBeforeHandling;
   },
@@ -1474,6 +1482,10 @@ var gApplicationsPane = {
     }
 
     handlerInfo.store();
+
+    
+    
+    handlerInfo.handledOnlyByPlugin = false;
 
     
     typeItem.setAttribute("actionDescription",
