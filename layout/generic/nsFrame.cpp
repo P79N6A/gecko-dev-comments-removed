@@ -5985,13 +5985,10 @@ nsIFrame::IsFocusable(PRInt32 *aTabIndex, PRBool aWithMouse)
         
         
         nsIScrollableFrame *scrollFrame = do_QueryFrame(this);
-        if (scrollFrame) {
-          nsMargin margin = scrollFrame->GetActualScrollbarSizes();
-          if (margin.top || margin.right || margin.bottom || margin.left) {
-            
-            isFocusable = PR_TRUE;
-            tabIndex = 0;
-          }
+        if (scrollFrame && scrollFrame->GetScrollbarVisibility() != 0) {
+          
+          isFocusable = PR_TRUE;
+          tabIndex = 0;
         }
       }
     }

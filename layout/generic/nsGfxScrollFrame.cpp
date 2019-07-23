@@ -485,10 +485,21 @@ nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowState* aState,
   kidReflowState.mComputedMinHeight = computedMinHeight;
   kidReflowState.mComputedMaxHeight = computedMaxHeight;
 
+  
+  
+  PRBool didHaveHorizonalScrollbar = mInner.mHasHorizontalScrollbar;
+  PRBool didHaveVerticalScrollbar = mInner.mHasVerticalScrollbar;
+  mInner.mHasHorizontalScrollbar = aAssumeHScroll;
+  mInner.mHasVerticalScrollbar = aAssumeVScroll;
+
   nsReflowStatus status;
   nsresult rv = ReflowChild(mInner.mScrolledFrame, presContext, *aMetrics,
                             kidReflowState, 0, 0,
                             NS_FRAME_NO_MOVE_FRAME | NS_FRAME_NO_MOVE_VIEW, status);
+
+  mInner.mHasHorizontalScrollbar = didHaveHorizonalScrollbar;
+  mInner.mHasVerticalScrollbar = didHaveVerticalScrollbar;
+
   
   
   

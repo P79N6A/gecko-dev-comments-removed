@@ -74,6 +74,13 @@ public:
 
   virtual ScrollbarStyles GetScrollbarStyles() const = 0;
 
+  enum { HORIZONTAL = 0x01, VERTICAL = 0x02 };
+  
+
+
+
+
+  virtual PRUint32 GetScrollbarVisibility() const = 0;
   
 
 
@@ -85,8 +92,10 @@ public:
 
 
 
+
   virtual nsMargin GetDesiredScrollbarSizes(nsBoxLayoutState* aState) = 0;
   
+
 
 
 

@@ -2656,16 +2656,16 @@ nsEventStateManager::DecideGestureEvent(nsGestureNotifyEvent* aEvent,
           displayPanFeedback = PR_FALSE;
         }
       } else { 
-        nsMargin scrollbarSizes = scrollableFrame->GetActualScrollbarSizes();
+        PRUint32 scrollbarVisibility = scrollableFrame->GetScrollbarVisibility();
 
         
-        if (scrollbarSizes.LeftRight()) {
+        if (scrollbarVisibility & nsIScrollableFrame::VERTICAL) {
           panDirection = nsGestureNotifyEvent::ePanVertical;
           displayPanFeedback = PR_TRUE;
           break;
         }
 
-        if (scrollbarSizes.TopBottom()) {
+        if (scrollbarVisibility & nsIScrollableFrame::HORIZONTAL) {
           panDirection = nsGestureNotifyEvent::ePanHorizontal;
           displayPanFeedback = PR_TRUE;
         }
