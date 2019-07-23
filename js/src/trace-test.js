@@ -1876,6 +1876,23 @@ function testBug465145() {
 	for (var z = 0; z < 2; ++z) { x = y };
 }
 
+function testTrueShiftTrue() {
+    var a = new Array(5);
+    for (var i=0;i<5;++i) a[i] = "" + (true << true);
+    return a.join(",");
+}
+testTrueShiftTrue.expected = "2,2,2,2,2";
+test(testTrueShiftTrue);
+
+
+function testBug465261() {
+    for (let z = 0; z < 2; ++z) { for each (let x in [0, true, (void 0), 0, (void
+    0)]) { if(x){} } };
+    return true;
+}
+testBug465261.expected = true;
+test(testBug465261);
+
 
 
 
