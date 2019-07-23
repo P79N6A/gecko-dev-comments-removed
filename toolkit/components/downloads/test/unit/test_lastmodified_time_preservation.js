@@ -51,6 +51,11 @@ const timeValue = 1000000000 * 1000;
 function run_test()
 {
   
+  var isWindows = ("@mozilla.org/windows-registry-key;1" in Components.classes);
+  if (isWindows)
+    return;
+
+  
   var data = "test_178506";
   var httpserv = new nsHttpServer();
   httpserv.registerPathHandler("/test_178506", function(meta, resp) {
