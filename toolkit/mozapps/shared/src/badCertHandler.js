@@ -77,6 +77,16 @@ BadCertHandler.prototype = {
   },
 
   
+  notifyCertProblem: function(socketInfo, status, targetSite) {
+    return true;
+  },
+
+  
+  notifySSLError: function(socketInfo, error, targetSite) {
+    return true;
+  },
+
+  
   getInterface: function(iid) {
     return this.QueryInterface(iid);
   },
@@ -84,6 +94,8 @@ BadCertHandler.prototype = {
   
   QueryInterface: function(iid) {
     if (!iid.equals(Components.interfaces.nsIChannelEventSink) &&
+        !iid.equals(Components.interfaces.nsIBadCertListener2) &&
+        !iid.equals(Components.interfaces.nsISSLErrorListener) &&
         !iid.equals(Components.interfaces.nsIInterfaceRequestor) &&
         !iid.equals(Components.interfaces.nsISupports))
       throw Components.results.NS_ERROR_NO_INTERFACE;

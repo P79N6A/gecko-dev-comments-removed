@@ -1767,6 +1767,8 @@ MicrosummaryResource.prototype = {
   
   interfaces: [Ci.nsIAuthPromptProvider,
                Ci.nsIAuthPrompt,
+               Ci.nsIBadCertListener2,
+               Ci.nsISSLErrorListener,
                Ci.nsIPrompt,
                Ci.nsIProgressEventSink,
                Ci.nsIInterfaceRequestor,
@@ -1797,6 +1799,19 @@ MicrosummaryResource.prototype = {
     return this.QueryInterface(iid);
   },
 
+  
+  
+  notifyCertProblem: function MSR_certProblem(socketInfo, status, targetSite) {
+    return true;
+  },
+
+  
+  
+  notifySSLError: function MSR_SSLError(socketInfo, error, targetSite) {
+    return true;
+  },
+
+  
   
 
   

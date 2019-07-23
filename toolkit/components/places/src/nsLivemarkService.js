@@ -277,6 +277,7 @@ LivemarkService.prototype = {
       
       var listener = new LivemarkLoadListener(livemark);
       this.insertLivemarkLoadingItem(this._bms, livemark);
+      httpChannel.notificationCallbacks = listener;
       httpChannel.asyncOpen(listener, null);
     }
     catch (ex) {
@@ -660,11 +661,35 @@ LivemarkLoadListener.prototype = {
   
 
 
+  notifyCertProblem: function LLL_certProblem(socketInfo, status, targetSite) {
+    return true;
+  },
+
+  
+
+
+  notifySSLError: function LLL_SSLError(socketInfo, error, targetSite) {
+    return true;
+  },
+
+  
+
+
+  getInterface: function LLL_getInterface(iid) {
+    return this.QueryInterface(iid);
+  },
+
+  
+
+
   QueryInterface: function LLL_QueryInterface(iid) {
     if (iid.equals(Ci.nsIFeedResultListener) ||
         iid.equals(Ci.nsIStreamListener) ||
         iid.equals(Ci.nsIRequestObserver)||
         iid.equals(Ci.nsINavHistoryBatchCallback) ||
+        iid.equals(Ci.nsIBadCertListener2) ||
+        iid.equals(Ci.nsISSLErrorListener) ||
+        iid.equals(Ci.nsIInterfaceRequestor) ||
         iid.equals(Ci.nsISupports))
       return this;
     throw Cr.NS_ERROR_NO_INTERFACE;

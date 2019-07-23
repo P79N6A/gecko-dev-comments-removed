@@ -293,6 +293,8 @@ loadListener.prototype = {
         aIID.equals(Ci.nsIStreamListener)     ||
         aIID.equals(Ci.nsIChannelEventSink)   ||
         aIID.equals(Ci.nsIInterfaceRequestor) ||
+        aIID.equals(Ci.nsIBadCertListener2)   ||
+        aIID.equals(Ci.nsISSLErrorListener)   ||
         
         aIID.equals(Ci.nsIHttpEventSink)      ||
         aIID.equals(Ci.nsIProgressEventSink)  ||
@@ -346,6 +348,16 @@ loadListener.prototype = {
   
   getInterface: function SRCH_load_GI(aIID) {
     return this.QueryInterface(aIID);
+  },
+
+  
+  notifyCertProblem: function SRCH_certProblem(socketInfo, status, targetSite) {
+    return true;
+  },
+
+  
+  notifySSLError: function SRCH_SSLError(socketInfo, error, targetSite) {
+    return true;
   },
 
   
