@@ -972,8 +972,16 @@ static JSPropertySpec function_props[] = {
 void
 js_MarkFunction(JSContext *cx, JSFunction *fun)
 {
-    if (fun->object)
-        GC_MARK(cx, fun->object, "object");
+    if (0) {
+        
+
+
+
+
+
+        if (fun->object)
+            GC_MARK(cx, fun->object, "object");
+    }
     if (fun->atom)
         GC_MARK_ATOM(cx, fun->atom);
     if (FUN_INTERPRETED(fun) && fun->u.i.script)
