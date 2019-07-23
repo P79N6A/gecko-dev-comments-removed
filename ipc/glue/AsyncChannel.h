@@ -161,6 +161,10 @@ protected:
 
     
 
+    void OnNotifyMaybeChannelError();
+    virtual bool ShouldDeferNotifyMaybeError() {
+        return false;
+    }
     void NotifyChannelClosed();
     void NotifyMaybeChannelError();
 

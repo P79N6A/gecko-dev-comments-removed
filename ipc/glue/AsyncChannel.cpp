@@ -261,6 +261,32 @@ AsyncChannel::SendSpecialMessage(Message* msg)
 }
 
 void
+AsyncChannel::OnNotifyMaybeChannelError()
+{
+    AssertWorkerThread();
+    mMutex.AssertNotCurrentThreadOwns();
+
+    
+    
+    
+    
+    {
+        MutexAutoLock lock(mMutex);
+        
+    }
+
+    if (ShouldDeferNotifyMaybeError()) {
+        mChannelErrorTask =
+            NewRunnableMethod(this, &AsyncChannel::OnNotifyMaybeChannelError);
+        
+        mWorkerLoop->PostDelayedTask(FROM_HERE, mChannelErrorTask, 10);
+        return;
+    }
+
+    NotifyMaybeChannelError();
+}
+
+void
 AsyncChannel::NotifyChannelClosed()
 {
     mMutex.AssertNotCurrentThreadOwns();
@@ -279,15 +305,6 @@ void
 AsyncChannel::NotifyMaybeChannelError()
 {
     mMutex.AssertNotCurrentThreadOwns();
-
-    
-    
-    
-    
-    {
-        MutexAutoLock lock(mMutex);
-        
-    }
 
     
     
@@ -436,7 +453,7 @@ AsyncChannel::OnChannelError()
 
     
     mChannelErrorTask =
-        NewRunnableMethod(this, &AsyncChannel::NotifyMaybeChannelError);
+        NewRunnableMethod(this, &AsyncChannel::OnNotifyMaybeChannelError);
     mWorkerLoop->PostTask(FROM_HERE, mChannelErrorTask);
 }
 
