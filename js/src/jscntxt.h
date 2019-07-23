@@ -56,7 +56,6 @@
 #include "jspubtd.h"
 #include "jsregexp.h"
 #include "jsutil.h"
-#include "jstracer.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -125,15 +124,10 @@ struct JSThread {
 
     
     JSPropertyCache     propertyCache;
-
-#ifdef JS_TRACER
-    JSTraceMonitor      traceMonitor;
-#endif    
 };
 
 #define JS_GSN_CACHE(cx)        ((cx)->thread->gsnCache)
 #define JS_PROPERTY_CACHE(cx)   ((cx)->thread->propertyCache)
-#define JS_TRACE_MONITOR(cx)    ((cx)->thread->traceMonitor)
 
 extern void JS_DLL_CALLBACK
 js_ThreadDestructorCB(void *ptr);
@@ -400,22 +394,10 @@ struct JSRuntime {
     
     JSPropertyCache     propertyCache;
 
-#ifdef JS_TRACER
-    JSTraceMonitor      traceMonitor;
-#endif    
-    
 #define JS_GSN_CACHE(cx)        ((cx)->runtime->gsnCache)
 #define JS_PROPERTY_CACHE(cx)   ((cx)->runtime->propertyCache)
-#define JS_TRACE_MONITOR(cx)    ((cx)->runtime->traceMonitor)
 #endif
 
-    
-
-
-
-
-    uint32              loopTableIndexGen;
-    
     
 
 
