@@ -1,5 +1,3 @@
-Components.utils.import("resource://gre/modules/ISO8601DateUtils.jsm");
-
 var EXPORTED_SYMBOLS = ["Microformats", "adr", "tag", "hCard", "hCalendar", "geo"];
 
 var Microformats = {
@@ -873,6 +871,65 @@ var Microformats = {
 
 
 
+  dateFromISO8601: function dateFromISO8601(string) {
+    var dateArray = string.match(/(\d\d\d\d)(?:-?(\d\d)(?:-?(\d\d)(?:[T ](\d\d)(?::?(\d\d)(?::?(\d\d)(?:\.(\d+))?)?)?(?:([-+Z])(?:(\d\d)(?::?(\d\d))?)?)?)?)?)?/);
+  
+    var date = new Date(dateArray[1], 0, 1);
+    date.time = false;
+
+    if (dateArray[2]) {
+      date.setMonth(dateArray[2] - 1);
+    }
+    if (dateArray[3]) {
+      date.setDate(dateArray[3]);
+    }
+    if (dateArray[4]) {
+      date.setHours(dateArray[4]);
+      date.time = true;
+      if (dateArray[5]) {
+        date.setMinutes(dateArray[5]);
+        if (dateArray[6]) {
+          date.setSeconds(dateArray[6]);
+          if (dateArray[7]) {
+            date.setMilliseconds(Number("0." + dateArray[7]) * 1000);
+          }
+        }
+      }
+    }
+    if (dateArray[8]) {
+      if (dateArray[8] == "-") {
+        if (dateArray[9] && dateArray[10]) {
+          date.setHours(date.getHours() + parseInt(dateArray[9], 10));
+          date.setMinutes(date.getMinutes() + parseInt(dateArray[10], 10));
+        }
+      } else if (dateArray[8] == "+") {
+        if (dateArray[9] && dateArray[10]) {
+          date.setHours(date.getHours() - parseInt(dateArray[9], 10));
+          date.setMinutes(date.getMinutes() - parseInt(dateArray[10], 10));
+        }
+      }
+      
+      
+      if (dateArray[8]) {
+        var tzOffset = date.getTimezoneOffset();
+        if (tzOffset < 0) {
+          date.setMinutes(date.getMinutes() + tzOffset); 
+        } else if (tzOffset > 0) {
+          date.setMinutes(date.getMinutes() - tzOffset); 
+        }
+      }
+    }
+    return date;
+  },
+  
+
+
+
+
+
+
+
+
   iso8601FromDate: function iso8601FromDate(date, punctuation) {
     var string = date.getFullYear().toString();
     if (punctuation) {
@@ -1323,7 +1380,7 @@ hCalendar.prototype.toString = function() {
     if (summaries.length === 0) {
       if (this.summary) {
         if (this.dtstart) {
-          return this.summary + " (" + ISO8601DateUtils.parse(this.dtstart).toLocaleString() + ")";
+          return this.summary + " (" + Microformats.dateFromISO8601(this.dtstart).toLocaleString() + ")";
         }
       }
     }
