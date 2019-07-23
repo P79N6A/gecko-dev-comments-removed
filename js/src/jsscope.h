@@ -392,8 +392,15 @@ struct JSScope : public JSObjectMap
 
 
 
+
+
+
+
+
+
+
     bool hasMethodBarrier()     { return flags & METHOD_BARRIER; }
-    void setMethodBarrier()     { flags |= METHOD_BARRIER | BRANDED; }
+    void setMethodBarrier()     { flags |= METHOD_BARRIER; }
 
     bool owned()                { return object != NULL; }
 };

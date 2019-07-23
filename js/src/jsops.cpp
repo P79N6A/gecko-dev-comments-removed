@@ -3264,12 +3264,6 @@ BEGIN_CASE(JSOP_LAMBDA)
 
 
 
-
-
-
-
-
-
                 if (op == JSOP_SETMETHOD) {
 #ifdef DEBUG
                     op2 = JSOp(regs.pc[JSOP_LAMBDA_LENGTH + JSOP_SETMETHOD_LENGTH]);
@@ -3585,19 +3579,7 @@ BEGIN_CASE(JSOP_INITMETHOD)
                 JS_ASSERT(sprop2 == sprop);
             } else {
                 JS_ASSERT(scope->owned());
-
-                
-                js_LeaveTraceIfGlobalObject(cx, obj);
-                scope->shape = sprop->shape;
-                ++scope->entryCount;
-                scope->lastProp = sprop;
-
-                jsuint index;
-                if (js_IdIsIndex(sprop->id, &index))
-                    scope->setIndexedProperties();
-
-                if (sprop->isMethod())
-                    scope->setMethodBarrier();
+                scope->extend(cx, sprop);
             }
 
             

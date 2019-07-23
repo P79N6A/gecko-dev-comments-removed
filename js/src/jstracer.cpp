@@ -7034,7 +7034,7 @@ JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::monitorRecording(JSOp op)
 {
     JSTraceMonitor &localtm = JS_TRACE_MONITOR(cx);
-    JSContext *localcx = cx;
+    debug_only_stmt( JSContext *localcx = cx; )
 
     
     if (localtm.needFlush) {
@@ -13389,10 +13389,22 @@ TraceRecorder::record_JSOP_LAMBDA()
 
 
 
+
+
+
+
     if (FUN_NULL_CLOSURE(fun) && OBJ_GET_PARENT(cx, FUN_OBJECT(fun)) == globalObj) {
         JSOp op2 = JSOp(cx->fp->regs->pc[JSOP_LAMBDA_LENGTH]);
 
-        if (op2 == JSOP_SETMETHOD || op2 == JSOP_INITMETHOD) {
+        if (op2 == JSOP_SETMETHOD) {
+            jsval lval = stackval(-1);
+
+            if (!JSVAL_IS_PRIMITIVE(lval) &&
+                OBJ_GET_CLASS(cx, JSVAL_TO_OBJECT(lval)) == &js_ObjectClass) {
+                stack(0, INS_CONSTOBJ(FUN_OBJECT(fun)));
+                return ARECORD_CONTINUE;
+            }
+        } else if (op2 == JSOP_INITMETHOD) {
             stack(0, INS_CONSTOBJ(FUN_OBJECT(fun)));
             return ARECORD_CONTINUE;
         }
