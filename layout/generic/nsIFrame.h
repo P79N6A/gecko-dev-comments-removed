@@ -855,7 +855,16 @@ public:
 
 
 
-  virtual nsIFrame* GetFirstChild(nsIAtom* aListName) const = 0;
+
+  
+  
+  
+  
+  virtual nsFrameList GetChildList(nsIAtom* aListName) const = 0;
+  
+  nsIFrame* GetFirstChild(nsIAtom* aListName) const {
+    return GetChildList(aListName).FirstChild();
+  }
 
   
 

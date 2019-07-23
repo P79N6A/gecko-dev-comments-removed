@@ -513,13 +513,16 @@ nsBlockFrame::GetBaseline() const
 
 
 
-nsIFrame*
-nsBlockFrame::GetFirstChild(nsIAtom* aListName) const
+nsFrameList
+nsBlockFrame::GetChildList(nsIAtom* aListName) const
 {
   if (nsGkAtoms::absoluteList == aListName) {
-    return mAbsoluteContainer.GetFirstChild();
+    return mAbsoluteContainer.GetChildList();
   }
   else if (nsnull == aListName) {
+    
+    
+    
     return (mLines.empty()) ? nsnull : mLines.front()->mFirstChild;
   }
   else if (aListName == nsGkAtoms::overflowList) {
@@ -527,15 +530,15 @@ nsBlockFrame::GetFirstChild(nsIAtom* aListName) const
     return overflowLines ? overflowLines->front()->mFirstChild : nsnull;
   }
   else if (aListName == nsGkAtoms::overflowOutOfFlowList) {
-    return GetOverflowOutOfFlows().FirstChild();
+    return GetOverflowOutOfFlows();
   }
   else if (aListName == nsGkAtoms::floatList) {
-    return mFloats.FirstChild();
+    return mFloats;
   }
   else if (aListName == nsGkAtoms::bulletList) {
     return (HaveOutsideBullet()) ? mBullet : nsnull;
   }
-  return nsContainerFrame::GetFirstChild(aListName);;
+  return nsContainerFrame::GetChildList(aListName);
 }
 
 nsIFrame*
@@ -6164,8 +6167,9 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     DisplayOverflowContainers(aBuilder, aDirtyRect, aLists);
   }
 
-  aBuilder->MarkFramesForDisplayList(this, mFloats.FirstChild(), aDirtyRect);
-  aBuilder->MarkFramesForDisplayList(this, mAbsoluteContainer.GetFirstChild(), aDirtyRect);
+  aBuilder->MarkFramesForDisplayList(this, mFloats, aDirtyRect);
+  aBuilder->MarkFramesForDisplayList(this, mAbsoluteContainer.GetChildList(),
+                                     aDirtyRect);
 
   
   
