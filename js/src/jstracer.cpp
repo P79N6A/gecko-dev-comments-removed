@@ -7004,9 +7004,12 @@ TraceRecorder::prop(JSObject* obj, LIns* obj_ins, uint32& slot, LIns*& v_ins)
 
 
 
-    if (obj == globalObj)
-        ABORT_TRACE("prop op aliases global");
-    guard(false, lir->ins2(LIR_eq, obj_ins, globalObj_ins), MISMATCH_EXIT);
+
+    if (OBJ_SHAPE(obj) == OBJ_SHAPE(globalObj)) {
+        if (obj == globalObj)
+            ABORT_TRACE("prop op aliases global");
+        guard(false, lir->ins2(LIR_eq, obj_ins, globalObj_ins), MISMATCH_EXIT);
+    }
 
     
 
