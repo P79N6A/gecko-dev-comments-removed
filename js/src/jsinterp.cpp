@@ -2565,7 +2565,10 @@ js_Interpret(JSContext *cx)
 # define ADD_EMPTY_CASE(OP) BEGIN_CASE(OP)
 # define END_EMPTY_CASES    goto advance_pc_by_one;
 
-#endif
+#endif 
+
+    
+    JS_ASSERT(!cx->runningJittedCode);
 
     
     JS_CHECK_RECURSION(cx, return JS_FALSE);
