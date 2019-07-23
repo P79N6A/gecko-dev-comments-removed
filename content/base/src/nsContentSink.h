@@ -352,6 +352,10 @@ protected:
   PRUint8 mDidGetReadyToCallDidBuildModelCall : 1;
   
   
+  
+  PRUint8 mIsDocumentObserver : 1;
+  
+  
   PRUint32 mDelayTimerStart;
 
   

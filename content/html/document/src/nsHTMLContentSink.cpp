@@ -1647,6 +1647,7 @@ HTMLContentSink::Init(nsIDocument* aDoc,
   }
 
   aDoc->AddObserver(this);
+  mIsDocumentObserver = PR_TRUE;
   CallQueryInterface(aDoc, &mHTMLDocument);
 
   mObservers = nsnull;
@@ -1829,7 +1830,9 @@ HTMLContentSink::DidBuildModel(void)
 
   
   
+  
   mDocument->RemoveObserver(this);
+  mIsDocumentObserver = PR_FALSE;
   
   mDocument->EndLoad();
 
@@ -3194,11 +3197,15 @@ HTMLContentSink::FlushPendingNotifications(mozFlushType aType)
   
   
   if (!mInNotification) {
-    if (aType >= Flush_ContentAndNotify) {
-      FlushTags();
-    }
-    else if (mCurrentContext) {
-      mCurrentContext->FlushText();
+    
+    
+    if (mIsDocumentObserver) {
+      if (aType >= Flush_ContentAndNotify) {
+        FlushTags();
+      }
+      else if (mCurrentContext) {
+        mCurrentContext->FlushText();
+      }
     }
     if (aType >= Flush_InterruptibleLayout) {
       
