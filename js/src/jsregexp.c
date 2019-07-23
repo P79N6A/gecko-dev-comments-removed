@@ -3437,7 +3437,7 @@ js_ExecuteRegExp(JSContext *cx, JSRegExp *re, JSString *str, size_t *indexp,
 
 
 
-        obj = js_NewArrayObject(cx, 0, NULL);
+        obj = js_NewSlowArrayObject(cx);
         if (!obj) {
             ok = JS_FALSE;
             goto out;
