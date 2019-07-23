@@ -69,6 +69,8 @@ nsBaseFilePicker::~nsBaseFilePicker()
 
 }
 
+
+
 nsIWidget *nsBaseFilePicker::DOMWindowToWidget(nsIDOMWindow *dw)
 {
   nsCOMPtr<nsIWidget> widget;

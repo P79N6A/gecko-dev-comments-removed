@@ -40,6 +40,7 @@
 
 #include "nsISupports.h"
 
+class nsIDOMWindow;
 class nsIPrintSettings;
 
 
@@ -75,7 +76,8 @@ public:
 
 
 
-  NS_IMETHOD Show(nsIPrintSettings *aSettings) = 0;
+
+  NS_IMETHOD Show(nsIDOMWindow *aParent, nsIPrintSettings *aSettings) = 0;
 
   
 
@@ -85,7 +87,9 @@ public:
 
 
 
-  NS_IMETHOD ShowPageSetup(nsIPrintSettings *aSettings) = 0;
+
+
+  NS_IMETHOD ShowPageSetup(nsIDOMWindow *aParent, nsIPrintSettings *aSettings) = 0;
 
 };
 
