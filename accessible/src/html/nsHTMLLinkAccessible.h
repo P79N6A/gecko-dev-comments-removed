@@ -64,6 +64,11 @@ public:
 
 protected:
   enum { eAction_Jump = 0 };
+
+  
+
+
+  PRBool IsLinked();
 };
 
 #endif  
