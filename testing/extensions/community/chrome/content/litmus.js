@@ -109,7 +109,6 @@
         if (litmus.lastTestRunSummary == "") return;
         
         
-        
         $("qa-testrun-label").value = litmus.lastTestRunSummary;
         $("qa-testgroup-label").value = litmus.lastTestGroupSummary;
         litmus.lastSubgroupObject = litmus.preDialogueSubgroupObject;
@@ -205,7 +204,12 @@
     selectCurrentTestCase : function() {
         
         
-        litmus.getTestcase($("testlist").selectedItem.value, litmus.populateTestcase);
+        litmus.getTestcase($("testlist").selectedItem.value, function(testcase) {
+        	litmus.populateTestcase(testcase);
+        	$('qa-testcase-progress').value = 
+        		qaMain.bundle.getFormattedString('qa.extension.litmus.progress',
+        			[$("testlist").selectedIndex+1, $("testlist").getRowCount()]);
+        });
     },
 	populatePreviewBox : function(testcases) {
         
@@ -224,7 +228,7 @@
             checkbox.setAttribute("type", "checkbox");
             checkbox.setAttribute("disabled", "true");
             var name = document.createElement("listcell");
-            name.setAttribute("label", "#" + testcases[i].testcase_id + " -- " + testcases[i].summary);
+            name.setAttribute("label", (i+1) + " -- " + testcases[i].summary);
             name.setAttribute("crop", "end");
             name.setAttribute("maxwidth", "175");
             row.appendChild(checkbox);
@@ -252,12 +256,14 @@
 	populateFields : function(subgroup) {
         litmus.lastSubgroupObject = subgroup;
 		litmus.populatePreviewBox(subgroup.testcases);
+		$('qa-subgroup-label').value = subgroup.name;
         $("testlist").selectedIndex = 0;
         litmus.selectCurrentTestCase();
 	},
     statePopulateFields : function(subgroup) {  
         litmus.lastSubgroupObject = subgroup;
         litmus.populatePreviewBox(subgroup.testcases);
+        $('qa-subgroup-label').value = subgroup.name;
         
         $("testlist").selectedIndex = qaPref.getPref(qaPref.prefBase + ".currentTestcase.testcaseIndex", "int");
         litmus.selectCurrentTestCase();
