@@ -307,11 +307,11 @@ private:
     {
       
       if (mLoadingImage) {
-        mLoadingImage->Cancel(NS_ERROR_FAILURE);
+        mLoadingImage->CancelAndForgetObserver(NS_ERROR_FAILURE);
         mLoadingImage = nsnull;
       }
       if (mBrokenImage) {
-        mBrokenImage->Cancel(NS_ERROR_FAILURE);
+        mBrokenImage->CancelAndForgetObserver(NS_ERROR_FAILURE);
         mBrokenImage = nsnull;
       }
     }

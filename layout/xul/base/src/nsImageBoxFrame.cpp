@@ -207,7 +207,7 @@ nsImageBoxFrame::Destroy()
 {
   
   if (mImageRequest)
-    mImageRequest->Cancel(NS_ERROR_FAILURE);
+    mImageRequest->CancelAndForgetObserver(NS_ERROR_FAILURE);
 
   if (mListener)
     reinterpret_cast<nsImageBoxListener*>(mListener.get())->SetFrame(nsnull); 
