@@ -532,6 +532,7 @@ protected:
   
   
   
+  
   enum nsCSSSection { 
     eCSSSection_Charset, 
     eCSSSection_Import, 

@@ -56,6 +56,7 @@
 class nsIURI;
 class nsMediaList;
 class nsMediaQueryResultCacheKey;
+class nsCSSStyleSheet;
 
 
 
@@ -64,10 +65,10 @@ class nsMediaQueryResultCacheKey;
 class nsCSSStyleSheetInner {
 public:
   nsCSSStyleSheetInner(nsICSSStyleSheet* aParentSheet);
-  nsCSSStyleSheetInner(nsCSSStyleSheetInner& aCopy, nsICSSStyleSheet* aParentSheet);
+  nsCSSStyleSheetInner(nsCSSStyleSheetInner& aCopy, nsCSSStyleSheet* aParentSheet);
   virtual ~nsCSSStyleSheetInner();
 
-  virtual nsCSSStyleSheetInner* CloneFor(nsICSSStyleSheet* aParentSheet);
+  virtual nsCSSStyleSheetInner* CloneFor(nsCSSStyleSheet* aParentSheet);
   virtual void AddSheet(nsICSSStyleSheet* aParentSheet);
   virtual void RemoveSheet(nsICSSStyleSheet* aParentSheet);
 
@@ -81,6 +82,12 @@ public:
   nsCOMArray<nsICSSRule> mOrderedRules;
   nsAutoPtr<nsXMLNameSpaceMap> mNameSpaceMap;
   PRBool                 mComplete;
+  
+  
+  
+  
+  
+  nsRefPtr<nsCSSStyleSheet> mFirstChild;
 
 #ifdef DEBUG
   PRBool                 mPrincipalSet;
@@ -94,6 +101,7 @@ public:
 
 class CSSRuleListImpl;
 static PRBool CascadeSheetRulesInto(nsICSSStyleSheet* aSheet, void* aData);
+struct ChildSheetListBuilder;
 
 class nsCSSStyleSheet : public nsICSSStyleSheet, 
                         public nsIDOMCSSStyleSheet,
@@ -200,8 +208,7 @@ protected:
 protected:
   nsString              mTitle;
   nsCOMPtr<nsMediaList> mMedia;
-  nsCSSStyleSheet*      mFirstChild;
-  nsCSSStyleSheet*      mNext;
+  nsRefPtr<nsCSSStyleSheet> mNext;
   nsICSSStyleSheet*     mParent;    
   nsICSSImportRule*     mOwnerRule; 
 
@@ -218,6 +225,7 @@ protected:
   friend class nsMediaList;
   friend PRBool CascadeSheetRulesInto(nsICSSStyleSheet* aSheet, void* aData);
   friend nsresult NS_NewCSSStyleSheet(nsICSSStyleSheet** aInstancePtrResult);
+  friend struct ChildSheetListBuilder;
 };
 
 #endif 
