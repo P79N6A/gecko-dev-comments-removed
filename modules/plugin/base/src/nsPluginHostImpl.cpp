@@ -2384,7 +2384,7 @@ NS_IMETHODIMP nsPluginStreamListenerPeer::OnStopRequest(nsIRequest *request,
   
   nsCAutoString aContentType;
   rv = channel->GetContentType(aContentType);
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv) && !mRequestFailed)
     return rv;
 
   if (!aContentType.IsEmpty())
