@@ -83,10 +83,6 @@ const PREFS_BLACKLIST = [
 
 window.onload = function () {
   
-  let Application = Cc["@mozilla.org/fuel/application;1"]
-                      .getService(Ci.fuelIApplication);
-
-  
   let urlFormatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"]
                        .getService(Ci.nsIURLFormatter);
   let supportUrl = urlFormatter.formatURLPref("app.support.baseURL");
