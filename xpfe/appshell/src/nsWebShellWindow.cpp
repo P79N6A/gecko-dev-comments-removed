@@ -336,7 +336,7 @@ nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
         
         
         if (!eventWindow->IsLocked())
-          eventWindow->SetPersistenceTimer(PAD_SIZE | PAD_MISC);
+          eventWindow->SetPersistenceTimer(PAD_POSITION | PAD_SIZE | PAD_MISC);
         result = nsEventStatus_eConsumeNoDefault;
         break;
       }
