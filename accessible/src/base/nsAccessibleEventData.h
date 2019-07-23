@@ -54,16 +54,16 @@ class nsAccEvent: public nsIAccessibleEvent
 {
 public:
   
-  nsAccEvent(PRUint32 aEventType, nsIAccessible *aAccessible, PRBool aIsAsynch = PR_FALSE);
+  nsAccEvent(PRUint32 aEventType, nsIAccessible *aAccessible, void *aEventData, PRBool aIsAsynch = PR_FALSE);
   
-  nsAccEvent(PRUint32 aEventType, nsIDOMNode *aDOMNode, PRBool aIsAsynch = PR_FALSE);
+  nsAccEvent(PRUint32 aEventType, nsIDOMNode *aDOMNode, void *aEventData, PRBool aIsAsynch = PR_FALSE);
   virtual ~nsAccEvent() {}
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIACCESSIBLEEVENT
 
   static void GetLastEventAttributes(nsIDOMNode *aNode,
-                                     nsIPersistentProperties *aAttributes);
+                                      nsIPersistentProperties *aAttributes);
 
 protected:
   already_AddRefed<nsIAccessible> GetAccessibleByNode();
@@ -96,6 +96,8 @@ public:
 
 
   static void PrepareForEvent(nsIAccessibleEvent *aEvent);
+
+  void *mEventData;
 };
 
 class nsAccStateChangeEvent: public nsAccEvent,
@@ -156,20 +158,12 @@ private:
   PRInt32 mCaretOffset;
 };
 
-class nsAccTableChangeEvent : public nsAccEvent,
-                              public nsIAccessibleTableChangeEvent {
-public:
-  nsAccTableChangeEvent(nsIAccessible *aAccessible, PRUint32 aEventType,
-                        PRInt32 aRowOrColIndex, PRInt32 aNumRowsOrCols,
-                        PRBool aIsAsynch);
 
-  NS_DECL_ISUPPORTS
-  NS_FORWARD_NSIACCESSIBLEEVENT(nsAccEvent::)
-  NS_DECL_NSIACCESSIBLETABLECHANGEEVENT
 
-private:
-  PRUint32 mRowOrColIndex;   
-  PRUint32 mNumRowsOrCols;   
+
+struct AtkTableChange {
+  PRUint32 index;   
+  PRUint32 count;   
 };
 
 #endif
