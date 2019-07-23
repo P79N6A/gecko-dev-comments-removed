@@ -362,8 +362,14 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
     mCurrentResult->GetMatchCount(&count); 
 
     if (count > 0) {
+      
+      
+      
       mCurrentResult->SetSearchResult(nsIAutoCompleteResult::RESULT_SUCCESS_ONGOING);
       mCurrentResult->SetDefaultIndex(0);
+      rv = mCurrentResult->SetListener(this);
+      NS_ENSURE_SUCCESS(rv, rv);
+      mCurrentListener->OnSearchResult(this, mCurrentResult);
     }
   }
   else if (!mCurrentSearchString.IsEmpty()) {
