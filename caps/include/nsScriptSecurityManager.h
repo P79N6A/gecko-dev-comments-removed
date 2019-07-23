@@ -432,6 +432,10 @@ private:
                       jsval *vp);
 
     
+    static JSBool
+    ContentSecurityPolicyPermitsJSAction(JSContext *cx);
+
+    
     
     static nsIPrincipal*
     doGetObjectPrincipal(JSObject *obj

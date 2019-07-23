@@ -1101,6 +1101,10 @@ js_CheckPrincipalsAccess(JSContext *cx, JSObject *scopeobj,
                          JSPrincipals *principals, JSAtom *caller);
 
 
+extern JSBool
+js_CheckContentSecurityPolicy(JSContext *cx);
+
+
 extern JSObject *
 js_GetWrappedObject(JSContext *cx, JSObject *obj);
 
