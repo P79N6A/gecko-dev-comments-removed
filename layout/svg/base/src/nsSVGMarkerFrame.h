@@ -86,11 +86,6 @@ public:
                     const nsSVGMark *aMark, float aStrokeWidth);
 
 private:
-  nsCOMPtr<nsIDOMSVGAnimatedEnumeration> mMarkerUnits;
-  nsCOMPtr<nsIDOMSVGAnimatedEnumeration> mOrientType;
-  nsCOMPtr<nsIDOMSVGAngle>               mOrientAngle;
-  nsCOMPtr<nsIDOMSVGRect>                mViewBox;
-
   
   nsSVGPathGeometryFrame *mMarkedFrame;
   float mStrokeWidth, mX, mY, mAngle;
