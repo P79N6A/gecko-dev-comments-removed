@@ -130,14 +130,18 @@ JSShStarter.prototype = {
       
       
       
+      
+      var port = commandline.handleFlagWithParam("jssh-port", false) || 9997;
+
       Components.classes["@mozilla.org/jssh-server;1"]
         .getService(Components.interfaces.nsIJSShServer)
-        .startServerSocket(9997, "chrome://jssh/content/jssh-debug.js", true);
-      debug("JSShStarter: JSSh server started on port 9997\n");
+        .startServerSocket(port, "chrome://jssh/content/jssh-debug.js", true);
+      debug("JSShStarter: JSSh server started on port " + port + "\n");
     }
   },
   
-  helpInfo : "  -jssh                Start a JSSh server on port 9997.\n",
+  helpInfo : "  -jssh                Start a JSSh server on port 9997.\n" +
+             "  -jssh-port <port>    Change the JSSh server port.\n",
 
 };
 
