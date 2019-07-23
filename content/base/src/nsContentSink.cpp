@@ -1350,6 +1350,11 @@ nsContentSink::DidBuildModelImpl(void)
 void
 nsContentSink::DropParserAndPerfHint(void)
 {
+  if (!mParser) {
+    
+    return;
+  }
+  
   
   
   
