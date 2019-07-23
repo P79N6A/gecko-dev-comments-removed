@@ -1045,23 +1045,9 @@ nsIntPoint nsObjectFrame::GetWindowOriginInPixels(PRBool aWindowless)
   
   
   if (aWindowless && parentWithView) {
-    
-    
-    
-
-    nsIViewManager* parentVM = parentWithView->GetViewManager();
-
-    
-    
-    
-    nsIView* theView = parentWithView;
-    while (theView && !theView->GetWidget()) {
-      if (theView->GetViewManager() != parentVM)
-        break;
-
-      origin += theView->GetPosition();
-      theView = theView->GetParent();
-    }  
+    nsPoint offsetToWidget;
+    parentWithView->GetNearestWidget(&offsetToWidget);
+    origin += offsetToWidget;
   }
 
   return nsIntPoint(PresContext()->AppUnitsToDevPixels(origin.x),
