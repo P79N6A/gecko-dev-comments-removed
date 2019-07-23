@@ -556,9 +556,14 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
                                      aDialog, uriToLoadIsChrome,
                                      !aParent || chromeParent);
 
-  if ((chromeFlags & nsIWebBrowserChrome::CHROME_MODAL) &&
-      !(chromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME)) {
+  
+  
+  
+  if (!aCalledFromJS && argv &&
+      WinHasOption(features.get(), "-moz-internal-modal", 0, nsnull)) {
     windowIsModalContentDialog = PR_TRUE;
+
+    chromeFlags |= nsIWebBrowserChrome::CHROME_MODAL;
   }
 
   SizeSpec sizeSpec;
@@ -1541,7 +1546,8 @@ PRUint32 nsWindowWatcher::CalculateChromeFlags(const char *aFeatures,
 
 
     if (!aChromeURL)
-      chromeFlags &= ~nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
+      chromeFlags &= ~(nsIWebBrowserChrome::CHROME_MODAL |
+                       nsIWebBrowserChrome::CHROME_OPENAS_CHROME);
   }
 
   if (!(chromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME)) {
