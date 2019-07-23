@@ -113,11 +113,15 @@ enum CABISlot {
 };
 
 enum CTypeProtoSlot {
-  SLOT_POINTERPROTO = 0, 
-  SLOT_ARRAYPROTO   = 1, 
-  SLOT_STRUCTPROTO  = 2, 
-  SLOT_INT64PROTO   = 3, 
-  SLOT_UINT64PROTO  = 4, 
+  SLOT_POINTERPROTO     = 0, 
+  SLOT_ARRAYPROTO       = 1, 
+  SLOT_STRUCTPROTO      = 2, 
+  SLOT_CDATAPROTO       = 3, 
+  SLOT_POINTERDATAPROTO = 4, 
+  SLOT_ARRAYDATAPROTO   = 5, 
+  SLOT_STRUCTDATAPROTO  = 6, 
+  SLOT_INT64PROTO       = 7, 
+  SLOT_UINT64PROTO      = 8, 
   CTYPEPROTO_SLOTS
 };
 
@@ -146,6 +150,11 @@ enum CDataSlot {
   CDATA_SLOTS
 };
 
+enum TypeCtorSlot {
+  SLOT_FN_CTORPROTO = 0 
+  
+};
+
 enum Int64Slot {
   SLOT_INT64 = 0, 
   INT64_SLOTS
@@ -158,8 +167,8 @@ enum Int64FunctionSlot {
 
 class CType {
 public:
-  static JSObject* Create(JSContext* cx, JSObject* proto, TypeCode type, JSString* name, jsval size, jsval align, ffi_type* ffiType, JSFunctionSpec* fs, PropertySpec* ps);
-  static JSObject* DefineBuiltin(JSContext* cx, JSObject* parent, const char* propName, JSObject* proto, const char* name, TypeCode type, jsval size, jsval align, ffi_type* ffiType);
+  static JSObject* Create(JSContext* cx, JSObject* typeProto, JSObject* dataProto, TypeCode type, JSString* name, jsval size, jsval align, ffi_type* ffiType, PropertySpec* ps);
+  static JSObject* DefineBuiltin(JSContext* cx, JSObject* parent, const char* propName, JSObject* typeProto, JSObject* dataProto, const char* name, TypeCode type, jsval size, jsval align, ffi_type* ffiType);
   static void Finalize(JSContext* cx, JSObject* obj);
 
   static JSBool ConstructAbstract(JSContext* cx, JSObject* obj, uintN argc, jsval* argv, jsval* rval);
@@ -175,7 +184,7 @@ public:
   static size_t GetAlignment(JSContext* cx, JSObject* obj);
   static ffi_type* GetFFIType(JSContext* cx, JSObject* obj);
   static JSString* GetName(JSContext* cx, JSObject* obj);
-  static JSObject* GetProtoFromCtor(JSContext* cx, JSObject* obj);
+  static JSObject* GetProtoFromCtor(JSContext* cx, JSObject* obj, CTypeProtoSlot slot);
   static JSObject* GetProtoFromType(JSContext* cx, JSObject* obj, CTypeProtoSlot slot);
 
   static JSBool PrototypeGetter(JSContext* cx, JSObject* obj, jsval idval, jsval* vp);
@@ -185,6 +194,7 @@ public:
   static JSBool Array(JSContext* cx, uintN argc, jsval* vp);
   static JSBool ToString(JSContext* cx, uintN argc, jsval* vp);
   static JSBool ToSource(JSContext* cx, uintN argc, jsval* vp);
+  static JSBool HasInstance(JSContext* cx, JSObject* obj, jsval v, JSBool* bp);
 };
 
 class PointerType {
