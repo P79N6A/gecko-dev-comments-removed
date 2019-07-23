@@ -1994,28 +1994,6 @@ _cairo_pattern_get_extents (cairo_pattern_t         *pattern,
 	x2 = x1 + surface_extents.width;
 	y2 = y1 + surface_extents.height;
 
-	
-
-
-
-
-	switch (pattern->filter) {
-	case CAIRO_FILTER_GOOD:
-	case CAIRO_FILTER_BEST:
-	case CAIRO_FILTER_BILINEAR:
-	    x1 -= 0.5;
-	    y1 -= 0.5;
-	    x2 += 0.5;
-	    y2 += 0.5;
-	    break;
-	case CAIRO_FILTER_FAST:
-	case CAIRO_FILTER_NEAREST:
-	case CAIRO_FILTER_GAUSSIAN:
-	default:
-	    
-	    break;
-	}
-
 	imatrix = pattern->matrix;
 	status = cairo_matrix_invert (&imatrix);
 	
