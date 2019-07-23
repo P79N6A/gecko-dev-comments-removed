@@ -67,21 +67,6 @@ public:
 
 
 
-
-
-
-
-
-  nsresult SubmitTo(nsIURI* aActionURI, const nsAString& aTarget,
-                    nsIContent* aSource, nsILinkHandler* aLinkHandler,
-                    nsIDocShell** aDocShell, nsIRequest** aRequest);
-
-  
-
-
-
-
-
   virtual nsresult AddNameValuePair(const nsAString& aName,
                                     const nsAString& aValue) = 0;
 
@@ -97,6 +82,16 @@ public:
   
 
 
+
+
+
+
+  virtual nsresult GetEncodedSubmission(nsIURI* aURI,
+                                        nsIInputStream** aPostDataStream) = 0;
+
+  
+
+
   void GetCharset(nsACString& aCharset)
   {
     aCharset = mCharset;
@@ -109,21 +104,8 @@ protected:
 
 
 
-
-
   nsFormSubmission(const nsACString& aCharset,
-                   nsISaveAsCharset* aEncoder,
                    PRInt32 aBidiOptions);
-
-  
-
-
-
-
-
-
-  NS_IMETHOD GetEncodedSubmission(nsIURI* aURI,
-                                  nsIInputStream** aPostDataStream) = 0;
 
   
 
@@ -141,8 +123,7 @@ protected:
 
 
 
-  nsresult UnicodeToNewBytes(const nsAString& aStr, nsISaveAsCharset* aEncoder,
-                             nsACString& aOut);
+  nsresult UnicodeToNewBytes(const nsAString& aStr, nsACString& aOut);
 
   
   nsCString mCharset;
