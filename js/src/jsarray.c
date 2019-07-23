@@ -2111,6 +2111,6 @@ js_NewArrayObject(JSContext *cx, jsuint length, jsval *vector)
     JS_POP_TEMP_ROOT(cx, &tvr);
 
     
-    cx->weakRoots.newborn[GCX_OBJECT] = (JSGCThing *) obj;
+    cx->weakRoots.newborn[GCX_OBJECT] = obj;
     return obj;
 }
