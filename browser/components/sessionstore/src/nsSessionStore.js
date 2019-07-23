@@ -144,7 +144,8 @@ SessionStoreService.prototype = {
   _windows: {},
 
   
-  _lastWindowClosed: null,
+  
+  _lastClosedWindows: null,
 
   
   _dirtyWindows: {},
@@ -296,7 +297,7 @@ SessionStoreService.prototype = {
           delete aBrowser.parentNode.__SS_data;
         });
       });
-      this._lastWindowClosed = null;
+      this._lastClosedWindows = null;
       this._clearDisk();
       
       for (ix in this._windows) {
@@ -404,6 +405,8 @@ SessionStoreService.prototype = {
 
     
     this._windows[aWindow.__SSi] = { tabs: [], selected: 0, _closedTabs: [] };
+    if (!aWindow.toolbar.visible)
+      this._windows[aWindow.__SSi].isPopup = true;
     
     
     if (this._loadState == STATE_STOPPED) {
@@ -472,9 +475,16 @@ SessionStoreService.prototype = {
       this._collectWindowData(aWindow);
       
       
-      this._lastWindowClosed = this._windows[aWindow.__SSi];
-      this._lastWindowClosed.title = aWindow.content.document.title;
-      this._updateCookies([this._lastWindowClosed]);
+      var winData = this._windows[aWindow.__SSi];
+      winData.title = aWindow.content.document.title;
+      
+      
+      if (!this._lastClosedWindows || !winData.isPopup)
+        this._lastClosedWindows = [winData];
+      else
+        this._lastClosedWindows.push(winData);
+      
+      this._updateCookies(this._lastClosedWindows);
       
       
       delete this._windows[aWindow.__SSi];
@@ -488,7 +498,7 @@ SessionStoreService.prototype = {
     }
     
     
-    aWindow.__SS_dyingCache = this._windows[aWindow.__SSi] || this._lastWindowClosed;
+    aWindow.__SS_dyingCache = this._windows[aWindow.__SSi] || winData;
     
     
     
@@ -1298,16 +1308,21 @@ SessionStoreService.prototype = {
     
     
     var total = [], windows = [];
+    var nonPopupCount = 0;
     var ix;
     for (ix in this._windows) {
       total.push(this._windows[ix]);
       windows.push(ix);
+      if (!this._windows[ix].isPopup)
+        nonPopupCount++;
     }
     this._updateCookies(total);
     
     
-    if (total.length == 0 && this._lastWindowClosed) {
-      total.push(this._lastWindowClosed);
+    if (nonPopupCount == 0 && this._lastClosedWindows) {
+      
+      
+      total = this._lastClosedWindows.concat(total);
     }
     if (activeWindow) {
       this.activeWindowSSiCache = activeWindow.__SSi || "";
@@ -1760,6 +1775,11 @@ SessionStoreService.prototype = {
     WINDOW_HIDEABLE_FEATURES.forEach(function(aItem) {
       aWindow[aItem].visible = hidden.indexOf(aItem) == -1;
     });
+    
+    if (aWinData.isPopup)
+      this._windows[aWindow.__SSi].isPopup = true;
+    else
+      delete this._windows[aWindow.__SSi].isPopup;
     
     var _this = this;
     aWindow.setTimeout(function() {
