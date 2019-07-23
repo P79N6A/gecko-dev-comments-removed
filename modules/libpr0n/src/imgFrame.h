@@ -172,6 +172,8 @@ private:
   PRPackedBool mNeverUseDeviceSurface;
   PRPackedBool mFormatChanged;
   PRPackedBool mCompositingFailed;
+  
+  PRPackedBool mLocked;
 
 #ifdef XP_WIN
   PRPackedBool mIsDDBSurface;

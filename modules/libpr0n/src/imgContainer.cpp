@@ -668,6 +668,10 @@ nsresult imgContainer::InternalAddFrameHelper(PRUint32 framenum, imgFrame *aFram
 
   frame->GetImageData(imageData, imageLength);
 
+  
+  
+  frame->LockImageData();
+
   mFrames.InsertElementAt(framenum, frame.forget());
 
   return NS_OK;
@@ -683,6 +687,11 @@ nsresult imgContainer::InternalAddFrame(PRUint32 framenum,
                                         PRUint32 **paletteData,
                                         PRUint32 *paletteLength)
 {
+  
+  
+  
+  NS_ABORT_IF_FALSE(mInDecoder, "Only decoders may add frames!");
+
   NS_ABORT_IF_FALSE(framenum <= mFrames.Length(), "Invalid frame index!");
   if (framenum > mFrames.Length())
     return NS_ERROR_INVALID_ARG;
@@ -692,6 +701,13 @@ nsresult imgContainer::InternalAddFrame(PRUint32 framenum,
 
   nsresult rv = frame->Init(aX, aY, aWidth, aHeight, aFormat, aPaletteDepth);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  if (mFrames.Length() > 0) {
+    imgFrame *prevframe = mFrames.ElementAt(mFrames.Length() - 1);
+    prevframe->UnlockImageData();
+  }
 
   if (mFrames.Length() == 0) {
     return InternalAddFrameHelper(framenum, frame.forget(), imageData, imageLength, 
@@ -2190,9 +2206,27 @@ imgContainer::WriteToDecoder(const char *aBuffer, PRUint32 aCount)
   NS_ABORT_IF_FALSE(mDecoder, "Trying to write to null decoder!");
 
   
+  
+  
+  
+  
+  if (mFrames.Length() > 0) {
+    imgFrame *curframe = mFrames.ElementAt(mFrames.Length() - 1);
+    curframe->LockImageData();
+  }
+
+  
   mInDecoder = PR_TRUE;
   nsresult rv = mDecoder->Write(aBuffer, aCount);
   mInDecoder = PR_FALSE;
+
+  
+  
+  if (mFrames.Length() > 0) {
+    imgFrame *curframe = mFrames.ElementAt(mFrames.Length() - 1);
+    curframe->UnlockImageData();
+  }
+
   CONTAINER_ENSURE_SUCCESS(rv);
 
   
