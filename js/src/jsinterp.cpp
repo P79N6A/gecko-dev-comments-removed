@@ -1146,26 +1146,6 @@ js_Invoke(JSContext *cx, uintN argc, jsval *vp, uintN flags)
         
         ops = funobj->map->ops;
 
-        
-
-
-
-
-
-
-        if ((ops == &js_ObjectOps) ? clasp->call : ops->call) {
-            ok = clasp->convert(cx, funobj, JSTYPE_FUNCTION, &v);
-            if (!ok)
-                goto out2;
-
-            if (VALUE_IS_FUNCTION(cx, v)) {
-                
-                *vp = v;
-                funobj = JSVAL_TO_OBJECT(v);
-                parent = OBJ_GET_PARENT(cx, funobj);
-                goto have_fun;
-            }
-        }
         fun = NULL;
         script = NULL;
         nslots = 0;
