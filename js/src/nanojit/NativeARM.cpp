@@ -505,7 +505,10 @@ Assembler::nFragExit(LInsp guard)
         
         
 
-        GuardRecord *   gr = guard->record();
+        GuardRecord *gr = guard->record();
+
+        if (!_epilogue)
+            _epilogue = genEpilogue();
 
         
         
@@ -548,13 +551,6 @@ Assembler::genEpilogue()
     RegisterMask savingMask = rmask(FP) | rmask(PC);
 
     POP_mask(savingMask); 
-
-    
-    
-    
-    
-    
-    MOV(SP,FP);
 
     
     
@@ -2360,9 +2356,11 @@ Assembler::asm_int(LInsp ins)
 void
 Assembler::asm_ret(LIns *ins)
 {
-    if (_nIns != _epilogue) {
-        B(_epilogue);
-    }
+    genEpilogue();
+
+    
+    MOV(SP,FP);
+
     assignSavedRegs();
     LIns *value = ins->oprnd1();
     if (ins->isop(LIR_ret)) {

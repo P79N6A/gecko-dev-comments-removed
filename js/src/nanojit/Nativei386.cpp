@@ -83,6 +83,9 @@ namespace nanojit
         OSDep::getDate();
     }
 
+    void Assembler::nBeginAssembly() {
+    }
+
     NIns* Assembler::genPrologue()
     {
         
@@ -119,12 +122,15 @@ namespace nanojit
         Fragment *frag = exit->target;
         GuardRecord *lr = 0;
         bool destKnown = (frag && frag->fragEntry);
+
         
         
         if (guard->isop(LIR_xtbl)) {
             lr = guard->record();
             Register r = EDX;
             SwitchInfo* si = guard->record()->exit->switchInfo;
+            if (!_epilogue)
+                _epilogue = genEpilogue();
             emitJumpTable(si, _epilogue);
             JMP_indirect(r);
             LEAmi4(r, si->table, r);
@@ -134,6 +140,8 @@ namespace nanojit
                 JMP(frag->fragEntry);
                 lr = 0;
             } else {  
+                if (!_epilogue)
+                    _epilogue = genEpilogue();
                 lr = guard->record();
                 JMP_long(_epilogue);
                 lr->jmp = _nIns;
@@ -150,9 +158,8 @@ namespace nanojit
     NIns *Assembler::genEpilogue()
     {
         RET();
-
         POPr(FP); 
-        MR(SP,FP); 
+
         return  _nIns;
     }
 
@@ -1670,9 +1677,11 @@ namespace nanojit
 
     void Assembler::asm_ret(LInsp ins)
     {
-        if (_nIns != _epilogue) {
-            JMP(_epilogue);
-        }
+        genEpilogue();
+
+        
+        MR(SP,FP);
+
         assignSavedRegs();
         LIns *val = ins->oprnd1();
         if (ins->isop(LIR_ret)) {
@@ -1687,8 +1696,6 @@ namespace nanojit
         
         TODO(asm_promote);
     }
-
-
 
     #endif 
 }
