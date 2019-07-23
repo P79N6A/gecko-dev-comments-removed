@@ -11,6 +11,11 @@
 }
 
 #clientBox {
+  
+
+
+
+  min-width: 300px;
   background-image: url("chrome://branding/content/about.png");
   background-repeat: no-repeat;
   background-color: #FFFFFF;
