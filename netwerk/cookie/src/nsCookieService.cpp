@@ -473,7 +473,7 @@ nsCookieService::InitDB()
         NS_ENSURE_SUCCESS(rv, rv);
 
         
-        dbSchemaVersion = PR_UINT32_MAX;
+        dbSchemaVersion = PR_INT32_MAX;
       }
     }
 
