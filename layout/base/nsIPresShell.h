@@ -103,8 +103,8 @@ typedef PRUint32 nsFrameState;
 
 
 #define NS_IPRESSHELL_IID \
-{ 0x780d34b0, 0xc3, 0x4bbd, \
-  { 0xb5, 0x7d, 0xc6, 0x0, 0xaa, 0xf5, 0x36, 0x13 } }
+{ 0xb86c23c5, 0x602d, 0x4ca6, \
+  { 0xa9, 0x68, 0x37, 0x9b, 0x24, 0x4f, 0xed, 0x9e } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -771,15 +771,6 @@ public:
 #ifdef NS_DEBUG
   nsIFrame* GetDrawEventTargetFrame() { return mDrawEventTargetFrame; }
 #endif
-
-  
-
-
-
-
-
-
-  NS_IMETHOD DisableNonTestMouseEvents(PRBool aDisable) = 0;
 
 protected:
   
