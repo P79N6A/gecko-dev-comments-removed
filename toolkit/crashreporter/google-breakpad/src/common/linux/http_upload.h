@@ -53,13 +53,16 @@ class HTTPUpload {
   
   
   
+  
+  
   static bool SendRequest(const string &url,
                           const map<string, string> &parameters,
                           const string &upload_file,
                           const string &file_part_name,
                           const string &proxy,
                           const string &proxy_user_pwd,
-                          string *response_body);
+                          string *response_body,
+                          string *error_description);
 
  private:
   

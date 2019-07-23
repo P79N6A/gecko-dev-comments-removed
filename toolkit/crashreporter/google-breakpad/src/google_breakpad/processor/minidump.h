@@ -175,8 +175,9 @@ class MinidumpContext : public MinidumpStream {
   
   
   
-  const MDRawContextX86* GetContextX86() const;
-  const MDRawContextPPC* GetContextPPC() const;
+  const MDRawContextX86*   GetContextX86() const;
+  const MDRawContextPPC*   GetContextPPC() const;
+  const MDRawContextAMD64* GetContextAMD64() const;
   const MDRawContextSPARC* GetContextSPARC() const;
  
   
@@ -201,10 +202,14 @@ class MinidumpContext : public MinidumpStream {
   bool CheckAgainstSystemInfo(u_int32_t context_cpu_type);
 
   
+  u_int32_t context_flags_;
+
+  
   union {
-    MDRawContextBase* base;
-    MDRawContextX86*  x86;
-    MDRawContextPPC*  ppc;
+    MDRawContextBase*  base;
+    MDRawContextX86*   x86;
+    MDRawContextPPC*   ppc;
+    MDRawContextAMD64* amd64;
     
     
     MDRawContextSPARC*  ctx_sparc;
@@ -450,6 +455,11 @@ class MinidumpModule : public MinidumpObject,
   
   
   bool              module_valid_;
+
+  
+  
+  
+  bool              has_debug_info_;
 
   MDRawModule       module_;
 

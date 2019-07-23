@@ -175,6 +175,12 @@ class ExceptionHandler {
   
   DWORD get_requesting_thread_id() const { return requesting_thread_id_; }
 
+  
+  bool get_handle_debug_exceptions() const { return handle_debug_exceptions_; }
+  void set_handle_debug_exceptions(bool handle_debug_exceptions) {
+    handle_debug_exceptions_ = handle_debug_exceptions;
+  }
+
  private:
   friend class AutoExceptionHandler;
 
@@ -321,6 +327,11 @@ class ExceptionHandler {
   
   
   bool handler_return_value_;
+
+  
+  
+  
+  bool handle_debug_exceptions_;
 
   
   

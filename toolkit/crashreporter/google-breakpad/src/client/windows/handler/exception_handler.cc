@@ -72,7 +72,8 @@ ExceptionHandler::ExceptionHandler(const wstring &dump_path,
       requesting_thread_id_(0),
       exception_info_(NULL),
       assertion_(NULL),
-      handler_return_value_(false) {
+      handler_return_value_(false),
+      handle_debug_exceptions_(false) {
 #if _MSC_VER >= 1400  
   previous_iph_ = NULL;
 #endif  
@@ -275,9 +276,12 @@ LONG ExceptionHandler::HandleException(EXCEPTION_POINTERS *exinfo) {
   
   
   
+  
   DWORD code = exinfo->ExceptionRecord->ExceptionCode;
   LONG action;
-  if (code != EXCEPTION_BREAKPOINT && code != EXCEPTION_SINGLE_STEP &&
+  bool is_debug_exception = (code == EXCEPTION_BREAKPOINT) ||
+                            (code == EXCEPTION_SINGLE_STEP);
+  if ((!is_debug_exception || current_handler->get_handle_debug_exceptions()) &&
       current_handler->WriteMinidumpOnHandlerThread(exinfo, NULL)) {
     
     
