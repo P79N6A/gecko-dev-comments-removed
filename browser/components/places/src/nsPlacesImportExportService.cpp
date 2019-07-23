@@ -90,6 +90,7 @@
 
 
 
+
 #include "nsPlacesImportExportService.h"
 #include "nsNetUtil.h"
 #include "nsParserCIID.h"
@@ -104,6 +105,8 @@
 #include "prprf.h"
 #include "nsVoidArray.h"
 #include "nsIBrowserGlue.h"
+#include "nsIObserverService.h"
+#include "nsISupportsPrimitives.h"
 
 static NS_DEFINE_CID(kParserCID, NS_PARSER_CID);
 
@@ -131,6 +134,14 @@ static NS_DEFINE_CID(kParserCID, NS_PARSER_CID);
 #define STATIC_TITLE_ANNO NS_LITERAL_CSTRING("bookmarks/staticTitle")
 
 #define BOOKMARKS_MENU_ICON_URI "chrome://browser/skin/places/bookmarksMenu.png"
+
+
+
+#define RESTORE_BEGIN_NSIOBSERVER_TOPIC "bookmarks-restore-begin"
+#define RESTORE_SUCCESS_NSIOBSERVER_TOPIC "bookmarks-restore-success"
+#define RESTORE_FAILED_NSIOBSERVER_TOPIC "bookmarks-restore-failed"
+#define RESTORE_NSIOBSERVER_DATA NS_LITERAL_STRING("html")
+#define RESTORE_INITIAL_NSIOBSERVER_DATA NS_LITERAL_STRING("html-initial")
 
 
 
@@ -2168,11 +2179,65 @@ nsPlacesImportExportService::WriteContainerContents(nsINavHistoryResultNode* aFo
 
 
 
+
+
+
+static void
+NotifyImportObservers(const char* aTopic,
+                      PRInt64 aFolderId,
+                      PRBool aIsInitialImport)
+{
+  nsresult rv;
+  nsCOMPtr<nsIObserverService> obs =
+    do_GetService(NS_OBSERVERSERVICE_CONTRACTID, &rv);
+  if (NS_FAILED(rv))
+    return;
+
+  nsCOMPtr<nsISupports> folderIdSupp = nsnull;
+  if (aFolderId > 0) {
+    nsCOMPtr<nsISupportsPRInt64> folderIdInt =
+      do_CreateInstance(NS_SUPPORTS_PRINT64_CONTRACTID, &rv);
+    if (NS_FAILED(rv))
+      return;
+
+    rv = folderIdInt->SetData(aFolderId);
+    if (NS_FAILED(rv))
+      return;
+
+    folderIdSupp = do_QueryInterface(folderIdInt);
+  }
+
+  obs->NotifyObservers(folderIdSupp,
+                       aTopic,
+                       (aIsInitialImport ? RESTORE_INITIAL_NSIOBSERVER_DATA :
+                                           RESTORE_NSIOBSERVER_DATA).get());
+}
+
+
+
 NS_IMETHODIMP
 nsPlacesImportExportService::ImportHTMLFromFile(nsILocalFile* aFile, PRBool aIsInitialImport)
 {
+  NotifyImportObservers(RESTORE_BEGIN_NSIOBSERVER_TOPIC, -1, aIsInitialImport);
+
   
-  return ImportHTMLFromFileInternal(aFile, PR_FALSE, 0, aIsInitialImport);
+  nsresult rv = ImportHTMLFromFileInternal(aFile,
+                                           PR_FALSE,
+                                           0,
+                                           aIsInitialImport);
+
+  if (NS_FAILED(rv)) {
+    NotifyImportObservers(RESTORE_FAILED_NSIOBSERVER_TOPIC,
+                          -1,
+                          aIsInitialImport);
+  }
+  else {
+    NotifyImportObservers(RESTORE_SUCCESS_NSIOBSERVER_TOPIC,
+                          -1,
+                          aIsInitialImport);
+  }
+
+  return rv;
 }
 
 
@@ -2180,8 +2245,28 @@ nsPlacesImportExportService::ImportHTMLFromFile(nsILocalFile* aFile, PRBool aIsI
 NS_IMETHODIMP
 nsPlacesImportExportService::ImportHTMLFromFileToFolder(nsILocalFile* aFile, PRInt64 aFolderId, PRBool aIsInitialImport)
 {
+  NotifyImportObservers(RESTORE_BEGIN_NSIOBSERVER_TOPIC,
+                        aFolderId,
+                        aIsInitialImport);
+
   
-  return ImportHTMLFromFileInternal(aFile, PR_FALSE, aFolderId, aIsInitialImport);
+  nsresult rv = ImportHTMLFromFileInternal(aFile,
+                                           PR_FALSE,
+                                           aFolderId,
+                                           aIsInitialImport);
+
+  if (NS_FAILED(rv)) {
+    NotifyImportObservers(RESTORE_FAILED_NSIOBSERVER_TOPIC,
+                          aFolderId,
+                          aIsInitialImport);
+  }
+  else {
+    NotifyImportObservers(RESTORE_SUCCESS_NSIOBSERVER_TOPIC,
+                          aFolderId,
+                          aIsInitialImport);
+  }
+
+  return rv;
 }
 
 nsresult
