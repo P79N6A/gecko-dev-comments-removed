@@ -546,70 +546,6 @@ class nsTArray : public nsTArray_base {
     
     
     
-    
-    
-    
-    
-    
-    template<class Item, class Comparator>
-    PRBool
-    GreatestIndexLtEq(const Item& item,
-                      const Comparator& comp,
-                      index_type* idx NS_OUTPARAM) const {
-      
-      
-      
-
-      
-      index_type low = 0, high = Length();
-      while (high > low) {
-        index_type mid = (high + low) >> 1;
-        if (comp.Equals(ElementAt(mid), item)) {
-          
-          
-          
-          
-          do {
-            --mid;
-          } while (NoIndex != mid && comp.Equals(ElementAt(mid), item));
-          *idx = ++mid;
-          return PR_TRUE;
-        }
-        if (comp.LessThan(ElementAt(mid), item))
-          
-          low = mid + 1;
-        else
-          
-          high = mid;
-      }
-      
-      
-      
-      *idx = high;
-      return PR_FALSE;
-    }
-
-    
-    
-    
-    template<class Item, class Comparator>
-    elem_type *InsertElementSorted(const Item& item, const Comparator& comp) {
-      index_type index;
-      GreatestIndexLtEq(item, comp, &index);
-      return InsertElementAt(index, item);
-    }
-
-    
-    template<class Item>
-    elem_type *InsertElementSorted(const Item& item) {
-      return InsertElementSorted(item, nsDefaultComparator<elem_type, Item>());
-    }
-
-    
-    
-    
-    
-    
     template<class Item>
     elem_type *AppendElements(const Item* array, size_type arrayLen) {
       if (!EnsureCapacity(Length() + arrayLen, sizeof(elem_type)))
@@ -694,27 +630,6 @@ class nsTArray : public nsTArray_base {
     template<class Item>
     PRBool RemoveElement(const Item& item) {
       return RemoveElement(item, nsDefaultComparator<elem_type, Item>());
-    }
-
-    
-    
-    
-    
-    
-    
-    template<class Item, class Comparator>
-    PRBool RemoveElementSorted(const Item& item, const Comparator& comp) {
-      index_type index;
-      PRBool found = GreatestIndexLtEq(item, comp, &index);
-      if (found)
-        RemoveElementAt(index);
-      return found;
-    }
-
-    
-    template<class Item>
-    PRBool RemoveElementSorted(const Item& item) {
-      return RemoveElementSorted(item, nsDefaultComparator<elem_type, Item>());
     }
 
     
