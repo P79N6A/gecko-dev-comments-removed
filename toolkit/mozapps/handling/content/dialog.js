@@ -123,6 +123,17 @@ var dialog = {
       let elm = document.createElement("richlistitem");
       elm.setAttribute("type", "handler");
       elm.setAttribute("name", app.name);
+      try {
+        
+        app = app.QueryInterface(Ci.nsILocalHandlerApp);
+        let uri = Cc["@mozilla.org/network/util;1"].
+                  getService(Ci.nsIIOService).
+                  newFileURI(app.executable);
+        elm.setAttribute("image", "moz-icon://" + uri.spec + "?size=32");
+      } catch (e) {
+        
+        
+      }
       elm.obj = app;
 
       document.getElementById("items").insertBefore(elm, this._itemChoose);
