@@ -1246,8 +1246,18 @@ nsGenericHTMLElement::FindForm(nsIForm* aCurrentForm)
     
     if (content->Tag() == nsGkAtoms::form &&
         content->IsNodeOfType(nsINode::eHTML)) {
-      NS_ASSERTION(nsContentUtils::IsInSameAnonymousTree(this, content),
-                   "Walked too far?");
+#ifdef DEBUG
+      if (!nsContentUtils::IsInSameAnonymousTree(this, content)) {
+        
+        
+        
+        for (nsIContent* child = this; child != content;
+             child = child->GetParent()) {
+          NS_ASSERTION(child->GetParent()->IndexOf(child) != -1,
+                       "Walked too far?");
+        }
+      }
+#endif
       nsIDOMHTMLFormElement* form;
       CallQueryInterface(content, &form);
 
