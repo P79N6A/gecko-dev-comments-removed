@@ -1337,12 +1337,6 @@ nsTextControlFrame::CalcIntrinsicSize(nsIRenderingContext* aRenderingContext,
   } else {
     
     
-    if (PresContext()->CompatibilityMode() == eCompatibility_FullStandards) {
-      aIntrinsicSize.width += 1;
-    }
-
-    
-    
     
     nsMargin childPadding;
     if (GetFirstChild(nsnull)->GetStylePadding()->GetPadding(childPadding)) {
