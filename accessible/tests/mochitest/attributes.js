@@ -12,22 +12,19 @@
 
 function testAttrs(aAccOrElmOrID, aAttrs, aSkipUnexpectedAttrs)
 {
-  var accessible = getAccessible(aAccOrElmOrID);
-  if (!accessible)
-    return;
+  testAttrsInternal(aAccOrElmOrID, aAttrs, aSkipUnexpectedAttrs);
+}
 
-  var attrs = null;
-  try {
-    attrs = accessible.attributes;
-  } catch (e) { }
-  
-  if (!attrs) {
-    ok(false, "Can't get object attributes for " + aAccOrElmOrID);
-    return;
-  }
-  
-  var errorMsg = " for " + aAccOrElmOrID;
-  compareAttrs(errorMsg, attrs, aAttrs, aSkipUnexpectedAttrs);
+
+
+
+
+
+
+
+function testAbsentAttrs(aAccOrElmOrID, aAbsentAttrs, aSkipUnexpectedAttrs)
+{
+  testAttrsInternal(aAccOrElmOrID, {}, true, aAbsentAttrs);
 }
 
 
@@ -169,7 +166,29 @@ function getTextAttributes(aID, aAccessible, aIncludeDefAttrs, aOffset,
   return null;
 }
 
-function compareAttrs(aErrorMsg, aAttrs, aExpectedAttrs, aSkipUnexpectedAttrs)
+function testAttrsInternal(aAccOrElmOrID, aAttrs, aSkipUnexpectedAttrs,
+                   aAbsentAttrs)
+{
+  var accessible = getAccessible(aAccOrElmOrID);
+  if (!accessible)
+    return;
+
+  var attrs = null;
+  try {
+    attrs = accessible.attributes;
+  } catch (e) { }
+  
+  if (!attrs) {
+    ok(false, "Can't get object attributes for " + aAccOrElmOrID);
+    return;
+  }
+  
+  var errorMsg = " for " + aAccOrElmOrID;
+  compareAttrs(errorMsg, attrs, aAttrs, aSkipUnexpectedAttrs, aAbsentAttrs);
+}
+
+function compareAttrs(aErrorMsg, aAttrs, aExpectedAttrs, aSkipUnexpectedAttrs,
+                      aAbsentAttrs)
 {
   var enumerate = aAttrs.enumerate();
   while (enumerate.hasMoreElements()) {
@@ -200,4 +219,19 @@ function compareAttrs(aErrorMsg, aAttrs, aExpectedAttrs, aSkipUnexpectedAttrs)
       ok(false,
          "There is no expected attribute '" + name + "' " + aErrorMsg);
   }
+
+  if (aAbsentAttrs)
+    for (var name in aAbsentAttrs) {
+      var value = "";
+      try {
+        value = aAttrs.getStringProperty(name);
+      } catch(e) { }
+
+      if (value)
+        ok(false,
+           "There is an unexpected attribute '" + name + "' " + aErrorMsg);
+      else
+        ok(true,
+           "There is no unexpected attribute '" + name + "' " + aErrorMsg);
+    }
 }
