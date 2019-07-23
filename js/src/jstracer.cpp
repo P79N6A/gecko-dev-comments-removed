@@ -3300,9 +3300,9 @@ GetFromClosure(JSContext* cx, JSObject* call, const ClosureVarInfo* cv, double* 
             
             
             
+            
             JS_NOT_REACHED("JSOP_NAME variable found in outer trace");
         }
-        stackOffset -= fi->callerHeight;
     }
 #endif
 
