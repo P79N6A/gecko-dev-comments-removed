@@ -12864,6 +12864,12 @@ static PRUnichar const NAME_2136[] = {
 static PRUnichar const VALUE_2136[] = {
   0x200c
 };
+
+
+#ifdef _MSC_VER
+#pragma optimize("", off)
+#endif
+
 void
 nsHtml5NamedCharacters::initializeStatics()
 {
@@ -17150,10 +17156,13 @@ nsHtml5NamedCharacters::initializeStatics()
   }
 }
 
+#ifdef _MSC_VER
+#pragma optimize("", on)
+#endif
+
 void
 nsHtml5NamedCharacters::releaseStatics()
 {
   NAMES.release();
   delete[] VALUES;
 }
-
