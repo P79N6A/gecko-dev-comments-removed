@@ -138,6 +138,7 @@ private:
   PRInt64 mRoot;
   PRInt64 mBookmarksRoot;
   PRInt64 mTagRoot;
+  PRInt64 mUnfiledRoot;
 
   
   PRInt64 mToolbarFolder;

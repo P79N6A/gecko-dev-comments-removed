@@ -1454,6 +1454,13 @@ var PlacesUtils = {
     return this._tagRootId;
   },
 
+  get unfiledRootId() {
+    if (!("_unfiledRootId" in this))
+      this._unfiledRootId = this.bookmarks.unfiledRoot;
+
+    return this._unfiledRootId;
+  },
+
   
 
 
@@ -1504,8 +1511,9 @@ var PlacesUtils = {
     for each (var bk in bmkIds) {
       
       var parent = this.bookmarks.getFolderIdForItem(bk);
-      if (parent == this.placesRootId)
+      if (parent == this.unfiledRootId)
         return bk;
+
       var grandparent = this.bookmarks.getFolderIdForItem(parent);
       if (grandparent != this.tagRootId &&
           !this.annotations.itemHasAnnotation(parent, LMANNO_FEEDURI))

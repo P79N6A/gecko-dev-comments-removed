@@ -183,7 +183,7 @@ var PlacesCommandHook = {
       }
       catch (e) { }
 
-      var parent = aParent != undefined ? aParent : PlacesUtils.placesRootId;
+      var parent = aParent != undefined ? aParent : PlacesUtils.unfiledRootId;
       var descAnno = { name: DESCRIPTION_ANNO, value: description };
       var txn = PlacesUtils.ptm.createItem(uri, parent, -1,
                                            title, null, [descAnno]);
