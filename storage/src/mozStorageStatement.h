@@ -36,8 +36,9 @@
 
 
 
-#ifndef _MOZSTORAGESTATEMENT_H_
-#define _MOZSTORAGESTATEMENT_H_
+
+#ifndef _mozStorageStatement_h_
+#define _mozStorageStatement_h_
 
 #include "nsAutoPtr.h"
 #include "nsString.h"
@@ -46,29 +47,24 @@
 
 #include "mozIStorageStatement.h"
 
-#include <sqlite3.h>
-
 class nsIXPConnectJSObjectHolder;
+struct sqlite3_stmt;
 
 namespace mozilla {
 namespace storage {
 class StatementJSHelper;
 class Connection;
-} 
-} 
 
-class mozStorageStatement : public mozIStorageStatement
+class Statement : public mozIStorageStatement
 {
 public:
-    mozStorageStatement();
+  NS_DECL_ISUPPORTS
+  NS_DECL_MOZISTORAGESTATEMENT
+  NS_DECL_MOZISTORAGEVALUEARRAY
 
-    
-    NS_DECL_ISUPPORTS
-    NS_DECL_MOZISTORAGESTATEMENT
-    NS_DECL_MOZISTORAGEVALUEARRAY
+  Statement();
 
-    
-
+  
 
 
 
@@ -76,25 +72,25 @@ public:
 
 
 
-    nsresult Initialize(mozilla::storage::Connection *aDBConnection,
-                        const nsACString &aSQLStatement);
+
+  nsresult initialize(Connection *aDBConnection,
+                      const nsACString &aSQLStatement);
 
 
-    
+  
 
 
-    inline sqlite3_stmt *nativeStatement() { return mDBStatement; }
+  inline sqlite3_stmt *nativeStatement() { return mDBStatement; }
 
 private:
-    ~mozStorageStatement();
+    ~Statement();
 
-protected:
-    nsRefPtr<mozilla::storage::Connection> mDBConnection;
+    nsRefPtr<Connection> mDBConnection;
     sqlite3_stmt *mDBStatement;
     PRUint32 mParamCount;
     PRUint32 mResultColumnCount;
     nsTArray<nsCString> mColumnNames;
-    PRBool mExecuting;
+    bool mExecuting;
 
     
 
@@ -103,7 +99,10 @@ protected:
     nsCOMPtr<nsIXPConnectJSObjectHolder> mStatementParamsHolder;
     nsCOMPtr<nsIXPConnectJSObjectHolder> mStatementRowHolder;
 
-    friend class mozilla::storage::StatementJSHelper;
+    friend class StatementJSHelper;
 };
+
+} 
+} 
 
 #endif 
