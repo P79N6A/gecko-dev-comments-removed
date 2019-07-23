@@ -211,10 +211,6 @@
 
 
 
-#define MOZ_WM_APP_QUIT (WM_APP+0x0300)
-
-
-
 
 
 
@@ -282,6 +278,13 @@ LPFNLRESULTFROMOBJECT
                 nsWindow::sLresultFromObject      = 0;
 #endif 
 
+#ifdef MOZ_IPC
+
+const PRUnichar* kOOPPPluginFocusEventId   = L"OOPP Plugin Focus Widget Event";
+PRUint32        nsWindow::sOOPPPluginFocusEvent   =
+                  RegisterWindowMessageW(kOOPPPluginFocusEventId);
+#endif
+
 
 
 
@@ -329,7 +332,6 @@ static void UpdateLastInputEventTime() {
   if (is)
     is->IdleTimeWasModified();
 }
-
 
 
 
@@ -4605,6 +4607,15 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
       if (msg == nsAppShell::GetTaskbarButtonCreatedMessage())
         SetHasTaskbarIconBeenCreated();
+#endif
+#ifdef MOZ_IPC
+    if (msg == sOOPPPluginFocusEvent) {
+      
+      
+      
+      
+      ::SendMessage(mWnd, WM_MOUSEACTIVATE, 0, 0); 
+    } 
 #endif
     }
     break;

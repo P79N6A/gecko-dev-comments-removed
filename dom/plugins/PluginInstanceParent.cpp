@@ -48,6 +48,11 @@
 
 #if defined(OS_WIN)
 #include <windowsx.h>
+
+
+extern const PRUnichar* kOOPPPluginFocusEventId;
+UINT gOOPPPluginFocusEvent =
+    RegisterWindowMessage(kOOPPPluginFocusEventId);
 #endif
 
 using namespace mozilla::plugins;
@@ -55,10 +60,14 @@ using namespace mozilla::plugins;
 PluginInstanceParent::PluginInstanceParent(PluginModuleParent* parent,
                                            NPP npp,
                                            const NPNetscapeFuncs* npniface)
-  : mParent(parent),
-    mNPP(npp),
-    mNPNIface(npniface),
-    mWindowType(NPWindowTypeWindow)
+  : mParent(parent)
+    , mNPP(npp)
+    , mNPNIface(npniface)
+    , mWindowType(NPWindowTypeWindow)
+#if defined(OS_WIN)
+    , mPluginHWND(NULL)
+    , mPluginWndProc(NULL)
+#endif 
 {
 }
 
@@ -99,6 +108,7 @@ PluginInstanceParent::Destroy()
 
 #if defined(OS_WIN)
     SharedSurfaceRelease();
+    UnsubclassPluginWindow();
 #endif
 
     return retval;
@@ -360,6 +370,8 @@ PluginInstanceParent::NPP_SetWindow(const NPWindow* aWindow)
         }
     }
     else {
+        SubclassPluginWindow(reinterpret_cast<HWND>(aWindow->window));
+
         window.window = reinterpret_cast<unsigned long>(aWindow->window);
         window.x = aWindow->x;
         window.y = aWindow->y;
@@ -846,6 +858,86 @@ PluginInstanceParent::AnswerNPN_GetAuthenticationInfo(const nsCString& protocol,
 
 
 
+static const PRUnichar kPluginInstanceParentProperty[] =
+                         L"PluginInstanceParentProperty";
+
+
+LRESULT CALLBACK
+PluginInstanceParent::PluginWindowHookProc(HWND hWnd,
+                                           UINT message,
+                                           WPARAM wParam,
+                                           LPARAM lParam)
+{
+    PluginInstanceParent* self = reinterpret_cast<PluginInstanceParent*>(
+        ::GetPropW(hWnd, kPluginInstanceParentProperty));
+    if (!self) {
+        NS_NOTREACHED("PluginInstanceParent::PluginWindowHookProc null this ptr!");
+        return DefWindowProc(hWnd, message, wParam, lParam);
+    }
+
+    NS_ASSERTION(self->mPluginHWND == hWnd, "Wrong window!");
+
+    switch (message) {
+        case WM_SETFOCUS:
+        self->CallSetPluginFocus();
+        break;
+
+        case WM_CLOSE:
+        self->UnsubclassPluginWindow();
+        break;
+    }
+
+    return ::CallWindowProc(self->mPluginWndProc, hWnd, message, wParam,
+                            lParam);
+}
+
+void
+PluginInstanceParent::SubclassPluginWindow(HWND aWnd)
+{
+    NS_ASSERTION(!(mPluginHWND && aWnd != mPluginHWND),
+      "PluginInstanceParent::SubclassPluginWindow hwnd is not our window!");
+
+    if (!mPluginHWND) {
+        mPluginHWND = aWnd;
+        mPluginWndProc = 
+            (WNDPROC)::SetWindowLongPtrA(mPluginHWND, GWLP_WNDPROC,
+                         reinterpret_cast<LONG>(PluginWindowHookProc));
+        bool bRes = ::SetPropW(mPluginHWND, kPluginInstanceParentProperty, this);
+        NS_ASSERTION(mPluginWndProc,
+          "PluginInstanceParent::SubclassPluginWindow failed to set subclass!");
+        NS_ASSERTION(bRes,
+          "PluginInstanceParent::SubclassPluginWindow failed to set prop!");
+   }
+}
+
+void
+PluginInstanceParent::UnsubclassPluginWindow()
+{
+    if (mPluginHWND && mPluginWndProc) {
+        ::SetWindowLongPtrA(mPluginHWND, GWLP_WNDPROC,
+                            reinterpret_cast<LONG>(mPluginWndProc));
+
+        ::RemovePropW(mPluginHWND, kPluginInstanceParentProperty);
+
+        mPluginWndProc = NULL;
+        mPluginHWND = NULL;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -956,3 +1048,21 @@ PluginInstanceParent::SharedSurfaceAfterPaint(NPEvent* npevent)
 }
 
 #endif 
+
+bool
+PluginInstanceParent::AnswerPluginGotFocus()
+{
+    PLUGIN_LOG_DEBUG(("%s", FULLFUNCTION));
+
+    
+    
+    
+    
+#if defined(OS_WIN)
+    ::SendMessage(mPluginHWND, gOOPPPluginFocusEvent, 0, 0);
+    return true;
+#else
+    NS_NOTREACHED("PluginInstanceParent::AnswerPluginGotFocus not implemented!");
+    return false;
+#endif
+}

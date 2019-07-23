@@ -54,6 +54,10 @@
 
 
 
+
+#define MOZ_WM_APP_QUIT                   (WM_APP+0x0300)
+
+
 #define WIN2K_VERSION                     0x500
 #define WINXP_VERSION                     0x501
 #define WIN2K3_VERSION                    0x502
