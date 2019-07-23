@@ -1941,5 +1941,5 @@ static eBidiCategory GetBidiCat(PRUnichar u)
     }
 
     return eBidiCat_L; 
-};
+}
 
