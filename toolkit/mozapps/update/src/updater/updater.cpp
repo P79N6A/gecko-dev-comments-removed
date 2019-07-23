@@ -674,7 +674,7 @@ RemoveFile::Prepare()
   
   int rv = NS_taccess(mDestFile, F_OK);
   if (rv) {
-    LOG(("file cannot be removed because it does not exist; skipping\n"));
+    LOG(("file does not exist; skipping\n"));
     mSkip = 1;
     return OK;
   }
@@ -701,10 +701,10 @@ RemoveFile::Prepare()
 int
 RemoveFile::Execute()
 {
-  LOG(("EXECUTE REMOVE " LOG_S "\n", mDestFile));
-
   if (mSkip)
     return OK;
+
+  LOG(("EXECUTE REMOVE " LOG_S "\n", mDestFile));
 
   
   
@@ -735,10 +735,10 @@ RemoveFile::Execute()
 void
 RemoveFile::Finish(int status)
 {
-  LOG(("FINISH REMOVE " LOG_S "\n", mDestFile));
-
   if (mSkip)
     return;
+
+  LOG(("FINISH REMOVE " LOG_S "\n", mDestFile));
 
   backup_finish(mDestFile, status);
 }
