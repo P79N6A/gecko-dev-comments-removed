@@ -111,6 +111,11 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
 
     void CopyBasicDataTo(nsMIMEInfoBase* aOther);
 
+    
+
+
+    PRBool HasExtensions() const { return mExtensions.Count() != 0; }
+
   protected:
     
 
