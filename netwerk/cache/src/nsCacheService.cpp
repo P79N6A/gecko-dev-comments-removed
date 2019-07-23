@@ -769,8 +769,8 @@ nsCacheService::EvictEntriesForClient(const char *          clientID,
 #endif 
 
 #ifdef NECKO_OFFLINE_CACHE
-    if (storagePolicy == nsICache::STORE_ANYWHERE ||
-        storagePolicy == nsICache::STORE_OFFLINE) {
+    
+    if (storagePolicy == nsICache::STORE_OFFLINE) {
         if (mEnableOfflineDevice) {
             if (!mOfflineDevice) {
                 rv = CreateOfflineDevice();
