@@ -45,6 +45,7 @@
 
 #include "nsCOMPtr.h"
 #include "nsIAccessible.h"
+#include "nsIAccessibleEvent.h"
 #include "nsIWinAccessNode.h"
 #include "ISimpleDOMNode.h"
 #include "nsIDOMElement.h"
@@ -143,6 +144,12 @@ class nsAccessNodeWrap :  public nsAccessNode,
     ISimpleDOMNode* MakeAccessNode(nsIDOMNode *node);
 
     static PRBool gIsEnumVariantSupportDisabled;
+
+    
+
+
+
+    static nsIAccessibleTextChangeEvent *gTextEvent;
 };
 
 #endif
