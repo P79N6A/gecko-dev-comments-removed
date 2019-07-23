@@ -35,6 +35,9 @@ BEGIN_TEST(testXDR_bug506491)
     JS_XDRMemSetData(r, frozen, nbytes);
     CHECK(JS_XDRScript(r, &script));
     JS_XDRDestroy(r);  
+    scrobj = JS_NewScriptObject(cx, script);
+    CHECK(scrobj);
+    v = OBJECT_TO_JSVAL(scrobj);
 
     
     jsvalRoot v2(cx);
