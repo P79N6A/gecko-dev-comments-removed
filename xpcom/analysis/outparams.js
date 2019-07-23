@@ -10,6 +10,8 @@ include('unstable/adts.js');
 include('unstable/analysis.js');
 include('unstable/esp.js');
 include('unstable/liveness.js');
+let Zero_NonZero = {};
+include('unstable/zero_nonzero.js', Zero_NonZero);
 
 include('mayreturn.js');
 
@@ -148,7 +150,8 @@ function OutparamCheck(cfg, psem_list, outparam_list, retvar, retvar_set, finall
       print("    " + expr_display(v));
     }
   }
-  ESP.Analysis.call(this, cfg, this.psvar_list, av.BOTTOM, av.meet, trace);
+  this.zeroNonzero = new Zero_NonZero.Zero_NonZero();
+  ESP.Analysis.call(this, cfg, this.psvar_list, av.meet, trace);
 }
 
 
@@ -165,10 +168,11 @@ AbstractValue.prototype.toString = function() {
   return this.name + ' (' + this.ch + ')';
 }
 
-let avspec = [
-  
-  [ 'BOTTOM',        '.' ],   
+AbstractValue.prototype.toShortString = function() {
+  return this.ch;
+}
 
+let avspec = [
   
   [ 'NULL',          'x' ],   
   [ 'NOT_WRITTEN',   '-' ],   
@@ -180,10 +184,6 @@ let avspec = [
   
   
   [ 'MAYBE_WRITTEN', '?' ],   
-  
-  
-  [ 'ZERO',          '0' ],   
-  [ 'NONZERO',       '1' ]    
 ];
 
 let av = {};
@@ -191,29 +191,34 @@ for each (let [name, ch] in avspec) {
   av[name] = new AbstractValue(name, ch);
 }
 
-av.ZERO.negation = av.NONZERO;
-av.NONZERO.negation = av.ZERO;
+av.ZERO = Zero_NonZero.Lattice.ZERO;
+av.NONZERO = Zero_NonZero.Lattice.NONZERO;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 let cachedAVs = {};
-
-
-
-function makeIntAV(v) {
-  let key = 'int_' + v;
-  if (cachedAVs.hasOwnProperty(key)) return cachedAVs[key];
-
-  let s = "" + v;
-  let ans = cachedAVs[key] = new AbstractValue(s, s);
-  ans.int_val = v;
-  return ans;
-}
 
 
 
 
 function makeOutparamAV(v) {
   let key = 'outparam_' + DECL_UID(v);
-  if (cachedAVs.hasOwnProperty(key)) return cachedAVs[key];
+  if (key in cachedAVs) return cachedAVs[key];
 
   let ans = cachedAVs[key] = 
     new AbstractValue('OUTPARAM:' + expr_display(v), 'P');
@@ -231,30 +236,13 @@ av.intVal = function(v) {
 
 av.meet = function(v1, v2) {
   
-  if (v1 == undefined) v1 = av.BOTTOM;
-  if (v2 == undefined) v2 = av.BOTTOM;
+  let values = [v1,v2]
+  if (values.indexOf(av.LOCKED) != -1
+      || values.indexOf(av.UNLOCKED) != -1)
+    return ESP.NOT_REACHED;
 
-  
-  if (v1 == av.BOTTOM) return v2;
-  if (v2 == av.BOTTOM) return v1;
-  if (v1 == v2) return v1;
-
-  
-  switch (v1) {
-  case av.ZERO:
-    return av.intVal(v2) == 0 ? v2 : undefined;
-  case av.NONZERO:
-    
-    
-    let iv2 = av.intVal(v2);
-    return iv2 != undefined && iv2 != 0 ? v2 : undefined;
-  default:
-    let iv = av.intVal(v1);
-    if (iv == 0) return v2 == av.ZERO ? v1 : undefined;
-    if (iv != undefined) return v2 == av.NONZERO ? v1 : undefined;
-    return undefined;
-  }
-}     
+  return Zero_NonZero.meet(v1, v2)
+};
 
 
 OutparamCheck.prototype = new ESP.Analysis;
@@ -262,9 +250,15 @@ OutparamCheck.prototype = new ESP.Analysis;
 OutparamCheck.prototype.startValues = function() {
   let ans = create_decl_map();
   for each (let p in this.psvar_list) {
-    ans.put(p, this.outparams.has(p) ? av.NOT_WRITTEN : av.BOTTOM);
+    ans.put(p, this.outparams.has(p) ? av.NOT_WRITTEN : ESP.TOP);
   }
   return ans;
+}
+
+OutparamCheck.prototype.split = function(vbl, v) {
+  
+  if (v != ESP.TOP) throw new Error("not implemented");
+  return [ av.ZERO, av.NONZERO ];
 }
 
 OutparamCheck.prototype.updateEdgeState = function(e) {
@@ -283,92 +277,16 @@ OutparamCheck.prototype.flowState = function(isn, state) {
   case COND_EXPR:
     
     break;
-  case RETURN_EXPR:
-    let op = isn.operands()[0];
-    if (op) this.processAssign(isn.operands()[0], state);
-    break;
-  case LABEL_EXPR:
-  case RESX_EXPR:
-  case ASM_EXPR:
-    
-    break;
   default:
-    print(TREE_CODE(isn));
-    throw new Error("ni");
+    this.zeroNonzero.flowState(isn, state);
   }
 }
 
 OutparamCheck.prototype.flowStateCond = function(isn, truth, state) {
-  switch (TREE_CODE(isn)) {
-  case COND_EXPR:
-    this.flowStateIf(isn, truth, state);
-    break;
-  case SWITCH_EXPR:
-    this.flowStateSwitch(isn, truth, state);
-    break;
-  default:
-    throw new Error("ni " + TREE_CODE(isn));
-  }
-}
-
-OutparamCheck.prototype.flowStateIf = function(isn, truth, state) {
-  let exp = TREE_OPERAND(isn, 0);
-
-  if (DECL_P(exp)) {
-    this.filter(state, exp, av.NONZERO, truth, isn);
-    return;
-  }
-
-  switch (TREE_CODE(exp)) {
-  case EQ_EXPR:
-  case NE_EXPR:
-    
-    let op1 = TREE_OPERAND(exp, 0);
-    let op2 = TREE_OPERAND(exp, 1);
-    if (expr_literal_int(op1) != undefined) {
-      [op1,op2] = [op2,op1];
-    }
-    if (!DECL_P(op1)) break;
-    if (expr_literal_int(op2) != 0) break;
-    let val = TREE_CODE(exp) == EQ_EXPR ? av.ZERO : av.NONZERO;
-
-    this.filter(state, op1, val, truth, isn);
-    break;
-  default:
-    
-  }
-
-};
-
-OutparamCheck.prototype.flowStateSwitch = function(isn, truth, state) {
-  let exp = TREE_OPERAND(isn, 0);
-
-  if (DECL_P(exp)) {
-    if (truth != null) {
-      this.filter(state, exp, makeIntAV(truth), true, isn);
-    }
-    return;
-  }
-  throw new Error("ni");
+  this.zeroNonzero.flowStateCond(isn, truth, state);
 }
 
 
-
-OutparamCheck.prototype.filter = function(state, vbl, val, truth, blame) {
-  if (truth != true && truth != false) throw new Error("ni " + truth);
-  if (this.outparams.has(vbl)) {
-    
-    
-    if (truth == true && val == av.ZERO || truth == false && val == av.NONZERO) {
-      state.assignValue(vbl, av.NULL, blame);
-    }
-  } else {
-    if (truth == false) {
-      val = val.negation;
-    }
-    state.filter(vbl, val, blame);
-  }
-};
 
 OutparamCheck.prototype.processAssign = function(isn, state) {
   let lhs = isn.operands()[0];
@@ -380,39 +298,19 @@ OutparamCheck.prototype.processAssign = function(isn, state) {
       rhs = rhs.operands()[0];
     }
 
-    if (DECL_P(rhs)) {
-      if (this.outparams.has(rhs)) {
+    if (DECL_P(rhs) && this.outparams.has(rhs)) {
         
         
         state.assignValue(lhs, makeOutparamAV(rhs), isn);
-      } else {
-        state.assign(lhs, rhs, isn);
-      }
-      return
+        return;
     }
     
     switch (TREE_CODE(rhs)) {
     case INTEGER_CST:
       if (this.outparams.has(lhs)) {
         warning("assigning to outparam pointer");
-      } else {
-        
-        if (is_finally_tmp(lhs)) {
-          let v = TREE_INT_CST_LOW(rhs);
-          state.assignValue(lhs, makeIntAV(v), isn);
-        } else {
-          let value = expr_literal_int(rhs) == 0 ? av.ZERO : av.NONZERO;
-          state.assignValue(lhs, value, isn);
-        }
+        return;
       }
-      break;
-    case NE_EXPR: {
-      
-      let [op1, op2] = rhs.operands();
-      if (DECL_P(op1) && expr_literal_int(op2) == 0) {
-        state.assign(lhs, op1, isn);
-      }
-    }
       break;
     case EQ_EXPR: {
       
@@ -425,6 +323,7 @@ OutparamCheck.prototype.processAssign = function(isn, state) {
           s2.assignValue(lhs, av.ZERO, isn);
           return [s1, s2];
         });
+        return;
       }
     }
       break;
@@ -440,39 +339,17 @@ OutparamCheck.prototype.processAssign = function(isn, state) {
       } else {
         this.processCall(lhs, rhs, isn, state);
       }
-      break;
-    
-    case ADDR_EXPR:
-    case POINTER_PLUS_EXPR:
-    case ARRAY_REF:
-    case COMPONENT_REF:
-    case INDIRECT_REF:
-    case FILTER_EXPR:
-    case EXC_PTR_EXPR:
-    case CONSTRUCTOR:
-
-    case REAL_CST:
-    case STRING_CST:
-
-    case CONVERT_EXPR:
-    case TRUTH_NOT_EXPR:
-    case TRUTH_XOR_EXPR:
-    case BIT_FIELD_REF:
-      state.remove(lhs);
-      break;
-    default:
-      if (UNARY_CLASS_P(rhs) || BINARY_CLASS_P(rhs) || COMPARISON_CLASS_P(rhs)) {
-        state.remove(lhs);
-        break;
-      }
-      print(TREE_CODE(rhs));
-      throw new Error("ni");
+      return;
     }
+
+    
+    this.zeroNonzero.processAssign(isn, state);
     return;
   }
 
   switch (TREE_CODE(lhs)) {
   case INDIRECT_REF:
+    
     
     let e = TREE_OPERAND(lhs, 0);
     if (this.outparams.has(e)) {
@@ -509,9 +386,9 @@ OutparamCheck.prototype.processAssign = function(isn, state) {
 OutparamCheck.prototype.processTest = function(lhs, call, val, blame, state) {
   let arg = call_arg(call, 0);
   if (DECL_P(arg)) {
-    state.predicate(lhs, val, arg, blame);
+    this.zeroNonzero.predicate(state, lhs, val, arg, blame);
   } else {
-    state.assignValue(lhs, av.BOTTOM, blame);
+    state.assignValue(lhs, ESP.TOP, blame);
   }
 };
 
@@ -650,14 +527,13 @@ OutparamCheck.prototype.checkSubstate = function(isvoid, fndecl, ss) {
   } else {
     let [succ, fail] = ret_coding(fndecl);
     let rv = ss.get(this.retvar);
-    switch (rv) {
-    case succ:
+    
+    
+    if (av.meet(rv, succ) == rv) {
       this.checkSubstateSuccess(ss);
-      break;
-    case fail:
+    } else if (av.meet(rv, fail) == rv) {
       this.checkSubstateFailure(ss);
-      break;
-    default:
+    } else {
       
       
       warning("Outparams checker cannot determine rv success/failure",
