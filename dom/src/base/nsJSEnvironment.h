@@ -168,26 +168,7 @@ public:
   NS_DECL_NSITIMERCALLBACK
 
   static void LoadStart();
-  static void LoadEnd(nsIScriptGlobalObject* aGlobalObject);
-
-  
-  
-  static void CC();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  static PRBool MaybeCC(PRBool aHigherProbability);
+  static void LoadEnd();
 
 protected:
   nsresult InitializeExternalClasses();
@@ -208,8 +189,6 @@ protected:
   
   nsresult JSObjectFromInterface(nsISupports *aSup, void *aScript, 
                                  JSObject **aRet);
-
-  static void MaybeCCOrGC(nsIScriptContext* aContext);
 
 private:
   JSContext *mContext;
