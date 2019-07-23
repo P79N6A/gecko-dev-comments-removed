@@ -164,7 +164,6 @@ protected:
   PRBool HandleReconvert(nsWindow* aWindow, LPARAM lParam, LRESULT *oResult);
   PRBool HandleQueryCharPosition(nsWindow* aWindow, LPARAM lParam,
                                  LRESULT *oResult);
-  PRBool HandleDocumentFeed(nsWindow* aWindow, LPARAM lParam, LRESULT *oResult);
 
   
 
@@ -197,19 +196,6 @@ protected:
                                           nsIntRect &aCharRect);
   PRBool GetCaretRect(nsWindow* aWindow, nsIntRect &aCaretRect);
   void GetCompositionString(const nsIMEContext &aIMEContext, DWORD aIndex);
-  
-
-
-
-
-
-
-
-
-
-
-
-  PRBool GetTargetClauseRange(PRUint32 *aOffset, PRUint32 *aLength = nsnull);
   void DispatchTextEvent(nsWindow* aWindow, const nsIMEContext &aIMEContext,
                          PRBool aCheckAttr = PR_TRUE);
   void SetTextRangeList(nsTArray<nsTextRange> &aTextRangeList);
