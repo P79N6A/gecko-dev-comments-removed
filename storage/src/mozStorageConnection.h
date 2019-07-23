@@ -115,6 +115,13 @@ protected:
 
 
     nsCOMPtr<nsIThread> mAsyncExecutionThread;
+    
+
+
+
+
+
+    PRBool mAsyncExecutionThreadShuttingDown;
 
     PRLock *mTransactionMutex;
     PRBool mTransactionInProgress;

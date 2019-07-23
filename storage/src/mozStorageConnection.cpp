@@ -77,6 +77,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(mozStorageConnection, mozIStorageConnection)
 mozStorageConnection::mozStorageConnection(mozIStorageService* aService) :
     mDBConn(nsnull)
 ,   mAsyncExecutionMutex(nsAutoLock::NewLock("AsyncExecutionMutex"))
+,   mAsyncExecutionThreadShuttingDown(PR_FALSE)
 ,   mTransactionMutex(nsAutoLock::NewLock("TransactionMutex"))
 ,   mTransactionInProgress(PR_FALSE)
 ,   mFunctionsMutex(nsAutoLock::NewLock("FunctionsMutex"))
@@ -234,10 +235,14 @@ mozStorageConnection::Close()
     
     {
         nsAutoLock mutex(mAsyncExecutionMutex);
-        if (mAsyncExecutionThread) {
-            mAsyncExecutionThread->Shutdown();
-            mAsyncExecutionThread = nsnull;
-        }
+        mAsyncExecutionThreadShuttingDown = PR_TRUE;
+    }
+    
+    
+    
+    if (mAsyncExecutionThread) {
+        mAsyncExecutionThread->Shutdown();
+        mAsyncExecutionThread = nsnull;
     }
 
 #ifdef DEBUG
@@ -950,6 +955,11 @@ already_AddRefed<nsIEventTarget>
 mozStorageConnection::getAsyncExecutionTarget()
 {
     nsAutoLock mutex(mAsyncExecutionMutex);
+    
+    
+    
+    if (mAsyncExecutionThreadShuttingDown)
+        return nsnull;
 
     if (!mAsyncExecutionThread) {
         nsresult rv = NS_NewThread(getter_AddRefs(mAsyncExecutionThread));
