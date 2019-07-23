@@ -762,7 +762,7 @@ GetSpaceBetween(PRInt32       aPrevColIndex,
 
 
 static
-nscoord CalcHeightFromUnpaginatedHeight(nsPresContext*  aPresContext,
+nscoord CalcHeightFromUnpaginatedHeight(nsPresContext*   aPresContext,
                                         nsTableRowFrame& aRow)
 {
   nscoord height = 0;
@@ -1366,7 +1366,7 @@ nsTableRowFrame::GetNextRow() const
 
 void 
 nsTableRowFrame::SetUnpaginatedHeight(nsPresContext* aPresContext,
-                                      nscoord         aValue)
+                                      nscoord        aValue)
 {
   NS_ASSERTION(!GetPrevInFlow(), "program error");
   
