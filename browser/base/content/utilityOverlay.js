@@ -93,24 +93,17 @@ function getBoolPref ( prefname, def )
 
 
 
-function focusElement(aElement) {
+function focusElement(aElement)
+{
   
-  var ww = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
-                     .getService(Components.interfaces.nsIWindowWatcher);
-  if (window == ww.activeWindow)
-    aElement.focus();
+  
+  if (aElement instanceof Window) {
+    var browser = getBrowserFromContentWindow(aElement);
+    if (browser)
+      browser.focus();
+  }
   else {
-    
-    
-    var cmdDispatcher = document.commandDispatcher;
-    if (aElement instanceof Window) {
-      cmdDispatcher.focusedWindow = aElement;
-      cmdDispatcher.focusedElement = null;
-    }
-    else if (aElement instanceof Element) {
-      cmdDispatcher.focusedWindow = aElement.ownerDocument.defaultView;
-      cmdDispatcher.focusedElement = aElement;
-    }
+    aElement.focus();
   }
 }
 
@@ -257,8 +250,9 @@ function openUILinkIn( url, where, allowThirdPartyFixup, postData, referrerUrl )
 
   
   
-  
-  focusElement(w.content);
+  var browser = w.getBrowserFromContentWindow(w.content);
+  if (browser)
+    browser.focus();
 }
 
 

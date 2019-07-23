@@ -243,13 +243,6 @@ NS_QUERYFRAME_TAIL_INHERITING(nsBlockFrame)
 void 
 nsFileControlFrame::SetFocus(PRBool aOn, PRBool aRepaint)
 {
-  
-  if (mTextFrame) {
-    nsIContent* content = mTextFrame->GetContent();
-    if (content) {
-      content->SetFocus(PresContext());
-    }
-  }
 }
 
 

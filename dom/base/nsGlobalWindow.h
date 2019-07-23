@@ -98,13 +98,13 @@
 #include "nsIDOMOfflineResourceList.h"
 #include "nsPIDOMEventTarget.h"
 #include "nsIArray.h"
+#include "nsIContent.h"
 
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
 #define PREF_BROWSER_STARTUP_HOMEPAGE "browser.startup.homepage"
 
 class nsIDOMBarProp;
 class nsIDocument;
-class nsIContent;
 class nsPresContext;
 class nsIDOMEvent;
 class nsIScrollableView;
@@ -288,8 +288,7 @@ public:
 
   
   virtual NS_HIDDEN_(nsPIDOMWindow*) GetPrivateRoot();
-  virtual NS_HIDDEN_(nsresult) Activate();
-  virtual NS_HIDDEN_(nsresult) Deactivate();
+  virtual NS_HIDDEN_(void) ActivateOrDeactivate(PRBool aActivate);
   virtual NS_HIDDEN_(void) SetChromeEventHandler(nsPIDOMEventTarget* aChromeEventHandler);
   virtual NS_HIDDEN_(nsIFocusController*) GetRootFocusController();
 
@@ -437,6 +436,10 @@ public:
   virtual NS_HIDDEN_(void)
     CacheXBLPrototypeHandler(nsXBLPrototypeHandler* aKey,
                              nsScriptObjectHolder& aHandler);
+
+  virtual PRBool TakeFocus(PRBool aFocus, PRUint32 aFocusMethod);
+  virtual void SetReadyForFocus();
+  virtual void PageHidden();
 
   static PRBool DOMWindowDumpEnabled();
 
@@ -636,6 +639,15 @@ protected:
   nsIntSize DevToCSSIntPixels(nsIntSize px);
   nsIntSize CSSToDevIntPixels(nsIntSize px);
 
+  virtual nsIContent* GetFocusedNode();
+  virtual void SetFocusedNode(nsIContent* aNode,
+                              PRUint32 aFocusMethod = 0,
+                              PRBool aNeedsFocus = PR_FALSE);
+
+  virtual PRUint32 GetFocusMethod();
+
+  void UpdateCanvasFocus(PRBool aFocusChanged, nsIContent* aNewContent);
+
   static void NotifyDOMWindowDestroyed(nsGlobalWindow* aWindow);
 
   
@@ -681,6 +693,11 @@ protected:
 
   
   PRPackedBool                  mIsChrome : 1;
+
+  
+  
+  PRPackedBool           mNeedsFocus : 1;
+  PRPackedBool           mHasFocus : 1;
 
   nsCOMPtr<nsIScriptContext>    mContext;
   nsWeakPtr                     mOpener;
@@ -735,6 +752,13 @@ protected:
   nsDataHashtable<nsStringHashKey, PRBool> *mPendingStorageEvents;
 
   PRUint32 mTimeoutsSuspendDepth;
+
+  
+  
+  nsCOMPtr<nsIContent>   mFocusedNode;
+
+  
+  PRUint32 mFocusMethod;
 
 #ifdef DEBUG
   PRBool mSetOpenerWindowCalled;

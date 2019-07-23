@@ -959,8 +959,7 @@ NS_IMETHODIMP nsWindow::DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus
   aStatus = nsEventStatus_eIgnore;
 
   
-  if ((event->message == NS_DEACTIVATE || event->message == NS_LOSTFOCUS) &&
-      BlurEventsSuppressed())
+  if (event->message == NS_DEACTIVATE && BlurEventsSuppressed())
     return NS_OK;
 
   if (nsnull != mEventCallback) {
@@ -4113,7 +4112,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
   PRBool result = PR_FALSE;                 
   static PRBool getWheelInfo = PR_TRUE;
   *aRetValue = 0;
-  PRBool isMozWindowTakingFocus = PR_TRUE;
   nsPaletteInfo palInfo;
 
   
@@ -4597,6 +4595,12 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       break;
 
     case WM_ACTIVATE:
+      
+      
+      
+      
+      
+      
       if (mEventCallback) {
         PRInt32 fActive = LOWORD(wParam);
 
@@ -4606,7 +4610,14 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 #endif
 
         if (WA_INACTIVE == fActive) {
-          gJustGotDeactivate = PR_TRUE;
+          
+          
+          
+          if (HIWORD(wParam))
+            result = DispatchFocusToTopLevelWindow(NS_DEACTIVATE);
+          else
+            gJustGotDeactivate = PR_TRUE;
+
 #ifndef WINCE
           if (mIsTopWidgetWindow)
             mLastKeyboardLayout = gKbdLayout.GetLayout();
@@ -4668,12 +4679,8 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 #endif
 
     case WM_SETFOCUS:
-      result = DispatchFocus(NS_GOTFOCUS, PR_TRUE);
-      if (gJustGotActivate) {
-        gJustGotActivate = PR_FALSE;
-        gJustGotDeactivate = PR_FALSE;
-        result = DispatchFocus(NS_ACTIVATE, PR_TRUE);
-      }
+      if (gJustGotActivate)
+        result = DispatchFocusToTopLevelWindow(NS_ACTIVATE);
 
 #ifdef ACCESSIBILITY
       if (nsWindow::gIsAccessibilityOn) {
@@ -4702,20 +4709,8 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         ImmSetOpenStatus(IMEContext.get(), FALSE);
       }
 #endif
-      WCHAR className[kMaxClassNameLength];
-      ::GetClassNameW((HWND)wParam, className, kMaxClassNameLength);
-      if (wcscmp(className, kClassNameUI) &&
-          wcscmp(className, kClassNameContent) &&
-          wcscmp(className, kClassNameContentFrame) &&
-          wcscmp(className, kClassNameDialog) &&
-          wcscmp(className, kClassNameGeneral)) {
-        isMozWindowTakingFocus = PR_FALSE;
-      }
-      if (gJustGotDeactivate) {
-        gJustGotDeactivate = PR_FALSE;
-        result = DispatchFocus(NS_DEACTIVATE, isMozWindowTakingFocus);
-      }
-      result = DispatchFocus(NS_LOSTFOCUS, isMozWindowTakingFocus);
+      if (gJustGotDeactivate)
+        result = DispatchFocusToTopLevelWindow(NS_DEACTIVATE);
       
       break;
 
@@ -4819,30 +4814,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         InitEvent(event);
 
         result = DispatchWindowEvent(&event);
-
-#ifndef WINCE
-        if (pl.showCmd == SW_SHOWMINIMIZED) {
-          
-          WCHAR className[kMaxClassNameLength];
-          ::GetClassNameW((HWND)wParam, className, kMaxClassNameLength);
-          if (wcscmp(className, kClassNameUI) &&
-              wcscmp(className, kClassNameContent) &&
-              wcscmp(className, kClassNameContentFrame) &&
-              wcscmp(className, kClassNameDialog) &&
-              wcscmp(className, kClassNameGeneral)) {
-            isMozWindowTakingFocus = PR_FALSE;
-          }
-          gJustGotDeactivate = PR_FALSE;
-          result = DispatchFocus(NS_DEACTIVATE, isMozWindowTakingFocus);
-        } else if (pl.showCmd == SW_SHOWNORMAL && !(wp->flags & SWP_NOACTIVATE)){
-          
-          result = DispatchFocus(NS_GOTFOCUS, PR_TRUE);
-          result = DispatchFocus(NS_ACTIVATE, PR_TRUE);
-        }
-#else
-        result = DispatchFocus(NS_GOTFOCUS, PR_TRUE);
-        result = DispatchFocus(NS_ACTIVATE, PR_TRUE);
-#endif
       }
     }
     break;
@@ -6632,27 +6603,45 @@ PRBool nsWindow::DispatchAccessibleEvent(PRUint32 aEventType, nsIAccessible** aA
 
 
 
-PRBool nsWindow::DispatchFocus(PRUint32 aEventType, PRBool isMozWindowTakingFocus)
+PRBool nsWindow::DispatchFocusToTopLevelWindow(PRUint32 aEventType)
+{
+  if (aEventType == NS_ACTIVATE)
+    gJustGotActivate = PR_FALSE;
+  gJustGotDeactivate = PR_FALSE;
+
+  
+  
+  
+  HWND toplevelWnd = GetTopLevelHWND(mWnd);
+  if (toplevelWnd) {
+    nsWindow *win = GetNSWindowPtr(toplevelWnd);
+    if (win)
+      return win->DispatchFocus(aEventType);
+  }
+
+  return PR_FALSE;
+}
+
+
+PRBool nsWindow::DispatchFocus(PRUint32 aEventType)
 {
   
   if (mEventCallback) {
-    nsFocusEvent event(PR_TRUE, aEventType, this);
+    nsGUIEvent event(PR_TRUE, aEventType, this);
     InitEvent(event);
 
     
     event.refPoint.x = 0;
     event.refPoint.y = 0;
 
-    event.isMozWindowTakingFocus = isMozWindowTakingFocus;
-
     nsPluginEvent pluginEvent;
 
     switch (aEventType)
     {
-      case NS_GOTFOCUS:
+      case NS_ACTIVATE:
         pluginEvent.event = WM_SETFOCUS;
         break;
-      case NS_LOSTFOCUS:
+      case NS_DEACTIVATE:
         pluginEvent.event = WM_KILLFOCUS;
         break;
       case NS_PLUGIN_ACTIVATE:

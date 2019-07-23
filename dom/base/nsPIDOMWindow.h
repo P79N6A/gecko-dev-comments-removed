@@ -68,6 +68,7 @@ enum PopupControlState {
 
 class nsIDocShell;
 class nsIFocusController;
+class nsIContent;
 class nsIDocument;
 class nsIScriptTimeoutHandler;
 class nsPresContext;
@@ -76,8 +77,8 @@ class nsScriptObjectHolder;
 class nsXBLPrototypeHandler;
 
 #define NS_PIDOMWINDOW_IID \
-{ 0x80dd53b6, 0x8c61, 0x4dd6, \
-  { 0xb4, 0x51, 0xf7, 0xd7, 0x5c, 0xfc, 0x51, 0x96 } }
+{ 0x601e5415, 0x613e, 0x4ce2, \
+  { 0xb4, 0xe1, 0x85, 0xac, 0x2a, 0x4a, 0xf2, 0x3d } }
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -86,10 +87,7 @@ public:
 
   virtual nsPIDOMWindow* GetPrivateRoot() = 0;
 
-  
-  
-  virtual nsresult Activate() = 0;
-  virtual nsresult Deactivate() = 0;
+  virtual void ActivateOrDeactivate(PRBool aActivate) = 0;
 
   nsPIDOMEventTarget* GetChromeEventHandler() const
   {
@@ -412,6 +410,48 @@ public:
   virtual void* GetCachedXBLPrototypeHandler(nsXBLPrototypeHandler* aKey) = 0;
   virtual void CacheXBLPrototypeHandler(nsXBLPrototypeHandler* aKey,
                                         nsScriptObjectHolder& aHandler) = 0;
+
+  
+
+
+
+
+
+
+
+  virtual nsIContent* GetFocusedNode() = 0;
+  virtual void SetFocusedNode(nsIContent* aNode,
+                              PRUint32 aFocusMethod = 0,
+                              PRBool aNeedsFocus = PR_FALSE) = 0;
+
+  
+
+
+  virtual PRUint32 GetFocusMethod() = 0;
+
+  
+
+
+
+
+
+
+
+
+
+  virtual PRBool TakeFocus(PRBool aFocus, PRUint32 aFocusMethod) = 0;
+
+  
+
+
+
+  virtual void SetReadyForFocus() = 0;
+
+  
+
+
+
+  virtual void PageHidden() = 0;
 
 protected:
   

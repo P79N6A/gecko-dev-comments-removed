@@ -728,8 +728,6 @@ protected:
     PRPackedBool               mAllowMetaRedirects;
     PRPackedBool               mAllowImages;
     PRPackedBool               mAllowDNSPrefetch;
-    PRPackedBool               mFocusDocFirst;
-    PRPackedBool               mHasFocus;
     PRPackedBool               mCreatingDocument; 
     PRPackedBool               mUseErrorPages;
     PRPackedBool               mObserveErrorPages;

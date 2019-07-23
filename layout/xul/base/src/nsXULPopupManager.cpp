@@ -56,7 +56,7 @@
 #include "nsILookAndFeel.h"
 #include "nsIComponentManager.h"
 #include "nsITimer.h"
-#include "nsIFocusController.h"
+#include "nsFocusManager.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIDocShell.h"
 #include "nsPIDOMWindow.h"
@@ -497,45 +497,36 @@ nsXULPopupManager::ShowPopupWithAnchorAlign(nsIContent* aPopup,
 }
 
 static void
-CheckCaretDrawingState(nsIDocument *aDocument) {
+CheckCaretDrawingState() {
 
   
   
-  if (!aDocument)
-    return;
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (fm) {
+    nsCOMPtr<nsIDOMWindow> window;
+    fm->GetFocusedWindow(getter_AddRefs(window));
+    if (!window)
+      return;
 
-  nsCOMPtr<nsISupports> container = aDocument->GetContainer();
-  nsCOMPtr<nsPIDOMWindow> windowPrivate = do_GetInterface(container);
-  if (!windowPrivate)
-    return;
+    nsCOMPtr<nsIDOMWindowInternal> windowInternal = do_QueryInterface(window);
 
-  nsIFocusController *focusController =
-    windowPrivate->GetRootFocusController();
-  if (!focusController)
-    return;
+    nsCOMPtr<nsIDOMDocument> domDoc;
+    nsCOMPtr<nsIDocument> focusedDoc;
+    windowInternal->GetDocument(getter_AddRefs(domDoc));
+    focusedDoc = do_QueryInterface(domDoc);
+    if (!focusedDoc)
+      return;
 
-  nsCOMPtr<nsIDOMWindowInternal> windowInternal;
-  focusController->GetFocusedWindow(getter_AddRefs(windowInternal));
-  if (!windowInternal)
-    return;
+    nsIPresShell* presShell = focusedDoc->GetPrimaryShell();
+    if (!presShell)
+      return;
 
-  nsCOMPtr<nsIDOMDocument> domDoc;
-  nsCOMPtr<nsIDocument> focusedDoc;
-  windowInternal->GetDocument(getter_AddRefs(domDoc));
-  focusedDoc = do_QueryInterface(domDoc);
-  if (!focusedDoc)
-    return;
-
-  nsIPresShell* presShell = focusedDoc->GetPrimaryShell();
-  if (!presShell)
-    return;
-
-  nsRefPtr<nsCaret> caret;
-  presShell->GetCaret(getter_AddRefs(caret));
-  if (!caret)
-    return;
-  caret->CheckCaretDrawingState();
-
+    nsRefPtr<nsCaret> caret;
+    presShell->GetCaret(getter_AddRefs(caret));
+    if (!caret)
+      return;
+    caret->CheckCaretDrawingState();
+  }
 }
 
 void
@@ -607,7 +598,7 @@ nsXULPopupManager::ShowPopupCallback(nsIContent* aPopup,
 
   
   
-  CheckCaretDrawingState(aPopup->GetCurrentDoc());
+  CheckCaretDrawingState();
 }
 
 void
@@ -1009,19 +1000,22 @@ nsXULPopupManager::FirePopupShowingEvent(nsIContent* aPopup,
   if (aPopupType == ePopupTypePanel &&
       !aPopup->AttrValueIs(kNameSpaceID_None, nsGkAtoms::noautofocus,
                            nsGkAtoms::_true, eCaseMatters)) {
-    nsIEventStateManager* esm = presShell->GetPresContext()->EventStateManager();
+    nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+    if (fm) {
+      nsIDocument* doc = aPopup->GetCurrentDoc();
 
-    
-    
-    
-    
-    
-    nsCOMPtr<nsIContent> currentFocus;
-    esm->GetFocusedContent(getter_AddRefs(currentFocus));
-    if (currentFocus &&
-        !nsContentUtils::ContentIsDescendantOf(currentFocus, aPopup)) {
-      esm->SetContentState(nsnull, NS_EVENT_STATE_FOCUS);
-      esm->SetFocusedContent(nsnull);
+      
+      
+      
+      
+      
+      nsCOMPtr<nsIDOMElement> currentFocusElement;
+      fm->GetFocusedElement(getter_AddRefs(currentFocusElement));
+      nsCOMPtr<nsIContent> currentFocus = do_QueryInterface(currentFocusElement);
+      if (doc && currentFocus &&
+          !nsContentUtils::ContentIsDescendantOf(currentFocus, aPopup)) {
+        fm->ClearFocus(doc->GetWindow());
+      }
     }
   }
 
@@ -1068,15 +1062,18 @@ nsXULPopupManager::FirePopupHidingEvent(nsIContent* aPopup,
   if (aPopupType == ePopupTypePanel &&
       !aPopup->AttrValueIs(kNameSpaceID_None, nsGkAtoms::noautofocus,
                            nsGkAtoms::_true, eCaseMatters)) {
-    nsIEventStateManager* esm = presShell->GetPresContext()->EventStateManager();
+    nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+    if (fm) {
+      nsIDocument* doc = aPopup->GetCurrentDoc();
 
-    
-    nsCOMPtr<nsIContent> currentFocus;
-    esm->GetFocusedContent(getter_AddRefs(currentFocus));
-    if (currentFocus &&
-        nsContentUtils::ContentIsDescendantOf(currentFocus, aPopup)) {
-      esm->SetContentState(nsnull, NS_EVENT_STATE_FOCUS);
-      esm->SetFocusedContent(nsnull);
+      
+      nsCOMPtr<nsIDOMElement> currentFocusElement;
+      fm->GetFocusedElement(getter_AddRefs(currentFocusElement));
+      nsCOMPtr<nsIContent> currentFocus = do_QueryInterface(currentFocusElement);
+      if (doc && currentFocus &&
+          nsContentUtils::ContentIsDescendantOf(currentFocus, aPopup)) {
+        fm->ClearFocus(doc->GetWindow());
+      }
     }
   }
 
@@ -1223,14 +1220,17 @@ nsXULPopupManager::MayShowPopup(nsMenuPopupFrame* aPopup)
   
   if (type != nsIDocShellTreeItem::typeChrome) {
     
-    nsCOMPtr<nsPIDOMWindow> win = do_GetInterface(dsti);
-    if (!win)
+    nsCOMPtr<nsIDocShellTreeItem> root;
+    dsti->GetRootTreeItem(getter_AddRefs(root));
+    nsCOMPtr<nsIDOMWindow> rootWin = do_GetInterface(root);
+
+    nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+    if (!fm || !rootWin)
       return PR_FALSE;
 
-    PRBool active;
-    nsIFocusController* focusController = win->GetRootFocusController();
-    focusController->GetActive(&active);
-    if (!active)
+    nsCOMPtr<nsIDOMWindow> activeWindow;
+    fm->GetActiveWindow(getter_AddRefs(activeWindow));
+    if (activeWindow != rootWin)
       return PR_FALSE;
 
     

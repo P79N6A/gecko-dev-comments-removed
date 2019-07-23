@@ -48,7 +48,6 @@
 #include "nsIContentViewer.h"
 #include "nsIDocumentViewer.h"
 #include "nsPIDOMWindow.h"
-#include "nsIFocusController.h"
 #include "nsStyleSet.h"
 #include "nsImageLoader.h"
 #include "nsIContent.h"
@@ -1557,7 +1556,7 @@ nsPresContext::SetPrintSettings(nsIPrintSettings *aPrintSettings)
 }
 
 PRBool
-nsPresContext::EnsureVisible(PRBool aUnsuppressFocus)
+nsPresContext::EnsureVisible()
 {
   nsCOMPtr<nsIDocShell> docShell(do_QueryReferent(mContainer));
   if (docShell) {
@@ -1570,21 +1569,7 @@ nsPresContext::EnsureVisible(PRBool aUnsuppressFocus)
       docV->GetPresContext(getter_AddRefs(currentPresContext));
       if (currentPresContext == this) {
         
-        
-        
-        nsCOMPtr<nsPIDOMWindow> privWindow = do_GetInterface(docShell);
-        
-        nsIFocusController* fc =
-          privWindow ? privWindow->GetRootFocusController() : nsnull;
-        if (fc) {
-          fc->SetSuppressFocus(PR_TRUE,
-                               "nsPresContext::EnsureVisible Suppression");
-        }
         cv->Show();
-        if (fc && aUnsuppressFocus) {
-          fc->SetSuppressFocus(PR_FALSE,
-                               "nsPresContext::EnsureVisible Suppression");
-        }
         return PR_TRUE;
       }
     }

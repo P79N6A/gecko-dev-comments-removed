@@ -566,17 +566,6 @@ nsWindow::SetFocus(PRBool aRaise)
         mDrawingArea->raise();
     mDrawingArea->setFocus();
 
-    
-    
-
-    LOGFOCUS(("  widget now has focus - dispatching events [%p]\n",
-              (void *)this));
-
-    DispatchGotFocusEvent();
-
-    LOGFOCUS(("  done dispatching events in SetFocus() [%p]\n",
-              (void *)this));
-
     return NS_OK;
 }
 
@@ -1006,19 +995,6 @@ nsWindow::GetAttention(PRInt32 aCycleCount)
     return NS_OK;
 }
 
-void
-nsWindow::LoseFocus(void)
-{
-    
-    
-    memset(mKeyDownFlags, 0, sizeof(mKeyDownFlags));
-
-    
-    DispatchLostFocusEvent();
-
-    LOGFOCUS(("  widget lost focus [%p]\n", (void *)this));
-}
-
 static int gDoubleBuffering = -1;
 
 nsEventStatus
@@ -1368,12 +1344,6 @@ nsWindow::OnFocusInEvent(QFocusEvent *aEvent)
     
 
 
-    
-    DispatchGotFocusEvent();
-
-    
-    
-    
     DispatchActivateEvent();
 
     LOGFOCUS(("Events sent from focus in event [%p]\n", (void *)this));
@@ -1385,7 +1355,6 @@ nsWindow::OnFocusOutEvent(QFocusEvent *aEvent)
 {
     LOGFOCUS(("OnFocusOutEvent [%p]\n", (void *)this));
 
-    DispatchLostFocusEvent();
     if (mDrawingArea)
         DispatchDeactivateEvent();
 
@@ -2316,22 +2285,6 @@ nsIWidget *
 nsWindow::GetParent(void)
 {
     return mParent;
-}
-
-void
-nsWindow::DispatchGotFocusEvent(void)
-{
-    nsGUIEvent event(PR_TRUE, NS_GOTFOCUS, this);
-    nsEventStatus status;
-    DispatchEvent(&event, status);
-}
-
-void
-nsWindow::DispatchLostFocusEvent(void)
-{
-    nsGUIEvent event(PR_TRUE, NS_LOSTFOCUS, this);
-    nsEventStatus status;
-    DispatchEvent(&event, status);
 }
 
 void

@@ -70,7 +70,6 @@
 #include "nsIDOMNSHTMLDocument.h"
 #include "nsIDOMHTMLElement.h"
 #include "nsIEventStateManager.h"
-#include "nsIFocusController.h"
 #include "nsIViewManager.h"
 #include "nsIScrollableView.h"
 #include "nsIDocument.h"
@@ -93,6 +92,7 @@
 #include "nsINameSpaceManager.h"
 #include "nsIWindowWatcher.h"
 #include "nsIObserverService.h"
+#include "nsFocusManager.h"
 
 #include "nsTypeAheadFind.h"
 
@@ -462,15 +462,15 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, PRBool aIsLinksOnly,
       if (!window)
         return NS_ERROR_UNEXPECTED;
 
+      nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
       if (usesIndependentSelection) {
         
 
 
         PRBool shouldFocusEditableElement = false;
-        nsIFocusController* focusController = window->GetRootFocusController();
-        if (focusController) {
-          nsCOMPtr<nsIDOMWindowInternal> focusedWindow;
-          nsresult rv = focusController->GetFocusedWindow(getter_AddRefs(focusedWindow));
+        if (fm) {
+          nsCOMPtr<nsIDOMWindow> focusedWindow;
+          nsresult rv = fm->GetFocusedWindow(getter_AddRefs(focusedWindow));
           if (NS_SUCCEEDED(rv)) {
             nsCOMPtr<nsPIDOMWindow> fwPI(do_QueryInterface(focusedWindow, &rv));
             if (NS_SUCCEEDED(rv)) {
@@ -515,11 +515,8 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, PRBool aIsLinksOnly,
               break;
 
             
-            nsCOMPtr<nsIContent> content = do_QueryInterface(mFoundEditable);
-            if (content) {
-              content->SetFocus(presContext);
-              presContext->EventStateManager()->MoveCaretToFocus();
-            }
+            if (fm)
+              fm->SetFocus(mFoundEditable, 0);
             break;
           }
           nsIDOMNode* tmp = node;
@@ -550,21 +547,11 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, PRBool aIsLinksOnly,
         selection->AddRange(returnRange);
       }
 
-      if (!mFoundEditable) {
-        currentDocShell->SetHasFocus(PR_TRUE);  
-
-        
-        
-        nsIEventStateManager *esm = presContext->EventStateManager();
-        PRBool isSelectionWithFocus;
-        esm->MoveFocusToCaret(PR_TRUE, &isSelectionWithFocus);
-        if (isSelectionWithFocus) {
-          nsCOMPtr<nsIContent> lastFocusedContent;
-          esm->GetLastFocusedContent(getter_AddRefs(lastFocusedContent));
-          nsCOMPtr<nsIDOMElement>
-            lastFocusedElement(do_QueryInterface(lastFocusedContent));
-          mFoundLink = lastFocusedElement;
-        }
+      if (!mFoundEditable && fm) {
+        nsCOMPtr<nsIDOMWindow> win = do_QueryInterface(window);
+        fm->MoveFocus(win, nsnull, nsIFocusManager::MOVEFOCUS_CARET,
+                      nsIFocusManager::FLAG_NOSCROLL | nsIFocusManager::FLAG_NOSWITCHFRAME,
+                      getter_AddRefs(mFoundLink));
       }
 
       
@@ -1003,14 +990,19 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, PRBool aLinksOnly,
       
       
       
-      nsCOMPtr<nsIContent> focusedContent;
       nsPresContext* presContext = presShell->GetPresContext();
       NS_ENSURE_TRUE(presContext, NS_OK);
 
-      nsIEventStateManager *esm = presContext->EventStateManager();
-      esm->GetFocusedContent(getter_AddRefs(focusedContent));
-      if (focusedContent) {
-        esm->MoveCaretToFocus();
+      nsCOMPtr<nsIDocument> document =
+        do_QueryInterface(presShell->GetDocument());
+      if (!document)
+        return NS_ERROR_UNEXPECTED;
+
+      nsCOMPtr<nsIDOMWindow> window = do_QueryInterface(document->GetWindow());
+
+      nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
+      if (fm) {
+        fm->MoveCaretToFocus(window);
         isFirstVisiblePreferred = PR_FALSE;
       }
     }

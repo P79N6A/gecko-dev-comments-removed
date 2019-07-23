@@ -103,8 +103,8 @@ typedef PRUint32 nsFrameState;
 
 
 #define NS_IPRESSHELL_IID \
-  { 0x4fb87dae, 0x8986, 0x429f, \
-    { 0xb6, 0xba, 0xf0, 0x40, 0x75, 0x0e, 0x3e, 0xe8 } }
+{ 0x41fe90f8, 0x88df, 0x476e, \
+  { 0xa3, 0xb0, 0x60, 0x91, 0x62, 0x34, 0xf7, 0x91 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -707,7 +707,6 @@ public:
 
   virtual void Thaw() = 0;
 
-  virtual void NeedsFocusOrBlurAfterSuppression(nsPIDOMEventTarget* aTarget, PRUint32 aEventType) = 0;
   virtual void FireOrClearDelayedEvents(PRBool aFireEvents) = 0;
 
   

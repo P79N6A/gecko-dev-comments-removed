@@ -63,8 +63,8 @@ class nsISMILAttr;
 
 
 #define NS_ICONTENT_IID       \
-{ 0x3ca5afbe, 0x1052, 0x4682, \
-  { 0x9f, 0xa0, 0x0e, 0x39, 0xe4, 0xf8, 0xef, 0x9d } }
+{ 0x08dadcc4, 0x057a, 0x4b8d, \
+  { 0x89, 0x43, 0x30, 0x0e, 0x61, 0xc6, 0x9d, 0x36 } }
 
 
 
@@ -466,36 +466,6 @@ public:
 
 
   virtual void AppendTextTo(nsAString& aResult) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-  virtual void SetFocus(nsPresContext* aPresContext)
-  {
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-  virtual void RemoveFocus(nsPresContext* aPresContext)
-  {
-  }
 
   
 

@@ -199,53 +199,10 @@ public:
   
   void InvalidateHierarchy();
 
-  
-
-
-
-
-
-
-
-
-
-
-
-  static void SuppressFocusEvents(PRBool aSuppress);
-
-  PRBool IsFocusSuppressed()
-  {
-    return sFocusSuppressed;
-  }
-
-  static void SetCurrentlyFocusedView(nsView *aView)
-  {
-    sCurrentlyFocusView = aView;
-  }
-  
-  static nsView* GetCurrentlyFocusedView()
-  {
-    return sCurrentlyFocusView;
-  }
-
-  static void SetViewFocusedBeforeSuppression(nsView *aView)
-  {
-    sViewFocusedBeforeSuppression = aView;
-  }
-
-  static nsView* GetViewFocusedBeforeSuppression()
-  {
-    return sViewFocusedBeforeSuppression;
-  }
-
 protected:
   virtual ~nsViewManager();
 
 private:
-
-  static nsView *sCurrentlyFocusView;
-  static nsView *sViewFocusedBeforeSuppression;
-  static PRBool sFocusSuppressed;
 
   void FlushPendingInvalidates();
   void ProcessPendingUpdates(nsView *aView, PRBool aDoInvalidate);

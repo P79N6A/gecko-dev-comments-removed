@@ -46,6 +46,7 @@
 #include "nsIPhonetic.h"
 
 #include "nsIControllers.h"
+#include "nsFocusManager.h"
 #include "nsPIDOMWindow.h"
 #include "nsContentCID.h"
 #include "nsIComponentManager.h"
@@ -86,6 +87,8 @@
 #include "nsUnicharUtils.h"
 #include "nsEventDispatcher.h"
 #include "nsLayoutUtils.h"
+#include "nsWidgetsCID.h"
+#include "nsILookAndFeel.h"
 
 #include "nsIDOMMutationEvent.h"
 #include "nsIDOMEventTarget.h"
@@ -116,6 +119,8 @@
 
 
 static NS_DEFINE_CID(kXULControllersCID,  NS_XULCONTROLLERS_CID);
+static NS_DEFINE_CID(kLookAndFeelCID, NS_LOOKANDFEEL_CID);
+
 
 
 
@@ -147,6 +152,10 @@ static NS_DEFINE_CID(kXULControllersCID,  NS_XULCONTROLLERS_CID);
   NS_ORIGINAL_INDETERMINATE_VALUE))
 
 static const char kWhitespace[] = "\n\r\t\b";
+
+
+
+static PRInt32 gSelectTextFieldOnFocus;
 
 #define NS_INPUT_ELEMENT_STATE_IID                 \
 { /* dc3b3d14-23e2-4479-b513-7b369343e3a0 */       \
@@ -260,7 +269,6 @@ public:
   virtual PRBool AllowDrop();
 
   
-  virtual void SetFocus(nsPresContext* aPresContext);
   virtual PRBool IsHTMLFocusable(PRBool *aIsFocusable, PRInt32 *aTabIndex);
 
   virtual PRBool ParseAttribute(PRInt32 aNamespaceID,
@@ -280,7 +288,7 @@ public:
                               PRBool aCompileEventHandlers);
   virtual void UnbindFromTree(PRBool aDeep = PR_TRUE,
                               PRBool aNullParent = PR_TRUE);
-  
+
   virtual void DoneCreatingElement();
 
   virtual PRInt32 IntrinsicState() const;
@@ -347,6 +355,11 @@ protected:
 
   virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                 const nsAString* aValue, PRBool aNotify);
+
+  
+
+
+  PRBool DispatchSelectEvent(nsPresContext* aPresContext);
 
   void SelectAll(nsPresContext* aPresContext);
   PRBool IsImage() const
@@ -1335,27 +1348,36 @@ nsHTMLInputElement::FireOnChange()
 NS_IMETHODIMP
 nsHTMLInputElement::Blur()
 {
-  if (ShouldFocus(this)) {
-    SetElementFocus(PR_FALSE);
-  }
-
-  return NS_OK;
+  return nsGenericHTMLElement::Blur();
 }
 
 NS_IMETHODIMP
 nsHTMLInputElement::Focus()
 {
-  if (ShouldFocus(this)) {
-    SetElementFocus(PR_TRUE);
+  if (mType == NS_FORM_INPUT_FILE) {
+    
+    nsIFrame* frame = GetPrimaryFrame();
+    if (frame) {
+      nsIFrame* childFrame = frame->GetFirstChild(nsnull);
+      while (childFrame) {
+        
+        nsCOMPtr<nsIFormControl> formCtrl =
+          do_QueryInterface(childFrame->GetContent());
+        if (formCtrl && formCtrl->GetType() == NS_FORM_INPUT_BUTTON) {
+          nsCOMPtr<nsIDOMElement> element(do_QueryInterface(formCtrl));
+          nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+          if (fm && element)
+            fm->SetFocus(element, 0);
+        }
+
+        childFrame = childFrame->GetNextSibling();
+      }
+    }
+
+    return NS_OK;
   }
 
-  return NS_OK;
-}
-
-void
-nsHTMLInputElement::SetFocus(nsPresContext* aPresContext)
-{
-  DoSetFocus(aPresContext);
+  return nsGenericHTMLElement::Focus();
 }
 
 NS_IMETHODIMP
@@ -1373,51 +1395,23 @@ nsHTMLInputElement::Select()
     return NS_OK;
   }
 
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+
   nsCOMPtr<nsPresContext> presContext = GetPresContext();
   if (state == eInactiveWindow) {
+    if (fm)
+      fm->SetFocus(this, nsIFocusManager::FLAG_NOSCROLL);
     SelectAll(presContext);
     return NS_OK;
   }
 
-  
-  nsEventStatus status = nsEventStatus_eIgnore;
+  if (DispatchSelectEvent(presContext) && fm) {
+    fm->SetFocus(this, nsIFocusManager::FLAG_NOSCROLL);
+
     
-  
-  if (!GET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT)) {
-    nsEvent event(nsContentUtils::IsCallerChrome(), NS_FORM_SELECTED);
-
-    SET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT, PR_TRUE);
-    nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this),
-                                presContext, &event, nsnull, &status);
-    SET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT, PR_FALSE);
-  }
-
-  
-  
-  if (status == nsEventStatus_eIgnore) {
-    PRBool shouldFocus = ShouldFocus(this);
-
-    if (presContext && shouldFocus) {
-      nsIEventStateManager *esm = presContext->EventStateManager();
-      
-      
-      
-      
-      PRInt32 currentState;
-      esm->GetContentState(this, currentState);
-      if (!(currentState & NS_EVENT_STATE_FOCUS) &&
-          !esm->SetContentState(this, NS_EVENT_STATE_FOCUS)) {
-        return NS_OK; 
-      }
-    }
-
-    nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_TRUE);
-
-    if (formControlFrame) {
-      if (shouldFocus) {
-        formControlFrame->SetFocus(PR_TRUE, PR_TRUE);
-      }
-
+    nsCOMPtr<nsIDOMElement> focusedElement;
+    fm->GetFocusedElement(getter_AddRefs(focusedElement));
+    if (SameCOMIdentity(static_cast<nsIDOMNode *>(this), focusedElement)) {
       
       SelectAll(presContext);
     }
@@ -1426,6 +1420,26 @@ nsHTMLInputElement::Select()
   return NS_OK;
 }
 
+PRBool
+nsHTMLInputElement::DispatchSelectEvent(nsPresContext* aPresContext)
+{
+  nsEventStatus status = nsEventStatus_eIgnore;
+
+  
+  if (!GET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT)) {
+    nsEvent event(nsContentUtils::IsCallerChrome(), NS_FORM_SELECTED);
+
+    SET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT, PR_TRUE);
+    nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this),
+                                aPresContext, &event, nsnull, &status);
+    SET_BOOLBIT(mBitField, BF_HANDLING_SELECT_EVENT, PR_FALSE);
+  }
+
+  
+  
+  return (status == nsEventStatus_eIgnore);
+}
+    
 void
 nsHTMLInputElement::SelectAll(nsPresContext* aPresContext)
 {
@@ -1638,7 +1652,26 @@ nsHTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
     }
   }
 
-  return nsGenericHTMLElement::PreHandleEvent(aVisitor);
+  return nsGenericHTMLFormElement::PreHandleEvent(aVisitor);
+}
+
+static PRBool
+SelectTextFieldOnFocus()
+{
+  if (!gSelectTextFieldOnFocus) {
+    nsCOMPtr<nsILookAndFeel> lookNFeel(do_GetService(kLookAndFeelCID));
+    if (lookNFeel) {
+      PRInt32 selectTextfieldsOnKeyFocus = -1;
+      lookNFeel->GetMetric(nsILookAndFeel::eMetric_SelectTextfieldsOnKeyFocus,
+                           selectTextfieldsOnKeyFocus);
+      gSelectTextFieldOnFocus = selectTextfieldsOnKeyFocus != 0 ? 1 : -1;
+    }
+    else {
+      gSelectTextFieldOnFocus = -1;
+    }
+  }
+
+  return gSelectTextFieldOnFocus == 1;
 }
 
 nsresult
@@ -1747,15 +1780,24 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 
         case NS_FOCUS_CONTENT:
         {
-          
-          
-          
-          nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_FALSE);
-          if (formControlFrame && ShouldFocus(this) &&
-              aVisitor.mEvent->originalTarget == static_cast<nsINode*>(this))
-            formControlFrame->SetFocus(PR_TRUE, PR_TRUE);
+          nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+          if (fm && (mType == NS_FORM_INPUT_TEXT || mType == NS_FORM_INPUT_PASSWORD) &&
+              SelectTextFieldOnFocus()) {
+            
+            nsIDocument* document = GetCurrentDoc();
+            if (document) {
+              PRUint32 lastFocusMethod;
+              fm->GetLastFocusMethod(document->GetWindow(), &lastFocusMethod);
+              if (lastFocusMethod & nsIFocusManager::FLAG_BYKEY) {
+                nsCOMPtr<nsPresContext> presContext = GetPresContext();
+                if (DispatchSelectEvent(presContext)) {
+                  SelectAll(presContext);
+                }
+              }
+            }
+          }
+          break;
         }
-        break; 
 
         case NS_KEY_PRESS:
         case NS_KEY_UP:
@@ -2955,13 +2997,25 @@ nsHTMLInputElement::IsHTMLFocusable(PRBool *aIsFocusable, PRInt32 *aTabIndex)
     return PR_TRUE;
   }
 
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
+    *aIsFocusable = PR_FALSE;
+    return PR_TRUE;
+  }
+
   if (mType == NS_FORM_INPUT_TEXT || mType == NS_FORM_INPUT_PASSWORD) {
     *aIsFocusable = PR_TRUE;
     return PR_FALSE;
   }
 
-  if (mType == NS_FORM_INPUT_HIDDEN || mType == NS_FORM_INPUT_FILE) {
-    
+  if (mType == NS_FORM_INPUT_FILE) {
+    if (aTabIndex) {
+      *aTabIndex = -1;
+    }
+    *aIsFocusable = PR_TRUE;
+    return PR_TRUE;
+  }
+
+  if (mType == NS_FORM_INPUT_HIDDEN) {
     if (aTabIndex) {
       *aTabIndex = -1;
     }

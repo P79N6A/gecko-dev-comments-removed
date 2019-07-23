@@ -56,7 +56,6 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIWebBrowserChrome.h"
 #include "nsPIDOMWindow.h"
-#include "nsIFocusController.h"
 #include "nsIDOMWindowInternal.h"
 #include "nsIWebProgress.h"
 #include "nsIWebProgressListener.h"
@@ -73,6 +72,7 @@
 #include "nsCWebBrowserPersist.h"
 #include "nsIServiceManager.h"
 #include "nsAutoPtr.h"
+#include "nsFocusManager.h"
 
 
 #include "nsIRenderingContext.h"
@@ -1463,12 +1463,11 @@ NS_IMETHODIMP nsWebBrowser::GetMainWidget(nsIWidget** mainWidget)
 
 NS_IMETHODIMP nsWebBrowser::SetFocus()
 {
-   NS_ENSURE_STATE(mDocShell);
+  nsCOMPtr<nsIDOMWindow> window = do_GetInterface(mDocShell);
+  NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
 
-   if (NS_FAILED(mDocShellAsWin->SetFocus()))
-     return NS_ERROR_FAILURE;
-
-   return NS_OK;
+  nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
+  return fm ? fm->SetFocusedWindow(window) : NS_OK;
 }
 
 NS_IMETHODIMP nsWebBrowser::GetTitle(PRUnichar** aTitle)
@@ -1749,91 +1748,20 @@ NS_IMETHODIMP nsWebBrowser::GetPrimaryContentWindow(nsIDOMWindowInternal **aDOMW
 
 NS_IMETHODIMP nsWebBrowser::Activate(void)
 {
-  
-  
-  if (mActivating)
-    return NS_OK;
-
-  mActivating = PR_TRUE;
-
-  
-  
-  nsCOMPtr<nsIDOMWindow> domWindowExternal;
-  GetContentDOMWindow(getter_AddRefs(domWindowExternal));
-  nsCOMPtr<nsPIDOMWindow> piWin(do_QueryInterface(domWindowExternal));
-  PRBool needToFocus = PR_TRUE;
-  if (piWin) {
-    nsIFocusController *focusController = piWin->GetRootFocusController();
-    if (focusController) {
-      
-      
-      focusController->SetActive(PR_TRUE);
-
-      nsCOMPtr<nsIDOMWindowInternal> focusedWindow;
-      focusController->GetFocusedWindow(getter_AddRefs(focusedWindow));
-      if (focusedWindow) {
-        needToFocus = PR_FALSE;
-        focusController->SetSuppressFocus(PR_TRUE, "Activation Suppression");
-        piWin->Focus(); 
-                        
-      }
-    }
-  }
-
-  
-  
-  
-  if (needToFocus) {
-    nsCOMPtr<nsIDOMWindowInternal> contentDomWindow;
-    GetPrimaryContentWindow(getter_AddRefs(contentDomWindow));
-    if (contentDomWindow)
-      contentDomWindow->Focus();
-    else if (piWin)
-      piWin->Focus();
-  }
-
-  nsCOMPtr<nsIDOMWindow> win;
-  GetContentDOMWindow(getter_AddRefs(win));
-  if (win) {
-    
-    if (mWWatch)
-      mWWatch->SetActiveWindow(win);
-
-    
-
-
-
-
-    nsCOMPtr<nsPIDOMWindow> privateDOMWindow = do_QueryInterface(win);
-    if (privateDOMWindow)
-      privateDOMWindow->Activate();
-  }
-
-  mActivating = PR_FALSE;
+  nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
+  nsCOMPtr<nsIDOMWindow> window = do_GetInterface(mDocShell);
+  if (fm && window)
+    return fm->WindowRaised(window);
   return NS_OK;
 }
 
 
 NS_IMETHODIMP nsWebBrowser::Deactivate(void)
 {
-  
-
-
-
-
-  nsCOMPtr<nsIDOMWindow> domWindow;
-  GetContentDOMWindow(getter_AddRefs(domWindow));
-  if (domWindow) {
-    nsCOMPtr<nsPIDOMWindow> privateDOMWindow = do_QueryInterface(domWindow);
-    if(privateDOMWindow) {
-      nsIFocusController *focusController =
-          privateDOMWindow->GetRootFocusController();
-      if (focusController)
-        focusController->SetActive(PR_FALSE);
-      privateDOMWindow->Deactivate();
-    }
-  }
-
+  nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
+  nsCOMPtr<nsIDOMWindow> window = do_GetInterface(mDocShell);
+  if (fm && window)
+    return fm->WindowLowered(window);
   return NS_OK;
 }
 
@@ -1852,59 +1780,40 @@ NS_IMETHODIMP nsWebBrowser::SetFocusAtLastElement(void)
 
 NS_IMETHODIMP nsWebBrowser::GetFocusedWindow(nsIDOMWindow * *aFocusedWindow)
 {
-    NS_ENSURE_ARG_POINTER(aFocusedWindow);
-    *aFocusedWindow = nsnull;
+  NS_ENSURE_ARG_POINTER(aFocusedWindow);
+  *aFocusedWindow = nsnull;
 
-    nsresult rv;
-    nsCOMPtr<nsIDOMWindowInternal> focusedWindow;
+  nsCOMPtr<nsIDOMWindow> window = do_GetInterface(mDocShell);
+  NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
 
-    nsCOMPtr<nsIDOMWindow> domWindowExternal;
-    rv = GetContentDOMWindow(getter_AddRefs(domWindowExternal));
-    if (NS_FAILED(rv)) return rv;
-    nsCOMPtr<nsPIDOMWindow> piWin(do_QueryInterface(domWindowExternal , &rv));
-    if (NS_FAILED(rv)) return rv;
-    
-    nsIFocusController *focusController = piWin->GetRootFocusController();
-    if (focusController)
-      rv = focusController->GetFocusedWindow(getter_AddRefs(focusedWindow));
-    
-    *aFocusedWindow = focusedWindow;
-    NS_IF_ADDREF(*aFocusedWindow);
-    
-    return *aFocusedWindow ? NS_OK : NS_ERROR_FAILURE;
+  nsCOMPtr<nsIDOMElement> focusedElement;
+  nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
+  return fm ? fm->GetFocusedElementForWindow(window, PR_TRUE, aFocusedWindow,
+                                             getter_AddRefs(focusedElement)) : NS_OK;
 }
+
 NS_IMETHODIMP nsWebBrowser::SetFocusedWindow(nsIDOMWindow * aFocusedWindow)
 {
-  return NS_OK;
+  nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
+  return fm ? fm->SetFocusedWindow(aFocusedWindow) : NS_OK;
 }
 
 
 NS_IMETHODIMP nsWebBrowser::GetFocusedElement(nsIDOMElement * *aFocusedElement)
 {
   NS_ENSURE_ARG_POINTER(aFocusedElement);
-  *aFocusedElement = nsnull;
-  
-  nsresult rv;
-  nsCOMPtr<nsIDOMElement> focusedElement;
 
-  nsCOMPtr<nsIDOMWindow> domWindowExternal;
-  rv = GetContentDOMWindow(getter_AddRefs(domWindowExternal));
-  if (NS_FAILED(rv)) return rv;
-  nsCOMPtr<nsPIDOMWindow> piWin(do_QueryInterface(domWindowExternal, &rv));
-  if (NS_FAILED(rv)) return rv;
+  nsCOMPtr<nsIDOMWindow> window = do_GetInterface(mDocShell);
+  NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
 
-  nsIFocusController *focusController = piWin->GetRootFocusController();
-  if (focusController)
-  rv = focusController->GetFocusedElement(getter_AddRefs(focusedElement));
-
-  *aFocusedElement = focusedElement;
-  NS_IF_ADDREF(*aFocusedElement);
-  return *aFocusedElement ? NS_OK : NS_ERROR_FAILURE;
+  nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
+  return fm ? fm->GetFocusedElementForWindow(window, PR_TRUE, nsnull, aFocusedElement) : NS_OK;
 }
 
 NS_IMETHODIMP nsWebBrowser::SetFocusedElement(nsIDOMElement * aFocusedElement)
 {
-  return NS_OK;
+  nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
+  return fm ? fm->SetFocus(aFocusedElement, 0) : NS_OK;
 }
 
 

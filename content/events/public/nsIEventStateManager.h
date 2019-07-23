@@ -42,6 +42,7 @@
 #include "nsISupports.h"
 
 class nsIContent;
+class nsIDocument;
 class nsPresContext;
 class nsIDOMEvent;
 class nsIFrame;
@@ -54,22 +55,14 @@ class imgIContainer;
 
 
 #define NS_IEVENTSTATEMANAGER_IID \
-{ 0x522d12ec, 0xde51, 0x4635, \
-  { 0xb0, 0x10, 0x4, 0x2a, 0x6d, 0x5, 0xa0, 0x3e } }
+{ 0xc224a806, 0xa99f, 0x4056, \
+  { 0x85, 0xc2, 0x3b, 0x19, 0x70, 0xf9, 0x4d, 0xb2 } }
 
 #define NS_EVENT_NEEDS_FRAME(event) (!NS_IS_FOCUS_EVENT(event))
 
 class nsIEventStateManager : public nsISupports {
 
 public:
-  enum EFocusedWithType {
-    eEventFocusedByUnknown,     
-    eEventFocusedByMouse,       
-    eEventFocusedByKey,         
-    eEventFocusedByContextMenu, 
-    eEventFocusedByApplication  
-  };
-
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IEVENTSTATEMANAGER_IID)
 
   NS_IMETHOD Init() = 0;
@@ -108,28 +101,8 @@ public:
 
   virtual PRBool SetContentState(nsIContent *aContent, PRInt32 aState) = 0;
 
-  NS_IMETHOD GetFocusedContent(nsIContent **aContent) = 0;
-  NS_IMETHOD SetFocusedContent(nsIContent* aContent) = 0;
-
-  
-  NS_IMETHOD GetLastFocusedContent(nsIContent **aContent) = 0;
-
-  NS_IMETHOD GetFocusedFrame(nsIFrame **aFrame) = 0;
-
-  NS_IMETHOD ContentRemoved(nsIContent* aContent) = 0;
+  NS_IMETHOD ContentRemoved(nsIDocument* aDocument, nsIContent* aContent) = 0;
   NS_IMETHOD EventStatusOK(nsGUIEvent* aEvent, PRBool *aOK) = 0;
-
-  
-  virtual PRBool GetBrowseWithCaret() = 0;
-
-  
-  
-  NS_IMETHOD MoveFocusToCaret(PRBool aCanFocusDoc, PRBool *aIsSelectionWithFocus) = 0;
-  NS_IMETHOD MoveCaretToFocus() = 0;
-
-  
-  
-  NS_IMETHOD ChangeFocusWith(nsIContent *aFocusContent, EFocusedWithType aFocusedWith) = 0;
 
   
 
@@ -162,9 +135,6 @@ public:
   NS_IMETHOD SetCursor(PRInt32 aCursor, imgIContainer* aContainer,
                        PRBool aHaveHotspot, float aHotspotX, float aHotspotY,
                        nsIWidget* aWidget, PRBool aLockCursor) = 0;
-
-  
-  NS_IMETHOD ShiftFocus(PRBool aDirection, nsIContent* aStart)=0;
 
   NS_IMETHOD NotifyDestroyPresContext(nsPresContext* aPresContext) = 0;
   
@@ -227,4 +197,4 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIEventStateManager, NS_IEVENTSTATEMANAGER_IID)
 
 #define NS_EVENT_STATE_INDETERMINATE 0x04000000 // CSS3-Selectors
 
-#endif
+#endif 

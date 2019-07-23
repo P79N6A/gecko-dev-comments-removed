@@ -48,22 +48,11 @@
 #include "nsIDOMNSEvent.h"
 #include "nsIDOMWindowInternal.h"
 #include "nsIDocument.h"
-#include "nsPresContext.h"
-#include "nsIPresShell.h"
-#include "nsIScriptGlobalObject.h"
 #include "nsPIDOMWindow.h"
 #include "nsFocusController.h"
 #include "prlog.h"
-#include "nsIDOMEventTarget.h"
-#include "nsIEventStateManager.h"
-#include "nsIDocShell.h"
-#include "nsIBaseWindow.h"
-#include "nsIWindowWatcher.h"
-#include "nsIDocShellTreeItem.h"
-#include "nsIDocShellTreeOwner.h"
-#include "nsIInterfaceRequestorUtils.h"
-#include "nsServiceManagerUtils.h"
 #include "nsGlobalWindow.h"
+#include "nsFocusManager.h"
 
 #ifdef MOZ_XUL
 #include "nsIDOMXULDocument.h"
@@ -71,19 +60,6 @@
 #endif
 
 
-
-nsFocusController::nsFocusController(void)
-: mSuppressFocus(0), 
-  mSuppressFocusScroll(PR_FALSE), 
-  mActive(PR_FALSE),
-  mUpdateWindowWatcher(PR_FALSE),
-  mNeedUpdateCommands(PR_FALSE)
-{
-}
-
-nsFocusController::~nsFocusController(void)
-{
-}
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsFocusController)
 
@@ -93,18 +69,12 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE_AMBIGUOUS(nsFocusController,
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsFocusController)
   NS_INTERFACE_MAP_ENTRY(nsIFocusController)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMFocusListener)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
   NS_INTERFACE_MAP_ENTRY(nsSupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIFocusController)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_0(nsFocusController)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsFocusController)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mCurrentElement)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mPreviousElement)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mCurrentWindow)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mPreviousWindow)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mPopupNode)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
@@ -120,168 +90,49 @@ nsFocusController::Create(nsIFocusController** aResult)
   return NS_OK;
 }
 
-
-
-
-
-NS_IMETHODIMP
-nsFocusController::GetFocusedElement(nsIDOMElement** aElement)
-{
-  *aElement = mCurrentElement;
-  NS_IF_ADDREF(*aElement);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFocusController::GetFocusedWindow(nsIDOMWindowInternal** aWindow)
-{
-  *aWindow = mCurrentWindow;
-  NS_IF_ADDREF(*aWindow);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFocusController::SetFocusedElement(nsIDOMElement* aElement)
-{
-  if (aElement) {
-    nsCOMPtr<nsIContent> content = do_QueryInterface(aElement);
-    NS_ENSURE_ARG(content);
-  }
-  if (mCurrentElement) 
-    mPreviousElement = mCurrentElement;
-  else if (aElement) 
-    mPreviousElement = aElement;
-
-  mNeedUpdateCommands = mNeedUpdateCommands || mCurrentElement != aElement;
-  mCurrentElement = aElement;
-
-  if (!mSuppressFocus) {
-    
-    
-    
-    UpdateCommands();
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFocusController::RewindFocusState()
-{
-  mCurrentElement = mPreviousElement;
-  mCurrentWindow = mPreviousWindow;
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFocusController::SetFocusedWindow(nsIDOMWindowInternal* aWindow)
-{
-  nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(aWindow);
-
-  if (win) {
-    win = win->GetOuterWindow();
-  }
-
-  NS_ASSERTION(!win || !win->IsInnerWindow(),
-               "Uh, inner window can't have focus!");
-
-  if (win && (mCurrentWindow != win)) {
-    nsCOMPtr<nsIBaseWindow> basewin = do_QueryInterface(win->GetDocShell());
-    if (basewin)
-      basewin->SetFocus();
-  }
-
-  if (mCurrentWindow) {
-    mPreviousWindow = mCurrentWindow;
-  } else if (win) {
-    mPreviousWindow = win;
-  }
-
-  mNeedUpdateCommands = mNeedUpdateCommands || mCurrentWindow != win;
-  mCurrentWindow = win;
-
-  if (mUpdateWindowWatcher) {
-    NS_ASSERTION(mActive, "This shouldn't happen");
-    if (mCurrentWindow)
-      UpdateWWActiveWindow();
-    mUpdateWindowWatcher = PR_FALSE;
-  }
-
-  return NS_OK;
-}
-
-
-void
-nsFocusController::UpdateCommands()
-{
-  if (!mNeedUpdateCommands) {
-    return;
-  }
-  nsCOMPtr<nsIDOMWindowInternal> window;
-  nsCOMPtr<nsIDocument> doc;
-  if (mCurrentWindow) {
-    window = mCurrentWindow;
-    nsCOMPtr<nsIDOMWindow> domWin(do_QueryInterface(window));
-    nsCOMPtr<nsIDOMDocument> domDoc;
-    domWin->GetDocument(getter_AddRefs(domDoc));
-    doc = do_QueryInterface(domDoc);
-  }
-  else if (mCurrentElement) {
-    nsCOMPtr<nsIDOMDocument> domDoc;
-    mCurrentElement->GetOwnerDocument(getter_AddRefs(domDoc));
-    if (domDoc) {
-      doc = do_QueryInterface(domDoc);
-      window = do_QueryInterface(doc->GetScriptGlobalObject());
-    }
-  }
-
-  
-  if (window && doc && doc->GetPrimaryShell()) {
-    
-    window->UpdateCommands(NS_LITERAL_STRING("focus"));
-    mNeedUpdateCommands = PR_FALSE;
-  }
-}
-
-  
 NS_IMETHODIMP
 nsFocusController::GetControllers(nsIControllers** aResult)
 {
   
   
   
-  if (mCurrentElement) {
+  nsCOMPtr<nsIDOMElement> focusedElement;
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (fm)
+    fm->GetFocusedElement(getter_AddRefs(focusedElement));
 
+  if (focusedElement) {
 #ifdef MOZ_XUL
-    nsCOMPtr<nsIDOMXULElement> xulElement(do_QueryInterface(mCurrentElement));
+    nsCOMPtr<nsIDOMXULElement> xulElement(do_QueryInterface(focusedElement));
     if (xulElement)
       return xulElement->GetControllers(aResult);
 #endif
 
     nsCOMPtr<nsIDOMNSHTMLTextAreaElement> htmlTextArea =
-      do_QueryInterface(mCurrentElement);
+      do_QueryInterface(focusedElement);
     if (htmlTextArea)
       return htmlTextArea->GetControllers(aResult);
 
     nsCOMPtr<nsIDOMNSHTMLInputElement> htmlInputElement =
-      do_QueryInterface(mCurrentElement);
+      do_QueryInterface(focusedElement);
     if (htmlInputElement)
       return htmlInputElement->GetControllers(aResult);
 
-    nsCOMPtr<nsIContent> content = do_QueryInterface(mCurrentElement);
+    nsCOMPtr<nsIContent> content = do_QueryInterface(focusedElement);
     if (content && content->IsEditable()) {
       
       nsCOMPtr<nsIDOMDocument> domDoc;
-      mCurrentElement->GetOwnerDocument(getter_AddRefs(domDoc));
+      focusedElement->GetOwnerDocument(getter_AddRefs(domDoc));
       nsCOMPtr<nsIDOMWindowInternal> domWindow =
         do_QueryInterface(GetWindowFromDocument(domDoc));
       if (domWindow)
         return domWindow->GetControllers(aResult);
     }
   }
-  else if (mCurrentWindow) {
-    nsCOMPtr<nsIDOMWindowInternal> domWindow =
-      do_QueryInterface(mCurrentWindow);
+  else {
+    nsCOMPtr<nsIDOMWindow> focusedWindow;
+    fm->GetFocusedWindow(getter_AddRefs(focusedWindow));
+    nsCOMPtr<nsIDOMWindowInternal> domWindow = do_QueryInterface(focusedWindow);
     if (domWindow)
       return domWindow->GetControllers(aResult);
   }
@@ -290,138 +141,6 @@ nsFocusController::GetControllers(nsIControllers** aResult)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsFocusController::MoveFocus(PRBool aForward, nsIDOMElement* aElt)
-{
-  
-  nsCOMPtr<nsIDocument> doc;
-  nsCOMPtr<nsIContent> content;
-  if (aElt) {
-    content = do_QueryInterface(aElt);
-    NS_ENSURE_ARG(content);
-    doc = content->GetDocument();
-  }
-  else {
-    if (mCurrentElement) {
-      content = do_QueryInterface(mCurrentElement);
-      doc = content->GetDocument();
-      content = nsnull;
-    }
-    else if (mCurrentWindow) {
-      nsCOMPtr<nsIDOMDocument> domDoc;
-      mCurrentWindow->GetDocument(getter_AddRefs(domDoc));
-      doc = do_QueryInterface(domDoc);
-    }
-  }
-
-  if (!doc) {
-    
-    return NS_ERROR_FAILURE;
-  }
-
-  nsIPresShell *shell = doc->GetPrimaryShell();
-  if (!shell)
-    return NS_ERROR_FAILURE;
-
-  
-  shell->FlushPendingNotifications(Flush_Frames);
-
-  
-  nsCOMPtr<nsPresContext> presContext = shell->GetPresContext();
-
-  
-  return presContext->EventStateManager()->ShiftFocus(aForward, content);
-}
-
-
-
-
-
-nsresult 
-nsFocusController::Focus(nsIDOMEvent* aEvent)
-{
-  if (mSuppressFocus)
-    return NS_OK;
-
-  nsCOMPtr<nsIDOMEventTarget> t;
-
-  nsCOMPtr<nsIDOMNSEvent> nsevent(do_QueryInterface(aEvent));
-  if (nsevent) {
-    nsevent->GetOriginalTarget(getter_AddRefs(t));
-  }
-
-  nsCOMPtr<nsIDOMElement> domElement = do_QueryInterface(t);
-  if (domElement && (domElement != mCurrentElement)) {
-    SetFocusedElement(domElement);
-
-    
-    
-    
-    nsCOMPtr<nsIDOMDocument> ownerDoc;
-    domElement->GetOwnerDocument(getter_AddRefs(ownerDoc));
-    nsCOMPtr<nsIDOMWindowInternal> domWindow = GetWindowFromDocument(ownerDoc);
-    if (domWindow)
-      SetFocusedWindow(domWindow);
-  }
-  else {
-    
-    
-    nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(t);
-    if (domDoc) {
-      nsCOMPtr<nsIDOMWindowInternal> domWindow = GetWindowFromDocument(domDoc);
-      if (domWindow) {
-        SetFocusedWindow(domWindow);
-        if (mCurrentElement) {
-          
-          
-          nsCOMPtr<nsIDOMDocument> ownerDoc;
-          mCurrentElement->GetOwnerDocument(getter_AddRefs(ownerDoc));
-          nsCOMPtr<nsIDOMDocument> windowDoc;
-          mCurrentWindow->GetDocument(getter_AddRefs(windowDoc));
-          if (ownerDoc != windowDoc)
-            mCurrentElement = mPreviousElement = nsnull;
-        }
-        else
-          mPreviousElement = nsnull;
-
-        if (!mCurrentElement) {
-          UpdateCommands();
-        }
-      }
-    }
-  }
-
-  return NS_OK;
-}
-
-nsresult 
-nsFocusController::Blur(nsIDOMEvent* aEvent)
-{
-  if (mSuppressFocus)
-    return NS_OK;
-
-  nsCOMPtr<nsIDOMEventTarget> t;
-
-  nsCOMPtr<nsIDOMNSEvent> nsevent(do_QueryInterface(aEvent));
-
-  if (nsevent) {
-    nsevent->GetOriginalTarget(getter_AddRefs(t));
-  }
-
-  nsCOMPtr<nsIDOMElement> domElement = do_QueryInterface(t);
-  if (domElement) {
-    SetFocusedElement(nsnull);
-  }
-  
-  nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(t);
-  if (domDoc) {
-    nsCOMPtr<nsIDOMWindowInternal> domWindow = GetWindowFromDocument(domDoc);
-    if (domWindow)
-      SetFocusedWindow(nsnull);
-  }
-
-  return NS_OK;
-}
 
 nsPIDOMWindow *
 nsFocusController::GetWindowFromDocument(nsIDOMDocument* aDocument)
@@ -451,24 +170,17 @@ nsFocusController::GetControllerForCommand(const char * aCommand,
       return NS_OK;
     }
   }
-  
-  nsCOMPtr<nsPIDOMWindow> currentWindow;
-  if (mCurrentElement) {
-    
-    nsCOMPtr<nsIDOMDocument> domDoc;
-    mCurrentElement->GetOwnerDocument(getter_AddRefs(domDoc));
-    currentWindow = do_QueryInterface(GetWindowFromDocument(domDoc));
-  }
-  else if (mCurrentWindow) {
-    nsGlobalWindow *win =
-      static_cast<nsGlobalWindow *>
-                 (static_cast<nsIDOMWindowInternal *>(mCurrentWindow));
-    currentWindow = win->GetPrivateParent();
-  }
-  else return NS_OK;
 
-  while(currentWindow) {
-    nsCOMPtr<nsIDOMWindowInternal> domWindow(do_QueryInterface(currentWindow));
+  nsCOMPtr<nsIDOMElement> focusedElement;
+  nsCOMPtr<nsIDOMWindow> focusedWindow;
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (fm) {
+    fm->GetFocusedElement(getter_AddRefs(focusedElement));
+    fm->GetFocusedWindow(getter_AddRefs(focusedWindow));
+  }
+
+  while (focusedWindow) {
+    nsCOMPtr<nsIDOMWindowInternal> domWindow(do_QueryInterface(focusedWindow));
 
     nsCOMPtr<nsIControllers> controllers2;
     domWindow->GetControllers(getter_AddRefs(controllers2));
@@ -481,122 +193,15 @@ nsFocusController::GetControllerForCommand(const char * aCommand,
       }
     }
 
+    
+    nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(focusedWindow); 
     nsGlobalWindow *win =
       static_cast<nsGlobalWindow *>
-                 (static_cast<nsIDOMWindowInternal *>(currentWindow));
-    currentWindow = win->GetPrivateParent();
+                 (static_cast<nsIDOMWindowInternal *>(piWindow));
+    focusedWindow = win->GetPrivateParent();
   }
   
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFocusController::GetSuppressFocusScroll(PRBool* aSuppressFocusScroll)
-{
-  *aSuppressFocusScroll = mSuppressFocusScroll;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFocusController::SetSuppressFocusScroll(PRBool aSuppressFocusScroll)
-{
-  mSuppressFocusScroll = aSuppressFocusScroll;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFocusController::GetSuppressFocus(PRBool* aSuppressFocus)
-{
-  *aSuppressFocus = (mSuppressFocus > 0);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFocusController::SetSuppressFocus(PRBool aSuppressFocus, const char* aReason)
-{
-  if(aSuppressFocus) {
-    ++mSuppressFocus;
-    
-    
-    
-  }
-  else if(mSuppressFocus > 0) {
-    --mSuppressFocus;
-    
-    
-    
-  }
-  else 
-    
-    return NS_OK;
-
-  
-  
-  
-  
-  if (!mSuppressFocus) {
-    
-    
-    UpdateCommands();
-  }
-  
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFocusController::GetActive(PRBool* aActive)
-{
-  *aActive = mActive;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFocusController::SetActive(PRBool aActive)
-{
-  mActive = aActive;
-
-  
-  
-  
-  
-  
-  
-  if (mActive) {
-    if (mCurrentWindow)
-      UpdateWWActiveWindow();
-    else
-      mUpdateWindowWatcher = PR_TRUE;
-  } else
-    mUpdateWindowWatcher = PR_FALSE;
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFocusController::ResetElementFocus()
-{
-  mCurrentElement = mPreviousElement = nsnull;
-  return NS_OK;
-}
-
-void
-nsFocusController::UpdateWWActiveWindow()
-{
-  
-  nsCOMPtr<nsIWindowWatcher> wwatch = do_GetService("@mozilla.org/embedcomp/window-watcher;1");
-  if (!wwatch) return;
-
-  
-  nsCOMPtr<nsIDocShellTreeItem> docShellAsItem =
-    do_QueryInterface(mCurrentWindow->GetDocShell());
-  if (!docShellAsItem) return;
-
-  nsCOMPtr<nsIDocShellTreeItem> rootItem;
-  docShellAsItem->GetRootTreeItem(getter_AddRefs(rootItem));
-  NS_ASSERTION(rootItem, "Invalid docshell tree - no root!");
-
-  nsCOMPtr<nsIDOMWindow> domWin = do_GetInterface(rootItem);
-  wwatch->SetActiveWindow(domWin);
 }
 
 NS_IMETHODIMP

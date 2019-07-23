@@ -1254,7 +1254,7 @@ NS_IMETHODIMP nsWindow::SetSizeMode(PRInt32 aMode)
     DEBUGFOCUS(deferred NS_ACTIVATE);
     gJustGotActivate = PR_FALSE;
     gJustGotDeactivate = PR_FALSE;
-    DispatchFocus(NS_ACTIVATE, TRUE);
+    DispatchFocus(NS_ACTIVATE);
   }
 
   
@@ -2686,7 +2686,6 @@ PRBool nsWindow::ProcessMessage( ULONG msg, MPARAM mp1, MPARAM mp2, MRESULT &rc)
 
         case WM_FOCUSCHANGED:
         {
-          PRBool isMozWindowTakingFocus = PR_TRUE;
           DEBUGFOCUS(WM_FOCUSCHANGED);
 
           
@@ -2696,42 +2695,29 @@ PRBool nsWindow::ProcessMessage( ULONG msg, MPARAM mp1, MPARAM mp2, MRESULT &rc)
           
 
           if (SHORT1FROMMP(mp2)) {
-            DEBUGFOCUS(NS_GOTFOCUS);
-            result = DispatchFocus(NS_GOTFOCUS, isMozWindowTakingFocus);
-
             if (gJustGotActivate || mp1 == 0) {
               HWND hActive = WinQueryActiveWindow( HWND_DESKTOP);
               if (!(WinQueryWindowULong( hActive, QWL_STYLE) & WS_MINIMIZED)) {
                 DEBUGFOCUS(NS_ACTIVATE);
                 gJustGotActivate = PR_FALSE;
                 gJustGotDeactivate = PR_FALSE;
-                result = DispatchFocus(NS_ACTIVATE, isMozWindowTakingFocus);
+                result = DispatchFocus(NS_ACTIVATE);
               }
             }
 
             if ( WinIsChild( mWnd, HWNDFROMMP(mp1)) && mNextID == 1) {
               DEBUGFOCUS(NS_PLUGIN_ACTIVATE);
-              result = DispatchFocus(NS_PLUGIN_ACTIVATE, isMozWindowTakingFocus);
+              result = DispatchFocus(NS_PLUGIN_ACTIVATE);
               WinSetFocus(HWND_DESKTOP, mWnd);
             }
           }
           
           else {
-            char className[19];
-            ::WinQueryClassName((HWND)mp1, 19, className);
-            if (strcmp(className, WindowClass()) != 0 && 
-                strcmp(className, WC_SCROLLBAR_STRING) != 0) {
-              isMozWindowTakingFocus = PR_FALSE;
-            }
-
             if (gJustGotDeactivate) {
               DEBUGFOCUS(NS_DEACTIVATE);
               gJustGotDeactivate = PR_FALSE;
-              result = DispatchFocus(NS_DEACTIVATE, isMozWindowTakingFocus);
+              result = DispatchFocus(NS_DEACTIVATE);
             }
-
-            DEBUGFOCUS(NS_LOSTFOCUS);
-            result = DispatchFocus(NS_LOSTFOCUS, isMozWindowTakingFocus);
           }
 
           break;
@@ -3183,27 +3169,25 @@ PRBool nsWindow::DispatchMouseEvent(PRUint32 aEventType, MPARAM mp1, MPARAM mp2,
 
 
 
-PRBool nsWindow::DispatchFocus(PRUint32 aEventType, PRBool isMozWindowTakingFocus)
+PRBool nsWindow::DispatchFocus(PRUint32 aEventType)
 {
   
   if (mEventCallback) {
-    nsFocusEvent event(PR_TRUE, aEventType, this);
+    nsGUIEvent event(PR_TRUE, aEventType, this);
     InitEvent(event);
 
     
     event.refPoint.x = 0;
     event.refPoint.y = 0;
 
-    event.isMozWindowTakingFocus = isMozWindowTakingFocus;
-
     nsPluginEvent pluginEvent;
 
     switch (aEventType)
     {
-      case NS_GOTFOCUS:
+      case NS_ACTIVATE:
         pluginEvent.event = WM_SETFOCUS;
         break;
-      case NS_LOSTFOCUS:
+      case NS_DEACTIVATE:
         pluginEvent.event = WM_FOCUSCHANGED;
         break;
       case NS_PLUGIN_ACTIVATE:

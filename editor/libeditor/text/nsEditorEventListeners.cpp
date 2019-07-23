@@ -56,6 +56,7 @@
 #include "nsIPrefService.h"
 #include "nsILookAndFeel.h"
 #include "nsPresContext.h"
+#include "nsFocusManager.h"
 
 
 #include "nsIServiceManager.h"
@@ -70,6 +71,8 @@
 #include "nsIEventStateManager.h"
 #include "nsISelectionPrivate.h"
 #include "nsIDOMDragEvent.h"
+#include "nsIFocusManager.h"
+#include "nsIDOMWindow.h"
 
 
 
@@ -976,8 +979,7 @@ NS_IMPL_ISUPPORTS2(nsTextEditorFocusListener, nsIDOMEventListener, nsIDOMFocusLi
 nsTextEditorFocusListener::nsTextEditorFocusListener(nsIEditor *aEditor,
                                                      nsIPresShell *aShell) 
   : mEditor(aEditor),
-    mPresShell(do_GetWeakReference(aShell)),
-    mIsFocused(PR_FALSE)
+    mPresShell(do_GetWeakReference(aShell))
 {
 }
 
@@ -989,38 +991,6 @@ nsresult
 nsTextEditorFocusListener::HandleEvent(nsIDOMEvent* aEvent)
 {
   return NS_OK;
-}
-
-static PRBool
-IsTargetFocused(nsIDOMEventTarget* aTarget)
-{
-  
-  nsCOMPtr<nsIDocument> doc;
-  nsCOMPtr<nsIContent> content = do_QueryInterface(aTarget);
-  if (content)
-    doc = content->GetDocument();
-  else
-    doc = do_QueryInterface(aTarget);
-
-  if (!doc)
-    return PR_FALSE;
-
-  nsIPresShell *shell = doc->GetPrimaryShell();
-  if (!shell)
-    return PR_FALSE;
-
-  nsPresContext *presContext = shell->GetPresContext();
-  if (!presContext)
-    return PR_FALSE;
-
-  nsCOMPtr<nsIContent> focusedContent;
-  presContext->EventStateManager()->
-    GetFocusedContent(getter_AddRefs(focusedContent));
-
-  
-  
-
-  return (focusedContent == content);
 }
 
 static already_AddRefed<nsIContent>
@@ -1074,21 +1044,9 @@ nsresult
 nsTextEditorFocusListener::Focus(nsIDOMEvent* aEvent)
 {
   NS_ENSURE_ARG(aEvent);
-  
-  
-  
-  
-  
-  
-  
-  
 
   nsCOMPtr<nsIDOMEventTarget> target;
   aEvent->GetTarget(getter_AddRefs(target));
-  if (!IsTargetFocused(target))
-    return NS_OK;
-
-  mIsFocused = PR_TRUE;
 
   
   if (mEditor)
@@ -1103,6 +1061,18 @@ nsTextEditorFocusListener::Focus(nsIDOMEvent* aEvent)
       nsCOMPtr<nsIContent> editableRoot;
       if (content) {
         editableRoot = FindSelectionRoot(mEditor, content);
+
+        
+        
+        if (editableRoot) {
+          nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+          NS_ENSURE_TRUE(fm, NS_OK);
+
+          nsCOMPtr<nsIDOMElement> element;
+          fm->GetFocusedElement(getter_AddRefs(element));
+          if (!SameCOMIdentity(element, target))
+            return NS_OK;
+        }
       }
       else {
         nsCOMPtr<nsIDocument> document = do_QueryInterface(target);
@@ -1158,9 +1128,19 @@ nsTextEditorFocusListener::Focus(nsIDOMEvent* aEvent)
 nsresult
 nsTextEditorFocusListener::Blur(nsIDOMEvent* aEvent)
 {
+  
+  
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  NS_ENSURE_TRUE(fm, NS_OK);
+
+  nsCOMPtr<nsIDOMElement> element;
+  fm->GetFocusedElement(getter_AddRefs(element));
+  if (element)
+    return NS_OK;
+
   NS_ENSURE_ARG(aEvent);
   
-  if (mEditor && mIsFocused)
+  if (mEditor)
   {
     nsCOMPtr<nsIEditor>editor = do_QueryInterface(mEditor);
     if (editor)
@@ -1209,8 +1189,6 @@ nsTextEditorFocusListener::Blur(nsIDOMEvent* aEvent)
       }
     }
   }
-
-  mIsFocused = PR_FALSE;
 
   return NS_OK;
 }

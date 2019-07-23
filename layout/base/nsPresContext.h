@@ -744,11 +744,7 @@ public:
 
 
 
-
-
-
-
-  NS_HIDDEN_(PRBool) EnsureVisible(PRBool aUnsuppressFocus);
+  NS_HIDDEN_(PRBool) EnsureVisible();
   
 #ifdef MOZ_REFLOW_PERF
   NS_HIDDEN_(void) CountReflows(const char * aName,

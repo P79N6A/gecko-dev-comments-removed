@@ -180,6 +180,7 @@
 #include "nsIExternalProtocolService.h"
 
 #include "nsIFocusController.h"
+#include "nsFocusManager.h"
 
 #include "nsITextToSubURI.h"
 
@@ -214,7 +215,6 @@ static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 #endif
 
 #include "nsContentErrors.h"
-#include "nsIFocusEventSuppressor.h"
 
 
 static PRInt32 gNumberOfDocumentsLoading = 0;
@@ -258,31 +258,6 @@ FavorPerformanceHint(PRBool perfOverStarvation, PRUint32 starvationDelay)
     if (appShell)
         appShell->FavorPerformanceHint(perfOverStarvation, starvationDelay);
 }
-
-
-
-
-
-class nsDocShellFocusController
-{
-
-public:
-  static nsDocShellFocusController* GetInstance() { return &mDocShellFocusControllerSingleton; }
-  virtual ~nsDocShellFocusController(){}
-
-  void Focus(nsIDocShell* aDS);
-  void ClosingDown(nsIDocShell* aDS);
-
-protected:
-  nsDocShellFocusController(){}
-
-  nsIDocShell* mFocusedDocShell; 
-
-private:
-  static nsDocShellFocusController mDocShellFocusControllerSingleton;
-};
-
-nsDocShellFocusController nsDocShellFocusController::mDocShellFocusControllerSingleton;
 
 
 
@@ -701,8 +676,6 @@ nsDocShell::nsDocShell():
     mAllowMetaRedirects(PR_TRUE),
     mAllowImages(PR_TRUE),
     mAllowDNSPrefetch(PR_TRUE),
-    mFocusDocFirst(PR_FALSE),
-    mHasFocus(PR_FALSE),
     mCreatingDocument(PR_FALSE),
     mUseErrorPages(PR_FALSE),
     mObserveErrorPages(PR_TRUE),
@@ -749,10 +722,6 @@ nsDocShell::nsDocShell():
 
 nsDocShell::~nsDocShell()
 {
-    nsDocShellFocusController* dsfc = nsDocShellFocusController::GetInstance();
-    if (dsfc) {
-      dsfc->ClosingDown(this);
-    }
     Destroy();
 
     if (--gDocShellCount == 0) {
@@ -4258,7 +4227,7 @@ nsDocShell::Destroy()
     
     
     mLoadingURI = nsnull;
-    
+
     
     (void) FirePageHideNotification(PR_TRUE);
 
@@ -4299,12 +4268,7 @@ nsDocShell::Destroy()
     if (docShellParentAsItem)
         docShellParentAsItem->RemoveChild(this);
 
-    nsCOMPtr<nsIFocusEventSuppressorService> suppressor;
     if (mContentViewer) {
-        suppressor =
-          do_GetService(NS_NSIFOCUSEVENTSUPPRESSORSERVICE_CONTRACTID);
-        NS_ENSURE_STATE(suppressor);
-        suppressor->Suppress();
         mContentViewer->Close(nsnull);
         mContentViewer->Destroy();
         mContentViewer = nsnull;
@@ -4342,9 +4306,6 @@ nsDocShell::Destroy()
     
     
     CancelRefreshURITimers();
-    if (suppressor) {
-      suppressor->Unsuppress();
-    }
     return NS_OK;
 }
 
@@ -4616,25 +4577,16 @@ nsDocShell::SetBlurSuppression(PRBool aBlurSuppression)
 }
 
 NS_IMETHODIMP
+nsDocShell::SetFocus()
+{
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsDocShell::GetMainWidget(nsIWidget ** aMainWidget)
 {
     
     return GetParentWidget(aMainWidget);
-}
-
-NS_IMETHODIMP
-nsDocShell::SetFocus()
-{
-#ifdef DEBUG_DOCSHELL_FOCUS
-  printf("nsDocShell::SetFocus %p\n", (void*)this);
-#endif
-
-  
-  
-
-  SetHasFocus(PR_TRUE);
-
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -7281,61 +7233,6 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
         }
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    nsIFocusController *focusController = nsnull;
-    if (mScriptGlobal) {
-        nsCOMPtr<nsPIDOMWindow> ourWindow = do_QueryInterface(mScriptGlobal);
-        focusController = ourWindow->GetRootFocusController();
-        if (focusController) {
-            
-            focusController->SetSuppressFocus(PR_TRUE,
-                                              "Win32-Only Link Traversal Issue");
-            
-            nsCOMPtr<nsIDOMWindowInternal> focusedWindow;
-            focusController->GetFocusedWindow(getter_AddRefs(focusedWindow));
-
-            
-            
-            
-            
-            
-
-            PRBool isSubWindow = PR_FALSE;
-            nsCOMPtr<nsIDOMWindow> curwin;
-            if (focusedWindow)
-              focusedWindow->GetParent(getter_AddRefs(curwin));
-            while (curwin) {
-              if (curwin == ourWindow) {
-                isSubWindow = PR_TRUE;
-                break;
-              }
-
-              
-              
-              nsIDOMWindow* temp;
-              curwin->GetParent(&temp);
-              if (curwin == temp) {
-                NS_RELEASE(temp);
-                break;
-              }
-              curwin = dont_AddRef(temp);
-            }
-
-            if (ourWindow == focusedWindow || isSubWindow)
-              focusController->ResetElementFocus();
-        }
-    }
-
     nscolor bgcolor = NS_RGBA(0, 0, 0, 0);
     
     nsCOMPtr<nsIContentViewer> kungfuDeathGrip = mContentViewer;
@@ -7398,23 +7295,6 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
         NS_ENSURE_SUCCESS(newMUDV->SetAuthorStyleDisabled(styleDisabled),
                           NS_ERROR_FAILURE);
     }
-
-    
-    
-
-    
-    
-
-    
-
-
-
-
-
-    if (focusController)
-        focusController->SetSuppressFocus(PR_FALSE,
-                                          "Win32-Only Link Traversal Issue");
-
 
     
     
@@ -10030,20 +9910,20 @@ NS_IMETHODIMP nsDocShell::EnsureFind()
     NS_ENSURE_TRUE(scriptGO, NS_ERROR_UNEXPECTED);
 
     
-    nsCOMPtr<nsIDOMWindow> rootWindow = do_QueryInterface(scriptGO);
-    nsCOMPtr<nsIDOMWindow> windowToSearch = rootWindow;
+    nsCOMPtr<nsIDOMWindow> windowToSearch(do_QueryInterface(mScriptGlobal));
+
+    nsCOMPtr<nsIDocShellTreeItem> root;
+    GetRootTreeItem(getter_AddRefs(root));
 
     
-    nsCOMPtr<nsPIDOMWindow> ourWindow = do_QueryInterface(scriptGO);
-    nsIFocusController *focusController = nsnull;
-    if (ourWindow)
-        focusController = ourWindow->GetRootFocusController();
-    if (focusController)
-    {
-        nsCOMPtr<nsIDOMWindowInternal> focusedWindow;
-        focusController->GetFocusedWindow(getter_AddRefs(focusedWindow));
-        if (focusedWindow)
-            windowToSearch = focusedWindow;
+    
+    nsCOMPtr<nsIDOMWindow> rootWindow = do_GetInterface(root);
+    nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
+    if (fm) {
+      nsCOMPtr<nsIDOMWindow> activeWindow;
+      fm->GetActiveWindow(getter_AddRefs(activeWindow));
+      if (activeWindow == rootWindow)
+        fm->GetFocusedWindow(getter_AddRefs(windowToSearch));
     }
 
     nsCOMPtr<nsIWebBrowserFindInFrames> findInFrames = do_QueryInterface(mFind);
@@ -10070,107 +9950,6 @@ nsDocShell::IsFrame()
     }
 
     return PR_FALSE;
-}
-
-NS_IMETHODIMP
-nsDocShell::GetHasFocus(PRBool *aHasFocus)
-{
-  *aHasFocus = mHasFocus;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocShell::SetHasFocus(PRBool aHasFocus)
-{
-#ifdef DEBUG_DOCSHELL_FOCUS
-    printf(">>>>>>>>>> nsDocShell::SetHasFocus: %p  %s\n", (void*)this,
-           aHasFocus?"Yes":"No");
-#endif
-
-  mHasFocus = aHasFocus;
-
-  nsDocShellFocusController* dsfc = nsDocShellFocusController::GetInstance();
-  if (dsfc && aHasFocus) {
-    dsfc->Focus(this);
-  }
-
-  if (!aHasFocus) {
-      
-      
-      
-      
-      SetCanvasHasFocus(PR_FALSE);
-  }
-
-  return NS_OK;
-}
-
-
-
-static nsICanvasFrame* FindCanvasFrame(nsIFrame* aFrame)
-{
-    nsICanvasFrame* canvasFrame = do_QueryFrame(aFrame);
-    if (canvasFrame) {
-        return canvasFrame;
-    }
-
-    nsIFrame* kid = aFrame->GetFirstChild(nsnull);
-    while (kid) {
-        canvasFrame = FindCanvasFrame(kid);
-        if (canvasFrame) {
-            return canvasFrame;
-        }
-        kid = kid->GetNextSibling();
-    }
-
-    return nsnull;
-}
-
-
-
-NS_IMETHODIMP
-nsDocShell::SetCanvasHasFocus(PRBool aCanvasHasFocus)
-{
-  if (mEditorData && mEditorData->GetEditable())
-    return NS_ERROR_NOT_AVAILABLE;
-
-  nsCOMPtr<nsIPresShell> presShell;
-  GetPresShell(getter_AddRefs(presShell));
-  if (!presShell) return NS_ERROR_FAILURE;
-
-  nsIDocument *doc = presShell->GetDocument();
-  if (!doc) return NS_ERROR_FAILURE;
-
-  nsIContent *rootContent = doc->GetRootContent();
-  if (rootContent) {
-      nsIFrame* frame = presShell->GetPrimaryFrameFor(rootContent);
-      if (frame) {
-          frame = frame->GetParent();
-          if (frame) {
-              nsICanvasFrame* canvasFrame = do_QueryFrame(frame);
-              if (canvasFrame) {
-                  return canvasFrame->SetHasFocus(aCanvasHasFocus);
-              }
-          }
-      }
-  } else {
-      
-      nsIFrame* frame = presShell->GetRootFrame();
-      if (frame) {
-          nsICanvasFrame* canvasFrame = FindCanvasFrame(frame);
-          if (canvasFrame) {
-              return canvasFrame->SetHasFocus(aCanvasHasFocus);
-          }
-      }      
-  }
-  
-  return NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP
-nsDocShell::GetCanvasHasFocus(PRBool *aCanvasHasFocus)
-{
-  return NS_ERROR_FAILURE;
 }
 
 
@@ -10247,36 +10026,6 @@ nsRefreshTimer::Notify(nsITimer * aTimer)
         mDocShell->ForceRefreshURIFromTimer(mURI, delay, mMetaRefresh, aTimer);
     }
     return NS_OK;
-}
-
-
-
-
-void 
-nsDocShellFocusController::Focus(nsIDocShell* aDocShell)
-{
-#ifdef DEBUG_DOCSHELL_FOCUS
-  printf("****** nsDocShellFocusController Focus To: %p  Blur To: %p\n",
-         (void*)aDocShell, (void*)mFocusedDocShell);
-#endif
-
-  if (aDocShell != mFocusedDocShell) {
-    if (mFocusedDocShell) {
-      mFocusedDocShell->SetHasFocus(PR_FALSE);
-    }
-    mFocusedDocShell = aDocShell;
-  }
-
-}
-
-
-
-void 
-nsDocShellFocusController::ClosingDown(nsIDocShell* aDocShell)
-{
-  if (aDocShell == mFocusedDocShell) {
-    mFocusedDocShell = nsnull;
-  }
 }
 
 

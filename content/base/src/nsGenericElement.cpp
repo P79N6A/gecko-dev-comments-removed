@@ -54,7 +54,7 @@
 #include "nsIDOMText.h"
 #include "nsIContentIterator.h"
 #include "nsIEventListenerManager.h"
-#include "nsIFocusController.h"
+#include "nsFocusManager.h"
 #include "nsILinkHandler.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIURL.h"
@@ -124,7 +124,6 @@
 #include "nsIEditorDocShell.h"
 #include "nsEventDispatcher.h"
 #include "nsContentCreatorFunctions.h"
-#include "nsIFocusController.h"
 #include "nsIControllers.h"
 #include "nsLayoutUtils.h"
 #include "nsIView.h"
@@ -3072,84 +3071,29 @@ nsGenericElement::IsLink(nsIURI** aURI) const
   return PR_FALSE;
 }
 
-void
-nsGenericElement::SetFocus(nsPresContext* aPresContext)
-{
-  
-  
-
-  nsCOMPtr<nsIPresShell> presShell = aPresContext->PresShell();
-  if (!presShell) {
-    return;
-  }
-  nsIFrame* frame = presShell->GetPrimaryFrameFor(this);
-  if (frame && frame->IsFocusable() &&
-      aPresContext->EventStateManager()->SetContentState(this,
-                                                         NS_EVENT_STATE_FOCUS)) {
-    presShell->ScrollContentIntoView(this, NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE,
-                                     NS_PRESSHELL_SCROLL_IF_NOT_VISIBLE);
-  }
-}
-
-
-PRBool
-nsGenericElement::ShouldFocus(nsIContent *aContent)
-{
-  
-  
-  PRBool visible = PR_FALSE;
-
-  
-  
-  
-
-  nsIDocument *document = aContent->GetDocument();
-
-  if (document) {
-    nsIScriptGlobalObject *sgo = document->GetScriptGlobalObject();
-
-    if (sgo) {
-      nsCOMPtr<nsIWebNavigation> webNav(do_GetInterface(sgo));
-      nsCOMPtr<nsIBaseWindow> baseWin(do_QueryInterface(webNav));
-
-      if (baseWin) {
-        baseWin->GetVisibility(&visible);
-      }
-    }
-  }
-
-  return visible;
-}
-
 
 PRBool
 nsGenericElement::ShouldBlur(nsIContent *aContent)
 {
   
   
-  PRBool isFocused = PR_FALSE;
-
   nsIDocument *document = aContent->GetDocument();
+  if (!document)
+    return PR_FALSE;
 
-  if (document) {
-    nsPIDOMWindow *win = document->GetWindow();
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(document->GetWindow());
+  if (!window)
+    return PR_FALSE;
 
-    if (win) {
-      nsCOMPtr<nsIFocusController> focusController =
-           win->GetRootFocusController();
+  nsCOMPtr<nsPIDOMWindow> focusedFrame;
+  nsIContent* contentToBlur =
+    nsFocusManager::GetFocusedDescendant(window, PR_FALSE, getter_AddRefs(focusedFrame));
+  if (contentToBlur == aContent)
+    return PR_TRUE;
 
-      if (focusController) {
-        nsCOMPtr<nsIDOMElement> focusedElement;
-        focusController->GetFocusedElement(getter_AddRefs(focusedElement));    
-        nsCOMPtr<nsIDOMElement> domElement = do_QueryInterface(aContent);
-        
-        if (domElement == focusedElement)
-          isFocused = PR_TRUE;
-      }
-    }
-  }
-
-  return isFocused;
+  
+  
+  return (contentToBlur && nsFocusManager::GetRedirectedFocus(aContent) == contentToBlur);
 }
 
 nsIContent*
@@ -4997,28 +4941,15 @@ nsGenericElement::PostHandleEventForLinks(nsEventChainPostVisitor& aVisitor)
         
         nsILinkHandler *handler = aVisitor.mPresContext->GetLinkHandler();
         nsIDocument *document = GetCurrentDoc();
-        if (handler && document && ShouldFocus(this)) {
-          
-          
-          
-          nsPIDOMWindow *win = document->GetWindow();
-          if (win) {
-            nsIFocusController *focusController =
-              win->GetRootFocusController();
-            if (focusController) {
-              PRBool isActive = PR_FALSE;
-              focusController->GetActive(&isActive);
-              if (!isActive) {
-                nsCOMPtr<nsIDOMElement> domElement = do_QueryInterface(this);
-                if(domElement)
-                  focusController->SetFocusedElement(domElement);
-                break;
-              }
-            }
+        if (handler && document) {
+          nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+          if (fm) {
+            nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(this);
+            fm->SetFocus(elem, nsIFocusManager::FLAG_BYMOUSE);
           }
-  
+
           aVisitor.mPresContext->EventStateManager()->
-            SetContentState(this, NS_EVENT_STATE_ACTIVE | NS_EVENT_STATE_FOCUS);
+            SetContentState(this, NS_EVENT_STATE_ACTIVE);
         }
       }
     }

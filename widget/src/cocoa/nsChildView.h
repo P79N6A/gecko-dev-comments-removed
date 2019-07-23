@@ -457,8 +457,6 @@ protected:
   PRPackedBool          mPluginDrawing;
   PRPackedBool          mPluginIsCG; 
 
-  PRPackedBool          mInSetFocus;
-
   nsPluginPort          mPluginPort;
   nsIPluginInstanceOwner* mPluginInstanceOwner; 
 
