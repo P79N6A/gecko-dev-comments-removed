@@ -831,8 +831,11 @@ ProcessFile(JSContext *cx, JSObject *obj, const char *filename, FILE *file,
     if (forceTTY) {
         file = stdin;
     }
+    else
 #ifdef HAVE_ISATTY
-    else if (!isatty(fileno(file))) {
+    if (!isatty(fileno(file)))
+#endif
+    {
         
 
 
@@ -863,7 +866,6 @@ ProcessFile(JSContext *cx, JSObject *obj, const char *filename, FILE *file,
 
         return;
     }
-#endif
 
     
     lineno = 1;
