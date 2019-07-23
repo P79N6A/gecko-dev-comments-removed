@@ -278,32 +278,32 @@ NS_IMETHODIMP nsHTMLButtonAccessible::GetRole(PRUint32 *_retval)
 nsresult
 nsHTMLButtonAccessible::GetNameInternal(nsAString& aName)
 {
-  nsAutoString name;
-  GetHTMLName(name, PR_FALSE);
+  nsresult rv = nsAccessible::GetNameInternal(aName);
+  if (!aName.IsEmpty())
+    return NS_OK;
 
-  if (name.IsEmpty()) {
+  nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
+
+  
+  nsAutoString name;
+  if (!content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::value,
+                        name) &&
+      !content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::alt,
+                        name)) {
     
-    nsCOMPtr<nsIContent> content(do_QueryInterface(mDOMNode));
-    if (!content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::value,
-                          name) &&
-        !content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::alt,
-                          name)) {
-      
-      nsIFrame* frame = GetFrame();
-      if (frame) {
-        nsIFormControlFrame* fcFrame;
-        CallQueryInterface(frame, &fcFrame);
-        if (fcFrame)
-          fcFrame->GetFormProperty(nsAccessibilityAtoms::defaultLabel, name);
-      }
+    nsIFrame* frame = GetFrame();
+    if (frame) {
+      nsIFormControlFrame* fcFrame = nsnull;
+      CallQueryInterface(frame, &fcFrame);
+      if (fcFrame)
+        fcFrame->GetFormProperty(nsAccessibilityAtoms::defaultLabel, name);
     }
-    if (name.IsEmpty() &&
-        !content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::title,
-                          name) &&
-        !content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::src,
-                          name)) {
-      content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::data, name);
-    }
+  }
+
+  if (name.IsEmpty() &&
+      !content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::src,
+                        name)) {
+    content->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::data, name);
   }
 
   name.CompressWhitespace();
@@ -370,6 +370,12 @@ nsHTML4ButtonAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
   return NS_OK;
 }
 
+nsresult
+nsHTML4ButtonAccessible::GetNameInternal(nsAString& aName)
+{
+  return GetHTMLName(aName, PR_TRUE);
+}
+
 
 
 nsHTMLTextFieldAccessible::nsHTMLTextFieldAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell):
@@ -391,26 +397,20 @@ NS_IMETHODIMP nsHTMLTextFieldAccessible::GetRole(PRUint32 *aRole)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsHTMLTextFieldAccessible::GetName(nsAString& aName)
+nsresult
+nsHTMLTextFieldAccessible::GetNameInternal(nsAString& aName)
 {
-  aName.Truncate();
-
-  if (IsDefunct())
-    return NS_ERROR_FAILURE;
-
-  nsresult rv = GetARIAName(aName);
+  nsresult rv = nsAccessible::GetNameInternal(aName);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!aName.IsEmpty())
     return NS_OK;
 
   nsCOMPtr<nsIContent> content = do_QueryInterface(mDOMNode);
-  rv = nsAccessible::GetHTMLName(aName, PR_FALSE);
-  if (NS_FAILED(rv) || !aName.IsEmpty() || !content->GetBindingParent()) {
-    return rv;
-  }
+  if (!content->GetBindingParent())
+    return NS_OK;
 
+  
   
   
   

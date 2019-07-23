@@ -101,10 +101,7 @@ public:
   NS_IMETHOD DoAction(PRUint8 index);
 
   
-  virtual nsresult GetNameInternal(nsAString& aName)
-  {
-    return GetHTMLName(aName, PR_TRUE);
-  }
+  virtual nsresult GetNameInternal(nsAString& aName); 
 };
 
 class nsHTMLTextFieldAccessible : public nsHyperTextAccessibleWrap
@@ -119,7 +116,6 @@ public:
 
   
   NS_IMETHOD GetRole(PRUint32 *_retval); 
-  NS_IMETHOD GetName(nsAString& aName); 
   NS_IMETHOD GetValue(nsAString& _retval); 
   NS_IMETHOD GetState(PRUint32 *aState, PRUint32 *aExtraState);
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
@@ -128,6 +124,9 @@ public:
 
   
   NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
+
+  
+  virtual nsresult GetNameInternal(nsAString& aName);
 };
 
 class nsHTMLGroupboxAccessible : public nsHyperTextAccessibleWrap
