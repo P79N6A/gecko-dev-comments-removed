@@ -1191,7 +1191,7 @@ struct nsStyleVisibility {
   
   PRUint8 mDirection;                  
   PRUint8   mVisible;                  
-  nsCOMPtr<nsIAtom> mLangGroup;        
+  nsCOMPtr<nsIAtom> mLanguage;         
   PRUint8 mPointerEvents;              
 
   PRBool IsVisible() const {

@@ -336,9 +336,9 @@ gfxFT2FontGroup::gfxFT2FontGroup(const nsAString& families,
 
     if (familyArray.Length() == 0) {
         nsAutoString prefFamilies;
-        gfxToolkitPlatform::GetPlatform()->GetPrefFonts(aStyle->langGroup.get(), prefFamilies, nsnull);
+        gfxToolkitPlatform::GetPlatform()->GetPrefFonts(aStyle->language.get(), prefFamilies, nsnull);
         if (!prefFamilies.IsEmpty()) {
-            ForEachFont(prefFamilies, aStyle->langGroup, FontCallback, &familyArray);
+            ForEachFont(prefFamilies, aStyle->language, FontCallback, &familyArray);
         }
     }
     if (familyArray.Length() == 0) {
@@ -646,7 +646,7 @@ gfxFT2FontGroup::WhichPrefFontSupportsChar(PRUint32 aCh)
 
     
     nsAutoTArray<nsRefPtr<gfxFontEntry>, 5> fonts;
-    GetPrefFonts(mStyle.langGroup.get(), fonts);
+    GetPrefFonts(mStyle.language.get(), fonts);
     selectedFont = WhichFontSupportsChar(fonts, aCh);
 
     

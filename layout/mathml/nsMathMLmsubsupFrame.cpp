@@ -194,7 +194,7 @@ nsMathMLmsubsupFrame::PlaceSubSupScript(nsPresContext*      aPresContext,
   
   nscoord subScriptShift1, subScriptShift2;
 
-  aRenderingContext.SetFont(baseFrame->GetStyleFont()->mFont, nsnull,
+  aRenderingContext.SetFont(baseFrame->GetStyleFont()->mFont,
                             aPresContext->GetUserFontSet());
   nsCOMPtr<nsIFontMetrics> fm;
   aRenderingContext.GetFontMetrics(*getter_AddRefs(fm));

@@ -538,7 +538,7 @@ public:
 
   nsIDeviceContext* DeviceContext() { return mDeviceContext; }
   nsIEventStateManager* EventStateManager() { return mEventManager; }
-  nsIAtom* GetLangGroup() { return mLangGroup; }
+  nsIAtom* GetLanguage() { return mLanguage; }
 
   float TextZoom() { return mTextZoom; }
   void SetTextZoom(float aZoom) {
@@ -994,7 +994,13 @@ protected:
                                         
 
   nsILinkHandler*       mLinkHandler;   
-  nsIAtom*              mLangGroup;     
+
+  
+  
+  
+  
+  
+  nsIAtom*              mLanguage;      
 
   nsRefPtrHashtable<nsVoidPtrHashKey, nsImageLoader>
                         mImageLoaders[IMAGE_LOAD_TYPE_COUNT];

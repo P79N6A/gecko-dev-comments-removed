@@ -88,7 +88,7 @@ public:
     NS_IMETHOD CreateRenderingContext(nsIRenderingContext *&aContext);
     NS_IMETHOD CreateRenderingContextInstance(nsIRenderingContext *&aContext);
 
-    NS_IMETHOD GetMetricsFor(const nsFont& aFont, nsIAtom* aLangGroup,
+    NS_IMETHOD GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
                              gfxUserFontSet* aUserFontSet,
                              nsIFontMetrics*& aMetrics);
     NS_IMETHOD GetMetricsFor(const nsFont& aFont,
@@ -148,7 +148,7 @@ protected:
     nsresult AliasFont(const nsString& aFont, 
                        const nsString& aAlias, const nsString& aAltAlias,
                        PRBool aForceAlias);
-    void GetLocaleLangGroup(void);
+    void GetLocaleLanguage(void);
     nsresult SetDPI();
     void ComputeClientRectUsingScreen(nsRect *outRect);
     void ComputeFullAreaUsingScreen(nsRect *outRect);
@@ -158,7 +158,7 @@ protected:
 
     PRUint32          mDepth;
     nsFontCache*      mFontCache;
-    nsCOMPtr<nsIAtom> mLocaleLangGroup; 
+    nsCOMPtr<nsIAtom> mLocaleLanguage; 
     nsHashtable*      mFontAliasTable;
     nsIWidget*        mWidget;
 #ifdef NS_DEBUG

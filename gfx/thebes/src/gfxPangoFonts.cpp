@@ -105,7 +105,6 @@ static PangoFontMap *GetPangoFontMap();
 static PRBool gUseFontMapProperty;
 
 static FT_Library gFTLibrary;
-static nsILanguageAtomService* gLangService;
 
 NS_SPECIALIZE_TEMPLATE
 class nsAutoRefTraits<PangoFont> : public gfxGObjectRefTraits<PangoFont> { };
@@ -1888,7 +1887,7 @@ gfxPangoFontGroup::gfxPangoFontGroup (const nsAString& families,
                                       const gfxFontStyle *aStyle,
                                       gfxUserFontSet *aUserFontSet)
     : gfxFontGroup(families, aStyle, aUserFontSet),
-      mPangoLanguage(GuessPangoLanguage(aStyle->langGroup))
+      mPangoLanguage(GuessPangoLanguage(aStyle->language))
 {
     mFonts.AppendElements(1);
 }
@@ -1906,12 +1905,12 @@ gfxPangoFontGroup::Copy(const gfxFontStyle *aStyle)
 
 void
 gfxPangoFontGroup::GetFcFamilies(nsTArray<nsString> *aFcFamilyList,
-                                 const nsACString& aLangGroup)
+                                 const nsACString& aLanguage)
 {
     FamilyCallbackData data(aFcFamilyList, mUserFontSet);
     
     
-    ForEachFontInternal(mFamilies, aLangGroup, PR_TRUE, PR_FALSE,
+    ForEachFontInternal(mFamilies, aLanguage, PR_TRUE, PR_FALSE,
                         FamilyCallback, &data);
 }
 
@@ -1980,7 +1979,7 @@ gfxPangoFontGroup::MakeFontSet(PangoLanguage *aLang, gfxFloat aSizeAdjustFactor,
 
     nsAutoTArray<nsString, 20> fcFamilyList;
     GetFcFamilies(&fcFamilyList,
-                  langGroup ? nsDependentCString(langGroup) : mStyle.langGroup);
+                  langGroup ? nsDependentCString(langGroup) : mStyle.language);
 
     
 
@@ -2062,8 +2061,6 @@ gfxPangoFontGroup::Shutdown()
     
     
     gFTLibrary = NULL;
-
-    NS_IF_RELEASE(gLangService);
 }
 
  gfxFontEntry *
@@ -2211,10 +2208,10 @@ gfxFcFont::GetOrMakeFont(FcPattern *aPattern)
         
         
         
-        NS_NAMED_LITERAL_CSTRING(langGroup, "x-unicode");
+        NS_NAMED_LITERAL_CSTRING(language, "en"); 
         
         gfxFontStyle fontStyle(style, weight, NS_FONT_STRETCH_NORMAL,
-                               size, langGroup, 0.0,
+                               size, language, 0.0,
                                PR_TRUE, PR_FALSE, PR_FALSE);
 
         nsRefPtr<gfxFontEntry> fe;

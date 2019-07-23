@@ -129,7 +129,7 @@ public:
     ~nsFontCache();
 
     nsresult Init(nsIDeviceContext* aContext);
-    nsresult GetMetricsFor(const nsFont& aFont, nsIAtom* aLangGroup,
+    nsresult GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
                            gfxUserFontSet* aUserFontSet,
                            nsIFontMetrics*& aMetrics);
 
@@ -167,7 +167,7 @@ nsFontCache::Init(nsIDeviceContext* aContext)
 }
 
 nsresult
-nsFontCache::GetMetricsFor(const nsFont& aFont, nsIAtom* aLangGroup,
+nsFontCache::GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
   gfxUserFontSet* aUserFontSet, nsIFontMetrics*& aMetrics)
 {
     
@@ -179,9 +179,9 @@ nsFontCache::GetMetricsFor(const nsFont& aFont, nsIAtom* aLangGroup,
         fm = mFontMetrics[i];
         nsIThebesFontMetrics* tfm = static_cast<nsIThebesFontMetrics*>(fm);
         if (fm->Font().Equals(aFont) && tfm->GetUserFontSet() == aUserFontSet) {
-            nsCOMPtr<nsIAtom> langGroup;
-            fm->GetLangGroup(getter_AddRefs(langGroup));
-            if (aLangGroup == langGroup.get()) {
+            nsCOMPtr<nsIAtom> language;
+            fm->GetLanguage(getter_AddRefs(language));
+            if (aLanguage == language.get()) {
                 if (i != n) {
                     
                     mFontMetrics.RemoveElementAt(i);
@@ -199,7 +199,7 @@ nsFontCache::GetMetricsFor(const nsFont& aFont, nsIAtom* aLangGroup,
     aMetrics = nsnull;
     nsresult rv = CreateFontMetricsInstance(&fm);
     if (NS_FAILED(rv)) return rv;
-    rv = fm->Init(aFont, aLangGroup, mContext, aUserFontSet);
+    rv = fm->Init(aFont, aLanguage, mContext, aUserFontSet);
     if (NS_SUCCEEDED(rv)) {
         
         
@@ -218,7 +218,7 @@ nsFontCache::GetMetricsFor(const nsFont& aFont, nsIAtom* aLangGroup,
     Compact();
     rv = CreateFontMetricsInstance(&fm);
     if (NS_FAILED(rv)) return rv;
-    rv = fm->Init(aFont, aLangGroup, mContext, aUserFontSet);
+    rv = fm->Init(aFont, aLanguage, mContext, aUserFontSet);
     if (NS_SUCCEEDED(rv)) {
         mFontMetrics.AppendElement(fm);
         aMetrics = fm;
@@ -376,22 +376,22 @@ NS_IMETHODIMP nsThebesDeviceContext::FontMetricsDeleted(const nsIFontMetrics* aF
 }
 
 void
-nsThebesDeviceContext::GetLocaleLangGroup(void)
+nsThebesDeviceContext::GetLocaleLanguage(void)
 {
-    if (!mLocaleLangGroup) {
+    if (!mLocaleLanguage) {
         nsCOMPtr<nsILanguageAtomService> langService;
         langService = do_GetService(NS_LANGUAGEATOMSERVICE_CONTRACTID);
         if (langService) {
-            mLocaleLangGroup = langService->GetLocaleLanguageGroup();
+            mLocaleLanguage = langService->GetLocaleLanguage();
         }
-        if (!mLocaleLangGroup) {
-            mLocaleLangGroup = do_GetAtom("x-western");
+        if (!mLocaleLanguage) {
+            mLocaleLanguage = do_GetAtom("x-western");
         }
     }
 }
 
 NS_IMETHODIMP nsThebesDeviceContext::GetMetricsFor(const nsFont& aFont,
-  nsIAtom* aLangGroup, gfxUserFontSet* aUserFontSet, nsIFontMetrics*& aMetrics)
+  nsIAtom* aLanguage, gfxUserFontSet* aUserFontSet, nsIFontMetrics*& aMetrics)
 {
     if (nsnull == mFontCache) {
         nsresult rv = CreateFontCache();
@@ -400,15 +400,16 @@ NS_IMETHODIMP nsThebesDeviceContext::GetMetricsFor(const nsFont& aFont,
             return rv;
         }
         
-        GetLocaleLangGroup();
+        GetLocaleLanguage();
     }
 
     
-    if (!aLangGroup) {
-        aLangGroup = mLocaleLangGroup;
+    
+    if (!aLanguage) {
+        aLanguage = mLocaleLanguage;
     }
 
-    return mFontCache->GetMetricsFor(aFont, aLangGroup, aUserFontSet, aMetrics);
+    return mFontCache->GetMetricsFor(aFont, aLanguage, aUserFontSet, aMetrics);
 }
 
 NS_IMETHODIMP nsThebesDeviceContext::GetMetricsFor(const nsFont& aFont,
@@ -422,9 +423,9 @@ NS_IMETHODIMP nsThebesDeviceContext::GetMetricsFor(const nsFont& aFont,
             return rv;
         }
         
-        GetLocaleLangGroup();
+        GetLocaleLanguage();
     }
-    return mFontCache->GetMetricsFor(aFont, mLocaleLangGroup, aUserFontSet,
+    return mFontCache->GetMetricsFor(aFont, mLocaleLanguage, aUserFontSet,
                                      aMetrics);
 }
 

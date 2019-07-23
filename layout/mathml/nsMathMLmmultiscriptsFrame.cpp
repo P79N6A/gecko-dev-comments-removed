@@ -161,7 +161,7 @@ nsMathMLmmultiscriptsFrame::Place(nsIRenderingContext& aRenderingContext,
 
   
   const nsStyleFont* font = GetStyleFont();
-  aRenderingContext.SetFont(font->mFont, nsnull,
+  aRenderingContext.SetFont(font->mFont,
                             PresContext()->GetUserFontSet());
   nsCOMPtr<nsIFontMetrics> fm;
   aRenderingContext.GetFontMetrics(*getter_AddRefs(fm));

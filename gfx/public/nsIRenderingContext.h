@@ -100,8 +100,8 @@ typedef enum
 
 
 #define NS_IRENDERING_CONTEXT_IID \
-{ 0x37762dd8, 0x8df0, 0x48cd, \
-  { 0xa5, 0xd6, 0x24, 0x57, 0x3f, 0xfd, 0xb5, 0xb6 } }
+{ 0xA553DAB8, 0xD8B3, 0x469F, \
+  { 0x85, 0xC5, 0xD9, 0x4E, 0xBD, 0x65, 0x37, 0x5D } }
 
 
 
@@ -203,7 +203,14 @@ public:
 
 
 
-  NS_IMETHOD SetFont(const nsFont& aFont, nsIAtom* aLangGroup,
+  NS_IMETHOD SetFont(const nsFont& aFont, nsIAtom* aLanguage,
+                     gfxUserFontSet *aUserFontSet) = 0;
+
+  
+
+
+
+  NS_IMETHOD SetFont(const nsFont& aFont,
                      gfxUserFontSet *aUserFontSet) = 0;
 
   
