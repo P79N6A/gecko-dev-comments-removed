@@ -2770,9 +2770,8 @@ nsDocShell::LoadURI(const PRUnichar * aURI,
     
     
     
-    
-    PRUint32 fixupFlag = (aLoadFlags & LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP);
-    aLoadFlags &= ~LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP;
+    PRUint32 extraFlags = (aLoadFlags & EXTRA_LOAD_FLAGS);
+    aLoadFlags &= ~EXTRA_LOAD_FLAGS;
 
     nsCOMPtr<nsIDocShellLoadInfo> loadInfo;
     rv = CreateLoadInfo(getter_AddRefs(loadInfo));
@@ -2784,7 +2783,7 @@ nsDocShell::LoadURI(const PRUnichar * aURI,
     loadInfo->SetReferrer(aReferringURI);
     loadInfo->SetHeadersStream(aHeaderStream);
 
-    rv = LoadURI(uri, loadInfo, fixupFlag, PR_TRUE);
+    rv = LoadURI(uri, loadInfo, extraFlags, PR_TRUE);
 
     return rv;
 }
