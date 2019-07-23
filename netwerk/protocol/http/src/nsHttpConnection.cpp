@@ -807,7 +807,7 @@ nsHttpConnection::GetInterface(const nsIID &iid, void **result)
     
     
     
-    NS_ASSERTION(PR_GetCurrentThread() != gSocketThread, "wrong thread");
+    NS_ASSERTION(NS_IsMainThread(), "wrong thread");
  
     if (mTransaction) {
         nsCOMPtr<nsIInterfaceRequestor> callbacks;
