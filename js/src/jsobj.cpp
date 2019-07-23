@@ -4488,6 +4488,9 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, jsval *vp,
 
     if (!sprop) {
         
+        JS_ASSERT(OBJ_GET_CLASS(cx, obj) != &js_BlockClass);
+
+        
 
 
 
