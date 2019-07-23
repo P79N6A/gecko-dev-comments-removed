@@ -885,6 +885,7 @@ nsJSContext::DOMBranchCallback(JSContext *cx, JSScript *script)
 static const char js_options_dot_str[]   = JS_OPTIONS_DOT_STR;
 static const char js_strict_option_str[] = JS_OPTIONS_DOT_STR "strict";
 static const char js_werror_option_str[] = JS_OPTIONS_DOT_STR "werror";
+static const char js_relimit_option_str[] = JS_OPTIONS_DOT_STR "relimit";
 
 int PR_CALLBACK
 nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
@@ -904,6 +905,12 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
     newDefaultJSOptions |= JSOPTION_WERROR;
   else
     newDefaultJSOptions &= ~JSOPTION_WERROR;
+
+  PRBool relimit = nsContentUtils::GetBoolPref(js_relimit_option_str);
+  if (relimit)
+    newDefaultJSOptions |= JSOPTION_RELIMIT;
+  else
+    newDefaultJSOptions &= ~JSOPTION_RELIMIT;
 
   if (newDefaultJSOptions != oldDefaultJSOptions) {
     
@@ -2689,6 +2696,7 @@ nsJSContext::FindXPCNativeWrapperClass(nsIXPConnectJSObjectHolder *aHolder)
 static JSPropertySpec OptionsProperties[] = {
   {"strict",    JSOPTION_STRICT,    JSPROP_ENUMERATE | JSPROP_PERMANENT},
   {"werror",    JSOPTION_WERROR,    JSPROP_ENUMERATE | JSPROP_PERMANENT},
+  {"relimit",   JSOPTION_RELIMIT,   JSPROP_ENUMERATE | JSPROP_PERMANENT},
   {0}
 };
 
@@ -2711,7 +2719,9 @@ SetOptionsProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 
     
     
-    if ((optbit & (optbit - 1)) == 0 && optbit <= JSOPTION_WERROR) {
+    
+    if (((optbit & (optbit - 1)) == 0 && optbit <= JSOPTION_WERROR) ||
+        optbit == JSOPTION_RELIMIT) {
       JSBool optval;
       if (! ::JS_ValueToBoolean(cx, *vp, &optval))
         return JS_FALSE;
