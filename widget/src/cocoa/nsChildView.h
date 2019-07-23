@@ -72,36 +72,6 @@ class gfxASurface;
 class nsChildView;
 union nsPluginPort;
 
-enum {
-  
-  
-  
-  
-  kFocusedChildViewTSMDocPropertyTag  = 'GKFV', 
-};
-
-
-
-
-
-
-
-
-
-
-
-
-extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
-
-@interface NSEvent (Undocumented)
-
-
-
-
-- (EventRef)_eventRef;
-
-@end
-
 @interface ChildView : NSView<
 #ifdef ACCESSIBILITY
                               mozAccessible,
@@ -162,11 +132,6 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
   nsIDragService* mDragService;
   
   PRUint32 mLastModifierState;
-
-  
-  
-  
-  TSMDocumentID mPluginTSMDoc;
 }
 
 
@@ -179,8 +144,6 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
 - (void)setTransparent:(BOOL)transparent;
 
 - (void)sendFocusEvent:(PRUint32)eventType;
-
-- (void) processPluginKeyEvent:(EventRef)aKeyEvent;
 @end
 
 
@@ -419,7 +382,5 @@ protected:
   nsIPluginInstanceOwner* mPluginInstanceOwner; 
 };
 
-void NS_InstallPluginKeyEventsHandler();
-void NS_RemovePluginKeyEventsHandler();
 
 #endif 
