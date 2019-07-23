@@ -198,9 +198,10 @@ nsNavHistoryExpire::OnQuit()
   
   
   nsCOMPtr<nsIPrefBranch> prefs(do_GetService("@mozilla.org/preferences-service;1"));
-  PRBool sanitizeOnShutdown, sanitizeHistory;
-  prefs->GetBoolPref(PREF_SANITIZE_ON_SHUTDOWN, &sanitizeOnShutdown);
-  prefs->GetBoolPref(PREF_SANITIZE_ITEM_HISTORY, &sanitizeHistory);
+  PRBool sanitizeOnShutdown = PR_FALSE;
+  PRBool sanitizeHistory = PR_FALSE;
+  (void)prefs->GetBoolPref(PREF_SANITIZE_ON_SHUTDOWN, &sanitizeOnShutdown);
+  (void)prefs->GetBoolPref(PREF_SANITIZE_ITEM_HISTORY, &sanitizeHistory);
   if (sanitizeHistory && sanitizeOnShutdown)
     return;
 
