@@ -875,44 +875,44 @@ var gCookiesWindow = {
         this._openIndices.push(i);
     }
   },
-  
+
   filter: function ()
   {
-      var filter = document.getElementById("filter").value;
-      if (filter == "") {
-        gCookiesWindow.clearFilter();
-        return;
-      }
-      var view = gCookiesWindow._view;
-      view._filterSet = gCookiesWindow._filterCookies(filter);
-      if (!view._filtered) {
-        
-        
-        gCookiesWindow._saveState();
-        view._filtered = true;
-      }
-      
-      gCookiesWindow._tree.setAttribute("seltype", "multiple");
+    var filter = document.getElementById("filter").value;
+    if (filter == "") {
+      gCookiesWindow.clearFilter();
+      return;
+    }
+    var view = gCookiesWindow._view;
+    view._filterSet = gCookiesWindow._filterCookies(filter);
+    if (!view._filtered) {
       
       
-      var oldCount = view._rowCount;
-      view._rowCount = 0;
-      gCookiesWindow._tree.treeBoxObject.rowCountChanged(0, -oldCount);
-      
-      view._rowCount = view._filterSet.length;
-      gCookiesWindow._tree.treeBoxObject.rowCountChanged(0, view.rowCount);
-      
-      
-      if (view.rowCount > 0)
-        view.selection.select(0);
+      gCookiesWindow._saveState();
+      view._filtered = true;
+    }
+    
+    gCookiesWindow._tree.setAttribute("seltype", "multiple");
 
-      document.getElementById("cookiesIntro").value = gCookiesWindow._bundle.getString("cookiesFiltered");
+    
+    var oldCount = view._rowCount;
+    view._rowCount = 0;
+    gCookiesWindow._tree.treeBoxObject.rowCountChanged(0, -oldCount);
+    
+    view._rowCount = view._filterSet.length;
+    gCookiesWindow._tree.treeBoxObject.rowCountChanged(0, view.rowCount);
+
+    
+    if (view.rowCount > 0)
+      view.selection.select(0);
+
+    document.getElementById("cookiesIntro").value = gCookiesWindow._bundle.getString("cookiesFiltered");
   },
-  
+
   focusFilterBox: function ()
-  { 
+  {
     var filter = document.getElementById("filter");
     filter.focus();
     filter.select();
-  },
+  }
 };
