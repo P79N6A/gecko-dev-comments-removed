@@ -255,20 +255,9 @@ NS_IMETHODIMP nsPlaintextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
       if (srcdomdoc == destdomdoc)
       {
         
- 
-        
-        
-        PRBool userWantsCopy = PR_FALSE;
-
-        nsCOMPtr<nsIDOMMouseEvent> mouseEvent ( do_QueryInterface(aDropEvent) );
-        if (mouseEvent)
-#if defined(XP_MAC) || defined(XP_MACOSX)
-          mouseEvent->GetAltKey(&userWantsCopy);
-#else
-          mouseEvent->GetCtrlKey(&userWantsCopy);
-#endif
-
-        deleteSelection = !userWantsCopy;
+        PRUint32 action;
+        dragSession->GetDragAction(&action);
+        deleteSelection = !(action & nsIDragService::DRAGDROP_ACTION_COPY);
       }
       else
       {
