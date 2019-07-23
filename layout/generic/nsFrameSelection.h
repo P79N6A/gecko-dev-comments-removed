@@ -333,8 +333,10 @@ public:
 
 
 
+
+
   
-  nsresult StartAutoScrollTimer(nsIView *aView,
+  nsresult StartAutoScrollTimer(nsIFrame *aFrame,
                                 nsPoint aPoint,
                                 PRUint32 aDelay);
 

@@ -396,24 +396,7 @@ public:
   static nsPoint GetEventCoordinatesRelativeTo(const nsEvent* aEvent,
                                                nsIFrame* aFrame);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static nsPoint GetEventCoordinatesForNearestView(nsEvent* aEvent,
-                                                   nsIFrame* aFrame,
-                                                   nsIView** aView = nsnull);
-
-
+  
 
 
 
