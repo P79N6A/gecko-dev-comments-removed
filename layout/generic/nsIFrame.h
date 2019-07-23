@@ -859,6 +859,16 @@ public:
   
 
 
+
+
+
+
+
+  virtual nsIFrame* GetLastChild(nsIAtom* aListName) const;
+
+  
+
+
   nsIFrame* GetNextSibling() const { return mNextSibling; }
   void SetNextSibling(nsIFrame* aNextSibling) {
     NS_ASSERTION(this != aNextSibling, "Creating a circular frame list, this is very bad."); 
