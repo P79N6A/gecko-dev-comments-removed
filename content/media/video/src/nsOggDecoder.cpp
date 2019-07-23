@@ -1329,6 +1329,8 @@ nsresult nsOggDecodeStateMachine::Run()
           mStepDecodeThread = nsnull;
         }
 
+        StopPlayback();
+
         
         while (!mDecodedFrames.IsEmpty()) {
           delete mDecodedFrames.Pop();
