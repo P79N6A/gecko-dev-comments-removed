@@ -163,16 +163,16 @@ nsFastLoadService::NewFastLoadFile(const char* aBaseName, nsIFile* *aResult)
 }
 
 NS_IMETHODIMP
-nsFastLoadService::NewInputStream(nsIInputStream* aSrcStream,
-                                  nsIObjectInputStream* *aResult)
+nsFastLoadService::NewInputStream(nsIFile *aFile, nsIObjectInputStream* *aResult)
 {
     nsAutoLock lock(mLock);
 
     nsCOMPtr<nsIObjectInputStream> stream;
-    nsresult rv = NS_NewFastLoadFileReader(getter_AddRefs(stream), aSrcStream);
+    nsresult rv = NS_NewFastLoadFileReader(getter_AddRefs(stream), aFile);
     if (NS_FAILED(rv))
         return rv;
 
+    mFileIO->DisableTruncate();
     *aResult = stream;
     NS_ADDREF(*aResult);
     return NS_OK;
@@ -285,15 +285,9 @@ nsFastLoadService::StartMuxedDocument(nsISupports* aURI, const char* aURISpec,
             
             
             if (!mOutputStream && mFileIO) {
-                nsCOMPtr<nsIOutputStream> output;
-                rv = mFileIO->GetOutputStream(getter_AddRefs(output));
-                if (NS_FAILED(rv))
-                    return rv;
-
                 
                 rv = NS_NewFastLoadFileUpdater(getter_AddRefs(mOutputStream),
-                                               output,
-                                               mInputStream);
+                                               mFileIO, mInputStream);
                 if (NS_FAILED(rv))
                     return rv;
             }
