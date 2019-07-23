@@ -222,8 +222,7 @@ nsContextMenu.prototype = {
     this.showItem("context-viewsource", shouldShow);
     this.showItem("context-viewinfo", shouldShow);
 
-    this.showItem("context-sep-properties",
-                  (shouldShow || this.isContentSelected));
+    this.showItem("context-sep-viewsource", shouldShow);
 
     
     
