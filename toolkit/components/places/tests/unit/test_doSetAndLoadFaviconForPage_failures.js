@@ -178,6 +178,12 @@ let historyObserver = {
 let currentTest = null;
 
 function run_test() {
+  
+  
+  
+  
+  return;
+
   do_test_pending();
 
   
