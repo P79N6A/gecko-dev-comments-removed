@@ -1621,9 +1621,14 @@ static PRBool SelectorMatchesTree(RuleProcessorData& aPrevData,
     if (SelectorMatches(*data, selector, 0, nsnull)) {
       
       
+      
+      
+      
       if ((NS_IS_GREEDY_OPERATOR(selector->mOperator)) &&
           (selector->mNext) &&
-          (!NS_IS_GREEDY_OPERATOR(selector->mNext->mOperator))) {
+          (selector->mNext->mOperator != selector->mOperator) &&
+          !(selector->mOperator == '~' &&
+            selector->mNext->mOperator == PRUnichar(0))) {
 
         
         
