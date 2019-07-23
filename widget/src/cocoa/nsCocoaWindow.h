@@ -50,6 +50,43 @@ class nsCocoaWindow;
 class nsChildView;
 
 
+@interface NSApplication (Undocumented)
+
+
+
+
+
+- (void)_removeWindowFromCache:(NSWindow *)aWindow;
+
+@end
+
+
+@interface NSWindow (Undocumented)
+
+
+
+
+
+
+- (void)_setWindowNumber:(int)aNumber;
+
+@end
+
+
+@interface PopupWindow : NSWindow
+{
+@private
+  BOOL mIsContextMenu;
+}
+
+- (id)initWithContentRect:(NSRect)contentRect styleMask:(unsigned int)styleMask
+      backing:(NSBackingStoreType)bufferingType defer:(BOOL)deferCreation;
+- (BOOL)isContextMenu;
+- (void)setIsContextMenu:(BOOL)flag;
+
+@end
+
+
 @interface WindowDelegate : NSObject
 {
   nsCocoaWindow* mGeckoWindow; 

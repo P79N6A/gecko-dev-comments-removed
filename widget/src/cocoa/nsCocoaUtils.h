@@ -45,7 +45,8 @@
 #include "nsRect.h"
 
 
-float HighestPointOnAnyScreen();
+
+float CocoaScreenCoordsHeight();
 
 
 
