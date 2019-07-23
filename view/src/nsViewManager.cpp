@@ -1428,7 +1428,8 @@ void nsViewManager::ReparentChildWidgets(nsIView* aView, nsIWidget *aNewWidget)
     
     nsIWidget* widget = aView->GetWidget();
     nsIWidget* parentWidget = widget->GetParent();
-    if (parentWidget != aNewWidget) {
+    
+    if (parentWidget && parentWidget != aNewWidget) {
 #ifdef DEBUG
       nsresult rv =
 #endif
