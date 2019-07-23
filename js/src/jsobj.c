@@ -3055,6 +3055,7 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
 
 
 
+    sprop = NULL;
     if (attrs & (JSPROP_GETTER | JSPROP_SETTER)) {
         JSObject *pobj;
         JSProperty *prop;
@@ -3085,13 +3086,11 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
             
             if (!sprop)
                 goto bad;
-            goto out;
-        }
-
-        if (prop) {
+        } else if (prop) {
             
             OBJ_DROP_PROPERTY(cx, pobj, prop);
             prop = NULL;
+            sprop = NULL;
         }
     }
 #endif 
@@ -3117,13 +3116,16 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
     if (!scope)
         goto bad;
 
-    
-    if (clasp->flags & JSCLASS_SHARE_ALL_PROPERTIES)
-        attrs |= JSPROP_SHARED;
-    sprop = js_AddScopeProperty(cx, scope, id, getter, setter,
-                                SPROP_INVALID_SLOT, attrs, flags, shortid);
-    if (!sprop)
-        goto bad;
+    if (!sprop) {
+        
+        if (clasp->flags & JSCLASS_SHARE_ALL_PROPERTIES)
+            attrs |= JSPROP_SHARED;
+            sprop = js_AddScopeProperty(cx, scope, id, getter, setter,
+                                        SPROP_INVALID_SLOT, attrs, flags,
+                                        shortid);
+        if (!sprop)
+            goto bad;
+    }
 
     
     if (SPROP_HAS_VALID_SLOT(sprop, scope))
@@ -3134,9 +3136,6 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
                         js_RemoveScopeProperty(cx, scope, id);
                         goto bad);
 
-#if JS_HAS_GETTER_SETTER
-out:
-#endif
     if (propp)
         *propp = (JSProperty *) sprop;
     else
