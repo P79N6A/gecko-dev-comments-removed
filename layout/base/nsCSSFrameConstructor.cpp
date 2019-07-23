@@ -148,6 +148,7 @@
 #include "nsMathMLParts.h"
 #endif
 #ifdef MOZ_SVG
+#include "nsSVGFeatures.h"
 #include "nsSVGEffects.h"
 #include "nsSVGUtils.h"
 #include "nsSVGOuterSVGFrame.h"
@@ -192,8 +193,6 @@ nsIFrame*
 NS_NewSVGContainerFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 nsIFrame*
 NS_NewSVGUseFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
-PRBool 
-NS_SVG_PassesConditionalProcessingTests(nsIContent *aContent);
 extern nsIFrame*
 NS_NewSVGLinearGradientFrame(nsIPresShell *aPresShell, nsStyleContext* aContext);
 extern nsIFrame*
@@ -4939,7 +4938,7 @@ nsCSSFrameConstructor::FindSVGData(nsIContent* aContent,
   
   
   
-  if (!NS_SVG_PassesConditionalProcessingTests(aContent)) {
+  if (!nsSVGFeatures::PassesConditionalProcessingTests(aContent)) {
     
     
     
