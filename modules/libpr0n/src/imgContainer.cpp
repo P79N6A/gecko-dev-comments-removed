@@ -578,9 +578,10 @@ nsresult imgContainer::DoComposite(gfxIImageFrame** aFrameToUse,
                             nextFrameRect.width == mSize.width &&
                             nextFrameRect.height == mSize.height);
 
-  PRBool nextFrameHasAlpha;
-  PRUint32 aBPR;
-  nextFrameHasAlpha = NS_SUCCEEDED(aNextFrame->GetAlphaBytesPerRow(&aBPR));
+  gfx_format nextFormat;
+  aNextFrame->GetFormat(&nextFormat);
+  PRBool nextFrameHasAlpha = (nextFormat != gfxIFormats::RGB) &&
+                             (nextFormat != gfxIFormats::BGR);
 
   
   
