@@ -96,6 +96,8 @@ STATIC_LIBS += \
   mozipc_s \
   chromium_s \
   $(NULL)
+
+OS_LIBS += -lrt
 endif
 
 STATIC_LIBS += \
@@ -369,3 +371,10 @@ endif
 ifdef GC_LEAK_DETECTOR
 EXTRA_DSO_LIBS += boehm
 endif
+
+ifdef MOZ_ENABLE_CANVAS3D
+ifeq ($(MOZ_WIDGET_TOOLKIT),cocoa)
+EXTRA_DSO_LDOPTS += -framework OpenGL
+endif
+endif
+
