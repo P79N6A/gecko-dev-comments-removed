@@ -90,76 +90,80 @@ function test() {
   
   let newWin = openDialog(location, "_blank", "chrome,all,dialog=no", testURL_A);
   newWin.addEventListener("load", function(aEvent) {
+    newWin.removeEventListener("load", arguments.callee, true);
     newWin.gBrowser.addEventListener("load", function(aEvent) {
       newWin.gBrowser.removeEventListener("load", arguments.callee, true);
 
       executeSoon(function() {
         newWin.gBrowser.addTab();
+        executeSoon(function() {
+          
+          ss.setWindowValue(newWin, uniqueKey_A, uniqueValue_A);
 
-        
-        ss.setWindowValue(newWin, uniqueKey_A, uniqueValue_A);
+          newWin.close();
 
-        newWin.close();
+          
+          is(ss.getClosedWindowCount(), closedWindowCount + 1,
+             "The closed window was added to the list");
 
-        
-        is(ss.getClosedWindowCount(), closedWindowCount + 1,
-           "The closed window was added to the list");
+          
+          let data = JSON.parse(ss.getClosedWindowData())[0];
+          ok(data.toSource().indexOf(uniqueValue_A) > -1,
+             "The closed window data was stored correctly");
 
-        
-        let data = JSON.parse(ss.getClosedWindowData())[0];
-        ok(data.toSource().indexOf(uniqueValue_A) > -1,
-           "The closed window data was stored correctly");
+          
+          pb.privateBrowsingEnabled = true;
+          ok(pb.privateBrowsingEnabled, "private browsing enabled");
 
-        
-        pb.privateBrowsingEnabled = true;
-        ok(pb.privateBrowsingEnabled, "private browsing enabled");
+          
+          is(ss.getClosedWindowCount(), 0,
+             "Recently Closed Windows are removed when entering Private Browsing");
+          is(ss.getClosedWindowData(), "[]",
+             "Recently Closed Windows data is cleared when entering Private Browsing");
 
-        
-        is(ss.getClosedWindowCount(), 0,
-           "Recently Closed Windows are removed when entering Private Browsing");
-        is(ss.getClosedWindowData(), "[]",
-           "Recently Closed Windows data is cleared when entering Private Browsing");
+          
+          let pbWin = openDialog(location, "_blank", "chrome,all,dialog=no", testURL_B);
+          pbWin.addEventListener("load", function(aEvent) {
+            pbWin.removeEventListener("load", arguments.callee, true);
+            pbWin.gBrowser.addEventListener("load", function(aEvent) {
+              pbWin.gBrowser.removeEventListener("load", arguments.callee, true);
 
-        
-        let pbWin = openDialog(location, "_blank", "chrome,all,dialog=no", testURL_B);
-        pbWin.addEventListener("load", function(aEvent) {
-          pbWin.gBrowser.addEventListener("load", function(aEvent) {
-            pbWin.gBrowser.removeEventListener("load", arguments.callee, true);
+              executeSoon(function() {
+                
+                pbWin.gBrowser.addTab();
+                executeSoon(function() {
+                  
+                  ss.setWindowValue(pbWin, uniqueKey_B, uniqueValue_B);
 
-            executeSoon(function() {
-              
-              pbWin.gBrowser.addTab();
+                  pbWin.close();
 
-              
-              ss.setWindowValue(pbWin, uniqueKey_B, uniqueValue_B);
+                  
+                  let data = JSON.parse(ss.getClosedWindowData())[0];
+                  ok(data.toSource().indexOf(uniqueValue_B) > -1,
+                     "The closed window data was stored correctly in PB mode");
 
-              pbWin.close();
+                  
+                  pb.privateBrowsingEnabled = false;
+                  ok(!pb.privateBrowsingEnabled, "private browsing disabled");
 
-              
-              let data = JSON.parse(ss.getClosedWindowData())[0];
-              ok(data.toSource().indexOf(uniqueValue_B) > -1,
-                 "The closed window data was stored correctly in PB mode");
+                  
+                  is(ss.getClosedWindowCount(), closedWindowCount + 1,
+                     "The correct number of recently closed windows were restored " +
+                     "when exiting PB mode");
 
-              
-              pb.privateBrowsingEnabled = false;
-              ok(!pb.privateBrowsingEnabled, "private browsing disabled");
+                  let data = JSON.parse(ss.getClosedWindowData())[0];
+                  ok(data.toSource().indexOf(uniqueValue_A) > -1,
+                     "The data associated with the recently closed window was " +
+                     "restored when exiting PB mode");
 
-              
-              is(ss.getClosedWindowCount(), closedWindowCount + 1,
-                 "The correct number of recently closed windows were restored " +
-                 "when exiting PB mode");
-
-              let data = JSON.parse(ss.getClosedWindowData())[0];
-              ok(data.toSource().indexOf(uniqueValue_A) > -1,
-                 "The data associated with the recently closed window was " +
-                 "restored when exiting PB mode");
-
-              
-              gPrefService.clearUserPref("browser.sessionstore.interval");
-              finish();
-            });
+                  
+                  gPrefService.clearUserPref("browser.sessionstore.interval");
+                  finish();
+                });
+              });
+            }, true);
           }, true);
-        }, true);
+        });
       });
     }, true);
   }, true);
