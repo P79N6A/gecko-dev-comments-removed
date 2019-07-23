@@ -36,6 +36,7 @@
 
 
 
+
 #include "nsIEffectiveTLDService.h"
 
 #include "nsTHashtable.h"
@@ -111,6 +112,7 @@ public:
   nsresult Init();
 
 private:
+  nsresult GetBaseDomainInternal(const nsACString &aHostname, PRUint32 aAdditionalParts, nsACString &aBaseDomain);
   nsresult NormalizeHostname(nsCString &aHostname);
   nsresult AddEffectiveTLDEntry(nsCString &aDomainName);
   nsresult LoadEffectiveTLDFiles();

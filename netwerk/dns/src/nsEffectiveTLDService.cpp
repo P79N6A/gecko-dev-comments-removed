@@ -49,6 +49,7 @@
 #include "nsIFile.h"
 #include "nsIIDNService.h"
 #include "nsNetUtil.h"
+#include "prnetdb.h"
 
 
 
@@ -96,6 +97,10 @@ nsEffectiveTLDService::Init()
   if (!mHash.Init())
     return NS_ERROR_OUT_OF_MEMORY;
 
+  nsresult rv;
+  mIDNService = do_GetService(NS_IDNSERVICE_CONTRACTID, &rv);
+  if (NS_FAILED(rv)) return rv;
+
   return LoadEffectiveTLDFiles();
 }
 
@@ -115,12 +120,73 @@ nsEffectiveTLDService::~nsEffectiveTLDService()
 
 
 
+NS_IMETHODIMP
+nsEffectiveTLDService::GetPublicSuffix(nsIURI     *aURI,
+                                       nsACString &aPublicSuffix)
+{
+  NS_ENSURE_ARG_POINTER(aURI);
+
+  nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(aURI);
+  NS_ENSURE_ARG_POINTER(innerURI);
+
+  nsCAutoString host;
+  innerURI->GetHost(host);
+
+  return GetBaseDomainInternal(host, 0, aPublicSuffix);
+}
+
+
 
 
 NS_IMETHODIMP
-nsEffectiveTLDService::GetEffectiveTLDLength(const nsACString &aHostname,
-                                             PRUint32 *effTLDLength)
+nsEffectiveTLDService::GetBaseDomain(nsIURI     *aURI,
+                                     PRUint32    aAdditionalParts,
+                                     nsACString &aBaseDomain)
 {
+  NS_ENSURE_ARG_POINTER(aURI);
+
+  nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(aURI);
+  NS_ENSURE_ARG_POINTER(innerURI);
+
+  nsCAutoString host;
+  innerURI->GetHost(host);
+
+  return GetBaseDomainInternal(host, aAdditionalParts + 1, aBaseDomain);
+}
+
+
+
+NS_IMETHODIMP
+nsEffectiveTLDService::GetPublicSuffixFromHost(const nsACString &aHostname,
+                                               nsACString       &aPublicSuffix)
+{
+  return GetBaseDomainInternal(aHostname, 0, aPublicSuffix);
+}
+
+
+
+
+NS_IMETHODIMP
+nsEffectiveTLDService::GetBaseDomainFromHost(const nsACString &aHostname,
+                                             PRUint32          aAdditionalParts,
+                                             nsACString       &aBaseDomain)
+{
+  return GetBaseDomainInternal(aHostname, aAdditionalParts + 1, aBaseDomain);
+}
+
+
+
+
+
+
+nsresult
+nsEffectiveTLDService::GetBaseDomainInternal(const nsACString &aHostname,
+                                             PRUint32          aAdditionalParts,
+                                             nsACString       &aBaseDomain)
+{
+  if (aHostname.IsEmpty())
+    return NS_ERROR_INVALID_ARG;
+
   
   
   nsCAutoString normHostname(aHostname);
@@ -129,9 +195,15 @@ nsEffectiveTLDService::GetEffectiveTLDLength(const nsACString &aHostname,
     return rv;
 
   
-  PRUint32 trailingDot = normHostname.Last() == '.';
+  PRBool trailingDot = normHostname.Last() == '.';
   if (trailingDot)
     normHostname.Truncate(normHostname.Length() - 1);
+
+  
+  PRNetAddr addr;
+  PRStatus result = PR_StringToNetAddr(normHostname.get(), &addr);
+  if (result == PR_SUCCESS)
+    return NS_ERROR_HOST_IS_IP_ADDRESS;
 
   
   
@@ -140,29 +212,30 @@ nsEffectiveTLDService::GetEffectiveTLDLength(const nsACString &aHostname,
   const char *currDomain = normHostname.get();
   const char *nextDot = strchr(currDomain, '.');
   const char *end = currDomain + normHostname.Length();
+  const char *eTLD = currDomain;
   while (1) {
     nsDomainEntry *entry = mHash.GetEntry(currDomain);
     if (entry) {
       if (entry->IsWild() && prevDomain) {
         
-        *effTLDLength = end - prevDomain;
+        eTLD = prevDomain;
         break;
 
       } else if (entry->IsNormal() || !nextDot) {
         
-        *effTLDLength = end - currDomain;
+        eTLD = currDomain;
         break;
 
       } else if (entry->IsException()) {
         
-        *effTLDLength = end - nextDot - 1;
+        eTLD = nextDot + 1;
         break;
       }
     }
 
     if (!nextDot) {
       
-      *effTLDLength = end - currDomain;
+      eTLD = currDomain;
       break;
     }
 
@@ -172,12 +245,29 @@ nsEffectiveTLDService::GetEffectiveTLDLength(const nsACString &aHostname,
   }
 
   
-  *effTLDLength += trailingDot;
+  const char *begin = normHostname.get();
+  const char *iter = eTLD;
+  while (1) {
+    if (iter == begin)
+      break;
+
+    if (*(--iter) == '.' && aAdditionalParts-- == 0) {
+      ++iter;
+      ++aAdditionalParts;
+      break;
+    }
+  }
+
+  if (aAdditionalParts != 0)
+    return NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS;
+
+  aBaseDomain = Substring(iter, end);
+  
+  if (trailingDot)
+    aBaseDomain.Append('.');
 
   return NS_OK;
 }
-
-
 
 
 
@@ -186,21 +276,18 @@ nsresult
 nsEffectiveTLDService::NormalizeHostname(nsCString &aHostname)
 {
   if (IsASCII(aHostname)) {
-    ToLowerCase(aHostname);
-    return NS_OK;
-  }
+    PRBool isACE;
+    if (NS_FAILED(mIDNService->IsACE(aHostname, &isACE)) || !isACE) {
+      ToLowerCase(aHostname);
+      return NS_OK;
+    }
 
-  if (!mIDNService) {
-    nsresult rv;
-    mIDNService = do_GetService(NS_IDNSERVICE_CONTRACTID, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
+    nsresult rv = mIDNService->ConvertACEtoUTF8(aHostname, aHostname);
+    if (NS_FAILED(rv)) return rv;
   }
 
   return mIDNService->Normalize(aHostname, aHostname);
 }
-
-
-
 
 
 
@@ -252,8 +339,6 @@ nsEffectiveTLDService::AddEffectiveTLDEntry(nsCString &aDomainName)
 
   return NS_OK;
 }
-
-
 
 
 
@@ -316,8 +401,6 @@ TruncateAtWhitespace(nsCString &aString)
 
 
 
-
-
 nsresult
 nsEffectiveTLDService::LoadOneEffectiveTLDFile(nsCOMPtr<nsIFile>& effTLDFile)
 {
@@ -349,8 +432,6 @@ nsEffectiveTLDService::LoadOneEffectiveTLDFile(nsCOMPtr<nsIFile>& effTLDFile)
 
   return NS_OK;
 }
-
-
 
 
 nsresult
