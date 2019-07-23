@@ -221,6 +221,13 @@ nsAutoCompleteController::HandleText(PRBool aIgnoreSelection)
   
   StopSearch();
 
+  if (!mInput) {
+    
+    
+    
+    return NS_OK;
+  }
+
   PRBool disabled;
   mInput->GetDisableAutoComplete(&disabled);
   NS_ENSURE_TRUE(!disabled, NS_OK);
