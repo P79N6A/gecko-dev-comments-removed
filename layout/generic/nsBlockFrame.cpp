@@ -1777,7 +1777,17 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
   PRBool selfDirty = (GetStateBits() & NS_FRAME_IS_DIRTY) ||
                      (aState.mReflowState.mFlags.mVResize &&
                       (GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT));
+
   
+  
+  if (aState.mReflowState.availableHeight != NS_UNCONSTRAINEDSIZE
+      && GetNextInFlow() && aState.mReflowState.availableHeight > mRect.height) {
+    line_iterator lastLine = end_lines();
+    if (lastLine != begin_lines()) {
+      --lastLine;
+      lastLine->MarkDirty();
+    }
+  }
     
     
   nscoord deltaY = 0;
