@@ -26,11 +26,11 @@
 
 
 
-#ifndef COMMON_MAC_DWARF_BYTEREADER_H__
-#define COMMON_MAC_DWARF_BYTEREADER_H__
+#ifndef COMMON_DWARF_BYTEREADER_H__
+#define COMMON_DWARF_BYTEREADER_H__
 
 #include <string>
-#include "common/mac/dwarf/types.h"
+#include "common/dwarf/types.h"
 
 namespace dwarf2reader {
 

@@ -26,25 +26,17 @@
 
 
 
-#include <ext/hash_map>
+#include <cassert>
+#include <cstdio>
+#include <cstring>
+#include <memory>
 #include <stack>
 #include <utility>
 
-#include "common/mac/dwarf/bytereader-inl.h"
-#include "common/mac/dwarf/dwarf2reader.h"
-#include "common/mac/dwarf/bytereader.h"
-#include "common/mac/dwarf/line_state_machine.h"
-
-namespace __gnu_cxx
-{
-  template<> struct hash< std::string >
-  {
-    size_t operator()( const std::string& x ) const
-    {
-      return hash< const char* >()( x.c_str() );
-    }
-  };
-}
+#include "common/dwarf/bytereader-inl.h"
+#include "common/dwarf/dwarf2reader.h"
+#include "common/dwarf/bytereader.h"
+#include "common/dwarf/line_state_machine.h"
 
 namespace dwarf2reader {
 
@@ -100,7 +92,9 @@ void CompilationUnit::ReadAbbrevs() {
   const char* abbrev_start = iter->second.first +
                                       header_.abbrev_offset;
   const char* abbrevptr = abbrev_start;
+#ifndef NDEBUG
   const uint64 abbrev_length = iter->second.second - header_.abbrev_offset;
+#endif
 
   while (1) {
     CompilationUnit::Abbrev abbrev;
@@ -476,7 +470,7 @@ void CompilationUnit::ProcessDIEs() {
   
   
   
-  auto_ptr<stack<uint64> > const die_stack(new stack<uint64>);
+  std::auto_ptr<stack<uint64> > const die_stack(new stack<uint64>);
 
   while (dieptr < (lengthstart + header_.length)) {
     
@@ -615,7 +609,7 @@ bool LineInfo::ProcessOneOpcode(ByteReader* reader,
                                 const char* start,
                                 struct LineStateMachine* lsm,
                                 size_t* len,
-                                uintptr_t pc,
+                                uintptr pc,
                                 bool *lsm_passes_pc) {
   size_t oplen = 0;
   size_t templen;
@@ -816,7 +810,8 @@ void LineInfo::ReadLines() {
     while (!lsm.end_sequence) {
       size_t oplength;
       bool add_line = ProcessOneOpcode(reader_, handler_, header_,
-                                       lineptr, &lsm, &oplength, (uintptr_t)-1, NULL);
+                                       lineptr, &lsm, &oplength, (uintptr)-1,
+                                       NULL);
       if (add_line)
         handler_->AddLine(lsm.address, lsm.file_num, lsm.line_num,
                           lsm.column_num);

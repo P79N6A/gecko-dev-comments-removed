@@ -72,6 +72,19 @@ class StackwalkerX86 : public Stackwalker {
 
   
   
+  
+  
+  
+  
+  
+  
+  
+  bool ScanForReturnAddress(u_int32_t location_start,
+                            u_int32_t &location_found,
+                            u_int32_t &eip_found);
+
+  
+  
   const MDRawContextX86 *context_;
 };
 

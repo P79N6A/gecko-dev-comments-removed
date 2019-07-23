@@ -51,9 +51,6 @@
 using std::map;
 using std::vector;
 using std::make_pair;
-#ifndef BSLR_NO_HASH_MAP
-using __gnu_cxx::hash;
-#endif  
 
 namespace google_breakpad {
 
@@ -125,11 +122,7 @@ class BasicSourceLineResolver::Module {
 
  private:
   friend class BasicSourceLineResolver;
-#ifdef BSLR_NO_HASH_MAP
   typedef map<int, string> FileMap;
-#else  
-  typedef hash_map<int, string> FileMap;
-#endif  
 
   
   
@@ -702,15 +695,9 @@ bool BasicSourceLineResolver::Module::ParseStackInfo(char *stack_info_line) {
   return true;
 }
 
-#ifdef BSLR_NO_HASH_MAP
 bool BasicSourceLineResolver::CompareString::operator()(
     const string &s1, const string &s2) const {
   return strcmp(s1.c_str(), s2.c_str()) < 0;
 }
-#else  
-size_t BasicSourceLineResolver::HashString::operator()(const string &s) const {
-  return hash<const char*>()(s.c_str());
-}
-#endif  
 
 }  

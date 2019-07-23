@@ -33,20 +33,19 @@
 
 
 
-#ifndef COMMON_MAC_DWARF_DWARF2READER_H__
-#define COMMON_MAC_DWARF_DWARF2READER_H__
+#ifndef COMMON_DWARF_DWARF2READER_H__
+#define COMMON_DWARF_DWARF2READER_H__
 
-#include <ext/hash_map>
 #include <list>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "common/mac/dwarf/dwarf2enums.h"
-#include "common/mac/dwarf/types.h"
+#include "common/dwarf/dwarf2enums.h"
+#include "common/dwarf/types.h"
 
 using namespace std;
-using namespace __gnu_cxx;
 
 namespace dwarf2reader {
 struct LineStateMachine;
@@ -56,7 +55,7 @@ class LineInfoHandler;
 
 
 
-typedef hash_map<string, pair<const char*, uint64> > SectionMap;
+typedef map<string, pair<const char*, uint64> > SectionMap;
 typedef list<pair<enum DwarfAttribute, enum DwarfForm> > AttributeList;
 typedef AttributeList::iterator AttributeIterator;
 typedef AttributeList::const_iterator ConstAttributeIterator;
@@ -111,7 +110,7 @@ class LineInfo {
                                const char* start,
                                struct LineStateMachine* lsm,
                                size_t* len,
-                               uintptr_t pc,
+                               uintptr pc,
                                bool *lsm_passes_pc);
 
  private:
@@ -225,6 +224,9 @@ class CompilationUnit {
 
   
   
+
+  
+  
   
   
   uint64 Start();
@@ -335,7 +337,6 @@ class Dwarf2Handler {
 
   
   
-  
   virtual bool StartDIE(uint64 offset, enum DwarfTag tag,
                         const AttributeList& attrs) { return false; }
 
@@ -357,7 +358,6 @@ class Dwarf2Handler {
                                       enum DwarfForm form,
                                       int64 data) { }
 
-  
   
   
   

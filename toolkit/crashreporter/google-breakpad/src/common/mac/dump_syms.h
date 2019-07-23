@@ -33,11 +33,11 @@
 
 #import <Foundation/Foundation.h>
 #include <mach-o/loader.h>
-#include "common/mac/dwarf/dwarf2reader.h"
+#include "common/dwarf/dwarf2reader.h"
 
 
 
-typedef hash_map<string, dwarf2reader::SectionMap *> ArchSectionMap;
+typedef map<string, dwarf2reader::SectionMap *> ArchSectionMap;
 
 @interface DumpSymbols : NSObject {
  @protected

@@ -81,6 +81,7 @@
 
 #include <unistd.h>
 
+#include <iostream>
 #include <map>
 #include <string>
 #include <vector>
@@ -178,10 +179,11 @@ class MinidumpContext : public MinidumpStream {
   
   
   
-  const MDRawContextX86*   GetContextX86() const;
-  const MDRawContextPPC*   GetContextPPC() const;
   const MDRawContextAMD64* GetContextAMD64() const;
+  const MDRawContextARM*   GetContextARM() const;
+  const MDRawContextPPC*   GetContextPPC() const;
   const MDRawContextSPARC* GetContextSPARC() const;
+  const MDRawContextX86*   GetContextX86() const;
  
   
   void Print();
@@ -215,7 +217,8 @@ class MinidumpContext : public MinidumpStream {
     MDRawContextAMD64* amd64;
     
     
-    MDRawContextSPARC*  ctx_sparc;
+    MDRawContextSPARC* ctx_sparc;
+    MDRawContextARM*   arm;
   } context_;
 };
 
@@ -641,6 +644,46 @@ class MinidumpException : public MinidumpStream {
 
 
 
+class MinidumpAssertion : public MinidumpStream {
+ public:
+  virtual ~MinidumpAssertion();
+
+  const MDRawAssertionInfo* assertion() const {
+    return valid_ ? &assertion_ : NULL;
+  }
+
+  string expression() const {
+    return valid_ ? expression_ : "";
+  }
+
+  string function() const {
+    return valid_ ? function_ : "";
+  }
+
+  string file() const {
+    return valid_ ? file_ : "";
+  }
+
+  
+  void Print();
+
+ private:
+  friend class Minidump;
+
+  static const u_int32_t kStreamType = MD_ASSERTION_INFO_STREAM;
+
+  explicit MinidumpAssertion(Minidump* minidump);
+
+  bool Read(u_int32_t expected_size);
+
+  MDRawAssertionInfo assertion_;
+  string expression_;
+  string function_;
+  string file_;
+};
+
+
+
 
 class MinidumpSystemInfo : public MinidumpStream {
  public:
@@ -756,9 +799,14 @@ class Minidump {
  public:
   
   explicit Minidump(const string& path);
+  
+  
+  
+  explicit Minidump(std::istream& input);
 
   virtual ~Minidump();
 
+  
   virtual string path() const {
     return path_;
   }
@@ -788,6 +836,7 @@ class Minidump {
   MinidumpModuleList* GetModuleList();
   MinidumpMemoryList* GetMemoryList();
   MinidumpException* GetException();
+  MinidumpAssertion* GetAssertion();
   MinidumpSystemInfo* GetSystemInfo();
   MinidumpMiscInfo* GetMiscInfo();
   MinidumpBreakpadInfo* GetBreakpadInfo();
@@ -813,7 +862,7 @@ class Minidump {
   bool SeekSet(off_t offset);
 
   
-  off_t Tell() { return valid_ ? lseek(fd_, 0, SEEK_CUR) : (off_t)-1; }
+  off_t Tell();
 
   
 
@@ -884,11 +933,12 @@ class Minidump {
   MinidumpStreamMap*        stream_map_;
 
   
+  
   const string              path_;
 
   
   
-  int                       fd_;
+  std::istream*             stream_;
 
   
   

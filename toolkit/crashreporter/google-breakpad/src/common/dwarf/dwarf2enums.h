@@ -26,8 +26,8 @@
 
 
 
-#ifndef COMMON_MAC_DWARF_DWARF2ENUMS_H__
-#define COMMON_MAC_DWARF_DWARF2ENUMS_H__
+#ifndef COMMON_DWARF_DWARF2ENUMS_H__
+#define COMMON_DWARF_DWARF2ENUMS_H__
 
 namespace dwarf2reader {
 
