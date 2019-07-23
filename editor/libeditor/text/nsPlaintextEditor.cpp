@@ -683,7 +683,7 @@ nsPlaintextEditor::ExtendSelectionForDelete(nsISelection *aSelection,
         break;
       case eNext:
         result = selCont->CharacterExtendForDelete();
-        *aAction = eNone;
+        
         break;
       case ePrevious:
         
