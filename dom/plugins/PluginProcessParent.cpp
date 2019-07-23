@@ -51,6 +51,7 @@ PluginProcessParent::PluginProcessParent(const std::string& aPluginFilePath) :
     GeckoChildProcessHost(GeckoProcessType_Plugin),
     mPluginFilePath(aPluginFilePath)
 {
+  
 }
 
 PluginProcessParent::~PluginProcessParent()

@@ -97,8 +97,14 @@ class ChildProcessHost :
   
   void Notify(NotificationType type);
 
+#ifdef CHROMIUM_MOZILLA_BUILD
+ protected:
+#endif
   
   virtual void OnWaitableEventSignaled(base::WaitableEvent *event);
+#ifdef CHROMIUM_MOZILLA_BUILD
+ private:
+#endif
 
   
   
