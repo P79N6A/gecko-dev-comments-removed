@@ -455,7 +455,9 @@ void nsTimerImpl::Fire()
   }
 #endif
 
-  if (mType == TYPE_REPEATING_SLACK) {
+  
+  
+  if (mType == TYPE_REPEATING_SLACK && !mArmed) {
     SetDelayInternal(mDelay); 
     if (gThread)
       gThread->AddTimer(this);
