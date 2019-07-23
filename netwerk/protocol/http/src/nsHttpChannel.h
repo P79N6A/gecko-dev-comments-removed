@@ -370,6 +370,8 @@ private:
     
     
     PRUint32                          mProxyAuth                : 1;
+    PRUint32                          mTriedProxyAuth           : 1;
+    PRUint32                          mTriedHostAuth            : 1;
     PRUint32                          mSuppressDefensiveAuth    : 1;
     PRUint32                          mResuming                 : 1;
     PRUint32                          mInitedCacheEntry         : 1;
