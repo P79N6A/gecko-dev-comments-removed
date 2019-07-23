@@ -130,6 +130,12 @@
   position: static !important;
 }
 
+*|*::-moz-anonymous-block, *|*::-moz-anonymous-positioned-block {
+  
+  outline: inherit;
+  -moz-outline-offset: inherit;
+}
+
 *|*::-moz-xul-anonymous-block {
   display: block ! important;
   position: static ! important;

@@ -41,6 +41,7 @@
 
 
 
+
 #include "nsStyleConsts.h"
 #include "nsPresContext.h"
 #include "nsIImage.h"
@@ -52,6 +53,7 @@
 #include "nsFrameManager.h"
 #include "nsStyleContext.h"
 #include "nsGkAtoms.h"
+#include "nsCSSAnonBoxes.h"
 #include "nsTransform2D.h"
 #include "nsIDeviceContext.h"
 #include "nsIContent.h"
@@ -2857,9 +2859,7 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
   
   const nsStyleColor* ourColor = aStyleContext->GetStyleColor();
 
-  nscoord width, offset;
-  float percent;
-
+  nscoord width;
   aOutlineStyle.GetOutlineWidth(width);
 
   if (width == 0) {
@@ -2882,8 +2882,10 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
 
     switch (bordStyleRadius[i].GetUnit()) {
       case eStyleUnit_Percent:
-        percent = bordStyleRadius[i].GetPercentValue();
-        twipsRadii[i] = (nscoord)(percent * aBorderArea.width);
+        {
+          float percent = bordStyleRadius[i].GetPercentValue();
+          twipsRadii[i] = (nscoord)(percent * aBorderArea.width);
+        }
         break;
 
       case eStyleUnit_Coord:
@@ -2895,10 +2897,42 @@ nsCSSRendering::PaintOutline(nsPresContext* aPresContext,
     }
   }
 
-  nsRect overflowArea = aForFrame->GetOverflowRect();
+  nscoord offset;
+  aOutlineStyle.GetOutlineOffset(offset);
 
   
-  aOutlineStyle.GetOutlineOffset(offset);
+  
+  
+  
+  
+  
+  nsIFrame *frameForArea = aForFrame;
+  do {
+    nsIAtom *pseudoType = frameForArea->GetStyleContext()->GetPseudoType();
+    if (pseudoType != nsCSSAnonBoxes::mozAnonymousBlock &&
+        pseudoType != nsCSSAnonBoxes::mozAnonymousPositionedBlock)
+      break;
+    
+    frameForArea = frameForArea->GetFirstChild(nsnull);
+    NS_ASSERTION(frameForArea, "anonymous block with no children?");
+  } while (frameForArea);
+  nsRect overflowArea;
+  if (frameForArea == aForFrame) {
+    overflowArea = aForFrame->GetOverflowRect();
+  } else {
+    for (; frameForArea; frameForArea = frameForArea->GetNextSibling()) {
+      
+      
+      
+      
+      nsRect r(frameForArea->GetOverflowRect() +
+               frameForArea->GetOffsetTo(aForFrame));
+      nscoord delta = PR_MAX(offset + width, 0);
+      r.Inflate(delta, delta);
+      overflowArea.UnionRect(overflowArea, r);
+    }
+  }
+
   nsRect outerRect(overflowArea + aBorderArea.TopLeft());
   nsRect innerRect(outerRect);
   if (width + offset >= 0) {
