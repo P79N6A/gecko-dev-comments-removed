@@ -59,6 +59,12 @@
 
 
 
+
+
+
+
+
+
 static void nsObjCExceptionLog(NSException* aException)
 {
   NSLog(@"Mozilla has caught an Obj-C exception [%@: %@]",
@@ -188,7 +194,7 @@ NS_OBJC_TRY(_e, )
 #define NS_OBJC_TRY_ABORT(_e)                      \
 @try { _e; }                                       \
 @catch(NSException *_exn) {                        \
-  nsObjCExceptionLogAbort(_exn);                   \
+  nsObjCExceptionLog(_exn);                        \
 }
 
 #define NS_OBJC_TRY_EXPR_ABORT(_e)                 \
@@ -196,15 +202,15 @@ NS_OBJC_TRY(_e, )
    typeof(_e) _tmp;                                \
    @try { _tmp = (_e); }                           \
    @catch(NSException *_exn) {                     \
-     nsObjCExceptionLogAbort(_exn);                \
+     nsObjCExceptionLog(_exn);                     \
    }                                               \
    _tmp;                                           \
 })
 
 
 #define NS_OBJC_BEGIN_TRY_ABORT_BLOCK @try {
-#define NS_OBJC_END_TRY_ABORT_BLOCK   } @catch(NSException *_exn) {            \
-                                        nsObjCExceptionLogAbort(_exn);         \
+#define NS_OBJC_END_TRY_ABORT_BLOCK   } @catch(NSException *_exn) {             \
+                                        nsObjCExceptionLog(_exn);               \
                                       }
 
 
@@ -212,26 +218,26 @@ NS_OBJC_TRY(_e, )
 
 
 #define NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NIL @try {
-#define NS_OBJC_END_TRY_ABORT_BLOCK_NIL   } @catch(NSException *_exn) {        \
-                                            nsObjCExceptionLogAbort(_exn);     \
-                                          }                                    \
+#define NS_OBJC_END_TRY_ABORT_BLOCK_NIL   } @catch(NSException *_exn) {         \
+                                            nsObjCExceptionLog(_exn);           \
+                                          }                                     \
                                           return nil;
 
 #define NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSNULL @try {
-#define NS_OBJC_END_TRY_ABORT_BLOCK_NSNULL   } @catch(NSException *_exn) {     \
-                                               nsObjCExceptionLogAbort(_exn);  \
-                                             }                                 \
+#define NS_OBJC_END_TRY_ABORT_BLOCK_NSNULL   } @catch(NSException *_exn) {      \
+                                               nsObjCExceptionLog(_exn);        \
+                                             }                                  \
                                              return nsnull;
 
 #define NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT @try {
-#define NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT   } @catch(NSException *_exn) {   \
-                                                 nsObjCExceptionLogAbort(_exn);\
-                                               }                               \
+#define NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT   } @catch(NSException *_exn) {    \
+                                                 nsObjCExceptionLog(_exn);      \
+                                               }                                \
                                                return NS_ERROR_FAILURE;
 
 #define NS_OBJC_BEGIN_TRY_ABORT_BLOCK_RETURN    @try {
 #define NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(_rv) } @catch(NSException *_exn) {   \
-                                                  nsObjCExceptionLogAbort(_exn);\
+                                                  nsObjCExceptionLog(_exn);\
                                                 }                               \
                                                 return _rv;
 
