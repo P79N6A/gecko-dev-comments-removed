@@ -7203,19 +7203,6 @@ js_GetXMLObject(JSContext *cx, JSXML *xml)
         return obj;
     }
 
-    
-
-
-
-
-
-
-
-
-    JS_ASSERT(!xml->parent ||
-              !xml->parent->object ||
-              JS_IS_OBJ_LOCKED(cx, xml->parent->object));
-
     obj = NewXMLObject(cx, xml);
     if (!obj)
         return NULL;
