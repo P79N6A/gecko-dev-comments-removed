@@ -341,9 +341,6 @@ private:
 
   
   void UnloadUnusedLibraries();
-
-  
-  nsresult AddPrefObserver();
   
   char *mPluginPath;
   nsRefPtr<nsPluginTag> mPlugins;

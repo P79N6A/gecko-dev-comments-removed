@@ -940,19 +940,6 @@ nsPluginTag::SetDisabled(PRBool aDisabled)
   if (HasFlag(NS_PLUGIN_FLAG_ENABLED) == !aDisabled)
     return NS_OK;
 
-  if (mIsJavaPlugin) {
-    nsresult rv;
-    nsCOMPtr<nsIPrefBranch> pref(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PRBool javaEnabled;
-    rv = pref->GetBoolPref("security.enable_java", &javaEnabled);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (javaEnabled == aDisabled)
-      return pref->SetBoolPref("security.enable_java", !aDisabled);
-  }
-
   if (aDisabled)
     UnMark(NS_PLUGIN_FLAG_ENABLED);
   else
@@ -2458,9 +2445,7 @@ nsPluginStreamListenerPeer::VisitHeader(const nsACString &header, const nsACStri
 nsPluginHost::nsPluginHost()
   
   
-  : mJavaEnabled(PR_TRUE)
 {
-
   gActivePluginList = &mPluginInstanceTagList;
 
   
@@ -2487,11 +2472,6 @@ nsPluginHost::nsPluginHost()
 #ifdef WINCE
     mDefaultPluginDisabled = PR_TRUE;
 #endif
-
-    rv = mPrefService->GetBoolPref("security.enable_java", &tmp);
-    if (NS_SUCCEEDED(rv)) {
-      mJavaEnabled = tmp;
-    }
   }
 
   nsCOMPtr<nsIObserverService> obsService = do_GetService("@mozilla.org/observer-service;1");
@@ -2535,12 +2515,6 @@ nsPluginHost::GetInst()
     if (!sInst)
       return nsnull;
     NS_ADDREF(sInst);
-
-    
-    if (NS_FAILED(sInst->AddPrefObserver())) {
-      NS_RELEASE(sInst);
-      return nsnull;
-    }
   }
 
   NS_ADDREF(sInst);
@@ -2991,9 +2965,6 @@ NS_IMETHODIMP nsPluginHost::Destroy()
   }
 #endif 
 
-  nsCOMPtr<nsIPrefBranch2> prefBranch(do_QueryInterface(mPrefService));
-  if (prefBranch)
-    prefBranch->RemoveObserver("security.enable_java", this);
   mPrefService = nsnull; 
 
   return NS_OK;
@@ -3138,14 +3109,8 @@ NS_IMETHODIMP nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType,
   if (pluginTag) {
     if (!pluginTag->IsEnabled())
       return NS_ERROR_NOT_AVAILABLE;
-  } else if (!mJavaEnabled && IsJavaMIMEType(aMimeType)) {
-    
-    
-    
-    
-    return NS_ERROR_NOT_AVAILABLE;
   }
-    
+
   PRBool isJava = pluginTag && pluginTag->mIsJavaPlugin;
 
   
@@ -4423,7 +4388,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile * pluginsDir,
         }
       }
 
-      if (!enabled || (pluginTag->mIsJavaPlugin && !mJavaEnabled))
+      if (!enabled)
         pluginTag->UnMark(NS_PLUGIN_FLAG_ENABLED);
 
       
@@ -5067,12 +5032,6 @@ nsPluginHost::ReadPluginInfo()
 
     
     tag->Mark(tagflag | NS_PLUGIN_FLAG_FROMCACHE);
-    if (tag->mIsJavaPlugin) {
-      if (mJavaEnabled)
-        tag->Mark(NS_PLUGIN_FLAG_ENABLED);
-      else
-        tag->UnMark(NS_PLUGIN_FLAG_ENABLED);
-    }
     PR_LOG(nsPluginLogging::gPluginLog, PLUGIN_LOG_BASIC,
       ("LoadCachedPluginsInfo : Loading Cached plugininfo for %s\n", tag->mFileName.get()));
     tag->mNext = mCachedPlugins;
@@ -5506,28 +5465,6 @@ NS_IMETHODIMP nsPluginHost::Observe(nsISupports *aSubject,
       pi->PrivateModeStateChanged();
     }
   }
-  if (!nsCRT::strcmp(NS_PREFBRANCH_PREFCHANGE_TOPIC_ID, aTopic)) {
-    NS_ASSERTION(someData &&
-                 nsDependentString(someData).EqualsLiteral("security.enable_java"),
-                 "Unexpected pref");
-    nsCOMPtr<nsIPrefBranch> branch = do_QueryInterface(aSubject);
-    NS_ASSERTION(branch, "Not a pref branch?");
-    PRBool enabled;
-    if (NS_FAILED(branch->GetBoolPref("security.enable_java", &enabled)))
-      enabled = PR_TRUE;
-
-    if (enabled != mJavaEnabled) {
-      mJavaEnabled = enabled;
-      
-      
-      
-      
-      for (nsPluginTag* cur = mPlugins; cur; cur = cur->mNext) {
-        if (cur->mIsJavaPlugin)
-          cur->SetDisabled(!mJavaEnabled);
-      }
-    }
-  }
   return NS_OK;
 }
 
@@ -5940,14 +5877,6 @@ nsresult nsPluginHost::AddUnusedLibrary(PRLibrary * aLibrary)
     mUnusedLibraries.AppendElement(aLibrary);
 
   return NS_OK;
-}
-
-nsresult nsPluginHost::AddPrefObserver()
-{
-  nsCOMPtr<nsIPrefBranch2> prefBranch(do_QueryInterface(mPrefService));
-  NS_ENSURE_TRUE(prefBranch, NS_ERROR_UNEXPECTED);
-  
-  return prefBranch->AddObserver("security.enable_java", this, PR_TRUE);
 }
 
 nsresult nsPluginStreamListenerPeer::ServeStreamAsFile(nsIRequest *request,
