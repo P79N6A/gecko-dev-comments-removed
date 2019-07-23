@@ -2426,9 +2426,6 @@ JS_STATIC_ASSERT(JSOP_SETNAME_LENGTH == JSOP_SETPROP_LENGTH);
 JS_STATIC_ASSERT(JSOP_NULL_LENGTH == JSOP_NULLTHIS_LENGTH);
 
 
-JS_STATIC_ASSERT(JSOP_DEFFUN_LENGTH == JSOP_CLOSURE_LENGTH);
-
-
 JS_STATIC_ASSERT(JSOP_IFNE_LENGTH == JSOP_IFEQ_LENGTH);
 JS_STATIC_ASSERT(JSOP_IFNE == JSOP_IFEQ + 1);
 
@@ -2577,7 +2574,7 @@ js_Interpret(JSContext *cx)
         tr = JS_TRACE_MONITOR(cx).recorder;
         JS_TRACE_MONITOR(cx).recorder = NULL;
     }
-#endif    
+#endif
 
     
     JS_CHECK_RECURSION(cx, return JS_FALSE);
@@ -5656,45 +5653,23 @@ js_Interpret(JSContext *cx)
           END_CASE(JSOP_DEFVAR)
 
           BEGIN_CASE(JSOP_DEFFUN)
+            
+
+
+
+
+
+
             LOAD_FUNCTION(0);
 
-            
+            if (!fp->blockChain) {
+                obj2 = fp->scopeChain;
+            } else {
+                obj2 = js_GetScopeChain(cx, fp);
+                if (!obj2)
+                    goto error;
+            }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            JS_ASSERT(!fp->blockChain);
-            JS_ASSERT((fp->flags & JSFRAME_EVAL) == 0);
-            JS_ASSERT(fp->scopeChain == fp->varobj);
-            obj2 = fp->scopeChain;
-
-            
-
-
-
-            attrs = JSPROP_ENUMERATE | JSPROP_PERMANENT;
-
-          do_deffun:
             
 
 
@@ -5723,6 +5698,14 @@ js_Interpret(JSContext *cx)
 
 
 
+            attrs = (fp->flags & JSFRAME_EVAL)
+                    ? JSPROP_ENUMERATE
+                    : JSPROP_ENUMERATE | JSPROP_PERMANENT;
+
+            
+
+
+
 
             flags = JSFUN_GSFLAG2ATTR(fun->flags);
             if (flags) {
@@ -5737,8 +5720,7 @@ js_Interpret(JSContext *cx)
 
 
             parent = fp->varobj;
-            if (!parent)
-                goto error;
+            JS_ASSERT(parent);
 
             
 
@@ -5751,7 +5733,6 @@ js_Interpret(JSContext *cx)
             if (ok) {
                 if (attrs == JSPROP_ENUMERATE) {
                     JS_ASSERT(fp->flags & JSFRAME_EVAL);
-                    JS_ASSERT(op == JSOP_CLOSURE);
                     ok = OBJ_SET_PROPERTY(cx, parent, id, &rval);
                 } else {
                     JS_ASSERT(attrs & JSPROP_PERMANENT);
@@ -5895,35 +5876,6 @@ js_Interpret(JSContext *cx)
 
             PUSH_OPND(OBJECT_TO_JSVAL(obj));
           END_CASE(JSOP_NAMEDFUNOBJ)
-
-          BEGIN_CASE(JSOP_CLOSURE)
-            
-
-
-
-
-
-            LOAD_FUNCTION(0);
-
-            
-
-
-
-
-
-            obj2 = js_GetScopeChain(cx, fp);
-            if (!obj2)
-                goto error;
-
-            
-
-
-
-            attrs = JSPROP_ENUMERATE;
-            if (!(fp->flags & JSFRAME_EVAL))
-                attrs |= JSPROP_PERMANENT;
-
-            goto do_deffun;
 
 #if JS_HAS_GETTER_SETTER
           BEGIN_CASE(JSOP_GETTER)
@@ -6811,6 +6763,7 @@ js_Interpret(JSContext *cx)
           L_JSOP_DEFXMLNS:
 # endif
 
+          L_JSOP_UNUSED74:
           L_JSOP_UNUSED76:
           L_JSOP_UNUSED77:
           L_JSOP_UNUSED78:
@@ -7055,12 +7008,12 @@ js_Interpret(JSContext *cx)
         js_SetVersion(cx, originalVersion);
     --cx->interpLevel;
 
-#ifdef JS_TRACER    
+#ifdef JS_TRACER
     if (tr) {
         JS_TRACE_MONITOR(cx).recorder = tr;
         tr->deepAbort();
     }
-#endif    
+#endif
     return ok;
 
   atom_not_defined:

@@ -1122,8 +1122,7 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
                                                    JSREPORT_STRICT
                                                  : JSREPORT_ERROR,
                                                  JSMSG_REDECLARED_VAR,
-                                                 (prevop == JSOP_DEFFUN ||
-                                                  prevop == JSOP_CLOSURE)
+                                                 (prevop == JSOP_DEFFUN)
                                                  ? js_function_str
                                                  : (prevop == JSOP_DEFCONST)
                                                  ? js_const_str
@@ -1139,7 +1138,7 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
             if (!ale)
                 return NULL;
         }
-        ALE_SET_JSOP(ale, AT_TOP_LEVEL(tc) ? JSOP_DEFFUN : JSOP_CLOSURE);
+        ALE_SET_JSOP(ale, JSOP_DEFFUN);
 
         
 
@@ -1385,7 +1384,7 @@ FunctionDef(JSContext *cx, JSTokenStream *ts, JSTreeContext *tc,
 
 
 
-        op = JSOP_CLOSURE;
+        op = JSOP_DEFFUN;
     } else {
         op = JSOP_NOP;
     }
@@ -1598,8 +1597,7 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
                                                JSREPORT_STRICT
                                              : JSREPORT_ERROR,
                                              JSMSG_REDECLARED_VAR,
-                                             (prevop == JSOP_DEFFUN ||
-                                              prevop == JSOP_CLOSURE)
+                                             (prevop == JSOP_DEFFUN)
                                              ? js_function_str
                                              : (prevop == JSOP_DEFCONST)
                                              ? js_const_str
@@ -1608,7 +1606,7 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
                 return JS_FALSE;
             }
         }
-        if (op == JSOP_DEFVAR && prevop == JSOP_CLOSURE)
+        if (op == JSOP_DEFVAR && prevop == JSOP_DEFFUN)
             tc->flags |= TCF_FUN_CLOSURE_VS_VAR;
     }
     if (!ale) {

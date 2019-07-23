@@ -4019,17 +4019,9 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
         if (!(cg->treeContext.flags & TCF_IN_FUNCTION)) {
-            CG_SWITCH_TO_PROLOG(cg);
-
-            
-
-
-
             JS_ASSERT(!cg->treeContext.topStmt);
-            op = (cg->treeContext.parseContext->callerFrame)
-                 ? JSOP_CLOSURE
-                 : JSOP_DEFFUN;
-            EMIT_INDEX_OP(op, index);
+            CG_SWITCH_TO_PROLOG(cg);
+            EMIT_INDEX_OP(JSOP_DEFFUN, index);
             CG_SWITCH_TO_MAIN(cg);
 
             
@@ -5121,7 +5113,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-                        JS_ASSERT(pn2->pn_op == JSOP_CLOSURE);
+                        JS_ASSERT(pn2->pn_op == JSOP_DEFFUN);
                     }
                 }
             }
