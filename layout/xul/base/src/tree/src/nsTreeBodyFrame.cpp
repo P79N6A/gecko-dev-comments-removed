@@ -4093,6 +4093,20 @@ nsTreeBodyFrame::ClearStyleAndImageCaches()
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsTreeBodyFrame::DidSetStyleContext()
+{
+  
+  mStyleCache.Clear();
+  
+  
+  
+  mIndentation = GetIndentation();
+  mRowHeight = GetRowHeight();
+  mStringWidth = -1;
+  return NS_OK;
+}
+
 PRBool 
 nsTreeBodyFrame::OffsetForHorzScroll(nsRect& rect, PRBool clip)
 {

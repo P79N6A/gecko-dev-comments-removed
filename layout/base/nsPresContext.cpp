@@ -77,6 +77,8 @@
 #include "nsFrameManager.h"
 #include "nsLayoutUtils.h"
 #include "nsIViewManager.h"
+#include "nsCSSFrameConstructor.h"
+#include "nsStyleChangeList.h"
 
 #ifdef IBMBIDI
 #include "nsBidiPresUtils.h"
@@ -642,15 +644,28 @@ nsPresContext::GetUserPreferences()
 void
 nsPresContext::ClearStyleDataAndReflow()
 {
-  if (mShell) {
-    
-    mShell->StyleSet()->ClearStyleData(this);
-
-    
-    
+  
+  
+  
+  if (mShell && mShell->GetRootFrame()) {
     
     
-    mShell->StyleChangeReflow();
+    nsresult rv = mShell->StyleSet()->BeginReconstruct();
+    if (NS_FAILED(rv))
+      return;
+    
+    
+    
+    
+    
+    
+    nsStyleChangeList changeList;
+    mShell->FrameManager()->ComputeStyleChangeFor(mShell->GetRootFrame(),
+                                                  &changeList, nsChangeHint(0));
+    
+    mShell->StyleSet()->EndReconstruct();
+    
+    mShell->FrameConstructor()->ProcessRestyledFrames(changeList);
   }
 }
 

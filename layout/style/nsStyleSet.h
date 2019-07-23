@@ -48,9 +48,10 @@
 
 #include "nsIStyleRuleProcessor.h"
 #include "nsICSSStyleSheet.h"
-#include "nsVoidArray.h"
 #include "nsBindingManager.h"
 #include "nsRuleNode.h"
+#include "nsTArray.h"
+#include "nsCOMArray.h"
 
 class nsIURI;
 
@@ -71,9 +72,6 @@ class nsStyleSet
   
   
   nsCachedStyleData* DefaultStyleData() { return &mDefaultStyleData; }
-
-  
-  void ClearStyleData(nsPresContext *aPresContext);
 
   
   void EnableQuirkStyleSheet(PRBool aEnable);
@@ -192,6 +190,13 @@ class nsStyleSet
   void     BeginUpdate();
   nsresult EndUpdate();
 
+  
+  
+  
+  nsresult BeginReconstruct();
+  
+  void EndReconstruct();
+
  private:
   
   nsStyleSet(const nsStyleSet& aCopy);
@@ -265,13 +270,17 @@ class nsStyleSet
                              
 
   PRInt32 mDestroyedCount; 
-  nsVoidArray mRoots; 
+  nsTArray<nsStyleContext*> mRoots; 
 
   PRUint16 mBatching;
+
+  nsRuleNode* mOldRuleTree; 
+                            
 
   unsigned mInShutdown : 1;
   unsigned mAuthorStyleDisabled: 1;
   unsigned mDirty : 7;  
+
 };
 
 #endif

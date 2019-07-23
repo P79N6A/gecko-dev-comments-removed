@@ -63,6 +63,7 @@ nsStyleSet::nsStyleSet()
     mRuleWalker(nsnull),
     mDestroyedCount(0),
     mBatching(0),
+    mOldRuleTree(nsnull),
     mInShutdown(PR_FALSE),
     mAuthorStyleDisabled(PR_FALSE),
     mDirty(0)
@@ -97,6 +98,48 @@ nsStyleSet::Init(nsPresContext *aPresContext)
   }
 
   return NS_OK;
+}
+
+nsresult
+nsStyleSet::BeginReconstruct()
+{
+  NS_ASSERTION(!mOldRuleTree, "Unmatched begin/end?");
+  NS_ASSERTION(mRuleTree, "Reconstructing before first construction?");
+
+  
+  nsRuleNode* newTree =
+    nsRuleNode::CreateRootNode(mRuleTree->GetPresContext());
+  if (!newTree)
+    return NS_ERROR_OUT_OF_MEMORY;
+  nsRuleWalker* ruleWalker = new nsRuleWalker(newTree);
+  if (!ruleWalker) {
+    newTree->Destroy();
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  
+  mOldRuleTree = mRuleTree;
+  
+  delete mRuleWalker;
+  
+  mRoots.Clear();
+
+  mRuleTree = newTree;
+  mRuleWalker = ruleWalker;
+
+  return NS_OK;
+}
+
+void
+nsStyleSet::EndReconstruct()
+{
+  NS_ASSERTION(mOldRuleTree, "Unmatched begin/end?");
+  
+  mDestroyedCount = 0;
+  
+  
+  mOldRuleTree->Destroy();
+  mOldRuleTree = nsnull;
 }
 
 nsresult
@@ -785,6 +828,9 @@ nsStyleSet::NotifyStyleContextDestroyed(nsPresContext* aPresContext,
     return;
 
   NS_ASSERTION(mRuleWalker->AtRoot(), "Rule walker should be at root");
+  
+  if (mOldRuleTree)
+    return;
 
   if (!aStyleContext->GetParent()) {
     mRoots.RemoveElement(aStyleContext);
@@ -797,8 +843,8 @@ nsStyleSet::NotifyStyleContextDestroyed(nsPresContext* aPresContext,
     
     
     
-    for (PRInt32 i = mRoots.Count() - 1; i >= 0; --i) {
-      static_cast<nsStyleContext*>(mRoots[i])->Mark();
+    for (PRInt32 i = mRoots.Length() - 1; i >= 0; --i) {
+      mRoots[i]->Mark();
     }
 
     
@@ -808,16 +854,6 @@ nsStyleSet::NotifyStyleContextDestroyed(nsPresContext* aPresContext,
       mRuleTree->Sweep();
 
     NS_ASSERTION(!deleted, "Root node must not be gc'd");
-  }
-}
-
-void
-nsStyleSet::ClearStyleData(nsPresContext* aPresContext)
-{
-  mRuleTree->ClearStyleData();
-
-  for (PRInt32 i = mRoots.Count() - 1; i >= 0; --i) {
-    static_cast<nsStyleContext*>(mRoots[i])->ClearStyleData(aPresContext);
   }
 }
 
