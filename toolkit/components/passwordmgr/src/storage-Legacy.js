@@ -84,6 +84,14 @@ LoginManagerStorage_legacy.prototype = {
         return this.__profileDir;
     },
 
+    __nsLoginInfo: null,  
+    get _nsLoginInfo() {
+        if (!this.__nsLoginInfo)
+            this.__nsLoginInfo = new Components.Constructor(
+                "@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo);
+        return this.__nsLoginInfo;
+    },
+
     _prefBranch : null,  
 
     _signonsFile : null,  
@@ -201,14 +209,11 @@ LoginManagerStorage_legacy.prototype = {
         
         
         
-        if (!login.wrappedJSObject) {
-            var clone = Cc["@mozilla.org/login-manager/loginInfo;1"].
-                        createInstance(Ci.nsILoginInfo);
-            clone.init(login.hostname, login.formSubmitURL, login.httpRealm,
-                       login.username,      login.password,
-                       login.usernameField, login.passwordField);
-            login = clone;
-        }
+        var clone = new this._nsLoginInfo();
+        clone.init(login.hostname, login.formSubmitURL, login.httpRealm,
+                   login.username,      login.password,
+                   login.usernameField, login.passwordField);
+        login = clone;
 
         var key = login.hostname;
 
@@ -663,8 +668,7 @@ LoginManagerStorage_legacy.prototype = {
 
                 aLogin.hostname = "http://" + host + ":" + port;
 
-                var extraLogin = Cc["@mozilla.org/login-manager/loginInfo;1"].
-                                 createInstance(Ci.nsILoginInfo);
+                var extraLogin = new this._nsLoginInfo();
                 extraLogin.init("https://" + host + ":" + port,
                                 null, aLogin.httpRealm,
                                 aLogin.username, aLogin.password, "", "");
@@ -844,8 +848,6 @@ LoginManagerStorage_legacy.prototype = {
                         FILLER : 8 };
         var parseState = STATE.HEADER;
 
-        var nsLoginInfo = new Components.Constructor(
-                "@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo);
         var processEntry = false;
 
         do {
@@ -915,7 +917,7 @@ LoginManagerStorage_legacy.prototype = {
                         break;
                     }
 
-                    var entry = new nsLoginInfo();
+                    var entry = new this._nsLoginInfo();
                     entry.hostname  = hostname;
                     entry.httpRealm = httpRealm;
 
@@ -1165,15 +1167,15 @@ LoginManagerStorage_legacy.prototype = {
         var result = [], userCanceled = false;
 
         for each (var login in logins) {
-            var username, password;
+            var decryptedUsername, decryptedPassword;
 
-            [username, userCanceled] =
+            [decryptedUsername, userCanceled] =
                 this._decrypt(login.wrappedJSObject.encryptedUsername);
 
             if (userCanceled)
                 break;
 
-            [password, userCanceled] =
+            [decryptedPassword, userCanceled] =
                 this._decrypt(login.wrappedJSObject.encryptedPassword);
 
             
@@ -1182,40 +1184,41 @@ LoginManagerStorage_legacy.prototype = {
 
             
             
-            if (username == null || !password)
+            if (decryptedUsername == null || !decryptedPassword)
                 continue;
 
             
             
             
-            
-            login.username = username;
-            login.password = password;
+            var clone = new this._nsLoginInfo();
+            clone.init(login.hostname, login.formSubmitURL, login.httpRealm,
+                       decryptedUsername, decryptedPassword,
+                       login.usernameField, login.passwordField);
 
             
             
+            var recrypted;
             if (login.wrappedJSObject.encryptedUsername &&
                 login.wrappedJSObject.encryptedUsername.charAt(0) == '~') {
-                  [username, userCanceled] = this._encrypt(login.username);
+                  [recrypted, userCanceled] = this._encrypt(decryptedUsername);
 
                   if (userCanceled)
                     break;
 
-                  login.wrappedJSObject.encryptedUsername = username;
+                  login.wrappedJSObject.encryptedUsername = recrypted;
             }
 
             if (login.wrappedJSObject.encryptedPassword &&
                 login.wrappedJSObject.encryptedPassword.charAt(0) == '~') {
-
-                  [password, userCanceled] = this._encrypt(login.password);
+                  [recrypted, userCanceled] = this._encrypt(decryptedPassword);
 
                   if (userCanceled)
                     break;
 
-                  login.wrappedJSObject.encryptedPassword = password;
+                  login.wrappedJSObject.encryptedPassword = recrypted;
             }
 
-            result.push(login);
+            result.push(clone);
         }
 
         return [result, userCanceled];
