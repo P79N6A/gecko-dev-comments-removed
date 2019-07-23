@@ -41,7 +41,13 @@ gTestfile = 'regress-394941.js';
 var summary = 'Infinite recursion should throw catchable exception';
 var BUGNUMBER = 394941;
 var actual = '';
-var expect = 'InternalError: script stack space quota is exhausted';
+var expect = /InternalError: (script stack space quota is exhausted|too much recursion)/;
+
+
+
+
+
+
 
 printBugNumber(BUGNUMBER);
 START(summary);
@@ -57,6 +63,6 @@ catch(ex)
     print("Caught: " + ex);
 }
 
-TEST(1, expect, actual);
+reportMatch(expect, actual);
 
 END();
