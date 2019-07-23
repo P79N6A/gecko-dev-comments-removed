@@ -25,6 +25,27 @@
 }
 
 
+#placesMenu {
+  -moz-appearance: none;
+  border: none;
+}
+
+#placesMenu > menu {
+  -moz-padding-start: 4px;
+  -moz-appearance: toolbarbutton;
+  color: -moz-DialogText;
+}
+
+#placesMenu > menu > label {
+  -moz-padding-end: 8px;
+  background: url(chrome://global/skin/arrow/arrow-dn.gif) right center no-repeat;
+}
+
+#placesMenu[chromedir="rtl"] > menu > label {
+  background-position: left center;
+}
+
+
 #organizeButton {
   list-style-image: url("chrome://browser/skin/wrench.png");
 }
