@@ -48,7 +48,15 @@
 OggPlay *
 oggplay_new_with_reader(OggPlayReader *reader) {
 
-  OggPlay * me = (OggPlay *)malloc(sizeof(OggPlay));
+  OggPlay * me = NULL;
+
+  
+  if (reader == NULL)
+    return NULL;
+
+  me = (OggPlay *)oggplay_malloc (sizeof(OggPlay));
+  if (me == NULL)
+	  return NULL;
 
   me->reader = reader;
   me->decode_data = NULL;
@@ -94,10 +102,20 @@ oggplay_initialise(OggPlay *me, int block) {
 
 
   me->oggz = oggz_new(OGGZ_READ | OGGZ_AUTO);
-  oggz_io_set_read(me->oggz, me->reader->io_read, me->reader);
-  oggz_io_set_seek(me->oggz, me->reader->io_seek, me->reader);
-  oggz_io_set_tell(me->oggz, me->reader->io_tell, me->reader);
-  oggz_set_read_callback(me->oggz, -1, oggplay_callback_predetected, me);
+  if (me->oggz == NULL)
+    return E_OGGPLAY_OGGZ_UNHAPPY;
+
+  if (oggz_io_set_read(me->oggz, me->reader->io_read, me->reader) != 0)
+    return E_OGGPLAY_OGGZ_UNHAPPY;
+
+  if (oggz_io_set_seek(me->oggz, me->reader->io_seek, me->reader) != 0)
+    return E_OGGPLAY_OGGZ_UNHAPPY;
+
+  if (oggz_io_set_tell(me->oggz, me->reader->io_tell, me->reader) != 0)
+    return E_OGGPLAY_OGGZ_UNHAPPY;
+
+  if (oggz_set_read_callback(me->oggz, -1, oggplay_callback_predetected, me))
+    return E_OGGPLAY_OGGZ_UNHAPPY;
 
   while (1) {
 
@@ -131,15 +149,20 @@ oggplay_initialise(OggPlay *me, int block) {
 OggPlay *
 oggplay_open_with_reader(OggPlayReader *reader) {
 
-  OggPlay *me = oggplay_new_with_reader(reader);
-
+  OggPlay *me = NULL;
   int r = E_OGGPLAY_TIMEOUT;
+
+  if ( (me = oggplay_new_with_reader(reader)) == NULL)
+    return NULL;
+
   while (r == E_OGGPLAY_TIMEOUT) {
     r = oggplay_initialise(me, 0);
   }
 
   if (r != E_OGGPLAY_OK) {
-    free(me);
+    
+    oggplay_close(me);
+
     return NULL;
   }
 
@@ -194,6 +217,7 @@ oggplay_set_callback_num_frames(OggPlay *me, int track, int frames) {
 
   me->callback_period = me->decode_data[track]->granuleperiod * frames;
   me->target = me->presentation_time + me->callback_period - 1;
+
 
 
   return E_OGGPLAY_OK;
@@ -596,17 +620,21 @@ oggplay_close(OggPlay *me) {
     me->reader->destroy(me->reader);
   }
 
-  for (i = 0; i < me->num_tracks; i++) {
-    oggplay_callback_shutdown(me->decode_data[i]);
+
+  if (me->decode_data) {
+    for (i = 0; i < me->num_tracks; i++) {
+      oggplay_callback_shutdown(me->decode_data[i]);
+    }
   }
 
-  oggz_close(me->oggz);
+  if (me->oggz)
+    oggz_close(me->oggz);
 
   if (me->buffer != NULL) {
     oggplay_buffer_shutdown(me, me->buffer);
   }
 
-  free(me);
+  oggplay_free(me);
 
   return E_OGGPLAY_OK;
 }
@@ -687,3 +715,4 @@ oggplay_media_finished_retrieving(OggPlay *me) {
   return me->reader->finished_retrieving(me->reader);
 
 }
+

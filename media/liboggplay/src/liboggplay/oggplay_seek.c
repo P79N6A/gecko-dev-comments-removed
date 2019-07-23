@@ -87,13 +87,19 @@ oggplay_seek_cleanup(OggPlay* me, ogg_int64_t milliseconds)
   OggPlayDataHeader  ** end_of_list_p;
   int                   i;
 
+  if (me  == NULL)
+    return;
+
   
 
 
 
 
 
-  trash = calloc(sizeof(OggPlaySeekTrash), 1);
+  trash = oggplay_calloc(1, sizeof(OggPlaySeekTrash));
+
+  if (trash == NULL)
+    return;
 
   
 
@@ -105,6 +111,11 @@ oggplay_seek_cleanup(OggPlay* me, ogg_int64_t milliseconds)
 
 
   me->buffer = oggplay_buffer_new_buffer(me->buffer->buffer_size);
+
+  if (me->buffer == NULL)
+  {
+    return;
+  }
 
   
 
@@ -152,12 +163,12 @@ oggplay_take_out_trash(OggPlay *me, OggPlaySeekTrash *trash) {
     oggplay_buffer_shutdown(me, trash->old_buffer);
     oggplay_data_free_list(trash->old_data);
     if (p != NULL) {
-      free(p);
+      oggplay_free(p);
     }
     p = trash;
   }
 
   if (p != NULL) {
-    free(p);
+    oggplay_free(p);
   }
 }

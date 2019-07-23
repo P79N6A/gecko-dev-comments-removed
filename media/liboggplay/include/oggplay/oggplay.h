@@ -61,14 +61,21 @@ typedef int (OggPlayDataCallback)(OggPlay *player, int num_records,
 
 
 
-OggPlay *
-oggplay_init(void);
 
-OggPlayErrorCode
-oggplay_set_reader(OggPlay *OS, OggPlayReader *OSR);
+
+
+
+
 
 OggPlay *
 oggplay_open_with_reader(OggPlayReader *reader);
+
+
+
+
+
+
+
 
 OggPlay *
 oggplay_new_with_reader(OggPlayReader *reader);
@@ -127,6 +134,13 @@ oggplay_buffer_release(OggPlay *player, OggPlayCallbackInfo **track_info);
 
 void
 oggplay_prepare_for_close(OggPlay *me);
+
+
+
+
+
+
+
 
 OggPlayErrorCode
 oggplay_close(OggPlay *player);
