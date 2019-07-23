@@ -556,6 +556,8 @@ DOMWorkerOperationCallback(JSContext* aCx)
 
     
     
+    
+    
     if (!worker->IsCanceled()) {
       mon.Wait();
     }
