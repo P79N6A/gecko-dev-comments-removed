@@ -84,6 +84,9 @@ nsNavHistory::InitAutoComplete()
   if (!mLivemarkFeedItemIds.Init(128))
     return NS_ERROR_OUT_OF_MEMORY;
 
+  if (!mLivemarkFeedURIs.Init(128))
+    return NS_ERROR_OUT_OF_MEMORY;
+
   return NS_OK;
 }
 
@@ -97,9 +100,9 @@ nsresult
 nsNavHistory::CreateAutoCompleteQueries()
 {
   nsCString sql = NS_LITERAL_CSTRING(
-    "SELECT annos.item_id FROM moz_anno_attributes attrs "
-    "JOIN moz_items_annos annos WHERE attrs.name = \"" LMANNO_FEEDURI "\" "
-    "AND attrs.id = annos.anno_attribute_id;");
+    "SELECT annos.item_id, annos.content FROM moz_anno_attributes attrs " 
+    "JOIN moz_items_annos annos ON attrs.id = annos.anno_attribute_id "
+    "WHERE attrs.name = \"" LMANNO_FEEDURI "\";");
   nsresult rv = mDBConn->CreateStatement(sql, getter_AddRefs(mLivemarkFeedsQuery));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -279,18 +282,30 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
   NS_ENSURE_SUCCESS(rv, rv);
 
   mCurrentResultURLs.Clear();
-  mLivemarkFeedItemIds.Clear();
 
   
   
-  
-  
-  mozStorageStatementScoper scope(mLivemarkFeedsQuery);
-  PRBool hasMore = PR_FALSE;
-  while (NS_SUCCEEDED(mLivemarkFeedsQuery->ExecuteStep(&hasMore)) && hasMore) {
-    PRInt64 itemId = 0;
-    mLivemarkFeedsQuery->GetInt64(0, &itemId);
-    mLivemarkFeedItemIds.Put(itemId, PR_TRUE);
+  if (!searchPrevious) {
+    mLivemarkFeedItemIds.Clear();
+    mLivemarkFeedURIs.Clear();
+
+    
+    
+    
+    
+    
+    
+    mozStorageStatementScoper scope(mLivemarkFeedsQuery);
+    PRBool hasMore = PR_FALSE;
+    while (NS_SUCCEEDED(mLivemarkFeedsQuery->ExecuteStep(&hasMore)) && hasMore) {
+      PRInt64 itemId = 0;
+      mLivemarkFeedsQuery->GetInt64(0, &itemId);
+      mLivemarkFeedItemIds.Put(itemId, PR_TRUE);
+      nsAutoString feedURI;
+      
+      mLivemarkFeedsQuery->GetString(1, feedURI);
+      mLivemarkFeedURIs.Put(feedURI, PR_TRUE);
+    }
   }
 
   
@@ -334,6 +349,15 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
           NS_ENSURE_SUCCESS(rv, rv);
         }
       }
+    }
+    
+    
+    PRUint32 count;
+    mCurrentResult->GetMatchCount(&count); 
+
+    if (count > 0) {
+      mCurrentResult->SetSearchResult(nsIAutoCompleteResult::RESULT_SUCCESS_ONGOING);
+      mCurrentResult->SetDefaultIndex(0);
     }
   }
   else if (!mCurrentSearchString.IsEmpty()) {
@@ -425,8 +449,10 @@ nsresult nsNavHistory::AutoCompleteTypedSearch()
 
     PRBool dummy;
     
-    PRBool isBookmark = (itemId != 0) && 
-                        !mLivemarkFeedItemIds.Get(parentId, &dummy);
+    
+    PRBool isBookmark = (itemId != 0 && 
+                         !mLivemarkFeedItemIds.Get(parentId, &dummy)) ||
+                        mLivemarkFeedURIs.Get(entryURL, &dummy);   
 
     nsCAutoString imageSpec;
     faviconService->GetFaviconSpecForIconString(
@@ -549,8 +575,10 @@ nsNavHistory::AutoCompleteFullHistorySearch()
 
     PRBool dummy;
     
-    PRBool isBookmark = (itemId != 0) && 
-                        !mLivemarkFeedItemIds.Get(parentId, &dummy);
+    
+    PRBool isBookmark = (itemId != 0 && 
+                         !mLivemarkFeedItemIds.Get(parentId, &dummy)) ||
+                         mLivemarkFeedURIs.Get(entryURL, &dummy);  
 
     
     
