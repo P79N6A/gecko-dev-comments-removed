@@ -486,6 +486,22 @@ nsImageLoadingContent::LoadImage(const nsAString& aNewURI,
   NS_ENSURE_SUCCESS(rv, rv);
   
 
+  PRBool equal;
+
+  if (aNewURI.IsEmpty() &&
+      doc->GetDocumentURI() &&
+      NS_SUCCEEDED(doc->GetDocumentURI()->Equals(imageURI,&equal)) && 
+      equal)  {
+
+    
+    
+    
+    
+    
+    
+    return NS_OK;
+  }
+
   NS_TryToSetImmutable(imageURI);
 
   return LoadImage(imageURI, aForce, aNotify, doc);
