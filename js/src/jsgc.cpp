@@ -1253,6 +1253,18 @@ js_InitGC(JSRuntime *rt, uint32 maxbytes)
     rt->gcMaxBytes = rt->gcMaxMallocBytes = maxbytes;
     rt->gcEmptyArenaPoolLifespan = 30000;
 
+    
+
+
+
+    rt->gcTriggerFactor = (uint32) -1;
+
+    
+
+
+
+    rt->gcLastBytes = 8192;
+
     METER(memset(&rt->gcStats, 0, sizeof rt->gcStats));
     return JS_TRUE;
 }
@@ -1757,6 +1769,17 @@ EnsureLocalFreeList(JSContext *cx)
 
 #endif
 
+static JS_INLINE JSBool
+IsGCThresholdReached(JSRuntime *rt)
+{
+    
+
+
+
+
+    return rt->gcBytes / rt->gcTriggerFactor >= rt->gcLastBytes / 100;
+}
+
 void *
 js_NewGCThing(JSContext *cx, uintN flags, size_t nbytes)
 {
@@ -1823,7 +1846,8 @@ js_NewGCThing(JSContext *cx, uintN flags, size_t nbytes)
         return NULL;
     }
 
-    doGC = (rt->gcMallocBytes >= rt->gcMaxMallocBytes && rt->gcPoke);
+    doGC = (rt->gcMallocBytes >= rt->gcMaxMallocBytes && rt->gcPoke) ||
+           IsGCThresholdReached(rt);
 #ifdef JS_GC_ZEAL
     doGC = doGC || rt->gcZeal >= 2 || (rt->gcZeal >= 1 && rt->gcPoke);
 # ifdef JS_TRACER
@@ -2056,9 +2080,10 @@ RefillDoubleFreeList(JSContext *cx)
         return NULL;
     }
 
-    if (rt->gcMallocBytes >= rt->gcMaxMallocBytes && rt->gcPoke
+    if ((rt->gcMallocBytes >= rt->gcMaxMallocBytes && rt->gcPoke) ||
+        IsGCThresholdReached(rt)
 #ifdef JS_GC_ZEAL
-        && (rt->gcZeal >= 2 || (rt->gcZeal >= 1 && rt->gcPoke))
+        || (rt->gcZeal >= 2 || (rt->gcZeal >= 1 && rt->gcPoke))
 #endif
         ) {
         goto do_gc;
@@ -2257,7 +2282,8 @@ js_AddAsGCBytes(JSContext *cx, size_t sz)
 
     rt = cx->runtime;
     if (rt->gcBytes >= rt->gcMaxBytes ||
-        sz > (size_t) (rt->gcMaxBytes - rt->gcBytes)
+        sz > (size_t) (rt->gcMaxBytes - rt->gcBytes) ||
+        IsGCThresholdReached(rt)
 #ifdef JS_GC_ZEAL
         || rt->gcZeal >= 2 || (rt->gcZeal >= 1 && rt->gcPoke)
 #endif
