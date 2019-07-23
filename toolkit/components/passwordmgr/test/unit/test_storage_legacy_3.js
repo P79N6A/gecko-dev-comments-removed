@@ -614,6 +614,157 @@ storage = LoginTest.reloadStorage(OUTDIR, "output-454708.txt");
 LoginTest.checkStorageData(storage, [], [bad8User]);
 
 
+
+
+
+
+
+
+
+testnum++;
+testdesc = "ensure UTF8 converter isn't left in bad state."
+
+var utfRealm = "Acc" +
+               String.fromCharCode(0xe8) +
+               "s reserv" +
+               String.fromCharCode(0xe9);
+bad8User.init("https://bugzilla.mozilla.org", null, utfRealm,
+            "dummydude", "itsasecret", "", "");
+
+storage = LoginTest.initStorage(INDIR, "signons-457358-1.txt",
+                               OUTDIR, "output-457358-1.txt");
+LoginTest.checkStorageData(storage, [], [bad8User]);
+
+
+
+
+testdesc = "[flush and reload for verification]"
+storage = LoginTest.reloadStorage(OUTDIR, "output-457358-1.txt");
+LoginTest.checkStorageData(storage, [], [bad8User]);
+
+
+testnum++;
+testdesc = "ensure UTF8 converter isn't left in bad state."
+
+
+
+
+
+
+
+
+
+bad8User.init("https://bugzilla.mozilla.org", "https://bugzilla.mozilla.org", null,
+            "dummydude", "itsasecret", "Acc", "pass");
+
+storage = LoginTest.initStorage(INDIR, "signons-457358-2.txt",
+                               OUTDIR, "output-457358-2.txt");
+LoginTest.checkStorageData(storage, [], [bad8User]);
+
+
+
+
+testdesc = "[flush and reload for verification]"
+storage = LoginTest.reloadStorage(OUTDIR, "output-457358-2.txt");
+LoginTest.checkStorageData(storage, [], [bad8User]);
+
+
+testnum++;
+testdesc = "ensure UTF8 converter isn't left in bad state."
+
+
+
+bad8User.init("https://bugzilla.mozilla.org", "https://bugzilla.mozilla.org", null,
+            "dummydude", "itsasecret", "u-Acc", "p-Acc");
+
+storage = LoginTest.initStorage(INDIR, "signons-457358-3.txt",
+                               OUTDIR, "output-457358-3.txt");
+LoginTest.checkStorageData(storage, [], [bad8User]);
+
+
+
+
+testdesc = "[flush and reload for verification]"
+storage = LoginTest.reloadStorage(OUTDIR, "output-457358-3.txt");
+LoginTest.checkStorageData(storage, [], [bad8User]);
+
+
+testnum++;
+testdesc = "ensure UTF8 converter isn't left in bad state."
+
+
+
+
+
+bad8User.init("https://bugzilla.mozilla.org", null, "Acc" + String.fromCharCode(0xe8),
+            "dummydude", "itsasecret", "", "");
+
+storage = LoginTest.initStorage(INDIR, "signons-457358-4.txt",
+                               OUTDIR, "output-457358-4.txt");
+LoginTest.checkStorageData(storage, [], [bad8User]);
+
+
+
+
+testdesc = "[flush and reload for verification]"
+storage = LoginTest.reloadStorage(OUTDIR, "output-457358-4.txt");
+LoginTest.checkStorageData(storage, [], [bad8User]);
+
+
+testnum++;
+testdesc = "ensure UTF8 converter isn't left in bad state."
+
+
+
+bad8User.init("https://bugzilla.mozilla.org", null, "Acc" + String.fromCharCode(0xe8),
+            "dummydude", "itsasecret", "", "");
+
+storage = LoginTest.initStorage(INDIR, "signons-457358-4.txt",
+                               OUTDIR, "output-457358-4b.txt");
+
+var anotherUser = Cc["@mozilla.org/login-manager/loginInfo;1"].
+              createInstance(Ci.nsILoginInfo);
+anotherUser.init("http://mozilla.org", null,
+                 String.fromCharCode(0xe8) + "xtra user " + String.fromCharCode(0x0163) + "est",
+                 "dummydude", "itsasecret", "", "");
+
+storage.addLogin(anotherUser);
+LoginTest.checkStorageData(storage, [], [bad8User, anotherUser]);
+
+testdesc = "[flush and reload for verification]"
+storage = LoginTest.reloadStorage(OUTDIR, "output-457358-4b.txt");
+LoginTest.checkStorageData(storage, [], [bad8User, anotherUser]);
+
+storage.removeLogin(anotherUser);
+LoginTest.checkStorageData(storage, [], [bad8User]);
+
+testdesc = "[flush and reload for verification 2]"
+storage = LoginTest.reloadStorage(OUTDIR, "output-457358-4b.txt");
+LoginTest.checkStorageData(storage, [], [bad8User]);
+
+
+testnum++;
+testdesc = "ensure UTF8 converter isn't left in bad state."
+
+
+
+
+
+
+
+
+anotherUser.init("https://bugzilla.mozilla.org", null, "extra user test",
+                 "dummydude", "itsasecret", "", "");
+
+storage = LoginTest.initStorage(INDIR, "signons-457358-5.txt",
+                               OUTDIR, "output-457358-5.txt");
+LoginTest.checkStorageData(storage, [], [anotherUser]);
+
+testdesc = "[flush and reload for verification]"
+storage = LoginTest.reloadStorage(OUTDIR, "output-457358-5.txt");
+LoginTest.checkStorageData(storage, [], [anotherUser]);
+
+
 } catch (e) {
     throw ("FAILED in test #" + testnum + " -- " + testdesc + ": " + e);
 }
