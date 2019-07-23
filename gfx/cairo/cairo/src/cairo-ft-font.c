@@ -545,8 +545,10 @@ _cairo_ft_unscaled_font_destroy (void *abstract_font)
 	
 
 
-	if (unscaled->faces && !unscaled->faces->unscaled)
+	if (unscaled->faces && unscaled->faces->unscaled == NULL) {
+	    assert (unscaled->faces->next == NULL);
 	    cairo_font_face_destroy (&unscaled->faces->base);
+	}
     } else {
 	_font_map_release_face_lock_held (font_map, unscaled);
     }
@@ -2251,8 +2253,11 @@ _cairo_ft_font_face_destroy (void *abstract_face)
 
 
 
+
     if (font_face->unscaled &&
 	font_face->unscaled->from_face &&
+	font_face->next == NULL &&
+	font_face->unscaled->faces == font_face &&
 	CAIRO_REFERENCE_COUNT_GET_VALUE (&font_face->unscaled->base.ref_count) > 1)
     {
 	cairo_font_face_reference (&font_face->base);
@@ -2398,12 +2403,21 @@ _cairo_ft_font_face_create (cairo_ft_unscaled_font_t *unscaled,
 	    font_face->ft_options.extra_flags == ft_options->extra_flags &&
 	    cairo_font_options_equal (&font_face->ft_options.base, &ft_options->base))
 	{
-	    if (font_face->base.status == CAIRO_STATUS_SUCCESS)
-		return cairo_font_face_reference (&font_face->base);
+	    if (font_face->base.status) {
+		
+		*prev_font_face = font_face->next;
+		break;
+	    }
 
-	    
-	    *prev_font_face = font_face->next;
-	    break;
+	    if (font_face->unscaled == NULL) {
+		
+
+
+		font_face->unscaled = unscaled;
+		_cairo_unscaled_font_reference (&unscaled->base);
+		return &font_face->base;
+	    } else
+		return cairo_font_face_reference (&font_face->base);
 	}
     }
 
@@ -2418,6 +2432,14 @@ _cairo_ft_font_face_create (cairo_ft_unscaled_font_t *unscaled,
     _cairo_unscaled_font_reference (&unscaled->base);
 
     font_face->ft_options = *ft_options;
+
+    if (unscaled->faces && unscaled->faces->unscaled == NULL) {
+	
+
+	assert (unscaled->from_face && unscaled->faces->next == NULL);
+	cairo_font_face_destroy (&unscaled->faces->base);
+	unscaled->faces = NULL;
+    }
 
     font_face->next = unscaled->faces;
     unscaled->faces = font_face;
