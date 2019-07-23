@@ -134,6 +134,7 @@ public:
 
     
     NS_IMETHOD Clone(nsIURI** aClone);
+    NS_IMETHOD Equals(nsIURI* aOther, PRBool *aResult);
 
     nsIURI* GetBaseURI() const {
         return mBaseURI;
