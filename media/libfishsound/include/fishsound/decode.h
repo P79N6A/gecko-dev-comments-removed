@@ -81,6 +81,8 @@ typedef int (*FishSoundDecoded_FloatIlv) (FishSound * fsound, float ** pcm,
 
 
 
+
+
 int fish_sound_set_decoded_float (FishSound * fsound,
 				  FishSoundDecoded_Float decoded,
 				  void * user_data);
@@ -93,9 +95,13 @@ int fish_sound_set_decoded_float (FishSound * fsound,
 
 
 
+
+
 int fish_sound_set_decoded_float_ilv (FishSound * fsound,
 				      FishSoundDecoded_FloatIlv decoded,
 				      void * user_data);
+
+
 
 
 
