@@ -189,6 +189,8 @@ nsSVGTextFrame::NotifySVGChanged(PRUint32 aFlags)
     mCanvasTM = nsnull;
   }
 
+  nsSVGTextFrameBase::NotifySVGChanged(aFlags);
+
   if (aFlags & COORD_CONTEXT_CHANGED) {
     
     
@@ -198,8 +200,6 @@ nsSVGTextFrame::NotifySVGChanged(PRUint32 aFlags)
     
     NotifyGlyphMetricsChange();
   }
-
-  nsSVGTextFrameBase::NotifySVGChanged(aFlags);
 }
 
 NS_IMETHODIMP
