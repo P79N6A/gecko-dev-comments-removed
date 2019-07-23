@@ -7567,9 +7567,10 @@ js_SetDefaultXMLNamespace(JSContext *cx, jsval v)
     v = OBJECT_TO_JSVAL(ns);
 
     fp = js_GetTopStackFrame(cx);
-    varobj = fp->varobj;
+    varobj = fp->varobj(cx);
     if (!varobj->defineProperty(cx, JS_DEFAULT_XML_NAMESPACE_ID, v,
-                                JS_PropertyStub, JS_PropertyStub, JSPROP_PERMANENT)) {
+                                JS_PropertyStub, JS_PropertyStub,
+                                JSPROP_PERMANENT)) {
         return JS_FALSE;
     }
     return JS_TRUE;

@@ -896,7 +896,6 @@ js_ComputeGlobalThis(JSContext *cx, JSBool lazy, jsval *argv)
         !OBJ_GET_PARENT(cx, JSVAL_TO_OBJECT(argv[-2]))) {
         thisp = cx->globalObject;
     } else {
-        JSStackFrame *fp;
         jsid id;
         jsval v;
         uintN attrs;
@@ -913,23 +912,25 @@ js_ComputeGlobalThis(JSContext *cx, JSBool lazy, jsval *argv)
 
 
 
-        fp = js_GetTopStackFrame(cx);    
+
+
+
+        JSStackFrame *fp = js_GetTopStackFrame(cx);
+        JSGCReachableFrame reachable;
         if (lazy) {
             JS_ASSERT(fp->argv == argv);
-            fp->dormantNext = cx->dormantFrameChain;
-            cx->dormantFrameChain = fp;
             cx->fp = fp->down;
             fp->down = NULL;
+            cx->pushGCReachableFrame(reachable, fp);
         }
         thisp = JSVAL_TO_OBJECT(argv[-2]);
         id = ATOM_TO_JSID(cx->runtime->atomState.parentAtom);
 
         ok = thisp->checkAccess(cx, id, JSACC_PARENT, &v, &attrs);
         if (lazy) {
-            cx->dormantFrameChain = fp->dormantNext;
-            fp->dormantNext = NULL;
             fp->down = cx->fp;
             cx->fp = fp;
+            cx->popGCReachableFrame();
         }
         if (!ok)
             return NULL;
@@ -1099,6 +1100,7 @@ JS_REQUIRES_STACK JS_FRIEND_API(JSBool)
 js_Invoke(JSContext *cx, uintN argc, jsval *vp, uintN flags)
 {
     void *mark;
+    CallStack callStack(cx);
     JSStackFrame frame;
     jsval *sp, *argv, *newvp;
     jsval v;
@@ -1113,6 +1115,7 @@ js_Invoke(JSContext *cx, uintN argc, jsval *vp, uintN flags)
     uint32 rootedArgsFlag;
     JSInterpreterHook hook;
     void *hookData;
+    bool pushCall;
 
     JS_ASSERT(argc <= JS_ARGS_LENGTH_MAX);
 
@@ -1303,7 +1306,6 @@ have_fun:
 
 
     frame.thisv = vp[1];
-    frame.varobj = NULL;
     frame.callobj = NULL;
     frame.argsobj = NULL;
     frame.script = script;
@@ -1321,10 +1323,18 @@ have_fun:
     frame.imacpc = NULL;
     frame.slots = NULL;
     frame.flags = flags | rootedArgsFlag;
-    frame.dormantNext = NULL;
     frame.displaySave = NULL;
 
     MUST_FLOW_THROUGH("out");
+    pushCall = !cx->fp;
+    if (pushCall) {
+        
+
+
+
+        callStack.setInitialFrame(&frame);
+        cx->pushCallStack(&callStack);
+    }
     cx->fp = &frame;
 
     
@@ -1333,10 +1343,8 @@ have_fun:
 
     if (native) {
         
-        JS_ASSERT(!frame.varobj);
-        JS_ASSERT(!frame.scopeChain);
         if (frame.down) {
-            frame.varobj = frame.down->varobj;
+            JS_ASSERT(!pushCall);
             frame.scopeChain = frame.down->scopeChain;
         }
 
@@ -1408,6 +1416,8 @@ out:
     *vp = frame.rval;
 
     
+    if (pushCall)
+        cx->popCallStack();
     cx->fp = frame.down;
 
 out2:
@@ -1480,16 +1490,37 @@ js_InternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, jsval fval,
     return js_InternalCall(cx, obj, fval, argc, argv, rval);
 }
 
+CallStack *
+js_ContainingCallStack(JSContext *cx, JSStackFrame *target)
+{
+    JS_ASSERT(cx->fp);
+
+    
+    CallStack *cs = cx->activeCallStack();
+    JSStackFrame *f = cx->fp;
+    JSStackFrame *stop = cs->getInitialFrame()->down;
+    for (; f != stop; f = f->down) {
+        if (f == target)
+            return cs;
+    }
+
+    
+    for (cs = cs->getPrevious(); cs; cs = cs->getPrevious()) {
+        f = cs->getSuspendedFrame();
+        stop = cs->getInitialFrame()->down;
+        for (; f != stop; f = f->down) {
+            if (f == target)
+                return cs;
+        }
+    }
+
+    return NULL;
+}
+
 JSBool
 js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
            JSStackFrame *down, uintN flags, jsval *result)
 {
-    JSInterpreterHook hook;
-    void *hookData, *mark;
-    JSStackFrame *oldfp, frame;
-    JSObject *obj, *tmp;
-    JSBool ok;
-
     if (script->isEmpty()) {
         if (result)
             *result = JSVAL_VOID;
@@ -1499,19 +1530,29 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
     LeaveTrace(cx);
 
 #ifdef INCLUDE_MOZILLA_DTRACE
-    if (JAVASCRIPT_EXECUTE_START_ENABLED())
-        jsdtrace_execute_start(script);
+    struct JSDNotifyGuard {
+        JSScript *script;
+        JSDNotifyGuard(JSScript *s) : script(s) {
+            if (JAVASCRIPT_EXECUTE_START_ENABLED())
+                jsdtrace_execute_start(script);
+        }
+        ~JSDNotifyGuard() {
+            if (JAVASCRIPT_EXECUTE_DONE_ENABLED())
+                jsdtrace_execute_done(script);
+        }
+
+    } jsdNotifyGuard(script);
 #endif
 
-    hook = cx->debugHooks->executeHook;
-    hookData = mark = NULL;
-    oldfp = js_GetTopStackFrame(cx);
+    JSInterpreterHook hook = cx->debugHooks->executeHook;
+    void *hookData = NULL;
+    JSStackFrame frame;
+    CallStack callStack(cx);
     frame.script = script;
     if (down) {
         
         frame.callobj = down->callobj;
         frame.argsobj = down->argsobj;
-        frame.varobj = down->varobj;
         frame.fun = (script->staticLevel > 0) ? down->fun : NULL;
         frame.thisv = down->thisv;
         if (down->flags & JSFRAME_COMPUTED_THIS)
@@ -1519,29 +1560,49 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
         frame.argc = down->argc;
         frame.argv = down->argv;
         frame.annotation = down->annotation;
+
+        
+
+
+
+
+
+
+        if (down == cx->fp) {
+            callStack.setInitialVarObj(down->varobj(cx));
+        } else {
+            CallStack *cs = js_ContainingCallStack(cx, down);
+            callStack.setInitialVarObj(down->varobj(cs));
+        }
     } else {
         frame.callobj = NULL;
         frame.argsobj = NULL;
-        obj = chain;
+        JSObject *obj = chain;
         if (cx->options & JSOPTION_VAROBJFIX) {
-            while ((tmp = OBJ_GET_PARENT(cx, obj)) != NULL)
+            while (JSObject *tmp = OBJ_GET_PARENT(cx, obj))
                 obj = tmp;
         }
-        frame.varobj = obj;
         frame.fun = NULL;
         frame.thisv = OBJECT_TO_JSVAL(chain);
         frame.argc = 0;
         frame.argv = NULL;
         frame.annotation = NULL;
+        callStack.setInitialVarObj(obj);
     }
 
     frame.imacpc = NULL;
+
+    struct RawStackGuard {
+        JSContext *cx;
+        void *mark;
+        RawStackGuard(JSContext *cx) : cx(cx), mark(NULL) {}
+        ~RawStackGuard() { if (mark) js_FreeRawStack(cx, mark); }
+    } rawStackGuard(cx);
+
     if (script->nslots != 0) {
-        frame.slots = js_AllocRawStack(cx, script->nslots, &mark);
-        if (!frame.slots) {
-            ok = JS_FALSE;
-            goto out;
-        }
+        frame.slots = js_AllocRawStack(cx, script->nslots, &rawStackGuard.mark);
+        if (!frame.slots)
+            return false;
         memset(frame.slots, 0, script->nfixed * sizeof(jsval));
 
 #if JS_HAS_SHARP_VARS
@@ -1556,10 +1617,8 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
                 int base = (down->fun && !(down->flags & JSFRAME_SPECIAL))
                            ? down->fun->sharpSlotBase(cx)
                            : down->script->nfixed - SHARP_NSLOTS;
-                if (base < 0) {
-                    ok = JS_FALSE;
-                    goto out;
-                }
+                if (base < 0)
+                    return false;
                 sharps[0] = down->slots[base];
                 sharps[1] = down->slots[base + 1];
             } else {
@@ -1576,7 +1635,6 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
     frame.scopeChain = chain;
     frame.regs = NULL;
     frame.flags = flags;
-    frame.dormantNext = NULL;
     frame.blockChain = NULL;
 
     
@@ -1584,32 +1642,36 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
 
 
-
-
-
-
-
-
-
-
-    if (oldfp && oldfp != down) {
-        JS_ASSERT(!oldfp->dormantNext);
-        oldfp->dormantNext = cx->dormantFrameChain;
-        cx->dormantFrameChain = oldfp;
+    JSStackFrame *oldfp = cx->fp;
+    bool newCallStack = !oldfp || oldfp != down;
+    if (newCallStack) {
+        callStack.setInitialFrame(&frame);
+        cx->pushCallStack(&callStack);
     }
-
     cx->fp = &frame;
+
+    struct FinishGuard {
+        JSContext *cx;
+        JSStackFrame *oldfp;
+        bool newCallStack;
+        FinishGuard(JSContext *cx, JSStackFrame *oldfp, bool newCallStack)
+            : cx(cx), oldfp(oldfp), newCallStack(newCallStack) {}
+        ~FinishGuard() {
+            if (newCallStack)
+                cx->popCallStack();
+            cx->fp = oldfp;
+        }
+    } finishGuard(cx, oldfp, newCallStack);
+
     if (!down) {
         OBJ_TO_INNER_OBJECT(cx, chain);
         if (!chain)
-            return JS_FALSE;
+            return false;
         frame.scopeChain = chain;
 
         JSObject *thisp = JSVAL_TO_OBJECT(frame.thisv)->thisObject(cx);
-        if (!thisp) {
-            ok = JS_FALSE;
-            goto out2;
-        }
+        if (!thisp)
+            return false;
         frame.thisv = OBJECT_TO_JSVAL(thisp);
         frame.flags |= JSFRAME_COMPUTED_THIS;
     }
@@ -1619,7 +1681,7 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
                         cx->debugHooks->executeHookData);
     }
 
-    ok = js_Interpret(cx);
+    JSBool ok = js_Interpret(cx);
     if (result)
         *result = frame.rval;
 
@@ -1629,22 +1691,6 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
             hook(cx, &frame, JS_FALSE, &ok, hookData);
     }
 
-out2:
-    if (mark)
-        js_FreeRawStack(cx, mark);
-    cx->fp = oldfp;
-
-    if (oldfp && oldfp != down) {
-        JS_ASSERT(cx->dormantFrameChain == oldfp);
-        cx->dormantFrameChain = oldfp->dormantNext;
-        oldfp->dormantNext = NULL;
-    }
-
-out:
-#ifdef INCLUDE_MOZILLA_DTRACE
-    if (JAVASCRIPT_EXECUTE_DONE_ENABLED())
-        jsdtrace_execute_done(script);
-#endif
     return ok;
 }
 

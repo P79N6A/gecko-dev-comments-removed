@@ -670,7 +670,7 @@ END_CASE(JSOP_PICK)
 
 BEGIN_CASE(JSOP_SETCONST)
     LOAD_ATOM(0);
-    obj = fp->varobj;
+    obj = fp->varobj(cx);
     rval = FETCH_OPND(-1);
     if (!obj->defineProperty(cx, ATOM_TO_JSID(atom), rval,
                              JS_PropertyStub, JS_PropertyStub,
@@ -1441,7 +1441,8 @@ BEGIN_CASE(JSOP_GVARINC)
         DO_OP();
     }
     slot = JSVAL_TO_INT(lval);
-    rval = OBJ_GET_SLOT(cx, fp->varobj, slot);
+    JS_ASSERT(fp->varobj(cx) == cx->activeCallStack()->getInitialVarObj());
+    rval = OBJ_GET_SLOT(cx, cx->activeCallStack()->getInitialVarObj(), slot);
     if (JS_LIKELY(CAN_DO_FAST_INC_DEC(rval))) {
         PUSH_OPND(rval + incr2);
         rval += incr;
@@ -1453,7 +1454,7 @@ BEGIN_CASE(JSOP_GVARINC)
         rval = regs.sp[-1];
         --regs.sp;
     }
-    OBJ_SET_SLOT(cx, fp->varobj, slot, rval);
+    OBJ_SET_SLOT(cx, fp->varobj(cx), slot, rval);
     len = JSOP_INCGVAR_LENGTH;  
     JS_ASSERT(len == js_CodeSpec[op].length);
     DO_NEXT_OP(len);
@@ -2152,7 +2153,6 @@ BEGIN_CASE(JSOP_APPLY)
             newsp += nframeslots;
             newifp->frame.callobj = NULL;
             newifp->frame.argsobj = NULL;
-            newifp->frame.varobj = NULL;
             newifp->frame.script = script;
             newifp->frame.fun = fun;
             newifp->frame.argc = argc;
@@ -2162,7 +2162,6 @@ BEGIN_CASE(JSOP_APPLY)
             newifp->frame.annotation = NULL;
             newifp->frame.scopeChain = parent = OBJ_GET_PARENT(cx, obj);
             newifp->frame.flags = flags;
-            newifp->frame.dormantNext = NULL;
             newifp->frame.blockChain = NULL;
             if (script->staticLevel < JS_DISPLAY_SIZE) {
                 JSStackFrame **disp = &cx->display[script->staticLevel];
@@ -2781,7 +2780,8 @@ BEGIN_CASE(JSOP_CALLGVAR)
         op = (op == JSOP_GETGVAR) ? JSOP_NAME : JSOP_CALLNAME;
         DO_OP();
     }
-    obj = fp->varobj;
+    JS_ASSERT(fp->varobj(cx) == cx->activeCallStack()->getInitialVarObj());
+    obj = cx->activeCallStack()->getInitialVarObj();
     slot = JSVAL_TO_INT(lval);
     rval = OBJ_GET_SLOT(cx, obj, slot);
     PUSH_OPND(rval);
@@ -2794,7 +2794,8 @@ BEGIN_CASE(JSOP_SETGVAR)
     JS_ASSERT(slot < GlobalVarCount(fp));
     METER_SLOT_OP(op, slot);
     rval = FETCH_OPND(-1);
-    obj = fp->varobj;
+    JS_ASSERT(fp->varobj(cx) == cx->activeCallStack()->getInitialVarObj());
+    obj = cx->activeCallStack()->getInitialVarObj();
     lval = fp->slots[slot];
     if (JSVAL_IS_NULL(lval)) {
         
@@ -2833,7 +2834,7 @@ BEGIN_CASE(JSOP_DEFVAR)
 
 
     index += atoms - script->atomMap.vector;
-    obj = fp->varobj;
+    obj = fp->varobj(cx);
     JS_ASSERT(obj->map->ops->defineProperty == js_DefineProperty);
     attrs = JSPROP_ENUMERATE;
     if (!(fp->flags & JSFRAME_EVAL))
@@ -2882,7 +2883,6 @@ BEGIN_CASE(JSOP_DEFVAR)
             SPROP_HAS_STUB_GETTER_OR_IS_METHOD(sprop) &&
             SPROP_HAS_STUB_SETTER(sprop)) {
             
-
 
 
 
@@ -2991,7 +2991,7 @@ BEGIN_CASE(JSOP_DEFFUN)
 
 
 
-    parent = fp->varobj;
+    parent = fp->varobj(cx);
     JS_ASSERT(parent);
 
     
@@ -3067,7 +3067,7 @@ BEGIN_CASE(JSOP_DEFFUN_DBGFC)
         rval = JSVAL_VOID;
     }
 
-    parent = fp->varobj;
+    parent = fp->varobj(cx);
     JS_ASSERT(parent);
 
     id = ATOM_TO_JSID(fun->atom);
@@ -4109,7 +4109,7 @@ END_CASE(JSOP_CALLBUILTIN)
 BEGIN_CASE(JSOP_GENERATOR)
     ASSERT_NOT_THROWING(cx);
     regs.pc += JSOP_GENERATOR_LENGTH;
-    obj = js_NewGenerator(cx, fp);
+    obj = js_NewGenerator(cx);
     if (!obj)
         goto error;
     JS_ASSERT(!fp->callobj && !fp->argsobj);

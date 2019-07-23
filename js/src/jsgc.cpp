@@ -2282,8 +2282,6 @@ js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp)
         JS_CALL_OBJECT_TRACER(trc, fp->callobj, "call");
     if (fp->argsobj)
         JS_CALL_OBJECT_TRACER(trc, JSVAL_TO_OBJECT(fp->argsobj), "arguments");
-    if (fp->varobj)
-        JS_CALL_OBJECT_TRACER(trc, fp->varobj, "variables");
     if (fp->script) {
         js_TraceScript(trc, fp->script);
 
@@ -2367,10 +2365,17 @@ JSWeakRoots::mark(JSTracer *trc)
     js_CallValueTracerIfGCThing(trc, lastInternalResult);
 }
 
+static void inline
+TraceFrameChain(JSTracer *trc, JSStackFrame *fp)
+{
+    do {
+        js_TraceStackFrame(trc, fp);
+    } while ((fp = fp->down) != NULL);
+}
+
 JS_REQUIRES_STACK JS_FRIEND_API(void)
 js_TraceContext(JSTracer *trc, JSContext *acx)
 {
-    JSStackFrame *fp, *nextChain;
     JSStackHeader *sh;
     JSTempValueRooter *tvr;
 
@@ -2409,31 +2414,32 @@ js_TraceContext(JSTracer *trc, JSContext *acx)
 
 
 
-
-
 #ifdef JS_THREADSAFE
     if (acx->thread)
 #endif
     {
-        fp = js_GetTopStackFrame(acx);
-        nextChain = acx->dormantFrameChain;
-        if (!fp)
-            goto next_chain;
+        
+        JSStackFrame *fp = js_GetTopStackFrame(acx);
+        if (fp) {
+            JS_ASSERT(!acx->activeCallStack()->isSuspended());
+            TraceFrameChain(trc, fp);
+            if (JSObject *o = acx->activeCallStack()->getInitialVarObj())
+                JS_CALL_OBJECT_TRACER(trc, o, "variables");
+        }
 
         
-        JS_ASSERT(!fp->dormantNext);
-        for (;;) {
-            do {
-                js_TraceStackFrame(trc, fp);
-            } while ((fp = fp->down) != NULL);
-
-          next_chain:
-            if (!nextChain)
-                break;
-            fp = nextChain;
-            nextChain = nextChain->dormantNext;
+        CallStack *cur = acx->currentCallStack;
+        CallStack *cs = fp ? cur->getPrevious() : cur;
+        for (; cs; cs = cs->getPrevious()) {
+            TraceFrameChain(trc, cs->getSuspendedFrame());
+            if (cs->getInitialVarObj())
+                JS_CALL_OBJECT_TRACER(trc, cs->getInitialVarObj(), "var env");
         }
     }
+
+    
+    for (JSGCReachableFrame *rf = acx->reachableFrames; rf; rf = rf->next)
+        TraceFrameChain(trc, rf->frame);
 
     
     if (acx->globalObject && !JS_HAS_OPTION(acx, JSOPTION_UNROOTED_GLOBAL))

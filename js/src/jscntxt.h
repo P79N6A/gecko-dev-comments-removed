@@ -199,6 +199,107 @@ struct GlobalState {
 
 
 
+
+
+
+
+
+
+
+
+
+class CallStack
+{
+#ifdef DEBUG
+    
+    JSContext           *cx;
+#endif
+
+    
+    JSStackFrame        *suspendedFrame;
+
+    
+    bool                saved;
+
+    
+    CallStack           *previous;
+
+    
+    JSObject            *initialVarObj;
+
+    
+    JSStackFrame        *initialFrame;
+
+  public:
+    CallStack(JSContext *cx)
+      :
+#ifdef DEBUG
+        cx(cx),
+#endif
+        suspendedFrame(NULL), saved(false), previous(NULL),
+        initialVarObj(NULL), initialFrame(NULL)
+    {}
+
+#ifdef DEBUG
+    bool contains(JSStackFrame *fp);
+#endif
+
+    void suspend(JSStackFrame *fp) {
+        JS_ASSERT(fp && !isSuspended() && contains(fp));
+        suspendedFrame = fp;
+    }
+
+    void resume() {
+        JS_ASSERT(suspendedFrame);
+        suspendedFrame = NULL;
+    }
+
+    JSStackFrame *getSuspendedFrame() const {
+        JS_ASSERT(suspendedFrame);
+        return suspendedFrame;
+    }
+
+    bool isSuspended() const { return suspendedFrame; }
+
+    void setPrevious(CallStack *cs) { previous = cs; }
+    CallStack *getPrevious() const  { return previous; }
+
+    void setInitialVarObj(JSObject *o) { initialVarObj = o; }
+    JSObject *getInitialVarObj() const { return initialVarObj; }
+
+    void setInitialFrame(JSStackFrame *f) { initialFrame = f; }
+    JSStackFrame *getInitialFrame() const { return initialFrame; }
+
+    
+
+
+
+
+
+
+
+
+    void save(JSStackFrame *fp) {
+        suspend(fp);
+        saved = true;
+    }
+
+    void restore() {
+        saved = false;
+        resume();
+    }
+
+    bool isSaved() const {
+        JS_ASSERT_IF(saved, isSuspended());
+        return saved;
+    }
+};
+
+
+
+
+
+
 struct TraceMonitor {
     
 
@@ -1087,6 +1188,16 @@ typedef struct JSResolvingEntry {
 
 extern const JSDebugHooks js_NullDebugHooks;  
 
+
+
+
+
+struct JSGCReachableFrame
+{
+    JSGCReachableFrame  *next;
+    JSStackFrame        *frame;
+};
+
 struct JSContext {
     
 
@@ -1205,7 +1316,66 @@ struct JSContext {
     void                *data2;
 
     
-    JSStackFrame        *dormantFrameChain; 
+    JSGCReachableFrame  *reachableFrames;
+
+    void pushGCReachableFrame(JSGCReachableFrame &gcrf, JSStackFrame *f) {
+        gcrf.next = reachableFrames;
+        gcrf.frame = f;
+        reachableFrames = &gcrf;
+    }
+
+    void popGCReachableFrame() {
+        reachableFrames = reachableFrames->next;
+    }
+
+  private:
+    friend void js_TraceContext(JSTracer *, JSContext *);
+
+    
+    js::CallStack       *currentCallStack;
+
+  public:
+    
+    js::CallStack *activeCallStack() const {
+        JS_ASSERT(currentCallStack && !currentCallStack->isSaved());
+        return currentCallStack;
+    }
+
+    
+    void pushCallStack(js::CallStack *newcs) {
+        if (fp)
+            currentCallStack->suspend(fp);
+        else
+            JS_ASSERT_IF(currentCallStack, currentCallStack->isSaved());
+        newcs->setPrevious(currentCallStack);
+        currentCallStack = newcs;
+        JS_ASSERT(!newcs->isSuspended() && !newcs->isSaved());
+    }
+
+    
+    void popCallStack() {
+        JS_ASSERT(!currentCallStack->isSuspended() && !currentCallStack->isSaved());
+        currentCallStack = currentCallStack->getPrevious();
+        if (currentCallStack && !currentCallStack->isSaved()) {
+            JS_ASSERT(fp);
+            currentCallStack->resume();
+        }
+    }
+
+    
+    void saveActiveCallStack() {
+        JS_ASSERT(fp && currentCallStack && !currentCallStack->isSuspended());
+        currentCallStack->save(fp);
+        fp = NULL;
+    }
+
+    
+    void restoreCallStack() {
+        JS_ASSERT(!fp && currentCallStack && currentCallStack->isSuspended());
+        fp = currentCallStack->getSuspendedFrame();
+        currentCallStack->restore();
+    }
+
 #ifdef JS_THREADSAFE
     JSThread            *thread;
     jsrefcount          requestDepth;
@@ -1427,6 +1597,20 @@ private:
 
     void checkMallocGCPressure(void *p);
 };
+
+JS_ALWAYS_INLINE JSObject *
+JSStackFrame::varobj(js::CallStack *cs)
+{
+    JS_ASSERT(cs->contains(this));
+    return fun ? callobj : cs->getInitialVarObj();
+}
+
+JS_ALWAYS_INLINE JSObject *
+JSStackFrame::varobj(JSContext *cx)
+{
+    JS_ASSERT(cx->activeCallStack()->contains(this));
+    return fun ? callobj : cx->activeCallStack()->getInitialVarObj();
+}
 
 #ifdef JS_THREADSAFE
 # define JS_THREAD_ID(cx)       ((cx)->thread ? (cx)->thread->id : 0)

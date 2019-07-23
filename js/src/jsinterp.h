@@ -66,6 +66,7 @@ typedef struct JSFrameRegs {
 
 
 
+
 struct JSStackFrame {
     JSFrameRegs     *regs;
     jsbytecode      *imacpc;        
@@ -73,7 +74,6 @@ struct JSStackFrame {
     JSObject        *callobj;       
     jsval           argsobj;        
 
-    JSObject        *varobj;        
     JSScript        *script;        
     JSFunction      *fun;           
     jsval           thisv;          
@@ -123,7 +123,6 @@ struct JSStackFrame {
     JSObject        *blockChain;
 
     uint32          flags;          
-    JSStackFrame    *dormantNext;   
     JSStackFrame    *displaySave;   
 
 
@@ -155,9 +154,26 @@ struct JSStackFrame {
     JSObject *callee() {
         return argv ? JSVAL_TO_OBJECT(argv[-2]) : NULL;
     }
+
+    
+
+
+
+
+    JSObject *varobj(js::CallStack *cs);
+
+    
+    JSObject *varobj(JSContext *cx);
 };
 
 #ifdef __cplusplus
+
+
+
+
+extern js::CallStack *
+js_ContainingCallStack(JSContext *cx, JSStackFrame *target);
+
 static JS_INLINE uintN
 FramePCOffset(JSStackFrame* fp)
 {

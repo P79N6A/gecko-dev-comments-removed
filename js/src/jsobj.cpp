@@ -1256,11 +1256,11 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
     JSBool ok;
     JSScript **bucket = NULL;   
 #if JS_HAS_EVAL_THIS_SCOPE
-    JSObject *callerScopeChain = NULL, *callerVarObj = NULL;
-    JSObject *withObject = NULL;
-    JSBool setCallerScopeChain = JS_FALSE, setCallerVarObj = JS_FALSE;
-    JSTempValueRooter scopetvr, varobjtvr;
+    JSObject *callerScopeChain = NULL;
+    JSBool setCallerScopeChain = JS_FALSE;
+    JSTempValueRooter scopetvr;
 #endif
+    JSObject *withObject = NULL;
 
     fp = js_GetTopStackFrame(cx);
     caller = js_GetScriptedCaller(cx, fp);
@@ -1312,7 +1312,7 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 
-    if (!caller->varobj && !js_GetCallObject(cx, caller))
+    if (caller->fun && !caller->callobj && !js_GetCallObject(cx, caller))
         return JS_FALSE;
 
     
@@ -1361,22 +1361,11 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
             
             JS_ASSERT(!OBJ_GET_PARENT(cx, obj));
-            scopeobj = obj;
-
-            
-            caller->scopeChain = fp->scopeChain = scopeobj;
+            caller->scopeChain = scopeobj = obj;
 
             
             setCallerScopeChain = JS_TRUE;
             JS_PUSH_TEMP_ROOT_OBJECT(cx, callerScopeChain, &scopetvr);
-
-            callerVarObj = caller->varobj;
-            if (obj != callerVarObj) {
-                
-                caller->varobj = fp->varobj = obj;
-                setCallerVarObj = JS_TRUE;
-                JS_PUSH_TEMP_ROOT_OBJECT(cx, callerVarObj, &varobjtvr);
-            }
         } else {
             
 
@@ -1553,17 +1542,13 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 out:
 #if JS_HAS_EVAL_THIS_SCOPE
     
-    if (setCallerVarObj) {
-        caller->varobj = callerVarObj;
-        JS_POP_TEMP_ROOT(cx, &varobjtvr);
-    }
     if (setCallerScopeChain) {
         caller->scopeChain = callerScopeChain;
         JS_POP_TEMP_ROOT(cx, &scopetvr);
     }
+#endif
     if (withObject)
         withObject->setPrivate(NULL);
-#endif
     return ok;
 }
 
@@ -7103,7 +7088,6 @@ js_DumpStackFrame(JSStackFrame *fp)
         fprintf(stderr, "  argv:  %p (argc: %u)\n", (void *) fp->argv, (unsigned) fp->argc);
         MaybeDumpObject("callobj", fp->callobj);
         MaybeDumpObject("argsobj", JSVAL_TO_OBJECT(fp->argsobj));
-        MaybeDumpObject("varobj", fp->varobj);
         MaybeDumpValue("this", fp->thisv);
         fprintf(stderr, "  rval: ");
         dumpValue(fp->rval);
@@ -7139,8 +7123,6 @@ js_DumpStackFrame(JSStackFrame *fp)
         if (fp->blockChain)
             fprintf(stderr, "  blockChain: (JSObject *) %p\n", (void *) fp->blockChain);
 
-        if (fp->dormantNext)
-            fprintf(stderr, "  dormantNext: (JSStackFrame *) %p\n", (void *) fp->dormantNext);
         if (fp->displaySave)
             fprintf(stderr, "  displaySave: (JSStackFrame *) %p\n", (void *) fp->displaySave);
 

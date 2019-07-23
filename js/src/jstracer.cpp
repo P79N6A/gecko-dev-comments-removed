@@ -3519,8 +3519,6 @@ FlushNativeStackFrame(JSContext* cx, unsigned callDepth, const TraceType* mp, do
                     
                     if (!fp->callobj)
                         fp->callobj = fp->scopeChain;
-                    if (!fp->varobj)
-                        fp->varobj = fp->scopeChain;
 
                     
                     
@@ -5627,7 +5625,6 @@ SynthesizeFrame(JSContext* cx, const FrameInfo& fi, JSObject* callee)
 
     newifp->frame.callobj = NULL;
     newifp->frame.argsobj = NULL;
-    newifp->frame.varobj = NULL;
     newifp->frame.script = script;
     newifp->frame.fun = fun;
 
@@ -5659,7 +5656,6 @@ SynthesizeFrame(JSContext* cx, const FrameInfo& fi, JSObject* callee)
     newifp->frame.annotation = NULL;
     newifp->frame.scopeChain = NULL; 
     newifp->frame.flags = constructing ? JSFRAME_CONSTRUCTING : 0;
-    newifp->frame.dormantNext = NULL;
     newifp->frame.blockChain = NULL;
     newifp->mark = newmark;
     newifp->frame.thisv = JSVAL_NULL; 
@@ -5729,7 +5725,6 @@ SynthesizeSlowNativeFrame(InterpState& state, JSContext *cx, VMSideExit *exit)
     fp->slots = NULL;
     fp->callobj = NULL;
     fp->argsobj = NULL;
-    fp->varobj = cx->fp->varobj;
     fp->script = NULL;
     fp->thisv = state.nativeVp[1];
     fp->argc = state.nativeVpLen - 2;
@@ -5742,7 +5737,6 @@ SynthesizeSlowNativeFrame(InterpState& state, JSContext *cx, VMSideExit *exit)
     fp->scopeChain = cx->fp->scopeChain;
     fp->blockChain = NULL;
     fp->flags = exit->constructing() ? JSFRAME_CONSTRUCTING : 0;
-    fp->dormantNext = NULL;
     fp->displaySave = NULL;
 
     ifp->mark = mark;

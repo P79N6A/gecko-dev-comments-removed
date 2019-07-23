@@ -335,7 +335,7 @@ script_exec_sub(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 
 
     caller = js_GetScriptedCaller(cx, NULL);
-    if (caller && !caller->varobj) {
+    if (caller && !caller->varobj(cx)) {
         
         JS_ASSERT(caller->fun && !JSFUN_HEAVYWEIGHT_TEST(caller->fun->flags));
 

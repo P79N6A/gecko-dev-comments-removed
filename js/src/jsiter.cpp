@@ -714,8 +714,8 @@ JS_FRIEND_DATA(JSClass) js_GeneratorClass = {
 
 
 
-JSObject *
-js_NewGenerator(JSContext *cx, JSStackFrame *fp)
+JS_REQUIRES_STACK JSObject *
+js_NewGenerator(JSContext *cx)
 {
     JSObject *obj;
     uintN argc, nargs, nslots;
@@ -727,6 +727,7 @@ js_NewGenerator(JSContext *cx, JSStackFrame *fp)
         return NULL;
 
     
+    JSStackFrame *fp = cx->fp;
     argc = fp->argc;
     nargs = JS_MAX(argc, fp->fun->nargs);
     nslots = 2 + nargs + fp->script->nslots;
@@ -752,7 +753,6 @@ js_NewGenerator(JSContext *cx, JSStackFrame *fp)
     }
 
     
-    gen->frame.varobj = fp->varobj;
     gen->frame.thisv = fp->thisv;
 
     
@@ -786,7 +786,6 @@ js_NewGenerator(JSContext *cx, JSStackFrame *fp)
     gen->frame.regs = &gen->savedRegs;
 
     gen->frame.flags = (fp->flags & ~JSFRAME_ROOTED_ARGV) | JSFRAME_GENERATOR;
-    gen->frame.dormantNext = NULL;
 
     
     JS_ASSERT(!fp->blockChain);
