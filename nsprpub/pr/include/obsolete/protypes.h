@@ -73,7 +73,9 @@ typedef PRIntn intn;
 
 
 
-#ifdef XP_UNIX
+
+
+#if defined(XP_UNIX) || defined(XP_OS2)
 #include <sys/types.h>
 #endif
 
@@ -86,7 +88,7 @@ typedef PRIntn intn;
 
 
 
-#if !defined(XP_BEOS) && !defined(XP_UNIX) || defined(NTO)
+#if !defined(XP_BEOS) && !defined(XP_OS2) && !defined(XP_UNIX) || defined(NTO)
 typedef PRUintn uint;
 #endif
 

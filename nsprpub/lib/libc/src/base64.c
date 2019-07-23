@@ -155,7 +155,13 @@ PL_Base64Encode
 
     if( (char *)0 == dest )
     {
-        PRUint32 destlen = ((srclen + 2)/3) * 4;
+        PRUint32 destlen;
+        
+        if( srclen > (PR_UINT32_MAX/4) * 3 )
+        {
+            return (char *)0;
+        }
+        destlen = ((srclen + 2)/3) * 4;
         dest = (char *)PR_MALLOC(destlen + 1);
         if( (char *)0 == dest )
         {
@@ -403,7 +409,9 @@ PL_Base64Decode
 
     if( (char *)0 == dest )
     {
-        PRUint32 destlen = ((srclen * 3) / 4);
+        
+        PRUint32 rem = srclen % 4;
+        PRUint32 destlen = (srclen / 4) * 3 + (rem * 3) / 4;
         dest = (char *)PR_MALLOC(destlen + 1);
         if( (char *)0 == dest )
         {
