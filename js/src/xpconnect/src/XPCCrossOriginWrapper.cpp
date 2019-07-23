@@ -485,14 +485,18 @@ XPC_XOW_WrapObject(JSContext *cx, JSObject *parent, jsval *vp)
     return JS_TRUE;
   }
 
-  outerObj = JS_NewObject(cx, &sXPC_XOW_JSClass.base, nsnull, parent);
+  
+  
+  
+  outerObj = JS_NewObject(cx, &sXPC_XOW_JSClass.base, nsnull, nsnull);
   if (!outerObj) {
     return JS_FALSE;
   }
 
   
   
-  if (!JS_SetPrototype(cx, outerObj, nsnull)) {
+  if (!JS_SetParent(cx, outerObj, parent) ||
+      !JS_SetPrototype(cx, outerObj, nsnull)) {
     return JS_FALSE;
   }
 
