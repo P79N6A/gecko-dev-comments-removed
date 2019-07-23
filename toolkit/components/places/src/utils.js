@@ -1003,20 +1003,28 @@ var PlacesUtils = {
 
 
 
+
+
+
+
   getMostRecentBookmarkForURI:
   function PU_getMostRecentBookmarkForURI(aURI) {
     var bmkIds = this.bookmarks.getBookmarkIdsForURI(aURI, {});
     for (var i = 0; i < bmkIds.length; i++) {
       
-      var bk = bmkIds[i];
-      var parentId = this.bookmarks.getFolderIdForItem(bk);
-      if (parentId == this.unfiledBookmarksFolderId)
-        return bk;
+      var itemId = bmkIds[i];
+      var parentId = this.bookmarks.getFolderIdForItem(itemId);
+      
+      
+      if (parentId == this.unfiledBookmarksFolderId ||
+          parentId == this.toolbarFolderId ||
+          parentId == this.bookmarksMenuFolderId)
+        return itemId;
 
       var grandparentId = this.bookmarks.getFolderIdForItem(parentId);
       if (grandparentId != this.tagsFolderId &&
           !this.itemIsLivemark(parentId))
-        return bk;
+        return itemId;
     }
     return -1;
   },
@@ -1024,15 +1032,29 @@ var PlacesUtils = {
   
 
 
+
+
+
+
   getMostRecentFolderForFeedURI:
-  function PU_getMostRecentFolderForFeedURI(aURI) {
-    var feedSpec = aURI.spec
-    var annosvc = this.annotations;
-    var livemarks = annosvc.getItemsWithAnnotation(LMANNO_FEEDURI, {});
-    for (var i = 0; i < livemarks.length; i++) {
-      if (annosvc.getItemAnnotation(livemarks[i], LMANNO_FEEDURI) == feedSpec)
-        return livemarks[i];
+  function PU_getMostRecentFolderForFeedURI(aFeedURI) {
+    
+    
+    
+    if (this.__lookupGetter__("livemarks")) {
+      var feedSpec = aFeedURI.spec
+      var annosvc = this.annotations;
+      var livemarks = annosvc.getItemsWithAnnotation(LMANNO_FEEDURI, {});
+      for (var i = 0; i < livemarks.length; i++) {
+        if (annosvc.getItemAnnotation(livemarks[i], LMANNO_FEEDURI) == feedSpec)
+          return livemarks[i];
+      }
     }
+    else {
+      
+      return this.livemarks.getLivemarkIdForFeedURI(aFeedURI);
+    }
+
     return -1;
   },
 
