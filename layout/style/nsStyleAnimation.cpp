@@ -749,6 +749,63 @@ LookupStyleContext(nsIContent* aElement)
   return nsComputedDOMStyle::GetStyleContextForContent(aElement, nsnull, shell);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+already_AddRefed<nsStyleContext>
+StyleWithDeclarationAdded(nsCSSProperty aProperty,
+                          nsIContent* aTargetElement,
+                          const nsAString& aSpecifiedValue)
+{
+  NS_ABORT_IF_FALSE(aTargetElement, "null target element");
+  NS_ABORT_IF_FALSE(aTargetElement->GetCurrentDoc(),
+                    "element needs to be in a document "
+                    "if we're going to look up its style context");
+
+  
+  nsRefPtr<nsStyleContext> styleContext = LookupStyleContext(aTargetElement);
+  if (!styleContext) {
+    return nsnull;
+  }
+
+  
+  nsCOMPtr<nsICSSStyleRule> styleRule =
+    BuildStyleRule(aProperty, aTargetElement, aSpecifiedValue);
+  if (!styleRule) {
+    return nsnull;
+  }
+
+  
+  nsCOMArray<nsIStyleRule> ruleArray;
+  ruleArray.AppendObject(styleRule);
+  nsStyleSet* styleSet = styleContext->PresContext()->StyleSet();
+  return styleSet->ResolveStyleForRules(styleContext->GetParent(),
+                                        styleContext->GetPseudo(),
+                                        styleContext->GetRuleNode(),
+                                        ruleArray);
+}
+
 PRBool
 nsStyleAnimation::ComputeValue(nsCSSProperty aProperty,
                                nsIContent* aTargetElement,
@@ -760,27 +817,11 @@ nsStyleAnimation::ComputeValue(nsCSSProperty aProperty,
                     "we should only be able to actively animate nodes that "
                     "are in a document");
 
-  
-  nsRefPtr<nsStyleContext> styleContext = LookupStyleContext(aTargetElement);
-  if (!styleContext) {
-    return PR_FALSE;
-  }
-
-  
-  nsCOMPtr<nsICSSStyleRule> styleRule =
-    BuildStyleRule(aProperty, aTargetElement, aSpecifiedValue);
-  if (!styleRule) {
-    return PR_FALSE;
-  }
-
-  
-  nsCOMArray<nsIStyleRule> ruleArray;
-  ruleArray.AppendObject(styleRule);
-  nsStyleSet* styleSet = styleContext->PresContext()->StyleSet();
   nsRefPtr<nsStyleContext> tmpStyleContext =
-    styleSet->ResolveStyleForRules(styleContext->GetParent(),
-                                   styleContext->GetPseudo(),
-                                   styleContext->GetRuleNode(), ruleArray);
+    StyleWithDeclarationAdded(aProperty, aTargetElement, aSpecifiedValue);
+  if (!tmpStyleContext) {
+    return PR_FALSE;
+  }
 
   
   return ExtractComputedValue(aProperty, tmpStyleContext, aComputedValue);

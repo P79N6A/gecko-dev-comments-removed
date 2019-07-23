@@ -359,6 +359,10 @@ AnimTestcase.prototype =
       return this.buildSeekListStatic(aAnimAttr, aBaseVal, aTimeData,
                                       "defined as non-animatable in SVG spec");
     }
+    if (this.computedValMap.noEffect) {
+      return this.buildSeekListStatic(aAnimAttr, aBaseVal, aTimeData,
+                                      "testcase specified to have no effect");
+    }      
     return this.buildSeekListAnimated(aAnimAttr, aBaseVal,
                                       aTimeData, aIsFreeze)
   },
@@ -462,6 +466,9 @@ extend(AnimTestcaseFrom, AnimTestcase);
 
 
 
+
+
+
 function AnimTestcaseFromTo(aFrom, aTo, aComputedValMap, aSkipReason)
 {
   this.from           = aFrom;
@@ -485,6 +492,7 @@ AnimTestcaseFromTo.prototype =
   },
 }
 extend(AnimTestcaseFromTo, AnimTestcaseFrom);
+
 
 
 
@@ -532,7 +540,7 @@ AnimTestcaseFromBy.prototype =
   },
   buildSeekList : function(aAnimAttr, aBaseVal, aTimeData, aIsFreeze)
   {
-    if (!aAnimAttr.isAdditive || this.computedValMap.noEffect) {
+    if (!aAnimAttr.isAdditive) {
       return this.buildSeekListStatic(aAnimAttr, aBaseVal, aTimeData,
                                       "defined as non-additive in SVG spec");
     }
