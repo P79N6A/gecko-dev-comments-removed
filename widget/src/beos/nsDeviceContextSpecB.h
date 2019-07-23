@@ -78,7 +78,7 @@ public:
 
 
   NS_IMETHOD ClosePrintManager();
-  
+
   NS_IMETHOD GetSurfaceForPrinter(gfxASurface **nativeSurface) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
