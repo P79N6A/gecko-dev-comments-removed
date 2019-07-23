@@ -345,7 +345,7 @@ NS_IMETHODIMP nsBaseWidget::SetZIndex(PRInt32 aZIndex)
   mZIndex = aZIndex;
 
   
-  nsBaseWidget* parent = NS_STATIC_CAST(nsBaseWidget*, GetParent());
+  nsBaseWidget* parent = static_cast<nsBaseWidget*>(GetParent());
   if (parent) {
     parent->RemoveChild(this);
     

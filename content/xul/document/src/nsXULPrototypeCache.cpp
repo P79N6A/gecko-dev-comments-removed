@@ -159,7 +159,7 @@ nsXULPrototypeCache::GetInstance()
 
         CallGetService(kXULPrototypeCacheCID, &cache);
 
-        sInstance = NS_STATIC_CAST(nsXULPrototypeCache*, cache);
+        sInstance = static_cast<nsXULPrototypeCache*>(cache);
     }
     return sInstance;
 }
@@ -734,7 +734,7 @@ nsXULPrototypeCache::StartFastLoad(nsIURI* aURI)
     
     
     nsXULFastLoadFileIO* xio = new nsXULFastLoadFileIO(file);
-    nsCOMPtr<nsIFastLoadFileIO> io = NS_STATIC_CAST(nsIFastLoadFileIO*, xio);
+    nsCOMPtr<nsIFastLoadFileIO> io = static_cast<nsIFastLoadFileIO*>(xio);
     if (! io)
         return NS_ERROR_OUT_OF_MEMORY;
     fastLoadService->SetFileIO(io);

@@ -184,7 +184,7 @@ public:
 
   
   nsQueryInterface do_QueryInterface() {
-    return nsQueryInterface(NS_STATIC_CAST(nsIChannel *, this));
+    return nsQueryInterface(static_cast<nsIChannel *>(this));
   }
   
   nsQueryInterface do_QueryInterface(nsISupports *obj) {

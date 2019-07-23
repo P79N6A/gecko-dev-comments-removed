@@ -1010,7 +1010,7 @@ void nsWindow::HideKids(PRBool state)
 {
 	for (nsIWidget* kid = mFirstChild; kid; kid = kid->GetNextSibling()) 
 	{
-		nsWindow *childWidget = NS_STATIC_CAST(nsWindow*, kid);
+		nsWindow *childWidget = static_cast<nsWindow*>(kid);
 		nsRect kidrect = ((nsWindow *)kid)->mBounds;
 		
 		if (mBounds.Intersects(kidrect))
@@ -1739,7 +1739,7 @@ NS_METHOD nsWindow::Scroll(PRInt32 aDx, PRInt32 aDy, nsRect *aClipRect)
 		
 		for (nsIWidget* kid = mFirstChild; kid; kid = kid->GetNextSibling()) 
 		{
-			nsWindow *childWidget = NS_STATIC_CAST(nsWindow*, kid);
+			nsWindow *childWidget = static_cast<nsWindow*>(kid);
 			
 			
 			nsRect bounds = childWidget->mBounds;
@@ -1786,7 +1786,7 @@ bool nsWindow::CallMethod(MethodInfo *info)
 
 			for (nsIWidget* kid = mFirstChild; kid; kid = kid->GetNextSibling()) 
 			{
-				nsWindow *childWidget = NS_STATIC_CAST(nsWindow*, kid);
+				nsWindow *childWidget = static_cast<nsWindow*>(kid);
 				BWindow* kidwindow = (BWindow *)kid->GetNativeData(NS_NATIVE_WINDOW);
 				if (kidwindow)
 				{

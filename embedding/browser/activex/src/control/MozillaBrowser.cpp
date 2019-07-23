@@ -1088,7 +1088,7 @@ HRESULT CMozillaBrowser::Initialize()
         
         CWindowCreator *creator = new CWindowCreator();
         nsCOMPtr<nsIWindowCreator> windowCreator;
-        windowCreator = NS_STATIC_CAST(nsIWindowCreator *, creator);
+        windowCreator = static_cast<nsIWindowCreator *>(creator);
 
         
         nsCOMPtr<nsIWindowWatcher> watcher =
@@ -1213,12 +1213,12 @@ HRESULT CMozillaBrowser::CreateBrowser()
     mWebBrowserContainer->AddRef();
 
     
-    mWebBrowser->SetContainerWindow(NS_STATIC_CAST(nsIWebBrowserChrome*, mWebBrowserContainer));
+    mWebBrowser->SetContainerWindow(static_cast<nsIWebBrowserChrome*>(mWebBrowserContainer));
     mWebBrowser->SetParentURIContentListener(mWebBrowserContainer);
 
     
     nsCOMPtr<nsIWeakReference> listener(
-        do_GetWeakReference(NS_STATIC_CAST(nsIWebProgressListener*, mWebBrowserContainer)));
+        do_GetWeakReference(static_cast<nsIWebProgressListener*>(mWebBrowserContainer)));
     mWebBrowser->AddWebBrowserListener(listener, NS_GET_IID(nsIWebProgressListener));
 
     

@@ -166,7 +166,7 @@ InNonScriptingContainer(nsINode* aNode)
     
     
     if (aNode->IsNodeOfType(nsINode::eHTML)) {
-      nsIAtom *localName = NS_STATIC_CAST(nsIContent*, aNode)->Tag();
+      nsIAtom *localName = static_cast<nsIContent*>(aNode)->Tag();
       if (localName == nsGkAtoms::iframe ||
           localName == nsGkAtoms::noframes ||
           localName == nsGkAtoms::noembed) {

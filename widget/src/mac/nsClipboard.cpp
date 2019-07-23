@@ -159,7 +159,7 @@ nsClipboard :: SetNativeClipboardData ( PRInt32 aWhichClipboard )
 
         
 
-        PRUnichar* castedData = NS_REINTERPRET_CAST(PRUnichar*, data);
+        PRUnichar* castedData = reinterpret_cast<PRUnichar*>(data);
         PRUnichar* linebreakConvertedUnicode = castedData;
         nsLinebreakConverter::ConvertUnicharLineBreaksInSitu(&linebreakConvertedUnicode,
                                                              nsLinebreakConverter::eLinebreakUnix,
@@ -192,8 +192,8 @@ nsClipboard :: SetNativeClipboardData ( PRInt32 aWhichClipboard )
           }
           else if (NS_SUCCEEDED(errCode)) {
             
-            scriptCodeRuns = NS_REINTERPRET_CAST(ScriptCodeRun*,
-                                                 nsMemory::Alloc(sizeof(ScriptCodeRun)));
+            scriptCodeRuns = reinterpret_cast<ScriptCodeRun*>
+                                             (nsMemory::Alloc(sizeof(ScriptCodeRun)));
             if (scriptCodeRuns) {
               scriptCodeRuns[0].offset = 0;
               scriptCodeRuns[0].script = (ScriptCode) ::GetScriptManagerVariable(smSysScript);
@@ -270,7 +270,7 @@ nsClipboard :: SetNativeClipboardData ( PRInt32 aWhichClipboard )
 
           
           
-          PRUnichar* castedData = NS_REINTERPRET_CAST(PRUnichar*, data);
+          PRUnichar* castedData = reinterpret_cast<PRUnichar*>(data);
           PRUnichar* linebreakConvertedUnicode = castedData;
           nsLinebreakConverter::ConvertUnicharLineBreaksInSitu(
                                           &linebreakConvertedUnicode,
@@ -317,7 +317,7 @@ nsClipboard :: SetNativeClipboardData ( PRInt32 aWhichClipboard )
   const char* mapping = theMapper.ExportMapping(&mappingLen);
   if ( mapping && mappingLen ) {
     errCode = PutOnClipboard ( nsMimeMapperMac::MappingFlavor(), mapping, mappingLen );
-    nsMemory::Free ( NS_CONST_CAST(char*, mapping) );
+    nsMemory::Free ( const_cast<char*>(mapping) );
   }
   
   return errCode;
@@ -458,7 +458,7 @@ nsClipboard :: GetNativeClipboardData ( nsITransferable * aTransferable, PRInt32
           if (!dataFound) {
             loadResult = GetDataOffClipboard ( 'TEXT', &clipboardData, &dataSize );
             if ( NS_SUCCEEDED(loadResult) && clipboardData ) {
-              const char* castedText = NS_REINTERPRET_CAST(char*, clipboardData);          
+              const char* castedText = reinterpret_cast<char*>(clipboardData);          
               PRUnichar* convertedText = nsnull;
               PRInt32 convertedTextLen = 0;
               nsPrimitiveHelpers::ConvertPlatformPlainTextToUnicode ( castedText, dataSize, 
@@ -496,7 +496,7 @@ nsClipboard :: GetNativeClipboardData ( nsITransferable * aTransferable, PRInt32
             
             
             
-            nsDependentCString utf8(NS_REINTERPRET_CAST(char*, clipboardData));
+            nsDependentCString utf8(reinterpret_cast<char*>(clipboardData));
             NS_ConvertUTF8toUTF16 utf16(utf8);
 
             

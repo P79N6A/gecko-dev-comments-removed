@@ -102,7 +102,7 @@ private:
     {
         NS_ASSERTION(mData || !mOwned, "bad state");
         if (mOwned)
-            NS_Free(NS_CONST_CAST(char*, mData));
+            NS_Free(const_cast<char*>(mData));
 
         
         mOffset = 0;
@@ -183,7 +183,7 @@ nsStringInputStream::SetData(const char *data, PRInt32 dataLen)
     
     
  
-    char *copy = NS_STATIC_CAST(char *, NS_Alloc(dataLen));
+    char *copy = static_cast<char *>(NS_Alloc(dataLen));
     if (!copy)
         return NS_ERROR_OUT_OF_MEMORY;
     memcpy(copy, data, dataLen);
@@ -369,7 +369,7 @@ NS_NewByteInputStream(nsIInputStream** aStreamResult,
         rv = stream->ShareData(aStringToRead, aLength);
         break;
     case NS_ASSIGNMENT_ADOPT:
-        rv = stream->AdoptData(NS_CONST_CAST(char*, aStringToRead), aLength);
+        rv = stream->AdoptData(const_cast<char*>(aStringToRead), aLength);
         break;
     default:
         NS_ERROR("invalid assignment type");

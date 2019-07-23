@@ -615,7 +615,7 @@ nsColumnSetFrame::DrainOverflowColumns()
 {
   
   
-  nsColumnSetFrame* prev = NS_STATIC_CAST(nsColumnSetFrame*, GetPrevInFlow());
+  nsColumnSetFrame* prev = static_cast<nsColumnSetFrame*>(GetPrevInFlow());
   if (prev) {
     nsIFrame* overflows = prev->GetOverflowFrames(PresContext(), PR_TRUE);
     if (overflows) {

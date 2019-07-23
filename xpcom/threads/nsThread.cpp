@@ -135,7 +135,7 @@ NS_INTERFACE_MAP_BEGIN(nsThread)
   NS_INTERFACE_MAP_ENTRY(nsISupportsPriority)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIThread)
   if (aIID.Equals(NS_GET_IID(nsIClassInfo))) {
-    foundInterface = NS_STATIC_CAST(nsIClassInfo*, &sThreadClassInfo);
+    foundInterface = static_cast<nsIClassInfo*>(&sThreadClassInfo);
   } else
 NS_INTERFACE_MAP_END
 NS_IMPL_CI_INTERFACE_GETTER4(nsThread, nsIThread, nsIThreadInternal,
@@ -231,7 +231,7 @@ private:
  void
 nsThread::ThreadFunc(void *arg)
 {
-  nsThread *self = NS_STATIC_CAST(nsThread *, arg);  
+  nsThread *self = static_cast<nsThread *>(arg);  
   self->mThread = PR_GetCurrentThread();
 
   

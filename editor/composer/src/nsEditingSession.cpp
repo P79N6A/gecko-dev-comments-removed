@@ -205,7 +205,7 @@ nsEditingSession::MakeWindowEditable(nsIDOMWindow *aWindow,
   
   rv = SetupEditorCommandController("@mozilla.org/editor/editorcontroller;1",
                                     aWindow,
-                                    NS_STATIC_CAST(nsIEditingSession*, this),
+                                    static_cast<nsIEditingSession*>(this),
                                     &mBaseCommandControllerId);
   if (NS_FAILED(rv)) return rv;
 
@@ -213,7 +213,7 @@ nsEditingSession::MakeWindowEditable(nsIDOMWindow *aWindow,
   
   rv = SetupEditorCommandController("@mozilla.org/editor/editordocstatecontroller;1",
                                     aWindow,
-                                    NS_STATIC_CAST(nsIEditingSession*, this),
+                                    static_cast<nsIEditingSession*>(this),
                                     &mDocStateControllerId);
   if (NS_FAILED(rv)) return rv;
 
@@ -382,7 +382,7 @@ nsEditingSession::SetupEditorOnWindow(nsIDOMWindow *aWindow)
   
   nsComposerCommandsUpdater *stateMaintainer;
   NS_NEWXPCOM(stateMaintainer, nsComposerCommandsUpdater);
-  mStateMaintainer = NS_STATIC_CAST(nsISelectionListener*, stateMaintainer);
+  mStateMaintainer = static_cast<nsISelectionListener*>(stateMaintainer);
 
   if (!mStateMaintainer) return NS_ERROR_OUT_OF_MEMORY;
 
@@ -455,7 +455,7 @@ nsEditingSession::SetupEditorOnWindow(nsIDOMWindow *aWindow)
   
   
   rv = editor->AddDocumentStateListener(
-      NS_STATIC_CAST(nsIDocumentStateListener*, stateMaintainer));
+      static_cast<nsIDocumentStateListener*>(stateMaintainer));
   if (NS_FAILED(rv)) return rv;
 
   
@@ -481,8 +481,8 @@ nsEditingSession::SetupEditorOnWindow(nsIDOMWindow *aWindow)
   nsCOMPtr<nsITransactionManager> txnMgr;
   editor->GetTransactionManager(getter_AddRefs(txnMgr));
   if (txnMgr)
-    txnMgr->AddListener(NS_STATIC_CAST(nsITransactionListener*,
-                        stateMaintainer));
+    txnMgr->AddListener(static_cast<nsITransactionListener*>
+                                   (stateMaintainer));
 
   
   rv = SetEditorOnControllers(aWindow, editor);

@@ -273,7 +273,7 @@ nsMimeMapperMac::ExportMapping ( short * outLength ) const
   
   
   
-  exportBuffer = NS_STATIC_CAST(char*, nsMemory::Alloc(len + 1));      
+  exportBuffer = static_cast<char*>(nsMemory::Alloc(len + 1));      
   if ( !exportBuffer )
     return nsnull;
   *exportBuffer = '\0';                          

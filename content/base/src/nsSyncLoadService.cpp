@@ -227,13 +227,12 @@ nsSyncLoader::LoadDocument(nsIChannel* aChannel,
     nsCOMPtr<nsPIDOMEventTarget> target = do_QueryInterface(document);
     NS_ENSURE_TRUE(target, NS_ERROR_FAILURE);
 
-    nsWeakPtr requestWeak = do_GetWeakReference(NS_STATIC_CAST(nsIDOMLoadListener*, this));
+    nsWeakPtr requestWeak = do_GetWeakReference(static_cast<nsIDOMLoadListener*>(this));
     nsLoadListenerProxy* proxy = new nsLoadListenerProxy(requestWeak);
     NS_ENSURE_TRUE(proxy, NS_ERROR_OUT_OF_MEMORY);
 
     
-    rv = target->AddEventListenerByIID(NS_STATIC_CAST(nsIDOMEventListener*, 
-                                                      proxy), 
+    rv = target->AddEventListenerByIID(static_cast<nsIDOMEventListener*>(proxy), 
                                        NS_GET_IID(nsIDOMLoadListener));
     NS_ENSURE_SUCCESS(rv, rv);
     
@@ -255,8 +254,7 @@ nsSyncLoader::LoadDocument(nsIChannel* aChannel,
 
     
     
-    target->RemoveEventListenerByIID(NS_STATIC_CAST(nsIDOMEventListener*, 
-                                                    proxy), 
+    target->RemoveEventListenerByIID(static_cast<nsIDOMEventListener*>(proxy), 
                                      NS_GET_IID(nsIDOMLoadListener));
 
     

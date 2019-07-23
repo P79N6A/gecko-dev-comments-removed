@@ -110,7 +110,7 @@ nsControllerCommandTable::FindCommandHandler(const char * aCommandName, nsIContr
   if (!foundCommand) return NS_ERROR_FAILURE;
   
   
-  *outCommand = NS_REINTERPRET_CAST(nsIControllerCommand*, foundCommand);
+  *outCommand = reinterpret_cast<nsIControllerCommand*>(foundCommand);
   return NS_OK;
 }
 

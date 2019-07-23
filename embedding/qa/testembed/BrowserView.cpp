@@ -220,7 +220,7 @@ HRESULT CBrowserView::CreateBrowser()
 	mpBrowserImpl->Init(mpBrowserFrameGlue, mWebBrowser);
 	mpBrowserImpl->AddRef();
 
-    mWebBrowser->SetContainerWindow(NS_STATIC_CAST(nsIWebBrowserChrome*, mpBrowserImpl));
+    mWebBrowser->SetContainerWindow(static_cast<nsIWebBrowserChrome*>(mpBrowserImpl));
 
 	rv = NS_OK;
     nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(mWebBrowser, &rv);

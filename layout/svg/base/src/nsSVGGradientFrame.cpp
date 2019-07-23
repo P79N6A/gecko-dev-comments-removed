@@ -249,10 +249,10 @@ nsSVGGradientFrame::GetGradientTransform(nsSVGGeometryFrame *aSource)
     
     
     if (callerType ==  nsGkAtoms::svgGlyphFrame)
-      mSourceContent = NS_STATIC_CAST(nsSVGElement*,
-                                      aSource->GetContent()->GetParent());
+      mSourceContent = static_cast<nsSVGElement*>
+                                  (aSource->GetContent()->GetParent());
     else
-      mSourceContent = NS_STATIC_CAST(nsSVGElement*, aSource->GetContent());
+      mSourceContent = static_cast<nsSVGElement*>(aSource->GetContent());
     NS_ASSERTION(mSourceContent, "Can't get content for gradient");
   }
   else {
@@ -289,8 +289,8 @@ nsSVGGradientFrame::GetGradientTransform(nsSVGGeometryFrame *aSource)
   if (!gradient)
     gradient = mContent;  
 
-  nsSVGGradientElement *gradElement = NS_STATIC_CAST(nsSVGGradientElement*,
-                                                     gradient);
+  nsSVGGradientElement *gradElement = static_cast<nsSVGGradientElement*>
+                                                 (gradient);
   nsCOMPtr<nsIDOMSVGTransformList> trans;
   gradElement->mGradientTransform->GetAnimVal(getter_AddRefs(trans));
   nsCOMPtr<nsIDOMSVGMatrix> gradientTransform =
@@ -309,8 +309,8 @@ nsSVGGradientFrame::GetSpreadMethod()
   if (!gradient)
     gradient = mContent;  
 
-  nsSVGGradientElement *gradElement = NS_STATIC_CAST(nsSVGGradientElement*,
-                                                     gradient);
+  nsSVGGradientElement *gradElement = static_cast<nsSVGGradientElement*>
+                                                 (gradient);
 
   PRUint16 val;
   gradElement->mSpreadMethod->GetAnimVal(&val);
@@ -416,7 +416,7 @@ nsSVGGradientFrame::GetRefedGradientFromHref()
         frameType != nsGkAtoms::svgRadialGradientFrame)
       return;
 
-    mNextGrad = NS_REINTERPRET_CAST(nsSVGGradientFrame*, nextGrad);
+    mNextGrad = reinterpret_cast<nsSVGGradientFrame*>(nextGrad);
 
     
     if (mNextGrad) {
@@ -531,8 +531,8 @@ nsSVGGradientFrame::GetGradientUnits()
   if (!gradient)
     gradient = mContent;  
 
-  nsSVGGradientElement *gradElement = NS_STATIC_CAST(nsSVGGradientElement*,
-                                                     gradient);
+  nsSVGGradientElement *gradElement = static_cast<nsSVGGradientElement*>
+                                                 (gradient);
 
   PRUint16 units;
   gradElement->mGradientUnits->GetAnimVal(&units);
@@ -579,7 +579,7 @@ nsSVGLinearGradientFrame::GradientLookupAttribute(nsIAtom *aAtomName,
     gradient = mContent;  
 
   nsSVGLinearGradientElement *element =
-    NS_STATIC_CAST(nsSVGLinearGradientElement*, gradient);
+    static_cast<nsSVGLinearGradientElement*>(gradient);
 
   
   
@@ -595,7 +595,7 @@ nsSVGLinearGradientFrame::GradientLookupAttribute(nsIAtom *aAtomName,
                "Unknown gradientUnits type");
 
   return element->mLengthAttributes[aEnumName].
-    GetAnimValue(NS_STATIC_CAST(nsSVGSVGElement*, nsnull));
+    GetAnimValue(static_cast<nsSVGSVGElement*>(nsnull));
 }
 
 already_AddRefed<gfxPattern>
@@ -661,7 +661,7 @@ nsSVGRadialGradientFrame::GradientLookupAttribute(nsIAtom *aAtomName,
   }
 
   nsSVGRadialGradientElement *element =
-    NS_STATIC_CAST(nsSVGRadialGradientElement*, gradient);
+    static_cast<nsSVGRadialGradientElement*>(gradient);
 
   
   
@@ -677,7 +677,7 @@ nsSVGRadialGradientFrame::GradientLookupAttribute(nsIAtom *aAtomName,
                "Unknown gradientUnits type");
 
   return element->mLengthAttributes[aEnumName].
-    GetAnimValue(NS_STATIC_CAST(nsSVGSVGElement*, nsnull));
+    GetAnimValue(static_cast<nsSVGSVGElement*>(nsnull));
 }
 
 already_AddRefed<gfxPattern>

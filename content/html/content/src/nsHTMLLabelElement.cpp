@@ -240,7 +240,7 @@ nsHTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
           
           
           DispatchClickEvent(aVisitor.mPresContext,
-                             NS_STATIC_CAST(nsInputEvent*, aVisitor.mEvent),
+                             static_cast<nsInputEvent*>(aVisitor.mEvent),
                              content, PR_FALSE, &status);
           
         }
@@ -342,7 +342,7 @@ nsHTMLLabelElement::PerformAccesskey(PRBool aKeyCausesActivation,
     nsAutoPopupStatePusher popupStatePusher(aIsTrustedEvent ?
                                             openAllowed : openAbused);
 
-    nsEventDispatcher::Dispatch(NS_STATIC_CAST(nsIContent*, this), presContext,
+    nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this), presContext,
                                 &event);
   }
 }

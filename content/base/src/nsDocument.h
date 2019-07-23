@@ -153,7 +153,7 @@ class nsUint32ToContentHashEntry : public PLDHashEntryHdr
       
       
       
-      NS_CONST_CAST(nsUint32ToContentHashEntry&, toCopy).mValOrHash = nsnull;
+      const_cast<nsUint32ToContentHashEntry&>(toCopy).mValOrHash = nsnull;
       NS_ERROR("Copying not supported. Fasten your seat belt.");
     }
     ~nsUint32ToContentHashEntry() { Destroy(); }

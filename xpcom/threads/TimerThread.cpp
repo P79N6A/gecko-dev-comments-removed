@@ -76,7 +76,7 @@ TimerThread::~TimerThread()
 
   PRInt32 n = mTimers.Count();
   while (--n >= 0) {
-    nsTimerImpl *timer = NS_STATIC_CAST(nsTimerImpl *, mTimers[n]);
+    nsTimerImpl *timer = static_cast<nsTimerImpl *>(mTimers[n]);
     NS_RELEASE(timer);
   }
 }
@@ -169,7 +169,7 @@ nsresult TimerThread::Shutdown()
 
     nsTimerImpl *timer;
     for (PRInt32 i = mTimers.Count() - 1; i >= 0; i--) {
-      timer = NS_STATIC_CAST(nsTimerImpl*, mTimers[i]);
+      timer = static_cast<nsTimerImpl*>(mTimers[i]);
       RemoveTimerInternal(timer);
     }
   }
@@ -250,7 +250,7 @@ NS_IMETHODIMP TimerThread::Run()
       nsTimerImpl *timer = nsnull;
 
       if (mTimers.Count() > 0) {
-        timer = NS_STATIC_CAST(nsTimerImpl*, mTimers[0]);
+        timer = static_cast<nsTimerImpl*>(mTimers[0]);
 
         if (!TIMER_LESS_THAN(now, timer->mTimeout + mTimeoutAdjustment)) {
     next:
@@ -294,7 +294,7 @@ NS_IMETHODIMP TimerThread::Run()
       }
 
       if (mTimers.Count() > 0) {
-        timer = NS_STATIC_CAST(nsTimerImpl *, mTimers[0]);
+        timer = static_cast<nsTimerImpl *>(mTimers[0]);
 
         PRIntervalTime timeout = timer->mTimeout + mTimeoutAdjustment;
 
@@ -388,7 +388,7 @@ PRInt32 TimerThread::AddTimerInternal(nsTimerImpl *aTimer)
   PRInt32 count = mTimers.Count();
   PRInt32 i = 0;
   for (; i < count; i++) {
-    nsTimerImpl *timer = NS_STATIC_CAST(nsTimerImpl *, mTimers[i]);
+    nsTimerImpl *timer = static_cast<nsTimerImpl *>(mTimers[i]);
 
     
     
@@ -433,7 +433,7 @@ void TimerThread::DoAfterSleep()
 {
   mSleeping = PR_TRUE; 
   for (PRInt32 i = 0; i < mTimers.Count(); i ++) {
-    nsTimerImpl *timer = NS_STATIC_CAST(nsTimerImpl*, mTimers[i]);
+    nsTimerImpl *timer = static_cast<nsTimerImpl*>(mTimers[i]);
     
     PRUint32 delay;
     timer->GetDelay(&delay);

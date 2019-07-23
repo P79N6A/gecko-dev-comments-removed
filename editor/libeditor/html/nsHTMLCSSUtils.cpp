@@ -311,7 +311,7 @@ nsresult
 nsHTMLCSSUtils::Init(nsHTMLEditor *aEditor)
 {
   nsresult result = NS_OK;
-  mHTMLEditor = NS_STATIC_CAST(nsHTMLEditor*, aEditor);
+  mHTMLEditor = static_cast<nsHTMLEditor*>(aEditor);
 
   
   nsCOMPtr<nsIPrefBranch> prefBranch =

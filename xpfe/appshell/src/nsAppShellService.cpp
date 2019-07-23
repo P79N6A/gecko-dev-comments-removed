@@ -327,23 +327,23 @@ nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
   else {
     widgetInitData.mBorderStyle = eBorderStyle_none; 
     if (aChromeMask & nsIWebBrowserChrome::CHROME_WINDOW_BORDERS)
-      widgetInitData.mBorderStyle = NS_STATIC_CAST(enum nsBorderStyle, widgetInitData.mBorderStyle | eBorderStyle_border);
+      widgetInitData.mBorderStyle = static_cast<enum nsBorderStyle>(widgetInitData.mBorderStyle | eBorderStyle_border);
     if (aChromeMask & nsIWebBrowserChrome::CHROME_TITLEBAR)
-      widgetInitData.mBorderStyle = NS_STATIC_CAST(enum nsBorderStyle, widgetInitData.mBorderStyle | eBorderStyle_title);
+      widgetInitData.mBorderStyle = static_cast<enum nsBorderStyle>(widgetInitData.mBorderStyle | eBorderStyle_title);
     if (aChromeMask & nsIWebBrowserChrome::CHROME_WINDOW_CLOSE)
-      widgetInitData.mBorderStyle = NS_STATIC_CAST(enum nsBorderStyle, widgetInitData.mBorderStyle | eBorderStyle_close);
+      widgetInitData.mBorderStyle = static_cast<enum nsBorderStyle>(widgetInitData.mBorderStyle | eBorderStyle_close);
     if (aChromeMask & nsIWebBrowserChrome::CHROME_WINDOW_RESIZE) {
-      widgetInitData.mBorderStyle = NS_STATIC_CAST(enum nsBorderStyle, widgetInitData.mBorderStyle | eBorderStyle_resizeh);
+      widgetInitData.mBorderStyle = static_cast<enum nsBorderStyle>(widgetInitData.mBorderStyle | eBorderStyle_resizeh);
       
       if (!(aChromeMask & nsIWebBrowserChrome::CHROME_OPENAS_DIALOG))
-        widgetInitData.mBorderStyle = NS_STATIC_CAST(enum nsBorderStyle, widgetInitData.mBorderStyle | eBorderStyle_maximize);
+        widgetInitData.mBorderStyle = static_cast<enum nsBorderStyle>(widgetInitData.mBorderStyle | eBorderStyle_maximize);
     }
     
     if (!(aChromeMask & nsIWebBrowserChrome::CHROME_OPENAS_DIALOG))
-      widgetInitData.mBorderStyle = NS_STATIC_CAST(enum nsBorderStyle, widgetInitData.mBorderStyle | eBorderStyle_minimize | eBorderStyle_menu);
+      widgetInitData.mBorderStyle = static_cast<enum nsBorderStyle>(widgetInitData.mBorderStyle | eBorderStyle_minimize | eBorderStyle_menu);
     
     if (aChromeMask & nsIWebBrowserChrome::CHROME_WINDOW_MIN) {
-      widgetInitData.mBorderStyle = NS_STATIC_CAST(enum nsBorderStyle, widgetInitData.mBorderStyle | eBorderStyle_minimize );
+      widgetInitData.mBorderStyle = static_cast<enum nsBorderStyle>(widgetInitData.mBorderStyle | eBorderStyle_minimize);
     }  
   }
 

@@ -231,7 +231,7 @@ nsEffectiveTLDService::GetEffectiveTLDLength(const nsACString &aHostname,
   else {
     defaultTLDLength = nameLength - dotLoc - 1;
   }
-  *effTLDLength = NS_STATIC_CAST(PRUint32, defaultTLDLength);
+  *effTLDLength = static_cast<PRUint32>(defaultTLDLength);
 
   
   
@@ -252,14 +252,14 @@ nsEffectiveTLDService::GetEffectiveTLDLength(const nsACString &aHostname,
       break;
     if (child->exception) {
       
-      *effTLDLength = NS_STATIC_CAST(PRUint32, nameLength - dotLoc - 1);
+      *effTLDLength = static_cast<PRUint32>(nameLength - dotLoc - 1);
       node = child;
       break;
     }
     
     
     if (child->stopOK)
-      *effTLDLength = NS_STATIC_CAST(PRUint32, nameLength - nextDotLoc - 1);
+      *effTLDLength = static_cast<PRUint32>(nameLength - nextDotLoc - 1);
     node = child;
     dotLoc = nextDotLoc;
   }

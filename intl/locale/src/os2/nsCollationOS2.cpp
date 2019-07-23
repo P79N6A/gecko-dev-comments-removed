@@ -144,7 +144,7 @@ nsresult nsCollationOS2::AllocateRawSortKey(PRInt32 strength,
     UniCreateLocaleObject(UNI_UCS_STRING_POINTER, (UniChar *)L"C", &locObj);
 
   res = NS_ERROR_FAILURE;               
-  int length = UniStrxfrm(locObj, NULL, NS_REINTERPRET_CAST(const UniChar *,stringNormalized.get()),0);
+  int length = UniStrxfrm(locObj, NULL, reinterpret_cast<const UniChar *>(stringNormalized.get()),0);
   if (length >= 0) {
     length += 5;                        
                                         
@@ -164,7 +164,7 @@ nsresult nsCollationOS2::AllocateRawSortKey(PRInt32 strength,
       pLocalBuffer = (UniChar*) malloc(sizeof(UniChar) * iBufferLength);
     if (pLocalBuffer) {
       
-      int uLen = UniStrxfrm(locObj, pLocalBuffer, NS_REINTERPRET_CAST(const UniChar *,stringNormalized.get()), iBufferLength);
+      int uLen = UniStrxfrm(locObj, pLocalBuffer, reinterpret_cast<const UniChar *>(stringNormalized.get()), iBufferLength);
       
       uLen = UniStrlen(pLocalBuffer);
       

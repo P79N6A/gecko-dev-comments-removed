@@ -232,7 +232,7 @@ nsPrimitiveHelpers :: ConvertPlatformPlainTextToUnicode ( const char* inText, PR
   
   decoder->GetMaxLength(inText, inTextLen, outUnicodeLen);   
   if ( *outUnicodeLen ) {
-    *outUnicode = NS_REINTERPRET_CAST(PRUnichar*, nsMemory::Alloc((*outUnicodeLen + 1) * sizeof(PRUnichar)));
+    *outUnicode = reinterpret_cast<PRUnichar*>(nsMemory::Alloc((*outUnicodeLen + 1) * sizeof(PRUnichar)));
     if ( *outUnicode ) {
       rv = decoder->Convert(inText, &inTextLen, *outUnicode, outUnicodeLen);
       (*outUnicode)[*outUnicodeLen] = '\0';                   
@@ -271,7 +271,7 @@ nsLinebreakHelpers :: ConvertPlatformToDOMLinebreaks ( const char* inFlavor, voi
   nsresult retVal = NS_OK;
   
   if ( strcmp(inFlavor, "text/plain") == 0 ) {
-    char* buffAsChars = NS_REINTERPRET_CAST(char*, *ioData);
+    char* buffAsChars = reinterpret_cast<char*>(*ioData);
     char* oldBuffer = buffAsChars;
     retVal = nsLinebreakConverter::ConvertLineBreaksInSitu ( &buffAsChars, nsLinebreakConverter::eLinebreakAny, 
                                                               nsLinebreakConverter::eLinebreakContent, 
@@ -286,7 +286,7 @@ nsLinebreakHelpers :: ConvertPlatformToDOMLinebreaks ( const char* inFlavor, voi
     
   }
   else {       
-    PRUnichar* buffAsUnichar = NS_REINTERPRET_CAST(PRUnichar*, *ioData);
+    PRUnichar* buffAsUnichar = reinterpret_cast<PRUnichar*>(*ioData);
     PRUnichar* oldBuffer = buffAsUnichar;
     PRInt32 newLengthInChars;
     retVal = nsLinebreakConverter::ConvertUnicharLineBreaksInSitu ( &buffAsUnichar, nsLinebreakConverter::eLinebreakAny, 

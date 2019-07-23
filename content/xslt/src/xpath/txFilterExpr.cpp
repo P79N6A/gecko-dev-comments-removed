@@ -68,7 +68,7 @@ FilterExpr::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
                    NS_ERROR_XSLT_NODESET_EXPECTED);
 
     nsRefPtr<txNodeSet> nodes =
-        NS_STATIC_CAST(txNodeSet*, NS_STATIC_CAST(txAExprResult*, exprRes));
+        static_cast<txNodeSet*>(static_cast<txAExprResult*>(exprRes));
     
     exprRes = nsnull;
 

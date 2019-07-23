@@ -81,11 +81,11 @@ PR_END_MACRO
 
 #define NSCAP_LOG_ASSIGNMENT(_c, _p)                                \
   if (_p)                                                           \
-    NS_LogCOMPtrAddRef((_c),NS_STATIC_CAST(nsISupports*,_p))
+    NS_LogCOMPtrAddRef((_c),static_cast<nsISupports*>(_p))
 
 #define NSCAP_LOG_RELEASE(_c, _p)                                   \
   if (_p)                                                           \
-    NS_LogCOMPtrRelease((_c), NS_STATIC_CAST(nsISupports*,_p))
+    NS_LogCOMPtrRelease((_c), static_cast<nsISupports*>(_p))
 
 #else 
 

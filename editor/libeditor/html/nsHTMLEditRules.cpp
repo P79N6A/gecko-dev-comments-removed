@@ -243,7 +243,7 @@ NS_IMPL_QUERY_INTERFACE3(nsHTMLEditRules, nsIHTMLEditRules, nsIEditRules, nsIEdi
 NS_IMETHODIMP
 nsHTMLEditRules::Init(nsPlaintextEditor *aEditor, PRUint32 aFlags)
 {
-  mHTMLEditor = NS_STATIC_CAST(nsHTMLEditor*, aEditor);
+  mHTMLEditor = static_cast<nsHTMLEditor*>(aEditor);
   nsresult res;
   
   
@@ -584,7 +584,7 @@ nsHTMLEditRules::WillDoAction(nsISelection *aSelection,
   *aHandled = PR_FALSE;
     
   
-  nsTextRulesInfo *info = NS_STATIC_CAST(nsTextRulesInfo*, aInfo);
+  nsTextRulesInfo *info = static_cast<nsTextRulesInfo*>(aInfo);
 
   
   
@@ -681,7 +681,7 @@ NS_IMETHODIMP
 nsHTMLEditRules::DidDoAction(nsISelection *aSelection,
                              nsRulesInfo *aInfo, nsresult aResult)
 {
-  nsTextRulesInfo *info = NS_STATIC_CAST(nsTextRulesInfo*, aInfo);
+  nsTextRulesInfo *info = static_cast<nsTextRulesInfo*>(aInfo);
   switch (info->action)
   {
     case kInsertBreak:

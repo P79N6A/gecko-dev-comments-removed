@@ -81,13 +81,13 @@ static void* ProcessURLArg(char* str)
           nsCAutoString fileurl;
           rv = NS_GetURLSpecFromFile(file, fileurl);
           if (NS_SUCCEEDED(rv))
-            return NS_REINTERPRET_CAST(void*, ToNewCString(fileurl));
+            return reinterpret_cast<void*>(ToNewCString(fileurl));
         }
       }
     }
   }
 
-  return NS_REINTERPRET_CAST(void*, nsCRT::strdup(str));
+  return reinterpret_cast<void*>(nsCRT::strdup(str));
 }
 
 NS_IMETHODIMP
@@ -112,8 +112,8 @@ nsCmdLineService::Initialize(int aArgc, char ** aArgv)
   
   if (aArgc > 0 && aArgv[0])
   {
-    mArgList.AppendElement(NS_REINTERPRET_CAST(void*, nsCRT::strdup("-progname")));
-    mArgValueList.AppendElement(NS_REINTERPRET_CAST(void*, nsCRT::strdup(aArgv[0])));
+    mArgList.AppendElement(reinterpret_cast<void*>(nsCRT::strdup("-progname")));
+    mArgValueList.AppendElement(reinterpret_cast<void*>(nsCRT::strdup(aArgv[0])));
     mArgCount++;
     i++;
   }
@@ -128,7 +128,7 @@ nsCmdLineService::Initialize(int aArgc, char ** aArgv)
        
 
 
-	   mArgList.AppendElement(NS_REINTERPRET_CAST(void*, nsCRT::strdup(aArgv[i])));
+	   mArgList.AppendElement(reinterpret_cast<void*>(nsCRT::strdup(aArgv[i])));
 	   
        i++;
 
@@ -139,7 +139,7 @@ nsCmdLineService::Initialize(int aArgc, char ** aArgv)
 	     
 
 
-	     mArgValueList.AppendElement(NS_REINTERPRET_CAST(void*, nsCRT::strdup("1")));
+	     mArgValueList.AppendElement(reinterpret_cast<void*>(nsCRT::strdup("1")));
 	     mArgCount++;
 	     break;
 	   }
@@ -153,7 +153,7 @@ nsCmdLineService::Initialize(int aArgc, char ** aArgv)
 
 
 
-        mArgValueList.AppendElement(NS_REINTERPRET_CAST(void*, nsCRT::strdup("1")));
+        mArgValueList.AppendElement(reinterpret_cast<void*>(nsCRT::strdup("1")));
    	    mArgCount++;
         i--;
         continue;
@@ -179,7 +179,7 @@ nsCmdLineService::Initialize(int aArgc, char ** aArgv)
 	         
 
 
-             mArgValueList.AppendElement(NS_REINTERPRET_CAST(void*, nsCRT::strdup(aArgv[i])));
+             mArgValueList.AppendElement(reinterpret_cast<void*>(nsCRT::strdup(aArgv[i])));
 	         mArgCount++;
 	      }
 	   }
@@ -189,7 +189,7 @@ nsCmdLineService::Initialize(int aArgc, char ** aArgv)
 	      
 
 
-           mArgList.AppendElement(NS_REINTERPRET_CAST(void*, nsCRT::strdup("-url")));
+           mArgList.AppendElement(reinterpret_cast<void*>(nsCRT::strdup("-url")));
 	         mArgValueList.AppendElement(ProcessURLArg(aArgv[i]));
 	         mArgCount++;
 	     }
@@ -308,7 +308,7 @@ nsCmdLineService::~nsCmdLineService()
 {
   PRInt32 curr = mArgList.Count();
   while ( curr ) {
-    char* str = NS_REINTERPRET_CAST(char*, mArgList[curr-1]);
+    char* str = reinterpret_cast<char*>(mArgList[curr-1]);
     if ( str )
       nsMemory::Free(str);
     --curr;
@@ -316,7 +316,7 @@ nsCmdLineService::~nsCmdLineService()
   
   curr = mArgValueList.Count();
   while ( curr ) {
-    char* str = NS_REINTERPRET_CAST(char*, mArgValueList[curr-1]);
+    char* str = reinterpret_cast<char*>(mArgValueList[curr-1]);
     if ( str )
       nsMemory::Free(str);
     --curr;

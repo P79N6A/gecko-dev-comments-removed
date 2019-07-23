@@ -309,7 +309,7 @@ public:
 
   PRBool Mutated(PRUint8 aIgnoreCount)
   {
-    return sMutationCount < NS_STATIC_CAST(PRUint32, eMaxMutations - aIgnoreCount);
+    return sMutationCount < static_cast<PRUint32>(eMaxMutations - aIgnoreCount);
   }
 
   
@@ -960,12 +960,12 @@ protected:
 
   nsDOMSlots *GetDOMSlots()
   {
-    return NS_STATIC_CAST(nsDOMSlots*, GetSlots());
+    return static_cast<nsDOMSlots*>(GetSlots());
   }
 
   nsDOMSlots *GetExistingDOMSlots() const
   {
-    return NS_STATIC_CAST(nsDOMSlots*, GetExistingSlots());
+    return static_cast<nsDOMSlots*>(GetExistingSlots());
   }
 
   

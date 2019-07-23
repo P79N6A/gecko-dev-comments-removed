@@ -97,7 +97,7 @@ void nsChildWindow::CalcWindowRegions()
   
   if (mClipSiblings && mParent && !mIsTopWidgetWindow) {
     
-    nsWindow* sibling = NS_STATIC_CAST(nsWindow*, mParent->GetLastChild());
+    nsWindow* sibling = static_cast<nsWindow*>(mParent->GetLastChild());
     if (!sibling)
       return;
 
@@ -106,7 +106,7 @@ void nsChildWindow::CalcWindowRegions()
       return;
 
     do {
-      if (sibling == NS_STATIC_CAST(nsWindow*, this))
+      if (sibling == static_cast<nsWindow*>(this))
         break;
 
       PRBool visible;
@@ -127,7 +127,7 @@ void nsChildWindow::CalcWindowRegions()
         ::DiffRgn(mWindowRegion, siblingRgn, mWindowRegion);
         ::DiffRgn(mVisRegion, siblingRgn, mVisRegion);
       }
-      sibling = NS_STATIC_CAST(nsWindow*, sibling->GetPrevSibling());
+      sibling = static_cast<nsWindow*>(sibling->GetPrevSibling());
     } while (sibling);
   }
 }

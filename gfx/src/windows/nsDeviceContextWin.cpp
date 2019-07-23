@@ -228,7 +228,7 @@ nsDeviceContextWin :: FindScreen ( nsIScreen** outScreen )
 {
   
   
-  HWND window = NS_REINTERPRET_CAST(HWND, mWidget);
+  HWND window = reinterpret_cast<HWND>(mWidget);
   if ( window ) {
     RECT globalPosition;
     ::GetWindowRect ( window, &globalPosition ); 

@@ -389,7 +389,7 @@ nsJAR::GetCertificatePrincipal(const char* aFilename, nsIPrincipal** aPrincipal)
   {
     
     nsCStringKey key(aFilename);
-    nsJARManifestItem* manItem = NS_STATIC_CAST(nsJARManifestItem*, mManifestData.Get(&key));
+    nsJARManifestItem* manItem = static_cast<nsJARManifestItem*>(mManifestData.Get(&key));
     if (!manItem)
       return NS_OK;
     
@@ -1127,7 +1127,7 @@ nsZipReaderCache::GetZip(nsIFile* zipFile, nsIZipReader* *result)
   if (NS_FAILED(rv)) return rv;
 
   nsCStringKey key(path);
-  nsJAR* zip = NS_STATIC_CAST(nsJAR*, NS_STATIC_CAST(nsIZipReader*,mZips.Get(&key))); 
+  nsJAR* zip = static_cast<nsJAR*>(static_cast<nsIZipReader*>(mZips.Get(&key))); 
   if (zip) {
 #ifdef ZIP_CACHE_HIT_RATE
     mZipCacheHits++;
@@ -1147,7 +1147,7 @@ nsZipReaderCache::GetZip(nsIFile* zipFile, nsIZipReader* *result)
       return rv;
     }
 
-    PRBool collision = mZips.Put(&key, NS_STATIC_CAST(nsIZipReader*, zip)); 
+    PRBool collision = mZips.Put(&key, static_cast<nsIZipReader*>(zip)); 
     NS_ASSERTION(!collision, "horked");
   }
   *result = zip;

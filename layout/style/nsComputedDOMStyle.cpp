@@ -133,7 +133,7 @@ nsComputedDOMStyle::Shutdown()
   
   
   
-  delete NS_REINTERPRET_CAST(char*, sCachedComputedDOMStyle);
+  delete reinterpret_cast<char*>(sCachedComputedDOMStyle);
   sCachedComputedDOMStyle = nsnull;
 }
 

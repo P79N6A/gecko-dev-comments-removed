@@ -191,8 +191,8 @@ EmbedCommon::GetAnyLiveWidget()
   
   GtkMozEmbed *ret = nsnull;
   for (int i = 0; i < count; i++) {
-    EmbedPrivate *tmpPrivate = NS_STATIC_CAST(EmbedPrivate *,
-                                              EmbedPrivate::sWindowList->ElementAt(i));
+    EmbedPrivate *tmpPrivate = static_cast<EmbedPrivate *>
+                                          (EmbedPrivate::sWindowList->ElementAt(i));
     ret = tmpPrivate->mOwningWidget;
   }
   return ret;
@@ -432,15 +432,15 @@ EmbedPrivate::Init(GtkMozEmbed *aOwningWidget)
   
   
   mWindow = new EmbedWindow();
-  mWindowGuard = NS_STATIC_CAST(nsIWebBrowserChrome *, mWindow);
+  mWindowGuard = static_cast<nsIWebBrowserChrome *>(mWindow);
   mWindow->Init(this);
 
   
   
   
   mProgress = new EmbedProgress();
-  mProgressGuard = NS_STATIC_CAST(nsIWebProgressListener *,
-               mProgress);
+  mProgressGuard = static_cast<nsIWebProgressListener *>
+                              (mProgress);
   mProgress->Init(this);
 
   
@@ -468,7 +468,7 @@ EmbedPrivate::Init(GtkMozEmbed *aOwningWidget)
     
     EmbedWindowCreator *creator = new EmbedWindowCreator(&mOpenBlock);
     nsCOMPtr<nsIWindowCreator> windowCreator;
-    windowCreator = NS_STATIC_CAST(nsIWindowCreator *, creator);
+    windowCreator = static_cast<nsIWindowCreator *>(creator);
 
     
     nsCOMPtr<nsIWindowWatcher> watcher = do_GetService(NS_WINDOWWATCHER_CONTRACTID);
@@ -531,14 +531,14 @@ EmbedPrivate::Realize(PRBool *aAlreadyRealized)
   mWindow->mBaseWindow->GetMainWidget(getter_AddRefs(mozWidget));
   
   GdkWindow *tmp_window =
-    NS_STATIC_CAST(GdkWindow *,
-      mozWidget->GetNativeData(NS_NATIVE_WINDOW));
+    static_cast<GdkWindow *>
+               (mozWidget->GetNativeData(NS_NATIVE_WINDOW));
   
   tmp_window = gdk_window_get_parent(tmp_window);
   
   gpointer data = nsnull;
   gdk_window_get_user_data(tmp_window, &data);
-  mMozWindowWidget = NS_STATIC_CAST(GtkWidget *, data);
+  mMozWindowWidget = static_cast<GtkWidget *>(data);
 
   
   ApplyChromeMask();
@@ -789,8 +789,8 @@ EmbedPrivate::PushStartup(void)
       return;
 
     rv = XRE_InitEmbedding(greDir, binDir,
-                           NS_CONST_CAST(GTKEmbedDirectoryProvider*,
-                                         &kDirectoryProvider),
+                           const_cast<GTKEmbedDirectoryProvider*>
+                                     (&kDirectoryProvider),
                            nsnull, nsnull);
     if (NS_FAILED(rv))
       return;
@@ -972,10 +972,10 @@ EmbedPrivate::FindPrivateForBrowser(nsIWebBrowserChrome *aBrowser)
   
   
   for (int i = 0; i < count; i++) {
-    EmbedPrivate *tmpPrivate = NS_STATIC_CAST(EmbedPrivate *, sWindowList->ElementAt(i));
+    EmbedPrivate *tmpPrivate = static_cast<EmbedPrivate *>(sWindowList->ElementAt(i));
     
     nsIWebBrowserChrome *chrome =
-      NS_STATIC_CAST(nsIWebBrowserChrome *, tmpPrivate->mWindow);
+      static_cast<nsIWebBrowserChrome *>(tmpPrivate->mWindow);
     if (chrome == aBrowser)
       return tmpPrivate;
   }
@@ -1046,7 +1046,7 @@ EmbedPrivate::ContentFinishedLoading(void)
 
       GList *ptr = list_full;
       while(ptr) {
-        GtkMozLogin * login = NS_STATIC_CAST(GtkMozLogin*, ptr->data);
+        GtkMozLogin * login = static_cast<GtkMozLogin*>(ptr->data);
         if (login && login->user) {
           users_list = g_list_append(users_list, NS_strdup(login->user));
           NS_Free((void*)login->user);
@@ -1139,8 +1139,8 @@ EmbedPrivate::AttachListeners(void)
     return;
 
   nsIDOMEventListener *eventListener =
-    NS_STATIC_CAST(nsIDOMEventListener *,
-       NS_STATIC_CAST(nsIDOMKeyListener *, mEventListener));
+    static_cast<nsIDOMEventListener *>
+               (static_cast<nsIDOMKeyListener *>(mEventListener));
 
   
   nsresult rv;
@@ -1200,8 +1200,8 @@ EmbedPrivate::DetachListeners(void)
     return;
 
   nsIDOMEventListener *eventListener =
-    NS_STATIC_CAST(nsIDOMEventListener *,
-       NS_STATIC_CAST(nsIDOMKeyListener *, mEventListener));
+    static_cast<nsIDOMEventListener *>
+               (static_cast<nsIDOMKeyListener *>(mEventListener));
 
   nsresult rv;
   rv = mEventTarget->RemoveEventListenerByIID(

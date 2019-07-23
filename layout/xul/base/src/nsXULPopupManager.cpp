@@ -198,15 +198,15 @@ nsXULPopupManager::GetFrameOfTypeForContent(nsIContent* aContent,
 nsMenuFrame*
 nsXULPopupManager::GetMenuFrameForContent(nsIContent* aContent)
 {
-  return NS_STATIC_CAST(nsMenuFrame *,
-                        GetFrameOfTypeForContent(aContent, nsGkAtoms::menuFrame));
+  return static_cast<nsMenuFrame *>
+                    (GetFrameOfTypeForContent(aContent, nsGkAtoms::menuFrame));
 }
 
 nsMenuPopupFrame*
 nsXULPopupManager::GetPopupFrameForContent(nsIContent* aContent)
 {
-  return NS_STATIC_CAST(nsMenuPopupFrame *,
-                        GetFrameOfTypeForContent(aContent, nsGkAtoms::menuPopupFrame));
+  return static_cast<nsMenuPopupFrame *>
+                    (GetFrameOfTypeForContent(aContent, nsGkAtoms::menuPopupFrame));
 }
 
 void
@@ -371,7 +371,7 @@ nsXULPopupManager::ShowPopupCallback(nsIContent* aPopup,
     
     nsIFrame* parent = aPopupFrame->GetParent();
     if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
-      nsMenuFrame* menuFrame = NS_STATIC_CAST(nsMenuFrame *, parent);
+      nsMenuFrame* menuFrame = static_cast<nsMenuFrame *>(parent);
       item->SetOnMenuBar(menuFrame->IsOnMenuBar());
     }
   }
@@ -627,10 +627,10 @@ nsXULPopupManager::ExecuteMenu(nsIContent* aMenu, nsEvent* aEvent)
   if (aEvent && (aEvent->eventStructType == NS_MOUSE_EVENT ||
                  aEvent->eventStructType == NS_KEY_EVENT ||
                  aEvent->eventStructType == NS_ACCESSIBLE_EVENT)) {
-    shift = NS_STATIC_CAST(nsInputEvent *, aEvent)->isShift;
-    control = NS_STATIC_CAST(nsInputEvent *, aEvent)->isControl;
-    alt = NS_STATIC_CAST(nsInputEvent *, aEvent)->isAlt;
-    meta = NS_STATIC_CAST(nsInputEvent *, aEvent)->isMeta;
+    shift = static_cast<nsInputEvent *>(aEvent)->isShift;
+    control = static_cast<nsInputEvent *>(aEvent)->isControl;
+    alt = static_cast<nsInputEvent *>(aEvent)->isAlt;
+    meta = static_cast<nsInputEvent *>(aEvent)->isMeta;
   }
 
   nsCOMPtr<nsIRunnable> event =
@@ -674,7 +674,7 @@ nsXULPopupManager::FirePopupShowingEvent(nsIContent* aPopup,
   
   nsIFrame* frame = presShell->GetPrimaryFrameFor(aPopup);
   if (frame && frame->GetType() == nsGkAtoms::menuPopupFrame) {
-    nsMenuPopupFrame* popupFrame = NS_STATIC_CAST(nsMenuPopupFrame *, frame);
+    nsMenuPopupFrame* popupFrame = static_cast<nsMenuPopupFrame *>(frame);
     popupFrame->ClearOpenPending();
 
     if (status != nsEventStatus_eConsumeNoDefault)
@@ -699,7 +699,7 @@ nsXULPopupManager::FirePopupHidingEvent(nsIContent* aPopup,
   
   nsIFrame* frame = presShell->GetPrimaryFrameFor(aPopup);
   if (frame && frame->GetType() == nsGkAtoms::menuPopupFrame) {
-    nsMenuPopupFrame* popupFrame = NS_STATIC_CAST(nsMenuPopupFrame *, frame);
+    nsMenuPopupFrame* popupFrame = static_cast<nsMenuPopupFrame *>(frame);
     popupFrame->ClearOpenPending();
 
     if (status != nsEventStatus_eConsumeNoDefault) {
@@ -716,7 +716,7 @@ nsXULPopupManager::IsPopupOpenForMenuParent(nsIMenuParent* aMenuParent)
   while (item) {
     nsIFrame* parent = item->Frame()->GetParent();
     if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
-      nsMenuFrame* menuFrame = NS_STATIC_CAST(nsMenuFrame *, parent);
+      nsMenuFrame* menuFrame = static_cast<nsMenuFrame *>(parent);
       if (menuFrame->GetMenuParent() == aMenuParent)
         return PR_TRUE;
     }
@@ -785,7 +785,7 @@ nsXULPopupManager::MayShowPopup(nsMenuPopupFrame* aPopup)
   
   nsIFrame* parent = aPopup->GetParent();
   if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
-    nsMenuFrame* menuFrame = NS_STATIC_CAST(nsMenuFrame *, parent);
+    nsMenuFrame* menuFrame = static_cast<nsMenuFrame *>(parent);
     nsIMenuParent* parentPopup = menuFrame->GetMenuParent();
     if (parentPopup && !parentPopup->IsOpen())
       return PR_FALSE;
@@ -1098,10 +1098,10 @@ nsXULPopupManager::HandleKeyboardNavigation(PRUint32 aKeyCode)
       
       
       
-      nsIMenuParent* expectedParent = NS_STATIC_CAST(nsIMenuParent *, nextitem->Frame());
+      nsIMenuParent* expectedParent = static_cast<nsIMenuParent *>(nextitem->Frame());
       nsIFrame* parent = item->Frame()->GetParent();
       if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
-        nsMenuFrame* menuFrame = NS_STATIC_CAST(nsMenuFrame *, parent);
+        nsMenuFrame* menuFrame = static_cast<nsMenuFrame *>(parent);
         if (menuFrame->GetMenuParent() != expectedParent)
           break;
       }
@@ -1245,7 +1245,7 @@ nsXULPopupManager::GetNextMenuItem(nsIFrame* aParent,
     
     if (IsValidMenuItem(presContext, currFrame->GetContent(), aIsPopup)) {
       return (currFrame->GetType() == nsGkAtoms::menuFrame) ?
-             NS_STATIC_CAST(nsMenuFrame *, currFrame) : nsnull;
+             static_cast<nsMenuFrame *>(currFrame) : nsnull;
     }
     currFrame = currFrame->GetNextSibling();
   }
@@ -1257,7 +1257,7 @@ nsXULPopupManager::GetNextMenuItem(nsIFrame* aParent,
     
     if (IsValidMenuItem(presContext, currFrame->GetContent(), aIsPopup)) {
       return (currFrame->GetType() == nsGkAtoms::menuFrame) ?
-             NS_STATIC_CAST(nsMenuFrame *, currFrame) : nsnull;
+             static_cast<nsMenuFrame *>(currFrame) : nsnull;
     }
 
     currFrame = currFrame->GetNextSibling();
@@ -1291,7 +1291,7 @@ nsXULPopupManager::GetPreviousMenuItem(nsIFrame* aParent,
     
     if (IsValidMenuItem(presContext, currFrame->GetContent(), aIsPopup)) {
       return (currFrame->GetType() == nsGkAtoms::menuFrame) ?
-             NS_STATIC_CAST(nsMenuFrame *, currFrame) : nsnull;
+             static_cast<nsMenuFrame *>(currFrame) : nsnull;
     }
     currFrame = frames.GetPrevSiblingFor(currFrame);
   }
@@ -1303,7 +1303,7 @@ nsXULPopupManager::GetPreviousMenuItem(nsIFrame* aParent,
     
     if (IsValidMenuItem(presContext, currFrame->GetContent(), aIsPopup)) {
       return (currFrame->GetType() == nsGkAtoms::menuFrame) ?
-             NS_STATIC_CAST(nsMenuFrame *, currFrame) : nsnull;
+             static_cast<nsMenuFrame *>(currFrame) : nsnull;
     }
 
     currFrame = frames.GetPrevSiblingFor(currFrame);

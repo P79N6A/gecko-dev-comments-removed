@@ -268,14 +268,14 @@ nsSVGTextFrame::GetCanvasTM()
   if (!mCanvasTM) {
     
     NS_ASSERTION(mParent, "null parent");
-    nsSVGContainerFrame *containerFrame = NS_STATIC_CAST(nsSVGContainerFrame*,
-                                                         mParent);
+    nsSVGContainerFrame *containerFrame = static_cast<nsSVGContainerFrame*>
+                                                     (mParent);
     nsCOMPtr<nsIDOMSVGMatrix> parentTM = containerFrame->GetCanvasTM();
     NS_ASSERTION(parentTM, "null TM");
 
     
     nsSVGGraphicElement *element =
-      NS_STATIC_CAST(nsSVGGraphicElement*, mContent);
+      static_cast<nsSVGGraphicElement*>(mContent);
     nsCOMPtr<nsIDOMSVGMatrix> localTM = element->GetLocalTransformMatrix();
     
     if (localTM)

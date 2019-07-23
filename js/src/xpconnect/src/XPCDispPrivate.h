@@ -91,7 +91,7 @@ STDMETHODIMP _class::QueryInterface(REFIID aIID, void** aInstancePtr)         \
 
 #define NS_IMPL_COM_QUERY_BODY(_interface)                                    \
   if(IsEqualIID(aIID, __uuidof(_interface)) )                                 \
-    foundInterface = NS_STATIC_CAST(_interface*, this);                       \
+    foundInterface = static_cast<_interface*>(this);                       \
   else
 
 #define NS_IMPL_COM_QUERY_TAIL_GUTS                                           \
@@ -1228,7 +1228,7 @@ public:
 
 
 
-    DISPPARAMS* GetDispParams() const { return &NS_CONST_CAST(XPCDispParams*,this)->mDispParams; }
+    DISPPARAMS* GetDispParams() const { return &const_cast<XPCDispParams*>(this)->mDispParams; }
     
 
 

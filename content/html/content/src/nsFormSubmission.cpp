@@ -1203,7 +1203,7 @@ GetSubmissionFromForm(nsGenericHTMLElement* aForm,
 
   
   
-  NS_STATIC_CAST(nsFormSubmission*, *aFormSubmission)->Init();
+  static_cast<nsFormSubmission*>(*aFormSubmission)->Init();
 
   return NS_OK;
 }

@@ -222,7 +222,7 @@ NS_IMETHODIMP nsSVGNumberList::Initialize(nsIDOMSVGNumber *newItem,
 
 NS_IMETHODIMP nsSVGNumberList::GetItem(PRUint32 index, nsIDOMSVGNumber **_retval)
 {
-  if (index >= NS_STATIC_CAST(PRUint32, mNumbers.Count())) {
+  if (index >= static_cast<PRUint32>(mNumbers.Count())) {
     *_retval = nsnull;
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
   }
@@ -277,7 +277,7 @@ nsSVGNumberList::ReplaceItem(nsIDOMSVGNumber *newItem,
 
 NS_IMETHODIMP nsSVGNumberList::RemoveItem(PRUint32 index, nsIDOMSVGNumber **_retval)
 {
-  if (index >= NS_STATIC_CAST(PRUint32, mNumbers.Count())) {
+  if (index >= static_cast<PRUint32>(mNumbers.Count())) {
     *_retval = nsnull;
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
   }

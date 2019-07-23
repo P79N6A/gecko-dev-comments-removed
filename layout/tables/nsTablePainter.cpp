@@ -378,8 +378,8 @@ TableBackgroundPainter::PaintTable(nsTableFrame* aTableFrame,
 
     
     nscoord lastLeftBorder = aTableFrame->GetContinuousLeftBCBorderWidth();
-    for (nsTableColGroupFrame* cgFrame = NS_STATIC_CAST(nsTableColGroupFrame*, colGroupList.FirstChild());
-         cgFrame; cgFrame = NS_STATIC_CAST(nsTableColGroupFrame*, cgFrame->GetNextSibling())) {
+    for (nsTableColGroupFrame* cgFrame = static_cast<nsTableColGroupFrame*>(colGroupList.FirstChild());
+         cgFrame; cgFrame = static_cast<nsTableColGroupFrame*>(cgFrame->GetNextSibling())) {
 
       if (cgFrame->GetColCount() < 1) {
         
@@ -406,7 +406,7 @@ TableBackgroundPainter::PaintTable(nsTableFrame* aTableFrame,
       
       
       for (nsTableColFrame* col = cgFrame->GetFirstColumn(); col;
-           col = NS_STATIC_CAST(nsTableColFrame*, col->GetNextSibling())) {
+           col = static_cast<nsTableColFrame*>(col->GetNextSibling())) {
         
         PRUint32 colIndex = col->GetColIndex();
         NS_ASSERTION(colIndex < mNumCols, "prevent array boundary violation");
@@ -506,7 +506,7 @@ TableBackgroundPainter::PaintRowGroup(nsTableRowGroupFrame* aFrame,
   }
 
   
-  nsTableRowFrame* row = NS_STATIC_CAST(nsTableRowFrame*, cursor);  
+  nsTableRowFrame* row = static_cast<nsTableRowFrame*>(cursor);  
   if (!row) {
     
     
@@ -560,7 +560,7 @@ TableBackgroundPainter::PaintRow(nsTableRowFrame* aFrame,
         border.bottom = nextRow->GetOuterTopContBCBorderWidth();
       }
       else { 
-        nsTableRowGroupFrame* rowGroup = NS_STATIC_CAST(nsTableRowGroupFrame*, aFrame->GetParent());
+        nsTableRowGroupFrame* rowGroup = static_cast<nsTableRowGroupFrame*>(aFrame->GetParent());
         rowGroup->GetContinuousBCBorderWidth(border);
       }
       

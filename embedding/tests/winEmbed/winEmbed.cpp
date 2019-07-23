@@ -1099,7 +1099,7 @@ nsresult AppCallbacks::CreateBrowserWindow(PRUint32 aChromeFlags,
 
   
   
-  CallQueryInterface(NS_STATIC_CAST(nsIWebBrowserChrome*, chrome), aNewWindow);
+  CallQueryInterface(static_cast<nsIWebBrowserChrome*>(chrome), aNewWindow);
   
   
   NS_ADDREF(*aNewWindow);
@@ -1114,7 +1114,7 @@ nsresult AppCallbacks::CreateBrowserWindow(PRUint32 aChromeFlags,
     return NS_ERROR_FAILURE;
 
   
-  ResizeEmbedding(NS_STATIC_CAST(nsIWebBrowserChrome*, chrome));
+  ResizeEmbedding(static_cast<nsIWebBrowserChrome*>(chrome));
 
   
   

@@ -408,7 +408,7 @@ nsLineLayout::NewPerSpanData(PerSpanData** aResult)
     if (nsnull == mem) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    psd = NS_REINTERPRET_CAST(PerSpanData*, mem);
+    psd = reinterpret_cast<PerSpanData*>(mem);
   }
   else {
     mSpanFreeList = psd->mNextFreeSpan;
@@ -656,7 +656,7 @@ nsLineLayout::NewPerFrameData(PerFrameData** aResult)
     if (nsnull == mem) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    pfd = NS_REINTERPRET_CAST(PerFrameData*, mem);
+    pfd = reinterpret_cast<PerFrameData*>(mem);
   }
   else {
     mFrameFreeList = pfd->mNext;
@@ -915,7 +915,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
       pfd->SetFlag(PFD_SKIPWHENTRIMMINGWHITESPACE, PR_TRUE);
       nsIFrame* outOfFlowFrame = nsLayoutUtils::GetFloatFromPlaceholder(aFrame);
       if (outOfFlowFrame) {
-        nsPlaceholderFrame* placeholder = NS_STATIC_CAST(nsPlaceholderFrame*, aFrame);
+        nsPlaceholderFrame* placeholder = static_cast<nsPlaceholderFrame*>(aFrame);
         
         if (!NS_SUBTREE_DIRTY(aFrame)) {
           
@@ -1025,8 +1025,8 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
         
         
         
-        nsHTMLContainerFrame* parent = NS_STATIC_CAST(nsHTMLContainerFrame*,
-                                                      kidNextInFlow->GetParent());
+        nsHTMLContainerFrame* parent = static_cast<nsHTMLContainerFrame*>
+                                                  (kidNextInFlow->GetParent());
         parent->DeleteNextInFlowChild(mPresContext, kidNextInFlow);
       }
     }
@@ -1401,7 +1401,7 @@ void
 nsLineLayout::DumpPerSpanData(PerSpanData* psd, PRInt32 aIndent)
 {
   nsFrame::IndentBy(stdout, aIndent);
-  printf("%p: left=%d x=%d right=%d\n", NS_STATIC_CAST(void*, psd),
+  printf("%p: left=%d x=%d right=%d\n", static_cast<void*>(psd),
          psd->mLeftEdge, psd->mX, psd->mRightEdge);
   PerFrameData* pfd = psd->mFirstFrame;
   while (nsnull != pfd) {

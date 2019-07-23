@@ -194,7 +194,7 @@ int CPrintProgressDialog::DoModal( )
     m_PrintListener = new CDlgPrintListener(this); 
     if (m_PrintListener) {
       
-      nsIWebProgressListener * wpl = NS_STATIC_CAST(nsIWebProgressListener*, m_PrintListener);
+      nsIWebProgressListener * wpl = static_cast<nsIWebProgressListener*>(m_PrintListener);
       doModal = NS_SUCCEEDED(print->Print(m_PrintSettings, wpl)) == PR_TRUE;
     }
   }

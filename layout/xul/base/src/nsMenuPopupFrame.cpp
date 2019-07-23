@@ -470,7 +470,7 @@ LazyGeneratePopupDone(nsIContent* aPopup, nsIFrame* aFrame, void* aArg)
   
   if (aFrame->GetType() == nsGkAtoms::menuPopupFrame) {
     nsWeakFrame weakFrame(aFrame);
-    nsMenuPopupFrame* popupFrame = NS_STATIC_CAST(nsMenuPopupFrame*, aFrame);
+    nsMenuPopupFrame* popupFrame = static_cast<nsMenuPopupFrame*>(aFrame);
 
     popupFrame->SetGeneratedChildren();
 
@@ -509,7 +509,7 @@ nsMenuPopupFrame::ShowPopup(PRBool aIsContextMenu, PRBool aSelectFirstItem)
     nsIFrame* parent = GetParent();
     if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
       nsWeakFrame weakFrame(this);
-      (NS_STATIC_CAST(nsMenuFrame*, parent))->PopupOpened();
+      (static_cast<nsMenuFrame*>(parent))->PopupOpened();
       if (!weakFrame.IsAlive())
         return PR_FALSE;
       PresContext()->RootPresContext()->NotifyAddedActivePopupToTop(this);
@@ -567,7 +567,7 @@ nsMenuPopupFrame::HidePopup(PRBool aDeselectMenu)
 
   nsIFrame* parent = GetParent();
   if (parent && parent->GetType() == nsGkAtoms::menuFrame) {
-    (NS_STATIC_CAST(nsMenuFrame*, parent))->PopupClosed(aDeselectMenu);
+    (static_cast<nsMenuFrame*>(parent))->PopupClosed(aDeselectMenu);
     PresContext()->RootPresContext()->NotifyRemovedActivePopup(this);
   }
 }
@@ -1439,7 +1439,7 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, PRBool& doActi
     return nsnull;
   }
   else {
-    PRUnichar uniChar = ToLowerCase(NS_STATIC_CAST(PRUnichar, charCode));
+    PRUnichar uniChar = ToLowerCase(static_cast<PRUnichar>(charCode));
     if (isMenu || 
         keyTime - lastKeyTime > INC_TYP_INTERVAL) 
       mIncrementalString = uniChar;
@@ -1503,17 +1503,17 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, PRBool& doActi
             
             matchShortcutCount++;
             
-            frameShortcut = NS_STATIC_CAST(nsMenuFrame *, currFrame);
+            frameShortcut = static_cast<nsMenuFrame *>(currFrame);
           }
           if (!foundActive) {
             
             if (!frameBefore)
-              frameBefore = NS_STATIC_CAST(nsMenuFrame *, currFrame);
+              frameBefore = static_cast<nsMenuFrame *>(currFrame);
           }
           else {
             
             if (!frameAfter)
-              frameAfter = NS_STATIC_CAST(nsMenuFrame *, currFrame);
+              frameAfter = static_cast<nsMenuFrame *>(currFrame);
           }
         }
         else

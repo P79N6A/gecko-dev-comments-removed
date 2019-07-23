@@ -580,7 +580,7 @@ public:
 
 
   nsDisplayItem* GetTop() const {
-    return mTop != &mSentinel ? NS_STATIC_CAST(nsDisplayItem*, mTop) : nsnull;
+    return mTop != &mSentinel ? static_cast<nsDisplayItem*>(mTop) : nsnull;
   }
   
 

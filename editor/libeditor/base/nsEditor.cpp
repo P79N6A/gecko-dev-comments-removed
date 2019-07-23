@@ -2671,7 +2671,7 @@ NS_IMETHODIMP nsEditor::InsertTextIntoTextNodeImpl(const nsAString& aStringToIns
     {
       DeleteNode(mIMETextNode);
       mIMETextNode = nsnull;
-      NS_STATIC_CAST(IMETextTxn*, txn.get())->MarkFixed();  
+      static_cast<IMETextTxn*>(txn.get())->MarkFixed();  
     }
   }
   

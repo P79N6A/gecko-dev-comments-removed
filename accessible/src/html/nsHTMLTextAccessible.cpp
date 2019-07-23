@@ -167,7 +167,7 @@ nsHTMLBRAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 
 NS_IMETHODIMP nsHTMLBRAccessible::GetName(nsAString& aName)
 {
-  aName = NS_STATIC_CAST(PRUnichar, '\n');    
+  aName = static_cast<PRUnichar>('\n');    
   return NS_OK;
 }
 
@@ -313,7 +313,7 @@ NS_IMETHODIMP
 nsHTMLListBulletAccessible::GetUniqueID(void **aUniqueID)
 {
   
-  *aUniqueID = NS_STATIC_CAST(void*, this);
+  *aUniqueID = static_cast<void*>(this);
   return NS_OK;
 }
 

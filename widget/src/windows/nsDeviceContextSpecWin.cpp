@@ -389,7 +389,7 @@ CheckForPrintToFile(nsIPrintSettings* aPS, LPTSTR aPrinterName, PRUnichar* aUPri
   } else {
     nsCAutoString nativeName;
     NS_CopyUnicodeToNative(nsDependentString(aUPrinterName), nativeName);
-    CheckForPrintToFileWithName(NS_CONST_CAST(char*, nativeName.get()), toFile);
+    CheckForPrintToFileWithName(const_cast<char*>(nativeName.get()), toFile);
   }
 #endif
   
@@ -750,7 +750,7 @@ nsDeviceContextSpecWin::GetDataFromPrinter(const PRUnichar * aName, nsIPrintSett
   HANDLE hPrinter = NULL;
   nsCAutoString nativeName;
   NS_CopyUnicodeToNative(nsDependentString(aName), nativeName);
-  BOOL status = ::OpenPrinter(NS_CONST_CAST(char*, nativeName.get()),
+  BOOL status = ::OpenPrinter(const_cast<char*>(nativeName.get()),
                               &hPrinter, NULL);
   if (status) {
 
@@ -759,7 +759,7 @@ nsDeviceContextSpecWin::GetDataFromPrinter(const PRUnichar * aName, nsIPrintSett
 
     
     dwNeeded = ::DocumentProperties(NULL, hPrinter,
-                                    NS_CONST_CAST(char*, nativeName.get()),
+                                    const_cast<char*>(nativeName.get()),
                                     NULL, NULL, 0);
 
     pDevMode = (LPDEVMODE)::HeapAlloc (::GetProcessHeap(), HEAP_ZERO_MEMORY, dwNeeded);
@@ -767,14 +767,14 @@ nsDeviceContextSpecWin::GetDataFromPrinter(const PRUnichar * aName, nsIPrintSett
 
     
     dwRet = DocumentProperties(NULL, hPrinter, 
-                               NS_CONST_CAST(char*, nativeName.get()),
+                               const_cast<char*>(nativeName.get()),
                                pDevMode, NULL, DM_OUT_BUFFER);
 
     if (dwRet == IDOK && aPS) {
       SetupDevModeFromSettings(pDevMode, aPS);
       
       dwRet = ::DocumentProperties(NULL, hPrinter,
-                                   NS_CONST_CAST(char*, nativeName.get()),
+                                   const_cast<char*>(nativeName.get()),
                                    pDevMode, pDevMode,
                                    DM_IN_BUFFER | DM_OUT_BUFFER);
     }
@@ -789,7 +789,7 @@ nsDeviceContextSpecWin::GetDataFromPrinter(const PRUnichar * aName, nsIPrintSett
 
     SetDevMode(pDevMode); 
 
-    SetDeviceName(NS_CONST_CAST(char*, nativeName.get()));
+    SetDeviceName(const_cast<char*>(nativeName.get()));
 
     SetDriverName("WINSPOOL");
 

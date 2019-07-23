@@ -123,7 +123,7 @@ gfxPangoFontGroup::FontCallback (const nsAString& fontName,
                                  const nsACString& genericName,
                                  void *closure)
 {
-    nsStringArray *sa = NS_STATIC_CAST(nsStringArray*, closure);
+    nsStringArray *sa = static_cast<nsStringArray*>(closure);
 
     if (FFRECountHyphens(fontName) < 3 && sa->IndexOf(fontName) < 0) {
         sa->AppendString(fontName);
@@ -813,10 +813,10 @@ gfxPangoFontGroup::MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
     if ((aFlags & TEXT_IS_ASCII) && !isRTL) {
         
         
-        const gchar *utf8Chars = NS_REINTERPRET_CAST(const gchar*, aString);
+        const gchar *utf8Chars = reinterpret_cast<const gchar*>(aString);
         InitTextRun(run, utf8Chars, aLength, 0);
     } else {
-        const char *chars = NS_REINTERPRET_CAST(const char*, aString);
+        const char *chars = reinterpret_cast<const char*>(aString);
         
         
         
@@ -1336,7 +1336,7 @@ public:
         if (aName.IsEmpty())
             return PR_TRUE;
 
-        FontSelector *fs = NS_STATIC_CAST(FontSelector*, closure);
+        FontSelector *fs = static_cast<FontSelector*>(closure);
 
         
         if (ExistsFont(fs, aName))

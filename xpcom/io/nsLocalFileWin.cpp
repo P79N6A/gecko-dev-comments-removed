@@ -1324,7 +1324,7 @@ nsLocalFile::GetVersionInfoField(const char* aField, nsAString& _retval)
 
     
     
-    WCHAR *path = NS_CONST_CAST(WCHAR*, mFollowSymlinks ? mResolvedPath.get() 
+    WCHAR *path = const_cast<WCHAR*>(mFollowSymlinks ? mResolvedPath.get() 
                                                         : mWorkingPath.get());
 
     DWORD dummy;
@@ -1360,7 +1360,7 @@ nsLocalFile::GetVersionInfoField(const char* aField, nsAString& _retval)
                 queryResult = ::VerQueryValueW(ver, subBlock, &value, &size);
                 if (queryResult && value)
                 {
-                    _retval.Assign(NS_STATIC_CAST(PRUnichar*, value));
+                    _retval.Assign(static_cast<PRUnichar*>(value));
                     if (!_retval.IsEmpty()) 
                     {
                         rv = NS_OK;

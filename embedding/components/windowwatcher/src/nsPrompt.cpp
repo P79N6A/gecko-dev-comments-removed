@@ -126,7 +126,7 @@ NS_NewAuthPrompter2(nsIAuthPrompt2 **result, nsIDOMWindow *aParent)
     
     return factory->GetPrompt(aParent,
                               NS_GET_IID(nsIAuthPrompt2),
-                              NS_REINTERPRET_CAST(void**, result));
+                              reinterpret_cast<void**>(result));
   }
 
   nsresult rv;

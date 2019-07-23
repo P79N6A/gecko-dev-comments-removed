@@ -465,7 +465,7 @@ LocalSearchDataSource::parseDate(const nsAString& aDate,
 {
     
     
-    PRTime *outTime = NS_STATIC_CAST(PRTime*,aResult);
+    PRTime *outTime = static_cast<PRTime*>(aResult);
     PRStatus err;
     err = PR_ParseTimeString(NS_ConvertUTF16toUTF8(aDate).get(),
                              PR_FALSE, 

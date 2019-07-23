@@ -298,7 +298,7 @@ nsTextEditRules::WillDoAction(nsISelection *aSelection,
   *aHandled = PR_FALSE;
 
   
-  nsTextRulesInfo *info = NS_STATIC_CAST(nsTextRulesInfo*, aInfo);
+  nsTextRulesInfo *info = static_cast<nsTextRulesInfo*>(aInfo);
     
   switch (info->action)
   {
@@ -348,7 +348,7 @@ nsTextEditRules::DidDoAction(nsISelection *aSelection,
     return NS_ERROR_NULL_POINTER;
     
   
-  nsTextRulesInfo *info = NS_STATIC_CAST(nsTextRulesInfo*, aInfo);
+  nsTextRulesInfo *info = static_cast<nsTextRulesInfo*>(aInfo);
 
   switch (info->action)
   {

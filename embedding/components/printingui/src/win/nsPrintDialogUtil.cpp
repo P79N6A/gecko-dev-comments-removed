@@ -761,7 +761,7 @@ static HGLOBAL CreateGlobalDevModeAndInit(LPCTSTR aPrintName, nsIPrintSettings* 
   nsresult rv = NS_ERROR_FAILURE;
   HANDLE hPrinter = NULL;
   
-  LPTSTR printName = NS_CONST_CAST(char*, aPrintName);
+  LPTSTR printName = const_cast<char*>(aPrintName);
   BOOL status = ::OpenPrinter(printName, &hPrinter, NULL);
   if (status) {
 
@@ -885,7 +885,7 @@ ShowNativePrintDialog(HWND              aHWnd,
     HANDLE hPrinter = NULL;
     nsCAutoString printerNameNative;
     NS_CopyUnicodeToNative(nsDependentString(printerName), printerNameNative);
-    LPTSTR tempPrinterName = NS_CONST_CAST(char*, printerNameNative.get());
+    LPTSTR tempPrinterName = const_cast<char*>(printerNameNative.get());
     if(!::OpenPrinter(tempPrinterName, &hPrinter, NULL)) {
       
       printerName = GetDefaultPrinterNameFromGlobalPrinters();

@@ -158,7 +158,7 @@ class NS_COM_GLUE nsTArray_base {
     Header* GetAutoArrayBuffer() {
       NS_ASSERTION(IsAutoArray(), "Should be an auto array to call this");
 
-      return NS_REINTERPRET_CAST(Header*, &mHdr + 1);
+      return reinterpret_cast<Header*>(&mHdr + 1);
     }
 
     
@@ -186,12 +186,12 @@ class nsTArrayElementTraits {
   public:
     
     static inline void Construct(E *e) {
-      new (NS_STATIC_CAST(void *, e)) E();
+      new (static_cast<void *>(e)) E();
     }
     
     template<class A>
     static inline void Construct(E *e, const A &arg) {
-      new (NS_STATIC_CAST(void *, e)) E(arg);
+      new (static_cast<void *>(e)) E(arg);
     }
     
     static inline void Destruct(E *e) {
@@ -209,9 +209,9 @@ class nsQuickSortComparator {
     
     
     static int Compare(const void* e1, const void* e2, void *data) {
-      const Comparator* c = NS_REINTERPRET_CAST(const Comparator*, data);
-      const elem_type* a = NS_STATIC_CAST(const elem_type*, e1);
-      const elem_type* b = NS_STATIC_CAST(const elem_type*, e2);
+      const Comparator* c = reinterpret_cast<const Comparator*>(data);
+      const elem_type* a = static_cast<const elem_type*>(e1);
+      const elem_type* b = static_cast<const elem_type*>(e2);
       return c->LessThan(*a, *b) ? -1 : (c->Equals(*a, *b) ? 0 : 1);
     }
 };
@@ -300,14 +300,14 @@ class nsTArray : public nsTArray_base {
     
     
     elem_type* Elements() {
-      return NS_REINTERPRET_CAST(elem_type *, mHdr + 1);
+      return reinterpret_cast<elem_type *>(mHdr + 1);
     }
 
     
     
     
     const elem_type* Elements() const {
-      return NS_REINTERPRET_CAST(const elem_type *, mHdr + 1);
+      return reinterpret_cast<const elem_type *>(mHdr + 1);
     }
     
     
@@ -679,7 +679,7 @@ class nsTArray : public nsTArray_base {
     void Sort(const Comparator& comp) {
       NS_QuickSort(Elements(), Length(), sizeof(elem_type),
                    nsQuickSortComparator<elem_type, Comparator>::Compare,
-                   NS_CONST_CAST(Comparator*, &comp));
+                   const_cast<Comparator*>(&comp));
     }
 
     
@@ -722,13 +722,13 @@ class nsAutoTArray : public nsTArray<E> {
     typedef typename base_type::elem_type elem_type;
 
     nsAutoTArray() {
-      base_type::mHdr = NS_REINTERPRET_CAST(Header*, &mAutoBuf);
+      base_type::mHdr = reinterpret_cast<Header*>(&mAutoBuf);
       base_type::mHdr->mLength = 0;
       base_type::mHdr->mCapacity = N;
       base_type::mHdr->mIsAutoArray = 1;
 
       NS_ASSERTION(base_type::GetAutoArrayBuffer() ==
-                   NS_REINTERPRET_CAST(Header*, &mAutoBuf),
+                   reinterpret_cast<Header*>(&mAutoBuf),
                    "GetAutoArrayBuffer needs to be fixed");
     }
 

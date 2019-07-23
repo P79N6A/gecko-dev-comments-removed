@@ -97,11 +97,11 @@ public:
     }
 
     nsISupports* ObjectAt(PRInt32 aIndex) const {
-        return NS_STATIC_CAST(nsISupports*, mArray.FastElementAt(aIndex));
+        return static_cast<nsISupports*>(mArray.FastElementAt(aIndex));
     }
     
     nsISupports* SafeObjectAt(PRInt32 aIndex) const {
-        return NS_STATIC_CAST(nsISupports*, mArray.SafeElementAt(aIndex));
+        return static_cast<nsISupports*>(mArray.SafeElementAt(aIndex));
     }
 
     nsISupports* operator[](PRInt32 aIndex) const {
@@ -111,7 +111,7 @@ public:
     
     
     PRBool SetCapacity(PRUint32 aCapacity) {
-      return aCapacity > 0 ? mArray.SizeTo(NS_STATIC_CAST(PRInt32, aCapacity))
+      return aCapacity > 0 ? mArray.SizeTo(static_cast<PRInt32>(aCapacity))
                            : PR_TRUE;
     }
 
@@ -157,12 +157,12 @@ class nsCOMArray : public nsCOMArray_base
 
     
     T* ObjectAt(PRInt32 aIndex) const {
-        return NS_STATIC_CAST(T*,nsCOMArray_base::ObjectAt(aIndex));
+        return static_cast<T*>(nsCOMArray_base::ObjectAt(aIndex));
     }
 
     
     T* SafeObjectAt(PRInt32 aIndex) const {
-        return NS_STATIC_CAST(T*,nsCOMArray_base::SafeObjectAt(aIndex));
+        return static_cast<T*>(nsCOMArray_base::SafeObjectAt(aIndex));
     }
 
     
@@ -174,7 +174,7 @@ class nsCOMArray : public nsCOMArray_base
     
     
     PRInt32 IndexOf(T* aObject) const {
-        return nsCOMArray_base::IndexOf(NS_STATIC_CAST(nsISupports*, aObject));
+        return nsCOMArray_base::IndexOf(static_cast<nsISupports*>(aObject));
     }
 
     
@@ -183,13 +183,13 @@ class nsCOMArray : public nsCOMArray_base
     
     
     PRInt32 IndexOfObject(T* aObject) const {
-        return nsCOMArray_base::IndexOfObject(NS_STATIC_CAST(nsISupports*, aObject));
+        return nsCOMArray_base::IndexOfObject(static_cast<nsISupports*>(aObject));
     }
 
     
     
     PRBool InsertObjectAt(T* aObject, PRInt32 aIndex) {
-        return nsCOMArray_base::InsertObjectAt(NS_STATIC_CAST(nsISupports*, aObject), aIndex);
+        return nsCOMArray_base::InsertObjectAt(static_cast<nsISupports*>(aObject), aIndex);
     }
 
     
@@ -201,7 +201,7 @@ class nsCOMArray : public nsCOMArray_base
     
     
     PRBool ReplaceObjectAt(T* aObject, PRInt32 aIndex) {
-        return nsCOMArray_base::ReplaceObjectAt(NS_STATIC_CAST(nsISupports*, aObject), aIndex);
+        return nsCOMArray_base::ReplaceObjectAt(static_cast<nsISupports*>(aObject), aIndex);
     }
 
     
@@ -243,7 +243,7 @@ class nsCOMArray : public nsCOMArray_base
 
     
     PRBool AppendObject(T *aObject) {
-        return nsCOMArray_base::AppendObject(NS_STATIC_CAST(nsISupports*, aObject));
+        return nsCOMArray_base::AppendObject(static_cast<nsISupports*>(aObject));
     }
 
     
@@ -255,7 +255,7 @@ class nsCOMArray : public nsCOMArray_base
     
     
     PRBool RemoveObject(T *aObject) {
-        return nsCOMArray_base::RemoveObject(NS_STATIC_CAST(nsISupports*, aObject));
+        return nsCOMArray_base::RemoveObject(static_cast<nsISupports*>(aObject));
     }
 
     

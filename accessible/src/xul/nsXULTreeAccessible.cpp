@@ -567,7 +567,7 @@ NS_IMETHODIMP nsXULTreeitemAccessible::GetName(nsAString& aName)
 NS_IMETHODIMP nsXULTreeitemAccessible::GetUniqueID(void **aUniqueID)
 {
   
-  *aUniqueID = NS_STATIC_CAST(void*, this);
+  *aUniqueID = static_cast<void*>(this);
   return NS_OK;
 }
 

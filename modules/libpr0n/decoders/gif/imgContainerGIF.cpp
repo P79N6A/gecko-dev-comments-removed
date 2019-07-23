@@ -283,7 +283,7 @@ NS_IMETHODIMP imgContainerGIF::StartAnimation()
 
     
     mAnimating = PR_TRUE;
-    mTimer->InitWithCallback(NS_STATIC_CAST(nsITimerCallback*, this),
+    mTimer->InitWithCallback(static_cast<nsITimerCallback*>(this),
                              timeout, nsITimer::TYPE_REPEATING_SLACK);
   }
 

@@ -555,7 +555,7 @@ nsToolkitProfileService::SetSelectedProfile(nsIToolkitProfile* aProfile)
 {
     if (mChosen != aProfile) {
         
-        mChosen = NS_STATIC_CAST(nsToolkitProfile*, aProfile);
+        mChosen = static_cast<nsToolkitProfile*>(aProfile);
         mDirty = PR_TRUE;
     }
     return NS_OK;

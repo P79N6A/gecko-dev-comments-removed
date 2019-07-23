@@ -109,7 +109,7 @@ public:
 
   
   static nsView* GetViewFor(nsIWidget* aWidget) {
-    return NS_STATIC_CAST(nsView*, nsIView::GetViewFor(aWidget));
+    return static_cast<nsView*>(nsIView::GetViewFor(aWidget));
   }
 
   

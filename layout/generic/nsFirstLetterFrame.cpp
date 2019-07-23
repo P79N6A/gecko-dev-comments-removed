@@ -291,7 +291,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     nsIFrame* kidNextInFlow = kid->GetNextInFlow();
     if (kidNextInFlow) {
       
-      NS_STATIC_CAST(nsContainerFrame*, kidNextInFlow->GetParent())
+      static_cast<nsContainerFrame*>(kidNextInFlow->GetParent())
         ->DeleteNextInFlowChild(aPresContext, kidNextInFlow);
     }
   }

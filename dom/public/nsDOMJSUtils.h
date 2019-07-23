@@ -15,8 +15,8 @@ GetScriptContextFromJSContext(JSContext *cx)
   }
 
   nsCOMPtr<nsIScriptContext> scx =
-    do_QueryInterface(NS_STATIC_CAST(nsISupports *,
-                                     ::JS_GetContextPrivate(cx)));
+    do_QueryInterface(static_cast<nsISupports *>
+                                 (::JS_GetContextPrivate(cx)));
 
   
   

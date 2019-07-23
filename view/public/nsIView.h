@@ -131,7 +131,7 @@ public:
 
 
   nsIViewManager* GetViewManager() const
-  { return NS_REINTERPRET_CAST(nsIViewManager*, mViewManager); }
+  { return reinterpret_cast<nsIViewManager*>(mViewManager); }
 
   
 
@@ -224,19 +224,19 @@ public:
 
 
 
-  nsIView* GetParent() const { return NS_REINTERPRET_CAST(nsIView*, mParent); }
+  nsIView* GetParent() const { return reinterpret_cast<nsIView*>(mParent); }
 
   
 
 
 
-  nsIView* GetFirstChild() const { return NS_REINTERPRET_CAST(nsIView*, mFirstChild); }
+  nsIView* GetFirstChild() const { return reinterpret_cast<nsIView*>(mFirstChild); }
 
   
 
 
 
-  nsIView* GetNextSibling() const { return NS_REINTERPRET_CAST(nsIView*, mNextSibling); }
+  nsIView* GetNextSibling() const { return reinterpret_cast<nsIView*>(mNextSibling); }
 
   
 

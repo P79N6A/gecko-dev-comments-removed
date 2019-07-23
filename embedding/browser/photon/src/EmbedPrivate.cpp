@@ -154,15 +154,15 @@ EmbedPrivate::Init(PtWidget_t *aOwningWidget)
 	
 	
 	mWindow = new EmbedWindow();
-	mWindowGuard = NS_STATIC_CAST(nsIWebBrowserChrome *, mWindow);
+	mWindowGuard = static_cast<nsIWebBrowserChrome *>(mWindow);
 	mWindow->Init(this);
 
 	
 	
 	
 	mProgress = new EmbedProgress();
-	mProgressGuard = NS_STATIC_CAST(nsIWebProgressListener *,
-					   mProgress);
+	mProgressGuard = static_cast<nsIWebProgressListener *>
+                             (mProgress);
 	mProgress->Init(this);
 
 	
@@ -176,15 +176,15 @@ EmbedPrivate::Init(PtWidget_t *aOwningWidget)
 	
 	mEventListener = new EmbedEventListener();
 	mEventListenerGuard =
-	NS_STATIC_CAST(nsISupports *, NS_STATIC_CAST(nsIDOMKeyListener *,
-						 mEventListener));
+	static_cast<nsISupports *>(static_cast<nsIDOMKeyListener *>
+                        (mEventListener));
 	mEventListener->Init(this);
 
 	
 	
 	
 	mPrint = new EmbedPrintListener();
-	mPrintGuard = NS_STATIC_CAST(nsIWebProgressListener *, mPrint);
+	mPrintGuard = static_cast<nsIWebProgressListener *>(mPrint);
 	mPrint->Init(this);
 
 	
@@ -199,7 +199,7 @@ EmbedPrivate::Init(PtWidget_t *aOwningWidget)
 		
 		EmbedWindowCreator *creator = new EmbedWindowCreator();
 		nsCOMPtr<nsIWindowCreator> windowCreator;
-		windowCreator = NS_STATIC_CAST(nsIWindowCreator *, creator);
+		windowCreator = static_cast<nsIWindowCreator *>(creator);
 
 		
 		nsCOMPtr<nsIWindowWatcher> watcher = do_GetService(sWatcherContractID);
@@ -714,11 +714,11 @@ EmbedPrivate::FindPrivateForBrowser(nsIWebBrowserChrome *aBrowser)
 	
 	for (int i = 0; i < count; i++) 
 	{
-	  EmbedPrivate *tmpPrivate = NS_STATIC_CAST(EmbedPrivate *,
-							sWindowList->ElementAt(i));
+	  EmbedPrivate *tmpPrivate = static_cast<EmbedPrivate *>
+                                         (sWindowList->ElementAt(i));
 	  
-	  nsIWebBrowserChrome *chrome = NS_STATIC_CAST(nsIWebBrowserChrome *,
-						   tmpPrivate->mWindow);
+	  nsIWebBrowserChrome *chrome = static_cast<nsIWebBrowserChrome *>
+                                            (tmpPrivate->mWindow);
 	  if (chrome == aBrowser)
 		return tmpPrivate;
 	}
@@ -874,8 +874,8 @@ EmbedPrivate::AttachListeners(void)
     return;
 
   nsIDOMEventListener *eventListener =
-    NS_STATIC_CAST(nsIDOMEventListener *,
-		   NS_STATIC_CAST(nsIDOMKeyListener *, mEventListener));
+    static_cast<nsIDOMEventListener *>
+               (static_cast<nsIDOMKeyListener *>(mEventListener));
 
   
   nsresult rv;
@@ -904,8 +904,8 @@ EmbedPrivate::DetachListeners(void)
     return;
 
   nsIDOMEventListener *eventListener =
-    NS_STATIC_CAST(nsIDOMEventListener *,
-		   NS_STATIC_CAST(nsIDOMKeyListener *, mEventListener));
+    static_cast<nsIDOMEventListener *>
+               (static_cast<nsIDOMKeyListener *>(mEventListener));
 
   nsresult rv;
   rv = mEventTarget->RemoveEventListenerByIID(eventListener,

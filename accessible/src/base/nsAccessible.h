@@ -68,7 +68,7 @@ class nsIAtom;
 class nsIView;
 
 
-#define DEAD_END_ACCESSIBLE NS_STATIC_CAST(nsIAccessible*, (void*)1)
+#define DEAD_END_ACCESSIBLE static_cast<nsIAccessible*>((void*)1)
 
 
 

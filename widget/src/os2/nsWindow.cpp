@@ -2016,7 +2016,7 @@ HBITMAP nsWindow::DataToBitmap(PRUint8* aImageData, PRUint32 aWidth,
 
   
   HBITMAP hBmp = GpiCreateBitmap(hps, &bi.head, CBM_INIT,
-                 NS_REINTERPRET_CAST(BYTE*, aImageData),
+                 reinterpret_cast<BYTE*>(aImageData),
                  (BITMAPINFO2*)&bi);
 
   

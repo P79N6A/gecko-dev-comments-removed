@@ -186,7 +186,7 @@ nsNativeDragTarget::DispatchDragDropEvent(PRUint32 aEventType, POINTL aPT)
   nsEventStatus status;
   nsMouseEvent event(PR_TRUE, aEventType, mWindow, nsMouseEvent::eReal);
 
-  nsWindow * win = NS_STATIC_CAST(nsWindow *, mWindow);
+  nsWindow * win = static_cast<nsWindow *>(mWindow);
   win->InitEvent(event);
   POINT cpos;
 
@@ -273,7 +273,7 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
   
   
   nsDragService * winDragService =
-    NS_STATIC_CAST(nsDragService *, mDragService);
+    static_cast<nsDragService *>(mDragService);
   winDragService->SetIDataObject(pIDataSource);
 
   
@@ -352,7 +352,7 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
   
   
   nsDragService * winDragService =
-    NS_STATIC_CAST(nsDragService *, mDragService);
+    static_cast<nsDragService *>(mDragService);
   winDragService->SetIDataObject(pData);
 
   

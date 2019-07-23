@@ -188,7 +188,7 @@ ns_if_addref( T expr )
 
 
 #define NS_ISUPPORTS_CAST(__unambiguousBase, __expr) \
-  NS_STATIC_CAST(nsISupports*, NS_STATIC_CAST(__unambiguousBase, __expr))
+  static_cast<nsISupports*>(static_cast<__unambiguousBase>(__expr))
 
 
 template <class T, class DestinationType>
@@ -200,7 +200,7 @@ CallQueryInterface( T* aSource, DestinationType** aDestination )
     NS_PRECONDITION(aDestination, "null parameter");
     
     return aSource->QueryInterface(NS_GET_TEMPLATE_IID(DestinationType),
-                                   NS_REINTERPRET_CAST(void**, aDestination));
+                                   reinterpret_cast<void**>(aDestination));
 }
 
 #endif 

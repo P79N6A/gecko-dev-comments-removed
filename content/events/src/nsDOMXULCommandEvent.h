@@ -60,7 +60,7 @@ public:
 private:
   
   nsXULCommandEvent* Event() {
-    return NS_STATIC_CAST(nsXULCommandEvent*, mEvent);
+    return static_cast<nsXULCommandEvent*>(mEvent);
   }
 };
 

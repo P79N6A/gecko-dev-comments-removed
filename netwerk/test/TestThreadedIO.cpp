@@ -199,7 +199,7 @@ TestListener::IOThread( void *p ) {
     printf( "I/O thread (0x%08X) started...\n", (int)(void*)PR_GetCurrentThread() );
 
     
-    nsIEventQueue *mainThreadQ = NS_STATIC_CAST( nsIEventQueue*, p );
+    nsIEventQueue *mainThreadQ = static_cast<nsIEventQueue*>(p);
 
     
     nsCOMPtr<nsIChannel> channel = createChannel( (const char*)p );

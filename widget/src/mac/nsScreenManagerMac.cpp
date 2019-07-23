@@ -63,7 +63,7 @@ nsScreenManagerMac :: ~nsScreenManagerMac()
 {
   
   for ( int i = 0; i < mScreenList.Count(); ++i ) {
-    ScreenListItem* item = NS_REINTERPRET_CAST(ScreenListItem*, mScreenList[i]);
+    ScreenListItem* item = reinterpret_cast<ScreenListItem*>(mScreenList[i]);
     delete item;
   }
 }
@@ -86,7 +86,7 @@ nsScreenManagerMac :: CreateNewScreenObject ( GDHandle inDevice )
   
   
   for ( int i = 0; i < mScreenList.Count(); ++i ) {
-    ScreenListItem* curr = NS_REINTERPRET_CAST(ScreenListItem*, mScreenList[i]);
+    ScreenListItem* curr = reinterpret_cast<ScreenListItem*>(mScreenList[i]);
     if ( inDevice == curr->mGD ) {
       NS_IF_ADDREF(retScreen = curr->mScreen.get());
       return retScreen;

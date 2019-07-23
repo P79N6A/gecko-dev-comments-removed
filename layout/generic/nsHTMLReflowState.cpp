@@ -914,7 +914,7 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
   
   nsBlockFrame* blockFrame;
   if (NS_SUCCEEDED(aContainingBlock->QueryInterface(kBlockFrameCID,
-                                  NS_REINTERPRET_CAST(void**, &blockFrame)))) {
+                                  reinterpret_cast<void**>(&blockFrame)))) {
     
     
     nsIFrame *blockChild =
@@ -1574,8 +1574,8 @@ static eNormalLineHeightControl GetNormalLineHeightCalcControl(void)
     
     
     sNormalLineHeightControl =
-      NS_STATIC_CAST(eNormalLineHeightControl,
-                     nsContentUtils::GetIntPref("browser.display.normal_lineheight_calc_control", eNoExternalLeading));
+      static_cast<eNormalLineHeightControl>
+                 (nsContentUtils::GetIntPref("browser.display.normal_lineheight_calc_control", eNoExternalLeading));
   }
   return sNormalLineHeightControl;
 }
@@ -1863,7 +1863,7 @@ nsCSSOffsetState::InitOffsets(nscoord aContainingBlockWidth,
   mComputedBorderPadding += mComputedPadding;
 
   if (frame->GetType() == nsGkAtoms::tableFrame) {
-    nsTableFrame *tableFrame = NS_STATIC_CAST(nsTableFrame*, frame);
+    nsTableFrame *tableFrame = static_cast<nsTableFrame*>(frame);
 
     if (tableFrame->IsBorderCollapse()) {
       
@@ -2086,7 +2086,7 @@ nsCSSOffsetState::DestroyMarginFunc(void*    aFrame,
                                     void*    aPropertyValue,
                                     void*    aDtorData)
 {
-  delete NS_STATIC_CAST(nsMargin*, aPropertyValue);
+  delete static_cast<nsMargin*>(aPropertyValue);
 }
 
 void

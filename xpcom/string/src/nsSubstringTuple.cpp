@@ -42,9 +42,9 @@
   
 #define TO_SUBSTRING(_v)                                        \
     ( (ptrdiff_t(_v) & 0x1)                                     \
-        ? NS_REINTERPRET_CAST(const abstract_string_type*,      \
+        ? reinterpret_cast<const abstract_string_type*>(\
             ((unsigned long)_v & ~0x1))->ToSubstring()          \
-        : *NS_REINTERPRET_CAST(const substring_type*, (_v)) )
+        : *reinterpret_cast<const substring_type*>((_v)) )
 #endif
 
   

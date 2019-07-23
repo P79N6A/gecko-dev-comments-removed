@@ -365,7 +365,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
             
             
             nsHttpTransaction *trans =
-                    NS_STATIC_CAST(nsHttpTransaction *, mTransaction);
+                    static_cast<nsHttpTransaction *>(mTransaction);
             trans->SetSSLConnectFailed();
         }
     }
@@ -693,7 +693,7 @@ nsHttpConnection::SetupSSLProxyConnect()
 
     
     
-    nsHttpTransaction *trans = NS_STATIC_CAST(nsHttpTransaction *, mTransaction);
+    nsHttpTransaction *trans = static_cast<nsHttpTransaction *>(mTransaction);
     
     val = trans->RequestHead()->PeekHeader(nsHttp::Host);
     if (val) {

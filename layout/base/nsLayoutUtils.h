@@ -244,7 +244,7 @@ public:
 
 
   static nsIFrame* GetFrameFor(nsIView *aView)
-  { return NS_STATIC_CAST(nsIFrame*, aView->GetClientData()); }
+  { return static_cast<nsIFrame*>(aView->GetClientData()); }
   
   
 

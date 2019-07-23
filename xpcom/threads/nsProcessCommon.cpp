@@ -229,7 +229,7 @@ nsProcess::Run(PRBool blocking, const char **args, PRUint32 count,
     
     PRUint32 i;
     for (i=0; i < count; i++) {
-        my_argv[i+1] = NS_CONST_CAST(char*, args[i]);
+        my_argv[i+1] = const_cast<char*>(args[i]);
     }
     
     my_argv[0] = mTargetPath.BeginWriting();

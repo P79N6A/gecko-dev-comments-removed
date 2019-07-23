@@ -1184,7 +1184,7 @@ nsLocalFile::EqualsInternal(nsISupports* inFile, PRBool aUpdateCache,
     return NS_OK;
     
   nsLocalFile* inLF =
-      NS_STATIC_CAST(nsLocalFile*, (nsILocalFileMac*) inMacFile);
+      static_cast<nsLocalFile*>((nsILocalFileMac*) inMacFile);
 
   
   FSRef thisFSRef, inFSRef;
