@@ -39,9 +39,23 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "nsColorNames.h"
+#include "nsColor.h"
 #include "prprf.h"
 #include "nsString.h"
+
+
+#define GFX_COLOR(_name, _value) #_name,
+static const char* const kColorNames[] = {
+#include "nsColorNameList.h"
+};
+#undef GFX_COLOR
+
+
+#define GFX_COLOR(_name, _value) _value,
+static const nscolor kColors[] = {
+#include "nsColorNameList.h"
+};
+#undef GFX_COLOR
 
 static const char* kJunkNames[] = {
   nsnull,
@@ -54,8 +68,7 @@ static const char* kJunkNames[] = {
 
 int main(int argc, char** argv)
 {
-  nsColorName id;
-  nsColorName index;
+  nscolor rgb;
   int rv = 0;
 
   
@@ -65,49 +78,30 @@ int main(int argc, char** argv)
   
   
     
-  index = eColorName_UNKNOWN;
-  while (PRInt32(index) < (PRInt32 (eColorName_COUNT) - 1)) {
+  for (int index = 0 ; index < NS_ARRAY_LENGTH(kColorNames); index++) {
     
-    index = nsColorName(PRInt32(index) + 1);
-    nsCString tagName(nsColorNames::GetStringValue(index));
-    if (tagName.IsEmpty()) {
-      printf("bug: tagName for nsColorNames::GetStringValue(%d) is ''\n", index);
-      rv = -1;
-      continue;
-    }
+    nsCString tagName(kColorNames[index]);
 
-    id = nsColorNames::LookupName(NS_ConvertASCIItoUTF16(tagName));
-    if (id == eColorName_UNKNOWN) {
+    
+    if (!NS_ColorNameToRGB(NS_ConvertASCIItoUTF16(tagName), &rgb)) {
       printf("bug: can't find '%s'\n", tagName.get());
       rv = -1;
     }
-    if (id != index) {
-      printf("bug: name='%s' id=%d index=%d\n", tagName.get(), id, index);
+    if (rgb != kColors[index]) {
+      printf("bug: name='%s' ColorNameToRGB=%x kColors[%d]=%08x\n",
+             tagName.get(), rgb, index, kColors[index]);
       rv = -1;
     }
 
     
     tagName.SetCharAt(tagName.CharAt(0) - 32, 0);
-    id = nsColorNames::LookupName(NS_ConvertASCIItoUTF16(tagName));
-    if (id == eColorName_UNKNOWN) {
+    if (!NS_ColorNameToRGB(NS_ConvertASCIItoUTF16(tagName), &rgb)) {
       printf("bug: can't find '%s'\n", tagName.get());
       rv = -1;
     }
-    if (id != index) {
-      printf("bug: name='%s' id=%d index=%d\n", tagName.get(), id, index);
-      rv = -1;
-    }
-
-    
-    nscolor rgb;
-    if (!NS_ColorNameToRGB(NS_ConvertASCIItoUTF16(tagName), &rgb)) {
-      printf("bug: name='%s' didn't NS_ColorNameToRGB\n", tagName.get());
-      rv = -1;
-    }
-    if (nsColorNames::kColors[index] != rgb) {
-      printf("bug: name='%s' ColorNameToRGB=%x kColors[%d]=%x\n",
-             tagName.get(), rgb, nsColorNames::kColors[index],
-             nsColorNames::kColors[index]);
+    if (rgb != kColors[index]) {
+      printf("bug: name='%s' ColorNameToRGB=%x kColors[%d]=%08x\n",
+             tagName.get(), rgb, index, kColors[index]);
       rv = -1;
     }
 
@@ -129,14 +123,15 @@ int main(int argc, char** argv)
   }
 
   
-  for (int i = 0; i < (int) (sizeof(kJunkNames) / sizeof(const char*)); i++) {
-    const char* tag = kJunkNames[i];
-    id = nsColorNames::LookupName(NS_ConvertASCIItoUTF16(tag));
-    if (id > eColorName_UNKNOWN) {
-      printf("bug: found '%s'\n", tag ? tag : "(null)");
+  for (int i = 0; i < NS_ARRAY_LENGTH(kJunkNames); i++) {
+    nsCString tag(kJunkNames[i]);
+    if (NS_ColorNameToRGB(NS_ConvertASCIItoUTF16(tag), &rgb)) {
+      printf("bug: found '%s'\n", kJunkNames[i] ? kJunkNames[i] : "(null)");
       rv = -1;
     }
   }
+
+  nsColorNames::ReleaseTable();
 
   return rv;
 }
