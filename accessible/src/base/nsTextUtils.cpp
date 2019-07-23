@@ -228,7 +228,7 @@ nsBackgroundTextAttr::GetColor(nsIFrame *aFrame)
 
   nsIFrame *parentFrame = aFrame->GetParent();
   if (!parentFrame)
-    return styleBackground->mBackgroundColor;
+    return aFrame->PresContext()->DefaultBackgroundColor();
 
   
   
