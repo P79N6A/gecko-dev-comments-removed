@@ -1235,8 +1235,7 @@ js_IsGlobalReference(JSTreeContext *tc, JSAtom *atom, JSBool *loopyp)
             continue;
         }
         if (stmt->flags & SIF_SCOPE) {
-            JS_ASSERT(LOCKED_OBJ_GET_CLASS(stmt->u.blockObj) ==
-                      &js_BlockClass);
+            JS_ASSERT(STOBJ_GET_CLASS(stmt->u.blockObj) == &js_BlockClass);
             scope = OBJ_SCOPE(stmt->u.blockObj);
             if (SCOPE_GET_PROPERTY(scope, ATOM_TO_JSID(atom)))
                 return JS_FALSE;
@@ -1648,26 +1647,10 @@ js_LookupCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
 
 
 
-            prop = NULL;
             if (OBJ_GET_CLASS(cx, obj) == &js_FunctionClass) {
-                ok = js_LookupHiddenProperty(cx, obj, ATOM_TO_JSID(atom),
-                                             &pobj, &prop);
-                if (!ok)
+                JS_ASSERT(fp->fun == GET_FUNCTION_PRIVATE(cx, obj));
+                if (js_LookupLocal(cx, fp->fun, atom, NULL) != JSLOCAL_NONE)
                     break;
-                if (prop) {
-#ifdef DEBUG
-                    JSScopeProperty *sprop = (JSScopeProperty *)prop;
-
-                    
-
-
-
-                    JS_ASSERT(sprop->getter == js_GetArgument ||
-                              sprop->getter == js_GetLocalVariable);
-#endif
-                    OBJ_DROP_PROPERTY(cx, pobj, prop);
-                    break;
-                }
             }
 
             ok = OBJ_LOOKUP_PROPERTY(cx, obj, ATOM_TO_JSID(atom), &pobj, &prop);
@@ -1853,14 +1836,10 @@ BindNameToSlot(JSContext *cx, JSTreeContext *tc, JSParseNode *pn,
     jsint slot;
     JSOp op;
     JSStackFrame *fp;
-    JSObject *obj, *pobj;
     JSClass *clasp;
-    JSBool optimizeGlobals;
-    JSPropertyOp getter;
-    uintN attrs;
+    JSLocalKind localKind;
+    uintN index;
     JSAtomListElement *ale;
-    JSProperty *prop;
-    JSScopeProperty *sprop;
 
     JS_ASSERT(pn->pn_type == TOK_NAME);
     if (pn->pn_slot >= 0 || pn->pn_op == JSOP_ARGUMENTS)
@@ -1926,11 +1905,15 @@ BindNameToSlot(JSContext *cx, JSTreeContext *tc, JSParseNode *pn,
     
 
 
+    if (fp->scopeChain != fp->varobj)
+        return JS_TRUE;
 
-    obj = fp->varobj;
-    clasp = OBJ_GET_CLASS(cx, obj);
+    clasp = OBJ_GET_CLASS(cx, fp->varobj);
     if (clasp != &js_FunctionClass && clasp != &js_CallClass) {
         
+
+
+
         if (fp->flags & JSFRAME_SPECIAL)
             return JS_TRUE;
 
@@ -1939,27 +1922,13 @@ BindNameToSlot(JSContext *cx, JSTreeContext *tc, JSParseNode *pn,
 
 
 
-        optimizeGlobals = (tc->globalUses >= 100 ||
-                           (tc->loopyGlobalUses &&
-                            tc->loopyGlobalUses >= tc->globalUses / 2));
-        if (!optimizeGlobals)
+
+        if (!(tc->globalUses >= 100 ||
+              (tc->loopyGlobalUses &&
+               tc->loopyGlobalUses >= tc->globalUses / 2))) {
             return JS_TRUE;
-    } else {
-        optimizeGlobals = JS_FALSE;
-    }
+        }
 
-    
-
-
-    if (fp->scopeChain != obj)
-        return JS_TRUE;
-
-    op = PN_OP(pn);
-    getter = NULL;
-#ifdef __GNUC__
-    attrs = slot = 0;   
-#endif
-    if (optimizeGlobals) {
         
 
 
@@ -1970,10 +1939,6 @@ BindNameToSlot(JSContext *cx, JSTreeContext *tc, JSParseNode *pn,
             
             return JS_TRUE;
         }
-
-        attrs = (ALE_JSOP(ale) == JSOP_DEFCONST)
-                ? JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT
-                : JSPROP_ENUMERATE | JSPROP_PERMANENT;
 
         
         JS_ASSERT(tc->flags & TCF_COMPILING);
@@ -1988,93 +1953,90 @@ BindNameToSlot(JSContext *cx, JSTreeContext *tc, JSParseNode *pn,
 
         if ((uint16)(slot + 1) > tc->ngvars)
             tc->ngvars = (uint16)(slot + 1);
-    } else {
-        
 
-
-
-
-
-
-        if (!js_LookupHiddenProperty(cx, obj, ATOM_TO_JSID(atom), &pobj, &prop))
-            return JS_FALSE;
-        sprop = (JSScopeProperty *) prop;
-        if (sprop) {
-            if (pobj == obj) {
-                getter = sprop->getter;
-                attrs = sprop->attrs;
-                slot = (sprop->flags & SPROP_HAS_SHORTID) ? sprop->shortid : -1;
-            }
-            OBJ_DROP_PROPERTY(cx, pobj, prop);
+        op = PN_OP(pn);
+        switch (op) {
+          case JSOP_NAME:     op = JSOP_GETGVAR; break;
+          case JSOP_SETNAME:  op = JSOP_SETGVAR; break;
+          case JSOP_SETCONST:  break;
+          case JSOP_INCNAME:  op = JSOP_INCGVAR; break;
+          case JSOP_NAMEINC:  op = JSOP_GVARINC; break;
+          case JSOP_DECNAME:  op = JSOP_DECGVAR; break;
+          case JSOP_NAMEDEC:  op = JSOP_GVARDEC; break;
+          case JSOP_FORNAME:   break;
+          case JSOP_DELNAME:   break;
+          default: JS_ASSERT(0);
         }
-    }
-
-    if (optimizeGlobals || getter) {
-        if (optimizeGlobals) {
-            switch (op) {
-              case JSOP_NAME:     op = JSOP_GETGVAR; break;
-              case JSOP_SETNAME:  op = JSOP_SETGVAR; break;
-              case JSOP_SETCONST:  break;
-              case JSOP_INCNAME:  op = JSOP_INCGVAR; break;
-              case JSOP_NAMEINC:  op = JSOP_GVARINC; break;
-              case JSOP_DECNAME:  op = JSOP_DECGVAR; break;
-              case JSOP_NAMEDEC:  op = JSOP_GVARDEC; break;
-              case JSOP_FORNAME:   break;
-              case JSOP_DELNAME:   break;
-              default: JS_ASSERT(0);
-            }
-        } else if (getter == js_GetLocalVariable ||
-                   getter == js_GetCallVariable) {
-            switch (op) {
-              case JSOP_NAME:     op = JSOP_GETVAR; break;
-              case JSOP_SETNAME:  op = JSOP_SETVAR; break;
-              case JSOP_SETCONST: op = JSOP_SETVAR; break;
-              case JSOP_INCNAME:  op = JSOP_INCVAR; break;
-              case JSOP_NAMEINC:  op = JSOP_VARINC; break;
-              case JSOP_DECNAME:  op = JSOP_DECVAR; break;
-              case JSOP_NAMEDEC:  op = JSOP_VARDEC; break;
-              case JSOP_FORNAME:  op = JSOP_FORVAR; break;
-              case JSOP_DELNAME:  op = JSOP_FALSE; break;
-              default: JS_ASSERT(0);
-            }
-        } else if (getter == js_GetArgument ||
-                   (getter == js_CallClass.getProperty &&
-                    fp->fun && (uintN) slot < fp->fun->nargs)) {
-            switch (op) {
-              case JSOP_NAME:     op = JSOP_GETARG; break;
-              case JSOP_SETNAME:  op = JSOP_SETARG; break;
-              case JSOP_INCNAME:  op = JSOP_INCARG; break;
-              case JSOP_NAMEINC:  op = JSOP_ARGINC; break;
-              case JSOP_DECNAME:  op = JSOP_DECARG; break;
-              case JSOP_NAMEDEC:  op = JSOP_ARGDEC; break;
-              case JSOP_FORNAME:  op = JSOP_FORARG; break;
-              case JSOP_DELNAME:  op = JSOP_FALSE; break;
-              default: JS_ASSERT(0);
-            }
-        }
+        pn->pn_const = (ALE_JSOP(ale) == JSOP_DEFCONST);
         if (op != pn->pn_op) {
             pn->pn_op = op;
             pn->pn_slot = slot;
         }
-        pn->pn_attrs = attrs;
+        return JS_TRUE;
     }
 
-    if (pn->pn_slot < 0) {
+    if (clasp == &js_FunctionClass) {
         
 
 
 
 
-
-
-        if (pn->pn_op == JSOP_NAME &&
-            atom == cx->runtime->atomState.argumentsAtom) {
-            pn->pn_op = JSOP_ARGUMENTS;
+        JS_ASSERT(fp->fun == GET_FUNCTION_PRIVATE(cx, fp->varobj));
+        localKind = js_LookupLocal(cx, fp->fun, atom, &index);
+        if (localKind != JSLOCAL_NONE) {
+            op = PN_OP(pn);
+            if (localKind == JSLOCAL_ARG) {
+                switch (op) {
+                  case JSOP_NAME:     op = JSOP_GETARG; break;
+                  case JSOP_SETNAME:  op = JSOP_SETARG; break;
+                  case JSOP_INCNAME:  op = JSOP_INCARG; break;
+                  case JSOP_NAMEINC:  op = JSOP_ARGINC; break;
+                  case JSOP_DECNAME:  op = JSOP_DECARG; break;
+                  case JSOP_NAMEDEC:  op = JSOP_ARGDEC; break;
+                  case JSOP_FORNAME:  op = JSOP_FORARG; break;
+                  case JSOP_DELNAME:  op = JSOP_FALSE; break;
+                  default: JS_ASSERT(0);
+                }
+                pn->pn_const = JS_FALSE;
+            } else {
+                JS_ASSERT(localKind == JSLOCAL_VAR ||
+                          localKind == JSLOCAL_CONST);
+                switch (op) {
+                  case JSOP_NAME:     op = JSOP_GETVAR; break;
+                  case JSOP_SETNAME:  op = JSOP_SETVAR; break;
+                  case JSOP_SETCONST: op = JSOP_SETVAR; break;
+                  case JSOP_INCNAME:  op = JSOP_INCVAR; break;
+                  case JSOP_NAMEINC:  op = JSOP_VARINC; break;
+                  case JSOP_DECNAME:  op = JSOP_DECVAR; break;
+                  case JSOP_NAMEDEC:  op = JSOP_VARDEC; break;
+                  case JSOP_FORNAME:  op = JSOP_FORVAR; break;
+                  case JSOP_DELNAME:  op = JSOP_FALSE; break;
+                  default: JS_ASSERT(0);
+                }
+                pn->pn_const = (localKind == JSLOCAL_CONST);
+            }
+            pn->pn_op = op;
+            pn->pn_slot = index;
             return JS_TRUE;
         }
-
-        tc->flags |= TCF_FUN_USES_NONLOCALS;
     }
+
+    
+
+
+
+
+
+
+
+
+
+    if (pn->pn_op == JSOP_NAME &&
+        atom == cx->runtime->atomState.argumentsAtom) {
+        pn->pn_op = JSOP_ARGUMENTS;
+        return JS_TRUE;
+    }
+    tc->flags |= TCF_FUN_USES_NONLOCALS;
     return JS_TRUE;
 }
 
@@ -2111,7 +2073,7 @@ CheckSideEffects(JSContext *cx, JSTreeContext *tc, JSParseNode *pn,
 
 
 
-        fun = (JSFunction *) OBJ_GET_PRIVATE(cx, pn->pn_funpob->object);
+        fun = GET_FUNCTION_PRIVATE(cx, pn->pn_funpob->object);
         if (fun->atom)
             *answer = JS_TRUE;
         break;
@@ -2172,7 +2134,7 @@ CheckSideEffects(JSContext *cx, JSTreeContext *tc, JSParseNode *pn,
                 if (!*answer &&
                     (pn->pn_op != JSOP_NOP ||
                      pn2->pn_slot < 0 ||
-                     !(pn2->pn_attrs & JSPROP_READONLY))) {
+                     !pn2->pn_const)) {
                     *answer = JS_TRUE;
                 }
             }
@@ -4035,7 +3997,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                              pn->pn_pos.begin.lineno);
         cg2->treeContext.flags = (uint16) (pn->pn_flags | TCF_IN_FUNCTION);
         cg2->parent = cg;
-        fun = (JSFunction *) OBJ_GET_PRIVATE(cx, pn->pn_funpob->object);
+        fun = GET_FUNCTION_PRIVATE(cx, pn->pn_funpob->object);
         if (!js_EmitFunctionBody(cx, cg2, pn->pn_body, fun))
             return JS_FALSE;
 
@@ -4088,31 +4050,22 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
         if ((cg->treeContext.flags & TCF_IN_FUNCTION) ||
             ((cx->fp->flags & JSFRAME_SPECIAL) && cx->fp->fun)) {
-            JSObject *obj, *pobj;
-            JSProperty *prop;
-            JSScopeProperty *sprop;
+            JSFunction *parentFun;
+            JSLocalKind localKind;
 
-            obj = (cg->treeContext.flags & TCF_IN_FUNCTION)
-                  ? OBJ_GET_PARENT(cx, fun->object)
-                  : cx->fp->fun->object;
-            if (!js_LookupHiddenProperty(cx, obj, ATOM_TO_JSID(fun->atom),
-                                         &pobj, &prop)) {
-                return JS_FALSE;
+            if (cg->treeContext.flags & TCF_IN_FUNCTION) {
+                JS_ASSERT(OBJ_GET_CLASS(cx, OBJ_GET_PARENT(cx, fun->object)) ==
+                          &js_FunctionClass);
+                parentFun =
+                    GET_FUNCTION_PRIVATE(cx, OBJ_GET_PARENT(cx, fun->object));
+            } else {
+                parentFun = cx->fp->fun;
             }
-
-            if (prop) {
-                if (pobj == obj) {
-                    sprop = (JSScopeProperty *) prop;
-                    if (sprop->getter == js_GetLocalVariable) {
-                        slot = sprop->shortid;
-                        op = JSOP_DEFLOCALFUN;
-                    }
-                }
-                OBJ_DROP_PROPERTY(cx, pobj, prop);
-            }
-
-            JS_ASSERT(op == JSOP_DEFLOCALFUN ||
-                      !(cg->treeContext.flags & TCF_IN_FUNCTION));
+            localKind = js_LookupLocal(cx, parentFun, fun->atom, &slot);
+            if (localKind == JSLOCAL_VAR || localKind == JSLOCAL_CONST)
+                op = JSOP_DEFLOCALFUN;
+            else
+                JS_ASSERT(!(cg->treeContext.flags & TCF_IN_FUNCTION));
 
             
 
@@ -4124,9 +4077,9 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             if (stmt && stmt->type == STMT_BLOCK &&
                 stmt->down && stmt->down->type == STMT_BLOCK &&
                 (stmt->down->flags & SIF_SCOPE)) {
-                obj = stmt->down->u.blockObj;
-                JS_ASSERT(LOCKED_OBJ_GET_CLASS(obj) == &js_BlockClass);
-                OBJ_SET_PARENT(cx, fun->object, obj);
+                JS_ASSERT(STOBJ_GET_CLASS(stmt->down->u.blockObj) ==
+                          &js_BlockClass);
+                OBJ_SET_PARENT(cx, fun->object, stmt->down->u.blockObj);
             }
         }
 
@@ -4484,7 +4437,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                     op = PN_OP(pn3);
                 }
                 if (pn3->pn_slot >= 0) {
-                    if (pn3->pn_attrs & JSPROP_READONLY) {
+                    if (pn3->pn_const) {
                         JS_ASSERT(op == JSOP_FORVAR);
                         op = JSOP_FORCONST;
                     }
@@ -5491,7 +5444,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
             if (pn2->pn_type != TOK_NAME ||
                 pn2->pn_slot < 0 ||
-                !(pn2->pn_attrs & JSPROP_READONLY)) {
+                !pn2->pn_const) {
                 if (js_NewSrcNote(cx, cg, SRC_ASSIGNOP) < 0)
                     return JS_FALSE;
             }
@@ -5512,7 +5465,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         
         switch (pn2->pn_type) {
           case TOK_NAME:
-            if (pn2->pn_slot < 0 || !(pn2->pn_attrs & JSPROP_READONLY)) {
+            if (pn2->pn_slot < 0 || !pn2->pn_const) {
                 if (pn2->pn_slot >= 0) {
                     EMIT_UINT16_IMM_OP(PN_OP(pn2), atomIndex);
                 } else {
@@ -5757,7 +5710,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 return JS_FALSE;
             op = PN_OP(pn2);
             if (pn2->pn_slot >= 0) {
-                if (pn2->pn_attrs & JSPROP_READONLY) {
+                if (pn2->pn_const) {
                     
                     op = ((js_CodeSpec[op].format & JOF_TYPEMASK) == JOF_ATOM)
                          ? JSOP_GETGVAR
