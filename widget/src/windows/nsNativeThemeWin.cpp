@@ -341,6 +341,7 @@ nsNativeThemeWin::nsNativeThemeWin() {
   mOsVersion.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
   GetVersionEx(&mOsVersion);
 
+  mIsXPOrLater = ((mOsVersion.dwMajorVersion << 8 | mOsVersion.dwMinorVersion) >= 0x501);
   mIsVistaOrLater = (mOsVersion.dwMajorVersion >= 6);
 
   UpdateConfig();
@@ -448,11 +449,17 @@ static PRBool IsFrameRTL(nsIFrame *frame)
 void
 nsNativeThemeWin::UpdateConfig()
 {
-  
-  
-  BOOL useFlat = PR_FALSE;
-  mFlatMenus = ::SystemParametersInfo(SPI_GETFLATMENU, 0, &useFlat, 0) ?
-                   useFlat : PR_FALSE;
+  if (mIsXPOrLater) {
+    BOOL useFlat = PR_FALSE;
+    mFlatMenus = ::SystemParametersInfo(SPI_GETFLATMENU, 0, &useFlat, 0) ?
+                     useFlat : PR_FALSE;
+  } else {
+    
+    
+    
+    
+    mFlatMenus = PR_FALSE;
+  }
 }
 
 HANDLE
