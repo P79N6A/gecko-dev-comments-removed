@@ -69,6 +69,23 @@ PRLogModuleInfo* gIMM32Log = nsnull;
 
 #ifdef ENABLE_IME_MOUSE_HANDLING
 static UINT sWM_MSIME_MOUSE = 0; 
+
+
+
+
+
+
+
+
+#define RWM_MOUSE           TEXT("MSIMEMouseOperation")
+
+#define IMEMOUSE_NONE       0x00    // no mouse button was pushed
+#define IMEMOUSE_LDOWN      0x01
+#define IMEMOUSE_RDOWN      0x02
+#define IMEMOUSE_MDOWN      0x04
+#define IMEMOUSE_WUP        0x10    // wheel up
+#define IMEMOUSE_WDOWN      0x20    // wheel down
+
 #endif
 
 PRPackedBool nsIMM32Handler::sIsComposingOnPlugin = PR_FALSE;
