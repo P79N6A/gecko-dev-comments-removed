@@ -44,7 +44,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "jstypes.h"
-#include "jsstdint.h"
 #include "jsarena.h" 
 #include "jsbit.h"
 #include "jsutil.h" 
@@ -5926,6 +5925,15 @@ dumpValue(jsval val)
         fprintf(stderr, "null");
     } else if (JSVAL_IS_VOID(val)) {
         fprintf(stderr, "undefined");
+    } else if (JSVAL_IS_OBJECT(val) &&
+               HAS_FUNCTION_CLASS(JSVAL_TO_OBJECT(val))) {
+        JSObject *funobj = JSVAL_TO_OBJECT(val);
+        JSFunction *fun = (JSFunction *) STOBJ_GET_PRIVATE(funobj);
+        fprintf(stderr, "<%s %s at %p (JSFunction at %p)>",
+                fun->atom ? "function" : "unnamed",
+                fun->atom ? JS_GetStringBytes(ATOM_TO_STRING(fun->atom)) : "function",
+                (void *) funobj,
+                (void *) fun);
     } else if (JSVAL_IS_OBJECT(val)) {
         JSObject *obj = JSVAL_TO_OBJECT(val);
         JSClass *cls = STOBJ_GET_CLASS(obj);
