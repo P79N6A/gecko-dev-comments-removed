@@ -602,10 +602,7 @@ private:
 };
 
 
-NS_IMPL_ISUPPORTS3(nsTextInputSelectionImpl,
-                   nsISelectionController,
-                   nsISelectionDisplay,
-                   nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS2(nsTextInputSelectionImpl, nsISelectionController, nsISupportsWeakReference)
 
 
 

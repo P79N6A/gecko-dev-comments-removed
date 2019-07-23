@@ -9,10 +9,7 @@
 
 
 
-NS_IMPL_ISUPPORTS3(TestConverter,
-                   nsIStreamConverter,
-                   nsIStreamListener,
-                   nsIRequestObserver)
+NS_IMPL_ISUPPORTS2(TestConverter, nsIStreamConverter, nsIStreamListener)
 
 TestConverter::TestConverter() {
 }

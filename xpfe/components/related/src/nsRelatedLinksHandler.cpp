@@ -247,9 +247,9 @@ RelatedLinksStreamListener::Init()
 
 
 
-NS_IMPL_ISUPPORTS2(RelatedLinksStreamListener,
-                   nsIStreamListener,
-                   nsIRequestObserver)
+NS_IMPL_ISUPPORTS1(RelatedLinksStreamListener, nsIStreamListener)
+
+
 
 
 
