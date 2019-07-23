@@ -63,16 +63,28 @@
   z-index: 10;
 }
 
+
+
 #ctrlTab-panel:-moz-system-metric(windows-compositor) {
   background: transparent;
   -moz-appearance: -moz-win-glass;
   -moz-border-radius: 0;
   border: none;
-  font: "Segoe UI", window;
-  font-weight: normal;
+  font: normal 1.2em "Segoe UI";
   color: black;
   text-shadow: white -1px -1px .5em, white -1px 1px .5em, white 1px 1px .5em, white 1px -1px .5em;
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
