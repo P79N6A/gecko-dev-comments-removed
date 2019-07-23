@@ -889,6 +889,9 @@ slim_hidden_def (cairo_surface_get_device_offset);
 
 
 
+
+
+
 void
 cairo_surface_set_fallback_resolution (cairo_surface_t	*surface,
 				       double		 x_pixels_per_inch,
