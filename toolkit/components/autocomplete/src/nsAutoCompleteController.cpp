@@ -1290,8 +1290,19 @@ nsAutoCompleteController::ClearResults()
   mRowCount = 0;
   mResults->Clear();
   mMatchCounts.Clear();
-  if (oldRowCount != 0 && mTree)
-    mTree->RowCountChanged(0, -oldRowCount);
+  if (oldRowCount != 0) {
+    if (mTree)
+      mTree->RowCountChanged(0, -oldRowCount);
+    else if (mInput) {
+      nsCOMPtr<nsIAutoCompletePopup> popup;
+      mInput->GetPopup(getter_AddRefs(popup));
+      NS_ENSURE_TRUE(popup != nsnull, NS_ERROR_FAILURE);
+      
+      
+      
+      popup->SetSelectedIndex(-1);
+    }
+  }
   return NS_OK;
 }
 
