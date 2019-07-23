@@ -901,6 +901,9 @@ js_ReportOutOfMemory(JSContext *cx)
 
 
 
+
+
+    cx->throwing = JS_FALSE;
     if (onError) {
         JSDebugErrorHook hook = cx->debugHooks->debugErrorHook;
         if (hook &&

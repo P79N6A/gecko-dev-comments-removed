@@ -678,8 +678,8 @@ AllocateAfterSP(JSContext *cx, jsval *sp, uintN nslots)
     return JS_TRUE;
 }
 
-JS_FRIEND_API(jsval *)
-js_AllocRawStack(JSContext *cx, uintN nslots, void **markp)
+static jsval *
+AllocRawStack(JSContext *cx, uintN nslots, void **markp)
 {
     jsval *sp;
 
@@ -702,8 +702,8 @@ js_AllocRawStack(JSContext *cx, uintN nslots, void **markp)
     return sp;
 }
 
-JS_FRIEND_API(void)
-js_FreeRawStack(JSContext *cx, void *mark)
+static void
+FreeRawStack(JSContext *cx, void *mark)
 {
     JS_ARENA_RELEASE(&cx->stackPool, mark);
 }
@@ -722,7 +722,7 @@ js_AllocStack(JSContext *cx, uintN nslots, void **markp)
     }
 
     
-    sp = js_AllocRawStack(cx, 2 + nslots, markp);
+    sp = AllocRawStack(cx, 2 + nslots, markp);
     if (!sp)
         return NULL;
 
@@ -862,27 +862,6 @@ js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
     fp->scopeChain = obj;
     fp->blockChain = NULL;
     return obj;
-}
-
-
-
-
-
-static JSBool
-PutBlockObjects(JSContext *cx, JSStackFrame *fp)
-{
-    JSBool ok;
-    JSObject *obj;
-
-    ok = JS_TRUE;
-    for (obj = fp->scopeChain; obj; obj = OBJ_GET_PARENT(cx, obj)) {
-        if (OBJ_GET_CLASS(cx, obj) == &js_BlockClass) {
-            if (OBJ_GET_PRIVATE(cx, obj) != fp)
-                break;
-            ok &= js_PutBlockObject(cx, obj);
-        }
-    }
-    return ok;
 }
 
 JSBool
@@ -1265,7 +1244,7 @@ have_fun:
 
         if (!AllocateAfterSP(cx, sp, nslots)) {
             rootedArgsFlag = 0;
-            newvp = js_AllocRawStack(cx, 2 + argc + nslots, NULL);
+            newvp = AllocRawStack(cx, 2 + argc + nslots, NULL);
             if (!newvp) {
                 ok = JS_FALSE;
                 goto out2;
@@ -1315,7 +1294,7 @@ have_fun:
     if (nvars) {
         if (!AllocateAfterSP(cx, sp, nvars)) {
             
-            sp = js_AllocRawStack(cx, nvars, NULL);
+            sp = AllocRawStack(cx, nvars, NULL);
             if (!sp) {
                 ok = JS_FALSE;
                 goto out2;
@@ -1360,9 +1339,6 @@ have_fun:
     frame.dormantNext = NULL;
     frame.xmlNamespace = NULL;
     frame.blockChain = NULL;
-#ifdef DEBUG
-    frame.pcDisabledSave = JS_PROPERTY_CACHE(cx).disabled;
-#endif
 
     
     cx->fp = &frame;
@@ -1584,7 +1560,7 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
         if (script->regexpsOffset != 0)
             frame.nvars += JS_SCRIPT_REGEXPS(script)->length;
         if (frame.nvars != 0) {
-            frame.vars = js_AllocRawStack(cx, frame.nvars, &mark);
+            frame.vars = AllocRawStack(cx, frame.nvars, &mark);
             if (!frame.vars) {
                 ok = JS_FALSE;
                 goto out;
@@ -1607,9 +1583,6 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
     frame.dormantNext = NULL;
     frame.xmlNamespace = NULL;
     frame.blockChain = NULL;
-#ifdef DEBUG
-    frame.pcDisabledSave = JS_PROPERTY_CACHE(cx).disabled;
-#endif
 
     
 
@@ -1649,7 +1622,7 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
             hook(cx, &frame, JS_FALSE, &ok, hookData);
     }
     if (mark)
-        js_FreeRawStack(cx, mark);
+        FreeRawStack(cx, mark);
     cx->fp = oldfp;
 
     if (oldfp && oldfp != down) {
@@ -2078,9 +2051,81 @@ LeaveWith(JSContext *cx)
 
     withobj = cx->fp->scopeChain;
     JS_ASSERT(OBJ_GET_CLASS(cx, withobj) == &js_WithClass);
+    JS_ASSERT(OBJ_GET_PRIVATE(cx, withobj) == cx->fp);
+    JS_ASSERT(OBJ_BLOCK_DEPTH(cx, withobj) >= 0);
     cx->fp->scopeChain = OBJ_GET_PARENT(cx, withobj);
     JS_SetPrivate(cx, withobj, NULL);
     js_EnablePropertyCache(cx);
+}
+
+static JSClass *
+IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth)
+{
+    JSClass *clasp;
+
+    clasp = OBJ_GET_CLASS(cx, obj);
+    if ((clasp == &js_WithClass || clasp == &js_BlockClass) &&
+        OBJ_GET_PRIVATE(cx, obj) == cx->fp &&
+        OBJ_BLOCK_DEPTH(cx, obj) >= stackDepth) {
+        return clasp;
+    }
+    return NULL;
+}
+
+static jsint
+CountWithBlocks(JSContext *cx, JSStackFrame *fp)
+{
+    jsint n;
+    JSObject *obj;
+    JSClass *clasp;
+
+    n = 0;
+    for (obj = fp->scopeChain;
+         (clasp = IsActiveWithOrBlock(cx, obj, 0)) != NULL;
+         obj = OBJ_GET_PARENT(cx, obj)) {
+        if (clasp == &js_WithClass)
+            ++n;
+    }
+    return n;
+}
+
+
+
+
+
+static JSBool
+UnwindScope(JSContext *cx, JSStackFrame *fp, jsint stackDepth,
+            JSBool normalUnwind)
+{
+    JSObject *obj;
+    JSClass *clasp;
+
+    JS_ASSERT(stackDepth >= 0);
+    JS_ASSERT(fp->spbase + stackDepth <= fp->sp);
+
+    for (obj = fp->blockChain; obj; obj = OBJ_GET_PARENT(cx, obj)) {
+        JS_ASSERT(OBJ_GET_CLASS(cx, obj) == &js_BlockClass);
+        if (OBJ_BLOCK_DEPTH(cx, obj) < stackDepth)
+            break;
+    }
+    fp->blockChain = obj;
+
+    for (;;) {
+        obj = fp->scopeChain;
+        clasp = IsActiveWithOrBlock(cx, obj, stackDepth);
+        if (!clasp)
+            break;
+        if (clasp == &js_BlockClass) {
+            
+            normalUnwind &= js_PutBlockObject(cx, obj, normalUnwind);
+            fp->scopeChain = OBJ_GET_PARENT(cx, obj);
+        } else {
+            LeaveWith(cx);
+        }
+    }
+
+    fp->sp = fp->spbase + stackDepth;
+    return normalUnwind;
 }
 
 
@@ -2306,7 +2351,6 @@ js_Interpret(JSContext *cx, jsbytecode *pc, jsval *result)
 #if JS_HAS_GETTER_SETTER
     JSPropertyOp getter, setter;
 #endif
-    int stackDummy;
 
 #ifdef __GNUC__
 # define JS_EXTENSION __extension__
@@ -2352,6 +2396,9 @@ js_Interpret(JSContext *cx, jsbytecode *pc, jsval *result)
 # define EMPTY_CASE(OP)     BEGIN_CASE(OP) END_CASE(OP)
 #endif
 
+    
+    JS_CHECK_RECURSION(cx, return JS_FALSE);
+
     *result = JSVAL_VOID;
     rt = cx->runtime;
 
@@ -2395,26 +2442,6 @@ js_Interpret(JSContext *cx, jsbytecode *pc, jsval *result)
 
 
 
-
-
-
-
-
-    currentVersion = (JSVersion) script->version;
-    originalVersion = (JSVersion) cx->version;
-    if (currentVersion != originalVersion)
-        js_SetVersion(cx, currentVersion);
-
-#ifdef __GNUC__
-    flags = 0;  
-    id = 0;
-    atom = NULL;
-#endif
-
-    
-
-
-
 #define CHECK_BRANCH(len)                                                     \
     JS_BEGIN_MACRO                                                            \
         if (len <= 0 && (cx->operationCount -= JSOW_SCRIPT_JUMP) <= 0) {      \
@@ -2447,12 +2474,26 @@ js_Interpret(JSContext *cx, jsbytecode *pc, jsval *result)
     LOAD_INTERRUPT_HANDLER(cx);
 
     
+
+
+
+
+
+
+
+
+    currentVersion = (JSVersion) script->version;
+    originalVersion = (JSVersion) cx->version;
+    if (currentVersion != originalVersion)
+        js_SetVersion(cx, currentVersion);
+
     ++cx->interpLevel;
-    if (!JS_CHECK_STACK_SIZE(cx, stackDummy)) {
-        js_ReportOverRecursed(cx);
-        ok = JS_FALSE;
-        goto out2;
-    }
+#ifdef DEBUG
+    fp->pcDisabledSave = JS_PROPERTY_CACHE(cx).disabled;
+#endif
+
+    
+    ok = JS_TRUE;
 
     
 
@@ -2461,36 +2502,40 @@ js_Interpret(JSContext *cx, jsbytecode *pc, jsval *result)
 
     depth = (jsint) script->depth;
     if (JS_LIKELY(!fp->spbase)) {
-        newsp = js_AllocRawStack(cx, (uintN)(2 * depth), &mark);
+        ASSERT_NOT_THROWING(cx);
+        newsp = AllocRawStack(cx, (uintN)(2 * depth), &mark);
         if (!newsp) {
+            mark = NULL;
             ok = JS_FALSE;
-            goto out2;
+            goto exit;
         }
+        JS_ASSERT(mark);
         sp = newsp + depth;
         fp->spbase = sp;
         SAVE_SP(fp);
     } else {
+        JS_ASSERT(fp->flags & JSFRAME_GENERATOR);
         sp = fp->sp;
         JS_ASSERT(JS_UPTRDIFF(sp, fp->spbase) <= depth * sizeof(jsval));
         newsp = fp->spbase - depth;
         mark = NULL;
-    }
+        JS_ASSERT(JS_PROPERTY_CACHE(cx).disabled >= 0);
+        JS_PROPERTY_CACHE(cx).disabled += CountWithBlocks(cx, fp);
 
-    
-
-
-
+        
 
 
-    ok = !cx->throwing;
-    if (!ok) {
+
+        if (cx->throwing) {
 #ifdef DEBUG_NOT_THROWING
-        if (cx->exception != JSVAL_ARETURN) {
-            printf("JS INTERPRETER CALLED WITH PENDING EXCEPTION %lx\n",
-                   (unsigned long) cx->exception);
-        }
+            if (cx->exception != JSVAL_ARETURN) {
+                printf("JS INTERPRETER CALLED WITH PENDING EXCEPTION %lx\n",
+                       (unsigned long) cx->exception);
+            }
 #endif
-        goto out;
+            ok = JS_FALSE;
+            goto out;
+        }
     }
 
 #if JS_THREADED_INTERP
@@ -2520,7 +2565,7 @@ interrupt:
             break;
           case JSTRAP_RETURN:
             fp->rval = rval;
-            goto out;
+            goto forced_return;
           case JSTRAP_THROW:
             cx->throwing = JS_TRUE;
             cx->exception = rval;
@@ -2579,7 +2624,7 @@ interrupt:
                 break;
               case JSTRAP_RETURN:
                 fp->rval = rval;
-                goto out;
+                goto forced_return;
               case JSTRAP_THROW:
                 cx->throwing = JS_TRUE;
                 cx->exception = rval;
@@ -2593,9 +2638,6 @@ interrupt:
         switch (op) {
 
 #endif
-
-          BEGIN_CASE(JSOP_STOP)
-            goto out;
 
           EMPTY_CASE(JSOP_NOP)
 
@@ -2683,6 +2725,7 @@ interrupt:
             
 
           BEGIN_CASE(JSOP_RETRVAL)    
+          BEGIN_CASE(JSOP_STOP)
             ASSERT_NOT_THROWING(cx);
             if (inlineCallCount)
           inline_return:
@@ -2690,17 +2733,9 @@ interrupt:
                 JSInlineFrame *ifp = (JSInlineFrame *) fp;
                 void *hookData = ifp->hookData;
 
-                
-
-
-
-
-
-
-                if (fp->flags & JSFRAME_POP_BLOCKS) {
-                    SAVE_SP_AND_PC(fp);
-                    ok &= PutBlockObjects(cx, fp);
-                }
+                JS_ASSERT(JS_PROPERTY_CACHE(cx).disabled == fp->pcDisabledSave);
+                JS_ASSERT(!fp->blockChain);
+                JS_ASSERT(!IsActiveWithOrBlock(cx, fp->scopeChain, 0));
 
                 if (hookData) {
                     JSInterpreterHook hook = cx->debugHooks->callHook;
@@ -2770,8 +2805,9 @@ interrupt:
                     len = JSOP_CALL_LENGTH;
                     DO_NEXT_OP(len);
                 }
+                goto out;
             }
-            goto out;
+            goto exit;
 
           BEGIN_CASE(JSOP_DEFAULT)
             (void) POP();
@@ -4456,7 +4492,8 @@ interrupt:
                     newifp->frame.xmlNamespace = NULL;
                     newifp->frame.blockChain = NULL;
 #ifdef DEBUG
-                    newifp->frame.pcDisabledSave = JS_PROPERTY_CACHE(cx).disabled;
+                    newifp->frame.pcDisabledSave =
+                        JS_PROPERTY_CACHE(cx).disabled;
 #endif
                     newifp->rvp = rvp;
                     newifp->mark = newmark;
@@ -4525,7 +4562,7 @@ interrupt:
                     script = fp->script;
                     depth = (jsint) script->depth;
                     atoms = script->atomMap.vector;
-                    js_FreeRawStack(cx, newmark);
+                    FreeRawStack(cx, newmark);
                     ok = JS_FALSE;
                     goto out;
                 }
@@ -5153,7 +5190,7 @@ interrupt:
                 DO_OP();
               case JSTRAP_RETURN:
                 fp->rval = rval;
-                goto out;
+                goto forced_return;
               case JSTRAP_THROW:
                 cx->throwing = JS_TRUE;
                 cx->exception = rval;
@@ -5968,7 +6005,7 @@ interrupt:
                     break;
                   case JSTRAP_RETURN:
                     fp->rval = rval;
-                    goto out;
+                    goto forced_return;
                   case JSTRAP_THROW:
                     cx->throwing = JS_TRUE;
                     cx->exception = rval;
@@ -6334,7 +6371,7 @@ interrupt:
 
 
                 SAVE_SP_AND_PC(fp);
-                ok = js_PutBlockObject(cx, obj);
+                ok = js_PutBlockObject(cx, obj, JS_TRUE);
                 if (!ok)
                     goto out;
             }
@@ -6352,9 +6389,8 @@ interrupt:
                       : fp->spbase + OBJ_BLOCK_DEPTH(cx, obj) == sp);
 
             *chainp = OBJ_GET_PARENT(cx, obj);
-            JS_ASSERT(chainp != &fp->blockChain ||
-                      !*chainp ||
-                      OBJ_GET_CLASS(cx, *chainp) == &js_BlockClass);
+            JS_ASSERT_IF(fp->blockChain,
+                         OBJ_GET_CLASS(cx, fp->blockChain) == &js_BlockClass);
           }
           END_CASE(JSOP_LEAVEBLOCK)
 
@@ -6425,11 +6461,13 @@ interrupt:
             obj = js_NewGenerator(cx, fp);
             if (!obj) {
                 ok = JS_FALSE;
-            } else {
-                JS_ASSERT(!fp->callobj && !fp->argsobj);
-                fp->rval = OBJECT_TO_JSVAL(obj);
+                goto out;
             }
-            goto out;
+            JS_ASSERT(!fp->callobj && !fp->argsobj);
+            fp->rval = OBJECT_TO_JSVAL(obj);
+            if (inlineCallCount != 0)
+                goto inline_return;
+            goto exit;
 
           BEGIN_CASE(JSOP_YIELD)
             ASSERT_NOT_THROWING(cx);
@@ -6444,7 +6482,9 @@ interrupt:
             fp->flags |= JSFRAME_YIELDING;
             pc += JSOP_YIELD_LENGTH;
             SAVE_SP_AND_PC(fp);
-            goto out;
+            JS_PROPERTY_CACHE(cx).disabled -= CountWithBlocks(cx, fp);
+            JS_ASSERT(JS_PROPERTY_CACHE(cx).disabled >= 0);
+            goto exit;
 
           BEGIN_CASE(JSOP_ARRAYPUSH)
             slot = GET_UINT16(pc);
@@ -6580,7 +6620,7 @@ interrupt:
     }
 #endif 
 
-out:
+  out:
     JS_ASSERT((size_t)(pc - script->code) < script->length);
     if (!ok && cx->throwing) {
         
@@ -6589,8 +6629,6 @@ out:
         uint32 offset;
 
         
-
-
         handler = cx->debugHooks->throwHook;
         if (handler) {
             SAVE_SP_AND_PC(fp);
@@ -6598,12 +6636,12 @@ out:
                             cx->debugHooks->throwHookData)) {
               case JSTRAP_ERROR:
                 cx->throwing = JS_FALSE;
-                goto no_catch;
+                goto forced_return;
               case JSTRAP_RETURN:
-                ok = JS_TRUE;
                 cx->throwing = JS_FALSE;
                 fp->rval = rval;
-                goto no_catch;
+                ok = JS_TRUE;
+                goto forced_return;
               case JSTRAP_THROW:
                 cx->exception = rval;
               case JSTRAP_CONTINUE:
@@ -6652,50 +6690,19 @@ out:
 
 
 
+            pc = (script)->main + tn->start + tn->length;
 
-            ok = JS_TRUE;
-            i = tn->stackDepth;
-            for (obj = fp->blockChain; obj; obj = OBJ_GET_PARENT(cx, obj)) {
-                JS_ASSERT(OBJ_GET_CLASS(cx, obj) == &js_BlockClass);
-                if (OBJ_BLOCK_DEPTH(cx, obj) < i)
-                    break;
-            }
-            fp->blockChain = obj;
-
-            JS_ASSERT(ok);
-            for (;;) {
-                obj = fp->scopeChain;
-                clasp = OBJ_GET_CLASS(cx, obj);
-                if (clasp != &js_WithClass && clasp != &js_BlockClass)
-                    break;
-                if (OBJ_GET_PRIVATE(cx, obj) != fp ||
-                    OBJ_BLOCK_DEPTH(cx, obj) < i) {
-                    break;
-                }
-                if (clasp == &js_BlockClass) {
-                    
-                    ok &= js_PutBlockObject(cx, obj);
-                    fp->scopeChain = OBJ_GET_PARENT(cx, obj);
-                } else {
-                    LeaveWith(cx);
-                }
-            }
-
-            sp = fp->spbase + i;
-
-            
+            SAVE_SP_AND_PC(fp);
+            ok = UnwindScope(cx, fp, tn->stackDepth, JS_TRUE);
+            JS_ASSERT(fp->sp == fp->spbase + tn->stackDepth);
+            sp = fp->sp;
+            if (!ok) {
+                
 
 
 
-
-
-
-
-
-            offset = tn->start + tn->length;
-            pc = (script)->main + offset;
-            if (!ok)
                 goto out;
+            }
 
             switch (tn->kind) {
               case JSTN_CATCH:
@@ -6769,34 +6776,35 @@ out:
 #endif
     }
 
+  forced_return:
     
 
 
 
-
-
-
-
-    if (!ok) {
-        for (obj = fp->scopeChain; obj; obj = OBJ_GET_PARENT(cx, obj)) {
-            clasp = OBJ_GET_CLASS(cx, obj);
-            if (clasp != &js_WithClass && clasp != &js_BlockClass)
-                break;
-            if (OBJ_GET_PRIVATE(cx, obj) != fp || OBJ_BLOCK_DEPTH(cx, obj) < 0)
-                break;
-            if (clasp == &js_WithClass)
-                js_EnablePropertyCache(cx);
-        }
-    }
-    JS_ASSERT_IF(mark, JS_PROPERTY_CACHE(cx).disabled == fp->pcDisabledSave);
+    SAVE_SP_AND_PC(fp);
 
     
-
-
-
+    ok &= UnwindScope(cx, fp, 0, ok || cx->throwing);
+    JS_ASSERT(fp->sp == fp->spbase);
+    sp = fp->sp;
 
     if (inlineCallCount)
         goto inline_return;
+
+  exit:
+    
+
+
+
+
+
+
+
+
+
+
+    JS_ASSERT(inlineCallCount == 0);
+    JS_ASSERT(JS_PROPERTY_CACHE(cx).disabled == fp->pcDisabledSave);
 
     
 
@@ -6804,26 +6812,20 @@ out:
 
 
     if (JS_LIKELY(mark != NULL)) {
-        
-        if (fp->flags & JSFRAME_POP_BLOCKS) {
-            SAVE_SP_AND_PC(fp);
-            ok &= PutBlockObjects(cx, fp);
-        }
-
+        JS_ASSERT(!fp->blockChain);
+        JS_ASSERT(!IsActiveWithOrBlock(cx, fp->scopeChain, 0));
+        JS_ASSERT(!(fp->flags & JSFRAME_GENERATOR));
         fp->sp = fp->spbase;
         fp->spbase = NULL;
-        js_FreeRawStack(cx, mark);
-    } else {
-        SAVE_SP(fp);
+        FreeRawStack(cx, mark);
     }
 
-out2:
     if (cx->version == currentVersion && currentVersion != originalVersion)
         js_SetVersion(cx, originalVersion);
     cx->interpLevel--;
     return ok;
 
-atom_not_defined:
+  atom_not_defined:
     {
         const char *printable;
 

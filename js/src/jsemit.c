@@ -1326,56 +1326,11 @@ FlushPops(JSContext *cx, JSCodeGenerator *cg, intN *npops)
 
 
 
-
-
 static JSBool
-EmitNonLocalJumpFixup(JSContext *cx, JSCodeGenerator *cg, JSStmtInfo *toStmt,
-                      JSOp *returnop)
+EmitNonLocalJumpFixup(JSContext *cx, JSCodeGenerator *cg, JSStmtInfo *toStmt)
 {
     intN depth, npops;
     JSStmtInfo *stmt;
-    ptrdiff_t jmp;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if (returnop) {
-        JS_ASSERT(*returnop == JSOP_RETURN);
-        for (stmt = cg->treeContext.topStmt; stmt != toStmt;
-             stmt = stmt->down) {
-            if (stmt->type == STMT_FINALLY ||
-                ((cg->treeContext.flags & TCF_FUN_HEAVYWEIGHT) &&
-                 STMT_MAYBE_SCOPE(stmt)) ||
-                stmt->type == STMT_FOR_IN_LOOP) {
-                if (js_Emit1(cx, cg, JSOP_SETRVAL) < 0)
-                    return JS_FALSE;
-                *returnop = JSOP_RETRVAL;
-                break;
-            }
-        }
-
-        
-
-
-
-
-        if (*returnop == JSOP_RETURN)
-            return JS_TRUE;
-    }
 
     
 
@@ -1394,8 +1349,7 @@ EmitNonLocalJumpFixup(JSContext *cx, JSCodeGenerator *cg, JSStmtInfo *toStmt,
             FLUSH_POPS();
             if (js_NewSrcNote(cx, cg, SRC_HIDDEN) < 0)
                 return JS_FALSE;
-            jmp = EmitBackPatchOp(cx, cg, JSOP_BACKPATCH, &GOSUBS(*stmt));
-            if (jmp < 0)
+            if (EmitBackPatchOp(cx, cg, JSOP_BACKPATCH, &GOSUBS(*stmt)) < 0)
                 return JS_FALSE;
             break;
 
@@ -1455,7 +1409,7 @@ EmitGoto(JSContext *cx, JSCodeGenerator *cg, JSStmtInfo *toStmt,
 {
     intN index;
 
-    if (!EmitNonLocalJumpFixup(cx, cg, toStmt, NULL))
+    if (!EmitNonLocalJumpFixup(cx, cg, toStmt))
         return -1;
 
     if (label)
@@ -5119,11 +5073,19 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-        op = JSOP_RETURN;
-        if (!EmitNonLocalJumpFixup(cx, cg, NULL, &op))
+
+
+
+        top = CG_OFFSET(cg);
+        if (js_Emit1(cx, cg, JSOP_RETURN) < 0)
             return JS_FALSE;
-        if (js_Emit1(cx, cg, op) < 0)
+        if (!EmitNonLocalJumpFixup(cx, cg, NULL))
             return JS_FALSE;
+        if (top + JSOP_RETURN_LENGTH != CG_OFFSET(cg)) {
+            CG_BASE(cg)[top] = JSOP_SETRVAL;
+            if (js_Emit1(cx, cg, JSOP_RETRVAL) < 0)
+                return JS_FALSE;
+        }
         break;
 
 #if JS_HAS_GENERATORS
