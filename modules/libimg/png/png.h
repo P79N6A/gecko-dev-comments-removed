@@ -365,6 +365,9 @@
 
 
 
+
+
+
 #ifndef PNG_H
 #define PNG_H
 
@@ -375,9 +378,9 @@
 
 
 
-#define PNG_LIBPNG_VER_STRING "1.2.23"
+#define PNG_LIBPNG_VER_STRING "1.2.24"
 #define PNG_HEADER_VERSION_STRING \
-   " libpng version 1.2.23 - November 6, 2007\n"
+   " libpng version 1.2.24 - December 14, 2007\n"
 
 #define PNG_LIBPNG_VER_SONUM   0
 #define PNG_LIBPNG_VER_DLLNUM  13
@@ -385,7 +388,7 @@
 
 #define PNG_LIBPNG_VER_MAJOR   1
 #define PNG_LIBPNG_VER_MINOR   2
-#define PNG_LIBPNG_VER_RELEASE 23
+#define PNG_LIBPNG_VER_RELEASE 24
 
 
 
@@ -413,7 +416,7 @@
 
 
 
-#define PNG_LIBPNG_VER 10223 /* 1.2.23 */
+#define PNG_LIBPNG_VER 10224 /* 1.2.24 */
 
 #ifndef PNG_VERSION_INFO_ONLY
 
@@ -1203,10 +1206,12 @@ struct png_struct_def
    png_uint_32 row_number;    
    png_bytep prev_row;        
    png_bytep row_buf;         
+#ifndef PNG_NO_WRITE_FILTERING
    png_bytep sub_row;         
    png_bytep up_row;          
    png_bytep avg_row;         
    png_bytep paeth_row;       
+#endif
    png_row_info row_info;     
 
    png_uint_32 idat_size;     
@@ -1477,7 +1482,7 @@ struct png_struct_def
 
 
 
-typedef png_structp version_1_2_23;
+typedef png_structp version_1_2_24;
 
 typedef png_struct FAR * FAR * png_structpp;
 

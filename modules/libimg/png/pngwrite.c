@@ -1068,11 +1068,13 @@ png_write_destroy(png_structp png_ptr)
    
    png_free(png_ptr, png_ptr->zbuf);
    png_free(png_ptr, png_ptr->row_buf);
+#ifndef PNG_NO_WRITE_FILTERING
    png_free(png_ptr, png_ptr->prev_row);
    png_free(png_ptr, png_ptr->sub_row);
    png_free(png_ptr, png_ptr->up_row);
    png_free(png_ptr, png_ptr->avg_row);
    png_free(png_ptr, png_ptr->paeth_row);
+#endif
 
 #if defined(PNG_TIME_RFC1123_SUPPORTED)
    png_free(png_ptr, png_ptr->time_buffer);

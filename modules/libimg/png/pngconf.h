@@ -325,7 +325,7 @@
      
 
 
-         __png.h__ already includes setjmp.h;
+         __pngconf.h__ already includes setjmp.h;
          __dont__ include it again.;
 #    endif
 #  endif 
@@ -335,7 +335,9 @@
 
 #  ifdef __linux__
 #    ifdef PNG_SAVE_BSD_SOURCE
-#      define _BSD_SOURCE
+#      ifndef _BSD_SOURCE
+#        define _BSD_SOURCE
+#      endif
 #      undef PNG_SAVE_BSD_SOURCE
 #    endif
 #  endif 
