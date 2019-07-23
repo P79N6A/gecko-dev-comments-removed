@@ -1013,10 +1013,7 @@ nsSubDocumentFrame::CreateViewAndWidget(nsContentType aContentType)
   nsRect viewBounds(0, 0, 0, 0); 
 
   nsIViewManager* viewMan = outerView->GetViewManager();
-  
-  
-  nsIView* innerView = viewMan->CreateView(viewBounds, outerView,
-                                           outerView->GetVisibility());
+  nsIView* innerView = viewMan->CreateView(viewBounds, outerView);
   if (!innerView) {
     NS_ERROR("Could not create inner view");
     return NS_ERROR_OUT_OF_MEMORY;
