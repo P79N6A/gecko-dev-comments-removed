@@ -1039,7 +1039,7 @@ nsMathMLContainerFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
 }
 
  nscoord
-nsMathMLContainerFrame::GetIntrinsicWidth(nsIRenderingContext *aRenderingContext)
+nsMathMLContainerFrame::GetIntrinsicWidth(nsIRenderingContext* aRenderingContext)
 {
   
   nsIFrame* childFrame = mFrames.FirstChild();
@@ -1066,7 +1066,7 @@ nsMathMLContainerFrame::GetIntrinsicWidth(nsIRenderingContext *aRenderingContext
 
   
   nsHTMLReflowMetrics desiredSize;
-  nsresult rv = Place(*aRenderingContext, PR_FALSE, desiredSize);
+  nsresult rv = MeasureChildFrames(*aRenderingContext, desiredSize);
   if (NS_FAILED(rv)) {
     ReflowError(*aRenderingContext, desiredSize);
   }
@@ -1075,6 +1075,14 @@ nsMathMLContainerFrame::GetIntrinsicWidth(nsIRenderingContext *aRenderingContext
 
   return desiredSize.width;
 }
+
+ nsresult
+nsMathMLContainerFrame::MeasureChildFrames(nsIRenderingContext& aRenderingContext,
+                                           nsHTMLReflowMetrics& aDesiredSize)
+{
+  return Place(aRenderingContext, PR_FALSE, aDesiredSize);
+}
+
 
 
 

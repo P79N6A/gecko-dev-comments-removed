@@ -230,6 +230,19 @@ protected:
 
   
   
+  
+  
+  
+  
+  
+  
+  virtual nsresult
+  MeasureChildFrames(nsIRenderingContext& aRenderingContext,
+                     nsHTMLReflowMetrics& aDesiredSize);
+
+
+  
+  
   virtual nsresult
   ChildListChanged(PRInt32 aModType);
 

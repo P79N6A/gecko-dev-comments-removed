@@ -282,6 +282,26 @@ nsMathMLmsqrtFrame::Place(nsIRenderingContext& aRenderingContext,
   return NS_OK;
 }
 
+ nscoord
+nsMathMLmsqrtFrame::GetIntrinsicWidth(nsIRenderingContext* aRenderingContext)
+{
+  
+  nscoord width = nsMathMLContainerFrame::GetIntrinsicWidth(aRenderingContext);
+  
+  width += mSqrChar.GetMaxWidth(PresContext(), *aRenderingContext);
+
+  return width;
+}
+
+ nsresult
+nsMathMLmsqrtFrame::MeasureChildFrames(nsIRenderingContext& aRenderingContext,
+                                       nsHTMLReflowMetrics& aDesiredSize)
+{
+  return nsMathMLContainerFrame::Place(aRenderingContext, PR_FALSE,
+                                       aDesiredSize);
+}
+
+
 nscoord
 nsMathMLmsqrtFrame::FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize)
 {
