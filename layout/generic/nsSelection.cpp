@@ -122,8 +122,7 @@ class nsSelectionIterator;
 class nsFrameSelection;
 class nsAutoScrollTimer;
 
-PRBool  IsValidSelectionPoint(nsFrameSelection *aFrameSel, nsINode *aNode);
-PRBool  IsValidSelectionPoint(nsFrameSelection *aFrameSel, nsIDOMNode *aDomNode);
+static PRBool IsValidSelectionPoint(nsFrameSelection *aFrameSel, nsINode *aNode);
 
 static nsIAtom *GetTag(nsIDOMNode *aNode);
 static nsresult ParentOffset(nsIDOMNode *aNode, nsIDOMNode **aParent, PRInt32 *aChildOffset);
@@ -214,11 +213,9 @@ public:
   nsresult      Extend(nsINode* aParentNode, PRInt32 aOffset);
 
   
-  nsIDOMNode*  FetchAnchorNode();  
   nsINode*     GetAnchorNode();
   PRInt32      GetAnchorOffset();
 
-  nsIDOMNode*  FetchFocusNode();   
   nsINode*     GetFocusNode();
   PRInt32      GetFocusOffset();
 
@@ -620,16 +617,6 @@ GetSelectionTypeFromIndex(PRInt8 aIndex)
   }
   
   return 0;
-}
-
-
-PRBool       
-IsValidSelectionPoint(nsFrameSelection *aFrameSel, nsIDOMNode *aDomNode)
-{
-    nsCOMPtr<nsINode> passedNode = do_QueryInterface(aDomNode);
-    if (!passedNode)
-      return PR_FALSE;
-    return IsValidSelectionPoint(aFrameSel, passedNode);
 }
 
 
@@ -1231,20 +1218,19 @@ nsFrameSelection::MoveCaret(PRUint32          aKeycode,
   if (!context)
     return NS_ERROR_FAILURE;
 
-  nsCOMPtr<nsIDOMNode> weakNodeUsed;
-  PRInt32 offsetused = 0;
-
   PRBool isCollapsed;
   nscoord desiredX = 0; 
 
   PRInt8 index = GetIndexFromSelectionType(nsISelectionController::SELECTION_NORMAL);
-  if (!mDomSelections[index])
+  nsRefPtr<nsTypedSelection> sel = mDomSelections[index];
+  if (!sel)
     return NS_ERROR_NULL_POINTER;
 
-  nsresult result = mDomSelections[index]->GetIsCollapsed(&isCollapsed);
+  nsresult result = sel->GetIsCollapsed(&isCollapsed);
   if (NS_FAILED(result))
     return result;
-  if (aKeycode == nsIDOMKeyEvent::DOM_VK_UP || aKeycode == nsIDOMKeyEvent::DOM_VK_DOWN)
+  if (aKeycode == nsIDOMKeyEvent::DOM_VK_UP ||
+      aKeycode == nsIDOMKeyEvent::DOM_VK_DOWN)
   {
     result = FetchDesiredX(desiredX);
     if (NS_FAILED(result))
@@ -1263,37 +1249,31 @@ nsFrameSelection::MoveCaret(PRUint32          aKeycode,
     switch (aKeycode){
       case nsIDOMKeyEvent::DOM_VK_LEFT  :
       case nsIDOMKeyEvent::DOM_VK_UP    :
-          if (mDomSelections[index]->GetDirection() == eDirPrevious) { 
-            offsetused = mDomSelections[index]->GetFocusOffset();
-            weakNodeUsed = mDomSelections[index]->FetchFocusNode();
+        {
+          const nsIRange* anchorFocusRange = sel->GetAnchorFocusRange();
+          if (anchorFocusRange) {
+            sel->Collapse(anchorFocusRange->GetStartParent(),
+                          anchorFocusRange->StartOffset());
           }
-          else {
-            offsetused = mDomSelections[index]->GetAnchorOffset();
-            weakNodeUsed = mDomSelections[index]->FetchAnchorNode();
-          }
-          result = mDomSelections[index]->Collapse(weakNodeUsed, offsetused);
           mHint = HINTRIGHT;
-          mDomSelections[index]->
-            ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION,
-                           PR_FALSE, PR_FALSE);
+          sel->ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION,
+                              PR_FALSE, PR_FALSE);
           return NS_OK;
+        }
 
       case nsIDOMKeyEvent::DOM_VK_RIGHT :
       case nsIDOMKeyEvent::DOM_VK_DOWN  :
-          if (mDomSelections[index]->GetDirection() == eDirPrevious) { 
-            offsetused = mDomSelections[index]->GetAnchorOffset();
-            weakNodeUsed = mDomSelections[index]->FetchAnchorNode();
+        {
+          const nsIRange* anchorFocusRange = sel->GetAnchorFocusRange();
+          if (anchorFocusRange) {
+            sel->Collapse(anchorFocusRange->GetEndParent(),
+                          anchorFocusRange->EndOffset());
           }
-          else {
-            offsetused = mDomSelections[index]->GetFocusOffset();
-            weakNodeUsed = mDomSelections[index]->FetchFocusNode();
-          }
-          result = mDomSelections[index]->Collapse(weakNodeUsed, offsetused);
           mHint = HINTLEFT;
-          mDomSelections[index]->
-            ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION,
-                           PR_FALSE, PR_FALSE);
+          sel->ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION,
+                              PR_FALSE, PR_FALSE);
           return NS_OK;
+        }
     }
   }
 
@@ -1306,7 +1286,8 @@ nsFrameSelection::MoveCaret(PRUint32          aKeycode,
     mCaretMovementStyle == 1 || (mCaretMovementStyle == 2 && !aContinueSelection);
 
   nsIFrame *frame;
-  result = mDomSelections[index]->GetPrimaryFrameForFocusNode(&frame, &offsetused, visualMovement);
+  PRInt32 offsetused = 0;
+  result = sel->GetPrimaryFrameForFocusNode(&frame, &offsetused, visualMovement);
 
   if (NS_FAILED(result) || !frame)
     return result?result:NS_ERROR_FAILURE;
@@ -1412,10 +1393,8 @@ nsFrameSelection::MoveCaret(PRUint32          aKeycode,
     
     
     
-    weakNodeUsed = mDomSelections[index]->FetchFocusNode();
-    offsetused = mDomSelections[index]->GetFocusOffset();
     PRBool isBRFrame = frame->GetType() == nsGkAtoms::brFrame;
-    mDomSelections[index]->Collapse(weakNodeUsed, offsetused);
+    sel->Collapse(sel->GetFocusNode(), sel->GetFocusOffset());
     
     if (!isBRFrame) {
       mHint = HINTLEFT; 
@@ -3439,7 +3418,7 @@ nsFrameSelection::SetAncestorLimiter(nsIContent *aLimiter)
     if (!mDomSelections[index])
       return;
 
-    if (!IsValidSelectionPoint(this, mDomSelections[index]->FetchFocusNode())) {
+    if (!IsValidSelectionPoint(this, mDomSelections[index]->GetFocusNode())) {
       ClearNormalSelection();
       if (mAncestorLimiter) {
         PostReason(nsISelectionListener::NO_REASON);
@@ -3475,7 +3454,7 @@ nsFrameSelection::DeleteFromDocument()
     
     if (mDomSelections[index]->GetFocusOffset() > 0)
     {
-      mDomSelections[index]->Extend(mDomSelections[index]->FetchFocusNode(), mDomSelections[index]->GetFocusOffset() - 1);
+      mDomSelections[index]->Extend(mDomSelections[index]->GetFocusNode(), mDomSelections[index]->GetFocusOffset() - 1);
     }
     else
     {
@@ -3507,9 +3486,9 @@ nsFrameSelection::DeleteFromDocument()
   
   
   if (isCollapsed)
-    mDomSelections[index]->Collapse(mDomSelections[index]->FetchAnchorNode(), mDomSelections[index]->GetAnchorOffset()-1);
+    mDomSelections[index]->Collapse(mDomSelections[index]->GetAnchorNode(), mDomSelections[index]->GetAnchorOffset()-1);
   else if (mDomSelections[index]->GetAnchorOffset() > 0)
-    mDomSelections[index]->Collapse(mDomSelections[index]->FetchAnchorNode(), mDomSelections[index]->GetAnchorOffset());
+    mDomSelections[index]->Collapse(mDomSelections[index]->GetAnchorNode(), mDomSelections[index]->GetAnchorOffset());
 #ifdef DEBUG
   else
     printf("Don't know how to set selection back past frame boundary\n");
@@ -3700,18 +3679,6 @@ void nsTypedSelection::setAnchorFocusRange(PRInt32 indx)
   }
 }
 
-
-
-nsIDOMNode*
-nsTypedSelection::FetchAnchorNode()
-{  
-  nsCOMPtr<nsIDOMNode>returnval;
-  GetAnchorNode(getter_AddRefs(returnval));
-  return returnval;
-}
-
-
-
 PRInt32
 nsTypedSelection::GetAnchorOffset()
 {
@@ -3723,14 +3690,6 @@ nsTypedSelection::GetAnchorOffset()
   }
 
   return mAnchorFocusRange->EndOffset();
-}
-
-nsIDOMNode*
-nsTypedSelection::FetchFocusNode()
-{   
-  nsCOMPtr<nsIDOMNode>returnval;
-  GetFocusNode(getter_AddRefs(returnval));
-  return returnval;
 }
 
 PRInt32
@@ -4404,7 +4363,7 @@ nsTypedSelection::GetPrimaryFrameForAnchorNode(nsIFrame **aReturnFrame)
   
   PRInt32 frameOffset = 0;
   *aReturnFrame = 0;
-  nsCOMPtr<nsIContent> content = do_QueryInterface(FetchAnchorNode());
+  nsCOMPtr<nsIContent> content = do_QueryInterface(GetAnchorNode());
   if (content && mFrameSelection)
   {
     *aReturnFrame = mFrameSelection->
@@ -4423,7 +4382,7 @@ nsTypedSelection::GetPrimaryFrameForFocusNode(nsIFrame **aReturnFrame, PRInt32 *
   if (!aReturnFrame)
     return NS_ERROR_NULL_POINTER;
   
-  nsCOMPtr<nsIContent> content = do_QueryInterface(FetchFocusNode());
+  nsCOMPtr<nsIContent> content = do_QueryInterface(GetFocusNode());
   if (!content || !mFrameSelection)
     return NS_ERROR_FAILURE;
   
@@ -6065,17 +6024,17 @@ nsTypedSelection::GetSelectionRegionRectAndScrollableView(SelectionRegion aRegio
   aRect->SetRect(0, 0, 0, 0);
   *aScrollableView = nsnull;
 
-  nsIDOMNode *node       = nsnull;
+  nsINode    *node       = nsnull;
   PRInt32     nodeOffset = 0;
   nsIFrame   *frame      = nsnull;
 
   switch (aRegion) {
     case nsISelectionController::SELECTION_ANCHOR_REGION:
-      node       = FetchAnchorNode();
+      node       = GetAnchorNode();
       nodeOffset = GetAnchorOffset();
       break;
     case nsISelectionController::SELECTION_FOCUS_REGION:
-      node       = FetchFocusNode();
+      node       = GetFocusNode();
       nodeOffset = GetFocusOffset();
       break;
     default:
@@ -6106,18 +6065,16 @@ nsTypedSelection::GetSelectionRegionRectAndScrollableView(SelectionRegion aRegio
 
   
   
-  PRUint16 nodeType = nsIDOMNode::ELEMENT_NODE;
-  nsresult rv = node->GetNodeType(&nodeType);
-  if (NS_FAILED(rv))
-    return rv;
+  PRBool isText = node->IsNodeOfType(nsINode::eTEXT);
 
   nsPoint pt(0, 0);
-  if (nodeType == nsIDOMNode::TEXT_NODE) {
+  if (isText) {
     nsIFrame* childFrame = nsnull;
     frameOffset = 0;
-    rv = frame->GetChildFrameContainingOffset(nodeOffset,
-                                              mFrameSelection->GetHint(),
-                                              &frameOffset, &childFrame);
+    nsresult rv =
+      frame->GetChildFrameContainingOffset(nodeOffset,
+                                           mFrameSelection->GetHint(),
+                                           &frameOffset, &childFrame);
     if (NS_FAILED(rv))
       return rv;
     if (!childFrame)
@@ -6133,11 +6090,11 @@ nsTypedSelection::GetSelectionRegionRectAndScrollableView(SelectionRegion aRegio
 
   
   *aRect = frame->GetRect();
-  rv = GetFrameToScrolledViewOffsets(*aScrollableView, frame, &aRect->x,
-                                     &aRect->y);
+  nsresult rv = GetFrameToScrolledViewOffsets(*aScrollableView, frame,
+                                              &aRect->x, &aRect->y);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (nodeType == nsIDOMNode::TEXT_NODE) {
+  if (isText) {
     aRect->x += pt.x;
   }
   else if (mFrameSelection->GetHint() == nsFrameSelection::HINTLEFT) {
@@ -6527,16 +6484,15 @@ nsTypedSelection::SelectionLanguageChange(PRBool aLangRTL)
   if (!mFrameSelection)
     return NS_ERROR_NOT_INITIALIZED; 
   nsresult result;
-  nsCOMPtr<nsIDOMNode>  focusNode;
-  nsCOMPtr<nsIContent> focusContent;
-  PRInt32 focusOffset;
   nsIFrame *focusFrame = 0;
 
-  focusOffset = GetFocusOffset();
-  focusNode = FetchFocusNode();
   result = GetPrimaryFrameForFocusNode(&focusFrame, nsnull, PR_FALSE);
-  if (NS_FAILED(result) || !focusFrame)
-    return result?result:NS_ERROR_FAILURE;
+  if (NS_FAILED(result)) {
+    return result;
+  }
+  if (!focusFrame) {
+    return NS_ERROR_FAILURE;
+  }
 
   PRInt32 frameStart, frameEnd;
   focusFrame->GetOffsets(frameStart, frameEnd);
@@ -6547,6 +6503,7 @@ nsTypedSelection::SelectionLanguageChange(PRBool aLangRTL)
     return result?result:NS_ERROR_FAILURE;
 
   PRUint8 level = NS_GET_EMBEDDING_LEVEL(focusFrame);
+  PRInt32 focusOffset = GetFocusOffset();
   if ((focusOffset != frameStart) && (focusOffset != frameEnd))
     
     
@@ -6554,7 +6511,7 @@ nsTypedSelection::SelectionLanguageChange(PRBool aLangRTL)
   else {
     
     
-    focusContent = do_QueryInterface(focusNode);
+    nsCOMPtr<nsIContent> focusContent = do_QueryInterface(GetFocusNode());
     
 
 
