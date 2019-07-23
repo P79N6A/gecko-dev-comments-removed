@@ -205,6 +205,16 @@ public:
 
   void SimpleSubtract (const nsRegion& aRegion);
 
+  
+
+
+  static nsresult InitStatic();
+
+  
+
+
+  static void ShutdownStatic();
+
 private:
   PRUint32    mRectCount;
   RgnRect*    mCurRect;
