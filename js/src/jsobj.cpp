@@ -1895,10 +1895,114 @@ js_Object(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 
+
+
+static JS_REQUIRES_STACK JSBool
+Detecting(JSContext *cx, jsbytecode *pc)
+{
+    JSScript *script;
+    jsbytecode *endpc;
+    JSOp op;
+    JSAtom *atom;
+
+    if (!cx->fp)
+        return JS_FALSE;
+    script = cx->fp->script;
+    for (endpc = script->code + script->length;
+         pc < endpc;
+         pc += js_CodeSpec[op].length) {
+        
+        op = (JSOp) *pc;
+        if (js_CodeSpec[op].format & JOF_DETECTING)
+            return JS_TRUE;
+
+        switch (op) {
+          case JSOP_NULL:
+            
+
+
+
+            if (++pc < endpc)
+                return *pc == JSOP_EQ || *pc == JSOP_NE;
+            return JS_FALSE;
+
+          case JSOP_NAME:
+            
+
+
+
+
+            GET_ATOM_FROM_BYTECODE(script, pc, 0, atom);
+            if (atom == cx->runtime->atomState.typeAtoms[JSTYPE_VOID] &&
+                (pc += js_CodeSpec[op].length) < endpc) {
+                op = (JSOp) *pc;
+                return op == JSOP_EQ || op == JSOP_NE ||
+                       op == JSOP_STRICTEQ || op == JSOP_STRICTNE;
+            }
+            return JS_FALSE;
+
+          default:
+            
+
+
+
+            if (!(js_CodeSpec[op].format & JOF_INDEXBASE))
+                return JS_FALSE;
+            break;
+        }
+    }
+    return JS_FALSE;
+}
+
+
+
+
+
+
+
+static uintN
+InferFlags(JSContext *cx, uintN defaultFlags)
+{
+    JSStackFrame *fp;
+    jsbytecode *pc;
+    const JSCodeSpec *cs;
+    uint32 format;
+    uintN flags = 0;
+
+    fp = js_GetTopStackFrame(cx);
+    if (!fp || !fp->regs)
+        return defaultFlags;
+    pc = fp->regs->pc;
+    cs = &js_CodeSpec[*pc];
+    format = cs->format;
+    if (JOF_MODE(format) != JOF_NAME)
+        flags |= JSRESOLVE_QUALIFIED;
+    if ((format & (JOF_SET | JOF_FOR)) ||
+        (fp->flags & JSFRAME_ASSIGNING)) {
+        flags |= JSRESOLVE_ASSIGNING;
+    } else {
+        pc += cs->length;
+        if (Detecting(cx, pc))
+            flags |= JSRESOLVE_DETECTING;
+    }
+    if (format & JOF_DECLARING)
+        flags |= JSRESOLVE_DECLARING;
+    return flags;
+}
+
+
+
+
 static JSBool
 with_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
                     JSProperty **propp)
 {
+    
+    uintN flags = cx->resolveFlags;
+    if (flags == JSRESOLVE_INFER)
+        flags = InferFlags(cx, flags);
+    flags |= JSRESOLVE_WITH;
+    JSAutoResolveFlags rf(cx, flags);
     JSObject *proto = OBJ_GET_PROTO(cx, obj);
     if (!proto)
         return js_LookupProperty(cx, obj, id, objp, propp);
@@ -3310,68 +3414,6 @@ bad:
     return JS_FALSE;
 }
 
-
-
-
-
-
-static JS_REQUIRES_STACK JSBool
-Detecting(JSContext *cx, jsbytecode *pc)
-{
-    JSScript *script;
-    jsbytecode *endpc;
-    JSOp op;
-    JSAtom *atom;
-
-    if (!cx->fp)
-        return JS_FALSE;
-    script = cx->fp->script;
-    for (endpc = script->code + script->length;
-         pc < endpc;
-         pc += js_CodeSpec[op].length) {
-        
-        op = (JSOp) *pc;
-        if (js_CodeSpec[op].format & JOF_DETECTING)
-            return JS_TRUE;
-
-        switch (op) {
-          case JSOP_NULL:
-            
-
-
-
-            if (++pc < endpc)
-                return *pc == JSOP_EQ || *pc == JSOP_NE;
-            return JS_FALSE;
-
-          case JSOP_NAME:
-            
-
-
-
-
-            GET_ATOM_FROM_BYTECODE(script, pc, 0, atom);
-            if (atom == cx->runtime->atomState.typeAtoms[JSTYPE_VOID] &&
-                (pc += js_CodeSpec[op].length) < endpc) {
-                op = (JSOp) *pc;
-                return op == JSOP_EQ || op == JSOP_NE ||
-                       op == JSOP_STRICTEQ || op == JSOP_STRICTNE;
-            }
-            return JS_FALSE;
-
-          default:
-            
-
-
-
-            if (!(js_CodeSpec[op].format & JOF_INDEXBASE))
-                return JS_FALSE;
-            break;
-        }
-    }
-    return JS_FALSE;
-}
-
 JS_FRIEND_API(JSBool)
 js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
                   JSProperty **propp)
@@ -3397,9 +3439,6 @@ js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
     JSResolvingEntry *entry;
     uint32 generation;
     JSNewResolveOp newresolve;
-    jsbytecode *pc;
-    const JSCodeSpec *cs;
-    uint32 format;
     JSBool ok;
 
     
@@ -3448,27 +3487,9 @@ js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                 *propp = NULL;
 
                 if (clasp->flags & JSCLASS_NEW_RESOLVE) {
-                    JSStackFrame *fp = js_GetTopStackFrame(cx);
-
                     newresolve = (JSNewResolveOp)resolve;
-                    if (flags == JSRESOLVE_INFER && fp && fp->regs) {
-                        flags = 0;
-                        pc = fp->regs->pc;
-                        cs = &js_CodeSpec[*pc];
-                        format = cs->format;
-                        if (JOF_MODE(format) != JOF_NAME)
-                            flags |= JSRESOLVE_QUALIFIED;
-                        if ((format & (JOF_SET | JOF_FOR)) ||
-                            (fp->flags & JSFRAME_ASSIGNING)) {
-                            flags |= JSRESOLVE_ASSIGNING;
-                        } else {
-                            pc += cs->length;
-                            if (Detecting(cx, pc))
-                                flags |= JSRESOLVE_DETECTING;
-                        }
-                        if (format & JOF_DECLARING)
-                            flags |= JSRESOLVE_DECLARING;
-                    }
+                    if (flags == JSRESOLVE_INFER)
+                        flags = InferFlags(cx, flags);
                     obj2 = (clasp->flags & JSCLASS_NEW_RESOLVE_GETS_START)
                            ? start
                            : NULL;
