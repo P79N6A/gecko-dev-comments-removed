@@ -867,7 +867,7 @@ NS_IMETHODIMP nsPlaintextEditor::InsertLineBreak()
 }
 
 NS_IMETHODIMP
-nsPlaintextEditor::BeginComposition(nsTextEventReply* aReply)
+nsPlaintextEditor::BeginComposition()
 {
   NS_ENSURE_TRUE(!mInIMEMode, NS_OK);
 
@@ -882,7 +882,7 @@ nsPlaintextEditor::BeginComposition(nsTextEventReply* aReply)
     }
   }
 
-  return nsEditor::BeginComposition(aReply);
+  return nsEditor::BeginComposition();
 }
 
 NS_IMETHODIMP
@@ -1560,7 +1560,8 @@ nsPlaintextEditor::GetEmbeddedObjects(nsISupportsArray** aNodeList)
 #endif
 
 NS_IMETHODIMP
-nsPlaintextEditor::SetCompositionString(const nsAString& aCompositionString, nsIPrivateTextRangeList* aTextRangeList,nsTextEventReply* aReply)
+nsPlaintextEditor::SetCompositionString(const nsAString& aCompositionString,
+                                        nsIPrivateTextRangeList* aTextRangeList)
 {
   if (!aTextRangeList && !aCompositionString.IsEmpty())
   {
@@ -1597,72 +1598,20 @@ nsPlaintextEditor::SetCompositionString(const nsAString& aCompositionString, nsI
   {
     mIMETextRangeList = aTextRangeList;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    SetIsIMEComposing(); 
 
-    PRUint32 flags = 0;
-    PRBool restoreFlags = PR_FALSE;
+    result = InsertText(aCompositionString);
 
-    if (NS_SUCCEEDED(GetFlags(&flags)) &&
-        (flags & nsIPlaintextEditor::eEditorUseAsyncUpdatesMask))
-    {
-      if (NS_SUCCEEDED(SetFlags(
-          flags & (~nsIPlaintextEditor::eEditorUseAsyncUpdatesMask))))
-        restoreFlags = PR_TRUE;
-    }
+    mIMEBufferLength = aCompositionString.Length();
+
+    if (caretP)
+      caretP->SetCaretDOMSelection(selection);
 
     
-
-    
-    
-    
-    {
-      nsAutoPlaceHolderBatch batch(this, nsGkAtoms::IMETxnName);
-
-      SetIsIMEComposing(); 
-
-      result = InsertText(aCompositionString);
-
-      mIMEBufferLength = aCompositionString.Length();
-
-      if (caretP)
-        caretP->SetCaretDOMSelection(selection);
-
-      
-      if (aCompositionString.IsEmpty())
-        mIMETextNode = nsnull;
-    }
-
-    
-    
-    
-
-    if (restoreFlags)
-      SetFlags(flags);
-
-    
+    if (aCompositionString.IsEmpty())
+      mIMETextNode = nsnull;
   }
 
-  if (caretP)
-  {
-    nsRect rect;
-    nsIFrame* frame = caretP->GetGeometry(selection, &rect);
-    if (!frame)
-      return NS_ERROR_FAILURE;
-    nsPoint nearestWidgetOffset;
-    aReply->mReferenceWidget = frame->GetWindowOffset(nearestWidgetOffset);
-    rect.MoveBy(nearestWidgetOffset);
-    aReply->mCursorPosition =
-       rect.ToOutsidePixels(frame->PresContext()->AppUnitsPerDevPixel());
-  }
 
   return result;
 }

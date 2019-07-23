@@ -42,13 +42,11 @@
 #include "nsIDOMUIEvent.h"
 #include "nsIDOMNSUIEvent.h"
 #include "nsIDOMAbstractView.h"
-#include "nsIPrivateCompositionEvent.h"
 #include "nsDOMEvent.h"
 
 class nsDOMUIEvent : public nsDOMEvent,
                      public nsIDOMUIEvent,
-                     public nsIDOMNSUIEvent,
-                     public nsIPrivateCompositionEvent
+                     public nsIDOMNSUIEvent
 {
 public:
   nsDOMUIEvent(nsPresContext* aPresContext, nsGUIEvent* aEvent);
@@ -64,9 +62,6 @@ public:
 
   
   NS_IMETHOD DuplicatePrivateData();
-  
-  
-  NS_IMETHOD GetCompositionReply(nsTextEventReply** aReply);
   
   
   NS_FORWARD_TO_NSDOMEVENT

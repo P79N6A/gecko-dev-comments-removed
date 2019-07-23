@@ -355,8 +355,6 @@ protected:
 
   PRBool GetDesiredSpellCheckState();
 
-  nsresult QueryComposition(nsTextEventReply* aReply);
-
 public:
 
   

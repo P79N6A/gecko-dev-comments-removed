@@ -89,11 +89,10 @@ public:
 
   
   NS_IMETHOD SetCompositionString(const nsAString &aCompositionString,
-                                  nsIPrivateTextRangeList *aTextRange,
-                                  nsTextEventReply *aReply);
+                                  nsIPrivateTextRangeList *aTextRange);
 
   
-  NS_IMETHOD BeginComposition(nsTextEventReply* aReply);
+  NS_IMETHOD BeginComposition();
   NS_IMETHOD SetAttributeOrEquivalent(nsIDOMElement * aElement,
                                       const nsAString & aAttribute,
                                       const nsAString & aValue,

@@ -1969,85 +1969,17 @@ nsEditor::StopPreservingSelection()
 
 
 
-nsresult
-nsEditor::QueryComposition(nsTextEventReply* aReply)
-{
-  nsCOMPtr<nsISelection> selection;
-  nsCOMPtr<nsISelectionController> selcon = do_QueryReferent(mSelConWeak);
-  if (selcon)
-    selcon->GetSelection(nsISelectionController::SELECTION_NORMAL, getter_AddRefs(selection));
-
-  if (!mPresShellWeak) return NS_ERROR_NOT_INITIALIZED;
-  nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
-  if (!ps) return NS_ERROR_NOT_INITIALIZED;
-  nsRefPtr<nsCaret> caretP = ps->GetCaret();
-
-  if (caretP) {
-    if (aReply) {
-      caretP->SetCaretDOMSelection(selection);
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-      PRUint32 flags = 0;
-
-      if (NS_SUCCEEDED(GetFlags(&flags)) &&
-          (flags & nsIPlaintextEditor::eEditorUseAsyncUpdatesMask))
-      {
-        PRBool restoreFlags = PR_FALSE;
-
-        if (NS_SUCCEEDED(SetFlags(flags & (~nsIPlaintextEditor::eEditorUseAsyncUpdatesMask))))
-        {
-           
-           
-           
-
-           nsAutoUpdateViewBatch viewBatch(this);
-           restoreFlags = PR_TRUE;
-        }
-
-        
-
-        if (restoreFlags)
-          SetFlags(flags);
-      }
-
-
-      
-
-      nsRect rect;
-      nsIFrame* frame = caretP->GetGeometry(selection, &rect);
-      if (!frame)
-        return NS_ERROR_FAILURE;
-      nsPoint nearestWidgetOffset;
-      aReply->mReferenceWidget = frame->GetWindowOffset(nearestWidgetOffset);
-      rect.MoveBy(nearestWidgetOffset);
-      aReply->mCursorPosition =
-        rect.ToOutsidePixels(frame->PresContext()->AppUnitsPerDevPixel());
-    }
-  }
-  return NS_OK;
-}
-
 NS_IMETHODIMP
-nsEditor::BeginComposition(nsTextEventReply* aReply)
+nsEditor::BeginComposition()
 {
 #ifdef DEBUG_tague
   printf("nsEditor::StartComposition\n");
 #endif
-  nsresult ret = QueryComposition(aReply);
   mInIMEMode = PR_TRUE;
   if (mPhonetic)
     mPhonetic->Truncate(0);
 
-  return ret;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -2084,7 +2016,8 @@ nsEditor::EndComposition(void)
 }
 
 NS_IMETHODIMP
-nsEditor::SetCompositionString(const nsAString& aCompositionString, nsIPrivateTextRangeList* aTextRangeList,nsTextEventReply* aReply)
+nsEditor::SetCompositionString(const nsAString& aCompositionString,
+                               nsIPrivateTextRangeList* aTextRangeList)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }

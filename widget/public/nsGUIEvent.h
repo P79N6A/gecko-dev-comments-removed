@@ -998,21 +998,6 @@ struct nsTextRange
 
 typedef nsTextRange* nsTextRangeArray;
 
-
-
-struct nsTextEventReply
-{
-  nsTextEventReply()
-    : mReferenceWidget(nsnull)
-  {
-  }
-
-  nsIntRect mCursorPosition;
-  nsIWidget* mReferenceWidget;
-};
-
-typedef struct nsTextEventReply nsTextEventReply;
-
 class nsTextEvent : public nsInputEvent
 {
 public:
@@ -1023,7 +1008,6 @@ public:
   }
 
   nsString          theText;
-  nsTextEventReply  theReply; 
   PRUint32          rangeCount;
   
   
@@ -1039,8 +1023,6 @@ public:
     : nsInputEvent(isTrusted, msg, w, NS_COMPOSITION_EVENT)
   {
   }
-
-  nsTextEventReply theReply; 
 };
 
 
