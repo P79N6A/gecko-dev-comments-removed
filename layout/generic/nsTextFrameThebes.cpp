@@ -5798,7 +5798,7 @@ nsTextFrame::AdjustOffsetsForBidi(PRInt32 aStart, PRInt32 aEnd)
 
   ClearTextRun();
 
-  nsTextFrame* prev = static_cast<nsTextFrame*>(GetPrevInFlow());
+  nsTextFrame* prev = static_cast<nsTextFrame*>(GetPrevContinuation());
   if (prev) {
     
     
