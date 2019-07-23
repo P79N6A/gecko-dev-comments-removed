@@ -1114,6 +1114,11 @@ PRBool imgLoader::ValidateEntry(imgCacheEntry *aEntry,
   void *key = (void *)aCX;
   if (request->mLoadId != key) {
     
+    
+    if (aLoadFlags & nsIRequest::LOAD_BYPASS_CACHE)
+      return PR_FALSE;
+
+    
     validateRequest = ShouldRevalidateEntry(aEntry, aLoadFlags, hasExpired);
 
     PR_LOG(gImgLog, PR_LOG_DEBUG,
@@ -1325,11 +1330,9 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
   if (!aURI)
     return NS_ERROR_NULL_POINTER;
 
-#if defined(PR_LOGGING)
   nsCAutoString spec;
   aURI->GetSpec(spec);
   LOG_SCOPE_WITH_PARAM(gImgLog, "imgLoader::LoadImage", "aURI", spec.get());
-#endif
 
   *_retval = nsnull;
 
@@ -1368,41 +1371,35 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
 
   
   
-  if (requestFlags & nsIRequest::LOAD_BYPASS_CACHE) {
-    RemoveFromCache(aURI);
-  } else {
-    
-    
-    
-    
-    imgCacheTable &cache = GetCache(aURI);
+  
+  
+  imgCacheTable &cache = GetCache(aURI);
 
-    nsCAutoString spec;
-    aURI->GetSpec(spec);
+  if (cache.Get(spec, getter_AddRefs(entry)) && entry) {
+    if (ValidateEntry(entry, aURI, aInitialDocumentURI, aReferrerURI, aLoadGroup, aObserver, aCX,
+                      requestFlags, PR_TRUE, aRequest, _retval)) {
+      request = getter_AddRefs(entry->GetRequest());
 
-    if (cache.Get(spec, getter_AddRefs(entry)) && entry) {
-      if (ValidateEntry(entry, aURI, aInitialDocumentURI, aReferrerURI, aLoadGroup, aObserver, aCX,
-                        requestFlags, PR_TRUE, aRequest, _retval)) {
-        request = getter_AddRefs(entry->GetRequest());
+      
+      if (entry->HasNoProxies()) {
+        LOG_FUNC_WITH_PARAM(gImgLog, "imgLoader::LoadImage() adding proxyless entry", "uri", spec.get());
+        NS_ABORT_IF_FALSE(!request->HasCacheEntry(), "Proxyless entry's request has cache entry!");
+        request->SetCacheEntry(entry);
 
-        
-        if (entry->HasNoProxies()) {
-          LOG_FUNC_WITH_PARAM(gImgLog, "imgLoader::LoadImage() adding proxyless entry", "uri", spec.get());
-          NS_ABORT_IF_FALSE(!request->HasCacheEntry(), "Proxyless entry's request has cache entry!");
-          request->SetCacheEntry(entry);
+        if (gCacheTracker)
+          gCacheTracker->MarkUsed(entry);
+      } 
 
-          if (gCacheTracker)
-            gCacheTracker->MarkUsed(entry);
-        } 
-
-        entry->Touch();
+      entry->Touch();
 
 #ifdef DEBUG_joe
-        printf("CACHEGET: %d %s %d\n", time(NULL), spec.get(), entry->GetDataSize());
+      printf("CACHEGET: %d %s %d\n", time(NULL), spec.get(), entry->GetDataSize());
 #endif
-      }
-      else
-        entry = nsnull;
+    }
+    else {
+      
+      
+      entry = nsnull;
     }
   }
 
