@@ -134,7 +134,6 @@ nsBlockReflowState::nsBlockReflowState(const nsHTMLReflowState& aReflowState,
   }
 
   mY = borderPadding.top;
-  mBand.Init(mFloatManager, mContentArea);
 
   mPrevChild = nsnull;
   mCurrentLine = aFrame->end_lines();
@@ -257,8 +256,7 @@ nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
                                            nsRect& aResult)
 {
 #ifdef REALLY_NOISY_REFLOW
-  printf("CBAS frame=%p has float count %d\n", aFrame, mBand.GetFloatCount());
-  mBand.List();
+  printf("CBAS frame=%p has floats %d\n", aFrame, mBandHasFloats);
 #endif
   aResult.y = mY;
   aResult.height = GetFlag(BRS_UNCONSTRAINEDHEIGHT)
@@ -286,7 +284,7 @@ nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
                  !aBlockAvoidsFloats,
                "unexpected replaced width");
   if (!aBlockAvoidsFloats) {
-    if (mBand.GetFloatCount()) {
+    if (mBandHasFloats) {
       
       
       const nsStyleBorder* borderStyle = aFrame->GetStyleBorder();
@@ -347,16 +345,22 @@ nsBlockReflowState::GetAvailableSpace(nscoord aY, PRBool aRelaxHeightConstraint)
                "bad coord system");
 #endif
 
-  mBand.GetAvailableSpace(aY - BorderPadding().top, aRelaxHeightConstraint,
-                          mAvailSpaceRect);
+  PRBool hasFloats;
+  mAvailSpaceRect = 
+    mFloatManager->GetBand(aY - BorderPadding().top, 
+                           aRelaxHeightConstraint ? nscoord_MAX
+                                                  : mContentArea.height,
+                           mContentArea.width,
+                           &hasFloats);
+  mBandHasFloats = hasFloats;
 
 #ifdef DEBUG
   if (nsBlockFrame::gNoisyReflow) {
     nsFrame::IndentBy(stdout, nsBlockFrame::gNoiseIndent);
-    printf("GetAvailableSpace: band=%d,%d,%d,%d count=%d\n",
+    printf("GetAvailableSpace: band=%d,%d,%d,%d hasfloats=%d\n",
            mAvailSpaceRect.x, mAvailSpaceRect.y,
            mAvailSpaceRect.width, mAvailSpaceRect.height,
-           mBand.GetTrapezoidCount());
+           mBandHasFloats);
   }
 #endif
 }
@@ -439,7 +443,7 @@ nsBlockReflowState::RecoverFloats(nsLineList::iterator aLine,
                fc->mRegion.width, fc->mRegion.height);
       }
 #endif
-      mFloatManager->AddRectRegion(floatFrame, fc->mRegion);
+      mFloatManager->AddFloat(floatFrame, fc->mRegion);
       fc = fc->Next();
     }
   } else if (aLine->IsBlock()) {
@@ -522,9 +526,9 @@ nsBlockReflowState::IsImpactedByFloat() const
 {
 #ifdef REALLY_NOISY_REFLOW
   printf("nsBlockReflowState::IsImpactedByFloat %p returned %d\n", 
-         this, mBand.GetFloatCount());
+         this, mBandHasFloats);
 #endif
-  return mBand.GetFloatCount() > 0;
+  return mBandHasFloats;
 }
 
 
@@ -659,7 +663,7 @@ nsBlockReflowState::CanPlaceFloat(const nsSize& aFloatSize,
   
   
   PRBool result = PR_TRUE;
-  if (0 != mBand.GetFloatCount()) {
+  if (mBandHasFloats) {
     
     if (mAvailSpaceRect.width < aFloatSize.width) {
       
@@ -725,7 +729,7 @@ nsBlockReflowState::CanPlaceFloat(const nsSize& aFloatSize,
       mY += mAvailSpaceRect.height;
       GetAvailableSpace(mY, aForceFit);
 
-      if (0 != mBand.GetFloatCount()) {
+      if (mBandHasFloats) {
         if ((xa < mAvailSpaceRect.x) || (xb > mAvailSpaceRect.XMost())) {
           
           result = PR_FALSE;
@@ -775,7 +779,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
 
   
   
-  mY = NS_MAX(mFloatManager->GetLowestRegionTop() + BorderPadding().top, mY);
+  mY = NS_MAX(mFloatManager->GetLowestFloatTop() + BorderPadding().top, mY);
 
   
   
@@ -944,7 +948,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
 #ifdef DEBUG
   nsresult rv =
 #endif
-  mFloatManager->AddRectRegion(floatFrame, region);
+  mFloatManager->AddFloat(floatFrame, region);
   NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv), "bad float placement");
 
   
@@ -973,7 +977,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsFloatCache*   aFloatCache,
   nscoord tx, ty;
   mFloatManager->GetTranslation(tx, ty);
   nsFrame::ListTag(stdout, mBlock);
-  printf(": FlowAndPlaceFloat: AddRectRegion: txy=%d,%d (%d,%d) {%d,%d,%d,%d}\n",
+  printf(": FlowAndPlaceFloat: AddFloat: txy=%d,%d (%d,%d) {%d,%d,%d,%d}\n",
          tx, ty, mFloatManagerX, mFloatManagerY,
          aFloatCache->mRegion.x, aFloatCache->mRegion.y,
          aFloatCache->mRegion.width, aFloatCache->mRegion.height);
@@ -1101,7 +1105,7 @@ nsBlockReflowState::ClearFloats(nscoord aY, PRUint8 aBreakType,
       GetAvailableSpace(newY, PR_FALSE);
       nsBlockFrame::ReplacedElementWidthToClear replacedWidth =
         nsBlockFrame::WidthToClearPastFloats(*this, aReplacedBlock);
-      if (mBand.GetFloatCount() == 0 ||
+      if (!mBandHasFloats ||
           PR_MAX(mAvailSpaceRect.x, replacedWidth.marginLeft) +
             replacedWidth.borderBoxWidth +
             PR_MAX(mContentArea.width -

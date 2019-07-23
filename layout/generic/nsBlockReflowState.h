@@ -43,7 +43,7 @@
 #ifndef nsBlockReflowState_h__
 #define nsBlockReflowState_h__
 
-#include "nsBlockBandData.h"
+#include "nsFloatManager.h"
 #include "nsLineBox.h"
 #include "nsFrameList.h"
 #include "nsBlockFrame.h"
@@ -273,9 +273,6 @@ public:
   nsBlockFrame* mNextInFlow;
 
   
-  nsBlockBandData mBand;
-
-  
 
   
   
@@ -298,6 +295,11 @@ public:
   PRInt16 mFlags;
  
   PRUint8 mFloatBreakType;
+
+  
+  
+  
+  PRPackedBool mBandHasFloats;
 
   void SetFlag(PRUint32 aFlag, PRBool aValue)
   {

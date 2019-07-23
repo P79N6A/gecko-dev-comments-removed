@@ -41,7 +41,6 @@
 
 
 #include "nsLineBox.h"
-#include "nsSpaceManager.h"
 #include "nsLineLayout.h"
 #include "prprf.h"
 #include "nsBlockFrame.h"
