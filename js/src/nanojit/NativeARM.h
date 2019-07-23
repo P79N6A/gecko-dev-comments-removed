@@ -197,8 +197,6 @@ verbose_only( extern const char* shiftNames[]; )
     int* _nExitSlot;
 
 
-#define asm_farg(i) NanoAssert(false)
-
 
 
 #define swapptrs()  {                                                   \
@@ -534,27 +532,6 @@ enum {
         else            *(--_nIns) = (NIns)( COND_AL | (0x48<<20) | ((_n)<<16) | ((_d)<<12) | ((_off)&0xFFF) ); \
         asm_output("str %s, [%s], %d", gpn(_d), gpn(_n), (_off));      \
     } while(0)
-
-
-
-
-
-
-#define LEA(_r,_d,_b) do {                                              \
-        NanoAssert((_d)<=1020);                                         \
-        NanoAssert(((_d)&3)==0);                                        \
-        NanoAssert((_b) == FP);                                         \
-        if ((_d)<256) {                                                 \
-            underrunProtect(4);                                         \
-            *(--_nIns) = (NIns)( COND_AL | (0x28<<20) | ((_b)<<16) | ((_r)<<12) | ((_d)&0xFF) ); \
-        } else {                                                        \
-            underrunProtect(8);                                         \
-            *(--_nIns) = (NIns)( COND_AL | (0x4<<21) | ((_b)<<16) | ((_r)<<12) | (2<<7)| (_r) ); \
-            *(--_nIns) = (NIns)( COND_AL | (0x3B<<20) | ((_r)<<12) | (((_d)>>2)&0xFF) ); \
-        }                                                               \
-        asm_output("lea %s, %d(SP)", gpn(_r), _d);                     \
-    } while(0)
-
 
 
 
