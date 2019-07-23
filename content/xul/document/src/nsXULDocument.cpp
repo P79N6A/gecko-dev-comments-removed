@@ -219,7 +219,6 @@ nsXULDocument::~nsXULDocument()
 
     
     if (mBroadcasterMap) {
-        NS_WARN_IF_FALSE(mBroadcasterMap->entryCount == 0, "Leaking BroadcastListeners");
         PL_DHashTableDestroy(mBroadcasterMap);
     }
 
@@ -1005,11 +1004,9 @@ nsXULDocument::AttributeChanged(nsIDocument* aDocument,
         }
     }
 
-    if ((aAttribute == nsGkAtoms::observes) || (aAttribute == nsGkAtoms::command)) {
-        
-        PRBool listener, resolved;
-        CheckBroadcasterHookup(aElement, &listener, &resolved);
-    }
+    
+    PRBool listener, resolved;
+    CheckBroadcasterHookup(aElement, &listener, &resolved);
 
     
     
