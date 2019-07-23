@@ -180,10 +180,12 @@ nsLineBreaker::AppendText(nsIAtom* aLangGroup, const PRUnichar* aText, PRUint32 
       if (offset > wordStart && wordHasCJK) {
         if (aFlags & BREAK_NONWHITESPACE_INSIDE) {
           
-          PRPackedBool currentStart = breakState[offset];
+          
+          PRPackedBool currentStart = breakState[wordStart];
           nsContentUtils::LineBreaker()->
-            GetJISx4051Breaks(aText + wordStart, offset - wordStart, breakState.Elements() + offset);
-          breakState[offset] = currentStart;
+            GetJISx4051Breaks(aText + wordStart, offset - wordStart,
+                              breakState.Elements() + wordStart);
+          breakState[wordStart] = currentStart;
         }
         wordHasCJK = PR_FALSE;
       }
