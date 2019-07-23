@@ -6,7 +6,6 @@
 #define MEDIA_BASE_YUV_CONVERT_H_
 
 #include "chromium_types.h"
-#include "gfxCore.h"
 
 namespace mozilla {
 
@@ -22,7 +21,7 @@ enum YUVType {
 
 
 
-NS_GFX_(void) ConvertYCbCrToRGB32(const uint8* yplane,
+void ConvertYCbCrToRGB32(const uint8* yplane,
                          const uint8* uplane,
                          const uint8* vplane,
                          uint8* rgbframe,
