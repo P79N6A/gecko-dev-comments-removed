@@ -65,12 +65,13 @@ public:
 
   nsresult PaintPattern(cairo_surface_t **surface,
                         nsIDOMSVGMatrix **patternMatrix,
-                        nsSVGGeometryFrame *aSource);
+                        nsSVGGeometryFrame *aSource,
+                        float aGraphicOpacity);
 
   
   virtual PRBool SetupPaintServer(gfxContext *aContext,
                                   nsSVGGeometryFrame *aSource,
-                                  float aOpacity,
+                                  float aGraphicOpacity,
                                   void **aClosure);
   virtual void CleanupPaintServer(gfxContext *aContext, void *aClosure);
 
