@@ -1243,6 +1243,7 @@ LockedFTFace::GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph)
 
     const FT_Size_Metrics& ftMetrics = mFace->size->metrics;
 
+    gfxFloat emHeight;
     
     gfxFloat yScale;
     if (FT_IS_SCALABLE(mFace)) {
@@ -1254,13 +1255,13 @@ LockedFTFace::GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph)
         
         
         yScale = FLOAT_FROM_26_6(FLOAT_FROM_16_16(ftMetrics.y_scale));
-        aMetrics->emHeight = mFace->units_per_EM * yScale;
+        emHeight = mFace->units_per_EM * yScale;
     } else { 
         
         
         gfxFloat emUnit = mFace->units_per_EM;
-        aMetrics->emHeight = ftMetrics.y_ppem;
-        yScale = aMetrics->emHeight / emUnit;
+        emHeight = ftMetrics.y_ppem;
+        yScale = emHeight / emUnit;
     }
 
     TT_OS2 *os2 =
@@ -1317,7 +1318,7 @@ LockedFTFace::GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph)
             
             
             
-            aMetrics->xHeight = 0.5 * aMetrics->emHeight;
+            aMetrics->xHeight = 0.5 * emHeight;
         }
         aMetrics->aveCharWidth = 0.0; 
     }
@@ -1368,7 +1369,7 @@ LockedFTFace::GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph)
         }
     } else { 
         
-        aMetrics->underlineSize = aMetrics->emHeight / 14.0;
+        aMetrics->underlineSize = emHeight / 14.0;
         aMetrics->underlineOffset = -aMetrics->underlineSize;
     }
 
@@ -1378,7 +1379,7 @@ LockedFTFace::GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph)
     } else { 
         aMetrics->strikeoutSize = aMetrics->underlineSize;
         
-        aMetrics->strikeoutOffset = aMetrics->emHeight * 409.0 / 2048.0
+        aMetrics->strikeoutOffset = emHeight * 409.0 / 2048.0
             + 0.5 * aMetrics->strikeoutSize;
     }
     SnapLineToPixels(aMetrics->strikeoutOffset, aMetrics->strikeoutSize);
@@ -1404,15 +1405,29 @@ LockedFTFace::GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph)
     aMetrics->maxHeight = aMetrics->maxAscent + aMetrics->maxDescent;
 
     
+    
+    
+    
+    
+    
+    aMetrics->emHeight = NS_floor(emHeight + 0.5);
+
+    
+    
+    aMetrics->internalLeading =
+        NS_floor(aMetrics->maxHeight - aMetrics->emHeight + 0.5);
+
+    
+    
+    lineHeight = NS_floor(PR_MAX(lineHeight, aMetrics->maxHeight) + 0.5);
+    aMetrics->externalLeading =
+        lineHeight - aMetrics->internalLeading - aMetrics->emHeight;
+
+    
     gfxFloat sum = aMetrics->emAscent + aMetrics->emDescent;
     aMetrics->emAscent = sum > 0.0 ?
         aMetrics->emAscent * aMetrics->emHeight / sum : 0.0;
     aMetrics->emDescent = aMetrics->emHeight - aMetrics->emAscent;
-
-    aMetrics->internalLeading = aMetrics->maxHeight - aMetrics->emHeight;
-    
-    
-    aMetrics->externalLeading = PR_MAX(lineHeight - aMetrics->maxHeight, 0);
 }
 
 const gfxFont::Metrics&
