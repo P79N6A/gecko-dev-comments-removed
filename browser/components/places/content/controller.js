@@ -1245,8 +1245,8 @@ PlacesController.prototype = {
         return PlacesUtils.wrapNode(node, type, overrideURI) + placeSuffix;
       }
 
-        
-        placeString += generateChunk(PlacesUtils.TYPE_X_MOZ_PLACE);
+      
+      placeString += generateChunk(PlacesUtils.TYPE_X_MOZ_PLACE);
     }
 
     function addData(type, data) {
