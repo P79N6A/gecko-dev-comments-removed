@@ -1779,7 +1779,9 @@ DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
         else 
           inst->SetWindow(nsnull);
 
-        if (aDelayedStop) {
+        
+        if (aDelayedStop &&
+            strcmp(::GetMIMEType(inst), "video/quicktime") != 0) {
           nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(aInstanceOwner);
           NS_DispatchToCurrentThread(evt);
 
@@ -1796,7 +1798,9 @@ DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, PRBool aDelayedStop)
       else 
         inst->SetWindow(nsnull);
 
-      if (aDelayedStop) {
+      
+      if (aDelayedStop &&
+          strcmp(::GetMIMEType(inst), "video/quicktime") != 0) {
         nsCOMPtr<nsIRunnable> evt = new nsStopPluginRunnable(aInstanceOwner);
         NS_DispatchToCurrentThread(evt);
 
