@@ -216,6 +216,8 @@ nsTableColGroupFrame::AppendFrames(nsIAtom*        aListName,
   while (col && col->GetColType() == eColAnonymousColGroup) {
     
     
+    
+    
     nextCol = col->GetNextCol();
     RemoveFrame(nsnull, col);
     col = nextCol;
@@ -243,9 +245,21 @@ nsTableColGroupFrame::InsertFrames(nsIAtom*        aListName,
   while (col && col->GetColType() == eColAnonymousColGroup) {
     
     
+    
+    
     nextCol = col->GetNextCol();
     RemoveFrame(nsnull, col);
     col = nextCol;
+  }
+
+  if (aPrevFrame) {
+    col = GetNextColumn(aPrevFrame);
+    while (col && col->GetColType() == eColAnonymousCol) {
+      
+      
+      aPrevFrame = col;
+      col = col->GetNextCol();
+    }
   }
 
   mFrames.InsertFrames(this, aPrevFrame, aFrameList);
