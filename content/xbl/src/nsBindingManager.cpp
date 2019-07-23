@@ -1536,6 +1536,11 @@ RemoveChildFromInsertionPoint(nsAnonymousContentList* aInsertionPointList,
   
   
   
+
+  
+  
+  
+  
   PRInt32 count = aInsertionPointList->GetInsertionPointCount();
   for (PRInt32 i = 0; i < count; i++) {
     nsXBLInsertionPoint* point =
@@ -1570,6 +1575,21 @@ nsBindingManager::ContentRemoved(nsIDocument* aDocument,
                                       aChild,
                                       PR_FALSE);
         SetInsertionParent(aChild, nsnull);
+      }
+
+      
+      if (mContentListTable.ops) {
+        nsCOMPtr<nsIDOMNodeList> otherNodeList =
+          static_cast<nsAnonymousContentList*>
+                     (LookupObject(mContentListTable, point));
+        if (otherNodeList && otherNodeList != nodeList) {
+          
+          RemoveChildFromInsertionPoint(static_cast<nsAnonymousContentList*>
+                                        (static_cast<nsIDOMNodeList*>
+                                                    (otherNodeList)),
+                                        aChild,
+                                        PR_FALSE);
+        }
       }
     }
 
