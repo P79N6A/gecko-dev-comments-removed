@@ -244,6 +244,10 @@ static txEXSLTFunctionDescriptor descriptTable[] =
 
 };
 
+#ifdef WINCE 
+#undef DIFFERENCE
+#endif
+
 class txEXSLTFunctionCall : public FunctionCall
 {
 public:
