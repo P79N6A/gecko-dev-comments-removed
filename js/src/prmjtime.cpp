@@ -190,7 +190,7 @@ NowCalibrate()
         } else {
             calibration.freq = (long double) liFreq.QuadPart;
         }
-    } 
+    }
     if (calibration.freq > 0.0) {
         JSInt64 calibrationDelta = 0;
 
@@ -464,7 +464,7 @@ PRMJ_Now(void)
 
                     returnedTime = (JSInt64)lowresTime;
                     needsCalibration = JS_FALSE;
-                } else { 
+                } else {
                     
 
 
@@ -561,9 +561,9 @@ PRMJ_DSTOffset(JSInt64 local_time)
 #ifdef NS_HAVE_INVALID_PARAMETER_HANDLER
 JS_STATIC_DLL_CALLBACK(void)
 PRMJ_InvalidParameterHandler(const wchar_t *expression,
-                             const wchar_t *function, 
-                             const wchar_t *file, 
-                             unsigned int   line, 
+                             const wchar_t *function,
+                             const wchar_t *file,
+                             unsigned int   line,
                              uintptr_t      pReserved)
 {
     
