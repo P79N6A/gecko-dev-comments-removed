@@ -767,6 +767,12 @@ nsSHistory::EvictWindowContentViewers(PRInt32 aFromIndex, PRInt32 aToIndex)
   
   
   
+  
+  
+  
+  
+  
+  
 
   
   if (aFromIndex < 0 || aToIndex < 0) {
@@ -787,7 +793,7 @@ nsSHistory::EvictWindowContentViewers(PRInt32 aFromIndex, PRInt32 aToIndex)
     if (startIndex >= mLength) {
       return;
     }
-    endIndex = PR_MIN(mLength, aFromIndex + gHistoryMaxViewers);
+    endIndex = PR_MIN(mLength, aFromIndex + gHistoryMaxViewers + 1);
   }
   
   EvictContentViewersInRange(startIndex, endIndex);
