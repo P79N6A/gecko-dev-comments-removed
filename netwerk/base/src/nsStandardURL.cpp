@@ -495,6 +495,8 @@ nsStandardURL::BuildNormalizedSpec(const char *spec)
             Substring(spec + mHost.mPos, spec + mHost.mPos + mHost.mLen);
         if (tempHost.FindChar('\0') != kNotFound)
             return NS_ERROR_MALFORMED_URI;  
+        if (tempHost.FindChar(' ') != kNotFound)
+            return NS_ERROR_MALFORMED_URI;  
         if ((useEncHost = NormalizeIDN(tempHost, encHost)))
             approxLen += encHost.Length();
         else
