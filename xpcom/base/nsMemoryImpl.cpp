@@ -55,6 +55,8 @@
 #if defined(XP_WIN)
 #include <windows.h>
 #define NS_MEMORY_FLUSHER
+#elif defined (NS_OSSO)
+#include <osso-mem.h>
 #else
 
 #undef NS_MEMORY_FLUSHER
@@ -189,6 +191,16 @@ nsMemoryImpl::IsLowMemory(PRBool *result)
     MEMORYSTATUS stat;
     GlobalMemoryStatus(&stat);
     *result = ((float)stat.dwAvailPageFile / stat.dwTotalPageFile) < 0.1;
+#elif defined(NS_OSSO)
+    osso_mem_usage_t usage;
+    osso_mem_get_usage(&usage);
+    
+    
+    
+    if (usage.low == 0 || usage.low > usage.total)
+      *result = PR_FALSE;
+    else
+      *result = (PRBool) usage.low <= usage.used;
 #else
     *result = PR_FALSE;
 #endif
