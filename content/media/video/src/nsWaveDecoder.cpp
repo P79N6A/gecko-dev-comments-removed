@@ -354,6 +354,9 @@ private:
   
   
   PRPackedBool mPositionChangeQueued;
+
+  
+  PRPackedBool mPaused;
 };
 
 nsWaveStateMachine::nsWaveStateMachine(nsWaveDecoder* aDecoder, nsMediaStream* aStream,
@@ -379,7 +382,8 @@ nsWaveStateMachine::nsWaveStateMachine(nsWaveDecoder* aDecoder, nsMediaStream* a
     mTimeOffset(0),
     mSeekTime(0.0),
     mMetadataValid(PR_FALSE),
-    mPositionChangeQueued(PR_FALSE)
+    mPositionChangeQueued(PR_FALSE),
+    mPaused(mNextState == STATE_PAUSED)
 {
   mMonitor = nsAutoMonitor::NewMonitor("nsWaveStateMachine");
   mDownloadStatistics.Start(PR_IntervalNow());
@@ -400,6 +404,7 @@ void
 nsWaveStateMachine::Play()
 {
   nsAutoMonitor monitor(mMonitor);
+  mPaused = PR_FALSE;
   if (mState == STATE_LOADING_METADATA || mState == STATE_SEEKING) {
     mNextState = STATE_PLAYING;
   } else {
@@ -431,6 +436,7 @@ void
 nsWaveStateMachine::Pause()
 {
   nsAutoMonitor monitor(mMonitor);
+  mPaused = PR_TRUE;
   if (mState == STATE_LOADING_METADATA || mState == STATE_SEEKING) {
     mNextState = STATE_PAUSED;
   } else {
@@ -727,9 +733,16 @@ nsWaveStateMachine::Run()
           
           
           
+          
+          
+          
+          
+          
           State nextState = mNextState;
           if (nextState == STATE_SEEKING) {
             nextState = STATE_PAUSED;
+          } else if (nextState == STATE_ENDED) {
+            nextState = mPaused ? STATE_PAUSED : STATE_PLAYING;
           }
           ChangeState(nextState);
         }
@@ -757,14 +770,14 @@ nsWaveStateMachine::Run()
         monitor.Enter();
       }
 
-      if (mState != STATE_SHUTDOWN) {
+      if (mState == STATE_ENDED) {
         nsCOMPtr<nsIRunnable> event =
           NS_NEW_RUNNABLE_METHOD(nsWaveDecoder, mDecoder, PlaybackEnded);
         NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
-      }
 
-      while (mState != STATE_SHUTDOWN) {
-        monitor.Wait();
+        do {
+          monitor.Wait();
+        } while (mState == STATE_ENDED);
       }
       break;
 
@@ -823,6 +836,9 @@ IsValidStateTransition(State aStartState, State aEndState)
       return PR_TRUE;
     break;
   case STATE_ENDED:
+    if (aEndState == STATE_SEEKING)
+      return PR_TRUE;
+    
   case STATE_ERROR:
   case STATE_SHUTDOWN:
     break;
@@ -1425,6 +1441,10 @@ void
 nsWaveDecoder::PlaybackEnded()
 {
   if (mShuttingDown) {
+    return;
+  }
+
+  if (!mPlaybackStateMachine->IsEnded()) {
     return;
   }
 
