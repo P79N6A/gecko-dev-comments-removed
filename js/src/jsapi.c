@@ -1395,7 +1395,7 @@ static JSStdName standard_class_atoms[] = {
 
 static JSStdName standard_class_names[] = {
     
-    {js_InitObjectClass,        EAGER_ATOM(eval), NULL},
+    {js_InitEval,               EAGER_ATOM(eval), NULL},
 
     
     {js_InitNumberClass,        LAZY_ATOM(NaN), NULL},

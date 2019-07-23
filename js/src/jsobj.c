@@ -2209,22 +2209,22 @@ js_InitBlockClass(JSContext *cx, JSObject* obj)
 }
 
 JSObject *
-js_InitObjectClass(JSContext *cx, JSObject *obj)
+js_InitEval(JSContext *cx, JSObject *obj)
 {
-    JSObject *proto;
-
-    proto = JS_InitClass(cx, obj, NULL, &js_ObjectClass, Object, 1,
-                         object_props, object_methods, NULL, NULL);
-    if (!proto)
-        return NULL;
-
     
     if (!js_DefineFunction(cx, obj, cx->runtime->atomState.evalAtom,
                            obj_eval, 1, 0)) {
         return NULL;
     }
 
-    return proto;
+    return obj;
+}
+
+JSObject *
+js_InitObjectClass(JSContext *cx, JSObject *obj)
+{
+    return JS_InitClass(cx, obj, NULL, &js_ObjectClass, Object, 1,
+                        object_props, object_methods, NULL, NULL);
 }
 
 void
