@@ -956,6 +956,9 @@ SessionStoreService.prototype = {
     else if (tabData.extData)
       delete tabData.extData;
     
+    if (history && browser.docShell instanceof Ci.nsIDocShell)
+      this._serializeSessionStorage(tabData, history, browser.docShell, aFullData);
+    
     return tabData;
   },
 
@@ -1070,6 +1073,52 @@ SessionStoreService.prototype = {
     }
     
     return entry;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _serializeSessionStorage:
+    function sss_serializeSessionStorage(aTabData, aHistory, aDocShell, aFullData) {
+    let storageData = {};
+    let hasContent = false;
+
+    for (let i = 0; i < aHistory.count; i++) {
+      let uri = aHistory.getEntryAtIndex(i, false).URI.clone();
+      
+      if (uri instanceof Ci.nsIURL)
+        uri.path = "";
+      if (storageData[uri.spec] || !(aFullData || this._checkPrivacyLevel(uri.schemeIs("https"))))
+        continue;
+
+      let storage = aDocShell.getSessionStorageForURI(uri);
+      if (!storage || storage.length == 0)
+        continue;
+
+      let data = storageData[uri.spec] = {};
+      for (let j = 0; j < storage.length; j++) {
+        try {
+          let key = storage.key(j);
+          let item = storage.getItem(key);
+          data[key] = { value: item.value };
+          if (uri.schemeIs("https") && item.secure)
+            data[key].secure = true;
+        }
+        catch (ex) {  }
+      }
+      hasContent = true;
+    }
+
+    if (hasContent)
+      aTabData.storage = storageData;
   },
 
   
@@ -1617,6 +1666,9 @@ SessionStoreService.prototype = {
     for (let name in tabData.attributes)
       tab.setAttribute(name, tabData.attributes[name]);
     
+    if (tabData.storage && browser.docShell instanceof Ci.nsIDocShell)
+      this._deserializeSessionStorage(tabData.storage, browser.docShell);
+    
     
     var event = aWindow.document.createEvent("Events");
     event.initEvent("SSTabRestoring", true, false);
@@ -1734,6 +1786,29 @@ SessionStoreService.prototype = {
     }
     
     return shEntry;
+  },
+
+  
+
+
+
+
+
+
+  _deserializeSessionStorage: function sss_deserializeSessionStorage(aStorageData, aDocShell) {
+    let ioService = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
+    for (let url in aStorageData) {
+      let uri = ioService.newURI(url, null, null);
+      let storage = aDocShell.getSessionStorageForURI(uri);
+      for (let key in aStorageData[url]) {
+        try {
+          storage.setItem(key, aStorageData[url][key].value);
+          if (uri.schemeIs("https"))
+            storage.getItem(key).secure = aStorageData[url][key].secure || false;
+        }
+        catch (ex) { Cu.reportError(ex); } 
+      }
+    }
   },
 
   
