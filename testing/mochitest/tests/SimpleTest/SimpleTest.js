@@ -221,15 +221,39 @@ SimpleTest.waitForFocus_focused = false;
 
 
 
-SimpleTest.waitForFocus = function (callback, targetWindow) {
-    SimpleTest.waitForFocus_started = false;
-    SimpleTest.waitForFocus_loaded = false;
-    SimpleTest.waitForFocus_focused = false;
 
+
+
+SimpleTest.waitForFocus = function (callback, targetWindow) {
     if (!targetWindow)
       targetWindow = window;
 
-    function maybeRunTests(event) {
+    SimpleTest.waitForFocus_started = false;
+
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+    var fm = Components.classes["@mozilla.org/focus-manager;1"].
+                        getService(Components.interfaces.nsIFocusManager);
+
+    function debugFocusLog(prefix) {
+        netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+
+        var baseWindow = targetWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+                                     .getInterface(Components.interfaces.nsIWebNavigation)
+                                     .QueryInterface(Components.interfaces.nsIBaseWindow);
+        ok(true, prefix + " -- loaded: " + targetWindow.document.readyState +
+           " active window: " +
+               (fm.activeWindow ? "(" + fm.activeWindow + ") " + fm.activeWindow.location : "<no window active>") +
+           " focused window: " +
+               (fm.focusedWindow ? "(" + fm.focusedWindow + ") " + fm.focusedWindow.location : "<no window focused>") +
+           " desired window: (" + targetWindow + ") " + targetWindow.location +
+           " docshell visible: " + baseWindow.visibility);
+    }
+
+    debugFocusLog("before wait for focus");
+
+    function maybeRunTests() {
+        debugFocusLog("maybe run tests <load:" +
+                      SimpleTest.waitForFocus_loaded + ", focus:" + SimpleTest.waitForFocus_focused + ">");
         if (SimpleTest.waitForFocus_loaded &&
             SimpleTest.waitForFocus_focused &&
             !SimpleTest.waitForFocus_started) {
@@ -241,15 +265,37 @@ SimpleTest.waitForFocus = function (callback, targetWindow) {
     function waitForEvent(event) {
         SimpleTest["waitForFocus_" + event.type + "ed"] = true;
         targetWindow.removeEventListener(event.type, waitForEvent, false);
+        if (event.type == "MozAfterPaint")
+          ok(true, "MozAfterPaint event received");
         setTimeout(maybeRunTests, 0);
     }
 
-    targetWindow.addEventListener("load", waitForEvent, false);
-    targetWindow.addEventListener("focus", waitForEvent, false);
+    
+    SimpleTest.waitForFocus_loaded = (targetWindow.document.readyState == "complete");
+    if (!SimpleTest.waitForFocus_loaded) {
+        ok(true, "must wait for load");
+        targetWindow.addEventListener("load", waitForEvent, false);
+    }
 
     
-    if (!(targetWindow instanceof Components.interfaces.nsIDOMChromeWindow))
-      targetWindow.focus();
+    var focusedWindow = { };
+    if (fm.activeWindow)
+      fm.getFocusedElementForWindow(fm.activeWindow, true, focusedWindow);
+
+    
+    SimpleTest.waitForFocus_focused = (focusedWindow.value == targetWindow);
+    if (SimpleTest.waitForFocus_focused) {
+        ok(true, "already focused");
+        
+        maybeRunTests();
+    }
+    else {
+        ok(true, "must wait for focus");
+        targetWindow.addEventListener("focus", waitForEvent, false);
+        targetWindow.focus();
+    }
+
+    targetWindow.addEventListener("MozAfterPaint", waitForEvent, false);
 };
 
 
