@@ -3906,8 +3906,13 @@ js_GetCurrentBytecodePC(JSContext* cx)
     jsbytecode *pc = cx->pcHint;
     if (!pc) {
         JSStackFrame* fp = js_GetTopStackFrame(cx);
-        if (fp && fp->regs)
+        if (fp && fp->regs) {
             pc = fp->regs->pc;
+            
+            
+            if (*pc == JSOP_CALL && fp->imacpc && *fp->imacpc == JSOP_GETELEM)
+                pc = fp->imacpc;
+        }
     }
     return pc;
 }
