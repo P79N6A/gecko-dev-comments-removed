@@ -492,8 +492,9 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
         if (IsMenu() && !onmenubar && IsOpen()) {
           
         }
-        else
+        else if (this == mMenuParent->GetCurrentMenuItem()) {
           mMenuParent->ChangeMenuItem(nsnull, PR_FALSE);
+        }
       }
     }
   }
