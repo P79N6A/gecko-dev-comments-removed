@@ -466,6 +466,15 @@ struct JSThread {
     
 
 
+
+
+
+
+    bool                gcWaiting;
+
+    
+
+
     JSFreePointerListTask *deallocatorTask;
 
     
@@ -1715,7 +1724,7 @@ js_NextActiveContext(JSRuntime *, JSContext *);
 
 
 
-uint32
+extern uint32
 js_CountThreadRequests(JSContext *cx);
 
 
@@ -1726,24 +1735,6 @@ js_CountThreadRequests(JSContext *cx);
 
 extern void
 js_WaitForGC(JSRuntime *rt);
-
-
-
-
-
-
-
-
-
-
-uint32
-js_DiscountRequestsForGC(JSContext *cx);
-
-
-
-
-void
-js_RecountRequestsAfterGC(JSRuntime *rt, uint32 requestDebit);
 
 #else 
 

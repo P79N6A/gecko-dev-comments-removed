@@ -2863,7 +2863,7 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
     JSTracer trc;
     JSGCArena *emptyArenas, *a, **ap;
 #ifdef JS_THREADSAFE
-    uint32 requestDebit;
+    size_t requestDebit;
 #endif
 #ifdef JS_GCMETER
     uint32 nlivearenas, nkilledarenas, nthings;
@@ -2955,8 +2955,47 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
 
         if (rt->gcThread != cx->thread) {
-            requestDebit = js_DiscountRequestsForGC(cx);
-            js_RecountRequestsAfterGC(rt, requestDebit);
+            requestDebit = js_CountThreadRequests(cx);
+            JS_ASSERT(requestDebit <= rt->requestCount);
+#ifdef JS_TRACER
+            JS_ASSERT_IF(requestDebit == 0, !JS_ON_TRACE(cx));
+#endif
+            if (requestDebit != 0) {
+#ifdef JS_TRACER
+                if (JS_ON_TRACE(cx)) {
+                    
+
+
+
+
+                    JS_UNLOCK_GC(rt);
+                    LeaveTrace(cx);
+                    JS_LOCK_GC(rt);
+                }
+#endif
+                rt->requestCount -= requestDebit;
+
+                if (rt->requestCount == 0)
+                    JS_NOTIFY_REQUEST_DONE(rt);
+
+                
+
+
+
+                cx->thread->gcWaiting = true;
+                js_ShareWaitingTitles(cx);
+
+                
+
+
+
+                JS_ASSERT(rt->gcLevel > 0);
+                do {
+                    JS_AWAIT_GC_DONE(rt);
+                } while (rt->gcLevel > 0);
+                cx->thread->gcWaiting = false;
+                rt->requestCount += requestDebit;
+            }
         }
         if (!(gckind & GC_LOCK_HELD))
             JS_UNLOCK_GC(rt);
@@ -2983,10 +3022,24 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
     requestDebit = js_CountThreadRequests(cx);
     JS_ASSERT_IF(cx->requestDepth != 0, requestDebit >= 1);
-    rt->requestCount -= requestDebit;
-    while (rt->requestCount > 0)
-        JS_AWAIT_REQUEST_DONE(rt);
-    rt->requestCount += requestDebit;
+    JS_ASSERT(requestDebit <= rt->requestCount);
+    if (requestDebit != rt->requestCount) {
+        rt->requestCount -= requestDebit;
+
+        
+
+
+
+
+
+        cx->thread->gcWaiting = true;
+        js_ShareWaitingTitles(cx);
+        do {
+            JS_AWAIT_REQUEST_DONE(rt);
+        } while (rt->requestCount > 0);
+        cx->thread->gcWaiting = false;
+        rt->requestCount += requestDebit;
+    }
 
 #else  
 

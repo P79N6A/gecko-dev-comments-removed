@@ -3860,12 +3860,8 @@ js_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
 
 
 
-    {
-        JSScope *scope = OBJ_SCOPE(proto)->getEmptyScope(cx, clasp);
-        if (!scope)
-            goto bad;
-        scope->drop(cx, NULL);
-    }
+    if (!OBJ_SCOPE(proto)->ensureEmptyScope(cx, clasp))
+        goto bad;
 
     
     if (key != JSProto_Null && !js_SetClassObject(cx, obj, key, ctor))

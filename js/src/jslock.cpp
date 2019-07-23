@@ -520,16 +520,18 @@ js_NudgeOtherContexts(JSContext *cx)
 
 
 static void
-NudgeThread(JSThread *thread)
+NudgeThread(JSRuntime *rt, JSThread *thread)
 {
-    JSCList *link;
-    JSContext *acx;
+    JS_ASSERT(thread);
 
-    link = &thread->contextList;
-    while ((link = link->next) != &thread->contextList) {
-        acx = CX_FROM_THREAD_LINKS(link);
-        JS_ASSERT(acx->thread == thread);
-        if (acx->requestDepth)
+    
+
+
+
+
+    JSContext *acx = NULL;
+    while ((acx = js_NextActiveContext(rt, acx)) != NULL) {
+        if (acx->thread == thread)
             JS_TriggerOperationCallback(acx);
     }
 }
@@ -545,20 +547,16 @@ NudgeThread(JSThread *thread)
 static JSBool
 ClaimTitle(JSTitle *title, JSContext *cx)
 {
-    JSRuntime *rt;
-    JSContext *ownercx;
-    uint32 requestDebit;
+    JSRuntime *rt = cx->runtime;
+    JS_ASSERT_IF(cx->requestDepth == 0,
+                 cx->thread == rt->gcThread && rt->gcRunning);
 
-    rt = cx->runtime;
     JS_RUNTIME_METER(rt, claimAttempts);
     JS_LOCK_GC(rt);
 
     
-    while ((ownercx = title->ownercx) != NULL) {
+    while (JSContext *ownercx = title->ownercx) {
         
-
-
-
 
 
 
@@ -580,13 +578,14 @@ ClaimTitle(JSTitle *title, JSContext *cx)
         if (title->u.link) {
             JS_ASSERT(js_ValidContextPointer(rt, ownercx));
             JS_ASSERT(ownercx->requestDepth > 0);
-            JS_ASSERT_IF(cx->requestDepth == 0, cx->thread == rt->gcThread);
-            canClaim = (ownercx->thread == cx->thread &&
-                        cx->requestDepth > 0);
+            JS_ASSERT(!rt->gcRunning);
+            canClaim = (ownercx->thread == cx->thread);
         } else {
             canClaim = (!js_ValidContextPointer(rt, ownercx) ||
                         !ownercx->requestDepth ||
-                        ownercx->thread == cx->thread);
+                        cx->thread == ownercx->thread  ||
+                        cx->thread == rt->gcThread ||
+                        ownercx->thread->gcWaiting);
         }
         if (canClaim) {
             title->ownercx = cx;
@@ -608,13 +607,7 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 
 
 
-
-
-
-
-
-
-        if (rt->gcThread == cx->thread || WillDeadlock(ownercx, cx->thread)) {
+        if (WillDeadlock(ownercx, cx->thread)) {
             ShareTitle(cx, title);
             break;
         }
@@ -625,7 +618,6 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 
 
         if (!title->u.link) {
-            TITLE_TO_SCOPE(title)->hold();
             title->u.link = rt->titleSharingTodo;
             rt->titleSharingTodo = title;
         }
@@ -635,24 +627,9 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 
 
 
-        requestDebit = js_DiscountRequestsForGC(cx);
-        if (title->ownercx != ownercx) {
-            
 
 
-
-            js_RecountRequestsAfterGC(rt, requestDebit);
-            continue;
-        }
-
-        
-
-
-
-
-
-
-        NudgeThread(ownercx->thread);
+        NudgeThread(rt, ownercx->thread);
 
         JS_ASSERT(!cx->thread->titleToShare);
         cx->thread->titleToShare = title;
@@ -661,21 +638,6 @@ ClaimTitle(JSTitle *title, JSContext *cx)
 #endif
             PR_WaitCondVar(rt->titleSharingDone, PR_INTERVAL_NO_TIMEOUT);
         JS_ASSERT(stat != PR_FAILURE);
-
-        js_RecountRequestsAfterGC(rt, requestDebit);
-
-        
-
-
-
-
-
-
-
-
-
-
-
         cx->thread->titleToShare = NULL;
     }
 
@@ -693,24 +655,15 @@ js_ShareWaitingTitles(JSContext *cx)
     todop = &cx->runtime->titleSharingTodo;
     shared = false;
     while ((title = *todop) != NO_TITLE_SHARING_TODO) {
-        if (title->ownercx != cx) {
+        if (title->ownercx->thread != cx->thread) {
             todop = &title->u.link;
             continue;
         }
         *todop = title->u.link;
-        title->u.link = NULL;       
+        title->u.link = NULL;           
 
-        
-
-
-
-
-
-
-        if (TITLE_TO_SCOPE(title)->drop(cx, NULL)) {
-            FinishSharingTitle(cx, title); 
-            shared = true;
-        }
+        FinishSharingTitle(cx, title);  
+        shared = true;
     }
     if (shared)
         JS_NOTIFY_ALL_CONDVAR(cx->runtime->titleSharingDone);
