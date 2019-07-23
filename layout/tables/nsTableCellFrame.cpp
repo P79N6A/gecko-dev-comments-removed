@@ -222,6 +222,13 @@ nsTableCellFrame::AttributeChanged(PRInt32         aNameSpaceID,
                                    PRInt32         aModType)
 {
   
+  
+  if (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::nowrap &&
+      PresContext()->CompatibilityMode() == eCompatibility_NavQuirks) {
+    PresContext()->PresShell()->
+      FrameNeedsReflow(this, nsIPresShell::eTreeChange, NS_FRAME_IS_DIRTY);
+  }
+  
   nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
   if (tableFrame) {
     tableFrame->AttributeChangedFor(this, mContent, aAttribute); 

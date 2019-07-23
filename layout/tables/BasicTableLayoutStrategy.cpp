@@ -128,6 +128,8 @@ GetWidthInfo(nsIRenderingContext *aRenderingContext,
         
         
         
+        
+        
         if (aIsCell && w > minCoord &&
             aFrame->PresContext()->CompatibilityMode() ==
               eCompatibility_NavQuirks &&
