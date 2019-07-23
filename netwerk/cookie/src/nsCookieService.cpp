@@ -440,6 +440,11 @@ nsCookieService::Init()
   
   
   rv = InitDB();
+  if (rv == NS_ERROR_FILE_CORRUPTED) {
+    
+    COOKIE_LOGSTRING(PR_LOG_WARNING, ("Init(): db corrupt, trying again", rv));
+    rv = InitDB(PR_TRUE);
+  }
   if (NS_FAILED(rv))
     COOKIE_LOGSTRING(PR_LOG_WARNING, ("Init(): InitDB() gave error %x", rv));
 
@@ -470,7 +475,7 @@ nsCookieService::Init()
 }
 
 nsresult
-nsCookieService::InitDB()
+nsCookieService::InitDB(PRBool aDeleteExistingDB)
 {
   
   CloseDB();
@@ -481,19 +486,18 @@ nsCookieService::InitDB()
 
   cookieFile->AppendNative(NS_LITERAL_CSTRING(kCookieFileName));
 
+  
+  if (aDeleteExistingDB) {
+    rv = cookieFile->Remove(PR_FALSE);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   nsCOMPtr<mozIStorageService> storage = do_GetService("@mozilla.org/storage/service;1");
   if (!storage)
     return NS_ERROR_UNEXPECTED;
 
   
   rv = storage->OpenUnsharedDatabase(cookieFile, getter_AddRefs(mDBConn));
-  if (rv == NS_ERROR_FILE_CORRUPTED) {
-    
-    rv = cookieFile->Remove(PR_FALSE);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = storage->OpenUnsharedDatabase(cookieFile, getter_AddRefs(mDBConn));
-  }
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRBool tableExists = PR_FALSE;
@@ -591,18 +595,28 @@ nsCookieService::InitDB()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
+  if (aDeleteExistingDB)
+    return NS_OK;
+
+  
   if (tableExists)
     return Read();
 
-  rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(cookieFile));
+  nsCOMPtr<nsIFile> oldCookieFile;
+  rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(oldCookieFile));
   if (NS_FAILED(rv)) return rv;
 
-  cookieFile->AppendNative(NS_LITERAL_CSTRING(kOldCookieFileName));
-  rv = ImportCookies(cookieFile);
-  if (NS_FAILED(rv)) return rv;
+  oldCookieFile->AppendNative(NS_LITERAL_CSTRING(kOldCookieFileName));
+  rv = ImportCookies(oldCookieFile);
+  if (NS_FAILED(rv)) {
+    if (rv == NS_ERROR_FILE_NOT_FOUND)
+      return NS_OK;
+
+    return rv;
+  }
 
   
-  cookieFile->Remove(PR_FALSE);
+  oldCookieFile->Remove(PR_FALSE);
   return NS_OK;
 }
 
@@ -990,7 +1004,7 @@ nsCookieService::Read()
 
   nsCAutoString name, value, host, path;
   PRBool hasResult;
-  while (NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
+  while (NS_SUCCEEDED(rv = stmt->ExecuteStep(&hasResult)) && hasResult) {
     PRInt64 creationID = stmt->AsInt64(0);
     
     stmt->GetUTF8String(1, name);
@@ -1028,7 +1042,7 @@ nsCookieService::Read()
 
   COOKIE_LOGSTRING(PR_LOG_DEBUG, ("Read(): %ld cookies read", mCookieCount));
 
-  return NS_OK;
+  return rv;
 }
 
 NS_IMETHODIMP
