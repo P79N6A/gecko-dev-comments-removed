@@ -101,6 +101,10 @@ using namespace nanojit;
 static GC gc = GC();
 static avmplus::AvmCore* core = new (&gc) avmplus::AvmCore();
 
+
+
+static Oracle oracle;
+
 Tracker::Tracker()
 {
     pagelist = 0;
@@ -201,6 +205,62 @@ static inline bool isInt32(jsval v)
 static inline uint8 getCoercedType(jsval v)
 {
     return isInt32(v) ? JSVAL_INT : JSVAL_TAG(v);
+}
+
+
+void
+Oracle::markGlobalSlotUndemotable(JSScript* script, unsigned slot)
+{
+    _dontDemote.set(&gc, (slot % ORACLE_SIZE));
+}
+
+
+bool
+Oracle::isGlobalSlotUndemotable(JSScript* script, unsigned slot) const
+{
+    return _dontDemote.get(slot % ORACLE_SIZE);
+}
+
+
+void 
+Oracle::markStackSlotUndemotable(JSScript* script, jsbytecode* ip, unsigned slot)
+{
+    uint32 hash = uint32(ip) + slot;
+    hash %= ORACLE_SIZE;
+    _dontDemote.set(&gc, hash);
+}
+
+
+bool 
+Oracle::isStackSlotUndemotable(JSScript* script, jsbytecode* ip, unsigned slot) const
+{
+    uint32 hash = uint32(ip) + slot;
+    hash %= ORACLE_SIZE;
+    return _dontDemote.get(hash);
+}
+
+
+
+static unsigned
+nativeStackSlots(unsigned callDepth, JSStackFrame* fp)
+{
+    unsigned slots = 0;
+    for (;;) {
+        unsigned operands = fp->regs->sp - StackBase(fp);
+        JS_ASSERT(operands <= fp->script->nslots - fp->script->nfixed);
+        slots += operands;
+        if (fp->callee)
+            slots += fp->script->nfixed;
+        if (callDepth-- == 0) {
+            if (fp->callee) {
+                unsigned nargs = JS_MAX(fp->fun->nargs, fp->argc);
+                slots += 1 + nargs;
+            }
+            return slots;
+        }
+        fp = fp->down;
+    }
+    JS_NOT_REACHED("nativeStackSlots");
 }
 
 static LIns* demote(LirWriter *out, LInsp i)
@@ -474,6 +534,47 @@ public:
         FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth, code);                  \
     JS_END_MACRO
 
+
+void
+TypeMap::captureGlobalTypes(JSContext* cx, SlotList& slots)
+{
+    unsigned ngslots = slots.length();
+    uint16* gslots = slots.data();
+    setLength(ngslots);
+    uint8* map = data();
+    uint8* m = map;
+    FORALL_GLOBAL_SLOTS(cx, ngslots, gslots, 
+        uint8 type = getCoercedType(*vp);
+        if ((type == JSVAL_INT) && oracle.isGlobalSlotUndemotable(cx->fp->script, gslots[n]))
+            type = JSVAL_DOUBLE;
+        *m++ = type;
+    );
+}
+
+
+void 
+TypeMap::captureStackTypes(JSContext* cx, unsigned callDepth)
+{
+    setLength(nativeStackSlots(callDepth, cx->fp));
+    uint8* map = data();
+    uint8* m = map;
+    FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
+        uint8 type = getCoercedType(*vp);
+        if ((type == JSVAL_INT) && oracle.isStackSlotUndemotable(cx->fp->script,
+                cx->fp->regs->pc, unsigned(m - map)))
+            type = JSVAL_DOUBLE;
+        *m++ = type;
+    );
+}
+
+
+bool
+TypeMap::matches(TypeMap& other)
+{
+    JS_ASSERT(length() == other.length()); 
+    return !memcmp(data(), other.data(), length());
+}
+
 TraceRecorder::TraceRecorder(JSContext* cx, GuardRecord* _anchor,
         Fragment* _fragment, unsigned ngslots, uint8* globalTypeMap, uint8* stackTypeMap)
 {
@@ -554,30 +655,6 @@ unsigned
 TraceRecorder::getCallDepth() const
 {
     return callDepth;
-}
-
-
-
-static unsigned
-nativeStackSlots(unsigned callDepth, JSStackFrame* fp)
-{
-    unsigned slots = 0;
-    for (;;) {
-        unsigned operands = fp->regs->sp - StackBase(fp);
-        JS_ASSERT(operands <= fp->script->nslots - fp->script->nfixed);
-        slots += operands;
-        if (fp->callee)
-            slots += fp->script->nfixed;
-        if (callDepth-- == 0) {
-            if (fp->callee) {
-                unsigned nargs = JS_MAX(fp->fun->nargs, fp->argc);
-                slots += 1 + nargs;
-            }
-            return slots;
-        }
-        fp = fp->down;
-    }
-    JS_NOT_REACHED("nativeStackSlots");
 }
 
 
@@ -932,7 +1009,10 @@ TraceRecorder::lazilyImportGlobalSlot(unsigned slot)
         return true; 
     unsigned index = treeInfo->globalSlots.length();
     treeInfo->globalSlots.add(slot);
-    treeInfo->globalTypeMap.add(getCoercedType(*vp));
+    uint8 type = getCoercedType(*vp);
+    if ((type == JSVAL_INT) && oracle.isGlobalSlotUndemotable(cx->fp->script, slot))
+        type = JSVAL_DOUBLE;
+    treeInfo->globalTypeMap.add(type);
     import(gp_ins, slot*sizeof(double), vp, treeInfo->globalTypeMap.data()[index],
            "global", index, NULL);
     return true;
@@ -1073,7 +1153,7 @@ TraceRecorder::guard(bool expected, LIns* cond, ExitType exitType)
 
 
 bool
-TraceRecorder::checkType(jsval& v, uint8& t, bool& recompile)
+TraceRecorder::checkType(jsval& v, uint8 t, bool& unstable)
 {
     if (t == JSVAL_INT) { 
         if (!isNumber(v))
@@ -1089,10 +1169,7 @@ TraceRecorder::checkType(jsval& v, uint8& t, bool& recompile)
                      : nativeGlobalOffset(&v));
 #endif
             AUDIT(slotPromoted);
-            if (fragment->root == fragment) 
-
-                t = JSVAL_DOUBLE; 
-            recompile = true;
+            unstable = true;
             return true; 
         }
         
@@ -1125,21 +1202,34 @@ TraceRecorder::verifyTypeStability()
 {
     unsigned ngslots = treeInfo->globalSlots.length();
     uint16* gslots = treeInfo->globalSlots.data();
-    uint8* m = treeInfo->globalTypeMap.data();
+    uint8* typemap = treeInfo->globalTypeMap.data();
     JS_ASSERT(treeInfo->globalTypeMap.length() == ngslots);
     bool recompile = false;
+    uint8* m = typemap;
     FORALL_GLOBAL_SLOTS(cx, ngslots, gslots,
-        if (!checkType(*vp, *m, recompile))
+        bool demote = false;
+        if (!checkType(*vp, *m, demote))
             return false;
+        if (demote) {
+            oracle.markGlobalSlotUndemotable(cx->fp->script, gslots[n]);
+            recompile = true;
+        }
         ++m
     );
-    m = treeInfo->stackTypeMap.data();
+    typemap = treeInfo->stackTypeMap.data();
+    m = typemap;
     FORALL_SLOTS_IN_PENDING_FRAMES(cx, callDepth,
-        if (!checkType(*vp, *m, recompile))
+        bool demote = false;
+        if (!checkType(*vp, *m, demote))
             return false;
+        if (demote) {
+            oracle.markStackSlotUndemotable(cx->fp->script, (jsbytecode*)fragment->ip, 
+                    unsigned(m - typemap));
+            recompile = true;
+        }
         ++m
     );
-    if (recompile && fragment->root != fragment)
+    if (recompile)
         js_TrashTree(cx, fragment);
     return !recompile;
 }
@@ -1187,43 +1277,6 @@ TraceRecorder::emitTreeCall(Fragment* inner, GuardRecord* lr)
 {
     LIns* args[] = { lirbuf->state, lir->insImmPtr(inner) };
     lir->insCall(F_CallTree, args);
-}
-
-
-void
-TreeInfo::addOuterTree(Fragment* outer)
-{
-    if (!outerTrees.contains(outer)) {
-        outerTrees.add(outer);
-        ((TreeInfo*)outer->vmprivate)->mergeGlobalsFromInnerTree(this->fragment);
-    }
-}
-
-
-void
-TreeInfo::mergeGlobalsFromInnerTree(Fragment* inner)
-{
-    TreeInfo* ti = (TreeInfo*)inner->vmprivate;
-    Queue<uint16>* gslots = &ti->globalSlots;
-    uint16* data = gslots->data();
-    unsigned length = gslots->length();
-    
-    bool changed = false;
-    for (unsigned n = 0; n < length; ++n) {
-        uint16 slot = data[n];
-        if (!globalSlots.contains(slot)) {
-            globalSlots.add(slot);
-            changed = true;
-        }
-    }
-    
-    if (changed) {
-        Queue<Fragment*>* trees = &ti->outerTrees;
-        Fragment** data = trees->data();
-        unsigned length = trees->length();
-        for (unsigned n = 0; n < length; ++n) 
-            ((TreeInfo*)(data[n]->vmprivate))->mergeGlobalsFromInnerTree(this->fragment);
-    }
 }
 
 int
@@ -1303,8 +1356,11 @@ js_TrashTree(JSContext* cx, Fragment* f)
 {
     AUDIT(treesTrashed);
     debug_only(printf("Trashing tree info.\n");)
-    delete (TreeInfo*)f->vmprivate;
-    f->vmprivate = NULL;
+    TreeInfo* ti = (TreeInfo*)f->vmprivate;
+    if (ti) {
+        delete ti;
+        f->vmprivate = NULL;
+    }
     f->releaseCode(JS_TRACE_MONITOR(cx).fragmento);
 }
 
@@ -1398,32 +1454,30 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f)
         f->lirbuf->names = new (&gc) LirNameMap(&gc, builtins, tm->fragmento->labels);
 #endif
     }
+
+    JS_ASSERT(!f->vmprivate);
     
-    TreeInfo* ti = (TreeInfo*)f->vmprivate;
-    if (!ti) {
-        
-        ti = new TreeInfo(f); 
-        f->vmprivate = ti;
+    
+    TreeInfo* ti = new TreeInfo(f); 
+    f->vmprivate = ti;
 
-        
-        unsigned entryNativeStackSlots = nativeStackSlots(0, cx->fp);
-        ti->entryNativeStackSlots = entryNativeStackSlots;
-        ti->nativeStackBase = (entryNativeStackSlots -
+    
+    JS_ASSERT(!ti->globalSlots.length());
+    
+    
+    ti->stackTypeMap.captureStackTypes(cx, 0);
+    
+    
+    unsigned entryNativeStackSlots = ti->stackTypeMap.length();
+    JS_ASSERT(entryNativeStackSlots == nativeStackSlots(0, cx->fp));
+    ti->entryNativeStackSlots = entryNativeStackSlots;
+    ti->nativeStackBase = (entryNativeStackSlots -
             (cx->fp->regs->sp - StackBase(cx->fp))) * sizeof(double);
-        ti->maxNativeStackSlots = entryNativeStackSlots;
-        ti->maxCallDepth = 0;
+    ti->maxNativeStackSlots = entryNativeStackSlots;
+    ti->maxCallDepth = 0;
 
-        
-        ti->globalShape = OBJ_SCOPE(JS_GetGlobalForObject(cx, cx->fp->scopeChain))->shape;
-
-        
-        ti->stackTypeMap.setLength(entryNativeStackSlots);
-        uint8* m = ti->stackTypeMap.data();
-        FORALL_SLOTS_IN_PENDING_FRAMES(cx, 0,
-            *m++ = getCoercedType(*vp);
-        );
-    }
-    JS_ASSERT(ti->entryNativeStackSlots == nativeStackSlots(0, cx->fp));
+    
+    ti->globalShape = OBJ_SCOPE(JS_GetGlobalForObject(cx, cx->fp->scopeChain))->shape;
 
     
     return js_StartRecorder(cx, NULL, f, ti->globalSlots.length(),
@@ -1473,12 +1527,28 @@ js_ContinueRecording(JSContext* cx, TraceRecorder* r, jsbytecode* oldpc, uintN& 
         return false; 
     }
 #endif  
+    Fragmento* fragmento = JS_TRACE_MONITOR(cx).fragmento;
     if (r->isLoopHeader(cx)) { 
+        if (fragmento->assm()->error()) {
+            
+            r->blacklist();
+            
+            if (fragmento->assm()->error() == OutOMem)
+                js_FlushJITCache(cx);
+            return false; 
+        }
         AUDIT(traceCompleted);
-        r->closeLoop(JS_TRACE_MONITOR(cx).fragmento);
+        r->closeLoop(fragmento);
         js_DeleteRecorder(cx);
         return false; 
     }
+    
+    Fragment* f = fragmento->getLoop(cx->fp->regs->pc);
+    if (f->code() && !r->getCallDepth()) { 
+        JS_ASSERT(f->vmprivate);
+        
+    }
+    
     AUDIT(returnToDifferentLoopHeader);
     debug_only(printf("loop edge %d -> %d, header %d\n",
             oldpc - cx->fp->script->code,
@@ -1650,6 +1720,7 @@ js_InitJIT(JSContext* cx)
 extern void
 js_DestroyJIT(JSContext* cx)
 {
+    
 #ifdef DEBUG
     printf("recorder: started(%llu), aborted(%llu), completed(%llu), different header(%llu), "
            "trees trashed(%llu), slot promoted(%llu), "
