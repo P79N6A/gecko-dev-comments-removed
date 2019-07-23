@@ -1231,6 +1231,16 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
         return NS_OK;
     }
 
+    
+    
+    
+    if (!XPCPerThreadData::IsMainThread(ccx) ||
+        (wrapper->GetProto() &&
+         !wrapper->GetProto()->ClassIsMainThreadOnly())) {
+        NS_RELEASE(wrapper);
+        return NS_ERROR_FAILURE;
+    }
+
     if(aOldScope != aNewScope)
     {
         
@@ -1273,28 +1283,6 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
         {   
             XPCAutoLock lock(aOldScope->GetRuntime()->GetMapLock());
 
-            
-            
-
-            if(wrapper->HasProto() &&
-               STOBJ_GET_PROTO(wrapper->GetFlatJSObject()) ==
-               oldProto->GetJSProtoObject())
-            {
-                if(!JS_SetPrototype(ccx, wrapper->GetFlatJSObject(),
-                                    newProto->GetJSProtoObject()))
-                {
-                    
-                    NS_ERROR("JS_SetPrototype failed");
-                    NS_RELEASE(wrapper);
-                    return NS_ERROR_FAILURE;
-                }
-            }
-            else
-            {
-                NS_WARNING("Moving XPConnect wrappedNative to new scope, "
-                           "but can't fixup __proto__");
-            }
-
             oldMap->Remove(wrapper);
 
             if(wrapper->HasProto())
@@ -1325,6 +1313,28 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                          "wrapper already in new scope!");
 
             (void) newMap->Add(wrapper);
+        }
+
+        
+        
+
+        if(wrapper->HasProto() &&
+           STOBJ_GET_PROTO(wrapper->GetFlatJSObject()) ==
+           oldProto->GetJSProtoObject())
+        {
+            if(!JS_SetPrototype(ccx, wrapper->GetFlatJSObject(),
+                                newProto->GetJSProtoObject()))
+            {
+                
+                NS_ERROR("JS_SetPrototype failed");
+                NS_RELEASE(wrapper);
+                return NS_ERROR_FAILURE;
+            }
+        }
+        else
+        {
+            NS_WARNING("Moving XPConnect wrappedNative to new scope, "
+                       "but can't fixup __proto__");
         }
     }
 

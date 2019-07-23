@@ -1854,6 +1854,11 @@ nsJSContext::CompileEventHandler(nsIAtom *aName,
 
   const char *charName = AtomToEventHandlerName(aName);
 
+#ifdef DEBUG
+  JSContext* top = nsContentUtils::GetCurrentJSContext();
+  NS_ASSERTION(mContext == top, "Context not properly pushed!");
+#endif
+
   
   
   
