@@ -805,7 +805,12 @@ NS_IMETHODIMP nsXULWindow::SetVisibility(PRBool aVisibility)
   
   nsCOMPtr<nsIBaseWindow> shellAsWin(do_QueryInterface(mDocShell));
   shellAsWin->SetVisibility(aVisibility);
-  mWindow->Show(aVisibility);
+  
+  
+  
+  
+  nsCOMPtr<nsIWidget> window = mWindow;
+  window->Show(aVisibility);
 
   nsCOMPtr<nsIWindowMediator> windowMediator(do_GetService(NS_WINDOWMEDIATOR_CONTRACTID));
   if (windowMediator)
@@ -1023,8 +1028,11 @@ void nsXULWindow::OnChromeLoaded()
     if (mCenterAfterLoad && !positionSet)
       Center(parentWindow, parentWindow ? PR_FALSE : PR_TRUE, PR_FALSE);
 
-    if (mShowAfterLoad)
+    if (mShowAfterLoad) {
       SetVisibility(PR_TRUE);
+      
+      
+    }
   }
   mPersistentAttributesMask |= PAD_POSITION | PAD_SIZE | PAD_MISC;
 }
