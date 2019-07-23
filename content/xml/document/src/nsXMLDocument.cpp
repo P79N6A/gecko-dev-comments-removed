@@ -544,6 +544,7 @@ nsXMLDocument::EndLoad()
   nsDocument::EndLoad();
   if (mSynchronousDOMContentLoaded) {
     mSynchronousDOMContentLoaded = PR_FALSE;
+    nsDocument::SetReadyStateInternal(nsIDocument::READYSTATE_COMPLETE);
     
     
     

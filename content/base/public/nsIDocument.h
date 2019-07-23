@@ -620,6 +620,10 @@ public:
   virtual void EndUpdate(nsUpdateType aUpdateType) = 0;
   virtual void BeginLoad() = 0;
   virtual void EndLoad() = 0;
+
+  enum ReadyState { READYSTATE_UNINITIALIZED = 0, READYSTATE_LOADING = 1, READYSTATE_INTERACTIVE = 3, READYSTATE_COMPLETE = 4};
+  virtual void SetReadyStateInternal(ReadyState rs) = 0;
+
   
   
   virtual void ContentStatesChanged(nsIContent* aContent1,
