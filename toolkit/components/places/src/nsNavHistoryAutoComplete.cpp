@@ -273,6 +273,10 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
                           nsIAutoCompleteResult *aPreviousResult,
                           nsIAutoCompleteObserver *aListener)
 {
+  
+  
+  
+
   NS_ENSURE_ARG_POINTER(aListener);
   mCurrentSearchString = aSearchString;
   
@@ -283,131 +287,36 @@ nsNavHistory::StartSearch(const nsAString & aSearchString,
 
   mCurrentListener = aListener;
 
-  
-  
-  
-  
-  PRBool searchPrevious = PR_FALSE;
-  
-  
-  if (0) {
-    nsAutoString prevSearchString;
-    aPreviousResult->GetSearchString(prevSearchString);
-
-    
-    
-    
-    
-    searchPrevious = !prevSearchString.IsEmpty() && Substring(mCurrentSearchString, 0,
-                      prevSearchString.Length()).Equals(prevSearchString);
-  }
-
   mCurrentResult = do_CreateInstance(NS_AUTOCOMPLETESIMPLERESULT_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  mCurrentChunkOffset = 0;
   mCurrentResultURLs.Clear();
+  mLivemarkFeedItemIds.Clear();
+  mLivemarkFeedURIs.Clear();
 
   
   
-  if (!searchPrevious) {
-    mLivemarkFeedItemIds.Clear();
-    mLivemarkFeedURIs.Clear();
+  
+  
+  
+  
+  mozStorageStatementScoper scope(mFoldersWithAnnotationQuery);
 
-    
-    
-    
-    
-    
-    
-    mozStorageStatementScoper scope(mFoldersWithAnnotationQuery);
+  rv = mFoldersWithAnnotationQuery->BindUTF8StringParameter(0, NS_LITERAL_CSTRING(LMANNO_FEEDURI));
+  NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = mFoldersWithAnnotationQuery->BindUTF8StringParameter(0, NS_LITERAL_CSTRING(LMANNO_FEEDURI));
+  PRBool hasMore = PR_FALSE;
+  while (NS_SUCCEEDED(mFoldersWithAnnotationQuery->ExecuteStep(&hasMore)) && hasMore) {
+    PRInt64 itemId = 0;
+    rv = mFoldersWithAnnotationQuery->GetInt64(0, &itemId);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    PRBool hasMore = PR_FALSE;
-    while (NS_SUCCEEDED(mFoldersWithAnnotationQuery->ExecuteStep(&hasMore)) && hasMore) {
-      PRInt64 itemId = 0;
-      rv = mFoldersWithAnnotationQuery->GetInt64(0, &itemId);
-      NS_ENSURE_SUCCESS(rv, rv);
-      mLivemarkFeedItemIds.Put(itemId, PR_TRUE);
-      nsAutoString feedURI;
-      
-      rv = mFoldersWithAnnotationQuery->GetString(1, feedURI);
-      NS_ENSURE_SUCCESS(rv, rv);
-      mLivemarkFeedURIs.Put(feedURI, PR_TRUE);
-    }
-  }
-
-  
-  if (searchPrevious) {
+    mLivemarkFeedItemIds.Put(itemId, PR_TRUE);
+    nsAutoString feedURI;
     
-    
-    
-    
-    
-    
-    rv = AutoCompleteTagsSearch();
+    rv = mFoldersWithAnnotationQuery->GetString(1, feedURI);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    PRUint32 matchCount;
-    aPreviousResult->GetMatchCount(&matchCount);
-    for (PRUint32 i = 0; i < matchCount; i++) {
-      
-      
-      
-      
-      
-      
-      nsAutoString style;
-      aPreviousResult->GetStyleAt(i, style);
-      if (!style.Equals(NS_LITERAL_STRING("tag"))) {
-        nsAutoString url;
-        aPreviousResult->GetValueAt(i, url);
-
-        
-        PRBool dummy;
-        if (!mCurrentResultURLs.Get(url, &dummy)) {
-          nsAutoString title;
-          aPreviousResult->GetCommentAt(i, title);
-
-          
-          
-          
-          PRBool isMatch = CaseInsensitiveFindInReadable(mCurrentSearchString, title);
-          if (!isMatch)
-            isMatch = CaseInsensitiveFindInReadable(mCurrentSearchString, url);
-
-          if (isMatch) {
-            nsAutoString image;
-            aPreviousResult->GetImageAt(i, image);
-
-            mCurrentResultURLs.Put(url, PR_TRUE);
-  
-            rv = mCurrentResult->AppendMatch(url, title, image, style);
-            NS_ENSURE_SUCCESS(rv, rv);
-          }
-        }
-      }
-    }
-    
-    
-    PRUint32 count;
-    mCurrentResult->GetMatchCount(&count); 
-
-    if (count > 0) {
-      
-      
-      
-      mCurrentResult->SetSearchResult(nsIAutoCompleteResult::RESULT_SUCCESS_ONGOING);
-      mCurrentResult->SetDefaultIndex(0);
-      rv = mCurrentResult->SetListener(this);
-      NS_ENSURE_SUCCESS(rv, rv);
-      mCurrentListener->OnSearchResult(this, mCurrentResult);
-    }
-  }
-  else if (!mCurrentSearchString.IsEmpty()) {
-    
-    mCurrentChunkOffset = 0;
+    mLivemarkFeedURIs.Put(feedURI, PR_TRUE);
   }
 
   
