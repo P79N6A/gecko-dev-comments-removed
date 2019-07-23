@@ -479,6 +479,26 @@ function check_JSON_backup() {
 
 
 
+
+
+
+
+
+
+
+function is_time_ordered(before, after) {
+  
+  
+  
+  let isWindows = ("@mozilla.org/windows-registry-key;1" in Cc);
+  
+  let skew = isWindows ? 20000000 : 0;
+  return after - before > -skew;
+}
+
+
+
+
 let (randomFailingSyncTests = [
   "test_multi_word_tags.js",
   "test_removeVisitsByTimeframe.js",
