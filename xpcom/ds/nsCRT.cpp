@@ -205,6 +205,21 @@ PRUint32 nsCRT::HashCode(const char* str, PRUint32* resultingStrLen)
   return h;
 }
 
+PRUint32 nsCRT::HashCode(const char* start, PRUint32 length)
+{
+  PRUint32 h = 0;
+  const char* s = start;
+  const char* end = start + length;
+
+  unsigned char c;
+  while ( s < end ) {
+    c = *s++;
+    ADD_TO_HASHVAL(h, c);
+  }
+
+  return h;
+}
+
 PRUint32 nsCRT::HashCode(const PRUnichar* str, PRUint32* resultingStrLen)
 {
   PRUint32 h = 0;
@@ -221,92 +236,107 @@ PRUint32 nsCRT::HashCode(const PRUnichar* str, PRUint32* resultingStrLen)
   return h;
 }
 
-PRUint32 nsCRT::HashCodeAsUTF8(const PRUnichar* str, PRUint32* resultingStrLen)
+PRUint32 nsCRT::HashCodeAsUTF8(const PRUnichar* start, PRUint32 length)
 {
   PRUint32 h = 0;
-  const PRUnichar* s = str;
+  const PRUnichar* s = start;
+  const PRUnichar* end = start + length;
 
-  {
-    PRUint16 W1 = 0;      
-    PRUint32 U = 0;       
-    int code_length = 0;  
+  PRUint16 W1 = 0;      
+  PRUint32 U = 0;       
+  int code_length = 0;  
 
-    PRUint16 W;
-    while ( (W = *s++) )
-      {
+  PRUint16 W;
+  while ( s < end )
+    {
+      W = *s++;
+        
+
+
+
+
+
+      if ( !W1 )
+        {
+          if ( !IS_SURROGATE(W) )
+            {
+              U = W;
+              if ( W <= 0x007F )
+                code_length = 1;
+              else if ( W <= 0x07FF )
+                code_length = 2;
+              else
+                code_length = 3;
+            }
+          else if ( NS_IS_HIGH_SURROGATE(W) && s < end)
+            {
+              W1 = W;
+
+              continue;
+            }
+          else
+            {
+              
+              
+              U = 0xFFFD;
+
+              code_length = 3;
+
+              NS_WARNING("Got low surrogate but no previous high surrogate");
+            }
+        }
+      else
+        {
+          
           
 
-
-
-
-
-        if ( !W1 )
-          {
-            if ( !IS_SURROGATE(W) )
-              {
-                U = W;
-                if ( W <= 0x007F )
-                  code_length = 1;
-                else if ( W <= 0x07FF )
-                  code_length = 2;
-                else
-                  code_length = 3;
-              }
-            else if ( NS_IS_HIGH_SURROGATE(W) )
-              W1 = W;
-#ifdef DEBUG
-            else NS_ERROR("Got low surrogate but no previous high surrogate");
-#endif
-          }
-        else
-          {
+          if ( NS_IS_LOW_SURROGATE(W) )
+            {
+              U = SURROGATE_TO_UCS4(W1, W);
+              NS_ASSERTION(IS_VALID_CHAR(U), "How did this happen?");
+              code_length = 4;
+            }
+          else
+            {
               
               
+              U = 0xFFFD;
 
-            if ( NS_IS_LOW_SURROGATE(W) )
-              {
-                U = SURROGATE_TO_UCS4(W1, W);
-                NS_ASSERTION(IS_VALID_CHAR(U), "How did this happen?");
-                code_length = 4;
-              }
-#ifdef DEBUG
-            else NS_ERROR("High surrogate not followed by low surrogate");
-#endif
-            W1 = 0;
-          }
+              code_length = 3;
+
+              NS_WARNING("High surrogate not followed by low surrogate");
+            }
+
+          W1 = 0;
+        }
 
 
-        if ( code_length > 0 )
-          {
-            static const PRUint16 sBytePrefix[5]  = { 0x0000, 0x0000, 0x00C0, 0x00E0, 0x00F0  };
-            static const PRUint16 sShift[5]       = { 0, 0, 6, 12, 18 };
+      static const PRUint16 sBytePrefix[5]  = { 0x0000, 0x0000, 0x00C0, 0x00E0, 0x00F0  };
+      static const PRUint16 sShift[5]       = { 0, 0, 6, 12, 18 };
 
-              
+      
 
 
 
 
 
 
-              
-            ADD_TO_HASHVAL(h, (sBytePrefix[code_length] |
-                               (U>>sShift[code_length])));
 
-              
-            switch ( code_length )
-              {  
-                case 4:   ADD_TO_HASHVAL(h, (0x80 | ((U>>12) & 0x003F)));
-                case 3:   ADD_TO_HASHVAL(h, (0x80 | ((U>>6 ) & 0x003F)));
-                case 2:   ADD_TO_HASHVAL(h, (0x80 | ( U      & 0x003F)));
-                default:  code_length = 0;
-                  break;
-              }
-          }
-      }
-  }
+      
+      ADD_TO_HASHVAL(h, (sBytePrefix[code_length] | (U>>sShift[code_length])));
 
-  if ( resultingStrLen )
-    *resultingStrLen = (s-str)-1;
+      
+      
+      switch ( code_length )
+        {  
+          case 4:   ADD_TO_HASHVAL(h, (0x80 | ((U>>12) & 0x003F)));
+          case 3:   ADD_TO_HASHVAL(h, (0x80 | ((U>>6 ) & 0x003F)));
+          case 2:   ADD_TO_HASHVAL(h, (0x80 | ( U      & 0x003F)));
+          default:  code_length = 0;
+            break;
+        }
+    }
+
   return h;
 }
 

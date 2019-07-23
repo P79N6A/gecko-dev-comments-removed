@@ -557,6 +557,7 @@ class CalculateUTF8Length
 
 
 
+
 class ConvertUTF16toUTF8
   {
     public:
@@ -622,15 +623,26 @@ class ConvertUTF16toUTF8
                   }
                 else
                   {
-                    NS_ERROR("got a High Surrogate but no low surrogate");
                     
+                    
+                    
+                    *out++ = 0xEF;
+                    *out++ = 0xBF;
+                    *out++ = 0xBD;
+
+                    NS_WARNING("got a High Surrogate but no low surrogate");
                   }
               }
             else 
               {
                 
-                NS_ERROR("got a low Surrogate but no high surrogate");
                 
+                *out++ = 0xEF;
+                *out++ = 0xBF;
+                *out++ = 0xBD;
+
+                
+                NS_WARNING("got a low Surrogate but no high surrogate");
               }
           }
 
@@ -647,6 +659,7 @@ class ConvertUTF16toUTF8
       buffer_type* const mStart;
       buffer_type* mBuffer;
   };
+
 
 
 
@@ -687,10 +700,23 @@ class CalculateUTF8Size
                 if (0xDC00 == (0xFC00 & c))
                   mSize += 4;
                 else
-                  NS_ERROR("got a high Surrogate but no low surrogate");
+                  {
+                    
+                    
+                    
+                    mSize += 3;
+
+                    NS_WARNING("got a high Surrogate but no low surrogate");
+                  }
               }
             else 
-              NS_ERROR("got a low Surrogate but no high surrogate");
+              {
+                
+                
+                mSize += 3;
+
+                NS_WARNING("got a low Surrogate but no high surrogate");
+              }
           }
 
         return N;

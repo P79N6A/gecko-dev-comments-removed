@@ -229,6 +229,9 @@ public:
                            PRUint32* resultingStrLen = nsnull);
 
   
+  static PRUint32 HashCode(const char* start, PRUint32 length);
+
+  
   
   static PRUint32 HashCode(const PRUnichar* str,
                            PRUint32* resultingStrLen = nsnull);
@@ -236,8 +239,9 @@ public:
   
   
   
-  static PRUint32 HashCodeAsUTF8(const PRUnichar* str,
-                                 PRUint32* resultingStrLen = nsnull);
+  
+  
+  static PRUint32 HashCodeAsUTF8(const PRUnichar* start, PRUint32 length);
 
   
   static PRUint32 BufferHashCode(const PRUnichar* str, PRUint32 strLen);
