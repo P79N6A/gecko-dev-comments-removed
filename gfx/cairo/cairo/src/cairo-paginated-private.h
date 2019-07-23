@@ -59,7 +59,18 @@ struct _cairo_paginated_surface_backend {
     void
     (*set_paginated_mode)	(void			*surface,
 				 cairo_paginated_mode_t	 mode);
+
+    
+
+
+
+    cairo_warn cairo_int_status_t
+    (*set_bounding_box)	(void	   	*surface,
+			 cairo_box_t	*bbox);
 };
+
+
+
 
 
 

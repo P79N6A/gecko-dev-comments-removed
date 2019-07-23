@@ -47,6 +47,7 @@
 
 #include <cairo-features.h>
 
+#include "cairo-compiler-private.h"
 #include "cairo-mutex-type-private.h"
 
 

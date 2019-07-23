@@ -473,7 +473,7 @@ _cairo_os2_surface_acquire_source_image (void                   *abstract_surfac
         (local_os2_surface->base.backend != &cairo_os2_surface_backend))
     {
         
-        return CAIRO_STATUS_SURFACE_TYPE_MISMATCH;
+        return _cairo_error (CAIRO_STATUS_SURFACE_TYPE_MISMATCH);
     }
 
     DosRequestMutexSem (local_os2_surface->hmtx_use_private_fields, SEM_INDEFINITE_WAIT);
@@ -529,7 +529,7 @@ _cairo_os2_surface_acquire_dest_image (void                     *abstract_surfac
         (local_os2_surface->base.backend != &cairo_os2_surface_backend))
     {
         
-        return CAIRO_STATUS_SURFACE_TYPE_MISMATCH;
+        return _cairo_error (CAIRO_STATUS_SURFACE_TYPE_MISMATCH);
     }
 
     DosRequestMutexSem (local_os2_surface->hmtx_use_private_fields, SEM_INDEFINITE_WAIT);
@@ -637,7 +637,7 @@ _cairo_os2_surface_get_extents (void                    *abstract_surface,
         (local_os2_surface->base.backend != &cairo_os2_surface_backend))
     {
         
-        return CAIRO_STATUS_SURFACE_TYPE_MISMATCH;
+        return _cairo_error (CAIRO_STATUS_SURFACE_TYPE_MISMATCH);
     }
 
     rectangle->x = 0;
@@ -773,14 +773,14 @@ cairo_os2_surface_set_size (cairo_surface_t *surface,
         (local_os2_surface->base.backend != &cairo_os2_surface_backend))
     {
         
-        return CAIRO_STATUS_SURFACE_TYPE_MISMATCH;
+        return _cairo_error (CAIRO_STATUS_SURFACE_TYPE_MISMATCH);
     }
 
     if ((new_width <= 0) ||
         (new_height <= 0))
     {
         
-        return CAIRO_STATUS_NO_MEMORY;
+        return _cairo_error (CAIRO_STATUS_NO_MEMORY);
     }
 
     
@@ -789,7 +789,7 @@ cairo_os2_surface_set_size (cairo_surface_t *surface,
         
 
 
-        return CAIRO_STATUS_NO_MEMORY;
+        return _cairo_error (CAIRO_STATUS_NO_MEMORY);
     }
 
     
@@ -812,7 +812,7 @@ cairo_os2_surface_set_size (cairo_surface_t *surface,
 
 
         free (pchNewPixels);
-        return CAIRO_STATUS_NO_MEMORY;
+        return _cairo_error (CAIRO_STATUS_NO_MEMORY);
     }
 
     
@@ -824,7 +824,7 @@ cairo_os2_surface_set_size (cairo_surface_t *surface,
 
         cairo_surface_destroy ((cairo_surface_t *) pNewImageSurface);
         free (pchNewPixels);
-        return CAIRO_STATUS_NO_MEMORY;
+        return _cairo_error (CAIRO_STATUS_NO_MEMORY);
     }
 
     
@@ -840,7 +840,7 @@ cairo_os2_surface_set_size (cairo_surface_t *surface,
             
             cairo_surface_destroy ((cairo_surface_t *) pNewImageSurface);
             free (pchNewPixels);
-            return CAIRO_STATUS_NO_MEMORY;
+            return _cairo_error (CAIRO_STATUS_NO_MEMORY);
         }
         
         if (DosRequestMutexSem (local_os2_surface->hmtx_use_private_fields, SEM_INDEFINITE_WAIT)
@@ -851,7 +851,7 @@ cairo_os2_surface_set_size (cairo_surface_t *surface,
 
             cairo_surface_destroy ((cairo_surface_t *) pNewImageSurface);
             free (pchNewPixels);
-            return CAIRO_STATUS_NO_MEMORY;
+            return _cairo_error (CAIRO_STATUS_NO_MEMORY);
         }
     }
 
@@ -949,7 +949,7 @@ _cairo_os2_surface_finish (void *abstract_surface)
         (local_os2_surface->base.backend != &cairo_os2_surface_backend))
     {
         
-        return CAIRO_STATUS_SURFACE_TYPE_MISMATCH;
+        return _cairo_error (CAIRO_STATUS_SURFACE_TYPE_MISMATCH);
     }
 
     DosRequestMutexSem (local_os2_surface->hmtx_use_private_fields, SEM_INDEFINITE_WAIT);
@@ -1042,7 +1042,7 @@ _cairo_os2_surface_mark_dirty_rectangle (void *surface,
         (local_os2_surface->base.backend != &cairo_os2_surface_backend))
     {
         
-        return CAIRO_STATUS_SURFACE_TYPE_MISMATCH;
+        return _cairo_error (CAIRO_STATUS_SURFACE_TYPE_MISMATCH);
     }
 
     

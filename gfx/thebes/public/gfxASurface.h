@@ -132,6 +132,12 @@ public:
 
     static PRBool CheckSurfaceSize(const gfxIntSize& sz, PRInt32 limit = 0);
 
+    
+
+
+
+    virtual PRInt32 GetDefaultContextFlags() { return 0; }
+
 protected:
     gfxASurface() : mSurface(nsnull), mFloatingRefs(0), mSurfaceValid(PR_FALSE) { }
 

@@ -272,6 +272,9 @@ _cairo_stroker_join (cairo_stroker_t *stroker, cairo_stroke_face_t *in, cairo_st
 	double	in_dot_out = ((-in->usr_vector.x * out->usr_vector.x)+
 			      (-in->usr_vector.y * out->usr_vector.y));
 	double	ml = stroker->style->miter_limit;
+	double tolerance_squared = stroker->tolerance * stroker->tolerance;
+	double line_width_squared = (stroker->style->line_width *
+				     stroker->style->line_width);
 
 	
 
@@ -301,7 +304,107 @@ _cairo_stroker_join (cairo_stroker_t *stroker, cairo_stroke_face_t *in, cairo_st
 
 
 
-	if (2 <= ml * ml * (1 - in_dot_out)) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	if ((2 <= ml * ml * (1 - in_dot_out)) &&
+	    ((8 * (tolerance_squared / line_width_squared + 0.5)) <
+	     4 / (1 - in_dot_out) + (1 - in_dot_out))
+	    )
+	{
 	    double		x1, y1, x2, y2;
 	    double		mx, my;
 	    double		dx1, dx2, dy1, dy2;
@@ -816,7 +919,7 @@ _cairo_stroker_curve_to (void *closure,
     if (stroker->has_current_face) {
 	status = _cairo_stroker_join (stroker, &stroker->current_face, &start);
 	if (status)
-	    return status;
+	    goto CLEANUP_PEN;
     } else if (!stroker->has_first_face) {
 	stroker->first_face = start;
 	stroker->has_first_face = TRUE;
@@ -1064,9 +1167,11 @@ _cairo_rectilinear_stroker_add_segment (cairo_rectilinear_stroker_t	*stroker,
 	
 	if (new_size == 0)
 	    new_size = 4;
-	new_segments = realloc (stroker->segments, new_size * sizeof (cairo_line_t));
+	new_segments = _cairo_realloc_ab (stroker->segments,
+	       	                          new_size, sizeof (cairo_line_t));
 	if (new_segments == NULL)
-	    return CAIRO_STATUS_NO_MEMORY;
+	    return _cairo_error (CAIRO_STATUS_NO_MEMORY);
+
 	stroker->segments_size = new_size;
 	stroker->segments = new_segments;
     }

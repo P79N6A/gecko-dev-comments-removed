@@ -33,6 +33,7 @@
 
 
 
+
 #ifndef _CAIRO_WIN32_H_
 #define _CAIRO_WIN32_H_
 
@@ -48,7 +49,7 @@ cairo_public cairo_surface_t *
 cairo_win32_surface_create (HDC hdc);
 
 cairo_public cairo_surface_t *
-cairo_win32_printing_surface_create (HDC hdc, cairo_bool_t ignore_operators);
+cairo_win32_printing_surface_create (HDC hdc);
 
 cairo_public cairo_surface_t *
 cairo_win32_surface_create_with_ddb (HDC hdc,

@@ -92,6 +92,28 @@
 
 
 
+
+#define _cairo_realloc_ab(ptr, a, size) \
+  ((size) && (unsigned) (a) >= INT32_MAX / (unsigned) (size) ? NULL : \
+   realloc(ptr, (unsigned) (a) * (unsigned) (size)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define _cairo_malloc_abc(a, b, size) \
   ((b) && (unsigned) (a) >= INT32_MAX / (unsigned) (b) ? NULL : \
    (size) && (unsigned) ((a)*(b)) >= INT32_MAX / (unsigned) (size) ? NULL : \

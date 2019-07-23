@@ -72,9 +72,6 @@ _cairo_atsui_scaled_font_get_atsu_style (cairo_scaled_font_t *sfont);
 
 ATSUFontID
 _cairo_atsui_scaled_font_get_atsu_font_id (cairo_scaled_font_t *sfont);
-
-CGFontRef
-_cairo_atsui_scaled_font_get_cg_font_ref (cairo_scaled_font_t *sfont);
 #endif 
 
 #endif 

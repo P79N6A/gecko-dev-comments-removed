@@ -39,6 +39,8 @@
 
 #include <pixman.h>
 
+#include "cairo-compiler-private.h"
+
 
 
 struct _cairo_region {

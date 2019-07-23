@@ -465,6 +465,10 @@ public:
 
 
 
+
+
+
+
     void SetOperator(GraphicsOperator op);
     GraphicsOperator CurrentOperator() const;
 
@@ -537,9 +541,33 @@ public:
 
     already_AddRefed<gfxFlattenedPath> GetFlattenedPath();
 
+    
+
+
+
+    enum {
+        
+
+
+
+
+
+
+
+
+
+
+        FLAG_SIMPLIFY_OPERATORS = (1 << 0),
+    };
+
+    void SetFlag(PRInt32 aFlag) { mFlags |= aFlag; }
+    void ClearFlag(PRInt32 aFlag) { mFlags &= ~aFlag; }
+    PRInt32 GetFlags() { return mFlags; }
+
 private:
     cairo_t *mCairo;
     nsRefPtr<gfxASurface> mSurface;
+    PRInt32 mFlags;
 };
 
 #endif 
