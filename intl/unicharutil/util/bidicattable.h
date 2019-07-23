@@ -21,6 +21,26 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nscore.h" 
 
 static PRUint8 gBidiCatIdx1[256] = {
@@ -272,14 +292,14 @@ static PRUint8 gBidiCatIdx1[256] = {
      10,  
      48,  
       3,  
-      1,  
-      1,  
-      1,  
-      1,  
-      1,  
-      1,  
-      1,  
-      1,  
+      2,  
+      2,  
+      2,  
+      2,  
+      2,  
+      2,  
+      2,  
+      2,  
 };
 
 static PRUint8 gBidiCatIdx2[544] = {
@@ -1665,7 +1685,7 @@ static PRUint8 gBidiCatIdx6[160] = {
       1,  
 };
 
-static PRUint8 gBidiCatIdx7[224] = {
+static PRUint8 gBidiCatIdx7[264] = {
       1,  
       1,  
       1,  
@@ -1820,10 +1840,10 @@ static PRUint8 gBidiCatIdx7[224] = {
       3,  
       3,  
       3,  
-      3,  
-      3,  
-      3,  
-      3,  
+      1,  
+      1,  
+      1,  
+      1,  
       3,  
     145,  
      10,  
@@ -1890,9 +1910,495 @@ static PRUint8 gBidiCatIdx7[224] = {
     127,  
       1,  
     153,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+    154,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
 };
 
-static PRUint32 gBidiCatPat[154] = {
+static PRUint8 gBidiCatIdx8[64] = {
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+};
+
+static PRUint8 gBidiCatIdx9[8] = {
+      2,  
+      2,  
+      2,  
+      2,  
+      2,  
+      2,  
+      2,  
+      2,  
+};
+
+static PRUint8 gBidiCatIdx10[64] = {
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+     85,  
+     39,  
+    155,  
+    156,  
+    157,  
+     97,  
+      1,  
+      1,  
+      1,  
+    158,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+};
+
+static PRUint8 gBidiCatIdx11[160] = {
+      9,  
+      9,  
+      9,  
+      9,  
+      9,  
+      9,  
+      9,  
+      9,  
+      9,  
+      9,  
+    127,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+    159,  
+      5,  
+      5,  
+      5,  
+      5,  
+      5,  
+      5,  
+};
+
+static PRUint8 gBidiCatIdx12[68] = {
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+};
+
+static PRUint8 gBidiCatIdx13[64] = {
+    160,  
+      1,  
+      1,  
+      1,  
+     11,  
+     11,  
+     11,  
+     11,  
+     11,  
+     11,  
+     11,  
+     11,  
+     11,  
+     11,  
+     11,  
+     11,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+      1,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+     10,  
+      1,  
+      1,  
+};
+
+static PRUint32 gBidiCatPat[161] = {
     0x00000000,  
     0x11111111,  
     0x22222222,  
@@ -2047,9 +2553,16 @@ static PRUint32 gBidiCatPat[154] = {
     0x68787999,  
     0x17799977,  
     0x11999991,  
+    0x11111191,  
+    0xBBBBB111,  
+    0xAAAAABBB,  
+    0xAAA11AAA,  
+    0x11AAAA11,  
+    0x55111111,  
+    0x111111B1,  
 };
 
-static eBidiCategory GetBidiCat(PRUnichar u)
+static eBidiCategory GetBidiCat(PRUint32 u)
 {
     PRUint32 pat;
     PRUint16 patidx;
@@ -2057,82 +2570,80 @@ static eBidiCategory GetBidiCat(PRUnichar u)
        
 
     
-    if (u<=((PRUnichar)0x07FF)) {
+    if (u<=((PRUint32)0x07FF)) {
         patidx = gBidiCatIdx1 [( u  >> 3 )];
-        if (patidx < 0x10)
-            return (eBidiCategory)patidx;
-        else {
-            pat = gBidiCatPat[patidx];
-            return (eBidiCategory)((pat  >> ((u % 8) * 4)) & 0x0F);
-        }
     }
 
     
-    if ((((PRUnichar)0x0900)<=u)&&(u<=((PRUnichar)0x19FF))) {
-        patidx = gBidiCatIdx2 [( (u -(PRUnichar) 0x0900) >> 3 )];
-        if (patidx < 0x10)
-            return (eBidiCategory)patidx;
-        else {
-            pat = gBidiCatPat[patidx];
-            return (eBidiCategory)((pat  >> ((u % 8) * 4)) & 0x0F);
-        }
+    else if ((((PRUint32)0x0900)<=u)&&(u<=((PRUint32)0x19FF))) {
+        patidx = gBidiCatIdx2 [( (u -(PRUint32) 0x0900) >> 3 )];
     }
 
     
-    if ((((PRUnichar)0x1D00)<=u)&&(u<=((PRUnichar)0x2BFF))) {
-        patidx = gBidiCatIdx3 [( (u -(PRUnichar) 0x1D00) >> 3 )];
-        if (patidx < 0x10)
-            return (eBidiCategory)patidx;
-        else {
-            pat = gBidiCatPat[patidx];
-            return (eBidiCategory)((pat  >> ((u % 8) * 4)) & 0x0F);
-        }
+    else if ((((PRUint32)0x1D00)<=u)&&(u<=((PRUint32)0x2BFF))) {
+        patidx = gBidiCatIdx3 [( (u -(PRUint32) 0x1D00) >> 3 )];
     }
 
     
-    if ((((PRUnichar)0x2E80)<=u)&&(u<=((PRUnichar)0x33FF))) {
-        patidx = gBidiCatIdx4 [( (u -(PRUnichar) 0x2E80) >> 3 )];
-        if (patidx < 0x10)
-            return (eBidiCategory)patidx;
-        else {
-            pat = gBidiCatPat[patidx];
-            return (eBidiCategory)((pat  >> ((u % 8) * 4)) & 0x0F);
-        }
+    else if ((((PRUint32)0x2E80)<=u)&&(u<=((PRUint32)0x33FF))) {
+        patidx = gBidiCatIdx4 [( (u -(PRUint32) 0x2E80) >> 3 )];
     }
 
     
-    if ((((PRUnichar)0x4DC0)<=u)&&(u<=((PRUnichar)0x4DFF))) {
-        patidx = gBidiCatIdx5 [( (u -(PRUnichar) 0x4DC0) >> 3 )];
-        if (patidx < 0x10)
-            return (eBidiCategory)patidx;
-        else {
-            pat = gBidiCatPat[patidx];
-            return (eBidiCategory)((pat  >> ((u % 8) * 4)) & 0x0F);
-        }
+    else if ((((PRUint32)0x4DC0)<=u)&&(u<=((PRUint32)0x4DFF))) {
+        patidx = gBidiCatIdx5 [( (u -(PRUint32) 0x4DC0) >> 3 )];
     }
 
     
-    if ((((PRUnichar)0xA000)<=u)&&(u<=((PRUnichar)0xA4FF))) {
-        patidx = gBidiCatIdx6 [( (u -(PRUnichar) 0xA000) >> 3 )];
-        if (patidx < 0x10)
-            return (eBidiCategory)patidx;
-        else {
-            pat = gBidiCatPat[patidx];
-            return (eBidiCategory)((pat  >> ((u % 8) * 4)) & 0x0F);
-        }
+    else if ((((PRUint32)0xA000)<=u)&&(u<=((PRUint32)0xA4FF))) {
+        patidx = gBidiCatIdx6 [( (u -(PRUint32) 0xA000) >> 3 )];
     }
 
     
-    if (((PRUnichar)0xF900)<=u) {
-        patidx = gBidiCatIdx7 [( (u -(PRUnichar) 0xF900) >> 3 )];
-        if (patidx < 0x10)
-            return (eBidiCategory)patidx;
-        else {
-            pat = gBidiCatPat[patidx];
-            return (eBidiCategory)((pat  >> ((u % 8) * 4)) & 0x0F);
-        }
+    else if ((((PRUint32)0xF900)<=u)&&(u<=((PRUint32)0x1013F))) {
+        patidx = gBidiCatIdx7 [( (u -(PRUint32) 0xF900) >> 3 )];
     }
 
-    return eBidiCat_L; 
+    
+    else if ((((PRUint32)0x10300)<=u)&&(u<=((PRUint32)0x104FF))) {
+        patidx = gBidiCatIdx8 [( (u -(PRUint32) 0x10300) >> 3 )];
+    }
+
+    
+    else if ((((PRUint32)0x10800)<=u)&&(u<=((PRUint32)0x1083F))) {
+        patidx = gBidiCatIdx9 [( (u -(PRUint32) 0x10800) >> 3 )];
+    }
+
+    
+    else if ((((PRUint32)0x1D000)<=u)&&(u<=((PRUint32)0x1D1FF))) {
+        patidx = gBidiCatIdx10 [( (u -(PRUint32) 0x1D000) >> 3 )];
+    }
+
+    
+    else if ((((PRUint32)0x1D300)<=u)&&(u<=((PRUint32)0x1D7FF))) {
+        patidx = gBidiCatIdx11 [( (u -(PRUint32) 0x1D300) >> 3 )];
+    }
+
+    
+    else if ((((PRUint32)0x2F800)<=u)&&(u<=((PRUint32)0x2FA1F))) {
+        patidx = gBidiCatIdx12 [( (u -(PRUint32) 0x2F800) >> 3 )];
+    }
+
+    
+    else if ((((PRUint32)0xE0000)<=u)&&(u<=((PRUint32)0xE01FF))) {
+        patidx = gBidiCatIdx13 [( (u -(PRUint32) 0xE0000) >> 3 )];
+    }
+
+    else {
+        return eBidiCat_L; 
+    }
+
+    if (patidx < 0x10)
+        return (eBidiCategory)patidx;
+    else {
+        pat = gBidiCatPat[patidx];
+        return (eBidiCategory)((pat  >> ((u % 8) * 4)) & 0x0F);
+    }
 }
+
 
