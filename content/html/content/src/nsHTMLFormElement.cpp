@@ -2026,10 +2026,20 @@ nsFormControlList::AddElementToTable(nsGenericHTMLFormElement* aChild,
 
       NS_ASSERTION(list->Length() > 1,
                    "List should have been converted back to a single element");
+
+      
+      
+      
       
       if(nsContentUtils::PositionIsBefore(list->GetNodeAt(list->Length() - 1), aChild)) {
-          list->AppendElement(aChild);
-          return NS_OK;
+        list->AppendElement(aChild);
+        return NS_OK;
+      }
+
+      
+      
+      if (list->IndexOf(aChild) != -1) {
+        return NS_OK;
       }
       
       
@@ -2040,13 +2050,13 @@ nsFormControlList::AddElementToTable(nsGenericHTMLFormElement* aChild,
       
       
       while (last != first) {
-          mid = (first + last) / 2;
+        mid = (first + last) / 2;
           
-          if (nsContentUtils::PositionIsBefore(aChild, list->GetNodeAt(mid)))
-            last = mid;
-          else
-            first = mid + 1;
-        }
+        if (nsContentUtils::PositionIsBefore(aChild, list->GetNodeAt(mid)))
+          last = mid;
+        else
+          first = mid + 1;
+      }
 
       list->InsertElementAt(aChild, first);
     }
