@@ -417,6 +417,11 @@ nsSliderFrame::DoLayout(nsBoxLayoutState& aState)
   }
 
   
+  nsPresContext* presContext = PresContext();
+  thumbLength = presContext->DevPixelsToAppUnits(
+                  presContext->AppUnitsToDevPixels(thumbLength));
+
+  
   mRatio = (minPos != maxPos) ? float(availableLength - thumbLength) / float(maxPos - minPos) : 1;
 
   
