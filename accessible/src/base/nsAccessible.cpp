@@ -3261,10 +3261,10 @@ NS_IMETHODIMP nsAccessible::SelectAllSelection(PRBool *_retval)
 
 
 NS_IMETHODIMP
-nsAccessible::GetAnchorsCount(PRInt32 *aAnchorsCount)
+nsAccessible::GetAnchorCount(PRInt32 *aAnchorCount)
 {
-  NS_ENSURE_ARG_POINTER(aAnchorsCount);
-  *aAnchorsCount = 1;
+  NS_ENSURE_ARG_POINTER(aAnchorCount);
+  *aAnchorCount = 1;
   return NS_OK;
 }
 
