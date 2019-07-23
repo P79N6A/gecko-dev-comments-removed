@@ -745,12 +745,8 @@ function OnDocumentLoad(event)
        gBrowser.docShell.contentViewer.setPageMode(true, ps);
 
        
-       
-       
-       
-       
        var xr = CC[NS_XREAPPINFO_CONTRACTID].getService(CI.nsIXULRuntime);
-       var count = (xr.widgetToolkit == "cocoa") ? 3 : 2;
+       var count = (xr.widgetToolkit == "cocoa") ? 1 : 0;
        gURLs[0].minAsserts += count;
        gURLs[0].maxAsserts += count;
     }
