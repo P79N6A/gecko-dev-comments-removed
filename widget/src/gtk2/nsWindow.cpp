@@ -2882,8 +2882,6 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
     dragSessionGTK->TargetSetLastContext(0, 0, 0);
 
     
-    innerMostWidget->OnDragLeave();
-    
     mLastDragMotionWindow = 0;
 
     
