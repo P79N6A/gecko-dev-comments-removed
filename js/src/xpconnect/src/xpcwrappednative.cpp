@@ -90,23 +90,6 @@ NS_CYCLE_COLLECTION_CLASSNAME(XPCWrappedNative)::Traverse(void *p,
     }
 
     
-    
-
-
-    
-
-    
-    if(tmp->HasProto())
-        cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT,
-                           tmp->GetProto()->GetJSProtoObject());
-
-    
-    cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT, tmp->mNativeWrapper);
-
-    
-    tmp->GetScope()->Traverse(cb);
-
-    
     cb.NoteXPCOMChild(tmp->GetIdentityObject());
 
     return NS_OK;
