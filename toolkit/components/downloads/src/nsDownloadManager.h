@@ -130,11 +130,13 @@ protected:
   nsDownload *FindDownload(PRUint32 aID);
   nsresult PauseResumeDownload(PRUint32 aID, PRBool aPause);
   nsresult CancelAllDownloads();
-  inline PRBool RemoveDownloadFromCurrent(nsDownload *aDownload)
-  {
-    return mCurrentDownloads.RemoveObject(aDownload);
-  }
 
+  
+
+
+
+  nsresult FinishDownload(nsDownload *aDownload, DownloadState aState,
+                          const char *aTopic);
 
   void     ConfirmCancelDownloads(PRInt32 aCount,
                                   nsISupportsPRBool* aCancelDownloads,

@@ -130,6 +130,24 @@ nsDownloadManager::CancelAllDownloads()
 }
 
 nsresult
+nsDownloadManager::FinishDownload(nsDownload *aDownload, DownloadState aState,
+                                  const char *aTopic) {
+  
+  
+  
+  
+  
+  (void)mCurrentDownloads.RemoveObject(aDownload);
+
+  nsresult rv = aDownload->SetState(aState);
+  if (NS_FAILED(rv)) return rv;
+  
+  (void)mObserverService->NotifyObservers(aDownload, aTopic, nsnull);
+
+  return NS_OK;
+}
+
+nsresult
 nsDownloadManager::InitDB(PRBool *aDoImport)
 {
   nsresult rv;
@@ -666,15 +684,9 @@ nsDownloadManager::CancelDownload(PRUint32 aID)
       dl->mTempFile->Remove(PR_FALSE);
   }
 
-  
-  
-  
-  
-  
-  RemoveDownloadFromCurrent(dl);
-  nsresult rv = dl->SetState(nsIDownloadManager::DOWNLOAD_CANCELED);
+  nsresult rv = FinishDownload(dl, nsIDownloadManager::DOWNLOAD_CANCELED,
+                               "dl-cancel");
   NS_ENSURE_SUCCESS(rv, rv);
-  mObserverService->NotifyObservers(dl, "dl-cancel", nsnull);
 
   
   
@@ -1452,10 +1464,9 @@ nsDownload::OnStatusChange(nsIWebProgress *aWebProgress,
                            const PRUnichar *aMessage)
 {   
   if (NS_FAILED(aStatus)) {
-    SetState(nsIDownloadManager::DOWNLOAD_FAILED);
-    mDownloadManager->mObserverService->NotifyObservers(this, "dl-failed", nsnull);
-
-    mDownloadManager->RemoveDownloadFromCurrent(this);
+    (void)mDownloadManager->FinishDownload(this,
+                                           nsIDownloadManager::DOWNLOAD_FAILED,
+                                           "dl-failed");
 
     
     nsXPIDLString title;
@@ -1513,8 +1524,9 @@ nsDownload::OnStateChange(nsIWebProgress* aWebProgress,
 
       mPercentComplete = 100;
 
-      
-      mDownloadManager->RemoveDownloadFromCurrent(this);
+      (void)mDownloadManager->FinishDownload(this,
+                                             nsIDownloadManager::DOWNLOAD_FINISHED,
+                                             "dl-done");
 
       
       PRBool showTaskbarAlert = PR_TRUE;
@@ -1555,14 +1567,6 @@ nsDownload::OnStateChange(nsIWebProgress* aWebProgress,
           }
         }
       }
-
-      if (mDownloadState != nsIXPInstallManagerUI::INSTALL_INSTALLING)
-        SetState(nsIDownloadManager::DOWNLOAD_FINISHED);
-      else
-        SetState(nsIXPInstallManagerUI::INSTALL_FINISHED);
-
-      mDownloadManager->mObserverService->NotifyObservers(this, "dl-done",
-                                                          nsnull);
     }
 
 #ifdef XP_WIN
