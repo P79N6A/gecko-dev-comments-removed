@@ -82,6 +82,8 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSICHANGEOBSERVER
 
+    id GetNativeMenuItem();
+
     
     nsEventStatus MenuItemSelected(const nsMenuEvent & aMenuEvent); 
     nsEventStatus MenuSelected(const nsMenuEvent & aMenuEvent); 
@@ -160,6 +162,7 @@ protected:
     PRInt16                     mMacMenuID;
     NSMenu*                     mMacMenu;               
     MenuDelegate*               mMenuDelegate;          
+    NSMenuItem*                 mNativeMenuItem;        
     PRPackedBool                mIsEnabled;
     PRPackedBool                mDestroyHandlerCalled;
     PRPackedBool                mNeedsRebuild;
