@@ -585,14 +585,14 @@ public:
   
 
 
-  NS_IMETHOD GetCaret(nsCaret **aOutCaret) = 0;
+  virtual NS_HIDDEN_(already_AddRefed<nsCaret>) GetCaret() = 0;
 
   
 
 
 
 
-  NS_IMETHOD_(void) MaybeInvalidateCaretPosition() = 0;
+  virtual NS_HIDDEN_(void) MaybeInvalidateCaretPosition() = 0;
 
   
 
