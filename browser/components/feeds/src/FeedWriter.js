@@ -43,10 +43,11 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
 function LOG(str) {
-  var prefB = 
-    Cc["@mozilla.org/preferences-service;1"].
-    getService(Ci.nsIPrefBranch);
+  var prefB = Cc["@mozilla.org/preferences-service;1"].
+              getService(Ci.nsIPrefBranch);
 
   var shouldLog = false;
   try {
@@ -75,7 +76,6 @@ function makeURI(aURLSpec, aCharset) {
   return null;
 }
 
-
 const XML_NS = "http://www.w3.org/XML/1998/namespace"
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
@@ -88,24 +88,16 @@ const PREF_SELECTED_ACTION = "browser.feeds.handler";
 const PREF_SELECTED_READER = "browser.feeds.handler.default";
 const PREF_SHOW_FIRST_RUN_UI = "browser.feeds.showFirstRunUI";
 
-const FW_CLASSID = Components.ID("{49bb6593-3aff-4eb3-a068-2712c28bd58e}");
-const FW_CLASSNAME = "Feed Writer";
-const FW_CONTRACTID = "@mozilla.org/browser/feeds/result-writer;1";
-
 const TITLE_ID = "feedTitleText";
 const SUBTITLE_ID = "feedSubtitleText";
 
-const NH_CONTRACTID = "@mozilla.org/browser/nav-history-service;1";
-const FAV_CONTRACTID = "@mozilla.org/browser/favicon-service;1";
-
-function FeedWriter() {
-}
+function FeedWriter() {}
 FeedWriter.prototype = {
   _getPropertyAsBag: function FW__getPropertyAsBag(container, property) {
     return container.fields.getProperty(property).
                      QueryInterface(Ci.nsIPropertyBag2);
   },
-  
+
   _getPropertyAsString: function FW__getPropertyAsString(container, property) {
     try {
       return container.fields.getPropertyAsAString(property);
@@ -114,14 +106,14 @@ FeedWriter.prototype = {
     }
     return "";
   },
-  
+
   _setContentText: function FW__setContentText(id, text) {
     var element = this._document.getElementById(id);
     while (element.hasChildNodes())
       element.removeChild(element.firstChild);
     element.appendChild(this._document.createTextNode(text));
   },
-  
+
   
 
 
@@ -134,9 +126,8 @@ FeedWriter.prototype = {
 
   _safeSetURIAttribute: 
   function FW__safeSetURIAttribute(element, attribute, uri) {
-    var secman = 
-        Cc["@mozilla.org/scriptsecuritymanager;1"].
-        getService(Ci.nsIScriptSecurityManager);    
+    var secman = Cc["@mozilla.org/scriptsecuritymanager;1"].
+                 getService(Ci.nsIScriptSecurityManager);    
     const flags = Ci.nsIScriptSecurityManager.DISALLOW_INHERIT_PRINCIPAL;
     try {
       secman.checkLoadURIStr(this._window.location.href, uri, flags);
@@ -151,10 +142,9 @@ FeedWriter.prototype = {
 
   __faviconService: null,
   get _faviconService() {
-    if (!this.__faviconService) {
-      this.__faviconService =
-        Cc[FAV_CONTRACTID].getService(Ci.nsIFaviconService);
-    }
+    if (!this.__faviconService)
+      this.__faviconService = Cc["@mozilla.org/browser/favicon-service;1"].
+                              getService(Ci.nsIFaviconService);
 
     return this.__faviconService;
   },
@@ -168,7 +158,7 @@ FeedWriter.prototype = {
     }
     return this.__bundle;
   },
-  
+
   _getFormattedString: function FW__getFormattedString(key, params) {
     return this._bundle.formatStringFromName(key, params, params.length);
   },
@@ -261,12 +251,12 @@ FeedWriter.prototype = {
       this._setContentText(TITLE_ID, container.title.plainText());
       this._document.title = container.title.plainText();
     }
-    
+
     var feed = container.QueryInterface(Ci.nsIFeed);
     if (feed && feed.subtitle)
       this._setContentText(SUBTITLE_ID, container.subtitle.plainText());
   },
-  
+
   
 
 
@@ -280,13 +270,12 @@ FeedWriter.prototype = {
       var feedTitleImage = this._document.getElementById("feedTitleImage");
       this._safeSetURIAttribute(feedTitleImage, "src", 
                                 parts.getPropertyAsAString("url"));
-      
+
       
       var feedTitleLink = this._document.getElementById("feedTitleLink");
-      
-      var titleText = 
-        this._getFormattedString("linkTitleTextFormat", 
-                                 [parts.getPropertyAsAString("title")]);
+
+      var titleText = this._getFormattedString("linkTitleTextFormat", 
+                                               [parts.getPropertyAsAString("title")]);
       feedTitleLink.setAttribute("title", titleText);
       this._safeSetURIAttribute(feedTitleLink, "href", 
                                 parts.getPropertyAsAString("link"));
@@ -301,7 +290,7 @@ FeedWriter.prototype = {
       LOG("Failed to set Title Image (this is benign): " + e);
     }
   },
-  
+
   
 
 
@@ -373,7 +362,7 @@ FeedWriter.prototype = {
       feedContent.appendChild(clearDiv);
     }
   },
-  
+
   
 
 
@@ -386,7 +375,7 @@ FeedWriter.prototype = {
     var feedService = 
         Cc["@mozilla.org/browser/feeds/result-service;1"].
         getService(Ci.nsIFeedResultService);
- 
+
     try {
       var result = 
         feedService.getFeedResult(this._getOriginalURI(this._window));
@@ -408,7 +397,7 @@ FeedWriter.prototype = {
     }
     return container;
   },
-  
+
   
 
 
@@ -542,8 +531,6 @@ FeedWriter.prototype = {
   },
 
   
-
-
   handleEvent: function(event) {
     
     event = new XPCNativeWrapper(event);
@@ -591,7 +578,7 @@ FeedWriter.prototype = {
       handler = prefs.getCharPref(PREF_SELECTED_READER);
     }
     catch (ex) { }
-    
+
     switch (handler) {
       case "web": {
         var handlersMenuList = this._document.getElementById("handlersMenuList");
@@ -634,8 +621,7 @@ FeedWriter.prototype = {
       }
       case "bookmarks":
       default: {
-        var liveBookmarksMenuItem =
-          this._document.getElementById("liveBookmarksMenuItem");
+        var liveBookmarksMenuItem = this._document.getElementById("liveBookmarksMenuItem");
         if (liveBookmarksMenuItem)
           liveBookmarksMenuItem.doCommand();
       } 
@@ -643,8 +629,7 @@ FeedWriter.prototype = {
   },
 
   _initSubscriptionUI: function FW__initSubscriptionUI() {
-    var handlersMenuPopup =
-      this._document.getElementById("handlersMenuPopup");
+    var handlersMenuPopup = this._document.getElementById("handlersMenuPopup");
     if (!handlersMenuPopup)
       return;
 
@@ -663,9 +648,8 @@ FeedWriter.prototype = {
       selectedApp = prefs.getComplexValue(PREF_SELECTED_APP,
                                           Ci.nsILocalFile);
 
-      if (selectedApp.exists()) {
+      if (selectedApp.exists())
         this._initMenuItemWithFile(selectedApplicationItem, selectedApp);
-      }
       else {
         
         selectedApplicationItem.hidden = true;
@@ -707,13 +691,13 @@ FeedWriter.prototype = {
     handlersMenuPopup.appendChild(this._document.createElementNS(XUL_NS,
                                   "menuseparator"));
 
-    var historySvc = Cc[NH_CONTRACTID].getService(Ci.nsINavHistoryService);
+    var historySvc = Cc["@mozilla.org/browser/nav-history-service;1"].
+                     getService(Ci.nsINavHistoryService);
     historySvc.addObserver(this, false);
 
     
-    var wccr = 
-      Cc["@mozilla.org/embeddor.implemented/web-content-handler-registrar;1"].
-      getService(Ci.nsIWebContentConverterService);
+    var wccr = Cc["@mozilla.org/embeddor.implemented/web-content-handler-registrar;1"].
+               getService(Ci.nsIWebContentConverterService);
     var handlers = wccr.getContentHandlers(TYPE_MAYBE_FEED, {});
     if (handlers.length != 0) {
       for (var i = 0; i < handlers.length; ++i) {
@@ -750,7 +734,7 @@ FeedWriter.prototype = {
     this._document
         .getElementById("subscribeButton")
         .addEventListener("command", this, false);
-    
+
     
     var showFirstRunUI = true;
     try {
@@ -765,7 +749,7 @@ FeedWriter.prototype = {
       prefs.setBoolPref(PREF_SHOW_FIRST_RUN_UI, false);
     }
   },
-  
+
   
 
 
@@ -773,10 +757,9 @@ FeedWriter.prototype = {
 
 
   _getOriginalURI: function FW__getOriginalURI(aWindow) {
-    var chan = 
-        aWindow.QueryInterface(Ci.nsIInterfaceRequestor).
-        getInterface(Ci.nsIWebNavigation).
-        QueryInterface(Ci.nsIDocShell).currentDocumentChannel;
+    var chan = aWindow.QueryInterface(Ci.nsIInterfaceRequestor).
+               getInterface(Ci.nsIWebNavigation).
+               QueryInterface(Ci.nsIDocShell).currentDocumentChannel;
 
     const SUBSCRIBE_PAGE_URI = "chrome://browser/content/feeds/subscribe.xhtml";
     var uri = makeURI(SUBSCRIBE_PAGE_URI);
@@ -795,8 +778,6 @@ FeedWriter.prototype = {
   _feedURI: null,
 
   
-
-
   init: function FW_init(aWindow) {
     
     
@@ -821,9 +802,6 @@ FeedWriter.prototype = {
     prefs.addObserver(PREF_SELECTED_APP, this, false);
   },
 
-  
-
-
   writeContent: function FW_writeContent() {
     if (!this._window)
       return;
@@ -833,7 +811,7 @@ FeedWriter.prototype = {
       var container = this._getContainer();
       if (!container)
         return;
-      
+
       this._setTitleText(container);
       this._setTitleImage(container);
       this._writeFeedContent(container);
@@ -842,9 +820,6 @@ FeedWriter.prototype = {
       this._removeFeedFromCache();
     }
   },
-
-  
-
 
   close: function FW_close() {
     this._document
@@ -855,9 +830,8 @@ FeedWriter.prototype = {
         .removeEventListener("command", this, false);
     this._document = null;
     this._window = null;
-    var prefs =   
-        Cc["@mozilla.org/preferences-service;1"].
-        getService(Ci.nsIPrefBranch2);
+    var prefs = Cc["@mozilla.org/preferences-service;1"].
+                getService(Ci.nsIPrefBranch2);
     prefs.removeObserver(PREF_SELECTED_ACTION, this);
     prefs.removeObserver(PREF_SELECTED_READER, this);
     prefs.removeObserver(PREF_SELECTED_WEB, this);
@@ -868,15 +842,15 @@ FeedWriter.prototype = {
     this._selectedApplicationItemWrapped = null;
     this._defaultSystemReaderItemWrapped = null;
     this._FeedURI = null;
-    var historySvc = Cc[NH_CONTRACTID].getService(Ci.nsINavHistoryService);
+    var historySvc = Cc["@mozilla.org/browser/nav-history-service;1"].
+                     getService(Ci.nsINavHistoryService);
     historySvc.removeObserver(this);
   },
 
   _removeFeedFromCache: function FW__removeFeedFromCache() {
     if (this._feedURI) {
-      var feedService = 
-          Cc["@mozilla.org/browser/feeds/result-service;1"].
-          getService(Ci.nsIFeedResultService);
+      var feedService = Cc["@mozilla.org/browser/feeds/result-service;1"].
+                        getService(Ci.nsIFeedResultService);
       feedService.removeFeedResult(this._feedURI);
       this._feedURI = null;
     }
@@ -884,9 +858,8 @@ FeedWriter.prototype = {
 
   subscribe: function FW_subscribe() {
     
-    var prefs =   
-        Cc["@mozilla.org/preferences-service;1"].
-        getService(Ci.nsIPrefBranch);
+    var prefs = Cc["@mozilla.org/preferences-service;1"].
+                getService(Ci.nsIPrefBranch);
     var defaultHandler = "reader";
     var useAsDefault = this._document.getElementById("alwaysUse")
                                      .getAttribute("checked");
@@ -913,16 +886,14 @@ FeedWriter.prototype = {
       prefs.setComplexValue(PREF_SELECTED_WEB, Ci.nsISupportsString,
                             supportsString);
 
-      var wccr = 
-        Cc["@mozilla.org/embeddor.implemented/web-content-handler-registrar;1"].
-        getService(Ci.nsIWebContentConverterService);
+      var wccr = Cc["@mozilla.org/embeddor.implemented/web-content-handler-registrar;1"].
+                 getService(Ci.nsIWebContentConverterService);
       var handler = wccr.getWebContentHandlerByURI(TYPE_MAYBE_FEED, webURI);
       if (handler) {
         if (useAsDefault)
           wccr.setAutoHandler(TYPE_MAYBE_FEED, handler);
 
-        this._window.location.href =
-          handler.getHandlerURI(this._window.location.href);
+        this._window.location.href = handler.getHandlerURI(this._window.location.href);
       }
     }
     else {
@@ -947,8 +918,7 @@ FeedWriter.prototype = {
 
       
       var feedTitle = this._document.getElementById(TITLE_ID).textContent;
-      var feedSubtitle =
-        this._document.getElementById(SUBTITLE_ID).textContent;
+      var feedSubtitle = this._document.getElementById(SUBTITLE_ID).textContent;
       feedService.addToClientReader(this._window.location.href,
                                     feedTitle, feedSubtitle);
     }
@@ -964,8 +934,6 @@ FeedWriter.prototype = {
   },
 
   
-
-
   observe: function FW_observe(subject, topic, data) {
     if (!this._window) {
       
@@ -1019,9 +987,7 @@ FeedWriter.prototype = {
     return false;
   },
 
-  
-
-
+   
    onPageChanged: function FW_onPageChanged(aURI, aWhat, aValue) {
      if (aWhat == Ci.nsINavHistoryObserver.ATTRIBUTE_FAVICON) {
        
@@ -1047,79 +1013,23 @@ FeedWriter.prototype = {
    onPageExpired: function() { },
 
   
-
-
-  getInterfaces: function WCCR_getInterfaces(countRef) {
-    var interfaces = 
-        [Ci.nsIFeedWriter, Ci.nsIClassInfo, Ci.nsISupports];
+  getInterfaces: function FW_getInterfaces(countRef) {
+    var interfaces = [Ci.nsIFeedWriter, Ci.nsIClassInfo, Ci.nsISupports];
     countRef.value = interfaces.length;
     return interfaces;
   },
-  getHelperForLanguage: function WCCR_getHelperForLanguage(language) {
-    return null;
-  },
-  contractID: FW_CONTRACTID,
-  classDescription: FW_CLASSNAME,
-  classID: FW_CLASSID,
+  getHelperForLanguage: function FW_getHelperForLanguage(language) null,
+  contractID: "@mozilla.org/browser/feeds/result-writer;1",
+  classDescription: "Feed Writer",
+  classID: Components.ID("{49bb6593-3aff-4eb3-a068-2712c28bd58e}"),
   implementationLanguage: Ci.nsIProgrammingLanguage.JAVASCRIPT,
   flags: Ci.nsIClassInfo.DOM_OBJECT,
-
-  QueryInterface: function FW_QueryInterface(iid) {
-    if (iid.equals(Ci.nsIFeedWriter) ||
-        iid.equals(Ci.nsIClassInfo) ||
-        iid.equals(Ci.nsIDOMEventListener) ||
-        iid.equals(Ci.nsIObserver) ||
-        iid.equals(Ci.nsINavHistoryObserver) ||
-        iid.equals(Ci.nsISupports))
-      return this;
-    throw Cr.NS_ERROR_NO_INTERFACE;
-  }
+  _xpcom_categories: [{ category: "JavaScript global constructor",
+                        entry: "BrowserFeedWriter"}],
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIFeedWriter, Ci.nsIClassInfo,
+                                         Ci.nsIDOMEventListener, Ci.nsIObserver,
+                                         Ci.nsINavHistoryObserver])
 };
 
-var Module = {
-  QueryInterface: function M_QueryInterface(iid) {
-    if (iid.equals(Ci.nsIModule) ||
-        iid.equals(Ci.nsISupports))
-      return this;
-    throw Cr.NS_ERROR_NO_INTERFACE;
-  },
-
-  getClassObject: function M_getClassObject(cm, cid, iid) {
-    if (!iid.equals(Ci.nsIFactory))
-      throw Cr.NS_ERROR_NOT_IMPLEMENTED;
-    
-    if (cid.equals(FW_CLASSID))
-      return new GenericComponentFactory(FeedWriter);
-
-    throw Cr.NS_ERROR_NO_INTERFACE;
-  },
-  
-  registerSelf: function M_registerSelf(cm, file, location, type) {
-    var cr = cm.QueryInterface(Ci.nsIComponentRegistrar);
-    
-    cr.registerFactoryLocation(FW_CLASSID, FW_CLASSNAME, FW_CONTRACTID,
-                               file, location, type);
-    
-    var catman = 
-        Cc["@mozilla.org/categorymanager;1"].
-        getService(Ci.nsICategoryManager);
-    catman.addCategoryEntry("JavaScript global constructor",
-                            "BrowserFeedWriter", FW_CONTRACTID, true, true);
-  },
-
-  unregisterSelf: function M_unregisterSelf(cm, location, type) {
-    var cr = cm.QueryInterface(Ci.nsIComponentRegistrar);
-    cr.unregisterFactoryLocation(FW_CLASSID, location);
-  },
-
-  canUnload: function M_canUnload(cm) {
-    return true;
-  }
-};
-
-function NSGetModule(cm, file) {
-  return Module;
-}
-
-#include ../../../../toolkit/content/debug.js
-#include GenericFactory.js
+function NSGetModule(cm, file)
+  XPCOMUtils.generateModule([FeedWriter]);
