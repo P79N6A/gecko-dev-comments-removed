@@ -1135,7 +1135,6 @@ const CallInfo ci_N_IQF = CI(f_N_IQF, argMask(I32, 1, 3) |
 
 
 
-
 void
 FragmentAssembler::assembleRandomFragment(int nIns)
 {

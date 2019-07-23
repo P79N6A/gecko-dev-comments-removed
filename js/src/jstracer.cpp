@@ -8987,11 +8987,6 @@ TraceRecorder::guardShape(LIns* obj_ins, JSObject* obj, uint32 shape, const char
     if (entry->key) {
         JS_ASSERT(entry->key == obj_ins);
         JS_ASSERT(entry->obj == obj);
-        debug_only_stmt(
-            lir->insAssert(lir->ins2i(LIR_eq,
-                                      lir->insLoad(LIR_ld, map_ins, offsetof(JSScope, shape)),
-                                      shape));
-        )
         return RECORD_CONTINUE;
     }
 
