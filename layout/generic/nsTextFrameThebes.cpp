@@ -5085,18 +5085,6 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
     SetLength(maxContentLength);
   }
 
-  PRUint32 flowEndInTextRun;
-  nsIFrame* lineContainer = lineLayout.GetLineContainerFrame();
-  gfxSkipCharsIterator iter =
-    EnsureTextRun(aReflowState.rendContext, lineContainer,
-                  lineLayout.GetLine(), &flowEndInTextRun);
-
-  if (!mTextRun) {
-    ClearMetrics(aMetrics);
-    aStatus = NS_FRAME_COMPLETE;
-    return NS_OK;
-  }
-
   const nsTextFragment* frag = mContent->GetText();
   
   
@@ -5120,6 +5108,35 @@ nsTextFrame::Reflow(nsPresContext*           aPresContext,
       length -= whitespaceCount;
     }
   }
+
+  PRUint32 flowEndInTextRun;
+  nsIFrame* lineContainer = lineLayout.GetLineContainerFrame();
+  gfxSkipCharsIterator iter =
+    EnsureTextRun(aReflowState.rendContext, lineContainer,
+                  lineLayout.GetLine(), &flowEndInTextRun);
+
+  PRInt32 skippedRunLength;
+  if (mTextRun && mTextRun->GetLength() == iter.GetSkippedOffset() &&
+      length > 0 &&
+      (!iter.IsOriginalCharSkipped(&skippedRunLength) || skippedRunLength < length)) {
+    
+    
+    
+    
+    ClearTextRun();
+    iter = EnsureTextRun(aReflowState.rendContext, lineContainer,
+                         lineLayout.GetLine(), &flowEndInTextRun);
+  }
+  
+  if (!mTextRun) {
+    ClearMetrics(aMetrics);
+    aStatus = NS_FRAME_COMPLETE;
+    return NS_OK;
+  }
+
+  NS_ASSERTION(gfxSkipCharsIterator(iter).ConvertOriginalToSkipped(offset + length)
+                    <= mTextRun->GetLength(),
+               "Text run does not map enough text for our reflow");
 
   
   PRBool completedFirstLetter = PR_FALSE;
