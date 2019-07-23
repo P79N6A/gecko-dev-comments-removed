@@ -287,7 +287,7 @@ nsGLPbufferWGL::Resize(PRInt32 width, PRInt32 height)
     
 #define MAX_NUM_FORMATS 256
     UINT numFormats = MAX_NUM_FORMATS;
-    int formats[MAX_NUM_FORMATS];
+    nsAutoArrayPtr<int> formats = new int[numFormats];
 
     
 
