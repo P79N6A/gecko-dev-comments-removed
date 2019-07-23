@@ -686,69 +686,79 @@ FontEntry *
 gfxWindowsPlatform::FindFontEntry(FontFamily *aFontFamily, const gfxFontStyle *aFontStyle)
 {
     PRUint8 bestMatch = 0;
-    nsRefPtr<FontEntry> matchFE;
-    const PRBool italic = (aFontStyle->style & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE)) ? PR_TRUE : PR_FALSE;
+    PRBool italic = (aFontStyle->style & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE)) != 0;
 
-    
     nsAutoTArray<nsRefPtr<FontEntry>, 10> weightList;
     weightList.AppendElements(10);
-    for (PRInt32 i = 0; i < aFontFamily->mVariations.Length(); i++) {
-        nsRefPtr<FontEntry> fe = aFontFamily->mVariations[i];
-        const PRUint8 weight = (fe->mWeight / 100) - 1;
-        if (fe->mItalic == italic)
-            weightList[weight] = fe;
+    for (PRUint32 j = 0; j < 2; j++) {
+        PRBool matchesSomething = PR_FALSE;
+        
+        for (PRInt32 i = 0; i < aFontFamily->mVariations.Length(); i++) {
+            nsRefPtr<FontEntry> fe = aFontFamily->mVariations[i];
+            const PRUint8 weight = (fe->mWeight / 100);
+            if (fe->mItalic == italic) {
+                weightList[weight] = fe;
+                matchesSomething = PR_TRUE;
+            }
+        }
+        if (matchesSomething)
+            break;
+        italic = !italic;
     }
 
     PRInt8 baseWeight, weightDistance;
     aFontStyle->ComputeWeightAndOffset(&baseWeight, &weightDistance);
 
-    PRUint32 chosenWeight = 0;
-    PRUint8 direction = (weightDistance >= 0) ? 1 : -1;
+    
+    
+    if (baseWeight == 5 && weightDistance == 0) {
+        
+        if (weightList[5])
+            return weightList[5];
 
- WEIGHT_SELECTION:
-    for (PRUint8 i = baseWeight, k = 0; i < 10 && i >= 1; i+=direction) {
-        if (weightList[i - 1]) {
-            k++;
-            chosenWeight = i * 100;
-        }
-        if (k > abs(weightDistance)) {
-            chosenWeight = i * 100;
+        
+        baseWeight = 4;
+    }
+
+
+    PRInt8 matchBaseWeight = 0;
+    PRInt8 direction = (baseWeight > 5) ? 1 : -1;
+    for (PRInt8 i = baseWeight; ; i += direction) {
+        if (weightList[i]) {
+            matchBaseWeight = i;
             break;
         }
+
+        
+        
+        if (i == 1 || i == 9)
+            direction = -direction;
     }
 
-    
-    
-    if (baseWeight == 5 && weightDistance == 0 && chosenWeight > 500) {
-        baseWeight = 4;
-        goto WEIGHT_SELECTION;
-    }
-
-    
-    if (chosenWeight == 0)
-        chosenWeight = baseWeight * 100;
-
-    
-    
-    const PRUint32 index = (chosenWeight / 100) - 1;
-    for (PRInt32 j = index; j >= 0; --j) {
-        if (matchFE = weightList[j])
+    nsRefPtr<FontEntry> matchFE;
+    const PRInt8 absDistance = abs(weightDistance);
+    direction = (weightDistance >= 0) ? 1 : -1;
+    for (PRInt8 i = matchBaseWeight, k = 0; i < 10 && i > 0; i += direction) {
+        if (weightList[i]) {
+            matchFE = weightList[i];
+            k++;
+        }
+        if (k > absDistance)
             break;
     }
 
     if (!matchFE) {
         
-        
-        
-        
-        gfxFontStyle style(*aFontStyle);
-        if (aFontStyle->style == FONT_STYLE_NORMAL)
-            style.style = FONT_STYLE_ITALIC;
-        else
-            style.style = FONT_STYLE_NORMAL;
-
-        matchFE = FindFontEntry(aFontFamily, &style);
+        direction = -direction;
+        for (PRInt8 i = matchBaseWeight; i < 10 && i > 0; i += direction) {
+            if (weightList[i]) {
+                matchFE = weightList[i];
+            }
+        }
     }
+
+
+    NS_ASSERTION(matchFE, "we should always be able to return something here");
     return matchFE;
 }
 
