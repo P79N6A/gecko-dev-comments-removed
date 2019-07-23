@@ -75,6 +75,17 @@ struct ElementPropertyTransition
   
   TimeDuration mDuration;
   nsSMILKeySpline mTimingFunction;
+
+  PRBool IsRemovedSentinel() const
+  {
+    return mStartTime.IsNull();
+  }
+
+  void SetRemovedSentinel()
+  {
+    
+    mStartTime = TimeStamp();
+  }
 };
 
 
@@ -220,6 +231,10 @@ ElementTransitionsStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
        i < i_end; ++i)
   {
     ElementPropertyTransition &pt = et->mPropertyTransitions[i];
+    if (pt.IsRemovedSentinel()) {
+      continue;
+    }
+
     if (aRuleData->mSIDs & nsCachedStyleData::GetBitForSID(
                              nsCSSProps::kSIDTable[pt.mProperty]))
     {
@@ -644,10 +659,10 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
   
   
   if (currentIndex != nsTArray<ElementPropertyTransition>::NoIndex) {
-    const nsStyleAnimation::Value &endVal =
-      aElementTransitions->mPropertyTransitions[currentIndex].mEndValue;
+    const ElementPropertyTransition &oldPT =
+      aElementTransitions->mPropertyTransitions[currentIndex];
 
-    if (endVal == pt.mEndValue) {
+    if (oldPT.mEndValue == pt.mEndValue) {
       
       
       
@@ -664,8 +679,9 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
     NS_ABORT_IF_FALSE(ok, "could not compute distance");
     NS_ABORT_IF_FALSE(fullDistance >= 0.0, "distance must be positive");
 
-    if (nsStyleAnimation::ComputeDistance(aProperty, endVal, pt.mEndValue,
-                                          remainingDistance)) {
+    if (!oldPT.IsRemovedSentinel() &&
+        nsStyleAnimation::ComputeDistance(aProperty, oldPT.mEndValue,
+                                          pt.mEndValue, remainingDistance)) {
       NS_ABORT_IF_FALSE(remainingDistance >= 0.0, "distance must be positive");
       durationFraction = fullDistance / remainingDistance;
       if (durationFraction > 1.0) {
@@ -940,7 +956,11 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
       do {
         --i;
         ElementPropertyTransition &pt = et->mPropertyTransitions[i];
-        if (pt.mStartTime + pt.mDuration <= aTime) {
+        if (pt.IsRemovedSentinel()) {
+          
+          
+          et->mPropertyTransitions.RemoveElementAt(i);
+        } else if (pt.mStartTime + pt.mDuration <= aTime) {
           
           nsCSSProperty prop = pt.mProperty;
           if (nsCSSProps::PropHasFlags(prop, CSS_PROPERTY_REPORT_OTHER_NAME)) {
@@ -949,7 +969,14 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
           events.AppendElement(
             TransitionEventInfo(et->mElement, prop, pt.mDuration));
 
-          et->mPropertyTransitions.RemoveElementAt(i);
+          
+          
+          
+          
+          
+          
+          
+          pt.SetRemovedSentinel();
         }
       } while (i != 0);
 
