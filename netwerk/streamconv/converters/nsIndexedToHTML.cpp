@@ -900,6 +900,13 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
     NS_ConvertUTF16toUTF8 utf8UnEscapeSpec(unEscapeSpec);
 
     
+    
+    if ((type == nsIDirIndex::TYPE_DIRECTORY) &&
+        (utf8UnEscapeSpec.Last() != '/')) {
+        utf8UnEscapeSpec.Append('/');
+    }
+
+    
     PRUint32 escFlags;
     
     
@@ -910,7 +917,6 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
         escFlags = esc_Forced | esc_OnlyASCII | esc_AlwaysCopy | esc_Minimal;
     }
     else {
-        
         
         
         
