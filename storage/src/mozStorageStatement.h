@@ -71,8 +71,6 @@ protected:
     nsCStringArray mColumnNames;
     PRBool mExecuting;
 
-    
-    nsresult Recreate();
 };
 
 #endif 
