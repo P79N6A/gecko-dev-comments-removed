@@ -98,10 +98,10 @@ typedef union JSLocalNames {
 
 
 #define JSFUN_EXPR_CLOSURE  0x1000  /* expression closure: function(x) x*x */
-#define JSFUN_TRCINFO       0x2000  /* when set, u.n.trcinfo is non-null,
-                                       JSFunctionSpec::call points to a
-                                       JSNativeTraceInfo. */
-#define JSFUN_INTERPRETED   0x4000  /* use u.i if kind >= this value else u.n */
+#define JSFUN_TRACEABLE     0x2000  /* can trace across calls to this native
+                                       function; use FUN_TRCINFO if set,
+                                       FUN_CLASP if unset */
+#define JSFUN_INTERPRETED   0x4000  
 #define JSFUN_FLAT_CLOSURE  0x8000  /* flag (aka "display") closure */
 #define JSFUN_NULL_CLOSURE  0xc000  /* null closure entrains no scope chain */
 #define JSFUN_KINDMASK      0xc000  /* encode interp vs. native and closure
@@ -125,7 +125,7 @@ typedef union JSLocalNames {
 #define FUN_CLASP(fun)       (JS_ASSERT(!FUN_INTERPRETED(fun)),               \
                               fun->u.n.clasp)
 #define FUN_TRCINFO(fun)     (JS_ASSERT(!FUN_INTERPRETED(fun)),               \
-                              JS_ASSERT((fun)->flags & JSFUN_TRCINFO),        \
+                              JS_ASSERT((fun)->flags & JSFUN_TRACEABLE),      \
                               fun->u.n.trcinfo)
 
 struct JSFunction {
@@ -140,7 +140,8 @@ struct JSFunction {
             JSNative    native;   
             JSClass     *clasp;   
 
-            JSNativeTraceInfo *trcinfo;
+            JSTraceableNative *trcinfo;  
+
         } n;
         struct {
             uint16      nvars;    
@@ -186,12 +187,11 @@ struct JSFunction {
 
 
 
-
 #ifdef JS_TRACER
 
 # define JS_TN(name,fastcall,nargs,flags,trcinfo)                             \
     JS_FN(name, JS_DATA_TO_FUNC_PTR(JSNative, trcinfo), nargs,                \
-          (flags) | JSFUN_FAST_NATIVE | JSFUN_STUB_GSOPS | JSFUN_TRCINFO)
+          (flags) | JSFUN_FAST_NATIVE | JSFUN_STUB_GSOPS | JSFUN_TRACEABLE)
 #else
 # define JS_TN(name,fastcall,nargs,flags,trcinfo)                             \
     JS_FN(name, fastcall, nargs, flags)
