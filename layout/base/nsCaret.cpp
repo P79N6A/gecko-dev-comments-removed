@@ -60,7 +60,6 @@
 #include "nsIRenderingContext.h"
 #include "nsIDeviceContext.h"
 #include "nsIView.h"
-#include "nsIScrollableView.h"
 #include "nsIViewManager.h"
 #include "nsPresContext.h"
 #include "nsILookAndFeel.h"
@@ -1216,22 +1215,14 @@ nsresult nsCaret::UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset)
   if (scrollFrame)
   {
     
-    nsIScrollableFrame *scrollable = do_QueryFrame(scrollFrame);
-    nsIScrollableView *scrollView = scrollable->GetScrollableView();
-    nsIView *view;
-    scrollView->GetScrolledView(view);
+    nsIScrollableFrame *sf = do_QueryFrame(scrollFrame);
+    nsIFrame *scrolled = sf->GetScrolledFrame();
+    nsRect caretInScroll = mCaretRect + aFrame->GetOffsetTo(scrolled);
 
     
     
-    
-    
-    nsPoint toScroll = aFrame->GetOffsetTo(scrollFrame) -
-      view->GetOffsetTo(scrollFrame->GetView());
-    nsRect caretInScroll = mCaretRect + toScroll;
-
-    
-    
-    nscoord overflow = caretInScroll.XMost() - view->GetBounds().width;
+    nscoord overflow = caretInScroll.XMost() -
+      scrolled->GetOverflowRectRelativeToSelf().width;
     if (overflow > 0)
       mCaretRect.x -= overflow;
   }
