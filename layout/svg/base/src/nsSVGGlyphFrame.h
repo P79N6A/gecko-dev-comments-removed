@@ -147,15 +147,9 @@ public:
 
 
 
-  NS_IMETHOD_(float) GetBaselineOffset(PRUint16 baselineIdentifier,
-                                       PRBool aForceGlobalTransform);
-  
-
-
-
   NS_IMETHOD_(float) GetAdvance(PRBool aForceGlobalTransform);
 
-  NS_IMETHOD_(void) SetGlyphPosition(float x, float y);
+  NS_IMETHOD_(void) SetGlyphPosition(float x, float y, PRBool aForceGlobalTransform);
   NS_IMETHOD_(nsSVGTextPathFrame*) FindTextPathParent();
   NS_IMETHOD_(PRBool) IsStartOfChunk(); 
   NS_IMETHOD_(void) GetAdjustedPosition( float &x,  float &y);
@@ -216,6 +210,8 @@ protected:
   void SetupGlobalTransform(gfxContext *aContext);
   nsresult GetHighlight(PRUint32 *charnum, PRUint32 *nchars,
                         nscolor *foreground, nscolor *background);
+  float GetSubStringAdvance(PRUint32 charnum, PRUint32 fragmentChars);
+  gfxFloat GetBaselineOffset(PRBool aForceGlobalTransform);
   const nsTextFragment* GetFragment() const
   {
     return !(GetStateBits() & NS_STATE_SVG_PRINTING) ?
