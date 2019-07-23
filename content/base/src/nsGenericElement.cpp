@@ -2738,22 +2738,29 @@ nsGenericElement::doInsertChildAt(nsIContent* aKid, PRUint32 aIndex,
 
   nsresult rv;
   nsINode* container = NODE_FROM(aParent, aDocument);
-  if (!container->HasSameOwnerDoc(aKid)) {
-    if (aKid->GetOwnerDoc()) {
-      return NS_ERROR_DOM_WRONG_DOCUMENT_ERR;
-    }
 
+  if (!container->HasSameOwnerDoc(aKid)) {
     nsCOMPtr<nsIDOMNode> kid = do_QueryInterface(aKid, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
-
+ 
     PRUint16 nodeType = 0;
     rv = kid->GetNodeType(&nodeType);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    nsCOMPtr<nsIDOM3Document> domDoc =
+      do_QueryInterface(container->GetOwnerDoc());
+
     
     
-    if (nodeType != nsIDOMNode::DOCUMENT_TYPE_NODE) {
-      return NS_ERROR_DOM_WRONG_DOCUMENT_ERR;
+    
+
+    if (domDoc && (nodeType != nsIDOMNode::DOCUMENT_TYPE_NODE ||
+                   aKid->GetOwnerDoc())) {
+      nsCOMPtr<nsIDOMNode> adoptedKid;
+      rv = domDoc->AdoptNode(kid, getter_AddRefs(adoptedKid));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      NS_ASSERTION(adoptedKid == kid, "Uh, adopt node changed nodes?");
     }
   }
 
@@ -3254,16 +3261,20 @@ nsGenericElement::doReplaceOrInsertBefore(PRBool aReplace,
     return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
   }
 
-  if (!container->HasSameOwnerDoc(newContent)) {
-    
-    
-    if (nodeType != nsIDOMNode::DOCUMENT_TYPE_NODE ||
-        newContent->GetOwnerDoc()) {
-      return NS_ERROR_DOM_WRONG_DOCUMENT_ERR;
-    }
+  
+  
+  
+  if (!container->HasSameOwnerDoc(newContent) &&
+      (nodeType != nsIDOMNode::DOCUMENT_TYPE_NODE ||
+       newContent->GetOwnerDoc())) {
+    nsCOMPtr<nsIDOM3Document> domDoc = do_QueryInterface(aDocument);
 
-    if (!nsContentUtils::CanCallerAccess(aNewChild)) {
-      return NS_ERROR_DOM_SECURITY_ERR;
+    if (domDoc) {
+      nsCOMPtr<nsIDOMNode> adoptedKid;
+      nsresult rv = domDoc->AdoptNode(aNewChild, getter_AddRefs(adoptedKid));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      NS_ASSERTION(adoptedKid == aNewChild, "Uh, adopt node changed nodes?");
     }
   }
 
