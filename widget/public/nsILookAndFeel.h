@@ -166,11 +166,6 @@ public:
     eColor__moz_win_communicationstext,            
 
     
-    
-    
-    eColor__moz_nativehyperlinktext,		
-
-    
     eColor_LAST_COLOR
   } nsColorID;
 
