@@ -64,7 +64,7 @@ template<class E> class nsTPtrArray;
 #define NS_ATTRVALUE_BASETYPE_MASK (PtrBits(3))
 #define NS_ATTRVALUE_POINTERVALUE_MASK (~NS_ATTRVALUE_BASETYPE_MASK)
 
-#define NS_ATTRVALUE_INTEGERTYPE_BITS 5
+#define NS_ATTRVALUE_INTEGERTYPE_BITS 4
 #define NS_ATTRVALUE_INTEGERTYPE_MASK (PtrBits((1 << NS_ATTRVALUE_INTEGERTYPE_BITS) - 1))
 #define NS_ATTRVALUE_INTEGERTYPE_MULTIPLIER (1 << NS_ATTRVALUE_INTEGERTYPE_BITS)
 #define NS_ATTRVALUE_INTEGERTYPE_MAXVALUE ((1 << (31 - NS_ATTRVALUE_INTEGERTYPE_BITS)) - 1)
@@ -108,15 +108,14 @@ public:
     eAtom =         0x02, 
     eInteger =      0x03, 
     eColor =        0x07, 
-    eProportional = 0x0B, 
-    eEnum =         0x0F, 
-    ePercent =      0x13, 
+    eEnum =         0x0B, 
+    ePercent =      0x0F, 
     
     
-    eCSSStyleRule = 0x14,
-    eAtomArray =    0x15 
+    eCSSStyleRule = 0x10,
+    eAtomArray =    0x11 
 #ifdef MOZ_SVG
-    ,eSVGValue =    0x16
+    ,eSVGValue =    0x12
 #endif
   };
 
@@ -143,7 +142,6 @@ public:
   inline nsIAtom* GetAtomValue() const;
   inline PRInt32 GetIntegerValue() const;
   PRBool GetColorValue(nscolor& aColor) const;
-  inline PRInt32 GetProportionalValue() const;
   inline PRInt16 GetEnumValue() const;
   inline float GetPercentValue() const;
   inline nsCOMArray<nsIAtom>* GetAtomArrayValue() const;
@@ -213,10 +211,8 @@ public:
 
 
 
-
   PRBool ParseSpecialIntValue(const nsAString& aString,
-                              PRBool aCanBePercent,
-                              PRBool aCanBeProportional);
+                              PRBool aCanBePercent);
 
 
   
@@ -305,13 +301,6 @@ inline PRInt32
 nsAttrValue::GetIntegerValue() const
 {
   NS_PRECONDITION(Type() == eInteger, "wrong type");
-  return GetIntInternal();
-}
-
-inline PRInt32
-nsAttrValue::GetProportionalValue() const
-{
-  NS_PRECONDITION(Type() == eProportional, "wrong type");
   return GetIntInternal();
 }
 

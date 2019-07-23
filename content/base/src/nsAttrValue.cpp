@@ -340,14 +340,6 @@ nsAttrValue::ToString(nsAString& aResult) const
 
       break;
     }
-    case eProportional:
-    {
-      nsAutoString intStr;
-      intStr.AppendInt(GetIntInternal());
-      aResult = intStr + NS_LITERAL_STRING("*");
-
-      break;
-    }
     case eEnum:
     {
       PRInt16 val = GetEnumValue();
@@ -865,8 +857,7 @@ nsAttrValue::ParseEnumValue(const nsAString& aValue,
 
 PRBool
 nsAttrValue::ParseSpecialIntValue(const nsAString& aString,
-                                  PRBool aCanBePercent,
-                                  PRBool aCanBeProportional)
+                                  PRBool aCanBePercent)
 {
   ResetIfSet();
 
@@ -875,17 +866,6 @@ nsAttrValue::ParseSpecialIntValue(const nsAString& aString,
   PRInt32 val = tmp.ToInteger(&ec);
 
   if (NS_FAILED(ec)) {
-    if (aCanBeProportional) {
-      
-      tmp.CompressWhitespace(PR_TRUE, PR_TRUE);
-      if (tmp.Length() == 1 && tmp.Last() == '*') {
-        
-        
-        
-        SetIntValueAndType(1, eProportional);
-        return PR_TRUE;
-      }
-    }
     return PR_FALSE;
   }
 
@@ -899,13 +879,6 @@ nsAttrValue::ParseSpecialIntValue(const nsAString& aString,
       val = 100;
     }
     SetIntValueAndType(val, ePercent);
-    return PR_TRUE;
-  }
-
-  
-  
-  if (aCanBeProportional && tmp.RFindChar('*') >= 0) {
-    SetIntValueAndType(val, eProportional);
     return PR_TRUE;
   }
 
