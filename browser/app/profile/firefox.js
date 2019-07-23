@@ -861,6 +861,7 @@ pref("browser.urlbar.delay", 1000);
 
 
 pref("browser.safebrowsing.enabled", false);
+pref("browser.safebrowsing.malware.enabled", false);
 
 
 pref("browser.shell.checkDefaultBrowser", false);
