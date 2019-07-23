@@ -201,12 +201,23 @@ public:
   
   void InvalidateHierarchy();
 
-  virtual void SuppressFocusEvents();
-  virtual void UnsuppressFocusEvents();
+  
 
-  virtual PRBool IsFocusSuppressed()
+
+
+
+
+
+
+
+
+
+
+  static void SuppressFocusEvents(PRBool aSuppress);
+
+  PRBool IsFocusSuppressed()
   {
-    return sSuppressCount > 0;
+    return sFocusSuppressed;
   }
 
   static void SetCurrentlyFocusedView(nsView *aView)
@@ -236,7 +247,7 @@ private:
 
   static nsView *sCurrentlyFocusView;
   static nsView *sViewFocusedBeforeSuppression;
-  static PRInt32 sSuppressCount;
+  static PRBool sFocusSuppressed;
 
   void FlushPendingInvalidates();
   void ProcessPendingUpdates(nsView *aView, PRBool aDoInvalidate);

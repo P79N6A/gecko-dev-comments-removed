@@ -62,8 +62,8 @@ enum nsRectVisibility {
 
 
 #define NS_IVIEWMANAGER_IID   \
-{ 0x5a1e80e1, 0xb51c, 0x4f43, \
-  { 0x89, 0x50, 0x10, 0x64, 0xbd, 0x1f, 0x39, 0xee } }
+{ 0x855e75b8, 0x32cf, 0x4e16, \
+  { 0xbc, 0x50, 0x4e, 0x04, 0xc5, 0x3f, 0x6c, 0xbc } }
 
 class nsIViewManager : public nsISupports
 {
@@ -481,30 +481,6 @@ public:
 
 
   NS_IMETHOD SynthesizeMouseMove(PRBool aFromScroll)=0;
-   
-  
-
-
-
-
-
-  virtual void SuppressFocusEvents()=0;
-  
-  
-
-
-
-
-
-
-
-
-  virtual void UnsuppressFocusEvents()=0;
-
-  
-
-
-  virtual PRBool IsFocusSuppressed()=0;
 
 };
 

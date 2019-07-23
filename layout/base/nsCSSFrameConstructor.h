@@ -74,19 +74,6 @@ struct nsFindFrameHint
   nsFindFrameHint() : mPrimaryFrameForPrevSibling(nsnull) { }
 };
 
-
-
-
-
-class nsFocusEventSuppressor
-{
-public:
-  void Suppress(nsIPresShell *aPresShell);
-  void Unsuppress();
-private:
-  nsCOMPtr<nsIViewManager> mViewManager;
-};
-
 typedef void (PR_CALLBACK nsLazyFrameConstructionCallback)
              (nsIContent* aContent, nsIFrame* aFrame, void* aArg);
 
@@ -176,8 +163,6 @@ public:
   nsresult ProcessRestyledFrames(nsStyleChangeList& aRestyleArray);
 
 private:
-
-  nsFocusEventSuppressor mFocusSuppressor;
 
   
   

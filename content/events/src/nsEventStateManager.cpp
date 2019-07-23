@@ -868,6 +868,9 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     break;
   case NS_GOTFOCUS:
     {
+#ifdef DEBUG_smaug
+      printf("nsEventStateManager::PreHandleEvent, NS_GOTFOCUS \n");
+#endif
       
       
       
@@ -1031,6 +1034,9 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
 
   case NS_LOSTFOCUS:
     {
+#ifdef DEBUG_smaug
+      printf("nsEventStateManager::PreHandleEvent, NS_LOSTFOCUS \n");
+#endif
       
       if (mPresContext) {
         nsIPresShell *presShell = mPresContext->GetPresShell();
@@ -1052,7 +1058,10 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       
 
 #if defined(XP_WIN) || defined(XP_OS2)
-      if (!static_cast<nsFocusEvent*>(aEvent)->isMozWindowTakingFocus) {
+      
+      
+      if (aEvent->eventStructType == NS_FOCUS_EVENT &&
+          !static_cast<nsFocusEvent*>(aEvent)->isMozWindowTakingFocus) {
 
         
         
@@ -1124,6 +1133,9 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
 
  case NS_ACTIVATE:
     {
+#ifdef DEBUG_smaug
+      printf("nsEventStateManager::PreHandleEvent, NS_ACTIVATE \n");
+#endif
       
       
       
@@ -1211,6 +1223,9 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
 
  case NS_DEACTIVATE:
     {
+#ifdef DEBUG_smaug
+      printf("nsEventStateManager::PreHandleEvent, NS_DEACTIVATE \n");
+#endif
       EnsureDocument(aPresContext);
 
       nsIMEStateManager::OnDeactivate(aPresContext);
