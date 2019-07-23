@@ -329,20 +329,6 @@ nsWindow::~nsWindow()
 	NS_IF_RELEASE(mFontMetrics);
 }
 
-NS_METHOD nsWindow::BeginResizingChildren(void)
-{
-	
-	NS_NOTYETIMPLEMENTED("BeginResizingChildren not yet implemented"); 
-	return NS_OK;
-}
-
-NS_METHOD nsWindow::EndResizingChildren(void)
-{
-	
-	NS_NOTYETIMPLEMENTED("EndResizingChildren not yet implemented"); 
-	return NS_OK;
-}
-
 NS_METHOD nsWindow::WidgetToScreen(const nsRect& aOldRect, nsRect& aNewRect)
 {
 	BPoint	point;
@@ -1627,8 +1613,6 @@ NS_METHOD nsWindow::Scroll(PRInt32 aDx, PRInt32 aDy, nsRect *aClipRect)
 {
 	
 	mIsScrolling = PR_TRUE;
-	
-	
 	
 	
 	

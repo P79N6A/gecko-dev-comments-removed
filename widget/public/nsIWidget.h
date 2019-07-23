@@ -102,9 +102,10 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #define NS_NATIVE_TSF_DISPLAY_ATTR_MGR 102
 #endif
 
+
 #define NS_IWIDGET_IID \
-  { 0x9b8d70bd, 0x068e, 0x4465, \
-    { 0x8a, 0xd2, 0x4c, 0xf7, 0x96, 0x67, 0xe4, 0xfc } }
+  { 0x5f8d1a5e, 0xc380, 0x4c60, \
+    { 0x97, 0x8a, 0x03, 0x03, 0x35, 0xbe, 0x1d, 0x6a } }
 
 
 
@@ -780,24 +781,6 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsIntPoint WidgetToScreenOffset() = 0;
-
-    
-
-
-
-
-
-
-
-    NS_IMETHOD BeginResizingChildren(void) = 0;
-
-    
-
-
-
-
-
-    NS_IMETHOD EndResizingChildren(void) = 0;
 
     
 
