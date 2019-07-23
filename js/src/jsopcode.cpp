@@ -75,14 +75,6 @@
 # include "jsnum.h"
 #endif
 
-#include "jsautooplen.h"
-
-
-#define OPDEF(op,val,name,token,length,nuses,ndefs,prec,format)               \
-    JS_STATIC_ASSERT(op##_LENGTH == length);
-#include "jsopcode.tbl"
-#undef OPDEF
-
 static const char js_incop_strs[][3] = {"++", "--"};
 
 const JSCodeSpec js_CodeSpec[] = {
@@ -2159,6 +2151,14 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                 LOCAL_ASSERT(strcmp(lval, exception_cookie) == 0);
                 todo = -2;
                 break;
+
+              case JSOP_SWAP:
+                
+
+
+
+
+                
 
               case JSOP_GOSUB:
               case JSOP_GOSUBX:
@@ -4993,7 +4993,8 @@ DecompileExpression(JSContext *cx, JSScript *script, JSFunction *fun,
 
     
     JS_ASSERT(op != JSOP_CASE && op != JSOP_CASEX &&
-              op != JSOP_DUP && op != JSOP_DUP2);
+              op != JSOP_DUP && op != JSOP_DUP2 &&
+              op != JSOP_SWAP);
 
     
 
@@ -5271,6 +5272,13 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *pc,
             JS_ASSERT(ndefs == 4);
             pcstack[pcdepth + 2] = pcstack[pcdepth];
             pcstack[pcdepth + 3] = pcstack[pcdepth + 1];
+            break;
+
+          case JSOP_SWAP:
+            JS_ASSERT(ndefs == 2);
+            pc2 = pcstack[pcdepth];
+            pcstack[pcdepth] = pcstack[pcdepth + 1];
+            pcstack[pcdepth + 1] = pc2;
             break;
 
           case JSOP_LEAVEBLOCKEXPR:
