@@ -209,7 +209,8 @@ nsInstallTrigger::HandleContent(const char * aContentType,
         
 
         enabled = AllowInstall( referringURI );
-        referringURI->GetHost(host);
+        if (referringURI)
+            referringURI->GetHost(host);
     }
     else
     {
