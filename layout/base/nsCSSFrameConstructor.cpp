@@ -6118,6 +6118,13 @@ nsCSSFrameConstructor::ConstructXULFrame(nsFrameConstructorState& aState,
 #endif
 
     
+    nsFrameConstructorSaveState floatSaveState;
+    if (newFrame->IsBoxFrame()) {
+      aState.PushFloatContainingBlock(nsnull, floatSaveState, PR_FALSE,
+                                      PR_FALSE);
+    }
+
+    
     nsFrameItems childItems;
     if (!newFrame->IsLeaf()) {
       
@@ -7778,7 +7785,8 @@ nsCSSFrameConstructor::GetFloatContainingBlock(nsIFrame* aFrame)
   
   
   for (nsIFrame* containingBlock = aFrame;
-       containingBlock && !containingBlock->IsFrameOfType(nsIFrame::eMathML);
+       containingBlock && !containingBlock->IsFrameOfType(nsIFrame::eMathML) &&
+       !containingBlock->IsBoxFrame();
        containingBlock = containingBlock->GetParent()) {
     if (containingBlock->IsFloatContainingBlock()) {
       return containingBlock;
