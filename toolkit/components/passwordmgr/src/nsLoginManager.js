@@ -325,17 +325,24 @@ LoginManager.prototype = {
         handleEvent : function (event) {
             this._pwmgr.log("domEventListener: got event " + event.type);
 
-            var doc, inputElement;
             switch (event.type) {
                 case "DOMContentLoaded":
-                    doc = event.target;
-                    this._pwmgr._fillDocument(doc);
+                    this._pwmgr._fillDocument(event.target);
                     return;
 
                 case "DOMAutoComplete":
                 case "blur":
-                    inputElement = event.target;
-                    this._pwmgr._fillPassword(inputElement);
+                    var acInputField = event.target;
+                    var acForm = acInputField.form;
+                    
+                    
+                    
+                    var [usernameField, passwordField, ignored] =
+                        this._pwmgr._getFormFields(acForm, false);
+                    if (usernameField == acInputField)
+                        this._pwmgr._fillForm(acForm, true, true, null);
+                    else
+                        this._pwmgr.log("Oops, form changed before AC invoked");
                     return;
 
                 default:
@@ -1159,63 +1166,6 @@ LoginManager.prototype = {
         element.addEventListener("DOMAutoComplete",
                                 this._domEventListener, false);
         this._formFillService.markAsLoginManagerField(element);
-    },
-
-
-    
-
-
-
-
-    _fillPassword : function (usernameField) {
-        this.log("fillPassword autocomplete username: " + usernameField.value);
-
-        var form = usernameField.form;
-        var doc = form.ownerDocument;
-
-        var hostname = this._getPasswordOrigin(doc.documentURI);
-        var formSubmitURL = this._getActionOrigin(form)
-
-        
-        
-        var pwFields = this._getPasswordFields(form, false);
-        if (!pwFields) {
-            const err = "No password field for autocomplete password fill.";
-
-            
-            if (!this._debug)
-                dump(err);
-            else
-                this.log(err);
-
-            return;
-        }
-
-        
-        
-        var passwordField = pwFields[0].element;
-
-        
-        var currentLogin = new this._nsLoginInfo();
-        currentLogin.init(hostname, formSubmitURL, null,
-                          usernameField.value, null,
-                          usernameField.name, passwordField.name);
-
-        
-        var match = null;
-        var logins = this.findLogins({}, hostname, formSubmitURL, null);
-
-        if (!logins.some(function(l) {
-                                match = l;
-                                return currentLogin.matches(l, true);
-                        }))
-        {
-            this.log("Can't find a login for this autocomplete result.");
-            return;
-        }
-
-        this.log("Found a matching login, filling in password.");
-        passwordField.value = match.password;
     }
 }; 
 
@@ -1295,7 +1245,7 @@ UserAutoCompleteResult.prototype = {
                         getService(Ci.nsILoginManager);
             pwmgr.removeLogin(removedLogin);
         }
-    },
+    }
 };
 
 var component = [LoginManager];
