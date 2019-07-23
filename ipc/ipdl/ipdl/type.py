@@ -134,8 +134,10 @@ class IPDLType(Type):
                 or o.isSync() and self.isRpc())
 
 class StateType(IPDLType):
-    def __init__(self): pass
-    def isState(self): return True
+    def __init__(self, start=False):
+        self.start = start
+    def isState(self):
+        return True
 
 class MessageType(IPDLType):
     def __init__(self, sendSemantics, direction,
@@ -470,6 +472,7 @@ class GatherDecls(TcheckVisitor):
                     mgdname, p.name)
 
         p.states = { }
+        
         if len(p.transitionStmts):
             p.startStates = [ ts for ts in p.transitionStmts
                               if ts.state.start ]
@@ -481,10 +484,11 @@ class GatherDecls(TcheckVisitor):
             p.states[trans.state] = trans
             trans.state.decl = self.declare(
                 loc=trans.state.loc,
-                type=StateType(),
+                type=StateType(trans.state.start),
                 progname=trans.state.name)
 
         for trans in p.transitionStmts:
+            self.seentriggers = set()
             trans.accept(self)
 
         
@@ -661,21 +665,19 @@ class GatherDecls(TcheckVisitor):
         md.protocolDecl = self.currentProtocolDecl
 
 
+    def visitTransitionStmt(self, ts):
+        self.seentriggers = set()
+        TcheckVisitor.visitTransitionStmt(self, ts)
+
     def visitTransition(self, t):
         loc = t.loc
 
-        sname = t.toState.name
-        sdecl = self.symtab.lookup(sname)
-        if sdecl is None:
-            self.error(loc, "state `%s' has not been declared", sname)
-        elif not sdecl.type.isState():
-            self.error(
-                loc, "`%s' should have state type, but instead has type `%s'",
-                sname, sdecl.type.typename())
-        else:
-            t.toState.decl = sdecl
-
+        
         mname = t.msg
+        if mname in self.seentriggers:
+            self.error(loc, "trigger `%s' appears multiple times", mname)
+        self.seentriggers.add(mname)
+        
         mdecl = self.symtab.lookup(mname)
         if mdecl is None:
             self.error(loc, "message `%s' has not been declared", mname)
@@ -686,6 +688,28 @@ class GatherDecls(TcheckVisitor):
                 mname, mdecl.type.typename())
         else:
             t.msg = mdecl
+
+        
+        seenstates = set()
+        for toState in t.toStates:
+            sname = toState.name
+            sdecl = self.symtab.lookup(sname)
+
+            if sname in seenstates:
+                self.error(loc, "to-state `%s' appears multiple times", sname)
+            seenstates.add(sname)
+
+            if sdecl is None:
+                self.error(loc, "state `%s' has not been declared", sname)
+            elif not sdecl.type.isState():
+                self.error(
+                    loc, "`%s' should have state type, but instead has type `%s'",
+                    sname, sdecl.type.typename())
+            else:
+                toState.decl = sdecl
+                toState.start = sdecl.type.start
+
+        t.toStates = set(t.toStates)
 
 
 
@@ -808,6 +832,18 @@ class CheckTypes(TcheckVisitor):
 
 
 
+def unique_pairs(s):
+    n = len(s)
+    for i, e1 in enumerate(s):
+        for j in xrange(i+1, n):
+            yield (e1, s[j])
+
+def cross_product(s1, s2):
+    for e1 in s1:
+        for e2 in s2:
+            yield (e1, e2)
+
+
 class CheckStateMachine(TcheckVisitor):
     def __init__(self, errors):
         
@@ -821,6 +857,22 @@ class CheckStateMachine(TcheckVisitor):
             ts.accept(self)
 
     def visitTransitionStmt(self, ts):
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         
@@ -879,36 +931,37 @@ class CheckStateMachine(TcheckVisitor):
         if not syncok:
             return
 
-        def triggerTarget(S, t):
-            '''Return the state transitioned to from state |S|
-upon trigger |t|, or None if |t| is not a trigger in |S|.'''
+        def triggerTargets(S, t):
+            '''Return the set of states transitioned to from state |S|
+upon trigger |t|, or { } if |t| is not a trigger in |S|.'''
             for trans in self.p.states[S].transitions:
                 if t.trigger is trans.trigger and t.msg is trans.msg:
-                    return trans.toState
-            return None
+                    return trans.toStates
+            return set()
 
-        ntrans = len(ts.transitions)
-        for i, t1 in enumerate(ts.transitions):
-            for j in xrange(i+1, ntrans):
-                t2 = ts.transitions[j]
-                
-                
-                
-                if t1.trigger.direction() == t2.trigger.direction():
-                    continue
 
-                T1 = t1.toState
-                T2 = t2.toState
+        for (t1, t2) in unique_pairs(ts.transitions):
+            
+            
+            
+            if t1.trigger.direction() == t2.trigger.direction():
+                continue
 
-                U1 = triggerTarget(T1, t2)
-                U2 = triggerTarget(T2, t1)
+            t1_out = t1.toStates
+            t2_out = t2.toStates
 
-                if U1 is None or U1 != U2:
+            for (T1, T2) in cross_product(t1_out, t2_out):
+                U1 = triggerTargets(T1, t2)
+                U2 = triggerTargets(T2, t1)
+
+                if (0 == len(U1)
+                    or 1 < len(U1) or 1 < len(U2)
+                    or U1 != U2):
                     self.error(
                         t2.loc,
-                        "trigger `%s' potentially races (does not commute) with `%s' at state `%s' in protocol `%s'",
-                        t1.msg.progname, t2.msg.progname,
-                        ts.state.name, self.p.name)
+                        "in protocol `%s' state `%s', trigger `%s' potentially races (does not commute) with `%s'",
+                        self.p.name, ts.state.name,
+                        t1.msg.progname, t2.msg.progname)
                     
                     
                     
@@ -924,7 +977,8 @@ upon trigger |t|, or None if |t| is not a trigger in |S|.'''
                 return
             visited.add(ts.state)
             for outedge in ts.transitions:
-                explore(p.states[outedge.toState])
+                for toState in outedge.toStates:
+                    explore(p.states[toState])
 
         for root in p.startStates:
             explore(root)
