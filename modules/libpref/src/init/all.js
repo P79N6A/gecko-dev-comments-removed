@@ -172,9 +172,28 @@ pref("browser.frames.enabled", true);
 
 pref("browser.forms.submit.backwards_compatible", true);
 
+
+
+pref("browser.tabs.autoHide", true);
+pref("browser.tabs.forceHide", false);
+pref("browser.tabs.warnOnClose", true);
+pref("browser.tabs.warnOnCloseOther", true);
+pref("browser.tabs.warnOnOpen", true);
+pref("browser.tabs.maxOpenBeforeWarn", 15);
+
+pref("browser.tabs.loadGroup", 1);
+
 pref("toolkit.scrollbox.smoothScroll", true);
 pref("toolkit.scrollbox.scrollIncrement", 20);
 pref("toolkit.scrollbox.clickToScroll.scrollDelay", 150);
+
+
+
+
+
+
+pref("browser.tabs.loadOnNewTab", 0);
+pref("browser.windows.loadOnNewWindow", 1);
 
 
 pref("view_source.syntax_highlight", true);

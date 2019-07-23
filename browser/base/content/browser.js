@@ -1328,6 +1328,7 @@ AutoHideTabbarPrefListener.prototype =
       catch (e) {
       }
       gBrowser.setStripVisibilityTo(aVisible);
+      gPrefService.setBoolPref("browser.tabs.forceHide", false);
     }
   }
 }
@@ -1700,8 +1701,17 @@ function BrowserCloseTabOrWindow()
   }
 #endif
 
-  
-  gBrowser.removeCurrentTab();
+  if (gBrowser.tabContainer.childNodes.length > 1 ||
+      window.toolbar.visible && !gPrefService.getBoolPref("browser.tabs.autoHide")) {
+    
+    var isLastTab = gBrowser.tabContainer.childNodes.length == 1;
+    gBrowser.removeCurrentTab();
+    if (isLastTab && gURLBar)
+      setTimeout(function() { gURLBar.focus(); }, 0);
+    return;
+  }
+
+  closeWindow(true);
 }
 
 function BrowserTryToCloseWindow()
