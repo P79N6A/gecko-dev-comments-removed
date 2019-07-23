@@ -409,9 +409,6 @@ function Startup()
   buildDownloadList();
 
   
-  gDownloadsView.addEventListener("dblclick", onDownloadDblClick, false);
-
-  
   
   gDownloadListener = new DownloadProgressListener();
   gDownloadManager.addListener(gDownloadListener);
