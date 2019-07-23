@@ -58,12 +58,6 @@
 
 #include "nsITimer.h"
 
-enum nsPopupType {
-  ePopupTypePanel,
-  ePopupTypeMenu,
-  ePopupTypeTooltip
-};
-
 
 
 
@@ -229,7 +223,7 @@ public:
   
   nsMenuFrame* Enter();
 
-  PRInt32 PopupType() const { return mPopupType; }
+  nsPopupType PopupType() const { return mPopupType; }
   PRBool IsMenu() { return mPopupType == ePopupTypeMenu; }
   PRBool IsOpen() { return mPopupState == ePopupOpen || mPopupState == ePopupOpenAndVisible; }
   PRBool HasOpenChanged() { return mIsOpenChanged; }

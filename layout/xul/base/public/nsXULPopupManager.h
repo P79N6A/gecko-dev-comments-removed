@@ -76,6 +76,12 @@ class nsMenuBarFrame;
 class nsIMenuParent;
 class nsIDOMKeyEvent;
 
+enum nsPopupType {
+  ePopupTypePanel,
+  ePopupTypeMenu,
+  ePopupTypeTooltip
+};
+
 
 
 
@@ -153,7 +159,7 @@ class nsMenuChainItem
 {
 private:
   nsMenuPopupFrame* mFrame; 
-  PRPackedBool mIsMenu; 
+  nsPopupType mPopupType; 
   PRPackedBool mIsContext; 
   PRPackedBool mOnMenuBar; 
   PRPackedBool mIgnoreKeys; 
@@ -162,12 +168,12 @@ private:
   nsMenuChainItem* mChild;
 
 public:
-  nsMenuChainItem(nsMenuPopupFrame* aFrame, PRBool aIsContext, PRBool aIsMenu)
+  nsMenuChainItem(nsMenuPopupFrame* aFrame, PRBool aIsContext, nsPopupType aPopupType)
     : mFrame(aFrame),
-      mIsMenu(aIsMenu),
+      mPopupType(aPopupType),
       mIsContext(aIsContext),
       mOnMenuBar(PR_FALSE),
-      mIgnoreKeys(!aIsMenu), 
+      mIgnoreKeys(aPopupType != ePopupTypeMenu), 
       mParent(nsnull),
       mChild(nsnull)
   {
@@ -182,7 +188,8 @@ public:
 
   nsIContent* Content();
   nsMenuPopupFrame* Frame() { return mFrame; }
-  PRBool IsMenu() { return mIsMenu; }
+  nsPopupType PopupType() { return mPopupType; }
+  PRBool IsMenu() { return mPopupType == ePopupTypeMenu; }
   PRBool IsContextMenu() { return mIsContext; }
   PRBool IgnoreKeys() { return mIgnoreKeys; }
   PRBool IsOnMenuBar() { return mOnMenuBar; }
@@ -235,12 +242,12 @@ public:
   nsXULPopupHidingEvent(nsIContent *aPopup,
                         nsIContent* aNextPopup,
                         nsIContent* aLastPopup,
-                        PRBool aIsMenu,
+                        nsPopupType aPopupType,
                         PRBool aDeselectMenu)
     : mPopup(aPopup),
       mNextPopup(aNextPopup),
       mLastPopup(aLastPopup),
-      mIsMenu(aIsMenu),
+      mPopupType(aPopupType),
       mDeselectMenu(aDeselectMenu)
   {
     NS_ASSERTION(aPopup, "null popup supplied to nsXULPopupHidingEvent constructor");
@@ -253,7 +260,7 @@ private:
   nsCOMPtr<nsIContent> mPopup;
   nsCOMPtr<nsIContent> mNextPopup;
   nsCOMPtr<nsIContent> mLastPopup;
-  PRBool mIsMenu;
+  nsPopupType mPopupType;
   PRBool mDeselectMenu;
 };
 
@@ -467,6 +474,12 @@ public:
 
 
 
+  nsIFrame* GetTopPopup(nsPopupType aType);
+
+  
+
+
+
   nsTArray<nsIFrame *> GetOpenPopups();
 
   
@@ -573,7 +586,7 @@ protected:
                          nsMenuPopupFrame* aPopupFrame,
                          nsIContent* aNextPopup,
                          nsIContent* aLastPopup,
-                         PRBool aIsMenu,
+                         nsPopupType aPopupType,
                          PRBool aDeselectMenu);
 
   
@@ -588,9 +601,11 @@ protected:
 
 
 
+
   void FirePopupShowingEvent(nsIContent* aPopup,
                              nsIContent* aMenu,
                              nsPresContext* aPresContext,
+                             nsPopupType aPopupType,
                              PRBool aIsContextMenu,
                              PRBool aSelectFirstItem);
 
@@ -611,11 +626,12 @@ protected:
 
 
 
+
   void FirePopupHidingEvent(nsIContent* aPopup,
                             nsIContent* aNextPopup,
                             nsIContent* aLastPopup,
                             nsPresContext *aPresContext,
-                            PRBool aIsMenu,
+                            nsPopupType aPopupType,
                             PRBool aDeselectMenu);
 
   
