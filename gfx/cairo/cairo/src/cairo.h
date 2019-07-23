@@ -1183,7 +1183,7 @@ typedef enum _cairo_font_type {
     CAIRO_FONT_TYPE_TOY,
     CAIRO_FONT_TYPE_FT,
     CAIRO_FONT_TYPE_WIN32,
-    CAIRO_FONT_TYPE_ATSUI
+    CAIRO_FONT_TYPE_QUARTZ
 } cairo_font_type_t;
 
 cairo_public cairo_font_type_t

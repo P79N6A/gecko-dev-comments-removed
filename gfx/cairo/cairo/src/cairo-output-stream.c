@@ -45,6 +45,26 @@
 #include <errno.h>
 
 
+
+
+#define SIGNIFICANT_DIGITS_AFTER_DECIMAL 6
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define FIXED_POINT_DECIMAL_DIGITS ((int)(CAIRO_FIXED_FRAC_BITS*0.301029996 + 1))
+
 void
 _cairo_output_stream_init (cairo_output_stream_t            *stream,
 			   cairo_output_stream_write_func_t  write_func,
@@ -236,7 +256,6 @@ _cairo_output_stream_write_hex_string (cairo_output_stream_t *stream,
     }
 }
 
-#define SIGNIFICANT_DIGITS_AFTER_DECIMAL 6
 
 
 
@@ -245,9 +264,8 @@ _cairo_output_stream_write_hex_string (cairo_output_stream_t *stream,
 
 
 
-
-void
-_cairo_dtostr (char *buffer, size_t size, double d)
+static void
+_cairo_dtostr (char *buffer, size_t size, double d, cairo_bool_t limited_precision)
 {
     struct lconv *locale_data;
     const char *decimal_point;
@@ -266,40 +284,44 @@ _cairo_dtostr (char *buffer, size_t size, double d)
 
     assert (decimal_point_len != 0);
 
-    
-
-
-
-
-
-
-
-
-
-
-    if (fabs (d) >= 0.1) {
-	snprintf (buffer, size, "%f", d);
+    if (limited_precision) {
+	snprintf (buffer, size, "%.*f", FIXED_POINT_DECIMAL_DIGITS, d);
     } else {
-	snprintf (buffer, size, "%.18f", d);
-	p = buffer;
+	
 
-	if (*p == '+' || *p == '-')
-	    p++;
 
-	while (isdigit (*p))
-	    p++;
 
-	if (strncmp (p, decimal_point, decimal_point_len) == 0)
-	    p += decimal_point_len;
 
-	num_zeros = 0;
-	while (*p++ == '0')
-	    num_zeros++;
 
-	decimal_digits = num_zeros + SIGNIFICANT_DIGITS_AFTER_DECIMAL;
 
-	if (decimal_digits < 18)
-	    snprintf (buffer, size, "%.*f", decimal_digits, d);
+
+
+
+
+	if (fabs (d) >= 0.1) {
+	    snprintf (buffer, size, "%f", d);
+	} else {
+	    snprintf (buffer, size, "%.18f", d);
+	    p = buffer;
+
+	    if (*p == '+' || *p == '-')
+		p++;
+
+	    while (isdigit (*p))
+		p++;
+
+	    if (strncmp (p, decimal_point, decimal_point_len) == 0)
+		p += decimal_point_len;
+
+	    num_zeros = 0;
+	    while (*p++ == '0')
+		num_zeros++;
+
+	    decimal_digits = num_zeros + SIGNIFICANT_DIGITS_AFTER_DECIMAL;
+
+	    if (decimal_digits < 18)
+		snprintf (buffer, size, "%.*f", decimal_digits, d);
+	}
     }
     p = buffer;
 
@@ -441,7 +463,10 @@ _cairo_output_stream_vprintf (cairo_output_stream_t *stream,
 		      single_fmt, va_arg (ap, const char *));
 	    break;
 	case 'f':
-	    _cairo_dtostr (buffer, sizeof buffer, va_arg (ap, double));
+	    _cairo_dtostr (buffer, sizeof buffer, va_arg (ap, double), FALSE);
+	    break;
+	case 'g':
+	    _cairo_dtostr (buffer, sizeof buffer, va_arg (ap, double), TRUE);
 	    break;
 	case 'c':
 	    buffer[0] = va_arg (ap, int);

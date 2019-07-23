@@ -2303,6 +2303,11 @@ cairo_in_fill (cairo_t *cr, double x, double y)
 
 
 
+
+
+
+
+
 void
 cairo_stroke_extents (cairo_t *cr,
                       double *x1, double *y1, double *x2, double *y2)
@@ -2328,6 +2333,11 @@ cairo_stroke_extents (cairo_t *cr,
     if (status)
 	_cairo_set_error (cr, status);
 }
+
+
+
+
+
 
 
 

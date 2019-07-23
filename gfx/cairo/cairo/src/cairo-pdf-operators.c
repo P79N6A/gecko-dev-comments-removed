@@ -108,6 +108,7 @@ typedef struct _word_wrap_stream {
     int column;
     cairo_bool_t last_write_was_space;
     cairo_bool_t in_hexstring;
+    cairo_bool_t empty_hexstring;
 } word_wrap_stream_t;
 
 static int
@@ -136,10 +137,14 @@ _count_hexstring_up_to (const unsigned char *s, int length, int columns)
 {
     int word = 0;
 
-    while (length-- && columns--) {
+    while (length--) {
 	if (*s++ != '>')
 	    word++;
 	else
+	    return word;
+
+	columns--;
+	if (columns < 0 && word > 1)
 	    return word;
     }
 
@@ -158,14 +163,19 @@ _word_wrap_stream_write (cairo_output_stream_t  *base,
     while (length) {
 	if (*data == '<') {
 	    stream->in_hexstring = TRUE;
+	    stream->empty_hexstring = TRUE;
+	    stream->last_write_was_space = FALSE;
 	    data++;
 	    length--;
 	    _cairo_output_stream_printf (stream->output, "<");
+	    stream->column++;
 	} else if (*data == '>') {
 	    stream->in_hexstring = FALSE;
+	    stream->last_write_was_space = FALSE;
 	    data++;
 	    length--;
 	    _cairo_output_stream_printf (stream->output, ">");
+	    stream->column++;
 	} else if (isspace (*data)) {
 	    newline =  (*data == '\n' || *data == '\r');
 	    if (! newline && stream->column >= stream->max_column) {
@@ -175,8 +185,9 @@ _word_wrap_stream_write (cairo_output_stream_t  *base,
 	    _cairo_output_stream_write (stream->output, data, 1);
 	    data++;
 	    length--;
-	    if (newline)
+	    if (newline) {
 		stream->column = 0;
+	    }
 	    else
 		stream->column++;
 	    stream->last_write_was_space = TRUE;
@@ -189,17 +200,21 @@ _word_wrap_stream_write (cairo_output_stream_t  *base,
 	    }
 	    
 
-	    if (stream->column + word >= stream->max_column &&
-		(stream->last_write_was_space || stream->in_hexstring))
-	    {
-		_cairo_output_stream_printf (stream->output, "\n");
-		stream->column = 0;
+	    if (stream->column + word >= stream->max_column) {
+		if (stream->last_write_was_space ||
+		    (stream->in_hexstring && !stream->empty_hexstring))
+		{
+		    _cairo_output_stream_printf (stream->output, "\n");
+		    stream->column = 0;
+		}
 	    }
 	    _cairo_output_stream_write (stream->output, data, word);
 	    data += word;
 	    length -= word;
 	    stream->column += word;
 	    stream->last_write_was_space = FALSE;
+	    if (stream->in_hexstring)
+		stream->empty_hexstring = FALSE;
 	}
     }
 
@@ -236,6 +251,7 @@ _word_wrap_stream_create (cairo_output_stream_t *output, int max_column)
     stream->column = 0;
     stream->last_write_was_space = FALSE;
     stream->in_hexstring = FALSE;
+    stream->empty_hexstring = TRUE;
 
     return &stream->base;
 }
@@ -259,7 +275,7 @@ _cairo_pdf_path_move_to (void *closure, cairo_point_t *point)
     info->has_sub_path = FALSE;
     cairo_matrix_transform_point (info->path_transform, &x, &y);
     _cairo_output_stream_printf (info->output,
-				 "%f %f m ", x, y);
+				 "%g %g m ", x, y);
 
     return _cairo_output_stream_get_status (info->output);
 }
@@ -282,7 +298,7 @@ _cairo_pdf_path_line_to (void *closure, cairo_point_t *point)
     info->has_sub_path = TRUE;
     cairo_matrix_transform_point (info->path_transform, &x, &y);
     _cairo_output_stream_printf (info->output,
-				 "%f %f l ", x, y);
+				 "%g %g l ", x, y);
 
     return _cairo_output_stream_get_status (info->output);
 }
@@ -306,7 +322,7 @@ _cairo_pdf_path_curve_to (void          *closure,
     cairo_matrix_transform_point (info->path_transform, &cx, &cy);
     cairo_matrix_transform_point (info->path_transform, &dx, &dy);
     _cairo_output_stream_printf (info->output,
-				 "%f %f %f %f %f %f c ",
+				 "%g %g %g %g %g %g c ",
 				 bx, by, cx, cy, dx, dy);
     return _cairo_output_stream_get_status (info->output);
 }
@@ -339,7 +355,7 @@ _cairo_pdf_path_rectangle (pdf_path_info_t *info, cairo_box_t *box)
     cairo_matrix_transform_point (info->path_transform, &x1, &y1);
     cairo_matrix_transform_point (info->path_transform, &x2, &y2);
     _cairo_output_stream_printf (info->output,
-				 "%f %f %f %f re ",
+				 "%g %g %g %g re ",
 				 x1, y1, x2 - x1, y2 - y1);
 
     return _cairo_output_stream_get_status (info->output);
@@ -355,7 +371,7 @@ _cairo_pdf_path_rectangle (pdf_path_info_t *info, cairo_box_t *box)
 
 
 static cairo_status_t
-_cairo_pdf_operators_emit_path (cairo_pdf_operators_t 	*pdf_operators,
+_cairo_pdf_operators_emit_path (cairo_pdf_operators_t	*pdf_operators,
 				cairo_path_fixed_t      *path,
 				cairo_matrix_t          *path_transform,
 				cairo_line_cap_t         line_cap)
@@ -365,10 +381,10 @@ _cairo_pdf_operators_emit_path (cairo_pdf_operators_t 	*pdf_operators,
     pdf_path_info_t info;
     cairo_box_t box;
 
-    word_wrap = _word_wrap_stream_create (pdf_operators->stream, 79);
+    word_wrap = _word_wrap_stream_create (pdf_operators->stream, 72);
     status = _cairo_output_stream_get_status (word_wrap);
     if (status)
-	return status;
+	return _cairo_output_stream_destroy (word_wrap);
 
     info.output = word_wrap;
     info.path_transform = path_transform;
@@ -464,7 +480,8 @@ _cairo_pdf_line_join (cairo_line_join_t join)
 
 static cairo_int_status_t
 _cairo_pdf_operators_emit_stroke_style (cairo_pdf_operators_t	*pdf_operators,
-					cairo_stroke_style_t	*style)
+					cairo_stroke_style_t	*style,
+					double			 scale)
 {
     double *dash = style->dash;
     int num_dashes = style->num_dashes;
@@ -535,7 +552,7 @@ _cairo_pdf_operators_emit_stroke_style (cairo_pdf_operators_t	*pdf_operators,
 
     _cairo_output_stream_printf (pdf_operators->stream,
 				 "%f w\n",
-				 style->line_width);
+				 style->line_width * scale);
 
     _cairo_output_stream_printf (pdf_operators->stream,
 				 "%d J\n",
@@ -550,9 +567,9 @@ _cairo_pdf_operators_emit_stroke_style (cairo_pdf_operators_t	*pdf_operators,
 
 	_cairo_output_stream_printf (pdf_operators->stream, "[");
 	for (d = 0; d < num_dashes; d++)
-	    _cairo_output_stream_printf (pdf_operators->stream, " %f", dash[d]);
+	    _cairo_output_stream_printf (pdf_operators->stream, " %f", dash[d] * scale);
 	_cairo_output_stream_printf (pdf_operators->stream, "] %f d\n",
-				     dash_offset);
+				     dash_offset * scale);
     } else {
 	_cairo_output_stream_printf (pdf_operators->stream, "[] 0.0 d\n");
     }
@@ -567,6 +584,116 @@ _cairo_pdf_operators_emit_stroke_style (cairo_pdf_operators_t	*pdf_operators,
 }
 
 
+
+
+
+
+
+
+
+
+static void
+_cairo_matrix_factor_out_scale (cairo_matrix_t *m, double *scale)
+{
+    double s;
+
+    s = fabs (m->xx);
+    if (fabs (m->xy) > s)
+	s = fabs (m->xy);
+    if (fabs (m->yx) > s)
+	s = fabs (m->yx);
+    if (fabs (m->yy) > s)
+	s = fabs (m->yy);
+    *scale = s;
+    s = 1.0/s;
+    cairo_matrix_scale (m, s, s);
+}
+
+static cairo_int_status_t
+_cairo_pdf_operators_emit_stroke (cairo_pdf_operators_t	*pdf_operators,
+				  cairo_path_fixed_t	*path,
+				  cairo_stroke_style_t	*style,
+				  cairo_matrix_t	*ctm,
+				  cairo_matrix_t	*ctm_inverse,
+				  const char 		*pdf_operator)
+{
+    cairo_status_t status;
+    cairo_matrix_t m, path_transform;
+    cairo_bool_t has_ctm = TRUE;
+    double scale = 1.0;
+
+    
+
+
+
+    if (fabs(ctm->xx) == 1.0 && fabs(ctm->yy) == 1.0 &&
+	fabs(ctm->xy) == 0.0 && fabs(ctm->yx) == 0.0)
+    {
+	has_ctm = FALSE;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if (has_ctm) {
+	m = *ctm;
+	
+
+
+	m.x0 = 0.0;
+	m.y0 = 0.0;
+	_cairo_matrix_factor_out_scale (&m, &scale);
+	path_transform = m;
+	status = cairo_matrix_invert (&path_transform);
+	if (status)
+	    return status;
+
+	cairo_matrix_multiply (&m, &m, &pdf_operators->cairo_to_pdf);
+    }
+
+    status = _cairo_pdf_operators_emit_stroke_style (pdf_operators, style, scale);
+    if (status == CAIRO_INT_STATUS_NOTHING_TO_DO)
+	return CAIRO_STATUS_SUCCESS;
+    if (status)
+	return status;
+
+    if (has_ctm) {
+	_cairo_output_stream_printf (pdf_operators->stream,
+				     "q %f %f %f %f %f %f cm\n",
+				     m.xx, m.yx, m.xy, m.yy,
+				     m.x0, m.y0);
+    } else {
+	path_transform = pdf_operators->cairo_to_pdf;
+    }
+
+    status = _cairo_pdf_operators_emit_path (pdf_operators,
+					     path,
+					     &path_transform,
+					     style->line_cap);
+    if (status)
+	return status;
+
+    _cairo_output_stream_printf (pdf_operators->stream, "%s", pdf_operator);
+    if (has_ctm)
+	_cairo_output_stream_printf (pdf_operators->stream, " Q");
+
+    _cairo_output_stream_printf (pdf_operators->stream, "\n");
+
+    return _cairo_output_stream_get_status (pdf_operators->stream);
+}
+
 cairo_int_status_t
 _cairo_pdf_operators_stroke (cairo_pdf_operators_t	*pdf_operators,
 			     cairo_path_fixed_t		*path,
@@ -574,31 +701,12 @@ _cairo_pdf_operators_stroke (cairo_pdf_operators_t	*pdf_operators,
 			     cairo_matrix_t		*ctm,
 			     cairo_matrix_t		*ctm_inverse)
 {
-    cairo_status_t status;
-    cairo_matrix_t m;
-
-    status = _cairo_pdf_operators_emit_stroke_style (pdf_operators, style);
-    if (status == CAIRO_INT_STATUS_NOTHING_TO_DO)
-	return CAIRO_STATUS_SUCCESS;
-    if (status)
-	return status;
-
-    cairo_matrix_multiply (&m, ctm, &pdf_operators->cairo_to_pdf);
-    _cairo_output_stream_printf (pdf_operators->stream,
-				 "q %f %f %f %f %f %f cm\n",
-				 m.xx, m.yx, m.xy, m.yy,
-				 m.x0, m.y0);
-
-    status = _cairo_pdf_operators_emit_path (pdf_operators,
+    return _cairo_pdf_operators_emit_stroke (pdf_operators,
 					     path,
+					     style,
+					     ctm,
 					     ctm_inverse,
-					     style->line_cap);
-    if (status)
-	return status;
-
-    _cairo_output_stream_printf (pdf_operators->stream, "S Q\n");
-
-    return _cairo_output_stream_get_status (pdf_operators->stream);
+					     "S");
 }
 
 cairo_int_status_t
@@ -642,45 +750,25 @@ _cairo_pdf_operators_fill_stroke (cairo_pdf_operators_t 	*pdf_operators,
 				  cairo_matrix_t		*ctm,
 				  cairo_matrix_t		*ctm_inverse)
 {
-    const char *pdf_operator;
-    cairo_status_t status;
-    cairo_matrix_t m;
-
-    status = _cairo_pdf_operators_emit_stroke_style (pdf_operators, style);
-    if (status == CAIRO_INT_STATUS_NOTHING_TO_DO)
-	return CAIRO_STATUS_SUCCESS;
-    if (status)
-	return status;
-
-    cairo_matrix_multiply (&m, ctm, &pdf_operators->cairo_to_pdf);
-    _cairo_output_stream_printf (pdf_operators->stream,
-				 "q %f %f %f %f %f %f cm\n",
-				 m.xx, m.yx, m.xy, m.yy,
-				 m.x0, m.y0);
-
-    status = _cairo_pdf_operators_emit_path (pdf_operators,
-					     path,
-					     ctm_inverse,
-					     style->line_cap);
-    if (status)
-	return status;
+    const char *operator;
 
     switch (fill_rule) {
     case CAIRO_FILL_RULE_WINDING:
-	pdf_operator = "B";
+	operator = "B";
 	break;
     case CAIRO_FILL_RULE_EVEN_ODD:
-	pdf_operator = "B*";
+	operator = "B*";
 	break;
     default:
 	ASSERT_NOT_REACHED;
     }
 
-    _cairo_output_stream_printf (pdf_operators->stream,
-				 "%s Q\n",
-				 pdf_operator);
-
-    return _cairo_output_stream_get_status (pdf_operators->stream);
+    return _cairo_pdf_operators_emit_stroke (pdf_operators,
+					     path,
+					     style,
+					     ctm,
+					     ctm_inverse,
+					     operator);
 }
 
 #define GLYPH_POSITION_TOLERANCE 0.001
@@ -703,10 +791,10 @@ _cairo_pdf_operators_show_glyphs (cairo_pdf_operators_t		*pdf_operators,
     for (i = 0; i < num_glyphs; i++)
 	cairo_matrix_transform_point (&pdf_operators->cairo_to_pdf, &glyphs[i].x, &glyphs[i].y);
 
-    word_wrap_stream = _word_wrap_stream_create (pdf_operators->stream, 79);
+    word_wrap_stream = _word_wrap_stream_create (pdf_operators->stream, 72);
     status = _cairo_output_stream_get_status (word_wrap_stream);
     if (status)
-	return status;
+	return _cairo_output_stream_destroy (word_wrap_stream);
 
     _cairo_output_stream_printf (word_wrap_stream,
 				 "BT\n");
@@ -799,10 +887,28 @@ _cairo_pdf_operators_show_glyphs (cairo_pdf_operators_t		*pdf_operators,
                 } else {
                     if (fabs((glyphs[i].x - Tm_x)/scaled_font->scale.xx) > GLYPH_POSITION_TOLERANCE) {
                         double delta = glyphs[i].x - Tm_x;
+			int rounded_delta;
 
-                        _cairo_output_stream_printf (word_wrap_stream,
-                                                     "> %f <",
-                                                     -1000.0*delta/scaled_font->scale.xx);
+			delta = -1000.0*delta/scaled_font->scale.xx;
+			
+
+
+
+
+
+
+
+			rounded_delta = _cairo_lround (delta);
+			if (rounded_delta != 0) {
+			    _cairo_output_stream_printf (word_wrap_stream,
+							 "> %d <",
+							 rounded_delta);
+			}
+
+			
+
+
+			delta = rounded_delta*scaled_font->scale.xx/-1000.0;
                         Tm_x += delta;
                     }
                     _cairo_output_stream_printf (word_wrap_stream,
@@ -817,10 +923,16 @@ _cairo_pdf_operators_show_glyphs (cairo_pdf_operators_t		*pdf_operators,
                 if (in_TJ) {
                     if (fabs((glyphs[i].x - Tm_x)/scaled_font->scale.xx) > GLYPH_POSITION_TOLERANCE) {
                         double delta = glyphs[i].x - Tm_x;
+			int rounded_delta;
 
-                        _cairo_output_stream_printf (word_wrap_stream,
-                                                     "> %f <",
-                                                     -1000.0*delta/scaled_font->scale.xx);
+			delta = -1000.0*delta/scaled_font->scale.xx;
+			rounded_delta = _cairo_lround (delta);
+			if (rounded_delta != 0) {
+			    _cairo_output_stream_printf (word_wrap_stream,
+							 "> %d <",
+							 rounded_delta);
+			}
+			delta = rounded_delta*scaled_font->scale.xx/-1000.0;
                         Tm_x += delta;
                     }
                     _cairo_output_stream_printf (word_wrap_stream,
