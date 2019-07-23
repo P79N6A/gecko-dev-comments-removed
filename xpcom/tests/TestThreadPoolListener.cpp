@@ -74,7 +74,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(Listener, nsIThreadPoolListener)
 NS_IMETHODIMP
 Listener::OnThreadCreated()
 {
-  nsIThread* current = NS_GetCurrentThread();
+  nsCOMPtr<nsIThread> current(do_GetCurrentThread());
   NS_ASSERTION(current, "Couldn't get current thread!");
 
   nsAutoMonitor mon(gMonitor);
