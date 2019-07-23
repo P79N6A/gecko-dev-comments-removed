@@ -2147,13 +2147,6 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
     ChangeState(XML_HTTP_REQUEST_STOPPED, PR_FALSE);
   }
 
-  if (mScriptContext) {
-    
-    
-    
-    mScriptContext->GC();
-  }
-
   mState &= ~XML_HTTP_REQUEST_SYNCLOOPING;
 
   return rv;
