@@ -991,6 +991,9 @@ nsEditor::EndPlaceHolderTransaction()
     
     EndUpdateViewBatch();
     
+
+    
+    
     ScrollSelectionIntoView(PR_FALSE);
 
     
@@ -2560,6 +2563,8 @@ NS_IMETHODIMP nsEditor::ScrollSelectionIntoView(PRBool aScrollToAnchor)
       syncScroll = !(flags & nsIPlaintextEditor::eEditorUseAsyncUpdatesMask);
     }
 
+    
+    
     selCon->ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL,
                                     region, syncScroll);
   }

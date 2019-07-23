@@ -2774,6 +2774,7 @@ PresShell::PageMove(PRBool aForward, PRBool aExtend)
   result = scrollableView->GetScrolledView(scrolledView);
   mSelection->CommonPageMove(aForward, aExtend, scrollableView);
   
+  
   return ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL, nsISelectionController::SELECTION_FOCUS_REGION, PR_TRUE);
 }
 
@@ -2849,6 +2850,8 @@ PresShell::CompleteScroll(PRBool aForward)
 NS_IMETHODIMP
 PresShell::CompleteMove(PRBool aForward, PRBool aExtend)
 {
+  
+  
   return CompleteMoveInner(aForward, aExtend, PR_TRUE);
 }
 
@@ -2886,6 +2889,8 @@ PresShell::CompleteMoveInner(PRBool aForward, PRBool aExtend, PRBool aScrollInto
     mSelection->SetAncestorLimiter(root);
 
     if (aScrollIntoView) {
+      
+      
       return
         ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL, 
                                 nsISelectionController::SELECTION_FOCUS_REGION,
@@ -2930,6 +2935,8 @@ PresShell::CompleteMoveInner(PRBool aForward, PRBool aExtend, PRBool aScrollInto
   mSelection->HandleClick(pos.mResultContent ,pos.mContentOffset ,pos.mContentOffset ,aExtend, PR_FALSE, aForward);
 
   if (aScrollIntoView) {
+    
+    
     result = ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL, 
                                      nsISelectionController::SELECTION_FOCUS_REGION, PR_TRUE);
     if (NS_FAILED(result)) 

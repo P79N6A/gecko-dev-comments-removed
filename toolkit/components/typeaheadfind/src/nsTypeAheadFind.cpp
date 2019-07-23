@@ -575,10 +575,12 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, PRBool aIsLinksOnly,
       
       
       if (selectionController) {
+        
+        
         SetSelectionModeAndRepaint(nsISelectionController::SELECTION_ATTENTION);
         selectionController->ScrollSelectionIntoView(
           nsISelectionController::SELECTION_NORMAL, 
-          nsISelectionController::SELECTION_FOCUS_REGION, PR_FALSE);
+          nsISelectionController::SELECTION_FOCUS_REGION, PR_TRUE);
       }
 
       mCurrentWindow = window;
@@ -901,6 +903,8 @@ nsTypeAheadFind::FindAgain(PRBool aFindBackwards, PRBool aLinksOnly,
 
   mLinksOnly = aLinksOnly;
   if (!mTypeAheadBuffer.IsEmpty())
+    
+    
     FindItNow(nsnull, mLinksOnly, PR_FALSE, aFindBackwards, aResult);
 
   return NS_OK;
@@ -1023,6 +1027,8 @@ nsTypeAheadFind::Find(const nsAString& aSearchString, PRBool aLinksOnly,
     }
   }
 
+  
+  
   
   nsresult rv = FindItNow(nsnull, mLinksOnly, isFirstVisiblePreferred,
                           PR_FALSE, aResult);

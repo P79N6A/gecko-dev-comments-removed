@@ -151,6 +151,9 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(PRBool *outDidFind)
     }
 
     
+
+    
+    
     rv = SearchInFrame(searchFrame, PR_FALSE, outDidFind);
     if (NS_FAILED(rv)) return rv;
     if (*outDidFind)
@@ -199,6 +202,8 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(PRBool *outDidFind)
 
             OnStartSearchFrame(searchFrame);
 
+            
+            
             rv = SearchInFrame(searchFrame, PR_FALSE, outDidFind);
             if (NS_FAILED(rv)) return rv;
             if (*outDidFind)
@@ -239,6 +244,8 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(PRBool *outDidFind)
 
         if (curItem.get() == startingItem.get())
         {
+            
+            
             rv = SearchInFrame(searchFrame, PR_TRUE, outDidFind);
             if (NS_FAILED(rv)) return rv;
             if (*outDidFind)
@@ -251,6 +258,8 @@ NS_IMETHODIMP nsWebBrowserFind::FindNext(PRBool *outDidFind)
 
         OnStartSearchFrame(searchFrame);
 
+        
+        
         rv = SearchInFrame(searchFrame, PR_FALSE, outDidFind);
         if (NS_FAILED(rv)) return rv;
         if (*outDidFind)
@@ -472,9 +481,12 @@ void nsWebBrowserFind::SetSelectionAndScroll(nsIDOMWindow* aWindow,
 
     
     
+
+    
+    
     selCon->ScrollSelectionIntoView
       (nsISelectionController::SELECTION_NORMAL,
-       nsISelectionController::SELECTION_FOCUS_REGION, PR_FALSE);
+       nsISelectionController::SELECTION_FOCUS_REGION, PR_TRUE);
   }
 }
 
@@ -821,6 +833,8 @@ nsresult nsWebBrowserFind::SearchInFrame(nsIDOMWindow* aWindow,
     {
         *aDidFind = PR_TRUE;
         sel->RemoveAllRanges();
+        
+        
         SetSelectionAndScroll(aWindow, foundRange);
     }
 
