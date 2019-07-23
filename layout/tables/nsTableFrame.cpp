@@ -3540,7 +3540,7 @@ nsTableFrame::IsAutoLayout()
   const nsStyleCoord &width = GetStylePosition()->mWidth;
   return (width.GetUnit() == eStyleUnit_Auto) ||
          (width.GetUnit() == eStyleUnit_Enumerated &&
-          width.GetIntValue() == NS_STYLE_WIDTH_INTRINSIC);
+          width.GetIntValue() == NS_STYLE_WIDTH_MAX_CONTENT);
 }
 
 #ifdef DEBUG

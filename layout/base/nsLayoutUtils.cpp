@@ -1352,28 +1352,28 @@ GetIntrinsicCoord(const nsStyleCoord& aStyle,
   if (aStyle.GetUnit() != eStyleUnit_Enumerated)
     return PR_FALSE;
   PRInt32 val = aStyle.GetIntValue();
-  NS_ASSERTION(val == NS_STYLE_WIDTH_INTRINSIC ||
-               val == NS_STYLE_WIDTH_MIN_INTRINSIC ||
-               val == NS_STYLE_WIDTH_SHRINK_WRAP ||
-               val == NS_STYLE_WIDTH_FILL,
+  NS_ASSERTION(val == NS_STYLE_WIDTH_MAX_CONTENT ||
+               val == NS_STYLE_WIDTH_MIN_CONTENT ||
+               val == NS_STYLE_WIDTH_FIT_CONTENT ||
+               val == NS_STYLE_WIDTH_AVAILABLE,
                "unexpected enumerated value for width property");
-  if (val == NS_STYLE_WIDTH_FILL)
+  if (val == NS_STYLE_WIDTH_AVAILABLE)
     return PR_FALSE;
-  if (val == NS_STYLE_WIDTH_SHRINK_WRAP) {
+  if (val == NS_STYLE_WIDTH_FIT_CONTENT) {
     if (aProperty == PROP_WIDTH)
       return PR_FALSE; 
     if (aProperty == PROP_MAX_WIDTH)
       
-      val = NS_STYLE_WIDTH_INTRINSIC;
+      val = NS_STYLE_WIDTH_MAX_CONTENT;
     else
       
-      val = NS_STYLE_WIDTH_MIN_INTRINSIC;
+      val = NS_STYLE_WIDTH_MIN_CONTENT;
   }
 
-  NS_ASSERTION(val == NS_STYLE_WIDTH_INTRINSIC ||
-               val == NS_STYLE_WIDTH_MIN_INTRINSIC,
+  NS_ASSERTION(val == NS_STYLE_WIDTH_MAX_CONTENT ||
+               val == NS_STYLE_WIDTH_MIN_CONTENT,
                "should have reduced everything remaining to one of these");
-  if (val == NS_STYLE_WIDTH_INTRINSIC)
+  if (val == NS_STYLE_WIDTH_MAX_CONTENT)
     aResult = aFrame->GetPrefWidth(aRenderingContext);
   else
     aResult = aFrame->GetMinWidth(aRenderingContext);
@@ -1426,8 +1426,8 @@ nsLayoutUtils::IntrinsicForContainer(nsIRenderingContext *aRenderingContext,
   
   
   if (styleWidth.GetUnit() == eStyleUnit_Enumerated &&
-      (styleWidth.GetIntValue() == NS_STYLE_WIDTH_INTRINSIC ||
-       styleWidth.GetIntValue() == NS_STYLE_WIDTH_MIN_INTRINSIC)) {
+      (styleWidth.GetIntValue() == NS_STYLE_WIDTH_MAX_CONTENT ||
+       styleWidth.GetIntValue() == NS_STYLE_WIDTH_MIN_CONTENT)) {
     
     
     
@@ -1653,15 +1653,15 @@ nsLayoutUtils::ComputeWidthValue(
   } else if (eStyleUnit_Enumerated == aCoord.GetUnit()) {
     PRInt32 val = aCoord.GetIntValue();
     switch (val) {
-      case NS_STYLE_WIDTH_INTRINSIC:
+      case NS_STYLE_WIDTH_MAX_CONTENT:
         result = aFrame->GetPrefWidth(aRenderingContext);
         NS_ASSERTION(result >= 0, "width less than zero");
         break;
-      case NS_STYLE_WIDTH_MIN_INTRINSIC:
+      case NS_STYLE_WIDTH_MIN_CONTENT:
         result = aFrame->GetMinWidth(aRenderingContext);
         NS_ASSERTION(result >= 0, "width less than zero");
         break;
-      case NS_STYLE_WIDTH_SHRINK_WRAP:
+      case NS_STYLE_WIDTH_FIT_CONTENT:
         {
           nscoord pref = aFrame->GetPrefWidth(aRenderingContext),
                    min = aFrame->GetMinWidth(aRenderingContext),
@@ -1671,7 +1671,7 @@ nsLayoutUtils::ComputeWidthValue(
           NS_ASSERTION(result >= 0, "width less than zero");
         }
         break;
-      case NS_STYLE_WIDTH_FILL:
+      case NS_STYLE_WIDTH_AVAILABLE:
         result = aContainingBlockWidth -
                  (aBoxSizingToMarginEdge + aContentEdgeToBoxSizing);
     }

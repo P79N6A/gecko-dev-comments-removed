@@ -120,8 +120,8 @@ FixedTableLayoutStrategy::GetMinWidth(nsIRenderingContext* aRenderingContext)
                 if (styleWidth->GetUnit() == eStyleUnit_Coord ||
                     styleWidth->GetUnit() == eStyleUnit_Chars ||
                     (styleWidth->GetUnit() == eStyleUnit_Enumerated &&
-                     (styleWidth->GetIntValue() == NS_STYLE_WIDTH_INTRINSIC ||
-                      styleWidth->GetIntValue() == NS_STYLE_WIDTH_MIN_INTRINSIC))) {
+                     (styleWidth->GetIntValue() == NS_STYLE_WIDTH_MAX_CONTENT ||
+                      styleWidth->GetIntValue() == NS_STYLE_WIDTH_MIN_CONTENT))) {
                     nscoord cellWidth = nsLayoutUtils::IntrinsicForContainer(
                         aRenderingContext, cellFrame, nsLayoutUtils::MIN_WIDTH);
                     if (colSpan > 1) {
@@ -242,8 +242,8 @@ FixedTableLayoutStrategy::ComputeColumnWidths(const nsHTMLReflowState& aReflowSt
                 if (styleWidth->GetUnit() == eStyleUnit_Coord ||
                     styleWidth->GetUnit() == eStyleUnit_Chars ||
                     (styleWidth->GetUnit() == eStyleUnit_Enumerated &&
-                     (styleWidth->GetIntValue() == NS_STYLE_WIDTH_INTRINSIC ||
-                      styleWidth->GetIntValue() == NS_STYLE_WIDTH_MIN_INTRINSIC))) {
+                     (styleWidth->GetIntValue() == NS_STYLE_WIDTH_MAX_CONTENT ||
+                      styleWidth->GetIntValue() == NS_STYLE_WIDTH_MIN_CONTENT))) {
                     
                     
                     
