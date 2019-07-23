@@ -173,12 +173,6 @@ public:
     InitOffsets(aContainingBlockWidth);
   }
 
-  
-  static void DestroyMarginFunc(void*    aFrame,
-                                nsIAtom* aPropertyName,
-                                void*    aPropertyValue,
-                                void*    aDtorData);
-
 private:
   
   

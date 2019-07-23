@@ -156,6 +156,8 @@ public:
 
   friend nsIFrame* NS_NewBlockFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags);
 
+  NS_DECLARE_FRAME_PROPERTY(FloatContinuationProperty, nsnull)
+
   
   NS_DECL_QUERYFRAME
 

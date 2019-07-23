@@ -80,6 +80,8 @@
 #undef NOISY
 #endif
 
+using namespace mozilla;
+
 NS_IMPL_FRAMEARENA_HELPERS(nsContainerFrame)
 
 nsContainerFrame::~nsContainerFrame()
@@ -273,37 +275,15 @@ nsContainerFrame::DestroyFrom(nsIFrame* aDestructRoot)
   DestroyOverflowList(prescontext, aDestructRoot);
 
   if (IsFrameOfType(nsIFrame::eCanContainOverflowContainers)) {
-    nsFrameList* frameList = RemovePropTableFrames(prescontext,
-                               nsGkAtoms::overflowContainersProperty);
+    nsFrameList* frameList =
+      RemovePropTableFrames(prescontext, OverflowContainersProperty());
     if (frameList)
       frameList->DestroyFrom(aDestructRoot);
 
     frameList = RemovePropTableFrames(prescontext,
-                  nsGkAtoms::excessOverflowContainersProperty);
+                                      ExcessOverflowContainersProperty());
     if (frameList)
       frameList->DestroyFrom(aDestructRoot);
-  }
-
-  if (IsGeneratedContentFrame()) {
-    
-    
-    
-    
-    nsCOMArray<nsIContent>* generatedContent =
-      static_cast<nsCOMArray<nsIContent>*>(
-        UnsetProperty(nsGkAtoms::generatedContent));
-
-    if (generatedContent) {
-      for (int i = generatedContent->Count() - 1; i >= 0; --i) {
-        nsIContent* content = generatedContent->ObjectAt(i);
-        
-        
-        PresContext()->EventStateManager()->
-          ContentRemoved(content->GetCurrentDoc(), content);
-        content->UnbindFromTree();
-      }
-      delete generatedContent;
-    }
   }
 
   
@@ -329,13 +309,13 @@ nsContainerFrame::GetChildList(nsIAtom* aListName) const
 
   if (nsGkAtoms::overflowContainersList == aListName) {
     nsFrameList* list = GetPropTableFrames(PresContext(),
-                          nsGkAtoms::overflowContainersProperty);
+                                           OverflowContainersProperty());
     return list ? *list : nsFrameList::EmptyList();
   }
 
   if (nsGkAtoms::excessOverflowContainersList == aListName) {
     nsFrameList* list = GetPropTableFrames(PresContext(),
-                          nsGkAtoms::excessOverflowContainersProperty);
+                                           ExcessOverflowContainersProperty());
     return list ? *list : nsFrameList::EmptyList();
   }
 
@@ -882,12 +862,12 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
 
   nsFrameList* overflowContainers =
                GetPropTableFrames(aPresContext,
-                                  nsGkAtoms::overflowContainersProperty);
+                                  OverflowContainersProperty());
 
   NS_ASSERTION(!(overflowContainers && GetPrevInFlow()
                  && static_cast<nsContainerFrame*>(GetPrevInFlow())
                       ->GetPropTableFrames(aPresContext,
-                          nsGkAtoms::excessOverflowContainersProperty)),
+                          ExcessOverflowContainersProperty())),
                "conflicting overflow containers lists");
 
   if (!overflowContainers) {
@@ -896,14 +876,14 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
     if (prev) {
       nsFrameList* excessFrames =
         prev->RemovePropTableFrames(aPresContext,
-                nsGkAtoms::excessOverflowContainersProperty);
+                                    ExcessOverflowContainersProperty());
       if (excessFrames) {
         excessFrames->ApplySetParent(this);
         nsHTMLContainerFrame::ReparentFrameViewList(aPresContext, *excessFrames,
                                                     prev, this);
         overflowContainers = excessFrames;
         rv = SetPropTableFrames(aPresContext, overflowContainers,
-                                nsGkAtoms::overflowContainersProperty);
+                                OverflowContainersProperty());
         if (NS_FAILED(rv)) {
           excessFrames->DestroyFrames();
           delete excessFrames;
@@ -1017,8 +997,8 @@ nsContainerFrame::DisplayOverflowContainers(nsDisplayListBuilder*   aBuilder,
                                             const nsRect&           aDirtyRect,
                                             const nsDisplayListSet& aLists)
 {
-  nsFrameList* overflowconts = GetPropTableFrames(PresContext(),
-                                 nsGkAtoms::overflowContainersProperty);
+  nsFrameList* overflowconts =
+    GetPropTableFrames(PresContext(), OverflowContainersProperty());
   if (overflowconts) {
     for (nsIFrame* frame = overflowconts->FirstChild(); frame;
          frame = frame->GetNextSibling()) {
@@ -1037,10 +1017,10 @@ nsContainerFrame::StealFrame(nsPresContext* aPresContext,
       && !aForceNormal) {
     
     if (!RemovePropTableFrame(aPresContext, aChild,
-                              nsGkAtoms::overflowContainersProperty)) {
+                              OverflowContainersProperty())) {
       
       removed = RemovePropTableFrame(aPresContext, aChild,
-                  nsGkAtoms::excessOverflowContainersProperty);
+                                     ExcessOverflowContainersProperty());
     }
   }
   else {
@@ -1104,7 +1084,7 @@ nsContainerFrame::DestroyOverflowList(nsPresContext* aPresContext,
                                       nsIFrame*      aDestructRoot)
 {
   nsFrameList* list =
-    RemovePropTableFrames(aPresContext, nsGkAtoms::overflowProperty);
+    RemovePropTableFrames(aPresContext, OverflowProperty());
   if (list)
     list->DestroyFrom(aDestructRoot);
 }
@@ -1157,17 +1137,6 @@ nsContainerFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
 }
 
 
-static void
-DestroyFrameList(void*           aFrame,
-                 nsIAtom*        aPropertyName,
-                 void*           aPropertyValue,
-                 void*           aDtorData)
-{
-  if (aPropertyValue)
-    static_cast<nsFrameList*>(aPropertyValue)->Destroy();
-}
-
-
 
 
 nsresult
@@ -1183,51 +1152,39 @@ nsContainerFrame::SetOverflowFrames(nsPresContext* aPresContext,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  nsresult rv =
-    aPresContext->PropertyTable()->SetProperty(this,
-                                               nsGkAtoms::overflowProperty,
-                                               newList,
-                                               DestroyFrameList,
-                                               nsnull);
-  if (NS_FAILED(rv)) {
-    newList->Destroy();
-  }
-
-  
-  NS_ASSERTION(rv != NS_PROPTABLE_PROP_OVERWRITTEN, "existing overflow list");
-
-  return rv;
+  aPresContext->PropertyTable()->Set(this, OverflowProperty(), newList);
+  return NS_OK;
 }
 
 nsFrameList*
-nsContainerFrame::GetPropTableFrames(nsPresContext*  aPresContext,
-                                     nsIAtom*        aPropID) const
+nsContainerFrame::GetPropTableFrames(nsPresContext*                 aPresContext,
+                                     const FramePropertyDescriptor* aProperty) const
 {
-  nsPropertyTable* propTable = aPresContext->PropertyTable();
-  return static_cast<nsFrameList*>(propTable->GetProperty(this, aPropID));
+  FramePropertyTable* propTable = aPresContext->PropertyTable();
+  return static_cast<nsFrameList*>(propTable->Get(this, aProperty));
 }
 
 nsFrameList*
-nsContainerFrame::RemovePropTableFrames(nsPresContext*  aPresContext,
-                                        nsIAtom*        aPropID) const
+nsContainerFrame::RemovePropTableFrames(nsPresContext*                 aPresContext,
+                                        const FramePropertyDescriptor* aProperty)
 {
-  nsPropertyTable* propTable = aPresContext->PropertyTable();
-  return static_cast<nsFrameList*>(propTable->UnsetProperty(this, aPropID));
+  FramePropertyTable* propTable = aPresContext->PropertyTable();
+  return static_cast<nsFrameList*>(propTable->Remove(this, aProperty));
 }
 
 PRBool
-nsContainerFrame::RemovePropTableFrame(nsPresContext*  aPresContext,
-                                       nsIFrame*       aFrame,
-                                       nsIAtom*        aPropID) const
+nsContainerFrame::RemovePropTableFrame(nsPresContext*                 aPresContext,
+                                       nsIFrame*                      aFrame,
+                                       const FramePropertyDescriptor* aProperty)
 {
-  nsFrameList* frameList = RemovePropTableFrames(aPresContext, aPropID);
+  nsFrameList* frameList = RemovePropTableFrames(aPresContext, aProperty);
   if (!frameList) {
     
     return PR_FALSE;
   }
   if (!frameList->RemoveFrameIfPresent(aFrame)) {
     
-    SetPropTableFrames(aPresContext, frameList, aPropID);
+    SetPropTableFrames(aPresContext, frameList, aProperty);
     return PR_FALSE;
   }
 
@@ -1237,21 +1194,19 @@ nsContainerFrame::RemovePropTableFrame(nsPresContext*  aPresContext,
   }
   else {
     
-    SetPropTableFrames(aPresContext, frameList, aPropID);
+    SetPropTableFrames(aPresContext, frameList, aProperty);
   }
   return PR_TRUE;
 }
 
 nsresult
-nsContainerFrame::SetPropTableFrames(nsPresContext*  aPresContext,
-                                     nsFrameList*    aFrameList,
-                                     nsIAtom*        aPropID) const
+nsContainerFrame::SetPropTableFrames(nsPresContext*                 aPresContext,
+                                     nsFrameList*                   aFrameList,
+                                     const FramePropertyDescriptor* aProperty)
 {
-  NS_PRECONDITION(aPresContext && aPropID && aFrameList, "null ptr");
-  nsresult rv = aPresContext->PropertyTable()->SetProperty(this, aPropID,
-                  aFrameList, DestroyFrameList, nsnull);
-  NS_ASSERTION(rv != NS_PROPTABLE_PROP_OVERWRITTEN, "existing framelist");
-  return rv;
+  NS_PRECONDITION(aPresContext && aProperty && aFrameList, "null ptr");
+  aPresContext->PropertyTable()->Set(this, aProperty, aFrameList);
+  return NS_OK;
 }
 
 
@@ -1356,18 +1311,16 @@ nsOverflowContinuationTracker::nsOverflowContinuationTracker(nsPresContext*    a
   nsContainerFrame* next = static_cast<nsContainerFrame*>
                              (aFrame->GetNextInFlow());
   if (next) {
-    mOverflowContList =
-      next->GetPropTableFrames(aPresContext,
-                               nsGkAtoms::overflowContainersProperty);
+    mOverflowContList = next->GetPropTableFrames(aPresContext,
+      nsContainerFrame::OverflowContainersProperty());
     if (mOverflowContList) {
       mParent = next;
       SetUpListWalker();
     }
   }
   if (!mOverflowContList) {
-    mOverflowContList =
-      mParent->GetPropTableFrames(aPresContext,
-                                  nsGkAtoms::excessOverflowContainersProperty);
+    mOverflowContList = mParent->GetPropTableFrames(aPresContext,
+      nsContainerFrame::ExcessOverflowContainersProperty());
     if (mOverflowContList) {
       SetUpListWalker();
     }
@@ -1469,8 +1422,8 @@ nsOverflowContinuationTracker::Insert(nsIFrame*       aOverflowCont,
     }
     if (!mOverflowContList) {
       mOverflowContList = new nsFrameList();
-      rv = mParent->SetPropTableFrames(presContext,
-             mOverflowContList, nsGkAtoms::excessOverflowContainersProperty);
+      rv = mParent->SetPropTableFrames(presContext, mOverflowContList,
+        nsContainerFrame::ExcessOverflowContainersProperty());
       NS_ENSURE_SUCCESS(rv, rv);
       SetUpListWalker();
     }
@@ -1568,11 +1521,11 @@ nsContainerFrame::List(FILE* out, PRInt32 aIndent) const
   if (nsnull != GetNextContinuation()) {
     fprintf(out, " next-continuation=%p", static_cast<void*>(GetNextContinuation()));
   }
-  void* IBsibling = GetProperty(nsGkAtoms::IBSplitSpecialSibling);
+  void* IBsibling = Properties().Get(IBSplitSpecialSibling());
   if (IBsibling) {
     fprintf(out, " IBSplitSpecialSibling=%p", IBsibling);
   }
-  void* IBprevsibling = GetProperty(nsGkAtoms::IBSplitSpecialPrevSibling);
+  void* IBprevsibling = Properties().Get(IBSplitSpecialPrevSibling());
   if (IBprevsibling) {
     fprintf(out, " IBSplitSpecialPrevSibling=%p", IBprevsibling);
   }

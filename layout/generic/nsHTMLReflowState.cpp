@@ -67,6 +67,8 @@
 #undef NOISY_VERTICAL_ALIGN
 #endif
 
+using namespace mozilla;
+
 
 static PRPackedBool sPrefIsLoaded = PR_FALSE;
 static PRPackedBool sBlinkIsAllowed = PR_TRUE;
@@ -588,14 +590,6 @@ nsHTMLReflowState::InitFrameType()
   mFrameType = frameType;
 }
 
-static void
-nsPointDtor(void *aFrame, nsIAtom *aPropertyName,
-            void *aPropertyValue, void *aDtorData)
-{
-  nsPoint *point = static_cast<nsPoint*>(aPropertyValue);
-  delete point;
-}
-
 void
 nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
                                           nscoord aContainingBlockWidth,
@@ -705,16 +699,14 @@ nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
   }
 
   
-  nsPropertyTable* propTable = aPresContext->PropertyTable();
+  FrameProperties props(aPresContext->PropertyTable(), frame);
   nsPoint* offsets = static_cast<nsPoint*>
-                                (propTable->GetProperty(frame, nsGkAtoms::computedOffsetProperty));
-  if (offsets)
+    (props.Get(nsIFrame::ComputedOffsetProperty()));
+  if (offsets) {
     offsets->MoveTo(mComputedOffsets.left, mComputedOffsets.top);
-  else {
-    offsets = new nsPoint(mComputedOffsets.left, mComputedOffsets.top);
-    if (offsets)
-      propTable->SetProperty(frame, nsGkAtoms::computedOffsetProperty,
-                              offsets, nsPointDtor, nsnull);
+  } else {
+    props.Set(nsIFrame::ComputedOffsetProperty(),
+              new nsPoint(mComputedOffsets.left, mComputedOffsets.top));
   }
 }
 
@@ -1650,9 +1642,10 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
                                    const nsMargin* aPadding)
 {
   
-  frame->DeleteProperty(nsGkAtoms::usedBorderProperty);
-  frame->DeleteProperty(nsGkAtoms::usedPaddingProperty);
-  frame->DeleteProperty(nsGkAtoms::usedMarginProperty);
+  FrameProperties props(aPresContext->PropertyTable(), frame);
+  props.Delete(nsIFrame::UsedBorderProperty());
+  props.Delete(nsIFrame::UsedPaddingProperty());
+  props.Delete(nsIFrame::UsedMarginProperty());
 
   
   
@@ -2147,16 +2140,6 @@ nsHTMLReflowState::CalcLineHeight(nsStyleContext* aStyleContext,
   return lineHeight;
 }
 
-
-void
-nsCSSOffsetState::DestroyMarginFunc(void*    aFrame,
-                                    nsIAtom* aPropertyName,
-                                    void*    aPropertyValue,
-                                    void*    aDtorData)
-{
-  delete static_cast<nsMargin*>(aPropertyValue);
-}
-
 void
 nsCSSOffsetState::ComputeMargin(nscoord aContainingBlockWidth)
 {
@@ -2199,9 +2182,8 @@ nsCSSOffsetState::ComputeMargin(nscoord aContainingBlockWidth)
     
     
     
-    frame->SetProperty(nsGkAtoms::usedMarginProperty,
-                       new nsMargin(mComputedMargin),
-                       DestroyMarginFunc);
+    frame->Properties().Set(nsIFrame::UsedMarginProperty(),
+                            new nsMargin(mComputedMargin));
   }
 }
 
@@ -2228,9 +2210,8 @@ nsCSSOffsetState::ComputePadding(nscoord aContainingBlockWidth)
       ComputeWidthDependentValue(aContainingBlockWidth,
                                  stylePadding->mPadding.GetBottom());
 
-    frame->SetProperty(nsGkAtoms::usedPaddingProperty,
-                       new nsMargin(mComputedPadding),
-                       DestroyMarginFunc);
+    frame->Properties().Set(nsIFrame::UsedPaddingProperty(),
+                            new nsMargin(mComputedPadding));
   }
   
   

@@ -150,6 +150,8 @@
 #include "nsSVGOuterSVGFrame.h"
 #endif
 
+using namespace mozilla;
+
 nsIFrame*
 NS_NewHTMLCanvasFrame (nsIPresShell* aPresShell, nsStyleContext* aContext);
 
@@ -460,10 +462,9 @@ static nsIFrame* GetSpecialSibling(nsIFrame* aFrame)
 
   
   
-  return
-    static_cast<nsIFrame*>
+  return static_cast<nsIFrame*>
     (aFrame->GetFirstContinuation()->
-       GetProperty(nsGkAtoms::IBSplitSpecialSibling));
+       Properties().Get(nsIFrame::IBSplitSpecialSibling()));
 }
 
 static nsIFrame* GetSpecialPrevSibling(nsIFrame* aFrame)
@@ -472,10 +473,9 @@ static nsIFrame* GetSpecialPrevSibling(nsIFrame* aFrame)
   
   
   
-  return
-    static_cast<nsIFrame*>
+  return static_cast<nsIFrame*>
     (aFrame->GetFirstContinuation()->
-       GetProperty(nsGkAtoms::IBSplitSpecialPrevSibling));
+       Properties().Get(nsIFrame::IBSplitSpecialPrevSibling()));
 }
 
 static nsIFrame*
@@ -517,8 +517,9 @@ SetFrameIsSpecial(nsIFrame* aFrame, nsIFrame* aSpecialSibling)
 
     
     
-    aFrame->SetProperty(nsGkAtoms::IBSplitSpecialSibling, aSpecialSibling);
-    aSpecialSibling->SetProperty(nsGkAtoms::IBSplitSpecialPrevSibling, aFrame);
+    FramePropertyTable* props = aFrame->PresContext()->PropertyTable();
+    props->Set(aFrame, nsIFrame::IBSplitSpecialSibling(), aSpecialSibling);
+    props->Set(aSpecialSibling, nsIFrame::IBSplitSpecialPrevSibling(), aFrame);
   }
 }
 
@@ -5295,14 +5296,25 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
   }
 }
 
-static void DestroyContent(void *aObject,
-                           nsIAtom *aPropertyName,
-                           void *aPropertyValue,
-                           void *aData)
+static void
+DestroyContent(void* aPropertyValue)
 {
   nsIContent* content = static_cast<nsIContent*>(aPropertyValue);
   content->UnbindFromTree();
   NS_RELEASE(content);
+}
+
+NS_DECLARE_FRAME_PROPERTY(BeforeProperty, DestroyContent)
+NS_DECLARE_FRAME_PROPERTY(AfterProperty, DestroyContent)
+
+static const FramePropertyDescriptor*
+GenConPseudoToProperty(nsIAtom* aPseudo)
+{
+  NS_ASSERTION(aPseudo == nsCSSPseudoElements::before ||
+               aPseudo == nsCSSPseudoElements::after,
+               "Bad gen-con pseudo");
+  return aPseudo == nsCSSPseudoElements::before ? BeforeProperty()
+      : AfterProperty();
 }
 
 
@@ -5406,8 +5418,8 @@ nsCSSFrameConstructor::ConstructFramesFromItem(nsFrameConstructorState& aState,
     
     
     
-    aParentFrame->SetProperty(styleContext->GetPseudo(),
-                              item.mContent, DestroyContent);
+    aParentFrame->Properties().Set(GenConPseudoToProperty(styleContext->GetPseudo()),
+                                   item.mContent);
 
     
     
@@ -7410,6 +7422,8 @@ nsCSSFrameConstructor::CharacterDataChanged(nsIContent* aContent,
   return rv;
 }
 
+NS_DECLARE_FRAME_PROPERTY(ChangeListProperty, nsnull)
+
 nsresult
 nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
 {
@@ -7424,7 +7438,7 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
   BeginUpdate();
 
   nsPresContext* presContext = mPresShell->GetPresContext();
-  nsPropertyTable *propTable = presContext->PropertyTable();
+  FramePropertyTable* propTable = presContext->PropertyTable();
 
   
   
@@ -7435,9 +7449,8 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
     const nsStyleChangeData* changeData;
     aChangeList.ChangeAt(index, &changeData);
     if (changeData->mFrame) {
-      propTable->SetProperty(changeData->mFrame,
-                             nsGkAtoms::changeListProperty,
-                             nsnull, nsnull, nsnull);
+      propTable->Set(changeData->mFrame, ChangeListProperty(),
+                     NS_INT32_TO_PTR(1));
     }
   }
 
@@ -7466,11 +7479,7 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
 
     
     if (frame) {
-      nsresult res;
-
-      propTable->GetProperty(frame, nsGkAtoms::changeListProperty, &res);
-
-      if (NS_PROPTABLE_PROP_NOT_THERE == res)
+      if (!propTable->Get(frame, ChangeListProperty()))
         continue;
     }
 
@@ -7520,8 +7529,7 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
     const nsStyleChangeData* changeData;
     aChangeList.ChangeAt(index, &changeData);
     if (changeData->mFrame) {
-      propTable->DeleteProperty(changeData->mFrame,
-                                nsGkAtoms::changeListProperty);
+      propTable->Delete(changeData->mFrame, ChangeListProperty());
     }
 
 #ifdef DEBUG

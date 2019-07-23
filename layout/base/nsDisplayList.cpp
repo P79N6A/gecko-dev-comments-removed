@@ -96,16 +96,6 @@ nsDisplayListBuilder::nsDisplayListBuilder(nsIFrame* aReferenceFrame,
   }
 }
 
-
-static void
-DestroyRectFunc(void*    aFrame,
-                nsIAtom* aPropertyName,
-                void*    aPropertyValue,
-                void*    aDtorData)
-{
-  delete static_cast<nsRect*>(aPropertyValue);
-}
-
 static void MarkFrameForDisplay(nsIFrame* aFrame, nsIFrame* aStopAtFrame) {
   nsFrameManager* frameManager = aFrame->PresContext()->PresShell()->FrameManager();
 
@@ -127,17 +117,18 @@ static void MarkOutOfFlowFrameForDisplay(nsIFrame* aDirtyFrame, nsIFrame* aFrame
   nsRect overflowRect = aFrame->GetOverflowRect();
   if (!dirty.IntersectRect(dirty, overflowRect))
     return;
-  
-  aFrame->SetProperty(nsGkAtoms::outOfFlowDirtyRectProperty,
-                      new nsRect(dirty), DestroyRectFunc);
+  aFrame->Properties().Set(nsDisplayListBuilder::OutOfFlowDirtyRectProperty(),
+                           new nsRect(dirty));
 
   MarkFrameForDisplay(aFrame, aDirtyFrame);
 }
 
 static void UnmarkFrameForDisplay(nsIFrame* aFrame) {
-  aFrame->DeleteProperty(nsGkAtoms::outOfFlowDirtyRectProperty);
+  nsPresContext* presContext = aFrame->PresContext();
+  presContext->PropertyTable()->
+    Delete(aFrame, nsDisplayListBuilder::OutOfFlowDirtyRectProperty());
 
-  nsFrameManager* frameManager = aFrame->PresContext()->PresShell()->FrameManager();
+  nsFrameManager* frameManager = presContext->PresShell()->FrameManager();
 
   for (nsIFrame* f = aFrame; f;
        f = nsLayoutUtils::GetParentOrPlaceholderFor(frameManager, f)) {

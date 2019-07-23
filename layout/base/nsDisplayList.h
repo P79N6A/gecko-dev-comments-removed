@@ -119,6 +119,8 @@ class nsDisplayItem;
 
 class NS_STACK_CLASS nsDisplayListBuilder {
 public:
+  typedef mozilla::FramePropertyDescriptor FramePropertyDescriptor;
+
   
 
 
@@ -383,6 +385,8 @@ public:
   
   nsDisplayTableItem* GetCurrentTableItem() { return mCurrentTableItem; }
   void SetCurrentTableItem(nsDisplayTableItem* aTableItem) { mCurrentTableItem = aTableItem; }
+
+  NS_DECLARE_FRAME_PROPERTY(OutOfFlowDirtyRectProperty, nsIFrame::DestroyRect)
 
 private:
   

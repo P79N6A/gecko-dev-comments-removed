@@ -55,6 +55,8 @@
 
 #include "nsMathMLmtableFrame.h"
 
+using namespace mozilla;
+
 
 
 
@@ -112,21 +114,37 @@ struct nsValueList
 
 
 static void
-DestroyValueListFunc(void*    aFrame,
-                     nsIAtom* aPropertyName,
-                     void*    aPropertyValue,
-                     void*    aDtorData)
+DestroyValueList(void* aPropertyValue)
 {
   delete static_cast<nsValueList*>(aPropertyValue);
 }
 
-static PRUnichar*
-GetValueAt(nsIFrame* aTableOrRowFrame,
-           nsIAtom*  aAttribute,
-           PRInt32   aRowOrColIndex)
+NS_DECLARE_FRAME_PROPERTY(RowAlignProperty, DestroyValueList)
+NS_DECLARE_FRAME_PROPERTY(RowLinesProperty, DestroyValueList)
+NS_DECLARE_FRAME_PROPERTY(ColumnAlignProperty, DestroyValueList)
+NS_DECLARE_FRAME_PROPERTY(ColumnLinesProperty, DestroyValueList)
+
+static const FramePropertyDescriptor*
+AttributeToProperty(nsIAtom* aAttribute)
 {
-  nsValueList* valueList = static_cast<nsValueList*>
-                                      (aTableOrRowFrame->GetProperty(aAttribute));
+  if (aAttribute == nsGkAtoms::rowalign_)
+    return RowAlignProperty();
+  if (aAttribute == nsGkAtoms::rowlines_)
+    return RowLinesProperty();
+  if (aAttribute == nsGkAtoms::columnalign_)
+    return ColumnAlignProperty();
+  NS_ASSERTION(aAttribute == nsGkAtoms::columnlines_, "Invalid attribute");
+  return ColumnLinesProperty();
+}
+
+static PRUnichar*
+GetValueAt(nsIFrame*                      aTableOrRowFrame,
+           const FramePropertyDescriptor* aProperty,
+           nsIAtom*                       aAttribute,
+           PRInt32                        aRowOrColIndex)
+{
+  FrameProperties props = aTableOrRowFrame->Properties();
+  nsValueList* valueList = static_cast<nsValueList*>(props.Get(aProperty));
   if (!valueList) {
     
     nsAutoString values;
@@ -137,7 +155,7 @@ GetValueAt(nsIFrame* aTableOrRowFrame,
       delete valueList; 
       return nsnull;
     }
-    aTableOrRowFrame->SetProperty(aAttribute, valueList, DestroyValueListFunc);
+    props.Set(aProperty, valueList);
   }
   PRInt32 count = valueList->mArray.Length();
   return (aRowOrColIndex < count)
@@ -180,7 +198,8 @@ MapRowAttributesIntoCSS(nsIFrame* aTableFrame,
   if (!rowContent->HasAttr(kNameSpaceID_None, nsGkAtoms::rowalign_) &&
       !rowContent->HasAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowalign_)) {
     
-    attr = GetValueAt(aTableFrame, nsGkAtoms::rowalign_, rowIndex);
+    attr = GetValueAt(aTableFrame, RowAlignProperty(),
+                      nsGkAtoms::rowalign_, rowIndex);
     if (attr) {
       
       rowContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowalign_,
@@ -195,7 +214,8 @@ MapRowAttributesIntoCSS(nsIFrame* aTableFrame,
   
   if (rowIndex > 0 &&
       !rowContent->HasAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowline_)) {
-    attr = GetValueAt(aTableFrame, nsGkAtoms::rowlines_, rowIndex-1);
+    attr = GetValueAt(aTableFrame, RowLinesProperty(),
+                      nsGkAtoms::rowlines_, rowIndex-1);
     if (attr) {
       
       rowContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowline_,
@@ -224,10 +244,12 @@ MapColAttributesIntoCSS(nsIFrame* aTableFrame,
       !cellContent->HasAttr(kNameSpaceID_None,
                             nsGkAtoms::_moz_math_columnalign_)) {
     
-    attr = GetValueAt(aRowFrame, nsGkAtoms::columnalign_, colIndex);
+    attr = GetValueAt(aRowFrame, ColumnAlignProperty(),
+                      nsGkAtoms::columnalign_, colIndex);
     if (!attr) {
       
-      attr = GetValueAt(aTableFrame, nsGkAtoms::columnalign_, colIndex);
+      attr = GetValueAt(aTableFrame, ColumnAlignProperty(),
+                        nsGkAtoms::columnalign_, colIndex);
     }
     if (attr) {
       
@@ -244,7 +266,8 @@ MapColAttributesIntoCSS(nsIFrame* aTableFrame,
   if (colIndex > 0 &&
       !cellContent->HasAttr(kNameSpaceID_None,
                             nsGkAtoms::_moz_math_columnline_)) {
-    attr = GetValueAt(aTableFrame, nsGkAtoms::columnlines_, colIndex-1);
+    attr = GetValueAt(aTableFrame, ColumnLinesProperty(),
+                      nsGkAtoms::columnlines_, colIndex-1);
     if (attr) {
       
       cellContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnline_,
@@ -360,7 +383,7 @@ NS_NewMathMLmtableOuterFrame (nsIPresShell* aPresShell, nsStyleContext* aContext
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsMathMLmtableOuterFrame)
-
+ 
 nsMathMLmtableOuterFrame::~nsMathMLmtableOuterFrame()
 {
 }
@@ -476,8 +499,10 @@ nsMathMLmtableOuterFrame::AttributeChanged(PRInt32  aNameSpaceID,
   if (!MOZrowAtom && !MOZcolAtom)
     return NS_OK;
 
+  nsPresContext* presContext = tableFrame->PresContext();
   
-  tableFrame->DeleteProperty(aAttribute);
+  presContext->PropertyTable()->
+    Delete(tableFrame, AttributeToProperty(aAttribute));
 
   
   nsIFrame* rowFrame = rgFrame->GetFirstChild(nsnull);
@@ -499,7 +524,7 @@ nsMathMLmtableOuterFrame::AttributeChanged(PRInt32  aNameSpaceID,
   }
 
   
-  PresContext()->PresShell()->FrameConstructor()->
+  presContext->PresShell()->FrameConstructor()->
     PostRestyleEvent(mContent, eReStyle_Self, nsChangeHint_ReflowFrame);
 
   return NS_OK;
@@ -720,8 +745,9 @@ nsMathMLmtrFrame::AttributeChanged(PRInt32  aNameSpaceID,
   if (aAttribute != nsGkAtoms::columnalign_)
     return NS_OK;
 
+  nsPresContext* presContext = PresContext();
   
-  DeleteProperty(aAttribute);
+  presContext->PropertyTable()->Delete(this, AttributeToProperty(aAttribute));
 
   
   
@@ -737,7 +763,7 @@ nsMathMLmtrFrame::AttributeChanged(PRInt32  aNameSpaceID,
   }
 
   
-  PresContext()->PresShell()->FrameConstructor()->
+  presContext->PresShell()->FrameConstructor()->
     PostRestyleEvent(mContent, eReStyle_Self, nsChangeHint_ReflowFrame);
 
   return NS_OK;
