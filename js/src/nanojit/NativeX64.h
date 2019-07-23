@@ -1,0 +1,360 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef __nanojit_NativeX64__
+#define __nanojit_NativeX64__
+
+#ifndef NANOJIT_64BIT
+#error "NANOJIT_64BIT must be defined for X64 backend"
+#endif
+
+#ifdef PERFM
+#define DOPROF
+#include "../vprof/vprof.h"
+#define count_instr() _nvprof("x64",1)
+#define count_prolog() _nvprof("x64-prolog",1); count_instr();
+#define count_imt() _nvprof("x64-imt",1) count_instr()
+#else
+#define count_instr()
+#define count_prolog()
+#define count_imt()
+#endif
+
+namespace nanojit
+{
+#define NJ_MAX_STACK_ENTRY              256
+#define NJ_ALIGN_STACK                  16
+
+    enum Register {
+        RAX = 0, 
+        RCX = 1, 
+        RDX = 2, 
+        RBX = 3, 
+        RSP = 4, 
+        RBP = 5, 
+        RSI = 6, 
+        RDI = 7, 
+        R8  = 8, 
+        R9  = 9, 
+        R10 = 10, 
+        R11 = 11, 
+        R12 = 12, 
+        R13 = 13, 
+        R14 = 14, 
+        R15 = 15, 
+
+        XMM0  = 16, 
+        XMM1  = 17, 
+        XMM2  = 18, 
+        XMM3  = 19, 
+        XMM4  = 20, 
+        XMM5  = 21, 
+        XMM6  = 22, 
+        XMM7  = 23, 
+        XMM8  = 24, 
+        XMM9  = 25, 
+        XMM10 = 26, 
+        XMM11 = 27, 
+        XMM12 = 28, 
+        XMM13 = 29, 
+        XMM14 = 30, 
+        XMM15 = 31, 
+
+        FP = RBP,
+        UnknownReg = 32,
+        FirstReg = RAX,
+        LastReg = XMM15
+    };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    enum X64Opcode
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+#pragma warning(disable:4480) // nonstandard extension used: specifying underlying type for enum
+          : uint64_t
+#endif
+    {
+        
+        
+        X64_addqrr  = 0xC003480000000003LL, 
+        X64_addqri  = 0xC081480000000003LL, 
+        X64_addqr8  = 0x00C0834800000004LL, 
+        X64_andqri  = 0xE081480000000003LL, 
+        X64_andqr8  = 0x00E0834800000004LL, 
+        X64_orqri   = 0xC881480000000003LL, 
+        X64_orqr8   = 0x00C8834800000004LL, 
+        X64_xorqri  = 0xF081480000000003LL, 
+        X64_xorqr8  = 0x00F0834800000004LL, 
+        X64_addlri  = 0xC081400000000003LL, 
+        X64_addlr8  = 0x00C0834000000004LL, 
+        X64_andlri  = 0xE081400000000003LL, 
+        X64_andlr8  = 0x00E0834000000004LL, 
+        X64_orlri   = 0xC881400000000003LL, 
+        X64_orlr8   = 0x00C8834000000004LL, 
+        X64_sublri  = 0xE881400000000003LL, 
+        X64_sublr8  = 0x00E8834000000004LL, 
+        X64_xorlri  = 0xF081400000000003LL, 
+        X64_xorlr8  = 0x00F0834000000004LL, 
+        X64_addrr   = 0xC003400000000003LL, 
+        X64_andqrr  = 0xC023480000000003LL, 
+        X64_andrr   = 0xC023400000000003LL, 
+        X64_call    = 0x00000000E8000005LL, 
+        X64_callrax = 0xD0FF000000000002LL, 
+        X64_cmovqne = 0xC0450F4800000004LL, 
+        X64_cmplr   = 0xC03B400000000003LL, 
+        X64_cmpqr   = 0xC03B480000000003LL, 
+        X64_cmplri  = 0xF881400000000003LL, 
+        X64_cmpqri  = 0xF881480000000003LL, 
+        X64_cmplr8  = 0x00F8834000000004LL, 
+        X64_cmpqr8  = 0x00F8834800000004LL, 
+        X64_cvtsi2sd= 0xC02A0F40F2000005LL, 
+        X64_cvtsq2sd= 0xC02A0F48F2000005LL, 
+        X64_divsd   = 0xC05E0F40F2000005LL, 
+        X64_mulsd   = 0xC0590F40F2000005LL, 
+        X64_addsd   = 0xC0580F40F2000005LL, 
+        X64_imul    = 0xC0AF0F4000000004LL, 
+        X64_imuli   = 0xC069400000000003LL, 
+        X64_imul8   = 0x00C06B4000000004LL, 
+        X64_jmp     = 0x00000000E9000005LL, 
+        X64_jmp8    = 0x00EB000000000002LL, 
+        X64_jb      = 0x00000000820F0006LL, 
+        X64_jae     = 0x00000000830F0006LL, 
+        X64_ja      = 0x00000000870F0006LL, 
+        X64_jbe     = 0x00000000860F0006LL, 
+        X64_je      = 0x00000000840F0006LL, 
+        X64_jne     = 0x00000000850F0006LL, 
+        X64_jl      = 0x000000008C0F0006LL, 
+        X64_jge     = 0x000000008D0F0006LL, 
+        X64_jg      = 0x000000008F0F0006LL, 
+        X64_jle     = 0x000000008E0F0006LL, 
+        X64_jp      = 0x000000008A0F0006LL, 
+        X64_jnp     = 0x000000008B0F0006LL, 
+        X64_jneg    = 0x0000000001000000LL, 
+        X64_jb8     = 0x0072000000000002LL, 
+        X64_jae8    = 0x0073000000000002LL, 
+        X64_ja8     = 0x0077000000000002LL, 
+        X64_jbe8    = 0x0076000000000002LL, 
+        X64_je8     = 0x0074000000000002LL, 
+        X64_jne8    = 0x0075000000000002LL, 
+        X64_jl8     = 0x007C000000000002LL, 
+        X64_jge8    = 0x007D000000000002LL, 
+        X64_jg8     = 0x007F000000000002LL, 
+        X64_jle8    = 0x007E000000000002LL, 
+        X64_jp8     = 0x007A000000000002LL, 
+        X64_jnp8    = 0x007B000000000002LL, 
+        X64_jneg8   = 0x0001000000000000LL, 
+        X64_leaqrm  = 0x00000000808D4807LL, 
+        X64_learm   = 0x00000000808D4007LL, 
+        X64_movlr   = 0xC08B400000000003LL, 
+        X64_movlmr  = 0x0000000080894007LL, 
+        X64_movlrm  = 0x00000000808B4007LL, 
+        X64_movqmr  = 0x0000000080894807LL, 
+        X64_movqspr = 0x0024448948000005LL, 
+        X64_movqr   = 0xC08B480000000003LL, 
+        X64_movqi   = 0xB848000000000002LL, 
+        X64_movi    = 0xB840000000000002LL, 
+        X64_movqi32 = 0xC0C7480000000003LL, 
+        X64_movapsr = 0xC0280F4000000004LL, 
+        X64_movqrx  = 0xC07E0F4866000005LL, 
+        X64_movqxr  = 0xC06E0F4866000005LL, 
+        X64_movqrm  = 0x00000000808B4807LL, 
+        X64_movsdrr = 0xC0100F40F2000005LL, 
+        X64_movsdrm = 0x80100F40F2000005LL, 
+        X64_movsdmr = 0x80110F40F2000005LL, 
+        X64_movsxdr = 0xC063480000000003LL, 
+        X64_movzx8  = 0xC0B60F4000000004LL, 
+        X64_neg     = 0xD8F7400000000003LL, 
+        X64_nop1    = 0x9000000000000001LL, 
+        X64_nop2    = 0x9066000000000002LL, 
+        X64_nop3    = 0x001F0F0000000003LL, 
+        X64_nop4    = 0x00401F0F00000004LL, 
+        X64_nop5    = 0x0000441F0F000005LL, 
+        X64_nop6    = 0x0000441F0F660006LL, 
+        X64_nop7    = 0x00000000801F0F07LL, 
+        X64_not     = 0xD0F7400000000003LL, 
+        X64_orlrr   = 0xC00B400000000003LL, 
+        X64_orqrr   = 0xC00B480000000003LL, 
+        X64_popr    = 0x5840000000000002LL, 
+        X64_pushr   = 0x5040000000000002LL, 
+        X64_pxor    = 0xC0EF0F4066000005LL, 
+        X64_ret     = 0xC300000000000001LL, 
+        X64_sete    = 0xC0940F4000000004LL, 
+        X64_seto    = 0xC0900F4000000004LL, 
+        X64_setc    = 0xC0920F4000000004LL, 
+        X64_setl    = 0xC09C0F4000000004LL, 
+        X64_setle   = 0xC09E0F4000000004LL, 
+        X64_setg    = 0xC09F0F4000000004LL, 
+        X64_setge   = 0xC09D0F4000000004LL, 
+        X64_seta    = 0xC0970F4000000004LL, 
+        X64_setae   = 0xC0930F4000000004LL, 
+        X64_setb    = 0xC0920F4000000004LL, 
+        X64_setbe   = 0xC0960F4000000004LL, 
+        X64_subsd   = 0xC05C0F40F2000005LL, 
+        X64_shl     = 0xE0D3400000000003LL, 
+        X64_shlq    = 0xE0D3480000000003LL, 
+        X64_shr     = 0xE8D3400000000003LL, 
+        X64_shrq    = 0xE8D3480000000003LL, 
+        X64_sar     = 0xF8D3400000000003LL, 
+        X64_sarq    = 0xF8D3480000000003LL, 
+        X64_shli    = 0x00E0C14000000004LL, 
+        X64_shlqi   = 0x00E0C14800000004LL, 
+        X64_sari    = 0x00F8C14000000004LL, 
+        X64_sarqi   = 0x00F8C14800000004LL, 
+        X64_shri    = 0x00E8C14000000004LL, 
+        X64_shrqi   = 0x00E8C14800000004LL, 
+        X64_subqrr  = 0xC02B480000000003LL, 
+        X64_subrr   = 0xC02B400000000003LL, 
+        X64_subqri  = 0xE881480000000003LL, 
+        X64_subqr8  = 0x00E8834800000004LL, 
+        X64_ucomisd = 0xC02E0F4066000005LL, 
+        X64_xorqrr  = 0xC033480000000003LL, 
+        X64_xorrr   = 0xC033400000000003LL, 
+        X64_xorpd   = 0xC0570F4066000005LL, 
+        X64_xorps   = 0xC0570F4000000004LL, 
+        X64_xorpsm  = 0x05570F4000000004LL, 
+        X64_xorpsa  = 0x2504570F40000005LL, 
+
+        X86_and8r   = 0xC022000000000002LL, 
+        X86_sete    = 0xC0940F0000000003LL, 
+        X86_setnp   = 0xC09B0F0000000003LL  
+    };
+
+    typedef uint32_t RegisterMask;
+
+    static const RegisterMask GpRegs = 0xffff;
+    static const RegisterMask FpRegs = 0xffff0000;
+    static const bool CalleeRegsNeedExplicitSaving = true;
+#ifdef _MSC_VER
+    static const RegisterMask SavedRegs = 1<<RBX | 1<<RSI | 1<<RDI | 1<<R12 | 1<<R13 | 1<<R14 | 1<<R15;
+    static const int NumSavedRegs = 7; 
+    static const int NumArgRegs = 4;
+#else
+    static const RegisterMask SavedRegs = 1<<RBX | 1<<R12 | 1<<R13 | 1<<R14 | 1<<R15;
+    static const int NumSavedRegs = 5; 
+    static const int NumArgRegs = 6;
+#endif
+
+    static inline bool IsFpReg(Register r) {
+        return ((1<<r) & FpRegs) != 0;
+    }
+    static inline bool IsGpReg(Register r) {
+        return ((1<<r) & GpRegs) != 0;
+    }
+
+    verbose_only( extern const char* regNames[]; )
+
+    #define DECLARE_PLATFORM_STATS()
+    #define DECLARE_PLATFORM_REGALLOC()
+
+    #define DECLARE_PLATFORM_ASSEMBLER()                                    \
+        const static Register argRegs[NumArgRegs], retRegs[1];              \
+        void underrunProtect(ptrdiff_t bytes);                              \
+        void nativePageReset();                                             \
+        void nativePageSetup();                                             \
+        void asm_qbinop(LIns*);                                             \
+        void MR(Register, Register);\
+        void JMP(NIns*);\
+        void emit(uint64_t op);\
+        void emit8(uint64_t op, int64_t val);\
+        void emit32(uint64_t op, int64_t val);\
+        void emitrr(uint64_t op, Register r, Register b);\
+        void emitrr8(uint64_t op, Register r, Register b);\
+        void emitr(uint64_t op, Register b) { emitrr(op, (Register)0, b); }\
+        void emitr8(uint64_t op, Register b) { emitrr8(op, (Register)0, b); }\
+        void emitprr(uint64_t op, Register r, Register b);\
+        void emitrm(uint64_t op, Register r, int32_t d, Register b);\
+        void emitprm(uint64_t op, Register r, int32_t d, Register b);\
+        void emitrr_imm(uint64_t op, Register r, Register b, int32_t imm);\
+        void emitr_imm(uint64_t op, Register r, int32_t imm) { emitrr_imm(op, (Register)0, r, imm); }\
+        void emitr_imm8(uint64_t op, Register b, int32_t imm8);\
+        void emit_int(Register r, int32_t v);\
+        void emit_quad(Register r, uint64_t v);\
+        void asm_regarg(ArgSize, LIns*, Register);\
+        void asm_stkarg(ArgSize, LIns*, int);\
+        void asm_shift(LIns*);\
+        void asm_shift_imm(LIns*);\
+        void asm_arith_imm(LIns*);\
+        void regalloc_unary(LIns *ins, RegisterMask allow, Register &rr, Register &ra);\
+        void regalloc_binary(LIns *ins, RegisterMask allow, Register &rr, Register &ra, Register &rb);\
+        void regalloc_load(LIns *ins, Register &rr, int32_t &d, Register &rb);\
+        void dis(NIns *p, int bytes);\
+        void asm_cmp(LIns*);\
+        void asm_cmp_imm(LIns*);\
+        void fcmp(LIns*, LIns*);\
+        NIns* asm_fbranch(bool, LIns*, NIns*);\
+        int max_stk_used;
+
+    #define swapptrs()  { NIns* _tins = _nIns; _nIns=_nExitIns; _nExitIns=_tins; }
+
+    const int LARGEST_UNDERRUN_PROT = 32;  
+
+    typedef uint8_t NIns;
+
+    inline Register nextreg(Register r) {
+        return Register(r+1);
+    }
+
+} 
+
+#endif
