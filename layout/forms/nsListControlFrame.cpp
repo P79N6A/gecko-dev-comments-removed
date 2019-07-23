@@ -2686,6 +2686,7 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
                 if (!UpdateSelection()) {
                   return NS_OK;
                 }
+                FireMenuItemActiveEvent(); 
               }
               break;
             }
