@@ -361,6 +361,28 @@ nsSVGAnimationElement::GetTimeContainer()
   return result;
 }
 
+nsIContent*
+nsSVGAnimationElement::GetParentElement()
+{
+  nsCOMPtr<nsIContent> result;
+  nsBindingManager*   bindingManager = nsnull;
+  nsIDocument*        ownerDoc = GetOwnerDoc();
+
+  if (ownerDoc)
+    bindingManager = ownerDoc->BindingManager();
+
+  if (bindingManager)
+    
+    result = bindingManager->GetInsertionParent(this);
+
+  if (!result)
+    
+    
+    result = GetParent();
+
+  return result;
+}
+
 
 
 NS_IMETHODIMP

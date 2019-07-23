@@ -197,35 +197,6 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGElementBase)
 
 
   
-nsIContent*
-nsSVGElement::GetParentElement()
-{
-  nsCOMPtr<nsIContent> result;
-
-  nsBindingManager*   bindingManager = nsnull;
-  
-  
-  
-  
-  nsIDocument* ownerDoc = GetOwnerDoc();
-  if (ownerDoc) {
-    bindingManager = ownerDoc->BindingManager();
-  }
-
-  if (bindingManager) {
-    
-    result = bindingManager->GetInsertionParent(this);
-  }
-
-  if (!result) {
-    
-    
-    result = GetParent();
-  }
-
-  return result;
-}
-
 
 
 
@@ -291,8 +262,22 @@ nsSVGElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
        aName == nsGkAtoms::requiredExtensions ||
        aName == nsGkAtoms::systemLanguage)) {
 
-    nsIContent* parent = GetParentElement();
+    nsIContent* parent = nsnull;
   
+    nsIContent* bindingParent = GetBindingParent();
+    if (bindingParent) {
+      nsIDocument* doc = bindingParent->GetOwnerDoc();
+      if (doc) {
+        parent = doc->BindingManager()->GetInsertionParent(bindingParent);
+      }
+    }
+
+    if (!parent) {
+      
+      
+      parent = GetParent();
+    }
+
     if (parent &&
         parent->NodeInfo()->Equals(nsGkAtoms::svgSwitch, kNameSpaceID_SVG)) {
       static_cast<nsSVGSwitchElement*>(parent)->MaybeInvalidate();

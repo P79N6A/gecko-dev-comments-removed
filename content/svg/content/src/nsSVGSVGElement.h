@@ -105,12 +105,6 @@ public:
   NS_FORWARD_NSIDOMSVGELEMENT(nsSVGSVGElementBase::)
 
   
-  
-  virtual nsSVGSVGElement* GetCtx() {
-    return IsOutermostSVGElement() ? this : nsSVGSVGElementBase::GetCtx();
-  }
-
-  
   nsresult GetCurrentScaleNumber(nsIDOMSVGNumber **aResult);
 
   
@@ -168,8 +162,6 @@ public:
   float GetMMPerPx(PRUint8 mCtxType = 0);
 
   
-  PRBool IsOutermostSVGElement();
-
   nsresult GetViewboxToViewportTransform(nsIDOMSVGMatrix **_retval);
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
