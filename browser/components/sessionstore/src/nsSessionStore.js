@@ -596,9 +596,17 @@ SessionStoreService.prototype = {
     
     
     if (tabState.entries.length > 0) {
+      let tabTitle = aTab.label;
+      let tabbrowser = aWindow.gBrowser;
+      
+      if (tabTitle == tabbrowser.mStringBundle.getString("tabs.loading")) {
+        tabbrowser.setTabTitle(aTab);
+        [tabTitle, aTab.label] = [aTab.label, tabTitle];
+      }
+      
       this._windows[aWindow.__SSi]._closedTabs.unshift({
         state: tabState,
-        title: aTab.getAttribute("label"),
+        title: tabTitle,
         image: aTab.getAttribute("image"),
         pos: aTab._tPos
       });
