@@ -166,7 +166,15 @@ namespace nanojit
         verbose_only(if (_logc->lcbits & LC_Assembly)
                      outputf("        %p:", _nIns);
                      )
-        CALL(call);
+        bool indirect = call->isIndirect();
+        if (!indirect) {
+            CALL(call);
+        }
+        else {
+            argc--;
+            Register r = findSpecificRegFor(ins->arg(argc), I0);
+            JMPL(G0, I0, 15);
+        }
 
         uint32_t GPRIndex = O0;
         uint32_t offset = kLinkageAreaSize; 
@@ -985,18 +993,6 @@ namespace nanojit
         FCMPD(rLhs, rRhs);
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
     verbose_only(
     void Assembler::asm_inc_m32(uint32_t* pCtr)
     {
@@ -1050,7 +1046,7 @@ namespace nanojit
 
     void Assembler::asm_promote(LIns *) {
         
-        
+        TODO(asm_promote);
     }
 
 #endif 
