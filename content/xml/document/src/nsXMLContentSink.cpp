@@ -704,23 +704,30 @@ nsXMLContentSink::AddContentAsLeaf(nsIContent *aContent)
 nsresult
 nsXMLContentSink::LoadXSLStyleSheet(nsIURI* aUrl)
 {
-  mXSLTProcessor =
+  nsCOMPtr<nsIDocumentTransformer> processor =
     do_CreateInstance("@mozilla.org/document-transformer;1?type=xslt");
-  if (!mXSLTProcessor) {
+  if (!processor) {
     
     return NS_OK;
   }
 
-  mXSLTProcessor->Init(mDocument->NodePrincipal());
-  mXSLTProcessor->SetTransformObserver(this);
+  processor->Init(mDocument->NodePrincipal());
+  processor->SetTransformObserver(this);
 
   nsCOMPtr<nsILoadGroup> loadGroup = mDocument->GetDocumentLoadGroup();
   if (!loadGroup) {
-    mXSLTProcessor = nsnull;
     return NS_ERROR_FAILURE;
   }
 
-  return mXSLTProcessor->LoadStyleSheet(aUrl, loadGroup);
+  if (NS_SUCCEEDED(processor->LoadStyleSheet(aUrl, loadGroup))) {
+    mXSLTProcessor.swap(processor);
+  }
+
+  
+  
+  
+
+  return NS_OK;
 }
 
 nsresult
