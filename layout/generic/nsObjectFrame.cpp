@@ -90,7 +90,7 @@
 #include "nsIDOMFocusListener.h"
 #include "nsIDOMContextMenuListener.h"
 #include "nsIDOMDragListener.h"
-#include "nsIDOMEventReceiver.h"
+#include "nsIDOMEventTarget.h"
 #include "nsIDOMNSEvent.h"
 #include "nsIPrivateDOMEvent.h"
 #include "nsIDocumentEncoder.h"
@@ -3103,32 +3103,32 @@ nsPluginInstanceOwner::Destroy()
     NS_RELEASE(mCXMenuListener);
   }
 
-  nsCOMPtr<nsIDOMEventReceiver> receiver(do_QueryInterface(mContent));
-  if (receiver) {
+  nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(mContent));
+  if (target) {
 
     nsCOMPtr<nsIDOMEventListener> listener;
     QueryInterface(NS_GET_IID(nsIDOMEventListener), getter_AddRefs(listener));
 
     
-    receiver->RemoveEventListenerByIID(listener, NS_GET_IID(nsIDOMFocusListener));
+    mContent->RemoveEventListenerByIID(listener, NS_GET_IID(nsIDOMFocusListener));
 
     
-    receiver->RemoveEventListenerByIID(listener, NS_GET_IID(nsIDOMMouseListener));
+    mContent->RemoveEventListenerByIID(listener, NS_GET_IID(nsIDOMMouseListener));
 
     
-    receiver->RemoveEventListenerByIID(listener, NS_GET_IID(nsIDOMMouseMotionListener));
+    mContent->RemoveEventListenerByIID(listener, NS_GET_IID(nsIDOMMouseMotionListener));
 
     
-    receiver->RemoveEventListener(NS_LITERAL_STRING("keypress"), listener, PR_TRUE);
-    receiver->RemoveEventListener(NS_LITERAL_STRING("keydown"), listener, PR_TRUE);
-    receiver->RemoveEventListener(NS_LITERAL_STRING("keyup"), listener, PR_TRUE);
+    target->RemoveEventListener(NS_LITERAL_STRING("keypress"), listener, PR_TRUE);
+    target->RemoveEventListener(NS_LITERAL_STRING("keydown"), listener, PR_TRUE);
+    target->RemoveEventListener(NS_LITERAL_STRING("keyup"), listener, PR_TRUE);
 
     
-    receiver->RemoveEventListener(NS_LITERAL_STRING("dragdrop"), listener, PR_TRUE);
-    receiver->RemoveEventListener(NS_LITERAL_STRING("dragover"), listener, PR_TRUE);
-    receiver->RemoveEventListener(NS_LITERAL_STRING("dragexit"), listener, PR_TRUE);
-    receiver->RemoveEventListener(NS_LITERAL_STRING("dragenter"), listener, PR_TRUE);
-    receiver->RemoveEventListener(NS_LITERAL_STRING("draggesture"), listener, PR_TRUE);
+    target->RemoveEventListener(NS_LITERAL_STRING("dragdrop"), listener, PR_TRUE);
+    target->RemoveEventListener(NS_LITERAL_STRING("dragover"), listener, PR_TRUE);
+    target->RemoveEventListener(NS_LITERAL_STRING("dragexit"), listener, PR_TRUE);
+    target->RemoveEventListener(NS_LITERAL_STRING("dragenter"), listener, PR_TRUE);
+    target->RemoveEventListener(NS_LITERAL_STRING("draggesture"), listener, PR_TRUE);
   }
 
   
@@ -3290,32 +3290,32 @@ nsresult nsPluginInstanceOwner::Init(nsPresContext* aPresContext,
     mCXMenuListener->Init(aContent);
   }
 
-  nsCOMPtr<nsIDOMEventReceiver> receiver(do_QueryInterface(mContent));
-  if (receiver) {
+  nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(mContent));
+  if (target) {
 
     nsCOMPtr<nsIDOMEventListener> listener;
     QueryInterface(NS_GET_IID(nsIDOMEventListener), getter_AddRefs(listener));
 
     
-    receiver->AddEventListenerByIID(listener, NS_GET_IID(nsIDOMFocusListener));
+    mContent->AddEventListenerByIID(listener, NS_GET_IID(nsIDOMFocusListener));
 
     
-    receiver->AddEventListenerByIID(listener, NS_GET_IID(nsIDOMMouseListener));
+    mContent->AddEventListenerByIID(listener, NS_GET_IID(nsIDOMMouseListener));
 
     
-    receiver->AddEventListenerByIID(listener, NS_GET_IID(nsIDOMMouseMotionListener));
+    mContent->AddEventListenerByIID(listener, NS_GET_IID(nsIDOMMouseMotionListener));
 
     
-    receiver->AddEventListener(NS_LITERAL_STRING("keypress"), listener, PR_TRUE);
-    receiver->AddEventListener(NS_LITERAL_STRING("keydown"), listener, PR_TRUE);
-    receiver->AddEventListener(NS_LITERAL_STRING("keyup"), listener, PR_TRUE);
+    target->AddEventListener(NS_LITERAL_STRING("keypress"), listener, PR_TRUE);
+    target->AddEventListener(NS_LITERAL_STRING("keydown"), listener, PR_TRUE);
+    target->AddEventListener(NS_LITERAL_STRING("keyup"), listener, PR_TRUE);
 
     
-    receiver->AddEventListener(NS_LITERAL_STRING("dragdrop"), listener, PR_TRUE);
-    receiver->AddEventListener(NS_LITERAL_STRING("dragover"), listener, PR_TRUE);
-    receiver->AddEventListener(NS_LITERAL_STRING("dragexit"), listener, PR_TRUE);
-    receiver->AddEventListener(NS_LITERAL_STRING("dragenter"), listener, PR_TRUE);
-    receiver->AddEventListener(NS_LITERAL_STRING("draggesture"), listener, PR_TRUE);
+    target->AddEventListener(NS_LITERAL_STRING("dragdrop"), listener, PR_TRUE);
+    target->AddEventListener(NS_LITERAL_STRING("dragover"), listener, PR_TRUE);
+    target->AddEventListener(NS_LITERAL_STRING("dragexit"), listener, PR_TRUE);
+    target->AddEventListener(NS_LITERAL_STRING("dragenter"), listener, PR_TRUE);
+    target->AddEventListener(NS_LITERAL_STRING("draggesture"), listener, PR_TRUE);
   }
   
   

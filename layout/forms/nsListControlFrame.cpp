@@ -60,7 +60,7 @@
 #include "nsWidgetsCID.h"
 #include "nsIPresShell.h"
 #include "nsHTMLParts.h"
-#include "nsIDOMEventReceiver.h"
+#include "nsIDOMEventTarget.h"
 #include "nsEventDispatcher.h"
 #include "nsIEventStateManager.h"
 #include "nsIEventListenerManager.h"
@@ -194,22 +194,22 @@ void
 nsListControlFrame::Destroy()
 {
   
-  nsCOMPtr<nsIDOMEventReceiver> receiver(do_QueryInterface(mContent));
+  ENSURE_TRUE(mContent);
 
   
   
 
   mEventListener->SetFrame(nsnull);
 
-  receiver->RemoveEventListenerByIID(NS_STATIC_CAST(nsIDOMMouseListener*,
+  mContent->RemoveEventListenerByIID(NS_STATIC_CAST(nsIDOMMouseListener*,
                                                     mEventListener),
                                      NS_GET_IID(nsIDOMMouseListener));
 
-  receiver->RemoveEventListenerByIID(NS_STATIC_CAST(nsIDOMMouseMotionListener*,
+  mContent->RemoveEventListenerByIID(NS_STATIC_CAST(nsIDOMMouseMotionListener*,
                                                     mEventListener),
                                      NS_GET_IID(nsIDOMMouseMotionListener));
 
-  receiver->RemoveEventListenerByIID(NS_STATIC_CAST(nsIDOMKeyListener*,
+  mContent->RemoveEventListenerByIID(NS_STATIC_CAST(nsIDOMKeyListener*,
                                                     mEventListener),
                                      NS_GET_IID(nsIDOMKeyListener));
 
@@ -1113,7 +1113,7 @@ nsListControlFrame::Init(nsIContent*     aContent,
   nsresult result = nsHTMLScrollFrame::Init(aContent, aParent, aPrevInFlow);
 
   
-  nsCOMPtr<nsIDOMEventReceiver> receiver(do_QueryInterface(mContent));
+  NS_ENSURE_STATE(mContent);
 
   
   
@@ -1123,15 +1123,15 @@ nsListControlFrame::Init(nsIContent*     aContent,
   if (!mEventListener) 
     return NS_ERROR_OUT_OF_MEMORY;
 
-  receiver->AddEventListenerByIID(NS_STATIC_CAST(nsIDOMMouseListener*,
+  mContent->AddEventListenerByIID(NS_STATIC_CAST(nsIDOMMouseListener*,
                                                  mEventListener),
                                   NS_GET_IID(nsIDOMMouseListener));
 
-  receiver->AddEventListenerByIID(NS_STATIC_CAST(nsIDOMMouseMotionListener*,
+  mContent->AddEventListenerByIID(NS_STATIC_CAST(nsIDOMMouseMotionListener*,
                                                  mEventListener),
                                   NS_GET_IID(nsIDOMMouseMotionListener));
 
-  receiver->AddEventListenerByIID(NS_STATIC_CAST(nsIDOMKeyListener*,
+  mContent->AddEventListenerByIID(NS_STATIC_CAST(nsIDOMKeyListener*,
                                                  mEventListener),
                                   NS_GET_IID(nsIDOMKeyListener));
 

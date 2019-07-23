@@ -54,7 +54,7 @@
 
 #include "nsIWebBrowserChrome.h"
 #include "nsIAppShell.h"
-#include "nsIDOMEventReceiver.h"
+#include "nsPIDOMEventTarget.h"
 #include "nsVoidArray.h"
 
 
@@ -190,8 +190,7 @@ class EmbedPrivate {
   nsCOMPtr<nsIWebNavigation>     mNavigation;
   nsCOMPtr<nsISHistory>          mSessionHistory;
 
-  
-  nsCOMPtr<nsIDOMEventReceiver>  mEventReceiver;
+  nsCOMPtr<nsPIDOMEventTarget>   mEventTarget;
 
   
   nsString                       mURI;

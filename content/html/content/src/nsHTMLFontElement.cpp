@@ -36,7 +36,7 @@
 
 #include "nsCOMPtr.h"
 #include "nsIDOMHTMLFontElement.h"
-#include "nsIDOMEventReceiver.h"
+#include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
 #include "nsIDeviceContext.h"
