@@ -512,6 +512,9 @@ protected:
     PRPackedBool               mAllowAuth;
     PRPackedBool               mAllowKeywordFixup;
 
+    
+    
+    
     PRPackedBool               mFiredUnloadEvent;
 
     
