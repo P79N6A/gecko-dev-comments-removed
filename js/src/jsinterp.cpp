@@ -1135,7 +1135,6 @@ js_Invoke(JSContext *cx, uintN argc, jsval *vp, uintN flags)
 
 
 
-
         if ((ops == &js_ObjectOps) ? clasp->call : ops->call) {
             ok = clasp->convert(cx, funobj, JSTYPE_FUNCTION, &v);
             if (!ok)
@@ -1175,8 +1174,18 @@ have_fun:
         if (FUN_INTERPRETED(fun)) {
             native = NULL;
             script = fun->u.i.script;
+            JS_ASSERT(script);
         } else {
             native = fun->u.n.native;
+            if (!native) {
+                
+
+
+
+                *vp = (flags & JSINVOKE_CONSTRUCT) ? vp[1] : JSVAL_VOID;
+                ok = JS_TRUE;
+                goto out2;
+            }
             script = NULL;
             nslots += fun->u.n.extra;
         }
@@ -1299,6 +1308,7 @@ have_fun:
     frame.down = cx->fp;
     frame.annotation = NULL;
     frame.scopeChain = NULL;    
+    frame.blockChain = NULL;
     frame.regs = NULL;
     frame.imacpc = NULL;
     frame.slots = NULL;
@@ -1307,7 +1317,7 @@ have_fun:
     frame.flags = flags | rootedArgsFlag;
     frame.dormantNext = NULL;
     frame.xmlNamespace = NULL;
-    frame.blockChain = NULL;
+    frame.displaySave = NULL;
 
     MUST_FLOW_THROUGH("out");
     cx->fp = &frame;
@@ -1316,8 +1326,33 @@ have_fun:
     hook = cx->debugHooks->callHook;
     hookData = NULL;
 
+    if (native) {
+        
+        JS_ASSERT(!frame.varobj);
+        JS_ASSERT(!frame.scopeChain);
+        if (frame.down) {
+            frame.varobj = frame.down->varobj;
+            frame.scopeChain = frame.down->scopeChain;
+        }
+
+        
+        if (!frame.scopeChain)
+            frame.scopeChain = parent;
+    } else {
+        
+        frame.scopeChain = parent;
+        if (JSFUN_HEAVYWEIGHT_TEST(fun->flags)) {
+            
+            if (!js_GetCallObject(cx, &frame)) {
+                ok = JS_FALSE;
+                goto out;
+            }
+        }
+        frame.slots = sp - fun->u.i.nvars;
+    }
+
     
-    if (hook && (native || script))
+    if (hook)
         hookData = hook(cx, &frame, JS_TRUE, 0, cx->debugHooks->callHookData);
 
     
@@ -1330,44 +1365,15 @@ have_fun:
         
         cx->rval2set = JS_FALSE;
 #endif
-
-        
-        JS_ASSERT(!frame.varobj);
-        JS_ASSERT(!frame.scopeChain);
-        if (frame.down) {
-            frame.varobj = frame.down->varobj;
-            frame.scopeChain = frame.down->scopeChain;
-        }
-
-        
-        if (!frame.scopeChain)
-            frame.scopeChain = parent;
-
-        frame.displaySave = NULL;
         ok = native(cx, frame.thisp, argc, frame.argv, &frame.rval);
         JS_RUNTIME_METER(cx->runtime, nativeCalls);
 #ifdef DEBUG_NOT_THROWING
         if (ok && !alreadyThrowing)
             ASSERT_NOT_THROWING(cx);
 #endif
-    } else if (script) {
-        
-        frame.scopeChain = parent;
-        if (JSFUN_HEAVYWEIGHT_TEST(fun->flags)) {
-            
-            if (!js_GetCallObject(cx, &frame)) {
-                ok = JS_FALSE;
-                goto out;
-            }
-        }
-        frame.slots = sp - fun->u.i.nvars;
-
-        ok = js_Interpret(cx);
     } else {
-        
-        frame.scopeChain = NULL;
-        frame.displaySave = NULL;
-        ok = JS_TRUE;
+        JS_ASSERT(script);
+        ok = js_Interpret(cx);
     }
 
 out:
