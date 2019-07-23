@@ -254,8 +254,14 @@ public:
 
 
 
-  PRBool BreakWordBetweenPunctuation(PRBool aAfterPunct, PRBool aIsKeyboardSelect);
-  
+
+
+
+  PRBool BreakWordBetweenPunctuation(const PeekWordState* aState,
+                                     PRBool aForward,
+                                     PRBool aPunctAfter, PRBool aWhitespaceAfter,
+                                     PRBool aIsKeyboardSelect);
+
   NS_IMETHOD  CheckVisibility(nsPresContext* aContext, PRInt32 aStartIndex, PRInt32 aEndIndex, PRBool aRecurse, PRBool *aFinished, PRBool *_retval);
 
   NS_IMETHOD  GetOffsets(PRInt32 &aStart, PRInt32 &aEnd) const;

@@ -2192,14 +2192,26 @@ protected:
     
     PRPackedBool mLastCharWasPunctuation;
     
+    PRPackedBool mLastCharWasWhitespace;
+    
+    PRPackedBool mSeenNonPunctuationSinceWhitespace;
+    
+    
     
     nsAutoString mContext;
 
     PeekWordState() : mAtStart(PR_TRUE), mSawBeforeType(PR_FALSE),
-        mLastCharWasPunctuation(PR_FALSE) {}
+        mLastCharWasPunctuation(PR_FALSE), mLastCharWasWhitespace(PR_FALSE),
+        mSeenNonPunctuationSinceWhitespace(PR_FALSE) {}
     void SetSawBeforeType() { mSawBeforeType = PR_TRUE; }
-    void Update(PRBool aAfterPunctuation) {
+    void Update(PRBool aAfterPunctuation, PRBool aAfterWhitespace) {
       mLastCharWasPunctuation = aAfterPunctuation;
+      mLastCharWasWhitespace = aAfterWhitespace;
+      if (aAfterWhitespace) {
+        mSeenNonPunctuationSinceWhitespace = PR_FALSE;
+      } else if (!aAfterPunctuation) {
+        mSeenNonPunctuationSinceWhitespace = PR_TRUE;
+      }
       mAtStart = PR_FALSE;
     }
   };
