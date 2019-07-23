@@ -1579,6 +1579,7 @@ nsCSSFontFaceStyleDecl::GetPropertyValue(nsCSSFontDesc aFontDescID,
       
       
       
+      NS_ASSERTION(val.GetUnit() == eCSSUnit_String, "unexpected unit");
       nsDependentString family(val.GetStringBufferValue());
       nsStyleUtil::AppendEscapedCSSString(family, aResult);
       return NS_OK;
