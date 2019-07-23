@@ -331,6 +331,7 @@ protected:
                                   PRUint32 aWidth, PRUint32 aHeight);
 
    BOOL NotifyForeignChildWindows(HWND aWnd);
+   void ScrollChildWindows(PRInt32 aX, PRInt32 aY);
 
    
    enum {

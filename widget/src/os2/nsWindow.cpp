@@ -2233,6 +2233,21 @@ BOOL nsWindow::NotifyForeignChildWindows(HWND aWnd)
 
 
 
+void nsWindow::ScrollChildWindows(PRInt32 aX, PRInt32 aY)
+{
+  nsIWidget *child = GetFirstChild();
+  while (child) {
+    nsRect rect;
+    child->GetBounds(rect);
+    child->Resize(rect.x + aX, rect.y + aY, rect.width, rect.height, PR_FALSE);
+    child = child->GetNextSibling();
+  }
+}
+
+
+
+
+
 
 NS_METHOD nsWindow::Scroll(PRInt32 aDx, PRInt32 aDy, nsRect *aClipRect)
 {
@@ -2244,19 +2259,20 @@ NS_METHOD nsWindow::Scroll(PRInt32 aDx, PRInt32 aDy, nsRect *aClipRect)
     rcl.yBottom = aClipRect->y + aClipRect->height;
     rcl.xRight = rcl.xLeft + aClipRect->width;
     rcl.yTop = rcl.yBottom + aClipRect->height;
-    NS2PM( rcl);
+    NS2PM(rcl);
     
   }
 
-    
-    
-    
+  
+  
+  
   HPS hps = 0;
   CheckDragStatus(ACTION_SCROLL, &hps);
 
   NotifyForeignChildWindows(mWnd);
-  WinScrollWindow( mWnd, aDx, -aDy, aClipRect ? &rcl : 0, 0, 0,
-                   0, SW_SCROLLCHILDREN | SW_INVALIDATERGN);
+  WinScrollWindow(mWnd, aDx, -aDy, aClipRect ? &rcl : 0, 0, 0,
+                  0, SW_SCROLLCHILDREN | SW_INVALIDATERGN);
+  ScrollChildWindows(aDx, aDy);
   Update();
 
   if (hps)
