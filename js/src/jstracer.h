@@ -256,7 +256,7 @@ struct VMSideExit : public nanojit::SideExit
 
 
 
-    uintN nativeCalleeWord;
+    uintptr_t nativeCalleeWord;
 
     JSObject * nativeCallee() {
         return (JSObject *) (nativeCalleeWord & ~1);
@@ -267,7 +267,7 @@ struct VMSideExit : public nanojit::SideExit
     }
 
     void setNativeCallee(JSObject *callee, bool constructing) {
-        nativeCalleeWord = uintN(callee) | constructing;
+        nativeCalleeWord = uintptr_t(callee) | (constructing ? 1 : 0);
     }
 };
 
