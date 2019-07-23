@@ -76,7 +76,9 @@
 
 #include <windows.h>
 #include <shellapi.h>
+#ifndef WINCE
 #include <ddeml.h>
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <io.h>
@@ -105,10 +107,12 @@ activateWindow( nsIDOMWindowInternal *win ) {
     
     HWND hwnd = hwndForDOMWindow( win );
     if ( hwnd ) {
+#ifndef WINCE  
         
         if ( ::IsIconic( hwnd ) ) {
             ::ShowWindow( hwnd, SW_RESTORE );
         }
+#endif
         
         ::SetForegroundWindow( hwnd );
     } else {
@@ -125,11 +129,11 @@ activateWindow( nsIDOMWindowInternal *win ) {
 
 
 struct Mutex {
-    Mutex( const char *name )
+    Mutex( const PRUnichar *name )
         : mName( name ),
           mHandle( 0 ),
           mState( -1 ) {
-        mHandle = CreateMutexA( 0, FALSE, mName.get() );
+        mHandle = CreateMutexW( 0, FALSE, mName.get() );
 #if MOZ_DEBUG_DDE
         printf( "CreateMutex error = 0x%08X\n", (int)GetLastError() );
 #endif
@@ -171,7 +175,7 @@ struct Mutex {
         }
     }
 private:
-    nsCString mName;
+    nsString  mName;
     HANDLE    mHandle;
     DWORD     mState;
 };
@@ -309,16 +313,18 @@ public:
     NS_IMETHOD Stop( PRBool *aResult );
     NS_IMETHOD Quit();
     NS_IMETHOD Enable();
-
+#ifndef WINCE
     
     NS_IMETHOD StartDDE();
-
+#endif
     
     
     
     void CheckConsole();
 
 private:
+    static void HandleCommandLine(const char* aCmdLineString, nsIFile* aWorkingDir, PRUint32 aState);
+#ifndef WINCE
     static HDDEDATA CALLBACK HandleDDENotification( UINT     uType,
                                                     UINT     uFmt,
                                                     HCONV    hconv,
@@ -327,14 +333,14 @@ private:
                                                     HDDEDATA hdata,
                                                     ULONG_PTR dwData1,
                                                     ULONG_PTR dwData2 );
-    static void HandleCommandLine(const char* aCmdLineString, nsIFile* aWorkingDir, PRUint32 aState);
     static void ParseDDEArg( HSZ args, int index, nsString& string);
     static void ParseDDEArg( const WCHAR* args, int index, nsString& aString);
-    static void ActivateLastWindow();
     static HDDEDATA CreateDDEData( DWORD value );
     static HDDEDATA CreateDDEData( LPBYTE value, DWORD len );
     static PRBool   InitTopicStrings();
     static int      FindTopic( HSZ topic );
+#endif
+    static void ActivateLastWindow();
     static nsresult OpenWindow( const char *urlstr, const char *args );
     static nsresult OpenBrowserWindow();
     static nsresult ReParent( nsISupports *window, HWND newParent );
@@ -353,11 +359,12 @@ private:
         
         topicCount 
     };
-
+#ifndef WINCE
     static HSZ   mApplication, mTopics[ topicCount ];
+#endif
     static DWORD mInstance;
     static PRBool mCanHandleRequests;
-    static char mMutexName[];
+    static PRUnichar mMutexName[];
     friend struct MessageWindow;
 }; 
 
@@ -376,6 +383,7 @@ nsNativeAppSupportWin::CheckConsole() {
              strcmp( "/console", gArgv[i] ) == 0 ) {
             
             
+#ifndef WINCE
             BOOL rc = ::AllocConsole();
             if ( rc ) {
                 
@@ -422,7 +430,7 @@ nsNativeAppSupportWin::CheckConsole() {
                 
                 
             }
-
+#endif
             
             do {
                 gArgv[i] = gArgv[i + 1];
@@ -457,8 +465,8 @@ NS_CreateNativeAppSupport( nsINativeAppSupport **aResult ) {
 
 
 #define MOZ_DDE_APPLICATION    "Mozilla"
-#define MOZ_MUTEX_NAMESPACE    "Local\\"
-#define MOZ_STARTUP_MUTEX_NAME "StartupMutex"
+#define MOZ_MUTEX_NAMESPACE    L"Local\\"
+#define MOZ_STARTUP_MUTEX_NAME L"StartupMutex"
 #define MOZ_DDE_START_TIMEOUT 30000
 #define MOZ_DDE_STOP_TIMEOUT  15000
 #define MOZ_DDE_EXEC_TIMEOUT  15000
@@ -474,12 +482,14 @@ const char * const topicNames[] = { "WWW_OpenURL",
 
 
 int   nsNativeAppSupportWin::mConversations = 0;
+#ifndef WINCE
 HSZ   nsNativeAppSupportWin::mApplication   = 0;
 HSZ   nsNativeAppSupportWin::mTopics[nsNativeAppSupportWin::topicCount] = { 0 };
+#endif
 DWORD nsNativeAppSupportWin::mInstance      = 0;
 PRBool nsNativeAppSupportWin::mCanHandleRequests   = PR_FALSE;
 
-char nsNativeAppSupportWin::mMutexName[ 128 ] = { 0 };
+PRUnichar nsNativeAppSupportWin::mMutexName[ 128 ] = { 0 };
 
 
 
@@ -487,7 +497,7 @@ struct MessageWindow {
     
     MessageWindow() {
         
-        mHandle = ::FindWindowA( className(), 0 );
+        mHandle = ::FindWindowW( className(), 0 );
     }
 
     
@@ -496,15 +506,15 @@ struct MessageWindow {
     }
 
     
-    static const char *className() {
-        static char classNameBuffer[128];
-        static char *mClassName = 0;
+    static const PRUnichar *className() {
+        static PRUnichar classNameBuffer[128];
+        static PRUnichar *mClassName = 0;
         if ( !mClassName ) {
-            ::_snprintf( classNameBuffer,
+            ::_snwprintf(classNameBuffer,
                          sizeof classNameBuffer,
-                         "%s%s",
-                         gAppData->name,
-                         "MessageWindow" );
+                         L"%s%s",
+                         NS_ConvertUTF8toUTF16(gAppData->name).get(),
+                         L"MessageWindow" );
             mClassName = classNameBuffer;
         }
         return mClassName;
@@ -512,7 +522,7 @@ struct MessageWindow {
 
     
     NS_IMETHOD Create() {
-        WNDCLASSA classStruct = { 0,                          
+        WNDCLASSW classStruct = { 0,                          
                                  &MessageWindow::WindowProc, 
                                  0,                          
                                  0,                          
@@ -524,10 +534,10 @@ struct MessageWindow {
                                  className() };              
 
         
-        NS_ENSURE_TRUE( ::RegisterClassA( &classStruct ), NS_ERROR_FAILURE );
+        NS_ENSURE_TRUE( ::RegisterClassW( &classStruct ), NS_ERROR_FAILURE );
 
         
-        NS_ENSURE_TRUE( ( mHandle = ::CreateWindowA(className(),
+        NS_ENSURE_TRUE( ( mHandle = ::CreateWindowW(className(),
                                                     0,          
                                                     WS_CAPTION, 
                                                     0,0,0,0,    
@@ -663,7 +673,7 @@ nsNativeAppSupportWin::Start( PRBool *aResult ) {
     
 
     
-    ::_snprintf( mMutexName, sizeof mMutexName, "%s%s%s", MOZ_MUTEX_NAMESPACE,
+    ::_snwprintf(mMutexName, sizeof mMutexName, L"%s%s%s", MOZ_MUTEX_NAMESPACE,
                  gAppData->name, MOZ_STARTUP_MUTEX_NAME );
     Mutex startupLock = Mutex( mMutexName );
 
@@ -678,8 +688,10 @@ nsNativeAppSupportWin::Start( PRBool *aResult ) {
         
         rv = msgWindow.Create();
         if ( NS_SUCCEEDED( rv ) ) {
+#ifndef WINCE
             
             this->StartDDE();
+#endif
             
             *aResult = PR_TRUE;
         }
@@ -689,7 +701,7 @@ nsNativeAppSupportWin::Start( PRBool *aResult ) {
 
     return rv;
 }
-
+#ifndef WINCE
 PRBool
 nsNativeAppSupportWin::InitTopicStrings() {
     for ( int i = 0; i < topicCount; i++ ) {
@@ -745,7 +757,7 @@ nsNativeAppSupportWin::StartDDE() {
 
     return NS_OK;
 }
-
+#endif 
 
 NS_IMETHODIMP
 nsNativeAppSupportWin::Stop( PRBool *aResult ) {
@@ -807,6 +819,7 @@ nsNativeAppSupportWin::Quit() {
 
     if ( mInstance ) {
         
+#ifndef WINCE
         DdeNameService( mInstance, mApplication, 0, DNS_UNREGISTER );
         
         if ( mApplication ) {
@@ -820,6 +833,7 @@ nsNativeAppSupportWin::Quit() {
             }
         }
         DdeUninitialize( mInstance );
+#endif
         mInstance = 0;
 #if MOZ_DEBUG_DDE
     printf( "DDE server stopped\n" );
@@ -886,7 +900,7 @@ static nsCString hszValue( DWORD instance, HSZ hsz ) {
     result += "]";
     return result;
 }
-#else
+#elif !defined(WINCE)
 
 
 static nsCString uTypeDesc( UINT ) {
@@ -917,6 +931,7 @@ static void escapeQuotes( nsAString &aString ) {
     return;
 }
 
+#ifndef WINCE
 HDDEDATA CALLBACK
 nsNativeAppSupportWin::HandleDDENotification( UINT uType,       
                                               UINT uFmt,        
@@ -1169,7 +1184,7 @@ nsNativeAppSupportWin::HandleDDENotification( UINT uType,
 #endif
     return result;
 }
-
+#endif 
 
 
 
@@ -1191,6 +1206,7 @@ static PRInt32 advanceToEndOfQuotedArg( const WCHAR *p, PRInt32 offset, PRInt32 
     return offset;
 }
 
+#ifndef WINCE
 void nsNativeAppSupportWin::ParseDDEArg( const WCHAR* args, int index, nsString& aString) {
     if ( args ) {
         nsDependentString temp(args);
@@ -1245,18 +1261,6 @@ void nsNativeAppSupportWin::ParseDDEArg( HSZ args, int index, nsString& aString)
     return;
 }
 
-void nsNativeAppSupportWin::ActivateLastWindow() {
-    nsCOMPtr<nsIDOMWindowInternal> navWin;
-    GetMostRecentWindow( NS_LITERAL_STRING("navigator:browser").get(), getter_AddRefs( navWin ) );
-    if ( navWin ) {
-        
-        activateWindow( navWin );
-    } else {
-        
-        OpenBrowserWindow();
-    }
-}
-
 HDDEDATA nsNativeAppSupportWin::CreateDDEData( DWORD value ) {
     return CreateDDEData( (LPBYTE)&value, sizeof value );
 }
@@ -1270,6 +1274,19 @@ HDDEDATA nsNativeAppSupportWin::CreateDDEData( LPBYTE value, DWORD len ) {
                                            CF_TEXT,
                                            0 );
     return result;
+}
+#endif 
+
+void nsNativeAppSupportWin::ActivateLastWindow() {
+    nsCOMPtr<nsIDOMWindowInternal> navWin;
+    GetMostRecentWindow( NS_LITERAL_STRING("navigator:browser").get(), getter_AddRefs( navWin ) );
+    if ( navWin ) {
+        
+        activateWindow( navWin );
+    } else {
+        
+        OpenBrowserWindow();
+    }
 }
 
 void
