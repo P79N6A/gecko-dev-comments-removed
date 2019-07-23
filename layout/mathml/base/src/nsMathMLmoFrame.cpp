@@ -759,11 +759,14 @@ nsMathMLmoFrame::Stretch(nsIRenderingContext& aRenderingContext,
   }
 
   
-  
-  nsresult rv = Place(aRenderingContext, PR_TRUE, aDesiredStretchSize);
-  if (NS_MATHML_HAS_ERROR(mPresentationData.flags) || NS_FAILED(rv)) {
+  if (!NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags)) {
     
-    DidReflowChildren(mFrames.FirstChild());
+    
+    nsresult rv = Place(aRenderingContext, PR_TRUE, aDesiredStretchSize);
+    if (NS_MATHML_HAS_ERROR(mPresentationData.flags) || NS_FAILED(rv)) {
+      
+      DidReflowChildren(mFrames.FirstChild());
+    }
   }
 
   if (useMathMLChar) {
