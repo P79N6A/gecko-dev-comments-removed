@@ -245,8 +245,6 @@ private:
 
 
   nsresult FireEvent(const nsAString& aEventType);
-  class Event;
-  friend class Event;
 protected:
   void CreateStaticImageClone(nsImageLoadingContent* aDest) const;
 
