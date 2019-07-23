@@ -135,7 +135,7 @@ GetScreenOrigin(nsIDOMElement* aElement)
 
   if (doc) {
     
-    nsIPresShell* presShell = doc->GetShellAt(0);
+    nsIPresShell* presShell = doc->GetPrimaryShell();
 
     if (presShell) {
       nsIFrame* frame = presShell->GetPrimaryFrameFor(content);

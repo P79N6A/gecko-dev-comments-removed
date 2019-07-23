@@ -448,7 +448,7 @@ nsContentSink::ProcessHeaderData(nsIAtom* aHeader, const nsAString& aValue,
     
     nsAutoString value(aValue);
     if (value.LowerCaseEqualsLiteral("no")) {
-      nsIPresShell* shell = mDocument->GetShellAt(0);
+      nsIPresShell* shell = mDocument->GetPrimaryShell();
       if (shell) {
         shell->DisableThemeSupport();
       }
@@ -1174,7 +1174,7 @@ nsContentSink::DidProcessATokenImpl()
   
 
   
-  nsIPresShell *shell = mDocument->GetShellAt(0);
+  nsIPresShell *shell = mDocument->GetPrimaryShell();
 
   if (!shell) {
     

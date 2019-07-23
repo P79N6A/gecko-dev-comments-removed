@@ -2499,7 +2499,7 @@ nsGenericElement::GetPrimaryFrameFor(nsIContent* aContent,
                                      nsIDocument* aDocument)
 {
   
-  nsIPresShell *presShell = aDocument->GetShellAt(0);
+  nsIPresShell *presShell = aDocument->GetPrimaryShell();
   if (!presShell) {
     return nsnull;
   }

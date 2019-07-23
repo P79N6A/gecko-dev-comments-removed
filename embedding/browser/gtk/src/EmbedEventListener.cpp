@@ -656,7 +656,7 @@ EmbedEventListener::HandleSelection(nsIDOMMouseEvent* aDOMMouseEvent)
   if (NS_FAILED(rv) || !doc)
     return NS_ERROR_FAILURE;
 
-  nsIPresShell *presShell = doc->GetShellAt(0);
+  nsIPresShell *presShell = doc->GetPrimaryShell();
 
   
   mCurSelCon = do_QueryInterface(presShell);

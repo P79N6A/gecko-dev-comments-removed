@@ -1298,7 +1298,7 @@ nsObjectLoadingContent::GetFrame()
     return nsnull; 
   }
 
-  nsIPresShell* shell = doc->GetShellAt(0);
+  nsIPresShell* shell = doc->GetPrimaryShell();
   if (!shell) {
     return nsnull; 
   }

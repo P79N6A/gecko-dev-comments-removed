@@ -1239,7 +1239,7 @@ nsHTMLDocument::SetCompatibilityMode(nsCompatibility aMode)
 
   mCompatMode = aMode;
   CSSLoader()->SetCompatibilityMode(mCompatMode);
-  nsCOMPtr<nsIPresShell> shell = GetShellAt(0);
+  nsCOMPtr<nsIPresShell> shell = GetPrimaryShell();
   if (shell) {
     nsPresContext *pc = shell->GetPresContext();
     if (pc) {
@@ -2732,7 +2732,7 @@ nsHTMLDocument::GetWidth(PRInt32* aWidth)
   
   
   
-  nsCOMPtr<nsIPresShell> shell = GetShellAt(0);
+  nsCOMPtr<nsIPresShell> shell = GetPrimaryShell();
   if (!shell) {
     return NS_OK;
   }
@@ -2754,7 +2754,7 @@ nsHTMLDocument::GetHeight(PRInt32* aHeight)
   
   
   
-  nsCOMPtr<nsIPresShell> shell = GetShellAt(0);
+  nsCOMPtr<nsIPresShell> shell = GetPrimaryShell();
   if (!shell) {
     return NS_OK;
   }

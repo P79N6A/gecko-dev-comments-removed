@@ -1007,7 +1007,7 @@ nsImageMap::ChangeFocus(nsIDOMEvent* aEvent, PRBool aFocus) {
             nsCOMPtr<nsIDocument> doc = targetContent->GetDocument();
             
             if (doc) {
-              nsIPresShell *presShell = doc->GetShellAt(0);
+              nsIPresShell *presShell = doc->GetPrimaryShell();
               if (presShell) {
                 nsIFrame* imgFrame = presShell->GetPrimaryFrameFor(targetContent);
                 if (imgFrame) {

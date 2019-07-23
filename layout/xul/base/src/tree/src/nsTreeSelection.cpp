@@ -828,7 +828,7 @@ nsTreeSelection::FireOnSelectHandler()
   if (!document)
     return NS_OK;
 
-  nsIPresShell *shell = document->GetShellAt(0);
+  nsIPresShell *shell = document->GetPrimaryShell();
   if (shell) {
     
     nsCOMPtr<nsPresContext> aPresContext = shell->GetPresContext();

@@ -5471,7 +5471,7 @@ nsGlobalWindow::DispatchEvent(nsIDOMEvent* aEvent, PRBool* _retval)
   }
 
   
-  nsIPresShell *shell = mDoc->GetShellAt(0);
+  nsIPresShell *shell = mDoc->GetPrimaryShell();
   nsCOMPtr<nsPresContext> presContext;
   if (shell) {
     
@@ -7445,7 +7445,7 @@ nsGlobalWindow::RestoreWindowState(nsISupports *aState)
       
       nsIDocument *doc = focusedContent->GetCurrentDoc();
       if (doc) {
-        nsIPresShell *shell = doc->GetShellAt(0);
+        nsIPresShell *shell = doc->GetPrimaryShell();
         if (shell) {
           nsPresContext *pc = shell->GetPresContext();
           if (pc) {
