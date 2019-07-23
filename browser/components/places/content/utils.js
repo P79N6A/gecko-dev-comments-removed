@@ -493,7 +493,7 @@ var PlacesUIUtils = {
     var info = {
       action: "add",
       type: "bookmark",
-      hiddenRows: ["location", "description", "load in sidebar"]
+      hiddenRows: ["location", "description", "loadInSidebar"]
     };
     if (aURI)
       info.uri = aURI;
@@ -646,27 +646,13 @@ var PlacesUIUtils = {
 
 
 
-  showBookmarkProperties: function PU_showBookmarkProperties(aId) {
+
+
+  showItemProperties: function PU_showItemProperties(aItemId, aType) {
     var info = {
       action: "edit",
-      type: "bookmark",
-      bookmarkId: aId
-    };
-    return this._showBookmarkDialog(info);
-  },
-
-  
-
-
-
-
-
-
-  showFolderProperties: function PU_showFolderProperties(aId) {
-    var info = {
-      action: "edit",
-      type: "folder",
-      folderId: aId
+      type: aType,
+      itemId: aItemId
     };
     return this._showBookmarkDialog(info);
   },
