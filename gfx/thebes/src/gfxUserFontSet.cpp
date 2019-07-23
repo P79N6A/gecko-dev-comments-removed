@@ -261,8 +261,12 @@ gfxUserFontSet::OnLoadComplete(gfxFontEntry *aFontToLoad,
     LoadStatus status;
 
     status = LoadNext(pe);
-    if (status == STATUS_LOADED)
+    if (status == STATUS_LOADED) {
+        
+        
+        IncrementGeneration();
         return PR_TRUE;
+    }
 
     return PR_FALSE;
 }
