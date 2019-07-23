@@ -592,7 +592,8 @@ CanvasFrame::Reflow(nsPresContext*          aPresContext,
       
       
       
-      Invalidate(GetRect(), PR_FALSE);
+      nsIFrame* viewport = PresContext()->GetPresShell()->GetRootFrame();
+      viewport->Invalidate(nsRect(nsPoint(0, 0), viewport->GetSize()));
     }
 
     
