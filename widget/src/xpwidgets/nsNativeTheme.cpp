@@ -169,6 +169,12 @@ nsNativeTheme::IsWidgetStyled(nsPresContext* aPresContext, nsIFrame* aFrame,
                                                NS_AUTHOR_SPECIFIED_BACKGROUND);
 }
 
+PRBool
+nsNativeTheme::IsFrameRTL(nsIFrame* aFrame)
+{
+  return aFrame && aFrame->GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL;
+}
+
 
 PRInt32
 nsNativeTheme::GetScrollbarButtonType(nsIFrame* aFrame)
@@ -210,6 +216,34 @@ nsNativeTheme::GetTreeSortDirection(nsIFrame* aFrame)
   }
 
   return eTreeSortDirection_Natural;
+}
+
+PRBool
+nsNativeTheme::IsLastTreeHeaderCell(nsIFrame* aFrame)
+{
+  if (!aFrame)
+    return PR_FALSE;
+
+  
+  if (aFrame->GetContent()->Tag() == nsWidgetAtoms::treecolpicker)
+    return PR_TRUE;
+
+  
+  nsIContent* parent = aFrame->GetContent()->GetParent();
+  while (parent && parent->Tag() != nsWidgetAtoms::tree) {
+    parent = parent->GetParent();
+  }
+
+  
+  if (parent && !parent->AttrValueIs(kNameSpaceID_None, nsWidgetAtoms::hidecolumnpicker,
+                                     NS_LITERAL_STRING("true"), eCaseMatters))
+    return PR_FALSE;
+
+  while ((aFrame = aFrame->GetNextSibling())) {
+    if (aFrame->GetRect().width > 0)
+      return PR_FALSE;
+  }
+  return PR_TRUE;
 }
 
 
