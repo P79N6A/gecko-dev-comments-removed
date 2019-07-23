@@ -1767,7 +1767,10 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
 
 
-#define POP_COND_STR()        PopStr(ss, JSOP_IFEQ)
+#define POP_COND_STR() \
+    PopStr(ss, (js_CodeSpec[ss->opcodes[ss->top - 1]].format & JOF_SET)      \
+               ? JSOP_IFEQ                                                   \
+               : JSOP_NOP)
 
 
 
