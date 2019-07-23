@@ -444,9 +444,10 @@ float nsOggDecodeStateMachine::DisplayFrame(OggPlayCallbackInfo** aFrame, nsAudi
 
 float nsOggDecodeStateMachine::DisplayInitialFrame()
 {
-  
+  nsAutoMonitor mon(mDecoder->GetMonitor());
   float time = 0.0;
   OggPlayCallbackInfo **frame = NextFrame();
+  mon.Exit();
   while (!frame) {
     OggPlayErrorCode r = DecodeFrame();
     if (r != E_OGGPLAY_CONTINUE &&
@@ -454,13 +455,21 @@ float nsOggDecodeStateMachine::DisplayInitialFrame()
         r != E_OGGPLAY_TIMEOUT) {
       break;
     }
+    mon.Enter();
+    if (mState == DECODER_STATE_SHUTDOWN)
+      return 0.0;
 
     mBufferFull = (r == E_OGGPLAY_USER_INTERRUPT);
     frame = NextFrame();
+    mon.Exit();
   }
-
+  mon.Enter();
   if (frame) {
-    time = DisplayFrame(frame, nsnull);
+    if (mState != DECODER_STATE_SHUTDOWN) {
+      
+      
+      time = DisplayFrame(frame, nsnull);
+    }
     ReleaseFrame(frame);
     mBufferFull = PR_FALSE;
   }
@@ -511,6 +520,9 @@ float nsOggDecodeStateMachine::DisplayTrack(int aTrackNumber, OggPlayCallbackInf
 }
 
 void nsOggDecodeStateMachine::HandleVideoData(int aTrackNum, OggPlayVideoData* aVideoData) {
+  if (!aVideoData)
+    return;
+
   CopyVideoFrame(aTrackNum, aVideoData, mFramerate);
 
   nsCOMPtr<nsIRunnable> event = 
@@ -704,9 +716,19 @@ nsresult nsOggDecodeStateMachine::Run()
           continue;
         }
 
-        mDecoder->mDisplayStateMachine->UpdateFrameTime(DisplayInitialFrame());
+        mBufferFull = PR_FALSE;
+
         mon.Exit();
-        
+        float time = DisplayInitialFrame();
+        mon.Enter();
+
+        if (mState == DECODER_STATE_SHUTDOWN) {
+          continue;
+        }
+
+        mDecoder->mDisplayStateMachine->UpdateFrameTime(time);
+        mon.Exit();
+
         nsCOMPtr<nsIRunnable> stopEvent = 
           NS_NEW_RUNNABLE_METHOD(nsOggDecoder, mDecoder, SeekingStopped);
         NS_DispatchToMainThread(stopEvent, NS_DISPATCH_SYNC);        
