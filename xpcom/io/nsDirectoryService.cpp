@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsDirectoryService.h"
@@ -916,56 +917,20 @@ nsDirectoryService::GetFile(const char *prop, PRBool *persistent, nsIFile **_ret
     }
     else if (inAtom == nsDirectoryService::sDefaultDownloadDirectory)
     {
-        NS_NewLocalFile(EmptyString(), PR_TRUE, getter_AddRefs(localFile));
-        nsCOMPtr<nsILocalFileMac> localMacFile(do_QueryInterface(localFile));
+        
+        
+        
+        
+#ifndef kDownloadsFolderType
+#define kDownloadsFolderType 'down'
+#endif
 
-        if (localMacFile)
-        {
-            OSErr err;
-            ICInstance icInstance;
-
-            err = ::ICStart(&icInstance, 'XPCM');
-            if (err == noErr)
-            {
-                
-                
-                
-                
-                long numPrefs = 0;
-                err = ::ICCountPref(icInstance, &numPrefs);
-                if (err == noErr)
-                {
-                    for ( long i = 0; i < numPrefs; ++i )
-                    {
-                        Str255 key;
-                        err = ::ICGetIndPref(icInstance, i, key);
-                        if ( err == noErr && ( PLstrcmp( key, kICDownloadFolder ) == 0 ) )
-                        {
-                            ICAttr attrs;
-                            ICFileSpec icFileSpec;
-                            long size = kICFileSpecHeaderSize;
-                            err = ::ICGetPref(icInstance, kICDownloadFolder, &attrs, &icFileSpec, &size);
-                            if (err == noErr || (err == icTruncatedErr && size >= kICFileSpecHeaderSize))
-                            {
-                                rv = localMacFile->InitWithFSSpec(&icFileSpec.fss);
-                            }
-                            break;
-                        }
-                    }
-                }
-                ::ICStop(icInstance);
-            }
-            
-            if (NS_FAILED(rv))
-            { 
-                
-                rv = GetOSXFolderType(kUserDomain, kDesktopFolderType, getter_AddRefs(localFile));
-            }
+        rv = GetOSXFolderType(kUserDomain, kDownloadsFolderType,
+                              getter_AddRefs(localFile));
+        if (NS_FAILED(rv)) {
+            rv = GetOSXFolderType(kUserDomain, kDesktopFolderType,
+                                  getter_AddRefs(localFile));
         }
-        
-        
-        
-        *persistent = PR_FALSE;
     }
     else if (inAtom == nsDirectoryService::sUserDesktopDirectory ||
              inAtom == nsDirectoryService::sOS_DesktopDirectory)
