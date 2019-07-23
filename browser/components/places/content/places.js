@@ -213,7 +213,9 @@ var PlacesOrganizer = {
     var placeURI = PlacesUtils.history.queriesToQueryString(queries, queries.length, options);
 
     
-    if (this._content.place != placeURI)
+    
+    
+    if (this._content.place != placeURI || !resetSearchBox)
       this._content.place = placeURI;
 
     
