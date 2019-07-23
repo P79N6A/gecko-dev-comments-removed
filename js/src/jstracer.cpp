@@ -1535,7 +1535,6 @@ TraceRecorder::snapshot(ExitType exitType)
 
 
     jsbytecode* pc = fp->regs->pc;
-    JS_ASSERT(!(((*pc == JSOP_GOTO) || (*pc == JSOP_GOTOX)) && (exitType != LOOP_EXIT)));
     if (*pc == JSOP_GOTO) 
         pc += GET_JUMP_OFFSET(pc);
     else if (*pc == JSOP_GOTOX)
@@ -1875,12 +1874,11 @@ nanojit::Fragment::onDestroy()
 void
 js_DeleteRecorder(JSContext* cx)
 {
-    JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
-
     
-    JS_ASSERT(tm->onTrace);
-    tm->onTrace = false;
+    JS_ASSERT(cx->executingTrace);
+    cx->executingTrace = false;
 
+    JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
     delete tm->recorder;
     tm->recorder = NULL;
 }
@@ -1890,16 +1888,14 @@ js_StartRecorder(JSContext* cx, GuardRecord* anchor, Fragment* f, TreeInfo* ti,
         unsigned ngslots, uint8* globalTypeMap, uint8* stackTypeMap, 
         GuardRecord* expectedInnerExit)
 {
-    JSTraceMonitor* tm = &JS_TRACE_MONITOR(cx);
-
     
 
 
 
 
 
-    JS_ASSERT(!tm->onTrace);
-    tm->onTrace = true;
+    JS_ASSERT(!cx->executingTrace);
+    cx->executingTrace = true;
 
     
     JS_TRACE_MONITOR(cx).recorder = new (&gc) TraceRecorder(cx, anchor, f, ti,
@@ -2301,9 +2297,9 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
 
 
 
-    bool onTrace = tm->onTrace;
-    if (!onTrace)
-        tm->onTrace = true;
+    bool executingTrace = cx->executingTrace;
+    if (!executingTrace)
+        cx->executingTrace = true;
     GuardRecord* lr;
     
 #if defined(JS_NO_FASTCALL) && defined(NANOJIT_IA32)
@@ -2312,8 +2308,8 @@ js_ExecuteTree(JSContext* cx, Fragment** treep, uintN& inlineCallCount,
     lr = u.func(&state, NULL);
 #endif
 
-    if (!onTrace)
-        tm->onTrace = false;
+    if (!executingTrace)
+        cx->executingTrace = false;
 
     
 
