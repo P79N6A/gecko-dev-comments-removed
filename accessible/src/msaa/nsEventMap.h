@@ -42,8 +42,10 @@
 #include "AccessibleEventId.h"
 
 const PRUint32 kEVENT_WIN_UNKNOWN = 0x00000000;
+const PRUint32 kEVENT_LAST_ENTRY  = 0xffffffff;
 
 static const PRUint32 gWinEventMap[] = {
+  kEVENT_WIN_UNKNOWN,                                
   kEVENT_WIN_UNKNOWN,                                
   kEVENT_WIN_UNKNOWN,                                
   EVENT_OBJECT_SHOW,                                 
@@ -124,7 +126,6 @@ static const PRUint32 gWinEventMap[] = {
   kEVENT_WIN_UNKNOWN,                                
   kEVENT_WIN_UNKNOWN,                                
   kEVENT_WIN_UNKNOWN,                                
-  kEVENT_WIN_UNKNOWN,                                
   IA2_EVENT_HYPERLINK_END_INDEX_CHANGED,             
   IA2_EVENT_HYPERLINK_NUMBER_OF_ANCHORS_CHANGED,     
   IA2_EVENT_HYPERLINK_SELECTED_LINK_CHANGED,         
@@ -137,5 +138,6 @@ static const PRUint32 gWinEventMap[] = {
   IA2_EVENT_PAGE_CHANGED,                            
   IA2_EVENT_ROLE_CHANGED,                            
   kEVENT_WIN_UNKNOWN,                                
+  kEVENT_LAST_ENTRY                                  
 };
 
