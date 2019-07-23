@@ -127,12 +127,17 @@ new Test.Unit.Runner({
   }
 });
 
-new Test.Unit.Runner({
-  testDummy: function() {
-    this.assert(true);
-  },
-  
-  testMultipleTestRunner: function() {
-    this.assertEqual('passed', $('testlog_2').down('td', 1).innerHTML);
-  }
-}, {testLog: 'testlog_2'});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
