@@ -3298,6 +3298,9 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
     
     PRInt32 offset;
     nsIContent* breakContent = aLineLayout.GetLastOptionalBreakPosition(&offset);
+    
+    
+    
     if (breakContent) {
       
       lineReflowStatus = LINE_REFLOW_REDO_NO_PULL;
