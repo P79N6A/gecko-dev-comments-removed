@@ -115,6 +115,9 @@ public:
       return returnedString.get();
     }
 
+    
+    static PRBool MustPrune(nsIAccessible *aAccessible);
+
 protected:
     nsresult FireAtkStateChangeEvent(nsIAccessibleEvent *aEvent,
                                      AtkObject *aObject);
@@ -126,9 +129,6 @@ protected:
                                   AtkObject *aObject, PRBool aIsAdded);
 
     AtkObject *mAtkObject;
-
-    
-    static PRBool MustPrune(nsIAccessible *aAccessible);
 
 private:
     PRUint16 CreateMaiInterfaces(void);
