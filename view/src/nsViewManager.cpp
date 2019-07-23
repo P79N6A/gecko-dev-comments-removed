@@ -554,6 +554,10 @@ void nsViewManager::AddCoveringWidgetsToOpaqueRegion(nsRegion &aRgn, nsIDeviceCo
     return;
   }
   
+  if (widget->GetTransparencyMode() == eTransparencyTransparent) {
+    return;
+  }
+
   for (nsIWidget* childWidget = widget->GetFirstChild();
        childWidget;
        childWidget = childWidget->GetNextSibling()) {
@@ -813,22 +817,24 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView, const nsRegion &aDamagedReg
   
   
   nsRegion children;
-  for (nsIWidget* childWidget = widget->GetFirstChild();
-       childWidget;
-       childWidget = childWidget->GetNextSibling()) {
-    nsView* view = nsView::GetViewFor(childWidget);
-    NS_ASSERTION(view != aWidgetView, "will recur infinitely");
-    if (view && view->GetVisibility() == nsViewVisibility_kShow) {
-      
-      
-      if (view->GetViewManager()->RootViewManager() == RootViewManager()) {
+  if (widget->GetTransparencyMode() != eTransparencyTransparent) {
+    for (nsIWidget* childWidget = widget->GetFirstChild();
+         childWidget;
+         childWidget = childWidget->GetNextSibling()) {
+      nsView* view = nsView::GetViewFor(childWidget);
+      NS_ASSERTION(view != aWidgetView, "will recur infinitely");
+      if (view && view->GetVisibility() == nsViewVisibility_kShow) {
         
-        nsRegion damage = intersection;
-        nsPoint offset = view->GetOffsetTo(aWidgetView);
-        damage.MoveBy(-offset);
-        UpdateWidgetArea(view, damage, aIgnoreWidgetView);
-        children.Or(children, view->GetDimensions() + offset);
-        children.SimplifyInward(20);
+        
+        if (view->GetViewManager()->RootViewManager() == RootViewManager()) {
+          
+          nsRegion damage = intersection;
+          nsPoint offset = view->GetOffsetTo(aWidgetView);
+          damage.MoveBy(-offset);
+          UpdateWidgetArea(view, damage, aIgnoreWidgetView);
+          children.Or(children, view->GetDimensions() + offset);
+          children.SimplifyInward(20);
+        }
       }
     }
   }
