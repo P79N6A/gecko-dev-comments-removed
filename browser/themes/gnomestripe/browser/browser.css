@@ -968,7 +968,7 @@ toolbar[iconsize="small"] #paste-button[disabled="true"] {
 #autocomplete-security-wrapper {
   
   direction: ltr;
-  -moz-box-align: center;
+  -moz-box-align: stretch;
   
   margin-right: -3px;
 }
