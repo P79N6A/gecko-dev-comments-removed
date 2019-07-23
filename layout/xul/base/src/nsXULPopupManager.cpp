@@ -1210,35 +1210,43 @@ nsXULPopupManager::MayShowPopup(nsMenuPopupFrame* aPopup)
 
   nsCOMPtr<nsISupports> cont = aPopup->PresContext()->GetContainer();
   nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(cont);
-  if (!dsti)
+  nsCOMPtr<nsIBaseWindow> baseWin = do_QueryInterface(dsti);
+  if (!baseWin)
     return PR_FALSE;
 
-  
-  
   PRInt32 type = -1;
   if (NS_FAILED(dsti->GetItemType(&type)))
     return PR_FALSE;
 
+  
+  
   if (type != nsIDocShellTreeItem::typeChrome) {
+    
     nsCOMPtr<nsPIDOMWindow> win = do_GetInterface(dsti);
     if (!win)
       return PR_FALSE;
 
-    
     PRBool active;
     nsIFocusController* focusController = win->GetRootFocusController();
     focusController->GetActive(&active);
     if (!active)
       return PR_FALSE;
 
-    nsCOMPtr<nsIBaseWindow> baseWin = do_QueryInterface(dsti);
-    if (!baseWin)
-      return PR_FALSE;
-
     
     PRBool visible;
     baseWin->GetVisibility(&visible);
     if (!visible)
+      return PR_FALSE;
+  }
+
+  
+  
+  nsCOMPtr<nsIWidget> mainWidget;
+  baseWin->GetMainWidget(getter_AddRefs(mainWidget));
+  if (mainWidget) {
+    PRInt32 sizeMode;
+    mainWidget->GetSizeMode(&sizeMode);
+    if (sizeMode == nsSizeMode_Minimized)
       return PR_FALSE;
   }
 
