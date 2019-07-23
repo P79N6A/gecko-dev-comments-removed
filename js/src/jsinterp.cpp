@@ -831,8 +831,7 @@ js_ComputeGlobalThis(JSContext *cx, JSBool lazy, jsval *argv)
             thisp = parent;
     }
 
-    
-    thisp = OBJ_THIS_OBJECT(cx, thisp);
+    OBJ_TO_OUTER_OBJECT(cx, thisp);
     if (!thisp)
         return NULL;
     argv[-1] = OBJECT_TO_JSVAL(thisp);
@@ -856,11 +855,18 @@ ComputeThis(JSContext *cx, JSBool lazy, jsval *argv)
             return js_ComputeGlobalThis(cx, lazy, argv);
         }
 
-        
-        thisp = OBJ_THIS_OBJECT(cx, thisp);
+        OBJ_TO_OUTER_OBJECT(cx, thisp);
         if (!thisp)
             return NULL;
         argv[-1] = OBJECT_TO_JSVAL(thisp);
+
+        if (thisp->map->ops->thisObject) {
+            
+            thisp = thisp->map->ops->thisObject(cx, thisp);
+            if (!thisp)
+                return NULL;
+            argv[-1] = OBJECT_TO_JSVAL(thisp);
+       }
     }
     return thisp;
 }
@@ -1545,7 +1551,7 @@ js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
     cx->fp = &frame;
     if (!down) {
-        frame.thisp = OBJ_THIS_OBJECT(cx, frame.thisp);
+        OBJ_TO_OUTER_OBJECT(cx, frame.thisp);
         if (!frame.thisp) {
             ok = JS_FALSE;
             goto out2;
@@ -4725,7 +4731,7 @@ js_Interpret(JSContext *cx)
                     i = JSID_TO_INT(id);
                     if ((jsuint)i < length) {
                         if (obj->dslots[i] == JSVAL_HOLE) {
-                            if (rt->anyArrayProtoHasElement)
+                            if (js_ObjectHasNumericPropertiesInAnyPrototype(cx, obj))
                                 break;
                             if (i >= obj->fslots[JSSLOT_ARRAY_LENGTH])
                                 obj->fslots[JSSLOT_ARRAY_LENGTH] = i + 1;

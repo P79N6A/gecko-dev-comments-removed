@@ -241,7 +241,6 @@ static bool did_we_check_sse2 = false;
 
 #ifdef JS_JIT_SPEW
 bool js_verboseDebug = getenv("TRACEMONKEY") && strstr(getenv("TRACEMONKEY"), "verbose");
-bool js_verboseStats = getenv("TRACEMONKEY") && strstr(getenv("TRACEMONKEY"), "stats");
 #endif
 
 
@@ -3573,13 +3572,6 @@ js_RecordLoopEdge(JSContext* cx, TraceRecorder* r, uintN& inlineCallCount)
     if (nesting_enabled && f) {
 
         
-        if (r->getCallDepth() > 0 && 
-            cx->fp->argc > cx->fp->fun->nargs) {
-            js_AbortRecording(cx, "Can't call inner tree with extra args in pending frame");
-            return false;
-        }
-
-        
         if (tm->reservedDoublePoolPtr < (tm->reservedDoublePool + MAX_NATIVE_STACK_SLOTS) &&
             !js_ReplenishReservedPool(cx, tm)) {
             js_AbortRecording(cx, "Couldn't call inner tree (out of memory)");
@@ -4530,7 +4522,7 @@ extern void
 js_FinishJIT(JSTraceMonitor *tm)
 {
 #ifdef JS_JIT_SPEW
-    if (js_verboseStats && jitstats.recorderStarted) {
+    if (jitstats.recorderStarted) {
         printf("recorder: started(%llu), aborted(%llu), completed(%llu), different header(%llu), "
                "trees trashed(%llu), slot promoted(%llu), unstable loop variable(%llu), "
                "breaks(%llu), returns(%llu), unstableInnerCalls(%llu)\n",
@@ -7810,11 +7802,18 @@ TraceRecorder::elem(jsval& oval, jsval& idx, jsval*& vp, LIns*& v_ins, LIns*& ad
 
     LIns* dslots_ins = lir->insLoad(LIR_ldp, obj_ins, offsetof(JSObject, dslots));
     if (!guardDenseArrayIndex(obj, i, obj_ins, dslots_ins, idx_ins, BRANCH_EXIT)) {
-        LIns* rt_ins = lir->insLoad(LIR_ldp, cx_ins, offsetof(JSContext, runtime));
-        guard(true,
-              lir->ins_eq0(lir->insLoad(LIR_ldp, rt_ins,
-                                        offsetof(JSRuntime, anyArrayProtoHasElement))),
+        
+
+
+
+        if (js_ObjectHasNumericPropertiesInAnyPrototype(cx, obj))
+            return false;
+
+        LIns* args[] = { obj_ins, cx_ins }; 
+        guard(false,
+              lir->ins_eq0(lir->insCall(&js_ObjectHasNumericPropertiesInAnyPrototype_ci, args)),
               MISMATCH_EXIT);
+
         
         v_ins = lir->insImm(JSVAL_TO_PSEUDO_BOOLEAN(JSVAL_VOID));
         addr_ins = NULL;
@@ -9435,13 +9434,6 @@ TraceRecorder::record_JSOP_NEWARRAY()
     LIns* args[] = { lir->insImm(len), INS_CONSTPTR(proto), cx_ins };
     LIns* v_ins = lir->insCall(ci, args);
     guard(false, lir->ins_eq0(v_ins), OOM_EXIT);
-
-    
-    LIns* rt_ins = lir->insLoad(LIR_ldp, cx_ins, offsetof(JSContext, runtime));
-    guard(true,
-          lir->ins_eq0(lir->insLoad(LIR_ldp, rt_ins,
-                                    offsetof(JSRuntime, anyArrayProtoHasElement))),
-          MISMATCH_EXIT);
 
     LIns* dslots_ins = NULL;
     for (uint32 i = 0; i < len; i++) {

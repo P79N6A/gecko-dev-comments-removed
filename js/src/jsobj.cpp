@@ -169,6 +169,7 @@ obj_getSlot(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
     uintN attrs;
     JSObject *pobj;
     JSClass *clasp;
+    JSExtendedClass *xclasp;
 
     slot = (uint32) JSVAL_TO_INT(id);
     if (id == INT_TO_JSVAL(JSSLOT_PROTO)) {
@@ -189,11 +190,14 @@ obj_getSlot(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
         if (clasp == &js_CallClass || clasp == &js_BlockClass) {
             
             *vp = JSVAL_NULL;
-        } else if (pobj->map->ops->thisObject) {
-            pobj = pobj->map->ops->thisObject(cx, pobj);
-            if (!pobj)
-                return JS_FALSE;
-            *vp = OBJECT_TO_JSVAL(pobj);
+        } else if (clasp->flags & JSCLASS_IS_EXTENDED) {
+            xclasp = (JSExtendedClass *) clasp;
+            if (xclasp->outerObject) {
+                pobj = xclasp->outerObject(cx, pobj);
+                if (!pobj)
+                    return JS_FALSE;
+                *vp = OBJECT_TO_JSVAL(pobj);
+            }
         }
     }
     return JS_TRUE;
@@ -320,23 +324,6 @@ js_SetProtoOrParent(JSContext *cx, JSObject *obj, uint32 slot, JSObject *pobj)
                                  );
         }
         return JS_FALSE;
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-    if (slot == JSSLOT_PROTO &&
-        pobj &&
-        (OBJ_IS_ARRAY(cx, obj) || OBJ_IS_DELEGATE(cx, obj))) {
-        rt->anyArrayProtoHasElement = JS_TRUE;
     }
     return JS_TRUE;
 }
@@ -1227,6 +1214,7 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
     JSStackFrame *fp, *caller;
     JSBool indirectCall;
+    JSObject *scopeobj;
     uint32 tcflags;
     JSPrincipals *principals;
     const char *file;
@@ -1250,28 +1238,19 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 
 
 
-
-
-
-
-    obj = js_GetWrappedObject(cx, obj);
-
-    
-
-
-
-
-    {
-        JSObject *parent = OBJ_GET_PARENT(cx, obj);
-        if (indirectCall || parent) {
-            uintN flags = parent
-                          ? JSREPORT_ERROR
-                          : JSREPORT_STRICT | JSREPORT_WARNING;
-            if (!JS_ReportErrorFlagsAndNumber(cx, flags, js_GetErrorMessage, NULL,
-                                              JSMSG_BAD_INDIRECT_CALL,
-                                              js_eval_str)) {
-                return JS_FALSE;
-            }
+    scopeobj = OBJ_GET_PARENT(cx, obj);
+    if (scopeobj) {
+        scopeobj = js_GetWrappedObject(cx, obj);
+        scopeobj = OBJ_GET_PARENT(cx, scopeobj);
+    }
+    if (indirectCall || scopeobj) {
+        uintN flags = scopeobj
+                      ? JSREPORT_ERROR
+                      : JSREPORT_STRICT | JSREPORT_WARNING;
+        if (!JS_ReportErrorFlagsAndNumber(cx, flags, js_GetErrorMessage, NULL,
+                                          JSMSG_BAD_INDIRECT_CALL,
+                                          js_eval_str)) {
+            return JS_FALSE;
         }
     }
 
@@ -1289,7 +1268,6 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
         return JS_FALSE;
 
     
-    JSObject *scopeobj = NULL;
     if (argc >= 2) {
         if (!js_ValueToObject(cx, argv[1], &scopeobj))
             return JS_FALSE;
@@ -1355,12 +1333,6 @@ obj_eval(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
             }
         }
     } else {
-        scopeobj = js_GetWrappedObject(cx, scopeobj);
-        OBJ_TO_INNER_OBJECT(cx, scopeobj);
-        if (!scopeobj) {
-            ok = JS_FALSE;
-            goto out;
-        }
         ok = js_CheckPrincipalsAccess(cx, scopeobj,
                                       JS_StackFramePrincipals(cx, caller),
                                       cx->runtime->atomState.evalAtom);
@@ -3441,8 +3413,6 @@ js_DefineProperty(JSContext *cx, JSObject *obj, jsid id, jsval value,
                     LOCKED_OBJ_WRITE_BARRIER(cx, obj, (sprop)->slot, *(vp));  \
             }                                                                 \
         }                                                                     \
-        if (STOBJ_IS_DELEGATE(obj) && JSID_IS_INT(sprop->id))                 \
-            cx->runtime->anyArrayProtoHasElement = JS_TRUE;                   \
     JS_END_MACRO
 
 JSBool
