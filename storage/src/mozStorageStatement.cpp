@@ -43,7 +43,6 @@
 
 #include "nsError.h"
 #include "nsMemory.h"
-#include "nsProxyRelease.h"
 #include "nsThreadUtils.h"
 #include "nsIClassInfoImpl.h"
 #include "nsIProgrammingLanguage.h"
@@ -78,33 +77,18 @@ namespace {
 class AsyncStatementFinalizer : public nsRunnable
 {
 public:
-  
-
-
-
-
-
-
-
-
-
-
-  AsyncStatementFinalizer(sqlite3_stmt *aStatement,
-                          Connection *aConnection)
+  AsyncStatementFinalizer(sqlite3_stmt *aStatement)
   : mStatement(aStatement)
-  , mConnection(aConnection)
   {
   }
 
   NS_IMETHOD Run()
   {
     (void)::sqlite3_finalize(mStatement);
-    (void)::NS_ProxyRelease(mConnection->threadOpenedOn, mConnection);
     return NS_OK;
   }
 private:
   sqlite3_stmt *mStatement;
-  nsCOMPtr<Connection> mConnection;
 };
 
 } 
@@ -417,7 +401,7 @@ Statement::Finalize()
     }
     else {
       nsCOMPtr<nsIRunnable> event =
-        new AsyncStatementFinalizer(mCachedAsyncStatement, mDBConnection);
+        new AsyncStatementFinalizer(mCachedAsyncStatement);
       NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
 
       nsresult rv = target->Dispatch(event, NS_DISPATCH_NORMAL);
