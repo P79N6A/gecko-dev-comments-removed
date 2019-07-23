@@ -709,7 +709,7 @@ NS_METHOD nsBaseWidget::SetBorderStyle(nsBorderStyle aBorderStyle)
 
 NS_METHOD nsBaseWidget::AddEventListener(nsIEventListener * aListener)
 {
-  NS_PRECONDITION(mEventListener == nsnull, "Null mouse listener");
+  NS_PRECONDITION(mEventListener == nsnull, "Null event listener");
   NS_IF_RELEASE(mEventListener);
   NS_ADDREF(aListener);
   mEventListener = aListener;

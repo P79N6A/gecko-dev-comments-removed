@@ -60,7 +60,6 @@ public:
 
 
 
-
   virtual nsEventStatus ProcessEvent(const nsGUIEvent & anEvent) = 0;
 
 };

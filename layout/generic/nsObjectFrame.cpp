@@ -327,9 +327,7 @@ public:
 
 #endif 
 
- 
-
-
+  
   NS_IMETHOD MouseDown(nsIDOMEvent* aMouseEvent);
   NS_IMETHOD MouseUp(nsIDOMEvent* aMouseEvent);
   NS_IMETHOD MouseClick(nsIDOMEvent* aMouseEvent);
@@ -337,7 +335,6 @@ public:
   NS_IMETHOD MouseOver(nsIDOMEvent* aMouseEvent);
   NS_IMETHOD MouseOut(nsIDOMEvent* aMouseEvent);
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);     
-  
 
   
   NS_IMETHOD MouseMove(nsIDOMEvent* aMouseEvent);
@@ -347,12 +344,11 @@ public:
   NS_IMETHOD KeyDown(nsIDOMEvent* aKeyEvent);
   NS_IMETHOD KeyUp(nsIDOMEvent* aKeyEvent);
   NS_IMETHOD KeyPress(nsIDOMEvent* aKeyEvent);
-  
 
   
   NS_IMETHOD Focus(nsIDOMEvent * aFocusEvent);
   NS_IMETHOD Blur(nsIDOMEvent * aFocusEvent);
-  
+
   
   NS_IMETHOD DragEnter(nsIDOMEvent* aMouseEvent);
   NS_IMETHOD DragOver(nsIDOMEvent* aMouseEvent);
