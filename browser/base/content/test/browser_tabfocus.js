@@ -55,7 +55,7 @@ function test() {
                      "focusedElement after tab change, focus in url field, no focus in new tab");
 
     
-    var button1 = browser1.contentWindow.document.getElementById("button1");
+    var button1 = browser1.contentDocument.getElementById("button1");
     expectFocusShift(function () button1.focus(),
                      browser1.contentWindow, button1, true,
                      "focusedWindow after focus in focused tab");
@@ -63,7 +63,7 @@ function test() {
     
     
     
-    var button2 = browser2.contentWindow.document.getElementById("button2");
+    var button2 = browser2.contentDocument.getElementById("button2");
     button2.focus();
 
     expectFocusShift(function () button2.focus(),

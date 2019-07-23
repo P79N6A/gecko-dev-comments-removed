@@ -46,28 +46,26 @@ let testPage = 'data:text/html,<body><button onblur="this.parentNode.removeChild
 function test() {
   waitForExplicitFinish();
 
-  
-  let testTab = gBrowser.addTab();
-  gBrowser.selectedTab = testTab;
-  let testBrowser = gBrowser.getBrowserForTab(testTab);
+  gBrowser.selectedTab = gBrowser.addTab();
 
-  
-  testBrowser.addEventListener("load", function() setTimeout(function() {
-    
-    
-    
-    let emptyTab = gBrowser.addTab();
-    gBrowser.selectedTab = emptyTab;
-    gBrowser.removeCurrentTab();
-    gBrowser.selectedTab = testTab;
+  gBrowser.selectedBrowser.addEventListener("load", function () {
+    setTimeout(function () {
+      var testPageWin = content;
 
-    
-    is(document.commandDispatcher.focusedWindow, window.content,
-       "content window is focused");
-    gBrowser.removeCurrentTab();
-    finish();
-  }, 0), true);
+      
+      
+      
+      gBrowser.selectedTab = gBrowser.addTab();
+      gBrowser.removeCurrentTab();
 
-  
-  testBrowser.contentWindow.location = testPage;
+      
+      is(document.commandDispatcher.focusedWindow, testPageWin,
+         "content window is focused");
+
+      gBrowser.removeCurrentTab();
+      finish();
+    }, 0);
+  }, true);
+
+  content.location = testPage;
 }

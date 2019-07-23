@@ -3,20 +3,16 @@
 
 
 
-var newBrowser;
 var menu;
 
 function test() {
-
   waitForExplicitFinish();
   
-  var newTab = gBrowser.addTab();
-  gBrowser.selectedTab = newTab;
-  newBrowser = gBrowser.getBrowserForTab(newTab);
+  gBrowser.selectedTab = gBrowser.addTab();
 
   
   gBrowser.addEventListener("load", testNormal, false);
-  newBrowser.contentWindow.location = 'http://example.com/';
+  content.location = "http://example.com/";
 }
 
 function testNormal() {
@@ -41,7 +37,7 @@ function testNormal_PopupListener() {
   
   
   
-  newBrowser.contentWindow.location = 'http://www.mozilla.com/firefox/its-a-trap.html';
+  content.location = "http://www.mozilla.com/firefox/its-a-trap.html";
   window.setTimeout(testPhishing, 2000);
 }
 
