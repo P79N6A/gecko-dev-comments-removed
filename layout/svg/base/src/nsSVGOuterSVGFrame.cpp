@@ -174,7 +174,7 @@ nsSVGOuterSVGFrame::InitSVG()
     doc->AddMutationObserver(&sSVGMutationObserver);
   }
 
-  SuspendRedraw();
+  SuspendRedraw();  
 
   AddStateBits(NS_STATE_IS_OUTER_SVG);
 
@@ -210,28 +210,24 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*          aPresContext,
     aStatus = NS_FRAME_COMPLETE;
     return NS_OK;
   }
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-#ifdef DEBUG
-  
-#endif
-  
-  nsCOMPtr<nsISVGSVGElement> SVGElement = do_QueryInterface(mContent);
-  NS_ENSURE_TRUE(SVGElement, NS_ERROR_FAILURE);
 
   
+
+  SuspendRedraw();
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  nsSVGSVGElement *svgElem = NS_STATIC_CAST(nsSVGSVGElement*, mContent);
+  float oldViewportWidth  = svgElem->mViewportWidth;
+  float oldViewportHeight = svgElem->mViewportHeight;
+
   
   
 
@@ -240,61 +236,26 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*          aPresContext,
   float preferredWidth = nsPresContext::AppUnitsToFloatCSSPixels(preferredRect.width);
   float preferredHeight = nsPresContext::AppUnitsToFloatCSSPixels(preferredRect.height);
 
-  SuspendRedraw();
-
   nsCOMPtr<nsIDOMSVGRect> r;
   NS_NewSVGRect(getter_AddRefs(r), 0, 0, preferredWidth, preferredHeight);
-
-  nsSVGSVGElement *svgElem = NS_STATIC_CAST(nsSVGSVGElement*, mContent);
-  NS_ENSURE_TRUE(svgElem, NS_ERROR_FAILURE);
   svgElem->SetCoordCtxRect(r);
 
-#ifdef DEBUG
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#endif
-
-  
-  
-  
-
-  nsSVGSVGElement *svg = NS_STATIC_CAST(nsSVGSVGElement*, mContent);
 
   aDesiredSize.width =
-    nsPresContext::CSSPixelsToAppUnits(svg->mViewportWidth);
+    nsPresContext::CSSPixelsToAppUnits(svgElem->mViewportWidth);
   aDesiredSize.height =
-    nsPresContext::CSSPixelsToAppUnits(svg->mViewportHeight);
+    nsPresContext::CSSPixelsToAppUnits(svgElem->mViewportHeight);
 
   
 
   aStatus = NS_FRAME_COMPLETE;
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
 
-  
-  
-  NotifyViewportChange();
+  if (svgElem->mViewportWidth != oldViewportWidth ||
+      svgElem->mViewportHeight != oldViewportHeight) {
+    NotifyViewportChange();
+  }
 
   UnsuspendRedraw();
   
@@ -323,7 +284,7 @@ nsSVGOuterSVGFrame::DidReflow(nsPresContext*   aPresContext,
       kid = kid->GetNextSibling();
     }
     
-    UnsuspendRedraw();
+    UnsuspendRedraw(); 
   }
   
   return rv;
@@ -579,6 +540,12 @@ nsSVGOuterSVGFrame::NotifyViewportChange()
 {
   
   if (!mViewportInitialized) return NS_OK;
+
+  
+  nsSVGSVGElement *svgElem = NS_STATIC_CAST(nsSVGSVGElement*, mContent);
+  if (!svgElem->HasAttr(kNameSpaceID_None, nsGkAtoms::viewBox)) {
+    return NS_OK;
+  }
 
   
   mCanvasTM = nsnull;
