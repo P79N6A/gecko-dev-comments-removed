@@ -5981,6 +5981,7 @@ function undoCloseMiddleClick(aEvent) {
 
 
 
+
 function undoCloseTab(aIndex) {
   
   var blankTabToRemove = null;
@@ -5992,14 +5993,17 @@ function undoCloseTab(aIndex) {
       !gBrowser.selectedTab.hasAttribute("busy"))
     blankTabToRemove = gBrowser.selectedTab;
 
+  var tab = null;
   var ss = Cc["@mozilla.org/browser/sessionstore;1"].
            getService(Ci.nsISessionStore);
-  if (ss.getClosedTabCount(window) == 0)
-    return;
-  ss.undoCloseTab(window, aIndex || 0);
-
-  if (blankTabToRemove)
-    gBrowser.removeTab(blankTabToRemove);
+  if (ss.getClosedTabCount(window) > (aIndex || 0)) {
+    tab = ss.undoCloseTab(window, aIndex || 0);
+    
+    if (blankTabToRemove)
+      gBrowser.removeTab(blankTabToRemove);
+  }
+  
+  return tab;
 }
 
 

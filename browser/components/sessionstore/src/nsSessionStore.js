@@ -777,6 +777,7 @@ SessionStoreService.prototype = {
   },
 
   undoCloseTab: function sss_undoCloseTab(aWindow, aIndex) {
+    var tab = null;
     var closedTabs = this._windows[aWindow.__SSi]._closedTabs;
 
     
@@ -790,21 +791,23 @@ SessionStoreService.prototype = {
       var closedTabState = closedTab.state;
 
       
-      closedTabState._tab = browser.addTab();
+      tab = closedTabState._tab = browser.addTab();
         
       
-      browser.moveTabTo(closedTabState._tab, closedTab.pos);
+      browser.moveTabTo(tab, closedTab.pos);
   
       
       this.restoreHistoryPrecursor(aWindow, [closedTabState], 1, 0, 0);
 
       
-      var content = browser.getBrowserForTab(closedTabState._tab).contentWindow;
+      var content = browser.getBrowserForTab(tab).contentWindow;
       aWindow.setTimeout(function() { content.focus(); }, 0);
     }
     else {
       Components.returnCode = Cr.NS_ERROR_INVALID_ARG;
     }
+    
+    return tab;
   },
 
   getWindowValue: function sss_getWindowValue(aWindow, aKey) {
