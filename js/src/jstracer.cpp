@@ -1496,6 +1496,9 @@ js_RecordTree(JSContext* cx, JSTraceMonitor* tm, Fragment* f)
     ti->stackTypeMap.setLength(ti->entryNativeStackSlots);
 
     
+    JS_ASSERT(!ti->globalSlots.length());
+    
+    
     uint8* map = ti->stackTypeMap.data();
     uint8* m = map;
     FORALL_SLOTS_IN_PENDING_FRAMES(cx, 0,
