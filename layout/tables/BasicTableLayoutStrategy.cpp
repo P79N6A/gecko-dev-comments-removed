@@ -693,6 +693,7 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
 
 
 
+
     
     
 
@@ -739,7 +740,8 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
                 total_fixed_pref = NSCoordSaturatingAdd(total_fixed_pref, 
                                                         pref_width);
             } else if (pref_width == 0) {
-                if (aWidthType == BTLS_FINAL_WIDTH) {
+                if (aWidthType == BTLS_FINAL_WIDTH &&
+                    mTableFrame->GetNumCellsOriginatingInCol(col)) {
                     ++numNonSpecZeroWidthCols;
                 }
             } else {
@@ -937,7 +939,8 @@ BasicTableLayoutStrategy::DistributeWidthToColumns(nscoord aWidth,
                              "FLEX_FLEX_LARGE_ZERO only should be hit "
                              "when we're setting final width.");
                 if (pct == 0.0f &&
-                    !colFrame->GetHasSpecifiedCoord()) {
+                    !colFrame->GetHasSpecifiedCoord() &&
+                    mTableFrame->GetNumCellsOriginatingInCol(col)) {
 
                     NS_ASSERTION(col_width == 0 &&
                                  colFrame->GetPrefCoord() == 0,
