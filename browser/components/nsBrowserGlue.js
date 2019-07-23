@@ -1171,8 +1171,13 @@ BrowserGlue.prototype = {
         
         
         if (smartBookmarksCurrentVersion == 0 &&
-            smartBookmarkItemIds.length == 0)
-          bmsvc.insertSeparator(bmsvc.bookmarksMenuFolder, bookmarksMenuIndex);
+            smartBookmarkItemIds.length == 0) {
+          let id = bmsvc.getIdForItemAt(bmsvc.bookmarksMenuFolder,
+                                        bookmarksMenuIndex);
+          
+          if (id != -1 && bmsvc.getItemType(id) != bmsvc.TYPE_SEPARATOR)
+            bmsvc.insertSeparator(bmsvc.bookmarksMenuFolder, bookmarksMenuIndex);
+        }
       }
     };
 
