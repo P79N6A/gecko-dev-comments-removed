@@ -1496,13 +1496,16 @@ SessionStoreService.prototype = {
         nonPopupCount++;
     }
     this._updateCookies(total);
-    
+
+#ifndef XP_MACOSX
     
     if (nonPopupCount == 0 && this._lastClosedWindows) {
       
       
       total = this._lastClosedWindows.concat(total);
     }
+#endif
+
     if (activeWindow) {
       this.activeWindowSSiCache = activeWindow.__SSi || "";
     }
