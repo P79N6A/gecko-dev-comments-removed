@@ -665,42 +665,6 @@ LayerManager* nsBaseWidget::GetLayerManager()
 
 
 
-nsIRenderingContext* nsBaseWidget::GetRenderingContext()
-{
-  nsresult                      rv;
-  nsCOMPtr<nsIRenderingContext> renderingCtx;
-
-  if (mOnDestroyCalled)
-    return nsnull;
-
-  rv = mContext->CreateRenderingContextInstance(*getter_AddRefs(renderingCtx));
-  if (NS_SUCCEEDED(rv)) {
-    gfxASurface* surface = GetThebesSurface();
-    NS_ENSURE_TRUE(surface, nsnull);
-    rv = renderingCtx->Init(mContext, surface);
-    if (NS_SUCCEEDED(rv)) {
-      nsIRenderingContext *ret = renderingCtx;
-      
-
-      NS_ADDREF(ret);
-      return ret;
-    }
-    else {
-      NS_WARNING("GetRenderingContext: nsIRenderingContext::Init() failed.");
-    }  
-  }
-  else {
-    NS_WARNING("GetRenderingContext: Cannot create RenderingContext.");
-  }  
-  
-  return nsnull;
-}
-
-
-
-
-
-
 nsIToolkit* nsBaseWidget::GetToolkit()
 {
   return mToolkit;
