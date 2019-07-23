@@ -48,8 +48,7 @@ const resultFileName = "test\u00e3\u041b\u3056" + Date.now() + ".doc";
 
 function checkResult() {
   
-  var resultFile = dirSvc.get("ProfD", Ci.nsIFile);
-  resultFile.append(resultFileName);
+  var resultFile = do_get_file(resultFileName);
   resultFile.remove(false);
 
   do_check_true(checkRecentDocsFor(resultFileName));
@@ -118,5 +117,9 @@ function run_test()
   dm.addListener(listener);
   dm.addListener(getDownloadListener());
 
-  var dl = addDownload({resultFileName: resultFileName});
+  
+  
+  
+  var dl = addDownload({resultFileName: resultFileName,
+			targetFile: do_get_file(resultFileName, true)});
 }
