@@ -153,7 +153,7 @@ namespace nanojit
     inline  uint32_t AR::nStackSlotsFor(LIns* ins)
     {
         uint32_t n = 0;
-        if (ins->isop(LIR_alloc)) {
+        if (ins->isop(LIR_allocp)) {
             n = ins->size() >> 2;
         } else {
             switch (ins->retType()) {
