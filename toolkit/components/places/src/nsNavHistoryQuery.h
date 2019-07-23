@@ -166,6 +166,8 @@ private:
   
   
   PRUint32 mSort;
+  nsCString mSortingAnnotation;
+
   PRUint32 mResultType;
   PRUint32 mGroupCount;
   PRUint32 *mGroupings;

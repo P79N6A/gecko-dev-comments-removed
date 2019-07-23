@@ -172,6 +172,9 @@ public:
   
   PRUint32 mSortingMode;
 
+  
+  nsCString mSortingAnnotation;
+
   nsCOMPtr<nsINavHistoryResultViewer> mView;
 
   
@@ -537,11 +540,17 @@ public:
   
   typedef nsCOMArray<nsNavHistoryResultNode>::nsCOMArrayComparatorFunc SortComparator;
   virtual PRUint32 GetSortType();
+  virtual void GetSortingAnnotation(nsACString& aSortingAnnotation);
+
   static SortComparator GetSortingComparator(PRUint32 aSortType);
-  virtual void RecursiveSort(nsICollation* aCollation,
+  virtual void RecursiveSort(const char* aData,
                              SortComparator aComparator);
-  PRUint32 FindInsertionPoint(nsNavHistoryResultNode* aNode, SortComparator aComparator);
-  PRBool DoesChildNeedResorting(PRUint32 aIndex, SortComparator aComparator);
+  PRUint32 FindInsertionPoint(nsNavHistoryResultNode* aNode, SortComparator aComparator,
+                              const char* aData);
+  PRBool DoesChildNeedResorting(PRUint32 aIndex, SortComparator aComparator,
+                                const char* aData);
+
+  static PRInt32 SortComparison_StringLess(const nsAString& a, const nsAString& b);
 
   PR_STATIC_CALLBACK(int) SortComparison_Bookmark(
       nsNavHistoryResultNode* a, nsNavHistoryResultNode* b, void* closure);
@@ -560,6 +569,10 @@ public:
   PR_STATIC_CALLBACK(int) SortComparison_VisitCountLess(
       nsNavHistoryResultNode* a, nsNavHistoryResultNode* b, void* closure);
   PR_STATIC_CALLBACK(int) SortComparison_VisitCountGreater(
+      nsNavHistoryResultNode* a, nsNavHistoryResultNode* b, void* closure);
+  PR_STATIC_CALLBACK(int) SortComparison_AnnotationLess(
+      nsNavHistoryResultNode* a, nsNavHistoryResultNode* b, void* closure);
+  PR_STATIC_CALLBACK(int) SortComparison_AnnotationGreater(
       nsNavHistoryResultNode* a, nsNavHistoryResultNode* b, void* closure);
 
   
@@ -665,6 +678,7 @@ public:
   nsresult Refresh();
 
   virtual PRUint32 GetSortType();
+  virtual void GetSortingAnnotation(nsACString& aSortingAnnotation);
 };
 
 

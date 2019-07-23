@@ -37,6 +37,8 @@
 
 
 
+
+
 #include <stdio.h>
 #include "nsNavHistory.h"
 #include "nsNavBookmarks.h"
@@ -67,6 +69,7 @@
 #include "prtime.h"
 #include "prprf.h"
 #include "mozStorageHelper.h"
+#include "nsAnnotationService.h"
 
 #define ICONURI_QUERY "chrome://browser/skin/places/query.png"
 
@@ -496,8 +499,10 @@ nsNavHistoryContainerResultNode::ReverseUpdateStats(PRInt32 aAccessCountChange)
          timeChanged)) {
 
       SortComparator comparator = GetSortingComparator(sortMode);
+      nsCAutoString sortingAnnotation;
+      GetSortingAnnotation(sortingAnnotation);
       int ourIndex = mParent->FindChild(this);
-      if (mParent->DoesChildNeedResorting(ourIndex, comparator)) {
+      if (mParent->DoesChildNeedResorting(ourIndex, comparator, sortingAnnotation.get())) {
         
         nsRefPtr<nsNavHistoryContainerResultNode> ourLock = this;
         nsNavHistoryContainerResultNode* ourParent = mParent;
@@ -543,6 +548,16 @@ nsNavHistoryContainerResultNode::GetSortType()
   return nsINavHistoryQueryOptions::SORT_BY_NONE;
 }
 
+void
+nsNavHistoryContainerResultNode::GetSortingAnnotation(nsACString& aAnnotation)
+{
+  if (mParent)
+    mParent->GetSortingAnnotation(aAnnotation);
+  else if (mResult)
+    aAnnotation.Assign(mResult->mSortingAnnotation);
+  else
+    NS_NOTREACHED("We should always have a result");
+}
 
 
 
@@ -572,6 +587,10 @@ nsNavHistoryContainerResultNode::GetSortingComparator(PRUint32 aSortType)
       return &SortComparison_VisitCountLess;
     case nsINavHistoryQueryOptions::SORT_BY_VISITCOUNT_DESCENDING:
       return &SortComparison_VisitCountGreater;
+    case nsINavHistoryQueryOptions::SORT_BY_ANNOTATION_ASCENDING:
+      return &SortComparison_AnnotationLess;
+    case nsINavHistoryQueryOptions::SORT_BY_ANNOTATION_DESCENDING:
+      return &SortComparison_AnnotationGreater;
     default:
       NS_NOTREACHED("Bad sorting type");
       return nsnull;
@@ -589,12 +608,14 @@ nsNavHistoryContainerResultNode::GetSortingComparator(PRUint32 aSortType)
 
 void
 nsNavHistoryContainerResultNode::RecursiveSort(
-    nsICollation* aCollation, SortComparator aComparator)
+    const char* aData, SortComparator aComparator)
 {
-  mChildren.Sort(aComparator, NS_STATIC_CAST(void*, aCollation));
+  void* data = NS_CONST_CAST(void*, NS_STATIC_CAST(const void*, aData));
+
+  mChildren.Sort(aComparator, data);
   for (PRInt32 i = 0; i < mChildren.Count(); i ++) {
     if (mChildren[i]->IsContainer())
-      mChildren[i]->GetAsContainer()->RecursiveSort(aCollation, aComparator);
+      mChildren[i]->GetAsContainer()->RecursiveSort(aData, aComparator);
   }
 }
 
@@ -606,20 +627,19 @@ nsNavHistoryContainerResultNode::RecursiveSort(
 
 PRUint32
 nsNavHistoryContainerResultNode::FindInsertionPoint(
-    nsNavHistoryResultNode* aNode, SortComparator aComparator)
+    nsNavHistoryResultNode* aNode, SortComparator aComparator,
+    const char* aData)
 {
   if (mChildren.Count() == 0)
     return 0;
 
-  nsNavHistory* history = nsNavHistory::GetHistoryService();
-  NS_ENSURE_TRUE(history, 0);
-  nsICollation* collation = history->GetCollation();
+  void* data = NS_CONST_CAST(void*, NS_STATIC_CAST(const void*, aData));
 
   
   
-  if (aComparator(aNode, mChildren[0], collation) <= 0)
+  if (aComparator(aNode, mChildren[0], data) <= 0)
     return 0;
-  if (aComparator(aNode, mChildren[mChildren.Count() - 1], collation) >= 0)
+  if (aComparator(aNode, mChildren[mChildren.Count() - 1], data) >= 0)
     return mChildren.Count();
 
   PRUint32 beginRange = 0; 
@@ -628,7 +648,7 @@ nsNavHistoryContainerResultNode::FindInsertionPoint(
     if (beginRange == endRange)
       return endRange;
     PRUint32 center = beginRange + (endRange - beginRange) / 2;
-    if (aComparator(aNode, mChildren[center], collation) <= 0)
+    if (aComparator(aNode, mChildren[center], data) <= 0)
       endRange = center; 
     else
       beginRange = center + 1; 
@@ -644,30 +664,42 @@ nsNavHistoryContainerResultNode::FindInsertionPoint(
 
 PRBool
 nsNavHistoryContainerResultNode::DoesChildNeedResorting(PRUint32 aIndex,
-    SortComparator aComparator)
+    SortComparator aComparator, const char* aData)
 {
   NS_ASSERTION(aIndex >= 0 && aIndex < PRUint32(mChildren.Count()),
                "Input index out of range");
   if (mChildren.Count() == 1)
     return PR_FALSE;
 
-  nsNavHistory* history = nsNavHistory::GetHistoryService();
-  NS_ENSURE_TRUE(history, 0);
-  nsICollation* collation = history->GetCollation();
+  void* data = NS_CONST_CAST(void*, NS_STATIC_CAST(const void*, aData));
 
   if (aIndex > 0) {
     
-    if (aComparator(mChildren[aIndex - 1], mChildren[aIndex], collation) > 0)
+    if (aComparator(mChildren[aIndex - 1], mChildren[aIndex], data) > 0)
       return PR_TRUE;
   }
   if (aIndex < PRUint32(mChildren.Count()) - 1) {
     
-    if (aComparator(mChildren[aIndex], mChildren[aIndex + 1], collation) > 0)
+    if (aComparator(mChildren[aIndex], mChildren[aIndex + 1], data) > 0)
       return PR_TRUE;
   }
   return PR_FALSE;
 }
 
+
+
+PRInt32 nsNavHistoryContainerResultNode::SortComparison_StringLess(
+    const nsAString& a, const nsAString& b) {
+
+  nsNavHistory* history = nsNavHistory::GetHistoryService();
+  NS_ENSURE_TRUE(history, 0);
+  nsICollation* collation = history->GetCollation();
+  NS_ENSURE_TRUE(history, 0);
+
+  PRInt32 res = 0;
+  collation->CompareString(nsICollation::kCollationCaseInSensitive, a, b, &res);
+  return res;
+}
 
 
 
@@ -680,7 +712,6 @@ PRInt32 PR_CALLBACK nsNavHistoryContainerResultNode::SortComparison_Bookmark(
 {
   return a->mBookmarkIndex - b->mBookmarkIndex;
 }
-
 
 
 
@@ -709,12 +740,8 @@ PRInt32 PR_CALLBACK nsNavHistoryContainerResultNode::SortComparison_TitleLess(
     return -ComparePRTime(a->mTime, b->mTime);
   }
 
-  nsICollation* collation = NS_STATIC_CAST(nsICollation*, closure);
-  PRInt32 value = -1; 
-  collation->CompareString(
-      nsICollation::kCollationCaseInSensitive,
-      NS_ConvertUTF8toUTF16(a->mTitle),
-      NS_ConvertUTF8toUTF16(b->mTitle), &value);
+  PRInt32 value = SortComparison_StringLess(NS_ConvertUTF8toUTF16(a->mTitle),
+                                            NS_ConvertUTF8toUTF16(b->mTitle));
   if (value == 0) {
     
     if (a->IsURI()) {
@@ -743,11 +770,8 @@ PRInt32 PR_CALLBACK nsNavHistoryContainerResultNode::SortComparison_DateLess(
 {
   PRInt32 value = ComparePRTime(a->mTime, b->mTime);
   if (value == 0) {
-    nsICollation* collation = NS_STATIC_CAST(nsICollation*, closure);
-    collation->CompareString(
-        nsICollation::kCollationCaseInSensitive,
-        NS_ConvertUTF8toUTF16(a->mTitle),
-        NS_ConvertUTF8toUTF16(b->mTitle), &value);
+    value = SortComparison_StringLess(NS_ConvertUTF8toUTF16(a->mTitle),
+                                      NS_ConvertUTF8toUTF16(b->mTitle));
   }
   return value;
 }
@@ -756,12 +780,8 @@ PRInt32 PR_CALLBACK nsNavHistoryContainerResultNode::SortComparison_DateGreater(
 {
   PRInt32 value = -ComparePRTime(a->mTime, b->mTime);
   if (value == 0) {
-    nsICollation* collation = NS_STATIC_CAST(nsICollation*, closure);
-    collation->CompareString(
-        nsICollation::kCollationCaseInSensitive,
-        NS_ConvertUTF8toUTF16(a->mTitle),
-        NS_ConvertUTF8toUTF16(b->mTitle), &value);
-    value = -value;
+    value = -SortComparison_StringLess(NS_ConvertUTF8toUTF16(a->mTitle),
+                                       NS_ConvertUTF8toUTF16(b->mTitle));
   }
   return value;
 }
@@ -781,11 +801,8 @@ PRInt32 PR_CALLBACK nsNavHistoryContainerResultNode::SortComparison_URILess(
     value = a->mURI.Compare(b->mURI.get());
   } else {
     
-    nsICollation* collation = NS_STATIC_CAST(nsICollation*, closure);
-    collation->CompareString(
-        nsICollation::kCollationCaseInSensitive,
-        NS_ConvertUTF8toUTF16(a->mTitle),
-        NS_ConvertUTF8toUTF16(b->mTitle), &value);
+    value = SortComparison_StringLess(NS_ConvertUTF8toUTF16(a->mTitle),
+                                      NS_ConvertUTF8toUTF16(b->mTitle));
   }
 
   
@@ -800,6 +817,101 @@ PRInt32 PR_CALLBACK nsNavHistoryContainerResultNode::SortComparison_URIGreater(
   return -SortComparison_URILess(a, b, closure);
 }
 
+
+PRInt32 PR_CALLBACK nsNavHistoryContainerResultNode::SortComparison_AnnotationLess(
+    nsNavHistoryResultNode* a, nsNavHistoryResultNode* b, void* closure)
+{
+  nsCAutoString annoName(NS_STATIC_CAST(char*, closure));
+  NS_ENSURE_TRUE(!annoName.IsEmpty(), 0);
+  
+  nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
+  NS_ENSURE_TRUE(bookmarks, 0);
+
+  
+  nsCOMPtr<nsIURI> a_uri;
+  if (a->mBookmarkId != -1) {
+    bookmarks->GetItemURI(a->mBookmarkId, getter_AddRefs(a_uri));
+  } else {
+    nsCAutoString spec;
+    if (NS_SUCCEEDED(a->GetUri(spec)))
+      NS_NewURI(getter_AddRefs(a_uri), spec);
+  }
+  NS_ENSURE_TRUE(a_uri, 0);
+
+  nsCOMPtr<nsIURI> b_uri;
+  if (b->mBookmarkId != -1) {
+    bookmarks->GetItemURI(b->mBookmarkId, getter_AddRefs(b_uri));
+  } else {
+    nsCAutoString spec;
+    if (NS_SUCCEEDED(b->GetUri(spec)))
+      NS_NewURI(getter_AddRefs(b_uri), spec);
+  }
+  NS_ENSURE_TRUE(b_uri, 0);
+
+  nsAnnotationService* annosvc = nsAnnotationService::GetAnnotationService();
+  NS_ENSURE_TRUE(annosvc, 0);
+
+  PRBool a_hasAnno, b_hasAnno;
+  NS_ENSURE_SUCCESS(annosvc->HasAnnotation(a_uri, annoName, &a_hasAnno), 0);
+  NS_ENSURE_SUCCESS(annosvc->HasAnnotation(b_uri, annoName, &b_hasAnno), 0);
+
+  PRInt32 value = 0;
+  if (a_hasAnno && b_hasAnno) {
+    PRInt32 a_type, b_type;
+    NS_ENSURE_SUCCESS(annosvc->GetAnnotationType(a_uri, annoName, &a_type), 0);
+    NS_ENSURE_SUCCESS(annosvc->GetAnnotationType(b_uri, annoName, &b_type), 0);
+
+    
+    if (a_type == b_type &&
+        a_type != nsIAnnotationService::TYPE_BINARY) {
+      if (a_type == nsIAnnotationService::TYPE_STRING) {
+        nsAutoString a_val, b_val;
+        NS_ENSURE_SUCCESS(annosvc->GetAnnotationString(a_uri, annoName, a_val),
+                          0);
+        NS_ENSURE_SUCCESS(annosvc->GetAnnotationString(b_uri, annoName, b_val),
+                          0);
+        value = SortComparison_StringLess(a_val, b_val);
+      }
+      else if (a_type == nsIAnnotationService::TYPE_INT32) {
+        PRInt32 a_val, b_val;
+        NS_ENSURE_SUCCESS(annosvc->GetAnnotationInt32(a_uri, annoName, &a_val),
+                          0);
+        NS_ENSURE_SUCCESS(annosvc->GetAnnotationInt32(b_uri, annoName, &b_val),
+                          0);
+        value = (a < b) ? -1 : (a > b) ? 1 : 0;
+      }
+      else if (a_type == nsIAnnotationService::TYPE_INT64) {
+        PRInt64 a_val, b_val;
+        NS_ENSURE_SUCCESS(annosvc->GetAnnotationInt64(a_uri, annoName, &a_val),
+                          0);
+        NS_ENSURE_SUCCESS(annosvc->GetAnnotationInt64(b_uri, annoName, &b_val),
+                        0);
+        value = (a < b) ? -1 : (a > b) ? 1 : 0;
+      }
+      else if (a_type == nsIAnnotationService::TYPE_DOUBLE) {
+        double a_val, b_val;
+        NS_ENSURE_SUCCESS(annosvc->GetAnnotationDouble(a_uri, annoName, &a_val),
+                          0);
+        NS_ENSURE_SUCCESS(annosvc->GetAnnotationDouble(b_uri, annoName, &b_val),
+                          0);
+        value = (a < b) ? -1 : (a > b) ? 1 : 0;
+      }
+    }
+  }
+
+  
+  
+  
+  if (value == 0)
+    return SortComparison_TitleLess(a, b, nsnull);
+
+  return value;
+}
+PRInt32 PR_CALLBACK nsNavHistoryContainerResultNode::SortComparison_AnnotationGreater(
+    nsNavHistoryResultNode* a, nsNavHistoryResultNode* b, void* closure)
+{
+  return -SortComparison_AnnotationLess(a, b, closure);
+}
 
 
 
@@ -965,7 +1077,9 @@ nsNavHistoryContainerResultNode::InsertSortedChild(
     if (! aIsTemporary && aNode->IsContainer())
       aNode->GetAsContainer()->FillStats();
 
-    return InsertChildAt(aNode, FindInsertionPoint(aNode, comparator),
+    nsCAutoString sortingAnnotation;
+    GetSortingAnnotation(sortingAnnotation);
+    return InsertChildAt(aNode, FindInsertionPoint(aNode, comparator, sortingAnnotation.get()),
                          aIsTemporary);
   }
   return InsertChildAt(aNode, mChildren.Count(), aIsTemporary);
@@ -1218,8 +1332,11 @@ nsNavHistoryContainerResultNode::UpdateURIs(PRBool aRecursive, PRBool aOnlyOne,
     return;
 
   SortComparator comparator = nsnull;
-  if (aUpdateSort)
+  nsCAutoString sortingAnnotation;
+  if (aUpdateSort) {
     comparator = GetSortingComparator(GetSortType());
+    GetSortingAnnotation(sortingAnnotation);
+  }
 
   
   
@@ -1250,10 +1367,12 @@ nsNavHistoryContainerResultNode::UpdateURIs(PRBool aRecursive, PRBool aOnlyOne,
 
     if (aUpdateSort) {
       PRInt32 childIndex = parent->FindChild(node);
-      if (childIndex >= 0 && parent->DoesChildNeedResorting(childIndex, comparator)) {
+      if (childIndex >= 0 && parent->DoesChildNeedResorting(childIndex, comparator,
+                                                            sortingAnnotation.get())) {
         
         parent->RemoveChildAt(childIndex, PR_TRUE);
-        parent->InsertChildAt(node, parent->FindInsertionPoint(node, comparator),
+        parent->InsertChildAt(node, parent->FindInsertionPoint(node, comparator,
+                                                               sortingAnnotation.get()),
                               PR_TRUE);
       } else if (result->GetView()) {
         result->GetView()->ItemChanged(node);
@@ -1871,8 +1990,11 @@ nsNavHistoryQueryResultNode::FillChildren()
   
   
   SortComparator comparator = GetSortingComparator(GetSortType());
+  nsCAutoString sortingAnnotation;
+  GetSortingAnnotation(sortingAnnotation);
+
   if (comparator)
-    RecursiveSort(history->GetCollation(), comparator);
+    RecursiveSort(sortingAnnotation.get(), comparator);
 
   
   nsNavHistoryResult* result = GetResult();
@@ -1982,7 +2104,8 @@ nsNavHistoryQueryResultNode::GetSortType()
   if (mParent) {
     
     return mOptions->SortingMode();
-  } else if (mResult) {
+  }
+  if (mResult) {
     return mResult->mSortingMode;
   }
 
@@ -1990,6 +2113,18 @@ nsNavHistoryQueryResultNode::GetSortType()
   return nsINavHistoryQueryOptions::SORT_BY_NONE;
 }
 
+void
+nsNavHistoryQueryResultNode::GetSortingAnnotation(nsACString& aAnnotation) {
+  if (mParent) {
+    
+    mOptions->GetSortingAnnotation(aAnnotation);
+  }
+  else if (mResult) {
+    aAnnotation.Assign(mResult->mSortingAnnotation);
+  }
+  else
+    NS_NOTREACHED("We should always have a result");
+}
 
 
 NS_IMETHODIMP
@@ -2937,10 +3072,14 @@ nsNavHistoryFolderResultNode::OnItemVisited(PRInt64 aBookmarkId, nsIURI* aBookma
     PRInt32 childIndex = FindChild(node);
     NS_ASSERTION(childIndex >= 0, "Could not find child we just got a reference to");
     if (childIndex >= 0) {
-      SortComparator comparator = GetSortingComparator(GetSortType()); 
+      SortComparator comparator = GetSortingComparator(GetSortType());
+      nsCAutoString sortingAnnotation;
+      GetSortingAnnotation(sortingAnnotation);
       nsCOMPtr<nsINavHistoryResultNode> nodeLock(node);
       RemoveChildAt(childIndex, PR_TRUE);
-      InsertChildAt(node, FindInsertionPoint(node, comparator), PR_TRUE);
+      InsertChildAt(node,
+                    FindInsertionPoint(node, comparator, sortingAnnotation.get()),
+                    PR_TRUE);
     }
   } else if (result->GetView()) {
     
@@ -3044,12 +3183,16 @@ nsNavHistoryFolderResultNode::OnFolderMoved(PRInt64 aFolder, PRInt64 aOldParent,
     
     PRInt32 sortType = GetSortType();
     SortComparator comparator = GetSortingComparator(sortType);
-    if (DoesChildNeedResorting(index, comparator)) {
+    nsCAutoString sortingAnnotation;
+    GetSortingAnnotation(sortingAnnotation);
+    if (DoesChildNeedResorting(index, comparator, sortingAnnotation.get())) {
       
       
       nsRefPtr<nsNavHistoryContainerResultNode> lock(node);
       RemoveChildAt(index, PR_TRUE);
-      InsertChildAt(node, FindInsertionPoint(node, comparator), PR_TRUE);
+      InsertChildAt(node,
+                    FindInsertionPoint(node, comparator, sortingAnnotation.get()),
+                    PR_TRUE);
       return NS_OK;
     }
 
@@ -3093,11 +3236,14 @@ nsNavHistoryFolderResultNode::OnFolderChanged(PRInt64 aFolder,
         mParent) {
       PRInt32 ourIndex = mParent->FindChild(this);
       SortComparator comparator = GetSortingComparator(sortType);
-      if (mParent->DoesChildNeedResorting(ourIndex, comparator)) {
+      nsCAutoString sortingAnnotation;
+      GetSortingAnnotation(sortingAnnotation);
+      if (mParent->DoesChildNeedResorting(ourIndex, comparator, sortingAnnotation.get())) {
         
         
         mParent->RemoveChildAt(ourIndex, PR_TRUE);
-        mParent->InsertChildAt(this, mParent->FindInsertionPoint(this, comparator),
+        mParent->InsertChildAt(this,
+                               mParent->FindInsertionPoint(this, comparator, sortingAnnotation.get()),
                                PR_TRUE);
         return NS_OK;
       }
@@ -3250,6 +3396,8 @@ nsNavHistoryResult::Init(nsINavHistoryQuery** aQueries,
   }
   rv = aOptions->Clone(getter_AddRefs(mOptions));
   mSortingMode = aOptions->SortingMode();
+  aOptions->GetSortingAnnotation(mSortingAnnotation);
+
   NS_ENSURE_SUCCESS(rv, rv);
 
   mPropertyBags.Init();
@@ -3423,7 +3571,7 @@ nsNavHistoryResult::GetSortingMode(PRUint32* aSortingMode)
 NS_IMETHODIMP
 nsNavHistoryResult::SetSortingMode(PRUint32 aSortingMode)
 {
-  if (aSortingMode > nsINavHistoryQueryOptions::SORT_BY_VISITCOUNT_DESCENDING)
+  if (aSortingMode > nsINavHistoryQueryOptions::SORT_BY_ANNOTATION_DESCENDING)
     return NS_ERROR_INVALID_ARG;
   if (! mRootNode)
     return NS_ERROR_FAILURE;
@@ -3439,7 +3587,7 @@ nsNavHistoryResult::SetSortingMode(PRUint32 aSortingMode)
   if (comparator) {
     nsNavHistory* history = nsNavHistory::GetHistoryService();
     NS_ENSURE_TRUE(history, NS_ERROR_OUT_OF_MEMORY);
-    mRootNode->RecursiveSort(history->GetCollation(), comparator);
+    mRootNode->RecursiveSort(mSortingAnnotation.get(), comparator);
   }
 
   if (mView) {
@@ -3449,6 +3597,17 @@ nsNavHistoryResult::SetSortingMode(PRUint32 aSortingMode)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsNavHistoryResult::GetSortingAnnotation(nsACString& _result) {
+  _result.Assign(mSortingAnnotation);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNavHistoryResult::SetSortingAnnotation(const nsACString& aSortingAnnotation) {
+  mSortingAnnotation.Assign(aSortingAnnotation);
+  return NS_OK;
+}
 
 
 
