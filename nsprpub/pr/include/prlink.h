@@ -166,6 +166,8 @@ typedef struct PRLibSpec {
 #define PR_LD_GLOBAL 0x4  /* equivalent to RTLD_GLOBAL on Unix */
 #define PR_LD_LOCAL  0x8  /* equivalent to RTLD_LOCAL on Unix */
 
+#define PR_LD_ALT_SEARCH_PATH  0x10  
+
 
 
 

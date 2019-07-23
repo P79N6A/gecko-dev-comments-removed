@@ -76,13 +76,15 @@ PRIntn _PR_MD_PUT_ENV(const char *name)
 
 #ifdef __GNUC__
 const PRTime _pr_filetime_offset = 116444736000000000LL;
+const PRTime _pr_filetime_divisor = 10LL;
 #else
 const PRTime _pr_filetime_offset = 116444736000000000i64;
+const PRTime _pr_filetime_divisor = 10i64;
 #endif
 
 #ifdef WINCE
 
-#define FILETIME2INT64(ft) \
+#define FILETIME_TO_INT64(ft) \
   (((PRInt64)ft.dwHighDateTime) << 32 | (PRInt64)ft.dwLowDateTime)
 
 static void
@@ -107,6 +109,9 @@ typedef struct CalibrationData {
 } CalibrationData;
 
 static CalibrationData calibration;
+
+typedef void (*GetSystemTimeAsFileTimeFcn)(LPFILETIME);
+static GetSystemTimeAsFileTimeFcn ce6_GetSystemTimeAsFileTime = NULL;
 
 static void
 NowCalibrate(void)
@@ -136,11 +141,11 @@ NowCalibrate(void)
 	timeEndPeriod(1);
 
 	calibration.granularity = 
-	    (FILETIME2INT64(ft) - FILETIME2INT64(ftStart))/10;
+	    (FILETIME_TO_INT64(ft) - FILETIME_TO_INT64(ftStart))/10;
 
 	QueryPerformanceCounter(&now);
 
-	calibration.offset = (long double) FILETIME2INT64(ft);
+	calibration.offset = (long double) FILETIME_TO_INT64(ft);
 	calibration.timer_offset = (long double) now.QuadPart;
 	
 
@@ -159,26 +164,33 @@ NowCalibrate(void)
 #define DATALOCK_SPINCOUNT 4096
 #define LASTLOCK_SPINCOUNT 4096
 
-static PRStatus
+void
 _MD_InitTime(void)
 {
-    memset(&calibration, 0, sizeof(calibration));
-    NowCalibrate();
-    InitializeCriticalSection(&calibration.calibration_lock);
-    InitializeCriticalSection(&calibration.data_lock);
-    return PR_SUCCESS;
+    
+    HANDLE h = GetModuleHandleW(L"coredll.dll");
+    ce6_GetSystemTimeAsFileTime = (GetSystemTimeAsFileTimeFcn)
+        GetProcAddressA(h, "GetSystemTimeAsFileTime");
+
+    
+    if (ce6_GetSystemTimeAsFileTime == NULL) {
+        memset(&calibration, 0, sizeof(calibration));
+        NowCalibrate();
+        InitializeCriticalSection(&calibration.calibration_lock);
+        InitializeCriticalSection(&calibration.data_lock);
+    }
 }
 
 void
 _MD_CleanupTime(void)
 {
-    DeleteCriticalSection(&calibration.calibration_lock);
-    DeleteCriticalSection(&calibration.data_lock);
+    if (ce6_GetSystemTimeAsFileTime == NULL) {
+        DeleteCriticalSection(&calibration.calibration_lock);
+        DeleteCriticalSection(&calibration.data_lock);
+    }
 }
 
 #define MUTEX_SETSPINCOUNT(m, c)
-
-static PRCallOnceType calibrationOnce;
 
 
 
@@ -205,8 +217,23 @@ PR_Now(void)
     PRInt64 returnedTime;
     long double cachedOffset = 0.0;
 
-    
-    PR_CallOnce(&calibrationOnce, _MD_InitTime);
+    if (ce6_GetSystemTimeAsFileTime) {
+        union {
+            FILETIME ft;
+            PRTime prt;
+        } currentTime;
+
+        PR_ASSERT(sizeof(FILETIME) == sizeof(PRTime));
+
+        ce6_GetSystemTimeAsFileTime(&currentTime.ft);
+
+        
+
+
+        return currentTime.prt/_pr_filetime_divisor -
+            _pr_filetime_offset/_pr_filetime_divisor;
+    }
+
     do {
 	if (!calibration.calibrated || needsCalibration) {
 	    EnterCriticalSection(&calibration.calibration_lock);
@@ -233,8 +260,8 @@ PR_Now(void)
 
 	
 	LowResTime(&ft);
-	lowresTime = ((long double)(FILETIME2INT64(ft) - _pr_filetime_offset))
-		     * 0.1;
+	lowresTime =
+            ((long double)(FILETIME_TO_INT64(ft) - _pr_filetime_offset)) * 0.1;
 
 	if (calibration.freq > 0.0) {
 	    long double highresTime, diff;

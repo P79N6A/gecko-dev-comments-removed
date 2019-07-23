@@ -188,17 +188,11 @@ void _PR_InitLinker(void)
 #if defined(XP_PC)
     lm = PR_NEWZAP(PRLibrary);
     lm->name = strdup("Executable");
-        
-
-
-
-
-
-
-#if defined(_WIN32)
-        lm->dlh = GetModuleHandle(NULL);
+#if defined(XP_OS2)
+    lm->dlh = NULLHANDLE;
 #else
-        lm->dlh = (HINSTANCE)NULL;
+    
+    lm->dlh = GetModuleHandle(NULL);
 #endif 
 
     lm->refCount    = 1;
@@ -758,7 +752,9 @@ pr_LoadLibraryByPathname(const char *name, PRIntn flags)
     {
     HINSTANCE h;
 
-    h = LoadLibraryW(wname);
+    h = LoadLibraryExW(wname, NULL,
+                       (flags & PR_LD_ALT_SEARCH_PATH) ?
+                       LOAD_WITH_ALTERED_SEARCH_PATH : 0);
     if (h == NULL) {
         oserr = _MD_ERRNO();
         PR_DELETE(lm);

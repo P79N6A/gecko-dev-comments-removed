@@ -452,8 +452,10 @@ extern struct PRThread * _MD_CURRENT_THREAD(void);
 
 
 
+
+
 struct _MDFileMap {
-    PRInt8 unused;
+    PROffset64  maxExtent;
 };
 
 extern PRStatus _MD_CreateFileMap(struct PRFileMap *fmap, PRInt64 size);
