@@ -6374,7 +6374,9 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   nsIAtom* frameType = parentFrame->GetType();
 
   FrameConstructionItemList items;
-  if (aNewIndexInContainer > 0) {
+  if (aNewIndexInContainer > 0 && GetParentType(frameType) == eTypeBlock) {
+    
+    
     
     
     
@@ -6717,6 +6719,7 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
         GetInsertionPrevSibling(parentFrame, aContainer, aChild,
                                 aIndexInContainer, &isAppend);
       container = parentFrame->GetContent();
+      frameType = parentFrame->GetType();
     }
   }
 
@@ -6737,7 +6740,10 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
   }
 
   FrameConstructionItemList items;
-  if (aIndexInContainer > 0) {
+  ParentType parentType = GetParentType(frameType);
+  if (aIndexInContainer > 0 && parentType == eTypeBlock) {
+    
+    
     
     
     
@@ -6747,7 +6753,10 @@ nsCSSFrameConstructor::ContentInserted(nsIContent*            aContainer,
 
   AddFrameConstructionItems(state, aChild, aIndexInContainer, parentFrame, items);
 
-  if (aIndexInContainer + 1 < PRInt32(aContainer->GetChildCount())) {
+  if (aIndexInContainer + 1 < PRInt32(aContainer->GetChildCount()) &&
+      parentType == eTypeBlock) {
+    
+    
     
     
     
@@ -11051,6 +11060,19 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
       
       
       
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
       FCItemIterator iter(aItems);
       FCItemIterator start(iter);
       do {
@@ -11067,12 +11089,25 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
         if (iter == start) {
           
           
-          if (aPrevSibling) {
-            if (IsTablePseudo(aPrevSibling)) {
+          nsIFrame* prevSibling = aPrevSibling;
+          if (!prevSibling) {
+            
+            nsIFrame* parentPrevCont = aFrame->GetPrevContinuation();
+            while (parentPrevCont) {
+              prevSibling =
+                nsFrameList(parentPrevCont->GetFirstChild(nsnull)).LastChild();
+              if (prevSibling) {
+                break;
+              }
+              parentPrevCont = parentPrevCont->GetPrevContinuation();
+            }
+          };
+          if (prevSibling) {
+            if (IsTablePseudo(prevSibling)) {
               
               break;
             }
-          } else if (aFrame->GetPrevContinuation() || IsTablePseudo(aFrame)) {
+          } else if (IsTablePseudo(aFrame)) {
             
             break;
           }
@@ -11082,10 +11117,37 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
         
         PRBool trailingSpaces = spaceEndIter.SkipWhitespace();
 
-        if ((!trailingSpaces &&
-             spaceEndIter.item().DesiredParentType() == parentType) ||
-            (trailingSpaces && aIsAppend && !nextSibling)) {
+        PRBool okToDrop;
+        if (trailingSpaces) {
           
+          
+          okToDrop = aIsAppend && !nextSibling;
+          if (!okToDrop) {
+            if (!nextSibling) {
+              
+              nsIFrame* parentNextCont = aFrame->GetNextContinuation();
+              while (parentNextCont) {
+                nextSibling = parentNextCont->GetFirstChild(nsnull);
+                if (nextSibling) {
+                  break;
+                }
+                parentNextCont = parentNextCont->GetNextContinuation();
+              }
+            }
+
+            okToDrop = (nextSibling && !IsTablePseudo(nextSibling)) ||
+                       (!nextSibling && !IsTablePseudo(aFrame));
+          }
+#ifdef DEBUG
+          else {
+            NS_ASSERTION(!IsTablePseudo(aFrame), "How did that happen?");
+          }
+#endif
+        } else {
+          okToDrop = (spaceEndIter.item().DesiredParentType() == parentType);
+        }
+
+        if (okToDrop) {
           iter.DeleteItemsTo(spaceEndIter);
         } else {
           
