@@ -214,6 +214,23 @@ nsHttpTransaction::Init(PRUint8 caps,
         mNoContent = PR_TRUE;
 
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if ((requestHead->Method() == nsHttp::Post || requestHead->Method() == nsHttp::Put) &&
+        !requestBody && !requestHead->PeekHeader(nsHttp::Transfer_Encoding)) {
+        requestHead->SetHeader(nsHttp::Content_Length, NS_LITERAL_CSTRING("0"));
+    }
+
+    
     mRequestHead = requestHead;
 
     
