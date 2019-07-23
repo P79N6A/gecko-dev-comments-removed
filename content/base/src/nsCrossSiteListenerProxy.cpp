@@ -317,7 +317,7 @@ nsCrossSiteListenerProxy::HandleStartElement(const PRUnichar *aName,
 
   
   
-  return NS_ERROR_HTMLPARSER_BLOCK;
+  return NS_ERROR_HTMLPARSER_STOPPARSING;
 }
 
 NS_IMETHODIMP
@@ -482,7 +482,7 @@ nsCrossSiteListenerProxy::WillBuildModel()
     
     
     
-    return NS_ERROR_HTMLPARSER_BLOCK;
+    return NS_ERROR_HTMLPARSER_STOPPARSING;
   }
 
   return NS_OK;
