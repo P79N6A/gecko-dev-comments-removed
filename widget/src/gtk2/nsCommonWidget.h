@@ -81,8 +81,6 @@ public:
     
     void InitButtonEvent(nsMouseEvent &aEvent,
                          GdkEventButton *aGdkEvent);
-    void InitMouseScrollEvent(nsMouseScrollEvent &aEvent,
-                              GdkEventScroll *aGdkEvent);
     void InitKeyEvent(nsKeyEvent &aEvent, GdkEventKey *aGdkEvent);
 
     void DispatchGotFocusEvent(void);
