@@ -204,6 +204,12 @@ nsSVGTextFrame::NotifyCanvasTMChanged(PRBool suppressInvalidation)
   
   mCanvasTM = nsnull;
 
+  
+  
+  
+  
+  NotifyGlyphMetricsChange();
+
   return nsSVGTextFrameBase::NotifyCanvasTMChanged(suppressInvalidation);
 }
 

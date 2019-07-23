@@ -330,6 +330,12 @@ public:
   
 
 
+  static void
+  NotifyChildrenCanvasTMChanged(nsIFrame *aFrame, PRBool suppressInvalidation);
+
+  
+
+
   static nsRect
   GetCoveredRegion(const nsFrameList &aFrames);
 
