@@ -47,7 +47,8 @@ LoginManagerStorage_legacy.prototype = {
     classDescription  : "LoginManagerStorage_legacy",
     contractID : "@mozilla.org/login-manager/storage/legacy;1",
     classID : Components.ID("{e09e4ca6-276b-4bb4-8b71-0635a3a2a007}"),
-    QueryInterface : XPCOMUtils.generateQI([Ci.nsILoginManagerStorage]),
+    QueryInterface : XPCOMUtils.generateQI([Ci.nsILoginManagerStorage,
+                                    Ci.nsILoginManagerIEMigrationHelper]),
 
     __logService : null, 
     get _logService() {
@@ -655,7 +656,7 @@ LoginManagerStorage_legacy.prototype = {
                                  createInstance(Ci.nsILoginInfo);
                 extraLogin.init("https://" + host + ":" + port,
                                 null, aLogin.httpRealm,
-                                null, null, "", "");
+                                aLogin.username, aLogin.password, "", "");
                 
                 
                 extraLogin.wrappedJSObject.encryptedPassword = 
@@ -1293,6 +1294,89 @@ LoginManagerStorage_legacy.prototype = {
         return [plainText, userCanceled];
     },
 
+
+
+
+    
+
+
+
+
+    _migrationLoginManager : null,
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    migrateAndAddLogin : function (aLogin) {
+        
+        if (!this._migrationLoginManager) {
+            
+            this._prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                               getService(Ci.nsIPrefService);
+            this._prefBranch = this._prefBranch.getBranch("signon.");
+            this._prefBranch.QueryInterface(Ci.nsIPrefBranch2);
+
+            this._debug = this._prefBranch.getBoolPref("debug");
+
+            this._migrationLoginManager = Cc["@mozilla.org/login-manager;1"].
+                                          getService(Ci.nsILoginManager);
+        }
+
+        this.log("Migrating login for " + aLogin.hostname);
+
+        
+        
+        var logins = this._upgrade_entry_to_2E(aLogin);
+
+        
+        
+        for each (var login in logins)
+            this._migrationLoginManager.addLogin(login);
+    }
 }; 
 
 var component = [LoginManagerStorage_legacy];

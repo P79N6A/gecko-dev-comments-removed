@@ -81,7 +81,7 @@
 #include "nsIGlobalHistory.h"
 #include "nsIRDFRemoteDataSource.h"
 #include "nsIURI.h"
-#include "nsILoginManager.h"
+#include "nsILoginManagerIEMigrationHelper.h"
 #include "nsILoginInfo.h"
 #include "nsIFormHistory.h"
 #include "nsIRDFService.h"
@@ -907,7 +907,8 @@ nsIEProfileMigrator::MigrateSiteAuthSignons(IPStore* aPStore)
 
   NS_ENSURE_ARG_POINTER(aPStore);
 
-  nsCOMPtr<nsILoginManager> pwmgr(do_GetService("@mozilla.org/login-manager;1"));
+  nsCOMPtr<nsILoginManagerIEMigrationHelper> pwmgr(
+    do_GetService("@mozilla.org/login-manager/storage/legacy;1"));
   if (!pwmgr)
     return NS_OK;
 
@@ -941,7 +942,7 @@ nsIEProfileMigrator::MigrateSiteAuthSignons(IPStore* aPStore)
           int idx;
           idx = host.FindChar('/');
           if (idx) {
-            realm.Assign(Substring(host, idx));
+            realm.Assign(Substring(host, idx + 1));
             host.Assign(Substring(host, 0, idx));
           }
           
@@ -958,8 +959,10 @@ nsIEProfileMigrator::MigrateSiteAuthSignons(IPStore* aPStore)
           aLogin->SetHttpRealm(realm);
           aLogin->SetUsername(NS_ConvertUTF8toUTF16((char *)data));
           aLogin->SetPassword(NS_ConvertUTF8toUTF16((char *)password));
+          aLogin->SetUsernameField(EmptyString());
+          aLogin->SetPasswordField(EmptyString());
 
-          pwmgr->AddLogin(aLogin);
+          pwmgr->MigrateAndAddLogin(aLogin);
         }
         ::CoTaskMemFree(data);
       }
@@ -1101,7 +1104,8 @@ nsIEProfileMigrator::ResolveAndMigrateSignons(IPStore* aPStore, nsVoidArray* aSi
 void
 nsIEProfileMigrator::EnumerateUsernames(const nsAString& aKey, PRUnichar* aData, unsigned long aCount, nsVoidArray* aSignonsFound)
 {
-  nsCOMPtr<nsILoginManager> pwmgr(do_GetService("@mozilla.org/login-manager;1"));
+  nsCOMPtr<nsILoginManagerIEMigrationHelper> pwmgr(
+    do_GetService("@mozilla.org/login-manager/storage/legacy;1"));
   if (!pwmgr)
     return;
 
@@ -1118,7 +1122,7 @@ nsIEProfileMigrator::EnumerateUsernames(const nsAString& aKey, PRUnichar* aData,
       if (curr.Equals(sd->user)) {
         
         nsDependentString usernameStr(sd->user), passStr(sd->pass);
-        nsDependentCString realm(sd->realm);
+        nsAutoString realm(NS_ConvertUTF8toUTF16(sd->realm));
 
         nsresult rv;
 
@@ -1127,8 +1131,18 @@ nsIEProfileMigrator::EnumerateUsernames(const nsAString& aKey, PRUnichar* aData,
 
         
         
+        
+        
+        
+        
+        aLogin->SetHostname(realm);
+        aLogin->SetFormSubmitURL(EmptyString());
+        aLogin->SetUsername(usernameStr);
+        aLogin->SetPassword(passStr);
+        aLogin->SetUsernameField(aKey);
+        aLogin->SetPasswordField(EmptyString());
 
-        pwmgr->AddLogin(aLogin);
+        pwmgr->MigrateAndAddLogin(aLogin);
       }
     }
 
