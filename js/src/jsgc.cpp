@@ -2488,6 +2488,11 @@ js_TriggerGC(JSContext *cx, JSBool gcLocked)
     if (rt->gcIsNeeded)
         return;
 
+    
+
+
+
+    rt->gcIsNeeded = JS_TRUE;
     js_TriggerAllOperationCallbacks(rt, gcLocked);
 }
 
