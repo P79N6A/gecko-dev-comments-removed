@@ -278,6 +278,18 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
   },
   {
     
+    "1.3.6.1.4.1.782.1.2.1.8.1",
+    "Network Solutions EV OID",
+    SEC_OID_UNKNOWN,
+    "74:F8:A3:C3:EF:E7:B3:90:06:4B:83:90:3C:21:64:60:20:E5:DF:CE",
+    "MGIxCzAJBgNVBAYTAlVTMSEwHwYDVQQKExhOZXR3b3JrIFNvbHV0aW9ucyBMLkwu"
+    "Qy4xMDAuBgNVBAMTJ05ldHdvcmsgU29sdXRpb25zIENlcnRpZmljYXRlIEF1dGhv"
+    "cml0eQ==",
+    "V8szb8JcFuZHFhfjkDFo4A==",
+    nsnull
+  },
+  {
+    
     "0.0.0.0",
     0, 
     SEC_OID_UNKNOWN,
