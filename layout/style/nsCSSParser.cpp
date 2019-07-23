@@ -1910,14 +1910,19 @@ static PRBool IsTreePseudoElement(nsIAtom* aPseudo)
 PRBool CSSParserImpl::ParseSelectorGroup(nsresult& aErrorCode,
                                          nsCSSSelectorList*& aList)
 {
-  nsCSSSelectorList* list = nsnull;
+  nsAutoPtr<nsCSSSelectorList> list;
   PRUnichar     combinator = PRUnichar(0);
   PRInt32       weight = 0;
   PRBool        havePseudoElement = PR_FALSE;
   PRBool        done = PR_FALSE;
   while (!done) {
-    nsCSSSelector selector;
-    nsSelectorParsingStatus parsingStatus = ParseSelector(aErrorCode, selector);
+    nsAutoPtr<nsCSSSelector> newSelector(new nsCSSSelector());
+    if (!newSelector) {
+      aErrorCode = NS_ERROR_OUT_OF_MEMORY;
+      return PR_FALSE;
+    }
+    nsSelectorParsingStatus parsingStatus =
+      ParseSelector(aErrorCode, *newSelector);
     if (parsingStatus == eSelectorParsingStatus_Empty) {
       if (!list) {
         REPORT_UNEXPECTED(PESelectorGroupNoSelector);
@@ -1925,10 +1930,7 @@ PRBool CSSParserImpl::ParseSelectorGroup(nsresult& aErrorCode,
       break;
     }
     if (parsingStatus == eSelectorParsingStatus_Error) {
-      if (list) {
-        delete list;
-        list = nsnull;
-      }
+      list = nsnull;
       break;
     }
     if (nsnull == list) {
@@ -1938,7 +1940,7 @@ PRBool CSSParserImpl::ParseSelectorGroup(nsresult& aErrorCode,
         return PR_FALSE;
       }
     }
-    list->AddSelector(selector);
+    list->AddSelector(newSelector);
     nsCSSSelector* listSel = list->mSelectors;
 
     
@@ -1953,26 +1955,34 @@ PRBool CSSParserImpl::ParseSelectorGroup(nsresult& aErrorCode,
           listSel->Reset();
           if (listSel->mNext) {
             listSel->mOperator = PRUnichar('>');
-            nsCSSSelector empty;
+            nsAutoPtr<nsCSSSelector> empty(new nsCSSSelector());
+            if (!empty) {
+              aErrorCode = NS_ERROR_OUT_OF_MEMORY;
+              return PR_FALSE;
+            }
             list->AddSelector(empty); 
             listSel = list->mSelectors; 
           }
           listSel->mTag = pseudoElement;
         }
         else {  
-          selector.Reset();
-          selector.mTag = pseudoClassList->mAtom; 
+          nsAutoPtr<nsCSSSelector> pseudoTagSelector(new nsCSSSelector());
+          if (!pseudoTagSelector) {
+            aErrorCode = NS_ERROR_OUT_OF_MEMORY;
+            return PR_FALSE;
+          }
+          pseudoTagSelector->mTag = pseudoClassList->mAtom; 
 #ifdef MOZ_XUL
-          if (IsTreePseudoElement(selector.mTag)) {
+          if (IsTreePseudoElement(pseudoTagSelector->mTag)) {
             
             
             
             
-            selector.mPseudoClassList = pseudoClassList->mNext;
+            pseudoTagSelector->mPseudoClassList = pseudoClassList->mNext;
             pseudoClassList->mNext = nsnull;
           }
 #endif
-          list->AddSelector(selector);
+          list->AddSelector(pseudoTagSelector);
           pseudoClassList->mAtom = nsnull;
           listSel->mOperator = PRUnichar('>');
           if (nsnull == prevList) { 
@@ -2014,28 +2024,32 @@ PRBool CSSParserImpl::ParseSelectorGroup(nsresult& aErrorCode,
       list->mSelectors->SetOperator(combinator);
     }
     else {
+      if (eCSSToken_Symbol == mToken.mType &&
+          ('{' == mToken.mSymbol ||
+           ',' == mToken.mSymbol)) {
+        
+        done = PR_TRUE;
+      }
       UngetToken(); 
+                    
     }
 
     if (havePseudoElement) {
       break;
     }
     else {
-      weight += selector.CalcWeight();
+      weight += listSel->CalcWeight();
     }
   }
 
   if (PRUnichar(0) != combinator) { 
-    if (list) {
-      delete list;
-      list = nsnull;
-    }
+    list = nsnull;
     
     REPORT_UNEXPECTED(PESelectorGroupExtraCombinator);
   }
-  aList = list;
-  if (nsnull != list) {
-    list->mWeight = weight;
+  aList = list.forget();
+  if (aList) {
+    aList->mWeight = weight;
   }
   return PRBool(nsnull != aList);
 }

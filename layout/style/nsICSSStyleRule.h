@@ -196,7 +196,8 @@ struct nsCSSSelectorList {
 
 
 
-  void AddSelector(const nsCSSSelector& aSelector);
+
+  void AddSelector(nsAutoPtr<nsCSSSelector>& aSelector);
 
   
 
