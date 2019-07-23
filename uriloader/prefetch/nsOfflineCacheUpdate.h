@@ -177,8 +177,15 @@ public:
                                     nsIDOMDocument *aDocument);
     nsresult UpdateFinished(nsOfflineCacheUpdate *aUpdate);
 
-    static nsOfflineCacheUpdateService *GetInstance();
+    
 
+
+
+    static nsOfflineCacheUpdateService *EnsureService();
+
+    
+    static nsOfflineCacheUpdateService *GetInstance();
+    
 private:
     nsresult ProcessNextUpdate();
 
