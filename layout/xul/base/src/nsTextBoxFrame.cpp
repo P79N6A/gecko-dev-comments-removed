@@ -450,17 +450,17 @@ nsTextBoxFrame::DrawText(nsIRenderingContext& aRenderingContext,
                 presContext->AppUnitsToGfxUnits(aTextRect.y));
     gfxFloat width = presContext->AppUnitsToGfxUnits(aTextRect.width);
     gfxFloat ascentPixel = presContext->AppUnitsToGfxUnits(ascent);
-    if (decorations & (NS_FONT_DECORATION_OVERLINE | NS_FONT_DECORATION_UNDERLINE)) {
+
+    
+    
+    
+    
+    
+    if (decorations & (NS_FONT_DECORATION_OVERLINE |
+                       NS_FONT_DECORATION_UNDERLINE)) {
       fontMet->GetUnderline(offset, size);
       gfxFloat offsetPixel = presContext->AppUnitsToGfxUnits(offset);
       gfxFloat sizePixel = presContext->AppUnitsToGfxUnits(size);
-      if (decorations & NS_FONT_DECORATION_OVERLINE) {
-        nsCSSRendering::PaintDecorationLine(ctx, overColor,
-                                            pt, gfxSize(width, sizePixel),
-                                            ascentPixel, ascentPixel,
-                                            NS_STYLE_TEXT_DECORATION_OVERLINE,
-                                            NS_STYLE_BORDER_STYLE_SOLID);
-      }
       if (decorations & NS_FONT_DECORATION_UNDERLINE) {
         nsCSSRendering::PaintDecorationLine(ctx, underColor,
                                             pt, gfxSize(width, sizePixel),
@@ -468,16 +468,13 @@ nsTextBoxFrame::DrawText(nsIRenderingContext& aRenderingContext,
                                             NS_STYLE_TEXT_DECORATION_UNDERLINE,
                                             NS_STYLE_BORDER_STYLE_SOLID);
       }
-    }
-    if (decorations & NS_FONT_DECORATION_LINE_THROUGH) {
-      fontMet->GetStrikeout(offset, size);
-      gfxFloat offsetPixel = presContext->AppUnitsToGfxUnits(offset);
-      gfxFloat sizePixel = presContext->AppUnitsToGfxUnits(size);
-      nsCSSRendering::PaintDecorationLine(ctx, underColor,
-                                          pt, gfxSize(width, sizePixel),
-                                          ascentPixel, offsetPixel,
-                                          NS_STYLE_TEXT_DECORATION_LINE_THROUGH,
-                                          NS_STYLE_BORDER_STYLE_SOLID);
+      if (decorations & NS_FONT_DECORATION_OVERLINE) {
+        nsCSSRendering::PaintDecorationLine(ctx, overColor,
+                                            pt, gfxSize(width, sizePixel),
+                                            ascentPixel, ascentPixel,
+                                            NS_STYLE_TEXT_DECORATION_OVERLINE,
+                                            NS_STYLE_BORDER_STYLE_SOLID);
+      }
     }
 
     aRenderingContext.SetFont(fontMet);
@@ -540,6 +537,19 @@ nsTextBoxFrame::DrawText(nsIRenderingContext& aRenderingContext,
                                    aTextRect.y + mAccessKeyInfo->mAccessOffset,
                                    mAccessKeyInfo->mAccessWidth,
                                    mAccessKeyInfo->mAccessUnderlineSize);
+    }
+
+    
+    
+    if (decorations & NS_FONT_DECORATION_LINE_THROUGH) {
+      fontMet->GetStrikeout(offset, size);
+      gfxFloat offsetPixel = presContext->AppUnitsToGfxUnits(offset);
+      gfxFloat sizePixel = presContext->AppUnitsToGfxUnits(size);
+      nsCSSRendering::PaintDecorationLine(ctx, strikeColor,
+                                          pt, gfxSize(width, sizePixel),
+                                          ascentPixel, offsetPixel,
+                                          NS_STYLE_TEXT_DECORATION_LINE_THROUGH,
+                                          NS_STYLE_BORDER_STYLE_SOLID);
     }
 }
 
