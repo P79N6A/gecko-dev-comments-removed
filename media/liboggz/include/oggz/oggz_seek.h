@@ -494,4 +494,17 @@ oggz_bounded_seek_set (OGGZ * oggz,
                        ogg_int64_t offset_begin,
                        ogg_int64_t offset_end);
 
+
+
+
+
+
+ogg_int64_t
+oggz_keyframe_seek_set(OGGZ * oggz,
+                       long* serial_nos,
+                       int num_serialno,
+                       ogg_int64_t unit_target,
+                       ogg_int64_t offset_begin,
+                       ogg_int64_t offset_end);
+
 #endif 

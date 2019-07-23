@@ -940,3 +940,126 @@ oggz_seek_packets (OGGZ * oggz, long serialno, long packets, int whence)
 }
 
 #endif
+
+
+
+static int
+is_any(ogg_int64_t* a, int n, ogg_int64_t val)
+{
+  int i;
+  for (i=0; i<n; i++) {
+    if (a[i] == val) {
+      return 1;
+    }
+  }
+  return 0;    
+}
+
+
+
+static int
+find(long* a, int n, ogg_int64_t val)
+{
+  int i;
+  for (i=0; i<n; i++) {
+    if (a[i] == val) {
+      return i;
+    }
+  }
+  return -1;    
+}
+
+
+
+static ogg_int64_t
+minimum(ogg_int64_t* a, int n) {
+  ogg_int64_t m = 0x7FFFFFFFFFFFFFFF;
+  int i;
+  for (i=0; i<n; i++) {
+    if (a[i] < m) {
+      m = a[i];
+    }
+  }
+  return m;
+}
+
+ogg_int64_t
+oggz_keyframe_seek_set(OGGZ * oggz,
+                       long* serial_nos,
+                       int num_serialno,
+                       ogg_int64_t unit_target,
+                       ogg_int64_t offset_begin,
+                       ogg_int64_t offset_end)
+{
+  oggz_off_t offset_at;
+  oggz_off_t offset_next;
+  ogg_int64_t granule_at;
+  ogg_int64_t unit_at;
+  ogg_int64_t key_granule_at, key_unit_at;
+  long serialno;
+  ogg_page * og;
+  int granule_shift = 0, idx;
+  ogg_int64_t* key_frames = 0;
+  
+  unit_at = oggz_bounded_seek_set(oggz,
+                                  unit_target,
+                                  offset_begin,
+                                  offset_end);
+  
+  if (unit_at == -1)
+    return -1;
+
+  
+  if (unit_at == 0)
+    return 0; 
+
+  
+  offset_at = oggz->offset;
+
+  key_frames = oggz_malloc(sizeof(ogg_int64_t) * num_serialno);
+  if (!key_frames) {
+    
+    
+    return unit_at;
+  }
+  memset(key_frames, -1, sizeof(ogg_int64_t) * num_serialno);
+
+  
+  og = &oggz->current_page;
+  while (is_any(key_frames, num_serialno, -1)) {
+    do {
+      offset_next = oggz_get_prev_start_page (oggz, og, &granule_at, &serialno);
+      if (offset_next <= 0 || granule_at == 0) {
+        
+        
+        oggz_free(key_frames);
+        offset_at = oggz_reset (oggz, offset_at, unit_at, SEEK_SET);
+        return (offset_at == -1) ? -1 : unit_at;
+      }
+    } while (granule_at < 0);
+
+    idx = find(serial_nos, num_serialno, serialno);
+    if (idx == -1 || key_frames[idx] != -1)
+      continue;
+
+    granule_shift = oggz_get_granuleshift(oggz, serialno);
+    key_granule_at = (granule_at >> granule_shift) << granule_shift;
+    key_unit_at = oggz_get_unit(oggz, serialno, key_granule_at);
+
+    if (key_unit_at < unit_target)
+      key_frames[idx] = key_unit_at;
+  }
+
+  
+  
+  
+  
+  key_unit_at = minimum(key_frames, num_serialno);
+  unit_at = oggz_bounded_seek_set(oggz,
+                                  MAX((key_unit_at - 100), 0),
+                                  offset_begin,
+                                  offset_end);
+  oggz_free(key_frames);
+
+  return unit_at;
+}
