@@ -2516,7 +2516,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::ForceRedraw()
 }
 
 NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
-{  
+{
   if (!mOwner) {
     NS_WARNING("plugin owner has no owner in getting doc's window handle");
     return NS_ERROR_FAILURE;
@@ -2573,17 +2573,18 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
           return NS_OK;
       }
     }
+  }
 #endif
+  
+  nsCOMPtr<nsIWidget> widget;
+  nsresult rv = vm->GetWidget(getter_AddRefs(widget));            
+  if (widget) {
+    *pvalue = (void*)widget->GetNativeData(NS_NATIVE_WINDOW);
+  } else {
+    NS_ASSERTION(widget, "couldn't get doc's widget in getting doc's window handle");
+  }
 
-    nsCOMPtr<nsIWidget> widget;
-    nsresult rv = vm->GetWidget(getter_AddRefs(widget));            
-    if (widget) {
-      *pvalue = (void*)widget->GetNativeData(NS_NATIVE_WINDOW);
-    } else {
-      NS_ASSERTION(widget, "couldn't get doc's widget in getting doc's window handle");
-    }
-
-    return rv;
+  return rv;
 #elif defined(MOZ_WIDGET_GTK2)
   
   nsIWidget* win = mOwner->GetWindow();
