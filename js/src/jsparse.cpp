@@ -3313,12 +3313,6 @@ PopStatement(JSTreeContext *tc)
                 continue;
             tc->decls.remove(tc->compiler, atom);
         }
-
-        
-
-
-
-        scope->object = NULL;
     }
     js_PopStatement(tc);
 }

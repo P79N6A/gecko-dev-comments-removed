@@ -210,9 +210,7 @@ struct JSScope : public JSObjectMap
     JSTitle         title;              
 #endif
     JSObject        *object;            
-    jsrefcount      nrefs;              
     uint32          freeslot;           
-    JSEmptyScope    *emptyScope;        
     uint8           flags;              
     int8            hashShift;          
 
@@ -220,6 +218,7 @@ struct JSScope : public JSObjectMap
     uint32          entryCount;         
     uint32          removedCount;       
     JSScopeProperty **table;            
+    JSEmptyScope    *emptyScope;        
 
     
 
@@ -259,14 +258,17 @@ struct JSScope : public JSObjectMap
     inline void updateShape(JSContext *cx);
     inline void updateFlags(const JSScopeProperty *sprop);
 
+  protected:
     void initMinimal(JSContext *cx, uint32 newShape);
+
+  private:
     bool createTable(JSContext *cx, bool report);
     bool changeTable(JSContext *cx, int change);
     void reportReadOnlyScope(JSContext *cx);
     void generateOwnShape(JSContext *cx);
     JSScopeProperty **searchTable(jsid id, bool adding);
     inline JSScopeProperty **search(jsid id, bool adding);
-    JSEmptyScope *createEmptyScope(JSContext *cx, JSClass *clasp);
+    inline JSEmptyScope *createEmptyScope(JSContext *cx, JSClass *clasp);
 
     JSScopeProperty *addPropertyHelper(JSContext *cx, jsid id,
                                        JSPropertyOp getter, JSPropertyOp setter,
@@ -275,17 +277,14 @@ struct JSScope : public JSObjectMap
                                        JSScopeProperty **spp);
 
   public:
-    explicit JSScope(const JSObjectOps *ops, JSObject *obj = NULL)
+    JSScope(const JSObjectOps *ops, JSObject *obj)
       : JSObjectMap(ops, 0), object(obj) {}
 
     
-    static JSScope *create(JSContext *cx, const JSObjectOps *ops, JSClass *clasp,
-                           JSObject *obj, uint32 shape);
+    static JSScope *create(JSContext *cx, const JSObjectOps *ops,
+                           JSClass *clasp, JSObject *obj, uint32 shape);
 
-    static void destroy(JSContext *cx, JSScope *scope);
-
-    inline void hold();
-    inline void drop(JSContext *cx, JSObject *obj);
+    void destroy(JSContext *cx);
 
     
 
@@ -395,7 +394,10 @@ struct JSScope : public JSObjectMap
 
 
     bool sealed()               { return flags & SEALED; }
-    void setSealed()            { flags |= SEALED; }
+    void setSealed()            {
+        JS_ASSERT(!isSharedEmpty());
+        flags |= SEALED;
+    }
 
     
 
@@ -469,15 +471,45 @@ struct JSScope : public JSObjectMap
     bool
     brandedOrHasMethodBarrier() { return flags & (BRANDED | METHOD_BARRIER); }
 
-    bool owned()                { return object != NULL; }
+    bool isSharedEmpty() const  { return !object; }
+
+    static bool initRuntimeState(JSContext *cx);
+    static void finishRuntimeState(JSContext *cx);
 };
 
 struct JSEmptyScope : public JSScope
 {
     JSClass * const clasp;
+    jsrefcount      nrefs;              
 
-    explicit JSEmptyScope(const JSObjectOps *ops, JSClass *clasp)
-      : JSScope(ops), clasp(clasp) {}
+    JSEmptyScope(JSContext *cx, const JSObjectOps *ops, JSClass *clasp);
+
+    void hold() {
+        
+        JS_ASSERT(nrefs >= 1);
+        JS_ATOMIC_INCREMENT(&nrefs);
+    }
+
+    void drop(JSContext *cx) {
+        JS_ASSERT(nrefs >= 1);
+        JS_ATOMIC_DECREMENT(&nrefs);
+        if (nrefs == 0)
+            destroy(cx);
+    }
+
+    
+
+
+
+    void dropFromGC(JSContext *cx) {
+#ifdef JS_THREADSAFE
+        JS_ASSERT(CX_THREAD_IS_RUNNING_GC(cx));
+#endif
+        JS_ASSERT(nrefs >= 1);
+        --nrefs;
+        if (nrefs == 0)
+            destroy(cx);
+    }
 };
 
 inline bool
@@ -785,59 +817,6 @@ inline bool
 JSScope::canProvideEmptyScope(JSObjectOps *ops, JSClass *clasp)
 {
     return this->ops == ops && (!emptyScope || emptyScope->clasp == clasp);
-}
-
-inline JSEmptyScope *
-JSScope::getEmptyScope(JSContext *cx, JSClass *clasp)
-{
-    if (emptyScope) {
-        JS_ASSERT(clasp == emptyScope->clasp);
-        emptyScope->hold();
-        return emptyScope;
-    }
-    return createEmptyScope(cx, clasp);
-}
-
-inline bool
-JSScope::ensureEmptyScope(JSContext *cx, JSClass *clasp)
-{
-    if (emptyScope) {
-        JS_ASSERT(clasp == emptyScope->clasp);
-        return true;
-    }
-    if (!createEmptyScope(cx, clasp))
-        return false;
-
-    
-    JS_ASSERT(emptyScope->nrefs == 2);
-    emptyScope->nrefs = 1;
-    return true;
-}
-
-inline void
-JSScope::hold()
-{
-    JS_ASSERT(nrefs >= 0);
-    JS_ATOMIC_INCREMENT(&nrefs);
-}
-
-inline void
-JSScope::drop(JSContext *cx, JSObject *obj)
-{
-#ifdef JS_THREADSAFE
-    
-
-
-
-    JS_ASSERT(CX_THREAD_IS_RUNNING_GC(cx));
-#endif
-    JS_ASSERT(nrefs > 0);
-    --nrefs;
-
-    if (nrefs == 0)
-        destroy(cx, this);
-    else if (object == obj)
-        object = NULL;
 }
 
 inline bool

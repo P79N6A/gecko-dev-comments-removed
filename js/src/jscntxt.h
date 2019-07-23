@@ -813,6 +813,8 @@ struct JSRuntime {
     JSBackgroundThread    *deallocatorThread;
 #endif
 
+    JSEmptyScope          *emptyBlockScope;
+
     
 
 

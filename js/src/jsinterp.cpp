@@ -284,7 +284,7 @@ js_FillPropertyCache(JSContext *cx, JSObject *obj,
 
 
 
-                JS_ASSERT(scope->owned());
+                JS_ASSERT(!scope->isSharedEmpty());
                 if (sprop->parent) {
                     kshape = sprop->parent->shape;
                 } else {

@@ -1268,17 +1268,18 @@ js_UnlockTitle(JSContext *cx, JSTitle *title)
 
 
 void
-js_TransferTitle(JSContext *cx, JSTitle *oldtitle, JSTitle *newtitle)
+js_DropAllEmptyScopeLocks(JSContext *cx, JSScope *scope)
 {
-    JS_ASSERT(JS_IS_TITLE_LOCKED(cx, newtitle));
+    JS_ASSERT(!CX_OWNS_SCOPE_TITLE(cx,scope));
+    JS_ASSERT(scope->isSharedEmpty());
+    JS_ASSERT(JS_IS_TITLE_LOCKED(cx, &scope->title));
 
     
 
 
 
-    if (!oldtitle)
-        return;
-    JS_ASSERT(JS_IS_TITLE_LOCKED(cx, oldtitle));
+    JS_ASSERT(!scope->sealed());
+    JS_ASSERT(cx->lockedSealedTitle != &scope->title);
 
     
 
@@ -1289,46 +1290,9 @@ js_TransferTitle(JSContext *cx, JSTitle *oldtitle, JSTitle *newtitle)
     if (CX_THREAD_IS_RUNNING_GC(cx))
         return;
 
-    
-
-
-
-
-    JS_ASSERT(cx->lockedSealedTitle != newtitle);
-    if (cx->lockedSealedTitle == oldtitle) {
-        JS_ASSERT(newtitle->ownercx == cx ||
-                  (!newtitle->ownercx && newtitle->u.count == 1));
-        cx->lockedSealedTitle = NULL;
-        return;
-    }
-
-    
-
-
-    if (oldtitle->ownercx) {
-        JS_ASSERT(oldtitle->ownercx == cx);
-        JS_ASSERT(newtitle->ownercx == cx ||
-                  (!newtitle->ownercx && newtitle->u.count == 1));
-        return;
-    }
-
-    
-
-
-
-
-
-    if (newtitle->ownercx != cx) {
-        JS_ASSERT(!newtitle->ownercx);
-        newtitle->u.count = oldtitle->u.count;
-    }
-
-    
-
-
-    LOGIT(oldtitle, '0');
-    oldtitle->u.count = 0;
-    ThinUnlock(&oldtitle->lock, CX_THINLOCK_ID(cx));
+    LOGIT(&scope->title, '0');
+    scope->title.u.count = 0;
+    ThinUnlock(&scope->title.lock, CX_THINLOCK_ID(cx));
 }
 
 void
