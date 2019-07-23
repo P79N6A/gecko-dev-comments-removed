@@ -4314,7 +4314,7 @@ nsBrowserAccess.prototype =
         newWindow = openDialog(getBrowserURL(), "_blank", "all,dialog=no", url, null, null, null);
         break;
       case Ci.nsIBrowserDOMWindow.OPEN_NEWTAB :
-        var win = needToFocusWin = null;
+        let win, needToFocusWin;
 
         
         if (!window.document.documentElement.getAttribute("chromehidden"))
