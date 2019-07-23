@@ -82,7 +82,6 @@ enum eParserDocType {
   ePlainText = 0,
   eXML,
   eHTML_Quirks,
-  eHTML3_Quirks, 
   eHTML_Strict
 };
 

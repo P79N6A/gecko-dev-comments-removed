@@ -36,8 +36,6 @@
 
 
 
-
-
 #include "nsDebug.h"
 #include "nsIAtom.h"
 #include "CNavDTD.h"
@@ -131,7 +129,7 @@ CNavDTD::CNavDTD()
     mParser(0),
     mTokenizer(0),
     mDTDMode(eDTDMode_quirks),
-    mDocType(eHTML3_Quirks), 
+    mDocType(eHTML_Quirks),
     mParserCommand(eViewNormal),
     mLineNumber(1),
     mOpenMapCount(0),
@@ -2140,17 +2138,7 @@ CNavDTD::CanContain(PRInt32 aParent, PRInt32 aChild) const
 {
   PRBool result = gHTMLElements[aParent].CanContain((eHTMLTags)aChild, mDTDMode);
 
-#ifdef ALLOW_TR_AS_CHILD_OF_TABLE
-  if (!result) {
-      
-      
-    if ((eHTMLTag_tr == aChild) && (eHTMLTag_table == aParent)) {
-      result = PR_TRUE;
-    }
-  }
-#endif
-
-  if (eHTMLTag_nobr == aChild           &&
+  if (eHTMLTag_nobr == aChild &&
       IsInlineElement(aParent, aParent) &&
       HasOpenContainer(eHTMLTag_nobr)) {
     return PR_FALSE;
@@ -3125,13 +3113,6 @@ CNavDTD::CreateContextStackFor(eHTMLTags aParent, eHTMLTags aChild)
   
   while (theLen) {
     theTag = (eHTMLTags)mScratch[--theLen];
-
-#ifdef ALLOW_TR_AS_CHILD_OF_TABLE
-    if (eHTML3_Quirks == mDocType && eHTMLTag_tbody == theTag) {
-      
-      continue;
-    }
-#endif
 
     
     
