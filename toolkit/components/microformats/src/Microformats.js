@@ -372,7 +372,27 @@ var Microformats = {
 
 
     telGetter: function(propnode, parentnode) {
-      
+      var pairs = {"a":"href", "object":"data", "area":"href"};
+      var name = propnode.nodeName.toLowerCase();
+      if (pairs.hasOwnProperty(name)) {
+        var protocol;
+        if (propnode[pairs[name]].indexOf("tel:") == 0) {
+          protocol = "tel:";
+        }
+        if (propnode[pairs[name]].indexOf("fax:") == 0) {
+          protocol = "fax:";
+        }
+        if (propnode[pairs[name]].indexOf("modem:") == 0) {
+          protocol = "modem:";
+        }
+        if (protocol) {
+          if (propnode[pairs[name]].indexOf('?') > 0) {
+            return unescape(propnode[pairs[name]].substring(protocol.length, propnode[pairs[name]].indexOf('?')));
+          } else {
+            return unescape(propnode[pairs[name]].substring(protocol.length));
+          }
+        }
+      }
       if (Microformats.matchClass(propnode, "value")) {
         return Microformats.parser.textGetter(parentnode, parentnode);
       } else {
@@ -464,7 +484,11 @@ var Microformats = {
 
     datatypeHelper: function(prop, node, parentnode) {
       var result;
-      switch (prop.datatype) {
+      var datatype = prop.datatype;
+      if (prop.implied) {
+        datatype = prop.subproperties[prop.implied].datatype;
+      }
+      switch (datatype) {
         case "dateTime":
           result = Microformats.parser.dateTimeGetter(node, parentnode);
           break;
@@ -501,12 +525,14 @@ var Microformats = {
           }
         default:
           result = Microformats.parser.textGetter(node, parentnode);
-          if ((prop.implied) && (result)) {
-            var temp = result;
-            result = {};
-            result[prop.implied] = temp;
-          }
           break;
+      }
+      
+      
+      if ((prop.implied) && (result)) {
+        var temp = result;
+        result = {};
+        result[prop.implied] = temp;
       }
       if (result && prop.values) {
         var validType = false;
