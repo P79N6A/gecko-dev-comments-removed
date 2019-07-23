@@ -78,8 +78,20 @@ class TimerExpiredTask : public Task, public base::ObjectWatcher::Delegate {
 }  
 
 
-void ProcessWatcher::EnsureProcessTerminated(base::ProcessHandle process) {
+void ProcessWatcher::EnsureProcessTerminated(base::ProcessHandle process
+#ifdef CHROMIUM_MOZILLA_BUILD
+					     , bool force
+#endif
+) {
   DCHECK(process != GetCurrentProcess());
+
+#ifdef CHROMIUM_MOZILLA_BUILD
+  if (!force) {
+    WaitForSingleObject(process, INFINITE);
+    CloseHandle(process);
+    return;
+  }
+#endif
 
   
   if (WaitForSingleObject(process, 0) == WAIT_OBJECT_0) {
