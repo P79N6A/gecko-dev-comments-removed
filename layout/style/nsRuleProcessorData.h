@@ -109,10 +109,6 @@ public:
   const nsString* GetLang();
   PRUint32 ContentState();
   PRBool IsLink();
-  nsLinkState LinkState() {
-    NS_ASSERTION(mGotLinkInfo && mIsLink, "Why am I being called?");
-    return mLinkState;
-  }
 
   
   
@@ -157,11 +153,7 @@ private:
   
   PRInt32 mContentState;  
                           
-  nsLinkState mLinkState; 
-  PRPackedBool mIsLink;   
   PRPackedBool mGotContentState;
-  PRPackedBool mGotLinkInfo; 
-                             
 };
 
 struct ElementRuleProcessorData : public RuleProcessorData {
