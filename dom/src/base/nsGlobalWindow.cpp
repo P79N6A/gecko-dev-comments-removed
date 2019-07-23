@@ -3079,7 +3079,7 @@ nsGlobalWindow::SetInnerWidth(PRInt32 aInnerWidth)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize") || IsFrame()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
@@ -3152,7 +3152,7 @@ nsGlobalWindow::SetInnerHeight(PRInt32 aInnerHeight)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize") || IsFrame()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
@@ -3216,7 +3216,7 @@ nsGlobalWindow::SetOuterWidth(PRInt32 aOuterWidth)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize")) {
+  if (!CanMoveResizeWindows()) {
     return NS_OK;
   }
 
@@ -3268,7 +3268,7 @@ nsGlobalWindow::SetOuterHeight(PRInt32 aOuterHeight)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize")) {
+  if (!CanMoveResizeWindows()) {
     return NS_OK;
   }
 
@@ -3315,7 +3315,7 @@ nsGlobalWindow::SetScreenX(PRInt32 aScreenX)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize")) {
+  if (!CanMoveResizeWindows()) {
     return NS_OK;
   }
 
@@ -3363,7 +3363,7 @@ nsGlobalWindow::SetScreenY(PRInt32 aScreenY)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize")) {
+  if (!CanMoveResizeWindows()) {
     return NS_OK;
   }
 
@@ -4419,7 +4419,7 @@ nsGlobalWindow::MoveTo(PRInt32 aXPos, PRInt32 aYPos)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize") || IsFrame()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
@@ -4446,7 +4446,7 @@ nsGlobalWindow::MoveBy(PRInt32 aXDif, PRInt32 aYDif)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize") || IsFrame()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
@@ -4477,7 +4477,7 @@ nsGlobalWindow::ResizeTo(PRInt32 aWidth, PRInt32 aHeight)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize") || IsFrame()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
@@ -4504,7 +4504,7 @@ nsGlobalWindow::ResizeBy(PRInt32 aWidthDif, PRInt32 aHeightDif)
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize") || IsFrame()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
@@ -4540,7 +4540,7 @@ nsGlobalWindow::SizeToContent()
 
 
 
-  if (!CanSetProperty("dom.disable_window_move_resize") || IsFrame()) {
+  if (!CanMoveResizeWindows() || IsFrame()) {
     return NS_OK;
   }
 
