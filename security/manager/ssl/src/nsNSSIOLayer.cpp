@@ -2720,20 +2720,22 @@ nsNSSBadCertHandler(void *arg, PRFileDesc *sslSocket)
     do_GetService(NS_CERTOVERRIDE_CONTRACTID);
   
 
-  PRUint32 storedOverrideBits = 0; 
+  PRUint32 overrideBits = 0; 
 
   if (overrideService)
   {
-    PRBool haveStoredOverride;
+    PRBool haveOverride;
+    PRBool isTemporaryOverride; 
   
-    nsrv = overrideService->HasMatchingOverride(hostWithPortStringUTF16,
+    nsrv = overrideService->HasMatchingOverride(hostWithPortStringUTF16, 
                                                 ix509, 
-                                                &storedOverrideBits, 
-                                                &haveStoredOverride);
-    if (NS_SUCCEEDED(nsrv) && haveStoredOverride) 
+                                                &overrideBits,
+                                                &isTemporaryOverride, 
+                                                &haveOverride);
+    if (NS_SUCCEEDED(nsrv) && haveOverride) 
     {
       
-      remaining_display_errors -= storedOverrideBits;
+      remaining_display_errors -= overrideBits;
     }
   }
 
