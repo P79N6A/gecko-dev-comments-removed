@@ -111,12 +111,15 @@ NS_IMPL_ISUPPORTS2(nsCookiePermission,
                    nsICookiePermission,
                    nsIObserver)
 
-nsresult
+bool
 nsCookiePermission::Init()
 {
+  
+  
+  
   nsresult rv;
   mPermMgr = do_GetService(NS_PERMISSIONMANAGER_CONTRACTID, &rv);
-  if (NS_FAILED(rv)) return rv;
+  if (NS_FAILED(rv)) return false;
 
   
   nsCOMPtr<nsIPrefBranch2> prefBranch =
@@ -155,7 +158,7 @@ nsCookiePermission::Init()
     }
   }
 
-  return NS_OK;
+  return true;
 }
 
 void
@@ -185,6 +188,10 @@ nsCookiePermission::SetAccess(nsIURI         *aURI,
                               nsCookieAccess  aAccess)
 {
   
+  if (!EnsureInitialized())
+    return NS_ERROR_UNEXPECTED;
+
+  
   
   
   
@@ -206,7 +213,11 @@ nsCookiePermission::CanAccess(nsIURI         *aURI,
     return NS_OK;
   }
 #endif 
+
   
+  if (!EnsureInitialized())
+    return NS_ERROR_UNEXPECTED;
+
   
   nsresult rv = mPermMgr->TestPermission(aURI, kPermissionType, (PRUint32 *) aResult);
   if (NS_SUCCEEDED(rv)) {
@@ -243,6 +254,10 @@ nsCookiePermission::CanSetCookie(nsIURI     *aURI,
   NS_ASSERTION(aURI, "null uri");
 
   *aResult = kDefaultPolicy;
+
+  
+  if (!EnsureInitialized())
+    return NS_ERROR_UNEXPECTED;
 
   PRUint32 perm;
   mPermMgr->TestPermission(aURI, kPermissionType, &perm);
@@ -507,7 +522,7 @@ nsCookiePermission::Observe(nsISupports     *aSubject,
   return NS_OK;
 }
 
-PRBool
+bool
 nsCookiePermission::InPrivateBrowsing()
 {
   PRBool inPrivateBrowsingMode = PR_FALSE;
