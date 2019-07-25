@@ -429,6 +429,10 @@ struct MatchStack {
     
 
     bool atOptionalBracket() const {
+        
+
+
+
         unsigned char prevOp = currentFrame->args.instructionPtr[-1];
         return prevOp == OP_BRAZERO;
     }
@@ -547,7 +551,8 @@ RECURSE:
 
                 stack.currentFrame->locals.skipBytes = 3;
                 
-                stack.currentFrame->locals.minSatisfied = stack.atOptionalBracket();
+                stack.currentFrame->locals.minSatisfied = instructionPtr != stack.currentFrame->args.instructionPtr &&
+                                                          stack.atOptionalBracket();
                 do {
                     
 
