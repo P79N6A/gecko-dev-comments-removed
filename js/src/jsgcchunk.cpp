@@ -43,6 +43,11 @@
 #  pragma warning( disable: 4267 4996 4146 )
 # endif
 
+#elif defined(XP_OS2)
+
+# define INCL_DOSMEMMGR
+# include <os2.h>
+
 #elif defined(XP_MACOSX) || defined(DARWIN)
 
 # include <libkern/OSAtomic.h>
@@ -155,6 +160,100 @@ UnmapPages(void *addr, size_t size)
 }
 
 # endif 
+
+#elif defined(XP_OS2)
+
+#define JS_GC_HAS_MAP_ALIGN 1
+#define OS2_MAX_RECURSIONS  16
+
+static void
+UnmapPages(void *addr, size_t size)
+{
+    if (!DosFreeMem(addr))
+        return;
+
+    
+
+
+    unsigned long cb = 2 * size;
+    unsigned long flags;
+    if (DosQueryMem(addr, &cb, &flags) || cb < size)
+        return;
+
+    jsuword base = reinterpret_cast<jsuword>(addr) - ((2 * size) - cb);
+    DosFreeMem(reinterpret_cast<void*>(base));
+
+    return;
+}
+
+static void *
+MapAlignedPagesRecursively(size_t size, size_t alignment, int& recursions)
+{
+    if (++recursions >= OS2_MAX_RECURSIONS)
+        return NULL;
+
+    void *tmp;
+    if (DosAllocMem(&tmp, size,
+                    OBJ_ANY | PAG_COMMIT | PAG_READ | PAG_WRITE)) {
+        JS_ALWAYS_TRUE(DosAllocMem(&tmp, size,
+                                   PAG_COMMIT | PAG_READ | PAG_WRITE) == 0);
+    }
+    size_t offset = reinterpret_cast<jsuword>(tmp) & (alignment - 1);
+    if (!offset)
+        return tmp;
+
+    
+
+
+
+    size_t filler = size + alignment - offset;
+    unsigned long cb = filler;
+    unsigned long flags = 0;
+    unsigned long rc = DosQueryMem(&(static_cast<char*>(tmp))[size],
+                                   &cb, &flags);
+    if (!rc && (flags & PAG_FREE) && cb >= filler) {
+        UnmapPages(tmp, 0);
+        if (DosAllocMem(&tmp, filler,
+                        OBJ_ANY | PAG_COMMIT | PAG_READ | PAG_WRITE)) {
+            JS_ALWAYS_TRUE(DosAllocMem(&tmp, filler,
+                                       PAG_COMMIT | PAG_READ | PAG_WRITE) == 0);
+        }
+    }
+
+    void *p = MapAlignedPagesRecursively(size, alignment, recursions);
+    UnmapPages(tmp, 0);
+
+    return p;
+}
+
+static void *
+MapAlignedPages(size_t size, size_t alignment)
+{
+    int recursions = -1;
+
+    
+
+
+
+    void *p = MapAlignedPagesRecursively(size, alignment, recursions);
+    if (p)
+        return p;
+
+    
+
+
+
+    if (DosAllocMem(&p, 2 * size,
+                    OBJ_ANY | PAG_COMMIT | PAG_READ | PAG_WRITE)) {
+        JS_ALWAYS_TRUE(DosAllocMem(&p, 2 * size,
+                                   PAG_COMMIT | PAG_READ | PAG_WRITE) == 0);
+    }
+
+    jsuword addr = reinterpret_cast<jsuword>(p);
+    addr = (addr + (alignment - 1)) & ~(alignment - 1);
+
+    return reinterpret_cast<void *>(addr);
+}
 
 #elif defined(XP_MACOSX) || defined(DARWIN)
 
