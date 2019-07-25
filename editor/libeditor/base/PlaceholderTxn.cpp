@@ -76,7 +76,7 @@ NS_IMPL_RELEASE_INHERITED(PlaceholderTxn, EditAggregateTxn)
 
 NS_IMETHODIMP PlaceholderTxn::Init(nsIAtom *aName, nsSelectionState *aSelState, nsIEditor *aEditor)
 {
-  if (!aEditor || !aSelState) return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(aEditor && aSelState, NS_ERROR_NULL_POINTER);
 
   mName = aName;
   mStartSel = aSelState;
@@ -95,13 +95,13 @@ NS_IMETHODIMP PlaceholderTxn::UndoTransaction(void)
   nsresult res = EditAggregateTxn::UndoTransaction();
   NS_ENSURE_SUCCESS(res, res);
   
-  if (!mStartSel) return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(mStartSel, NS_ERROR_NULL_POINTER);
 
   
   nsCOMPtr<nsISelection> selection;
   res = mEditor->GetSelection(getter_AddRefs(selection));
   NS_ENSURE_SUCCESS(res, res);
-  if (!selection) return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   return mStartSel->RestoreSelection(selection);
 }
 
@@ -116,14 +116,14 @@ NS_IMETHODIMP PlaceholderTxn::RedoTransaction(void)
   nsCOMPtr<nsISelection> selection;
   res = mEditor->GetSelection(getter_AddRefs(selection));
   NS_ENSURE_SUCCESS(res, res);
-  if (!selection) return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   return mEndSel.RestoreSelection(selection);
 }
 
 
 NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, PRBool *aDidMerge)
 {
-  if (!aDidMerge || !aTransaction) return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(aDidMerge && aTransaction, NS_ERROR_NULL_POINTER);
 
   
   *aDidMerge=PR_FALSE;
@@ -140,7 +140,7 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, PRBool *aDidMe
   
 
   nsCOMPtr<nsPIEditorTransaction> pTxn = do_QueryInterface(aTransaction);
-  if (!pTxn) return NS_OK; 
+  NS_ENSURE_TRUE(pTxn, NS_OK); 
 
   EditTxn *editTxn = (EditTxn*)aTransaction;  
   
@@ -250,7 +250,7 @@ NS_IMETHODIMP PlaceholderTxn::StartSelectionEquals(nsSelectionState *aSelState, 
 {
   
   
-  if (!aResult || !aSelState) return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(aResult && aSelState, NS_ERROR_NULL_POINTER);
   if (!mStartSel->IsCollapsed() || !aSelState->IsCollapsed())
   {
     *aResult = PR_FALSE;
@@ -291,7 +291,7 @@ NS_IMETHODIMP PlaceholderTxn::RememberEndingSelection()
   nsCOMPtr<nsISelection> selection;
   nsresult res = mEditor->GetSelection(getter_AddRefs(selection));
   NS_ENSURE_SUCCESS(res, res);
-  if (!selection) return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   return mEndSel.SaveSelection(selection);
 }
 

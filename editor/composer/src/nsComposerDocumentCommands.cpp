@@ -77,10 +77,10 @@ GetPresContextFromEditor(nsIEditor *aEditor, nsPresContext **aResult)
   nsCOMPtr<nsISelectionController> selCon;
   nsresult rv = aEditor->GetSelectionController(getter_AddRefs(selCon));
   NS_ENSURE_SUCCESS(rv, rv);
-  if (!selCon) return NS_ERROR_FAILURE;
+  NS_ENSURE_TRUE(selCon, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIPresShell> presShell = do_QueryInterface(selCon);
-  if (!presShell) return NS_ERROR_FAILURE;
+  NS_ENSURE_TRUE(presShell, NS_ERROR_FAILURE);
 
   NS_IF_ADDREF(*aResult = presShell->GetPresContext());
   return NS_OK;
@@ -112,12 +112,12 @@ nsSetDocumentOptionsCommand::DoCommandParams(const char *aCommandName,
   NS_ENSURE_ARG_POINTER(aParams);
 
   nsCOMPtr<nsIEditor> editor = do_QueryInterface(refCon);
-  if (!editor) return NS_ERROR_INVALID_ARG;
+  NS_ENSURE_TRUE(editor, NS_ERROR_INVALID_ARG);
 
   nsRefPtr<nsPresContext> presContext;
   nsresult rv = GetPresContextFromEditor(editor, getter_AddRefs(presContext));
   NS_ENSURE_SUCCESS(rv, rv);
-  if (!presContext) return NS_ERROR_FAILURE;
+  NS_ENSURE_TRUE(presContext, NS_ERROR_FAILURE);
 
   PRInt32 animationMode; 
   rv = aParams->GetLongValue("imageAnimation", &animationMode);
@@ -133,11 +133,11 @@ nsSetDocumentOptionsCommand::DoCommandParams(const char *aCommandName,
   if (NS_SUCCEEDED(rv))
   {
     nsCOMPtr<nsISupports> container = presContext->GetContainer();
-    if (!container) return NS_ERROR_FAILURE;
+    NS_ENSURE_TRUE(container, NS_ERROR_FAILURE);
 
     nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(container, &rv));
     NS_ENSURE_SUCCESS(rv, rv);
-    if (!docShell) return NS_ERROR_FAILURE;
+    NS_ENSURE_TRUE(docShell, NS_ERROR_FAILURE);
 
     rv = docShell->SetAllowPlugins(allowPlugins);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -156,7 +156,7 @@ nsSetDocumentOptionsCommand::GetCommandStateParams(const char *aCommandName,
 
   
   nsCOMPtr<nsIEditor> editor = do_QueryInterface(refCon);
-  if (!editor) return NS_ERROR_INVALID_ARG;
+  NS_ENSURE_TRUE(editor, NS_ERROR_INVALID_ARG);
 
   
   PRBool outCmdEnabled = PR_FALSE;
@@ -168,7 +168,7 @@ nsSetDocumentOptionsCommand::GetCommandStateParams(const char *aCommandName,
   nsRefPtr<nsPresContext> presContext;
   rv = GetPresContextFromEditor(editor, getter_AddRefs(presContext));
   NS_ENSURE_SUCCESS(rv, rv);
-  if (!presContext) return NS_ERROR_FAILURE;
+  NS_ENSURE_TRUE(presContext, NS_ERROR_FAILURE);
 
   PRInt32 animationMode;
   rv = aParams->GetLongValue("imageAnimation", &animationMode);
@@ -186,11 +186,11 @@ nsSetDocumentOptionsCommand::GetCommandStateParams(const char *aCommandName,
   if (NS_SUCCEEDED(rv))
   {
     nsCOMPtr<nsISupports> container = presContext->GetContainer();
-    if (!container) return NS_ERROR_FAILURE;
+    NS_ENSURE_TRUE(container, NS_ERROR_FAILURE);
 
     nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(container, &rv));
     NS_ENSURE_SUCCESS(rv, rv);
-    if (!docShell) return NS_ERROR_FAILURE;
+    NS_ENSURE_TRUE(docShell, NS_ERROR_FAILURE);
 
     rv = docShell->GetAllowPlugins(&allowPlugins);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -539,10 +539,10 @@ nsDocumentStateCommand::GetCommandStateParams(const char *aCommandName,
       nsCOMPtr<nsIDOMDocument> domDoc;
       editor->GetDocument(getter_AddRefs(domDoc));
       nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
-      if (!doc) return NS_ERROR_FAILURE;
+      NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
 
       nsIURI *uri = doc->GetDocumentURI();
-      if (!uri) return NS_ERROR_FAILURE;
+      NS_ENSURE_TRUE(uri, NS_ERROR_FAILURE);
 
       return aParams->SetISupportsValue(STATE_DATA, (nsISupports*)uri);
     }

@@ -105,7 +105,7 @@ NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
   }
 #endif
 
-  if (!mNode || !mParent) return NS_ERROR_NOT_INITIALIZED;
+  NS_ENSURE_TRUE(mNode && mParent, NS_ERROR_NOT_INITIALIZED);
 
   nsCOMPtr<nsIDOMNodeList> childNodes;
   nsresult result = mParent->GetChildNodes(getter_AddRefs(childNodes));
@@ -128,7 +128,7 @@ NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
   nsCOMPtr<nsIDOMNode> resultNode;
   result = mParent->InsertBefore(mNode, refNode, getter_AddRefs(resultNode));
   NS_ENSURE_SUCCESS(result, result);
-  if (!resultNode) return NS_ERROR_NULL_POINTER;
+  NS_ENSURE_TRUE(resultNode, NS_ERROR_NULL_POINTER);
 
   
   PRBool bAdjustSelection;
@@ -138,7 +138,7 @@ NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
     nsCOMPtr<nsISelection> selection;
     result = mEditor->GetSelection(getter_AddRefs(selection));
     NS_ENSURE_SUCCESS(result, result);
-    if (!selection) return NS_ERROR_NULL_POINTER;
+    NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
     
     selection->Collapse(mParent, mOffset+1);
   }
@@ -162,7 +162,7 @@ NS_IMETHODIMP InsertElementTxn::UndoTransaction(void)
   }
 #endif
 
-  if (!mNode || !mParent) return NS_ERROR_NOT_INITIALIZED;
+  NS_ENSURE_TRUE(mNode && mParent, NS_ERROR_NOT_INITIALIZED);
 
   nsCOMPtr<nsIDOMNode> resultNode;
   return mParent->RemoveChild(mNode, getter_AddRefs(resultNode));

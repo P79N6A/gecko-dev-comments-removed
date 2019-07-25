@@ -101,7 +101,7 @@ NS_IMETHODIMP IMETextTxn::DoTransaction(void)
 #endif
 
   nsCOMPtr<nsISelectionController> selCon = do_QueryReferent(mSelConWeak);
-  if (!selCon) return NS_ERROR_NOT_INITIALIZED;
+  NS_ENSURE_TRUE(selCon, NS_ERROR_NOT_INITIALIZED);
 
   
   nsresult result;
@@ -124,7 +124,7 @@ NS_IMETHODIMP IMETextTxn::UndoTransaction(void)
 #endif
 
   nsCOMPtr<nsISelectionController> selCon = do_QueryReferent(mSelConWeak);
-  if (!selCon) return NS_ERROR_NOT_INITIALIZED;
+  NS_ENSURE_TRUE(selCon, NS_ERROR_NOT_INITIALIZED);
 
   nsresult result = mElement->DeleteData(mOffset, mStringToInsert.Length());
   if (NS_SUCCEEDED(result))
@@ -267,7 +267,7 @@ NS_IMETHODIMP IMETextTxn::CollapseTextSelection(void)
     
     
     nsCOMPtr<nsISelectionController> selCon = do_QueryReferent(mSelConWeak);
-    if (!selCon) return NS_ERROR_NOT_INITIALIZED;
+    NS_ENSURE_TRUE(selCon, NS_ERROR_NOT_INITIALIZED);
 
     PRUint16      textRangeListLength,selectionStart,selectionEnd,
                   textRangeType;
