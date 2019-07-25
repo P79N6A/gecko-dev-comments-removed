@@ -69,6 +69,13 @@ TaskbarTabPreview::~TaskbarTabPreview() {
     ::DestroyIcon(mIcon);
     mIcon = NULL;
   }
+
+  
+  if (mProxyWindow)
+    Disable();
+
+  NS_ASSERTION(!mProxyWindow, "Taskbar proxy window was not destroyed!");
+
   if (mWnd)
     DetachFromNSWindow();
 }
@@ -271,7 +278,11 @@ TaskbarTabPreview::Enable() {
 
 nsresult
 TaskbarTabPreview::Disable() {
-  TaskbarPreview::Disable();
+  
+  
+  
+  if (mWnd)
+    TaskbarPreview::Disable();
 
   if (FAILED(mTaskbar->UnregisterTab(mProxyWindow)))
     return NS_ERROR_FAILURE;
