@@ -3173,11 +3173,8 @@ GetLayerManagerPrefs(LayerManagerPrefs* aManagerPrefs)
     aManagerPrefs->mDisableAcceleration || safeMode;
 }
 
-LayerManager*
-nsWindow::GetLayerManager(PLayersChild* aShadowManager,
-                          LayersBackend aBackendHint,
-                          LayerManagerPersistence aPersistence,
-                          bool* aAllowRetaining)
+mozilla::layers::LayerManager*
+nsWindow::GetLayerManager(LayerManagerPersistence aPersistence, bool* aAllowRetaining)
 {
   if (aAllowRetaining) {
     *aAllowRetaining = true;
@@ -5238,10 +5235,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     case WM_GETOBJECT:
     {
       *aRetValue = 0;
-      
-      
-      DWORD objId = static_cast<DWORD>(lParam);
-      if (objId == OBJID_CLIENT) { 
+      if (lParam == OBJID_CLIENT) { 
         nsAccessible *rootAccessible = GetRootAccessible(); 
         if (rootAccessible) {
           IAccessible *msaaAccessible = NULL;
@@ -6459,8 +6453,6 @@ nsWindow::OnMouseWheel(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
   
   
   PRBool dispatchPixelScrollEvent = PR_FALSE;
-  PRBool reversePixelScrollDirection = PR_FALSE;
-  PRInt32 actualScrollAction = nsQueryContentEvent::SCROLL_ACTION_NONE;
   PRInt32 pixelsPerUnit = 0;
   
   PRInt32 computedScrollAmount = isPageScroll ? 1 :
@@ -6489,8 +6481,7 @@ nsWindow::OnMouseWheel(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
     
     
     if (queryEvent.mSucceeded) {
-      actualScrollAction = queryEvent.mReply.mComputedScrollAction;
-      if (actualScrollAction == nsQueryContentEvent::SCROLL_ACTION_PAGE) {
+      if (isPageScroll) {
         if (isVertical) {
           pixelsPerUnit = queryEvent.mReply.mPageHeight;
         } else {
@@ -6499,18 +6490,14 @@ nsWindow::OnMouseWheel(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
       } else {
         pixelsPerUnit = queryEvent.mReply.mLineHeight;
       }
+      
+      
       computedScrollAmount = queryEvent.mReply.mComputedScrollAmount;
-      if (pixelsPerUnit > 0 && computedScrollAmount != 0 &&
-          actualScrollAction != nsQueryContentEvent::SCROLL_ACTION_NONE) {
-        dispatchPixelScrollEvent = PR_TRUE;
-        
-        
-        reversePixelScrollDirection =
-          (testEvent.delta > 0 && computedScrollAmount < 0) ||
-          (testEvent.delta < 0 && computedScrollAmount > 0);
-        
-        computedScrollAmount = NS_ABS(computedScrollAmount);
+      if (testEvent.delta < 0) {
+        computedScrollAmount *= -1;
       }
+      dispatchPixelScrollEvent =
+        (pixelsPerUnit > 0) && (computedScrollAmount > 0);
     }
   }
 
@@ -6565,12 +6552,8 @@ nsWindow::OnMouseWheel(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
 
   nsMouseScrollEvent pixelEvent(PR_TRUE, NS_MOUSE_PIXEL_SCROLL, this);
   InitEvent(pixelEvent);
-  pixelEvent.scrollFlags = nsMouseScrollEvent::kAllowSmoothScroll;
-  pixelEvent.scrollFlags |= isVertical ?
-    nsMouseScrollEvent::kIsVertical : nsMouseScrollEvent::kIsHorizontal;
-  if (actualScrollAction == nsQueryContentEvent::SCROLL_ACTION_PAGE) {
-    pixelEvent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
-  }
+  pixelEvent.scrollFlags = nsMouseScrollEvent::kAllowSmoothScroll |
+    (scrollEvent.scrollFlags & ~nsMouseScrollEvent::kHasPixels);
   
   pixelEvent.isShift     = scrollEvent.isShift;
   pixelEvent.isControl   = scrollEvent.isControl;
@@ -6578,16 +6561,13 @@ nsWindow::OnMouseWheel(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
   pixelEvent.isAlt       = scrollEvent.isAlt;
 
   PRInt32 nativeDeltaForPixel = nativeDelta + sRemainingDeltaForPixel;
-  
-  
-  PRInt32 orienterForPixel = reversePixelScrollDirection ? -orienter : orienter;
 
   double deltaPerPixel =
     (double)WHEEL_DELTA / computedScrollAmount / pixelsPerUnit;
   pixelEvent.delta =
-    RoundDelta((double)nativeDeltaForPixel * orienterForPixel / deltaPerPixel);
+    RoundDelta((double)nativeDeltaForPixel * orienter / deltaPerPixel);
   PRInt32 recomputedNativeDelta =
-    (PRInt32)(pixelEvent.delta * orienterForPixel * deltaPerPixel);
+    (PRInt32)(pixelEvent.delta * orienter * deltaPerPixel);
   sRemainingDeltaForPixel = nativeDeltaForPixel - recomputedNativeDelta;
   if (pixelEvent.delta != 0) {
     aHandled = DispatchWindowEvent(&pixelEvent);

@@ -79,7 +79,6 @@ using namespace mozilla::gfx;
 #include "gfxD2DSurface.h"
 
 #include <d3d10_1.h>
-#include <dxgi.h>
 
 #include "mozilla/gfx/2D.h"
 
@@ -152,11 +151,6 @@ typedef HRESULT (WINAPI*D3D10CreateDevice1Func)(
   D3D10_FEATURE_LEVEL1 HardwareLevel,
   UINT SDKVersion,
   ID3D10Device1 **ppDevice
-);
-
-typedef HRESULT(WINAPI*CreateDXGIFactory1Func)(
-  REFIID riid,
-  void **ppFactory
 );
 #endif
 
@@ -324,34 +318,10 @@ gfxWindowsPlatform::VerifyD2DDevice(PRBool aAttemptForce)
     nsRefPtr<ID3D10Device1> device;
 
     if (createD3DDevice) {
-        HMODULE dxgiModule = LoadLibraryA("dxgi.dll");
-        CreateDXGIFactory1Func createDXGIFactory1 = (CreateDXGIFactory1Func)
-            GetProcAddress(dxgiModule, "CreateDXGIFactory1");
-
-        
-        
-        nsRefPtr<IDXGIAdapter1> adapter1;
-        if (createDXGIFactory1) {
-            nsRefPtr<IDXGIFactory1> factory1;
-            HRESULT hr = createDXGIFactory1(__uuidof(IDXGIFactory1),
-                                            getter_AddRefs(factory1));
-    
-            nsRefPtr<IDXGIAdapter1> adapter1; 
-            hr = factory1->EnumAdapters1(0, getter_AddRefs(adapter1));
-
-            if (SUCCEEDED(hr) && adapter1) {
-                hr = adapter1->CheckInterfaceSupport(__uuidof(ID3D10Device1),
-                                                     nsnull);
-                if (FAILED(hr)) {
-                    adapter1 = nsnull;
-                }
-            }
-        }
-
         
         
         HRESULT hr = createD3DDevice(
-            adapter1, 
+            NULL, 
             D3D10_DRIVER_TYPE_HARDWARE,
             NULL,
             D3D10_CREATE_DEVICE_BGRA_SUPPORT |
@@ -367,7 +337,7 @@ gfxWindowsPlatform::VerifyD2DDevice(PRBool aAttemptForce)
             
             nsRefPtr<ID3D10Device1> device1;
             hr = createD3DDevice(
-                adapter1, 
+                NULL, 
                 D3D10_DRIVER_TYPE_HARDWARE,
                 NULL,
                 D3D10_CREATE_DEVICE_BGRA_SUPPORT |

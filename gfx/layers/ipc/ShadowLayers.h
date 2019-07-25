@@ -240,21 +240,7 @@ public:
   
 
 
-  void SetShadowManager(PLayersChild* aShadowManager)
-  {
-    mShadowManager = aShadowManager;
-  }
-
-  void SetParentBackendType(LayersBackend aBackendType)
-  {
-    mParentBackend = aBackendType;
-  }
-
-  
-
-
   PRBool HasShadowManager() const { return !!mShadowManager; }
-  PLayersChild* GetShadowManager() const { return mShadowManager; }
 
   
 
@@ -330,10 +316,7 @@ public:
 
   PLayerChild* ConstructShadowFor(ShadowableLayer* aLayer);
 
-  LayersBackend GetParentBackendType()
-  {
-    return mParentBackend;
-  }
+  LayersBackend GetParentBackendType();
 
   
 

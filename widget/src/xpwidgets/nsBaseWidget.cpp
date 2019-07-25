@@ -852,9 +852,7 @@ nsBaseWidget::GetShouldAccelerate()
   return mUseAcceleratedRendering;
 }
 
-LayerManager* nsBaseWidget::GetLayerManager(PLayersChild* aShadowManager,
-                                            LayersBackend aBackendHint,
-                                            LayerManagerPersistence aPersistence,
+LayerManager* nsBaseWidget::GetLayerManager(LayerManagerPersistence,
                                             bool* aAllowRetaining)
 {
   if (!mLayerManager) {
@@ -862,7 +860,8 @@ LayerManager* nsBaseWidget::GetLayerManager(PLayersChild* aShadowManager,
     mUseAcceleratedRendering = GetShouldAccelerate();
 
     if (mUseAcceleratedRendering) {
-      nsRefPtr<LayerManagerOGL> layerManager = new LayerManagerOGL(this);
+      nsRefPtr<LayerManagerOGL> layerManager =
+        new mozilla::layers::LayerManagerOGL(this);
       
 
 

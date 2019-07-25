@@ -164,11 +164,8 @@ public:
   
 
 
-  virtual LayerManager*
-  GetLayerManager(PLayersChild* aShadowManager = nsnull,
-                  LayersBackend aBackendHint = LayerManager::LAYERS_NONE,
-                  LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT,
-                  bool* aAllowRetaining = nsnull);
+  virtual LayerManager*     GetLayerManager(LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT,
+                                            bool* aAllowRetaining = nsnull);
 
   virtual gfxASurface*      GetThebesSurface();
 
