@@ -1002,23 +1002,38 @@ function UpdateCanvasCache(url, canvas)
 
 
 
+
+
+
 function DoDrawWindow(ctx, x, y, w, h)
 {
-    if (typeof gDrawWindowFlags == "undefined") {
-        gDrawWindowFlags = ctx.DRAWWINDOW_DRAW_CARET |
-                           ctx.DRAWWINDOW_DRAW_VIEW;
-        var flags = "DRAWWINDOW_DRAW_CARET | DRAWWINDOW_DRAW_VIEW";
-        var r = gBrowser.getBoundingClientRect();
-        if (window.innerWidth >= r.right && window.innerHeight >= r.bottom) {
+    var flags = ctx.DRAWWINDOW_DRAW_CARET | ctx.DRAWWINDOW_DRAW_VIEW;
+    var testRect = gBrowser.getBoundingClientRect();
+    if (0 <= testRect.left &&
+        0 <= testRect.top &&
+        window.innerWidth >= testRect.right &&
+        window.innerHeight >= testRect.bottom) {
+        
+        
+        
+        flags |= ctx.DRAWWINDOW_USE_WIDGET_LAYERS;
+    }
+
+    if (gDrawWindowFlags != flags) {
+        
+        gDrawWindowFlags = flags;
+        var flagsStr = "DRAWWINDOW_DRAW_CARET | DRAWWINDOW_DRAW_VIEW";
+        if (flags & ctx.DRAWWINDOW_USE_WIDGET_LAYERS) {
+            flagsStr += " | DRAWWINDOW_USE_WIDGET_LAYERS";
+        } else {
             
             
-            gDrawWindowFlags |= ctx.DRAWWINDOW_USE_WIDGET_LAYERS;
-            flags += " | DRAWWINDOW_USE_WIDGET_LAYERS";
+            dump("REFTEST INFO | WARNING: USE_WIDGET_LAYERS disabled\n");
         }
-        dump("REFTEST INFO | drawWindow flags = " + flags +
-             "; window.innerWidth/Height = " + window.innerWidth + "," +
-             window.innerHeight + "; browser.width/height = " +
-             r.width + "," + r.height + "\n");
+        dump("REFTEST INFO | drawWindow flags = " + flagsStr +
+             "; window size = " + window.innerWidth + "," + window.innerHeight +
+             "; test browser size = " + testRect.width + "," + testRect.height +
+             "\n");
     }
 
     ctx.drawWindow(window, x, y, w, h, "rgb(255,255,255)",
