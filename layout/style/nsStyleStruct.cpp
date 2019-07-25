@@ -2739,45 +2739,47 @@ nsStyleTextReset::~nsStyleTextReset(void)
 
 nsChangeHint nsStyleTextReset::CalcDifference(const nsStyleTextReset& aOther) const
 {
-  if (mVerticalAlign == aOther.mVerticalAlign
-      && mUnicodeBidi == aOther.mUnicodeBidi) {
-    
-    if (mTextBlink != aOther.mTextBlink) {
-      return NS_STYLE_HINT_REFLOW;
-    }
-
-    PRUint8 lineStyle = GetDecorationStyle();
-    PRUint8 otherLineStyle = aOther.GetDecorationStyle();
-    if (mTextDecorationLine != aOther.mTextDecorationLine ||
-        lineStyle != otherLineStyle) {
-      
-      
-      if (lineStyle == NS_STYLE_TEXT_DECORATION_STYLE_DOUBLE ||
-          lineStyle == NS_STYLE_TEXT_DECORATION_STYLE_WAVY ||
-          otherLineStyle == NS_STYLE_TEXT_DECORATION_STYLE_DOUBLE ||
-          otherLineStyle == NS_STYLE_TEXT_DECORATION_STYLE_WAVY) {
-        return NS_STYLE_HINT_REFLOW;
-      }
-      
-      
-      return nsChangeHint_RepaintFrame;
-    }
-
-    
-    nscolor decColor, otherDecColor;
-    bool isFG, otherIsFG;
-    GetDecorationColor(decColor, isFG);
-    aOther.GetDecorationColor(otherDecColor, otherIsFG);
-    if (isFG != otherIsFG || (!isFG && decColor != otherDecColor)) {
-      return nsChangeHint_RepaintFrame;
-    }
-
-    if (mTextOverflow != aOther.mTextOverflow) {
-      return nsChangeHint_RepaintFrame;
-    }
-    return NS_STYLE_HINT_NONE;
+  if (mVerticalAlign != aOther.mVerticalAlign ||
+      mUnicodeBidi != aOther.mUnicodeBidi) {
+    return NS_STYLE_HINT_REFLOW;
   }
-  return NS_STYLE_HINT_REFLOW;
+    
+  const nsChangeHint kUpdateOverflowAndRepaintHint =
+    NS_CombineHint(nsChangeHint_UpdateOverflow, nsChangeHint_RepaintFrame);
+  if (mTextBlink != aOther.mTextBlink) {
+    return kUpdateOverflowAndRepaintHint;
+  }
+
+  PRUint8 lineStyle = GetDecorationStyle();
+  PRUint8 otherLineStyle = aOther.GetDecorationStyle();
+  if (mTextDecorationLine != aOther.mTextDecorationLine ||
+      lineStyle != otherLineStyle) {
+    
+    
+    if (lineStyle == NS_STYLE_TEXT_DECORATION_STYLE_DOUBLE ||
+        lineStyle == NS_STYLE_TEXT_DECORATION_STYLE_WAVY ||
+        otherLineStyle == NS_STYLE_TEXT_DECORATION_STYLE_DOUBLE ||
+        otherLineStyle == NS_STYLE_TEXT_DECORATION_STYLE_WAVY) {
+      return kUpdateOverflowAndRepaintHint;
+    }
+    
+    
+    return nsChangeHint_RepaintFrame;
+  }
+
+  
+  nscolor decColor, otherDecColor;
+  bool isFG, otherIsFG;
+  GetDecorationColor(decColor, isFG);
+  aOther.GetDecorationColor(otherDecColor, otherIsFG);
+  if (isFG != otherIsFG || (!isFG && decColor != otherDecColor)) {
+    return nsChangeHint_RepaintFrame;
+  }
+
+  if (mTextOverflow != aOther.mTextOverflow) {
+    return nsChangeHint_RepaintFrame;
+  }
+  return NS_STYLE_HINT_NONE;
 }
 
 #ifdef DEBUG
