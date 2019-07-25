@@ -55,6 +55,20 @@ function run_test() {
     name: "Test Addon 2",
   }, dest);
 
+  dest = profileDir.clone();
+  dest.append("addon3@tests.mozilla.org");
+  writeInstallRDFToDir({
+    id: "addon3@tests.mozilla.org",
+    version: "1.0",
+    updateURL: "http://localhost:4444/data/test_update.rdf",
+    targetApplications: [{
+      id: "xpcshell@tests.mozilla.org",
+      minVersion: "5",
+      maxVersion: "5"
+    }],
+    name: "Test Addon 3",
+  }, dest);
+
   startupManager(1);
 
   do_test_pending();
@@ -76,8 +90,8 @@ function run_test_1() {
     ]);
 
     a1.findUpdates({
-      onCompatibilityUpdated: function(addon) {
-        do_throw("Should not have seen a compatibility update");
+      onNoCompatibilityUpdateAvailable: function(addon) {
+        do_throw("Should not have seen no compatibility update");
       },
 
       onUpdateAvailable: function(addon, install) {
@@ -149,8 +163,10 @@ function run_test_3() {
     do_check_false(a2.isActive);
     do_check_false(a2.isCompatible);
     do_check_true(a2.appDisabled);
+    do_check_true(a2.isCompatibleWith("0"));
+
     a2.findUpdates({
-      onCompatibilityUpdated: function(addon) {
+      onCompatibilityUpdateAvailable: function(addon) {
         do_check_true(a2.isCompatible);
         do_check_false(a2.appDisabled);
         do_check_false(a2.isActive);
@@ -183,6 +199,89 @@ function check_test_3() {
 
 
 function run_test_4() {
+  AddonManager.getAddon("addon3@tests.mozilla.org", function(a3) {
+    do_check_neq(a3, null);
+    do_check_false(a3.isActive);
+    do_check_false(a3.isCompatible);
+    do_check_true(a3.appDisabled);
+    do_check_true(a3.isCompatibleWith("5"));
+    do_check_false(a3.isCompatibleWith("2"));
+
+    a3.findUpdates({
+      sawUpdate: false,
+      onCompatibilityUpdateAvailable: function(addon) {
+        do_throw("Should not have seen compatibility information");
+      },
+
+      onNoCompatibilityUpdateAvailable: function(addon) {
+        this.sawUpdate = true;
+      },
+
+      onUpdateAvailable: function(addon, install) {
+        do_throw("Should not have seen an available update");
+      },
+
+      onNoUpdateAvailable: function(addon) {
+        do_check_true(this.sawUpdate);
+        run_test_5();
+      }
+    }, AddonManager.UPDATE_WHEN_USER_REQUESTED);
+  });
+}
+
+
+
+function run_test_5() {
+  AddonManager.getAddon("addon3@tests.mozilla.org", function(a3) {
+    do_check_neq(a3, null);
+    do_check_false(a3.isActive);
+    do_check_false(a3.isCompatible);
+    do_check_true(a3.appDisabled);
+    do_check_true(a3.isCompatibleWith("5"));
+    do_check_false(a3.isCompatibleWith("2"));
+
+    a3.findUpdates({
+      sawUpdate: false,
+      onCompatibilityUpdateAvailable: function(addon) {
+        do_check_false(a3.isCompatible);
+        do_check_true(a3.appDisabled);
+        do_check_false(a3.isActive);
+        this.sawUpdate = true;
+      },
+
+      onNoCompatibilityUpdateAvailable: function(addon) {
+        do_throw("Should have seen some compatibility information");
+      },
+
+      onUpdateAvailable: function(addon, install) {
+        do_throw("Should not have seen an available update");
+      },
+
+      onNoUpdateAvailable: function(addon) {
+        do_check_true(this.sawUpdate);
+        restartManager(0);
+        check_test_5();
+      }
+    }, AddonManager.UPDATE_WHEN_USER_REQUESTED, "3.0");
+  });
+}
+
+function check_test_5() {
+  AddonManager.getAddon("addon3@tests.mozilla.org", function(a3) {
+    do_check_neq(a3, null);
+    do_check_false(a3.isActive);
+    do_check_false(a3.isCompatible);
+    do_check_true(a3.appDisabled);
+
+    a3.uninstall();
+    restartManager(0);
+
+    run_test_6();
+  });
+}
+
+
+function run_test_6() {
   var dest = profileDir.clone();
   dest.append("addon1@tests.mozilla.org");
   writeInstallRDFToDir({
@@ -202,14 +301,14 @@ function run_test_4() {
     "onNewInstall",
     "onDownloadStarted",
     "onDownloadEnded"
-  ], continue_test_4);
+  ], continue_test_6);
 
   
   
   gInternalManager.notify(null);
 }
 
-function continue_test_4(install) {
+function continue_test_6(install) {
   do_check_neq(install.existingAddon, null);
   do_check_eq(install.existingAddon.id, "addon1@tests.mozilla.org");
 
@@ -220,10 +319,10 @@ function continue_test_4(install) {
   }, [
     "onInstallStarted",
     "onInstallEnded",
-  ], check_test_4);
+  ], check_test_6);
 }
 
-function check_test_4(install) {
+function check_test_6(install) {
   do_check_eq(install.existingAddon.pendingUpgrade.install, install);
 
   restartManager(1);
@@ -233,12 +332,12 @@ function check_test_4(install) {
     a1.uninstall();
     restartManager(0);
 
-    run_test_5();
+    run_test_7();
   });
 }
 
 
-function run_test_5() {
+function run_test_7() {
   LightweightThemeManager.currentTheme = {
     id: "1",
     version: "1",
@@ -289,7 +388,7 @@ function run_test_5() {
       ]
     }, [
       "onExternalInstall"
-    ], check_test_5);
+    ], check_test_7);
   
     
     
@@ -297,18 +396,18 @@ function run_test_5() {
   });
 }
 
-function check_test_5() {
+function check_test_7() {
   AddonManager.getAddon("1@personas.mozilla.org", function(p1) {
     do_check_neq(p1, null);
     do_check_eq(p1.version, "2");
     do_check_eq(p1.name, "Updated Theme");
 
-    run_test_6();
+    run_test_8();
   });
 }
 
 
-function run_test_6() {
+function run_test_8() {
   var dest = profileDir.clone();
   dest.append("addon1@tests.mozilla.org");
   writeInstallRDFToDir({
@@ -491,8 +590,19 @@ function run_test_6() {
         },
 
         onUpdateFinished: function(addon, error) {
-          if (--count == 0)
-            end_test();
+          if (--count != 0)
+            return;
+
+          a1.uninstall();
+          a2.uninstall();
+          a3.uninstall();
+          a4.uninstall();
+          a5.uninstall();
+          a6.uninstall();
+
+          restartManager(0);
+
+          run_test_9();
         }
       };
 
@@ -503,5 +613,135 @@ function run_test_6() {
       a5.findUpdates(compatListener, AddonManager.UPDATE_WHEN_NEW_APP_INSTALLED);
       a6.findUpdates(updateListener, AddonManager.UPDATE_WHEN_NEW_APP_INSTALLED);
     });
+  });
+}
+
+
+
+function run_test_9() {
+  var dest = profileDir.clone();
+  dest.append("addon4@tests.mozilla.org");
+  writeInstallRDFToDir({
+    id: "addon4@tests.mozilla.org",
+    version: "5.0",
+    updateURL: "http://localhost:4444/data/test_update.rdf",
+    targetApplications: [{
+      id: "xpcshell@tests.mozilla.org",
+      minVersion: "0",
+      maxVersion: "1"
+    }],
+    name: "Test Addon 1",
+  }, dest);
+
+  restartManager(1);
+
+  AddonManager.getAddon("addon4@tests.mozilla.org", function(a4) {
+    do_check_true(a4.isActive);
+    do_check_true(a4.isCompatible);
+
+    run_test_10();
+  });
+}
+
+
+
+function run_test_10() {
+  AddonManager.getAddon("addon4@tests.mozilla.org", function(a4) {
+    a4.findUpdates({
+      onUpdateFinished: function(addon) {
+        do_check_true(addon.isCompatible);
+
+        run_test_11();
+      }
+    }, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
+  });
+}
+
+
+
+function run_test_11() {
+  AddonManager.getAddon("addon4@tests.mozilla.org", function(a4) {
+    a4.findUpdates({
+      onUpdateFinished: function(addon) {
+        do_check_false(addon.isCompatible);
+
+        run_test_12();
+      }
+    }, AddonManager.UPDATE_WHEN_NEW_APP_INSTALLED);
+  });
+}
+
+
+function run_test_12() {
+  restartManager(0);
+
+  AddonManager.getAddon("addon4@tests.mozilla.org", function(a4) {
+    do_check_false(a4.isActive);
+    do_check_false(a4.isCompatible);
+
+    a4.uninstall();
+    restartManager();
+
+    run_test_13();
+  });
+}
+
+
+
+
+function run_test_13() {
+  
+  dest = profileDir.clone();
+  dest.append("addon7@tests.mozilla.org");
+  writeInstallRDFToDir({
+    id: "addon7@tests.mozilla.org",
+    version: "1.0",
+    updateURL: "http://localhost:4444/data/test_update.rdf",
+    targetApplications: [{
+      id: "xpcshell@tests.mozilla.org",
+      minVersion: "0",
+      maxVersion: "0"
+    }],
+    name: "Test Addon 7",
+  }, dest);
+  restartManager(1);
+
+  AddonManager.getAddon("addon7@tests.mozilla.org", function(a7) {
+    do_check_neq(a7, null);
+    do_check_false(a7.isActive);
+    do_check_false(a7.isCompatible);
+    do_check_true(a7.appDisabled);
+    do_check_true(a7.isCompatibleWith("0"));
+
+    a7.findUpdates({
+      sawUpdate: false,
+      onCompatibilityUpdateAvailable: function(addon) {
+        do_throw("Should have not have seen compatibility information");
+      },
+
+      onUpdateAvailable: function(addon, install) {
+        do_throw("Should not have seen an available update");
+      },
+
+      onUpdateFinished: function(addon) {
+        do_check_true(addon.isCompatible);
+        restartManager(0);
+        check_test_13();
+      }
+    }, AddonManager.UPDATE_WHEN_NEW_APP_DETECTED, "3.0");
+  });
+}
+
+function check_test_13() {
+  AddonManager.getAddon("addon7@tests.mozilla.org", function(a7) {
+    do_check_neq(a7, null);
+    do_check_true(a7.isActive);
+    do_check_true(a7.isCompatible);
+    do_check_false(a7.appDisabled);
+
+    a7.uninstall();
+    restartManager(0);
+
+    end_test();
   });
 }
