@@ -1051,34 +1051,14 @@ WeaveSvc.prototype = {
   },
 
   _autoConnect: function _autoConnect() {
-    let isLocked = Utils.mpLocked();
-    if (isLocked) {
-      
-      
-      
-      this._log.trace("Autoconnect skipped: master password still locked.");
-
-      if (this._autoTimer)
-        this._autoTimer.clear();
-
-      SyncScheduler.checkSyncStatus();
-
-      return;
-    }
-
-    let reason = this._checkSync();
-
-    
-    if (!reason) {
-      if (!this.username || !this.password || !this.passphrase)
-        return;
-
+    if (this._checkSetup() == STATUS_OK && !this._checkSync()) {
       Utils.nextTick(this.sync, this);
     }
 
     
-    if (this._autoTimer)
+    if (this._autoTimer) {
       this._autoTimer.clear();
+    }
   },
 
   persistLogin: function persistLogin() {
