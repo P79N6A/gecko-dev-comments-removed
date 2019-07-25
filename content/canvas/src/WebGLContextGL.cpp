@@ -4956,7 +4956,6 @@ WebGLContext::CompileShader(WebGLShader *shader)
 #ifdef XP_MACOSX
             
             if (gl->WorkAroundDriverBugs() &&
-                !nsCocoaFeatures::OnLionOrLater() &&
                 gl->Vendor() == gl::GLContext::VendorATI)
             {
                 compileOptions |= SH_EMULATE_BUILT_IN_FUNCTIONS;
