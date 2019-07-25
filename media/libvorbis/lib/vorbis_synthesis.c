@@ -47,14 +47,15 @@ int vorbis_synthesis(vorbis_block *vb,ogg_packet *op){
 
   
   mode=oggpack_read(opb,b->modebits);
-  if(mode==-1) {
+  if(mode==-1){
     return(OV_EBADPACKET);
   }
 
   vb->mode=mode;
-  if(!ci->mode_param[mode]) {
-    return(OV_EBADPACKET); 
+  if(!ci->mode_param[mode]){
+    return(OV_EBADPACKET);
   }
+
   vb->W=ci->mode_param[mode]->blockflag;
   if(vb->W){
 
@@ -62,7 +63,9 @@ int vorbis_synthesis(vorbis_block *vb,ogg_packet *op){
 
     vb->lW=oggpack_read(opb,1);
     vb->nW=oggpack_read(opb,1);
-    if(vb->nW==-1)   return(OV_EBADPACKET);
+    if(vb->nW==-1){
+      return(OV_EBADPACKET);
+    }
   }else{
     vb->lW=0;
     vb->nW=0;
@@ -108,9 +111,14 @@ int vorbis_synthesis_trackonly(vorbis_block *vb,ogg_packet *op){
 
   
   mode=oggpack_read(opb,b->modebits);
-  if(mode==-1)return(OV_EBADPACKET);
+  if(mode==-1) {
+    return(OV_EBADPACKET);
+  }
 
   vb->mode=mode;
+  if(!ci->mode_param[mode]) {
+    return(OV_EBADPACKET); 
+  }
   vb->W=ci->mode_param[mode]->blockflag;
   if(vb->W){
     vb->lW=oggpack_read(opb,1);

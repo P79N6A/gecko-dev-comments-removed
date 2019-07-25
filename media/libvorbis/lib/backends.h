@@ -93,10 +93,10 @@ typedef struct{
   void (*free_info)    (vorbis_info_residue *);
   void (*free_look)    (vorbis_look_residue *);
   long **(*class)      (struct vorbis_block *,vorbis_look_residue *,
-                        float **,int *,int);
+                        int **,int *,int);
   int  (*forward)      (oggpack_buffer *,struct vorbis_block *,
                         vorbis_look_residue *,
-                        float **,float **,int *,int,long **);
+                        int **,int *,int,long **,int);
   int  (*inverse)      (struct vorbis_block *,vorbis_look_residue *,
                         float **,int *,int);
 } vorbis_func_residue;
@@ -114,8 +114,8 @@ typedef struct vorbis_info_residue0{
   int    secondstages[64]; 
   int    booklist[512];    
 
-  const float classmetric1[64];
-  const float classmetric2[64];
+  const int classmetric1[64];
+  const int classmetric2[64];
 } vorbis_info_residue0;
 
 
