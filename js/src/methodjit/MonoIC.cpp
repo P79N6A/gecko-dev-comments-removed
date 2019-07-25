@@ -655,16 +655,6 @@ class CallCompiler : public BaseCompiler
         masm.loadPtr(Address(t0, offset), t0);
         Jump hasCode = masm.branchPtr(Assembler::Above, t0, ImmPtr(JS_UNJITTABLE_SCRIPT));
 
-        if (cx->typeInferenceEnabled()) {
-            
-
-
-
-
-            masm.storePtr(ImmPtr(COMPILE_FUNCTION_SCRATCH_VALUE),
-                          FrameAddress(offsetof(VMFrame, scratch)));
-        }
-
         
         void *compilePtr = JS_FUNC_TO_DATA_PTR(void *, stubs::CompileFunction);
         if (ic.frameSize.isStatic()) {
@@ -676,9 +666,6 @@ class CallCompiler : public BaseCompiler
             masm.fallibleVMCall(cx->typeInferenceEnabled(),
                                 compilePtr, NULL, NULL, -1);
         }
-
-        if (cx->typeInferenceEnabled())
-            masm.storePtr(ImmPtr(NULL), FrameAddress(offsetof(VMFrame, scratch)));
 
         Jump notCompiled = masm.branchTestPtr(Assembler::Zero, Registers::ReturnReg,
                                               Registers::ReturnReg);

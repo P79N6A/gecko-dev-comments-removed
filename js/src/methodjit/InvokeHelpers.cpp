@@ -287,6 +287,13 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
 
 
 
+
+    f.scratch = COMPILE_FUNCTION_SCRATCH_VALUE;
+
+    
+
+
+
     JSContext *cx = f.cx;
     StackFrame *fp = f.fp();
 
@@ -306,13 +313,17 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
 
     if (nactual != fp->numFormalArgs()) {
         fp = (StackFrame *)FixupArity(f, nactual);
-        if (!fp)
+        if (!fp) {
+            f.scratch = NULL;
             return NULL;
+        }
     }
 
     CallArgs args = CallArgsFromArgv(fp->numFormalArgs(), fp->formalArgs());
-    if (!cx->typeMonitorCall(args, fp->isConstructing()))
+    if (!cx->typeMonitorCall(args, fp->isConstructing())) {
+        f.scratch = NULL;
         return NULL;
+    }
 
     
     fp->initCallFrameLatePrologue();
@@ -320,8 +331,10 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
     
     f.regs.prepareToRun(fp, script);
 
-    if (fun->isHeavyweight() && !js::CreateFunCallObject(cx, fp))
+    if (fun->isHeavyweight() && !js::CreateFunCallObject(cx, fp)) {
+        f.scratch = NULL;
         THROWV(NULL);
+    }
 
     CompileStatus status = CanMethodJIT(cx, script, fp, CompileRequest_JIT);
     if (status == Compile_Okay) {
@@ -329,6 +342,7 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
 
         
         f.regs.popFrame((Value *) f.regs.fp());
+        f.scratch = NULL;
         return entry;
     }
 
@@ -338,6 +352,8 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
     
     JSBool ok = Interpret(cx, fp);
     InlineReturn(f);
+
+    f.scratch = NULL;
 
     if (!ok)
         THROWV(NULL);
