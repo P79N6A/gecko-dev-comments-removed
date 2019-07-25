@@ -1878,7 +1878,33 @@ JS_RemoveExternalStringFinalizer(JSStringFinalizeOp finalizer);
 
 
 extern JS_PUBLIC_API(JSString *)
-JS_NewExternalString(JSContext *cx, jschar *chars, size_t length, intN type);
+JS_NewExternalString(JSContext *cx, const jschar *chars, size_t length, intN type);
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSString *)
+JS_NewExternalStringWithClosure(JSContext *cx, const jschar *chars, size_t length,
+                                intN type, void *closure);
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_IsExternalString(JSContext *cx, JSString *str);
+
+
+
+
+
+extern JS_PUBLIC_API(void *)
+JS_GetExternalStringClosure(JSContext *cx, JSString *str);
 
 
 
