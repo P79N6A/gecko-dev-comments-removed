@@ -215,30 +215,33 @@ let Utils = {
     });
   },
 
+  byteArrayToString: function byteArrayToString(bytes) {
+    return [String.fromCharCode(byte) for each (byte in bytes)].join("");
+  },
+
   
+
+
+  generateRandomBytes: function generateRandomBytes(length) {
+    let rng = Cc["@mozilla.org/security/random-generator;1"]
+                .createInstance(Ci.nsIRandomGenerator);
+    let bytes = rng.generateRandomBytes(length);
+    return Utils.byteArrayToString(bytes);
+  },
+
+  
+
+
+  encodeBase64url: function encodeBase64url(bytes) {
+    return btoa(bytes).replace('+', '-', 'g').replace('/', '_', 'g');
+  },
+
+  
+
+
+
   makeGUID: function makeGUID() {
-    
-    const code =
-      "!()*-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~";
-
-    let guid = "";
-    let num = 0;
-    let val;
-
-    
-    for (let i = 0; i < 10; i++) {
-      
-      if (i == 0 || i == 5)
-        num = Math.random();
-
-      
-      num *= 70;
-      val = Math.floor(num);
-      guid += code[val];
-      num -= val;
-    }
-
-    return guid;
+    return Utils.encodeBase64url(Utils.generateRandomBytes(9));
   },
 
   anno: function anno(id, anno, val, expire) {
@@ -1210,10 +1213,7 @@ let Utils = {
     
     
     
-    let rng = Cc["@mozilla.org/security/random-generator;1"]
-                .createInstance(Ci.nsIRandomGenerator);
-    let bytes = rng.generateRandomBytes(16);
-    return Utils.encodeKeyBase32(Utils.byteArrayToString(bytes));
+    return Utils.encodeKeyBase32(Utils.generateRandomBytes(16));
   },
 
   
