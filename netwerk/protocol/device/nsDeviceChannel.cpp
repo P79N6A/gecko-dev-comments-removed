@@ -1,0 +1,158 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "plstr.h"
+#include "nsComponentManagerUtils.h"
+#include "nsDeviceChannel.h"
+#include "nsDeviceCaptureProvider.h"
+
+
+
+
+
+
+void extractAttributeValue(const char* searchString, const char* attributeName, nsCString& result)
+{
+  result.Truncate();
+
+  if (!searchString || !attributeName)
+    return;
+
+  PRUint32 attributeNameSize = strlen(attributeName);
+  const char *startOfAttribute = PL_strcasestr(searchString, attributeName);
+  if (!startOfAttribute ||
+      !( *(startOfAttribute-1) == '?' || *(startOfAttribute-1) == '&') )
+    return;
+
+  startOfAttribute += attributeNameSize; 
+  if (!*startOfAttribute)
+    return;
+
+  const char *endOfAttribute = strchr(startOfAttribute, '&');
+  if (endOfAttribute) {
+    result.Assign(Substring(startOfAttribute, endOfAttribute));
+  } else {
+    result.Assign(startOfAttribute);
+  }
+}
+
+NS_IMPL_ISUPPORTS_INHERITED1(nsDeviceChannel,
+                             nsBaseChannel,
+                             nsIChannel)
+
+
+nsDeviceChannel::nsDeviceChannel()
+{
+  SetContentType(NS_LITERAL_CSTRING("image/png"));
+}
+
+nsDeviceChannel::~nsDeviceChannel() 
+{
+}
+
+nsresult
+nsDeviceChannel::Init(nsIURI* aUri)
+{
+  nsBaseChannel::Init();
+  nsBaseChannel::SetURI(aUri);
+  return NS_OK;
+}
+
+nsresult
+nsDeviceChannel::OpenContentStream(PRBool aAsync,
+                                   nsIInputStream** aStream,
+                                   nsIChannel** aChannel)
+{
+  if (!aAsync)
+    return NS_ERROR_NOT_IMPLEMENTED;
+
+  nsCOMPtr<nsIURI> uri = nsBaseChannel::URI();
+  *aStream = nsnull;
+  *aChannel = nsnull;
+  NS_NAMED_LITERAL_CSTRING(width, "width=");
+  NS_NAMED_LITERAL_CSTRING(height, "height=");
+
+  nsCAutoString spec;
+  uri->GetSpec(spec);
+
+  nsCAutoString type;
+  
+  
+  nsRefPtr<nsDeviceCaptureProvider> capture;
+  nsCaptureParams captureParams;
+  if (kNotFound != spec.Find(NS_LITERAL_CSTRING("type=image/png"),
+                             PR_TRUE,
+                             0,
+                             -1)) {
+    type.AssignLiteral("image/png");
+    SetContentType(type);
+    captureParams.captureAudio = PR_FALSE;
+    captureParams.captureVideo = PR_TRUE;
+    captureParams.timeLimit = 0;
+    captureParams.frameLimit = 1;
+    nsCAutoString buffer;
+    extractAttributeValue(spec.get(), "width=", buffer);
+    nsresult err;
+    captureParams.width = buffer.ToInteger(&err);
+    if (!captureParams.width)
+      captureParams.width = 640;
+    extractAttributeValue(spec.get(), "height=", buffer);
+    captureParams.height = buffer.ToInteger(&err);
+    if (!captureParams.height)
+      captureParams.height = 480;
+    captureParams.bpp = 32;
+  } else if (kNotFound != spec.Find(NS_LITERAL_CSTRING("type=video/x-raw-yuv"),
+                                    PR_TRUE,
+                                    0,
+                                    -1)) {
+    type.AssignLiteral("video/x-raw-yuv");
+    SetContentType(type);
+    captureParams.captureAudio = PR_FALSE;
+    captureParams.captureVideo = PR_TRUE;
+    captureParams.width = 640;
+    captureParams.height = 480;
+    captureParams.bpp = 32;
+    captureParams.frameLimit = 6000;
+  } else {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
+  if (!capture)
+    return NS_ERROR_FAILURE;
+
+  return capture->Init(type, &captureParams, aStream);
+}
