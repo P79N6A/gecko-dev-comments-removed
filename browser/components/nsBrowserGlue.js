@@ -370,7 +370,6 @@ BrowserGlue.prototype = {
   
   _onFirstWindowLoaded: function BG__onFirstWindowLoaded() {
 #ifdef XP_WIN
-#ifndef WINCE
     
     const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
     if (WINTASKBAR_CONTRACTID in Cc &&
@@ -380,25 +379,10 @@ BrowserGlue.prototype = {
       temp.WinTaskbarJumpList.startup();
     }
 #endif
-#endif
   },
 
   
   _onProfileShutdown: function BG__onProfileShutdown() {
-#ifdef MOZ_UPDATER
-#ifdef WINCE
-    
-    try {
-      let um = Cc["@mozilla.org/updates/update-manager;1"].
-               getService(Ci.nsIUpdateManager);
-      if (um.activeUpdate && um.activeUpdate.state == "pending") {
-        let cacheService = Cc["@mozilla.org/network/cache-service;1"].
-                           getService(Ci.nsICacheService);
-        cacheService.evictEntries(Ci.nsICache.STORE_ANYWHERE);
-      }
-    } catch (e) { }
-#endif
-#endif
     this._shutdownPlaces();
     this._sanitizer.onShutdown();
   },
