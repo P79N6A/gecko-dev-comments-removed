@@ -361,7 +361,7 @@ RadioInterfaceLayer.prototype = {
                             voiceInfo);
       return;
     }
-    
+    voiceInfo.emergencyCallsOnly = state.emergencyCallsOnly;
     voiceInfo.connected =
       (state.regState == RIL.NETWORK_CREG_STATE_REGISTERED_HOME) ||
       (state.regState == RIL.NETWORK_CREG_STATE_REGISTERED_ROAMING);
