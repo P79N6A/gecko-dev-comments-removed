@@ -383,6 +383,16 @@ PermitIfUniversalXPConnect(JSContext *cx, jsid id, Wrapper::Action act,
     return Deny(cx, id, act);
 }
 
+static bool
+IsInSandbox(JSContext *cx, JSObject *obj)
+{
+    JSAutoEnterCompartment ac;
+    if (!ac.enter(cx, obj))
+        return false;
+    JSObject *global = JS_GetGlobalForObject(cx, obj);
+    return !strcmp(js::GetObjectJSClass(global)->name, "Sandbox");
+}
+
 bool
 ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper::Action act,
                              Permission &perm)
@@ -427,6 +437,26 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
         if (!wrapperAC.enter(cx, wrapper))
             return false;
 
+        
+        
+        if (!JS_ObjectIsFunction(cx, wrappedObject) &&
+            IsInSandbox(cx, wrappedObject))
+        {
+            
+            nsCOMPtr<nsPIDOMWindow> win =
+                do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(cx, wrapper));
+            if (win) {
+                nsCOMPtr<nsIDocument> doc =
+                    do_QueryInterface(win->GetExtantDocument());
+                if (doc) {
+                    doc->WarnOnceAbout(nsIDocument::eNoExposedProps,
+                                        true);
+                }
+            }
+
+            perm = PermitPropertyAccess;
+            return true;
+        }
         return PermitIfUniversalXPConnect(cx, id, act, perm); 
     }
 
