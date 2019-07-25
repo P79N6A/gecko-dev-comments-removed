@@ -102,21 +102,8 @@ void Thread::Stop() {
   DCHECK_NE(thread_id_, PlatformThread::CurrentId());
 
   
-  if (message_loop_) {
-
-
-
-
-#ifdef OS_LINUX
-      printf("TEST-UNEXPECTED-FAIL | process %d | posted quit task to other thread\n", getpid());
-#endif
-
-
-
-
-
+  if (message_loop_)
     message_loop_->PostTask(FROM_HERE, new ThreadQuitTask());
-  }
 
   
   
@@ -124,28 +111,7 @@ void Thread::Stop() {
   
   
   
-
-
-
-
-#ifdef OS_LINUX
-  printf("TEST-UNEXPECTED-FAIL | process %d | joining other thread\n", getpid());
-#endif
-
-
-
-
   PlatformThread::Join(thread_);
-
-
-
-
-#ifdef OS_LINUX
-  printf("TEST-UNEXPECTED-FAIL | process %d | other thread joined\n", getpid());
-#endif
-
-
-
 
   
   message_loop_ = NULL;
