@@ -240,7 +240,9 @@ static PRLogModuleInfo *nsObjectFrameLM = PR_NewLogModule("nsObjectFrame");
 #endif
 
 using namespace mozilla;
+#ifdef MOZ_IPC
 using namespace mozilla::plugins;
+#endif
 using namespace mozilla::layers;
 
 
