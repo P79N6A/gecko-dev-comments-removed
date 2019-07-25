@@ -2938,6 +2938,18 @@ AnalyzeBytecode(JSContext *cx, AnalyzeState &state, JSScript *script, uint32 off
             id = GetAtomId(cx, script, pc, 0);
 
         
+
+
+
+
+        if (id == ATOM_TO_JSID(cx->runtime->atomState.typeAtoms[JSTYPE_VOID]))
+            cx->addTypePropertyId(script->getGlobalType(), id, TYPE_UNDEFINED);
+        if (id == ATOM_TO_JSID(cx->runtime->atomState.NaNAtom))
+            cx->addTypePropertyId(script->getGlobalType(), id, TYPE_DOUBLE);
+        if (id == ATOM_TO_JSID(cx->runtime->atomState.InfinityAtom))
+            cx->addTypePropertyId(script->getGlobalType(), id, TYPE_DOUBLE);
+
+        
         PropertyAccess(cx, script, pc, script->getGlobalType(),
                        false, &pushed[0], id);
 
