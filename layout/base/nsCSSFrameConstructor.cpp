@@ -5043,10 +5043,13 @@ nsCSSFrameConstructor::AddFrameConstructionItems(nsFrameConstructorState& aState
 
   
   
-  NS_ASSERTION(!aContent->GetPrimaryFrame() ||
-    aContent->GetPrimaryFrame()->GetContent() != aContent ||
-    aState.mCreatingExtraFrames,
-    "asked to create frame construction item for a node that already has a frame");
+  if (aContent->GetPrimaryFrame() &&
+      aContent->GetPrimaryFrame()->GetContent() == aContent &&
+      !aState.mCreatingExtraFrames) {
+    NS_ERROR("asked to create frame construction item for a node that already "
+             "has a frame");
+    return;
+  }
 
   
   if (!NeedFrameFor(aState, aParentFrame, aContent)) {
