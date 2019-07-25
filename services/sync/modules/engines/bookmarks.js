@@ -111,7 +111,7 @@ BookmarksEngine.prototype = {
     
     let serverUrl = Utils.prefs.getCharPref( "xmpp.server.url" );
     let realm = Utils.prefs.getCharPref( "xmpp.server.realm" );
-
+    
     
     
     
@@ -121,7 +121,7 @@ BookmarksEngine.prototype = {
     let clientName = Utils.prefs.getCharPref( "xmpp.client.name" );
     let clientPassword = Utils.prefs.getCharPref( "xmpp.client.password" );
     let transport = new HTTPPollingTransport( serverUrl, false, 15000 );
-    let auth = new PlainAuthenticator();
+    let auth = new PlainAuthenticator(); 
     
     
     this._xmppClient = new XmppClient( clientName,
@@ -154,8 +154,7 @@ BookmarksEngine.prototype = {
 	  bmkEngine._incomingShareWithdrawn( directoryName, from );
 	}
       }
-    };
-
+    }
     this._xmppClient.registerMessageHandler( messageHandler );
     this._xmppClient.connect( realm, self.cb );
     yield;
@@ -244,7 +243,7 @@ BookmarksEngine.prototype = {
       } else {
 	this._log.warn( "No XMPP connection for share notification." );
       }
-    }
+    } 
 
     
 
@@ -302,7 +301,7 @@ BookmarksEngine.prototype = {
 
     let self = yield;
     let myUserName = ID.get('WeaveID').username;
-    this._log.debug("Sharing bookmarks from " + folder.getAttribute( "label" )
+    this._log.debug("Sharing bookmarks from " + folder.getAttribute( "label" ) 
                     + " with " + username);
 
     
@@ -319,6 +318,7 @@ BookmarksEngine.prototype = {
       this._log.error("Can't create remote folder for outgoing share.");
       self.done(false);
     }
+    
 
     
 
@@ -337,9 +337,11 @@ BookmarksEngine.prototype = {
     
 
     let myPubKeyFile = new Resource("/user/" + myUserName + "/public/pubkey");
-    let myPubKey = myPubKeyFile.get(); 
+    myPubKeyFile.get(self.cb);
+    let myPubKey = yield;
     let userPubKeyFile = new Resource("/user/" + username + "/public/pubkey");
-    let userPubKey = userPubKeyFile.get();
+    userPubKeyFile.get(self.cb);
+    let userPubKey = yield;
 
     
 
@@ -350,7 +352,8 @@ BookmarksEngine.prototype = {
     let keyring = { myUserName: encryptedForMe,
                     username: encryptedForYou };
     let keyringFile = new Resource( serverPath + "/" + KEYRING_FILE_NAME );
-    keyringFile.put( this._json.encode( keyring ) ); 
+    keyringFile.put( self.cb, this._json.encode( keyring ) );
+    yield;
 
     
     let sharingApi = new Sharing.Api( DAV );
@@ -377,10 +380,11 @@ BookmarksEngine.prototype = {
     
     
     let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
-    let keyring = keyringFile.get();
+    keyringFile.get(self.cb);
+    let keyring = yield;
     let symKey = keyring[ myUserName ];
     
-    let json = this._store._wrapMount( folderNode, myUserName );
+    let json = this._store._wrapMount( folderNode, myUserName ); 
     
 
 
@@ -388,7 +392,8 @@ BookmarksEngine.prototype = {
     let bookmarkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
     Crypto.PBEencrypt.async( Crypto, self.cb, json, {password:symKey} );
     let cyphertext = yield;
-    bookmarkFile.put( cyphertext );
+    bookmarkFile.put( self.cb, cyphertext );
+    yield;
     self.done();
   },
 
