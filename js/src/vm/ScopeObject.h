@@ -23,6 +23,9 @@ namespace js {
 
 
 
+
+
+
 struct ScopeCoordinate
 {
     uint16_t hops;
@@ -35,8 +38,13 @@ struct ScopeCoordinate
     inline ScopeCoordinate() {}
 };
 
-inline JSAtom *
-ScopeCoordinateAtom(JSScript *script, jsbytecode *pc);
+
+extern StaticBlockObject *
+ScopeCoordinateBlockChain(JSScript *script, jsbytecode *pc);
+
+
+extern PropertyName *
+ScopeCoordinateName(JSScript *script, jsbytecode *pc);
 
 
 
