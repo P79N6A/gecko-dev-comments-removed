@@ -32,6 +32,11 @@ enum LayerState {
   LAYER_ACTIVE_EMPTY
 };
 
+class RefCountedRegion : public RefCounted<RefCountedRegion> {
+public:
+  nsRegion mRegion;
+};
+
 
 
 
@@ -446,11 +451,13 @@ protected:
       
       
       mData.SwapElements(toCopy.mData);
+      mInvalidRegion.swap(toCopy.mInvalidRegion);
     }
 
     bool HasNonEmptyContainerLayer();
 
     nsAutoTArray<DisplayItemData, 1> mData;
+    nsRefPtr<RefCountedRegion> mInvalidRegion;
     bool mIsSharingContainerLayer;
 
     enum { ALLOW_MEMMOVE = false };
@@ -547,6 +554,7 @@ public:
 protected:
   void RemoveThebesItemsForLayerSubtree(Layer* aLayer);
 
+  static void SetAndClearInvalidRegion(DisplayItemDataEntry* aEntry);
   static PLDHashOperator UpdateDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
                                                        void* aUserArg);
   static PLDHashOperator StoreNewDisplayItemData(DisplayItemDataEntry* aEntry,
