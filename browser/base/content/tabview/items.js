@@ -74,15 +74,6 @@ function Item() {
 
   
   
-  
-  this.debug = false;
-
-  
-  
-  this.$debug = null;
-
-  
-  
   this.container = null;
 
   
@@ -153,16 +144,6 @@ Item.prototype = {
 
     this.container = container;
     this.$container = iQ(container);
-
-    if (this.debug) {
-      this.$debug = iQ('<div>')
-        .css({
-          border: '2px solid green',
-          zIndex: -10,
-          position: 'absolute'
-        })
-        .appendTo('body');
-    }
 
     iQ(this.container).data('item', this);
 
@@ -508,16 +489,6 @@ Item.prototype = {
         item.setBounds(bounds, immediately);
       }
     });
-  },
-
-  
-  
-  
-  
-  _updateDebugBounds: function Item__updateDebugBounds() {
-    if (this.$debug) {
-      this.$debug.css(this.bounds);
-    }
   },
 
   
