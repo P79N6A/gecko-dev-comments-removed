@@ -178,7 +178,7 @@ static PRBool FloatValidate (double f1, double f2, double f3, double f4, double 
 static nsIMemoryReporter *gCanvasAzureMemoryReporter = nsnull;
 static PRInt64 gCanvasAzureMemoryUsed = 0;
 
-static PRInt64 GetCanvasAzureMemoryUsed(void *) {
+static PRInt64 GetCanvasAzureMemoryUsed() {
   return gCanvasAzureMemoryUsed;
 }
 
@@ -187,11 +187,11 @@ static PRInt64 GetCanvasAzureMemoryUsed(void *) {
 
 NS_MEMORY_REPORTER_IMPLEMENT(CanvasAzureMemory,
   "canvas-2d-pixel-bytes",
-  MR_OTHER,
-  "Memory used by 2D canvases. Each canvas requires (width * height * 4) "
-  "bytes.",
+  KIND_OTHER,
+  UNITS_BYTES,
   GetCanvasAzureMemoryUsed,
-  nsnull)
+  "Memory used by 2D canvases. Each canvas requires (width * height * 4) "
+  "bytes.")
 
 
 

@@ -168,7 +168,7 @@ static PRBool FloatValidate (double f1, double f2, double f3, double f4, double 
 static nsIMemoryReporter *gCanvasMemoryReporter = nsnull;
 static PRInt64 gCanvasMemoryUsed = 0;
 
-static PRInt64 GetCanvasMemoryUsed(void *) {
+static PRInt64 GetCanvasMemoryUsed() {
     return gCanvasMemoryUsed;
 }
 
@@ -177,11 +177,11 @@ static PRInt64 GetCanvasMemoryUsed(void *) {
 
 NS_MEMORY_REPORTER_IMPLEMENT(CanvasMemory,
     "canvas-2d-pixel-bytes",
-    MR_OTHER,
-    "Memory used by 2D canvases. Each canvas requires (width * height * 4) "
-    "bytes.",
+    KIND_OTHER,
+    UNITS_BYTES,
     GetCanvasMemoryUsed,
-    NULL)
+    "Memory used by 2D canvases. Each canvas requires (width * height * 4) "
+    "bytes.")
 
 static void
 CopyContext(gfxContext* dest, gfxContext* src)

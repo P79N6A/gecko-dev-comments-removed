@@ -214,7 +214,7 @@ TelemetryPing.prototype = {
         h = Telemetry.getHistogramById(id);
         this._histograms[name] = h;
       }
-      let v = Math.floor(mr.memoryUsed / 1024);
+      let v = Math.floor(mr.amount / 1024);
       h.add(v);
     }
     return memReporters;
