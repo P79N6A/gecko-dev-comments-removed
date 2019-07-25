@@ -1324,9 +1324,9 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
   
   
   if (aReflowState.mFlags.mTableIsSplittable &&
+      NS_UNCONSTRAINEDSIZE != aReflowState.availableHeight &&
       (NS_FRAME_NOT_COMPLETE == aStatus || splitDueToPageBreak || 
-       (NS_UNCONSTRAINEDSIZE != aReflowState.availableHeight &&
-       aDesiredSize.height > aReflowState.availableHeight))) {
+       aDesiredSize.height > aReflowState.availableHeight)) {
     
     PRBool specialReflow = (PRBool)aReflowState.mFlags.mSpecialHeightReflow;
     ((nsHTMLReflowState::ReflowStateFlags&)aReflowState.mFlags).mSpecialHeightReflow = PR_FALSE;
