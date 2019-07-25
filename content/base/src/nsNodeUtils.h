@@ -172,7 +172,7 @@ public:
                         nsIDOMNode **aResult)
   {
     return CloneAndAdopt(aNode, PR_TRUE, aDeep, aNewNodeInfoManager, nsnull,
-                         nsnull, nsnull, aNodesWithProperties, aResult);
+                         nsnull, aNodesWithProperties, aResult);
   }
 
   
@@ -194,14 +194,12 @@ public:
 
 
 
-
   static nsresult Adopt(nsINode *aNode, nsNodeInfoManager *aNewNodeInfoManager,
-                        JSContext *aCx, JSObject *aOldScope,
-                        JSObject *aNewScope,
+                        JSContext *aCx, JSObject *aNewScope,
                         nsCOMArray<nsINode> &aNodesWithProperties)
   {
     nsresult rv = CloneAndAdopt(aNode, PR_FALSE, PR_TRUE, aNewNodeInfoManager,
-                                aCx, aOldScope, aNewScope, aNodesWithProperties,
+                                aCx, aNewScope, aNodesWithProperties,
                                 nsnull);
 
     nsMutationGuard::DidMutate();
@@ -285,11 +283,9 @@ private:
 
 
 
-
   static nsresult CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
                                 nsNodeInfoManager *aNewNodeInfoManager,
-                                JSContext *aCx, JSObject *aOldScope,
-                                JSObject *aNewScope,
+                                JSContext *aCx, JSObject *aNewScope,
                                 nsCOMArray<nsINode> &aNodesWithProperties,
                                 nsIDOMNode **aResult)
   {
@@ -299,7 +295,7 @@ private:
 
     nsCOMPtr<nsINode> clone;
     nsresult rv = CloneAndAdopt(aNode, aClone, aDeep, aNewNodeInfoManager,
-                                aCx, aOldScope, aNewScope, aNodesWithProperties,
+                                aCx, aNewScope, aNodesWithProperties,
                                 nsnull, getter_AddRefs(clone));
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -317,8 +313,7 @@ private:
 
   static nsresult CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
                                 nsNodeInfoManager *aNewNodeInfoManager,
-                                JSContext *aCx, JSObject *aOldScope,
-                                JSObject *aNewScope,
+                                JSContext *aCx, JSObject *aNewScope,
                                 nsCOMArray<nsINode> &aNodesWithProperties,
                                 nsINode *aParent, nsINode **aResult);
 };
