@@ -136,6 +136,7 @@ GetObjectOrRepresentedView(id <mozAccessible> aObject)
 
 - (void)didReceiveFocus;
 - (void)valueDidChange;
+- (void)selectedTextDidChange;
 
 #pragma mark -
 
