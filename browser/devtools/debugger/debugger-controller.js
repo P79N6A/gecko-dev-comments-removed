@@ -122,8 +122,55 @@ let DebuggerController = {
 
 
 
+
+
+  _prepareConnection: function DC__prepareConnection() {
+    
+    if (this._remoteConnectionTry === Prefs.remoteConnectionRetries) {
+      Services.prompt.alert(null,
+        L10N.getStr("remoteDebuggerPromptTitle"),
+        L10N.getStr("remoteDebuggerConnectionFailedMessage"));
+      this.dispatchEvent("Debugger:Close");
+      return false;
+    }
+
+    
+    if (!Prefs.remoteAutoConnect) {
+      let prompt = new RemoteDebuggerPrompt();
+      let result = prompt.show(!!this._remoteConnectionTimeout);
+      if (!result) {
+        this.dispatchEvent("Debugger:Close");
+        return false;
+      }
+      Prefs.remoteHost = prompt.uri.host;
+      Prefs.remotePort = prompt.uri.port;
+    }
+
+    
+    
+    this._remoteConnectionTry = ++this._remoteConnectionTry || 1;
+    this._remoteConnectionTimeout = window.setTimeout(function() {
+      
+      if (!DebuggerController.activeThread) {
+        DebuggerController._connect();
+      }
+    }, Prefs.remoteTimeout);
+
+    return true;
+  },
+
+  
+
+
+
   _connect: function DC__connect() {
-    let transport = this._isChromeDebugger
+    if (this._isRemoteDebugger) {
+      if (!this._prepareConnection()) {
+        return;
+      }
+    }
+
+    let transport = (this._isChromeDebugger || this._isRemoteDebugger)
       ? debuggerSocketConnect(Prefs.remoteHost, Prefs.remotePort)
       : DebuggerServer.connectPipe();
 
@@ -1334,7 +1381,29 @@ XPCOMUtils.defineLazyGetter(L10N, "stringBundle", function() {
 
 
 
-let Prefs = {};
+let Prefs = {
+
+  
+
+
+
+
+  get remoteAutoConnect() {
+    if (this._autoConn === undefined) {
+      this._autoConn = Services.prefs.getBoolPref("devtools.debugger.remote-autoconnect");
+    }
+    return this._autoConn;
+  },
+
+  
+
+
+
+  set remoteAutoConnect(value) {
+    Services.prefs.setBoolPref("devtools.debugger.remote-autoconnect", value);
+    this._autoConn = value;
+  }
+};
 
 
 
@@ -1350,6 +1419,22 @@ XPCOMUtils.defineLazyGetter(Prefs, "remoteHost", function() {
 
 XPCOMUtils.defineLazyGetter(Prefs, "remotePort", function() {
   return Services.prefs.getIntPref("devtools.debugger.remote-port");
+});
+
+
+
+
+
+XPCOMUtils.defineLazyGetter(Prefs, "remoteConnectionRetries", function() {
+  return Services.prefs.getIntPref("devtools.debugger.remote-connection-retries");
+});
+
+
+
+
+
+XPCOMUtils.defineLazyGetter(Prefs, "remoteTimeout", function() {
+  return Services.prefs.getIntPref("devtools.debugger.remote-timeout");
 });
 
 

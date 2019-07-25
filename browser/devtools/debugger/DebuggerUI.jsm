@@ -262,21 +262,10 @@ function RemoteDebuggerWindow(aDebuggerUI) {
   this._globalUI = aDebuggerUI;
   this._win = aDebuggerUI.chromeWindow;
 
-  this._initServer(); 
   this._create();
 }
 
 RemoteDebuggerWindow.prototype = {
-
-  
-
-
-  _initServer: function DP__initServer() {
-    if (!DebuggerServer.initialized) {
-      DebuggerServer.init();
-      DebuggerServer.addBrowserActors();
-    }
-  },
 
   
 

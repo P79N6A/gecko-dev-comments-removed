@@ -110,8 +110,11 @@ function debug_tab_pane(aURL, aOnDebugging)
   });
 }
 
-function debug_remote(aURL, aOnDebugging)
+function debug_remote(aURL, aOnDebugging, aBeforeTabAdded)
 {
+  
+  aBeforeTabAdded();
+
   let tab = addTab(aURL, function() {
     gBrowser.selectedTab = gTab;
     let debuggee = tab.linkedBrowser.contentWindow.wrappedJSObject;
