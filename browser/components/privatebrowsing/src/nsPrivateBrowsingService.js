@@ -572,6 +572,17 @@ PrivateBrowsingService.prototype = {
     }
 
     
+    let (imageCache = Cc["@mozilla.org/image/cache;1"].
+                      getService(Ci.imgICache)) {
+      try {
+        imageCache.clearCache(false); 
+      } catch (ex) {
+        Cu.reportError("Exception thrown while clearing the image cache: " +
+          ex.toString());
+      }
+    }
+
+    
     let (cm = Cc["@mozilla.org/cookiemanager;1"].
               getService(Ci.nsICookieManager2)) {
       let enumerator = cm.getCookiesFromHost(aDomain);

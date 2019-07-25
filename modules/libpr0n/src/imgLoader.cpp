@@ -78,6 +78,7 @@
 #include "nsIApplicationCacheContainer.h"
 
 #include "nsIMemoryReporter.h"
+#include "nsIPrivateBrowsingService.h"
 
 
 
@@ -874,19 +875,36 @@ nsresult imgLoader::Init()
 
   prefs->AddObserver("image.http.accept", this, PR_TRUE);
 
+  
+  nsCOMPtr<nsIObserverService> obService = mozilla::services::GetObserverService();
+  if (obService)
+    obService->AddObserver(this, NS_PRIVATE_BROWSING_SWITCH_TOPIC, PR_TRUE);
+
   return NS_OK;
 }
 
 NS_IMETHODIMP
 imgLoader::Observe(nsISupports* aSubject, const char* aTopic, const PRUnichar* aData)
 {
-  NS_ASSERTION(strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID) == 0,
-               "invalid topic received");
-
-  if (strcmp(NS_ConvertUTF16toUTF8(aData).get(), "image.http.accept") == 0) {
-    nsCOMPtr<nsIPrefBranch> prefs = do_QueryInterface(aSubject);
-    ReadAcceptHeaderPref(prefs);
+  
+  if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
+    if (!strcmp(NS_ConvertUTF16toUTF8(aData).get(), "image.http.accept")) {
+      nsCOMPtr<nsIPrefBranch> prefs = do_QueryInterface(aSubject);
+      ReadAcceptHeaderPref(prefs);
+    }
   }
+
+  
+  else if (!strcmp(aTopic, NS_PRIVATE_BROWSING_SWITCH_TOPIC)) {
+    if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_LEAVE).Equals(aData))
+      ClearImageCache();
+  }
+
+  
+  else {
+    NS_ABORT_IF_FALSE(0, "Invalid topic received");
+  }
+
   return NS_OK;
 }
 
