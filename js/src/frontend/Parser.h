@@ -79,6 +79,8 @@ struct Parser : private AutoGCRooter
     ParseNodeAllocator  allocator;
     uint32_t            functionCount;  
     ObjectBox           *traceListHead; 
+
+    
     TreeContext         *tc;            
 
     

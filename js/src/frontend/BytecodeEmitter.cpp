@@ -66,7 +66,6 @@
 #include "jsautooplen.h"        
 
 #include "ds/LifoAlloc.h"
-#include "frontend/BytecodeCompiler.h"
 #include "frontend/BytecodeEmitter.h"
 #include "frontend/Parser.h"
 #include "frontend/TokenStream.h"
@@ -365,29 +364,6 @@ ReportStatementTooLarge(JSContext *cx, BytecodeEmitter *bce)
 {
     JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NEED_DIET,
                          StatementName(bce));
-}
-
-bool
-TreeContext::inStatement(StmtType type)
-{
-    for (StmtInfo *stmt = topStmt; stmt; stmt = stmt->down) {
-        if (stmt->type == type)
-            return true;
-    }
-    return false;
-}
-
-bool
-TreeContext::skipSpansGenerator(unsigned skip)
-{
-    TreeContext *tc = this;
-    for (unsigned i = 0; i < skip; ++i, tc = tc->parent) {
-        if (!tc)
-            return false;
-        if (tc->flags & TCF_FUN_IS_GENERATOR)
-            return true;
-    }
-    return false;
 }
 
 bool

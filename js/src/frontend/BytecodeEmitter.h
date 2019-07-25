@@ -168,6 +168,12 @@ struct StmtInfo {
 JS_ENUM_HEADER(TreeContextFlags, uint32_t)
 {
     
+
+
+
+
+
+
     TCF_COMPILING =                            0x1,
 
     
@@ -377,8 +383,16 @@ struct TreeContext {
     }
 
     OwnedAtomDefnMapPtr lexdeps;    
-    TreeContext     *parent;        
-    unsigned           staticLevel;    
+
+    
+
+
+
+
+
+    TreeContext     *parent;
+
+    unsigned        staticLevel;    
 
     FunctionBox     *funbox;        
 
@@ -429,19 +443,11 @@ struct TreeContext {
 
     bool atBodyLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
 
-    
-    bool inStatement(StmtType type);
-
     bool inStrictMode() const {
         return flags & TCF_STRICT_MODE_CODE;
     }
 
     inline bool needStrictChecks();
-
-    
-    
-    
-    bool skipSpansGenerator(unsigned skip);
 
     bool compileAndGo() const { return flags & TCF_COMPILE_N_GO; }
     bool inFunction() const { return flags & TCF_IN_FUNCTION; }
