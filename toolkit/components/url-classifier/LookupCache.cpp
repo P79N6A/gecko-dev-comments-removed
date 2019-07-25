@@ -631,8 +631,8 @@ LookupCache::GetHostKeys(const nsACString& aSpec,
 
 
 
- nsresult LookupCache::KeyedHash(PRUint32 aPref, PRUint32 aDomain,
-                                             PRUint32 aKey, PRUint32* aOut,
+ nsresult LookupCache::KeyedHash(PRUint32 aPref, PRUint32 aHostKey,
+                                             PRUint32 aUserKey, PRUint32* aOut,
                                              bool aPassthrough)
 {
   
@@ -655,8 +655,8 @@ LookupCache::GetHostKeys(const nsACString& aSpec,
   PRUint32 k1;
   PRUint32 karr[2];
 
-  karr[0] = aDomain;
-  karr[1] = aKey;
+  karr[0] = aHostKey;
+  karr[1] = aUserKey;
 
   for (PRUint32 i = 0; i < 2; i++) {
     k1 = karr[i];
