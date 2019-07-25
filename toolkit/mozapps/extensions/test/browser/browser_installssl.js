@@ -45,6 +45,7 @@ function run_install_tests(callback) {
           is(SUCCESS, expectedStatus, message);
           run_next_install_test();
           
+          install.cancel();
           return false;
         },
 
