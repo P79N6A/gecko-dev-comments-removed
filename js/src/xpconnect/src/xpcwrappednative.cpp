@@ -2181,12 +2181,6 @@ class CallMethodHelper
     uint8 mJSContextIndex; 
     uint8 mOptArgcIndex; 
 
-    
-    
-    
-    
-    js::Maybe<nsAutoString> mAutoString;
-
     jsval* const mArgv;
     const PRUint32 mArgc;
 
@@ -2880,15 +2874,6 @@ CallMethodHelper::ConvertIndependentParams(JSBool* foundDependentParam)
                         
                         
                         
-
-                        if(mAutoString.empty())
-                        {
-                            mAutoString.construct();
-                            
-                            
-                            dp->val.p = mAutoString.addr();
-                            continue;
-                        }
 
                         dp->SetValIsDOMString();
                         if(!(dp->val.p = new nsAutoString()))
