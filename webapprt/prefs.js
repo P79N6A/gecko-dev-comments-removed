@@ -36,3 +36,16 @@ pref("full-screen-api.enabled", true);
 pref("general.smoothScroll", true);
 
 pref("plugin.allowed_types", "application/x-shockwave-flash,application/futuresplash");
+
+
+
+#ifdef XP_MACOSX
+
+pref("dom.ipc.plugins.enabled.i386", false);
+pref("dom.ipc.plugins.enabled.i386.flash player.plugin", true);
+
+pref("dom.ipc.plugins.enabled.x86_64", true);
+#else
+pref("dom.ipc.plugins.enabled", true);
+#endif
+
