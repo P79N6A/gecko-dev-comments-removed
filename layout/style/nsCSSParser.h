@@ -130,14 +130,17 @@ public:
                                nsIPrincipal*     aNodePrincipal,
                                nsICSSStyleRule** aResult);
 
-  nsresult ParseAndAppendDeclaration(const nsAString&  aBuffer,
-                                     nsIURI*           aSheetURL,
-                                     nsIURI*           aBaseURL,
-                                     nsIPrincipal*     aSheetPrincipal,
-                                     mozilla::css::Declaration* aDeclaration,
-                                     PRBool            aParseOnlyOneDecl,
-                                     PRBool*           aChanged,
-                                     PRBool            aClearOldDecl);
+  
+  
+  
+  
+  
+  nsresult ParseDeclarations(const nsAString&  aBuffer,
+                             nsIURI*           aSheetURL,
+                             nsIURI*           aBaseURL,
+                             nsIPrincipal*     aSheetPrincipal,
+                             mozilla::css::Declaration* aDeclaration,
+                             PRBool*           aChanged);
 
   nsresult ParseRule(const nsAString&        aRule,
                      nsIURI*                 aSheetURL,

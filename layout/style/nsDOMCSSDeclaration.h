@@ -113,8 +113,6 @@ protected:
   nsresult ParsePropertyValue(const nsCSSProperty aPropID,
                               const nsAString& aPropValue,
                               PRBool aIsImportant);
-  nsresult ParseDeclaration(const nsAString& aDecl,
-                            PRBool aParseOnlyOneDecl, PRBool aClearOldDecl);
 
   
   
