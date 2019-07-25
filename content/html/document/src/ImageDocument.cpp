@@ -702,23 +702,6 @@ ImageDocument::CheckOverflowing(bool changeState)
     nsPresContext *context = shell->GetPresContext();
     nsRect visibleArea = context->GetVisibleArea();
 
-    Element* body = GetBodyElement();
-    if (!body) {
-      NS_WARNING("no body on image document!");
-      return NS_ERROR_FAILURE;
-    }
-
-    nsRefPtr<nsStyleContext> styleContext =
-      context->StyleSet()->ResolveStyleFor(body, nsnull);
-
-    nsMargin m;
-    if (styleContext->GetStyleMargin()->GetMargin(m))
-      visibleArea.Deflate(m);
-    m = styleContext->GetStyleBorder()->GetActualBorder();
-    visibleArea.Deflate(m);
-    if (styleContext->GetStylePadding()->GetPadding(m))
-      visibleArea.Deflate(m);
-
     mVisibleWidth = nsPresContext::AppUnitsToIntCSSPixels(visibleArea.width);
     mVisibleHeight = nsPresContext::AppUnitsToIntCSSPixels(visibleArea.height);
   }
