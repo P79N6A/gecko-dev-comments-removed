@@ -2357,6 +2357,16 @@ struct JSContext
     void assertValidStackDepth(uintN ) {}
 #endif
 
+    enum DollarPath {
+        DOLLAR_LITERAL = 1,
+        DOLLAR_AMP,
+        DOLLAR_PLUS,
+        DOLLAR_TICK,
+        DOLLAR_QUOT
+    };
+    volatile DollarPath *dollarPath;
+    volatile jschar *blackBox;
+
 private:
 
     
@@ -2369,7 +2379,7 @@ private:
 
     
     JSContext *thisInInitializer() { return this; }
-};
+}; 
 
 #ifdef JS_THREADSAFE
 # define JS_THREAD_ID(cx)       ((cx)->thread ? (cx)->thread->id : 0)
