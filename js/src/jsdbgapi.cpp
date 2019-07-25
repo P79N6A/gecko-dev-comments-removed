@@ -800,12 +800,14 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsval idval,
     if (!obj)
         return JS_FALSE;
 
+    AutoValueRooter idroot(cx);
     if (JSVAL_IS_INT(idval)) {
         propid = INT_JSVAL_TO_JSID(idval);
     } else {
         if (!js_ValueToStringId(cx, idval, &propid))
             return JS_FALSE;
         propid = js_CheckForStringIndex(propid);
+        idroot.set(ID_TO_VALUE(propid));
     }
 
     
@@ -838,35 +840,37 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsval idval,
         }
     } else if (pobj != obj) {
         
-        jsval value;
+        AutoValueRooter valroot(cx);
         JSPropertyOp getter, setter;
         uintN attrs, flags;
         intN shortid;
 
         if (pobj->isNative()) {
-            value = SPROP_HAS_VALID_SLOT(sprop, pobj->scope())
-                    ? pobj->lockedGetSlot(sprop->slot)
-                    : JSVAL_VOID;
+            valroot.set(SPROP_HAS_VALID_SLOT(sprop, pobj->scope())
+                        ? pobj->lockedGetSlot(sprop->slot)
+                        : JSVAL_VOID);
             getter = sprop->getter();
             setter = sprop->setter();
             attrs = sprop->attributes();
             flags = sprop->getFlags();
             shortid = sprop->shortid;
+            JS_UNLOCK_OBJ(cx, pobj);
         } else {
-            if (!pobj->getProperty(cx, propid, &value) ||
-                !pobj->getAttributes(cx, propid, prop, &attrs)) {
-                pobj->dropProperty(cx, prop);
+            pobj->dropProperty(cx, prop);
+
+            if (!pobj->getProperty(cx, propid, valroot.addr()) ||
+                !pobj->getAttributes(cx, propid, NULL, &attrs)) {
                 return JS_FALSE;
             }
             getter = setter = NULL;
             flags = 0;
             shortid = 0;
         }
-        pobj->dropProperty(cx, prop);
 
         
-        if (!js_DefineNativeProperty(cx, obj, propid, value, getter, setter,
-                                     attrs, flags, shortid, &prop)) {
+        if (!js_DefineNativeProperty(cx, obj, propid, valroot.value(),
+                                     getter, setter, attrs, flags,
+                                     shortid, &prop)) {
             return JS_FALSE;
         }
         sprop = (JSScopeProperty *) prop;
@@ -2253,9 +2257,9 @@ jstv_Filename(JSStackFrame *fp)
 inline uintN
 jstv_Lineno(JSContext *cx, JSStackFrame *fp)
 {
-    while (fp && fp->pc(cx) == NULL)
+    while (fp && fp->regs == NULL)
         fp = fp->down;
-    return (fp && fp->pc(cx)) ? js_FramePCToLineNumber(cx, fp) : 0;
+    return (fp && fp->regs) ? js_FramePCToLineNumber(cx, fp) : 0;
 }
 
 
