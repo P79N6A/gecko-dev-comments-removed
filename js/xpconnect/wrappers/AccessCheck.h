@@ -39,6 +39,7 @@
 
 #include "jsapi.h"
 #include "jswrapper.h"
+#include "WrapperFactory.h"
 
 class nsIPrincipal;
 
@@ -105,6 +106,9 @@ struct OnlyIfSubjectIsSystem : public Policy {
 struct CrossOriginAccessiblePropertiesOnly : public Policy {
     static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act,
                       Permission &perm) {
+        
+        MOZ_ASSERT(!WrapperFactory::IsLocationObject(js::UnwrapObject(wrapper)));
+
         if (AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act)) {
             perm = PermitPropertyAccess;
             return true;
@@ -120,9 +124,33 @@ struct CrossOriginAccessiblePropertiesOnly : public Policy {
 
 
 
-struct SameOriginOrCrossOriginAccessiblePropertiesOnly : public Policy {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct LocationPolicy : public Policy {
     static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act,
                       Permission &perm) {
+        
+        MOZ_ASSERT(WrapperFactory::IsLocationObject(js::UnwrapObject(wrapper)));
+
         if (AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act) ||
             AccessCheck::isLocationObjectSameOrigin(cx, wrapper)) {
             perm = PermitPropertyAccess;

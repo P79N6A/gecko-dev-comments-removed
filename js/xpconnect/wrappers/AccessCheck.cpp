@@ -49,7 +49,6 @@
 #include "XPCWrapper.h"
 #include "XrayWrapper.h"
 #include "FilteringWrapper.h"
-#include "WrapperFactory.h"
 
 #include "jsfriendapi.h"
 
@@ -89,6 +88,9 @@ AccessCheck::isSameOrigin(JSCompartment *a, JSCompartment *b)
 bool
 AccessCheck::isLocationObjectSameOrigin(JSContext *cx, JSObject *wrapper)
 {
+    
+    MOZ_ASSERT(WrapperFactory::IsLocationObject(js::UnwrapObject(wrapper)));
+
     
     
     
@@ -320,6 +322,11 @@ AccessCheck::isCrossOriginAccessPermitted(JSContext *cx, JSObject *wrapper, jsid
     if (IsWindow(name) && IsFrameId(cx, obj, id))
         return true;
 
+    
+    
+    
+    
+    
     
     
     if (!IsLocation(name) && documentDomainMakesSameOrigin(cx, obj))
