@@ -64,7 +64,7 @@
   
   margin: 0 10px;
   background-color: rgba(255,255,255,.5);
-  -moz-border-radius: 4px 4px;
+  border-radius: 4px 4px;
 }
 
 
@@ -86,7 +86,7 @@
   
   margin: 10px 22px;
   background-color: rgba(255,255,255,.5);
-  -moz-border-radius: 4px;
+  border-radius: 4px;
 }
 
 .bufferBar,
@@ -109,13 +109,13 @@
 
 
   background-color: rgba(255,255,255,.5);
-  -moz-border-radius: 4px;
+  border-radius: 4px;
   -moz-appearance: none;
 }
 
 .progressBar .progress-bar {
   background-color: white;
-  -moz-border-radius: 4px 0 0 4px;
+  border-radius: 4px 0 0 4px;
   -moz-appearance: none;
 }
 
