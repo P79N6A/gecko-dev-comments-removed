@@ -425,6 +425,7 @@ public:
   static const PRInt32 kWidthKTable[]; 
   static const PRInt32 kWindowShadowKTable[];
   static const PRInt32 kWordwrapKTable[];
+  static const PRInt32 kHyphensKTable[];
 };
 
 #endif 
