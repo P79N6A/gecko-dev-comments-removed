@@ -763,8 +763,9 @@ let UI = {
           
           
           
+          let tabItem = tab && tab._tabViewTabItem;
           let closingBlankTabAfterRestore =
-            (tab && tab._tabViewTabIsRemovedAfterRestore);
+            (tabItem && tabItem.isRemovedAfterRestore);
 
           if ((closingLastOfGroup || closingUnnamedGroup) &&
               !closingBlankTabAfterRestore) {
