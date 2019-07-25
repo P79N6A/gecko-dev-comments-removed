@@ -45,6 +45,20 @@ function f(a, b) {
     return rv;
 };
 
+
+function f_is(aIs, a, bIs, b, rvIs) {
+
+    
+    var rv = b.value;
+    rvIs.value = bIs.value;
+
+    
+    b.value = a;
+    bIs.value = aIs;
+
+    return rv;
+}
+
 TestParams.prototype = {
 
   
@@ -71,7 +85,9 @@ TestParams.prototype = {
   testAString: f,
   testAUTF8String: f,
   testACString: f,
-  testJsval: f
+  testJsval: f,
+  testShortArray: f_is,
+  testLongLongArray: f_is,
 };
 
 var NSGetFactory = XPCOMUtils.generateNSGetFactory([TestParams]);
