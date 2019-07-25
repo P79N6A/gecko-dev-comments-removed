@@ -48,6 +48,7 @@
 
 
 
+
 #include "nsFaviconService.h"
 
 #include "nsPlacesTables.h"
@@ -180,7 +181,7 @@ nsFaviconService::GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt)
     "SELECT f.data, f.mime_type FROM moz_favicons f WHERE url = :icon_url"));
 
   RETURN_IF_STMT(mDBInsertIcon, NS_LITERAL_CSTRING(
-    "INSERT OR REPLACE INTO moz_favicons (id, url, data, mime_type, expiration) "
+    "INSERT INTO moz_favicons (id, url, data, mime_type, expiration) "
       "VALUES (:icon_id, :icon_url, :data, :mime_type, :expiration)"));
 
   RETURN_IF_STMT(mDBUpdateIcon, NS_LITERAL_CSTRING(
