@@ -54,6 +54,8 @@
 #include "jsgcinlines.h"
 #include "jsobjinlines.h"
 
+#include "vm/MethodGuard-inl.h"
+
 using namespace js;
 
 namespace js {
@@ -119,14 +121,16 @@ GetKeyArg(JSContext *cx, CallArgs &args)
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NOT_NONNULL_OBJECT);
         return NULL;
     }
-    JSObject &key = vp->toObject();
+    JSObject *key = &vp->toObject();
+    if (!key)
+        return NULL;
 
     
     
     
     
     
-    return JS_UnwrapObject(&key);
+    return JS_UnwrapObject(key);
 }
 
 static JSBool
