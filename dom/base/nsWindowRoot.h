@@ -40,7 +40,7 @@
 #ifndef nsWindowRoot_h__
 #define nsWindowRoot_h__
 
-class nsPIDOMWindow;
+class nsIDOMWindow;
 class nsIDOMEventListener;
 class nsIEventListenerManager;
 class nsIDOMEvent;
@@ -52,6 +52,7 @@ class nsEventChainPostVisitor;
 #include "nsIDOMNSEventTarget.h"
 #include "nsIEventListenerManager.h"
 #include "nsPIWindowRoot.h"
+#include "nsIFocusController.h"
 #include "nsIDOMEventTarget.h"
 #include "nsCycleCollectionParticipant.h"
 
@@ -61,7 +62,7 @@ class nsWindowRoot : public nsIDOMEventTarget,
                      public nsPIWindowRoot
 {
 public:
-  nsWindowRoot(nsPIDOMWindow* aWindow);
+  nsWindowRoot(nsIDOMWindow* aWindow);
   virtual ~nsWindowRoot();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -88,29 +89,29 @@ public:
   }
 
   
+  NS_IMETHOD GetFocusController(nsIFocusController** aResult);
 
-  virtual nsPIDOMWindow* GetWindow();
+  virtual nsIDOMWindow* GetWindow();
 
-  virtual nsresult GetControllers(nsIControllers** aResult);
-  virtual nsresult GetControllerForCommand(const char * aCommand,
-                                           nsIController** _retval);
-
-  virtual void GetPopupNode(nsIDOMNode** aNode);
-  virtual void SetPopupNode(nsIDOMNode* aNode);
+  virtual void SetParentTarget(nsPIDOMEventTarget* aTarget)
+  {
+    mParent = aTarget;
+  }
 
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsWindowRoot, nsIDOMEventTarget)
 
 protected:
   
-  nsPIDOMWindow* mWindow; 
+  nsIDOMWindow* mWindow; 
   nsCOMPtr<nsIEventListenerManager> mListenerManager; 
                                                       
+  nsCOMPtr<nsIFocusController> mFocusController; 
 
-  nsCOMPtr<nsIDOMNode> mPopupNode; 
+  nsCOMPtr<nsPIDOMEventTarget> mParent;
 };
 
 extern nsresult
-NS_NewWindowRoot(nsPIDOMWindow* aWindow,
+NS_NewWindowRoot(nsIDOMWindow* aWindow,
                  nsPIDOMEventTarget** aResult);
 
 #endif

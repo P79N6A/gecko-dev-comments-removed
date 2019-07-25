@@ -38,8 +38,6 @@
 #include "nsISupports.idl"
 
 interface nsIDOMWindow;
-interface nsIDocShell;
-interface nsIContent;
 
 [scriptable, function, uuid(938fcb95-3d63-46be-aa72-94d08fd3b418)]
 interface nsIFrameMessageListener : nsISupports
@@ -72,7 +70,7 @@ interface nsIFrameMessageManager : nsISupports
   void sendAsyncMessage(/*in messageName, in JSON*/);
 };
 
-[scriptable, uuid(c56e85b8-6736-4ae2-ae90-66bcef952a82)]
+[scriptable, uuid(22de316b-a986-45bb-9e97-9af27e8afac3)]
 interface nsIContentFrameMessageManager : nsIFrameMessageManager
 {
   /**
@@ -88,20 +86,9 @@ interface nsIContentFrameMessageManager : nsIFrameMessageManager
   readonly attribute nsIDOMWindow content;
 
   /**
-   * The top level docshell or null.
-   */
-  readonly attribute nsIDocShell docShell;
-
-  /**
    * Print a string to stdout.
    */
   void dump(in DOMString aStr);
-};
-
-[uuid(9c48d557-92fe-4edb-95fc-bfe97e77bdc3)]
-interface nsIInProcessContentFrameMessageManager : nsIContentFrameMessageManager
-{
-  [notxpcom] nsIContent getOwnerContent();
 };
 
 [scriptable, uuid(ed6522fd-ffb6-4920-b50d-cf629309616b)]

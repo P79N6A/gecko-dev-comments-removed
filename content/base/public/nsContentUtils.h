@@ -42,22 +42,15 @@
 #ifndef nsContentUtils_h___
 #define nsContentUtils_h___
 
-#include <math.h>
-#if defined(XP_WIN) || defined(XP_OS2)
-#include <float.h>
-#endif
-
-#if defined(SOLARIS)
-#include <ieeefp.h>
-#endif
-
+#include "jsprvtd.h"
+#include "jsnum.h"
 #include "nsAString.h"
 #include "nsIStatefulFrame.h"
 #include "nsINodeInfo.h"
 #include "nsNodeInfoManager.h"
 #include "nsContentList.h"
 #include "nsDOMClassInfoID.h"
-#include "nsIXPCScriptable.h"
+#include "nsIClassInfo.h"
 #include "nsIDOM3Node.h"
 #include "nsDataHashtable.h"
 #include "nsIScriptRuntime.h"
@@ -67,15 +60,12 @@
 #include "nsTextFragment.h"
 #include "nsReadableUtils.h"
 #include "nsIPrefBranch2.h"
-#include "mozilla/AutoRestore.h"
-#include "nsINode.h"
-
-#include "jsapi.h"
 
 struct nsNativeKeyEvent; 
 
 class nsIDOMScriptObjectFactory;
 class nsIXPConnect;
+class nsINode;
 class nsIContent;
 class nsIDOMNode;
 class nsIDOMKeyEvent;
@@ -127,27 +117,11 @@ class nsIXTFService;
 class nsIBidiKeyboard;
 #endif
 class nsIMIMEHeaderParam;
-class nsIObserver;
-class nsPresContext;
-class nsIChannel;
 
 #ifndef have_PrefChangedFunc_typedef
 typedef int (*PR_CALLBACK PrefChangedFunc)(const char *, void *);
 #define have_PrefChangedFunc_typedef
 #endif
-
-namespace mozilla {
-  class IHistory;
-
-namespace layers {
-  class LayerManager;
-} 
-
-namespace dom {
-class Element;
-} 
-
-} 
 
 extern const char kLoadAsData[];
 
@@ -162,12 +136,9 @@ enum EventNameType {
   EventNameType_All = 0xFFFF
 };
 
-struct EventNameMapping
-{
-  nsIAtom* mAtom;
-  PRUint32 mId;
-  PRInt32  mType;
-  PRUint32 mStructType;
+struct EventNameMapping {
+  PRUint32  mId;
+  PRInt32 mType;
 };
 
 struct nsShortcutCandidate {
@@ -181,8 +152,6 @@ struct nsShortcutCandidate {
 
 class nsContentUtils
 {
-  typedef mozilla::dom::Element Element;
-
 public:
   static nsresult Init();
 
@@ -234,8 +203,8 @@ public:
 
 
 
-  static PRBool ContentIsDescendantOf(const nsINode* aPossibleDescendant,
-                                      const nsINode* aPossibleAncestor);
+  static PRBool ContentIsDescendantOf(nsINode* aPossibleDescendant,
+                                      nsINode* aPossibleAncestor);
 
   
 
@@ -247,8 +216,8 @@ public:
 
 
 
-  static nsresult GetAncestors(nsINode* aNode,
-                               nsTArray<nsINode*>& aArray);
+  static nsresult GetAncestors(nsIDOMNode* aNode,
+                               nsTArray<nsIDOMNode*>* aArray);
 
   
 
@@ -284,10 +253,27 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+  static PRUint16 ComparePosition(nsINode* aNode1,
+                                  nsINode* aNode2);
+
+  
+
+
+
   static PRBool PositionIsBefore(nsINode* aNode1,
                                  nsINode* aNode2)
   {
-    return (aNode2->CompareDocumentPosition(aNode1) &
+    return (ComparePosition(aNode1, aNode2) &
       (nsIDOM3Node::DOCUMENT_POSITION_PRECEDING |
        nsIDOM3Node::DOCUMENT_POSITION_DISCONNECTED)) ==
       nsIDOM3Node::DOCUMENT_POSITION_PRECEDING;
@@ -325,12 +311,14 @@ public:
 
 
 
-  static Element* MatchElementId(nsIContent *aContent, const nsAString& aId);
+  static nsIContent* MatchElementId(nsIContent *aContent,
+                                    const nsAString& aId);
 
   
 
 
-  static Element* MatchElementId(nsIContent *aContent, nsIAtom* aId);
+  static nsIContent* MatchElementId(nsIContent *aContent,
+                                    nsIAtom* aId);
 
   
 
@@ -400,16 +388,6 @@ public:
 
 
   static PRBool IsHTMLWhitespace(PRUnichar aChar);
-
-  
-
-
-
-
-
-
-
-  static PRBool ParseIntMarginValue(const nsAString& aString, nsIntMargin& aResult);
 
   static void Shutdown();
 
@@ -486,11 +464,6 @@ public:
   static imgILoader* GetImgLoader()
   {
     return sImgLoader;
-  }
-
-  static mozilla::IHistory* GetHistory()
-  {
-    return sHistory;
   }
 
 #ifdef MOZ_XTF
@@ -589,10 +562,8 @@ public:
   static void UnregisterPrefCallback(const char *aPref,
                                      PrefChangedFunc aCallback,
                                      void * aClosure);
-  static void AddBoolPrefVarCache(const char* aPref, PRBool* aVariable,
-                                  PRBool aDefault = PR_FALSE);
-  static void AddIntPrefVarCache(const char* aPref, PRInt32* aVariable,
-                                 PRInt32 aDefault = 0);
+  static void AddBoolPrefVarCache(const char* aPref, PRBool* aVariable);
+  static void AddIntPrefVarCache(const char* aPref, PRInt32* aVariable);
   static nsIPrefBranch2 *GetPrefBranch()
   {
     return sPrefBranch;
@@ -617,13 +588,6 @@ public:
   {
     return sGenCat;
   }
-
-  
-
-
-
-  static void RegisterShutdownObserver(nsIObserver* aObserver);
-  static void UnregisterShutdownObserver(nsIObserver* aObserver);
 
   
 
@@ -977,19 +941,6 @@ public:
 
 
 
-  static nsIAtom* GetEventIdAndAtom(const nsAString& aName,
-                                    PRUint32 aEventStruct,
-                                    PRUint32* aEventID);
-
-  
-
-
-
-
-
-
-
-
 
 
   static void TraverseListenerManager(nsINode *aNode,
@@ -1040,7 +991,7 @@ public:
 
 
 
-  static nsresult CreateContextualFragment(nsINode* aContextNode,
+  static nsresult CreateContextualFragment(nsIDOMNode* aContextNode,
                                            const nsAString& aFragment,
                                            PRBool aWillOwnFragment,
                                            nsIDOMDocumentFragment** aReturn);
@@ -1291,11 +1242,6 @@ public:
   
 
 
-  static PRBool IsSystemPrincipal(nsIPrincipal* aPrincipal);
-
-  
-
-
 
 
 
@@ -1376,6 +1322,12 @@ public:
 
 
   static PRBool URIIsLocalFile(nsIURI *aURI);
+
+  
+
+
+
+  static nsIAtom* IsNamedItem(nsIContent* aContent);
 
   
 
@@ -1481,23 +1433,7 @@ public:
 
   static JSContext *GetCurrentJSContext();
 
-  
-
-
-
-  static PRBool EqualsIgnoreASCIICase(const nsAString& aStr1,
-                                      const nsAString& aStr2);
-
-  
-
-
-  static void ASCIIToLower(const nsAString& aSource, nsAString& aDest);
-
-  
-
-
-  static void ASCIIToUpper(nsAString& aStr);
-
+                                             
   static nsIInterfaceRequestor* GetSameOriginChecker();
 
   static nsIThreadJSContextStack* ThreadJSContextStack()
@@ -1507,8 +1443,6 @@ public:
   
 
   
-
-
 
 
 
@@ -1551,8 +1485,6 @@ public:
   static already_AddRefed<nsIDocument>
   GetDocumentFromScriptContext(nsIScriptContext *aScriptContext);
 
-  static PRBool CheckMayLoad(nsIPrincipal* aPrincipal, nsIChannel* aChannel);
-
   
 
 
@@ -1577,80 +1509,6 @@ public:
   {
     return WrapNative(cx, scope, native, nsnull, vp, aHolder, aAllowWrapping);
   }
-
-  static void StripNullChars(const nsAString& aInStr, nsAString& aOutStr);
-
-  
-
-
-
-
-
-
-
-
-  static nsresult CreateStructuredClone(JSContext* cx, jsval val, jsval* rval);
-
-  
-
-
-
-
-
-
-  static nsresult ReparentClonedObjectToScope(JSContext* cx, JSObject* obj,
-                                              JSObject* scope);
-
-  
-
-
-
-  static void RemoveNewlines(nsString &aString);
-
-  
-
-
-
-  static void PlatformToDOMLineBreaks(nsString &aString);
-
-  static PRBool IsHandlingKeyBoardEvent()
-  {
-    return sIsHandlingKeyBoardEvent;
-  }
-
-  static void SetIsHandlingKeyBoardEvent(PRBool aHandling)
-  {
-    sIsHandlingKeyBoardEvent = aHandling;
-  }
-
-  
-
-
-
-  static nsresult GetElementsByClassName(nsINode* aRootNode,
-                                         const nsAString& aClasses,
-                                         nsIDOMNodeList** aReturn);
-
-  
-
-
-
-
-
-
-
-
-
-  static already_AddRefed<mozilla::layers::LayerManager>
-  LayerManagerForDocument(nsIDocument *aDoc);
-
-  
-
-
-
-
-
-  static PRBool IsFocusedContent(nsIContent *aContent);
 
 private:
 
@@ -1691,13 +1549,9 @@ private:
   static imgILoader* sImgLoader;
   static imgICache* sImgCache;
 
-  static mozilla::IHistory* sHistory;
-
   static nsIConsoleService* sConsoleService;
 
-  static nsDataHashtable<nsISupportsHashKey, EventNameMapping>* sAtomEventTable;
-  static nsDataHashtable<nsStringHashKey, EventNameMapping>* sStringEventTable;
-  static nsCOMArray<nsIAtom>* sUserDefinedEvents;
+  static nsDataHashtable<nsISupportsHashKey, EventNameMapping>* sEventTable;
 
   static nsIStringBundleService* sStringBundleService;
   static nsIStringBundle* sStringBundles[PropertiesFile_COUNT];
@@ -1729,8 +1583,6 @@ private:
   static PRUint32 sScriptBlockerCountWhereRunnersPrevented;
 
   static nsIInterfaceRequestor* sSameOriginChecker;
-
-  static PRBool sIsHandlingKeyBoardEvent;
 };
 
 #define NS_HOLD_JS_OBJECTS(obj, clazz)                                         \
@@ -1774,32 +1626,26 @@ private:
 #endif
 };
 
-class NS_STACK_CLASS nsAutoGCRoot {
+class nsAutoGCRoot {
 public:
   
-  nsAutoGCRoot(jsval* aPtr, nsresult* aResult
-               MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) :
+  nsAutoGCRoot(jsval* aPtr, nsresult* aResult) :
     mPtr(aPtr)
   {
-    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
     mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
   }
 
   
-  nsAutoGCRoot(JSObject** aPtr, nsresult* aResult
-               MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) :
+  nsAutoGCRoot(JSObject** aPtr, nsresult* aResult) :
     mPtr(aPtr)
   {
-    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
     mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
   }
 
   
-  nsAutoGCRoot(void* aPtr, nsresult* aResult
-               MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) :
+  nsAutoGCRoot(void* aPtr, nsresult* aResult) :
     mPtr(aPtr)
   {
-    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
     mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
   }
 
@@ -1820,34 +1666,28 @@ private:
 
   void* mPtr;
   nsresult mResult;
-  MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-class NS_STACK_CLASS nsAutoScriptBlocker {
+class nsAutoScriptBlocker {
 public:
-  nsAutoScriptBlocker(MOZILLA_GUARD_OBJECT_NOTIFIER_ONLY_PARAM) {
-    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
+  nsAutoScriptBlocker() {
     nsContentUtils::AddScriptBlocker();
   }
   ~nsAutoScriptBlocker() {
     nsContentUtils::RemoveScriptBlocker();
   }
-private:
-  MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-class NS_STACK_CLASS mozAutoRemovableBlockerRemover
+class mozAutoRemovableBlockerRemover
 {
 public:
-  mozAutoRemovableBlockerRemover(nsIDocument* aDocument
-                                 MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM);
+  mozAutoRemovableBlockerRemover(nsIDocument* aDocument);
   ~mozAutoRemovableBlockerRemover();
 
 private:
   PRUint32 mNestingLevel;
   nsCOMPtr<nsIDocument> mDocument;
   nsCOMPtr<nsIDocumentObserver> mObserver;
-  MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 #define NS_AUTO_GCROOT_PASTE2(tok,line) tok##line
@@ -1856,6 +1696,9 @@ private:
 #define NS_AUTO_GCROOT(ptr, result) \ \
   nsAutoGCRoot NS_AUTO_GCROOT_PASTE(_autoGCRoot_, __LINE__) \
   (ptr, result)
+
+#define NS_INTERFACE_MAP_ENTRY_CONTENT_CLASSINFO(_class)                      \
+  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(_class)
 
 #define NS_INTERFACE_MAP_ENTRY_TEAROFF(_interface, _allocator)                \
   if (aIID.Equals(NS_GET_IID(_interface))) {                                  \
@@ -1870,12 +1713,18 @@ private:
 
 
 
+
+
+
+
+
+
+
+
+
+
 inline NS_HIDDEN_(PRBool) NS_FloatIsFinite(jsdouble f) {
-#ifdef WIN32
-  return _finite(f);
-#else
-  return finite(f);
-#endif
+  return JSDOUBLE_IS_FINITE(f);
 }
 
 
@@ -1942,4 +1791,4 @@ private:
   nsIMIMEHeaderParam*   mService;
 };
 
-#endif
+#endif 

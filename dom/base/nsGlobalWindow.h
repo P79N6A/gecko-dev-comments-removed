@@ -101,7 +101,6 @@
 #include "nsPIDOMEventTarget.h"
 #include "nsIArray.h"
 #include "nsIContent.h"
-#include "nsIIDBFactory.h"
 #include "nsFrameMessageManager.h"
 
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
@@ -290,8 +289,8 @@ public:
   
   virtual NS_HIDDEN_(nsPIDOMWindow*) GetPrivateRoot();
   virtual NS_HIDDEN_(void) ActivateOrDeactivate(PRBool aActivate);
-  virtual NS_HIDDEN_(void) SetActive(PRBool aActive);
   virtual NS_HIDDEN_(void) SetChromeEventHandler(nsPIDOMEventTarget* aChromeEventHandler);
+  virtual NS_HIDDEN_(nsIFocusController*) GetRootFocusController();
 
   virtual NS_HIDDEN_(void) SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal);
   virtual NS_HIDDEN_(nsIPrincipal*) GetOpenerScriptPrincipal();
@@ -338,8 +337,8 @@ public:
 
   virtual NS_HIDDEN_(void) SetDocShell(nsIDocShell* aDocShell);
   virtual NS_HIDDEN_(nsresult) SetNewDocument(nsIDocument *aDocument,
-                                              nsISupports *aState);
-  void DispatchDOMWindowCreated();
+                                              nsISupports *aState,
+                                              PRBool aClearScopeHint);
   virtual NS_HIDDEN_(void) SetOpenerWindow(nsIDOMWindowInternal *aOpener,
                                            PRBool aOriginalOpener);
   virtual NS_HIDDEN_(void) EnsureSizeUpToDate();
@@ -456,26 +455,20 @@ public:
 
   static PRBool DOMWindowDumpEnabled();
 
-  void MaybeForgiveSpamCount();
-  PRBool IsClosedOrClosing() {
-    return (mIsClosed ||
-            mInClose ||
-            mHavePendingClose ||
-            mCleanedUp);
-  }
-
 protected:
   
   virtual ~nsGlobalWindow();
-  void CleanUp(PRBool aIgnoreModalDialog);
+  void CleanUp();
   void ClearControllers();
   nsresult FinalClose();
 
   void FreeInnerObjects(PRBool aClearScope);
   nsGlobalWindow *CallerInnerWindow();
 
-  nsresult InnerSetNewDocument(nsIDocument* aDocument);
-
+  nsresult SetNewDocument(nsIDocument *aDocument,
+                          nsISupports *aState,
+                          PRBool aClearScopeHint,
+                          PRBool aIsInternalCall);
   nsresult DefineArgumentsProperty(nsIArray *aArguments);
 
   
@@ -564,7 +557,6 @@ protected:
 
   
   void RunTimeout(nsTimeout *aTimeout);
-  void RunTimeout() { RunTimeout(nsnull); }
 
   void ClearAllTimeouts();
   
@@ -663,29 +655,16 @@ protected:
   nsIntSize DevToCSSIntPixels(nsIntSize px);
   nsIntSize CSSToDevIntPixels(nsIntSize px);
 
+  virtual nsIContent* GetFocusedNode();
   virtual void SetFocusedNode(nsIContent* aNode,
                               PRUint32 aFocusMethod = 0,
                               PRBool aNeedsFocus = PR_FALSE);
 
   virtual PRUint32 GetFocusMethod();
 
-  virtual PRBool ShouldShowFocusRing();
-
-  virtual void SetKeyboardIndicators(UIStateChangeType aShowAccelerators,
-                                     UIStateChangeType aShowFocusRings);
-  virtual void GetKeyboardIndicators(PRBool* aShowAccelerators,
-                                     PRBool* aShowFocusRings);
-
   void UpdateCanvasFocus(PRBool aFocusChanged, nsIContent* aNewContent);
 
-  already_AddRefed<nsPIWindowRoot> GetTopWindowRoot();
-
   static void NotifyDOMWindowDestroyed(nsGlobalWindow* aWindow);
-  void NotifyWindowIDDestroyed(const char* aTopic);
-  
-  void ClearStatus();
-
-  virtual void UpdateParentTarget();
 
   
   
@@ -737,24 +716,7 @@ protected:
   PRPackedBool           mHasFocus : 1;
 
   
-  PRPackedBool           mShowAccelerators : 1;
-
-  
-  PRPackedBool           mShowFocusRings : 1;
-
-  
-  
-  PRPackedBool           mShowFocusRingForContent : 1;
-
-  
-  
-  PRPackedBool           mFocusByKeyOccurred : 1;
-
-  
   PRPackedBool           mHasAcceleration  : 1;
-
-  
-  PRPackedBool           mNotifiedIDDestroyed : 1;
 
   nsCOMPtr<nsIScriptContext>    mContext;
   nsWeakPtr                     mOpener;
@@ -814,6 +776,10 @@ protected:
   PRUint32 mTimeoutsSuspendDepth;
 
   
+  
+  nsCOMPtr<nsIContent>   mFocusedNode;
+
+  
   PRUint32 mFocusMethod;
 
 #ifdef DEBUG
@@ -822,19 +788,11 @@ protected:
   nsCOMPtr<nsIURI> mLastOpenedURI;
 #endif
 
-  PRBool mCleanedUp, mCallCleanUpAfterModalDialogCloses;
-
   nsCOMPtr<nsIDOMOfflineResourceList> mApplicationCache;
 
   nsDataHashtable<nsVoidPtrHashKey, void*> mCachedXBLPrototypeHandlers;
 
   nsCOMPtr<nsIDocument> mSuspendedDoc;
-
-  nsCOMPtr<nsIIDBFactory> mIndexedDB;
-
-  
-  
-  PRUint64 mWindowID;
 
   friend class nsDOMScriptableHelper;
   friend class nsDOMWindowUtils;
@@ -865,6 +823,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsGlobalChromeWindow,
                                                      nsGlobalWindow)
 
+protected:
   nsCOMPtr<nsIBrowserDOMWindow> mBrowserDOMWindow;
   nsCOMPtr<nsIChromeFrameMessageManager> mMessageManager;
 };
@@ -890,7 +849,8 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsGlobalModalWindow, nsGlobalWindow)
 
   virtual NS_HIDDEN_(nsresult) SetNewDocument(nsIDocument *aDocument,
-                                              nsISupports *aState);
+                                              nsISupports *aState,
+                                              PRBool aClearScopeHint);
 
 protected:
   nsCOMPtr<nsIVariant> mReturnValue;
@@ -902,6 +862,7 @@ protected:
 
 
 class nsNavigator : public nsIDOMNavigator,
+                    public nsIDOMJSNavigator,
                     public nsIDOMClientInformation,
                     public nsIDOMNavigatorGeolocation
 {
@@ -911,6 +872,7 @@ public:
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMNAVIGATOR
+  NS_DECL_NSIDOMJSNAVIGATOR
   NS_DECL_NSIDOMCLIENTINFORMATION
   NS_DECL_NSIDOMNAVIGATORGEOLOCATION
   
@@ -928,6 +890,8 @@ protected:
   nsRefPtr<nsPluginArray> mPlugins;
   nsRefPtr<nsGeolocation> mGeolocation;
   nsIDocShell* mDocShell; 
+
+  static jsval       sPrefInternal_id;
 };
 
 class nsIURI;

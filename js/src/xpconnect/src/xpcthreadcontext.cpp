@@ -45,7 +45,6 @@
 #include "XPCWrapper.h"
 #include "nsDOMJSUtils.h"
 #include "nsIScriptGlobalObject.h"
-#include "nsNullPrincipal.h"
 
 
 
@@ -226,13 +225,12 @@ XPCJSContextStack::GetSafeJSContext(JSContext * *aSafeJSContext)
 #ifndef XPCONNECT_STANDALONE
         
         
-        nsRefPtr<nsNullPrincipal> principal = new nsNullPrincipal();
+        nsCOMPtr<nsIPrincipal> principal =
+            do_CreateInstance("@mozilla.org/nullprincipal;1");
         nsCOMPtr<nsIScriptObjectPrincipal> sop;
         if(principal)
         {
-            nsresult rv = principal->Init();
-            if(NS_SUCCEEDED(rv))
-              sop = new PrincipalHolder(principal);
+            sop = new PrincipalHolder(principal);
         }
         if(!sop)
         {
@@ -249,13 +247,13 @@ XPCJSContextStack::GetSafeJSContext(JSContext * *aSafeJSContext)
 
         if(xpc && (xpcrt = xpc->GetRuntime()) && (rt = xpcrt->GetJSRuntime()))
         {
-            JSObject *glob;
             mSafeJSContext = JS_NewContext(rt, 8192);
             if(mSafeJSContext)
             {
                 
-                JSAutoRequest req(mSafeJSContext);
-                glob = JS_NewGlobalObject(mSafeJSContext, &global_class);
+                AutoJSRequestWithNoCallContext req(mSafeJSContext);
+                JSObject *glob;
+                glob = JS_NewObject(mSafeJSContext, &global_class, NULL, NULL);
 
 #ifndef XPCONNECT_STANDALONE
                 if(glob)
@@ -277,26 +275,23 @@ XPCJSContextStack::GetSafeJSContext(JSContext * *aSafeJSContext)
                 
                 
 #endif
-                if(glob && NS_FAILED(xpc->InitClasses(mSafeJSContext, glob)))
+                if(!glob || NS_FAILED(xpc->InitClasses(mSafeJSContext, glob)))
                 {
-                    glob = nsnull;
+                    
+                    
+                    
+                    req.EndRequest();
+                    JS_DestroyContext(mSafeJSContext);
+                    mSafeJSContext = nsnull;
                 }
-
-            }
-            if(mSafeJSContext && !glob)
-            {
                 
                 
-                JS_DestroyContext(mSafeJSContext);
-                mSafeJSContext = nsnull;
+                
+                
+                
+                
+                mOwnSafeJSContext = mSafeJSContext;
             }
-            
-            
-            
-            
-            
-            
-            mOwnSafeJSContext = mSafeJSContext;
         }
     }
 
@@ -327,6 +322,27 @@ XPCPerThreadData* XPCPerThreadData::gThreads        = nsnull;
 XPCPerThreadData *XPCPerThreadData::sMainThreadData = nsnull;
 void *            XPCPerThreadData::sMainJSThread   = nsnull;
 
+static jsuword
+GetThreadStackLimit()
+{
+    int stackDummy;
+    jsuword stackLimit, currentStackAddr = (jsuword)&stackDummy;
+
+    const jsuword kStackSize = 0x80000;   
+
+#if JS_STACK_GROWTH_DIRECTION < 0
+    stackLimit = (currentStackAddr > kStackSize)
+                 ? currentStackAddr - kStackSize
+                 : 0;
+#else
+    stackLimit = (currentStackAddr + kStackSize > currentStackAddr)
+                 ? currentStackAddr + kStackSize
+                 : (jsuword) -1;
+#endif
+
+  return stackLimit;
+}
+
 XPCPerThreadData::XPCPerThreadData()
     :   mJSContextStack(new XPCJSContextStack()),
         mNextThread(nsnull),
@@ -336,7 +352,8 @@ XPCPerThreadData::XPCPerThreadData()
         mExceptionManager(nsnull),
         mException(nsnull),
         mExceptionManagerNotAvailable(JS_FALSE),
-        mAutoRoots(nsnull)
+        mAutoRoots(nsnull),
+        mStackLimit(GetThreadStackLimit())
 #ifdef XPC_CHECK_WRAPPER_THREADSAFETY
       , mWrappedNativeThreadsafetyReportDepth(0)
 #endif
@@ -366,11 +383,6 @@ XPCPerThreadData::Cleanup()
 
 XPCPerThreadData::~XPCPerThreadData()
 {
-    
-
-
-    PRBool doDestroyLock = PR_FALSE;
-
     MOZ_COUNT_DTOR(xpcPerThreadData);
 
     Cleanup();
@@ -394,11 +406,9 @@ XPCPerThreadData::~XPCPerThreadData()
                 cur = cur->mNextThread;
             }
         }
-        if (!gThreads)
-            doDestroyLock = PR_TRUE;
     }
 
-    if(gLock && doDestroyLock)
+    if(gLock && !gThreads)
     {
         PR_DestroyLock(gLock);
         gLock = nsnull;
