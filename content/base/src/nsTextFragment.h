@@ -81,7 +81,7 @@ class nsCString;
 
 
 
-class nsTextFragment {
+class NS_FINAL_CLASS nsTextFragment {
 public:
   static nsresult Init();
   static void Shutdown();
