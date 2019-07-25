@@ -189,10 +189,6 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
       return rv;
 
     
-    
-    plaintextBuffer.Trim(" ", true, false);
-
-    
 
     mimeType.AssignLiteral(kHTMLMime);
 
