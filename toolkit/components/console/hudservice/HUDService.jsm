@@ -79,6 +79,11 @@ XPCOMUtils.defineLazyGetter(this, "PropertyPanel", function () {
   return obj.PropertyPanel;
 });
 
+XPCOMUtils.defineLazyGetter(this, "namesAndValuesOf", function () {
+  var obj = {};
+  Cu.import("resource://gre/modules/PropertyPanel.jsm", obj);
+  return obj.namesAndValuesOf;
+});
 
 function LogFactory(aMessagePrefix)
 {
@@ -3496,6 +3501,171 @@ function JSPropertyProvider(aScope, aInputValue)
 
 
 
+function JSTermHelper(aJSTerm)
+{
+  return {
+    
+
+
+
+
+
+
+    $: function JSTH_$(aId)
+    {
+      try {
+        return aJSTerm._window.document.getElementById(aId);
+      }
+      catch (ex) {
+        aJSTerm.console.error(ex.message);
+      }
+    },
+
+    
+
+
+
+
+
+
+    $$: function JSTH_$$(aSelector)
+    {
+      try {
+        return aJSTerm._window.document.querySelectorAll(aSelector);
+      }
+      catch (ex) {
+        aJSTerm.console.error(ex.message);
+      }
+    },
+
+    
+
+
+
+
+
+
+
+
+    $x: function JSTH_$x(aXPath, aContext)
+    {
+      let nodes = [];
+      let doc = aJSTerm._window.wrappedJSObject.document;
+      let aContext = aContext || doc;
+
+      try {
+        let results = doc.evaluate(aXPath, aContext, null,
+                                    Ci.nsIDOMXPathResult.ANY_TYPE, null);
+
+        let node;
+        while (node = results.iterateNext()) {
+          nodes.push(node);
+        }
+      }
+      catch (ex) {
+        aJSTerm.console.error(ex.message);
+      }
+
+      return nodes;
+    },
+
+    
+
+
+    clear: function JSTH_clear()
+    {
+      aJSTerm.clearOutput();
+    },
+
+    
+
+
+
+
+
+
+    keys: function JSTH_keys(aObject)
+    {
+      try {
+        return Object.keys(XPCNativeWrapper.unwrap(aObject));
+      }
+      catch (ex) {
+        aJSTerm.console.error(ex.message);
+      }
+    },
+
+    
+
+
+
+
+
+
+    values: function JSTH_values(aObject)
+    {
+      let arrValues = [];
+      let obj = XPCNativeWrapper.unwrap(aObject);
+
+      try {
+        for (let prop in obj) {
+          arrValues.push(obj[prop]);
+        }
+      }
+      catch (ex) {
+        aJSTerm.console.error(ex.message);
+      }
+      return arrValues;
+    },
+
+    
+
+
+
+
+
+
+    inspect: function JSTH_inspect(aObject)
+    {
+      let obj = XPCNativeWrapper.unwrap(aObject);
+      aJSTerm.openPropertyPanel(null, obj);
+    },
+
+    
+
+
+
+
+
+
+    pprint: function JSTH_pprint(aObject)
+    {
+      if (aObject === null || aObject === undefined || aObject === true || aObject === false) {
+        aJSTerm.console.error(HUDService.getStr("helperFuncUnsupportedTypeError"));
+        return;
+      }
+      let output = [];
+      if (typeof aObject != "string") {
+        aObject = XPCNativeWrapper.unwrap(aObject);
+      }
+      let pairs = namesAndValuesOf(aObject);
+
+      pairs.forEach(function(pair) {
+        output.push("  " + pair.display);
+      });
+
+      aJSTerm.writeOutput(output.join("\n"));
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3576,6 +3746,7 @@ JSTerm.prototype = {
     this.sandbox = new Cu.Sandbox(this._window);
     this.sandbox.window = this._window;
     this.sandbox.console = this.console;
+    this.sandbox.__helperFunctions__ = JSTermHelper(this);
     this.sandbox.__proto__ = this._window.wrappedJSObject;
   },
 
@@ -3594,7 +3765,7 @@ JSTerm.prototype = {
 
   evalInSandbox: function JST_evalInSandbox(aString)
   {
-    let execStr = "with(window) {" + aString + "}";
+    let execStr = "with(__helperFunctions__) { with(window) {" + aString + "} }";
     return Cu.evalInSandbox(execStr,  this.sandbox, "default", "HUD Console", 1);
   },
 
