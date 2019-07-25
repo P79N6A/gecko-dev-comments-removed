@@ -327,17 +327,6 @@ static WindowsDllInterceptor sUser32Intercept;
 
 
 
-
-
-static const int MIN_OPAQUE_RECT_HEIGHT_FOR_GLASS_MARGINS = 50;
-
-
-
-
-static const int MAX_HORIZONTAL_GLASS_MARGIN = 5;
-
-
-
 static const PRInt32 kGlassMarginAdjustment = 2;
 
 
@@ -2516,7 +2505,6 @@ void nsWindow::UpdateOpaqueRegion(const nsIntRegion &aOpaqueRegion)
   
   
   MARGINS margins = { -1, -1, -1, -1 };
-  bool visiblePlugin = false;
   if (!aOpaqueRegion.IsEmpty()) {
     nsIntRect pluginBounds;
     for (nsIWidget* child = GetFirstChild(); child; child = child->GetNextSibling()) {
@@ -2527,14 +2515,6 @@ void nsWindow::UpdateOpaqueRegion(const nsIntRegion &aOpaqueRegion)
         nsIntRect childBounds;
         child->GetBounds(childBounds);
         pluginBounds.UnionRect(pluginBounds, childBounds);
-        
-        nsTArray<nsIntRect> currentRects;
-        child->GetWindowClipRegion(&currentRects);
-        nsIntRegion currentClipRegion = RegionFromArray(currentRects);
-        nsIntRect bounds = currentClipRegion.GetBounds();
-        if (!bounds.IsEmpty()) {
-          visiblePlugin = true;
-        }
       }
     }
 
@@ -2543,25 +2523,17 @@ void nsWindow::UpdateOpaqueRegion(const nsIntRegion &aOpaqueRegion)
 
     
     
-    
-    
     nsIntRect largest = aOpaqueRegion.GetLargestRectangle(pluginBounds);
-    if (visiblePlugin || 
-        (largest.x <= MAX_HORIZONTAL_GLASS_MARGIN &&
-         clientBounds.width - largest.XMost() <= MAX_HORIZONTAL_GLASS_MARGIN &&
-         largest.height >= MIN_OPAQUE_RECT_HEIGHT_FOR_GLASS_MARGINS)) {
-      margins.cxLeftWidth = largest.x;
-      margins.cxRightWidth = clientBounds.width - largest.XMost();
-      margins.cyBottomHeight = clientBounds.height - largest.YMost();
-
-      if (mCustomNonClient) {
-        
-        
-        largest.y = PR_MAX(largest.y,
-                           nsUXThemeData::sCommandButtons[CMDBUTTONIDX_BUTTONBOX].cy);
-      }
-      margins.cyTopHeight = largest.y;
+    margins.cxLeftWidth = largest.x;
+    margins.cxRightWidth = clientBounds.width - largest.XMost();
+    margins.cyBottomHeight = clientBounds.height - largest.YMost();
+    if (mCustomNonClient) {
+      
+      
+      largest.y = PR_MAX(largest.y,
+                         nsUXThemeData::sCommandButtons[CMDBUTTONIDX_BUTTONBOX].cy);
     }
+    margins.cyTopHeight = largest.y;
   }
 
   
