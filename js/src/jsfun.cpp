@@ -2887,8 +2887,14 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
     JSObject *clone;
     if (cx->compartment == fun->compartment()) {
         
+
+
+
+
         if (fun->getType()->singleton) {
             JS_ASSERT(fun->getType()->singleton == fun);
+            JS_ASSERT(fun->getProto() == proto);
+            fun->setParent(parent);
             return fun;
         }
 

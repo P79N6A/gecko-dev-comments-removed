@@ -445,6 +445,12 @@ Script::analyze(JSContext *cx, JSScript *script)
             usesThis = true;
             break;
 
+          case JSOP_CALL:
+          case JSOP_NEW:
+            
+            hasCalls = true;
+            break;
+
           case JSOP_TABLESWITCH:
           case JSOP_TABLESWITCHX: {
             isInlineable = false;

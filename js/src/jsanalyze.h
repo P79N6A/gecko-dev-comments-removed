@@ -140,6 +140,7 @@ class Script
     bool usesRval;
     bool usesScope;
     bool usesThis;
+    bool hasCalls;
 
     bool isInlineable;
 
@@ -165,8 +166,8 @@ class Script
     
     bool usesScopeChain() const { return usesScope; }
 
-    
     bool usesThisValue() const { return usesThis; }
+    bool hasFunctionCalls() const { return hasCalls; }
 
     bool hasAnalyzed() const { return !!codeArray; }
     JSScript *getScript() const { return script; }
