@@ -875,19 +875,12 @@ Debug::construct(JSContext *cx, uintN argc, Value *vp)
     
     Value *argv = vp + 2, *argvEnd = argv + argc;
     for (Value *p = argv; p != argvEnd; p++) {
-        
         const Value &arg = *p;
         if (!arg.isObject())
             return ReportObjectRequired(cx);
         JSObject *argobj = &arg.toObject();
         if (!argobj->isCrossCompartmentWrapper()) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CCW_REQUIRED, "Debug");
-            return false;
-        }
-
-        
-        if (!argobj->getProxyPrivate().toObject().compartment()->debugMode) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NEED_DEBUG_MODE);
             return false;
         }
     }
@@ -935,6 +928,11 @@ Debug::construct(JSContext *cx, uintN argc, Value *vp)
 bool
 Debug::addDebuggeeGlobal(JSContext *cx, GlobalObject *obj)
 {
+    if (!obj->compartment()->debugMode) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NEED_DEBUG_MODE);
+        return false;
+    }
+
     
     
     
