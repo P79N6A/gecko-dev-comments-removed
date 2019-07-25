@@ -740,7 +740,7 @@ protected:
 
   
   
-  PRPackedBool           mFocusByKeyOccured : 1;
+  PRPackedBool           mFocusByKeyOccurred : 1;
 
   
   PRPackedBool           mHasAcceleration  : 1;

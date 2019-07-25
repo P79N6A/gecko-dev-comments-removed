@@ -123,7 +123,7 @@ for (testnum = 1; testnum <= 15; testnum++) {
 
 
 let newfile = do_get_file("data/");
-newfile.append("non-existant-file.ini");
+newfile.append("non-existent-file.ini");
 if (newfile.exists())
     newfile.remove(false);
 do_check_false(newfile.exists());
@@ -141,7 +141,7 @@ parser.writeFile();
 do_check_true(newfile.exists());
 checkParserOutput(parser, {section: {key: "value"} });
 
-parser = parserForFile("data/non-existant-file.ini");
+parser = parserForFile("data/non-existent-file.ini");
 checkParserOutput(parser, {section: {key: "value"} });
 
 

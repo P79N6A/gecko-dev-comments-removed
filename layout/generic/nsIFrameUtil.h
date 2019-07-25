@@ -61,7 +61,7 @@ public:
 
 
 
-  NS_IMETHOD CompareRegressionData(FILE* aFile1, FILE* aFile2,PRInt32 aRegressionOuput) = 0;
+  NS_IMETHOD CompareRegressionData(FILE* aFile1, FILE* aFile2,PRInt32 aRegressionOutput) = 0;
 
   
 
