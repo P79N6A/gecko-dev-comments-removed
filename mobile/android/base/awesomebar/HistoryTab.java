@@ -3,14 +3,9 @@
 
 
 
-package org.mozilla.gecko.awesomebar;
+package org.mozilla.gecko;
 
-import org.mozilla.gecko.AwesomeBar;
 import org.mozilla.gecko.AwesomeBar.ContextMenuSubject;
-import org.mozilla.gecko.AwesomeBarTabs;
-import org.mozilla.gecko.GeckoApp;
-import org.mozilla.gecko.GeckoAppShell;
-import org.mozilla.gecko.R;
 import org.mozilla.gecko.db.BrowserContract.Combined;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.BrowserDB.URLColumns;
