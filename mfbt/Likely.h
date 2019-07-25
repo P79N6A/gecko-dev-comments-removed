@@ -1,0 +1,17 @@
+
+
+
+
+
+
+
+
+
+#if defined(__clang__) || (defined(__GNUC__) && (__GNUC__ > 2))
+#  define MOZ_LIKELY(x)   (__builtin_expect((x), 1))
+#  define MOZ_UNLIKELY(x) (__builtin_expect((x), 0))
+#else
+#  define MOZ_LIKELY(x)   (x)
+#  define MOZ_UNLIKELY(x) (x)
+#endif
+
