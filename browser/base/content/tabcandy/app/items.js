@@ -851,12 +851,11 @@ window.Items = {
   
   
   
-  getPageBounds: function() {
-    var top = 0;
-    var bottom = TabItems.tabHeight + 10; 
+  getPageBounds: function( dontCountNewTabGroup ) {
+    var bottom = dontCountNewTabGroup ? 0 : TabItems.tabHeight + Items.defaultGutter;
     var width = Math.max(100, window.innerWidth);
-    var height = Math.max(100, window.innerHeight - (top + bottom));
-    return new Rect(0, top, width, height);
+    var height = Math.max(100, window.innerHeight - bottom);
+    return new Rect(0, 0, width, height);
   },
   
   
