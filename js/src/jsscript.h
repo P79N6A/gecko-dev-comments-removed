@@ -379,50 +379,31 @@ enum JITScriptStatus {
 namespace js { namespace mjit { struct JITScript; } }
 #endif
 
-namespace js { namespace analyze { class ScriptAnalysis; } }
+namespace js {
 
-class JSPCCounters {
-    size_t numBytecodes;
-    double *counts;
+namespace analyze { class ScriptAnalysis; }
+
+class ScriptOpcodeCounts
+{
+    friend struct ::JSScript;
+    OpcodeCounts *counts;
 
  public:
 
-    enum {
-        INTERP = 0,
-        TRACEJIT,
-        METHODJIT,
-        METHODJIT_STUBS,
-        METHODJIT_CODE,
-        METHODJIT_PICS,
-        NUM_COUNTERS
-    };
-
-    JSPCCounters() : numBytecodes(0), counts(NULL) {
+    ScriptOpcodeCounts() : counts(NULL) {
     }
 
-    ~JSPCCounters() {
+    ~ScriptOpcodeCounts() {
         JS_ASSERT(!counts);
     }
-
-    bool init(JSContext *cx, size_t numBytecodes);
-    void destroy(JSContext *cx);
 
     
     operator void*() const {
         return counts;
     }
-
-    double *get(int runmode) {
-        JS_ASSERT(runmode >= 0 && runmode < NUM_COUNTERS);
-        return counts ? &counts[numBytecodes * runmode] : NULL;
-    }
-
-    double& get(int runmode, size_t offset) {
-        JS_ASSERT(offset < numBytecodes);
-        JS_ASSERT(counts);
-        return get(runmode)[offset];
-    }
 };
+
+} 
 
 static const uint32 JS_SCRIPT_COOKIE = 0xc00cee;
 
@@ -539,10 +520,8 @@ struct JSScript : public js::gc::Cell {
 
 
 
-#if JS_BITS_PER_WORD == 64
 #define JS_SCRIPT_INLINE_DATA_LIMIT 4
     uint8           inlineData[JS_SCRIPT_INLINE_DATA_LIMIT];
-#endif
 
     const char      *filename;  
     JSAtom          **atoms;    
@@ -575,7 +554,7 @@ struct JSScript : public js::gc::Cell {
     uint32          *closedSlots; 
 
     
-    JSPCCounters    pcCounters;
+    js::ScriptOpcodeCounts pcCounters;
 
 #ifdef JS_CRASH_DIAGNOSTICS
     
@@ -684,6 +663,15 @@ struct JSScript : public js::gc::Cell {
     JS_FRIEND_API(size_t) jitDataSize(JSUsableSizeFun usf);
 
 #endif
+
+    
+    js::OpcodeCounts getCounts(jsbytecode *pc) {
+        JS_ASSERT(unsigned(pc - code) < length);
+        return pcCounters.counts[pc - code];
+    }
+
+    bool initCounts(JSContext *cx);
+    void destroyCounts(JSContext *cx);
 
     jsbytecode *main() {
         return code + mainOffset;

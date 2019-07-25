@@ -424,6 +424,9 @@ class FrameState
 
     inline RegisterID tempRegForType(FrameEntry *fe, RegisterID fallback);
 
+    inline void loadTypeIntoReg(const FrameEntry *fe, RegisterID reg);
+    inline void loadDataIntoReg(const FrameEntry *fe, RegisterID reg);
+
     
 
 
@@ -732,7 +735,7 @@ class FrameState
         void reset() { PodZero(this); }
     };
     StackEntryExtra& extra(const FrameEntry *fe) {
-        JS_ASSERT(fe >= a->spBase && fe < a->sp);
+        JS_ASSERT(fe >= a->args && fe < a->sp);
         return extraArray[fe - entries];
     }
     StackEntryExtra& extra(uint32 slot) { return extra(entries + slot); }
