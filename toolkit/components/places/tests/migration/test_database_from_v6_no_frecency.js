@@ -10,7 +10,8 @@ add_test(function database_is_valid() {
   do_check_eq(PlacesUtils.history.databaseStatus,
               PlacesUtils.history.DATABASE_STATUS_UPGRADED);
   
-  DBConn().createStatement("SELECT frecency from moz_places");
+  stmt = DBConn().createStatement("SELECT frecency from moz_places");
+  stmt.finalize();
   
   do_check_true(DBConn().tableExists("moz_inputhistory"));
   run_next_test();
