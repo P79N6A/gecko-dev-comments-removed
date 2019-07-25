@@ -101,6 +101,17 @@ public:
 
 
 
+  static bool HasRegistryKey(HKEY aRoot,
+                             const PRUnichar* aKeyName);
+
+  
+
+
+
+
+
+
+
 
 
 
