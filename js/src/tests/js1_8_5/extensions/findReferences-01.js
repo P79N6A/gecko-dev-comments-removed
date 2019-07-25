@@ -10,7 +10,7 @@ if (typeof findReferences == "function") {
     o.myself = o;           
     o.alsoMyself = o;       
 
-    assertEq(referencesVia(o, 'type_proto', C.prototype), true);
+    assertEq(referencesVia(o, 'type; type_proto', C.prototype), true);
     assertEq(referencesVia(o, 'parent', this), true);
     assertEq(referencesVia(o, 'x', o.x), true);
     assertEq(referencesVia(o, '42', o[42]), true);
