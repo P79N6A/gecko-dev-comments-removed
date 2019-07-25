@@ -773,7 +773,8 @@ class PropertyDefiner:
         
         
         
-        return ((self.name is "Methods" or self.name is "Attributes") and
+        return ((self.name is "Methods" or self.name is "Attributes" or
+                 self.name is "Constants") and
                 chrome == self.hasChromeOnly() and
                 not self.descriptor.workers)
 
@@ -1012,7 +1013,7 @@ class PropertyArrays():
 
     @staticmethod
     def xrayRelevantArrayNames():
-        return [ "methods", "attrs" ]
+        return [ "methods", "attrs", "consts" ]
 
     def hasChromeOnly(self):
         return reduce(lambda b, a: b or getattr(self, a).hasChromeOnly(),
@@ -3856,6 +3857,28 @@ class CGResolveProperty(CGAbstractMethod):
 
 """ % varNames
 
+        consts = self.properties.consts
+        if consts.hasNonChromeOnly() or consts.hasChromeOnly():
+            str += """  // %(consts)s has an end-of-list marker at the end that we ignore
+  for (size_t prefIdx = 0; prefIdx < ArrayLength(%(consts)s)-1; ++prefIdx) {
+    MOZ_ASSERT(%(consts)s[prefIdx].specs);
+    if (%(consts)s[prefIdx].enabled) {
+      // Set i to be the index into our full list of ids/specs that we're
+      // looking at now.
+      size_t i = %(consts)s[prefIdx].specs - %(consts)s_specs;;
+      for ( ; %(consts)s_ids[i] != JSID_VOID; ++i) {
+        if (id == %(consts)s_ids[i]) {
+          desc->attrs = JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT;
+          desc->obj = wrapper;
+          desc->value = %(consts)s_specs[i].value;
+          return true;
+        }
+      }
+    }
+  }
+
+""" % varNames
+
         return str + "  return true;"
 
 class CGEnumerateProperties(CGAbstractMethod):
@@ -3900,6 +3923,25 @@ class CGEnumerateProperties(CGAbstractMethod):
       for ( ; %(attrs)s_ids[i] != JSID_VOID; ++i) {
         if ((%(attrs)s_specs[i].flags & JSPROP_ENUMERATE) &&
             !props.append(%(attrs)s_ids[i])) {
+          return false;
+        }
+      }
+    }
+  }
+
+""" % varNames
+
+        consts = self.properties.consts
+        if consts.hasNonChromeOnly() or consts.hasChromeOnly():
+            str += """  // %(consts)s has an end-of-list marker at the end that we ignore
+  for (size_t prefIdx = 0; prefIdx < ArrayLength(%(consts)s)-1; ++prefIdx) {
+    MOZ_ASSERT(%(consts)s[prefIdx].specs);
+    if (%(consts)s[prefIdx].enabled) {
+      // Set i to be the index into our full list of ids/specs that we're
+      // looking at now.
+      size_t i = %(consts)s[prefIdx].specs - %(consts)s_specs;;
+      for ( ; %(consts)s_ids[i] != JSID_VOID; ++i) {
+        if (!props.append(%(consts)s_ids[i])) {
           return false;
         }
       }
