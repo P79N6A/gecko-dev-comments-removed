@@ -41,6 +41,7 @@ class Nursery
     }
 
     bool isInside(void *cell) const {
+        JS_ASSERT((uintptr_t(cell) & 0x3) == 0);
         return nursery.initialized() && nursery.has(cell);
     }
 
@@ -143,7 +144,7 @@ class StoreBuffer
 
 
 
-        void compact();
+        virtual void compact();
 
         
         void put(const T &v);
@@ -167,7 +168,7 @@ class StoreBuffer
 
         
         void compactMoved();
-        void compact();
+        virtual void compact();
 
         
         void unput(const T &v);

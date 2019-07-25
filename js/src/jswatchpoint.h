@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef jswatchpoint_h___
 #define jswatchpoint_h___
@@ -21,14 +21,14 @@ struct WatchKey {
     WatchKey() {}
     WatchKey(JSObject *obj, jsid id) : object(obj), id(id) {}
     WatchKey(const WatchKey &key) : object(key.object.get()), id(key.id.get()) {}
-    HeapPtrObject object;
-    HeapId id;
+    EncapsulatedPtrObject object;
+    EncapsulatedId id;
 };
 
 struct Watchpoint {
     JSWatchPointHandler handler;
-    HeapPtrObject closure;
-    bool held;  /* true if currently running handler */
+    RelocatablePtrObject closure;
+    bool held;  
 };
 
 template <>
@@ -70,4 +70,4 @@ class WatchpointMap {
 
 }
 
-#endif /* jswatchpoint_h___ */
+#endif 

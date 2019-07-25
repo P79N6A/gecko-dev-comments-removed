@@ -4588,39 +4588,30 @@ JS_PUBLIC_API(JSObject *)
 JS_NewPropertyIterator(JSContext *cx, JSObject *objArg)
 {
     RootedObject obj(cx, objArg);
-    JSObject *iterobj;
-    void *pdata;
-    int index;
-    JSIdArray *ida;
 
     AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
-    iterobj = NewObjectWithClassProto(cx, &prop_iter_class, NULL, obj);
-    AssertRootingUnnecessary safe(cx);
+
+    RootedObject iterobj(cx, NewObjectWithClassProto(cx, &prop_iter_class, NULL, obj));
     if (!iterobj)
         return NULL;
 
+    int index;
     if (obj->isNative()) {
         
-        pdata = (void *)obj->lastProperty();
+        iterobj->setPrivateGCThing(obj->lastProperty());
         index = -1;
     } else {
         
-
-
-
-
-
-        ida = JS_Enumerate(cx, obj);
+        JSIdArray *ida = JS_Enumerate(cx, obj);
         if (!ida)
             return NULL;
-        pdata = ida;
+        iterobj->setPrivate((void *)ida);
         index = ida->length;
     }
 
     
-    iterobj->setPrivate(pdata);
     iterobj->setSlot(JSSLOT_ITER_INDEX, Int32Value(index));
     return iterobj;
 }
@@ -4650,7 +4641,7 @@ JS_NextProperty(JSContext *cx, JSObject *iterobjArg, jsid *idp)
             JS_ASSERT(shape->isEmptyShape());
             *idp = JSID_VOID;
         } else {
-            iterobj->setPrivate(const_cast<Shape *>(shape->previous().get()));
+            iterobj->setPrivateGCThing(const_cast<Shape *>(shape->previous().get()));
             *idp = shape->propid();
         }
     } else {

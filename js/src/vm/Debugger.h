@@ -70,16 +70,18 @@ class Debugger {
 
 
 
-    typedef HashMap<StackFrame *, HeapPtrObject, DefaultHasher<StackFrame *>, RuntimeAllocPolicy>
-        FrameMap;
+    typedef HashMap<StackFrame *,
+                    RelocatablePtrObject,
+                    DefaultHasher<StackFrame *>,
+                    RuntimeAllocPolicy> FrameMap;
     FrameMap frames;
 
     
-    typedef WeakMap<HeapPtrScript, HeapPtrObject> ScriptWeakMap;
+    typedef WeakMap<EncapsulatedPtrScript, RelocatablePtrObject> ScriptWeakMap;
     ScriptWeakMap scripts;
 
     
-    typedef WeakMap<HeapPtrObject, HeapPtrObject> ObjectWeakMap;
+    typedef WeakMap<EncapsulatedPtrObject, RelocatablePtrObject> ObjectWeakMap;
     ObjectWeakMap objects;
 
     
