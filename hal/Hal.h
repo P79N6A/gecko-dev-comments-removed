@@ -43,6 +43,7 @@
 #include "base/basictypes.h"
 #include "mozilla/Types.h"
 #include "nsTArray.h"
+#include "mozilla/dom/battery/Types.h"
 
 #ifndef MOZ_HAL_NAMESPACE
 
@@ -63,6 +64,11 @@
 #endif
 
 namespace mozilla {
+
+namespace hal {
+class BatteryInformation;
+} 
+
 namespace MOZ_HAL_NAMESPACE  {
 
 
@@ -74,6 +80,47 @@ namespace MOZ_HAL_NAMESPACE  {
 
 
 void Vibrate(const nsTArray<uint32>& pattern);
+
+
+
+
+
+void RegisterBatteryObserver(BatteryObserver* aBatteryObserver);
+
+
+
+
+
+void UnregisterBatteryObserver(BatteryObserver* aBatteryObserver);
+
+
+
+
+
+
+
+
+void EnableBatteryNotifications();
+
+
+
+
+
+
+
+
+void DisableBatteryNotifications();
+
+
+
+
+void GetCurrentBatteryInformation(hal::BatteryInformation* aBatteryInfo);
+
+
+
+
+
+void NotifyBatteryChange(const hal::BatteryInformation& aBatteryInfo);
 
 }
 }
