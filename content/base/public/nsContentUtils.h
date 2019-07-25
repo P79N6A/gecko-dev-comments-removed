@@ -2124,13 +2124,6 @@ public:
                         DOUBLE_HI32_EXPMASK | DOUBLE_HI32_MANTMASK}}
 #endif
 
-#if defined(XP_WIN)
-#define DOUBLE_COMPARE(LVAL, OP, RVAL)                                  \
-    (!DOUBLE_IS_NaN(LVAL) && !DOUBLE_IS_NaN(RVAL) && (LVAL) OP (RVAL))
-#else
-#define DOUBLE_COMPARE(LVAL, OP, RVAL) ((LVAL) OP (RVAL))
-#endif
-
 
 
 
