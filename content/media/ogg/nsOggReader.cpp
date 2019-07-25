@@ -647,63 +647,74 @@ PRBool nsOggReader::DecodeVideoFrame(PRBool &aKeyframeSkip,
     if (packet.granulepos > 0) {
       
       
-      PRInt64 succGranulepos = packet.granulepos;
-      int version_3_2_1 = TheoraVersion(&mTheoraState->mInfo,3,2,1);
-      int shift = mTheoraState->mInfo.keyframe_granule_shift;
-      for (int i = frames.Length() - 2; i >= 0; --i) {
-        PRInt64 granulepos = succGranulepos;
+      
+      
+      ogg_int64_t shift = mTheoraState->mInfo.keyframe_granule_shift;
+      ogg_int64_t version_3_2_1 = TheoraVersion(&mTheoraState->mInfo,3,2,1);
+      ogg_int64_t lastFrame = th_granule_frame(mTheoraState->mCtx,
+                                               packet.granulepos) + version_3_2_1;
+      ogg_int64_t firstFrame = lastFrame - frames.Length() + 1;
+
+      
+      
+      
+      
+      
+      
+      
+      ogg_int64_t keyframe = packet.granulepos >> shift;
+
+      
+      
+      
+      
+      for (PRUint32 i = 0; i < frames.Length() - 1; ++i) {
+        ogg_int64_t frame = firstFrame + i;
+        ogg_int64_t granulepos;
         if (frames[i]->mKeyframe) {
+          granulepos = frame << shift;
+          keyframe = frame;
+        } else if (frame >= keyframe &&
+                   frame - keyframe < ((ogg_int64_t)1 << shift))
+        {
           
           
-          ogg_int64_t frame_index = th_granule_frame(mTheoraState->mCtx,
-                                                     granulepos);
-          granulepos = (frame_index + version_3_2_1 - 1) << shift;
-          
-          
-          
-          
-          NS_ASSERTION((version_3_2_1 && granulepos > 0) ||
-                       granulepos >= 0, "Should have positive granulepos");
+          granulepos = (keyframe << shift) + (frame - keyframe);
         } else {
           
           
-          if (frames[i+1]->mKeyframe) {
-            
-            
-            
-            
-            
-            
-            
-            ogg_int64_t frameno = th_granule_frame(mTheoraState->mCtx,
-                                                   granulepos);
-            ogg_int64_t max_offset = NS_MIN((frameno - 1),
-                                         (ogg_int64_t)(1 << shift) - 1);
-            ogg_int64_t granule = frameno +
-                                  TheoraVersion(&mTheoraState->mInfo,3,2,1) -
-                                  1 - max_offset;
-            NS_ASSERTION(granule > 0, "Must have positive granulepos");
-            granulepos = (granule << shift) + max_offset;
-          } else {
-            
-            
-            
-            --granulepos;
-          }
+          
+          ogg_int64_t k = NS_MAX(frame - (((ogg_int64_t)1 << shift) - 1), version_3_2_1);
+          granulepos = (k << shift) + (frame - k);
         }
         
         
-        NS_ASSERTION(th_granule_frame(mTheoraState->mCtx, succGranulepos) ==
-                     th_granule_frame(mTheoraState->mCtx, granulepos) + 1,
+        
+        
+        NS_ASSERTION(granulepos >= version_3_2_1,
+                     "Invalid granulepos for Theora version");
+
+        
+        
+        NS_ASSERTION(i == 0 ||
+                     th_granule_frame(mTheoraState->mCtx, granulepos) ==
+                     th_granule_frame(mTheoraState->mCtx, frames[i-1]->mTimecode) + 1,
                      "Granulepos calculation is incorrect!");
+
         frames[i]->mTime = mTheoraState->StartTime(granulepos);
         frames[i]->mEndTime = mTheoraState->Time(granulepos);
         NS_ASSERTION(frames[i]->mEndTime >= frames[i]->mTime, "Frame must start before it ends.");
         frames[i]->mTimecode = granulepos;
-        succGranulepos = granulepos;
-        NS_ASSERTION(frames[i]->mTime < frames[i+1]->mTime, "Times should increase");      
       }
       NS_ASSERTION(AllFrameTimesIncrease(frames), "All frames must have granulepos");
+
+      
+      
+      
+      NS_ASSERTION(frames.Length() < 2 ||
+        th_granule_frame(mTheoraState->mCtx, frames[frames.Length()-2]->mTimecode) + 1 ==
+        th_granule_frame(mTheoraState->mCtx, packet.granulepos),
+        "Granulepos recovery should catch up with packet.granulepos!");
     }
   } else {
     
