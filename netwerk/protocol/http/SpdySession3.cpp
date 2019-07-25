@@ -701,6 +701,11 @@ SpdySession3::VerifyStream(SpdyStream3 *aStream, PRUint32 aOptionalID = 0)
   
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
 
+#ifndef DEBUG
+  
+  return true;
+#endif
+
   if (!aStream)
     return true;
 
