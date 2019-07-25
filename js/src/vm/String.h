@@ -330,10 +330,10 @@ class JSString : public js::gc::Cell
         return *(JSExtensibleString *)this;
     }
 
-    
-    bool isShort() const;
-    bool isFixed() const;
-    bool isInline() const;
+    JS_ALWAYS_INLINE
+    bool isFixed() const {
+        return isFlat() && !isExtensible();
+    }
 
     JS_ALWAYS_INLINE
     JSFixedString &asFixed() const {
@@ -341,6 +341,12 @@ class JSString : public js::gc::Cell
         return *(JSFixedString *)this;
     }
 
+    JS_ALWAYS_INLINE
+    bool isInline() const {
+        return isFixed() && (d.u1.chars == d.inlineStorage);
+    }
+
+    
     bool isExternal() const;
 
     JS_ALWAYS_INLINE
@@ -402,6 +408,7 @@ class JSString : public js::gc::Cell
     static inline js::ThingRootKind rootKind() { return js::THING_ROOT_STRING; }
 
 #ifdef DEBUG
+    bool isShort() const;
     void dump();
     bool equals(const char *s);
 #endif
@@ -592,12 +599,6 @@ class JSShortString : public JSInlineString
 
   public:
     static inline JSShortString *new_(JSContext *cx);
-
-    jschar *inlineStorageBeforeInit() {
-        return d.inlineStorage;
-    }
-
-    inline void initAtOffsetInBuffer(const jschar *chars, size_t length);
 
     static const size_t MAX_SHORT_LENGTH = JSString::NUM_INLINE_CHARS +
                                            INLINE_EXTENSION_CHARS
