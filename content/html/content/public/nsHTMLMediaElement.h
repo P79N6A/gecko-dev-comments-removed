@@ -53,6 +53,7 @@
 #include "mozilla/CORSMode.h"
 #include "nsDOMMediaStream.h"
 #include "mozilla/Mutex.h"
+#include "nsTimeRanges.h"
 
 
 
@@ -761,6 +762,12 @@ protected:
 
   
   nsRefPtr<nsAudioStream> mAudioStream;
+
+  
+  nsTimeRanges mPlayed;
+
+  
+  double mCurrentPlayRangeStart;
 
   
   

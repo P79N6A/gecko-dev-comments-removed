@@ -1238,6 +1238,16 @@ NS_IMETHODIMP nsHTMLMediaElement::SetCurrentTime(double aCurrentTime)
     return NS_ERROR_DOM_INVALID_STATE_ERR;
   }
 
+  if (mCurrentPlayRangeStart != -1.0) {
+    double rangeEndTime = 0;
+    GetCurrentTime(&rangeEndTime);
+    LOG(PR_LOG_DEBUG, ("%p Adding \'played\' a range : [%f, %f]", this, mCurrentPlayRangeStart, rangeEndTime));
+    
+    if (mCurrentPlayRangeStart != rangeEndTime) {
+      mPlayed.Add(mCurrentPlayRangeStart, rangeEndTime);
+    }
+  }
+
   if (!mDecoder) {
     LOG(PR_LOG_DEBUG, ("%p SetCurrentTime(%f) failed: no decoder", this, aCurrentTime));
     return NS_ERROR_DOM_INVALID_STATE_ERR;
@@ -1266,6 +1276,8 @@ NS_IMETHODIMP nsHTMLMediaElement::SetCurrentTime(double aCurrentTime)
   
   LOG(PR_LOG_DEBUG, ("%p SetCurrentTime(%f) starting seek", this, aCurrentTime));
   nsresult rv = mDecoder->Seek(clampedTime);
+  
+  mCurrentPlayRangeStart = clampedTime;
 
   
   AddRemoveSelfReference();
@@ -1302,6 +1314,35 @@ NS_IMETHODIMP nsHTMLMediaElement::GetSeekable(nsIDOMTimeRanges** aSeekable)
 NS_IMETHODIMP nsHTMLMediaElement::GetPaused(bool *aPaused)
 {
   *aPaused = mPaused;
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP nsHTMLMediaElement::GetPlayed(nsIDOMTimeRanges** aPlayed)
+{
+  nsTimeRanges* ranges = new nsTimeRanges();
+  NS_ADDREF(*aPlayed = ranges);
+
+  PRUint32 timeRangeCount = 0;
+  mPlayed.GetLength(&timeRangeCount);
+  for (PRUint32 i = 0; i < timeRangeCount; i++) {
+    double begin;
+    double end;
+    mPlayed.Start(i, &begin);
+    mPlayed.End(i, &end);
+    ranges->Add(begin, end);
+  }
+
+  if (mCurrentPlayRangeStart != -1.0) {
+    double now = 0.0;
+    GetCurrentTime(&now);
+    if (mCurrentPlayRangeStart != now) {
+      ranges->Add(mCurrentPlayRangeStart, now);
+    }
+  }
+
+  ranges->Normalize();
 
   return NS_OK;
 }
@@ -1596,6 +1637,7 @@ nsHTMLMediaElement::nsHTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     mLastCurrentTime(0.0),
     mFragmentStart(-1.0),
     mFragmentEnd(-1.0),
+    mCurrentPlayRangeStart(-1.0),
     mAllowAudioData(false),
     mBegun(false),
     mLoadedFirstFrame(false),
@@ -1713,6 +1755,10 @@ NS_IMETHODIMP nsHTMLMediaElement::Play()
       nsresult rv = mDecoder->Play();
       NS_ENSURE_SUCCESS(rv, rv);
     }
+  }
+
+  if (mCurrentPlayRangeStart == -1.0) {
+    GetCurrentTime(&mCurrentPlayRangeStart);
   }
 
   
@@ -2837,6 +2883,9 @@ void nsHTMLMediaElement::NotifyAutoplayDataReady()
 
     if (mDecoder) {
       SetPlayedOrSeeked(true);
+      if (mCurrentPlayRangeStart == -1.0) {
+        GetCurrentTime(&mCurrentPlayRangeStart);
+      }
       mDecoder->Play();
     } else if (mStream) {
       SetPlayedOrSeeked(true);

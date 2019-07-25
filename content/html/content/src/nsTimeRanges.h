@@ -45,7 +45,8 @@
 
 
 
-class nsTimeRanges MOZ_FINAL : public nsIDOMTimeRanges {
+class nsTimeRanges MOZ_FINAL : public nsIDOMTimeRanges
+{
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMTIMERANGES
@@ -55,14 +56,30 @@ public:
 
   void Add(double aStart, double aEnd);
 
+  
+  void Normalize();
+
 private:
 
-  struct TimeRange {
+  
+  struct TimeRange
+  {
     TimeRange(double aStart, double aEnd)
       : mStart(aStart),
         mEnd(aEnd) {}
     double mStart;
     double mEnd;
+  };
+
+  struct CompareTimeRanges
+  {
+    bool Equals(const TimeRange& aTr1, const TimeRange& aTr2) const {
+      return aTr1.mStart == aTr2.mStart && aTr1.mEnd == aTr2.mEnd;
+    }
+
+    bool LessThan(const TimeRange& aTr1, const TimeRange& aTr2) const {
+      return aTr1.mStart < aTr2.mStart;
+    }
   };
 
   nsAutoTArray<TimeRange,4> mRanges;
