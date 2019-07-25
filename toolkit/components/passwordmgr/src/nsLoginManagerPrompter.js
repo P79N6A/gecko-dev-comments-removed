@@ -36,6 +36,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -572,9 +573,7 @@ LoginManagerPrompter.prototype = {
             
             
             
-            var notifyBox = this._getNotifyBox();
-            if (notifyBox)
-                this._removeLoginNotifications(notifyBox);
+            this._removeLoginNotifications();
 
             var [hostname, httpRealm] = this._getAuthTarget(aChannel, aAuthInfo);
 
@@ -606,8 +605,9 @@ LoginManagerPrompter.prototype = {
             var canRememberLogin = this._pwmgr.getLoginSavingEnabled(hostname);
             if (this._inPrivateBrowsing)
               canRememberLogin = false;
-        
+
             
+            var notifyBox = this._getNotifyBox();
             if (canRememberLogin && !notifyBox)
                 checkboxLabel = this._getLocalizedString("rememberPassword");
         } catch (e) {
@@ -653,8 +653,9 @@ LoginManagerPrompter.prototype = {
                                createInstance(Ci.nsILoginInfo);
                 newLogin.init(hostname, null, httpRealm,
                               username, password, "", "");
-                if (notifyBox)
-                    this._showSaveLoginNotification(notifyBox, newLogin);
+                var notifyObj = this._getPopupNote() || notifyBox;
+                if (notifyObj)
+                    this._showSaveLoginNotification(notifyObj, newLogin);
                 else
                     this._pwmgr.addLogin(newLogin);
 
@@ -689,9 +690,7 @@ LoginManagerPrompter.prototype = {
             
             
             
-            var notifyBox = this._getNotifyBox();
-            if (notifyBox)
-                this._removeLoginNotifications(notifyBox);
+            this._removeLoginNotifications();
 
             cancelable = this._newAsyncPromptConsumer(aCallback, aContext);
 
@@ -757,10 +756,10 @@ LoginManagerPrompter.prototype = {
 
 
     promptToSavePassword : function (aLogin) {
-        var notifyBox = this._getNotifyBox();
+        var notifyObj = this._getPopupNote() || this._getNotifyBox();
 
-        if (notifyBox)
-            this._showSaveLoginNotification(notifyBox, aLogin);
+        if (notifyObj)
+            this._showSaveLoginNotification(notifyObj, aLogin);
         else
             this._showSaveLoginDialog(aLogin);
     },
@@ -807,7 +806,9 @@ LoginManagerPrompter.prototype = {
 
 
 
-    _showSaveLoginNotification : function (aNotifyBox, aLogin) {
+
+
+    _showSaveLoginNotification : function (aNotifyObj, aLogin) {
 
         
         
@@ -846,39 +847,70 @@ LoginManagerPrompter.prototype = {
         
         var pwmgr = this._pwmgr;
 
-
-        var buttons = [
+        
+        if (aNotifyObj == this._getPopupNote()) {
             
-            {
+            var mainAction = {
                 label:     rememberButtonText,
                 accessKey: rememberButtonAccessKey,
-                popup:     null,
-                callback: function(aNotificationBar, aButton) {
+                callback: function(aNotifyObj, aButton) {
                     pwmgr.addLogin(aLogin);
                 }
-            },
-
-            
-            {
-                label:     neverButtonText,
-                accessKey: neverButtonAccessKey,
-                popup:     null,
-                callback: function(aNotificationBar, aButton) {
-                    pwmgr.setLoginSavingEnabled(aLogin.hostname, false);
+            };
+    
+            var secondaryActions = [
+                
+                {
+                    label:     neverButtonText,
+                    accessKey: neverButtonAccessKey,
+                    callback: function(aNotifyObj, aButton) {
+                        pwmgr.setLoginSavingEnabled(aLogin.hostname, false);
+                    }
                 }
-            },
-
-            
-            {
-                label:     notNowButtonText,
-                accessKey: notNowButtonAccessKey,
-                popup:     null,
-                callback:  function() {  } 
-            }
-        ];
-
-        this._showLoginNotification(aNotifyBox, "password-save",
-             notificationText, buttons);
+            ];
+    
+            var notifyWin = this._getNotifyWindow();
+            var chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
+            var browser = chromeWin.gBrowser.
+                                    getBrowserForDocument(this._window.top.document);
+    
+            aNotifyObj.show(browser, "password-save", notificationText,
+                            "password-notification-icon", mainAction,
+                            secondaryActions, { timeout: Date.now() + 30000 });
+        } else {
+            var buttons = [
+                
+                {
+                    label:     rememberButtonText,
+                    accessKey: rememberButtonAccessKey,
+                    popup:     null,
+                    callback: function(aNotifyObj, aButton) {
+                        pwmgr.addLogin(aLogin);
+                    }
+                },
+    
+                
+                {
+                    label:     neverButtonText,
+                    accessKey: neverButtonAccessKey,
+                    popup:     null,
+                    callback: function(aNotifyObj, aButton) {
+                        pwmgr.setLoginSavingEnabled(aLogin.hostname, false);
+                    }
+                },
+    
+                
+                {
+                    label:     notNowButtonText,
+                    accessKey: notNowButtonAccessKey,
+                    popup:     null,
+                    callback:  function() {  } 
+                }
+            ];
+    
+            this._showLoginNotification(aNotifyObj, "password-save",
+                                        notificationText, buttons);
+        }
     },
 
 
@@ -886,17 +918,26 @@ LoginManagerPrompter.prototype = {
 
 
 
-    _removeLoginNotifications : function (aNotifyBox) {
-        var oldBar = aNotifyBox.getNotificationWithValue("password-save");
-        if (oldBar) {
-            this.log("Removing save-password notification bar.");
-            aNotifyBox.removeNotification(oldBar);
-        }
+    _removeLoginNotifications : function () {
+        var popupNote = this._getPopupNote();
+        if (popupNote)
+            popupNote = popupNote.getNotification("password-save");
+        if (popupNote)
+            popupNote.remove();
 
-        oldBar = aNotifyBox.getNotificationWithValue("password-change");
-        if (oldBar) {
-            this.log("Removing change-password notification bar.");
-            aNotifyBox.removeNotification(oldBar);
+        var notifyBox = this._getNotifyBox();
+        if (notifyBox) {
+            var oldBar = notifyBox.getNotificationWithValue("password-save");
+            if (oldBar) {
+                this.log("Removing save-password notification bar.");
+                notifyBox.removeNotification(oldBar);
+            }
+    
+            oldBar = notifyBox.getNotificationWithValue("password-change");
+            if (oldBar) {
+                this.log("Removing change-password notification bar.");
+                notifyBox.removeNotification(oldBar);
+            }
         }
     },
 
@@ -1131,41 +1172,39 @@ LoginManagerPrompter.prototype = {
         this._pwmgr.modifyLogin(login, propBag);
     },
 
+
     
 
 
 
 
+    _getChromeWindow: function (aWindow) {
+        var chromeWin = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIWebNavigation)
+                               .QueryInterface(Ci.nsIDocShell)
+                               .chromeEventHandler.ownerDocument.defaultView;
+        return chromeWin;
+    },
 
-    _getNotifyBox : function () {
-        var notifyBox = null;
 
-        
-        function getChromeWindow(aWindow) {
-            var chromeWin = aWindow 
-                                .QueryInterface(Ci.nsIInterfaceRequestor)
-                                .getInterface(Ci.nsIWebNavigation)
-                                .QueryInterface(Ci.nsIDocShellTreeItem)
-                                .rootTreeItem
-                                .QueryInterface(Ci.nsIInterfaceRequestor)
-                                .getInterface(Ci.nsIDOMWindow)
-                                .QueryInterface(Ci.nsIDOMChromeWindow);
-            return chromeWin;
-        }
+    
+
+
+    _getNotifyWindow: function () {
 
         try {
             
-            var notifyWindow = this._window.top
+            var notifyWin = this._window.top;
 
             
             
             
-            if (notifyWindow.opener) {
-                var chromeDoc = getChromeWindow(notifyWindow)
-                                    .document.documentElement;
-                var webnav = notifyWindow
-                                    .QueryInterface(Ci.nsIInterfaceRequestor)
-                                    .getInterface(Ci.nsIWebNavigation);
+            if (notifyWin.opener) {
+                var chromeDoc = this._getChromeWindow(notifyWin).
+                                     document.documentElement;
+                var webnav = notifyWin.
+                             QueryInterface(Ci.nsIInterfaceRequestor).
+                             getInterface(Ci.nsIWebNavigation);
 
                 
                 
@@ -1174,23 +1213,64 @@ LoginManagerPrompter.prototype = {
                 if (chromeDoc.getAttribute("chromehidden") &&
                     webnav.sessionHistory.count == 1) {
                     this.log("Using opener window for notification bar.");
-                    notifyWindow = notifyWindow.opener;
+                    notifyWin = notifyWin.opener;
                 }
             }
 
-
-            
-            
-            var chromeWin = getChromeWindow(notifyWindow).wrappedJSObject;
-
-            if (chromeWin.getNotificationBox)
-                notifyBox = chromeWin.getNotificationBox(notifyWindow);
-            else
-                this.log("getNotificationBox() not available on window");
+            return notifyWin;
 
         } catch (e) {
             
-            this.log("No notification box available: " + e)
+            this.log("Unable to get notify window");
+            return null;
+        }
+    },
+
+
+    
+
+
+
+
+
+    _getPopupNote : function () {
+        let popupNote = null;
+
+        try {
+            let notifyWin = this._getNotifyWindow();
+
+            
+            
+            let chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
+
+            popupNote = chromeWin.PopupNotifications;
+        } catch (e) {
+            this.log("Popup notifications not available on window");
+        }
+
+        return popupNote;
+    },
+
+
+    
+
+
+
+
+
+    _getNotifyBox : function () {
+        let notifyBox = null;
+
+        try {
+            let notifyWin = this._getNotifyWindow();
+
+            
+            
+            let chromeWin = this._getChromeWindow(notifyWin).wrappedJSObject;
+
+            notifyBox = chromeWin.getNotificationBox(notifyWin);
+        } catch (e) {
+            this.log("Notification bars not available on window");
         }
 
         return notifyBox;
@@ -1211,7 +1291,7 @@ LoginManagerPrompter.prototype = {
         return null;
     },
 
-    
+
     
 
 
