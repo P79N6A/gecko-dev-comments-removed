@@ -229,6 +229,7 @@ var UIManager = {
 
       
       TabItems.init();
+      TabItems.pausePainting();
 
       
       if (this._pageBounds)
@@ -352,12 +353,16 @@ var UIManager = {
         self._resize(true);
       });
     }
+
+    TabItems.resumePainting();
   },
 
   
   
   
   hideTabView: function() {
+    TabItems.pausePainting();
+
     this._reorderTabsOnHide.forEach(function(group) {
       group.reorderTabsBasedOnTabItemOrder();
     });

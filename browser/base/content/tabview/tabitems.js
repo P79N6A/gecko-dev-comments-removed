@@ -388,6 +388,7 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       }
 
       if (css.width) {
+        TabItems.update(this.tab);
 
         let widthRange, proportion;
 
@@ -684,6 +685,10 @@ window.TabItems = {
   fontSize: 9,
   items: [],
   paintingPaused: 0,
+  _tabsWaitingForUpdate: [],
+  _heartbeatOn: false,
+  _heartbeatTiming: 100, 
+  _lastUpdateTime: Date.now(),
 
   
   
@@ -734,8 +739,6 @@ window.TabItems = {
       self.link(tab);
       self.update(tab);
     });
-
-    this.paintingPaused = 0;
   },
 
   
@@ -743,6 +746,26 @@ window.TabItems = {
   
   update: function(tab) {
     try {
+      Utils.assertThrow("tab", tab);
+      
+      if (this.isPaintingPaused() 
+          || this._tabsWaitingForUpdate.length
+          || Date.now() - this._lastUpdateTime < this._heartbeatTiming) {
+        if (this._tabsWaitingForUpdate.indexOf(tab) == -1)
+          this._tabsWaitingForUpdate.push(tab);
+      } else 
+        this._update(tab);
+    } catch(e) {
+      Utils.log(e);
+    }
+  },
+
+  
+  
+  
+  _update: function(tab) {
+    try {
+      Utils.assertThrow("tab", tab);
       Utils.assertThrow("must already be linked", tab.tabItem);
 
       let tabItem = tab.tabItem;
@@ -787,6 +810,8 @@ window.TabItems = {
     } catch(e) {
       Utils.log(e);
     }
+    
+    this._lastUpdateTime = Date.now();
   },
 
   
@@ -794,6 +819,7 @@ window.TabItems = {
   
   link: function(tab){
     try {
+      Utils.assertThrow("tab", tab);
       Utils.assertThrow("shouldn't already be linked", !tab.tabItem);
       new TabItem(tab); 
     } catch(e) {
@@ -806,12 +832,17 @@ window.TabItems = {
   
   unlink: function(tab) {
     try {
+      Utils.assertThrow("tab", tab);
       Utils.assertThrow("should already be linked", tab.tabItem);
 
       tab.tabItem._sendToSubscribers("close");
       iQ(tab.tabItem.container).remove();
 
       tab.tabItem = null;
+
+      let index = this._tabsWaitingForUpdate.indexOf(tab);
+      if (index != -1)
+        this._tabsWaitingForUpdate.splice(index, 1); 
     } catch(e) {
       Utils.log(e);
     }
@@ -820,25 +851,57 @@ window.TabItems = {
   
   
   
+  heartbeat: function() {    
+    if (!this._heartbeatOn)
+      return;
+    
+    if (this._tabsWaitingForUpdate.length)
+      this._update(this._tabsWaitingForUpdate.shift());
+      
+    let self = this;
+    if (this._tabsWaitingForUpdate.length) {
+      Utils.timeout(function() {
+        self.heartbeat();
+      }, this._heartbeatTiming);
+    } else
+      this._hearbeatOn = false;
+  },
+  
+  
+  
+  
+  
   
   
   pausePainting: function() {
     this.paintingPaused++;
+    
+    if (this.isPaintingPaused() && this._heartbeatOn)
+      this._heartbeatOn = false;
   },
 
+  
   
   
   
   
   resumePainting: function() {
     this.paintingPaused--;
+    
+    if (!this.isPaintingPaused() 
+        && this._tabsWaitingForUpdate.length 
+        && !this._heartbeatOn) {
+      this._heartbeatOn = true;
+      this.heartbeat();
+    }
   },
 
   
   
   
+  
   isPaintingPaused: function() {
-    return this.paintingPause > 0;
+    return this.paintingPaused > 0;
   },
 
   
