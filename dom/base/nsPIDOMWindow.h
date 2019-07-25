@@ -291,7 +291,7 @@ public:
 
   
   
-  virtual nsresult SaveWindowState(nsISupports **aState) = 0;
+  virtual already_AddRefed<nsISupports> SaveWindowState() = 0;
 
   
   virtual nsresult RestoreWindowState(nsISupports *aState) = 0;
