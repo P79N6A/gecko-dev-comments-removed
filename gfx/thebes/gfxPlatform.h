@@ -243,6 +243,11 @@ public:
     
 
 
+    PRBool PreserveOTLTablesWhenSanitizing();
+
+    
+
+
 
 
 
@@ -361,6 +366,7 @@ protected:
                                                
     PRBool  mAllowDownloadableFonts;
     PRBool  mDownloadableFontsSanitize;
+    PRBool  mSanitizePreserveOTLTables;
 
     
     PRInt8  mUseHarfBuzzLevel;
