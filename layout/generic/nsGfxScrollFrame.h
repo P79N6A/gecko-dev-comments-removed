@@ -32,6 +32,10 @@ class nsIScrollFrameInternal;
 class nsPresState;
 struct ScrollReflowState;
 
+namespace mozilla {
+class ScrollbarActivity;
+}
+
 
 
 
@@ -112,13 +116,12 @@ public:
     nsGfxScrollFrameInner *mInner;
   };
 
-  static void FinishReflowForScrollbar(nsIContent* aContent, nscoord aMinXY,
-                                       nscoord aMaxXY, nscoord aCurPosXY,
-                                       nscoord aPageIncrement,
-                                       nscoord aIncrement);
+  void FinishReflowForScrollbar(nsIContent* aContent, nscoord aMinXY,
+                                nscoord aMaxXY, nscoord aCurPosXY,
+                                nscoord aPageIncrement,
+                                nscoord aIncrement);
   static void SetScrollbarEnabled(nsIContent* aContent, nscoord aMaxPos);
-  static void SetCoordAttribute(nsIContent* aContent, nsIAtom* aAtom,
-                                nscoord aSize);
+  void SetCoordAttribute(nsIContent* aContent, nsIAtom* aAtom, nscoord aSize);
   nscoord GetCoordAttribute(nsIBox* aFrame, nsIAtom* aAtom, nscoord aDefaultValue,
                             nscoord* aRangeStart, nscoord* aRangeLength);
 
@@ -269,6 +272,7 @@ public:
   nsIBox* mResizerBox;
   nsContainerFrame* mOuter;
   nsRefPtr<AsyncScroll> mAsyncScroll;
+  nsAutoPtr<mozilla::ScrollbarActivity> mScrollbarActivity;
   nsTArray<nsIScrollPositionListener*> mListeners;
   nsRect mScrollPort;
   
