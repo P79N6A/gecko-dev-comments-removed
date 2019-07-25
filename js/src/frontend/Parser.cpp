@@ -2737,11 +2737,6 @@ CheckDestructuring(JSContext *cx, BindData *data, ParseNode *left, TreeContext *
 
 
 
-
-
-
-
-
 static void
 UndominateInitializers(ParseNode *left, const TokenPtr &end, TreeContext *tc)
 {
