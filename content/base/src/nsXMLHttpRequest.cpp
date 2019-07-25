@@ -1620,9 +1620,21 @@ void nsXMLHttpRequest::CreateResponseBlob(nsIRequest *request)
     if (cc) {
       cc->GetCacheToken(getter_AddRefs(cacheToken));
     }
-    mResponseBlob = new nsDOMFile(file,
-                                  NS_ConvertASCIItoUTF16(contentType),
-                                  cacheToken);
+
+    NS_ConvertASCIItoUTF16 wideContentType(contentType);
+
+    nsCOMPtr<nsIDOMBlob> blob =
+      new nsDOMFile(file, wideContentType, cacheToken);
+
+    
+    
+    
+    
+    
+    PRUint64 size = 0;
+    blob->GetSize(&size);
+    blob->MozSlice(0, size, wideContentType, 2, getter_AddRefs(mResponseBlob));
+    
     mResponseBody.Truncate();
     mResponseBodyUnicode.SetIsVoid(PR_TRUE);
   }
@@ -1893,9 +1905,20 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
       void *blobData = PR_Malloc(blobLen);
       if (blobData) {
         memcpy(blobData, mResponseBody.BeginReading(), blobLen);
-        mResponseBlob =
+
+        NS_ConvertASCIItoUTF16 wideContentType(contentType);
+        nsCOMPtr<nsIDOMBlob> blob =
           new nsDOMMemoryFile(blobData, blobLen, EmptyString(),
-                              NS_ConvertASCIItoUTF16(contentType));
+                              wideContentType);
+
+        
+        
+        
+        
+        
+        blob->MozSlice(0, blobLen, wideContentType,
+                       2, getter_AddRefs(mResponseBlob));
+
         mResponseBody.Truncate();
       }
       NS_ASSERTION(mResponseBodyUnicode.IsVoid(),
