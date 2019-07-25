@@ -1229,7 +1229,16 @@ public:
 
 
   virtual void DidPaint() = 0;
-  virtual void ScheduleViewManagerFlush() = 0;
+
+  
+
+
+
+
+
+
+
+  virtual void ScheduleViewManagerFlush(PRUint32 aFlags = 0) = 0;
   virtual void ClearMouseCaptureOnView(nsIView* aView) = 0;
   virtual bool IsVisible() = 0;
   virtual void DispatchSynthMouseMove(nsGUIEvent *aEvent, bool aFlushOnHoverChange) = 0;
