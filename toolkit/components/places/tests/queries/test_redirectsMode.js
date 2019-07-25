@@ -283,13 +283,16 @@ function add_visits_to_database() {
 
 
 function run_test() {
-  
-  if ("@mozilla.org/windows-registry-key;1" in Components.classes)
-    return;
+  do_test_pending();
 
   
   add_visits_to_database();
 
+  
+  waitForAsyncUpdates(continue_test);
+ }
+
+ function continue_test() {
   
   
   let includeHidden_options = [true, false];
@@ -306,7 +309,6 @@ function run_test() {
   cartProd([includeHidden_options, redirectsMode_options, maxResults_options, sorting_options],
            check_results_callback);
 
-  
-  PlacesUtils.bhistory.removeAllPages();
   remove_all_bookmarks();
+  waitForClearHistory(do_test_finished);
 }
