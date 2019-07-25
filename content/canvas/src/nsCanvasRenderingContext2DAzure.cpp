@@ -3651,7 +3651,7 @@ nsCanvasRenderingContext2DAzure::DrawImage(nsIDOMElement *imgElt, float a1,
     }
 
     
-    if (!res.mSurface->CairoSurface()) {
+    if (res.mSurface->CairoStatus()) {
       return NS_OK;
     }
 
