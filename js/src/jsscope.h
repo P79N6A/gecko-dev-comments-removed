@@ -250,9 +250,9 @@ struct PropertyTable {
 
 
 
-    size_t sizeOf(JSUsableSizeFun usf) const {
-        size_t usable = usf((void*)this) + usf(entries);
-        return usable ? usable : sizeOfEntries(capacity()) + sizeof(PropertyTable);
+    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+        return mallocSizeOf(this, sizeof(PropertyTable)) +
+               mallocSizeOf(entries, sizeOfEntries(capacity()));
     }
 
     
@@ -576,15 +576,14 @@ struct Shape : public js::gc::Cell
     bool hasTable() const { return base()->hasTable(); }
     js::PropertyTable &table() const { return base()->table(); }
 
-    size_t sizeOfPropertyTable(JSUsableSizeFun usf) const {
-        return hasTable() ? table().sizeOf(usf) : 0;
+    size_t sizeOfPropertyTable(JSMallocSizeOfFun mallocSizeOf) const {
+        return hasTable() ? table().sizeOfIncludingThis(mallocSizeOf) : 0;
     }
 
-    size_t sizeOfKids(JSUsableSizeFun usf) const {
-        
+    size_t sizeOfKids(JSMallocSizeOfFun mallocSizeOf) const {
         JS_ASSERT(!inDictionary());
         return kids.isHash()
-             ? kids.toHash()->sizeOf(usf, true)
+             ? kids.toHash()->sizeOfIncludingThis(mallocSizeOf)
              : 0;
     }
 

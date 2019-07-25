@@ -391,7 +391,7 @@ ParseNode::append(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right
         left->pn_parens = false;
         left->initList(pn1);
         left->append(pn2);
-        if (kind == PNK_PLUS) {
+        if (kind == PNK_ADD) {
             if (pn1->isKind(PNK_STRING))
                 left->pn_xflags |= PNX_STRCAT;
             else if (!pn1->isKind(PNK_NUMBER))
@@ -404,7 +404,7 @@ ParseNode::append(ParseNodeKind kind, JSOp op, ParseNode *left, ParseNode *right
     }
     left->append(right);
     left->pn_pos.end = right->pn_pos.end;
-    if (kind == PNK_PLUS) {
+    if (kind == PNK_ADD) {
         if (right->isKind(PNK_STRING))
             left->pn_xflags |= PNX_STRCAT;
         else if (!right->isKind(PNK_NUMBER))
@@ -435,7 +435,7 @@ ParseNode::newBinaryOrAppend(ParseNodeKind kind, JSOp op, ParseNode *left, Parse
 
 
 
-    if (kind == PNK_PLUS &&
+    if (kind == PNK_ADD &&
         left->isKind(PNK_NUMBER) &&
         right->isKind(PNK_NUMBER) &&
         tc->parser->foldConstants)
