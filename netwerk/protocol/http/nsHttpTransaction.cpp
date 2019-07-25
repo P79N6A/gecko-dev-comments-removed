@@ -456,6 +456,12 @@ nsHttpTransaction::Status()
     return mStatus;
 }
 
+PRUint8
+nsHttpTransaction::Caps()
+{ 
+    return mCaps;
+}
+
 PRUint32
 nsHttpTransaction::Available()
 {
@@ -702,6 +708,18 @@ nsHttpTransaction::Close(nsresult reason)
 
     
     mPipeOut->CloseWithStatus(reason);
+}
+
+nsresult
+nsHttpTransaction::AddTransaction(nsAHttpTransaction *trans)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+PRUint16
+nsHttpTransaction::PipelineDepthAvailable()
+{
+    return 0;
 }
 
 

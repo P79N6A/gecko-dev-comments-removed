@@ -160,6 +160,10 @@ public:
     
     void ReportSpdyConnection(nsHttpConnection *, bool usingSpdy);
 
+    
+    
+    
+    bool     ProcessPipelinePendingQForCI(nsHttpConnectionInfo *);
 private:
     virtual ~nsHttpConnectionMgr();
     class nsHalfOpenSocket;
@@ -311,6 +315,7 @@ private:
     static PLDHashOperator ClosePersistentConnectionsCB(const nsACString &, nsAutoPtr<nsConnectionEntry> &, void *);
     bool     ProcessPendingQForEntry(nsConnectionEntry *);
     bool     AtActiveConnectionLimit(nsConnectionEntry *, PRUint8 caps);
+    bool     ProcessPipelinePendingQForEntry(nsConnectionEntry *);
     void     GetConnection(nsConnectionEntry *, nsHttpTransaction *,
                            bool, nsHttpConnection **);
     nsresult DispatchTransaction(nsConnectionEntry *, nsHttpTransaction *,
