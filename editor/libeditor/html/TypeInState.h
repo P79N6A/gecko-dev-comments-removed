@@ -74,25 +74,25 @@ public:
   
   NS_DECL_NSISELECTIONLISTENER
 
-  nsresult SetProp(nsIAtom *aProp, const nsString &aAttr, const nsString &aValue);
+  void SetProp(nsIAtom* aProp, const nsAString& aAttr, const nsAString& aValue);
 
-  nsresult ClearAllProps();
-  nsresult ClearProp(nsIAtom *aProp, const nsString &aAttr);
+  void ClearAllProps();
+  void ClearProp(nsIAtom* aProp, const nsAString& aAttr);
   
   
   
   
-  nsresult TakeClearProperty(PropItem **outPropItem);
-
-  
-  
-  
-  nsresult TakeSetProperty(PropItem **outPropItem);
+  PropItem* TakeClearProperty();
 
   
   
   
-  nsresult TakeRelativeFontSize(PRInt32 *outRelSize);
+  PropItem* TakeSetProperty();
+
+  
+  
+  
+  PRInt32 TakeRelativeFontSize();
 
   nsresult GetTypingState(bool &isSet, bool &theSetting, nsIAtom *aProp);
   nsresult GetTypingState(bool &isSet, bool &theSetting, nsIAtom *aProp, 
@@ -102,12 +102,12 @@ public:
 
 protected:
 
-  nsresult RemovePropFromSetList(nsIAtom *aProp, const nsString &aAttr);
-  nsresult RemovePropFromClearedList(nsIAtom *aProp, const nsString &aAttr);
-  bool IsPropSet(nsIAtom *aProp, const nsString &aAttr, nsString* outValue);
-  bool IsPropSet(nsIAtom *aProp, const nsString &aAttr, nsString* outValue, PRInt32 &outIndex);
-  bool IsPropCleared(nsIAtom *aProp, const nsString &aAttr);
-  bool IsPropCleared(nsIAtom *aProp, const nsString &aAttr, PRInt32 &outIndex);
+  nsresult RemovePropFromSetList(nsIAtom* aProp, const nsAString& aAttr);
+  nsresult RemovePropFromClearedList(nsIAtom* aProp, const nsAString& aAttr);
+  bool IsPropSet(nsIAtom* aProp, const nsAString& aAttr, nsAString* outValue);
+  bool IsPropSet(nsIAtom* aProp, const nsAString& aAttr, nsAString* outValue, PRInt32& outIndex);
+  bool IsPropCleared(nsIAtom* aProp, const nsAString& aAttr);
+  bool IsPropCleared(nsIAtom* aProp, const nsAString& aAttr, PRInt32& outIndex);
 
   nsTArray<PropItem*> mSetArray;
   nsTArray<PropItem*> mClearedArray;
