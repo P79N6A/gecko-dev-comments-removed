@@ -3,7 +3,7 @@
 
 
 import datetime, os, sys
-from subprocess import list2cmdline
+from subprocess import list2cmdline, call
 
 from results import NullTestOutput
 from tests import TestCase
