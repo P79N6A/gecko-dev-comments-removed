@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ *
+ * ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -38,9 +39,30 @@
 
 #include "nsISupports.idl"
 
-interface nsISSLStatus;
+interface nsIX509Cert;
 
-[scriptable, uuid(179b1ab1-0950-4427-9556-6f496dc4a27f)]
-interface nsISSLStatusProvider : nsISupports {
-  readonly attribute nsISSLStatus SSLStatus;
+[scriptable, uuid(3f1fcd83-c5a9-4cd1-a250-7676ca7c7e34)]
+interface nsISSLStatus : nsISupports {
+  readonly attribute nsIX509Cert serverCert;
+
+  readonly attribute string cipherName;
+  readonly attribute unsigned long keyLength;
+  readonly attribute unsigned long secretKeyLength;
+
+  readonly attribute boolean isDomainMismatch;
+  readonly attribute boolean isNotValidAtThisTime;
+
+  /* Note: To distinguish between 
+   *         "unstrusted because missing or untrusted issuer"
+   *       and 
+   *         "untrusted because self signed"
+   *       query nsIX509Cert3::isSelfSigned 
+   */
+  readonly attribute boolean isUntrusted;
+
+  /**
+   * True only if (and after) serverCert was successfully validated as
+   * Extended Validation (EV).
+   */
+  readonly attribute boolean isExtendedValidation;
 };

@@ -1086,53 +1086,33 @@ static SECStatus getFirstEVPolicy(CERTCertificate *cert, SECOidTag &outOidTag)
   return SECFailure;
 }
 
-bool
-nsNSSSocketInfo::hasCertErrors()
-{
-  if (!mSSLStatus) {
-    
-    return true;
-  }
-
-  return mSSLStatus->mHaveCertErrorBits;
-}
-
 NS_IMETHODIMP
-nsNSSSocketInfo::GetIsExtendedValidation(bool* aIsEV)
+nsSSLStatus::GetIsExtendedValidation(bool* aIsEV)
 {
-  NS_ENSURE_ARG(aIsEV);
+  NS_ENSURE_ARG_POINTER(aIsEV);
   *aIsEV = false;
 
-  if (!mCert)
-    return NS_OK;
+  nsCOMPtr<nsIX509Cert> cert = mServerCert;
+  nsresult rv;
+  nsCOMPtr<nsIIdentityInfo> idinfo = do_QueryInterface(cert, &rv);
 
   
-  if (hasCertErrors())
+  
+  
+  
+  
+  if (!idinfo) {
+    NS_ERROR("nsSSLStatus has null mServerCert or was called in the content "
+             "process");
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  
+  if (!mHaveCertErrorBits)
     return NS_OK;
 
-  nsresult rv;
-  nsCOMPtr<nsIIdentityInfo> idinfo = do_QueryInterface(mCert, &rv);
-  if (NS_FAILED(rv))
-    return rv;
 
   return idinfo->GetIsExtendedValidation(aIsEV);
-}
-
-NS_IMETHODIMP
-nsNSSSocketInfo::GetValidEVPolicyOid(nsACString &outDottedOid)
-{
-  if (!mCert)
-    return NS_OK;
-
-  if (hasCertErrors())
-    return NS_OK;
-
-  nsresult rv;
-  nsCOMPtr<nsIIdentityInfo> idinfo = do_QueryInterface(mCert, &rv);
-  if (NS_FAILED(rv))
-    return rv;
-
-  return idinfo->GetValidEVPolicyOid(outDottedOid);
 }
 
 nsresult
