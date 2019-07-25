@@ -69,19 +69,6 @@ public:
   static already_AddRefed<nsIDOMRange> CreateRange();
 
 protected:
-  static PRInt32 sInstanceCount;
-
-  
-  static nsIAtom* sImgAtom;
-  static nsIAtom* sHRAtom;
-  
-  static nsIAtom* sScriptAtom;
-  static nsIAtom* sNoframesAtom;
-  static nsIAtom* sSelectAtom;
-  static nsIAtom* sTextareaAtom;
-  static nsIAtom* sThAtom;
-  static nsIAtom* sTdAtom;
-
   
   
   bool mFindBackward;
