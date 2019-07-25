@@ -727,7 +727,6 @@ struct TypeCompartment
 };
 
 enum SpewChannel {
-    ISpewDynamic,  
     ISpewOps,      
     ISpewResult,   
     SPEW_COUNT
