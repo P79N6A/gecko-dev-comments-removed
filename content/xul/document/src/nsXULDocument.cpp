@@ -2762,6 +2762,11 @@ nsXULDocument::LoadOverlayInternal(nsIURI* aURI, bool aIsDynamic,
         
         PR_LOG(gXULLog, PR_LOG_DEBUG, ("xul: overlay was not cached"));
 
+        if (mIsGoingAway) {
+            PR_LOG(gXULLog, PR_LOG_DEBUG, ("xul: ...and document already destroyed"));
+            return NS_ERROR_NOT_AVAILABLE;
+        }
+
         
         
         
