@@ -440,6 +440,147 @@
                 ctypes.ssize_t,
                 projector(ctypes.ssize_t, true));
 
+
+     
+
+
+
+
+
+
+     function HollowStructure(name, size) {
+       if (!name) {
+         throw new TypeError("HollowStructure expects a name");
+       }
+       if (!size || size < 0) {
+         throw new TypeError("HollowStructure expects a (positive) size");
+       }
+
+       
+       
+       this.offset_to_field_info = [];
+
+       
+       this.name = name;
+
+       
+       this.size = size;
+
+       
+       
+       this._paddings = 0;
+     }
+     HollowStructure.prototype = {
+       
+
+
+
+
+
+
+       add_field_at: function add_field_at(offset, name, type) {
+         if (offset === null) {
+           throw new TypeError("add_field_at requires a non-null offset");
+         }
+         if (!name) {
+           throw new TypeError("add_field_at requires a non-null name");
+         }
+         if (!type) {
+           throw new TypeError("add_field_at requires a non-null type");
+         }
+         if (type instanceof Type) {
+           type = type.implementation;
+         }
+         if (this.offset_to_field_info[offset]) {
+           throw new Error("HollowStructure " + this.name +
+                           " already has a field at offset " + offset);
+         }
+         if (offset + type.size > this.size) {
+           throw new Error("HollowStructure " + this.name +
+                           " cannot place a value of type " + type +
+                           " at offset " + offset +
+                           " without exceeding its size of " + this.size);
+         }
+         let field = {name: name, type:type};
+         this.offset_to_field_info[offset] = field;
+       },
+
+       
+
+
+
+
+
+
+       _makePaddingField: function makePaddingField(size) {
+         let field = ({});
+         field["padding_" + this._paddings] =
+           ctypes.ArrayType(ctypes.uint8_t, size);
+         this._paddings++;
+         return field;
+       },
+
+       
+
+
+       getType: function getType() {
+         
+         
+         let struct = [];
+
+         let i = 0;
+         while (i < this.size) {
+           let currentField = this.offset_to_field_info[i];
+           if (!currentField) {
+             
+             
+
+             
+             let padding_length = 1;
+             while (i + padding_length < this.size
+                 && !this.offset_to_field_info[i + padding_length]) {
+               ++padding_length;
+             }
+
+             
+             struct.push(this._makePaddingField(padding_length));
+
+             
+             i += padding_length;
+           } else {
+             
+
+             
+             for (let j = 1; j < currentField.type.size; ++j) {
+               let candidateField = this.offset_to_field_info[i + j];
+               if (candidateField) {
+                 throw new Error("Fields " + currentField.name +
+                   " and " + candidateField.name +
+                   " overlap at position " + (i + j));
+               }
+             }
+
+             
+             let field = ({});
+             field[currentField.name] = currentField.type;
+             struct.push(field);
+
+             
+             i += currentField.type.size;
+           }
+         }
+         let result = new Type(this.name, ctypes.StructType(this.name, struct));
+         if (result.implementation.size != this.size) {
+           throw new Error("Wrong size for type " + this.name +
+               ": expected " + this.size +
+               ", found " + result.implementation.size +
+               " (" + result.implementation.toSource() + ")");
+         }
+         return result;
+       }
+     };
+     exports.OS.Shared.HollowStructure = HollowStructure;
+
      
 
 
