@@ -170,7 +170,7 @@ var PreferencesView = {
     if (localeCount == 1)
       document.getElementById("prefs-uilanguage").hidden = true;
   },
-  
+
   updateLocale: function updateLocale() {
     
     let newLocale = this._languages.selectedItem.value;
@@ -223,7 +223,7 @@ var PreferencesView = {
 
     
     this._showHomePageHint(display);
-  
+
     
     let options = document.getElementById("prefs-homepage-options");
     if (value == "custom") {
@@ -233,6 +233,22 @@ var PreferencesView = {
 
     
     options.value = value;
+  },
+
+  updateHomePageList: function updateHomePageMenuList() {
+    
+    
+    let currentUrl = Browser.selectedBrowser.currentURI.spec;
+    let currentHomepage = Browser.getHomePage();
+    let isHomepage = (currentHomepage == currentUrl);
+    let itemRow = document.getElementById("prefs-homepage-currentpage");
+    if (currentHomepage == "about:home") {
+      itemRow.disabled = isHomepage;
+      itemRow.hidden = false;
+    } else {
+      itemRow.hidden = isHomepage;
+      itemRow.disabled = false;
+    }
   },
 
   updateHomePage: function updateHomePage() {
@@ -250,8 +266,14 @@ var PreferencesView = {
         url = "about:home";
         break;
       case "currentpage":
-        url = Browser.selectedBrowser.currentURI.spec;
-        display = Browser.selectedBrowser.contentTitle || url;
+        
+        let currentURL = Browser.selectedBrowser.currentURI.spec;
+        if (currentURL == "about:home") {
+          value = "default";
+        } else {
+          url = currentURL;
+          display = Browser.selectedBrowser.contentTitle || currentURL;
+        }
         break;
     }
 
@@ -272,8 +294,11 @@ var PreferencesView = {
         helper = options.appendItem(Elements.browserBundle.getString("homepage.custom2"), "custom");
 
       options.selectedItem = helper;
-    } else if (helper) {
-      options.menupopup.removeChild(helper);
+    } else {
+      if (helper)
+        options.menupopup.removeChild(helper);
+
+      options.selectedItem = options.menupopup.getElementsByAttribute("value", value)[0];
     }
 
     
