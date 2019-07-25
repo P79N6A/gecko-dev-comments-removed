@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.repositories.android;
 
 import org.mozilla.gecko.db.BrowserContract;
@@ -197,22 +163,8 @@ public abstract class AndroidBrowserRepositoryDataAccessor {
 
 
   public Cursor fetch(String guids[]) throws NullCursorException {
-    String where = computeSQLInClause(guids.length, "guid");
+    String where = RepoUtils.computeSQLInClause(guids.length, "guid");
     return queryHelper.safeQuery(".fetch", getAllColumns(), where, guids, null);
-  }
-
-  protected String computeSQLInClause(int items, String field) {
-    StringBuilder builder = new StringBuilder(field);
-    builder.append(" IN (");
-    int i = 0;
-    for (; i < items - 1; ++i) {
-      builder.append("?, ");
-    }
-    if (i < items) {
-      builder.append("?");
-    }
-    builder.append(")");
-    return builder.toString();
   }
 
   public void updateByGuid(String guid, ContentValues cv) {

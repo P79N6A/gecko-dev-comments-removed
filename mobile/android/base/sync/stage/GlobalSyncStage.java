@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.stage;
 
 import org.mozilla.gecko.sync.GlobalSession;
@@ -60,6 +27,7 @@ public interface GlobalSyncStage {
     syncTabs,
     syncBookmarks,
     syncHistory,
+    syncFormHistory,
     completed,
   }
   public void execute(GlobalSession session) throws NoSuchStageException;
