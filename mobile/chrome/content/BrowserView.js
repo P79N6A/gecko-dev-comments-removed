@@ -47,7 +47,7 @@ const kBrowserFormZoomLevelMax = 2.0;
 const kBrowserViewZoomLevelPrecision = 10000;
 const kBrowserViewPrefetchBeginIdleWait = 1;    
 const kBrowserViewPrefetchBeginIdleWaitLoading = 10;    
-const kBrowserViewCacheSize = 15;
+const kBrowserViewCacheSize = 6;
 
 
 
@@ -244,11 +244,27 @@ BrowserView.prototype = {
     let cacheSize = kBrowserViewCacheSize;
     try {
       cacheSize = gPrefService.getIntPref("tile.cache.size");
-      
-      if (cacheSize == -1)
-        cacheSize = kBrowserViewCacheSize;
     } catch(e) {}
-    
+
+    if (cacheSize == -1) {
+      let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
+      let device = sysInfo.get("device");
+      switch (device) {
+#ifdef MOZ_PLATFORM_HILDON
+        case "Nokia N900":
+          cacheSize = 26;
+          break;
+        case "Nokia N8xx":
+          
+          cacheSize = 10;
+          break;
+#endif
+        default:
+          
+          cacheSize = 6;
+      }
+    }
+
     this._tileManager = new TileManager(this._appendTile, this._removeTile, this, cacheSize);
     this._visibleRectFactory = visibleRectFactory;
 
@@ -260,7 +276,7 @@ BrowserView.prototype = {
     let browsers = document.getElementById("browsers");
     browsers.addEventListener("MozScrolledAreaChanged", this.handleMozScrolledAreaChanged, false);
   },
-  
+
   uninit: function uninit() {
     this.setBrowser(null, null);
     this._idleService.removeIdleObserver(this._idleServiceObserver, this._idleServiceWait);
@@ -531,7 +547,7 @@ BrowserView.prototype = {
   },
 
   handleMozScrolledAreaChanged: function handleMozScrolledAreaChanged(ev) {
-    let tab = Browser.getTabForDocument(ev.originalTarget) || 
+    let tab = Browser.getTabForDocument(ev.originalTarget) ||
              (ev.target.contentDocument && Browser.getTabForDocument(ev.target.contentDocument));
     if (!tab)
       return;
@@ -894,4 +910,3 @@ BrowserView.IdleServiceObserver.prototype = {
     bv._tileManager.setPrefetch(this._idle && !this._paused);
   }
 };
-
