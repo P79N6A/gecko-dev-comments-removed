@@ -17,12 +17,6 @@ function setEmulatorVoiceState(state) {
   });
 }
 
-function setEmulatorGsmLocation(lac, cid) {
-  runEmulatorCmd("gsm location " + lac + " " + cid, function (result) {
-    is(result[0], "OK");
-  });
-}
-
 function testConnectionInfo() {
   let voice = connection.voice;
   is(voice.connected, true);
@@ -30,31 +24,7 @@ function testConnectionInfo() {
   is(voice.emergencyCallsOnly, false);
   is(voice.roaming, false);
 
-  testCellLocation();
-}
-
-function testCellLocation() {
-  let voice = connection.voice;
-
-  
-  
-  
-  ok(voice.cell, "location available");
-
-  
-  is(voice.cell.gsmLocationAreaCode, 65535);
-  is(voice.cell.gsmCellId, 268435455);
-
-  connection.addEventListener("voicechange", function onvoicechange() {
-    connection.removeEventListener("voicechange", onvoicechange);
-
-    is(voice.cell.gsmLocationAreaCode, 100);
-    is(voice.cell.gsmCellId, 100);
-
-    testUnregistered();
-  });
-
-  setEmulatorGsmLocation(100, 100);
+  testUnregistered();
 }
 
 function testUnregistered() {
