@@ -77,9 +77,6 @@
 
 using namespace mozilla;
 
-
-#define MAKE_PR_BOOL(val) ((val)?(true):(false))
-
 #ifdef PR_LOGGING 
 static PRLogModuleInfo *DeviceContextSpecGTKLM = PR_NewLogModule("DeviceContextSpecGTK");
 #endif 

@@ -71,9 +71,6 @@
 #include <sys/stat.h>
 
 #include "gfxPDFSurface.h"
- 
-
-#define MAKE_PR_BOOL(val) ((val)?(PR_TRUE):(PR_FALSE))
 
 #ifdef PR_LOGGING
 static PRLogModuleInfo* DeviceContextSpecQtLM =
