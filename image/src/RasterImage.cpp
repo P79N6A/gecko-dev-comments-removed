@@ -3001,9 +3001,6 @@ RasterImage::DecodeWorker::DecodeSomeOfImage(
   NS_ABORT_IF_FALSE(aImg->mInitialized,
                     "Worker active for uninitialized container!");
 
-  if (aDecodeType == DECODE_TYPE_UNTIL_SIZE && aImg->mHasSize)
-    return NS_OK;
-
   
   
   if (aImg->mError)
@@ -3033,7 +3030,13 @@ RasterImage::DecodeWorker::DecodeSomeOfImage(
   TimeStamp deadline = start + TimeDuration::FromMilliseconds(gMaxMSBeforeYield);
 
   
-  do {
+  
+  
+  
+  
+  while (aImg->mSourceData.Length() > aImg->mBytesDecoded &&
+         !aImg->IsDecodeFinished() &&
+         !(aDecodeType == DECODE_TYPE_UNTIL_SIZE && aImg->mHasSize)) {
     chunkCount++;
     nsresult rv = aImg->DecodeSomeData(maxBytes);
     if (NS_FAILED(rv)) {
@@ -3043,16 +3046,9 @@ RasterImage::DecodeWorker::DecodeSomeOfImage(
 
     
     
-    
-    
-    
-
-    if (aDecodeType == DECODE_TYPE_UNTIL_SIZE && aImg->mHasSize)
+    if (TimeStamp::Now() >= deadline)
       break;
-
-  } while (aImg->mSourceData.Length() > aImg->mBytesDecoded &&
-           !aImg->IsDecodeFinished() &&
-           TimeStamp::Now() < deadline);
+  }
 
   aImg->mDecodeRequest.mDecodeTime += (TimeStamp::Now() - start);
 
