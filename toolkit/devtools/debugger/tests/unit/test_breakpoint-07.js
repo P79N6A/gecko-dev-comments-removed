@@ -5,6 +5,7 @@
 
 
 
+
 var gDebuggee;
 var gClient;
 var gThreadClient;
@@ -15,19 +16,25 @@ function run_test()
   gDebuggee = addTestGlobal("test-stack");
   gClient = new DebuggerClient(DebuggerServer.connectPipe());
   gClient.connect(function () {
-    attachTestGlobalClientAndResume(gClient, "test-stack", function (aResponse, aThreadClient) {
+    attachTestGlobalClientAndResume(gClient,
+                                    "test-stack",
+                                    function (aResponse, aThreadClient) {
       gThreadClient = aThreadClient;
-      test_simple_breakpoint();
+      test_second_child_skip_breakpoint();
     });
   });
   do_test_pending();
 }
 
-function test_simple_breakpoint()
+function test_second_child_skip_breakpoint()
 {
   gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
-    let path = getFilePath('test_breakpoint-01.js');
-    gThreadClient.setBreakpoint({ url: path, line: gDebuggee.line0 + 3}, function (aResponse, bpClient) {
+    let path = getFilePath('test_breakpoint-07.js');
+    let location = { url: path, line: gDebuggee.line0 + 6};
+    gThreadClient.setBreakpoint(location, function (aResponse, bpClient) {
+      
+      do_check_eq(aResponse.actualLocation.url, location.url);
+      do_check_eq(aResponse.actualLocation.line, location.line + 1);
       gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
         
         do_check_eq(aPacket.type, "paused");
@@ -53,7 +60,14 @@ function test_simple_breakpoint()
   });
 
   gDebuggee.eval("var line0 = Error().lineNumber;\n" +
-                 "debugger;\n" +   
-                 "var a = 1;\n" +  
-                 "var b = 2;\n");  
+                 "function foo() {\n" + 
+                 "  bar();\n" +         
+                 "}\n" +                
+                 "function bar() {\n" + 
+                 "  this.a = 1;\n" +    
+                 "  // A comment.\n" +  
+                 "  this.b = 2;\n" +    
+                 "}\n" +                
+                 "debugger;\n" +        
+                 "foo();\n");           
 }

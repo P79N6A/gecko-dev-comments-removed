@@ -286,10 +286,8 @@ ThreadActor.prototype = {
     }
 
     let location = aRequest.location;
-    
     if (!this._scripts[location.url] || location.line < 0) {
-      return { from: this.actorID,
-               error: "noScript" };
+      return { error: "noScript" };
     }
     
     let scripts = this._scripts[location.url];
@@ -307,19 +305,69 @@ ThreadActor.prototype = {
         break;
       }
     }
+
     if (!script) {
-      return { from: this.actorID,
-               error: "noScript" };
+      return { error: "noScript" };
     }
+
+    script = this._getInnermostContainer(script, location.line);
     let bpActor = new BreakpointActor(script, this);
     this.breakpointActorPool.addActor(bpActor);
-    var offsets = script.getLineOffsets(location.line);
-    for (var i = 0; i < offsets.length; i++) {
+
+    let offsets = script.getLineOffsets(location.line);
+    let codeFound = false;
+    for (let i = 0; i < offsets.length; i++) {
       script.setBreakpoint(offsets[i], bpActor);
+      codeFound = true;
     }
-    let packet = { from: this.actorID,
-                   actor: bpActor.actorID };
-    return packet;
+
+    let actualLocation;
+    if (offsets.length == 0) {
+      
+      let lines = script.getAllOffsets();
+      for (let line = location.line; line < lines.length; ++line) {
+        if (lines[line]) {
+          for (let i = 0; i < lines[line].length; i++) {
+            script.setBreakpoint(lines[line][i], bpActor);
+            codeFound = true;
+          }
+          actualLocation = location;
+          actualLocation.line = line;
+          break;
+        }
+      }
+    }
+    if (!codeFound) {
+      bpActor.onDelete();
+      return  { error: "noCodeAtLineColumn" };
+    }
+
+    return { actor: bpActor.actorID, actualLocation: actualLocation };
+  },
+
+  
+
+
+
+
+
+
+
+
+  _getInnermostContainer: function TA__getInnermostContainer(aScript, aLine) {
+    let children = aScript.getChildScripts();
+    if (children.length > 0) {
+      for (let i = 0; i < children.length; i++) {
+        let child = children[i];
+        
+        if (child.startLine <= aLine &&
+            child.startLine + child.lineCount > aLine) {
+          return this._getInnermostContainer(child, aLine);
+        }
+      }
+    }
+    
+    return aScript;
   },
 
   
@@ -686,10 +734,6 @@ ThreadActor.prototype = {
 
 
   onNewScript: function TA_onNewScript(aScript, aFunction) {
-    dumpn("Got a new script:" + aScript + ", url: " + aScript.url +
-          ", startLine: " + aScript.startLine + ", lineCount: " +
-          aScript.lineCount + ", strictMode: " + aScript.strictMode +
-          ", function: " + aFunction);
     
     
     
@@ -1274,4 +1318,3 @@ EnvironmentActor.prototype.requestTypes = {
   "assign": EnvironmentActor.prototype.onAssign,
   "bindings": EnvironmentActor.prototype.onBindings
 };
-
