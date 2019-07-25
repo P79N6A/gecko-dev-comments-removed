@@ -1772,12 +1772,6 @@ pref("plugin.scan.plid.all", true);
 
 
 
-
-
-
-
-
-
 pref("network.autodial-helper.enabled", true);
 
 
