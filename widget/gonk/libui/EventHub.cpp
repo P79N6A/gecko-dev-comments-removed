@@ -970,9 +970,10 @@ status_t EventHub::openDeviceLocked(const char *devicePath) {
         
         
         
-        if (test_bit(BTN_TOUCH, device->keyBitmask) || !haveGamepadButtons) {
+        
+        
             device->classes |= INPUT_DEVICE_CLASS_TOUCH | INPUT_DEVICE_CLASS_TOUCH_MT;
-        }
+        
     
     } else if (test_bit(BTN_TOUCH, device->keyBitmask)
             && test_bit(ABS_X, device->absBitmask)
