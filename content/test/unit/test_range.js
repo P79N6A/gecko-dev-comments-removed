@@ -320,11 +320,11 @@ function run_extract_test() {
     var foundStart = false;
     var foundEnd = false;
     do {
-      if (walker.currentNode.isSameNode(startContainer)) {
+      if (walker.currentNode == startContainer) {
         foundStart = true;
       }
 
-      if (walker.currentNode.isSameNode(endContainer)) {
+      if (walker.currentNode == endContainer) {
         
         do_check_true(foundStart);
         foundEnd = true;
@@ -354,11 +354,11 @@ function run_extract_test() {
     foundStart = false;
     foundEnd = false;
     do {
-      if (walker.currentNode.isSameNode(startContainer)) {
+      if (walker.currentNode == startContainer) {
         foundStart = true;
       }
 
-      if (walker.currentNode.isSameNode(endContainer)) {
+      if (walker.currentNode == endContainer) {
         
         do_check_true(foundStart);
         foundEnd = true;

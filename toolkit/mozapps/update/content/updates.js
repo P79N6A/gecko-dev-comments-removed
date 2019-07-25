@@ -1008,7 +1008,7 @@ var gUpdatesFoundBillboardPage = {
     var remoteContent = document.getElementById("updateMoreInfoContent");
     
     var state = remoteContent.getAttribute("state");
-    if (state == "loading" || !aEvent.originalTarget.isSameNode(remoteContent))
+    if (state == "loading" || aEvent.originalTarget != remoteContent)
       return;
 
     remoteContent.removeEventListener("load", gUpdatesFoundBillboardPage.onBillboardLoad, false);
@@ -1096,7 +1096,7 @@ var gLicensePage = {
     
     
     var state = licenseContent.getAttribute("state");
-    if (state == "loading" || !aEvent.originalTarget.isSameNode(licenseContent))
+    if (state == "loading" || aEvent.originalTarget != licenseContent)
       return;
 
     licenseContent.removeEventListener("load", gLicensePage.onLicenseLoad, false);

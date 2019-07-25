@@ -589,7 +589,7 @@ function waitForRemoteContentLoaded(aEvent) {
   
   
   if (gRemoteContentState != gTest.expectedRemoteContentState ||
-      !aEvent.originalTarget.isSameNode(gRemoteContent)) {
+      aEvent.originalTarget != gRemoteContent) {
     debugDump("returning early\n" +
               "gRemoteContentState: " + gRemoteContentState + "\n" +
               "expectedRemoteContentState: " +
