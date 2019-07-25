@@ -191,7 +191,6 @@ nsStyleSet::GatherRuleProcessors(sheetType aType)
 {
   mRuleProcessors[aType] = nsnull;
   if (mAuthorStyleDisabled && (aType == eDocSheet || 
-                               aType == ePresHintSheet ||
                                aType == eHTMLPresHintSheet ||
                                aType == eStyleAttrSheet)) {
     
@@ -309,7 +308,6 @@ nsStyleSet::SetAuthorStyleDisabled(PRBool aStyleDisabled)
     mAuthorStyleDisabled = aStyleDisabled;
     BeginUpdate();
     mDirty |= 1 << eDocSheet |
-              1 << ePresHintSheet |
               1 << eHTMLPresHintSheet |
               1 << eStyleAttrSheet;
     return EndUpdate();
@@ -590,22 +588,12 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
   
   
   
-  
 
-  NS_PRECONDITION(SheetCount(ePresHintSheet) == 0 ||
-                  SheetCount(eHTMLPresHintSheet) == 0,
-                  "Can't have both types of preshint sheets at once!");
-  
   aRuleWalker->SetLevel(eAgentSheet, PR_FALSE, PR_TRUE);
   if (mRuleProcessors[eAgentSheet])
     (*aCollectorFunc)(mRuleProcessors[eAgentSheet], aData);
   nsRuleNode* lastAgentRN = aRuleWalker->CurrentNode();
   PRBool haveImportantUARules = !aRuleWalker->GetCheckForImportantRules();
-
-  aRuleWalker->SetLevel(ePresHintSheet, PR_FALSE, PR_FALSE);
-  if (mRuleProcessors[ePresHintSheet])
-    (*aCollectorFunc)(mRuleProcessors[ePresHintSheet], aData);
-  nsRuleNode* lastPresHintRN = aRuleWalker->CurrentNode();
 
   aRuleWalker->SetLevel(eUserSheet, PR_FALSE, PR_TRUE);
   PRBool skipUserStyles =
@@ -671,17 +659,12 @@ nsStyleSet::FileRules(nsIStyleRuleProcessor::EnumFunc aCollectorFunc,
 
   if (haveImportantUserRules) {
     aRuleWalker->SetLevel(eUserSheet, PR_TRUE, PR_FALSE);
-    AddImportantRules(lastUserRN, lastPresHintRN, aRuleWalker); 
+    AddImportantRules(lastUserRN, lastAgentRN, aRuleWalker); 
   }
 #ifdef DEBUG
   else {
-    AssertNoImportantRules(lastUserRN, lastPresHintRN);
+    AssertNoImportantRules(lastUserRN, lastAgentRN);
   }
-#endif
-
-#ifdef DEBUG
-  AssertNoCSSRules(lastPresHintRN, lastAgentRN);
-  AssertNoImportantRules(lastPresHintRN, lastAgentRN); 
 #endif
 
   if (haveImportantUARules) {
@@ -713,14 +696,8 @@ nsStyleSet::WalkRuleProcessors(nsIStyleRuleProcessor::EnumFunc aFunc,
                                RuleProcessorData* aData,
                                PRBool aWalkAllXBLStylesheets)
 {
-  NS_PRECONDITION(SheetCount(ePresHintSheet) == 0 ||
-                  SheetCount(eHTMLPresHintSheet) == 0,
-                  "Can't have both types of preshint sheets at once!");
-  
   if (mRuleProcessors[eAgentSheet])
     (*aFunc)(mRuleProcessors[eAgentSheet], aData);
-  if (mRuleProcessors[ePresHintSheet])
-    (*aFunc)(mRuleProcessors[ePresHintSheet], aData);
 
   PRBool skipUserStyles = aData->mElement->IsInNativeAnonymousSubtree();
   if (!skipUserStyles && mRuleProcessors[eUserSheet]) 

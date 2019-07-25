@@ -1035,7 +1035,6 @@ protected:
                          nsIPresShell** aInstancePtrResult);
 
   nsresult ResetStylesheetsToURI(nsIURI* aURI);
-  virtual nsStyleSet::sheetType GetAttrSheetType();
   void FillStyleSet(nsStyleSet* aStyleSet);
 
   
