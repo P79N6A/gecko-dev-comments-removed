@@ -1090,19 +1090,37 @@ WeaveSvc.prototype = {
     
     if (infoResponse &&
         (infoResponse.obj.meta != this.metaModified) &&
-        !meta.isNew) {
+        (!meta || !meta.isNew)) {
       
       
       this._log.debug("Clearing cached meta record. metaModified is " +
           JSON.stringify(this.metaModified) + ", setting to " +
           JSON.stringify(infoResponse.obj.meta));
+      
       Records.del(this.metaURL);
       
       
       let newMeta       = Records.get(this.metaURL);
-      newMeta.isNew     = meta.isNew;
-      newMeta.changed   = meta.changed;
-      
+ 
+      if (!Records.response.success || !newMeta) {
+        this._log.debug("No meta/global record on the server. Creating one.");
+        newMeta = new WBORecord("meta", "global");
+        newMeta.payload.syncID = this.syncID;
+        newMeta.payload.storageVersion = STORAGE_VERSION;
+ 
+        newMeta.isNew = true;
+ 
+        Records.set(this.metaURL, newMeta);
+        if (!newMeta.upload(this.metaURL).success) {
+          this._log.warn("Unable to upload new meta/global. Failing remote setup.");
+          return false;
+        }
+      } else {
+        
+        newMeta.isNew   = meta.isNew;
+        newMeta.changed = meta.changed;
+      }
+        
       
       meta              = newMeta;
       this.metaModified = infoResponse.obj.meta;
