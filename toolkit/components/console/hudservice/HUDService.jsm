@@ -41,6 +41,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -204,14 +205,18 @@ HUD_SERVICE.prototype =
     var origOnerrorFunc = window.onerror;
     window.onerror = function windowOnError(aErrorMsg, aURL, aLineNumber)
     {
-      var lineNum = "";
-      if (aLineNumber) {
-        lineNum = self.getFormatStr("errLine", [aLineNumber]);
+      if (aURL && !(aURL in self.uriRegistry)) {
+        var lineNum = "";
+        if (aLineNumber) {
+          lineNum = self.getFormatStr("errLine", [aLineNumber]);
+        }
+        console.error(aErrorMsg + " @ " + aURL + " " + lineNum);
       }
-      console.error(aErrorMsg + " @ " + aURL + " " + lineNum);
+
       if (origOnerrorFunc) {
         origOnerrorFunc(aErrorMsg, aURL, aLineNumber);
       }
+
       return false;
     };
   },
