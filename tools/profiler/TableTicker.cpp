@@ -353,7 +353,13 @@ class TableTicker: public Sampler {
     , mPrimaryThreadProfile(aEntrySize, aStack)
     , mSaveRequested(false)
   {
+#if defined(USE_LIBUNWIND) && defined(ANDROID)
+    
+    
+    mUseStackWalk = true;
+#else
     mUseStackWalk = hasFeature(aFeatures, aFeatureCount, "stackwalk");
+#endif
 
     
     mJankOnly = hasFeature(aFeatures, aFeatureCount, "jank");
