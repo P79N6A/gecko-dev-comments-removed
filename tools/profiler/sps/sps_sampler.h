@@ -37,8 +37,8 @@
 
 
 #include <pthread.h>
-#include "nscore.h"
 #include "base/atomicops.h"
+#include "nscore.h"
 
 
 
