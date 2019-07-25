@@ -156,6 +156,47 @@ private:
   JSContext* mCx;
 };
 
+class nsDestroyJSContextRunnable : public nsIRunnable
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  nsDestroyJSContextRunnable(JSContext* aCx)
+  : mCx(aCx)
+  {
+    NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
+    NS_ASSERTION(aCx, "Null pointer!");
+    NS_ASSERTION(!JS_GetGlobalObject(aCx), "Should not have a global!");
+
+    
+    JS_ClearContextThread(aCx);
+  }
+
+  NS_IMETHOD Run()
+  {
+    NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+
+    
+    if (!!JS_SetContextThread(mCx)) {
+      NS_WARNING("JS_SetContextThread failed!");
+    }
+
+    if (nsContentUtils::XPConnect()) {
+      nsContentUtils::XPConnect()->ReleaseJSContext(mCx, PR_TRUE);
+    }
+    else {
+      NS_WARNING("Failed to release JSContext!");
+    }
+
+    return NS_OK;
+  }
+
+private:
+  JSContext* mCx;
+};
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(nsDestroyJSContextRunnable, nsIRunnable)
+
 
 
 
@@ -1396,7 +1437,14 @@ nsDOMThreadService::OnThreadShuttingDown()
 
     gThreadJSContextStack->SetSafeJSContext(nsnull);
 
-    nsContentUtils::XPConnect()->ReleaseJSContext(cx, PR_TRUE);
+    
+    
+    
+    nsCOMPtr<nsIRunnable> runnable = new nsDestroyJSContextRunnable(cx);
+
+    if (NS_FAILED(NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL))) {
+      NS_WARNING("Failed to dispatch release runnable!");
+    }
   }
 
   return NS_OK;
