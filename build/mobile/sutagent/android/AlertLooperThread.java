@@ -45,52 +45,52 @@ import android.os.Looper;
 import android.os.Message;
 
 class AlertLooperThread extends Thread
-	{
-	public Handler mHandler;
-	private Looper looper = null;
-	private DoAlert da	= null;
-	private Timer alertTimer = null;
-	private ContextWrapper contextWrapper = null;
-	
-	AlertLooperThread(ContextWrapper ctxW)
-		{
-		this.contextWrapper = ctxW;
-		}
-	
-	public Timer getAlertTimer()
-		{
-		return alertTimer;
-		}
+    {
+    public Handler mHandler;
+    private Looper looper = null;
+    private DoAlert da    = null;
+    private Timer alertTimer = null;
+    private ContextWrapper contextWrapper = null;
 
-	public void term()
-		{
-		if (da != null)
-			da.term();
-		}
+    AlertLooperThread(ContextWrapper ctxW)
+        {
+        this.contextWrapper = ctxW;
+        }
 
-	public void quit()
-		{
-		if (looper != null)
-			looper.quit();
-		}
+    public Timer getAlertTimer()
+        {
+        return alertTimer;
+        }
 
-	public void run()
-		{
-		Looper.prepare();
-    
-		looper = Looper.myLooper();
-      
-		mHandler = new Handler()
-    		{
-			public void handleMessage(Message msg)
-        		{
-				
-        		}
-    		};
-      
-    	alertTimer = new Timer();
-    	da = new DoAlert(contextWrapper);
-    	alertTimer.scheduleAtFixedRate(da, 0, 5000);
-    	Looper.loop();
-		}
-	}
+    public void term()
+        {
+        if (da != null)
+            da.term();
+        }
+
+    public void quit()
+        {
+        if (looper != null)
+            looper.quit();
+        }
+
+    public void run()
+        {
+        Looper.prepare();
+
+        looper = Looper.myLooper();
+
+        mHandler = new Handler()
+            {
+            public void handleMessage(Message msg)
+                {
+                
+                }
+            };
+
+        alertTimer = new Timer();
+        da = new DoAlert(contextWrapper);
+        alertTimer.scheduleAtFixedRate(da, 0, 5000);
+        Looper.loop();
+        }
+    }
