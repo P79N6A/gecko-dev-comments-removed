@@ -85,7 +85,7 @@ class nsAccessNodeWrap :  public nsAccessNode,
     STDMETHODIMP QueryService(REFGUID guidService, REFIID riid, void** ppv);
 
 public: 
-  nsAccessNodeWrap(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsAccessNodeWrap(nsIContent *aContent, nsIWeakReference *aShell);
   virtual ~nsAccessNodeWrap();
 
     
