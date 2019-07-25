@@ -43,6 +43,7 @@
 #include "gfxPattern.h"
 #include "nsThreadUtils.h"
 #include "nsCoreAnimationSupport.h"
+#include "mozilla/Monitor.h"
 
 namespace mozilla {
 namespace layers {
@@ -131,10 +132,12 @@ class THEBES_API ImageContainer {
   THEBES_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
 
 public:
-  ImageContainer() {}
+  ImageContainer() : mMonitor("ImageContainer") {}
   virtual ~ImageContainer() {}
 
   
+
+
 
 
 
@@ -149,6 +152,8 @@ public:
 
 
 
+
+
   virtual void SetCurrentImage(Image* aImage) = 0;
 
   
@@ -157,9 +162,13 @@ public:
 
 
 
+
+
   virtual already_AddRefed<Image> GetCurrentImage() = 0;
 
   
+
+
 
 
 
@@ -188,6 +197,8 @@ public:
   
 
 
+
+
   virtual gfxIntSize GetCurrentSize() = 0;
 
   
@@ -202,6 +213,8 @@ public:
 
 
 
+
+
   virtual void SetScaleHint(const gfxIntSize& ) { }
 
   
@@ -212,9 +225,14 @@ public:
   virtual LayerManager::LayersBackend GetBackendType() = 0;
 
 protected:
+  typedef mozilla::Monitor Monitor;
   LayerManager* mManager;
 
-  ImageContainer(LayerManager* aManager) : mManager(aManager) {}
+  
+  
+  Monitor mMonitor;
+
+  ImageContainer(LayerManager* aManager) : mManager(aManager), mMonitor("ImageContainer")  {}
 };
 
 
