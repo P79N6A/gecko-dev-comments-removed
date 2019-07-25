@@ -35,13 +35,14 @@
 
 
 
+
+
+
+
+
+
 #ifndef mozilla_css_RestyleTracker_h
 #define mozilla_css_RestyleTracker_h
-
-
-
-
-
 
 #include "mozilla/dom/Element.h"
 #include "nsDataHashtable.h"
