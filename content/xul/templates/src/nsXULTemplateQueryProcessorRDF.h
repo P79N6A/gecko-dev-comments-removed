@@ -47,6 +47,7 @@ class nsXULTemplateQueryProcessorRDF MOZ_FINAL : public nsIXULTemplateQueryProce
                                                  public nsIRDFObserver
 {
 public:
+    typedef nsTArray<nsCOMPtr<nsXULTemplateResultRDF> > ResultArray;
 
     nsXULTemplateQueryProcessorRDF();
 
@@ -201,14 +202,14 @@ public:
 
 
 
-    nsresult
+    void
     AddBindingDependency(nsXULTemplateResultRDF* aResult,
                          nsIRDFResource* aResource);
 
     
 
 
-    nsresult
+    void
     RemoveBindingDependency(nsXULTemplateResultRDF* aResult,
                             nsIRDFResource* aResource);
 
@@ -314,8 +315,7 @@ protected:
 
 
 
-    nsClassHashtable<nsISupportsHashKey,
-                     nsCOMArray<nsXULTemplateResultRDF> > mBindingDependencies;
+    nsClassHashtable<nsISupportsHashKey, ResultArray> mBindingDependencies;
 
     
 
