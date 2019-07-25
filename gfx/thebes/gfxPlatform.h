@@ -339,6 +339,12 @@ public:
 
     virtual void FontsPrefsChanged(nsIPrefBranch *aPrefBranch, const char *aPref);
 
+    
+
+
+
+    gfxASurface* ScreenReferenceSurface() { return mScreenReferenceSurface; }
+
 protected:
     gfxPlatform();
     virtual ~gfxPlatform();
@@ -356,8 +362,8 @@ protected:
 private:
     virtual qcms_profile* GetPlatformCMSOutputProfile();
 
+    nsRefPtr<gfxASurface> mScreenReferenceSurface;
     nsTArray<PRUint32> mCJKPrefLangs;
-
     nsCOMPtr<nsIObserver> overrideObserver;
 };
 
