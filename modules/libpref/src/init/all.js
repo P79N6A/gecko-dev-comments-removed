@@ -3414,6 +3414,8 @@ pref("profiler.enabled", false);
 pref("profiler.interval", 10);
 pref("profiler.entries", 100000);
 
+
+pref("dom.network.enabled", true);
 #ifdef XP_WIN
 
 
