@@ -101,7 +101,7 @@ SetStrokeOptions(CGContextRef cg, const StrokeOptions &aStrokeOptions)
   CGContextSetMiterLimit(cg, aStrokeOptions.mMiterLimit);
 
   
-  if (aStrokeOptions.mDashLength > 1) {
+  if (aStrokeOptions.mDashLength > 0) {
     
     CGFloat *dashes = new CGFloat[aStrokeOptions.mDashLength];
     for (size_t i=0; i<aStrokeOptions.mDashLength; i++) {

@@ -41,6 +41,7 @@
 #include "2D.h"
 #include "skia/SkCanvas.h"
 #include "skia/SkDashPathEffect.h"
+#include "mozilla/Assertions.h"
 
 namespace mozilla {
 namespace gfx {
@@ -116,6 +117,11 @@ StrokeOptionsToPaint(SkPaint& aPaint, const StrokeOptions &aOptions)
   aPaint.setStrokeMiter(SkFloatToScalar(aOptions.mMiterLimit));
   aPaint.setStrokeCap(CapStyleToSkiaCap(aOptions.mLineCap));
   aPaint.setStrokeJoin(JoinStyleToSkiaJoin(aOptions.mLineJoin));
+
+  
+  
+  
+  MOZ_ASSERT(aOptions.mDashLength % 2 == 0);
   if (aOptions.mDashLength > 1) {
     std::vector<SkScalar> pattern;
     pattern.resize(aOptions.mDashLength);
