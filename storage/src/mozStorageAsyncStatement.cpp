@@ -271,7 +271,7 @@ AsyncStatement::~AsyncStatement()
     
     Connection *forgottenConn = nsnull;
     mDBConnection.swap(forgottenConn);
-    (void)::NS_ProxyRelease(mDBConnection->threadOpenedOn, forgottenConn);
+    (void)::NS_ProxyRelease(forgottenConn->threadOpenedOn, forgottenConn);
   }
 }
 
