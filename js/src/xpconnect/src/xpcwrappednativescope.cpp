@@ -400,32 +400,12 @@ static JSDHashOperator
 WrappedNativeSuspecter(JSDHashTable *table, JSDHashEntryHdr *hdr,
                        uint32 number, void *arg)
 {
-    SuspectClosure* closure = static_cast<SuspectClosure*>(arg);
     XPCWrappedNative* wrapper = ((Native2WrappedNativeMap::Entry*)hdr)->value;
 
-    if(wrapper->IsValid() &&
-       wrapper->HasExternalReference() &&
-       !wrapper->IsWrapperExpired())
+    if(wrapper->HasExternalReference())
     {
-        NS_ASSERTION(NS_IsMainThread() || NS_IsCycleCollectorThread(), 
-                     "Suspecting wrapped natives from non-CC thread");
-
-        
-        
-        JSObject* obj = wrapper->GetFlatJSObjectAndMark();
-        if(!xpc::ParticipatesInCycleCollection(closure->cx, obj))
-            return JS_DHASH_NEXT;
-
-        NS_ASSERTION(!JS_IsAboutToBeFinalized(closure->cx, obj),
-                     "WrappedNativeSuspecter attempting to touch dead object");
-
-        
-        
-        if(!(closure->cb.WantAllTraces()) && !nsXPConnect::IsGray(obj))
-            return JS_DHASH_NEXT;
-
-        closure->cb.NoteRoot(nsIProgrammingLanguage::JAVASCRIPT, obj,
-                             nsXPConnect::GetXPConnect());
+        SuspectClosure* closure = static_cast<SuspectClosure*>(arg);
+        XPCJSRuntime::SuspectWrappedNative(closure->cx, wrapper, closure->cb);
     }
 
     return JS_DHASH_NEXT;
