@@ -447,18 +447,8 @@ TabTracker.prototype = {
   get changedIDs() {
     
     let obj = {};
-    obj[Clients.clientID] = true;
+    if (this._score > 0)
+      obj[Clients.clientID] = true;
     return obj;
-  },
-
-  
-
-
-
-
-
-
-  get score() {
-    return 100;
   }
 }
