@@ -212,6 +212,8 @@ public:
 
     void GetIconForExtension(const nsACString& aFileExt, PRUint32 aIconSize, PRUint8 * const aBuf);
 
+    bool GetShowPasswordSetting();
+
     struct AutoLocalJNIFrame {
         AutoLocalJNIFrame(int nEntries = 128) : mEntries(nEntries) {
             
@@ -322,6 +324,7 @@ protected:
     jmethodID jGetSystemColors;
     jmethodID jGetIconForExtension;
     jmethodID jCreateShortcut;
+    jmethodID jGetShowPasswordSetting;
 
     
     jclass jEGLSurfaceImplClass;
