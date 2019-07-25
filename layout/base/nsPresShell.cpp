@@ -852,6 +852,7 @@ public:
                    PRBool aWillSendDidPaint);
   NS_IMETHOD HandleEvent(nsIView*        aView,
                          nsGUIEvent*     aEvent,
+                         PRBool          aDontRetargetEvents,
                          nsEventStatus*  aEventStatus);
   virtual NS_HIDDEN_(nsresult) HandleDOMEventWithTarget(nsIContent* aTargetContent,
                                                         nsEvent* aEvent,
@@ -1299,10 +1300,6 @@ protected:
 
   static PRBool sDisableNonTestMouseEvents;
 
-  
-  
-  static PRBool sDontRetargetEvents;
-
 private:
 
   PRBool InZombieDocument(nsIContent *aContent);
@@ -1465,7 +1462,6 @@ public:
 };
 
 PRBool PresShell::sDisableNonTestMouseEvents = PR_FALSE;
-PRBool PresShell::sDontRetargetEvents = PR_FALSE;
 
 #ifdef PR_LOGGING
 PRLogModuleInfo* PresShell::gLog;
@@ -6293,10 +6289,7 @@ PresShell::RetargetEventToParent(nsGUIEvent*     aEvent,
   nsIView *parentRootView;
   parentPresShell->GetViewManager()->GetRootView(parentRootView);
   
-  sDontRetargetEvents = PR_TRUE;
-  nsresult rv = parentViewObserver->HandleEvent(parentRootView, aEvent, aEventStatus);
-  sDontRetargetEvents = PR_FALSE;
-  return rv;
+  return parentViewObserver->HandleEvent(parentRootView, aEvent, PR_TRUE, aEventStatus);
 }
 
 void
@@ -6318,6 +6311,7 @@ PresShell::GetFocusedDOMWindowInOurWindow()
 NS_IMETHODIMP
 PresShell::HandleEvent(nsIView         *aView,
                        nsGUIEvent*     aEvent,
+                       PRBool          aDontRetargetEvents,
                        nsEventStatus*  aEventStatus)
 {
   NS_ASSERTION(aView, "null view");
@@ -6347,7 +6341,7 @@ PresShell::HandleEvent(nsIView         *aView,
     NS_IS_MOUSE_EVENT(aEvent) ? GetCapturingContent() : nsnull;
 
   nsCOMPtr<nsIDocument> retargetEventDoc;
-  if (!sDontRetargetEvents) {
+  if (!aDontRetargetEvents) {
     
     
     
@@ -6386,9 +6380,7 @@ PresShell::HandleEvent(nsIView         *aView,
 
         nsIView *view;
         presShell->GetViewManager()->GetRootView(view);
-        sDontRetargetEvents = PR_TRUE;
-        nsresult rv = viewObserver->HandleEvent(view, aEvent, aEventStatus);
-        sDontRetargetEvents = PR_FALSE;
+        nsresult rv = viewObserver->HandleEvent(view, aEvent, PR_TRUE, aEventStatus);
         return rv;
       }
     }
