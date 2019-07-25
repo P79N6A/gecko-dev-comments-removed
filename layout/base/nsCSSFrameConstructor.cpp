@@ -4698,6 +4698,19 @@ nsCSSFrameConstructor::FindMathMLData(Element* aElement,
 #define SIMPLE_SVG_CREATE(_tag, _func)            \
   { &nsGkAtoms::_tag, SIMPLE_SVG_FCDATA(_func) }
 
+static bool
+IsFilterPrimitiveChildTag(const nsIAtom* aTag)
+{
+  return aTag == nsGkAtoms::feDistantLight ||
+         aTag == nsGkAtoms::fePointLight ||
+         aTag == nsGkAtoms::feSpotLight ||
+         aTag == nsGkAtoms::feFuncR ||
+         aTag == nsGkAtoms::feFuncG ||
+         aTag == nsGkAtoms::feFuncB ||
+         aTag == nsGkAtoms::feFuncA ||
+         aTag == nsGkAtoms::feMergeNode;
+}
+
 
 const nsCSSFrameConstructor::FrameConstructionData*
 nsCSSFrameConstructor::FindSVGData(Element* aElement,
@@ -4777,19 +4790,20 @@ nsCSSFrameConstructor::FindSVGData(Element* aElement,
 
   
   
+  bool parentIsFilter = aParentFrame->GetType() == nsGkAtoms::svgFilterFrame;
   nsCOMPtr<nsIDOMSVGFilterPrimitiveStandardAttributes> filterPrimitive =
     do_QueryInterface(aElement);
-  if (filterPrimitive && aParentFrame->GetType() != nsGkAtoms::svgFilterFrame) {
+  if ((parentIsFilter && !filterPrimitive) ||
+      (!parentIsFilter && filterPrimitive)) {
     return &sSuppressData;
   }
 
   
-  if ((aTag == nsGkAtoms::feDistantLight || aTag == nsGkAtoms::fePointLight ||
-       aTag == nsGkAtoms::feSpotLight ||
-       aTag == nsGkAtoms::feFuncR || aTag == nsGkAtoms::feFuncG ||
-       aTag == nsGkAtoms::feFuncB || aTag == nsGkAtoms::feFuncA ||
-       aTag == nsGkAtoms::feMergeNode) &&
-       aParentFrame->GetType() != nsGkAtoms::svgFEContainerFrame) {
+  
+  bool parentIsFEContainerFrame =
+    aParentFrame->GetType() == nsGkAtoms::svgFEContainerFrame;
+  if ((parentIsFEContainerFrame && !IsFilterPrimitiveChildTag(aTag)) ||
+      (!parentIsFEContainerFrame && IsFilterPrimitiveChildTag(aTag))) {
     return &sSuppressData;
   }
 
