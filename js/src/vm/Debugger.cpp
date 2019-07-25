@@ -2659,6 +2659,10 @@ EvaluateInScope(JSContext *cx, JSObject *scobj, StackFrame *fp, const jschar *ch
     assertSameCompartment(cx, scobj, fp);
 
     
+    if (!ComputeThis(cx, fp))
+        return false;
+
+    
 
 
 
