@@ -486,7 +486,7 @@ protected:
     jclass jEGLContextClass;
     jclass jEGL10Class;
 
-    jclass jOGLSurfaceView;
+    jclass jFlexSurfaceView;
 
     
     int (* AndroidBitmap_getInfo)(JNIEnv *env, jobject bitmap, void *info);

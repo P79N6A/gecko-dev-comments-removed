@@ -153,6 +153,40 @@ public class FlexibleGLSurfaceView extends SurfaceView implements SurfaceHolder.
         }
     }
 
+    
+    public static GLController registerCxxCompositor() {
+        System.out.println("register layer comp");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        return null;
+    }
+
     public static class FlexibleGLSurfaceViewException extends RuntimeException {
         public static final long serialVersionUID = 1L;
 
