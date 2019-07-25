@@ -2842,7 +2842,7 @@ imgDecodeWorker::Run()
   
   
   
-  if (!image->mHasBeenDecoded) {
+  if (!image->mHasSourceData) {
     image->mInDecoder = true;
     image->mDecoder->FlushInvalidations();
     image->mInDecoder = false;
