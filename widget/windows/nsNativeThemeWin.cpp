@@ -1768,7 +1768,8 @@ nsNativeThemeWin::GetWidgetPadding(nsDeviceContext* aContext,
     
     
     if (aWidgetType == NS_THEME_WINDOW_TITLEBAR_MAXIMIZED)
-      aResult->top = GetSystemMetrics(SM_CXFRAME);
+      aResult->top = GetSystemMetrics(SM_CXFRAME)
+                   + GetSystemMetrics(SM_CXPADDEDBORDER);
     return true;
   }
 

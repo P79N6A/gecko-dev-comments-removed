@@ -61,6 +61,7 @@
 
 #include "nsWindow.h"
 
+#include <shellapi.h>
 #include <windows.h>
 #include <process.h>
 #include <commctrl.h>
@@ -1977,34 +1978,42 @@ nsWindow::UpdateGetWindowInfoCaptionStatus(bool aActiveCaption)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 bool
 nsWindow::UpdateNonClientMargins(PRInt32 aSizeMode, bool aReflowWindow)
 {
   if (!mCustomNonClient)
     return false;
 
-  mNonClientOffset.top = mNonClientOffset.bottom =
-    mNonClientOffset.left = mNonClientOffset.right = 0;
-  mCaptionHeight = mVertResizeMargin = mHorResizeMargin = 0;
-
-  if (aSizeMode == -1)
+  if (aSizeMode == -1) {
     aSizeMode = mSizeMode;
-
-  if (aSizeMode == nsSizeMode_Minimized ||
-      aSizeMode == nsSizeMode_Fullscreen) {
-    return true;
   }
 
-  bool hasCaption = (mBorderStyle & (eBorderStyle_all |
-                                     eBorderStyle_title |
-                                     eBorderStyle_menu |
-                                     eBorderStyle_default)) > 0 ? true : false;
-
-  if (hasCaption)
-    mCaptionHeight = GetSystemMetrics(SM_CYCAPTION);
-  mHorResizeMargin = GetSystemMetrics(SM_CXFRAME);
-  mVertResizeMargin = GetSystemMetrics(SM_CYFRAME);
-  mCaptionHeight += mVertResizeMargin;
+  bool hasCaption = (mBorderStyle
+                    & (eBorderStyle_all
+                     | eBorderStyle_title
+                     | eBorderStyle_menu
+                     | eBorderStyle_default));
 
   
   
@@ -2013,83 +2022,133 @@ nsWindow::UpdateNonClientMargins(PRInt32 aSizeMode, bool aReflowWindow)
   
   
   
-  if (!mNonClientMargins.top)
+  
+  
+  
+  
+  mCaptionHeight = GetSystemMetrics(SM_CYFRAME)
+                 + (hasCaption ? GetSystemMetrics(SM_CYCAPTION)
+                                 + GetSystemMetrics(SM_CXPADDEDBORDER)
+                               : 0);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  mHorResizeMargin = GetSystemMetrics(SM_CXFRAME)
+                   + (hasCaption ? GetSystemMetrics(SM_CXPADDEDBORDER) : 0);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  mVertResizeMargin = GetSystemMetrics(SM_CYFRAME)
+                    + (hasCaption ? GetSystemMetrics(SM_CXPADDEDBORDER) : 0);
+
+  if (aSizeMode == nsSizeMode_Minimized) {
+    
+    mNonClientOffset.top = 0;
+    mNonClientOffset.left = 0;
+    mNonClientOffset.right = 0;
+    mNonClientOffset.bottom = 0;
+  } else if (aSizeMode == nsSizeMode_Fullscreen) {
+    
+    
+    
+    
     mNonClientOffset.top = mCaptionHeight;
-  else if (mNonClientMargins.top > 0)
-    mNonClientOffset.top = NS_MIN(mCaptionHeight, mNonClientMargins.top);
-
-  if (!mNonClientMargins.left)
-    mNonClientOffset.left = mHorResizeMargin;
-  else if (mNonClientMargins.left > 0)
-    mNonClientOffset.left = NS_MIN(mHorResizeMargin, mNonClientMargins.left);
- 
-  if (!mNonClientMargins.right)
-    mNonClientOffset.right = mHorResizeMargin;
-  else if (mNonClientMargins.right > 0)
-    mNonClientOffset.right = NS_MIN(mHorResizeMargin, mNonClientMargins.right);
-
-  if (!mNonClientMargins.bottom)
     mNonClientOffset.bottom = mVertResizeMargin;
-  else if (mNonClientMargins.bottom > 0)
-    mNonClientOffset.bottom = NS_MIN(mVertResizeMargin, mNonClientMargins.bottom);
+    mNonClientOffset.left = mHorResizeMargin;
+    mNonClientOffset.right = mHorResizeMargin;
+  } else if (aSizeMode == nsSizeMode_Maximized) {
+    
+    
+    
+    
+    
+    
+    
+    
+    mNonClientOffset.top = mCaptionHeight;
+    mNonClientOffset.bottom = 0;
+    mNonClientOffset.left = 0;
+    mNonClientOffset.right = 0;
 
-  
-  
-  
-  
-  
-  
-  if(!nsUXThemeData::CheckForCompositor() || aSizeMode == nsSizeMode_Maximized) {
-    if (mNonClientMargins.top > 0)
-      mNonClientOffset.top = 0;
-    if (mNonClientMargins.bottom > 0)
-      mNonClientOffset.bottom = 0;
-    if (mNonClientMargins.left > 0)
-      mNonClientOffset.left = 0;
-    if (mNonClientMargins.right > 0)
-      mNonClientOffset.right = 0;
-  }
-
-  if (aSizeMode == nsSizeMode_Maximized) {
-    
-    
-    
-    if (!mNonClientMargins.bottom)
-      mNonClientOffset.bottom = 0;
-    if (!mNonClientMargins.left)
-      mNonClientOffset.left = 0;
-    if (!mNonClientMargins.right)
-      mNonClientOffset.right = 0;
-
-    
-    
-    
-    
-    
-    
-    if (!mNonClientMargins.top)
-      mNonClientOffset.top = mCaptionHeight;
-
-    
-    
-    
-    MONITORINFO info = {sizeof(MONITORINFO)};
-    if (::GetMonitorInfo(::MonitorFromWindow(mWnd, MONITOR_DEFAULTTOPRIMARY),
-                         &info)) {
-      RECT r;
-      if (::GetWindowRect(mWnd, &r)) {
-        
-        r.top += mVertResizeMargin - mNonClientOffset.top;
-        r.left += mHorResizeMargin - mNonClientOffset.left;
-        r.bottom -= mVertResizeMargin - mNonClientOffset.bottom;
-        r.right -= mHorResizeMargin - mNonClientOffset.right;
-        
-        if (r.top <= info.rcMonitor.top &&
-            r.left <= info.rcMonitor.left && 
-            r.right >= info.rcMonitor.right &&
-            r.bottom >= info.rcMonitor.bottom)
-          mNonClientOffset.bottom -= r.bottom - info.rcMonitor.bottom + 1;
+    APPBARDATA appBarData;
+    appBarData.cbSize = sizeof(appBarData);
+    UINT taskbarState = SHAppBarMessage(ABM_GETSTATE, &appBarData);
+    if (ABS_AUTOHIDE & taskbarState) {
+      UINT edge = -1;
+      appBarData.hWnd = FindWindow(L"Shell_TrayWnd", NULL);
+      if (appBarData.hWnd) {
+        HMONITOR taskbarMonitor = ::MonitorFromWindow(appBarData.hWnd,
+                                                      MONITOR_DEFAULTTOPRIMARY);
+        HMONITOR windowMonitor = ::MonitorFromWindow(mWnd,
+                                                     MONITOR_DEFAULTTONEAREST);
+        if (taskbarMonitor == windowMonitor) {
+          SHAppBarMessage(ABM_GETTASKBARPOS, &appBarData);
+          edge = appBarData.uEdge;
+        }
       }
+
+      if (ABE_LEFT == edge) {
+        mNonClientOffset.left -= 1;
+      } else if (ABE_RIGHT == edge) {
+        mNonClientOffset.right -= 1;
+      } else if (ABE_BOTTOM == edge || ABE_TOP == edge) {
+        mNonClientOffset.bottom -= 1;
+      }
+    }
+  } else {
+    bool glass = nsUXThemeData::CheckForCompositor();
+
+    
+    
+    
+    
+    
+    
+    
+
+    if (mNonClientMargins.top > 0 && glass) {
+      mNonClientOffset.top = NS_MIN(mCaptionHeight, mNonClientMargins.top);
+    } else if (mNonClientMargins.top == 0) {
+      mNonClientOffset.top = mCaptionHeight;
+    } else {
+      mNonClientOffset.top = 0;
+    }
+
+    if (mNonClientMargins.bottom > 0 && glass) {
+      mNonClientOffset.bottom = NS_MIN(mVertResizeMargin, mNonClientMargins.bottom);
+    } else if (mNonClientMargins.bottom == 0) {
+      mNonClientOffset.bottom = mVertResizeMargin;
+    } else {
+      mNonClientOffset.bottom = 0;
+    }
+
+    if (mNonClientMargins.left > 0 && glass) {
+      mNonClientOffset.left = NS_MIN(mHorResizeMargin, mNonClientMargins.left);
+    } else if (mNonClientMargins.left == 0) {
+      mNonClientOffset.left = mHorResizeMargin;
+    } else {
+      mNonClientOffset.left = 0;
+    }
+
+    if (mNonClientMargins.right > 0 && glass) {
+      mNonClientOffset.right = NS_MIN(mHorResizeMargin, mNonClientMargins.right);
+    } else if (mNonClientMargins.right == 0) {
+      mNonClientOffset.right = mHorResizeMargin;
+    } else {
+      mNonClientOffset.right = 0;
     }
   }
 
@@ -4485,18 +4544,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 
     case WM_NCCALCSIZE:
     {
-      
-      
-      
-      
-      
       if (mCustomNonClient) {
-        if (!wParam) {
-          result = true;
-          *aRetValue = 0;
-          break;
-        }
-
         
         
         
@@ -4507,15 +4555,23 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         
         
         
-        NCCALCSIZE_PARAMS *pncsp = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
-        LRESULT res = CallWindowProcW(GetPrevWindowProc(), mWnd, msg, wParam, lParam);
-        pncsp->rgrc[0].top      -= mNonClientOffset.top;
-        pncsp->rgrc[0].left     -= mNonClientOffset.left;
-        pncsp->rgrc[0].right    += mNonClientOffset.right;
-        pncsp->rgrc[0].bottom   += mNonClientOffset.bottom;
+        
+        
+        
+        
+        
+        
+        
+        RECT *clientRect = wParam
+                         ? &(reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam))->rgrc[0]
+                         : (reinterpret_cast<RECT*>(lParam));
+        clientRect->top      += (mCaptionHeight - mNonClientOffset.top);
+        clientRect->left     += (mHorResizeMargin - mNonClientOffset.left);
+        clientRect->right    -= (mHorResizeMargin - mNonClientOffset.right);
+        clientRect->bottom   -= (mVertResizeMargin - mNonClientOffset.bottom);
 
         result = true;
-        *aRetValue = res;
+        *aRetValue = 0;
       }
       break;
     }
@@ -6007,8 +6063,6 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS *wp, bool& result)
            ("*** Resize window: %d x %d x %d x %d\n", wp->x, wp->y, 
             newWidth, newHeight));
 #endif
-    
-    
     
     
     if (mSizeMode == nsSizeMode_Maximized) {
