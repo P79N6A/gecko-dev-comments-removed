@@ -486,6 +486,11 @@ SessionStoreService.prototype = {
       this._forEachBrowserWindow(function(aWindow) {
         this._collectWindowData(aWindow);
       });
+      
+      
+      var activeWindow = this._getMostRecentBrowserWindow();
+      if (activeWindow)
+        this.activeWindowSSiCache = activeWindow.__SSi || "";
       this._dirtyWindows = [];
       break;
     case "quit-application-granted":
@@ -1512,6 +1517,13 @@ SessionStoreService.prototype = {
     let lastWindow = this._getMostRecentBrowserWindow();
     let canUseLastWindow = lastWindow &&
                            !lastWindow.__SS_lastSessionWindowID;
+    let lastSessionFocusedWindow = null;
+    this.windowToFocus = lastWindow;
+
+    
+    
+    lastSessionState.windows.unshift(
+      lastSessionState.windows.splice(lastSessionState.selectedWindow - 1, 1)[0]);
 
     
     for (let i = 0; i < lastSessionState.windows.length; i++) {
@@ -1549,9 +1561,18 @@ SessionStoreService.prototype = {
         
         
         this.restoreWindow(windowToUse, { windows: [winState] }, canOverwriteTabs, true);
+        if (i == 0)
+          lastSessionFocusedWindow = windowToUse;
+
+        
+        
+        if (canOverwriteTabs && windowToUse == lastWindow)
+          this.windowToFocus = lastSessionFocusedWindow;
       }
       else {
-        this._openWindowWithState({ windows: [winState] });
+        let win = this._openWindowWithState({ windows: [winState] });
+        if (i == 0)
+          lastSessionFocusedWindow = win;
       }
     }
 
@@ -2544,8 +2565,12 @@ SessionStoreService.prototype = {
       this._closedWindows = root._closedWindows;
 
     var winData;
-    if (!aState.selectedWindow) {
-      aState.selectedWindow = 0;
+    if (!root.selectedWindow) {
+      root.selectedWindow = 0;
+    } else {
+      
+      
+      root.windows.unshift(root.windows.splice(root.selectedWindow - 1, 1)[0]);
     }
     
     
@@ -2553,9 +2578,6 @@ SessionStoreService.prototype = {
       winData = root.windows[w];
       if (winData && winData.tabs && winData.tabs[0]) {
         var window = this._openWindowWithState({ windows: [winData] });
-        if (w == aState.selectedWindow - 1) {
-          this.windowToFocus = window;
-        }
       }
     }
     winData = root.windows[0];
