@@ -265,6 +265,15 @@ class LTypeOfV : public LInstructionHelper<1, BOX_PIECES, 0>
     }
 };
 
+class LToIdV : public LCallInstructionHelper<BOX_PIECES, 2 * BOX_PIECES, 0>
+{
+  public:
+    LIR_HEADER(ToIdV);
+
+    static const size_t Object = 0;
+    static const size_t Index = BOX_PIECES;
+};
+
 
 class LStackArg : public LInstructionHelper<0, BOX_PIECES, 0>
 {
