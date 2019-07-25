@@ -87,6 +87,19 @@ HistoryEngine.prototype = {
 
   _findDupe: function _findDupe(item) {
     return GUIDForUri(item.histUri);
+  },
+
+  _makeUploadColl: function _makeUploadColl() {
+    let coll = SyncEngine.prototype._makeUploadColl.call(this);
+    let origPush = coll.pushData;
+
+    
+    coll.pushData = function(data) {
+      if (data._visitCount > 1)
+        origPush.call(coll, data);
+    };
+
+    return coll;
   }
 };
 
@@ -255,6 +268,10 @@ HistoryStore.prototype = {
       record.title = foo.title;
       record.visits = this._getVisits(record.histUri);
       record.encryption = cryptoMetaURL;
+
+      
+      
+      record._visitCount = record.visits.length;
     }
     else
       record.deleted = true;
