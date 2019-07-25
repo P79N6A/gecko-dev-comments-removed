@@ -142,7 +142,7 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface,
 #ifdef MOZ_X11
     , mFlash10Quirks(false)
 #endif
-#if (MOZ_PLATFORM_MAEMO == 5)
+#if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
     , mMaemoImageRendering(PR_FALSE)
 #endif
 {
@@ -303,7 +303,7 @@ PluginInstanceChild::NPN_GetValue(NPNVariable aVar,
 #endif
         return NPERR_NO_ERROR;
 
-#if (MOZ_PLATFORM_MAEMO == 5)
+#if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
     case NPNVSupportsWindowlessLocal: {
 #ifdef MOZ_WIDGET_QT
         const char *graphicsSystem = PR_GetEnv("MOZ_QT_GRAPHICSSYSTEM");
@@ -1181,6 +1181,19 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
         return 0;
     }
 
+    
+    
+    
+    
+    
+    switch(message) {    
+      case WM_LBUTTONUP:
+      case WM_MBUTTONUP:
+      case WM_RBUTTONUP:
+      ReleaseCapture();
+      break;
+    }
+
     LRESULT res = CallWindowProc(self->mPluginWndProc, hWnd, message, wParam,
                                  lParam);
 
@@ -2052,7 +2065,7 @@ PluginInstanceChild::CreateOptSurface(void)
         mIsTransparent ? gfxASurface::ImageFormatARGB32 :
                          gfxASurface::ImageFormatRGB24;
 
-#if (MOZ_PLATFORM_MAEMO == 5)
+#if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
     
     if (mMaemoImageRendering) {
         NPEvent pluginEvent;
@@ -2128,7 +2141,7 @@ PluginInstanceChild::MaybeCreatePlatformHelperSurface(void)
             mDoAlphaExtraction = mIsTransparent;
         }
     } else if (mCurrentSurface->GetType() == gfxASurface::SurfaceTypeImage) {
-#if (MOZ_PLATFORM_MAEMO == 5)
+#if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
         if (mMaemoImageRendering) {
             
             
@@ -2206,7 +2219,7 @@ PluginInstanceChild::UpdateWindowAttributes(bool aForceSetWindow)
             needWindowUpdate = true;
         }
     }
-#if (MOZ_PLATFORM_MAEMO == 5)
+#if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
     else if (curSurface && curSurface->GetType() == gfxASurface::SurfaceTypeImage
              && mMaemoImageRendering) {
         
@@ -2254,7 +2267,7 @@ PluginInstanceChild::PaintRectToPlatformSurface(const nsIntRect& aRect,
 {
     UpdateWindowAttributes();
 #ifdef MOZ_X11
-#if (MOZ_PLATFORM_MAEMO == 5)
+#if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
     
     if (mMaemoImageRendering &&
         aSurface->GetType() == gfxASurface::SurfaceTypeImage) {
@@ -2337,7 +2350,7 @@ PluginInstanceChild::PaintRectToSurface(const nsIntRect& aRect,
     }
     if (renderSurface->GetType() != gfxASurface::SurfaceTypeXlib) {
         
-#if (MOZ_PLATFORM_MAEMO == 5)
+#if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
         
         if (!mMaemoImageRendering ||
             renderSurface->GetType() != gfxASurface::SurfaceTypeImage)

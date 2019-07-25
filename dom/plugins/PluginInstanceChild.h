@@ -488,7 +488,7 @@ private:
     
     bool                  mFlash10Quirks;
 #endif
-#if (MOZ_PLATFORM_MAEMO == 5)
+#if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
     
     
     PRPackedBool          mMaemoImageRendering;
