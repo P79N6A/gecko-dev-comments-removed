@@ -1,0 +1,115 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+let newWin;
+let prefService;
+
+function test() {
+  let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
+  prefService = 
+    Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService).
+      getBranch("browser.panorama.");
+  
+  prefService.setBoolPref("experienced_first_run", true);
+
+  waitForExplicitFinish();
+
+  
+  newWin = openDialog(getBrowserURL(), "_blank", "chrome,all,dialog=no");
+  newWin.addEventListener("load", function(event) {
+    this.removeEventListener("load", arguments.callee, false);
+
+    let newState = {
+      windows: [{
+        tabs: [{
+          entries: [{ "url": "about:blank" }],
+          hidden: true,
+          attributes: {},
+          extData: {
+            "tabview-tab":
+              '{"bounds":{"left":20,"top":35,"width":280,"height":210},' +
+              '"userSize":null,"url":"about:blank","groupID":1,' + 
+              '"imageData":null,"title":null}'
+          }
+        },{
+          entries: [{ url: "about:blank" }],
+          index: 1,
+          hidden: false,
+          attributes: {},
+          extData: {
+            "tabview-tab": 
+              '{"bounds":{"left":375,"top":35,"width":280,"height":210},' + 
+              '"userSize":null,"url":"about:blank","groupID":2,' + 
+              '"imageData":null,"title":null}'
+          }
+        }],
+        selected:2,
+        _closedTabs: [],
+        extData: {
+          "tabview-groups": '{"nextID":3,"activeGroupId":2}',
+          "tabview-group": 
+            '{"1":{"bounds":{"left":15,"top":10,"width":320,"height":375},' + 
+            '"userSize":null,"locked":{},"title":"","id":1},' + 
+            '"2":{"bounds":{"left":380,"top":5,"width":320,"height":375},' + 
+            '"userSize":null,"locked":{},"title":"","id":2}}',
+          "tabview-ui": '{"pageBounds":{"left":0,"top":0,"width":875,"height":650}}'
+        }, sizemode:"normal"
+      }]
+    };
+    ss.setWindowState(newWin, JSON.stringify(newState), true);
+
+    
+    newWin.gBrowser.addTab();
+    is(newWin.gBrowser.tabs.length, 3, "There are 3 browser tabs"); 
+
+    let onTabViewShow = function() {
+      newWin.removeEventListener("tabviewshown", onTabViewShow, false);
+
+      let contentWindow = newWin.document.getElementById("tab-view").contentWindow;
+
+      is(contentWindow.GroupItems.groupItems.length, 2, "Has two group items");
+      is(contentWindow.GroupItems.getOrphanedTabs().length, 0, "No orphan tabs");
+
+      
+      prefService.setBoolPref("experienced_first_run", false);
+      newWin.close();
+
+      finish();
+    }
+    newWin.addEventListener("tabviewshown", onTabViewShow, false);
+    newWin.TabView.toggle();
+  }, false);
+}

@@ -202,11 +202,10 @@ function TabItem(tab, options) {
   this._updateDebugBounds();
 
   TabItems.register(this);
-  
-  if (!this.reconnected) {
+
+  if (!this.reconnected)
     GroupItems.newTab(this, options);
-  }
-  
+
   
   
   if (!this.reconnected || (reconnected && !reconnected.addedToGroup) ) {
@@ -804,7 +803,7 @@ let TabItems = {
         let oldURL = tabItem.url;
         tabItem.url = tabUrl;
 
-        if (!tabItem.reconnected && (oldURL == 'about:blank' || !oldURL))
+        if (!tabItem.reconnected)
           this.reconnect(tabItem);
 
         tabItem.save();
@@ -1059,8 +1058,8 @@ let TabItems = {
       } else {
         
         
-        item.reconnected = 
-          (item.tab.linkedBrowser.currentURI.spec != 'about:blank' || item.parent);
+        
+        item.reconnected = (item.parent != null);
       }
       item.save();
 

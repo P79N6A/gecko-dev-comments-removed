@@ -70,6 +70,7 @@ function GroupItem(listOfEls, options) {
     options = {};
 
   this._inited = false;
+  this._uninited = false;
   this._children = []; 
   this.defaultSize = new Point(TabItems.tabWidth * 1.5, TabItems.tabHeight * 1.5);
   this.isAGroupItem = true;
@@ -366,12 +367,20 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   save: function GroupItem_save() {
-    if (!this._inited) 
+    if (!this._inited || this._uninited) 
       return;
 
     var data = this.getStorageData();
     if (GroupItems.groupItemStorageSanity(data))
       Storage.saveGroupItem(gWindow, data);
+  },
+
+  
+  
+  
+  deleteData: function GroupItem_deleteData() {
+    this._uninited = true;
+    Storage.deleteGroupItem(gWindow, this.id);
   },
 
   
@@ -561,7 +570,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       }
     });
 
-    Storage.deleteGroupItem(gWindow, this.id);
+    this.deleteData();
   },
 
   
@@ -647,7 +656,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       self.$undoContainer = null;
       Items.unsquish();
 
-      Storage.deleteGroupItem(gWindow, self.id);
+      self.deleteData();
     };
 
     this.$undoContainer.click(function(e) {
@@ -2072,7 +2081,7 @@ let GroupItems = {
           child.close();
         });
 
-        Storage.deleteGroupItem(gWindow, groupItem.id);
+        groupItem.deleteData();
       }
     });
   }
