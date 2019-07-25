@@ -53,7 +53,6 @@ using namespace mozilla;
 gfxMacFont::gfxMacFont(MacOSFontEntry *aFontEntry, const gfxFontStyle *aFontStyle,
                        PRBool aNeedsBold)
     : gfxFont(aFontEntry, aFontStyle),
-      mATSFont(aFontEntry->GetFontRef()),
       mCGFont(nsnull),
       mFontFace(nsnull),
       mScaledFont(nsnull)
@@ -62,7 +61,7 @@ gfxMacFont::gfxMacFont(MacOSFontEntry *aFontEntry, const gfxFontStyle *aFontStyl
         mSyntheticBoldOffset = 1;  
     }
 
-    mCGFont = ::CGFontCreateWithPlatformFont(&mATSFont);
+    mCGFont = aFontEntry->GetFontRef();
     if (!mCGFont) {
         mIsValid = PR_FALSE;
         return;
@@ -148,9 +147,6 @@ gfxMacFont::~gfxMacFont()
     if (mFontFace) {
         cairo_font_face_destroy(mFontFace);
     }
-
-    
-    ::CGFontRelease(mCGFont);
 }
 
 PRBool
@@ -267,7 +263,7 @@ gfxMacFont::InitMetrics()
     
     if (!InitMetricsFromSfntTables(mMetrics) &&
         (!mFontEntry->IsUserFont() || mFontEntry->IsLocalUserFont())) {
-        InitMetricsFromATSMetrics();
+        InitMetricsFromPlatform();
     }
     if (!mIsValid) {
         return;
@@ -291,7 +287,7 @@ gfxMacFont::InitMetrics()
         mMetrics.xHeight = 0.0;
         if (!InitMetricsFromSfntTables(mMetrics) &&
             (!mFontEntry->IsUserFont() || mFontEntry->IsLocalUserFont())) {
-            InitMetricsFromATSMetrics();
+            InitMetricsFromPlatform();
         }
         if (!mIsValid) {
             
@@ -420,14 +416,60 @@ gfxMacFont::GetFontTable(PRUint32 aTag)
 
 
 
+void
+gfxMacFont::InitMetricsFromPlatform()
+{
+    if (gfxMacPlatformFontList::UseATSFontEntry()) {
+        ATSFontEntry *fe = static_cast<ATSFontEntry*>(GetFontEntry());
+        InitMetricsFromATSMetrics(fe->GetATSFontRef());
+        return;
+    }
+
+    CTFontRef ctFont = ::CTFontCreateWithGraphicsFont(mCGFont,
+                                                      mAdjustedSize,
+                                                      NULL, NULL);
+    if (!ctFont) {
+        return;
+    }
+
+    mMetrics.underlineOffset = ::CTFontGetUnderlinePosition(ctFont);
+    mMetrics.underlineSize = ::CTFontGetUnderlineThickness(ctFont);
+
+    mMetrics.externalLeading = ::CTFontGetLeading(ctFont);
+
+    mMetrics.maxAscent = ::CTFontGetAscent(ctFont);
+    mMetrics.maxDescent = ::CTFontGetDescent(ctFont);
+
+    
+    
+    
+    CGRect r = ::CTFontGetBoundingBox(ctFont);
+    mMetrics.maxAdvance = r.size.width;
+
+    
+    
+    
+    
+    
+    
+    mMetrics.aveCharWidth = 0;
+
+    mMetrics.xHeight = ::CTFontGetXHeight(ctFont);
+
+    ::CFRelease(ctFont);
+
+    mIsValid = PR_TRUE;
+}
+
+
 
 void
-gfxMacFont::InitMetricsFromATSMetrics()
+gfxMacFont::InitMetricsFromATSMetrics(ATSFontRef aFontRef)
 {
     ATSFontMetrics atsMetrics;
     OSStatus err;
 
-    err = ::ATSFontGetHorizontalMetrics(mATSFont, kATSOptionFlagsDefault,
+    err = ::ATSFontGetHorizontalMetrics(aFontRef, kATSOptionFlagsDefault,
                                         &atsMetrics);
     if (err != noErr) {
 #ifdef DEBUG

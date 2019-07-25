@@ -54,7 +54,6 @@ public:
 
     virtual ~gfxMacFont();
 
-    ATSFontRef GetATSFontRef() const { return mATSFont; }
     CGFontRef GetCGFontRef() const { return mCGFont; }
 
     
@@ -92,7 +91,8 @@ protected:
                                PRBool aPreferPlatformShaping = PR_FALSE);
 
     void InitMetrics();
-    void InitMetricsFromATSMetrics();
+    void InitMetricsFromPlatform();
+    void InitMetricsFromATSMetrics(ATSFontRef aFontRef);
 
     
     
@@ -101,7 +101,8 @@ protected:
 
     static void DestroyBlobFunc(void* aUserData);
 
-    ATSFontRef            mATSFont;
+    
+    
     CGFontRef             mCGFont;
 
     cairo_font_face_t    *mFontFace;
