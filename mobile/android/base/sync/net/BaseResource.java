@@ -267,7 +267,10 @@ public class BaseResource implements Resource {
       
       
       if (!retryOnFailedRequest) {
-        delegate.handleHttpIOException(new IOException(e));
+        
+        final IOException ex = new IOException();
+        ex.initCause(e);
+        delegate.handleHttpIOException(ex);
       } else {
         retryRequest();
       }
