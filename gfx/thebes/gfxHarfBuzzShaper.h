@@ -65,9 +65,10 @@ public:
                             hb_codepoint_t variation_selector) const;
 
     
-    void GetGlyphMetrics(gfxContext *aContext,
+    void GetGlyphAdvance(gfxContext *aContext,
                          hb_codepoint_t glyph,
-                         hb_glyph_metrics_t *metrics) const;
+                         hb_position_t *x_advance,
+                         hb_position_t *y_advance) const;
 
     hb_position_t GetKerning(PRUint16 aFirstGlyph,
                              PRUint16 aSecondGlyph) const;

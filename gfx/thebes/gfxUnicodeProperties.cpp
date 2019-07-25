@@ -155,20 +155,42 @@ gfxUnicodeProperties::GetScriptCode(PRUint32 aCh)
 
 
 
+
 PRInt32
 gfxUnicodeProperties::ScriptShapingLevel(PRInt32 aScriptCode)
 {
     switch (aScriptCode) {
-    case HB_SCRIPT_LATIN:
-    case HB_SCRIPT_CYRILLIC:
-    case HB_SCRIPT_HAN:
-    case HB_SCRIPT_HIRAGANA:
-    case HB_SCRIPT_KATAKANA:
-    case HB_SCRIPT_COMMON:
-    case HB_SCRIPT_INHERITED:
-    case HB_SCRIPT_UNKNOWN:
+    default:
         return 1; 
-    }
+                  
 
-    return 2; 
+    case HB_SCRIPT_ARABIC:
+    case HB_SCRIPT_SYRIAC:
+    case HB_SCRIPT_NKO:
+        return 2; 
+
+    case HB_SCRIPT_HEBREW:
+    case HB_SCRIPT_HANGUL:
+    case HB_SCRIPT_BENGALI:
+    case HB_SCRIPT_DEVANAGARI:
+    case HB_SCRIPT_GUJARATI:
+    case HB_SCRIPT_GURMUKHI:
+    case HB_SCRIPT_KANNADA:
+    case HB_SCRIPT_MALAYALAM:
+    case HB_SCRIPT_ORIYA:
+    case HB_SCRIPT_TAMIL:
+    case HB_SCRIPT_TELUGU:
+    case HB_SCRIPT_KHMER:
+    case HB_SCRIPT_THAI:
+    case HB_SCRIPT_LAO:
+    case HB_SCRIPT_TIBETAN:
+    case HB_SCRIPT_NEW_TAI_LUE:
+    case HB_SCRIPT_TAI_LE:
+    case HB_SCRIPT_MONGOLIAN:
+    case HB_SCRIPT_MYANMAR:
+    case HB_SCRIPT_PHAGS_PA:
+    case HB_SCRIPT_BATAK:
+    case HB_SCRIPT_BRAHMI:
+        return 3; 
+    }
 }
