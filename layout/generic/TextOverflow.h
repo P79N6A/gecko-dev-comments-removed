@@ -98,6 +98,30 @@ class TextOverflow {
     bool mAssigned;
   };
 
+  struct InnerClipEdges {
+    InnerClipEdges() : mAssignedLeft(false), mAssignedRight(false) {}
+    void AccumulateLeft(const nsRect& aRect) {
+      if (NS_LIKELY(mAssignedLeft)) {
+        mLeft = NS_MAX(mLeft, aRect.X());
+      } else {
+        mLeft = aRect.X();
+        mAssignedLeft = true;
+      }
+    }
+    void AccumulateRight(const nsRect& aRect) {
+      if (NS_LIKELY(mAssignedRight)) {
+        mRight = NS_MIN(mRight, aRect.XMost());
+      } else {
+        mRight = aRect.XMost();
+        mAssignedRight = true;
+      }
+    }
+    nscoord mLeft;
+    nscoord mRight;
+    bool mAssignedLeft;
+    bool mAssignedRight;
+  };
+
   
 
 
@@ -123,14 +147,19 @@ class TextOverflow {
 
 
 
+
+
   void ExamineFrameSubtree(nsIFrame*       aFrame,
                            const nsRect&   aContentArea,
                            const nsRect&   aInsideMarkersArea,
                            FrameHashtable* aFramesToHide,
                            AlignmentEdges* aAlignmentEdges,
-                           bool*           aFoundVisibleTextOrAtomic);
+                           bool*           aFoundVisibleTextOrAtomic,
+                           InnerClipEdges* aClippedMarkerEdges);
 
   
+
+
 
 
 
@@ -152,7 +181,8 @@ class TextOverflow {
                           const nsRect&   aInsideMarkersArea,
                           FrameHashtable* aFramesToHide,
                           AlignmentEdges* aAlignmentEdges,
-                          bool*           aFoundVisibleTextOrAtomic);
+                          bool*           aFoundVisibleTextOrAtomic,
+                          InnerClipEdges* aClippedMarkerEdges);
 
   
 
@@ -208,6 +238,8 @@ class TextOverflow {
     
     nscoord                        mWidth;
     
+    nscoord                        mIntrinsicWidth;
+    
     nsString                       mMarkerString;
     
     const nsStyleTextOverflowSide* mStyle;
@@ -215,6 +247,7 @@ class TextOverflow {
     bool                           mHasOverflow;
     
     bool                           mInitialized;
+    
     
     bool                           mActive;
   };
