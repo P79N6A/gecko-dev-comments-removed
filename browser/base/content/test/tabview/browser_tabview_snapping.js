@@ -116,7 +116,6 @@ function onTabViewWindowLoaded() {
         
         checkSnap(thirdGroup, 0, -10, contentWindow, function(snapped){
           ok(snapped,"Offset: Moving up 10 again should snap!");
-          contentWindow.Utils.log('endGame!');
           endGame();
         });
       });
