@@ -72,9 +72,9 @@ XPCContext::~XPCContext()
     NS_IF_RELEASE(mSecurityManager);
 
     
-    for(PRCList *scopeptr = PR_NEXT_LINK(&mScopes);
-        scopeptr != &mScopes;
-        scopeptr = PR_NEXT_LINK(scopeptr))
+    for (PRCList *scopeptr = PR_NEXT_LINK(&mScopes);
+         scopeptr != &mScopes;
+         scopeptr = PR_NEXT_LINK(scopeptr))
     {
         XPCWrappedNativeScope *scope = (XPCWrappedNativeScope *)scopeptr;
         scope->SetContext(nsnull);
@@ -99,7 +99,7 @@ XPCContext::DebugDump(PRInt16 depth)
         XPC_LOG_ALWAYS(("mSecurityManagerFlags of %x", mSecurityManagerFlags));
 
         XPC_LOG_ALWAYS(("mException @ %x", mException));
-        if(depth && mException)
+        if (depth && mException)
         {
             
         }
