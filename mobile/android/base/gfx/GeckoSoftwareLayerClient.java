@@ -59,8 +59,6 @@ import android.util.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.nio.ByteBuffer;
-import java.util.Timer;
-import java.util.TimerTask;
 
 
 
@@ -79,6 +77,8 @@ public class GeckoSoftwareLayerClient extends LayerClient {
 
     
     private ViewportMetrics mGeckoViewport;
+    private boolean mPendingViewportReply;
+    private boolean mPendingViewportSet;
 
     
 
@@ -89,7 +89,7 @@ public class GeckoSoftwareLayerClient extends LayerClient {
 
     private static final long MIN_VIEWPORT_CHANGE_DELAY = 350L;
     private long mLastViewportChangeTime;
-    private Timer mViewportRedrawTimer;
+    private boolean mPendingViewportAdjust;
 
     public GeckoSoftwareLayerClient(Context context) {
         mContext = context;
@@ -162,6 +162,13 @@ public class GeckoSoftwareLayerClient extends LayerClient {
                                 if (FloatUtils.fuzzyEquals(controller.getZoomFactor(), mGeckoViewport.getZoomFactor()))
                                     controller.setPageSize(mGeckoViewport.getPageSize());
                             }
+
+                            Log.i(LOGTAG, "Viewport adjusted");
+                            mPendingViewportReply = false;
+                            if (mPendingViewportSet) {
+                                mPendingViewportSet = false;
+                                adjustViewportWithThrottling();
+                            }
                         }
                     });
                 }
@@ -228,24 +235,20 @@ public class GeckoSoftwareLayerClient extends LayerClient {
         if (!getLayerController().getRedrawHint())
             return;
 
-        if (System.currentTimeMillis() < mLastViewportChangeTime + MIN_VIEWPORT_CHANGE_DELAY) {
-            if (mViewportRedrawTimer != null)
-                return;
+        if (mPendingViewportSet || mPendingViewportAdjust)
+            return;
 
-            mViewportRedrawTimer = new Timer();
-            mViewportRedrawTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    
-                    getLayerController().getView().post(new Runnable() {
-                        @Override
-                        public void run() {
-                            mViewportRedrawTimer = null;
-                            adjustViewportWithThrottling();
-                        }
-                    });
-                }
-            }, MIN_VIEWPORT_CHANGE_DELAY);
+        long timeDelta = System.currentTimeMillis() - mLastViewportChangeTime;
+        if (timeDelta < MIN_VIEWPORT_CHANGE_DELAY) {
+            getLayerController().getView().postDelayed(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        mPendingViewportAdjust = false;
+                        adjustViewportWithThrottling();
+                    }
+                }, MIN_VIEWPORT_CHANGE_DELAY - timeDelta);
+            mPendingViewportAdjust = true;
             return;
         }
 
@@ -253,6 +256,13 @@ public class GeckoSoftwareLayerClient extends LayerClient {
     }
 
     private void adjustViewport() {
+        if (mPendingViewportReply) {
+            mPendingViewportSet = true;
+            return;
+        }
+
+        Log.i(LOGTAG, "Adjusting viewport");
+        mPendingViewportReply = true;
         ViewportMetrics viewportMetrics =
             new ViewportMetrics(getLayerController().getViewportMetrics());
 

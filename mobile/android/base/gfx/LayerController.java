@@ -80,18 +80,21 @@ public class LayerController {
     private OnTouchListener mOnTouchListener;   
     private LayerClient mLayerClient;           
 
+    private boolean mForceRedraw;
+
     
     public static final int TILE_WIDTH = 1024;
     public static final int TILE_HEIGHT = 2048;
 
     
 
-    private static final int DANGER_ZONE_X = 150;
-    private static final int DANGER_ZONE_Y = 300;
+    private static final int DANGER_ZONE_X = 75;
+    private static final int DANGER_ZONE_Y = 150;
 
     public LayerController(Context context) {
         mContext = context;
 
+        mForceRedraw = true;
         mViewportMetrics = new ViewportMetrics();
         mPanZoomController = new PanZoomController(this);
         mView = new LayerView(context, this);
@@ -102,6 +105,10 @@ public class LayerController {
     public void setLayerClient(LayerClient layerClient) {
         mLayerClient = layerClient;
         layerClient.setLayerController(this);
+    }
+
+    public void setForceRedraw() {
+        mForceRedraw = true;
     }
 
     public LayerClient getLayerClient()           { return mLayerClient; }
@@ -153,6 +160,7 @@ public class LayerController {
 
     public void setViewportSize(FloatSize size) {
         mViewportMetrics.setSize(size);
+        setForceRedraw();
 
         notifyLayerClientOfGeometryChange();
         mPanZoomController.geometryChanged();
@@ -231,7 +239,12 @@ public class LayerController {
 
 
     public boolean getRedrawHint() {
-        return true;
+        if (mForceRedraw) {
+            mForceRedraw = false;
+            return true;
+        }
+
+        return aboutToCheckerboard() && mPanZoomController.getRedrawHint();
     }
 
     private RectF getTileRect() {
@@ -241,9 +254,17 @@ public class LayerController {
 
     
     private boolean aboutToCheckerboard() {
-        RectF adjustedTileRect =
-            RectUtils.contract(getTileRect(), DANGER_ZONE_X, DANGER_ZONE_Y);
-        return !adjustedTileRect.contains(new RectF(mViewportMetrics.getViewport()));
+        
+        
+        
+        FloatSize pageSize = getPageSize();
+        RectF adjustedViewport = RectUtils.expand(getViewport(), DANGER_ZONE_X, DANGER_ZONE_Y);
+        if (adjustedViewport.top < 0) adjustedViewport.top = 0;
+        if (adjustedViewport.left < 0) adjustedViewport.left = 0;
+        if (adjustedViewport.right > pageSize.width) adjustedViewport.right = pageSize.width;
+        if (adjustedViewport.bottom > pageSize.height) adjustedViewport.bottom = pageSize.height;
+
+        return !getTileRect().contains(adjustedViewport);
     }
 
     
