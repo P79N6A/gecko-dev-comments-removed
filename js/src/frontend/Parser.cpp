@@ -2216,114 +2216,59 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom_, Parser *parser)
     if (defs.empty()) {
         if (!Define(pn, atom, tc))
             return false;
-    } else {
-        Definition *dn = defs.front();
-        Definition::Kind dn_kind = dn->kind();
 
-        if (dn_kind == Definition::ARG) {
-            JSAutoByteString name;
-            if (!js_AtomToPrintableString(cx, atom, &name))
-                return false;
+        if (data->op == JSOP_DEFCONST)
+            pn->pn_dflags |= PND_CONST;
 
-            if (data->op == JSOP_DEFCONST) {
-                parser->reportError(pn, JSMSG_REDECLARED_PARAM, name.ptr());
-                return false;
-            }
-            if (!parser->reportStrictWarning(pn, JSMSG_VAR_HIDES_ARG, name.ptr()))
-                return false;
-        } else {
-            bool error = (data->op == JSOP_DEFCONST ||
-                          dn_kind == Definition::CONST ||
-                          (dn_kind == Definition::LET &&
-                           (stmt->type != STMT_CATCH || OuterLet(tc, stmt, atom))));
+        if (tc->sc->inFunction())
+            return BindFunctionLocal(cx, data, defs, tc);
 
-            if (cx->hasStrictOption()
-                ? data->op != JSOP_DEFVAR || dn_kind != Definition::VAR
-                : error)
-            {
-                JSAutoByteString name;
-                Parser::Reporter reporter =
-                    error ? &Parser::reportError : &Parser::reportStrictWarning;
-                if (!js_AtomToPrintableString(cx, atom, &name) ||
-                    !(parser->*reporter)(pn, JSMSG_REDECLARED_VAR,
-                                         Definition::kindString(dn_kind), name.ptr()))
-                {
-                    return false;
-                }
-            }
-        }
-
-        
-
-
-
-
-
-
-
-
-
-
-        if (!pn->isUsed()) {
-            
-            ParseNode *pnu = pn;
-
-            if (pn->isDefn()) {
-                pnu = NameNode::create(PNK_NAME, atom, parser, parser->tc);
-                if (!pnu)
-                    return false;
-            }
-
-            LinkUseToDef(pnu, dn);
-            pnu->setOp(JSOP_NAME);
-        }
-
-        
-        while (dn->kind() == Definition::LET) {
-            defs.popFront();
-            if (defs.empty())
-                break;
-            dn = defs.front();
-        }
-
-        if (dn) {
-            JS_ASSERT_IF(data->op == JSOP_DEFCONST,
-                         dn->kind() == Definition::CONST);
-            return true;
-        }
-
-        
-
-
-
-
-        if (!pn->isDefn()) {
-            if (tc->lexdeps->lookup(atom)) {
-                tc->lexdeps->remove(atom);
-            } else {
-                ParseNode *pn2 = NameNode::create(PNK_NAME, atom, parser, parser->tc);
-                if (!pn2)
-                    return false;
-
-                
-                pn2->pn_pos = pn->pn_pos;
-                pn = pn2;
-            }
-            pn->setOp(JSOP_NAME);
-        }
-
-        if (!tc->decls.addHoist(atom, (Definition *) pn))
-            return false;
-        pn->setDefn(true);
-        pn->pn_dflags &= ~PND_PLACEHOLDER;
+        return true;
     }
 
-    if (data->op == JSOP_DEFCONST)
-        pn->pn_dflags |= PND_CONST;
+    
 
-    if (tc->sc->inFunction())
-        return BindFunctionLocal(cx, data, defs, tc);
 
+
+
+
+
+    Definition *dn = defs.front();
+    Definition::Kind dn_kind = dn->kind();
+    if (dn_kind == Definition::ARG) {
+        JSAutoByteString name;
+        if (!js_AtomToPrintableString(cx, atom, &name))
+            return false;
+
+        if (data->op == JSOP_DEFCONST) {
+            parser->reportError(pn, JSMSG_REDECLARED_PARAM, name.ptr());
+            return false;
+        }
+        if (!parser->reportStrictWarning(pn, JSMSG_VAR_HIDES_ARG, name.ptr()))
+            return false;
+    } else {
+        bool error = (data->op == JSOP_DEFCONST ||
+                      dn_kind == Definition::CONST ||
+                      (dn_kind == Definition::LET &&
+                       (stmt->type != STMT_CATCH || OuterLet(tc, stmt, atom))));
+
+        if (cx->hasStrictOption()
+            ? data->op != JSOP_DEFVAR || dn_kind != Definition::VAR
+            : error)
+        {
+            JSAutoByteString name;
+            Parser::Reporter reporter =
+                error ? &Parser::reportError : &Parser::reportStrictWarning;
+            if (!js_AtomToPrintableString(cx, atom, &name) ||
+                !(parser->*reporter)(pn, JSMSG_REDECLARED_VAR,
+                                     Definition::kindString(dn_kind), name.ptr()))
+            {
+                return false;
+            }
+        }
+    }
+
+    LinkUseToDef(pn, dn);
     return true;
 }
 

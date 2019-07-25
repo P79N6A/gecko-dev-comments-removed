@@ -340,11 +340,6 @@ class DefinitionList
 
 
 
-
-
-
-
-
 class AtomDecls
 {
     
@@ -376,7 +371,6 @@ class AtomDecls
     
     inline bool addUnique(JSAtom *atom, Definition *defn);
     bool addShadow(JSAtom *atom, Definition *defn);
-    bool addHoist(JSAtom *atom, Definition *defn);
 
     
     void updateFirst(JSAtom *atom, Definition *defn) {
