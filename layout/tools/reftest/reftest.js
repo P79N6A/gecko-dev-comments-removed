@@ -880,19 +880,19 @@ function OnDocumentLoad(event)
         }
 
         function WhenMozAfterPaintFlushed(continuation) {
-            if (utils.isMozAfterPaintPending) {
+            if (gWindowUtils.isMozAfterPaintPending) {
                 function handler() {
-                    gBrowser.removeEventListener("MozAfterPaint", handler, false);
+                    window.removeEventListener("MozAfterPaint", handler, false);
                     continuation();
                 }
-                gBrowser.addEventListener("MozAfterPaint", handler, false);
+                window.addEventListener("MozAfterPaint", handler, false);
             } else {
                 continuation();
             }
         }
 
         function AfterPaintListener(event) {
-            if (event.target.document != currentDoc) {
+            if (event.target.document != document) {
                 
                 
                 return;
@@ -903,13 +903,13 @@ function OnDocumentLoad(event)
             
             
             
-            if (stopAfterPaintReceived && !utils.isMozAfterPaintPending) {
+            if (stopAfterPaintReceived && !gWindowUtils.isMozAfterPaintPending) {
                 FinishWaitingForTestEnd();
             }
         }
 
         function FinishWaitingForTestEnd() {
-            gBrowser.removeEventListener("MozAfterPaint", AfterPaintListener, false);
+            window.removeEventListener("MozAfterPaint", AfterPaintListener, false);
             setTimeout(DocumentLoaded, 0);
         }
 
@@ -931,7 +931,7 @@ function OnDocumentLoad(event)
                 setupPrintMode();
             FlushRendering();
 
-            if (utils.isMozAfterPaintPending) {
+            if (gWindowUtils.isMozAfterPaintPending) {
                 
                 
                 stopAfterPaintReceived = true;
@@ -945,7 +945,7 @@ function OnDocumentLoad(event)
             FlushRendering();
 
             function continuation() {
-                gBrowser.addEventListener("MozAfterPaint", AfterPaintListener, false);
+                window.addEventListener("MozAfterPaint", AfterPaintListener, false);
                 contentRootElement.addEventListener("DOMAttrModified", AttrModifiedListener, false);
 
                 
@@ -1002,7 +1002,7 @@ function UpdateCanvasCache(url, canvas)
 
 
 
-function DoDrawWindow(ctx, win, x, y, w, h)
+function DoDrawWindow(ctx, x, y, w, h)
 {
     if (typeof gDrawWindowFlags == "undefined") {
         gDrawWindowFlags = ctx.DRAWWINDOW_DRAW_CARET |
@@ -1021,13 +1021,7 @@ function DoDrawWindow(ctx, win, x, y, w, h)
              r.width + "," + r.height + "\n");
     }
 
-    var scrollX = 0;
-    var scrollY = 0;
-    if (!(gDrawWindowFlags & ctx.DRAWWINDOW_DRAW_VIEW)) {
-        scrollX = win.scrollX;
-        scrollY = win.scrollY;
-    }
-    ctx.drawWindow(win, scrollX + x, scrollY + y, w, h, "rgb(255,255,255)",
+    ctx.drawWindow(window, x, y, w, h, "rgb(255,255,255)",
                    gDrawWindowFlags);
 }
 
@@ -1040,21 +1034,8 @@ function InitCurrentCanvasWithSnapshot()
 
     gCurrentCanvas = AllocateCanvas();
 
-    
-
-
-    var win = gBrowser.contentWindow;
     var ctx = gCurrentCanvas.getContext("2d");
-    var scale = gBrowser.markupDocumentViewer.fullZoom;
-    ctx.save();
-    
-    
-    
-    ctx.scale(scale, scale);
-    DoDrawWindow(ctx, win, 0, 0,
-                 Math.ceil(gCurrentCanvas.width / scale),
-                 Math.ceil(gCurrentCanvas.height / scale));
-    ctx.restore();
+    DoDrawWindow(ctx, 0, 0, gCurrentCanvas.width, gCurrentCanvas.height);
 }
 
 function roundTo(x, fraction)
@@ -1067,23 +1048,19 @@ function UpdateCurrentCanvasForEvent(event)
     if (!gCurrentCanvas)
         return;
 
-    var win = gBrowser.contentWindow;
     var ctx = gCurrentCanvas.getContext("2d");
-    var scale = gBrowser.markupDocumentViewer.fullZoom;
-
     var rectList = event.clientRects;
     for (var i = 0; i < rectList.length; ++i) {
         var r = rectList[i];
         
-        var left = Math.floor(roundTo(r.left*scale, 0.001))/scale;
-        var top = Math.floor(roundTo(r.top*scale, 0.001))/scale;
-        var right = Math.ceil(roundTo(r.right*scale, 0.001))/scale;
-        var bottom = Math.ceil(roundTo(r.bottom*scale, 0.001))/scale;
+        var left = Math.floor(r.left);
+        var top = Math.floor(r.top);
+        var right = Math.ceil(r.right);
+        var bottom = Math.ceil(r.bottom);
 
         ctx.save();
-        ctx.scale(scale, scale);
         ctx.translate(left, top);
-        DoDrawWindow(ctx, win, left, top, right - left, bottom - top);
+        DoDrawWindow(ctx, left, top, right - left, bottom - top);
         ctx.restore();
     }
 }
