@@ -124,6 +124,29 @@ let Utils = {
     };
   },
 
+  batchSync: function batchSync(service, engineType) {
+    return function batchedSync() {
+      let engine = this;
+      let batchEx = null;
+
+      
+      Svc[service].runInBatchMode({
+        runBatched: function wrappedSync() {
+          try {
+            engineType.prototype._sync.call(engine);
+          }
+          catch(ex) {
+            batchEx = ex;
+          }
+        }
+      }, null);
+
+      
+      if (batchEx!= null)
+        throw batchEx;
+    };
+  },
+
   
   makeGUID: function makeGUID() {
     let uuidgen = Cc["@mozilla.org/uuid-generator;1"].
