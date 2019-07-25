@@ -199,17 +199,6 @@ function sendHeapMinNotifications()
   sendHeapMinNotificationsInner();
 }
 
-function toggleTreeVisibility(aEvent)
-{
-  var headerElem = aEvent.target;
-
-  
-  
-  var treeElem = $(headerElem.id.replace(/^header-/, 'pre-'));
-
-  treeElem.classList.toggle('collapsed');
-}
-
 function Reporter(aPath, aKind, aUnits, aAmount, aDescription)
 {
   this._path        = aPath;
@@ -337,6 +326,7 @@ function update()
   }
 
   
+  const UpDesc = "Re-measure.";
   const GCDesc = "Do a global garbage collection.";
   const CCDesc = "Do a cycle collection.";
   const MPDesc = "Send three \"heap-minimize\" notifications in a " +
@@ -345,7 +335,9 @@ function update()
                  "process to reduce memory usage in other ways, e.g. by " +
                  "flushing various caches.";
 
+  
   text += "<div>" +
+    "<button title='" + UpDesc + "' onclick='update()' id='updateButton'>Update</button>" +
     "<button title='" + GCDesc + "' onclick='doGlobalGC()'>GC</button>" +
     "<button title='" + CCDesc + "' onclick='doCC()'>CC</button>" +
     "<button title='" + MPDesc + "' onclick='sendHeapMinNotifications()'>" + "Minimize memory usage</button>" +
@@ -363,10 +355,12 @@ function update()
           "</div>";
 
   text += "<div>" +
-          "<span class='legend'>Hover the pointer over the name of a memory " +
-          "reporter to see a detailed description of what it measures. Click a " +
-          "heading to expand or collapse its tree.</span>" +
+          "<span class='legend'>Click on a non-leaf node in a tree to expand ('++') " +
+          "or collapse ('--') its children.</span>" +
           "</div>";
+  text += "<div>" +
+          "<span class='legend'>Hover the pointer over the name of a memory " +
+          "reporter to see a description of what it measures.</span>";
 
   var div = document.createElement("div");
   div.innerHTML = text;
@@ -382,6 +376,9 @@ function TreeNode(aName)
   
   this._name = aName;
   this._kids = [];
+  
+  
+  
   
   
   
@@ -533,6 +530,25 @@ function buildTree(aReporters, aTreeName)
 
 
 
+function ignoreTree(aReporters, aTreeName)
+{
+  for (var path in aReporters) {
+    var r = aReporters[path];
+    if (r.treeNameMatches(aTreeName)) {
+      var dummy = getBytes(aReporters, path);
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
 function fixUpExplicitTree(aT, aReporters)
 {
   
@@ -589,50 +605,73 @@ function fixUpExplicitTree(aT, aReporters)
 
 
 
-function filterTree(aTotalBytes, aT)
+function sortTreeAndInsertAggregateNodes(aTotalBytes, aT)
 {
-  const omitThresholdPerc = 0.5; 
+  const kSignificanceThresholdPerc = 1;
 
-  function shouldOmit(aBytes)
+  function isInsignificant(aT)
   {
     return !gVerbose &&
            aTotalBytes !== kUnknown &&
-           (100 * aBytes / aTotalBytes) < omitThresholdPerc;
+           (100 * aT._amount / aTotalBytes) < kSignificanceThresholdPerc;
+  }
+
+  if (aT._kids.length === 0) {
+    return;
   }
 
   aT._kids.sort(TreeNode.compare);
 
-  for (var i = 0; i < aT._kids.length; i++) {
-    if (shouldOmit(aT._kids[i]._amount)) {
-      
+  
+  
+  
+  if (isInsignificant(aT._kids[0])) {
+    aT._hideKids = true;
+    for (var i = 0; i < aT._kids.length; i++) {
+      sortTreeAndInsertAggregateNodes(aTotalBytes, aT._kids[i]);
+    }
+    return;
+  }
+
+  
+  for (var i = 0; i < aT._kids.length - 1; i++) {
+    if (isInsignificant(aT._kids[i])) {
       
       
       var i0 = i;
+      var nAgg = aT._kids.length - i0;
+      
+      var aggT = new TreeNode("(" + nAgg + " tiny)");
       var aggBytes = 0;
       for ( ; i < aT._kids.length; i++) {
         aggBytes += aT._kids[i]._amount;
+        aggT._kids.push(aT._kids[i]);
       }
-      aT._kids.splice(i0, aT._kids.length);
-      var n = i - i0;
-      var rSub = new TreeNode("(" + n + " omitted)");
-      rSub._amount = aggBytes;
-      rSub._description =
-        n + " sub-trees that were below the " + omitThresholdPerc +
-        "% significance threshold.  Click 'More verbose' at the bottom of " +
-        "this page to see them.";
+      aggT._hideKids = true;
+      aggT._amount = aggBytes;
+      aggT._description =
+        nAgg + " sub-trees that are below the " + kSignificanceThresholdPerc +
+        "% significance threshold.";
+      aT._kids.splice(i0, nAgg, aggT);
+      aT._kids.sort(TreeNode.compare);
 
       
-      
-      
-      aT._kids[i0] = rSub;
-      aT._kids.sort(TreeNode.compare);
-      break;
+      for (i = 0; i < aggT._kids.length; i++) {
+        sortTreeAndInsertAggregateNodes(aTotalBytes, aggT._kids[i]);
+      }
+      return;
     }
-    filterTree(aTotalBytes, aT._kids[i]);
+
+    sortTreeAndInsertAggregateNodes(aTotalBytes, aT._kids[i]);
   }
+
+  
+  
+  
+  sortTreeAndInsertAggregateNodes(aTotalBytes, aT._kids[i]);
 }
 
-function genWarningText(aHasKnownHeapAllocated, aHasMozMallocUsableSize) 
+function genWarningText(aHasKnownHeapAllocated, aHasMozMallocUsableSize)
 {
   var warningText = "";
 
@@ -677,7 +716,7 @@ function genProcessText(aProcess, aReporters, aHasMozMallocUsableSize)
 {
   var explicitTree = buildTree(aReporters, 'explicit');
   var hasKnownHeapAllocated = fixUpExplicitTree(explicitTree, aReporters);
-  filterTree(explicitTree._amount, explicitTree);
+  sortTreeAndInsertAggregateNodes(explicitTree._amount, explicitTree);
   var explicitText = genTreeText(explicitTree, aProcess);
 
   
@@ -687,14 +726,20 @@ function genProcessText(aProcess, aReporters, aHasMozMallocUsableSize)
   var warningText =
         genWarningText(hasKnownHeapAllocated, aHasMozMallocUsableSize);
 
-  var mapTreeText = '';
+  
+  var mapTreeText = "";
   kMapTreePaths.forEach(function(t) {
-    var tree = buildTree(aReporters, t);
+    if (gVerbose) {
+      var tree = buildTree(aReporters, t);
 
-    
-    if (tree) {
-      filterTree(tree._amount, tree);
-      mapTreeText += genTreeText(tree, aProcess);
+      
+      if (tree) {
+        sortTreeAndInsertAggregateNodes(tree._amount, tree);
+        tree._hideKids = true;   
+        mapTreeText += genTreeText(tree, aProcess);
+      }
+    } else {
+      ignoreTree(aReporters, t);
     }
   });
 
@@ -835,9 +880,18 @@ function getDescription(aReporters, aPath)
   return r._description;
 }
 
+
+
+
+
+const kHorizontal       = "\u2500",
+      kVertical         = "\u2502",
+      kUpAndRight       = "\u2514",
+      kVerticalAndRight = "\u251c";
+
 function genMrValueText(aValue)
 {
-  return "<span class='mrValue'>" + aValue + "</span>";
+  return "<span class='mrValue'>" + aValue + " </span>";
 }
 
 function kindToString(aKind)
@@ -877,23 +931,84 @@ function prepDesc(aStr)
   return escapeAll(flipBackslashes(aStr));
 }
 
-function genMrNameText(aKind, aDesc, aName, aHasProblem, aNMerged)
+function genMrNameText(aKind, aShowSubtrees, aHasKids, aDesc, aName,
+                       aHasProblem, aNMerged)
 {
-  var text = "-- <span class='mrName hasDesc' title='" +
-             kindToString(aKind) + prepDesc(aDesc) +
-             "'>" + prepName(aName) + "</span>";
+  var text = "";
+  if (aHasKids) {
+    if (aShowSubtrees) {
+      text += "<span class='mrSep hidden'>++ </span>";
+      text += "<span class='mrSep'>-- </span>";
+    } else {
+      text += "<span class='mrSep'>++ </span>";
+      text += "<span class='mrSep hidden'>-- </span>";
+    }
+  } else {
+    text += "<span class='mrSep'>" + kHorizontal + kHorizontal + " </span>";
+  }
+  text += "<span class='mrName' title='" +
+          kindToString(aKind) + prepDesc(aDesc) + "'>" +
+          prepName(aName) + "</span>";
   if (aHasProblem) {
     const problemDesc =
       "Warning: this memory reporter was unable to compute a useful value. ";
-    text += " <span class='mrStar' title=\"" + problemDesc + "\">[*]</span>";
+    text += "<span class='mrStar' title=\"" + problemDesc + "\"> [*]</span>";
   }
   if (aNMerged) {
     const dupDesc = "This value is the sum of " + aNMerged +
                     " memory reporters that all have the same path.";
-    text += " <span class='mrStar' title=\"" + dupDesc + "\">[" + 
+    text += "<span class='mrStar' title=\"" + dupDesc + "\"> [" +
             aNMerged + "]</span>";
   }
   return text + '\n';
+}
+
+
+
+
+
+
+
+var gToggles = {};
+
+function toggle(aEvent)
+{
+  
+  
+  
+  
+  
+
+  function assertClassName(span, className) {
+    assert(span, "undefined " + className);
+    assert(span.nodeName === "span", "non-span " + className);
+    assert(span.classList.contains(className), "bad " + className);
+  }
+
+  
+  var outerSpan = aEvent.target.parentNode;
+  assertClassName(outerSpan, "hasKids");
+
+  
+  var plusSpan  = outerSpan.childNodes[2];
+  var minusSpan = outerSpan.childNodes[3];
+  assertClassName(plusSpan,  "mrSep");
+  assertClassName(minusSpan, "mrSep");
+  plusSpan .classList.toggle("hidden");
+  minusSpan.classList.toggle("hidden");
+
+  
+  var subTreeSpan = outerSpan.nextSibling;
+  assertClassName(subTreeSpan, "kids");
+  subTreeSpan.classList.toggle("hidden");
+
+  
+  var treeId = outerSpan.id;
+  if (gToggles[treeId]) {
+    delete gToggles[treeId];
+  } else {
+    gToggles[treeId] = true;
+  }
 }
 
 
@@ -925,7 +1040,9 @@ function genTreeText(aT, aProcess)
 
 
 
-  function genTreeText2(aT, aIndentGuide, aParentStringLength)
+
+
+  function genTreeText2(aPrePath, aT, aIndentGuide, aParentStringLength)
   {
     function repeatStr(aC, aN)
     {
@@ -937,14 +1054,6 @@ function genTreeText(aT, aProcess)
     }
 
     
-    
-    
-    
-    
-    const kHorizontal       = "\u2500",
-          kVertical         = "\u2502",
-          kUpAndRight       = "\u2514",
-          kVerticalAndRight = "\u251c";
     var indent = "<span class='treeLine'>";
     if (aIndentGuide.length > 0) {
       for (var i = 0; i < aIndentGuide.length - 1; i++) {
@@ -954,7 +1063,6 @@ function genTreeText(aT, aProcess)
       indent += aIndentGuide[i]._isLastKid ? kUpAndRight : kVerticalAndRight;
       indent += repeatStr(kHorizontal, aIndentGuide[i]._depth - 1);
     }
-
     
     
     var tString = aT.toString();
@@ -968,39 +1076,65 @@ function genTreeText(aT, aProcess)
     indent += "</span>";
 
     
-    var perc = "";
+    var percText = "";
+    var showSubtrees = !aT._hideKids;
     if (aT._amount === treeBytes) {
-      perc = "100.0";
+      percText = "100.0";
     } else {
-      perc = (100 * aT._amount / treeBytes).toFixed(2);
-      perc = pad(perc, 5, '0');
+      var perc = (100 * aT._amount / treeBytes);
+      percText = (100 * aT._amount / treeBytes).toFixed(2);
+      percText = pad(percText, 5, '0');
     }
-    perc = "<span class='mrPerc'>(" + perc + "%)</span> ";
+    percText = "<span class='mrPerc'>(" + percText + "%) </span>";
+
+    
+    var path = aPrePath + aT._name;
+    var treeId = escapeAll(aProcess + ":" + path);
+    if (gToggles[treeId]) {
+      showSubtrees = !showSubtrees;
+    }
 
     
     
     var kind = isExplicitTree ? aT._kind : undefined;
-    var text = indent + genMrValueText(tString) + " " + perc +
-               genMrNameText(kind, aT._description, aT._name,
-                             aT._hasProblem, aT._nMerged);
+
+    
+    
+    var hasKids = aT._kids.length > 0;
+    if (!hasKids) {
+      assert(!aT._hideKids, "leaf node with _hideKids set")
+    }
+    var text = indent;
+    if (hasKids) {
+      text +=
+        "<span onclick='toggle(event)' class='hasKids' id='" + treeId + "'>";
+    }
+    text += genMrValueText(tString) + percText;
+    text += genMrNameText(kind, showSubtrees, hasKids, aT._description,
+                          aT._name, aT._hasProblem, aT._nMerged);
+    if (hasKids) {
+      var hiddenText = showSubtrees ? "" : " hidden";
+      
+      text += "</span><span class='kids" + hiddenText + "'>";
+    }
 
     for (var i = 0; i < aT._kids.length; i++) {
       
       aIndentGuide.push({ _isLastKid: (i === aT._kids.length - 1), _depth: 3 });
-      text += genTreeText2(aT._kids[i], aIndentGuide, tString.length);
+      text += genTreeText2(path + "/", aT._kids[i], aIndentGuide,
+                           tString.length);
       aIndentGuide.pop();
     }
+    text += hasKids ? "</span>" : "";
     return text;
   }
 
-  var text = genTreeText2(aT, [], rootStringLength);
+  var text = genTreeText2("", aT, [], rootStringLength);
 
-  
-  
-  return genSectionMarkup(aProcess, aT._name, text, !isExplicitTree);
+  return genSectionMarkup(aT._name, text);
 }
 
-function OtherReporter(aPath, aUnits, aAmount, aDescription, 
+function OtherReporter(aPath, aUnits, aAmount, aDescription,
                        aNMerged)
 {
   
@@ -1073,29 +1207,19 @@ function genOtherText(aReportersByProcess, aProcess)
   var text = "";
   for (var i = 0; i < otherReporters.length; i++) {
     var o = otherReporters[i];
-    text += genMrValueText(pad(o.asString, maxStringLength, ' ')) + " ";
-    text += genMrNameText(KIND_OTHER, o._description, o._path, o._hasProblem);
+    text += genMrValueText(pad(o.asString, maxStringLength, ' '));
+    text += genMrNameText(KIND_OTHER, true,
+                          false, o._description, o._path,
+                          o._hasProblem);
   }
 
-  
-  const desc = "This list contains other memory measurements that cross-cut " +
-               "the requested memory measurements above."
-
-  return genSectionMarkup(aProcess, 'other', text, false);
+  return genSectionMarkup('other', text);
 }
 
-function genSectionMarkup(aProcess, aName, aText, aCollapsed)
+function genSectionMarkup(aName, aText)
 {
-  var headerId = 'header-' + aProcess + '-' + aName;
-  var preId = 'pre-' + aProcess + '-' + aName;
-  var elemClass = (aCollapsed ? 'collapsed' : '') + ' tree';
-
-  
-  return '<h2 id="' + headerId + '" class="' + elemClass + '" ' +
-         'onclick="toggleTreeVisibility(event)">' +
-           kTreeNames[aName] +
-         '</h2>\n' +
-         '<pre id="' + preId + '" class="' + elemClass + '">' + aText + '</pre>\n';
+  return "<h2 class='sectionHeader'>" + kTreeNames[aName] + "</h2>\n" +
+         "<pre class='tree'>" + aText + "</pre>\n";
 }
 
 function assert(aCond, aMsg)
