@@ -599,7 +599,7 @@ function test_processIncoming_fetchNum() {
 
   
   
-  for (var i=0; i < 1234; i++) {
+  for (var i = 0; i < 234; i++) {
     let id = 'record-no-' + i;
     let payload = encryptPayload({id: id, denomination: "Record No. " + i});
     let wbo = new ServerWBO(id, payload);
@@ -624,7 +624,7 @@ function test_processIncoming_fetchNum() {
     do_check_eq([id for (id in engine._store.items)].length, 50);
     do_check_true('record-no-0' in engine._store.items);
     do_check_true('record-no-49' in engine._store.items);
-    do_check_eq(engine.toFetch.length, 1234-50);
+    do_check_eq(engine.toFetch.length, 234 - 50);
 
 
     
@@ -633,7 +633,7 @@ function test_processIncoming_fetchNum() {
     do_check_eq([id for (id in engine._store.items)].length, 100);
     do_check_true('record-no-50' in engine._store.items);
     do_check_true('record-no-99' in engine._store.items);
-    do_check_eq(engine.toFetch.length, 1234-100);
+    do_check_eq(engine.toFetch.length, 234 - 100);
 
 
     
@@ -656,7 +656,7 @@ function test_processIncoming_fetchNum() {
     do_check_true('new-record-no-4' in engine._store.items);
     do_check_true('record-no-100' in engine._store.items);
     do_check_true('record-no-144' in engine._store.items);
-    do_check_eq(engine.toFetch.length, 1234-100-45);
+    do_check_eq(engine.toFetch.length, 234 - 100 - 45);
 
 
     
@@ -673,7 +673,7 @@ function test_processIncoming_fetchNum() {
     do_check_eq([id for (id in engine._store.items)].length, 197);
     do_check_true('record-no-145' in engine._store.items);
     do_check_true('record-no-191' in engine._store.items);
-    do_check_eq(engine.toFetch.length, 1234-100-45-47);
+    do_check_eq(engine.toFetch.length, 234 - 100 - 45 - 47);
 
 
     
@@ -681,8 +681,8 @@ function test_processIncoming_fetchNum() {
     while(engine.toFetch.length) {
       engine._processIncoming();
     }
-    do_check_eq([id for (id in engine._store.items)].length, 1234+5);
-    do_check_true('record-no-1233' in engine._store.items);
+    do_check_eq([id for (id in engine._store.items)].length, 234 + 5);
+    do_check_true('record-no-233' in engine._store.items);
 
   } finally {
     server.stop(function() {});
@@ -769,7 +769,7 @@ function test_uploadOutgoing_MAX_UPLOAD_RECORDS() {
 
   
   let engine = makeSteamEngine();
-  for (var i=0; i < 2345; i++) {
+  for (var i = 0; i < 234; i++) {
     let id = 'record-no-' + i;
     engine._store.items[id] = "Record No. " + i;
     engine._tracker.addChangedID(id, 0);
@@ -791,12 +791,12 @@ function test_uploadOutgoing_MAX_UPLOAD_RECORDS() {
     engine._uploadOutgoing();
 
     
-    for (i=0; i < 2345; i++) {
+    for (i = 0; i < 234; i++) {
       do_check_true(!!collection.wbos['record-no-'+i].payload);
     }
 
     
-    do_check_eq(noOfUploads, Math.ceil(2345/MAX_UPLOAD_RECORDS));
+    do_check_eq(noOfUploads, Math.ceil(234/MAX_UPLOAD_RECORDS));
 
   } finally {
     server.stop(function() {});
@@ -879,11 +879,12 @@ function test_syncFinish_deleteLotsInBatches() {
   }(collection.delete));
 
   
-  for (var i=0; i < 2345; i++) {
+  let now = Date.now();
+  for (var i = 0; i < 234; i++) {
     let id = 'record-no-' + i;
     let payload = encryptPayload({id: id, denomination: "Record No. " + i});
     let wbo = new ServerWBO(id, payload);
-    wbo.modified = Date.now()/1000 - 60*(i+10);
+    wbo.modified = now / 1000 - 60 * (i + 110);
     collection.wbos[id] = wbo;
   }
 
@@ -901,8 +902,8 @@ function test_syncFinish_deleteLotsInBatches() {
     
     
     engine._delete = {ids: [],
-                      newer: Date.now()/1000 - 60*200.5};
-    for (i=200; i < 2345; i++) {
+                      newer: now / 1000 - 60 * 200.5};
+    for (i = 100; i < 234; i++) {
       engine._delete.ids.push('record-no-' + i);
     }
 
@@ -910,9 +911,9 @@ function test_syncFinish_deleteLotsInBatches() {
 
     
     
-    for (i=0; i < 2345; i++) {
+    for (i = 0; i < 234; i++) {
       let id = 'record-no-' + i;
-      if (i<=190 || i>=200) {
+      if (i <= 90 || i >= 100) {
         do_check_eq(collection.wbos[id].payload, undefined);
       } else {
         do_check_true(!!collection.wbos[id].payload);
@@ -920,7 +921,7 @@ function test_syncFinish_deleteLotsInBatches() {
     }
 
     
-    do_check_eq(noOfUploads, 22+1);
+    do_check_eq(noOfUploads, 2 + 1);
 
     
     do_check_eq(engine._delete.ids, undefined);
