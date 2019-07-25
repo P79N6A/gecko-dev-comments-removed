@@ -8,49 +8,13 @@
 
 
 
-.dbg-default {
-  cursor: default;
-}
-
-
-
-
-
-#stack {
-  width: 200px;
-}
-
 #stackframes {
   overflow: auto;
 }
 
-.dbg-stackframe {
-  display: block;
-}
-
-.dbg-stackframe-name {
-  float: left;
-}
-
-.dbg-stackframe-details {
-  float: right;
-}
-
-.dbg-stackframe-name:-moz-locale-dir(rtl) {
-  float: right;
-}
-
-.dbg-stackframe-details:-moz-locale-dir(rtl) {
-  float: left;
-}
 
 
 
-
-
-#properties {
-  width: 250px;
-}
 
 #variables {
   overflow: auto;
@@ -60,77 +24,10 @@
 
 
 
-.scope {
-  display: -moz-box;
-  -moz-box-orient: vertical;
-}
-
-.scope > .details {
+.details {
   display: none;
 }
 
-.scope > .details[open] {
+.details[open] {
   display: -moz-box;
-  -moz-box-orient: vertical;
-}
-
-
-
-
-
-.variable {
-  display: -moz-box;
-  -moz-box-orient: vertical;
-}
-
-.variable > .title {
-  white-space: nowrap;
-  display: block;
-}
-
-.variable > .details {
-  display: none;
-}
-
-.variable > .details[open] {
-  display: -moz-box;
-  -moz-box-orient: vertical;
-}
-
-
-
-
-
-.property {
-  display: -moz-box;
-  -moz-box-orient: vertical;
-}
-
-.property > .title {
-  white-space: nowrap;
-  display: block;
-}
-
-.property > .details {
-  display: none;
-}
-
-.property > .details[open] {
-  display: -moz-box;
-  -moz-box-orient: vertical;
-}
-
-.value[offscreen] {
-  position: fixed;
-  top: -100000px;
-  left: -100000px;
-}
-
-
-
-
-
-.arrow {
-  display: inline-block;
-  vertical-align: middle;
 }

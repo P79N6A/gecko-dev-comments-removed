@@ -513,11 +513,11 @@ StackFramesView.prototype = {
     
     this.empty();
 
-    let item = document.createElement("div");
+    let item = document.createElement("label");
 
     
-    item.className = "empty list-item";
-    item.textContent = L10N.getStr("emptyStackText");
+    item.className = "list-item empty";
+    item.setAttribute("value", L10N.getStr("emptyStackText"));
 
     this._frames.appendChild(item);
   },
@@ -542,21 +542,25 @@ StackFramesView.prototype = {
       return null;
     }
 
-    let frame = document.createElement("div");
-    let frameName = document.createElement("span");
-    let frameDetails = document.createElement("span");
+    let frame = document.createElement("box");
+    let frameName = document.createElement("label");
+    let frameDetails = document.createElement("label");
 
     
     frame.id = "stackframe-" + aDepth;
     frame.className = "dbg-stackframe list-item";
 
     
-    frameName.className = "dbg-stackframe-name";
-    frameDetails.className = "dbg-stackframe-details";
-    frameName.textContent = aFrameNameText;
-    frameDetails.textContent = aFrameDetailsText;
+    frameName.className = "dbg-stackframe-name plain";
+    frameDetails.className = "dbg-stackframe-details plain";
+    frameName.setAttribute("value", aFrameNameText);
+    frameDetails.setAttribute("value", aFrameDetailsText);
+
+    let spacer = document.createElement("spacer");
+    spacer.setAttribute("flex", "1");
 
     frame.appendChild(frameName);
+    frame.appendChild(spacer);
     frame.appendChild(frameDetails);
 
     this._frames.appendChild(frame);
@@ -846,21 +850,22 @@ PropertiesView.prototype = {
 
     
     element.refresh(function() {
-      let separator = document.createElement("span");
-      let value = document.createElement("span");
+      let separatorLabel = document.createElement("label");
+      let valueLabel = document.createElement("label");
       let title = element.getElementsByClassName("title")[0];
 
       
-      separator.textContent = ": ";
+      separatorLabel.className = "plain";
+      separatorLabel.setAttribute("value", ":");
 
       
-      value.className = "value";
+      valueLabel.className = "value plain";
 
       
-      value.addEventListener("click", this._activateElementInputMode.bind({
+      valueLabel.addEventListener("click", this._activateElementInputMode.bind({
         scope: this,
         element: element,
-        value: value
+        valueLabel: valueLabel
       }));
 
       
@@ -871,14 +876,14 @@ PropertiesView.prototype = {
         configurable: true
       });
 
-      title.appendChild(separator);
-      title.appendChild(value);
+      title.appendChild(separatorLabel);
+      title.appendChild(valueLabel);
 
       
       this._saveHierarchy({
         parent: aScope,
         element: element,
-        value: value
+        valueLabel: valueLabel
       });
     }.bind(this));
 
@@ -919,14 +924,14 @@ PropertiesView.prototype = {
       aGrip = { type: "null" };
     }
 
-    let value = aVar.getElementsByClassName("value")[0];
+    let valueLabel = aVar.getElementsByClassName("value")[0];
 
     
-    if (!value) {
+    if (!valueLabel) {
       return null;
     }
 
-    this._applyGrip(value, aGrip);
+    this._applyGrip(valueLabel, aGrip);
     return aVar;
   },
 
@@ -939,15 +944,15 @@ PropertiesView.prototype = {
 
 
 
-  _applyGrip: function DVP__applyGrip(aValueNode, aGrip) {
-    let prevGrip = aValueNode.currentGrip;
+  _applyGrip: function DVP__applyGrip(aValueLabel, aGrip) {
+    let prevGrip = aValueLabel.currentGrip;
     if (prevGrip) {
-      aValueNode.classList.remove(this._propertyColor(prevGrip));
+      aValueLabel.classList.remove(this._propertyColor(prevGrip));
     }
 
-    aValueNode.textContent = this._propertyString(aGrip);
-    aValueNode.classList.add(this._propertyColor(aGrip));
-    aValueNode.currentGrip = aGrip;
+    aValueLabel.setAttribute("value", this._propertyString(aGrip));
+    aValueLabel.classList.add(this._propertyColor(aGrip));
+    aValueLabel.currentGrip = aGrip;
   },
 
   
@@ -1058,38 +1063,35 @@ PropertiesView.prototype = {
 
     
     element.refresh(function(pKey, pGrip) {
-      let propertyString = this._propertyString(pGrip);
-      let propertyColor = this._propertyColor(pGrip);
       let title = element.getElementsByClassName("title")[0];
-      let name = title.getElementsByClassName("name")[0];
-      let separator = document.createElement("span");
-      let value = document.createElement("span");
-
-      
-      name.className = "key";
-      name.textContent = pKey;
-
-      
-      value.className = "value";
-      value.textContent = propertyString;
-      value.classList.add(propertyColor);
-
-      
-      separator.textContent = ": ";
+      let nameLabel = title.getElementsByClassName("name")[0];
+      let separatorLabel = document.createElement("label");
+      let valueLabel = document.createElement("label");
 
       if ("undefined" !== typeof pKey) {
-        title.appendChild(name);
+        
+        nameLabel.className = "key plain";
+        nameLabel.setAttribute("value", pKey.trim());
+        title.appendChild(nameLabel);
       }
       if ("undefined" !== typeof pGrip) {
-        title.appendChild(separator);
-        title.appendChild(value);
+        
+        separatorLabel.className = "plain";
+        separatorLabel.setAttribute("value", ":");
+
+        
+        valueLabel.className = "value plain";
+        this._applyGrip(valueLabel, pGrip);
+
+        title.appendChild(separatorLabel);
+        title.appendChild(valueLabel);
       }
 
       
-      value.addEventListener("click", this._activateElementInputMode.bind({
+      valueLabel.addEventListener("click", this._activateElementInputMode.bind({
         scope: this,
         element: element,
-        value: value
+        valueLabel: valueLabel
       }));
 
       
@@ -1104,7 +1106,7 @@ PropertiesView.prototype = {
       this._saveHierarchy({
         parent: aVar,
         element: element,
-        value: value
+        valueLabel: valueLabel
       });
 
       
@@ -1137,9 +1139,9 @@ PropertiesView.prototype = {
 
     let self = this.scope;
     let element = this.element;
-    let value = this.value;
-    let title = this.value.parentNode;
-    let initialTextContent = value.textContent;
+    let valueLabel = this.valueLabel;
+    let titleNode = valueLabel.parentNode;
+    let initialValue = valueLabel.getAttribute("value");
 
     
     
@@ -1151,44 +1153,39 @@ PropertiesView.prototype = {
     
     
     let textbox = document.createElement("textbox");
-    textbox.setAttribute("value", value.textContent);
+    textbox.setAttribute("value", initialValue);
     textbox.className = "element-input";
-    textbox.width = value.clientWidth + 1;
+    textbox.width = valueLabel.clientWidth + 1;
 
     
     function DVP_element_textbox_blur(aTextboxEvent) {
       DVP_element_textbox_save();
     }
 
-    function DVP_element_textbox_keydown(aTextboxEvent) {
-      if (aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_RETURN ||
-          aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_ENTER) {
-        DVP_element_textbox_save();
-        return;
-      }
-      if (aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_ESCAPE) {
-        value.textContent = initialTextContent;
-        DVP_element_textbox_clear();
-        return;
-      }
-      value.textContent = textbox.value;
-    }
-
-    function DVP_element_textbox_keypress(aTextboxEvent) {
+    function DVP_element_textbox_keyup(aTextboxEvent) {
       if (aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_LEFT ||
           aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_RIGHT ||
           aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_UP ||
           aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_DOWN) {
         return;
       }
-      if (value.clientWidth > textbox.width - 1) {
-        textbox.width = value.clientWidth + 30;
+      if (aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_RETURN ||
+          aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_ENTER) {
+        DVP_element_textbox_save();
+        return;
+      }
+      if (aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_ESCAPE) {
+        valueLabel.setAttribute("value", initialValue);
+        DVP_element_textbox_clear();
+        return;
       }
     }
 
     
     function DVP_element_textbox_save() {
-      if (textbox.value !== value.textContent) {
+      if (textbox.value !== valueLabel.getAttribute("value")) {
+        valueLabel.setAttribute("value", textbox.value);
+
         let expr = "(" + element.token + "=" + textbox.value + ")";
         DebuggerController.StackFrames.evaluate(expr);
       }
@@ -1205,24 +1202,22 @@ PropertiesView.prototype = {
       element.showArrow();
 
       textbox.removeEventListener("blur", DVP_element_textbox_blur, false);
-      textbox.removeEventListener("keydown", DVP_element_textbox_keydown, false);
-      textbox.removeEventListener("keypress", DVP_element_textbox_keypress, false);
-      title.removeChild(textbox);
-      value.removeAttribute("offscreen");
+      textbox.removeEventListener("keyup", DVP_element_textbox_keyup, false);
+      titleNode.removeChild(textbox);
+      titleNode.appendChild(valueLabel);
     }
 
     textbox.addEventListener("blur", DVP_element_textbox_blur, false);
-    textbox.addEventListener("keydown", DVP_element_textbox_keydown, false);
-    textbox.addEventListener("keypress", DVP_element_textbox_keypress, false);
-    title.appendChild(textbox);
-    value.setAttribute("offscreen", "");
+    textbox.addEventListener("keyup", DVP_element_textbox_keyup, false);
+    titleNode.removeChild(valueLabel);
+    titleNode.appendChild(textbox);
 
     textbox.select();
 
     
     
     
-    if (value.textContent.match(/^"[^"]*"$/)) {
+    if (valueLabel.getAttribute("value").match(/^"[^"]*"$/)) {
       textbox.selectionEnd--;
       textbox.selectionStart++;
     }
@@ -1315,11 +1310,12 @@ PropertiesView.prototype = {
       return null;
     }
 
-    let element = document.createElement("div");
-    let arrow = document.createElement("span");
-    let name = document.createElement("span");
-    let title = document.createElement("div");
-    let details = document.createElement("div");
+    let element = document.createElement("vbox");
+    let arrow = document.createElement("box");
+    let name = document.createElement("label");
+
+    let title = document.createElement("box");
+    let details = document.createElement("vbox");
 
     
     element.id = aId;
@@ -1330,11 +1326,12 @@ PropertiesView.prototype = {
     arrow.style.visibility = "hidden";
 
     
-    name.className = "name";
-    name.textContent = aName || "";
+    name.className = "name plain";
+    name.setAttribute("value", aName || "");
 
     
     title.className = "title";
+    title.setAttribute("align", "center")
 
     
     details.className = "details";
@@ -1608,7 +1605,7 @@ PropertiesView.prototype = {
   _saveHierarchy: function DVP__saveHierarchy(aProperties) {
     let parent = aProperties.parent;
     let element = aProperties.element;
-    let value = aProperties.value;
+    let valueLabel = aProperties.valueLabel;
     let store = aProperties.store || parent._children;
 
     
@@ -1620,7 +1617,7 @@ PropertiesView.prototype = {
       root: parent ? (parent._root || parent) : null,
       parent: parent || null,
       element: element,
-      value: value,
+      valueLabel: valueLabel,
       children: {}
     };
 
@@ -1658,8 +1655,8 @@ PropertiesView.prototype = {
         let action = "";
 
         if (prevVar) {
-          let prevValue = prevVar.value.textContent;
-          let currValue = currVar.value.textContent;
+          let prevValue = prevVar.valueLabel.getAttribute("value");
+          let currValue = currVar.valueLabel.getAttribute("value");
 
           if (currValue != prevValue) {
             action = "changed";
