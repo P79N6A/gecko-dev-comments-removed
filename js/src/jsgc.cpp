@@ -1732,6 +1732,25 @@ MarkRuntime(JSTracer *trc)
         }
     }
 #endif
+
+#ifdef JS_TYPE_INFERENCE
+    
+    JSCompartment **read = rt->compartments.begin();
+    JSCompartment **end = rt->compartments.end();
+    while (read < end) {
+        JSCompartment *compartment = (*read++);
+        if (compartment->marked) {
+            for (JSCList *cursor = compartment->scripts.next;
+                 cursor != &compartment->scripts;
+                 cursor = cursor->next) {
+                JSScript *script = reinterpret_cast<JSScript *>(cursor);
+                if (script->analysis)
+                    js_TraceScript(trc, script);
+            }
+            compartment->types.trace(trc);
+        }
+    }
+#endif
 }
 
 void
@@ -1761,6 +1780,12 @@ js_DestroyScriptsToGC(JSContext *cx, JSThreadData *data)
         while ((script = *listp) != NULL) {
             *listp = script->u.nextToGC;
             script->u.nextToGC = NULL;
+
+#ifdef JS_TYPE_INFERENCE
+            
+            continue;
+#endif
+
             js_DestroyScript(cx, script);
         }
     }
@@ -2533,14 +2558,6 @@ GCUntilDone(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
 void
 js_GC(JSContext *cx, JSGCInvocationKind gckind)
 {
-#ifdef JS_TYPE_INFERENCE
-    
-
-
-
-    return;
-#endif
-
     JSRuntime *rt = cx->runtime;
 
     

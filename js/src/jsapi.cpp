@@ -5103,6 +5103,12 @@ JS_EvaluateUCScriptForPrincipals(JSContext *cx, JSObject *obj,
     }
     ok = Execute(cx, obj, script, NULL, 0, Valueify(rval));
     LAST_FRAME_CHECKS(cx, ok);
+
+#ifdef JS_TYPE_INFERENCE
+    
+    return ok;
+#endif
+
     js_DestroyScript(cx, script);
     return ok;
 }
