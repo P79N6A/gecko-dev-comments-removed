@@ -66,7 +66,10 @@ const Cu = Components.utils;
 
 
 
-function checkCert(aChannel, aCerts) {
+
+
+
+function checkCert(aChannel, aAllowNonBuiltInCerts, aCerts) {
   if (!aChannel.originalURI.schemeIs("https")) {
     
     if (aCerts) {
@@ -112,6 +115,8 @@ function checkCert(aChannel, aCerts) {
     }
   }
 
+  if (aAllowNonBuiltInCerts ===  true)
+    return;
 
   var issuerCert = cert;
   while (issuerCert.issuer && !issuerCert.issuer.equals(issuerCert))
@@ -131,6 +136,10 @@ function checkCert(aChannel, aCerts) {
 function isBuiltinToken(tokenName) {
   return tokenName == "Builtin Object Token";
 }
+
+
+
+
 
 
 

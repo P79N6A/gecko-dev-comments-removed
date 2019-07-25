@@ -94,6 +94,23 @@ pref("app.update.log", false);
 
 
 
+pref("app.update.cert.requireBuiltIn", true);
+
+
+
+
+
+pref("app.update.cert.checkAttributes", true);
+
+
+
+
+pref("app.update.cert.maxErrors", 5);
+
+
+
+
+
 
 
 

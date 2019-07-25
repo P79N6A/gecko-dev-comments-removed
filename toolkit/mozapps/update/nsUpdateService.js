@@ -54,6 +54,10 @@ const Cr = Components.results;
 const PREF_APP_UPDATE_AUTO                = "app.update.auto";
 const PREF_APP_UPDATE_BACKGROUND_INTERVAL = "app.update.download.backgroundInterval";
 const PREF_APP_UPDATE_CERTS_BRANCH        = "app.update.certs.";
+const PREF_APP_UPDATE_CERT_CHECKATTRS     = "app.update.cert.checkAttributes";
+const PREF_APP_UPDATE_CERT_ERRORS         = "app.update.cert.errors";
+const PREF_APP_UPDATE_CERT_MAXERRORS      = "app.update.cert.maxErrors";
+const PREF_APP_UPDATE_CERT_REQUIREBUILTIN = "app.update.cert.requireBuiltIn";
 const PREF_APP_UPDATE_CHANNEL             = "app.update.channel";
 const PREF_APP_UPDATE_ENABLED             = "app.update.enabled";
 const PREF_APP_UPDATE_IDLETIME            = "app.update.idletime";
@@ -113,6 +117,9 @@ const STATE_FAILED          = "failed";
 
 const WRITE_ERROR        = 7;
 const ELEVATION_CANCELED = 9;
+
+const CERT_ATTR_CHECK_FAILED_NO_UPDATE  = 100;
+const CERT_ATTR_CHECK_FAILED_HAS_UPDATE = 101;
 
 const DOWNLOAD_CHUNK_SIZE           = 300000; 
 const DOWNLOAD_BACKGROUND_INTERVAL  = 600;    
@@ -1196,10 +1203,14 @@ UpdateService.prototype = {
       
       
       
-      var ary = status.split(": ");
+      
+      
+      
+      
+      var ary = status.split(":");
       update.state = ary[0];
       if (update.state == STATE_FAILED && ary[1]) {
-        update.errorCode = ary[1];
+        update.errorCode = parseInt(ary[1]);
         if (update.errorCode == WRITE_ERROR) {
           prompter.showUpdateError(update);
           writeStatusFile(getUpdatesDir(), update.state = STATE_PENDING);
@@ -1270,8 +1281,23 @@ UpdateService.prototype = {
       onError: function AUS_notify_onError(request, update) {
         LOG("UpdateService:notify:listener - error during background update: " +
             update.statusText);
-      },
-    }
+
+        if (!update.errorCode ||
+            update.errorCode != CERT_ATTR_CHECK_FAILED_NO_UPDATE &&
+            update.errorCode != CERT_ATTR_CHECK_FAILED_HAS_UPDATE)
+          return;
+
+        var errCount = getPref("getIntPref", PREF_APP_UPDATE_CERT_ERRORS, 0);
+        errCount++;
+        Services.prefs.setIntPref(PREF_APP_UPDATE_CERT_ERRORS, errCount);
+
+        if (errCount >= getPref("getIntPref", PREF_APP_UPDATE_CERT_MAXERRORS, 5)) {
+          var prompter = Cc["@mozilla.org/updates/update-prompt;1"].
+                         createInstance(Ci.nsIUpdatePrompt);
+          prompter.showUpdateError(update);
+        }
+      }
+    };
     this.backgroundChecker.checkForUpdates(listener, false);
   },
 
@@ -2002,7 +2028,9 @@ Checker.prototype = {
     this._request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
                     createInstance(Ci.nsIXMLHttpRequest);
     this._request.open("GET", url, true);
-    this._request.channel.notificationCallbacks = new gCertUtils.BadCertHandler();
+    var allowNonBuiltIn = !getPref("getBoolPref",
+                                   PREF_APP_UPDATE_CERT_REQUIREBUILTIN, true);
+    this._request.channel.notificationCallbacks = new gCertUtils.BadCertHandler(allowNonBuiltIn);
     this._request.overrideMimeType("text/xml");
     this._request.setRequestHeader("Cache-Control", "no-cache");
 
@@ -2094,6 +2122,7 @@ Checker.prototype = {
     var prefs = Services.prefs;
     var certs = null;
     if (!prefs.prefHasUserValue(PREF_APP_UPDATE_URL_OVERRIDE) &&
+        getPref("getBoolPref", PREF_APP_UPDATE_CERT_CHECKATTRS, true) &&
         prefs.getBranch(PREF_APP_UPDATE_CERTS_BRANCH).getChildList("").length) {
       certs = [];
       let counter = 1;
@@ -2113,39 +2142,32 @@ Checker.prototype = {
       }
     }
 
-    var certAttrCheckFailed = false;
-    var status;
     try {
-      try {
-        gCertUtils.checkCert(this._request.channel, certs);
-      }
-      catch (e) {
-        Components.utils.reportError(e);
-        if (e.result != Cr.NS_ERROR_ILLEGAL_VALUE)
-          throw e;
-
-        certAttrCheckFailed = true;
-      }
-
       
-      
-      
-      var updates = certAttrCheckFailed ? [] : this._updates;
-
+      var updates = this._updates;
       LOG("Checker:onLoad - number of updates available: " + updates.length);
+      var allowNonBuiltIn = !getPref("getBoolPref",
+                                     PREF_APP_UPDATE_CERT_REQUIREBUILTIN, true);
+      gCertUtils.checkCert(this._request.channel, allowNonBuiltIn, certs);
+
+      if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_CERT_ERRORS))
+        Services.prefs.clearUserPref(PREF_APP_UPDATE_CERT_ERRORS);
 
       
       this._callback.onCheckComplete(event.target, updates, updates.length);
     }
     catch (e) {
-      LOG("Checker:onLoad - there was a problem with the update service URL " +
-          "specified, either the XML file was malformed or it does not exist " +
-          "at the location specified. Exception: " + e);
+      LOG("Checker:onLoad - there was a problem checking for updates. " +
+          "Exception: " + e);
       var request = event.target;
       var status = this._getChannelStatus(request);
       LOG("Checker:onLoad - request.status: " + status);
       var update = new Update(null);
       update.statusText = getStatusTextFromCode(status, 404);
+      if (e.result == Cr.NS_ERROR_ILLEGAL_VALUE) {
+        update.errorCode = updates[0] ? CERT_ATTR_CHECK_FAILED_HAS_UPDATE
+                                      : CERT_ATTR_CHECK_FAILED_NO_UPDATE;
+      }
       this._callback.onError(request, update);
     }
 
@@ -2802,6 +2824,14 @@ UpdatePrompt.prototype = {
   showUpdateError: function UP_showUpdateError(update) {
     if (!this._enabled)
       return;
+
+    if (update.errorCode &&
+        (update.errorCode == CERT_ATTR_CHECK_FAILED_NO_UPDATE ||
+         update.errorCode != CERT_ATTR_CHECK_FAILED_HAS_UPDATE)) {
+      this._showUIWhenIdle(null, URI_UPDATE_PROMPT_DIALOG, null,
+                           UPDATE_WINDOW_NAME, null, update);
+      return;
+    }
 
     
     if (update.state == STATE_FAILED && update.errorCode == WRITE_ERROR) {
