@@ -3713,6 +3713,8 @@ var PermissionsHelper = {
       Services.logins.setLoginSavingEnabled(aURI.prePath, true);
     } else {
       Services.perms.remove(aURI.host, aType);
+      
+      Services.contentPrefs.removePref(aURI, aType + ".request.remember");
     }
   }
 }
