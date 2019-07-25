@@ -128,6 +128,7 @@ class MBasicBlock : public TempObject
   public:
     enum Kind {
         NORMAL,
+        PENDING_LOOP_HEADER,
         LOOP_HEADER,
         SPLIT_EDGE
     };
@@ -160,7 +161,7 @@ class MBasicBlock : public TempObject
     
     
     static MBasicBlock *New(MIRGenerator *gen, MBasicBlock *pred, jsbytecode *entryPc, Kind kind);
-    static MBasicBlock *NewLoopHeader(MIRGenerator *gen, MBasicBlock *pred, jsbytecode *entryPc);
+    static MBasicBlock *NewPendingLoopHeader(MIRGenerator *gen, MBasicBlock *pred, jsbytecode *entryPc);
     static MBasicBlock *NewSplitEdge(MIRGenerator *gen, MBasicBlock *pred);
 
     void setId(uint32 id) {

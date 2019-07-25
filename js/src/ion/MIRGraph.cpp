@@ -100,9 +100,9 @@ MBasicBlock::New(MIRGenerator *gen, MBasicBlock *pred, jsbytecode *entryPc, Kind
 }
 
 MBasicBlock *
-MBasicBlock::NewLoopHeader(MIRGenerator *gen, MBasicBlock *pred, jsbytecode *entryPc)
+MBasicBlock::NewPendingLoopHeader(MIRGenerator *gen, MBasicBlock *pred, jsbytecode *entryPc)
 {
-    return MBasicBlock::New(gen, pred, entryPc, LOOP_HEADER);
+    return MBasicBlock::New(gen, pred, entryPc, PENDING_LOOP_HEADER);
 }
 
 MBasicBlock *
@@ -505,6 +505,9 @@ MBasicBlock::setBackedge(MBasicBlock *pred, MBasicBlock *successor)
     JS_ASSERT(entrySnapshot()->stackDepth() == stackPosition_);
 
     
+    JS_ASSERT(kind_ == PENDING_LOOP_HEADER);
+
+    
     
     
     
@@ -579,6 +582,9 @@ MBasicBlock::setBackedge(MBasicBlock *pred, MBasicBlock *successor)
             JS_ASSERT(successor->entrySnapshot()->getOperand(i) == phi);
         }
     }
+
+    
+    kind_ = LOOP_HEADER;
 
     return predecessors_.append(pred);
 }
