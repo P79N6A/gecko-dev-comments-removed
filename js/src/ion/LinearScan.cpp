@@ -827,10 +827,17 @@ LinearScanAllocator::reifyAllocations()
                 *alloc = *interval->getAllocation();
         }
 
-        if (interval->index() == 0) {
+        if (interval->index() == 0)
+        {
             
             reg->def()->setOutput(*interval->getAllocation());
-        } else {
+        }
+        else if (!interval->reg()->canonicalSpill() ||
+                 interval->reg()->canonicalSpill() == interval->getAllocation() ||
+                 *interval->reg()->canonicalSpill() != *interval->getAllocation())
+        {
+            
+            
             
             LiveInterval *from = reg->getInterval(interval->index() - 1);
             if (!moveBefore(interval->start(), from, interval))
@@ -968,6 +975,11 @@ LinearScanAllocator::assign(LAllocation allocation)
                 i++;
             }
         }
+    } else if (allocation.isMemory()) {
+        if (current->reg()->canonicalSpill())
+            JS_ASSERT(allocation == *current->reg()->canonicalSpill());
+        else
+            current->reg()->setCanonicalSpill(current->getAllocation());
     }
 
     active.insert(current);
@@ -979,6 +991,12 @@ bool
 LinearScanAllocator::spill()
 {
     IonSpew(IonSpew_LSRA, "  Decided to spill current interval");
+
+    if (current->reg()->canonicalSpill()) {
+        IonSpew(IonSpew_LSRA, "  Allocating canonical spill location");
+
+        return assign(*current->reg()->canonicalSpill());
+    }
 
     uint32 stackSlot;
     if (!stackAssignment.allocateSlot(&stackSlot))
@@ -995,7 +1013,8 @@ LinearScanAllocator::finishInterval(LiveInterval *interval)
     LAllocation *alloc = interval->getAllocation();
     JS_ASSERT(!alloc->isUse());
 
-    if (alloc->isStackSlot()) {
+    bool lastInterval = interval->index() == (interval->reg()->numIntervals() - 1);
+    if (alloc->isStackSlot() && (alloc != interval->reg()->canonicalSpill() || lastInterval)) {
         if (alloc->toStackSlot()->isDouble())
             stackAssignment.freeDoubleSlot(alloc->toStackSlot()->slot());
         else
