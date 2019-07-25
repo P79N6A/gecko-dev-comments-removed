@@ -458,7 +458,8 @@ nsDiskCacheStreamIO::CloseOutputStream(nsDiskCacheOutputStream *  outputStream)
     }
 
     rv = Flush();
-    NS_ASSERTION(NS_SUCCEEDED(rv), "Flush() failed");
+    if (NS_FAILED(rv))
+        NS_WARNING("Flush() failed");
 
     mOutStream = nsnull;
     return rv;
@@ -508,7 +509,9 @@ nsDiskCacheStreamIO::Flush()
 
     } else {
         
-        
+
+        mBufDirty = PR_FALSE;
+
         
         nsDiskCacheRecord * record = &mBinding->mRecord;
         if (record->DataLocationInitialized()) {
@@ -525,12 +528,10 @@ nsDiskCacheStreamIO::Flush()
             rv = cacheMap->WriteDataCacheBlocks(mBinding, mBuffer, mBufEnd);
             if (NS_FAILED(rv)) {
                 NS_WARNING("WriteDataCacheBlocks() failed.");
-                return rv;   
-                
+                nsCacheService::DoomEntry(mBinding->mCacheEntry);
+                return rv;
             }
         }
-
-        mBufDirty = PR_FALSE;
     }
     
     

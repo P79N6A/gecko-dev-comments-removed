@@ -847,13 +847,17 @@ nsDiskCacheMap::WriteDiskCacheEntry(nsDiskCacheBinding *  binding)
         
         diskEntry->Swap();
         PRInt32 startBlock;
-        rv = mBlockFile[fileIndex - 1].WriteBlocks(diskEntry, size, blocks, &startBlock);
-        NS_ENSURE_SUCCESS(rv, rv);
+        nsresult rv2 = mBlockFile[fileIndex - 1].WriteBlocks(diskEntry, size, blocks, &startBlock);
         
         
-        binding->mRecord.SetMetaBlocks(fileIndex, startBlock, blocks);
+        if (NS_SUCCEEDED(rv2)) {
+            
+            binding->mRecord.SetMetaBlocks(fileIndex, startBlock, blocks);
+        }
         rv = UpdateRecord(&binding->mRecord);
         NS_ENSURE_SUCCESS(rv, rv);
+        NS_ENSURE_SUCCESS(rv2, rv2);
+
         
         
         IncrementTotalSize(blocks, blockSize);
