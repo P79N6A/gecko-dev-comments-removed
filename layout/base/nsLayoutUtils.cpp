@@ -677,6 +677,20 @@ nsLayoutUtils::GetScrollableFrameFor(nsIFrame *aScrolledFrame)
   return sf;
 }
 
+nsIFrame*
+nsLayoutUtils::GetActiveScrolledRootFor(nsIFrame* aFrame,
+                                        nsIFrame* aStopAtAncestor,
+                                        nsPoint* aOffset)
+{
+  
+  
+  
+  if (aOffset) {
+    *aOffset = aFrame->GetOffsetTo(aStopAtAncestor);
+  }
+  return aStopAtAncestor;
+}
+
 
 nsIScrollableFrame*
 nsLayoutUtils::GetNearestScrollableFrameForDirection(nsIFrame* aFrame,

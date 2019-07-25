@@ -643,7 +643,17 @@ public:
 #endif
 
   nsDisplayItem* GetAbove() { return mAbove; }
+
   
+
+
+
+
+
+
+  PRBool RecomputeVisibility(nsDisplayListBuilder* aBuilder,
+                             nsRegion* aVisibleRegion);
+
 protected:
   friend class nsDisplayList;
   

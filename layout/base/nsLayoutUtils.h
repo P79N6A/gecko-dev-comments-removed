@@ -292,6 +292,17 @@ public:
 
 
 
+
+
+  static nsIFrame* GetActiveScrolledRootFor(nsIFrame* aFrame,
+                                            nsIFrame* aStopAtAncestor,
+                                            nsPoint* aOffset);
+
+  
+
+
+
+
   static nsIFrame* GetFrameFor(nsIView *aView)
   { return static_cast<nsIFrame*>(aView->GetClientData()); }
 
