@@ -37,6 +37,12 @@ XPCOMUtils.defineLazyGetter(Services, 'fm', function() {
       return false;
 
     let type = targetElement.type;
+    
+    
+    let attributeType = targetElement.getAttribute('type');
+    if (attributeType && attributeType.toLowerCase() === 'number')
+      type = 'number';
+
     fireEvent('showime', { type: type });
     return true;
   }
