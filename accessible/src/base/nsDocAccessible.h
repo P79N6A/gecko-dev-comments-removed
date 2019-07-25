@@ -207,11 +207,11 @@ public:
   
 
 
-  inline void HandleAnchorJump(nsIContent* aTargetNode)
-  {
-    HandleNotification<nsDocAccessible, nsIContent>
-      (this, &nsDocAccessible::ProcessAnchorJump, aTargetNode);
-  }
+  inline nsAccessible* AnchorJump()
+    { return GetAccessibleOrContainer(mAnchorJumpElm); }
+
+  inline void SetAnchorJump(nsIContent* aTargetNode)
+    { mAnchorJumpElm = aTargetNode; }
 
   
 
@@ -470,11 +470,6 @@ protected:
   
 
 
-  void ProcessAnchorJump(nsIContent* aTargetNode);
-
-  
-
-
   void ProcessContentInserted(nsAccessible* aContainer,
                               const nsTArray<nsCOMPtr<nsIContent> >* aInsertedContent);
 
@@ -571,6 +566,11 @@ protected:
 
 
   PRUint32 mLoadEventType;
+
+  
+
+
+  nsCOMPtr<nsIContent> mAnchorJumpElm;
 
   
 

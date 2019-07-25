@@ -335,6 +335,21 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
   nsRefPtr<AccEvent> focusEvent =
     new AccEvent(nsIAccessibleEvent::EVENT_FOCUS, target, fromUserInputFlag);
   nsEventShell::FireEvent(focusEvent);
+
+  
+  
+  
+  nsDocAccessible* targetDocument = target->GetDocAccessible();
+  nsAccessible* anchorJump = targetDocument->AnchorJump();
+  if (anchorJump) {
+    if (target == targetDocument) {
+      
+      
+      nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_SCROLLING_START,
+                              anchorJump, fromUserInputFlag);
+    }
+    targetDocument->SetAnchorJump(nsnull);
+  }
 }
 
 nsIContent*
