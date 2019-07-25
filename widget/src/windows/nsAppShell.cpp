@@ -132,7 +132,7 @@ nsAppShell::Init()
 
   
   
-  mozilla::widget::WinTaskbar::SetAppUserModelID();
+  mozilla::widget::WinTaskbar::RegisterAppUserModelID();
 #endif
 
   WNDCLASSW wc;
