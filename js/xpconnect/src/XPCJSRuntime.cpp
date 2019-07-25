@@ -14,6 +14,7 @@
 #include "WrapperFactory.h"
 #include "dom_quickstubs.h"
 
+#include "Element.h"
 #include "nsIMemoryReporter.h"
 #include "nsPIDOMWindow.h"
 #include "nsPrintfCString.h"
@@ -1677,7 +1678,12 @@ public:
     {
         size_t n = 0;
         nsCOMPtr<nsINode> node = do_QueryInterface(static_cast<nsISupports*>(aSupports));
-        if (node && !node->IsInDoc()) {
+        
+        
+        
+        if (node && !node->IsInDoc() &&
+            !(node->IsElement() && node->AsElement()->IsInNamespace(kNameSpaceID_XBL)))
+        {
             
             
             
