@@ -37,7 +37,6 @@
 
 
 
-
 #include <atk/atk.h>
 #include "AtkSocketAccessible.h"
 #include "nsMai.h"

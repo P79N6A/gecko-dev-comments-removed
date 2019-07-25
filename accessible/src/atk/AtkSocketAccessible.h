@@ -37,7 +37,6 @@
 
 
 
-
 #ifndef _AtkSocketAccessible_H_
 #define _AtkSocketAccessible_H_
 
