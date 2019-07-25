@@ -824,6 +824,9 @@ public:
                      LayerManager::DrawThebesLayerCallback aCallback,
                      void* aCallbackData);
 
+  virtual void PaintWithOpacity(gfxContext* aContext,
+                                float aOpacity);
+
 protected:
   BasicLayerManager* BasicManager()
   {
@@ -933,6 +936,13 @@ BasicCanvasLayer::Paint(gfxContext* aContext,
                         LayerManager::DrawThebesLayerCallback aCallback,
                         void* aCallbackData)
 {
+  PaintWithOpacity(aContext, GetEffectiveOpacity());
+}
+
+void
+BasicCanvasLayer::PaintWithOpacity(gfxContext* aContext,
+                                   float aOpacity)
+{
   NS_ASSERTION(BasicManager()->InDrawing(),
                "Can only draw in drawing phase");
 
@@ -948,16 +958,14 @@ BasicCanvasLayer::Paint(gfxContext* aContext,
     aContext->Scale(1.0, -1.0);
   }
 
-  float opacity = GetEffectiveOpacity();
-
   aContext->NewPath();
   
   aContext->Rectangle(gfxRect(0, 0, mBounds.width, mBounds.height));
   aContext->SetPattern(pat);
-  if (opacity != 1.0) {
+  if (aOpacity != 1.0) {
     aContext->Save();
     aContext->Clip();
-    aContext->Paint(opacity);
+    aContext->Paint(aOpacity);
     aContext->Restore();
   } else {
     aContext->Fill();
@@ -2022,12 +2030,17 @@ BasicShadowableCanvasLayer::Paint(gfxContext* aContext,
 
   
   
+  
+  
+  
   nsRefPtr<gfxContext> tmpCtx = new gfxContext(mBackBuffer);
   tmpCtx->SetOperator(gfxContext::OPERATOR_SOURCE);
 
   
   
-  BasicCanvasLayer::Paint(tmpCtx, nsnull, nsnull);
+  
+  
+  BasicCanvasLayer::PaintWithOpacity(tmpCtx, 1.0f);
 
   BasicManager()->PaintedCanvas(BasicManager()->Hold(this),
                                 mBackBuffer);
