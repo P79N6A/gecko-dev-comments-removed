@@ -15,3 +15,13 @@ function foo() {
 foo();
 
 assertEq(g, NaN);
+
+
+
+function native() {
+  var x;
+  x = x;
+  x = Math.ceil(NaN);
+  assertEq(x, NaN);
+}
+native();

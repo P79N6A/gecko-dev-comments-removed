@@ -689,8 +689,14 @@ class CallCompiler : public BaseCompiler
         if (callingNew)
             vp[1].setMagicWithObjectOrNullPayload(NULL);
 
+        uint32 recompilations = jit->recompilations;
+
         if (!CallJSNative(cx, fun->u.n.native, ic.frameSize.getArgc(f), vp))
             THROWV(true);
+
+        
+        if (f.jit()->recompilations != recompilations)
+            return true;
 
         
         if (ic.fastGuardedNative || ic.hasJsFunCheck)
