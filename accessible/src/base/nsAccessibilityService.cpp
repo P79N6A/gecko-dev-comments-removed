@@ -962,8 +962,21 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     
     
     
-    return GetAreaAccessible(weakFrame.GetFrame(), aNode, aWeakShell);
+    
+
+#ifdef DEBUG
+  nsImageFrame* imageFrame = do_QueryFrame(weakFrame.GetFrame());
+  NS_ASSERTION(imageFrame && content->IsHTML() && content->Tag() == nsGkAtoms::area,
+               "Unknown case of not main content for the frame!");
+#endif
+    return nsnull;
   }
+
+#ifdef DEBUG
+  nsImageFrame* imageFrame = do_QueryFrame(weakFrame.GetFrame());
+  NS_ASSERTION(!imageFrame || !content->IsHTML() || content->Tag() != nsGkAtoms::area,
+               "Image map manages the area accessible creation!");
+#endif
 
   nsDocAccessible* docAcc =
     GetAccService()->GetDocAccessible(aNode->GetOwnerDoc());
@@ -1276,50 +1289,6 @@ nsAccessibilityService::HasUniversalAriaProperty(nsIContent *aContent)
          nsAccUtils::HasDefinedARIAToken(aContent, nsGkAtoms::aria_live) ||
          nsAccUtils::HasDefinedARIAToken(aContent, nsGkAtoms::aria_owns) ||
          nsAccUtils::HasDefinedARIAToken(aContent, nsGkAtoms::aria_relevant);
-}
-
-nsAccessible*
-nsAccessibilityService::GetAreaAccessible(nsIFrame* aImageFrame,
-                                          nsINode* aAreaNode,
-                                          nsIWeakReference* aWeakShell,
-                                          nsAccessible** aImageAccessible)
-{
-  
-  nsImageFrame *imageFrame = do_QueryFrame(aImageFrame);
-  if (!imageFrame)
-    return nsnull;
-
-  nsCOMPtr<nsIDOMHTMLAreaElement> areaElmt = do_QueryInterface(aAreaNode);
-  if (!areaElmt)
-    return nsnull;
-
-  
-  
-  nsRefPtr<nsAccessible> image =
-    GetAccessibleInWeakShell(aImageFrame->GetContent(), aWeakShell);
-  if (!image) {
-    image = CreateHTMLImageAccessible(aImageFrame->GetContent(),
-                                      aImageFrame->PresContext()->PresShell());
-
-    nsDocAccessible* document =
-      GetAccService()->GetDocAccessible(aAreaNode->GetOwnerDoc());
-    if (!document) {
-      NS_NOTREACHED("No document for accessible being created!");
-      return nsnull;
-    }
-
-    if (!document->BindToDocument(image, nsnull))
-      return nsnull;
-  }
-
-  if (aImageAccessible)
-    *aImageAccessible = image;
-
-  
-  
-  image->EnsureChildren();
-
-  return GetAccessibleInWeakShell(aAreaNode, aWeakShell);
 }
 
 already_AddRefed<nsAccessible>

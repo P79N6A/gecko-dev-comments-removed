@@ -233,18 +233,6 @@ private:
 
 
 
-
-
-
-
-  nsAccessible* GetAreaAccessible(nsIFrame* aImageFrame, nsINode* aAreaNode,
-                                  nsIWeakReference* aWeakShell,
-                                  nsAccessible** aImageAccessible = nsnull);
-
-  
-
-
-
   already_AddRefed<nsAccessible>
     CreateAccessibleByType(nsIContent* aContent, nsIWeakReference* aWeakShell);
 
