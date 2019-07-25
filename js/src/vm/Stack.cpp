@@ -249,14 +249,6 @@ StackSpace::containingSegment(const StackFrame *target) const
     return *(StackSegment *)NULL;
 }
 
-JSObject &
-StackSpace::varObjForFrame(const StackFrame *fp)
-{
-    if (fp->hasCallObj())
-        return fp->callObj();
-    return containingSegment(fp).initialVarObj();
-}
-
 void
 StackSpace::mark(JSTracer *trc)
 {
@@ -271,10 +263,6 @@ StackSpace::mark(JSTracer *trc)
             
             MarkStackRangeConservatively(trc, seg->valueRangeBegin(), end);
         } else {
-            
-            if (seg->hasInitialVarObj())
-                gc::MarkObject(trc, seg->initialVarObj(), "varobj");
-
             
             StackFrame *fp = seg->currentFrame();
             MarkStackRangeConservatively(trc, fp->slots(), end);
@@ -526,11 +514,9 @@ ContextStack::getExecuteFrame(JSContext *cx, JSScript *script,
 }
 
 void
-ContextStack::pushExecuteFrame(JSObject *initialVarObj,
-                               ExecuteFrameGuard *frameGuard)
+ContextStack::pushExecuteFrame(ExecuteFrameGuard *frameGuard)
 {
     pushSegmentAndFrame(frameGuard->regs_, frameGuard);
-    frameGuard->seg_->setInitialVarObj(initialVarObj);
 }
 
 bool

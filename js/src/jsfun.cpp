@@ -978,6 +978,7 @@ NewCallObject(JSContext *cx, JSScript *script, JSObject &scopeChain, JSObject *c
 
     
     callobj->initCall(cx, bindings, &scopeChain);
+    callobj->makeVarObj();
 
     
     if (!callobj->ensureInstanceReservedSlots(cx, argsVars))

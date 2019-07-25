@@ -704,6 +704,28 @@ class StackFrame
 
 
 
+
+
+
+
+
+
+
+
+    JSObject &varObj() {
+        JSObject *obj = &scopeChain();
+        while (!obj->isVarObj())
+            obj = obj->getParent();
+        return *obj;
+    }
+
+    
+
+
+
+
+
+
     JSCompartment *compartment() const {
         JS_ASSERT_IF(isScriptFrame(), scopeChain().compartment() == script()->compartment);
         return scopeChain().compartment();
@@ -1087,12 +1109,6 @@ class StackSpace
     
     StackSegment &containingSegment(const StackFrame *target) const;
 
-    
-
-
-
-    JSObject &varObjForFrame(const StackFrame *fp);
-
 #ifdef JS_TRACER
     
 
@@ -1228,9 +1244,6 @@ class ContextStack
     }
 
     
-    inline JSObject &currentVarObj() const;
-
-    
     inline StackFrame *findFrameAtLevel(uintN targetLevel) const;
 
 #ifdef DEBUG
@@ -1276,8 +1289,7 @@ class ContextStack
     
     bool getExecuteFrame(JSContext *cx, JSScript *script,
                          ExecuteFrameGuard *frameGuard) const;
-    void pushExecuteFrame(JSObject *initialVarObj,
-                          ExecuteFrameGuard *frameGuard);
+    void pushExecuteFrame(ExecuteFrameGuard *frameGuard);
 
     
     bool getGeneratorFrame(JSContext *cx, uintN vplen, uintN nslots,
