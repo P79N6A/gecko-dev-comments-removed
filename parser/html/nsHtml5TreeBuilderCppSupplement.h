@@ -687,6 +687,13 @@ nsHtml5TreeBuilder::DropHandles()
   mHandlesUsed = 0;
 }
 
+void
+nsHtml5TreeBuilder::MarkAsBroken()
+{
+  mOpQueue.Clear(); 
+  mOpQueue.AppendElement()->Init(eTreeOpMarkAsBroken);
+}
+
 
 void
 nsHtml5TreeBuilder::documentMode(nsHtml5DocumentMode m)

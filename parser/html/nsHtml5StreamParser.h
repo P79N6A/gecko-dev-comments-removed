@@ -46,7 +46,7 @@
 #include "nsHtml5MetaScanner.h"
 #include "nsIUnicodeDecoder.h"
 #include "nsHtml5TreeOpExecutor.h"
-#include "nsHtml5UTF16Buffer.h"
+#include "nsHtml5OwningUTF16Buffer.h"
 #include "nsIInputStream.h"
 #include "nsICharsetAlias.h"
 #include "mozilla/Mutex.h"
@@ -194,6 +194,8 @@ class nsHtml5StreamParser : public nsIStreamListener,
       return ret;
     }
 #endif
+
+    void MarkAsBroken();
 
     
 
@@ -383,12 +385,12 @@ class nsHtml5StreamParser : public nsIStreamListener,
     
 
 
-    nsRefPtr<nsHtml5UTF16Buffer>  mFirstBuffer;
+    nsRefPtr<nsHtml5OwningUTF16Buffer> mFirstBuffer;
 
     
 
 
-    nsHtml5UTF16Buffer*           mLastBuffer; 
+    nsHtml5OwningUTF16Buffer*     mLastBuffer; 
                       
 
     

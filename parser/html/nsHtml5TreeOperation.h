@@ -68,6 +68,7 @@ enum eHtml5TreeOperation {
   eTreeOpAppendCommentToDocument,
   eTreeOpAppendDoctypeToDocument,
   
+  eTreeOpMarkAsBroken,
   eTreeOpRunScript,
   eTreeOpRunScriptAsyncDefer,
   eTreeOpDoneAddingChildren,

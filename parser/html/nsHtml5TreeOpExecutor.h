@@ -125,6 +125,16 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
     bool                          mCallContinueInterruptedParsingIfEnabled;
 
+    
+
+
+
+
+
+
+
+    bool                          mBroken;
+
   public:
   
     nsHtml5TreeOpExecutor();
@@ -243,6 +253,20 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
     
     bool IsFragmentMode() {
       return mFragmentMode;
+    }
+
+    
+
+
+
+    void MarkAsBroken();
+
+    
+
+
+    inline bool IsBroken() {
+      NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+      return mBroken;
     }
 
     inline void BeginDocUpdate() {
