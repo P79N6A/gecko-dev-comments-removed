@@ -54,9 +54,12 @@
 #include "nsHashKeys.h"
 #include "nsTHashtable.h"
 #include "mozIStorageStatement.h"
+#include "mozIStorageAsyncStatement.h"
 #include "mozIStoragePendingStatement.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageRow.h"
+#include "mozIStorageCompletionCallback.h"
+#include "mozIStorageStatementCallback.h"
 
 class nsICookiePermission;
 class nsIEffectiveTLDService;
@@ -66,8 +69,6 @@ class nsIObserverService;
 class nsIURI;
 class nsIChannel;
 class mozIStorageService;
-class mozIStorageStatementCallback;
-class mozIStorageCompletionCallback;
 class mozIThirdPartyUtil;
 class ReadCookieDBListener;
 
@@ -150,15 +151,20 @@ struct CookieDomainTuple
 
 struct DBState
 {
-  DBState() : cookieCount(0), cookieOldestTime(LL_MAXINT) { }
+  DBState() : cookieCount(0), cookieOldestTime(LL_MAXINT)
+  {
+    hostTable.Init();
+  }
+
+  NS_INLINE_DECL_REFCOUNTING(DBState)
 
   nsTHashtable<nsCookieEntry>     hostTable;
   PRUint32                        cookieCount;
   PRInt64                         cookieOldestTime;
   nsCOMPtr<mozIStorageConnection> dbConn;
-  nsCOMPtr<mozIStorageStatement>  stmtInsert;
-  nsCOMPtr<mozIStorageStatement>  stmtDelete;
-  nsCOMPtr<mozIStorageStatement>  stmtUpdate;
+  nsCOMPtr<mozIStorageAsyncStatement> stmtInsert;
+  nsCOMPtr<mozIStorageAsyncStatement> stmtDelete;
+  nsCOMPtr<mozIStorageAsyncStatement> stmtUpdate;
 
   
   
@@ -175,6 +181,12 @@ struct DBState
   
   
   nsTHashtable<nsCStringHashKey>        readSet;
+
+  
+  nsCOMPtr<mozIStorageStatementCallback>  insertListener;
+  nsCOMPtr<mozIStorageStatementCallback>  updateListener;
+  nsCOMPtr<mozIStorageStatementCallback>  removeListener;
+  nsCOMPtr<mozIStorageCompletionCallback> closeListener;
 };
 
 
@@ -215,10 +227,11 @@ class nsCookieService : public nsICookieService
 
   protected:
     void                          PrefChanged(nsIPrefBranch *aPrefBranch);
-    nsresult                      InitDB();
+    void                          InitDBStates();
     nsresult                      TryInitDB(PRBool aDeleteExistingDB);
     nsresult                      CreateTable();
-    void                          CloseDB();
+    void                          CloseDBStates();
+    void                          CloseDefaultDBConnection();
     nsresult                      Read();
     template<class T> nsCookie*   GetCookieFromRow(T &aRow);
     void                          AsyncReadComplete();
@@ -268,14 +281,8 @@ class nsCookieService : public nsICookieService
     
     
     DBState                      *mDBState;
-    DBState                       mDefaultDBState;
-    DBState                       mPrivateDBState;
-
-    
-    nsCOMPtr<mozIStorageStatementCallback>  mInsertListener;
-    nsCOMPtr<mozIStorageStatementCallback>  mUpdateListener;
-    nsCOMPtr<mozIStorageStatementCallback>  mRemoveListener;
-    nsCOMPtr<mozIStorageCompletionCallback> mCloseListener;
+    nsRefPtr<DBState>             mDefaultDBState;
+    nsRefPtr<DBState>             mPrivateDBState;
 
     
     PRUint8                       mCookieBehavior; 
