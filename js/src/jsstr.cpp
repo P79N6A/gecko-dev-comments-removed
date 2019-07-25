@@ -105,83 +105,88 @@ js_GetStringChars(JSContext *cx, JSString *str)
 void
 JSString::flatten()
 {
-    JSString *topNode;
-    jschar *chars;
-    size_t capacity;
     JS_ASSERT(isRope());
 
     
 
 
 
-    topNode = this;
+    JSString *topNode = this;
     while (topNode->isInteriorNode())
         topNode = topNode->interiorNodeParent();
 
+    const size_t length = topNode->length();
+    const size_t capacity = topNode->topNodeCapacity();
+    jschar *const chars = (jschar *) topNode->topNodeBuffer();
+
+    
+
+
+
+    topNode->e.mParent = NULL;
 #ifdef DEBUG
-    size_t length = topNode->length();
+    topNode->mLengthAndFlags = JSString::INTERIOR_NODE;
 #endif
 
-    capacity = topNode->topNodeCapacity();
-    chars = (jschar *) topNode->topNodeBuffer();
-
     
 
 
 
 
-    topNode->convertToInteriorNode(NULL);
-    JSString *str = topNode, *next;
-    size_t pos = 0;
-
-    
-
-
-
-    while (str) {
-        switch (str->ropeTraversalCount()) {
-          case 0:
-            next = str->ropeLeft();
-
-            
 
 
 
 
-            str->startTraversalConversion(chars, pos);
-            str->ropeIncrementTraversalCount();
+
+    JSString *str = topNode;
+    jschar *pos = chars;
+    while (true) {
+        
+        JS_ASSERT(str->isInteriorNode());
+        {
+            JSString *next = str->mLeft;
+            str->mChars = pos;  
             if (next->isInteriorNode()) {
+                str->mLengthAndFlags = 0x200;  
                 str = next;
+                continue;  
             } else {
-                js_strncpy(chars + pos, next->chars(), next->length());
-                pos += next->length();
+                size_t len = next->length();
+                PodCopy(pos, next->mChars, len);
+                pos += len;
+                goto visit_right_child;
             }
-            break;
-          case 1:
-            next = str->ropeRight();
-            str->ropeIncrementTraversalCount();
+        }
+
+      revisit_parent:
+        if (str->mLengthAndFlags == 0x200) {
+          visit_right_child:
+            JSString *next = str->e.mRight;
             if (next->isInteriorNode()) {
+                str->mLengthAndFlags = 0x300;
                 str = next;
+                continue;  
             } else {
-                js_strncpy(chars + pos, next->chars(), next->length());
-                pos += next->length();
+                size_t len = next->length();
+                PodCopy(pos, next->mChars, len);
+                pos += len;
+                goto finish_node;
             }
-            break;
-          case 2:
-            next = str->interiorNodeParent();
-            
-            str->finishTraversalConversion(topNode, chars, pos);
+        } else {
+            JS_ASSERT(str->mLengthAndFlags == 0x300);
+          finish_node:
+            JSString *next = str->e.mParent;
+            str->finishTraversalConversion(topNode, pos);
+            if (!next) {
+                JS_ASSERT(pos == chars + length);
+                *pos = 0;
+                topNode->initFlatExtensible(chars, length, capacity);
+                return;
+            }
             str = next;
-            break;
-          default:
-            JS_NOT_REACHED("bad traversal count");
+            goto revisit_parent;  
         }
     }
-
-    JS_ASSERT(pos == length);
-    
-    chars[pos] = 0;
-    topNode->initFlatExtensible(chars, pos, capacity);
 }
 
 #ifdef JS_TRACER
@@ -353,8 +358,8 @@ js_ConcatStrings(JSContext *cx, JSString *left, JSString *right)
         left->flatten();
         leftRopeTop = false;
         rightRopeTop = false;
-        JS_ASSERT(leftLen = left->length());
-        JS_ASSERT(rightLen = right->length());
+        JS_ASSERT(leftLen == left->length());
+        JS_ASSERT(rightLen == right->length());
         JS_ASSERT(!left->isTopNode());
         JS_ASSERT(!right->isTopNode());
     }

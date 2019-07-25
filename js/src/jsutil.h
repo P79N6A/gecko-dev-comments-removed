@@ -56,14 +56,6 @@ JS_BEGIN_EXTERN_C
 extern JS_PUBLIC_API(void)
 JS_Assert(const char *s, const char *file, JSIntn ln);
 
-#define JS_CRASH_UNLESS(__cond)                                                 \
-    JS_BEGIN_MACRO                                                              \
-        if (!(__cond)) {                                                        \
-            *(int *)(uintptr_t)0xccadbeef = 0;                                  \
-            ((void(*)())0)(); /* More reliable, but doesn't say CCADBEEF */     \
-        }                                                                       \
-    JS_END_MACRO
-
 #ifdef DEBUG
 
 #define JS_ASSERT(expr)                                                       \
@@ -350,6 +342,18 @@ JS_ALWAYS_INLINE static void
 PodArrayZero(T (&t)[N])
 {
     memset(t, 0, N * sizeof(T));
+}
+
+template <class T>
+JS_ALWAYS_INLINE static void
+PodCopy(T *dst, T *src, size_t nelem)
+{
+    if (nelem < 128) {
+        for (T *srcend = src + nelem; src != srcend; ++src, ++dst)
+            *dst = *src;
+    } else {
+        memcpy(dst, src, nelem * sizeof(T));
+    }
 }
 
 } 
