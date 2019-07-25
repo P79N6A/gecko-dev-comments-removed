@@ -66,6 +66,24 @@ var TabletSidebar = {
 
 
 
+  tryGrab: function tryGrab(aDx) {
+    if (aDx == 0)
+      return false;
+
+    let ltr = (Util.localeDir == Util.LOCALE_DIR_LTR);
+    let willShow = ltr ? (aDx < 0) : (aDx > 0);
+
+    if (willShow != this.visible) {
+      this.grab();
+      return true;
+    }
+    return false;
+  },
+
+  
+
+
+
   grab: function grab() {
     this._grabbed = true;
     
