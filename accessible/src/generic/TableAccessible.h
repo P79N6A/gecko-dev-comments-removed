@@ -132,12 +132,17 @@ public:
   
 
 
-  virtual void SelectedColIndices(nsTArray<PRUint32>* aCols) {}
+  virtual void SelectedCellIndices(nsTArray<PRUint32>* aCells) = 0;
 
   
 
 
-  virtual void SelectedRowIndices(nsTArray<PRUint32>* aRows) {}
+  virtual void SelectedColIndices(nsTArray<PRUint32>* aCols) = 0;
+
+  
+
+
+  virtual void SelectedRowIndices(nsTArray<PRUint32>* aRows) = 0;
 
   
 
