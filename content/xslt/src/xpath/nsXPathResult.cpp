@@ -231,6 +231,7 @@ nsXPathResult::SnapshotItem(PRUint32 aIndex, nsIDOMNode **aResult)
 void
 nsXPathResult::NodeWillBeDestroyed(const nsINode* aNode)
 {
+    nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
     
     mDocument = nsnull;
     Invalidate(aNode->IsNodeOfType(nsINode::eCONTENT) ?

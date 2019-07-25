@@ -242,6 +242,10 @@ public:
 
 
 
+
+
+
+
   virtual void NodeWillBeDestroyed(const nsINode *aNode) = 0;
 
   
