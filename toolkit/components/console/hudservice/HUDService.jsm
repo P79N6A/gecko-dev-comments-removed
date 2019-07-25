@@ -51,6 +51,7 @@ const CONSOLEAPI_CLASS_ID = "{b49c18f8-3379-4fc0-8c90-d7772c1a9ff3}";
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/NetworkHelper.jsm");
+Cu.import("resource:///modules/PropertyPanel.jsm");
 
 var EXPORTED_SYMBOLS = ["HUDService", "ConsoleUtils"];
 
@@ -4174,6 +4175,8 @@ function findCompletionBeginning(aStr)
 function JSPropertyProvider(aScope, aInputValue)
 {
   let obj = unwrap(aScope);
+  
+  let win = obj;
 
   
   
@@ -4212,10 +4215,15 @@ function JSPropertyProvider(aScope, aInputValue)
 
       
       
-      if (obj.__lookupGetter__(prop)) {
+      if (isNonNativeGetter(win, obj, prop)) {
         return null;
       }
-      obj = obj[prop];
+      try {
+        obj = obj[prop];
+      }
+      catch (ex) {
+        return null;
+      }
     }
   }
   else {
@@ -4258,10 +4266,16 @@ function isIteratorOrGenerator(aObject)
       return true;
     }
 
-    let str = aObject.toString();
-    if (typeof aObject.next == "function" &&
-        str.indexOf("[object Generator") == 0) {
-      return true;
+    try {
+      let str = aObject.toString();
+      if (typeof aObject.next == "function" &&
+          str.indexOf("[object Generator") == 0) {
+        return true;
+      }
+    }
+    catch (ex) {
+      
+      return false;
     }
   }
 
@@ -4564,7 +4578,6 @@ JSTerm.prototype = {
   },
 
   
-
 
 
 

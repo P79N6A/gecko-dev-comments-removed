@@ -37,6 +37,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -44,7 +45,8 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-var EXPORTED_SYMBOLS = ["PropertyPanel", "PropertyTreeView", "namesAndValuesOf"];
+var EXPORTED_SYMBOLS = ["PropertyPanel", "PropertyTreeView",
+                        "namesAndValuesOf", "isNonNativeGetter"];
 
 
 
@@ -112,11 +114,20 @@ function presentableValueFor(aObject)
       presentable = aObject.toString();
       let m = /^\[object (\S+)\]/.exec(presentable);
 
-      if (typeof aObject == "object" && typeof aObject.next == "function" &&
-          m && m[1] == "Generator") {
+      try {
+        if (typeof aObject == "object" && typeof aObject.next == "function" &&
+            m && m[1] == "Generator") {
+          return {
+            type: TYPE_OTHER,
+            display: m[1]
+          };
+        }
+      }
+      catch (ex) {
+        
         return {
-          type: TYPE_OTHER,
-          display: m[1]
+          type: TYPE_OBJECT,
+          display: m ? m[1] : "Object"
         };
       }
 
@@ -156,10 +167,53 @@ function isNativeFunction(aFunction)
 
 
 
+
+
+
+
+
+
+
+
+function isNonNativeGetter(aScope, aObject, aProp) {
+  if (typeof aObject != "object") {
+    return false;
+  }
+  let desc;
+  while (aObject) {
+    try {
+      if (desc = aScope.Object.getOwnPropertyDescriptor(aObject, aProp)) {
+        break;
+      }
+    }
+    catch (ex) {
+      
+      if (ex.name == "NS_ERROR_XPC_BAD_CONVERT_JS" ||
+          ex.name == "NS_ERROR_XPC_BAD_OP_ON_WN_PROTO") {
+        return false;
+      }
+      throw ex;
+    }
+    aObject = Object.getPrototypeOf(aObject);
+  }
+  if (desc && desc.get && !isNativeFunction(desc.get)) {
+    return true;
+  }
+  return false;
+}
+
+
+
+
+
+
+
+
+
 function namesAndValuesOf(aObject)
 {
   let pairs = [];
-  let value, presentable, getter;
+  let value, presentable;
 
   let isDOMDocument = aObject instanceof Ci.nsIDOMDocument;
 
@@ -171,9 +225,9 @@ function namesAndValuesOf(aObject)
 
     
     
-    getter = aObject.__lookupGetter__ ?
-             aObject.__lookupGetter__(propName) : null;
-    if (getter && !isNativeFunction(getter)) {
+    let chromeWindow = Services.wm.getMostRecentWindow("navigator:browser");
+    let contentWindow = chromeWindow.gBrowser.selectedBrowser.contentWindow;
+    if (isNonNativeGetter(contentWindow.wrappedJSObject, aObject, propName)) {
       value = ""; 
       presentable = {type: TYPE_OTHER, display: "Getter"};
     }
