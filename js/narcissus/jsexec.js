@@ -110,9 +110,9 @@ var global = {
         var s = {object: global, parent: null};
         return new FunctionObject(f, s);
     },
-    Array: function Array(dummy) {
+    Array: function (dummy) {
         
-        return GLOBAL.Array.apply(this, arguments);
+        return Array.apply(this, arguments);
     },
     String: function String(s) {
         
