@@ -229,8 +229,12 @@ nsPlaintextEditor::EndEditorInit()
   if (mInitTriggerCounter == 0)
   {
     res = InitRules();
-    if (NS_SUCCEEDED(res)) 
+    if (NS_SUCCEEDED(res)) {
+      
+      
+      EnableUndo(PR_FALSE);
       EnableUndo(PR_TRUE);
+    }
   }
   return res;
 }
