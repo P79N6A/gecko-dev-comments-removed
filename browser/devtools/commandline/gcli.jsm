@@ -5292,14 +5292,14 @@ exports.CommandAssignment = CommandAssignment;
 
 
 
-function UnassignedAssignment(requisition, arg, isIncompleteName) {
+function UnassignedAssignment(requisition, arg) {
   this.param = new canon.Parameter({
     name: '__unassigned',
     description: l10n.lookup('cliOptions'),
     type: {
       name: 'param',
       requisition: requisition,
-      isIncompleteName: isIncompleteName
+      isIncompleteName: (arg.text.charAt(0) === '-')
     },
   });
   this.paramIndex = -1;
@@ -5538,8 +5538,15 @@ Requisition.prototype.cloneAssignments = function() {
 Requisition.prototype.getStatus = function() {
   var status = Status.VALID;
   if (this._unassigned.length !== 0) {
-    return Status.ERROR;
+    var isAllIncomplete = true;
+    this._unassigned.forEach(function(assignment) {
+      if (!assignment.param.type.isIncompleteName) {
+        isAllIncomplete = false;
+      }
+    });
+    status = isAllIncomplete ? Status.INCOMPLETE : Status.ERROR;
   }
+
   this.getAssignments(true).forEach(function(assignment) {
     var assignStatus = assignment.getStatus();
     if (assignStatus > status) {
@@ -6358,7 +6365,7 @@ Requisition.prototype._split = function(args) {
 
 Requisition.prototype._addUnassignedArgs = function(args) {
   args.forEach(function(arg) {
-    this._unassigned.push(new UnassignedAssignment(this, arg, false));
+    this._unassigned.push(new UnassignedAssignment(this, arg));
   }.bind(this));
 };
 
@@ -6401,7 +6408,7 @@ Requisition.prototype._assign = function(args) {
 
   
   
-  var names = this.getParameterNames();
+  var unassignedParams = this.getParameterNames();
 
   
   var arrayArgs = {};
@@ -6414,7 +6421,7 @@ Requisition.prototype._assign = function(args) {
     while (i < args.length) {
       if (assignment.param.isKnownAs(args[i].text)) {
         var arg = args.splice(i, 1)[0];
-        names = names.filter(function(test) {
+        unassignedParams = unassignedParams.filter(function(test) {
           return test !== assignment.param.name;
         });
 
@@ -6451,7 +6458,7 @@ Requisition.prototype._assign = function(args) {
   }, this);
 
   
-  names.forEach(function(name) {
+  unassignedParams.forEach(function(name) {
     var assignment = this.getAssignment(name);
 
     
@@ -6485,7 +6492,7 @@ Requisition.prototype._assign = function(args) {
             arg.text.charAt(0) === '-';
 
         if (isIncompleteName) {
-          this._unassigned.push(new UnassignedAssignment(this, arg, true));
+          this._unassigned.push(new UnassignedAssignment(this, arg));
         }
         else {
           var conversion = assignment.param.type.parse(arg);
@@ -7043,6 +7050,10 @@ FocusManager.prototype._checkShow = function() {
 
 
 FocusManager.prototype._shouldShowTooltip = function() {
+  if (!this._hasFocus) {
+    return { visible: false, reason: '!hasFocus' };
+  }
+
   if (eagerHelper.value === Eagerness.NEVER) {
     return { visible: false, reason: 'eagerHelper !== NEVER' };
   }
@@ -7071,6 +7082,10 @@ FocusManager.prototype._shouldShowTooltip = function() {
 
 
 FocusManager.prototype._shouldShowOutput = function() {
+  if (!this._hasFocus) {
+    return { visible: false, reason: '!hasFocus' };
+  }
+
   if (this._recentOutput) {
     return { visible: true, reason: 'recentOutput' };
   }
@@ -9727,7 +9742,7 @@ Completer.prototype._getCompleterTemplateData = function() {
   
   var directTabText = '';
   var arrowTabText = '';
-  var current = this.inputter.assignment;
+  var current = this.requisition.getAssignmentAt(input.cursor.start);
 
   if (input.typed.trim().length !== 0) {
     var prediction = current.conversion.getPredictionAt(this.choice);
