@@ -77,15 +77,10 @@ var gUpdateWizard = {
     catch (e) {
     }
 
-    
-    AddonManager.getAllAddons(function(aAddons) {
-      gUpdateWizard.addons = aAddons;
-
-      if (Services.io.offline)
-        document.documentElement.currentPage = document.getElementById("offline");
-      else
-        document.documentElement.currentPage = document.getElementById("versioninfo");
-    });
+    if (Services.io.offline)
+      document.documentElement.currentPage = document.getElementById("offline");
+    else
+      document.documentElement.currentPage = document.getElementById("versioninfo");
   },
 
   onWizardFinish: function ()
@@ -160,11 +155,17 @@ var gVersionInfoPage = {
     gUpdateWizard.setButtonLabels(null, true,
                                   "nextButtonText", true,
                                   "cancelButtonText", false);
-    this._totalCount = gUpdateWizard.addons.length;
 
-    gUpdateWizard.addons.forEach(function(aAddon) {
-      aAddon.findUpdates(this, AddonManager.UPDATE_WHEN_NEW_APP_INSTALLED);
-    }, this);
+    
+    AddonManager.getAllAddons(function(aAddons) {
+      gUpdateWizard.addons = aAddons;
+
+      gVersionInfoPage._totalCount = aAddons.length;
+
+      aAddons.forEach(function(aAddon) {
+        aAddon.findUpdates(gVersionInfoPage, AddonManager.UPDATE_WHEN_NEW_APP_INSTALLED);
+      }, this);
+    });
   },
 
   onAllUpdatesFinished: function() {
