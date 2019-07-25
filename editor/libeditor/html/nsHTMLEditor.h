@@ -781,12 +781,12 @@ protected:
 
   nsCOMArray<nsIContentFilter> mContentFilters;
 
-  TypeInState*         mTypeInState;
+  nsRefPtr<TypeInState>        mTypeInState;
 
   PRPackedBool mCRInParagraphCreatesParagraph;
 
   PRPackedBool mCSSAware;
-  nsHTMLCSSUtils *mHTMLCSSUtils;
+  nsAutoPtr<nsHTMLCSSUtils> mHTMLCSSUtils;
 
   
   PRInt32  mSelectedCellIndex;

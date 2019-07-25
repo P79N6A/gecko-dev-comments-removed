@@ -451,8 +451,13 @@ nsEditingSession::SetupEditorOnWindow(nsIDOMWindow *aWindow)
   nsCOMPtr<nsIEditorDocShell> editorDocShell = do_QueryInterface(docShell, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIEditor> editor = do_CreateInstance(classString, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+  nsCOMPtr<nsIEditor> editor = do_QueryReferent(mExistingEditor);
+  if (!editor) {
+    editor = do_CreateInstance(classString, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+    mExistingEditor = do_GetWeakReference(editor);
+  }
   
   rv = editorDocShell->SetEditor(editor);
   NS_ENSURE_SUCCESS(rv, rv);

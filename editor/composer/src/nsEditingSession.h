@@ -168,6 +168,9 @@ protected:
 
   
   nsWeakPtr       mDocShell;
+
+  
+  nsWeakPtr       mExistingEditor;
 };
 
 
