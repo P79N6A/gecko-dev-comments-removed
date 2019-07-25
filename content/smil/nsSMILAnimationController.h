@@ -156,6 +156,9 @@ protected:
       nsSMILCompositor* aCompositor, void* aArg);
 
   
+  nsRefreshDriver* GetRefreshDriver();
+
+  
   void StartSampling(nsRefreshDriver* aRefreshDriver);
   void StopSampling(nsRefreshDriver* aRefreshDriver);
 

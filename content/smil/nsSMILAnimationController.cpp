@@ -56,24 +56,6 @@ using namespace mozilla::dom;
 
 
 
-static nsRefreshDriver*
-GetRefreshDriverForDoc(nsIDocument* aDoc)
-{
-  if (!aDoc) {
-    NS_ERROR("Requesting refresh driver after document has disconnected!");
-    return nsnull;
-  }
-
-  nsIPresShell* shell = aDoc->GetShell();
-  if (!shell) {
-    return nsnull;
-  }
-
-  nsPresContext* context = shell->GetPresContext();
-  return context ? context->RefreshDriver() : nsnull;
-}
-
-
 
 
 nsSMILAnimationController::nsSMILAnimationController(nsIDocument* aDoc)
@@ -88,7 +70,7 @@ nsSMILAnimationController::nsSMILAnimationController(nsIDocument* aDoc)
   mAnimationElementTable.Init();
   mChildContainerTable.Init();
 
-  nsRefreshDriver* refreshDriver = GetRefreshDriverForDoc(mDocument);
+  nsRefreshDriver* refreshDriver = GetRefreshDriver();
   if (refreshDriver) {
     mStartTime = refreshDriver->MostRecentRefresh();
   } else {
@@ -113,7 +95,7 @@ nsSMILAnimationController::Disconnect()
   NS_ABORT_IF_FALSE(mRefCnt.get() == 1,
                     "Expecting to disconnect when doc is sole remaining owner");
 
-  StopSampling(GetRefreshDriverForDoc(mDocument));
+  StopSampling(GetRefreshDriver());
 
   mDocument = nsnull; 
 }
@@ -128,7 +110,7 @@ nsSMILAnimationController::Pause(PRUint32 aType)
 
   if (mPauseState) {
     mDeferredStartSampling = PR_FALSE;
-    StopSampling(GetRefreshDriverForDoc(mDocument));
+    StopSampling(GetRefreshDriver());
   }
 }
 
@@ -144,7 +126,7 @@ nsSMILAnimationController::Resume(PRUint32 aType)
 
   if (wasPaused && !mPauseState && mChildContainerTable.Count()) {
     Sample(); 
-    MaybeStartSampling(GetRefreshDriverForDoc(mDocument));
+    MaybeStartSampling(GetRefreshDriver());
   }
 }
 
@@ -223,7 +205,7 @@ nsSMILAnimationController::RegisterAnimationElement(
       NS_ABORT_IF_FALSE(mAnimationElementTable.Count() == 1,
                         "we shouldn't have deferred sampling if we already had "
                         "animations registered");
-      StartSampling(GetRefreshDriverForDoc(mDocument));
+      StartSampling(GetRefreshDriver());
     } 
   }
 }
@@ -312,8 +294,8 @@ nsSMILAnimationController::StartSampling(nsRefreshDriver* aRefreshDriver)
   NS_ASSERTION(!mDeferredStartSampling,
                "Started sampling but the deferred start flag is still set");
   if (aRefreshDriver) {
-    NS_ABORT_IF_FALSE(!GetRefreshDriverForDoc(mDocument) ||
-                      aRefreshDriver == GetRefreshDriverForDoc(mDocument),
+    NS_ABORT_IF_FALSE(!GetRefreshDriver() ||
+                      aRefreshDriver == GetRefreshDriver(),
                       "Starting sampling with wrong refresh driver");
     
     
@@ -328,8 +310,8 @@ nsSMILAnimationController::StopSampling(nsRefreshDriver* aRefreshDriver)
   if (aRefreshDriver) {
     
     
-    NS_ABORT_IF_FALSE(!GetRefreshDriverForDoc(mDocument) ||
-                      aRefreshDriver == GetRefreshDriverForDoc(mDocument),
+    NS_ABORT_IF_FALSE(!GetRefreshDriver() ||
+                      aRefreshDriver == GetRefreshDriver(),
                       "Stopping sampling with wrong refresh driver");
     aRefreshDriver->RemoveRefreshObserver(this, Flush_Style);
   }
@@ -834,7 +816,7 @@ nsSMILAnimationController::AddChild(nsSMILTimeContainer& aChild)
 
   if (!mPauseState && mChildContainerTable.Count() == 1) {
     Sample(); 
-    MaybeStartSampling(GetRefreshDriverForDoc(mDocument));
+    MaybeStartSampling(GetRefreshDriver());
   }
 
   return NS_OK;
@@ -846,6 +828,24 @@ nsSMILAnimationController::RemoveChild(nsSMILTimeContainer& aChild)
   mChildContainerTable.RemoveEntry(&aChild);
 
   if (!mPauseState && mChildContainerTable.Count() == 0) {
-    StopSampling(GetRefreshDriverForDoc(mDocument));
+    StopSampling(GetRefreshDriver());
   }
+}
+
+
+nsRefreshDriver*
+nsSMILAnimationController::GetRefreshDriver()
+{
+  if (!mDocument) {
+    NS_ERROR("Requesting refresh driver after document has disconnected!");
+    return nsnull;
+  }
+
+  nsIPresShell* shell = mDocument->GetShell();
+  if (!shell) {
+    return nsnull;
+  }
+
+  nsPresContext* context = shell->GetPresContext();
+  return context ? context->RefreshDriver() : nsnull;
 }
