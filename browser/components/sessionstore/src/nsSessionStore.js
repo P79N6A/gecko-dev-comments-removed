@@ -1405,17 +1405,37 @@ SessionStoreService.prototype = {
     this._browserSetState = true;
 
     
+    
+    
+    
+    let lastWindow = this._getMostRecentBrowserWindow();
+    let canUseLastWindow = lastWindow &&
+                           !lastWindow.__SS_lastSessionWindowID;
+
+    
     for (let i = 0; i < lastSessionState.windows.length; i++) {
       let winState = lastSessionState.windows[i];
       let lastSessionWindowID = winState.__lastSessionWindowID;
       
       delete winState.__lastSessionWindowID;
+
       
-      if (windows[lastSessionWindowID]) {
+      
+      
+      let windowToUse = windows[lastSessionWindowID];
+      if (!windowToUse && canUseLastWindow) {
+        windowToUse = lastWindow;
+        canUseLastWindow = false;
+      }
+
+      let [canUseWindow, canOverwriteTabs] = this._prepWindowToRestoreInto(windowToUse);
+
+      
+      if (canUseWindow) {
         
         
         if (winState._closedTabs && winState._closedTabs.length) {
-          let curWinState = this._windows[windows[lastSessionWindowID].__SSi];
+          let curWinState = this._windows[windowToUse.__SSi];
           curWinState._closedTabs = curWinState._closedTabs.concat(winState._closedTabs);
           curWinState._closedTabs.splice(this._prefBranch.getIntPref("sessionstore.max_tabs_undo"));
         }
@@ -1426,8 +1446,8 @@ SessionStoreService.prototype = {
         
         
         
-        this.restoreWindow(windows[lastSessionWindowID], { windows: [winState] },
-                           false, true);
+        
+        this.restoreWindow(windowToUse, { windows: [winState] }, canOverwriteTabs, true);
       }
       else {
         this._openWindowWithState({ windows: [winState] });
@@ -1444,6 +1464,80 @@ SessionStoreService.prototype = {
                           lastSessionState.session.recentCrashes || 0;
 
     this._lastSessionState = null;
+  },
+
+
+  
+
+
+
+
+
+
+
+
+
+
+  _prepWindowToRestoreInto: function sss__prepWindowToRestoreInto(aWindow) {
+    if (!aWindow)
+      return [false, false];
+
+    
+    
+    let canOverwriteTabs = false;
+
+    
+    
+    
+    
+    let data = this.getWindowValue(aWindow, "tabview-group");
+    if (data) {
+      data = JSON.parse(data);
+
+      
+      if (Object.keys(data).length > 1) {
+        return [false, false];
+      }
+      else {
+        
+        
+        
+        let groupKey = Object.keys(data)[0];
+        if (groupKey !== "0") {
+          data["0"] = data[groupKey];
+          delete data[groupKey];
+          this.setWindowValue(aWindow, "tabview-groups", JSON.stringify(data));
+        }
+      }
+    }
+
+    
+    
+    
+    
+    
+    let homePages = aWindow.gHomeButton.getHomePage().split("|");
+    let removableTabs = [];
+    let tabbrowser = aWindow.gBrowser;
+    let normalTabsLen = tabbrowser.tabs.length - tabbrowser._numPinnedTabs;
+    for (let i = tabbrowser._numPinnedTabs; i < tabbrowser.tabs.length; i++) {
+      let tab = tabbrowser.tabs[i];
+      if (homePages.indexOf(tab.linkedBrowser.currentURI.spec) != -1) {
+        removableTabs.push(tab);
+      }
+    }
+
+    if (tabbrowser.tabs.length == removableTabs.length) {
+      canOverwriteTabs = true;
+    }
+    else {
+      
+      for (let i = removableTabs.length - 1; i >= 0; i--) {
+        tabbrowser.removeTab(removableTabs.pop(), { animate: false });
+      }
+    }
+
+    return [true, canOverwriteTabs];
   },
 
 
@@ -2427,6 +2521,11 @@ SessionStoreService.prototype = {
     
     this.restoreHistoryPrecursor(aWindow, tabs, winData.tabs,
       (aOverwriteTabs ? (parseInt(winData.selected) || 1) : 0), 0, 0);
+
+    
+    
+    
+    aWindow.TabView.init();
 
     
     tabstrip.smoothScroll = smoothScroll;
