@@ -663,15 +663,26 @@ DrawTargetCG::Fill(const Path *aPath, const Pattern &aPattern, const DrawOptions
 
   CGContextConcatCTM(cg, GfxMatrixToCGAffineTransform(mTransform));
 
+  CGContextBeginPath(cg);
+  
+  const PathCG *cgPath = static_cast<const PathCG*>(aPath);
+
   if (isGradient(aPattern)) {
     
-    PushClip(aPath);
+    if (CGPathIsEmpty(cgPath->GetPath())) {
+      
+      
+      CGContextClipToRect(mCg, CGRectZero);
+    } else {
+      CGContextAddPath(cg, cgPath->GetPath());
+      if (cgPath->GetFillRule() == FILL_EVEN_ODD)
+        CGContextEOClip(mCg);
+      else
+        CGContextClip(mCg);
+    }
+
     DrawGradient(cg, aPattern);
-    PopClip();
   } else {
-    CGContextBeginPath(cg);
-    
-    const PathCG *cgPath = static_cast<const PathCG*>(aPath);
     CGContextAddPath(cg, cgPath->GetPath());
 
     SetFillFromPattern(cg, mColorSpace, aPattern);
