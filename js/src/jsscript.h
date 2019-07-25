@@ -86,19 +86,6 @@ typedef struct JSUpvarArray {
     uint32          length;     
 } JSUpvarArray;
 
-namespace js {
-
-struct GlobalSlotArray {
-    struct Entry {
-        uint32      atomIndex;  
-        uint32      slot;       
-    };
-    Entry           *vector;
-    uint32          length;
-};
-
-} 
-
 #define CALLEE_UPVAR_SLOT               0xffff
 #define FREE_STATIC_LEVEL               0x3fff
 #define FREE_UPVAR_COOKIE               0xffffffff
@@ -127,8 +114,6 @@ struct JSScript {
     uint8           regexpsOffset;  
 
     uint8           trynotesOffset; 
-
-    uint8           globalsOffset;  
 
     bool            noScriptRval:1; 
 
@@ -174,11 +159,6 @@ struct JSScript {
         return (JSTryNoteArray *) ((uint8 *) this + trynotesOffset);
     }
 
-    js::GlobalSlotArray *globals() {
-        JS_ASSERT(globalsOffset != 0);
-        return (js::GlobalSlotArray *) ((uint8 *)this + globalsOffset);
-    }
-
     JSAtom *getAtom(size_t index) {
         JS_ASSERT(index < atomMap.length);
         return atomMap.vector[index];
@@ -188,18 +168,6 @@ struct JSScript {
         JSObjectArray *arr = objects();
         JS_ASSERT(index < arr->length);
         return arr->vector[index];
-    }
-
-    uint32 getGlobalSlot(size_t index) {
-        js::GlobalSlotArray *arr = globals();
-        JS_ASSERT(index < arr->length);
-        return arr->vector[index].slot;
-    }
-
-    JSAtom *getGlobalAtom(size_t index) {
-        js::GlobalSlotArray *arr = globals();
-        JS_ASSERT(index < arr->length);
-        return getAtom(arr->vector[index].atomIndex);
     }
 
     inline JSFunction *getFunction(size_t index);
@@ -318,7 +286,7 @@ js_SweepScriptFilenames(JSRuntime *rt);
 extern JSScript *
 js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
              uint32 nobjects, uint32 nupvars, uint32 nregexps,
-             uint32 ntrynotes, uint32 nglobals);
+             uint32 ntrynotes);
 
 extern JSScript *
 js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);

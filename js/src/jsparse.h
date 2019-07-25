@@ -287,21 +287,6 @@ typedef enum JSParseNodeArity {
 
 struct JSDefinition;
 
-namespace js {
-
-struct GlobalScope {
-    GlobalScope(JSContext *cx, JSObject *globalObj, JSCodeGenerator *cg)
-      : globalObj(globalObj), cg(cg), defs(ContextAllocPolicy(cx))
-    { }
-
-    JSObject *globalObj;
-    JSCodeGenerator *cg;
-    Vector<JSAtom *, 16, ContextAllocPolicy> defs;
-    uint32 globalFreeSlot;
-};
-
-} 
-
 struct JSParseNode {
     uint32              pn_type:16,     
                         pn_op:8,        
@@ -1090,7 +1075,6 @@ Parser::reportErrorNumber(JSParseNode *pn, uintN flags, uintN errorNumber, ...)
 struct Compiler
 {
     Parser parser;
-    GlobalScope *globalScope;
 
     Compiler(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL)
       : parser(cx, prin, cfp)

@@ -248,11 +248,6 @@ struct JSStmtInfo {
 
 
 
-#define TCF_COMPILE_FOR_EVAL   0x1000000
-
-
-
-
 #define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
 
 
@@ -345,8 +340,6 @@ struct JSTreeContext {
 
     int sharpSlotBase;
     bool ensureSharpSlots();
-
-    js::Compiler *compiler() { return (js::Compiler *)parser; }
 
     
     
@@ -494,11 +487,6 @@ struct JSCodeGenerator : public JSTreeContext
     JSAtomList      upvarList;      
     JSUpvarArray    upvarMap;       
 
-    typedef js::Vector<js::GlobalSlotArray::Entry, 16, js::ContextAllocPolicy> GlobalUseVector;
-
-    GlobalUseVector globalUses;     
-    JSAtomList      globalMap;      
-
     
 
 
@@ -519,8 +507,6 @@ struct JSCodeGenerator : public JSTreeContext
 
     ~JSCodeGenerator();
 
-    bool addGlobalUse(JSAtom *atom, uint32 slot, uint32 *indexp);
-
     bool hasSharps() {
         bool rv = !!(flags & TCF_HAS_SHARPS);
         JS_ASSERT((sharpSlotBase >= 0) == rv);
@@ -530,8 +516,6 @@ struct JSCodeGenerator : public JSTreeContext
     uintN sharpSlots() {
         return hasSharps() ? SHARP_NSLOTS : 0;
     }
-
-    bool compilingForEval() { return !!(flags & TCF_COMPILE_FOR_EVAL); }
 };
 
 #define CG_TS(cg)               TS((cg)->parser)
