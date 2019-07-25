@@ -118,6 +118,14 @@ public:
 
 
 
+
+  virtual bool MustRetainContent() { return false; }
+
+  
+
+
+
+
   virtual void ClearCachedResources() {}
 };
 
@@ -440,7 +448,7 @@ BasicThebesLayer::Paint(gfxContext* aContext,
   if (!BasicManager()->IsRetained() ||
       (aOpacity == 1.0 && !canUseOpaqueSurface &&
        !ShouldRetainTransparentSurface(mContentFlags, targetSurface) &&
-       !AsShadowableLayer())) {
+       !MustRetainContent())) {
     mValidRegion.SetEmpty();
     mBuffer.Clear();
 
@@ -1389,6 +1397,7 @@ public:
 
   virtual Layer* AsLayer() { return this; }
   virtual ShadowableLayer* AsShadowableLayer() { return this; }
+  virtual bool MustRetainContent() { return HasShadow(); }
 
   virtual PRBool SupportsSurfaceDescriptor() const { return PR_TRUE; }
 
