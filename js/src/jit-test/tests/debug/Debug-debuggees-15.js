@@ -1,9 +1,7 @@
 
-
-
-load(libdir + "asserts.js");
-
 var g = newGlobal('new-compartment');
 var dbg = Debug(g);
 g.parent = this;
-assertThrowsInstanceOf(function () { g.eval("parent.dbg.removeDebuggee(this);") }, Error);
+var n = 2;
+g.eval("parent.dbg.removeDebuggee(this); parent.n += 2");
+assertEq(n, 4);

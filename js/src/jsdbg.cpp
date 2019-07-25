@@ -828,23 +828,8 @@ Debug::removeDebuggee(JSContext *cx, uintN argc, Value *vp)
     if (!referent)
         return false;
     GlobalObject *global = referent->getGlobal();
-    if (dbg->debuggees.has(global)) {
-        
-        
-        
-        
-        JSCompartment *debuggeeCompartment = global->compartment();
-        JS_ASSERT(debuggeeCompartment->debugMode());
-        if (global->getDebuggers()->length() == 1 &&
-            debuggeeCompartment->getDebuggees().count() == 1 &&
-            debuggeeCompartment->haveScriptsOnStack(cx))
-        {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_IDLE, "disable");
-            return false;
-        }
-
+    if (dbg->debuggees.has(global))
         dbg->removeDebuggeeGlobal(cx, global, NULL, NULL);
-    }
     vp->setUndefined();
     return true;
 }
@@ -982,8 +967,8 @@ Debug::addDebuggeeGlobal(JSContext *cx, GlobalObject *obj)
     }
 
     
-    if (!debuggeeCompartment->debugMode() && debuggeeCompartment->haveScriptsOnStack(cx)) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_IDLE, "enable");
+    if (!debuggeeCompartment->debugMode() && debuggeeCompartment->hasScriptsOnStack(cx)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_IDLE);
         return false;
     }
 
@@ -1055,12 +1040,8 @@ Debug::removeDebuggeeGlobal(JSContext *cx, GlobalObject *global,
     
     
     v->erase(p);
-    if (v->empty()) {
-        if (compartmentEnum)
-            compartmentEnum->removeFront();
-        else
-            global->compartment()->removeDebuggee(cx, global);
-    }
+    if (v->empty())
+        global->compartment()->removeDebuggee(cx, global, compartmentEnum);
     if (debugEnum)
         debugEnum->removeFront();
     else
