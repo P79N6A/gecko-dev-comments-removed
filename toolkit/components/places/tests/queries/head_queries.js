@@ -69,185 +69,191 @@ const futureday = today + (DAY_MICROSEC * 3);
 
 
 function populateDB(aArray) {
-  aArray.forEach(function(data) {
-    dump_table("moz_bookmarks");
-    try {
-      
-      
-      var qdata = new queryData(data);
-      if (qdata.isVisit) {
-        
-        var referrer = qdata.referrer ? uri(qdata.referrer) : null;
-        var visitId = PlacesUtils.history.addVisit(uri(qdata.uri), qdata.lastVisit,
-                                                   referrer, qdata.transType,
-                                                   qdata.isRedirect, qdata.sessionID);
-        do_check_true(visitId > 0);
-        if (qdata.title && !qdata.isDetails) {
-          
-          let stmt = DBConn().createStatement(
-            "UPDATE moz_places SET title = :title WHERE url = :url"
-          );
-          stmt.params.title = qdata.title;
-          stmt.params.url = qdata.uri;
-          try {
-            stmt.execute();
-            
-            PlacesUtils.history.runInBatchMode({runBatched: function(){}}, null);
-          }
-          finally {
-            stmt.finalize();
-          }
-        }
-        if (qdata.visitCount && !qdata.isDetails) {
-          
-          
-          let stmt = DBConn().createStatement(
-            "UPDATE moz_places SET visit_count = :vc WHERE url = :url");
-          stmt.params.vc = qdata.visitCount;
-          stmt.params.url = qdata.uri;
-          try {
-            stmt.execute();
-            
-            PlacesUtils.history.runInBatchMode({runBatched: function(){}}, null);
-          }
-          finally {
-            stmt.finalize();
-          }
-        }
-      }
-
-      if (qdata.isDetails) {
-        
-        PlacesUtils.history.addPageWithDetails(uri(qdata.uri),
-                                               qdata.title, qdata.lastVisit);
-      }
-
-      if (qdata.markPageAsTyped){
-        PlacesUtils.bhistory.markPageAsTyped(uri(qdata.uri));
-      }
-
-      if (qdata.hidePage){
-        PlacesUtils.bhistory.hidePage(uri(qdata.uri));
-      }
-
-      if (qdata.isPageAnnotation) {
-        if (qdata.removeAnnotation) 
-          PlacesUtils.annotations.removePageAnnotation(uri(qdata.uri),
-                                                       qdata.annoName);
-        else {
-          PlacesUtils.annotations.setPageAnnotation(uri(qdata.uri),
-                                                    qdata.annoName,
-                                                    qdata.annoVal,
-                                                    qdata.annoFlags,
-                                                    qdata.annoExpiration);
-        }
-      }
-
-      if (qdata.isItemAnnotation) {
-        if (qdata.removeAnnotation)
-          PlacesUtils.annotations.removeItemAnnotation(qdata.itemId,
-                                                       qdata.annoName);
-        else {
-          PlacesUtils.annotations.setItemAnnotation(qdata.itemId,
-                                                    qdata.annoName,
-                                                    qdata.annoVal,
-                                                    qdata.annoFlags,
-                                                    qdata.annoExpiration);
-        }
-      }
-
-      if (qdata.isPageBinaryAnnotation) {
-        if (qdata.removeAnnotation)
-          PlacesUtils.annotations.removePageAnnotation(uri(qdata.uri),
-                                                       qdata.annoName);
-        else {
-          PlacesUtils.annotations.setPageAnnotationBinary(uri(qdata.uri),
-                                                          qdata.annoName,
-                                                          qdata.binarydata,
-                                                          qdata.binaryDataLength,
-                                                          qdata.annoMimeType,
-                                                          qdata.annoFlags,
-                                                          qdata.annoExpiration);
-        }
-      }
-
-      if (qdata.isItemBinaryAnnotation) {
-        if (qdata.removeAnnotation)
-          PlacesUtils.annotations.removeItemAnnotation(qdata.itemId,
-                                                       qdata.annoName);
-        else {
-          PlacesUtils.annotations.setItemAnnotationBinary(qdata.itemId,
-                                                          qdata.annoName,
-                                                          qdata.binaryData,
-                                                          qdata.binaryDataLength,
-                                                          qdata.annoMimeType,
-                                                          qdata.annoFlags,
-                                                          qdata.annoExpiration);
-        }
-      }
-
-      if (qdata.isFavicon) {
-        
-        
+  PlacesUtils.history.runInBatchMode({
+    runBatched: function (aUserData)
+    {
+      aArray.forEach(function (data)
+      {
         try {
-          PlacesUtils.favicons.setFaviconData(uri(qdata.faviconURI),
-                                              qdata.favicon,
-                                              qdata.faviconLen,
-                                              qdata.faviconMimeType,
-                                              qdata.faviconExpiration);
-        } catch (ex) {}
-        PlacesUtils.favicons.setFaviconUrlForPage(uri(qdata.uri),
-                                                  uri(qdata.faviconURI));
-      }
+          
+          
+          var qdata = new queryData(data);
+          if (qdata.isVisit) {
+            
+            var referrer = qdata.referrer ? uri(qdata.referrer) : null;
+            var visitId = PlacesUtils.history.addVisit(uri(qdata.uri), qdata.lastVisit,
+                                                       referrer, qdata.transType,
+                                                       qdata.isRedirect, qdata.sessionID);
+            if (qdata.title && !qdata.isDetails) {
+              
+              let stmt = DBConn().createStatement(
+                "UPDATE moz_places SET title = :title WHERE url = :url"
+              );
+              stmt.params.title = qdata.title;
+              stmt.params.url = qdata.uri;
+              try {
+                stmt.execute();
+              }
+              catch (ex) {
+                print("Error while setting title.");
+              }
+              finally {
+                stmt.finalize();
+              }
+            }
+            if (qdata.visitCount && !qdata.isDetails) {
+              
+              
+              let stmt = DBConn().createStatement(
+                "UPDATE moz_places SET visit_count = :vc WHERE url = :url");
+              stmt.params.vc = qdata.visitCount;
+              stmt.params.url = qdata.uri;
+              try {
+                stmt.execute();
+              }
+              catch (ex) {
+                print("Error while setting visit_count.");
+              }
+              finally {
+                stmt.finalize();
+              }
+            }
+          }
 
-      if (qdata.isFolder) {
-        let folderId = PlacesUtils.bookmarks.createFolder(qdata.parentFolder,
-                                                          qdata.title,
-                                                          qdata.index);
-        if (qdata.readOnly)
-          PlacesUtils.bookmarks.setFolderReadonly(folderId, true);
-      }
+          if (qdata.isDetails) {
+            
+            PlacesUtils.history.addPageWithDetails(uri(qdata.uri),
+                                                   qdata.title, qdata.lastVisit);
+          }
 
-      if (qdata.isLivemark) {
-        PlacesUtils.livemarks.createLivemark(qdata.parentFolder,
-                                             qdata.title,
-                                             uri(qdata.uri),
-                                             uri(qdata.feedURI),
-                                             qdata.index);
-      }
+          if (qdata.markPageAsTyped){
+            PlacesUtils.bhistory.markPageAsTyped(uri(qdata.uri));
+          }
 
-      if (qdata.isBookmark) {
-        let itemId = PlacesUtils.bookmarks.insertBookmark(qdata.parentFolder,
-                                                          uri(qdata.uri),
-                                                          qdata.index,
-                                                          qdata.title);
-        if (qdata.keyword)
-          PlacesUtils.bookmarks.setKeywordForBookmark(itemId, qdata.keyword);
-        if (qdata.dateAdded)
-          PlacesUtils.bookmarks.setItemDateAdded(itemId, qdata.dateAdded);
-        if (qdata.lastModified)
-          PlacesUtils.bookmarks.setItemLastModified(itemId, qdata.lastModified);
-      }
+          if (qdata.hidePage){
+            PlacesUtils.bhistory.hidePage(uri(qdata.uri));
+          }
 
-      if (qdata.isTag) {
-        PlacesUtils.tagging.tagURI(uri(qdata.uri), qdata.tagArray);
-      }
+          if (qdata.isPageAnnotation) {
+            if (qdata.removeAnnotation) 
+              PlacesUtils.annotations.removePageAnnotation(uri(qdata.uri),
+                                                           qdata.annoName);
+            else {
+              PlacesUtils.annotations.setPageAnnotation(uri(qdata.uri),
+                                                        qdata.annoName,
+                                                        qdata.annoVal,
+                                                        qdata.annoFlags,
+                                                        qdata.annoExpiration);
+            }
+          }
 
-      if (qdata.isDynContainer) {
-        PlacesUtils.bookmarks.createDynamicContainer(qdata.parentFolder,
-                                                     qdata.title,
-                                                     qdata.contractId,
-                                                     qdata.index);
-      }
+          if (qdata.isItemAnnotation) {
+            if (qdata.removeAnnotation)
+              PlacesUtils.annotations.removeItemAnnotation(qdata.itemId,
+                                                           qdata.annoName);
+            else {
+              PlacesUtils.annotations.setItemAnnotation(qdata.itemId,
+                                                        qdata.annoName,
+                                                        qdata.annoVal,
+                                                        qdata.annoFlags,
+                                                        qdata.annoExpiration);
+            }
+          }
 
-      if (qdata.isSeparator)
-        PlacesUtils.bookmarks.insertSeparator(qdata.parentFolder, qdata.index);
-    } catch (ex) {
-      
-      LOG("Problem with this URI: " + data.uri);
-      do_throw("Error creating database: " + ex + "\n");
+          if (qdata.isPageBinaryAnnotation) {
+            if (qdata.removeAnnotation)
+              PlacesUtils.annotations.removePageAnnotation(uri(qdata.uri),
+                                                           qdata.annoName);
+            else {
+              PlacesUtils.annotations.setPageAnnotationBinary(uri(qdata.uri),
+                                                              qdata.annoName,
+                                                              qdata.binarydata,
+                                                              qdata.binaryDataLength,
+                                                              qdata.annoMimeType,
+                                                              qdata.annoFlags,
+                                                              qdata.annoExpiration);
+            }
+          }
+
+          if (qdata.isItemBinaryAnnotation) {
+            if (qdata.removeAnnotation)
+              PlacesUtils.annotations.removeItemAnnotation(qdata.itemId,
+                                                           qdata.annoName);
+            else {
+              PlacesUtils.annotations.setItemAnnotationBinary(qdata.itemId,
+                                                              qdata.annoName,
+                                                              qdata.binaryData,
+                                                              qdata.binaryDataLength,
+                                                              qdata.annoMimeType,
+                                                              qdata.annoFlags,
+                                                              qdata.annoExpiration);
+            }
+          }
+
+          if (qdata.isFavicon) {
+            
+            
+            try {
+              PlacesUtils.favicons.setFaviconData(uri(qdata.faviconURI),
+                                                  qdata.favicon,
+                                                  qdata.faviconLen,
+                                                  qdata.faviconMimeType,
+                                                  qdata.faviconExpiration);
+            } catch (ex) {}
+            PlacesUtils.favicons.setFaviconUrlForPage(uri(qdata.uri),
+                                                      uri(qdata.faviconURI));
+          }
+
+          if (qdata.isFolder) {
+            let folderId = PlacesUtils.bookmarks.createFolder(qdata.parentFolder,
+                                                              qdata.title,
+                                                              qdata.index);
+            if (qdata.readOnly)
+              PlacesUtils.bookmarks.setFolderReadonly(folderId, true);
+          }
+
+          if (qdata.isLivemark) {
+            PlacesUtils.livemarks.createLivemark(qdata.parentFolder,
+                                                 qdata.title,
+                                                 uri(qdata.uri),
+                                                 uri(qdata.feedURI),
+                                                 qdata.index);
+          }
+
+          if (qdata.isBookmark) {
+            let itemId = PlacesUtils.bookmarks.insertBookmark(qdata.parentFolder,
+                                                              uri(qdata.uri),
+                                                              qdata.index,
+                                                              qdata.title);
+            if (qdata.keyword)
+              PlacesUtils.bookmarks.setKeywordForBookmark(itemId, qdata.keyword);
+            if (qdata.dateAdded)
+              PlacesUtils.bookmarks.setItemDateAdded(itemId, qdata.dateAdded);
+            if (qdata.lastModified)
+              PlacesUtils.bookmarks.setItemLastModified(itemId, qdata.lastModified);
+          }
+
+          if (qdata.isTag) {
+            PlacesUtils.tagging.tagURI(uri(qdata.uri), qdata.tagArray);
+          }
+
+          if (qdata.isDynContainer) {
+            PlacesUtils.bookmarks.createDynamicContainer(qdata.parentFolder,
+                                                         qdata.title,
+                                                         qdata.contractId,
+                                                         qdata.index);
+          }
+
+          if (qdata.isSeparator)
+            PlacesUtils.bookmarks.insertSeparator(qdata.parentFolder, qdata.index);
+        } catch (ex) {
+          
+          LOG("Problem with this URI: " + data.uri);
+          do_throw("Error creating database: " + ex + "\n");
+        }
+      }); 
     }
-  }); 
+  }, null);
 }
 
 
@@ -345,8 +351,10 @@ function compareArrayToResult(aArray, aRoot) {
       LOG("testing testData[" + i + "] vs result[" + inQueryIndex + "]");
       if (!aArray[i].isFolder && !aArray[i].isSeparator) {
         LOG("testing testData[" + aArray[i].uri + "] vs result[" + child.uri + "]");
-        if (aArray[i].uri != child.uri)
+        if (aArray[i].uri != child.uri) {
+          dump_table("moz_places");
           do_throw("Expected " + aArray[i].uri + " found " + child.uri);
+        }
       }
       if (!aArray[i].isSeparator && aArray[i].title != child.title)
         do_throw("Expected " + aArray[i].title + " found " + child.title);
