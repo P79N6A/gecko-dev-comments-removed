@@ -1162,9 +1162,21 @@ WebGLContext::MaybeRestoreContext()
     if (mContextLost || mAllowRestore)
         return;
 
-    gl->MakeCurrent();
-    GLContext::ContextResetARB resetStatus = 
-        (GLContext::ContextResetARB) gl->fGetGraphicsResetStatus();
+    GLContext::ContextResetARB resetStatus = GLContext::CONTEXT_NO_ERROR;
+    if (mHasRobustness) {
+        gl->MakeCurrent();
+        resetStatus = (GLContext::ContextResetARB) gl->fGetGraphicsResetStatus();
+    
+    
+    } else if (gl->GetContextType() == GLContext::ContextTypeEGL) {
+        
+        
+        
+        
+        if (!gl->MakeCurrent(true) && gl->IsContextLost()) {
+            resetStatus = GLContext::CONTEXT_GUILTY_CONTEXT_RESET_ARB;
+        }
+    }
     
     if (resetStatus != GLContext::CONTEXT_NO_ERROR) {
         

@@ -57,6 +57,7 @@
 #include "nsIDOMHTMLElement.h"
 #include "nsIJSNativeInitializer.h"
 #include "nsIMemoryReporter.h"
+#include "nsContentUtils.h"
 
 #include "GLContextProvider.h"
 #include "Layers.h"
@@ -449,7 +450,7 @@ public:
     
     
     void SetupRobustnessTimer() {
-        if (mContextLost || !mHasRobustness)
+        if (mContextLost || (!mHasRobustness && gl->GetContextType() != gl::GLContext::ContextTypeEGL))
             return;
 
         
