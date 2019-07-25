@@ -1086,7 +1086,7 @@ CopyValuesToCallObject(JSObject &callobj, uintN nargs, Value *argv, uintN nvars,
     
     uintN first = JSSLOT_PRIVATE + JSObject::CALL_RESERVED_SLOTS + 1;
     JS_ASSERT(first <= JS_INITIAL_NSLOTS);
-    
+
     Value *vp = &callobj.fslots[first];
     uintN len = Min(nargs, uintN(JS_INITIAL_NSLOTS) - first);
 
@@ -1720,38 +1720,38 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
             JSObject **objp)
 {
     if (!JSID_IS_ATOM(id))
-        return JS_TRUE;
+        return true;
 
     JSFunction *fun = obj->getFunctionPrivate();
 
-    
+    if (JSID_IS_ATOM(id, cx->runtime->atomState.classPrototypeAtom)) {
+        
 
 
 
 
-    if ((flags & JSRESOLVE_ASSIGNING) && JSID_IS_ATOM(id, cx->runtime->atomState.classPrototypeAtom)) {
-        JS_ASSERT(!IsInternalFunctionObject(obj));
-        return JS_TRUE;
-    }
-
-    
 
 
 
-    JSAtom *atom = cx->runtime->atomState.classPrototypeAtom;
-    if (id == ATOM_TO_JSID(atom)) {
-        JS_ASSERT(!IsInternalFunctionObject(obj));
+
+
+
+
+
+        if (fun->isNative() || fun->isFunctionPrototype())
+            return true;
 
         
 
 
 
-        if (fun->atom == CLASS_ATOM(cx, Object))
-            return JS_TRUE;
+
+        JS_ASSERT(!IsInternalFunctionObject(obj));
+        JS_ASSERT(!obj->isBoundFunction());
 
         
-        if (obj->isBoundFunction())
-            return JS_TRUE;
+        if (flags & JSRESOLVE_ASSIGNING)
+            return true;
 
         
 
@@ -1760,10 +1760,10 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
         JSObject *parent = obj->getParent();
         JSObject *proto;
         if (!js_GetClassPrototype(cx, parent, JSProto_Object, &proto))
-            return JS_FALSE;
+            return false;
         proto = NewNativeClassInstance(cx, &js_ObjectClass, proto, parent);
         if (!proto)
-            return JS_FALSE;
+            return false;
 
         
 
@@ -1773,48 +1773,44 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 
 
         if (!js_SetClassPrototype(cx, obj, proto, JSPROP_PERMANENT))
-            return JS_FALSE;
+            return false;
 
         *objp = obj;
-        return JS_TRUE;
+        return true;
     }
 
-    atom = cx->runtime->atomState.lengthAtom;
-    if (id == ATOM_TO_JSID(atom)) {
+    if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom)) {
         JS_ASSERT(!IsInternalFunctionObject(obj));
-        if (!js_DefineNativeProperty(cx, obj, ATOM_TO_JSID(atom), Int32Value(fun->nargs),
+        if (!js_DefineNativeProperty(cx, obj, id, Int32Value(fun->nargs),
                                      PropertyStub, PropertyStub,
                                      JSPROP_PERMANENT | JSPROP_READONLY, 0, 0, NULL)) {
-            return JS_FALSE;
+            return false;
         }
         *objp = obj;
-        return JS_TRUE;
+        return true;
     }
 
     for (uintN i = 0; i < JS_ARRAY_LENGTH(lazyFunctionDataProps); i++) {
         const LazyFunctionDataProp *lfp = &lazyFunctionDataProps[i];
 
-        atom = OFFSET_TO_ATOM(cx->runtime, lfp->atomOffset);
-        if (id == ATOM_TO_JSID(atom)) {
+        if (JSID_IS_ATOM(id, OFFSET_TO_ATOM(cx->runtime, lfp->atomOffset))) {
             JS_ASSERT(!IsInternalFunctionObject(obj));
 
-            if (!js_DefineNativeProperty(cx, obj,
-                                         ATOM_TO_JSID(atom), UndefinedValue(),
+            if (!js_DefineNativeProperty(cx, obj, id, UndefinedValue(),
                                          fun_getProperty, PropertyStub,
                                          lfp->attrs, Shape::HAS_SHORTID,
                                          lfp->tinyid, NULL)) {
-                return JS_FALSE;
+                return false;
             }
             *objp = obj;
-            return JS_TRUE;
+            return true;
         }
     }
 
     for (uintN i = 0; i < JS_ARRAY_LENGTH(poisonPillProps); i++) {
         const PoisonPillProp &p = poisonPillProps[i];
 
-        atom = OFFSET_TO_ATOM(cx->runtime, p.atomOffset);
-        if (id == ATOM_TO_JSID(atom)) {
+        if (JSID_IS_ATOM(id, OFFSET_TO_ATOM(cx->runtime, p.atomOffset))) {
             JS_ASSERT(!IsInternalFunctionObject(obj));
 
             PropertyOp getter, setter;
@@ -1830,18 +1826,18 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                 setter = PropertyStub;
             }
 
-            if (!js_DefineNativeProperty(cx, obj, ATOM_TO_JSID(atom), UndefinedValue(),
+            if (!js_DefineNativeProperty(cx, obj, id, UndefinedValue(),
                                          getter, setter,
                                          attrs, Shape::HAS_SHORTID,
                                          p.tinyid, NULL)) {
-                return JS_FALSE;
+                return false;
             }
             *objp = obj;
-            return JS_TRUE;
+            return true;
         }
     }
 
-    return JS_TRUE;
+    return true;
 }
 
 #if JS_HAS_XDR
@@ -2858,6 +2854,7 @@ js_InitFunctionClass(JSContext *cx, JSObject *obj)
     JSFunction *fun = js_NewFunction(cx, proto, NULL, 0, JSFUN_INTERPRETED, obj, NULL);
     if (!fun)
         return NULL;
+    fun->flags |= JSFUN_PROTOTYPE;
     fun->u.i.script = JSScript::emptyScript();
 
     if (obj->getClass()->flags & JSCLASS_IS_GLOBAL) {
