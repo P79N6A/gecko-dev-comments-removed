@@ -414,11 +414,14 @@ private:
     CGContextRef          mShContext;
     int16_t               mDrawingModel;
     nsCARenderer          mCARenderer;
+    void                 *mCGLayer;
 
 public:
     const NPCocoaEvent* getCurrentEvent() {
         return mCurrentEvent;
     }
+  
+    bool CGDraw(CGContextRef ref, nsIntRect aUpdateRect);
 
 #if defined(__i386__)
     NPEventModel EventModel() { return mEventModel; }
@@ -510,6 +513,12 @@ private:
     
     
     nsRefPtr<gfxASurface> mBackSurface;
+
+#ifdef XP_MACOSX
+    
+    
+    nsAutoPtr<nsIOSurface> mCurrentIOSurface; 
+#endif
 
     
     

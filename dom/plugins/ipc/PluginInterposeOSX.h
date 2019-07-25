@@ -32,6 +32,8 @@
 
 #include "base/basictypes.h"
 #include "nsPoint.h"
+#include "npapi.h"
+#include "nsRect.h"
 
 
 #ifndef __OBJC__
