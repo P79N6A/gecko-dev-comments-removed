@@ -510,7 +510,6 @@ MouseModule.prototype = {
     if (dragData.dragging)       
       this._doDragStop(sX, sY);  
 
-
     if (this._clicker)
       this._clicker.mouseUp(evInfo.event.clientX, evInfo.event.clientY);
 
