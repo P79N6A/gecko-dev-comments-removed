@@ -4,6 +4,10 @@
 
 
 
+
+
+const MAX_INSTALL_TIME = 10000;
+
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
@@ -118,7 +122,7 @@ function check_test_1() {
 
           
           let difference = Date.now() - a1.installDate.getTime();
-          if (difference > 2000)
+          if (difference > MAX_INSTALL_TIME)
             do_throw("Add-on was installed " + difference + "ms ago");
           if (difference < 0)
             do_throw("Add-on was installed " + difference + "ms in the future");
@@ -223,7 +227,7 @@ function check_test_3() {
 
         
         let difference = Date.now() - a2.installDate.getTime();
-        if (difference > 2000)
+        if (difference > MAX_INSTALL_TIME)
           do_throw("Add-on was installed " + difference + "ms ago");
         if (difference < 0)
           do_throw("Add-on was installed " + difference + "ms in the future");
