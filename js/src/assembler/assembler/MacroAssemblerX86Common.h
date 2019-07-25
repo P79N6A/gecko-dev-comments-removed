@@ -411,6 +411,12 @@ public:
     
     
 
+    void moveDouble(FPRegisterID src, FPRegisterID dest)
+    {
+        ASSERT(isSSE2Present());
+        m_assembler.movsd_rr(src, dest);
+    }
+
     void loadDouble(ImplicitAddress address, FPRegisterID dest)
     {
         ASSERT(isSSE2Present());
