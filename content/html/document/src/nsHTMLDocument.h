@@ -158,8 +158,16 @@ public:
   NS_IMETHOD Writeln(const nsAString & text);
   NS_IMETHOD GetElementsByName(const nsAString & elementName,
                                nsIDOMNodeList **_retval);
-  virtual nsresult GetDocumentAllResult(const nsAString& aID,
-                                        nsISupports** aResult);
+
+  
+
+
+
+
+  nsISupports *GetDocumentAllResult(const nsAString& aID,
+                                    nsWrapperCache **aCache,
+                                    nsresult *aResult);
+
   nsIContent *GetBody(nsresult *aResult);
   already_AddRefed<nsContentList> GetElementsByName(const nsAString & aName)
   {
@@ -172,7 +180,8 @@ public:
 
   virtual nsresult ResolveName(const nsAString& aName,
                                nsIDOMHTMLFormElement *aForm,
-                               nsISupports **aResult);
+                               nsISupports **aResult,
+                               nsWrapperCache **aCache);
 
   virtual void ScriptLoading(nsIScriptElement *aScript);
   virtual void ScriptExecuted(nsIScriptElement *aScript);
