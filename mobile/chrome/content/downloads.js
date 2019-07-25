@@ -86,13 +86,18 @@ var Downloads = {
     let self = this;
 
     
+    let cancelPrompt = false;
+
+    
     let observer = {
       observe: function (aSubject, aTopic, aData) {
         if (aTopic == "alertclickcallback") {
           if (aDownload.state == Ci.nsIDownloadManager.DOWNLOAD_FINISHED) {
             
             self.openDownload(aDownload.target.spec);
-          } else if (aDownload.state == Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING) {
+          } else if (aDownload.state == Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING &&
+                     !cancelPrompt) {
+            cancelPrompt = true;
             
             let title = Strings.browser.GetStringFromName("downloadCancelPromptTitle");
             let message = Strings.browser.GetStringFromName("downloadCancelPromptMessage");
@@ -103,6 +108,7 @@ var Downloads = {
                                                    null, null, null, null, {});
             if (choice == 0)
               self.cancelDownload(aDownload);
+            cancelPrompt = false;
           }
         }
       }
