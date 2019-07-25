@@ -605,7 +605,6 @@ js_SetLengthProperty(JSContext *cx, JSObject *obj, jsdouble length)
 
     v.setNumber(length);
     id = ATOM_TO_JSID(cx->runtime->atomState.lengthAtom);
-
     
     return obj->setProperty(cx, id, &v, false);
 }
@@ -2529,11 +2528,6 @@ array_splice(JSContext *cx, uintN argc, Value *vp)
     
     TypeObject *type;
     if (obj->isArray()) {
-        
-
-
-
-
         type = obj->getType();
     } else {
         
@@ -2839,7 +2833,6 @@ array_slice(JSContext *cx, uintN argc, Value *vp)
     
     TypeObject *type;
     if (obj->isArray()) {
-        
         type = obj->getType();
     } else {
         

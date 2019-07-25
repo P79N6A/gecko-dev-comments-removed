@@ -121,12 +121,8 @@ GetGCThingTraceKind(const void *thing)
 const size_t SLOTS_TO_THING_KIND_LIMIT = 17;
 
 
-
-
-
-
 static inline FinalizeKind
-GetGCObjectKind(size_t numSlots, FinalizeKind fallback = FINALIZE_OBJECT0)
+GetGCObjectKind(size_t numSlots)
 {
     extern FinalizeKind slotsToThingKind[];
 
@@ -253,4 +249,5 @@ js_NewGCXML(JSContext *cx)
 }
 #endif
 
-#endif
+
+#endif 
