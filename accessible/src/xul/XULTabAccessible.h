@@ -59,10 +59,12 @@ public:
 
 
 
-class XULTabpanelsAccessible : public AccessibleWrap
+class XULDeckAccessible : public AccessibleWrap
 {
 public:
-  XULTabpanelsAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  XULDeckAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+    AccessibleWrap(aContent, aDoc)
+    { mFlags |= eXULDeckAccessible; }
 
   
   virtual a11y::role NativeRole();

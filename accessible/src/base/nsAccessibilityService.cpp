@@ -1154,10 +1154,13 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
 
   if (!newAcc) {
     
-    if (content->IsSVG(nsGkAtoms::svg)) {
+    
+    nsIAtom* tag = content->Tag();
+    if ((tag == nsGkAtoms::deck) || (tag == nsGkAtoms::tabpanels)) {
+      newAcc = new XULDeckAccessible(content, docAcc);
+    } else if (content->IsSVG(nsGkAtoms::svg)) {
       newAcc = new EnumRoleAccessible(content, docAcc, roles::DIAGRAM);
-    }
-    else if (content->IsMathML(nsGkAtoms::math)) {
+    } else if (content->IsMathML(nsGkAtoms::math)) {
       newAcc = new EnumRoleAccessible(content, docAcc, roles::EQUATION);
     }
   }
@@ -1326,6 +1329,10 @@ nsAccessibilityService::CreateAccessibleByType(nsIContent* aContent,
       accessible = new XULComboboxAccessible(aContent, aDoc);
       break;
 
+    case nsIAccessibleProvider::XULDeck:
+      accessible = new XULDeckAccessible(aContent, aDoc);
+      break;
+
     case nsIAccessibleProvider::XULDropmarker:
       accessible = new XULDropmarkerAccessible(aContent, aDoc);
       break;
@@ -1428,10 +1435,6 @@ nsAccessibilityService::CreateAccessibleByType(nsIContent* aContent,
 
     case nsIAccessibleProvider::XULTabs:
       accessible = new XULTabsAccessible(aContent, aDoc);
-      break;
-
-    case nsIAccessibleProvider::XULTabpanels:
-      accessible = new XULTabpanelsAccessible(aContent, aDoc);
       break;
 
     case nsIAccessibleProvider::XULText:
