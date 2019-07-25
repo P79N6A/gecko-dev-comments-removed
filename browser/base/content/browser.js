@@ -5446,6 +5446,8 @@ function setStyleDisabled(disabled) {
 
 
 var BrowserOffline = {
+  _inited: false,
+
   
   
   init: function ()
@@ -5456,13 +5458,14 @@ var BrowserOffline = {
     Services.obs.addObserver(this, "network:offline-status-changed", false);
 
     this._updateOfflineUI(Services.io.offline);
+
+    this._inited = true;
   },
 
   uninit: function ()
   {
-    try {
+    if (this._inited) {
       Services.obs.removeObserver(this, "network:offline-status-changed");
-    } catch (ex) {
     }
   },
 
