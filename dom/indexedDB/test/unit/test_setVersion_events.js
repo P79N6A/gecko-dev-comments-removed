@@ -11,7 +11,7 @@ function testSteps()
   const description = "My Test Database";
 
   
-  let request = mozIndexedDB.open(name, 1, description);
+  let request = indexedDB.open(name, 1, description);
 
   
   ok(request instanceof IDBRequest, "Request should be an IDBRequest");
@@ -46,7 +46,7 @@ function testSteps()
   }, false);
 
   
-  request = mozIndexedDB.open(name, 2, description);
+  request = indexedDB.open(name, 2, description);
   request.onerror = errorHandler;
   request.onsuccess = errorHandler;
   request.onupgradeneeded = grabEventAndContinueHandler;
@@ -84,7 +84,7 @@ function testSteps()
   }, false);
 
   
-  request = mozIndexedDB.open(name, 2, description);
+  request = indexedDB.open(name, 2, description);
   request.onerror = errorHandler;
   request.onsuccess = grabEventAndContinueHandler;
   if (SpecialPowers.isMainProcess()) {
@@ -98,7 +98,7 @@ function testSteps()
   db3 = event.target.result;
 
   
-  request = mozIndexedDB.open(name, 3, description);
+  request = indexedDB.open(name, 3, description);
   request.onerror = errorHandler;
   request.onsuccess = errorHandler;
   request.onupgradeneeded = errorHandler;
@@ -127,7 +127,7 @@ function testSteps()
   db3.close();
 
   
-  request = mozIndexedDB.open(name, 4);
+  request = indexedDB.open(name, 4);
   request.onerror = errorHandler;
   request.onsuccess = errorHandler;
   request.onupgradeneeded = grabEventAndContinueHandler;
