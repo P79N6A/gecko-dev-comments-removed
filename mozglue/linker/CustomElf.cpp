@@ -176,9 +176,19 @@ CustomElf::Load(Mappable *mappable, const char *path, int flags)
 
   
 
-  elf->base.Assign(mmap(NULL, max_vaddr, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS,
+
+
+
+
+
+
+
+
+  elf->base.Assign(mmap(NULL, max_vaddr, PROT_NONE, MAP_SHARED | MAP_ANONYMOUS,
                       -1, 0), max_vaddr);
-  if (elf->base == MAP_FAILED) {
+  if ((elf->base == MAP_FAILED) ||
+      (mmap(elf->base, max_vaddr, PROT_NONE,
+            MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0) != elf->base)) {
     log("%s: Failed to mmap", elf->GetPath());
     return NULL;
   }
