@@ -138,7 +138,7 @@ public class JPakeCrypto {
 
     Log.d(LOG_TAG, "round2 started.");
 
-    if (BigInteger.ONE.compareTo(jp.gx4) == 0) {
+    if (jp.gx4 == BigInteger.ONE) {
       throw new Gx4IsOneException();
     }
 
