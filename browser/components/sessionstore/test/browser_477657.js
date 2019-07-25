@@ -36,11 +36,6 @@
 
 function test() {
   
-
-  
-  if ("nsILocalFileMac" in Ci)
-    return;
-
   waitForExplicitFinish();
   
   let newWin = openDialog(location, "_blank", "chrome,all,dialog=no");
