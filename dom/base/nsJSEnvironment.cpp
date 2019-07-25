@@ -1385,6 +1385,9 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime)
     ::JS_SetContextPrivate(mContext, static_cast<nsIScriptContext *>(this));
 
     
+    mDefaultJSOptions |= ::JS_GetOptions(mContext);
+
+    
     ::JS_SetOptions(mContext, mDefaultJSOptions);
 
     

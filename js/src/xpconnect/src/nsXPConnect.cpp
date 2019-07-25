@@ -349,7 +349,7 @@ XPCCycleCollectGCCallback(JSContext *cx, JSGCStatus status)
     switch(status)
     {
       case JSGC_BEGIN:
-        nsXPConnect::GetRuntimeInstance()->UnrootContextGlobals();
+        nsXPConnect::GetRuntimeInstance()->ClearWeakRoots();
         break;
 
       case JSGC_MARK_END:
@@ -362,11 +362,6 @@ XPCCycleCollectGCCallback(JSContext *cx, JSGCStatus status)
             gDidCollection = PR_TRUE;
             gInCollection = nsCycleCollector_beginCollection();
         }
-
-        
-        
-        nsXPConnect::GetRuntimeInstance()->
-            TraceXPConnectRoots(cx->runtime->gcMarkingTracer, JS_TRUE);
         break;
 
       case JSGC_END:
@@ -387,12 +382,6 @@ XPCCycleCollectGCCallback(JSContext *cx, JSGCStatus status)
 PRBool
 nsXPConnect::Collect()
 {
-    
-    
-    
-    
-    
-    
     
     
     
@@ -543,8 +532,6 @@ nsXPConnect::BeginCycleCollection(nsCycleCollectionTraversalCallback &cb)
             return NS_ERROR_OUT_OF_MEMORY;
         }
 
-        GetRuntime()->UnrootContextGlobals();
-
         PRBool alreadyCollecting = mCycleCollecting;
         mCycleCollecting = PR_TRUE;
         NoteJSRootTracer trc(&mJSRoots, cb);
@@ -572,8 +559,6 @@ nsXPConnect::FinishCycleCollection()
     {
         mCycleCollectionContext = nsnull;
         mExplainCycleCollectionContext = nsnull;
-
-        GetRuntime()->RootContextGlobals();
     }
 #endif
 
@@ -591,6 +576,8 @@ nsXPConnect::FinishCycleCollection()
 nsCycleCollectionParticipant *
 nsXPConnect::ToParticipant(void *p)
 {
+    if (!ADD_TO_CC(js_GetGCThingTraceKind(p)))
+        return NULL;
     return this;
 }
 
@@ -693,6 +680,12 @@ WrapperIsNotMainThreadOnly(XPCWrappedNative *wrapper)
     return NS_FAILED(CallQueryInterface(wrapper->Native(), &participant));
 }
 
+JSBool
+nsXPConnect::IsGray(void *thing)
+{
+    return js_GCThingIsMarked(thing, XPC_GC_COLOR_GRAY);
+}
+
 NS_IMETHODIMP
 nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 {
@@ -757,8 +750,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 #endif
     {
         
-        type = !markJSObject && JS_IsAboutToBeFinalized(cx, p) ? GCUnmarked :
-                                                                 GCMarked;
+        type = !markJSObject && IsGray(p) ? GCUnmarked : GCMarked;
     }
 
     if (cb.WantDebugInfo()) {
@@ -888,9 +880,6 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
         cb.DescribeNode(type, 0, sizeof(JSObject), "JS Object");
     }
 
-    if(!ADD_TO_CC(traceKind))
-        return NS_OK;
-
     
     
     
@@ -948,6 +937,9 @@ class JSContextParticipant : public nsCycleCollectionParticipant
 public:
     NS_IMETHOD RootAndUnlinkJSObjects(void *n)
     {
+        JSContext *cx = static_cast<JSContext*>(n);
+        NS_ASSERTION(cx->globalObject, "global object NULL before unlinking");
+        cx->globalObject = nsnull;
         return NS_OK;
     }
     NS_IMETHOD Unlink(void *n)
@@ -973,8 +965,10 @@ public:
         cb.DescribeNode(RefCounted, refCount, sizeof(JSContext),
                         "JSContext");
         NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "[global object]");
-        cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT,
-                           cx->globalObject);
+        if (cx->globalObject) {
+            cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT,
+                               cx->globalObject);
+        }
 
         return NS_OK;
     }
