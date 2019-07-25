@@ -2544,6 +2544,10 @@ Interpret(JSContext *cx, StackFrame *entryFrame, uintN inlineCallCount, InterpMo
 #endif
 
     
+    if (cx->typeInferenceEnabled() && !script->ensureTypeArray(cx))
+        goto error;
+
+    
     if (interpMode == JSINTERP_NORMAL) {
         StackFrame *fp = regs.fp();
         JS_ASSERT_IF(!fp->isGeneratorFrame(), regs.pc == script->code);
@@ -4673,6 +4677,7 @@ BEGIN_CASE(JSOP_FUNCALL)
                 goto error;
             }
 
+            
             cx->typeMonitorCall(CallArgsFromVp(argc, vp), flags & StackFrame::CONSTRUCTING);
 
             bool newType = (flags & StackFrame::CONSTRUCTING) &&
