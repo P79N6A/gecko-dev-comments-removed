@@ -43,6 +43,8 @@
 #define jsion_cpu_x64_assembler_h__
 
 #include "ion/shared/Assembler-shared.h"
+#include "ion/CompactBuffer.h"
+#include "ion/IonCode.h"
 
 namespace js {
 namespace ion {
@@ -142,7 +144,61 @@ namespace ion {
 
 class Assembler : public AssemblerX86Shared
 {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    static const uint32 SizeOfExtendedJump = 1 + 1 + 4 + 8;
+    static const uint32 SizeOfJumpTableEntry = 16;
+
+    uint32 extendedJumpTable_;
+
+    static IonCode *CodeFromJump(IonCode *code, uint8 *jump);
+
+  private:
+    void writeRelocation(JmpSrc src);
+    void addPendingJump(JmpSrc src, void *target, Relocation::Kind reloc);
+
   public:
+    using AssemblerX86Shared::j;
+    using AssemblerX86Shared::jmp;
+
+    Assembler()
+      : extendedJumpTable_(0)
+    {
+    }
+
+    static void TraceRelocations(JSTracer *trc, IonCode *code, CompactBufferReader &reader);
+
+    
+    
+    void flush();
+
+    
+    
+    void executableCopy(uint8 *buffer);
+
+    
+
     void movq(ImmWord word, const Register &dest) {
         masm.movq_i64r(word.value, dest.code());
     }
@@ -256,6 +312,15 @@ class Assembler : public AssemblerX86Shared
     }
     void cmpq(const Register &lhs, const Register &rhs) {
         masm.cmpq_rr(rhs.code(), lhs.code());
+    }
+
+    void jmp(void *target, Relocation::Kind reloc) {
+        JmpSrc src = masm.jmp();
+        addPendingJump(src, target, reloc);
+    }
+    void j(Condition cond, void *target, Relocation::Kind reloc) {
+        JmpSrc src = masm.jCC(static_cast<JSC::X86Assembler::Condition>(cond));
+        addPendingJump(src, target, reloc);
     }
 };
 

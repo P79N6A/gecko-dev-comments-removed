@@ -41,10 +41,16 @@
 #ifndef jsion_assembler_shared_h__
 #define jsion_assembler_shared_h__
 
+#include <limits.h>
 #include "ion/IonRegisters.h"
 
 namespace js {
 namespace ion {
+
+
+
+
+static const uint32 MAX_BUFFER_SIZE = INT_MAX / 2;
 
 
 struct Imm32
@@ -72,6 +78,19 @@ struct ImmGCPtr
     { }
     ImmGCPtr(void *ptr) : value(reinterpret_cast<uintptr_t>(ptr))
     { }
+};
+
+class Relocation {
+  public:
+    enum Kind {
+        
+        
+        EXTERNAL,
+
+        
+        
+        CODE
+    };
 };
 
 

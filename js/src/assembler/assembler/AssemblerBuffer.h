@@ -35,8 +35,10 @@
 #if ENABLE_ASSEMBLER
 
 #include <string.h>
+#include <limits.h>
 #include "assembler/jit/ExecutableAllocator.h"
 #include "assembler/wtf/Assertions.h"
+#include "jsstdint.h"
 
 namespace JSC {
 
@@ -136,14 +138,14 @@ namespace JSC {
 
 
 
-        void* executableAllocAndCopy(ExecutableAllocator* allocator, ExecutablePool** poolp, CodeKind kind)
+        void* executableAllocAndCopy(ExecutableAllocator* allocator, ExecutablePool** poolp)
         {
             if (m_oom || m_size == 0) {
                 *poolp = NULL;
                 return 0;
             }
 
-            void* result = allocator->alloc(m_size, poolp, kind);
+            void* result = allocator->alloc(m_size, poolp);
             if (!result) {
                 *poolp = NULL;
                 return 0;
@@ -190,12 +192,16 @@ namespace JSC {
 
         void grow(int extraCapacity = 0)
         {
-            
-
-
-
-            int newCapacity = m_capacity + m_capacity + extraCapacity;
+            int newCapacity = m_capacity + m_capacity / 2 + extraCapacity;
             char* newBuffer;
+
+            
+            
+            if (newCapacity >= INT_MAX / 2) {
+                m_size = 0;
+                m_oom = true;
+                return;
+            }
 
             if (m_buffer == m_inlineBuffer) {
                 newBuffer = static_cast<char*>(malloc(newCapacity));

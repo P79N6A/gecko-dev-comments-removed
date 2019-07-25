@@ -53,7 +53,7 @@ using namespace js::ion;
 IonCode *
 IonCompartment::generateEnterJIT(JSContext *cx)
 {
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
 
     
     masm.push(ebp);
