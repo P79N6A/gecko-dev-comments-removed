@@ -560,6 +560,12 @@ nsWindow::Create(nsIWidget *aParent,
   } else {
     GetWindowClass(className);
   }
+  
+  
+  
+  if(aInitData->mWindowType == eWindowType_plugin) {
+    style |= WS_DISABLED;
+  }
   mWnd = ::CreateWindowExW(extendedStyle,
                            className.get(),
                            L"",
@@ -7305,6 +7311,17 @@ nsWindow::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
     }
   }
 
+  
+  
+  
+  
+  if(mWindowType == eWindowType_plugin) {
+    if(NULLREGION == ::CombineRgn(dest, dest, dest, RGN_OR)) {
+      ::EnableWindow(mWnd, FALSE);
+    } else {
+      ::EnableWindow(mWnd, TRUE);
+    }
+  }
   if (!::SetWindowRgn(mWnd, dest, TRUE)) {
     ::DeleteObject(dest);
     return NS_ERROR_FAILURE;
