@@ -515,9 +515,9 @@ LinearScanAllocator::buildLivenessInfo()
 
         
         
-        for (BitSet::Iterator i(live->begin()); i != live->end(); i++) {
-            vregs[*i].getInterval(0)->addRange(inputOf(block->firstId()),
-                                               outputOf(block->lastId()).next());
+        for (BitSet::Iterator liveRegId(*live); liveRegId; liveRegId++) {
+            vregs[*liveRegId].getInterval(0)->addRange(inputOf(block->firstId()),
+                                                       outputOf(block->lastId()).next());
         }
 
         
@@ -629,9 +629,9 @@ LinearScanAllocator::buildLivenessInfo()
                 JS_ASSERT(loopBlock->id() >= mblock->id());
 
                 
-                for (BitSet::Iterator i(live->begin()); i != live->end(); i++) {
-                    vregs[*i].getInterval(0)->addRange(inputOf(loopBlock->lir()->firstId()),
-                                                       outputOf(loopBlock->lir()->lastId()).next());
+                for (BitSet::Iterator liveRegId(*live); liveRegId; liveRegId++) {
+                    vregs[*liveRegId].getInterval(0)->addRange(inputOf(loopBlock->lir()->firstId()),
+                                                               outputOf(loopBlock->lir()->lastId()).next());
                 }
 
                 
@@ -928,7 +928,7 @@ LinearScanAllocator::resolveControlFlow()
         
         BitSet *live = liveIn[mSuccessor->id()];
 
-        for (BitSet::Iterator liveRegId(live->begin()); liveRegId != live->end(); liveRegId++) {
+        for (BitSet::Iterator liveRegId(*live); liveRegId; liveRegId++) {
             LiveInterval *to = vregs[*liveRegId].intervalFor(inputOf(successor->firstId()));
             JS_ASSERT(to);
 

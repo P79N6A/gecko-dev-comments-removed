@@ -89,19 +89,34 @@ class BitSet : private TempObject
     }
 
     
-    bool contains(unsigned int value) const;
+    bool contains(unsigned int value) const {
+        JS_ASSERT(bits_);
+        JS_ASSERT(value <= max_);
+
+        return !!(bits_[wordForValue(value)] & bitForValue(value));
+    }
 
     
     bool empty() const;
 
     
-    void insert(unsigned int value);
+    void insert(unsigned int value) {
+        JS_ASSERT(bits_);
+        JS_ASSERT(value <= max_);
+
+        bits_[wordForValue(value)] |= bitForValue(value);
+    }
 
     
     void insertAll(const BitSet *other);
 
     
-    void remove(unsigned int value);
+    void remove(unsigned int value) {
+        JS_ASSERT(bits_);
+        JS_ASSERT(value <= max_);
+
+        bits_[wordForValue(value)] &= ~bitForValue(value);
+    }
 
     
     void removeAll(const BitSet *other);
@@ -119,12 +134,6 @@ class BitSet : private TempObject
     
     void clear();
 
-    
-    Iterator begin();
-
-    
-    Iterator end();
-
     uint32 *raw() const {
         return bits_;
     }
@@ -138,26 +147,52 @@ class BitSet::Iterator
   private:
     BitSet &set_;
     unsigned index_;
+    unsigned word_;
+    uint32 value_;
 
   public:
-    Iterator(BitSet &set, unsigned int index) :
+    Iterator(BitSet &set) :
       set_(set),
-      index_(index)
+      index_(0),
+      word_(0),
+      value_(set.bits_[0])
     {
-        if (index_ <= set_.max_ && !set_.contains(index_))
+        if (!set_.contains(index_))
             (*this)++;
     }
 
-    bool operator!=(const Iterator &other) const {
-        return index_ != other.index_;
+    inline bool more() const {
+        return word_ < set_.numWords();
+    }
+    inline operator bool() const {
+        return more();
     }
 
-    
-    Iterator& operator++(int dummy) {
+    inline Iterator& operator++(int dummy) {
+        JS_ASSERT(more());
         JS_ASSERT(index_ <= set_.max_);
-        do {
-            index_++;
-        } while (index_ <= set_.max_ && !set_.contains(index_));
+
+        index_++;
+        value_ >>= 1;
+
+        
+        while (value_ == 0) {
+            word_++;
+            if (!more())
+                return *this;
+
+            index_ = word_ * sizeof(value_) * 8;
+            value_ = set_.bits_[word_];
+        }
+
+        
+        JS_ASSERT(value_ != 0);
+
+        int numZeros = js_bitscan_ctz32(value_);
+        index_ += numZeros;
+        value_ >>= numZeros;
+
+        JS_ASSERT_IF(index_ <= set_.max_, set_.contains(index_));
         return *this;
     }
 
