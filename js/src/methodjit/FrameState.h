@@ -199,7 +199,8 @@ class FrameState
 
 
 
-    inline void pushUntypedPayload(JSValueTag tag, RegisterID payload);
+    inline void pushUntypedPayload(JSValueTag tag, RegisterID payload,
+                                   bool popGuaranteed = false);
 
     
 
@@ -333,7 +334,7 @@ class FrameState
     
 
 
-    void storeLocal(uint32 n, bool popGuaranteed = false);
+    void storeLocal(uint32 n, bool popGuaranteed = false, bool typeChange = true);
 
     
 

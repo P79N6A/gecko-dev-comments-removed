@@ -255,7 +255,8 @@ FrameState::pushTypedPayload(JSValueTag tag, RegisterID payload)
 }
 
 inline void
-FrameState::pushUntypedPayload(JSValueTag tag, RegisterID payload)
+FrameState::pushUntypedPayload(JSValueTag tag, RegisterID payload,
+                               bool popGuaranteed)
 {
     JS_ASSERT(!freeRegs.hasReg(payload));
 
@@ -270,14 +271,18 @@ FrameState::pushUntypedPayload(JSValueTag tag, RegisterID payload)
 
 
 
-    if (!fe->type.synced())
-        masm.storeTypeTag(ImmTag(tag), addressOf(fe));
+    if (popGuaranteed) {
+        fe->setTypeTag(tag);
+    } else {
+        if (!fe->type.synced())
+            masm.storeTypeTag(ImmTag(tag), addressOf(fe));
 
-    
+        
 #ifdef DEBUG
-    fe->type.unsync();
+        fe->type.unsync();
 #endif
-    fe->type.setMemory();
+        fe->type.setMemory();
+    }
     fe->data.unsync();
     fe->setNotCopied();
     fe->setCopyOf(NULL);
