@@ -472,27 +472,7 @@ class MinidumpWriter {
   bool Dump() {
     
     
-    
-    struct r_debug* r_debug = NULL;
-    uint32_t dynamic_length = 0;
-#if !defined(__ANDROID__)
-    for (int i = 0;;) {
-      ElfW(Dyn) dyn;
-      dynamic_length += sizeof(dyn);
-      dumper_.CopyFromProcess(&dyn, crashing_tid_, _DYNAMIC+i++, sizeof(dyn));
-      if (dyn.d_tag == DT_DEBUG) {
-        r_debug = (struct r_debug*)dyn.d_un.d_ptr;
-        continue;
-      } else if (dyn.d_tag == DT_NULL)
-        break;
-    }
-#endif
-
-    
-    
-    unsigned kNumWriters = 12;
-    if (r_debug)
-      ++kNumWriters;
+    unsigned kNumWriters = 13;
 
     TypedMDRVA<MDRawHeader> header(&minidump_writer_);
     TypedMDRVA<MDRawDirectory> dir(&minidump_writer_);
@@ -571,12 +551,10 @@ class MinidumpWriter {
       NullifyDirectoryEntry(&dirent);
     dir.CopyIndex(dir_index++, &dirent);
 
-    if (r_debug) {
-      dirent.stream_type = MD_LINUX_DSO_DEBUG;
-      if (!WriteDSODebugStream(&dirent, r_debug, dynamic_length))
-        NullifyDirectoryEntry(&dirent);
-      dir.CopyIndex(dir_index++, &dirent);
-    }
+    dirent.stream_type = MD_LINUX_DSO_DEBUG;
+    if (!WriteDSODebugStream(&dirent))
+      NullifyDirectoryEntry(&dirent);
+    dir.CopyIndex(dir_index++, &dirent);
 
     
     
@@ -1037,11 +1015,54 @@ class MinidumpWriter {
     return true;
   }
 
-  bool WriteDSODebugStream(MDRawDirectory* dirent, struct r_debug* r_debug,
-                           uint32_t dynamic_length) {
+  bool WriteDSODebugStream(MDRawDirectory* dirent) {
 #if defined(__ANDROID__)
     return false;
 #else
+    ElfW(Phdr) *phdr = reinterpret_cast<ElfW(Phdr) *>(dumper_.auxv()[AT_PHDR]);
+    char *base;
+    int phnum = dumper_.auxv()[AT_PHNUM];
+    if (!phnum || !phdr)
+      return false;
+
+    
+    base = reinterpret_cast<char *>(reinterpret_cast<uintptr_t>(phdr) & ~0xfff);
+
+    
+    ElfW(Addr) dyn_addr = 0;
+    for (; phnum >= 0; phnum--, phdr++) {
+      ElfW(Phdr) ph;
+      dumper_.CopyFromProcess(&ph, crashing_tid_, phdr, sizeof(ph));
+      
+      
+      if (ph.p_type == PT_LOAD && ph.p_offset == 0)
+        base -= ph.p_vaddr;
+      if (ph.p_type == PT_DYNAMIC)
+        dyn_addr = ph.p_vaddr;
+    }
+    if (!dyn_addr)
+      return false;
+
+    ElfW(Dyn) *dynamic = reinterpret_cast<ElfW(Dyn) *>(dyn_addr + base);
+
+    
+    
+    
+    struct r_debug* r_debug = NULL;
+    uint32_t dynamic_length = 0;
+
+    for (int i = 0;;) {
+      ElfW(Dyn) dyn;
+      dynamic_length += sizeof(dyn);
+      dumper_.CopyFromProcess(&dyn, crashing_tid_, dynamic+i++, sizeof(dyn));
+      if (dyn.d_tag == DT_DEBUG) {
+        r_debug = reinterpret_cast<struct r_debug*>(dyn.d_un.d_ptr);
+        continue;
+      } else if (dyn.d_tag == DT_NULL) {
+        break;
+      }
+    }
+
     
     
     
@@ -1106,10 +1127,10 @@ class MinidumpWriter {
     debug.get()->dso_count = dso_count;
     debug.get()->brk = (void*)debug_entry.r_brk;
     debug.get()->ldbase = (void*)debug_entry.r_ldbase;
-    debug.get()->dynamic = (void*)&_DYNAMIC;
+    debug.get()->dynamic = dynamic;
 
     char *dso_debug_data = new char[dynamic_length];
-    dumper_.CopyFromProcess(dso_debug_data, crashing_tid_, &_DYNAMIC,
+    dumper_.CopyFromProcess(dso_debug_data, crashing_tid_, dynamic,
                             dynamic_length);
     debug.CopyIndexAfterObject(0, dso_debug_data, dynamic_length);
     delete[] dso_debug_data;
