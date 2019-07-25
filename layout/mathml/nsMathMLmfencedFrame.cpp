@@ -91,6 +91,10 @@ nsMathMLmfencedFrame::SetInitialChildList(nsIAtom*        aListName,
   
   
   
+  mPresentationData.flags |= NS_MATHML_STRETCH_ALL_CHILDREN_VERTICALLY;
+  
+  
+  
   CreateFencesAndSeparators(PresContext());
   return NS_OK;
 }
@@ -310,8 +314,6 @@ nsMathMLmfencedFrame::Reflow(nsPresContext*          aPresContext,
   nsBoundingMetrics containerSize;
   nsStretchDirection stretchDir = NS_STRETCH_DIRECTION_VERTICAL;
 
-  nsPresentationData presentationData;
-  GetPresentationData(presentationData);
   GetPreferredStretchSize(*aReflowState.rendContext,
                           0, 
                           stretchDir, containerSize);
