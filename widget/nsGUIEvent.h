@@ -1295,62 +1295,22 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class nsMouseScrollEvent : public nsMouseEvent_base
 {
 private:
-  friend class mozilla::dom::PBrowserParent;
-  friend class mozilla::dom::PBrowserChild;
-
   nsMouseScrollEvent()
   {
   }
 
 public:
-  enum nsMouseScrollFlags {
-    kIsFullPage =   1 << 0,
-    kIsVertical =   1 << 1,
-    kIsHorizontal = 1 << 2
-  };
-
   nsMouseScrollEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsMouseEvent_base(isTrusted, msg, w, NS_MOUSE_SCROLL_EVENT),
-      scrollFlags(0), delta(0)
+      delta(0), isHorizontal(false)
   {
   }
 
-  PRInt32               scrollFlags;
   PRInt32               delta;
+  bool                  isHorizontal;
 };
 
 
@@ -2038,4 +1998,4 @@ inline bool NS_IsEventTargetedAtFocusedContent(nsEvent* aEvent)
          NS_IS_RETARGETED_PLUGIN_EVENT(aEvent);
 }
 
-#endif
+#endif 
