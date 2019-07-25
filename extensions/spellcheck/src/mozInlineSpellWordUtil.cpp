@@ -943,14 +943,14 @@ WordSplitState::FindSpecialWord()
       return mDOMWordText.Length() - mDOMWordOffset;
     } else if (mDOMWordText[i] == ':' && firstColon < 0) {
       firstColon = i;
-    }
-  }
 
-  
-  
-  if (firstColon >= 0 && firstColon < (PRInt32)mDOMWordText.Length() - 1 &&
-      mDOMWordText[firstColon + 1] == '/') {
-    return mDOMWordText.Length() - mDOMWordOffset;
+      
+      
+      if (firstColon < (PRInt32)mDOMWordText.Length() - 1 &&
+          mDOMWordText[firstColon + 1] == '/') {
+        return mDOMWordText.Length() - mDOMWordOffset;
+      }
+    }
   }
 
   
