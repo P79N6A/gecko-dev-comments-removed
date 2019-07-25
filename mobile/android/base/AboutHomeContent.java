@@ -367,25 +367,6 @@ public class AboutHomeContent extends ScrollView {
         super.onConfigurationChanged(newConfig);
     }
 
-    private String readJSONFile(Activity activity, String filename) {
-        InputStream fileStream = null;
-        File profileDir = GeckoApp.mAppContext.getProfileDir();
-
-        if (profileDir == null)
-            return null;
-
-        File recommendedAddonsFile = new File(profileDir, filename);
-        if (recommendedAddonsFile.exists()) {
-            try {
-                fileStream = new FileInputStream(recommendedAddonsFile);
-            } catch (FileNotFoundException fnfe) {}
-        }
-        if (fileStream == null)
-            return null;
-
-        return readStringFromStream(fileStream);
-    }
-
     private String readFromZipFile(Activity activity, String filename) {
         ZipFile zip = null;
         String str = null;
@@ -459,9 +440,11 @@ public class AboutHomeContent extends ScrollView {
 
     private void readRecommendedAddons(final Activity activity) {
         final String addonsFilename = "recommended-addons.json";
-        String jsonString = readJSONFile(activity, addonsFilename);
-        if (jsonString == null) {
-            Log.i("Addons", "filestream is null");
+        String jsonString;
+        try {
+            jsonString = GeckoApp.mAppContext.getProfile().readFile(addonsFilename);
+        } catch (IOException ioe) {
+            Log.i(LOGTAG, "filestream is null");
             jsonString = readFromZipFile(activity, addonsFilename);
         }
 
@@ -524,33 +507,13 @@ public class AboutHomeContent extends ScrollView {
     }
 
     private void readLastTabs(final Activity activity) {
-        final String sessionFilename;
-        if (!GeckoApp.sIsGeckoReady) {
-            File profileDir = GeckoApp.mAppContext.getProfileDir();
-            if (profileDir == null)
-                return;
-
-            if (new File(profileDir, "sessionstore.js").exists()) {
-                
-                sessionFilename = "sessionstore.js";
-            } else if (new File(profileDir, "sessionstore.bak").exists()) {
-                
-                sessionFilename = "sessionstore.bak";
-            } else {
-                
-                return;
-            }
-        } else {
+        String jsonString = GeckoApp.mAppContext.getProfile().readSessionFile(GeckoApp.sIsGeckoReady);
+        if (jsonString == null) {
             
-            
-            sessionFilename = "sessionstore.bak";
+            return;
         }
 
         final JSONArray tabs;
-        String jsonString = readJSONFile(activity, sessionFilename);
-        if (jsonString == null)
-            return;
-
         try {
             tabs = new JSONObject(jsonString).getJSONArray("windows")
                                              .getJSONObject(0)
