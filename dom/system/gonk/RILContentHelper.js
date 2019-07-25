@@ -141,16 +141,16 @@ function RILContentHelper() {
   Services.obs.addObserver(this, "xpcom-shutdown", false);
 
   
-  let radioState = cpmm.QueryInterface(Ci.nsISyncMessageSender)
-                       .sendSyncMessage("RIL:GetRadioState")[0];
+  let rilContext = cpmm.QueryInterface(Ci.nsISyncMessageSender)
+                       .sendSyncMessage("RIL:GetRilContext")[0];
 
-  if (!radioState) {
-    debug("Received null radioState from chrome process.");
+  if (!rilContext) {
+    debug("Received null rilContext from chrome process.");
     return;
   }
-  this.cardState = radioState.cardState;
-  this.updateConnectionInfo(radioState.voice, this.voiceConnectionInfo);
-  this.updateConnectionInfo(radioState.data, this.dataConnectionInfo);
+  this.cardState = rilContext.cardState;
+  this.updateConnectionInfo(rilContext.voice, this.voiceConnectionInfo);
+  this.updateConnectionInfo(rilContext.data, this.dataConnectionInfo);
 }
 
 RILContentHelper.prototype = {
