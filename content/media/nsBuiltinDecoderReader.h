@@ -59,6 +59,7 @@ public:
       mAudioRate(0),
       mAudioChannels(0),
       mFrame(0,0),
+      mStereoMode(mozilla::layers::STEREO_MODE_MONO),
       mHasAudio(PR_FALSE),
       mHasVideo(PR_FALSE)
   {}
@@ -81,6 +82,9 @@ public:
   
   
   PRInt64 mDataOffset;
+
+  
+  mozilla::layers::StereoMode mStereoMode;
 
   
   PRPackedBool mHasAudio;

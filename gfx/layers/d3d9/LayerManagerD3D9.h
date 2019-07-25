@@ -175,11 +175,6 @@ public:
  
   Nv3DVUtils *GetNv3DVUtils()  { return mDeviceManager ? mDeviceManager->GetNv3DVUtils() : NULL; } 
 
-  
-
- 
-  PRBool Is3DEnabled() { return mIs3DEnabled; } 
-
   static void OnDeviceManagerDestroy(DeviceManagerD3D9 *aDeviceManager) {
     if(aDeviceManager == mDefaultDeviceManager)
       mDefaultDeviceManager = nsnull;
@@ -211,9 +206,6 @@ private:
 
   
   CallbackInfo mCurrentCallbackInfo;
-
-   
-  PRBool mIs3DEnabled; 
 
   
 
