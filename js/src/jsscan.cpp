@@ -742,24 +742,43 @@ TokenStream::getXMLEntity()
 
 
 
-int32
-TokenStream::getUnicodeEscape()
+
+bool
+TokenStream::peekUnicodeEscape(int *result)
 {
     jschar cp[5];
-    int32 c;
 
     if (peekChars(5, cp) && cp[0] == 'u' &&
         JS7_ISHEX(cp[1]) && JS7_ISHEX(cp[2]) &&
         JS7_ISHEX(cp[3]) && JS7_ISHEX(cp[4]))
     {
-        c = (((((JS7_UNHEX(cp[1]) << 4)
+        *result = (((((JS7_UNHEX(cp[1]) << 4)
                 + JS7_UNHEX(cp[2])) << 4)
               + JS7_UNHEX(cp[3])) << 4)
             + JS7_UNHEX(cp[4]);
-        skipChars(5);
-        return c;
+        return true;
     }
-    return '\\';
+    return false;
+}
+
+bool
+TokenStream::matchUnicodeEscapeIdStart(int32 *cp)
+{
+    if (peekUnicodeEscape(cp) && JS_ISIDSTART(*cp)) {
+        skipChars(5);
+        return true;
+    }
+    return false;
+}
+
+bool
+TokenStream::matchUnicodeEscapeIdent(int32 *cp)
+{
+    if (peekUnicodeEscape(cp) && JS_ISIDENT(*cp)) {
+        skipChars(5);
+        return true;
+    }
+    return false;
 }
 
 Token *
@@ -795,7 +814,7 @@ TokenStream::getTokenInternal()
     int c, qc;
     Token *tp;
     JSAtom *atom;
-    JSBool hadUnicodeEscape;
+    bool hadUnicodeEscape;
     const struct keyword *kw;
 #if JS_HAS_XML_SUPPORT
     JSBool inTarget;
@@ -993,11 +1012,9 @@ TokenStream::getTokenInternal()
 
 
 
-    hadUnicodeEscape = JS_FALSE;
+    hadUnicodeEscape = false;
     if (JS_ISIDSTART(c) ||
-        (c == '\\' &&
-         (qc = getUnicodeEscape(),
-          hadUnicodeEscape = JS_ISIDSTART(qc))))
+        (c == '\\' && (hadUnicodeEscape = matchUnicodeEscapeIdStart(&qc))))
     {
         if (hadUnicodeEscape)
             c = qc;
@@ -1007,11 +1024,10 @@ TokenStream::getTokenInternal()
                 goto error;
             c = getChar();
             if (c == '\\') {
-                qc = getUnicodeEscape();
-                if (!JS_ISIDENT(qc))
+                if (!matchUnicodeEscapeIdent(&qc))
                     break;
                 c = qc;
-                hadUnicodeEscape = JS_TRUE;
+                hadUnicodeEscape = true;
             } else {
                 if (!JS_ISIDENT(c))
                     break;
