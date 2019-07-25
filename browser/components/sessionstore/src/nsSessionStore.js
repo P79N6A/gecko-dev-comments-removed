@@ -2503,6 +2503,10 @@ SessionStoreService.prototype = {
       browser.__SS_data = tabData;
       browser.__SS_restoreState = TAB_STATE_NEEDS_RESTORE;
 
+      
+      
+      delete tab.__SS_extdata;
+
       if (!tabData.entries || tabData.entries.length == 0) {
         
         

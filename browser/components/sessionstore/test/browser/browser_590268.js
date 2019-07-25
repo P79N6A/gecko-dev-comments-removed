@@ -75,6 +75,9 @@ function test() {
     let uniq = ss.getTabValue(aEvent.originalTarget, "uniq");
     wasLoaded[uniq] = true;
 
+    is(ss.getTabValue(aEvent.originalTarget, "foo"), "",
+       "There is no value for 'foo'");
+
     
     
     if (restoringTabsCount == 1)
@@ -87,6 +90,13 @@ function test() {
     if (++restoredTabsCount < NUM_TABS)
       return;
     cleanup();
+  }
+
+  function onTabOpen(aEvent) {
+    
+    
+    
+    ss.setTabValue(aEvent.originalTarget, "foo", "bar");
   }
 
   
@@ -133,6 +143,7 @@ function test() {
     
     gBrowser.tabContainer.removeEventListener("SSTabRestoring", onSSTabRestoring, false);
     gBrowser.tabContainer.removeEventListener("SSTabRestored", onSSTabRestored, true);
+    gBrowser.tabContainer.removeEventListener("TabOpen", onTabOpen, false);
     
     
     
@@ -145,6 +156,7 @@ function test() {
   
   gBrowser.tabContainer.addEventListener("SSTabRestoring", onSSTabRestoring, false);
   gBrowser.tabContainer.addEventListener("SSTabRestored", onSSTabRestored, true);
+  gBrowser.tabContainer.addEventListener("TabOpen", onTabOpen, false);
   
   ss.setBrowserState(JSON.stringify(state));
 }
