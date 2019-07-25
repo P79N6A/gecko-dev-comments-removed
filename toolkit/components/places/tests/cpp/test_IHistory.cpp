@@ -553,6 +553,34 @@ test_visituri_transition_embed()
 
 
 
+#ifdef MOZ_IPC
+void
+test_two_null_links_same_uri()
+{
+  
+  
+  
+  nsCOMPtr<nsIURI> testURI(new_test_uri());
+
+  nsCOMPtr<IHistory> history(do_get_IHistory());
+  nsresult rv = history->RegisterVisitedCallback(testURI, NULL);
+  do_check_success(rv);
+  rv = history->RegisterVisitedCallback(testURI, NULL);
+  do_check_success(rv);
+
+  rv = history->VisitURI(testURI, NULL, mozilla::IHistory::TOP_LEVEL);
+  do_check_success(rv);
+
+  nsCOMPtr<VisitURIObserver> finisher = new VisitURIObserver();
+  finisher->WaitForNotification();
+
+  run_next_test();
+}
+#endif 
+
+
+
+
 
 
 
@@ -571,6 +599,11 @@ Test gTests[] = {
   TEST(test_visituri_creates_visit),
   TEST(test_visituri_transition_typed),
   TEST(test_visituri_transition_embed),
+
+  
+#ifdef MOZ_IPC
+  TEST(test_two_null_links_same_uri),
+#endif 
 };
 
 const char* file = __FILE__;
