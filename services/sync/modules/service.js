@@ -54,6 +54,9 @@ const CLUSTER_BACKOFF = 5 * 60 * 1000;
 
 const PBKDF2_KEY_BYTES = 16;
 
+const CRYPTO_COLLECTION = "crypto";
+const KEYS_WBO = "keys";
+
 const LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S";
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -245,7 +248,7 @@ WeaveSvc.prototype = {
     this.infoURL = this.userBaseURL + "info/collections";
     this.storageURL = this.userBaseURL + "storage/";
     this.metaURL = this.storageURL + "meta/global";
-    this.cryptoKeysURL = this.storageURL + "crypto/keys";
+    this.cryptoKeysURL = this.storageURL + CRYPTO_COLLECTION + "/" + KEYS_WBO;
   },
 
   _checkCrypto: function WeaveSvc__checkCrypto() {
@@ -304,7 +307,7 @@ WeaveSvc.prototype = {
     this.lastHMACEvent = now;
 
     
-    let cryptoKeys = new CryptoWrapper("crypto", "keys");
+    let cryptoKeys = new CryptoWrapper(CRYPTO_COLLECTION, KEYS_WBO);
     try {
       let cryptoResp = cryptoKeys.fetch(this.cryptoKeysURL).response;
 
@@ -777,9 +780,9 @@ WeaveSvc.prototype = {
         
         let cryptoKeys;
 
-        if (infoCollections && ('crypto' in infoCollections)) {
+        if (infoCollections && (CRYPTO_COLLECTION in infoCollections)) {
           try {
-            cryptoKeys = new CryptoWrapper("crypto", "keys");
+            cryptoKeys = new CryptoWrapper(CRYPTO_COLLECTION, KEYS_WBO);
             let cryptoResp = cryptoKeys.fetch(this.cryptoKeysURL).response;
 
             if (cryptoResp.success) {
@@ -821,15 +824,13 @@ WeaveSvc.prototype = {
         }
 
         if (!cryptoKeys) {
-          
-          
-          
-          
-          this.resetClient();
+          this._log.info("No keys! Generating new ones.");
 
           
-          this.generateNewSymmetricKeys();
-
+          
+          
+          
+          this._freshStart();
           return true;
         }
 
@@ -956,19 +957,58 @@ WeaveSvc.prototype = {
 
   generateNewSymmetricKeys:
   function WeaveSvc_generateNewSymmetricKeys() {
-    this._log.info("Generating new keys....");
-    CollectionKeys.generateNewKeys();
-    let wbo = CollectionKeys.asWBO("crypto", "keys");
-    this._log.info("Encrypting new key bundle. Modified time is " + wbo.modified);
+    this._log.info("Generating new keys WBO...");
+    let wbo = CollectionKeys.generateNewKeysWBO();
+    this._log.info("Encrypting new key bundle.");
     wbo.encrypt(this.syncKeyBundle);
 
     this._log.info("Uploading...");
     let uploadRes = wbo.upload(this.cryptoKeysURL);
-    if (uploadRes.status >= 400) {
+    if (uploadRes.status != 200) {
       this._log.warn("Got status " + uploadRes.status + " uploading new keys. What to do? Throw!");
       throw new Error("Unable to upload symmetric keys.");
     }
-    this._log.info("Got status " + uploadRes.status);
+    this._log.info("Got status " + uploadRes.status + " uploading keys.");
+    let serverModified = uploadRes.obj;   
+
+    
+    this._log.debug("Verifying server collection records.");
+    let info = this._fetchInfo();
+    this._log.debug("info/collections is: " + info);
+
+    if (info.status != 200) {
+      this._log.warn("Non-200 info/collections response. Aborting.");
+      throw new Error("Unable to upload symmetric keys.");
+    }
+
+    info = info.obj;
+    if (!("crypto" in info)) {
+      this._log.error("Consistency failure: info/collections excludes " + 
+                      "crypto after successful upload.");
+      throw new Error("Symmetric key upload failed.");
+    }
+
+    
+    if (info.crypto < serverModified) {
+      this._log.error("Consistency failure: info/collections crypto entry " + 
+                      "is stale after successful upload.");
+      throw new Error("Symmetric key upload failed.");
+    }
+    
+    
+    
+    
+    let cryptoKeys = new CryptoWrapper(CRYPTO_COLLECTION, KEYS_WBO);
+    let cryptoResp = cryptoKeys.fetch(this.cryptoKeysURL).response;
+    if (cryptoResp.status != 200) {
+      this._log.warn("Failed to download keys.");
+      throw new Error("Symmetric key download failed.");
+    }
+    let keysChanged = this.handleFetchedKeys(this.syncKeyBundle,
+                                             cryptoKeys, true);
+    if (keysChanged) {
+      this._log.info("Downloaded keys differed, as expected.");
+    }
   },
 
   changePassword: function WeaveSvc_changePassword(newpass)
@@ -2007,6 +2047,7 @@ WeaveSvc.prototype = {
     });
     this.wipeServer(collections);
 
+    
     
     this.generateNewSymmetricKeys();
   },

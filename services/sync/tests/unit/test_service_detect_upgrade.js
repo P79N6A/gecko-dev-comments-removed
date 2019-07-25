@@ -249,7 +249,7 @@ add_test(function v5_upgrade() {
 
     _("Testing v4 -> v5 (or similar) upgrade.");
     function update_server_keys(syncKeyBundle, wboName, collWBO) {
-      CollectionKeys.generateNewKeys();
+      generateNewKeys();
       serverKeys = CollectionKeys.asWBO("crypto", wboName);
       serverKeys.encrypt(syncKeyBundle);
       do_check_true(serverKeys.upload(Weave.Service.storageURL + collWBO).success);
@@ -271,7 +271,7 @@ add_test(function v5_upgrade() {
     update_server_keys(badKeys, "bulk", "crypto/bulk");  
     
     
-    CollectionKeys.generateNewKeys();
+    generateNewKeys();
     
     
     
