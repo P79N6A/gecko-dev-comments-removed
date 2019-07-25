@@ -593,30 +593,13 @@ nsAccessible::VisibilityState()
 {
   PRUint64 vstates = states::INVISIBLE | states::OFFSCREEN;
 
-  
-  nsAccessible* accessible = this;
-  do {
-    
-    
-    roles::Role role = accessible->Role();
-    if (role == roles::PROPERTYPAGE || role == roles::PANE)
-      break;
-
-    nsIFrame* frame = accessible->GetFrame();
-    if (!frame)
-      return vstates;
-
-    const nsIView* view = frame->GetView();
-    if (view && view->GetVisibility() == nsViewVisibility_kHide)
-      return vstates;
-    
-  } while (accessible = accessible->Parent());
-
   nsIFrame* frame = GetFrame();
   if (!frame)
     return vstates;
 
   const nsCOMPtr<nsIPresShell> shell(GetPresShell());
+  if (!shell)
+    return vstates;
 
   
   
@@ -643,6 +626,10 @@ nsAccessible::VisibilityState()
       return vstates;
 
   }
+
+  
+  if (!frame->IsVisibleConsideringAncestors(nsIFrame::VISIBILITY_CROSS_CHROME_CONTENT_BOUNDARY))
+    return vstates;
 
   
   return vstates &= ~states::INVISIBLE;
