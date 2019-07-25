@@ -8,6 +8,7 @@ package org.mozilla.gecko.gfx;
 import java.util.Map;
 import android.graphics.PointF;
 import android.graphics.RectF;
+import android.util.FloatMath;
 import android.util.Log;
 import org.json.JSONArray;
 import org.mozilla.gecko.FloatUtils;
@@ -16,6 +17,9 @@ import org.mozilla.gecko.GeckoAppShell;
 final class DisplayPortCalculator {
     private static final String LOGTAG = "GeckoDisplayPortCalculator";
     private static final PointF ZERO_VELOCITY = new PointF(0, 0);
+
+    
+    private static final int TILE_SIZE = 256;
 
     private static final String PREF_DISPLAYPORT_STRATEGY = "gfx.displayport.strategy";
     private static final String PREF_DISPLAYPORT_FM_MULTIPLIER = "gfx.displayport.strategy_fm.multiplier";
@@ -145,6 +149,24 @@ final class DisplayPortCalculator {
 
 
 
+    private static DisplayPortMetrics getTileAlignedDisplayPortMetrics(RectF margins, float zoom, ImmutableViewportMetrics metrics) {
+        float left = metrics.viewportRectLeft - margins.left;
+        float top = metrics.viewportRectTop - margins.top;
+        float right = metrics.viewportRectRight + margins.right;
+        float bottom = metrics.viewportRectBottom + margins.bottom;
+        left = Math.max(0.0f, TILE_SIZE * FloatMath.floor(left / TILE_SIZE));
+        top = Math.max(0.0f, TILE_SIZE * FloatMath.floor(top / TILE_SIZE));
+        right = Math.min(metrics.pageSizeWidth, TILE_SIZE * FloatMath.ceil(right / TILE_SIZE));
+        bottom = Math.min(metrics.pageSizeHeight, TILE_SIZE * FloatMath.ceil(bottom / TILE_SIZE));
+        return new DisplayPortMetrics(left, top, right, bottom, zoom);
+    }
+
+    
+
+
+
+
+
     private static RectF shiftMarginsForPageBounds(RectF margins, ImmutableViewportMetrics metrics) {
         
         
@@ -246,15 +268,7 @@ final class DisplayPortCalculator {
             margins.bottom = verticalBuffer - margins.top;
             margins = shiftMarginsForPageBounds(margins, metrics);
 
-            
-            
-            
-            
-            return new DisplayPortMetrics(metrics.viewportRectLeft - margins.left,
-                    metrics.viewportRectTop - margins.top,
-                    metrics.viewportRectRight + margins.right,
-                    metrics.viewportRectBottom + margins.bottom,
-                    metrics.zoomFactor);
+            return getTileAlignedDisplayPortMetrics(margins, metrics.zoomFactor, metrics);
         }
 
         public boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort) {
@@ -363,11 +377,7 @@ final class DisplayPortCalculator {
             RectF margins = velocityBiasedMargins(horizontalBuffer, verticalBuffer, velocity);
             margins = shiftMarginsForPageBounds(margins, metrics);
 
-            return new DisplayPortMetrics(metrics.viewportRectLeft - margins.left,
-                    metrics.viewportRectTop - margins.top,
-                    metrics.viewportRectRight + margins.right,
-                    metrics.viewportRectBottom + margins.bottom,
-                    metrics.zoomFactor);
+            return getTileAlignedDisplayPortMetrics(margins, metrics.zoomFactor, metrics);
         }
 
         public boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort) {
