@@ -7778,6 +7778,12 @@ var TabContextMenu = {
     
     document.getElementById("context_pinTab").hidden = this.contextTab.pinned;
     document.getElementById("context_unpinTab").hidden = !this.contextTab.pinned;
+
+    
+    
+    var unpinnedTabs = gBrowser.tabs.length - gBrowser._numPinnedTabs;
+    document.getElementById("context_closeOtherTabs").disabled = unpinnedTabs <= 1;
+    document.getElementById("context_closeOtherTabs").hidden = this.contextTab.pinned;
   }
 };
 
