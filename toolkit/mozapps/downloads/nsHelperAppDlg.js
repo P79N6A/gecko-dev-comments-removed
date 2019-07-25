@@ -312,9 +312,13 @@ nsUnknownContentTypeDialog.prototype = {
                             .getService(Components.interfaces.nsIDownloadManager);
     picker.displayDirectory = dnldMgr.userDownloadsDirectory;
 
+    var relatedURI = null;
+    if (aContext.document)
+      relatedURI = aContext.document.documentURIObject;
+
     
     try {
-      var lastDir = gDownloadLastDir.file;
+      var lastDir = gDownloadLastDir.getFile(relatedURI);
       if (isUsableDirectory(lastDir))
         picker.displayDirectory = lastDir;
     }
@@ -343,7 +347,7 @@ nsUnknownContentTypeDialog.prototype = {
       var newDir = result.parent.QueryInterface(Components.interfaces.nsILocalFile);
 
       
-      gDownloadLastDir.file = newDir;
+      gDownloadLastDir.setFile(relatedURI, newDir);
 
       result = this.validateLeafName(newDir, result.leafName, null);
     }

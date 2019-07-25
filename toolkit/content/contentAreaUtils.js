@@ -341,7 +341,10 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
       file: file
     };
 
-    if (!getTargetFile(fpParams, aSkipPrompt))
+    
+    let relatedURI = aReferrer || sourceURI;
+
+    if (!getTargetFile(fpParams, aSkipPrompt, relatedURI))
       
       
       return;
@@ -554,7 +557,11 @@ function initFileInfo(aFI, aURL, aURLCharset, aDocument,
 
 
 
-function getTargetFile(aFpP,  aSkipPrompt)
+
+
+
+
+function getTargetFile(aFpP,  aSkipPrompt,  aRelatedURI)
 {
   if (typeof gDownloadLastDir != "object")
     Components.utils.import("resource:
@@ -587,7 +594,7 @@ function getTargetFile(aFpP,  aSkipPrompt)
     
     
     
-    var lastDir = gDownloadLastDir.file;
+    var lastDir = gDownloadLastDir.getFile(aRelatedURI);
     if (lastDir.exists()) {
       dir = lastDir;
       dirExists = true;
@@ -631,7 +638,7 @@ function getTargetFile(aFpP,  aSkipPrompt)
 
   
   var directory = fp.file.parent.QueryInterface(nsILocalFile);
-  gDownloadLastDir.file = directory;
+  gDownloadLastDir.setFile(aRelatedURI, directory);
 
   fp.file.leafName = validateFileName(fp.file.leafName);
   
