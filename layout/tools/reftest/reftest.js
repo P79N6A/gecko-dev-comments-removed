@@ -58,6 +58,7 @@ const NS_XREAPPINFO_CONTRACTID =
           "@mozilla.org/xre/app-info;1";
 
 var gLoadTimeout = 0;
+var gTimeoutHook = null;
 var gRemote = false;
 var gTotalChunks = 0;
 var gThisChunk = 0;
@@ -102,12 +103,8 @@ var gState;
 
 
 
-
-
-var gExplicitPendingPaintCounter = 0;
-var gTestContainsAsyncPaintObjects = false;
-var gRunningReftestWaitTest = false;
-var gAttrListenerFunc = null;
+var gExplicitPendingPaintCount = 0;
+var gExplicitPendingPaintsCompleteHook;
 var gCurrentURL;
 var gFailureTimeout = null;
 var gFailureReason;
@@ -175,31 +172,19 @@ function ReleaseCanvas(canvas)
         gRecycledCanvases.push(canvas);
 }
 
-function PaintWaitListener()
+function PaintWaitListener(event)
 {
-    
-    
-    gExplicitPendingPaintCounter++;
+    gExplicitPendingPaintCount++;
 }
 
-function PaintWaitFinishedListener()
+function PaintWaitFinishedListener(event)
 {
-    gExplicitPendingPaintCounter--;
-    if (gExplicitPendingPaintCounter == 0) {
-        if (gRunningReftestWaitTest) {
-            
-            
-            gAttrListenerFunc();
-        } else if (gTestContainsAsyncPaintObjects) {
-            gTestContainsAsyncPaintObjects = false;
-            
-            
-            
-            setTimeout(setTimeout, 0, DocumentLoaded, 0);
-        }
+    gExplicitPendingPaintCount--;
+    if (gExplicitPendingPaintCount == 0 &&
+        gExplicitPendingPaintsCompleteHook) {
+        gExplicitPendingPaintsCompleteHook();
     }
 }
-
 
 function OnRefTestLoad()
 {
@@ -818,7 +803,7 @@ function StartCurrentURI(aState)
         gURLs[0].maxAsserts == 0) {
         
         
-        setTimeout(DocumentLoaded, 0);
+        setTimeout(RecordResult, 0);
     } else {
         gDumpLog("REFTEST TEST-START | " + gCurrentURL + "\n");
         gBrowser.loadURI(gCurrentURL);
@@ -878,6 +863,185 @@ function resetZoom() {
     gBrowser.markupDocumentViewer.fullZoom = 1.0;
 }
 
+function doPrintMode(contentRootElement) {
+    
+    return contentRootElement &&
+           contentRootElement.hasAttribute('class') &&
+           contentRootElement.getAttribute('class').split(/\s+/)
+                             .indexOf("reftest-print") != -1;
+}
+
+function setupPrintMode() {
+   var PSSVC = Components.classes["@mozilla.org/gfx/printsettings-service;1"]
+               .getService(Components.interfaces.nsIPrintSettingsService);
+   var ps = PSSVC.newPrintSettings;
+   ps.paperWidth = 5;
+   ps.paperHeight = 3;
+
+   
+   ps.unwriteableMarginTop = 0;
+   ps.unwriteableMarginLeft = 0;
+   ps.unwriteableMarginBottom = 0;
+   ps.unwriteableMarginRight = 0;
+
+   ps.headerStrLeft = "";
+   ps.headerStrCenter = "";
+   ps.headerStrRight = "";
+   ps.footerStrLeft = "";
+   ps.footerStrCenter = "";
+   ps.footerStrRight = "";
+   gBrowser.docShell.contentViewer.setPageMode(true, ps);
+}
+
+function shouldWaitForExplicitPaintWaiters() {
+    return gExplicitPendingPaintCount > 0;
+}
+
+function shouldWaitForPendingPaints() {
+    return gWindowUtils.isMozAfterPaintPending;
+}
+
+function shouldWaitForReftestWaitRemoval() {
+    var contentRootElement = gBrowser.contentDocument.documentElement;
+    
+    return contentRootElement &&
+           contentRootElement.hasAttribute('class') &&
+           contentRootElement.getAttribute('class').split(/\s+/)
+                             .indexOf("reftest-wait") != -1;
+}
+
+
+
+
+const STATE_WAITING_TO_FIRE_INVALIDATE_EVENT = 0;
+
+
+const STATE_WAITING_FOR_REFTEST_WAIT_REMOVAL = 1;
+
+
+const STATE_WAITING_TO_FINISH = 2;
+const STATE_COMPLETED = 3;
+
+function WaitForTestEnd() {
+    var contentRootElement = gBrowser.contentDocument.documentElement;
+
+    var stopAfterPaintReceived = false;
+    var currentDoc = gBrowser.contentDocument;
+    var utils = gBrowser.contentWindow.QueryInterface(CI.nsIInterfaceRequestor)
+        .getInterface(CI.nsIDOMWindowUtils);
+    var state = STATE_WAITING_TO_FIRE_INVALIDATE_EVENT;
+    gFailureReason = "timed out waiting for pending paint count to reach zero";
+
+    function FlushRendering() {
+        function flushWindow(win) {
+            try {
+                win.document.documentElement.getBoundingClientRect();
+            } catch (e) {}
+            for (var i = 0; i < win.frames.length; ++i) {
+                flushWindow(win.frames[i]);
+            }
+        }
+              
+        
+        flushWindow(contentRootElement.ownerDocument.defaultView);
+        
+        utils.processUpdates();
+    }
+
+    function AfterPaintListener(event) {
+        if (event.target.document != document) {
+            
+            
+            return;
+        }
+        UpdateCurrentCanvasForEvent(event);
+        
+        
+        
+        setTimeout(MakeProgress, 0);
+    }
+
+    function AttrModifiedListener() {
+        
+        
+        
+        
+        setTimeout(MakeProgress, 0);
+    }
+
+    function ExplicitPaintsCompleteListener() {
+        
+        
+        setTimeout(MakeProgress, 0);
+    }
+
+    function RemoveListeners() {
+        
+        window.removeEventListener("MozAfterPaint", AfterPaintListener, false);
+        contentRootElement.removeEventListener("DOMAttrModified", AttrModifiedListener, false);
+        gExplicitPendingPaintsCompleteHook = null;
+        gTimeoutHook = null;
+        
+        
+        state = STATE_COMPLETED;
+    }
+
+    
+    
+    
+    function MakeProgress() {
+        if (state >= STATE_COMPLETED)
+            return;
+
+        FlushRendering();
+
+        switch (state) {
+        case STATE_WAITING_TO_FIRE_INVALIDATE_EVENT:
+            if (shouldWaitForExplicitPaintWaiters() || shouldWaitForPendingPaints())
+                return;
+            state = STATE_WAITING_FOR_REFTEST_WAIT_REMOVAL;
+            gFailureReason = "timed out waiting for reftest-wait to be removed";
+            
+            var notification = document.createEvent("Events");
+            notification.initEvent("MozReftestInvalidate", true, false);
+            contentRootElement.dispatchEvent(notification);
+            
+            MakeProgress();
+            return;
+
+        case STATE_WAITING_FOR_REFTEST_WAIT_REMOVAL:
+            if (shouldWaitForReftestWaitRemoval())
+                return;
+            state = STATE_WAITING_TO_FINISH;
+            gFailureReason = "timed out waiting for pending paint count to " +
+                "reach zero (after reftest-wait removed and switch to print mode)";
+            if (doPrintMode(contentRootElement)) {
+                setupPrintMode();
+                didPrintMode = true;
+            }
+            
+            MakeProgress();
+            return;
+
+        case STATE_WAITING_TO_FINISH:
+            if (shouldWaitForExplicitPaintWaiters() || shouldWaitForPendingPaints())
+                return;
+            state = STATE_COMPLETED;
+            gFailureReason = "timed out while taking snapshot (bug in harness?)";
+            RemoveListeners();
+            setTimeout(RecordResult, 0);
+            return;
+        }
+    }
+
+    window.addEventListener("MozAfterPaint", AfterPaintListener, false);
+    contentRootElement.addEventListener("DOMAttrModified", AttrModifiedListener, false);
+    gExplicitPendingPaintsCompleteHook = ExplicitPaintsCompleteListener;
+    gTimeoutHook = RemoveListeners;
+
+    MakeProgress();
+}
+
 function OnDocumentLoad(event)
 {
     if (event.target != gBrowser.contentDocument)
@@ -896,184 +1060,41 @@ function OnDocumentLoad(event)
 
     var contentRootElement = gBrowser.contentDocument.documentElement;
 
-    function shouldWait() {
-        
-        return contentRootElement &&
-               contentRootElement.hasAttribute('class') &&
-               contentRootElement.getAttribute('class').split(/\s+/)
-                                 .indexOf("reftest-wait") != -1;
-    }
-
-    function doPrintMode() {
-        
-        return contentRootElement &&
-               contentRootElement.hasAttribute('class') &&
-               contentRootElement.getAttribute('class').split(/\s+/)
-                                 .indexOf("reftest-print") != -1;
-    }
-
-    function setupPrintMode() {
-       var PSSVC = Components.classes["@mozilla.org/gfx/printsettings-service;1"]
-                  .getService(Components.interfaces.nsIPrintSettingsService);
-       var ps = PSSVC.newPrintSettings;
-       ps.paperWidth = 5;
-       ps.paperHeight = 3;
-
-       
-       ps.unwriteableMarginTop = 0;
-       ps.unwriteableMarginLeft = 0;
-       ps.unwriteableMarginBottom = 0;
-       ps.unwriteableMarginRight = 0;
-
-       ps.headerStrLeft = "";
-       ps.headerStrCenter = "";
-       ps.headerStrRight = "";
-       ps.footerStrLeft = "";
-       ps.footerStrCenter = "";
-       ps.footerStrRight = "";
-       gBrowser.docShell.contentViewer.setPageMode(true, ps);
-    }
-
     setupZoom(contentRootElement);
 
-    if (shouldWait()) {
-        gRunningReftestWaitTest = true;
-        
-        
-        
-        gFailureReason = "timed out waiting for reftest-wait to be removed (after onload fired)"
-
-        var stopAfterPaintReceived = false;
-        var currentDoc = gBrowser.contentDocument;
-        var utils = gBrowser.contentWindow.QueryInterface(CI.nsIInterfaceRequestor)
-            .getInterface(CI.nsIDOMWindowUtils);
-
-        function FlushRendering() {
-            function flushWindow(win) {
-                try {
-                    win.document.documentElement.getBoundingClientRect();
-                } catch (e) {}
-                for (var i = 0; i < win.frames.length; ++i) {
-                    flushWindow(win.frames[i]);
-                }
-            }
-                
-            
-            flushWindow(contentRootElement.ownerDocument.defaultView);
-            
-            utils.processUpdates();
-        }
-
-        function WhenMozAfterPaintFlushed(continuation) {
-            if (gWindowUtils.isMozAfterPaintPending) {
-                function handler() {
-                    window.removeEventListener("MozAfterPaint", handler, false);
-                    continuation();
-                }
-                window.addEventListener("MozAfterPaint", handler, false);
-            } else {
-                continuation();
-            }
-        }
-
-        function AfterPaintListener(event) {
-            if (event.target.document != document) {
-                
-                
-                return;
-            }
-
-            FlushRendering();
-            UpdateCurrentCanvasForEvent(event);
-            
-            
-            
-            if (stopAfterPaintReceived && !gWindowUtils.isMozAfterPaintPending &&
-                !gExplicitPendingPaintCounter) {
-                FinishWaitingForTestEnd();
-            }
-        }
-
-        function FinishWaitingForTestEnd() {
-            window.removeEventListener("MozAfterPaint", AfterPaintListener, false);
-            setTimeout(DocumentLoaded, 0);
-        }
-
-        function AttrModifiedListener() {
-            if (shouldWait())
-                return;
-
-            
-            contentRootElement.removeEventListener("DOMAttrModified", AttrModifiedListener, false);
-            
-            
-            
-            
-            setTimeout(AttrModifiedListenerContinuation, 0);
-        }
-        
-        gAttrListenerFunc = AttrModifiedListener;
-
-        function AttrModifiedListenerContinuation() {
-            if (gExplicitPendingPaintCounter) {
-                return;
-            }
-
-            if (doPrintMode())
-                setupPrintMode();
-            FlushRendering();
-
-            if (gWindowUtils.isMozAfterPaintPending) {
-                
-                
-                stopAfterPaintReceived = true;
-            } else {
-                
-                FinishWaitingForTestEnd();
-            }
-        }
-
-        function StartWaitingForTestEnd() {
-            FlushRendering();
-
-            function continuation() {
-                window.addEventListener("MozAfterPaint", AfterPaintListener, false);
-                contentRootElement.addEventListener("DOMAttrModified", AttrModifiedListener, false);
-
-                
-                InitCurrentCanvasWithSnapshot();
-
-                if (!shouldWait()) {
-                    
-                    
-                    
-                    
-                    AttrModifiedListener();
-                    return;
-                }
-
-                
-                var notification = document.createEvent("Events");
-                notification.initEvent("MozReftestInvalidate", true, false);
-                contentRootElement.dispatchEvent(notification);
-            }
-            WhenMozAfterPaintFlushed(continuation);
-        }
-
-        
-        
-        
-        setTimeout(StartWaitingForTestEnd, 0);
-    } else {
-        gRunningReftestWaitTest = false;
-        if (doPrintMode())
+    function AfterOnLoadScripts() {
+        if (doPrintMode(contentRootElement))
             setupPrintMode();
 
         
         
         
         
-        setTimeout(setTimeout, 0, DocumentLoaded, 0);
+        InitCurrentCanvasWithSnapshot();
+
+        if (shouldWaitForExplicitPaintWaiters()) {
+            
+            WaitForTestEnd();
+        } else {
+            RecordResult();
+        }
+    }
+
+    if (shouldWaitForReftestWaitRemoval() || shouldWaitForExplicitPaintWaiters()) {
+        
+        
+        gFailureReason = "timed out waiting for test to complete (trying to get into WaitForTestEnd)";
+        setTimeout(function() {
+            InitCurrentCanvasWithSnapshot();
+            WaitForTestEnd();
+        }, 0);
+    } else {
+        
+        
+        
+        
+        gFailureReason = "timed out waiting for test to complete (waiting for onload scripts to complete)";
+        setTimeout(setTimeout, 0, AfterOnLoadScripts, 0);
     }
 }
 
@@ -1173,7 +1194,7 @@ function UpdateCurrentCanvasForEvent(event)
     }
 }
 
-function DocumentLoaded()
+function RecordResult()
 {
     
     var currentTestRunTime = Date.now() - gCurrentTestStartTime;
@@ -1284,16 +1305,6 @@ function DocumentLoaded()
 
     if (gURICanvases[gCurrentURL]) {
         gCurrentCanvas = gURICanvases[gCurrentURL];
-    } else if (gCurrentCanvas == null) {
-        InitCurrentCanvasWithSnapshot();
-        if (gExplicitPendingPaintCounter) {
-            
-            
-            
-            gTestContainsAsyncPaintObjects = true;
-            gCurrentCanvas = null;
-            return;
-        }
     }
     if (gState == 1) {
         gCanvas1 = gCurrentCanvas;
@@ -1374,6 +1385,9 @@ function DocumentLoaded()
 
 function LoadFailed()
 {
+    if (gTimeoutHook) {
+        gTimeoutHook();
+    }
     gFailureTimeout = null;
     ++gTestResults.FailedLoad;
     gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | " +
