@@ -271,13 +271,16 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, PRInt32 *aStatus, nsAString & aS
   }
 
   if (aFeature == FEATURE_OPENGL_LAYERS) {
-      nsAutoString str;
-      
-      if (mozilla::AndroidBridge::Bridge()->GetStaticStringField("android/os/Build", "HARDWARE", str)) {
-          if (str != NS_LITERAL_STRING("smdkc110")) {
-            status = FEATURE_BLOCKED_DEVICE;
-          }
-      }
+    
+    
+    
+    
+    
+    
+    
+    
+
+    status = FEATURE_BLOCKED_DEVICE;
   }
 
   *aStatus = status;
