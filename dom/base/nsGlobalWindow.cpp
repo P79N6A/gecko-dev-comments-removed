@@ -10678,22 +10678,14 @@ nsGlobalWindow::SetIsApp(bool aValue)
 bool
 nsGlobalWindow::IsPartOfApp()
 {
-  FORWARD_TO_OUTER(IsPartOfApp, (), TriState_False);
+  mozIDOMApplication* app;
+  nsresult rv = GetApp(&app);
 
-  
-  
-  for (nsGlobalWindow* w = this; w;
-       w = static_cast<nsGlobalWindow*>(w->GetParentInternal())) {
-    if (w->mIsApp == TriState_True) {
-      
-      MOZ_ASSERT(w->mApp);
-      return true;
-    } else if (w->mIsApp == TriState_False) {
-      return false;
-    }
+  if (NS_FAILED(rv)) {
+    return false;
   }
 
-  return false;
+  return app != nsnull;
 }
 
 nsresult
@@ -10719,6 +10711,30 @@ nsGlobalWindow::SetApp(const nsAString& aManifestURL)
   }
 
   mApp = app.forget();
+
+  return NS_OK;
+}
+
+nsresult
+nsGlobalWindow::GetApp(mozIDOMApplication** aApplication)
+{
+  *aApplication = nsnull;
+
+  FORWARD_TO_OUTER(GetApp, (aApplication), NS_OK);
+
+  
+  
+  for (nsGlobalWindow* w = this; w;
+       w = static_cast<nsGlobalWindow*>(w->GetParentInternal())) {
+    if (w->mIsApp == TriState_True) {
+      
+      MOZ_ASSERT(w->mApp);
+      NS_IF_ADDREF(*aApplication = w->mApp);
+      return NS_OK;
+    } else if (w->mIsApp == TriState_False) {
+      return NS_OK;
+    }
+  }
 
   return NS_OK;
 }

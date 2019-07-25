@@ -894,6 +894,7 @@ protected:
 
   void SetIsApp(bool aValue);
   nsresult SetApp(const nsAString& aManifestURL);
+  nsresult GetApp(mozIDOMApplication** aApplication);
 
   
   nsresult GetTopImpl(nsIDOMWindow **aWindow, bool aScriptable);
