@@ -1617,6 +1617,8 @@ nsSocketTransport::OnSocketDetached(PRFileDesc *fd)
     
     
     
+    
+    nsCOMPtr<nsIInterfaceRequestor> ourCallbacks;
     nsCOMPtr<nsITransportEventSink> ourEventSink;
     {
         nsAutoLock lock(mLock);
@@ -1632,7 +1634,7 @@ nsSocketTransport::OnSocketDetached(PRFileDesc *fd)
         
         
         if (NS_FAILED(mCondition)) {
-            mCallbacks = nsnull;
+            mCallbacks.swap(ourCallbacks);
             mEventSink.swap(ourEventSink);
         }
     }
