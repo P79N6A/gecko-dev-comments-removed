@@ -710,6 +710,9 @@ class Dumper_Mac(Dumper):
         
         os.system("dsymutil %s %s >/dev/null" % (' '.join([a.replace('-a ', '--arch=') for a in self.archs]),
                                       file))
+        if not os.path.exists(dsymbundle):
+            
+            return False
         res = Dumper.ProcessFile(self, dsymbundle)
         
         shutil.rmtree(dsymbundle)
