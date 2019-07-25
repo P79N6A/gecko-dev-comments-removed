@@ -36,10 +36,10 @@
 
 
 
-using namespace js;
-
 #include "jsperf.h"
 #include "jsutil.h"
+
+using namespace js;
 
 
 
