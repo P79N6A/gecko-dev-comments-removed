@@ -545,6 +545,7 @@ public:
         mHasRobustness(false),
         mContextLost(false),
         mVendor(-1),
+        mRenderer(-1),
         mDebugMode(0),
         mCreationFormat(aFormat),
         mSharedContext(aSharedContext),
@@ -688,9 +689,20 @@ public:
         VendorOther
     };
 
+    enum {
+        RendererAdreno200,
+        RendererOther
+    };
+
     int Vendor() const {
         return mVendor;
     }
+
+    int Renderer() const {
+        return mRenderer;
+    }
+
+    bool CanUploadSubTextures();
 
     
 
@@ -767,6 +779,7 @@ protected:
     bool mFlushGuaranteesResolve;
 
 public:
+
     void SetFlushGuaranteesResolve(bool aFlushGuaranteesResolve) {
         mFlushGuaranteesResolve = aFlushGuaranteesResolve;
     }
@@ -1381,6 +1394,7 @@ protected:
     bool mContextLost;
 
     PRInt32 mVendor;
+    PRInt32 mRenderer;
 
     enum {
         DebugEnabled = 1 << 0,
@@ -2683,23 +2697,23 @@ public:
 };
 
 inline bool
-DoesVendorStringMatch(const char* aVendorString, const char *aWantedVendor)
+DoesStringMatch(const char* aString, const char *aWantedString)
 {
-    if (!aVendorString || !aWantedVendor)
+    if (!aString || !aWantedString)
         return false;
 
-    const char *occurrence = strstr(aVendorString, aWantedVendor);
+    const char *occurrence = strstr(aString, aWantedString);
 
     
     if (!occurrence)
         return false;
 
     
-    if (occurrence != aVendorString && isalpha(*(occurrence-1)))
+    if (occurrence != aString && isalpha(*(occurrence-1)))
         return false;
 
     
-    const char *afterOccurrence = occurrence + strlen(aWantedVendor);
+    const char *afterOccurrence = occurrence + strlen(aWantedString);
     if (isalpha(*afterOccurrence))
         return false;
 
