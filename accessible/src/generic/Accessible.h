@@ -210,6 +210,17 @@ public:
   
 
 
+
+  PRUint64 InteractiveState() const
+  {
+    PRUint64 state = NativeInteractiveState();
+    ApplyARIAState(&state);
+    return state;
+  }
+
+  
+
+
   PRUint64 LinkState() const
   {
     PRUint64 state = NativeLinkState();
@@ -226,12 +237,22 @@ public:
   
 
 
+  virtual PRUint64 NativeInteractiveState() const;
+
+  
+
+
   virtual PRUint64 NativeLinkState() const;
 
   
 
 
   PRUint64 VisibilityState();
+
+  
+
+
+  virtual bool NativelyUnavailable() const;
 
   
 
@@ -825,9 +846,7 @@ protected:
 
 
 
-
-
-  PRUint32 GetActionRule(PRUint64 aStates);
+  PRUint32 GetActionRule();
 
   
 

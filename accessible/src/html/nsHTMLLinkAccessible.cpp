@@ -42,18 +42,7 @@ nsHTMLLinkAccessible::NativeRole()
 PRUint64
 nsHTMLLinkAccessible::NativeState()
 {
-  PRUint64 states = HyperTextAccessibleWrap::NativeState();
-
-  states  &= ~states::READONLY;
-
-  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::name)) {
-    
-    
-    
-    states |= states::SELECTABLE;
-  }
-
-  return states;
+  return HyperTextAccessibleWrap::NativeState() & ~states::READONLY;
 }
 
 PRUint64
@@ -70,6 +59,20 @@ nsHTMLLinkAccessible::NativeLinkState() const
   
   
   return nsCoreUtils::HasClickListener(mContent) ? states::LINKED : 0;
+}
+
+PRUint64
+nsHTMLLinkAccessible::NativeInteractiveState() const
+{
+  PRUint64 state = HyperTextAccessibleWrap::NativeInteractiveState();
+
+  
+  
+  
+  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::name))
+    state |= states::SELECTABLE;
+
+  return state;
 }
 
 void

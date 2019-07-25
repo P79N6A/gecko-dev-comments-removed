@@ -285,7 +285,7 @@ DocAccessible::NativeState()
     0 : states::STALE;
 
   
-  state |= states::FOCUSABLE;
+  state |= states::FOCUSABLE; 
   if (FocusMgr()->IsFocused(this))
     state |= states::FOCUSED;
 
@@ -309,6 +309,19 @@ DocAccessible::NativeState()
   state |= editor ? states::EDITABLE : states::READONLY;
 
   return state;
+}
+
+PRUint64
+DocAccessible::NativeInteractiveState() const
+{
+  
+  return states::FOCUSABLE;
+}
+
+bool
+DocAccessible::NativelyUnavailable() const
+{
+  return false;
 }
 
 

@@ -1541,7 +1541,7 @@ HyperTextAccessible::GetEditor() const
 nsresult
 HyperTextAccessible::SetSelectionRange(PRInt32 aStartPos, PRInt32 aEndPos)
 {
-  bool isFocusable = State() & states::FOCUSABLE;
+  bool isFocusable = InteractiveState() & states::FOCUSABLE;
 
   
   
@@ -1612,7 +1612,7 @@ HyperTextAccessible::GetCaretOffset(PRInt32* aCaretOffset)
   
   
   if (!IsDoc() && !FocusMgr()->IsFocused(this) &&
-      (State() & states::FOCUSABLE)) {
+      (InteractiveState() & states::FOCUSABLE)) {
     return NS_OK;
   }
 

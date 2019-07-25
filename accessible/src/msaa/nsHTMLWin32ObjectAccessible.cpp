@@ -42,12 +42,12 @@ nsHTMLWin32ObjectOwnerAccessible::NativeRole()
   return roles::EMBEDDED_OBJECT;
 }
 
-PRUint64
-nsHTMLWin32ObjectOwnerAccessible::NativeState()
+bool
+nsHTMLWin32ObjectOwnerAccessible::NativelyUnavailable() const
 {
   
   
-  return mHwnd ? AccessibleWrap::NativeState() : states::UNAVAILABLE;
+  return !mHwnd;
 }
 
 

@@ -52,6 +52,7 @@ public:
   
   
   virtual PRUint64 NativeState();
+  virtual bool NativelyUnavailable() const;
 
   
   

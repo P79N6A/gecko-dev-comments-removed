@@ -238,10 +238,6 @@ nsHTMLSelectOptionAccessible::NativeState()
     return state;
 
   
-  if (!(state & states::UNAVAILABLE))
-    state |= (states::FOCUSABLE | states::SELECTABLE);
-
-  
   bool isSelected = false;
   nsCOMPtr<nsIDOMHTMLOptionElement> option(do_QueryInterface(mContent));
   if (option) {
@@ -283,6 +279,13 @@ nsHTMLSelectOptionAccessible::NativeState()
   }
  
   return state;
+}
+
+PRUint64
+nsHTMLSelectOptionAccessible::NativeInteractiveState() const
+{
+  return NativelyUnavailable() ?
+    states::UNAVAILABLE : states::FOCUSABLE | states::SELECTABLE;
 }
 
 PRInt32
@@ -376,13 +379,9 @@ nsHTMLSelectOptGroupAccessible::NativeRole()
 }
 
 PRUint64
-nsHTMLSelectOptGroupAccessible::NativeState()
+nsHTMLSelectOptGroupAccessible::NativeInteractiveState() const
 {
-  PRUint64 state = nsHTMLSelectOptionAccessible::NativeState();
-
-  state &= ~(states::FOCUSABLE | states::SELECTABLE);
-
-  return state;
+  return NativelyUnavailable() ? states::UNAVAILABLE : 0;
 }
 
 NS_IMETHODIMP nsHTMLSelectOptGroupAccessible::DoAction(PRUint8 index)

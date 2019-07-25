@@ -83,20 +83,6 @@ nsXULTabAccessible::NativeState()
   PRUint64 state = AccessibleWrap::NativeState();
 
   
-  
-  
-  state &= ~states::FOCUSABLE;
-
-  nsIFrame *frame = mContent->GetPrimaryFrame();
-  if (frame) {
-    const nsStyleUserInterface* ui = frame->GetStyleUserInterface();
-    if (ui->mUserFocus == NS_STYLE_USER_FOCUS_NORMAL)
-      state |= states::FOCUSABLE;
-  }
-
-  
-  state |= states::SELECTABLE;
-  state &= ~states::SELECTED;
   nsCOMPtr<nsIDOMXULSelectControlItemElement> tab(do_QueryInterface(mContent));
   if (tab) {
     bool selected = false;
@@ -104,6 +90,13 @@ nsXULTabAccessible::NativeState()
       state |= states::SELECTED;
   }
   return state;
+}
+
+PRUint64
+nsXULTabAccessible::NativeInteractiveState() const
+{
+  PRUint64 state = Accessible::NativeInteractiveState();
+  return (state & states::UNAVAILABLE) ? state : state | states::SELECTABLE;
 }
 
 
