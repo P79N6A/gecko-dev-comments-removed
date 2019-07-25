@@ -67,7 +67,6 @@ function BrowserRootActor(aConnection)
   this._actorFactories = null;
 
   this.onTabClosed = this.onTabClosed.bind(this);
-  this._onWindowCreated = this.onWindowCreated.bind(this);
   windowMediator.addListener(this);
 }
 
@@ -76,10 +75,6 @@ BrowserRootActor.prototype = {
 
 
   sayHello: function BRA_sayHello() {
-    
-    
-    this._preInitTabActor();
-
     return { from: "root",
              applicationType: "browser",
              traits: [] };
@@ -122,6 +117,10 @@ BrowserRootActor.prototype = {
     let selected;
     while (e.hasMoreElements()) {
       let win = e.getNext();
+
+      
+      
+      this.watchWindow(win);
 
       
       let selectedBrowser = win.getBrowser().selectedBrowser;
@@ -186,56 +185,11 @@ BrowserRootActor.prototype = {
   
 
 
-  onWindowCreated: function BRA_onWindowCreated(evt) {
-    if (evt.target === this.browser.contentDocument) {
-      this._preInitTabActor();
-    }
-  },
-
-  
-
-
   exitTabActor: function BRA_exitTabActor(aWindow) {
-    this.browser.removeEventListener("DOMWindowCreated", this._onWindowCreated, true);
     let actor = this._tabActors.get(aWindow);
     if (actor) {
       actor.exit();
     }
-  },
-
-  
-
-
-
-  _preInitTabActor: function BRA__preInitTabActor() {
-    let actorPool = new ActorPool(this.conn);
-
-    
-    let e = windowMediator.getEnumerator("navigator:browser");
-    while (e.hasMoreElements()) {
-      let win = e.getNext();
-
-      
-      
-      this.watchWindow(win);
-
-      this.browser = win.getBrowser().selectedBrowser;
-      let actor = this._tabActors.get(this.browser);
-      if (actor) {
-        actor._detach();
-      }
-      actor = new BrowserTabActor(this.conn, this.browser);
-      actor.parentID = this.actorID;
-      this._tabActors.set(this.browser, actor);
-
-      actorPool.addActor(actor);
-    }
-
-    this._tabActorPool = actorPool;
-    this.conn.addActorPool(this._tabActorPool);
-
-    
-    this.browser.addEventListener("DOMWindowCreated", this._onWindowCreated, true);
   },
 
   
@@ -270,7 +224,6 @@ function BrowserTabActor(aConnection, aBrowser)
   this._browser = aBrowser;
 
   this._onWindowCreated = this.onWindowCreated.bind(this);
-  this._attach();
 }
 
 
@@ -341,7 +294,7 @@ BrowserTabActor.prototype = {
     this._pushContext();
 
     
-    this.browser.addEventListener("DOMWindowCreated", this._onWindowCreated, false);
+    this.browser.addEventListener("DOMWindowCreated", this._onWindowCreated, true);
 
     this._attached = true;
   },
@@ -393,7 +346,7 @@ BrowserTabActor.prototype = {
       return;
     }
 
-    this.browser.removeEventListener("DOMWindowCreated", this._onWindowCreated, false);
+    this.browser.removeEventListener("DOMWindowCreated", this._onWindowCreated, true);
 
     this._popContext();
 

@@ -99,19 +99,12 @@ ThreadActor.prototype = {
       this._dbg = new Debugger();
     }
 
-    
-    
-    
-    if (aGlobal.location &&
-        (aGlobal.location.protocol == "about:" ||
-         aGlobal.location.protocol == "chrome:")) {
-      return;
-    }
-
     this.dbg.addDebuggee(aGlobal);
     this.dbg.uncaughtExceptionHook = this.uncaughtExceptionHook.bind(this);
     this.dbg.onDebuggerStatement = this.onDebuggerStatement.bind(this);
     this.dbg.onNewScript = this.onNewScript.bind(this);
+    
+    this.dbg.enabled = false;
   },
 
   
@@ -503,6 +496,11 @@ ThreadActor.prototype = {
 
 
   onScripts: function TA_onScripts(aRequest) {
+    
+    for (let s of this.dbg.findScripts()) {
+      this._addScript(s);
+    }
+    
     let scripts = [];
     for (let url in this._scripts) {
       for (let i = 0; i < this._scripts[url].length; i++) {
@@ -867,20 +865,26 @@ ThreadActor.prototype = {
 
 
 
+  onNewScript: function TA_onNewScript(aScript, aGlobal) {
+    this._addScript(aScript);
+    
+    this.conn.send({ from: this.actorID, type: "newScript",
+                     url: aScript.url, startLine: aScript.startLine });
+  },
+
+  
 
 
 
 
-  onNewScript: function TA_onNewScript(aScript, aFunction) {
+
+  _addScript: function TA__addScript(aScript) {
     
     
     if (!this._scripts[aScript.url]) {
       this._scripts[aScript.url] = [];
     }
     this._scripts[aScript.url][aScript.startLine] = aScript;
-    
-    this.conn.send({ from: this.actorID, type: "newScript",
-                     url: aScript.url, startLine: aScript.startLine });
   }
 
 };
