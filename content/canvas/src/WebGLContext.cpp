@@ -151,7 +151,7 @@ WebGLContext::WebGLContext()
     mGLMaxVaryingVectors = 0;
     mGLMaxFragmentUniformVectors = 0;
     mGLMaxVertexUniformVectors = 0;
-    
+
     
     mPixelStorePackAlignment = 4;
     mPixelStoreUnpackAlignment = 4;
@@ -167,6 +167,8 @@ WebGLContext::WebGLContext()
 
     mAlreadyGeneratedWarnings = 0;
     mAlreadyWarnedAboutFakeVertexAttrib0 = false;
+
+    mLastUseIndex = 0;
 }
 
 WebGLContext::~WebGLContext()
@@ -335,7 +337,7 @@ NS_IMETHODIMP
 WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
 {
     
-  
+
     if (mCanvasElement) {
         mCanvasElement->InvalidateCanvas();
     }
@@ -368,9 +370,15 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
 
     
 
+
+
+
     
     
-    DestroyResourcesAndContext();
+    
+    
+    
+    LoseOldestWebGLContextIfLimitExceeded();
 
     
     NS_ENSURE_TRUE(Preferences::GetRootBranch(), NS_ERROR_FAILURE);
@@ -629,6 +637,91 @@ WebGLContext::Render(gfxContext *ctx, gfxPattern::GraphicsFilter f, PRUint32 aFl
     return NS_OK;
 }
 
+void WebGLContext::LoseOldestWebGLContextIfLimitExceeded()
+{
+#ifdef MOZ_GFX_OPTIMIZE_MOBILE
+    
+    const size_t kMaxWebGLContextsPerPrincipal = 2;
+    const size_t kMaxWebGLContexts             = 4;
+#else
+    const size_t kMaxWebGLContextsPerPrincipal = 8;
+    const size_t kMaxWebGLContexts             = 16;
+#endif
+    MOZ_ASSERT(kMaxWebGLContextsPerPrincipal < kMaxWebGLContexts);
+
+    
+    
+    
+    UpdateLastUseIndex();
+
+    WebGLMemoryMultiReporterWrapper::ContextsArrayType &contexts
+      = WebGLMemoryMultiReporterWrapper::Contexts();
+
+    
+    if (contexts.Length() <= kMaxWebGLContextsPerPrincipal) {
+        return;
+    }
+
+    
+    
+    
+
+    uint64_t oldestIndex = UINT64_MAX;
+    uint64_t oldestIndexThisPrincipal = UINT64_MAX;
+    const WebGLContext *oldestContext = nsnull;
+    const WebGLContext *oldestContextThisPrincipal = nsnull;
+    size_t numContexts = 0;
+    size_t numContextsThisPrincipal = 0;
+
+    for(size_t i = 0; i < contexts.Length(); ++i) {
+
+        
+        if (contexts[i] == this)
+            continue;
+
+        if (contexts[i]->IsContextLost())
+            continue;
+
+        if (!contexts[i]->GetCanvas()) {
+            
+            
+            
+            const_cast<WebGLContext*>(contexts[i])->LoseContext();
+            continue;
+        }
+
+        numContexts++;
+        if (contexts[i]->mLastUseIndex < oldestIndex) {
+            oldestIndex = contexts[i]->mLastUseIndex;
+            oldestContext = contexts[i];
+        }
+
+        nsIPrincipal *ourPrincipal = GetCanvas()->NodePrincipal();
+        nsIPrincipal *theirPrincipal = contexts[i]->GetCanvas()->NodePrincipal();
+        bool samePrincipal;
+        nsresult rv = ourPrincipal->Equals(theirPrincipal, &samePrincipal);
+        if (NS_SUCCEEDED(rv) && samePrincipal) {
+            numContextsThisPrincipal++;
+            if (contexts[i]->mLastUseIndex < oldestIndexThisPrincipal) {
+                oldestIndexThisPrincipal = contexts[i]->mLastUseIndex;
+                oldestContextThisPrincipal = contexts[i];
+            }
+        }
+    }
+
+    if (numContextsThisPrincipal > kMaxWebGLContextsPerPrincipal) {
+        GenerateWarning("Exceeded %d live WebGL contexts for this principal, losing the "
+                        "least recently used one.", kMaxWebGLContextsPerPrincipal);
+        MOZ_ASSERT(oldestContextThisPrincipal); 
+        const_cast<WebGLContext*>(oldestContextThisPrincipal)->LoseContext();
+    } else if (numContexts > kMaxWebGLContexts) {
+        GenerateWarning("Exceeded %d live WebGL contexts, losing the least recently used one.",
+                        kMaxWebGLContexts);
+        MOZ_ASSERT(oldestContext); 
+        const_cast<WebGLContext*>(oldestContext)->LoseContext();
+    }
+}
+
 NS_IMETHODIMP
 WebGLContext::GetInputStream(const char* aMimeType,
                              const PRUnichar* aEncoderOptions,
@@ -691,6 +784,21 @@ WebGLContext::GetThebesSurface(gfxASurface **surface)
     return NS_ERROR_NOT_AVAILABLE;
 }
 
+void WebGLContext::UpdateLastUseIndex()
+{
+    static CheckedInt<uint64_t> sIndex = 0;
+
+    sIndex++;
+
+    
+    
+    if (!sIndex.isValid()) {
+        NS_RUNTIMEABORT("Can't believe it's been 2^64 transactions already!");
+    }
+
+    mLastUseIndex = sIndex.value();
+}
+
 static PRUint8 gWebGLLayerUserData;
 
 namespace mozilla {
@@ -711,6 +819,8 @@ public:
 
     context->mBackbufferClearingStatus = BackbufferClearingStatus::NotClearedSinceLastPresented;
     canvas->MarkContextClean();
+
+    context->UpdateLastUseIndex();
   }
 
 private:
