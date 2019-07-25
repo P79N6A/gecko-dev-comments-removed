@@ -292,7 +292,6 @@ BreakpointSite::hasBreakpoint(Breakpoint *bp)
     return false;
 }
 
-
 Breakpoint::Breakpoint(Debugger *debugger, BreakpointSite *site, JSObject *handler)
     : debugger(debugger), site(site), handler(handler)
 {
@@ -917,13 +916,13 @@ Debugger::onTrap(JSContext *cx, Value *vp)
 
 
 void
-Debugger::markKeysInCompartment(JSTracer *tracer, ObjectWeakMap &map)
+Debugger::markKeysInCompartment(JSTracer *tracer, const ObjectWeakMap &map)
 {
     JSCompartment *comp = tracer->context->runtime->gcCurrentCompartment;
     JS_ASSERT(comp);
 
     typedef HashMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, RuntimeAllocPolicy> Map;
-    Map &storage = map;
+    const Map &storage = map;
     for (Map::Range r = storage.all(); !r.empty(); r.popFront()) {
         JSObject *key = r.front().key;
         if (key->compartment() == comp && IsAboutToBeFinalized(tracer->context, key))
@@ -1477,9 +1476,9 @@ Debugger::construct(JSContext *cx, uintN argc, Value *vp)
 }
 
 bool
-Debugger::addDebuggeeGlobal(JSContext *cx, GlobalObject *obj)
+Debugger::addDebuggeeGlobal(JSContext *cx, GlobalObject *global)
 {
-    JSCompartment *debuggeeCompartment = obj->compartment();
+    JSCompartment *debuggeeCompartment = global->compartment();
 
     
 
@@ -1521,29 +1520,27 @@ Debugger::addDebuggeeGlobal(JSContext *cx, GlobalObject *obj)
 
 
 
-    AutoCompartment ac(cx, obj);
+    AutoCompartment ac(cx, global);
     if (!ac.enter())
         return false;
-    GlobalObject::DebuggerVector *v = obj->getOrCreateDebuggers(cx);
+    GlobalObject::DebuggerVector *v = global->getOrCreateDebuggers(cx);
     if (!v || !v->append(this)) {
         js_ReportOutOfMemory(cx);
-        goto fail1;
-    }
-    if (!debuggees.put(obj)) {
-        js_ReportOutOfMemory(cx);
-        goto fail2;
-    }
-    if (obj->getDebuggers()->length() == 1 && !debuggeeCompartment->addDebuggee(cx, obj))
-        goto fail3;
-    return true;
+    } else {
+        if (!debuggees.put(global)) {
+            js_ReportOutOfMemory(cx);
+        } else {
+            if (global->getDebuggers()->length() > 1)
+                return true;
+            if (debuggeeCompartment->addDebuggee(cx, global))
+                return true;
 
-    
-fail3:
-    debuggees.remove(obj);
-fail2:
-    JS_ASSERT(v->back() == this);
-    v->popBack();
-fail1:
+            
+            debuggees.remove(global);
+        }
+        JS_ASSERT(v->back() == this);
+        v->popBack();
+    }
     return false;
 }
 
@@ -1881,25 +1878,8 @@ DebuggerScript_getLineCount(JSContext *cx, uintN argc, Value *vp)
 {
     THIS_DEBUGSCRIPT_LIVE_SCRIPT(cx, vp, "get lineCount", obj, script);
 
-    
-
-
-
-    size_t line = script->lineno, maxLine = line;
-    for (jssrcnote *sn = script->notes(); !SN_IS_TERMINATOR(sn); sn = SN_NEXT(sn)) {
-        JSSrcNoteType type = (JSSrcNoteType) SN_TYPE(sn);
-        if (type == SRC_SETLINE)
-            line = size_t(js_GetSrcNoteOffset(sn, 0));
-        else if (type == SRC_NEWLINE)
-            line++;
-        else
-            continue;
-
-        if (line > maxLine)
-            maxLine = line;
-    }
-
-    vp->setNumber(jsdouble(maxLine + 1 - script->lineno));
+    uintN maxLine = js_GetScriptLineExtent(script);
+    vp->setNumber(jsdouble(maxLine));
     return true;
 }
 
@@ -2116,7 +2096,6 @@ class FlowGraphSummary : public Vector<size_t> {
             prevLine = lineno;
         }
 
-
         return true;
     }
 };
@@ -2251,16 +2230,13 @@ DebuggerScript_setBreakpoint(JSContext *cx, uintN argc, Value *vp)
     JSCompartment *comp = script->compartment;
     jsbytecode *pc = script->code + offset;
     BreakpointSite *site = comp->getOrCreateBreakpointSite(cx, script, pc, holder);
-    if (!site->inc(cx))
-        goto fail1;
-    if (!cx->runtime->new_<Breakpoint>(dbg, site, handler))
-        goto fail2;
-    vp->setUndefined();
-    return true;
-
-fail2:
-    site->dec(cx);
-fail1:
+    if (site->inc(cx)) {
+        if (cx->runtime->new_<Breakpoint>(dbg, site, handler)) {
+            vp->setUndefined();
+            return true;
+        }
+        site->dec(cx);
+    }
     site->destroyIfEmpty(cx->runtime, NULL);
     return false;
 }

@@ -161,7 +161,7 @@ class Debugger {
     static void traceObject(JSTracer *trc, JSObject *obj);
     void trace(JSTracer *trc);
     static void finalize(JSContext *cx, JSObject *obj);
-    static void markKeysInCompartment(JSTracer *tracer, ObjectWeakMap &map);
+    static void markKeysInCompartment(JSTracer *tracer, const ObjectWeakMap &map);
 
     static Class jsclass;
 
@@ -284,9 +284,25 @@ class Debugger {
 
 
 
+
+
     bool wrapDebuggeeValue(JSContext *cx, Value *vp);
 
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -414,7 +430,6 @@ Debugger::fromLinks(JSCList *links)
     unsigned char *p = reinterpret_cast<unsigned char *>(links);
     return reinterpret_cast<Debugger *>(p - offsetof(Debugger, link));
 }
-
 
 Breakpoint *
 Debugger::firstBreakpoint() const

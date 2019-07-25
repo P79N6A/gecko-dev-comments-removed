@@ -545,8 +545,15 @@ struct JSRuntime {
     
     PRCondVar           *stateChange;
 
+    
+
+
+
+
+
     JSThread::Map       threads;
 #endif 
+
     uint32              debuggerMutations;
 
     

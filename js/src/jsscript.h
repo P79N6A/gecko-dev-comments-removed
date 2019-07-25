@@ -522,12 +522,6 @@ struct JSScript {
 
 
 
-
-
-
-
-
-
         JSObject    *object;
         JSScript    *nextToGC;  
     } u;
