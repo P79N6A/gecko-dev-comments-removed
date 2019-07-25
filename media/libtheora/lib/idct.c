@@ -231,18 +231,18 @@ static void idct8_1(ogg_int16_t *_y,const ogg_int16_t _x[1]){
 
 
 
-static void oc_idct8x8_3(ogg_int16_t _y[64],const ogg_int16_t _x[64]){
-  const ogg_int16_t *in;
-  ogg_int16_t       *end;
-  ogg_int16_t       *out;
-  ogg_int16_t        w[64];
+static void oc_idct8x8_3(ogg_int16_t _y[64],ogg_int16_t _x[64]){
+  ogg_int16_t w[64];
+  int         i;
   
   idct8_2(w,_x);
   idct8_1(w+1,_x+8);
   
-  for(in=w,out=_y,end=out+8;out<end;in+=8,out++)idct8_2(out,in);
+  for(i=0;i<8;i++)idct8_2(_y+i,w+i*8);
   
-  for(out=_y,end=out+64;out<end;out++)*out=(ogg_int16_t)(*out+8>>4);
+  for(i=0;i<64;i++)_y[i]=(ogg_int16_t)(_y[i]+8>>4);
+  
+  if(_x!=_y)_x[0]=_x[1]=_x[8]=0;
 }
 
 
@@ -260,20 +260,20 @@ static void oc_idct8x8_3(ogg_int16_t _y[64],const ogg_int16_t _x[64]){
 
 
 
-static void oc_idct8x8_10(ogg_int16_t _y[64],const ogg_int16_t _x[64]){
-  const ogg_int16_t *in;
-  ogg_int16_t       *end;
-  ogg_int16_t       *out;
-  ogg_int16_t        w[64];
+static void oc_idct8x8_10(ogg_int16_t _y[64],ogg_int16_t _x[64]){
+  ogg_int16_t w[64];
+  int         i;
   
   idct8_4(w,_x);
   idct8_3(w+1,_x+8);
   idct8_2(w+2,_x+16);
   idct8_1(w+3,_x+24);
   
-  for(in=w,out=_y,end=out+8;out<end;in+=8,out++)idct8_4(out,in);
+  for(i=0;i<8;i++)idct8_4(_y+i,w+i*8);
   
-  for(out=_y,end=out+64;out<end;out++)*out=(ogg_int16_t)(*out+8>>4);
+  for(i=0;i<64;i++)_y[i]=(ogg_int16_t)(_y[i]+8>>4);
+  
+  if(_x!=_y)_x[0]=_x[1]=_x[2]=_x[3]=_x[8]=_x[9]=_x[10]=_x[16]=_x[17]=_x[24]=0;
 }
 
 
@@ -282,28 +282,22 @@ static void oc_idct8x8_10(ogg_int16_t _y[64],const ogg_int16_t _x[64]){
 
 
 
-static void oc_idct8x8_slow(ogg_int16_t _y[64],const ogg_int16_t _x[64]){
-  const ogg_int16_t *in;
-  ogg_int16_t       *end;
-  ogg_int16_t       *out;
-  ogg_int16_t        w[64];
+static void oc_idct8x8_slow(ogg_int16_t _y[64],ogg_int16_t _x[64]){
+  ogg_int16_t w[64];
+  int         i;
   
-  for(in=_x,out=w,end=out+8;out<end;in+=8,out++)idct8(out,in);
+  for(i=0;i<8;i++)idct8(w+i,_x+i*8);
   
-  for(in=w,out=_y,end=out+8;out<end;in+=8,out++)idct8(out,in);
+  for(i=0;i<8;i++)idct8(_y+i,w+i*8);
   
-  for(out=_y,end=out+64;out<end;out++)*out=(ogg_int16_t)(*out+8>>4);
-}
-
-void oc_idct8x8(const oc_theora_state *_state,ogg_int16_t _y[64],
- int _last_zzi){
-  (*_state->opt_vtable.idct8x8)(_y,_last_zzi);
+  for(i=0;i<64;i++)_y[i]=(ogg_int16_t)(_y[i]+8>>4);
+  if(_x!=_y)for(i=0;i<64;i++)_x[i]=0;
 }
 
 
 
 
-void oc_idct8x8_c(ogg_int16_t _y[64],int _last_zzi){
+void oc_idct8x8_c(ogg_int16_t _y[64],ogg_int16_t _x[64],int _last_zzi){
   
 
 
@@ -329,7 +323,7 @@ void oc_idct8x8_c(ogg_int16_t _y[64],int _last_zzi){
 
 
   
-  if(_last_zzi<3)oc_idct8x8_3(_y,_y);
-  else if(_last_zzi<10)oc_idct8x8_10(_y,_y);
-  else oc_idct8x8_slow(_y,_y);
+  if(_last_zzi<=3)oc_idct8x8_3(_y,_x);
+  else if(_last_zzi<=10)oc_idct8x8_10(_y,_x);
+  else oc_idct8x8_slow(_y,_x);
 }

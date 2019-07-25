@@ -21,6 +21,14 @@
 #include "quant.h"
 #include "decint.h"
 
+
+
+
+
+
+
+
+
 static const unsigned OC_DC_QUANT_MIN[2]={4<<2,8<<2};
 static const unsigned OC_AC_QUANT_MIN[2]={2<<2,4<<2};
 

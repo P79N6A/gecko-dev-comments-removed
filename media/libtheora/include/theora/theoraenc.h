@@ -343,6 +343,46 @@ extern "C" {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define TH_ENCCTL_SET_COMPAT_CONFIG (32)
+
+
+
+
+
+
+
+
+
+
+
 #define TH_RATECTL_DROP_FRAMES   (0x1)
 
 
@@ -438,6 +478,20 @@ extern int th_encode_ctl(th_enc_ctx *_enc,int _req,void *_buf,size_t _buf_sz);
 
 extern int th_encode_flushheader(th_enc_ctx *_enc,
  th_comment *_comments,ogg_packet *_op);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

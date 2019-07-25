@@ -17,18 +17,85 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "internal.h"
-#if defined(OC_X86_ASM)
-#if defined(_MSC_VER)
-# include "x86_vc/x86int.h"
-#else
-# include "x86/x86int.h"
-#endif
-#endif
+#include "state.h"
 #if defined(OC_DUMP_IMAGES)
 # include <stdio.h>
 # include "png.h"
 #endif
+
+
+
+
+
+
+
+static void oc_set_chroma_mvs00(oc_mv _cbmvs[4],const oc_mv _lbmvs[4]){
+  int dx;
+  int dy;
+  dx=OC_MV_X(_lbmvs[0])+OC_MV_X(_lbmvs[1])
+   +OC_MV_X(_lbmvs[2])+OC_MV_X(_lbmvs[3]);
+  dy=OC_MV_Y(_lbmvs[0])+OC_MV_Y(_lbmvs[1])
+   +OC_MV_Y(_lbmvs[2])+OC_MV_Y(_lbmvs[3]);
+  _cbmvs[0]=OC_MV(OC_DIV_ROUND_POW2(dx,2,2),OC_DIV_ROUND_POW2(dy,2,2));
+}
+
+
+
+
+
+
+static void oc_set_chroma_mvs01(oc_mv _cbmvs[4],const oc_mv _lbmvs[4]){
+  int dx;
+  int dy;
+  dx=OC_MV_X(_lbmvs[0])+OC_MV_X(_lbmvs[2]);
+  dy=OC_MV_Y(_lbmvs[0])+OC_MV_Y(_lbmvs[2]);
+  _cbmvs[0]=OC_MV(OC_DIV_ROUND_POW2(dx,1,1),OC_DIV_ROUND_POW2(dy,1,1));
+  dx=OC_MV_X(_lbmvs[1])+OC_MV_X(_lbmvs[3]);
+  dy=OC_MV_Y(_lbmvs[1])+OC_MV_Y(_lbmvs[3]);
+  _cbmvs[1]=OC_MV(OC_DIV_ROUND_POW2(dx,1,1),OC_DIV_ROUND_POW2(dy,1,1));
+}
+
+
+
+
+
+
+static void oc_set_chroma_mvs10(oc_mv _cbmvs[4],const oc_mv _lbmvs[4]){
+  int dx;
+  int dy;
+  dx=OC_MV_X(_lbmvs[0])+OC_MV_X(_lbmvs[1]);
+  dy=OC_MV_Y(_lbmvs[0])+OC_MV_Y(_lbmvs[1]);
+  _cbmvs[0]=OC_MV(OC_DIV_ROUND_POW2(dx,1,1),OC_DIV_ROUND_POW2(dy,1,1));
+  dx=OC_MV_X(_lbmvs[2])+OC_MV_X(_lbmvs[3]);
+  dy=OC_MV_Y(_lbmvs[2])+OC_MV_Y(_lbmvs[3]);
+  _cbmvs[2]=OC_MV(OC_DIV_ROUND_POW2(dx,1,1),OC_DIV_ROUND_POW2(dy,1,1));
+}
+
+
+
+
+
+
+
+
+static void oc_set_chroma_mvs11(oc_mv _cbmvs[4],const oc_mv _lbmvs[4]){
+  _cbmvs[0]=_lbmvs[0];
+  _cbmvs[1]=_lbmvs[1];
+  _cbmvs[2]=_lbmvs[2];
+  _cbmvs[3]=_lbmvs[3];
+}
+
+
+
+
+const oc_set_chroma_mvs_func OC_SET_CHROMA_MVS_TABLE[TH_PF_NFORMATS]={
+  (oc_set_chroma_mvs_func)oc_set_chroma_mvs00,
+  (oc_set_chroma_mvs_func)oc_set_chroma_mvs01,
+  (oc_set_chroma_mvs_func)oc_set_chroma_mvs10,
+  (oc_set_chroma_mvs_func)oc_set_chroma_mvs11
+};
+
+
 
 
 
@@ -481,6 +548,7 @@ static int oc_state_ref_bufs_init(oc_theora_state *_state,int _nrefs){
   int            yheight;
   int            chstride;
   int            cheight;
+  ptrdiff_t      align;
   ptrdiff_t      yoffset;
   ptrdiff_t      coffset;
   ptrdiff_t     *frag_buf_offs;
@@ -489,28 +557,33 @@ static int oc_state_ref_bufs_init(oc_theora_state *_state,int _nrefs){
   int            vdec;
   int            rfi;
   int            pli;
-  if(_nrefs<3||_nrefs>4)return TH_EINVAL;
+  if(_nrefs<3||_nrefs>6)return TH_EINVAL;
   info=&_state->info;
   
   hdec=!(info->pixel_fmt&1);
   vdec=!(info->pixel_fmt&2);
   yhstride=info->frame_width+2*OC_UMV_PADDING;
   yheight=info->frame_height+2*OC_UMV_PADDING;
-  chstride=yhstride>>hdec;
+  
+  chstride=(yhstride>>hdec)+15&~15;
   cheight=yheight>>vdec;
   yplane_sz=yhstride*(size_t)yheight;
   cplane_sz=chstride*(size_t)cheight;
   yoffset=OC_UMV_PADDING+OC_UMV_PADDING*(ptrdiff_t)yhstride;
   coffset=(OC_UMV_PADDING>>hdec)+(OC_UMV_PADDING>>vdec)*(ptrdiff_t)chstride;
-  ref_frame_sz=yplane_sz+2*cplane_sz;
+  
+
+
+  align=-coffset&15;
+  ref_frame_sz=yplane_sz+2*cplane_sz+16;
   ref_frame_data_sz=_nrefs*ref_frame_sz;
   
 
-  if(yplane_sz/yhstride!=yheight||2*cplane_sz<cplane_sz||
+  if(yplane_sz/yhstride!=(size_t)yheight||2*cplane_sz+16<cplane_sz||
    ref_frame_sz<yplane_sz||ref_frame_data_sz/_nrefs!=ref_frame_sz){
     return TH_EIMPL;
   }
-  ref_frame_data=_ogg_malloc(ref_frame_data_sz);
+  ref_frame_data=oc_aligned_malloc(ref_frame_data_sz,16);
   frag_buf_offs=_state->frag_buf_offs=
    _ogg_malloc(_state->nfrags*sizeof(*frag_buf_offs));
   if(ref_frame_data==NULL||frag_buf_offs==NULL){
@@ -532,15 +605,15 @@ static int oc_state_ref_bufs_init(oc_theora_state *_state,int _nrefs){
     memcpy(_state->ref_frame_bufs[rfi],_state->ref_frame_bufs[0],
      sizeof(_state->ref_frame_bufs[0]));
   }
+  _state->ref_frame_handle=ref_frame_data;
   
   for(rfi=0;rfi<_nrefs;rfi++){
-    _state->ref_frame_data[rfi]=ref_frame_data;
     _state->ref_frame_bufs[rfi][0].data=ref_frame_data+yoffset;
-    ref_frame_data+=yplane_sz;
+    ref_frame_data+=yplane_sz+align;
     _state->ref_frame_bufs[rfi][1].data=ref_frame_data+coffset;
     ref_frame_data+=cplane_sz;
     _state->ref_frame_bufs[rfi][2].data=ref_frame_data+coffset;
-    ref_frame_data+=cplane_sz;
+    ref_frame_data+=cplane_sz+(16-align);
     
 
 
@@ -550,7 +623,7 @@ static int oc_state_ref_bufs_init(oc_theora_state *_state,int _nrefs){
   _state->ref_ystride[0]=-yhstride;
   _state->ref_ystride[1]=_state->ref_ystride[2]=-chstride;
   
-  ref_frame_data=_state->ref_frame_data[0];
+  ref_frame_data=_state->ref_frame_bufs[0][0].data;
   fragi=0;
   for(pli=0;pli<3;pli++){
     th_img_plane      *iplane;
@@ -579,38 +652,41 @@ static int oc_state_ref_bufs_init(oc_theora_state *_state,int _nrefs){
   
   _state->ref_frame_idx[OC_FRAME_GOLD]=
    _state->ref_frame_idx[OC_FRAME_PREV]=
-   _state->ref_frame_idx[OC_FRAME_SELF]=-1;
-  _state->ref_frame_idx[OC_FRAME_IO]=_nrefs>3?3:-1;
+   _state->ref_frame_idx[OC_FRAME_GOLD_ORIG]=
+   _state->ref_frame_idx[OC_FRAME_PREV_ORIG]=
+   _state->ref_frame_idx[OC_FRAME_SELF]=
+   _state->ref_frame_idx[OC_FRAME_IO]=-1;
+  _state->ref_frame_data[OC_FRAME_GOLD]=
+   _state->ref_frame_data[OC_FRAME_PREV]=
+   _state->ref_frame_data[OC_FRAME_GOLD_ORIG]=
+   _state->ref_frame_data[OC_FRAME_PREV_ORIG]=
+   _state->ref_frame_data[OC_FRAME_SELF]=
+   _state->ref_frame_data[OC_FRAME_IO]=NULL;
   return 0;
 }
 
 static void oc_state_ref_bufs_clear(oc_theora_state *_state){
   _ogg_free(_state->frag_buf_offs);
-  _ogg_free(_state->ref_frame_data[0]);
+  oc_aligned_free(_state->ref_frame_handle);
 }
 
 
-void oc_state_vtable_init_c(oc_theora_state *_state){
+void oc_state_accel_init_c(oc_theora_state *_state){
+  _state->cpu_flags=0;
+#if defined(OC_STATE_USE_VTABLE)
   _state->opt_vtable.frag_copy=oc_frag_copy_c;
+  _state->opt_vtable.frag_copy_list=oc_frag_copy_list_c;
   _state->opt_vtable.frag_recon_intra=oc_frag_recon_intra_c;
   _state->opt_vtable.frag_recon_inter=oc_frag_recon_inter_c;
   _state->opt_vtable.frag_recon_inter2=oc_frag_recon_inter2_c;
   _state->opt_vtable.idct8x8=oc_idct8x8_c;
   _state->opt_vtable.state_frag_recon=oc_state_frag_recon_c;
-  _state->opt_vtable.state_frag_copy_list=oc_state_frag_copy_list_c;
+  _state->opt_vtable.loop_filter_init=oc_loop_filter_init_c;
   _state->opt_vtable.state_loop_filter_frag_rows=
    oc_state_loop_filter_frag_rows_c;
   _state->opt_vtable.restore_fpu=oc_restore_fpu_c;
-  _state->opt_data.dct_fzig_zag=OC_FZIG_ZAG;
-}
-
-
-void oc_state_vtable_init(oc_theora_state *_state){
-#if defined(OC_X86_ASM)
-  oc_state_vtable_init_x86(_state);
-#else
-  oc_state_vtable_init_c(_state);
 #endif
+  _state->opt_data.dct_fzig_zag=OC_FZIG_ZAG;
 }
 
 
@@ -648,7 +724,7 @@ int oc_state_init(oc_theora_state *_state,const th_info *_info,int _nrefs){
 
   _state->info.pic_y=_info->frame_height-_info->pic_height-_info->pic_y;
   _state->frame_type=OC_UNKWN_FRAME;
-  oc_state_vtable_init(_state);
+  oc_state_accel_init(_state);
   ret=oc_state_frarray_init(_state);
   if(ret>=0)ret=oc_state_ref_bufs_init(_state,_nrefs);
   if(ret<0){
@@ -760,9 +836,8 @@ void oc_state_borders_fill(oc_theora_state *_state,int _refi){
 
 
 
-
 int oc_state_get_mv_offsets(const oc_theora_state *_state,int _offsets[2],
- int _pli,int _dx,int _dy){
+ int _pli,oc_mv _mv){
   
 
 
@@ -785,21 +860,25 @@ int oc_state_get_mv_offsets(const oc_theora_state *_state,int _offsets[2],
   int xfrac;
   int yfrac;
   int offs;
+  int dx;
+  int dy;
   ystride=_state->ref_ystride[_pli];
   
 
   xprec=1+(_pli!=0&&!(_state->info.pixel_fmt&1));
   yprec=1+(_pli!=0&&!(_state->info.pixel_fmt&2));
+  dx=OC_MV_X(_mv);
+  dy=OC_MV_Y(_mv);
   
 
-  xfrac=OC_SIGNMASK(-(_dx&(xprec|1)));
-  yfrac=OC_SIGNMASK(-(_dy&(yprec|1)));
-  offs=(_dx>>xprec)+(_dy>>yprec)*ystride;
+  xfrac=OC_SIGNMASK(-(dx&(xprec|1)));
+  yfrac=OC_SIGNMASK(-(dy&(yprec|1)));
+  offs=(dx>>xprec)+(dy>>yprec)*ystride;
   if(xfrac||yfrac){
     int xmask;
     int ymask;
-    xmask=OC_SIGNMASK(_dx);
-    ymask=OC_SIGNMASK(_dy);
+    xmask=OC_SIGNMASK(dx);
+    ymask=OC_SIGNMASK(dy);
     yfrac&=ystride;
     _offsets[0]=offs-(xfrac&xmask)+(yfrac&ymask);
     _offsets[1]=offs-(xfrac&~xmask)+(yfrac&~ymask);
@@ -848,13 +927,17 @@ int oc_state_get_mv_offsets(const oc_theora_state *_state,int _offsets[2],
   int mx2;
   int my2;
   int offs;
+  int dx;
+  int dy;
   ystride=_state->ref_ystride[_pli];
   qpy=_pli!=0&&!(_state->info.pixel_fmt&2);
-  my=OC_MVMAP[qpy][_dy+31];
-  my2=OC_MVMAP2[qpy][_dy+31];
+  dx=OC_MV_X(_mv);
+  dy=OC_MV_Y(_mv);
+  my=OC_MVMAP[qpy][dy+31];
+  my2=OC_MVMAP2[qpy][dy+31];
   qpx=_pli!=0&&!(_state->info.pixel_fmt&1);
-  mx=OC_MVMAP[qpx][_dx+31];
-  mx2=OC_MVMAP2[qpx][_dx+31];
+  mx=OC_MVMAP[qpx][dx+31];
+  mx2=OC_MVMAP2[qpx][dx+31];
   offs=my*ystride+mx;
   if(mx2||my2){
     _offsets[1]=offs+my2*ystride+mx2;
@@ -866,18 +949,12 @@ int oc_state_get_mv_offsets(const oc_theora_state *_state,int _offsets[2],
 #endif
 }
 
-void oc_state_frag_recon(const oc_theora_state *_state,ptrdiff_t _fragi,
- int _pli,ogg_int16_t _dct_coeffs[64],int _last_zzi,ogg_uint16_t _dc_quant){
-  _state->opt_vtable.state_frag_recon(_state,_fragi,_pli,_dct_coeffs,
-   _last_zzi,_dc_quant);
-}
-
 void oc_state_frag_recon_c(const oc_theora_state *_state,ptrdiff_t _fragi,
- int _pli,ogg_int16_t _dct_coeffs[64],int _last_zzi,ogg_uint16_t _dc_quant){
+ int _pli,ogg_int16_t _dct_coeffs[128],int _last_zzi,ogg_uint16_t _dc_quant){
   unsigned char *dst;
   ptrdiff_t      frag_buf_off;
   int            ystride;
-  int            mb_mode;
+  int            refi;
   
   
   if(_last_zzi<2){
@@ -887,69 +964,35 @@ void oc_state_frag_recon_c(const oc_theora_state *_state,ptrdiff_t _fragi,
 
     p=(ogg_int16_t)(_dct_coeffs[0]*(ogg_int32_t)_dc_quant+15>>5);
     
-    for(ci=0;ci<64;ci++)_dct_coeffs[ci]=p;
+    for(ci=0;ci<64;ci++)_dct_coeffs[64+ci]=p;
   }
   else{
     
     _dct_coeffs[0]=(ogg_int16_t)(_dct_coeffs[0]*(int)_dc_quant);
-    oc_idct8x8(_state,_dct_coeffs,_last_zzi);
+    oc_idct8x8(_state,_dct_coeffs+64,_dct_coeffs,_last_zzi);
   }
   
   frag_buf_off=_state->frag_buf_offs[_fragi];
-  mb_mode=_state->frags[_fragi].mb_mode;
+  refi=_state->frags[_fragi].refi;
   ystride=_state->ref_ystride[_pli];
-  dst=_state->ref_frame_data[_state->ref_frame_idx[OC_FRAME_SELF]]+frag_buf_off;
-  if(mb_mode==OC_MODE_INTRA)oc_frag_recon_intra(_state,dst,ystride,_dct_coeffs);
+  dst=_state->ref_frame_data[OC_FRAME_SELF]+frag_buf_off;
+  if(refi==OC_FRAME_SELF)oc_frag_recon_intra(_state,dst,ystride,_dct_coeffs+64);
   else{
     const unsigned char *ref;
     int                  mvoffsets[2];
-    ref=
-     _state->ref_frame_data[_state->ref_frame_idx[OC_FRAME_FOR_MODE(mb_mode)]]
-     +frag_buf_off;
+    ref=_state->ref_frame_data[refi]+frag_buf_off;
     if(oc_state_get_mv_offsets(_state,mvoffsets,_pli,
-     _state->frag_mvs[_fragi][0],_state->frag_mvs[_fragi][1])>1){
+     _state->frag_mvs[_fragi])>1){
       oc_frag_recon_inter2(_state,
-       dst,ref+mvoffsets[0],ref+mvoffsets[1],ystride,_dct_coeffs);
+       dst,ref+mvoffsets[0],ref+mvoffsets[1],ystride,_dct_coeffs+64);
     }
-    else oc_frag_recon_inter(_state,dst,ref+mvoffsets[0],ystride,_dct_coeffs);
+    else{
+      oc_frag_recon_inter(_state,dst,ref+mvoffsets[0],ystride,_dct_coeffs+64);
+    }
   }
 }
 
-
-
-
-
-
-
-
-void oc_state_frag_copy_list(const oc_theora_state *_state,
- const ptrdiff_t *_fragis,ptrdiff_t _nfragis,
- int _dst_frame,int _src_frame,int _pli){
-  _state->opt_vtable.state_frag_copy_list(_state,_fragis,_nfragis,_dst_frame,
-   _src_frame,_pli);
-}
-
-void oc_state_frag_copy_list_c(const oc_theora_state *_state,
- const ptrdiff_t *_fragis,ptrdiff_t _nfragis,
- int _dst_frame,int _src_frame,int _pli){
-  const ptrdiff_t     *frag_buf_offs;
-  const unsigned char *src_frame_data;
-  unsigned char       *dst_frame_data;
-  ptrdiff_t            fragii;
-  int                  ystride;
-  dst_frame_data=_state->ref_frame_data[_state->ref_frame_idx[_dst_frame]];
-  src_frame_data=_state->ref_frame_data[_state->ref_frame_idx[_src_frame]];
-  ystride=_state->ref_ystride[_pli];
-  frag_buf_offs=_state->frag_buf_offs;
-  for(fragii=0;fragii<_nfragis;fragii++){
-    ptrdiff_t frag_buf_off;
-    frag_buf_off=frag_buf_offs[_fragis[fragii]];
-    oc_frag_copy(_state,dst_frame_data+frag_buf_off,
-     src_frame_data+frag_buf_off,ystride);
-  }
-}
-
-static void loop_filter_h(unsigned char *_pix,int _ystride,int *_bv){
+static void loop_filter_h(unsigned char *_pix,int _ystride,signed char *_bv){
   int y;
   _pix-=2;
   for(y=0;y<8;y++){
@@ -965,7 +1008,7 @@ static void loop_filter_h(unsigned char *_pix,int _ystride,int *_bv){
   }
 }
 
-static void loop_filter_v(unsigned char *_pix,int _ystride,int *_bv){
+static void loop_filter_v(unsigned char *_pix,int _ystride,signed char *_bv){
   int x;
   _pix-=_ystride*2;
   for(x=0;x<8;x++){
@@ -983,19 +1026,15 @@ static void loop_filter_v(unsigned char *_pix,int _ystride,int *_bv){
 
 
 
-int oc_state_loop_filter_init(oc_theora_state *_state,int _bv[256]){
-  int flimit;
+void oc_loop_filter_init_c(signed char _bv[256],int _flimit){
   int i;
-  flimit=_state->loop_filter_limits[_state->qis[0]];
-  if(flimit==0)return 1;
   memset(_bv,0,sizeof(_bv[0])*256);
-  for(i=0;i<flimit;i++){
-    if(127-i-flimit>=0)_bv[127-i-flimit]=i-flimit;
-    _bv[127-i]=-i;
-    _bv[127+i]=i;
-    if(127+i+flimit<256)_bv[127+i+flimit]=flimit-i;
+  for(i=0;i<_flimit;i++){
+    if(127-i-_flimit>=0)_bv[127-i-_flimit]=(signed char)(i-_flimit);
+    _bv[127-i]=(signed char)(-i);
+    _bv[127+i]=(signed char)(i);
+    if(127+i+_flimit<256)_bv[127+i+_flimit]=(signed char)(_flimit-i);
   }
-  return 0;
 }
 
 
@@ -1006,14 +1045,8 @@ int oc_state_loop_filter_init(oc_theora_state *_state,int _bv[256]){
 
 
 
-void oc_state_loop_filter_frag_rows(const oc_theora_state *_state,int _bv[256],
- int _refi,int _pli,int _fragy0,int _fragy_end){
-  _state->opt_vtable.state_loop_filter_frag_rows(_state,_bv,_refi,_pli,
-   _fragy0,_fragy_end);
-}
-
-void oc_state_loop_filter_frag_rows_c(const oc_theora_state *_state,int *_bv,
- int _refi,int _pli,int _fragy0,int _fragy_end){
+void oc_state_loop_filter_frag_rows_c(const oc_theora_state *_state,
+ signed char *_bv,int _refi,int _pli,int _fragy0,int _fragy_end){
   const oc_fragment_plane *fplane;
   const oc_fragment       *frags;
   const ptrdiff_t         *frag_buf_offs;
@@ -1030,7 +1063,7 @@ void oc_state_loop_filter_frag_rows_c(const oc_theora_state *_state,int *_bv,
   fragi_top=fplane->froffset;
   fragi_bot=fragi_top+fplane->nfrags;
   fragi0=fragi_top+_fragy0*(ptrdiff_t)nhfrags;
-  fragi0_end=fragi0+(_fragy_end-_fragy0)*(ptrdiff_t)nhfrags;
+  fragi0_end=fragi_top+_fragy_end*(ptrdiff_t)nhfrags;
   ystride=_state->ref_ystride[_pli];
   frags=_state->frags;
   frag_buf_offs=_state->frag_buf_offs;

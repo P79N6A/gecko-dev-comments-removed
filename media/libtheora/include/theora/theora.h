@@ -179,7 +179,7 @@ typedef enum {
   OC_PF_420,    
   OC_PF_RSVD,   
   OC_PF_422,    
-  OC_PF_444,    
+  OC_PF_444     
 } theora_pixelformat;
 
 
