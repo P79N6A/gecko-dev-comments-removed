@@ -2457,13 +2457,7 @@ CallMethodHelper::GatherAndConvertResults()
         }
 
         if (paramInfo.IsRetval()) {
-            if (!mCallContext.GetReturnValueWasSet()) {
-                mCallContext.SetRetVal(v);
-            } else {
-                
-                NS_ASSERTION(type.TagPart() != nsXPTType::T_JSVAL,
-                             "dropping declared return value");
-            }
+            mCallContext.SetRetVal(v);
         } else if (i < mArgc) {
             
             NS_ASSERTION(JSVAL_IS_OBJECT(mArgv[i]), "out var is not object");
