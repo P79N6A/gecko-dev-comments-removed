@@ -648,9 +648,6 @@ protected:
   PRPackedBool mWaitingFired;
 
   
-  PRPackedBool mIsBindingToTree;
-
-  
   PRPackedBool mIsRunningLoadMethod;
 
   
