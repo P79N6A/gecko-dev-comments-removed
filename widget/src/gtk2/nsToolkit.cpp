@@ -40,11 +40,7 @@
 #include "nscore.h"  
 #include "nsGTKToolkit.h"
 
-
-
-
-
-static PRUintn gToolkitTLSIndex = 0;
+nsGTKToolkit* nsGTKToolkit::gToolkit = nsnull;
 
 
 
@@ -52,9 +48,9 @@ static PRUintn gToolkitTLSIndex = 0;
 
 
 nsGTKToolkit::nsGTKToolkit()
+  : mSharedGC(nsnull), mFocusTimestamp(0)
 {
-    mSharedGC = nsnull;
-    mFocusTimestamp = 0;
+    CreateSharedGC();
 }
 
 
@@ -67,18 +63,7 @@ nsGTKToolkit::~nsGTKToolkit()
     if (mSharedGC) {
         g_object_unref(mSharedGC);
     }
-
-    
-    PR_SetThreadPrivate(gToolkitTLSIndex, nsnull);
 }
-
-
-
-
-
-
-
-NS_IMPL_ISUPPORTS1(nsGTKToolkit, nsIToolkit)
 
 void nsGTKToolkit::CreateSharedGC(void)
 {
@@ -101,60 +86,11 @@ GdkGC *nsGTKToolkit::GetSharedGC(void)
 
 
 
-NS_IMETHODIMP nsGTKToolkit::Init(PRThread *aThread)
+nsGTKToolkit* nsGTKToolkit::GetToolkit()
 {
-    CreateSharedGC();
-    return NS_OK;
-}
-
-
-
-
-
-
-
-
-NS_METHOD NS_GetCurrentToolkit(nsIToolkit* *aResult)
-{
-    nsIToolkit* toolkit = nsnull;
-    nsresult rv = NS_OK;
-    PRStatus status;
-
-    
-    if (0 == gToolkitTLSIndex) {
-        status = PR_NewThreadPrivateIndex(&gToolkitTLSIndex, NULL);
-        if (PR_FAILURE == status) {
-            rv = NS_ERROR_FAILURE;
-        }
+    if (!gToolkit) {
+        gToolkit = new nsGTKToolkit();
     }
-
-    if (NS_SUCCEEDED(rv)) {
-        toolkit = (nsIToolkit*)PR_GetThreadPrivate(gToolkitTLSIndex);
-
-        
-        
-        
-        if (!toolkit) {
-            toolkit = new nsGTKToolkit();
-
-            if (!toolkit) {
-                rv = NS_ERROR_OUT_OF_MEMORY;
-            } else {
-                NS_ADDREF(toolkit);
-                toolkit->Init(PR_GetCurrentThread());
-                
-                
-                
-                
-                PR_SetThreadPrivate(gToolkitTLSIndex, (void*)toolkit);
-            }
-        } else {
-            NS_ADDREF(toolkit);
-        }
-        *aResult = toolkit;
-    }
-
-    return rv;
+ 
+    return gToolkit;
 }
-
-
