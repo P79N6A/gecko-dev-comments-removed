@@ -38,6 +38,7 @@
 #include "LayerSorter.h"
 #include "DirectedGraph.h"
 #include "limits.h"
+#include "gfxLineSegment.h"
 
 namespace mozilla {
 namespace layers {
@@ -84,6 +85,12 @@ static gfxFloat RecoverZDepth(const gfx3DMatrix& aTransform, const gfxPoint& aPo
 
 
 
+
+
+
+
+
+
 static LayerSortOrder CompareDepth(Layer* aOne, Layer* aTwo) {
   gfxRect ourRect = aOne->GetEffectiveVisibleRegion().GetBounds();
   gfxRect otherRect = aTwo->GetEffectiveVisibleRegion().GetBounds();
@@ -95,14 +102,39 @@ static LayerSortOrder CompareDepth(Layer* aOne, Layer* aTwo) {
   gfxQuad ourTransformedRect = ourTransform.TransformRect(ourRect);
   gfxQuad otherTransformedRect = otherTransform.TransformRect(otherRect);
 
+  gfxRect ourBounds = ourTransformedRect.GetBounds();
+  gfxRect otherBounds = otherTransformedRect.GetBounds();
+
+  if (!ourBounds.Intersects(otherBounds)) {
+    return Undefined;
+  }
+
+  
+  
+  
   
   nsTArray<gfxPoint> points;
-  for (PRUint32 i=0; i<4; i++) {
+  for (PRUint32 i = 0; i < 4; i++) {
     if (ourTransformedRect.Contains(otherTransformedRect.mPoints[i])) {
       points.AppendElement(otherTransformedRect.mPoints[i]);
     }
     if (otherTransformedRect.Contains(ourTransformedRect.mPoints[i])) {
       points.AppendElement(ourTransformedRect.mPoints[i]);
+    }
+  }
+  
+  
+  
+  for (PRUint32 i = 0; i < 4; i++) {
+    for (PRUint32 j = 0; j < 4; j++) {
+      gfxPoint intersection;
+      gfxLineSegment one(ourTransformedRect.mPoints[i],
+                         ourTransformedRect.mPoints[(i + 1) % 4]);
+      gfxLineSegment two(otherTransformedRect.mPoints[j],
+                         otherTransformedRect.mPoints[(j + 1) % 4]);
+      if (one.Intersects(two, intersection)) {
+        points.AppendElement(intersection);
+      }
     }
   }
 
@@ -112,21 +144,23 @@ static LayerSortOrder CompareDepth(Layer* aOne, Layer* aTwo) {
   }
 
   
-  bool drawBefore = false;
+  gfxFloat highest = 0;
   for (PRUint32 i = 0; i < points.Length(); i++) {
-    bool temp = RecoverZDepth(ourTransform, points.ElementAt(i)) <= RecoverZDepth(otherTransform, points.ElementAt(i));
-    if (i == 0) {
-      drawBefore = temp; 
-    } else if (drawBefore != temp) {
-      
-      
-      return Undefined;
+    gfxFloat ourDepth = RecoverZDepth(ourTransform, points.ElementAt(i));
+    gfxFloat otherDepth = RecoverZDepth(otherTransform, points.ElementAt(i));
+
+    gfxFloat difference = otherDepth - ourDepth;
+
+    if (fabs(difference) > fabs(highest)) {
+      highest = difference;
     }
   }
-  if (drawBefore) {
+  
+  if (highest >= 0) {
     return ABeforeB;
+  } else {
+    return BBeforeA;
   }
-  return BBeforeA;
 }
 
 #ifdef DEBUG
@@ -204,22 +238,24 @@ void SortLayersBy3DZOrder(nsTArray<Layer*>& aLayers)
 
   
   
-  while (!noIncoming.IsEmpty()) {
-    PRUint32 last = noIncoming.Length() - 1;
+  do {
+    if (!noIncoming.IsEmpty()) {
+      PRUint32 last = noIncoming.Length() - 1;
 
-    Layer* layer = noIncoming.ElementAt(last);
+      Layer* layer = noIncoming.ElementAt(last);
 
-    noIncoming.RemoveElementAt(last);
-    sortedList.AppendElement(layer);
+      noIncoming.RemoveElementAt(last);
+      sortedList.AppendElement(layer);
 
-    nsTArray<DirectedGraph<Layer*>::Edge> outgoing;
-    graph.GetEdgesFrom(layer, outgoing);
-    for (PRUint32 i = 0; i < outgoing.Length(); i++) {
-      DirectedGraph<Layer*>::Edge edge = outgoing.ElementAt(i);
-      graph.RemoveEdge(edge);
-      if (!graph.NumEdgesTo(edge.mTo)) {
-        
-        noIncoming.AppendElement(edge.mTo);
+      nsTArray<DirectedGraph<Layer*>::Edge> outgoing;
+      graph.GetEdgesFrom(layer, outgoing);
+      for (PRUint32 i = 0; i < outgoing.Length(); i++) {
+        DirectedGraph<Layer*>::Edge edge = outgoing.ElementAt(i);
+        graph.RemoveEdge(edge);
+        if (!graph.NumEdgesTo(edge.mTo)) {
+          
+          noIncoming.AppendElement(edge.mTo);
+        }
       }
     }
 
@@ -234,6 +270,9 @@ void SortLayersBy3DZOrder(nsTArray<Layer*>& aLayers)
         if (edgeCount && edgeCount < minEdges) {
           minEdges = edgeCount;
           minNode = aLayers.ElementAt(i);
+          if (minEdges == 1) {
+            break;
+          }
         }
       }
 
@@ -241,7 +280,7 @@ void SortLayersBy3DZOrder(nsTArray<Layer*>& aLayers)
       graph.RemoveEdgesTo(minNode);
       noIncoming.AppendElement(minNode);
     }
-  }
+  } while (!noIncoming.IsEmpty());
   NS_ASSERTION(!graph.GetEdgeCount(), "Cycles detected!");
 #ifdef DEBUG
   if (gDumpLayerSortList) {
