@@ -39,6 +39,7 @@
 #include "nsSVGTextFrame.h"
 #include "nsILookAndFeel.h"
 #include "nsTextFragment.h"
+#include "nsBidiPresUtils.h"
 #include "nsSVGUtils.h"
 #include "SVGLengthList.h"
 #include "nsIDOMSVGLength.h"
@@ -1547,6 +1548,50 @@ nsSVGGlyphFrame::EnsureTextRun(float *aDrawScale, float *aMetricsScale,
     nsAutoString text;
     if (!GetCharacterData(text))
       return PR_FALSE;
+
+    nsBidiPresUtils* bidiUtils = presContext->GetBidiUtils();
+    if (bidiUtils) {
+      nsAutoString visualText;
+
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      
+      
+      PRBool bidiOverride = (mParent->GetStyleTextReset()->mUnicodeBidi ==
+                             NS_STYLE_UNICODE_BIDI_OVERRIDE);
+      nsBidiLevel baseDirection =
+        GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL ?
+          NSBIDI_RTL : NSBIDI_LTR;
+      bidiUtils->CopyLogicalToVisual(text, visualText,
+                                     baseDirection, bidiOverride);
+      if (!visualText.IsEmpty()) {
+        text = visualText;
+      }
+    }
 
     gfxMatrix m;
     if (aForceGlobalTransform ||

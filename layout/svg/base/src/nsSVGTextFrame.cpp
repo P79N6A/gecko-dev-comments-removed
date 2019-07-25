@@ -341,6 +341,39 @@ nsSVGTextFrame::UpdateGlyphPositioning(PRBool aForceGlobalTransform)
   
     PRUint8 anchor = firstFragment->GetTextAnchor();
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if 0
+    if (GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+      if (anchor == NS_STYLE_TEXT_ANCHOR_END) {
+        anchor = NS_STYLE_TEXT_ANCHOR_START;
+      } else if (anchor == NS_STYLE_TEXT_ANCHOR_START) {
+        anchor = NS_STYLE_TEXT_ANCHOR_END;
+      }
+    }
+#endif
+
     float chunkLength = 0.0f;
     if (anchor != NS_STYLE_TEXT_ANCHOR_START) {
       

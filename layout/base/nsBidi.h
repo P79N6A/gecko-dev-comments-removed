@@ -510,6 +510,17 @@ public:
 
   nsresult SetPara(const PRUnichar *aText, PRInt32 aLength, nsBidiLevel aParaLevel, nsBidiLevel *aEmbeddingLevels);
 
+  
+
+
+
+
+
+
+
+
+  nsresult GetDirection(nsBidiDirection* aDirection);
+
 #ifdef FULL_BIDI_ENGINE
   
 
@@ -545,17 +556,6 @@ public:
 
 
   nsresult SetLine(nsIBidi* aParaBidi, PRInt32 aStart, PRInt32 aLimit);  
-
-  
-
-
-
-
-
-
-
-
-  nsresult GetDirection(nsBidiDirection* aDirection);
 
   
 

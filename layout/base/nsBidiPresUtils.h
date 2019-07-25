@@ -321,6 +321,24 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+  void CopyLogicalToVisual(const nsAString& aSource,
+                           nsAString& aDest,
+                           nsBidiLevel aBaseDirection,
+                           PRBool aOverride);
+
+  
+
+
+
   PRUint32 EstimateMemoryUsed();
 
 private:
@@ -477,6 +495,17 @@ private:
   
   void StripBidiControlCharacters(PRUnichar* aText,
                                   PRInt32&   aTextLength) const;
+
+  static PRBool WriteLogicalToVisual(const PRUnichar* aSrc,
+                                     PRUint32 aSrcLength,
+                                     PRUnichar* aDest,
+                                     nsBidiLevel aBaseDirection,
+                                     nsBidi* aBidiEngine);
+
+ static void WriteReverse(const PRUnichar* aSrc,
+                          PRUint32 aSrcLength,
+                          PRUnichar* aDest);
+
   nsAutoString    mBuffer;
   nsTArray<nsIFrame*> mLogicalFrames;
   nsTArray<nsIFrame*> mVisualFrames;
