@@ -285,6 +285,9 @@ public:
 
 
   virtual void GetBaseTarget(nsAString &aBaseTarget) = 0;
+  void SetBaseTarget(const nsString& aBaseTarget) {
+    mBaseTarget = aBaseTarget;
+  }
 
   
 
@@ -1746,6 +1749,9 @@ protected:
   
   
   nsISHEntry* mSHEntry;
+
+  
+  nsString mBaseTarget;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocument, NS_IDOCUMENT_IID)

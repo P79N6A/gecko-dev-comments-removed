@@ -377,18 +377,14 @@ nsHTMLSharedElement::IsAttributeMapped(const nsIAtom* aAttribute) const
   return nsGenericHTMLElement::IsAttributeMapped(aAttribute);
 }
 
-void
-SetBaseURIUsingFirstBaseWithHref(nsIContent* aHead, nsIContent* aMustMatch)
+static void
+SetBaseURIUsingFirstBaseWithHref(nsIDocument* aDocument, nsIContent* aMustMatch)
 {
-  NS_PRECONDITION(aHead && aHead->GetOwnerDoc() &&
-                  aHead->GetOwnerDoc()->GetHeadElement() == aHead,
-                  "Bad head");
+  NS_PRECONDITION(aDocument, "Need a document!");
 
-  nsIDocument* doc = aHead->GetOwnerDoc();
-
-  for (nsINode::ChildIterator iter(aHead); !iter.IsDone(); iter.Next()) {
-    nsIContent* child = iter;
-    if (child->NodeInfo()->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
+  for (nsIContent* child = aDocument->GetFirstChild(); child;
+       child = child->GetNextNode()) {
+    if (child->IsHTML(nsGkAtoms::base) &&
         child->HasAttr(kNameSpaceID_None, nsGkAtoms::href)) {
       if (aMustMatch && child != aMustMatch) {
         return;
@@ -400,18 +396,43 @@ SetBaseURIUsingFirstBaseWithHref(nsIContent* aHead, nsIContent* aMustMatch)
 
       nsCOMPtr<nsIURI> newBaseURI;
       nsContentUtils::NewURIWithDocumentCharset(
-        getter_AddRefs(newBaseURI), href, doc, doc->GetDocumentURI());
+        getter_AddRefs(newBaseURI), href, aDocument,
+        aDocument->GetDocumentURI());
 
       
-      nsresult rv = doc->SetBaseURI(newBaseURI);
+      nsresult rv = aDocument->SetBaseURI(newBaseURI);
       if (NS_FAILED(rv)) {
-        doc->SetBaseURI(nsnull);
+        aDocument->SetBaseURI(nsnull);
       }
       return;
     }
   }
 
-  doc->SetBaseURI(nsnull);
+  aDocument->SetBaseURI(nsnull);
+}
+
+static void
+SetBaseTargetUsingFirstBaseWithTarget(nsIDocument* aDocument,
+                                      nsIContent* aMustMatch)
+{
+  NS_PRECONDITION(aDocument, "Need a document!");
+
+  for (nsIContent* child = aDocument->GetFirstChild(); child;
+       child = child->GetNextNode()) {
+    if (child->IsHTML(nsGkAtoms::base) &&
+        child->HasAttr(kNameSpaceID_None, nsGkAtoms::target)) {
+      if (aMustMatch && child != aMustMatch) {
+        return;
+      }
+
+      nsString target;
+      child->GetAttr(kNameSpaceID_None, nsGkAtoms::target, target);
+      aDocument->SetBaseTarget(target);
+      return;
+    }
+  }
+
+  aDocument->SetBaseTarget(EmptyString());
 }
 
 nsresult
@@ -426,14 +447,15 @@ nsHTMLSharedElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
   
   
   
-  nsIContent* head;
-  if (mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
-      aName == nsGkAtoms::href &&
+  
+  if (mNodeInfo->Equals(nsGkAtoms::base) &&
       aNameSpaceID == kNameSpaceID_None &&
-      IsInDoc() &&
-      (head = GetParent()) &&
-      head == GetOwnerDoc()->GetHeadElement()) {
-    SetBaseURIUsingFirstBaseWithHref(head, this);
+      IsInDoc()) {
+    if (aName == nsGkAtoms::href) {
+      SetBaseURIUsingFirstBaseWithHref(GetCurrentDoc(), this);
+    } else if (aName == nsGkAtoms::target) {
+      SetBaseTargetUsingFirstBaseWithTarget(GetCurrentDoc(), this);
+    }
   }
 
   return NS_OK;
@@ -449,14 +471,14 @@ nsHTMLSharedElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
   
   
   
-  nsIContent* head;
-  if (mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
-      aName == nsGkAtoms::href &&
+  if (mNodeInfo->Equals(nsGkAtoms::base) &&
       aNameSpaceID == kNameSpaceID_None &&
-      IsInDoc() &&
-      (head = GetParent()) &&
-      head == GetOwnerDoc()->GetHeadElement()) {
-    SetBaseURIUsingFirstBaseWithHref(head, nsnull);
+      IsInDoc()) {
+    if (aName == nsGkAtoms::href) {
+      SetBaseURIUsingFirstBaseWithHref(GetCurrentDoc(), nsnull);
+    } else if (aName == nsGkAtoms::target) {
+      SetBaseTargetUsingFirstBaseWithTarget(GetCurrentDoc(), nsnull);
+    }
   }
 
   return NS_OK;
@@ -474,12 +496,14 @@ nsHTMLSharedElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   
   
-  if (mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
-      HasAttr(kNameSpaceID_None, nsGkAtoms::href) &&
-      aDocument && aParent &&
-      aDocument->GetHeadElement() == aParent) {
-
-    SetBaseURIUsingFirstBaseWithHref(aParent, this);
+  if (mNodeInfo->Equals(nsGkAtoms::base) &&
+      aDocument) {
+    if (HasAttr(kNameSpaceID_None, nsGkAtoms::href)) {
+      SetBaseURIUsingFirstBaseWithHref(aDocument, this);
+    }
+    if (HasAttr(kNameSpaceID_None, nsGkAtoms::target)) {
+      SetBaseTargetUsingFirstBaseWithTarget(aDocument, this);
+    }
   }
 
   return NS_OK;
@@ -488,27 +512,18 @@ nsHTMLSharedElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 void
 nsHTMLSharedElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 {
-  nsIDocument* doc;
-  nsIContent* parent;
-  PRBool inHeadBase = mNodeInfo->Equals(nsGkAtoms::base, kNameSpaceID_XHTML) &&
-                      (doc = GetCurrentDoc()) &&
-                      (parent = GetParent()) &&
-                      parent->NodeInfo()->Equals(nsGkAtoms::head,
-                                                 kNameSpaceID_XHTML);
+  nsIDocument* doc = GetCurrentDoc();
 
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 
   
   
-  if (inHeadBase) {
-    
-    
-    Element* head = doc->GetHeadElement();
-    if (head) {
-      SetBaseURIUsingFirstBaseWithHref(head, nsnull);
+  if (doc && mNodeInfo->Equals(nsGkAtoms::base)) {
+    if (HasAttr(kNameSpaceID_None, nsGkAtoms::href)) {
+      SetBaseURIUsingFirstBaseWithHref(doc, nsnull);
     }
-    else {
-      doc->SetBaseURI(nsnull);
+    if (HasAttr(kNameSpaceID_None, nsGkAtoms::target)) {
+      SetBaseTargetUsingFirstBaseWithTarget(doc, nsnull);
     }
   }
 }
