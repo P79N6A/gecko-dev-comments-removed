@@ -100,6 +100,8 @@ public:
     } gfxContentType;
 
     
+
+
     static already_AddRefed<gfxASurface> Wrap(cairo_surface_t *csurf);
 
     
@@ -191,15 +193,21 @@ public:
     static PRInt32 BytePerPixelFromFormat(gfxImageFormat format);
 
 protected:
-    gfxASurface() : mSurface(nsnull), mFloatingRefs(0), mBytesRecorded(0), mSurfaceValid(PR_FALSE) { }
+    gfxASurface() : mSurface(nsnull), mFloatingRefs(0), mBytesRecorded(0), mSurfaceValid(PR_FALSE)
+    {
+        MOZ_COUNT_CTOR(gfxASurface);
+    }
 
     static gfxASurface* GetSurfaceWrapper(cairo_surface_t *csurf);
     static void SetSurfaceWrapper(cairo_surface_t *csurf, gfxASurface *asurf);
 
     void Init(cairo_surface_t *surface, PRBool existingSurface = PR_FALSE);
 
-    virtual ~gfxASurface() {
+    virtual ~gfxASurface()
+    {
         RecordMemoryFreed();
+
+        MOZ_COUNT_DTOR(gfxASurface);
     }
 
     cairo_surface_t *mSurface;
