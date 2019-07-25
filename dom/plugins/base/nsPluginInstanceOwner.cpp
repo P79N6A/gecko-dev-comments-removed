@@ -212,9 +212,10 @@ nsPluginInstanceOwner::GetImageContainer()
     mInstance->GetImageContainer(getter_AddRefs(container));
     if (container) {
 #ifdef XP_MACOSX
-      nsRefPtr<Image> image = container->GetCurrentImage();
+      AutoLockImage autoLock(container);
+      Image* image = autoLock.GetImage();
       if (image && image->GetFormat() == Image::MAC_IO_SURFACE && mObjectFrame) {
-        MacIOSurfaceImage *oglImage = static_cast<MacIOSurfaceImage*>(image.get());
+        MacIOSurfaceImage *oglImage = static_cast<MacIOSurfaceImage*>(image);
         NS_ADDREF_THIS();
         oglImage->SetUpdateCallback(&DrawPlugin, this);
         oglImage->SetDestroyCallback(&OnDestroyImage);
@@ -3719,10 +3720,11 @@ void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
     nsRefPtr<ImageContainer> container = mObjectFrame->GetImageContainer();
     if (container) {
 #ifdef XP_MACOSX
-      nsRefPtr<Image> image = container->GetCurrentImage();
+      AutoLockImage autoLock(container);
+      Image *image = autoLock.GetImage();
       if (image && (image->GetFormat() == Image::MAC_IO_SURFACE) && mObjectFrame) {
         
-        MacIOSurfaceImage *oglImage = static_cast<MacIOSurfaceImage*>(image.get());
+        MacIOSurfaceImage *oglImage = static_cast<MacIOSurfaceImage*>(image);
         oglImage->SetUpdateCallback(nsnull, nsnull);
         oglImage->SetDestroyCallback(nsnull);
         
@@ -3730,6 +3732,9 @@ void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
         
         NS_RELEASE_THIS();
       }
+      
+      
+      autoLock.Unlock();
 #endif
       container->SetCurrentImage(nsnull);
     }
