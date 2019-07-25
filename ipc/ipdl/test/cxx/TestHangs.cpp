@@ -6,12 +6,8 @@
 
 using base::KillProcess;
 
-template<>
-struct RunnableMethodTraits<mozilla::_ipdltest::TestHangsParent>
-{
-    static void RetainCallee(mozilla::_ipdltest::TestHangsParent* obj) { }
-    static void ReleaseCallee(mozilla::_ipdltest::TestHangsParent* obj) { }
-};
+
+static const int kTimeoutSecs = 5;
 
 namespace mozilla {
 namespace _ipdltest {
@@ -19,7 +15,7 @@ namespace _ipdltest {
 
 
 
-TestHangsParent::TestHangsParent() : mFramesToGo(2), mDetectedHang(false)
+TestHangsParent::TestHangsParent() : mFramesToGo(2)
 {
     MOZ_COUNT_CTOR(TestHangsParent);
 }
@@ -32,57 +28,27 @@ TestHangsParent::~TestHangsParent()
 void
 TestHangsParent::Main()
 {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    SetReplyTimeoutMs(1000 * kTimeoutSecs);
 
-    
-    if (!SendStart())
-        fail("sending Start");
-
-    
-    
-    
-    
-    
-    
-    
-    PR_Sleep(5000);
-
-    
-    
-    
-    if (CallStackFrame() && mDetectedHang)
+    if (CallStackFrame())
         fail("should have timed out!");
 
-    
+    Close();
 }
 
 bool
 TestHangsParent::ShouldContinueFromReplyTimeout()
 {
-    mDetectedHang = true;
+    
+    
+    
+    
+    
 
     
     
-    
-
-    PR_Sleep(5000);
-
-    
-    
-    MessageLoop::current()->PostTask(
-        FROM_HERE, NewRunnableMethod(this, &TestHangsParent::CleanUp));
+    if (!KillProcess(OtherProcess(), 0, false))
+        fail("terminating child process");
 
     return false;
 }
@@ -95,23 +61,11 @@ TestHangsParent::AnswerStackFrame()
             fail("should have timed out!");
     }
     else {
-        
-        
-        SetReplyTimeoutMs(1);
-
         if (CallHang())
             fail("should have timed out!");
     }
 
     return true;
-}
-
-void
-TestHangsParent::CleanUp()
-{
-    if (!KillProcess(OtherProcess(), 0, false))
-        fail("terminating child process");
-    Close();
 }
 
 
@@ -131,14 +85,14 @@ TestHangsChild::~TestHangsChild()
 bool
 TestHangsChild::AnswerHang()
 {
-    puts(" (child process is 'hanging' now)");
+    puts(" (child process is hanging now)");
 
     
     
-    
-    PR_Sleep(1000);
+    PR_Sleep(PR_SecondsToInterval(100000));
 
-    return true;
+    fail("should have been killed!");
+    return false;               
 }
 
 } 
