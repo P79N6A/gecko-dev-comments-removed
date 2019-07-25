@@ -1486,7 +1486,7 @@ nsHTMLEditor::RelativeFontChange( PRInt32 aSizeChange)
     
     PRInt32 offset;
     nsCOMPtr<nsIDOMNode> selectedNode;
-    res = GetStartNodeAndOffset(selection, address_of(selectedNode), &offset);
+    res = GetStartNodeAndOffset(selection, getter_AddRefs(selectedNode), &offset);
     if (IsTextNode(selectedNode)) {
       nsCOMPtr<nsIDOMNode> parent;
       res = selectedNode->GetParentNode(getter_AddRefs(parent));
