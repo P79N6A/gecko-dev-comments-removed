@@ -914,7 +914,6 @@ frontend::DefineArg(ParseNode *pn, JSAtom *atom, unsigned i, Parser *parser)
     JS_ASSERT(argpn->isKind(PNK_NAME) && argpn->isOp(JSOP_NOP));
 
     
-    argpn->pn_dflags |= PND_INITIALIZED;
     if (!Define(argpn, atom, parser->tc))
         return false;
 
@@ -945,7 +944,7 @@ static bool
 BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, Parser *parser);
 
 struct frontend::BindData {
-    BindData(JSContext *cx) : let(cx), fresh(true) {}
+    BindData(JSContext *cx) : let(cx) {}
 
     ParseNode       *pn;        
 
@@ -958,8 +957,6 @@ struct frontend::BindData {
         Rooted<StaticBlockObject*> blockObj;
         unsigned   overflow;
     } let;
-
-    bool fresh;
 
     void initLet(VarContext varContext, StaticBlockObject &blockObj, unsigned overflow) {
         this->pn = NULL;
@@ -1102,7 +1099,6 @@ LeaveFunction(ParseNode *fn, Parser *parser, PropertyName *funName = NULL,
     FunctionBox *funbox = fn->pn_funbox;
     funbox->cxFlags = funtc->sc->cxFlags;   
 
-    fn->pn_dflags |= PND_INITIALIZED;
     if (!tc->topStmt || tc->topStmt->type == STMT_BLOCK)
         fn->pn_dflags |= PND_BLOCKCHILD;
 
@@ -2214,7 +2210,6 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom_, Parser *parser)
     StmtInfoTC *stmt = LexicalLookup(tc, atom, NULL, (StmtInfoTC *)NULL);
 
     if (stmt && stmt->type == STMT_WITH) {
-        data->fresh = false;
         pn->pn_dflags |= PND_DEOPTIMIZED;
         tc->sc->setFunMightAliasLocals();
         return true;
@@ -2273,8 +2268,6 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom_, Parser *parser)
 
 
 
-
-        data->fresh = false;
 
         if (!pn->isUsed()) {
             
@@ -2358,28 +2351,12 @@ MakeSetCall(JSContext *cx, ParseNode *pn, Parser *parser, unsigned msg)
 }
 
 static void
-NoteLValue(JSContext *cx, ParseNode *pn, SharedContext *sc, unsigned dflag = PND_ASSIGNED)
+NoteLValue(JSContext *cx, ParseNode *pn, SharedContext *sc)
 {
-    if (pn->isUsed()) {
-        Definition *dn = pn->pn_lexdef;
+    if (pn->isUsed())
+        pn->pn_lexdef->pn_dflags |= PND_ASSIGNED;
 
-        
-
-
-
-        if (!(dn->pn_dflags & (PND_INITIALIZED | PND_CONST | PND_PLACEHOLDER)) &&
-            dn->isBlockChild() &&
-            pn->isBlockChild() &&
-            dn->pn_blockid == pn->pn_blockid &&
-            dn->pn_pos.end <= pn->pn_pos.begin &&
-            dn->dn_uses == pn) {
-            dflag = PND_INITIALIZED;
-        }
-
-        dn->pn_dflags |= dflag;
-    }
-
-    pn->pn_dflags |= dflag;
+    pn->pn_dflags |= PND_ASSIGNED;
 
     
 
@@ -2456,7 +2433,7 @@ BindDestructuringVar(JSContext *cx, BindData *data, ParseNode *pn, Parser *parse
     if (data->op == JSOP_DEFCONST)
         pn->pn_dflags |= PND_CONST;
 
-    NoteLValue(cx, pn, parser->tc->sc, PND_INITIALIZED);
+    NoteLValue(cx, pn, parser->tc->sc);
     return true;
 }
 
@@ -3259,7 +3236,6 @@ Parser::forStatement()
 
 
         pn2 = NULL;
-        unsigned dflag = PND_ASSIGNED;
         if (forDecl) {
             
             pn1->pn_xflags |= PNX_FORINVAR;
@@ -3288,8 +3264,6 @@ Parser::forStatement()
                 ParseNode *pnseq = ListNode::create(PNK_SEQ, this);
                 if (!pnseq)
                     return NULL;
-
-                dflag = PND_INITIALIZED;
 
                 
 
@@ -3358,7 +3332,7 @@ Parser::forStatement()
         switch (pn2->getKind()) {
           case PNK_NAME:
             
-            NoteLValue(context, pn2, tc->sc, dflag);
+            NoteLValue(context, pn2, tc->sc);
             break;
 
 #if JS_HAS_DESTRUCTURING
@@ -4312,7 +4286,7 @@ Parser::variables(ParseNodeKind kind, StaticBlockObject *blockObj, VarContext va
                        ? JSOP_SETCONST
                        : JSOP_SETNAME);
 
-            NoteLValue(context, pn2, tc->sc, data.fresh ? PND_INITIALIZED : PND_ASSIGNED);
+            NoteLValue(context, pn2, tc->sc);
 
             
             pn2->pn_pos.end = init->pn_pos.end;
@@ -4672,21 +4646,6 @@ Parser::assignExpr()
     ParseNode *rhs = assignExpr();
     if (!rhs)
         return NULL;
-    if (lhs->isKind(PNK_NAME) && lhs->isUsed()) {
-        Definition *dn = lhs->pn_lexdef;
-
-        
-
-
-
-
-
-
-        if (!dn->isAssigned()) {
-            JS_ASSERT(dn->isInitialized());
-            dn->pn_pos.end = rhs->pn_pos.end;
-        }
-    }
 
     return ParseNode::newBinaryOrAppend(kind, op, lhs, rhs, this);
 }
