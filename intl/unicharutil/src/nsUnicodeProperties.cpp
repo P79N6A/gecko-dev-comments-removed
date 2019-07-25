@@ -35,18 +35,21 @@
 
 
 
-#include "gfxUnicodeProperties.h"
-#include "gfxUnicodePropertyData.cpp"
+#include "nsUnicodeProperties.h"
+#include "nsUnicodeScriptCodes.h"
+#include "nsUnicodePropertyData.cpp"
 
 #include "mozilla/Util.h"
 #include "nsMemory.h"
 
 #include "harfbuzz/hb-unicode.h"
 
-using namespace mozilla;
-
 #define UNICODE_BMP_LIMIT 0x10000
 #define UNICODE_LIMIT     0x110000
+
+namespace mozilla {
+
+namespace unicode {
 
 
 
@@ -70,7 +73,7 @@ using namespace mozilla;
 
 
 PRUint32
-gfxUnicodeProperties::GetMirroredChar(PRUint32 aCh)
+GetMirroredChar(PRUint32 aCh)
 {
     
     if (aCh < UNICODE_BMP_LIMIT) {
@@ -90,7 +93,7 @@ gfxUnicodeProperties::GetMirroredChar(PRUint32 aCh)
 }
 
 PRUint8
-gfxUnicodeProperties::GetCombiningClass(PRUint32 aCh)
+GetCombiningClass(PRUint32 aCh)
 {
     if (aCh < UNICODE_BMP_LIMIT) {
         return sCClassValues[sCClassPages[0][aCh >> kCClassCharBits]]
@@ -106,7 +109,7 @@ gfxUnicodeProperties::GetCombiningClass(PRUint32 aCh)
 }
 
 PRUint8
-gfxUnicodeProperties::GetGeneralCategory(PRUint32 aCh)
+GetGeneralCategory(PRUint32 aCh)
 {
     if (aCh < UNICODE_BMP_LIMIT) {
         return sCatEAWValues[sCatEAWPages[0][aCh >> kCatEAWCharBits]]
@@ -122,7 +125,7 @@ gfxUnicodeProperties::GetGeneralCategory(PRUint32 aCh)
 }
 
 PRUint8
-gfxUnicodeProperties::GetEastAsianWidth(PRUint32 aCh)
+GetEastAsianWidth(PRUint32 aCh)
 {
     if (aCh < UNICODE_BMP_LIMIT) {
         return sCatEAWValues[sCatEAWPages[0][aCh >> kCatEAWCharBits]]
@@ -138,7 +141,7 @@ gfxUnicodeProperties::GetEastAsianWidth(PRUint32 aCh)
 }
 
 PRInt32
-gfxUnicodeProperties::GetScriptCode(PRUint32 aCh)
+GetScriptCode(PRUint32 aCh)
 {
     if (aCh < UNICODE_BMP_LIMIT) {
         return sScriptValues[sScriptPages[0][aCh >> kScriptCharBits]]
@@ -154,7 +157,7 @@ gfxUnicodeProperties::GetScriptCode(PRUint32 aCh)
 }
 
 PRUint32
-gfxUnicodeProperties::GetScriptTagForCode(PRInt32 aScriptCode)
+GetScriptTagForCode(PRInt32 aScriptCode)
 {
     
     if (PRUint32(aScriptCode) > ArrayLength(sScriptCodeToTag)) {
@@ -163,8 +166,8 @@ gfxUnicodeProperties::GetScriptTagForCode(PRInt32 aScriptCode)
     return sScriptCodeToTag[aScriptCode];
 }
 
-gfxUnicodeProperties::HSType
-gfxUnicodeProperties::GetHangulSyllableType(PRUint32 aCh)
+HSType
+GetHangulSyllableType(PRUint32 aCh)
 {
     
     if (aCh < UNICODE_BMP_LIMIT) {
@@ -183,7 +186,7 @@ gfxUnicodeProperties::GetHangulSyllableType(PRUint32 aCh)
 
 
 PRInt32
-gfxUnicodeProperties::ScriptShapingType(PRInt32 aScriptCode)
+ScriptShapingType(PRInt32 aScriptCode)
 {
     switch (aScriptCode) {
     default:
@@ -231,3 +234,7 @@ gfxUnicodeProperties::ScriptShapingType(PRInt32 aScriptCode)
         return SHAPING_INDIC; 
     }
 }
+
+} 
+
+} 
