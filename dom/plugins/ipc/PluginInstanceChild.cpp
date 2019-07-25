@@ -1983,7 +1983,11 @@ PluginInstanceChild::AnswerSetPluginFocus()
 
 #if defined(OS_WIN)
     
-    if (::GetFocus() == mPluginWindowHWND)
+    
+    
+    
+    
+    if (::GetFocus() == mPluginWindowHWND || ::GetFocus() != mPluginParentHWND)
         return true;
     ::SetFocus(mPluginWindowHWND);
     return true;
