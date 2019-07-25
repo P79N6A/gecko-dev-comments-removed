@@ -89,18 +89,6 @@ class MacroAssembler : public MacroAssemblerSpecific
     bool dynamicAlignment_;
     bool inCall_;
 
-    
-    enum CallProperty {
-        LargeReturnValue = 1 << 0,
-        ReturnArgConsumeStack = 1 << 1,
-        StackAllocated = 1 << 2,
-        HasGetRes = 1 << 3,
-        None = 0
-    };
-
-    
-    uint32 callProperties_;
-
     bool enoughMemory_;
 
     
@@ -108,10 +96,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     
     
-    
-    
-    
-    uint32 setupABICall(uint32 arg, uint32 returnSize, const MoveOperand *returnOperand);
+    uint32 setupABICall(uint32 arg);
 
     
     
@@ -124,7 +109,6 @@ class MacroAssembler : public MacroAssemblerSpecific
       : autoRooter_(GetIonContext()->cx, thisFromCtor()),
         stackAdjust_(0),
         inCall_(false),
-        callProperties_(None),
         enoughMemory_(true)
     {
     }
@@ -133,7 +117,6 @@ class MacroAssembler : public MacroAssemblerSpecific
       : autoRooter_(cx, thisFromCtor()),
         stackAdjust_(0),
         inCall_(false),
-        callProperties_(None),
         enoughMemory_(true)
     {
     }
@@ -158,14 +141,11 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     
     
-    void setupAlignedABICall(uint32 args, uint32 returnSize = sizeof(void *),
-                             const MoveOperand *returnOperand = NULL);
+    void setupAlignedABICall(uint32 args);
 
     
     
-    void setupUnalignedABICall(uint32 args, const Register &scratch,
-                               uint32 returnSize = sizeof(void *),
-                               const MoveOperand *returnOperand = NULL);
+    void setupUnalignedABICall(uint32 args, const Register &scratch);
 
     
     
@@ -173,7 +153,6 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     
     inline void setABIArg(uint32 arg, const MoveOperand &from) {
-        arg += callProperties_ & LargeReturnValue ? 1 : 0;
         setAnyABIArg(arg, from);
     }
 
@@ -182,21 +161,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     
-    
-    
-    
-    void getABIRes(uint32 offset, const MoveOperand &to);
-
-
-    
     void callWithABI(void *fun);
-
-    
-    
-    
-    
-    
-    void finishABICall();
 
     
     

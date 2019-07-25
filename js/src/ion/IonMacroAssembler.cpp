@@ -48,60 +48,21 @@ using namespace js;
 using namespace js::ion;
 
 uint32
-MacroAssembler::setupABICall(uint32 args, uint32 returnSize, const MoveOperand *returnOperand)
+MacroAssembler::setupABICall(uint32 args)
 {
     JS_ASSERT(!inCall_);
-    JS_ASSERT_IF(returnSize <= sizeof(void *), !returnOperand);
     inCall_ = true;
 
-    callProperties_ = None;
     uint32 stackForArgs = args > NumArgRegs
                           ? (args - NumArgRegs) * sizeof(void *)
                           : 0;
-    uint32 stackForRes = 0;
-
-    
-    
-    
-    
-    if (returnSize > sizeof(void *)) {
-        callProperties_ |= LargeReturnValue;
-
-        
-        
-        
-        
-        
-        
-        
-        
-        if (args >= NumArgRegs) {
-            callProperties_ |= ReturnArgConsumeStack;
-            stackForRes = sizeof(void *);
-        }
-
-        
-        
-        
-        
-        
-        
-
-        if (returnOperand) {
-            setAnyABIArg(0, *returnOperand);
-        } else {
-            setAnyABIArg(0, MoveOperand(StackPointer, stackForArgs + stackForRes));
-            stackForRes += returnSize;
-        }
-    }
-
-    return stackForArgs + stackForRes;
+    return stackForArgs;
 }
 
 void
-MacroAssembler::setupAlignedABICall(uint32 args, uint32 returnSize, const MoveOperand *returnOperand)
+MacroAssembler::setupAlignedABICall(uint32 args)
 {
-    uint32 stackForCall = setupABICall(args, returnSize, returnOperand);
+    uint32 stackForCall = setupABICall(args);
 
     
     
@@ -112,10 +73,9 @@ MacroAssembler::setupAlignedABICall(uint32 args, uint32 returnSize, const MoveOp
 }
 
 void
-MacroAssembler::setupUnalignedABICall(uint32 args, const Register &scratch, uint32 returnSize,
-                                      const MoveOperand *returnOperand)
+MacroAssembler::setupUnalignedABICall(uint32 args, const Register &scratch)
 {
-    uint32 stackForCall = setupABICall(args, returnSize, returnOperand);
+    uint32 stackForCall = setupABICall(args);
 
     
     
@@ -159,51 +119,6 @@ MacroAssembler::callWithABI(void *fun)
 #endif
 
     call(fun);
-}
-
-void
-MacroAssembler::getABIRes(uint32 offset, const MoveOperand &to)
-{
-    JS_ASSERT(inCall_);
-
-    
-    JS_ASSERT_IF(to.isMemory(), to.base().code() & Registers::NonVolatileMask);
-
-    MoveOperand from;
-
-    callProperties_ |= HasGetRes;
-    if (callProperties_ & LargeReturnValue) {
-        
-        from = MoveOperand(ReturnReg, offset);
-    } else {
-        
-        JS_ASSERT(!offset);
-        from = MoveOperand(ReturnReg);
-    }
-
-    enoughMemory_ &= moveResolver_.addMove(from, to, Move::GENERAL);
-}
-
-void
-MacroAssembler::finishABICall()
-{
-    JS_ASSERT(inCall_);
-
-    
-    if (callProperties_ & HasGetRes) {
-        enoughMemory_ &= moveResolver_.resolve();
-        if (!enoughMemory_)
-            return;
-
-        MoveEmitter emitter(*this);
-        emitter.emit(moveResolver());
-        emitter.finish();
-    }
-
-    
-    
-    
-    stackAdjust_ -= callProperties_ & ReturnArgConsumeStack ? sizeof(void *) : 0;
 
     freeStack(stackAdjust_);
     if (dynamicAlignment_)

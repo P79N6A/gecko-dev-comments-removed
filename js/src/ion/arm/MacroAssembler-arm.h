@@ -336,7 +336,9 @@ public:
 
 class MacroAssemblerARMCompat : public MacroAssemblerARM
 {
-public:
+  public:
+    using MacroAssemblerARM::call;
+
     
     
     
