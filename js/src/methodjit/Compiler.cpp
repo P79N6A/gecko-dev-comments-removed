@@ -4129,8 +4129,8 @@ mjit::Compiler::inlineCallHelper(uint32_t callImmArgc, bool callingNew, FrameSiz
 
 
 
-        if (cx->typeInferenceEnabled())
-            masm.storeValue(NullValue(), frame.addressOf(origThis));
+
+        masm.storeValue(NullValue(), frame.addressOf(origThis));
     }
 
     if (!cx->typeInferenceEnabled()) {
