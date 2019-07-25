@@ -129,6 +129,7 @@ namespace js {
 
 
 
+
 template <class Key, class Value> class DefaultMarkPolicy;
 
 
@@ -197,7 +198,7 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
     void nonMarkingTrace(JSTracer *tracer) {
         MarkPolicy t(tracer);
         for (Range r = Base::all(); !r.empty(); r.popFront())
-            t.markEntry(r.front().key, r.front().value);
+            t.markEntry(r.front().value);
     }
 
     bool markIteratively(JSTracer *tracer) {
@@ -281,8 +282,7 @@ class DefaultMarkPolicy<JSObject *, Value> {
         markUnmarkedValue(v);
         return true;
     }
-    void markEntry(JSObject *k, const Value &v) {
-        js::gc::MarkObject(tracer, *k, "WeakMap entry key");
+    void markEntry(const Value &v) {
         js::gc::MarkValue(tracer, v, "WeakMap entry value");
     }
 };
@@ -302,8 +302,7 @@ class DefaultMarkPolicy<JSObject *, JSObject *> {
         }
         return false;
     }
-    void markEntry(JSObject *k, JSObject *v) {
-        js::gc::MarkObject(tracer, *k, "WeakMap entry key");
+    void markEntry(JSObject *v) {
         js::gc::MarkObject(tracer, *v, "WeakMap entry value");
     }
 };
