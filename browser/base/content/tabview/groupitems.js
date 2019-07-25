@@ -1403,29 +1403,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     return dropIndex;
   },
 
-  
-  
-  
-  
-  
-  
-  
-  childHit: function GroupItem_childHit(child) {
-    var self = this;
-
-    
-    if (!this._isStacked || this.expanded) {
-      return {
-        shouldZoom: true,
-        callback: function() {
-          self.collapse();
-        }
-      };
-    }
-
-    return { shouldZoom: true };
-  },
-
   expand: function GroupItem_expand() {
     var self = this;
     
