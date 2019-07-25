@@ -372,6 +372,12 @@ JSD_GetJSFunction(JSDContext* jsdc, JSDScript *script);
 
 #define JSD_SCRIPT_DEBUG_BIT   0x02
 
+
+
+
+
+#define JSD_SCRIPT_CALL_DESTROY_HOOK_BIT 0x04
+
 extern JSD_PUBLIC_API(uint32_t)
 JSD_GetScriptFlags(JSDContext *jsdc, JSDScript* jsdscript);
 
