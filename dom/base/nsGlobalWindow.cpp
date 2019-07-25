@@ -3070,6 +3070,14 @@ nsGlobalWindow::GetTopImpl(nsIDOMWindow** aTop, bool aScriptable)
   return NS_OK;
 }
 
+
+
+NS_IMETHODIMP
+nsGlobalWindow::GetContentForCompat(nsIDOMWindow** aContent)
+{
+  return GetContent(aContent);
+}
+
 NS_IMETHODIMP
 nsGlobalWindow::GetContent(nsIDOMWindow** aContent)
 {
@@ -3114,7 +3122,7 @@ nsGlobalWindow::GetContent(nsIDOMWindow** aContent)
   }
 
   nsCOMPtr<nsIDOMWindow> domWindow(do_GetInterface(primaryContent));
-  NS_IF_ADDREF(*aContent = domWindow);
+  domWindow.forget(aContent);
 
   return NS_OK;
 }
