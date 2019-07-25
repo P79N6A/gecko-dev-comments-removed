@@ -3780,15 +3780,21 @@ DefineConstructorAndPrototype(JSContext *cx, JSObject *obj, JSProtoKey key, JSAt
 
 
 
+
+    
+
+
+
+
+
+
     JSObject *proto = NewObject<WithProto::Class>(cx, clasp, protoProto, obj);
-    if (!proto)
+    if (!proto || !proto->getEmptyShape(cx, proto->clasp, gc::FINALIZE_OBJECT0))
         return NULL;
 
     proto->syncSpecialEquality();
 
     
-    AutoObjectRooter tvr(cx, proto);
-
     JSObject *ctor;
     bool named = false;
     if (!constructor) {
@@ -3854,22 +3860,6 @@ DefineConstructorAndPrototype(JSContext *cx, JSObject *obj, JSProtoKey key, JSAt
     {
         goto bad;
     }
-
-    
-
-
-
-
-
-
-
-
-
-
-    JS_ASSERT_IF(proto->clasp != clasp,
-                 clasp == &js_ArrayClass && proto->clasp == &js_SlowArrayClass);
-    if (!proto->getEmptyShape(cx, proto->clasp, FINALIZE_OBJECT0))
-        goto bad;
 
     if (clasp->flags & (JSCLASS_FREEZE_PROTO|JSCLASS_FREEZE_CTOR)) {
         JS_ASSERT_IF(ctor == proto, !(clasp->flags & JSCLASS_FREEZE_CTOR));
