@@ -42,6 +42,14 @@
 #define jsobj_h___
 
 
+#ifdef mozilla_mozalloc_macro_wrappers_h
+#  define JS_OBJ_UNDEFD_MOZALLOC_WRAPPERS
+
+#  include "mozilla/mozalloc_undef_macro_wrappers.h"
+#endif
+
+
+
 
 
 
@@ -72,10 +80,22 @@ CastAsPropertyOp(JSObject *object)
     return JS_DATA_TO_FUNC_PTR(PropertyOp, object);
 }
 
+static inline StrictPropertyOp
+CastAsStrictPropertyOp(JSObject *object)
+{
+    return JS_DATA_TO_FUNC_PTR(StrictPropertyOp, object);
+}
+
 static inline JSPropertyOp
 CastAsJSPropertyOp(JSObject *object)
 {
     return JS_DATA_TO_FUNC_PTR(JSPropertyOp, object);
+}
+
+static inline JSStrictPropertyOp
+CastAsJSStrictPropertyOp(JSObject *object)
+{
+    return JS_DATA_TO_FUNC_PTR(JSStrictPropertyOp, object);
 }
 
 inline JSObject *
@@ -84,8 +104,20 @@ CastAsObject(PropertyOp op)
     return JS_FUNC_TO_DATA_PTR(JSObject *, op);
 }
 
+inline JSObject *
+CastAsObject(StrictPropertyOp op)
+{
+    return JS_FUNC_TO_DATA_PTR(JSObject *, op);
+}
+
 inline Value
 CastAsObjectJsval(PropertyOp op)
+{
+    return ObjectOrNullValue(CastAsObject(op));
+}
+
+inline Value
+CastAsObjectJsval(StrictPropertyOp op)
 {
     return ObjectOrNullValue(CastAsObject(op));
 }
@@ -149,8 +181,8 @@ struct PropDesc {
     js::PropertyOp getter() const {
         return js::CastAsPropertyOp(getterObject());
     }
-    js::PropertyOp setter() const {
-        return js::CastAsPropertyOp(setterObject());
+    js::StrictPropertyOp setter() const {
+        return js::CastAsStrictPropertyOp(setterObject());
     }
 
     js::Value pd;
@@ -206,7 +238,7 @@ js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
 
 extern JSBool
 js_DefineProperty(JSContext *cx, JSObject *obj, jsid id, const js::Value *value,
-                  js::PropertyOp getter, js::PropertyOp setter, uintN attrs);
+                  js::PropertyOp getter, js::StrictPropertyOp setter, uintN attrs);
 
 extern JSBool
 js_GetProperty(JSContext *cx, JSObject *obj, JSObject *receiver, jsid id, js::Value *vp);
@@ -302,8 +334,13 @@ struct JSObject : js::gc::Cell {
 
     friend class js::TraceRecorder;
     friend class nanojit::ValidateWriter;
+    friend class GetPropCompiler;
 
     
+
+
+
+
 
 
 
@@ -462,22 +499,23 @@ struct JSObject : js::gc::Cell {
 
     bool hasOwnShape() const    { return !!(flags & OWN_SHAPE); }
 
-    void setMap(JSObjectMap *amap) {
+    void setMap(const JSObjectMap *amap) {
         JS_ASSERT(!hasOwnShape());
-        map = amap;
+        map = const_cast<JSObjectMap *>(amap);
         objShape = map->shape;
     }
 
     void setSharedNonNativeMap() {
-        setMap(const_cast<JSObjectMap *>(&JSObjectMap::sharedNonNative));
+        setMap(&JSObjectMap::sharedNonNative);
     }
 
     void deletingShapeChange(JSContext *cx, const js::Shape &shape);
-    bool methodShapeChange(JSContext *cx, const js::Shape &shape);
+    const js::Shape *methodShapeChange(JSContext *cx, const js::Shape &shape);
     bool methodShapeChange(JSContext *cx, uint32 slot);
     void protoShapeChange(JSContext *cx);
     void shadowingShapeChange(JSContext *cx, const js::Shape &shape);
     bool globalObjectOwnShapeChange(JSContext *cx);
+    void watchpointOwnShapeChange(JSContext *cx) { generateOwnShape(cx); }
 
     void extensibleShapeChange(JSContext *cx) {
         
@@ -540,7 +578,7 @@ struct JSObject : js::gc::Cell {
 
 
 
-    bool methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp);
+    const js::Shape *methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp);
 
     
 
@@ -549,7 +587,7 @@ struct JSObject : js::gc::Cell {
 
 
 
-    bool methodWriteBarrier(JSContext *cx, const js::Shape &shape, const js::Value &v);
+    const js::Shape *methodWriteBarrier(JSContext *cx, const js::Shape &shape, const js::Value &v);
     bool methodWriteBarrier(JSContext *cx, uint32 slot, const js::Value &v);
 
     bool isIndexed() const          { return !!(flags & INDEXED); }
@@ -758,10 +796,11 @@ struct JSObject : js::gc::Cell {
 
 
     inline uint32 getArrayLength() const;
-    inline void setArrayLength(JSContext *cx, uint32 length);
+    inline bool setArrayLength(JSContext *cx, uint32 length);
 
     inline uint32 getDenseArrayCapacity();
     inline uint32 getDenseArrayInitializedLength();
+    inline void setDenseArrayLength(uint32 length);
     inline void setDenseArrayInitializedLength(uint32 length);
     inline js::Value* getDenseArrayElements();
     inline const js::Value &getDenseArrayElement(uintN idx);
@@ -770,7 +809,7 @@ struct JSObject : js::gc::Cell {
     inline void shrinkDenseArrayElements(JSContext *cx, uintN cap);
 
     inline bool isPackedDenseArray();
-    inline void setDenseArrayNotPacked(JSContext *cx);
+    inline bool setDenseArrayNotPacked(JSContext *cx);
 
     
 
@@ -796,6 +835,31 @@ struct JSObject : js::gc::Cell {
 
   private:
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -857,6 +921,14 @@ struct JSObject : js::gc::Cell {
     
 
 
+
+
+
+
+
+
+
+
     static const uint32 JSSLOT_CALL_CALLEE = 0;
     static const uint32 JSSLOT_CALL_ARGUMENTS = 1;
 
@@ -864,12 +936,30 @@ struct JSObject : js::gc::Cell {
     
     static const uint32 CALL_RESERVED_SLOTS = 2;
 
-    inline JSObject &getCallObjCallee() const;
+    
+    inline bool callIsForEval() const;
+
+    
+    inline JSStackFrame *maybeCallObjStackFrame() const;
+
+    
+
+
+
+    inline JSObject *getCallObjCallee() const;
     inline JSFunction *getCallObjCalleeFunction() const; 
-    inline void setCallObjCallee(JSObject &callee);
+    inline void setCallObjCallee(JSObject *callee);
 
     inline const js::Value &getCallObjArguments() const;
     inline void setCallObjArguments(const js::Value &v);
+
+    
+    inline const js::Value &callObjArg(uintN i) const;
+    inline js::Value &callObjArg(uintN i);
+
+    
+    inline const js::Value &callObjVar(uintN i) const;
+    inline js::Value &callObjVar(uintN i);
 
     
 
@@ -930,6 +1020,7 @@ struct JSObject : js::gc::Cell {
 
     inline js::Value *getFlatClosureUpvars() const;
     inline js::Value getFlatClosureUpvar(uint32 i) const;
+    inline js::Value &getFlatClosureUpvar(uint32 i);
     inline void setFlatClosureUpvars(js::Value *upvars);
 
     inline bool hasMethodObj(const JSObject& obj) const;
@@ -1064,6 +1155,7 @@ struct JSObject : js::gc::Cell {
     bool allocSlot(JSContext *cx, uint32 *slotp);
     bool freeSlot(JSContext *cx, uint32 slot);
 
+  public:
     bool reportReadOnly(JSContext* cx, jsid id, uintN report = JSREPORT_ERROR);
     bool reportNotConfigurable(JSContext* cx, jsid id, uintN report = JSREPORT_ERROR);
     bool reportNotExtensible(JSContext *cx, uintN report = JSREPORT_ERROR);
@@ -1079,7 +1171,7 @@ struct JSObject : js::gc::Cell {
 
 
     const js::Shape *addPropertyInternal(JSContext *cx, jsid id,
-                                         js::PropertyOp getter, js::PropertyOp setter,
+                                         js::PropertyOp getter, js::StrictPropertyOp setter,
                                          uint32 slot, uintN attrs,
                                          uintN flags, intN shortid,
                                          js::Shape **spp);
@@ -1089,7 +1181,7 @@ struct JSObject : js::gc::Cell {
   public:
     
     const js::Shape *addProperty(JSContext *cx, jsid id,
-                                 js::PropertyOp getter, js::PropertyOp setter,
+                                 js::PropertyOp getter, js::StrictPropertyOp setter,
                                  uint32 slot, uintN attrs,
                                  uintN flags, intN shortid);
 
@@ -1101,13 +1193,13 @@ struct JSObject : js::gc::Cell {
 
     
     const js::Shape *putProperty(JSContext *cx, jsid id,
-                                 js::PropertyOp getter, js::PropertyOp setter,
+                                 js::PropertyOp getter, js::StrictPropertyOp setter,
                                  uint32 slot, uintN attrs,
                                  uintN flags, intN shortid);
 
     
     const js::Shape *changeProperty(JSContext *cx, const js::Shape *shape, uintN attrs, uintN mask,
-                                    js::PropertyOp getter, js::PropertyOp setter);
+                                    js::PropertyOp getter, js::StrictPropertyOp setter);
 
     
     bool removeProperty(JSContext *cx, jsid id);
@@ -1122,7 +1214,7 @@ struct JSObject : js::gc::Cell {
 
     JSBool defineProperty(JSContext *cx, jsid id, const js::Value &value,
                           js::PropertyOp getter = js::PropertyStub,
-                          js::PropertyOp setter = js::PropertyStub,
+                          js::StrictPropertyOp setter = js::StrictPropertyStub,
                           uintN attrs = JSPROP_ENUMERATE) {
         js::DefinePropOp op = getOps()->defineProperty;
         return (op ? op : js_DefineProperty)(cx, this, id, &value, getter, setter, attrs);
@@ -1410,6 +1502,16 @@ JS_FRIEND_API(JSBool) js_obj_defineSetter(JSContext *cx, uintN argc, js::Value *
 extern JSObject *
 js_InitObjectClass(JSContext *cx, JSObject *obj);
 
+namespace js {
+JSObject *
+DefineConstructorAndPrototype(JSContext *cx, JSObject *obj, JSProtoKey key, JSAtom *atom,
+                              JSObject *protoProto, Class *clasp,
+                              Native constructor, uintN nargs,
+                              JSTypeHandler ctorHandler,
+                              JSPropertySpec *ps, JSFunctionSpec *fs,
+                              JSPropertySpec *static_ps, JSFunctionSpec *static_fs);
+}
+
 extern JSObject *
 js_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
              js::Class *clasp, js::Native constructor, uintN nargs,
@@ -1497,7 +1599,7 @@ js_PurgeScopeChain(JSContext *cx, JSObject *obj, jsid id)
 
 extern const js::Shape *
 js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
-                     js::PropertyOp getter, js::PropertyOp setter, uint32 slot,
+                     js::PropertyOp getter, js::StrictPropertyOp setter, uint32 slot,
                      uintN attrs, uintN flags, intN shortid);
 
 
@@ -1508,7 +1610,7 @@ js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
 extern const js::Shape *
 js_ChangeNativePropertyAttrs(JSContext *cx, JSObject *obj,
                              const js::Shape *shape, uintN attrs, uintN mask,
-                             js::PropertyOp getter, js::PropertyOp setter);
+                             js::PropertyOp getter, js::StrictPropertyOp setter);
 
 extern JSBool
 js_DefineOwnProperty(JSContext *cx, JSObject *obj, jsid id,
@@ -1533,9 +1635,20 @@ const uintN JSDNP_UNQUALIFIED  = 8;
 
 extern JSBool
 js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const js::Value &value,
-                        js::PropertyOp getter, js::PropertyOp setter, uintN attrs,
+                        js::PropertyOp getter, js::StrictPropertyOp setter, uintN attrs,
                         uintN flags, intN shortid, JSProperty **propp,
                         uintN defineHow = 0);
+
+static inline JSBool
+js_DefineNativePropertyWithType(JSContext *cx, JSObject *obj, jsid id, const js::Value &value,
+                                js::PropertyOp getter, js::StrictPropertyOp setter, uintN attrs,
+                                uintN flags, intN shortid, JSProperty **propp,
+                                uintN defineHow = 0)
+{
+    return JS_AddTypePropertyById(cx, obj, id, Jsvalify(value)) &&
+           js_DefineNativeProperty(cx, obj, id, value, getter, setter,
+                                   attrs, flags, shortid, propp, defineHow);
+}
 
 
 
@@ -1547,16 +1660,19 @@ js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                            JSObject **objp, JSProperty **propp);
 
 
+extern JS_FRIEND_DATA(js::Class) js_CallClass;
+extern JS_FRIEND_DATA(js::Class) js_DeclEnvClass;
+
+namespace js {
 
 
 
 
 
-inline bool
-js_IsCacheableNonGlobalScope(JSObject *obj)
+
+static inline bool
+IsCacheableNonGlobalScope(JSObject *obj)
 {
-    extern JS_FRIEND_DATA(js::Class) js_CallClass;
-    extern JS_FRIEND_DATA(js::Class) js_DeclEnvClass;
     JS_ASSERT(obj->getParent());
 
     js::Class *clasp = obj->getClass();
@@ -1566,6 +1682,8 @@ js_IsCacheableNonGlobalScope(JSObject *obj)
 
     JS_ASSERT_IF(cacheable, !obj->getOps()->lookupProperty);
     return cacheable;
+}
+
 }
 
 
@@ -1618,7 +1736,7 @@ js_NativeGet(JSContext *cx, JSObject *obj, JSObject *pobj, const js::Shape *shap
 
 extern JSBool
 js_NativeSet(JSContext *cx, JSObject *obj, const js::Shape *shape, bool added,
-             js::Value *vp);
+             bool strict, js::Value *vp);
 
 extern JSBool
 js_GetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uint32 getHow, js::Value *vp);
@@ -1702,6 +1820,25 @@ js_PrimitiveToObject(JSContext *cx, js::Value *vp);
 extern JSBool
 js_ValueToObjectOrNull(JSContext *cx, const js::Value &v, JSObject **objp);
 
+namespace js {
+
+
+
+
+
+extern JSObject *
+ToObjectSlow(JSContext *cx, js::Value *vp);
+
+JS_ALWAYS_INLINE JSObject *
+ToObject(JSContext *cx, js::Value *vp)
+{
+    if (vp->isObject())
+        return &vp->toObject();
+    return ToObjectSlow(cx, vp);
+}
+
+}
+
 
 
 
@@ -1740,7 +1877,7 @@ js_CheckPrincipalsAccess(JSContext *cx, JSObject *scopeobj,
 
 
 extern JSBool
-js_CheckContentSecurityPolicy(JSContext *cx);
+js_CheckContentSecurityPolicy(JSContext *cx, JSObject *scopeObj);
 
 
 extern const char *
@@ -1751,7 +1888,7 @@ extern JSBool
 js_ReportGetterOnlyAssignment(JSContext *cx);
 
 extern JS_FRIEND_API(JSBool)
-js_GetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
+js_GetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
 
 #ifdef DEBUG
 JS_FRIEND_API(void) js_DumpChars(const jschar *s, size_t n);
@@ -1761,7 +1898,6 @@ JS_FRIEND_API(void) js_DumpObject(JSObject *obj);
 JS_FRIEND_API(void) js_DumpValue(const js::Value &val);
 JS_FRIEND_API(void) js_DumpId(jsid id);
 JS_FRIEND_API(void) js_DumpStackFrame(JSContext *cx, JSStackFrame *start = NULL);
-bool IsSaneThisObject(JSObject &obj);
 #endif
 
 extern uintN
@@ -1796,8 +1932,13 @@ extern bool
 EvalKernel(JSContext *cx, uintN argc, js::Value *vp, EvalType evalType, JSStackFrame *caller,
            JSObject *scopeobj);
 
-extern bool
+extern JS_FRIEND_API(bool)
 IsBuiltinEvalFunction(JSFunction *fun);
 
 }
+
+#ifdef JS_OBJ_UNDEFD_MOZALLOC_WRAPPERS
+#  include "mozilla/mozalloc_macro_wrappers.h"
+#endif
+
 #endif 

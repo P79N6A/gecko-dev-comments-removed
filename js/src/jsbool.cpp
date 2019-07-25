@@ -66,10 +66,10 @@ Class js_BooleanClass = {
     "Boolean",
     JSCLASS_HAS_RESERVED_SLOTS(1) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Boolean),
-    PropertyStub,   
-    PropertyStub,   
-    PropertyStub,   
-    PropertyStub,   
+    PropertyStub,         
+    PropertyStub,         
+    PropertyStub,         
+    StrictPropertyStub,   
     EnumerateStub,
     ResolveStub,
     ConvertStub
@@ -123,11 +123,11 @@ bool_valueOf(JSContext *cx, uintN argc, Value *vp)
 
 static JSFunctionSpec boolean_methods[] = {
 #if JS_HAS_TOSOURCE
-    JS_FN_TYPE(js_toSource_str,  bool_toSource,  0, JSFUN_PRIMITIVE_THIS, JS_TypeHandlerString),
+    JS_FN_TYPE(js_toSource_str,  bool_toSource,  0, 0, JS_TypeHandlerString),
 #endif
-    JS_FN_TYPE(js_toString_str,  bool_toString,  0, JSFUN_PRIMITIVE_THIS, JS_TypeHandlerString),
-    JS_FN_TYPE(js_valueOf_str,   bool_valueOf,   0, JSFUN_PRIMITIVE_THIS, JS_TypeHandlerBool),
-    JS_FN_TYPE(js_toJSON_str,    bool_valueOf,   0, JSFUN_PRIMITIVE_THIS, JS_TypeHandlerBool),
+    JS_FN_TYPE(js_toString_str,  bool_toString,  0, 0, JS_TypeHandlerString),
+    JS_FN_TYPE(js_valueOf_str,   bool_valueOf,   0, 0, JS_TypeHandlerBool),
+    JS_FN_TYPE(js_toJSON_str,    bool_valueOf,   0, 0, JS_TypeHandlerBool),
     JS_FS_END
 };
 
@@ -151,12 +151,10 @@ Boolean(JSContext *cx, uintN argc, Value *vp)
 
 static void type_NewBoolean(JSContext *cx, JSTypeFunction *jsfun, JSTypeCallsite *jssite)
 {
-#ifdef JS_TYPE_INFERENCE
     if (Valueify(jssite)->isNew)
         JS_TypeHandlerNew(cx, jsfun, jssite);
     else
         JS_TypeHandlerBool(cx, jsfun, jssite);
-#endif
 }
 
 JSObject *
@@ -177,10 +175,10 @@ js_BooleanToString(JSContext *cx, JSBool b)
 }
 
 
-JSBool
-js_BooleanToCharBuffer(JSContext *cx, JSBool b, JSCharBuffer &cb)
+bool
+js::BooleanToStringBuffer(JSContext *cx, JSBool b, StringBuffer &sb)
 {
-    return b ? js_AppendLiteral(cb, "true") : js_AppendLiteral(cb, "false");
+    return b ? sb.append("true") : sb.append("false");
 }
 
 JSBool

@@ -42,427 +42,6 @@
 #include "jscompartment.h"
 #include "jscntxt.h"
 
-#include "jsinferinlines.h"
-#include "jsobjinlines.h"
-
-
-
-
-
-
-
-
-
-
-namespace js {
-namespace types {
-
-void
-TypeCompartment::init()
-{
-    PodZero(this);
-
-#ifdef DEBUG
-    emptyObject.name_ = JSID_VOID;
-#endif
-    emptyObject.unknownProperties = true;
-}
-
-types::TypeObject *
-TypeCompartment::newTypeObject(JSContext *cx, JSScript *script, const char *name,
-                               bool isFunction, JSObject *proto)
-{
-#ifdef DEBUG
-#if 1 
-    static unsigned nameCount = 0;
-    unsigned len = strlen(name) + 15;
-    char *newName = (char *) alloca(len);
-    JS_snprintf(newName, len, "%u:%s", ++nameCount, name);
-    name = newName;
-#endif
-    jsid id = ATOM_TO_JSID(js_Atomize(cx, name, strlen(name), ATOM_PINNED));
-#else
-    jsid id = JSID_VOID;
-#endif
-
-    TypeObject *object;
-    if (isFunction) {
-        object = (TypeFunction *) cx->calloc(sizeof(TypeFunction));
-        new(object) TypeFunction(id, proto);
-    } else {
-        object = (TypeObject *) cx->calloc(sizeof(TypeObject));
-        new(object) TypeObject(id, proto);
-    }
-
-#ifdef JS_TYPE_INFERENCE
-    TypeObject *&objects = script ? script->typeObjects : this->objects;
-    object->next = objects;
-    objects = object;
-#else
-    object->next = this->objects;
-    this->objects = object;
-#endif
-
-    return object;
-}
-
-#ifdef JS_TYPE_INFERENCE
-TypeObject *
-TypeCompartment::newInitializerTypeObject(JSContext *cx, JSScript *script,
-                                          uint32 offset, bool isArray)
-{
-    char *name = NULL;
-#ifdef DEBUG
-    name = (char *) alloca(40);
-    JS_snprintf(name, 40, "#%lu:%lu:%s", script->id(), offset, isArray ? "Array" : "Object");
-#endif
-
-    JSObject *proto;
-    JSProtoKey key = isArray ? JSProto_Array : JSProto_Object;
-    if (!js_GetClassPrototype(cx, script->getGlobal(), key, &proto, NULL))
-        return NULL;
-
-    TypeObject *res = newTypeObject(cx, script, name, false, proto);
-    if (isArray)
-        res->initializerArray = true;
-    else
-        res->initializerObject = true;
-    res->initializerOffset = offset;
-
-    return res;
-}
-#endif
-
-const char *
-TypeIdStringImpl(jsid id)
-{
-    if (JSID_IS_VOID(id))
-        return "(index)";
-    if (JSID_IS_EMPTY(id))
-        return "(new)";
-    static char bufs[4][100];
-    static unsigned which = 0;
-    which = (which + 1) & 3;
-    PutEscapedString(bufs[which], 100, JSID_TO_FLAT_STRING(id), 0);
-    return bufs[which];
-}
-
-void
-TypeObject::splicePrototype(JSContext *cx, JSObject *proto)
-{
-    JS_ASSERT(!this->proto);
-    this->proto = proto;
-    this->instanceNext = proto->getType()->instanceList;
-    proto->getType()->instanceList = this;
-
-    
-
-
-
-
-
-#ifdef JS_TYPE_INFERENCE
-    if (propertyCount >= 2) {
-        unsigned capacity = HashSetCapacity(propertyCount);
-        for (unsigned i = 0; i < capacity; i++) {
-            Property *prop = propertySet[i];
-            if (prop)
-                getFromPrototypes(cx, prop);
-        }
-    } else if (propertyCount == 1) {
-        Property *prop = (Property *) propertySet;
-        getFromPrototypes(cx, prop);
-    }
-#endif
-}
-
-} } 
-
-js::types::TypeFunction *
-JSContext::newTypeFunction(const char *name, JSObject *proto)
-{
-    return (js::types::TypeFunction *) compartment->types.newTypeObject(this, NULL, name, true, proto);
-}
-
-js::types::TypeObject *
-JSContext::newTypeObject(const char *name, JSObject *proto)
-{
-    return compartment->types.newTypeObject(this, NULL, name, false, proto);
-}
-
-js::types::TypeObject *
-JSContext::newTypeObject(const char *base, const char *postfix, JSObject *proto)
-{
-    char *name = NULL;
-#ifdef DEBUG
-    unsigned len = strlen(base) + strlen(postfix) + 5;
-    name = (char *)alloca(len);
-    JS_snprintf(name, len, "%s:%s", base, postfix);
-#endif
-    return compartment->types.newTypeObject(this, NULL, name, false, proto);
-}
-
-void
-JSObject::makeNewType(JSContext *cx)
-{
-    JS_ASSERT(!newType);
-    setDelegate();
-    newType = cx->newTypeObject(getType()->name(), "new", this);
-
-#ifdef JS_TYPE_INFERENCE
-    if (!getType()->unknownProperties) {
-        
-        js::types::TypeSet *types = getType()->getProperty(cx, JSID_EMPTY, true);
-        cx->compartment->types.addDynamicType(cx, types, (js::types::jstype) newType);
-    }
-#endif
-}
-
-
-
-
-
-namespace js {
-namespace types {
-
-void
-types::TypeObject::trace(JSTracer *trc)
-{
-    JS_ASSERT(!marked);
-
-    
-
-
-
-    if (trc->context->runtime->gcMarkAndSweep)
-        marked = true;
-
-    if (emptyShapes) {
-        int count = gc::FINALIZE_OBJECT_LAST - gc::FINALIZE_OBJECT0 + 1;
-        for (int i = 0; i < count; i++) {
-            if (emptyShapes[i])
-                emptyShapes[i]->trace(trc);
-        }
-    }
-
-    if (proto)
-        gc::MarkObject(trc, *proto, "type_proto");
-}
-
-#ifdef JS_TYPE_INFERENCE
-
-
-
-
-
-
-void
-CondenseSweepTypeSet(JSContext *cx, HashSet<JSScript*> &condensed, TypeSet *types)
-{
-    if (types->objectCount >= 2) {
-        bool removed = false;
-        unsigned objectCapacity = HashSetCapacity(types->objectCount);
-        for (unsigned i = 0; i < objectCapacity; i++) {
-            TypeObject *object = types->objectSet[i];
-            if (object && !object->marked) {
-                removed = true;
-                types->objectSet[i] = NULL;
-            }
-        }
-        if (removed) {
-            
-            TypeObject **oldArray = types->objectSet;
-            types->objectSet = NULL;
-            types->objectCount = 0;
-            for (unsigned i = 0; i < objectCapacity; i++) {
-                TypeObject *object = oldArray[i];
-                if (object) {
-                    TypeObject *&entry = HashSetInsert<TypeObject *,TypeObject,TypeObjectKey>
-                        (cx, types->objectSet, types->objectCount, object);
-                    entry = object;
-                }
-            }
-            cx->free(oldArray);
-        }
-    } else if (types->objectCount == 1) {
-        TypeObject *object = (TypeObject*) types->objectSet;
-        if (!object->marked) {
-            types->objectSet = NULL;
-            types->objectCount = 0;
-        }
-    }
-
-    TypeConstraint *constraint = types->constraintList;
-    types->constraintList = NULL;
-
-    
-
-
-
-
-
-
-    while (constraint) {
-        TypeConstraint *next = constraint->next;
-
-        TypeObject *object = constraint->baseSubset();
-        if (object) {
-            
-
-
-
-
-            if (object->marked) {
-                constraint->next = types->constraintList;
-                types->constraintList = constraint;
-            } else {
-                cx->free(constraint);
-            }
-            constraint = next;
-            continue;
-        }
-
-        
-
-
-
-
-
-        JSScript *script = constraint->script;
-        if (script->isCachedEval ||
-            (script->u.object && IsAboutToBeFinalized(cx, script->u.object)) ||
-            (script->fun && IsAboutToBeFinalized(cx, script->fun))) {
-            if (constraint->condensed())
-                cx->free(constraint);
-            constraint = next;
-            continue;
-        }
-
-        HashSet<JSScript*>::AddPtr p =
-            condensed.lookupForAdd(script);
-        if (!p) {
-            if (!condensed.add(p, script))
-                JS_NOT_REACHED("FIXME");
-            types->addCondensed(cx, script);
-        }
-
-        if (constraint->condensed())
-            cx->free(constraint);
-        constraint = next;
-    }
-
-    condensed.clear();
-}
-
-void
-CondenseTypeObjectList(JSContext *cx, TypeObject *objects)
-{
-    HashSet<JSScript *> condensed(cx);
-    if (!condensed.init())
-        JS_NOT_REACHED("FIXME");
-
-    TypeObject *object = objects;
-    while (object) {
-        if (object->propertyCount >= 2) {
-            unsigned capacity = HashSetCapacity(object->propertyCount);
-            for (unsigned i = 0; i < capacity; i++) {
-                Property *prop = object->propertySet[i];
-                if (prop) {
-                    CondenseSweepTypeSet(cx, condensed, &prop->types);
-                    CondenseSweepTypeSet(cx, condensed, &prop->ownTypes);
-                }
-            }
-        } else if (object->propertyCount == 1) {
-            Property *prop = (Property *) object->propertySet;
-            CondenseSweepTypeSet(cx, condensed, &prop->types);
-            CondenseSweepTypeSet(cx, condensed, &prop->ownTypes);
-        }
-        object = object->next;
-    }
-}
-
-static void
-DestroyTypeSet(JSContext *cx, const TypeSet &types)
-{
-    if (types.objectCount >= 2)
-        cx->free(types.objectSet);
-}
-
-static void
-DestroyProperty(JSContext *cx, Property *prop)
-{
-    DestroyTypeSet(cx, prop->types);
-    DestroyTypeSet(cx, prop->ownTypes);
-    cx->free(prop);
-}
-
-#endif 
-
-void
-SweepTypeObjectList(JSContext *cx, TypeObject *&objects)
-{
-    TypeObject **pobject = &objects;
-    while (*pobject) {
-        TypeObject *object = *pobject;
-        if (object->marked) {
-            object->marked = false;
-            pobject = &object->next;
-        } else {
-            if (object->emptyShapes)
-                cx->free(object->emptyShapes);
-            *pobject = object->next;
-
-#ifdef JS_TYPE_INFERENCE
-            if (object->propertyCount >= 2) {
-                unsigned capacity = HashSetCapacity(object->propertyCount);
-                for (unsigned i = 0; i < capacity; i++) {
-                    Property *prop = object->propertySet[i];
-                    if (prop)
-                        DestroyProperty(cx, prop);
-                }
-                cx->free(object->propertySet);
-            } else if (object->propertyCount == 1) {
-                Property *prop = (Property *) object->propertySet;
-                DestroyProperty(cx, prop);
-            }
-#endif
-
-            cx->free(object);
-        }
-    }
-}
-
-} } 
-
-void
-JSScript::condenseTypes(JSContext *cx)
-{
-#ifdef JS_TYPE_INFERENCE
-    js::types::CondenseTypeObjectList(cx, typeObjects);
-
-    if (varTypes) {
-        js::HashSet<JSScript *> condensed(cx);
-        if (!condensed.init())
-            JS_NOT_REACHED("FIXME");
-
-        unsigned num = 2 + nfixed + (fun ? fun->nargs : 0) + bindings.countUpvars();
-        for (unsigned i = 0; i < num; i++)
-            js::types::CondenseSweepTypeSet(cx, condensed, &varTypes[i]);
-    }
-#endif
-}
-
-void
-JSScript::sweepTypes(JSContext *cx)
-{
-#ifdef JS_TYPE_INFERENCE
-    SweepTypeObjectList(cx, typeObjects);
-
-    if (types)
-        js::types::DestroyScriptTypes(cx, this);
-#endif
-}
-
 namespace js {
 namespace analyze {
 
@@ -575,7 +154,7 @@ Script::addJump(JSContext *cx, unsigned offset,
     Bytecode *&code = codeArray[offset];
     bool initial = (code == NULL);
     if (initial) {
-        code = ArenaNew<Bytecode>(pool, this, offset);
+        code = ArenaNew<Bytecode>(pool);
         if (!code) {
             setOOM(cx);
             return false;
@@ -721,7 +300,7 @@ Script::analyze(JSContext *cx, JSScript *script)
     unsigned forwardCatch = 0;
 
     
-    Bytecode *startcode = ArenaNew<Bytecode>(pool, this, 0);
+    Bytecode *startcode = ArenaNew<Bytecode>(pool);
     if (!startcode) {
         setOOM(cx);
         return;
@@ -939,11 +518,11 @@ Script::analyze(JSContext *cx, JSScript *script)
             break;
 
           case JSOP_CALLLOCAL:
+          case JSOP_GETLOCALPROP:
           case JSOP_INCLOCAL:
           case JSOP_DECLOCAL:
           case JSOP_LOCALINC:
-          case JSOP_LOCALDEC:
-          case JSOP_GETLOCALPROP: {
+          case JSOP_LOCALDEC: {
             uint32 local = GET_SLOTNO(pc);
             if (local < nfixed && !localDefined(local, offset))
                 setLocal(local, LOCAL_USE_BEFORE_DEF);
@@ -1029,7 +608,7 @@ Script::analyze(JSContext *cx, JSScript *script)
             bool initial = (nextcode == NULL);
 
             if (initial) {
-                nextcode = ArenaNew<Bytecode>(pool, this, successorOffset);
+                nextcode = ArenaNew<Bytecode>(pool);
                 if (!nextcode) {
                     setOOM(cx);
                     return;
@@ -1106,6 +685,8 @@ LifetimeScript::analyze(JSContext *cx, analyze::Script *analysis, JSScript *scri
     PodZero(&thisVar);
 
     saved = ArenaArray<LifetimeVariable*>(pool, script->nfixed + (fun ? fun->nargs : 0));
+    if (!saved)
+        return false;
     savedCount = 0;
 
     uint32 offset = script->length - 1;

@@ -2,10 +2,9 @@
 
 
 
-import datetime, os, re, sys, tempfile, traceback, time, shlex
+import datetime, os, re, sys, tempfile, traceback
 import subprocess
 from subprocess import *
-from threading import Thread
 
 DEBUGGER_INFO = {
   "gdb": {
@@ -98,8 +97,6 @@ class Test:
                         test.jitflags.append('-a')
                     elif name == 'debug':
                         test.jitflags.append('-d')
-                    elif name == 'mjit':
-                        test.jitflags.append('-m')
                     else:
                         print('warning: unrecognized |jit-test| attribute %s'%part)
 
@@ -125,24 +122,20 @@ def find_tests(dir, substring = None):
                 ans.append(test)
     return ans
 
-def get_test_cmd(path, jitflags, lib_dir, shell_args):
+def get_test_cmd(path, jitflags, lib_dir):
     libdir_var = lib_dir
     if not libdir_var.endswith('/'):
         libdir_var += '/'
     expr = "const platform=%r; const libdir=%r;"%(sys.platform, libdir_var)
-    
-    
-    return ([ JS ] + list(set(jitflags)) + shell_args +
-            [ '-e', expr, '-f', os.path.join(lib_dir, 'prolog.js'), '-f', path ])
+    return [ JS ] + jitflags + [ '-e', expr, '-f', os.path.join(lib_dir, 'prolog.js'),
+             '-f', path ]
 
-def set_limits():
+def run_cmd(cmdline, env):
     
-    try:
-        import resource
-        GB = 2**30
-        resource.setrlimit(resource.RLIMIT_AS, (1*GB, 1*GB))
-    except:
-        return
+    close_fds = sys.platform != 'win32'
+    p = Popen(cmdline, stdin=PIPE, stdout=PIPE, stderr=PIPE, close_fds=close_fds, env=env)
+    out, err = p.communicate()
+    return out.decode(), err.decode(), p.returncode
 
 def tmppath(token):
     fd, path = tempfile.mkstemp(prefix=token)
@@ -156,55 +149,21 @@ def read_and_unlink(path):
     os.unlink(path)
     return d
 
-def th_run_cmd(cmdline, options, l):
-    
-    
-    if sys.platform != 'win32':
-        options["close_fds"] = True
-        options["preexec_fn"] = set_limits
-    p = Popen(cmdline, stdin=PIPE, stdout=PIPE, stderr=PIPE, **options)
-
-    l[0] = p
-    out, err = p.communicate()
-    l[1] = (out, err, p.returncode)
-
-def run_timeout_cmd(cmdline, options, timeout=60.0):
-    l = [ None, None ]
-    timed_out = False
-    th = Thread(target=th_run_cmd, args=(cmdline, options, l))
-    th.start()
-    th.join(timeout)
-    while th.isAlive():
-        if l[0] is not None:
-            try:
-                
-                import signal
-                if sys.platform != 'win32':
-                    os.kill(l[0].pid, signal.SIGKILL)
-                time.sleep(.1)
-                timed_out = True
-            except OSError:
-                
-                pass
-    th.join()
-    (out, err, code) = l[1]
-    return (out, err, code, timed_out)
-
-def run_cmd(cmdline, env, timeout):
-    return run_timeout_cmd(cmdline, { 'env': env }, timeout)
-
-def run_cmd_avoid_stdio(cmdline, env, timeout):
+def run_cmd_avoid_stdio(cmdline, env):
     stdoutPath, stderrPath = tmppath('jsstdout'), tmppath('jsstderr')
     env['JS_STDOUT'] = stdoutPath
     env['JS_STDERR'] = stderrPath       
-    _, __, code = run_timeout_cmd(cmdline, { 'env': env }, timeout)
-    return read_and_unlink(stdoutPath), read_and_unlink(stderrPath), code
+    
+    close_fds = sys.platform != 'win32'
+    p = Popen(cmdline, stdin=PIPE, stdout=PIPE, stderr=PIPE, close_fds=close_fds, env=env)
+    _, __ = p.communicate()
+    return read_and_unlink(stdoutPath), read_and_unlink(stderrPath), p.returncode
 
-def run_test(test, lib_dir, shell_args):
+def run_test(test, lib_dir):
     env = os.environ.copy()
     if test.tmflags:
         env['TMFLAGS'] = test.tmflags
-    cmd = get_test_cmd(test.path, test.jitflags, lib_dir, shell_args)
+    cmd = get_test_cmd(test.path, test.jitflags, lib_dir)
 
     if (test.valgrind and
         any([os.path.exists(os.path.join(d, 'valgrind'))
@@ -222,10 +181,9 @@ def run_test(test, lib_dir, shell_args):
         print(subprocess.list2cmdline(cmd))
 
     if OPTIONS.avoid_stdio:
-        run = run_cmd_avoid_stdio
+        out, err, code = run_cmd_avoid_stdio(cmd, env)
     else:
-        run = run_cmd
-    out, err, code, timed_out = run(cmd, env, OPTIONS.timeout)
+        out, err, code = run_cmd(cmd, env)
 
     if OPTIONS.show_output:
         sys.stdout.write(out)
@@ -234,7 +192,7 @@ def run_test(test, lib_dir, shell_args):
     if test.valgrind:
         sys.stdout.write(err)
     return (check_output(out, err, code, test.allow_oom, test.error), 
-            out, err, code, timed_out)
+            out, err, code)
 
 def check_output(out, err, rc, allow_oom, expectedError):
     if expectedError:
@@ -255,14 +213,7 @@ def check_output(out, err, rc, allow_oom, expectedError):
 
     return True
 
-def print_tinderbox(label, test, message=None):
-    jitflags = " ".join(test.jitflags)
-    result = "%s | jit_test.py %-15s| %s" % (label, jitflags, test.path)
-    if message:
-        result += ": " + message
-    print result
-
-def run_tests(tests, test_dir, lib_dir, shell_args):
+def run_tests(tests, test_dir, lib_dir):
     pb = None
     if not OPTIONS.hide_progress and not OPTIONS.show_cmd:
         try:
@@ -277,15 +228,15 @@ def run_tests(tests, test_dir, lib_dir, shell_args):
     try:
         for i, test in enumerate(tests):
             doing = 'on %s'%test.path
-            ok, out, err, code, timed_out = run_test(test, lib_dir, shell_args)
+            ok, out, err, code = run_test(test, lib_dir)
             doing = 'after %s'%test.path
 
             if not ok:
-                failures.append([ test, out, err, code, timed_out ])
+                failures.append([ test, out, err, code ])
 
             if OPTIONS.tinderbox:
                 if ok:
-                    print_tinderbox("TEST-PASS", test);
+                    print('TEST-PASS | jit_test.py | %s'%test.path)
                 else:
                     lines = [ _ for _ in out.split('\n') + err.split('\n')
                               if _ != '' ]
@@ -293,7 +244,8 @@ def run_tests(tests, test_dir, lib_dir, shell_args):
                         msg = lines[-1]
                     else:
                         msg = ''
-                    print_tinderbox("TEST-UNEXPECTED-FAIL", test, msg);
+                    print('TEST-UNEXPECTED-FAIL | jit_test.py | %s: %s'%
+                          (test.path, msg))
 
             n = i + 1
             if pb:
@@ -301,7 +253,7 @@ def run_tests(tests, test_dir, lib_dir, shell_args):
                 pb.update(n)
         complete = True
     except KeyboardInterrupt:
-        print_tinderbox("TEST-UNEXPECTED-FAIL", test);
+        print('TEST-UNEXPECTED_FAIL | jit_test.py | %s'%test.path)
 
     if pb:
         pb.finish()
@@ -312,7 +264,7 @@ def run_tests(tests, test_dir, lib_dir, shell_args):
                 out = open(OPTIONS.write_failures, 'w')
                 
                 written = set()
-                for test, fout, ferr, fcode, _ in failures:
+                for test, fout, ferr, fcode in failures:
                     if test.path not in written:
                         out.write(os.path.relpath(test.path, test_dir) + '\n')
                         if OPTIONS.write_failure_output:
@@ -327,22 +279,12 @@ def run_tests(tests, test_dir, lib_dir, shell_args):
                 traceback.print_exc()
                 sys.stderr.write('---\n')
 
-        def show_test(test):
+        print('FAILURES:')
+        for test, _, __, ___ in failures:
             if OPTIONS.show_failed:
-                print('    ' + subprocess.list2cmdline(get_test_cmd(test.path, test.jitflags, lib_dir, shell_args)))
+                print('    ' + subprocess.list2cmdline(get_test_cmd(test.path, test.jitflags, lib_dir)))
             else:
                 print('    ' + ' '.join(test.jitflags + [ test.path ]))
-
-        print('FAILURES:')
-        for test, _, __, ___, timed_out in failures:
-            if not timed_out:
-                show_test(test)
-
-        print('TIMEOUTS:')
-        for test, _, __, ___, timed_out in failures:
-            if timed_out:
-                show_test(test)
-
         return False
     else:
         print('PASSED ALL' + ('' if complete else ' (partial run -- interrupted by user %s)'%doing))
@@ -353,7 +295,7 @@ def parse_jitflags():
                  for flags in OPTIONS.jitflags.split(',') ]
     for flags in jitflags:
         for flag in flags:
-            if flag not in ('-j', '-m', '-a', '-p', '-d'):
+            if flag not in ('-j', '-m', '-p', '-d', '-n'):
                 print('Invalid jit flag: "%s"'%flag)
                 sys.exit(1)
     return jitflags
@@ -397,14 +339,10 @@ def main(argv):
                   help='exclude given test dir or path')
     op.add_option('--no-slow', dest='run_slow', action='store_false',
                   help='do not run tests marked as slow')
-    op.add_option('-t', '--timeout', dest='timeout',  type=float, default=150.0,
-                  help='set test timeout in seconds')
     op.add_option('--no-progress', dest='hide_progress', action='store_true',
                   help='hide progress bar')
     op.add_option('--tinderbox', dest='tinderbox', action='store_true',
                   help='Tinderbox-parseable output format')
-    op.add_option('--args', dest='shell_args', default='',
-                  help='extra args to pass to the JS shell')
     op.add_option('-w', '--write-failures', dest='write_failures', metavar='FILE',
                   help='Write a list of failed tests to [FILE]')
     op.add_option('-r', '--read-tests', dest='read_tests', metavar='FILE',
@@ -496,8 +434,6 @@ def main(argv):
             job_list.append(new_test)
     
 
-    shell_args = shlex.split(OPTIONS.shell_args)
-
     if OPTIONS.debug:
         if len(job_list) > 1:
             print('Multiple tests match command line arguments, debugger can only run one')
@@ -506,12 +442,12 @@ def main(argv):
             sys.exit(1)
 
         tc = job_list[0]
-        cmd = [ 'gdb', '--args' ] + get_test_cmd(tc.path, tc.jitflags, lib_dir, shell_args)
+        cmd = [ 'gdb', '--args' ] + get_test_cmd(tc.path, tc.jitflags, lib_dir)
         call(cmd)
         sys.exit()
 
     try:
-        ok = run_tests(job_list, test_dir, lib_dir, shell_args)
+        ok = run_tests(job_list, test_dir, lib_dir)
         if not ok:
             sys.exit(2)
     except OSError:

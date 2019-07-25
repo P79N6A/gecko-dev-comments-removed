@@ -883,7 +883,7 @@ mjit::Compiler::jsop_mod()
     if (tryBinaryConstantFold(cx, frame, JSOP_MOD, lhs, rhs, &v)) {
         if (type == JSVAL_TYPE_INT32 && !v.isInt32()) {
             JaegerSpew(JSpew_Abort, "overflow in mod (%u)\n", PC - script->code);
-            markPushedOverflow(0);
+            markPushedOverflow();
             return false;
         }
         frame.popn(2);
@@ -1092,10 +1092,12 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *tar
         frame.pop();
         frame.discardFrame();
 
+        JaegerSpew(JSpew_Insns, " ---- BEGIN STUB CALL CODE ---- \n");
+
+        RESERVE_OOL_SPACE(stubcc.masm);
+
         
         Label stubEntry = stubcc.masm.label();
-
-        JaegerSpew(JSpew_Insns, " ---- BEGIN STUB CALL CODE ---- \n");
 
         
         frame.ensureValueSynced(stubcc.masm, lhs, lvr);
@@ -1140,6 +1142,7 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *tar
         Jump stubFallthrough = stubcc.masm.jump();
 
         JaegerSpew(JSpew_Insns, " ---- END STUB CALL CODE ---- \n");
+        CHECK_OOL_SPACE();
 
         Jump fast;
         MaybeJump firstStubJump;

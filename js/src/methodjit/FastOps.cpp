@@ -44,6 +44,8 @@
 #include "jsnum.h"
 #include "jsscope.h"
 #include "jsobjinlines.h"
+#include "jsscriptinlines.h"
+
 #include "methodjit/MethodJIT.h"
 #include "methodjit/Compiler.h"
 #include "methodjit/StubCalls.h"
@@ -464,81 +466,6 @@ mjit::Compiler::jsop_bitop(JSOp op)
     stubcc.rejoin(Changes(1));
 }
 
-bool
-mjit::Compiler::jsop_globalinc(JSOp op, uint32 index, bool popped)
-{
-    uint32 slot = script->getGlobalSlot(index);
-    JSValueType type = knownPushedType(0);
-
-    RegisterID reg = frame.allocReg();
-    Address addr = masm.objSlotRef(globalObj, reg, slot);
-
-    if (popped || (op == JSOP_INCGLOBAL || op == JSOP_DECGLOBAL)) {
-        int amt = (op == JSOP_GLOBALINC || op == JSOP_INCGLOBAL) ? -1 : 1;
-
-        
-        
-        
-        
-        frame.push(addr, JSVAL_TYPE_UNKNOWN);
-
-        
-        
-        frame.push(Int32Value(amt));
-
-        
-        
-        
-        if (!jsop_binary(JSOP_SUB, stubs::Sub, type)) {
-            markPushedOverflow(0);
-            return false;
-        }
-
-        
-        
-        frame.storeTo(frame.peek(-1), addr, popped);
-
-        if (popped)
-            frame.pop();
-    } else {
-        int amt = (op == JSOP_GLOBALINC || op == JSOP_INCGLOBAL) ? 1 : -1;
-
-        
-        
-        frame.push(addr, JSVAL_TYPE_UNKNOWN);
-
-        
-        
-        jsop_pos();
-
-        
-        
-        frame.dup();
-
-        
-        
-        frame.push(Int32Value(amt));
-
-        
-        
-        if (!jsop_binary(JSOP_ADD, stubs::Add, type)) {
-            markPushedOverflow(0);
-            return false;
-        }
-
-        
-        
-        frame.storeTo(frame.peek(-1), addr, popped);
-
-        
-        
-        frame.pop();
-    }
-
-    frame.freeReg(reg);
-    return true;
-}
-
 static inline bool
 CheckNullOrUndefined(FrameEntry *fe)
 {
@@ -825,7 +752,7 @@ mjit::Compiler::jsop_typeof()
         if (op == JSOP_STRICTEQ || op == JSOP_EQ || op == JSOP_STRICTNE || op == JSOP_NE) {
             JSAtom *atom = script->getAtom(fullAtomIndex(PC + JSOP_TYPEOF_LENGTH));
             JSRuntime *rt = cx->runtime;
-            JSValueType type = JSVAL_TYPE_UNINITIALIZED;
+            JSValueType type = JSVAL_TYPE_BOXED;
             Assembler::Condition cond = (op == JSOP_STRICTEQ || op == JSOP_EQ)
                                         ? Assembler::Equal
                                         : Assembler::NotEqual;
@@ -843,7 +770,7 @@ mjit::Compiler::jsop_typeof()
                 cond = (cond == Assembler::Equal) ? Assembler::BelowOrEqual : Assembler::Above;
             }
 
-            if (type != JSVAL_TYPE_UNINITIALIZED) {
+            if (type != JSVAL_TYPE_BOXED) {
                 PC += JSOP_STRING_LENGTH;;
                 PC += JSOP_EQ_LENGTH;
 
@@ -1266,7 +1193,7 @@ mjit::Compiler::jsop_setelem_dense()
 }
 
 bool
-mjit::Compiler::jsop_setelem()
+mjit::Compiler::jsop_setelem(bool popGuaranteed)
 {
     FrameEntry *obj = frame.peek(-3);
     FrameEntry *id = frame.peek(-2);
@@ -1277,18 +1204,18 @@ mjit::Compiler::jsop_setelem()
         return true;
     }
 
-#ifdef JS_TYPE_INFERENCE
-    types::TypeSet *types = obj->getTypeSet();
-    types::ObjectKind kind = types ? types->getKnownObjectKind(cx, script) : types::OBJECT_UNKNOWN;
-    if (id->mightBeType(JSVAL_TYPE_INT32) &&
-        (kind == types::OBJECT_DENSE_ARRAY || kind == types::OBJECT_PACKED_ARRAY) &&
-        !arrayPrototypeHasIndexedProperty()) {
-        
-        
-        jsop_setelem_dense();
-        return true;
+    if (cx->typeInferenceEnabled()) {
+        types::TypeSet *types = obj->getTypeSet();
+        types::ObjectKind kind = types ? types->getKnownObjectKind(cx, script) : types::OBJECT_UNKNOWN;
+        if (id->mightBeType(JSVAL_TYPE_INT32) &&
+            (kind == types::OBJECT_DENSE_ARRAY || kind == types::OBJECT_PACKED_ARRAY) &&
+            !arrayPrototypeHasIndexedProperty()) {
+            
+            
+            jsop_setelem_dense();
+            return true;
+        }
     }
-#endif
 
     SetElementICInfo ic = SetElementICInfo(JSOp(*PC));
 
@@ -1364,10 +1291,12 @@ mjit::Compiler::jsop_setelem()
     ic.objRemat = frame.dataRematInfo(obj);
 
     
+    RESERVE_IC_SPACE(masm);
     ic.fastPathStart = masm.label();
 
     
     
+    RESERVE_OOL_SPACE(stubcc.masm);
     ic.slowPathStart = stubcc.syncExit(Uses(3));
 
     
@@ -1395,7 +1324,7 @@ mjit::Compiler::jsop_setelem()
     stubcc.linkExitDirect(ic.holeGuard, ic.slowPathStart);
 
     stubcc.leave();
-#ifdef JS_POLYIC
+#if defined JS_POLYIC
     passICAddress(&ic);
     ic.slowPathCall = OOL_STUBCALL(STRICT_VARIANT(ic::SetElement));
 #else
@@ -1404,11 +1333,38 @@ mjit::Compiler::jsop_setelem()
 
     ic.fastPathRejoin = masm.label();
 
+    
+    
+    
+    
+    ic.volatileMask = frame.regsInUse();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if (popGuaranteed &&
+        !ic.vr.isConstant() &&
+        !value->isCopy() &&
+        !frame.haveSameBacking(value, obj) &&
+        !frame.haveSameBacking(value, id))
+    {
+        ic.volatileMask &= ~Registers::maskReg(ic.vr.dataReg());
+        if (!ic.vr.isTypeKnown())
+            ic.volatileMask &= ~Registers::maskReg(ic.vr.typeReg());
+    } else if (!ic.vr.isConstant()) {
+        ic.volatileMask |= Registers::maskReg(ic.vr.dataReg());
+    }
+
     frame.freeReg(ic.objReg);
     frame.shimmy(2);
     stubcc.rejoin(Changes(2));
 
-#ifdef JS_POLYIC
+#if defined JS_POLYIC
     if (!setElemICs.append(ic))
         return false;
 
@@ -1428,7 +1384,7 @@ IsCacheableGetElem(FrameEntry *obj, FrameEntry *id)
         return false;
     if (id->isTypeKnown() &&
         !(id->getKnownType() == JSVAL_TYPE_INT32
-#ifdef JS_POLYIC
+#if defined JS_POLYIC
           || id->getKnownType() == JSVAL_TYPE_STRING
 #endif
          )) {
@@ -1560,19 +1516,19 @@ mjit::Compiler::jsop_getelem(bool isCall)
         return true;
     }
 
-#ifdef JS_TYPE_INFERENCE
-    types::TypeSet *types = obj->getTypeSet();
-    types::ObjectKind kind = types ? types->getKnownObjectKind(cx, script) : types::OBJECT_UNKNOWN;
+    if (cx->typeInferenceEnabled()) {
+        types::TypeSet *types = obj->getTypeSet();
+        types::ObjectKind kind = types ? types->getKnownObjectKind(cx, script) : types::OBJECT_UNKNOWN;
 
-    if (!isCall && id->mightBeType(JSVAL_TYPE_INT32) &&
-        (kind == types::OBJECT_DENSE_ARRAY || kind == types::OBJECT_PACKED_ARRAY) &&
-        !arrayPrototypeHasIndexedProperty()) {
-        
-        
-        jsop_getelem_dense(kind == types::OBJECT_PACKED_ARRAY);
-        return true;
+        if (!isCall && id->mightBeType(JSVAL_TYPE_INT32) &&
+            (kind == types::OBJECT_DENSE_ARRAY || kind == types::OBJECT_PACKED_ARRAY) &&
+            !arrayPrototypeHasIndexedProperty()) {
+            
+            
+            jsop_getelem_dense(kind == types::OBJECT_PACKED_ARRAY);
+            return true;
+        }
     }
-#endif
 
     GetElementICInfo ic = GetElementICInfo(JSOp(*PC));
 
@@ -1627,9 +1583,11 @@ mjit::Compiler::jsop_getelem(bool isCall)
             ic.id = ValueRemat::FromRegisters(ic.typeReg, dataReg);
     }
 
+    RESERVE_IC_SPACE(masm);
     ic.fastPathStart = masm.label();
 
     
+    RESERVE_OOL_SPACE(stubcc.masm);
     ic.slowPathStart = stubcc.masm.label();
     frame.sync(stubcc.masm, Uses(2));
 

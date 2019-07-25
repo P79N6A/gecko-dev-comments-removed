@@ -50,6 +50,7 @@
 #include "jsobj.h"
 #include "jsprobes.h"
 #include "jspropertytree.h"
+#include "jsproxy.h"
 #include "jsscope.h"
 #include "jsstaticcheck.h"
 #include "jsxml.h"
@@ -62,6 +63,7 @@
 #include "jsscopeinlines.h"
 #include "jsstr.h"
 
+#include "jsfuninlines.h"
 #include "jsgcinlines.h"
 #include "jsprobes.h"
 
@@ -145,7 +147,7 @@ JSObject::finalize(JSContext *cx)
 
 
 
-inline bool
+inline const js::Shape *
 JSObject::methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp)
 {
     JS_ASSERT(canHaveMethodBarrier());
@@ -153,19 +155,34 @@ JSObject::methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp
     JS_ASSERT(nativeContains(shape));
     JS_ASSERT(shape.isMethod());
     JS_ASSERT(&shape.methodObject() == &vp->toObject());
+    JS_ASSERT(shape.writable());
+    JS_ASSERT(shape.slot != SHAPE_INVALID_SLOT);
+    JS_ASSERT(shape.hasDefaultSetter() || shape.setterOp() == js_watch_set);
+    JS_ASSERT(!isGlobal());  
 
     JSObject *funobj = &vp->toObject();
-    JSFunction *fun = GET_FUNCTION_PRIVATE(cx, funobj);
-    JS_ASSERT(fun == funobj && FUN_NULL_CLOSURE(fun));
+    JSFunction *fun = funobj->getFunctionPrivate();
+    JS_ASSERT(fun == funobj);
+    JS_ASSERT(FUN_NULL_CLOSURE(fun));
 
     funobj = CloneFunctionObject(cx, fun, funobj->getParent());
     if (!funobj)
-        return false;
+        return NULL;
     funobj->setMethodObj(*this);
 
+    
+
+
+
+
+    uint32 slot = shape.slot;
+    const js::Shape *newshape = methodShapeChange(cx, shape);
+    if (!newshape)
+        return NULL;
+    JS_ASSERT(!newshape->isMethod());
+    JS_ASSERT(newshape->slot == slot);
     vp->setObject(*funobj);
-    if (!js_SetPropertyHelper(cx, this, shape.id, 0, vp, false))
-        return false;
+    nativeSetSlot(slot, *vp);
 
 #ifdef DEBUG
     if (cx->runtime->functionMeterFilename) {
@@ -182,7 +199,7 @@ JSObject::methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp
         }
     }
 #endif
-    return true;
+    return newshape;
 }
 
 static JS_ALWAYS_INLINE bool
@@ -193,7 +210,7 @@ ChangesMethodValue(const js::Value &prev, const js::Value &v)
            (!v.isObject() || &v.toObject() != prevObj);
 }
 
-inline bool
+inline const js::Shape *
 JSObject::methodWriteBarrier(JSContext *cx, const js::Shape &shape, const js::Value &v)
 {
     if (brandedOrHasMethodBarrier() && shape.slot != SHAPE_INVALID_SLOT) {
@@ -204,7 +221,7 @@ JSObject::methodWriteBarrier(JSContext *cx, const js::Shape &shape, const js::Va
             return methodShapeChange(cx, shape);
         }
     }
-    return true;
+    return &shape;
 }
 
 inline bool
@@ -294,16 +311,28 @@ JSObject::getArrayLength() const
     return (uint32)(size_t) getPrivate();
 }
 
-inline void
+inline bool
 JSObject::setArrayLength(JSContext *cx, uint32 length)
 {
     JS_ASSERT(isArray());
-    setPrivate((void*) length);
 
-    if (length > INT32_MAX) {
-        cx->addTypePropertyId(getType(), ATOM_TO_JSID(cx->runtime->atomState.lengthAtom),
-                              js::types::TYPE_DOUBLE);
+    if (length > INT32_MAX &&
+        !cx->addTypePropertyId(getType(), ATOM_TO_JSID(cx->runtime->atomState.lengthAtom),
+                               js::types::TYPE_DOUBLE)) {
+        return false;
     }
+
+    setPrivate((void*) length);
+    return true;
+}
+
+inline void
+JSObject::setDenseArrayLength(uint32 length)
+{
+    
+    JS_ASSERT(isDenseArray());
+    JS_ASSERT(length <= INT32_MAX);
+    setPrivate((void*) length);
 }
 
 inline uint32
@@ -439,19 +468,36 @@ JSObject::setArgsElement(uint32 i, const js::Value &v)
     getArgsData()->slots[i] = v;
 }
 
-inline void
-JSObject::setCallObjCallee(JSObject &callee)
+inline bool
+JSObject::callIsForEval() const
 {
     JS_ASSERT(isCall());
-    JS_ASSERT(callee.isFunction());
-    return getSlotRef(JSSLOT_CALL_CALLEE).setObject(callee);
+    JS_ASSERT(getSlot(JSSLOT_CALL_CALLEE).isObjectOrNull());
+    JS_ASSERT_IF(getSlot(JSSLOT_CALL_CALLEE).isObject(),
+                 getSlot(JSSLOT_CALL_CALLEE).toObject().isFunction());
+    return getSlot(JSSLOT_CALL_CALLEE).isNull();
 }
 
-inline JSObject &
+inline JSStackFrame *
+JSObject::maybeCallObjStackFrame() const
+{
+    JS_ASSERT(isCall());
+    return reinterpret_cast<JSStackFrame *>(getPrivate());
+}
+
+inline void
+JSObject::setCallObjCallee(JSObject *callee)
+{
+    JS_ASSERT(isCall());
+    JS_ASSERT_IF(callee, callee->isFunction());
+    return getSlotRef(JSSLOT_CALL_CALLEE).setObjectOrNull(callee);
+}
+
+inline JSObject *
 JSObject::getCallObjCallee() const
 {
     JS_ASSERT(isCall());
-    return getSlot(JSSLOT_CALL_CALLEE).toObject();
+    return getSlot(JSSLOT_CALL_CALLEE).toObjectOrNull();
 }
 
 inline JSFunction *
@@ -465,6 +511,7 @@ inline const js::Value &
 JSObject::getCallObjArguments() const
 {
     JS_ASSERT(isCall());
+    JS_ASSERT(!callIsForEval());
     return getSlot(JSSLOT_CALL_ARGUMENTS);
 }
 
@@ -472,7 +519,42 @@ inline void
 JSObject::setCallObjArguments(const js::Value &v)
 {
     JS_ASSERT(isCall());
+    JS_ASSERT(!callIsForEval());
     setSlot(JSSLOT_CALL_ARGUMENTS, v);
+}
+
+inline const js::Value &
+JSObject::callObjArg(uintN i) const
+{
+    JS_ASSERT(isCall());
+    JS_ASSERT(i < getCallObjCalleeFunction()->nargs);
+    return getSlot(JSObject::CALL_RESERVED_SLOTS + i);
+}
+
+inline js::Value &
+JSObject::callObjArg(uintN i)
+{
+    JS_ASSERT(isCall());
+    JS_ASSERT(i < getCallObjCalleeFunction()->nargs);
+    return getSlotRef(JSObject::CALL_RESERVED_SLOTS + i);
+}
+
+inline const js::Value &
+JSObject::callObjVar(uintN i) const
+{
+    JSFunction *fun = getCallObjCalleeFunction();
+    JS_ASSERT(fun->nargs == fun->script()->bindings.countArgs());
+    JS_ASSERT(i < fun->script()->bindings.countVars());
+    return getSlot(JSObject::CALL_RESERVED_SLOTS + fun->nargs + i);
+}
+
+inline js::Value &
+JSObject::callObjVar(uintN i)
+{
+    JSFunction *fun = getCallObjCalleeFunction();
+    JS_ASSERT(fun->nargs == fun->script()->bindings.countArgs());
+    JS_ASSERT(i < fun->script()->bindings.countVars());
+    return getSlotRef(JSObject::CALL_RESERVED_SLOTS + fun->nargs + i);
 }
 
 inline const js::Value &
@@ -492,14 +574,25 @@ JSObject::setDateUTCTime(const js::Value &time)
 inline js::Value *
 JSObject::getFlatClosureUpvars() const
 {
-    JS_ASSERT(isFunction());
-    JS_ASSERT(FUN_FLAT_CLOSURE(getFunctionPrivate()));
+#ifdef DEBUG
+    JSFunction *fun = getFunctionPrivate();
+    JS_ASSERT(fun->isFlatClosure());
+    JS_ASSERT(fun->script()->bindings.countUpvars() == fun->script()->upvars()->length);
+#endif
     return (js::Value *) getSlot(JSSLOT_FLAT_CLOSURE_UPVARS).toPrivate();
 }
 
 inline js::Value
 JSObject::getFlatClosureUpvar(uint32 i) const
 {
+    JS_ASSERT(i < getFunctionPrivate()->script()->bindings.countUpvars());
+    return getFlatClosureUpvars()[i];
+}
+
+inline js::Value &
+JSObject::getFlatClosureUpvar(uint32 i)
+{
+    JS_ASSERT(i < getFunctionPrivate()->script()->bindings.countUpvars());
     return getFlatClosureUpvars()[i];
 }
 
@@ -515,8 +608,8 @@ inline bool
 JSObject::hasMethodObj(const JSObject& obj) const
 {
     return JSSLOT_FUN_METHOD_OBJ < numSlots() &&
-        getSlot(JSSLOT_FUN_METHOD_OBJ).isObject() &&
-        &getSlot(JSSLOT_FUN_METHOD_OBJ).toObject() == &obj;
+           getSlot(JSSLOT_FUN_METHOD_OBJ).isObject() &&
+           &getSlot(JSSLOT_FUN_METHOD_OBJ).toObject() == &obj;
 }
 
 inline void
@@ -827,7 +920,8 @@ class AutoPropertyDescriptorRooter : private AutoGCRooter, public PropertyDescri
     AutoPropertyDescriptorRooter(JSContext *cx) : AutoGCRooter(cx, DESCRIPTOR) {
         obj = NULL;
         attrs = 0;
-        getter = setter = (PropertyOp) NULL;
+        getter = (PropertyOp) NULL;
+        setter = (StrictPropertyOp) NULL;
         value.setUndefined();
     }
 
@@ -889,7 +983,6 @@ NewNativeClassInstance(JSContext *cx, Class *clasp, JSObject *proto,
                        JSObject *parent, gc::FinalizeKind kind)
 {
     JS_ASSERT(proto);
-    JS_ASSERT(proto->isNative());
     JS_ASSERT(parent);
 
     types::TypeObject *type = proto->getNewType(cx);
@@ -957,7 +1050,7 @@ NewBuiltinClassInstance(JSContext *cx, Class *clasp, gc::FinalizeKind kind)
     } else {
         global = cx->fp()->scopeChain().getGlobal();
     }
-    JS_ASSERT(global->getClass()->flags & JSCLASS_IS_GLOBAL);
+    JS_ASSERT(global->isGlobal());
 
     const Value &v = global->getReservedSlot(JSProto_LIMIT + protoKey);
     JSObject *proto;
@@ -1044,7 +1137,7 @@ NewObject(JSContext *cx, js::Class *clasp, JSObject *proto, JSObject *parent,
 {
     
     if (withProto == WithProto::Class && !proto) {
-        if (!FindProto (cx, clasp, parent, &proto))
+        if (!FindProto(cx, clasp, parent, &proto))
           return NULL;
     }
 
@@ -1180,6 +1273,28 @@ CopyInitializerObject(JSContext *cx, JSObject *baseobj, types::TypeObject *type)
     obj->objShape = baseobj->objShape;
 
     return obj;
+}
+
+
+
+
+
+
+
+
+
+static JS_ALWAYS_INLINE bool
+ClassMethodIsNative(JSContext *cx, JSObject *obj, Class *clasp, jsid methodid,
+                    Native native)
+{
+    JS_ASSERT(obj->getClass() == clasp);
+
+    if (HasNativeMethod(obj, methodid, native))
+        return true;
+
+    JSObject *pobj = obj->getProto();
+    return pobj && pobj->getClass() == clasp &&
+           HasNativeMethod(pobj, methodid, native);
 }
 
 } 

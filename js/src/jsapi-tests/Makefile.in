@@ -69,7 +69,7 @@ CPPSRCS = \
   testPropCache.cpp \
   testSameValue.cpp \
   testScriptObject.cpp \
-  testSetPropertyWithNativeGetterStubSetter.cpp \
+  testSetProperty.cpp \
   testThreadGC.cpp \
   testThreads.cpp \
   testTrap.cpp \
@@ -81,11 +81,7 @@ CPPSRCS = \
 
 DEFINES         += -DEXPORT_JS_API
 
-LIBS      = $(NSPR_LIBS) $(DEPTH)/$(LIB_PREFIX)js_static.$(LIB_SUFFIX)
-
-ifdef JS_TYPE_INFERENCE
-LIBS += -lz
-endif
+LIBS      = $(DEPTH)/$(LIB_PREFIX)js_static.$(LIB_SUFFIX) $(NSPR_LIBS)
 
 LOCAL_INCLUDES += -I$(topsrcdir) -I..
 

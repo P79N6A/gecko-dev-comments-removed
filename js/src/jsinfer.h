@@ -51,9 +51,9 @@
 #include <sys/time.h>
 #endif
 
-
-
-namespace js { namespace analyze {
+namespace js {
+    struct CallArgs;
+namespace analyze {
     struct Bytecode;
     class Script;
 } }
@@ -88,23 +88,6 @@ const jstype TYPE_STRING    = 6;
 
 
 const jstype TYPE_UNKNOWN = 7;
-
-
-enum {
-    TYPE_FLAG_UNDEFINED = 1 << TYPE_UNDEFINED,
-    TYPE_FLAG_NULL      = 1 << TYPE_NULL,
-    TYPE_FLAG_BOOLEAN   = 1 << TYPE_BOOLEAN,
-    TYPE_FLAG_INT32     = 1 << TYPE_INT32,
-    TYPE_FLAG_DOUBLE    = 1 << TYPE_DOUBLE,
-    TYPE_FLAG_STRING    = 1 << TYPE_STRING,
-
-    TYPE_FLAG_UNKNOWN   = 1 << TYPE_UNKNOWN,
-
-    TYPE_FLAG_OBJECT   = 0x1000
-};
-
-
-typedef uint32 TypeFlags;
 
 
 
@@ -236,6 +219,24 @@ enum ObjectKind {
 };
 
 
+enum {
+    TYPE_FLAG_UNDEFINED = 1 << TYPE_UNDEFINED,
+    TYPE_FLAG_NULL      = 1 << TYPE_NULL,
+    TYPE_FLAG_BOOLEAN   = 1 << TYPE_BOOLEAN,
+    TYPE_FLAG_INT32     = 1 << TYPE_INT32,
+    TYPE_FLAG_DOUBLE    = 1 << TYPE_DOUBLE,
+    TYPE_FLAG_STRING    = 1 << TYPE_STRING,
+
+    TYPE_FLAG_UNKNOWN   = 1 << TYPE_UNKNOWN,
+
+    
+    TYPE_FLAG_INTERMEDIATE_SET = 0x1000
+};
+
+
+typedef uint32 TypeFlags;
+
+
 struct TypeSet
 {
     
@@ -253,6 +254,10 @@ struct TypeSet
     {}
 
     void print(JSContext *cx);
+
+    void setIntermediate() { typeFlags |= TYPE_FLAG_INTERMEDIATE_SET; }
+
+    inline void destroy(JSContext *cx);
 
     
     inline bool hasType(jstype type);
@@ -292,7 +297,7 @@ struct TypeSet
 
 
 
-    static inline TypeSet* make(JSContext *cx, JSArenaPool &pool, const char *name);
+    static inline TypeSet* make(JSContext *cx, const char *name);
 
     
 
@@ -425,8 +430,9 @@ struct TypeObject
 
     
 
+    bool addProperty(JSContext *cx, jsid id, Property **pprop);
     void addPrototype(JSContext *cx, TypeObject *proto);
-    void addProperty(JSContext *cx, jsid id, Property *&prop);
+    void markNotPacked(JSContext *cx, bool notDense);
     void markUnknown(JSContext *cx);
     void storeToInstances(JSContext *cx, Property *base);
     void getFromPrototypes(JSContext *cx, Property *base);
@@ -484,12 +490,11 @@ struct TypeCallsite
     
     TypeSet *returnTypes;
 
-    inline TypeCallsite(JSScript *script, const jsbytecode *pc,
+    inline TypeCallsite(JSContext *cx, JSScript *script, const jsbytecode *pc,
                         bool isNew, unsigned argumentCount);
 
     
-    inline void forceThisTypes(JSContext *cx);
-    inline void forceReturnTypes(JSContext *cx);
+    inline bool forceThisTypes(JSContext *cx);
 
     
     inline TypeObject* getInitObject(JSContext *cx, bool isArray);
@@ -528,12 +533,6 @@ struct TypeScript
 
 
 
-    JSArenaPool pool;
-
-    
-
-
-
     TypeSet **pushedArray;
 
     
@@ -561,19 +560,36 @@ struct TypeCompartment
     TypeObject *objects;
 
     
+    bool inferenceEnabled;
+
+    
     unsigned inferenceDepth;
+    uint64_t inferenceStartTime;
+
+    
+    JSArenaPool pool;
 
     
     unsigned scriptCount;
-
-    
-    bool interpreting;
 
     
     TypeObject emptyObject;
 
     
     TypeObject *typeGetSet;
+
+    
+
+
+
+    bool pendingNukeTypes;
+
+    
+
+
+
+
+    bool typesNuked;
 
     
     Vector<JSScript*> *pendingRecompiles;
@@ -615,7 +631,7 @@ struct TypeCompartment
     
     unsigned recompilations;
 
-    void init();
+    void init(JSContext *cx);
 
     uint64 currentTime()
     {
@@ -643,29 +659,34 @@ struct TypeCompartment
     TypeObject *newTypeObject(JSContext *cx, JSScript *script,
                               const char *name, bool isFunction, JSObject *proto);
 
-#ifdef JS_TYPE_INFERENCE
     
     TypeObject *newInitializerTypeObject(JSContext *cx, JSScript *script,
                                          uint32 offset, bool isArray);
-#endif
 
     
 
 
 
-    void addDynamicType(JSContext *cx, TypeSet *types, jstype type);
-    void addDynamicPush(JSContext *cx, JSScript *script, uint32 offset, jstype type);
-    void dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Value &rval);
+    bool dynamicPush(JSContext *cx, JSScript *script, uint32 offset, jstype type);
+    bool dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Value &rval);
+    bool dynamicCall(JSContext *cx, JSObject *callee, const CallArgs &args, bool constructing);
 
-    inline bool hasPendingRecompiles() { return pendingRecompiles != NULL; }
-    void processPendingRecompiles(JSContext *cx);
+    inline bool checkPendingRecompiles(JSContext *cx);
+
+    bool nukeTypes(JSContext *cx);
+    bool processPendingRecompiles(JSContext *cx);
+
+    
+    void setPendingNukeTypes(JSContext *cx);
+
+    
     void addPendingRecompile(JSContext *cx, JSScript *script);
 
     
     void monitorBytecode(JSContext *cx, JSScript *script, uint32 offset);
 };
 
-void CondenseTypeObjectList(JSContext *cx, TypeObject *objects);
+void CondenseTypeObjectList(JSContext *cx, TypeCompartment *compartment, TypeObject *objects);
 void SweepTypeObjectList(JSContext *cx, TypeObject *&objects);
 
 enum SpewChannel {

@@ -500,7 +500,7 @@ extern JS_PUBLIC_DATA(jsid) JSID_EMPTY;
 
 #define JSFUN_HEAVYWEIGHT_TEST(f)  ((f) & JSFUN_HEAVYWEIGHT)
 
-#define JSFUN_PRIMITIVE_THIS  0x0100    /* |this| may be a primitive value */
+
 #define JSFUN_CONSTRUCTOR     0x0200    /* native that can be called as a ctor
                                            without creating a this object */
 
@@ -725,7 +725,7 @@ extern JS_PUBLIC_API(JSRuntime *)
 JS_NewRuntime(uint32 maxbytes);
 
 
-#define JS_CommenceRuntimeShutDown(rt) ((void) 0) 
+#define JS_CommenceRuntimeShutDown(rt) ((void) 0)
 
 extern JS_PUBLIC_API(void)
 JS_DestroyRuntime(JSRuntime *rt);
@@ -832,7 +832,7 @@ class JSAutoCheckRequest {
 #endif
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
-    
+
     ~JSAutoCheckRequest() {
 #if defined JS_THREADSAFE && defined DEBUG
         JS_ASSERT(JS_IsInRequest(mContext));
@@ -955,6 +955,17 @@ JS_StringToVersion(const char *string);
 
 #define JSOPTION_METHODJIT      JS_BIT(14)      /* Whole-method JIT. */
 #define JSOPTION_PROFILING      JS_BIT(15)      /* Profiler to make tracer/methodjit choices. */
+#define JSOPTION_METHODJIT_ALWAYS \
+                                JS_BIT(16)      /* Always whole-method JIT,
+                                                   don't tune at run-time. */
+
+#define JSOPTION_TYPE_INFERENCE JS_BIT(17)      
+
+
+#define JSCOMPILEOPTION_MASK    (JSOPTION_XML | JSOPTION_ANONFUNFIX)
+
+#define JSRUNOPTION_MASK        (JS_BITMASK(18) & ~JSCOMPILEOPTION_MASK)
+#define JSALLOPTION_MASK        (JSCOMPILEOPTION_MASK | JSRUNOPTION_MASK)
 
 extern JS_PUBLIC_API(uint32)
 JS_GetOptions(JSContext *cx);
@@ -999,6 +1010,13 @@ JS_WrapValue(JSContext *cx, jsval *vp);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target);
+
+extern JS_FRIEND_API(JSObject *)
+js_TransplantObjectWithWrapper(JSContext *cx,
+                               JSObject *origobj,
+                               JSObject *origwrapper,
+                               JSObject *targetobj,
+                               JSObject *targetwrapper);
 
 #ifdef __cplusplus
 JS_END_EXTERN_C
@@ -1175,6 +1193,20 @@ JS_THIS(JSContext *cx, jsval *vp)
 }
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+
+#define JS_THIS_VALUE(cx,vp)    ((vp)[1])
+
 extern JS_PUBLIC_API(void *)
 JS_malloc(JSContext *cx, size_t nbytes);
 
@@ -1277,7 +1309,7 @@ js_RemoveRoot(JSRuntime *rt, void *rp);
 #ifdef __cplusplus
 JS_END_EXTERN_C
 
-namespace js {
+namespace JS {
 
 
 
@@ -1752,8 +1784,22 @@ typedef enum JSGCParamKey {
     JSGC_NUMBER = 5,
 
     
-    JSGC_MAX_CODE_CACHE_BYTES = 6
+    JSGC_MAX_CODE_CACHE_BYTES = 6,
+
+    
+    JSGC_MODE = 7,
+
+    
+    JSGC_UNUSED_CHUNKS = 8
 } JSGCParamKey;
+
+typedef enum JSGCMode {
+    
+    JSGC_MODE_GLOBAL = 0,
+
+    
+    JSGC_MODE_COMPARTMENT = 1
+} JSGCMode;
 
 extern JS_PUBLIC_API(void)
 JS_SetGCParameter(JSRuntime *rt, JSGCParamKey key, uint32 value);
@@ -1867,7 +1913,7 @@ struct JSClass {
     JSPropertyOp        addProperty;
     JSPropertyOp        delProperty;
     JSPropertyOp        getProperty;
-    JSPropertyOp        setProperty;
+    JSStrictPropertyOp  setProperty;
     JSEnumerateOp       enumerate;
     JSResolveOp         resolve;
     JSConvertOp         convert;
@@ -1928,10 +1974,16 @@ struct JSClass {
 #define JSCLASS_FREEZE_CTOR             (1<<(JSCLASS_HIGH_FLAGS_SHIFT+6))
 
 
-#define JSRESERVED_GLOBAL_SLOTS_COUNT     3
+#define JSRESERVED_GLOBAL_SLOTS_COUNT     6
 #define JSRESERVED_GLOBAL_THIS            (JSProto_LIMIT * 3)
 #define JSRESERVED_GLOBAL_THROWTYPEERROR  (JSRESERVED_GLOBAL_THIS + 1)
 #define JSRESERVED_GLOBAL_REGEXP_STATICS  (JSRESERVED_GLOBAL_THROWTYPEERROR + 1)
+#define JSRESERVED_GLOBAL_FUNCTION_NS     (JSRESERVED_GLOBAL_REGEXP_STATICS + 1)
+#define JSRESERVED_GLOBAL_EVAL_ALLOWED    (JSRESERVED_GLOBAL_FUNCTION_NS + 1)
+#define JSRESERVED_GLOBAL_FLAGS           (JSRESERVED_GLOBAL_EVAL_ALLOWED + 1)
+
+
+#define JSGLOBAL_FLAGS_CLEARED          0x1
 
 
 
@@ -1946,7 +1998,7 @@ struct JSClass {
 
 #define JSCLASS_GLOBAL_FLAGS                                                  \
     (JSCLASS_IS_GLOBAL |                                                      \
-     JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT * 3 + JSRESERVED_GLOBAL_SLOTS_COUNT))
+     JSCLASS_HAS_RESERVED_SLOTS(JSRESERVED_GLOBAL_THIS + JSRESERVED_GLOBAL_SLOTS_COUNT))
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)
@@ -1990,6 +2042,9 @@ extern JS_PUBLIC_API(JSBool)
 JS_PropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 extern JS_PUBLIC_API(JSBool)
+JS_StrictPropertyStub(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
+
+extern JS_PUBLIC_API(JSBool)
 JS_EnumerateStub(JSContext *cx, JSObject *obj);
 
 extern JS_PUBLIC_API(JSBool)
@@ -2014,14 +2069,14 @@ struct JSConstDoubleSpec {
 
 
 struct JSPropertySpec {
-    const char      *name;
-    int8            tinyid;
-    uint8           flags;
-    JSPropertyOp    getter;
-    JSPropertyOp    setter;
+    const char            *name;
+    int8                  tinyid;
+    uint8                 flags;
+    JSPropertyOp          getter;
+    JSStrictPropertyOp    setter;
 
     
-    JSTypeHandler   handler;
+    JSTypeHandler         handler;
 };
 
 struct JSFunctionSpec {
@@ -2182,27 +2237,27 @@ JS_DefineProperties(JSContext *cx, JSObject *obj, JSPropertySpec *ps);
 
 extern JS_PUBLIC_API(JSBool)
 JS_DefineProperty(JSContext *cx, JSObject *obj, const char *name, jsval value,
-                  JSPropertyOp getter, JSPropertyOp setter, uintN attrs);
+                  JSPropertyOp getter, JSStrictPropertyOp setter, uintN attrs);
 
 extern JS_PUBLIC_API(JSBool)
 JS_DefinePropertyById(JSContext *cx, JSObject *obj, jsid id, jsval value,
-                      JSPropertyOp getter, JSPropertyOp setter, uintN attrs);
+                      JSPropertyOp getter, JSStrictPropertyOp setter, uintN attrs);
 
 extern JS_PUBLIC_API(JSBool)
 JS_DefineOwnProperty(JSContext *cx, JSObject *obj, jsid id, jsval descriptor, JSBool *bp);
 
 
 
-extern JS_PUBLIC_API(void)
+extern JS_PUBLIC_API(JSBool)
 JS_AddTypeProperty(JSContext *cx, JSObject *obj, const char *name, jsval value);
 
-extern JS_PUBLIC_API(void)
+extern JS_PUBLIC_API(JSBool)
 JS_AddTypePropertyById(JSContext *cx, JSObject *obj, jsid id, jsval value);
 
 static JS_ALWAYS_INLINE JSBool
 JS_DefinePropertyWithType(JSContext *cx, JSObject *obj,
                           const char *name, jsval value,
-                          JSPropertyOp getter, JSPropertyOp setter, uintN attrs)
+                          JSPropertyOp getter, JSStrictPropertyOp setter, uintN attrs)
 {
     JS_AddTypeProperty(cx, obj, name, value);
     return JS_DefineProperty(cx, obj, name, value, getter, setter, attrs);
@@ -2211,7 +2266,7 @@ JS_DefinePropertyWithType(JSContext *cx, JSObject *obj,
 static JS_ALWAYS_INLINE JSBool
 JS_DefinePropertyWithTypeById(JSContext *cx, JSObject *obj,
                               jsid id, jsval value,
-                              JSPropertyOp getter, JSPropertyOp setter, uintN attrs)
+                              JSPropertyOp getter, JSStrictPropertyOp setter, uintN attrs)
 {
     JS_AddTypePropertyById(cx, obj, id, value);
     return JS_DefinePropertyById(cx, obj, id, value, getter, setter, attrs);
@@ -2237,14 +2292,14 @@ JS_GetPropertyAttrsGetterAndSetter(JSContext *cx, JSObject *obj,
                                    const char *name,
                                    uintN *attrsp, JSBool *foundp,
                                    JSPropertyOp *getterp,
-                                   JSPropertyOp *setterp);
+                                   JSStrictPropertyOp *setterp);
 
 extern JS_PUBLIC_API(JSBool)
 JS_GetPropertyAttrsGetterAndSetterById(JSContext *cx, JSObject *obj,
                                        jsid id,
                                        uintN *attrsp, JSBool *foundp,
                                        JSPropertyOp *getterp,
-                                       JSPropertyOp *setterp);
+                                       JSStrictPropertyOp *setterp);
 
 
 
@@ -2259,7 +2314,7 @@ JS_SetPropertyAttributes(JSContext *cx, JSObject *obj, const char *name,
 extern JS_PUBLIC_API(JSBool)
 JS_DefinePropertyWithTinyId(JSContext *cx, JSObject *obj, const char *name,
                             int8 tinyid, jsval value,
-                            JSPropertyOp getter, JSPropertyOp setter,
+                            JSPropertyOp getter, JSStrictPropertyOp setter,
                             uintN attrs);
 
 extern JS_PUBLIC_API(JSBool)
@@ -2295,12 +2350,12 @@ JS_LookupPropertyWithFlagsById(JSContext *cx, JSObject *obj, jsid id,
                                uintN flags, JSObject **objp, jsval *vp);
 
 struct JSPropertyDescriptor {
-    JSObject     *obj;
-    uintN        attrs;
-    JSPropertyOp getter;
-    JSPropertyOp setter;
-    jsval        value;
-    uintN        shortid;
+    JSObject           *obj;
+    uintN              attrs;
+    JSPropertyOp       getter;
+    JSStrictPropertyOp setter;
+    jsval              value;
+    uintN              shortid;
 };
 
 
@@ -2357,7 +2412,7 @@ JS_DeletePropertyById2(JSContext *cx, JSObject *obj, jsid id, jsval *rval);
 extern JS_PUBLIC_API(JSBool)
 JS_DefineUCProperty(JSContext *cx, JSObject *obj,
                     const jschar *name, size_t namelen, jsval value,
-                    JSPropertyOp getter, JSPropertyOp setter,
+                    JSPropertyOp getter, JSStrictPropertyOp setter,
                     uintN attrs);
 
 
@@ -2381,7 +2436,7 @@ JS_GetUCPropertyAttrsGetterAndSetter(JSContext *cx, JSObject *obj,
                                      const jschar *name, size_t namelen,
                                      uintN *attrsp, JSBool *foundp,
                                      JSPropertyOp *getterp,
-                                     JSPropertyOp *setterp);
+                                     JSStrictPropertyOp *setterp);
 
 
 
@@ -2399,7 +2454,7 @@ extern JS_PUBLIC_API(JSBool)
 JS_DefineUCPropertyWithTinyId(JSContext *cx, JSObject *obj,
                               const jschar *name, size_t namelen,
                               int8 tinyid, jsval value,
-                              JSPropertyOp getter, JSPropertyOp setter,
+                              JSPropertyOp getter, JSStrictPropertyOp setter,
                               uintN attrs);
 
 extern JS_PUBLIC_API(JSBool)
@@ -2448,7 +2503,7 @@ JS_HasArrayLength(JSContext *cx, JSObject *obj, jsuint *lengthp);
 
 extern JS_PUBLIC_API(JSBool)
 JS_DefineElement(JSContext *cx, JSObject *obj, jsint index, jsval value,
-                 JSPropertyOp getter, JSPropertyOp setter, uintN attrs);
+                 JSPropertyOp getter, JSStrictPropertyOp setter, uintN attrs);
 
 extern JS_PUBLIC_API(JSBool)
 JS_AliasElement(JSContext *cx, JSObject *obj, const char *name, jsint alias);
@@ -2622,6 +2677,9 @@ JS_GetFunctionArity(JSFunction *fun);
 
 extern JS_PUBLIC_API(JSBool)
 JS_ObjectIsFunction(JSContext *cx, JSObject *obj);
+
+extern JS_PUBLIC_API(JSBool)
+JS_ObjectIsCallable(JSContext *cx, JSObject *obj);
 
 extern JS_PUBLIC_API(JSBool)
 JS_DefineFunctionsWithPrefix(JSContext *cx, JSObject *obj, JSFunctionSpec *fs,
@@ -3409,38 +3467,57 @@ JS_FinishJSONParse(JSContext *cx, JSONParser *jp, jsval reviver);
 
 #define JS_STRUCTURED_CLONE_VERSION 1
 
+struct JSStructuredCloneCallbacks {
+    ReadStructuredCloneOp read;
+    WriteStructuredCloneOp write;
+    StructuredCloneErrorOp reportError;
+};
+
 JS_PUBLIC_API(JSBool)
-JS_ReadStructuredClone(JSContext *cx, const uint64 *data, size_t nbytes, uint32 version, jsval *vp);
+JS_ReadStructuredClone(JSContext *cx, const uint64 *data, size_t nbytes,
+                       uint32 version, jsval *vp,
+                       const JSStructuredCloneCallbacks *optionalCallbacks,
+                       void *closure);
 
 
 JS_PUBLIC_API(JSBool)
-JS_WriteStructuredClone(JSContext *cx, jsval v, uint64 **datap, size_t *nbytesp);
+JS_WriteStructuredClone(JSContext *cx, jsval v, uint64 **datap, size_t *nbytesp,
+                        const JSStructuredCloneCallbacks *optionalCallbacks,
+                        void *closure);
 
 JS_PUBLIC_API(JSBool)
-JS_StructuredClone(JSContext *cx, jsval v, jsval *vp);
+JS_StructuredClone(JSContext *cx, jsval v, jsval *vp,
+                   const JSStructuredCloneCallbacks *optionalCallbacks,
+                   void *closure);
 
 #ifdef __cplusplus
 
 class JSAutoStructuredCloneBuffer {
-    JSContext *cx;
+    JSContext *cx_;
     uint64 *data_;
     size_t nbytes_;
     uint32 version_;
 
   public:
-    explicit JSAutoStructuredCloneBuffer(JSContext *cx)
-        : cx(cx), data_(NULL), nbytes_(0), version_(JS_STRUCTURED_CLONE_VERSION) {}
+    JSAutoStructuredCloneBuffer()
+        : cx_(NULL), data_(NULL), nbytes_(0), version_(JS_STRUCTURED_CLONE_VERSION) {}
 
     ~JSAutoStructuredCloneBuffer() { clear(); }
 
+    JSContext *cx() const { return cx_; }
     uint64 *data() const { return data_; }
     size_t nbytes() const { return nbytes_; }
 
-    void clear() {
+    void clear(JSContext *cx=NULL) {
         if (data_) {
+            if (!cx)
+                cx = cx_;
+            JS_ASSERT(cx);
             JS_free(cx, data_);
+            cx_ = NULL;
             data_ = NULL;
             nbytes_ = 0;
+            version_ = 0;
         }
     }
 
@@ -3448,8 +3525,10 @@ class JSAutoStructuredCloneBuffer {
 
 
 
-    void adopt(uint64 *data, size_t nbytes, uint32 version=JS_STRUCTURED_CLONE_VERSION) {
-        clear();
+    void adopt(JSContext *cx, uint64 *data, size_t nbytes,
+               uint32 version=JS_STRUCTURED_CLONE_VERSION) {
+        clear(cx);
+        cx_ = cx;
         data_ = data;
         nbytes_ = nbytes;
         version_ = version;
@@ -3459,27 +3538,71 @@ class JSAutoStructuredCloneBuffer {
 
 
 
-    void steal(uint64 **datap, size_t *nbytesp) {
+    void steal(uint64 **datap, size_t *nbytesp, JSContext **cxp=NULL,
+               uint32 *versionp=NULL) {
         *datap = data_;
         *nbytesp = nbytes_;
+        if (cxp)
+            *cxp = cx_;
+        if (versionp)
+            *versionp = version_;
+
+        cx_ = NULL;
         data_ = NULL;
         nbytes_ = 0;
+        version_ = 0;
     }
 
-    bool read(jsval *vp) const {
+    bool read(jsval *vp, JSContext *cx=NULL,
+              const JSStructuredCloneCallbacks *optionalCallbacks=NULL,
+              void *closure=NULL) const {
+        if (!cx)
+            cx = cx_;
+        JS_ASSERT(cx);
         JS_ASSERT(data_);
-        return !!JS_ReadStructuredClone(cx, data_, nbytes_, version_, vp);
+        return !!JS_ReadStructuredClone(cx, data_, nbytes_, version_, vp,
+                                        optionalCallbacks, closure);
     }
 
-    bool write(jsval v) {
-        clear();
-        bool ok = !!JS_WriteStructuredClone(cx, v, &data_, &nbytes_);
+    bool write(JSContext *cx, jsval v,
+               const JSStructuredCloneCallbacks *optionalCallbacks=NULL,
+               void *closure=NULL) {
+        clear(cx);
+        cx_ = cx;
+        bool ok = !!JS_WriteStructuredClone(cx, v, &data_, &nbytes_,
+                                            optionalCallbacks, closure);
         if (!ok) {
             data_ = NULL;
             nbytes_ = 0;
+            version_ = JS_STRUCTURED_CLONE_VERSION;
         }
         return ok;
     }
+
+    
+
+
+    void swap(JSAutoStructuredCloneBuffer &other) {
+        JSContext *cx = other.cx_;
+        uint64 *data = other.data_;
+        size_t nbytes = other.nbytes_;
+        uint32 version = other.version_;
+
+        other.cx_ = this->cx_;
+        other.data_ = this->data_;
+        other.nbytes_ = this->nbytes_;
+        other.version_ = this->version_;
+
+        this->cx_ = cx;
+        this->data_ = data;
+        this->nbytes_ = nbytes;
+        this->version_ = version;
+    }
+
+  private:
+    
+    JSAutoStructuredCloneBuffer(const JSAutoStructuredCloneBuffer &other);
+    JSAutoStructuredCloneBuffer &operator=(const JSAutoStructuredCloneBuffer &other);
 };
 #endif
 
@@ -3490,12 +3613,6 @@ class JSAutoStructuredCloneBuffer {
 #define JS_SCTAG_USER_MAX  ((uint32) 0xFFFFFFFF)
 
 #define JS_SCERR_RECURSION 0
-
-struct JSStructuredCloneCallbacks {
-    ReadStructuredCloneOp read;
-    WriteStructuredCloneOp write;
-    StructuredCloneErrorOp reportError;
-};
 
 JS_PUBLIC_API(void)
 JS_SetStructuredCloneCallbacks(JSRuntime *rt, const JSStructuredCloneCallbacks *callbacks);
@@ -3644,6 +3761,24 @@ struct JSErrorReport {
 
 extern JS_PUBLIC_API(JSErrorReporter)
 JS_SetErrorReporter(JSContext *cx, JSErrorReporter er);
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSObject *)
+JS_NewDateObject(JSContext *cx, int year, int mon, int mday, int hour, int min, int sec);
+
+extern JS_PUBLIC_API(JSObject *)
+JS_NewDateObjectMsec(JSContext *cx, jsdouble msec);
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_ObjectIsDate(JSContext *cx, JSObject *obj);
 
 
 

@@ -406,9 +406,7 @@ struct JSScript {
     bool            hasSingletons:1;  
     bool            isCachedEval:1;   
     bool            isUncachedEval:1; 
-#ifdef JS_TYPE_INFERENCE
     bool            analyzed:1;       
-#endif
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
     bool            singleStepMode:1; 
@@ -455,7 +453,6 @@ struct JSScript {
 
   public:
 
-#ifdef JS_TYPE_INFERENCE
 #ifdef DEBUG
     
     unsigned id_;
@@ -506,7 +503,6 @@ struct JSScript {
 
     
     inline js::types::TypeObject *getTypeNewObject(JSContext *cx, JSProtoKey key);
-#endif
 
     void condenseTypes(JSContext *cx);
     void sweepTypes(JSContext *cx);
@@ -516,21 +512,18 @@ struct JSScript {
     getTypeInitObject(JSContext *cx, const jsbytecode *pc, bool isArray);
 
     
-    inline void typeMonitorResult(JSContext *cx, const jsbytecode *pc, js::types::jstype type);
-    inline void typeMonitorResult(JSContext *cx, const jsbytecode *pc, const js::Value &val);
-    inline void typeMonitorUndefined(JSContext *cx, const jsbytecode *pc);
-    inline void typeMonitorOverflow(JSContext *cx, const jsbytecode *pc);
-    inline void typeMonitorUnknown(JSContext *cx, const jsbytecode *pc);
+    inline bool typeMonitorResult(JSContext *cx, const jsbytecode *pc, js::types::jstype type);
+    inline bool typeMonitorResult(JSContext *cx, const jsbytecode *pc, const js::Value &val);
+    inline bool typeMonitorUndefined(JSContext *cx, const jsbytecode *pc);
+    inline bool typeMonitorOverflow(JSContext *cx, const jsbytecode *pc);
+    inline bool typeMonitorUnknown(JSContext *cx, const jsbytecode *pc);
 
     
-    inline void typeMonitorAssign(JSContext *cx, const jsbytecode *pc,
-                                  JSObject *obj, jsid id, const js::Value &rval, bool force = false);
-
-    
-    inline void typeSetArgument(JSContext *cx, unsigned arg, const js::Value &value);
-
-    
-    inline void typeSetUpvar(JSContext *cx, unsigned upvar, const js::Value &value);
+    inline bool typeSetThis(JSContext *cx, js::types::jstype type);
+    inline bool typeSetLocal(JSContext *cx, unsigned local, const js::Value &value);
+    inline bool typeSetArgument(JSContext *cx, unsigned arg, js::types::jstype type);
+    inline bool typeSetArgument(JSContext *cx, unsigned arg, const js::Value &value);
+    inline bool typeSetUpvar(JSContext *cx, unsigned upvar, const js::Value &value);
 
 #ifdef JS_METHODJIT
     

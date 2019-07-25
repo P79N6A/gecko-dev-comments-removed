@@ -1182,7 +1182,8 @@ Compiler::defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *scrip
 
 
             rval.setObject(*fun);
-            cx->addTypePropertyId(globalObj->getType(), id, rval);
+            if (!cx->addTypePropertyId(globalObj->getType(), id, rval))
+                return false;
         } else {
             rval.setUndefined();
         }
