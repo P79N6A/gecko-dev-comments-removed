@@ -271,10 +271,11 @@ int
 TokenStream::fillUserbuf()
 {
     
-    
-    
-    
-    
+
+
+
+
+
 
     jschar *buf = userbuf.base;
     int n = LINE_LIMIT - 1;     
