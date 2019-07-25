@@ -574,7 +574,7 @@ public:
                         const nsACString &aDescription,
                         nsISupports *aWrappedMRs)
     {
-        if (aKind == nsIMemoryReporter::KIND_MAPPED && aAmount != PRInt64(-1)) {
+        if (aKind == nsIMemoryReporter::KIND_NONHEAP && aAmount != PRInt64(-1)) {
             MemoryReportsWrapper *wrappedMRs =
                 static_cast<MemoryReportsWrapper *>(aWrappedMRs);
             MemoryReport mr(aPath, aAmount);
@@ -603,7 +603,7 @@ isParent(const nsACString &path1, const nsACString &path2)
 NS_IMETHODIMP
 nsMemoryReporterManager::GetExplicit(PRInt64 *aExplicit)
 {
-    InfallibleTArray<MemoryReport> mapped;
+    InfallibleTArray<MemoryReport> nonheap;
     PRInt64 heapUsed = PRInt64(-1);
 
     
@@ -620,7 +620,7 @@ nsMemoryReporterManager::GetExplicit(PRInt64 *aExplicit)
         nsresult rv = r->GetKind(&kind);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        if (kind == nsIMemoryReporter::KIND_MAPPED) {
+        if (kind == nsIMemoryReporter::KIND_NONHEAP) {
             nsCString path;
             rv = r->GetPath(path);
             NS_ENSURE_SUCCESS(rv, rv);
@@ -633,7 +633,7 @@ nsMemoryReporterManager::GetExplicit(PRInt64 *aExplicit)
             
             if (amount != PRInt64(-1)) {
                 MemoryReport mr(path, amount);
-                mapped.AppendElement(mr);
+                nonheap.AppendElement(mr);
             }
         } else {
             nsCString path;
@@ -657,7 +657,7 @@ nsMemoryReporterManager::GetExplicit(PRInt64 *aExplicit)
     nsCOMPtr<nsISimpleEnumerator> e2;
     EnumerateMultiReporters(getter_AddRefs(e2));
     nsRefPtr<MemoryReportsWrapper> wrappedMRs =
-        new MemoryReportsWrapper(&mapped);
+        new MemoryReportsWrapper(&nonheap);
     nsRefPtr<MemoryReportCallback> cb = new MemoryReportCallback();
 
     while (NS_SUCCEEDED(e2->HasMoreElements(&more)) && more) {
@@ -670,22 +670,22 @@ nsMemoryReporterManager::GetExplicit(PRInt64 *aExplicit)
     
     
     
-    for (PRUint32 i = 0; i < mapped.Length(); i++) {
-        const nsCString &iPath = mapped[i].path;
-        for (PRUint32 j = i + 1; j < mapped.Length(); j++) {
-            const nsCString &jPath = mapped[j].path;
+    for (PRUint32 i = 0; i < nonheap.Length(); i++) {
+        const nsCString &iPath = nonheap[i].path;
+        for (PRUint32 j = i + 1; j < nonheap.Length(); j++) {
+            const nsCString &jPath = nonheap[j].path;
             if (isParent(iPath, jPath)) {
-                mapped[j].amount = 0;
+                nonheap[j].amount = 0;
             } else if (isParent(jPath, iPath)) {
-                mapped[i].amount = 0;
+                nonheap[i].amount = 0;
             }
         }
     }
 
     
     *aExplicit = heapUsed;
-    for (PRUint32 i = 0; i < mapped.Length(); i++) {
-        *aExplicit += mapped[i].amount;
+    for (PRUint32 i = 0; i < nonheap.Length(); i++) {
+        *aExplicit += nonheap[i].amount;
     }
 
     return NS_OK;
