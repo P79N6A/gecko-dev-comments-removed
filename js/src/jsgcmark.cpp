@@ -237,6 +237,15 @@ MarkShape(JSTracer *trc, const Shape *shape, const char *name)
     Mark(trc, shape);
 }
 
+void
+MarkTypeObject(JSTracer *trc, types::TypeObject *object, const char *name)
+{
+    JS_ASSERT(trc);
+    JS_ASSERT(object);
+    JS_SET_TRACING_NAME(trc, name);
+    object->trace(trc, false);
+}
+
 #if JS_HAS_XML_SUPPORT
 void
 MarkXML(JSTracer *trc, JSXML *xml, const char *name)
@@ -516,6 +525,12 @@ MarkRoot(JSTracer *trc, const Shape *thing, const char *name)
 }
 
 void
+MarkRoot(JSTracer *trc, types::TypeObject *thing, const char *name)
+{
+    MarkTypeObject(trc, thing, name);
+}
+
+void
 MarkRoot(JSTracer *trc, JSXML *thing, const char *name)
 {
     MarkXML(trc, thing, name);
@@ -654,21 +669,16 @@ static const uintN LARGE_OBJECT_CHUNK_SIZE = 2048;
 static void
 ScanObject(GCMarker *gcmarker, JSObject *obj)
 {
-    
-
-
-
-
-    types::TypeObject *type = obj->gctype();
-    if (type && !type->marked)
-        type->trace(gcmarker);
-
     if (obj->isNewborn())
         return;
 
+    types::TypeObject *type = obj->gctype();
+    if (type != &types::emptyTypeObject && !type->isMarked())
+        type->trace(gcmarker,  true);
+
     if (JSObject *parent = obj->getParent())
         PushMarkStack(gcmarker, parent);
-    if (!obj->isDenseArray() && obj->newType && !obj->newType->marked)
+    if (!obj->isDenseArray() && obj->newType && !obj->newType->isMarked())
         obj->newType->trace(gcmarker);
 
     Class *clasp = obj->getClass();
@@ -739,16 +749,15 @@ void
 MarkChildren(JSTracer *trc, JSObject *obj)
 {
     
-    types::TypeObject *type = obj->gctype();
-    if (type && !type->marked)
-        type->trace(trc);
-
-    
     if (obj->isNewborn())
         return;
 
+    types::TypeObject *type = obj->gctype();
+    if (type != &types::emptyTypeObject && !type->isMarked())
+        type->trace(trc,  true);
+
     
-    if (!obj->isDenseArray() && obj->newType && !obj->newType->marked)
+    if (!obj->isDenseArray() && obj->newType && !obj->newType->isMarked())
         obj->newType->trace(trc);
     if (JSObject *parent = obj->getParent())
         MarkObject(trc, *parent, "parent");
@@ -888,16 +897,16 @@ JSObject::scanSlots(GCMarker *gcmarker)
 }
 
 void
-js::types::TypeObject::trace(JSTracer *trc)
+js::types::TypeObject::trace(JSTracer *trc, bool weak)
 {
-    JS_ASSERT(!marked);
-
     
 
 
 
-    if (IS_GC_MARKING_TRACER(trc))
-        marked = true;
+
+
+    if (IS_GC_MARKING_TRACER(trc) && (!weak || !singleton))
+        markIfUnmarked(static_cast<GCMarker *>(trc)->getMarkColor());
 
 #ifdef DEBUG
     InlineMarkId(trc, name_, "type_name");

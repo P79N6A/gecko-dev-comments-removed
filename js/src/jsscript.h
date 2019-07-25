@@ -492,8 +492,9 @@ struct JSScript {
     bool            isActiveEval:1;   
     bool            isCachedEval:1;   
     bool            isUncachedEval:1; 
-    bool            calledWithNew:1;  
     bool            usedLazyArgs:1;   
+    bool            createdArgs:1;    
+    bool            uninlineable:1;   
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
     bool            singleStepMode:1; 

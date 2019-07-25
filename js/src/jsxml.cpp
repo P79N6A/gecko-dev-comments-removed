@@ -7206,8 +7206,7 @@ GlobalObject::getFunctionNamespace(JSContext *cx, Value *vp)
 
 
 
-        if (!obj->clearType(cx))
-            return false;
+        obj->clearType();
 
         v.setObject(*obj);
     }

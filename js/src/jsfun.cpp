@@ -258,8 +258,8 @@ js_GetArgsObject(JSContext *cx, StackFrame *fp)
 
 
 
-    MarkTypeObjectFlags(cx, fp->fun(),
-                        OBJECT_FLAG_CREATED_ARGUMENTS | OBJECT_FLAG_UNINLINEABLE);
+    if (!fp->script()->createdArgs)
+        types::MarkArgumentsCreated(cx, fp->script());
 
     
     JS_ASSERT_IF(fp->fun()->isHeavyweight(), fp->hasCallObj());
@@ -812,7 +812,7 @@ NewDeclEnvObject(JSContext *cx, StackFrame *fp)
     EmptyShape *emptyDeclEnvShape = EmptyShape::getEmptyDeclEnvShape(cx);
     if (!emptyDeclEnvShape)
         return NULL;
-    envobj->init(cx, &js_DeclEnvClass, GetTypeEmpty(cx), &fp->scopeChain(), fp, false);
+    envobj->init(cx, &js_DeclEnvClass, &emptyTypeObject, &fp->scopeChain(), fp, false);
     envobj->setMap(emptyDeclEnvShape);
 
     return envobj;
@@ -1351,8 +1351,10 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 
 
 
-    if (fun->isInterpreted())
+    if (fun->isInterpreted()) {
+        fun->script()->uninlineable = true;
         MarkTypeObjectFlags(cx, fun, OBJECT_FLAG_UNINLINEABLE);
+    }
 
     
     vp->setNull();
@@ -1379,6 +1381,7 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
         fp->prev()->pcQuadratic(cx->stack, fp, &inlined);
         if (inlined) {
             JSFunction *fun = fp->prev()->jit()->inlineFrames()[inlined->inlineIndex].fun;
+            fun->script()->uninlineable = true;
             MarkTypeObjectFlags(cx, fun, OBJECT_FLAG_UNINLINEABLE);
         }
     }
@@ -1634,8 +1637,7 @@ js_XDRFunctionObject(JSXDRState *xdr, JSObject **objp)
         if (!fun)
             return false;
         FUN_OBJECT(fun)->clearParent();
-        if (!FUN_OBJECT(fun)->clearType(cx))
-            return false;
+        FUN_OBJECT(fun)->clearType();
     }
 
     AutoObjectRooter tvr(cx, FUN_OBJECT(fun));

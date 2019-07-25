@@ -44,6 +44,7 @@
 
 #include "jsalloc.h"
 #include "jsarena.h"
+#include "jscell.h"
 #include "jstl.h"
 #include "jsprvtd.h"
 #include "jsvalue.h"
@@ -231,15 +232,6 @@ public:
 
 
     virtual void newObjectState(JSContext *cx, TypeObject *object, bool force) {}
-
-    
-
-
-
-
-    virtual TypeObject * persistentObject() { return NULL; }
-
-    virtual size_t allocatedSize() { return 0; }
 };
 
 
@@ -253,81 +245,117 @@ enum {
     TYPE_FLAG_LAZYARGS  = 0x40,
     TYPE_FLAG_ANYOBJECT = 0x80,
 
-    TYPE_FLAG_UNKNOWN   = 0x100,
+    
+    TYPE_FLAG_OBJECT_COUNT_MASK   = 0xff00,
+    TYPE_FLAG_OBJECT_COUNT_SHIFT  = 8,
+    TYPE_FLAG_OBJECT_COUNT_LIMIT  =
+        TYPE_FLAG_OBJECT_COUNT_MASK >> TYPE_FLAG_OBJECT_COUNT_SHIFT,
 
     
-    TYPE_FLAG_INTERMEDIATE_SET    = 0x0200,
+    TYPE_FLAG_UNKNOWN             = 0x00010000,
 
     
+    TYPE_FLAG_BASE_MASK           = 0x000100ff,
 
     
-    TYPE_FLAG_OWN_PROPERTY        = 0x0400,
+    TYPE_FLAG_INTERMEDIATE_SET    = 0x00020000,
 
     
-
-
-
-
-    TYPE_FLAG_CONFIGURED_PROPERTY = 0x0800,
-
-    
-    TYPE_FLAG_HAS_PERSISTENT_CONSTRAINTS = 0x1000,
 
     
 
 
 
-
-    TYPE_FLAG_DEFINITE_PROPERTY   = 0x08000,
-
-    
-    TYPE_FLAG_DEFINITE_MASK       = 0xf0000,
-    TYPE_FLAG_DEFINITE_SHIFT      = 16,
+    TYPE_FLAG_PROPAGATED_PROPERTY = 0x00040000,
 
     
-    TYPE_FLAG_BASE_MASK           = 0xffffffff ^ ((TYPE_FLAG_UNKNOWN << 1) - 1)
+    TYPE_FLAG_OWN_PROPERTY        = 0x00080000,
+
+    
+
+
+
+
+    TYPE_FLAG_CONFIGURED_PROPERTY = 0x00100000,
+
+    
+
+
+
+
+    TYPE_FLAG_DEFINITE_PROPERTY   = 0x00200000,
+
+    
+    TYPE_FLAG_DEFINITE_MASK       = 0x0f000000,
+    TYPE_FLAG_DEFINITE_SHIFT      = 24,
 };
 typedef uint32 TypeFlags;
 
 
 enum {
     
-
-
-
-    OBJECT_FLAG_NON_DENSE_ARRAY = 1 << 0,
+    OBJECT_FLAG_FUNCTION              = 0x1,
 
     
-    OBJECT_FLAG_NON_PACKED_ARRAY = 1 << 1,
-
-    
-    OBJECT_FLAG_NON_TYPED_ARRAY = 1 << 2,
-
-    
-    OBJECT_FLAG_CREATED_ARGUMENTS = 1 << 3,
-
-    
-    OBJECT_FLAG_UNINLINEABLE = 1 << 4,
-
-    
-    OBJECT_FLAG_SPECIAL_EQUALITY = 1 << 5,
-
-    
-    OBJECT_FLAG_ITERATED = 1 << 6,
+    OBJECT_FLAG_NEW_SCRIPT_CLEARED    = 0x2,
 
     
 
 
 
 
-    OBJECT_FLAG_DETERMINED_MASK =
-        OBJECT_FLAG_NON_DENSE_ARRAY |
-        OBJECT_FLAG_NON_PACKED_ARRAY |
-        OBJECT_FLAG_NON_TYPED_ARRAY |
-        OBJECT_FLAG_SPECIAL_EQUALITY,
+    OBJECT_FLAG_NEW_SCRIPT_REGENERATE = 0x4,
 
     
-    OBJECT_FLAG_UNKNOWN_MASK = uint32(-1)
+
+
+
+    OBJECT_FLAG_SETS_MARKED_UNKNOWN   = 0x8,
+
+    
+    OBJECT_FLAG_PROPERTY_COUNT_MASK   = 0xfff0,
+    OBJECT_FLAG_PROPERTY_COUNT_SHIFT  = 4,
+    OBJECT_FLAG_PROPERTY_COUNT_LIMIT  =
+        OBJECT_FLAG_PROPERTY_COUNT_MASK >> OBJECT_FLAG_PROPERTY_COUNT_SHIFT,
+
+    
+
+
+
+    OBJECT_FLAG_NON_DENSE_ARRAY       = 0x010000,
+
+    
+    OBJECT_FLAG_NON_PACKED_ARRAY      = 0x020000,
+
+    
+    OBJECT_FLAG_NON_TYPED_ARRAY       = 0x040000,
+
+    
+    OBJECT_FLAG_CREATED_ARGUMENTS     = 0x080000,
+
+    
+    OBJECT_FLAG_UNINLINEABLE          = 0x100000,
+
+    
+    OBJECT_FLAG_SPECIAL_EQUALITY      = 0x200000,
+
+    
+    OBJECT_FLAG_ITERATED              = 0x400000,
+
+    
+    OBJECT_FLAG_DYNAMIC_MASK          = 0x7f0000,
+
+    
+
+
+
+    OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x800000,
+
+    
+    OBJECT_FLAG_UNKNOWN_MASK =
+        OBJECT_FLAG_DYNAMIC_MASK
+      | OBJECT_FLAG_UNKNOWN_PROPERTIES
+      | OBJECT_FLAG_SETS_MARKED_UNKNOWN
 };
 typedef uint32 TypeObjectFlags;
 
@@ -335,11 +363,10 @@ typedef uint32 TypeObjectFlags;
 class TypeSet
 {
     
-    TypeFlags typeFlags;
+    TypeFlags flags;
 
     
     TypeObjectKey **objectSet;
-    unsigned objectCount;
 
   public:
 
@@ -347,27 +374,33 @@ class TypeSet
     TypeConstraint *constraintList;
 
     TypeSet()
-        : typeFlags(0), objectSet(NULL), objectCount(0), constraintList(NULL)
+        : flags(0), objectSet(NULL), constraintList(NULL)
     {}
 
     void print(JSContext *cx);
 
-    inline bool sweep(JSContext *cx);
-    inline void destroy();
+    inline void sweep(JSContext *cx, JSCompartment *compartment);
     size_t dynamicSize();
 
     
     inline bool hasType(Type type);
 
-    TypeFlags baseFlags() { return typeFlags & ~TYPE_FLAG_BASE_MASK; }
-    bool hasAnyFlag(TypeFlags flags) { return !!(typeFlags & flags); }
-    bool unknown() { return !!(typeFlags & TYPE_FLAG_UNKNOWN); }
-    bool unknownObject() { return !!(typeFlags & (TYPE_FLAG_UNKNOWN | TYPE_FLAG_ANYOBJECT)); }
+    TypeFlags baseFlags() { return flags & TYPE_FLAG_BASE_MASK; }
+    bool unknown() { return !!(flags & TYPE_FLAG_UNKNOWN); }
+    bool unknownObject() { return !!(flags & (TYPE_FLAG_UNKNOWN | TYPE_FLAG_ANYOBJECT)); }
 
-    bool isDefiniteProperty() { return typeFlags & TYPE_FLAG_DEFINITE_PROPERTY; }
+    bool hasAnyFlag(TypeFlags flags) {
+        JS_ASSERT((flags & TYPE_FLAG_BASE_MASK) == flags);
+        return !!(baseFlags() & flags);
+    }
+
+    bool isOwnProperty(bool configurable) {
+        return flags & (configurable ? TYPE_FLAG_CONFIGURED_PROPERTY : TYPE_FLAG_OWN_PROPERTY);
+    }
+    bool isDefiniteProperty() { return flags & TYPE_FLAG_DEFINITE_PROPERTY; }
     unsigned definiteSlot() {
         JS_ASSERT(isDefiniteProperty());
-        return typeFlags >> TYPE_FLAG_DEFINITE_SHIFT;
+        return flags >> TYPE_FLAG_DEFINITE_SHIFT;
     }
 
     
@@ -389,17 +422,20 @@ class TypeSet
     inline JSObject *getSingleObject(unsigned i);
     inline TypeObject *getTypeObject(unsigned i);
 
-    bool intermediate() { return typeFlags & TYPE_FLAG_INTERMEDIATE_SET; }
-    void setIntermediate() { JS_ASSERT(!typeFlags); typeFlags = TYPE_FLAG_INTERMEDIATE_SET; }
+    bool intermediate() { return !!(flags & TYPE_FLAG_INTERMEDIATE_SET); }
+    void setIntermediate() { JS_ASSERT(!flags); flags = TYPE_FLAG_INTERMEDIATE_SET; }
     void setOwnProperty(bool configurable) {
-        typeFlags |= TYPE_FLAG_OWN_PROPERTY;
+        flags |= TYPE_FLAG_OWN_PROPERTY;
         if (configurable)
-            typeFlags |= TYPE_FLAG_CONFIGURED_PROPERTY;
+            flags |= TYPE_FLAG_CONFIGURED_PROPERTY;
     }
     void setDefinite(unsigned slot) {
         JS_ASSERT(slot <= (TYPE_FLAG_DEFINITE_MASK >> TYPE_FLAG_DEFINITE_SHIFT));
-        typeFlags |= TYPE_FLAG_DEFINITE_PROPERTY | (slot << TYPE_FLAG_DEFINITE_SHIFT);
+        flags |= TYPE_FLAG_DEFINITE_PROPERTY | (slot << TYPE_FLAG_DEFINITE_SHIFT);
     }
+
+    bool hasPropagatedProperty() { return !!(flags & TYPE_FLAG_PROPAGATED_PROPERTY); }
+    void setPropagatedProperty() { flags |= TYPE_FLAG_PROPAGATED_PROPERTY; }
 
     
     inline void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
@@ -409,7 +445,6 @@ class TypeSet
     void addSetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
                         TypeSet *target, jsid id);
     void addCallProperty(JSContext *cx, JSScript *script, jsbytecode *pc, jsid id);
-    void addNewObject(JSContext *cx, TypeObject *fun, TypeSet *target);
     void addCall(JSContext *cx, TypeCallsite *site);
     void addArith(JSContext *cx, TypeSet *target, TypeSet *other = NULL);
     void addTransformThis(JSContext *cx, JSScript *script, TypeSet *target);
@@ -417,8 +452,6 @@ class TypeSet
     void addFilterPrimitives(JSContext *cx, TypeSet *target, bool onlyNullVoid);
     void addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target);
     void addLazyArguments(JSContext *cx, TypeSet *target);
-
-    void addBaseSubset(JSContext *cx, TypeObject *object, TypeSet *target);
 
     
 
@@ -455,7 +488,7 @@ class TypeSet
 
 
 
-    bool isOwnProperty(JSContext *cx, bool configurable);
+    bool isOwnProperty(JSContext *cx, TypeObject *object, bool configurable);
 
     
     bool knownNonEmpty(JSContext *cx);
@@ -472,8 +505,11 @@ class TypeSet
     static bool
     SweepTypeSet(JSContext *cx, JSCompartment *compartment, TypeSet *types);
 
+    inline void clearObjects();
+
   private:
-    void clearObjects();
+    inline uint32 baseObjectCount() const;
+    inline void setBaseObjectCount(uint32 count);
 };
 
 
@@ -482,29 +518,15 @@ class TypeSet
 
 
 
-
-
-
-
-
-class TypeIntermediate
+struct TypeResult
 {
-  public:
-    
-    TypeIntermediate *next;
+    uint32 offset;
+    Type type;
+    TypeResult *next;
 
-    TypeIntermediate() : next(NULL) {}
-
-    
-    virtual void replay(JSContext *cx, JSScript *script) = 0;
-
-    
-    virtual bool sweep(JSContext *cx, JSCompartment *compartment) = 0;
-
-    
-    virtual bool hasDynamicResult(uint32 offset, Type type) { return false; }
-
-    virtual size_t allocatedSize() = 0;
+    TypeResult(uint32 offset, Type type)
+        : offset(offset), type(type), next(NULL)
+    {}
 };
 
 
@@ -598,6 +620,12 @@ struct Property
 
 
 
+
+
+
+
+
+
 struct TypeNewScript
 {
     JSScript *script;
@@ -606,6 +634,9 @@ struct TypeNewScript
      unsigned finalizeKind;
 
     
+
+
+
     const Shape *shape;
 
     
@@ -653,11 +684,14 @@ struct TypeNewScript
 
 
 
-struct TypeObject
+struct TypeObject : gc::Cell
 {
 #ifdef DEBUG
     
     jsid name_;
+#if JS_BITS_PER_WORD == 32
+    void *padding;
+#endif
 #endif
 
     
@@ -677,33 +711,11 @@ struct TypeObject
     TypeObjectFlags flags;
 
     
-    bool isFunction;
-
-    
-    bool marked;
-
-    
-    bool newScriptCleared;
-
-    
-
-
-
-    bool setsMarkedUnknown;
-
-    
 
 
 
 
     TypeNewScript *newScript;
-
-    
-
-
-
-    JSProtoKey initializerKey;
-    uint32 initializerOffset;
 
     
 
@@ -745,28 +757,29 @@ struct TypeObject
 
 
     Property **propertySet;
-    unsigned propertyCount;
-
-    
-    TypeObject *instanceList;
-
-    
-    TypeObject *instanceNext;
-
-    
-    TypeObject *next;
 
     
     JSScript *functionScript;
 
-    TypeObject() {}
-
     
-    inline TypeObject(jsid id, JSObject *proto, bool isFunction);
+    inline TypeObject(jsid id, JSObject *proto, bool isFunction, bool unknown);
 
-    bool unknownProperties() { return flags == OBJECT_FLAG_UNKNOWN_MASK; }
-    bool hasAnyFlags(TypeObjectFlags flags) { return (this->flags & flags) != 0; }
-    bool hasAllFlags(TypeObjectFlags flags) { return (this->flags & flags) == flags; }
+    bool isFunction() { return !!(flags & OBJECT_FLAG_FUNCTION); }
+
+    bool hasAnyFlags(TypeObjectFlags flags) {
+        JS_ASSERT((flags & OBJECT_FLAG_DYNAMIC_MASK) == flags);
+        return !!(this->flags & flags);
+    }
+    bool hasAllFlags(TypeObjectFlags flags) {
+        JS_ASSERT((flags & OBJECT_FLAG_DYNAMIC_MASK) == flags);
+        return (this->flags & flags) == flags;
+    }
+
+    bool unknownProperties() {
+        JS_ASSERT_IF(flags & OBJECT_FLAG_UNKNOWN_PROPERTIES,
+                     hasAllFlags(OBJECT_FLAG_DYNAMIC_MASK));
+        return !!(flags & OBJECT_FLAG_UNKNOWN_PROPERTIES);
+    }
 
     
 
@@ -787,7 +800,8 @@ struct TypeObject
 
     inline TypeSet *getProperty(JSContext *cx, jsid id, bool assign);
 
-    inline bool hasProperty(JSContext *cx, jsid id);
+    
+    inline TypeSet *maybeGetProperty(JSContext *cx, jsid id);
 
     inline const char * name();
 
@@ -795,40 +809,55 @@ struct TypeObject
     inline Property *getProperty(unsigned i);
 
     
-    inline void setFlagsFromKey(JSContext *cx, JSProtoKey key);
+    inline void setFlagsFromKey(JSContext *cx, JSProtoKey kind);
 
     
 
     bool addProperty(JSContext *cx, jsid id, Property **pprop);
     bool addDefiniteProperties(JSContext *cx, JSObject *obj);
+    bool matchDefiniteProperties(JSObject *obj);
     void addPrototype(JSContext *cx, TypeObject *proto);
     void addPropertyType(JSContext *cx, jsid id, Type type);
     void addPropertyType(JSContext *cx, jsid id, const Value &value);
     void addPropertyType(JSContext *cx, const char *name, Type type);
     void addPropertyType(JSContext *cx, const char *name, const Value &value);
     void markPropertyConfigured(JSContext *cx, jsid id);
-    void aliasProperties(JSContext *cx, jsid first, jsid second);
     void markSlotReallocation(JSContext *cx);
     void setFlags(JSContext *cx, TypeObjectFlags flags);
     void markUnknown(JSContext *cx);
     void clearNewScript(JSContext *cx);
-    void storeToInstances(JSContext *cx, Property *base);
-    void getFromPrototypes(JSContext *cx, Property *base);
+    void getFromPrototypes(JSContext *cx, jsid id, TypeSet *types, bool force = false);
 
     void print(JSContext *cx);
-    void trace(JSTracer *trc);
+    void trace(JSTracer *trc, bool weak = false);
+
+    inline void clearProperties();
+
+    
+
+
+
+
+    void finalize(JSContext *cx) {}
+
+  private:
+    inline uint32 basePropertyCount() const;
+    inline void setBasePropertyCount(uint32 count);
 };
+
+
+extern TypeObject emptyTypeObject;
+
+
+
+
+
+extern void
+MarkArgumentsCreated(JSContext *cx, JSScript *script);
 
 
 bool
 UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc);
-
-
-
-
-
-void
-CheckNewScriptProperties(JSContext *cx, TypeObject *type, JSScript *script);
 
 
 
@@ -870,11 +899,7 @@ struct TypeScript
     TypeObject *typeObjects;
 
     
-    TypeIntermediate *intermediateList;
-    void addIntermediate(TypeIntermediate *type) {
-        type->next = intermediateList;
-        intermediateList = type;
-    }
+    TypeResult *dynamicList;
 
     
     inline bool ensureTypeArray(JSContext *cx);
@@ -899,10 +924,10 @@ struct TypeScript
 #endif
 
     
-    inline TypeObject *standardType(JSContext *cx, JSProtoKey key);
+    inline TypeObject *standardType(JSContext *cx, JSProtoKey kind);
 
     
-    inline TypeObject *initObject(JSContext *cx, const jsbytecode *pc, JSProtoKey key);
+    inline TypeObject *initObject(JSContext *cx, const jsbytecode *pc, JSProtoKey kind);
 
     
 
@@ -928,16 +953,13 @@ struct TypeScript
     
     inline void setThis(JSContext *cx, Type type);
     inline void setThis(JSContext *cx, const js::Value &value);
-    inline void setNewCalled(JSContext *cx);
     inline void setLocal(JSContext *cx, unsigned local, Type type);
     inline void setLocal(JSContext *cx, unsigned local, const js::Value &value);
     inline void setArgument(JSContext *cx, unsigned arg, Type type);
     inline void setArgument(JSContext *cx, unsigned arg, const js::Value &value);
     inline void setUpvar(JSContext *cx, unsigned upvar, const js::Value &value);
 
-    void trace(JSTracer *trc);
     void sweep(JSContext *cx);
-    void finalizeObjects();
     void destroy();
 };
 
@@ -948,12 +970,12 @@ struct ObjectTableKey;
 struct ObjectTableEntry;
 typedef HashMap<ObjectTableKey,ObjectTableEntry,ObjectTableKey,SystemAllocPolicy> ObjectTypeTable;
 
+struct AllocationSiteKey;
+typedef HashMap<AllocationSiteKey,TypeObject*,AllocationSiteKey,SystemAllocPolicy> AllocationSiteTable;
+
 
 struct TypeCompartment
 {
-    
-    TypeObject *objects;
-
     
     bool inferenceEnabled;
 
@@ -961,26 +983,10 @@ struct TypeCompartment
     unsigned scriptCount;
 
     
-    TypeObject typeEmpty;
-
-    
-
-
-
-    TypeObject typeLazyArguments;
-
-    
 
 
 
     bool pendingNukeTypes;
-
-    
-
-
-
-
-    bool typesNuked;
 
     
     Vector<JSScript*> *pendingRecompiles;
@@ -999,6 +1005,9 @@ struct TypeCompartment
 
 
     JSScript *compiledScript;
+
+    
+    AllocationSiteTable *allocationSiteTable;
 
     
 
@@ -1037,6 +1046,8 @@ struct TypeCompartment
     void init(JSContext *cx);
     ~TypeCompartment();
 
+    inline JSCompartment *compartment();
+
     
     inline void addPending(JSContext *cx, TypeConstraint *constraint, TypeSet *source, Type type);
     void growPendingArray(JSContext *cx);
@@ -1045,7 +1056,7 @@ struct TypeCompartment
     inline void resolvePending(JSContext *cx);
 
     
-    void print(JSContext *cx, JSCompartment *compartment);
+    void print(JSContext *cx);
 
     
 
@@ -1055,11 +1066,10 @@ struct TypeCompartment
 
     TypeObject *newTypeObject(JSContext *cx, JSScript *script,
                               const char *base, const char *postfix,
-                              JSProtoKey key, JSObject *proto);
+                              JSProtoKey kind, JSObject *proto, bool unknown = false);
 
     
-    TypeObject *newInitializerTypeObject(JSContext *cx, JSScript *script,
-                                         uint32 offset, JSProtoKey key);
+    TypeObject *newAllocationSiteTypeObject(JSContext *cx, const AllocationSiteKey &key);
 
     void nukeTypes(JSContext *cx);
     void processPendingRecompiles(JSContext *cx);

@@ -489,11 +489,27 @@ JSCompartment::markTypes(JSTracer *trc)
         js_TraceScript(trc, script);
     }
 
-    types::TypeObject *obj = types.objects;
-    while (obj) {
-        if (!obj->marked)
-            obj->trace(trc);
-        obj = obj->next;
+    gc::ArenaHeader *aheader = arenas[gc::FINALIZE_TYPE_OBJECT].getHead();
+    size_t thingSize = sizeof(types::TypeObject);
+
+    for (; aheader; aheader = aheader->next) {
+        gc::Arena *arena = aheader->getArena();
+        gc::FreeSpan firstSpan(aheader->getFirstFreeSpan());
+        gc::FreeSpan *span = &firstSpan;
+
+        for (uintptr_t thing = arena->thingsStart(thingSize); ; thing += thingSize) {
+            JS_ASSERT(thing <= arena->thingsEnd());
+            if (thing == span->start) {
+                if (!span->hasNext())
+                    break;
+                thing = span->end;
+                span = span->nextSpan();
+            } else {
+                types::TypeObject *object = reinterpret_cast<types::TypeObject *>(thing);
+                if (!object->isMarked())
+                    object->trace(trc);
+            }
+        }
     }
 }
 
@@ -592,19 +608,12 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
         }
 
         types.sweep(cx);
-    }
 
-    
+        for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
+            JSScript *script = reinterpret_cast<JSScript *>(cursor);
+            script->clearAnalysis();
+        }
 
-
-
-    types.finalizeObjects();
-    for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
-        JSScript *script = reinterpret_cast<JSScript *>(cursor);
-        script->types.finalizeObjects();
-    }
-
-    if (!activeAnalysis) {
         
         JS_FinishArenaPool(&pool);
 
