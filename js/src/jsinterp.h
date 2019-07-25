@@ -57,19 +57,20 @@ typedef struct JSFrameRegs {
 
 
 enum JSFrameFlags {
-    JSFRAME_CONSTRUCTING       =  0x01, 
-    JSFRAME_OVERRIDE_ARGS      =  0x02, 
-    JSFRAME_ASSIGNING          =  0x04, 
+    JSFRAME_CONSTRUCTING       =   0x01, 
+    JSFRAME_OVERRIDE_ARGS      =   0x02, 
+    JSFRAME_ASSIGNING          =   0x04, 
 
-    JSFRAME_DEBUGGER           =  0x08, 
-    JSFRAME_EVAL               =  0x10, 
-    JSFRAME_FLOATING_GENERATOR =  0x20, 
-    JSFRAME_YIELDING           =  0x40, 
-    JSFRAME_GENERATOR          =  0x80, 
-    JSFRAME_BAILING            = 0x100, 
-    JSFRAME_RECORDING          = 0x200, 
-    JSFRAME_BAILED_AT_RETURN   = 0x400, 
-    JSFRAME_DUMMY              = 0x800, 
+    JSFRAME_DEBUGGER           =   0x08, 
+    JSFRAME_EVAL               =   0x10, 
+    JSFRAME_FLOATING_GENERATOR =   0x20, 
+    JSFRAME_YIELDING           =   0x40, 
+    JSFRAME_GENERATOR          =   0x80, 
+    JSFRAME_BAILING            =  0x100, 
+    JSFRAME_RECORDING          =  0x200, 
+    JSFRAME_BAILED_AT_RETURN   =  0x400, 
+    JSFRAME_DUMMY              =  0x800, 
+    JSFRAME_IN_IMACRO          = 0x1000, 
 	
     JSFRAME_SPECIAL            = JSFRAME_DEBUGGER | JSFRAME_EVAL
 };
@@ -87,9 +88,9 @@ struct JSStackFrame
   private:
     JSObject            *callobj;       
     JSObject            *argsobj;       
+    jsbytecode          *imacpc;        
 
   public:
-    jsbytecode          *imacpc;        
     JSScript            *script;        
 	
     
@@ -332,6 +333,33 @@ struct JSStackFrame
 
     void setCallerVersion(JSVersion version) {
         callerVersion = version;
+    }
+
+    
+
+    bool hasIMacroPC() const { return flags & JSFRAME_IN_IMACRO; }
+
+    
+
+
+
+
+
+    jsbytecode *getIMacroPC() const {
+        JS_ASSERT(flags & JSFRAME_IN_IMACRO);
+        return imacpc;
+    }
+
+    
+    jsbytecode *maybeIMacroPC() const { return hasIMacroPC() ? getIMacroPC() : NULL; }
+
+    void clearIMacroPC() { flags &= ~JSFRAME_IN_IMACRO; }
+
+    void setIMacroPC(jsbytecode *newIMacPC) {
+        JS_ASSERT(newIMacPC);
+        JS_ASSERT(!(flags & JSFRAME_IN_IMACRO));
+        imacpc = newIMacPC;
+        flags |= JSFRAME_IN_IMACRO;
     }
 
     
