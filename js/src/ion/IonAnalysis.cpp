@@ -899,7 +899,7 @@ ion::FindNaturalLoops(MIRGraph &graph)
 
     
     
-    for (PostorderIterator block(graph.poBegin()); block != graph.poEnd(); block++) {
+    for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
         if (!block->isLoopBackedge())
             continue;
 
@@ -922,6 +922,10 @@ ion::FindNaturalLoops(MIRGraph &graph)
                 
                 if (pred->loopHeader() == header)
                     continue;
+
+                
+                
+                JS_ASSERT(header->id() < pred->id() && pred->id() < block->id());
 
                 
                 
