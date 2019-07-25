@@ -487,7 +487,7 @@ let Token = {
         
       } else {
         Octet.encode(data, token.charCodeAt(0));
-	return;
+        return;
       }
     }
 
@@ -697,7 +697,7 @@ let ShortInteger = {
 
 
   encode: function encode(data, value) {
-    if (value & 0x80) {
+    if (value >= 0x80) {
       throw new CodeError("Short-integer: invalid value " + value);
     }
 
