@@ -630,6 +630,9 @@ struct JSObject : js::gc::Cell
     inline bool setIndexed(JSContext *cx);
 
     
+    inline bool maybeSetIndexed(JSContext *cx, jsid id);
+
+    
 
 
 
@@ -797,9 +800,6 @@ struct JSObject : js::gc::Cell
 
     inline void setFixedSlot(uintN slot, const js::Value &value);
     inline void initFixedSlot(uintN slot, const js::Value &value);
-
-    
-    inline bool updateFlags(JSContext *cx, jsid id, bool isDefinitelyAtom = false);
 
     
     inline bool extend(JSContext *cx, const js::Shape *shape, bool isDefinitelyAtom = false);

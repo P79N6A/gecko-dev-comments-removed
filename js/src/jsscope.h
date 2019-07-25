@@ -438,7 +438,7 @@ class BaseShape : public js::gc::Cell
     void setSlotSpan(uint32 slotSpan) { JS_ASSERT(isOwned()); slotSpan_ = slotSpan; }
 
     
-    static UnownedBaseShape *lookup(JSContext *cx, const BaseShape &base);
+    static UnownedBaseShape *getUnowned(JSContext *cx, const BaseShape &base);
 
     
     inline UnownedBaseShape *unowned();
@@ -506,7 +506,8 @@ struct Shape : public js::gc::Cell
     HeapPtrBaseShape    base_;
     HeapId              propid_;
 
-    enum {
+    JS_ENUM_HEADER(SlotInfo, uint32)
+    {
         
         FIXED_SLOTS_MAX        = 0x1f,
         FIXED_SLOTS_SHIFT      = 27,
@@ -529,7 +530,7 @@ struct Shape : public js::gc::Cell
 
 
         SLOT_MASK              = JS_BIT(24) - 1
-    };
+    } JS_ENUM_FOOTER(SlotInfo);
 
     uint32              slotInfo;       
     uint8               attrs;          
@@ -951,10 +952,14 @@ struct EmptyShape : public js::Shape
 
 
 
-    static Shape *lookupInitialShape(JSContext *cx, Class *clasp, JSObject *proto,
-                                     JSObject *parent, gc::AllocKind kind, uint32 objectFlags = 0);
+    static Shape *getInitialShape(JSContext *cx, Class *clasp, JSObject *proto,
+                                  JSObject *parent, gc::AllocKind kind, uint32 objectFlags = 0);
 
     
+
+
+
+
     static void insertInitialShape(JSContext *cx, Shape *shape, JSObject *proto);
 };
 
