@@ -3857,8 +3857,7 @@ JS_CloneFunctionObject(JSContext *cx, JSObject *funobj, JSObject *parent)
 
 
 
-        Value v;
-        v.setObject(*funobj);
+        Value v = ObjectTag(*funobj);
         js_ReportIsNotFunction(cx, &v, 0);
         return NULL;
     }
@@ -4096,8 +4095,7 @@ JS_DefineFunctions(JSContext *cx, JSObject *obj, JSFunctionSpec *fs)
 
 
 
-            Value priv;
-            priv.setPrivate(fs);
+            Value priv = PrivateTag(fs);
             if (!js_SetReservedSlot(cx, FUN_OBJECT(fun), 0, priv))
                 return JS_FALSE;
         }
