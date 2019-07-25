@@ -119,7 +119,7 @@ notification[type="critical"] .messageImage {
     list-style-image: url("chrome://global/skin/arrow/arrow-dn-sharp.gif");
   }
 
-  .popup-notification-menubutton > .button-menubutton-dropmarker {
+  .popup-notification-menubutton:-moz-focusring > .button-menubutton-dropmarker {
     outline: 1px dotted ThreeDDarkShadow;
     outline-offset: -3px;
   }
