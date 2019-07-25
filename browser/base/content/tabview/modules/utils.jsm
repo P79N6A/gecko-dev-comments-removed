@@ -50,7 +50,7 @@
 
 
 
-let EXPORTED_SYMBOLS = ["Point", "Rect", "Range", "Subscribable", "Utils"];
+let EXPORTED_SYMBOLS = ["Point", "Rect", "Range", "Subscribable", "Utils", "MRUList"];
 
 
 const Ci = Components.interfaces;
@@ -795,3 +795,63 @@ let Utils = {
     return null;
   }
 };
+
+
+
+
+
+
+
+function MRUList(a) {
+  if (Array.isArray(a))
+    this._list = a.concat();
+  else
+    this._list = [];
+};
+
+MRUList.prototype = {
+  
+  
+  
+  toString: function MRUList_toString() {
+    return "[List (" + this._list.join(", ") + ")]";
+  },
+
+  
+  
+  
+  update: function MRUList_update(entry) {
+    this.remove(entry);
+    this._list.unshift(entry);
+  },
+
+  
+  
+  
+  remove: function MRUList_remove(entry) {
+    let index = this._list.indexOf(entry);
+    if (index > -1)
+      this._list.splice(index, 1);
+  },
+
+  
+  
+  
+  
+  peek: function MRUList_peek(filter) {
+    let match = null;
+    if (filter && typeof filter == "function")
+      this._list.some(function MRUList_peek_getEntry(entry) {
+        if (filter(entry)) {
+          match = entry
+          return true;
+        }
+        return false;
+      });
+    else 
+      match = this._list.length > 0 ? this._list[0] : null;
+
+    return match;
+  },
+};
+
