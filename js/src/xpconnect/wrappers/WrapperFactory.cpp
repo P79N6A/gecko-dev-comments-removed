@@ -85,7 +85,8 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
     
     
     
-    if (!IS_WN_WRAPPER(obj))
+    
+    if (!IS_WN_WRAPPER(obj) || !obj->getParent())
         return obj;
 
     XPCWrappedNative *wn = static_cast<XPCWrappedNative *>(xpc_GetJSPrivate(obj));
