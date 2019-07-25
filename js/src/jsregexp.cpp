@@ -962,16 +962,19 @@ static JSFunctionSpec regexp_methods[] = {
 static JSBool
 regexp_construct(JSContext *cx, uintN argc, Value *vp)
 {
-    
+    Value *argv = JS_ARGV(cx, vp);
+    if (IsConstructing(vp)) {
+        
 
 
 
 
-    Value *argv = vp + 2;
-    if ((argc < 2 || argv[1].isUndefined()) && argv[0].isObject() &&
-        argv[0].toObject().getClass() == &js_RegExpClass) {
-        *vp = argv[0];
-        return true;
+        if (argc >= 1 && argv[0].isObject() && argv[0].toObject().isRegExp() &&
+            (argc == 1 || argv[1].isUndefined()))
+        {
+            *vp = argv[0];
+            return true;
+        }
     }
 
     
