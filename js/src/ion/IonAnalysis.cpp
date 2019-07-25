@@ -48,6 +48,33 @@
 using namespace js;
 using namespace js::ion;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class TypeAnalyzer
 {
     MIRGenerator *gen;
@@ -62,8 +89,8 @@ class TypeAnalyzer
     TypeAnalyzer(MIRGenerator *gen, MIRGraph &graph);
 
     bool analyze();
-    bool inspectOperands(MInstruction *ins);
-    bool reflow(MInstruction *ins);
+    void inspectOperands(MInstruction *ins);
+    bool propagateUsedTypes(MInstruction *ins);
 };
 
 TypeAnalyzer::TypeAnalyzer(MIRGenerator *gen, MIRGraph &graph)
@@ -91,25 +118,42 @@ TypeAnalyzer::popFromWorklist()
     return ins;
 }
 
-bool
+void
 TypeAnalyzer::inspectOperands(MInstruction *ins)
 {
     for (size_t i = 0; i < ins->numOperands(); i++) {
+        MIRType required = ins->requiredInputType(i);
+        if (required >= MIRType_Value)
+            continue;
+        ins->getInput(i)->useAsType(required);
     }
-    return true;
 }
 
 bool
-TypeAnalyzer::reflow(MInstruction *ins)
+TypeAnalyzer::propagateUsedTypes(MInstruction *ins)
 {
-    for (size_t i = 0; i < ins->numOperands(); i++) {
-        if (!addToWorklist(ins->getOperand(i)->ins()))
-            return false;
+    
+    if (ins->isCopy()) {
+        MCopy *copy = ins->toCopy();
+        MInstruction *input = copy->getInput(0);
+        input->addUsedTypes(copy->usedTypes());
+        return true;
     }
-    for (MUseIterator iter(ins); iter.more(); iter.next()) {
-        if (!addToWorklist(iter->ins()))
-            return false;
+
+    
+    MPhi *phi = ins->toPhi();
+    for (size_t i = 0; i < phi->numOperands(); i++) {
+        MInstruction *input = phi->getInput(i);
+        bool changed = input->addUsedTypes(phi->usedTypes());
+        if (changed && (input->isPhi() || ins->isCopy())) {
+            
+            
+            
+            if (!addToWorklist(input))
+                return false;
+        }
     }
+
     return true;
 }
 
@@ -117,22 +161,29 @@ bool
 TypeAnalyzer::analyze()
 {
     
+    
     for (size_t i = 0; i < graph.numBlocks(); i++) {
         MBasicBlock *block = graph.getBlock(i);
         for (size_t i = 0; i < block->numPhis(); i++) {
             if (!addToWorklist(block->getPhi(i)))
                 return false;
         }
-        for (size_t i = 0; i < block->numInstructions(); i++) {
-            if (!addToWorklist(block->getInstruction(i)))
+        for (MInstructionIterator i = block->begin(); i != block->end(); i++) {
+            if (!addToWorklist(*i))
                 return false;
         }
     }
 
     while (!worklist.empty()) {
         MInstruction *ins = popFromWorklist();
-        if (!inspectOperands(ins))
-            return false;
+        if (ins->isPhi() || ins->isCopy()) {
+            if (!propagateUsedTypes(ins))
+                return false;
+        } else {
+            
+            
+            inspectOperands(ins);
+        }
     }
 
     return true;
