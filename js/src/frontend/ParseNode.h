@@ -99,7 +99,7 @@ enum ParseNodeKind {
     PNK_CASE,
     PNK_DEFAULT,
     PNK_WHILE,
-    PNK_DO,
+    PNK_DOWHILE,
     PNK_FOR,
     PNK_BREAK,
     PNK_CONTINUE,
