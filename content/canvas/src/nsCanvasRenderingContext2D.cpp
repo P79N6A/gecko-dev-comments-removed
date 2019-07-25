@@ -74,6 +74,7 @@
 
 #include "nsCSSParser.h"
 #include "nsICSSStyleRule.h"
+#include "mozilla/css/Declaration.h"
 #include "nsComputedDOMStyle.h"
 #include "nsStyleSet.h"
 
@@ -2307,6 +2308,23 @@ nsCanvasRenderingContext2D::SetFont(const nsAString& font)
     if (NS_FAILED(rv))
         return rv;
 
+    css::Declaration *declaration = rule->GetDeclaration();
+    
+    
+    
+    
+    
+    
+    const nsCSSValue *fsaVal =
+      declaration->GetNormalBlock()->
+        ValueStorageFor(eCSSProperty_font_size_adjust);
+    if (!fsaVal || (fsaVal->GetUnit() != eCSSUnit_None &&
+                    fsaVal->GetUnit() != eCSSUnit_System_Font)) {
+        
+        
+        return NS_OK;
+    }
+
     rules.AppendObject(rule);
 
     nsStyleSet* styleSet = presShell->StyleSet();
@@ -2375,7 +2393,13 @@ nsCanvasRenderingContext2D::SetFont(const nsAString& font)
                                                     &style,
                                                     presShell->GetPresContext()->GetUserFontSet());
     NS_ASSERTION(CurrentState().fontGroup, "Could not get font group");
-    CurrentState().font = font;
+
+    
+    
+    
+    
+    declaration->GetValue(eCSSProperty_font, CurrentState().font);
+
     return NS_OK;
 }
 
