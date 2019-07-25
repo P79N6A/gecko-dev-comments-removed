@@ -330,10 +330,12 @@ NewEngine.prototype = {
     let self = yield;
 
     
+    this._log.debug("Ensuring server crypto records are there");
 
     yield this._remoteSetup.async(this, self.cb);
 
     
+    this._log.debug("Calculating client changes");
 
     if (!this.lastSync) {
       
@@ -358,6 +360,7 @@ NewEngine.prototype = {
     }
 
     
+    this._log.debug("Downloading server changes");
 
     let newitems = new Collection(this.engineURL);
     newitems.modified = this.lastSync;
@@ -372,6 +375,7 @@ NewEngine.prototype = {
     
 
     
+    this._log.debug("Reconciling server/client changes");
 
     
     
@@ -386,10 +390,12 @@ NewEngine.prototype = {
         }
       }
     }
+    this._incoming = this.incoming.filter(function(i) i); 
     if (conflicts.length)
       this._log.warn("Conflicts found.  Conflicting server changes discarded");
 
     
+    this._log.debug("Applying server changes");
 
     let inc;
     while ((inc = this.incoming.pop())) {
@@ -399,6 +405,7 @@ NewEngine.prototype = {
     }
 
     
+    this._log.debug("Uploading client changes");
 
     if (this.outgoing.length) {
       let up = new Collection(this.engineURL);
@@ -416,6 +423,7 @@ NewEngine.prototype = {
     }
 
     
+    this._log.debug("Saving snapshot for next sync");
 
     this._snapshot.data = this._store.wrap();
     this._snapshot.save();
