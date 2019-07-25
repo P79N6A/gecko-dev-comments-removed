@@ -872,10 +872,6 @@ WebGLContext::DrawArrays(GLenum mode, WebGLint first, WebGLsizei count)
         return ErrorInvalidValue("DrawArrays: negative first or count");
 
     
-    if (count == 0)
-        return NS_OK;
-
-    
     
     if (!mCurrentProgram)
         return NS_OK;
@@ -886,7 +882,11 @@ WebGLContext::DrawArrays(GLenum mode, WebGLint first, WebGLsizei count)
         return ErrorInvalidOperation("drawArrays: overflow in first+count");
 
     if (!ValidateBuffers(checked_firstPlusCount.value()))
-        return ErrorInvalidOperation("DrawArrays: bound vertex attribute buffers do not have sufficient data for given first and count");
+        return ErrorInvalidOperation("DrawArrays: bound vertex attribute buffers do not have sufficient size for given first and count");
+
+    
+    if (count == 0)
+        return NS_OK;
 
     MakeContextCurrent();
 
@@ -932,10 +932,6 @@ WebGLContext::DrawElements(WebGLenum mode, WebGLsizei count, WebGLenum type, Web
         return ErrorInvalidValue("DrawElements: overflow in byteCount");
 
     
-    if (count == 0)
-        return NS_OK;
-
-    
     
     if (!mCurrentProgram)
         return NS_OK;
@@ -966,8 +962,12 @@ WebGLContext::DrawElements(WebGLenum mode, WebGLsizei count, WebGLenum type, Web
         return ErrorInvalidOperation("drawElements: overflow in maxIndex+1");
     if (!ValidateBuffers(checked_neededCount.value())) {
         return ErrorInvalidOperation("DrawElements: bound vertex attribute buffers do not have sufficient "
-                                     "data for given indices from the bound element array");
+                                     "size for given indices from the bound element array");
     }
+
+    
+    if (count == 0)
+        return NS_OK;
 
     MakeContextCurrent();
 
