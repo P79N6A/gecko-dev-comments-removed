@@ -293,6 +293,12 @@ public:
   
   
   virtual void UpdatePlaybackPosition(PRInt64 aTime) = 0;
+
+  
+  
+  
+  
+  virtual void StartBuffering() = 0;
 };
 
 class nsBuiltinDecoder : public nsMediaDecoder
@@ -393,7 +399,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   
   
-  virtual void Resume();
+  virtual void Resume(PRBool aForceBuffering);
 
   
   virtual void MoveLoadsToBackground();

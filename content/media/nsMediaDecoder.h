@@ -210,7 +210,9 @@ public:
   
   
   
-  virtual void Resume() = 0;
+  
+  
+  virtual void Resume(PRBool aForceBuffering) = 0;
 
   
   
@@ -233,6 +235,10 @@ public:
   void SetVideoData(const gfxIntSize& aSize,
                     float aPixelAspectRatio,
                     Image* aImage);
+
+  
+  
+  PRBool CanPlayThrough();
 
 protected:
 

@@ -1010,7 +1010,7 @@ void nsHTMLMediaElement::StopSuspendingAfterFirstFrame()
     return;
   mSuspendedAfterFirstFrame = PR_FALSE;
   if (mDecoder) {
-    mDecoder->Resume();
+    mDecoder->Resume(PR_TRUE);
   }
 }
 
@@ -1662,11 +1662,6 @@ PRBool nsHTMLMediaElement::ShouldCheckAllowOrigin()
                                      PR_TRUE);
 }
 
-
-
-
-static const PRInt32 gDownloadSizeSafetyMargin = 1000000;
-
 void nsHTMLMediaElement::UpdateReadyStateForData(NextFrameStatus aNextFrame)
 {
   if (mReadyState < nsIDOMHTMLMediaElement::HAVE_METADATA) {
@@ -1676,8 +1671,6 @@ void nsHTMLMediaElement::UpdateReadyStateForData(NextFrameStatus aNextFrame)
     
     return;
   }
-
-  nsMediaDecoder::Statistics stats = mDecoder->GetStatistics();
 
   if (aNextFrame != NEXT_FRAME_AVAILABLE) {
     ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA);
@@ -1694,24 +1687,16 @@ void nsHTMLMediaElement::UpdateReadyStateForData(NextFrameStatus aNextFrame)
   
   
   
+  
+  
+  nsMediaDecoder::Statistics stats = mDecoder->GetStatistics();
   if (stats.mTotalBytes < 0 ? stats.mDownloadRateReliable :
-                              stats.mTotalBytes == stats.mDownloadPosition) {
+                              stats.mTotalBytes == stats.mDownloadPosition ||
+      mDecoder->CanPlayThrough())
+  {
     ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
     return;
   }
-
-  if (stats.mDownloadRateReliable && stats.mPlaybackRateReliable) {
-    PRInt64 bytesToDownload = stats.mTotalBytes - stats.mDownloadPosition;
-    PRInt64 bytesToPlayback = stats.mTotalBytes - stats.mPlaybackPosition;
-    double timeToDownload =
-      (bytesToDownload + gDownloadSizeSafetyMargin)/stats.mDownloadRate;
-    double timeToPlay = bytesToPlayback/stats.mPlaybackRate;
-    if (timeToDownload <= timeToPlay) {
-      ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
-      return;
-    }
-  }
-
   ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_FUTURE_DATA);
 }
 
@@ -1951,7 +1936,7 @@ void nsHTMLMediaElement::NotifyOwnerDocumentActivityChanged()
         mDecoder->Pause();
         mDecoder->Suspend();
       } else {
-        mDecoder->Resume();
+        mDecoder->Resume(PR_FALSE);
         if (!mPaused && !mDecoder->IsEnded()) {
           mDecoder->Play();
         }

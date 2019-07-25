@@ -168,6 +168,7 @@ public:
   virtual void ClearPositionChangeFlag();
   virtual void SetSeekable(PRBool aSeekable);
   virtual void UpdatePlaybackPosition(PRInt64 aTime);
+  virtual void StartBuffering();
 
 
   

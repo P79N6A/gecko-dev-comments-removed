@@ -219,7 +219,7 @@ class nsWaveDecoder : public nsMediaDecoder
   
   
   
-  virtual void Resume();
+  virtual void Resume(PRBool aForceBuffering);
 
   
   
