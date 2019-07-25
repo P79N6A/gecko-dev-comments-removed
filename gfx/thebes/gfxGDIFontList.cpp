@@ -103,6 +103,8 @@ BuildKeyNameFromFontName(nsAString &aName)
 
 
 
+static HMODULE fontlib;
+
 class WinUserFontData : public gfxUserFontData {
 public:
     WinUserFontData(HANDLE aFontRef, bool aIsEmbedded)
@@ -563,6 +565,12 @@ GDIFontFamily::FindStyleVariations()
 gfxGDIFontList::gfxGDIFontList()
 {
     mFontSubstitutes.Init(50);
+
+    
+    
+    if (!fontlib) {
+        fontlib = LoadLibraryW(L"t2embed.dll");
+    }
 }
 
 static void
@@ -851,6 +859,10 @@ gfxGDIFontList::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
         const PRUint8 *mFontData;
     };
     FontDataDeleter autoDelete(aFontData);
+
+    
+    if (!fontlib)
+        return nsnull;
 
     bool hasVertical;
     bool isCFF = gfxFontUtils::IsCffFont(aFontData, hasVertical);
