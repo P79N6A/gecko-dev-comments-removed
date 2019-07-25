@@ -1026,9 +1026,9 @@ nsEditingSession::EndDocumentLoad(nsIWebProgress *aWebProgress,
     {
       
       
-      PRBool needsSetup;
+      bool needsSetup = false;
       if (mMakeWholeDocumentEditable) {
-        needsSetup = PR_TRUE;
+        needsSetup = true;
       } else {
         
         nsCOMPtr<nsIEditor> editor;

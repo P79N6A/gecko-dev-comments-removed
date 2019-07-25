@@ -224,15 +224,18 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE_AMBIGUOUS(nsEditor, nsIEditor)
 NS_IMETHODIMP
 nsEditor::Init(nsIDOMDocument *aDoc, nsIPresShell* aPresShell, nsIContent *aRoot, nsISelectionController *aSelCon, PRUint32 aFlags)
 {
-  NS_PRECONDITION(nsnull!=aDoc && nsnull!=aPresShell, "bad arg");
-  if ((nsnull==aDoc) || (nsnull==aPresShell))
+  NS_PRECONDITION(aDoc && aPresShell, "bad arg");
+  if (!aDoc || !aPresShell)
     return NS_ERROR_NULL_POINTER;
 
   
   
   
   
-  nsresult rv = SetFlags(aFlags);
+#ifdef DEBUG
+  nsresult rv =
+#endif
+  SetFlags(aFlags);
   NS_ASSERTION(NS_SUCCEEDED(rv), "SetFlags() failed");
 
   mDocWeak = do_GetWeakReference(aDoc);  
@@ -2874,7 +2877,7 @@ nsEditor::JoinNodesImpl(nsIDOMNode * aNodeToKeep,
                         PRBool       aNodeToKeepIsFirst)
 {
   NS_ASSERTION(aNodeToKeep && aNodeToJoin && aParent, "null arg");
-  nsresult result;
+  nsresult result = NS_OK;
   if (aNodeToKeep && aNodeToJoin && aParent)
   {
     

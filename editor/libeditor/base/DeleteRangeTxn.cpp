@@ -253,7 +253,7 @@ DeleteRangeTxn::CreateTxnsToDeleteBetween(nsIDOMNode *aStartParent,
                                           PRUint32    aStartOffset, 
                                           PRUint32    aEndOffset)
 {
-  nsresult result;
+  nsresult result = NS_OK;
   
   nsCOMPtr<nsIDOMCharacterData> textNode = do_QueryInterface(aStartParent);
   if (textNode)

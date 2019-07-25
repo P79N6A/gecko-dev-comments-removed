@@ -1914,8 +1914,8 @@ nsWSRunObject::GetCharAt(nsIContent *aTextNode, PRInt32 aOffset)
   
   NS_ENSURE_TRUE(aTextNode, 0);
 
-  PRUint32 len = aTextNode->TextLength();
-  if (aOffset < 0 || aOffset >= PRUint32(len)) 
+  PRInt32 len = PRInt32(aTextNode->TextLength());
+  if (aOffset < 0 || aOffset >= len)
     return 0;
     
   return aTextNode->GetText()->CharAt(aOffset);
