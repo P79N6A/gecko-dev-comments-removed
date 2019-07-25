@@ -120,14 +120,28 @@ private:
 
   bool SetSuccessInternal(nsISupports* aObject);
 
+  
+
+
+
+
+  nsIDOMMozSmsCursor* GetCursor();
+
   jsval     mResult;
   bool      mResultRooted;
   ErrorType mError;
   bool      mDone;
+  nsCOMPtr<nsIDOMMozSmsCursor> mCursor;
 
   NS_DECL_EVENT_HANDLER(success)
   NS_DECL_EVENT_HANDLER(error)
 };
+
+inline nsIDOMMozSmsCursor*
+SmsRequest::GetCursor()
+{
+  return mCursor;
+}
 
 } 
 } 
