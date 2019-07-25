@@ -1,6 +1,9 @@
 
 
 
+.viewContainer {
+  font-size: inherit; 
+}
 
 .rulerLines {
   background: -moz-Dialog;
