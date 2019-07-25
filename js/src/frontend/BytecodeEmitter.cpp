@@ -4332,7 +4332,11 @@ EmitLet(JSContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
 #endif
 
 #if JS_HAS_XML_SUPPORT
-static bool
+
+
+
+
+MOZ_NEVER_INLINE static bool
 EmitXMLTag(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
     JS_ASSERT(!bce->sc->inStrictMode());
@@ -5455,7 +5459,11 @@ EmitLogical(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     return true;
 }
 
-static bool
+
+
+
+
+MOZ_NEVER_INLINE static bool
 EmitIncOrDec(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
     
@@ -5652,7 +5660,11 @@ EmitConditionalExpression(JSContext *cx, BytecodeEmitter *bce, ConditionalExpres
     return SetSrcNoteOffset(cx, bce, noteIndex, 0, jmp - beq);
 }
 
-static bool
+
+
+
+
+MOZ_NEVER_INLINE static bool
 EmitObject(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
 #if JS_HAS_DESTRUCTURING_SHORTHAND
