@@ -2188,7 +2188,7 @@ HUD_SERVICE.prototype =
             });
 
             
-            let linkNode = loggedNode.querySelector(".webconsole-msg-url");
+            let linkNode = loggedNode.querySelector(".webconsole-msg-link");
 
             httpActivity.messageObject = {
               messageNode: loggedNode,
@@ -2236,7 +2236,7 @@ HUD_SERVICE.prototype =
             let msgObject = httpActivity.messageObject;
 
             let updatePanel = false;
-            let data, textNode;
+            let data;
             
             httpActivity.timing[transCodes[aActivitySubtype]] = aTimestamp;
 
@@ -2287,24 +2287,16 @@ HUD_SERVICE.prototype =
                   aExtraStringData.split(/\r\n|\n|\r/)[0];
 
                 
-                
-                textNode = msgObject.linkNode.firstChild;
-                textNode.parentNode.removeChild(textNode);
+                let linkNode = msgObject.linkNode;
+                let statusNode = linkNode.
+                  querySelector(".webconsole-msg-status");
+                let statusText = "[" + httpActivity.response.status + "]";
+                statusNode.setAttribute("value", statusText);
 
-                data = [ httpActivity.url,
-                         httpActivity.response.status ];
-
-                
-                
-                let text = self.getFormatStr("networkUrlWithStatus", data);
-
-                
-                
-                let chromeDocument = msgObject.messageNode.ownerDocument;
-                msgObject.linkNode.appendChild(
-                  chromeDocument.createTextNode(text));
+                let clipboardTextPieces =
+                  [ httpActivity.method, httpActivity.url, statusText ];
                 msgObject.messageNode.clipboardText =
-                  msgObject.messageNode.textContent;
+                  clipboardTextPieces.join(" ");
 
                 let status = parseInt(httpActivity.response.status.
                   replace(/^HTTP\/\d\.\d (\d+).+$/, "$1"));
@@ -2326,26 +2318,20 @@ HUD_SERVICE.prototype =
                                 timing.REQUEST_HEADER) / 1000);
 
                 
-                
-                textNode = msgObject.linkNode.firstChild;
-                textNode.parentNode.removeChild(textNode);
+                let linkNode = msgObject.linkNode;
+                let statusNode = linkNode.
+                  querySelector(".webconsole-msg-status");
 
-                data = [ httpActivity.url,
-                         httpActivity.response.status,
-                         requestDuration ];
+                let statusText = httpActivity.response.status;
+                let timeText = self.getFormatStr("NetworkPanel.durationMS",
+                                                 [ requestDuration ]);
+                let fullStatusText = "[" + statusText + " " + timeText + "]";
+                statusNode.setAttribute("value", fullStatusText);
 
-                
-                
-                let text = self.getFormatStr("networkUrlWithStatusAndDuration",
-                                             data);
-
-                
-                
-                let chromeDocument = msgObject.messageNode.ownerDocument;
-                msgObject.linkNode.appendChild(
-                  chromeDocument.createTextNode(text));
+                let clipboardTextPieces =
+                  [ httpActivity.method, httpActivity.url, fullStatusText ];
                 msgObject.messageNode.clipboardText =
-                  msgObject.messageNode.textContent;
+                  clipboardTextPieces.join(" ");
 
                 delete self.openRequests[item.id];
                 updatePanel = true;
@@ -2452,18 +2438,35 @@ HUD_SERVICE.prototype =
     let outputNode = this.hudReferences[hudId].outputNode;
 
     let chromeDocument = outputNode.ownerDocument;
-    let msgNode = chromeDocument.createElementNS(HTML_NS, "html:span");
+    let msgNode = chromeDocument.createElementNS(XUL_NS, "xul:hbox");
 
-    
-    let method = chromeDocument.createTextNode(aActivityObject.method + " ");
-    msgNode.appendChild(method);
+    let methodNode = chromeDocument.createElementNS(XUL_NS, "xul:label");
+    methodNode.setAttribute("value", aActivityObject.method);
+    methodNode.classList.add("webconsole-msg-body-piece");
+    msgNode.appendChild(methodNode);
 
-    
-    let linkNode = chromeDocument.createElementNS(HTML_NS, "html:span");
-    linkNode.appendChild(chromeDocument.createTextNode(aActivityObject.url));
-    linkNode.classList.add("hud-clickable");
-    linkNode.classList.add("webconsole-msg-url");
+    let linkNode = chromeDocument.createElementNS(XUL_NS, "xul:hbox");
+    linkNode.setAttribute("flex", "1");
+    linkNode.classList.add("webconsole-msg-body-piece");
+    linkNode.classList.add("webconsole-msg-link");
     msgNode.appendChild(linkNode);
+
+    let urlNode = chromeDocument.createElementNS(XUL_NS, "xul:label");
+    urlNode.setAttribute("crop", "center");
+    urlNode.setAttribute("flex", "1");
+    urlNode.setAttribute("title", aActivityObject.url);
+    urlNode.setAttribute("value", aActivityObject.url);
+    urlNode.classList.add("hud-clickable");
+    urlNode.classList.add("webconsole-msg-body-piece");
+    urlNode.classList.add("webconsole-msg-url");
+    linkNode.appendChild(urlNode);
+
+    let statusNode = chromeDocument.createElementNS(XUL_NS, "xul:label");
+    statusNode.setAttribute("value", "");
+    statusNode.classList.add("hud-clickable");
+    statusNode.classList.add("webconsole-msg-body-piece");
+    statusNode.classList.add("webconsole-msg-status");
+    linkNode.appendChild(statusNode);
 
     let clipboardText = aActivityObject.method + " " + aActivityObject.url;
 

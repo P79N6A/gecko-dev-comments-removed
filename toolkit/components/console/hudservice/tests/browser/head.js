@@ -96,13 +96,18 @@ function addTab(aURL)
 
 
 
+
+
 function testLogEntry(aOutputNode, aMatchString, aMsg, aOnlyVisible,
-                      aFailIfFound)
+                      aFailIfFound, aClass)
 {
   let selector = ".hud-msg-node";
   
   if (aOnlyVisible) {
     selector += ":not(.hud-filtered-by-type)";
+  }
+  if (aClass) {
+    selector += "." + aClass;
   }
 
   let msgs = aOutputNode.querySelectorAll(selector);
@@ -113,8 +118,29 @@ function testLogEntry(aOutputNode, aMatchString, aMsg, aOnlyVisible,
       found = true;
       break;
     }
+
+    
+    let labels = msgs[i].querySelectorAll("label");
+    for (let j = 0; j < labels.length; j++) {
+      if (labels[j].getAttribute("value").indexOf(aMatchString) > -1) {
+        found = true;
+        break;
+      }
+    }
   }
+
   is(found, !aFailIfFound, aMsg);
+}
+
+
+
+
+
+
+
+function findLogEntry(aString)
+{
+  testLogEntry(outputNode, aString, "found " + aString);
 }
 
 function openConsole()

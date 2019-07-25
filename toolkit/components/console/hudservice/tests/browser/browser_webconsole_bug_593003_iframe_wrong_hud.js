@@ -35,6 +35,7 @@
 
 
 
+
 const TEST_URI = "http://example.com/browser/toolkit/components/console/hudservice/tests/browser/test-bug-593003-iframe-wrong-hud.html";
 
 const TEST_IFRAME_URI = "http://example.com/browser/toolkit/components/console/hudservice/tests/browser/test-bug-593003-iframe-wrong-hud-iframe.html";
