@@ -39,7 +39,7 @@
 #define FileIOObject_h__
 
 #include "nsIDOMEventTarget.h"
-#include "nsDOMEventTargetWrapperCache.h"
+#include "nsDOMEventTargetHelper.h"
 #include "nsIChannel.h"
 #include "nsIFile.h"
 #include "nsIDOMFile.h"
@@ -57,7 +57,7 @@ extern const PRUint64 kUnknownSize;
 
 
 
-class FileIOObject : public nsDOMEventTargetWrapperCache,
+class FileIOObject : public nsDOMEventTargetHelper,
                      public nsIStreamListener,
                      public nsITimerCallback
 {
@@ -82,7 +82,7 @@ public:
   NS_DECL_NSIREQUESTOBSERVER
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(FileIOObject,
-                                           nsDOMEventTargetWrapperCache)
+                                           nsDOMEventTargetHelper)
 
 protected:
   
