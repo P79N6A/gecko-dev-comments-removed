@@ -880,9 +880,9 @@ var gSyncSetup = {
   
   _setFeedback: function (element, success, string) {
     element.hidden = success || !string;
-    let class = success ? "success" : "error";
+    let classname = success ? "success" : "error";
     let image = element.getElementsByAttribute("class", "statusIcon")[0];
-    image.setAttribute("status", class);
+    image.setAttribute("status", classname);
     let label = element.getElementsByAttribute("class", "status")[0];
     label.value = string;
   },

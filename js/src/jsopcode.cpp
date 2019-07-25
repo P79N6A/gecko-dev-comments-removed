@@ -4613,12 +4613,10 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                 break;
 #endif 
 
-#if JS_HAS_DEBUGGER_KEYWORD
               case JSOP_DEBUGGER:
                 js_printf(jp, "\tdebugger;\n");
                 todo = -2;
                 break;
-#endif 
 
 #if JS_HAS_XML_SUPPORT
               case JSOP_STARTXML:
