@@ -875,7 +875,7 @@ WebGLContext::DrawElements(WebGLenum mode, WebGLsizei count, WebGLenum type, Web
     if (!mBoundElementArrayBuffer)
         return ErrorInvalidOperation("DrawElements: must have element array buffer binding");
 
-    if (byteOffset+byteCount < byteOffset || byteOffset+byteCount < byteCount)
+    if (byteOffset+byteCount < WebGLuint(byteOffset) || byteOffset+byteCount < byteCount)
         return ErrorInvalidOperation("DrawElements: overflow in byteOffset+byteCount");
 
     if (byteOffset + byteCount > mBoundElementArrayBuffer->ByteLength())
@@ -1042,16 +1042,15 @@ WebGLContext::GetActiveAttrib(nsIWebGLProgram *pobj, PRUint32 index, nsIWebGLAct
     GLint len = 0;
     gl->fGetProgramiv(progname, LOCAL_GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &len);
     if (len == 0) {
-        
         *retval = nsnull;
         return NS_OK;
     }
 
-    nsAutoArrayPtr<char> name(new char[len+1]);
+    nsAutoArrayPtr<char> name(new char[len]);
     PRInt32 attrsize = 0;
     PRUint32 attrtype = 0;
 
-    gl->fGetActiveAttrib(progname, index, len+1, &len, (GLint*) &attrsize, (WebGLuint*) &attrtype, name);
+    gl->fGetActiveAttrib(progname, index, len, &len, (GLint*) &attrsize, (WebGLuint*) &attrtype, name);
     if (attrsize == 0 || attrtype == 0) {
         *retval = nsnull;
         return NS_OK;
@@ -1082,16 +1081,20 @@ WebGLContext::GetActiveUniform(nsIWebGLProgram *pobj, PRUint32 index, nsIWebGLAc
 
     GLint len = 0;
     gl->fGetProgramiv(progname, LOCAL_GL_ACTIVE_UNIFORM_MAX_LENGTH, &len);
-    if (len == 0)
-        return NS_ERROR_FAILURE; 
+    if (len == 0) {
+        *retval = nsnull;
+        return NS_OK;
+    }
 
-    nsAutoArrayPtr<char> name(new char[len+1]);
+    nsAutoArrayPtr<char> name(new char[len]);
     PRInt32 attrsize = 0;
     PRUint32 attrtype = 0;
 
-    gl->fGetActiveUniform(progname, index, len+1, &len, (GLint*) &attrsize, (WebGLenum*) &attrtype, name);
-    if (attrsize == 0 || attrtype == 0)
-        return NS_ERROR_FAILURE; 
+    gl->fGetActiveUniform(progname, index, len, &len, (GLint*) &attrsize, (WebGLenum*) &attrtype, name);
+    if (len == 0 || attrsize == 0 || attrtype == 0) {
+        *retval = nsnull;
+        return NS_OK;
+    }
 
     JSObjectHelper retobj(&js);
     retobj.DefineProperty("size", attrsize);
@@ -1771,7 +1774,6 @@ WebGLContext::GetTexParameter(WebGLenum target, WebGLenum pname)
 }
 
 
-
 NS_IMETHODIMP
 WebGLContext::GetUniform(nsIWebGLProgram *pobj, nsIWebGLUniformLocation *ploc)
 {
@@ -1797,15 +1799,15 @@ WebGLContext::GetUniform(nsIWebGLProgram *pobj, nsIWebGLUniformLocation *ploc)
     MakeContextCurrent();
 
     GLint uniforms = 0;
+    GLint uniformNameMaxLength = 0;
     gl->fGetProgramiv(progname, LOCAL_GL_ACTIVE_UNIFORMS, &uniforms);
+    gl->fGetProgramiv(progname, LOCAL_GL_ACTIVE_UNIFORM_MAX_LENGTH, &uniformNameMaxLength);
 
     
     
     
     GLenum uniformType = 0;
-    GLint uniformNameMaxLength = 0;
-    gl->fGetProgramiv(progname, LOCAL_GL_ACTIVE_UNIFORM_MAX_LENGTH, &uniformNameMaxLength);
-    nsAutoArrayPtr<GLchar> uniformName(new GLchar[uniformNameMaxLength+1]);
+    nsAutoArrayPtr<GLchar> uniformName(new GLchar[uniformNameMaxLength]);
     GLint index;
     for (index = 0; index < uniforms; ++index) {
         GLsizei dummyLength;
@@ -2016,7 +2018,12 @@ WebGLContext::LinkProgram(nsIWebGLProgram *pobj)
 
     GLint ok;
     gl->fGetProgramiv(progname, LOCAL_GL_LINK_STATUS, &ok);
-    program->SetLinkStatus(ok ? PR_TRUE : PR_FALSE);
+    if (ok) {
+        program->SetLinkStatus(PR_TRUE);
+        program->UpdateInfo(gl);
+    } else {
+        program->SetLinkStatus(PR_FALSE);
+    }
 
     return NS_OK;
 }
@@ -2655,60 +2662,6 @@ WebGLContext::VertexAttribPointer(WebGLuint index, WebGLint size, WebGLenum type
                              (void*) (byteOffset));
 
     return NS_OK;
-}
-
-PRBool
-WebGLContext::ValidateGL()
-{
-    
-    GLint val = 0;
-
-    
-    
-
-    gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_ATTRIBS, &val);
-    if (val == 0) {
-        LogMessage("GL_MAX_VERTEX_ATTRIBS is 0!");
-        return PR_FALSE;
-    }
-
-    mAttribBuffers.SetLength(val);
-
-    
-
-    
-    
-    
-    
-    gl->fGetIntegerv(LOCAL_GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &val);
-    if (val == 0) {
-        LogMessage("GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS is 0!");
-        return PR_FALSE;
-    }
-
-    mBound2DTextures.SetLength(val);
-    mBoundCubeMapTextures.SetLength(val);
-
-    
-
-    gl->fGetIntegerv(LOCAL_GL_MAX_COLOR_ATTACHMENTS, &val);
-    mFramebufferColorAttachments.SetLength(val);
-
-#if defined(DEBUG_vladimir) && defined(USE_GLES2)
-    gl->fGetIntegerv(LOCAL_GL_IMPLEMENTATION_COLOR_READ_FORMAT, &val);
-    fprintf(stderr, "GL_IMPLEMENTATION_COLOR_READ_FORMAT: 0x%04x\n", val);
-
-    gl->fGetIntegerv(LOCAL_GL_IMPLEMENTATION_COLOR_READ_TYPE, &val);
-    fprintf(stderr, "GL_IMPLEMENTATION_COLOR_READ_TYPE: 0x%04x\n", val);
-#endif
-
-#ifndef USE_GLES2
-    
-    
-    gl->fEnable(LOCAL_GL_VERTEX_PROGRAM_POINT_SIZE);
-#endif
-
-    return PR_TRUE;
 }
 
 NS_IMETHODIMP
