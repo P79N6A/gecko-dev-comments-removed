@@ -55,6 +55,8 @@ struct Vertex {
 
 ID2D1Factory *DrawTargetD2D::mFactory;
 IDWriteFactory *DrawTargetD2D::mDWriteFactory;
+uint64_t DrawTargetD2D::mVRAMUsageDT;
+uint64_t DrawTargetD2D::mVRAMUsageSS;
 
 
 
@@ -161,20 +163,24 @@ DrawTargetD2D::~DrawTargetD2D()
     PopAllClips();
 
     mRT->EndDraw();
+
+    mVRAMUsageDT -= GetByteSize();
   }
   if (mTempRT) {
     mTempRT->EndDraw();
+
+    mVRAMUsageDT -= GetByteSize();
   }
 
   if (mSnapshot) {
     
-	
-	
+    
+    
     RefPtr<SourceSurfaceD2DTarget> deathGrip = mSnapshot;
-	
-	
-	deathGrip->MarkIndependent();
-	
+    
+    
+    deathGrip->MarkIndependent();
+    
   }
 
   
@@ -1274,6 +1280,12 @@ DrawTargetD2D::InitD3D10Data()
 
 
 
+uint32_t
+DrawTargetD2D::GetByteSize() const
+{
+  return mSize.width * mSize.height * BytesPerPixel(mFormat);
+}
+
 bool
 DrawTargetD2D::InitD2DRenderTarget()
 {
@@ -1292,6 +1304,8 @@ DrawTargetD2D::InitD2DRenderTarget()
   if (mFormat == FORMAT_B8G8R8X8) {
     mRT->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
   }
+
+  mVRAMUsageDT += GetByteSize();
 
   return InitD3D10Data();
 }
@@ -1440,6 +1454,8 @@ DrawTargetD2D::GetRTForOperation(CompositionOp aOperator, const Pattern &aPatter
   if (!mTempRT) {
     return mRT;
   }
+
+  mVRAMUsageDT += GetByteSize();
 
   mTempRT->BeginDraw();
 
