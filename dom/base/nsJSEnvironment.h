@@ -188,7 +188,7 @@ public:
 
   
   
-  static void CC(PRBool aDrawGraph);
+  static void CC();
 
   
   
