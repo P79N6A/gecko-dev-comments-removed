@@ -446,6 +446,8 @@ SyncEngine.prototype = {
 
       
       let mod = up.data.modified;
+      if (typeof(mod) == "string")
+	mod = parseInt(mod);
       if (mod > this.lastSync)
         this.lastSync = mod;
     }
