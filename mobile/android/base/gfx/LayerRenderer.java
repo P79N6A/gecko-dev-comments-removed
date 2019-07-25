@@ -623,7 +623,7 @@ public class LayerRenderer {
 
                 
 
-                if (!viewport.intersect(0, 0, mPageRect.width(), mPageRect.height())) {
+                if (!viewport.intersect(mPageRect)) {
                     
 
 
