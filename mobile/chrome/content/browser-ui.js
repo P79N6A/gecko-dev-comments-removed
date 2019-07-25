@@ -439,7 +439,8 @@ var BrowserUI = {
   },
 
   closeTab : function closeTab(aTab) {
-    Browser.closeTab(aTab);
+    
+    Browser.closeTab(aTab || Browser.selectedTab);
   },
 
   selectTab : function selectTab(aTab) {
