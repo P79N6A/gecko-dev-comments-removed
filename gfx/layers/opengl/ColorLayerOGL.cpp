@@ -50,7 +50,7 @@ RenderColorLayer(ColorLayer* aLayer, LayerManagerOGL *aManager,
   
 
   nsIntRect visibleRect = aLayer->GetEffectiveVisibleRegion().GetBounds();
-  
+
   
 
 
@@ -77,14 +77,14 @@ void
 ColorLayerOGL::RenderLayer(int,
                            const nsIntPoint& aOffset)
 {
-  return RenderColorLayer(this, mOGLManager, aOffset);
+  RenderColorLayer(this, mOGLManager, aOffset);
 }
 
 void
 ShadowColorLayerOGL::RenderLayer(int,
                                  const nsIntPoint& aOffset)
 {
-  return RenderColorLayer(this, mOGLManager, aOffset);
+  RenderColorLayer(this, mOGLManager, aOffset);
 }
 
 
