@@ -230,7 +230,9 @@ public:
   void AdjustScrollbarRectForResizer(nsIFrame* aFrame, nsPresContext* aPresContext,
                                      nsRect& aRect, PRBool aHasResizer, PRBool aVertical);
   
-  PRBool HasResizer() { return mResizerBox && !mCollapsedResizer; }
+  PRBool HasResizer() {
+      return mScrollCornerContent && mScrollCornerContent->Tag() == nsGkAtoms::resizer;
+  }
   void LayoutScrollbars(nsBoxLayoutState& aState,
                         const nsRect& aContentArea,
                         const nsRect& aOldScrollArea);
@@ -243,7 +245,6 @@ public:
   nsCOMPtr<nsIContent> mHScrollbarContent;
   nsCOMPtr<nsIContent> mVScrollbarContent;
   nsCOMPtr<nsIContent> mScrollCornerContent;
-  nsCOMPtr<nsIContent> mResizerContent;
 
   nsRevocableEventPtr<ScrollEvent> mScrollEvent;
   nsRevocableEventPtr<AsyncScrollPortEvent> mAsyncScrollPortEvent;
@@ -252,7 +253,6 @@ public:
   nsIBox* mVScrollbarBox;
   nsIFrame* mScrolledFrame;
   nsIBox* mScrollCornerBox;
-  nsIBox* mResizerBox;
   nsContainerFrame* mOuter;
   AsyncScroll* mAsyncScroll;
   nsTArray<nsIScrollPositionListener*> mListeners;
@@ -305,8 +305,6 @@ public:
   
   
   PRPackedBool mScrollbarsCanOverlapContent:1;
-  
-  PRPackedBool mCollapsedResizer:1;
 };
 
 
