@@ -64,12 +64,6 @@ import android.util.Log;
 
 public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
     
-    private static final int MAX_HISTORY_COUNT = 250;
-
-    
-    public static final int TRUNCATE_N_OLDEST = 5;
-
-    
     
     private static final String LOGTAG = "GeckoLocalBrowserDB";
     private static boolean logDebug = Log.isLoggable(LOGTAG, Log.DEBUG);
@@ -207,34 +201,6 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
                               BrowserDB.ABOUT_PAGES_URL_FILTER);
     }
 
-    private void truncateHistory(ContentResolver cr) {
-        Cursor cursor = null;
-
-        try {
-            cursor = cr.query(mHistoryUriWithProfile,
-                              new String[] { History._ID },
-                              null,
-                              null,
-                              History.DATE_LAST_VISITED + " ASC");
-
-            if (cursor.getCount() < MAX_HISTORY_COUNT)
-                return;
-
-            if (cursor.moveToFirst()) {
-                for (int i = 0; i < TRUNCATE_N_OLDEST; i++) {
-                    Uri historyUri = ContentUris.withAppendedId(History.CONTENT_URI, cursor.getLong(0)); 
-                    cr.delete(appendProfile(historyUri), null, null);
-
-                    if (!cursor.moveToNext())
-                        break;
-                }
-            }
-        } finally {
-            if (cursor != null)
-                cursor.close();
-        }
-    }
-
     public void updateVisitedHistory(ContentResolver cr, String uri) {
         ContentValues values = new ContentValues();
 
@@ -244,15 +210,10 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
 
         
         
-        int updated = cr.update(mUpdateHistoryUriWithProfile,
-                                values,
-                                History.URL + " = ?",
-                                new String[] { uri });
-
-        
-        
-        if (updated == 0)
-            truncateHistory(cr);
+        cr.update(mUpdateHistoryUriWithProfile,
+                  values,
+                  History.URL + " = ?",
+                  new String[] { uri });
     }
 
     public void updateHistoryTitle(ContentResolver cr, String uri, String title) {
@@ -320,10 +281,6 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
                             History.DATE_LAST_VISITED + " DESC");
 
         return new LocalDBCursor(c);
-    }
-
-    public int getMaxHistoryCount() {
-        return MAX_HISTORY_COUNT;
     }
 
     public void clearHistory(ContentResolver cr) {
