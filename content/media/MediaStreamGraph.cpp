@@ -1413,6 +1413,10 @@ MediaStreamGraphImpl::RunInStableState()
   NS_ASSERTION(NS_IsMainThread(), "Must be called on main thread");
 
   nsTArray<nsCOMPtr<nsIRunnable> > runnables;
+  
+  
+  
+  nsTArray<nsAutoPtr<ControlMessage> > controlMessagesToRunDuringShutdown;
 
   {
     MonitorAutoLock lock(mMonitor);
@@ -1428,17 +1432,13 @@ MediaStreamGraphImpl::RunInStableState()
     mStreamUpdates.Clear();
 
     if (mLifecycleState == LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP && mForceShutDown) {
+      
       for (PRUint32 i = 0; i < mMessageQueue.Length(); ++i) {
         MessageBlock& mb = mMessageQueue[i];
-        for (PRUint32 j = 0; j < mb.mMessages.Length(); ++j) {
-          mb.mMessages[j]->RunDuringShutdown();
-        }
+        controlMessagesToRunDuringShutdown.MoveElementsFrom(mb.mMessages);
       }
       mMessageQueue.Clear();
-      for (PRUint32 i = 0; i < mCurrentTaskMessageQueue.Length(); ++i) {
-        mCurrentTaskMessageQueue[i]->RunDuringShutdown();
-      }
-      mCurrentTaskMessageQueue.Clear();
+      controlMessagesToRunDuringShutdown.MoveElementsFrom(mCurrentTaskMessageQueue);
       
       
       mLifecycleState = LIFECYCLE_WAITING_FOR_THREAD_SHUTDOWN;
@@ -1496,6 +1496,9 @@ MediaStreamGraphImpl::RunInStableState()
 
   for (PRUint32 i = 0; i < runnables.Length(); ++i) {
     runnables[i]->Run();
+  }
+  for (PRUint32 i = 0; i < controlMessagesToRunDuringShutdown.Length(); ++i) {
+    controlMessagesToRunDuringShutdown[i]->RunDuringShutdown();
   }
 }
 
