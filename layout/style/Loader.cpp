@@ -225,6 +225,8 @@ public:
   
   
   
+  
+  
   PRPackedBool               mMustNotify : 1;
 
   
@@ -1828,18 +1830,19 @@ Loader::LoadStyleLink(nsIContent* aElement,
   rv = InsertSheetInDoc(sheet, aElement, mDocument);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  nsCOMPtr<nsIStyleSheetLinkingElement> owningElement(do_QueryInterface(aElement));
+
   if (state == eSheetComplete) {
     LOG(("  Sheet already complete: 0x%p",
          static_cast<void*>(sheet.get())));
-    if (aObserver || !mObservers.IsEmpty()) {
-      rv = PostLoadEvent(aURL, sheet, aObserver, *aIsAlternate);
+    if (aObserver || !mObservers.IsEmpty() || owningElement) {
+      rv = PostLoadEvent(aURL, sheet, aObserver, *aIsAlternate,
+                         owningElement);
       return rv;
     }
 
     return NS_OK;
   }
-
-  nsCOMPtr<nsIStyleSheetLinkingElement> owningElement(do_QueryInterface(aElement));
 
   
   SheetLoadData* data = new SheetLoadData(this, aTitle, aURL, sheet,
@@ -2092,7 +2095,7 @@ Loader::InternalLoadNonDocumentSheet(nsIURI* aURL,
   if (state == eSheetComplete) {
     LOG(("  Sheet already complete"));
     if (aObserver || !mObservers.IsEmpty()) {
-      rv = PostLoadEvent(aURL, sheet, aObserver, PR_FALSE);
+      rv = PostLoadEvent(aURL, sheet, aObserver, PR_FALSE, nsnull);
     }
     if (aSheet) {
       sheet.swap(*aSheet);
@@ -2123,17 +2126,19 @@ nsresult
 Loader::PostLoadEvent(nsIURI* aURI,
                       nsCSSStyleSheet* aSheet,
                       nsICSSLoaderObserver* aObserver,
-                      PRBool aWasAlternate)
+                      PRBool aWasAlternate,
+                      nsIStyleSheetLinkingElement* aElement)
 {
   LOG(("css::Loader::PostLoadEvent"));
   NS_PRECONDITION(aSheet, "Must have sheet");
-  NS_PRECONDITION(aObserver || !mObservers.IsEmpty(), "Must have observer");
+  NS_PRECONDITION(aObserver || !mObservers.IsEmpty() || aElement,
+                  "Must have observer or element");
 
   nsRefPtr<SheetLoadData> evt =
     new SheetLoadData(this, EmptyString(), 
                       aURI,
                       aSheet,
-                      nsnull,  
+                      aElement,
                       aWasAlternate,
                       aObserver,
                       nsnull);

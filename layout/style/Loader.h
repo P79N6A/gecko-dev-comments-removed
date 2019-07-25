@@ -58,6 +58,7 @@ class nsIContent;
 class nsIDocument;
 class nsCSSParser;
 class nsMediaList;
+class nsIStyleSheetLinkingElement;
 
 namespace mozilla {
 
@@ -423,10 +424,12 @@ private:
   
   
   
+  
   nsresult PostLoadEvent(nsIURI* aURI,
                          nsCSSStyleSheet* aSheet,
                          nsICSSLoaderObserver* aObserver,
-                         PRBool aWasAlternate);
+                         PRBool aWasAlternate,
+                         nsIStyleSheetLinkingElement* aElement);
 
   
   void StartAlternateLoads();
