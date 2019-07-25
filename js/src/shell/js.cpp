@@ -2319,16 +2319,15 @@ DisassembleValue(JSContext *cx, jsval v, bool lines, bool recursive, Sprinter *s
                 if (script->bindings.hasUpvars()) {
                     Sprint(sp, "\nupvars: {\n");
 
-                    void *mark = JS_ARENA_MARK(&cx->tempPool);
-                    jsuword *localNames = script->bindings.getLocalNameArray(cx, &cx->tempPool);
-                    if (!localNames)
+                    Vector<JSAtom *> localNames(cx);
+                    if (!script->bindings.getLocalNameArray(cx, &localNames))
                         return false;
 
                     JSUpvarArray *uva = script->upvars();
                     uintN upvar_base = script->bindings.countArgsAndVars();
 
                     for (uint32 i = 0, n = uva->length; i < n; i++) {
-                        JSAtom *atom = JS_LOCAL_NAME_TO_ATOM(localNames[upvar_base + i]);
+                        JSAtom *atom = localNames[upvar_base + i];
                         UpvarCookie cookie = uva->vector[i];
                         JSAutoByteString printable;
                         if (js_AtomToPrintableString(cx, atom, &printable)) {
@@ -2337,7 +2336,6 @@ DisassembleValue(JSContext *cx, jsval v, bool lines, bool recursive, Sprinter *s
                         }
                     }
 
-                    JS_ARENA_RELEASE(&cx->tempPool, mark);
                     Sprint(sp, "}");
                 }
             }
@@ -4715,18 +4713,7 @@ JSBool
 MJitDataStats(JSContext *cx, uintN argc, jsval *vp)
 {
 #ifdef JS_METHODJIT
-    JSRuntime *rt = cx->runtime;
-    AutoLockGC lock(rt);
-    size_t n = 0;
-    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c) {
-        for (JSScript *script = (JSScript *)(*c)->scripts.next;
-             &script->links != &(*c)->scripts;
-             script = (JSScript *)script->links.next)
-        {
-            n += script->jitDataSize(); 
-        }
-    }
-    JS_SET_RVAL(cx, vp, INT_TO_JSVAL(n));
+     JS_SET_RVAL(cx, vp, INT_TO_JSVAL(cx->runtime->mjitDataSize));
 #else
     JS_SET_RVAL(cx, vp, JSVAL_VOID);
 #endif

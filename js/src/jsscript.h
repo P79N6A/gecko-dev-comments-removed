@@ -274,16 +274,7 @@ class Bindings {
 
 
 
-
-
-
-
-
-
-
-
-    jsuword *
-    getLocalNameArray(JSContext *cx, JSArenaPool *pool);
+    bool getLocalNameArray(JSContext *cx, Vector<JSAtom *> *namesp);
 
     
 
@@ -347,8 +338,6 @@ class Bindings {
     bool extensibleParents() const { return hasExtensibleParents; }
 
     
-
-
 
 
 
@@ -575,9 +564,6 @@ struct JSScript {
             return JITScript_Invalid;
         return JITScript_Valid;
     }
-
-    
-    JS_FRIEND_API(size_t) jitDataSize();
 #endif
 
     JS_FRIEND_API(size_t) totalSize();  
