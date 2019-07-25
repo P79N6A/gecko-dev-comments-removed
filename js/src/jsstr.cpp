@@ -97,6 +97,21 @@ js_GetStringChars(JSContext *cx, JSString *str)
     return str->flatChars();
 }
 
+static JS_ALWAYS_INLINE size_t
+RopeCapacityFor(size_t length)
+{
+    static const size_t ROPE_DOUBLING_MAX = 1024 * 1024;
+
+    
+
+
+
+
+    if (length > ROPE_DOUBLING_MAX)
+        return length + (length / 8);
+    return RoundUpPow2(length);
+}
+
 void
 JSString::flatten()
 {
@@ -106,24 +121,6 @@ JSString::flatten()
 
 
 
-    JSString *topNode = this;
-    while (topNode->isInteriorNode())
-        topNode = topNode->interiorNodeParent();
-
-    const size_t length = topNode->length();
-    const size_t capacity = topNode->topNodeCapacity();
-    jschar *const chars = (jschar *) topNode->topNodeBuffer();
-
-    
-
-
-
-    topNode->e.mParent = NULL;
-#ifdef DEBUG
-    topNode->mLengthAndFlags = JSString::INTERIOR_NODE;
-#endif
-
-    
 
 
 
@@ -133,54 +130,79 @@ JSString::flatten()
 
 
 
-    JSString *str = topNode;
-    jschar *pos = chars;
-    while (true) {
-        
-        JS_ASSERT(str->isInteriorNode());
-        {
-            JSString *next = str->mLeft;
-            str->mChars = pos;  
-            if (next->isInteriorNode()) {
-                str->mLengthAndFlags = 0x200;  
-                str = next;
-                continue;  
-            } else {
-                size_t len = next->length();
-                PodCopy(pos, next->mChars, len);
-                pos += len;
-                goto visit_right_child;
-            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    const size_t wholeLength = length();
+    size_t wholeCapacity;
+    jschar *wholeChars;
+    JSString *str = this;
+    jschar *pos;
+
+    if (u.left->isExtensible() && u.left->s.capacity >= wholeLength) {
+        wholeCapacity = u.left->s.capacity;
+        wholeChars = u.left->u.chars;
+        pos = wholeChars + u.left->length();
+        u.left->finishTraversalConversion(this, wholeChars, pos);
+        goto visit_right_child;
+    }
+
+    wholeCapacity = RopeCapacityFor(wholeLength);
+    wholeChars = (jschar *)js_malloc((wholeCapacity + 1) * sizeof(jschar));
+    pos = wholeChars;
+    first_visit_node: {
+        JSString *left = str->u.left;           
+        str->u.chars = pos;
+        if (left->isRope()) {
+            left->s.parent = str;               
+            left->lengthAndFlags = 0x200;       
+            str = left;
+            goto first_visit_node;
         }
-
-      revisit_parent:
-        if (str->mLengthAndFlags == 0x200) {
-          visit_right_child:
-            JSString *next = str->e.mRight;
-            if (next->isInteriorNode()) {
-                str->mLengthAndFlags = 0x300;
-                str = next;
-                continue;  
-            } else {
-                size_t len = next->length();
-                PodCopy(pos, next->mChars, len);
-                pos += len;
-                goto finish_node;
-            }
-        } else {
-            JS_ASSERT(str->mLengthAndFlags == 0x300);
-          finish_node:
-            JSString *next = str->e.mParent;
-            str->finishTraversalConversion(topNode, pos);
-            if (!next) {
-                JS_ASSERT(pos == chars + length);
-                *pos = 0;
-                topNode->initFlatExtensible(chars, length, capacity);
-                return;
-            }
-            str = next;
-            goto revisit_parent;  
+        size_t len = left->length();
+        PodCopy(pos, left->u.chars, len);
+        pos += len;
+    }
+    visit_right_child: {
+        JSString *right = str->s.right;
+        if (right->isRope()) {
+            right->s.parent = str;              
+            right->lengthAndFlags = 0x300;      
+            str = right;
+            goto first_visit_node;
         }
+        size_t len = right->length();
+        PodCopy(pos, right->u.chars, len);
+        pos += len;
+    }
+    finish_node: {
+        if (str == this) {
+            JS_ASSERT(pos == wholeChars + wholeLength);
+            *pos = '\0';
+            initFlatExtensible(wholeChars, wholeLength, wholeCapacity);
+            return;
+        }
+        size_t progress = str->lengthAndFlags;  
+        JSString *parent = str->s.parent;
+        str->finishTraversalConversion(this, wholeChars, pos);
+        str = parent;
+        if (progress == 0x200)
+            goto visit_right_child;
+        goto finish_node;
     }
 }
 
@@ -201,143 +223,32 @@ JS_DEFINE_CALLINFO_1(extern, INT32, js_Flatten, STRING, 0, nanojit::ACCSET_STORE
 
 #endif 
 
-static JS_ALWAYS_INLINE size_t
-RopeAllocSize(const size_t length, size_t *capacity)
-{
-    static const size_t ROPE_DOUBLING_MAX = 1024 * 1024;
-
-    size_t size;
-    size_t minCap = (length + 1) * sizeof(jschar);
-
-    
-
-
-
-
-    if (length > ROPE_DOUBLING_MAX)
-        size = minCap + (minCap / 8);
-    else
-        size = RoundUpPow2(minCap);
-    *capacity = (size / sizeof(jschar)) - 1;
-    JS_ASSERT(size >= sizeof(JSRopeBufferInfo));
-    return size;
-}
-
-static JS_ALWAYS_INLINE JSRopeBufferInfo *
-ObtainRopeBuffer(JSContext *cx, bool usingLeft, bool usingRight,
-                 JSRopeBufferInfo *sourceBuffer, size_t length,
-                 JSString *left, JSString *right)
-{
-    JSRopeBufferInfo *buf;
-    size_t capacity;
-
-    
-
-
-
-
-
-    if (usingLeft)
-        left->nullifyTopNodeBuffer();
-    if (usingRight)
-        right->nullifyTopNodeBuffer();
-
-    
-
-
-
-    if (length <= sourceBuffer->capacity) {
-        buf = sourceBuffer;
-    } else {
-        size_t allocSize = RopeAllocSize(length, &capacity);
-        cx->free(sourceBuffer);
-        buf = (JSRopeBufferInfo *) cx->malloc(allocSize);
-        if (!buf)
-            return NULL;
-        buf->capacity = capacity;
-    }
-    return buf;
-}
-
-static JS_ALWAYS_INLINE JSString *
-FinishConcat(JSContext *cx, bool usingLeft, bool usingRight,
-             JSString *left, JSString *right, size_t length,
-             JSRopeBufferInfo *buf)
-{
-    JSString *res = js_NewGCString(cx);
-    if (!res) {
-        cx->free(buf);
-        return NULL;
-    }
-    res->initTopNode(left, right, length, buf);
-    if (usingLeft)
-        left->convertToInteriorNode(res);
-    if (usingRight)
-        right->convertToInteriorNode(res);
-    return res;
-}
-
 JSString * JS_FASTCALL
 js_ConcatStrings(JSContext *cx, JSString *left, JSString *right)
 {
-    size_t length, leftLen, rightLen;
-    bool leftRopeTop, rightRopeTop;
-
-    leftLen = left->length();
+    size_t leftLen = left->length();
     if (leftLen == 0)
         return right;
-    rightLen = right->length();
+
+    size_t rightLen = right->length();
     if (rightLen == 0)
         return left;
 
-    length = leftLen + rightLen;
+    size_t wholeLength = leftLen + rightLen;
 
-    if (JSShortString::fitsIntoShortString(length)) {
+    if (JSShortString::fitsIntoShortString(wholeLength)) {
         JSShortString *shortStr = js_NewGCShortString(cx);
         if (!shortStr)
             return NULL;
 
-        jschar *buf = shortStr->init(length);
+        jschar *buf = shortStr->init(wholeLength);
         js_short_strncpy(buf, left->chars(), leftLen);
         js_short_strncpy(buf + leftLen, right->chars(), rightLen);
-        buf[length] = 0;
+        buf[wholeLength] = 0;
         return shortStr->header();
     }
 
-    
-
-
-
-
-
-
-
-
-    if (left->isInteriorNode())
-        left->flatten();
-    if (right->isInteriorNode())
-        right->flatten();
-
-    if (left->isExtensible() && !right->isRope() &&
-        left->flatCapacity() >= length) {
-        JS_ASSERT(left->isFlat());
-
-        
-
-
-
-        jschar *chars = left->chars();
-        js_strncpy(chars + leftLen, right->chars(), rightLen);
-        chars[length] = 0;
-        JSString *res = js_NewString(cx, chars, length);
-        if (!res)
-            return NULL;
-        res->initFlatExtensible(chars, length, left->flatCapacity());
-        left->initDependent(res, res->flatChars(), leftLen);
-        return res;
-    }
-
-    if (length > JSString::MAX_LENGTH) {
+    if (wholeLength > JSString::MAX_LENGTH) {
         if (JS_ON_TRACE(cx)) {
             if (!CanLeaveTrace(cx))
                 return NULL;
@@ -347,67 +258,12 @@ js_ConcatStrings(JSContext *cx, JSString *left, JSString *right)
         return NULL;
     }
 
-    leftRopeTop = left->isTopNode();
-    rightRopeTop = right->isTopNode();
+    JSString *newRoot = js_NewGCString(cx);
+    if (!newRoot)
+        return NULL;
 
-    
-
-
-
-    if (left == right && leftRopeTop) {
-        left->flatten();
-        leftRopeTop = false;
-        rightRopeTop = false;
-        JS_ASSERT(leftLen == left->length());
-        JS_ASSERT(rightLen == right->length());
-        JS_ASSERT(!left->isTopNode());
-        JS_ASSERT(!right->isTopNode());
-    }
-
-    
-
-
-
-    JSRopeBufferInfo *buf = NULL;
-
-    if (leftRopeTop) {
-        
-        JSRopeBufferInfo *leftBuf = left->topNodeBuffer();
-
-        
-        if (JS_UNLIKELY(rightRopeTop)) {
-            JSRopeBufferInfo *rightBuf = right->topNodeBuffer();
-
-            
-            if (leftBuf->capacity >= rightBuf->capacity) {
-                cx->free(rightBuf);
-            } else {
-                cx->free(leftBuf);
-                leftBuf = rightBuf;
-            }
-        }
-
-        buf = ObtainRopeBuffer(cx, true, rightRopeTop, leftBuf, length, left, right);
-        if (!buf)
-            return NULL;
-    } else if (JS_UNLIKELY(rightRopeTop)) {
-        
-        JSRopeBufferInfo *rightBuf = right->topNodeBuffer();
-
-        buf = ObtainRopeBuffer(cx, false, true, rightBuf, length, left, right);
-        if (!buf)
-            return NULL;
-    } else {
-        
-        size_t capacity;
-        size_t allocSize = RopeAllocSize(length, &capacity);
-        buf = (JSRopeBufferInfo *) cx->malloc(allocSize);
-        if (!buf)
-            return NULL;
-        buf->capacity = capacity;
-    }
-
-    return FinishConcat(cx, leftRopeTop, rightRopeTop, left, right, length, buf);
+    newRoot->initRopeNode(left, right, wholeLength);
+    return newRoot;
 }
 
 const jschar *
@@ -1359,15 +1215,24 @@ StringMatch(const jschar *text, jsuint textlen,
 
 static const size_t sRopeMatchThresholdRatioLog2 = 5;
 
-static jsint
-RopeMatch(JSString *textstr, const jschar *pat, jsuint patlen)
-{
-    JS_ASSERT(textstr->isTopNode());
 
-    if (patlen == 0)
-        return 0;
-    if (textstr->length() < patlen)
-        return -1;
+
+
+
+
+static bool
+RopeMatch(JSContext *cx, JSString *textstr, const jschar *pat, jsuint patlen, jsint *match)
+{
+    JS_ASSERT(textstr->isRope());
+
+    if (patlen == 0) {
+        *match = 0;
+        return true;
+    }
+    if (textstr->length() < patlen) {
+        *match = -1;
+        return true;
+    }
 
     
 
@@ -1382,12 +1247,20 @@ RopeMatch(JSString *textstr, const jschar *pat, jsuint patlen)
 
 
 
-    size_t textstrlen = textstr->length();
-    size_t threshold = textstrlen >> sRopeMatchThresholdRatioLog2;
-    JSRopeLeafIterator iter;
-    for (JSString *str = iter.init(textstr); str; str = iter.next()) {
-        if (threshold-- == 0 || !strs.append(str))
-            return StringMatch(textstr->chars(), textstrlen, pat, patlen);
+    {
+        size_t textstrlen = textstr->length();
+        size_t threshold = textstrlen >> sRopeMatchThresholdRatioLog2;
+        StringSegmentRange r(cx);
+        if (!r.init(textstr))
+            return false;
+        while (!r.empty()) {
+            if (threshold-- == 0 || !strs.append(r.front())) {
+                *match = StringMatch(textstr->chars(), textstrlen, pat, patlen);
+                return true;
+            }
+            if (!r.popFront())
+                return false;
+        }
     }
 
     
@@ -1401,8 +1274,10 @@ RopeMatch(JSString *textstr, const jschar *pat, jsuint patlen)
         size_t len;
         (*outerp)->getCharsAndLength(chars, len);
         jsint matchResult = StringMatch(chars, len, pat, patlen);
-        if (matchResult != -1)
-            return pos + matchResult;
+        if (matchResult != -1) {
+            *match = pos + matchResult;
+            return true;
+        }
 
         
         JSString **innerp = outerp;
@@ -1422,8 +1297,10 @@ RopeMatch(JSString *textstr, const jschar *pat, jsuint patlen)
             const jschar *ttend = textend;
             for (const jschar *pp = p1, *tt = t; pp != patend; ++pp, ++tt) {
                 while (tt == ttend) {
-                    if (++innerp == strs.end())
-                        return -1;
+                    if (++innerp == strs.end()) {
+                        *match = -1;
+                        return true;
+                    }
                     (*innerp)->getCharsAndEnd(tt, ttend);
                 }
                 if (*pp != *tt)
@@ -1431,7 +1308,8 @@ RopeMatch(JSString *textstr, const jschar *pat, jsuint patlen)
             }
 
             
-            return pos + (t - chars) - 1;  
+            *match = pos + (t - chars) - 1;  
+            return true;
 
           break_continue:;
         }
@@ -1439,7 +1317,8 @@ RopeMatch(JSString *textstr, const jschar *pat, jsuint patlen)
         pos += len;
     }
 
-    return -1;
+    *match = -1;
+    return true;
 }
 
 static JSBool
@@ -1735,8 +1614,11 @@ class RegExpGuard
 
 
 
+
+
     const FlatMatch *
-    tryFlatMatch(JSString *textstr, uintN optarg, uintN argc, bool checkMetaChars = true)
+    tryFlatMatch(JSContext *cx, JSString *textstr, uintN optarg, uintN argc,
+                 bool checkMetaChars = true)
     {
         if (rep.re_)
             return NULL;
@@ -1755,8 +1637,9 @@ class RegExpGuard
 
 
 
-        if (textstr->isTopNode()) {
-            fm.match_ = RopeMatch(textstr, fm.pat, fm.patlen);
+        if (textstr->isRope()) {
+            if (!RopeMatch(cx, textstr, fm.pat, fm.patlen, &fm.match_))
+                return NULL;
         } else {
             const jschar *text;
             size_t textlen;
@@ -1918,8 +1801,10 @@ str_match(JSContext *cx, uintN argc, Value *vp)
     RegExpGuard g(cx);
     if (!g.init(argc, vp))
         return false;
-    if (const FlatMatch *fm = g.tryFlatMatch(str, 1, argc))
+    if (const FlatMatch *fm = g.tryFlatMatch(cx, str, 1, argc))
         return BuildFlatMatchArray(cx, str, *fm, vp);
+    if (cx->throwing)  
+        return false;
 
     const RegExpPair *rep = g.normalizeRegExp(false, 1, argc, vp);
     if (!rep)
@@ -1946,10 +1831,12 @@ str_search(JSContext *cx, uintN argc, Value *vp)
     RegExpGuard g(cx);
     if (!g.init(argc, vp))
         return false;
-    if (const FlatMatch *fm = g.tryFlatMatch(str, 1, argc)) {
+    if (const FlatMatch *fm = g.tryFlatMatch(cx, str, 1, argc)) {
         vp->setInt32(fm->match());
         return true;
     }
+    if (cx->throwing)  
+        return false;
     const RegExpPair *rep = g.normalizeRegExp(false, 1, argc, vp);
     if (!rep)
         return false;
@@ -1990,7 +1877,7 @@ struct ReplaceData
 
 static bool
 InterpretDollar(JSContext *cx, RegExpStatics *res, jschar *dp, jschar *ep, ReplaceData &rdata,
-                JSSubString *out, size_t *skip)
+                JSSubString *out, size_t *skip, volatile JSContext::DollarPath *path)
 {
     JS_ASSERT(*dp == '$');
 
@@ -2019,7 +1906,16 @@ InterpretDollar(JSContext *cx, RegExpStatics *res, jschar *dp, jschar *ep, Repla
 
         *skip = cp - dp;
 
-        JS_ASSERT(num <= res->parenCount());
+        JS_CRASH_UNLESS(num <= res->parenCount());
+
+        switch (num) {
+          case 1: *path = JSContext::DOLLAR_1; break;
+          case 2: *path = JSContext::DOLLAR_2; break;
+          case 3: *path = JSContext::DOLLAR_3; break;
+          case 4: *path = JSContext::DOLLAR_4; break;
+          case 5: *path = JSContext::DOLLAR_5; break;
+          default: *path = JSContext::DOLLAR_OTHER;
+        }
 
         
 
@@ -2035,18 +1931,23 @@ InterpretDollar(JSContext *cx, RegExpStatics *res, jschar *dp, jschar *ep, Repla
         rdata.dollarStr.chars = dp;
         rdata.dollarStr.length = 1;
         *out = rdata.dollarStr;
+        *path = JSContext::DOLLAR_LITERAL;
         return true;
       case '&':
         res->getLastMatch(out);
+        *path = JSContext::DOLLAR_AMP;
         return true;
       case '+':
         res->getLastParen(out);
+        *path = JSContext::DOLLAR_PLUS;
         return true;
       case '`':
         res->getLeftContext(out);
+        *path = JSContext::DOLLAR_TICK;
         return true;
       case '\'':
         res->getRightContext(out);
+        *path = JSContext::DOLLAR_QUOT;
         return true;
     }
     return false;
@@ -2159,10 +2060,11 @@ FindReplaceLength(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, size_t 
 
     JSString *repstr = rdata.repstr;
     size_t replen = repstr->length();
+    JSContext::DollarPath path;
     for (jschar *dp = rdata.dollar, *ep = rdata.dollarEnd; dp; dp = js_strchr_limit(dp, '$', ep)) {
         JSSubString sub;
         size_t skip;
-        if (InterpretDollar(cx, res, dp, ep, rdata, &sub, &skip)) {
+        if (InterpretDollar(cx, res, dp, ep, rdata, &sub, &skip, &path)) {
             replen += sub.length - skip;
             dp += skip;
         } else {
@@ -2179,6 +2081,12 @@ DoReplace(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, jschar *chars)
     JSString *repstr = rdata.repstr;
     jschar *cp;
     jschar *bp = cp = repstr->chars();
+    volatile JSContext::DollarPath path;
+#ifdef XP_WIN
+    cx->dollarPath = &path;
+    jschar sourceBuf[128];
+    cx->blackBox = sourceBuf;
+#endif
 
     for (jschar *dp = rdata.dollar, *ep = rdata.dollarEnd; dp; dp = js_strchr_limit(dp, '$', ep)) {
         size_t len = dp - cp;
@@ -2188,7 +2096,26 @@ DoReplace(JSContext *cx, RegExpStatics *res, ReplaceData &rdata, jschar *chars)
 
         JSSubString sub;
         size_t skip;
-        if (InterpretDollar(cx, res, dp, ep, rdata, &sub, &skip)) {
+        if (InterpretDollar(cx, res, dp, ep, rdata, &sub, &skip, &path)) {
+#ifdef XP_WIN
+            if (((size_t(sub.chars) & 0xfffffU) + sub.length) > 0x100000U) {
+                
+                volatile JSSubString vsub = sub;
+                volatile jschar *repstrChars = rdata.repstr->chars();
+                volatile jschar *repstrDollar = rdata.dollar;
+                volatile jschar *repstrDollarEnd = rdata.dollarEnd;
+                cx->sub = &vsub;
+                cx->repstrChars = &repstrChars;
+                cx->repstrDollar = &repstrDollar;
+                cx->repstrDollarEnd = &repstrDollarEnd;
+                ptrdiff_t dollarDistance = rdata.dollarEnd - rdata.dollar;
+                JS_CRASH_UNLESS(dollarDistance >= 0);
+                volatile size_t peekLen = JS_MIN(rdata.repstr->length(), 128);
+                cx->peekLen = &peekLen;
+                js_strncpy(sourceBuf, rdata.repstr->chars(), peekLen);
+            }
+#endif
+
             len = sub.length;
             js_strncpy(chars, sub.chars, len);
             chars += len;
@@ -2233,18 +2160,21 @@ static bool
 BuildFlatReplacement(JSContext *cx, JSString *textstr, JSString *repstr,
                      const FlatMatch &fm, Value *vp)
 {
-    JSRopeBuilder builder(cx);
-    size_t match = fm.match(); 
+    RopeBuilder builder(cx);
+    size_t match = fm.match();
     size_t matchEnd = match + fm.patternLength();
 
-    if (textstr->isTopNode()) {
+    if (textstr->isRope()) {
         
 
 
 
-        JSRopeLeafIterator iter;
+        StringSegmentRange r(cx);
+        if (!r.init(textstr))
+            return false;
         size_t pos = 0;
-        for (JSString *str = iter.init(textstr); str; str = iter.next()) {
+        while (!r.empty()) {
+            JSString *str = r.front();
             size_t len = str->length();
             size_t strEnd = pos + len;
             if (pos < matchEnd && strEnd > match) {
@@ -2282,6 +2212,8 @@ BuildFlatReplacement(JSContext *cx, JSString *textstr, JSString *repstr,
                     return false;
             }
             pos += str->length();
+            if (!r.popFront())
+                return false;
         }
     } else {
         JSString *leftSide = js_NewDependentString(cx, textstr, 0, match);
@@ -2297,7 +2229,7 @@ BuildFlatReplacement(JSContext *cx, JSString *textstr, JSString *repstr,
         }
     }
 
-    vp->setString(builder.getStr());
+    vp->setString(builder.result());
     return true;
 }
 
@@ -2371,13 +2303,13 @@ BuildDollarReplacement(JSContext *cx, JSString *textstr, JSString *repstr,
                                                 textstr->length() - matchLimit);
     ENSURE(rightSide);
 
-    JSRopeBuilder builder(cx);
+    RopeBuilder builder(cx);
     ENSURE(builder.append(leftSide) &&
            builder.append(newReplace) &&
            builder.append(rightSide));
 #undef ENSURE
 
-    vp->setString(builder.getStr());
+    vp->setString(builder.result());
     return true;
 }
 
@@ -2457,14 +2389,14 @@ str_replace_flat_lambda(JSContext *cx, uintN argc, Value *vp, ReplaceData &rdata
     if (!rightSide)
         return false;
 
-    JSRopeBuilder builder(cx);
+    RopeBuilder builder(cx);
     if (!(builder.append(leftSide) &&
           builder.append(repstr) &&
           builder.append(rightSide))) {
         return false;
     }
 
-    vp->setString(builder.getStr());
+    vp->setString(builder.result());
     return true;
 }
 
@@ -2543,8 +2475,10 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
 
 
 
-    const FlatMatch *fm = rdata.g.tryFlatMatch(rdata.str, optarg, argc, false);
+    const FlatMatch *fm = rdata.g.tryFlatMatch(cx, rdata.str, optarg, argc, false);
     if (!fm) {
+        if (cx->throwing)  
+            return false;
         JS_ASSERT_IF(!rdata.g.hasRegExpPair(), argc > optarg);
         return str_replace_regexp(cx, argc, vp, rdata);
     }
@@ -3164,14 +3098,17 @@ static JSFunctionSpec string_methods[] = {
 #define R3(n) R2(n), R2((n) + (1 << 2))
 #define R7(n) R6(n), R6((n) + (1 << 6))
 
+#define BUILD_LENGTH_AND_FLAGS(length, flags)                                 \
+    (((length) << JSString::LENGTH_SHIFT) | (flags))
+
 
 
 
 
 #define R(c) {                                                                \
-    JSString::FLAT | JSString::ATOMIZED | (1 << JSString::FLAGS_LENGTH_SHIFT),\
+    BUILD_LENGTH_AND_FLAGS(1, JSString::FLAT | JSString::ATOMIZED),           \
     { (jschar *)(((char *)(unitStringTable + (c))) +                          \
-      offsetof(JSString, mInlineStorage)) },                                  \
+      offsetof(JSString, inlineStorage)) },                                   \
     { {(c), 0x00} } }
 
 #ifdef __SUNPRO_CC
@@ -3229,9 +3166,9 @@ const jschar JSString::fromSmallChar[] = { R6(0) };
 
 
 #define R(c) {                                                                \
-    JSString::FLAT | JSString::ATOMIZED | (2 << JSString::FLAGS_LENGTH_SHIFT),\
+    BUILD_LENGTH_AND_FLAGS(2, JSString::FLAT | JSString::ATOMIZED),           \
     { (jschar *)(((char *)(length2StringTable + (c))) +                       \
-      offsetof(JSString, mInlineStorage)) },                                  \
+      offsetof(JSString, inlineStorage)) },                                   \
     { {FROM_SMALL_CHAR((c) >> 6), FROM_SMALL_CHAR((c) & 0x3F), 0x00} } }
 
 #ifdef __SUNPRO_CC
@@ -3262,9 +3199,9 @@ __attribute__ ((aligned (8)))
 
 
 #define R(c) {                                                                \
-    JSString::FLAT | JSString::ATOMIZED | (3 << JSString::FLAGS_LENGTH_SHIFT),\
+    BUILD_LENGTH_AND_FLAGS(3, JSString::FLAT | JSString::ATOMIZED),           \
     { (jschar *)(((char *)(hundredStringTable + ((c) - 100))) +               \
-      offsetof(JSString, mInlineStorage)) },                                  \
+      offsetof(JSString, inlineStorage)) },                                   \
     { {((c) / 100) + '0', ((c) / 10 % 10) + '0', ((c) % 10) + '0', 0x00} } }
 
 

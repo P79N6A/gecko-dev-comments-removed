@@ -492,9 +492,9 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
         
         ok = op == LIR_ldus2ui &&
              disp == 0 &&
-             (match(base, LIR_ldp, ACCSET_STRING, offsetof(JSString, mChars)) ||
+             (match(base, LIR_ldp, ACCSET_STRING, JSString::offsetOfChars()) ||
               (base->isop(LIR_addp) &&
-               match(base->oprnd1(), LIR_ldp, ACCSET_STRING, offsetof(JSString, mChars))));
+               match(base->oprnd1(), LIR_ldp, ACCSET_STRING, JSString::offsetOfChars())));
         break;
 
       case ACCSET_TYPEMAP:
