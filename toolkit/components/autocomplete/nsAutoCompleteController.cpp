@@ -39,7 +39,6 @@
 
 
 
-
 #include "nsAutoCompleteController.h"
 #include "nsAutoCompleteSimpleResult.h"
 
@@ -55,7 +54,6 @@
 #include "nsIDOMKeyEvent.h"
 #include "mozilla/Services.h"
 #include "mozilla/ModuleUtils.h"
-#include "mozilla/Util.h"
 
 static const char *kAutoCompleteSearchCID = "@mozilla.org/autocomplete/search;1?name=";
 
@@ -94,43 +92,6 @@ nsAutoCompleteController::nsAutoCompleteController() :
 nsAutoCompleteController::~nsAutoCompleteController()
 {
   SetInput(nsnull);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-static const nsDependentSubstring
-RemoveURIPrefixes(const nsAString &aOrigSpec)
-{
-  nsDependentSubstring result(aOrigSpec, 0);
-
-  if (StringBeginsWith(result, NS_LITERAL_STRING("moz-action:"))) {
-    PRUint32 locationOfComma = result.FindChar(',', 11);
-    result.Rebind(result, locationOfComma + 1);
-  }
-
-  if (StringBeginsWith(result, NS_LITERAL_STRING("http://"))) {
-    result.Rebind(result, 7);
-  } else if (StringBeginsWith(result, NS_LITERAL_STRING("https://"))) {
-    result.Rebind(result, 8);
-  } else if (StringBeginsWith(result, NS_LITERAL_STRING("ftp://"))) {
-    result.Rebind(result, 6);
-  }
-
-  if (StringBeginsWith(result, NS_LITERAL_STRING("www."))) {
-    result.Rebind(result, 4);
-  }
-
-  return result;
 }
 
 
@@ -1433,64 +1394,6 @@ nsAutoCompleteController::CompleteDefaultIndex(PRInt32 aSearchIndex)
 }
 
 nsresult
-nsAutoCompleteController::GetDefaultCompleteURLValue(nsIAutoCompleteResult *aResult,
-                                                     PRBool aPreserveCasing,
-                                                     nsAString &_retval)
-{
-  MOZ_ASSERT(aResult);
-
-  PRUint32 rowCount;
-  (void)aResult->GetMatchCount(&rowCount);
-  if (rowCount == 0) {
-    
-    
-    return NS_ERROR_FAILURE;
-  }
-
-  const nsDependentSubstring& fixedSearchTerm = RemoveURIPrefixes(mSearchString);
-  for (PRUint32 i = 0; i < rowCount; ++i) {
-    nsAutoString resultValue;
-    aResult->GetValueAt(i, resultValue);
-    const nsDependentSubstring& fixedResult = RemoveURIPrefixes(resultValue);
-
-    if (!StringBeginsWith(fixedResult, fixedSearchTerm,
-                          nsCaseInsensitiveStringComparator())) {
-      
-      continue;
-    }
-
-    
-    if (aPreserveCasing) {
-      
-      const nsDependentString appendValue(Substring(fixedResult, fixedSearchTerm.Length()));
-
-      
-      
-      
-      
-      
-      
-      PRInt32 separatorIndex = appendValue.FindCharInSet("/?#");
-      if (separatorIndex != kNotFound && appendValue[separatorIndex] == '/') {
-        
-        separatorIndex++;
-      }
-
-      nsAutoString returnValue;
-      returnValue.Assign(mSearchString);
-      returnValue.Append(Substring(appendValue, 0, separatorIndex));
-      _retval = returnValue;
-    } else {
-      _retval.Assign(fixedResult);
-    }
-    return NS_OK;
-  }
-
-  
-  return NS_ERROR_FAILURE;
-}
-
-nsresult
 nsAutoCompleteController::GetDefaultCompleteValue(PRInt32 aSearchIndex,
                                                   PRBool aPreserveCasing,
                                                   nsAString &_retval)
@@ -1512,14 +1415,6 @@ nsAutoCompleteController::GetDefaultCompleteValue(PRInt32 aSearchIndex,
 
   nsIAutoCompleteResult *result = mResults.SafeObjectAt(index);
   NS_ENSURE_TRUE(result != nsnull, NS_ERROR_FAILURE);
-
-  PRBool isURL;
-  result->GetIsURLResult(&isURL);
-  if (isURL) {
-    
-    
-    return GetDefaultCompleteURLValue(result, aPreserveCasing, _retval);
-  }
 
   if (defaultIndex < 0) {
     
@@ -1571,11 +1466,37 @@ nsAutoCompleteController::CompleteValue(nsString &aValue)
     
     mInput->SetTextValue(aValue);
   } else {
-    
-    
-    
-    mInput->SetTextValue(mSearchString + NS_LITERAL_STRING(" >> ") + aValue);
-    endSelect = mSearchString.Length() + 4 + aValue.Length();
+    nsresult rv;
+    nsCOMPtr<nsIIOService> ios = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+    nsCAutoString scheme;
+    if (NS_SUCCEEDED(ios->ExtractScheme(NS_ConvertUTF16toUTF8(aValue), scheme))) {
+      
+      
+      
+      
+      const PRInt32 findIndex = 7; 
+
+      if ((endSelect < findIndex + mSearchStringLength) ||
+          !scheme.LowerCaseEqualsLiteral("http") ||
+          !Substring(aValue, findIndex, mSearchStringLength).Equals(
+            mSearchString, nsCaseInsensitiveStringComparator())) {
+        return NS_OK;
+      }
+
+      mInput->SetTextValue(mSearchString +
+                           Substring(aValue, mSearchStringLength + findIndex,
+                                     endSelect));
+
+      endSelect -= findIndex; 
+    } else {
+      
+      
+      
+      mInput->SetTextValue(mSearchString + NS_LITERAL_STRING(" >> ") + aValue);
+
+      endSelect = mSearchString.Length() + 4 + aValue.Length();
+    }
   }
 
   mInput->SelectTextRange(mSearchStringLength, endSelect);

@@ -97,21 +97,6 @@ protected:
 private:
   nsresult GetResultValueLabelAt(PRInt32 aIndex, PRBool aValueOnly,
                                  PRBool aGetValue, nsAString & _retval);
-  
-
-
-
-
-
-
-
-
-
-
-
-  nsresult GetDefaultCompleteURLValue(nsIAutoCompleteResult *aResult,
-                                      PRBool aPreserveCasing,
-                                      nsAString &_retval);
 protected:
   nsresult GetDefaultCompleteValue(PRInt32 aSearchIndex, PRBool aPreserveCasing,
                                    nsAString &_retval);

@@ -265,7 +265,7 @@ pref("browser.urlbar.doubleClickSelectsAll", true);
 #else
 pref("browser.urlbar.doubleClickSelectsAll", false);
 #endif
-pref("browser.urlbar.autoFill", true);
+pref("browser.urlbar.autoFill", false);
 
 
 
