@@ -86,7 +86,7 @@ public:
   
 
 
-  static Preferences* GetInstance();
+  static Preferences* GetInstanceForService();
 
   
 
@@ -265,7 +265,7 @@ private:
   
 
 
-  static PRBool InitStaticMembers();
+  static PRBool InitStaticMembers(PRBool aForService = PR_FALSE);
 };
 
 } 

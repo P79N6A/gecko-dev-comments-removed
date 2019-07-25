@@ -191,7 +191,7 @@ static nsRefPtrHashtable<ValueObserverHashKey,
 
 
 Preferences*
-Preferences::GetInstance()
+Preferences::GetInstanceForService()
 {
   if (sPreferences) {
     NS_ADDREF(sPreferences);
@@ -200,16 +200,26 @@ Preferences::GetInstance()
 
   NS_ENSURE_TRUE(!sShutdown, nsnull);
 
-  InitStaticMembers();
+  InitStaticMembers(PR_TRUE);
   NS_IF_ADDREF(sPreferences);
   return sPreferences;
 }
 
 
 PRBool
-Preferences::InitStaticMembers()
+Preferences::InitStaticMembers(PRBool aForService)
 {
   if (sShutdown || sPreferences) {
+    return sPreferences != nsnull;
+  }
+
+  
+  
+  
+  
+  if (!aForService) {
+    nsCOMPtr<nsIPrefService> prefService =
+      do_GetService(NS_PREFSERVICE_CONTRACTID);
     return sPreferences != nsnull;
   }
 
