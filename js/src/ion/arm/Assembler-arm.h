@@ -1241,10 +1241,10 @@ class Assembler
     
     
     
-    static uint32 * getCF32Target(Instruction *jump);
+    static const uint32 * getCF32Target(Instruction *jump);
 
     static uintptr_t getPointer(uint8 *);
-    static uint32 * getPtr32Target(Instruction *load, Register *dest = NULL, RelocStyle *rs = NULL);
+    static const uint32 * getPtr32Target(Instruction *load, Register *dest = NULL, RelocStyle *rs = NULL);
 
     bool oom() const;
   private:
@@ -1624,8 +1624,8 @@ class Assembler
     
     static ptrdiff_t getBranchOffset(const Instruction *i);
     static void retargetBranch(Instruction *i, int32 offset);
-    static void writePoolHeader(uint8 *start, Pool *p);
-    static void writePoolFooter(uint8 *start, Pool *p);
+    static void writePoolHeader(uint8 *start, Pool *p, bool isNatural);
+    static void writePoolFooter(uint8 *start, Pool *p, bool isNatural);
     static void writePoolGuard(BufferOffset branch, Instruction *inst, BufferOffset dest);
 
 
@@ -1638,6 +1638,7 @@ class Assembler
     static uint32 alignDoubleArg(uint32 offset) {
         return (offset+1)&~1;
     }
+    static uint8 *nextInstruction(uint8 *instruction, uint32 *count = NULL);
 }; 
 
 
@@ -1649,8 +1650,8 @@ class Instruction
   protected:
     
     
-    Instruction (uint32 data_) : data(data_ | 0xf0000000) {
-        JS_ASSERT ((data_ & 0xf0000000) == 0);
+    Instruction (uint32 data_, bool fake = false) : data(data_ | 0xf0000000) {
+        JS_ASSERT (fake || ((data_ & 0xf0000000) == 0));
     }
     
     Instruction (uint32 data_, Assembler::Condition c) : data(data_ | (uint32) c) {
@@ -1683,11 +1684,11 @@ class Instruction
     }
     
     
+    Instruction *next();
+
     
-    Instruction *next() { return &this[1]; }
     
-    
-    uint32 *raw() { return (uint32*)this; }
+    const uint32 *raw() const { return &data; }
 }; 
 
 
