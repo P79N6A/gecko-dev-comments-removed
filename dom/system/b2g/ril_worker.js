@@ -912,6 +912,41 @@ let RIL = {
     return token;
   },
 
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  iccIO: function iccIO (options) {
+    let token = Buf.newParcel(REQUEST_SIM_IO, options);
+    Buf.writeUint32(options.command);
+    Buf.writeUint32(options.fileid);
+    Buf.writeString(options.path);
+    Buf.writeUint32(options.p1);
+    Buf.writeUint32(options.p2);
+    Buf.writeUint32(options.p3);
+    Buf.writeString(options.data);
+    if (request.pin2 != null) {
+      Buf.writeString(pin2);
+    }
+    Buf.sendParcel();
+  },
+  
   
 
 
@@ -1125,7 +1160,9 @@ RIL[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL() {
   let [cid, ifname, ipaddr, dns, gw] = Buf.readStringList();
   Phone.onSetupDataCall(Buf.lastSolicitedToken, cid, ifname, ipaddr, dns, gw);
 };
-RIL[REQUEST_SIM_IO] = null;
+RIL[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
+  Phone.onICCIO(options);
+};
 RIL[REQUEST_SEND_USSD] = null;
 RIL[REQUEST_CANCEL_USSD] = null;
 RIL[REQUEST_GET_CLIR] = null;
@@ -1338,6 +1375,7 @@ let Phone = {
   IMEISV: null,
   IMSI: null,
   SMSC: null,
+  MSISDN: null,
 
   registrationState: {},
   gprsRegistrationState: {},
@@ -1484,6 +1522,7 @@ let Phone = {
       this.requestNetworkInfo();
       RIL.getSignalStrength();
       RIL.getSMSCAddress();
+      this.getMSISDN();
       this.sendDOMMessage({type: "cardstatechange",
                            cardState: GECKO_CARDSTATE_READY});
     }
@@ -1685,6 +1724,52 @@ let Phone = {
 
   onIMEISV: function onIMEISV(imeiSV) {
     this.IMEISV = imeiSV;
+  },
+
+  onICCIO: function onICCIO(options) {
+    switch (options.fileid) {
+      case ICC_EF_MSISDN:
+        this.readMSISDNResponse(options);
+        break;
+    }
+  },
+  
+  readMSISDNResponse: function readMSISDNResponse(options) {
+    let sw1 = Buf.readUint32();
+    let sw2 = Buf.readUint32();
+    
+    if (sw1 != STATUS_NORMAL_ENDING) {
+      
+      
+      debug("Error in iccIO");
+    }
+    if (DEBUG) debug("ICC I/O (" + sw1 + "/" + sw2 + ")");
+
+    switch (options.command) {
+      case ICC_COMMAND_GET_RESPONSE:
+        let response = Buf.readString();
+        let recordSize = parseInt(
+            response.substr(RESPONSE_DATA_RECORD_LENGTH * 2, 2), 16) & 0xff;
+        let request = {
+          command: ICC_COMMAND_READ_RECORD,
+          fileid:  ICC_EF_MSISDN,
+          pathid:  EF_PATH_MF_SIM + EF_PATH_DF_TELECOM,
+          p1:      1, 
+          p2:      READ_RECORD_ABSOLUTE_MODE,
+          p3:      recordSize,
+          data:    null,
+          pin2:    null,
+        };
+        RIL.iccIO(request);
+        break;
+
+      case ICC_COMMAND_READ_RECORD:
+        
+        let number = GsmPDUHelper.readStringAsBCD().toString().substr(4); 
+        if (DEBUG) debug("MSISDN: " + number);
+        this.MSISDN = number;
+        break;
+    } 
   },
 
   onRegistrationState: function onRegistrationState(state) {
@@ -2144,6 +2229,23 @@ let Phone = {
 
   
 
+ 
+  getMSISDN: function getMSISDN() {
+    let request = {
+      command: ICC_COMMAND_GET_RESPONSE,
+      fileid:  ICC_EF_MSISDN,
+      pathid:  EF_PATH_MF_SIM + EF_PATH_DF_TELECOM,
+      p1:      0, 
+      p2:      0, 
+      p3:      GET_RESPONSE_EF_SIZE_BYTES,
+      data:    null,
+      pin2:    null,
+    };
+    RIL.iccIO(request);
+  },
+
+  
+
 
 
 
@@ -2270,6 +2372,8 @@ let GsmPDUHelper = {
     let number = 0;
     for (let i = 0; i < length; i++) {
       let octet = this.readHexOctet();
+      if (octet == 0xff)
+        continue;
       
       
       if ((octet & 0xf0) == 0xf0) {
@@ -2281,6 +2385,21 @@ let GsmPDUHelper = {
       number += this.octetToBCD(octet);
     }
     return number;
+  },
+
+  
+
+
+
+ 
+  readStringAsBCD: function readStringAsBCD() {
+    let length = Buf.readUint32();
+    let bcd = this.readSwappedNibbleBCD(length / 2);
+    let delimiter = Buf.readUint16();
+    if (!(length & 1)) {
+      delimiter |= Buf.readUint16();
+    }
+    return bcd;
   },
 
   
