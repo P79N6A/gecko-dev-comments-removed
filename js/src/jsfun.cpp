@@ -87,6 +87,12 @@
 
 using namespace js;
 
+inline JSObject *
+JSObject::getThrowTypeError() const
+{
+    return &getGlobal()->getReservedSlot(JSRESERVED_GLOBAL_THROWTYPEERROR).toObject();
+}
+
 JSBool
 js_GetArgsValue(JSContext *cx, JSStackFrame *fp, Value *vp)
 {
@@ -1398,6 +1404,7 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 
 
 
+
     JSFunction *fun;
     while (!(fun = (JSFunction *)
                    GetInstancePrivate(cx, obj, &js_FunctionClass, NULL))) {
@@ -1466,19 +1473,33 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
     return true;
 }
 
-struct LazyFunctionProp {
+namespace {
+
+struct LazyFunctionDataProp {
     uint16      atomOffset;
     int8        tinyid;
     uint8       attrs;
 };
 
+struct PoisonPillProp {
+    uint16       atomOffset;
+    int8         tinyid;
+};
 
-static LazyFunctionProp lazy_function_props[] = {
-    {ATOM_OFFSET(arguments), FUN_ARGUMENTS,  JSPROP_PERMANENT},
+
+
+const LazyFunctionDataProp lazyFunctionDataProps[] = {
     {ATOM_OFFSET(arity),     FUN_ARITY,      JSPROP_PERMANENT},
-    {ATOM_OFFSET(caller),    FUN_CALLER,     JSPROP_PERMANENT},
     {ATOM_OFFSET(name),      FUN_NAME,       JSPROP_PERMANENT},
 };
+
+
+const PoisonPillProp poisonPillProps[] = {
+    {ATOM_OFFSET(arguments), FUN_ARGUMENTS },
+    {ATOM_OFFSET(caller),    FUN_CALLER    },
+};
+
+}
 
 static JSBool
 fun_enumerate(JSContext *cx, JSObject *obj)
@@ -1493,9 +1514,16 @@ fun_enumerate(JSContext *cx, JSObject *obj)
     if (!JS_LookupPropertyById(cx, obj, id, &v))
         return false;
 
-    for (uintN i = 0; i < JS_ARRAY_LENGTH(lazy_function_props); i++) {
-        LazyFunctionProp &lfp = lazy_function_props[i];
+    for (uintN i = 0; i < JS_ARRAY_LENGTH(lazyFunctionDataProps); i++) {
+        const LazyFunctionDataProp &lfp = lazyFunctionDataProps[i];
         id = ATOM_TO_JSID(OFFSET_TO_ATOM(cx->runtime, lfp.atomOffset));
+        if (!JS_LookupPropertyById(cx, obj, id, &v))
+            return false;
+    }
+
+    for (uintN i = 0; i < JS_ARRAY_LENGTH(poisonPillProps); i++) {
+        const PoisonPillProp &p = poisonPillProps[i];
+        id = ATOM_TO_JSID(OFFSET_TO_ATOM(cx->runtime, p.atomOffset));
         if (!JS_LookupPropertyById(cx, obj, id, &v))
             return false;
     }
@@ -1575,8 +1603,8 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
         return JS_TRUE;
     }
 
-    for (uintN i = 0; i < JS_ARRAY_LENGTH(lazy_function_props); i++) {
-        LazyFunctionProp *lfp = &lazy_function_props[i];
+    for (uintN i = 0; i < JS_ARRAY_LENGTH(lazyFunctionDataProps); i++) {
+        const LazyFunctionDataProp *lfp = &lazyFunctionDataProps[i];
 
         atom = OFFSET_TO_ATOM(cx->runtime, lfp->atomOffset);
         if (id == ATOM_TO_JSID(atom)) {
@@ -1587,6 +1615,37 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                                          fun_getProperty, PropertyStub,
                                          lfp->attrs, JSScopeProperty::HAS_SHORTID,
                                          lfp->tinyid, NULL)) {
+                return JS_FALSE;
+            }
+            *objp = obj;
+            return JS_TRUE;
+        }
+    }
+
+    for (uintN i = 0; i < JS_ARRAY_LENGTH(poisonPillProps); i++) {
+        const PoisonPillProp &p = poisonPillProps[i];
+
+        atom = OFFSET_TO_ATOM(cx->runtime, p.atomOffset);
+        if (id == ATOM_TO_JSID(atom)) {
+            JS_ASSERT(!IsInternalFunctionObject(obj));
+
+            PropertyOp getter, setter;
+            uintN attrs = JSPROP_PERMANENT;
+            if (fun->isInterpreted() && fun->u.i.script->strictModeCode) {
+                JSObject *throwTypeError = obj->getThrowTypeError();
+
+                getter = CastAsPropertyOp(throwTypeError);
+                setter = CastAsPropertyOp(throwTypeError);
+                attrs |= JSPROP_GETTER | JSPROP_SETTER;
+            } else {
+                getter = fun_getProperty;
+                setter = PropertyStub;
+            }
+
+            if (!js_DefineNativeProperty(cx, obj, ATOM_TO_JSID(atom), UndefinedValue(),
+                                         getter, setter,
+                                         attrs, JSScopeProperty::HAS_SHORTID,
+                                         p.tinyid, NULL)) {
                 return JS_FALSE;
             }
             *objp = obj;
@@ -2393,20 +2452,43 @@ Function(JSContext *cx, JSObject *obj, uintN argc, Value *argv, Value *rval)
                                          filename, lineno);
 }
 
+namespace {
+
+JSBool
+ThrowTypeError(JSContext *cx, uintN argc, Value *vp)
+{
+    JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage, NULL,
+                                 JSMSG_THROW_TYPE_ERROR);
+    return false;
+}
+
+}
+
 JSObject *
 js_InitFunctionClass(JSContext *cx, JSObject *obj)
 {
-    JSObject *proto;
-    JSFunction *fun;
-
-    proto = js_InitClass(cx, obj, NULL, &js_FunctionClass, Function, 1,
-                         NULL, function_methods, NULL, NULL);
+    JSObject *proto = js_InitClass(cx, obj, NULL, &js_FunctionClass, Function, 1,
+                                   NULL, function_methods, NULL, NULL);
     if (!proto)
         return NULL;
-    fun = js_NewFunction(cx, proto, NULL, 0, JSFUN_INTERPRETED, obj, NULL);
+
+    JSFunction *fun = js_NewFunction(cx, proto, NULL, 0, JSFUN_INTERPRETED, obj, NULL);
     if (!fun)
         return NULL;
     fun->u.i.script = JSScript::emptyScript();
+
+    if (obj->getClass()->flags & JSCLASS_IS_GLOBAL) {
+        
+        JSObject *throwTypeError =
+            js_NewFunction(cx, NULL, reinterpret_cast<Native>(ThrowTypeError), 0,
+                           JSFUN_FAST_NATIVE, obj, NULL);
+        if (!throwTypeError)
+            return NULL;
+
+        JS_ALWAYS_TRUE(js_SetReservedSlot(cx, obj, JSRESERVED_GLOBAL_THROWTYPEERROR,
+                                          ObjectValue(*throwTypeError)));
+    }
+
     return proto;
 }
 

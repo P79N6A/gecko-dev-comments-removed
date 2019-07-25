@@ -1665,6 +1665,10 @@ struct JSClass {
 #define JSCLASS_INTERNAL_FLAG2          (1<<(JSCLASS_HIGH_FLAGS_SHIFT+4))
 
 
+#define JSRESERVED_GLOBAL_SLOTS_COUNT     3
+#define JSRESERVED_GLOBAL_COMPARTMENT     (JSProto_LIMIT * 3)
+#define JSRESERVED_GLOBAL_THIS            (JSRESERVED_GLOBAL_COMPARTMENT + 1)
+#define JSRESERVED_GLOBAL_THROWTYPEERROR  (JSRESERVED_GLOBAL_THIS + 1)
 
 
 
@@ -1675,11 +1679,11 @@ struct JSClass {
 
 
 
-#define JSCLASS_GLOBAL_FLAGS \
-    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT * 3 + 2))
 
-#define JSRESERVED_GLOBAL_COMPARTMENT (JSProto_LIMIT * 3)
-#define JSRESERVED_GLOBAL_THIS        (JSRESERVED_GLOBAL_COMPARTMENT + 1)
+
+#define JSCLASS_GLOBAL_FLAGS                                                  \
+    (JSCLASS_IS_GLOBAL |                                                      \
+     JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT * 3 + JSRESERVED_GLOBAL_SLOTS_COUNT))
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)
@@ -2924,10 +2928,6 @@ JS_ClearRegExpStatics(JSContext *cx);
 
 extern JS_PUBLIC_API(void)
 JS_ClearRegExpRoots(JSContext *cx);
-
-extern JS_PUBLIC_API(JSBool)
-JS_ExecuteRegExp(JSContext *cx, JSObject *obj, jschar *chars, size_t length,
-                 size_t *indexp, JSBool test, jsval *rval);
 
 
 
