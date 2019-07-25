@@ -192,7 +192,7 @@ nsPluginInstanceOwner::GetImageContainer()
   SharedTextureImage* pluginImage = static_cast<SharedTextureImage*>(img.get());
   pluginImage->SetData(data);
 
-  container->SetCurrentImage(img);
+  container->SetCurrentImageInTransaction(img);
 
   float xResolution = mObjectFrame->PresContext()->GetRootPresContext()->PresShell()->GetXResolution();
   float yResolution = mObjectFrame->PresContext()->GetRootPresContext()->PresShell()->GetYResolution();
@@ -1813,7 +1813,7 @@ already_AddRefed<ImageContainer> nsPluginInstanceOwner::GetImageContainerForVide
 
   SharedTextureImage* pluginImage = static_cast<SharedTextureImage*>(img.get());
   pluginImage->SetData(data);
-  container->SetCurrentImage(img);
+  container->SetCurrentImageInTransaction(img);
 
   return container.forget();
 }
@@ -3727,7 +3727,7 @@ void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
       
       autoLock.Unlock();
 #endif
-      container->SetCurrentImage(nsnull);
+      container->SetCurrentImageInTransaction(nsnull);
     }
 
     
