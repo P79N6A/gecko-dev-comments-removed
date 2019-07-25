@@ -5921,44 +5921,47 @@ js_GetPropertyHelperInline(JSContext *cx, JSObject *obj, JSObject *receiver, jsi
 
         jsbytecode *pc;
         if (vp->isUndefined() && ((pc = js_GetCurrentBytecodePC(cx)) != NULL)) {
-            JSOp op;
-            uintN flags;
+            JSOp op = (JSOp) *pc;
 
-            op = (JSOp) *pc;
             if (op == JSOP_GETXPROP) {
-                flags = JSREPORT_ERROR;
-            } else {
-                if (!cx->hasStrictOption() ||
-                    cx->stack.currentScript()->warnedAboutUndefinedProp ||
-                    (op != JSOP_GETPROP && op != JSOP_GETELEM)) {
-                    return JS_TRUE;
-                }
-
                 
-
-
-
-                if (JSID_IS_ATOM(id, cx->runtime->atomState.iteratorAtom))
-                    return JS_TRUE;
-
-                
-                if (cx->resolveFlags == RESOLVE_INFER) {
-                    pc += js_CodeSpec[op].length;
-                    if (Detecting(cx, pc))
-                        return JS_TRUE;
-                } else if (cx->resolveFlags & JSRESOLVE_DETECTING) {
-                    return JS_TRUE;
-                }
-
-                flags = JSREPORT_WARNING | JSREPORT_STRICT;
-                cx->stack.currentScript()->warnedAboutUndefinedProp = true;
+                JSAutoByteString printable;
+                if (js_ValueToPrintable(cx, IdToValue(id), &printable))
+                    js_ReportIsNotDefined(cx, printable.ptr());
+                return false;
             }
+
+            if (!cx->hasStrictOption() ||
+                cx->stack.currentScript()->warnedAboutUndefinedProp ||
+                (op != JSOP_GETPROP && op != JSOP_GETELEM)) {
+                return JS_TRUE;
+            }
+
+            
+
+
+
+            if (JSID_IS_ATOM(id, cx->runtime->atomState.iteratorAtom))
+                return JS_TRUE;
+
+            
+            if (cx->resolveFlags == RESOLVE_INFER) {
+                pc += js_CodeSpec[op].length;
+                if (Detecting(cx, pc))
+                    return JS_TRUE;
+            } else if (cx->resolveFlags & JSRESOLVE_DETECTING) {
+                return JS_TRUE;
+            }
+
+            uintN flags = JSREPORT_WARNING | JSREPORT_STRICT;
+            cx->stack.currentScript()->warnedAboutUndefinedProp = true;
 
             
             if (!js_ReportValueErrorFlags(cx, flags, JSMSG_UNDEFINED_PROP,
                                           JSDVG_IGNORE_STACK, IdToValue(id),
-                                          NULL, NULL, NULL)) {
-                return JS_FALSE;
+                                          NULL, NULL, NULL))
+            {
+                return false;
             }
         }
         return JS_TRUE;
