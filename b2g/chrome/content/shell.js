@@ -30,8 +30,14 @@ XPCOMUtils.defineLazyGetter(Services, 'idle', function() {
 });
 
 XPCOMUtils.defineLazyGetter(Services, 'audioManager', function() {
+#ifdef MOZ_WIDGET_GONK
   return Cc['@mozilla.org/telephony/audiomanager;1']
            .getService(Ci.nsIAudioManager);
+#else
+  return {
+    "masterVolume": 0
+  };
+#endif
 });
 
 XPCOMUtils.defineLazyServiceGetter(Services, 'fm', function() {
@@ -79,11 +85,12 @@ var shell = {
     return Services.prefs.getCharPref('browser.homescreenURL');
   },
 
-  start: function shell_init() {
+  start: function shell_start() {
     let homeURL = this.homeURL;
     if (!homeURL) {
       let msg = 'Fatal error during startup: No homescreen found: try setting B2G_HOMESCREEN';
-      return alert(msg);
+      alert(msg);
+      return;
     }
 
     ['keydown', 'keypress', 'keyup'].forEach((function listenKey(type) {
@@ -100,9 +107,7 @@ var shell = {
     
     
     
-    try {
-      Services.audioManager.masterVolume = 0.5;
-    } catch(e) {}
+    Services.audioManager.masterVolume = 0.5;
 
     let domains = "";
     try {
@@ -297,6 +302,7 @@ var shell = {
       }
     }
   }
+
   let wakeLockHandler = function wakeLockHandler(topic, state) {
     
     
@@ -313,7 +319,11 @@ var shell = {
       }
     }
   }
+
   let idleTimeout = Services.prefs.getIntPref("power.screen.timeout");
+  if (!('mozSettings' in navigator))
+    return;
+
   let request = navigator.mozSettings.getLock().get("power.screen.timeout");
   request.onsuccess = function onSuccess() {
     idleTimeout = request.result["power.screen.timeout"] || idleTimeout;
@@ -321,13 +331,15 @@ var shell = {
       Services.idle.addIdleObserver(idleHandler, idleTimeout);
       power.addWakeLockListener(wakeLockHandler);
     }
-  }
+  };
+
   request.onerror = function onError() {
     if (idleTimeout) {
       Services.idle.addIdleObserver(idleHandler, idleTimeout);
       power.addWakeLockListener(wakeLockHandler);
     }
-  }
+  };
+
   
   
   navigator.mozSettings.onsettingchange = function onSettingChange(e) {
