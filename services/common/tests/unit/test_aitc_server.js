@@ -6,8 +6,7 @@
 Cu.import("resource://services-common/rest.js");
 Cu.import("resource://services-common/utils.js");
 
-
-
+Cu.import("resource://testing-common/services-common/aitcserver.js");
 
 function run_test() {
   initTestLogging("Trace");

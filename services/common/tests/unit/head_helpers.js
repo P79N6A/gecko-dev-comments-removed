@@ -2,6 +2,7 @@
 
 
 
+Cu.import("resource://testing-common/httpd.js");
 Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-common/utils.js");
 
@@ -93,7 +94,7 @@ function get_server_port() {
 
 function httpd_setup (handlers, port) {
   let port   = port || 8080;
-  let server = new nsHttpServer();
+  let server = new HttpServer();
   for (let path in handlers) {
     server.registerPathHandler(path, handlers[path]);
   }

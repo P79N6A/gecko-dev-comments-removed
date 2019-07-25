@@ -22,11 +22,8 @@ function run_test() {
     Components.utils.import(resource, {});
   }
 
-  
-  
-
-
-
-
-
+  for each (let m in test_modules) {
+    let resource = "resource://testing-common/services-common/" + m;
+    Components.utils.import(resource, {});
+  }
 }

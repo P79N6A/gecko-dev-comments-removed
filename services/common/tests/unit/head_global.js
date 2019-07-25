@@ -1,13 +1,10 @@
 
 
 
+const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu, manager: Cm} = Components;
+
 
 const TEST_SERVER_URL = "http://localhost:8080/";
-
-
-
-do_load_httpd_js();
-const Cm = Components.manager;
 
 let gSyncProfile = do_get_profile();
 
