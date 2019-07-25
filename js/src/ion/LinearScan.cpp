@@ -601,6 +601,13 @@ LinearScanAllocator::allocateRegisters()
             firstUsePos = CodePosition::MAX;
 
         
+        if (!mustHaveRegister && !firstUse && current->reg()->canonicalSpill()) {
+            if (!spill())
+                return false;
+            continue;
+        }
+
+        
         IonSpew(IonSpew_LSRA, " Attempting free register allocation");
 
         
