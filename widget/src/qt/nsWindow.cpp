@@ -1917,7 +1917,7 @@ nsEventStatus nsWindow::OnTouchEvent(QTouchEvent *event, PRBool &handled)
     if (touchPoints.count() > 0) {
         
         
-        mPinchEvent.touchPoint = touchPoints.at(0).scenePos();
+        mPinchEvent.touchPoint = touchPoints.at(0).pos();
     }
 
     return nsEventStatus_eIgnore;
