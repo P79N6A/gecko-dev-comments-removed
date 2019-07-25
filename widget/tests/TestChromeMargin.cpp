@@ -42,6 +42,11 @@
 
 
 
+
+
+
+
+
 #include "TestHarness.h"
 
 #ifndef MOZILLA_INTERNAL_API
@@ -61,7 +66,7 @@ template<class T> class nsReadingIterator;
 #endif
 
 #include "nscore.h"
-#include "nsIContentUtils.h"
+#include "nsContentUtils.h"
 
 #ifndef MOZILLA_INTERNAL_API
 #undef nsString_h___
@@ -115,19 +120,13 @@ const DATA Data[] = {
 
 void DoAttrValueTest()
 {
-  nsCOMPtr<nsIContentUtils> utils =
-   do_GetService("@mozilla.org/content/contentutils;1");
-
-  if (!utils)
-    fail("No nsIContentUtils");
-
   int idx = -1;
   bool didFail = false;
   while (Data[++idx].margins) {
     nsAutoString str;
     str.AssignLiteral(Data[idx].margins);
     nsIntMargin values(99,99,99,99);
-    bool result = utils->ParseIntMarginValue(str, values);
+    bool result = nsContentUtils::ParseIntMarginValue(str, values);
 
     
     if (!result) {
