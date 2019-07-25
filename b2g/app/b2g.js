@@ -428,6 +428,7 @@ pref("browser.link.open_newwindow.restriction", 0);
 
 pref("dom.mozBrowserFramesEnabled", true);
 pref("dom.mozBrowserFramesWhitelist", "http://homescreen.gaiamobile.org,http://browser.gaiamobile.org");
+pref("dom.ipc.tabs.disabled", true);
 
 
 pref("dom.sms.enabled", true);
