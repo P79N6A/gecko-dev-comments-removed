@@ -59,6 +59,14 @@
 
 
 
+
+
+
+
+
+
+
+
 #ifdef DEFINED_FORWARDED_EVENT
 #error "Don't define DEFINED_FORWARDED_EVENT"
 #endif 
@@ -68,13 +76,31 @@
 #define DEFINED_FORWARDED_EVENT
 #endif 
 
+#ifdef DEFINED_WINDOW_ONLY_EVENT
+#error "Don't define DEFINED_WINDOW_ONLY_EVENT"
+#endif 
+
+#ifndef WINDOW_ONLY_EVENT
+#define WINDOW_ONLY_EVENT(_name)
+#define DEFINED_WINDOW_ONLY_EVENT
+#endif 
+
 #ifdef DEFINED_WINDOW_EVENT
 #error "Don't define DEFINED_WINDOW_EVENT"
 #endif 
 
 #ifndef WINDOW_EVENT
-#define WINDOW_EVENT(_name)
+#define WINDOW_EVENT(_name) WINDOW_ONLY_EVENT(_name)
 #define DEFINED_WINDOW_EVENT
+#endif 
+
+#ifdef DEFINED_TOUCH_EVENT
+#error "Don't define DEFINED_TOUCH_EVENT"
+#endif 
+
+#ifndef TOUCH_EVENT
+#define TOUCH_EVENT(_name)
+#define DEFINED_TOUCH_EVENT
 #endif 
 
 EVENT(abort)
@@ -127,6 +153,12 @@ EVENT(timeupdate)
 EVENT(volumechange)
 EVENT(waiting)
 
+EVENT(copy)
+EVENT(cut)
+EVENT(paste)
+EVENT(beforescriptexecute)
+EVENT(afterscriptexecute)
+
 FORWARDED_EVENT(blur)
 FORWARDED_EVENT(error)
 FORWARDED_EVENT(focus)
@@ -149,6 +181,16 @@ WINDOW_EVENT(storage)
 WINDOW_EVENT(undo)
 WINDOW_EVENT(unload)
 
+WINDOW_ONLY_EVENT(devicemotion)
+WINDOW_ONLY_EVENT(deviceorientation)
+
+TOUCH_EVENT(touchstart)
+TOUCH_EVENT(touchend)
+TOUCH_EVENT(touchmove)
+TOUCH_EVENT(touchenter)
+TOUCH_EVENT(touchleave)
+TOUCH_EVENT(touchcancel)
+
 #ifdef DEFINED_FORWARDED_EVENT
 #undef DEFINED_FORWARDED_EVENT
 #undef FORWARDED_EVENT
@@ -158,3 +200,14 @@ WINDOW_EVENT(unload)
 #undef DEFINED_WINDOW_EVENT
 #undef WINDOW_EVENT
 #endif 
+
+#ifdef DEFINED_WINDOW_ONLY_EVENT
+#undef DEFINED_WINDOW_ONLY_EVENT
+#undef WINDOW_ONLY_EVENT
+#endif 
+
+#ifdef DEFINED_TOUCH_EVENT
+#undef DEFINED_TOUCH_EVENT
+#undef TOUCH_EVENT
+#endif 
+
