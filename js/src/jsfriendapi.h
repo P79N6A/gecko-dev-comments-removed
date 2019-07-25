@@ -292,6 +292,10 @@ struct WeakMapTracer {
 extern JS_FRIEND_API(void)
 TraceWeakMaps(WeakMapTracer *trc);
 
+extern JS_FRIEND_API(bool)
+GCThingIsMarkedGray(void *thing);
+
+
 
 
 
