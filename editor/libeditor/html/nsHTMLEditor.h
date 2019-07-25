@@ -548,14 +548,12 @@ protected:
 
 
 
-
-  virtual void IsTextPropertySetByContent(nsIDOMNode        *aNode,
-                                          nsIAtom           *aProperty, 
-                                          const nsAString   *aAttribute,
-                                          const nsAString   *aValue,
-                                          bool              &aIsSet,
-                                          nsIDOMNode       **aStyleNode,
-                                          nsAString *outValue = nsnull);
+  void IsTextPropertySetByContent(nsIDOMNode*      aNode,
+                                  nsIAtom*         aProperty,
+                                  const nsAString* aAttribute,
+                                  const nsAString* aValue,
+                                  bool&            aIsSet,
+                                  nsAString*       outValue = nsnull);
 
   
   NS_IMETHOD PasteAsPlaintextQuotation(PRInt32 aSelectionType);
