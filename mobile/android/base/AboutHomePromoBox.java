@@ -1,0 +1,126 @@
+
+
+
+
+package org.mozilla.gecko;
+
+import org.mozilla.gecko.sync.setup.activities.SetupSyncActivity;
+
+import android.content.Context;
+import android.content.Intent;
+import android.text.SpannableString;
+import android.text.style.StyleSpan;
+import android.util.AttributeSet;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+
+
+
+
+
+
+public class AboutHomePromoBox extends LinearLayout implements View.OnClickListener {
+    private static final String LOGTAG = "AboutHomePromoBox";
+
+    public enum Type { SYNC };
+
+    private Type mType;
+
+    private final Context mContext;
+    private final TextView mTextView;
+    private final ImageView mImageView;
+
+    
+    private int mTextResource;
+    private int mBoldTextResource;
+    private int mImageResource;
+
+    public AboutHomePromoBox(Context context, AttributeSet attrs) {
+        super(context, attrs);
+
+        final LayoutInflater inflater = LayoutInflater.from(context);
+        inflater.inflate(R.layout.abouthome_promo_box, this);
+
+        mContext = context;
+        mTextView = (TextView) findViewById(R.id.text);
+        mImageView = (ImageView) findViewById(R.id.icon);
+        setOnClickListener(this);
+    }
+
+    @Override
+    public void onClick(View v) {
+        Log.d(LOGTAG, "I work out.");
+        switch (mType) {
+            case SYNC:
+                final Context context = v.getContext();
+                final Intent intent = new Intent(context, SetupSyncActivity.class);
+                context.startActivity(intent);
+                break;
+
+            default:
+                Log.e(LOGTAG, "Invalid type was set when promo box was clicked.");
+                break;
+        }
+    }
+
+    
+
+
+
+    public void show(Type type) {
+        mType = type;
+        switch (type) {
+            case SYNC:
+                setSyncResources();
+                break;
+
+            default:
+                Log.e(LOGTAG, "Invalid PromoBoxType specified.");
+                break;
+        }
+        updateViewResources();
+        setVisibility(View.VISIBLE);
+    }
+
+    public void hide() {
+        setVisibility(View.GONE);
+        mType = null;
+    }
+
+    private void setResources(int textResource, int boldTextResource, int imageResource) {
+        mTextResource = textResource;
+        mBoldTextResource = boldTextResource;
+        mImageResource = imageResource;
+    }
+
+    private void updateViewResources() {
+        updateTextViewResources();
+        mImageView.setImageResource(mImageResource);
+    }
+
+    private void updateTextViewResources() {
+        final String promoText = mContext.getResources().getString(mTextResource) + " \u00BB";
+
+        final String boldName = mContext.getResources().getString(mBoldTextResource);
+        final int styleIndex = promoText.indexOf(boldName);
+        if (styleIndex < 0)
+            mTextView.setText(promoText);
+        else {
+            final SpannableString spannableText = new SpannableString(promoText);
+            spannableText.setSpan(new StyleSpan(android.graphics.Typeface.BOLD), styleIndex,
+                    styleIndex + boldName.length(), 0);
+            mTextView.setText(spannableText, TextView.BufferType.SPANNABLE);
+        }
+    }
+
+    
+    private void setSyncResources() {
+        setResources(R.string.abouthome_about_sync, R.string.abouthome_sync_bold_name,
+                R.drawable.abouthome_sync_logo);
+    }
+}
