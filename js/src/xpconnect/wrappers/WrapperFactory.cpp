@@ -48,6 +48,7 @@
 #include "XPCWrapper.h"
 
 #include "xpcprivate.h"
+#include "xpcmaps.h"
 
 namespace xpc {
 
@@ -307,10 +308,33 @@ WrapperFactory::WaiveXrayAndWrap(JSContext *cx, jsval *vp)
     obj = GetCurrentOuter(cx, obj);
 
     {
-        js::SwitchToCompartment sc(cx, obj->compartment());
-        obj = JSWrapper::New(cx, obj, NULL, obj->getGlobal(), &WaiveXrayWrapperWrapper);
-        if (!obj)
-            return false;
+        
+        CompartmentPrivate *priv =
+            (CompartmentPrivate *)JS_GetCompartmentPrivate(cx, obj->compartment());
+        JSObject *wobj = nsnull;
+        if (priv && priv->waiverWrapperMap)
+            wobj = priv->waiverWrapperMap->Find(obj);
+
+        
+        if (!wobj) {
+            js::SwitchToCompartment sc(cx, obj->compartment());
+            wobj = JSWrapper::New(cx, obj, NULL, obj->getGlobal(), &WaiveXrayWrapperWrapper);
+            if (!wobj)
+                return false;
+
+            
+            if (priv) {
+                if (!priv->waiverWrapperMap) {
+                    priv->waiverWrapperMap = JSObject2JSObjectMap::newMap(XPC_WRAPPER_MAP_SIZE);
+                    if (!priv->waiverWrapperMap)
+                        return false;
+                }
+                if (!priv->waiverWrapperMap->Add(obj, wobj))
+                    return false;
+            }
+        }
+
+        obj = wobj;
     }
 
     *vp = OBJECT_TO_JSVAL(obj);

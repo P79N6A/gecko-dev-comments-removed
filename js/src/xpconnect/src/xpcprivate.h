@@ -240,6 +240,7 @@ void DEBUG_CheckWrapperThreadSafety(const XPCWrappedNative* wrapper);
 #define XPC_NATIVE_JSCLASS_MAP_SIZE         32
 #define XPC_THIS_TRANSLATOR_MAP_SIZE         8
 #define XPC_NATIVE_WRAPPER_MAP_SIZE         16
+#define XPC_WRAPPER_MAP_SIZE                16
 
 
 
@@ -4484,22 +4485,28 @@ struct CompartmentPrivate
     : key(key),
       ptr(nsnull),
       wantXrays(wantXrays),
-      cycleCollectionEnabled(cycleCollectionEnabled)
+      cycleCollectionEnabled(cycleCollectionEnabled),
+      waiverWrapperMap(nsnull)
   {
   }
+
   CompartmentPrivate(nsISupports *ptr, bool wantXrays, bool cycleCollectionEnabled)
     : key(nsnull),
       ptr(ptr),
       wantXrays(wantXrays),
-      cycleCollectionEnabled(cycleCollectionEnabled)
+      cycleCollectionEnabled(cycleCollectionEnabled),
+      waiverWrapperMap(nsnull)
   {
   }
+
+  ~CompartmentPrivate();
 
   
   nsAutoPtr<PtrAndPrincipalHashKey> key;
   nsCOMPtr<nsISupports> ptr;
   bool wantXrays;
   bool cycleCollectionEnabled;
+  JSObject2JSObjectMap *waiverWrapperMap;
 };
 
 inline bool

@@ -240,6 +240,12 @@ ContextCallback(JSContext *cx, uintN operation)
     return JS_TRUE;
 }
 
+xpc::CompartmentPrivate::~CompartmentPrivate()
+{
+    if (waiverWrapperMap)
+        delete waiverWrapperMap;
+}
+
 static JSBool
 CompartmentCallback(JSContext *cx, JSCompartment *compartment, uintN op)
 {
@@ -545,6 +551,27 @@ DoDeferredRelease(nsTArray<T> &array)
     }
 }
 
+static JSDHashOperator
+SweepWaiverWrappers(JSDHashTable *table, JSDHashEntryHdr *hdr,
+                    uint32 number, void *arg)
+{
+    JSObject *key = ((JSObject2JSObjectMap::Entry *)hdr)->key;
+    JSObject *value = ((JSObject2JSObjectMap::Entry *)hdr)->value;
+    if(IsAboutToBeFinalized(key) || IsAboutToBeFinalized(value))
+        return JS_DHASH_REMOVE;
+    return JS_DHASH_NEXT;
+}
+
+static PLDHashOperator
+SweepCompartment(nsCStringHashKey& aKey, JSCompartment *compartment, void *aClosure)
+{
+    xpc::CompartmentPrivate *priv = (xpc::CompartmentPrivate *)
+        JS_GetCompartmentPrivate((JSContext *)aClosure, compartment);
+    if (priv->waiverWrapperMap)
+        priv->waiverWrapperMap->Enumerate(SweepWaiverWrappers, nsnull);
+    return PL_DHASH_NEXT;
+}
+
 
 JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
 {
@@ -599,6 +626,11 @@ JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
 
                 
                 XPCWrappedNativeScope::FinishedMarkPhaseOfGC(cx, self);
+
+                
+                self->GetCompartmentMap().EnumerateRead(
+                    (XPCCompartmentMap::EnumReadFunction)
+                    SweepCompartment, cx);
 
                 self->mDoingFinalization = JS_TRUE;
                 break;
