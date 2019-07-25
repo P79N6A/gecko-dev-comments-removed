@@ -478,7 +478,9 @@ void nsHTMLMediaElement::AbortExistingLoads()
   
   mCurrentLoadID++;
 
+  PRBool fireTimeUpdate = PR_FALSE;
   if (mDecoder) {
+    fireTimeUpdate = mDecoder->GetCurrentTime() != 0.0;
     mDecoder->Shutdown();
     mDecoder = nsnull;
   }
@@ -505,7 +507,13 @@ void nsHTMLMediaElement::AbortExistingLoads()
     ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_NOTHING);
     mPaused = PR_TRUE;
 
-    
+    if (fireTimeUpdate) {
+      
+      
+      
+      
+      DispatchAsyncSimpleEvent(NS_LITERAL_STRING("timeupdate"));
+    }
     DispatchSimpleEvent(NS_LITERAL_STRING("emptied"));
   }
 
