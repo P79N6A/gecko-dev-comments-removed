@@ -138,6 +138,8 @@ nsFtpControlConnection::Connect(nsIProxyInfo* proxyInfo,
     if (NS_FAILED(rv))
         return rv;
 
+    mSocket->SetQoSBits(gFtpHandler->GetControlQoSBits());
+
     
     if (eventSink)
         mSocket->SetEventSink(eventSink, NS_GetCurrentThread());

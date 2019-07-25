@@ -701,6 +701,25 @@ pref("network.http.prompt-temp-redirect", true);
 
 
 
+
+
+
+pref("network.http.qos", 0);
+
+pref("network.gopher.qos", 0);
+
+
+
+
+
+pref("network.ftp.data.qos", 0);
+pref("network.ftp.control.qos", 0);
+
+
+
+
+
+
 pref("network.jar.open-unsafe-types", false);
 
 

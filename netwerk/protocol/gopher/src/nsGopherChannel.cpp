@@ -220,6 +220,8 @@ nsGopherContentStream::OpenSocket(nsIEventTarget *target)
     if (NS_FAILED(rv))
         return rv;
 
+    mSocket->SetQoSBits(gGopherHandler->GetQoSBits());
+
     
     rv = mSocket->SetEventSink(mChannel, target);
     if (NS_FAILED(rv))

@@ -104,6 +104,7 @@ public:
     const char    *DefaultSocketType()       { return mDefaultSocketType.get();  }
     nsIIDNService *IDNConverter()            { return mIDNConverter; }
     PRUint32       PhishyUserPassLength()    { return mPhishyUserPassLength; }
+    PRUint8        GetQoSBits()              { return mQoSBits; }
     
     PRBool         IsPersistentHttpsCachingEnabled() { return mEnablePersistentHttpsCaching; }
 
@@ -274,6 +275,8 @@ private:
     
     
     PRUint8  mPhishyUserPassLength;
+
+    PRUint8  mQoSBits;
 
     PRPackedBool mPipeliningOverSSL;
 

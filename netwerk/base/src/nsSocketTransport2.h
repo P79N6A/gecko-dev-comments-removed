@@ -273,6 +273,9 @@ private:
     PRUint16 mTimeouts[2];
 
     
+    PRUint8 mQoSBits;
+
+    
     
     
     PRFileDesc *GetFD_Locked();

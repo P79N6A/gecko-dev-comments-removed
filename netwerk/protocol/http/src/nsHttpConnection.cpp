@@ -462,6 +462,8 @@ nsHttpConnection::CreateTransport(PRUint8 caps)
     
     strans->SetConnectionFlags(tmpFlags); 
 
+    strans->SetQoSBits(gHttpHandler->GetQoSBits());
+
     
     
     rv = strans->SetEventSink(this, nsnull);
