@@ -184,22 +184,6 @@ nsSystemPrincipal::EnableCapability(const char *capability, void **annotation)
 }
 
 NS_IMETHODIMP 
-nsSystemPrincipal::RevertCapability(const char *capability, void **annotation)
-{
-    *annotation = nsnull;
-    return NS_OK;
-}
-
-NS_IMETHODIMP 
-nsSystemPrincipal::DisableCapability(const char *capability, void **annotation) 
-{
-    
-    
-    *annotation = nsnull;
-    return NS_ERROR_FAILURE;
-}
-
-NS_IMETHODIMP 
 nsSystemPrincipal::GetURI(nsIURI** aURI)
 {
     *aURI = nsnull;
