@@ -775,6 +775,12 @@ nsImageFrame::GetPrefWidth(nsIRenderingContext *aRenderingContext)
     mIntrinsicSize.width.GetCoordValue() : 0;
 }
 
+ nsIFrame::IntrinsicSize
+nsImageFrame::GetIntrinsicSize()
+{
+  return mIntrinsicSize;
+}
+
  nsSize
 nsImageFrame::GetIntrinsicRatio()
 {
