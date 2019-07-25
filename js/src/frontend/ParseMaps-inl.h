@@ -43,7 +43,7 @@
 
 #include "jscntxt.h"
 
-#include "frontend/Parser.h" 
+#include "frontend/ParseNode.h" 
 
 #include "ParseMaps.h"
 

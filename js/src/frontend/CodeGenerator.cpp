@@ -64,6 +64,7 @@
 #include "jsautooplen.h"        
 
 #include "ds/LifoAlloc.h"
+#include "frontend/BytecodeCompiler.h"
 #include "frontend/CodeGenerator.h"
 #include "frontend/Parser.h"
 #include "frontend/TokenStream.h"
@@ -1346,6 +1347,38 @@ JSTreeContext::skipSpansGenerator(unsigned skip)
     }
     return false;
 }
+
+namespace js {
+
+bool
+SetStaticLevel(JSTreeContext *tc, uintN staticLevel)
+{
+    
+
+
+
+    if (UpvarCookie::isLevelReserved(staticLevel)) {
+        JS_ReportErrorNumber(tc->parser->context, js_GetErrorMessage, NULL,
+                             JSMSG_TOO_DEEP, js_function_str);
+        return false;
+    }
+    tc->staticLevel = staticLevel;
+    return true;
+}
+
+bool
+GenerateBlockId(JSTreeContext *tc, uint32& blockid)
+{
+    if (tc->blockidGen == JS_BIT(20)) {
+        JS_ReportErrorNumber(tc->parser->context, js_GetErrorMessage, NULL,
+                             JSMSG_NEED_DIET, "program");
+        return false;
+    }
+    blockid = tc->blockidGen++;
+    return true;
+}
+
+} 
 
 void
 js_PushStatement(JSTreeContext *tc, JSStmtInfo *stmt, JSStmtType type,

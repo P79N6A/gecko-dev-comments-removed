@@ -1,0 +1,476 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "frontend/BytecodeCompiler.h"
+
+#include "jsprobes.h"
+
+#include "frontend/CodeGenerator.h"
+#include "frontend/FoldConstants.h"
+#include "vm/GlobalObject.h"
+
+#include "jsinferinlines.h"
+
+namespace js {
+
+
+
+
+Compiler::Compiler(JSContext *cx, JSPrincipals *prin, StackFrame *cfp)
+  : parser(cx, prin, cfp), globalScope(NULL)
+{}
+
+JSScript *
+Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerFrame,
+                        JSPrincipals *principals, uint32 tcflags,
+                        const jschar *chars, size_t length,
+                        const char *filename, uintN lineno, JSVersion version,
+                        JSString *source ,
+                        uintN staticLevel )
+{
+    TokenKind tt;
+    JSParseNode *pn;
+    JSScript *script;
+    bool inDirectivePrologue;
+
+    JS_ASSERT(!(tcflags & ~(TCF_COMPILE_N_GO | TCF_NO_SCRIPT_RVAL | TCF_NEED_MUTABLE_SCRIPT |
+                            TCF_COMPILE_FOR_EVAL | TCF_NEED_SCRIPT_OBJECT)));
+
+    
+
+
+
+    JS_ASSERT_IF(callerFrame, tcflags & TCF_COMPILE_N_GO);
+    JS_ASSERT_IF(staticLevel != 0, callerFrame);
+
+    Compiler compiler(cx, principals, callerFrame);
+    if (!compiler.init(chars, length, filename, lineno, version))
+        return NULL;
+
+    Parser &parser = compiler.parser;
+    TokenStream &tokenStream = parser.tokenStream;
+
+    JSCodeGenerator cg(&parser, tokenStream.getLineno());
+    if (!cg.init(cx, JSTreeContext::USED_AS_TREE_CONTEXT))
+        return NULL;
+
+    Probes::compileScriptBegin(cx, filename, lineno);
+
+    MUST_FLOW_THROUGH("out");
+
+    
+    JSObject *globalObj = scopeChain && scopeChain == scopeChain->getGlobal()
+                        ? scopeChain->getGlobal()
+                        : NULL;
+
+    JS_ASSERT_IF(globalObj, globalObj->isNative());
+    JS_ASSERT_IF(globalObj, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalObj->getClass()));
+
+    
+    script = NULL;
+
+    GlobalScope globalScope(cx, globalObj, &cg);
+    cg.flags |= tcflags;
+    cg.setScopeChain(scopeChain);
+    compiler.globalScope = &globalScope;
+    if (!SetStaticLevel(&cg, staticLevel))
+        goto out;
+
+    
+    if (callerFrame &&
+        callerFrame->isScriptFrame() &&
+        callerFrame->script()->strictModeCode) {
+        cg.flags |= TCF_STRICT_MODE_CODE;
+        tokenStream.setStrictMode();
+    }
+
+#ifdef DEBUG
+    bool savedCallerFun;
+    savedCallerFun = false;
+#endif
+    if (tcflags & TCF_COMPILE_N_GO) {
+        if (source) {
+            
+
+
+
+            JSAtom *atom = js_AtomizeString(cx, source);
+            jsatomid _;
+            if (!atom || !cg.makeAtomIndex(atom, &_))
+                goto out;
+        }
+
+        if (callerFrame && callerFrame->isFunctionFrame()) {
+            
+
+
+
+
+            JSObjectBox *funbox = parser.newObjectBox(callerFrame->fun());
+            if (!funbox)
+                goto out;
+            funbox->emitLink = cg.objectList.lastbox;
+            cg.objectList.lastbox = funbox;
+            cg.objectList.length++;
+#ifdef DEBUG
+            savedCallerFun = true;
+#endif
+        }
+    }
+
+    
+
+
+
+    uint32 bodyid;
+    if (!GenerateBlockId(&cg, bodyid))
+        goto out;
+    cg.bodyid = bodyid;
+
+#if JS_HAS_XML_SUPPORT
+    pn = NULL;
+    bool onlyXML;
+    onlyXML = true;
+#endif
+
+    inDirectivePrologue = true;
+    tokenStream.setOctalCharacterEscape(false);
+    for (;;) {
+        tt = tokenStream.peekToken(TSF_OPERAND);
+        if (tt <= TOK_EOF) {
+            if (tt == TOK_EOF)
+                break;
+            JS_ASSERT(tt == TOK_ERROR);
+            goto out;
+        }
+
+        pn = parser.statement();
+        if (!pn)
+            goto out;
+        JS_ASSERT(!cg.blockNode);
+
+        if (inDirectivePrologue && !parser.recognizeDirectivePrologue(pn, &inDirectivePrologue))
+            goto out;
+
+        if (!js_FoldConstants(cx, pn, &cg))
+            goto out;
+
+        if (!parser.analyzeFunctions(&cg))
+            goto out;
+        cg.functionList = NULL;
+
+        if (!js_EmitTree(cx, &cg, pn))
+            goto out;
+
+#if JS_HAS_XML_SUPPORT
+        if (!pn->isKind(TOK_SEMI) || !pn->pn_kid || !TreeTypeIsXML(pn->pn_kid->getKind()))
+            onlyXML = false;
+#endif
+        RecycleTree(pn, &cg);
+    }
+
+#if JS_HAS_XML_SUPPORT
+    
+
+
+
+
+
+    if (pn && onlyXML && !callerFrame) {
+        parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_XML_WHOLE_PROGRAM);
+        goto out;
+    }
+#endif
+
+    
+
+
+
+
+    if (cg.hasSharps()) {
+        jsbytecode *code, *end;
+        JSOp op;
+        const JSCodeSpec *cs;
+        uintN len, slot;
+
+        code = CG_BASE(&cg);
+        for (end = code + CG_OFFSET(&cg); code != end; code += len) {
+            JS_ASSERT(code < end);
+            op = (JSOp) *code;
+            cs = &js_CodeSpec[op];
+            len = (cs->length > 0)
+                  ? (uintN) cs->length
+                  : js_GetVariableBytecodeLength(code);
+            if ((cs->format & JOF_SHARPSLOT) ||
+                JOF_TYPE(cs->format) == JOF_LOCAL ||
+                (JOF_TYPE(cs->format) == JOF_SLOTATOM)) {
+                JS_ASSERT_IF(!(cs->format & JOF_SHARPSLOT),
+                             JOF_TYPE(cs->format) != JOF_SLOTATOM);
+                slot = GET_SLOTNO(code);
+                if (!(cs->format & JOF_SHARPSLOT))
+                    slot += cg.sharpSlots();
+                if (slot >= SLOTNO_LIMIT)
+                    goto too_many_slots;
+                SET_SLOTNO(code, slot);
+            }
+        }
+    }
+
+    
+
+
+
+    if (js_Emit1(cx, &cg, JSOP_STOP) < 0)
+        goto out;
+
+    JS_ASSERT(cg.version() == version);
+
+    script = JSScript::NewScriptFromCG(cx, &cg);
+    if (!script)
+        goto out;
+
+    JS_ASSERT(script->savedCallerFun == savedCallerFun);
+
+    if (!defineGlobals(cx, globalScope, script))
+        script = NULL;
+
+  out:
+    Probes::compileScriptEnd(cx, script, filename, lineno);
+    return script;
+
+  too_many_slots:
+    parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_TOO_MANY_LOCALS);
+    script = NULL;
+    goto out;
+}
+
+bool
+Compiler::defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *script)
+{
+    JSObject *globalObj = globalScope.globalObj;
+
+    
+    for (size_t i = 0; i < globalScope.defs.length(); i++) {
+        GlobalScope::GlobalDef &def = globalScope.defs[i];
+
+        
+        if (!def.atom)
+            continue;
+
+        jsid id = ATOM_TO_JSID(def.atom);
+        Value rval;
+
+        if (def.funbox) {
+            JSFunction *fun = def.funbox->function();
+
+            
+
+
+
+            rval.setObject(*fun);
+            types::AddTypePropertyId(cx, globalObj, id, rval);
+        } else {
+            rval.setUndefined();
+        }
+
+        
+
+
+
+
+
+
+        const Shape *shape =
+            DefineNativeProperty(cx, globalObj, id, rval, JS_PropertyStub, JS_StrictPropertyStub,
+                                 JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0, DNP_SKIP_TYPE);
+        if (!shape)
+            return false;
+        def.knownSlot = shape->slot;
+    }
+
+    js::Vector<JSScript *, 16> worklist(cx);
+    if (!worklist.append(script))
+        return false;
+
+    
+
+
+
+
+
+    while (worklist.length()) {
+        JSScript *outer = worklist.back();
+        worklist.popBack();
+
+        if (JSScript::isValidOffset(outer->objectsOffset)) {
+            JSObjectArray *arr = outer->objects();
+
+            
+
+
+
+            size_t start = outer->savedCallerFun ? 1 : 0;
+
+            for (size_t i = start; i < arr->length; i++) {
+                JSObject *obj = arr->vector[i];
+                if (!obj->isFunction())
+                    continue;
+                JSFunction *fun = obj->getFunctionPrivate();
+                JS_ASSERT(fun->isInterpreted());
+                JSScript *inner = fun->script();
+                if (outer->isHeavyweightFunction) {
+                    outer->isOuterFunction = true;
+                    inner->isInnerFunction = true;
+                }
+                if (!JSScript::isValidOffset(inner->globalsOffset) &&
+                    !JSScript::isValidOffset(inner->objectsOffset)) {
+                    continue;
+                }
+                if (!worklist.append(inner))
+                    return false;
+            }
+        }
+
+        if (!JSScript::isValidOffset(outer->globalsOffset))
+            continue;
+
+        GlobalSlotArray *globalUses = outer->globals();
+        uint32 nGlobalUses = globalUses->length;
+        for (uint32 i = 0; i < nGlobalUses; i++) {
+            uint32 index = globalUses->vector[i].slot;
+            JS_ASSERT(index < globalScope.defs.length());
+            globalUses->vector[i].slot = globalScope.defs[index].knownSlot;
+        }
+    }
+
+    return true;
+}
+
+
+
+
+
+bool
+Compiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
+                              Bindings *bindings, const jschar *chars, size_t length,
+                              const char *filename, uintN lineno, JSVersion version)
+{
+    Compiler compiler(cx, principals);
+
+    if (!compiler.init(chars, length, filename, lineno, version))
+        return false;
+
+    Parser &parser = compiler.parser;
+    TokenStream &tokenStream = parser.tokenStream;
+
+    JSCodeGenerator funcg(&parser, tokenStream.getLineno());
+    if (!funcg.init(cx, JSTreeContext::USED_AS_TREE_CONTEXT))
+        return false;
+
+    funcg.flags |= TCF_IN_FUNCTION;
+    funcg.setFunction(fun);
+    funcg.bindings.transfer(cx, bindings);
+    fun->setArgCount(funcg.bindings.countArgs());
+    if (!GenerateBlockId(&funcg, funcg.bodyid))
+        return false;
+
+    
+    tokenStream.mungeCurrentToken(TOK_NAME);
+    JSParseNode *fn = FunctionNode::create(&funcg);
+    if (fn) {
+        fn->pn_body = NULL;
+        fn->pn_cookie.makeFree();
+
+        uintN nargs = fun->nargs;
+        if (nargs) {
+            
+
+
+
+            Vector<JSAtom *> names(cx);
+            if (!funcg.bindings.getLocalNameArray(cx, &names)) {
+                fn = NULL;
+            } else {
+                for (uintN i = 0; i < nargs; i++) {
+                    if (!DefineArg(fn, names[i], i, &funcg)) {
+                        fn = NULL;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    
+
+
+
+
+
+    tokenStream.mungeCurrentToken(TOK_LC);
+    JSParseNode *pn = fn ? parser.functionBody() : NULL;
+    if (pn) {
+        if (!CheckStrictParameters(cx, &funcg)) {
+            pn = NULL;
+        } else if (!tokenStream.matchToken(TOK_EOF)) {
+            parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_SYNTAX_ERROR);
+            pn = NULL;
+        } else if (!js_FoldConstants(cx, pn, &funcg)) {
+            
+            pn = NULL;
+        } else if (!parser.analyzeFunctions(&funcg)) {
+            pn = NULL;
+        } else {
+            if (fn->pn_body) {
+                JS_ASSERT(fn->pn_body->isKind(TOK_ARGSBODY));
+                fn->pn_body->append(pn);
+                fn->pn_body->pn_pos = pn->pn_pos;
+                pn = fn->pn_body;
+            }
+
+            if (!js_EmitFunctionScript(cx, &funcg, pn))
+                pn = NULL;
+        }
+    }
+
+    return pn != NULL;
+}
+
+} 

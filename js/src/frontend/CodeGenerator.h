@@ -512,6 +512,16 @@ inline bool JSTreeContext::needStrictChecks() {
     return parser->context->hasStrictOption() || inStrictMode();
 }
 
+namespace js {
+
+bool
+SetStaticLevel(JSTreeContext *tc, uintN staticLevel);
+
+bool
+GenerateBlockId(JSTreeContext *tc, uint32& blockid);
+
+} 
+
 
 
 
