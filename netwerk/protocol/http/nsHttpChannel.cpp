@@ -565,6 +565,8 @@ nsHttpChannel::HandleAsyncRedirect()
         rv = AsyncProcessRedirection(mResponseHead->Status());
         if (NS_FAILED(rv)) {
             PopRedirectAsyncFunc(&nsHttpChannel::ContinueHandleAsyncRedirect);
+            
+            
             ContinueHandleAsyncRedirect(rv);
         }
     }
@@ -1243,7 +1245,15 @@ nsHttpChannel::ProcessResponse()
         if (NS_FAILED(rv)) {
             PopRedirectAsyncFunc(&nsHttpChannel::ContinueProcessResponse);
             LOG(("AsyncProcessRedirection failed [rv=%x]\n", rv));
-            rv = ContinueProcessResponse(rv);
+            
+            if (mCacheEntry)
+                mCacheEntry->Doom();
+            if (DoNotRender3xxBody(rv)) {
+                mStatus = rv;
+                DoNotifyListener();
+            } else {
+                rv = ContinueProcessResponse(rv);
+            }
         }
         break;
     case 304:
@@ -1309,28 +1319,30 @@ nsHttpChannel::ProcessResponse()
 nsresult
 nsHttpChannel::ContinueProcessResponse(nsresult rv)
 {
-    if (rv == NS_ERROR_CORRUPTED_CONTENT) {
-        
-        return NS_ERROR_CORRUPTED_CONTENT;
-    }
+    bool doNotRender = DoNotRender3xxBody(rv);
 
     if (rv == NS_ERROR_DOM_BAD_URI && mRedirectURI) {
-
         bool isHTTP = false;
         if (NS_FAILED(mRedirectURI->SchemeIs("http", &isHTTP)))
             isHTTP = false;
         if (!isHTTP && NS_FAILED(mRedirectURI->SchemeIs("https", &isHTTP)))
             isHTTP = false;
-        
+
         if (!isHTTP) {
             
             
             
             
-
             LOG(("ContinueProcessResponse detected rejected Non-HTTP Redirection"));
-            return NS_ERROR_CORRUPTED_CONTENT;
+            doNotRender = true;
+            rv = NS_ERROR_CORRUPTED_CONTENT;
         }
+    }
+
+    if (doNotRender) {
+        Cancel(rv);
+        DoNotifyListener();
+        return rv;
     }
 
     if (NS_SUCCEEDED(rv)) {
@@ -3966,8 +3978,6 @@ nsHttpChannel::AsyncProcessRedirection(PRUint32 redirectType)
 
     if (mRedirectionLimit == 0) {
         LOG(("redirection limit reached!\n"));
-        
-        Cancel(NS_ERROR_REDIRECT_LOOP);
         return NS_ERROR_REDIRECT_LOOP;
     }
 
@@ -3980,7 +3990,6 @@ nsHttpChannel::AsyncProcessRedirection(PRUint32 redirectType)
 
     if (NS_FAILED(rv)) {
         LOG(("Invalid URI for redirect: Location: %s\n", location));
-        Cancel(NS_ERROR_CORRUPTED_CONTENT);
         return NS_ERROR_CORRUPTED_CONTENT;
     }
 
