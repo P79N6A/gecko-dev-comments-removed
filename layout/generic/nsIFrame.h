@@ -295,6 +295,10 @@ typedef PRUint64 nsFrameState;
 
 
 
+#define NS_FRAME_IN_CONSTRAINED_HEIGHT              NS_FRAME_STATE_BIT(39)
+
+
+
 #define NS_FRAME_RESERVED                           ~NS_FRAME_IMPL_RESERVED
 
 
