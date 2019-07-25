@@ -31,18 +31,6 @@ class AutoFallback;
 class AutoSetInstantiatingToFalse;
 class nsObjectFrame;
 
-enum PluginSupportState {
-  ePluginUnsupported,  
-  ePluginDisabled,     
-  ePluginBlocklisted,  
-  ePluginOutdated,     
-  ePluginOtherState,   
-  ePluginCrashed,
-  ePluginClickToPlay,  
-  ePluginVulnerableUpdatable, 
-  ePluginVulnerableNoUpdate   
-};
-
 class nsObjectLoadingContent : public nsImageLoadingContent
                              , public nsIStreamListener
                              , public nsIFrameLoaderOwner
@@ -50,8 +38,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
                              , public nsIInterfaceRequestor
                              , public nsIChannelEventSink
 {
-  friend class AutoNotifier;
-  friend class AutoFallback;
   friend class AutoSetInstantiatingToFalse;
   friend class AutoSetLoadingToFalse;
   friend class InDocCheckEvent;
@@ -73,6 +59,22 @@ class nsObjectLoadingContent : public nsImageLoadingContent
       
       
       eType_Null           = TYPE_NULL
+    };
+    enum FallbackType {
+      eFallbackUnsupported,  
+                             
+      eFallbackAlternate,    
+      eFallbackDisabled,     
+      eFallbackBlocklisted,  
+      eFallbackOutdated,     
+                             
+      eFallbackCrashed,      
+      eFallbackSuppressed,   
+      eFallbackUserDisabled, 
+      eFallbackClickToPlay,  
+                             
+      eFallbackVulnerableUpdatable, 
+      eFallbackVulnerableNoUpdate  
     };
 
     nsObjectLoadingContent();
@@ -191,14 +193,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
 
 
-
-
-
-    void Fallback(bool aNotify);
-
-    
-
-
     void DestroyContent();
 
     static void Traverse(nsObjectLoadingContent *tmp,
@@ -226,6 +220,15 @@ class nsObjectLoadingContent : public nsImageLoadingContent
       
       eParamStateChanged       = PR_BIT(1)
     };
+
+    
+
+
+
+
+
+
+    void LoadFallback(FallbackType aType, bool aNotify);
 
     
 
@@ -279,6 +282,13 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
+    bool ShouldPlay(FallbackType &aReason);
+
+    
+
+
+
+
 
 
 
@@ -318,7 +328,9 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    void UnloadContent();
+
+
+    void UnloadObject(bool aResetState = true);
 
     
 
@@ -338,7 +350,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    void FirePluginError(PluginSupportState state);
+    void FirePluginError(FallbackType aFallbackType);
 
     
 
@@ -367,53 +379,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     nsObjectFrame* GetExistingFrame();
 
     
-
-
-
-
-    void HandleBeingBlockedByContentPolicy(nsresult aStatus,
-                                           PRInt16 aRetval);
-
-    
-
-
-
-
-
-
-    PluginSupportState GetPluginSupportState(nsIContent* aContent,
-                                             const nsCString& aContentType);
-
-    
-
-
-
-
-
-
-    PluginSupportState GetPluginDisabledState(const nsCString& aContentType);
-
-    
-
-
-
-
-    void UpdateFallbackState(nsIContent* aContent, AutoFallback& fallback,
-                             const nsCString& aTypeHint);
-
-    
-
-
-    nsresult IsPluginEnabledForType(const nsCString& aMIMEType);
-
-    
-
-
-
-
-    bool IsPluginEnabledByExtension(nsIURI* uri, nsCString& mimeType);
-
-    
     nsCOMPtr<nsIStreamListener> mFinalListener;
 
     
@@ -435,7 +400,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     
     
-    nsCOMPtr<nsIChannel>            mChannel;
+    nsCOMPtr<nsIChannel>        mChannel;
 
     
     
@@ -451,11 +416,11 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     nsCOMPtr<nsIURI>            mBaseURI;
 
 
-    
-    ObjectType                  mType          : 16;
 
     
-    bool                        mLoaded           : 1;
+    ObjectType                  mType           : 8;
+    
+    FallbackType                mFallbackType : 8;
 
     
     
@@ -466,20 +431,9 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     bool                        mInstantiating : 1;
 
     
-    bool                        mUserDisabled  : 1;
-    
-    bool                        mSuppressed    : 1;
-
-    
     
     
     bool                        mNetworkCreated : 1;
-
-    
-    
-    
-    
-    bool                        mCTPPlayable    : 1;
 
     
     
@@ -498,8 +452,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
     bool mSrcStreamLoading;
 
-    
-    PluginSupportState          mFallbackReason;
 
     nsWeakFrame                 mPrintFrame;
 
