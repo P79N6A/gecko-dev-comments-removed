@@ -314,10 +314,7 @@ private:
 
   
   
-  
-  
-
-  nsCOMPtr<nsISupports> mGlobalWrapperRef;
+  nsCOMPtr<nsISupports> mGlobalObjectRef;
 
   static int JSOptionChangedCallback(const char *pref, void *data);
 
