@@ -367,6 +367,8 @@ protected:
   bool                 mSheetNeedsShow; 
                                         
   bool                 mFullScreen;
+  bool                 mInFullScreenTransition; 
+                                                
   bool                 mModal;
 
   bool                 mUsesNativeFullScreen; 
