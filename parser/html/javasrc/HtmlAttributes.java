@@ -214,7 +214,7 @@ public final class HtmlAttributes implements Attributes {
 
     public @IdType String getType(int index) {
         if (index < length && index >= 0) {
-            return names[index].getType(mode);
+            return (names[index] == AttributeName.ID) ? "ID" : "CDATA";
         } else {
             return null;
         }

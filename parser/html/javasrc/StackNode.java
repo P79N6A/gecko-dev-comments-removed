@@ -43,6 +43,16 @@ final class StackNode<T> {
 
     private int refcount = 1;
 
+    
+
+    private final TaintableLocatorImpl locator;
+    
+    public TaintableLocatorImpl getLocator() {
+        return locator;
+    }
+
+    
+
     @Inline public int getFlags() {
         return flags;
     }
@@ -66,9 +76,16 @@ final class StackNode<T> {
     public boolean isHtmlIntegrationPoint() {
         return (flags & ElementName.HTML_INTEGRATION_POINT) != 0;
     }
+
+    
+    
+    public boolean isOptionalEndTag() {
+        return (flags & ElementName.OPTIONAL_END_TAG) != 0;
+    }
     
     
 
+    
 
 
 
@@ -79,8 +96,13 @@ final class StackNode<T> {
 
 
 
-    StackNode(int flags, @NsUri String ns, @Local String name,
-            T node, @Local String popName, HtmlAttributes attributes) {
+
+    StackNode(int flags, @NsUri String ns, @Local String name, T node,
+            @Local String popName, HtmlAttributes attributes
+            
+            , TaintableLocatorImpl locator
+    
+    ) {
         this.flags = flags;
         this.name = name;
         this.popName = popName;
@@ -88,6 +110,9 @@ final class StackNode<T> {
         this.node = node;
         this.attributes = attributes;
         this.refcount = 1;
+        
+        this.locator = locator;
+        
     }
 
     
@@ -96,7 +121,11 @@ final class StackNode<T> {
 
 
 
-    StackNode(ElementName elementName, T node) {
+    StackNode(ElementName elementName, T node
+    
+            , TaintableLocatorImpl locator
+    
+    ) {
         this.flags = elementName.getFlags();
         this.name = elementName.name;
         this.popName = elementName.name;
@@ -105,6 +134,9 @@ final class StackNode<T> {
         this.attributes = null;
         this.refcount = 1;
         assert !elementName.isCustom() : "Don't use this constructor for custom elements.";
+        
+        this.locator = locator;
+        
     }
 
     
@@ -114,7 +146,11 @@ final class StackNode<T> {
 
 
 
-    StackNode(ElementName elementName, T node, HtmlAttributes attributes) {
+    StackNode(ElementName elementName, T node, HtmlAttributes attributes
+    
+            , TaintableLocatorImpl locator
+    
+    ) {
         this.flags = elementName.getFlags();
         this.name = elementName.name;
         this.popName = elementName.name;
@@ -123,6 +159,9 @@ final class StackNode<T> {
         this.attributes = attributes;
         this.refcount = 1;
         assert !elementName.isCustom() : "Don't use this constructor for custom elements.";
+        
+        this.locator = locator;
+        
     }
 
     
@@ -132,7 +171,11 @@ final class StackNode<T> {
 
 
 
-    StackNode(ElementName elementName, T node, @Local String popName) {
+    StackNode(ElementName elementName, T node, @Local String popName
+    
+            , TaintableLocatorImpl locator
+    
+    ) {
         this.flags = elementName.getFlags();
         this.name = elementName.name;
         this.popName = popName;
@@ -140,6 +183,9 @@ final class StackNode<T> {
         this.node = node;
         this.attributes = null;
         this.refcount = 1;
+        
+        this.locator = locator;
+        
     }
 
     
@@ -152,7 +198,11 @@ final class StackNode<T> {
 
 
 
-    StackNode(ElementName elementName, @Local String popName, T node) {
+    StackNode(ElementName elementName, @Local String popName, T node
+    
+            , TaintableLocatorImpl locator
+    
+    ) {
         this.flags = prepareSvgFlags(elementName.getFlags());
         this.name = elementName.name;
         this.popName = popName;
@@ -160,6 +210,9 @@ final class StackNode<T> {
         this.node = node;
         this.attributes = null;
         this.refcount = 1;
+        
+        this.locator = locator;
+        
     }
 
     
@@ -171,26 +224,37 @@ final class StackNode<T> {
 
 
     StackNode(ElementName elementName, T node, @Local String popName,
-            boolean markAsIntegrationPoint) {
-        this.flags = prepareMathFlags(elementName.getFlags(), markAsIntegrationPoint);
+            boolean markAsIntegrationPoint
+            
+            , TaintableLocatorImpl locator
+    
+    ) {
+        this.flags = prepareMathFlags(elementName.getFlags(),
+                markAsIntegrationPoint);
         this.name = elementName.name;
         this.popName = popName;
         this.ns = "http://www.w3.org/1998/Math/MathML";
         this.node = node;
         this.attributes = null;
         this.refcount = 1;
+        
+        this.locator = locator;
+        
     }
-    
+
     private static int prepareSvgFlags(int flags) {
-        flags &= ~(ElementName.FOSTER_PARENTING | ElementName.SCOPING | ElementName.SPECIAL);
+        flags &= ~(ElementName.FOSTER_PARENTING | ElementName.SCOPING
+                | ElementName.SPECIAL | ElementName.OPTIONAL_END_TAG);
         if ((flags & ElementName.SCOPING_AS_SVG) != 0) {
             flags |= (ElementName.SCOPING | ElementName.SPECIAL | ElementName.HTML_INTEGRATION_POINT);
         }
         return flags;
     }
 
-    private static int prepareMathFlags(int flags, boolean markAsIntegrationPoint) {
-        flags &= ~(ElementName.FOSTER_PARENTING | ElementName.SCOPING | ElementName.SPECIAL);
+    private static int prepareMathFlags(int flags,
+            boolean markAsIntegrationPoint) {
+        flags &= ~(ElementName.FOSTER_PARENTING | ElementName.SCOPING
+                | ElementName.SPECIAL | ElementName.OPTIONAL_END_TAG);
         if ((flags & ElementName.SCOPING_AS_MATHML) != 0) {
             flags |= (ElementName.SCOPING | ElementName.SPECIAL);
         }
@@ -199,7 +263,7 @@ final class StackNode<T> {
         }
         return flags;
     }
-    
+
     @SuppressWarnings("unused") private void destructor() {
         Portability.delete(attributes);
     }
