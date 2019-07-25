@@ -7,6 +7,10 @@ ok(Cc != null, "Access Cc");
 
 var didDialog;
 
+var isSelectDialog = false;
+var isTabModal = false;
+var usePromptService = true;
+
 var timer; 
 function startCallbackTimer() {
     didDialog = false;
@@ -34,13 +38,54 @@ var observer = {
         netscape.security.PrivilegeManager
                          .enablePrivilege('UniversalXPConnect');
 
-        var doc = getDialogDoc();
-        if (doc)
-            handleDialog(doc, testNum);
-        else
-            startCallbackTimer(); 
+        if (isTabModal) {
+          var promptBox = getTabModalPromptBox(window);
+          ok(promptBox, "got tabmodal promptbox");
+          var prompts = promptBox.listPrompts();
+          if (prompts.length)
+              handleDialog(prompts[0].Dialog.ui, testNum);
+          else
+              startCallbackTimer(); 
+        } else {
+          var doc = getDialogDoc();
+          if (isSelectDialog && doc)
+              handleDialog(doc, testNum);
+          else if (doc)
+              handleDialog(doc.defaultView.Dialog.ui, testNum);
+          else
+              startCallbackTimer(); 
+        }
     }
 };
+
+function getTabModalPromptBox(domWin) {
+    var promptBox = null;
+
+    
+    function getChromeWindow(aWindow) {
+        var chromeWin = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIWebNavigation)
+                               .QueryInterface(Ci.nsIDocShell)
+                               .chromeEventHandler.ownerDocument.defaultView;
+        return chromeWin;
+    }
+
+    try {
+        
+        var promptWin = domWin.top
+
+        
+        
+        var chromeWin = getChromeWindow(promptWin).wrappedJSObject;
+
+        if (chromeWin.getTabModalPromptBox)
+            promptBox = chromeWin.getTabModalPromptBox(promptWin);
+    } catch (e) {
+        
+    }
+
+    return promptBox;
+}
 
 function getDialogDoc() {
   
