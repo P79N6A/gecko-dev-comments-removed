@@ -3110,7 +3110,7 @@ CSSParserImpl::ParsePseudoSelector(PRInt32&       aDataMask,
       }
     }
     else {
-      aSelector.AddPseudoClass(pseudo, pseudoClassType);
+      aSelector.AddPseudoClass(pseudoClassType);
     }
   }
   else if (isPseudoElement || isAnonBox) {
@@ -3291,7 +3291,7 @@ CSSParserImpl::ParsePseudoClassWithIdentArg(nsCSSSelector& aSelector,
   }
 
   
-  aSelector.AddPseudoClass(aPseudo, aType, mToken.mIdent.get());
+  aSelector.AddPseudoClass(aType, mToken.mIdent.get());
 
   
   if (!ExpectSymbol(')', PR_TRUE)) {
@@ -3417,7 +3417,7 @@ CSSParserImpl::ParsePseudoClassWithNthPairArg(nsCSSSelector& aSelector,
     REPORT_UNEXPECTED_TOKEN(PEPseudoClassNoClose);
     return eSelectorParsingStatus_Error; 
   }
-  aSelector.AddPseudoClass(aPseudo, aType, numbers);
+  aSelector.AddPseudoClass(aType, numbers);
   return eSelectorParsingStatus_Continue;
 }
 
@@ -3446,7 +3446,7 @@ CSSParserImpl::ParsePseudoClassWithSelectorListArg(nsCSSSelector& aSelector,
   }
 
   
-  aSelector.AddPseudoClass(aPseudo, aType, slist.forget());
+  aSelector.AddPseudoClass(aType, slist.forget());
 
   
   if (!ExpectSymbol(')', PR_TRUE)) {
