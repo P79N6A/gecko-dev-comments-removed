@@ -781,6 +781,9 @@ SimpleTest._deepCheck = function (e1, e2, stack, seen) {
         ok = SimpleTest._eqArray(e1, e2, stack, seen);
     } else if (typeof e1 == "object" && typeof e2 == "object") {
         ok = SimpleTest._eqAssoc(e1, e2, stack, seen);
+    } else if (typeof e1 == "number" && typeof e2 == "number"
+               && isNaN(e1) && isNaN(e2)) {
+        ok = true;
     } else {
         
         
