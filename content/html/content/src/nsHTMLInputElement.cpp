@@ -2318,6 +2318,7 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
               case NS_VK_UP: 
               case NS_VK_LEFT:
                 isMovingBack = PR_TRUE;
+                
               case NS_VK_DOWN:
               case NS_VK_RIGHT:
               
