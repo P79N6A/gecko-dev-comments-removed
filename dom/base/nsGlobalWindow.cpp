@@ -184,6 +184,7 @@
 #include "nsFocusManager.h"
 #include "nsIJSON.h"
 #include "nsIXULWindow.h"
+#include "nsEventStateManager.h"
 #ifdef MOZ_XUL
 #include "nsXULPopupManager.h"
 #include "nsIDOMXULControlElement.h"
@@ -6264,6 +6265,19 @@ nsGlobalWindow::EnterModalState()
     NS_ERROR("Uh, EnterModalState() called w/o a reachable top window?");
 
     return;
+  }
+
+  
+  
+  nsEventStateManager* activeESM =
+    static_cast<nsEventStateManager*>(nsEventStateManager::GetActiveEventStateManager());
+  if (activeESM && activeESM->GetPresContext()) {
+    nsIPresShell* activeShell = activeESM->GetPresContext()->GetPresShell();
+    if (activeShell && (
+        nsContentUtils::ContentIsCrossDocDescendantOf(activeShell->GetDocument(), mDoc) ||
+        nsContentUtils::ContentIsCrossDocDescendantOf(mDoc, activeShell->GetDocument()))) {
+      nsEventStateManager::ClearGlobalActiveContent(activeESM);
+    }
   }
 
   if (topWin->mModalStateDepth == 0) {
