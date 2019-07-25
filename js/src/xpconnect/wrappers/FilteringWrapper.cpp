@@ -90,6 +90,14 @@ CheckAndReport(JSContext *cx, JSObject *wrapper, jsid id, bool set, Permission &
         return false;
     }
     if (perm == DenyAccess) {
+        
+        
+        
+        
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(cx, wrapper))
+            return false;
+
         AccessCheck::deny(cx, id);
         return false;
     }
@@ -136,7 +144,7 @@ bool
 FilteringWrapper<Base, Policy>::enter(JSContext *cx, JSObject *wrapper, jsid id, bool set)
 {
     Permission perm;
-    return CheckAndReport<Policy>(cx, wrapper, JSID_VOID, set, perm) &&
+    return CheckAndReport<Policy>(cx, wrapper, id, set, perm) &&
            Base::enter(cx, wrapper, id, set);
 }
 
