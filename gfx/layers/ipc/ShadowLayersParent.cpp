@@ -367,9 +367,7 @@ ShadowLayersParent::RecvUpdate(const nsTArray<Edit>& cset,
   layer_manager()->EndTransaction(NULL, NULL);
 
   reply->SetCapacity(replyv.size());
-  if (replyv.size() > 0) {
-    reply->AppendElements(&replyv.front(), replyv.size());
-  }
+  reply->AppendElements(replyv.data(), replyv.size());
 
   return true;
 }
