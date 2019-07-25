@@ -11,5 +11,4 @@ var html5Exceptions = {
   "<!doctype html><summary><article></summary>a" : true, 
   "<!doctype html><p><figcaption>" : true, 
   "<!doctype html><figcaption><article></figcaption>a" : true, 
-  "<!doctype html><svg>a</svg><frameset><frame>" : true, 
 }

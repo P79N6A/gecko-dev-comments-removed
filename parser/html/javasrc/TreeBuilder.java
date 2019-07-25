@@ -853,16 +853,14 @@ public abstract class TreeBuilder<T> implements TokenHandler,
             needToDropLF = false;
         }
 
-        if (inForeign) {
-            accumulateCharacters(buf, start, length);
-            return;
-        }
         
         switch (mode) {
             case IN_BODY:
             case IN_CELL:
             case IN_CAPTION:
-                reconstructTheActiveFormattingElements();
+                if (!inForeign) {
+                    reconstructTheActiveFormattingElements();
+                }
                 
             case TEXT:
                 accumulateCharacters(buf, start, length);
@@ -919,8 +917,10 @@ public abstract class TreeBuilder<T> implements TokenHandler,
 
 
 
-                                    flushCharacters();
-                                    reconstructTheActiveFormattingElements();
+                                    if (!inForeign) {
+                                        flushCharacters();
+                                        reconstructTheActiveFormattingElements();
+                                    }
                                     
 
 
@@ -1113,8 +1113,10 @@ public abstract class TreeBuilder<T> implements TokenHandler,
 
 
 
-                                    flushCharacters();
-                                    reconstructTheActiveFormattingElements();
+                                    if (!inForeign) {
+                                        flushCharacters();
+                                        reconstructTheActiveFormattingElements();
+                                    }
                                     
 
 
