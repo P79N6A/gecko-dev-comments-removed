@@ -72,6 +72,43 @@ namespace unicode {
 
 
 
+nsIUGenCategory::nsUGenCategory sDetailedToGeneralCategory[] = {
+  
+
+
+
+               nsIUGenCategory::kOther,
+                nsIUGenCategory::kOther,
+            nsIUGenCategory::kOther,
+           nsIUGenCategory::kOther,
+             nsIUGenCategory::kOther,
+      nsIUGenCategory::kLetter,
+       nsIUGenCategory::kLetter,
+          nsIUGenCategory::kLetter,
+      nsIUGenCategory::kLetter,
+      nsIUGenCategory::kLetter,
+        nsIUGenCategory::kMark,
+        nsIUGenCategory::kMark,
+      nsIUGenCategory::kMark,
+        nsIUGenCategory::kNumber,
+         nsIUGenCategory::kNumber,
+          nsIUGenCategory::kNumber,
+   nsIUGenCategory::kPunctuation,
+      nsIUGenCategory::kPunctuation,
+     nsIUGenCategory::kPunctuation,
+     nsIUGenCategory::kPunctuation,
+   nsIUGenCategory::kPunctuation,
+     nsIUGenCategory::kPunctuation,
+      nsIUGenCategory::kPunctuation,
+       nsIUGenCategory::kSymbol,
+       nsIUGenCategory::kSymbol,
+           nsIUGenCategory::kSymbol,
+          nsIUGenCategory::kSymbol,
+        nsIUGenCategory::kSeparator,
+   nsIUGenCategory::kSeparator,
+       nsIUGenCategory::kSeparator
+};
+
 PRUint32
 GetMirroredChar(PRUint32 aCh)
 {
