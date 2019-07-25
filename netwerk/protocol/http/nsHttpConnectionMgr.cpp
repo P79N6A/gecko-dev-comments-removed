@@ -481,6 +481,10 @@ void
 nsHttpConnectionMgr::ReportSpdyAlternateProtocol(nsHttpConnection *conn)
 {
     
+    if (!gHttpHandler->UseAlternateProtocol())
+        return;
+
+    
     if (conn->ConnectionInfo()->UsingHttpProxy())
         return;
 

@@ -115,6 +115,7 @@ public:
 
     bool           IsSpdyEnabled() { return mEnableSpdy; }
     bool           CoalesceSpdy() { return mCoalesceSpdy; }
+    bool           UseAlternateProtocol() { return mUseAlternateProtocol; }
 
     bool           PromptTempRedirect()      { return mPromptTempRedirect; }
 
@@ -340,6 +341,7 @@ private:
     
     bool           mEnableSpdy;
     bool           mCoalesceSpdy;
+    bool           mUseAlternateProtocol;
 };
 
 
