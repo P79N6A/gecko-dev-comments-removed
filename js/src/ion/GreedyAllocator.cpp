@@ -309,6 +309,34 @@ GreedyAllocator::allocateRegisterOperand(LAllocation *a, VirtualRegister *vr)
 }
 
 bool
+GreedyAllocator::allocateWritableOperand(LAllocation *a, VirtualRegister *vr)
+{
+    AnyRegister reg;
+    if (!vr->hasRegister()) {
+        
+        
+        if (!allocate(vr->type(), DISALLOW, &reg))
+            return false;
+        assign(vr, reg);
+    } else {
+        if (allocatableRegs().empty(vr->isDouble())) {
+            
+            if (!allocate(vr->type(), DISALLOW, &reg))
+                return false;
+            align(vr->reg(), reg);
+        } else {
+            
+            if (!evict(vr->reg()))
+                return false;
+            reg = vr->reg();
+        }
+    }
+
+    *a = LAllocation(reg);
+    return true;
+}
+
+bool
 GreedyAllocator::allocateAnyOperand(LAllocation *a, VirtualRegister *vr, bool preferReg)
 {
     if (vr->hasRegister()) {
@@ -507,6 +535,9 @@ GreedyAllocator::allocateInputs(LInstruction *ins)
                 return false;
         } else if (use->policy() == LUse::REGISTER) {
             if (!allocateRegisterOperand(a, vr))
+                return false;
+        } else if (use->policy() == LUse::COPY) {
+            if (!allocateWritableOperand(a, vr))
                 return false;
         }
     }

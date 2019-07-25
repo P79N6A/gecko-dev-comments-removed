@@ -188,14 +188,14 @@ PrintUse(FILE *fp, const LUse *use)
         fprintf(fp, "*");
     } else if (use->policy() == LUse::REGISTER) {
         fprintf(fp, "r");
+    } else if (use->policy() == LUse::COPY) {
+        fprintf(fp, "c");
     } else {
         
         
         
         fprintf(fp, "%s", Registers::GetName(Registers::Code(use->registerCode())));
     }
-    if (use->killedAtStart())
-        fprintf(fp, "!");
 }
 
 void
