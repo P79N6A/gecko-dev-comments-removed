@@ -29,7 +29,7 @@ namespace {
 
 
 already_AddRefed<nsHTMLIFrameElement>
-CreateIframe(Element* aOpenerFrameElement, const nsAString& aName)
+CreateIframe(Element* aOpenerFrameElement, const nsAString& aName, bool aRemote)
 {
   nsNodeInfoManager *nodeInfoManager =
     aOpenerFrameElement->OwnerDoc()->NodeInfoManager();
@@ -57,6 +57,12 @@ CreateIframe(Element* aOpenerFrameElement, const nsAString& aName)
   
   popupFrameElement->SetAttr(kNameSpaceID_None, nsGkAtoms::name,
                              aName,  false);
+
+  
+  popupFrameElement->SetAttr(kNameSpaceID_None, nsGkAtoms::Remote,
+                             aRemote ? NS_LITERAL_STRING("true") :
+                                       NS_LITERAL_STRING("false"),
+                              false);
 
   return popupFrameElement.forget();
 }
@@ -135,7 +141,7 @@ BrowserElementParent::OpenWindowOOP(mozilla::dom::TabParent* aOpenerTabParent,
     do_QueryInterface(aOpenerTabParent->GetOwnerElement());
   NS_ENSURE_TRUE(openerFrameElement, false);
   nsRefPtr<nsHTMLIFrameElement> popupFrameElement =
-    CreateIframe(openerFrameElement, aName);
+    CreateIframe(openerFrameElement, aName,  true);
 
   
   
@@ -193,7 +199,7 @@ BrowserElementParent::OpenWindowInProcess(nsIDOMWindow* aOpenerWindow,
     do_QueryInterface(openerFrameDOMElement);
 
   nsRefPtr<nsHTMLIFrameElement> popupFrameElement =
-    CreateIframe(openerFrameElement, aName);
+    CreateIframe(openerFrameElement, aName,  false);
   NS_ENSURE_TRUE(popupFrameElement, false);
 
   nsCAutoString spec;
