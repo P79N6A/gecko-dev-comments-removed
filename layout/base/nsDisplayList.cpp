@@ -271,8 +271,7 @@ static PRUint64 RegionArea(const nsRegion& aRegion)
 
 void
 nsDisplayListBuilder::SubtractFromVisibleRegion(nsRegion* aVisibleRegion,
-                                                const nsRegion& aRegion,
-                                                PRBool aForceSubtract)
+                                                const nsRegion& aRegion)
 {
   if (aRegion.IsEmpty())
     return;
@@ -283,8 +282,7 @@ nsDisplayListBuilder::SubtractFromVisibleRegion(nsRegion* aVisibleRegion,
   
   
   
-  if (aForceSubtract || GetAccurateVisibleRegions() ||
-      tmp.GetNumRects() <= 15 ||
+  if (GetAccurateVisibleRegions() || tmp.GetNumRects() <= 15 ||
       RegionArea(tmp) <= RegionArea(*aVisibleRegion)/2) {
     *aVisibleRegion = tmp;
   }
@@ -416,9 +414,7 @@ nsDisplayList::ComputeVisibilityForRoot(nsDisplayListBuilder* aBuilder,
                                         nsRegion* aVisibleRegion) {
   nsRegion r;
   r.And(*aVisibleRegion, GetBounds(aBuilder));
-  PRBool notUsed;
-  return ComputeVisibilityForSublist(aBuilder, aVisibleRegion,
-                                     r.GetBounds(), r.GetBounds(), notUsed);
+  return ComputeVisibilityForSublist(aBuilder, aVisibleRegion, r.GetBounds(), r.GetBounds());
 }
 
 static nsRegion
@@ -460,8 +456,7 @@ PRBool
 nsDisplayList::ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
                                            nsRegion* aVisibleRegion,
                                            const nsRect& aListVisibleBounds,
-                                           const nsRect& aAllowVisibleRegionExpansion,
-                                           PRBool& aContainsRootContentDocBG) {
+                                           const nsRect& aAllowVisibleRegionExpansion) {
 #ifdef DEBUG
   nsRegion r;
   r.And(*aVisibleRegion, GetBounds(aBuilder));
@@ -507,18 +502,12 @@ nsDisplayList::ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
     }
     item->mVisibleRect = itemVisible.GetBounds();
 
-    PRBool containsRootContentDocBG = PR_FALSE;
-    if (item->ComputeVisibility(aBuilder, aVisibleRegion, aAllowVisibleRegionExpansion,
-                                containsRootContentDocBG)) {
-      if (containsRootContentDocBG) {
-        aContainsRootContentDocBG = PR_TRUE;
-      }
+    if (item->ComputeVisibility(aBuilder, aVisibleRegion, aAllowVisibleRegionExpansion)) {
       anyVisible = PR_TRUE;
       PRBool transparentBackground = PR_FALSE;
       nsRegion opaque = TreatAsOpaque(item, aBuilder, &transparentBackground);
       
-      aBuilder->SubtractFromVisibleRegion(aVisibleRegion, opaque,
-                                          containsRootContentDocBG);
+      aBuilder->SubtractFromVisibleRegion(aVisibleRegion, opaque);
       forceTransparentSurface = forceTransparentSurface || transparentBackground;
     }
     AppendToBottom(item);
@@ -842,8 +831,7 @@ PRBool nsDisplayItem::RecomputeVisibility(nsDisplayListBuilder* aBuilder,
   
   
   
-  PRBool notUsed;
-  if (!ComputeVisibility(aBuilder, aVisibleRegion, nsRect(), notUsed))
+  if (!ComputeVisibility(aBuilder, aVisibleRegion, nsRect()))
     return PR_FALSE;
 
   PRBool forceTransparentBackground;
@@ -880,21 +868,6 @@ nsDisplaySolidColor::Paint(nsDisplayListBuilder* aBuilder,
 {
   aCtx->SetColor(mColor);
   aCtx->FillRect(mVisibleRect);
-}
-
-PRBool
-nsDisplaySolidColor::ComputeVisibility(nsDisplayListBuilder* aBuilder,
-                                       nsRegion* aVisibleRegion,
-                                       const nsRect& aAllowVisibleRegionExpansion,
-                                       PRBool& aContainsRootContentDocBG)
-{
-  PRBool retval = nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion,
-                                                   aAllowVisibleRegionExpansion,
-                                                   aContainsRootContentDocBG);
-  if (retval && IsRootContentDocBackground()) {
-    aContainsRootContentDocBG = PR_TRUE;
-  }
-  return retval;
 }
 
 static void
@@ -1056,12 +1029,10 @@ nsDisplayBackground::HitTest(nsDisplayListBuilder* aBuilder,
 PRBool
 nsDisplayBackground::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                        nsRegion* aVisibleRegion,
-                                       const nsRect& aAllowVisibleRegionExpansion,
-                                       PRBool& aContainsRootContentDocBG)
+                                       const nsRect& aAllowVisibleRegionExpansion)
 {
   if (!nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion,
-                                        aAllowVisibleRegionExpansion,
-                                        aContainsRootContentDocBG)) {
+                                        aAllowVisibleRegionExpansion)) {
     return PR_FALSE;
   }
 
@@ -1318,11 +1289,9 @@ nsDisplayOutline::Paint(nsDisplayListBuilder* aBuilder,
 PRBool
 nsDisplayOutline::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                     nsRegion* aVisibleRegion,
-                                    const nsRect& aAllowVisibleRegionExpansion,
-                                    PRBool& aContainsRootContentDocBG) {
+                                    const nsRect& aAllowVisibleRegionExpansion) {
   if (!nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion,
-                                        aAllowVisibleRegionExpansion,
-                                        aContainsRootContentDocBG)) {
+                                        aAllowVisibleRegionExpansion)) {
     return PR_FALSE;
   }
 
@@ -1365,11 +1334,9 @@ nsDisplayCaret::Paint(nsDisplayListBuilder* aBuilder,
 PRBool
 nsDisplayBorder::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                    nsRegion* aVisibleRegion,
-                                   const nsRect& aAllowVisibleRegionExpansion,
-                                   PRBool& aContainsRootContentDocBG) {
+                                   const nsRect& aAllowVisibleRegionExpansion) {
   if (!nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion,
-                                        aAllowVisibleRegionExpansion,
-                                        aContainsRootContentDocBG)) {
+                                        aAllowVisibleRegionExpansion)) {
     return PR_FALSE;
   }
 
@@ -1466,11 +1433,9 @@ nsDisplayBoxShadowOuter::GetBounds(nsDisplayListBuilder* aBuilder) {
 PRBool
 nsDisplayBoxShadowOuter::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                            nsRegion* aVisibleRegion,
-                                           const nsRect& aAllowVisibleRegionExpansion,
-                                           PRBool& aContainsRootContentDocBG) {
+                                           const nsRect& aAllowVisibleRegionExpansion) {
   if (!nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion,
-                                        aAllowVisibleRegionExpansion,
-                                        aContainsRootContentDocBG)) {
+                                        aAllowVisibleRegionExpansion)) {
     return PR_FALSE;
   }
 
@@ -1514,11 +1479,9 @@ nsDisplayBoxShadowInner::Paint(nsDisplayListBuilder* aBuilder,
 PRBool
 nsDisplayBoxShadowInner::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                            nsRegion* aVisibleRegion,
-                                           const nsRect& aAllowVisibleRegionExpansion,
-                                           PRBool& aContainsRootContentDocBG) {
+                                           const nsRect& aAllowVisibleRegionExpansion) {
   if (!nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion,
-                                        aAllowVisibleRegionExpansion,
-                                        aContainsRootContentDocBG)) {
+                                        aAllowVisibleRegionExpansion)) {
     return PR_FALSE;
   }
 
@@ -1562,12 +1525,10 @@ nsDisplayWrapList::GetBounds(nsDisplayListBuilder* aBuilder) {
 PRBool
 nsDisplayWrapList::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                      nsRegion* aVisibleRegion,
-                                     const nsRect& aAllowVisibleRegionExpansion,
-                                     PRBool& aContainsRootContentDocBG) {
+                                     const nsRect& aAllowVisibleRegionExpansion) {
   return mList.ComputeVisibilityForSublist(aBuilder, aVisibleRegion,
                                            mVisibleRect,
-                                           aAllowVisibleRegionExpansion,
-                                           aContainsRootContentDocBG);
+                                           aAllowVisibleRegionExpansion);
 }
 
 nsRegion
@@ -1751,10 +1712,10 @@ nsDisplayOpacity::GetLayerState(nsDisplayListBuilder* aBuilder,
       ? LAYER_ACTIVE : LAYER_INACTIVE;
 }
 
-PRBool nsDisplayOpacity::ComputeVisibility(nsDisplayListBuilder* aBuilder,
-                                           nsRegion* aVisibleRegion,
-                                           const nsRect& aAllowVisibleRegionExpansion,
-                                           PRBool& aContainsRootContentDocBG) {
+PRBool
+nsDisplayOpacity::ComputeVisibility(nsDisplayListBuilder* aBuilder,
+                                    nsRegion* aVisibleRegion,
+                                    const nsRect& aAllowVisibleRegionExpansion) {
   
   
   
@@ -1763,14 +1724,11 @@ PRBool nsDisplayOpacity::ComputeVisibility(nsDisplayListBuilder* aBuilder,
   nsRect bounds = GetBounds(aBuilder);
   nsRegion visibleUnderChildren;
   visibleUnderChildren.And(*aVisibleRegion, bounds);
-  
-  
-  PRBool notUsed;
   nsRect allowExpansion;
   allowExpansion.IntersectRect(bounds, aAllowVisibleRegionExpansion);
   return
     nsDisplayWrapList::ComputeVisibility(aBuilder, &visibleUnderChildren,
-                                         allowExpansion, notUsed);
+                                         allowExpansion);
 }
 
 PRBool nsDisplayOpacity::TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem) {
@@ -1892,8 +1850,7 @@ nsDisplayScrollLayer::BuildLayer(nsDisplayListBuilder* aBuilder,
 PRBool
 nsDisplayScrollLayer::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                         nsRegion* aVisibleRegion,
-                                        const nsRect& aAllowVisibleRegionExpansion,
-                                        PRBool& aContainsRootContentDocBG)
+                                        const nsRect& aAllowVisibleRegionExpansion)
 {
   nsRect displayport;
   if (nsLayoutUtils::GetDisplayPort(mScrolledFrame->GetContent(), &displayport)) {
@@ -1908,15 +1865,14 @@ nsDisplayScrollLayer::ComputeVisibility(nsDisplayListBuilder* aBuilder,
     nsRect allowExpansion;
     allowExpansion.IntersectRect(allowExpansion, boundedRect);
     PRBool visible = mList.ComputeVisibilityForSublist(
-      aBuilder, &childVisibleRegion, boundedRect, allowExpansion, aContainsRootContentDocBG);
+      aBuilder, &childVisibleRegion, boundedRect, allowExpansion);
     mVisibleRect = boundedRect;
 
     return visible;
 
   } else {
     return nsDisplayWrapList::ComputeVisibility(aBuilder, aVisibleRegion,
-                                                aAllowVisibleRegionExpansion,
-                                                aContainsRootContentDocBG);
+                                                aAllowVisibleRegionExpansion);
   }
 }
 
@@ -2064,8 +2020,7 @@ void nsDisplayClip::Paint(nsDisplayListBuilder* aBuilder,
 
 PRBool nsDisplayClip::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                         nsRegion* aVisibleRegion,
-                                        const nsRect& aAllowVisibleRegionExpansion,
-                                        PRBool& aContainsRootContentDocBG) {
+                                        const nsRect& aAllowVisibleRegionExpansion) {
   nsRegion clipped;
   clipped.And(*aVisibleRegion, mClip);
 
@@ -2074,13 +2029,11 @@ PRBool nsDisplayClip::ComputeVisibility(nsDisplayListBuilder* aBuilder,
   allowExpansion.IntersectRect(mClip, aAllowVisibleRegionExpansion);
   PRBool anyVisible =
     nsDisplayWrapList::ComputeVisibility(aBuilder, &finalClipped,
-                                         allowExpansion,
-                                         aContainsRootContentDocBG);
+                                         allowExpansion);
 
   nsRegion removed;
   removed.Sub(clipped, finalClipped);
-  aBuilder->SubtractFromVisibleRegion(aVisibleRegion, removed,
-                                      aContainsRootContentDocBG);
+  aBuilder->SubtractFromVisibleRegion(aVisibleRegion, removed);
 
   return anyVisible;
 }
@@ -2168,14 +2121,12 @@ nsDisplayClipRoundedRect::WrapWithClone(nsDisplayListBuilder* aBuilder,
 PRBool nsDisplayClipRoundedRect::ComputeVisibility(
                                     nsDisplayListBuilder* aBuilder,
                                     nsRegion* aVisibleRegion,
-                                    const nsRect& aAllowVisibleRegionExpansion,
-                                    PRBool& aContainsRootContentDocBG)
+                                    const nsRect& aAllowVisibleRegionExpansion)
 {
   nsRegion clipped;
   clipped.And(*aVisibleRegion, mClip);
 
-  PRBool notUsed;
-  return nsDisplayWrapList::ComputeVisibility(aBuilder, &clipped, nsRect(), notUsed);
+  return nsDisplayWrapList::ComputeVisibility(aBuilder, &clipped, nsRect());
   
   
 }
@@ -2238,8 +2189,7 @@ void nsDisplayZoom::Paint(nsDisplayListBuilder* aBuilder,
 
 PRBool nsDisplayZoom::ComputeVisibility(nsDisplayListBuilder *aBuilder,
                                         nsRegion *aVisibleRegion,
-                                        const nsRect& aAllowVisibleRegionExpansion,
-                                        PRBool& aContainsRootContentDocBG)
+                                        const nsRect& aAllowVisibleRegionExpansion)
 {
   
   nsRegion visibleRegion =
@@ -2253,8 +2203,7 @@ PRBool nsDisplayZoom::ComputeVisibility(nsDisplayListBuilder *aBuilder,
   PRBool retval =
     mList.ComputeVisibilityForSublist(aBuilder, &visibleRegion,
                                       transformedVisibleRect,
-                                      allowExpansion,
-                                      aContainsRootContentDocBG);
+                                      allowExpansion);
 
   nsRegion removed;
   
@@ -2263,8 +2212,7 @@ PRBool nsDisplayZoom::ComputeVisibility(nsDisplayListBuilder *aBuilder,
   removed = removed.ConvertAppUnitsRoundIn(mAPD, mParentAPD);
   
   
-  aBuilder->SubtractFromVisibleRegion(aVisibleRegion, removed,
-                                      aContainsRootContentDocBG);
+  aBuilder->SubtractFromVisibleRegion(aVisibleRegion, removed);
 
   return retval;
 }
@@ -2451,8 +2399,7 @@ nsDisplayTransform::GetLayerState(nsDisplayListBuilder* aBuilder,
 
 PRBool nsDisplayTransform::ComputeVisibility(nsDisplayListBuilder *aBuilder,
                                              nsRegion *aVisibleRegion,
-                                             const nsRect& aAllowVisibleRegionExpansion,
-                                             PRBool& aContainsRootContentDocBG)
+                                             const nsRect& aAllowVisibleRegionExpansion)
 {
   
 
@@ -2750,8 +2697,7 @@ void nsDisplaySVGEffects::Paint(nsDisplayListBuilder* aBuilder,
 
 PRBool nsDisplaySVGEffects::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                               nsRegion* aVisibleRegion,
-                                              const nsRect& aAllowVisibleRegionExpansion,
-                                              PRBool& aContainsRootContentDocBG) {
+                                              const nsRect& aAllowVisibleRegionExpansion) {
   nsPoint offset = aBuilder->ToReferenceFrame(mEffectsFrame);
   nsRect dirtyRect =
     nsSVGIntegrationUtils::GetRequiredSourceForInvalidArea(mEffectsFrame,
@@ -2763,8 +2709,7 @@ PRBool nsDisplaySVGEffects::ComputeVisibility(nsDisplayListBuilder* aBuilder,
   nsRegion childrenVisible(dirtyRect);
   nsRect r;
   r.IntersectRect(dirtyRect, mList.GetBounds(aBuilder));
-  PRBool notUsed;
-  mList.ComputeVisibilityForSublist(aBuilder, &childrenVisible, r, nsRect(), notUsed);
+  mList.ComputeVisibilityForSublist(aBuilder, &childrenVisible, r, nsRect());
   return PR_TRUE;
 }
 
