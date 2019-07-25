@@ -117,6 +117,8 @@ class FrameEntry
 
 
     void setConstant(const jsval &v) {
+        type.unsync();
+        data.unsync();
         type.setConstant();
         data.setConstant();
         v_.asBits = v;
