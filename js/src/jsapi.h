@@ -467,6 +467,9 @@ JS_ValueToSource(JSContext *cx, jsval v);
 extern JS_PUBLIC_API(JSBool)
 JS_ValueToNumber(JSContext *cx, jsval v, jsdouble *dp);
 
+extern JS_PUBLIC_API(JSBool)
+JS_DoubleIsInt32(jsdouble d, jsint *ip);
+
 
 
 
@@ -558,6 +561,9 @@ JS_SuspendRequest(JSContext *cx);
 extern JS_PUBLIC_API(void)
 JS_ResumeRequest(JSContext *cx, jsrefcount saveDepth);
 
+extern JS_PUBLIC_API(void)
+JS_TransferRequest(JSContext *cx, JSContext *another);
+
 #ifdef __cplusplus
 JS_END_EXTERN_C
 
@@ -621,6 +627,27 @@ class JSAutoSuspendRequest {
     static void *operator new(size_t) CPP_THROW_NEW { return 0; };
     static void operator delete(void *, size_t) { };
 #endif
+};
+
+class JSAutoTransferRequest
+{
+  public:
+    JSAutoTransferRequest(JSContext* cx1, JSContext* cx2)
+        : cx1(cx1), cx2(cx2) {
+        if(cx1 != cx2)
+            JS_TransferRequest(cx1, cx2);
+    }
+    ~JSAutoTransferRequest() {
+        if(cx1 != cx2)
+            JS_TransferRequest(cx2, cx1);
+    }
+  private:
+    JSContext* const cx1;
+    JSContext* const cx2;
+
+    
+    JSAutoTransferRequest(JSAutoTransferRequest &);
+    void operator =(JSAutoTransferRequest&);
 };
 
 JS_BEGIN_EXTERN_C
@@ -795,6 +822,15 @@ JS_GetScopeChain(JSContext *cx);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForObject(JSContext *cx, JSObject *obj);
+
+#ifdef JS_HAS_CTYPES
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_InitCTypesClass(JSContext *cx, JSObject *global);
+#endif
 
 
 
@@ -1699,6 +1735,9 @@ extern JS_PUBLIC_API(JSBool)
 JS_DefinePropertyById(JSContext *cx, JSObject *obj, jsid id, jsval value,
                       JSPropertyOp getter, JSPropertyOp setter, uintN attrs);
 
+extern JS_PUBLIC_API(JSBool)
+JS_DefineOwnProperty(JSContext *cx, JSObject *obj, jsid id, jsval descriptor, JSBool *bp);
+
 
 
 
@@ -1792,6 +1831,9 @@ struct JSPropertyDescriptor {
 extern JS_PUBLIC_API(JSBool)
 JS_GetPropertyDescriptorById(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                              JSPropertyDescriptor *desc);
+
+extern JS_PUBLIC_API(JSBool)
+JS_GetOwnPropertyDescriptor(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 extern JS_PUBLIC_API(JSBool)
 JS_GetProperty(JSContext *cx, JSObject *obj, const char *name, jsval *vp);
@@ -2270,10 +2312,6 @@ JS_ExecuteScript(JSContext *cx, JSObject *obj, JSScript *script, jsval *rval);
 
 
 typedef enum JSExecPart { JSEXEC_PROLOG, JSEXEC_MAIN } JSExecPart;
-
-extern JS_PUBLIC_API(JSBool)
-JS_ExecuteScriptPart(JSContext *cx, JSObject *obj, JSScript *script,
-                     JSExecPart part, jsval *rval);
 
 extern JS_PUBLIC_API(JSBool)
 JS_EvaluateScript(JSContext *cx, JSObject *obj,

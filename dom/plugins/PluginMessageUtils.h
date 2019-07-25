@@ -53,6 +53,9 @@
 #include "nsThreadUtils.h"
 #include "prlog.h"
 #include "nsHashKeys.h"
+#ifdef MOZ_CRASHREPORTER
+#  include "nsExceptionHandler.h"
+#endif
 
 namespace mozilla {
 
@@ -126,6 +129,13 @@ typedef XID NativeWindowHandle;
 typedef intptr_t NativeWindowHandle; 
 #else
 #error Need NativeWindowHandle for this platform
+#endif
+
+#ifdef MOZ_CRASHREPORTER
+typedef CrashReporter::ThreadId NativeThreadId;
+#else
+
+typedef int32 NativeThreadId;
 #endif
 
 
@@ -444,6 +454,61 @@ struct ParamTraits<NPString>
     aLog->append(StringPrintf(L"%s", aParam.UTF8Characters));
   }
 };
+
+#ifdef XP_MACOSX
+template <>
+struct ParamTraits<NPNSString*>
+{
+  typedef NPNSString* paramType;
+
+  
+  
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    CFStringRef cfString = (CFStringRef)aParam;
+    long length = ::CFStringGetLength(cfString);
+    WriteParam(aMsg, length);
+    if (length == 0) {
+      return;
+    }
+
+    
+    if (::CFStringGetCharactersPtr(cfString)) {
+      aMsg->WriteBytes(::CFStringGetCharactersPtr(cfString), length * sizeof(UniChar));
+    } else {
+      UniChar *buffer = (UniChar*)moz_xmalloc(length * sizeof(UniChar));
+      ::CFStringGetCharacters(cfString, ::CFRangeMake(0, length), buffer);
+      aMsg->WriteBytes(buffer, length * sizeof(UniChar));
+      free(buffer);
+    }
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    long length;
+    if (!ReadParam(aMsg, aIter, &length)) {
+      return false;
+    }
+
+    UniChar* buffer = nsnull;
+    if (length != 0) {
+      if (!aMsg->ReadBytes(aIter, (const char**)&buffer, length * sizeof(UniChar)) ||
+          !buffer) {
+        return false;
+      }
+    }
+
+    *aResult = (NPNSString*)::CFStringCreateWithBytes(kCFAllocatorDefault, (UInt8*)buffer,
+                                                      length * sizeof(UniChar),
+                                                      kCFStringEncodingUTF16, false);
+    if (!*aResult) {
+      return false;
+    }
+
+    return true;
+  }
+};
+#endif
 
 template <>
 struct ParamTraits<NPVariant>

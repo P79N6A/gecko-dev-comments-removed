@@ -240,9 +240,11 @@ pref("browser.urlbar.delay", 50);
 pref("browser.urlbar.restrict.history", "^");
 pref("browser.urlbar.restrict.bookmark", "*");
 pref("browser.urlbar.restrict.tag", "+");
+pref("browser.urlbar.restrict.openpage", "%");
 pref("browser.urlbar.restrict.typed", "~");
 pref("browser.urlbar.match.title", "#");
 pref("browser.urlbar.match.url", "@");
+
 
 
 
@@ -843,9 +845,6 @@ pref("browser.zoom.siteSpecific", true);
 pref("browser.zoom.updateBackgroundTabs", true);
 
 
-pref("editor.singleLine.pasteNewlines", 2);
-
-
 pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 
 
@@ -908,6 +907,9 @@ pref("toolbar.customization.usesheet", false);
 
 #ifdef XP_MACOSX
 pref("dom.ipc.plugins.enabled", false);
+
+pref("dom.ipc.plugins.enabled.flash player.plugin", true);
+pref("dom.ipc.plugins.enabled.javaplugin2_npapi.plugin", true);
 #else
 pref("dom.ipc.plugins.enabled", true);
 #endif

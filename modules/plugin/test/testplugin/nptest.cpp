@@ -588,6 +588,13 @@ NPError
 NPP_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16_t argc, char* argn[], char* argv[], NPSavedData* saved)
 {
   
+  
+  if (instance->pdata) {
+    printf("NPP_New called with non-NULL NPP->pdata pointer!\n");
+    return NPERR_GENERIC_ERROR;
+  }
+
+  
   NPBool browserSupportsWindowless = false;
   NPN_GetValue(instance, NPNVSupportsWindowless, &browserSupportsWindowless);
   if (!browserSupportsWindowless && !pluginSupportsWindowMode()) {

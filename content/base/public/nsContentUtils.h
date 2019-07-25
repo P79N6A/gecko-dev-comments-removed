@@ -42,15 +42,22 @@
 #ifndef nsContentUtils_h___
 #define nsContentUtils_h___
 
-#include "jsprvtd.h"
-#include "jsnum.h"
+#include <math.h>
+#if defined(XP_WIN) || defined(XP_OS2)
+#include <float.h>
+#endif
+
+#if defined(SOLARIS)
+#include <ieeefp.h>
+#endif
+
 #include "nsAString.h"
 #include "nsIStatefulFrame.h"
 #include "nsINodeInfo.h"
 #include "nsNodeInfoManager.h"
 #include "nsContentList.h"
 #include "nsDOMClassInfoID.h"
-#include "nsIClassInfo.h"
+#include "nsIXPCScriptable.h"
 #include "nsIDOM3Node.h"
 #include "nsDataHashtable.h"
 #include "nsIScriptRuntime.h"
@@ -60,6 +67,9 @@
 #include "nsTextFragment.h"
 #include "nsReadableUtils.h"
 #include "nsIPrefBranch2.h"
+#include "mozilla/AutoRestore.h"
+
+#include "jsapi.h"
 
 struct nsNativeKeyEvent; 
 
@@ -1491,6 +1501,8 @@ public:
 
 
 
+
+
   static nsresult GetASCIIOrigin(nsIPrincipal* aPrincipal,
                                  nsCString& aOrigin);
   static nsresult GetASCIIOrigin(nsIURI* aURI, nsCString& aOrigin);
@@ -1689,26 +1701,32 @@ private:
 #endif
 };
 
-class nsAutoGCRoot {
+class NS_STACK_CLASS nsAutoGCRoot {
 public:
   
-  nsAutoGCRoot(jsval* aPtr, nsresult* aResult) :
+  nsAutoGCRoot(jsval* aPtr, nsresult* aResult
+               MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) :
     mPtr(aPtr)
   {
+    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
     mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
   }
 
   
-  nsAutoGCRoot(JSObject** aPtr, nsresult* aResult) :
+  nsAutoGCRoot(JSObject** aPtr, nsresult* aResult
+               MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) :
     mPtr(aPtr)
   {
+    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
     mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
   }
 
   
-  nsAutoGCRoot(void* aPtr, nsresult* aResult) :
+  nsAutoGCRoot(void* aPtr, nsresult* aResult
+               MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) :
     mPtr(aPtr)
   {
+    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
     mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
   }
 
@@ -1729,28 +1747,34 @@ private:
 
   void* mPtr;
   nsresult mResult;
+  MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-class nsAutoScriptBlocker {
+class NS_STACK_CLASS nsAutoScriptBlocker {
 public:
-  nsAutoScriptBlocker() {
+  nsAutoScriptBlocker(MOZILLA_GUARD_OBJECT_NOTIFIER_ONLY_PARAM) {
+    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
     nsContentUtils::AddScriptBlocker();
   }
   ~nsAutoScriptBlocker() {
     nsContentUtils::RemoveScriptBlocker();
   }
+private:
+  MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-class mozAutoRemovableBlockerRemover
+class NS_STACK_CLASS mozAutoRemovableBlockerRemover
 {
 public:
-  mozAutoRemovableBlockerRemover(nsIDocument* aDocument);
+  mozAutoRemovableBlockerRemover(nsIDocument* aDocument
+                                 MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM);
   ~mozAutoRemovableBlockerRemover();
 
 private:
   PRUint32 mNestingLevel;
   nsCOMPtr<nsIDocument> mDocument;
   nsCOMPtr<nsIDocumentObserver> mObserver;
+  MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 #define NS_AUTO_GCROOT_PASTE2(tok,line) tok##line
@@ -1773,18 +1797,12 @@ private:
 
 
 
-
-
-
-
-
-
-
-
-
-
 inline NS_HIDDEN_(PRBool) NS_FloatIsFinite(jsdouble f) {
-  return JSDOUBLE_IS_FINITE(f);
+#ifdef WIN32
+  return _finite(f);
+#else
+  return finite(f);
+#endif
 }
 
 
@@ -1851,4 +1869,4 @@ private:
   nsIMIMEHeaderParam*   mService;
 };
 
-#endif 
+#endif

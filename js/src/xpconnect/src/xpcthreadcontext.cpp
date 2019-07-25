@@ -247,12 +247,12 @@ XPCJSContextStack::GetSafeJSContext(JSContext * *aSafeJSContext)
 
         if(xpc && (xpcrt = xpc->GetRuntime()) && (rt = xpcrt->GetJSRuntime()))
         {
+            JSObject *glob;
             mSafeJSContext = JS_NewContext(rt, 8192);
             if(mSafeJSContext)
             {
                 
-                AutoJSRequestWithNoCallContext req(mSafeJSContext);
-                JSObject *glob;
+                JSAutoRequest req(mSafeJSContext);
                 glob = JS_NewObject(mSafeJSContext, &global_class, NULL, NULL);
 
 #ifndef XPCONNECT_STANDALONE
@@ -275,23 +275,26 @@ XPCJSContextStack::GetSafeJSContext(JSContext * *aSafeJSContext)
                 
                 
 #endif
-                if(!glob || NS_FAILED(xpc->InitClasses(mSafeJSContext, glob)))
+                if(glob && NS_FAILED(xpc->InitClasses(mSafeJSContext, glob)))
                 {
-                    
-                    
-                    
-                    req.EndRequest();
-                    JS_DestroyContext(mSafeJSContext);
-                    mSafeJSContext = nsnull;
+                    glob = nsnull;
                 }
-                
-                
-                
-                
-                
-                
-                mOwnSafeJSContext = mSafeJSContext;
+
             }
+            if(!glob && mSafeJSContext)
+            {
+                
+                
+                JS_DestroyContext(mSafeJSContext);
+                mSafeJSContext = nsnull;
+            }
+            
+            
+            
+            
+            
+            
+            mOwnSafeJSContext = mSafeJSContext;
         }
     }
 

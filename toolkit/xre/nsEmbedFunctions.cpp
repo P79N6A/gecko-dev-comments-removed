@@ -205,6 +205,7 @@ XRE_InitEmbedding(nsILocalFile *aLibXULDirectory,
   
   
   
+  
 
   nsCOMPtr<nsIObserver> startupNotifier
     (do_CreateInstance(NS_APPSTARTUPNOTIFIER_CONTRACTID));
@@ -277,6 +278,7 @@ XRE_TakeMinidumpForChild(PRUint32 aChildPid, nsILocalFile** aDump)
   return CrashReporter::TakeMinidumpForChild(aChildPid, aDump);
 }
 
+#if !defined(XP_MACOSX)
 PRBool
 XRE_SetRemoteExceptionHandler(const char* aPipe)
 {
@@ -288,6 +290,7 @@ XRE_SetRemoteExceptionHandler(const char* aPipe)
 #  error "OOP crash reporter unsupported on this platform"
 #endif
 }
+#endif 
 #endif 
 
 nsresult

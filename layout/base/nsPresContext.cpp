@@ -1624,7 +1624,7 @@ nsPresContext::EnsureVisible()
     
     nsCOMPtr<nsIDocumentViewer> docV(do_QueryInterface(cv));
     if (docV) {
-      nsCOMPtr<nsPresContext> currentPresContext;
+      nsRefPtr<nsPresContext> currentPresContext;
       docV->GetPresContext(getter_AddRefs(currentPresContext));
       if (currentPresContext == this) {
         
@@ -1847,9 +1847,7 @@ nsPresContext::GetUserFontSetInternal()
 #ifdef DEBUG
     {
       PRBool inReflow;
-      NS_ASSERTION(!userFontSetGottenBefore ||
-                   (NS_SUCCEEDED(mShell->IsReflowLocked(&inReflow)) &&
-                    !inReflow),
+      NS_ASSERTION(!userFontSetGottenBefore || !mShell->IsReflowLocked(),
                    "FlushUserFontSet should have been called first");
     }
 #endif
