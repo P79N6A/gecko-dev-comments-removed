@@ -611,10 +611,6 @@ public:
 
 
   static PRBool RootSVGElementHasViewbox(const nsIContent *aRootSVGElem);
-
-private:
-  
-  static gfxASurface *gThebesComputationalSurface;
 };
 
 #endif

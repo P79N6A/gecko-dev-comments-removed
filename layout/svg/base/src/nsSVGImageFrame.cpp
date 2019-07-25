@@ -115,7 +115,10 @@ public:
 #endif
 
 private:
-  gfxMatrix GetImageTransform(PRInt32 aNativeWidth, PRInt32 aNativeHeight);
+  gfxMatrix GetRasterImageTransform(PRInt32 aNativeWidth,
+                                    PRInt32 aNativeHeight);
+  gfxMatrix GetVectorImageTransform();
+  PRBool    TransformContextForPainting(gfxContext* aGfxContext);
 
   nsCOMPtr<imgIDecoderObserver> mListener;
 
@@ -193,7 +196,7 @@ nsSVGImageFrame::AttributeChanged(PRInt32         aNameSpaceID,
 }
 
 gfxMatrix
-nsSVGImageFrame::GetImageTransform(PRInt32 aNativeWidth, PRInt32 aNativeHeight)
+nsSVGImageFrame::GetRasterImageTransform(PRInt32 aNativeWidth, PRInt32 aNativeHeight)
 {
   float x, y, width, height;
   nsSVGImageElement *element = static_cast<nsSVGImageElement*>(mContent);
@@ -206,6 +209,46 @@ nsSVGImageFrame::GetImageTransform(PRInt32 aNativeWidth, PRInt32 aNativeHeight)
                                     element->mPreserveAspectRatio);
 
   return viewBoxTM * gfxMatrix().Translate(gfxPoint(x, y)) * GetCanvasTM();
+}
+
+gfxMatrix
+nsSVGImageFrame::GetVectorImageTransform()
+{
+  float x, y, width, height;
+  nsSVGImageElement *element = static_cast<nsSVGImageElement*>(mContent);
+  element->GetAnimatedLengthValues(&x, &y, &width, &height, nsnull);
+
+  
+  
+  
+
+  return gfxMatrix().Translate(gfxPoint(x, y)) * GetCanvasTM();
+}
+
+PRBool
+nsSVGImageFrame::TransformContextForPainting(gfxContext* aGfxContext)
+{
+  gfxMatrix imageTransform;
+  if (mImageContainer->GetType() == imgIContainer::TYPE_VECTOR) {
+    imageTransform = GetVectorImageTransform();
+  } else {
+    PRInt32 nativeWidth, nativeHeight;
+    if (NS_FAILED(mImageContainer->GetWidth(&nativeWidth)) ||
+        NS_FAILED(mImageContainer->GetHeight(&nativeHeight)) ||
+        nativeWidth == 0 || nativeHeight == 0) {
+      return PR_FALSE;
+    }
+    imageTransform = GetRasterImageTransform(nativeWidth, nativeHeight);
+  }
+
+  
+  
+  nscoord appUnitsPerDevPx = PresContext()->AppUnitsPerDevPixel();
+  gfxFloat pageZoomFactor =
+    nsPresContext::AppUnitsToFloatCSSPixels(appUnitsPerDevPx);
+  aGfxContext->Multiply(imageTransform.Scale(pageZoomFactor, pageZoomFactor));
+
+  return PR_TRUE;
 }
 
 
@@ -237,19 +280,6 @@ nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext,
   }
 
   if (mImageContainer) {
-    PRInt32 nativeWidth, nativeHeight;
-    mImageContainer->GetWidth(&nativeWidth);
-    mImageContainer->GetHeight(&nativeHeight);
-
-    if (nativeWidth == 0 || nativeHeight == 0) {
-      return NS_ERROR_FAILURE;
-    }
-
-    if (mImageContainer->GetType() == imgIContainer::TYPE_VECTOR) {
-      
-      return NS_ERROR_FAILURE;
-    }
-
     gfxContext* ctx = aContext->GetGfxContext();
     gfxContextAutoSaveRestore autoRestorer(ctx);
 
@@ -259,14 +289,9 @@ nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext,
       nsSVGUtils::SetClipRect(ctx, GetCanvasTM(), clipRect);
     }
 
-    nscoord appUnitsPerDevPx = PresContext()->AppUnitsPerDevPixel();
-    gfxFloat pageZoomFactor =
-      nsPresContext::AppUnitsToFloatCSSPixels(appUnitsPerDevPx);
-
-    
-    
-    ctx->Multiply(GetImageTransform(nativeWidth, nativeHeight).
-      Scale(pageZoomFactor, pageZoomFactor));
+    if (!TransformContextForPainting(ctx)) {
+      return NS_ERROR_FAILURE;
+    }
 
     
     
@@ -280,6 +305,7 @@ nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext,
       ctx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
     }
 
+    nscoord appUnitsPerDevPx = PresContext()->AppUnitsPerDevPixel();
     nsRect dirtyRect; 
     if (aDirtyRect) {
       dirtyRect = aDirtyRect->ToAppUnits(appUnitsPerDevPx);
@@ -291,13 +317,32 @@ nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext,
     
     
     
-    nsLayoutUtils::DrawSingleUnscaledImage(
-      aContext->GetRenderingContext(this),
-      mImageContainer,
-      nsLayoutUtils::GetGraphicsFilterForFrame(this),
-      nsPoint(0, 0),
-      aDirtyRect ? &dirtyRect : nsnull,
-      imgIContainer::FLAG_SYNC_DECODE);
+    PRUint32 drawFlags = imgIContainer::FLAG_SYNC_DECODE;
+
+    if (mImageContainer->GetType() == imgIContainer::TYPE_VECTOR) {
+      nsRect destRect(0, 0,
+                      appUnitsPerDevPx * width,
+                      appUnitsPerDevPx * height);
+
+      
+      
+      
+      nsLayoutUtils::DrawSingleImage(
+        aContext->GetRenderingContext(this),
+        mImageContainer,
+        nsLayoutUtils::GetGraphicsFilterForFrame(this),
+        destRect,
+        aDirtyRect ? dirtyRect : destRect,
+        drawFlags);
+    } else { 
+      nsLayoutUtils::DrawSingleUnscaledImage(
+        aContext->GetRenderingContext(this),
+        mImageContainer,
+        nsLayoutUtils::GetGraphicsFilterForFrame(this),
+        nsPoint(0, 0),
+        aDirtyRect ? &dirtyRect : nsnull,
+        drawFlags);
+    }
 
     if (opacity != 1.0f) {
       ctx->PopGroupToSource();
@@ -313,21 +358,32 @@ nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext,
 NS_IMETHODIMP_(nsIFrame*)
 nsSVGImageFrame::GetFrameForPoint(const nsPoint &aPoint)
 {
+  
+  
+  
+  
+  
   if (GetStyleDisplay()->IsScrollableOverflow() && mImageContainer) {
-    PRInt32 nativeWidth, nativeHeight;
-    mImageContainer->GetWidth(&nativeWidth);
-    mImageContainer->GetHeight(&nativeHeight);
+    if (mImageContainer->GetType() == imgIContainer::TYPE_RASTER) {
+      PRInt32 nativeWidth, nativeHeight;
+      if (NS_FAILED(mImageContainer->GetWidth(&nativeWidth)) ||
+          NS_FAILED(mImageContainer->GetHeight(&nativeHeight)) ||
+          nativeWidth == 0 || nativeHeight == 0) {
+        return nsnull;
+      }
 
-    if (nativeWidth == 0 || nativeHeight == 0) {
-      return nsnull;
+      if (!nsSVGUtils::HitTestRect(
+               GetRasterImageTransform(nativeWidth, nativeHeight),
+               0, 0, nativeWidth, nativeHeight,
+               PresContext()->AppUnitsToDevPixels(aPoint.x),
+               PresContext()->AppUnitsToDevPixels(aPoint.y))) {
+        return nsnull;
+      }
     }
-
-    if (!nsSVGUtils::HitTestRect(GetImageTransform(nativeWidth, nativeHeight),
-                                 0, 0, nativeWidth, nativeHeight,
-                                 PresContext()->AppUnitsToDevPixels(aPoint.x),
-                                 PresContext()->AppUnitsToDevPixels(aPoint.y))) {
-      return nsnull;
-    }
+    
+    
+    
+    
   }
 
   return nsSVGPathGeometryFrame::GetFrameForPoint(aPoint);
