@@ -73,6 +73,7 @@
 
 #include <fontconfig/fcfreetype.h>
 #include <pango/pango.h>
+#include <pango/pangocairo.h>
 #include <pango/pango-modules.h>
 #include <pango/pangofc-fontmap.h>
 
@@ -529,8 +530,6 @@ public:
     virtual ~gfxFcFont();
     static already_AddRefed<gfxFcFont>
     GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern);
-    static already_AddRefed<gfxFcFont>
-    GetOrMakeFont(FcPattern *aRenderPattern, gfxPangoFcFont *aPangoFont);
 
     virtual PRBool InitTextRun(gfxContext *aContext,
                                gfxTextRun *aTextRun,
@@ -558,7 +557,7 @@ public:
 
 private:
     static already_AddRefed<gfxFcFont> GetOrMakeFont(FcPattern *aPattern);
-    gfxFcFont(cairo_scaled_font_t *aCairoFont,
+    gfxFcFont(cairo_scaled_font_t *aCairoFont, FcPattern *aFontPattern,
               gfxFontEntry *aFontEntry, const gfxFontStyle *aFontStyle);
 
     void MakePangoFont();
@@ -618,13 +617,7 @@ struct gfxPangoFcFont {
     
     void ForgetGfxFont() { mGfxFont = nsnull; }
 
-    gfxFcFont *GfxFont()
-    {
-        if (!mGfxFont) {
-            SetGfxFont();
-        }
-        return mGfxFont;
-    }
+    gfxFcFont *GfxFont() { return mGfxFont; }
 
     cairo_scaled_font_t *CairoFont()
     {
@@ -633,7 +626,6 @@ struct gfxPangoFcFont {
 
 private:
     void SetFontMap();
-    void SetGfxFont();
 };
 
 struct gfxPangoFcFontClass {
@@ -698,14 +690,6 @@ gfxPangoFcFont::SetFontMap()
         fc_font->fontmap = fontmap;
         g_object_ref(fc_font->fontmap);
     }
-}
-
-void
-gfxPangoFcFont::SetGfxFont() {
-    PangoFcFont *fc_font = &parent_instance;
-
-    
-    mGfxFont = gfxFcFont::GetOrMakeFont(fc_font->font_pattern, this).get();
 }
 
 static void
@@ -1441,6 +1425,8 @@ static PRBool HasChar(FcPattern *aFont, FcChar32 wc)
 
 
 
+
+
 #define GFX_TYPE_PANGO_FONT_MAP              (gfx_pango_font_map_get_type())
 #define GFX_PANGO_FONT_MAP(object)           (G_TYPE_CHECK_INSTANCE_CAST ((object), GFX_TYPE_PANGO_FONT_MAP, gfxPangoFontMap))
 #define GFX_IS_PANGO_FONT_MAP(object)        (G_TYPE_CHECK_INSTANCE_TYPE ((object), GFX_TYPE_PANGO_FONT_MAP))
@@ -1477,12 +1463,41 @@ gfx_pango_font_map_init(gfxPangoFontMap *fontset)
 {
 }
 
-static double
-gfx_pango_font_map_get_resolution(PangoFcFontMap *fcfontmap,
-                                  PangoContext *context)
+static PangoFcFont *
+gfx_pango_font_map_new_font(PangoFcFontMap *fontmap,
+                            FcPattern *pattern)
 {
     
-    return GetDPI();
+    
+    
+    
+    
+    
+    
+    return NULL;
+}
+
+static void
+gfx_pango_font_map_class_init(gfxPangoFontMapClass *klass)
+{
+    
+
+    
+    
+    
+    
+    
+    
+    
+
+    PangoFcFontMapClass *fcfontmap_class = PANGO_FC_FONT_MAP_CLASS (klass);
+    
+    
+    
+    fcfontmap_class->new_font = gfx_pango_font_map_new_font;
+    
+    
+    
 }
 
 #ifdef MOZ_WIDGET_GTK2
@@ -1536,51 +1551,6 @@ PrepareSortPattern(FcPattern *aPattern, double aFallbackSize,
     }
 
     FcDefaultSubstitute(aPattern);
-}
-
-static void
-gfx_pango_font_map_default_substitute(PangoFcFontMap *fontmap,
-                                      FcPattern *pattern)
-{
-    
-    
-    PrepareSortPattern(pattern, 18.0, 1.0, FALSE);
-}
-
-static PangoFcFont *
-gfx_pango_font_map_new_font(PangoFcFontMap *fontmap,
-                            FcPattern *pattern)
-{
-    return PANGO_FC_FONT(g_object_new(GFX_TYPE_PANGO_FC_FONT,
-                                      "pattern", pattern, NULL));
-}
-
-static void
-gfx_pango_font_map_class_init(gfxPangoFontMapClass *klass)
-{
-    
-
-    
-    
-    
-    
-    
-    
-    
-
-    PangoFcFontMapClass *fcfontmap_class = PANGO_FC_FONT_MAP_CLASS (klass);
-    fcfontmap_class->get_resolution = gfx_pango_font_map_get_resolution;
-    
-    
-
-    
-    
-    
-    
-    
-    
-    fcfontmap_class->default_substitute = gfx_pango_font_map_default_substitute;
-    fcfontmap_class->new_font = gfx_pango_font_map_new_font;
 }
 
 
@@ -1905,9 +1875,11 @@ gfxPangoFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
 cairo_user_data_key_t gfxFcFont::sGfxFontKey;
 
 gfxFcFont::gfxFcFont(cairo_scaled_font_t *aCairoFont,
+                     FcPattern *aFontPattern,
                      gfxFontEntry *aFontEntry,
                      const gfxFontStyle *aFontStyle)
     : gfxFT2FontBase(aCairoFont, aFontEntry, aFontStyle),
+      mFontPattern(aFontPattern),
       mPangoFont()
 {
     cairo_scaled_font_set_user_data(mScaledFont, &sGfxFontKey, this, NULL);
@@ -1984,12 +1956,6 @@ gfxFcFont::InitTextRun(gfxContext *aContext,
 gfxPangoFontGroup::Shutdown()
 {
     if (gPangoFontMap) {
-        if (PANGO_IS_FC_FONT_MAP (gPangoFontMap)) {
-            
-            
-            
-            pango_fc_font_map_shutdown(PANGO_FC_FONT_MAP(gPangoFontMap));
-        }
         g_object_unref(gPangoFontMap);
         gPangoFontMap = NULL;
     }
@@ -2130,42 +2096,19 @@ gfxFcFont::GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern)
 {
     nsAutoRef<FcPattern> renderPattern
         (FcFontRenderPrepare(NULL, aRequestedPattern, aFontPattern));
-    nsRefPtr<gfxFcFont> font = GetOrMakeFont(renderPattern);
-    if (!font->mFontPattern) {
-        font->mFontPattern = aFontPattern;
-    }
-    return font.forget();
-}
 
-
-already_AddRefed<gfxFcFont>
-gfxFcFont::GetOrMakeFont(FcPattern *aRenderPattern, gfxPangoFcFont *aPangoFont)
-{
-    nsRefPtr<gfxFcFont> font = GetOrMakeFont(aRenderPattern);
-    if (!font->mPangoFont) {
-        font->mPangoFont = PANGO_FONT(aPangoFont);
-        g_object_add_toggle_ref(G_OBJECT(aPangoFont),
-                                PangoFontToggleNotify, font);
-    }
-    return font.forget();
-}
-
-
-already_AddRefed<gfxFcFont>
-gfxFcFont::GetOrMakeFont(FcPattern *aPattern)
-{
-    cairo_scaled_font_t *cairoFont = CreateScaledFont(aPattern);
+    cairo_scaled_font_t *cairoFont = CreateScaledFont(renderPattern);
 
     nsRefPtr<gfxFcFont> font = static_cast<gfxFcFont*>
         (cairo_scaled_font_get_user_data(cairoFont, &sGfxFontKey));
 
     if (!font) {
-        gfxFloat size = GetPixelSize(aPattern);
+        gfxFloat size = GetPixelSize(renderPattern);
 
         
         
-        PRUint8 style = gfxFontconfigUtils::GetThebesStyle(aPattern);
-        PRUint16 weight = gfxFontconfigUtils::GetThebesWeight(aPattern);
+        PRUint8 style = gfxFontconfigUtils::GetThebesStyle(renderPattern);
+        PRUint16 weight = gfxFontconfigUtils::GetThebesWeight(renderPattern);
 
         
         
@@ -2180,10 +2123,10 @@ gfxFcFont::GetOrMakeFont(FcPattern *aPattern)
 
         nsRefPtr<gfxFontEntry> fe;
         FcChar8 *fc_file;
-        if (FcPatternGetString(aPattern,
+        if (FcPatternGetString(renderPattern,
                                FC_FILE, 0, &fc_file) == FcResultMatch) {
             int index;
-            if (FcPatternGetInteger(aPattern,
+            if (FcPatternGetInteger(renderPattern,
                                     FC_INDEX, 0, &index) != FcResultMatch) {
                 
                 NS_NOTREACHED("No index in pattern for font face from file");
@@ -2200,7 +2143,7 @@ gfxFcFont::GetOrMakeFont(FcPattern *aPattern)
 
             fe = new gfxFontEntry(name);
         } else {
-            fe = GetDownloadedFontEntry(aPattern);
+            fe = GetDownloadedFontEntry(renderPattern);
             if (!fe) {
                 
                 
@@ -2216,7 +2159,7 @@ gfxFcFont::GetOrMakeFont(FcPattern *aPattern)
         
         
         
-        font = new gfxFcFont(cairoFont, fe, &fontStyle);
+        font = new gfxFcFont(cairoFont, aFontPattern, fe, &fontStyle);
     }
 
     cairo_scaled_font_destroy(cairoFont);
@@ -2227,7 +2170,19 @@ static PangoFontMap *
 GetPangoFontMap()
 {
     if (!gPangoFontMap) {
-        gPangoFontMap = gfxPangoFontMap::NewFontMap();
+        
+        
+        gPangoFontMap = pango_cairo_font_map_get_default();
+
+        if (PANGO_IS_FC_FONT_MAP(gPangoFontMap)) {
+            g_object_ref(gPangoFontMap);
+        } else {
+            
+            
+            
+            
+            gPangoFontMap = gfxPangoFontMap::NewFontMap();
+        }
     }
     return gPangoFontMap;
 }
