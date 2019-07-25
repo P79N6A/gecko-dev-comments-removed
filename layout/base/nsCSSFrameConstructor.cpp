@@ -8144,12 +8144,11 @@ nsCSSFrameConstructor::AttributeWillChange(nsIContent* aContent,
 }
 
 void
-nsCSSFrameConstructor::AttributeChanged(nsIContent* aContent,
+nsCSSFrameConstructor::AttributeChanged(Element* aElement,
                                         PRInt32 aNameSpaceID,
                                         nsIAtom* aAttribute,
                                         PRInt32 aModType)
 {
-  Element* aElement = aContent->AsElement();
   
   
   

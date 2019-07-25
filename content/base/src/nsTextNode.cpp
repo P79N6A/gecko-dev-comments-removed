@@ -49,6 +49,7 @@
 #include "nsIDocument.h"
 #include "nsThreadUtils.h"
 
+using namespace mozilla::dom;
 
 
 
@@ -337,13 +338,13 @@ nsAttributeTextNode::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 
 void
 nsAttributeTextNode::AttributeChanged(nsIDocument* aDocument,
-                                      nsIContent* aContent,
+                                      Element* aElement,
                                       PRInt32 aNameSpaceID,
                                       nsIAtom* aAttribute,
                                       PRInt32 aModType)
 {
   if (aNameSpaceID == mNameSpaceID && aAttribute == mAttrName &&
-      aContent == mGrandparent) {
+      aElement == mGrandparent) {
     
     
     

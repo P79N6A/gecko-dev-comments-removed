@@ -36,7 +36,6 @@
 
 
 
-
 #ifdef DEBUG_bryner
 #define DEBUG_PAGE_CACHE
 #endif
@@ -56,6 +55,8 @@
 #include "nsISHistoryInternal.h"
 #include "nsDocShellEditorData.h"
 #include "nsIDocShell.h"
+
+namespace dom = mozilla::dom;
 
 
 #define CONTENT_VIEWER_TIMEOUT_SECONDS 30*60
@@ -789,7 +790,7 @@ nsSHEntry::AttributeWillChange(nsIDocument* aDocument,
 
 void
 nsSHEntry::AttributeChanged(nsIDocument* aDocument,
-                            nsIContent* aContent,
+                            dom::Element* aElement,
                             PRInt32 aNameSpaceID,
                             nsIAtom* aAttribute,
                             PRInt32 aModType)
