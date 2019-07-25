@@ -864,6 +864,11 @@ struct JSDefinition : public JSParseNode
         return pn_cookie.isFree() || test(PND_GVAR);
     }
 
+    bool isGlobal() const {
+        JS_ASSERT(pn_defn);
+        return test(PND_GVAR);
+    }
+
     
 #ifdef CONST
 # undef CONST

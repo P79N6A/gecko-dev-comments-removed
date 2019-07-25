@@ -2000,6 +2000,7 @@ TryConvertToGname(JSCodeGenerator *cg, JSParseNode *pn, JSOp *op)
 {
     if (cg->compileAndGo() && 
         cg->compiler()->globalScope->globalObj &&
+        !cg->mightAliasLocals() &&
         !pn->isDeoptimized() &&
         !(cg->flags & TCF_STRICT_MODE_CODE)) { 
         switch (*op) {
@@ -2009,9 +2010,9 @@ TryConvertToGname(JSCodeGenerator *cg, JSParseNode *pn, JSOp *op)
           case JSOP_NAMEINC:  *op = JSOP_GNAMEINC; break;
           case JSOP_DECNAME:  *op = JSOP_DECGNAME; break;
           case JSOP_NAMEDEC:  *op = JSOP_GNAMEDEC; break;
+          case JSOP_FORNAME:  *op = JSOP_FORGNAME; break;
           case JSOP_SETCONST:
           case JSOP_DELNAME:
-          case JSOP_FORNAME:
             
             return false;
           default: JS_NOT_REACHED("gname");
@@ -2019,6 +2020,73 @@ TryConvertToGname(JSCodeGenerator *cg, JSParseNode *pn, JSOp *op)
         return true;
     }
     return false;
+}
+
+
+
+
+static bool
+BindKnownGlobal(JSContext *cx, JSCodeGenerator *cg, JSParseNode *dn, JSParseNode *pn, JSAtom *atom)
+{
+    
+    JS_ASSERT(pn->pn_cookie.isFree());
+
+    if (cg->mightAliasLocals())
+        return true;
+
+    GlobalScope *globalScope = cg->compiler()->globalScope;
+
+    uint32 index;
+    if (dn->pn_cookie.isFree()) {
+        
+        
+        JSAtomListElement *ale = globalScope->names.lookup(atom);
+        index = ALE_INDEX(ale);
+    } else {
+        JSCodeGenerator *globalcg = globalScope->cg;
+
+        
+        
+        if (globalcg == cg) {
+            pn->pn_cookie = dn->pn_cookie;
+            pn->pn_dflags |= PND_BOUND;
+            return true;
+        }
+
+        
+        
+        index = globalcg->globalUses[dn->pn_cookie.asInteger()].slot;
+    }
+
+    if (!cg->addGlobalUse(atom, index, &pn->pn_cookie))
+        return false;
+
+    if (!pn->pn_cookie.isFree())
+        pn->pn_dflags |= PND_BOUND;
+
+    return true;
+}
+
+
+static bool
+BindGlobal(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn, JSAtom *atom)
+{
+    pn->pn_cookie.makeFree();
+
+    JSDefinition *dn;
+    if (pn->pn_used) {
+        dn = pn->pn_lexdef;
+    } else {
+        if (!pn->pn_defn)
+            return true;
+        dn = (JSDefinition *)pn;
+    }
+
+    
+    if (!dn->isGlobal())
+        return true;
+
+    return BindKnownGlobal(cx, cg, dn, pn, atom);
 }
 
 
@@ -2111,6 +2179,30 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             pn->pn_op = op = JSOP_NAME;
     }
 
+    if (dn->isGlobal()) {
+        if (op == JSOP_NAME) {
+            
+
+
+
+
+            if (!BindKnownGlobal(cx, cg, dn, pn, atom))
+                return JS_FALSE;
+            if (!pn->pn_cookie.isFree()) {
+                pn->pn_op = JSOP_GETGLOBAL;
+                return JS_TRUE;
+            }
+        }
+
+        
+
+
+
+
+
+        cookie.makeFree();
+    }
+
     if (cookie.isFree()) {
         JSStackFrame *caller = cg->parser->callerFrame;
         if (caller) {
@@ -2157,46 +2249,6 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         pn->pn_op = op;
         pn->pn_dflags |= PND_BOUND;
 
-        return JS_TRUE;
-    }
-
-    if (dn->pn_dflags & PND_GVAR) {
-        
-
-
-
-        if (cg->mightAliasLocals())
-            return JS_TRUE;
-
-        switch (op) {
-          case JSOP_NAME:     op = JSOP_GETGLOBAL; break;
-          case JSOP_SETNAME:  op = JSOP_SETGLOBAL; break;
-          case JSOP_INCNAME:  op = JSOP_INCGLOBAL; break;
-          case JSOP_NAMEINC:  op = JSOP_GLOBALINC; break;
-          case JSOP_DECNAME:  op = JSOP_DECGLOBAL; break;
-          case JSOP_NAMEDEC:  op = JSOP_GLOBALDEC; break;
-          case JSOP_FORNAME:  op = JSOP_FORGLOBAL; break;
-          case JSOP_SETCONST:
-          case JSOP_DELNAME:
-            
-            return JS_TRUE;
-          default: JS_NOT_REACHED("gvar");
-        }
-
-        JSCodeGenerator *globalCg = cg->compiler()->globalScope->cg;
-        if (globalCg != cg) {
-            uint32 slot = globalCg->globalUses[cookie.asInteger()].slot;
-
-            
-            if (!cg->addGlobalUse(atom, slot, &cookie))
-                return JS_FALSE;
-
-            if (cookie.isFree())
-                return JS_TRUE;
-        }
-        pn->pn_op = op;
-        pn->pn_cookie.set(cookie);
-        pn->pn_dflags |= PND_BOUND;
         return JS_TRUE;
     }
 
@@ -3675,7 +3727,7 @@ MaybeEmitVarDecl(JSContext *cx, JSCodeGenerator *cg, JSOp prologOp,
 
     if (JOF_OPTYPE(pn->pn_op) == JOF_ATOM &&
         (!cg->inFunction() || (cg->flags & TCF_FUN_HEAVYWEIGHT)) &&
-        js_CodeSpec[pn->pn_op].type() != JOF_GLOBAL)
+        !(pn->pn_dflags & PND_GVAR))
     {
         CG_SWITCH_TO_PROLOG(cg);
         if (!UpdateLineNumberNotes(cx, cg, pn->pn_pos.begin.lineno))
@@ -3797,7 +3849,6 @@ EmitDestructuringLHS(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
           }
 
           case JSOP_SETARG:
-          case JSOP_SETGLOBAL:
           {
             jsuint slot = pn->pn_cookie.asInteger();
             EMIT_UINT16_IMM_OP(PN_OP(pn), slot);
@@ -4617,6 +4668,8 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
         if (!cg->inFunction()) {
             JS_ASSERT(!cg->topStmt);
+            if (!BindGlobal(cx, cg, pn, fun->atom))
+                return false;
             if (pn->pn_cookie.isFree()) {
                 CG_SWITCH_TO_PROLOG(cg);
                 op = FUN_FLAT_CLOSURE(fun) ? JSOP_DEFFUN_FC : JSOP_DEFFUN;
@@ -4982,6 +5035,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 
 
               case TOK_NAME:
+              {
                 
 
 
@@ -5001,36 +5055,46 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                                    : SRC_DECL_LET) < 0) {
                     return JS_FALSE;
                 }
-                if (!pn3->pn_cookie.isFree()) {
+                UpvarCookie cookie = pn3->pn_cookie;
+                if (!cookie.isFree()) {
                     op = PN_OP(pn3);
                     switch (op) {
-                      case JSOP_GETARG:   
-                      case JSOP_SETARG:   op = JSOP_FORARG; break;
-                      case JSOP_GETLOCAL: 
-                      case JSOP_SETLOCAL: op = JSOP_FORLOCAL; break;
-                      case JSOP_GETGLOBAL: 
-                      case JSOP_SETGLOBAL: op = JSOP_FORGLOBAL; break;
-                      default:            JS_ASSERT(0);
+                      case JSOP_GETARG:
+                      case JSOP_SETARG:
+                        op = JSOP_FORARG;
+                        break;
+                      case JSOP_GETLOCAL:
+                      case JSOP_SETLOCAL:
+                        op = JSOP_FORLOCAL;
+                        break;
+                      case JSOP_GETGLOBAL:
+                        op = JSOP_FORGNAME;
+                        cookie.makeFree();
+                        break;
+                      default:
+                        JS_NOT_REACHED("unexpected opcode");
                     }
                 } else {
                     pn3->pn_op = JSOP_FORNAME;
                     if (!BindNameToSlot(cx, cg, pn3))
                         return JS_FALSE;
                     op = PN_OP(pn3);
+                    cookie = pn3->pn_cookie;
                 }
                 if (pn3->isConst()) {
                     ReportCompileErrorNumber(cx, CG_TS(cg), pn3, JSREPORT_ERROR,
                                              JSMSG_BAD_FOR_LEFTSIDE);
                     return JS_FALSE;
                 }
-                if (!pn3->pn_cookie.isFree()) {
-                    atomIndex = (jsatomid) pn3->pn_cookie.asInteger();
+                if (!cookie.isFree()) {
+                    atomIndex = (jsatomid) cookie.asInteger();
                     EMIT_UINT16_IMM_OP(op, atomIndex);
                 } else {
                     if (!EmitAtomOp(cx, pn3, op, cg))
                         return JS_FALSE;
                 }
                 break;
+              }
 
               case TOK_DOT:
                 
@@ -6053,12 +6117,15 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                     if (js_Emit1(cx, cg, JSOP_DUP) < 0)
                         return JS_FALSE;
                     EMIT_INDEX_OP(JSOP_GETXPROP, atomIndex);
+                } else if (PN_OP(pn2) == JSOP_SETGNAME) {
+                    if (!BindGlobal(cx, cg, pn2, pn2->pn_atom))
+                        return JS_FALSE;
+                    if (pn2->pn_cookie.isFree())
+                        EmitAtomOp(cx, pn2, JSOP_GETGNAME, cg);
+                    else
+                        EMIT_UINT16_IMM_OP(JSOP_GETGLOBAL, pn2->pn_cookie.asInteger());
                 } else {
-                    EMIT_UINT16_IMM_OP((PN_OP(pn2) == JSOP_SETGNAME)
-                                       ? JSOP_GETGNAME
-                                       : (PN_OP(pn2) == JSOP_SETGLOBAL)
-                                       ? JSOP_GETGLOBAL
-                                       : (PN_OP(pn2) == JSOP_SETARG)
+                    EMIT_UINT16_IMM_OP((PN_OP(pn2) == JSOP_SETARG)
                                        ? JSOP_GETARG
                                        : JSOP_GETLOCAL,
                                        atomIndex);
