@@ -67,8 +67,20 @@ HttpChannelChild::~HttpChannelChild()
 
 
 
-NS_IMPL_ADDREF_INHERITED(HttpChannelChild, HttpBaseChannel)
-NS_IMPL_RELEASE_INHERITED(HttpChannelChild, HttpBaseChannel)
+
+NS_IMPL_ADDREF(HttpChannelChild)
+NS_IMPL_RELEASE_WITH_DESTROY(HttpChannelChild, RefcountHitZero())
+
+void
+HttpChannelChild::RefcountHitZero()
+{
+  if (mWasOpened) {
+    
+    PHttpChannelChild::Send__delete__(this);
+  } else {
+    delete this;    
+  }
+}
 
 NS_INTERFACE_MAP_BEGIN(HttpChannelChild)
   NS_INTERFACE_MAP_ENTRY(nsIRequest)
@@ -158,6 +170,10 @@ HttpChannelChild::RecvOnStopRequest(const nsresult& statusCode)
   nsresult rv = mListener->OnStopRequest(this, mListenerContext, statusCode);
   mListener = 0;
   mListenerContext = 0;
+
+  
+  this->Release();
+  
   if (!NS_SUCCEEDED(rv)) {
     
     return false;  
@@ -218,6 +234,7 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
   if (NS_FAILED(rv))
     return rv;
 
+  
   
   this->AddRef();
 

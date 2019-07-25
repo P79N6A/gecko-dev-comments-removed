@@ -99,8 +99,8 @@ NeckoChild::DeallocPHttpChannel(PHttpChannelChild* channel)
 {
   NS_ABORT_IF_FALSE(IsNeckoChild(), "DeallocPHttpChannel called by non-child!");
 
-  HttpChannelChild *p = static_cast<HttpChannelChild*>(channel);
-  p->Release();
+  
+  delete channel;
   return true;
 }
 
