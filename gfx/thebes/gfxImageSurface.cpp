@@ -254,3 +254,70 @@ gfxImageSurface::GetAsImageSurface()
   nsRefPtr<gfxImageSurface> surface = this;
   return surface.forget();
 }
+
+void
+gfxImageSurface::MovePixels(const nsIntRect& aSourceRect,
+                            const nsIntPoint& aDestTopLeft)
+{
+    const nsIntRect bounds(0, 0, mSize.width, mSize.height);
+    nsIntPoint offset = aDestTopLeft - aSourceRect.TopLeft(); 
+    nsIntRect clippedSource = aSourceRect;
+    clippedSource.IntersectRect(clippedSource, bounds);
+    nsIntRect clippedDest = clippedSource + offset;
+    clippedDest.IntersectRect(clippedDest, bounds);
+    const nsIntRect dest = clippedDest;
+    const nsIntRect source = dest - offset;
+    
+    
+    NS_ABORT_IF_FALSE(bounds.Contains(dest) && bounds.Contains(source) &&
+                      aSourceRect.Contains(source) &&
+                      nsIntRect(aDestTopLeft, aSourceRect.Size()).Contains(dest) &&
+                      source.Size() == dest.Size() &&
+                      offset == (dest.TopLeft() - source.TopLeft()),
+                      "Messed up clipping, crash or corruption will follow");
+    if (source.IsEmpty() || source == dest) {
+        return;
+    }
+
+    long naturalStride = ComputeStride(mSize, mFormat);
+    if (mStride == naturalStride && dest.width == bounds.width) {
+        
+        
+        
+        unsigned char* dst = mData + dest.y * mStride;
+        const unsigned char* src = mData + source.y * mStride;
+        size_t nBytes = dest.height * mStride;
+        memmove(dst, src, nBytes);
+        return;
+    }
+
+    
+    const PRInt32 bpp = BytePerPixelFromFormat(mFormat);
+    const size_t nRowBytes = dest.width * bpp;
+    
+    
+    
+    
+    unsigned char* dstRow;
+    unsigned char* srcRow;
+    unsigned char* endSrcRow;   
+    long stride;
+    if (dest.y > source.y) {
+        
+        
+        
+        stride = -mStride;
+        dstRow = mData + dest.x * bpp + (dest.YMost() - 1) * mStride;
+        srcRow = mData + source.x * bpp + (source.YMost() - 1) * mStride;
+        endSrcRow = mData + source.x * bpp + (source.y - 1) * mStride;
+    } else {
+        stride = mStride;
+        dstRow = mData + dest.x * bpp + dest.y * mStride;
+        srcRow = mData + source.x * bpp + source.y * mStride;
+        endSrcRow = mData + source.x * bpp + source.YMost() * mStride;
+    }
+
+    for (; srcRow != endSrcRow; dstRow += stride, srcRow += stride) {
+        memmove(dstRow, srcRow, nRowBytes);
+    }
+}

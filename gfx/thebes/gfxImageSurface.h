@@ -110,6 +110,11 @@ public:
 
     virtual PRBool SupportsSelfCopy() { return PR_FALSE; }
 
+    
+    NS_OVERRIDE
+    virtual void MovePixels(const nsIntRect& aSourceRect,
+                            const nsIntPoint& aDestTopLeft);
+
 protected:
     gfxImageSurface();
     void InitWithData(unsigned char *aData, const gfxIntSize& aSize,
