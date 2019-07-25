@@ -1772,23 +1772,40 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   bool inTransform = aBuilder->IsInTransform();
   if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) &&
       disp->HasTransform()) {
-    if (nsDisplayTransform::ShouldPrerenderTransformedContent(aBuilder, this) ||
-        Preserves3DChildren()) {
+    if (aBuilder->IsForPainting() &&
+        nsDisplayTransform::ShouldPrerenderTransformedContent(aBuilder, this)) {
       dirtyRect = GetVisualOverflowRectRelativeToSelf();
     } else {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      if (!nsDisplayTransform::UntransformRect(dirtyRect, this, nsPoint(0, 0), &dirtyRect)) {
+      if (Preserves3D()) {
         
-        dirtyRect = GetVisualOverflowRectRelativeToSelf();
+        
+        
+        
+        
+        
+        nsRect overflow = GetVisualOverflowRectRelativeToSelf();
+        nsPoint offset = aBuilder->ToReferenceFrame(this);
+        overflow += offset;
+        overflow = nsDisplayTransform::TransformRect(overflow, this, offset);
+
+        dirtyRect += offset;
+
+        if (dirtyRect.Intersects(overflow)) {
+          dirtyRect = GetVisualOverflowRectRelativeToSelf();
+        } else {
+          dirtyRect.SetEmpty();
+        }
+      } else {
+        
+        
+        
+        if (!nsDisplayTransform::UntransformRect(dirtyRect, this, nsPoint(0, 0), &dirtyRect)) {
+          
+          dirtyRect.SetEmpty();
+        }
+      }
+      if (!Preserves3DChildren() && !dirtyRect.Intersects(GetVisualOverflowRectRelativeToSelf())) {
+        return NS_OK;
       }
     }
     inTransform = true;
@@ -1807,6 +1824,11 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
 
   
   MarkAbsoluteFramesForDisplayList(aBuilder, dirtyRect);
+  
+  
+  if (Preserves3DChildren()) {
+    aBuilder->MarkPreserve3DFramesForDisplayList(this, aDirtyRect);
+  }
 
   nsDisplayListCollection set;
   nsresult rv;
@@ -2006,6 +2028,15 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       dirty.SetEmpty();
     }
     pseudoStackingContext = true;
+  }
+  if (child->Preserves3D()) {
+    nsRect* savedDirty = static_cast<nsRect*>
+      (child->Properties().Get(nsDisplayListBuilder::Preserve3DDirtyRectProperty()));
+    if (savedDirty) {
+      dirty = *savedDirty;
+    } else {
+      dirty.SetEmpty();
+    }
   }
 
   
