@@ -371,9 +371,8 @@ TokenStream::peekChars(intN n, jschar *cp)
     return i == n;
 }
 
-
 jschar *
-TokenStream::findWlineLimit(jschar *tokptr, int max)
+TokenStream::findEOL()
 {
     TokenBuf tmpUserbuf = userbuf;
     jschar *tmpLinebase = linebase;
@@ -381,24 +380,12 @@ TokenStream::findWlineLimit(jschar *tokptr, int max)
     uintN tmpFlags = flags;
     uintN tmpLineno = lineno;
 
-    
-    
-    userbuf.ptr = tokptr;   
-
-    jschar *wlinelimit;
-    jschar *wlinelimitmax = tokptr + max + 1;
     while (true) {
-        if (userbuf.ptr > wlinelimitmax) {
-            wlinelimit = wlinelimitmax;
-            break;
-        }
-        jschar* next = userbuf.ptr;
         int32 c = getChar();
-        if (c == '\n' || c == EOF) {
-            wlinelimit = next;
+        if (c == '\n' || c == EOF)
             break;
-        }
     }
+    jschar *linelimit = userbuf.ptr;
 
     
     userbuf = tmpUserbuf;
@@ -407,7 +394,7 @@ TokenStream::findWlineLimit(jschar *tokptr, int max)
     flags = tmpFlags;
     lineno = tmpLineno;
 
-    return wlinelimit;
+    return linelimit;
 }
 
 bool
@@ -416,15 +403,10 @@ TokenStream::reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN erro
 {
     JSErrorReport report;
     char *message;
-
-    
-    size_t wlinelength;
-    jschar *wlinechars;
-    jschar *wlinelimit;
-    jschar *wlinebase;
-    jschar *tokptr;
-    char *wlinebytes;
-
+    size_t linelength;
+    jschar *linechars;
+    jschar *linelimit;
+    char *linebytes;
     bool warning;
     JSBool ok;
     TokenPos *tp;
@@ -444,8 +426,8 @@ TokenStream::reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN erro
     report.flags = flags;
     report.errorNumber = errorNumber;
     message = NULL;
-    wlinechars = NULL;
-    wlinebytes = NULL;
+    linechars = NULL;
+    linebytes = NULL;
 
     MUST_FLOW_THROUGH("out");
     ok = js_ExpandErrorArguments(cx, js_GetErrorMessage, NULL,
@@ -469,49 +451,29 @@ TokenStream::reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN erro
     }
     report.lineno = lineno;
 
+    linelimit = findEOL();
+    linelength = linelimit - linebase;
+
+    linechars = (jschar *)cx->malloc((linelength + 1) * sizeof(jschar));
+    if (!linechars) {
+        warning = false;
+        goto out;
+    }
+    memcpy(linechars, linebase, linelength * sizeof(jschar));
+    linechars[linelength] = 0;
+    linebytes = js_DeflateString(cx, linechars, linelength);
+    if (!linebytes) {
+        warning = false;
+        goto out;
+    }
+    report.linebuf = linebytes;     
+
     index = (tp->begin.lineno == tp->end.lineno) 
-            ? tp->begin.index   
-            : 0;                
-    tokptr = linebase + index;
-
-    
-
-
-
-
-
-    static const size_t WINDOW = 100;
-
-    
-    if (linebase + WINDOW < tokptr) {
-        wlinebase = tokptr - WINDOW;
-        size_t nTrunc = wlinebase - linebase;
-        index -= nTrunc;
-    } else {
-        wlinebase = linebase;
-    }
-
-    
-    wlinelimit = findWlineLimit(tokptr, WINDOW);
-
-    wlinelength = wlinelimit - wlinebase;
-    JS_ASSERT(wlinelength <= WINDOW * 2 + 1);
-    wlinechars = (jschar *)cx->malloc((wlinelength + 1) * sizeof(jschar));
-    if (!wlinechars) {
-        warning = false;
-        goto out;
-    }
-    memcpy(wlinechars, wlinebase, wlinelength * sizeof(jschar));
-    wlinechars[wlinelength] = 0;
-    wlinebytes = js_DeflateString(cx, wlinechars, wlinelength);
-    if (!wlinebytes) {
-        warning = false;
-        goto out;
-    }
-    report.linebuf = wlinebytes;    
+            ? tp->begin.index         
+            : 0;
 
     report.tokenptr = report.linebuf + index;
-    report.uclinebuf = wlinechars;
+    report.uclinebuf = linechars;
     report.uctokenptr = report.uclinebuf + index;
 
     
@@ -568,10 +530,10 @@ TokenStream::reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN erro
         (*onError)(cx, message, &report);
 
   out:
-    if (wlinebytes)
-        cx->free(wlinebytes);
-    if (wlinechars)
-        cx->free(wlinechars);
+    if (linebytes)
+        cx->free(linebytes);
+    if (linechars)
+        cx->free(linechars);
     if (message)
         cx->free(message);
     if (report.ucmessage)
@@ -810,7 +772,6 @@ TokenStream::newToken(ptrdiff_t adjust)
     cursor = (cursor + 1) & ntokensMask;
     Token *tp = &tokens[cursor];
     tp->ptr = userbuf.ptr + adjust;
-    JS_ASSERT(tp->ptr >= linebase);
     tp->pos.begin.index = tp->ptr - linebase;
     tp->pos.begin.lineno = tp->pos.end.lineno = lineno;
     return tp;
@@ -839,7 +800,6 @@ TokenStream::getTokenInternal()
     Token *tp;
     JSAtom *atom;
     bool hadUnicodeEscape;
-    int adjust;
 #if JS_HAS_XML_SUPPORT
     JSBool inTarget;
     size_t targetLength;
@@ -1017,26 +977,20 @@ TokenStream::getTokenInternal()
     
 
 
-
-
-    adjust = -1;   
     do {
         c = getChar();
         if (c == '\n') {
             flags &= ~TSF_DIRTYLINE;
-            if (flags & TSF_NEWLINES) {
-                adjust = 0;     
+            if (flags & TSF_NEWLINES)
                 break;
-            }
         }
     } while (ScanAsSpace((jschar)c));
 
+    tp = newToken(-1);
     if (c == EOF) {
-        tp = newToken(0);   
         tt = TOK_EOF;
         goto out;
     }
-    tp = newToken(adjust);
 
     
 
