@@ -183,6 +183,7 @@ enum nsCSSUnit {
   eCSSUnit_Degree       = 1000,    
   eCSSUnit_Grad         = 1001,    
   eCSSUnit_Radian       = 1002,    
+  eCSSUnit_Turn         = 1003,    
 
   
   eCSSUnit_Hertz        = 2000,    
@@ -274,7 +275,7 @@ public:
   bool      IsPixelLengthUnit() const
     { return eCSSUnit_Point <= mUnit && mUnit <= eCSSUnit_Pixel; }
   bool      IsAngularUnit() const  
-    { return eCSSUnit_Degree <= mUnit && mUnit <= eCSSUnit_Radian; }
+    { return eCSSUnit_Degree <= mUnit && mUnit <= eCSSUnit_Turn; }
   bool      IsFrequencyUnit() const  
     { return eCSSUnit_Hertz <= mUnit && mUnit <= eCSSUnit_Kilohertz; }
   bool      IsTimeUnit() const  
@@ -311,7 +312,7 @@ public:
   float GetAngleValue() const
   {
     NS_ABORT_IF_FALSE(eCSSUnit_Degree <= mUnit &&
-                 mUnit <= eCSSUnit_Radian, "not an angle value");
+                 mUnit <= eCSSUnit_Turn, "not an angle value");
     return mValue.mFloat;
   }
 
