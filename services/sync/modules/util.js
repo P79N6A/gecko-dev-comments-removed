@@ -93,7 +93,7 @@ let Utils = {
     return Cc["@mozilla.org/login-manager;1"].
            getService(Ci.nsILoginManager);
   },
-  
+
   findPassword: function findPassword(realm, username) {
     
     let password;
