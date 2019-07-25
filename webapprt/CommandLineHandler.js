@@ -32,6 +32,8 @@ CommandLineHandler.prototype = {
     if (!inTestMode) {
       startUp(inTestMode);
     } else {
+      DOMApplicationRegistry.allAppsLaunchable = true;
+
       
       
       Services.obs.addObserver(function onInstall(subj, topic, data) {

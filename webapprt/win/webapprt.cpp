@@ -41,6 +41,7 @@ namespace {
   wchar_t backupFilePath[MAXPATHLEN];
   wchar_t iconPath[MAXPATHLEN];
   char profile[MAXPATHLEN];
+  bool isProfileOverridden = false;
   int* pargc;
   char*** pargv;
 
@@ -277,8 +278,10 @@ namespace {
       rv = webShellAppData.create(rtINI);
       NS_ENSURE_SUCCESS(rv, false);
 
-      SetAllocatedString(webShellAppData->profile, profile);
-      SetAllocatedString(webShellAppData->name, profile);
+      if (!isProfileOverridden) {
+        SetAllocatedString(webShellAppData->profile, profile);
+        SetAllocatedString(webShellAppData->name, profile);
+      }
 
       nsCOMPtr<nsIFile> directory;
       rv = XRE_GetFileFromPath(rtPath, getter_AddRefs(directory));
@@ -442,6 +445,21 @@ main(int argc, char* argv[])
   }
 
   
+  for (int i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "-profile")) {
+      isProfileOverridden = true;
+      break;
+    }
+  }
+
+  
+  
+  
+  if (AttemptLoadFromDir(buffer)) {
+    return 0;
+  }
+
+  
   
   char appIniPath[MAXPATHLEN];
   if (NS_FAILED(joinPath(appIniPath, buffer, kWEBAPP_INI, MAXPATHLEN))) {
@@ -466,13 +484,15 @@ main(int argc, char* argv[])
     return 255;
   }
 
-  
-  if (NS_FAILED(parser.GetString("Webapp",
-                                 "Profile",
-                                 profile,
-                                 MAXPATHLEN))) {
-    Output("Unable to retrieve profile from web app INI file");
-    return 255;
+  if (!isProfileOverridden) {
+    
+    if (NS_FAILED(parser.GetString("Webapp",
+                                   "Profile",
+                                   profile,
+                                   MAXPATHLEN))) {
+      Output("Unable to retrieve profile from web app INI file");
+      return 255;
+    }
   }
 
   char firefoxDir[MAXPATHLEN];
