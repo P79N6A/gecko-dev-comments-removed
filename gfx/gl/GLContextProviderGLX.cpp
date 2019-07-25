@@ -291,6 +291,7 @@ GLXLibrary::CreatePixmap(gfxASurface* aSurface)
                                                   attribs,
                                                   &numConfigs));
 
+    
     int matchIndex = -1;
     const XRenderDirectFormat& direct = format->direct;
     unsigned long redMask =
@@ -299,34 +300,79 @@ GLXLibrary::CreatePixmap(gfxASurface* aSurface)
         static_cast<unsigned long>(direct.greenMask) << direct.green;
     unsigned long blueMask =
         static_cast<unsigned long>(direct.blueMask) << direct.blue;
-    
-    
     int alphaSize;
     PR_FLOOR_LOG2(alphaSize, direct.alphaMask + 1);
     NS_ASSERTION((1 << alphaSize) - 1 == direct.alphaMask,
                  "Unexpected render format with non-adjacent alpha bits");
-    ScopedXFree<XVisualInfo> vinfo;
+    
+    bool haveNonColorBits =
+        ~(redMask | greenMask | blueMask) != -1UL << format->depth;
 
     for (int i = 0; i < numConfigs; i++) {
-        int size;
-        if (sGLXLibrary.xGetFBConfigAttrib(display, cfgs[i],
-                                           GLX_ALPHA_SIZE, &size) != Success ||
-            size != alphaSize) {
+        int id = None;
+        sGLXLibrary.xGetFBConfigAttrib(display, cfgs[i], GLX_VISUAL_ID, &id);
+        Visual *visual;
+        int depth;
+        FindVisualAndDepth(display, id, &visual, &depth);
+        if (!visual ||
+            visual->c_class != TrueColor ||
+            visual->red_mask != redMask ||
+            visual->green_mask != greenMask ||
+            visual->blue_mask != blueMask ) {
             continue;
         }
 
         
         
-        vinfo = sGLXLibrary.xGetVisualFromFBConfig(display, cfgs[i]);
-        if (!vinfo ||
-            vinfo->c_class != TrueColor ||
-            vinfo->red_mask != redMask ||
-            vinfo->green_mask != greenMask ||
-            vinfo->blue_mask != blueMask ) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (depth != format->depth && depth != format->depth - alphaSize) {
             continue;
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (haveNonColorBits) {
+            
+            
+            
+            
+            int size = 0;
+            sGLXLibrary.xGetFBConfigAttrib(display, cfgs[i],
+                                           GLX_ALPHA_SIZE, &size);
+            if (size != alphaSize) {
+                continue;
+            }
         }
 
         matchIndex = i;
+        break;
     }
     if (matchIndex == -1) {
         NS_WARNING("[GLX] Couldn't find a FBConfig matching Pixmap format");
