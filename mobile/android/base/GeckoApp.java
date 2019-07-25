@@ -41,6 +41,7 @@
 package org.mozilla.gecko;
 
 import org.mozilla.gecko.gfx.FloatSize;
+import org.mozilla.gecko.gfx.GeckoGLLayerClient;
 import org.mozilla.gecko.gfx.GeckoLayerClient;
 import org.mozilla.gecko.gfx.GeckoSoftwareLayerClient;
 import org.mozilla.gecko.gfx.IntSize;
@@ -1592,7 +1593,11 @@ abstract public class GeckoApp
 
 
 
-            mLayerClient = new GeckoSoftwareLayerClient(this);
+
+
+            Log.e(LOGTAG, "### Creating GeckoGLLayerClient");
+            mLayerClient = new GeckoGLLayerClient(this);
+            Log.e(LOGTAG, "### Done creating GeckoGLLayerClient");
 
             
 
