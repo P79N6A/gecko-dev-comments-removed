@@ -2143,12 +2143,17 @@ var FormHelperUI = {
     let zoomRect = Rect.fromRect(browser.getBoundingClientRect());
 
     
-    if (aElementRect && Browser.selectedTab.allowZoom && Services.prefs.getBoolPref("formhelper.autozoom")) {
+    let autozoomEnabled = Services.prefs.getBoolPref("formhelper.autozoom");
+    if (aElementRect && Browser.selectedTab.allowZoom && autozoomEnabled) {
       this._currentElementRect = aElementRect;
       
       let zoomLevel = Browser.selectedTab.clampZoomLevel(this._getZoomLevelForRect(aElementRect));
 
       zoomRect = Browser._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, zoomLevel);
+      Browser.animatedZoomTo(zoomRect);
+    } else if (aElementRect && !Browser.selectedTab.allowZoom && autozoomEnabled) {
+      
+      
       Browser.animatedZoomTo(zoomRect);
     }
 
