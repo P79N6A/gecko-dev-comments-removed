@@ -57,22 +57,17 @@ function eventSource(aProto) {
 
   aProto.addListener = function EV_addListener(aName, aListener) {
     if (typeof aListener != "function") {
-      return;
+      throw TypeError("Listeners must be functions.");
     }
 
     if (!this._listeners) {
       this._listeners = {};
     }
 
-    if (!aName) {
-      aName = '*';
-    }
-
     this._getListeners(aName).push(aListener);
   };
 
   
-
 
 
 
@@ -140,9 +135,6 @@ function eventSource(aProto) {
 
     let name = arguments[0];
     let listeners = this._getListeners(name).slice(0);
-    if (this._listeners['*']) {
-      listeners.concat(this._listeners['*']);
-    }
 
     for each (let listener in listeners) {
       try {
