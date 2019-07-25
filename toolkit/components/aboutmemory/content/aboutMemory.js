@@ -165,6 +165,15 @@ function update()
 function genProcessText(aProcess, aTmrs)
 {
   
+  
+  var mappedHeapUsedTmr = aTmrs["mapped/heap/used"];
+  aTmrs["heap-used"] = {
+    _tpath:       "heap-used",
+    _description: mappedHeapUsedTmr._description,
+    _memoryUsed:  mappedHeapUsedTmr._memoryUsed
+  };
+
+  
 
 
 
@@ -182,13 +191,7 @@ function genProcessText(aProcess, aTmrs)
 
 
 
-
-
-
-
-
-  function buildTree(aTreeName, aTreeRootTpath, aTreeRootDesc, aOtherDescTail,
-                     aOmitThresholdPerc)
+  function buildTree(aTreeName, aOmitThresholdPerc)
   {
     function findKid(aName, aKids)
     {
@@ -202,11 +205,12 @@ function genProcessText(aProcess, aTmrs)
 
     
     
-    var t = { _name:aTreeName, _kids:[] };
-    for (var _tpath in aTmrs) {
-      var tmr = aTmrs[_tpath];
-      if (tmr._tpath.slice(0, aTreeName.length + 1) === aTreeName + "/") {
-        var names = tmr._tpath.slice(aTreeName.length + 1).split('/');
+    
+    var t = { _name: "falseRoot", _kids: [] };
+    for (var tpath in aTmrs) {
+      var tmr = aTmrs[tpath];
+      if (tmr._tpath.slice(0, aTreeName.length) === aTreeName) {
+        var names = tmr._tpath.split('/');
         var u = t;
         for (var i = 0; i < names.length; i++) {
           var name = names[i];
@@ -214,60 +218,66 @@ function genProcessText(aProcess, aTmrs)
           if (uMatch) {
             u = uMatch;
           } else {
-            var v = { _name:name, _kids:[] };
+            var v = { _name: name, _kids: [] };
             u._kids.push(v);
             u = v;
           }
         }
+        u._hasReporter = true;
       }
     }
+    
+    
+    t = t._kids[0];
 
+    
     
     
     function fillInTree(aT, aPretpath)
     {
       var tpath = aPretpath ? aPretpath + '/' + aT._name : aT._name;
       if (aT._kids.length === 0) {
+        
         aT._memoryUsed = getBytes(aTmrs, tpath);
         aT._description = getDescription(aTmrs, tpath);
       } else {
-        var bytes = 0;
+        
+        var childrenBytes = 0;
         for (var i = 0; i < aT._kids.length; i++) {
           
           var b = fillInTree(aT._kids[i], tpath);
-          bytes += (b === -1 ? 0 : b);
+          childrenBytes += (b === -1 ? 0 : b);
         }
-        aT._memoryUsed = bytes;
-        aT._description = "The sum of all entries below " + tpath + ".";
+        if (aT._hasReporter === true) {
+          
+          
+          aT._memoryUsed = getBytes(aTmrs, tpath);
+          aT._description = getDescription(aTmrs, tpath);
+          if (aT._memoryUsed !== -1) {
+            var other = {
+              _name: "other",
+              _description: "All unclassified " + aT._name + " memory.",
+              _memoryUsed: aT._memoryUsed - childrenBytes,
+              _kids: []
+            };
+            aT._kids.push(other);
+          }
+        } else {
+          
+          
+          aT._memoryUsed = childrenBytes;
+          aT._description = "The sum of all entries below " + aT._name + ".";
+        }
       }
       return aT._memoryUsed;
     }
     fillInTree(t, "");
 
-    
-    
-    
-    var nonOtherBytes = t._memoryUsed;
-    var treeBytes = getBytes(aTmrs, aTreeRootTpath);
-    if (treeBytes !== -1) {
-      var otherBytes = treeBytes - nonOtherBytes;
-      var other = {
-        _name:"other",
-        _description:"All unclassified " + aTreeName + " memory." +
-                     aOtherDescTail,
-        _memoryUsed:otherBytes,
-        _kids:[]
-      };
-      t._kids.push(other);
-    }
-    t._memoryUsed = treeBytes;
-    t._description = aTreeRootDesc;
-
     function shouldOmit(aBytes)
     {
       return !gVerbose &&
-             treeBytes !== -1 &&
-             (100 * aBytes / treeBytes) < aOmitThresholdPerc;
+             t._memoryUsed !== -1 &&
+             (100 * aBytes / t._memoryUsed) < aOmitThresholdPerc;
     }
 
     
@@ -300,7 +310,7 @@ function genProcessText(aProcess, aTmrs)
             _name: "(" + n + " omitted)",
             _description: "Omitted sub-trees: " + aggNames.join(", ") + ".",
             _memoryUsed: aggBytes,
-            _kids:[]
+            _kids: []
           };
           aT._kids[i0] = tmrSub;
           break;
@@ -313,19 +323,11 @@ function genProcessText(aProcess, aTmrs)
     return t;
   }
 
-  var mappedOtherDescTail =
-      " This includes code and data segments, and thread stacks."
-  var mappedRootDesc = getDescription(aTmrs, "mapped");
   
   
   
-  var mappedTree = buildTree("mapped", "mapped", mappedRootDesc,
-                             mappedOtherDescTail, 0.01);
-
-  var heapUsedOtherDescTail = "";
-  var heapUsedRootDesc = "See mapped/heap/used above.";
-  var heapUsedTree = buildTree("heap-used", "mapped/heap/used",
-                               heapUsedRootDesc, heapUsedOtherDescTail, 0.1);
+  var mappedTree   = buildTree("mapped",    0.01);
+  var heapUsedTree = buildTree("heap-used", 0.1);
 
   
   var text = "";
@@ -535,7 +537,9 @@ function genTreeText(aT, aTreeName)
     
     var perc = "";
     if (treeBytes !== -1) {
-      if (aT._memoryUsed === treeBytes) {
+      if (aT._memoryUsed === -1) {
+        perc = "??.??";
+      } else if (aT._memoryUsed === treeBytes) {
         perc = "100.0";
       } else {
         perc = (100 * aT._memoryUsed / treeBytes).toFixed(2);
@@ -549,7 +553,7 @@ function genTreeText(aT, aTreeName)
 
     for (var i = 0; i < aT._kids.length; i++) {
       
-      aIndentGuide.push({ _isLastKid:(i === aT._kids.length - 1), _depth:3 });
+      aIndentGuide.push({ _isLastKid: (i === aT._kids.length - 1), _depth: 3 });
       text += genTreeText2(aT._kids[i], aIndentGuide, tBytesLength);
       aIndentGuide.pop();
     }
