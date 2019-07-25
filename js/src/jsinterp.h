@@ -24,6 +24,31 @@ namespace js {
 
 
 
+inline bool
+ScriptPrologue(JSContext *cx, StackFrame *fp, JSScript *script);
+
+inline bool
+ScriptEpilogue(JSContext *cx, StackFrame *fp, bool ok);
+
+
+
+
+
+
+
+
+inline bool
+ScriptPrologueOrGeneratorResume(JSContext *cx, StackFrame *fp);
+
+inline bool
+ScriptEpilogueOrGeneratorYield(JSContext *cx, StackFrame *fp, bool ok);
+
+
+
+
+
+
+
 
 
 
@@ -248,6 +273,9 @@ UnwindForUncatchableException(JSContext *cx, const FrameRegs &regs);
 
 extern bool
 OnUnknownMethod(JSContext *cx, HandleObject obj, Value idval, Value *vp);
+
+inline void
+AssertValidFunctionScopeChainAtExit(StackFrame *fp);
 
 class TryNoteIter
 {

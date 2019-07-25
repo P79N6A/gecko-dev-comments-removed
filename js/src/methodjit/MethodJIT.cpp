@@ -1056,6 +1056,10 @@ mjit::EnterMethodJIT(JSContext *cx, StackFrame *fp, void *code, Value *stackLimi
         fp->markReturnValue();
     }
 
+    
+    if (fp->isFunctionFrame())
+        fp->updateEpilogueFlags();
+
     return ok ? Jaeger_Returned : Jaeger_Throwing;
 }
 

@@ -142,6 +142,8 @@ struct SharedContext {
     Rooted<StaticBlockObject *> blockChain;
                                     
 
+
+
   private:
     RootedFunction  fun_;           
 
@@ -186,7 +188,7 @@ struct SharedContext {
     void setFunDefinitelyNeedsArgsObj()     { JS_ASSERT(cxFlags.funArgumentsHasLocalBinding);
                                               cxFlags.funDefinitelyNeedsArgsObj   = true; }
 
-    unsigned argumentsLocal() const;
+    unsigned argumentsLocalSlot() const;
 
     JSFunction *fun() const {
         JS_ASSERT(inFunction);

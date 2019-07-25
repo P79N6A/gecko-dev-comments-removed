@@ -3241,7 +3241,7 @@ SweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool *startBackgroundSweep)
 
     
     WeakMapBase::sweepAll(&rt->gcMarker);
-    rt->debugScopes->sweep(rt);
+    rt->debugScopes->sweep();
 
     SweepAtomState(rt);
 
