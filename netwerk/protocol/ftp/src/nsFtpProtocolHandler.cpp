@@ -184,6 +184,8 @@ nsFtpProtocolHandler::NewURI(const nsACString &aSpec,
                              nsIURI **result)
 {
     nsCAutoString spec(aSpec);
+    spec.Trim(" \t\n\r"); 
+
     char *fwdPtr = spec.BeginWriting();
 
     
