@@ -52,6 +52,9 @@ const kDoubleClickThreshold = 200;
 const kTapRadius = 25;
 
 
+const kAxisLockRevertThreshold = 200;
+
+
 const kStateActive = 0x00000001;
 
 
@@ -811,6 +814,7 @@ DragData.prototype = {
     this.sX = null;
     this.sY = null;
     this.locked = false;
+    this.stayLocked = false;
     this.lockedX = null;
     this.lockedY = null;
     this._originX = null;
@@ -852,11 +856,16 @@ DragData.prototype = {
       let absX = Math.abs(this._originX - sX);
       let absY = Math.abs(this._originY - sY);
 
+      if (absX > kAxisLockRevertThreshold || absY > kAxisLockRevertThreshold)
+        this.stayLocked = true;
+
       
-      if (this.lockedX && absX > 3 * absY)
-        this.lockedX = null;
-      else if (this.lockedY && absY > 3 * absX)
-        this.lockedY = null;
+      if (!this.stayLocked) {
+        if (this.lockedX && absX > 3 * absY)
+          this.lockedX = null;
+        else if (this.lockedY && absY > 3 * absX)
+          this.lockedY = null;
+      }
 
       if (!this.locked) {
         
@@ -892,6 +901,7 @@ DragData.prototype = {
     this.sY = this._originY = screenY;
     this.dragging = true;
     this.locked = false;
+    this.stayLocked = false;
   },
 
   endDrag: function endDrag() {
