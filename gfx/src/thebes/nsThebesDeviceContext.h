@@ -159,7 +159,7 @@ protected:
     nsFontCache*      mFontCache;
     nsCOMPtr<nsIAtom> mLocaleLanguage; 
     nsHashtable*      mFontAliasTable;
-    nsIWidget*        mWidget;
+    nsCOMPtr<nsIWidget> mWidget;
 
 private:
     nsCOMPtr<nsIScreenManager> mScreenManager;
