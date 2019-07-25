@@ -128,15 +128,13 @@ var tests = [
   };},
 
   
-  
-
-
-
-
-
-
-
-
+  function() { return {
+    name: 'asyncLoopElement',
+    template: '<loop foreach="i in ${array}">${i}</loop>',
+    data: { array: delayReply([1, 2, 3]) },
+    result: '<span></span>',
+    later: '123'
+  };},
 
   function() { return {
     name: 'saveElement',
