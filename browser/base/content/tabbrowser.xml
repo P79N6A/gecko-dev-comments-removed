@@ -1266,12 +1266,6 @@
                 else {
                   t._animStartTime = Date.now();
                   t.setAttribute("fadein", "true");
-
-                  // This call to adjustTabstrip is redundant but needed so that
-                  // when opening a second tab, the first tab's close buttons
-                  // appears immediately rather than when the transition ends.
-                  if (tabContainer.childNodes.length == 2)
-                    tabContainer.adjustTabstrip();
                 }
               }, 0, this.tabContainer);
             }
@@ -1563,15 +1557,26 @@
         <parameter name="aCloseWindowFastpath"/>
         <body>
           <![CDATA[
-            if (aTab.closing || this._windowIsClosing)
+            if (aTab.closing ||
+                aTab._pendingPermitUnload ||
+                this._windowIsClosing)
               return false;
 
             var browser = this.getBrowserForTab(aTab);
 
             if (!aTabWillBeMoved) {
               let ds = browser.docShell;
-              if (ds && ds.contentViewer && !ds.contentViewer.permitUnload())
-                return false;
+              if (ds && ds.contentViewer) {
+                // We need to block while calling permitUnload() because it
+                // processes the event queue and may lead to another removeTab()
+                // call before permitUnload() even returned.
+                aTab._pendingPermitUnload = true;
+                let permitUnload = ds.contentViewer.permitUnload();
+                delete aTab._pendingPermitUnload;
+
+                if (!permitUnload)
+                  return false;
+              }
             }
 
             var closeWindow = false;
@@ -4061,7 +4066,7 @@
           let alignRight = false;
 
           if (getComputedStyle(document.documentElement).direction == "rtl")
-            alignRight = !alignRight;
+            alighRight = !alignRight;
 
           let rect = this.getBoundingClientRect();
           this._mouseTargetRect = {
