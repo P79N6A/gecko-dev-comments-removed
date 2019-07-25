@@ -872,7 +872,7 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
   layer->SetTransform(gfx3DMatrix::From2D(matrix));
 
    
-#if 0
+#ifndef MOZ_JAVA_COMPOSITOR
   
   
   gfxPoint activeScrolledRootTopLeft = scaledOffset - matrix.GetTranslation();
