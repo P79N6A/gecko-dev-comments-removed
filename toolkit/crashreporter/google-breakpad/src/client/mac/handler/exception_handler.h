@@ -114,11 +114,22 @@ class ExceptionHandler {
 
   
   
-  bool WriteMinidump();
+  bool WriteMinidump() {
+    return WriteMinidump(false);
+  }
+
+  bool WriteMinidump(bool write_exception_stream);
 
   
   
   static bool WriteMinidump(const string &dump_path, MinidumpCallback callback,
+                            void *callback_context) {
+    return WriteMinidump(dump_path, false, callback, callback_context);
+  }
+
+  static bool WriteMinidump(const string &dump_path,
+                            bool write_exception_stream,
+                            MinidumpCallback callback,
                             void *callback_context);
 
   
@@ -151,11 +162,12 @@ class ExceptionHandler {
 
   
   
-  bool SendEmptyMachMessage();
+  bool SendMessageToHandlerThread(mach_msg_id_t message_id);
 
   
   bool WriteMinidumpWithException(int exception_type, int exception_code,
-                                  int exception_subcode, mach_port_t thread_name);
+                                  int exception_subcode, mach_port_t thread_name,
+                                  bool exit_after_write);
 
   
   
