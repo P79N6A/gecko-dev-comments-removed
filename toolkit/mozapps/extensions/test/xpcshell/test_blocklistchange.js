@@ -363,6 +363,7 @@ function load_blocklist(aFile, aCallback) {
 
 function background_update(aCallback) {
   var installCount = 0;
+  var backgroundCheckCompleted = false;
 
   AddonManager.addInstallListener({
     onNewInstall: function(aInstall) {
@@ -371,10 +372,16 @@ function background_update(aCallback) {
 
     onInstallEnded: function(aInstall) {
       installCount--;
+      
       if (installCount)
         return;
 
       AddonManager.removeInstallListener(this);
+
+      
+      
+      if (!backgroundCheckCompleted)
+        return;
 
       do_execute_soon(aCallback);
     }
@@ -382,9 +389,14 @@ function background_update(aCallback) {
 
   Services.obs.addObserver(function() {
     Services.obs.removeObserver(arguments.callee, "addons-background-update-complete");
+    backgroundCheckCompleted = true;
 
-    if (!installCount)
-      do_execute_soon(aCallback);
+    
+    
+    if (installCount)
+      return;
+
+    do_execute_soon(aCallback);
   }, "addons-background-update-complete", false);
 
   AddonManagerPrivate.backgroundUpdateCheck();
