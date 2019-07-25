@@ -162,7 +162,12 @@ function onListClick(aEvent) {
   if (col.value) {
     
     
-    if ((aEvent.button == 1 || aEvent.button == 0 && aEvent.detail == 2 || aEvent.ctrlKey) &&
+#ifdef XP_MACOSX
+    let accelKey = aEvent.metaKey;
+#else
+    let accelKey = aEvent.ctrlKey;
+#endif
+    if ((aEvent.button == 1 || aEvent.button == 0 && aEvent.detail == 2 || accelKey) &&
         col.value.id == "title" &&
         !treeView.isContainer(row.value))
       restoreSingleTab(row.value, aEvent.shiftKey);
