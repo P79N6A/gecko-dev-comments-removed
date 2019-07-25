@@ -5272,8 +5272,7 @@ ComputeTransformedLength(PropertyProvider& aProvider)
 }
 
 bool
-nsTextFrame::MeasureCharClippedText(gfxContext* aCtx,
-                                    nscoord aLeftEdge, nscoord aRightEdge,
+nsTextFrame::MeasureCharClippedText(nscoord aLeftEdge, nscoord aRightEdge,
                                     nscoord* aSnappedLeftEdge,
                                     nscoord* aSnappedRightEdge)
 {
@@ -5290,7 +5289,7 @@ nsTextFrame::MeasureCharClippedText(gfxContext* aCtx,
 
   PRUint32 startOffset = provider.GetStart().GetSkippedOffset();
   PRUint32 maxLength = ComputeTransformedLength(provider);
-  return MeasureCharClippedText(aCtx, provider, aLeftEdge, aRightEdge,
+  return MeasureCharClippedText(provider, aLeftEdge, aRightEdge,
                                 &startOffset, &maxLength,
                                 aSnappedLeftEdge, aSnappedRightEdge);
 }
@@ -5314,8 +5313,7 @@ static PRUint32 GetClusterLength(gfxTextRun* aTextRun,
 }
 
 bool
-nsTextFrame::MeasureCharClippedText(gfxContext* aCtx,
-                                    PropertyProvider& aProvider,
+nsTextFrame::MeasureCharClippedText(PropertyProvider& aProvider,
                                     nscoord aLeftEdge, nscoord aRightEdge,
                                     PRUint32* aStartOffset,
                                     PRUint32* aMaxLength,
@@ -5401,7 +5399,7 @@ nsTextFrame::PaintText(nsRenderingContext* aRenderingContext, nsPoint aPt,
   PRUint32 startOffset = provider.GetStart().GetSkippedOffset();
   PRUint32 maxLength = ComputeTransformedLength(provider);
   nscoord snappedLeftEdge, snappedRightEdge;
-  if (!MeasureCharClippedText(ctx, provider, aItem.mLeftEdge, aItem.mRightEdge,
+  if (!MeasureCharClippedText(provider, aItem.mLeftEdge, aItem.mRightEdge,
          &startOffset, &maxLength, &snappedLeftEdge, &snappedRightEdge)) {
     return;
   }
