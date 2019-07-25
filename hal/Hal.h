@@ -50,6 +50,8 @@ class WindowIdentifier;
 extern PRLogModuleInfo *sHalLog;
 #define HAL_LOG(msg) PR_LOG(mozilla::hal::sHalLog, PR_LOG_DEBUG, msg)
 
+typedef Observer<SystemTimeChange> SystemTimeObserver;
+
 } 
 
 namespace MOZ_HAL_NAMESPACE {
@@ -248,6 +250,24 @@ void AdjustSystemClock(int32_t aDeltaMilliseconds);
 
 
 void SetTimezone(const nsCString& aTimezoneSpec);
+
+
+
+
+
+void RegisterSystemTimeChangeObserver(hal::SystemTimeObserver *aObserver);
+
+
+
+
+
+void UnregisterSystemTimeChangeObserver(hal::SystemTimeObserver *aObserver);
+
+
+
+
+
+void NotifySystemTimeChange(const hal::SystemTimeChange& aReason);
 
 
 

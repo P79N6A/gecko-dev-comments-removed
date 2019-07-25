@@ -581,6 +581,10 @@ sys_clock_settime(clockid_t clk_id, const struct timespec *tp)
 void 
 AdjustSystemClock(int32_t aDeltaMilliseconds)
 {
+  if (aDeltaMilliseconds == 0) {
+    return;
+  }
+  
   struct timespec now;
   
   
@@ -600,16 +604,34 @@ AdjustSystemClock(int32_t aDeltaMilliseconds)
     now.tv_sec -= 1;  
   }
   
-  sys_clock_settime(CLOCK_REALTIME, &now);   
+  if (sys_clock_settime(CLOCK_REALTIME, &now) != 0) {
+    NS_ERROR("sys_clock_settime failed");
+    return;
+  }
+  
+  hal::NotifySystemTimeChange(hal::SYS_TIME_CHANGE_CLOCK);
+}
+
+bool
+IsSameTimeZone(const nsCString& aTimezoneSpec)
+{
+  char timezone[32];
+  property_get("persist.sys.timezone", timezone, "");
+  return aTimezoneSpec.EqualsASCII(timezone);
 }
 
 void 
 SetTimezone(const nsCString& aTimezoneSpec)
 { 
+  if (IsSameTimeZone(aTimezoneSpec)) {
+    return;
+  }
+  
   property_set("persist.sys.timezone", aTimezoneSpec.get());
   
   
   tzset();
+  hal::NotifySystemTimeChange(hal::SYS_TIME_CHANGE_TZ);
 }
 
 
