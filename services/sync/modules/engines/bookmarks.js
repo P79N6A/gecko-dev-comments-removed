@@ -419,9 +419,13 @@ BookmarksEngine.prototype = {
     
   },
 
-  _createIncomingShare: function BookmarkEngine__createShare(guid, id, title) {
-
+  _createIncomingShare: function BookmarkEngine__createShare(user,
+                                                             serverPath,
+                                                             title) {
     
+
+
+
 
 
 
@@ -429,12 +433,13 @@ BookmarksEngine.prototype = {
     let bms = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
       getService(Ci.nsINavBookmarksService);
 
+    
+
     let root;
     let a = this._annoSvc.getItemsWithAnnotation("weave/mounted-shares-folder",
                                                  {});
     if (a.length == 1)
       root = a[0];
-
     if (!root) {
       root = bms.createFolder(bms.toolbarFolder, "Shared Folders",
                               bms.DEFAULT_INDEX);
@@ -444,26 +449,44 @@ BookmarksEngine.prototype = {
                                       0,
                                       this._annoSvc.EXPIRE_NEVER);
     }
+    
 
-    let item;
+
+
+    let itemExists = false;
     a = this._annoSvc.getItemsWithAnnotation("weave/mounted-share-id", {});
     for (let i = 0; i < a.length; i++) {
-      if (this._annoSvc.getItemAnnotation(a[i], "weave/mounted-share-id")==id){
-        item = a[i];
+      let creator = this._annoSvc.getItemAnnotation(a[i], OUTGOING_SHARED_ANNO);
+      let path = this._annoSvc.getItemAnnotation(a[i], SERVER_PATH_ANNO);
+      if ( creator == user && path == serverPath ) {
+        itemExists = true;
         break;
       }
     }
-
-    if (!item) {
+    if (!itemExists) {
       let newId = bms.createFolder(root, title, bms.DEFAULT_INDEX);
+      
+
+
       this._annoSvc.setItemAnnotation(newId,
                                       "weave/mounted-share-id",
                                       id,
                                       0,
                                       this._annoSvc.EXPIRE_NEVER);
+      
+      this._annoSvc.setItemAnnotation(newId,
+                                      OUTGOING_SHARED_ANNO
+                                      user,
+                                      0,
+                                      this._annoSvc.EXPIRE_NEVER);
+      
+      this._annoSvc.setItemAnnotation(newId,
+                                      SERVER_PATH_ANNO,
+                                      serverPath,
+                                      0,
+                                      this._annoSvc.EXPIRE_NEVER);
     }
   },
-
 
   _updateIncomingShare: function BmkEngine__updateIncomingShare(mountData) {
     
