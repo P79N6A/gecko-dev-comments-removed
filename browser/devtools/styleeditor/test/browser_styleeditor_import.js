@@ -5,7 +5,10 @@
 
 const TESTCASE_URI = TEST_BASE_HTTP + "simple.html";
 
-Components.utils.import("resource://gre/modules/FileUtils.jsm");
+let tempScope = {};
+Components.utils.import("resource://gre/modules/FileUtils.jsm", tempScope);
+let FileUtils = tempScope.FileUtils;
+
 const FILENAME = "styleeditor-import-test.css";
 const SOURCE = "body{background:red;}";
 

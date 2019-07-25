@@ -4,7 +4,9 @@
 
 
 
-Cu.import("resource:///modules/devtools/CssLogic.jsm");
+let tempScope = {};
+Cu.import("resource:///modules/devtools/CssLogic.jsm", tempScope);
+let CssLogic = tempScope.CssLogic;
 
 let doc;
 

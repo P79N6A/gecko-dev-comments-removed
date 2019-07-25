@@ -1,8 +1,8 @@
-/* vim: set ts=2 et sw=2 tw=80: */
-/* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
 
-// Tests that the style inspector works properly
+
+
+
+
 
 let doc;
 let stylePanel;
@@ -26,7 +26,6 @@ function createDocument()
     '<p>Inspect using inspectstyle(document.querySelectorAll("span")[0])</p>' +
     '</div>';
   doc.title = "Style Inspector Test";
-  ok(window.StyleInspector, "StyleInspector exists");
   stylePanel = new StyleInspector(window);
   Services.obs.addObserver(runStyleInspectorTests, "StyleInspector-opened", false);
   stylePanel.createPanel(false, function() {
@@ -64,7 +63,7 @@ function SI_CheckProperty()
   let cssLogic = stylePanel.cssLogic;
   let propertyInfo = cssLogic.getPropertyInfo("color");
   ok(propertyInfo.matchedRuleCount > 0, "color property has matching rules");
-  //ok(propertyInfo.unmatchedRuleCount > 0, "color property has unmatched rules");
+  
 }
 
 function finishUp()

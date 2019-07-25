@@ -92,8 +92,7 @@ function ruleViewOpened1()
   prop.setEnabled(false);
 
   
-  tab2 = gBrowser.addTab();
-  gBrowser.selectedTab = tab2;
+  gBrowser.selectedTab = gBrowser.addTab();
 
   gBrowser.selectedBrowser.addEventListener("load", function(evt) {
     gBrowser.selectedBrowser.removeEventListener(evt.type, arguments.callee,

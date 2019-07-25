@@ -37,7 +37,9 @@
 
 
 const Cu = Components.utils;
-Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
+let tempScope = {};
+Cu.import("resource:///modules/devtools/LayoutHelpers.jsm", tempScope);
+let LayoutHelpers = tempScope.LayoutHelpers;
 
 function isHighlighting()
 {

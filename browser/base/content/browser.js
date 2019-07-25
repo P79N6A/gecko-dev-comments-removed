@@ -1554,11 +1554,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   
   var shell = getShellService();
   if (shell) {
-#ifdef DEBUG
-    var shouldCheck = false;
-#else
     var shouldCheck = shell.shouldCheckDefaultBrowser;
-#endif
     var willRecoverSession = false;
     try {
       var ss = Cc["@mozilla.org/browser/sessionstartup;1"].
@@ -5201,7 +5197,7 @@ nsBrowserAccess.prototype = {
         let win, needToFocusWin;
 
         
-        if (window.toolbar.visible)
+        if (!window.document.documentElement.getAttribute("chromehidden"))
           win = window;
         else {
           win = Cc["@mozilla.org/browser/browserglue;1"]
@@ -8922,9 +8918,10 @@ var TabContextMenu = {
 };
 
 XPCOMUtils.defineLazyGetter(this, "HUDConsoleUI", function () {
-  Cu.import("resource:///modules/HUDService.jsm");
+  let tempScope = {};
+  Cu.import("resource:///modules/HUDService.jsm", tempScope);
   try {
-    return HUDService.consoleUI;
+    return tempScope.HUDService.consoleUI;
   }
   catch (ex) {
     Components.utils.reportError(ex);

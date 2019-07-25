@@ -7,7 +7,9 @@
 
 
 
-Components.utils.import("resource:///modules/gcli.jsm");
+let tempScope = {};
+Components.utils.import("resource:///modules/gcli.jsm", tempScope);
+let gcli = tempScope.gcli;
 
 registerCleanupFunction(function() {
   gcliterm = undefined;
