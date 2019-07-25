@@ -447,6 +447,11 @@ protected:
 
   
   
+  
+  PRBool IsPausedAndDecoderWaiting();
+
+  
+  
   PRUint32 mCbCrSize;
 
   
@@ -598,6 +603,11 @@ protected:
   
   
   PRPackedBool mDispatchedRunEvent;
+
+  
+  
+  
+  PRPackedBool mDecodeThreadWaiting;
 
 private:
   
