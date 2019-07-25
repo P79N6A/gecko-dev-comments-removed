@@ -299,7 +299,7 @@ const nsHTMLCSSUtils::CSSEquivTable hrAlignEquivTable[] = {
 
 nsHTMLCSSUtils::nsHTMLCSSUtils(nsHTMLEditor* aEditor)
   : mHTMLEditor(aEditor)
-  , mIsCSSPrefChecked(false)
+  , mIsCSSPrefChecked(true)
 {
   
   mIsCSSPrefChecked = Preferences::GetBool("editor.use_css", mIsCSSPrefChecked);

@@ -240,6 +240,11 @@ public:
   
 
 
+  static PRInt32 GetType(const char* aPref);
+
+  
+
+
 
 
 
@@ -342,6 +347,11 @@ public:
 
   static nsresult GetDefaultComplex(const char* aPref, const nsIID &aType,
                                     void** aResult);
+
+  
+
+
+  static PRInt32 GetDefaultType(const char* aPref);
 
   
   static void MirrorPreferences(nsTArray<PrefTuple,

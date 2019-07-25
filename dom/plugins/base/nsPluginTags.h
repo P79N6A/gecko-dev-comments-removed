@@ -108,7 +108,7 @@ public:
   nsTArray<nsCString> mMimeDescriptions; 
   nsTArray<nsCString> mExtensions; 
   PRLibrary     *mLibrary;
-  nsRefPtr<nsNPAPIPlugin> mEntryPoint;
+  nsRefPtr<nsNPAPIPlugin> mPlugin;
   bool          mIsJavaPlugin;
   bool          mIsNPRuntimeEnabledJavaPlugin;
   bool          mIsFlashPlugin;

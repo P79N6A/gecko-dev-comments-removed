@@ -2366,7 +2366,10 @@ nsFormControlList::AddElementToTable(nsGenericHTMLFormElement* aChild,
       
       nsSimpleContentList *list = new nsSimpleContentList(mForm);
 
-      NS_ASSERTION(content->GetParent(), "Item in list without parent");
+      
+      
+      NS_ASSERTION(content->HasAttr(kNameSpaceID_None, nsGkAtoms::form) ||
+                   content->GetParent(), "Item in list without parent");
 
       
       bool newFirst = nsContentUtils::PositionIsBefore(aChild, content);
