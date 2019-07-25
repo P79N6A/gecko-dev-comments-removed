@@ -109,9 +109,6 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void setSlot(uint32 slot, MDefinition *ins);
 
     
-    void pushCopy(uint32 slot);
-
-    
     void pushVariable(uint32 slot);
 
     
