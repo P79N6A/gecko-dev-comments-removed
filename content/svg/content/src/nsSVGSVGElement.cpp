@@ -750,7 +750,16 @@ nsSVGSVGElement::GetCTM(nsIDOMSVGMatrix * *aCTM)
 NS_IMETHODIMP
 nsSVGSVGElement::GetScreenCTM(nsIDOMSVGMatrix **aCTM)
 {
-  gfxMatrix m = nsSVGUtils::GetCTM(this, true);
+  gfxMatrix m;
+  if (IsRoot()) {
+    
+    
+    
+    
+    m = PrependLocalTransformsTo(m);
+  } else {
+    m = nsSVGUtils::GetCTM(this, true);
+  }
   *aCTM = m.IsSingular() ? nsnull : new DOMSVGMatrix(m);
   NS_IF_ADDREF(*aCTM);
   return NS_OK;

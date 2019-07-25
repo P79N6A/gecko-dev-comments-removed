@@ -451,16 +451,13 @@ nsSVGUtils::GetNearestViewportElement(nsIContent *aContent)
   return nsnull;
 }
 
-gfxMatrix
-nsSVGUtils::GetCTM(nsSVGElement *aElement, bool aScreenCTM)
+static gfxMatrix
+GetCTMInternal(nsSVGElement *aElement, bool aScreenCTM, bool aHaveRecursed)
 {
   nsIDocument* currentDoc = aElement->GetCurrentDoc();
-  if (currentDoc) {
-    
-    currentDoc->FlushPendingNotifications(Flush_Layout);
-  }
 
-  gfxMatrix matrix = aElement->PrependLocalTransformsTo(gfxMatrix());
+  gfxMatrix matrix = aElement->PrependLocalTransformsTo(gfxMatrix(),
+    aHaveRecursed ? nsSVGElement::eAllTransforms : nsSVGElement::eUserSpaceToParent);
   nsSVGElement *element = aElement;
   nsIContent *ancestor = aElement->GetFlattenedTreeParent();
 
@@ -468,7 +465,7 @@ nsSVGUtils::GetCTM(nsSVGElement *aElement, bool aScreenCTM)
                      ancestor->Tag() != nsGkAtoms::foreignObject) {
     element = static_cast<nsSVGElement*>(ancestor);
     matrix *= element->PrependLocalTransformsTo(gfxMatrix()); 
-    if (!aScreenCTM && EstablishesViewport(element)) {
+    if (!aScreenCTM && nsSVGUtils::EstablishesViewport(element)) {
       if (!element->NodeInfo()->Equals(nsGkAtoms::svg, kNameSpaceID_SVG) &&
           !element->NodeInfo()->Equals(nsGkAtoms::symbol, kNameSpaceID_SVG)) {
         NS_ERROR("New (SVG > 1.1) SVG viewport establishing element?");
@@ -490,7 +487,8 @@ nsSVGUtils::GetCTM(nsSVGElement *aElement, bool aScreenCTM)
     if (element->Tag() != nsGkAtoms::svg) {
       return gfxMatrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
     }
-    return matrix * GetCTM(static_cast<nsSVGElement*>(ancestor), true);
+    return
+      matrix * GetCTMInternal(static_cast<nsSVGElement*>(ancestor), true, true);
   }
   
   
@@ -508,6 +506,17 @@ nsSVGUtils::GetCTM(nsSVGElement *aElement, bool aScreenCTM)
     }
   }
   return matrix * gfxMatrix().Translate(gfxPoint(x, y));
+}
+
+gfxMatrix
+nsSVGUtils::GetCTM(nsSVGElement *aElement, bool aScreenCTM)
+{
+  nsIDocument* currentDoc = aElement->GetCurrentDoc();
+  if (currentDoc) {
+    
+    currentDoc->FlushPendingNotifications(Flush_Layout);
+  }
+  return GetCTMInternal(aElement, aScreenCTM, false);
 }
 
 nsSVGDisplayContainerFrame*
@@ -1384,7 +1393,17 @@ nsSVGUtils::GetBBox(nsIFrame *aFrame, PRUint32 aFlags)
       }
       svg = do_QueryFrame(aFrame);
     }
-    bbox = svg->GetBBoxContribution(gfxMatrix(), aFlags);
+    gfxMatrix matrix;
+    if (aFrame->GetType() == nsGkAtoms::svgForeignObjectFrame) {
+      
+      
+      
+      NS_ABORT_IF_FALSE(aFrame->GetContent()->IsSVG(), "bad cast");
+      nsSVGElement *element = static_cast<nsSVGElement*>(aFrame->GetContent());
+      matrix = element->PrependLocalTransformsTo(matrix,
+                          nsSVGElement::eChildToUserSpace);
+    }
+    bbox = svg->GetBBoxContribution(matrix, aFlags);
   } else {
     bbox = nsSVGIntegrationUtils::GetSVGBBoxForNonSVGFrame(aFrame);
   }
