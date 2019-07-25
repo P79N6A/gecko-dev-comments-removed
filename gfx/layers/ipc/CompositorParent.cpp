@@ -92,21 +92,25 @@ CompositorParent::ScheduleRenderOnCompositorThread(::base::Thread &aCompositorTh
 void
 CompositorParent::PauseComposition()
 {
-  mPaused = true;
+  if (!mPaused) {
+    mPaused = true;
 
 #ifdef MOZ_WIDGET_ANDROID
-  
+    static_cast<LayerManagerOGL*>(mLayerManager.get())->gl()->ReleaseSurface();
 #endif
+  }
 }
 
 void
 CompositorParent::ResumeComposition()
 {
-  mPaused = false;
+  if (mPaused) {
+    mPaused = false;
 
 #ifdef MOZ_WIDGET_ANDROID
-  
+    
 #endif
+  }
 }
 
 void
