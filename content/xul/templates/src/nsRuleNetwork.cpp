@@ -423,7 +423,7 @@ TestNode::Constrain(InstantiationSet& aInstantiations)
     rv = FilterInstantiations(aInstantiations, &cantHandleYet);
     if (NS_FAILED(rv)) return rv;
 
-    if ((mParent && ! aInstantiations.Empty()) || cantHandleYet) {
+    if (mParent && (!aInstantiations.Empty() || cantHandleYet)) {
         
         
         
