@@ -1889,7 +1889,7 @@ mjit::Compiler::generateMethod()
           BEGIN_CASE(JSOP_CALLGNAME)
             jsop_getgname(fullAtomIndex(PC));
             if (op == JSOP_CALLGNAME)
-                frame.push(UndefinedValue());
+                jsop_callgname_epilogue();
           END_CASE(JSOP_GETGNAME)
 
           BEGIN_CASE(JSOP_SETGNAME)
@@ -4366,6 +4366,77 @@ mjit::Compiler::jsop_getgname(uint32 index)
 #else
     jsop_getgname_slow(index);
 #endif
+}
+
+
+
+
+
+void
+mjit::Compiler::jsop_callgname_epilogue()
+{
+    
+
+
+    if (!script->compileAndGo) {
+        prepareStubCall(Uses(1));
+        INLINE_STUBCALL(stubs::PushImplicitThisForGlobal);
+        frame.pushSynced();
+        return;
+    }
+
+    
+    FrameEntry *fval = frame.peek(-1);
+    if (fval->isNotType(JSVAL_TYPE_OBJECT)) {
+        frame.push(UndefinedValue());
+        return;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    
+    MaybeRegisterID typeReg = frame.maybePinType(fval);
+    RegisterID objReg = frame.copyDataIntoReg(fval);
+
+    MaybeJump isNotObj;
+    if (!fval->isType(JSVAL_TYPE_OBJECT)) {
+        isNotObj = frame.testObject(Assembler::NotEqual, fval);
+        frame.maybeUnpinReg(typeReg);
+    }
+
+    
+
+
+    Jump notFunction = masm.testFunction(Assembler::NotEqual, objReg);
+    stubcc.linkExit(notFunction, Uses(1));
+
+    
+
+
+
+    masm.loadPtr(Address(objReg, offsetof(JSObject, parent)), objReg);
+    Jump globalMismatch = masm.branchPtr(Assembler::NotEqual, objReg, ImmPtr(globalObj));
+    stubcc.linkExit(globalMismatch, Uses(1));
+    frame.freeReg(objReg);
+
+    
+    stubcc.leave();
+    OOL_STUBCALL(stubs::PushImplicitThisForGlobal);
+
+    
+    if (isNotObj.isSet())
+        isNotObj.getJump().linkTo(masm.label(), &masm);
+    frame.pushUntypedValue(UndefinedValue());
+
+    stubcc.rejoin(Changes(1));
 }
 
 void
