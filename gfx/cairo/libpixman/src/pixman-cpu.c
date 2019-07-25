@@ -244,7 +244,7 @@ pixman_have_arm_neon (void)
 
 #endif 
 
-#elif defined (__linux__) 
+#elif defined (__linux__) || defined(ANDROID) 
 
 #include <stdlib.h>
 #include <unistd.h>
