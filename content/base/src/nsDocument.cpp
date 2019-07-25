@@ -8285,7 +8285,10 @@ nsDocument::RemoveImage(imgIRequest* aImage)
 
   
   PRUint32 count;
-  PRBool found = mImageTracker.Get(aImage, &count);
+#ifdef DEBUG
+  PRBool found =
+#endif
+  mImageTracker.Get(aImage, &count);
   NS_ABORT_IF_FALSE(found, "Removing image that wasn't in the tracker!");
   NS_ABORT_IF_FALSE(count > 0, "Entry in the cache tracker with count 0!");
 

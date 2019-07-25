@@ -774,8 +774,8 @@ nsScriptEventHandlerOwnerTearoff::CompileEventHandler(
     
     nsCOMPtr<nsIXULDocument> xuldoc = do_QueryInterface(mElement->GetOwnerDoc());
 
-    nsIScriptContext *context;
-    nsXULPrototypeElement *elem = mElement->mPrototype;
+    nsIScriptContext* context = NULL;
+    nsXULPrototypeElement* elem = mElement->mPrototype;
     if (elem && xuldoc) {
         
 

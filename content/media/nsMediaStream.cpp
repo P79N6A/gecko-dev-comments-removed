@@ -1004,7 +1004,7 @@ nsresult nsMediaFileStream::Open(nsIStreamListener** aStreamListener)
     *aStreamListener = nsnull;
   }
 
-  nsresult rv;
+  nsresult rv = NS_OK;
   if (aStreamListener) {
     
     

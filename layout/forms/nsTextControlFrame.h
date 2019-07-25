@@ -205,16 +205,16 @@ public:
     ValueSetter(nsTextControlFrame* aFrame,
                 PRBool aHasFocusValue)
       : mFrame(aFrame)
-      , mInited(PR_FALSE)
+      
+      
+      
+      
+      
+      , mFocusValueInit(!mFrame->mFireChangeEventState && aHasFocusValue)
+      , mOuterTransaction(false)
+      , mInited(false)
     {
       NS_ASSERTION(aFrame, "Should pass a valid frame");
-
-      
-      
-      
-      
-      
-      mFocusValueInit = !mFrame->mFireChangeEventState && aHasFocusValue;
     }
     void Cancel() {
       mInited = PR_FALSE;
