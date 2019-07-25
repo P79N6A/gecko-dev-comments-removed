@@ -182,7 +182,7 @@ nsLocaleService::nsLocaleService(void)
 
 
 #ifdef MOZ_WIDGET_QT
-        const char* lang = QLocale::languageToString(QLocale::system().language()).toAscii();
+        const char* lang = QLocale::system().name().toAscii();
 #else
         
         const char* lang = getenv("LANG");
