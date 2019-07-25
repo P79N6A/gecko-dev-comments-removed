@@ -623,6 +623,35 @@ public:
   }
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void SetTileSourceRect(const nsIntRect* aRect)
+  {
+    mUseTileSourceRect = aRect != nsnull;
+    if (aRect) {
+      mTileSourceRect = *aRect;
+    }
+    Mutated();
+  }
+
+  
   float GetOpacity() { return mOpacity; }
   const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nsnull; }
   PRUint32 GetContentFlags() { return mContentFlags; }
@@ -633,6 +662,7 @@ public:
   virtual Layer* GetFirstChild() { return nsnull; }
   virtual Layer* GetLastChild() { return nsnull; }
   const gfx3DMatrix& GetTransform() { return mTransform; }
+  const nsIntRect* GetTileSourceRect() { return mUseTileSourceRect ? &mTileSourceRect : nsnull; }
 
   
 
@@ -792,7 +822,8 @@ protected:
     mImplData(aImplData),
     mOpacity(1.0),
     mContentFlags(0),
-    mUseClipRect(PR_FALSE)
+    mUseClipRect(PR_FALSE),
+    mUseTileSourceRect(PR_FALSE)
     {}
 
   void Mutated() { mManager->Mutated(this); }
@@ -836,8 +867,10 @@ protected:
   gfx3DMatrix mEffectiveTransform;
   float mOpacity;
   nsIntRect mClipRect;
+  nsIntRect mTileSourceRect;
   PRUint32 mContentFlags;
   PRPackedBool mUseClipRect;
+  PRPackedBool mUseTileSourceRect;
 };
 
 
