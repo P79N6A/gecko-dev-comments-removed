@@ -274,7 +274,7 @@ protected:
 
 
 
-    static PRBool IsBasicLatinLetterOrNumeral(PRUint32 aCharCode);
+    static bool IsBasicLatinLetterOrNumeral(PRUint32 aCharCode);
 
     
 

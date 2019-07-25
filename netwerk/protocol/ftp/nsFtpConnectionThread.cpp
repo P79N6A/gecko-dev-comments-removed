@@ -981,7 +981,7 @@ nsresult
 nsFtpState::S_cwd() {
     
     if (mPwd.IsEmpty())
-        mCacheConnection = PR_FALSE;
+        mCacheConnection = false;
 
     nsCAutoString cwdStr;
     if (mAction != PUT)
