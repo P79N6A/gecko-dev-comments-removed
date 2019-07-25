@@ -448,6 +448,14 @@ nsContentList::nsContentList(nsINode* aRootNode,
 {
   NS_ASSERTION(mRootNode, "Must have root");
   mRootNode->AddMutationObserver(this);
+
+  
+  
+  
+  
+  
+  nsIDocument* doc = mRootNode->GetCurrentDoc();
+  mFlushesNeeded = doc && !doc->IsHTML();
 }
 
 nsContentList::~nsContentList()
