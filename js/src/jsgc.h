@@ -145,6 +145,37 @@ IsNurseryAllocable(AllocKind kind)
     return map[kind];
 }
 
+static inline bool
+IsBackgroundFinalized(AllocKind kind)
+{
+    JS_ASSERT(kind >= 0 && unsigned(kind) < FINALIZE_LIMIT);
+    static const bool map[FINALIZE_LIMIT] = {
+        false,     
+        true,      
+        false,     
+        true,      
+        false,     
+        true,      
+        false,     
+        true,      
+        false,     
+        true,      
+        false,     
+        true,      
+        false,     
+        false,     
+        false,     
+        false,     
+#if JS_HAS_XML_SUPPORT
+        false,     
+#endif
+        true,      
+        true,      
+        false      
+    };
+    return map[kind];
+}
+
 inline JSGCTraceKind
 GetGCThingTraceKind(const void *thing);
 
@@ -590,8 +621,6 @@ class GCHelperThread {
     void            **freeCursor;
     void            **freeCursorEnd;
 
-    Vector<js::gc::ArenaHeader *, 64, js::SystemAllocPolicy> finalizeVector;
-
     bool    backgroundAllocation;
 
     friend struct js::gc::ArenaLists;
@@ -676,9 +705,6 @@ class GCHelperThread {
         else
             replenishAndFreeLater(ptr);
     }
-
-    
-    bool prepareForBackgroundSweep();
 };
 
 

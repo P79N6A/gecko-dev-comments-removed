@@ -584,11 +584,14 @@ struct JSRuntime : js::RuntimeFriendFields
     bool                gcSweepOnBackgroundThread;
 
     
+    JSCompartment       *gcSweepingCompartments;
+
+    
 
 
-    int                gcSweepPhase;
-    ptrdiff_t          gcSweepCompartmentIndex;
-    int                gcSweepKindIndex;
+    int                 gcSweepPhase;
+    ptrdiff_t           gcSweepCompartmentIndex;
+    int                 gcSweepKindIndex;
 
     
 
