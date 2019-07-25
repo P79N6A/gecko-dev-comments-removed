@@ -843,24 +843,37 @@ abstract public class GeckoApp
                 setLaunchState(GeckoApp.LaunchState.GeckoRunning);
                 GeckoAppShell.sendPendingEventsToGecko();
                 
-                XmlResourceParser parser = getResources().getXml(R.xml.preferences);
-                ArrayList<String> prefs = new ArrayList<String>();
-                while (parser.getEventType() != XmlPullParser.END_DOCUMENT) {
-                    if (parser.getEventType() == XmlPullParser.START_TAG) {
-                        String attr = parser.getAttributeValue("http://schemas.android.com/apk/res/android", "key");
-                        if (attr != null) {
-                            prefs.add(attr);
-                        }
-                    }
-                    parser.next();
-                }
-                parser.close();
+                
+                
+                
+                mMainHandler.postDelayed(new Runnable() {
+                        public void run() {
+                            try {
+                                
+                                XmlResourceParser parser = getResources().getXml(R.xml.preferences);
+                                ArrayList<String> prefs = new ArrayList<String>();
+                                while (parser.getEventType() != XmlPullParser.END_DOCUMENT) {
+                                    if (parser.getEventType() == XmlPullParser.START_TAG) {
+                                        String attr = parser.getAttributeValue("http://schemas.android.com/apk/res/android", "key");
+                                        if (attr != null) {
+                                            prefs.add(attr);
+                                        }
+                                    }
+                                    parser.next();
+                                }
+                                parser.close();
 
-                
-                
-                JSONArray jsonPrefs = new JSONArray(prefs);
-                GeckoEvent getPrefsEvent = new GeckoEvent("Preferences:Get", jsonPrefs.toString());
-                GeckoAppShell.sendEventToGecko(getPrefsEvent);
+                                JSONArray jsonPrefs = new JSONArray(prefs);
+                                GeckoEvent getPrefsEvent = new GeckoEvent("Preferences:Get", jsonPrefs.toString());
+                                GeckoAppShell.sendEventToGecko(getPrefsEvent);
+                            } catch (org.xmlpull.v1.XmlPullParserException e) {
+                                Log.i(LOGTAG, "Could not parse preferences.xml:" + e);
+                            } catch (java.io.IOException ioe) {
+                                Log.i(LOGTAG, "Could not read preferences.xml:" + ioe);
+                            }
+                            
+                        }
+                    }, 5000);
 
                 connectGeckoLayerClient();
             } else if (event.equals("ToggleChrome:Hide")) {
