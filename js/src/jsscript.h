@@ -249,6 +249,7 @@ struct JSScript {
 
     jsbytecode      *main;      
     JSAtomMap       atomMap;    
+    JSCompartment   *compartment; 
     const char      *filename;  
     uint32          lineno;     
     uint16          nslots;     
@@ -276,6 +277,7 @@ struct JSScript {
         JSObject    *object;
         JSScript    *nextToGC;  
     } u;
+
 #ifdef CHECK_SCRIPT_OWNER
     JSThread        *owner;     
 #endif
@@ -582,6 +584,9 @@ js_GetOpcode(JSContext *cx, JSScript *script, jsbytecode *pc)
         op = JS_GetTrapOpcode(cx, script, pc);
     return op;
 }
+
+extern JSScript *
+js_CloneScript(JSContext *cx, JSScript *script);
 
 
 
