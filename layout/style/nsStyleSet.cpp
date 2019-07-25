@@ -1362,15 +1362,17 @@ nsStyleSet::GCRuleTrees()
 }
 
 static inline nsRuleNode*
-SkipTransitionRules(nsRuleNode* aRuleNode, Element* aElement, PRBool isPseudo)
+SkipAnimationRules(nsRuleNode* aRuleNode, Element* aElement, PRBool isPseudo)
 {
   nsRuleNode* ruleNode = aRuleNode;
   while (!ruleNode->IsRoot() &&
-         ruleNode->GetLevel() == nsStyleSet::eTransitionSheet) {
+         (ruleNode->GetLevel() == nsStyleSet::eTransitionSheet ||
+          ruleNode->GetLevel() == nsStyleSet::eAnimationSheet)) {
     ruleNode = ruleNode->GetParent();
   }
   if (ruleNode != aRuleNode) {
     NS_ASSERTION(aElement, "How can we have transition rules but no element?");
+    
     
     
     nsRestyleHint hint = isPseudo ? eRestyle_Subtree : eRestyle_Self;
@@ -1403,16 +1405,16 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
 
   
   
-  PRBool skipTransitionRules = PresContext()->IsProcessingRestyles() &&
+  PRBool skipAnimationRules = PresContext()->IsProcessingRestyles() &&
     !PresContext()->IsProcessingAnimationStyleChange();
-  if (skipTransitionRules) {
+  if (skipAnimationRules) {
     
     
     
     ruleNode =
-      SkipTransitionRules(ruleNode, aElement,
-                          pseudoType !=
-                            nsCSSPseudoElements::ePseudo_NotPseudoElement);
+      SkipAnimationRules(ruleNode, aElement,
+                         pseudoType !=
+                           nsCSSPseudoElements::ePseudo_NotPseudoElement);
   }
 
   nsRuleNode* visitedRuleNode = nsnull;
@@ -1424,12 +1426,12 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
   if (visitedContext) {
      visitedRuleNode = visitedContext->GetRuleNode();
      
-     if (skipTransitionRules) {
+     if (skipAnimationRules) {
       
        visitedRuleNode =
-         SkipTransitionRules(visitedRuleNode, aElement,
-                             pseudoType !=
-                               nsCSSPseudoElements::ePseudo_NotPseudoElement);
+         SkipAnimationRules(visitedRuleNode, aElement,
+                            pseudoType !=
+                              nsCSSPseudoElements::ePseudo_NotPseudoElement);
      }
   }
 
