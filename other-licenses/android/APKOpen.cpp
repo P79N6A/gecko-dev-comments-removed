@@ -307,6 +307,11 @@ extractFile(const char * path, const struct cdir_entry *entry, void * data)
     __android_log_print(ANDROID_LOG_ERROR, "GeckoLibLoad", "inflateEnd failed: %s", strm.msg);
 
   close(fd);
+#ifdef ANDROID_ARM_LINKER
+  
+
+  cacheflush((unsigned) buf, (unsigned) buf + size, 0);
+#endif
   munmap(buf, size);
 }
 
