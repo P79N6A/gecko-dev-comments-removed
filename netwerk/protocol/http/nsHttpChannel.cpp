@@ -864,17 +864,7 @@ nsHttpChannel::ShouldSSLProxyResponseContinue(PRUint32 httpStatus)
 {
     
     
-    switch (httpStatus) {
-    case 407:
-        return true;
-    case 300: case 301: case 302: case 303: case 307:
-      {
-        return ( (mLoadFlags & nsIChannel::LOAD_DOCUMENT_URI) &&
-                 mURI == mDocumentURI &&
-                 mRequestHead.Method() != nsHttp::Post);
-      }
-    }
-    return false;
+    return (httpStatus == 407);
 }
 
 
