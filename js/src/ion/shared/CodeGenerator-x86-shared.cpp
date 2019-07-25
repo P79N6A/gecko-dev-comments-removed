@@ -124,73 +124,123 @@ CodeGeneratorX86Shared::visitGoto(LGoto *jump)
     return true;
 }
 
+void
+CodeGeneratorX86Shared::emitBranch(Assembler::Condition cond, MBasicBlock *mirTrue, MBasicBlock *mirFalse)
+{
+    LBlock *ifTrue = mirTrue->lir();
+    LBlock *ifFalse = mirFalse->lir();
+    if (isNextBlock(ifFalse)) {
+        masm.j(cond, ifTrue->label());
+    } else {
+        masm.j(Assembler::InvertCondition(cond), ifFalse->label());
+        if (!isNextBlock(ifTrue))
+            masm.jmp(ifTrue->label());
+    }
+}
+
 bool
 CodeGeneratorX86Shared::visitTestIAndBranch(LTestIAndBranch *test)
 {
-    const LAllocation *opd = test->getOperand(0);
-    LBlock *ifTrue = test->ifTrue()->lir();
-    LBlock *ifFalse = test->ifFalse()->lir();
+    const LAllocation *opd = test->input();
 
     
     masm.testl(ToRegister(opd), ToRegister(opd));
-
-    if (isNextBlock(ifFalse)) {
-        masm.j(Assembler::NonZero, ifTrue->label());
-    } else if (isNextBlock(ifTrue)) {
-        masm.j(Assembler::Zero, ifFalse->label());
-    } else {
-        masm.j(Assembler::Zero, ifFalse->label());
-        masm.jmp(ifTrue->label());
-    }
+    emitBranch(Assembler::NonZero, test->ifTrue(), test->ifFalse());
     return true;
+}
+
+bool
+CodeGeneratorX86Shared::visitTestDAndBranch(LTestDAndBranch *test)
+{
+    const LAllocation *opd = test->input();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    masm.xorpd(ScratchFloatReg, ScratchFloatReg);
+    masm.ucomisd(ToFloatRegister(opd), ScratchFloatReg);
+    emitBranch(Assembler::NotEqual, test->ifTrue(), test->ifFalse());
+    return true;
+}
+
+static inline Assembler::Condition
+JSOpToCondition(JSOp op)
+{
+    switch (op) {
+      case JSOP_LT:
+        return Assembler::LessThan;
+      case JSOP_LE:
+        return Assembler::LessThanOrEqual;
+      case JSOP_GT:
+        return Assembler::GreaterThan;
+      case JSOP_GE:
+        return Assembler::GreaterThanOrEqual;
+      default:
+        JS_NOT_REACHED("Unrecognized comparison operation");
+        return Assembler::Equal;
+    }
+}
+
+void
+CodeGeneratorX86Shared::emitSet(Assembler::Condition cond, const Register &dest)
+{
+    if (GeneralRegisterSet(Registers::SingleByteRegs).has(dest)) {
+        
+        
+        masm.setCC(cond, dest);
+        masm.movzxbl(dest, dest);
+    } else {
+        Label ifTrue;
+        masm.movl(Imm32(1), dest);
+        masm.j(cond, &ifTrue);
+        masm.xorl(dest, dest);
+        masm.bind(&ifTrue);
+    }
 }
 
 bool
 CodeGeneratorX86Shared::visitCompareI(LCompareI *comp)
 {
-    const LAllocation *left = comp->getOperand(0);
-    const LAllocation *right = comp->getOperand(1);
-    const LDefinition *def = comp->getDef(0);
-
-    
-    
-    if (GeneralRegisterSet(Registers::SingleByteRegs).has(ToRegister(def))) {
-        masm.xorl(ToRegister(def), ToRegister(def));
-        masm.cmpl(ToRegister(left), ToOperand(right));
-        masm.setCC(comp->condition(), ToRegister(def));
-        return true;
-    }
-
-    Label ifTrue;
-    masm.movl(Imm32(1), ToRegister(def));
-    masm.cmpl(ToRegister(left), ToOperand(right));
-    masm.j(comp->condition(), &ifTrue);
-    masm.movl(Imm32(0), ToRegister(def));
-    masm.bind(&ifTrue);
+    masm.cmpl(ToRegister(comp->left()), ToOperand(comp->right()));
+    emitSet(JSOpToCondition(comp->jsop()), ToRegister(comp->output()));
     return true;
 }
 
 bool
 CodeGeneratorX86Shared::visitCompareIAndBranch(LCompareIAndBranch *comp)
 {
-    const LAllocation *left = comp->getOperand(0);
-    const LAllocation *right = comp->getOperand(1);
-    LBlock *ifTrue = comp->ifTrue()->lir();
-    LBlock *ifFalse = comp->ifFalse()->lir();
-    Assembler::Condition cond = comp->condition();
+    Assembler::Condition cond = JSOpToCondition(comp->jsop());
+    masm.cmpl(ToRegister(comp->left()), ToOperand(comp->right()));
+    emitBranch(cond, comp->ifTrue(), comp->ifFalse());
+    return true;
+}
 
-    
-    masm.cmpl(ToRegister(left), ToOperand(right));
+bool
+CodeGeneratorX86Shared::visitCompareD(LCompareD *comp)
+{
+    FloatRegister lhs = ToFloatRegister(comp->left());
+    FloatRegister rhs = ToFloatRegister(comp->right());
 
-    
-    if (isNextBlock(ifFalse)) {
-        masm.j(cond, ifTrue->label());
-    } else if (isNextBlock(ifTrue)) {
-        masm.j(Assembler::inverseCondition(cond), ifFalse->label());
-    } else {
-        masm.j(cond, ifTrue->label());
-        masm.jmp(ifFalse->label());
-    }
+    Assembler::Condition cond = masm.compareDoubles(comp->jsop(), lhs, rhs);
+    emitSet(cond, ToRegister(comp->output()));
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::visitCompareDAndBranch(LCompareDAndBranch *comp)
+{
+    FloatRegister lhs = ToFloatRegister(comp->left());
+    FloatRegister rhs = ToFloatRegister(comp->right());
+
+    Assembler::Condition cond = masm.compareDoubles(comp->jsop(), lhs, rhs);
+    emitBranch(cond, comp->ifTrue(), comp->ifFalse());
     return true;
 }
 

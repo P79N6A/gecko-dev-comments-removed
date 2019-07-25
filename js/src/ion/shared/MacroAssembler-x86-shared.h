@@ -66,26 +66,48 @@ class MacroAssemblerX86Shared : public Assembler
       : framePushed_(0)
     { }
 
+    
+    Condition compareDoubles(JSOp compare, const FloatRegister &lhs, const FloatRegister &rhs) {
+        
+        
+        
+        
+        switch (compare) {
+          case JSOP_LT:
+          case JSOP_LE:
+            ucomisd(rhs, lhs);
+            return (compare == JSOP_LT) ? Above : AboveOrEqual;
+
+          case JSOP_GT:
+          case JSOP_GE:
+            ucomisd(lhs, rhs);
+            return (compare == JSOP_GT) ? Above : AboveOrEqual;
+
+          default:
+            JS_NOT_REACHED("unexpected opcode kind");
+            return Parity;
+        }
+    }
+
+    
     void Push(const Register &reg) {
         push(reg);
         framePushed_ += STACK_SLOT_SIZE;
     }
-
-    void convertInt32ToDouble(const Register &src, const FloatRegister &dest) {
-        cvtsi2sd(Operand(src), dest);
+    uint32 framePushed() const {
+        return framePushed_;
     }
+
     void jump(Label *label) {
         jmp(label);
     }
-
+    void convertInt32ToDouble(const Register &src, const FloatRegister &dest) {
+        cvtsi2sd(Operand(src), dest);
+    }
     Condition testDoubleTruthy(bool truthy, const FloatRegister &reg) {
         xorpd(ScratchFloatReg, ScratchFloatReg);
         ucomisd(ScratchFloatReg, reg);
         return truthy ? NonZero : Zero;
-    }
-
-    uint32 framePushed() const {
-        return framePushed_;
     }
 };
 
