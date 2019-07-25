@@ -2048,28 +2048,23 @@ gfxPangoFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
                                    gfxFont *aPrevMatchedFont,
                                    PRUint8 *aMatchType)
 {
-    if (aPrevMatchedFont) {
-        PRUint8 category = gfxUnicodeProperties::GetGeneralCategory(aCh);
-        
-        
-        
-        
-        if ((category == HB_CATEGORY_CONTROL ||
-             category == HB_CATEGORY_FORMAT  ||
-             gfxFontUtils::IsVarSelector(aCh))) {
+    
+    
+    if (gfxFontUtils::IsJoinControl(aCh) || gfxFontUtils::IsJoinCauser(aPrevCh)) {
+        if (aPrevMatchedFont && aPrevMatchedFont->HasCharacter(aCh)) {
             return nsRefPtr<gfxFont>(aPrevMatchedFont).forget();
         }
+    }
 
-        
-        
-        
-        
-        
-        if (aCh == ' ' ||
-            (gfxFontUtils::IsJoinCauser(aPrevCh) &&
-             static_cast<gfxFcFont*>(aPrevMatchedFont)->GetGlyph(aCh))) {
+    
+    
+    
+    if (gfxFontUtils::IsVarSelector(aCh)) {
+        if (aPrevMatchedFont) {
             return nsRefPtr<gfxFont>(aPrevMatchedFont).forget();
         }
+        
+        return nsnull;
     }
 
     
