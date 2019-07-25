@@ -414,13 +414,12 @@ Content.prototype = {
         if (!element)
           return;
 
-
-
-
-
-
-
-
+        if (element.mozMatchesSelector("*:link,*:visited,*:link *,*:visited *,*[role=button],button,input,option,select,textarea,label")) {
+          this._overlayTimeout.once(kTapOverlayTimeout, function() {
+            let rects = getContentClientRects(element);
+            sendAsyncMessage("Browser:Highlight", { rects: rects });
+          });
+        }
 
         
         
