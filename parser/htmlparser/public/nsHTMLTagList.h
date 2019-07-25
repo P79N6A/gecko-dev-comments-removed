@@ -63,6 +63,8 @@
 
 
 
+
+
 HTML_TAG(a, Anchor)
 HTML_TAG(abbr, Span)
 HTML_TAG(acronym, Span)
@@ -102,6 +104,8 @@ HTML_TAG(dt, Span)
 HTML_TAG(em, Span)
 HTML_TAG(embed, SharedObject)
 HTML_TAG(fieldset, FieldSet)
+HTML_TAG(figcaption, ) 
+HTML_TAG(figure, ) 
 HTML_TAG(font, Font)
 HTML_TAG(footer, ) 
 HTML_TAG(form, Form)
