@@ -27,9 +27,13 @@
 namespace js {
 namespace frontend {
 
-struct TryNode {
-    JSTryNote       note;
-    TryNode       *prev;
+struct CGTryNoteList {
+    Vector<JSTryNote> list;
+    CGTryNoteList(JSContext *cx) : list(cx) {}
+
+    bool append(JSTryNoteKind kind, unsigned stackDepth, size_t start, size_t end);
+    size_t length() const { return list.length(); }
+    void finish(TryNoteArray *array);
 };
 
 struct CGObjectList {
@@ -91,8 +95,7 @@ struct BytecodeEmitter
     int             stackDepth;     
     unsigned        maxStackDepth;  
 
-    unsigned        ntrynotes;      
-    TryNode         *lastTryNode;   
+    CGTryNoteList   tryNoteList;    
 
     unsigned        arrayCompDepth; 
 
@@ -399,9 +402,6 @@ AddToSrcNoteDelta(JSContext *cx, BytecodeEmitter *bce, jssrcnote *sn, ptrdiff_t 
 
 bool
 FinishTakingSrcNotes(JSContext *cx, BytecodeEmitter *bce, jssrcnote *notes);
-
-void
-FinishTakingTryNotes(BytecodeEmitter *bce, TryNoteArray *array);
 
 
 
