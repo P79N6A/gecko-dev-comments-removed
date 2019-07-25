@@ -2681,6 +2681,8 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
 
   
   
+  
+  
   if (!offsets.content->IsEditable() &&
       Preferences::GetBool("browser.ignoreNativeFrameTextSelection", false)) {
     return fc->HandleClick(offsets.content, offsets.StartOffset(),
