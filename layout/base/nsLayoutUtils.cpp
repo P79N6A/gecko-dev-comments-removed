@@ -1267,11 +1267,13 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
     if (rootScrollFrame) {
       nsIScrollableFrame* rootScrollableFrame =
         presShell->GetRootScrollFrameAsScrollable();
-      
-      
-      nsPoint pos = rootScrollableFrame->GetScrollPosition();
-      visibleRegion.MoveBy(-pos);
-      aRenderingContext->Translate(pos.x, pos.y);
+      if (aFlags & PAINT_DOCUMENT_RELATIVE) {
+        
+        
+        nsPoint pos = rootScrollableFrame->GetScrollPosition();
+        visibleRegion.MoveBy(-pos);
+        aRenderingContext->Translate(pos.x, pos.y);
+      }
       builder.SetIgnoreScrollFrame(rootScrollFrame);
 
       nsCanvasFrame* canvasFrame =
@@ -1402,7 +1404,7 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
       
       
       flags |= nsDisplayList::PAINT_FLUSH_LAYERS;
-    } else if (widget) {
+    } else if (widget && !(aFlags & PAINT_DOCUMENT_RELATIVE)) {
       
       
       widget->UpdatePossiblyTransparentRegion(dirtyWindowRegion, visibleWindowRegion);

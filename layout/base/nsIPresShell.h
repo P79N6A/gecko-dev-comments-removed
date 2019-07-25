@@ -139,8 +139,8 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID     \
-  { 0x28d10cd2, 0x90a9, 0x4416, \
-    { 0x8e, 0x88, 0x2a, 0xe3, 0x3d, 0xb1, 0x73, 0xd4 } }
+  { 0xe63a350c, 0x4e04, 0x4056, \
+    { 0x8d, 0xa0, 0x51, 0xcc, 0x55, 0x68, 0x68, 0x42 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -846,12 +846,15 @@ public:
 
 
 
+
+
   enum {
     RENDER_IS_UNTRUSTED = 0x01,
     RENDER_IGNORE_VIEWPORT_SCROLLING = 0x02,
     RENDER_CARET = 0x04,
     RENDER_USE_WIDGET_LAYERS = 0x08,
-    RENDER_ASYNC_DECODE_IMAGES = 0x10
+    RENDER_ASYNC_DECODE_IMAGES = 0x10,
+    RENDER_DOCUMENT_RELATIVE = 0x20
   };
   virtual NS_HIDDEN_(nsresult) RenderDocument(const nsRect& aRect, PRUint32 aFlags,
                                               nscolor aBackgroundColor,
@@ -1052,13 +1055,6 @@ public:
 
 
   virtual LayerManager* GetLayerManager() = 0;
-
-  
-
-
-
-
-  virtual void SynthesizeMouseMove(PRBool aFromScroll) = 0;
 
   
 

@@ -517,12 +517,16 @@ public:
     PAINT_SYNC_DECODE_IMAGES = 0x02,
     PAINT_WIDGET_LAYERS = 0x04,
     PAINT_IGNORE_SUPPRESSION = 0x08,
-    PAINT_IGNORE_VIEWPORT_SCROLLING = 0x10,
+    PAINT_DOCUMENT_RELATIVE = 0x10,
     PAINT_HIDE_CARET = 0x20,
-    PAINT_ALL_CONTINUATIONS = 0x40
+    PAINT_ALL_CONTINUATIONS = 0x40,
+    PAINT_IGNORE_VIEWPORT_SCROLLING = 0x80
   };
 
   
+
+
+
 
 
 
@@ -805,18 +809,6 @@ public:
            (aCoord.GetUnit() == eStyleUnit_Percent &&
             aCoord.GetPercentValue() == 0.0) ||
            (aCoord.IsCalcUnit() &&
-            
-            nsRuleNode::ComputeCoordPercentCalc(aCoord, nscoord_MAX) <= 0 &&
-            nsRuleNode::ComputeCoordPercentCalc(aCoord, 0) <= 0);
-  }
-
-  static PRBool IsMarginZero(const nsStyleCoord &aCoord)
-  {
-    return (aCoord.GetUnit() == eStyleUnit_Coord &&
-            aCoord.GetCoordValue() == 0) ||
-           (aCoord.GetUnit() == eStyleUnit_Percent &&
-            aCoord.GetPercentValue() == 0.0) ||
-           (aCoord.IsCalcUnit() &&
             nsRuleNode::ComputeCoordPercentCalc(aCoord, nscoord_MAX) == 0 &&
             nsRuleNode::ComputeCoordPercentCalc(aCoord, 0) == 0);
   }
@@ -957,12 +949,6 @@ public:
   
 
 
-  static gfxRect RectToGfxRect(const nsRect& aRect,
-                               PRInt32 aAppUnitsPerDevPixel);
-
-  
-
-
 
 
 
@@ -1027,25 +1013,6 @@ public:
                                   const nsRect&        aDirty,
                                   PRUint32             aImageFlags,
                                   const nsRect*        aSourceArea = nsnull);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  static void ComputeSizeForDrawing(imgIContainer* aImage,
-                                    nsIntSize&     aImageSize,
-                                    PRBool&        aGotWidth,
-                                    PRBool&        aGotHeight);
 
   
 
