@@ -50,6 +50,7 @@
 #include "nsILocalFile.h"
 #include "nsIURI.h"
 #include "nsIInputStream.h"
+#include "nsIStreamListener.h"
 #include "nsIChannel.h"
 #include "nsCOMArray.h"
 #include "nsITimer.h"
@@ -284,24 +285,28 @@ class nsDataObj : public IDataObject,
     
     
     
-    class CStream : public IStream
+    class CStream : public IStream, public nsIStreamListener
     {
-      ULONG mRefCount;  
-      nsCOMPtr<nsIInputStream> mInputStream;
       nsCOMPtr<nsIChannel> mChannel;
+      nsTArray<PRUint8> mChannelData;
+      bool mChannelRead;
+      nsresult mChannelResult;
+      PRUint32 mStreamRead;
 
     protected:
       virtual ~CStream();
-      
+      nsresult WaitForCompletion();
 
     public:
       CStream();
       nsresult Init(nsIURI *pSourceURI);
 
+      NS_DECL_ISUPPORTS
+      NS_DECL_NSIREQUESTOBSERVER
+      NS_DECL_NSISTREAMLISTENER
+
       
       STDMETHOD(QueryInterface)(REFIID refiid, void** ppvResult);
-      STDMETHOD_(ULONG, AddRef)(void);
-      STDMETHOD_(ULONG, Release)(void);
 
       
       STDMETHOD(Clone)(IStream** ppStream);

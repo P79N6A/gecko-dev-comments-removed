@@ -41,6 +41,7 @@
 
 
 
+
 #include <ole2.h>
 #include <shlobj.h>
 
@@ -64,6 +65,7 @@
 #include "prtypes.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsITimer.h"
+#include "nsThreadUtils.h"
 
 
 #include <stdlib.h>
@@ -89,17 +91,13 @@ MakeRandomString(char *buf, PRInt32 bufLen)
     *buf = 0;
 }
 
+NS_IMPL_ISUPPORTS1(nsDataObj::CStream, nsIStreamListener)
 
 
 
-
-#ifndef __IAsyncOperation_INTERFACE_DEFINED__
-  const IID IID_IAsyncOperation = {0x3D8B0590, 0xF691, 0x11d2, {0x8E, 0xA9, 0x00, 0x60, 0x97, 0xDF, 0x5B, 0xD4}};
-#endif
-
-
-
-nsDataObj::CStream::CStream() : mRefCount(1)
+nsDataObj::CStream::CStream() :
+  mChannelRead(false),
+  mStreamRead(0)
 {
 }
 
@@ -113,14 +111,15 @@ nsDataObj::CStream::~CStream()
 nsresult nsDataObj::CStream::Init(nsIURI *pSourceURI)
 {
   nsresult rv;
-  rv = NS_NewChannel(getter_AddRefs(mChannel), pSourceURI);
+  rv = NS_NewChannel(getter_AddRefs(mChannel), pSourceURI,
+                     nsnull, nsnull, nsnull,
+                     nsIRequest::LOAD_FROM_CACHE);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = mChannel->Open(getter_AddRefs(mInputStream));
+  rv = mChannel->AsyncOpen(this, nsnull);
   NS_ENSURE_SUCCESS(rv, rv);
-
   return NS_OK;
 }
+
 
 
 
@@ -144,22 +143,63 @@ STDMETHODIMP nsDataObj::CStream::QueryInterface(REFIID refiid, void** ppvResult)
 }
 
 
-STDMETHODIMP_(ULONG) nsDataObj::CStream::AddRef(void)
+NS_IMETHODIMP nsDataObj::CStream::OnDataAvailable(nsIRequest *aRequest,
+                                                  nsISupports *aContext,
+                                                  nsIInputStream *aInputStream,
+                                                  PRUint32 aOffset, 
+                                                  PRUint32 aCount) 
 {
-  return ++mRefCount;
+    
+    PRUint8* buffer = mChannelData.AppendElements(aCount);
+    if (buffer == NULL)
+      return NS_ERROR_OUT_OF_MEMORY;
+    NS_ASSERTION((mChannelData.Length() == (aOffset + aCount)),
+      "stream length mismatch w/write buffer");
+
+    
+    
+    nsresult rv;
+    PRUint32 odaBytesReadTotal = 0;
+    do {
+      PRUint32 bytesReadByCall = 0;
+      rv = aInputStream->Read((char*)(buffer + odaBytesReadTotal),
+                              aCount, &bytesReadByCall);
+      odaBytesReadTotal += bytesReadByCall;
+    } while (aCount < odaBytesReadTotal && NS_SUCCEEDED(rv));
+    return rv;
+}
+
+NS_IMETHODIMP nsDataObj::CStream::OnStartRequest(nsIRequest *aRequest,
+                                                 nsISupports *aContext)
+{
+    mChannelResult = NS_OK;
+    return NS_OK;
+}
+
+NS_IMETHODIMP nsDataObj::CStream::OnStopRequest(nsIRequest *aRequest,
+                                                nsISupports *aContext,
+                                                nsresult aStatusCode)
+{
+    mChannelRead = true;
+    mChannelResult = aStatusCode;
+    return NS_OK;
 }
 
 
-STDMETHODIMP_(ULONG) nsDataObj::CStream::Release(void)
+
+
+nsresult nsDataObj::CStream::WaitForCompletion()
 {
-  ULONG nCount = --mRefCount;
-  if (nCount == 0)
-  {
-    delete this;
-    return (ULONG)0;
+  
+  while (!mChannelRead) {
+    
+    NS_ProcessNextEvent(nsnull, PR_TRUE);
   }
 
-  return mRefCount;
+  if (!mChannelData.Length())
+    mChannelResult = NS_ERROR_FAILURE;
+
+  return mChannelResult;
 }
 
 
@@ -197,20 +237,19 @@ STDMETHODIMP nsDataObj::CStream::Read(void* pvBuffer,
                                       ULONG nBytesToRead,
                                       ULONG* nBytesRead)
 {
-  NS_ENSURE_TRUE(mInputStream, E_FAIL);
+  
+  
+  if (NS_FAILED(WaitForCompletion()))
+    return E_FAIL;
 
-  nsresult rv;
-  PRUint32 read;
-  *nBytesRead = 0;
-
-  do {
-    read = 0;
-    rv = mInputStream->Read((char*)pvBuffer + *nBytesRead, nBytesToRead - *nBytesRead, &read);
-    NS_ENSURE_SUCCESS(rv, S_FALSE);
-
-    *nBytesRead += read;
-  } while ((*nBytesRead < nBytesToRead) && read);
-
+  
+  ULONG bytesLeft = mChannelData.Length() - mStreamRead;
+  
+  *nBytesRead = NS_MIN(bytesLeft, nBytesToRead);
+  
+  memcpy(pvBuffer, ((char*)mChannelData.Elements() + mStreamRead), *nBytesRead);
+  
+  mStreamRead += *nBytesRead;
   return S_OK;
 }
 
@@ -250,7 +289,7 @@ STDMETHODIMP nsDataObj::CStream::Stat(STATSTG* statstg, DWORD dwFlags)
   if (statstg == NULL)
     return STG_E_INVALIDPOINTER;
 
-  if (!mChannel)
+  if (!mChannel || NS_FAILED(WaitForCompletion()))
     return E_FAIL;
 
   memset((void*)statstg, 0, sizeof(STATSTG));
@@ -290,14 +329,7 @@ STDMETHODIMP nsDataObj::CStream::Stat(STATSTG* statstg, DWORD dwFlags)
   SystemTimeToFileTime((const SYSTEMTIME*)&st, (LPFILETIME)&statstg->mtime);
   statstg->ctime = statstg->atime = statstg->mtime;
 
-  PRInt32 nLength = 0;
-  if (mChannel)
-    mChannel->GetContentLength(&nLength);
-
-  if (nLength < 0) 
-    nLength = 0;
-
-  statstg->cbSize.LowPart = (DWORD)nLength;
+  statstg->cbSize.LowPart = (DWORD)mChannelData.Length();
   statstg->grfMode = STGM_READ;
   statstg->grfLocksSupported = LOCK_ONLYONCE;
   statstg->clsid = CLSID_NULL;
@@ -336,6 +368,8 @@ HRESULT nsDataObj::CreateStream(IStream **outStream)
 
   nsDataObj::CStream *pStream = new nsDataObj::CStream();
   NS_ENSURE_TRUE(pStream, E_OUTOFMEMORY);
+
+  pStream->AddRef();
 
   rv = pStream->Init(sourceURI);
   if (NS_FAILED(rv))
