@@ -2222,9 +2222,9 @@ array_unshift(JSContext *cx, uintN argc, Value *vp)
             return JS_FALSE;
 
         newlen += argc;
-        if (!js_SetLengthProperty(cx, obj, newlen))
-            return JS_FALSE;
     }
+    if (!js_SetLengthProperty(cx, obj, newlen))
+        return JS_FALSE;
 
     
     vp->setNumber(newlen);
