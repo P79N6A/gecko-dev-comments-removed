@@ -4214,7 +4214,7 @@ nsHTMLEditor::RemoveBlockContainer(nsIDOMNode *inNode)
 
 
 
-nsINode*
+nsIContent*
 nsHTMLEditor::GetPriorHTMLSibling(nsINode* aNode)
 {
   MOZ_ASSERT(aNode);
@@ -4247,7 +4247,7 @@ nsHTMLEditor::GetPriorHTMLSibling(nsIDOMNode *inNode, nsCOMPtr<nsIDOMNode> *outN
 
 
 
-nsINode*
+nsIContent*
 nsHTMLEditor::GetPriorHTMLSibling(nsINode* aParent, PRInt32 aOffset)
 {
   MOZ_ASSERT(aParent);
@@ -4279,7 +4279,7 @@ nsHTMLEditor::GetPriorHTMLSibling(nsIDOMNode *inParent, PRInt32 inOffset, nsCOMP
 
 
 
-nsINode*
+nsIContent*
 nsHTMLEditor::GetNextHTMLSibling(nsINode* aNode)
 {
   MOZ_ASSERT(aNode);
@@ -4311,7 +4311,7 @@ nsHTMLEditor::GetNextHTMLSibling(nsIDOMNode *inNode, nsCOMPtr<nsIDOMNode> *outNo
 
 
 
-nsINode*
+nsIContent*
 nsHTMLEditor::GetNextHTMLSibling(nsINode* aParent, PRInt32 aOffset)
 {
   MOZ_ASSERT(aParent);
