@@ -252,15 +252,16 @@ var TestPilotTask = {
   }
 };
 
-function TestPilotExperiment(expInfo, dataStore, handlers, webContent) {
+function TestPilotExperiment(expInfo, dataStore, handlers, webContent, dateOverrideFunc) {
   
-  this._init(expInfo, dataStore, handlers, webContent);
+  this._init(expInfo, dataStore, handlers, webContent, dateOverrideFunc);
 }
 TestPilotExperiment.prototype = {
   _init: function TestPilotExperiment__init(expInfo,
 					    dataStore,
 					    handlers,
-                                            webContent) {
+                                            webContent,
+                                            dateOverrideFunc) {
     
 
 
@@ -274,6 +275,14 @@ TestPilotExperiment.prototype = {
 
 
 
+
+    
+    
+    if (dateOverrideFunc) {
+      this._now = dateOverrideFunc;
+    } else {
+      this._now = Date.now;
+    }
     this._taskInit(expInfo.testId, expInfo.testName, expInfo.testInfoUrl,
                    expInfo.summary, expInfo.thumbnail);
     this._webContent = webContent;
@@ -297,8 +306,8 @@ TestPilotExperiment.prototype = {
         this._startDate = Date.parse(expInfo.startDate);
         Application.prefs.setValue(prefName, expInfo.startDate);
       } else {
-        this._startDate = Date.now();
-        Application.prefs.setValue(prefName, (new Date()).toString());
+        this._startDate = this._now();
+        Application.prefs.setValue(prefName, (new Date(this._startDate)).toString());
       }
     }
 
@@ -584,7 +593,7 @@ TestPilotExperiment.prototype = {
   checkDate: function TestPilotExperiment_checkDate() {
     
     
-    let currentDate = Date.now();
+    let currentDate = this._now();
 
     
     if (this._recursAutomatically &&
@@ -778,7 +787,7 @@ TestPilotExperiment.prototype = {
               self._uploadRetryTimer.cancel(); 
             }
             self.changeStatus(TaskConstants.STATUS_SUBMITTED);
-            self._dateForDataDeletion = Date.now() + TIME_FOR_DATA_DELETION;
+            self._dateForDataDeletion = self._now() + TIME_FOR_DATA_DELETION;
             self._expirationDateForDataSubmission = null;
             callback(true);
           } else {

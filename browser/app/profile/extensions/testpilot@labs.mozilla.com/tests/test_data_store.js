@@ -1,5 +1,7 @@
 EXPORTED_SYMBOLS = ["runAllTests"];
 var Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
 var testsRun = 0;
 var testsPassed = 0;
 
@@ -314,6 +316,221 @@ function testRemoteLoaderIndexCache() {
   cheapAssertEqual(remoteLoader._loadCachedIndexFile(), data);
 }
 
+
+function StubDataStore(fileName, tableName, columns) {
+}
+StubDataStore.prototype = {
+  storeEvent: function(uiEvent, callback) {
+    callback(true);
+  },
+  getJSONRows: function(callback) {
+    callback([]);
+  },
+  getAllDataAsJSON: function(useDisplayValues, callback) {
+    callback([]);
+  },
+  wipeAllData: function(callback) {
+    callback(true);
+  },
+  nukeTable: function() {
+  },
+  haveData: function(callback) {
+    callback(true);
+  },
+  getHumanReadableColumnNames: function() {
+  },
+  getPropertyNames: function() {
+  }
+};
+
+function StubWebContent() {
+}
+StubWebContent.prototype = {
+  inProgressHtml: "",
+  completedHtml: "",
+  upcomingHtml: "",
+  canceledHtml: "",
+  remainDataHtml: "",
+  dataExpiredHtml: "",
+  deletedRemainDataHtml: "",
+  inProgressDataPrivacyHtml: "",
+  completedDataPrivacyHtml: "",
+  canceledDataPrivacyHtml: "",
+  dataExpiredDataPrivacyHtml: "",
+  remainDataPrivacyHtml: "",
+  deletedRemainDataPrivacyHtml: "",
+  onPageLoad: function(experiment, document, graphUtils) {
+  }
+};
+
+function StubHandlers() {
+}
+StubHandlers.prototype = {
+  onNewWindow: function(window) {
+  },
+  onWindowClosed: function(window) {
+  },
+  onAppStartup: function() {
+  },
+  onAppShutdown: function() {
+  },
+  onExperimentStartup: function(store) {
+  },
+  onExperimentShutdown: function() {
+  },
+  onEnterPrivateBrowsing: function() {
+  },
+  onExitPrivateBrowsing: function() {
+  },
+  uninstallAll: function() {
+  }
+};
+
+
+function testRecurringStudyStateChange() {
+
+  Cu.import("resource://testpilot/modules/tasks.js");
+
+  let expInfo = {
+    startDate: null,
+    duration: 7,
+    testName: "Unit Test Recurring Study",
+    testId: "unit_test_recur_study",
+    testInfoUrl: "https://testpilot.mozillalabs.com/",
+    summary: "Be sure to wipe all prefs and the store in the setup/teardown",
+    thumbnail: "",
+    optInRequired: false,
+    recursAutomatically: true,
+    recurrenceInterval: 30,
+    versionNumber: 1
+  };
+
+  dump("Looking for prefs to delete...\n");
+  let prefService = Cc["@mozilla.org/preferences-service;1"]
+                     .getService(Ci.nsIPrefService)
+                     .QueryInterface(Ci.nsIPrefBranch2);
+  let prefStem = "extensions.testpilot";
+  let prefNames = prefService.getChildList(prefStem);
+  for each (let prefName in prefNames) {
+    if (prefName.indexOf("unit_test_recur_study") != -1) {
+      dump("Clearing pref " + prefName + "\n");
+      prefService.clearUserPref(prefName);
+    }
+  }
+
+  const START_DATE = 1292629441000;
+  let stubDate = START_DATE;
+
+  let stubDateFunction = function() {
+    return stubDate;
+  };
+
+  let advanceDate = function(days) {
+    stubDate += days * 24 * 60 * 60 * 1000;
+  };
+
+  let dataStore = new StubDataStore();
+  let handlers = new StubHandlers();
+  let webContent = new StubWebContent();
+  let task = new TestPilotExperiment(expInfo, dataStore, handlers, webContent,
+                                    stubDateFunction);
+
+  
+  prefService.setBoolPref("extensions.testpilot.popup.showOnNewStudy", true);
+  
+
+  cheapAssertEqual(task.id, "unit_test_recur_study", "id should be id");
+  cheapAssertEqual(task.version, 1, "version should be version");
+  cheapAssertEqual(task.title, "Unit Test Recurring Study", "title should be title");
+  cheapAssertEqual(task.taskType, TaskConstants.TYPE_EXPERIMENT, "Should be experiment");
+  
+  cheapAssertEqual(task.startDate, START_DATE, "Start date is wrong");
+  cheapAssertEqual(task.endDate, START_DATE + 7 * 24 * 60 * 60 * 1000, "End date is wrong");
+
+  cheapAssertEqual(task.status, TaskConstants.STATUS_NEW, "Status should be new");
+  
+  advanceDate(1);
+  task.checkDate();
+  cheapAssertEqual(task.status, TaskConstants.STATUS_NEW, "Status should still be new");
+  
+  task.changeStatus(TaskConstants.STATUS_STARTING);
+  cheapAssertEqual(task.status, TaskConstants.STATUS_STARTING, "Status should now be starting");
+  
+  task.checkDate();
+  cheapAssertEqual(task.status, TaskConstants.STATUS_IN_PROGRESS, "Status should be in progress");
+
+  
+  advanceDate(7);
+  task.checkDate();
+  cheapAssertEqual(task.status, TaskConstants.STATUS_FINISHED, "Status should be finished");
+
+  
+
+
+
+
+
+
+
+
+
+  
+  task.changeStatus(TaskConstants.STATUS_SUBMITTED);
+  cheapAssertEqual(task.status, TaskConstants.STATUS_SUBMITTED, "Should be submitted.");
+
+  
+  
+  task = null;
+  let task2 = new TestPilotExperiment(expInfo, dataStore, handlers, webContent,
+                                      stubDateFunction);
+  cheapAssertEqual(task2.status, TaskConstants.STATUS_SUBMITTED, "Status should be submitted!");
+  
+  cheapAssertEqual(task2.startDate, START_DATE + 30 * 24 * 60 * 60 * 1000,
+                   "Start date is wrong");
+  cheapAssertEqual(task2.endDate, START_DATE + 37 * 24 * 60 * 60 * 1000,
+                   "End date is wrong");
+
+
+
+  
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  
+
+  
+
+
+}
+
+
 function runAllTests() {
   testTheDataStore();
   testFirefoxVersionCheck();
@@ -321,9 +538,11 @@ function runAllTests() {
   
   
   testRemoteLoaderIndexCache();
+  testRecurringStudyStateChange();
   dump("TESTING COMPLETE.  " + testsPassed + " out of " + testsRun +
        " tests passed.");
 }
+
 
 
 
