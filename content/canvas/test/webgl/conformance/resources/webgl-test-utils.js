@@ -100,7 +100,9 @@ var simpleTextureVertexShader = '' +
 
 
 var simpleTextureFragmentShader = '' +
+  '#ifdef GL_ES\n' +
   'precision mediump float;\n' +
+  '#endif\n' +
   'uniform sampler2D tex;\n' +
   'varying vec2 texCoord;\n' +
   'void main() {\n' +
@@ -350,10 +352,8 @@ var checkCanvasRect = function(gl, x, y, width, height, color, msg, errorRange) 
 
 
 
-
-
-var checkCanvas = function(gl, color, msg, errorRange) {
-  checkCanvasRect(gl, 0, 0, gl.canvas.width, gl.canvas.height, color, msg, errorRange);
+var checkCanvas = function(gl, color, msg) {
+  checkCanvasRect(gl, 0, 0, gl.canvas.width, gl.canvas.height, color, msg);
 };
 
 
@@ -620,19 +620,8 @@ var readFileList = function(url) {
           str[0] != '#' &&
           str[0] != ";" &&
           str.substr(0, 2) != "//") {
-        var names = str.split(/ +/);
-        if (names.length == 1) {
-          new_url = prefix + str;
-          files = files.concat(readFileList(new_url));
-        } else {
-          var s = "";
-          var p = "";
-          for (var jj = 0; jj < names.length; ++jj) {
-            s += p + prefix + names[jj];
-            p = " ";
-          }
-          files.push(s);
-        }
+        new_url = prefix + str;
+        files = files.concat(readFileList(new_url));
       }
     }
   } else {
@@ -846,29 +835,6 @@ var loadImagesAsync = function(urls, callback) {
   countDown();
 };
 
-var getUrlArguments = function() {
-  var args = {};
-  try {
-    var s = window.location.href;
-    var q = s.indexOf("?");
-    var e = s.indexOf("#");
-    if (e < 0) {
-      e = s.length;
-    }
-    var query = s.substring(q + 1, e);
-    var pairs = query.split("&");
-    for (var ii = 0; ii < pairs.length; ++ii) {
-      var keyValue = pairs[ii].split("=");
-      var key = keyValue[0];
-      var value = decodeURIComponent(keyValue[1]);
-      args[key] = value;
-    }
-  } catch (e) {
-    throw "could not parse url";
-  }
-  return args;
-};
-
 return {
   create3DContext: create3DContext,
   create3DContextWithWrapperThatThrowsOnGLError:
@@ -879,7 +845,6 @@ return {
   drawQuad: drawQuad,
   endsWith: endsWith,
   getLastError: getLastError,
-  getUrlArguments: getUrlArguments,
   glEnumToString: glEnumToString,
   glErrorShouldBe: glErrorShouldBe,
   fillTexture: fillTexture,
