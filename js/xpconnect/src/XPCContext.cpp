@@ -77,8 +77,9 @@ XPCContext::~XPCContext()
     for (PRCList *scopeptr = PR_NEXT_LINK(&mScopes);
          scopeptr != &mScopes;
          scopeptr = PR_NEXT_LINK(scopeptr)) {
-        XPCWrappedNativeScope *scope = (XPCWrappedNativeScope *)scopeptr;
-        scope->SetContext(nsnull);
+        XPCWrappedNativeScope *scope =
+            static_cast<XPCWrappedNativeScope*>(scopeptr);
+        scope->ClearContext();
     }
 
     
