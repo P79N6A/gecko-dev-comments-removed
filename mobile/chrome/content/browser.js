@@ -840,7 +840,10 @@ var Browser = {
     if (tab)
       tab.active = true;
 
-    if (!isFirstTab) {
+    if (isFirstTab) {
+      
+      BrowserUI._titleChanged(browser);
+    } else {
       
       BrowserUI.updateURI();
       getIdentityHandler().checkIdentity();
