@@ -65,6 +65,7 @@
 #include "nsThreadUtils.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsMathUtils.h"
+#include "mozIStorageCompletionCallback.h"
 
 #include "nsNavBookmarks.h"
 #include "nsAnnotationService.h"
@@ -182,7 +183,8 @@ static const PRInt64 USECS_PER_DAY = LL_INIT(20, 500654080);
 #endif
 #define TOPIC_IDLE_DAILY "idle-daily"
 #define TOPIC_PREF_CHANGED "nsPref:changed"
-#define TOPIC_GLOBAL_SHUTDOWN "profile-before-change"
+#define TOPIC_PROFILE_TEARDOWN "profile-change-teardown"
+#define TOPIC_PROFILE_CHANGE "profile-before-change"
 
 NS_IMPL_THREADSAFE_ADDREF(nsNavHistory)
 NS_IMPL_THREADSAFE_RELEASE(nsNavHistory)
@@ -312,8 +314,11 @@ protected:
 
 
 class PlacesEvent : public nsRunnable
+                  , public mozIStorageCompletionCallback
 {
 public:
+  NS_DECL_ISUPPORTS
+
   PlacesEvent(const char* aTopic)
     : mTopic(aTopic)
     , mDoubleEnqueue(false)
@@ -328,6 +333,12 @@ public:
   }
 
   NS_IMETHODIMP Run()
+  {
+    Notify();
+    return NS_OK;
+  }
+
+  NS_IMETHODIMP Complete()
   {
     Notify();
     return NS_OK;
@@ -350,6 +361,12 @@ protected:
   const char* mTopic;
   bool mDoubleEnqueue;
 };
+
+NS_IMPL_ISUPPORTS2(
+  PlacesEvent
+, mozIStorageCompletionCallback
+, nsIRunnable
+)
 
 } 
 
@@ -475,7 +492,8 @@ nsNavHistory::Init()
   nsCOMPtr<nsIObserverService> obsSvc =
     do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
   if (obsSvc) {
-    (void)obsSvc->AddObserver(this, TOPIC_GLOBAL_SHUTDOWN, PR_FALSE);
+    (void)obsSvc->AddObserver(this, TOPIC_PROFILE_TEARDOWN, PR_FALSE);
+    (void)obsSvc->AddObserver(this, TOPIC_PROFILE_CHANGE, PR_FALSE);
     (void)obsSvc->AddObserver(this, TOPIC_IDLE_DAILY, PR_FALSE);
     (void)obsSvc->AddObserver(this, NS_PRIVATE_BROWSING_SWITCH_TOPIC, PR_FALSE);
 #ifdef MOZ_XUL
@@ -5668,14 +5686,14 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
 {
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
 
-  if (strcmp(aTopic, TOPIC_GLOBAL_SHUTDOWN) == 0) {
+  if (strcmp(aTopic, TOPIC_PROFILE_TEARDOWN) == 0) {
     nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
     if (!os) {
       NS_WARNING("Unable to shutdown Places: Observer Service unavailable.");
       return NS_OK;
     }
 
-    (void)os->RemoveObserver(this, TOPIC_GLOBAL_SHUTDOWN);
+    (void)os->RemoveObserver(this, TOPIC_PROFILE_TEARDOWN);
     (void)os->RemoveObserver(this, NS_PRIVATE_BROWSING_SWITCH_TOPIC);
     (void)os->RemoveObserver(this, TOPIC_IDLE_DAILY);
 #ifdef MOZ_XUL
@@ -5685,52 +5703,56 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
     
     
     
-    nsRefPtr<PlacesEvent> shutdownEvent =
-      new PlacesEvent(TOPIC_PLACES_SHUTDOWN);
-    nsresult rv = NS_DispatchToMainThread(shutdownEvent);
-    NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
-                     "Unable to shutdown Places: message dispatch failed.");
+    
+    nsCOMPtr<nsISimpleEnumerator> e;
+    nsresult rv = os->EnumerateObservers(TOPIC_PLACES_INIT_COMPLETE,
+                                         getter_AddRefs(e));
+    if (NS_SUCCEEDED(rv) && e) {
+      nsCOMPtr<nsIObserver> observer;
+      PRBool loop = PR_TRUE;
+      while(NS_SUCCEEDED(e->HasMoreElements(&loop)) && loop) {
+        e->GetNext(getter_AddRefs(observer));
+        (void)observer->Observe(observer, TOPIC_PLACES_INIT_COMPLETE, nsnull);
+      }
+    }
 
     
-    
-    
-    
-    (void)os->AddObserver(this, TOPIC_PLACES_TEARDOWN, PR_FALSE);
-    nsRefPtr<PlacesEvent> teardownEvent =
-      new PlacesEvent(TOPIC_PLACES_TEARDOWN, true);
-    rv = NS_DispatchToMainThread(teardownEvent);
-    NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
-                     "Unable to shutdown Places: message dispatch failed.");
+    (void)os->NotifyObservers(nsnull, TOPIC_PLACES_SHUTDOWN, nsnull);
   }
 
-  else if (strcmp(aTopic, TOPIC_PLACES_TEARDOWN) == 0) {
+  else if (strcmp(aTopic, TOPIC_PROFILE_CHANGE) == 0) {
     
+    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+    if (os) {
+      (void)os->RemoveObserver(this, TOPIC_PROFILE_CHANGE);
+      
+      
+      
+      
+      (void)os->NotifyObservers(nsnull, TOPIC_PLACES_WILL_CLOSE_CONNECTION, nsnull);
+      (void)os->NotifyObservers(nsnull, TOPIC_PLACES_CONNECTION_CLOSING, nsnull);
+    }
+
+    
+    
+    
+
     
     
     mCanNotify = false;
-
-    
-    
-    
-    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-    if (os)
-      (void)os->RemoveObserver(this, TOPIC_PLACES_TEARDOWN);
 
     
     if (mPrefBranch)
       mPrefBranch->RemoveObserver("", this);
 
     
-    nsCOMPtr<nsIPrefService> prefService = do_QueryInterface(mPrefBranch);
-    if (prefService)
-      prefService->SavePrefFile(nsnull);
-
-    
     nsresult rv = FinalizeInternalStatements();
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    
+    nsRefPtr<PlacesEvent> closeListener =
+      new PlacesEvent(TOPIC_PLACES_CONNECTION_CLOSED);
+    (void)mDBConn->AsyncClose(closeListener);
   }
 
 #ifdef MOZ_XUL
