@@ -1237,7 +1237,7 @@ LoginManagerPrompter.prototype = {
                 
                 
                 
-                if (chromeDoc.getAttribute("chromehidden") &&
+                if (chromeDoc.hasAttribute("chromehidden") &&
                     webnav.sessionHistory.count == 1) {
                     this.log("Using opener window for notification bar.");
                     notifyWin = notifyWin.opener;
