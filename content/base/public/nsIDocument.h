@@ -649,7 +649,9 @@ public:
 
 
 
-  virtual nsHTMLStyleSheet* GetAttributeStyleSheet() const = 0;
+  nsHTMLStyleSheet* GetAttributeStyleSheet() const {
+    return mAttrStyleSheet;
+  }
 
   
 
@@ -1700,6 +1702,7 @@ protected:
   
   nsNodeInfoManager* mNodeInfoManager; 
   mozilla::css::Loader* mCSSLoader; 
+  nsHTMLStyleSheet* mAttrStyleSheet;
 
   
   

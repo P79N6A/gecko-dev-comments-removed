@@ -241,6 +241,17 @@ nsStyledElementNotElementCSSInlineStyle::BindToTree(nsIDocument* aDocument,
     ReparseStyleAttribute(false);
   }
 
+  if (aDocument) {
+    
+    
+    
+    
+    nsHTMLStyleSheet* sheet = aDocument->GetAttributeStyleSheet();
+    if (sheet) {
+      mAttrsAndChildren.SetMappedAttrStyleSheet(sheet);
+    }
+  }
+
   return NS_OK;
 }
 
