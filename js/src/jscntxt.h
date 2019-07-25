@@ -1033,6 +1033,8 @@ struct JSThreadData {
     
     jsuword             *nativeStackBase;
 
+    js::ConservativeGCThreadData conservativeGC;
+
     bool init();
     void finish();
     void mark(JSTracer *trc);
