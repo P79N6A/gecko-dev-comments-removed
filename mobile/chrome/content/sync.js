@@ -40,6 +40,9 @@ let WeaveGlue = {
   init: function init() {
     Components.utils.import("resource://services-sync/main.js");
 
+    this._bundle = Services.strings.createBundle("chrome://browser/locale/sync.properties");
+    this._msg = document.getElementById("prefs-messages");
+
     this._addListeners();
 
     
@@ -49,42 +52,75 @@ let WeaveGlue = {
       this.autoConnect = Services.prefs.getBoolPref("services.sync.autoconnect");
       if (this.autoConnect) {
         
-        this._settings.account.collapsed = true;
-        this._settings.pass.collapsed = true;
-        this._settings.secret.collapsed = true;
-        this._settings.connect.collapsed = false;
-        this._settings.device.collapsed = false;
-        this._settings.disconnect.collapsed = true;
-        this._settings.sync.collapsed = false;
+        this._elements.connect.collapsed = false;
+        this._elements.sync.collapsed = false;
 
-        this._settings.connect.firstChild.disabled = true;
-        this._settings.sync.firstChild.disabled = true;
+        this._elements.connect.firstChild.disabled = true;
+        this._elements.sync.firstChild.disabled = true;
 
-        let bundle = Services.strings.createBundle("chrome://weave/locale/services/sync.properties");
-        this._settings.connect.setAttribute("title", bundle.GetStringFromName("connecting.label"));
+        this._elements.connect.setAttribute("title", this._bundle.GetStringFromName("connecting.label"));
+        this._elements.autosync.value = true;
 
         try {
-          this._settings.device.value = Services.prefs.getCharPref("services.sync.client.name");
+          this._elements.device.value = Services.prefs.getCharPref("services.sync.client.name");
         } catch(e) {}
       }
     }
   },
 
+  show: function show() {
+    
+    document.getElementById("syncsetup-container").hidden = false;
+    document.getElementById("syncsetup-jpake").hidden = false;
+    document.getElementById("syncsetup-manual").hidden = true;
+  },
+
+  close: function close() {
+    
+    document.getElementById("syncsetup-container").hidden = true;
+  },
+
+  showDetails: function showDetails() {
+    
+    let show = this._elements.details.checked;
+    this._elements.autosync.collapsed = show;
+    this._elements.device.collapsed = show;
+    this._elements.disconnect.collapsed = show;
+  },
+
   connect: function connect() {
     
-    if (this._settings.account.value != Weave.Service.account)
+    if (this._elements.account.value != Weave.Service.account)
       Weave.Service.startOver();
 
     
-    this._settings.connect.removeAttribute("desc");
+    this._elements.connect.removeAttribute("desc");
 
     
-    Weave.Service.account = this._settings.account.value;
-    Weave.Service.login(Weave.Service.username, this._settings.pass.value, this.normalizePassphrase(this._settings.secret.value));
+    Weave.Service.account = this._elements.account.value;
+    Weave.Service.login(Weave.Service.username, this._elements.password.value, this.normalizePassphrase(this._elements.synckey.value));
     Weave.Service.persistLogin();
   },
 
   disconnect: function disconnect() {
+    let message = this._bundle.GetStringFromName("notificationDisconnect.label");
+    let button = this._bundle.GetStringFromName("notificationDisconnect.button");
+    let buttons = [ {
+      label: button,
+      accessKey: "",
+      callback: function() { WeaveGlue.connect(); }
+    } ];
+    this.showMessage(message, "undo-disconnect", buttons);
+
+    
+    setTimeout(function(self) {
+      let notification = self._msg.getNotificationWithValue("undo-disconnect");
+      if (notification)
+        notification.close();
+    }, 10000, this);
+
+    
+
     Weave.Service.logout();
   },
 
@@ -111,22 +147,27 @@ let WeaveGlue = {
     }, false);
   },
 
-  get _settings() {
+  get _elements() {
     
     let syncButton = document.getElementById("sync-syncButton");
     if (syncButton == null)
-      return;
+      return null;
 
     
-    let settings = {};
-    let ids = ["account", "pass", "secret", "device", "connect", "disconnect", "sync"];
-    ids.forEach(function(id) {
-      settings[id] = document.getElementById("sync-" + id);
+    let elements = {};
+    let setupids = ["account", "password", "synckey", "customserver"];
+    setupids.forEach(function(id) {
+      elements[id] = document.getElementById("syncsetup-" + id);
+    });
+
+    let settingids = ["device", "connect", "connected", "disconnect", "sync", "autosync", "details"];
+    settingids.forEach(function(id) {
+      elements[id] = document.getElementById("sync-" + id);
     });
 
     
-    delete this._settings;
-    return this._settings = settings;
+    delete this._elements;
+    return this._elements = elements;
   },
 
   observe: function observe(aSubject, aTopic, aData) {
@@ -141,46 +182,50 @@ let WeaveGlue = {
     Util.forceOnline();
 
     
-    if (this._settings == null)
+    if (this._elements == null)
       return;
 
     
-    let account = this._settings.account;
-    let pass = this._settings.pass;
-    let secret = this._settings.secret;
-    let connect = this._settings.connect;
-    let device = this._settings.device;
-    let disconnect = this._settings.disconnect;
-    let sync = this._settings.sync;
-    let syncStr = Weave.Str.sync;
+    let account = this._elements.account;
+    let password = this._elements.password;
+    let synckey = this._elements.synckey;
+    let connect = this._elements.connect;
+    let connected = this._elements.connected;
+    let autosync = this._elements.autosync;
+    let device = this._elements.device;
+    let disconnect = this._elements.disconnect;
+    let sync = this._elements.sync;
 
     
-    account.collapsed = loggedIn;
-    pass.collapsed = loggedIn;
-    secret.collapsed = loggedIn;
     connect.collapsed = loggedIn;
-    device.collapsed = !loggedIn;
-    disconnect.collapsed = !loggedIn;
+    connected.collapsed = !loggedIn;
     sync.collapsed = !loggedIn;
 
+    if (connected.collapsed) {
+      connect.setAttribute("title", this._bundle.GetStringFromName("notconnected.label"));
+      this._elements.details.checked = false;
+      this._elements.autosync.collapsed = true;
+      this._elements.device.collapsed = true;
+      this._elements.disconnect.collapsed = true;
+    }
+
     
-    setTimeout(function() {
+    setTimeout(function(self) {
       
       if (Weave.Service.locked) {
         connect.firstChild.disabled = true;
         sync.firstChild.disabled = true;
 
         if (aTopic == "weave:service:login:start")
-          connect.setAttribute("title", syncStr.get("connecting.label"));
+          connect.setAttribute("title", self._bundle.GetStringFromName("connecting.label"));
 
         if (aTopic == "weave:service:sync:start")
-          sync.setAttribute("title", syncStr.get("lastSyncInProgress.label"));
+          sync.setAttribute("title", self._bundle.GetStringFromName("lastSyncInProgress.label"));
       } else {
         connect.firstChild.disabled = false;
         sync.firstChild.disabled = false;
-        connect.setAttribute("title", syncStr.get("disconnected.label"));
       }
-    }, 0);
+    }, 0, this);
 
     
     let parent = connect.parentNode;
@@ -190,14 +235,14 @@ let WeaveGlue = {
     parent.appendChild(sync);
 
     
-    let connectedStr = syncStr.get("connected.label", [Weave.Service.account]);
-    disconnect.setAttribute("title", connectedStr);
+    let accountStr = this._bundle.formatStringFromName("account.label", [Weave.Service.account], 1);
+    disconnect.setAttribute("title", accountStr);
 
     
     let lastSync = Weave.Svc.Prefs.get("lastSync");
     if (lastSync != null) {
       let syncDate = new Date(lastSync).toLocaleFormat("%a %R");
-      let dateStr = syncStr.get("lastSync.label", [syncDate]);
+      let dateStr = this._bundle.formatStringFromName("lastSync.label", [syncDate], 1);
       sync.setAttribute("title", dateStr);
     }
 
@@ -227,17 +272,16 @@ let WeaveGlue = {
       }
 
       if (clientOutdated || remoteOutdated) {
-        let bundle = Services.strings.createBundle("chrome://browser/locale/browser.properties");
         let brand = Services.strings.createBundle("chrome://branding/locale/brand.properties");
         let brandName = brand.GetStringFromName("brandShortName");
 
         let type = clientOutdated ? "client" : "remote";
-        let message = bundle.GetStringFromName("sync.update." + type);
+        let message = this._bundle.GetStringFromName("sync.update." + type);
         message = message.replace("#1", brandName);
         message = message.replace("#2", Services.appinfo.version);
-        let title = bundle.GetStringFromName("sync.update.title")
-        let button = bundle.GetStringFromName("sync.update.button")
-        let close = bundle.GetStringFromName("sync.update.close")
+        let title = this._bundle.GetStringFromName("sync.update.title")
+        let button = this._bundle.GetStringFromName("sync.update.button")
+        let close = this._bundle.GetStringFromName("sync.update.close")
 
         let flags = Services.prompt.BUTTON_POS_0 * Services.prompt.BUTTON_TITLE_IS_STRING +
                     Services.prompt.BUTTON_POS_1 * Services.prompt.BUTTON_TITLE_IS_STRING;
@@ -249,11 +293,11 @@ let WeaveGlue = {
 
     
     account.value = Weave.Service.account || "";
-    pass.value = Weave.Service.password || "";
+    password.value = Weave.Service.password || "";
     let pp = Weave.Service.passphrase || "";
     if (pp.length == 20)
       pp = this.hyphenatePassphrase(pp);
-    secret.value = pp;
+    synckey.value = pp;
     device.value = Weave.Clients.localName || "";
   },
 
@@ -261,6 +305,18 @@ let WeaveGlue = {
     
     Weave.Clients.localName = aInput.value;
     aInput.value = Weave.Clients.localName;
+  },
+
+  changeSync: function changeSync() {
+    
+  },
+
+  showMessage: function showMessage(aMsg, aValue, aButtons) {
+    let notification = this._msg.getNotificationWithValue(aValue);
+    if (notification)
+      return;
+
+    this._msg.appendNotification(aMsg, aValue, "", this._msg.PRIORITY_WARNING_LOW, aButtons);
   },
 
   hyphenatePassphrase: function(passphrase) {
