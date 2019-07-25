@@ -117,6 +117,20 @@ nsHtml5TreeOpExecutor::WillParse()
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
+NS_IMETHODIMP
+nsHtml5TreeOpExecutor::WillBuildModel(nsDTDMode aDTDMode)
+{
+  if (mDocShell && !GetDocument()->GetScriptGlobalObject()) {
+    
+    return MarkAsBroken(NS_ERROR_DOM_INVALID_STATE_ERR);
+  }
+  mDocument->AddObserver(this);
+  WillBuildModelImpl();
+  GetDocument()->BeginLoad();
+  return NS_OK;
+}
+
+
 
 NS_IMETHODIMP
 nsHtml5TreeOpExecutor::DidBuildModel(bool aTerminated)
@@ -143,7 +157,9 @@ nsHtml5TreeOpExecutor::DidBuildModel(bool aTerminated)
   GetParser()->DropStreamParser();
 
   
-  DidBuildModelImpl(aTerminated);
+  
+  
+  DidBuildModelImpl(aTerminated || IsBroken());
 
   if (!mLayoutStarted) {
     
@@ -274,12 +290,12 @@ nsHtml5TreeOpExecutor::UpdateChildCounts()
   
 }
 
-void
-nsHtml5TreeOpExecutor::MarkAsBroken()
+nsresult
+nsHtml5TreeOpExecutor::MarkAsBroken(nsresult aReason)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(!mRunsToCompletion, "Fragment parsers can't be broken!");
-  mBroken = true;
+  mBroken = aReason;
   if (mStreamParser) {
     mStreamParser->Terminate();
   }
@@ -293,6 +309,7 @@ nsHtml5TreeOpExecutor::MarkAsBroken()
       NS_WARNING("failed to dispatch executor flush event");
     }
   }
+  return aReason;
 }
 
 nsresult
