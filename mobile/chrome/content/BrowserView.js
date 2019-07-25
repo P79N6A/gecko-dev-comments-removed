@@ -510,7 +510,7 @@ BrowserView.prototype = {
   },
   
 
-  handleMozAfterSizeChange: function handleMozAfterPaint(ev) {
+  handleMozAfterSizeChange: function handleMozAfterSizeChange(ev) {
     
     
     
