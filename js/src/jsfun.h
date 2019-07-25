@@ -134,8 +134,6 @@ enum JSLocalKind {
 
 struct JSFunction : public JSObject
 {
-    
-
     uint16          nargs;        
 
     uint16          flags;        
@@ -271,7 +269,7 @@ struct JSFunction : public JSObject
   public:
     void setJoinable() {
         JS_ASSERT(FUN_INTERPRETED(this));
-        getSlotRef(METHOD_ATOM_SLOT).setNull();
+        fslots[METHOD_ATOM_SLOT].setNull();
         flags |= JSFUN_JOINABLE;
     }
 
@@ -281,14 +279,14 @@ struct JSFunction : public JSObject
 
 
     JSAtom *methodAtom() const {
-        return (joinable() && getSlot(METHOD_ATOM_SLOT).isString())
-               ? STRING_TO_ATOM(getSlot(METHOD_ATOM_SLOT).toString())
+        return (joinable() && fslots[METHOD_ATOM_SLOT].isString())
+               ? STRING_TO_ATOM(fslots[METHOD_ATOM_SLOT].toString())
                : NULL;
     }
 
     void setMethodAtom(JSAtom *atom) {
         JS_ASSERT(joinable());
-        getSlotRef(METHOD_ATOM_SLOT).setString(ATOM_TO_STRING(atom));
+        fslots[METHOD_ATOM_SLOT].setString(ATOM_TO_STRING(atom));
     }
 
     js::Native maybeNative() const {
@@ -302,6 +300,7 @@ struct JSFunction : public JSObject
 
     
     static const uint32 CLASS_RESERVED_SLOTS = JSObject::FUN_CLASS_RESERVED_SLOTS;
+    static const uint32 FIRST_FREE_SLOT = JSSLOT_PRIVATE + CLASS_RESERVED_SLOTS + 1;
 };
 
 JS_STATIC_ASSERT(sizeof(JSFunction) % JS_GCTHING_ALIGN == 0);
