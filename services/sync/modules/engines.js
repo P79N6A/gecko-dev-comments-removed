@@ -397,14 +397,19 @@ SyncEngine.prototype = {
     this._log.debug("Calculating client changes");
 
     
+    
+    
     if (!this.lastSync) {
       this._log.info("First sync, uploading all items");
+
+      
+      this._tracker.clearChangedIDs();
+
+      
       let all = yield this._getAllIDs.async(this, self.cb);
-      this._tracker.enable();
-      for (let key in all) {
-        this._tracker.addChangedID(key);
+      for (let id in all) {
+        this._tracker.changedIDs[id] = true;
       }
-      this._tracker.disable();
     }
 
     
