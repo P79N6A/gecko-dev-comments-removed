@@ -165,12 +165,6 @@ public:
   
 
 
-  virtual void RecreateAccessible(nsIPresShell* aPresShell,
-                                  nsIContent* aContent) = 0;
-
-  
-
-
 
 
 

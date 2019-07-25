@@ -173,8 +173,10 @@ public:
 
   virtual void PresShellActivated(nsIPresShell* aPresShell);
 
-  virtual void RecreateAccessible(nsIPresShell* aPresShell,
-                                  nsIContent* aContent);
+  
+
+
+  void RecreateAccessible(nsIPresShell* aPresShell, nsIContent* aContent);
 
   virtual void FireAccessibleEvent(PRUint32 aEvent, nsAccessible* aTarget);
 
