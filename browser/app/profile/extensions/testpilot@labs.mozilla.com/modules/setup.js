@@ -213,35 +213,6 @@ let TestPilotSetup = {
     }
   },
 
-  _setUpToolbarFeedbackButton: function TPS_toolbarFeedbackButton() {
-    
-
-
-    let logger = this._logger;
-    try {
-      let win = this._getFrontBrowserWindow();
-      let firefoxnav = win.document.getElementById("nav-bar");
-      let curSet = firefoxnav.currentSet;
-
-      if (-1 == curSet.indexOf("feedback-menu-button")) {
-        logger.info("Feedback toolbar button not present: Adding it.");
-        
-        let newSet = curSet + ",feedback-menu-button";
-
-        firefoxnav.setAttribute("currentset", newSet);
-        firefoxnav.currentSet = newSet;
-        win.document.persist("nav-bar", "currentset");
-        
-        try {
-          BrowserToolboxCustomizeDone(true);
-        } catch (e) {
-        }
-      }
-    } catch (e) {
-      logger.warn("Error in setUpToolbarFeedbackButton: " + e);
-    }
-  },
-
   globalStartup: function TPS__doGlobalSetup() {
     
     
@@ -296,11 +267,8 @@ let TestPilotSetup = {
             let url = self._prefs.getValue(FIRST_RUN_PREF, "");
             let tab = browser.addTab(url);
             browser.selectedTab = tab;
-          } else {
-            
-            
-            self._setUpToolbarFeedbackButton();
           }
+          
         }
 
         

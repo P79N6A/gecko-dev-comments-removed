@@ -209,6 +209,9 @@ var TestPilotTask = {
   },
 
   changeStatus: function TPS_changeStatus(newStatus, suppressNotification) {
+    
+    
+    
     let logger = Log4Moz.repository.getLogger("TestPilot.Task");
     logger.info("Changing task " + this._id + " status to " + newStatus);
     this._status = newStatus;
@@ -584,7 +587,7 @@ TestPilotExperiment.prototype = {
         this._reschedule();
       } else {
         
-        this.changeStatus(TaskConstants.STATUS_NEW);
+        this.changeStatus(TaskConstants.STATUS_NEW, true);
 
         
         let numTimesRun = this._numTimesRun;
@@ -610,7 +613,7 @@ TestPilotExperiment.prototype = {
       }
       
       this._dataStore.wipeAllData();
-      this.changeStatus(TaskConstants.STATUS_STARTING);
+      this.changeStatus(TaskConstants.STATUS_STARTING, true);
       Application.prefs.setValue(GUID_PREF_PREFIX + this._id, uuid);
       this.onExperimentStartup();
     }

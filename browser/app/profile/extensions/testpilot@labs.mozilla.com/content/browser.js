@@ -150,6 +150,8 @@ var TestPilotMenuUtils;
 
 
 
+      TestPilotWindowHandlers.setUpToolbarFeedbackButton();
+
       if (TestPilotSetup.startupComplete) {
         TestPilotSetup.onWindowLoad(window);
       } else {
@@ -162,6 +164,31 @@ var TestPilotMenuUtils;
           }
         };
         observerSvc.addObserver(observer, "testpilot:startup:complete", false);
+      }
+    },
+
+    setUpToolbarFeedbackButton: function() {
+      
+
+
+      if (!window.document.getElementById("feedback-menu-happy-button")) {
+        return;
+      }
+      let firefoxnav = window.document.getElementById("nav-bar");
+      let curSet = firefoxnav.currentSet;
+
+      if (-1 == curSet.indexOf("feedback-menu-button")) {
+        
+        let newSet = curSet + ",feedback-menu-button";
+
+        firefoxnav.setAttribute("currentset", newSet);
+        firefoxnav.currentSet = newSet;
+        window.document.persist("nav-bar", "currentset");
+        
+        try {
+          BrowserToolboxCustomizeDone(true);
+        } catch (e) {
+        }
       }
     },
 
