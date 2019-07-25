@@ -109,6 +109,9 @@ public:
   bool IsRunning() {
     return RUNNING == mRunning;
   }
+  bool HasStartedDestroying() {
+    return mRunning >= DESTROYING;
+  }
 
   
   bool CanFireNotifications() {
