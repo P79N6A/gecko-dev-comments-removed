@@ -654,7 +654,7 @@ protected:
   PRPackedBool mIsRunningLoadMethod;
 
   
-  PRPackedBool mIsLoadingFromSourceChildren;
+  PRPackedBool mIsLoadingFromSrcAttribute;
 
   
   
