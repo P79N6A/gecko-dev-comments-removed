@@ -99,9 +99,6 @@ struct BytecodeEmitter
 
     unsigned        emitLevel;      
 
-    typedef HashMap<JSAtom *, Value> ConstMap;
-    ConstMap        constMap;       
-
     GCConstList     constList;      
 
     CGObjectList    objectList;     
@@ -208,21 +205,6 @@ Emit3(JSContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1, jsbytecode o
 
 ptrdiff_t
 EmitN(JSContext *cx, BytecodeEmitter *bce, JSOp op, size_t extra);
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-DefineCompileTimeConstant(JSContext *cx, BytecodeEmitter *bce, JSAtom *atom, ParseNode *pn);
 
 
 
