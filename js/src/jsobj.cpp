@@ -3733,6 +3733,10 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
     JS_ASSERT(!a->isArrayBuffer() && !b->isArrayBuffer());
 
     
+    TypeObject *newTypeA = a->newType;
+    TypeObject *newTypeB = b->newType;
+
+    
     const size_t size = a->structSize();
     if (size == b->structSize()) {
         
@@ -3802,6 +3806,9 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
         reserved.newaslots = NULL;
         reserved.newbslots = NULL;
     }
+
+    a->newType = newTypeA;
+    b->newType = newTypeB;
 }
 
 
