@@ -794,32 +794,61 @@ MMul::analyzeRange()
 }
 
 void
-MBinaryArithInstruction::infer(const TypeOracle::Binary &b)
+MBinaryArithInstruction::infer(JSContext *cx, const TypeOracle::BinaryTypes &b)
 {
     
-    if (b.lhs >= MIRType_String || b.rhs >= MIRType_String) {
+    
+    
+    MIRType lhs = MIRTypeFromValueType(b.lhsTypes->getKnownTypeTag(cx));
+    MIRType rhs = MIRType_Int32;
+
+    
+    bool lhsCoerces = b.lhsTypes->knownNonStringPrimitive(cx);
+    bool rhsCoerces = true;
+
+    
+    if (b.rhsTypes) {
+        rhs = MIRTypeFromValueType(b.rhsTypes->getKnownTypeTag(cx));
+        rhsCoerces = b.rhsTypes->knownNonStringPrimitive(cx);
+    }
+
+    MIRType rval = MIRTypeFromValueType(b.outTypes->getKnownTypeTag(cx));
+
+    
+    if (!lhsCoerces || !rhsCoerces) {
+        specialization_ = MIRType_None;
+        return;
+    }
+
+    JS_ASSERT(lhs < MIRType_String || lhs == MIRType_Value);
+    JS_ASSERT(rhs < MIRType_String || rhs == MIRType_Value);
+
+    
+    if (lhs == MIRType_Value || rhs == MIRType_Value) {
+        if (rval != MIRType_Double) {
+            specialization_ = MIRType_None;
+            return;
+        }
+    }
+
+    
+    if (isMod() && rval == MIRType_Double) {
         specialization_ = MIRType_None;
         return;
     }
 
     
-    if (isMod() && b.rval == MIRType_Double) {
+    
+    if (rval == MIRType_Int32 && (lhs == MIRType_Undefined || rhs == MIRType_Undefined)) {
         specialization_ = MIRType_None;
         return;
     }
 
-    
-    
-    if (b.rval == MIRType_Int32 && (b.lhs == MIRType_Undefined || b.rhs == MIRType_Undefined)) {
-        specialization_ = MIRType_None;
-        return;
-    }
-
-    JS_ASSERT(b.rval == MIRType_Int32 || b.rval == MIRType_Double);
-    specialization_ = b.rval;
+    JS_ASSERT(rval == MIRType_Int32 || rval == MIRType_Double);
+    specialization_ = rval;
 
     setCommutative();
-    setResultType(b.rval);
+    setResultType(rval);
 }
 
 void

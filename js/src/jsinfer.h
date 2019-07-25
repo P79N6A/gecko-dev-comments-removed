@@ -500,6 +500,12 @@ class TypeSet
 
 
 
+    bool knownNonStringPrimitive(JSContext *cx);
+
+    
+
+
+
     int getTypedArrayType(JSContext *cx);
 
     
