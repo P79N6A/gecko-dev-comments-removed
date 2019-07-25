@@ -47,14 +47,35 @@ nsSVGClipPathFrame::ClipPaint(nsRenderingContext* aContext,
     mClipParentMatrix = new gfxMatrix(aMatrix);
   }
 
-  bool isTrivial = IsTrivial();
-
-  SVGAutoRenderState mode(aContext,
-                          isTrivial ? SVGAutoRenderState::CLIP
-                                    : SVGAutoRenderState::CLIP_MASK);
-
   gfxContext *gfx = aContext->ThebesContext();
 
+  nsISVGChildFrame *singleClipPathChild = nsnull;
+
+  if (IsTrivial(&singleClipPathChild)) {
+    
+    
+    SVGAutoRenderState mode(aContext, SVGAutoRenderState::CLIP);
+
+    if (!singleClipPathChild) {
+      
+      gfx->Rectangle(gfxRect());
+    } else {
+      singleClipPathChild->NotifySVGChanged(
+                             nsISVGChildFrame::DO_NOT_NOTIFY_RENDERING_OBSERVERS | 
+                             nsISVGChildFrame::TRANSFORM_CHANGED);
+      singleClipPathChild->PaintSVG(aContext, nsnull);
+    }
+    gfx->Clip();
+    gfx->NewPath();
+    return NS_OK;
+  }
+
+  
+
+  
+  SVGAutoRenderState mode(aContext, SVGAutoRenderState::CLIP_MASK);
+
+  
   nsSVGClipPathFrame *clipPathFrame =
     nsSVGEffects::GetEffectProperties(this).GetClipPathFrame(nsnull);
   bool referencedClipIsTrivial;
@@ -134,11 +155,6 @@ nsSVGClipPathFrame::ClipPaint(nsRenderingContext* aContext,
     gfx->Restore();
   }
 
-  if (isTrivial) {
-    gfx->Clip();
-    gfx->NewPath();
-  }
-
   return NS_OK;
 }
 
@@ -185,13 +201,17 @@ nsSVGClipPathFrame::ClipHitTest(nsIFrame* aParent,
 }
 
 bool
-nsSVGClipPathFrame::IsTrivial()
+nsSVGClipPathFrame::IsTrivial(nsISVGChildFrame **aSingleChild)
 {
   
   if (nsSVGEffects::GetEffectProperties(this).GetClipPathFrame(nsnull))
     return false;
 
-  bool foundChild = false;
+  if (aSingleChild) {
+    *aSingleChild = nsnull;
+  }
+
+  nsISVGChildFrame *foundChild = nsnull;
 
   for (nsIFrame* kid = mFrames.FirstChild(); kid;
        kid = kid->GetNextSibling()) {
@@ -206,8 +226,11 @@ nsSVGClipPathFrame::IsTrivial()
       if (nsSVGEffects::GetEffectProperties(kid).GetClipPathFrame(nsnull))
         return false;
 
-      foundChild = true;
+      foundChild = svgChild;
     }
+  }
+  if (aSingleChild) {
+    *aSingleChild = foundChild;
   }
   return true;
 }

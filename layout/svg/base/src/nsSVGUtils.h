@@ -161,7 +161,25 @@ private:
 class NS_STACK_CLASS SVGAutoRenderState
 {
 public:
-  enum RenderMode { NORMAL, CLIP, CLIP_MASK };
+  enum RenderMode {
+    
+
+
+    NORMAL, 
+    
+
+
+
+
+    CLIP, 
+    
+
+
+
+
+
+    CLIP_MASK 
+  };
 
   SVGAutoRenderState(nsRenderingContext *aContext, RenderMode aMode);
   ~SVGAutoRenderState();
