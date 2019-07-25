@@ -1515,12 +1515,15 @@ BookmarksTracker.prototype = {
   
   onItemChanged: function BMT_onItemChanged(itemId, property, isAnno, value) {
     
-    
-    if (this.ignoreAll || property == "favicon")
+    if (this.ignoreAll)
       return;
 
-    if (isAnno && (ANNOS_TO_TRACK.indexOf(anno) == -1))
+    if (isAnno && (ANNOS_TO_TRACK.indexOf(property) == -1))
       
+      return;
+
+    
+    if (property == "favicon")
       return;
 
     if (this._ignore(itemId))
