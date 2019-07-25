@@ -371,9 +371,16 @@ RESTRequest.prototype = {
 
     
     
-    this._inputStream = Cc["@mozilla.org/scriptableinputstream;1"]
+    
+    
+    if (channel.contentCharset) {
+      response.charset = channel.contentCharset;
+      this._converterStream = Cc["@mozilla.org/intl/converter-input-stream;1"]
+                                .createInstance(Ci.nsIConverterInputStream);
+    } else {
+      this._inputStream = Cc["@mozilla.org/scriptableinputstream;1"]
                           .createInstance(Ci.nsIScriptableInputStream);
-
+    }
     this.delayTimeout();
   },
 
@@ -435,9 +442,21 @@ RESTRequest.prototype = {
   },
 
   onDataAvailable: function onDataAvailable(req, cb, stream, off, count) {
-    this._inputStream.init(stream);
     try {
-      this.response.body += this._inputStream.read(count);
+      if (this._inputStream) {
+        this._inputStream.init(stream);
+        this.response.body += this._inputStream.read(count);
+      } else {
+        let str = {};
+        this._converterStream.init(
+          stream, this.response.charset, 0,
+          this._converterStream.DEFAULT_REPLACEMENT_CHARACTER
+        );
+        let num = this._converterStream.readString(count, str);
+        if (num != 0) {
+          this.response.body += str.value;
+        }
+      }
     } catch (ex) {
       this._log.warn("Exception thrown reading " + count +
                      " bytes from the channel.");
