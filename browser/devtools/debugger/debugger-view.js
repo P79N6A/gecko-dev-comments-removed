@@ -1095,6 +1095,17 @@ DebuggerView.Scripts = {
   
 
 
+  scriptLocations: function DVS_scriptLocations() {
+    let locations = [];
+    for (let i = 0; i < this._scripts.itemCount; i++) {
+      locations.push(this._scripts.getItemAtIndex(i).value);
+    }
+    return locations;
+  },
+
+  
+
+
   _onScriptsChange: null,
 
   
