@@ -427,7 +427,7 @@ xpc_qsStringToJsval(JSContext *cx, nsString &str, jsval *rval);
 
 
 JSBool
-xpc_qsStringToJsstring(JSContext *cx, const nsAString &str, JSString **rval);
+xpc_qsStringToJsstring(JSContext *cx, nsString &str, JSString **rval);
 
 nsresult
 getWrapper(JSContext *cx,
