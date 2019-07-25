@@ -1263,6 +1263,17 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
         SEEK_LOG(PR_LOG_DEBUG, ("Backing off %d bytes, backsteps=%d",
           static_cast<PRInt32>(PAGE_STEP * pow(2.0, backsteps)), backsteps));
         guess -= PAGE_STEP * static_cast<ogg_int64_t>(pow(2.0, backsteps));
+
+        if (guess <= startOffset) {
+          
+          
+          
+          
+          
+          interval = 0;
+          break;
+        }
+
         backsteps = NS_MIN(backsteps + 1, maxBackStep);
         
         
