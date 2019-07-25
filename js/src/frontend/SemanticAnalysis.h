@@ -10,11 +10,10 @@
 
 namespace js {
 
+struct Parser;
 class StackFrame;
 
 namespace frontend {
-
-class Parser;
 
 
 

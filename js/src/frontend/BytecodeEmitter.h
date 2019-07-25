@@ -25,7 +25,6 @@
 #include "vm/ScopeObject.h"
 
 namespace js {
-namespace frontend {
 
 struct TryNode {
     JSTryNote       note;
@@ -184,6 +183,8 @@ struct BytecodeEmitter
     bool reportStrictWarning(ParseNode *pn, unsigned errorNumber, ...);
     bool reportStrictModeError(ParseNode *pn, unsigned errorNumber, ...);
 };
+
+namespace frontend {
 
 
 
@@ -409,6 +410,8 @@ FinishTakingSrcNotes(JSContext *cx, BytecodeEmitter *bce, jssrcnote *notes);
 void
 FinishTakingTryNotes(BytecodeEmitter *bce, TryNoteArray *array);
 
+} 
+
 
 
 
@@ -463,7 +466,6 @@ inline bool LetDataToGroupAssign(ptrdiff_t w)
     return size_t(w) & 1;
 }
 
-} 
 } 
 
 struct JSSrcNoteSpec {

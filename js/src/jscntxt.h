@@ -1112,7 +1112,7 @@ struct JSContext : js::ContextFriendFields
 
   private:
     
-    js::frontend::ParseMapPool *parseMapPool_;
+    js::ParseMapPool    *parseMapPool_;
 
   public:
     
@@ -1141,7 +1141,7 @@ struct JSContext : js::ContextFriendFields
     inline js::RegExpStatics *regExpStatics();
 
   public:
-    js::frontend::ParseMapPool &parseMapPool() {
+    js::ParseMapPool &parseMapPool() {
         JS_ASSERT(parseMapPool_);
         return *parseMapPool_;
     }

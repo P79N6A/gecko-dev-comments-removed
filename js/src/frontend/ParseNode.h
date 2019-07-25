@@ -17,7 +17,6 @@
 #include "frontend/TreeContext.h"
 
 namespace js {
-namespace frontend {
 
 
 
@@ -1538,7 +1537,6 @@ struct FunctionBox : public ObjectBox
     bool inAnyDynamicScope() const;
 };
 
-} 
 } 
 
 #endif 

@@ -15,22 +15,10 @@
 #include "js/Vector.h"
 
 namespace js {
-namespace frontend {
 
 struct Definition;
-class DefinitionList;
 
-typedef InlineMap<JSAtom *, jsatomid, 24> AtomIndexMap;
-typedef InlineMap<JSAtom *, Definition *, 24> AtomDefnMap;
 typedef InlineMap<JSAtom *, DefinitionList, 24> AtomDefnListMap;
-
-
-
-
-
-
-void
-InitAtomMap(JSContext *cx, AtomIndexMap *indices, HeapPtr<JSAtom> *atoms);
 
 
 
@@ -322,6 +310,14 @@ class DefinitionList
 #endif
 };
 
+namespace tl {
+
+template <> struct IsPodType<DefinitionList> {
+    static const bool result = true;
+};
+
+} 
+
 
 
 
@@ -404,16 +400,6 @@ typedef AtomIndexMap::Ptr       AtomIndexPtr;
 typedef AtomDefnListMap::Ptr    AtomDefnListPtr;
 typedef AtomDefnListMap::AddPtr AtomDefnListAddPtr;
 typedef AtomDefnListMap::Range  AtomDefnListRange;
-
-} 
-
-namespace tl {
-
-template <> struct IsPodType<frontend::DefinitionList> {
-    static const bool result = true;
-};
-
-} 
 
 } 
 

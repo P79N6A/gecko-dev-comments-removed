@@ -27,7 +27,6 @@
 #undef JS_KEYWORD
 
 namespace js {
-namespace frontend {
 
 enum TokenKind {
     TOK_ERROR = -1,                
@@ -840,14 +839,13 @@ IsIdentifier(JSLinearString *str);
 #define JSREPORT_UC 0x100
 
 } 
-} 
 
 extern JS_FRIEND_API(int)
 js_fgets(char *buf, int size, FILE *file);
 
 #ifdef DEBUG
 extern const char *
-TokenKindToString(js::frontend::TokenKind tt);
+TokenKindToString(js::TokenKind tt);
 #endif
 
 #endif 
