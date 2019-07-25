@@ -182,8 +182,6 @@ window.Page = {
   showChrome: function(){
     let currentWin = Utils.getCurrentWindow();
     currentWin.document.getElementById("tab-candy-deck").selectedIndex = 0;
-
-    this.setCloseButtonOnTabs();
     
     
     Utils.getCurrentWindow().document.getElementById("main-window").
@@ -219,19 +217,6 @@ window.Page = {
         UI.resize(true);
       });
     }
-  },
-
-  setCloseButtonOnTabs : function() {
-    
-    
-    
-    iQ.timeout(function() { 
-      var tabContainer = Utils.getCurrentWindow().gBrowser.tabContainer;
-      if (tabContainer.mCloseButtons == 1 &&
-          tabContainer.getAttribute("overflow") != "true") {
-        tabContainer.setAttribute("closebuttons", "alltabs");
-      };
-    }, 50);
   },
   
   setupKeyHandlers: function(){
@@ -313,8 +298,6 @@ window.Page = {
     Tabs.onClose(function(){
       if (!self.isTabCandyVisible()) {
         iQ.timeout(function() { 
-          Page.setCloseButtonOnTabs();        
-            
           
           
           var group = Groups.getActiveGroup();
@@ -604,12 +587,6 @@ UIClass.prototype = {
         self.newTab('http://feedback.mozillalabs.com/forums/56804-tabcandy');
       });
 
-      Tabs.onOpen(function(a, b) {
-        iQ.timeout(function() { 
-          Page.setCloseButtonOnTabs();
-        }, 1);
-      });
-
       iQ(window).bind('beforeunload', function() {
         
         if(self.showChrome)
@@ -631,10 +608,7 @@ UIClass.prototype = {
         
       currentWindow.addEventListener(
         "tabcandyhide", function() { Page.showChrome(); }, false);
-        
-      currentWindow.addEventListener(
-        "resize", function() { Page.setCloseButtonOnTabs(); }, false);
-        
+          
       
       Storage.onReady(function() {
         self.delayInit();

@@ -44,6 +44,15 @@ var StarUI = {
   uri: null,
   _batching: false,
 
+  
+  QueryInterface: function SU_QueryInterface(aIID) {
+    if (aIID.equals(Ci.nsIDOMEventListener) ||
+        aIID.equals(Ci.nsISupports))
+      return this;
+
+    throw Cr.NS_NOINTERFACE;
+  },
+
   _element: function(aID) {
     return document.getElementById(aID);
   },
@@ -61,32 +70,29 @@ var StarUI = {
   },
 
   
-  get _blockedCommands() {
-    delete this._blockedCommands;
-    return this._blockedCommands =
-      ["cmd_close", "cmd_closeWindow"].map(function (id) this._element(id), this);
-  },
-
+  _blockedCommands: ["cmd_close", "cmd_closeWindow"],
   _blockCommands: function SU__blockCommands() {
-    this._blockedCommands.forEach(function (elt) {
+    for each(var key in this._blockedCommands) {
+      var elt = this._element(key);
       
       if (elt.hasAttribute("wasDisabled"))
-        return;
-      if (elt.getAttribute("disabled") == "true") {
+        continue;
+      if (elt.getAttribute("disabled") == "true")
         elt.setAttribute("wasDisabled", "true");
-      } else {
+      else {
         elt.setAttribute("wasDisabled", "false");
         elt.setAttribute("disabled", "true");
       }
-    });
+    }
   },
 
   _restoreCommandsState: function SU__restoreCommandsState() {
-    this._blockedCommands.forEach(function (elt) {
+    for each(var key in this._blockedCommands) {
+      var elt = this._element(key);
       if (elt.getAttribute("wasDisabled") != "true")
         elt.removeAttribute("disabled");
       elt.removeAttribute("wasDisabled");
-    });
+    }
   },
 
   
@@ -480,8 +486,8 @@ var PlacesCommandHook = {
     var tabList = [];
     var seenURIs = {};
 
-    let tabs = gBrowser.visibleTabs;
-    for (let i = 0; i < tabs.length; ++i) {
+    var tabs = TabCandy.getVisibleTabs();
+    for (var i = 0; i < tabs.length; ++i) {
       let uri = tabs[i].linkedBrowser.currentURI;
 
       
@@ -736,28 +742,6 @@ HistoryMenu.prototype = {
       "for (var i = 0; i < " + undoItems.length + "; i++) undoCloseWindow();");
   },
 
-  toggleTabsFromOtherComputers: function PHM_toggleTabsFromOtherComputers() {
-    
-#ifdef MOZ_SERVICES_SYNC
-    
-    let menuitem = document.getElementById("sync-tabs-menuitem");
-
-    
-    if (Weave.Status.service == Weave.CLIENT_NOT_CONFIGURED ||
-        Weave.Svc.Prefs.get("firstSync", "") == "notReady") {
-      menuitem.setAttribute("hidden", true);
-      return;
-    }
-
-    
-    
-    let enabled = Weave.Service.isLoggedIn && Weave.Engines.get("tabs") &&
-                  Weave.Engines.get("tabs").enabled;
-    menuitem.setAttribute("disabled", !enabled);
-    menuitem.setAttribute("hidden", false);
-#endif
-  },
-
   _onPopupShowing: function HM__onPopupShowing(aEvent) {
     PlacesMenu.prototype._onPopupShowing.apply(this, arguments);
 
@@ -767,7 +751,6 @@ HistoryMenu.prototype = {
 
     this.toggleRecentlyClosedTabs();
     this.toggleRecentlyClosedWindows();
-    this.toggleTabsFromOtherComputers();
   },
 
   _onCommand: function HM__onCommand(aEvent) {
@@ -1084,34 +1067,30 @@ var PlacesStarButton = {
 
 let PlacesToolbarHelper = {
   _place: "place:folder=TOOLBAR",
+  _cachedElt: null,
 
-  get _viewElt() {
-    return document.getElementById("PlacesToolbar");
+  onBrowserWindowClose: function PTH_onBrowserWindowClose() {
+    if (this._cachedElt)
+      this._cachedElt._placesView.uninit();
   },
 
-  init: function PTH_init() {
-    let viewElt = this._viewElt;
-    if (!viewElt || viewElt._placesView)
-      return;
+  updateState: function PTH_updateState() {
+    let currentElt = document.getElementById("PlacesToolbar");
 
     
-    
-    let toolbar = viewElt.parentNode.parentNode;
-    if (toolbar.collapsed ||
-        getComputedStyle(toolbar, "").display == "none")
+    if (currentElt == this._cachedElt)
       return;
 
-    new PlacesToolbar(this._place);
-  },
-
-  customizeStart: function PTH_customizeStart() {
-    let viewElt = this._viewElt;
-    if (viewElt && viewElt._placesView)
-      viewElt._placesView.uninit();
-  },
-
-  customizeDone: function PTH_customizeDone() {
-    this.init();
+    if (!this._cachedElt) {
+      
+      new PlacesToolbar(this._place);
+      this._cachedElt = currentElt;
+    }
+    else {
+      
+      this._cachedElt._placesView.uninit();
+      this._cachedElt = null;
+    }
   }
 };
 
@@ -1119,11 +1098,14 @@ let PlacesToolbarHelper = {
 
 let BookmarksMenuButton = {
   get button() {
-    return document.getElementById("bookmarks-menu-button");
+    delete this.button;
+    return this.button = document.getElementById("bookmarks-menu-button");
   },
 
-  get buttonContainer() {
-    return document.getElementById("bookmarks-menu-button-container");
+  get navbarButtonContainer() {
+    delete this.navbarButtonContainer;
+    return this.navbarButtonContainer =
+             document.getElementById("bookmarks-menu-button-container");
   },
 
   get personalToolbar() {
@@ -1170,92 +1152,50 @@ let BookmarksMenuButton = {
 
     
     
-    let button = this.button;
-    document.getElementById("BMB_bookmarksToolbarFolderMenu").collapsed =
-      button && button.parentNode == this.bookmarksToolbarItem;
+    let bookmarksToolbarElt =
+      document.getElementById("BMB_bookmarksToolbarFolderMenu");
+    bookmarksToolbarElt.collapsed =
+      this.button.parentNode == this.bookmarksToolbarItem;
   },
 
   updatePosition: function BMB_updatePosition() {
     this._popupNeedsUpdating = true;
 
-    let button = this.button;
-    if (!button)
-      return;
-
-    
-    
     let bookmarksToolbarItem = this.bookmarksToolbarItem;
-    let bookmarksOnVisibleToolbar = bookmarksToolbarItem &&
-                                    !bookmarksToolbarItem.parentNode.collapsed &&
-                                    bookmarksToolbarItem.parentNode.getAttribute("autohide") != "true";
-
-    
-    
-    let container = this.buttonContainer;
-    let containerNearBookmarks = container && bookmarksToolbarItem &&
-                                 container.parentNode == bookmarksToolbarItem.parentNode;
-
-    if (bookmarksOnVisibleToolbar && !containerNearBookmarks) {
-      if (button.parentNode != bookmarksToolbarItem) {
-        this._uninitView();
-        bookmarksToolbarItem.appendChild(button);
+    if (isElementVisible(bookmarksToolbarItem)) {
+      if (this.button.parentNode != bookmarksToolbarItem) {
+        this.resetView();
+        bookmarksToolbarItem.appendChild(this.button);
       }
+      this.button.classList.add("bookmark-item");
+      this.button.classList.remove("toolbarbutton-1");
     }
     else {
-      if (container && button.parentNode != container) {
-        this._uninitView();
-        container.appendChild(button);
+      if (this.button.parentNode != this.navbarButtonContainer) {
+        this.resetView();
+        this.navbarButtonContainer.appendChild(this.button);
       }
-    }
-    this._updateStyle();
-  },
-
-  _updateStyle: function BMB__updateStyle() {
-    let button = this.button;
-    if (!button)
-      return;
-
-    let container = this.buttonContainer;
-    let containerOnPersonalToolbar = container &&
-                                     (container.parentNode == this.personalToolbar ||
-                                      container.parentNode.parentNode == this.personalToolbar);
-
-    if (button.parentNode == this.bookmarksToolbarItem ||
-        containerOnPersonalToolbar) {
-      button.classList.add("bookmark-item");
-      button.classList.remove("toolbarbutton-1");
-    }
-    else {
-      button.classList.remove("bookmark-item");
-      button.classList.add("toolbarbutton-1");
+      this.button.classList.remove("bookmark-item");
+      this.button.classList.add("toolbarbutton-1");
     }
   },
 
-  _uninitView: function BMB__uninitView() {
+  resetView: function BMB_resetView() {
     
     
     
-    let button = this.button;
-    if (button && button._placesView)
-      button._placesView.uninit();
+    if (this.button._placesView)
+      this.button._placesView.uninit();
   },
 
   customizeStart: function BMB_customizeStart() {
-    this._uninitView();
-    let button = this.button;
-    let container = this.buttonContainer;
-    if (button && container && button.parentNode != container) {
-      
-      container.appendChild(button);
-      this._updateStyle();
-    }
-  },
-
-  customizeChange: function BMB_customizeChange() {
-    this._updateStyle();
+    var bmToolbarItem = this.bookmarksToolbarItem;
+    if (this.button.parentNode == bmToolbarItem)
+      bmToolbarItem.removeChild(this.button);
   },
 
   customizeDone: function BMB_customizeDone() {
+    this.resetView();
     this.updatePosition();
   }
 };
