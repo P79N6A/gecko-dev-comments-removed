@@ -15,6 +15,8 @@
 #include "base/ref_counted.h"
 #include "base/task.h"
 
+namespace base {
+
 
 
 
@@ -195,5 +197,7 @@ class ObserverListThreadSafe
 
   DISALLOW_EVIL_CONSTRUCTORS(ObserverListThreadSafe);
 };
+
+} 
 
 #endif  

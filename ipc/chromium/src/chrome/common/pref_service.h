@@ -223,7 +223,7 @@ class PrefService : public NonThreadSafe {
 
   
   
-  typedef ObserverList<NotificationObserver> NotificationObserverList;
+  typedef base::ObserverList<NotificationObserver> NotificationObserverList;
   typedef base::hash_map<std::wstring, NotificationObserverList*>
       PrefObserverMap;
   PrefObserverMap pref_observers_;
