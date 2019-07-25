@@ -77,8 +77,8 @@ function doEditorTestSteps()
     EventUtils.synthesizeMouse(attrValNode_id, 2, 2, {clickCount: 2}, attrValNode_id.ownerDocument.defaultView);
   });
 
-  yield; 
 
+  yield; 
 
   
   ok(InspectorUI.treePanel.editingContext, "Step 2: editor session started");

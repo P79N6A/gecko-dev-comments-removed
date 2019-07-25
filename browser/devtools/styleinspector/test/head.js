@@ -36,11 +36,13 @@
 
 
 let tempScope = {};
-Cu.import("resource:///modules/devtools/StyleInspector.jsm", tempScope);
+Cu.import("resource:///modules/devtools/CssLogic.jsm", tempScope);
+Cu.import("resource:///modules/devtools/CssHtmlTree.jsm", tempScope);
 Cu.import("resource://gre/modules/HUDService.jsm", tempScope);
-let StyleInspector = tempScope.StyleInspector;
 let HUDService = tempScope.HUDService;
 let ConsoleUtils = tempScope.ConsoleUtils;
+let CssLogic = tempScope.CssLogic;
+let CssHtmlTree = tempScope.CssHtmlTree;
 
 function log(aMsg)
 {
@@ -190,6 +192,149 @@ function tearDown()
     gBrowser.removeCurrentTab();
   }
   tab = browser = hudId = hud = filterBox = outputNode = cs = null;
+}
+
+
+
+
+function ComputedViewPanel(aContext)
+{
+  this._init(aContext);
+}
+
+ComputedViewPanel.prototype = {
+  _init: function CVP_init(aContext)
+  {
+    this.window = aContext;
+    this.document = this.window.document;
+    this.cssLogic = new CssLogic();
+    this.panelReady = false;
+    this.iframeReady = false;
+  },
+
+  
+
+
+
+  createPanel: function SI_createPanel(aSelection, aCallback)
+  {
+    let popupSet = this.document.getElementById("mainPopupSet");
+    let panel = this.document.createElement("panel");
+
+    panel.setAttribute("class", "styleInspector");
+    panel.setAttribute("orient", "vertical");
+    panel.setAttribute("ignorekeys", "true");
+    panel.setAttribute("noautofocus", "true");
+    panel.setAttribute("noautohide", "true");
+    panel.setAttribute("titlebar", "normal");
+    panel.setAttribute("close", "true");
+    panel.setAttribute("label", "Computed View");
+    panel.setAttribute("width", 350);
+    panel.setAttribute("height", this.window.screen.height / 2);
+
+    this._openCallback = aCallback;
+    this.selectedNode = aSelection;
+
+    let iframe = this.document.createElement("iframe");
+    let boundIframeOnLoad = function loadedInitializeIframe()
+    {
+      this.iframeReady = true;
+      this.iframe.removeEventListener("load", boundIframeOnLoad, true);
+      this.panel.openPopup(this.window.gBrowser.selectedBrowser, "end_before", 0, 0, false, false);
+    }.bind(this);
+
+    iframe.flex = 1;
+    iframe.setAttribute("tooltip", "aHTMLTooltip");
+    iframe.addEventListener("load", boundIframeOnLoad, true);
+    iframe.setAttribute("src", "chrome://browser/content/devtools/csshtmltree.xul");
+
+    panel.appendChild(iframe);
+    popupSet.appendChild(panel);
+
+    this._boundPopupShown = this.popupShown.bind(this);
+    panel.addEventListener("popupshown", this._boundPopupShown, false);
+
+    this.panel = panel;
+    this.iframe = iframe;
+
+    return panel;
+  },
+
+  
+
+
+  popupShown: function SI_popupShown()
+  {
+    this.panelReady = true;
+    this.cssHtmlTree = new CssHtmlTree(this);
+    let selectedNode = this.selectedNode || null;
+    this.cssLogic.highlight(selectedNode);
+    this.cssHtmlTree.highlight(selectedNode);
+    if (this._openCallback) {
+      this._openCallback();
+      delete this._openCallback;
+    }
+  },
+
+  isLoaded: function SI_isLoaded()
+  {
+    return this.iframeReady && this.panelReady;
+  },
+
+  
+
+
+
+  selectFromPath: function SI_selectFromPath(aNode)
+  {
+    this.selectNode(aNode);
+  },
+
+  
+
+
+
+  selectNode: function SI_selectNode(aNode)
+  {
+    this.selectedNode = aNode;
+
+    if (this.isLoaded()) {
+      this.cssLogic.highlight(aNode);
+      this.cssHtmlTree.highlight(aNode);
+    }
+  },
+
+  
+
+
+  destroy: function SI_destroy()
+  {
+    this.panel.hidePopup();
+
+    if (this.cssHtmlTree) {
+      this.cssHtmlTree.destroy();
+      delete this.cssHtmlTree;
+    }
+
+    if (this.iframe) {
+      this.iframe.parentNode.removeChild(this.iframe);
+      delete this.iframe;
+    }
+
+    delete this.cssLogic;
+    this.panel.removeEventListener("popupshown", this._boundPopupShown, false);
+    delete this._boundPopupShown;
+    this.panel.parentNode.removeChild(this.panel);
+    delete this.panel;
+    delete this.doc;
+    delete this.win;
+    delete CssHtmlTree.win;
+  },
+};
+
+function ruleView()
+{
+  return InspectorUI.sidebar._toolContext("ruleview").view;
 }
 
 registerCleanupFunction(tearDown);

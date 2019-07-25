@@ -44,6 +44,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Cu = Components.utils;
 const Ci = Components.interfaces;
@@ -54,7 +55,6 @@ var EXPORTED_SYMBOLS = ["InspectorUI"];
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/TreePanel.jsm");
-Cu.import("resource:///modules/devtools/CssRuleView.jsm");
 Cu.import("resource:///modules/highlighter.jsm");
 Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
 
@@ -77,9 +77,6 @@ const INSPECTOR_NOTIFICATIONS = {
   TREEPANELREADY: "inspector-treepanel-ready",
 
   
-  RULEVIEWREADY: "inspector-ruleview-ready",
-
-  
   EDITOR_OPENED: "inspector-editor-opened",
   EDITOR_CLOSED: "inspector-editor-closed",
   EDITOR_SAVED: "inspector-editor-saved",
@@ -97,8 +94,192 @@ const PSEUDO_CLASSES = [":hover", ":active", ":focus"];
 
 
 
+
+
+
+function Inspector(aIUI)
+{
+  this._IUI = aIUI;
+  this._winID = aIUI.winID;
+  this._listeners = {};
+}
+
+Inspector.prototype = {
+  
+
+
+  get locked() {
+    return !this._IUI.inspecting;
+  },
+
+  
+
+
+  get selection() {
+    return this._IUI.selection;
+  },
+
+  
+
+
+
+
+  markDirty: function Inspector_markDirty()
+  {
+    this._IUI.isDirty = true;
+  },
+
+  
+
+
+  get chromeWindow() {
+    return this._IUI.chromeWin;
+  },
+
+  
+
+
+
+
+
+
+
+
+  _getStore: function Inspector__getStore(aStoreID)
+  {
+    let storeID = "tool-store-" + aStoreID;
+    let store = this._getStoreValue(storeID);
+    if (!store) {
+      store = {};
+      this._setStoreValue(storeID, store);
+    }
+    return store;
+  },
+
+  
+
+
+
+
+
+  _setStoreValue: function Inspector__setStoreValue(aID, aValue)
+  {
+    this._IUI.store.setValue(this._winID, aID, aValue);
+  },
+
+  
+
+
+
+
+
+  _getStoreValue: function Inspector__getStoreValue(aID)
+  {
+    return this._IUI.store.getValue(this._winID, aID);
+  },
+
+  
+
+
+
+
+
+
+
+  change: function Inspector_change(aContext)
+  {
+    this._IUI.nodeChanged(aContext);
+  },
+
+  
+
+
+  _destroy: function Inspector__destroy()
+  {
+    delete this._IUI;
+    delete this._listeners;
+  },
+
+  
+  
+
+  
+
+
+
+
+
+
+
+  on: function Inspector_on(aEvent, aListener)
+  {
+    if (!(aEvent in this._listeners)) {
+      this._listeners[aEvent] = [];
+    }
+    this._listeners[aEvent].push(aListener);
+  },
+
+  
+
+
+
+
+
+
+
+  once: function Inspector_once(aEvent, aListener)
+  {
+    let handler = function() {
+      this.removeListener(aEvent, handler);
+      aListener();
+    }.bind(this);
+    this.on(aEvent, handler);
+  },
+
+  
+
+
+
+
+
+
+
+
+  removeListener: function Inspector_removeListener(aEvent, aListener)
+  {
+    this._listeners[aEvent] = this._listeners[aEvent].filter(function(l) aListener != l);
+  },
+
+  
+
+
+
+  _emit: function Inspector__emit(aEvent)
+  {
+    if (!(aEvent in this._listeners))
+      return;
+    for each (let listener in this._listeners[aEvent]) {
+      listener.apply(null, arguments);
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
 function InspectorUI(aWindow)
 {
+  
+  let tmp = {};
+  Cu.import("resource:///modules/devtools/StyleInspector.jsm", tmp);
+
   this.chromeWin = aWindow;
   this.chromeDoc = aWindow.document;
   this.tabbrowser = aWindow.gBrowser;
@@ -117,6 +298,19 @@ InspectorUI.prototype = {
   ruleViewEnabled: true,
   isDirty: false,
   store: null,
+
+  _currentInspector: null,
+  _sidebar: null,
+
+  
+
+
+  get currentInspector() this._currentInspector,
+
+  
+
+
+  get sidebar() this._sidebar,
 
   
 
@@ -194,95 +388,6 @@ InspectorUI.prototype = {
   
 
 
-  showSidebar: function IUI_showSidebar()
-  {
-    this.sidebarBox.removeAttribute("hidden");
-    this.sidebarSplitter.removeAttribute("hidden");
-    this.stylingButton.checked = true;
-
-    
-    
-
-    if (!Array.some(this.sidebarToolbar.children,
-      function(btn) btn.hasAttribute("checked"))) {
-
-      let activePanel = this.sidebarTools[0];
-      let activeId = this.store.getValue(this.winID, "activeSidebar");
-      if (activeId && this.tools[activeId]) {
-        activePanel = this.tools[activeId];
-      }
-      this.activateSidebarPanel(activePanel.id);
-    }
-
-    this.store.setValue(this.winID, "sidebarOpen", true);
-    Services.prefs.setBoolPref("devtools.inspector.sidebarOpen", true);
-  },
-
-  
-
-
-  _destroySidebar: function IUI_destroySidebar()
-  {
-    this.sidebarBox.setAttribute("hidden", "true");
-    this.sidebarSplitter.setAttribute("hidden", "true");
-    this.stylingButton.checked = false;
-  },
-
-  
-
-
-  hideSidebar: function IUI_hideSidebar()
-  {
-    this._destroySidebar();
-    this.store.setValue(this.winID, "sidebarOpen", false);
-    Services.prefs.setBoolPref("devtools.inspector.sidebarOpen", false);
-  },
-
-  
-
-
-
-  toggleSidebar: function IUI_toggleSidebar()
-  {
-    if (!this.isSidebarOpen) {
-      this.showSidebar();
-    } else {
-      this.hideSidebar();
-    }
-  },
-
-  
-
-
-  activateSidebarPanel: function IUI_activateSidebarPanel(aID)
-  {
-    let buttonId = this.getToolbarButtonId(aID);
-    this.chromeDoc.getElementById(buttonId).click();
-  },
-
-  get activeSidebarPanel()
-  {
-    for each (let tool in this.sidebarTools) {
-      if (this.sidebarDeck.selectedPanel == this.getToolIframe(tool)) {
-        return tool.id;
-      }
-    }
-    return null;
-  },
-
-  
-
-
-  get isSidebarOpen()
-  {
-    return this.stylingButton.checked &&
-          !this.sidebarBox.hidden &&
-          !this.sidebarSplitter.hidden;
-  },
-
-  
-
-
 
   toggleInspection: function IUI_toggleInspection()
   {
@@ -295,6 +400,19 @@ InspectorUI.prototype = {
       this.stopInspecting();
     } else {
       this.startInspecting();
+    }
+  },
+
+  
+
+
+
+  toggleSidebar: function IUI_toggleSidebar()
+  {
+    if (!this.isSidebarOpen) {
+      this.showSidebar();
+    } else {
+      this.hideSidebar();
     }
   },
 
@@ -379,21 +497,9 @@ InspectorUI.prototype = {
     this.inspectToolbutton =
       this.chromeDoc.getElementById("inspector-inspect-toolbutton");
 
-    this.initTools();
     this.chromeWin.Tilt.setup();
 
     this.treePanel = new TreePanel(this.chromeWin, this);
-
-    if (Services.prefs.getBoolPref("devtools.ruleview.enabled") &&
-        !this.toolRegistered("ruleview")) {
-      this.registerRuleView();
-    }
-
-    if (Services.prefs.getBoolPref("devtools.styleinspector.enabled") &&
-        !this.toolRegistered("styleinspector")) {
-      this.stylePanel = new StyleInspector(this.chromeWin, this);
-    }
-
     this.toolbar.hidden = false;
     this.inspectMenuitem.setAttribute("checked", true);
 
@@ -409,6 +515,19 @@ InspectorUI.prototype = {
     
     this.highlighter = new Highlighter(this.chromeWin);
 
+    this._currentInspector = new Inspector(this);
+
+    this._sidebar = new InspectorStyleSidebar({
+      document: this.chromeDoc,
+      inspector: this._currentInspector,
+    });
+
+    
+    
+    for each (let tool in InspectorUI._registeredSidebars) {
+      this._sidebar.addTool(tool);
+    }
+
     this.setupNavigationKeys();
     this.highlighterReady();
 
@@ -423,40 +542,6 @@ InspectorUI.prototype = {
       this.win.focus();
     }
 
-  },
-
-  
-
-
-  registerRuleView: function IUI_registerRuleView()
-  {
-    let isOpen = this.isRuleViewOpen.bind(this);
-
-    this.ruleViewObject = {
-      id: "ruleview",
-      label: this.strings.GetStringFromName("ruleView.label"),
-      tooltiptext: this.strings.GetStringFromName("ruleView.tooltiptext"),
-      accesskey: this.strings.GetStringFromName("ruleView.accesskey"),
-      context: this,
-      get isOpen() isOpen(),
-      show: this.openRuleView,
-      hide: this.closeRuleView,
-      onSelect: this.selectInRuleView,
-      onChanged: this.changeInRuleView,
-      panel: null,
-      unregister: this.destroyRuleView,
-      sidebar: true,
-    };
-
-    this.registerTool(this.ruleViewObject);
-  },
-
-  
-
-
-  initTools: function IUI_initTools()
-  {
-    
   },
 
   
@@ -581,12 +666,11 @@ InspectorUI.prototype = {
 
     this.stopInspecting();
 
-    this.toolsDo(function IUI_toolsHide(aTool) {
-      this.unregisterTool(aTool);
-    }.bind(this));
-
     
-    this._destroySidebar();
+    if (this._sidebar) {
+      this._sidebar.destroy();
+      this._sidebar = null;
+    }
 
     if (this.highlighter) {
       this.highlighter.destroy();
@@ -608,6 +692,10 @@ InspectorUI.prototype = {
     delete this.treePanel;
     delete this.stylePanel;
     delete this.toolbar;
+
+    this._currentInspector._destroy();
+    delete this._currentInspector;
+
     Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.CLOSED, null);
     if (!aKeepStore)
       Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.DESTROYED, winId);
@@ -627,8 +715,14 @@ InspectorUI.prototype = {
     this.inspectToolbutton.checked = true;
 
     this.inspecting = true;
-    this.toolsDim(true);
     this.highlighter.unlock();
+    this._notifySelected();
+    this._currentInspector._emit("unlocked");
+  },
+
+  _notifySelected: function IUI__notifySelected(aFrom)
+  {
+    this._currentInspector._emit("select", aFrom);
   },
 
   
@@ -646,13 +740,14 @@ InspectorUI.prototype = {
     this.inspectToolbutton.checked = false;
 
     this.inspecting = false;
-    this.toolsDim(false);
     if (this.highlighter.getNode()) {
       this.select(this.highlighter.getNode(), true, !aPreventScroll);
     } else {
       this.select(null, true, true);
     }
     this.highlighter.lock();
+    this._notifySelected();
+    this._currentInspector._emit("locked");
   },
 
   
@@ -680,7 +775,7 @@ InspectorUI.prototype = {
       if (aFrom != "breadcrumbs") {
         this.clearPseudoClassLocks();
       }
-      
+
       this.selection = aNode;
       if (!this.inspecting) {
         this.highlighter.highlight(this.selection);
@@ -691,9 +786,9 @@ InspectorUI.prototype = {
     this.chromeWin.Tilt.update(aNode);
     this.treePanel.select(aNode, aScroll);
 
-    this.toolsSelect(aScroll);
+    this._notifySelected(aFrom);
   },
-  
+
   
 
 
@@ -716,7 +811,7 @@ InspectorUI.prototype = {
         node = node.parentNode;
       } while (hierarchical && node.parentNode)
     }
-    this.nodeChanged();
+    this.nodeChanged("pseudoclass");
   },
 
   
@@ -740,7 +835,7 @@ InspectorUI.prototype = {
   {
     this.highlighter.invalidateSize();
     this.breadcrumbs.updateSelectors();
-    this.toolsOnChanged(aUpdater);
+    this._currentInspector._emit("change", aUpdater);
   },
 
   
@@ -785,7 +880,7 @@ InspectorUI.prototype = {
     }
 
     if (this.store.getValue(this.winID, "sidebarOpen")) {
-      this.showSidebar();
+      this._sidebar.show();
     }
 
     Services.obs.notifyObservers({wrappedJSObject: this},
@@ -960,168 +1055,6 @@ InspectorUI.prototype = {
   
 
 
-  isRuleViewOpen: function IUI_isRuleViewOpen()
-  {
-    return this.isSidebarOpen && this.ruleButton.hasAttribute("checked") &&
-      (this.sidebarDeck.selectedPanel == this.getToolIframe(this.ruleViewObject));
-  },
-
-  
-
-
-  get ruleButton()
-  {
-    return this.chromeDoc.getElementById(
-      this.getToolbarButtonId(this.ruleViewObject.id));
-  },
-
-  
-
-
-  openRuleView: function IUI_openRuleView()
-  {
-    let iframe = this.getToolIframe(this.ruleViewObject);
-    if (iframe.getAttribute("src")) {
-      
-      return;
-    }
-
-    let boundLoadListener = function() {
-      iframe.removeEventListener("load", boundLoadListener, true);
-      let doc = iframe.contentDocument;
-
-      let winID = this.winID;
-      let ruleViewStore = this.store.getValue(winID, "ruleView");
-      if (!ruleViewStore) {
-        ruleViewStore = {};
-        this.store.setValue(winID, "ruleView", ruleViewStore);
-      }
-
-      this.ruleView = new CssRuleView(doc, ruleViewStore);
-
-      
-      this.boundRuleViewChanged = this.ruleViewChanged.bind(this);
-      this.ruleView.element.addEventListener("CssRuleViewChanged",
-                                             this.boundRuleViewChanged);
-      this.cssRuleViewBoundCSSLinkClicked = this.ruleViewCSSLinkClicked.bind(this);
-      this.ruleView.element.addEventListener("CssRuleViewCSSLinkClicked",
-                                             this.cssRuleViewBoundCSSLinkClicked);
-
-      doc.documentElement.appendChild(this.ruleView.element);
-      this.ruleView.highlight(this.selection);
-      Services.obs.notifyObservers(null,
-        INSPECTOR_NOTIFICATIONS.RULEVIEWREADY, null);
-    }.bind(this);
-
-    iframe.addEventListener("load", boundLoadListener, true);
-
-    iframe.setAttribute("src", "chrome://browser/content/devtools/cssruleview.xul");
-  },
-
-  
-
-
-
-  closeRuleView: function IUI_closeRuleView()
-  {
-    
-  },
-
-  
-
-
-
-  selectInRuleView: function IUI_selectInRuleView(aNode)
-  {
-    if (this.ruleView)
-      this.ruleView.highlight(aNode);
-  },
-  
-  
-
-
-  changeInRuleView: function IUI_selectInRuleView()
-  {
-    if (this.ruleView)
-      this.ruleView.nodeChanged();
-  },
-
-  ruleViewChanged: function IUI_ruleViewChanged()
-  {
-    this.isDirty = true;
-    this.nodeChanged(this.ruleViewObject);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  ruleViewCSSLinkClicked: function(aEvent)
-  {
-    if (!this.chromeWin) {
-      return;
-    }
-
-    let rule = aEvent.detail.rule;
-    let styleSheet = rule.sheet;
-    let doc = this.chromeWin.content.document;
-    let styleSheets = doc.styleSheets;
-    let contentSheet = false;
-    let line = rule.ruleLine || 0;
-
-    
-    
-    for each (let sheet in styleSheets) {
-      if (sheet == styleSheet) {
-        contentSheet = true;
-        break;
-      }
-    }
-
-    if (contentSheet)  {
-      this.chromeWin.StyleEditor.openChrome(styleSheet, line);
-    } else {
-      let href = styleSheet ? styleSheet.href : "";
-      if (rule.elementStyle.element) {
-        href = rule.elementStyle.element.ownerDocument.location.href;
-      }
-      let viewSourceUtils = this.chromeWin.gViewSourceUtils;
-      viewSourceUtils.viewSource(href, null, doc, line);
-    }
-  },
-
-  
-
-
-  destroyRuleView: function IUI_destroyRuleView()
-  {
-    if (this.ruleView) {
-      this.ruleView.element.removeEventListener("CssRuleViewChanged",
-                                                this.boundRuleViewChanged);
-      this.ruleView.element.removeEventListener("CssRuleViewCSSLinkClicked",
-                                                this.cssRuleViewBoundCSSLinkClicked);
-      delete this.boundRuleViewChanged;
-      delete this.cssRuleViewBoundCSSLinkClicked;
-      this.ruleView.destroy();
-      delete this.ruleView;
-    }
-
-    let iframe = this.getToolIframe(this.ruleViewObject);
-    iframe.parentNode.removeChild(iframe);
-  },
-
-  
-  
-
-  
-
-
 
 
 
@@ -1198,341 +1131,6 @@ InspectorUI.prototype = {
   getToolbarButtonId: function IUI_createButtonId(anId)
   {
     return "inspector-" + anId + "-toolbutton";
-  },
-
-  
-
-
-
-
-
-  bindToolEvent: function IUI_bindToolEvent(aWidget, aEvent, aCallback)
-  {
-    this.toolEvents[aWidget.id + "_" + aEvent] = aCallback;
-    aWidget.addEventListener(aEvent, aCallback, false);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  registerTool: function IUI_registerTool(aRegObj)
-  {
-    if (this.toolRegistered(aRegObj.id)) {
-      return;
-    }
-
-    this.tools[aRegObj.id] = aRegObj;
-
-    let buttonContainer = this.chromeDoc.getElementById("inspector-tools");
-    let btn;
-
-    
-    if (aRegObj.sidebar) {
-      this.createSidebarTool(aRegObj);
-      return;
-    }
-
-    btn = this.chromeDoc.createElement("toolbarbutton");
-    let buttonId = this.getToolbarButtonId(aRegObj.id);
-    btn.setAttribute("id", buttonId);
-    btn.setAttribute("class", "devtools-toolbarbutton");
-    btn.setAttribute("label", aRegObj.label);
-    btn.setAttribute("tooltiptext", aRegObj.tooltiptext);
-    btn.setAttribute("accesskey", aRegObj.accesskey);
-    btn.setAttribute("image", aRegObj.icon || "");
-    buttonContainer.insertBefore(btn, this.stylingButton);
-
-    this.bindToolEvent(btn, "click",
-      function IUI_toolButtonClick(aEvent) {
-        if (btn.checked) {
-          this.toolHide(aRegObj);
-        } else {
-          this.toolShow(aRegObj);
-        }
-      }.bind(this));
-
-    
-    if (aRegObj.panel) {
-      this.bindToolEvent(aRegObj.panel, "popuphiding",
-        function IUI_toolPanelHiding() {
-          btn.checked = false;
-        });
-    }
-  },
-
-  get sidebarBox()
-  {
-    return this.chromeDoc.getElementById("devtools-sidebar-box");
-  },
-
-  get sidebarToolbar()
-  {
-    return this.chromeDoc.getElementById("devtools-sidebar-toolbar");
-  },
-
-  get sidebarDeck()
-  {
-    return this.chromeDoc.getElementById("devtools-sidebar-deck");
-  },
-
-  get sidebarSplitter()
-  {
-    return this.chromeDoc.getElementById("devtools-side-splitter");
-  },
-
-  get stylingButton()
-  {
-    return this.chromeDoc.getElementById("inspector-style-button");
-  },
-
-  
-
-
-
-  createSidebarTool: function IUI_createSidebarTab(aRegObj)
-  {
-    
-    let btn = this.chromeDoc.createElement("toolbarbutton");
-    let buttonId = this.getToolbarButtonId(aRegObj.id);
-
-    btn.id = buttonId;
-    btn.setAttribute("label", aRegObj.label);
-    btn.setAttribute("class", "devtools-toolbarbutton");
-    btn.setAttribute("tooltiptext", aRegObj.tooltiptext);
-    btn.setAttribute("accesskey", aRegObj.accesskey);
-    btn.setAttribute("image", aRegObj.icon || "");
-    btn.setAttribute("type", "radio");
-    btn.setAttribute("group", "sidebar-tools");
-    this.sidebarToolbar.appendChild(btn);
-
-    
-    let iframe = this.chromeDoc.createElement("iframe");
-    iframe.id = "devtools-sidebar-iframe-" + aRegObj.id;
-    iframe.setAttribute("flex", "1");
-    iframe.setAttribute("tooltip", "aHTMLTooltip");
-    iframe.addEventListener("mousedown", iframe.focus);
-    this.sidebarDeck.appendChild(iframe);
-
-    
-    this.bindToolEvent(btn, "click", function showIframe() {
-      this.toolShow(aRegObj);
-    }.bind(this));
-  },
-
-  
-
-
-
-
-  getToolIframe: function IUI_getToolIFrame(aRegObj)
-  {
-    return this.chromeDoc.getElementById("devtools-sidebar-iframe-" + aRegObj.id);
-  },
-
-  
-
-
-
-  toolShow: function IUI_toolShow(aTool)
-  {
-    let btn = this.chromeDoc.getElementById(this.getToolbarButtonId(aTool.id));
-    btn.setAttribute("checked", "true");
-    if (aTool.sidebar) {
-      Services.prefs.setCharPref("devtools.inspector.activeSidebar", aTool.id);
-      this.store.setValue(this.winID, "activeSidebar", aTool.id);
-      this.sidebarDeck.selectedPanel = this.getToolIframe(aTool);
-      this.sidebarTools.forEach(function(other) {
-        if (other != aTool)
-          this.chromeDoc.getElementById(
-            this.getToolbarButtonId(other.id)).removeAttribute("checked");
-      }.bind(this));
-    }
-
-    aTool.show.call(aTool.context, this.selection);
-  },
-
-  
-
-
-
-  toolHide: function IUI_toolHide(aTool)
-  {
-    aTool.hide.call(aTool.context);
-
-    let btn = this.chromeDoc.getElementById(this.getToolbarButtonId(aTool.id));
-    btn.removeAttribute("checked");
-  },
-
-  
-
-
-
-
-  unbindToolEvent: function IUI_unbindToolEvent(aWidget, aEvent)
-  {
-    let toolEvent = aWidget.id + "_" + aEvent;
-    aWidget.removeEventListener(aEvent, this.toolEvents[toolEvent], false);
-    delete this.toolEvents[toolEvent]
-  },
-
-  
-
-
-
-
-
-  unregisterTool: function IUI_unregisterTool(aRegObj)
-  {
-    
-    if (aRegObj.sidebar) {
-      this.unregisterSidebarTool(aRegObj);
-      return;
-    }
-
-    let button = this.chromeDoc.getElementById(this.getToolbarButtonId(aRegObj.id));
-    let buttonContainer = this.chromeDoc.getElementById("inspector-tools");
-
-    
-    this.unbindToolEvent(button, "click");
-
-    
-    if (aRegObj.panel)
-      this.unbindToolEvent(aRegObj.panel, "popuphiding");
-
-    
-    buttonContainer.removeChild(button);
-
-    
-    if (aRegObj.unregister)
-      aRegObj.unregister.call(aRegObj.context);
-
-    delete this.tools[aRegObj.id];
-  },
-
-  
-
-
-
-
-
-  unregisterSidebarTool: function IUI_unregisterSidebarTool(aRegObj)
-  {
-    
-    let buttonId = this.getToolbarButtonId(aRegObj.id);
-    let btn = this.chromeDoc.getElementById(buttonId);
-    this.unbindToolEvent(btn, "click");
-
-    
-    let iframe = this.getToolIframe(aRegObj);
-    iframe.removeEventListener("mousedown", iframe.focus);
-
-    
-    this.sidebarToolbar.removeChild(btn);
-
-    
-    
-    if (aRegObj.unregister)
-      aRegObj.unregister.call(aRegObj.context);
-
-    delete this.tools[aRegObj.id];
-  },
-
-  
-
-
-
-
-
-  toolsSelect: function IUI_toolsSelect(aScroll)
-  {
-    let selection = this.selection;
-    this.toolsDo(function IUI_toolsOnSelect(aTool) {
-      if (aTool.isOpen) {
-        aTool.onSelect.call(aTool.context, selection, aScroll);
-      }
-    });
-  },
-
-  
-
-
-
-  toolsDim: function IUI_toolsDim(aState)
-  {
-    this.toolsDo(function IUI_toolsDim(aTool) {
-      if ("dim" in aTool) {
-        aTool.dim.call(aTool.context, aState);
-      }
-    });
-  },
-
-  
-
-
-
-
-
-
-  toolsOnChanged: function IUI_toolsChanged(aUpdater)
-  {
-    this.toolsDo(function IUI_toolsOnChanged(aTool) {
-      if (("onChanged" in aTool) && aTool != aUpdater) {
-        aTool.onChanged.call(aTool.context);
-      }
-    });
-  },
-
-  
-
-
-
-  toolsDo: function IUI_toolsDo(aFunction)
-  {
-    for each (let tool in this.tools) {
-      aFunction(tool);
-    }
-  },
-
-  
-
-
-  get sidebarTools()
-  {
-    let sidebarTools = [];
-    for each (let tool in this.tools)
-      if (tool.sidebar)
-        sidebarTools.push(tool);
-    return sidebarTools;
-  },
-
-  
-
-
-
-  toolRegistered: function IUI_toolRegistered(aId)
-  {
-    return aId in this.tools;
   },
 
   
@@ -1823,6 +1421,312 @@ InspectorProgressListener.prototype = {
 
     delete this.IUI;
   },
+};
+
+InspectorUI._registeredSidebars = [];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+InspectorUI.registerSidebar = function IUI_registerSidebar(aRegistration)
+{
+  
+  if (InspectorUI._registeredSidebars.some(function(elt) elt.id == aRegistration.id))
+    return false;
+
+  InspectorUI._registeredSidebars.push(aRegistration);
+
+  return true;
+}
+
+
+
+
+
+
+
+InspectorUI.unregisterSidebar = function IUI_unregisterSidebar(aID)
+{
+  InspectorUI._registeredSidebars = InspectorUI._registeredSidebars.filter(function(aReg) aReg.id != aID);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function InspectorStyleSidebar(aOptions)
+{
+  this._tools = {};
+  this._chromeDoc = aOptions.document;
+  this._inspector = aOptions.inspector;
+}
+
+InspectorStyleSidebar.prototype = {
+
+  get visible() !this._box.hasAttribute("hidden"),
+  get activePanel() this._deck.selectedPanel._toolID,
+
+  destroy: function ISS_destroy()
+  {
+    for each (let toolID in Object.getOwnPropertyNames(this._tools)) {
+      this.removeTool(toolID);
+    }
+    delete this._tools;
+    this._teardown();
+  },
+
+  
+
+
+
+
+
+  addTool: function ISS_addTool(aRegObj)
+  {
+    if (aRegObj.id in this._tools) {
+      return;
+    }
+
+    let btn = this._chromeDoc.createElement("toolbarbutton");
+    btn.setAttribute("label", aRegObj.label);
+    btn.setAttribute("class", "devtools-toolbarbutton");
+    btn.setAttribute("tooltiptext", aRegObj.tooltiptext);
+    btn.setAttribute("accesskey", aRegObj.accesskey);
+    btn.setAttribute("image", aRegObj.icon || "");
+    btn.setAttribute("type", "radio");
+    btn.setAttribute("group", "sidebar-tools");
+    this._toolbar.appendChild(btn);
+
+    
+    let frame = this._chromeDoc.createElement("iframe");
+    frame.setAttribute("flex", "1");
+    frame._toolID = aRegObj.id;
+    this._deck.appendChild(frame);
+
+    
+    let onClick = function() {
+      this.activatePanel(aRegObj.id);
+    }.bind(this);
+    btn.addEventListener("click", onClick, true);
+
+    this._tools[aRegObj.id] = {
+      id: aRegObj.id,
+      registration: aRegObj,
+      button: btn,
+      frame: frame,
+      loaded: false,
+      context: null,
+      onClick: onClick
+    };
+  },
+
+  
+
+
+
+
+
+  removeTool: function ISS_removeTool(aID)
+  {
+    if (!aID in this._tools) {
+      return;
+    }
+    let tool = this._tools[aID];
+    delete this._tools[aID];
+
+    if (tool.loaded && tool.registration.destroy) {
+      tool.registration.destroy(tool.context);
+    }
+
+    if (tool.onLoad) {
+      tool.frame.removeEventListener("load", tool.onLoad, true);
+      delete tool.onLoad;
+    }
+
+    if (tool.onClick) {
+      tool.button.removeEventListener("click", tool.onClick, true);
+      delete tool.onClick;
+    }
+
+    tool.button.parentNode.removeChild(tool.button);
+    tool.frame.parentNode.removeChild(tool.frame);
+  },
+
+  
+
+
+  toggle: function ISS_toggle()
+  {
+    if (!this.visible) {
+      this.show();
+    } else {
+      this.hide();
+    }
+  },
+
+  
+
+
+  show: function ISS_show()
+  {
+    this._box.removeAttribute("hidden");
+    this._splitter.removeAttribute("hidden");
+    this._toggleButton.checked = true;
+
+    this._showDefault();
+
+    this._inspector._setStoreValue("sidebarOpen", true);
+    Services.prefs.setBoolPref("devtools.inspector.sidebarOpen", true);
+  },
+
+  
+
+
+  hide: function ISS_hide()
+  {
+    this._teardown();
+    this._inspector._setStoreValue("sidebarOpen", false);
+    Services.prefs.setBoolPref("devtools.inspector.sidebarOpen", false);
+  },
+
+  
+
+
+  _teardown: function ISS__teardown()
+  {
+    this._toggleButton.checked = false;
+    this._box.setAttribute("hidden", true);
+    this._splitter.setAttribute("hidden", true);
+  },
+
+  
+
+
+
+
+
+  activatePanel: function ISS_activatePanel(aID) {
+    let tool = this._tools[aID];
+    Services.prefs.setCharPref("devtools.inspector.activeSidebar", aID);
+    this._inspector._setStoreValue("activeSidebar", aID);
+    this._deck.selectedPanel = tool.frame;
+    this._showContent(tool);
+    tool.button.setAttribute("checked", "true");
+    let hasSelected = Array.forEach(this._toolbar.children, function(btn) {
+      if (btn != tool.button) {
+        btn.removeAttribute("checked");
+      }
+    });
+  },
+
+  
+
+
+
+
+
+
+
+  _showContent: function ISS__showContent(aTool)
+  {
+    
+    
+    if (aTool.loaded) {
+      this._inspector._emit("sidebaractivated", aTool.id);
+      this._inspector._emit("sidebaractivated-" + aTool.id);
+      return;
+    }
+
+    
+    if (aTool.onLoad) {
+      return;
+    }
+
+    
+    aTool.onLoad = function(evt) {
+      if (evt.target.location != aTool.registration.contentURL) {
+        return;
+      }
+      aTool.frame.removeEventListener("load", aTool.onLoad, true);
+      delete aTool.onLoad;
+      aTool.loaded = true;
+      aTool.context = aTool.registration.load(this._inspector, aTool.frame);
+
+      this._inspector._emit("sidebaractivated", aTool.id);
+      this._inspector._emit("sidebaractivated-" + aTool.id);
+    }.bind(this);
+    aTool.frame.addEventListener("load", aTool.onLoad, true);
+    aTool.frame.setAttribute("src", aTool.registration.contentURL);
+  },
+
+  
+
+
+
+
+  _toolContext: function ISS__toolContext(aID) {
+    return aID in this._tools ? this._tools[aID].context : null;
+  },
+
+  
+
+
+
+  _toolObjects: function ISS__toolObjects() {
+    return [this._tools[i] for each (i in Object.getOwnPropertyNames(this._tools))];
+  },
+
+  
+
+
+
+  _showDefault: function ISS__showDefault()
+  {
+    let hasSelected = Array.some(this._toolbar.children,
+      function(btn) btn.hasAttribute("checked"));
+
+    
+    this._showContent(this._tools[this.activePanel]);
+
+    if (hasSelected) {
+      return;
+    }
+
+    let activeID = this._inspector._getStoreValue("activeSidebar");
+    if (!activeID || !(activeID in this._tools)) {
+      activeID = Object.getOwnPropertyNames(this._tools)[0];
+    }
+    this.activatePanel(activeID);
+  },
+
+  
+  get _toggleButton() this._chromeDoc.getElementById("inspector-style-button"),
+  get _box() this._chromeDoc.getElementById("devtools-sidebar-box"),
+  get _splitter() this._chromeDoc.getElementById("devtools-side-splitter"),
+  get _toolbar() this._chromeDoc.getElementById("devtools-sidebar-toolbar"),
+  get _deck() this._chromeDoc.getElementById("devtools-sidebar-deck"),
 };
 
 
@@ -2348,12 +2252,6 @@ XPCOMUtils.defineLazyGetter(InspectorUI.prototype, "strings",
     return Services.strings.createBundle(
             "chrome://browser/locale/devtools/inspector.properties");
   });
-
-XPCOMUtils.defineLazyGetter(this, "StyleInspector", function () {
-  var obj = {};
-  Cu.import("resource:///modules/devtools/StyleInspector.jsm", obj);
-  return obj.StyleInspector;
-});
 
 XPCOMUtils.defineLazyGetter(this, "DOMUtils", function () {
   return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
