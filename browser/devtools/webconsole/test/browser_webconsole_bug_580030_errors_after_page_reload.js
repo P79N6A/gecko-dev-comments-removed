@@ -51,33 +51,26 @@ function test() {
 
 
 function onLoad(aEvent) {
-  browser.removeEventListener(aEvent.type, arguments.callee, true);
+  browser.removeEventListener(aEvent.type, onLoad, true);
 
-  openConsole();
-
-  browser.addEventListener("load", testErrorsAfterPageReload, true);
-  executeSoon(function() {
+  openConsole(null, function(hud) {
+    hud.jsterm.clearOutput();
+    browser.addEventListener("load", testErrorsAfterPageReload, true);
     content.location.reload();
   });
 }
 
 function testErrorsAfterPageReload(aEvent) {
-  browser.removeEventListener(aEvent.type, arguments.callee, true);
+  browser.removeEventListener(aEvent.type, testErrorsAfterPageReload, true);
 
   
   
 
   Services.console.registerListener(consoleObserver);
 
-  var button = content.document.querySelector("button").wrappedJSObject;
-  var clickEvent = content.document.createEvent("MouseEvents");
-  clickEvent.initMouseEvent("click", true, true,
-    content, 0, 0, 0, 0, 0, false, false,
-    false, false, 0, null);
-
-  executeSoon(function() {
-    button.dispatchEvent(clickEvent);
-  });
+  let button = content.document.querySelector("button").wrappedJSObject;
+  ok(button, "button found");
+  EventUtils.sendMouseEvent({type: "click"}, button, content);
 }
 
 var consoleObserver = {
@@ -95,10 +88,14 @@ var consoleObserver = {
 
     let outputNode = HUDService.getHudByWindow(content).outputNode;
 
-    executeSoon(function() {
-      let msg = "Found the error message after page reload";
-      testLogEntry(outputNode, "fooBazBaz", msg);
-      finishTest();
+    waitForSuccess({
+      name: "error message after page reload",
+      validatorFn: function()
+      {
+        return outputNode.textContent.indexOf("fooBazBaz") > -1;
+      },
+      successFn: finishTest,
+      failureFn: finishTest,
     });
   }
 };

@@ -162,7 +162,10 @@ function findLogEntry(aString)
 
 
 
-function openConsole(aCallback)
+
+
+
+function openConsole(aTab, aCallback)
 {
   function onWebConsoleOpen(aSubject, aTopic)
   {
@@ -178,27 +181,41 @@ function openConsole(aCallback)
     Services.obs.addObserver(onWebConsoleOpen, "web-console-created", false);
   }
 
-  HUDService.activateHUDForContext(tab);
+  HUDService.activateHUDForContext(aTab || tab);
 }
 
-function closeConsole()
+
+
+
+
+
+
+
+
+
+
+function closeConsole(aTab, aCallback)
 {
-  HUDService.deactivateHUDForContext(tab);
+  function onWebConsoleClose(aSubject, aTopic)
+  {
+    if (aTopic == "web-console-destroyed") {
+      Services.obs.removeObserver(onWebConsoleClose, "web-console-destroyed");
+      aSubject.QueryInterface(Ci.nsISupportsString);
+      let hudId = aSubject.data;
+      executeSoon(aCallback.bind(null, hudId));
+    }
+  }
+
+  if (aCallback) {
+    Services.obs.addObserver(onWebConsoleClose, "web-console-destroyed", false);
+  }
+
+  HUDService.deactivateHUDForContext(aTab || tab);
 }
 
 function finishTest()
 {
   browser = hudId = hud = filterBox = outputNode = cs = null;
-
-  function onWebConsoleClose(aSubject, aTopic)
-  {
-    if (aTopic == "web-console-destroyed") {
-      Services.obs.removeObserver(onWebConsoleClose, "web-console-destroyed");
-      executeSoon(finish);
-    }
-  }
-
-  Services.obs.addObserver(onWebConsoleClose, "web-console-destroyed", false);
 
   let hud = HUDService.getHudByWindow(content);
   if (!hud) {
@@ -206,7 +223,9 @@ function finishTest()
     return;
   }
   hud.jsterm.clearOutput(true);
-  HUDService.deactivateHUDForContext(hud.tab);
+
+  closeConsole(hud.tab, finish);
+
   hud = null;
 }
 

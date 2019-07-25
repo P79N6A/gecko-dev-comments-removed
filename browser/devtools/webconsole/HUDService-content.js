@@ -7,31 +7,25 @@
 "use strict";
 
 
-(function(_global) {
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+(function _HUDServiceContent() {
+let Cc = Components.classes;
+let Ci = Components.interfaces;
+let Cu = Components.utils;
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
+let tempScope = {};
+Cu.import("resource://gre/modules/XPCOMUtils.jsm", tempScope);
+Cu.import("resource://gre/modules/Services.jsm", tempScope);
+Cu.import("resource://gre/modules/ConsoleAPIStorage.jsm", tempScope);
+Cu.import("resource:///modules/WebConsoleUtils.jsm", tempScope);
 
-XPCOMUtils.defineLazyGetter(_global, "gConsoleStorage", function () {
-  let obj = {};
-  Cu.import("resource://gre/modules/ConsoleAPIStorage.jsm", obj);
-  return obj.ConsoleAPIStorage;
-});
+let XPCOMUtils = tempScope.XPCOMUtils;
+let Services = tempScope.Services;
+let gConsoleStorage = tempScope.ConsoleAPIStorage;
+let WebConsoleUtils = tempScope.WebConsoleUtils;
+let l10n = WebConsoleUtils.l10n;
+tempScope = null;
 
-XPCOMUtils.defineLazyGetter(_global, "WebConsoleUtils", function () {
-  let obj = {};
-  Cu.import("resource:///modules/WebConsoleUtils.jsm", obj);
-  return obj.WebConsoleUtils;
-});
-
-XPCOMUtils.defineLazyGetter(_global, "l10n", function () {
-  return WebConsoleUtils.l10n;
-});
-
-_global = null;
+let _alive = true; 
 
 
 
@@ -63,6 +57,26 @@ let Manager = {
     this._messageListeners.forEach(function(aName) {
       addMessageListener(aName, this);
     }, this);
+
+    
+    
+    let xulWindow = this.window.QueryInterface(Ci.nsIInterfaceRequestor)
+                    .getInterface(Ci.nsIWebNavigation)
+                    .QueryInterface(Ci.nsIDocShell)
+                    .chromeEventHandler.ownerDocument.defaultView;
+
+    xulWindow.addEventListener("unload", this._onXULWindowClose, false);
+
+    let tabContainer = xulWindow.gBrowser.tabContainer;
+    tabContainer.addEventListener("TabClose", this._onTabClose, false);
+
+    
+    
+    
+    
+    
+    Services.obs.addObserver(this, "private-browsing-change-granted", false);
+    Services.obs.addObserver(this, "quit-application-granted", false);
   },
 
   
@@ -71,6 +85,10 @@ let Manager = {
 
   receiveMessage: function Manager_receiveMessage(aMessage)
   {
+    if (!_alive) {
+      return;
+    }
+
     if (!aMessage.json || (aMessage.name != "WebConsole:Init" &&
                            aMessage.json.hudId != this.hudId)) {
       Cu.reportError("Web Console content script: received message " +
@@ -100,6 +118,24 @@ let Manager = {
   },
 
   
+
+
+
+
+
+
+  observe: function Manager_observe(aSubject, aTopic, aData)
+  {
+    if (_alive && (aTopic == "quit-application-granted" ||
+        (aTopic == "private-browsing-change-granted" &&
+         (aData == "enter" || aData == "exit")))) {
+      this.destroy();
+    }
+  },
+
+  
+
+
 
 
 
@@ -210,6 +246,8 @@ let Manager = {
 
 
 
+
+
   enableFeature: function Manager_enableFeature(aFeature, aMessage)
   {
     if (this._enabledFeatures.indexOf(aFeature) != -1) {
@@ -223,6 +261,9 @@ let Manager = {
       case "ConsoleAPI":
         ConsoleAPIObserver.init(aMessage);
         break;
+      case "PageError":
+        ConsoleListener.init(aMessage);
+        break;
       default:
         Cu.reportError("Web Console content: unknown feature " + aFeature);
         break;
@@ -232,6 +273,7 @@ let Manager = {
   },
 
   
+
 
 
 
@@ -253,6 +295,9 @@ let Manager = {
       case "ConsoleAPI":
         ConsoleAPIObserver.destroy();
         break;
+      case "PageError":
+        ConsoleListener.destroy();
+        break;
       default:
         Cu.reportError("Web Console content: unknown feature " + aFeature);
         break;
@@ -271,10 +316,15 @@ let Manager = {
   {
     let messages = [];
 
-    switch (aMessageTypes.shift()) {
-      case "ConsoleAPI":
-        messages.push.apply(messages, ConsoleAPIObserver.getCachedMessages());
-        break;
+    while (aMessageTypes.length > 0) {
+      switch (aMessageTypes.shift()) {
+        case "ConsoleAPI":
+          messages.push.apply(messages, ConsoleAPIObserver.getCachedMessages());
+          break;
+        case "PageError":
+          messages.push.apply(messages, ConsoleListener.getCachedMessages());
+          break;
+      }
     }
 
     messages.sort(function(a, b) { return a.timeStamp - b.timeStamp; });
@@ -285,8 +335,46 @@ let Manager = {
   
 
 
+
+
+  _onXULWindowClose: function Manager__onXULWindowClose()
+  {
+    if (_alive) {
+      Manager.destroy();
+    }
+  },
+
+  
+
+
+
+
+  _onTabClose: function Manager__onTabClose(aEvent)
+  {
+    let tab = aEvent.target;
+    if (_alive && tab.linkedBrowser.contentWindow === Manager.window) {
+      Manager.destroy();
+    }
+  },
+
+  
+
+
   destroy: function Manager_destroy()
   {
+    Services.obs.removeObserver(this, "private-browsing-change-granted");
+    Services.obs.removeObserver(this, "quit-application-granted");
+
+    _alive = false;
+    let xulWindow = this.window.QueryInterface(Ci.nsIInterfaceRequestor)
+                    .getInterface(Ci.nsIWebNavigation)
+                    .QueryInterface(Ci.nsIDocShell)
+                    .chromeEventHandler.ownerDocument.defaultView;
+
+    xulWindow.removeEventListener("unload", this._onXULWindowClose, false);
+    let tabContainer = xulWindow.gBrowser.tabContainer;
+    tabContainer.removeEventListener("TabClose", this._onTabClose, false);
+
     this._messageListeners.forEach(function(aName) {
       removeMessageListener(aName, this);
     }, this);
@@ -295,7 +383,9 @@ let Manager = {
 
     this.hudId = null;
     this._messageHandlers = null;
-    Manager = ConsoleAPIObserver = JSTerm = null;
+    Manager = ConsoleAPIObserver = JSTerm = ConsoleListener = null;
+    Cc = Ci = Cu = XPCOMUtils = Services = gConsoleStorage =
+      WebConsoleUtils = l10n = null;
   },
 };
 
@@ -447,7 +537,7 @@ let ConsoleAPIObserver = {
 
   observe: function CAO_observe(aMessage, aTopic)
   {
-    if (!aMessage || aTopic != "console-api-log-event") {
+    if (!_alive || !aMessage || aTopic != "console-api-log-event") {
       return;
     }
 
@@ -578,11 +668,7 @@ let ConsoleAPIObserver = {
     let messages = gConsoleStorage.getEvents(innerWindowId);
 
     let result = messages.map(function(aMessage) {
-      let remoteMessage = {
-        hudId: Manager.hudId,
-        id: Manager.sequenceId,
-        type: "ConsoleAPI",
-      };
+      let remoteMessage = { _type: "ConsoleAPI" };
       this._prepareApiMessageForRemote(aMessage.wrappedJSObject, remoteMessage);
       return remoteMessage;
     }, this);
@@ -609,5 +695,96 @@ let ConsoleAPIObserver = {
   },
 };
 
+
+
+
+
+let ConsoleListener = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIConsoleListener]),
+
+  
+
+
+  init: function CL_init()
+  {
+    Services.console.registerListener(this);
+  },
+
+  
+
+
+
+
+
+
+
+  observe: function CL_observe(aScriptError)
+  {
+    if (!_alive || !(aScriptError instanceof Ci.nsIScriptError) ||
+        !aScriptError.outerWindowID) {
+      return;
+    }
+
+    switch (aScriptError.category) {
+      
+      case "XPConnect JavaScript":
+      case "component javascript":
+      case "chrome javascript":
+      case "chrome registration":
+      case "XBL":
+      case "XBL Prototype Handler":
+      case "XBL Content Sink":
+      case "xbl javascript":
+        return;
+    }
+
+    let errorWindow =
+      WebConsoleUtils.getWindowByOuterId(aScriptError.outerWindowID,
+                                         Manager.window);
+    if (!errorWindow || errorWindow.top != Manager.window) {
+      return;
+    }
+
+    Manager.sendMessage("WebConsole:PageError", { pageError: aScriptError });
+  },
+
+  
+
+
+
+
+
+
+
+  getCachedMessages: function CL_getCachedMessages()
+  {
+    let innerWindowId = WebConsoleUtils.getInnerWindowId(Manager.window);
+    let result = [];
+    let errors = {};
+    Services.console.getMessageArray(errors, {});
+
+    (errors.value || []).forEach(function(aError) {
+      if (!(aError instanceof Ci.nsIScriptError) ||
+          aError.innerWindowID != innerWindowId) {
+        return;
+      }
+
+      let remoteMessage = WebConsoleUtils.cloneObject(aError);
+      remoteMessage._type = "PageError";
+      result.push(remoteMessage);
+    });
+
+    return result;
+  },
+
+  
+
+
+  destroy: function CL_destroy()
+  {
+    Services.console.unregisterListener(this);
+  },
+};
+
 Manager.init();
-})(this);
+})();
