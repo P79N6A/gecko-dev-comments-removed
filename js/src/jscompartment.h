@@ -437,6 +437,17 @@ struct JS_FRIEND_API(JSCompartment) {
 
     EmptyShapeSet                emptyShapes;
 
+    
+
+
+
+
+
+
+
+
+    const js::Shape              *initialRegExpShape;
+
     bool                         debugMode;  
     JSCList                      scripts;    
 
