@@ -72,6 +72,7 @@
 #include "nsIDOMNode.h"
 
 #include "nsContentUtils.h"
+#include "nsLayoutUtils.h"
 #include "nsIContentPolicy.h"
 #include "nsContentPolicyUtils.h"
 #include "nsEventDispatcher.h"
@@ -115,7 +116,9 @@ nsImageLoadingContent::nsImageLoadingContent()
     mNewRequestsWillNeedAnimationReset(false),
     mPendingRequestNeedsResetAnimation(false),
     mCurrentRequestNeedsResetAnimation(false),
-    mStateChangerDepth(0)
+    mStateChangerDepth(0),
+    mCurrentRequestRegistered(false),
+    mPendingRequestRegistered(false)
 {
   if (!nsContentUtils::GetImgLoader()) {
     mLoadingEnabled = false;
@@ -328,7 +331,6 @@ nsImageLoadingContent::OnStopDecode(imgIRequest* aRequest,
   nsIDocument* doc = GetOurDocument();
   nsIPresShell* shell = doc ? doc->GetShell() : nsnull;
   if (shell) {
-
     
     bool doRequestDecode = false;
 
@@ -375,6 +377,12 @@ nsImageLoadingContent::OnStopRequest(imgIRequest* aRequest, bool aLastPart)
 NS_IMETHODIMP
 nsImageLoadingContent::OnImageIsAnimated(imgIRequest *aRequest)
 {
+  bool* requestFlag = GetRegisteredFlagForRequest(aRequest);
+  if (requestFlag) {
+    nsLayoutUtils::RegisterImageRequest(GetFramePresContext(),
+                                        aRequest, requestFlag);
+  }
+
   return NS_OK;
 }
 
@@ -507,6 +515,44 @@ nsImageLoadingContent::GetRequest(PRInt32 aRequestType,
   return NS_OK;
 }
 
+NS_IMETHODIMP_(void)
+nsImageLoadingContent::FrameCreated(nsIFrame* aFrame)
+{
+  NS_ASSERTION(aFrame, "aFrame is null");
+
+  
+  
+  nsPresContext* presContext = aFrame->PresContext();
+
+  if (mCurrentRequest) {
+    nsLayoutUtils::RegisterImageRequestIfAnimated(presContext, mCurrentRequest,
+                                                  &mCurrentRequestRegistered);
+  }
+
+  if (mPendingRequest) {
+    nsLayoutUtils::RegisterImageRequestIfAnimated(presContext, mPendingRequest,
+                                                  &mPendingRequestRegistered);
+  }
+}
+
+NS_IMETHODIMP_(void)
+nsImageLoadingContent::FrameDestroyed(nsIFrame* aFrame)
+{
+  NS_ASSERTION(aFrame, "aFrame is null");
+
+  
+  if (mCurrentRequest) {
+    nsLayoutUtils::DeregisterImageRequest(GetFramePresContext(),
+                                          mCurrentRequest,
+                                          &mCurrentRequestRegistered);
+  }
+
+  if (mPendingRequest) {
+    nsLayoutUtils::DeregisterImageRequest(GetFramePresContext(),
+                                          mPendingRequest,
+                                          &mPendingRequestRegistered);
+  }
+}
 
 NS_IMETHODIMP
 nsImageLoadingContent::GetRequestType(imgIRequest* aRequest,
@@ -873,6 +919,23 @@ nsImageLoadingContent::GetOurDocument()
   return thisContent->OwnerDoc();
 }
 
+nsIFrame*
+nsImageLoadingContent::GetOurPrimaryFrame()
+{
+  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(this);
+  return thisContent->GetPrimaryFrame();
+}
+
+nsPresContext* nsImageLoadingContent::GetFramePresContext()
+{
+  nsIFrame* frame = GetOurPrimaryFrame();
+  if (!frame) {
+    return nsnull;
+  }
+
+  return frame->PresContext();
+}
+
 nsresult
 nsImageLoadingContent::StringToURI(const nsAString& aSpec,
                                    nsIDocument* aDocument,
@@ -993,6 +1056,11 @@ nsImageLoadingContent::ClearCurrentRequest(nsresult aReason)
                     "Shouldn't have both mCurrentRequest and mCurrentURI!");
 
   
+  
+  nsLayoutUtils::DeregisterImageRequest(GetFramePresContext(), mCurrentRequest,
+                                        &mCurrentRequestRegistered);
+
+  
   UntrackImage(mCurrentRequest);
   mCurrentRequest->CancelAndForgetObserver(aReason);
   mCurrentRequest = nsnull;
@@ -1015,10 +1083,27 @@ nsImageLoadingContent::ClearPendingRequest(nsresult aReason)
   nsCxPusher pusher;
   pusher.PushNull();
 
+  
+  
+  nsLayoutUtils::DeregisterImageRequest(GetFramePresContext(), mPendingRequest,
+                                        &mPendingRequestRegistered);
+
   UntrackImage(mPendingRequest);
   mPendingRequest->CancelAndForgetObserver(aReason);
   mPendingRequest = nsnull;
   mPendingRequestNeedsResetAnimation = false;
+}
+
+bool*
+nsImageLoadingContent::GetRegisteredFlagForRequest(imgIRequest* aRequest)
+{
+  if (aRequest == mCurrentRequest) {
+    return &mCurrentRequestRegistered;
+  } else if (aRequest == mPendingRequest) {
+    return &mPendingRequestRegistered;
+  } else {
+    return nsnull;
+  }
 }
 
 bool

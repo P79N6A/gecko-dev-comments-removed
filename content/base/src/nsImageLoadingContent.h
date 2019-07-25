@@ -151,6 +151,24 @@ protected:
 
 
 
+
+  nsIFrame* GetOurPrimaryFrame();
+
+  
+
+
+
+
+
+
+
+  nsPresContext* GetFramePresContext();
+
+  
+
+
+
+
   void CancelImageRequests(bool aNotify);
 
   
@@ -306,6 +324,16 @@ protected:
 
 
 
+
+
+
+
+  bool* GetRegisteredFlagForRequest(imgIRequest* aRequest);
+
+  
+
+
+
   static bool HaveSize(imgIRequest *aImage);
 
   
@@ -382,6 +410,11 @@ private:
 
   
   PRUint8 mStateChangerDepth;
+
+  
+  
+  bool mCurrentRequestRegistered;
+  bool mPendingRequestRegistered;
 };
 
 #endif 
