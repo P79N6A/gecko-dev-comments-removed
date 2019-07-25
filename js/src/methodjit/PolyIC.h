@@ -52,6 +52,7 @@ namespace js {
 namespace mjit {
 namespace ic {
 
+
 static const uint32 MAX_PIC_STUBS = 16;
 
 
