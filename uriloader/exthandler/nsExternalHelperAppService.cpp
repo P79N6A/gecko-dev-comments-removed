@@ -2032,42 +2032,17 @@ nsresult nsExternalAppHandler::ExecuteDesiredAction()
   nsresult rv = NS_OK;
   if (mProgressListenerInitialized && !mCanceled)
   {
-    nsHandlerInfoAction action = nsIMIMEInfo::saveToDisk;
-    mMimeInfo->GetPreferredAction(&action);
-    if (action == nsIMIMEInfo::useHelperApp ||
-        action == nsIMIMEInfo::useSystemDefault)
+    rv = MoveFile(mFinalFileDestination);
+    if (NS_SUCCEEDED(rv))
     {
-      
-      
-      
-      rv = mFinalFileDestination->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
-      if (NS_SUCCEEDED(rv))
+      nsHandlerInfoAction action = nsIMIMEInfo::saveToDisk;
+      mMimeInfo->GetPreferredAction(&action);
+      if (action == nsIMIMEInfo::useHelperApp ||
+          action == nsIMIMEInfo::useSystemDefault)
       {
-        
-        rv = MoveFile(mFinalFileDestination);
-        if (NS_SUCCEEDED(rv))
-          rv = OpenWithApplication();
+        rv = OpenWithApplication();
       }
-      else
-      {
-        
-        
-        
-        nsAutoString path;
-        mTempFile->GetPath(path);
-        SendStatusChange(kWriteError, rv, nsnull, path);
-        Cancel(rv);
-
-        
-        
-      }
-    }
-    else 
-    {
-      
-      
-      rv = MoveFile(mFinalFileDestination);
-      if (NS_SUCCEEDED(rv) && action == nsIMIMEInfo::saveToDisk)
+      else if(action == nsIMIMEInfo::saveToDisk)
       {
         nsCOMPtr<nsILocalFile> destfile(do_QueryInterface(mFinalFileDestination));
         gExtProtSvc->FixFilePermissions(destfile);
@@ -2458,16 +2433,26 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
 #else
   fileToUse->Append(mSuggestedFileName);  
 #endif
-  
-  
 
-  mFinalFileDestination = do_QueryInterface(fileToUse);
-
-  
-  if (!mProgressListenerInitialized)
-   CreateProgressListener();
-
-  return NS_OK;
+  nsresult rv = fileToUse->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
+  if(NS_SUCCEEDED(rv))
+  {
+    mFinalFileDestination = do_QueryInterface(fileToUse);
+    
+    if (!mProgressListenerInitialized)
+      CreateProgressListener();
+  }
+  else
+  {
+    
+    
+    
+    nsAutoString path;
+    mTempFile->GetPath(path);
+    SendStatusChange(kWriteError, rv, nsnull, path);
+    Cancel(rv);
+  }
+  return rv;
 }
 
 NS_IMETHODIMP nsExternalAppHandler::Cancel(nsresult aReason)
