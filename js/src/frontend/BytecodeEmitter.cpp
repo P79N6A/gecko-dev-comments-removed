@@ -873,6 +873,7 @@ EmitAliasedVarOp(JSContext *cx, JSOp op, ScopeCoordinate sc, BytecodeEmitter *bc
     SET_UINT16(pc, sc.slot);
     pc += sizeof(uint16_t);
     SET_UINT32_INDEX(pc, maybeBlockIndex);
+    CheckTypeSet(cx, bce, op);
     return true;
 }
 
@@ -891,40 +892,48 @@ ClonedBlockDepth(BytecodeEmitter *bce)
 static bool
 EmitAliasedVarOp(JSContext *cx, JSOp op, ParseNode *pn, BytecodeEmitter *bce)
 {
-    
-    JS_ASSERT(pn->isUsed() || pn->isDefn());
-    JS_ASSERT_IF(pn->isUsed(), pn->pn_cookie.level() == 0);
-    JS_ASSERT_IF(pn->isDefn(), pn->pn_cookie.level() == bce->script->staticLevel);
-
-    
+    unsigned skippedScopes = 0;
+    BytecodeEmitter *bceOfDef = bce;
+    if (pn->isUsed()) {
+        
 
 
 
 
-
-
+        for (unsigned i = pn->pn_cookie.level(); i; i--) {
+            skippedScopes += ClonedBlockDepth(bceOfDef);
+            if (bceOfDef->sc->funIsHeavyweight()) {
+                skippedScopes++;
+                if (bceOfDef->sc->fun()->isNamedLambda())
+                    skippedScopes++;
+            }
+            bceOfDef = bceOfDef->parent;
+        }
+    } else {
+        JS_ASSERT(pn->isDefn());
+        JS_ASSERT(pn->pn_cookie.level() == bce->script->staticLevel);
+    }
 
     ScopeCoordinate sc;
     if (JOF_OPTYPE(pn->getOp()) == JOF_QARG) {
-        sc.hops = ClonedBlockDepth(bce);
-        sc.slot = bce->sc->bindings.formalIndexToSlot(pn->pn_cookie.slot());
+        sc.hops = skippedScopes + ClonedBlockDepth(bceOfDef);
+        sc.slot = bceOfDef->sc->bindings.formalIndexToSlot(pn->pn_cookie.slot());
     } else {
         JS_ASSERT(JOF_OPTYPE(pn->getOp()) == JOF_LOCAL || pn->isKind(PNK_FUNCTION));
         unsigned local = pn->pn_cookie.slot();
-        if (local < bce->sc->bindings.numVars()) {
-            sc.hops = ClonedBlockDepth(bce);
-            sc.slot = bce->sc->bindings.varIndexToSlot(local);
+        if (local < bceOfDef->sc->bindings.numVars()) {
+            sc.hops = skippedScopes + ClonedBlockDepth(bceOfDef);
+            sc.slot = bceOfDef->sc->bindings.varIndexToSlot(local);
         } else {
-            unsigned depth = local - bce->sc->bindings.numVars();
-            unsigned hops = 0;
-            StaticBlockObject *b = bce->blockChain;
+            unsigned depth = local - bceOfDef->sc->bindings.numVars();
+            StaticBlockObject *b = bceOfDef->blockChain;
             while (!b->containsVarAtDepth(depth)) {
                 if (b->needsClone())
-                    hops++;
+                    skippedScopes++;
                 b = b->enclosingBlock();
             }
-            sc.hops = hops;
-            sc.slot = b->localIndexToSlot(bce->sc->bindings, local);
+            sc.hops = skippedScopes;
+            sc.slot = b->localIndexToSlot(bceOfDef->sc->bindings, local);
         }
     }
 
@@ -1326,12 +1335,6 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     JS_ASSERT(pn->pn_cookie.isFree());
 
     
-    if (dn->pn_cookie.level() != bce->script->staticLevel) {
-        JS_ASSERT(dn->isClosed());
-        return true;
-    }
-
-    
 
 
 
@@ -1356,6 +1359,14 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
       case Definition::VAR:
         if (dn->isOp(JSOP_CALLEE)) {
             JS_ASSERT(op != JSOP_CALLEE);
+
+            
+
+
+
+            if (dn->pn_cookie.level() != bce->script->staticLevel)
+                return true;
+
             JS_ASSERT(bce->sc->fun()->flags & JSFUN_LAMBDA);
             JS_ASSERT(pn->pn_atom == bce->sc->fun()->atom);
 
@@ -1414,9 +1425,34 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         JS_NOT_REACHED("unexpected dn->kind()");
     }
 
+    
+
+
+
+
+    unsigned skip = bce->script->staticLevel - dn->pn_cookie.level();
+    JS_ASSERT_IF(skip, dn->isClosed());
+
+    
+
+
+
+
+
+
+
+
+    if (skip) {
+        BytecodeEmitter *bceSkipped = bce;
+        for (unsigned i = 0; i < skip; i++)
+            bceSkipped = bceSkipped->parent;
+        if (!bceSkipped->sc->inFunction())
+            return true;
+    }
+
     JS_ASSERT(!pn->isOp(op));
     pn->setOp(op);
-    if (!pn->pn_cookie.set(bce->sc->context, 0, dn->pn_cookie.slot()))
+    if (!pn->pn_cookie.set(bce->sc->context, skip, dn->pn_cookie.slot()))
         return false;
 
     pn->pn_dflags |= PND_BOUND;
