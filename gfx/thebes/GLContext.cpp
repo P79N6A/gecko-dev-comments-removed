@@ -364,6 +364,8 @@ GLContext::InitWithPrefix(const char *prefix, PRBool trygl)
             }
         }
 #endif
+
+        UpdateActualFormat();
     }
 
 #ifdef DEBUG
@@ -711,6 +713,10 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize)
 
     
     
+    ContextFormat cf;
+
+    
+    
     if (firstTime) {
         fGenTextures(1, &mOffscreenTexture);
         fBindTexture(LOCAL_GL_TEXTURE_2D, mOffscreenTexture);
@@ -746,6 +752,8 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize)
                     LOCAL_GL_RGBA,
                     LOCAL_GL_UNSIGNED_BYTE,
                     NULL);
+
+        cf.red = cf.green = cf.blue = cf.alpha = 8;
     } else {
         fTexImage2D(LOCAL_GL_TEXTURE_2D,
                     0,
@@ -760,6 +768,15 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize)
                              : LOCAL_GL_UNSIGNED_BYTE,
 #endif
                     NULL);
+
+#ifdef XP_WIN
+        cf.red = cf.green = cf.blue = 8;
+#else
+        cf.red = 5;
+        cf.green = 6;
+        cf.blue = 5;
+#endif
+        cf.alpha = 0;
     }
 
     if (depth && stencil && useDepthStencil) {
@@ -767,6 +784,8 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize)
         fRenderbufferStorage(LOCAL_GL_RENDERBUFFER,
                              LOCAL_GL_DEPTH24_STENCIL8,
                              aSize.width, aSize.height);
+        cf.depth = 24;
+        cf.stencil = 8;
     } else {
         if (depth) {
             GLenum depthType;
@@ -787,6 +806,7 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize)
                                  mIsGLES2 ? LOCAL_GL_DEPTH_COMPONENT16
                                           : LOCAL_GL_DEPTH_COMPONENT24,
                                  aSize.width, aSize.height);
+            cf.depth = mIsGLES2 ? 16 : 24;
         }
 
         if (stencil) {
@@ -794,6 +814,7 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize)
             fRenderbufferStorage(LOCAL_GL_RENDERBUFFER,
                                  LOCAL_GL_STENCIL_INDEX8,
                                  aSize.width, aSize.height);
+            cf.stencil = 8;
         }
     }
 
@@ -843,7 +864,10 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize)
     mOffscreenActualSize = aSize;
 
     if (firstTime) {
-        UpdateActualFormat();
+        
+        
+        
+        mActualFormat = cf;
 
 #ifdef DEBUG
         printf_stderr("Created offscreen FBO: r: %d g: %d b: %d a: %d depth: %d stencil: %d\n",
