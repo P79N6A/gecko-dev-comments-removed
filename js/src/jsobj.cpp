@@ -225,28 +225,18 @@ js_hash_object(const void *key)
 static JSHashEntry *
 MarkSharpObjects(JSContext *cx, JSObject *obj, JSIdArray **idap)
 {
-    JSSharpObjectMap *map;
-    JSHashTable *table;
-    JSHashNumber hash;
-    JSHashEntry **hep, *he;
-    jsatomid sharpid;
-    JSIdArray *ida;
-    JSBool ok;
-    jsint i, length;
-    jsid id;
-    JSObject *obj2;
-    JSProperty *prop;
-
     JS_CHECK_RECURSION(cx, return NULL);
 
-    map = &cx->sharpObjectMap;
+    JSIdArray *ida;
+
+    JSSharpObjectMap *map = &cx->sharpObjectMap;
     JS_ASSERT(map->depth >= 1);
-    table = map->table;
-    hash = js_hash_object(obj);
-    hep = JS_HashTableRawLookup(table, hash, obj);
-    he = *hep;
+    JSHashTable *table = map->table;
+    JSHashNumber hash = js_hash_object(obj);
+    JSHashEntry **hep = JS_HashTableRawLookup(table, hash, obj);
+    JSHashEntry *he = *hep;
     if (!he) {
-        sharpid = 0;
+        jsatomid sharpid = 0;
         he = JS_HashTableRawAdd(table, hep, hash, obj, (void *) sharpid);
         if (!he) {
             JS_ReportOutOfMemory(cx);
@@ -257,9 +247,11 @@ MarkSharpObjects(JSContext *cx, JSObject *obj, JSIdArray **idap)
         if (!ida)
             return NULL;
 
-        ok = JS_TRUE;
-        for (i = 0, length = ida->length; i < length; i++) {
-            id = ida->vector[i];
+        bool ok = true;
+        for (jsint i = 0, length = ida->length; i < length; i++) {
+            jsid id = ida->vector[i];
+            JSObject *obj2;
+            JSProperty *prop;
             ok = obj->lookupGeneric(cx, id, &obj2, &prop);
             if (!ok)
                 break;
@@ -292,9 +284,8 @@ MarkSharpObjects(JSContext *cx, JSObject *obj, JSIdArray **idap)
                 if (!ok)
                     break;
             }
-            if (v.value().isObject() &&
-                !MarkSharpObjects(cx, &v.value().toObject(), NULL)) {
-                ok = JS_FALSE;
+            if (v.value().isObject() && !MarkSharpObjects(cx, &v.value().toObject(), NULL)) {
+                ok = false;
                 break;
             }
         }
@@ -303,7 +294,7 @@ MarkSharpObjects(JSContext *cx, JSObject *obj, JSIdArray **idap)
         if (!ok)
             return NULL;
     } else {
-        sharpid = uintptr_t(he->value);
+        jsatomid sharpid = uintptr_t(he->value);
         if (sharpid == 0) {
             sharpid = ++map->sharpgen << SHARP_ID_SHIFT;
             he->value = (void *) sharpid;
@@ -316,25 +307,15 @@ MarkSharpObjects(JSContext *cx, JSObject *obj, JSIdArray **idap)
 }
 
 JSHashEntry *
-js_EnterSharpObject(JSContext *cx, JSObject *obj, JSIdArray **idap,
-                    jschar **sp)
+js_EnterSharpObject(JSContext *cx, JSObject *obj, JSIdArray **idap, bool *alreadySeen)
 {
-    JSSharpObjectMap *map;
-    JSHashTable *table;
-    JSIdArray *ida;
-    JSHashNumber hash;
-    JSHashEntry *he, **hep;
-    jsatomid sharpid;
-    char buf[20];
-    size_t len;
-
     if (!JS_CHECK_OPERATION_LIMIT(cx))
         return NULL;
 
-    
-    *sp = NULL;
-    map = &cx->sharpObjectMap;
-    table = map->table;
+    *alreadySeen = false;
+
+    JSSharpObjectMap *map = &cx->sharpObjectMap;
+    JSHashTable *table = map->table;
     if (!table) {
         table = JS_NewHashTable(8, js_hash_object, JS_CompareValues,
                                 JS_CompareValues, NULL, NULL);
@@ -346,8 +327,11 @@ js_EnterSharpObject(JSContext *cx, JSObject *obj, JSIdArray **idap,
         JS_KEEP_ATOMS(cx->runtime);
     }
 
+    JSHashEntry *he;
+    jsatomid sharpid;
+    JSIdArray *ida = NULL;
+
     
-    ida = NULL;
     if (map->depth == 0) {
         
 
@@ -372,8 +356,8 @@ js_EnterSharpObject(JSContext *cx, JSObject *obj, JSIdArray **idap,
             ida = NULL;
         }
     } else {
-        hash = js_hash_object(obj);
-        hep = JS_HashTableRawLookup(table, hash, obj);
+        JSHashNumber hash = js_hash_object(obj);
+        JSHashEntry **hep = JS_HashTableRawLookup(table, hash, obj);
         he = *hep;
 
         
@@ -395,30 +379,16 @@ js_EnterSharpObject(JSContext *cx, JSObject *obj, JSIdArray **idap,
     }
 
     sharpid = uintptr_t(he->value);
-    if (sharpid != 0) {
-        len = JS_snprintf(buf, sizeof buf, "#%u%c",
-                          sharpid >> SHARP_ID_SHIFT,
-                          (sharpid & SHARP_BIT) ? '#' : '=');
-        *sp = InflateString(cx, buf, &len);
-        if (!*sp) {
-            if (ida)
-                JS_DestroyIdArray(cx, ida);
-            goto bad;
-        }
-    }
+    if (sharpid != 0)
+        *alreadySeen = true;
 
 out:
     JS_ASSERT(he);
     if ((sharpid & SHARP_BIT) == 0) {
         if (idap && !ida) {
             ida = JS_Enumerate(cx, obj);
-            if (!ida) {
-                if (*sp) {
-                    cx->free_(*sp);
-                    *sp = NULL;
-                }
+            if (!ida)
                 goto bad;
-            }
         }
         map->depth++;
     }
@@ -441,10 +411,7 @@ bad:
 void
 js_LeaveSharpObject(JSContext *cx, JSIdArray **idap)
 {
-    JSSharpObjectMap *map;
-    JSIdArray *ida;
-
-    map = &cx->sharpObjectMap;
+    JSSharpObjectMap *map = &cx->sharpObjectMap;
     JS_ASSERT(map->depth > 0);
     if (--map->depth == 0) {
         JS_UNKEEP_ATOMS(cx->runtime);
@@ -453,8 +420,7 @@ js_LeaveSharpObject(JSContext *cx, JSIdArray **idap)
         map->table = NULL;
     }
     if (idap) {
-        ida = *idap;
-        if (ida) {
+        if (JSIdArray *ida = *idap) {
             JS_DestroyIdArray(cx, ida);
             *idap = NULL;
         }
@@ -502,13 +468,10 @@ static JSBool
 obj_toSource(JSContext *cx, uintN argc, Value *vp)
 {
     JSBool ok;
-    JSIdArray *ida;
-    jschar *chars, *ochars, *vsharp;
+    jschar *ochars, *vsharp;
     const jschar *idstrchars, *vchars;
     size_t nchars, idstrlength, gsoplength, vlength, vsharplength, curlen;
     const char *comma;
-    JSObject *obj2;
-    JSProperty *prop;
     Value *val;
     JSString *gsop[2];
     JSString *valstr, *str;
@@ -521,13 +484,16 @@ obj_toSource(JSContext *cx, uintN argc, Value *vp)
     AutoArrayRooter tvr(cx, ArrayLength(localroot), localroot);
 
     
-    JSBool outermost = (cx->sharpObjectMap.depth == 0);
+    bool outermost = (cx->sharpObjectMap.depth == 0);
 
     JSObject *obj = ToObject(cx, &vp[1]);
     if (!obj)
         return false;
 
-    JSHashEntry *he = js_EnterSharpObject(cx, obj, &ida, &chars);
+    jschar *chars;
+    JSIdArray *ida;
+    bool alreadySeen = false;
+    JSHashEntry *he = js_EnterSharpObject(cx, obj, &ida, &alreadySeen);
     if (!he)
         return false;
 
@@ -536,48 +502,26 @@ obj_toSource(JSContext *cx, uintN argc, Value *vp)
 
 
 
-
-        JS_ASSERT(IS_SHARP(he));
-#if JS_HAS_SHARP_VARS
-        nchars = js_strlen(chars);
-#else
-        chars[0] = '{';
-        chars[1] = '}';
-        chars[2] = 0;
-        nchars = 2;
-#endif
-        goto make_string;
+        JS_ASSERT(alreadySeen);
+        JSString *str = js_NewStringCopyZ(cx, "{}");
+        if (!str)
+            return false;
+        vp->setString(str);
+        return true;
     }
     JS_ASSERT(!IS_SHARP(he));
     ok = JS_TRUE;
 
-    if (!chars) {
-        
-        chars = (jschar *) cx->malloc_(((outermost ? 4 : 2) + 1) * sizeof(jschar));
-        nchars = 0;
-        if (!chars)
-            goto error;
-        if (outermost)
-            chars[nchars++] = '(';
-    } else {
-        
+    if (alreadySeen)
         MAKE_SHARP(he);
-        nchars = js_strlen(chars);
-        chars = (jschar *)
-            cx->realloc_((ochars = chars), (nchars + 2 + 1) * sizeof(jschar));
-        if (!chars) {
-            Foreground::free_(ochars);
-            goto error;
-        }
-        if (outermost) {
-            
 
-
-
-
-            outermost = JS_FALSE;
-        }
-    }
+    
+    chars = (jschar *) cx->malloc_(((outermost ? 4 : 2) + 1) * sizeof(jschar));
+    nchars = 0;
+    if (!chars)
+        goto error;
+    if (outermost)
+        chars[nchars++] = '(';
 
     chars[nchars++] = '{';
 
@@ -594,6 +538,8 @@ obj_toSource(JSContext *cx, uintN argc, Value *vp)
         
         jsid id = ida->vector[i];
 
+        JSObject *obj2;
+        JSProperty *prop;
         ok = obj->lookupGeneric(cx, id, &obj2, &prop);
         if (!ok)
             goto error;
@@ -688,25 +634,6 @@ obj_toSource(JSContext *cx, uintN argc, Value *vp)
 
             vsharp = NULL;
             vsharplength = 0;
-#if JS_HAS_SHARP_VARS
-            if (!gsop[j] && val[j].isObject() && vchars[0] != '#') {
-                he = js_EnterSharpObject(cx, &val[j].toObject(), NULL, &vsharp);
-                if (!he) {
-                    ok = JS_FALSE;
-                    goto error;
-                }
-                if (IS_SHARP(he)) {
-                    vchars = vsharp;
-                    vlength = js_strlen(vchars);
-                } else {
-                    if (vsharp) {
-                        vsharplength = js_strlen(vsharp);
-                        MAKE_SHARP(he);
-                    }
-                    js_LeaveSharpObject(cx, NULL);
-                }
-            }
-#endif
 
             
 
@@ -823,7 +750,7 @@ obj_toSource(JSContext *cx, uintN argc, Value *vp)
         JS_ReportOutOfMemory(cx);
         return false;
     }
-  make_string:
+
     str = js_NewString(cx, chars, nchars);
     if (!str) {
         cx->free_(chars);
@@ -2141,17 +2068,17 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const jsid &id, const PropD
                 break;
 
             if (desc.hasGet) {
-                JSBool same;
+                bool same;
                 if (!SameValue(cx, desc.getterValue(), shape->getterOrUndefined(), &same))
-                    return JS_FALSE;
+                    return false;
                 if (!same)
                     break;
             }
 
             if (desc.hasSet) {
-                JSBool same;
+                bool same;
                 if (!SameValue(cx, desc.setterValue(), shape->setterOrUndefined(), &same))
-                    return JS_FALSE;
+                    return false;
                 if (!same)
                     break;
             }
@@ -2190,10 +2117,10 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const jsid &id, const PropD
                 if (!shape->isDataDescriptor())
                     break;
 
-                JSBool same;
+                bool same;
                 if (desc.hasValue) {
                     if (!SameValue(cx, desc.value, v, &same))
-                        return JS_FALSE;
+                        return false;
                     if (!same) {
                         
 
@@ -2268,9 +2195,9 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const jsid &id, const PropD
             if (desc.hasWritable && desc.writable())
                 return Reject(cx, JSMSG_CANT_REDEFINE_PROP, throwError, id, rval);
             if (desc.hasValue) {
-                JSBool same;
+                bool same;
                 if (!SameValue(cx, desc.value, v, &same))
-                    return JS_FALSE;
+                    return false;
                 if (!same)
                     return Reject(cx, JSMSG_CANT_REDEFINE_PROP, throwError, id, rval);
             }
@@ -2282,17 +2209,17 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const jsid &id, const PropD
         JS_ASSERT(desc.isAccessorDescriptor() && shape->isAccessorDescriptor());
         if (!shape->configurable()) {
             if (desc.hasSet) {
-                JSBool same;
+                bool same;
                 if (!SameValue(cx, desc.setterValue(), shape->setterOrUndefined(), &same))
-                    return JS_FALSE;
+                    return false;
                 if (!same)
                     return Reject(cx, JSMSG_CANT_REDEFINE_PROP, throwError, id, rval);
             }
 
             if (desc.hasGet) {
-                JSBool same;
+                bool same;
                 if (!SameValue(cx, desc.getterValue(), shape->getterOrUndefined(), &same))
-                    return JS_FALSE;
+                    return false;
                 if (!same)
                     return Reject(cx, JSMSG_CANT_REDEFINE_PROP, throwError, id, rval);
             }
@@ -3492,7 +3419,7 @@ JSObject::ReserveForTradeGuts(JSContext *cx, JSObject *a, JSObject *b,
 
 
 
-    if (a->structSize() == b->structSize())
+    if (a->sizeOfThis() == b->sizeOfThis())
         return true;
 
     
@@ -3585,7 +3512,7 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
     JS_ASSERT(a->isFunction() == b->isFunction());
 
     
-    JS_ASSERT_IF(a->isFunction(), a->structSize() == b->structSize());
+    JS_ASSERT_IF(a->isFunction(), a->sizeOfThis() == b->sizeOfThis());
 
     
 
@@ -3615,8 +3542,8 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
 #endif
 
     
-    const size_t size = a->structSize();
-    if (size == b->structSize()) {
+    const size_t size = a->sizeOfThis();
+    if (size == b->sizeOfThis()) {
         
 
 
@@ -4171,7 +4098,7 @@ JSObject::growSlots(JSContext *cx, uint32_t oldCount, uint32_t newCount)
 
     JS_ASSERT(newCount < NELEMENTS_LIMIT);
 
-    size_t oldSize = Probes::objectResizeActive() ? slotsAndStructSize() : 0;
+    size_t oldSize = Probes::objectResizeActive() ? computedSizeOfIncludingThis() : 0;
     size_t newSize = oldSize + (newCount - oldCount) * sizeof(Value);
 
     
@@ -4240,7 +4167,7 @@ JSObject::shrinkSlots(JSContext *cx, uint32_t oldCount, uint32_t newCount)
     if (isCall())
         return;
 
-    size_t oldSize = Probes::objectResizeActive() ? slotsAndStructSize() : 0;
+    size_t oldSize = Probes::objectResizeActive() ? computedSizeOfIncludingThis() : 0;
     size_t newSize = oldSize - (oldCount - newCount) * sizeof(Value);
 
     if (newCount == 0) {
@@ -4286,7 +4213,7 @@ JSObject::growElements(JSContext *cx, uintN newcap)
     uint32_t oldcap = getDenseArrayCapacity();
     JS_ASSERT(oldcap <= newcap);
 
-    size_t oldSize = Probes::objectResizeActive() ? slotsAndStructSize() : 0;
+    size_t oldSize = Probes::objectResizeActive() ? computedSizeOfIncludingThis() : 0;
 
     uint32_t nextsize = (oldcap <= CAPACITY_DOUBLING_MAX)
                       ? oldcap * 2
@@ -4329,7 +4256,7 @@ JSObject::growElements(JSContext *cx, uintN newcap)
     Debug_SetValueRangeToCrashOnTouch(elements + initlen, actualCapacity - initlen);
 
     if (Probes::objectResizeActive())
-        Probes::resizeObject(cx, this, oldSize, slotsAndStructSize());
+        Probes::resizeObject(cx, this, oldSize, computedSizeOfIncludingThis());
 
     return true;
 }
@@ -4342,7 +4269,7 @@ JSObject::shrinkElements(JSContext *cx, uintN newcap)
     uint32_t oldcap = getDenseArrayCapacity();
     JS_ASSERT(newcap <= oldcap);
 
-    size_t oldSize = Probes::objectResizeActive() ? slotsAndStructSize() : 0;
+    size_t oldSize = Probes::objectResizeActive() ? computedSizeOfIncludingThis() : 0;
 
     
     if (oldcap <= SLOT_CAPACITY_MIN || !hasDynamicElements())
@@ -4361,7 +4288,7 @@ JSObject::shrinkElements(JSContext *cx, uintN newcap)
     elements = newheader->elements();
 
     if (Probes::objectResizeActive())
-        Probes::resizeObject(cx, this, oldSize, slotsAndStructSize());
+        Probes::resizeObject(cx, this, oldSize, computedSizeOfIncludingThis());
 }
 
 #ifdef DEBUG

@@ -855,11 +855,11 @@ nsTypeAheadFind::RangeStartsInsideLink(nsIDOMRange *aRange,
     if (!parent)
       break;
 
-    nsIContent *parentsFirstChild = parent->GetChildAt(0);
+    nsIContent* parentsFirstChild = parent->GetFirstChild();
 
     
     if (parentsFirstChild && parentsFirstChild->TextIsOnlyWhitespace()) {
-      parentsFirstChild = parent->GetChildAt(1);
+      parentsFirstChild = parentsFirstChild->GetNextSibling();
     }
 
     if (parentsFirstChild != startContent) {

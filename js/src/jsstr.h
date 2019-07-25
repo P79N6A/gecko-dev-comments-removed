@@ -186,7 +186,11 @@ namespace js {
 
 
 extern bool
-EqualStrings(JSContext *cx, JSString *str1, JSString *str2, JSBool *result);
+EqualStrings(JSContext *cx, JSString *str1, JSString *str2, bool *result);
+
+
+extern bool
+EqualStrings(JSContext *cx, JSLinearString *str1, JSLinearString *str2, bool *result) MOZ_DELETE;
 
 
 extern bool

@@ -90,7 +90,6 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsIJSContextStack.h"
 #include "nsIScriptObjectPrincipal.h"
-#include "nsDocumentCharsetInfoCID.h"
 #include "nsIScrollableFrame.h"
 #include "nsContentPolicyUtils.h" 
 #include "nsICategoryManager.h"
@@ -756,10 +755,11 @@ nsDocShell::nsDocShell():
     mIsBeingDestroyed(false),
     mIsExecutingOnLoadHandler(false),
     mIsPrintingOrPP(false),
-    mSavingOldViewer(false)
+    mSavingOldViewer(false),
 #ifdef DEBUG
-    , mInEnsureScriptEnv(false)
+    mInEnsureScriptEnv(false),
 #endif
+    mParentCharsetSource(0)
 {
     mHistoryID = ++gDocshellIDCounter;
     if (gDocShellCount++ == 0) {
@@ -1877,41 +1877,48 @@ nsDocShell::SetCharset(const char* aCharset)
     }
 
     
-    nsCOMPtr<nsIDocumentCharsetInfo> dcInfo;
-    GetDocumentCharsetInfo(getter_AddRefs(dcInfo));
-    if (dcInfo) {
-      nsCOMPtr<nsIAtom> csAtom;
-      csAtom = do_GetAtom(aCharset);
-      dcInfo->SetForcedCharset(csAtom);
-    }
+    nsCOMPtr<nsIAtom> csAtom = do_GetAtom(aCharset);
+    SetForcedCharset(csAtom);
 
     return NS_OK;
 } 
 
-NS_IMETHODIMP
-nsDocShell::GetDocumentCharsetInfo(nsIDocumentCharsetInfo **
-                                   aDocumentCharsetInfo)
+NS_IMETHODIMP nsDocShell::SetForcedCharset(nsIAtom * aCharset)
 {
-    NS_ENSURE_ARG_POINTER(aDocumentCharsetInfo);
-
-    
-    if (!mDocumentCharsetInfo) {
-        mDocumentCharsetInfo = do_CreateInstance(NS_DOCUMENTCHARSETINFO_CONTRACTID);
-        if (!mDocumentCharsetInfo)
-            return NS_ERROR_FAILURE;
-    }
-
-    *aDocumentCharsetInfo = mDocumentCharsetInfo;
-    NS_IF_ADDREF(*aDocumentCharsetInfo);
-    return NS_OK;
+  mForcedCharset = aCharset;
+  return NS_OK;
 }
 
-NS_IMETHODIMP
-nsDocShell::SetDocumentCharsetInfo(nsIDocumentCharsetInfo *
-                                   aDocumentCharsetInfo)
+NS_IMETHODIMP nsDocShell::GetForcedCharset(nsIAtom ** aResult)
 {
-    mDocumentCharsetInfo = aDocumentCharsetInfo;
-    return NS_OK;
+  *aResult = mForcedCharset;
+  if (mForcedCharset) NS_ADDREF(*aResult);
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsDocShell::SetParentCharset(nsIAtom * aCharset)
+{
+  mParentCharset = aCharset;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsDocShell::GetParentCharset(nsIAtom ** aResult)
+{
+  *aResult = mParentCharset;
+  if (mParentCharset) NS_ADDREF(*aResult);
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsDocShell::SetParentCharsetSource(PRInt32 aCharsetSource)
+{
+  mParentCharsetSource = aCharsetSource;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsDocShell::GetParentCharsetSource(PRInt32 * aParentCharsetSource)
+{
+  *aParentCharsetSource = mParentCharsetSource;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -3197,12 +3204,6 @@ nsDocShell::AddChild(nsIDocShellTreeItem * aChild)
         return NS_OK;
 
     
-    nsCOMPtr<nsIDocumentCharsetInfo> dcInfo = NULL;
-    res = childAsDocShell->GetDocumentCharsetInfo(getter_AddRefs(dcInfo));
-    if (NS_FAILED(res) || (!dcInfo))
-        return NS_OK;
-
-    
     if (!mContentViewer)
         return NS_OK;
     nsIDocument* doc = mContentViewer->GetDocument();
@@ -3225,14 +3226,14 @@ nsDocShell::AddChild(nsIDocShellTreeItem * aChild)
 
         
         nsCOMPtr<nsIAtom> parentCSAtom(do_GetAtom(parentCS));
-        res = dcInfo->SetParentCharset(parentCSAtom);
+        res = childAsDocShell->SetParentCharset(parentCSAtom);
         if (NS_FAILED(res))
             return NS_OK;
 
         PRInt32 charsetSource = doc->GetDocumentCharacterSetSource();
 
         
-        res = dcInfo->SetParentCharsetSource(charsetSource);
+        res = childAsDocShell->SetParentCharsetSource(charsetSource);
         if (NS_FAILED(res))
             return NS_OK;
     }

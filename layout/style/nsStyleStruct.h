@@ -113,6 +113,9 @@ struct nsStyleFont {
   nsStyleFont(const nsFont& aFont, nsPresContext *aPresContext);
   nsStyleFont(const nsStyleFont& aStyleFont);
   nsStyleFont(nsPresContext *aPresContext);
+private:
+  void Init(nsPresContext *aPresContext);
+public:
   ~nsStyleFont(void) {
     MOZ_COUNT_DTOR(nsStyleFont);
   }
@@ -146,6 +149,7 @@ struct nsStyleFont {
   nscoord mScriptUnconstrainedSize;
   nscoord mScriptMinSize;        
   float   mScriptSizeMultiplier; 
+  nsCOMPtr<nsIAtom> mLanguage;   
 };
 
 struct nsStyleGradientStop {
@@ -1337,7 +1341,6 @@ struct nsStyleVisibility {
 
   PRUint8 mDirection;                  
   PRUint8   mVisible;                  
-  nsCOMPtr<nsIAtom> mLanguage;         
   PRUint8 mPointerEvents;              
 
   bool IsVisible() const {

@@ -632,7 +632,7 @@ CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed *lir)
     
     
 
-    ThreadData *threadData = gen->cx->threadData();
+    JSRuntime *rt = gen->cx->runtime;
 
     
     const LAllocation *limit = lir->limitTemp();
@@ -640,7 +640,7 @@ CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed *lir)
 
     
     
-    uintptr_t *limitAddr = &threadData->ionStackLimit;
+    uintptr_t *limitAddr = &rt->ionStackLimit;
     masm.loadPtr(ImmWord(limitAddr), limitReg);
 
     CheckOverRecursedFailure *ool = new CheckOverRecursedFailure(lir);

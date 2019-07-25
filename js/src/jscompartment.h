@@ -168,7 +168,8 @@ typedef HashSet<ScriptFilenameEntry *,
 
 } 
 
-struct JS_FRIEND_API(JSCompartment) {
+struct JSCompartment
+{
     JSRuntime                    *rt;
     JSPrincipals                 *principals;
 
@@ -537,4 +538,4 @@ class CompartmentsIter {
 
 } 
 
-#endif
+#endif 

@@ -1456,13 +1456,6 @@ public:
 
 
 
-  static void AddScriptBlockerAndPreventAddingRunners();
-
-  
-
-
-
-
 
 
   static void RemoveScriptBlocker();

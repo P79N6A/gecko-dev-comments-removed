@@ -75,21 +75,27 @@ NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Traverse
 
     
     
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "self");
     cb.NoteXPCOMChild(s);
 
-    if (refcnt > 1)
+    if (refcnt > 1) {
         
         
+        NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mJSObj");
         cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT,
                            tmp->GetJSObjectPreserveColor());
+    }
 
     nsXPCWrappedJS* root = tmp->GetRootWrapper();
-    if (root == tmp)
+    if (root == tmp) {
         
+        NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "aggregated native");
         cb.NoteXPCOMChild(tmp->GetAggregatedNativeObject());
-    else
+    } else {
         
+        NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "root");
         cb.NoteXPCOMChild(static_cast<nsIXPConnectWrappedJS*>(root));
+    }
 
     return NS_OK;
 }

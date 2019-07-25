@@ -257,7 +257,8 @@ void nsListControlFrame::PaintFocus(nsRenderingContext& aRC, nsPoint aPt)
     
     fRect.MoveBy(childframe->GetParent()->GetOffsetTo(this));
   } else {
-    float inflation = nsLayoutUtils::FontSizeInflationFor(this);
+    float inflation = nsLayoutUtils::FontSizeInflationFor(this,
+                        nsLayoutUtils::eNotInReflow);
     fRect.x = fRect.y = 0;
     fRect.width = GetScrollPortRect().width;
     fRect.height = CalcFallbackRowHeight(inflation);
@@ -294,13 +295,9 @@ nsListControlFrame::InvalidateFocus(const nsHTMLReflowState *aReflowState)
     
     
     
-    float inflation;
-    if (aReflowState) {
-      NS_ABORT_IF_FALSE(aReflowState->frame == this, "wrong reflow state");
-      inflation = nsLayoutUtils::FontSizeInflationFor(*aReflowState);
-    } else {
-      inflation = nsLayoutUtils::FontSizeInflationFor(this);
-    }
+    float inflation = nsLayoutUtils::FontSizeInflationFor(this,
+                        aReflowState ? nsLayoutUtils::eInReflow
+                                     : nsLayoutUtils::eNotInReflow);
     nsRect invalidateArea = containerFrame->GetVisualOverflowRect();
     nsRect emptyFallbackArea(0, 0, GetScrollPortRect().width,
                              CalcFallbackRowHeight(inflation));
@@ -374,11 +371,8 @@ GetNumberOfOptionsRecursive(nsIContent* aContent)
 
 
 
-
-
-
 nscoord
-nsListControlFrame::CalcHeightOfARow(const nsHTMLReflowState& aReflowState)
+nsListControlFrame::CalcHeightOfARow()
 {
   
   
@@ -389,8 +383,8 @@ nsListControlFrame::CalcHeightOfARow(const nsHTMLReflowState& aReflowState)
   
   
   if (heightOfARow == 0 && GetNumberOfOptions() == 0) {
-    nscoord minFontSize = nsLayoutUtils::InflationMinFontSizeFor(aReflowState);
-    float inflation = nsLayoutUtils::FontSizeInflationInner(this, minFontSize);
+    float inflation =
+      nsLayoutUtils::FontSizeInflationInner(this, nsLayoutUtils::eInReflow);
     heightOfARow = CalcFallbackRowHeight(inflation);
   }
 
@@ -514,7 +508,7 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
       
       
       
-      nscoord rowHeight = CalcHeightOfARow(aReflowState);
+      nscoord rowHeight = CalcHeightOfARow();
       if (rowHeight == 0) {
         
         mNumDisplayRows = 1;

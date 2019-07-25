@@ -617,8 +617,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     
     
     void linkExitFrame() {
-        mov(ImmWord(JS_THREAD_DATA(GetIonContext()->cx)), ScratchReg);
-        mov(StackPointer, Operand(ScratchReg, offsetof(ThreadData, ionTop)));
+        mov(ImmWord(GetIonContext()->cx->runtime), ScratchReg);
+        mov(StackPointer, Operand(ScratchReg, offsetof(JSRuntime, ionTop)));
     }
 };
 

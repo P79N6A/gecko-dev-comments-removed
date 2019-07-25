@@ -68,10 +68,8 @@ bool AutoScriptEvaluate::StartEvaluating(JSObject *scope, JSErrorReporter errorR
         JS_SetErrorReporter(mJSContext, errorReporter);
         mErrorReporterSet = true;
     }
-    mContextHasThread = JS_GetContextThread(mJSContext);
-    if (mContextHasThread)
-        JS_BeginRequest(mJSContext);
 
+    JS_BeginRequest(mJSContext);
     if (!mEnterCompartment.enter(mJSContext, scope))
         return false;
 
@@ -102,8 +100,7 @@ AutoScriptEvaluate::~AutoScriptEvaluate()
     else
         JS_ClearPendingException(mJSContext);
 
-    if (mContextHasThread)
-        JS_EndRequest(mJSContext);
+    JS_EndRequest(mJSContext);
 
     
     
@@ -543,8 +540,8 @@ GetContextFromObject(JSObject *obj)
 
     if (xpcc) {
         JSContext *cx = xpcc->GetJSContext();
-        if (JS_GetContextThread(cx) == JS_GetCurrentThread())
-            return cx;
+        JS_AbortIfWrongThread(JS_GetRuntime(cx));
+        return cx;
     }
 
     return nsnull;

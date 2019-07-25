@@ -1507,7 +1507,10 @@ public:
 
 
 
-  static bool IsContainerForFontSizeInflation(const nsIFrame *aFrame);
+  static bool IsContainerForFontSizeInflation(const nsIFrame *aFrame)
+  {
+    return aFrame->GetStateBits() & NS_FRAME_FONT_INFLATION_CONTAINER;
+  }
 
   
 
@@ -1519,10 +1522,9 @@ public:
 
 
 
-  static float FontSizeInflationFor(const nsHTMLReflowState &aReflowState);
-  static float FontSizeInflationFor(const nsIFrame *aFrame);
+  enum WidthDetermination { eNotInReflow, eInReflow };
   static float FontSizeInflationFor(const nsIFrame *aFrame,
-                                    nscoord aInflationContainerWidth);
+                                    WidthDetermination aWidthDetermination);
 
   
 
@@ -1537,11 +1539,9 @@ public:
 
 
 
-  static nscoord InflationMinFontSizeFor(const nsHTMLReflowState
-                                                 &aReflowState);
-  static nscoord InflationMinFontSizeFor(const nsIFrame *aFrame);
   static nscoord InflationMinFontSizeFor(const nsIFrame *aFrame,
-                                         nscoord aInflationContainerWidth);
+                                         WidthDetermination
+                                           aWidthDetermination);
 
   
 
@@ -1634,6 +1634,43 @@ public:
   AssertTreeOnlyEmptyNextInFlows(nsIFrame *aSubtreeRoot);
 #endif
 };
+
+namespace mozilla {
+  namespace layout {
+
+    
+
+
+
+
+
+    class AutoMaybeNullInflationContainer {
+    public:
+      AutoMaybeNullInflationContainer(nsIFrame *aFrame)
+      {
+        if (nsLayoutUtils::IsContainerForFontSizeInflation(aFrame)) {
+          mPresContext = aFrame->PresContext();
+          mOldValue = mPresContext->mCurrentInflationContainer;
+          mPresContext->mCurrentInflationContainer = nsnull;
+        } else {
+          
+          mPresContext = nsnull;
+        }
+      }
+
+      ~AutoMaybeNullInflationContainer()
+      {
+        if (mPresContext) {
+          mPresContext->mCurrentInflationContainer = mOldValue;
+        }
+      }
+    private:
+      nsPresContext *mPresContext;
+      nsIFrame *mOldValue;
+    };
+
+  }
+}
 
 class nsSetAttrRunnable : public nsRunnable
 {

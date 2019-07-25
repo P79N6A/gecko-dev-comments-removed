@@ -1326,11 +1326,6 @@ typedef HashMap<Value, Value, WrapperHasher, SystemAllocPolicy> WrapperMap;
 
 } 
 
-#ifdef DEBUG
-extern bool
-CheckAllocation(JSContext *cx);
-#endif
-
 extern JS_FRIEND_API(JSGCTraceKind)
 js_GetGCThingTraceKind(void *thing);
 
@@ -1421,22 +1416,6 @@ typedef enum JSGCInvocationKind {
 
 extern void
 js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind, js::gcstats::Reason r);
-
-#ifdef JS_THREADSAFE
-
-
-
-
-
-
-extern void
-js_WaitForGC(JSRuntime *rt);
-
-#else 
-
-# define js_WaitForGC(rt)    ((void) 0)
-
-#endif
 
 namespace js {
 
@@ -1590,57 +1569,6 @@ struct GCChunkHasher {
 };
 
 typedef HashSet<js::gc::Chunk *, GCChunkHasher, SystemAllocPolicy> GCChunkSet;
-
-struct ConservativeGCThreadData {
-
-    
-
-
-
-    uintptr_t           *nativeStackTop;
-
-    union {
-        jmp_buf         jmpbuf;
-        uintptr_t       words[JS_HOWMANY(sizeof(jmp_buf), sizeof(uintptr_t))];
-    } registerSnapshot;
-
-    
-
-
-
-
-    unsigned requestThreshold;
-
-    ConservativeGCThreadData()
-      : nativeStackTop(NULL), requestThreshold(0)
-    {
-    }
-
-    ~ConservativeGCThreadData() {
-#ifdef JS_THREADSAFE
-        
-
-
-
-        JS_ASSERT(!hasStackToScan());
-#endif
-    }
-
-    JS_NEVER_INLINE void recordStackTop();
-
-#ifdef JS_THREADSAFE
-    void updateForRequestEnd(unsigned suspendCount) {
-        if (suspendCount)
-            recordStackTop();
-        else
-            nativeStackTop = NULL;
-    }
-#endif
-
-    bool hasStackToScan() const {
-        return !!nativeStackTop;
-    }
-};
 
 template<class T>
 struct MarkStack {

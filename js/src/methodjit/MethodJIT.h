@@ -310,9 +310,6 @@ enum RejoinState {
     REJOIN_FALLTHROUGH,
 
     
-    REJOIN_JUMP,
-
-    
 
 
 
@@ -722,8 +719,8 @@ struct JITChunk
 
     void nukeScriptDependentICs();
 
-    
-    size_t scriptDataSize(JSMallocSizeOfFun mallocSizeOf);
+    size_t computedSizeOfIncludingThis();
+    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf);
 
     ~JITChunk();
 
@@ -845,7 +842,7 @@ struct JITScript
 
     jsbytecode *nativeToPC(void *returnAddress, CallSite **pinline);
 
-    size_t scriptDataSize(JSMallocSizeOfFun mallocSizeOf);
+    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf);
 
     void destroy(JSContext *cx);
     void destroyChunk(JSContext *cx, unsigned chunkIndex, bool resetUses = true);

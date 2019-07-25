@@ -132,6 +132,7 @@
 
 using namespace mozilla;
 using namespace mozilla::layers;
+using namespace mozilla::layout;
 
 
 struct nsBoxLayoutMetrics
@@ -424,6 +425,69 @@ NS_QUERYFRAME_TAIL_INHERITANCE_ROOT
 
 
 
+static bool
+IsFontSizeInflationContainer(nsIFrame* aFrame,
+                             const nsStyleDisplay* aStyleDisplay)
+{
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsIContent *content = aFrame->GetContent();
+  bool isInline = (aStyleDisplay->mDisplay == NS_STYLE_DISPLAY_INLINE ||
+                   (aStyleDisplay->IsFloating() &&
+                    aFrame->GetType() == nsGkAtoms::letterFrame) ||
+                   
+                   
+                   
+                   (aFrame->GetParent() &&
+                    aFrame->GetParent()->GetContent() == content) ||
+                   (content && (content->IsHTML(nsGkAtoms::option) ||
+                                content->IsHTML(nsGkAtoms::optgroup) ||
+                                content->IsInNativeAnonymousSubtree()))) &&
+                  !(aFrame->IsBoxFrame() && aFrame->GetParent() &&
+                    aFrame->GetParent()->IsBoxFrame());
+  NS_ASSERTION(!aFrame->IsFrameOfType(nsIFrame::eLineParticipant) ||
+               isInline ||
+               
+               
+               
+               aFrame->GetType() == nsGkAtoms::brFrame ||
+               aFrame->IsFrameOfType(nsIFrame::eMathML),
+               "line participants must not be containers");
+  NS_ASSERTION(aFrame->GetType() != nsGkAtoms::bulletFrame || isInline,
+               "bullets should not be containers");
+  return !isInline;
+}
+
 NS_IMETHODIMP
 nsFrame::Init(nsIContent*      aContent,
               nsIFrame*        aParent,
@@ -457,12 +521,25 @@ nsFrame::Init(nsIContent*      aContent,
     mState |= state & (NS_FRAME_INDEPENDENT_SELECTION |
                        NS_FRAME_GENERATED_CONTENT);
   }
-  if (GetStyleDisplay()->HasTransform()) {
+  const nsStyleDisplay *disp = GetStyleDisplay();
+  if (disp->HasTransform()) {
     
     
     mState |= NS_FRAME_MAY_BE_TRANSFORMED;
   }
-  
+
+  if (nsLayoutUtils::FontSizeInflationEnabled(PresContext())
+#ifdef DEBUG
+      
+      
+      || true
+#endif
+      ) {
+    if (IsFontSizeInflationContainer(this, disp)) {
+      mState |= NS_FRAME_FONT_INFLATION_CONTAINER;
+    }
+  }
+
   DidSetStyleContext(nsnull);
 
   if (IsBoxWrapped())
@@ -3783,6 +3860,10 @@ nscoord
 nsFrame::ShrinkWidthToFit(nsRenderingContext *aRenderingContext,
                           nscoord aWidthInCB)
 {
+  
+  
+  AutoMaybeNullInflationContainer an(this);
+
   nscoord result;
   nscoord minWidth = GetMinWidth(aRenderingContext);
   if (minWidth > aWidthInCB) {
@@ -7170,8 +7251,16 @@ nsFrame::RefreshSizeCache(nsBoxLayoutState& aState)
     nsMargin bp(0,0,0,0);
     GetBorderAndPadding(bp);
 
-    metrics->mBlockPrefSize.width = GetPrefWidth(rendContext) + bp.LeftRight();
-    metrics->mBlockMinSize.width = GetMinWidth(rendContext) + bp.LeftRight();
+    {
+      
+      
+      AutoMaybeNullInflationContainer an(this);
+
+      metrics->mBlockPrefSize.width =
+        GetPrefWidth(rendContext) + bp.LeftRight();
+      metrics->mBlockMinSize.width =
+        GetMinWidth(rendContext) + bp.LeftRight();
+    }
 
     
     nsHTMLReflowMetrics desiredSize;

@@ -63,10 +63,6 @@
 #include "nsIServiceManager.h"
 #include "nsParserConstants.h"
 
-#ifdef NS_DEBUG
-#include "nsLoggingSink.h"
-#endif
-
 using namespace mozilla;
 
 
@@ -128,54 +124,10 @@ CNavDTD::CNavDTD()
 {
 }
 
-#ifdef NS_DEBUG
-
-static nsLoggingSink*
-GetLoggingSink()
-{
-  
-  
-
-  static bool checkForPath = true;
-  static nsLoggingSink *theSink = nsnull;
-  static const char* gLogPath = nsnull; 
-
-  if (checkForPath) {
-    
-    gLogPath = PR_GetEnv("PARSE_LOGFILE"); 
-    checkForPath = false;
-  }
-  
-
-  if (gLogPath && !theSink) {
-    static nsLoggingSink gLoggingSink;
-
-    PRIntn theFlags = PR_CREATE_FILE | PR_RDWR;
-
-    
-    PRFileDesc *theLogFile = PR_Open(gLogPath, theFlags, 0);
-    gLoggingSink.SetOutputStream(theLogFile, true);
-    theSink = &gLoggingSink;
-  }
-
-  return theSink;
-}
- 
-#endif
-
 CNavDTD::~CNavDTD()
 {
   delete mBodyContext;
   delete mTempContext;
-
-#ifdef NS_DEBUG
-  if (mSink) {
-    nsLoggingSink *theLogSink = GetLoggingSink();
-    if (mSink == theLogSink) {
-      theLogSink->ReleaseProxySink();
-    }
-  }
-#endif
 }
 
 NS_IMETHODIMP
@@ -204,17 +156,6 @@ CNavDTD::WillBuildModel(const CParserContext& aParserContext,
         return result;
       }
     }
-
-    
-    
-    
-#ifdef NS_DEBUG
-    nsLoggingSink *theLogSink = GetLoggingSink();
-    if (theLogSink) {
-      theLogSink->SetProxySink(mSink);
-      mSink = theLogSink;
-    }
-#endif    
 
     mFlags |= nsHTMLTokenizer::GetFlags(aSink);
 
@@ -1747,16 +1688,6 @@ CNavDTD::HandleSavedTokens(PRInt32 anIndex)
       PRInt32   attrCount;
       PRInt32   theTopIndex = anIndex + 1;
       PRInt32   theTagCount = mBodyContext->GetCount();
-      bool      formWasOnStack = mSink->IsFormOnStack();
-
-      if (formWasOnStack) {
-        
-        
-        
-        
-        
-        ++anIndex;
-      }
 
       
       result = mSink->BeginContext(anIndex);
@@ -1821,12 +1752,6 @@ CNavDTD::HandleSavedTokens(PRInt32 anIndex)
         CloseContainersTo(theTopIndex, mBodyContext->TagAt(theTopIndex),
                           true);
       }      
-
-      if (!formWasOnStack && mSink->IsFormOnStack()) {
-        
-        
-        mSink->CloseContainer(eHTMLTag_form);
-      }
 
       
       
@@ -1905,15 +1830,7 @@ nsresult
 CNavDTD::HandleCommentToken(CToken* aToken)
 {
   NS_PRECONDITION(nsnull != aToken, kNullToken);
-
-  nsCParserNode* theNode = mNodeAllocator.CreateNode(aToken, mTokenAllocator);
-  NS_ENSURE_TRUE(theNode, NS_ERROR_OUT_OF_MEMORY);
-
-  nsresult result = mSink ? mSink->AddComment(*theNode) : NS_OK;
-
-  IF_FREE(theNode, &mNodeAllocator);
-
-  return result;
+  return NS_OK;
 }
 
 
@@ -1946,15 +1863,7 @@ nsresult
 CNavDTD::HandleProcessingInstructionToken(CToken* aToken)
 {
   NS_PRECONDITION(nsnull != aToken, kNullToken);
-
-  nsCParserNode* theNode = mNodeAllocator.CreateNode(aToken, mTokenAllocator);
-  NS_ENSURE_TRUE(theNode, NS_ERROR_OUT_OF_MEMORY);
-
-  nsresult result = mSink ? mSink->AddProcessingInstruction(*theNode) : NS_OK;
-
-  IF_FREE(theNode, &mNodeAllocator);
-
-  return result;
+  return NS_OK;
 }
 
 
@@ -1987,15 +1896,7 @@ CNavDTD::HandleDocTypeDeclToken(CToken* aToken)
   
   docTypeStr.Cut(0, 2);
   theToken->SetStringValue(docTypeStr);
-
-  nsCParserNode* theNode = mNodeAllocator.CreateNode(aToken, mTokenAllocator);
-  NS_ENSURE_TRUE(theNode, NS_ERROR_OUT_OF_MEMORY);
-
-  nsresult result = mSink ? mSink->AddDocTypeDecl(*theNode) : NS_OK;
-
-  IF_FREE(theNode, &mNodeAllocator);
-
-  return result;
+  return NS_OK;
 }
 
 

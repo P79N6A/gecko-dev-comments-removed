@@ -164,20 +164,6 @@ MarkString(JSTracer *trc, const MarkablePtr<JSString> &str, const char *name)
 }
 
 void
-MarkAtom(JSTracer *trc, JSAtom *atom)
-{
-    JS_ASSERT(trc);
-    JS_ASSERT(atom);
-    Mark(trc, atom);
-}
-
-void
-MarkAtom(JSTracer *trc, JSAtom *atom, const char *name)
-{
-    MarkStringUnbarriered(trc, atom, name);
-}
-
-void
 MarkObjectUnbarriered(JSTracer *trc, JSObject *obj, const char *name)
 {
     JS_ASSERT(trc);
@@ -259,19 +245,6 @@ MarkTypeObjectUnbarriered(JSTracer *trc, types::TypeObject *type, const char *na
     JS_ASSERT(type);
     JS_SET_TRACING_NAME(trc, name);
     Mark(trc, type);
-
-    
-
-
-
-
-
-    if (IS_GC_MARKING_TRACER(trc)) {
-        if (type->singleton && !type->lazy())
-            MarkObject(trc, type->singleton, "type_singleton");
-        if (type->interpretedFunction)
-            MarkObject(trc, type->interpretedFunction, "type_function");
-    }
 }
 
 void
@@ -1076,13 +1049,11 @@ ScanTypeObject(GCMarker *gcmarker, types::TypeObject *type)
     if (type->interpretedFunction)
         PushMarkStack(gcmarker, type->interpretedFunction);
 
-    
+    if (type->singleton && !type->lazy())
+        PushMarkStack(gcmarker, type->singleton);
 
-
-
-
-
-
+    if (type->interpretedFunction)
+        PushMarkStack(gcmarker, type->interpretedFunction);
 }
 
 void

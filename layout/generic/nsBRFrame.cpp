@@ -151,7 +151,7 @@ BRFrame::Reflow(nsPresContext* aPresContext,
       
       nsRefPtr<nsFontMetrics> fm;
       nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm),
-        nsLayoutUtils::FontSizeInflationFor(aReflowState));
+        nsLayoutUtils::FontSizeInflationFor(this, nsLayoutUtils::eInReflow));
       aReflowState.rendContext->SetFont(fm); 
       if (fm) {
         nscoord logicalHeight = aReflowState.CalcLineHeight();

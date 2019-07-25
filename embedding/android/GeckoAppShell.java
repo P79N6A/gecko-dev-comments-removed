@@ -362,7 +362,7 @@ public class GeckoAppShell
         GeckoAppShell.putenv("EXTERNAL_STORAGE=" + f.getPath());
 
         File cacheFile = getCacheDir();
-        GeckoAppShell.putenv("CACHE_PATH=" + cacheFile.getPath());
+        GeckoAppShell.putenv("MOZ_LINKER_CACHE=" + cacheFile.getPath());
 
         
         long freeSpace = getFreeSpace();
@@ -1790,4 +1790,7 @@ public class GeckoAppShell
     public static void disableNetworkNotifications() {
         GeckoNetworkManager.getInstance().disableNotifications();
     }
+
+    
+    public static void preventPanning() { }
 }

@@ -1453,6 +1453,15 @@ nsAutoCompleteController::GetDefaultCompleteValue(PRInt32 aResultIndex,
     return NS_ERROR_FAILURE;
   }
 
+  
+  
+  
+  PRUint32 matchCount = 0;
+  result->GetMatchCount(&matchCount);
+  
+  if ((PRUint32)defaultIndex >= matchCount)
+    return NS_ERROR_FAILURE;
+
   nsAutoString resultValue;
   result->GetValueAt(defaultIndex, resultValue);
   if (aPreserveCasing &&
