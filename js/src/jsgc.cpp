@@ -2177,10 +2177,8 @@ SweepCrossCompartmentWrappers(JSContext *cx)
     }
 
     
-    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c) {
+    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
         (*c)->sweep(cx, releaseInterval);
-    }
-    
 }
 
 static void
@@ -2188,31 +2186,29 @@ SweepCompartments(JSContext *cx, JSGCInvocationKind gckind)
 {
     JSRuntime *rt = cx->runtime;
     JSCompartmentCallback callback = rt->compartmentCallback;
-    JSCompartment **read = rt->compartments.begin();
-    JSCompartment **end = rt->compartments.end();
-    JSCompartment **write = read;
 
     
-    rt->atomsCompartment->marked = true;
+    JSCompartment **read = rt->compartments.begin() + 1;
+    JSCompartment **end = rt->compartments.end();
+    JSCompartment **write = read;
+    JS_ASSERT(rt->compartments.length() >= 1);
+    JS_ASSERT(*rt->compartments.begin() == rt->atomsCompartment);
 
     while (read < end) {
-        JSCompartment *compartment = (*read++);
-        if (compartment->marked) {
-            compartment->marked = false;
-            *write++ = compartment;
-        } else {
+        JSCompartment *compartment = *read++;
+
+        
+        if ((!compartment->marked && compartment->arenaListsAreEmpty()) || gckind == GC_LAST_CONTEXT) {
             JS_ASSERT(compartment->freeLists.isEmpty());
-            if (compartment->arenaListsAreEmpty() || gckind == GC_LAST_CONTEXT) {
-                if (callback)
-                    (void) callback(cx, compartment, JSCOMPARTMENT_DESTROY);
-                if (compartment->principals)
-                    JSPRINCIPALS_DROP(cx, compartment->principals);
-                js_delete(compartment);
-            } else {
-                compartment->marked = false;
-                *write++ = compartment;
-            }
+            if (callback)
+                (void) callback(cx, compartment, JSCOMPARTMENT_DESTROY);
+            if (compartment->principals)
+                JSPRINCIPALS_DROP(cx, compartment->principals);
+            js_delete(compartment);
+            continue;
         }
+        compartment->marked = false;
+        *write++ = compartment;
     }
     rt->compartments.resize(write - rt->compartments.begin());
 }
@@ -2354,7 +2350,6 @@ MarkAndSweepCompartment(JSContext *cx, JSCompartment *comp, JSGCInvocationKind g
 
 
 
-
     comp->sweep(cx, 0);
 
     comp->finalizeObjectArenaLists(cx);
@@ -2464,14 +2459,13 @@ MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind GCTIMER_PARAM)
 
 
 
-
-    for (JSCompartment **comp = rt->compartments.begin(); comp != rt->compartments.end(); comp++)
-        (*comp)->finalizeObjectArenaLists(cx);
+    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++)
+        (*c)->finalizeObjectArenaLists(cx);
 
     TIMESTAMP(sweepObjectEnd);
 
-    for (JSCompartment **comp = rt->compartments.begin(); comp != rt->compartments.end(); comp++)
-        (*comp)->finalizeStringArenaLists(cx);
+    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++)
+        (*c)->finalizeStringArenaLists(cx);
 
     TIMESTAMP(sweepStringEnd);
 
