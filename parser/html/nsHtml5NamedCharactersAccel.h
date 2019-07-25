@@ -6,20 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsHtml5NamedCharactersAccel_h_
 #define nsHtml5NamedCharactersAccel_h_
 
