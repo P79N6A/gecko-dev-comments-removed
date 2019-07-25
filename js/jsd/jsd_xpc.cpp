@@ -2397,12 +2397,6 @@ jsdService::GetIsOn (PRBool *_rval)
 NS_IMETHODIMP
 jsdService::On (void)
 {
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-jsdService::AsyncOn (jsdIActivationCallback *activationCallback)
-{
     nsresult  rv;
 
     
@@ -2416,32 +2410,18 @@ jsdService::AsyncOn (jsdIActivationCallback *activationCallback)
     JSContext *cx;
     rv = cc->GetJSContext (&cx);
     if (NS_FAILED(rv)) return rv;
-
-    mActivationCallback = activationCallback;
     
-    return xpc->SetDebugModeWhenPossible(PR_TRUE);
+    return OnForRuntime(JS_GetRuntime (cx));
+    
 }
 
 NS_IMETHODIMP
-jsdService::RecompileForDebugMode (JSRuntime *rt, JSBool mode) {
-  JSContext *cx;
-  JSContext *iter = NULL;
-
-  while ((cx = JS_ContextIterator (rt, &iter))) {
-      JS_SetDebugMode(cx, mode);
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-jsdService::ActivateDebugger (JSRuntime *rt)
+jsdService::OnForRuntime (JSRuntime *rt)
 {
     if (mOn)
         return (rt == mRuntime) ? NS_OK : NS_ERROR_ALREADY_INITIALIZED;
 
     mRuntime = rt;
-    RecompileForDebugMode(rt, JS_TRUE);
 
     if (gLastGCProc == jsds_GCCallbackProc)
         
@@ -2491,10 +2471,6 @@ jsdService::ActivateDebugger (JSRuntime *rt)
 #ifdef DEBUG
     printf ("+++ JavaScript debugging hooks installed.\n");
 #endif
-
-    if (mActivationCallback)
-        return mActivationCallback->OnDebuggerActivated();
-
     return NS_OK;
 }
 
@@ -2544,13 +2520,6 @@ jsdService::Off (void)
 #ifdef DEBUG
     printf ("+++ JavaScript debugging hooks removed.\n");
 #endif
-
-    nsresult rv;
-    nsCOMPtr<nsIXPConnect> xpc = do_GetService(nsIXPConnect::GetCID(), &rv);
-    if (NS_FAILED(rv))
-        return rv;
-
-    xpc->SetDebugModeWhenPossible(PR_FALSE);
 
     return NS_OK;
 }
@@ -3305,7 +3274,7 @@ jsdASObserver::Observe (nsISupports *aSubject, const char *aTopic,
     if (NS_FAILED(rv))
         return rv;
 
-    rv = jsds->ActivateDebugger(rt);
+    rv = jsds->OnForRuntime(rt);
     if (NS_FAILED(rv))
         return rv;
     

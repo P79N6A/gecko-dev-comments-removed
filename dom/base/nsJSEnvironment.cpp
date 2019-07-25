@@ -993,6 +993,10 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
     if (NS_SUCCEEDED(rv)) {
       jsds->GetDebuggerHook(getter_AddRefs(jsdHook));
       jsds->GetIsOn(&jsds_IsOn);
+      if (jsds_IsOn) { 
+        rv = jsds->OnForRuntime(cx->runtime);
+        jsds_IsOn = NS_SUCCEEDED(rv);
+      }
     }
 
     
