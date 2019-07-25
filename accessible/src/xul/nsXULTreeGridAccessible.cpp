@@ -1165,10 +1165,6 @@ nsXULTreeGridCellAccessible::NativeRole()
 PRUint64
 nsXULTreeGridCellAccessible::NativeState()
 {
-
-  if (IsDefunct())
-    return states::DEFUNCT;
-
   
   PRUint64 states = states::SELECTABLE;
 

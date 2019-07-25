@@ -294,10 +294,6 @@ nsDocAccessible::GetDescription(nsAString& aDescription)
 PRUint64
 nsDocAccessible::NativeState()
 {
-
-  if (IsDefunct())
-    return states::DEFUNCT;
-
   
   
   PRUint64 state = (mContent->GetCurrentDoc() == mDocument) ?

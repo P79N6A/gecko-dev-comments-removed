@@ -77,10 +77,7 @@ nsHTMLWin32ObjectOwnerAccessible::NativeState()
 {
   
   
-  if (mHwnd)
-    return nsAccessibleWrap::NativeState();
-
-  return IsDefunct() ? states::DEFUNCT : states::UNAVAILABLE;
+  return mHwnd ? nsAccessibleWrap::NativeState() : states::UNAVAILABLE;
 }
 
 
