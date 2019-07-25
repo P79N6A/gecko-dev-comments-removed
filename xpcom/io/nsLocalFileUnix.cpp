@@ -1266,7 +1266,7 @@ nsLocalFile::GetDiskSpaceAvailable(PRInt64 *aDiskSpaceAvailable)
 
 
 
-#ifdef SOLARIS
+#if defined(SOLARIS) || defined(XP_MACOSX)
     
     *aDiskSpaceAvailable = (PRInt64)fs_buf.f_frsize * (fs_buf.f_bavail - 1);
 #else
