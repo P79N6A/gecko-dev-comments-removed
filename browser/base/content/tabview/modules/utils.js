@@ -46,7 +46,7 @@
 
 
 
-(function(){
+let EXPORTED_SYMBOLS = ["Point", "Rect", "Range", "Subscribable", "Utils"];
 
 
 const Cc = Components.classes;
@@ -64,7 +64,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-window.Point = function(a, y) {
+function Point(a, y) {
   if (Utils.isPoint(a)) {
     this.x = a.x;
     this.y = a.y;
@@ -74,7 +74,7 @@ window.Point = function(a, y) {
   }
 };
 
-window.Point.prototype = {
+Point.prototype = {
   
   
   
@@ -94,7 +94,7 @@ window.Point.prototype = {
 
 
 
-window.Rect = function(a, top, width, height) {
+function Rect(a, top, width, height) {
   
   if (Utils.isRect(a)) {
     this.left = a.left;
@@ -109,7 +109,7 @@ window.Rect = function(a, top, width, height) {
   }
 };
 
-window.Rect.prototype = {
+Rect.prototype = {
 
   get right() this.left + this.width,
   set right(value) {
@@ -288,7 +288,7 @@ window.Rect.prototype = {
 
 
 
-window.Range = function(min, max) {
+function Range(min, max) {
   if (Utils.isRange(min) && !max) { 
     this.min = min.min;
     this.max = min.max;
@@ -298,7 +298,7 @@ window.Range = function(min, max) {
   }
 };
 
-window.Range.prototype = {
+Range.prototype = {
   
   
   get extent() {
@@ -372,11 +372,11 @@ window.Range.prototype = {
 
 
 
-window.Subscribable = function() {
+function Subscribable() {
   this.subscribers = null;
 };
 
-window.Subscribable.prototype = {
+Subscribable.prototype = {
   
   
   
@@ -458,9 +458,7 @@ window.Subscribable.prototype = {
 
 
 
-window.Utils = {
-  consoleService: null, 
-
+let Utils = {
   
 
   
@@ -468,13 +466,8 @@ window.Utils = {
   
   
   log: function() {
-    if (!this.consoleService) {
-      this.consoleService = Cc["@mozilla.org/consoleservice;1"]
-          .getService(Components.interfaces.nsIConsoleService);
-    }
-
     var text = this.expandArgumentsForLog(arguments);
-    this.consoleService.logStringMessage(text);
+    Services.console.logStringMessage(text);
   },
 
   
@@ -626,7 +619,7 @@ window.Utils = {
   isPlainObject: function(obj) {
     
     
-    if (!obj || Object.prototype.toString.call(obj) !== "[object Object]" 
+    if (!obj || Object.prototype.toString.call(obj) !== "[object Object]"
         || obj.nodeType || obj.setInterval) {
       return false;
     }
@@ -743,18 +736,17 @@ window.Utils = {
   
   
   
-  
-  
-  
   timeout: function(func, delay) {
-    setTimeout(function() {
-      try {
-        func();
-      } catch(e) {
-        Utils.log(e);
+    let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    timer.initWithCallback({
+      notify: function notify() {
+        try {
+          func();
+        }
+        catch(ex) {
+          Utils.log(timer, ex);
+        }
       }
-    }, delay);
+    }, delay, timer.TYPE_ONE_SHOT);
   }
 };
-
-})();
