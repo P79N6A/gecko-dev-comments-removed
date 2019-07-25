@@ -1747,16 +1747,6 @@ IsGCThresholdReached(JSRuntime *rt)
     return rt->isGCMallocLimitReached() || rt->gcBytes >= rt->gcTriggerBytes;
 }
 
-static inline JSGCFreeLists *
-GetGCFreeLists(JSContext *cx)
-{
-    JSThreadData *td = JS_THREAD_DATA(cx);
-    if (!td->localRootStack)
-        return &td->gcFreeLists;
-    JS_ASSERT(td->gcFreeLists.isEmpty());
-    return &td->localRootStack->gcFreeLists;
-}
-
 static void
 LastDitchGC(JSContext *cx)
 {
@@ -1779,7 +1769,7 @@ LastDitchGC(JSContext *cx)
 static JSGCThing *
 RefillFinalizableFreeList(JSContext *cx, unsigned thingKind)
 {
-    JS_ASSERT(!GetGCFreeLists(cx)->finalizables[thingKind]);
+    JS_ASSERT(!JS_THREAD_DATA(cx)->gcFreeLists.finalizables[thingKind]);
     JSRuntime *rt = cx->runtime;
     JSGCArenaList *arenaList;
     JSGCArena *a;
@@ -1806,7 +1796,7 @@ RefillFinalizableFreeList(JSContext *cx, unsigned thingKind)
 
 
 
-                JSGCThing *freeList = GetGCFreeLists(cx)->finalizables[thingKind];
+                JSGCThing *freeList = JS_THREAD_DATA(cx)->gcFreeLists.finalizables[thingKind];
                 if (freeList)
                     return freeList;
             }
@@ -1878,7 +1868,6 @@ js_NewFinalizableGCThing(JSContext *cx, unsigned thingKind)
         JS_THREAD_DATA(cx)->gcFreeLists.finalizables + thingKind;
     JSGCThing *thing = *freeListp;
     if (thing) {
-        JS_ASSERT(!JS_THREAD_DATA(cx)->localRootStack);
         *freeListp = thing->link;
         cx->weakRoots.finalizableNewborns[thingKind] = thing;
         CheckGCFreeListLink(thing);
@@ -1886,60 +1875,22 @@ js_NewFinalizableGCThing(JSContext *cx, unsigned thingKind)
         return thing;
     }
 
-    
-
-
-
-
-
-    JSLocalRootStack *lrs = JS_THREAD_DATA(cx)->localRootStack;
-    for (;;) {
-        if (lrs) {
-            freeListp = lrs->gcFreeLists.finalizables + thingKind;
-            thing = *freeListp;
-            if (thing) {
-                *freeListp = thing->link;
-                METER(cx->runtime->gcStats.arenaStats[thingKind].localalloc++);
-                break;
-            }
-        }
-
-        thing = RefillFinalizableFreeList(cx, thingKind);
-        if (thing) {
-            
-
-
-
-            JS_ASSERT(!*freeListp || *freeListp == thing);
-            *freeListp = thing->link;
-            break;
-        }
-
+    thing = RefillFinalizableFreeList(cx, thingKind);
+    if (!thing) {
         js_ReportOutOfMemory(cx);
         return NULL;
     }
 
+    
+
+
+
+    JS_ASSERT(!*freeListp || *freeListp == thing);
+    *freeListp = thing->link;
+
     CheckGCFreeListLink(thing);
-    if (lrs) {
-        
 
-
-
-
-
-
-        if (js_PushLocalRoot(cx, lrs, (jsval) thing) < 0) {
-            JS_ASSERT(thing->link == *freeListp);
-            *freeListp = thing;
-            return NULL;
-        }
-    } else {
-        
-
-
-
-        cx->weakRoots.finalizableNewborns[thingKind] = thing;
-    }
+    cx->weakRoots.finalizableNewborns[thingKind] = thing;
 
     return thing;
 }
@@ -2001,7 +1952,7 @@ TurnUsedArenaIntoDoubleList(JSGCArena *a)
 static JSGCThing *
 RefillDoubleFreeList(JSContext *cx)
 {
-    JS_ASSERT(!GetGCFreeLists(cx)->doubles);
+    JS_ASSERT(!JS_THREAD_DATA(cx)->gcFreeLists.doubles);
 
     JSRuntime *rt = cx->runtime;
     JS_ASSERT(!rt->gcRunning);
@@ -2018,7 +1969,7 @@ RefillDoubleFreeList(JSContext *cx)
             canGC = false;
 
             
-            JSGCThing *freeList = GetGCFreeLists(cx)->doubles;
+            JSGCThing *freeList = JS_THREAD_DATA(cx)->gcFreeLists.doubles;
             if (freeList) {
                 JS_UNLOCK_GC(rt);
                 return freeList;
@@ -2069,7 +2020,6 @@ js_NewDoubleInRootedValue(JSContext *cx, jsdouble d, jsval *vp)
     JSGCThing *thing = *freeListp;
     if (thing) {
         METER(cx->runtime->gcStats.doubleArenaStats.localalloc++);
-        JS_ASSERT(!JS_THREAD_DATA(cx)->localRootStack);
         CheckGCFreeListLink(thing);
         *freeListp = thing->link;
 
@@ -2079,22 +2029,8 @@ js_NewDoubleInRootedValue(JSContext *cx, jsdouble d, jsval *vp)
         return true;
     }
 
-    JSLocalRootStack *lrs = JS_THREAD_DATA(cx)->localRootStack;
-    for (;;) {
-        if (lrs) {
-            freeListp = &lrs->gcFreeLists.doubles;
-            thing = *freeListp;
-            if (thing) {
-                METER(cx->runtime->gcStats.doubleArenaStats.localalloc++);
-                break;
-            }
-        }
-        thing = RefillDoubleFreeList(cx);
-        if (thing) {
-            JS_ASSERT(!*freeListp || *freeListp == thing);
-            break;
-        }
-
+    thing = RefillDoubleFreeList(cx);
+    if (!thing) {
         if (!JS_ON_TRACE(cx)) {
             
             js_ReportOutOfMemory(cx);
@@ -2103,13 +2039,15 @@ js_NewDoubleInRootedValue(JSContext *cx, jsdouble d, jsval *vp)
         return false;
     }
 
+    JS_ASSERT(!*freeListp || *freeListp == thing);
+
     CheckGCFreeListLink(thing);
     *freeListp = thing->link;
 
     jsdouble *dp = reinterpret_cast<jsdouble *>(thing);
     *dp = d;
     *vp = DOUBLE_TO_JSVAL(dp);
-    return !lrs || js_PushLocalRoot(cx, lrs, *vp) >= 0;
+    return true;
 }
 
 jsdouble *

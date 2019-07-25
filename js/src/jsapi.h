@@ -994,116 +994,14 @@ js_RemoveRoot(JSRuntime *rt, void *rp);
 
 #define JS_TYPED_ROOTING_API
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 extern JS_PUBLIC_API(void)
 JS_ClearNewbornRoots(JSContext *cx);
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_EnterLocalRootScope(JSContext *cx);
-
-extern JS_PUBLIC_API(void)
-JS_LeaveLocalRootScope(JSContext *cx);
-
-extern JS_PUBLIC_API(void)
-JS_LeaveLocalRootScopeWithResult(JSContext *cx, jsval rval);
-
-extern JS_PUBLIC_API(void)
-JS_ForgetLocalRoot(JSContext *cx, void *thing);
-
-#ifdef __cplusplus
-JS_END_EXTERN_C
-
-class JSAutoLocalRootScope {
-  public:
-    JSAutoLocalRootScope(JSContext *cx JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : mContext(cx) {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-        JS_EnterLocalRootScope(mContext);
-    }
-    ~JSAutoLocalRootScope() {
-        JS_LeaveLocalRootScope(mContext);
-    }
-
-    void forget(void *thing) {
-        JS_ForgetLocalRoot(mContext, thing);
-    }
-
-  protected:
-    JSContext *mContext;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-
-#if 0
-  private:
-    static void *operator new(size_t) CPP_THROW_NEW { return 0; };
-    static void operator delete(void *, size_t) { };
-#endif
-};
-
-JS_BEGIN_EXTERN_C
-#endif
+#define JS_EnterLocalRootScope(cx) (true)
+#define JS_LeaveLocalRootScope(cx) ((void) 0)
+#define JS_LeaveLocalRootScopeWithResult(cx, rval) ((void) 0)
+#define JS_ForgetLocalRoot(cx, thing) ((void) 0)
 
 #ifdef DEBUG
 extern JS_PUBLIC_API(void)
