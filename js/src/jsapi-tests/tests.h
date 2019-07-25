@@ -38,6 +38,8 @@
 
 
 
+#include "mozilla/Util.h"
+
 #include "jsapi.h"
 #include "jsprvtd.h"
 #include "jsalloc.h"
