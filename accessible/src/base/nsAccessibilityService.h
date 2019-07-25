@@ -163,18 +163,16 @@ public:
   inline nsAccessible* GetAccessibleInWeakShell(nsINode* aNode,
                                                 nsIWeakReference* aWeakShell)
   {
-    return GetAccessibleByRule(aNode, aWeakShell, eGetAccForNode);
+    
+    return GetAccessible(aNode);
   }
 
   
 
 
 
-  inline nsAccessible* GetAccessibleOrContainer(nsINode* aNode,
-                                                nsIWeakReference* aWeakShell)
-  {
-    return GetAccessibleByRule(aNode, aWeakShell, eGetAccForNodeOrContainer);
-  }
+  nsAccessible* GetAccessibleOrContainer(nsINode* aNode,
+                                         nsIWeakReference* aWeakShell);
 
   
 
@@ -182,37 +180,9 @@ public:
   inline nsAccessible* GetContainerAccessible(nsINode* aNode,
                                               nsIWeakReference* aWeakShell)
   {
-    return GetAccessibleByRule(aNode, aWeakShell, eGetAccForContainer);
-  }
-
-  
-
-
-
-  nsAccessible* GetCachedAccessibleOrContainer(nsINode* aNode);
-
-  
-
-
-
-
-  inline nsAccessible* GetCachedContainerAccessible(nsINode *aNode)
-  {
     return aNode ?
-      GetCachedAccessibleOrContainer(aNode->GetNodeParent()) : nsnull;
+      GetAccessibleOrContainer(aNode->GetNodeParent(), aWeakShell) : nsnull;
   }
-
-protected:
-  
-
-
-
-
-
-
-
-  nsAccessible *GetCachedAccessible(nsINode *aNode,
-                                    nsIWeakReference *aShell);
 
 private:
   
@@ -231,19 +201,6 @@ private:
 
 
   void Shutdown();
-
-  enum EWhatAccToGet {
-    eGetAccForNode = 0x1,
-    eGetAccForContainer = 0x2,
-    eGetAccForNodeOrContainer = eGetAccForNode | eGetAccForContainer
-  };
-
-  
-
-
-  nsAccessible* GetAccessibleByRule(nsINode* aNode,
-                                    nsIWeakReference* aWeakShell,
-                                    EWhatAccToGet aWhatToGet);
 
   
 

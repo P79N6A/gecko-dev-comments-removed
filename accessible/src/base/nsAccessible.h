@@ -228,6 +228,15 @@ public:
   
 
 
+  inline bool UpdateChildren()
+  {
+    InvalidateChildren();
+    return EnsureChildren();
+  }
+
+  
+
+
   PRBool EnsureChildren();
 
   

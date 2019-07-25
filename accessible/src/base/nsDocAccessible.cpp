@@ -1390,7 +1390,7 @@ nsDocAccessible::ContentInserted(nsIContent* aContainerNode,
     
     
     nsAccessible* container = aContainerNode ?
-      GetAccService()->GetCachedAccessibleOrContainer(aContainerNode) :
+      GetAccService()->GetAccessibleOrContainer(aContainerNode, mWeakShell) :
       this;
 
     mNotificationController->ScheduleContentInsertion(container,
@@ -1406,7 +1406,7 @@ nsDocAccessible::ContentRemoved(nsIContent* aContainerNode,
   
   
   nsAccessible* container = aContainerNode ?
-    GetAccService()->GetCachedAccessibleOrContainer(aContainerNode) :
+    GetAccService()->GetAccessibleOrContainer(aContainerNode, mWeakShell) :
     this;
 
   UpdateTree(container, aChildNode, PR_FALSE);
@@ -1452,7 +1452,7 @@ nsDocAccessible::RecreateAccessible(nsINode* aNode)
   }
 
   
-  parent->InvalidateChildren();
+  parent->UpdateChildren();
 
   nsAccessible* newAccessible =
     GetAccService()->GetAccessibleInWeakShell(aNode, mWeakShell);
@@ -1492,12 +1492,11 @@ nsDocAccessible::NotifyOfCachingEnd(nsAccessible* aAccessible)
     for (PRUint32 idx = 0; idx < mInvalidationList.Length(); idx++) {
       nsIContent* content = mInvalidationList[idx];
       nsAccessible* container =
-        GetAccService()->GetCachedContainerAccessible(content);
-      container->InvalidateChildren();
+        GetAccService()->GetContainerAccessible(content, mWeakShell);
 
       
       
-      container->EnsureChildren();
+      container->UpdateChildren();
     }
     mInvalidationList.Clear();
 
@@ -1860,10 +1859,8 @@ nsDocAccessible::ProcessContentInserted(nsAccessible* aContainer,
   
   
   
-  aContainer->InvalidateChildren();
+  aContainer->UpdateChildren();
 
-  
-  
   
   
   
@@ -1945,9 +1942,7 @@ nsDocAccessible::UpdateTreeInternal(nsAccessible* aContainer,
     if (aIsInsert && !node->GetPrimaryFrame())
       continue;
 
-    nsAccessible* accessible = aIsInsert ?
-      GetAccService()->GetAccessibleInWeakShell(node, mWeakShell) :
-      GetCachedAccessible(node);
+    nsAccessible* accessible = GetCachedAccessible(node);
 
     if (!accessible) {
       updateFlags |= UpdateTreeInternal(aContainer, node->GetFirstChild(),
