@@ -14,7 +14,8 @@ function run_test()
   check_except(DebuggerServer.closeListener);
   check_except(DebuggerServer.connectPipe);
 
-  DebuggerServer.init();
+  
+  DebuggerServer.init(function () { return true; });
 
   
   

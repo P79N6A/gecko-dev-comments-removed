@@ -13,6 +13,8 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 Services.prefs.setBoolPref("devtools.debugger.log", true);
 
+Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
+
 Cu.import("resource:///modules/devtools/dbg-server.jsm");
 Cu.import("resource:///modules/devtools/dbg-client.jsm");
 
@@ -123,7 +125,8 @@ function attachTestGlobalClientAndResume(aClient, aName, aCallback) {
 function initTestDebuggerServer()
 {
   DebuggerServer.addActors("resource://test/testactors.js");
-  DebuggerServer.init();
+  
+  DebuggerServer.init(function () { return true; });
 }
 
 function finishClient(aClient)
