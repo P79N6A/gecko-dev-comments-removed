@@ -960,10 +960,8 @@ ScriptAnalysis::killVariable(JSContext *cx, LifetimeVariable &var, unsigned offs
         return;
     }
 
-    if (var.ensured)
-        return;
-
-    JS_ASSERT(offset < var.lifetime->start);
+    JS_ASSERT_IF(!var.ensured, offset < var.lifetime->start);
+    unsigned start = var.lifetime->start;
 
     
 
@@ -973,11 +971,23 @@ ScriptAnalysis::killVariable(JSContext *cx, LifetimeVariable &var, unsigned offs
     var.lifetime->start = offset;
     var.lifetime->write = true;
 
-    var.saved = var.lifetime;
-    var.savedEnd = 0;
-    var.lifetime = NULL;
+    if (var.ensured) {
+        
 
-    saved[savedCount++] = &var;
+
+
+        var.lifetime = cx->typeLifoAlloc().new_<Lifetime>(start, offset, var.lifetime);
+        if (!var.lifetime) {
+            setOOM(cx);
+            return;
+        }
+    } else {
+        var.saved = var.lifetime;
+        var.savedEnd = 0;
+        var.lifetime = NULL;
+
+        saved[savedCount++] = &var;
+    }
 }
 
 inline void
