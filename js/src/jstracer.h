@@ -1117,7 +1117,7 @@ class TraceRecorder
     nanojit::LIns*                  pendingGuardCondition;
 
     
-    int                             pendingGlobalSlotToSet;
+    js::Vector<unsigned>            pendingGlobalSlotsToSet;
 
     
     bool                            pendingLoop;
@@ -1479,7 +1479,7 @@ class TraceRecorder
                                                                            nanojit::LIns* obj_ins,
                                                                            VMSideExit *exit);
     JS_REQUIRES_STACK RecordingStatus guardNativeConversion(Value& v);
-    JS_REQUIRES_STACK void clearReturningFrameFromNativeveTracker();
+    JS_REQUIRES_STACK void clearReturningFrameFromNativeTracker();
     JS_REQUIRES_STACK void putActivationObjects();
     JS_REQUIRES_STACK RecordingStatus guardCallee(Value& callee);
     JS_REQUIRES_STACK JSStackFrame      *guardArguments(JSObject *obj, nanojit::LIns* obj_ins,
@@ -1615,7 +1615,8 @@ class TraceRecorder
     void forgetGuardedShapesForObject(JSObject* obj);
 
     bool globalSetExpected(unsigned slot) {
-        if (pendingGlobalSlotToSet != (int)slot) {
+        unsigned *pi = Find(pendingGlobalSlotsToSet, slot);
+        if (pi == pendingGlobalSlotsToSet.end()) {
             
 
 
@@ -1635,7 +1636,7 @@ class TraceRecorder
 
             return tree->globalSlots->offsetOf((uint16)nativeGlobalSlot(vp)) == -1;
         }
-        pendingGlobalSlotToSet = -1;
+        pendingGlobalSlotsToSet.erase(pi);
         return true;
     }
 
