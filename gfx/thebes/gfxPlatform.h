@@ -158,6 +158,8 @@ GetBackendName(mozilla::gfx::BackendType aBackend)
         return "cairo";
       case mozilla::gfx::BACKEND_SKIA:
         return "skia";
+      case mozilla::gfx::BACKEND_NONE:
+        return "none";
       default:
         NS_ERROR("Invalid backend type!");
         return "";
@@ -447,6 +449,9 @@ protected:
 
     
     PRInt32 mUseHarfBuzzScripts;
+
+    
+    mozilla::gfx::BackendType mPreferredDrawTargetBackend;
 
 private:
     virtual qcms_profile* GetPlatformCMSOutputProfile();
