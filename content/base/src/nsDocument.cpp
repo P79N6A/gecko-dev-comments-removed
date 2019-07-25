@@ -2719,28 +2719,16 @@ nsDocument::GetActiveElement(nsIDOMElement **aElement)
 
   
   nsCOMPtr<nsPIDOMWindow> window = GetWindow();
-  if (!window) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
-  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (!fm)
-    return NS_ERROR_NOT_AVAILABLE;
-
-  nsCOMPtr<nsPIDOMWindow> focusedWindow;
-  nsIContent* focusedContent =
-    nsFocusManager::GetFocusedDescendant(window, PR_FALSE, getter_AddRefs(focusedWindow));
-
-  
-  if (focusedContent) {
+  if (window) {
+    nsCOMPtr<nsPIDOMWindow> focusedWindow;
+    nsIContent* focusedContent =
+      nsFocusManager::GetFocusedDescendant(window, PR_FALSE,
+                                           getter_AddRefs(focusedWindow));
     
-    if (focusedContent->GetOwnerDoc() != this) {
-      NS_WARNING("Focused element found from another document");
-      return NS_ERROR_FAILURE;
+    if (focusedContent && focusedContent->GetOwnerDoc() == this) {
+      CallQueryInterface(focusedContent, aElement);
+      return NS_OK;
     }
-
-    CallQueryInterface(focusedContent, aElement);
-    return NS_OK;
   }
 
   
