@@ -118,15 +118,9 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #define NS_NATIVE_TSF_DISPLAY_ATTR_MGR 102
 #endif
 
-
 #define NS_IWIDGET_IID \
-  { 0xcc443f0b, 0xaf39, 0x415d, \
-    { 0x9c, 0x4b, 0x7e, 0x06, 0xea, 0xa8, 0xb1, 0x3b } }
-
-
-#define NS_IWIDGET_MOZILLA_2_0_BRANCH_IID \
-  { 0x8fc2d005, 0x5359, 0x4dbf, \
-    { 0xac, 0xb1, 0x70, 0x19, 0x92, 0xfb, 0x46, 0x17 } }
+  { 0xe5c2efd1, 0xfbae, 0x4a74, \
+    { 0xb2, 0xeb, 0xf3, 0x49, 0xf5, 0x72, 0xca, 0x71 } }
 
 
 
@@ -793,12 +787,6 @@ class nsIWidget : public nsISupports {
     
 
 
-    virtual void UpdatePossiblyTransparentRegion(const nsIntRegion &aDirtyRegion,
-                                                 const nsIntRegion &aPossiblyTransparentRegion) {};
-
-    
-
-
 
     struct Configuration {
         nsIWidget* mChild;
@@ -892,7 +880,52 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual LayerManager* GetLayerManager(bool* aAllowRetaining = nsnull) = 0;
+    inline LayerManager* GetLayerManager(bool* aAllowRetaining = nsnull)
+    {
+        return GetLayerManager(LAYER_MANAGER_CURRENT, aAllowRetaining);
+    }
+
+
+    enum LayerManagerPersistence
+    {
+      LAYER_MANAGER_CURRENT = 0,
+      LAYER_MANAGER_PERSISTENT
+    };
+
+    virtual LayerManager *GetLayerManager(LayerManagerPersistence aPersistence,
+                                          bool* aAllowRetaining = nsnull) = 0;
+
+    
+
+
+
+
+
+    virtual void DrawOver(LayerManager* aManager, nsIntRect aRect) = 0;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    virtual void UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometries) = 0;
+
+    
+
+
+
+
+
+
+
+    virtual void UpdateTransparentRegion(const nsIntRegion &aTransparentRegion) {};
 
     
 
@@ -1254,6 +1287,19 @@ class nsIWidget : public nsISupports {
     
 
 
+
+
+
+    NS_IMETHOD SetInputMode(const IMEContext& aContext) = 0;
+
+    
+
+
+    NS_IMETHOD GetInputMode(IMEContext& aContext) = 0;
+
+    
+
+
     NS_IMETHOD SetAcceleratedRendering(PRBool aEnabled) = 0;
 
     
@@ -1382,72 +1428,5 @@ protected:
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIWidget, NS_IWIDGET_IID)
-
-class nsIWidget_MOZILLA_2_0_BRANCH : public nsIWidget {
-  public:
-    NS_DECLARE_STATIC_IID_ACCESSOR(NS_IWIDGET_MOZILLA_2_0_BRANCH_IID)
-
-    typedef mozilla::layers::LayerManager LayerManager;
-
-    
-
-
-
-
-
-    NS_IMETHOD SetInputMode(const IMEContext& aContext) = 0;
-
-    
-
-
-    NS_IMETHOD GetInputMode(IMEContext& aContext) = 0;
-
-    enum LayerManagerPersistence
-    {
-      LAYER_MANAGER_CURRENT = 0,
-      LAYER_MANAGER_PERSISTENT
-    };
-
-    virtual LayerManager *GetLayerManager(LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT,
-                                          bool* aAllowRetaining = nsnull) = 0;
-
-    
-    
-    using nsIWidget::GetLayerManager;
-
-    
-
-
-
-
-
-    virtual void DrawOver(LayerManager* aManager, nsIntRect aRect) = 0;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-    virtual void UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometries) = 0;
-
-    
-
-
-
-
-
-
-
-    virtual void UpdateTransparentRegion(const nsIntRegion &aTransparentRegion) {};
-};
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIWidget_MOZILLA_2_0_BRANCH, NS_IWIDGET_MOZILLA_2_0_BRANCH_IID)
 
 #endif 
