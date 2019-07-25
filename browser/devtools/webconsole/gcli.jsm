@@ -1256,12 +1256,19 @@ dom.importCss = function(cssText, doc) {
 
 dom.setInnerHtml = function(elem, html) {
   if (dom.isXmlDocument(elem.ownerDocument)) {
-    dom.clearElement(elem);
-    html = '<div xmlns="' + dom.NS_XHTML + '">' + html + '</div>';
-    var range = elem.ownerDocument.createRange();
-    var child = range.createContextualFragment(html).firstChild;
-    while (child.hasChildNodes()) {
-      elem.appendChild(child.firstChild);
+    try {
+      dom.clearElement(elem);
+      html = '<div xmlns="' + dom.NS_XHTML + '">' + html + '</div>';
+      var range = elem.ownerDocument.createRange();
+      var child = range.createContextualFragment(html).firstChild;
+      while (child.hasChildNodes()) {
+        elem.appendChild(child.firstChild);
+      }
+    }
+    catch (ex) {
+      console.error('Bad XHTML', ex);
+      console.trace();
+      throw ex;
     }
   }
   else {
@@ -5878,6 +5885,7 @@ cliView.Inputter = Inputter;
 
 
 
+
 function Completer(options) {
   this.document = options.document || document;
   this.requisition = options.requisition;
@@ -5899,7 +5907,7 @@ function Completer(options) {
 
   this.completionPrompt = typeof options.completionPrompt === 'string'
       ? options.completionPrompt
-      : '&#x00bb;';
+      : '\u00bb';
 
   if (options.inputBackgroundElement) {
     this.backgroundElement = options.inputBackgroundElement;
@@ -6007,50 +6015,85 @@ Completer.prototype.update = function(input) {
   var current = this.requisition.getAssignmentAt(input.cursor.start);
   var predictions = current.getPredictions();
 
-  var completion = '<span class="gcli-prompt">' + this.completionPrompt + '</span> ';
+  dom.clearElement(this.element);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  var document = this.element.ownerDocument;
+  var prompt = document.createElement('span');
+  prompt.classList.add('gcli-prompt');
+  prompt.appendChild(document.createTextNode(this.completionPrompt + ' '));
+  this.element.appendChild(prompt);
+
   if (input.typed.length > 0) {
     var scores = this.requisition.getInputStatusMarkup(input.cursor.start);
-    completion += this.markupStatusScore(scores, input);
+    this.appendMarkupStatus(this.element, scores, input);
   }
 
   if (input.typed.length > 0 && predictions.length > 0) {
     var tab = predictions[0].name;
     var existing = current.getArg().text;
-    if (isStrictCompletion(existing, tab) && input.cursor.start === input.typed.length) {
+
+    var contents;
+    var prefix = null;
+
+    if (isStrictCompletion(existing, tab) &&
+            input.cursor.start === input.typed.length) {
       
       var numLeadingSpaces = existing.match(/^(\s*)/)[0].length;
-      var suffix = tab.slice(existing.length - numLeadingSpaces);
-      completion += '<span class="gcli-in-ontab">' + suffix + '</span>';
+      contents = tab.slice(existing.length - numLeadingSpaces);
     } else {
       
-      completion += ' &#xa0;<span class="gcli-in-ontab">&#x21E5; ' +
-          tab + '</span>';
+      prefix = ' \u00a0';         
+      contents = '\u21E5 ' + tab; 
     }
+
+    if (prefix != null) {
+      this.element.appendChild(document.createTextNode(prefix));
+    }
+
+    var suffix = document.createElement('span');
+    suffix.classList.add('gcli-in-ontab');
+    suffix.appendChild(document.createTextNode(contents));
+    this.element.appendChild(suffix);
   }
 
   
   
   var command = this.requisition.commandAssignment.getValue();
-  if (command && command.name === '{') {
-    if (this.requisition.getAssignment(0).getArg().suffix.indexOf('}') === -1) {
-      completion += '<span class="gcli-in-closebrace">}</span>';
-    }
+  var unclosedJs = command && command.name === '{' &&
+          this.requisition.getAssignment(0).getArg().suffix.indexOf('}') === -1;
+  if (unclosedJs) {
+    var close = document.createElement('span');
+    close.classList.add('gcli-in-closebrace');
+    close.appendChild(document.createTextNode('}'));
+    this.element.appendChild(close);
   }
-
-  dom.setInnerHtml(this.element, completion);
 };
 
 
 
 
-Completer.prototype.markupStatusScore = function(scores, input) {
-  var completion = '';
+Completer.prototype.appendMarkupStatus = function(element, scores, input) {
   if (scores.length === 0) {
-    return completion;
+    return;
   }
 
+  var document = element.ownerDocument;
   var i = 0;
   var lastStatus = -1;
+  var span;
+  var contents = '';
+
   while (true) {
     if (lastStatus !== scores[i]) {
       var state = scores[i];
@@ -6058,25 +6101,27 @@ Completer.prototype.markupStatusScore = function(scores, input) {
         console.error('No state at i=' + i + '. scores.len=' + scores.length);
         state = Status.VALID;
       }
-      completion += '<span class="gcli-in-' + state.toString().toLowerCase() + '">';
+      span = document.createElement('span');
+      span.classList.add('gcli-in-' + state.toString().toLowerCase());
       lastStatus = scores[i];
     }
     var char = input.typed[i];
     if (char === ' ') {
-      char = '&#xa0;';
+      char = '\u00a0';
     }
-    completion += char;
+    contents += char;
     i++;
     if (i === input.typed.length) {
-      completion += '</span>';
+      span.appendChild(document.createTextNode(contents));
+      this.element.appendChild(span);
       break;
     }
     if (lastStatus !== scores[i]) {
-      completion += '</span>';
+      span.appendChild(document.createTextNode(contents));
+      this.element.appendChild(span);
+      contents = '';
     }
   }
-
-  return completion;
 };
 
 cliView.Completer = Completer;
