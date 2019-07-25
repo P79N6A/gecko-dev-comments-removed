@@ -1165,7 +1165,10 @@ let Utils = {
   
 
 
+
   arraySub: function arraySub(minuend, subtrahend) {
+    if (!minuend.length || !subtrahend.length)
+      return minuend;
     return minuend.filter(function(i) subtrahend.indexOf(i) == -1);
   },
 
@@ -1173,6 +1176,10 @@ let Utils = {
 
 
   arrayUnion: function arrayUnion(foo, bar) {
+    if (!foo.length)
+      return bar;
+    if (!bar.length)
+      return foo;
     return foo.concat(Utils.arraySub(bar, foo));
   },
 
