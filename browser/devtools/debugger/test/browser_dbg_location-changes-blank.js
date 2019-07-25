@@ -1,0 +1,84 @@
+
+
+
+
+
+
+
+
+var gPane = null;
+var gTab = null;
+var gDebuggee = null;
+var gDebugger = null;
+
+function test()
+{
+  debug_tab_pane(STACK_URL, function(aTab, aDebuggee, aPane) {
+    gTab = aTab;
+    gDebuggee = aDebuggee;
+    gPane = aPane;
+    gDebugger = gPane.contentWindow;
+
+    testSimpleCall();
+  });
+}
+
+function testSimpleCall() {
+  gDebugger.DebuggerController.activeThread.addOneTimeListener("framesadded", function() {
+    Services.tm.currentThread.dispatch({
+      run: function() {
+        var frames = gDebugger.DebuggerView.StackFrames._frames,
+            childNodes = frames.childNodes;
+
+        is(gDebugger.DebuggerController.activeThread.state, "paused",
+          "Should only be getting stack frames while paused.");
+
+        is(frames.querySelectorAll(".dbg-stackframe").length, 1,
+          "Should have only one frame.");
+
+        is(childNodes.length, frames.querySelectorAll(".dbg-stackframe").length,
+          "All children should be frames.");
+
+        isnot(gDebugger.DebuggerView.Scripts.selected, null,
+          "There should be a selected script.");
+        isnot(gDebugger.editor.getText().length, 0,
+          "The source editor should have some text displayed.");
+
+        testLocationChange();
+      }
+    }, 0);
+  });
+
+  gDebuggee.simpleCall();
+}
+
+function testLocationChange()
+{
+  gDebugger.DebuggerController.activeThread.resume(function() {
+    gDebugger.DebuggerController.client.addOneTimeListener("tabNavigated", function(aEvent, aPacket) {
+      ok(true, "tabNavigated event was fired.");
+      gDebugger.DebuggerController.client.addOneTimeListener("tabAttached", function(aEvent, aPacket) {
+        ok(true, "Successfully reattached to the tab again.");
+
+        
+        gDebugger.gClient.addOneTimeListener("resumed", function() {
+          is(gDebugger.DebuggerView.Scripts.selected, null,
+            "There should be no selected script.");
+          is(gDebugger.editor.getText().length, 0,
+            "The source editor not have any text displayed.");
+
+          closeDebuggerAndFinish();
+        });
+      });
+    });
+    content.location = "about:blank";
+  });
+}
+
+registerCleanupFunction(function() {
+  removeTab(gTab);
+  gPane = null;
+  gTab = null;
+  gDebuggee = null;
+  gDebugger = null;
+});

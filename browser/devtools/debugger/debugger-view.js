@@ -148,6 +148,8 @@ ScriptsView.prototype = {
 
 
   empty: function DVS_empty() {
+    this._scripts.selectedIndex = -1;
+
     while (this._scripts.firstChild) {
       this._scripts.removeChild(this._scripts.firstChild);
     }
@@ -418,7 +420,12 @@ ScriptsView.prototype = {
 
 
   _onScriptsChange: function DVS__onScriptsChange() {
-    let script = this._scripts.selectedItem.getUserData("sourceScript");
+    let selectedItem = this._scripts.selectedItem;
+    if (!selectedItem) {
+      return;
+    }
+
+    let script = selectedItem.getUserData("sourceScript");
     this._preferredScript = script;
     DebuggerController.SourceScripts.showScript(script);
   },
