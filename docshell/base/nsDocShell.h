@@ -269,6 +269,13 @@ public:
 
     friend class OnLinkClickEvent;
 
+    
+    void FireDummyOnLocationChange()
+    {
+      FireOnLocationChange(this, nsnull, mCurrentURI);
+    }
+
+    nsresult HistoryTransactionRemoved(PRInt32 aIndex);
 protected:
     
     virtual ~nsDocShell();

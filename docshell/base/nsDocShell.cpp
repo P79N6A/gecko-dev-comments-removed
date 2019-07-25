@@ -2166,6 +2166,37 @@ nsDocShell::HistoryPurged(PRInt32 aNumEntries)
     return NS_OK;
 }
 
+nsresult
+nsDocShell::HistoryTransactionRemoved(PRInt32 aIndex)
+{
+    
+    
+    
+    
+    
+    if (aIndex == mPreviousTransIndex) {
+        mPreviousTransIndex = -1;
+    } else if (aIndex < mPreviousTransIndex) {
+        --mPreviousTransIndex;
+    }
+    if (mLoadedTransIndex == aIndex) {
+        mLoadedTransIndex = 0;
+    } else if (aIndex < mLoadedTransIndex) {
+        --mLoadedTransIndex;
+    }
+                            
+    PRInt32 count = mChildList.Count();
+    for (PRInt32 i = 0; i < count; ++i) {
+        nsCOMPtr<nsIDocShell> shell = do_QueryInterface(ChildAt(i));
+        if (shell) {
+            static_cast<nsDocShell*>(shell.get())->
+                HistoryTransactionRemoved(aIndex);
+        }
+    }
+
+    return NS_OK;
+}
+
 static
 nsresult
 GetPrincipalDomain(nsIPrincipal* aPrincipal, nsACString& aDomain)
@@ -9628,7 +9659,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
         AddURIVisit(newURI, oldURI, oldURI, 0);
     }
     else {
-        FireOnLocationChange(this, nsnull, mCurrentURI);
+        FireDummyOnLocationChange();
     }
 
     return NS_OK;
