@@ -88,9 +88,10 @@ function HistoryStore(name) {
 
   
   Svc.Obs.add("places-shutdown", function() {
-    for each ([query, stmt] in Iterator(this._stmts))
+    for each ([query, stmt] in Iterator(this._stmts)) {
       stmt.finalize();
-    this._stmts = [];
+    }
+    this._stmts = {};
   }, this);
 }
 HistoryStore.prototype = {
@@ -107,8 +108,9 @@ HistoryStore.prototype = {
 
   _stmts: {},
   _getStmt: function(query) {
-    if (query in this._stmts)
+    if (query in this._stmts) {
       return this._stmts[query];
+    }
 
     this._log.trace("Creating SQL statement: " + query);
     let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
@@ -127,8 +129,9 @@ HistoryStore.prototype = {
   setGUID: function setGUID(uri, guid) {
     uri = uri.spec ? uri.spec : uri;
 
-    if (!guid)
+    if (!guid) {
       guid = Utils.makeGUID();
+    }
 
     let stmt = this._setGUIDStm;
     stmt.params.guid = guid;
@@ -297,13 +300,13 @@ HistoryStore.prototype = {
     
     
     let curVisits = this._getVisits(record.histUri);
-    for (let i = 0; i < curVisits.length; i++) {
+    let i, k;
+    for (i = 0; i < curVisits.length; i++) {
       curVisits[i] = curVisits[i].date + "," + curVisits[i].type;
     }
 
     
     
-    let k;
     for (i = 0, k = 0; i < record.visits.length; i++) {
       let visit = record.visits[k] = record.visits[i];
 
@@ -312,12 +315,14 @@ HistoryStore.prototype = {
                        + visit.date);
         throw "Visit has no date!";
       }
+
       if (!visit.type || !(visit.type >= PlacesUtils.history.TRANSITION_LINK &&
                            visit.type <= PlacesUtils.history.TRANSITION_FRAMED_LINK)) {
         this._log.warn("Encountered record with invalid visit type: "
                        + visit.type);
         throw "Invalid visit type!";
       }
+
       
       visit.date = Math.round(visit.date);
 
@@ -358,14 +363,13 @@ HistoryStore.prototype = {
   },
 
   itemExists: function HistStore_itemExists(id) {
-    if (this._findURLByGUID(id))
-      return true;
-    return false;
+    return !!this._findURLByGUID(id);
   },
 
   urlExists: function HistStore_urlExists(url) {
-    if (typeof(url) == "string")
+    if (typeof(url) == "string") {
       url = Utils.makeURI(url);
+    }
     
     return url ? PlacesUtils.history.isVisited(url) : false;
   },
@@ -378,9 +382,9 @@ HistoryStore.prototype = {
       record.title = foo.title;
       record.sortindex = foo.frecency;
       record.visits = this._getVisits(record.histUri);
-    }
-    else
+    } else {
       record.deleted = true;
+    }
 
     return record;
   },
@@ -437,8 +441,9 @@ HistoryTracker.prototype = {
   },
 
   onVisit: function HT_onVisit(uri, vid, time, session, referrer, trans, guid) {
-    if (this.ignoreAll)
+    if (this.ignoreAll) {
       return;
+    }
     this._log.trace("onVisit: " + uri.spec);
     if (this.addChangedID(guid)) {
       this.score += SCORE_INCREMENT_SMALL;
@@ -446,8 +451,9 @@ HistoryTracker.prototype = {
   },
 
   onBeforeDeleteURI: function onBeforeDeleteURI(uri, guid, reason) {
-    if (this.ignoreAll || reason == Ci.nsINavHistoryObserver.REASON_EXPIRED)
+    if (this.ignoreAll || reason == Ci.nsINavHistoryObserver.REASON_EXPIRED) {
       return;
+    }
     this._log.trace("onBeforeDeleteURI: " + uri.spec);
     if (this.addChangedID(guid)) {
       this._upScoreXLarge();
