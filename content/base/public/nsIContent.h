@@ -175,7 +175,13 @@ public:
 
 
 
-    eAllButXBL = 1
+    eAllButXBL = 1,
+
+    
+
+
+
+    eSkipPlaceholderContent = 2
   };
 
   
@@ -188,7 +194,7 @@ public:
 
 
 
-  virtual already_AddRefed<nsINodeList> GetChildren(PRInt32 aChildType) = 0;
+  virtual already_AddRefed<nsINodeList> GetChildren(PRUint32 aFilter) = 0;
 
   
 
