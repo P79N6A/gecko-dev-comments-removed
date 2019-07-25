@@ -203,6 +203,7 @@ var TestPilotTask = {
   },
 
   onDetailPageOpened: function TestPilotTask_onDetailPageOpened(){
+    
   },
 
   checkDate: function TestPilotTask_checkDate() {
@@ -444,14 +445,9 @@ TestPilotExperiment.prototype = {
   },
 
   experimentIsRunning: function TestPilotExperiment_isRunning() {
-    if (this._optInRequired) {
-      return (this._status == TaskConstants.STATUS_STARTING ||
-              this._status == TaskConstants.STATUS_IN_PROGRESS);
-    } else {
-      
-      
-      return (this._status < TaskConstants.STATUS_FINISHED);
-    }
+    
+    return (this._status == TaskConstants.STATUS_STARTING ||
+            this._status == TaskConstants.STATUS_IN_PROGRESS);
   },
 
   
@@ -600,10 +596,22 @@ TestPilotExperiment.prototype = {
     }
 
     
+    
     if (!this._optInRequired &&
-        this._status < TaskConstants.STATUS_STARTING &&
+        !Application.prefs.getValue("extensions.testpilot.popup.showOnNewStudy",
+                                    false) &&
+        (this._status == TaskConstants.STATUS_NEW ||
+         this._status == TaskConstants.STATUS_PENDING)) {
+      this._logger.info("Skipping pending and going straight to starting.");
+      this.changeStatus(TaskConstants.STATUS_STARTING, true);
+    }
+
+    
+    
+    if ( this._status == TaskConstants.STATUS_STARTING &&
         currentDate >= this._startDate &&
         currentDate <= this._endDate) {
+      this._logger.info("Study now starting.");
       let uuidGenerator =
         Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator);
       let uuid = uuidGenerator.generateUUID().toString();

@@ -62,7 +62,7 @@ let TestPilotSetup = {
   startupComplete: false,
   _shortTimer: null,
   _longTimer: null,
-  _remoteExperimentLoader: null,
+  _remoteExperimentLoader: null, 
   taskList: [],
   version: "",
 
@@ -372,10 +372,16 @@ let TestPilotSetup = {
                                                     iconClass, showSubmit,
 						    showAlwaysSubmitCheckbox,
                                                     linkText, linkUrl,
-						    isExtensionUpdate) {
+						    isExtensionUpdate,
+                                                    onCloseCallback) {
+    
+
+
+
     
     
-    let doc = this._getFrontBrowserWindow().document;
+    let window = this._getFrontBrowserWindow();
+    let doc = window.document;
     let popup = doc.getElementById("pilot-notification-popup");
 
     let anchor;
@@ -422,14 +428,14 @@ let TestPilotSetup = {
 	    "testpilot.notification.update"));
 	submitBtn.onclick = function() {
           this._extensionUpdater.check(EXTENSION_ID);
-          self._hideNotification();
+          self._hideNotification(window, onCloseCallback);
 	};
       } else {
         submitBtn.setAttribute("label",
 	  this._stringBundle.GetStringFromName("testpilot.submit"));
         
         submitBtn.onclick = function() {
-          self._hideNotification();
+          self._hideNotification(window, onCloseCallback);
           if (showAlwaysSubmitCheckbox && alwaysSubmitCheckbox.checked) {
             self._prefs.setValue(ALWAYS_SUBMIT_DATA, true);
           }
@@ -464,7 +470,7 @@ let TestPilotSetup = {
 	  } else {
             self._openChromeless(linkUrl);
 	  }
-          self._hideNotification();
+          self._hideNotification(window, onCloseCallback);
         }
       };
       link.setAttribute("hidden", false);
@@ -473,7 +479,7 @@ let TestPilotSetup = {
     }
 
     closeBtn.onclick = function() {
-      self._hideNotification();
+      self._hideNotification(window, onCloseCallback);
     };
 
     
@@ -487,13 +493,19 @@ let TestPilotSetup = {
     window.TestPilotWindowUtils.openChromeless(url);
   },
 
-  _hideNotification: function TPS__hideNotification() {
-    let window = this._getFrontBrowserWindow();
+  _hideNotification: function TPS__hideNotification(window, onCloseCallback) {
+    
+
+
+
     let popup = window.document.getElementById("pilot-notification-popup");
     popup.hidden = true;
     popup.setAttribute("open", "false");
     popup.removeAttribute("tpisextensionupdate");
     popup.hidePopup();
+    if (onCloseCallback) {
+      onCloseCallback();
+    }
   },
 
   _isShowingUpdateNotification : function() {
@@ -543,11 +555,11 @@ let TestPilotSetup = {
     if (this._prefs.getValue(POPUP_SHOW_ON_NEW, false)) {
       for (i = 0; i < this.taskList.length; i++) {
         task = this.taskList[i];
-        if (task.status == TaskConstants.STATUS_STARTING ||
+        if (task.status == TaskConstants.STATUS_PENDING ||
             task.status == TaskConstants.STATUS_NEW) {
           if (task.taskType == TaskConstants.TYPE_EXPERIMENT) {
 	    this._showNotification(
-	      task, true,
+	      task, false,
 	      this._stringBundle.formatStringFromName(
 		"testpilot.notification.newTestPilotStudy.message",
 		[task.title], 1),
@@ -555,14 +567,16 @@ let TestPilotSetup = {
 		"testpilot.notification.newTestPilotStudy"),
 	      "new-study", false, false,
 	      this._stringBundle.GetStringFromName("testpilot.moreInfo"),
-	      task.defaultUrl);
-            
-            
-            task.changeStatus(TaskConstants.STATUS_IN_PROGRESS, true);
+	      task.defaultUrl, false, function() {
+                
+
+                task.changeStatus(TaskConstants.STATUS_IN_PROGRESS, true);
+                TestPilotSetup.reloadRemoteExperiments();
+              });
             return;
           } else if (task.taskType == TaskConstants.TYPE_SURVEY) {
 	    this._showNotification(
-	      task, true,
+	      task, false,
 	      this._stringBundle.formatStringFromName(
 		"testpilot.notification.newTestPilotSurvey.message",
 		[task.title], 1),
