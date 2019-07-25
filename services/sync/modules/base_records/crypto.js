@@ -84,7 +84,7 @@ CryptoWrapper.prototype = {
     let privkey = PrivKeys.get(pubkey.privateKeyUri);
 
     let meta = CryptoMetas.get(this.encryption);
-    let symkey = yield meta.getKey(self.cb, privkey, passphrase);
+    let symkey = meta.getKey(privkey, passphrase);
 
     this.ciphertext = Svc.Crypto.encrypt(JSON.stringify([this.cleartext]),
 					 symkey, meta.bulkIV);
@@ -109,7 +109,7 @@ CryptoWrapper.prototype = {
     let privkey = PrivKeys.get(pubkey.privateKeyUri);
 
     let meta = CryptoMetas.get(this.encryption);
-    let symkey = yield meta.getKey(self.cb, privkey, passphrase);
+    let symkey = meta.getKey(privkey, passphrase);
 
     
     this.cleartext = JSON.parse(Svc.Crypto.decrypt(this.ciphertext,
@@ -152,20 +152,16 @@ CryptoMeta.prototype = {
     this.bulkIV = Svc.Crypto.generateRandomIV();
   },
 
-  _getKey: function CryptoMeta__getKey(privkey, passphrase) {
-    let self = yield;
-    let wrapped_key;
-
+  getKey: function CryptoMeta_getKey(privkey, passphrase) {
     
-    if (this._unwrappedKey) {
-      self.done(this._unwrappedKey);
-      return;
-    }
+    if (this._unwrappedKey)
+      return this._unwrappedKey;
 
     
     let pubkeyUri = privkey.publicKeyUri.spec;
 
     
+    let wrapped_key;
     for (let relUri in this.payload.keyring) {
       if (pubkeyUri == this.baseUri.resolve(relUri))
         wrapped_key = this.payload.keyring[relUri];
@@ -173,13 +169,8 @@ CryptoMeta.prototype = {
     if (!wrapped_key)
       throw "keyring doesn't contain a key for " + pubkeyUri;
 
-    this._unwrappedKey =
-      Svc.Crypto.unwrapSymmetricKey(wrapped_key, privkey.keyData, passphrase,
-                                    privkey.salt, privkey.iv);
-    self.done(this._unwrappedKey);
-  },
-  getKey: function CryptoMeta_getKey(onComplete, privkey, passphrase) {
-    this._getKey.async(this, onComplete, privkey, passphrase);
+    return this._unwrappedKey = Svc.Crypto.unwrapSymmetricKey(wrapped_key,
+      privkey.keyData, passphrase, privkey.salt, privkey.iv);
   },
 
   _addKey: function CryptoMeta__addKey(new_pubkey, privkey, passphrase) {
