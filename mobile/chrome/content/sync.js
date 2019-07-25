@@ -382,8 +382,6 @@ let WeaveGlue = {
   },
 
   observe: function observe(aSubject, aTopic, aData) {
-    let loggedIn = Weave.Service.isLoggedIn;
-
     
     Util.forceOnline();
 
@@ -400,7 +398,13 @@ let WeaveGlue = {
     let disconnect = this._elements.disconnect;
     let sync = this._elements.sync;
 
-    let syncEnabled = this._elements.autosync.value;
+    let syncEnabled = autosync.value;
+    let loggedIn = Weave.Service.isLoggedIn;
+
+    
+    
+    if (loggedIn && !syncEnabled)
+      syncEnabled = autosync.value = true;
 
     
     if (syncEnabled) {
@@ -451,10 +455,18 @@ let WeaveGlue = {
     }
 
     
-    if (aTopic == "weave:service:login:error")
-      connect.setAttribute("desc", Weave.Utils.getErrorString(Weave.Status.login));
-    else
+    if (aTopic == "weave:service:login:error") {
+      if (Weave.Status.login == "service.master_password_locked") {
+        
+        
+        autosync.value = false;
+        this.toggleSyncEnabled();
+      } else {
+        connect.setAttribute("desc", Weave.Utils.getErrorString(Weave.Status.login));
+      }
+    } else {
       connect.removeAttribute("desc");
+    }
 
     
     if (!this.setupData && aTopic == "weave:service:login:finish")
