@@ -504,6 +504,11 @@ private:
     
     
     
+    bool mHasPainted;
+
+    
+    
+    
     nsIntRect mSurfaceDifferenceRect;
 
 #if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
