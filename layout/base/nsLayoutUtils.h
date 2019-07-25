@@ -935,7 +935,7 @@ public:
                                     nsRenderingContext* aRenderingContext);
 
   
-  static nscolor GetTextColor(nsIFrame* aFrame);
+  static nscolor GetColor(nsIFrame* aFrame, nsCSSProperty aProperty);
 
   
   static gfxFloat GetSnappedBaselineY(nsIFrame* aFrame, gfxContext* aContext,

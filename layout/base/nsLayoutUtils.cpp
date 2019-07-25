@@ -2884,13 +2884,13 @@ static PRBool
 ShouldDarkenColors(nsPresContext* aPresContext)
 {
   return !aPresContext->GetBackgroundColorDraw() &&
-    !aPresContext->GetBackgroundImageDraw();
+         !aPresContext->GetBackgroundImageDraw();
 }
 
 nscolor
-nsLayoutUtils::GetTextColor(nsIFrame* aFrame)
+nsLayoutUtils::GetColor(nsIFrame* aFrame, nsCSSProperty aProperty)
 {
-  nscolor color = aFrame->GetVisitedDependentColor(eCSSProperty_color);
+  nscolor color = aFrame->GetVisitedDependentColor(aProperty);
   if (ShouldDarkenColors(aFrame->PresContext())) {
     color = DarkenColor(color);
   }

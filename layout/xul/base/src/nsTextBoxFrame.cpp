@@ -39,14 +39,9 @@
 
 
 
-
-
-
-
-
+#include "nsTextBoxFrame.h"
 
 #include "nsReadableUtils.h"
-#include "nsTextBoxFrame.h"
 #include "nsCOMPtr.h"
 #include "nsGkAtoms.h"
 #include "nsPresContext.h"
@@ -71,6 +66,7 @@
 #include "nsIReflowCallback.h"
 #include "nsBoxFrame.h"
 #include "mozilla/Preferences.h"
+#include "nsLayoutUtils.h"
 
 #ifdef IBMBIDI
 #include "nsBidiUtils.h"
@@ -78,12 +74,6 @@
 #endif 
 
 using namespace mozilla;
-
-#define CROP_LEFT   "left"
-#define CROP_RIGHT  "right"
-#define CROP_CENTER "center"
-#define CROP_START  "start"
-#define CROP_END    "end"
 
 class nsAccessKeyInfo
 {
@@ -97,11 +87,6 @@ PRBool nsTextBoxFrame::gAlwaysAppendAccessKey          = PR_FALSE;
 PRBool nsTextBoxFrame::gAccessKeyPrefInitialized       = PR_FALSE;
 PRBool nsTextBoxFrame::gInsertSeparatorBeforeAccessKey = PR_FALSE;
 PRBool nsTextBoxFrame::gInsertSeparatorPrefInitialized = PR_FALSE;
-
-
-
-
-
 
 nsIFrame*
 NS_NewTextBoxFrame (nsIPresShell* aPresShell, nsStyleContext* aContext)
@@ -445,15 +430,18 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
     PRUint8 overStyle;
     PRUint8 underStyle;
     PRUint8 strikeStyle;
-    nsStyleContext* context = mStyleContext;
 
     
     PRUint8 decorations = NS_STYLE_TEXT_DECORATION_LINE_NONE;
     
     PRUint8 decorMask = NS_STYLE_TEXT_DECORATION_LINE_LINES_MASK;
-    PRBool hasDecorationLines = context->HasTextDecorationLines();
 
+    nsIFrame* f = this;
     do {  
+      nsStyleContext* context = f->GetStyleContext();
+      if (!context->HasTextDecorationLines()) {
+        break;
+      }
       const nsStyleTextReset* styleText = context->GetStyleTextReset();
       
       if (decorMask & styleText->mTextDecorationLine) {  
@@ -464,7 +452,7 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
           PRBool isForeground;
           styleText->GetDecorationColor(color, isForeground);
           if (isForeground) {
-            color = context->GetVisitedDependentColor(eCSSProperty_color);
+            color = nsLayoutUtils::GetColor(f, eCSSProperty_color);
           }
         }
         PRUint8 style = styleText->GetDecorationStyle();
@@ -491,13 +479,9 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
           decorations |= NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH;
         }
       }
-      if (0 != decorMask) {
-        context = context->GetParent();
-        if (context) {
-          hasDecorationLines = context->HasTextDecorationLines();
-        }
-      }
-    } while (context && hasDecorationLines && (0 != decorMask));
+    } while (0 != decorMask &&
+             (f = nsLayoutUtils::GetParentOrPlaceholderFor(
+                                   presContext->FrameManager(), f)));
 
     nsRefPtr<nsFontMetrics> fontMet;
     nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet));

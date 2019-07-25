@@ -230,7 +230,8 @@ void
 nsDisplayTextOverflowMarker::Paint(nsDisplayListBuilder* aBuilder,
                                    nsRenderingContext*   aCtx)
 {
-  nscolor foregroundColor = nsLayoutUtils::GetTextColor(mFrame);
+  nscolor foregroundColor =
+    nsLayoutUtils::GetColor(mFrame, eCSSProperty_color);
 
   
   nsLayoutUtils::PaintTextShadow(mFrame, aCtx, mRect, mVisibleRect,
