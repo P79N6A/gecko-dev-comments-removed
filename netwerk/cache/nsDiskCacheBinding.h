@@ -62,6 +62,8 @@
 
 
 
+class nsDiskCacheDeviceDeactivateEntryEvent;
+
 class nsDiskCacheBinding : public nsISupports, public PRCList {
 public:
     NS_DECL_ISUPPORTS
@@ -79,6 +81,12 @@ public:
     nsDiskCacheStreamIO*    mStreamIO;      
     PRBool                  mDoomed;        
     PRUint8                 mGeneration;    
+
+    
+    
+    
+    
+    nsDiskCacheDeviceDeactivateEntryEvent *mDeactivateEvent;
 };
 
 
