@@ -1259,4 +1259,8 @@ void TypeFailure(JSContext *cx, const char *fmt, ...);
 } 
 } 
 
+namespace JS {
+    template<> class AnchorPermitted<js::types::TypeObject *> { };
+}
+
 #endif 

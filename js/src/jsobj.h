@@ -826,10 +826,10 @@ struct JSObject : js::gc::Cell
     inline JSObject *getParent() const;
     bool setParent(JSContext *cx, JSObject *newParent);
 
-    JS_FRIEND_API(js::GlobalObject *) getGlobal() const;
-
     inline bool isGlobal() const;
     inline js::GlobalObject *asGlobal();
+
+    inline js::GlobalObject *getGlobal() const;
 
     
 
@@ -927,6 +927,8 @@ struct JSObject : js::gc::Cell
         JS_STATIC_ASSERT(2 * sizeof(js::Value) == sizeof(js::ObjectElements));
         return &fixedSlots()[2];
     }
+
+    void setFixedElements() { this->elements = fixedElements(); }
 
     inline bool hasDynamicElements() const {
         
@@ -1502,6 +1504,66 @@ IsStandardClassResolved(JSObject *obj, js::Class *clasp);
 
 void
 MarkStandardClassInitializedNoProto(JSObject *obj, js::Class *clasp);
+
+
+
+
+
+
+struct NewObjectCache
+{
+    struct Entry
+    {
+        
+        Class *clasp;
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        gc::Cell *key;
+
+        
+        gc::AllocKind kind;
+
+        
+        uint32 nbytes;
+
+        
+
+
+
+        JSObject_Slots16 templateObject;
+
+        inline void fill(Class *clasp, gc::Cell *key, gc::AllocKind kind, JSObject *obj);
+    };
+
+    Entry entries[41];
+
+    void reset() { PodZero(this); }
+
+    bool lookup(Class *clasp, gc::Cell *key, gc::AllocKind kind, Entry **pentry)
+    {
+        jsuword hash = (jsuword(clasp) ^ jsuword(key)) + kind;
+        Entry *entry = *pentry = &entries[hash % JS_ARRAY_LENGTH(entries)];
+
+        
+        return (entry->clasp == clasp && entry->key == key);
+    }
+
+    void staticAsserts() {
+        JS_STATIC_ASSERT(gc::FINALIZE_OBJECT_LAST == gc::FINALIZE_OBJECT16_BACKGROUND);
+    }
+};
 
 }
 
