@@ -48,14 +48,35 @@
 
 
 
+
+static inline cairo_antialias_t
+GetCairoAntialiasOption(gfxFont::AntialiasOption anAntialiasOption)
+{
+    switch (anAntialiasOption) {
+    default:
+    case gfxFont::kAntialiasDefault:
+        return CAIRO_ANTIALIAS_DEFAULT;
+    case gfxFont::kAntialiasNone:
+        return CAIRO_ANTIALIAS_NONE;
+    case gfxFont::kAntialiasGrayscale:
+        return CAIRO_ANTIALIAS_GRAY;
+    case gfxFont::kAntialiasSubpixel:
+        return CAIRO_ANTIALIAS_SUBPIXEL;
+    }
+}
+
+
+
 gfxDWriteFont::gfxDWriteFont(gfxFontEntry *aFontEntry,
                              const gfxFontStyle *aFontStyle,
-                             PRBool aNeedsBold)
-    : gfxFont(aFontEntry, aFontStyle)
+                             PRBool aNeedsBold,
+                             AntialiasOption anAAOption)
+    : gfxFont(aFontEntry, aFontStyle, anAAOption)
     , mAdjustedSize(0.0f)
     , mCairoFontFace(nsnull)
     , mCairoScaledFont(nsnull)
     , mNeedsOblique(PR_FALSE)
+    , mNeedsBold(aNeedsBold)
 {
     gfxDWriteFontEntry *fe =
         static_cast<gfxDWriteFontEntry*>(aFontEntry);
@@ -93,6 +114,13 @@ gfxDWriteFont::~gfxDWriteFont()
     if (mCairoScaledFont) {
         cairo_scaled_font_destroy(mCairoScaledFont);
     }
+}
+
+gfxFont*
+gfxDWriteFont::CopyWithAntialiasOption(AntialiasOption anAAOption)
+{
+    return new gfxDWriteFont(static_cast<gfxDWriteFontEntry*>(mFontEntry.get()),
+                             &mStyle, mNeedsBold, anAAOption);
 }
 
 nsString
@@ -269,6 +297,11 @@ gfxDWriteFont::CairoScaledFont()
                               0,                
                               0);               
             cairo_matrix_multiply(&sizeMatrix, &sizeMatrix, &style);
+        }
+
+        if (mAntialiasOption != kAntialiasDefault) {
+            cairo_font_options_set_antialias(fontOptions,
+                GetCairoAntialiasOption(mAntialiasOption));
         }
 
         mCairoScaledFont = cairo_scaled_font_create(CairoFontFace(),
