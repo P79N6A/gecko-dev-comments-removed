@@ -338,6 +338,9 @@ public:
     PRUint16 mNextInFlowUntouched:1; 
                                      
     PRUint16 mIsTopOfPage:1;         
+                                     
+                                     
+                                     
     PRUint16 mBlinks:1;              
     PRUint16 mHasClearance:1;        
     PRUint16 mAssumingHScrollbar:1;  
