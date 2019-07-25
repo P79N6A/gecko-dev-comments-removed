@@ -96,6 +96,7 @@ var Browser = {
 
     BrowserUI.init();
 
+    this._content.addEventListener("command", this._handleContentCommand, false);
     this._content.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver.onUpdatePageReport, false);
     this._content.tabList = document.getElementById("tab-list");
     this._content.newTab(true);
@@ -287,6 +288,61 @@ var Browser = {
         } catch(e) {
           
         }
+      }
+    }
+  },
+  
+  
+
+
+
+
+
+  _handleContentCommand: function (aEvent) {
+    
+    if (!aEvent.isTrusted)
+      return;
+
+    var ot = aEvent.originalTarget;
+    var errorDoc = ot.ownerDocument;
+
+    
+    
+    if (/^about:neterror\?e=nssBadCert/.test(errorDoc.documentURI)) {
+      if (ot == errorDoc.getElementById('exceptionDialogButton')) {
+        var params = { exceptionAdded : false };
+        
+        try {
+          switch (gPrefService.getIntPref("browser.ssl_override_behavior")) {
+            case 2 : 
+              params.prefetchCert = true;
+            case 1 : 
+              params.location = errorDoc.location.href;
+          }
+        } catch (e) {
+          Components.utils.reportError("Couldn't get ssl_override pref: " + e);
+        }
+        
+        window.openDialog('chrome://pippki/content/exceptionDialog.xul',
+                          '','chrome,centerscreen,modal', params);
+        
+        
+        if (params.exceptionAdded)
+          errorDoc.location.reload();
+      }
+      else if (ot == errorDoc.getElementById('getMeOutOfHereButton')) {
+        
+        var defaultPrefs = Cc["@mozilla.org/preferences-service;1"]
+                          .getService(Ci.nsIPrefService).getDefaultBranch(null);
+        var url = "about:blank";
+        try {
+          url = defaultPrefs.getCharPref("browser.startup.homepage");
+          
+          if (url.indexOf("|") != -1)
+            url = url.split("|")[0];
+        } catch (e) {  }
+        
+        Browser.currentBrowser.loadURI(url, null, null, false);
       }
     }
   }

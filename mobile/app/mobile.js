@@ -162,6 +162,9 @@ pref("accessibility.typeaheadfind.casesensitive", 0);
 
 pref("browser.search.defaultenginename",      "chrome://browser/locale/region.properties");
 
+pref("browser.ssl_override_behavior", 2);
+pref("browser.xul.error_pages.expert_bad_cert", false);
+
 
 pref("browser.search.log", false);
 
