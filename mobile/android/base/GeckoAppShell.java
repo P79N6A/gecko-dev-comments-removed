@@ -117,6 +117,14 @@ public class GeckoAppShell
     private static HashMap<String, ArrayList<GeckoEventListener>> mEventListeners;
 
     
+    private static boolean sVibrationMaybePlaying = false;
+
+    
+
+
+    private static long sVibrationEndTime = 0;
+
+    
 
     
     public static native void nativeInit();
@@ -560,12 +568,14 @@ public class GeckoAppShell
             mInputConnection.notifyIMEChange(text, start, end, newEnd);
     }
 
-    public static void notifyScreenShot(ByteBuffer data, int tabId, int width, int height) {
-        final Bitmap b = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
-        b.copyPixelsFromBuffer(data);
-        final Tab tab = Tabs.getInstance().getTab(tabId);
+    public static void notifyScreenShot(final ByteBuffer data, final int tabId,
+                                        final int width, final int height) {
         getHandler().post(new Runnable() {
             public void run() {
+                Bitmap b = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+                b.copyPixelsFromBuffer(data);
+                freeDirectBuffer(data);
+                final Tab tab = Tabs.getInstance().getTab(tabId);
                 GeckoApp.mAppContext.processThumbnail(tab, b, null);
             }
         });
@@ -1125,11 +1135,15 @@ public class GeckoAppShell
     }
 
     public static void performHapticFeedback(boolean aIsLongPress) {
-        LayerController layerController = GeckoApp.mAppContext.getLayerController();
-        LayerView layerView = layerController.getView();
-        layerView.performHapticFeedback(aIsLongPress ?
-                                        HapticFeedbackConstants.LONG_PRESS :
-                                        HapticFeedbackConstants.VIRTUAL_KEY);
+        
+        
+        if (!sVibrationMaybePlaying || System.nanoTime() >= sVibrationEndTime) {
+            LayerController layerController = GeckoApp.mAppContext.getLayerController();
+            LayerView layerView = layerController.getView();
+            layerView.performHapticFeedback(aIsLongPress ?
+                                            HapticFeedbackConstants.LONG_PRESS :
+                                            HapticFeedbackConstants.VIRTUAL_KEY);
+        }
     }
 
     private static Vibrator vibrator() {
@@ -1140,14 +1154,28 @@ public class GeckoAppShell
     }
 
     public static void vibrate(long milliseconds) {
+        sVibrationEndTime = System.nanoTime() + milliseconds * 1000000;
+        sVibrationMaybePlaying = true;
         vibrator().vibrate(milliseconds);
     }
 
     public static void vibrate(long[] pattern, int repeat) {
+        
+        
+        long vibrationDuration = 0;
+        int iterLen = pattern.length - (pattern.length % 2 == 0 ? 1 : 0);
+        for (int i = 0; i < iterLen; i++) {
+          vibrationDuration += pattern[i];
+        }
+
+        sVibrationEndTime = System.nanoTime() + vibrationDuration * 1000000;
+        sVibrationMaybePlaying = true;
         vibrator().vibrate(pattern, repeat);
     }
 
     public static void cancelVibrate() {
+        sVibrationMaybePlaying = false;
+        sVibrationEndTime = 0;
         vibrator().cancel();
     }
 

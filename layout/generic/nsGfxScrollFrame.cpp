@@ -969,10 +969,14 @@ nsHTMLScrollFrame::GetFrameName(nsAString& aResult) const
 already_AddRefed<nsAccessible>
 nsHTMLScrollFrame::CreateAccessible()
 {
-  if (!IsFocusable()) {
+  
+  
+  if (mContent->IsRootOfNativeAnonymousSubtree() ||
+      GetScrollbarStyles() == nsIScrollableFrame::
+        ScrollbarStyles(NS_STYLE_OVERFLOW_HIDDEN, NS_STYLE_OVERFLOW_HIDDEN) ) {
     return nsnull;
   }
-  
+
   nsAccessibilityService* accService = nsIPresShell::AccService();
   if (accService) {
     return accService->CreateHyperTextAccessible(mContent,

@@ -656,6 +656,8 @@ pref("javascript.options.typeinference", true);
 pref("javascript.options.mem.high_water_mark", 128);
 pref("javascript.options.mem.max", -1);
 pref("javascript.options.mem.gc_per_compartment", true);
+pref("javascript.options.mem.gc_incremental", true);
+pref("javascript.options.mem.gc_incremental_slice_ms", 10);
 pref("javascript.options.mem.log", false);
 pref("javascript.options.gc_on_memory_pressure", true);
 
@@ -1037,6 +1039,9 @@ pref("network.negotiate-auth.trusted-uris", "");
 pref("network.negotiate-auth.delegation-uris", "");
 
 
+pref("network.negotiate-auth.allow-non-fqdn", false);
+
+
 pref("network.negotiate-auth.allow-proxies", true);
 
 
@@ -1066,6 +1071,7 @@ pref("network.auth.force-generic-ntlm", false);
 
 
 pref("network.automatic-ntlm-auth.allow-proxies", true);
+pref("network.automatic-ntlm-auth.allow-non-fqdn", false);
 pref("network.automatic-ntlm-auth.trusted-uris", "");
 
 
