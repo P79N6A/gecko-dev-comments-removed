@@ -1,54 +1,54 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sw=4 et tw=78:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code, released
+ * March 31, 1998.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef jsobj_h___
 #define jsobj_h___
 
-
-
-
-
-
-
-
-
+/*
+ * JS object definitions.
+ *
+ * A JS object consists of a possibly-shared object descriptor containing
+ * ordered property names, called the map; and a dense vector of property
+ * values, called slots.  The map/slot pointer pair is GC'ed, while the map
+ * is reference counted and the slot vector is malloc'ed.
+ */
 #include "jsapi.h"
 #include "jshash.h"
 #include "jspubtd.h"
@@ -115,23 +115,23 @@ CastAsObjectJsval(StrictPropertyOp op)
     return ObjectOrNullValue(CastAsObject(op));
 }
 
-
-
-
-
+/*
+ * A representation of ECMA-262 ed. 5's internal Property Descriptor data
+ * structure.
+ */
 struct PropDesc {
-    
-
-
-
+    /*
+     * Original object from which this descriptor derives, passed through for
+     * the benefit of proxies.
+     */
     js::Value pd;
 
     js::Value value, get, set;
 
-    
+    /* Property descriptor boolean fields. */
     uint8 attrs;
 
-    
+    /* Bits indicating which values are set. */
     bool hasGet : 1;
     bool hasSet : 1;
     bool hasValue : 1;
@@ -144,20 +144,20 @@ struct PropDesc {
     PropDesc();
 
   public:
-    
+    /* 8.10.5 ToPropertyDescriptor(Obj) */
     bool initialize(JSContext* cx, const js::Value &v);
 
-    
+    /* 8.10.1 IsAccessorDescriptor(desc) */
     bool isAccessorDescriptor() const {
         return hasGet || hasSet;
     }
 
-    
+    /* 8.10.2 IsDataDescriptor(desc) */
     bool isDataDescriptor() const {
         return hasValue || hasWritable;
     }
 
-    
+    /* 8.10.3 IsGenericDescriptor(desc) */
     bool isGenericDescriptor() const {
         return !isAccessorDescriptor() && !isDataDescriptor();
     }
@@ -201,18 +201,18 @@ typedef Vector<PropDesc, 1> PropDescArray;
 void
 MeterEntryCount(uintN count);
 
-} 
+} /* namespace js */
 
 enum {
     INVALID_SHAPE = 0x8fffffff,
     SHAPELESS = 0xffffffff
 };
 
-
-
-
-
-
+/*
+ * On success, and if id was found, return true with *objp non-null and with a
+ * property of *objp stored in *propp. If successful but id was not found,
+ * return true with both *objp and *propp null.
+ */
 extern JS_FRIEND_API(JSBool)
 js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
                   JSProperty **propp);
@@ -235,7 +235,7 @@ namespace js {
 extern JSBool
 GetPropertyDefault(JSContext *cx, JSObject *obj, jsid id, const Value &def, Value *vp);
 
-} 
+} /* namespace js */
 
 extern JSBool
 js_SetProperty(JSContext *cx, JSObject *obj, jsid id, js::Value *vp, JSBool strict);
@@ -275,57 +275,57 @@ namespace nanojit {
 class ValidateWriter;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * JSObject struct, with members sized to fit in 32 bytes on 32-bit targets,
+ * 64 bytes on 64-bit systems. The JSFunction struct is an extension of this
+ * struct allocated from a larger GC size-class.
+ *
+ * The clasp member stores the js::Class pointer for this object. We do *not*
+ * synchronize updates of clasp or flags -- API clients must take care.
+ *
+ * An object is a delegate if it is on another object's prototype (the proto
+ * field) or scope chain (the parent field), and therefore the delegate might
+ * be asked implicitly to get or set a property on behalf of another object.
+ * Delegates may be accessed directly too, as may any object, but only those
+ * objects linked after the head of any prototype or scope chain are flagged
+ * as delegates. This definition helps to optimize shape-based property cache
+ * invalidation (see Purge{Scope,Proto}Chain in jsobj.cpp).
+ *
+ * The meaning of the system object bit is defined by the API client. It is
+ * set in JS_NewSystemObject and is queried by JS_IsSystemObject (jsdbgapi.h),
+ * but it has no intrinsic meaning to SpiderMonkey. Further, JSFILENAME_SYSTEM
+ * and JS_FlagScriptFilenamePrefix (also exported via jsdbgapi.h) are intended
+ * to be complementary to this bit, but it is up to the API client to implement
+ * any such association.
+ *
+ * Both these flag bits are initially zero; they may be set or queried using
+ * the (is|set)(Delegate|System) inline methods.
+ *
+ * The slots member is a pointer to the slot vector for the object.
+ * This can be either a fixed array allocated immediately after the object,
+ * or a dynamically allocated array.  A dynamic array can be tested for with
+ * hasSlotsArray().  In all cases, capacity gives the number of usable slots.
+ * Two objects with the same shape have the same number of fixed slots,
+ * and either both have or neither have dynamically allocated slot arrays.
+ *
+ * If you change this struct, you'll probably need to change the AccSet values
+ * in jsbuiltins.h.
+ */
 struct JSObject : js::gc::Cell {
-    
-
-
-
-
-
+    /*
+     * TraceRecorder must be a friend because it generates code that
+     * manipulates JSObjects, which requires peeking under any encapsulation.
+     * ValidateWriter must be a friend because it works in tandem with
+     * TraceRecorder.
+     */
     friend class js::TraceRecorder;
     friend class nanojit::ValidateWriter;
     friend class GetPropCompiler;
 
-    
-
-
-
+    /*
+     * Private pointer to the last added property and methods to manipulate the
+     * list it links among properties in this scope.
+     */
     js::Shape           *lastProp;
 
     js::Class           *clasp;
@@ -334,7 +334,7 @@ struct JSObject : js::gc::Cell {
     inline void setLastProperty(const js::Shape *shape);
     inline void removeLastProperty();
 
-    
+    /* For setLastProperty() only. */
     friend class js::StringObject;
 
 #ifdef DEBUG
@@ -367,38 +367,38 @@ struct JSObject : js::gc::Cell {
         METHOD_THRASH_COUNT_MAX   = METHOD_THRASH_COUNT_MASK >> METHOD_THRASH_COUNT_SHIFT
     };
 
-    
-
-
-
+    /*
+     * Impose a sane upper bound, originally checked only for dense arrays, on
+     * number of slots in an object.
+     */
     enum {
         NSLOTS_BITS     = 29,
         NSLOTS_LIMIT    = JS_BIT(NSLOTS_BITS)
     };
 
-    uint32      flags;                      
-    uint32      objShape;                   
+    uint32      flags;                      /* flags */
+    uint32      objShape;                   /* copy of lastProp->shape, or override if different */
 
-    
+    /* If prototype, lazily filled array of empty shapes for each object size. */
     js::EmptyShape **emptyShapes;
 
-    JSObject    *proto;                     
-    JSObject    *parent;                    
-    void        *privateData;               
-    jsuword     capacity;                   
-    js::Value   *slots;                     
+    JSObject    *proto;                     /* object's prototype */
+    JSObject    *parent;                    /* object's parent */
+    void        *privateData;               /* private data */
+    jsuword     capacity;                   /* capacity of slots */
+    js::Value   *slots;                     /* dynamically allocated slots,
+                                               or pointer to fixedSlots() */
 
-
-    
-
-
-
-
-
-
+    /*
+     * Return an immutable, shareable, empty shape with the same clasp as this
+     * and the same slotSpan as this had when empty.
+     *
+     * If |this| is the scope of an object |proto|, the resulting scope can be
+     * used as the scope of a new object whose prototype is |proto|.
+     */
     inline bool canProvideEmptyShape(js::Class *clasp);
     inline js::EmptyShape *getEmptyShape(JSContext *cx, js::Class *aclasp,
-                                          unsigned kind);
+                                         /* gc::FinalizeKind */ unsigned kind);
 
     inline bool isNative() const;
     inline bool isNewborn() const;
@@ -433,18 +433,18 @@ struct JSObject : js::gc::Cell {
     bool isSystem() const       { return !!(flags & SYSTEM); }
     void setSystem()            { flags |= SYSTEM; }
 
-    
-
-
-
-
+    /*
+     * A branded object contains plain old methods (function-valued properties
+     * without magic getters and setters), and its shape evolves whenever a
+     * function value changes.
+     */
     bool branded()              { return !!(flags & BRANDED); }
 
-    
-
-
-
-
+    /*
+     * NB: these return false on shape overflow but do not report any error.
+     * Callers who depend on shape guarantees should therefore bail off trace,
+     * e.g., on false returns.
+     */
     bool brand(JSContext *cx);
     bool unbrand(JSContext *cx);
 
@@ -465,10 +465,10 @@ struct JSObject : js::gc::Cell {
         JS_ASSERT(!!clasp->ext.equality == hasSpecialEquality());
     }
 
-    
+    /* Sets an object's HAS_EQUALITY flag based on its clasp. */
     inline void syncSpecialEquality();
 
-    
+    /* See StackFrame::varObj. */
     inline bool isVarObj() const { return flags & VAROBJ; }
     inline void makeVarObj() { flags |= VAROBJ; }
 
@@ -487,7 +487,7 @@ struct JSObject : js::gc::Cell {
 
     inline void setSharedNonNativeMap();
 
-    
+    /* Functions for setting up scope chain object maps and shapes. */
     void initCall(JSContext *cx, const js::Bindings &bindings, JSObject *parent);
     void initClonedBlock(JSContext *cx, JSObject *proto, js::StackFrame *priv);
     void setBlockOwnShape(JSContext *cx);
@@ -501,93 +501,93 @@ struct JSObject : js::gc::Cell {
     void watchpointOwnShapeChange(JSContext *cx) { generateOwnShape(cx); }
 
     void extensibleShapeChange(JSContext *cx) {
-        
+        /* This will do for now. */
         generateOwnShape(cx);
     }
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * A scope has a method barrier when some compiler-created "null closure"
+     * function objects (functions that do not use lexical bindings above their
+     * scope, only free variable names) that have a correct JSSLOT_PARENT value
+     * thanks to the COMPILE_N_GO optimization are stored as newly added direct
+     * property values of the scope's object.
+     *
+     * The de-facto standard JS language requires each evaluation of such a
+     * closure to result in a unique (according to === and observable effects)
+     * function object. ES3 tried to allow implementations to "join" such
+     * objects to a single compiler-created object, but this makes an overt
+     * mutation hazard, also an "identity hazard" against interoperation among
+     * implementations that join and do not join.
+     *
+     * To stay compatible with the de-facto standard, we store the compiler-
+     * created function object as the method value and set the METHOD_BARRIER
+     * flag.
+     *
+     * The method value is part of the method property tree node's identity, so
+     * it effectively  brands the scope with a predictable shape corresponding
+     * to the method value, but without the overhead of setting the BRANDED
+     * flag, which requires assigning a new shape peculiar to each branded
+     * scope. Instead the shape is shared via the property tree among all the
+     * scopes referencing the method property tree node.
+     *
+     * Then when reading from a scope for which scope->hasMethodBarrier() is
+     * true, we count on the scope's qualified/guarded shape being unique and
+     * add a read barrier that clones the compiler-created function object on
+     * demand, reshaping the scope.
+     *
+     * This read barrier is bypassed when evaluating the callee sub-expression
+     * of a call expression (see the JOF_CALLOP opcodes in jsopcode.tbl), since
+     * such ops do not present an identity or mutation hazard. The compiler
+     * performs this optimization only for null closures that do not use their
+     * own name or equivalent built-in references (arguments.callee).
+     *
+     * The BRANDED write barrier, JSObject::methodWriteBarrer, must check for
+     * METHOD_BARRIER too, and regenerate this scope's shape if the method's
+     * value is in fact changing.
+     */
     bool hasMethodBarrier()     { return !!(flags & METHOD_BARRIER); }
     void setMethodBarrier()     { flags |= METHOD_BARRIER; }
 
-    
-
-
-
-
-
+    /*
+     * Test whether this object may be branded due to method calls, which means
+     * any assignment to a function-valued property must regenerate shape; else
+     * test whether this object has method properties, which require a method
+     * write barrier.
+     */
     bool brandedOrHasMethodBarrier() { return !!(flags & (BRANDED | METHOD_BARRIER)); }
 
-    
-
-
-
-
+    /*
+     * Read barrier to clone a joined function object stored as a method.
+     * Defined in jsobjinlines.h, but not declared inline per standard style in
+     * order to avoid gcc warnings.
+     */
     const js::Shape *methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp);
 
-    
-
-
-
-
-
-
+    /*
+     * Write barrier to check for a change of method value. Defined inline in
+     * jsobjinlines.h after methodReadBarrier. The slot flavor is required by
+     * JSOP_*GVAR, which deals in slots not shapes, while not deoptimizing to
+     * map slot to shape unless JSObject::flags show that this is necessary.
+     * The methodShapeChange overload (above) parallels this.
+     */
     const js::Shape *methodWriteBarrier(JSContext *cx, const js::Shape &shape, const js::Value &v);
     bool methodWriteBarrier(JSContext *cx, uint32 slot, const js::Value &v);
 
     bool isIndexed() const          { return !!(flags & INDEXED); }
     void setIndexed()               { flags |= INDEXED; }
 
-    
-
-
-
-
+    /*
+     * Return true if this object is a native one that has been converted from
+     * shared-immutable prototype-rooted shape storage to dictionary-shapes in
+     * a doubly-linked list.
+     */
     inline bool inDictionaryMode() const;
 
     inline uint32 propertyCount() const;
 
     inline bool hasPropertyTable() const;
 
-     unsigned finalizeKind() const;
+    /* gc::FinalizeKind */ unsigned finalizeKind() const;
 
     uint32 numSlots() const { return capacity; }
 
@@ -600,7 +600,7 @@ struct JSObject : js::gc::Cell {
     static inline size_t getFixedSlotOffset(size_t slot);
 
   public:
-    
+    /* Minimum size for dynamically allocated slots. */
     static const uint32 SLOT_CAPACITY_MIN = 8;
 
     bool allocSlots(JSContext *cx, size_t nslots);
@@ -613,37 +613,37 @@ struct JSObject : js::gc::Cell {
         return true;
     }
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * Ensure that the object has at least JSCLASS_RESERVED_SLOTS(clasp) +
+     * nreserved slots.
+     *
+     * This method may be called only for native objects freshly created using
+     * NewObject or one of its variant where the new object will both (a) never
+     * escape to script and (b) never be extended with ad-hoc properties that
+     * would try to allocate higher slots without the fresh object first having
+     * its map set to a shape path that maps those slots.
+     *
+     * Block objects satisfy (a) and (b), as there is no evil eval-based way to
+     * add ad-hoc properties to a Block instance. Call objects satisfy (a) and
+     * (b) as well, because the compiler-created Shape path that covers args,
+     * vars, and upvars, stored in their callee function in u.i.names, becomes
+     * their initial map.
+     */
     bool ensureInstanceReservedSlots(JSContext *cx, size_t nreserved);
 
-    
-
-
-
+    /*
+     * Get a direct pointer to the object's slots.
+     * This can be reallocated if the object is modified, watch out!
+     */
     js::Value *getSlots() const {
         return slots;
     }
 
-    
-
-
-
-
+    /*
+     * NB: ensureClassReservedSlotsForEmptyObject asserts that nativeEmpty()
+     * Use ensureClassReservedSlots for any object, either empty or already
+     * extended with properties.
+     */
     bool ensureClassReservedSlotsForEmptyObject(JSContext *cx);
 
     inline bool ensureClassReservedSlots(JSContext *cx);
@@ -675,11 +675,11 @@ struct JSObject : js::gc::Cell {
 
     inline js::Value getReservedSlot(uintN index) const;
 
-    
+    /* Defined in jsscopeinlines.h to avoid including implementation dependencies here. */
     inline void updateShape(JSContext *cx);
     inline void updateFlags(const js::Shape *shape, bool isDefinitelyAtom = false);
 
-    
+    /* Extend this object to have shape as its last-added property. */
     inline void extend(JSContext *cx, const js::Shape *shape, bool isDefinitelyAtom = false);
 
     JSObject *getProto() const  { return proto; }
@@ -729,36 +729,36 @@ struct JSObject : js::gc::Cell {
         privateData = data;
     }
 
-    
+    /* N.B. Infallible: NULL means 'no principal', not an error. */
     inline JSPrincipals *principals(JSContext *cx);
 
-    
-
-
+    /*
+     * ES5 meta-object properties and operations.
+     */
 
   private:
     enum ImmutabilityType { SEAL, FREEZE };
 
-    
-
-
-
-
-
+    /*
+     * The guts of Object.seal (ES5 15.2.3.8) and Object.freeze (ES5 15.2.3.9): mark the
+     * object as non-extensible, and adjust each property's attributes appropriately: each
+     * property becomes non-configurable, and if |freeze|, data properties become
+     * read-only as well.
+     */
     bool sealOrFreeze(JSContext *cx, ImmutabilityType it);
 
   public:
     bool isExtensible() const { return !(flags & NOT_EXTENSIBLE); }
     bool preventExtensions(JSContext *cx, js::AutoIdVector *props);
 
-    
+    /* ES5 15.2.3.8: non-extensible, all props non-configurable */
     inline bool seal(JSContext *cx) { return sealOrFreeze(cx, SEAL); }
-    
+    /* ES5 15.2.3.9: non-extensible, all properties non-configurable, all data props read-only */
     bool freeze(JSContext *cx) { return sealOrFreeze(cx, FREEZE); }
         
-    
-
-
+    /*
+     * Primitive-specific getters and setters.
+     */
 
   private:
     static const uint32 JSSLOT_PRIMITIVE_THIS = 0;
@@ -770,9 +770,9 @@ struct JSObject : js::gc::Cell {
   public:
     inline js::StringObject *asString();
 
-    
-
-
+    /*
+     * Array-specific getters and setters (for both dense and slow arrays).
+     */
 
     inline uint32 getArrayLength() const;
     inline void setArrayLength(uint32 length);
@@ -784,20 +784,20 @@ struct JSObject : js::gc::Cell {
     inline void setDenseArrayElement(uintN idx, const js::Value &val);
     inline void shrinkDenseArrayElements(JSContext *cx, uintN cap);
 
-    
-
-
-
-
-
-
+    /*
+     * ensureDenseArrayElements ensures that the dense array can hold at least
+     * index + extra elements. It returns ED_OK on success, ED_FAILED on
+     * failure to grow the array, ED_SPARSE when the array is too sparse to
+     * grow (this includes the case of index + extra overflow). In the last
+     * two cases the array is kept intact.
+     */
     enum EnsureDenseResult { ED_OK, ED_FAILED, ED_SPARSE };
     inline EnsureDenseResult ensureDenseArrayElements(JSContext *cx, uintN index, uintN extra);
 
-    
-
-
-
+    /*
+     * Check if after growing the dense array will be too sparse.
+     * newElementsHint is an estimated number of elements to be added.
+     */
     bool willBeSparseDenseArray(uintN requiredCapacity, uintN newElementsHint);
 
     JSBool makeDenseArraySlow(JSContext *cx);
@@ -808,34 +808,34 @@ struct JSObject : js::gc::Cell {
     inline js::StrictArgumentsObject *asStrictArguments();
 
   private:
-    
-
-
-
-
-
-
-
-
-
-
+    /*
+     * Reserved slot structure for Call objects:
+     *
+     * private               - the stack frame corresponding to the Call object
+     *                         until js_PutCallObject or its on-trace analog
+     *                         is called, null thereafter
+     * JSSLOT_CALL_CALLEE    - callee function for the stack frame, or null if
+     *                         the stack frame is for strict mode eval code
+     * JSSLOT_CALL_ARGUMENTS - arguments object for non-strict mode eval stack
+     *                         frames (not valid for strict mode eval frames)
+     */
     static const uint32 JSSLOT_CALL_CALLEE = 0;
     static const uint32 JSSLOT_CALL_ARGUMENTS = 1;
 
   public:
-    
+    /* Number of reserved slots. */
     static const uint32 CALL_RESERVED_SLOTS = 2;
 
-    
+    /* True if this is for a strict mode eval frame or for a function call. */
     inline bool callIsForEval() const;
 
-    
+    /* The stack frame for this Call object, if the frame is still active. */
     inline js::StackFrame *maybeCallObjStackFrame() const;
 
-    
-
-
-
+    /*
+     * The callee function if this Call object was created for a function
+     * invocation, or null if it was created for a strict mode eval frame.
+     */
     inline JSObject *getCallObjCallee() const;
     inline JSFunction *getCallObjCalleeFunction() const; 
     inline void setCallObjCallee(JSObject *callee);
@@ -843,25 +843,25 @@ struct JSObject : js::gc::Cell {
     inline const js::Value &getCallObjArguments() const;
     inline void setCallObjArguments(const js::Value &v);
 
-    
+    /* Returns the formal argument at the given index. */
     inline const js::Value &callObjArg(uintN i) const;
     inline js::Value &callObjArg(uintN i);
 
-    
+    /* Returns the variable at the given index. */
     inline const js::Value &callObjVar(uintN i) const;
     inline js::Value &callObjVar(uintN i);
 
-    
-
-
+    /*
+     * Date-specific getters and setters.
+     */
 
     static const uint32 JSSLOT_DATE_UTC_TIME = 0;
 
-    
-
-
-
-
+    /*
+     * Cached slots holding local properties of the date.
+     * These are undefined until the first actual lookup occurs
+     * and are reset to undefined whenever the date's time is modified.
+     */
     static const uint32 JSSLOT_DATE_COMPONENTS_START = 1;
 
     static const uint32 JSSLOT_DATE_LOCAL_TIME = 1;
@@ -878,24 +878,24 @@ struct JSObject : js::gc::Cell {
     inline const js::Value &getDateUTCTime() const;
     inline void setDateUTCTime(const js::Value &pthis);
 
-    
-
-
+    /*
+     * Function-specific getters and setters.
+     */
 
   private:
     friend struct JSFunction;
     friend class js::mjit::Compiler;
 
-    
-
-
-
+    /*
+     * Flat closures with one or more upvars snapshot the upvars' values into a
+     * vector of js::Values referenced from this slot.
+     */
     static const uint32 JSSLOT_FLAT_CLOSURE_UPVARS = 0;
 
-    
-
-
-
+    /*
+     * Null closures set or initialized as methods have these slots. See the
+     * "method barrier" comments and methods.
+     */
 
     static const uint32 JSSLOT_FUN_METHOD_ATOM = 0;
     static const uint32 JSSLOT_FUN_METHOD_OBJ  = 1;
@@ -923,9 +923,9 @@ struct JSObject : js::gc::Cell {
     inline const js::Value &getBoundFunctionThis() const;
     inline const js::Value *getBoundFunctionArguments(uintN &argslen) const;
 
-    
-
-
+    /*
+     * RegExp-specific getters and setters.
+     */
 
   private:
     static const uint32 JSSLOT_REGEXP_LAST_INDEX = 0;
@@ -935,11 +935,11 @@ struct JSObject : js::gc::Cell {
     static const uint32 JSSLOT_REGEXP_MULTILINE = 4;
     static const uint32 JSSLOT_REGEXP_STICKY = 5;
 
-    
-
-
-
-
+    /*
+     * Compute the initial shape to associate with fresh regular expression
+     * objects, encoding their initial properties. Return the shape after
+     * changing this regular expression object's last property to it.
+     */
     const js::Shape *assignInitialRegExpShape(JSContext *cx);
 
   public:
@@ -958,33 +958,33 @@ struct JSObject : js::gc::Cell {
 
     inline bool initRegExp(JSContext *cx, js::RegExp *re);
 
-    
-
-
+    /*
+     * Iterator-specific getters and setters.
+     */
 
     inline js::NativeIterator *getNativeIterator() const;
     inline void setNativeIterator(js::NativeIterator *);
 
-    
-
-
+    /*
+     * Script-related getters.
+     */
 
     inline JSScript *getScript() const;
 
-    
+    /*
+     * XML-related getters and setters.
+     */
 
-
-
-    
-
-
-
-
-
-
+    /*
+     * Slots for XML-related classes are as follows:
+     * - js_NamespaceClass.base reserves the *_NAME_* and *_NAMESPACE_* slots.
+     * - js_QNameClass.base, js_AttributeNameClass, js_AnyNameClass reserve
+     *   the *_NAME_* and *_QNAME_* slots.
+     * - Others (js_XMLClass, js_XMLFilterClass) don't reserve any slots.
+     */
   private:
-    static const uint32 JSSLOT_NAME_PREFIX          = 0;   
-    static const uint32 JSSLOT_NAME_URI             = 1;   
+    static const uint32 JSSLOT_NAME_PREFIX          = 0;   // shared
+    static const uint32 JSSLOT_NAME_URI             = 1;   // shared
 
     static const uint32 JSSLOT_NAMESPACE_DECLARED   = 2;
 
@@ -1010,9 +1010,9 @@ struct JSObject : js::gc::Cell {
     inline jsval getQNameLocalNameVal() const;
     inline void setQNameLocalName(JSLinearString *name);
 
-    
-
-
+    /*
+     * Proxy-specific getters and setters.
+     */
 
     inline js::JSProxyHandler *getProxyHandler() const;
     inline const js::Value &getProxyPrivate() const;
@@ -1020,54 +1020,54 @@ struct JSObject : js::gc::Cell {
     inline const js::Value &getProxyExtra() const;
     inline void setProxyExtra(const js::Value &extra);
 
-    
-
-
+    /*
+     * With object-specific getters and setters.
+     */
     inline JSObject *getWithThis() const;
     inline void setWithThis(JSObject *thisp);
 
-    
-
-
+    /*
+     * Back to generic stuff.
+     */
     inline bool isCallable();
 
-    
+    /* The map field is not initialized here and should be set separately. */
     void init(JSContext *cx, js::Class *aclasp, JSObject *proto, JSObject *parent,
               void *priv, bool useHoles);
 
     inline void finish(JSContext *cx);
     JS_ALWAYS_INLINE void finalize(JSContext *cx);
 
-    
-
-
-
+    /*
+     * Like init, but also initializes map. The catch: proto must be the result
+     * of a call to js_InitClass(...clasp, ...).
+     */
     inline bool initSharingEmptyShape(JSContext *cx,
                                       js::Class *clasp,
                                       JSObject *proto,
                                       JSObject *parent,
                                       void *priv,
-                                       unsigned kind);
+                                      /* gc::FinalizeKind */ unsigned kind);
 
     inline bool hasSlotsArray() const;
 
-    
+    /* This method can only be called when hasSlotsArray() returns true. */
     inline void freeSlotsArray(JSContext *cx);
 
-    
+    /* Free the slots array and copy slots that fit into the fixed array. */
     inline void revertToFixedSlots(JSContext *cx);
 
     inline bool hasProperty(JSContext *cx, jsid id, bool *foundp, uintN flags = 0);
 
-    
-
-
-
-
-
-
-
-
+    /*
+     * Allocate and free an object slot. Note that freeSlot is infallible: it
+     * returns true iff this is a dictionary-mode object and the freed slot was
+     * added to the freelist.
+     *
+     * FIXME: bug 593129 -- slot allocation should be done by object methods
+     * after calling object-parameter-free shape methods, avoiding coupling
+     * logic across the object vs. shape module wall.
+     */
     bool allocSlot(JSContext *cx, uint32 *slotp);
     bool freeSlot(JSContext *cx, uint32 slot);
 
@@ -1076,24 +1076,24 @@ struct JSObject : js::gc::Cell {
     bool reportNotConfigurable(JSContext* cx, jsid id, uintN report = JSREPORT_ERROR);
     bool reportNotExtensible(JSContext *cx, uintN report = JSREPORT_ERROR);
 
-    
-
-
-
-
-
+    /*
+     * Get the property with the given id, then call it as a function with the
+     * given arguments, providing this object as |this|. If the property isn't
+     * callable a TypeError will be thrown. On success the value returned by
+     * the call is stored in *vp.
+     */
     bool callMethod(JSContext *cx, jsid id, uintN argc, js::Value *argv, js::Value *vp);
 
   private:
     js::Shape *getChildProperty(JSContext *cx, js::Shape *parent, js::Shape &child);
 
-    
-
-
-
-
-
-
+    /*
+     * Internal helper that adds a shape not yet mapped by this object.
+     *
+     * Notes:
+     * 1. getter and setter must be normalized based on flags (see jsscope.cpp).
+     * 2. !isExtensible() checking must be done by callers.
+     */
     const js::Shape *addPropertyInternal(JSContext *cx, jsid id,
                                          js::PropertyOp getter, js::StrictPropertyOp setter,
                                          uint32 slot, uintN attrs,
@@ -1103,32 +1103,32 @@ struct JSObject : js::gc::Cell {
     bool toDictionaryMode(JSContext *cx);
 
   public:
-    
+    /* Add a property whose id is not yet in this scope. */
     const js::Shape *addProperty(JSContext *cx, jsid id,
                                  js::PropertyOp getter, js::StrictPropertyOp setter,
                                  uint32 slot, uintN attrs,
                                  uintN flags, intN shortid);
 
-    
+    /* Add a data property whose id is not yet in this scope. */
     const js::Shape *addDataProperty(JSContext *cx, jsid id, uint32 slot, uintN attrs) {
         JS_ASSERT(!(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
         return addProperty(cx, id, NULL, NULL, slot, attrs, 0, 0);
     }
 
-    
+    /* Add or overwrite a property for id in this scope. */
     const js::Shape *putProperty(JSContext *cx, jsid id,
                                  js::PropertyOp getter, js::StrictPropertyOp setter,
                                  uint32 slot, uintN attrs,
                                  uintN flags, intN shortid);
 
-    
+    /* Change the given property into a sibling with the same id in this scope. */
     const js::Shape *changeProperty(JSContext *cx, const js::Shape *shape, uintN attrs, uintN mask,
                                     js::PropertyOp getter, js::StrictPropertyOp setter);
 
-    
+    /* Remove the property named by id from this object. */
     bool removeProperty(JSContext *cx, jsid id);
 
-    
+    /* Clear the scope, making it empty. */
     void clear(JSContext *cx);
 
     JSBool lookupProperty(JSContext *cx, jsid id, JSObject **objp, JSProperty **propp) {
@@ -1183,7 +1183,7 @@ struct JSObject : js::gc::Cell {
         return (op ? op : js_TypeOf)(cx, this);
     }
 
-    
+    /* These four are time-optimized to avoid stub calls. */
     JSObject *thisObject(JSContext *cx) {
         JSObjectOp op = getOps()->thisObject;
         return op ? op(cx, this) : this;
@@ -1239,14 +1239,14 @@ struct JSObject : js::gc::Cell {
     inline void initArrayClass();
 };
 
-
+/* Check alignment for any fixed slots allocated after the object. */
 JS_STATIC_ASSERT(sizeof(JSObject) % sizeof(js::Value) == 0);
 
-
-
-
-
-
+/*
+ * The only sensible way to compare JSObject with == is by identity. We use
+ * const& instead of * as a syntactic way to assert non-null. This leads to an
+ * abundance of address-of operators to identity. Hence this overload.
+ */
 static JS_ALWAYS_INLINE bool
 operator==(const JSObject &lhs, const JSObject &rhs)
 {
@@ -1267,7 +1267,7 @@ JSObject::fixedSlots() const {
 inline bool
 JSObject::hasSlotsArray() const { return this->slots != fixedSlots(); }
 
- inline size_t
+/* static */ inline size_t
 JSObject::getFixedSlotOffset(size_t slot) {
     return sizeof(JSObject) + (slot * sizeof(js::Value));
 }
@@ -1282,18 +1282,18 @@ struct JSObject_Slots16 : JSObject { js::Value fslots[16]; };
 
 #ifdef JS_THREADSAFE
 
-
-
-
-
-
+/*
+ * The GC runs only when all threads except the one on which the GC is active
+ * are suspended at GC-safe points, so calling obj->getSlot() from the GC's
+ * thread is safe when rt->gcRunning is set. See jsgc.cpp for details.
+ */
 #define THREAD_IS_RUNNING_GC(rt, thread)                                      \
     ((rt)->gcRunning && (rt)->gcThread == (thread))
 
 #define CX_THREAD_IS_RUNNING_GC(cx)                                           \
     THREAD_IS_RUNNING_GC((cx)->runtime, (cx)->thread)
 
-#endif 
+#endif /* JS_THREADSAFE */
 
 inline void
 OBJ_TO_INNER_OBJECT(JSContext *cx, JSObject *&obj)
@@ -1333,21 +1333,21 @@ inline bool JSObject::isObject() const { return getClass() == &js_ObjectClass; }
 inline bool JSObject::isWith() const   { return getClass() == &js_WithClass; }
 inline bool JSObject::isBlock() const  { return getClass() == &js_BlockClass; }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * Block scope object macros.  The slots reserved by js_BlockClass are:
+ *
+ *   private              StackFrame *      active frame pointer or null
+ *   JSSLOT_BLOCK_DEPTH   int               depth of block slots in frame
+ *
+ * After JSSLOT_BLOCK_DEPTH come one or more slots for the block locals.
+ *
+ * A With object is like a Block object, in that both have one reserved slot
+ * telling the stack depth of the relevant slots (the slot whose value is the
+ * object named in the with statement, the slots containing the block's local
+ * variables); and both have a private slot referring to the StackFrame in
+ * whose activation they were created (or null if the with or block object
+ * outlives the frame).
+ */
 static const uint32 JSSLOT_BLOCK_DEPTH = 0;
 static const uint32 JSSLOT_BLOCK_FIRST_FREE_SLOT = JSSLOT_BLOCK_DEPTH + 1;
 
@@ -1372,14 +1372,14 @@ static const uint32 JSSLOT_WITH_THIS = 1;
 #define OBJ_SET_BLOCK_DEPTH(cx,obj,depth)                                     \
     (obj)->setSlot(JSSLOT_BLOCK_DEPTH, Value(Int32Value(depth)))
 
-
-
-
-
-
-
-
-
+/*
+ * To make sure this slot is well-defined, always call js_NewWithObject to
+ * create a With object, don't call js_NewObject directly.  When creating a
+ * With object that does not correspond to a stack slot, pass -1 for depth.
+ *
+ * When popping the stack across this object's "with" statement, client code
+ * must call withobj->setPrivate(NULL).
+ */
 extern JS_REQUIRES_STACK JSObject *
 js_NewWithObject(JSContext *cx, JSObject *proto, JSObject *parent, jsint depth);
 
@@ -1390,12 +1390,12 @@ js_UnwrapWithObject(JSContext *cx, JSObject *withobj)
     return withobj->getProto();
 }
 
-
-
-
-
-
-
+/*
+ * Create a new block scope object not linked to any proto or parent object.
+ * Blocks are created by the compiler to reify let blocks and comprehensions.
+ * Only when dynamic scope is captured do they need to be cloned and spliced
+ * into an active scope chain.
+ */
 extern JSObject *
 js_NewBlockObject(JSContext *cx);
 
@@ -1430,10 +1430,10 @@ js_EnterSharpObject(JSContext *cx, JSObject *obj, JSIdArray **idap,
 extern void
 js_LeaveSharpObject(JSContext *cx, JSIdArray **idap);
 
-
-
-
-
+/*
+ * Mark objects stored in map if GC happens between js_EnterSharpObject
+ * and js_LeaveSharpObject. GC calls this when map->depth > 0.
+ */
 extern void
 js_TraceSharpMap(JSTracer *trc, JSSharpObjectMap *map);
 
@@ -1483,9 +1483,9 @@ js_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
              JSPropertySpec *ps, JSFunctionSpec *fs,
              JSPropertySpec *static_ps, JSFunctionSpec *static_fs);
 
-
-
-
+/*
+ * Select Object.prototype method names shared between jsapi.cpp and jsobj.cpp.
+ */
 extern const char js_watch_str[];
 extern const char js_unwatch_str[];
 extern const char js_hasOwnProperty_str[];
@@ -1502,9 +1502,9 @@ extern const char js_lookupSetter_str[];
 extern JSBool
 js_PopulateObject(JSContext *cx, JSObject *newborn, JSObject *props);
 
-
-
-
+/*
+ * Fast access to immutable standard objects (constructors and prototypes).
+ */
 extern JSBool
 js_GetClassObject(JSContext *cx, JSObject *obj, JSProtoKey key,
                   JSObject **objp);
@@ -1513,10 +1513,10 @@ extern JSBool
 js_SetClassObject(JSContext *cx, JSObject *obj, JSProtoKey key,
                   JSObject *cobj, JSObject *prototype);
 
-
-
-
-
+/*
+ * If protoKey is not JSProto_Null, then clasp is ignored. If protoKey is
+ * JSProto_Null, clasp must non-null.
+ */
 extern JSBool
 js_FindClassObject(JSContext *cx, JSObject *start, JSProtoKey key,
                    js::Value *vp, js::Class *clasp = NULL);
@@ -1525,28 +1525,28 @@ extern JSObject *
 js_ConstructObject(JSContext *cx, js::Class *clasp, JSObject *proto,
                    JSObject *parent, uintN argc, js::Value *argv);
 
-
-
+// Specialized call for constructing |this| with a known function callee,
+// and a known prototype.
 extern JSObject *
 js_CreateThisForFunctionWithProto(JSContext *cx, JSObject *callee, JSObject *proto);
 
-
+// Specialized call for constructing |this| with a known function callee.
 extern JSObject *
 js_CreateThisForFunction(JSContext *cx, JSObject *callee);
 
-
+// Generic call for constructing |this|.
 extern JSObject *
 js_CreateThis(JSContext *cx, JSObject *callee);
 
 extern jsid
 js_CheckForStringIndex(jsid id);
 
-
-
-
-
-
-
+/*
+ * js_PurgeScopeChain does nothing if obj is not itself a prototype or parent
+ * scope, else it reshapes the scope and prototype chains it links. It calls
+ * js_PurgeScopeChainHelper, which asserts that obj is flagged as a delegate
+ * (i.e., obj has ever been on a prototype or parent chain).
+ */
 extern void
 js_PurgeScopeChainHelper(JSContext *cx, JSObject *obj, jsid id);
 
@@ -1557,20 +1557,20 @@ js_PurgeScopeChain(JSContext *cx, JSObject *obj, jsid id)
         js_PurgeScopeChainHelper(cx, obj, id);
 }
 
-
-
-
-
+/*
+ * Find or create a property named by id in obj's scope, with the given getter
+ * and setter, slot, attributes, and other members.
+ */
 extern const js::Shape *
 js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
                      js::PropertyOp getter, js::StrictPropertyOp setter, uint32 slot,
                      uintN attrs, uintN flags, intN shortid);
 
-
-
-
-
-
+/*
+ * Change shape to have the given attrs, getter, and setter in scope, morphing
+ * it into a potentially new js::Shape.  Return a pointer to the changed
+ * or identical property.
+ */
 extern const js::Shape *
 js_ChangeNativePropertyAttrs(JSContext *cx, JSObject *obj,
                              const js::Shape *shape, uintN attrs, uintN mask,
@@ -1585,44 +1585,44 @@ extern JS_FRIEND_DATA(js::Class) js_DeclEnvClass;
 
 namespace js {
 
+/*
+ * Flags for the defineHow parameter of js_DefineNativeProperty.
+ */
+const uintN DNP_CACHE_RESULT = 1;   /* an interpreter call from JSOP_INITPROP */
+const uintN DNP_DONT_PURGE   = 2;   /* suppress js_PurgeScopeChain */
+const uintN DNP_SET_METHOD   = 4;   /* DefineNativeProperty,js_SetPropertyHelper
+                                       must pass the js::Shape::METHOD
+                                       flag on to JSObject::{add,put}Property */
+const uintN DNP_UNQUALIFIED  = 8;   /* Unqualified property set.  Only used in
+                                       the defineHow argument of
+                                       js_SetPropertyHelper. */
 
-
-
-const uintN DNP_CACHE_RESULT = 1;   
-const uintN DNP_DONT_PURGE   = 2;   
-const uintN DNP_SET_METHOD   = 4;   
-
-
-const uintN DNP_UNQUALIFIED  = 8;   
-
-
-
-
-
-
+/*
+ * Return successfully added or changed shape or NULL on error.
+ */
 extern const Shape *
 DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const js::Value &value,
                      PropertyOp getter, StrictPropertyOp setter, uintN attrs,
                      uintN flags, intN shortid, uintN defineHow = 0);
 
-
-
-
+/*
+ * Specialized subroutine that allows caller to preset JSRESOLVE_* flags.
+ */
 extern bool
 LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                         JSObject **objp, JSProperty **propp);
 
-
-
-
-
+/*
+ * Constant to pass to js_LookupPropertyWithFlags to infer bits from current
+ * bytecode.
+ */
 static const uintN RESOLVE_INFER = 0xffff;
 
-
-
-
-
-
+/*
+ * We cache name lookup results only for the global object or for native
+ * non-global objects without prototype or with prototype that never mutates,
+ * see bug 462734 and bug 487039.
+ */
 static inline bool
 IsCacheableNonGlobalScope(JSObject *obj)
 {
@@ -1639,17 +1639,17 @@ IsCacheableNonGlobalScope(JSObject *obj)
 
 }
 
-
-
-
+/*
+ * If cacheResult is false, return JS_NO_PROP_CACHE_FILL on success.
+ */
 extern js::PropertyCacheEntry *
 js_FindPropertyHelper(JSContext *cx, jsid id, JSBool cacheResult,
                       JSObject **objp, JSObject **pobjp, JSProperty **propp);
 
-
-
-
-
+/*
+ * Return the index along the scope chain in which id was found, or the last
+ * index if not found, or -1 on error.
+ */
 extern JS_FRIEND_API(JSBool)
 js_FindProperty(JSContext *cx, jsid id, JSObject **objp, JSObject **pobjp,
                 JSProperty **propp);
@@ -1660,29 +1660,29 @@ js_FindIdentifierBase(JSContext *cx, JSObject *scopeChain, jsid id);
 extern JSObject *
 js_FindVariableScope(JSContext *cx, JSFunction **funp);
 
+/*
+ * JSGET_CACHE_RESULT is the analogue of JSDNP_CACHE_RESULT for js_GetMethod.
+ *
+ * JSGET_METHOD_BARRIER (the default, hence 0 but provided for documentation)
+ * enables a read barrier that preserves standard function object semantics (by
+ * default we assume our caller won't leak a joined callee to script, where it
+ * would create hazardous mutable object sharing as well as observable identity
+ * according to == and ===.
+ *
+ * JSGET_NO_METHOD_BARRIER avoids the performance overhead of the method read
+ * barrier, which is not needed when invoking a lambda that otherwise does not
+ * leak its callee reference (via arguments.callee or its name).
+ */
+const uintN JSGET_CACHE_RESULT      = 1; // from a caching interpreter opcode
+const uintN JSGET_METHOD_BARRIER    = 0; // get can leak joined function object
+const uintN JSGET_NO_METHOD_BARRIER = 2; // call to joined function can't leak
 
-
-
-
-
-
-
-
-
-
-
-
-
-const uintN JSGET_CACHE_RESULT      = 1; 
-const uintN JSGET_METHOD_BARRIER    = 0; 
-const uintN JSGET_NO_METHOD_BARRIER = 2; 
-
-
-
-
-
-
-
+/*
+ * NB: js_NativeGet and js_NativeSet are called with the scope containing shape
+ * (pobj's scope for Get, obj's for Set) locked, and on successful return, that
+ * scope is again locked.  But on failure, both functions return false with the
+ * scope containing shape unlocked.
+ */
 extern JSBool
 js_NativeGet(JSContext *cx, JSObject *obj, JSObject *pobj, const js::Shape *shape, uintN getHow,
              js::Value *vp);
@@ -1705,12 +1705,12 @@ js_GetOwnPropertyDescriptor(JSContext *cx, JSObject *obj, jsid id, js::Value *vp
 extern JSBool
 js_GetMethod(JSContext *cx, JSObject *obj, jsid id, uintN getHow, js::Value *vp);
 
-
-
-
-
-
-
+/*
+ * Check whether it is OK to assign an undeclared property with name
+ * propname of the global object in the current script on cx.  Reports
+ * an error if one needs to be reported (in particular in all cases
+ * when it returns false).
+ */
 extern JS_FRIEND_API(bool)
 js_CheckUndeclaredVarAssignment(JSContext *cx, JSString *propname);
 
@@ -1718,22 +1718,22 @@ extern JSBool
 js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
                      js::Value *vp, JSBool strict);
 
-
-
-
-
+/*
+ * Change attributes for the given native property. The caller must ensure
+ * that obj is locked and this function always unlocks obj on return.
+ */
 extern JSBool
 js_SetNativeAttributes(JSContext *cx, JSObject *obj, js::Shape *shape,
                        uintN attrs);
 
 namespace js {
 
-
-
-
-
-extern JSObject *
-HasNativeMethod(JSObject *obj, jsid methodid, Native native);
+/*
+ * If obj has an already-resolved data property for methodid, return true and
+ * store the property value in *vp.
+ */
+extern bool
+HasDataProperty(JSObject *obj, jsid methodid, js::Value *vp);
 
 extern bool
 DefaultValue(JSContext *cx, JSObject *obj, JSType hint, Value *vp);
@@ -1742,15 +1742,15 @@ extern JSBool
 CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
             js::Value *vp, uintN *attrsp);
 
-} 
+} /* namespace js */
 
 extern bool
 js_IsDelegate(JSContext *cx, JSObject *obj, const js::Value &v);
 
-
-
-
-
+/*
+ * If protoKey is not JSProto_Null, then clasp is ignored. If protoKey is
+ * JSProto_Null, clasp must non-null.
+ */
 extern JS_FRIEND_API(JSBool)
 js_GetClassPrototype(JSContext *cx, JSObject *scope, JSProtoKey protoKey,
                      JSObject **protop, js::Class *clasp = NULL);
@@ -1759,26 +1759,26 @@ extern JSBool
 js_SetClassPrototype(JSContext *cx, JSObject *ctor, JSObject *proto,
                      uintN attrs);
 
-
-
-
-
+/*
+ * Wrap boolean, number or string as Boolean, Number or String object.
+ * *vp must not be an object, null or undefined.
+ */
 extern JSBool
 js_PrimitiveToObject(JSContext *cx, js::Value *vp);
 
-
-
-
-
+/*
+ * v and vp may alias. On successful return, vp->isObjectOrNull(). If vp is not
+ * rooted, the caller must root vp before the next possible GC.
+ */
 extern JSBool
 js_ValueToObjectOrNull(JSContext *cx, const js::Value &v, JSObject **objp);
 
 namespace js {
 
-
-
-
-
+/*
+ * Invokes the ES5 ToObject algorithm on *vp, writing back the object to vp.
+ * If *vp might already be an object, use ToObject.
+ */
 extern JSObject *
 ToObjectSlow(JSContext *cx, js::Value *vp);
 
@@ -1792,10 +1792,10 @@ ToObject(JSContext *cx, js::Value *vp)
 
 }
 
-
-
-
-
+/*
+ * v and vp may alias. On successful return, vp->isObject(). If vp is not
+ * rooted, the caller must root vp before the next possible GC.
+ */
 extern JSObject *
 js_ValueToNonNullObject(JSContext *cx, const js::Value &v);
 
@@ -1817,7 +1817,7 @@ js_GetReservedSlot(JSContext *cx, JSObject *obj, uint32 index, js::Value *vp);
 extern bool
 js_SetReservedSlot(JSContext *cx, JSObject *obj, uint32 index, const js::Value &v);
 
-
+/* For CSP -- checks if eval() and friends are allowed to run. */
 extern JSBool
 js_CheckContentSecurityPolicy(JSContext *cx, JSObject *scopeObj);
 
@@ -1840,7 +1840,7 @@ JS_FRIEND_API(void) js_DumpStackFrame(JSContext *cx, js::StackFrame *start = NUL
 extern uintN
 js_InferFlags(JSContext *cx, uintN defaultFlags);
 
-
+/* Object constructor native. Exposed only so the JIT can know its address. */
 JSBool
 js_Object(JSContext *cx, uintN argc, js::Value *vp);
 
@@ -1852,26 +1852,26 @@ SetProto(JSContext *cx, JSObject *obj, JSObject *proto, bool checkForCycles);
 extern JSString *
 obj_toStringHelper(JSContext *cx, JSObject *obj);
 
-
-
-
-
-
+/*
+ * Performs a direct eval for the given arguments, which must correspond to the
+ * currently-executing stack frame, which must be a script frame. On completion
+ * the result is returned in call.rval.
+ */
 extern JS_REQUIRES_STACK bool
 DirectEval(JSContext *cx, const CallArgs &call);
 
-
-
-
-
+/*
+ * True iff |v| is the built-in eval function for the global object that
+ * corresponds to |scopeChain|.
+ */
 extern bool
 IsBuiltinEvalForScope(JSObject *scopeChain, const js::Value &v);
 
-
+/* True iff fun is a built-in eval function. */
 extern bool
 IsAnyBuiltinEval(JSFunction *fun);
 
-
+/* 'call' should be for the eval/Function native invocation. */
 extern JSPrincipals *
 PrincipalsForCompiledCode(const CallArgs &call, JSContext *cx);
 
@@ -1880,4 +1880,4 @@ NonNullObject(JSContext *cx, const Value &v);
 
 }
 
-#endif 
+#endif /* jsobj_h___ */
