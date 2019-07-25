@@ -200,7 +200,7 @@ ClientEngine.prototype = {
     wipeAll:     { args: 0, desc: "Delete all client data for all engines" },
     wipeEngine:  { args: 1, desc: "Delete all client data for engine" },
     logout:      { args: 0, desc: "Log out client" },
-    displayURI:  { args: 2, desc: "Instruct a client to display a URI" }
+    displayURI:  { args: 3, desc: "Instruct a client to display a URI" },
   },
 
   
@@ -351,9 +351,12 @@ ClientEngine.prototype = {
 
 
 
-  sendURIToClientForDisplay: function sendURIToClientForDisplay(uri, clientId) {
-    this._log.info("Sending URI to client: " + uri + " -> " + clientId);
-    this.sendCommand("displayURI", [uri, this.syncID], clientId);
+
+
+  sendURIToClientForDisplay: function sendURIToClientForDisplay(uri, clientId, title) {
+    this._log.info("Sending URI to client: " + uri + " -> " +
+                   clientId + " (" + title + ")");
+    this.sendCommand("displayURI", [uri, this.localID, title], clientId);
 
     Clients._tracker.score += SCORE_INCREMENT_XLARGE;
   },
