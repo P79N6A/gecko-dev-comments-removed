@@ -351,7 +351,17 @@ struct nsStyleBackground {
   struct Position;
   friend struct Position;
   struct Position {
-    typedef nsStyleCoord::Calc PositionCoord;
+    struct PositionCoord {
+      
+      
+      nscoord mLength;
+      float   mPercent;
+
+      bool operator==(const PositionCoord& aOther) const
+        { return mLength == aOther.mLength && mPercent == aOther.mPercent; }
+      bool operator!=(const PositionCoord& aOther) const
+        { return !(*this == aOther); }
+    };
     PositionCoord mXPosition, mYPosition;
 
     
@@ -378,7 +388,17 @@ struct nsStyleBackground {
   struct Size;
   friend struct Size;
   struct Size {
-    typedef nsStyleCoord::Calc Dimension;
+    struct Dimension {
+      
+      
+      nscoord mLength;
+      float   mPercent;
+
+      bool operator==(const Dimension& aOther) const
+        { return mLength == aOther.mLength && mPercent == aOther.mPercent; }
+      bool operator!=(const Dimension& aOther) const
+        { return !(*this == aOther); }
+    };
     Dimension mWidth, mHeight;
 
     
