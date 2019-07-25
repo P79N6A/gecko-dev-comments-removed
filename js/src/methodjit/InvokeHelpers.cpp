@@ -594,6 +594,14 @@ js_InternalThrow(VMFrame &f)
 
         cx->compartment->jaegerCompartment()->setLastUnfinished(Jaeger_Unfinished);
 
+        
+
+
+
+
+
+        ExpandInlineFrames(cx->compartment, true);
+
         analyze::AutoEnterAnalysis enter(cx);
         analyze::ScriptAnalysis *analysis = script->analysis(cx);
         if (analysis && !analysis->ranBytecode())
