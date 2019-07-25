@@ -1710,6 +1710,11 @@ static bool
 GetInstallationDir(NS_tchar (&installDir)[N])
 {
   NS_tsnprintf(installDir, N, NS_T("%s"), gDestinationPath);
+  if (!sBackgroundUpdate && !sReplaceRequest) {
+    
+    return true;
+  }
+
   NS_tchar *slash = (NS_tchar *) NS_tstrrchr(installDir, NS_SLASH);
   
   if (slash && slash[1] == NS_T('\0')) {
