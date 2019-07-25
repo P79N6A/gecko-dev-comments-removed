@@ -711,7 +711,7 @@ void gfxOS2FontGroup::CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUT
     const PRUint32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
     gfxOS2Platform *platform = gfxOS2Platform::GetPlatform();
 
-    aTextRun->AddGlyphRun(font0, 0);
+    aTextRun->AddGlyphRun(font0, gfxTextRange::kFontGroup, 0, PR_FALSE);
     
     
     FT_Face face0 = cairo_ft_scaled_font_lock_face(font0->CairoScaledFont());
@@ -772,7 +772,7 @@ void gfxOS2FontGroup::CreateGlyphRunsFT(gfxTextRun *aTextRun, const PRUint8 *aUT
                 }
 
                 
-                aTextRun->AddGlyphRun(font, utf16Offset);
+                aTextRun->AddGlyphRun(font, gfxTextRange::kFontGroup, utf16Offset, PR_FALSE);
 
                 PRInt32 advance = 0;
                 if (gid == font->GetSpaceGlyph()) {
