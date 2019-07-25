@@ -2382,38 +2382,6 @@ END_CASE(JSOP_PICK)
         }                                                                     \
     JS_END_MACRO
 
-
-
-
-
-
-
-
-
-
-
-
-#define SKIP_POP_AFTER_SET(oplen,spdec)                                       \
-            if (regs.pc[oplen] == JSOP_POP) {                                 \
-                regs.sp -= spdec;                                             \
-                regs.pc += oplen + JSOP_POP_LENGTH;                           \
-                op = (JSOp) *regs.pc;                                         \
-                DO_OP();                                                      \
-            }
-
-#define END_SET_CASE(OP)                                                      \
-            SKIP_POP_AFTER_SET(OP##_LENGTH, 1);                               \
-          END_CASE(OP)
-
-#define END_SET_CASE_STORE_RVAL(OP,spdec)                                     \
-            SKIP_POP_AFTER_SET(OP##_LENGTH, spdec);                           \
-            {                                                                 \
-                Value *newsp = regs.sp - ((spdec) - 1);                       \
-                newsp[-1] = regs.sp[-1];                                      \
-                regs.sp = newsp;                                              \
-            }                                                                 \
-          END_CASE(OP)
-
 BEGIN_CASE(JSOP_SETCONST)
 {
     JSAtom *atom;
@@ -2426,7 +2394,7 @@ BEGIN_CASE(JSOP_SETCONST)
         goto error;
     }
 }
-END_SET_CASE(JSOP_SETCONST);
+END_CASE(JSOP_SETCONST);
 
 #if JS_HAS_DESTRUCTURING
 BEGIN_CASE(JSOP_ENUMCONSTELEM)
@@ -2938,14 +2906,20 @@ BEGIN_CASE(JSOP_TOID)
 
 
 
-    JSObject *obj;
-    FETCH_OBJECT(cx, -2, obj);
 
-    jsid id;
-    FETCH_ELEMENT_ID(obj, -1, id);
 
-    if (!regs.sp[-1].isInt32())
+ 
+    Value &idval = regs.sp[-1];
+    if (!idval.isInt32()) {
+        JSObject *obj;
+        FETCH_OBJECT(cx, -2, obj);
+ 
+        jsid dummy;
+        if (!js_InternNonIntElementId(cx, obj, idval, &dummy, &idval))
+            goto error;
+ 
         TypeScript::MonitorUnknown(cx, script, regs.pc);
+    } 
 }
 END_CASE(JSOP_TOID)
 
@@ -3176,7 +3150,6 @@ BEGIN_CASE(JSOP_LOCALINC)
     if (JS_LIKELY(vp->isInt32() && CanIncDecWithoutOverflow(tmp = vp->toInt32()))) {
         vp->getInt32Ref() = tmp + incr;
         JS_ASSERT(JSOP_INCARG_LENGTH == js_CodeSpec[op].length);
-        SKIP_POP_AFTER_SET(JSOP_INCARG_LENGTH, 0);
         PUSH_INT32(tmp + incr2);
     } else {
         PUSH_COPY(*vp);
@@ -3549,8 +3522,11 @@ BEGIN_CASE(JSOP_SETMETHOD)
                 goto error;
         }
     } while (0);
+
+    regs.sp[-2] = regs.sp[-1];
+    regs.sp--;
 }
-END_SET_CASE_STORE_RVAL(JSOP_SETPROP, 2);
+END_CASE(JSOP_SETPROP)
 
 BEGIN_CASE(JSOP_GETELEM)
 {
@@ -3695,9 +3671,11 @@ BEGIN_CASE(JSOP_SETELEM)
     rval = regs.sp[-1];
     if (!obj->setGeneric(cx, id, &rval, script->strictModeCode))
         goto error;
-  end_setelem:;
+  end_setelem:
+    regs.sp[-3] = regs.sp[-1];
+    regs.sp -= 2;
 }
-END_SET_CASE_STORE_RVAL(JSOP_SETELEM, 3)
+END_CASE(JSOP_SETELEM)
 
 BEGIN_CASE(JSOP_ENUMELEM)
 {
@@ -4213,7 +4191,7 @@ BEGIN_CASE(JSOP_SETARG)
     JS_ASSERT(slot < regs.fp()->numFormalArgs());
     argv[slot] = regs.sp[-1];
 }
-END_SET_CASE(JSOP_SETARG)
+END_CASE(JSOP_SETARG)
 
 BEGIN_CASE(JSOP_GETLOCAL)
 {
@@ -4249,7 +4227,7 @@ BEGIN_CASE(JSOP_SETLOCAL)
     JS_ASSERT(slot < script->nslots);
     regs.fp()->slots()[slot] = regs.sp[-1];
 }
-END_SET_CASE(JSOP_SETLOCAL)
+END_CASE(JSOP_SETLOCAL)
 
 BEGIN_CASE(JSOP_GETFCSLOT)
 BEGIN_CASE(JSOP_CALLFCSLOT)
