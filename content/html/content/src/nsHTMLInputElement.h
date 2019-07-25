@@ -52,29 +52,6 @@
 #include "nsHTMLFormElement.h" 
 #include "nsIFile.h"
 
-
-
-
-#define BF_DISABLED_CHANGED 0
-#define BF_VALUE_CHANGED 1
-#define BF_CHECKED_CHANGED 2
-#define BF_CHECKED 3
-#define BF_HANDLING_SELECT_EVENT 4
-#define BF_SHOULD_INIT_CHECKED 5
-#define BF_PARSER_CREATING 6
-#define BF_IN_INTERNAL_ACTIVATE 7
-#define BF_CHECKED_IS_TOGGLED 8
-#define BF_INDETERMINATE 9
-#define BF_INHIBIT_RESTORATION 10
-#define BF_CAN_SHOW_INVALID_UI 11
-#define BF_CAN_SHOW_VALID_UI 12
-
-#define GET_BOOLBIT(bitfield, field) (((bitfield) & (0x01 << (field))) \
-                                        ? true : false)
-#define SET_BOOLBIT(bitfield, field, b) ((b) \
-                                        ? ((bitfield) |=  (0x01 << (field))) \
-                                        : ((bitfield) &= ~(0x01 << (field))))
-
 class nsDOMFileList;
 class nsIRadioGroupContainer;
 class nsIRadioGroupVisitor;
@@ -228,7 +205,7 @@ public:
 
   void SetCheckedChangedInternal(bool aCheckedChanged);
   bool GetCheckedChanged() const {
-    return GET_BOOLBIT(mBitField, BF_CHECKED_CHANGED);
+    return mCheckedChanged;
   }
   void AddedToRadioGroup();
   void WillRemoveFromRadioGroup();
@@ -446,14 +423,6 @@ protected:
 
   void SetCheckedInternal(bool aValue, bool aNotify);
 
-  
-
-
-  bool GetChecked() const
-  {
-    return GET_BOOLBIT(mBitField, BF_CHECKED);
-  }
-
   nsresult RadioSetChecked(bool aNotify);
   void SetCheckedChanged(bool aCheckedChanged);
 
@@ -543,14 +512,6 @@ protected:
 
 
 
-  bool GetValueChanged() const {
-    return GET_BOOLBIT(mBitField, BF_VALUE_CHANGED);
-  }
-
-  
-
-
-
 
 
   bool ShouldShowValidityUI() const {
@@ -571,7 +532,7 @@ protected:
         return GetCheckedChanged();
       case VALUE_MODE_VALUE:
       case VALUE_MODE_FILENAME:
-        return GetValueChanged();
+        return mValueChanged;
       default:
         NS_NOTREACHED("We should not be there: there are no other modes.");
         return false;
@@ -588,16 +549,6 @@ protected:
 
   nsCOMPtr<nsIControllers> mControllers;
 
-  
-
-
-
-  PRUint8                  mType;
-  
-
-
-
-  PRInt16                  mBitField;
   
 
 
@@ -631,6 +582,25 @@ protected:
   nsRefPtr<nsDOMFileList>  mFileList;
 
   nsString mStaticDocFileList;
+
+  
+
+
+
+  PRUint8                  mType;
+  bool                     mDisabledChanged     : 1;
+  bool                     mValueChanged        : 1;
+  bool                     mCheckedChanged      : 1;
+  bool                     mChecked             : 1;
+  bool                     mHandlingSelectEvent : 1;
+  bool                     mShouldInitChecked   : 1;
+  bool                     mParserCreating      : 1;
+  bool                     mInInternalActivate  : 1;
+  bool                     mCheckedIsToggled    : 1;
+  bool                     mIndeterminate       : 1;
+  bool                     mInhibitRestoration  : 1;
+  bool                     mCanShowValidUI      : 1;
+  bool                     mCanShowInvalidUI    : 1;
 };
 
 #endif
