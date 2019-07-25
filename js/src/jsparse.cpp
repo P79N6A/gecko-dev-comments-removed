@@ -3599,7 +3599,13 @@ BindDestructuringLHS(JSContext *cx, JSParseNode *pn, JSTreeContext *tc)
 
       case TOK_DOT:
       case TOK_LB:
-        pn->pn_op = JSOP_SETNAME;
+        
+
+
+
+
+        if (!(js_CodeSpec[pn->pn_op].format & JOF_SET))
+            pn->pn_op = JSOP_SETNAME;
         break;
 
       case TOK_LP:
