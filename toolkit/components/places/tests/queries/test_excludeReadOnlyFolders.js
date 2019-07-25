@@ -65,6 +65,8 @@ function run_test() {
   
   var result = PlacesUtils.history.executeQuery(query, options);
   var root = result.root;
+  root.containerOpen = true;
+
   displayResultSet(root);
   
   do_check_eq(1, root.childCount);

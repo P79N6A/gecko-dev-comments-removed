@@ -65,4 +65,6 @@ function run_test() {
 
   
   do_check_eq(queryNode.title, "foo");
+
+  root.containerOpen = false;
 }

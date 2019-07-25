@@ -82,7 +82,9 @@ function uri_in_db(aURI) {
   var result = histsvc.executeQuery(query, options);
   var root = result.root;
   root.containerOpen = true;
-  return (root.childCount == 1);
+  var cc = root.childCount;
+  root.containerOpen = false;
+  return (cc == 1);
 }
 
 
@@ -130,18 +132,22 @@ function run_test() {
   result = histsvc.executeQuery(query, options);
   result.root.containerOpen = true;
   do_check_eq(result.root.childCount, 2);
+  result.root.containerOpen = false;
   query.minVisits = 1;
   result = histsvc.executeQuery(query, options);
   result.root.containerOpen = true;
   do_check_eq(result.root.childCount, 2);
+  result.root.containerOpen = false;
   query.minVisits = 2;
   result = histsvc.executeQuery(query, options);
   result.root.containerOpen = true;
   do_check_eq(result.root.childCount, 1);
   query.minVisits = 3;
+  result.root.containerOpen = false;
   result = histsvc.executeQuery(query, options);
   result.root.containerOpen = true;
   do_check_eq(result.root.childCount, 0);
+  result.root.containerOpen = false;
 
   
   query.minVisits = -1;
@@ -149,22 +155,27 @@ function run_test() {
   result = histsvc.executeQuery(query, options);
   result.root.containerOpen = true;
   do_check_eq(result.root.childCount, 2);
+  result.root.containerOpen = false;
   query.maxVisits = 0;
   result = histsvc.executeQuery(query, options);
   result.root.containerOpen = true;
   do_check_eq(result.root.childCount, 0);
+  result.root.containerOpen = false;
   query.maxVisits = 1;
   result = histsvc.executeQuery(query, options);
   result.root.containerOpen = true;
   do_check_eq(result.root.childCount, 1);
+  result.root.containerOpen = false;
   query.maxVisits = 2;
   result = histsvc.executeQuery(query, options);
   result.root.containerOpen = true;
   do_check_eq(result.root.childCount, 2);
+  result.root.containerOpen = false;
   query.maxVisits = 3;
   result = histsvc.executeQuery(query, options);
   result.root.containerOpen = true;
   do_check_eq(result.root.childCount, 2);
+  result.root.containerOpen = false;
   
   
   var annos = Cc["@mozilla.org/browser/annotation-service;1"].
@@ -176,6 +187,7 @@ function run_test() {
   result.root.containerOpen = true;
   do_check_eq(result.root.childCount, 1);
   do_check_eq(result.root.getChild(0).uri, "http://mozilla.com/");
+  result.root.containerOpen = false;
 
   
   query.annotationIsNot = true;
@@ -183,6 +195,7 @@ function run_test() {
   result.root.containerOpen = true;
   do_check_eq(result.root.childCount, 1);
   do_check_eq(result.root.getChild(0).uri, "http://google.com/");
+  result.root.containerOpen = false;
 
   
   do_check_true(!histsvc.historyDisabled);
@@ -218,6 +231,7 @@ function run_test() {
   var root = result.root;
   root.containerOpen = true;
   do_check_true(root.childCount > 0);
+  root.containerOpen = false;
 
   
   var referrerURI = uri("http://yahoo.com");
