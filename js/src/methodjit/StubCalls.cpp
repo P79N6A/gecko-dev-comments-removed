@@ -2504,6 +2504,11 @@ stubs::InvariantFailure(VMFrame &f, void *rval)
 void JS_FASTCALL
 stubs::Exception(VMFrame &f)
 {
+    
+    
+    if (JS_THREAD_DATA(f.cx)->interruptFlags && !js_HandleExecutionInterrupt(f.cx))
+        THROW();
+
     f.regs.sp[0] = f.cx->getPendingException();
     f.cx->clearPendingException();
 }

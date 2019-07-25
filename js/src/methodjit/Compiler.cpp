@@ -1522,12 +1522,8 @@ mjit::Compiler::generateMethod()
         
         
         
-        
-        
-        if (op == JSOP_ENTERBLOCK && analysis->getCode(PC).exceptionEntry) {
+        if (op == JSOP_ENTERBLOCK && analysis->getCode(PC).exceptionEntry)
             masm.loadPtr(FrameAddress(VMFrame::offsetOfFp), JSFrameReg);
-            interruptCheckHelper();
-        }
 
         if (trap) {
             prepareStubCall(Uses(0));
