@@ -343,11 +343,6 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
 };
 
 
-#define STRICT_VARIANT(f)                                                     \
-    (FunctionTemplateConditional(script->strictModeCode,                      \
-                                 f<true>, f<false>))
-
-
 static const JSC::MacroAssembler::RegisterID JSFrameReg = BaseAssembler::JSFrameReg;
 static const JSC::MacroAssembler::RegisterID JSReturnReg_Type = BaseAssembler::JSReturnReg_Type;
 static const JSC::MacroAssembler::RegisterID JSReturnReg_Data = BaseAssembler::JSReturnReg_Data;

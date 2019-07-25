@@ -169,20 +169,21 @@ struct GlobalSlotArray {
 namespace JSC {
     class ExecutablePool;
 }
-
-#define JS_UNJITTABLE_SCRIPT (reinterpret_cast<void*>(1))
-
-enum JITScriptStatus {
-    JITScript_None,
-    JITScript_Invalid,
-    JITScript_Valid
-};
-
 namespace js {
 namespace mjit {
 
 struct JITScript;
 
+namespace ic {
+# if defined JS_POLYIC
+    struct PICInfo;
+# endif
+# if defined JS_MONOIC
+    struct MICInfo;
+    struct CallICInfo;
+# endif
+}
+struct CallSite;
 }
 }
 #endif
@@ -286,33 +287,18 @@ struct JSScript {
 #ifdef JS_METHODJIT
     
     
-    
-    
-    void *jitArityCheckNormal;
-    void *jitArityCheckCtor;
+    void            *ncode;     
+    void            **nmap;     
+    js::mjit::JITScript *jit;   
+# if defined JS_POLYIC
+    js::mjit::ic::PICInfo *pics; 
+# endif
+# if defined JS_MONOIC
+    js::mjit::ic::MICInfo *mics; 
+    js::mjit::ic::CallICInfo *callICs; 
+# endif
 
-    js::mjit::JITScript *jitNormal;   
-    js::mjit::JITScript *jitCtor;     
-
-    bool hasJITCode() {
-        return jitNormal || jitCtor;
-    }
-
-    inline void **maybeNativeMap(bool constructing);
-    inline bool hasNativeCodeForPC(bool constructing, jsbytecode *pc);
-
-    js::mjit::JITScript *getJIT(bool constructing) {
-        return constructing ? jitCtor : jitNormal;
-    }
-
-    JITScriptStatus getJITStatus(bool constructing) {
-        void *addr = constructing ? jitArityCheckCtor : jitArityCheckNormal;
-        if (addr == NULL)
-            return JITScript_None;
-        if (addr == JS_UNJITTABLE_SCRIPT)
-            return JITScript_Invalid;
-        return JITScript_Valid;
-    }
+    bool isValidJitCode(void *jcode);
 #endif
 
     
@@ -406,6 +392,17 @@ struct JSScript {
     static JSScript *emptyScript() {
         return const_cast<JSScript *>(&emptyScriptConst);
     }
+
+#ifdef JS_METHODJIT
+    
+
+
+    void *pcToNative(jsbytecode *pc) {
+        JS_ASSERT(nmap);
+        JS_ASSERT(nmap[pc - code]);
+        return nmap[pc - code];
+    }
+#endif
 
     uint32 getClosedArg(uint32 index) {
         JS_ASSERT(index < nClosedArgs);

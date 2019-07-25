@@ -1407,18 +1407,8 @@ extern JSObject *
 js_ConstructObject(JSContext *cx, js::Class *clasp, JSObject *proto,
                    JSObject *parent, uintN argc, js::Value *argv);
 
-
-
 extern JSObject *
-js_CreateThisForFunctionWithProto(JSContext *cx, JSObject *callee, JSObject *proto);
-
-
-extern JSObject *
-js_CreateThisForFunction(JSContext *cx, JSObject *callee);
-
-
-extern JSObject *
-js_CreateThis(JSContext *cx, JSObject *callee);
+js_NewInstance(JSContext *cx, JSObject *callee);
 
 extern jsid
 js_CheckForStringIndex(jsid id);
