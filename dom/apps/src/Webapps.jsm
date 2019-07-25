@@ -78,9 +78,15 @@ let DOMApplicationRegistry = {
 #endif
     let currentId = 1;
     dirList.forEach((function(dir) {
-      let curFile = FileUtils.getFile(dir, ["webapps", "webapps.json"], true);
-      if (curFile.exists()) {
-        let appDir = FileUtils.getDir(dir, ["webapps"]);
+      let curFile;
+      try {
+        
+        
+        
+        curFile = FileUtils.getFile(dir, ["webapps", "webapps.json"], false);
+      } catch(e) { }
+      if (curFile && curFile.exists()) {
+        let appDir = FileUtils.getDir(dir, ["webapps"], false);
         this._loadJSONAsync(curFile, (function(aData) {
           if (!aData) {
             return;
