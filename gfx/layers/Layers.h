@@ -301,10 +301,8 @@ public:
 
 
 
-  virtual bool EndEmptyTransaction()
-  {
-    return false;
-  }
+  virtual bool EndEmptyTransaction() = 0;
+
   
 
 
