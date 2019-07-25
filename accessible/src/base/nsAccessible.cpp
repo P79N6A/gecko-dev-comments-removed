@@ -3203,16 +3203,16 @@ nsAccessible::TestChildCache(nsAccessible* aCachedChild) const
 }
 
 
-PRBool
+bool
 nsAccessible::EnsureChildren()
 {
   if (IsDefunct()) {
     mChildrenFlags = eChildrenUninitialized;
-    return PR_TRUE;
+    return true;
   }
 
   if (mChildrenFlags != eChildrenUninitialized)
-    return PR_FALSE;
+    return false;
 
   
   mChildrenFlags = eEmbeddedChildren; 
@@ -3227,7 +3227,7 @@ nsAccessible::EnsureChildren()
   if (document)
     document->NotifyOfCachingEnd(this);
 
-  return PR_FALSE;
+  return false;
 }
 
 nsAccessible*

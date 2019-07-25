@@ -237,7 +237,7 @@ public:
   
 
 
-  PRBool EnsureChildren();
+  bool EnsureChildren();
 
   
 
@@ -319,7 +319,7 @@ public:
   PRUint32 GetCachedChildCount() const { return mChildren.Length(); }
   nsAccessible* GetCachedChildAt(PRUint32 aIndex) const { return mChildren.ElementAt(aIndex); }
   PRBool AreChildrenCached() const { return mChildrenFlags != eChildrenUninitialized; }
-  bool IsBoundToParent() const { return mParent; }
+  bool IsBoundToParent() const { return !!mParent; }
 
   
   
