@@ -137,8 +137,8 @@ var TestPilotUIBuilder = {
 
     
 
+    let self = this;
     if (this.isBetaChannel()) {
-      let self = this;
       window.document.loadOverlay("chrome://testpilot/content/feedback-browser.xul",
                                   {observe: function(subject, topic, data) {
                                      if (topic == "xul-overlay-merged") {
