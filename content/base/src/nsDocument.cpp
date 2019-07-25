@@ -118,7 +118,6 @@
 
 #include "nsIScriptSecurityManager.h"
 #include "nsIPrincipal.h"
-#include "nsIPrivateDOMImplementation.h"
 
 #include "nsIDOMWindowInternal.h"
 #include "nsPIDOMWindow.h"
@@ -1224,8 +1223,7 @@ nsDOMStyleSheetSetList::GetSets(nsTArray<nsString>& aStyleSets)
 
 
 
-class nsDOMImplementation : public nsIDOMDOMImplementation,
-                            public nsIPrivateDOMImplementation
+class nsDOMImplementation : public nsIDOMDOMImplementation
 {
 public:
   nsDOMImplementation(nsIScriptGlobalObject* aScriptObject,
@@ -1238,10 +1236,6 @@ public:
 
   
   NS_DECL_NSIDOMDOMIMPLEMENTATION
-
-  
-  NS_IMETHOD Init(nsIURI* aDocumentURI, nsIURI* aBaseURI,
-                  nsIPrincipal* aPrincipal);
 
 protected:
   nsWeakPtr mScriptObject;
@@ -1284,7 +1278,6 @@ DOMCI_DATA(DOMImplementation, nsDOMImplementation)
 
 NS_INTERFACE_MAP_BEGIN(nsDOMImplementation)
   NS_INTERFACE_MAP_ENTRY(nsIDOMDOMImplementation)
-  NS_INTERFACE_MAP_ENTRY(nsIPrivateDOMImplementation)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMDOMImplementation)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(DOMImplementation)
 NS_INTERFACE_MAP_END
@@ -1369,18 +1362,6 @@ nsDOMImplementation::CreateDocument(const nsAString& aNamespaceURI,
   return nsContentUtils::CreateDocument(aNamespaceURI, aQualifiedName, aDoctype,
                                         mDocumentURI, mBaseURI, mPrincipal,
                                         scriptHandlingObject, aReturn);
-}
-
-NS_IMETHODIMP
-nsDOMImplementation::Init(nsIURI* aDocumentURI, nsIURI* aBaseURI,
-                          nsIPrincipal* aPrincipal)
-{
-  
-  
-  mDocumentURI = aDocumentURI;
-  mBaseURI = aBaseURI;
-  mPrincipal = aPrincipal;
-  return NS_OK;
 }
 
 
