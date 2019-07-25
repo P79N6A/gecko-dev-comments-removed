@@ -134,7 +134,8 @@ BookmarksSharingManager.prototype = {
         if ( commandWord == "share" ) {
 	  bmkSharing._incomingShareOffer(from, serverPath, folderName);
 	} else if ( commandWord == "stop" ) {
-	  bmkSharing._incomingShareWithdrawn(from, serverPath, folderName);
+          bmkSharing._log.info("User " + user + " withdrew " + folderName);
+          bmkSharing._stopIncomingShare(user, serverPath, folderName);
 	}
       }
     };
@@ -151,33 +152,45 @@ BookmarksSharingManager.prototype = {
   },
 
   _incomingShareOffer: function BmkSharing__incomingShareOffer(user,
-                                                              serverPath,
-                                                              folderName) {
+                                                               serverPath,
+                                                               folderName) {
     
-
-
-
-
-
-
-
 
 
 
     this._log.info("User " + user + " offered to share folder " + folderName);
-    this._createIncomingShare(user, serverPath, folderName);
+
+    let bmkSharing = this;
+    let acceptButton = new Weave.NotificationButton(
+      "Accept Share",
+      "a",
+      function() {
+	
+	bmkSharing._log.info("Accepted bookmark share from " + user);
+	bmkSharing._createIncomingShare(user, serverPath, folderName);
+	bmkSharing._updateAllIncomingShares();
+	return false;
+      }
+    );
+    let rejectButton = new Weave.NotificationButton(
+      "No Thanks",
+      "n",
+      function() {return false;}
+    );
+
+    let title = "Bookmark Share Offer From " + user;
+    let description ="Weave user " + user +
+      " is offering to share a bookmark folder called " + folderName +
+      " with you. Do you want to accept it?";
+    let notification = Weave.Notification(title,
+					  description,
+					  null,
+					  Weave.Notifications.PRIORITY_INFO,
+					  [acceptButton, rejectButton]
+					 );
+    Weave.Notifications.add(notification);
   },
 
-  _incomingShareWithdrawn: function BmkSharing__incomingShareStop(user,
-                                                                 serverPath,
-                                                                 folderName) {
-    
-
-
-
-    this._log.info("User " + user + " stopped sharing folder " + folderName);
-    this._stopIncomingShare(user, serverPath, folderName);
-  },
   _share: function BmkSharing__share( selectedFolder, username ) {
     
     let ret = false;
