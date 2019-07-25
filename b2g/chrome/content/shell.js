@@ -207,6 +207,7 @@ var shell = {
         type = 'home-button';
         break;
       case evt.DOM_VK_SLEEP:        
+      case evt.DOM_VK_END:          
         type = 'sleep-button';
         break;
       case evt.DOM_VK_PAGE_UP:      
