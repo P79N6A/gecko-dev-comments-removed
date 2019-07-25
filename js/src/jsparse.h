@@ -1143,6 +1143,9 @@ private:
 
 
 
+
+
+
     JSParseNode *functionStmt();
     JSParseNode *functionExpr();
     JSParseNode *statements();
@@ -1160,15 +1163,24 @@ private:
     JSParseNode *assignExpr();
     JSParseNode *condExpr1();
     JSParseNode *orExpr1();
-    JSParseNode *andExpr1();
-    JSParseNode *bitOrExpr1();
-    JSParseNode *bitXorExpr1();
-    JSParseNode *bitAndExpr1();
-    JSParseNode *eqExpr1();
-    JSParseNode *relExpr1();
-    JSParseNode *shiftExpr1();
-    JSParseNode *addExpr1();
-    JSParseNode *mulExpr1();
+    JSParseNode *andExpr1i();
+    JSParseNode *andExpr1n();
+    JSParseNode *bitOrExpr1i();
+    JSParseNode *bitOrExpr1n();
+    JSParseNode *bitXorExpr1i();
+    JSParseNode *bitXorExpr1n();
+    JSParseNode *bitAndExpr1i();
+    JSParseNode *bitAndExpr1n();
+    JSParseNode *eqExpr1i();
+    JSParseNode *eqExpr1n();
+    JSParseNode *relExpr1i();
+    JSParseNode *relExpr1n();
+    JSParseNode *shiftExpr1i();
+    JSParseNode *shiftExpr1n();
+    JSParseNode *addExpr1i();
+    JSParseNode *addExpr1n();
+    JSParseNode *mulExpr1i();
+    JSParseNode *mulExpr1n();
     JSParseNode *unaryExpr();
     JSParseNode *memberExpr(JSBool allowCallSyntax);
     JSParseNode *primaryExpr(js::TokenKind tt, JSBool afterDot);
