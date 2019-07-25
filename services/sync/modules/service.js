@@ -845,6 +845,9 @@ WeaveSvc.prototype = {
     Svc.Prefs.resetBranch("");
     this._ignorePrefObserver = false;
     
+    
+    CollectionKeys.clear();
+    
     Svc.Prefs.set("lastversion", WEAVE_VERSION);
     
     this.password = "";

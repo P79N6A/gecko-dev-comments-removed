@@ -168,6 +168,13 @@ function CollectionKeyManager() {
 
 CollectionKeyManager.prototype = {
   
+  clear: function clear() {
+    this._log.info("Clearing CollectionKeys...");
+    this._lastModified = 0;
+    this._collections = {};
+    this._default = null;
+  },
+  
   keyForCollection: function(collection) {
                       
     
