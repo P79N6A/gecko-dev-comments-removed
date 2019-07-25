@@ -252,16 +252,6 @@ public:
   
 
 
-
-
-
-
-
-  static nsRoleMapEntry *GetRoleMapEntry(nsINode *aNode);
-
-  
-
-
   static PRUint32 Role(nsIAccessible *aAcc)
   {
     PRUint32 role = nsIAccessibleRole::ROLE_NOTHING;

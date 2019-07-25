@@ -45,6 +45,7 @@
 
 class nsIAtom;
 class nsIContent;
+class nsINode;
 
 
 
@@ -213,18 +214,6 @@ struct nsARIAMap
   
 
 
-  static nsRoleMapEntry gWAIRoleMap[];
-  static PRUint32 gWAIRoleMapLength;
-
-  
-
-
-
-  static nsRoleMapEntry gLandmarkRoleMap;
-
-  
-
-
 
 
   static nsRoleMapEntry gEmptyRoleMap;
@@ -256,5 +245,23 @@ struct nsARIAMap
     return state;
   }
 };
+
+namespace mozilla {
+namespace a11y {
+namespace aria {
+
+
+
+
+
+
+
+
+
+nsRoleMapEntry* GetRoleMap(nsINode* aNode);
+
+} 
+} 
+} 
 
 #endif

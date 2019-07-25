@@ -285,7 +285,7 @@ nsDocAccessible::SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry)
   
   nsIContent *ownerContent = parentDoc->FindContentForSubDocument(mDocument);
   if (ownerContent) {
-    nsRoleMapEntry *roleMapEntry = nsAccUtils::GetRoleMapEntry(ownerContent);
+    nsRoleMapEntry* roleMapEntry = aria::GetRoleMap(ownerContent);
     if (roleMapEntry)
       mRoleMapEntry = roleMapEntry; 
   }
@@ -1698,7 +1698,7 @@ nsDocAccessible::UpdateAccessibleOnAttrChange(dom::Element* aElement,
     
     
     if (mContent == aElement) {
-      SetRoleMapEntry(nsAccUtils::GetRoleMapEntry(aElement));
+      SetRoleMapEntry(aria::GetRoleMap(aElement));
       return true;
     }
 
