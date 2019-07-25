@@ -221,7 +221,7 @@ abstract public class GeckoApp
     String[] getPluginDirectories() {
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB &&
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+            Build.VERSION.SDK_INT < 14  )
             return new String[0];
 
         Log.w(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - start of getPluginDirectories");
