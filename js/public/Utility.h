@@ -856,20 +856,7 @@ class MoveRef {
     explicit MoveRef(T &t) : pointer(&t) { }
     T &operator*()  const { return *pointer; }
     T *operator->() const { return  pointer; }
-#if defined(__GXX_EXPERIMENTAL_CXX0X__) && defined(__clang__)
-    
-
-
-
-
-
-
-
-
-    operator T&& ()  const { return static_cast<T&&>(*pointer); }
-#else
     operator T& ()   const { return *pointer; }
-#endif
   private:
     T *pointer;
 };
