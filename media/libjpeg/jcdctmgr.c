@@ -182,7 +182,7 @@ compute_reciprocal (UINT16 divisor, DCTELEM * dtbl)
     
     fq >>= 1;
     r--;
-  } else if (fr <= (divisor / 2U)) { 
+  } else if (fr <= (divisor / 2)) { 
     c++;
   } else { 
     fq++;

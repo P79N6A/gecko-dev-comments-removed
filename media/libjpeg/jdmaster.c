@@ -57,11 +57,7 @@ use_merged_upsample (j_decompress_ptr cinfo)
       cinfo->out_color_space != JCS_EXT_BGR &&
       cinfo->out_color_space != JCS_EXT_BGRX &&
       cinfo->out_color_space != JCS_EXT_XBGR &&
-      cinfo->out_color_space != JCS_EXT_XRGB &&
-      cinfo->out_color_space != JCS_EXT_RGBA &&
-      cinfo->out_color_space != JCS_EXT_BGRA &&
-      cinfo->out_color_space != JCS_EXT_ABGR &&
-      cinfo->out_color_space != JCS_EXT_ARGB) ||
+      cinfo->out_color_space != JCS_EXT_XRGB) ||
       cinfo->out_color_components != rgb_pixelsize[cinfo->out_color_space])
     return FALSE;
   
@@ -213,10 +209,6 @@ jpeg_calc_output_dimensions (j_decompress_ptr cinfo)
   case JCS_EXT_BGRX:
   case JCS_EXT_XBGR:
   case JCS_EXT_XRGB:
-  case JCS_EXT_RGBA:
-  case JCS_EXT_BGRA:
-  case JCS_EXT_ABGR:
-  case JCS_EXT_ARGB:
     cinfo->out_color_components = rgb_pixelsize[cinfo->out_color_space];
     break;
   case JCS_YCbCr:

@@ -99,11 +99,6 @@ transdecode_master_selection (j_decompress_ptr cinfo)
   
   cinfo->buffered_image = TRUE;
 
-#if JPEG_LIB_VERSION >= 80
-  
-  jpeg_core_output_dimensions(cinfo);
-#endif
-
   
   if (cinfo->arith_code) {
 #ifdef D_ARITH_CODING_SUPPORTED

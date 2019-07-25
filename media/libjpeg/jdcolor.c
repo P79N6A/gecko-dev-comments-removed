@@ -14,7 +14,6 @@
 #include "jinclude.h"
 #include "jpeglib.h"
 #include "jsimd.h"
-#include "config.h"
 
 
 
@@ -68,107 +67,6 @@ typedef my_color_deconverter * my_cconvert_ptr;
 
 
 
-#include "jdcolext.c"
-#undef RGB_RED
-#undef RGB_GREEN
-#undef RGB_BLUE
-#undef RGB_PIXELSIZE
-
-#define RGB_RED EXT_RGB_RED
-#define RGB_GREEN EXT_RGB_GREEN
-#define RGB_BLUE EXT_RGB_BLUE
-#define RGB_PIXELSIZE EXT_RGB_PIXELSIZE
-#define ycc_rgb_convert_internal ycc_extrgb_convert_internal
-#define gray_rgb_convert_internal gray_extrgb_convert_internal
-#include "jdcolext.c"
-#undef RGB_RED
-#undef RGB_GREEN
-#undef RGB_BLUE
-#undef RGB_PIXELSIZE
-#undef ycc_rgb_convert_internal
-#undef gray_rgb_convert_internal
-
-#define RGB_RED EXT_RGBX_RED
-#define RGB_GREEN EXT_RGBX_GREEN
-#define RGB_BLUE EXT_RGBX_BLUE
-#define RGB_ALPHA 3
-#define RGB_PIXELSIZE EXT_RGBX_PIXELSIZE
-#define ycc_rgb_convert_internal ycc_extrgbx_convert_internal
-#define gray_rgb_convert_internal gray_extrgbx_convert_internal
-#include "jdcolext.c"
-#undef RGB_RED
-#undef RGB_GREEN
-#undef RGB_BLUE
-#undef RGB_ALPHA
-#undef RGB_PIXELSIZE
-#undef ycc_rgb_convert_internal
-#undef gray_rgb_convert_internal
-
-#define RGB_RED EXT_BGR_RED
-#define RGB_GREEN EXT_BGR_GREEN
-#define RGB_BLUE EXT_BGR_BLUE
-#define RGB_PIXELSIZE EXT_BGR_PIXELSIZE
-#define ycc_rgb_convert_internal ycc_extbgr_convert_internal
-#define gray_rgb_convert_internal gray_extbgr_convert_internal
-#include "jdcolext.c"
-#undef RGB_RED
-#undef RGB_GREEN
-#undef RGB_BLUE
-#undef RGB_PIXELSIZE
-#undef ycc_rgb_convert_internal
-#undef gray_rgb_convert_internal
-
-#define RGB_RED EXT_BGRX_RED
-#define RGB_GREEN EXT_BGRX_GREEN
-#define RGB_BLUE EXT_BGRX_BLUE
-#define RGB_ALPHA 3
-#define RGB_PIXELSIZE EXT_BGRX_PIXELSIZE
-#define ycc_rgb_convert_internal ycc_extbgrx_convert_internal
-#define gray_rgb_convert_internal gray_extbgrx_convert_internal
-#include "jdcolext.c"
-#undef RGB_RED
-#undef RGB_GREEN
-#undef RGB_BLUE
-#undef RGB_ALPHA
-#undef RGB_PIXELSIZE
-#undef ycc_rgb_convert_internal
-#undef gray_rgb_convert_internal
-
-#define RGB_RED EXT_XBGR_RED
-#define RGB_GREEN EXT_XBGR_GREEN
-#define RGB_BLUE EXT_XBGR_BLUE
-#define RGB_ALPHA 0
-#define RGB_PIXELSIZE EXT_XBGR_PIXELSIZE
-#define ycc_rgb_convert_internal ycc_extxbgr_convert_internal
-#define gray_rgb_convert_internal gray_extxbgr_convert_internal
-#include "jdcolext.c"
-#undef RGB_RED
-#undef RGB_GREEN
-#undef RGB_BLUE
-#undef RGB_ALPHA
-#undef RGB_PIXELSIZE
-#undef ycc_rgb_convert_internal
-#undef gray_rgb_convert_internal
-
-#define RGB_RED EXT_XRGB_RED
-#define RGB_GREEN EXT_XRGB_GREEN
-#define RGB_BLUE EXT_XRGB_BLUE
-#define RGB_ALPHA 0
-#define RGB_PIXELSIZE EXT_XRGB_PIXELSIZE
-#define ycc_rgb_convert_internal ycc_extxrgb_convert_internal
-#define gray_rgb_convert_internal gray_extxrgb_convert_internal
-#include "jdcolext.c"
-#undef RGB_RED
-#undef RGB_GREEN
-#undef RGB_BLUE
-#undef RGB_ALPHA
-#undef RGB_PIXELSIZE
-#undef ycc_rgb_convert_internal
-#undef gray_rgb_convert_internal
-
-
-
-
 
 
 LOCAL(void)
@@ -214,44 +112,50 @@ build_ycc_rgb_table (j_decompress_ptr cinfo)
 
 
 
+
+
+
+
+
+
+
 METHODDEF(void)
 ycc_rgb_convert (j_decompress_ptr cinfo,
 		 JSAMPIMAGE input_buf, JDIMENSION input_row,
 		 JSAMPARRAY output_buf, int num_rows)
 {
-  switch (cinfo->out_color_space) {
-    case JCS_EXT_RGB:
-      ycc_extrgb_convert_internal(cinfo, input_buf, input_row, output_buf,
-                                  num_rows);
-      break;
-    case JCS_EXT_RGBX:
-    case JCS_EXT_RGBA:
-      ycc_extrgbx_convert_internal(cinfo, input_buf, input_row, output_buf,
-                                   num_rows);
-      break;
-    case JCS_EXT_BGR:
-      ycc_extbgr_convert_internal(cinfo, input_buf, input_row, output_buf,
-                                  num_rows);
-      break;
-    case JCS_EXT_BGRX:
-    case JCS_EXT_BGRA:
-      ycc_extbgrx_convert_internal(cinfo, input_buf, input_row, output_buf,
-                                   num_rows);
-      break;
-    case JCS_EXT_XBGR:
-    case JCS_EXT_ABGR:
-      ycc_extxbgr_convert_internal(cinfo, input_buf, input_row, output_buf,
-                                   num_rows);
-      break;
-    case JCS_EXT_XRGB:
-    case JCS_EXT_ARGB:
-      ycc_extxrgb_convert_internal(cinfo, input_buf, input_row, output_buf,
-                                   num_rows);
-      break;
-    default:
-      ycc_rgb_convert_internal(cinfo, input_buf, input_row, output_buf,
-                               num_rows);
-      break;
+  my_cconvert_ptr cconvert = (my_cconvert_ptr) cinfo->cconvert;
+  register int y, cb, cr;
+  register JSAMPROW outptr;
+  register JSAMPROW inptr0, inptr1, inptr2;
+  register JDIMENSION col;
+  JDIMENSION num_cols = cinfo->output_width;
+  
+  register JSAMPLE * range_limit = cinfo->sample_range_limit;
+  register int * Crrtab = cconvert->Cr_r_tab;
+  register int * Cbbtab = cconvert->Cb_b_tab;
+  register INT32 * Crgtab = cconvert->Cr_g_tab;
+  register INT32 * Cbgtab = cconvert->Cb_g_tab;
+  SHIFT_TEMPS
+
+  while (--num_rows >= 0) {
+    inptr0 = input_buf[0][input_row];
+    inptr1 = input_buf[1][input_row];
+    inptr2 = input_buf[2][input_row];
+    input_row++;
+    outptr = *output_buf++;
+    for (col = 0; col < num_cols; col++) {
+      y  = GETJSAMPLE(inptr0[col]);
+      cb = GETJSAMPLE(inptr1[col]);
+      cr = GETJSAMPLE(inptr2[col]);
+      
+      outptr[rgb_red[cinfo->out_color_space]] =   range_limit[y + Crrtab[cr]];
+      outptr[rgb_green[cinfo->out_color_space]] = range_limit[y +
+			      ((int) RIGHT_SHIFT(Cbgtab[cb] + Crgtab[cr],
+						 SCALEBITS))];
+      outptr[rgb_blue[cinfo->out_color_space]] =  range_limit[y + Cbbtab[cb]];
+      outptr += rgb_pixelsize[cinfo->out_color_space];
+    }
   }
 }
 
@@ -310,44 +214,29 @@ grayscale_convert (j_decompress_ptr cinfo,
 
 
 
+
+
 METHODDEF(void)
 gray_rgb_convert (j_decompress_ptr cinfo,
 		  JSAMPIMAGE input_buf, JDIMENSION input_row,
 		  JSAMPARRAY output_buf, int num_rows)
 {
-  switch (cinfo->out_color_space) {
-    case JCS_EXT_RGB:
-      gray_extrgb_convert_internal(cinfo, input_buf, input_row, output_buf,
-                                   num_rows);
-      break;
-    case JCS_EXT_RGBX:
-    case JCS_EXT_RGBA:
-      gray_extrgbx_convert_internal(cinfo, input_buf, input_row, output_buf,
-                                    num_rows);
-      break;
-    case JCS_EXT_BGR:
-      gray_extbgr_convert_internal(cinfo, input_buf, input_row, output_buf,
-                                   num_rows);
-      break;
-    case JCS_EXT_BGRX:
-    case JCS_EXT_BGRA:
-      gray_extbgrx_convert_internal(cinfo, input_buf, input_row, output_buf,
-                                    num_rows);
-      break;
-    case JCS_EXT_XBGR:
-    case JCS_EXT_ABGR:
-      gray_extxbgr_convert_internal(cinfo, input_buf, input_row, output_buf,
-                                    num_rows);
-      break;
-    case JCS_EXT_XRGB:
-    case JCS_EXT_ARGB:
-      gray_extxrgb_convert_internal(cinfo, input_buf, input_row, output_buf,
-                                    num_rows);
-      break;
-    default:
-      gray_rgb_convert_internal(cinfo, input_buf, input_row, output_buf,
-                                num_rows);
-      break;
+  register JSAMPROW inptr, outptr;
+  JSAMPLE *maxinptr;
+  JDIMENSION num_cols = cinfo->output_width;
+  int rindex = rgb_red[cinfo->out_color_space];
+  int gindex = rgb_green[cinfo->out_color_space];
+  int bindex = rgb_blue[cinfo->out_color_space];
+  int rgbstride = rgb_pixelsize[cinfo->out_color_space];
+
+  while (--num_rows >= 0) {
+    inptr = input_buf[0][input_row++];
+    maxinptr = &inptr[num_cols];
+    outptr = *output_buf++;
+    for (; inptr < maxinptr; inptr++, outptr += rgbstride) {
+      
+      outptr[rindex] = outptr[gindex] = outptr[bindex] = *inptr;
+    }
   }
 }
 
@@ -480,10 +369,6 @@ jinit_color_deconverter (j_decompress_ptr cinfo)
   case JCS_EXT_BGRX:
   case JCS_EXT_XBGR:
   case JCS_EXT_XRGB:
-  case JCS_EXT_RGBA:
-  case JCS_EXT_BGRA:
-  case JCS_EXT_ABGR:
-  case JCS_EXT_ARGB:
     cinfo->out_color_components = rgb_pixelsize[cinfo->out_color_space];
     if (cinfo->jpeg_color_space == JCS_YCbCr) {
       if (jsimd_can_ycc_rgb())

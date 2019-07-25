@@ -12,7 +12,6 @@
 
 
 
-
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
@@ -323,16 +322,13 @@ get_sos (j_decompress_ptr cinfo)
 
   
 
-  for (i = 0; i < cinfo->num_components; i++)
-    cinfo->cur_comp_info[i] = NULL;
-
   for (i = 0; i < n; i++) {
     INPUT_BYTE(cinfo, cc, return FALSE);
     INPUT_BYTE(cinfo, c, return FALSE);
     
     for (ci = 0, compptr = cinfo->comp_info; ci < cinfo->num_components;
 	 ci++, compptr++) {
-      if (cc == compptr->component_id && !cinfo->cur_comp_info[ci])
+      if (cc == compptr->component_id)
 	goto id_found;
     }
 
