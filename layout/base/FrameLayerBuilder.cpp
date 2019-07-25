@@ -973,7 +973,7 @@ ContainerState::PopThebesLayerData()
       if (mParameters.mInActiveTransformedSubtree) {
         
         gfx3DMatrix transform = imageLayer->GetTransform()*
-        gfx3DMatrix::ScalingMatrix(mParameters.mXScale, mParameters.mYScale, 1.0f);
+          gfx3DMatrix::ScalingMatrix(mParameters.mXScale, mParameters.mYScale, 1.0f);
         imageLayer->SetTransform(transform);
       }
       NS_ASSERTION(data->mImageClip.mRoundedClipRects.IsEmpty(),
