@@ -76,9 +76,23 @@ public:
 protected:
   GeckoProcessType mProcessType;
   Monitor mMonitor;
-  bool mLaunched;
-  bool mChannelInitialized;
   FilePath mProcessPath;
+  
+  enum {
+    
+    
+    CREATING_CHANNEL = 0,
+    
+    
+    CHANNEL_INITIALIZED,
+    
+    
+    PROCESS_CREATED,
+    
+    
+    PROCESS_CONNECTED,
+    PROCESS_ERROR
+  } mProcessState;
 
   static PRInt32 mChildCounter;
 
@@ -104,6 +118,8 @@ private:
   
   bool PerformAsyncLaunchInternal(std::vector<std::string>& aExtraOpts,
                                   base::ProcessArchitecture arch);
+
+  void OpenPrivilegedHandle(base::ProcessId aPid);
 
   
   
