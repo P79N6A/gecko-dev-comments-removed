@@ -146,6 +146,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     
     void setLocal(uint32 local);
     void setArg(uint32 arg);
+    void setSlot(uint32 slot);
 
     
     
@@ -155,6 +156,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void push(MDefinition *ins);
     void pushArg(uint32 arg);
     void pushLocal(uint32 local);
+    void pushSlot(uint32 slot);
 
     
     MDefinition *pop();
