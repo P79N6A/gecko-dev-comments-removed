@@ -1,42 +1,42 @@
-#
-# ***** BEGIN LICENSE BLOCK *****
-# Version: MPL 1.1/GPL 2.0/LGPL 2.1
-#
-# The contents of this file are subject to the Mozilla Public License Version
-# 1.1 (the "License"); you may not use this file except in compliance with
-# the License. You may obtain a copy of the License at
-# http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS IS" basis,
-# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
-# for the specific language governing rights and limitations under the
-# License.
-#
-# The Original Code is mozilla.org code.
-#
-# The Initial Developer of the Original Code is
-# Mozilla Foundation.
-# Portions created by the Initial Developer are Copyright (C) 1998
-# the Initial Developer. All Rights Reserved.
-#
-# Contributor(s):
-#   Robert Sayre <sayrer@gmail.com>
-#   Jeff Walden <jwalden+bmo@mit.edu>
-#   Serge Gautherie <sgautherie.bz@free.fr>
-#
-# Alternatively, the contents of this file may be used under the terms of
-# either the GNU General Public License Version 2 or later (the "GPL"), or
-# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
-# in which case the provisions of the GPL or the LGPL are applicable instead
-# of those above. If you wish to allow use of your version of this file only
-# under the terms of either the GPL or the LGPL, and not to allow others to
-# use your version of this file under the terms of the MPL, indicate your
-# decision by deleting the provisions above and replace them with the notice
-# and other provisions required by the GPL or the LGPL. If you do not delete
-# the provisions above, a recipient may use your version of this file under
-# the terms of any one of the MPL, the GPL or the LGPL.
-#
-# ***** END LICENSE BLOCK *****
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 """
 Runs the Mochitest test harness.
@@ -58,9 +58,9 @@ import tempfile
 
 VMWARE_RECORDING_HELPER_BASENAME = "vmwarerecordinghelper"
 
-#######################
-# COMMANDLINE OPTIONS #
-#######################
+
+
+
 
 class MochitestOptions(optparse.OptionParser):
   """Parses Mochitest commandline options."""
@@ -69,7 +69,7 @@ class MochitestOptions(optparse.OptionParser):
     optparse.OptionParser.__init__(self, **kwargs)
     defaults = {}
 
-    # we want to pass down everything from self._automation.__all__
+    
     addCommonOptions(self, defaults=dict(zip(self._automation.__all__, 
              [getattr(self._automation, x) for x in self._automation.__all__])))
     self._automation.addCommonOptions(self)
@@ -214,7 +214,7 @@ class MochitestOptions(optparse.OptionParser):
                            "inside a VMware Workstation 7.0 or later VM")
     defaults["vmwareRecording"] = False
 
-    # -h, --help are automatically handled by OptionParser
+    
 
     self.set_defaults(**defaults)
 
@@ -237,15 +237,15 @@ See <http://mochikit.com/doc/html/MochiKit/Logging.html> for details on the logg
         self.error("thisChunk must be between 1 and totalChunks")
 
     if options.xrePath is None:
-      # default xrePath to the app path if not provided
-      # but only if an app path was explicitly provided
+      
+      
       if options.app != self.defaults['app']:
         options.xrePath = os.path.dirname(options.app)
       else:
-        # otherwise default to dist/bin
+        
         options.xrePath = self._automation.DIST_BIN
 
-    # allow relative paths
+    
     options.xrePath = mochitest.getFullPath(options.xrePath)
 
     options.profilePath = mochitest.getFullPath(options.profilePath)
@@ -280,9 +280,9 @@ See <http://mochikit.com/doc/html/MochiKit/Logging.html> for details on the logg
     return options
 
 
-#######################
-# HTTP SERVER SUPPORT #
-#######################
+
+
+
 
 class MochitestServer:
   "Web server used to serve Mochitests, for closer fidelity to the real web."
@@ -371,7 +371,7 @@ class WebSocketServer(object):
     self._process.kill()
 
 class Mochitest(object):
-  # Path to the test script on the server
+  
   TEST_PATH = "/tests/"
   CHROME_PATH = "/redirect.html";
   A11Y_PATH = "/redirect-a11y.html"
@@ -384,9 +384,9 @@ class Mochitest(object):
   def __init__(self, automation):
     self.automation = automation
 
-    # Max time in seconds to wait for server startup before tests will fail -- if
-    # this seems big, it's mostly for debug machines where cold startup
-    # (particularly after a build) takes forever.
+    
+    
+    
     if self.automation.IS_DEBUG_BUILD:
       self.SERVER_STARTUP_TIMEOUT = 180
     else:
@@ -437,10 +437,10 @@ class Mochitest(object):
     self.server = MochitestServer(self.automation, options)
     self.server.start()
 
-    # If we're lucky, the server has fully started by now, and all paths are
-    # ready, etc.  However, xpcshell cold start times suck, at least for debug
-    # builds.  We'll try to connect to the server for awhile, and if we fail,
-    # we'll try to kill the server and exit with an error.
+    
+    
+    
+    
     self.server.ensureReady(self.SERVER_STARTUP_TIMEOUT)
 
   def stopWebServer(self, options):
@@ -469,8 +469,8 @@ class Mochitest(object):
     """ build the environment variables for the specific test and operating system """
     browserEnv = self.automation.environment(xrePath = options.xrePath)
 
-    # These variables are necessary for correct application startup; change
-    # via the commandline at your own risk.
+    
+    
     browserEnv["XPCOM_DEBUG_BREAK"] = "stack"
 
     for v in options.environment:
@@ -500,7 +500,7 @@ class Mochitest(object):
         timeout -- per-test timeout in seconds
     """
   
-    # allow relative paths for logFile
+    
     if options.logFile:
       options.logFile = self.getLogFilePath(options.logFile)
     if options.browserChrome:
@@ -580,18 +580,18 @@ class Mochitest(object):
     if (len(self.urlOpts) > 0):
       testURL += "?" + "&".join(self.urlOpts)
 
-    # Remove the leak detection file so it can't "leak" to the tests run.
-    # The file is not there if leak logging was not enabled in the application build.
+    
+    
     if os.path.exists(self.leak_report_file):
       os.remove(self.leak_report_file)
 
-    # then again to actually run mochitest
+    
     if options.timeout:
       timeout = options.timeout + 30
     elif not options.autorun:
       timeout = None
     else:
-      timeout = 330.0 # default JS harness timeout is 300 seconds
+      timeout = 330.0 
 
     if options.vmwareRecording:
       self.startVMwareRecording(options);
@@ -660,13 +660,13 @@ toolbar#nav-bar {
 }
 """
 
-    # write userChrome.css
+    
     chromeFile = open(os.path.join(options.profilePath, "userChrome.css"), "a")
     chromeFile.write(chrome)
     chromeFile.close()
 
 
-    # register our chrome dir
+    
     chrometestDir = os.path.abspath(".") + "/"
     if self.automation.IS_WIN32:
       chrometestDir = "file:///" + chrometestDir.replace("\\", "/")
@@ -680,8 +680,8 @@ toolbar#nav-bar {
 overlay chrome://browser/content/browser.xul chrome://mochikit/content/browser-test-overlay.xul
 """)
     elif ((options.chrome == False) and (options.a11y == False)):
-      #only do the ipc-overlay.xul for mochitest-plain.  
-      #Currently there are focus issues in chrome tests and issues with new windows and dialogs when using ipc
+      
+      
       manifestFile.write("overlay chrome://browser/content/browser.xul chrome://mochikit/content/ipc-overlay.xul")
       
     manifestFile.close()
