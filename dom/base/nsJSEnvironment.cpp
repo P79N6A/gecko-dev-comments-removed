@@ -1051,6 +1051,21 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime)
 
   mDefaultJSOptions = JSOPTION_PRIVATE_IS_NSISUPPORTS | JSOPTION_ALLOW_XML;
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  mDefaultJSOptions |= JSOPTION_ONLY_CNG_SOURCE;
+
   mContext = ::JS_NewContext(aRuntime, gStackSize);
   if (mContext) {
     ::JS_SetContextPrivate(mContext, static_cast<nsIScriptContext *>(this));
@@ -3850,6 +3865,89 @@ NS_DOMStructuredCloneError(JSContext* cx,
   xpc::Throw(cx, NS_ERROR_DOM_DATA_CLONE_ERR);
 }
 
+static nsresult
+ReadSourceFromFilename(JSContext *cx, const char *filename, char **buf, PRUint32 *len)
+{
+  nsresult rv;
+
+  
+  nsCOMPtr<nsIURI> uri;
+  rv = NS_NewURI(getter_AddRefs(uri), filename);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIChannel> scriptChannel;
+  rv = NS_NewChannel(getter_AddRefs(scriptChannel), uri);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<nsIURI> actualUri;
+  rv = scriptChannel->GetURI(getter_AddRefs(actualUri));
+  NS_ENSURE_SUCCESS(rv, rv);
+  nsCString scheme;
+  rv = actualUri->GetScheme(scheme);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!scheme.EqualsLiteral("file") && !scheme.EqualsLiteral("jar"))
+    return NS_OK;
+
+  nsCOMPtr<nsIInputStream> scriptStream;
+  rv = scriptChannel->Open(getter_AddRefs(scriptStream));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = scriptStream->Available(len);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!*len)
+    return NS_ERROR_FAILURE;
+
+  
+  *buf = static_cast<char *>(JS_malloc(cx, *len + 1));
+  if (!*buf)
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  char *ptr = *buf, *end = ptr + *len;
+  while (ptr < end) {
+    PRUint32 bytesRead;
+    rv = scriptStream->Read(ptr, end - ptr, &bytesRead);
+    if (NS_FAILED(rv)) {
+      JS_free(cx, *buf);
+      return rv;
+    }
+    NS_ASSERTION(bytesRead > 0, "stream promised more bytes before EOF");
+    ptr += bytesRead;
+  }
+  *end = '\0';
+
+  return NS_OK;
+}
+
+
+
+
+
+
+
+static bool
+SourceHook(JSContext *cx, JSScript *script, char **src, uint32_t *length)
+{
+  *src = NULL;
+  *length = 0;
+
+  if (!nsContentUtils::IsCallerChrome())
+    return true;
+
+  const char *filename = JS_GetScriptFilename(cx, script);
+  if (!filename)
+    return true;
+
+  nsresult rv = ReadSourceFromFilename(cx, filename, src, length);
+  if (NS_FAILED(rv)) {
+    xpc::Throw(cx, rv);
+    return false;
+  }
+
+  return true;
+}
+
+
 
 nsresult
 nsJSRuntime::Init()
@@ -3871,6 +3969,8 @@ nsJSRuntime::Init()
 
   rv = sRuntimeService->GetRuntime(&sRuntime);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  JS_SetSourceHook(sRuntime, SourceHook);
 
   
   NS_ASSERTION(NS_IsMainThread(), "bad");
