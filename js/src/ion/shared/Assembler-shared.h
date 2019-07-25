@@ -133,6 +133,11 @@ struct LabelBase
         JS_ASSERT(offset_ == offset);
     }
     
+    void reset() {
+        offset_ = INVALID_OFFSET;
+        bound_ = false;
+    }
+    
     
     int32 use(int32 offset) {
         JS_ASSERT(!bound());

@@ -183,6 +183,16 @@ class LTableSwitch : public LInstructionHelper<0, 1, 2>
     MTableSwitch *mir() const {
         return mir_;
     }
+
+    const LAllocation *index() {
+        return getOperand(0);
+    }
+    const LAllocation *tempInt() {
+        return getTemp(0)->output();
+    }
+    const LAllocation *tempPointer() {
+        return getTemp(1)->output();
+    }
 };
 
 
@@ -472,6 +482,7 @@ class LValueToDouble : public LInstructionHelper<1, BOX_PIECES, 0>
         return getDef(0);
     }
 };
+
 
 
 

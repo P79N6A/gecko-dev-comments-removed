@@ -93,23 +93,21 @@ LIRGenerator::visitTableSwitch(MTableSwitch *tableswitch)
         return add(new LGoto(tableswitch->getDefault()));        
 
     
-    if (opd->type() != MIRType_Int32)
+    if (opd->type() != MIRType_Int32 && opd->type() != MIRType_Double)
         return add(new LGoto(tableswitch->getDefault()));
 
     
-    if (opd->isConstant()) {
-        MConstant *ins = opd->toConstant();
-
-        int32 switchval = ins->value().toInt32();
-        if (switchval < tableswitch->low() || switchval > tableswitch->high())
-            return add(new LGoto(tableswitch->getDefault()));
-
-        return add(new LGoto(tableswitch->getCase(switchval-tableswitch->low())));
-    }
-
     
-    return add(new LTableSwitch(useRegister(opd), temp(LDefinition::INTEGER),
-                                temp(LDefinition::POINTER), tableswitch));
+    LAllocation index;
+    LDefinition tempInt;
+    if (opd->type() == MIRType_Int32) {
+        index = useCopy(opd);
+        tempInt = LDefinition::BogusTemp();
+    } else {
+        index = useRegister(opd);
+        tempInt = temp(LDefinition::INTEGER);
+    }
+    return add(new LTableSwitch(index, tempInt, temp(LDefinition::POINTER), tableswitch));
 }
 
 bool
