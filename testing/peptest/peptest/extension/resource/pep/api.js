@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ['PepAPI'];
 var results = {}; Components.utils.import('resource://pep/results.js', results);
 var log = {};     Components.utils.import('resource://pep/logger.js', log);
@@ -53,8 +20,9 @@ const ios = Components.classes["@mozilla.org/network/io-service;1"]
 
 
 
-function PepAPI(test) {
+function PepAPI(test, options) {
   this.test = test;
+  this.options = options;
   this.log = new Log(this.test.name);
   this.resultHandler = new results.ResultHandler(this.test.name);
 
@@ -67,7 +35,18 @@ function PepAPI(test) {
 
 PepAPI.prototype.performAction = function(actionName, func) {
   this.resultHandler.startAction(actionName);
-  func();
+  try {
+    func();
+  } catch (e) {
+    log.error(test.name + ' | ' + e);
+    if (e['stack'] !== undefined) {
+      log.debug(test.name + ' | Traceback:');
+      let lines = e.stack.split('\n');
+      for (let i = 0; i < lines.length - 1; ++i) {
+        log.debug('\t' + lines[i]);
+      }
+    }
+  }
   this.resultHandler.endAction();
 };
 

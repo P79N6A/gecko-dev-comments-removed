@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const PEP_CONTRACTID  = "@mozilla.org/commandlinehandler/general-startup;1?type=pep";
 const PEP_CID         = Components.ID('{807b1ae9-df22-40bd-8d0a-2a583da551bb}');
 const PEP_CATEGORY    = "m-pep";

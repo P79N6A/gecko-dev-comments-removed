@@ -6,41 +6,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Components.utils.import("resource://mozmill/driver/mozmill.js");
 let c = getBrowserController();
 
@@ -83,16 +48,17 @@ pep.performAction('content_scroll', function() {
 });
 
 
+page.keypress('VK_ESCAPE');
+
+
 let bar = findElement.ID(c.window.document, "toolbar-menubar");
 bar.click();
 pep.performAction('chrome_navigation', function() {
   bar.rightClick();
   bar.keypress('n');
-});
-
-pep.performAction('chrome_addon', function() {
+  c.sleep(100);
   bar.rightClick();
-  bar.keypress('a');
+  bar.keypress('n');
 });
 
 pep.performAction('chrome_scroll', function() {
@@ -103,3 +69,5 @@ pep.performAction('chrome_scroll', function() {
     c.sleep(10);
   }
 });
+
+bar.keypress('VK_ESCAPE');

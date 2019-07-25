@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ['readFile', 'sleep'];
 
 const consoleService = Components.classes["@mozilla.org/consoleservice;1"]

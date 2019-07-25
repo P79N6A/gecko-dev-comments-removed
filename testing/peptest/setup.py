@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import os
 from setuptools import setup, find_packages
 
@@ -67,7 +34,7 @@ setup(name='peptest',
       author='Andrew Halberstadt',
       author_email='ahalberstadt@mozilla.com',
       url='https://wiki.mozilla.org/Auto-tools/Projects/peptest',
-      license='MPL',
+      license='MPL 2.0',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
       package_data={'': ['*.js', '*.css', '*.html', '*.txt', '*.xpi', '*.rdf', '*.xul', '*.jsm', '*.xml'],},

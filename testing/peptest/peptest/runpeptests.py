@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 from optparse import OptionParser
 from mozprofile import FirefoxProfile, ThunderbirdProfile, Profile
 from mozprofile.permissions import ServerLocations
@@ -50,6 +18,11 @@ import glob
 import shutil
 import os
 import sys
+
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 results = Results()
 here = os.path.dirname(os.path.realpath(__file__))
@@ -109,10 +82,11 @@ class Peptest():
         
         manifestObj = {}
         manifestObj['tests'] = tests
+        manifestObj['options'] = options.__dict__
 
         
         jsonManifest = open(os.path.join(here, 'manifest.json'), 'w')
-        jsonManifest.write(str(manifestObj).replace("'", "\""))
+        jsonManifest.write(json.dumps(manifestObj))
         jsonManifest.close()
 
         
@@ -343,6 +317,10 @@ class PeptestOptions(OptionParser):
                         help="Starts a basic HTTP server rooted at the specified "
                              "directory. Can be used for hosting test related files")
 
+        self.add_option("--iterations", action="store", type="int",
+                        dest="numIterations", default=1,
+                        help="Number of times each test should be run")
+
         self.add_option("--symbols-path",
                         action = "store", type = "string", dest = "symbolsPath",
                         default = None,
@@ -372,6 +350,9 @@ class PeptestOptions(OptionParser):
     def verifyOptions(self, options):
         """ verify correct options and cleanup paths """
         
+        if options.numIterations < 1:
+            print "error: number of iterations must be a positive integer"
+            return None
         if not options.testPath:
             print "error: --test-path must specify the path to a test or test manifest"
             return None

@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Components.utils.import('resource://mozmill/driver/mozmill.js');
 let c = getBrowserController();
 
@@ -56,3 +22,5 @@ let showall = findElement.ID(c.window.document, "bookmarksShowAll");
 pep.performAction('show_all_bookmarks', function() {
   showall.click();
 });
+
+pep.getWindow("Places:Organizer").close();

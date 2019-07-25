@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ['ResultHandler'];
 
 var log = {}; Components.utils.import('resource://pep/logger.js', log);
@@ -48,7 +15,7 @@ function ResultHandler(testName) {
 
 ResultHandler.prototype.startAction = function(actionName) {
   this.currentAction = {};
-  this.currentAction['test_name'] = this.testName
+  this.currentAction['test_name'] = this.testName;
   this.currentAction['action_name'] = actionName;
   this.currentAction['start_time'] = Date.now();
   log.log('ACTION-START', this.testName + ' ' + this.currentAction['action_name']);
@@ -69,5 +36,5 @@ ResultHandler.prototype.endAction = function() {
 }
 
 ResultHandler.prototype.getResults = function() {
-  return this.results
+  return this.results;
 }

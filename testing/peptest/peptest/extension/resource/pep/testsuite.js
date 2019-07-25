@@ -2,45 +2,12 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var EXPORTED_SYMBOLS = ['TestSuite'];
 
 const gIOS = Components.classes['@mozilla.org/network/io-service;1']
-                               .getService(Components.interfaces.nsIIOService);
+                       .getService(Components.interfaces.nsIIOService);
 const scriptLoader = Components.classes['@mozilla.org/moz/jssubscript-loader;1']
-                       .getService(Components.interfaces.mozIJSSubScriptLoader);
+                               .getService(Components.interfaces.mozIJSSubScriptLoader);
 
 var api = {}; 
 var log = {};
@@ -56,17 +23,23 @@ Components.utils.import('resource://pep/utils.js', utils);
 
 
 
-function TestSuite(tests) {
+function TestSuite(tests, options) {
   this.tests = tests;
+  this.options = options;
+  if (!this.options.numIterations) {
+    this.options.numIterations = 1;
+  }
 }
 
 TestSuite.prototype.run = function() {
-  for (let i = 0; i < this.tests.length; ++i) {
-    this.loadTest(this.tests[i]);
-    
-    
-    
-    utils.sleep(1000);
+  for (let i = 0; i < this.options.numIterations; ++i) {
+    for (let j = 0; j < this.tests.length; ++j) {
+      this.loadTest(this.tests[j]);
+      
+      
+      
+      utils.sleep(1000);
+    }
   }
   log.info('Test Suite Finished');
 };
@@ -83,7 +56,7 @@ TestSuite.prototype.loadTest = function(test) {
 
   try {
     let testScope = {
-      pep: new api.PepAPI(test)
+      pep: new api.PepAPI(test, this.options)
     };
 
     
