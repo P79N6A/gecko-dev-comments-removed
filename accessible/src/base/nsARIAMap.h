@@ -187,7 +187,8 @@ enum eStateMapEntryID
   eARIAReadonly,
   eARIAReadonlyOrEditable,
   eARIARequired,
-  eARIASelectable
+  eARIASelectable,
+  eReadonlyUntilEditable
 };
 
 class nsStateMapEntry
@@ -197,6 +198,12 @@ public:
 
 
   nsStateMapEntry();
+
+  
+
+
+
+  nsStateMapEntry(PRUint64 aDefaultState, PRUint64 aExclusingState);
 
   
 
@@ -260,6 +267,9 @@ private:
 
   
   bool mDefinedIfAbsent;
+
+  
+  PRUint64 mExcludingState;
 };
 
 

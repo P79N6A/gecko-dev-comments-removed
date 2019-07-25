@@ -103,15 +103,6 @@ function testStates(aAccOrElmOrID, aState, aExtraState, aAbsentState,
   }
 
   
-  if (state & STATE_READONLY)
-    isState(extraState & EXT_STATE_EDITABLE, 0, true,
-            "Read-only " + id + " cannot be editable!");
-
-  if (extraState & EXT_STATE_EDITABLE)
-    isState(state & STATE_READONLY, 0, true,
-            "Editable " + id + " cannot be readonly!");
-
-  
   if (extraState & EXT_STATE_MULTI_LINE)
     isState(extraState & EXT_STATE_SINGLE_LINE, 0, true,
             "Multiline " + id + " cannot be singleline!");
