@@ -415,6 +415,12 @@ function AddonWrapper(aTheme, aBeingEnabled) {
     return pending;
   });
 
+  this.__defineGetter__("size", function() {
+    
+    
+    return null;
+  });
+
   this.__defineGetter__("permissions", function() {
     let permissions = AddonManager.PERM_CAN_UNINSTALL;
     if (this.userDisabled)

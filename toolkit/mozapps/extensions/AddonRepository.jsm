@@ -147,6 +147,12 @@ AddonSearchResult.prototype = {
 
 
 
+  size: null,
+
+  
+
+
+
   scope: AddonManager.SCOPE_PROFILE,
 
   
@@ -478,6 +484,8 @@ var AddonRepository = {
                 break;
             }
             result.xpiURL = node.textContent.trim();
+            if (node.hasAttribute("size"))
+              addon.size = node.getAttribute("size");
 
             
             if (aSkip.sourceURIs.indexOf(result.xpiURL) != -1)
