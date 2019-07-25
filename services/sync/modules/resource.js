@@ -206,7 +206,9 @@ Resource.prototype = {
     catch(ex) {
       
       let error = Error(ex.message);
-      let chanStack = ex.stack.trim().split(/\n/).slice(1);
+      let chanStack = [];
+      if (ex.stack)
+        chanStack = ex.stack.trim().split(/\n/).slice(1);
       let requestStack = error.stack.split(/\n/).slice(1);
 
       
@@ -301,13 +303,22 @@ function ChannelListener(onComplete, onProgress, logger) {
   this._log = logger;
 }
 ChannelListener.prototype = {
+  
+  ABORT_TIMEOUT: 300000,
+
   onStartRequest: function Channel_onStartRequest(channel) {
     channel.QueryInterface(Ci.nsIHttpChannel);
     this._log.trace(channel.requestMethod + " " + channel.URI.spec);
     this._data = '';
+
+    
+    Utils.delay(this.abortRequest, this.ABORT_TIMEOUT, this, "abortTimer");
   },
 
   onStopRequest: function Channel_onStopRequest(channel, context, status) {
+    
+    this.abortTimer.clear();
+
     if (this._data == '')
       this._data = null;
 
@@ -325,6 +336,16 @@ ChannelListener.prototype = {
 
     this._data += siStream.read(count);
     this._onProgress();
+
+    
+    Utils.delay(this.abortRequest, this.ABORT_TIMEOUT, this, "abortTimer");
+  },
+
+  abortRequest: function abortRequest() {
+    
+    this.onStopRequest = function() {};
+    this.onDataAvailable = function() {};
+    this._onComplete.throw(Error("Aborting due to channel inactivity."));
   }
 };
 
