@@ -665,6 +665,16 @@ nsHttpChannel::SetupTransaction()
 
     mConnectionInfo->SetAnonymous((mLoadFlags & LOAD_ANONYMOUS) != 0);
 
+    if (mUpgradeProtocolCallback) {
+        mRequestHead.SetHeader(nsHttp::Upgrade, mUpgradeProtocol, PR_FALSE);
+        mRequestHead.SetHeader(nsHttp::Connection,
+                               nsDependentCString(nsHttp::Upgrade.get()),
+                               PR_TRUE);
+        mCaps |=  NS_HTTP_STICKY_CONNECTION;
+        mCaps &= ~NS_HTTP_ALLOW_PIPELINING;
+        mCaps &= ~NS_HTTP_ALLOW_KEEPALIVE;
+    }
+
     nsCOMPtr<nsIAsyncInputStream> responseStream;
     rv = mTransaction->Init(mCaps, mConnectionInfo, &mRequestHead,
                             mUploadStream, mUploadStreamHasHeaders,
@@ -4012,10 +4022,8 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
         
         
         
-        
-        nsRefPtr<nsAHttpConnection> conn;
+        nsRefPtr<nsAHttpConnection> conn = mTransaction->Connection();
         if (authRetry && (mCaps & NS_HTTP_STICKY_CONNECTION)) {
-            conn = mTransaction->Connection();
             
             
             
@@ -4047,6 +4055,22 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
         
         if (mTransactionReplaced)
             return NS_OK;
+        
+        if (mUpgradeProtocolCallback && conn &&
+            mResponseHead && mResponseHead->Status() == 101) {
+            nsCOMPtr<nsISocketTransport>    socketTransport;
+            nsCOMPtr<nsIAsyncInputStream>   socketIn;
+            nsCOMPtr<nsIAsyncOutputStream>  socketOut;
+
+            nsresult rv;
+            rv = conn->TakeTransport(getter_AddRefs(socketTransport),
+                                     getter_AddRefs(socketIn),
+                                     getter_AddRefs(socketOut));
+            if (NS_SUCCEEDED(rv))
+                mUpgradeProtocolCallback->OnTransportAvailable(socketTransport,
+                                                               socketIn,
+                                                               socketOut);
+        }
     }
 
     mIsPending = PR_FALSE;
