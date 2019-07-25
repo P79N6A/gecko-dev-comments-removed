@@ -5,21 +5,22 @@
 
 
 
-#include "mozilla/layers/ShadowLayersParent.h"
+#include "base/basictypes.h"
 
 #include "BasicLayers.h"
+#include "gfx3DMatrix.h"
 #include "LayerManagerOGL.h"
 #ifdef MOZ_ENABLE_D3D9_LAYER
-#include "LayerManagerD3D9.h"
+# include "LayerManagerD3D9.h"
 #endif 
-#include "RenderFrameParent.h"
-
-#include "gfx3DMatrix.h"
-#include "nsFrameLoader.h"
-#include "nsViewportFrame.h"
-#include "nsSubDocumentFrame.h"
-#include "nsIObserver.h"
+#include "mozilla/layers/CompositorParent.h"
+#include "mozilla/layers/ShadowLayersParent.h"
 #include "nsContentUtils.h"
+#include "nsFrameLoader.h"
+#include "nsIObserver.h"
+#include "nsSubDocumentFrame.h"
+#include "nsViewportFrame.h"
+#include "RenderFrameParent.h"
 
 typedef nsContentView::ViewConfig ViewConfig;
 using namespace mozilla::layers;
@@ -444,14 +445,37 @@ BuildBackgroundPatternFor(ContainerLayer* aContainer,
   aContainer->InsertAfter(layer, nsnull);
 }
 
-RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader)
-  : mFrameLoader(aFrameLoader)
+already_AddRefed<LayerManager>
+GetFrom(nsFrameLoader* aFrameLoader)
+{
+  nsIDocument* doc = aFrameLoader->GetOwnerDoc();
+  return nsContentUtils::LayerManagerForDocument(doc);
+}
+
+RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
+                                     LayerManager::LayersBackend* aBackendType,
+                                     int* aMaxTextureSize,
+                                     uint64_t* aId)
+  : mLayersId(0)
+  , mFrameLoader(aFrameLoader)
   , mFrameLoaderDestroyed(false)
   , mBackgroundColor(gfxRGBA(1, 1, 1))
 {
-  if (aFrameLoader) {
-    mContentViews[FrameMetrics::ROOT_SCROLL_ID] =
-      new nsContentView(aFrameLoader, FrameMetrics::ROOT_SCROLL_ID);
+  mContentViews[FrameMetrics::ROOT_SCROLL_ID] =
+    new nsContentView(aFrameLoader, FrameMetrics::ROOT_SCROLL_ID);
+
+  *aBackendType = LayerManager::LAYERS_NONE;
+  *aMaxTextureSize = 0;
+  *aId = 0;
+
+  nsRefPtr<LayerManager> lm = GetFrom(mFrameLoader);
+  *aBackendType = lm->GetBackendType();
+  *aMaxTextureSize = lm->GetMaxTextureSize();
+
+  if (CompositorParent::CompositorLoop()) {
+    
+    
+    *aId = mLayersId = CompositorParent::AllocateLayerTreeId();
   }
 }
 
@@ -492,34 +516,12 @@ void
 RenderFrameParent::ShadowLayersUpdated(ShadowLayersParent* aLayerTree,
                                        bool isFirstPaint)
 {
-  mFrameLoader->SetCurrentRemoteFrame(this);
-
   
   
   
   BuildViewMap();
 
-  nsIFrame* docFrame = mFrameLoader->GetPrimaryFrameOfOwningContent();
-  if (!docFrame) {
-    
-    
-    
-    
-    
-    return;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  nsRect rect = nsRect(nsPoint(0, 0), docFrame->GetRect().Size());
-  docFrame->InvalidateWithFlags(rect, nsIFrame::INVALIDATE_NO_THEBES_LAYERS);
+  TriggerRepaint();
 }
 
 already_AddRefed<Layer>
@@ -543,6 +545,25 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
     
     
     return nsnull;
+  }
+
+  uint64_t id = GetLayerTreeId();
+  if (0 != id) {
+    MOZ_ASSERT(!GetRootLayer());
+
+    nsRefPtr<RefLayer> layer = aManager->CreateRefLayer();
+    if (!layer) {
+      
+      
+      return nsnull;
+    }
+    layer->SetReferentId(id);
+    layer->SetVisibleRegion(aVisibleRect);
+    nsIntPoint rootFrameOffset = GetRootFrameOffset(aFrame, aBuilder);
+    layer->SetTransform(
+      gfx3DMatrix::Translation(rootFrameOffset.x, rootFrameOffset.y, 0.0));
+
+    return layer.forget();
   }
 
   if (mContainer) {
@@ -608,35 +629,21 @@ RenderFrameParent::ActorDestroy(ActorDestroyReason why)
   mFrameLoader = nsnull;
 }
 
-PLayersParent*
-RenderFrameParent::AllocPLayers(LayerManager::LayersBackend* aBackendType,
-                                int* aMaxTextureSize,
-                                uint64_t* aId)
+bool
+RenderFrameParent::RecvNotifyCompositorTransaction()
 {
-  *aBackendType = LayerManager::LAYERS_NONE;
-  *aMaxTextureSize = 0;
-  *aId = 0;
+  TriggerRepaint();
+  return true;
+}
 
+PLayersParent*
+RenderFrameParent::AllocPLayers()
+{
   if (!mFrameLoader || mFrameLoaderDestroyed) {
     return nsnull;
   }
-
-  nsIDocument* doc = mFrameLoader->GetOwnerDoc();
-  nsRefPtr<LayerManager> lm = nsContentUtils::LayerManagerForDocument(doc);
-  ShadowLayerManager* slm = lm->AsShadowManager();
-  if (!slm) {
-     return nsnull;
-  }
-  *aBackendType = lm->GetBackendType();
-  *aMaxTextureSize = lm->GetMaxTextureSize();
-#if 0 
-  if (CompositorParent::CompositorLoop()) {
-    
-    
-    *aId = CompositorParent::AllocateLayerTreeId();
-  }
-#endif
-  return new ShadowLayersParent(slm, this, *aId);
+  nsRefPtr<LayerManager> lm = GetFrom(mFrameLoader);
+  return new ShadowLayersParent(lm->AsShadowManager(), this, 0);
 }
 
 bool
@@ -680,6 +687,34 @@ RenderFrameParent::BuildViewMap()
   mContentViews = newContentViews;
 }
 
+void
+RenderFrameParent::TriggerRepaint()
+{
+  mFrameLoader->SetCurrentRemoteFrame(this);
+
+  nsIFrame* docFrame = mFrameLoader->GetPrimaryFrameOfOwningContent();
+  if (!docFrame) {
+    
+    
+    
+    
+    
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsRect rect = nsRect(nsPoint(0, 0), docFrame->GetRect().Size());
+  docFrame->InvalidateWithFlags(rect, nsIFrame::INVALIDATE_NO_THEBES_LAYERS);
+}
+
 ShadowLayersParent*
 RenderFrameParent::GetShadowLayers() const
 {
@@ -693,8 +728,7 @@ RenderFrameParent::GetShadowLayers() const
 uint64_t
 RenderFrameParent::GetLayerTreeId() const
 {
-  ShadowLayersParent* shadowLayers = GetShadowLayers();
-  return shadowLayers ? shadowLayers->GetId() : 0;
+  return mLayersId;
 }
 
 ContainerLayer*

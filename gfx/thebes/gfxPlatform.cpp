@@ -260,15 +260,6 @@ gfxPlatform::Init()
     useOffMainThreadCompositing = Preferences::GetBool(
           "layers.offmainthreadcomposition.enabled", 
           false);
-    
-    
-    
-    
-    
-    if (!Preferences::GetBool("dom.ipc.tabs.disabled", true)) {
-        
-        useOffMainThreadCompositing = false;
-    }
 #endif
 
     if (useOffMainThreadCompositing && (XRE_GetProcessType() == 

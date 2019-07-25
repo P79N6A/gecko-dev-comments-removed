@@ -5,14 +5,17 @@
 
 
 
-#include "mozilla/dom/PBrowserChild.h"
+#include "base/basictypes.h"
+
 #include "BasicLayers.h"
+#include "gfxPlatform.h"
 #if defined(MOZ_ENABLE_D3D10_LAYER)
 # include "LayerManagerD3D10.h"
 #endif
-
-#include "gfxPlatform.h"
+#include "mozilla/dom/TabChild.h"
 #include "mozilla/Hal.h"
+#include "mozilla/layers/CompositorChild.h"
+#include "mozilla/layers/PLayersChild.h"
 #include "PuppetWidget.h"
 
 using namespace mozilla::dom;
@@ -30,7 +33,7 @@ InvalidateRegion(nsIWidget* aWidget, const nsIntRegion& aRegion)
 }
 
  already_AddRefed<nsIWidget>
-nsIWidget::CreatePuppetWidget(PBrowserChild *aTabChild)
+nsIWidget::CreatePuppetWidget(TabChild* aTabChild)
 {
   NS_ABORT_IF_FALSE(nsIWidget::UsePuppetWidgets(),
                     "PuppetWidgets not allowed in this configuration");
@@ -63,7 +66,7 @@ const size_t PuppetWidget::kMaxDimension = 4000;
 NS_IMPL_ISUPPORTS_INHERITED1(PuppetWidget, nsBaseWidget,
                              nsISupportsWeakReference)
 
-PuppetWidget::PuppetWidget(PBrowserChild *aTabChild)
+PuppetWidget::PuppetWidget(TabChild* aTabChild)
   : mTabChild(aTabChild)
   , mDPI(-1)
 {
@@ -503,7 +506,8 @@ PuppetWidget::DispatchPaintEvent()
       ctx->Clip();
       AutoLayerManagerSetup setupLayerManager(this, ctx,
                                               BasicLayerManager::BUFFER_NONE);
-      DispatchEvent(&event, status);  
+      DispatchEvent(&event, status);
+      mTabChild->NotifyPainted();
     }
   }
 
