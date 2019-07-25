@@ -56,8 +56,6 @@
 
 #include "nsDeviceContextSpecQt.h"
 
-#include "nsIPrefService.h"
-#include "nsIPrefBranch.h"
 #include "prenv.h" 
 
 #include "nsPrintfCString.h"

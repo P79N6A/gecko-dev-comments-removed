@@ -75,7 +75,6 @@
 #include "nsGfxCIID.h"
 #include "nsHashKeys.h"
 #include "nsIMenuRollup.h"
-#include "nsIPrefService.h"
 #include "nsIRollupListener.h"
 #include "nsIScreenManager.h"
 #include "nsOS2Uni.h"
@@ -83,6 +82,10 @@
 #include "nsToolkit.h"
 #include "nsWidgetAtoms.h"
 #include "wdgtos2rc.h"
+
+#include "mozilla/Preferences.h"
+
+using namespace mozilla;
 
 
 
@@ -309,14 +312,8 @@ void nsWindow::InitGlobals()
   
   
   
-  nsresult rv;
-  nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
-  if (NS_SUCCEEDED(rv) && prefs) {
-    PRBool isTrackPoint = PR_FALSE;
-    prefs->GetBoolPref("os2.trackpoint", &isTrackPoint);
-    if (isTrackPoint) {
-      gOS2Flags |= kIsTrackPoint;
-    }
+  if (Preferences::GetBool("os2.trackpoint", PR_FALSE)) {
+    gOS2Flags |= kIsTrackPoint;
   }
 }
 

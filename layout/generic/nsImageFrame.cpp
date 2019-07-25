@@ -1887,6 +1887,7 @@ static const char* kIconLoadPrefs[] = {
 
 nsImageFrame::IconLoad::IconLoad()
 {
+  mHasShutdown = PR_FALSE;
   
   Preferences::AddStrongObservers(this, kIconLoadPrefs);
   GetPrefs();
@@ -1895,6 +1896,10 @@ nsImageFrame::IconLoad::IconLoad()
 void
 nsImageFrame::IconLoad::Shutdown()
 {
+  if (mHasShutdown) {
+    return;
+  }
+  mHasShutdown = PR_TRUE;
   Preferences::RemoveObservers(this, kIconLoadPrefs);
   
   if (mLoadingImage) {
