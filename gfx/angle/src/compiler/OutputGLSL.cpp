@@ -147,7 +147,7 @@ void TOutputGLSL::writeFunctionParameters(const TIntermSequence& args)
             out << arrayBrackets(type);
 
         
-        if (iter != --args.end())
+        if (iter != args.end() - 1)
             out << ", ";
     }
 }
