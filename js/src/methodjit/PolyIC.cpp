@@ -1741,6 +1741,17 @@ ic::GetProp(VMFrame &f, ic::PICInfo *pic)
     f.regs.sp[-1] = v;
 }
 
+void JS_FASTCALL
+ic::GetPropNoCache(VMFrame &f, ic::PICInfo *pic)
+{
+    
+
+
+
+
+    GetProp(f, pic);
+}
+
 template <JSBool strict>
 static void JS_FASTCALL
 DisabledSetPropIC(VMFrame &f, ic::PICInfo *pic)

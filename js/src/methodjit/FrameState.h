@@ -260,7 +260,7 @@ class FrameState
     
 
 
-    inline void push(const Value &v);
+    inline void push(const Value &v, types::TypeSet *typeSet = NULL);
 
     
 
