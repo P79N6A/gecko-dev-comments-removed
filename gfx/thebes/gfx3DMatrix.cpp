@@ -801,15 +801,26 @@ gfxRect gfx3DMatrix::ProjectRectBounds(const gfxRect& aRect) const
 
 gfxPoint3D gfx3DMatrix::GetNormalVector() const
 {
-    
-    
-    gfxPoint3D a = Transform3D(gfxPoint3D(0, 0, 0));
-    gfxPoint3D b = Transform3D(gfxPoint3D(0, 1, 0));
-    gfxPoint3D c = Transform3D(gfxPoint3D(1, 0, 0));
+  
+  
+  gfxPoint3D a = Transform3D(gfxPoint3D(0, 0, 0));
+  gfxPoint3D b = Transform3D(gfxPoint3D(0, 1, 0));
+  gfxPoint3D c = Transform3D(gfxPoint3D(1, 0, 0));
 
-    
-    gfxPoint3D ab = b - a;
-    gfxPoint3D ac = c - a;
+  
+  gfxPoint3D ab = b - a;
+  gfxPoint3D ac = c - a;
 
-    return ac.CrossProduct(ab);
+  return ac.CrossProduct(ab);
 }
+
+bool gfx3DMatrix::IsBackfaceVisible() const
+{
+  
+  gfxFloat det = Determinant();
+  float _33 = _12*_24*_41 - _14*_22*_41 +
+              _14*_21*_42 - _11*_24*_42 -
+              _12*_21*_44 + _11*_22*_44;
+  return (_33 * det) < 0;
+}
+

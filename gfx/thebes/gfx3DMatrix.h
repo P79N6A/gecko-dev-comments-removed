@@ -309,6 +309,12 @@ public:
   
 
 
+
+  bool IsBackfaceVisible() const;
+
+  
+
+
   bool IsSingular() const;
 
   
