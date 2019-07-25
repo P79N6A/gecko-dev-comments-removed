@@ -40,28 +40,21 @@
 
 
 
-const TEST_URL = "http://mochi.test:8888/browser/browser/base/content/test/browser_overLinkInLocationBar.html";
-
 var gTestIter;
 
 
 
 function smokeTestGenerator() {
-  let tab = openTestPage();
-  yield;
+  if (ensureOverLinkHidden())
+    yield;
 
-  let contentDoc = gBrowser.contentDocument;
-  let link = contentDoc.getElementById("link");
-
-  mouseover(link);
+  setOverLink("http://example.com/");
   yield;
   checkURLBar(true);
 
-  mouseout(link);
+  setOverLink("");
   yield;
   checkURLBar(false);
-
-  gBrowser.removeTab(tab);
 }
 
 function test() {
@@ -117,61 +110,31 @@ function checkURLBar(shouldShowOverLink) {
 
 
 
-function openTestPage() {
-  gBrowser.addEventListener("load", function onLoad(event) {
-    if (event.target.URL == TEST_URL) {
-      gBrowser.removeEventListener("load", onLoad, true);
-      cont();
-    }
-  }, true);
-  return gBrowser.loadOneTab(TEST_URL, { inBackground: false });
-}
 
 
-
-
-
-
-
-
-
-function mouseover(anchorNode) {
-  mouseAnchorNode(anchorNode, true);
-}
-
-
-
-
-
-
-
-
-
-function mouseout(anchorNode) {
-  mouseAnchorNode(anchorNode, false);
-}
-
-
-
-
-
-
-
-
-
-
-
-function mouseAnchorNode(node, over) {
+function setOverLink(aStr) {
   let overLink = gURLBar._overLinkBox;
   overLink.addEventListener("transitionend", function onTrans(event) {
-    if (event.target == overLink) {
+    if (event.target == overLink && event.propertyName == "opacity") {
       overLink.removeEventListener("transitionend", onTrans, false);
       cont();
     }
   }, false);
-  let offset = over ? 0 : -1;
-  let eventType = over ? "mouseover" : "mouseout";
-  EventUtils.synthesizeMouse(node, offset, offset,
-                             { type: eventType, clickCount: 0 },
-                             node.ownerDocument.defaultView);
+  gURLBar.setOverLink(aStr);
+}
+
+
+
+
+
+
+
+
+function ensureOverLinkHidden() {
+  let overLink = gURLBar._overLinkBox;
+  if (window.getComputedStyle(overLink, null).opacity == 0)
+    return false;
+
+  setOverLink("");
+  return true;
 }
