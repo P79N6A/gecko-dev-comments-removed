@@ -712,7 +712,7 @@ Chunk::fetchNextFreeArena(JSRuntime *rt)
 ArenaHeader *
 Chunk::allocateArena(JSCompartment *comp, AllocKind thingKind)
 {
-    JS_ASSERT(!noAvailableArenas());
+    JS_ASSERT(hasAvailableArenas());
 
     JSRuntime *rt = comp->rt;
 
@@ -720,7 +720,7 @@ Chunk::allocateArena(JSCompartment *comp, AllocKind thingKind)
                            ? fetchNextFreeArena(rt)
                            : fetchNextDecommittedArena();
     aheader->init(comp, thingKind);
-    if (JS_UNLIKELY(noAvailableArenas()))
+    if (JS_UNLIKELY(!hasAvailableArenas()))
         removeFromAvailableList();
 
     Probes::resizeHeap(comp, rt->gcBytes, rt->gcBytes + ArenaSize);
@@ -2262,11 +2262,17 @@ DecommitArenasFromAvailableList(JSRuntime *rt, Chunk **availableListHeadp)
 
 
 
+
+
+
+
             ArenaHeader *aheader = chunk->fetchNextFreeArena(rt);
             size_t arenaIndex = Chunk::arenaIndex(aheader->arenaAddress());
             bool ok;
             {
-                AutoUnlockGC unlock(rt);
+                Maybe<AutoUnlockGC> maybayUnlock;
+                if (chunk->hasAvailableArenas())
+                    maybayUnlock.construct(rt);
                 ok = DecommitMemory(aheader->getArena(), ArenaSize);
             }
 
