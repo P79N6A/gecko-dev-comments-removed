@@ -53,6 +53,8 @@
 #    include <signal.h>
 #endif
 
+#include "js/TemplateLib.h"
+
 using namespace js;
 
 #ifdef DEBUG
@@ -96,7 +98,16 @@ CrashInJS()
 #endif
 }
 
-JS_PUBLIC_API(void) JS_Assert(const char *s, const char *file, JSIntn ln)
+
+
+
+
+
+
+JS_STATIC_ASSERT((tl::IsSameType<JSIntn, int>::result));
+
+JS_PUBLIC_API(void)
+JS_Assert(const char *s, const char *file, int ln)
 {
     fprintf(stderr, "Assertion failure: %s, at %s:%d\n", s, file, ln);
     fflush(stderr);
