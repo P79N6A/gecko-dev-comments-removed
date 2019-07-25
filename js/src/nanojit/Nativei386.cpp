@@ -1071,8 +1071,7 @@ namespace nanojit
 #if _MSC_VER
         
         
-        
-        uint32_t align = 4;
+        uint32_t align = 8;
 #else
         uint32_t align = NJ_ALIGN_STACK;
 #endif
