@@ -586,6 +586,8 @@ pref("image.mem.min_discard_timeout_ms", 20000);
 
 
 pref("dom.w3c_touch_events.enabled", true);
+pref("dom.w3c_touch_events.safetyX", 0); 
+pref("dom.w3c_touch_events.safetyY", 120); 
 
 #ifdef MOZ_SAFE_BROWSING
 
