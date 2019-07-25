@@ -48,7 +48,14 @@ namespace js {
 namespace ion {
 
 class MInstruction;
-class MInstruction;
+class MDefinition;
+
+class TypeAnalysis
+{
+  public:
+    virtual void addPreferredType(MDefinition *def, MIRType type) = 0;
+    inline void preferType(MDefinition *def, MIRType type);
+};
 
 
 
@@ -62,8 +69,11 @@ class TypePolicy
     
     
     
-    
     virtual bool respecialize(MInstruction *def) = 0;
+
+    
+    
+    virtual void specializeInputs(MInstruction *ins, TypeAnalysis *analysis) = 0;
 
     
     
@@ -72,19 +82,14 @@ class TypePolicy
     
     
     virtual bool adjustInputs(MInstruction *def) = 0;
-
-    
-    
-    
-    virtual bool useSpecializedInput(MInstruction *def, size_t index, MInstruction *special) = 0;
 };
 
 class BoxInputsPolicy : public TypePolicy
 {
   public:
     virtual bool respecialize(MInstruction *def);
+    virtual void specializeInputs(MInstruction *ins, TypeAnalysis *analyzer);
     virtual bool adjustInputs(MInstruction *def);
-    virtual bool useSpecializedInput(MInstruction *def, size_t index, MInstruction *special);
 };
 
 class BinaryArithPolicy : public BoxInputsPolicy
@@ -98,8 +103,8 @@ class BinaryArithPolicy : public BoxInputsPolicy
 
   public:
     bool respecialize(MInstruction *def);
+    void specializeInputs(MInstruction *ins, TypeAnalysis *analyzer);
     bool adjustInputs(MInstruction *def);
-    bool useSpecializedInput(MInstruction *def, size_t index, MInstruction *special);
 };
 
 class BitwisePolicy : public BoxInputsPolicy
@@ -113,8 +118,8 @@ class BitwisePolicy : public BoxInputsPolicy
 
   public:
     bool respecialize(MInstruction *def);
+    void specializeInputs(MInstruction *ins, TypeAnalysis *analyzer);
     bool adjustInputs(MInstruction *def);
-    bool useSpecializedInput(MInstruction *def, size_t index, MInstruction *special);
 };
 
 static inline bool

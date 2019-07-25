@@ -173,7 +173,7 @@ Loop::optimize()
                 
                 
                 if (isInLoop(consumer) && isHoistable(consumer)) {
-                    if (insertInWorklist(consumer->toInstruction()))
+                    if (!insertInWorklist(consumer->toInstruction()))
                         return false;
                 }
             }
