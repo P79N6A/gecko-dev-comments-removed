@@ -741,6 +741,8 @@ function CssSheet(aCssLogic, aDomSheet, aSystemSheet, aIndex)
 }
 
 CssSheet.prototype = {
+  _passId: null,
+
   
 
 
@@ -950,6 +952,8 @@ function CssRule(aCssSheet, aDomRule, aElement)
 }
 
 CssRule.prototype = {
+  _passId: null,
+
   
 
 
@@ -1091,6 +1095,8 @@ function CssSelector(aCssRule, aSelector)
 }
 
 CssSelector.prototype = {
+  _matchId: null,
+
   
 
 
