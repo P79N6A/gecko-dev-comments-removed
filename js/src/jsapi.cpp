@@ -4642,7 +4642,8 @@ JS_TriggerOperationCallback(JSContext *cx)
 
 
 
-    JS_ATOMIC_SET(&cx->operationCallbackFlag, 1);
+    JS_ATOMIC_SET_MASK(const_cast<jsword*>(&cx->interruptFlags),
+                       JSContext::INTERRUPT_OPERATION_CALLBACK);
 }
 
 JS_PUBLIC_API(void)
@@ -5394,7 +5395,7 @@ JS_SetGCZeal(JSContext *cx, uint8 zeal)
 
 #if !defined(STATIC_JS_API) && defined(XP_WIN) && !defined (WINCE)
 
-#include <windows.h>
+#include "jswin.h"
 
 
 

@@ -445,13 +445,7 @@ mjit::Compiler::generateMethod()
                 frame.forgetEverything();
                 masm.fixScriptStack(frame.frameDepth());
                 masm.setupVMFrame();
-#if defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)
-                masm.push(Registers::ArgReg0);
-#endif
                 masm.call(JS_FUNC_TO_DATA_PTR(void *, stubs::ValueToBoolean));
-#if defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)
-                masm.pop();
-#endif
                 Assembler::Condition cond = (op == JSOP_IFEQ)
                                             ? Assembler::Zero
                                             : Assembler::NonZero;
@@ -831,13 +825,7 @@ mjit::Compiler::generateMethod()
             frame.forgetEverything();
             masm.fixScriptStack(frame.frameDepth());
             masm.setupVMFrame();
-#if defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)
-            masm.push(Registers::ArgReg0);
-#endif
             masm.call(JS_FUNC_TO_DATA_PTR(void *, stubs::ValueToBoolean));
-#if defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)
-            masm.pop();
-#endif
             Assembler::Condition cond = (op == JSOP_OR)
                                         ? Assembler::NonZero
                                         : Assembler::Zero;
@@ -967,7 +955,7 @@ mjit::Compiler::generateMethod()
                 stubCall(stubs::NewInitObject, Uses(0), Defs(1));
             }
             frame.takeReg(Registers::ReturnReg);
-            frame.pushTypedPayload(JSVAL_TAG_NONFUNOBJ, Registers::ReturnReg);
+            frame.pushTypedPayload(JSVAL_TAG_OBJECT, Registers::ReturnReg);
           }
           END_CASE(JSOP_NEWINIT)
 
@@ -1099,7 +1087,7 @@ mjit::Compiler::generateMethod()
             masm.move(ImmPtr(fun), Registers::ArgReg1);
             stubCall(stubs::Lambda, Uses(0), Defs(1));
             frame.takeReg(Registers::ReturnReg);
-            frame.pushTypedPayload(JSVAL_TAG_FUNOBJ, Registers::ReturnReg);
+            frame.pushTypedPayload(JSVAL_TAG_OBJECT, Registers::ReturnReg);
           }
           END_CASE(JSOP_LAMBDA)
 
@@ -1135,7 +1123,7 @@ mjit::Compiler::generateMethod()
             masm.move(ImmPtr(fun), Registers::ArgReg1);
             stubCall(stubs::DefLocalFun, Uses(0), Defs(0));
             frame.takeReg(Registers::ReturnReg);
-            frame.pushTypedPayload(JSVAL_TAG_FUNOBJ, Registers::ReturnReg);
+            frame.pushTypedPayload(JSVAL_TAG_OBJECT, Registers::ReturnReg);
             frame.storeLocal(slot);
             frame.pop();
           }
@@ -1163,7 +1151,7 @@ mjit::Compiler::generateMethod()
             masm.move(ImmPtr(regex), Registers::ArgReg1);
             stubCall(stubs::RegExp, Uses(0), Defs(1));
             frame.takeReg(Registers::ReturnReg);
-            frame.pushTypedPayload(JSVAL_TAG_NONFUNOBJ, Registers::ReturnReg);
+            frame.pushTypedPayload(JSVAL_TAG_OBJECT, Registers::ReturnReg);
           }
           END_CASE(JSOP_REGEXP)
 
@@ -1255,7 +1243,7 @@ mjit::Compiler::generateMethod()
             stubCall(stubs::NewArray, Uses(len), Defs(1));
             frame.popn(len);
             frame.takeReg(Registers::ReturnReg);
-            frame.pushTypedPayload(JSVAL_TAG_NONFUNOBJ, Registers::ReturnReg);
+            frame.pushTypedPayload(JSVAL_TAG_OBJECT, Registers::ReturnReg);
           }
           END_CASE(JSOP_NEWARRAY)
 
@@ -1266,7 +1254,7 @@ mjit::Compiler::generateMethod()
             masm.move(ImmPtr(fun), Registers::ArgReg1);
             stubCall(stubs::FlatLambda, Uses(0), Defs(1));
             frame.takeReg(Registers::ReturnReg);
-            frame.pushTypedPayload(JSVAL_TAG_FUNOBJ, Registers::ReturnReg);
+            frame.pushTypedPayload(JSVAL_TAG_OBJECT, Registers::ReturnReg);
           }
           END_CASE(JSOP_LAMBDA_FC)
 
@@ -1503,9 +1491,8 @@ mjit::Compiler::emitReturn()
             Jump j = stubcc.masm.jump();
 
             
-            Jump argsObj = masm.branch32(Assembler::Equal,
-                                         masm.tagOf(Address(JSFrameReg, offsetof(JSStackFrame, argsval))),
-                                         ImmTag(JSVAL_TAG_NONFUNOBJ));
+            Jump argsObj = masm.testObject(Assembler::Equal,
+                                           Address(JSFrameReg, offsetof(JSStackFrame, argsval)));
             stubcc.linkExit(argsObj);
             stubcc.call(stubs::PutArgsObject);
             stubcc.rejoin(0);
@@ -1568,7 +1555,7 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
     FrameEntry *fe = frame.peek(-int(argc + 2));
     bool typeKnown = fe->isTypeKnown();
 
-    if (typeKnown && fe->getTypeTag() != JSVAL_TAG_FUNOBJ) {
+    if (typeKnown && fe->getTypeTag() != JSVAL_TAG_OBJECT) {
         VoidPtrStubUInt32 stub = callingNew ? stubs::SlowNew : stubs::SlowCall;
         masm.move(Imm32(argc), Registers::ArgReg1);
         masm.stubCall(stub, PC, frame.stackDepth() + script->nfixed);
@@ -1604,10 +1591,12 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
     if (!typeKnown) {
         Jump j;
         if (!hasTypeReg)
-            j = masm.testFunObj(Assembler::NotEqual, frame.addressOf(fe));
+            j = masm.testObject(Assembler::NotEqual, frame.addressOf(fe));
         else
-            j = masm.testFunObj(Assembler::NotEqual, type);
+            j = masm.testObject(Assembler::NotEqual, type);
         invoke = stubcc.masm.label();
+        stubcc.linkExit(j);
+        j = masm.testFunction(Assembler::NotEqual, data);
         stubcc.linkExit(j);
         stubcc.leave();
         stubcc.masm.move(Imm32(argc), Registers::ArgReg1);
@@ -1883,10 +1872,7 @@ mjit::Compiler::jsop_getprop(JSAtom *atom, bool doTypeCheck)
     FrameEntry *top = frame.peek(-1);
 
     
-    if (top->isTypeKnown() &&
-        (top->getTypeTag() != JSVAL_TAG_FUNOBJ &&
-         top->getTypeTag() != JSVAL_TAG_NONFUNOBJ))
-    {
+    if (top->isTypeKnown() && top->getTypeTag() != JSVAL_TAG_OBJECT) {
         JS_ASSERT_IF(atom == cx->runtime->atomState.lengthAtom,
                      top->getTypeTag() != JSVAL_TAG_STRING);
         jsop_getprop_slow();
@@ -1910,13 +1896,12 @@ mjit::Compiler::jsop_getprop(JSAtom *atom, bool doTypeCheck)
     
     Jump typeCheck;
     if (doTypeCheck && !top->isTypeKnown()) {
-        JS_STATIC_ASSERT(JSVAL_TAG_NONFUNOBJ < JSVAL_TAG_FUNOBJ);
         RegisterID reg = frame.tempRegForType(top);
         pic.typeReg = reg;
 
         
         pic.hotPathBegin = masm.label();
-        Jump j = masm.branch32(Assembler::Below, reg, ImmTag(JSVAL_TAG_NONFUNOBJ));
+        Jump j = masm.testObject(Assembler::NotEqual, reg);
 
         pic.typeCheck = stubcc.masm.label();
         stubcc.linkExit(j);
@@ -1986,7 +1971,6 @@ mjit::Compiler::jsop_callprop_generic(JSAtom *atom)
     PICGenInfo pic(ic::PICInfo::CALL);
 
     
-    JS_STATIC_ASSERT(JSVAL_TAG_NONFUNOBJ < JSVAL_TAG_FUNOBJ);
     pic.typeReg = frame.copyTypeIntoReg(top);
 
     
@@ -1998,7 +1982,7 @@ mjit::Compiler::jsop_callprop_generic(JSAtom *atom)
 
 
 
-    Jump typeCheck = masm.branch32(Assembler::Below, pic.typeReg, ImmTag(JSVAL_TAG_NONFUNOBJ));
+    Jump typeCheck = masm.testObject(Assembler::NotEqual, pic.typeReg);
     stubcc.linkExit(typeCheck);
     stubcc.leave();
     Jump typeCheckDone = stubcc.masm.jump();
@@ -2072,7 +2056,7 @@ mjit::Compiler::jsop_callprop_str(JSAtom *atom)
     
     RegisterID reg = frame.allocReg();
     masm.move(ImmPtr(obj), reg);
-    frame.pushTypedPayload(JSVAL_TAG_NONFUNOBJ, reg);
+    frame.pushTypedPayload(JSVAL_TAG_OBJECT, reg);
 
     
     jsop_getprop(atom);
@@ -2087,9 +2071,11 @@ mjit::Compiler::jsop_callprop_str(JSAtom *atom)
     JS_ASSERT(!funFe->isTypeKnown());
 
     RegisterID temp = frame.allocReg();
-    Jump notFun = frame.testFunObj(Assembler::NotEqual, funFe);
-    Address fslot(frame.tempRegForData(funFe),
-                  offsetof(JSObject, fslots) + JSSLOT_PRIVATE * sizeof(Value));
+    RegisterID funReg = frame.copyDataIntoReg(funFe);
+    Jump notFun1 = frame.testObject(Assembler::NotEqual, funFe);
+    Jump notFun2 = masm.testFunction(Assembler::NotEqual, funReg);
+
+    Address fslot(funReg, offsetof(JSObject, fslots) + JSSLOT_PRIVATE * sizeof(Value));
     masm.loadData32(fslot, temp);
     masm.load16(Address(temp, offsetof(JSFunction, flags)), temp);
     masm.and32(Imm32(JSFUN_THISP_STRING), temp);
@@ -2100,8 +2086,10 @@ mjit::Compiler::jsop_callprop_str(JSAtom *atom)
         stubcc.call(stubs::WrapPrimitiveThis);
     }
 
+    frame.freeReg(funReg);
     frame.freeReg(temp);
-    notFun.linkTo(masm.label(), &masm);
+    notFun2.linkTo(masm.label(), &masm);
+    notFun1.linkTo(masm.label(), &masm);
     
     stubcc.rejoin(1);
 
@@ -2116,8 +2104,7 @@ mjit::Compiler::jsop_callprop_obj(JSAtom *atom)
     PICGenInfo pic(ic::PICInfo::CALL);
 
     JS_ASSERT(top->isTypeKnown());
-    JS_ASSERT(top->getTypeTag() == JSVAL_TAG_FUNOBJ ||
-              top->getTypeTag() == JSVAL_TAG_NONFUNOBJ);
+    JS_ASSERT(top->getTypeTag() == JSVAL_TAG_OBJECT);
 
     pic.hotPathBegin = masm.label();
     pic.hasTypeCheck = false;
@@ -2179,10 +2166,7 @@ mjit::Compiler::jsop_callprop(JSAtom *atom)
     FrameEntry *top = frame.peek(-1);
 
     
-    if (top->isTypeKnown() &&
-        (top->getTypeTag() != JSVAL_TAG_FUNOBJ &&
-         top->getTypeTag() != JSVAL_TAG_NONFUNOBJ))
-    {
+    if (top->isTypeKnown() && top->getTypeTag() != JSVAL_TAG_OBJECT) {
         if (top->getTypeTag() == JSVAL_TAG_STRING)
             return jsop_callprop_str(atom);
         return jsop_callprop_slow(atom);
@@ -2200,10 +2184,7 @@ mjit::Compiler::jsop_setprop(JSAtom *atom)
     FrameEntry *rhs = frame.peek(-1);
 
     
-    if (lhs->isTypeKnown() &&
-        (lhs->getTypeTag() != JSVAL_TAG_FUNOBJ &&
-         lhs->getTypeTag() != JSVAL_TAG_NONFUNOBJ))
-    {
+    if (lhs->isTypeKnown() && lhs->getTypeTag() != JSVAL_TAG_OBJECT) {
         jsop_setprop_slow(atom);
         return;
     }
@@ -2214,13 +2195,12 @@ mjit::Compiler::jsop_setprop(JSAtom *atom)
     
     Jump typeCheck;
     if (!lhs->isTypeKnown()) {
-        JS_STATIC_ASSERT(JSVAL_TAG_NONFUNOBJ < JSVAL_TAG_FUNOBJ);
         RegisterID reg = frame.tempRegForType(lhs);
         pic.typeReg = reg;
 
         
         pic.hotPathBegin = masm.label();
-        Jump j = masm.branch32(Assembler::Below, reg, ImmTag(JSVAL_TAG_NONFUNOBJ));
+        Jump j = masm.branch32(Assembler::NotEqual, reg, ImmTag(JSVAL_TAG_OBJECT));
 
         pic.typeCheck = stubcc.masm.label();
         stubcc.linkExit(j);
@@ -2349,13 +2329,25 @@ mjit::Compiler::jsop_getarg(uint32 index)
 void
 mjit::Compiler::jsop_this()
 {
-    frame.push(Address(JSFrameReg, offsetof(JSStackFrame, thisv)));
-    FrameEntry *thisv = frame.peek(-1);
-    Jump null = frame.testNull(Assembler::Equal, thisv);
-    stubcc.linkExit(null);
-    stubcc.leave();
-    stubcc.call(stubs::This);
-    stubcc.rejoin(1);
+    Address thisvAddr(JSFrameReg, offsetof(JSStackFrame, thisv));
+    if (0 && !script->strictModeCode) {
+        Jump null = masm.testNull(Assembler::Equal, thisvAddr);
+        stubcc.linkExit(null);
+        stubcc.leave();
+        stubcc.call(stubs::ComputeThis);
+        stubcc.rejoin(0);
+
+        RegisterID reg = frame.allocReg();
+        masm.loadData32(thisvAddr, reg);
+        frame.pushTypedPayload(JSVAL_TAG_OBJECT, reg);
+    } else {
+        frame.push(thisvAddr);
+        Jump null = frame.testNull(Assembler::Equal, frame.peek(-1));
+        stubcc.linkExit(null);
+        stubcc.leave();
+        stubcc.call(stubs::This);
+        stubcc.rejoin(1);
+    }
 }
 
 void
@@ -2576,7 +2568,7 @@ void
 mjit::Compiler::jsop_bindgname()
 {
     if (script->compileAndGo && globalObj) {
-        frame.push(NonFunObjTag(*globalObj));
+        frame.push(ObjectTag(*globalObj));
         return;
     }
 
@@ -2584,7 +2576,7 @@ mjit::Compiler::jsop_bindgname()
     prepareStubCall();
     stubCall(stubs::BindGlobalName, Uses(0), Defs(1));
     frame.takeReg(Registers::ReturnReg);
-    frame.pushTypedPayload(JSVAL_TAG_NONFUNOBJ, Registers::ReturnReg);
+    frame.pushTypedPayload(JSVAL_TAG_OBJECT, Registers::ReturnReg);
 }
 
 void
@@ -2594,7 +2586,7 @@ mjit::Compiler::jsop_getgname(uint32 index)
     jsop_bindgname();
 
     FrameEntry *fe = frame.peek(-1);
-    JS_ASSERT(fe->isTypeKnown() && fe->getTypeTag() == JSVAL_TAG_NONFUNOBJ);
+    JS_ASSERT(fe->isTypeKnown() && fe->getTypeTag() == JSVAL_TAG_OBJECT);
 
     MICGenInfo mic;
     RegisterID objReg;
@@ -2670,7 +2662,7 @@ mjit::Compiler::jsop_setgname(uint32 index)
 {
 #if ENABLE_MIC
     FrameEntry *objFe = frame.peek(-2);
-    JS_ASSERT_IF(objFe->isTypeKnown(), objFe->getTypeTag() == JSVAL_TAG_NONFUNOBJ);
+    JS_ASSERT_IF(objFe->isTypeKnown(), objFe->getTypeTag() == JSVAL_TAG_OBJECT);
 
     MICGenInfo mic;
     RegisterID objReg;
@@ -2799,7 +2791,7 @@ mjit::Compiler::jsop_instanceof()
 
 
 
-    if (rhs->isTypeKnown() && rhs->getTypeTag() != JSVAL_TAG_FUNOBJ) {
+    if (rhs->isTypeKnown() && rhs->getTypeTag() != JSVAL_TAG_OBJECT) {
         prepareStubCall();
         stubCall(stubs::InstanceOf, Uses(2), Defs(1));
         frame.popn(2);
@@ -2811,7 +2803,10 @@ mjit::Compiler::jsop_instanceof()
     Jump firstSlow;
     bool typeKnown = rhs->isTypeKnown();
     if (!typeKnown) {
-        Jump j = frame.testFunObj(Assembler::NotEqual, rhs);
+        Jump j = frame.testObject(Assembler::NotEqual, rhs);
+        stubcc.linkExit(j);
+        RegisterID reg = frame.tempRegForData(rhs);
+        j = masm.testFunction(Assembler::NotEqual, reg);
         stubcc.linkExit(j);
         stubcc.leave();
         stubcc.call(stubs::InstanceOf);

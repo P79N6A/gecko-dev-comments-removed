@@ -451,13 +451,7 @@ class FrameState
 
 
 
-    inline Jump testNonFunObj(Assembler::Condition cond, FrameEntry *fe);
-
-    
-
-
-
-    inline Jump testFunObj(Assembler::Condition cond, FrameEntry *fe);
+    inline Jump testObject(Assembler::Condition cond, FrameEntry *fe);
 
     
 

@@ -122,6 +122,11 @@ class BaseAssembler : public JSC::MacroAssembler
         load32(Address(shape, offsetof(JSObjectMap, shape)), shape);
     }
 
+    Jump testFunction(Condition cond, RegisterID fun) {
+        return branchPtr(cond, Address(fun, offsetof(JSObject, clasp)),
+                         ImmPtr(&js_FunctionClass));
+    }
+
     
 
 
@@ -206,16 +211,8 @@ class BaseAssembler : public JSC::MacroAssembler
         pop(Registers::ArgReg1);
         pop(Registers::ArgReg0);
 #endif
-#if defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)
-        push(Registers::ArgReg1);
-        push(Registers::ArgReg0);
-#endif
-        Call cl = call(pfun);
-#if defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)
-        pop();
-        pop();
-#endif
-        return cl;
+
+        return call(pfun);
     }
 
     void fixScriptStack(uint32 frameDepth) {
