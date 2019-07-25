@@ -156,6 +156,9 @@ function doApply(fun, invocant, args) {
   return Function.prototype.apply.call(fun, invocant, args);
 }
 
+
+var wrapperCache = WeakMap();
+
 function wrapPrivileged(obj) {
 
   
@@ -167,9 +170,14 @@ function wrapPrivileged(obj) {
     throw "Trying to double-wrap object!";
 
   
+  if (wrapperCache.has(obj))
+    return wrapperCache.get(obj);
+
+  
   var handler = new SpecialPowersHandler(obj);
 
   
+  var wrapper;
   if (typeof obj === "function") {
     var callTrap = function() {
       
@@ -193,11 +201,16 @@ function wrapPrivileged(obj) {
       return wrapPrivileged(new FakeConstructor());
     };
 
-    return Proxy.createFunction(handler, callTrap, constructTrap);
+    wrapper = Proxy.createFunction(handler, callTrap, constructTrap);
+  }
+  
+  else {
+    wrapper = Proxy.create(handler);
   }
 
   
-  return Proxy.create(handler);
+  wrapperCache.set(obj, wrapper);
+  return wrapper;
 };
 
 function unwrapPrivileged(x) {
@@ -391,9 +404,6 @@ SpecialPowersHandler.prototype.enumerate = function() {
 SpecialPowersAPI.prototype = {
 
   
-
-
-
 
 
 
