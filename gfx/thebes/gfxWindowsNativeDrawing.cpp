@@ -69,8 +69,13 @@ HDC
 gfxWindowsNativeDrawing::BeginNativeDrawing()
 {
     if (mRenderState == RENDER_STATE_INIT) {
-        nsRefPtr<gfxASurface> surf = mContext->CurrentSurface(&mDeviceOffset.x, &mDeviceOffset.y);
-        if (!surf || surf->CairoStatus())
+        nsRefPtr<gfxASurface> surf;
+        
+        if (mContext->GetCairo()) {
+          surf = mContext->CurrentSurface(&mDeviceOffset.x, &mDeviceOffset.y);
+        }
+
+        if (surf && surf->CairoStatus())
             return nsnull;
 
         gfxMatrix m = mContext->CurrentMatrix();
@@ -84,11 +89,12 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
         
         
         
-        if ((surf->GetType() == gfxASurface::SurfaceTypeWin32 ||
-             surf->GetType() == gfxASurface::SurfaceTypeWin32Printing) &&
-            (surf->GetContentType() == gfxASurface::CONTENT_COLOR ||
-             (surf->GetContentType() == gfxASurface::CONTENT_COLOR_ALPHA &&
-              (mNativeDrawFlags & CAN_DRAW_TO_COLOR_ALPHA))))
+        if (surf &&
+            ((surf->GetType() == gfxASurface::SurfaceTypeWin32 ||
+              surf->GetType() == gfxASurface::SurfaceTypeWin32Printing) &&
+              (surf->GetContentType() == gfxASurface::CONTENT_COLOR ||
+               (surf->GetContentType() == gfxASurface::CONTENT_COLOR_ALPHA &&
+               (mNativeDrawFlags & CAN_DRAW_TO_COLOR_ALPHA)))))
         {
             
             
@@ -208,11 +214,15 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
 bool
 gfxWindowsNativeDrawing::IsDoublePass()
 {
+    if (!mContext->IsCairo()) {
+      return true;
+    }
+
     nsRefPtr<gfxASurface> surf = mContext->CurrentSurface(&mDeviceOffset.x, &mDeviceOffset.y);
     if (!surf || surf->CairoStatus())
         return false;
     if (surf->GetType() != gfxASurface::SurfaceTypeWin32 &&
-	surf->GetType() != gfxASurface::SurfaceTypeWin32Printing) {
+        surf->GetType() != gfxASurface::SurfaceTypeWin32Printing) {
 	return true;
     }
     if ((surf->GetContentType() != gfxASurface::CONTENT_COLOR ||
