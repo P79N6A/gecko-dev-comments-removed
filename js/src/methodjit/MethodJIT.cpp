@@ -277,17 +277,15 @@ asm volatile (
 ".globl " SYMBOL_STRING(InjectJaegerReturn)   "\n"
 SYMBOL_STRING(InjectJaegerReturn) ":"         "\n"
     "movq 0x40(%rbx), %rcx"                 "\n" 
-    "movq $0xFFFF800000000000, %r11"         "\n" 
-    "andq %r11, %rcx"                       "\n" 
-
-    "movq 0x40(%rbx), %rdx"                 "\n" 
-    "movq $0x00007FFFFFFFFFFF, %r11"        "\n" 
-    "andq %r11, %rdx"                       "\n" 
-
     "movq 0x60(%rbx), %rax"                 "\n" 
+
+    
+    "movq $0x00007FFFFFFFFFFF, %rdx"        "\n" 
+    "andq %rcx, %rdx"                       "\n"
+    "xorq %rdx, %rcx"                       "\n"
+
     "movq 0x38(%rsp), %rbx"                 "\n" 
-    "pushq %rax"                            "\n"
-    "ret"                                   "\n"
+    "jmp *%rax"                             "\n" 
 );
 
 # elif defined(JS_CPU_X86)
