@@ -158,13 +158,11 @@ public:
       return false;
     }
 
-    void *tramp = CreateTrampoline(pAddr, hookDest);
-    if (!tramp) {
+    CreateTrampoline(pAddr, hookDest, origFunc);
+    if (!*origFunc) {
       
       return false;
     }
-
-    *origFunc = tramp;
 
     return true;
   }
@@ -178,12 +176,15 @@ protected:
   int mMaxHooks;
   int mCurHooks;
 
-  byteptr_t CreateTrampoline(void *origFunction,
-           intptr_t dest)
+  void CreateTrampoline(void *origFunction,
+                        intptr_t dest,
+                        void **outTramp)
   {
+    *outTramp = NULL;
+
     byteptr_t tramp = FindTrampolineSpace();
     if (!tramp)
-      return 0;
+      return;
 
     byteptr_t origBytes = (byteptr_t) origFunction;
 
@@ -211,7 +212,7 @@ protected:
           nBytes += 3;
         } else {
           
-          return 0;
+          return;
         }
       } else if (origBytes[nBytes] == 0x83) {
         
@@ -221,7 +222,7 @@ protected:
           nBytes += 3;
         } else {
           
-          return 0;
+          return;
         }
       } else if (origBytes[nBytes] == 0x68) {
         
@@ -238,7 +239,7 @@ protected:
         nBytes += 5;
       } else {
         
-        return 0;
+        return;
       }
     }
 #elif defined(_M_X64)
@@ -247,7 +248,7 @@ protected:
       
       if (pJmp32 >= 0) {
         if (origBytes[nBytes++] != 0x90)
-          return 0;
+          return;
 
         continue;
       } 
@@ -263,7 +264,7 @@ protected:
           
           nBytes += 5;
         } else {
-          return 0;
+          return;
         }
       } else if (origBytes[nBytes] == 0x45) {
         
@@ -273,7 +274,7 @@ protected:
           
           nBytes += 2;
         } else {
-          return 0;
+          return;
         }
       } else if ((origBytes[nBytes] & 0xfb) == 0x48) {
         
@@ -307,11 +308,11 @@ protected:
             nBytes += 2;
           } else {
             
-            return 0;
+            return;
           }
         } else {
           
-          return 0;
+          return;
         }
       } else if ((origBytes[nBytes] & 0xf0) == 0x50) {
         
@@ -329,10 +330,10 @@ protected:
           
           nBytes++;
         } else {
-          return 0;
+          return;
         }
       } else {
-        return 0;
+        return;
       }
     }
 #else
@@ -341,7 +342,7 @@ protected:
 
     if (nBytes > 100) {
       
-      return 0;
+      return;
     }
 
     
@@ -392,10 +393,13 @@ protected:
 #endif
 
     
+    *outTramp = tramp;
+
+    
     DWORD op;
     if (!VirtualProtectEx(GetCurrentProcess(), origFunction, nBytes, PAGE_EXECUTE_READWRITE, &op)) {
       
-      return 0;
+      return;
     }
 
 #if defined(_M_IX86)
@@ -417,8 +421,6 @@ protected:
 
     
     VirtualProtectEx(GetCurrentProcess(), origFunction, nBytes, op, &op);
-
-    return tramp;
   }
 
   byteptr_t FindTrampolineSpace() {
