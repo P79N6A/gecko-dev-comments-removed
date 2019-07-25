@@ -60,11 +60,6 @@ public:
   nsresult ReadSegments(nsAHttpSegmentReader *,  PRUint32, PRUint32 *);
   nsresult WriteSegments(nsAHttpSegmentWriter *, PRUint32, PRUint32 *);
 
-  bool BlockedOnWrite()
-  {
-    return static_cast<bool>(mBlockedOnWrite);
-  }
-
   bool RequestBlockedOnRead()
   {
     return static_cast<bool>(mRequestBlockedOnRead);
@@ -164,13 +159,6 @@ private:
 
   
   
-  
-  
-  
-  PRUint32                     mBlockedOnWrite       : 1;
-
-  
-  
   PRUint32                     mRequestBlockedOnRead : 1;
 
   
@@ -192,13 +180,11 @@ private:
   nsAutoArrayPtr<char>         mTxInlineFrame;
   PRUint32                     mTxInlineFrameSize;
   PRUint32                     mTxInlineFrameUsed;
-  PRUint32                     mTxInlineFrameSent;
 
   
   
   
   PRUint32                     mTxStreamFrameSize;
-  PRUint32                     mTxStreamFrameSent;
 
   
   

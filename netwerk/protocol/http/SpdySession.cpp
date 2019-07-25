@@ -74,7 +74,6 @@ SpdySession::SpdySession(nsAHttpTransaction *aHttpTransaction,
     mNextStreamID(1),
     mConcurrentHighWater(0),
     mDownstreamState(BUFFERING_FRAME_HEADER),
-    mPartialFrameSender(nsnull),
     mInputFrameBufferSize(kDefaultBufferSize),
     mInputFrameBufferUsed(0),
     mInputFrameDataLast(false),
@@ -369,11 +368,7 @@ SpdySession::GetWriteQueueSize()
 {
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
 
-  PRUint32 count = mUrgentForWrite.GetSize() + mReadyForWrite.GetSize();
-
-  if (mPartialFrameSender)
-    ++count;
-  return count;
+  return mUrgentForWrite.GetSize() + mReadyForWrite.GetSize();
 }
 
 void
@@ -732,23 +727,11 @@ SpdySession::CleanupStream(SpdyStream *aStream, nsresult aResult)
   LOG3(("SpdySession::CleanupStream %p %p 0x%x %X\n",
         this, aStream, aStream->StreamID(), aResult));
 
-  nsresult abortCode = NS_OK;
-
   if (!aStream->RecvdFin() && aStream->StreamID()) {
     LOG3(("Stream had not processed recv FIN, sending RST"));
     GenerateRstStream(RST_CANCEL, aStream->StreamID());
     --mConcurrent;
     ProcessPending();
-  }
-  
-  
-  if (aStream == mPartialFrameSender) {
-    LOG3(("Stream had active partial write frame - need to abort session"));
-    abortCode = aResult;
-    if (NS_SUCCEEDED(abortCode))
-      abortCode = NS_ERROR_ABORT;
-    
-    mPartialFrameSender = nsnull;
   }
   
   
@@ -797,9 +780,7 @@ SpdySession::CleanupStream(SpdyStream *aStream, nsresult aResult)
   
   mStreamTransactionHash.Remove(aStream->Transaction());
 
-  if (NS_FAILED(abortCode))
-    Close(abortCode);
-  else if (mShouldGoAway && !mStreamTransactionHash.Count())
+  if (mShouldGoAway && !mStreamTransactionHash.Count())
     Close(NS_OK);
 }
 
@@ -1271,14 +1252,11 @@ SpdySession::ReadSegments(nsAHttpSegmentReader *reader,
   
   
 
-  LOG3(("SpdySession::ReadSegments %p partial frame stream=%p",
-        this, mPartialFrameSender));
+  LOG3(("SpdySession::ReadSegments %p", this));
 
-  SpdyStream *stream = mPartialFrameSender;
-  mPartialFrameSender = nsnull;
-
-  if (!stream)
-    stream = static_cast<SpdyStream *>(mUrgentForWrite.PopFront());
+  SpdyStream *stream;
+  
+  stream = static_cast<SpdyStream *>(mUrgentForWrite.PopFront());
   if (!stream)
     stream = static_cast<SpdyStream *>(mReadyForWrite.PopFront());
   if (!stream) {
@@ -1304,21 +1282,6 @@ SpdySession::ReadSegments(nsAHttpSegmentReader *reader,
   
   FlushOutputQueue();
 
-  if (stream->BlockedOnWrite()) {
-
-    
-    
-    
-
-    LOG3(("SpdySession::ReadSegments %p dealing with block on write", this));
-
-    NS_ABORT_IF_FALSE(!mPartialFrameSender, "partial frame should be empty");
-
-    mPartialFrameSender = stream;
-    SetWriteCallbacks();
-    return rv;
-  }
-
   if (stream->RequestBlockedOnRead()) {
     
     
@@ -1337,9 +1300,6 @@ SpdySession::ReadSegments(nsAHttpSegmentReader *reader,
     return rv;
   }
   
-  NS_ABORT_IF_FALSE(rv != NS_BASE_STREAM_WOULD_BLOCK,
-                    "Stream Would Block inconsistency");
-  
   if (NS_FAILED(rv)) {
     LOG3(("SpdySession::ReadSegments %p returning FAIL code %X",
           this, rv));
@@ -1357,11 +1317,6 @@ SpdySession::ReadSegments(nsAHttpSegmentReader *reader,
   LOG3(("SpdySession::ReadSegments %p stream=%p stream send complete",
         this, stream));
   
-  
-  
-  stream->Transaction()->
-    OnTransportStatus(mSocketTransport, nsISocketTransport::STATUS_WAITING_FOR,
-                      LL_ZERO);
   
   ResumeRecv();
 
@@ -1693,8 +1648,24 @@ SpdySession::OnReadSegment(const char *buf,
   if (!mOutputQueueUsed && mSegmentReader) {
     
     rv = mSegmentReader->OnReadSegment(buf, count, countRead);
-    if (NS_SUCCEEDED(rv) || (rv != NS_BASE_STREAM_WOULD_BLOCK))
+
+    if (rv == NS_BASE_STREAM_WOULD_BLOCK)
+      *countRead = 0;
+    else if (NS_FAILED(rv))
       return rv;
+    
+    if (*countRead < count) {
+      PRUint32 required = count - *countRead;
+      
+      
+      
+      EnsureBuffer(mOutputQueueBuffer, required, 0, mOutputQueueSize);
+      memcpy(mOutputQueueBuffer.get(), buf + *countRead, required);
+      mOutputQueueUsed = required;
+    }
+    
+    *countRead = count;
+    return NS_OK;
   }
 
   
@@ -1704,13 +1675,9 @@ SpdySession::OnReadSegment(const char *buf,
   
   
   
+  
 
-  if ((mOutputQueueUsed + count) > (mOutputQueueSize - kQueueReserved)) {
-    count = mOutputQueueSize - mOutputQueueUsed;
-    count = (count > kQueueReserved) ? (count - kQueueReserved) : 0;
-  }
-
-  if (!count)
+  if ((mOutputQueueUsed + count) > (mOutputQueueSize - kQueueReserved))
     return NS_BASE_STREAM_WOULD_BLOCK;
   
   memcpy(mOutputQueueBuffer.get() + mOutputQueueUsed, buf, count);
@@ -1718,7 +1685,37 @@ SpdySession::OnReadSegment(const char *buf,
   *countRead = count;
 
   FlushOutputQueue();
-    
+
+  return NS_OK;
+}
+
+nsresult
+SpdySession::CommitToSegmentSize(PRUint32 count)
+{
+  if (mOutputQueueUsed)
+    FlushOutputQueue();
+
+  
+  if ((mOutputQueueUsed + count) <= (mOutputQueueSize - kQueueReserved))
+    return NS_OK;
+  
+  
+  if (mOutputQueueUsed)
+    return NS_BASE_STREAM_WOULD_BLOCK;
+
+  
+  
+  
+  
+  
+  
+
+  EnsureBuffer(mOutputQueueBuffer, count + kQueueReserved, 0, mOutputQueueSize);
+
+  NS_ABORT_IF_FALSE((mOutputQueueUsed + count) <=
+                    (mOutputQueueSize - kQueueReserved),
+                    "buffer not as large as expected");
+
   return NS_OK;
 }
 
@@ -1836,6 +1833,17 @@ SpdySession::TransactionHasDataToWrite(nsAHttpTransaction *caller)
         this, stream->StreamID()));
 
   mReadyForWrite.Push(stream);
+}
+
+void
+SpdySession::TransactionHasDataToWrite(SpdyStream *stream)
+{
+  NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
+  LOG3(("SpdySession::TransactionHasDataToWrite %p stream=%p ID=%x",
+        this, stream, stream->StreamID()));
+
+  mReadyForWrite.Push(stream);
+  SetWriteCallbacks();
 }
 
 nsresult

@@ -164,6 +164,12 @@ public:
   
   void TransactionHasDataToWrite(nsAHttpTransaction *);
 
+  
+  void TransactionHasDataToWrite(SpdyStream *);
+
+  
+  virtual nsresult CommitToSegmentSize(PRUint32 size);
+  
 private:
 
   enum stateType {
@@ -237,11 +243,6 @@ private:
   
   
   nsDeque           mUrgentForWrite;
-
-  
-  
-  
-  SpdyStream        *mPartialFrameSender;
 
   
   
