@@ -329,6 +329,7 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
   
   
   
+  
   if (aPluginTag->mFileName.EqualsIgnoreCase("flash player.plugin")) {
     
     
@@ -341,12 +342,9 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
       if (versionPrefix.EqualsASCII("10.0")) {
         return PR_FALSE;
       }
-    }
-
-    
-    
-    if (GMA9XXGraphics()) {
-      return PR_FALSE;
+      if (versionPrefix.EqualsASCII("10.1") && GMA9XXGraphics()) {
+        return PR_FALSE;
+      }
     }
   }
 #endif
