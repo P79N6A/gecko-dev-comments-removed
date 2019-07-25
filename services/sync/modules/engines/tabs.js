@@ -254,8 +254,13 @@ TabTracker.prototype = {
   observe: function TabTracker_observe(aSubject, aTopic, aData) {
     
     let window = aSubject.QueryInterface(Ci.nsIDOMWindow);
-    if (aTopic == "domwindowopened")
-      this._registerListenersForWindow(window);
+    if (aTopic == "domwindowopened") {
+      let self = this;
+      window.addEventListener("load", function() {
+        
+        self._registerListenersForWindow(window);
+      }, false);
+    }
   },
 
   onTab: function onTab(event) {
