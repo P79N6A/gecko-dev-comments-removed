@@ -46,27 +46,6 @@
 namespace mozilla {
 namespace layers {
 
-
-
-
-
-
-static PRBool
-UseOpaqueSurface(Layer* aLayer)
-{
-  
-  
-  if (aLayer->IsOpaqueContent())
-    return PR_TRUE;
-  
-  
-  
-  
-  ContainerLayer* parent = aLayer->GetParent();
-  return parent && parent->GetFirstChild() == aLayer &&
-         UseOpaqueSurface(parent);
-}
-
 ThebesLayerD3D9::ThebesLayerD3D9(LayerManagerD3D9 *aManager)
   : ThebesLayer(aManager, NULL)
   , LayerD3D9(aManager)
@@ -105,7 +84,7 @@ ThebesLayerD3D9::SetVisibleRegion(const nsIntRegion &aRegion)
     return;
   }
 
-  D3DFORMAT fmt = (UseOpaqueSurface(this) && !mD2DSurface) ?
+  D3DFORMAT fmt = (CanUseOpaqueSurface() && !mD2DSurface) ?
                     D3DFMT_X8R8G8B8 : D3DFMT_A8R8G8B8;
 
   D3DSURFACE_DESC desc;
@@ -199,7 +178,7 @@ ThebesLayerD3D9::RenderLayer()
 
   
   
-  D3DFORMAT fmt = (UseOpaqueSurface(this) && !mD2DSurface) ?
+  D3DFORMAT fmt = (CanUseOpaqueSurface() && !mD2DSurface) ?
                     D3DFMT_X8R8G8B8 : D3DFMT_A8R8G8B8;
 
   if (mTexture) {
@@ -319,7 +298,7 @@ ThebesLayerD3D9::DrawRegion(const nsIntRegion &aRegion)
   }
 #endif
 
-  D3DFORMAT fmt = UseOpaqueSurface(this) ? D3DFMT_X8R8G8B8 : D3DFMT_A8R8G8B8;
+  D3DFORMAT fmt = CanUseOpaqueSurface() ? D3DFMT_X8R8G8B8 : D3DFMT_A8R8G8B8;
   nsIntRect bounds = aRegion.GetBounds();
 
   gfxASurface::gfxImageFormat imageFormat = gfxASurface::ImageFormatARGB32;
@@ -332,7 +311,7 @@ ThebesLayerD3D9::DrawRegion(const nsIntRegion &aRegion)
 
   nsRefPtr<IDirect3DSurface9> surf;
   HDC dc;
-  if (UseOpaqueSurface(this)) {
+  if (CanUseOpaqueSurface()) {
     hr = tmpTexture->GetSurfaceLevel(0, getter_AddRefs(surf));
 
     if (FAILED(hr)) {
@@ -365,7 +344,7 @@ ThebesLayerD3D9::DrawRegion(const nsIntRegion &aRegion)
   LayerManagerD3D9::CallbackInfo cbInfo = mD3DManager->GetCallbackInfo();
   cbInfo.Callback(this, context, aRegion, nsIntRegion(), cbInfo.CallbackData);
 
-  if (UseOpaqueSurface(this)) {
+  if (CanUseOpaqueSurface()) {
     surf->ReleaseDC(dc);
   } else {
     D3DLOCKED_RECT r;
@@ -418,6 +397,7 @@ ThebesLayerD3D9::CreateNewTexture(const gfxIntSize &aSize)
   }
 
   mTexture = nsnull;
+  PRBool canUseOpaqueSurface = CanUseOpaqueSurface();
 #ifdef CAIRO_HAS_D2D_SURFACE
   if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
       gfxWindowsPlatform::RENDER_DIRECT2D) {
@@ -429,7 +409,7 @@ ThebesLayerD3D9::CreateNewTexture(const gfxIntSize &aSize)
                                   D3DPOOL_DEFAULT, getter_AddRefs(mTexture), &sharedHandle);
 
           mD2DSurfaceInitialized = false;
-          mD2DSurface = new gfxD2DSurface(sharedHandle, UseOpaqueSurface(this) ?
+          mD2DSurface = new gfxD2DSurface(sharedHandle, canUseOpaqueSurface ?
             gfxASurface::CONTENT_COLOR : gfxASurface::CONTENT_COLOR_ALPHA);
 
           
@@ -442,7 +422,7 @@ ThebesLayerD3D9::CreateNewTexture(const gfxIntSize &aSize)
 #endif
   if (!mTexture) {
     device()->CreateTexture(aSize.width, aSize.height, 1,
-                            D3DUSAGE_RENDERTARGET, UseOpaqueSurface(this) ? D3DFMT_X8R8G8B8 : D3DFMT_A8R8G8B8,
+                            D3DUSAGE_RENDERTARGET, canUseOpaqueSurface ? D3DFMT_X8R8G8B8 : D3DFMT_A8R8G8B8,
                             D3DPOOL_DEFAULT, getter_AddRefs(mTexture), NULL);
   }
 }
