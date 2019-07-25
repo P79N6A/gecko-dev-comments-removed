@@ -2038,6 +2038,11 @@ nsGfxScrollFrameInner::GetScrollbarStylesFromFrame() const
                        result.mHorizontal);
       HandleScrollPref(scrollable, nsIScrollable::ScrollOrientation_Y,
                        result.mVertical);
+      
+      
+      
+      
+      return result;
     }
   } else {
     const nsStyleDisplay *disp = mOuter->GetStyleDisplay();
