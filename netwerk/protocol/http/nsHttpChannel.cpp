@@ -3661,6 +3661,10 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
         (BYPASS_LOCAL_CACHE(mLoadFlags)))
         mCaps |= NS_HTTP_REFRESH_DNS;
 
+    
+    if (mLoadFlags & LOAD_BYPASS_CACHE)
+        mCaps |= NS_HTTP_CLEAR_KEEPALIVES;
+    
     mIsPending = PR_TRUE;
     mWasOpened = PR_TRUE;
 
@@ -3964,6 +3968,9 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
     LOG(("nsHttpChannel::OnStopRequest [this=%p request=%p status=%x]\n",
         this, request, status));
 
+     
+     PRBool contentComplete = NS_SUCCEEDED(status);
+
     
     if (mCanceled || NS_FAILED(mStatus))
         status = mStatus;
@@ -4056,7 +4063,7 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
     }
 
     if (mCacheEntry)
-        CloseCacheEntry(PR_TRUE);
+        CloseCacheEntry(!contentComplete);
 
     if (mOfflineCacheEntry)
         CloseOfflineCacheEntry();
