@@ -1402,11 +1402,9 @@ nsDOMImplementation::CreateDocumentType(const nsAString& aQualifiedName,
   NS_ENSURE_TRUE(name, NS_ERROR_OUT_OF_MEMORY);
 
   
-  nsAutoString voidString;
-  voidString.SetIsVoid(true);
   return NS_NewDOMDocumentType(aReturn, mOwner->NodeInfoManager(),
                                name, aPublicId,
-                               aSystemId, voidString);
+                               aSystemId, NullString());
 }
 
 NS_IMETHODIMP
@@ -1461,14 +1459,12 @@ nsDOMImplementation::CreateHTMLDocument(const nsAString& aTitle,
 
   nsCOMPtr<nsIDOMDocumentType> doctype;
   
-  nsAutoString voidString;
-  voidString.SetIsVoid(true);
   nsresult rv = NS_NewDOMDocumentType(getter_AddRefs(doctype),
                                       mOwner->NodeInfoManager(),
                                       nsGkAtoms::html, 
                                       EmptyString(), 
                                       EmptyString(), 
-                                      voidString); 
+                                      NullString()); 
   NS_ENSURE_SUCCESS(rv, rv);
 
 

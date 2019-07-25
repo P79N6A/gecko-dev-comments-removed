@@ -368,6 +368,9 @@ StringEndsWith( const nsACString& aSource, const nsACString& aSubstring,
 const nsAFlatString& EmptyString();
 const nsAFlatCString& EmptyCString();
 
+const nsAFlatString& NullString();
+const nsAFlatCString& NullCString();
+
    
 
 
