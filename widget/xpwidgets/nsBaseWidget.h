@@ -270,6 +270,15 @@ protected:
                                               PRUint32 aModifierFlags)
   { return NS_ERROR_UNEXPECTED; }
 
+  virtual nsresult SynthesizeNativeMouseScrollEvent(nsIntPoint aPoint,
+                                                    PRUint32 aNativeMessage,
+                                                    double aDeltaX,
+                                                    double aDeltaY,
+                                                    double aDeltaZ,
+                                                    PRUint32 aModifierFlags,
+                                                    PRUint32 aAdditionalFlags)
+  { return NS_ERROR_UNEXPECTED; }
+
   
   
   bool StoreWindowClipRegion(const nsTArray<nsIntRect>& aRects);
