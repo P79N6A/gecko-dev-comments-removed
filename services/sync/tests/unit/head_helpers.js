@@ -367,10 +367,6 @@ function ensureThrows(func) {
   };
 }
 
-function asyncChainTests() {
-  return Utils.asyncChain.apply(this, Array.map(arguments, ensureThrows));
-}
-
 
 
 
