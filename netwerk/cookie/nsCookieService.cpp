@@ -357,7 +357,6 @@ LogSuccess(PRBool aSetCookie, nsIURI *aHostURI, const nsAFlatCString &aCookieStr
 #define NS_ASSERT_SUCCESS(res) PR_BEGIN_MACRO /* nothing */ PR_END_MACRO
 #endif
 
-namespace {
 
 
 
@@ -392,7 +391,6 @@ NS_IMPL_ISUPPORTS1(DBListenerErrorHandler, mozIStorageStatementCallback)
 
 
 
-
 class InsertCookieDBListener : public DBListenerErrorHandler
 {
 protected:
@@ -409,7 +407,6 @@ public:
     return NS_OK;
   }
 };
-
 
 
 
@@ -436,7 +433,6 @@ public:
 
 
 
-
 class RemoveCookieDBListener :  public DBListenerErrorHandler
 {
 protected:
@@ -450,6 +446,77 @@ public:
   }
   NS_IMETHOD HandleCompletion(PRUint16 aReason)
   {
+    return NS_OK;
+  }
+};
+
+
+
+
+
+class ReadCookieDBListener :  public DBListenerErrorHandler
+{
+protected:
+  virtual const char *GetOpType() { return "READ"; }
+  bool mCanceled;
+
+public:
+  ReadCookieDBListener() : mCanceled(PR_FALSE) { }
+
+  void Cancel() { mCanceled = true; }
+
+  NS_IMETHOD HandleResult(mozIStorageResultSet *aResult)
+  {
+    nsresult rv;
+    nsCOMPtr<mozIStorageRow> row;
+    nsTArray<CookieDomainTuple> &cookieArray =
+      nsCookieService::gCookieService->mDefaultDBState.hostArray;
+
+    while (1) {
+      rv = aResult->GetNextRow(getter_AddRefs(row));
+      NS_ASSERT_SUCCESS(rv);
+
+      if (!row)
+        break;
+
+      CookieDomainTuple *tuple = cookieArray.AppendElement();
+      nsCookieService::gCookieService->ReadRow(row, *tuple);
+    }
+
+    return NS_OK;
+  }
+  NS_IMETHOD HandleCompletion(PRUint16 aReason)
+  {
+    
+    
+    
+    
+    
+    
+
+    if (mCanceled) {
+      
+      
+      aReason = mozIStorageStatementCallback::REASON_CANCELED;
+    }
+
+    switch (aReason) {
+    case mozIStorageStatementCallback::REASON_FINISHED:
+      nsCookieService::gCookieService->ReadComplete();
+      break;
+    case mozIStorageStatementCallback::REASON_CANCELED:
+      
+      
+      COOKIE_LOGSTRING(PR_LOG_DEBUG, ("Read canceled"));
+      break;
+    case mozIStorageStatementCallback::REASON_ERROR:
+      
+      
+      COOKIE_LOGSTRING(PR_LOG_DEBUG, ("Read error"));
+      break;
+    default:
+      NS_NOTREACHED("invalid reason");
+    }
     return NS_OK;
   }
 };
@@ -477,8 +544,6 @@ public:
 };
 
 NS_IMPL_ISUPPORTS1(CloseCookieDBListener, mozIStorageCompletionCallback)
-
-} 
 
 
 
@@ -901,6 +966,20 @@ nsCookieService::CloseDB()
   mDefaultDBState.stmtDelete = nsnull;
   mDefaultDBState.stmtUpdate = nsnull;
   if (mDefaultDBState.dbConn) {
+    
+    
+    if (mDefaultDBState.pendingRead) {
+      NS_ASSERTION(mDefaultDBState.readListener, "no read listener");
+
+      mDefaultDBState.readListener->Cancel();
+      nsresult rv = mDefaultDBState.pendingRead->Cancel();
+      NS_ASSERT_SUCCESS(rv);
+
+      mDefaultDBState.pendingRead = nsnull;
+      mDefaultDBState.readListener = nsnull;
+      mDefaultDBState.hostArray.Clear();
+    }
+
     mDefaultDBState.dbConn->AsyncClose(mCloseListener);
     mDefaultDBState.dbConn = nsnull;
   }
@@ -1329,28 +1408,9 @@ nsCookieService::Remove(const nsACString &aHost,
 nsresult
 nsCookieService::Read()
 {
-  nsresult rv;
-
-  
-  {
-    
-    nsCOMPtr<mozIStorageStatement> stmtDeleteExpired;
-    rv = mDBState->dbConn->CreateStatement(NS_LITERAL_CSTRING(
-      "DELETE FROM moz_cookies WHERE expiry <= ?1"),
-      getter_AddRefs(stmtDeleteExpired));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = stmtDeleteExpired->BindInt64ByIndex(0, PR_Now() / PR_USEC_PER_SEC);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    PRBool hasResult;
-    rv = stmtDeleteExpired->ExecuteStep(&hasResult);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
   
   nsCOMPtr<mozIStorageStatement> stmt;
-  rv = mDBState->dbConn->CreateStatement(NS_LITERAL_CSTRING(
+  nsresult rv = mDefaultDBState.dbConn->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT "
       "id, "
       "name, "
@@ -1365,49 +1425,58 @@ nsCookieService::Read()
     "FROM moz_cookies"), getter_AddRefs(stmt));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCAutoString baseDomain, name, value, host, path;
-  PRBool hasResult;
-  while (NS_SUCCEEDED(rv = stmt->ExecuteStep(&hasResult)) && hasResult) {
-    PRInt64 creationID = stmt->AsInt64(0);
+  nsRefPtr<ReadCookieDBListener> readListener = new ReadCookieDBListener;
+  rv = stmt->ExecuteAsync(readListener,
+                          getter_AddRefs(mDefaultDBState.pendingRead));
+  NS_ASSERT_SUCCESS(rv);
 
-    stmt->GetUTF8String(1, name);
-    stmt->GetUTF8String(2, value);
-    stmt->GetUTF8String(3, host);
-    stmt->GetUTF8String(4, path);
+  mDefaultDBState.readListener = readListener;
+  return NS_OK;
+}
 
-    PRInt64 expiry = stmt->AsInt64(5);
-    PRInt64 lastAccessed = stmt->AsInt64(6);
-    PRBool isSecure = 0 != stmt->AsInt32(7);
-    PRBool isHttpOnly = 0 != stmt->AsInt32(8);
+void
+nsCookieService::ReadRow(mozIStorageRow *aRow, CookieDomainTuple &aTuple)
+{
+  PRInt64 creationID = aRow->AsInt64(0);
 
-    stmt->GetUTF8String(9, baseDomain);
+  nsCString name, value, host, path;
+  aRow->GetUTF8String(1, name);
+  aRow->GetUTF8String(2, value);
+  aRow->GetUTF8String(3, host);
+  aRow->GetUTF8String(4, path);
 
-    
-    nsCookie* newCookie =
-      nsCookie::Create(name, value, host, path,
-                       expiry,
-                       lastAccessed,
-                       creationID,
-                       PR_FALSE,
-                       isSecure,
-                       isHttpOnly);
-    if (!newCookie)
-      return NS_ERROR_OUT_OF_MEMORY;
+  PRInt64 expiry = aRow->AsInt64(5);
+  PRInt64 lastAccessed = aRow->AsInt64(6);
+  PRBool isSecure = 0 != aRow->AsInt32(7);
+  PRBool isHttpOnly = 0 != aRow->AsInt32(8);
 
-    if (!AddCookieToList(baseDomain, newCookie, NULL, PR_FALSE))
-      
-      
-      
-      
-      
-      
-      
-      delete newCookie;
+  aRow->GetUTF8String(9, aTuple.baseDomain);
+
+  
+  aTuple.cookie =
+    nsCookie::Create(name, value, host, path,
+                     expiry,
+                     lastAccessed,
+                     creationID,
+                     PR_FALSE,
+                     isSecure,
+                     isHttpOnly);
+}
+
+void
+nsCookieService::ReadComplete()
+{
+  for (PRUint32 i = 0; i < mDefaultDBState.hostArray.Length(); ++i) {
+    const CookieDomainTuple &tuple = mDefaultDBState.hostArray[i];
+    AddCookieToList(tuple.baseDomain, tuple.cookie, NULL, PR_FALSE);
   }
 
-  COOKIE_LOGSTRING(PR_LOG_DEBUG, ("Read(): %ld cookies read", mDBState->cookieCount));
+  mDefaultDBState.hostArray.Clear();
+  mDefaultDBState.pendingRead = nsnull;
+  mDefaultDBState.readListener = nsnull;
 
-  return rv;
+  COOKIE_LOGSTRING(PR_LOG_DEBUG, ("Read(): %ld cookies read",
+                                  mDefaultDBState.cookieCount));
 }
 
 NS_IMETHODIMP
@@ -3015,7 +3084,7 @@ bindCookieParameters(mozIStorageBindingParamsArray *aParamsArray,
   NS_ASSERT_SUCCESS(rv);
 }
 
-PRBool
+void
 nsCookieService::AddCookieToList(const nsCString               &aBaseDomain,
                                  nsCookie                      *aCookie,
                                  mozIStorageBindingParamsArray *aParamsArray,
@@ -3027,10 +3096,7 @@ nsCookieService::AddCookieToList(const nsCString               &aBaseDomain,
                "Do not have a DB connection but have a params array?");
 
   nsCookieEntry *entry = mDBState->hostTable.PutEntry(aBaseDomain);
-  if (!entry) {
-    NS_ERROR("can't insert element into a null entry!");
-    return PR_FALSE;
-  }
+  NS_ASSERTION(entry, "can't insert element into a null entry!");
 
   entry->GetCookies().AppendElement(aCookie);
   ++mDBState->cookieCount;
@@ -3058,8 +3124,6 @@ nsCookieService::AddCookieToList(const nsCString               &aBaseDomain,
       NS_ASSERT_SUCCESS(rv);
     }
   }
-
-  return PR_TRUE;
 }
 
 void
