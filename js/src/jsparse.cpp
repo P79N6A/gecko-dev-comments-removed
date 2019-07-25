@@ -2536,9 +2536,10 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
 }
 
 JSParseNode *
-Parser::functionDef(uintN lambda, bool namePermitted)
+Parser::functionDef(JSAtom *funAtom, uintN lambda)
 {
     
+    tokenStream.mungeCurrentToken(TOK_FUNCTION, JSOP_NOP);
     JSParseNode *pn = FunctionNode::create(tc);
     if (!pn)
         return NULL;
@@ -2555,21 +2556,6 @@ Parser::functionDef(uintN lambda, bool namePermitted)
 
     bool topLevel = tc->atTopLevel();
     pn->pn_dflags = (lambda || !topLevel) ? PND_FUNARG : 0;
-
-    
-    JSAtom *funAtom = NULL;
-    if (namePermitted) {
-        TokenKind tt = tokenStream.getToken(TSF_KEYWORD_IS_NAME);
-        if (tt == TOK_NAME) {
-            funAtom = tokenStream.currentToken().t_atom;
-        } else {
-            if (lambda == 0 && (context->options & JSOPTION_ANONFUNFIX)) {
-                reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_SYNTAX_ERROR);
-                return NULL;
-            }
-            tokenStream.ungetToken();
-        }
-    }
 
     
 
@@ -2951,13 +2937,29 @@ Parser::functionDef(uintN lambda, bool namePermitted)
 JSParseNode *
 Parser::functionStmt()
 {
-    return functionDef(0, true);
+    JSAtom *name = NULL;
+    if (tokenStream.getToken(TSF_KEYWORD_IS_NAME) == TOK_NAME) {
+        name = tokenStream.currentToken().t_atom;
+    } else {
+        if (context->options & JSOPTION_ANONFUNFIX) {
+            
+            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_SYNTAX_ERROR);
+            return NULL;
+        }
+        tokenStream.ungetToken();
+    }
+    return functionDef(name, 0);
 }
 
 JSParseNode *
 Parser::functionExpr()
 {
-    return functionDef(JSFUN_LAMBDA, true);
+    JSAtom *name = NULL;
+    if (tokenStream.getToken(TSF_KEYWORD_IS_NAME) == TOK_NAME)
+        name = tokenStream.currentToken().t_atom;
+    else
+        tokenStream.ungetToken();
+    return functionDef(name, JSFUN_LAMBDA);
 }
 
 
@@ -7924,8 +7926,7 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
                     }
 
                     
-                    tokenStream.mungeCurrentToken(TOK_FUNCTION, JSOP_NOP);
-                    pn2 = functionDef(JSFUN_LAMBDA, false);
+                    pn2 = functionDef(NULL, JSFUN_LAMBDA);
                     pn2 = JSParseNode::newBinaryOrAppend(TOK_COLON, op, pn3, pn2, tc);
                     goto skip;
                 }
