@@ -181,9 +181,6 @@ CompositorParent::Composite()
   printf_stderr("Correcting for position fixed %i, %i\n", -mScrollOffset.x, -mScrollOffset.y);
   ViewTransform v(mScrollOffset, mXScale, mYScale);
   TransformShadowTree(layer, v);
-#else
-  Layer* layer = mLayerManager->GetRoot();
-  
 #endif
 
   mLayerManager->EndEmptyTransaction();
@@ -329,33 +326,6 @@ CompositorParent::AsyncRender()
   if (!root) {
     return;
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if 0
-  ViewTransform transform;
-  TransformShadowTree(root, transform);
-#endif
 
   ScheduleComposition();
 }

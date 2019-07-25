@@ -1095,32 +1095,6 @@ AndroidBridge::ProvideEGLSurface()
     return sController.ProvideEGLSurface();
 }
 
-void
-AndroidBridge::PerformPreRenderHook()
-{
-    JNIEnv *env = GetJNIForThread();
-    if (!env) {
-        return;
-    }
-
-    AutoLocalJNIFrame jniFrame(env, 3);
-
-    
-}
-
-void
-AndroidBridge::PerformPostRenderHook()
-{
-    JNIEnv *env = GetJNIForThread();
-    if (!env) {
-        return;
-    }
-
-    AutoLocalJNIFrame jniFrame(env, 3);
-
-    
-}
-
 bool
 AndroidBridge::GetStaticIntField(const char *className, const char *fieldName, PRInt32* aInt)
 {
