@@ -102,7 +102,7 @@ Utils.lazy(Weave, 'Service', WeaveSvc);
 
 
 
-function WeaveSvc(engines) {
+function WeaveSvc() {
   this._startupFinished = false;
   this._initLogs();
   this._log.info("Weave Sync Service Initializing");
@@ -116,19 +116,13 @@ function WeaveSvc(engines) {
   ID.setAlias('WeaveID', 'DAV:default');
   ID.setAlias('WeaveCryptoID', 'Engine:PBE:default');
 
-  if (typeof engines == "undefined")
-    engines = [
-      new BookmarksEngine(),
-      new HistoryEngine(),
-      new CookieEngine(),
-      new PasswordEngine(),
-      new FormEngine(),
-      new TabEngine()
-    ];
-
   
-  for (let i = 0; i < engines.length; i++)
-    Engines.register(engines[i]);
+  Engines.register(new BookmarksEngine());
+  Engines.register(new HistoryEngine());
+  Engines.register(new CookieEngine());
+  Engines.register(new PasswordEngine());
+  Engines.register(new FormEngine());
+  Engines.register(new TabEngine());
 
   
   Utils.prefs.addObserver("", this, false);
@@ -452,8 +446,6 @@ WeaveSvc.prototype = {
     let success = yield;
     if (!success) {
       try {
-        
-        
         this._checkUserDir.async(this, self.cb);
         yield;
       } catch (e) {  }
@@ -672,7 +664,6 @@ WeaveSvc.prototype = {
 
 
 
-    dump( "This fails with an Exception: cannot aquire internal lock.\n" );
     this._lock(this._notify(messageName,
                             this._shareData,
                             dataType,
@@ -683,6 +674,7 @@ WeaveSvc.prototype = {
   _shareData: function WeaveSync__shareData(dataType,
 					    guid,
 					    username) {
+    dump( "in _shareData...\n" );
     let self = yield;
     if (!Engines.get(dataType).enabled) {
       this._log.warn( "Can't share disabled data type: " + dataType );
