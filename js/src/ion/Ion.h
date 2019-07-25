@@ -84,7 +84,7 @@ struct IonOptions
         gvn(true),
         gvnIsOptimistic(true),
         licm(true),
-        lsra(false)
+        lsra(true)
     { }
 };
 
