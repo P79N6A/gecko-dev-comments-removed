@@ -596,12 +596,14 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
 
 
 
+#ifdef JS_METHODJIT
         if (types.inferenceEnabled) {
             for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
                 JSScript *script = i.get<JSScript>();
                 mjit::ReleaseScriptCode(cx, script);
             }
         }
+#endif
     } else {
         
 
