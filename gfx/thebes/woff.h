@@ -42,7 +42,7 @@
 
 #ifdef _MSC_VER 
 
-typedef char           int8_t;
+typedef signed char    int8_t;
 typedef short          int16_t;
 typedef int            int32_t;
 typedef unsigned char  uint8_t;
@@ -81,8 +81,9 @@ enum {
 
   eWOFF_warn_unpadded_table = 0x1000,    
 
-  eWOFF_warn_removed_DSIG = 0x2000       
+  eWOFF_warn_removed_DSIG = 0x2000,      
 
+  eWOFF_warn_no_such_table = 0x4000      
 };
 
 
@@ -164,6 +165,23 @@ void woffDecodeToBuffer(const uint8_t * woffData, uint32_t woffLen,
 
 const uint8_t * woffDecode(const uint8_t * woffData, uint32_t woffLen,
                            uint32_t * sfntLen, uint32_t * status);
+
+
+
+
+
+uint32_t woffGetTableSize(const uint8_t * woffData, uint32_t woffLen,
+                          uint32_t tag, uint32_t * pStatus);
+
+
+
+
+
+
+
+void woffGetTableToBuffer(const uint8_t * woffData, uint32_t woffLen,
+                          uint32_t tag, uint8_t * buffer, uint32_t bufferLen,
+                          uint32_t * pTableLen, uint32_t * pStatus);
 
 
 

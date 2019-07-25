@@ -921,21 +921,6 @@ nsresult gfxFontUtils::MakeUniqueUserFontName(nsAString& aName)
 
 #pragma pack(1)
 
-struct SFNTHeader {
-    AutoSwap_PRUint32    sfntVersion;            
-    AutoSwap_PRUint16    numTables;              
-    AutoSwap_PRUint16    searchRange;            
-    AutoSwap_PRUint16    entrySelector;          
-    AutoSwap_PRUint16    rangeShift;             
-};
-
-struct TableDirEntry {
-    AutoSwap_PRUint32    tag;                    
-    AutoSwap_PRUint32    checkSum;               
-    AutoSwap_PRUint32    offset;                 
-    AutoSwap_PRUint32    length;                 
-};
-
 
 
 

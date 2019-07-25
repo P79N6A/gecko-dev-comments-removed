@@ -418,6 +418,12 @@ gfxMacFont::GetFontTable(PRUint32 aTag)
                               DestroyBlobFunc, (void*)dataRef);
     }
 
+    if (mFontEntry->IsUserFont() && !mFontEntry->IsLocalUserFont()) {
+        
+        
+        return mFontEntry->GetFontTable(aTag);
+    }
+
     return nsnull;
 }
 

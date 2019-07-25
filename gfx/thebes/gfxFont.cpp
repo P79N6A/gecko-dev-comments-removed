@@ -242,6 +242,30 @@ gfxFontEntry::GetFontTable(PRUint32 aTag)
     return nsnull;
 }
 
+void
+gfxFontEntry::PreloadFontTable(PRUint32 aTag, nsTArray<PRUint8>& aTable)
+{
+    if (!mFontTableCache.IsInitialized()) {
+        
+        
+        
+        mFontTableCache.Init(3);
+    }
+
+    FontTableCacheEntry *entry = nsnull;
+    if (mFontTableCache.Get(aTag, &entry)) {
+        
+        
+        NS_NOTREACHED("can't preload table, already present in cache!");
+        return;
+    }
+
+    
+    entry = new FontTableCacheEntry(aTable, aTag, mFontTableCache);
+    if (!mFontTableCache.Put(aTag, entry)) {
+        NS_WARNING("failed to cache font table!");
+    }
+}
 
 
 

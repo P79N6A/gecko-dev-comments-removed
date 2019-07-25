@@ -233,7 +233,12 @@ public:
     
 
 
-    virtual PRBool DownloadableFontsEnabled();
+    PRBool DownloadableFontsEnabled();
+
+    
+
+
+    PRBool SanitizeDownloadedFonts();
 
     
 
@@ -355,6 +360,7 @@ protected:
                             eFontPrefLang aCharLang, eFontPrefLang aPageLang);
                                                
     PRBool  mAllowDownloadableFonts;
+    PRBool  mDownloadableFontsSanitize;
 
     
     PRInt8  mUseHarfBuzzLevel;

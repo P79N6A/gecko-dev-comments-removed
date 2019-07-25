@@ -299,6 +299,11 @@ public:
     
     virtual hb_blob_t *GetFontTable(PRUint32 aTag);
 
+    
+    
+    
+    void PreloadFontTable(PRUint32 aTag, nsTArray<PRUint8>& aTable);
+
     nsString         mName;
 
     PRPackedBool     mItalic      : 1;
