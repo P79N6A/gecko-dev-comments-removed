@@ -880,7 +880,7 @@ struct TypeObject : gc::Cell
 
 
 
-    inline HeapTypeSet *getProperty(JSContext *cx, jsid id, bool assign);
+    inline HeapTypeSet *getProperty(JSContext *cx, jsid id, bool own);
 
     
     inline HeapTypeSet *maybeGetProperty(JSContext *cx, jsid id);

@@ -1089,7 +1089,8 @@ PropertyAccess(JSContext *cx, JSScript *script, jsbytecode *pc, TypeObject *obje
     }
 
     
-    HeapTypeSet *types = object->getProperty(cx, id, access == PROPERTY_WRITE);
+
+    HeapTypeSet *types = object->getProperty(cx, id, false);
     if (!types)
         return;
     if (access == PROPERTY_WRITE) {

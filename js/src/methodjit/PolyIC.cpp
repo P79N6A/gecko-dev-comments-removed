@@ -274,8 +274,14 @@ class SetPropCompiler : public PICStubCompiler
 
         pic.setPropLabels().setStubShapeJump(masm, start, stubShapeJumpLabel);
 
-        if (pic.typeMonitored) {
+        if (pic.typeMonitored || adding) {
             
+
+
+
+
+
+
 
 
 
