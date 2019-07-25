@@ -1176,31 +1176,61 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
                                     const nsRect& aFrameArea,
                                     const nsRect& aDirtyRect)
 {
-  nsCSSShadowArray* shadows = aForFrame->GetStyleBorder()->mBoxShadow;
+  const nsStyleBorder* styleBorder = aForFrame->GetStyleBorder();
+  nsCSSShadowArray* shadows = styleBorder->mBoxShadow;
   if (!shadows)
     return;
-  const nsStyleBorder* styleBorder = aForFrame->GetStyleBorder();
-  PRIntn sidesToSkip = aForFrame->GetSkipSides();
-
-  
-  nscoord twipsRadii[8];
-  PRBool hasBorderRadius = GetBorderRadiusTwips(styleBorder->mBorderRadius,
-                                                aFrameArea.width, twipsRadii);
   nscoord twipsPerPixel = aPresContext->DevPixelsToAppUnits(1);
 
+  PRBool hasBorderRadius;
+  PRBool nativeTheme; 
   gfxCornerSizes borderRadii;
-  ComputePixelRadii(twipsRadii, aFrameArea, sidesToSkip,
-                    twipsPerPixel, &borderRadii);
 
-  gfxRect frameGfxRect = RectToGfxRect(aFrameArea, twipsPerPixel);
+  
+  const nsStyleDisplay* styleDisplay = aForFrame->GetStyleDisplay();
+  nsITheme::Transparency transparency;
+  if (aForFrame->IsThemed(styleDisplay, &transparency)) {
+    
+    hasBorderRadius = PR_FALSE;
+    
+    
+    nativeTheme = transparency != nsITheme::eOpaque;
+  } else {
+    nativeTheme = PR_FALSE;
+    nscoord twipsRadii[8];
+    hasBorderRadius =
+      GetBorderRadiusTwips(styleBorder->mBorderRadius,
+                           aFrameArea.width, twipsRadii);
+    if (hasBorderRadius) {
+      PRIntn sidesToSkip = aForFrame->GetSkipSides();
+      ComputePixelRadii(twipsRadii, aFrameArea, sidesToSkip, twipsPerPixel,
+                        &borderRadii);
+    }
+  }
+
+  nsRect frameRect =
+    nativeTheme ? aForFrame->GetOverflowRectRelativeToSelf() + aFrameArea.TopLeft() : aFrameArea;
+  gfxRect frameGfxRect = RectToGfxRect(frameRect, twipsPerPixel);
   frameGfxRect.Round();
 
   
   
   gfxRect skipGfxRect = frameGfxRect;
-  if (hasBorderRadius) {
-    skipGfxRect.Inset(PR_MAX(borderRadii[C_TL].height, borderRadii[C_TR].height), 0,
-                      PR_MAX(borderRadii[C_BL].height, borderRadii[C_BR].height), 0);
+  PRBool useSkipGfxRect = PR_TRUE;
+  if (nativeTheme) {
+    
+    
+    
+    
+    
+    useSkipGfxRect = !aForFrame->IsLeaf();
+    nsRect paddingRect =
+      aForFrame->GetPaddingRect() - aForFrame->GetPosition() + aFrameArea.TopLeft();
+    skipGfxRect = RectToGfxRect(paddingRect, twipsPerPixel);
+  } else if (hasBorderRadius) {
+    skipGfxRect.Inset(
+        PR_MAX(borderRadii[C_TL].height, borderRadii[C_TR].height), 0,
+        PR_MAX(borderRadii[C_BL].height, borderRadii[C_BR].height), 0);
   }
 
   for (PRUint32 i = shadows->Length(); i > 0; --i) {
@@ -1208,9 +1238,15 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
     if (shadowItem->mInset)
       continue;
 
-    nsRect shadowRect = aFrameArea;
+    nsRect shadowRect = frameRect;
     shadowRect.MoveBy(shadowItem->mXOffset, shadowItem->mYOffset);
-    shadowRect.Inflate(shadowItem->mSpread, shadowItem->mSpread);
+    nscoord pixelSpreadRadius;
+    if (nativeTheme) {
+      pixelSpreadRadius = shadowItem->mSpread;
+    } else {
+      shadowRect.Inflate(shadowItem->mSpread, shadowItem->mSpread);
+      pixelSpreadRadius = 0;
+    }
 
     
     
@@ -1227,8 +1263,15 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
     nsRefPtr<gfxContext> shadowContext;
     nsContextBoxBlur blurringArea;
 
-    shadowContext = blurringArea.Init(shadowRect, 0, blurRadius, twipsPerPixel, renderContext,
-                                      aDirtyRect, &skipGfxRect);
+    
+    
+    
+    
+    shadowContext = 
+      blurringArea.Init(shadowRect, pixelSpreadRadius,
+                        blurRadius, twipsPerPixel, renderContext, aDirtyRect,
+                        useSkipGfxRect ? &skipGfxRect : nsnull,
+                        nativeTheme ? nsContextBoxBlur::FORCE_MASK : 0);
     if (!shadowContext)
       continue;
 
@@ -1244,53 +1287,70 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
 
     
     
-    renderContext->NewPath();
-    renderContext->Rectangle(shadowGfxRectPlusBlur);
-    if (hasBorderRadius)
-      renderContext->RoundedRectangle(frameGfxRect, borderRadii);
-    else
-      renderContext->Rectangle(frameGfxRect);
-    renderContext->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
-    renderContext->Clip();
-
     
     
     
-    
-    
-    shadowContext->NewPath();
-    if (hasBorderRadius) {
-      gfxCornerSizes clipRectRadii;
-      gfxFloat spreadDistance = -shadowItem->mSpread / twipsPerPixel;
-      gfxFloat borderSizes[4] = {0, 0, 0, 0};
-
+    if (nativeTheme) {
       
       
+
       
-      
-      if (borderRadii[C_TL].width > 0 || borderRadii[C_BL].width > 0) {
-        borderSizes[NS_SIDE_LEFT] = spreadDistance;
-      }
-
-      if (borderRadii[C_TL].height > 0 || borderRadii[C_TR].height > 0) {
-        borderSizes[NS_SIDE_TOP] = spreadDistance;
-      }
-
-      if (borderRadii[C_TR].width > 0 || borderRadii[C_BR].width > 0) {
-        borderSizes[NS_SIDE_RIGHT] = spreadDistance;
-      }
-
-      if (borderRadii[C_BL].height > 0 || borderRadii[C_BR].height > 0) {
-        borderSizes[NS_SIDE_BOTTOM] = spreadDistance;
-      }
-
-      nsCSSBorderRenderer::ComputeInnerRadii(borderRadii, borderSizes,
-                                             &clipRectRadii);
-      shadowContext->RoundedRectangle(shadowGfxRect, clipRectRadii);
+      gfxContextMatrixAutoSaveRestore save(shadowContext);
+      nsIDeviceContext* devCtx = aPresContext->DeviceContext();
+      nsCOMPtr<nsIRenderingContext> wrapperCtx;
+      devCtx->CreateRenderingContextInstance(*getter_AddRefs(wrapperCtx));
+      wrapperCtx->Init(devCtx, shadowContext);
+      wrapperCtx->Translate(shadowItem->mXOffset, shadowItem->mYOffset);
+      aPresContext->GetTheme()->DrawWidgetBackground(wrapperCtx, aForFrame,
+          styleDisplay->mAppearance, aFrameArea, frameRect);
     } else {
-      shadowContext->Rectangle(shadowGfxRect);
+      
+      
+      renderContext->NewPath();
+      renderContext->Rectangle(shadowGfxRectPlusBlur);
+      if (hasBorderRadius) {
+        renderContext->RoundedRectangle(frameGfxRect, borderRadii);
+      } else {
+        renderContext->Rectangle(frameGfxRect);
+      }
+
+      renderContext->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
+      renderContext->Clip();
+
+      shadowContext->NewPath();
+      if (hasBorderRadius) {
+        gfxCornerSizes clipRectRadii;
+        gfxFloat spreadDistance = -shadowItem->mSpread / twipsPerPixel;
+        gfxFloat borderSizes[4] = { 0, 0, 0, 0 };
+
+        
+        
+        
+        
+        if (borderRadii[C_TL].width > 0 || borderRadii[C_BL].width > 0) {
+          borderSizes[NS_SIDE_LEFT] = spreadDistance;
+        }
+
+        if (borderRadii[C_TL].height > 0 || borderRadii[C_TR].height > 0) {
+          borderSizes[NS_SIDE_TOP] = spreadDistance;
+        }
+
+        if (borderRadii[C_TR].width > 0 || borderRadii[C_BR].width > 0) {
+          borderSizes[NS_SIDE_RIGHT] = spreadDistance;
+        }
+
+        if (borderRadii[C_BL].height > 0 || borderRadii[C_BR].height > 0) {
+          borderSizes[NS_SIDE_BOTTOM] = spreadDistance;
+        }
+
+        nsCSSBorderRenderer::ComputeInnerRadii(borderRadii, borderSizes,
+            &clipRectRadii);
+        shadowContext->RoundedRectangle(shadowGfxRect, clipRectRadii);
+      } else {
+        shadowContext->Rectangle(shadowGfxRect);
+      }
+      shadowContext->Fill();
     }
-    shadowContext->Fill();
 
     blurringArea.DoPaint();
     renderContext->Restore();
@@ -1304,10 +1364,18 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
                                     const nsRect& aFrameArea,
                                     const nsRect& aDirtyRect)
 {
-  nsCSSShadowArray* shadows = aForFrame->GetStyleBorder()->mBoxShadow;
+  const nsStyleBorder* styleBorder = aForFrame->GetStyleBorder();
+  nsCSSShadowArray* shadows = styleBorder->mBoxShadow;
   if (!shadows)
     return;
-  const nsStyleBorder* styleBorder = aForFrame->GetStyleBorder();
+  if (aForFrame->IsThemed() && aForFrame->GetContent() &&
+      !nsContentUtils::IsChromeDoc(aForFrame->GetContent()->GetCurrentDoc())) {
+    
+    
+    
+    
+    return;
+  }
 
   
   nscoord twipsRadii[8];
