@@ -899,12 +899,16 @@ private void CancelNotification()
             int    nStart = 0;
 
             
-            if (workingString.startsWith("\""))
+            if (workingString.startsWith("\"") || workingString.startsWith("'"))
                 {
+                char quoteChar = '"';
+                if (workingString.startsWith("\'"))
+                    quoteChar = '\'';
+
                 
                 nStart = 1;
                 
-                nEnd = workingString.indexOf('"', nStart);
+                nEnd = workingString.indexOf(quoteChar, nStart);
 
                 char prevChar;
 
@@ -917,7 +921,7 @@ private void CancelNotification()
                         
                         nEnd++;
                         if (nEnd < nLength)
-                            nEnd = workingString.indexOf('"', nEnd);
+                            nEnd = workingString.indexOf(quoteChar, nEnd);
                         else
                             nEnd = -1;
                         }
@@ -949,15 +953,10 @@ private void CancelNotification()
             workingString2 = workingString.substring(nStart, nEnd);
 
             
-            if (workingString2.contains("\\\""))
+            while (workingString2.contains("\\\"") || workingString2.contains("\\'"))
                 {
-                do
-                    {
-                    
-                    workingString3 = workingString2.replace("\\\"", "\"");
-                    workingString2 = workingString3;
-                    }
-                while(workingString2.contains("\\\""));
+                    workingString2 = workingString2.replace("\\\"", "\"");
+                    workingString2 = workingString2.replace("\\'", "'");
                 }
 
             
