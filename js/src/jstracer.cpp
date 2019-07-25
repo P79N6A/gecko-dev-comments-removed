@@ -14774,28 +14774,37 @@ TraceRecorder::record_JSOP_MOREITER()
     LIns* cond_ins;
 
     
+
+
+
+
+
     if (iterobj->hasClass(&js_IteratorClass)) {
         guardClass(iterobj_ins, &js_IteratorClass, snapshot(BRANCH_EXIT), LOAD_NORMAL);
 
-        LIns *ni_ins = w.ldpObjPrivate(iterobj_ins);
-        LIns *cursor_ins = w.ldpIterCursor(ni_ins);
-        LIns *end_ins = w.ldpIterEnd(ni_ins);
+        NativeIterator *ni = (NativeIterator *) iterobj->getPrivate();
+        if (ni->isKeyIter()) {
+            LIns *ni_ins = w.ldpObjPrivate(iterobj_ins);
+            LIns *cursor_ins = w.ldpIterCursor(ni_ins);
+            LIns *end_ins = w.ldpIterEnd(ni_ins);
 
-        cond_ins = w.ltp(cursor_ins, end_ins);
+            cond_ins = w.ltp(cursor_ins, end_ins);
+            stack(0, cond_ins);
+            return ARECORD_CONTINUE;
+        }
     } else {
         guardNotClass(iterobj_ins, &js_IteratorClass, snapshot(BRANCH_EXIT), LOAD_NORMAL);
-
-        enterDeepBailCall();
-
-        LIns* vp_ins = w.allocp(sizeof(Value));
-        LIns* args[] = { vp_ins, iterobj_ins, cx_ins };
-        pendingGuardCondition = w.call(&IteratorMore_ci, args);
-
-        leaveDeepBailCall();
-
-        cond_ins = is_boxed_true(AllocSlotsAddress(vp_ins));
     }
 
+    enterDeepBailCall();
+
+    LIns* vp_ins = w.allocp(sizeof(Value));
+    LIns* args[] = { vp_ins, iterobj_ins, cx_ins };
+    pendingGuardCondition = w.call(&IteratorMore_ci, args);
+
+    leaveDeepBailCall();
+
+    cond_ins = is_boxed_true(AllocSlotsAddress(vp_ins));
     stack(0, cond_ins);
 
     return ARECORD_CONTINUE;
@@ -14863,9 +14872,9 @@ TraceRecorder::unboxNextValue(LIns* &v_ins)
 
         
         Address cursorAddr = IterPropsAddress(cursor_ins);
-        if (!(((NativeIterator *) iterobj->getPrivate())->flags & JSITER_FOREACH)) {
+        if (ni->isKeyIter()) {
             
-            jsid id = *ni->currentKey();
+            jsid id = *ni->current();
             LIns *id_ins = w.name(w.ldp(cursorAddr), "id");
 
             
@@ -14894,23 +14903,17 @@ TraceRecorder::unboxNextValue(LIns* &v_ins)
 
             
             cursor_ins = w.addp(cursor_ins, w.nameImmw(sizeof(jsid)));
-        } else {
-            
-            Value v = *ni->currentValue();
-            v_ins = unbox_value(v, cursorAddr, snapshot(BRANCH_EXIT));
-
-            
-            cursor_ins = w.addp(cursor_ins, w.nameImmw(sizeof(Value)));
+            w.stpIterCursor(cursor_ins, ni_ins);
+            return ARECORD_CONTINUE;
         }
-
-        w.stpIterCursor(cursor_ins, ni_ins);
     } else {
         guardNotClass(iterobj_ins, &js_IteratorClass, snapshot(BRANCH_EXIT), LOAD_NORMAL);
-
-        Address iterValueAddr = CxAddress(iterValue);
-        v_ins = unbox_value(cx->iterValue, iterValueAddr, snapshot(BRANCH_EXIT));
-        storeMagic(JS_NO_ITER_VALUE, iterValueAddr);
     }
+
+
+    Address iterValueAddr = CxAddress(iterValue);
+    v_ins = unbox_value(cx->iterValue, iterValueAddr, snapshot(BRANCH_EXIT));
+    storeMagic(JS_NO_ITER_VALUE, iterValueAddr);
 
     return ARECORD_CONTINUE;
 }
