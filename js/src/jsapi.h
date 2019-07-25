@@ -412,14 +412,6 @@ JSID_IS_VOID(jsid id)
     return ((size_t)JSID_BITS(id) == JSID_VOID_TYPE);
 }
 
-
-
-
-
-
-JS_FRIEND_API(JSBool)
-JSVAL_TO_JSID(JSContext *cx, const jsval *vp, jsid *id);
-
 #ifdef DEBUG
 extern JS_PUBLIC_DATA(jsid) JSID_VOID;
 #else
