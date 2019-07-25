@@ -740,13 +740,13 @@ static UINT CALLBACK PrintHookProc(HWND hdlg, UINT uiMsg, WPARAM wParam, LPARAM 
 
 
 
-static HGLOBAL CreateGlobalDevModeAndInit(LPCWSTR aPrintName, nsIPrintSettings* aPS)
+static HGLOBAL CreateGlobalDevModeAndInit(const nsXPIDLString& aPrintName, nsIPrintSettings* aPS)
 {
   HGLOBAL hGlobalDevMode = NULL;
 
   HANDLE hPrinter = NULL;
   
-  LPWSTR printName = const_cast<wchar_t*>(aPrintName);
+  LPWSTR printName = const_cast<wchar_t*>(aPrintName.get());
   BOOL status = ::OpenPrinterW(printName, &hPrinter, NULL);
   if (status) {
 
@@ -793,7 +793,7 @@ static HGLOBAL CreateGlobalDevModeAndInit(LPCWSTR aPrintName, nsIPrintSettings* 
         ::GlobalFree(hGlobalDevMode);
         ::HeapFree(::GetProcessHeap(), 0, pNewDevMode);
         ::ClosePrinter(hPrinter);
-         return NULL;
+        return NULL;
       }
 
       ::GlobalUnlock(hGlobalDevMode);
@@ -815,14 +815,12 @@ static HGLOBAL CreateGlobalDevModeAndInit(LPCWSTR aPrintName, nsIPrintSettings* 
 
 
 
-static PRUnichar * GetDefaultPrinterNameFromGlobalPrinters()
+static void GetDefaultPrinterNameFromGlobalPrinters(nsXPIDLString &printerName)
 {
-  PRUnichar * printerName = nsnull;
   nsCOMPtr<nsIPrinterEnumerator> prtEnum = do_GetService("@mozilla.org/gfx/printerenumerator;1");
   if (prtEnum) {
-    prtEnum->GetDefaultPrinterName(&printerName);
+    prtEnum->GetDefaultPrinterName(getter_Copies(printerName));
   }
-  return printerName;
 }
 
 
@@ -858,31 +856,41 @@ ShowNativePrintDialog(HWND              aHWnd,
   HGLOBAL hDevNames      = NULL;
 
   
-  PRUnichar * printerName;
-  aPrintSettings->GetPrinterName(&printerName);
+  nsXPIDLString printerName;
+  aPrintSettings->GetPrinterName(getter_Copies(printerName));
 
   
-  if (!printerName || (printerName && !*printerName)) {
-    printerName = GetDefaultPrinterNameFromGlobalPrinters();
+  if (printerName.IsEmpty()) {
+    GetDefaultPrinterNameFromGlobalPrinters(printerName);
   } else {
     HANDLE hPrinter = NULL;
-    if(!::OpenPrinterW(const_cast<wchar_t*>(printerName), &hPrinter, NULL)) {
+    if(!::OpenPrinterW(const_cast<wchar_t*>(printerName.get()), &hPrinter, NULL)) {
       
-      printerName = GetDefaultPrinterNameFromGlobalPrinters();
+      GetDefaultPrinterNameFromGlobalPrinters(printerName);
     } else {
       ::ClosePrinter(hPrinter);
     }
   }
 
-  NS_ASSERTION(printerName, "We have to have a printer name");
-  if (!printerName) return NS_ERROR_FAILURE;
+  NS_ASSERTION(!printerName.IsEmpty(), "We have to have a printer name");
+  if (printerName.IsEmpty()) {
+    return NS_ERROR_FAILURE;
+  }
 
   
 
-  PRUint32 len = wcslen(printerName);
+  PRUint32 len = printerName.Length();
   hDevNames = (HGLOBAL)::GlobalAlloc(GHND, sizeof(wchar_t) * (len + 1) + 
                                      sizeof(DEVNAMES));
+  if (!hDevNames) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
   DEVNAMES* pDevNames = (DEVNAMES*)::GlobalLock(hDevNames);
+  if (!pDevNames) {
+    ::GlobalFree(hDevNames);
+    return NS_ERROR_FAILURE;
+  }
   pDevNames->wDriverOffset = sizeof(DEVNAMES)/sizeof(wchar_t);
   pDevNames->wDeviceOffset = sizeof(DEVNAMES)/sizeof(wchar_t);
   pDevNames->wOutputOffset = sizeof(DEVNAMES)/sizeof(wchar_t)+len;
@@ -1209,7 +1217,6 @@ ShowNativePrintDialogEx(HWND              aHWnd,
   NS_ENSURE_ARG_POINTER(aHWnd);
   NS_ENSURE_ARG_POINTER(aPrintSettings);
 
-  nsresult  rv = NS_ERROR_FAILURE;
   gDialogWasExtended  = PR_FALSE;
 
   
@@ -1218,11 +1225,10 @@ ShowNativePrintDialogEx(HWND              aHWnd,
   
   
   
-  PRUnichar * printerName;
-  aPrintSettings->GetPrinterName(&printerName);
+  nsXPIDLString printerName;
+  aPrintSettings->GetPrinterName(getter_Copies(printerName));
   HGLOBAL hGlobalDevMode = NULL;
-  if (printerName) {
-    NS_ENSURE_SUCCESS(rv, rv);
+  if (!printerName.IsEmpty()) {
     hGlobalDevMode = CreateGlobalDevModeAndInit(printerName, aPrintSettings);
   }
 
