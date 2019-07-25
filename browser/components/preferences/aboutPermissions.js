@@ -588,11 +588,9 @@ let AboutPermissions = {
       if (site.host.hasRootDomain(aHost)) {
         if (site == this._selectedSite) {
           
-          document.getElementById("site-label").value = "";
-          document.getElementById("permissions-box").hidden = true;
-          this._selectedSite = null;
+          this.sitesList.selectedItem = document.getElementById("all-sites-item");
         }
-        
+
         this.sitesList.removeChild(site.listitem);
         delete this._sites[site.host];
       }
@@ -604,6 +602,8 @@ let AboutPermissions = {
 
   onSitesListSelect: function(event) {
     if (event.target.selectedItem.id == "all-sites-item") {
+      
+      document.getElementById("site-label").value = "";
       this.manageDefaultPermissions();
       return;
     }
@@ -641,8 +641,6 @@ let AboutPermissions = {
 
     this.updatePasswordsCount();
     this.updateCookiesCount();
-
-    document.getElementById("permissions-box").hidden = false;
   },
 
   

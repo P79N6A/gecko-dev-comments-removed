@@ -240,6 +240,10 @@ var tests = [
 
     is(gSiteLabel.value, "", "site label cleared");
 
+    let allSitesItem = gBrowser.contentDocument.getElementById("all-sites-item");
+    is(gSitesList.selectedItem, allSitesItem,
+       "all sites item selected after forgetting selected site");
+
     
     let testSiteItem = getSiteItem(TEST_URI_2.host);
     ok(!testSiteItem, "site removed from sites list");
