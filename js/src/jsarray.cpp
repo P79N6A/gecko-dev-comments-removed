@@ -2538,15 +2538,9 @@ array_concat(JSContext *cx, uintN argc, Value *vp)
     JSObject *nobj;
     jsuint length;
     if (aobj->isDenseArray()) {
-        
-
-
-
-
-
         length = aobj->getArrayLength();
-        jsuint capacity = aobj->getDenseArrayCapacity();
-        nobj = js_NewArrayObject(cx, JS_MIN(length, capacity), aobj->getDenseArrayElements(), ntype);
+        jsuint initlen = aobj->getDenseArrayInitializedLength();
+        nobj = js_NewArrayObject(cx, initlen, aobj->getDenseArrayElements(), ntype);
         if (!nobj)
             return JS_FALSE;
         nobj->setArrayLength(cx, length);
@@ -3599,20 +3593,13 @@ js_CloneDensePrimitiveArray(JSContext *cx, JSObject *obj, JSObject **clone)
     }
 
     jsuint length = obj->getArrayLength();
-
-    
-
-
-
-
-
-    jsuint jsvalCount = JS_MIN(obj->getDenseArrayCapacity(), length);
+    jsuint initlen = obj->getDenseArrayInitializedLength();
 
     js::AutoValueVector vector(cx);
-    if (!vector.reserve(jsvalCount))
+    if (!vector.reserve(initlen))
         return JS_FALSE;
 
-    for (jsuint i = 0; i < jsvalCount; i++) {
+    for (jsuint i = 0; i < initlen; i++) {
         const Value &val = obj->getDenseArrayElement(i);
 
         if (val.isString()) {
@@ -3631,7 +3618,7 @@ js_CloneDensePrimitiveArray(JSContext *cx, JSObject *obj, JSObject **clone)
         vector.append(val);
     }
 
-    *clone = js_NewArrayObject(cx, jsvalCount, vector.begin(), obj->getTypeObject());
+    *clone = js_NewArrayObject(cx, initlen, vector.begin(), obj->getTypeObject());
     if (!*clone)
         return JS_FALSE;
     (*clone)->setArrayLength(cx, length);
