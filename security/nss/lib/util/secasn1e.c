@@ -1587,7 +1587,7 @@ SEC_ASN1EncodeItem (PRArenaPool *poolp, SECItem *dest, const void *src,
 
 static SECItem *
 sec_asn1e_integer(PRArenaPool *poolp, SECItem *dest, unsigned long value,
-		  PRBool is_unsigned)
+		  PRBool make_unsigned)
 {
     unsigned long copy;
     unsigned char sign;
@@ -1608,7 +1608,7 @@ sec_asn1e_integer(PRArenaPool *poolp, SECItem *dest, unsigned long value,
 
 
 
-    if (sign && (is_unsigned || (long)value >= 0))
+    if (sign && make_unsigned)
 	len++;
 
     

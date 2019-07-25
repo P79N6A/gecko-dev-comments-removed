@@ -90,8 +90,6 @@ SECStatus secmod_LoadPKCS11Module(SECMODModule *, SECMODModule **oldModule);
 SECStatus SECMOD_UnloadModule(SECMODModule *);
 void SECMOD_SetInternalModule(SECMODModule *);
 PRBool secmod_IsInternalKeySlot(SECMODModule *);
-void secmod_SetInternalKeySlotFlag(SECMODModule *mod, PRBool val);
-
 
 
 typedef struct SECMODConfigListStr SECMODConfigList;

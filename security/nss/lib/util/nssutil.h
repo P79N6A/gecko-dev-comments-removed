@@ -51,11 +51,11 @@
 
 
 
-#define NSSUTIL_VERSION  "3.12.10.0 Beta"
+#define NSSUTIL_VERSION  "3.12.9.0"
 #define NSSUTIL_VMAJOR   3
 #define NSSUTIL_VMINOR   12
-#define NSSUTIL_VPATCH   10
+#define NSSUTIL_VPATCH   9
 #define NSSUTIL_VBUILD   0
-#define NSSUTIL_BETA     PR_TRUE
+#define NSSUTIL_BETA     PR_FALSE
 
 #endif 

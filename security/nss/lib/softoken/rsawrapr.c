@@ -193,7 +193,7 @@ rsa_FormatOneBlock(unsigned modulusLen, RSA_BlockType blockType,
     unsigned char *block;
     unsigned char *bp;
     int padLen;
-    int i, j;
+    int i;
     SECStatus rv;
 
     block = (unsigned char *) PORT_Alloc(modulusLen);
@@ -247,52 +247,27 @@ rsa_FormatOneBlock(unsigned modulusLen, RSA_BlockType blockType,
 
 
 
-
-
-
-
-
-
-
-	padLen = modulusLen - (data->len + 3);
+	padLen = modulusLen - data->len - 3;
 	PORT_Assert (padLen >= RSA_BLOCK_MIN_PAD_LEN);
 	if (padLen < RSA_BLOCK_MIN_PAD_LEN) {
 	    PORT_Free (block);
 	    return NULL;
 	}
-	j = modulusLen - 2;
-	rv = RNG_GenerateGlobalRandomBytes(bp, j);
-	if (rv == SECSuccess) {
-	    for (i = 0; i < padLen; ) {
-		unsigned char repl;
-		
-		if (bp[i] != RSA_BLOCK_AFTER_PAD_OCTET) {
-		    ++i;
-		    continue;
-		}
-		if (j <= padLen) {
-		    rv = RNG_GenerateGlobalRandomBytes(bp + padLen,
-					  modulusLen - (2 + padLen));
-		    if (rv != SECSuccess)
-		    	break;
-		    j = modulusLen - 2;
-		}
-		do {
-		    repl = bp[--j];
-		} while (repl == RSA_BLOCK_AFTER_PAD_OCTET && j > padLen);
-		if (repl != RSA_BLOCK_AFTER_PAD_OCTET) {
-		    bp[i++] = repl;
-		}
+	for (i = 0; i < padLen; i++) {
+	    
+	    do {
+		rv = RNG_GenerateGlobalRandomBytes(bp + i, 1);
+	    } while (rv == SECSuccess && bp[i] == RSA_BLOCK_AFTER_PAD_OCTET);
+	    if (rv != SECSuccess) {
+		sftk_fatalError = PR_TRUE;
+		PORT_Free (block);
+		return NULL;
 	    }
-	}
-	if (rv != SECSuccess) {
-	    sftk_fatalError = PR_TRUE;
-	    PORT_Free (block);
-	    return NULL;
 	}
 	bp += padLen;
 	*bp++ = RSA_BLOCK_AFTER_PAD_OCTET;
 	PORT_Memcpy (bp, data->data, data->len);
+
 	break;
 
       

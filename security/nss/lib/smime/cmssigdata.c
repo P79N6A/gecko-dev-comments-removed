@@ -217,22 +217,17 @@ loser:
 SECStatus
 NSS_CMSSignedData_Encode_BeforeData(NSSCMSSignedData *sigd)
 {
-    SECStatus rv;
     if (!sigd) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
-    rv = NSS_CMSContentInfo_Private_Init(&sigd->contentInfo);
-    if (rv != SECSuccess) {
-	return SECFailure;
-    }
     
     if (sigd->digests && sigd->digests[0]) {
-	sigd->contentInfo.privateInfo->digcx = NULL; 
+	sigd->contentInfo.digcx = NULL; 
     } else if (sigd->digestAlgorithms != NULL) {
-	sigd->contentInfo.privateInfo->digcx =
+	sigd->contentInfo.digcx = 
 	        NSS_CMSDigestContext_StartMultiple(sigd->digestAlgorithms);
-	if (sigd->contentInfo.privateInfo->digcx == NULL)
+	if (sigd->contentInfo.digcx == NULL)
 	    return SECFailure;
     }
     return SECSuccess;
@@ -272,11 +267,11 @@ NSS_CMSSignedData_Encode_AfterData(NSSCMSSignedData *sigd)
     cinfo = &(sigd->contentInfo);
 
     
-    if (cinfo->privateInfo && cinfo->privateInfo->digcx) {
-	rv = NSS_CMSDigestContext_FinishMultiple(cinfo->privateInfo->digcx, poolp,
+    if (cinfo->digcx) {
+	rv = NSS_CMSDigestContext_FinishMultiple(cinfo->digcx, poolp, 
 	                                         &(sigd->digests));
 	
-	cinfo->privateInfo->digcx = NULL;
+	cinfo->digcx = NULL;
 	if (rv != SECSuccess)
 	    goto loser;		
     }
@@ -397,20 +392,15 @@ loser:
 SECStatus
 NSS_CMSSignedData_Decode_BeforeData(NSSCMSSignedData *sigd)
 {
-    SECStatus rv;
     if (!sigd) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
-    rv = NSS_CMSContentInfo_Private_Init(&sigd->contentInfo);
-    if (rv != SECSuccess) {
-	return SECFailure;
-    }
     
     if (sigd->digestAlgorithms != NULL && sigd->digests == NULL) {
 	
-	sigd->contentInfo.privateInfo->digcx = NSS_CMSDigestContext_StartMultiple(sigd->digestAlgorithms);
-	if (sigd->contentInfo.privateInfo->digcx == NULL)
+	sigd->contentInfo.digcx = NSS_CMSDigestContext_StartMultiple(sigd->digestAlgorithms);
+	if (sigd->contentInfo.digcx == NULL)
 	    return SECFailure;
     }
     return SECSuccess;
@@ -431,11 +421,11 @@ NSS_CMSSignedData_Decode_AfterData(NSSCMSSignedData *sigd)
     }
 
     
-    if (sigd->contentInfo.privateInfo && sigd->contentInfo.privateInfo->digcx) {
-	rv = NSS_CMSDigestContext_FinishMultiple(sigd->contentInfo.privateInfo->digcx,
+    if (sigd->contentInfo.digcx) {
+	rv = NSS_CMSDigestContext_FinishMultiple(sigd->contentInfo.digcx, 
 				       sigd->cmsg->poolp, &(sigd->digests));
 	
-	sigd->contentInfo.privateInfo->digcx = NULL;
+	sigd->contentInfo.digcx = NULL;
     }
     return rv;
 }

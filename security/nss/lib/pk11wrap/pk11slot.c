@@ -1349,7 +1349,7 @@ pk11_isRootSlot(PK11SlotInfo *slot)
 
 
 void
-PK11_InitSlot(SECMODModule *mod, CK_SLOT_ID slotID, PK11SlotInfo *slot)
+PK11_InitSlot(SECMODModule *mod,CK_SLOT_ID slotID,PK11SlotInfo *slot)
 {
     SECStatus rv;
     char *tmp;
@@ -1726,12 +1726,6 @@ PK11_NeedUserInit(PK11SlotInfo *slot)
 }
 
 static PK11SlotInfo *pk11InternalKeySlot = NULL;
-
-
-
-
-
-
 void
 pk11_SetInternalKeySlot(PK11SlotInfo *slot)
 {
@@ -1739,32 +1733,6 @@ pk11_SetInternalKeySlot(PK11SlotInfo *slot)
 	PK11_FreeSlot(pk11InternalKeySlot);
    }
    pk11InternalKeySlot = slot ? PK11_ReferenceSlot(slot) : NULL;
-}
-
-
-
-
-
-
-void
-pk11_SetInternalKeySlotIfFirst(PK11SlotInfo *slot)
-{
-   if (pk11InternalKeySlot) {
-	return;
-   }
-   pk11InternalKeySlot = slot ? PK11_ReferenceSlot(slot) : NULL;
-}
-
-
-
-
-PK11SlotInfo *
-pk11_SwapInternalKeySlot(PK11SlotInfo *slot)
-{
-   PK11SlotInfo *swap = pk11InternalKeySlot;
-
-   pk11InternalKeySlot = slot ? PK11_ReferenceSlot(slot) : NULL;
-   return swap;
 }
 
 

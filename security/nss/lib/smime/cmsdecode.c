@@ -120,7 +120,8 @@ nss_cms_decoder_notify(void *arg, PRBool before, void *dest, int depth)
 #endif
 
     
-    if (p7dcx->type == SEC_OID_UNKNOWN) {
+    switch (p7dcx->type) {
+    case SEC_OID_UNKNOWN:
 	
 
 
@@ -135,7 +136,8 @@ nss_cms_decoder_notify(void *arg, PRBool before, void *dest, int depth)
 	    
 	    
 	}
-    } else if (NSS_CMSType_IsData(p7dcx->type)) {
+	break;
+    case SEC_OID_PKCS7_DATA:
 	
 	
 
@@ -148,71 +150,86 @@ nss_cms_decoder_notify(void *arg, PRBool before, void *dest, int depth)
 					  nss_cms_decoder_update_filter,
 					  p7dcx,
 					  (PRBool)(p7dcx->cb != NULL));
-	} else if (after && dest == &(rootcinfo->content.data)) {
+	    break;
+	}
+
+	if (after && dest == &(rootcinfo->content.data)) {
 	    
 	    SEC_ASN1DecoderClearFilterProc(p7dcx->dcx);
 	}
-    } else if (NSS_CMSType_IsWrapper(p7dcx->type)) {
-	if (!before || dest != &(rootcinfo->content)) {
+	break;
 
-	    if (p7dcx->content.pointer == NULL)
-		p7dcx->content = rootcinfo->content;
+    case SEC_OID_PKCS7_SIGNED_DATA:
+    case SEC_OID_PKCS7_ENVELOPED_DATA:
+    case SEC_OID_PKCS7_DIGESTED_DATA:
+    case SEC_OID_PKCS7_ENCRYPTED_DATA:
 
-	    
-	    cinfo = NSS_CMSContent_GetContentInfo(p7dcx->content.pointer, 
+	if (before && dest == &(rootcinfo->content))
+	    break;     
+
+	if (p7dcx->content.pointer == NULL)
+	    p7dcx->content = rootcinfo->content;
+
+	
+	cinfo = NSS_CMSContent_GetContentInfo(p7dcx->content.pointer, 
 	                                      p7dcx->type);
 
-	    if (before && dest == &(cinfo->contentType)) {
-	        
-	        
-
-		switch (p7dcx->type) {
-		case SEC_OID_PKCS7_SIGNED_DATA:
-		    p7dcx->content.signedData->cmsg = p7dcx->cmsg;
-		    break;
-		case SEC_OID_PKCS7_DIGESTED_DATA:
-		    p7dcx->content.digestedData->cmsg = p7dcx->cmsg;
-		    break;
-		case SEC_OID_PKCS7_ENVELOPED_DATA:
-		    p7dcx->content.envelopedData->cmsg = p7dcx->cmsg;
-		    break;
-		case SEC_OID_PKCS7_ENCRYPTED_DATA:
-		    p7dcx->content.encryptedData->cmsg = p7dcx->cmsg;
-		    break;
-		default:
-		    p7dcx->content.genericData->cmsg = p7dcx->cmsg;
-		    break;
-		}
+	if (before && dest == &(cinfo->contentType)) {
+	    
+	    
+	    
+	    switch (p7dcx->type) {
+	    case SEC_OID_PKCS7_SIGNED_DATA:
+		p7dcx->content.signedData->cmsg = p7dcx->cmsg;
+		break;
+	    case SEC_OID_PKCS7_DIGESTED_DATA:
+		p7dcx->content.digestedData->cmsg = p7dcx->cmsg;
+		break;
+	    case SEC_OID_PKCS7_ENVELOPED_DATA:
+		p7dcx->content.envelopedData->cmsg = p7dcx->cmsg;
+		break;
+	    case SEC_OID_PKCS7_ENCRYPTED_DATA:
+		p7dcx->content.encryptedData->cmsg = p7dcx->cmsg;
+		break;
+	    default:
+		PORT_Assert(0);
+		break;
 	    }
+	}
 
-	    if (before && dest == &(cinfo->rawContent)) {
-		
+	if (before && dest == &(cinfo->rawContent)) {
+	    
 
 
-		SEC_ASN1DecoderSetFilterProc(p7dcx->dcx, 
+	    SEC_ASN1DecoderSetFilterProc(p7dcx->dcx, 
 	                                 nss_cms_decoder_update_filter, 
 					 p7dcx, (PRBool)(p7dcx->cb != NULL));
 
 
+	    
+	    if (nss_cms_before_data(p7dcx) != SECSuccess) {
+		SEC_ASN1DecoderClearFilterProc(p7dcx->dcx);	
 		
-		if (nss_cms_before_data(p7dcx) != SECSuccess) {
-		    SEC_ASN1DecoderClearFilterProc(p7dcx->dcx);	
-		    
-		    p7dcx->error = PORT_GetError();
-		}
-	    }
-	    if (after && dest == &(cinfo->rawContent)) {
-		
-		if (nss_cms_after_data(p7dcx) != SECSuccess)
-		    p7dcx->error = PORT_GetError();
-
-		
-		SEC_ASN1DecoderClearFilterProc(p7dcx->dcx);
+		p7dcx->error = PORT_GetError();
 	    }
 	}
-    } else {
+	if (after && dest == &(cinfo->rawContent)) {
+	    
+	    if (nss_cms_after_data(p7dcx) != SECSuccess)
+		p7dcx->error = PORT_GetError();
+
+	    
+	    SEC_ASN1DecoderClearFilterProc(p7dcx->dcx);
+	}
+	break;
+
+#if 0 
+    case SEC_OID_PKCS7_AUTHENTICATED_DATA:
+#endif
+    default:
 	
 	p7dcx->error = SEC_ERROR_UNSUPPORTED_MESSAGE_TYPE;
+	break;
     }
 }
 
@@ -252,8 +269,7 @@ nss_cms_before_data(NSSCMSDecoderContext *p7dcx)
 	                             p7dcx->content.encryptedData);
 	break;
     default:
-	rv = NSS_CMSGenericWrapperData_Decode_BeforeData(p7dcx->type,
-				p7dcx->content.genericData);
+	return SECFailure;
     }
     if (rv != SECSuccess)
 	return SECFailure;
@@ -264,7 +280,7 @@ nss_cms_before_data(NSSCMSDecoderContext *p7dcx)
     cinfo = NSS_CMSContent_GetContentInfo(p7dcx->content.pointer, p7dcx->type);
     childtype = NSS_CMSContentInfo_GetContentTypeTag(cinfo);
 
-    if (NSS_CMSType_IsData(childtype)) {
+    if (childtype == SEC_OID_PKCS7_DATA) {
 	cinfo->content.pointer = (void *) nss_cms_create_decoder_data(poolp);
 	if (cinfo->content.pointer == NULL)
 	    
@@ -290,9 +306,6 @@ nss_cms_before_data(NSSCMSDecoderContext *p7dcx)
     childp7dcx->content.pointer = (void *)PORT_ArenaZAlloc(poolp, size);
     if (childp7dcx->content.pointer == NULL)
 	goto loser;
-
-    
-    cinfo->content.pointer = childp7dcx->content.pointer;
 
     
     childp7dcx->dcx = SEC_ASN1DecoderStart(poolp, childp7dcx->content.pointer, 
@@ -382,8 +395,7 @@ nss_cms_after_data(NSSCMSDecoderContext *p7dcx)
 	
 	break;
     default:
-	rv = NSS_CMSGenericWrapperData_Decode_AfterData(p7dcx->type,
-	                            p7dcx->content.genericData);
+	rv = SECFailure;
 	break;
     }
 done:
@@ -418,8 +430,7 @@ nss_cms_after_end(NSSCMSDecoderContext *p7dcx)
     case SEC_OID_PKCS7_DATA:
 	break;
     default:
-	rv = NSS_CMSGenericWrapperData_Decode_AfterEnd(p7dcx->type,
-	                               p7dcx->content.genericData);
+	rv = SECFailure;	
 	break;
     }
     return rv;
@@ -458,7 +469,7 @@ nss_cms_decoder_work_data(NSSCMSDecoderContext *p7dcx,
 	goto loser;
     }
 
-    if (cinfo->privateInfo && cinfo->privateInfo->ciphcx != NULL) {
+    if (cinfo->ciphcx != NULL) {
 	
 
 
@@ -472,7 +483,7 @@ nss_cms_decoder_work_data(NSSCMSDecoderContext *p7dcx,
 	unsigned int buflen;		
 
 	
-	buflen = NSS_CMSCipherContext_DecryptLength(cinfo->privateInfo->ciphcx, len, final);
+	buflen = NSS_CMSCipherContext_DecryptLength(cinfo->ciphcx, len, final);
 
 	
 
@@ -503,7 +514,7 @@ nss_cms_decoder_work_data(NSSCMSDecoderContext *p7dcx,
 
 
 
-	rv = NSS_CMSCipherContext_Decrypt(cinfo->privateInfo->ciphcx, buf, &outlen, buflen,
+	rv = NSS_CMSCipherContext_Decrypt(cinfo->ciphcx, buf, &outlen, buflen,
 			       data, len, final);
 	if (rv != SECSuccess) {
 	    p7dcx->error = PORT_GetError();
@@ -523,8 +534,8 @@ nss_cms_decoder_work_data(NSSCMSDecoderContext *p7dcx,
     
 
 
-    if (cinfo->privateInfo && cinfo->privateInfo->digcx)
-	NSS_CMSDigestContext_Update(cinfo->privateInfo->digcx, data, len);
+    if (cinfo->digcx)
+	NSS_CMSDigestContext_Update(cinfo->digcx, data, len);
 
     
 

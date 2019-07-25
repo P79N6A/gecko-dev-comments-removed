@@ -1982,18 +1982,6 @@ cleanup:
 }
 
 
-static void
-pkix_PrepareForwardBuilderStateForAIA(
-        PKIX_ForwardBuilderState *state)
-{
-        PORT_Assert(state->useOnlyLocal == PKIX_TRUE);
-        state->useOnlyLocal = PKIX_FALSE;
-        state->certStoreIndex = 0;
-        state->numFanout = state->buildConstants.maxFanout;
-        state->status = BUILD_TRYAIA;
-}
-
-
 
 
 
@@ -2113,7 +2101,6 @@ pkix_BuildForwardDepthFirstSearch(
         PKIX_Error *verifyError = NULL;
         PKIX_Error *finalError = NULL;
         void *nbio = NULL;
-        PKIX_UInt32 numIterations = 0;
 
         PKIX_ENTER(BUILD, "pkix_BuildForwardDepthFirstSearch");
         PKIX_NULLCHECK_THREE(pNBIOContext, state, pValResult);
@@ -2130,13 +2117,6 @@ pkix_BuildForwardDepthFirstSearch(
 
 
         while (outOfOptions == PKIX_FALSE) {
-            
-
-
-
-
-            if (numIterations++ > 250)
-                    PKIX_ERROR(PKIX_TIMECONSUMEDEXCEEDSRESOURCELIMITS);
 
             if (state->buildConstants.maxTime != 0) {
                     PKIX_DECREF(currTime);
@@ -2748,6 +2728,7 @@ pkix_BuildForwardDepthFirstSearch(
 
 
                     if (state->usingHintCerts == PKIX_TRUE) {
+
                             PKIX_DECREF(state->candidateCerts);
                             PKIX_CHECK(PKIX_List_Create
                                 (&state->candidateCerts, plContext),
@@ -2757,7 +2738,9 @@ pkix_BuildForwardDepthFirstSearch(
                             state->usingHintCerts = PKIX_FALSE;
                             state->status = BUILD_TRYAIA;
                             continue;
+
                     } else if (++(state->certIndex) < (state->numCerts)) {
+
                             if ((state->buildConstants.maxFanout != 0) &&
                                 (--(state->numFanout) == 0)) {
 
@@ -2792,12 +2775,16 @@ pkix_BuildForwardDepthFirstSearch(
 
 
             if (state->useOnlyLocal == PKIX_TRUE) {
-                pkix_PrepareForwardBuilderStateForAIA(state);
+                state->useOnlyLocal = PKIX_FALSE;
+                state->certStoreIndex = 0;
+                state->numFanout = state->buildConstants.maxFanout;
+                state->status = BUILD_TRYAIA;
             } else do {
                 if (state->parentState == NULL) {
                         
                         outOfOptions = PKIX_TRUE;
                 } else {
+
                         
 
 
@@ -2861,7 +2848,10 @@ pkix_BuildForwardDepthFirstSearch(
                         }
                         if (state->useOnlyLocal == PKIX_TRUE) {
                             
-                            pkix_PrepareForwardBuilderStateForAIA(state);
+                            state->useOnlyLocal = PKIX_FALSE;
+                            state->certStoreIndex = 0;
+                            state->numFanout = state->buildConstants.maxFanout;
+                            state->status = BUILD_TRYAIA;
                             break;
                         }
                 }

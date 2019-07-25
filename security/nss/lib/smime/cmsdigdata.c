@@ -117,8 +117,7 @@ NSS_CMSDigestedData_Encode_BeforeStart(NSSCMSDigestedData *digd)
     SECItem *dummy;
 
     version = NSS_CMS_DIGESTED_DATA_VERSION_DATA;
-    if (!NSS_CMSType_IsData(NSS_CMSContentInfo_GetContentTypeTag(
-							&(digd->contentInfo))))
+    if (NSS_CMSContentInfo_GetContentTypeTag(&(digd->contentInfo)) != SEC_OID_PKCS7_DATA)
 	version = NSS_CMS_DIGESTED_DATA_VERSION_ENCAP;
 
     dummy = SEC_ASN1EncodeInteger(digd->cmsg->poolp, &(digd->version), version);
@@ -135,16 +134,11 @@ NSS_CMSDigestedData_Encode_BeforeStart(NSSCMSDigestedData *digd)
 SECStatus
 NSS_CMSDigestedData_Encode_BeforeData(NSSCMSDigestedData *digd)
 {
-    SECStatus rv =NSS_CMSContentInfo_Private_Init(&digd->contentInfo);
-    if (rv != SECSuccess)  {
-	return SECFailure;
-    }
-
     
     if (digd->digestAlg.algorithm.len != 0 && digd->digest.len == 0) {
 	
-	digd->contentInfo.privateInfo->digcx = NSS_CMSDigestContext_StartSingle(&(digd->digestAlg));
-	if (digd->contentInfo.privateInfo->digcx == NULL)
+	digd->contentInfo.digcx = NSS_CMSDigestContext_StartSingle(&(digd->digestAlg));
+	if (digd->contentInfo.digcx == NULL)
 	    return SECFailure;
     }
     return SECSuccess;
@@ -162,12 +156,12 @@ NSS_CMSDigestedData_Encode_AfterData(NSSCMSDigestedData *digd)
 {
     SECStatus rv = SECSuccess;
     
-    if (digd->contentInfo.privateInfo && digd->contentInfo.privateInfo->digcx) {
-	rv = NSS_CMSDigestContext_FinishSingle(digd->contentInfo.privateInfo->digcx,
+    if (digd->contentInfo.digcx) {
+	rv = NSS_CMSDigestContext_FinishSingle(digd->contentInfo.digcx,
 				               digd->cmsg->poolp, 
 					       &(digd->digest));
 	
-	digd->contentInfo.privateInfo->digcx = NULL;
+	digd->contentInfo.digcx = NULL;
     }
 
     return rv;
@@ -183,19 +177,12 @@ NSS_CMSDigestedData_Encode_AfterData(NSSCMSDigestedData *digd)
 SECStatus
 NSS_CMSDigestedData_Decode_BeforeData(NSSCMSDigestedData *digd)
 {
-    SECStatus rv;
-
     
     if (digd->digestAlg.algorithm.len == 0)
 	return SECFailure;
 
-    rv = NSS_CMSContentInfo_Private_Init(&digd->contentInfo);
-    if (rv != SECSuccess) {
-	return SECFailure;
-    }
-
-    digd->contentInfo.privateInfo->digcx = NSS_CMSDigestContext_StartSingle(&(digd->digestAlg));
-    if (digd->contentInfo.privateInfo->digcx == NULL)
+    digd->contentInfo.digcx = NSS_CMSDigestContext_StartSingle(&(digd->digestAlg));
+    if (digd->contentInfo.digcx == NULL)
 	return SECFailure;
 
     return SECSuccess;
@@ -213,12 +200,12 @@ NSS_CMSDigestedData_Decode_AfterData(NSSCMSDigestedData *digd)
 {
     SECStatus rv = SECSuccess;
     
-    if (digd->contentInfo.privateInfo && digd->contentInfo.privateInfo->digcx) {
-	rv = NSS_CMSDigestContext_FinishSingle(digd->contentInfo.privateInfo->digcx,
+    if (digd->contentInfo.digcx) {
+	rv = NSS_CMSDigestContext_FinishSingle(digd->contentInfo.digcx,
 				               digd->cmsg->poolp, 
 					       &(digd->cdigest));
 	
-	digd->contentInfo.privateInfo->digcx = NULL;
+	digd->contentInfo.digcx = NULL;
     }
 
     return rv;

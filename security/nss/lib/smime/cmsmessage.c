@@ -81,7 +81,6 @@ NSS_CMSMessage_Create(PLArenaPool *poolp)
 	    PORT_FreeArena(poolp, PR_FALSE);
 	return NULL;
     }
-    NSS_CMSContentInfo_Private_Init(&(cmsg->contentInfo));
 
     cmsg->poolp = poolp;
     cmsg->poolp_is_ours = poolp_is_ours;
@@ -235,12 +234,11 @@ NSS_CMSMessage_ContainsCertsOrCrls(NSSCMSMessage *cmsg)
 
     
     for (cinfo = &(cmsg->contentInfo); cinfo != NULL; cinfo = NSS_CMSContentInfo_GetChildContentInfo(cinfo)) {
-	if (!NSS_CMSType_IsData(NSS_CMSContentInfo_GetContentTypeTag(cinfo)))
+	if (NSS_CMSContentInfo_GetContentTypeTag(cinfo) != SEC_OID_PKCS7_SIGNED_DATA)
 	    continue;	
 	
 	if (NSS_CMSSignedData_ContainsCertsOrCrls(cinfo->content.signedData))
 	    return PR_TRUE;
-	
     }
     return PR_FALSE;
 }
@@ -261,7 +259,6 @@ NSS_CMSMessage_IsEncrypted(NSSCMSMessage *cmsg)
 	case SEC_OID_PKCS7_ENCRYPTED_DATA:
 	    return PR_TRUE;
 	default:
-	    
 	    break;
 	}
     }
@@ -292,7 +289,6 @@ NSS_CMSMessage_IsSigned(NSSCMSMessage *cmsg)
 		return PR_TRUE;
 	    break;
 	default:
-	    
 	    break;
 	}
     }

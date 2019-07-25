@@ -1271,8 +1271,8 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
 {
     sslSocket * sm = NULL, *ss = NULL;
     int i;
-    sslServerCerts * mc = NULL;
-    sslServerCerts * sc = NULL;
+    sslServerCerts * mc = sm->serverCerts;
+    sslServerCerts * sc = ss->serverCerts;
 
     if (model == NULL) {
         PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
@@ -1301,9 +1301,7 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
     
 
 
-    for (i=kt_null; i < kt_kea_size; i++) {
-        mc = &(sm->serverCerts[i]);
-        sc = &(ss->serverCerts[i]);
+    for (i=kt_null; i < kt_kea_size; i++, mc++, sc++) {
         if (mc->serverCert && mc->serverCertChain) {
             if (sc->serverCert) {
                 CERT_DestroyCertificate(sc->serverCert);

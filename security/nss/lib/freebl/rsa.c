@@ -68,21 +68,9 @@
 #define MAX_KEY_GEN_ATTEMPTS 10
 
 
-#define RSA_BLINDING_PARAMS_MAX_CACHE_SIZE 20
-
-
 #define BAD_RSA_KEY_SIZE(modLen, expLen) \
     ((expLen) > (modLen) || (modLen) > RSA_MAX_MODULUS_BITS/8 || \
     (expLen) > RSA_MAX_EXPONENT_BITS/8)
-
-struct blindingParamsStr;
-typedef struct blindingParamsStr blindingParams;
-
-struct blindingParamsStr {
-    blindingParams *next;
-    mp_int         f, g;             
-    int            counter;          
-};
 
 
 
@@ -97,10 +85,9 @@ struct RSABlindingParamsStr
     
     PRCList   link;                  
     SECItem   modulus;               
-    blindingParams *free, *bp;       
-    blindingParams array[RSA_BLINDING_PARAMS_MAX_CACHE_SIZE];
+    mp_int    f, g;                  
+    int       counter;               
 };
-typedef struct RSABlindingParamsStr RSABlindingParams;
 
 
 
@@ -113,8 +100,6 @@ typedef struct RSABlindingParamsStr RSABlindingParams;
 struct RSABlindingParamsListStr
 {
     PZLock  *lock;   
-    PRCondVar *cVar; 
-    int  waitCount;  
     PRCList  head;   
 };
 
@@ -286,7 +271,7 @@ RSA_NewKey(int keySizeInBits, SECItem *publicExponent)
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
 	return NULL;
     }
-    key = PORT_ArenaZNew(arena, RSAPrivateKey);
+    key = (RSAPrivateKey *)PORT_ArenaZAlloc(arena, sizeof(RSAPrivateKey));
     if (!key) {
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
 	PORT_FreeArena(arena, PR_TRUE);
@@ -1041,25 +1026,18 @@ init_blinding_params_list(void)
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
 	return PR_FAILURE;
     }
-    blindingParamsList.cVar = PR_NewCondVar( blindingParamsList.lock );
-    if (!blindingParamsList.cVar) {
-	PORT_SetError(SEC_ERROR_NO_MEMORY);
-	return PR_FAILURE;
-    }
-    blindingParamsList.waitCount = 0;
     PR_INIT_CLIST(&blindingParamsList.head);
     return PR_SUCCESS;
 }
 
 static SECStatus
-generate_blinding_params(RSAPrivateKey *key, mp_int* f, mp_int* g, mp_int *n, 
-                         unsigned int modLen)
+generate_blinding_params(struct RSABlindingParamsStr *rsabp, 
+                         RSAPrivateKey *key, mp_int *n, unsigned int modLen)
 {
     SECStatus rv = SECSuccess;
     mp_int e, k;
     mp_err err = MP_OKAY;
     unsigned char *kb = NULL;
-
     MP_DIGITS(&e) = 0;
     MP_DIGITS(&k) = 0;
     CHECK_MPI_OK( mp_init(&e) );
@@ -1076,9 +1054,11 @@ generate_blinding_params(RSAPrivateKey *key, mp_int* f, mp_int* g, mp_int *n,
     
     CHECK_MPI_OK( mp_mod(&k, n, &k) );
     
-    CHECK_MPI_OK( mp_exptmod(&k, &e, n, f) );
+    CHECK_MPI_OK( mp_exptmod(&k, &e, n, &rsabp->f) );
     
-    CHECK_MPI_OK( mp_invmod(&k, n, g) );
+    CHECK_MPI_OK( mp_invmod(&k, n, &rsabp->g) );
+    
+    rsabp->counter = RSA_BLINDING_PARAMS_MAX_REUSE;
 cleanup:
     if (kb)
 	PORT_ZFree(kb, modLen);
@@ -1092,202 +1072,114 @@ cleanup:
 }
 
 static SECStatus
-init_blinding_params(RSABlindingParams *rsabp, RSAPrivateKey *key,
+init_blinding_params(struct RSABlindingParamsStr *rsabp, RSAPrivateKey *key,
                      mp_int *n, unsigned int modLen)
 {
-    blindingParams * bp = rsabp->array;
     SECStatus rv = SECSuccess;
     mp_err err = MP_OKAY;
-    int i = 0;
-
+    MP_DIGITS(&rsabp->f) = 0;
+    MP_DIGITS(&rsabp->g) = 0;
     
-    PR_INIT_CLIST(&rsabp->link);
-    for (i = 0; i < RSA_BLINDING_PARAMS_MAX_CACHE_SIZE; ++i, ++bp) {
-    	bp->next = bp + 1;
-	MP_DIGITS(&bp->f) = 0;
-	MP_DIGITS(&bp->g) = 0;
-	bp->counter = 0;
-    }
-    
-
- 
-    rsabp->array[RSA_BLINDING_PARAMS_MAX_CACHE_SIZE - 1].next = NULL;
-    
-    bp          = rsabp->array;
-    rsabp->bp   = NULL;
-    rsabp->free = bp;
-
+    CHECK_MPI_OK( mp_init(&rsabp->f) );
+    CHECK_MPI_OK( mp_init(&rsabp->g) );
     
     SECITEM_CopyItem(NULL, &rsabp->modulus, &key->modulus);
-
+    CHECK_SEC_OK( generate_blinding_params(rsabp, key, n, modLen) );
     return SECSuccess;
+cleanup:
+    mp_clear(&rsabp->f);
+    mp_clear(&rsabp->g);
+    if (err) {
+	MP_TO_SEC_ERROR(err);
+	rv = SECFailure;
+    }
+    return rv;
 }
 
 static SECStatus
 get_blinding_params(RSAPrivateKey *key, mp_int *n, unsigned int modLen,
                     mp_int *f, mp_int *g)
 {
-    RSABlindingParams *rsabp           = NULL;
-    blindingParams    *bpUnlinked      = NULL;
-    blindingParams    *bp, *prevbp     = NULL;
-    PRCList           *el;
-    SECStatus          rv              = SECSuccess;
-    mp_err             err             = MP_OKAY;
-    int                cmp             = -1;
-    PRBool             holdingLock     = PR_FALSE;
-
-    do {
-	if (blindingParamsList.lock == NULL) {
-	    PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-	    return SECFailure;
-	}
-	
-	PZ_Lock(blindingParamsList.lock);
-	holdingLock = PR_TRUE;
-
-	
-	for (el = PR_NEXT_LINK(&blindingParamsList.head);
-	     el != &blindingParamsList.head;
-	     el = PR_NEXT_LINK(el)) {
-	    rsabp = (RSABlindingParams *)el;
-	    cmp = SECITEM_CompareItem(&rsabp->modulus, &key->modulus);
-	    if (cmp >= 0) {
+    SECStatus rv = SECSuccess;
+    mp_err err = MP_OKAY;
+    int cmp;
+    PRCList *el;
+    struct RSABlindingParamsStr *rsabp = NULL;
+    
+    if (blindingParamsList.lock == NULL) {
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+    
+    PZ_Lock(blindingParamsList.lock);
+    
+    for (el = PR_NEXT_LINK(&blindingParamsList.head);
+         el != &blindingParamsList.head;
+         el = PR_NEXT_LINK(el)) {
+	rsabp = (struct RSABlindingParamsStr *)el;
+	cmp = SECITEM_CompareItem(&rsabp->modulus, &key->modulus);
+	if (cmp == 0) {
+	    
+	    if (--rsabp->counter <= 0) {
 		
-		break;
-	    }
-	}
-
-	if (cmp) {
-	    
-
-
-	    rsabp = PORT_ZNew(RSABlindingParams);
-	    if (!rsabp) {
-		PORT_SetError(SEC_ERROR_NO_MEMORY);
-		goto cleanup;
-	    }
-
-	    rv = init_blinding_params(rsabp, key, n, modLen);
-	    if (rv != SECSuccess) {
-		PORT_ZFree(rsabp, sizeof(RSABlindingParams));
-		goto cleanup;
-	    }
-
-	    
-
-
-
-
-
-	    PR_INSERT_BEFORE(&rsabp->link, el);
-	}
-
-	
-
-
-	while (0 != (bp = rsabp->bp)) {
-	    if (--(bp->counter) > 0) {
-		
-		
-		CHECK_MPI_OK( mp_copy(&bp->f, f) );
-		CHECK_MPI_OK( mp_copy(&bp->g, g) );
-
-		PZ_Unlock(blindingParamsList.lock); 
-		return SECSuccess;
+		CHECK_SEC_OK( generate_blinding_params(rsabp, key, n, modLen) );
 	    }
 	    
-
-
-	    mp_exch(&bp->f, f);
-	    mp_exch(&bp->g, g);
-	    mp_clear( &bp->f );
-	    mp_clear( &bp->g );
-	    bp->counter = 0;
+	    CHECK_MPI_OK( mp_copy(&rsabp->f, f) );
+	    CHECK_MPI_OK( mp_copy(&rsabp->g, g) );
 	    
-	    rsabp->bp   = bp->next;
-	    bp->next    = rsabp->free;
-	    rsabp->free = bp;
-	    
-
-
-	    if (blindingParamsList.waitCount > 0) {
-		PR_NotifyCondVar( blindingParamsList.cVar );
-		blindingParamsList.waitCount--;
-	    }
 	    PZ_Unlock(blindingParamsList.lock); 
 	    return SECSuccess;
+	} else if (cmp > 0) {
+	    
+	    break;
 	}
-	
-
-	prevbp = NULL;
-	if ((bp = rsabp->free) != NULL) {
-	    
-	    rsabp->free  = bp->next;
-	    bp->next     = NULL;
-	    bpUnlinked   = bp;  
-
-	    PZ_Unlock(blindingParamsList.lock); 
-	    holdingLock = PR_FALSE;
-	    
-	    CHECK_SEC_OK( generate_blinding_params(key, f, g, n, modLen ) );
-
-	    
-	    CHECK_MPI_OK( mp_init( &bp->f) );
-	    CHECK_MPI_OK( mp_init( &bp->g) );
-	    CHECK_MPI_OK( mp_copy( f, &bp->f) );
-	    CHECK_MPI_OK( mp_copy( g, &bp->g) );
-
-	    
-	    PZ_Lock(blindingParamsList.lock);
-	    holdingLock = PR_TRUE;
-	    
-	    bp->counter = RSA_BLINDING_PARAMS_MAX_REUSE;
-	    bp->next    = rsabp->bp;
-	    rsabp->bp   = bp;
-	    bpUnlinked  = NULL;
-	    
+    }
+    
 
 
-	    if (blindingParamsList.waitCount > 0) {
-		PR_NotifyAllCondVar( blindingParamsList.cVar );
-		blindingParamsList.waitCount = 0;
-	    }
-	    PZ_Unlock(blindingParamsList.lock);
-	    return SECSuccess;
-	}
-	
+
+    rsabp = (struct RSABlindingParamsStr *)
+              PORT_ZAlloc(sizeof(struct RSABlindingParamsStr));
+    if (!rsabp) {
+	PORT_SetError(SEC_ERROR_NO_MEMORY);
+	goto cleanup;
+    }
+    
+    PR_INIT_CLIST(&rsabp->link);
+    
 
 
 
 
 
-	blindingParamsList.waitCount++;
-	PR_WaitCondVar( blindingParamsList.cVar, PR_INTERVAL_NO_TIMEOUT );
-	PZ_Unlock(blindingParamsList.lock); 
-	holdingLock = PR_FALSE;
-    } while (1);
 
+    rv = init_blinding_params(rsabp, key, n, modLen);
+    if (rv != SECSuccess) {
+	PORT_ZFree(rsabp, sizeof(struct RSABlindingParamsStr));
+	goto cleanup;
+    }
+    
+
+
+
+
+
+    PR_INSERT_BEFORE(&rsabp->link, el);
+    
+    CHECK_MPI_OK( mp_copy(&rsabp->f, f) );
+    CHECK_MPI_OK( mp_copy(&rsabp->g, g) );
+    
+    PZ_Unlock(blindingParamsList.lock); 
+    return SECSuccess;
 cleanup:
     
-    if (bpUnlinked) {
-	if (!holdingLock) {
-	    PZ_Lock(blindingParamsList.lock);
-	    holdingLock = PR_TRUE;
-	}
-	bp = bpUnlinked;
-	mp_clear( &bp->f );
-	mp_clear( &bp->g );
-	bp->counter = 0;
-    	
-	bp->next    = rsabp->free;
-	rsabp->free = bp;
-    }
-    if (holdingLock) {
-	PZ_Unlock(blindingParamsList.lock);
-	holdingLock = PR_FALSE;
-    }
+
+
+    PZ_Unlock(blindingParamsList.lock);
     if (err) {
 	MP_TO_SEC_ERROR(err);
+	rv = SECFailure;
     }
     return SECFailure;
 }
@@ -1549,31 +1441,22 @@ SECStatus BL_Init(void)
 
 void RSA_Cleanup(void)
 {
-    blindingParams * bp = NULL;
     if (!coBPInit.initialized)
 	return;
 
-    while (!PR_CLIST_IS_EMPTY(&blindingParamsList.head)) {
-	RSABlindingParams *rsabp = 
-	    (RSABlindingParams *)PR_LIST_HEAD(&blindingParamsList.head);
+    while (!PR_CLIST_IS_EMPTY(&blindingParamsList.head))
+    {
+	struct RSABlindingParamsStr * rsabp = (struct RSABlindingParamsStr *)
+	    PR_LIST_HEAD(&blindingParamsList.head);
 	PR_REMOVE_LINK(&rsabp->link);
-	
-	while (rsabp->bp != NULL) {
-	    bp = rsabp->bp;
-	    rsabp->bp = rsabp->bp->next;
-	    mp_clear( &bp->f );
-	    mp_clear( &bp->g );
-	}
+	mp_clear(&rsabp->f);
+	mp_clear(&rsabp->g);
 	SECITEM_FreeItem(&rsabp->modulus,PR_FALSE);
 	PORT_Free(rsabp);
     }
 
-    if (blindingParamsList.cVar) {
-	PR_DestroyCondVar(blindingParamsList.cVar);
-	blindingParamsList.cVar = NULL;
-    }
-
-    if (blindingParamsList.lock) {
+    if (blindingParamsList.lock)
+    {
 	SKIP_AFTER_FORK(PZ_DestroyLock(blindingParamsList.lock));
 	blindingParamsList.lock = NULL;
     }

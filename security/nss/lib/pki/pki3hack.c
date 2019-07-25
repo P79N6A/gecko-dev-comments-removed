@@ -35,7 +35,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: pki3hack.c,v $ $Revision: 1.100.2.1 $ $Date: 2011/03/26 16:55:01 $";
+static const char CVS_ID[] = "@(#) $RCSfile: pki3hack.c,v $ $Revision: 1.100 $ $Date: 2010/05/18 19:38:40 $";
 #endif 
 
 
@@ -1212,98 +1212,6 @@ STAN_ChangeCertTrust(CERTCertificate *cc, CERTCertTrust *trust)
     }
 done:
     (void)nssTrust_Destroy(nssTrust);
-    return nssrv;
-}
-
-
-
-
-
-
-
-
-
-static PRStatus
-DeleteCertTrustMatchingSlot(PK11SlotInfo *pk11slot, nssPKIObject *tObject)
-{
-    int numNotDestroyed = 0;     
-    int failureCount = 0;        
-    int index;
-
-    nssPKIObject_Lock(tObject);
-    
-    for (index = 0; index < tObject->numInstances; index++) {
-	nssCryptokiObject *instance = tObject->instances[index];
-	if (!instance) {
-	    continue;
-	}
-
-	
-	if (PK11_IsReadOnly(instance->token->pk11slot) ||
-	    pk11slot != instance->token->pk11slot) {
-	    tObject->instances[numNotDestroyed++] = instance;
-	    continue;
-	}
-
-	
-	tObject->instances[index] = NULL;
-	if (nssToken_DeleteStoredObject(instance) == PR_SUCCESS) {
-	    nssCryptokiObject_Destroy(instance);
-	} else {
-	    tObject->instances[numNotDestroyed++] = instance;
-	    failureCount++;
-	}
-
-    }
-    if (numNotDestroyed == 0) {
-    	nss_ZFreeIf(tObject->instances);
-    	tObject->numInstances = 0;
-    } else {
-    	tObject->numInstances = numNotDestroyed;
-    }
-
-    nssPKIObject_Unlock(tObject);
-
-    return failureCount == 0 ? PR_SUCCESS : PR_FAILURE;
-}
-
-
-
-
-
-NSS_EXTERN PRStatus
-STAN_DeleteCertTrustMatchingSlot(NSSCertificate *c)
-{
-    PRStatus nssrv = PR_SUCCESS;
-
-    NSSTrustDomain *td = STAN_GetDefaultTrustDomain();
-    NSSTrust *nssTrust = nssTrustDomain_FindTrustForCertificate(td, c);
-    
-    nssPKIObject *tobject = &nssTrust->object;
-    nssPKIObject *cobject = &c->object;
-    int i;
-
-    
-
-
-
-
-    NSSRWLock_LockRead(td->tokensLock);
-    nssPKIObject_Lock(cobject);
-    for (i = 0; i < cobject->numInstances; i++) {
-	nssCryptokiObject *cInstance = cobject->instances[i];
-	if (cInstance && !PK11_IsReadOnly(cInstance->token->pk11slot)) {
-		PRStatus status;
-	    if (!tobject->numInstances || !tobject->instances) continue;
-	    status = DeleteCertTrustMatchingSlot(cInstance->token->pk11slot, tobject);
-	    if (status == PR_FAILURE) {
-	    	
-	    	nssrv = PR_FAILURE;
-	    }
-	}
-    }
-    nssPKIObject_Unlock(cobject);
-    NSSRWLock_UnlockRead(td->tokensLock);
     return nssrv;
 }
 

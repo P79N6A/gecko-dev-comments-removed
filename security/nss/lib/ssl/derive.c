@@ -604,9 +604,6 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
     PRBool	      testrsa_export = PR_FALSE;
     PRBool	      testecdh = PR_FALSE;
     PRBool	      testecdhe = PR_FALSE;
-#ifdef NSS_ENABLE_ECC
-    SECKEYECParams ecParams = { siBuffer, NULL, 0 };
-#endif
 
     if (!cert || !srvPrivkey || !ciphersuites || !pcanbypass) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -706,15 +703,10 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
 	    
 	    enc_pms.len  = SECKEY_PublicKeyStrength(srvPubkey);
 	    enc_pms.data = (unsigned char*)PORT_Alloc(enc_pms.len);
-	    if (enc_pms.data == NULL) {
-	        PORT_SetError(PR_OUT_OF_MEMORY_ERROR);
-	        break;
-	    }
 	    irv = PK11_PubWrapSymKey(CKM_RSA_PKCS, srvPubkey, pms, &enc_pms);
 	    if (irv != SECSuccess) 
 		break;
 	    PK11_FreeSymKey(pms);
-	    pms = NULL;
 	    
 	    rv = PK11_PrivDecryptPKCS1(srvPrivkey, rsaPmsBuf, &outLen,
 				       sizeof rsaPmsBuf,
@@ -735,16 +727,6 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
 		goto done;
 	    break;
 	}
-
-	
-
-
-	if (enc_pms.data != NULL) {
-	    SECITEM_FreeItem(&enc_pms, PR_FALSE);
-        }
-	if (pms) {
-	    PK11_FreeSymKey(pms);
-        }
 #ifdef NSS_ENABLE_ECC
 	for (; (privKeytype == ecKey && ( testecdh || testecdhe)) ||
 	       (privKeytype == rsaKey && testecdhe); ) {
@@ -753,7 +735,8 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
 	    SECKEYPrivateKey *keapriv;
 	    SECKEYPublicKey  *cpub = NULL; 
 	    SECKEYPrivateKey *cpriv = NULL;
-	    SECKEYECParams   *pecParams = NULL;
+	    SECKEYECParams    ecParams = { siBuffer, NULL, 0 },
+			      *pecParams;
 
 	    if (privKeytype == ecKey && testecdhe) {
 		
@@ -838,15 +821,12 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
 	    if (testecdhe) {
 		SECKEY_DestroyPrivateKey(keapriv);
 		SECKEY_DestroyPublicKey(keapub);
+		if (privKeytype == rsaKey)
+		    PORT_Free(ecParams.data);
 	    }
 	    if (rv == SECSuccess && *pcanbypass == PR_FALSE)
 		goto done;
 	    break;
-	}
-	
-	if (ecParams.data != NULL) {
-	    PORT_Free(ecParams.data);
-	    ecParams.data = NULL;
 	}
 #endif 
 	if (pms)
@@ -860,18 +840,7 @@ SSL_CanBypass(CERTCertificate *cert, SECKEYPrivateKey *srvPrivkey,
     if (pms)
 	PK11_FreeSymKey(pms);
 
-    
-
-
-    if (enc_pms.data != NULL) {
-    	SECITEM_FreeItem(&enc_pms, PR_FALSE);
-    }
-#ifdef NSS_ENABLE_ECC
-    if (ecParams.data != NULL) {
-        PORT_Free(ecParams.data);
-        ecParams.data = NULL;
-    }
-#endif 
+    SECITEM_FreeItem(&enc_pms, PR_FALSE);
 
     if (srvPubkey) {
     	SECKEY_DestroyPublicKey(srvPubkey);
