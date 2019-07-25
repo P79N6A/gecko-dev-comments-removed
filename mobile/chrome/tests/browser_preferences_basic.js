@@ -123,8 +123,11 @@ gTests.push({
     is(document.getElementById("tool-preferences").checked, true, "Preferences button must be pressed");
 
     
-    is(document.getElementById("tool-panel-close").hidden, false, "Panel close button must be visible");
-    is(document.getElementById("tool-panel-close").checked, false, "Panel close button must not be pressed");
+    
+    if (document.getElementById("tool-panel-close")) {
+      is(document.getElementById("tool-panel-close").hidden, false, "Panel close button must be visible");
+      is(document.getElementById("tool-panel-close").checked, false, "Panel close button must not be pressed");
+    }
 
     
     
@@ -163,8 +166,7 @@ gTests.push({
     ok((x.value == 0 && y.value ==0 ), "Preferences pane is not panned right", "Got " + x.value + " " + y.value + ", expected 0,0");
 
     
-    var prefClose = document.getElementById("tool-panel-close");
-    prefClose.click();
+    BrowserUI.hidePanel();
     waitFor(gCurrentTest.finish, function () { return document.getElementById("panel-container").hidden == true; });
   },
 
