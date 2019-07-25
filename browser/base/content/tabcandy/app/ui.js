@@ -74,20 +74,8 @@ var Tabbar = {
   
   
   
-  getVisibleTabCount: function(){
-    var visibleTabCount = 0;
-    this.getAllTabs().forEach(function(tab){
-      if ( !tab.collapsed )
-        visibleTabCount++
-    });
-    return visibleTabCount;
-  },
-
   
-  
-  
-  
-  getAllTabs: function() {
+  _getAllTabs: function() {
     var tabBarTabs = [];
     if (this.el) {
       
@@ -112,7 +100,7 @@ var Tabbar = {
         options = {};
 
       var tabbrowser = Utils.getCurrentWindow().gBrowser;
-      var tabBarTabs = this.getAllTabs();
+      var tabBarTabs = this._getAllTabs();
       var visibleTabs = tabs.map(function(tab) tab.tab.raw);
 
       
@@ -147,7 +135,7 @@ var Tabbar = {
   
   
   showAllTabs: function(){
-    this.getAllTabs().forEach(function(tab) {
+    this._getAllTabs().forEach(function(tab) {
       tab.collapsed = false;
     });
   }
@@ -157,8 +145,8 @@ var Tabbar = {
 
 
 window.Page = {
-  closedLastVisibleTab: false,
-  closedSelectedTabInTabCandy: false,
+  _closedLastVisibleTab: false,
+  _closedSelectedTabInTabCandy: false,
   stopZoomPreparation: false,
 
   
@@ -268,7 +256,7 @@ window.Page = {
         contentDocument;
     iQ(tabCandyContentDoc).mousedown(function(e){
       if ( e.originalTarget.id == "content" )
-        self.createGroupOnDrag(e)
+        self._createGroupOnDrag(e)
     });
 
     this._setupKeyHandlers();
@@ -277,18 +265,20 @@ window.Page = {
       if (self.isTabCandyVisible()) {
         
         if (UI.currentTab == this) {
-          self.closedSelectedTabInTabCandy = true;
+          self._closedSelectedTabInTabCandy = true;
         }
       } else {
         var group = Groups.getActiveGroup();
+        var current
         
         
         
         
         
         if ((group && group._children.length == 1) ||
-            (group == null && Tabbar.getVisibleTabCount() == 1)) {
-          self.closedLastVisibleTab = true;
+            (group == null &&
+             Utils.getCurrentWindow().gBrowser.visibleTabs.length == 1)) {
+          self._closedLastVisibleTab = true;
           
           if (this && this.mirror) {
             var item = TabItems.getItemByTabElement(this.mirror.el);
@@ -328,9 +318,9 @@ window.Page = {
     UI.currentTab = focusTab;
     
     if (this.isTabCandyVisible() &&
-        (this.closedLastVisibleTab || this.closedSelectedTabInTabCandy)) {
-      this.closedLastVisibleTab = false;
-      this.closedSelectedTabInTabCandy = false;
+        (this._closedLastVisibleTab || this._closedSelectedTabInTabCandy)) {
+      this._closedLastVisibleTab = false;
+      this._closedSelectedTabInTabCandy = false;
       return;
     }
 
@@ -340,8 +330,8 @@ window.Page = {
       this.showChrome();
 
     
-    this.closedLastVisibleTab = false;
-    this.closedSelectedTabInTabCandy = false;
+    this._closedLastVisibleTab = false;
+    this._closedSelectedTabInTabCandy = false;
 
     iQ.timeout(function() { 
       
@@ -360,7 +350,7 @@ window.Page = {
         return;
       }
 
-      var visibleTabCount = Tabbar.getVisibleTabCount();
+      var visibleTabCount = currentWindow.gBrowser.visibleTabs.length;
 
       var newItem = null;
       if (focusTab && focusTab.mirror)
@@ -393,6 +383,8 @@ window.Page = {
     }, 1);
   },
 
+  
+  
   
   _setupKeyHandlers: function(){
     var self = this;
@@ -452,7 +444,8 @@ window.Page = {
         }
         event.stopPropagation();
         event.preventDefault();
-      } else if (event.which == 32) { 
+      } else if (event.which == 32) {
+        
 #ifdef XP_MACOSX
         if (event.altKey && !event.metaKey && !event.shiftKey &&
             !event.ctrlKey) {
@@ -465,14 +458,17 @@ window.Page = {
             activeTab.zoomIn();
           event.stopPropagation();
           event.preventDefault();
+          Utils.log("??????????");
         }
-      } else if (event.which == 27 || event.which == 13) { 
+      } else if (event.which == 27 || event.which == 13) {
+        
         var activeTab = self.getActiveTab();
         if (activeTab)
           activeTab.zoomIn();
         event.stopPropagation();
         event.preventDefault();
-      } else if (event.which == 9) { 
+      } else if (event.which == 9) {
+        
         var activeTab = self.getActiveTab();
         if (activeTab) {
           var tabItems = (activeTab.parent ? activeTab.parent.getChildren() :
@@ -507,7 +503,7 @@ window.Page = {
   
   
   
-  createGroupOnDrag: function(e){
+  _createGroupOnDrag: function(e){
     const minSize = 60;
     const minMinSize = 15;
 
@@ -632,7 +628,6 @@ window.Page = {
   
   
   
-  
   setActiveTab: function(tab){
     if (tab == this._activeTab)
       return;
@@ -718,17 +713,17 @@ UIClass.prototype = {
     try {
       var self = this;
 
-      this._setBrowserKeyHandler();
+      this._setBrowserKeyHandlers();
 
       
-      this.addDevMenu();
+      this._addDevMenu();
 
       iQ("#reset").click(function(){
-        self.reset();
+        self._reset();
       });
 
       iQ("#feedback").click(function(){
-        self.newTab('http://feedback.mozillalabs.com/forums/56804-tabcandy');
+        self._newTab('http://feedback.mozillalabs.com/forums/56804-tabcandy');
       });
 
       iQ(window).bind('beforeunload', function() {
@@ -776,7 +771,7 @@ UIClass.prototype = {
       var currentWindow = Utils.getCurrentWindow();
 
       var data = Storage.readUIData(currentWindow);
-      this.storageSanity(data);
+      this._storageSanity(data);
 
       var groupsData = Storage.readGroupsData(currentWindow);
       var firstTime = !groupsData || iQ.isEmptyObject(groupsData);
@@ -862,9 +857,9 @@ UIClass.prototype = {
           if (topic == "quit-application-requested") {
             if (Page.isTabCandyVisible()) {
               TabItems.saveAll(true);
-              self.saveVisibility(true);
+              self._saveVisibility(true);
             } else {
-              self.saveVisibility(false);
+              self._saveVisibility(false);
             }
           }
         }
@@ -873,8 +868,8 @@ UIClass.prototype = {
         observer, "quit-application-requested", false);
 
       
-      this.initialized = true;
-      this.save(); 
+      this._initialized = true;
+      this._save(); 
     } catch(e) {
       Utils.log(e);
     }
@@ -884,12 +879,12 @@ UIClass.prototype = {
   
   
   
-  _setBrowserKeyHandler : function() {
+  _setBrowserKeyHandlers : function() {
     var self = this;
     var currentWin = Utils.getCurrentWindow();
     var tabbox = currentWin.gBrowser.mTabBox;
 
-    currentWin.addEventListener("keypress", function(event) {
+    currentWin.gBrowser.addEventListener("keypress", function(event) {
       if (Page.isTabCandyVisible()) {
         return;
       }
@@ -901,7 +896,7 @@ UIClass.prototype = {
             if (tabbox.tabs && tabbox.handleCtrlTab) {
               event.stopPropagation();
               event.preventDefault();
-              self.advanceSelectedTab(event.shiftKey);
+              self._advanceSelectedTab(event.shiftKey);
               handled = true;
             }
           break;
@@ -911,7 +906,7 @@ UIClass.prototype = {
             if (tabbox.tabs && tabbox.handleCtrlPageUpDown) {
               event.stopPropagation();
               event.preventDefault();
-              self.advanceSelectedTab(true);
+              self._advanceSelectedTab(true);
               handled = true;
             }
             break;
@@ -921,7 +916,7 @@ UIClass.prototype = {
             if (tabbox.tabs && tabbox.handleCtrlPageUpDown) {
               event.stopPropagation();
               event.preventDefault();
-              self.advanceSelectedTab(false);
+              self._advanceSelectedTab(false);
               handled = true;
             }
             break;
@@ -931,12 +926,12 @@ UIClass.prototype = {
           if (event.metaKey && event.altKey && !event.shiftKey &&
               !event.ctrlKey)
             if (tabbox.tabs && tabbox._handleMetaAltArrows) {
+              event.stopPropagation();
+              event.preventDefault();
               var reverse =
                 (window.getComputedStyle(tabbox, "").direction ==
                   "ltr" ? true : false);
-              event.stopPropagation();
-              event.preventDefault();
-              self.advanceSelectedTab(
+              self._advanceSelectedTab(
                 event.keyCode == event.DOM_VK_LEFT ? reverse : !reverse);
               handled = true;
             }
@@ -954,7 +949,7 @@ UIClass.prototype = {
           charCode == 160) { 
 #else
       if (event.ctrlKey && !event.metaKey && !event.shiftKey &&
-          !event.altKey && charCode == 32) {
+          !event.altKey && charCode == 32) { 
 #endif
         event.stopPropagation();
         event.preventDefault();
@@ -982,7 +977,7 @@ UIClass.prototype = {
         if (48 < charCode && charCode < 58) {
           event.stopPropagation();
           event.preventDefault();
-          self.advanceSelectedTab(false, (charCode - 48));
+          self._advanceSelectedTab(false, (charCode - 48));
           return;
         }
       }
@@ -995,7 +990,7 @@ UIClass.prototype = {
         var reverse =
           (window.getComputedStyle(tabbox, "").direction ==
             "ltr" ? true : false);
-        self.advanceSelectedTab(charCode == 123 ? reverse : !reverse);
+        self._advanceSelectedTab(charCode == 123 ? reverse : !reverse);
       }
 #endif
     }, true);
@@ -1009,7 +1004,7 @@ UIClass.prototype = {
   
   
   
-  advanceSelectedTab : function(reverse, index) {
+  _advanceSelectedTab : function(reverse, index) {
     Utils.assert('reverse should be false when index exists', !index || !reverse);
     var tabbox = Utils.getCurrentWindow().gBrowser.mTabBox;
     var tabs = tabbox.tabs;
@@ -1062,11 +1057,7 @@ UIClass.prototype = {
 
     
     
-    var isAnimating = iQ.isAnimating();
-    if ( !force && ( isAnimating || !Page.isTabCandyVisible() ) ) {
-      
-      
-      
+    if (!force && !Page.isTabCandyVisible()) {
       return;
     }
 
@@ -1140,13 +1131,13 @@ UIClass.prototype = {
     });
 
     this.pageBounds = Items.getPageBounds();
-    this.save();
+    this._save();
   },
 
   
   
   
-  addDevMenu: function() {
+  _addDevMenu: function() {
     try {
       var self = this;
 
@@ -1187,22 +1178,22 @@ UIClass.prototype = {
       }, {
         name: 'reset',
         code: function() {
-          self.reset();
+          self._reset();
         }
       }, {
         name: 'code docs',
         code: function() {
-          self.newTab('http://hg.mozilla.org/labs/tabcandy/raw-file/tip/content/doc/index.html');
+          self._newTab('http://hg.mozilla.org/labs/tabcandy/raw-file/tip/content/doc/index.html');
         }
       }, {
         name: 'save',
         code: function() {
-          self.saveAll();
+          self._saveAll();
         }
       }, {
         name: 'group sites',
         code: function() {
-          self.arrangeBySite();
+          self._arrangeBySite();
         }
       }];
 
@@ -1223,7 +1214,7 @@ UIClass.prototype = {
   
   
   
-  reset: function() {
+  _reset: function() {
     Storage.wipe();
     location.href = '';
   },
@@ -1232,8 +1223,8 @@ UIClass.prototype = {
   
   
   
-  saveAll: function() {
-    this.save();
+  _saveAll: function() {
+    this._save();
     Groups.saveAll();
     TabItems.saveAll();
   },
@@ -1241,22 +1232,22 @@ UIClass.prototype = {
   
   
   
-  save: function() {
-    if (!this.initialized)
+  _save: function() {
+    if (!this._initialized)
       return;
 
     var data = {
       pageBounds: this.pageBounds
     };
 
-    if (this.storageSanity(data))
+    if (this._storageSanity(data))
       Storage.saveUIData(Utils.getCurrentWindow(), data);
   },
 
   
   
   
-  storageSanity: function(data) {
+  _storageSanity: function(data) {
     if (iQ.isEmptyObject(data))
       return true;
 
@@ -1272,14 +1263,14 @@ UIClass.prototype = {
   
   
   
-  saveVisibility: function(isVisible) {
+  _saveVisibility: function(isVisible) {
     Storage.saveVisibilityData(Utils.getCurrentWindow(), { visible: isVisible });
   },
 
   
   
   
-  arrangeBySite: function() {
+  _arrangeBySite: function() {
     function putInGroup(set, key) {
       var group = Groups.getGroupWithTitle(key);
       if (group) {
@@ -1327,7 +1318,7 @@ UIClass.prototype = {
   
   
   
-  newTab: function(url) {
+  _newTab: function(url) {
     try {
       var group = Groups.getNewTabGroup();
       if (group)
