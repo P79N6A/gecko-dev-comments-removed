@@ -256,12 +256,16 @@ public class Favicons {
 
         
         private void saveFaviconToDb(BitmapDrawable favicon) {
-            Log.d(LOGTAG, "Saving favicon on browser database for URL = " + mPageUrl);
-            ContentResolver resolver = mContext.getContentResolver();
-            BrowserDB.updateFaviconForUrl(resolver, mPageUrl, favicon);
+            
+            
+            synchronized(mDbHelper) {
+                Log.d(LOGTAG, "Saving favicon on browser database for URL = " + mPageUrl);
+                ContentResolver resolver = mContext.getContentResolver();
+                BrowserDB.updateFaviconForUrl(resolver, mPageUrl, favicon);
 
-            Log.d(LOGTAG, "Saving favicon URL for URL = " + mPageUrl);
-            mDbHelper.setFaviconUrlForPageUrl(mPageUrl, mFaviconUrl);
+                Log.d(LOGTAG, "Saving favicon URL for URL = " + mPageUrl);
+                mDbHelper.setFaviconUrlForPageUrl(mPageUrl, mFaviconUrl);
+            }
         }
 
         
