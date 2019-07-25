@@ -262,16 +262,24 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
     }
   }
 
+  PRBool subsupDisplay =
+    NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
+    !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags);
+
   
-  if ( NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
-      !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags))
+  if (subsupDisplay) {
     mPresentationData.flags &= ~NS_MATHML_STRETCH_ALL_CHILDREN_HORIZONTALLY;
+  }
 
   
   
   
 
   
+
+
+
+
 
 
 
@@ -288,7 +296,7 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
     PRUint32 compress = NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags)
       ? NS_MATHML_COMPRESSED : 0;
     SetIncrementScriptLevel(tag == nsGkAtoms::mover_ ? 1 : 2,
-                            !NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags));
+                            !NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags) || subsupDisplay);
     PropagatePresentationDataFor(overscriptFrame,
                                  ~NS_MATHML_DISPLAYSTYLE | compress,
                                  NS_MATHML_DISPLAYSTYLE | compress);
@@ -299,7 +307,7 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
 
   if (tag == nsGkAtoms::munder_ ||
       tag == nsGkAtoms::munderover_) {
-    SetIncrementScriptLevel(1, !NS_MATHML_EMBELLISH_IS_ACCENTUNDER(mEmbellishData.flags));
+    SetIncrementScriptLevel(1, !NS_MATHML_EMBELLISH_IS_ACCENTUNDER(mEmbellishData.flags) || subsupDisplay);
     PropagatePresentationDataFor(underscriptFrame,
                                  ~NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED,
                                  NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED);
