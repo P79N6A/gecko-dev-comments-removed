@@ -932,7 +932,7 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
         
         cx->stack().pushExecuteFrame(cx, frame, gen->savedRegs, NULL);
 
-        ok = Interpret(cx);
+        ok = RunScript(cx, fp->script, fp->fun, fp->scopeChain);
 
         
         cx->leaveGenerator(gen);
