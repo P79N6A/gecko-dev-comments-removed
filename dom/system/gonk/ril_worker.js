@@ -4079,6 +4079,53 @@ let GsmPDUHelper = {
 
 
 
+  read8BitUnpackedToString: function read8BitUnpackedToString(numOctets) {
+    let ret = "";
+    let escapeFound = false;
+    let i;
+    const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+    const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+
+    for(i = 0; i < numOctets; i++) {
+      let octet = this.readHexOctet();
+      if (octet == 0xff) {
+        i++;
+        break;
+      }
+
+      if (escapeFound) {
+        escapeFound = false;
+        if (octet == PDU_NL_EXTENDED_ESCAPE) {
+          
+          
+          
+          ret += " ";
+        } else if (octet == PDU_NL_RESERVED_CONTROL) {
+          
+          
+          
+          ret += " ";
+        } else {
+          ret += langShiftTable[octet];
+        }
+      } else if (octet == PDU_NL_EXTENDED_ESCAPE) {
+        escapeFound = true;
+      } else {
+        ret += langTable[octet];
+      }
+    }
+
+    Buf.seekIncoming((numOctets - i) * PDU_HEX_OCTET_SIZE);
+    return ret;
+  },
+
+  
+
+
+
+
+
+
 
   readUCS2String: function readUCS2String(numOctets) {
     let str = "";
@@ -4105,6 +4152,42 @@ let GsmPDUHelper = {
       this.writeHexOctet((code >> 8) & 0xFF);
       this.writeHexOctet(code & 0xFF);
     }
+  },
+
+  
+
+
+
+
+
+
+
+
+  readICCUCS2String: function readICCUCS2String(scheme, numOctets) {
+    let str = "";
+    switch (scheme) {
+      case 0x80:
+        let isOdd = numOctets % 2;
+        let i;
+        for (i = 0; i < numOctets - isOdd; i += 2) {
+          let code = (this.readHexOctet() << 8) | this.readHexOctet();
+          if (code == 0xffff) {
+            i += 2;
+            break;
+          }
+          str += String.fromCharCode(code);
+        }
+
+        
+        Buf.seekIncoming((numOctets - i) * PDU_HEX_OCTET_SIZE);
+        break;
+      case 0x81:
+      case 0x82:
+        
+        Buf.seekIncoming(numOctets * PDU_HEX_OCTET_SIZE);
+        break;
+    }
+    return str;
   },
 
   
@@ -4364,31 +4447,19 @@ let GsmPDUHelper = {
 
 
 
-  readAlphaIdentifier: function readAlphaIdentifier(len) {
-    let temp, isUCS2 = false;
-    let alphaId = "";
+  readAlphaIdentifier: function readAlphaIdentifier(numOctets) {
+    let temp;
 
     
-    if ((temp = GsmPDUHelper.readHexOctet()) == 0x80) {
-      isUCS2 = true;
-    } else if (temp != 0xff) {
-      alphaId += String.fromCharCode(temp);
+    if ((temp = GsmPDUHelper.readHexOctet()) == 0x80 ||
+         temp == 0x81 ||
+         temp == 0x82) {
+      numOctets--;
+      return this.readICCUCS2String(temp, numOctets);
+    } else {
+      Buf.seekIncoming(-1 * PDU_HEX_OCTET_SIZE);
+      return this.read8BitUnpackedToString(numOctets);
     }
-    len--;
-
-    while (len) {
-      if ((temp = GsmPDUHelper.readHexOctet()) != 0xff) {
-        if (isUCS2) {
-          let temp2 = GsmPDUHelper.readHexOctet();
-          len--;
-          alphaId += String.fromCharCode((temp << 8) | temp2);
-        } else {
-          alphaId += String.fromCharCode(temp);
-        }
-      }
-      len--;
-    }
-    return alphaId;
   },
 
   
