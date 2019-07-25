@@ -487,6 +487,11 @@ protected:
   
 
 
+  bool DoesValueAsNumberApply() const { return DoesMinMaxApply(); }
+
+  
+
+
   bool MaxLengthApplies() const { return IsSingleLineTextControl(false, mType); }
 
   void FreeData();
