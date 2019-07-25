@@ -638,6 +638,8 @@ WeaveSvc.prototype = {
     
     Svc.Prefs.set("lastversion", WEAVE_VERSION);
     
+    this.password = "";
+    this.passphrase = "";
     Svc.Login.findLogins({}, PWDMGR_HOST, "", "").map(function(login) {
       Svc.Login.removeLogin(login);
     });
