@@ -107,34 +107,12 @@ WeaveCrypto.prototype = {
         Cc["@mozilla.org/psm;1"].getService(Ci.nsISupports);
 
         
-        let nssfile = Services.dirsvc.get("GreD", Ci.nsILocalFile);
-        let os = Services.appinfo.OS;
-        switch (os) {
-          case "WINNT":
-          case "WINMO":
-          case "WINCE":
-            nssfile.append("nss3.dll");
-            break;
-          case "Darwin":
-            nssfile.append("libnss3.dylib");
-            break;
-          case "Linux":
-          case "SunOS":
-          case "WebOS": 
-            nssfile.append("libnss3.so");
-            break;
-          case "Android":
-            
-            nssfile.append("lib");
-            nssfile.append("libnss3.so");
-            break;
-          default:
-            throw Components.Exception("unsupported platform: " + os, Cr.NS_ERROR_UNEXPECTED);
-        }
-        this.log("Using NSS library " + nssfile.path);
+        let path = ctypes.libraryName("nss3");
+
+        this.log("Using NSS library " + path);
 
         
-        let nsslib = ctypes.open(nssfile.path);
+        let nsslib = ctypes.open(path);
 
         this.log("Initializing NSS types and function declarations...");
 
