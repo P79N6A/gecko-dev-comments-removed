@@ -787,6 +787,7 @@ CookieStore.prototype = {
                                  command.data.name,
                                  command.data.value,
                                  command.data.isSecure,
+				 command.data.isHttpOnly,
                                  command.data.isSession,
                                  command.data.expiry );
   },
@@ -822,8 +823,8 @@ CookieStore.prototype = {
         
         
         this._log.info("CookieStore got editCommand: " + command );
-  },
 
+  },
 
   wrap: function CookieStore_wrap() {
 	

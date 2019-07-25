@@ -449,35 +449,45 @@ CookieSyncCore.prototype = {
 
 
   _itemExists: function CSC__itemExists(GUID) {
-        
-	
-	
-	
-	
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let cookieArray = GUID.split( ":" );
+    let cookieHost = cookieArray[0];
+    let cookiePath = cookieArray[1];
+    let cookieName = cookieArray[2];
 
-	
-	
-	
-
-        let unused = 0; 
-	let cookieArray = GUID.split( ":" );
-        
-	
-	cookie = Object();
-	cookie.host = cookieArray[0];
-	cookie.path = cookieArray[1];
-	cookie.name = cookieArray[2];
-    	return this._cookieManager.findMatchingCookie( cookie, unused );
+    
+    
+    
+    let enumerator = this._cookieManager.enumerator;
+    while (enumerator.hasMoreElements())
+      {
+	let aCookie = enumerator.getNext();
+	if (aCookie.host == cookieHost &&
+	    aCookie.path == cookiePath &&
+	    aCookie.name == cookieName ) {
+	  return true;
+	}
+      }
+    return false;
   },
 
   _commandLike: function CSC_commandLike(a, b) {
-        
-        
-	
-	
-	
-	
-        return false;
+    
+    
+    
+    
+    
+    
+    return false;
   }
 };
 CookieSyncCore.prototype.__proto__ = new SyncCore();
