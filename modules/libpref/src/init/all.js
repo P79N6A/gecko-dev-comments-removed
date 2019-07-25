@@ -817,7 +817,7 @@ pref("network.ftp.control.qos", 0);
 pref("network.websocket.enabled", true);
 
 
-pref("network.websocket.max-message-size", 16000000);
+pref("network.websocket.max-message-size", 2147483647);
 
 
 pref("network.websocket.auto-follow-http-redirects", false);
