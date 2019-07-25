@@ -2842,12 +2842,12 @@ nsFrame::HandleRelease(nsPresContext* aPresContext,
                        nsGUIEvent* aEvent,
                        nsEventStatus* aEventStatus)
 {
-  nsCOMPtr<nsIContent> captureContent = nsIPresShell::GetCapturingContent();
-
   
   
-  nsIPresShell::SetCapturingContent(nsnull, 0);
-
+  
+  
+  
+  
   nsFrame* targetFrame;
   nsRefPtr<nsFrameSelection> fs =
     FindDraggingFrameSelection(aPresContext->PresShell(), &targetFrame);
