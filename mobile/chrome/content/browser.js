@@ -1125,6 +1125,7 @@ Browser.MainDragger.prototype = {
     let browser = getBrowser();
     let bcr = browser.getBoundingClientRect();
     this._contentView = browser.getViewAt(clientX - bcr.left, clientY - bcr.top);
+    this._stopAtSidebar = 0;
   },
 
   dragStop: function dragStop(dx, dy, scroller) {
@@ -1139,6 +1140,10 @@ Browser.MainDragger.prototype = {
     
     let panOffset = this._panControlsAwayOffset(doffset);
 
+    
+    if (panOffset.x != 0 && !this._stopAtSidebar)
+      this._stopAtSidebar = panOffset.x; 
+
     if (this._contentView && !this._contentView.isRoot()) {
       this._panContentView(this._contentView, doffset);
       
@@ -1150,7 +1155,13 @@ Browser.MainDragger.prototype = {
 
     
     
-    doffset.add(panOffset);
+    if (this._stopAtSidebar > 0 && doffset.x > 0)
+      doffset.x = panOffset.x;
+    else if (this._stopAtSidebar < 0 && doffset.x < 0)
+      doffset.x = panOffset.x;
+    else
+      doffset.add(panOffset);
+
     Browser.tryFloatToolbar(doffset.x, 0);
     this._panScroller(Browser.controlsScrollboxScroller, doffset);
     this._panScroller(Browser.pageScrollboxScroller, doffset);
