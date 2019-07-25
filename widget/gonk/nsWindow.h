@@ -2,17 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 #ifndef nsWindow_h
 #define nsWindow_h
 
@@ -57,7 +46,7 @@ public:
     NS_IMETHOD Destroy(void);
 
     NS_IMETHOD Show(bool aState);
-    NS_IMETHOD IsVisible(bool & aState);
+    virtual bool IsVisible() const;
     NS_IMETHOD ConstrainPosition(bool aAllowSlop,
                                  PRInt32 *aX,
                                  PRInt32 *aY);
