@@ -180,7 +180,8 @@ SyncCore.prototype = {
     for (let i = 0; i < list.length; i++) {
       if (!list[i])
         continue;
-      if (list[i].data && list[i].data.parentGUID == oldGUID)
+      if (list[i].data && list[i].data.parentGUID &&
+          list[i].data.parentGUID == oldGUID)
         list[i].data.parentGUID = newGUID;
       for (let j = 0; j < list[i].parents.length; j++) {
         if (list[i].parents[j] == oldGUID)
@@ -222,6 +223,7 @@ SyncCore.prototype = {
 		    " against " + listB.length + " commands");
 
     let guidChanges = [];
+    let edits = [];
     for (let i = 0; i < listA.length; i++) {
       let a = listA[i];
 
@@ -233,9 +235,13 @@ SyncCore.prototype = {
         if (skip)
           return true;
 
-        if (Utils.deepEquals(a, b)) {
-          delete listA[i]; 
+        if (a.GUID == b.GUID) {
+          
+          
+          
+          
           skip = true;
+          delete listA[i]; 
           return false; 
 
         } else if (this._commandLike(a, b)) {
@@ -243,22 +249,26 @@ SyncCore.prototype = {
           guidChanges.push({action: "edit",
       		      GUID: a.GUID,
       		      data: {GUID: b.GUID}});
-          delete listA[i]; 
           skip = true;
-          return false; 
-        }
-
-        
-        if (b.action == "create" && this._store._itemExists(b.GUID)) {
-          this._log.error("Remote command has GUID that already exists " +
-                          "locally. Dropping command.");
+          delete listA[i]; 
           return false; 
         }
         return true; 
       }, this);
     }
 
-    listA = listA.filter(function(elt) { return elt });
+    listB = listB.filter(function(b) {
+      
+      if (b.action == "create" && this._store._itemExists(b.GUID)) {
+        this._log.error("Remote command has GUID that already exists " +
+                        "locally. Dropping command.");
+        return false; 
+      }
+      return true; 
+    }, this);
+
+    listA = listA.filter(function(elt) { return elt }); 
+    listA = listA.concat(edits);
     listB = guidChanges.concat(listB);
 
     for (let i = 0; i < listA.length; i++) {
