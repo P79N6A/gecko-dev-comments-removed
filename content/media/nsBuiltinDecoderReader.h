@@ -463,6 +463,10 @@ protected:
 
   
   
+  nsresult DecodeToTarget(PRInt64 aTarget);
+
+  
+  
   typedef PRBool (nsBuiltinDecoderReader::*DecodeFn)();
 
   
