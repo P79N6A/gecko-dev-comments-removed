@@ -2406,7 +2406,7 @@ void GetSeparateModelBorderPadding(const nsHTMLReflowState* aReflowState,
   
   
   const nsStyleBorder* border = aStyleContext.GetStyleBorder();
-  aBorderPadding = border->GetActualBorder();
+  aBorderPadding = border->GetComputedBorder();
   if (aReflowState) {
     aBorderPadding += aReflowState->mComputedPadding;
   }

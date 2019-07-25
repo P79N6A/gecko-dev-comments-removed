@@ -776,12 +776,6 @@ struct nsStyleBorder {
   }
 
   
-  inline const nsMargin& GetActualBorder() const
-  {
-    return mComputedBorder;
-  }
-
-  
   
   
   const nsMargin& GetComputedBorder() const
@@ -800,7 +794,7 @@ struct nsStyleBorder {
   
   nscoord GetActualBorderWidth(mozilla::css::Side aSide) const
   {
-    return GetActualBorder().Side(aSide);
+    return GetComputedBorder().Side(aSide);
   }
 
   PRUint8 GetBorderStyle(mozilla::css::Side aSide) const
