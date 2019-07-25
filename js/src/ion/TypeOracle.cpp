@@ -245,24 +245,9 @@ TypeInferenceOracle::elementWrite(JSScript *script, jsbytecode *pc)
 }
 
 bool
-TypeInferenceOracle::arrayProtoHasIndexedProperty()
+TypeInferenceOracle::arrayPrototypeHasIndexedProperty()
 {
-    if (!script->hasGlobal())
-        return true;
-
-    JSObject *proto;
-    if (!js_GetClassPrototype(cx, NULL, JSProto_Array, &proto, NULL))
-        return true;
-
-    
-
-
-
-
-    if (proto->getType(cx)->unknownProperties())
-        return true;
-    types::TypeSet *arrayTypes = proto->getType(cx)->getProperty(cx, JSID_VOID, false);
-    return !arrayTypes || arrayTypes->knownNonEmpty(cx);
+    return ArrayPrototypeHasIndexedProperty(cx, script);
 }
 
 bool
