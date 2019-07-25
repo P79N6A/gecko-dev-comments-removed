@@ -252,6 +252,10 @@ Resource.prototype = {
 
         this._log[log](mesg);
       }
+
+      
+      if (headers["X-Weave-Backoff"])
+        Observers.notify("weave:service:backoff:interval", parseInt(headers["X-Weave-Backoff"], 10))
     }
     
     catch(ex) {
