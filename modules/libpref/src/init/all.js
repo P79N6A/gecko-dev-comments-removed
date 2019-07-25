@@ -352,6 +352,10 @@ pref("nglayout.debug.paint_flashing", false);
 
 
 
+pref("nglayout.debug.widget_update_flashing", false);
+
+
+
 
 pref("slider.snapMultiplier", 0);
 
