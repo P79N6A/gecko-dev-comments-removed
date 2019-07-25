@@ -1,41 +1,41 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=2 et sw=2 tw=80: */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Indexed Database.
+ *
+ * The Initial Developer of the Original Code is
+ * The Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Ben Turner <bent.mozilla@gmail.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "IDBDatabase.h"
 
@@ -60,14 +60,6 @@ namespace {
 
 const PRUint32 kDefaultDatabaseTimeoutSeconds = 30;
 
-inline
-nsISupports*
-isupports_cast(IDBDatabase* aClassPtr)
-{
-  return static_cast<nsISupports*>(
-    static_cast<IDBRequest::Generator*>(aClassPtr));
-}
-
 class SetVersionHelper : public AsyncConnectionHelper
 {
 public:
@@ -81,7 +73,7 @@ public:
   PRUint16 GetSuccessResult(nsIWritableVariant* aResult);
 
 private:
-  
+  // In-params
   nsString mVersion;
 };
 
@@ -102,12 +94,12 @@ public:
   PRUint16 GetSuccessResult(nsIWritableVariant* aResult);
 
 protected:
-  
+  // In-params.
   nsString mName;
   nsString mKeyPath;
   bool mAutoIncrement;
 
-  
+  // Out-params.
   PRInt64 mId;
 };
 
@@ -124,7 +116,7 @@ public:
   PRUint16 GetSuccessResult(nsIWritableVariant* aResult);
 
 private:
-  
+  // In-params.
   nsString mName;
 };
 
@@ -158,7 +150,7 @@ ConvertVariantToStringArray(nsIVariant* aVariant,
 
   AutoFree af(rawArray);
 
-  
+  // Just delete anything that we don't expect and return.
   if (valueType != nsIDataType::VTYPE_WCHAR_STR) {
     switch (valueType) {
       case nsIDataType::VTYPE_ID:
@@ -180,7 +172,7 @@ ConvertVariantToStringArray(nsIVariant* aVariant,
       } break;
 
       default: {
-        
+        // The other types are primitives that do not need to be freed.
       }
     }
 
@@ -206,25 +198,42 @@ ConvertVariantToStringArray(nsIVariant* aVariant,
   return NS_OK;
 }
 
-} 
+inline
+already_AddRefed<IDBRequest>
+GenerateRequest(IDBDatabase* aDatabase)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+  return IDBRequest::Create(static_cast<nsPIDOMEventTarget*>(aDatabase),
+                            aDatabase->ScriptContext(), aDatabase->Owner());
+}
 
+} // anonymous namespace
 
+// static
 already_AddRefed<IDBDatabase>
-IDBDatabase::Create(DatabaseInfo* aDatabaseInfo,
+IDBDatabase::Create(nsIScriptContext* aScriptContext,
+                    nsPIDOMWindow* aOwner,
+                    DatabaseInfo* aDatabaseInfo,
                     LazyIdleThread* aThread,
-                    nsCOMPtr<mozIStorageConnection>& aConnection)
+                    nsCOMPtr<mozIStorageConnection>& aConnection,
+                    const nsACString& aASCIIOrigin)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(aDatabaseInfo, "Null pointer!");
   NS_ASSERTION(aThread, "Null pointer!");
   NS_ASSERTION(aConnection, "Null pointer!");
+  NS_ASSERTION(!aASCIIOrigin.IsEmpty(), "Empty origin!");
 
   nsRefPtr<IDBDatabase> db(new IDBDatabase());
+
+  db->mScriptContext = aScriptContext;
+  db->mOwner = aOwner;
 
   db->mDatabaseId = aDatabaseInfo->id;
   db->mName = aDatabaseInfo->name;
   db->mDescription = aDatabaseInfo->description;
   db->mFilePath = aDatabaseInfo->filePath;
+  db->mASCIIOrigin = aASCIIOrigin;
 
   aThread->SetWeakIdleObserver(db);
   db->mConnectionThread = aThread;
@@ -259,6 +268,10 @@ IDBDatabase::~IDBDatabase()
       DatabaseInfo::Remove(mDatabaseId);
     }
   }
+
+  if (mListenerManager) {
+    mListenerManager->Disconnect();
+  }
 }
 
 nsresult
@@ -291,15 +304,26 @@ IDBDatabase::CloseConnection()
   }
 }
 
-NS_IMPL_ADDREF(IDBDatabase)
-NS_IMPL_RELEASE(IDBDatabase)
+NS_IMPL_CYCLE_COLLECTION_CLASS(IDBDatabase)
 
-NS_INTERFACE_MAP_BEGIN(IDBDatabase)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, IDBRequest::Generator)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(IDBDatabase,
+                                                  nsDOMEventTargetHelper)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mOnErrorListener)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(IDBDatabase,
+                                                nsDOMEventTargetHelper)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mOnErrorListener)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(IDBDatabase)
   NS_INTERFACE_MAP_ENTRY(nsIIDBDatabase)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(IDBDatabase)
-NS_INTERFACE_MAP_END
+NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+
+NS_IMPL_ADDREF_INHERITED(IDBDatabase, nsDOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(IDBDatabase, nsDOMEventTargetHelper)
 
 DOMCI_DATA(IDBDatabase, IDBDatabase)
 
@@ -373,7 +397,7 @@ IDBDatabase::CreateObjectStore(const nsAString& aName,
     return NS_ERROR_INVALID_ARG;
   }
 
-  
+  // XPConnect makes "null" into a void string, we need an empty string.
   nsString keyPath(aKeyPath);
   if (keyPath.IsVoid()) {
     keyPath.Truncate();
@@ -397,12 +421,10 @@ IDBDatabase::CreateObjectStore(const nsAString& aName,
   }
 
   nsRefPtr<IDBTransaction> transaction =
-    IDBTransaction::Create(aCx, this, objectStores,
-                           nsIIDBTransaction::READ_WRITE,
+    IDBTransaction::Create(this, objectStores, nsIIDBTransaction::READ_WRITE,
                            kDefaultDatabaseTimeoutSeconds);
 
-  nsRefPtr<IDBRequest> request =
-    GenerateWriteRequest(transaction->ScriptContext(), transaction->Owner());
+  nsRefPtr<IDBRequest> request = GenerateRequest(this);
   NS_ENSURE_TRUE(request, NS_ERROR_FAILURE);
 
   nsRefPtr<CreateObjectStoreHelper> helper =
@@ -443,13 +465,11 @@ IDBDatabase::RemoveObjectStore(const nsAString& aName,
   }
 
   nsRefPtr<IDBTransaction> transaction =
-    IDBTransaction::Create(aCx, this, storesToOpen,
-                           nsIIDBTransaction::READ_WRITE,
+    IDBTransaction::Create(this, storesToOpen, nsIIDBTransaction::READ_WRITE,
                            kDefaultDatabaseTimeoutSeconds);
   NS_ENSURE_TRUE(transaction, NS_ERROR_FAILURE);
 
-  nsRefPtr<IDBRequest> request =
-    GenerateWriteRequest(transaction->ScriptContext(), transaction->Owner());
+  nsRefPtr<IDBRequest> request = GenerateRequest(this);
   NS_ENSURE_TRUE(request, NS_ERROR_FAILURE);
 
   nsRefPtr<RemoveObjectStoreHelper> helper =
@@ -474,15 +494,14 @@ IDBDatabase::SetVersion(const nsAString& aVersion,
     return NS_ERROR_UNEXPECTED;
   }
 
-  
+  // Lock the whole database
   nsTArray<nsString> storesToOpen;
   nsRefPtr<IDBTransaction> transaction =
-    IDBTransaction::Create(aCx, this, storesToOpen, IDBTransaction::FULL_LOCK,
+    IDBTransaction::Create(this, storesToOpen, IDBTransaction::FULL_LOCK,
                            kDefaultDatabaseTimeoutSeconds);
   NS_ENSURE_TRUE(transaction, NS_ERROR_FAILURE);
 
-  nsRefPtr<IDBRequest> request =
-    GenerateWriteRequest(transaction->ScriptContext(), transaction->Owner());
+  nsRefPtr<IDBRequest> request = GenerateRequest(this);
   NS_ENSURE_TRUE(request, NS_ERROR_FAILURE);
 
   nsRefPtr<SetVersionHelper> helper =
@@ -539,7 +558,7 @@ IDBDatabase::Transaction(nsIVariant* aStoreNames,
     case nsIDataType::VTYPE_VOID:
     case nsIDataType::VTYPE_EMPTY:
     case nsIDataType::VTYPE_EMPTY_ARRAY: {
-      
+      // Empty, request all object stores
       if (!info->GetObjectStoreNames(storesToOpen)) {
         NS_ERROR("Out of memory?");
         return NS_ERROR_OUT_OF_MEMORY;
@@ -547,7 +566,7 @@ IDBDatabase::Transaction(nsIVariant* aStoreNames,
     } break;
 
     case nsIDataType::VTYPE_WSTRING_SIZE_IS: {
-      
+      // Single name
       nsString name;
       rv = aStoreNames->GetAsAString(name);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -594,7 +613,7 @@ IDBDatabase::Transaction(nsIVariant* aStoreNames,
 
       nsCOMPtr<nsIDOMDOMStringList> stringList(do_QueryInterface(supports));
       if (!stringList) {
-        
+        // We don't support anything other than nsIDOMDOMStringList.
         return NS_ERROR_ILLEGAL_VALUE;
       }
 
@@ -623,7 +642,7 @@ IDBDatabase::Transaction(nsIVariant* aStoreNames,
   }
 
   nsRefPtr<IDBTransaction> transaction =
-    IDBTransaction::Create(aCx, this, storesToOpen, aMode,
+    IDBTransaction::Create(this, storesToOpen, aMode,
                            kDefaultDatabaseTimeoutSeconds);
   NS_ENSURE_TRUE(transaction, NS_ERROR_FAILURE);
 
@@ -672,7 +691,7 @@ IDBDatabase::ObjectStore(const nsAString& aName,
   }
 
   nsRefPtr<IDBTransaction> transaction =
-    IDBTransaction::Create(aCx, this, storesToOpen, aMode,
+    IDBTransaction::Create(this, storesToOpen, aMode,
                            kDefaultDatabaseTimeoutSeconds);
   NS_ENSURE_TRUE(transaction, NS_ERROR_FAILURE);
 
@@ -718,7 +737,7 @@ SetVersionHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 }
 
 PRUint16
-SetVersionHelper::GetSuccessResult(nsIWritableVariant* )
+SetVersionHelper::GetSuccessResult(nsIWritableVariant* /* aResult */)
 {
   DatabaseInfo* info;
   if (!DatabaseInfo::Get(mDatabase->Id(), &info)) {
@@ -733,7 +752,7 @@ SetVersionHelper::GetSuccessResult(nsIWritableVariant* )
 PRUint16
 CreateObjectStoreHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 {
-  
+  // Insert the data into the database.
   nsCOMPtr<mozIStorageStatement> stmt;
   nsresult rv = aConnection->CreateStatement(NS_LITERAL_CSTRING(
     "INSERT INTO object_store (name, key_path, auto_increment) "
@@ -755,7 +774,7 @@ CreateObjectStoreHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
     return nsIIDBDatabaseException::CONSTRAINT_ERR;
   }
 
-  
+  // Get the id of this object store, and store it for future use.
   (void)aConnection->GetLastInsertRowID(&mId);
 
   return OK;
@@ -808,7 +827,7 @@ RemoveObjectStoreHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 }
 
 PRUint16
-RemoveObjectStoreHelper::GetSuccessResult(nsIWritableVariant* )
+RemoveObjectStoreHelper::GetSuccessResult(nsIWritableVariant* /* aResult */)
 {
   ObjectStoreInfo::Remove(mDatabase->Id(), mName);
   return OK;
