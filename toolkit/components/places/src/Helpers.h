@@ -257,6 +257,16 @@ protected:
   nsCOMPtr<nsIThread> mCallingThread;
 };
 
+
+
+
+
+
+
+
+
+void ForceWALCheckpoint(mozIStorageConnection* aDBConn);
+
 } 
 } 
 

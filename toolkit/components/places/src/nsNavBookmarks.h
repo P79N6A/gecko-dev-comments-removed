@@ -474,6 +474,10 @@ private:
   bool mShuttingDown;
 
   
+  
+  bool mBatching;
+
+  
 
 
 
