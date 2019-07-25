@@ -26,6 +26,9 @@
 SimpleTest.waitForExplicitFinish();
 
 netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
+var Cu = Components.utils;
+var Ci = Components.interfaces;
+var Cc = Components.classes;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 function MockFilePicker()
