@@ -947,13 +947,15 @@ public:
 
   virtual Element* FindImageMap(const nsAString& aNormalizedMapName);
 
-  virtual void ResetFullScreenElement();
   virtual Element* GetFullScreenElement();
   virtual void RequestFullScreen(Element* aElement);
   virtual void CancelFullScreen();
-  virtual void UpdateFullScreenStatus(bool aIsFullScreen);
   virtual bool IsFullScreenDoc();
 
+  
+  
+  bool SetFullScreenState(Element* aElement, bool aIsFullScreen);
+ 
   
   
   void UpdateVisibilityState();
@@ -1072,6 +1074,10 @@ protected:
   
   
   nsWeakPtr mScopeObject;
+
+  
+  
+  static nsWeakPtr sFullScreenDoc;
 
   nsRefPtr<nsEventListenerManager> mListenerManager;
   nsCOMPtr<nsIDOMStyleSheetList> mDOMStyleSheets;

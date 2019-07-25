@@ -3403,7 +3403,8 @@ nsresult nsGenericHTMLElement::MozRequestFullScreen()
   
   
   
-  if (!nsContentUtils::IsRequestFullScreenAllowed()) {
+  if (!nsContentUtils::IsRequestFullScreenAllowed() ||
+      !IsInDoc()) {
     return NS_OK;
   }
 
@@ -3418,11 +3419,7 @@ nsresult nsGenericHTMLElement::MozRequestFullScreen()
 
   doc->RequestFullScreen(this);
 #ifdef DEBUG
-  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(doc->GetWindow());
-  NS_ENSURE_STATE(window);
   bool fullscreen;
-  window->GetFullScreen(&fullscreen);
-  NS_ASSERTION(fullscreen, "Windows should report fullscreen");
   domDocument->GetMozFullScreen(&fullscreen);
   NS_ASSERTION(fullscreen, "Document should report fullscreen");
   NS_ASSERTION(doc->IsFullScreenDoc(), "Should be in full screen state!");

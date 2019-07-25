@@ -126,8 +126,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0xb52356d4, 0xe191, 0x4cf8, \
- { 0xb8, 0x58, 0xc0, 0xf1, 0xe1, 0x98, 0x09, 0xdf } }
+{ 0xc3e40e8e, 0x8b91, 0x424c, \
+  { 0xbe, 0x9c, 0x9c, 0xc1, 0x76, 0xa7, 0xf7, 0x24 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -739,10 +739,6 @@ public:
   
 
 
-  virtual void ResetFullScreenElement() = 0;
-
-  
-
 
 
 
@@ -759,14 +755,6 @@ public:
 
 
   virtual void CancelFullScreen() = 0;
-
-  
-
-
-
-
-
-  virtual void UpdateFullScreenStatus(bool aIsFullScreen) = 0;
 
   
 
