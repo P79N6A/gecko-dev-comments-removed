@@ -4157,7 +4157,7 @@ var ResourceCache = {
 
 
   clear: function() {
-    ResourceCache._cached = {};
+    ResourceCache._cached = [];
   }
 };
 
