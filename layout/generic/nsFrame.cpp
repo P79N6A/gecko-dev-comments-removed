@@ -1467,7 +1467,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   const nsStyleDisplay* disp = GetStyleDisplay();
   
   
-  if (disp->mOpacity == 0.0 && !aBuilder->IsForEventDelivery())
+  if (disp->mOpacity == 0.0 && aBuilder->IsForPainting())
     return NS_OK;
 
   PRBool applyAbsPosClipping =
