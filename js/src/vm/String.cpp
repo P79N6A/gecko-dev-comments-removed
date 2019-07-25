@@ -116,30 +116,31 @@ JSString::charsHeapSize()
     return length() * sizeof(jschar);
 }
 
-static JS_ALWAYS_INLINE size_t
-RopeCapacityFor(size_t length)
+static JS_ALWAYS_INLINE bool
+AllocChars(JSContext *maybecx, size_t length, jschar **chars, size_t *capacity)
 {
-    static const size_t ROPE_DOUBLING_MAX = 1024 * 1024;
+    
+
+
+
+
+    size_t numChars = length + 1;
 
     
 
 
 
 
-    if (length > ROPE_DOUBLING_MAX)
-        return length + (length / 8);
-    return RoundUpPow2(length);
-}
+    static const size_t DOUBLING_MAX = 1024 * 1024;
+    numChars = numChars > DOUBLING_MAX ? numChars + (numChars / 8) : RoundUpPow2(numChars);
 
-static JS_ALWAYS_INLINE jschar *
-AllocChars(JSContext *maybecx, size_t wholeCapacity)
-{
     
+    *capacity = numChars - 1;
+
     JS_STATIC_ASSERT(JSString::MAX_LENGTH * sizeof(jschar) < UINT32_MAX);
-    size_t bytes = (wholeCapacity + 1) * sizeof(jschar);
-    if (maybecx)
-        return (jschar *)maybecx->malloc_(bytes);
-    return (jschar *)OffTheBooks::malloc_(bytes);
+    size_t bytes = numChars * sizeof(jschar);
+    *chars = (jschar *)(maybecx ? maybecx->malloc_(bytes) : OffTheBooks::malloc_(bytes));
+    return *chars != NULL;
 }
 
 JSFlatString *
@@ -197,9 +198,7 @@ JSRope::flatten(JSContext *maybecx)
         }
     }
 
-    wholeCapacity = RopeCapacityFor(wholeLength);
-    wholeChars = AllocChars(maybecx, wholeCapacity);
-    if (!wholeChars)
+    if (!AllocChars(maybecx, wholeLength, &wholeChars, &wholeCapacity))
         return NULL;
 
     pos = wholeChars;
