@@ -418,29 +418,6 @@ public:
 
 
 
-  static PRBool IsPrintableChar(PRUnichar aChar);
-
-  
-
-
-
-
-
-
-
-  static PRUint32 ComputeGeckoKeyCodeFromChar(PRUnichar aChar);
-
-  
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -458,24 +435,6 @@ public:
 
 
   static PRBool IsSpecialGeckoKey(UInt32 aNativeKeyCode);
-
-  
-
-
-
-
-
-
-  static PRBool IsNormalCharInputtingEvent(const nsKeyEvent& aKeyEvent);
-
-  
-
-
-
-
-
-
-  static PRBool IsModifierKey(UInt32 aNativeKeyCode);
 
 protected:
   nsAutoRefCnt mRefCnt;
@@ -507,6 +466,121 @@ protected:
 
   PRBool Destroyed() { return !mWidget; }
 
+  
+
+
+
+
+
+  struct KeyEventState
+  {
+    
+    NSEvent* mKeyEvent;
+    
+    PRPackedBool mKeyDownHandled;
+    
+    PRPackedBool mKeyPressDispatched;
+    
+    PRPackedBool mKeyPressHandled;
+
+    KeyEventState() : mKeyEvent(nsnull)
+    {
+      Clear();
+    }
+
+    ~KeyEventState()
+    {
+      Clear();
+    }
+
+    void Set(NSEvent* aNativeKeyEvent)
+    {
+      NS_PRECONDITION(aNativeKeyEvent, "aNativeKeyEvent must not be NULL");
+      Clear();
+      mKeyEvent = [aNativeKeyEvent retain];
+    }
+
+    void Clear()
+    {
+      if (mKeyEvent) {
+        [mKeyEvent release];
+        mKeyEvent = nsnull;
+      }
+      mKeyDownHandled = PR_FALSE;
+      mKeyPressDispatched = PR_FALSE;
+      mKeyPressHandled = PR_FALSE;
+    }
+
+    PRBool KeyDownOrPressHandled()
+    {
+      return mKeyDownHandled || mKeyPressHandled;
+    }
+  };
+
+  
+
+
+  class AutoKeyEventStateCleaner
+  {
+  public:
+    AutoKeyEventStateCleaner(TextInputHandlerBase* aHandler) :
+      mHandler(aHandler)
+    {
+    }
+
+    ~AutoKeyEventStateCleaner()
+    {
+      mHandler->mCurrentKeyEvent.Clear();
+    }
+  private:
+    TextInputHandlerBase* mHandler;
+  };
+
+  
+  
+  KeyEventState mCurrentKeyEvent;
+
+  
+
+
+
+
+
+
+
+
+
+
+  static PRBool IsPrintableChar(PRUnichar aChar);
+
+  
+
+
+
+
+
+
+
+  static PRUint32 ComputeGeckoKeyCodeFromChar(PRUnichar aChar);
+
+  
+
+
+
+
+
+
+  static PRBool IsNormalCharInputtingEvent(const nsKeyEvent& aKeyEvent);
+
+  
+
+
+
+
+
+
+  static PRBool IsModifierKey(UInt32 aNativeKeyCode);
+
 private:
   struct KeyboardLayoutOverride {
     PRInt32 mKeyboardLayout;
@@ -527,9 +601,46 @@ private:
 
 class PluginTextInputHandler : public TextInputHandlerBase
 {
+public:
+
+#ifndef NP_NO_CARBON
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  static void ConvertCocoaKeyEventToCarbonEvent(
+                NSEvent* aCocoaKeyEvent,
+                EventRecord& aCarbonKeyEvent,
+                PRBool aMakeKeyDownEventIfNSFlagsChanged = PR_FALSE);
+#endif 
+
 protected:
   PluginTextInputHandler(nsChildView* aWidget, NSView<mozView> *aNativeView);
   ~PluginTextInputHandler();
+
+#ifndef NP_NO_CARBON
+
+  
+
+
+
+
+
+
+
+  static PRBool ConvertUnicodeToCharCode(PRUnichar aUniChar,
+                                         unsigned char* aOutChar);
+
+#endif 
 };
 
 
@@ -580,14 +691,6 @@ public:
 
   void SetMarkedText(NSAttributedString* aAttrString,
                      NSRange& aSelectedRange);
-
-  
-
-
-
-
-
-  void InsertTextAsCommittingComposition(NSAttributedString* aAttrString);
 
   
 
@@ -713,6 +816,14 @@ protected:
 
   virtual void ExecutePendingMethods();
 
+  
+
+
+
+
+
+  void InsertTextAsCommittingComposition(NSAttributedString* aAttrString);
+
 private:
   
   NSString* mIMECompositionString;
@@ -831,6 +942,39 @@ public:
 
   TextInputHandler(nsChildView* aWidget, NSView<mozView> *aNativeView);
   virtual ~TextInputHandler();
+
+  
+
+
+
+
+
+
+
+  PRBool HandleKeyDownEvent(NSEvent* aNativeEvent);
+
+  
+
+
+
+
+
+
+
+  void InsertText(NSAttributedString *aAttrString);
+
+  
+
+
+
+
+
+
+
+  PRBool KeyPressWasHandled()
+  {
+    return mCurrentKeyEvent.mKeyPressHandled;
+  }
 };
 
 } 

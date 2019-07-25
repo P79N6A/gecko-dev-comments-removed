@@ -38,6 +38,8 @@
 #ifndef mozView_h_
 #define mozView_h_
 
+#include "npapi.h"
+
 #undef DARWIN
 #import <Cocoa/Cocoa.h>
 class nsIWidget;
@@ -75,6 +77,15 @@ class TextInputHandler;
 - (void)widgetDestroyed;
 
 - (BOOL)isDragInProgress;
+
+  
+- (NPEventModel)pluginEventModel;
+
+  
+- (BOOL)isFirstResponder;
+
+  
+- (void)maybeInitContextMenuTracking;
 
 @end
 

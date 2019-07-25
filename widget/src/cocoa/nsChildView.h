@@ -193,20 +193,6 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
   NPDrawingModel mPluginDrawingModel;
 
   
-  
-  
-  
-  
-  NSEvent* mCurKeyEvent;
-  PRBool mKeyDownHandled;
-  
-  
-  
-  BOOL mKeyPressSent;
-  
-  PRBool mKeyPressHandled;
-
-  
   NSEvent* mLastMouseDownEvent;
 
   
