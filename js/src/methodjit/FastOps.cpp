@@ -337,8 +337,7 @@ mjit::Compiler::jsop_bitop(JSOp op)
     }
 
     
-    if ((rhs->isTypeKnown() && rhs->getKnownType() != JSVAL_TYPE_INT32) ||
-        (lhs->isTypeKnown() && lhs->getKnownType() != JSVAL_TYPE_INT32)) {
+    if (rhs->isNotType(JSVAL_TYPE_INT32) || lhs->isNotType(JSVAL_TYPE_INT32)) {
         prepareStubCall(Uses(2));
         stubCall(stub);
         frame.popn(2);
