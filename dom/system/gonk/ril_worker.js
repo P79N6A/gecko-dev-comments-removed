@@ -665,6 +665,41 @@ let RIL = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  iccIO: function iccIO(options) {
+    let token = Buf.newParcel(REQUEST_SIM_IO, options);
+    Buf.writeUint32(options.command);
+    Buf.writeUint32(options.fileid);
+    Buf.writeString(options.path);
+    Buf.writeUint32(options.p1);
+    Buf.writeUint32(options.p2);
+    Buf.writeUint32(options.p3);
+    Buf.writeString(options.data);
+    if (options.pin2 != null) {
+      Buf.writeString(options.pin2);
+    }
+    Buf.sendParcel();
+  },
+  
+  
+
+
+
+
+
   setRadioPower: function setRadioPower(on) {
     Buf.newParcel(REQUEST_RADIO_POWER);
     Buf.writeUint32(1);
@@ -921,41 +956,6 @@ let RIL = {
     return token;
   },
 
-   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  iccIO: function iccIO (options) {
-    let token = Buf.newParcel(REQUEST_SIM_IO, options);
-    Buf.writeUint32(options.command);
-    Buf.writeUint32(options.fileid);
-    Buf.writeString(options.path);
-    Buf.writeUint32(options.p1);
-    Buf.writeUint32(options.p2);
-    Buf.writeUint32(options.p3);
-    Buf.writeString(options.data);
-    if (options.pin2 != null) {
-      Buf.writeString(options.pin2);
-    }
-    Buf.sendParcel();
-  },
-  
   
 
 
@@ -2271,7 +2271,7 @@ let Phone = {
 
   
 
- 
+
   getMSISDN: function getMSISDN() {
     let options = {
       command: ICC_COMMAND_GET_RESPONSE,
@@ -2414,8 +2414,10 @@ let GsmPDUHelper = {
     let number = 0;
     for (let i = 0; i < length; i++) {
       let octet = this.readHexOctet();
-      if (octet == 0xff)
+      
+      if (octet == 0xff) {
         continue;
+      }
       
       
       if ((octet & 0xf0) == 0xf0) {
@@ -2440,6 +2442,11 @@ let GsmPDUHelper = {
     let delimiter = Buf.readUint16();
     if (!(length & 1)) {
       delimiter |= Buf.readUint16();
+    }
+    if (DEBUG) {
+      if (delimiter != 0) {
+        debug("Something's wrong, found string delimiter: " + delimiter);
+      }
     }
     return bcd;
   },
