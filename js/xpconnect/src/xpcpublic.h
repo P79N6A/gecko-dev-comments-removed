@@ -330,6 +330,25 @@ ValueToUint64(JSContext *cx, JS::Value v, uint64_t *result)
     return true;
 }
 
+
+
+
+
+
+
+
+
+
+
+JSObject *
+Unwrap(JSContext *cx, JSObject *wrapper, bool stopAtOuter = true);
+
+
+
+
+bool
+Throw(JSContext *cx, nsresult rv);
+
 } 
 
 namespace mozilla {
