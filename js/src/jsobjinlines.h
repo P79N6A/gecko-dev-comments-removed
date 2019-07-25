@@ -862,24 +862,10 @@ JSObject::isCallable()
 inline JSPrincipals *
 JSObject::principals(JSContext *cx)
 {
-    JSPrincipals *compPrincipals = compartment()->principals;
-#ifdef DEBUG
-    if (!compPrincipals)
-        return NULL;
-
-    
-
-
-
     JSSecurityCallbacks *cb = JS_GetSecurityCallbacks(cx);
-    if (JSObjectPrincipalsFinder finder = cb ? cb->findObjectPrincipals : NULL) {
-        JSPrincipals *hookPrincipals = finder(cx, this);
-        JS_ASSERT(hookPrincipals == compPrincipals ||
-                  (hookPrincipals->subsume(hookPrincipals, compPrincipals) &&
-                   compPrincipals->subsume(compPrincipals, hookPrincipals)));
-    }
-#endif
-    return compPrincipals;
+    if (JSObjectPrincipalsFinder finder = cb ? cb->findObjectPrincipals : NULL)
+        return finder(cx, this);
+    return NULL;
 }
 
 inline uint32
