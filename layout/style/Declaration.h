@@ -41,8 +41,14 @@
 
 
 
-#ifndef nsCSSDeclaration_h___
-#define nsCSSDeclaration_h___
+#ifndef mozilla_css_Declaration_h
+#define mozilla_css_Declaration_h
+
+
+
+#ifndef _IMPL_NS_LAYOUT
+#error "This file should only be included within the layout library"
+#endif
 
 #include "nsISupports.h"
 #include "nsColor.h"

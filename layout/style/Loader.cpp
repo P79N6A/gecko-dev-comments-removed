@@ -48,7 +48,7 @@
 
 
 
-#include "nsCSSLoader.h"
+#include "mozilla/css/Loader.h"
 #include "nsIRunnable.h"
 #include "nsIUnicharStreamLoader.h"
 #include "nsCOMPtr.h"

@@ -82,7 +82,7 @@
 #include "nsCRT.h"
 
 #include "nsXULPrototypeDocument.h"     
-#include "nsCSSLoader.h"
+#include "mozilla/css/Loader.h"
 
 #include "nsUnicharUtils.h"
 #include "nsGkAtoms.h"
