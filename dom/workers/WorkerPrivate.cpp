@@ -3700,7 +3700,11 @@ WorkerPrivate::RunExpiredTimeouts(JSContext* aCx)
 
       NS_ASSERTION(!mTimeouts.Contains(info), "Shouldn't have duplicates!");
 
-      info->mTargetTime += info->mInterval;
+      
+      
+      
+      info->mTargetTime = NS_MAX(info->mTargetTime + info->mInterval,
+                                 now + TimeDuration::FromMilliseconds(1));
       mTimeouts.InsertElementSorted(info, comparator);
     }
   }
@@ -3712,6 +3716,8 @@ WorkerPrivate::RunExpiredTimeouts(JSContext* aCx)
   for (PRUint32 index = 0; index < mTimeouts.Length(); ) {
     nsAutoPtr<TimeoutInfo>& info = mTimeouts[index];
     if (info->mTargetTime <= now || info->mCanceled) {
+      NS_ASSERTION(!info->mIsInterval || info->mCanceled,
+                   "Interval timers can only be removed when canceled!");
       mTimeouts.RemoveElement(info);
     }
     else {
