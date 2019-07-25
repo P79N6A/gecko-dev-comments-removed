@@ -248,6 +248,10 @@ LIRGenerator::visitTest(MTest *test)
         return add(new LGoto(ifFalse));
 
     
+    if (opd->type() == MIRType_Object)
+        return add(new LGoto(ifTrue));
+
+    
     
     
     if (opd->isCompare()) {
@@ -273,6 +277,7 @@ LIRGenerator::visitTest(MTest *test)
     if (opd->type() == MIRType_Double)
         return add(new LTestDAndBranch(useRegister(opd), ifTrue, ifFalse));
 
+    JS_ASSERT(opd->type() == MIRType_Int32 || opd->type() == MIRType_Boolean);
     return add(new LTestIAndBranch(useRegister(opd), ifTrue, ifFalse));
 }
 
