@@ -8455,10 +8455,10 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             
             
             
-            if (!aSHEntry) {
-                rv = ScrollToAnchor(curHash, newHash, aLoadType);
-                NS_ENSURE_SUCCESS(rv, rv);
-            }
+            
+            
+            rv = ScrollToAnchor(curHash, newHash, aLoadType);
+            NS_ENSURE_SUCCESS(rv, rv);
 
             mLoadType = aLoadType;
             mURIResultedInDocument = PR_TRUE;
