@@ -129,10 +129,16 @@ Assembler::CountLeadingZeroes(uint32_t data)
         
         
             "   .arch armv7-a\n"
+        
+        
+            "   .object_arch armv4t\n"
 #elif (NJ_COMPILER_ARM_ARCH < 5)
         
         
             "   .arch armv5t\n"
+        
+        
+            "   .object_arch armv4t\n"
 #endif
             "   clz     %0, %1  \n"
             :   "=r"    (leading_zeroes)
