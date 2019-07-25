@@ -75,6 +75,10 @@ Paths* gPaths = NULL;
 
 
 
+
+
+
+
 nsresult GetPathToSpecialDir(const char *aKey, nsString& aOutPath)
 {
   nsCOMPtr<nsIFile> file;
@@ -83,7 +87,11 @@ nsresult GetPathToSpecialDir(const char *aKey, nsString& aOutPath)
     return rv;
   }
 
-  return file->GetPath(aOutPath);
+  rv = file->GetPath(aOutPath);
+  if (NS_FAILED(rv)) {
+    aOutPath.SetIsVoid(true);
+  }
+  return rv;
 }
 
 
@@ -119,15 +127,11 @@ nsresult InitOSFileConstants()
     return rv;
   }
 
-  rv = GetPathToSpecialDir(NS_OS_TEMP_DIR, paths->tmpDir);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
+  
+  
 
-  rv = GetPathToSpecialDir(NS_APP_USER_PROFILE_50_DIR, paths->profileDir);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
+  GetPathToSpecialDir(NS_OS_TEMP_DIR, paths->tmpDir);
+  GetPathToSpecialDir(NS_APP_USER_PROFILE_50_DIR, paths->profileDir);
 
   gPaths = paths.forget();
   return NS_OK;
@@ -528,9 +532,14 @@ JSObject *GetOrCreateObjectProperty(JSContext *cx, JSObject *aObject,
 
 
 
+
+
 bool SetStringProperty(JSContext *cx, JSObject *aObject, const char *aProperty,
                        const nsString aValue)
 {
+  if (aValue.IsVoid()) {
+    return true;
+  }
   JSString* strValue = JS_NewUCStringCopyZ(cx, aValue.get());
   jsval valValue = STRING_TO_JSVAL(strValue);
   return JS_SetProperty(cx, aObject, aProperty, &valValue);
