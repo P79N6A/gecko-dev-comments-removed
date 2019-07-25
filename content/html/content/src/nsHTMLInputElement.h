@@ -225,11 +225,6 @@ public:
   }
   void AddedToRadioGroup();
   void WillRemoveFromRadioGroup();
-  
-
-
-
-  virtual already_AddRefed<nsIRadioGroupContainer> GetRadioGroupContainer();
 
  
 
@@ -576,6 +571,14 @@ protected:
         return false;
     }
   }
+
+  
+
+
+
+
+
+  nsIRadioGroupContainer* GetRadioGroupContainer() const;
 
   nsCOMPtr<nsIControllers> mControllers;
 
