@@ -62,14 +62,8 @@ enum nsViewVisibility {
 };
 
 #define NS_IVIEW_IID    \
-  { 0xe0a3b0ee, 0x8d0f, 0x4dcb, \
-    { 0x89, 0x04, 0x81, 0x2d, 0xfd, 0x90, 0x00, 0x73 } }
-
-
-#define NS_VIEW_FLAGS_PUBLIC              0x00FF
-
-
-#define NS_VIEW_FLAGS_PRIVATE             0xFF00
+  { 0x7caf32d2, 0xd82a, 0x4b9f, \
+    { 0x84, 0xc1, 0xbd, 0x20, 0xeb, 0x5c, 0x78, 0x55 } }
 
 
 
@@ -83,15 +77,6 @@ enum nsViewVisibility {
 
 
 #define NS_VIEW_FLAG_TOPMOST              0x0010
-
-struct nsViewZIndex {
-  bool mIsAuto;
-  PRInt32 mZIndex;
-  bool mIsTopmost;
-  
-  nsViewZIndex(bool aIsAuto, PRInt32 aZIndex, bool aIsTopmost)
-    : mIsAuto(aIsAuto), mZIndex(aZIndex), mIsTopmost(aIsTopmost) {}
-};
 
 
 
@@ -233,19 +218,6 @@ public:
 
 
   nsViewVisibility GetVisibility() const { return mVis; }
-
-  
-
-
-
-
-
-
-
-
-  nsViewZIndex GetZIndex() const { return nsViewZIndex((mVFlags & NS_VIEW_FLAG_AUTO_ZINDEX) != 0,
-                                                       mZIndex,
-                                                       (mVFlags & NS_VIEW_FLAG_TOPMOST) != 0); }
 
   
 

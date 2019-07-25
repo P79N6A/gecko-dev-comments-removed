@@ -409,7 +409,7 @@ protected:
 
   
   
-  nsresult CreatePopupViewForFrame();
+  nsresult CreatePopupView();
 
   nsString     mIncrementalString;  
 
