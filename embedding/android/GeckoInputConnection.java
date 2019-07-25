@@ -510,8 +510,13 @@ public class GeckoInputConnection
     public void notifyTextChange(InputMethodManager imm, String text,
                                  int start, int oldEnd, int newEnd) {
         
+        
 
-        if (!text.contentEquals(GeckoApp.surfaceView.mEditable))
+        mNumPendingChanges = Math.max(mNumPendingChanges - 1, 0);
+
+        
+        
+        if (mNumPendingChanges == 0 && !text.contentEquals(GeckoApp.surfaceView.mEditable))
             GeckoApp.surfaceView.setEditable(text);
 
         if (mUpdateRequest == null)
@@ -548,6 +553,11 @@ public class GeckoInputConnection
         else
             imm.updateSelection(GeckoApp.surfaceView, start, end, -1, -1);
 
+        
+        
+        if (mNumPendingChanges > 0)
+            return;
+
         int maxLen = GeckoApp.surfaceView.mEditable.length();
         Selection.setSelection(GeckoApp.surfaceView.mEditable, 
                                Math.min(start, maxLen),
@@ -558,11 +568,16 @@ public class GeckoInputConnection
         mComposing = false;
         mComposingText = "";
         mUpdateRequest = null;
+        mNumPendingChanges = 0;
     }
 
     
     public void onTextChanged(CharSequence s, int start, int before, int count)
     {
+        
+        
+
+        mNumPendingChanges++;
         GeckoAppShell.sendEventToGecko(
             new GeckoEvent(GeckoEvent.IME_SET_SELECTION, start, before));
 
@@ -611,6 +626,8 @@ public class GeckoInputConnection
     int mCompositionSelStart;
     
     int mCompositionSelLen;
+    
+    int mNumPendingChanges;
 
     ExtractedTextRequest mUpdateRequest;
     final ExtractedText mUpdateExtract = new ExtractedText();

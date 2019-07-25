@@ -558,6 +558,9 @@ public class GeckoAppShell
         if (imm == null)
             return;
 
+        
+        
+
         if (newEnd < 0)
             GeckoApp.surfaceView.inputConnection.notifySelectionChange(
                 imm, start, end);
