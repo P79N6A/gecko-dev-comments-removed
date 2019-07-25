@@ -324,6 +324,15 @@ namespace js {
 
 
 
+
+
+
+extern JSObject *
+NewCallObject(JSContext *cx, js::Bindings *bindings, JSObject &scopeChain, JSObject *callee);
+
+
+
+
 #define VALUE_IS_FUNCTION(cx, v)                                              \
     (!JSVAL_IS_PRIMITIVE(v) && JSVAL_TO_OBJECT(v)->isFunction())
 

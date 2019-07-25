@@ -2074,6 +2074,20 @@ MakeUpvarForEval(JSParseNode *pn, JSCodeGenerator *cg)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static bool
 TryConvertToGname(JSCodeGenerator *cg, JSParseNode *pn, JSOp *op)
 {

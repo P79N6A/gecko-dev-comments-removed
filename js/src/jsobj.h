@@ -882,6 +882,14 @@ struct JSObject : js::gc::Cell {
     
 
 
+
+
+
+
+
+
+
+
     static const uint32 JSSLOT_CALL_CALLEE = 0;
     static const uint32 JSSLOT_CALL_ARGUMENTS = 1;
 
@@ -892,9 +900,13 @@ struct JSObject : js::gc::Cell {
     
     inline JSStackFrame *maybeCallObjStackFrame() const;
 
-    inline JSObject &getCallObjCallee() const;
+    
+
+
+
+    inline JSObject *getCallObjCallee() const;
     inline JSFunction *getCallObjCalleeFunction() const; 
-    inline void setCallObjCallee(JSObject &callee);
+    inline void setCallObjCallee(JSObject *callee);
 
     inline const js::Value &getCallObjArguments() const;
     inline void setCallObjArguments(const js::Value &v);

@@ -922,6 +922,9 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
         return false;
 
     
+    SetValueRangeToNull(frame.fp()->slots(), script->nfixed);
+
+    
     JSObject *initialVarObj;
     if (prev) {
         JS_ASSERT(chain == &prev->scopeChain());
@@ -953,14 +956,25 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
             return false;
         frame.fp()->globalThis().setObject(*thisp);
 
-        initialVarObj = (cx->options & JSOPTION_VAROBJFIX)
-                        ? chain->getGlobal()
-                        : chain;
+        initialVarObj = (cx->options & JSOPTION_VAROBJFIX) ? chain->getGlobal() : chain;
     }
-    JS_ASSERT(!initialVarObj->getOps()->defineProperty);
 
     
-    SetValueRangeToNull(frame.fp()->slots(), script->nfixed);
+
+
+
+    if (script->strictModeCode) {
+        initialVarObj = NewCallObject(cx, &script->bindings, *initialVarObj, NULL);
+        if (!initialVarObj)
+            return false;
+        initialVarObj->setPrivate(frame.fp());
+
+        
+        if (frame.fp()->hasCallObj())
+            frame.fp()->clearCallObj();
+        frame.fp()->setScopeChainAndCallObj(*initialVarObj);
+    }
+    JS_ASSERT(!initialVarObj->getOps()->defineProperty);
 
 #if JS_HAS_SHARP_VARS
     JS_STATIC_ASSERT(SHARP_NSLOTS == 2);
