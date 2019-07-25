@@ -137,7 +137,8 @@ add_test(function() {
 
 add_test(function() {
   gBrowser.addEventListener("load", function(event) {
-    if (event.target.location.href == "about:blank")
+    if (!(event.target instanceof Document) ||
+        event.target.location.href == "about:blank")
       return;
     gBrowser.removeEventListener("load", arguments.callee, true);
 
@@ -161,7 +162,8 @@ add_test(function() {
 
 add_test(function() {
   gBrowser.addEventListener("load", function(event) {
-    if (event.target.location.href == "about:blank")
+    if (!(event.target instanceof Document) ||
+        event.target.location.href == "about:blank")
       return;
     gBrowser.removeEventListener("load", arguments.callee, true);
 
