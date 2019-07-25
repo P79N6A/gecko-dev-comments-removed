@@ -338,14 +338,14 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
 {
   bool returnValue = showOSCrashReporter ? false : succeeded;
 
-  XP_CHAR minidumpPath[XP_PATH_MAX];
+  static XP_CHAR minidumpPath[XP_PATH_MAX];
   int size = XP_PATH_MAX;
   XP_CHAR* p = Concat(minidumpPath, dump_path, &size);
   p = Concat(p, XP_PATH_SEPARATOR, &size);
   p = Concat(p, minidump_id, &size);
   Concat(p, dumpFileExtension, &size);
 
-  XP_CHAR extraDataPath[XP_PATH_MAX];
+  static XP_CHAR extraDataPath[XP_PATH_MAX];
   size = XP_PATH_MAX;
   p = Concat(extraDataPath, dump_path, &size);
   p = Concat(p, XP_PATH_SEPARATOR, &size);
@@ -717,13 +717,10 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
   }
 #endif
 
-#ifdef XP_WIN32
+#ifdef XP_WIN
+  
+  
   MINIDUMP_TYPE minidump_type = MiniDumpNormal;
-
-#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
-  
-  
-
   DWORD version_size = GetFileVersionInfoSizeW(L"dbghelp.dll", NULL);
   if (version_size > 0) {
     std::vector<BYTE> buffer(version_size);
@@ -743,8 +740,7 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
       }
     }
   }
-#endif 
-#endif 
+#endif
 
   
   gExceptionHandler = new google_breakpad::
