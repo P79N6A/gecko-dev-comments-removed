@@ -47,6 +47,7 @@ import android.content.Context;
 import android.content.Intent;
 
 import android.os.BatteryManager;
+import android.os.SystemClock;
 
 public class GeckoBatteryManager
   extends BroadcastReceiver
@@ -60,7 +61,7 @@ public class GeckoBatteryManager
   private final static double  kDefaultRemainingTime = -1.0;
   private final static double  kUnknownRemainingTime = -1.0;
 
-  private static Date    sLastLevelChange            = new Date(0);
+  private static long    sLastLevelChange            = 0;
   private static boolean sNotificationsEnabled       = false;
   private static double  sLevel                      = kDefaultLevel;
   private static boolean sCharging                   = kDefaultCharging;
@@ -91,7 +92,7 @@ public class GeckoBatteryManager
         sRemainingTime = kUnknownRemainingTime;
         
         
-        sLastLevelChange = new Date(0);
+        sLastLevelChange = 0;
       }
 
       
@@ -108,9 +109,10 @@ public class GeckoBatteryManager
         sRemainingTime = 0.0;
       } else if (sLevel != previousLevel) {
         
-        if (sLastLevelChange.getTime() != 0) {
-          Date currentTime = new Date();
-          long dt = (currentTime.getTime() - sLastLevelChange.getTime()) / 1000;
+        if (sLastLevelChange != 0) {
+          
+          long currentTime = SystemClock.elapsedRealtime();
+          long dt = (currentTime - sLastLevelChange) / 1000;
           double dLevel = sLevel - previousLevel;
 
           if (sCharging) {
@@ -132,7 +134,7 @@ public class GeckoBatteryManager
           sLastLevelChange = currentTime;
         } else {
           
-          sLastLevelChange = new Date();
+          sLastLevelChange = SystemClock.elapsedRealtime();
         }
       }
     } else {
