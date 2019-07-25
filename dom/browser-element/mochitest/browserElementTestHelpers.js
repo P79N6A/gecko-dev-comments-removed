@@ -124,9 +124,8 @@ browserElementTestHelpers.setPageThumbsEnabledPref(false);
 
 
 
-var oop = navigator.platform.indexOf('Win') == -1 &&
-          location.pathname.indexOf('_inproc_') == -1;
 
+var oop = location.pathname.indexOf('_inproc_') == -1;
 browserElementTestHelpers.setOOPByDefaultPref(oop);
 browserElementTestHelpers.setOOPDisabledPref(false);
 
