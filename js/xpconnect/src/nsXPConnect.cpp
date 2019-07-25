@@ -1180,11 +1180,6 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
     if (!ac.enter(ccx, global))
         return NS_ERROR_UNEXPECTED;
 
-    
-    bool system = (aFlags & nsIXPConnect::FLAG_SYSTEM_GLOBAL_OBJECT) != 0;
-    if (system && !JS_MakeSystemObject(aJSContext, global))
-        return UnexpectedFailure(NS_ERROR_FAILURE);
-
     if (!(aFlags & nsIXPConnect::OMIT_COMPONENTS_OBJECT)) {
         
         if (!nsXPCComponents::AttachComponentsObject(ccx, wrappedGlobal->GetScope(), global))
