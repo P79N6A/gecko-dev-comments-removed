@@ -437,6 +437,11 @@ nsStyleSet::GetContext(nsStyleContext* aParentContext,
                      aPseudoType),
                   "Pseudo mismatch");
 
+  if (aVisitedRuleNode == aRuleNode) {
+    
+    aVisitedRuleNode = nsnull;
+  }
+
   
   
   
@@ -1154,11 +1159,6 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
   
   if (visitedContext) {
      visitedRuleNode = visitedContext->GetRuleNode();
-     if (visitedRuleNode == ruleNode) {
-       
-       
-       visitedRuleNode = nsnull;
-     }
   }
 
   return GetContext(aNewParentContext, ruleNode, visitedRuleNode,
