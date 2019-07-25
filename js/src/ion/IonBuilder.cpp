@@ -3093,6 +3093,7 @@ IonBuilder::jsop_getelem_dense()
     types::TypeSet *barrier = oracle->propertyReadBarrier(script, pc);
     types::TypeSet *types = oracle->propertyRead(script, pc);
     bool needsHoleCheck = !oracle->elementReadIsPacked(script, pc);
+    bool maybeUndefined = types->hasType(types::Type::UndefinedType());
 
     MDefinition *id = current->pop();
     MDefinition *obj = current->pop();
@@ -3116,16 +3117,33 @@ IonBuilder::jsop_getelem_dense()
     MElements *elements = MElements::New(obj);
     current->add(elements);
 
-    
     MInitializedLength *initLength = MInitializedLength::New(elements);
     current->add(initLength);
 
-    MBoundsCheck *check = MBoundsCheck::New(id, initLength);
-    current->add(check);
+    MInstruction *load;
 
-    
-    MLoadElement *load = MLoadElement::New(elements, id, needsHoleCheck);
-    current->add(load);
+    if (!maybeUndefined) {
+        
+        
+        
+        
+        MBoundsCheck *check = MBoundsCheck::New(id, initLength);
+        current->add(check);
+
+        load = MLoadElement::New(elements, id, needsHoleCheck);
+        current->add(load);
+    } else {
+        
+        
+        
+        load = MLoadElementHole::New(elements, id, initLength, needsHoleCheck);
+        current->add(load);
+
+        
+        
+        
+        JS_ASSERT(knownType == JSVAL_TYPE_UNKNOWN);
+    }
 
     if (knownType != JSVAL_TYPE_UNKNOWN)
         load->setResultType(MIRTypeFromValueType(knownType));

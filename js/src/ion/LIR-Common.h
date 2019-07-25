@@ -1081,6 +1081,32 @@ class LLoadElementV : public LInstructionHelper<BOX_PIECES, 2, 0>
 };
 
 
+class LLoadElementHole : public LInstructionHelper<BOX_PIECES, 3, 0>
+{
+  public:
+    LIR_HEADER(LoadElementHole);
+    BOX_OUTPUT_ACCESSORS();
+
+    LLoadElementHole(const LAllocation &elements, const LAllocation &index, const LAllocation &initLength) {
+        setOperand(0, elements);
+        setOperand(1, index);
+        setOperand(2, initLength);
+    }
+    const MLoadElementHole *mir() const {
+        return mir_->toLoadElementHole();
+    }
+    const LAllocation *elements() {
+        return getOperand(0);
+    }
+    const LAllocation *index() {
+        return getOperand(1);
+    }
+    const LAllocation *initLength() {
+        return getOperand(2);
+    }
+};
+
+
 
 
 
