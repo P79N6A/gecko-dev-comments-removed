@@ -496,14 +496,12 @@ function checkForUpdates()
 }
 #endif
 
-function buildHelpMenu()
-{
-  
-  
-  if (typeof safebrowsing != "undefined")
-    safebrowsing.setReportPhishingMenu();
-
 #ifdef MOZ_UPDATER
+
+
+
+function setupCheckForUpdates(checkForUpdates, aStringBundle)
+{
   var updates = 
       Components.classes["@mozilla.org/updates/update-service;1"].
       getService(Components.interfaces.nsIApplicationUpdateService);
@@ -513,23 +511,21 @@ function buildHelpMenu()
 
   
   
-  var checkForUpdates = document.getElementById("checkForUpdates");
   var canCheckForUpdates = updates.canCheckForUpdates;
   checkForUpdates.setAttribute("disabled", !canCheckForUpdates);
   if (!canCheckForUpdates)
     return; 
 
-  var strings = document.getElementById("bundle_browser");
   var activeUpdate = um.activeUpdate;
-  
+
   
   
   function getStringWithUpdateName(key) {
     if (activeUpdate && activeUpdate.name)
-      return strings.getFormattedString(key, [activeUpdate.name]);
-    return strings.getString(key + "Fallback");
+      return aStringBundle.formatStringFromName(key, [activeUpdate.name], 1);
+    return aStringBundle.GetStringFromName(key + "Fallback");
   }
-  
+
   
   var key = "default";
   if (activeUpdate) {
@@ -548,11 +544,31 @@ function buildHelpMenu()
     }
   }
   checkForUpdates.label = getStringWithUpdateName("updatesItem_" + key);
-  checkForUpdates.accessKey = strings.getString("updatesItem_" + key + ".accesskey");
+  checkForUpdates.accessKey = aStringBundle.
+                              GetStringFromName("updatesItem_" + key + ".accesskey");
   if (um.activeUpdate && updates.isDownloading)
     checkForUpdates.setAttribute("loading", "true");
   else
     checkForUpdates.removeAttribute("loading");
+}
+#endif
+
+function buildHelpMenu()
+{
+  
+  
+  if (typeof safebrowsing != "undefined")
+    safebrowsing.setReportPhishingMenu();
+
+#ifdef XP_MACOSX
+#ifdef MOZ_UPDATER
+  var checkForUpdates = document.getElementById("checkForUpdates");
+  var browserBundle = document.getElementById("bundle_browser").stringBundle;
+  setupCheckForUpdates(checkForUpdates, browserBundle);
+#else  
+  
+  document.getElementById("updateSeparator").hidden = true;
+#endif
 #else
   
   document.getElementById("updateSeparator").hidden = true;
