@@ -91,6 +91,7 @@ public class LayerController implements PanZoomTarget {
 
     public void setForceRedraw() {
         mForceRedraw = true;
+        notifyLayerClientOfGeometryChange();
     }
 
     public Layer getRoot()                        { return mRootLayer; }
@@ -166,11 +167,10 @@ public class LayerController implements PanZoomTarget {
 
 
 
-
-
     public void setViewportMetrics(ViewportMetrics viewport) {
         mViewportMetrics = new ImmutableViewportMetrics(viewport);
         mView.requestRender();
+        notifyLayerClientOfGeometryChange();
     }
 
     public void setAnimationTarget(ViewportMetrics viewport) {
@@ -187,11 +187,7 @@ public class LayerController implements PanZoomTarget {
 
     public boolean post(Runnable action) { return mView.post(action); }
 
-    
-
-
-
-    public void notifyLayerClientOfGeometryChange() {
+    private void notifyLayerClientOfGeometryChange() {
         if (mLayerClient != null)
             mLayerClient.geometryChanged();
     }
