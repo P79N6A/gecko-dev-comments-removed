@@ -1179,10 +1179,7 @@ public:
 
 
 
-
-
-
-  virtual void Updated(const nsIntRect& aRect) = 0;
+  void Updated() { mDirty = PR_TRUE; }
 
   
 
@@ -1207,7 +1204,7 @@ public:
 
 protected:
   CanvasLayer(LayerManager* aManager, void* aImplData)
-    : Layer(aManager, aImplData), mFilter(gfxPattern::FILTER_GOOD) {}
+    : Layer(aManager, aImplData), mFilter(gfxPattern::FILTER_GOOD), mDirty(PR_FALSE) {}
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
@@ -1216,6 +1213,10 @@ protected:
 
   nsIntRect mBounds;
   gfxPattern::GraphicsFilter mFilter;
+  
+
+
+  PRPackedBool mDirty;
 };
 
 }
