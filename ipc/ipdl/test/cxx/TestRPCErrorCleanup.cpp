@@ -16,6 +16,8 @@ namespace _ipdltest {
 
 
 
+namespace {
+
 
 
 
@@ -56,6 +58,8 @@ void Done()
 
   passed(__FILE__);
 }
+
+} 
 
 TestRPCErrorCleanupParent::TestRPCErrorCleanupParent()
 {
