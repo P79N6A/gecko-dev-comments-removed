@@ -49,7 +49,8 @@ let kTitles = [
 ];
 
 addPageBook(0, 0); 
-addPageBook(1, 0); 
+
+addPageBook(1, 0, 0, undefined, undefined, undefined, true);
 
 
 

@@ -45,8 +45,8 @@ function test() {
   const HISTORY_SIDEBAR_TREE_ID = "historyTree";
 
   
-  let os = Cc["@mozilla.org/observer-service;1"].
-           getService(Ci.nsIObserverService);
+  let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
+           getService(Ci.nsIWindowWatcher);
   let bs = PlacesUtils.bookmarks;
   let hs = PlacesUtils.history;
   let sidebarBox = document.getElementById("sidebar-box");
@@ -59,7 +59,7 @@ function test() {
     toggleSidebar();
   }
 
-  const TEST_URL = "javascript:alert(\"test\");";
+  const TEST_URL = "http://mochi.test:8888/browser/browser/components/places/tests/browser/sidebarpanels_click_test_page.html";
 
   let tests = [];
   tests.push({
@@ -87,8 +87,10 @@ function test() {
     init: function() {
       
       this.cleanup();
-      hs.addVisit(PlacesUtils._uri(TEST_URL), Date.now() * 1000,
-                  null, hs.TRANSITION_TYPED, false, 0);
+      let uri = PlacesUtils._uri(TEST_URL);
+      hs.addVisit(uri, Date.now() * 1000, null, hs.TRANSITION_TYPED, false, 0);
+      let gh = hs.QueryInterface(Ci.nsIGlobalHistory2);
+      ok(gh.isVisited(uri), "Item is visited");
     },
     prepare: function() {
       sidebar.contentDocument.getElementById("byvisited").doCommand();
@@ -125,20 +127,22 @@ function test() {
           preFunc();
 
         function observer(aSubject, aTopic, aData) {
-          info("alert dialog observed as expected");
-          os.removeObserver(observer, "common-dialog-loaded");
-          os.removeObserver(observer, "tabmodal-dialog-loaded");
-
-          aSubject.Dialog.ui.button0.click();
-
-          executeSoon(function () {
+          if (aTopic != "domwindowopened")
+            return;
+          ww.unregisterNotification(observer);
+          let alertDialog = aSubject.QueryInterface(Ci.nsIDOMWindow);
+          alertDialog.addEventListener("load", function () {
+            alertDialog.removeEventListener("load", arguments.callee, false);
+            info("alert dialog observed as expected");
+            executeSoon(function () {
+              alertDialog.close();
               toggleSidebar(currentTest.sidebarName);
               currentTest.cleanup();
               postFunc();
             });
+          }, false);
         }
-        os.addObserver(observer, "common-dialog-loaded", false);
-        os.addObserver(observer, "tabmodal-dialog-loaded", false);
+        ww.registerNotification(observer);
 
         
         currentTest.selectNode(tree);
