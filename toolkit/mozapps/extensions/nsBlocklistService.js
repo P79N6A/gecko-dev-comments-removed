@@ -58,8 +58,8 @@ const PREF_BLOCKLIST_URL              = "extensions.blocklist.url";
 const PREF_BLOCKLIST_ENABLED          = "extensions.blocklist.enabled";
 const PREF_BLOCKLIST_INTERVAL         = "extensions.blocklist.interval";
 const PREF_BLOCKLIST_LEVEL            = "extensions.blocklist.level";
-const PREF_BLOCKLIST_PINGCOUNT        = "extensions.blocklist.pingCount";
-const PREF_BLOCKLIST_TOTALPINGCOUNT   = "extensions.blocklist.totalPingCount";
+const PREF_BLOCKLIST_PINGCOUNTTOTAL   = "extensions.blocklist.pingCountTotal";
+const PREF_BLOCKLIST_PINGCOUNTVERSION = "extensions.blocklist.pingCountVersion";
 const PREF_PLUGINS_NOTIFYUSER         = "plugins.update.notifyUser";
 const PREF_GENERAL_USERAGENT_LOCALE   = "general.useragent.locale";
 const PREF_PARTNER_BRANCH             = "app.partner.";
@@ -429,24 +429,31 @@ Blocklist.prototype = {
       return;
     }
 
-    var pingCount = getPref("getIntPref", PREF_BLOCKLIST_PINGCOUNT, 0);
-    var totalPingCount = getPref("getIntPref", PREF_BLOCKLIST_TOTALPINGCOUNT, 1);
-    var daysSinceLastPing;
-    if (pingCount < 1) {
-      daysSinceLastPing = pingCount == 0 ? "new" : "reset";
-      pingCount = 1;
+    var pingCountVersion = getPref("getIntPref", PREF_BLOCKLIST_PINGCOUNTVERSION, 0);
+    var pingCountTotal = getPref("getIntPref", PREF_BLOCKLIST_PINGCOUNTTOTAL, 1);
+    var daysSinceLastPing = 0;
+    if (pingCountVersion < 1 || pingCountTotal < 1) {
+      daysSinceLastPing = pingCountVersion == 0 ? "new" : "reset";
+      if (pingCountVersion < 1)
+        pingCountVersion = 1;
+      if (pingCountTotal < 1)
+        pingCountTotal = 1;
     }
     else {
       
       
       let secondsInDay = 60 * 60 * 24;
       let lastUpdateTime = getPref("getIntPref", PREF_BLOCKLIST_LASTUPDATETIME, 0);
-      if (lastUpdateTime != 0) {
+      if (lastUpdateTime == 0) {
+        daysSinceLastPing = "invalid";
+      }
+      else {
         let now = Math.round(Date.now() / 1000);
         daysSinceLastPing = Math.floor((now - lastUpdateTime) / secondsInDay);
       }
-      else {
-        daysSinceLastPing = "invalid";
+
+      if (daysSinceLastPing == 0 || daysSinceLastPing == "invalid") {
+        pingCountVersion = pingCountTotal = "invalid";
       }
     }
 
@@ -464,29 +471,33 @@ Blocklist.prototype = {
                       getDistributionPrefValue(PREF_APP_DISTRIBUTION));
     dsURI = dsURI.replace(/%DISTRIBUTION_VERSION%/g,
                       getDistributionPrefValue(PREF_APP_DISTRIBUTION_VERSION));
-    dsURI = dsURI.replace(/%PING_COUNT%/g, pingCount);
-    dsURI = dsURI.replace(/%TOTAL_PING_COUNT%/g, totalPingCount);
+    dsURI = dsURI.replace(/%PING_COUNT%/g, pingCountVersion);
+    dsURI = dsURI.replace(/%TOTAL_PING_COUNT%/g, pingCountTotal);
     dsURI = dsURI.replace(/%DAYS_SINCE_LAST_PING%/g, daysSinceLastPing);
     dsURI = dsURI.replace(/\+/g, "%2B");
 
     
     
     
-    pingCount++;
-    if (pingCount > 2147483647) {
-      
-      
-      pingCount = -1;
+    if (pingCountVersion != "invalid") {
+      pingCountVersion++;
+      if (pingCountVersion > 2147483647) {
+        
+        
+        pingCountVersion = -1;
+      }
+      gPref.setIntPref(PREF_BLOCKLIST_PINGCOUNTVERSION, pingCountVersion);
     }
-    gPref.setIntPref(PREF_BLOCKLIST_PINGCOUNT, pingCount);
 
-    totalPingCount++;
-    if (totalPingCount > 2147483647) {
-      
-      
-      totalPingCount = 1;
+    if (pingCountTotal != "invalid") {
+      pingCountTotal++;
+      if (pingCountTotal > 2147483647) {
+        
+        
+        pingCountTotal = -1;
+      }
+      gPref.setIntPref(PREF_BLOCKLIST_PINGCOUNTTOTAL, pingCountTotal);
     }
-    gPref.setIntPref(PREF_BLOCKLIST_TOTALPINGCOUNT, totalPingCount);
 
     
     try {
