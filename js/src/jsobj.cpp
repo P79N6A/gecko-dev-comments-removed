@@ -3043,8 +3043,6 @@ Detecting(JSContext *cx, jsbytecode *pc)
 
 
 
-
-
 unsigned
 js_InferFlags(JSContext *cx, unsigned defaultFlags)
 {

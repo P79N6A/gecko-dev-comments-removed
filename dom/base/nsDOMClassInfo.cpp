@@ -320,8 +320,6 @@
 #include "nsIDOMXPathNSResolver.h"
 #include "nsIDOMXPathResult.h"
 #include "nsIDOMMozBrowserFrame.h"
-#include "nsIDOMHTMLPropertiesCollection.h"
-#include "nsIDOMPropertyNodeList.h"
 
 #include "nsIDOMGetSVGDocument.h"
 #include "nsIDOMSVGAElement.h"
@@ -7455,7 +7453,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   
   
   
-  if ((flags & JSRESOLVE_ASSIGNING) && !(flags & JSRESOLVE_WITH)) {
+  if (flags & JSRESOLVE_ASSIGNING) {
     JSObject *realObj;
     wrapper->GetJSObject(&realObj);
 
