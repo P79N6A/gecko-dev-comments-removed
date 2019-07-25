@@ -62,27 +62,27 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 #endif
 
 
-#define RIFF_CHUNK_MAGIC 0x52494646
-#define WAVE_CHUNK_MAGIC 0x57415645
-#define FRMT_CHUNK_MAGIC 0x666d7420
-#define DATA_CHUNK_MAGIC 0x64617461
+static const PRUint32 RIFF_CHUNK_MAGIC = 0x52494646;
+static const PRUint32 WAVE_CHUNK_MAGIC = 0x57415645;
+static const PRUint32 FRMT_CHUNK_MAGIC = 0x666d7420;
+static const PRUint32 DATA_CHUNK_MAGIC = 0x64617461;
 
 
-#define RIFF_CHUNK_HEADER_SIZE 8
+static const PRUint16 RIFF_CHUNK_HEADER_SIZE = 8;
 
 
-#define RIFF_INITIAL_SIZE (RIFF_CHUNK_HEADER_SIZE + 4)
-
-
-
-#define WAVE_FORMAT_CHUNK_SIZE 16
+static const PRUint16 RIFF_INITIAL_SIZE = RIFF_CHUNK_HEADER_SIZE + 4;
 
 
 
-#define WAVE_FORMAT_ENCODING_PCM 1
+static const PRUint16 WAVE_FORMAT_CHUNK_SIZE = 16;
 
 
-#define MAX_CHANNELS 2
+
+static const PRUint16 WAVE_FORMAT_ENCODING_PCM = 1;
+
+
+static const PRUint8 MAX_CHANNELS = 2;
 
 namespace {
   PRUint32

@@ -141,17 +141,17 @@ PRBool SamplesToUsecs(PRInt64 aSamples, PRUint32 aRate, PRInt64& aOutUsecs);
 PRBool UsecsToSamples(PRInt64 aUsecs, PRUint32 aRate, PRInt64& aOutSamples);
 
 
-#define USECS_PER_S 1000000
+static const PRInt64 USECS_PER_S = 1000000;
 
 
-#define USECS_PER_MS 1000
+static const PRInt64 USECS_PER_MS = 1000;
 
 
 
 
 
-#define MAX_VIDEO_WIDTH  4000
-#define MAX_VIDEO_HEIGHT 3000
+static const PRInt32 MAX_VIDEO_WIDTH = 4000;
+static const PRInt32 MAX_VIDEO_HEIGHT = 3000;
 
 
 

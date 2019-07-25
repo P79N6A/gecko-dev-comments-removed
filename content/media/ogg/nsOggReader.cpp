@@ -68,15 +68,8 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 
 
 
-#define SEEK_DECODE_MARGIN 2000000
 
-
-
-
-
-
-
-#define SEEK_FUZZ_USECS 500000
+static const PRUint32 SEEK_FUZZ_USECS = 500000;
 
 enum PageSyncResult {
   PAGE_SYNC_ERROR = 1,

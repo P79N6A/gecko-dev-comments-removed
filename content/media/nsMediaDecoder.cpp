@@ -57,18 +57,18 @@
 using namespace mozilla;
 
 
-#define PROGRESS_MS 350
+static const PRUint32 PROGRESS_MS = 350;
 
 
-#define STALL_MS 3000
-
-
-
+static const PRUint32 STALL_MS = 3000;
 
 
 
 
-#define CAN_PLAY_THROUGH_MARGIN 10
+
+
+
+static const PRInt64 CAN_PLAY_THROUGH_MARGIN = 10;
 
 nsMediaDecoder::nsMediaDecoder() :
   mElement(0),

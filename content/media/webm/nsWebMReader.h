@@ -177,7 +177,7 @@ private:
                            PRBool aBOS,
                            PRBool aEOS,
                            PRInt64 aGranulepos);
-                     
+
   
   
   

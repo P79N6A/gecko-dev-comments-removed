@@ -59,7 +59,7 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 
 
 
-#define BUFFERING_WAIT 30
+static const PRUint32 BUFFERING_WAIT = 30;
 
 
 
