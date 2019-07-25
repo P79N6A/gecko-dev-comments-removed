@@ -100,7 +100,7 @@ Tilt.prototype = {
 
     
     if (this.visualizers[id]) {
-      this.destroy(id);
+      this.destroy(id, true);
       return;
     }
 
@@ -127,19 +127,41 @@ Tilt.prototype = {
 
 
 
-  destroy: function T_destroy(aId)
+
+
+  destroy: function T_destroy(aId, aAnimateFlag)
   {
     
     if (!this.visualizers[aId]) {
       return;
     }
 
-    this.visualizers[aId].removeOverlay();
-    this.visualizers[aId].cleanup();
-    this.visualizers[aId] = null;
+    if (!this.isDestroying) {
+      this.isDestroying = true;
 
-    this.chromeWindow.gBrowser.selectedBrowser.contentWindow.focus();
-    Services.obs.notifyObservers(null, TILT_NOTIFICATIONS.DESTROYED, null);
+      let finalize = function T_finalize(aId) {
+        this.visualizers[aId].removeOverlay();
+        this.visualizers[aId].cleanup();
+        this.visualizers[aId] = null;
+
+        this.isDestroying = false;
+        this.chromeWindow.gBrowser.selectedBrowser.focus();
+        Services.obs.notifyObservers(null, TILT_NOTIFICATIONS.DESTROYED, null);
+      };
+
+      if (!aAnimateFlag) {
+        finalize.call(this, aId);
+        return;
+      }
+
+      let controller = this.visualizers[aId].controller;
+      let presenter = this.visualizers[aId].presenter;
+      let content = presenter.contentWindow;
+
+      controller.removeEventListeners();
+      controller.arcball.reset([-content.pageXOffset, -content.pageYOffset]);
+      presenter.executeDestruction(finalize.bind(this, aId));
+    }
   },
 
   
