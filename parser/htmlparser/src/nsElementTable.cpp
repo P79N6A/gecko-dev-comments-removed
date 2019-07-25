@@ -812,6 +812,15 @@ const nsHTMLElement gHTMLElements[] = {
                 0,&gMapKids,
   },
   {
+                                 eHTMLTag_mark,
+              eHTMLTag_unknown,eHTMLTag_unknown,
+              &gRootTags,&gRootTags,
+     0,0,0,0,
+              kSpecial, (kInlineEntity|kSelf|kFlowEntity), kNone,
+           0,kDefaultPropRange,
+                0,0,
+  },
+  {
                                  eHTMLTag_marquee,
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gRootTags,&gRootTags,
