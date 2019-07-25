@@ -422,12 +422,9 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     masm.freeStack(unusedStack);
 
     
-    uint32 stackSize = masm.framePushed() - unusedStack;
-    uint32 sizeDescriptor = (stackSize << FRAMETYPE_BITS) | IonFrame_JS;
-
-    
+    uint32 descriptor = MakeFrameDescriptor(masm.framePushed(), IonFrame_JS);
     masm.Push(calleereg);
-    masm.Push(Imm32(sizeDescriptor));
+    masm.Push(Imm32(descriptor));
 
     Label thunk, rejoin;
 
