@@ -367,7 +367,7 @@ let ContentScroll =  {
           break;
 
         let cwu = Util.getWindowUtils(content);
-        cwu.setResolution(json.zoomLevel, json.zoomLevel);
+        cwu.setResolution(json.scale, json.scale);
         cwu.setDisplayPort(displayport.x, displayport.y, displayport.width, displayport.height);
         break;
       }
@@ -388,11 +388,11 @@ let ContentScroll =  {
 
       case "MozScrolledAreaChanged": {
         let doc = aEvent.originalTarget;
-        let win = doc.defaultView;
-        
-        let scrollOffset = Util.getScrollOffset(win);
-        if (win.parent != win) 
+        if (content != doc.defaultView) 
           return;
+
+        
+        let scrollOffset = Util.getScrollOffset(content);
 
         
         

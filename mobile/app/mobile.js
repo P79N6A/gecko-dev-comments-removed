@@ -37,8 +37,8 @@
 #filter substitution
 
 
-pref("toolkit.browser.cachePixelX", 400);
-pref("toolkit.browser.cachePixelY", 1000);
+pref("toolkit.browser.cachePixelX", 800);
+pref("toolkit.browser.cachePixelY", 2000);
 pref("toolkit.browser.recacheRatio", 60);
 
 pref("toolkit.defaultChromeURI", "chrome://browser/content/browser.xul");
@@ -373,7 +373,7 @@ pref("browser.ui.kinetic.swipeLength", 160);
 
 
 pref("browser.ui.zoom.pageFitGranularity", 9); 
-pref("browser.ui.zoom.animationDuration", 350); 
+pref("browser.ui.zoom.animationDuration", 200); 
 
 
 pref("browser.ui.pinch.maxGrowth", 150);     
