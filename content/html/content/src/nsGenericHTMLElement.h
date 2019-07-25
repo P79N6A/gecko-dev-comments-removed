@@ -835,6 +835,8 @@ private:
 
 
 
+class nsHTMLFieldSetElement;
+
 
 
 
@@ -885,10 +887,7 @@ public:
 
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 
-  virtual bool IsDisabled() const {
-    return HasAttr(kNameSpaceID_None, nsGkAtoms::disabled) ||
-           (mFieldSet && mFieldSet->IsDisabled());
-  }
+  virtual bool IsDisabled() const;
 
   
 
@@ -912,11 +911,7 @@ public:
 
 
 
-  void ForgetFieldSet(nsIContent* aFieldset) {
-    if (mFieldSet == aFieldset) {
-      mFieldSet = nsnull;
-    }
-  }
+  void ForgetFieldSet(nsIContent* aFieldset);
 
   
 
@@ -994,7 +989,7 @@ protected:
   nsHTMLFormElement* mForm;
 
   
-  nsGenericHTMLFormElement* mFieldSet;
+  nsHTMLFieldSetElement* mFieldSet;
 };
 
 
