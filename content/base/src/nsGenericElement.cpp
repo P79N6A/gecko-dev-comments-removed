@@ -6143,7 +6143,8 @@ inline static nsresult FindMatchingElements(nsINode* aRoot,
       for (PRInt32 i = 0; i < elements->Count(); ++i) {
         Element *element = static_cast<Element*>(elements->ElementAt(i));
         if (!aRoot->IsElement() ||
-            nsContentUtils::ContentIsDescendantOf(element, aRoot)) {
+            (element != aRoot &&
+             nsContentUtils::ContentIsDescendantOf(element, aRoot))) {
           
           
           if (nsCSSRuleProcessor::SelectorListMatches(element, matchingContext,
