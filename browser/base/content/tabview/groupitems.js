@@ -1092,22 +1092,67 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
     if (GroupItems._arrangePaused) {
       GroupItems.pushArrange(this, options);
-      return false;
+      return;
     }
-    
-    let shouldStack = this.shouldStack(childrenToArrange.length + (options.addTab ? 1 : 0));
-    let box = this.getContentBounds();
-    
-    
-    if (shouldStack && !this.expanded) {
-      this.showExpandControl();
-      this._stackArrange(childrenToArrange, box, options);
-      return false;
+    var dropIndex = false;
+    if (this.expanded) {
+      this.topChild = null;
+      var box = new Rect(this.expanded.bounds);
+      box.inset(8, 8);
+      let result = Items.arrange(childrenToArrange, box, Utils.extend({}, options, {z: 99999}));
+      dropIndex = result.dropIndex;
     } else {
-      this.hideExpandControl();
-      
-      return this._gridArrange(childrenToArrange, box, options);
+      var count = childrenToArrange.length;
+      var bb = this.getContentBounds();
+      if (!this.shouldStack(count + (options.addTab ? 1 : 0))) {
+        childrenToArrange.forEach(function(child) {
+          child.removeClass("stacked")
+        });
+
+        this.topChild = null;
+
+        if (!childrenToArrange.length)
+          return;
+
+        var arrangeOptions = Utils.extend({}, options, {
+          columns: this._columns
+        });
+
+        
+        
+
+        let result = Items.arrange(childrenToArrange, bb, arrangeOptions);
+        dropIndex = result.dropIndex;
+        if ("oldDropIndex" in options && options.oldDropIndex === dropIndex)
+          return dropIndex;
+        var rects = result.rects;
+
+        let index = 0;
+        let self = this;
+        childrenToArrange.forEach(function GroupItem_arrange_children_each(child, i) {
+          
+          
+          
+          if (self._dropSpaceActive && index === dropIndex)
+            index++;
+          if (!child.locked.bounds) {
+            child.setBounds(rects[index], !options.animate);
+            child.setRotation(0);
+            if (options.z)
+              child.setZ(options.z);
+          }
+          index++;
+        });
+
+        this._isStacked = false;
+      } else
+        this._stackArrange(bb, options);
     }
+
+    if (this._isStacked && !this.expanded) this.showExpandControl();
+    else this.hideExpandControl();
+    
+    return dropIndex;
   },
 
   
@@ -1120,8 +1165,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  
-  _stackArrange: function GroupItem__stackArrange(childrenToArrange, bb, options) {
+  _stackArrange: function GroupItem__stackArrange(bb, options) {
     var animate;
     if (!options || typeof options.animate == 'undefined')
       animate = true;
@@ -1131,7 +1175,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     if (typeof options == 'undefined')
       options = {};
 
-    var count = childrenToArrange.length;
+    var count = this._children.length;
     if (!count)
       return;
 
@@ -1165,7 +1209,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
     var self = this;
     var children = [];
-    childrenToArrange.forEach(function GroupItem__stackArrange_order(child) {
+    this._children.forEach(function GroupItem__stackArrange_order(child) {
       if (child == self.topChild)
         children.unshift(child);
       else
@@ -1184,72 +1228,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     });
 
     self._isStacked = true;
-  },
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  _gridArrange: function GroupItem__gridArrange(childrenToArrange, box, options) {
-    this.topChild = null;
-    let arrangeOptions;
-    if (this.expanded) {
-      
-      box = new Rect(this.expanded.bounds);
-      box.inset(8, 8);
-      arrangeOptions = Utils.extend({}, options, {z: 99999});
-    } else {
-      this._isStacked = false;
-      arrangeOptions = Utils.extend({}, options, {
-        columns: this._columns
-      });
-
-      childrenToArrange.forEach(function(child) {
-        child.removeClass("stacked")
-      });
-    }
-  
-    if (!childrenToArrange.length)
-      return false;
-
-    
-    
-    let result = Items.arrange(childrenToArrange, box, arrangeOptions);
-    let {dropIndex, rects} = result;
-    if ("oldDropIndex" in options && options.oldDropIndex === dropIndex)
-      return dropIndex;
-
-    let index = 0;
-    let self = this;
-    childrenToArrange.forEach(function GroupItem_arrange_children_each(child, i) {
-      
-      
-      
-      if (self._dropSpaceActive && index === dropIndex)
-        index++;
-      if (!child.locked.bounds) {
-        child.setBounds(rects[index], !options.animate);
-        child.setRotation(0);
-        if (arrangeOptions.z)
-          child.setZ(arrangeOptions.z);
-      }
-      index++;
-    });
-
-    return dropIndex;
   },
 
   
@@ -1304,7 +1282,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       position: "absolute",
       zIndex: 99998
     }).appendTo("body");
-    $tray[0].id = "expandedTray";
+
 
     var w = 180;
     var h = w * (TabItems.tabHeight / TabItems.tabWidth) * 1.1;
@@ -1336,10 +1314,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         left: pos.left
       }, {
         duration: 200,
-        easing: "tabviewBounce",
-        complete: function GroupItem_expand_animate_complete() {
-          self._sendToSubscribers("expanded");
-        }
+        easing: "tabviewBounce"
       })
       .addClass("overlay");
 
@@ -1384,7 +1359,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     if (this.expanded) {
       var z = this.getZ();
       var box = this.getBounds();
-      let self = this;
       this.expanded.$tray
         .css({
           zIndex: z + 1
@@ -1398,9 +1372,8 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         }, {
           duration: 350,
           easing: "tabviewBounce",
-          complete: function GroupItem_collapse_animate_complete() {
+          complete: function() {
             iQ(this).remove();
-            self._sendToSubscribers("collapsed");
           }
         });
 
