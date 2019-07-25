@@ -42,6 +42,8 @@ function test()
       
       
       node = doc.querySelector("body");
+      let bc = InspectorUI.breadcrumbs;
+      bc.nodeHierarchy[bc.currentIndex].button.focus();
       EventUtils.synthesizeKey("VK_RIGHT", { });
     });
   }
