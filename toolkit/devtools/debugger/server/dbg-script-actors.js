@@ -25,6 +25,8 @@ function ThreadActor(aHooks)
   this._frameActors = [];
   this._environmentActors = [];
   this._hooks = aHooks ? aHooks : {};
+  this._breakpointStore = {};
+  this._scripts = {};
 }
 
 ThreadActor.prototype = {
@@ -41,10 +43,6 @@ ThreadActor.prototype = {
     }
     return this._threadLifetimePool;
   },
-
-  _breakpointStore: {},
-
-  _scripts: {},
 
   
 
