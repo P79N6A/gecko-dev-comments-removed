@@ -143,7 +143,13 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
   
   
   NSEvent* mLastMouseDownEvent;
+
   
+  BOOL mBlockedLastMouseDown;
+
+  
+  NSEvent* mClickThroughMouseDownEvent;
+
   
   NSMutableArray* mPendingDirtyRects;
   BOOL mPendingFullDisplay;
@@ -242,7 +248,8 @@ public:
 
   static void MouseMoved(NSEvent* aEvent);
   static void OnDestroyView(ChildView* aView);
-  static BOOL WindowAcceptsEvent(NSWindow* aWindow, NSEvent* aEvent);
+  static BOOL WindowAcceptsEvent(NSWindow* aWindow, NSEvent* aEvent,
+                                 ChildView* aView, BOOL isClickThrough = NO);
   static void ReEvaluateMouseEnterState(NSEvent* aEvent = nil);
   static ChildView* ViewForEvent(NSEvent* aEvent);
 
