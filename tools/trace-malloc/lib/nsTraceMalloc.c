@@ -926,7 +926,7 @@ stack_callback(void *pc, void *closure)
 
 
 
-callsite *
+static callsite *
 backtrace(tm_thread *t, int skip, int *immediate_abort)
 {
     callsite *site;
