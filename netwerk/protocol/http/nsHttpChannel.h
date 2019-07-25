@@ -146,8 +146,11 @@ public:
 
 
 
-    virtual bool UsingPrivateBrowsing();
-    void OverridePrivateBrowsing(bool usingPrivateBrowsing);
+    bool UsingPrivateBrowsing() {
+        bool usingPB;
+        GetUsingPrivateBrowsing(&usingPB);
+        return usingPB;
+    }
 
 private:
     typedef nsresult (nsHttpChannel::*nsContinueRedirectionFunc)(nsresult result);
@@ -338,12 +341,6 @@ private:
     
     
     PRUint32                          mRequestTimeInitialized : 1;
-
-    
-    
-    
-    PRUint32                          mOverridePrivateBrowsing : 1;
-    PRUint32                          mUsingPrivateBrowsing : 1;
 
     nsTArray<nsContinueRedirectionFunc> mRedirectFuncStack;
 
