@@ -72,6 +72,8 @@
 #include "nsString.h"
 #endif
 
+#include "mozilla/mozalloc_abort.h"
+
 static void
 Abort(const char *aMsg);
 
@@ -364,43 +366,9 @@ NS_DebugBreak(PRUint32 aSeverity, const char *aStr, const char *aExpr,
 }
 
 static void
-TouchBadMemory()
-{
-  
-  gAssertionCount += *((PRInt32 *) 0); 
-                                       
-}
-
-static void
 Abort(const char *aMsg)
 {
-#if defined(_WIN32)
-  TouchBadMemory();
-
-#ifndef WINCE
-  
-  raise(SIGABRT);
-#endif
-  
-  _exit(3);
-#elif defined(XP_UNIX)
-  PR_Abort();
-#elif defined(XP_BEOS)
-  {
-#ifndef DEBUG_cls
-	DEBUGGER(aMsg);
-#endif
-  }
-#else
-  
-  Break(aMsg);
-#endif
-
-  
-  TouchBadMemory();
-
-  
-  PR_ProcessExit(127);
+  mozalloc_abort(aMsg);
 }
 
 static void

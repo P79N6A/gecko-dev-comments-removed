@@ -55,6 +55,14 @@
 
 static int gDummyCounter;
 
+static void
+TouchBadMemory()
+{
+    
+    gDummyCounter += *((int *) 0);   
+                                     
+}
+
 void
 mozalloc_abort(const char* const msg)
 {
@@ -62,30 +70,16 @@ mozalloc_abort(const char* const msg)
     fputs("\n", stderr);
 
     
-    
-    
-    
 
-    
-
-#if defined(_WIN32)
-#  if !defined(WINCE)
-    
-    raise(SIGABRT);
-#  endif
-    
-    _exit(3);
-#elif defined(XP_UNIX) || defined(XP_OS2) || defined(XP_BEOS)
+#if defined(XP_UNIX) && !defined(XP_MACOSX)
     abort();
-#else
-#  warning not attempting to abort() on this platform
 #endif
+    
+    
 
     
-    
-    gDummyCounter += *((int*) 0); 
-    
-    
+    TouchBadMemory();
+
     
     _exit(127);
 }
