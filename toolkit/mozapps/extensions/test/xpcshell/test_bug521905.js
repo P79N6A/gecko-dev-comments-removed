@@ -41,7 +41,8 @@ const ID = "bug521905@tests.mozilla.org";
 
 
 Services.prefs.setBoolPref("extensions.checkUpdateSecurity", false);
-AddonManager.checkCompatibility = false;
+
+Services.prefs.setBoolPref("extensions.checkCompatibility.2.0pre", false);
 
 function run_test() {
   var channel = "default";
@@ -52,7 +53,9 @@ function run_test() {
 
   
   
-  if (isNightlyChannel(channel)) {
+  if (channel != "aurora" &&
+      channel != "beta" &&
+      channel != "release") {
     return;
   }
 
