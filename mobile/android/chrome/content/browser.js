@@ -1614,10 +1614,20 @@ Tab.prototype = {
     let doc = this.browser.contentDocument;
     if (doc != null) {
       let pageWidth = this._viewport.width, pageHeight = this._viewport.height;
-      let body = doc.body || { scrollWidth: pageWidth, scrollHeight: pageHeight };
-      let html = doc.documentElement || { scrollWidth: pageWidth, scrollHeight: pageHeight };
-      pageWidth = Math.max(body.scrollWidth, html.scrollWidth);
-      pageHeight = Math.max(body.scrollHeight, html.scrollHeight);
+      if (doc instanceof SVGDocument) {
+        let rect = doc.rootElement.getBoundingClientRect();
+        
+        
+        
+        
+        pageWidth = Math.ceil(rect.left + rect.width + rect.left);
+        pageHeight = Math.ceil(rect.top + rect.height + rect.top);
+      } else {
+        let body = doc.body || { scrollWidth: pageWidth, scrollHeight: pageHeight };
+        let html = doc.documentElement || { scrollWidth: pageWidth, scrollHeight: pageHeight };
+        pageWidth = Math.max(body.scrollWidth, html.scrollWidth);
+        pageHeight = Math.max(body.scrollHeight, html.scrollHeight);
+      }
 
       
       pageWidth *= this._viewport.zoom;
