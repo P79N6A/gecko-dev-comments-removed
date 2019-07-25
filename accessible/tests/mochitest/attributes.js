@@ -163,6 +163,62 @@ function testDefaultTextAttrs(aID, aDefAttrs, aSkipUnexpectedAttrs)
 
 
 
+function testTextAttrsWrongOffset(aID, aOffset)
+{
+  var res = false;
+  try {
+  var s = {}, e = {};
+  var acc = getAccessible(ID, [nsIAccessibleText]);
+    acc.getTextAttributes(false, 157, s, e);
+  } catch (e) {
+    res = true;
+  }
+
+  ok(res,
+     "text attributes are calculated successfully at wrong offset " + aOffset + " for " + prettyName(aID));
+}
+
+const kNormalFontWeight =
+  function equalsToNormal(aWeight) { return aWeight <= 400 ; }
+
+const kBoldFontWeight =
+  function equalsToBold(aWeight) { return aWeight > 400; }
+
+
+const kInputFontSize = WIN ?
+  "10pt" : (MAC ? "8pt" : function() { return true; });
+
+
+
+
+
+
+
+
+
+function buildDefaultTextAttrs(aID, aFontSize, aFontWeight)
+{
+  var elm = getNode(aID);
+  var computedStyle = document.defaultView.getComputedStyle(elm, "");
+  var bgColor = computedStyle.backgroundColor == "transparent" ?
+    "rgb(255, 255, 255)" : computedStyle.backgroundColor;
+
+  var defAttrs = {
+    "font-style": computedStyle.fontStyle,
+    "font-size": aFontSize,
+    "background-color": bgColor,
+    "font-weight": aFontWeight ? aFontWeight : kNormalFontWeight,
+    "color": computedStyle.color,
+    "font-family": computedStyle.fontFamily,
+    "text-position": computedStyle.verticalAlign
+  };
+
+  return defAttrs;
+}
+
+
+
+
 function getTextAttributes(aID, aAccessible, aIncludeDefAttrs, aOffset,
                            aStartOffset, aEndOffset)
 {

@@ -248,6 +248,11 @@ public:
   
 
 
+  PRBool HasChildren() { return !!GetChildAt(0); }
+
+  
+
+
   nsAccessible* GetCachedParent();
 
   
