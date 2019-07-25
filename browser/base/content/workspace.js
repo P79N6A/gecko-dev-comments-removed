@@ -100,6 +100,12 @@ var Workspace = {
   
 
 
+
+  _previousWindow: null,
+
+  
+
+
   get gBrowser()
   {
     let recentWin = this.browserWindow;
@@ -107,6 +113,14 @@ var Workspace = {
   },
 
   
+
+
+  _contentSandbox: null,
+
+  
+
+
+
 
 
   get contentSandbox()
@@ -117,15 +131,27 @@ var Workspace = {
       return;
     }
 
-    
-    
-    let contentWindow = this.gBrowser.selectedBrowser.contentWindow;
-    return new Cu.Sandbox(contentWindow,
-                          { sandboxPrototype: contentWindow,
-                            wantXrays: false });
+    if (!this._contentSandbox ||
+        this.browserWindow != this._previousBrowserWindow) {
+      let contentWindow = this.gBrowser.selectedBrowser.contentWindow;
+      this._contentSandbox = new Cu.Sandbox(contentWindow,
+        { sandboxPrototype: contentWindow, wantXrays: false });
+
+      this._previousBrowserWindow = this.browserWindow;
+    }
+
+    return this._contentSandbox;
   },
 
   
+
+
+
+  _chromeSandbox: null,
+
+  
+
+
 
 
 
@@ -137,9 +163,15 @@ var Workspace = {
       return;
     }
 
-    return new Cu.Sandbox(this.browserWindow,
-                          { sandboxPrototype: this.browserWindow,
-                            wantXrays: false });
+    if (!this._chromeSandbox ||
+        this.browserWindow != this._previousBrowserWindow) {
+      this._chromeSandbox = new Cu.Sandbox(this.browserWindow,
+        { sandboxPrototype: this.browserWindow, wantXrays: false });
+
+      this._previousBrowserWindow = this.browserWindow;
+    }
+
+    return this._chromeSandbox;
   },
 
   
@@ -519,6 +551,7 @@ var Workspace = {
     content.setAttribute("checked", true);
     this.statusbarStatus.label = content.getAttribute("label");
     this.executionContext = WORKSPACE_CONTEXT_CONTENT;
+    this.resetContext();
   },
 
   
@@ -531,6 +564,17 @@ var Workspace = {
     chrome.setAttribute("checked", true);
     this.statusbarStatus.label = chrome.getAttribute("label");
     this.executionContext = WORKSPACE_CONTEXT_CHROME;
+    this.resetContext();
+  },
+
+  
+
+
+  resetContext: function WS_resetContext()
+  {
+    this._chromeSandbox = null;
+    this._contentSandbox = null;
+    this._previousWindow = null;
   },
 
   
@@ -551,14 +595,14 @@ var Workspace = {
 
   onLoad: function HS_onLoad()
   {
-    let contextMenu = document.getElementById("ws-context-menu");
+    let chromeContextMenu = document.getElementById("ws-menu-chrome");
     let errorConsoleMenu = document.getElementById("ws-menu-errorConsole");
     let errorConsoleCommand = document.getElementById("ws-cmd-errorConsole");
     let chromeContextCommand = document.getElementById("ws-cmd-chromeContext");
 
     let chrome = Services.prefs.getBoolPref(DEVTOOLS_CHROME_ENABLED);
     if (chrome) {
-      contextMenu.removeAttribute("hidden");
+      chromeContextMenu.removeAttribute("hidden");
       errorConsoleMenu.removeAttribute("hidden");
       errorConsoleCommand.removeAttribute("disabled");
       chromeContextCommand.removeAttribute("disabled");
