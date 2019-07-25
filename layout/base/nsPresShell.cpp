@@ -2986,6 +2986,12 @@ PresShell::FireResizeEvent()
 void
 PresShell::SetIgnoreFrameDestruction(PRBool aIgnore)
 {
+  if (mPresContext) {
+    
+    
+    
+    mPresContext->DestroyImageLoaders();
+  }
   mIgnoreFrameDestruction = aIgnore;
 }
 

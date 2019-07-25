@@ -1059,15 +1059,6 @@ nsPresContext::SetShell(nsIPresShell* aShell)
       }
     }
   } else {
-    
-    
-    
-    
-    for (PRUint32 i = 0; i < IMAGE_LOAD_TYPE_COUNT; ++i) {
-      mImageLoaders[i].Enumerate(destroy_loads, nsnull);
-      mImageLoaders[i].Clear();
-    }
-
     if (mTransitionManager) {
       mTransitionManager->Disconnect();
       mTransitionManager = nsnull;
@@ -1076,6 +1067,18 @@ nsPresContext::SetShell(nsIPresShell* aShell)
       mAnimationManager->Disconnect();
       mAnimationManager = nsnull;
     }
+  }
+}
+
+void
+nsPresContext::DestroyImageLoaders()
+{
+  
+  
+  
+  for (PRUint32 i = 0; i < IMAGE_LOAD_TYPE_COUNT; ++i) {
+    mImageLoaders[i].Enumerate(destroy_loads, nsnull);
+    mImageLoaders[i].Clear();
   }
 }
 
