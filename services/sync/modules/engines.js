@@ -411,7 +411,7 @@ SyncEngine.prototype = {
     
     let fetchNum = 1500;
     if (Svc.Prefs.get("client.type") == "mobile")
-      fetchNum /= 10;
+      fetchNum = 50;
 
     
     
