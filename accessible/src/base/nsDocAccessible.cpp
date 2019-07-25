@@ -1497,8 +1497,7 @@ nsDocAccessible::UpdateTree(nsIContent* aContainerNode,
     
     nsAccessible* ancestor = container;
     while (ancestor) {
-      const nsRoleMapEntry* roleMapEntry = ancestor->GetRoleMapEntry();
-      if (roleMapEntry && roleMapEntry->role == nsIAccessibleRole::ROLE_ALERT) {
+      if (ancestor->ARIARole() == nsIAccessibleRole::ROLE_ALERT) {
         FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_ALERT,
                                    ancestor->GetNode(), AccEvent::eRemoveDupes,
                                    fromUserInput);
@@ -1933,8 +1932,7 @@ nsDocAccessible::UpdateTreeInternal(nsAccessible* aContainer,
       
       
       
-      const nsRoleMapEntry* roleMapEntry = accessible->GetRoleMapEntry();
-      if (roleMapEntry && roleMapEntry->role == nsIAccessibleRole::ROLE_MENUPOPUP) {
+      if (accessible->ARIARole() == nsIAccessibleRole::ROLE_MENUPOPUP) {
         nsRefPtr<AccEvent> event =
           new AccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END, accessible);
 
@@ -1956,19 +1954,17 @@ nsDocAccessible::UpdateTreeInternal(nsAccessible* aContainer,
     }
 
     if (aIsInsert) {
-      const nsRoleMapEntry* roleMapEntry = accessible->GetRoleMapEntry();
-      if (roleMapEntry) {
-        if (roleMapEntry->role == nsIAccessibleRole::ROLE_MENUPOPUP) {
-          
-          FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
-                                     node, AccEvent::eRemoveDupes, aFromUserInput);
+      PRUint32 ariaRole = accessible->ARIARole();
+      if (ariaRole == nsIAccessibleRole::ROLE_MENUPOPUP) {
+        
+        FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
+                                   node, AccEvent::eRemoveDupes, aFromUserInput);
 
-        } else if (roleMapEntry->role == nsIAccessibleRole::ROLE_ALERT) {
-          
-          updateFlags = eAlertAccessible;
-          FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_ALERT, node,
-                                     AccEvent::eRemoveDupes, aFromUserInput);
-        }
+      } else if (ariaRole == nsIAccessibleRole::ROLE_ALERT) {
+        
+        updateFlags = eAlertAccessible;
+        FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_ALERT, node,
+                                   AccEvent::eRemoveDupes, aFromUserInput);
       }
 
       

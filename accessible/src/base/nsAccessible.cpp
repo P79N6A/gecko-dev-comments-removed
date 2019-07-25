@@ -44,7 +44,6 @@
 #include "AccGroupInfo.h"
 #include "AccIterator.h"
 #include "nsAccUtils.h"
-#include "nsARIAMap.h"
 #include "nsDocAccessible.h"
 #include "nsEventShell.h"
 
@@ -1824,11 +1823,10 @@ nsAccessible::GetKeyBindings(PRUint8 aActionIndex,
 }
 
 PRUint32
-nsAccessible::Role()
+nsAccessible::ARIARoleInternal()
 {
-  
-  if (!mRoleMapEntry || mRoleMapEntry->roleRule != kUseMapRole)
-    return NativeRole();
+  NS_PRECONDITION(mRoleMapEntry && mRoleMapEntry->roleRule == kUseMapRole,
+                  "ARIARoleInternal should only be called when ARIA role overrides!");
 
   
   

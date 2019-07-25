@@ -38,8 +38,12 @@
 
 
 #include "nsARIAMap.h"
+
 #include "nsIAccessibleRole.h"
 #include "nsIAccessibleStates.h"
+
+#include "nsAccessibilityAtoms.h"
+#include "nsIContent.h"
 
 
 
