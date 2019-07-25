@@ -2238,7 +2238,7 @@ SweepCompartments(JSContext *cx, JSGCInvocationKind gckind)
         {
             JS_ASSERT(compartment->freeLists.isEmpty());
             if (callback)
-                (void) callback(cx, compartment, JSCOMPARTMENT_DESTROY);
+                JS_ALWAYS_TRUE(callback(cx, compartment, JSCOMPARTMENT_DESTROY));
             if (compartment->principals)
                 JSPRINCIPALS_DROP(cx, compartment->principals);
             cx->delete_(compartment);
@@ -2639,9 +2639,6 @@ AutoGCSession::~AutoGCSession()
 static JS_NEVER_INLINE void
 GCCycle(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind  GCTIMER_PARAM)
 {
-    if (JS_ON_TRACE(cx))
-        return;
-
     JSRuntime *rt = cx->runtime;
 
     
@@ -2660,6 +2657,17 @@ GCCycle(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind  GCTIMER_P
     }
 
     AutoGCSession gcsession(cx);
+
+    
+
+
+
+
+
+    if (rt->inOOMReport) {
+        JS_ASSERT(gckind != GC_LAST_CONTEXT);
+        return;
+    }
 
     
 
@@ -2714,10 +2722,6 @@ js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind)
     JSRuntime *rt = cx->runtime;
 
     
-    if (rt->inOOMReport)
-        return;
-
-    
 
 
 
@@ -2725,6 +2729,11 @@ js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind)
 
     if (rt->state != JSRTS_UP && gckind != GC_LAST_CONTEXT)
         return;
+
+    if (JS_ON_TRACE(cx)) {
+        JS_ASSERT(gckind != GC_LAST_CONTEXT);
+        return;
+    }
 
     RecordNativeStackTopForGC(cx);
 
@@ -2768,48 +2777,6 @@ js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind)
 }
 
 namespace js {
-namespace gc {
-
-JSCompartment *
-NewCompartment(JSContext *cx, JSPrincipals *principals)
-{
-    JSRuntime *rt = cx->runtime;
-    JSCompartment *compartment = cx->new_<JSCompartment>(rt);
-    if (!compartment || !compartment->init(cx)) {
-        Foreground::delete_(compartment);
-        JS_ReportOutOfMemory(cx);
-        return NULL;
-    }
-
-    if (principals) {
-        compartment->principals = principals;
-        JSPRINCIPALS_HOLD(cx, principals);
-    }
-
-    compartment->setGCLastBytes(8192);
-
-    {
-        AutoLockGC lock(rt);
-
-        if (!rt->compartments.append(compartment)) {
-            AutoUnlockGC unlock(rt);
-            Foreground::delete_(compartment);
-            JS_ReportOutOfMemory(cx);
-            return NULL;
-        }
-    }
-
-    JSCompartmentCallback callback = rt->compartmentCallback;
-    if (callback && !callback(cx, compartment, JSCOMPARTMENT_NEW)) {
-        AutoLockGC lock(rt);
-        rt->compartments.popBack();
-        Foreground::delete_(compartment);
-        return NULL;
-    }
-    return compartment;
-}
-
-} 
 
 class AutoCopyFreeListToArenas {
     JSRuntime *rt;
@@ -2966,5 +2933,31 @@ IterateCells(JSContext *cx, JSCompartment *comp, uint64 traceKindMask,
             IterateCompartmentCells(cx, *c, traceKindMask, data, callback);
     }
 }
+
+namespace gc {
+
+JSCompartment *
+NewCompartment(JSContext *cx, JSPrincipals *principals)
+{
+    JSRuntime *rt = cx->runtime;
+    JSCompartment *compartment = cx->new_<JSCompartment>(rt);
+    if (compartment && compartment->init(cx)) {
+        if (principals) {
+            compartment->principals = principals;
+            JSPRINCIPALS_HOLD(cx, principals);
+        }
+
+        compartment->setGCLastBytes(8192);
+
+        AutoLockGC lock(rt);
+        if (rt->compartments.append(compartment))
+            return compartment;
+    }
+    Foreground::delete_(compartment);
+    JS_ReportOutOfMemory(cx);
+    return NULL;
+}
+
+} 
 
 } 

@@ -54,11 +54,8 @@
 #pragma warning(disable:4251) /* Silence warning about JS_FRIEND_API and data members. */
 #endif
 
-namespace JSC {
-
-class ExecutableAllocator;
-
-}
+namespace JSC { class ExecutableAllocator; }
+namespace WTF { class BumpPointerAllocator; }
 
 namespace js {
 
@@ -434,6 +431,7 @@ struct JS_FRIEND_API(JSCompartment) {
 
     size_t getMjitCodeSize() const;
 #endif
+    WTF::BumpPointerAllocator    *regExpAllocator;
 
     
 
@@ -478,8 +476,6 @@ struct JS_FRIEND_API(JSCompartment) {
 
     bool                         debugMode;  
     JSCList                      scripts;    
-
-    JSC::ExecutableAllocator     *regExpAllocator;
 
     js::NativeIterCache          nativeIterCache;
 

@@ -1507,7 +1507,6 @@ JS_AnchorPtr(void *p);
 #define JS_TYPED_ROOTING_API
 
 
-#define JS_ClearNewbornRoots(cx) ((void) 0)
 #define JS_EnterLocalRootScope(cx) (JS_TRUE)
 #define JS_LeaveLocalRootScope(cx) ((void) 0)
 #define JS_LeaveLocalRootScopeWithResult(cx, rval) ((void) 0)
