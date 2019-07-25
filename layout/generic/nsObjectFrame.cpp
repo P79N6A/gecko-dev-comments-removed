@@ -534,10 +534,6 @@ private:
   char              **mCachedAttrParamNames;
   char              **mCachedAttrParamValues;
 
-#ifdef MOZ_COMPOSITED_PLUGINS
-  nsIntPoint        mLastPoint;
-#endif
-
 #ifdef XP_MACOSX
   NPEventModel mEventModel;
 #endif
@@ -550,10 +546,6 @@ private:
   nsresult DispatchFocusToPlugin(nsIDOMEvent* aFocusEvent);
 
   nsresult EnsureCachedAttrParamArrays();
-
-#ifdef MOZ_COMPOSITED_PLUGINS
-  nsEventStatus ProcessEventX11Composited(const nsGUIEvent & anEvent);
-#endif
 
 #ifdef MOZ_X11
   class Renderer
@@ -2245,11 +2237,7 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
   if (mInstanceOwner) {
     NPWindow *window;
     mInstanceOwner->GetWindow(window);
-#ifdef MOZ_COMPOSITED_PLUGINS
-    {
-#else
     if (window->type == NPWindowTypeDrawable) {
-#endif
       gfxRect frameGfxRect =
         PresContext()->AppUnitsToGfxUnits(aPluginRect);
       gfxRect dirtyGfxRect =
@@ -3147,10 +3135,6 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   mCachedAttrParamNames = nsnull;
   mCachedAttrParamValues = nsnull;
   mDestroyWidget = PR_FALSE;
-
-#ifdef MOZ_COMPOSITED_PLUGINS
-  mLastPoint = nsIntPoint(0,0);
-#endif
 
 #ifdef XP_MACOSX
 #ifndef NP_NO_QUICKDRAW
@@ -4624,7 +4608,7 @@ nsresult nsPluginInstanceOwner::KeyPress(nsIDOMEvent* aKeyEvent)
 
 nsresult nsPluginInstanceOwner::DispatchKeyToPlugin(nsIDOMEvent* aKeyEvent)
 {
-#if !defined(XP_MACOSX) && !defined(MOZ_COMPOSITED_PLUGINS)
+#if !defined(XP_MACOSX)
   if (!mPluginWindow || (mPluginWindow->type == NPWindowTypeWindow))
     return aKeyEvent->PreventDefault(); 
   
@@ -4685,7 +4669,7 @@ nsPluginInstanceOwner::MouseMove(nsIDOMEvent* aMouseEvent)
 nsresult
 nsPluginInstanceOwner::MouseDown(nsIDOMEvent* aMouseEvent)
 {
-#if !defined(XP_MACOSX) && !defined(MOZ_COMPOSITED_PLUGINS)
+#if !defined(XP_MACOSX)
   if (!mPluginWindow || (mPluginWindow->type == NPWindowTypeWindow))
     return aMouseEvent->PreventDefault(); 
   
@@ -4759,7 +4743,7 @@ nsPluginInstanceOwner::MouseOut(nsIDOMEvent* aMouseEvent)
 
 nsresult nsPluginInstanceOwner::DispatchMouseToPlugin(nsIDOMEvent* aMouseEvent)
 {
-#if !defined(XP_MACOSX) && !defined(MOZ_COMPOSITED_PLUGINS)
+#if !defined(XP_MACOSX)
   if (!mPluginWindow || (mPluginWindow->type == NPWindowTypeWindow))
     return aMouseEvent->PreventDefault(); 
   
@@ -4822,349 +4806,9 @@ static unsigned int XInputEventState(const nsInputEvent& anEvent)
 }
 #endif
 
-#ifdef MOZ_COMPOSITED_PLUGINS
-static void find_dest_id(XID top, XID *root, XID *dest, int target_x, int target_y)
-{
-  XID target_id = top;
-  XID parent;
-  XID *children;
-  unsigned int nchildren;
-
-  Display *display = DefaultXDisplay();
-
-  while (1) {
-loop:
-    
-    if (!XQueryTree(display, target_id, root, &parent, &children, &nchildren) ||
-        !nchildren)
-      break;
-    for (unsigned int i=0; i<nchildren; i++) {
-      Window root;
-      int x, y;
-      unsigned int width, height;
-      unsigned int border_width, depth;
-      XGetGeometry(display, children[i], &root, &x, &y,
-          &width, &height, &border_width,
-          &depth);
-      
-      
-      
-      
-      if (target_x >= x && target_y >= y &&
-          target_x <= x + int(width) &&
-          target_y <= y + int(height)) {
-        target_id = children[i];
-        
-        XFree(children);
-        goto loop;
-      }
-    }
-    XFree(children);
-    
-    break;
-  }
-  *dest = target_id;
-}
-#endif
-
-#ifdef MOZ_COMPOSITED_PLUGINS
-nsEventStatus nsPluginInstanceOwner::ProcessEventX11Composited(const nsGUIEvent& anEvent)
-{
-  
-  nsEventStatus rv = nsEventStatus_eIgnore;
-  if (!mInstance || !mObjectFrame)   
-    return rv;
-
-  
-  nsIWidget* widget = anEvent.widget;
-  XEvent pluginEvent;
-  pluginEvent.type = 0;
-
-  switch(anEvent.eventStructType)
-    {
-    case NS_MOUSE_EVENT:
-      {
-        switch (anEvent.message)
-          {
-          case NS_MOUSE_CLICK:
-          case NS_MOUSE_DOUBLECLICK:
-            
-            return rv;
-          }
-
-        
-        const nsPresContext* presContext = mObjectFrame->PresContext();
-        nsPoint appPoint =
-          nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mObjectFrame) -
-          mObjectFrame->GetContentRectRelativeToSelf().TopLeft();
-        nsIntPoint pluginPoint(presContext->AppUnitsToDevPixels(appPoint.x),
-                               presContext->AppUnitsToDevPixels(appPoint.y));
-        mLastPoint = pluginPoint;
-        const nsMouseEvent& mouseEvent =
-          static_cast<const nsMouseEvent&>(anEvent);
-        
-        nsIntPoint rootPoint(-1,-1);
-        if (widget)
-          rootPoint = anEvent.refPoint + widget->WidgetToScreenOffset();
-#ifdef MOZ_WIDGET_GTK2
-        Window root = GDK_ROOT_WINDOW();
-#elif defined(MOZ_WIDGET_QT)
-        Window root = QX11Info::appRootWindow();
-#else
-        Window root = None;
-#endif
-
-        switch (anEvent.message)
-          {
-          case NS_MOUSE_ENTER_SYNTH:
-          case NS_MOUSE_EXIT_SYNTH:
-            {
-              XCrossingEvent& event = pluginEvent.xcrossing;
-              event.type = anEvent.message == NS_MOUSE_ENTER_SYNTH ?
-                EnterNotify : LeaveNotify;
-              event.root = root;
-              event.time = anEvent.time;
-              event.x = pluginPoint.x;
-              event.y = pluginPoint.y;
-              event.x_root = rootPoint.x;
-              event.y_root = rootPoint.y;
-              event.state = XInputEventState(mouseEvent);
-              
-              event.subwindow = None;
-              event.mode = -1;
-              event.detail = NotifyDetailNone;
-              event.same_screen = True;
-              event.focus = mContentFocused;
-            }
-            break;
-          case NS_MOUSE_MOVE:
-            {
-              XMotionEvent& event = pluginEvent.xmotion;
-              event.type = MotionNotify;
-              event.root = root;
-              event.time = anEvent.time;
-              event.x = pluginPoint.x;
-              event.y = pluginPoint.y;
-              event.x_root = rootPoint.x;
-              event.y_root = rootPoint.y;
-              event.state = XInputEventState(mouseEvent);
-              
-              event.subwindow = None;
-              event.is_hint = NotifyNormal;
-              event.same_screen = True;
-              XEvent be;
-              be.xmotion = pluginEvent.xmotion;
-              
-              XID w = (XID)mPluginWindow->window;
-              be.xmotion.window = w;
-              XSendEvent (be.xmotion.display, w,
-                  FALSE, ButtonMotionMask, &be);
-
-            }
-            break;
-          case NS_MOUSE_BUTTON_DOWN:
-          case NS_MOUSE_BUTTON_UP:
-            {
-              XButtonEvent& event = pluginEvent.xbutton;
-              event.type = anEvent.message == NS_MOUSE_BUTTON_DOWN ?
-                ButtonPress : ButtonRelease;
-              event.root = root;
-              event.time = anEvent.time;
-              event.x = pluginPoint.x;
-              event.y = pluginPoint.y;
-              event.x_root = rootPoint.x;
-              event.y_root = rootPoint.y;
-              event.state = XInputEventState(mouseEvent);
-              switch (mouseEvent.button)
-                {
-                case nsMouseEvent::eMiddleButton:
-                  event.button = 2;
-                  break;
-                case nsMouseEvent::eRightButton:
-                  event.button = 3;
-                  break;
-                default: 
-                  event.button = 1;
-                  break;
-                }
-              
-              event.subwindow = None;
-              event.same_screen = True;
-              XEvent be;
-              be.xbutton =  event;
-              XID target;
-              XID root;
-              int wx, wy;
-              unsigned int width, height, border_width, depth;
-
-              
-              XID w = (XID)mPluginWindow->window;
-              XGetGeometry(DefaultXDisplay(), w, &root, &wx, &wy, &width, &height, &border_width, &depth);
-              find_dest_id(w, &root, &target, pluginPoint.x + wx, pluginPoint.y + wy);
-              be.xbutton.window = target;
-              XSendEvent (DefaultXDisplay(), target,
-                  FALSE, event.type == ButtonPress ? ButtonPressMask : ButtonReleaseMask, &be);
-
-            }
-            break;
-          }
-      }
-      break;
-
-   
- 
-   case NS_KEY_EVENT:
-      if (anEvent.pluginEvent)
-        {
-          XKeyEvent &event = pluginEvent.xkey;
-#ifdef MOZ_WIDGET_GTK2
-          event.root = GDK_ROOT_WINDOW();
-          event.time = anEvent.time;
-          const GdkEventKey* gdkEvent =
-            static_cast<const GdkEventKey*>(anEvent.pluginEvent);
-          event.keycode = gdkEvent->hardware_keycode;
-          event.state = gdkEvent->state;
-          switch (anEvent.message)
-            {
-            case NS_KEY_DOWN:
-              
-              
-              if (gdkEvent->is_modifier)
-                event.type = XKeyPress;
-              break;
-            case NS_KEY_PRESS:
-              event.type = XKeyPress;
-              break;
-            case NS_KEY_UP:
-              event.type = KeyRelease;
-              break;
-            }
-#endif
-
-#ifdef MOZ_WIDGET_QT
-          const nsKeyEvent& keyEvent = static_cast<const nsKeyEvent&>(anEvent);
-
-          memset( &event, 0, sizeof(event) );
-          event.time = anEvent.time;
-
-          QWidget* qWidget = static_cast<QWidget*>(widget->GetNativeData(NS_NATIVE_WINDOW));
-          if (qWidget)
-            event.root = qWidget->x11Info().appRootWindow();
-
-          
-          const QKeyEvent* qtEvent = static_cast<const QKeyEvent*>(anEvent.pluginEvent);
-          if (qtEvent) {
-
-            if (qtEvent->nativeModifiers())
-              event.state = qtEvent->nativeModifiers();
-            else 
-              event.state = XInputEventState(keyEvent);
-
-            if (qtEvent->nativeScanCode())
-              event.keycode = qtEvent->nativeScanCode();
-            else 
-              event.keycode = XKeysymToKeycode( (widget ? static_cast<Display*>(widget->GetNativeData(NS_NATIVE_DISPLAY)) : nsnull), qtEvent->key());
-          }
-
-          switch (anEvent.message)
-            {
-            case NS_KEY_DOWN:
-              event.type = XKeyPress;
-              break;
-            case NS_KEY_UP:
-              event.type = KeyRelease;
-              break;
-           }
-#endif
-
-          
-          
-          event.subwindow = None;
-          event.x = 0;
-          event.y = 0;
-          event.x_root = -1;
-          event.y_root = -1;
-          event.same_screen = False;
-          XEvent be;
-          be.xkey =  event;
-          XID target;
-          XID root;
-          int wx, wy;
-          unsigned int width, height, border_width, depth;
-
-          
-          XID w = (XID)mPluginWindow->window;
-          XGetGeometry(DefaultXDisplay(), w, &root, &wx, &wy, &width, &height, &border_width, &depth);
-          find_dest_id(w, &root, &target, mLastPoint.x + wx, mLastPoint.y + wy);
-          be.xkey.window = target;
-          XSendEvent (DefaultXDisplay(), target,
-              FALSE, event.type == XKeyPress ? KeyPressMask : KeyReleaseMask, &be);
-
-
-        }
-      else
-        {
-          
-          
-          
-          
-          NS_WARNING("Synthesized key event not sent to plugin");
-        }
-      break;
-
-    default: 
-      switch (anEvent.message)
-        {
-        case NS_FOCUS_CONTENT:
-        case NS_BLUR_CONTENT:
-          {
-            XFocusChangeEvent &event = pluginEvent.xfocus;
-            event.type =
-              anEvent.message == NS_FOCUS_CONTENT ? FocusIn : FocusOut;
-            
-            event.mode = -1;
-            event.detail = NotifyDetailNone;
-          }
-          break;
-        }
-    }
-
-  if (!pluginEvent.type) {
-    PR_LOG(nsObjectFrameLM, PR_LOG_DEBUG,
-           ("Unhandled event message %d with struct type %d\n",
-            anEvent.message, anEvent.eventStructType));
-    return rv;
-  }
-
-  
-  XAnyEvent& event = pluginEvent.xany;
-  event.display = widget ?
-    static_cast<Display*>(widget->GetNativeData(NS_NATIVE_DISPLAY)) : nsnull;
-  event.window = None; 
-  
-  event.serial = 0;
-  event.send_event = False;
-
-#if 0
-  
-  PRInt16 response = kNPEventNotHandled;
-  mInstance->HandleEvent(&pluginEvent, &response);
-  if (response == kNPEventHandled)
-    rv = nsEventStatus_eConsumeNoDefault;
-#endif
-
-  return rv;
-}
-#endif
-
 nsEventStatus nsPluginInstanceOwner::ProcessEvent(const nsGUIEvent& anEvent)
 {
   
-
-#ifdef MOZ_COMPOSITED_PLUGINS
-  if (mPluginWindow && (mPluginWindow->type != NPWindowTypeDrawable))
-    return ProcessEventX11Composited(anEvent);
-#endif
 
   nsEventStatus rv = nsEventStatus_eIgnore;
 
@@ -6040,9 +5684,6 @@ nsPluginInstanceOwner::Renderer::DrawWithXlib(gfxXlibSurface* xsurface,
   }
 #endif
 
-#ifdef MOZ_COMPOSITED_PLUGINS
-  if (mWindow->type == NPWindowTypeDrawable)
-#endif
   {
     if (doupdatewindow)
       instance->SetWindow(mWindow);
@@ -6063,9 +5704,7 @@ nsPluginInstanceOwner::Renderer::DrawWithXlib(gfxXlibSurface* xsurface,
   if (!dirtyRect.IntersectRect(dirtyRect, clipRect))
     return NS_OK;
 
-#ifdef MOZ_COMPOSITED_PLUGINS
-  if (mWindow->type == NPWindowTypeDrawable) {
-#endif
+  {
     XEvent pluginEvent = XEvent();
     XGraphicsExposeEvent& exposeEvent = pluginEvent.xgraphicsexpose;
     
@@ -6084,34 +5723,7 @@ nsPluginInstanceOwner::Renderer::DrawWithXlib(gfxXlibSurface* xsurface,
     exposeEvent.minor_code = 0;
 
     instance->HandleEvent(&pluginEvent, nsnull);
-#ifdef MOZ_COMPOSITED_PLUGINS
   }
-  else {
-    
-    GtkWidget *plug = (GtkWidget*)(((nsPluginNativeWindow*)mWindow)->mPlugWindow);
-    
-
-    
-
-    XGCValues gcv;
-    gcv.subwindow_mode = IncludeInferiors;
-    gcv.graphics_exposures = False;
-    Drawable drawable = xsurface->XDrawable();
-    GC gc = XCreateGC(DefaultXDisplay(), drawable, GCGraphicsExposures | GCSubwindowMode, &gcv);
-    
-
-    XCopyArea(DefaultXDisplay(), gdk_x11_drawable_get_xid(plug->window),
-              drawable,
-              gc,
-              mDirtyRect.x,
-              mDirtyRect.y,
-              mDirtyRect.width,
-              mDirtyRect.height,
-              mDirtyRect.x,
-              mDirtyRect.y);
-    XFreeGC(DefaultXDisplay(), gc);
-  }
-#endif
   return NS_OK;
 }
 #endif

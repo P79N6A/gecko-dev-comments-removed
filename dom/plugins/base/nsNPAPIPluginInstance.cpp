@@ -597,15 +597,6 @@ nsresult nsNPAPIPluginInstance::HandleEvent(void* event, PRInt16* result)
 
 nsresult nsNPAPIPluginInstance::GetValueFromPlugin(NPPVariable variable, void* value)
 {
-#if (MOZ_PLATFORM_MAEMO == 5)
-  
-  
-  if (variable == NPPVpluginWindowlessLocalBool) {
-    *(NPBool*)value = mWindowlessLocal;
-    return NS_OK;
-  }
-#endif
-
   if (!mPlugin || !mPlugin->GetLibrary())
     return NS_ERROR_FAILURE;
 
