@@ -51,6 +51,13 @@ function getBrowserURL()
 }
 
 function getTopWin(skipPopups) {
+  
+  
+  
+  if (top.document.documentElement.getAttribute("windowtype") == "navigator:browser" &&
+      (!skipPopups || !top.document.documentElement.getAttribute("chromehidden")))
+    return top;
+
   if (skipPopups) {
     return Components.classes["@mozilla.org/browser/browserglue;1"]
                      .getService(Components.interfaces.nsIBrowserGlue)
