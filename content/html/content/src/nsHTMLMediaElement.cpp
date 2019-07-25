@@ -2087,18 +2087,6 @@ void nsHTMLMediaElement::UpdateReadyStateForData(NextFrameStatus aNextFrame)
     return;
   }
 
-  if (mDecoder->GetCurrentStream()->IsSuspendedByCache() &&
-      !mDecoder->IsEnded())
-  {
-    
-    
-    
-    
-    
-    ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
-    return;
-  }
-
   
   
   

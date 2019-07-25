@@ -556,7 +556,6 @@ void nsBuiltinDecoder::NotifySuspendedStatusChanged()
     
     mElement->NotifyAutoplayDataReady();
   }
-  UpdateReadyStateForData();
 }
 
 void nsBuiltinDecoder::NotifyBytesDownloaded()
