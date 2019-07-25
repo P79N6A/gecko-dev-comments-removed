@@ -62,6 +62,17 @@ struct JSXMLArray {
     uint32              capacity;
     void                **vector;
     JSXMLArrayCursor    *cursors;
+
+    void init() {
+        length = capacity = 0;
+        vector = NULL;
+        cursors = NULL;
+    }
+
+    void finish(JSContext *cx);
+
+    bool setCapacity(JSContext *cx, uint32 capacity);
+    void trim();
 };
 
 struct JSXMLArrayCursor
