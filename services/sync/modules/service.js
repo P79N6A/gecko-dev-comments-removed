@@ -683,7 +683,7 @@ WeaveSvc.prototype = {
 
 
 
-  _sync: function WeaveSvc__sync(useThresh) {
+  _sync: function WeaveSvc__sync(fullSync) {
     let self = yield;
 
     
