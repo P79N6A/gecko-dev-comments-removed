@@ -9323,7 +9323,10 @@ nsDocShell::ScrollToAnchor(nsACString & aCurHash, nsACString & aNewHash,
             
             
             
-            shell->GoToAnchor(uStr, scroll);
+            
+            
+            
+            shell->GoToAnchor(uStr, scroll && !uStr.IsEmpty());
         }
     }
     else {
