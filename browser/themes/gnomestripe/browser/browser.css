@@ -1315,6 +1315,11 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
 }
 
 
+#page-report-button {
+  list-style-image: url("chrome://browser/skin/Info.png");
+}
+
+
 #star-button {
   padding: 1px;
   list-style-image: url("chrome://browser/skin/places/starPage.png");
