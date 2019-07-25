@@ -767,7 +767,7 @@ ContentScriptHasUniversalXPConnect()
         
         
         
-        MOZ_ASSERT(!AccessCheck::callerIsChrome());
+        NS_ASSERTION(!AccessCheck::callerIsChrome(), "About to do a meaningless security check!");
 
         bool privileged;
         if (NS_SUCCEEDED(ssm->IsCapabilityEnabled("UniversalXPConnect", &privileged)) && privileged)
