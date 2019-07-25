@@ -43,6 +43,12 @@
 #include "mozilla/CondVar.h"
 #include "mozilla/Mutex.h"
 
+enum {
+  ePSMThreadRunning = 0,
+  ePSMThreadStopRequested = 1,
+  ePSMThreadStopped = 2
+};
+
 class nsPSMBackgroundThread
 {
 protected:
@@ -62,7 +68,7 @@ protected:
   mozilla::CondVar mCond;
 
   
-  PRBool mExitRequested;
+  PRUint32 mExitState;
 
 public:
   nsPSMBackgroundThread();
@@ -70,6 +76,9 @@ public:
 
   nsresult startThread();
   void requestExit();
+
+private:
+  PRUint32 GetExitStateThreadSafe();
 };
 
 
