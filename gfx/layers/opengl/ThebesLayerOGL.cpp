@@ -485,7 +485,7 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
     }
  
     if ((aFlags & PAINT_WILL_RESAMPLE) &&
-        (neededRegion.GetBounds() != destBufferRect ||
+        (!neededRegion.GetBounds().IsEqualInterior(destBufferRect) ||
          neededRegion.GetNumRects() > 1)) {
       
       if (mode == Layer::SURFACE_OPAQUE) {

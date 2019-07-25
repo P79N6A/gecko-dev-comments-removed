@@ -86,10 +86,15 @@ struct NS_GFX nsRect {
   void   Empty() {width = height = 0;}
 
   
+  
+  
   PRBool Contains(const nsRect& aRect) const;
+  
+  
   PRBool Contains(nscoord aX, nscoord aY) const;
   PRBool Contains(const nsPoint& aPoint) const {return Contains(aPoint.x, aPoint.y);}
 
+  
   
   
   PRBool Intersects(const nsRect& aRect) const;
@@ -107,6 +112,7 @@ struct NS_GFX nsRect {
   
   
   
+  
   PRBool UnionRect(const nsRect& aRect1, const nsRect& aRect2);
 
   
@@ -114,8 +120,7 @@ struct NS_GFX nsRect {
   
   
   
-  
-  void UnionRectIncludeEmpty(const nsRect& aRect1, const nsRect& aRect2);
+  void UnionRectEdges(const nsRect& aRect1, const nsRect& aRect2);
   
   
   void SetRect(nscoord aX, nscoord aY, nscoord aWidth, nscoord aHeight) {
@@ -145,20 +150,16 @@ struct NS_GFX nsRect {
 
   
   
-  PRBool  operator==(const nsRect& aRect) const {
-    return (PRBool) ((IsEmpty() && aRect.IsEmpty()) ||
-                     ((x == aRect.x) && (y == aRect.y) &&
-                      (width == aRect.width) && (height == aRect.height)));
-  }
-  PRBool  operator!=(const nsRect& aRect) const {
-    return (PRBool) !operator==(aRect);
-  }
-
   
   
-  PRBool IsExactEqual(const nsRect& aRect) const {
+  PRBool IsEqualEdges(const nsRect& aRect) const {
     return x == aRect.x && y == aRect.y &&
            width == aRect.width && height == aRect.height;
+  }
+  
+  
+  PRBool IsEqualInterior(const nsRect& aRect) const {
+    return IsEqualEdges(aRect) || (IsEmpty() && aRect.IsEmpty());
   }
 
   
@@ -265,12 +266,21 @@ struct NS_GFX nsIntRect {
   
   
   PRBool operator==(const nsIntRect& aRect) const {
-    return (PRBool) ((IsEmpty() && aRect.IsEmpty()) ||
-                     ((x == aRect.x) && (y == aRect.y) &&
-                      (width == aRect.width) && (height == aRect.height)));
+    return IsEqualEdges(aRect);
   }
-  PRBool  operator!=(const nsIntRect& aRect) const {
-    return (PRBool) !operator==(aRect);
+
+  
+  
+  
+  
+  PRBool IsEqualEdges(const nsIntRect& aRect) const {
+    return x == aRect.x && y == aRect.y &&
+           width == aRect.width && height == aRect.height;
+  }
+  
+  
+  PRBool IsEqualInterior(const nsIntRect& aRect) const {
+    return IsEqualEdges(aRect) || (IsEmpty() && aRect.IsEmpty());
   }
 
   nsIntRect  operator+(const nsIntPoint& aPoint) const {

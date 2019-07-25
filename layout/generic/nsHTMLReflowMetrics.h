@@ -111,8 +111,8 @@ public:
   bool operator==(const nsOverflowAreas& aOther) const {
     
     
-    return VisualOverflow() == aOther.VisualOverflow() &&
-           ScrollableOverflow().IsExactEqual(aOther.ScrollableOverflow());
+    return VisualOverflow().IsEqualInterior(aOther.VisualOverflow()) &&
+           ScrollableOverflow().IsEqualEdges(aOther.ScrollableOverflow());
   }
 
   bool operator!=(const nsOverflowAreas& aOther) const {

@@ -764,7 +764,7 @@ void imgFrame::SetBlendMethod(PRInt32 aBlendMethod)
 
 PRBool imgFrame::ImageComplete() const
 {
-  return mDecoded == nsIntRect(mOffset, mSize);
+  return mDecoded.IsEqualInterior(nsIntRect(mOffset, mSize));
 }
 
 

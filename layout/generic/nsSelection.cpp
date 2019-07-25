@@ -5556,7 +5556,7 @@ nsTypedSelection::GetSelectionAnchorGeometry(SelectionRegion aRegion,
   
   focusRect += focusFrame->GetOffsetTo(anchorFrame);
 
-  aRect->UnionRectIncludeEmpty(anchorRect, focusRect);
+  aRect->UnionRectEdges(anchorRect, focusRect);
   return anchorFrame;
 }
 

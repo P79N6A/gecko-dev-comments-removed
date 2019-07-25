@@ -1151,7 +1151,7 @@ void nsRegion::SubRect (const nsRectFast& aRect, nsRegion& aResult, nsRegion& aC
         {
           aResult.InsertInPlace (new RgnRect (ixm, ay, axm - ixm, ah));
         } else
-        if (*pSrcRect == aRect)         
+        if (pSrcRect->IsEqualInterior(aRect)) 
         {                               
           pSrcRect = pSrcRect->next;    
           break;                        
@@ -1261,10 +1261,10 @@ PRBool nsRegion::IsEqual (const nsRegion& aRegion) const
     return (mRectCount == 0) ? PR_TRUE : PR_FALSE;
 
   if (mRectCount == 1 && aRegion.mRectCount == 1) 
-    return (*mRectListHead.next == *aRegion.mRectListHead.next);
+    return (mRectListHead.next->IsEqualInterior(*aRegion.mRectListHead.next));
   else                                            
   {
-    if (mBoundRect != aRegion.mBoundRect)         
+    if (!mBoundRect.IsEqualInterior(aRegion.mBoundRect)) 
       return PR_FALSE;
     else
     {

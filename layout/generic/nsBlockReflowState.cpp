@@ -886,7 +886,7 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
 
   
   
-  if (region != oldRegion) {
+  if (!region.IsEqualEdges(oldRegion)) {
     
     
     

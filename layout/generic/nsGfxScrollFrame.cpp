@@ -219,7 +219,7 @@ nsHTMLScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
         
         
         nsRect thebesLayerDamage = damage + GetScrollPosition() - mInner.mScrollPosAtLastPaint;
-        if (parentDamage == thebesLayerDamage) {
+        if (parentDamage.IsEqualInterior(thebesLayerDamage)) {
           
           nsHTMLContainerFrame::InvalidateInternal(parentDamage, 0, 0, aForChild, aFlags);
         } else {
@@ -239,7 +239,7 @@ nsHTMLScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
         }
       }
 
-      if (mInner.mIsRoot && parentDamage != damage) {
+      if (mInner.mIsRoot && !parentDamage.IsEqualInterior(damage)) {
         
         
         
@@ -719,8 +719,8 @@ nsHTMLScrollFrame::PlaceScrollArea(const ScrollReflowState& aState,
   
   nsSize portSize = mInner.mScrollPort.Size();
   nsRect scrolledRect = mInner.GetScrolledRectInternal(aState.mContentsOverflowArea, portSize);
-  scrolledArea.UnionRectIncludeEmpty(scrolledRect,
-                                     nsRect(nsPoint(0,0), portSize));
+  scrolledArea.UnionRectEdges(scrolledRect,
+                              nsRect(nsPoint(0,0), portSize));
 
   
   
@@ -902,8 +902,8 @@ nsHTMLScrollFrame::Reflow(nsPresContext*           aPresContext,
       (GetStateBits() & NS_FRAME_IS_DIRTY) ||
       didHaveHScrollbar != state.mShowHScrollbar ||
       didHaveVScrollbar != state.mShowVScrollbar ||
-      oldScrollAreaBounds != newScrollAreaBounds ||
-      oldScrolledAreaBounds != newScrolledAreaBounds) {
+      !oldScrollAreaBounds.IsEqualEdges(newScrollAreaBounds) ||
+      !oldScrolledAreaBounds.IsEqualEdges(newScrolledAreaBounds)) {
     if (!mInner.mSupppressScrollbarUpdate) {
       mInner.mSkippedScrollbarLayout = PR_FALSE;
       mInner.SetScrollbarVisibility(mInner.mHScrollbarBox, state.mShowHScrollbar);
@@ -934,7 +934,7 @@ nsHTMLScrollFrame::Reflow(nsPresContext*           aPresContext,
     mInner.mHadNonInitialReflow = PR_TRUE;
   }
 
-  if (mInner.mIsRoot && oldScrolledAreaBounds != newScrolledAreaBounds) {
+  if (mInner.mIsRoot && !oldScrolledAreaBounds.IsEqualEdges(newScrolledAreaBounds)) {
     mInner.PostScrolledAreaEvent();
   }
 
@@ -1138,7 +1138,7 @@ nsXULScrollFrame::InvalidateInternal(const nsRect& aDamageRect,
       
       
       nsRect thebesLayerDamage = damage + GetScrollPosition() - mInner.mScrollPosAtLastPaint;
-      if (parentDamage == thebesLayerDamage) {
+      if (parentDamage.IsEqualInterior(thebesLayerDamage)) {
         
         nsBoxFrame::InvalidateInternal(parentDamage, 0, 0, aForChild, aFlags);
       } else {
@@ -2829,7 +2829,7 @@ nsXULScrollFrame::LayoutScrollArea(nsBoxLayoutState& aState,
     mInner.mScrolledFrame->Invalidate(
       originalVisOverflow + originalRect.TopLeft() - finalRect.TopLeft());
     mInner.mScrolledFrame->Invalidate(finalVisOverflow);
-  } else if (!originalVisOverflow.IsExactEqual(finalVisOverflow)) {
+  } else if (!originalVisOverflow.IsEqualInterior(finalVisOverflow)) {
     
     
     mInner.mScrolledFrame->CheckInvalidateSizeChange(
@@ -3238,7 +3238,7 @@ static void LayoutAndInvalidate(nsBoxLayoutState& aState,
   
   
   
-  PRBool rectChanged = aBox->GetRect() != aRect;
+  PRBool rectChanged = !aBox->GetRect().IsEqualInterior(aRect);
   if (rectChanged) {
     if (aScrollbarIsBeingHidden) {
       aBox->GetParent()->Invalidate(aBox->GetVisualOverflowRect() +

@@ -483,7 +483,7 @@ public:
 
 
   void SetVisibleArea(const nsRect& r) {
-    if (!r.IsExactEqual(mVisibleArea)) {
+    if (!r.IsEqualEdges(mVisibleArea)) {
       mVisibleArea = r;
       
       if (!IsPaginated() && HasCachedStyleData())

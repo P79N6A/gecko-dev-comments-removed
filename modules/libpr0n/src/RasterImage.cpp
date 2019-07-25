@@ -523,7 +523,7 @@ RasterImage::GetCurrentFrameIsOpaque(PRBool *aIsOpaque)
     
     
     nsIntRect framerect = curframe->GetRect();
-    *aIsOpaque = *aIsOpaque && (framerect != nsIntRect(0, 0, mSize.width, mSize.height));
+    *aIsOpaque = *aIsOpaque && framerect.IsEqualInterior(nsIntRect(0, 0, mSize.width, mSize.height));
   }
 
   return NS_OK;

@@ -941,7 +941,7 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
 
       
       nsRect rect = frame->GetRect();
-      if (rect != oldRect) {
+      if (!rect.IsEqualInterior(oldRect)) {
         nsRect dirtyRect = oldOverflow;
         dirtyRect.MoveBy(oldRect.x, oldRect.y);
         Invalidate(dirtyRect);
