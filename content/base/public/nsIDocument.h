@@ -126,8 +126,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x5853e8d4, 0xb9c8, 0x462f, \
-  { 0x8a, 0x22, 0x7e, 0xa8, 0x88, 0xc0, 0x0f, 0x34 } }
+{ 0x6f88f88d, 0xbd36, 0x4406, \
+  { 0xb9, 0xc6, 0xb4, 0xd2, 0x22, 0x90, 0x4b, 0x28 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -914,12 +914,8 @@ public:
   
 
 
-
-
-
   virtual nsresult CreateElem(const nsAString& aName, nsIAtom *aPrefix,
                               PRInt32 aNamespaceID,
-                              bool aDocumentDefaultType,
                               nsIContent** aResult) = 0;
 
   
