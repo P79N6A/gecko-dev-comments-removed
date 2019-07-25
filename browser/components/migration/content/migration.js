@@ -340,9 +340,6 @@ var MigrationWizard = {
       case "safari":
         source = "sourceNameSafari";
         break;
-      case "seamonkey":
-        source = "sourceNameSeamonkey";
-        break;
     }
 
     
