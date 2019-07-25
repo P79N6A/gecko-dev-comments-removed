@@ -171,6 +171,29 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
         sizeOk = PR_FALSE;
 
 #ifdef MOZ_X11
+    int glitzf;
+    int xrenderFormatID;
+    switch (imageFormat) {
+        case gfxASurface::ImageFormatARGB32:
+            glitzf = 0; 
+            xrenderFormatID = PictStandardARGB32;
+            break;
+        case gfxASurface::ImageFormatRGB24:
+            glitzf = 1; 
+            xrenderFormatID = PictStandardRGB24;
+            break;
+        case gfxASurface::ImageFormatA8:
+            glitzf = 2; 
+            xrenderFormatID = PictStandardA8;
+            break;
+        case gfxASurface::ImageFormatA1:
+            glitzf = 3; 
+            xrenderFormatID = PictStandardA1;
+            break;
+        default:
+            return nsnull;
+    }
+
     
     
     
@@ -179,13 +202,8 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
         return nsnull;
 
     GdkPixmap* pixmap = nsnull;
-    
-    if (gfxASurface::ImageFormatRGB24 == imageFormat
-        && 16 == gdk_visual_get_system()->depth)
-        imageFormat = gfxASurface::ImageFormatRGB16_565;
-
     XRenderPictFormat* xrenderFormat =
-        gfxXlibSurface::FindRenderFormat(display, imageFormat);
+        XRenderFindStandardFormat(display, xrenderFormatID);
 
     if (xrenderFormat && sizeOk) {
         pixmap = gdk_pixmap_new(nsnull, size.width, size.height,

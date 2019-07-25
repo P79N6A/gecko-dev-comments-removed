@@ -68,7 +68,6 @@ public:
         ImageFormatRGB24,  
         ImageFormatA8,     
         ImageFormatA1,     
-        ImageFormatRGB16_565,  
         ImageFormatUnknown
     } gfxImageFormat;
 
@@ -187,8 +186,6 @@ public:
     void RecordMemoryFreed();
 
     PRInt32 KnownMemoryUsed() { return mBytesRecorded; }
-
-    static PRInt32 BytePerPixelFromFormat(gfxImageFormat format);
 
 protected:
     gfxASurface() : mSurface(nsnull), mFloatingRefs(0), mBytesRecorded(0), mSurfaceValid(PR_FALSE) { }
