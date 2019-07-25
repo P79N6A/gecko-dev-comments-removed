@@ -50,8 +50,8 @@
 #include "jsscript.h"
 
 typedef struct JSFrameRegs {
-    js::Value       *sp;            
     jsbytecode      *pc;            
+    js::Value       *sp;            
 } JSFrameRegs;
 
 
@@ -100,12 +100,6 @@ struct JSStackFrame
     jsbytecode          *savedPC;       
 #ifdef DEBUG
     static jsbytecode *const sInvalidPC;
-#endif
-
-#if defined(JS_CPU_X86) || defined(JS_CPU_ARM)
-    void                *ncode;         
-    
-    void                *align_[3];
 #endif
 
     
@@ -292,28 +286,14 @@ ComputeThisFromVpInPlace(JSContext *cx, js::Value *vp)
     return ComputeThisFromArgv(cx, vp + 2);
 }
 
-class PrimitiveValue
+JS_ALWAYS_INLINE bool
+PrimitiveThisTest(JSFunction *fun, const Value &v)
 {
-    static const unsigned THISP_MASK       = 0x7;
-    static const unsigned THISP_ARRAY_SIZE = 8;
-    static const unsigned THISP_SHIFT      = 8;
-
-    void staticAssert() {
-        JS_STATIC_ASSERT(JSFUN_THISP_PRIMITIVE >> THISP_SHIFT == THISP_MASK);
-        JS_STATIC_ASSERT(THISP_MASK == THISP_ARRAY_SIZE - 1);
-    }
-
-    static const uint32 Masks[THISP_ARRAY_SIZE];
-
-  public:
-    static const uint32 DOUBLE_MASK = 0xFFFF8000;
-
-    static bool test(JSFunction *fun, const Value &v) {
-        uint32 mask = Masks[(fun->flags >> THISP_SHIFT) & THISP_MASK];
-        return (((mask & DOUBLE_MASK) != 0) & v.isDouble()) |
-               ((mask & v.data.s.u.mask32) > JSVAL_MASK32_CLEAR);
-    }
-};
+    uint16 flags = fun->flags;
+    return (v.isString() && !!(flags & JSFUN_THISP_STRING)) ||
+           (v.isNumber() && !!(flags & JSFUN_THISP_NUMBER)) ||
+           (v.isBoolean() && !!(flags & JSFUN_THISP_BOOLEAN));
+}
 
 
 
@@ -380,9 +360,6 @@ InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args, JSBool clampReturn
 
 extern JS_REQUIRES_STACK bool
 Interpret(JSContext *cx);
-
-extern JS_REQUIRES_STACK bool
-RunScript(JSContext *cx, JSScript *script, JSFunction *fun, JSObject *scopeChain);
 
 #define JSPROP_INITIALIZER 0x100   /* NB: Not a valid property attribute. */
 
@@ -461,6 +438,19 @@ js_EnterWith(JSContext *cx, jsint stackIndex);
 extern JS_REQUIRES_STACK void
 js_LeaveWith(JSContext *cx);
 
+extern JS_REQUIRES_STACK js::Class *
+js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth);
+
+
+
+
+
+extern JS_REQUIRES_STACK JSBool
+js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind);
+
+extern JSBool
+js_OnUnknownMethod(JSContext *cx, js::Value *vp);
+
 
 
 
@@ -487,19 +477,6 @@ extern void
 js_MeterSlotOpcode(JSOp op, uint32 slot);
 
 #endif 
-
-extern JS_REQUIRES_STACK js::Class *
-js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth);
-
-
-
-
-
-extern JS_REQUIRES_STACK JSBool
-js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind);
-
-extern JSBool
-js_OnUnknownMethod(JSContext *cx, js::Value *vp);
 
 inline JSObject *
 JSStackFrame::getThisObject(JSContext *cx)
