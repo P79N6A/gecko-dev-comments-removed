@@ -565,29 +565,9 @@ var Browser = {
     }
 
     
-    
-    
-    
-    
-
-    
-    
-    if (gPrefService.prefHasUserValue("temporary.disablePlugins")) {
-      gPrefService.clearUserPref("temporary.disablePlugins");
-      this.setPluginState(true);
-    }
-
-    
-    if (gPrefService.prefHasUserValue("temporary.disabledFlash")) {
-      this.setPluginState(true, /flash/i);
-      gPrefService.clearUserPref("temporary.disabledFlash");
-    }
-
-    
     ImagePreloader.cache();
 
     this._pluginObserver = new PluginObserver(bv);
-    new PreferenceToggle("plugins.enabled", this._pluginObserver);
 
     
     let event = document.createEvent("Events");
@@ -613,35 +593,7 @@ var Browser = {
     window.controllers.removeController(BrowserUI);
   },
 
-  setPluginState: function(enabled, nameMatch) {
-    
-    
-    try {
-      gPrefService.clearUserPref("temporary.disabledFlash");
-    } catch (ex) {}
-
-    var phs = Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost);
-    var plugins = phs.getPluginTags({ });
-    for (var i = 0; i < plugins.length; ++i) {
-      if (nameMatch && !nameMatch.test(plugins[i].name))
-        continue;
-      plugins[i].disabled = !enabled;
-    }
-  },
-
   initNewProfile: function initNewProfile() {
-    let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
-    let device = sysInfo.get("device");
-
-#ifdef MOZ_PLATFORM_HILDON
-    
-    
-    
-    if (device == "Nokia N8xx") {
-      gPrefService.setBoolPref("plugins.enabled", false);
-      this.setPluginState(false);
-    }
-#endif
   },
 
   get browsers() {
@@ -3131,39 +3083,6 @@ var ImagePreloader = {
   }
 }
 
-
-function PreferenceToggle(pref, obj) {
-  
-  gPrefService.addObserver(pref, this, true);
-  this._obj = obj;
-  this._pref = pref;
-  this._check();
-}
-
-PreferenceToggle.prototype = {
-  QueryInterface: function QueryInterface(iid) {
-   if (iid.equals(Ci.nsIObserver) ||
-       iid.equals(Ci.nsISupportsWeakReference) ||
-       iid.equals(Ci.nsISupports))
-     return this;
-   throw Components.results.NS_ERROR_NO_INTERFACE;
-  },
-
-  observe: function observe(subject, topic, data) {
-    if (topic == "nsPref:changed" && data == this._pref)
-      this._check();
-  },
-
-  _check: function _check() {
-    try {
-      let value = gPrefService.getBoolPref(this._pref);
-      value ? this._obj.start() : this._obj.stop();
-    } catch(e) {
-      this._obj.stop();
-    }
-  }
-};
-
 const nsIObjectLoadingContent = Ci.nsIObjectLoadingContent_MOZILLA_1_9_2_BRANCH || Ci.nsIObjectLoadingContent;
 
 
@@ -3176,6 +3095,10 @@ function PluginObserver(bv) {
   this._bv = bv;
   this._started = false;
   this._isRendering = false;
+
+  let enabled = gPrefService.getBoolPref("plugin.load_plugins");
+  if (enabled)
+    this.start();
 }
 
 PluginObserver.prototype = {
@@ -3224,7 +3147,8 @@ PluginObserver.prototype = {
 
   
   observe: function observe(subject, topic, data) {
-    this.updateCurrentBrowser();
+    if (topic == "plugin-changed-event")
+      this.updateCurrentBrowser();
   },
 
   
@@ -3352,5 +3276,5 @@ PluginObserver.prototype = {
         oprivate.setAbsoluteScreenPosition(Browser.contentScrollbox, dest, clip);
       } catch(e) {};
     }
-  },
+  }
 };
