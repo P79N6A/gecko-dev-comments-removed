@@ -581,9 +581,13 @@ nsWebShellWindow::OnStateChange(nsIWebProgress *aProgress,
   
   
   
-  nsCOMPtr<nsIDOMDocument> menubarDOMDoc(GetNamedDOMDoc(NS_LITERAL_STRING("this"))); 
-  if (menubarDOMDoc)
-    LoadNativeMenus(menubarDOMDoc, mWindow);
+  nsCOMPtr<nsIContentViewer> cv;
+  mDocShell->GetContentViewer(getter_AddRefs(cv));
+  if (cv) {
+    nsCOMPtr<nsIDOMDocument> menubarDOMDoc(do_QueryInterface(cv->GetDocument()));
+    if (menubarDOMDoc)
+      LoadNativeMenus(menubarDOMDoc, mWindow);
+  }
 #endif 
 
   OnChromeLoaded();
@@ -620,37 +624,6 @@ nsWebShellWindow::OnSecurityChange(nsIWebProgress *aWebProgress,
   return NS_OK;
 }
 
-
-
-nsCOMPtr<nsIDOMDocument> nsWebShellWindow::GetNamedDOMDoc(const nsAString & aDocShellName)
-{
-  nsCOMPtr<nsIDOMDocument> domDoc; 
-
-  
-  nsCOMPtr<nsIDocShell> childDocShell;
-  if (aDocShellName.EqualsLiteral("this")) { 
-    childDocShell = mDocShell;
-  } else {
-    nsCOMPtr<nsIDocShellTreeItem> docShellAsItem;
-    nsCOMPtr<nsIDocShellTreeNode> docShellAsNode(do_QueryInterface(mDocShell));
-    docShellAsNode->FindChildWithName(PromiseFlatString(aDocShellName).get(), 
-      PR_TRUE, PR_FALSE, nsnull, nsnull, getter_AddRefs(docShellAsItem));
-    childDocShell = do_QueryInterface(docShellAsItem);
-    if (!childDocShell)
-      return domDoc;
-  }
-  
-  nsCOMPtr<nsIContentViewer> cv;
-  childDocShell->GetContentViewer(getter_AddRefs(cv));
-  if (!cv)
-    return domDoc;
- 
-  nsIDocument* doc = cv->GetDocument();
-  if (doc)
-    return nsCOMPtr<nsIDOMDocument>(do_QueryInterface(doc));
-
-  return domDoc;
-} 
 
 
 
