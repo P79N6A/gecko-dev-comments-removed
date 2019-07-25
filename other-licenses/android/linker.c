@@ -1428,9 +1428,7 @@ static int reloc_library(soinfo *si, Elf32_Rel *rel, unsigned count)
     }
 
     void * remapped_page = NULL;
-    void * copy_page = mmap(NULL, PAGE_SIZE,
-                            PROT_READ | PROT_WRITE,
-                            MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    void * copy_page = NULL;
 
     for (idx = 0; idx < count; ++idx) {
         unsigned type = ELF32_R_TYPE(rel->r_info);
@@ -1521,6 +1519,10 @@ static int reloc_library(soinfo *si, Elf32_Rel *rel, unsigned count)
         void * reloc_page = reloc & ~PAGE_MASK;
         if ((si->flags & FLAG_MMAPPED) &&
             (reloc < ro_region_end && reloc_page != remapped_page)) {
+            if (copy_page == NULL)
+                copy_page = mmap(NULL, PAGE_SIZE,
+                                 PROT_READ | PROT_WRITE,
+                                 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
             if (remapped_page != NULL)
                 mprotect(remapped_page, PAGE_SIZE, PROT_READ | PROT_EXEC);
             memcpy(copy_page, reloc_page, PAGE_SIZE);
@@ -1640,7 +1642,8 @@ static int reloc_library(soinfo *si, Elf32_Rel *rel, unsigned count)
         }
         rel++;
     }
-    munmap(copy_page, PAGE_SIZE);
+    if (copy_page)
+        munmap(copy_page, PAGE_SIZE);
     return 0;
 }
 
@@ -1895,6 +1898,66 @@ static int nullify_closed_stdio (void)
     return return_value;
 }
 
+
+
+static unsigned int plt_reloc(soinfo *si, unsigned int num)
+{
+    if (si->plt_rel) {
+      reloc_library(si, &si->plt_rel[num], 1);
+      return *(unsigned int *)(si->base + si->plt_rel[num].r_offset);
+    }
+#ifdef ANDROID_SH_LINKER
+    if (si->plt_rela) {
+      reloc_library_a(si, &si->plt_rela[num], 1);
+      return *(unsigned int *)(si->base + si->plt_rela[num].r_offset);
+    }
+#endif
+}
+
+
+
+static unsigned int plt_reloc(soinfo *si, unsigned int num) __attribute__((used));
+
+#ifdef ANDROID_ARM_LINKER
+
+
+
+
+
+
+__asm__ (
+    ".text\n"
+    ".align 2\n"
+    ".type runtime_reloc, %function\n"
+"runtime_reloc:\n"
+    
+
+    "stmfd  sp!, {r0-r4}\n"
+    
+
+
+    "ldr r0, [lr, #-4]\n"
+    
+
+    "sub r1, ip, lr\n"
+    "sub r1, #4\n"
+    "lsr r1, r1, #2\n"
+    
+    "bl plt_reloc\n"
+    
+
+    "mov ip, r0\n"
+    
+
+
+    "ldmia sp!, {r0-r4,lr}\n"
+    
+    "bx ip\n"
+);
+#endif
+
+static void runtime_reloc() __attribute__((used));
+
 static int link_image(soinfo *si, unsigned wr_offset)
 {
     unsigned *d;
@@ -2138,10 +2201,16 @@ static int link_image(soinfo *si, unsigned wr_offset)
         }
     }
 
+    
+    Elf32_Addr *got = (Elf32_Addr *)si->plt_got;
+    got[1] = (Elf32_Addr) si;
+    got[2] = (Elf32_Addr) runtime_reloc;
+
     if(si->plt_rel) {
         DEBUG("[ %5d relocating %s plt ]\n", pid, si->name );
-        if(reloc_library(si, si->plt_rel, si->plt_rel_count))
-            goto fail;
+        
+        for (d = got + 3; d < got + 3 + si->plt_rel_count; d++)
+            *d += si->base;
     }
     if(si->rel) {
         DEBUG("[ %5d relocating %s ]\n", pid, si->name );
@@ -2152,8 +2221,9 @@ static int link_image(soinfo *si, unsigned wr_offset)
 #ifdef ANDROID_SH_LINKER
     if(si->plt_rela) {
         DEBUG("[ %5d relocating %s plt ]\n", pid, si->name );
-        if(reloc_library_a(si, si->plt_rela, si->plt_rela_count))
-            goto fail;
+        
+        for (d = got + 3; d < got + 3 + si->plt_rela_count; d++)
+            *d += si->base;
     }
     if(si->rela) {
         DEBUG("[ %5d relocating %s ]\n", pid, si->name );
