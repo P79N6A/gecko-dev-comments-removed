@@ -49,6 +49,8 @@ body {
 
 
 img {
+  color: #eee;
+  text-align: center;
   display: block;
   position: absolute;
   margin: auto;
