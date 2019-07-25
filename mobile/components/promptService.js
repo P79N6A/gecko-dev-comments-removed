@@ -159,8 +159,10 @@ promptService.prototype = {
   
     
     
-    
-     
+ 
+    if (!aLabel)
+      return;
+
     var accessKey = null;
     if (/ *\(\&([^&])\)(:)?$/.test(aLabel)) {
       aLabel = RegExp.leftContext + RegExp.$2;
