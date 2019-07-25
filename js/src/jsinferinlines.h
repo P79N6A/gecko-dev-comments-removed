@@ -596,6 +596,40 @@ TypeScript::MonitorUnknown(JSContext *cx, JSScript *script, jsbytecode *pc)
 }
 
  inline void
+TypeScript::GetPcScript(JSContext *cx, JSScript **script, jsbytecode **pc)
+{
+    *script = cx->fp()->script();
+    *pc = cx->regs().pc;
+}
+
+ inline void
+TypeScript::MonitorOverflow(JSContext *cx)
+{
+    JSScript *script;
+    jsbytecode *pc;
+    GetPcScript(cx, &script, &pc);
+    MonitorOverflow(cx, script, pc);
+}
+
+ inline void
+TypeScript::MonitorString(JSContext *cx)
+{
+    JSScript *script;
+    jsbytecode *pc;
+    GetPcScript(cx, &script, &pc);
+    MonitorString(cx, script, pc);
+}
+
+ inline void
+TypeScript::MonitorUnknown(JSContext *cx)
+{
+    JSScript *script;
+    jsbytecode *pc;
+    GetPcScript(cx, &script, &pc);
+    MonitorUnknown(cx, script, pc);
+}
+
+ inline void
 TypeScript::MonitorAssign(JSContext *cx, JSScript *script, jsbytecode *pc,
                           JSObject *obj, jsid id, const js::Value &rval)
 {
