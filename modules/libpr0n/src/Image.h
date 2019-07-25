@@ -87,8 +87,7 @@ public:
 
 
 
-
-  virtual nsresult GetCurrentFrameRect(nsIntRect& aRect) = 0;
+  virtual void GetCurrentFrameRect(nsIntRect& aRect) = 0;
 
   
 

@@ -467,30 +467,24 @@ RasterImage::GetCurrentFrameIsOpaque(PRBool *aIsOpaque)
   return NS_OK;
 }
 
-nsresult
-RasterImage::GetCurrentFrameRect(nsIntRect &aRect)
+void
+RasterImage::GetCurrentFrameRect(nsIntRect& aRect)
 {
-  if (mError)
-    return NS_ERROR_FAILURE;
+  
+  imgFrame* curframe = GetCurrentImgFrame();
 
   
-  imgFrame *curframe = GetCurrentImgFrame();
-
-  
-  if (curframe)
+  if (curframe) {
     aRect = curframe->GetRect();
-
-  
-  
-  
-  
-  
-  else {
+  } else {
+    
+    
+    
+    
+    
     aRect.MoveTo(0, 0);
     aRect.SizeTo(0, 0);
   }
-
-  return NS_OK;
 }
 
 PRUint32
