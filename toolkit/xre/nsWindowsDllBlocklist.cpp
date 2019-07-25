@@ -210,11 +210,17 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
   wchar_t *dll_part;
   DllBlockInfo *info;
 
+  
+  
+  
+  
+  PWCHAR sanitizedFilePath = (intptr_t(filePath) < 1024) ? NULL : filePath;
+
   int len = moduleFileName->Length / 2;
   wchar_t *fname = moduleFileName->Buffer;
 
   
-  DWORD pathlen = SearchPathW(filePath, fname, L".dll", 0, NULL, NULL);
+  DWORD pathlen = SearchPathW(sanitizedFilePath, fname, L".dll", 0, NULL, NULL);
   if (pathlen == 0) {
     
     printf_stderr("LdrLoadDll: Blocking load of '%s' (SearchPathW didn't find it?)\n", dllName);
@@ -228,7 +234,7 @@ patched_LdrLoadDll (PWCHAR filePath, PULONG flags, PUNICODE_STRING moduleFileNam
   }
 
   
-  SearchPathW(filePath, fname, L".dll", pathlen+1, full_fname, NULL);
+  SearchPathW(sanitizedFilePath, fname, L".dll", pathlen+1, full_fname, NULL);
 
   
   
