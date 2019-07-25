@@ -194,10 +194,6 @@
 #include "nsTextStore.h"
 #endif 
 
-#if defined(MOZ_SPLASHSCREEN)
-#include "nsSplashScreen.h"
-#endif 
-
 
 #include "npapi.h"
 
@@ -1123,19 +1119,6 @@ nsWindow::EnumAllWindows(WindowEnumCallback aCallback)
 
 NS_METHOD nsWindow::Show(PRBool bState)
 {
-#if defined(MOZ_SPLASHSCREEN)
-  
-  
-  nsSplashScreen *splash = nsSplashScreen::Get();
-  if (splash && splash->IsOpen() && mWnd && bState &&
-      (mWindowType == eWindowType_toplevel ||
-       mWindowType == eWindowType_dialog ||
-       mWindowType == eWindowType_popup))
-  {
-    splash->Close();
-  }
-#endif
-
   if (mWindowType == eWindowType_popup) {
     
     
