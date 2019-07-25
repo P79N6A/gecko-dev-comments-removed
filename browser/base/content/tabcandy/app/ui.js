@@ -25,7 +25,7 @@ var Page = {
     var isDragging = false;
     
     var zIndex = 100;
-    function mod($div){
+    function mod($div, tab){
       $div.draggable({
         start:function(){ isDragging = true; },
         stop: function(){
@@ -47,8 +47,22 @@ var Page = {
         }
       });
       
-      $("<div class='close'>x</div>").appendTo($div)
-        
+      $("<div class='close'>x</div>").appendTo($div);
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
     }
     
     window.TabMirror.customize(mod);
@@ -172,6 +186,7 @@ var grid = new ArrangeClass("Grid", function(){
 var Arrange = {
   init: function(){
     grid.arrange();
+    
   }
 }
 
@@ -188,7 +203,6 @@ UIClass.prototype = {
 
 var UI = new UIClass();
 window.UI = UI;
-window.aza = ArrangeClass
 
 
 })();
