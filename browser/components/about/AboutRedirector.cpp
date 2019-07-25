@@ -96,12 +96,7 @@ static RedirEntry kRedirMap[] = {
     nsIAboutModule::ALLOW_SCRIPT },
   { "sessionrestore", "chrome://browser/content/aboutSessionRestore.xhtml",
     nsIAboutModule::ALLOW_SCRIPT },
-#ifdef MOZ_SERVICES_SYNC
-  { "sync-tabs", "chrome://browser/content/aboutSyncTabs.xul",
-    nsIAboutModule::ALLOW_SCRIPT },
-#endif
-  { "home", "chrome://browser/content/aboutHome.xhtml",
-    nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
+  { "startup", "chrome://browser/content/aboutStartup.html",
     nsIAboutModule::ALLOW_SCRIPT },
 };
 static const int kRedirTotal = NS_ARRAY_LENGTH(kRedirMap);
