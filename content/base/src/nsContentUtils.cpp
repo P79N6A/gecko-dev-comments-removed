@@ -254,6 +254,9 @@ nsIBidiKeyboard *nsContentUtils::sBidiKeyboard = nsnull;
 #endif
 PRUint32 nsContentUtils::sScriptBlockerCount = 0;
 PRUint32 nsContentUtils::sRemovableScriptBlockerCount = 0;
+#ifdef DEBUG
+PRUint32 nsContentUtils::sDOMNodeRemovedSuppressCount = 0;
+#endif
 nsCOMArray<nsIRunnable>* nsContentUtils::sBlockedScriptRunners = nsnull;
 PRUint32 nsContentUtils::sRunnersCountAtFirstBlocker = 0;
 PRUint32 nsContentUtils::sScriptBlockerCountWhereRunnersPrevented = 0;
@@ -3729,12 +3732,25 @@ nsContentUtils::MaybeFireNodeRemoved(nsINode* aChild, nsINode* aParent,
   NS_PRECONDITION(aChild->GetNodeParent() == aParent, "Wrong parent");
   NS_PRECONDITION(aChild->GetOwnerDoc() == aOwnerDoc, "Wrong owner-doc");
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   NS_ASSERTION(aChild->IsNodeOfType(nsINode::eCONTENT) &&
                static_cast<nsIContent*>(aChild)->
                  IsInNativeAnonymousSubtree() ||
-               IsSafeToRunScript(),
+               IsSafeToRunScript() ||
+               sDOMNodeRemovedSuppressCount,
                "Want to fire DOMNodeRemoved event, but it's not safe");
 
+  
   
   
   
