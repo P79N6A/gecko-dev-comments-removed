@@ -399,15 +399,22 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
   
   
   
-  nsDragService * winDragService =
-    static_cast<nsDragService *>(mDragService);
+  nsDragService* winDragService = static_cast<nsDragService*>(mDragService);
   winDragService->SetIDataObject(pData);
 
   
+  
+  nsRefPtr<nsNativeDragTarget> kungFuDeathGrip = this;
   nsCOMPtr<nsIDragService> serv = mDragService;
 
   
   ProcessDrag(pData, NS_DRAGDROP_DROP, grfKeyState, aPT, pdwEffect);
+
+  nsCOMPtr<nsIDragSession> currentDragSession;
+  serv->GetCurrentSession(getter_AddRefs(currentDragSession));
+  if (!currentDragSession) {
+    return S_OK;  
+  }
 
   
   
