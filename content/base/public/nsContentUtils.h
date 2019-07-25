@@ -2025,6 +2025,27 @@ public:
 
   static JSVersion ParseJavascriptVersion(const nsAString& aVersionStr);
 
+  static bool IsJavascriptMIMEType(const nsAString& aMIMEType)
+  {
+    
+    static const char* jsTypes[] = {
+      "text/javascript",
+      "text/ecmascript",
+      "application/javascript",
+      "application/ecmascript",
+      "application/x-javascript",
+      nullptr
+    };
+
+    for (PRUint32 i = 0; jsTypes[i]; ++i) {
+      if (aMIMEType.LowerCaseEqualsASCII(jsTypes[i])) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   static void SplitMimeType(const nsAString& aValue, nsString& aType,
                             nsString& aParams);
 
