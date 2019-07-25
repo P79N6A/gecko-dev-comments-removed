@@ -146,6 +146,13 @@ DiscardTracker::DiscardAll()
   TimerOff();
 }
 
+static int
+DiscardTimeoutChangedCallback(const char* aPref, void *aClosure)
+{
+  DiscardTracker::ReloadTimeout();
+  return 0;
+}
+
 
 
 
@@ -162,6 +169,9 @@ DiscardTracker::Initialize()
   sSentinel.next = &sTail;
 
   
+  Preferences::RegisterCallback(DiscardTimeoutChangedCallback,
+                                DISCARD_TIMEOUT_PREF);
+
   ReloadTimeout();
 
   

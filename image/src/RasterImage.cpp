@@ -58,6 +58,7 @@
 #include "ImageLogging.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/Preferences.h"
 #include "ImageLayers.h"
 
 #include "nsPNGDecoder.h"
@@ -85,24 +86,23 @@ static PRLogModuleInfo *gCompressedImageAccountingLog = PR_NewLogModule ("Compre
 #endif
 
 
-static PRUint32 gDecodeBytesAtATime = 200000;
-static PRUint32 gMaxMSBeforeYield = 400;
-static PRUint32 gMaxBytesForSyncDecode = 150000;
 
-void
-RasterImage::SetDecodeBytesAtATime(PRUint32 aBytesAtATime)
+
+static bool gInitializedPrefCaches = false;
+static PRUint32 gDecodeBytesAtATime = 0;
+static PRUint32 gMaxMSBeforeYield = 0;
+static PRUint32 gMaxBytesForSyncDecode = 0;
+
+static void
+InitPrefCaches()
 {
-  gDecodeBytesAtATime = aBytesAtATime;
-}
-void
-RasterImage::SetMaxMSBeforeYield(PRUint32 aMaxMS)
-{
-  gMaxMSBeforeYield = aMaxMS;
-}
-void
-RasterImage::SetMaxBytesForSyncDecode(PRUint32 aMaxBytes)
-{
-  gMaxBytesForSyncDecode = aMaxBytes;
+  Preferences::AddUintVarCache(&gDecodeBytesAtATime,
+                               "image.mem.decode_bytes_at_a_time", 200000);
+  Preferences::AddUintVarCache(&gMaxMSBeforeYield,
+                               "image.mem.max_ms_before_yield", 400);
+  Preferences::AddUintVarCache(&gMaxBytesForSyncDecode,
+                               "image.mem.max_bytes_for_sync_decode", 150000);
+  gInitializedPrefCaches = true;
 }
 
 
@@ -216,6 +216,11 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
 
   
   num_containers++;
+
+  
+  if (NS_UNLIKELY(!gInitializedPrefCaches)) {
+    InitPrefCaches();
+  }
 }
 
 
