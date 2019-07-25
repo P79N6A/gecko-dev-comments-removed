@@ -10,6 +10,7 @@
 #include "nsThreadUtils.h"
 #include "nsClassHashtable.h"
 #include "nsIObserver.h"
+#include "nsIRunnable.h"
 #include "BluetoothCommon.h"
 
 BEGIN_BLUETOOTH_NAMESPACE
@@ -72,7 +73,7 @@ public:
 
 
 
-  nsresult Start(BluetoothReplyRunnable* aResultRunnable);
+  nsresult Start(nsIRunnable* aResultRunnable);
 
   
 
@@ -87,7 +88,7 @@ public:
 
 
 
-  nsresult Stop(BluetoothReplyRunnable* aResultRunnable);
+  nsresult Stop(nsIRunnable* aResultRunnable);
 
   
 
@@ -249,8 +250,7 @@ protected:
   {
   }
 
-  nsresult StartStopBluetooth(BluetoothReplyRunnable* aResultRunnable,
-                              bool aStart);
+  nsresult StartStopBluetooth(nsIRunnable* aResultRunnable, bool aStart);
   
   
   static BluetoothService* Create();
