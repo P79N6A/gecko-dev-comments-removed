@@ -62,6 +62,10 @@
 #include "nsCRT.h"
 #include "mozilla/Services.h"
 
+#if defined(MOZ_WIDGET_GTK2)
+#include "gtk2compat.h"
+#endif
+
 #include "gfxASurface.h"
 #include "gfxXlibSurface.h"
 #include "gfxContext.h"
@@ -1899,7 +1903,7 @@ nsDragService::RunScheduledTask()
     
     
     if (task == eDragTaskMotion || positionHasChanged) {
-        nsWindow::UpdateDragStatus(mTargetDragContext, this);
+        UpdateDragAction();
         DispatchMotionEvents();
 
         if (task == eDragTaskMotion) {
@@ -1940,6 +1944,44 @@ nsDragService::RunScheduledTask()
     
     mTaskSource = 0;
     return FALSE;
+}
+
+
+
+
+
+void
+nsDragService::UpdateDragAction()
+{
+    
+    
+    
+    
+    
+    
+
+    
+    int action = nsIDragService::DRAGDROP_ACTION_NONE;
+    GdkDragAction gdkAction = gdk_drag_context_get_actions(mTargetDragContext);
+
+    
+    if (gdkAction & GDK_ACTION_DEFAULT)
+        action = nsIDragService::DRAGDROP_ACTION_MOVE;
+
+    
+    if (gdkAction & GDK_ACTION_MOVE)
+        action = nsIDragService::DRAGDROP_ACTION_MOVE;
+
+    
+    else if (gdkAction & GDK_ACTION_LINK)
+        action = nsIDragService::DRAGDROP_ACTION_LINK;
+
+    
+    else if (gdkAction & GDK_ACTION_COPY)
+        action = nsIDragService::DRAGDROP_ACTION_COPY;
+
+    
+    SetDragAction(action);
 }
 
 void

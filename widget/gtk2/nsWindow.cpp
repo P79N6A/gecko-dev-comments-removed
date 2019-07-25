@@ -5648,43 +5648,6 @@ nsWindow::InitDragEvent(nsDragEvent &aEvent)
     KeymapWrapper::InitInputEvent(aEvent, modifierState);
 }
 
-
-
-
-
- void
-nsWindow::UpdateDragStatus(GdkDragContext *aDragContext,
-                           nsIDragService *aDragService)
-{
-    
-    int action = nsIDragService::DRAGDROP_ACTION_NONE;
-    GdkDragAction gdkAction = gdk_drag_context_get_actions(aDragContext);
-
-    
-    if (gdkAction & GDK_ACTION_DEFAULT)
-        action = nsIDragService::DRAGDROP_ACTION_MOVE;
-
-    
-    if (gdkAction & GDK_ACTION_MOVE)
-        action = nsIDragService::DRAGDROP_ACTION_MOVE;
-
-    
-    else if (gdkAction & GDK_ACTION_LINK)
-        action = nsIDragService::DRAGDROP_ACTION_LINK;
-
-    
-    else if (gdkAction & GDK_ACTION_COPY)
-        action = nsIDragService::DRAGDROP_ACTION_COPY;
-
-    
-    nsCOMPtr<nsIDragSession> session;
-    aDragService->GetCurrentSession(getter_AddRefs(session));
-
-    if (session)
-        session->SetDragAction(action);
-}
-
-
 static gboolean
 drag_motion_event_cb(GtkWidget *aWidget,
                      GdkDragContext *aDragContext,
