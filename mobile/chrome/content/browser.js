@@ -1089,47 +1089,12 @@ var Browser = {
   },
 
   
-
-
-  _getZoomLevelForElement: function _getZoomLevelForElement(element) {
-    const margin = 15;
-
-    let bv = this._browserView;
-    let elRect = bv.browserToViewportRect(Browser.getBoundingContentRect(element));
-
-    let vis = bv.getVisibleRect();
-    return bv.clampZoomLevel(bv.getZoomLevel() * vis.width / (elRect.width + margin * 2));
-  },
-
-  
   _getZoomLevelForRect: function _getZoomLevelForRect(rect) {
     const margin = 15;
     
     let bv = this._browserView;
     let vis = bv.getVisibleRect();
     return bv.clampZoomLevel(bv.getZoomLevel() * vis.width / (rect.width + margin * 2));
-  },
-
-  
-
-
-
-  _getZoomRectForElement: function _getZoomRectForElement(element, elementY) {
-    let bv = this._browserView;
-    let oldZoomLevel = bv.getZoomLevel();
-    let zoomLevel = this._getZoomLevelForElement(element);
-    let zoomRatio = oldZoomLevel / zoomLevel;
-
-    
-    
-    
-    let zoomTolerance = (bv.isDefaultZoom()) ? .9 : .6666;
-    if (zoomRatio >= zoomTolerance) {
-      return null;
-    } else {
-      let elRect = this.getBoundingContentRect(element);
-      return this._getZoomRectForPoint(elRect.center().x, elementY, zoomLevel);
-    }
   },
 
   
@@ -1192,11 +1157,8 @@ var Browser = {
   zoomToPoint: function zoomToPoint(cX, cY) {
     let [elementX, elementY] = this.transformClientToBrowser(cX, cY);
     let zoomRect = null;
-    let element = this.elementFromPoint(elementX, elementY);
     let bv = this._browserView;
-    if (element)
-      zoomRect = this._getZoomRectForElement(element, elementY);
-    if (!zoomRect && bv.isDefaultZoom())
+    if (bv.isDefaultZoom())
       zoomRect = this._getZoomRectForPoint(elementX, elementY, bv.getZoomLevel() * 2);
 
     if (zoomRect)
@@ -1213,32 +1175,6 @@ var Browser = {
       let zoomRect = this._getZoomRectForPoint(elementX, elementY, zoomLevel);
       this.setVisibleRect(zoomRect);
     }
-  },
-
-  getBoundingContentRect: function getBoundingContentRect(contentElem) {
-    let document = contentElem.ownerDocument;
-    while(document.defaultView.frameElement)
-      document = document.defaultView.frameElement.ownerDocument;
-
-    let tab = Browser.getTabForDocument(document);
-    if (!tab || !tab.browser)
-      return null;
-
-    let browser = tab.browser;
-    let offset = BrowserView.Util.getContentScrollOffset(browser);
-
-    let r = contentElem.getBoundingClientRect();
-
-    
-    for (let frame = contentElem.ownerDocument.defaultView; frame != browser.contentWindow; frame = frame.parent) {
-      
-      let rect = frame.frameElement.getBoundingClientRect();
-      let left = frame.getComputedStyle(frame.frameElement, "").borderLeftWidth;
-      let top = frame.getComputedStyle(frame.frameElement, "").borderTopWidth;
-      offset.add(rect.left + parseInt(left), rect.top + parseInt(top));
-    }
-
-    return new Rect(r.left + offset.x, r.top + offset.y, r.width, r.height);
   },
 
   
@@ -1286,42 +1222,6 @@ var Browser = {
 
 
 
-  elementFromPoint: function elementFromPoint(x, y) {
-    let browser = this._browserView.getBrowser();
-    if (!browser)
-      return null;
-
-    
-    
-    let cwu = BrowserView.Util.getBrowserDOMWindowUtils(browser);
-    let scrollX = {}, scrollY = {};
-    cwu.getScrollXY(false, scrollX, scrollY);
-    x = x - scrollX.value;
-    y = y - scrollY.value;
-    let elem = ElementTouchHelper.getClosest(cwu, x, y);
-
-    
-    while (elem && (elem instanceof HTMLIFrameElement || elem instanceof HTMLFrameElement)) {
-      
-      let win = elem.ownerDocument.defaultView;
-      let left = win.getComputedStyle(elem, "").borderLeftWidth;
-      let top = win.getComputedStyle(elem, "").borderTopWidth;
-
-      let rect = elem.getBoundingClientRect();
-      x = Math.max(0, x - (rect.left + parseInt(left)));
-      y = Math.max(0, y - (rect.top + parseInt(top)));
-
-      let windowUtils = elem.contentDocument.defaultView.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-      elem = ElementTouchHelper.getClosest(windowUtils, x, y);
-    }
-
-    return elem;
-  },
-
-  
-
-
-
   getVisibleRect: function getVisibleRect() {
     let stack = document.getElementById("tile-stack");
     let container = document.getElementById("tile-container");
@@ -1363,10 +1263,9 @@ var Browser = {
   }
 };
 
+
 Browser.MainDragger = function MainDragger(browserView) {
   this.bv = browserView;
-  this.draggedFrame = null;
-  this.contentScrollbox = null;
 };
 
 Browser.MainDragger.prototype = {
@@ -1381,57 +1280,6 @@ Browser.MainDragger.prototype = {
     
     
     this.bv._idleServiceObserver.pause();
-
-    let [x, y] = Browser.transformClientToBrowser(clientX, clientY);
-    let element = Browser.elementFromPoint(x, y);
-
-    this.draggedFrame = null;
-    this.contentScrollbox = null;
-
-    
-    let htmlElement = element;
-    if (htmlElement && htmlElement instanceof HTMLElement) {
-      let win = htmlElement.ownerDocument.defaultView;
-      for (; htmlElement; htmlElement = htmlElement.parentNode) {
-        try {
-          let cs = win.getComputedStyle(htmlElement, null);
-          let overflowX = cs.getPropertyValue("overflow-x");
-          let overflowY = cs.getPropertyValue("overflow-y");
-
-          let scrollableY = overflowY != "hidden" && overflowY != "visible" && htmlElement.clientHeight < htmlElement.scrollHeight;
-          let scrollableX = overflowX != "hidden" && overflowX != "visible" && htmlElement.clientWidth  < htmlElement.scrollWidth
-            && !(htmlElement instanceof HTMLSelectElement); 
-
-          if (scrollableX || scrollableY) {
-            this.contentScrollbox = this._createDivScrollBox(htmlElement);
-            return;
-          }
-        } catch(e) {}
-      }
-    }
-
-    
-    let xulElement = element;
-    if (xulElement && xulElement instanceof XULElement) {
-      for (; xulElement; xulElement = xulElement.parentNode) {
-        if (xulElement.localName == "treechildren") {
-          this.contentScrollbox = this._createTreeScrollBox(xulElement.parentNode);
-          return;
-        }
-        let wrapper = xulElement.wrappedJSObject;
-        let scrollable = false;
-        try {
-          scrollable = (wrapper.scrollBoxObject != null) || (wrapper.boxObject.QueryInterface(Ci.nsIScrollBoxObject));
-        } catch(e) {}
-        if (scrollable) {
-          this.contentScrollbox = wrapper.scrollBoxObject || wrapper.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
-          return;
-        }
-      }
-    }
-
-    if (element)
-      this.draggedFrame = element.ownerDocument.defaultView;
   },
 
   dragStop: function dragStop(dx, dy, scroller) {
@@ -1447,27 +1295,11 @@ Browser.MainDragger.prototype = {
   },
 
   dragMove: function dragMove(dx, dy, scroller) {
-    let elem = this.draggedFrame;
     let doffset = new Point(dx, dy);
     let render = false;
 
     
     let panOffset = this._panControlsAwayOffset(doffset);
-
-    
-    if (this.contentScrollbox && !doffset.isZero()) {
-      this._panScrollbox(this.contentScrollbox, doffset);
-      render = true;
-    }
-
-    
-    if (elem) {
-      while (elem.frameElement && !doffset.isZero()) {
-        this._panFrame(elem, doffset);
-        elem = elem.frameElement;
-        render = true;
-      }
-    }
 
     
     this._panScroller(Browser.contentScrollboxScroller, doffset);
@@ -1485,79 +1317,6 @@ Browser.MainDragger.prototype = {
       this.bv.renderNow();
 
     return !doffset.equals(dx, dy);
-  },
-
-  
-
-
-  _createDivScrollBox: function(div) {
-    let sbo = {
-      getScrolledSize: function(width, height) {
-        width.value = div.scrollWidth;
-        height.value = div.scrollHeight;
-      },
-  
-      getPosition: function(x, y) {
-        x.value = div.scrollLeft;
-        y.value = div.scrollTop;
-      },
-  
-      scrollBy: function(dx, dy) {
-        div.scrollTop += dy;
-        div.scrollLeft += dx;
-      }
-   }
-   return sbo;
-  },
-
- 
-
-
-  _createTreeScrollBox: function(tree) {
-    let treeBox = tree.boxObject.QueryInterface(Ci.nsITreeBoxObject);
-    let sbo = {
-      pageLength: treeBox.getPageLength(),
-      rowHeight: treeBox.rowHeight,
-      rowWidth: treeBox.rowWidth,
-      rowCount: treeBox.view.rowCount,
-      targetY: treeBox.getFirstVisibleRow() * treeBox.rowHeight,
-      getScrolledSize: function(width, height) {
-        width.value = this.rowWidth;
-        height.value = this.rowHeight * this.rowCount;
-      },
-
-      getPosition: function(x, y) {
-        x.value = treeBox.horizontalPosition;
-        y.value = this.targetY;
-      },
-
-      scrollBy: function(dx, dy) {
-        this.targetY += dy;
-        if (this.targetY < 0)
-          this.targetY = 0;
-        let targetRow = Math.floor(this.targetY / this.rowHeight);
-        if ((targetRow + this.pageLength) > this.rowCount) {
-          targetRow = this.rowCount - this.pageLength;
-          this.targetY = targetRow * this.rowHeight;
-        }
-        treeBox.scrollToRow(targetRow);
-        treeBox.scrollToHorizontalPosition(treeBox.horizontalPosition + dx);
-      }
-    }
-    return sbo;
-  },
-
-  
-
-
-  _panScrollbox: function(sbo, doffset) {
-    let origX = {}, origY = {}, newX = {}, newY = {};
-
-    sbo.getPosition(origX, origY);
-    sbo.scrollBy(doffset.x, doffset.y);
-    sbo.getPosition(newX, newY);
-
-    doffset.subtract(newX.value - origX.value, newY.value - origY.value);
   },
 
   
@@ -1587,20 +1346,9 @@ Browser.MainDragger.prototype = {
     scroller.scrollBy(doffset.x, doffset.y);
     let { x: x1, y: y1 } = Browser.getScrollboxPosition(scroller);
     doffset.subtract(x1 - x0, y1 - y0);
-  },
-
-  
-  _panFrame: function _panFrame(frame, doffset) {
-    let origX = {}, origY = {}, newX = {}, newY = {};
-    let windowUtils = frame.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-
-    windowUtils.getScrollXY(false, origX, origY);
-    frame.scrollBy(doffset.x, doffset.y);
-    windowUtils.getScrollXY(false, newX, newY);
-
-    doffset.subtract(newX.value - origX.value, newY.value - origY.value);
   }
 };
+
 
 function nsBrowserAccess()
 {
@@ -1673,6 +1421,7 @@ nsBrowserAccess.prototype = {
     return Browser.browsers.some(function (browser) browser.contentWindow == aWindow);
   }
 };
+
 
 const BrowserSearch = {
   observe: function bs_observe(aSubject, aTopic, aData) {
@@ -1768,6 +1517,7 @@ const BrowserSearch = {
 }
 
 
+
 function ContentCustomClicker(browserView) {
   this._browserView = browserView;
 }
@@ -1829,6 +1579,7 @@ ContentCustomClicker.prototype = {
 };
 
 
+
 function ContentCustomKeySender(browserView) {
   this._browserView = browserView;
 }
@@ -1850,119 +1601,6 @@ ContentCustomKeySender.prototype = {
   }
 };
 
-
-const ElementTouchHelper = {
-  get radius() {
-    delete this.radius;
-    return this.radius = { "top": gPrefService.getIntPref("browser.ui.touch.top"),
-                           "right": gPrefService.getIntPref("browser.ui.touch.right"),
-                           "bottom": gPrefService.getIntPref("browser.ui.touch.bottom"),
-                           "left": gPrefService.getIntPref("browser.ui.touch.left")
-                         };
-  },
-
-  get weight() {
-    delete this.weight;
-    return this.weight = { "visited": gPrefService.getIntPref("browser.ui.touch.weight.visited")
-                         };
-  },
-
-  
-  getClosest: function getClosest(aWindowUtils, aX, aY) {
-    let target = aWindowUtils.elementFromPoint(aX, aY,
-                                               true,   
-                                               false); 
-
-    let nodes = aWindowUtils.nodesFromRect(aX, aY, this.radius.top,
-                                                   this.radius.right,
-                                                   this.radius.bottom,
-                                                   this.radius.left, true, false);
-
-    
-    if (this._isElementClickable(target, nodes))
-      return target;
-
-    let threshold = Number.POSITIVE_INFINITY;
-    for (let i = 0; i < nodes.length; i++) {
-      let current = nodes[i];
-      if (!current.mozMatchesSelector || !this._isElementClickable(current))
-        continue;
-
-      let rect = current.getBoundingClientRect();
-      let distance = this._computeDistanceFromRect(aX, aY, rect);
-
-      
-      if (current && current.mozMatchesSelector("*:visited"))
-        distance *= (this.weight.visited / 100);
-
-      if (distance < threshold) {
-        target = current;
-        threshold = distance;
-      }
-    }
-
-    return target;
-  },
-
-  _els: Cc["@mozilla.org/eventlistenerservice;1"].getService(Ci.nsIEventListenerService),
-  _clickableEvents: ["mousedown", "mouseup", "click"],
-  _hasMouseListener: function _hasMouseListener(aElement) {
-    let els = this._els;
-    let listeners = els.getListenerInfoFor(aElement, {});
-    for (let i = 0; i < listeners.length; i++) {
-      if (this._clickableEvents.indexOf(listeners[i].type) != -1)
-        return true;
-    }
-  },
-
-  _isElementClickable: function _isElementClickable(aElement, aElementsInRect) {
-    let isClickable = this._hasMouseListener(aElement);
-
-    
-    if (aElement && !isClickable && aElementsInRect) {
-      let parentNode = aElement.parentNode;
-      let count = aElementsInRect.length;
-      for (let i = 0; i < count && parentNode; i++) {
-        if (aElementsInRect[i] != parentNode)
-          continue;
-
-        isClickable = this._hasMouseListener(parentNode);
-        if (isClickable)
-          break;
-
-        parentNode = parentNode.parentNode;
-      }
-    }
-
-    return aElement && (isClickable || aElement.mozMatchesSelector("*:link,*:visited,*[role=button],button,input,select,label"));
-  },
-
-  _computeDistanceFromRect: function _computeDistanceFromRect(aX, aY, aRect) {
-    let x = 0, y = 0;
-    let xmost = aRect.left + aRect.width;
-    let ymost = aRect.top + aRect.height;
-
-    
-    
-    if (aRect.left < aX && aX < xmost)
-      x = Math.min(xmost - aX, aX - aRect.left);
-    else if (aX < aRect.left)
-      x = aRect.left - aX;
-    else if (aX > xmost)
-      x = aX - xmost;
-
-    
-    
-    if (aRect.top < aY && aY < ymost)
-      y = Math.min(ymost - aY, aY - aRect.top);
-    else if (aY < aRect.top)
-      y = aRect.top - aY;
-    if (aY > ymost)
-      y = aY - ymost;
-
-    return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
-  }
-};
 
 
 
@@ -3059,7 +2697,7 @@ Tab.prototype = {
   },
 
   toString: function() {
-    return "[Tab " + (this._browser ? this._browser.contentURI.spec : "(no browser)") + "]";
+    return "[Tab " + (this._browser ? this._browser.currentURI.spec : "(no browser)") + "]";
   }
 };
 
