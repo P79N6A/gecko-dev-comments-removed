@@ -47,6 +47,7 @@
 
 #include <string.h>
 
+#include "jsapi.h"
 #include "jsfriendapi.h"
 #include "jsprvtd.h"
 #include "jsatom.h"
@@ -794,7 +795,6 @@ extern const JSDebugHooks js_NullDebugHooks;
 
 namespace js {
 
-class AutoGCRooter;
 template <typename T> class Root;
 class CheckRoot;
 
@@ -1310,29 +1310,6 @@ struct JSContext
 
 namespace js {
 
-#if defined JS_THREADSAFE && defined DEBUG
-
-class AutoCheckRequestDepth {
-    JSContext *cx;
-  public:
-    AutoCheckRequestDepth(JSContext *cx) : cx(cx) { cx->thread()->checkRequestDepth++; }
-
-    ~AutoCheckRequestDepth() {
-        JS_ASSERT(cx->thread()->checkRequestDepth != 0);
-        cx->thread()->checkRequestDepth--;
-    }
-};
-
-# define CHECK_REQUEST(cx)                                                    \
-    JS_ASSERT((cx)->thread());                                                \
-    JS_ASSERT((cx)->thread()->data.requestDepth || (cx)->thread() == (cx)->runtime->gcThread); \
-    JS_ASSERT(cx->runtime->onOwnerThread());                                  \
-    AutoCheckRequestDepth _autoCheckRequestDepth(cx);
-
-#else
-# define CHECK_REQUEST(cx)          ((void) 0)
-#endif
-
 struct AutoResolving {
   public:
     enum Kind {
@@ -1367,64 +1344,6 @@ struct AutoResolving {
     Kind                const kind;
     AutoResolving       *const link;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
-class AutoGCRooter {
-  public:
-    AutoGCRooter(JSContext *cx, ptrdiff_t tag)
-      : down(cx->autoGCRooters), tag(tag), context(cx)
-    {
-        JS_ASSERT(this != cx->autoGCRooters);
-        CHECK_REQUEST(cx);
-        cx->autoGCRooters = this;
-    }
-
-    ~AutoGCRooter() {
-        JS_ASSERT(this == context->autoGCRooters);
-        CHECK_REQUEST(context);
-        context->autoGCRooters = down;
-    }
-
-    
-    inline void trace(JSTracer *trc);
-    void traceAll(JSTracer *trc);
-
-  protected:
-    AutoGCRooter * const down;
-
-    
-
-
-
-
-
-
-    ptrdiff_t tag;
-
-    JSContext * const context;
-
-    enum {
-        JSVAL =        -1, 
-        VALARRAY =     -2, 
-        PARSER =       -3, 
-        SHAPEVECTOR =  -4, 
-        ENUMERATOR =   -5, 
-        IDARRAY =      -6, 
-        DESCRIPTORS =  -7, 
-        NAMESPACES =   -8, 
-        XML =          -9, 
-        OBJECT =      -10, 
-        ID =          -11, 
-        VALVECTOR =   -12, 
-        DESCRIPTOR =  -13, 
-        STRING =      -14, 
-        IDVECTOR =    -15, 
-        OBJVECTOR =   -16  
-    };
-
-  private:
-    AutoGCRooter(AutoGCRooter &ida) MOZ_DELETE;
-    void operator=(AutoGCRooter &ida) MOZ_DELETE;
 };
 
 

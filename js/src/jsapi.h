@@ -54,6 +54,10 @@
 
 #include "js/Utility.h"
 
+#ifdef __cplusplus
+#include "mozilla/Attributes.h"
+#endif
+
 
 
 
@@ -785,6 +789,74 @@ inline Anchor<Value>::~Anchor()
 }
 
 #endif
+
+#if defined JS_THREADSAFE && defined DEBUG
+
+class JS_PUBLIC_API(AutoCheckRequestDepth)
+{
+    JSContext *cx;
+  public:
+    AutoCheckRequestDepth(JSContext *cx);
+    ~AutoCheckRequestDepth();
+};
+
+# define CHECK_REQUEST(cx) \
+    JS::AutoCheckRequestDepth _autoCheckRequestDepth(cx)
+
+#else
+
+# define CHECK_REQUEST(cx) \
+    ((void) 0)
+
+#endif
+
+class JS_PUBLIC_API(AutoGCRooter) {
+  public:
+    AutoGCRooter(JSContext *cx, ptrdiff_t tag);
+    ~AutoGCRooter();
+
+    
+    inline void trace(JSTracer *trc);
+    void traceAll(JSTracer *trc);
+
+  protected:
+    AutoGCRooter * const down;
+
+    
+
+
+
+
+
+
+    ptrdiff_t tag;
+
+    JSContext * const context;
+
+    enum {
+        JSVAL =        -1, 
+        VALARRAY =     -2, 
+        PARSER =       -3, 
+        SHAPEVECTOR =  -4, 
+        ENUMERATOR =   -5, 
+        IDARRAY =      -6, 
+        DESCRIPTORS =  -7, 
+        NAMESPACES =   -8, 
+        XML =          -9, 
+        OBJECT =      -10, 
+        ID =          -11, 
+        VALVECTOR =   -12, 
+        DESCRIPTOR =  -13, 
+        STRING =      -14, 
+        IDVECTOR =    -15, 
+        OBJVECTOR =   -16  
+    };
+
+  private:
+    
+    AutoGCRooter(AutoGCRooter &ida) MOZ_DELETE;
+    void operator=(AutoGCRooter &ida) MOZ_DELETE;
+};
 
 }  
 
