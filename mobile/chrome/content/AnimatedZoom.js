@@ -85,17 +85,20 @@ const AnimatedZoom = {
 
   
   updateTo: function(nextRect) {
+    let browser = getBrowser();
     let zoomRatio = window.innerWidth / nextRect.width;
-    let zoomLevel = getBrowser().scale * zoomRatio;
+    let zoomLevel = browser.scale * zoomRatio;
+
     
     
     
     
     
     
-    let contentView = getBrowser()._contentViewManager.rootContentView;
+    let contentView = browser.getRootView();
     contentView.setScale(zoomLevel, zoomLevel);
     contentView.scrollTo(nextRect.left * zoomRatio, nextRect.top * zoomRatio);
+
     this.zoomRect = nextRect;
   },
 
