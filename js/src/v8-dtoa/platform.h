@@ -66,6 +66,9 @@ int strncasecmp(const char* s1, const char* s2, int n);
 
 #endif  
 
+#ifdef SOLARIS
+int fpclassify(double x);
+#endif 
 
 
 #ifdef __GNUC__
