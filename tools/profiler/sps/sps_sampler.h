@@ -36,6 +36,7 @@
 
 
 
+#include <signal.h>
 #include <pthread.h>
 #include "base/atomicops.h"
 #include "nscore.h"
