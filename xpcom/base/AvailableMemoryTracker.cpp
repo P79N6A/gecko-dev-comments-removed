@@ -141,10 +141,12 @@ void safe_write(PRUint64 x)
 #endif
 
 PRUint32 sLowVirtualMemoryThreshold = 0;
+PRUint32 sLowCommitSpaceThreshold = 0;
 PRUint32 sLowPhysicalMemoryThreshold = 0;
-PRUint32 sLowPhysicalMemoryNotificationIntervalMS = 0;
+PRUint32 sLowMemoryNotificationIntervalMS = 0;
 
 PRUint32 sNumLowVirtualMemEvents = 0;
+PRUint32 sNumLowCommitSpaceEvents = 0;
 PRUint32 sNumLowPhysicalMemEvents = 0;
 
 WindowsDllInterceptor sKernel32Intercept;
@@ -173,6 +175,37 @@ HBITMAP (WINAPI *sCreateDIBSectionOrig)
    UINT aUsage, VOID **aBits,
    HANDLE aSection, DWORD aOffset);
 
+
+
+
+
+bool MaybeScheduleMemoryPressureEvent()
+{
+  
+  
+  PRIntervalTime interval = PR_IntervalNow() - sLastLowMemoryNotificationTime;
+  if (sHasScheduledOneLowMemoryNotification &&
+      PR_IntervalToMilliseconds(interval) < sLowMemoryNotificationIntervalMS) {
+
+    LOG("Not scheduling low physical memory notification, "
+        "because not enough time has elapsed since last one.");
+    return false;
+  }
+
+  
+  
+  
+  
+  
+  
+  sHasScheduledOneLowMemoryNotification = true;
+  sLastLowMemoryNotificationTime = PR_IntervalNow();
+
+  LOG("Scheduling memory pressure notification.");
+  ScheduleMemoryPressureEvent();
+  return true;
+}
+
 void CheckMemAvailable()
 {
   MEMORYSTATUSEX stat;
@@ -192,35 +225,16 @@ void CheckMemAvailable()
       PR_ATOMIC_INCREMENT(&sNumLowVirtualMemEvents);
       ScheduleMemoryPressureEvent();
     }
+    else if (stat.ullAvailPageFile < sLowCommitSpaceThreshold * 1024 * 1024) {
+      LOG("Detected low available page file space.");
+      if (MaybeScheduleMemoryPressureEvent()) {
+        PR_ATOMIC_INCREMENT(&sNumLowCommitSpaceEvents);
+      }
+    }
     else if (stat.ullAvailPhys < sLowPhysicalMemoryThreshold * 1024 * 1024) {
       LOG("Detected low physical memory.");
-      
-      
-      
-      
-      
-      
-      PRIntervalTime interval = PR_IntervalNow() - sLastLowMemoryNotificationTime;
-      if (!sHasScheduledOneLowMemoryNotification ||
-          PR_IntervalToMilliseconds(interval) >=
-            sLowPhysicalMemoryNotificationIntervalMS) {
-
-        
-        
-        
-        
-        
-        
-        sHasScheduledOneLowMemoryNotification = true;
-        sLastLowMemoryNotificationTime = PR_IntervalNow();
-
-        LOG("Scheduling memory pressure notification.");
+      if (MaybeScheduleMemoryPressureEvent()) {
         PR_ATOMIC_INCREMENT(&sNumLowPhysicalMemEvents);
-        ScheduleMemoryPressureEvent();
-      }
-      else {
-        LOG("Not scheduling low physical memory notification, "
-            "because not enough time has elapsed since last one.");
       }
     }
   }
@@ -389,6 +403,49 @@ public:
 
 NS_IMPL_ISUPPORTS1(NumLowVirtualMemoryEventsMemoryReporter, nsIMemoryReporter)
 
+class NumLowCommitSpaceEventsMemoryReporter : public NumLowMemoryEventsReporter
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  NS_IMETHOD GetPath(nsACString &aPath)
+  {
+    aPath.AssignLiteral("low-commit-space-events");
+    return NS_OK;
+  }
+
+  NS_IMETHOD GetAmount(PRInt64 *aAmount)
+  {
+    *aAmount = sNumLowCommitSpaceEvents;
+    return NS_OK;
+  }
+
+  NS_IMETHOD GetDescription(nsACString &aDescription)
+  {
+    aDescription.AssignLiteral(
+      "Number of low-commit-space events fired since startup. ");
+
+    if (sLowCommitSpaceThreshold == 0 || !sHooksInstalled) {
+      aDescription.Append(nsPrintfCString(1024,
+        "Tracking low-commit-space events is disabled, but you can enable it "
+        "by giving the memory.low_commit_space_threshold_mb pref a non-zero "
+        "value%s.",
+        sHooksInstalled ? "" : " and restarting"));
+    }
+    else {
+      aDescription.Append(nsPrintfCString(1024,
+        "We fire such an event if we notice there is less than %d MB of "
+        "available commit space (controlled by the "
+        "'memory.low_commit_space_threshold_mb' pref).  Windows will likely "
+        "kill us if we run out of commit space, so this event is somewhat dire.",
+        sLowCommitSpaceThreshold));
+    }
+    return NS_OK;
+  }
+};
+
+NS_IMPL_ISUPPORTS1(NumLowCommitSpaceEventsMemoryReporter, nsIMemoryReporter)
+
 class NumLowPhysicalMemoryEventsMemoryReporter : public NumLowMemoryEventsReporter
 {
 public:
@@ -452,8 +509,10 @@ void Init()
 
   Preferences::AddUintVarCache(&sLowPhysicalMemoryThreshold,
       "memory.low_physical_memory_threshold_mb", 0);
-  Preferences::AddUintVarCache(&sLowPhysicalMemoryNotificationIntervalMS,
-      "memory.low_physical_memory_notification_interval_ms", 10000);
+  Preferences::AddUintVarCache(&sLowCommitSpaceThreshold,
+      "memory.low_commit_space_threshold_mb", 128);
+  Preferences::AddUintVarCache(&sLowMemoryNotificationIntervalMS,
+      "memory.low_memory_notification_interval_ms", 10000);
 
   
   
@@ -480,6 +539,7 @@ void Init()
     sHooksInstalled = false;
   }
 
+  NS_RegisterMemoryReporter(new NumLowCommitSpaceEventsMemoryReporter());
   NS_RegisterMemoryReporter(new NumLowPhysicalMemoryEventsMemoryReporter());
   if (sizeof(void*) == 4) {
     NS_RegisterMemoryReporter(new NumLowVirtualMemoryEventsMemoryReporter());
