@@ -124,7 +124,6 @@ class Registers
     static const uint32 ArgRegMask = (1 << r0) | (1 << r1) | (1 << r2) | (1 << r3);
 
     
-    static const uint32 JSCallMask = (1 << r0) | (1 << r1) | (1 << r2) | (1 << r3);
     static const uint32 CallMask = (1 << r0) | (1 << r1) | (1 << r2) | (1 << r3);
 
     static const uint32 VolatileMask =
