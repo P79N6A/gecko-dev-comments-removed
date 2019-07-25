@@ -1127,7 +1127,6 @@ struct JSThreadData {
 
 
 
-
     bool                waiveGCQuota;
 
     
@@ -1355,15 +1354,14 @@ struct JSRuntime {
     js::GCLocks         gcLocksHash;
     jsrefcount          gcKeepAtoms;
     size_t              gcBytes;
+    size_t              gcTriggerBytes;
     size_t              gcLastBytes;
     size_t              gcMaxBytes;
     size_t              gcMaxMallocBytes;
-    size_t              gcNewArenaTriggerBytes;
     uint32              gcEmptyArenaPoolLifespan;
     uint32              gcNumber;
     js::GCMarker        *gcMarkingTracer;
     uint32              gcTriggerFactor;
-    size_t              gcTriggerBytes;
     volatile JSBool     gcIsNeeded;
 
     

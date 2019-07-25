@@ -484,7 +484,8 @@ const size_t GC_ARENA_ALLOCATION_TRIGGER = 30 * js::GC_CHUNK_SIZE;
 
 
 
-const float GC_HEAP_GROWTH_FACTOR = 3;
+
+const float GC_HEAP_GROWTH_FACTOR = 3.0f;
 
 static inline size_t
 GetFinalizableTraceKind(size_t thingKind)
@@ -827,12 +828,7 @@ typedef enum JSGCInvocationKind {
 
 
 
-    GC_LAST_CONTEXT     = 1,
-
-    
-
-
-    GC_LOCK_HELD        = 0x10
+    GC_LAST_CONTEXT     = 1
 } JSGCInvocationKind;
 
 extern void

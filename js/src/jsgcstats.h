@@ -107,7 +107,7 @@ struct JSGCStats {
     uint32  unlock;     
     uint32  unmarked;   
 
-    uint32  retry;      
+    uint32  lastditch;  
     uint32  fail;       
 #ifdef DEBUG
     uint32  maxunmarked;
