@@ -823,9 +823,6 @@ protected:
 
     
     PRPackedBool               mDynamicallyCreated;
-
-    
-    PRPackedBool               mSuppressPopstate;
 #ifdef DEBUG
     PRPackedBool               mInEnsureScriptEnv;
 #endif

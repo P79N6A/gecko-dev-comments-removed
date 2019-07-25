@@ -532,9 +532,7 @@ public:
   
 
 
-
-
-  virtual nsresult DispatchSyncPopState(PRBool aIsInitial) = 0;
+  virtual nsresult DispatchSyncPopState() = 0;
 
   
 
