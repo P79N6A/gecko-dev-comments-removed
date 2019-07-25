@@ -37,13 +37,18 @@
 
 
 
+
+var Ci = Components.interfaces;
+var Cc = Components.classes;
+
 function SpecialPowers(window) {
   this.window = window;
   bindDOMWindowUtils(this, window);
 }
 
 function bindDOMWindowUtils(sp, window) {
-  var util = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindowUtils);
+  var util = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                   .getInterface(Ci.nsIDOMWindowUtils);
   
   
   
@@ -135,7 +140,6 @@ SpecialPowers.prototype = {
   
   
   _getTopChromeWindow: function(window) {
-    var Ci = Components.interfaces;
     return window.QueryInterface(Ci.nsIInterfaceRequestor)
                  .getInterface(Ci.nsIWebNavigation)
                  .QueryInterface(Ci.nsIDocShellTreeItem)
@@ -169,6 +173,11 @@ SpecialPowers.prototype = {
   },
   removeChromeEventListener: function(type, listener, capture) {
     removeEventListener(type, listener, capture);
+  },
+
+  createSystemXHR: function() {
+    return Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
+             .createInstance(Ci.nsIXMLHttpRequest);
   }
 };
 

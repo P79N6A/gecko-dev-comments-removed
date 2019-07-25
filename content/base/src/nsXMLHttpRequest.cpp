@@ -126,19 +126,16 @@
 #define XML_HTTP_REQUEST_ABORTED        (1 << 7)  // Internal
 #define XML_HTTP_REQUEST_ASYNC          (1 << 8)  // Internal
 #define XML_HTTP_REQUEST_PARSEBODY      (1 << 9)  // Internal
-#define XML_HTTP_REQUEST_XSITEENABLED   (1 << 10) // Internal, Is any cross-site request allowed?
-                                                  
-                                                  
-#define XML_HTTP_REQUEST_SYNCLOOPING    (1 << 11) // Internal
-#define XML_HTTP_REQUEST_MULTIPART      (1 << 12) // Internal
-#define XML_HTTP_REQUEST_GOT_FINAL_STOP (1 << 13) // Internal
-#define XML_HTTP_REQUEST_BACKGROUND     (1 << 14) // Internal
+#define XML_HTTP_REQUEST_SYNCLOOPING    (1 << 10) // Internal
+#define XML_HTTP_REQUEST_MULTIPART      (1 << 11) // Internal
+#define XML_HTTP_REQUEST_GOT_FINAL_STOP (1 << 12) // Internal
+#define XML_HTTP_REQUEST_BACKGROUND     (1 << 13) // Internal
 
 
-#define XML_HTTP_REQUEST_MPART_HEADERS  (1 << 15) // Internal
-#define XML_HTTP_REQUEST_USE_XSITE_AC   (1 << 16) // Internal
-#define XML_HTTP_REQUEST_NEED_AC_PREFLIGHT (1 << 17) // Internal
-#define XML_HTTP_REQUEST_AC_WITH_CREDENTIALS (1 << 18) // Internal
+#define XML_HTTP_REQUEST_MPART_HEADERS  (1 << 14) // Internal
+#define XML_HTTP_REQUEST_USE_XSITE_AC   (1 << 15) // Internal
+#define XML_HTTP_REQUEST_NEED_AC_PREFLIGHT (1 << 16) // Internal
+#define XML_HTTP_REQUEST_AC_WITH_CREDENTIALS (1 << 17) // Internal
 
 #define XML_HTTP_REQUEST_LOADSTATES         \
   (XML_HTTP_REQUEST_UNINITIALIZED |         \
@@ -1640,13 +1637,11 @@ nsresult
 nsXMLHttpRequest::CheckChannelForCrossSiteRequest(nsIChannel* aChannel)
 {
   
-  if ((mState & XML_HTTP_REQUEST_XSITEENABLED)) {
+  if (IsSystemXHR()) {
     return NS_OK;
   }
 
   
-  NS_ASSERTION(!nsContentUtils::IsSystemPrincipal(mPrincipal),
-               "Shouldn't get here!");
   if (nsContentUtils::CheckMayLoad(mPrincipal, aChannel)) {
     return NS_OK;
   }
@@ -1797,12 +1792,6 @@ nsXMLHttpRequest::OpenRequest(const nsACString& method,
                      channelPolicy);
   if (NS_FAILED(rv)) return rv;
 
-  
-  if (nsContentUtils::IsSystemPrincipal(mPrincipal)) {
-    
-    mState |= XML_HTTP_REQUEST_XSITEENABLED;
-  }
-
   mState &= ~(XML_HTTP_REQUEST_USE_XSITE_AC |
               XML_HTTP_REQUEST_NEED_AC_PREFLIGHT);
 
@@ -1823,17 +1812,6 @@ nsXMLHttpRequest::Open(const nsACString& method, const nsACString& url,
                        PRBool async, const nsAString& user,
                        const nsAString& password, PRUint8 optional_argc)
 {
-  if (nsContentUtils::GetCurrentJSContext()) {
-    
-
-    
-    if (nsContentUtils::IsCallerTrustedForRead()) {
-      mState |= XML_HTTP_REQUEST_XSITEENABLED;
-    } else {
-      mState &= ~XML_HTTP_REQUEST_XSITEENABLED;
-    }
-  }
-
   if (!optional_argc) {
     
     async = PR_TRUE;
@@ -1954,8 +1932,8 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(request));
   NS_ENSURE_TRUE(channel, NS_ERROR_UNEXPECTED);
 
-  nsCOMPtr<nsIPrincipal> documentPrincipal = mPrincipal;
-  if (nsContentUtils::IsSystemPrincipal(documentPrincipal)) {
+  nsCOMPtr<nsIPrincipal> documentPrincipal;
+  if (IsSystemXHR()) {
     
     
     
@@ -1963,6 +1941,8 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
     nsresult rv;
     documentPrincipal = do_CreateInstance("@mozilla.org/nullprincipal;1", &rv);
     NS_ENSURE_SUCCESS(rv, rv);
+  } else {
+    documentPrincipal = mPrincipal;
   }
 
   channel->SetOwner(documentPrincipal);
@@ -2040,7 +2020,7 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
     nsCOMPtr<nsIDocument> responseDoc = do_QueryInterface(mResponseXML);
     responseDoc->SetPrincipal(documentPrincipal);
 
-    if (nsContentUtils::IsSystemPrincipal(mPrincipal)) {
+    if (IsSystemXHR()) {
       responseDoc->ForceEnableXULXBL();
     }
 
@@ -2420,7 +2400,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   if (httpChannel) {
     httpChannel->GetRequestMethod(method); 
 
-    if (!nsContentUtils::IsSystemPrincipal(mPrincipal)) {
+    if (!IsSystemXHR()) {
       
       
       
@@ -2656,7 +2636,7 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
     }
   }
 
-  if (!(mState & XML_HTTP_REQUEST_XSITEENABLED)) {
+  if (!IsSystemXHR()) {
     
     
     listener = new nsCrossSiteListenerProxy(listener, mPrincipal, mChannel,
@@ -2853,7 +2833,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
     }
 
     
-    PRBool safeHeader = !!(mState & XML_HTTP_REQUEST_XSITEENABLED);
+    bool safeHeader = IsSystemXHR();
     if (!safeHeader) {
       
       const char *kCrossOriginSafeHeaders[] = {
@@ -2862,7 +2842,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
       };
       for (i = 0; i < NS_ARRAY_LENGTH(kCrossOriginSafeHeaders); ++i) {
         if (header.LowerCaseEqualsASCII(kCrossOriginSafeHeaders[i])) {
-          safeHeader = PR_TRUE;
+          safeHeader = true;
           break;
         }
       }

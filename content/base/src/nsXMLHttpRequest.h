@@ -69,6 +69,7 @@
 #include "nsIPrivateDOMEvent.h"
 #include "nsDOMProgressEvent.h"
 #include "nsDOMEventTargetWrapperCache.h"
+#include "nsContentUtils.h"
 
 class nsILoadGroup;
 class AsyncVerifyRedirectCallbackForwarder;
@@ -332,6 +333,10 @@ protected:
                                  nsIDOMEventListener** aListener);
 
   already_AddRefed<nsIHttpChannel> GetCurrentHttpChannel();
+
+  bool IsSystemXHR() {
+    return !!nsContentUtils::IsSystemPrincipal(mPrincipal);
+  }
 
   
 
