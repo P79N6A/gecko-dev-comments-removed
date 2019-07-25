@@ -2417,11 +2417,7 @@ nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj
         
         
         
-        JSEqualityOp op =
-            (jsClass->flags & JSCLASS_IS_EXTENDED) ?
-            reinterpret_cast<const JSExtendedClass*>(jsClass)->equality :
-            nsnull;
-        if (op == sXPCWrappedNativeEqualityOps) {
+        if (jsClass->ext.equality == js::Valueify(sXPCWrappedNativeEqualityOps)) {
             result = sXPConnect->GetPrincipal(aObj,
 #ifdef DEBUG
                                               aAllowShortCircuit
