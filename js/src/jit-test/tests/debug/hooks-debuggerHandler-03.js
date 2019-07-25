@@ -1,5 +1,6 @@
 
 
+
 var g = newGlobal('new-compartment');
 var calls = 0;
 

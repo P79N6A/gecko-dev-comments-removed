@@ -1,4 +1,6 @@
 
+
+
 var g = newGlobal('new-compartment');
 for (var j = 0; j < 4; j++) {
     var dbg = new Debug;

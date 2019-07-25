@@ -2,6 +2,7 @@
 
 
 
+
 var g = newGlobal('new-compartment');
 var n = 0;
 var hits;

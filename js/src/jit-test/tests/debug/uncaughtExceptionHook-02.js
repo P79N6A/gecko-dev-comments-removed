@@ -1,6 +1,7 @@
 
 
 
+
 var g = newGlobal('new-compartment');
 var dbg = new Debug(g);
 dbg.hooks = {debuggerHandler: function () { return {oops: "bad resumption value"}; }};

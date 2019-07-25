@@ -1,6 +1,7 @@
 
 
 
+
 var g = newGlobal('new-compartment');
 var actual = 0;
 var expected = 0;
