@@ -248,6 +248,8 @@ var Browser = {
 
     
     
+    
+    
     window.addEventListener("MozBeforeResize", function(aEvent) {
       if (aEvent.target != window)
         return;
@@ -259,7 +261,7 @@ var Browser = {
       let shouldHideSidebars = Browser.controlsPosition ? Browser.controlsPosition.hideSidebars : true;
       Browser.controlsPosition = { x: x1, y: y2, hideSidebars: shouldHideSidebars,
                                    leftSidebar: leftWidth, rightSidebar: rightWidth };
-    }, false);
+    }, true);
 
     function resizeHandler(e) {
       if (e.target != window)
