@@ -48,10 +48,8 @@
 #include "nsITimer.h"
 #include "nsCOMPtr.h"
 #include "nsTObserverArray.h"
-#include "nsTArray.h"
 
 class nsPresContext;
-class nsIPresShell;
 
 
 
@@ -116,33 +114,6 @@ public:
   
 
 
-  PRBool AddStyleFlushObserver(nsIPresShell* aShell) {
-    NS_ASSERTION(!mStyleFlushObservers.Contains(aShell),
-		 "Double-adding style flush observer");
-    PRBool appended = mStyleFlushObservers.AppendElement(aShell) != nsnull;
-    EnsureTimerStarted();
-    return appended;
-  }
-  void RemoveStyleFlushObserver(nsIPresShell* aShell) {
-    mStyleFlushObservers.RemoveElement(aShell);
-  }
-  PRBool AddLayoutFlushObserver(nsIPresShell* aShell) {
-    NS_ASSERTION(!IsLayoutFlushObserver(aShell),
-		 "Double-adding layout flush observer");
-    PRBool appended = mLayoutFlushObservers.AppendElement(aShell) != nsnull;
-    EnsureTimerStarted();
-    return appended;
-  }
-  void RemoveLayoutFlushObserver(nsIPresShell* aShell) {
-    mLayoutFlushObservers.RemoveElement(aShell);
-  }
-  PRBool IsLayoutFlushObserver(nsIPresShell* aShell) {
-    return mLayoutFlushObservers.Contains(aShell);
-  }
-
-  
-
-
 
 
   void Disconnect() {
@@ -191,8 +162,6 @@ private:
 
   
   ObserverArray mObservers[3];
-  nsAutoTArray<nsIPresShell*, 16> mStyleFlushObservers;
-  nsAutoTArray<nsIPresShell*, 16> mLayoutFlushObservers;
 };
 
 #endif 

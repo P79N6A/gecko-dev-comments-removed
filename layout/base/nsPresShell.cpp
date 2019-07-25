@@ -673,7 +673,7 @@ struct nsCallbackEventRequest
 #define ASSERT_REFLOW_SCHEDULED_STATE()                                       \
   NS_ASSERTION(mReflowScheduled ==                                            \
                  GetPresContext()->RefreshDriver()->                          \
-                   IsLayoutFlushObserver(this), "Unexpected state")
+                   IsRefreshObserver(this, Flush_Layout), "Unexpected state")
 
 class nsPresShellEventCB;
 class nsAutoCauseReflowNotifier;
@@ -681,7 +681,8 @@ class nsAutoCauseReflowNotifier;
 class PresShell : public nsIPresShell, public nsIViewObserver,
                   public nsStubDocumentObserver,
                   public nsISelectionController, public nsIObserver,
-                  public nsSupportsWeakReference
+                  public nsSupportsWeakReference,
+                  public nsARefreshObserver
 {
 public:
   PresShell();
@@ -911,6 +912,9 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
   NS_DECL_NSIOBSERVER
+
+  
+  virtual void WillRefresh(mozilla::TimeStamp aTime);
 
 #ifdef MOZ_REFLOW_PERF
   virtual NS_HIDDEN_(void) DumpReflows();
@@ -1213,11 +1217,16 @@ protected:
   nsCallbackEventRequest* mFirstCallbackEventRequest;
   nsCallbackEventRequest* mLastCallbackEventRequest;
 
+  PRPackedBool      mSuppressInterruptibleReflows;
+
   PRPackedBool      mIsDocumentGone;      
                                           
                                           
   PRPackedBool      mShouldUnsuppressPainting;  
                                                 
+  PRPackedBool      mReflowScheduled; 
+                                      
+                                      
   nsCOMPtr<nsITimer> mPaintSuppressionTimer; 
                                              
                                              
@@ -1636,7 +1645,7 @@ PresShell::~PresShell()
 #endif
 
   delete mStyleSet;
-  delete mFrameConstructor;
+  NS_IF_RELEASE(mFrameConstructor);
 
   mCurrentEventContent = nsnull;
 
@@ -1685,6 +1694,7 @@ PresShell::Init(nsIDocument* aDocument,
   
   mFrameConstructor = new nsCSSFrameConstructor(mDocument, this);
   NS_ENSURE_TRUE(mFrameConstructor, NS_ERROR_OUT_OF_MEMORY);
+  NS_ADDREF(mFrameConstructor);
 
   
   mViewManager->SetViewObserver(this);
@@ -1932,7 +1942,7 @@ PresShell::Destroy()
   
   
   
-  rd->RemoveLayoutFlushObserver(this);
+  rd->RemoveRefreshObserver(this, Flush_Layout);
   mResizeEvent.Revoke();
   if (mAsyncResizeTimerIsActive) {
     mAsyncResizeEventTimer->Cancel();
@@ -3573,7 +3583,7 @@ PresShell::CancelAllPendingReflows()
   mDirtyRoots.Clear();
 
   if (mReflowScheduled) {
-    GetPresContext()->RefreshDriver()->RemoveLayoutFlushObserver(this);
+    GetPresContext()->RefreshDriver()->RemoveRefreshObserver(this, Flush_Layout);
     mReflowScheduled = PR_FALSE;
   }
 
@@ -7336,6 +7346,20 @@ PresShell::Thaw()
   QueryIsActive();
 }
 
+void
+PresShell::WillRefresh(mozilla::TimeStamp aTime)
+{
+  
+  
+  GetPresContext()->RefreshDriver()->RemoveRefreshObserver(this, Flush_Layout);
+  mReflowScheduled = PR_FALSE;
+  
+  
+  mSuppressInterruptibleReflows = PR_FALSE;
+
+  ASSERT_REFLOW_SCHEDULED_STATE();
+}
+
 
 
 
@@ -7361,7 +7385,7 @@ PresShell::ScheduleReflow()
   NS_PRECONDITION(!mReflowScheduled, "Why are we trying to schedule a reflow?");
   ASSERT_REFLOW_SCHEDULED_STATE();
 
-  if (GetPresContext()->RefreshDriver()->AddLayoutFlushObserver(this)) {
+  if (GetPresContext()->RefreshDriver()->AddRefreshObserver(this, Flush_Layout)) {
     mReflowScheduled = PR_TRUE;
   }
 

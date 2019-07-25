@@ -46,7 +46,6 @@
 #include "nsComponentManagerUtils.h"
 #include "prlog.h"
 #include "nsAutoPtr.h"
-#include "nsCSSFrameConstructor.h"
 
 
 
@@ -141,8 +140,6 @@ nsRefreshDriver::ObserverCount() const
   for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(mObservers); ++i) {
     sum += mObservers[i].Length();
   }
-  sum += mStyleFlushObservers.Length();
-  sum += mLayoutFlushObservers.Length();
   return sum;
 }
 
@@ -218,25 +215,13 @@ nsRefreshDriver::Notify(nsITimer * )
     }
     if (i == 0) {
       
-      while (!mStyleFlushObservers.IsEmpty() &&
-             mPresContext && mPresContext->GetPresShell()) {
-        PRUint32 idx = mStyleFlushObservers.Length() - 1;
-        nsCOMPtr<nsIPresShell> shell = mStyleFlushObservers[idx];
-        mStyleFlushObservers.RemoveElementAt(idx);
-        shell->FrameConstructor()->mObservingRefreshDriver = PR_FALSE;
-        shell->FlushPendingNotifications(Flush_Style);
-      }
+      
+      
+      
+      presShell->FlushPendingNotifications(Flush_Style);
     } else if  (i == 1) {
       
-      while (!mLayoutFlushObservers.IsEmpty() &&
-             mPresContext && mPresContext->GetPresShell()) {
-        PRUint32 idx = mLayoutFlushObservers.Length() - 1;
-        nsCOMPtr<nsIPresShell> shell = mLayoutFlushObservers[idx];
-        mLayoutFlushObservers.RemoveElementAt(idx);
-        shell->mReflowScheduled = PR_FALSE;
-        shell->mSuppressInterruptibleReflows = PR_FALSE;
-        shell->FlushPendingNotifications(Flush_InterruptibleLayout);
-      }
+      presShell->FlushPendingNotifications(Flush_InterruptibleLayout);
     }
   }
 

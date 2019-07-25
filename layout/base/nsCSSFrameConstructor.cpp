@@ -1374,6 +1374,9 @@ MoveChildrenTo(nsPresContext* aPresContext,
 
 
 
+NS_IMPL_ADDREF(nsCSSFrameConstructor)
+NS_IMPL_RELEASE(nsCSSFrameConstructor)
+
 nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
                                              nsIPresShell *aPresShell)
   : mDocument(aDocument)
@@ -1392,6 +1395,7 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
   , mHasRootAbsPosContainingBlock(PR_FALSE)
   , mObservingRefreshDriver(PR_FALSE)
   , mInStyleRefresh(PR_FALSE)
+  , mInLazyFCRefresh(PR_FALSE)
   , mHoverGeneration(0)
   , mRebuildAllExtraHint(nsChangeHint(0))
   , mPendingRestyles(ELEMENT_HAS_PENDING_RESTYLE |
@@ -6356,6 +6360,8 @@ void nsCSSFrameConstructor::CreateNeededFrames()
   NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
                "Someone forgot a script blocker");
 
+  mInLazyFCRefresh = PR_FALSE;
+
   Element* rootElement = mDocument->GetRootElement();
   NS_ASSERTION(!rootElement || !rootElement->HasFlag(NODE_NEEDS_FRAME),
     "root element should not have frame created lazily");
@@ -8281,8 +8287,9 @@ nsCSSFrameConstructor::WillDestroyFrameTree()
   
   
   
+  
   mPresShell->GetPresContext()->RefreshDriver()->
-    RemoveStyleFlushObserver(mPresShell);
+    RemoveRefreshObserver(this, Flush_Style);
 }
 
 
@@ -11666,11 +11673,24 @@ nsCSSFrameConstructor::PostRestyleEventInternal(PRBool aForLazyConstruction)
   
   
   
-  PRBool inRefresh = !aForLazyConstruction && mInStyleRefresh;
+  PRBool inRefresh = aForLazyConstruction ? mInLazyFCRefresh : mInStyleRefresh;
   if (!mObservingRefreshDriver && !inRefresh) {
-    mObservingRefreshDriver = mPresShell->GetPresContext()->RefreshDriver()->
-      AddStyleFlushObserver(mPresShell);
+    mObservingRefreshDriver = mPresShell->AddRefreshObserver(this, Flush_Style);
   }
+}
+
+void
+nsCSSFrameConstructor::WillRefresh(mozilla::TimeStamp aTime)
+{
+  NS_ASSERTION(mObservingRefreshDriver, "How did we get here?");
+  
+  
+  
+  
+  mPresShell->RemoveRefreshObserver(this, Flush_Style);
+  mObservingRefreshDriver = PR_FALSE;
+  mInLazyFCRefresh = PR_TRUE;
+  mInStyleRefresh = PR_TRUE;
 }
 
 void
