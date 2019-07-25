@@ -384,8 +384,6 @@ UPowerClient::UpdateSavedInfo(GHashTable* aHashTable)
 {
   bool isFull = false;
 
-  mLevel = g_value_get_double(static_cast<const GValue*>(g_hash_table_lookup(aHashTable, "Percentage")))*0.01;
-
   
 
 
@@ -418,6 +416,17 @@ UPowerClient::UpdateSavedInfo(GHashTable* aHashTable)
     case eState_PendingDischarge:
       mCharging = false;
       break;
+  }
+
+  
+
+
+
+
+  if (isFull) {
+    mLevel = 1.0;
+  } else {
+    mLevel = g_value_get_double(static_cast<const GValue*>(g_hash_table_lookup(aHashTable, "Percentage")))*0.01;
   }
 
   if (isFull) {
