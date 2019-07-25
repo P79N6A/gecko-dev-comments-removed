@@ -200,85 +200,17 @@ enum JITReportGranularity {
 
 
 
-
-
-class JITWatcher {
-public:
-    struct NativeRegion {
-        mjit::JSActiveFrame *frame;
-        JSScript *script;
-        size_t inlinedOffset;
-        jsbytecode *pc;
-        jsbytecode *endpc;
-        uintptr_t mainOffset;
-        uintptr_t stubOffset;
-        bool enter;
-    };
-
-    typedef Vector<NativeRegion, 0, RuntimeAllocPolicy> RegionVector;
-
-    virtual JITReportGranularity granularityRequested() = 0;
-
-#ifdef JS_METHODJIT
-    static bool CollectNativeRegions(RegionVector &regions,
-                                     JSRuntime *rt,
-                                     mjit::JITChunk *jit,
-                                     mjit::JSActiveFrame *outerFrame,
-                                     mjit::JSActiveFrame **inlineFrames);
-
-    virtual void registerMJITCode(JSContext *cx, js::mjit::JITChunk *chunk,
-                                  mjit::JSActiveFrame *outerFrame,
-                                  mjit::JSActiveFrame **inlineFrames,
-                                  void *mainCodeAddress, size_t mainCodeSize,
-                                  void *stubCodeAddress, size_t stubCodeSize) = 0;
-
-    virtual void discardMJITCode(FreeOp *fop, mjit::JITScript *jscr, mjit::JITChunk *chunk,
-                                 void* address) = 0;
-
-    virtual void registerICCode(JSContext *cx,
-                                js::mjit::JITChunk *chunk, JSScript *script, jsbytecode* pc,
-                                void *start, size_t size) = 0;
-#endif
-
-    virtual void discardExecutableRegion(void *start, size_t size) = 0;
-};
-
-
-
-
-
-bool
-addJITWatcher(JITWatcher *watcher);
-
-
-
-
-
-bool
-removeJITWatcher(JSRuntime *rt, JITWatcher *watcher);
-
-
-
-
-void
-removeAllJITWatchers(JSRuntime *rt);
-
-
-
-
 JITReportGranularity
-JITGranularityRequested();
+JITGranularityRequested(JSContext *cx);
 
 #ifdef JS_METHODJIT
 
 
 
-void
+bool
 registerMJITCode(JSContext *cx, js::mjit::JITChunk *chunk,
                  mjit::JSActiveFrame *outerFrame,
-                 mjit::JSActiveFrame **inlineFrames,
-                 void *mainCodeAddress, size_t mainCodeSize,
-                 void *stubCodeAddress, size_t stubCodeSize);
+                 mjit::JSActiveFrame **inlineFrames);
 
 
 
@@ -289,7 +221,7 @@ discardMJITCode(FreeOp *fop, mjit::JITScript *jscr, mjit::JITChunk *chunk, void*
 
 
 
-void
+bool
 registerICCode(JSContext *cx,
                mjit::JITChunk *chunk, JSScript *script, jsbytecode* pc,
                void *start, size_t size);
@@ -376,7 +308,7 @@ inline bool
 Probes::wantNativeAddressInfo(JSContext *cx)
 {
     return (cx->reportGranularity >= JITREPORT_GRANULARITY_FUNCTION &&
-            JITGranularityRequested() >= JITREPORT_GRANULARITY_FUNCTION);
+            JITGranularityRequested(cx) >= JITREPORT_GRANULARITY_FUNCTION);
 }
 
 inline bool

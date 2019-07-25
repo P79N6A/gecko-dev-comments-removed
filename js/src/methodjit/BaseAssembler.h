@@ -178,6 +178,8 @@ class SPSInstrumentation {
 
 
     void skipNextReenter() {
+        if (!enabled())
+            return;
         JS_ASSERT(!frame->skipNext && frame->left == 0);
         frame->skipNext = true;
     }
@@ -188,6 +190,8 @@ class SPSInstrumentation {
 
 
     void setPushed() {
+        if (!enabled())
+            return;
         JS_ASSERT(!frame->pushed);
         frame->pushed = true;
     }

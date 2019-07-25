@@ -595,8 +595,13 @@ struct NativeMapEntry {
 
 
 struct PCLengthEntry {
-    double          codeLength; 
-    double          picsLength; 
+    double          inlineLength; 
+    double          picsLength;   
+    double          stubLength;   
+    double          codeLengthAugment; 
+
+
+
 };
 
 

@@ -40,182 +40,48 @@ const char Probes::anonymousName[] = "(anonymous)";
 
 bool Probes::ProfilingActive = true;
 
-static Vector<Probes::JITWatcher*, 4, SystemAllocPolicy> jitWatchers;
-
-bool
-Probes::addJITWatcher(JITWatcher *watcher)
-{
-    return jitWatchers.append(watcher);
-}
-
-bool
-Probes::removeJITWatcher(JSRuntime *rt, JITWatcher *watcher)
-{
-    JITWatcher **place = Find(jitWatchers, watcher);
-    if (!place)
-        return false;
-    if (rt)
-        rt->delete_(*place);
-    else
-        Foreground::delete_(*place);
-    jitWatchers.erase(place);
-    return true;
-}
-
-void
-Probes::removeAllJITWatchers(JSRuntime *rt)
-{
-    if (rt) {
-        for (JITWatcher **p = jitWatchers.begin(); p != jitWatchers.end(); ++p)
-            rt->delete_(*p);
-    } else {
-        for (JITWatcher **p = jitWatchers.begin(); p != jitWatchers.end(); ++p)
-            Foreground::delete_(*p);
-    }
-    jitWatchers.clear();
-}
-
 Probes::JITReportGranularity
-Probes::JITGranularityRequested()
+Probes::JITGranularityRequested(JSContext *cx)
 {
-    JITReportGranularity want = JITREPORT_GRANULARITY_NONE;
-    for (JITWatcher **p = jitWatchers.begin(); p != jitWatchers.end(); ++p) {
-        JITReportGranularity request = (*p)->granularityRequested();
-        if (request > want)
-            want = request;
-    }
-
-    return want;
+    if (cx->runtime->spsProfiler.enabled())
+        return JITREPORT_GRANULARITY_LINE;
+    return JITREPORT_GRANULARITY_NONE;
 }
 
 #ifdef JS_METHODJIT
 
-
-
-
-
-
-typedef mjit::Compiler::ActiveFrame ActiveFrame;
-
 bool
-Probes::JITWatcher::CollectNativeRegions(RegionVector &regions,
-                                         JSRuntime *rt,
-                                         mjit::JITChunk *jit,
-                                         mjit::JSActiveFrame *outerFrame,
-                                         mjit::JSActiveFrame **inlineFrames)
-{
-    regions.resize(jit->nInlineFrames * 2 + 2);
-
-    mjit::JSActiveFrame **stack =
-        rt->array_new<mjit::JSActiveFrame*>(jit->nInlineFrames+2);
-    if (!stack)
-        return false;
-    uint32_t depth = 0;
-    uint32_t ip = 0;
-
-    stack[depth++] = NULL;
-    stack[depth++] = outerFrame;
-    regions[0].frame = outerFrame;
-    regions[0].script = outerFrame->script;
-    regions[0].pc = outerFrame->script->code;
-    regions[0].enter = true;
-    ip++;
-
-    for (uint32_t i = 0; i <= jit->nInlineFrames; i++) {
-        mjit::JSActiveFrame *frame = (i < jit->nInlineFrames) ? inlineFrames[i] : outerFrame;
-
-        
-        
-        while (stack[depth-1] != frame->parent) {
-            depth--;
-            JS_ASSERT(depth > 0);
-            
-            
-            
-            mjit::JSActiveFrame *src = regions[ip-1].frame;
-            mjit::JSActiveFrame *dst = stack[depth-1];
-            JS_ASSERT_IF(!dst, i == jit->nInlineFrames);
-            regions[ip].frame = dst;
-            regions[ip].script = dst ? dst->script : NULL;
-            regions[ip].pc = src->parentPC + 1;
-            regions[ip-1].endpc = src->script->code + src->script->length;
-            regions[ip].enter = false;
-            ip++;
-        }
-
-        if (i < jit->nInlineFrames) {
-            
-            
-            
-            stack[depth++] = frame;
-
-            regions[ip].frame = frame;
-            regions[ip].script = frame->script;
-            regions[ip].pc = frame->script->code;
-            regions[ip-1].endpc = frame->parentPC;
-            regions[ip].enter = true;
-            ip++;
-        }
-    }
-
-    
-    ip--;
-    regions.popBack();
-
-    mjit::JSActiveFrame *prev = NULL;
-    for (NativeRegion *iter = regions.begin(); iter != regions.end(); ++iter) {
-        mjit::JSActiveFrame *frame = iter->frame;
-        if (iter->enter) {
-            
-            
-            iter->mainOffset = frame->mainCodeStart;
-            iter->stubOffset = frame->stubCodeStart;
-        } else {
-            
-            iter->mainOffset = prev->mainCodeEnd;
-            iter->stubOffset = prev->stubCodeEnd;
-        }
-        prev = frame;
-    }
-
-    JS_ASSERT(ip == 2 * jit->nInlineFrames + 1);
-    rt->array_delete(stack);
-
-    
-    for (NativeRegion *iter = regions.begin(); iter != regions.end(); ++iter)
-        iter->stubOffset += outerFrame->mainCodeEnd;
-
-    return true;
-}
-
-void
 Probes::registerMJITCode(JSContext *cx, js::mjit::JITChunk *chunk,
                          js::mjit::JSActiveFrame *outerFrame,
-                         js::mjit::JSActiveFrame **inlineFrames,
-                         void *mainCodeAddress, size_t mainCodeSize,
-                         void *stubCodeAddress, size_t stubCodeSize)
+                         js::mjit::JSActiveFrame **inlineFrames)
 {
-    for (JITWatcher **p = jitWatchers.begin(); p != jitWatchers.end(); ++p)
-        (*p)->registerMJITCode(cx, chunk, outerFrame,
-                               inlineFrames,
-                               mainCodeAddress, mainCodeSize,
-                               stubCodeAddress, stubCodeSize);
+    if (cx->runtime->spsProfiler.enabled() &&
+        !cx->runtime->spsProfiler.registerMJITCode(chunk, outerFrame, inlineFrames))
+    {
+        return false;
+    }
+
+    return true;
 }
 
 void
 Probes::discardMJITCode(FreeOp *fop, mjit::JITScript *jscr, mjit::JITChunk *chunk, void* address)
 {
-    for (JITWatcher **p = jitWatchers.begin(); p != jitWatchers.end(); ++p)
-        (*p)->discardMJITCode(fop, jscr, chunk, address);
+    if (fop->runtime()->spsProfiler.enabled())
+        fop->runtime()->spsProfiler.discardMJITCode(jscr, chunk, address);
 }
 
-void
+bool
 Probes::registerICCode(JSContext *cx,
                        mjit::JITChunk *chunk, JSScript *script, jsbytecode* pc,
                        void *start, size_t size)
 {
-    for (JITWatcher **p = jitWatchers.begin(); p != jitWatchers.end(); ++p)
-        (*p)->registerICCode(cx, chunk, script, pc, start, size);
+    if (cx->runtime->spsProfiler.enabled() &&
+        !cx->runtime->spsProfiler.registerICCode(chunk, script, pc, start, size))
+    {
+        return false;
+    }
+    return true;
 }
 #endif
 
@@ -223,8 +89,10 @@ Probes::registerICCode(JSContext *cx,
 void
 Probes::discardExecutableRegion(void *start, size_t size)
 {
-    for (JITWatcher **p = jitWatchers.begin(); p != jitWatchers.end(); ++p)
-        (*p)->discardExecutableRegion(start, size);
+    
+
+
+
 }
 
 static JSRuntime *initRuntime;
@@ -275,8 +143,6 @@ Probes::shutdown()
     if (!ETWShutdown())
         ok = false;
 #endif
-
-    Probes::removeAllJITWatchers(NULL);
 
     return ok;
 }

@@ -8,6 +8,9 @@
 #include "jsnum.h"
 #include "jsscript.h"
 
+#include "methodjit/MethodJIT.h"
+#include "methodjit/Compiler.h"
+
 #include "vm/SPSProfiler.h"
 #include "vm/StringBuffer.h"
 
@@ -30,6 +33,12 @@ SPSProfiler::~SPSProfiler()
         for (ProfileStringMap::Enum e(strings); !e.empty(); e.popFront())
             rt->array_delete(e.front().value);
     }
+#ifdef JS_METHODJIT
+    if (jminfo.initialized()) {
+        for (JITInfoMap::Enum e(jminfo); !e.empty(); e.popFront())
+            rt->delete_(e.front().value);
+    }
+#endif
 }
 
 void
@@ -195,6 +204,186 @@ SPSProfiler::allocProfileString(JSContext *cx, JSScript *script, JSFunction *may
     JS_ASSERT(gcBefore == cx->runtime->gcNumber);
     return cstr;
 }
+
+#ifdef JS_METHODJIT
+typedef SPSProfiler::JMChunkInfo JMChunkInfo;
+
+JMChunkInfo::JMChunkInfo(mjit::JSActiveFrame *frame,
+                         mjit::PCLengthEntry *pcLengths,
+                         mjit::JITChunk *chunk)
+  : mainStart(frame->mainCodeStart),
+    mainEnd(frame->mainCodeEnd),
+    stubStart(frame->stubCodeStart),
+    stubEnd(frame->stubCodeEnd),
+    pcLengths(pcLengths),
+    chunk(chunk)
+{}
+
+jsbytecode*
+SPSProfiler::ipToPC(JSScript *script, size_t ip)
+{
+    JS_ASSERT(jminfo.initialized());
+    JITInfoMap::Ptr ptr = jminfo.lookup(script);
+    if (!ptr)
+        return NULL;
+    JMScriptInfo *info = ptr->value;
+
+    
+    for (int i = 0; i < info->ics.length(); i++) {
+        ICInfo &ic = info->ics[i];
+        if (ic.base <= ip && ip < ic.base + ic.size)
+            return ic.pc;
+    }
+
+    
+    for (int i = 0; i < info->chunks.length(); i++) {
+        jsbytecode *pc = info->chunks[i].convert(script, ip);
+        if (pc != NULL)
+            return pc;
+    }
+
+    return NULL;
+}
+
+jsbytecode*
+JMChunkInfo::convert(JSScript *script, size_t ip)
+{
+    if (mainStart <= ip && ip < mainEnd) {
+        size_t offset = 0;
+        uint32_t i;
+        for (i = 0; i < script->length - 1; i++) {
+            offset += (uint32_t) pcLengths[i].inlineLength;
+            if (mainStart + offset > ip)
+                break;
+        }
+        return &script->code[i];
+    } else if (stubStart <= ip && ip < stubEnd) {
+        size_t offset = 0;
+        uint32_t i;
+        for (i = 0; i < script->length - 1; i++) {
+            offset += (uint32_t) pcLengths[i].stubLength;
+            if (stubStart + offset > ip)
+                break;
+        }
+        return &script->code[i];
+    }
+
+    return NULL;
+}
+
+bool
+SPSProfiler::registerMJITCode(mjit::JITChunk *chunk,
+                              mjit::JSActiveFrame *outerFrame,
+                              mjit::JSActiveFrame **inlineFrames)
+{
+    if (!jminfo.initialized() && !jminfo.init(100))
+        return false;
+
+    JS_ASSERT(chunk->pcLengths != NULL);
+
+    JMChunkInfo *info = registerScript(outerFrame, chunk->pcLengths, chunk);
+    if (!info)
+        return false;
+
+    
+
+
+
+
+
+
+
+
+
+    mjit::PCLengthEntry *pcLengths = chunk->pcLengths + outerFrame->script->length;
+    for (int i = 0; i < chunk->nInlineFrames; i++) {
+        JMChunkInfo *child = registerScript(inlineFrames[i], pcLengths, chunk);
+        if (!child)
+            return false;
+        
+
+
+
+
+
+        child->mainStart += info->mainStart;
+        child->mainEnd   += info->mainStart;
+        child->stubStart += info->stubStart;
+        child->stubEnd   += info->stubStart;
+
+        pcLengths += inlineFrames[i]->script->length;
+    }
+
+    return true;
+}
+
+JMChunkInfo*
+SPSProfiler::registerScript(mjit::JSActiveFrame *frame,
+                            mjit::PCLengthEntry *entries,
+                            mjit::JITChunk *chunk)
+{
+    
+
+
+
+
+    JITInfoMap::AddPtr ptr = jminfo.lookupForAdd(frame->script);
+    JMScriptInfo *info;
+    if (ptr) {
+        info = ptr->value;
+        JS_ASSERT(info->chunks.length() > 0);
+    } else {
+        info = rt->new_<JMScriptInfo>();
+        if (info == NULL || !jminfo.add(ptr, frame->script, info))
+            return NULL;
+    }
+    if (!info->chunks.append(JMChunkInfo(frame, entries, chunk)))
+        return NULL;
+    return info->chunks.end() - 1;
+}
+
+bool
+SPSProfiler::registerICCode(mjit::JITChunk *chunk,
+                            JSScript *script, jsbytecode *pc,
+                            void *base, size_t size)
+{
+    JS_ASSERT(jminfo.initialized());
+    JITInfoMap::Ptr ptr = jminfo.lookup(script);
+    JS_ASSERT(ptr);
+    return ptr->value->ics.append(ICInfo(base, size, pc));
+}
+
+void
+SPSProfiler::discardMJITCode(mjit::JITScript *jscr,
+                             mjit::JITChunk *chunk, void* address)
+{
+    if (!jminfo.initialized())
+        return;
+
+    unregisterScript(jscr->script, chunk);
+    for (int i = 0; i < chunk->nInlineFrames; i++)
+        unregisterScript(chunk->inlineFrames()[i].fun->script(), chunk);
+}
+
+void
+SPSProfiler::unregisterScript(JSScript *script, mjit::JITChunk *chunk)
+{
+    JITInfoMap::Ptr ptr = jminfo.lookup(script);
+    if (!ptr)
+        return;
+    JMScriptInfo *info = ptr->value;
+    for (int i = 0; i < info->chunks.length(); i++) {
+        if (info->chunks[i].chunk == chunk) {
+            info->chunks.erase(&info->chunks[i]);
+            break;
+        }
+    }
+    if (info->chunks.length() == 0) {
+        jminfo.remove(ptr);
+        rt->delete_(info);
+    }
+}
+#endif
 
 SPSEntryMarker::SPSEntryMarker(JSRuntime *rt JS_GUARD_OBJECT_NOTIFIER_PARAM_NO_INIT)
     : profiler(&rt->spsProfiler)
