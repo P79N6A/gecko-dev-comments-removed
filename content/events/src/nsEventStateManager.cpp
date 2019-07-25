@@ -4212,20 +4212,6 @@ GetLabelTarget(nsIContent* aPossibleLabel)
 }
 
 static bool
-IsAncestorOf(nsIContent* aPossibleAncestor, nsIContent* aPossibleDescendant)
-{
-  for (; aPossibleDescendant; aPossibleDescendant = aPossibleDescendant->GetParent()) {
-    if (aPossibleAncestor == aPossibleDescendant)
-      return true;
-
-    Element* labelTarget = GetLabelTarget(aPossibleDescendant);
-    if (labelTarget == aPossibleAncestor)
-      return true;
-  }
-  return false;
-}
-
-static bool
 ShouldShowFocusRing(nsIContent* aContent)
 {
   nsIDocument* doc = aContent->GetOwnerDoc();
@@ -4243,13 +4229,6 @@ nsEventStateManager::GetContentState(nsIContent *aContent)
   nsEventStates state;
   if (aContent->IsElement()) {
     state = aContent->AsElement()->State();
-  }
-
-  if (IsAncestorOf(aContent, mActiveContent)) {
-    state |= NS_EVENT_STATE_ACTIVE;
-  }
-  if (IsAncestorOf(aContent, mHoverContent)) {
-    state |= NS_EVENT_STATE_HOVER;
   }
 
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
@@ -4314,17 +4293,39 @@ static nsIContent* FindCommonAncestor(nsIContent *aNode1, nsIContent *aNode2)
   return nsnull;
 }
 
-static void
-NotifyAncestors(nsIDocument* aDocument, nsIContent* aStartNode,
-                nsIContent* aStopBefore, nsEventStates aState)
+
+inline void
+nsEventStateManager::DoStateChange(Element* aElement, nsEventStates aState,
+                                   PRBool aAddState)
 {
-  while (aStartNode && aStartNode != aStopBefore) {
-    aDocument->ContentStateChanged(aStartNode, aState);
-    Element* labelTarget = GetLabelTarget(aStartNode);
-    if (labelTarget) {
-      aDocument->ContentStateChanged(labelTarget, aState);
+  if (aAddState) {
+    aElement->AddStates(aState);
+  } else {
+    aElement->RemoveStates(aState);
+  }
+}
+
+
+void
+nsEventStateManager::UpdateAncestorState(nsIContent* aStartNode,
+                                         nsIContent* aStopBefore,
+                                         nsEventStates aState,
+                                         PRBool aAddState)
+{
+  for (; aStartNode && aStartNode != aStopBefore;
+       aStartNode = aStartNode->GetParent()) {
+    
+    
+    
+    if (!aStartNode->IsElement()) {
+      continue;
     }
-    aStartNode = aStartNode->GetParent();
+    Element* element = aStartNode->AsElement();
+    DoStateChange(element, aState, aAddState);
+    Element* labelTarget = GetLabelTarget(element);
+    if (labelTarget) {
+      DoStateChange(labelTarget, aState, aAddState);
+    }
   }
 }
 
@@ -4341,11 +4342,11 @@ nsEventStateManager::SetContentState(nsIContent *aContent, nsEventStates aState)
 
   nsCOMPtr<nsIContent> notifyContent1;
   nsCOMPtr<nsIContent> notifyContent2;
-  PRBool notifyAncestors;
+  PRBool updateAncestors;
 
   if (aState == NS_EVENT_STATE_HOVER || aState == NS_EVENT_STATE_ACTIVE) {
     
-    notifyAncestors = PR_TRUE;
+    updateAncestors = PR_TRUE;
 
     
     
@@ -4390,7 +4391,7 @@ nsEventStateManager::SetContentState(nsIContent *aContent, nsEventStates aState)
       }
     }
   } else {
-    notifyAncestors = PR_FALSE;
+    updateAncestors = PR_FALSE;
     if (aState == NS_EVENT_STATE_DRAGOVER) {
       if (aContent != mDragOverContent) {
         notifyContent1 = aContent;
@@ -4406,11 +4407,18 @@ nsEventStateManager::SetContentState(nsIContent *aContent, nsEventStates aState)
     }
   }
 
+  
+  
+  
+  
+  
+  PRBool content1StateSet = PR_TRUE;
   if (!notifyContent1) {
     
     
     notifyContent1 = notifyContent2;
     notifyContent2 = nsnull;
+    content1StateSet = PR_FALSE;
   }
 
   if (notifyContent1 && mPresContext) {
@@ -4418,13 +4426,19 @@ nsEventStateManager::SetContentState(nsIContent *aContent, nsEventStates aState)
     if (mDocument) {
       nsAutoScriptBlocker scriptBlocker;
 
-      if (notifyAncestors) {
+      if (updateAncestors) {
         nsCOMPtr<nsIContent> commonAncestor =
           FindCommonAncestor(notifyContent1, notifyContent2);
-        NotifyAncestors(mDocument, notifyContent1, commonAncestor, aState);
         if (notifyContent2) {
-          NotifyAncestors(mDocument, notifyContent2, commonAncestor, aState);
+          
+          
+          
+          
+          
+          UpdateAncestorState(notifyContent2, commonAncestor, aState, PR_FALSE);
         }
+        UpdateAncestorState(notifyContent1, commonAncestor, aState,
+                            content1StateSet);
       } else {
         mDocument->ContentStateChanged(notifyContent1, aState);
         if (notifyContent2) {
