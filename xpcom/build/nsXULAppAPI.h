@@ -450,6 +450,11 @@ XRE_API(GeckoProcessType,
         XRE_StringToChildProcessType, (const char* aProcessTypeString))
 
 #if defined(MOZ_CRASHREPORTER)
+
+XRE_API(PRBool,
+        XRE_GetMinidumpForChild, (PRUint32 aChildPid, nsIFile** aDump))
+
+
 XRE_API(PRBool,
         XRE_SetRemoteExceptionHandler, (const char* aPipe))
 #endif
