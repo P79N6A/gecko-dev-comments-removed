@@ -1143,8 +1143,12 @@ namespace nanojit
         
         
         
-        int32_t     disp:16;
-        int32_t     miniAccSetVal:8;
+        
+        
+        
+        
+        signed int  disp:16;
+        signed int  miniAccSetVal:8;
         uint32_t    loadQual:2;
 
         LIns*       oprnd_1;
