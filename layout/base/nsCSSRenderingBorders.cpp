@@ -1381,12 +1381,6 @@ nsCSSBorderRenderer::DrawBorders()
     return;
   }
 
-  
-  
-  
-  mOuterRect.Round();
-  mInnerRect.Round();
-
   gfxMatrix mat = mContext->CurrentMatrix();
 
   
@@ -1403,6 +1397,13 @@ nsCSSBorderRenderer::DrawBorders()
     mat.x0 = floor(mat.x0 + 0.5);
     mat.y0 = floor(mat.y0 + 0.5);
     mContext->SetMatrix(mat);
+
+    
+    
+    
+    
+    mOuterRect.Round();
+    mInnerRect.Round();
   }
 
   PRBool allBordersSameWidth = AllBordersSameWidth();
