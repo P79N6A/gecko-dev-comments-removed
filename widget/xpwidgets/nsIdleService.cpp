@@ -49,6 +49,7 @@
 #include "prinrval.h"
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Telemetry.h"
 
 using namespace mozilla;
 
@@ -329,6 +330,7 @@ nsIdleService::ResetIdleTimeOut(PRUint32 idleDeltaInMS)
   }
 
   
+  Telemetry::AutoTimer<Telemetry::IDLE_NOTIFY_BACK_MS> timer;
   nsCOMArray<nsIObserver> notifyList;
   mDeltaToNextIdleSwitchInS = PR_UINT32_MAX;
 
@@ -354,6 +356,8 @@ nsIdleService::ResetIdleTimeOut(PRUint32 idleDeltaInMS)
   ReconfigureTimer();
 
   PRInt32 numberOfPendingNotifications = notifyList.Count();
+  Telemetry::Accumulate(Telemetry::IDLE_NOTIFY_BACK_LISTENERS,
+                        numberOfPendingNotifications);
 
   
   if (!numberOfPendingNotifications) {
@@ -478,6 +482,7 @@ nsIdleService::IdleTimerCallback(void)
   }
 
   
+  Telemetry::AutoTimer<Telemetry::IDLE_NOTIFY_IDLE_MS> timer;
 
   
   mDeltaToNextIdleSwitchInS = PR_UINT32_MAX;
@@ -510,6 +515,8 @@ nsIdleService::IdleTimerCallback(void)
   ReconfigureTimer();
 
   PRInt32 numberOfPendingNotifications = notifyList.Count();
+  Telemetry::Accumulate(Telemetry::IDLE_NOTIFY_IDLE_LISTENERS,
+                        numberOfPendingNotifications);
 
   
   if (!numberOfPendingNotifications) {
