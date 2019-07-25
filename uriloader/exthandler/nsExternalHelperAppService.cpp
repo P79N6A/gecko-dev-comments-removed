@@ -1593,24 +1593,12 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
   
   MaybeCloseWindow();
 
-#ifdef MOZ_IPC
   
   
-  if (XRE_GetProcessType() == GeckoProcessType_Content)
-     return NS_OK;
-#endif
-
-  rv = SetUpTempFile(aChannel);
-  if (NS_FAILED(rv)) {
-    mCanceled = PR_TRUE;
-    request->Cancel(rv);
-    nsAutoString path;
-    if (mTempFile)
-      mTempFile->GetPath(path);
-    SendStatusChange(kWriteError, rv, request, path);
-    return NS_OK;
-  }
-
+  
+  
+  
+  
   nsCOMPtr<nsIEncodedChannel> encChannel = do_QueryInterface( aChannel );
   if (encChannel) 
   {
@@ -1646,6 +1634,24 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
     }
 
     encChannel->SetApplyConversion( applyConversion );
+  }
+
+#ifdef MOZ_IPC
+  
+  
+  if (XRE_GetProcessType() == GeckoProcessType_Content)
+     return NS_OK;
+#endif
+
+  rv = SetUpTempFile(aChannel);
+  if (NS_FAILED(rv)) {
+    mCanceled = PR_TRUE;
+    request->Cancel(rv);
+    nsAutoString path;
+    if (mTempFile)
+      mTempFile->GetPath(path);
+    SendStatusChange(kWriteError, rv, request, path);
+    return NS_OK;
   }
 
   
