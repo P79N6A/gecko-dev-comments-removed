@@ -2026,23 +2026,10 @@ WifiWorker.prototype = {
       return;
     }
 
-    let callback = (function (networks) {
+    this.waitForScan((function (networks) {
       this._sendMessage(message, networks !== null, networks, msg);
-    }).bind(this);
-    this.waitForScan(callback);
-
-    WifiManager.scan(true, (function(ok) {
-      
-      if (ok)
-        return;
-
-      
-      this.wantScanResults.splice(this.wantScanResults.indexOf(callback), 1);
-
-      
-      
-      this._sendMessage(message, false, "ScanFailed", msg);
     }).bind(this));
+    WifiManager.scan(true, function() {});
   },
 
   _notifyAfterStateChange: function(success, newState) {
