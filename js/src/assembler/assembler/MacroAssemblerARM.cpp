@@ -24,28 +24,19 @@
 
 
 
-#include "assembler/wtf/Platform.h"
+#include <wtf/Platform.h>
 
 #if ENABLE_ASSEMBLER && WTF_CPU_ARM_TRADITIONAL
 
 #include "MacroAssemblerARM.h"
 
-#if WTF_PLATFORM_LINUX || WTF_PLATFORM_ANDROID
+#if WTF_PLATFORM_LINUX
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <elf.h>
-
-
-
-#include <linux/version.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,28)
-#include <asm/procinfo.h>
-#else
 #include <asm/hwcap.h>
-#endif
-
 #endif
 
 namespace JSC {

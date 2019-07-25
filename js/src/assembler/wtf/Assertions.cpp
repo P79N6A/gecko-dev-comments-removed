@@ -37,7 +37,7 @@
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0500
 #endif
-#include "jswin.h"
+#include <windows.h>
 #include <crtdbg.h>
 #endif
 
@@ -64,7 +64,7 @@ static void printf_stderr_common(const char* format, ...)
 
 static void printCallSite(const char* file, int line, const char* function)
 {
-#if WTF_COMPILER_MSVC && !WTF_PLATFORM_WINCE && defined _DEBUG
+#if WTF_PLATFORM_WIN && !WTF_PLATFORM_WINCE && defined _DEBUG
     _CrtDbgReport(_CRT_WARN, file, line, NULL, "%s\n", function);
 #else
     printf_stderr_common("(%s:%d %s)\n", file, line, function);

@@ -26,7 +26,7 @@
 #ifndef RepatchBuffer_h
 #define RepatchBuffer_h
 
-#include "assembler/wtf/Platform.h"
+#include <wtf/Platform.h>
 
 #if ENABLE_ASSEMBLER
 
@@ -45,8 +45,8 @@ class RepatchBuffer {
     typedef MacroAssemblerCodePtr CodePtr;
 
 public:
-    RepatchBuffer(void *start, size_t size, bool mprot = true)
-    : m_start(start), m_size(size), mprot(mprot)
+    RepatchBuffer(void *start, size_t size)
+    : m_start(start), m_size(size)
     {
         ExecutableAllocator::makeWritable(m_start, m_size);
     }
@@ -56,16 +56,13 @@ public:
         JITCode& code = codeBlock->getJITCode();
         m_start = code.start();
         m_size = code.size();
-        mprot = true;
 
-        if (mprot)
-            ExecutableAllocator::makeWritable(m_start, m_size);
+        ExecutableAllocator::makeWritable(m_start, m_size);
     }
 
     ~RepatchBuffer()
     {
-        if (mprot)
-            ExecutableAllocator::makeExecutable(m_start, m_size);
+        ExecutableAllocator::makeExecutable(m_start, m_size);
     }
 
     void relink(CodeLocationJump jump, CodeLocationLabel destination)
@@ -141,7 +138,6 @@ public:
 protected:
     void* m_start;
     size_t m_size;
-    bool mprot;
 };
 
 } 

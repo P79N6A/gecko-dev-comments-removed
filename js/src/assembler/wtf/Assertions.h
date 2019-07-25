@@ -142,7 +142,7 @@ void WTFLogVerbose(const char* file, int line, const char* function, WTFLogChann
 
 #if WTF_PLATFORM_WINCE && !WTF_PLATFORM_TORCHMOBILE
 
-#include "jswin.h"
+#include <windows.h>
 #undef min
 #undef max
 #undef ERROR

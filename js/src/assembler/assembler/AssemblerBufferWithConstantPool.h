@@ -27,12 +27,12 @@
 #ifndef AssemblerBufferWithConstantPool_h
 #define AssemblerBufferWithConstantPool_h
 
-#include "assembler/wtf/Platform.h"
+#include <wtf/Platform.h>
 
 #if ENABLE_ASSEMBLER
 
 #include "AssemblerBuffer.h"
-#include "assembler/wtf/SegmentedVector.h"
+#include <wtf/SegmentedVector.h>
 
 #define ASSEMBLER_HAS_CONSTANT_POOL 1
 
@@ -100,13 +100,17 @@ public:
         , m_maxDistance(maxPoolSize)
         , m_lastConstDelta(0)
     {
+        
         m_pool = static_cast<uint32_t*>(malloc(maxPoolSize));
+        
         m_mask = static_cast<char*>(malloc(maxPoolSize / sizeof(uint32_t)));
     }
 
     ~AssemblerBufferWithConstantPool()
     {
+        
         free(m_mask);
+        
         free(m_pool);
     }
 

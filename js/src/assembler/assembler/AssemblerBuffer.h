@@ -26,13 +26,13 @@
 #ifndef AssemblerBuffer_h
 #define AssemblerBuffer_h
 
-#include "assembler/wtf/Platform.h"
+#include <wtf/Platform.h>
 
 #if ENABLE_ASSEMBLER
 
 #include <string.h>
-#include "assembler/jit/ExecutableAllocator.h"
-#include "assembler/wtf/Assertions.h"
+#include <jit/ExecutableAllocator.h>
+#include <wtf/Assertions.h>
 #include "jsstdint.h"
 
 namespace JSC {
@@ -50,6 +50,7 @@ namespace JSC {
         ~AssemblerBuffer()
         {
             if (m_buffer != m_inlineBuffer)
+                
                 free(m_buffer);
         }
 
@@ -157,9 +158,11 @@ namespace JSC {
             m_capacity += m_capacity / 2 + extraCapacity;
 
             if (m_buffer == m_inlineBuffer) {
+                
                 char* newBuffer = static_cast<char*>(malloc(m_capacity));
                 m_buffer = static_cast<char*>(memcpy(newBuffer, m_buffer, m_size));
             } else
+                
                 m_buffer = static_cast<char*>(realloc(m_buffer, m_capacity));
         }
 

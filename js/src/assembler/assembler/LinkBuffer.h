@@ -26,7 +26,7 @@
 #ifndef LinkBuffer_h
 #define LinkBuffer_h
 
-#include "assembler/wtf/Platform.h"
+#include <wtf/Platform.h>
 
 #if ENABLE_ASSEMBLER
 
@@ -61,8 +61,10 @@ public:
     
     
     
+    
     LinkBuffer(MacroAssembler* masm, ExecutablePool* executablePool)
         : m_executablePool(executablePool)
+        
         , m_code(masm->m_assembler.executableCopy(m_executablePool))
         , m_size(masm->m_assembler.size())
 #ifndef NDEBUG
@@ -75,9 +77,7 @@ public:
         : m_executablePool(NULL)
         , m_code(ncode)
         , m_size(size)
-#ifndef NDEBUG
         , m_completed(false)
-#endif
     {
     }
 
@@ -101,6 +101,7 @@ public:
 
     void link(JumpList list, CodeLocationLabel label)
     {
+        
         for (unsigned i = 0; i < list.m_jumps.length(); ++i)
             MacroAssembler::linkJump(code(), list.m_jumps[i], label);
     }
@@ -122,11 +123,6 @@ public:
         ASSERT(call.isFlagSet(Call::Linkable));
         ASSERT(!call.isFlagSet(Call::Near));
         return CodeLocationCall(MacroAssembler::getLinkerAddress(code(), call.m_jmp));
-    }
-
-    CodeLocationJump locationOf(Jump j)
-    {
-        return CodeLocationJump(MacroAssembler::getLinkerAddress(code(), j.m_jmp));
     }
 
     CodeLocationNearCall locationOfNearCall(Call call)
@@ -194,6 +190,7 @@ private:
         ExecutableAllocator::cacheFlush(code(), m_size);
     }
 
+    
     ExecutablePool* m_executablePool;
     void* m_code;
     size_t m_size;

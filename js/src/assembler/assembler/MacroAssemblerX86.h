@@ -26,7 +26,7 @@
 #ifndef MacroAssemblerX86_h
 #define MacroAssemblerX86_h
 
-#include "assembler/wtf/Platform.h"
+#include <wtf/Platform.h>
 
 #if ENABLE_ASSEMBLER && WTF_CPU_X86
 
@@ -100,11 +100,10 @@ public:
         m_assembler.movl_mr(address, dest);
     }
 
-    DataLabelPtr loadDouble(const void* address, FPRegisterID dest)
+    void loadDouble(void* address, FPRegisterID dest)
     {
         ASSERT(isSSE2Present());
         m_assembler.movsd_mr(address, dest);
-	return DataLabelPtr(this);
     }
 
     void convertInt32ToDouble(AbsoluteAddress src, FPRegisterID dest)
@@ -183,20 +182,9 @@ public:
         return label;
     }
 
-    void pushAllRegs()
-    {
-        m_assembler.pusha();
-    }
-
-    void popAllRegs()
-    {
-        m_assembler.popa();
-    }
-
     bool supportsFloatingPoint() const { return m_isSSE2Present; }
     
     bool supportsFloatingPointTruncate() const { return m_isSSE2Present; }
-    bool supportsFloatingPointSqrt() const { return m_isSSE2Present; }
 
 private:
     const bool m_isSSE2Present;

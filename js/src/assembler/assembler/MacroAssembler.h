@@ -26,7 +26,7 @@
 #ifndef MacroAssembler_h
 #define MacroAssembler_h
 
-#include "assembler/wtf/Platform.h"
+#include <wtf/Platform.h>
 
 #if ENABLE_ASSEMBLER
 
@@ -37,10 +37,6 @@ namespace JSC { typedef MacroAssemblerARMv7 MacroAssemblerBase; }
 #elif WTF_CPU_ARM_TRADITIONAL
 #include "MacroAssemblerARM.h"
 namespace JSC { typedef MacroAssemblerARM MacroAssemblerBase; }
-
-#elif WTF_CPU_MIPS
-#include "MacroAssemblerMIPS.h"
-namespace JSC { typedef MacroAssemblerMIPS MacroAssemblerBase; }
 
 #elif WTF_CPU_X86
 #include "MacroAssemblerX86.h"
@@ -224,11 +220,6 @@ public:
         sub32(Imm32(imm), dest);
     }
 
-    void subPtr(ImmPtr imm, Address address)
-    {
-        sub32(Imm32(imm), address);
-    }
-
     void xorPtr(RegisterID src, RegisterID dest)
     {
         xor32(src, dest);
@@ -370,12 +361,6 @@ public:
     Jump branchSubPtr(Condition cond, Imm32 imm, RegisterID dest)
     {
         return branchSub32(cond, imm, dest);
-    }
-	
-    using MacroAssemblerBase::branchTest8;
-    Jump branchTest8(Condition cond, ExtendedAddress address, Imm32 mask = Imm32(-1))
-    {
-        return MacroAssemblerBase::branchTest8(cond, Address(address.base, address.offset), mask);
     }
 
     void rshiftPtr(Imm32 imm, RegisterID dest)

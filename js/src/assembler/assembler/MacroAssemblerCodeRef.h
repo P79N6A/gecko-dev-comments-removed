@@ -26,8 +26,8 @@
 #ifndef MacroAssemblerCodeRef_h
 #define MacroAssemblerCodeRef_h
 
-#include "assembler/wtf/Platform.h"
-#include "assembler/jit/ExecutableAllocator.h"
+#include <wtf/Platform.h>
+#include <jit/ExecutableAllocator.h>
 
 #if ENABLE_ASSEMBLER
 
@@ -171,6 +171,7 @@ public:
     {
     }
 
+  
     MacroAssemblerCodeRef(void* code, ExecutablePool* executablePool, size_t size)
         : m_code(code)
         , m_executablePool(executablePool)
@@ -179,6 +180,7 @@ public:
     }
 
     MacroAssemblerCodePtr m_code;
+    
     ExecutablePool* m_executablePool;
     size_t m_size;
 };

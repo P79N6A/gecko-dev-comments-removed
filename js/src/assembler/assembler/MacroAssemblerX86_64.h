@@ -26,7 +26,7 @@
 #ifndef MacroAssemblerX86_64_h
 #define MacroAssemblerX86_64_h
 
-#include "assembler/wtf/Platform.h"
+#include <wtf/Platform.h>
 
 #if ENABLE_ASSEMBLER && WTF_CPU_X86_64
 
@@ -38,6 +38,7 @@ namespace JSC {
 
 class MacroAssemblerX86_64 : public MacroAssemblerX86Common {
 protected:
+    static const X86Registers::RegisterID scratchRegister = X86Registers::r11;
     static const intptr_t MinInt32 = 0xFFFFFFFF80000000;
     static const intptr_t MaxInt32 = 0x000000007FFFFFFF;
 
@@ -84,16 +85,16 @@ public:
         if (dest == X86Registers::eax)
             m_assembler.movl_mEAX(address);
         else {
-            move(ImmPtr(address), scratchRegister);
-            load32(ImplicitAddress(scratchRegister), dest);
+            move(X86Registers::eax, dest);
+            m_assembler.movl_mEAX(address);
+            swap(X86Registers::eax, dest);
         }
     }
 
-    DataLabelPtr loadDouble(const void* address, FPRegisterID dest)
+    void loadDouble(void* address, FPRegisterID dest)
     {
-        DataLabelPtr label = moveWithPatch(ImmPtr(address), scratchRegister);
+        move(ImmPtr(address), scratchRegister);
         loadDouble(scratchRegister, dest);
-        return label;
     }
 
     void convertInt32ToDouble(AbsoluteAddress src, FPRegisterID dest)
@@ -283,8 +284,9 @@ public:
         if (dest == X86Registers::eax)
             m_assembler.movq_mEAX(address);
         else {
-            move(ImmPtr(address), scratchRegister);
-            loadPtr(ImplicitAddress(scratchRegister), dest);
+            move(X86Registers::eax, dest);
+            m_assembler.movq_mEAX(address);
+            swap(X86Registers::eax, dest);
         }
     }
 
@@ -324,8 +326,9 @@ public:
         if (src == X86Registers::eax)
             m_assembler.movq_EAXm(address);
         else {
-            move(ImmPtr(address), scratchRegister);
-            storePtr(src, ImplicitAddress(scratchRegister));
+            swap(X86Registers::eax, src);
+            m_assembler.movq_EAXm(address);
+            swap(X86Registers::eax, src);
         }
     }
 
@@ -365,13 +368,6 @@ public:
             m_assembler.testq_rr(left, left);
         else
             m_assembler.cmpq_ir(right.m_value, left);
-        m_assembler.setCC_r(x86Condition(cond), dest);
-        m_assembler.movzbl_rr(dest, dest);
-    }
-
-    void setPtr(Condition cond, RegisterID left, RegisterID right, RegisterID dest)
-    {
-        m_assembler.cmpq_rr(right, left);
         m_assembler.setCC_r(x86Condition(cond), dest);
         m_assembler.movzbl_rr(dest, dest);
     }
@@ -494,14 +490,6 @@ public:
         return label;
     }
 
-    using MacroAssemblerX86Common::branchTest8;
-    Jump branchTest8(Condition cond, ExtendedAddress address, Imm32 mask = Imm32(-1))
-    {
-        ImmPtr addr(reinterpret_cast<void*>(address.offset));
-        MacroAssemblerX86Common::move(addr, scratchRegister);
-        return MacroAssemblerX86Common::branchTest8(cond, BaseIndex(scratchRegister, address.base, TimesOne), mask);
-    }
-
     Label loadPtrWithPatchToLEA(Address address, RegisterID dest)
     {
         Label label(this);
@@ -509,22 +497,9 @@ public:
         return label;
     }
 
-    void pushAllRegs()
-    {
-        for (int i = X86Registers::eax; i <= X86Registers::r15; i++)
-            m_assembler.push_r((RegisterID)i);
-    }
-
-    void popAllRegs()
-    {
-        for (int i = X86Registers::r15; i >= X86Registers::eax; i--)
-            m_assembler.pop_r((RegisterID)i);
-    }
-
     bool supportsFloatingPoint() const { return true; }
     
     bool supportsFloatingPointTruncate() const { return true; }
-    bool supportsFloatingPointSqrt() const { return true; }
 
 private:
     friend class LinkBuffer;

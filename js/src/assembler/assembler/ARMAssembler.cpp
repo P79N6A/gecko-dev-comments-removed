@@ -24,7 +24,7 @@
 
 
 
-#include "assembler/wtf/Platform.h"
+#include <wtf/Platform.h> 
 
 #if ENABLE_ASSEMBLER && WTF_CPU_ARM_TRADITIONAL
 
@@ -33,6 +33,39 @@
 namespace JSC {
 
 
+
+ARMWord* ARMAssembler::getLdrImmAddress(ARMWord* insn, uint32_t* constPool)
+{
+    
+    ASSERT((*insn & 0x0f7f0000) == 0x051f0000);
+
+    if (constPool && (*insn & 0x1))
+        return reinterpret_cast<ARMWord*>(constPool + ((*insn & SDT_OFFSET_MASK) >> 1));
+
+    ARMWord addr = reinterpret_cast<ARMWord>(insn) + 2 * sizeof(ARMWord);
+    if (*insn & DT_UP)
+        return reinterpret_cast<ARMWord*>(addr + (*insn & SDT_OFFSET_MASK));
+    else
+        return reinterpret_cast<ARMWord*>(addr - (*insn & SDT_OFFSET_MASK));
+}
+
+void ARMAssembler::linkBranch(void* code, JmpSrc from, void* to, int useConstantPool)
+{
+    ARMWord* insn = reinterpret_cast<ARMWord*>(code) + (from.m_offset / sizeof(ARMWord));
+
+    if (!useConstantPool) {
+        int diff = reinterpret_cast<ARMWord*>(to) - reinterpret_cast<ARMWord*>(insn + 2);
+
+        if ((diff <= BOFFSET_MAX && diff >= BOFFSET_MIN)) {
+            *insn = B | getConditionalField(*insn) | (diff & BRANCH_MASK);
+            ExecutableAllocator::cacheFlush(insn, sizeof(ARMWord));
+            return;
+        }
+    }
+    ARMWord* addr = getLdrImmAddress(insn);
+    *addr = reinterpret_cast<ARMWord>(to);
+    ExecutableAllocator::cacheFlush(addr, sizeof(ARMWord));
+}
 
 void ARMAssembler::patchConstantPoolLoad(void* loadAddr, void* constPoolAddr)
 {
@@ -239,8 +272,10 @@ void ARMAssembler::moveImm(ARMWord imm, int dest)
 
 ARMWord ARMAssembler::encodeComplexImm(ARMWord imm, int dest)
 {
+    ARMWord tmp;
+
 #if WTF_ARM_ARCH_VERSION >= 7
-    ARMWord tmp = getImm16Op2(imm);
+    tmp = getImm16Op2(imm);
     if (tmp != INVALID_IMM) {
         movw_r(dest, tmp);
         return dest;
@@ -269,7 +304,7 @@ void ARMAssembler::dataTransfer32(bool isLoad, RegisterID srcDst, RegisterID bas
             dtr_u(isLoad, srcDst, base, offset);
         else if (offset <= 0xfffff) {
             add_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 12) | (10 << 8));
-            dtr_u(isLoad, srcDst, ARMRegisters::S0, (offset & 0xfff));
+            dtr_u(isLoad, srcDst, ARMRegisters::S0, offset & 0xfff);
         } else {
             ARMWord reg = getImm(offset, ARMRegisters::S0);
             dtr_ur(isLoad, srcDst, base, reg);
@@ -280,36 +315,10 @@ void ARMAssembler::dataTransfer32(bool isLoad, RegisterID srcDst, RegisterID bas
             dtr_d(isLoad, srcDst, base, offset);
         else if (offset <= 0xfffff) {
             sub_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 12) | (10 << 8));
-            dtr_d(isLoad, srcDst, ARMRegisters::S0, (offset & 0xfff));
+            dtr_d(isLoad, srcDst, ARMRegisters::S0, offset & 0xfff);
         } else {
             ARMWord reg = getImm(offset, ARMRegisters::S0);
             dtr_dr(isLoad, srcDst, base, reg);
-        }
-    }
-}
-
-void ARMAssembler::dataTransfer8(bool isLoad, RegisterID srcDst, RegisterID base, int32_t offset)
-{
-    if (offset >= 0) {
-        if (offset <= 0xfff)
-            dtrb_u(isLoad, srcDst, base, offset);
-        else if (offset <= 0xfffff) {
-            add_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 12) | (10 << 8));
-            dtrb_u(isLoad, srcDst, ARMRegisters::S0, (offset & 0xfff));
-        } else {
-            ARMWord reg = getImm(offset, ARMRegisters::S0);
-            dtrb_ur(isLoad, srcDst, base, reg);
-        }
-    } else {
-        offset = -offset;
-        if (offset <= 0xfff)
-            dtrb_d(isLoad, srcDst, base, offset);
-        else if (offset <= 0xfffff) {
-            sub_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 12) | (10 << 8));
-            dtrb_d(isLoad, srcDst, ARMRegisters::S0, (offset & 0xfff));
-        } else {
-            ARMWord reg = getImm(offset, ARMRegisters::S0);
-            dtrb_dr(isLoad, srcDst, base, reg);
         }
     }
 }
@@ -363,40 +372,9 @@ void ARMAssembler::doubleTransfer(bool isLoad, FPRegisterID srcDst, RegisterID b
         offset = -offset;
     }
 
-    
-    
-    
-    
-    
-    ASSERT((offset & 0x3) == 0);
-
     ldr_un_imm(ARMRegisters::S0, offset);
     add_r(ARMRegisters::S0, ARMRegisters::S0, base);
     fdtr_u(isLoad, srcDst, ARMRegisters::S0, 0);
-}
-
-
-
-inline void ARMAssembler::fixUpOffsets(void * buffer)
-{
-    char * data = reinterpret_cast<char *>(buffer);
-    for (Jumps::Iterator iter = m_jumps.begin(); iter != m_jumps.end(); ++iter) {
-        
-        int pos = (*iter) & (~0x1);
-        ARMWord* ldrAddr = reinterpret_cast<ARMWord*>(data + pos);
-        ARMWord* addr = getLdrImmAddress(ldrAddr);
-        if (*addr != InvalidBranchTarget) {
-            if (!(*iter & 1)) {
-                int diff = reinterpret_cast<ARMWord*>(data + *addr) - (ldrAddr + DefaultPrefetching);
-
-                if ((diff <= BOFFSET_MAX && diff >= BOFFSET_MIN)) {
-                    *ldrAddr = B | getConditionalField(*ldrAddr) | (diff & BRANCH_MASK);
-                    continue;
-                }
-            }
-            *addr = reinterpret_cast<ARMWord>(data + *addr);
-        }
-    }
 }
 
 void* ARMAssembler::executableCopy(ExecutablePool* allocator)
@@ -406,22 +384,20 @@ void* ARMAssembler::executableCopy(ExecutablePool* allocator)
     if (m_buffer.uncheckedSize() & 0x7)
         bkpt(0);
 
-    void * data = m_buffer.executableCopy(allocator);
-    fixUpOffsets(data);
+    char* data = reinterpret_cast<char*>(m_buffer.executableCopy(allocator));
+
+    for (Jumps::Iterator iter = m_jumps.begin(); iter != m_jumps.end(); ++iter) {
+        
+        int pos = (*iter) & (~0x1);
+        ARMWord* ldrAddr = reinterpret_cast<ARMWord*>(data + pos);
+        ARMWord offset = *getLdrImmAddress(ldrAddr);
+        if (offset != 0xffffffff) {
+            JmpSrc jmpSrc(pos);
+            linkBranch(data, jmpSrc, data + offset, ((*iter) & 1));
+        }
+    }
+
     return data;
-}
-
-
-
-
-
-void* ARMAssembler::executableCopy(void * buffer)
-{
-    ASSERT(m_buffer.sizeOfConstantPool() == 0);
-
-    memcpy(buffer, m_buffer.data(), m_buffer.size());
-    fixUpOffsets(buffer);
-    return buffer;
 }
 
 } 

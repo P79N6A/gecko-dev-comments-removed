@@ -28,12 +28,10 @@
 
 #include <stddef.h> 
 #include <limits>
-#include "assembler/wtf/Assertions.h"
+#include <wtf/Assertions.h>
 
-#include "jsapi.h"
 #include "jsprvtd.h"
 #include "jsvector.h"
-#include "jslock.h"
 
 #if WTF_PLATFORM_IPHONE
 #include <libkern/OSCacheControl.h>
@@ -42,10 +40,6 @@
 
 #if WTF_PLATFORM_SYMBIAN
 #include <e32std.h>
-#endif
-
-#if WTF_CPU_MIPS && WTF_PLATFORM_LINUX
-#include <sys/cachectl.h>
 #endif
 
 #if WTF_PLATFORM_WINCE
@@ -81,7 +75,7 @@ inline size_t roundUpAllocationSize(size_t request, size_t granularity)
     
     size_t size = request + (granularity - 1);
     size = size & ~(granularity - 1);
-    JS_ASSERT(size >= request);
+    ASSERT(size >= request);
     return size;
 }
 
@@ -94,6 +88,7 @@ namespace JSC {
   
   
   class ExecutablePool {
+                       
 private:
     struct Allocation {
         char* pages;
@@ -105,28 +100,29 @@ private:
     typedef js::Vector<Allocation, 2 ,js::SystemAllocPolicy > AllocationList;
 
     
-    jsrefcount m_refCount;
+    unsigned m_refCount;
 
 public:
       
       
       
-      void addRef() { JS_ATOMIC_INCREMENT(&m_refCount); }
+      void addRef() { ++m_refCount; }
       void release() { 
-	  JS_ASSERT(m_refCount != 0);
-	  if (JS_ATOMIC_DECREMENT(&m_refCount) == 0) 
+	  ASSERT(m_refCount != 0);
+	  if (--m_refCount == 0) 
 	      delete this; 
       }
 
     
     static ExecutablePool* create(size_t n)
     {
+        
         return new ExecutablePool(n);
     }
 
     void* alloc(size_t n)
     {
-        JS_ASSERT(m_freePtr <= m_end);
+        ASSERT(m_freePtr <= m_end);
 
         
         
@@ -145,11 +141,14 @@ public:
     
     ~ExecutablePool()
     {
+        
         Allocation* end = m_pools.end();
+        
         for (Allocation* ptr = m_pools.begin(); ptr != end; ++ptr)
             ExecutablePool::systemRelease(*ptr);
     }
 
+    
     size_t available() const { return (m_pools.length() > 1) ? 0 : m_end - m_freePtr; }
 
 private:
@@ -164,7 +163,7 @@ private:
     char* m_end;
     AllocationList m_pools;
 };
-
+  
 class ExecutableAllocator {
     enum ProtectionSeting { Writable, Executable };
 
@@ -183,6 +182,7 @@ public:
     
     
 
+    
     ExecutablePool* poolForSize(size_t n)
     {
         
@@ -196,18 +196,20 @@ public:
             return ExecutablePool::create(n);
 
         
+        
         ExecutablePool* pool = ExecutablePool::create(JIT_ALLOCATOR_LARGE_ALLOC_SIZE);
-  	    
+	
 
         
         
         if ((pool->available() - n) > m_smallAllocationPool->available()) {
-	        m_smallAllocationPool->release();
+	    m_smallAllocationPool->release();
             m_smallAllocationPool = pool;
-	        pool->addRef();
-	    }
+	    pool->addRef();
+	}
+        
 
-   	    
+	
         return pool;
     }
 
@@ -230,32 +232,6 @@ public:
 #if WTF_CPU_X86 || WTF_CPU_X86_64
     static void cacheFlush(void*, size_t)
     {
-    }
-#elif WTF_CPU_MIPS
-    static void cacheFlush(void* code, size_t size)
-    {
-#if WTF_COMPILER_GCC && (GCC_VERSION >= 40300)
-#if WTF_MIPS_ISA_REV(2) && (GCC_VERSION < 40403)
-        int lineSize;
-        asm("rdhwr %0, $1" : "=r" (lineSize));
-        
-        
-        
-        
-        
-        
-        
-        
-        intptr_t start = reinterpret_cast<intptr_t>(code) & (-lineSize);
-        intptr_t end = ((reinterpret_cast<intptr_t>(code) + size - 1) & (-lineSize)) - 1;
-        __builtin___clear_cache(reinterpret_cast<char*>(start), reinterpret_cast<char*>(end));
-#else
-        intptr_t end = reinterpret_cast<intptr_t>(code) + size;
-        __builtin___clear_cache(reinterpret_cast<char*>(code), reinterpret_cast<char*>(end));
-#endif
-#else
-        _flush_cache(reinterpret_cast<char*>(code), size, BCACHE);
-#endif
     }
 #elif WTF_CPU_ARM_THUMB2 && WTF_PLATFORM_IPHONE
     static void cacheFlush(void* code, size_t size)
@@ -284,9 +260,7 @@ public:
     {
         User::IMB_Range(code, static_cast<char*>(code) + size);
     }
-#elif WTF_CPU_ARM_TRADITIONAL && WTF_PLATFORM_LINUX && WTF_COMPILER_RVCT
-    static __asm void cacheFlush(void* code, size_t size);
-#elif WTF_CPU_ARM_TRADITIONAL && (WTF_PLATFORM_LINUX || WTF_PLATFORM_ANDROID) && WTF_COMPILER_GCC
+#elif WTF_CPU_ARM_TRADITIONAL && WTF_PLATFORM_LINUX
     static void cacheFlush(void* code, size_t size)
     {
         asm volatile (
@@ -317,6 +291,7 @@ private:
     static void reprotectRegion(void*, size_t, ProtectionSeting);
 #endif
 
+    
     ExecutablePool* m_smallAllocationPool;
     static void intializePageSize();
 };
@@ -340,7 +315,7 @@ inline void* ExecutablePool::poolAllocate(size_t n)
     if (!result.pages)
         CRASH(); 
     
-    JS_ASSERT(m_end >= m_freePtr);
+    ASSERT(m_end >= m_freePtr);
     if ((allocSize - n) > static_cast<size_t>(m_end - m_freePtr)) {
         
         m_freePtr = result.pages + n;

@@ -26,9 +26,9 @@
 #ifndef AbstractMacroAssembler_h
 #define AbstractMacroAssembler_h
 
-#include "assembler/wtf/Platform.h"
-#include "assembler/assembler/MacroAssemblerCodeRef.h"
-#include "assembler/assembler/CodeLocation.h"
+#include <wtf/Platform.h>
+#include <assembler/MacroAssemblerCodeRef.h>
+#include <assembler/CodeLocation.h>
 #include "jsstdint.h"
 
 #if ENABLE_ASSEMBLER
@@ -53,12 +53,6 @@ public:
     typedef typename AssemblerType::JmpSrc JmpSrc;
     typedef typename AssemblerType::JmpDst JmpDst;
 
-#ifdef DEBUG
-    void setSpewPath(bool isOOLPath)
-    {
-        m_assembler.isOOLPath = isOOLPath;
-    }
-#endif
 
     
     
@@ -85,17 +79,6 @@ public:
 
         RegisterID base;
         int32_t offset;
-    };
-
-    struct ExtendedAddress {
-        explicit ExtendedAddress(RegisterID base, intptr_t offset = 0)
-            : base(base)
-            , offset(offset)
-        {
-        }
-        
-        RegisterID base;
-        intptr_t offset;
     };
 
     
@@ -166,7 +149,7 @@ public:
     
     
     struct ImmPtr {
-        explicit ImmPtr(const void* value)
+        explicit ImmPtr(void* value)
             : m_value(value)
         {
         }
@@ -176,7 +159,7 @@ public:
             return reinterpret_cast<intptr_t>(m_value);
         }
 
-        const void* m_value;
+        void* m_value;
     };
 
     
@@ -188,7 +171,7 @@ public:
     struct Imm32 {
         explicit Imm32(int32_t value)
             : m_value(value)
-#if WTF_CPU_ARM || WTF_CPU_MIPS
+#if WTF_CPU_ARM
             , m_isPointer(false)
 #endif
         {
@@ -197,7 +180,7 @@ public:
 #if !WTF_CPU_X86_64
         explicit Imm32(ImmPtr ptr)
             : m_value(ptr.asIntptr())
-#if WTF_CPU_ARM || WTF_CPU_MIPS
+#if WTF_CPU_ARM
             , m_isPointer(true)
 #endif
         {
@@ -205,8 +188,7 @@ public:
 #endif
 
         int32_t m_value;
-#if WTF_CPU_ARM || WTF_CPU_MIPS
-        
+#if WTF_CPU_ARM
         
         
         
@@ -389,7 +371,7 @@ public:
 
         void link(AbstractMacroAssembler<AssemblerType>* masm)
         {
-            size_t size = m_jumps.length();
+            size_t size = m_jumps.size();
             for (size_t i = 0; i < size; ++i)
                 m_jumps[i].link(masm);
             m_jumps.clear();
@@ -397,7 +379,7 @@ public:
         
         void linkTo(Label label, AbstractMacroAssembler<AssemblerType>* masm)
         {
-            size_t size = m_jumps.length();
+            size_t size = m_jumps.size();
             for (size_t i = 0; i < size; ++i)
                 m_jumps[i].linkTo(label, masm);
             m_jumps.clear();
@@ -410,12 +392,12 @@ public:
         
         void append(JumpList& other)
         {
-            m_jumps.append(other.m_jumps.begin(), other.m_jumps.length());
+            m_jumps.append(other.m_jumps.begin(), other.m_jumps.size());
         }
 
         bool empty()
         {
-            return !m_jumps.length();
+            return !m_jumps.size();
         }
         
         const JumpVector& jumps() { return m_jumps; }
@@ -440,11 +422,6 @@ public:
     unsigned char *buffer()
     {
         return m_assembler.buffer();
-    }
-
-    void* executableCopy(void* buffer)
-    {
-        return m_assembler.executableCopy(buffer);
     }
 
     Label label()

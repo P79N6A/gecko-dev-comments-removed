@@ -24,11 +24,12 @@
 
 
 
+
 #include "ExecutableAllocator.h"
 
 #if ENABLE_ASSEMBLER && WTF_PLATFORM_WIN_OS
 
-#include "jswin.h"
+#include "windows.h"
 
 namespace JSC {
 
