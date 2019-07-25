@@ -1020,8 +1020,11 @@ var Browser = {
         let tab = Browser.getTabForBrowser(browser);
         
         
-        if (tab)
+        if (tab) {
           tab.updateViewportMetadata(json);
+          if (!this.isLoading())
+            tab.updateThumbnail();
+        }
         break;
 
       case "Browser:FormSubmit":
@@ -2359,7 +2362,6 @@ Tab.prototype = {
 
   startLoading: function startLoading() {
     if (this._loading) throw "Already Loading!";
-
     this._loading = true;
   },
 
@@ -2502,13 +2504,20 @@ Tab.prototype = {
   },
 
   updateThumbnail: function updateThumbnail() {
-    if (!this._browser)
+    let browser = this._browser;
+
+    
+    
+    if (!browser || this._lastThumbnailWindow == browser.contentWindowId)
       return;
 
     
     
-    
-    this._chromeTab.updateThumbnail(this._browser, 800, 500);
+    if (!browser.contentWindowWidth || !browser.contentWindowHeight)
+      return;
+
+    this._lastThumbnailWindow = browser.contentWindowId;
+    this._chromeTab.updateThumbnail(browser, browser.contentWindowWidth, browser.contentWindowHeight);
   },
 
   toString: function() {
