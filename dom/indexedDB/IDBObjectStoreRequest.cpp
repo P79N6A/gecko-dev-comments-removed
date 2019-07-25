@@ -194,6 +194,7 @@ GetKeyFromVariant(nsIVariant* aKey,
 
   
   switch (type) {
+    case nsIDataType::VTYPE_VOID:
     case nsIDataType::VTYPE_EMPTY:
       if (!aAutoIncrement || aGetting) {
         return NS_ERROR_INVALID_ARG;
