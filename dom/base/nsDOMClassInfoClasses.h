@@ -220,9 +220,6 @@ DOMCI_CLASS(XULTreeBuilder)
 
 DOMCI_CLASS(DOMStringList)
 
-
-DOMCI_CLASS(NameList)
-
 #ifdef MOZ_XUL
 DOMCI_CLASS(TreeColumn)
 DOMCI_CLASS(TreeColumns)

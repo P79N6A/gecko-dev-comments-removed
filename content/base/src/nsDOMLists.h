@@ -41,12 +41,10 @@
 
 
 
-
 #ifndef nsDOMLists_h___
 #define nsDOMLists_h___
 
 #include "nsIDOMDOMStringList.h"
-#include "nsIDOMNameList.h"
 #include "nsTArray.h"
 #include "nsString.h"
 
@@ -65,22 +63,6 @@ public:
   }
 
 private:
-  nsTArray<nsString> mNames;
-};
-
-class nsNameList : public nsIDOMNameList
-{
-public:
-  nsNameList();
-  virtual ~nsNameList();
-
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIDOMNAMELIST
-
-  bool Add(const nsAString& aNamespaceURI, const nsAString& aName);
-
-private:
-  nsTArray<nsString> mNamespaceURIs;
   nsTArray<nsString> mNames;
 };
 
