@@ -636,6 +636,9 @@ const size_t GC_ARENA_ALLOCATION_TRIGGER = 30 * js::GC_CHUNK_SIZE;
 
 const float GC_HEAP_GROWTH_FACTOR = 3.0f;
 
+
+static const int64 GC_IDLE_FULL_SPAN = 20 * 1000 * 1000;
+
 static inline size_t
 GetFinalizableTraceKind(size_t thingKind)
 {
@@ -1048,7 +1051,10 @@ typedef enum JSGCInvocationKind {
 
 
 
-    GC_LAST_CONTEXT     = 1
+    GC_LAST_CONTEXT     = 1,
+
+    
+    GC_SHRINK             = 2
 } JSGCInvocationKind;
 
 
@@ -1098,6 +1104,7 @@ class GCHelperThread {
     PRCondVar*        wakeup;
     PRCondVar*        sweepingDone;
     bool              shutdown;
+    JSGCInvocationKind lastGCKind;
 
     Vector<void **, 16, js::SystemAllocPolicy> freeVector;
     void            **freeCursor;
@@ -1137,7 +1144,7 @@ class GCHelperThread {
     void finish(JSRuntime *rt);
 
     
-    void startBackgroundSweep(JSRuntime *rt);
+    void startBackgroundSweep(JSRuntime *rt, JSGCInvocationKind gckind);
 
     void waitBackgroundSweepEnd(JSRuntime *rt, bool gcUnlocked = true);
 
