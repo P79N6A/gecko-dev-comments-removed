@@ -64,6 +64,8 @@ namespace gl {
 GLContext* GLContext::sCurrentGLContext = nsnull;
 #endif
 
+PRUint32 GLContext::sDebugMode = 0;
+
 
 
 const ContextFormat ContextFormat::BasicRGBA32Format(ContextFormat::BasicRGBA32);
@@ -529,16 +531,16 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
 
 #ifdef DEBUG
     if (PR_GetEnv("MOZ_GL_DEBUG"))
-        mDebugMode |= DebugEnabled;
+        sDebugMode |= DebugEnabled;
 
     
     
     if (PR_GetEnv("MOZ_GL_DEBUG_VERBOSE"))
-        mDebugMode |= DebugTrace;
+        sDebugMode |= DebugTrace;
 
     
     if (PR_GetEnv("MOZ_GL_DEBUG_ABORT_ON_ERROR"))
-        mDebugMode |= DebugAbortOnError;
+        sDebugMode |= DebugAbortOnError;
 #endif
 
     if (mInitialized)
