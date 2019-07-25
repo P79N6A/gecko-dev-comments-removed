@@ -4289,6 +4289,9 @@ SetProto(JSContext *cx, JSObject *obj, JSObject *proto, bool checkForCycles)
 
 
 
+
+
+
     if (!cx->markTypeObjectUnknownProperties(obj->getType()) ||
         !cx->markTypeObjectUnknownProperties(type)) {
         return false;

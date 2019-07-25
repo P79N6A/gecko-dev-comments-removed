@@ -384,6 +384,12 @@ struct TypeObject
     TypeObject *next;
 
     
+
+
+
+
+
+
     bool unknownProperties;
 
     
