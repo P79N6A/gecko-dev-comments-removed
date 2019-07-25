@@ -420,6 +420,10 @@ var PlacesCommandHook = {
   updateBookmarkAllTabsCommand:
   function PCH_updateBookmarkAllTabsCommand() {
     
+    if (window.location.href != getBrowserURL())
+      return;
+
+    
     
     goSetCommandEnabled("Browser:BookmarkAllTabs",
                         this.uniqueCurrentPages.length >= 2);
