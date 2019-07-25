@@ -1518,6 +1518,13 @@ let RIL = {
       return PDU_FCS_UNSPECIFIED;
     }
 
+    if (message.epid == PDU_PID_SHORT_MESSAGE_TYPE_0) {
+      
+      
+      
+      return PDU_FCS_OK;
+    }
+
     if (message.header && (message.header.segmentMaxSeq > 1)) {
       message = this._processReceivedSmsSegment(message);
     } else {
@@ -2940,7 +2947,17 @@ let GsmPDUHelper = {
     
     
     msg.pid = this.readHexOctet();
-    
+
+    msg.epid = msg.pid;
+    switch (msg.epid & 0xC0) {
+      case 0x40:
+        
+        switch (msg.epid) {
+          case PDU_PID_SHORT_MESSAGE_TYPE_0:
+            return;
+        }
+        break;
+    }
     msg.epid = PDU_PID_DEFAULT;
   },
 
