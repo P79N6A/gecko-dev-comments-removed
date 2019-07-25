@@ -343,6 +343,8 @@ struct NS_GFX nsIntRect {
 
   inline nsRect ToAppUnits(nscoord aAppUnitsPerPixel) const;
 
+  nsIntRect& ScaleRoundOut(float aXScale, float aYScale);
+
   
   
   static const nsIntRect& GetMaxSizedIntRect() { return kMaxSizedIntRect; }
