@@ -787,6 +787,15 @@ nsBaseWidget::GetShouldAccelerate()
   PRBool forceAcceleration = PR_FALSE;
 #if defined(XP_WIN) || defined(XP_MACOSX) || defined(ANDROID) || (MOZ_PLATFORM_MAEMO > 5)
   PRBool accelerateByDefault = PR_TRUE;
+#elif defined(XP_MACOSX)
+
+
+# if defined(NP_NO_QUICKDRAW)
+  PRBool accelerateByDefault = PR_TRUE;
+# else
+  PRBool accelerateByDefault = PR_FALSE;
+# endif
+
 #else
   PRBool accelerateByDefault = PR_FALSE;
 #endif
