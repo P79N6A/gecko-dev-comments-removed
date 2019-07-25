@@ -2,44 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -170,7 +132,8 @@ PlacesViewBase.prototype = {
     let selectedNode = this.selectedNode;
     if (selectedNode) {
       let popup = document.popupNode;
-      if (!popup._placesNode || popup._placesNode == this._resultNode) {
+      if (!popup._placesNode || popup._placesNode == this._resultNode ||
+          popup._placesNode.itemId == -1) {
         
         
         container = selectedNode;
@@ -210,7 +173,9 @@ PlacesViewBase.prototype = {
     let end = aPopup._endMarker != -1 ? aPopup._endMarker :
                                         aPopup.childNodes.length;
     let items = [];
-    let placesNodeFound = false;
+
+    
+    let firstNonStaticNodeFound = false;
     for (let i = start; i < end; ++i) {
       let item = aPopup.childNodes[i];
       if (item.getAttribute("builder") == "end") {
@@ -220,16 +185,18 @@ PlacesViewBase.prototype = {
         aPopup._endMarker = i;
         break;
       }
+
       if (item._placesNode) {
         items.push(item);
-        placesNodeFound = true;
+        firstNonStaticNodeFound = true;
       }
       else {
         
-        if (!placesNodeFound)
+        if (!firstNonStaticNodeFound) {
           
           
           aPopup._startMarker++;
+        }
         else {
           
           aPopup._endMarker = i;
@@ -248,14 +215,19 @@ PlacesViewBase.prototype = {
   _rebuildPopup: function PVB__rebuildPopup(aPopup) {
     this._cleanPopup(aPopup);
 
-    
-    
-    if (PlacesUtils.nodeIsLivemarkContainer(aPopup._placesNode))
-      this._ensureLivemarkStatusMenuItem(aPopup);
-
     let resultNode = aPopup._placesNode;
     if (!resultNode.containerOpen)
       return;
+
+    if (resultNode._feedURI) {
+      aPopup.removeAttribute("emptyplacesresult");
+      if (aPopup._emptyMenuItem) {
+        aPopup._emptyMenuItem.hidden = true;
+      }
+      aPopup._built = true;
+      this._populateLivemarkPopup(aPopup);
+      return;
+    }
 
     let cc = resultNode.childCount;
     if (cc > 0) {
@@ -303,11 +275,14 @@ PlacesViewBase.prototype = {
 
   _createMenuItemForPlacesNode:
   function PVB__createMenuItemForPlacesNode(aPlacesNode) {
+    delete aPlacesNode._DOMElement;
     let element;
     let type = aPlacesNode.type;
-    if (type == Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR)
+    if (type == Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR) {
       element = document.createElement("menuseparator");
+    }
     else {
+      let itemId = aPlacesNode.itemId;
       if (PlacesUtils.uriTypes.indexOf(type) != -1) {
         element = document.createElement("menuitem");
         element.className = "menuitem-iconic bookmark-item menuitem-with-favicon";
@@ -327,9 +302,19 @@ PlacesViewBase.prototype = {
           else if (PlacesUtils.nodeIsHost(aPlacesNode))
             element.setAttribute("hostContainer", "true");
         }
-        else if (aPlacesNode.itemId != -1) {
-          if (PlacesUtils.nodeIsLivemarkContainer(aPlacesNode))
-            element.setAttribute("livemark", "true");
+        else if (itemId != -1) {
+          PlacesUtils.livemarks.getLivemark(
+            { id: itemId },
+            function (aStatus, aLivemark) {
+              if (Components.isSuccessCode(aStatus)) {
+                element.setAttribute("livemark", "true");
+                
+                
+                aPlacesNode._feedURI = aLivemark.feedURI;
+                aPlacesNode._siteURI = aLivemark.siteURI;
+              }
+            }
+          );
         }
 
         let popup = document.createElement("menupopup");
@@ -392,42 +377,84 @@ PlacesViewBase.prototype = {
     return element;
   },
 
+  _setLivemarkSiteURIMenuItem:
+  function PVB__setLivemarkSiteURIMenuItem(aPopup) {
+    let siteUrl = aPopup._placesNode._siteURI ? aPopup._placesNode._siteURI.spec
+                                              : null;
+    if (!siteUrl && aPopup._siteURIMenuitem) {
+      aPopup.removeChild(aPopup._siteURIMenuitem);
+      aPopup._siteURIMenuitem = null;
+      aPopup._startMarker--;
+      aPopup.removeChild(aPopup._siteURIMenuseparator);
+      aPopup._siteURIMenuseparator = null;
+      aPopup._startMarker--;
+    }
+    else if (siteUrl && !aPopup._siteURIMenuitem) {
+      
+      aPopup._siteURIMenuitem = document.createElement("menuitem");
+      aPopup._siteURIMenuitem.className = "openlivemarksite-menuitem";
+      aPopup._siteURIMenuitem.setAttribute("targetURI", siteUrl);
+      aPopup._siteURIMenuitem.setAttribute("oncommand",
+        "openUILink(this.getAttribute('targetURI'), event);");
+
+      
+      
+      
+      
+      aPopup._siteURIMenuitem.setAttribute("onclick",
+        "checkForMiddleClick(this, event); event.stopPropagation();");
+      let label =
+        PlacesUIUtils.getFormattedString("menuOpenLivemarkOrigin.label",
+                                         [aPopup.parentNode.getAttribute("label")])
+      aPopup._siteURIMenuitem.setAttribute("label", label);
+      aPopup.insertBefore(aPopup._siteURIMenuitem,
+                          aPopup.childNodes.item(aPopup._startMarker + 1));
+      aPopup._startMarker++;
+
+      aPopup._siteURIMenuseparator = document.createElement("menuseparator");
+      aPopup.insertBefore(aPopup._siteURIMenuseparator,
+                         aPopup.childNodes.item(aPopup._startMarker + 1));
+      aPopup._startMarker++;
+    }
+  },
+
   
 
 
 
 
-  _ensureLivemarkStatusMenuItem:
-  function PVB_ensureLivemarkStatusMenuItem(aPopup) {
+
+
+  _setLivemarkStatusMenuItem:
+  function PVB_setLivemarkStatusMenuItem(aPopup, aStatus) {
     let itemId = aPopup._placesNode.itemId;
-    let as = PlacesUtils.annotations;
+    let statusMenuitem = aPopup._statusMenuitem;
+    let stringId = "";
+    if (aStatus == Ci.mozILivemark.STATUS_LOADING)
+      stringId = "bookmarksLivemarkLoading";
+    else if (aStatus == Ci.mozILivemark.STATUS_FAILED)
+      stringId = "bookmarksLivemarkFailed";
 
-    let lmStatus = null;
-    if (as.itemHasAnnotation(itemId, PlacesUtils.LMANNO_LOADFAILED))
-      lmStatus = "bookmarksLivemarkFailed";
-    else if (as.itemHasAnnotation(itemId, PlacesUtils.LMANNO_LOADING))
-      lmStatus = "bookmarksLivemarkLoading";
-
-    let lmStatusElt = aPopup._lmStatusMenuItem;
-    if (lmStatus && !lmStatusElt) {
+    if (stringId && !statusMenuitem) {
       
-      lmStatusElt = document.createElement("menuitem");
-      lmStatusElt.setAttribute("lmStatus", lmStatus);
-      lmStatusElt.setAttribute("label", PlacesUIUtils.getString(lmStatus));
-      lmStatusElt.setAttribute("disabled", true);
-      aPopup.insertBefore(lmStatusElt,
+      statusMenuitem = document.createElement("menuitem");
+      statusMenuitem.setAttribute("livemarkStatus", stringId);
+      statusMenuitem.setAttribute("label", PlacesUIUtils.getString(stringId));
+      statusMenuitem.setAttribute("disabled", true);
+      aPopup.insertBefore(statusMenuitem,
                           aPopup.childNodes.item(aPopup._startMarker + 1));
-      aPopup._lmStatusMenuItem = lmStatusElt;
+      aPopup._statusMenuitem = statusMenuitem;
       aPopup._startMarker++;
     }
-    else if (lmStatus && lmStatusElt.getAttribute("lmStatus") != lmStatus) {
+    else if (stringId &&
+             statusMenuitem.getAttribute("livemarkStatus") != stringId) {
       
-      lmStatusElt.setAttribute("label", this.getString(lmStatus));
+      statusMenuitem.setAttribute("label", PlacesUIUtils.getString(stringId));
     }
-    else if (!lmStatus && lmStatusElt) {
+    else if (!stringId && statusMenuitem) {
       
-      aPopup.removeChild(aPopup._lmStatusMenuItem);
-      aPopup._lmStatusMenuItem = null;
+      aPopup.removeChild(aPopup._statusMenuitem);
+      aPopup._statusMenuitem = null;
       aPopup._startMarker--;
     }
   },
@@ -488,14 +515,22 @@ PlacesViewBase.prototype = {
     
     if (aAnno == PlacesUtils.LMANNO_FEEDURI) {
       let menu = elt.parentNode;
-      if (!menu.hasAttribute("livemark"))
+      if (!menu.hasAttribute("livemark")) {
         menu.setAttribute("livemark", "true");
-    }
+      }
 
-    if ([PlacesUtils.LMANNO_LOADING,
-         PlacesUtils.LMANNO_LOADFAILED].indexOf(aAnno) != -1) {
-      
-      this._ensureLivemarkStatusMenuItem(elt);
+      PlacesUtils.livemarks.getLivemark(
+        { id: aPlacesNode.itemId },
+        (function (aStatus, aLivemark) {
+          if (Components.isSuccessCode(aStatus)) {
+            
+            
+            aPlacesNode._feedURI = aLivemark.feedURI;
+            aPlacesNode._siteURI = aLivemark.siteURI;
+            this.invalidateContainer(aPlacesNode);
+          }
+        }).bind(this)
+      );
     }
   },
 
@@ -580,7 +615,24 @@ PlacesViewBase.prototype = {
     }
   },
 
-  nodeHistoryDetailsChanged: function() { },
+  nodeHistoryDetailsChanged:
+  function PVB_nodeHistoryDetailsChanged(aPlacesNode, aTime, aCount) {
+    if (aPlacesNode.parent && aPlacesNode.parent._feedURI) {
+      
+      let popup = aPlacesNode.parent._DOMElement;
+      for (let i = popup._startMarker; i < popup.childNodes.length; i++) {
+        let child = popup.childNodes[i];
+        if (child._placesNode && child._placesNode.uri == aPlacesNode.uri) {
+          if (aCount)
+            child.setAttribute("visited", "true");
+          else
+            child.removeAttribute("visited");
+          break;
+        }
+      }
+    }
+  },
+
   nodeTagsChanged: function() { },
   nodeDateAddedChanged: function() { },
   nodeLastModifiedChanged: function() { },
@@ -642,10 +694,60 @@ PlacesViewBase.prototype = {
     if (aNewState == Ci.nsINavHistoryContainerResultNode.STATE_OPENED ||
         aNewState == Ci.nsINavHistoryContainerResultNode.STATE_CLOSED) {
       this.invalidateContainer(aPlacesNode);
+
+      if (PlacesUtils.nodeIsFolder(aPlacesNode)) {
+        let queryOptions = PlacesUtils.asQuery(this._result.root).queryOptions;
+        if (queryOptions.excludeItems) {
+          return;
+        }
+
+        PlacesUtils.livemarks.getLivemark({ id: aPlacesNode.itemId },
+          (function (aStatus, aLivemark) {
+            if (Components.isSuccessCode(aStatus)) {
+              let shouldInvalidate = !aPlacesNode._feedURI;
+              aPlacesNode._feedURI = aLivemark.feedURI;
+              aPlacesNode._siteURI = aLivemark.siteURI;
+              if (aNewState == Ci.nsINavHistoryContainerResultNode.STATE_OPENED) {
+                aLivemark.registerForUpdates(aPlacesNode, this);
+                aLivemark.reload();
+                if (shouldInvalidate)
+                  this.invalidateContainer(aPlacesNode);
+              }
+              else {
+                aLivemark.unregisterForUpdates(aPlacesNode);
+              }
+            }
+          }).bind(this)
+        );
+      }
     }
-    else {
-      throw "Unexpected state passed to containerStateChanged";
-    }
+  },
+
+  _populateLivemarkPopup: function PVB__populateLivemarkPopup(aPopup)
+  {
+    this._setLivemarkSiteURIMenuItem(aPopup);
+    this._setLivemarkStatusMenuItem(aPopup, Ci.mozILivemark.STATUS_LOADING);
+
+    PlacesUtils.livemarks.getLivemark({ id: aPopup._placesNode.itemId },
+      (function (aStatus, aLivemark) {
+        let placesNode = aPopup._placesNode;
+        if (!Components.isSuccessCode(aStatus) || !placesNode.containerOpen)
+          return;
+
+        this._setLivemarkStatusMenuItem(aPopup, aLivemark.status);
+        this._cleanPopup(aPopup);
+
+        let children = aLivemark.getNodesForContainer(placesNode);
+        for (let i = 0; i < children.length; i++) {
+          let child = children[i];
+          this.nodeInserted(placesNode, child, i);
+          if (child.accessCount)
+            child._DOMElement.setAttribute("visited", true);
+          else
+            child._DOMElement.removeAttribute("visited");
+        }
+      }).bind(this)
+    );
   },
 
   invalidateContainer: function PVB_invalidateContainer(aPlacesNode) {
@@ -696,76 +798,43 @@ PlacesViewBase.prototype = {
     if (aPopup == this._rootElt)
       return;
 
+    let hasMultipleURIs = false;
+
     
-    let numURINodes = 0;
-    let currentChild = aPopup.firstChild;
-    while (currentChild) {
-      if (currentChild.localName == "menuitem" && currentChild._placesNode) {
-        if (++numURINodes == 2)
-          break;
+    
+    
+    if (aPopup._placesNode.childCount > 0) {
+      let currentChild = aPopup.firstChild;
+      let numURINodes = 0;
+      while (currentChild) {
+        if (currentChild.localName == "menuitem" && currentChild._placesNode) {
+          if (++numURINodes == 2)
+            break;
+        }
+        currentChild = currentChild.nextSibling;
       }
-      currentChild = currentChild.nextSibling;
+      hasMultipleURIs = numURINodes > 1;
     }
 
-    let hasMultipleURIs = numURINodes > 1;
-    let itemId = aPopup._placesNode.itemId;
-    let siteURIString = "";
-    if (itemId != -1 && PlacesUtils.itemIsLivemark(itemId)) {
-      let siteURI = PlacesUtils.livemarks.getSiteURI(itemId);
-      if (siteURI)
-        siteURIString = siteURI.spec;
-    }
-
-    if (!siteURIString && aPopup._endOptOpenSiteURI) {
-      aPopup.removeChild(aPopup._endOptOpenSiteURI);
-      aPopup._endOptOpenSiteURI = null;
-    }
-
-    if (!hasMultipleURIs && aPopup._endOptOpenAllInTabs) {
-      aPopup.removeChild(aPopup._endOptOpenAllInTabs);
-      aPopup._endOptOpenAllInTabs = null;
-    }
-
-    if (!(hasMultipleURIs || siteURIString)) {
+    if (!hasMultipleURIs) {
       
-      if (aPopup._endOptSeparator) {
+      if (aPopup._endOptOpenAllInTabs) {
+        aPopup.removeChild(aPopup._endOptOpenAllInTabs);
+        aPopup._endOptOpenAllInTabs = null;
+        aPopup._endMarker--;
+
         aPopup.removeChild(aPopup._endOptSeparator);
         aPopup._endOptSeparator = null;
-        aPopup._endMarker = -1;
+        aPopup._endMarker--;
       }
-      return;
     }
-
-    if (!aPopup._endOptSeparator) {
+    else if (!aPopup._endOptOpenAllInTabs) {
       
       aPopup._endOptSeparator = document.createElement("menuseparator");
       aPopup._endOptSeparator.className = "bookmarks-actions-menuseparator";
-      aPopup._endMarker = aPopup.childNodes.length;
       aPopup.appendChild(aPopup._endOptSeparator);
-    }
+      aPopup._endMarker++;
 
-    if (siteURIString && !aPopup._endOptOpenSiteURI) {
-      
-      aPopup._endOptOpenSiteURI = document.createElement("menuitem");
-      aPopup._endOptOpenSiteURI.className = "openlivemarksite-menuitem";
-      aPopup._endOptOpenSiteURI.setAttribute("targetURI", siteURIString);
-      aPopup._endOptOpenSiteURI.setAttribute("oncommand",
-          "openUILink(this.getAttribute('targetURI'), event);");
-
-      
-      
-      
-      
-      aPopup._endOptOpenSiteURI.setAttribute("onclick",
-          "checkForMiddleClick(this, event); event.stopPropagation();");
-      aPopup._endOptOpenSiteURI.setAttribute("label",
-          PlacesUIUtils.getFormattedString("menuOpenLivemarkOrigin.label",
-          [aPopup.parentNode.getAttribute("label")]));
-      aPopup.appendChild(aPopup._endOptOpenSiteURI);
-    }
-
-    if (hasMultipleURIs && !aPopup._endOptOpenAllInTabs) {
-      
       
       aPopup._endOptOpenAllInTabs = document.createElement("menuitem");
       aPopup._endOptOpenAllInTabs.className = "openintabs-menuitem";
@@ -777,6 +846,7 @@ PlacesViewBase.prototype = {
       aPopup._endOptOpenAllInTabs.setAttribute("label",
         gNavigatorBundle.getString("menuOpenAllInTabs.label"));
       aPopup.appendChild(aPopup._endOptOpenAllInTabs);
+      aPopup._endMarker++;
     }
   },
 
@@ -901,6 +971,7 @@ PlacesToolbar.prototype = {
 
   _insertNewItem:
   function PT__insertNewItem(aChild, aBefore) {
+    delete aChild._DOMElement;
     let type = aChild.type;
     let button;
     if (type == Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR) {
@@ -923,8 +994,19 @@ PlacesToolbar.prototype = {
           if (PlacesUtils.nodeIsTagQuery(aChild))
             button.setAttribute("tagContainer", "true");
         }
-        else if (PlacesUtils.nodeIsLivemarkContainer(aChild)) {
-          button.setAttribute("livemark", "true");
+        else if (PlacesUtils.nodeIsFolder(aChild)) {
+          PlacesUtils.livemarks.getLivemark(
+            { id: aChild.itemId },
+            function (aStatus, aLivemark) {
+              if (Components.isSuccessCode(aStatus)) {
+                button.setAttribute("livemark", "true");
+                
+                
+                aChild._feedURI = aLivemark.feedURI;
+                aChild._siteURI = aLivemark.siteURI;
+              }
+            }
+          );
         }
 
         let popup = document.createElement("menupopup");
@@ -1188,12 +1270,19 @@ PlacesToolbar.prototype = {
       
       if (aAnno == PlacesUtils.LMANNO_FEEDURI) {
         elt.setAttribute("livemark", true);
-      }
 
-      if ([PlacesUtils.LMANNO_LOADING,
-           PlacesUtils.LMANNO_LOADFAILED].indexOf(aAnno) != -1) {
-        
-        this._ensureLivemarkStatusMenuItem(elt.firstChild);
+        PlacesUtils.livemarks.getLivemark(
+          { id: aPlacesNode.itemId },
+          (function (aStatus, aLivemark) {
+            if (Components.isSuccessCode(aStatus)) {
+              
+              
+              aPlacesNode._feedURI = aLivemark.feedURI;
+              aPlacesNode._siteURI = aLivemark.siteURI;
+              this.invalidateContainer(aPlacesNode);
+            }
+          }).bind(this)
+        );
       }
     }
     else {
@@ -1623,13 +1712,16 @@ PlacesToolbar.prototype = {
 
   _onPopupHidden: function PT__onPopupHidden(aEvent) {
     let popup = aEvent.target;
-
+    let placesNode = popup._placesNode;
     
-    if (popup._placesNode && PlacesUIUtils.getViewForNode(popup) == this) {
+    if (placesNode && PlacesUIUtils.getViewForNode(popup) == this) {
       
       
-      if (!PlacesUtils.nodeIsFolder(popup._placesNode))
-        popup._placesNode.containerOpen = false;
+      
+      
+      if (!PlacesUtils.nodeIsFolder(placesNode) || placesNode._feedURI) {
+        placesNode.containerOpen = false;
+      }
     }
 
     let parent = popup.parentNode;

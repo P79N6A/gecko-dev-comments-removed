@@ -1657,12 +1657,6 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   
   
   
-  setTimeout(function() PlacesUtils.livemarks.start(), 5000);
-
-  
-  
-  
-  
   
   setTimeout(function() {
     gDownloadMgr = Cc["@mozilla.org/download-manager;1"].
