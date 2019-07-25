@@ -208,6 +208,12 @@ SpecialPowers.prototype = {
              .createInstance(Ci.nsIXMLHttpRequest);
   },
 
+  loadURI: function(window, uri, referrer, charset, x, y) {
+    var webNav = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                       .getInterface(Ci.nsIWebNavigation);
+    webNav.loadURI(uri, referrer, charset, x, y);
+  },
+
   gc: function() {
     this.DOMWindowUtils.garbageCollect();
   },
@@ -343,11 +349,8 @@ SpecialPowersManager.prototype = {
     var window = aEvent.target.defaultView;
 
     
-    
-    
-    
     var uri = window.document.documentURIObject;
-    if (uri.scheme === "chrome" || uri.spec.split(":")[0] == "about") {
+    if (uri.spec.split(":")[0] == "about") {
       return;
     }
 
