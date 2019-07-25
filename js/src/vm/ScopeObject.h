@@ -250,7 +250,13 @@ class StaticBlockObject : public BlockObject
 
     void setDefinitionParseNode(unsigned i, Definition *def);
     Definition *maybeDefinitionParseNode(unsigned i);
-    void poisonDefinitionParseNode(unsigned i);
+
+    
+
+
+
+    void setAliased(unsigned i, bool aliased);
+    bool isAliased(unsigned i);
 
     const Shape *addVar(JSContext *cx, jsid id, int index, bool *redeclared);
 };

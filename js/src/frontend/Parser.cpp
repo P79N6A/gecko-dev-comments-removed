@@ -625,6 +625,34 @@ Parser::functionBody(FunctionBodyType type)
         }
     }
 
+    
+
+
+
+
+
+
+    if (tc->inStrictMode() && tc->fun()->nargs > 0) {
+        AtomDeclsIter iter(&tc->decls);
+        while (Definition *dn = iter.next()) {
+            if (dn->kind() == Definition::ARG && dn->isAssigned()) {
+                tc->flags |= TCF_FUN_MUTATES_PARAMETER;
+                break;
+            }
+        }
+    }
+
+    
+
+
+
+    if (FuncStmtSet *set = tc->funcStmts) {
+        for (FuncStmtSet::Range r = set->all(); !r.empty(); r.popFront()) {
+            if (Definition *dn = tc->decls.lookupFirst(r.front()))
+                dn->pn_dflags |= PND_CLOSED;
+        }
+    }
+
     tc->flags = oldflags | (tc->flags & TCF_FUN_FLAGS);
     return pn;
 }
@@ -1032,6 +1060,12 @@ DeoptimizeUsesWithin(Definition *dn, const TokenPos &pos)
     return ndeoptimized != 0;
 }
 
+
+
+
+
+
+
 static bool
 LeaveFunction(ParseNode *fn, TreeContext *funtc, PropertyName *funName = NULL,
               FunctionSyntaxKind kind = Expression)
@@ -1075,7 +1109,8 @@ LeaveFunction(ParseNode *fn, TreeContext *funtc, PropertyName *funName = NULL,
 
 
 
-            if (funtc->callsEval() ||
+
+            if (funtc->bindingsAccessedDynamically() ||
                 (outer_dn && tc->innermostWith &&
                  outer_dn->pn_pos < tc->innermostWith->pn_pos)) {
                 DeoptimizeUsesWithin(dn, fn->pn_pos);
@@ -1171,25 +1206,6 @@ LeaveFunction(ParseNode *fn, TreeContext *funtc, PropertyName *funName = NULL,
             funtc->lexdeps.releaseMap(funtc->parser->context);
         }
 
-    }
-
-    
-
-
-
-
-
-
-    if (funtc->inStrictMode() && funbox->object->toFunction()->nargs > 0) {
-        AtomDeclsIter iter(&funtc->decls);
-        Definition *dn;
-
-        while ((dn = iter()) != NULL) {
-            if (dn->kind() == Definition::ARG && dn->isAssigned()) {
-                funbox->tcflags |= TCF_FUN_MUTATES_PARAMETER;
-                break;
-            }
-        }
     }
 
     funbox->bindings.transfer(funtc->parser->context, &funtc->bindings);
@@ -1487,8 +1503,7 @@ Parser::functionDef(PropertyName *funName, FunctionType type, FunctionSyntaxKind
 
     if (prelude) {
         AtomDeclsIter iter(&funtc.decls);
-
-        while (Definition *apn = iter()) {
+        while (Definition *apn = iter.next()) {
             
             if (!apn->isOp(JSOP_SETLOCAL))
                 continue;
@@ -1547,15 +1562,8 @@ Parser::functionDef(PropertyName *funName, FunctionType type, FunctionSyntaxKind
 
 
 
-
-
-
-
-
-
-
-    if (funtc.callsEval())
-        outertc->noteCallsEval();
+    if (funtc.bindingsAccessedDynamically())
+        outertc->noteBindingsAccessedDynamically();
 
 #if JS_HAS_DESTRUCTURING
     
@@ -1621,6 +1629,20 @@ Parser::functionDef(PropertyName *funName, FunctionType type, FunctionSyntaxKind
             outertc->flags |= TCF_FUN_HEAVYWEIGHT;
             if (fun->atom == context->runtime->atomState.argumentsAtom)
                 outertc->noteLocalOverwritesArguments();
+
+            
+
+
+
+
+
+            if (!outertc->funcStmts) {
+                outertc->funcStmts = context->new_<FuncStmtSet>(context);
+                if (!outertc->funcStmts || !outertc->funcStmts->init())
+                    return NULL;
+            }
+            if (!outertc->funcStmts->put(funName))
+                return NULL;
         }
     }
 
@@ -3695,6 +3717,8 @@ Parser::withStatement()
 
     pn->pn_pos.end = pn2->pn_pos.end;
     pn->pn_right = pn2;
+
+    tc->noteBindingsAccessedDynamically();
     tc->flags |= TCF_FUN_HEAVYWEIGHT;
     tc->innermostWith = oldWith;
 
@@ -5736,6 +5760,7 @@ Parser::memberExpr(JSBool allowCallSyntax)
                 if (tt == TOK_LP) {
                     
                     tc->flags |= TCF_FUN_HEAVYWEIGHT;
+                    tc->noteBindingsAccessedDynamically();
 
                     StmtInfo stmtInfo;
                     ParseNode *oldWith = tc->innermostWith;
@@ -5854,7 +5879,7 @@ Parser::memberExpr(JSBool allowCallSyntax)
                 if (lhs->pn_atom == context->runtime->atomState.evalAtom) {
                     
                     nextMember->setOp(JSOP_EVAL);
-                    tc->noteCallsEval();
+                    tc->noteBindingsAccessedDynamically();
                     tc->flags |= TCF_FUN_HEAVYWEIGHT;
                     
 
@@ -6013,9 +6038,8 @@ Parser::qualifiedSuffix(ParseNode *pn)
     if (!pn2)
         return NULL;
 
-    
     tc->flags |= TCF_FUN_HEAVYWEIGHT;
-    tc->noteLocalOverwritesArguments();
+    tc->noteBindingsAccessedDynamically();
 
     
     if (pn->isOp(JSOP_QNAMEPART))
@@ -6062,7 +6086,7 @@ Parser::qualifiedIdentifier()
     if (tokenStream.matchToken(TOK_DBLCOLON)) {
         
         tc->flags |= TCF_FUN_HEAVYWEIGHT;
-        tc->noteLocalOverwritesArguments();
+        tc->noteBindingsAccessedDynamically();
         pn = qualifiedSuffix(pn);
     }
     return pn;
@@ -6578,7 +6602,7 @@ Parser::propertyQualifiedIdentifier()
 
     
     tc->flags |= TCF_FUN_HEAVYWEIGHT;
-    tc->noteLocalOverwritesArguments();
+    tc->noteBindingsAccessedDynamically();
 
     PropertyName *name = tokenStream.currentToken().name();
     ParseNode *node = NameNode::create(PNK_NAME, name, tc);

@@ -514,7 +514,7 @@ struct JSScript : public js::gc::Cell
     bool            savedCallerFun:1; 
     bool            strictModeCode:1; 
     bool            compileAndGo:1;   
-    bool            usesEval:1;       
+    bool            bindingsAccessedDynamically:1; 
     bool            warnedAboutTwoArgumentEval:1; 
 
 
@@ -806,6 +806,11 @@ struct JSScript : public js::gc::Cell
         return arr->vector[index];
     }
 
+
+#ifdef DEBUG
+    bool varIsAliased(unsigned varSlot);
+    bool argIsAliased(unsigned argSlot);
+#endif
   private:
     
 

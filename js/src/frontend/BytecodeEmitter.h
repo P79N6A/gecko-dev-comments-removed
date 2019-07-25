@@ -56,6 +56,8 @@
 
 namespace js {
 
+typedef HashSet<JSAtom *> FuncStmtSet;
+
 
 
 
@@ -230,7 +232,28 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     TCF_STRICT_MODE_CODE =                 0x10000,
 
     
-    TCF_FUN_CALLS_EVAL =                   0x20000,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    TCF_BINDINGS_ACCESSED_DYNAMICALLY =    0x20000,
 
     
     TCF_FUN_MUTATES_PARAMETER =            0x40000,
@@ -277,7 +300,7 @@ static const uint32_t TCF_FUN_FLAGS = TCF_FUN_USES_ARGUMENTS |
                                       TCF_FUN_HEAVYWEIGHT |
                                       TCF_FUN_IS_GENERATOR |
                                       TCF_FUN_USES_OWN_NAME |
-                                      TCF_FUN_CALLS_EVAL |
+                                      TCF_BINDINGS_ACCESSED_DYNAMICALLY |
                                       TCF_FUN_MIGHT_ALIAS_LOCALS |
                                       TCF_FUN_MUTATES_PARAMETER |
                                       TCF_STRICT_MODE_CODE |
@@ -351,6 +374,10 @@ struct TreeContext {
 
     Bindings::StackRoot bindingsRoot; 
 
+    FuncStmtSet *funcStmts;         
+
+
+
     void trace(JSTracer *trc);
 
     inline TreeContext(Parser *prs);
@@ -409,12 +436,12 @@ struct TreeContext {
         return flags & TCF_FUN_USES_ARGUMENTS;
     }
 
-    void noteCallsEval() {
-        flags |= TCF_FUN_CALLS_EVAL;
+    void noteBindingsAccessedDynamically() {
+        flags |= TCF_BINDINGS_ACCESSED_DYNAMICALLY;
     }
 
-    bool callsEval() const {
-        return flags & TCF_FUN_CALLS_EVAL;
+    bool bindingsAccessedDynamically() const {
+        return flags & TCF_BINDINGS_ACCESSED_DYNAMICALLY;
     }
 
     void noteMightAliasLocals() {
@@ -440,7 +467,7 @@ struct TreeContext {
         JS_ASSERT_IF(inStrictMode(),
                      !(flags & (TCF_FUN_PARAM_ARGUMENTS | TCF_FUN_LOCAL_ARGUMENTS)));
         return !inStrictMode() &&
-               (callsEval() ||
+               (bindingsAccessedDynamically() ||
                 flags & (TCF_FUN_PARAM_ARGUMENTS | TCF_FUN_LOCAL_ARGUMENTS));
     }
 
@@ -469,7 +496,8 @@ struct TreeContext {
     }
 
     bool needsEagerArguments() const {
-        return inStrictMode() && ((usesArguments() && mutatesParameter()) || callsEval());
+        return inStrictMode() &&
+               (bindingsAccessedDynamically() || (usesArguments() && mutatesParameter()));
     }
 
     void noteHasExtensibleScope() {
