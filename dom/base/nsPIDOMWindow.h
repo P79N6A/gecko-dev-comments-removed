@@ -316,7 +316,7 @@ public:
 
   nsPIDOMWindow *GetOuterWindow()
   {
-    return mIsInnerWindow ? mOuterWindow.get() : this;
+    return mIsInnerWindow ? mOuterWindow : this;
   }
 
   nsPIDOMWindow *GetCurrentInnerWindow() const
@@ -611,7 +611,7 @@ protected:
 
   
   nsPIDOMWindow         *mInnerWindow;
-  nsCOMPtr<nsPIDOMWindow> mOuterWindow;
+  nsPIDOMWindow         *mOuterWindow;
 
   
   
