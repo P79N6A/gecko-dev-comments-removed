@@ -348,6 +348,7 @@ struct JSScript : public js::gc::Cell
     static const uint32_t stepCountMask = 0x7fffffffU;
 
   public:
+#ifdef JS_METHODJIT
     
     
     
@@ -389,6 +390,7 @@ struct JSScript : public js::gc::Cell
 
         static void staticAsserts();
     };
+#endif  
 
     
     
