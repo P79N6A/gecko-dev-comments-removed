@@ -80,7 +80,6 @@
 #include "nsFrameSelection.h"
 #include "nsXULPopupManager.h"
 #include "nsImageMapUtils.h"
-#include "nsTreeWalker.h"
 #include "nsIDOMNodeFilter.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIPrincipal.h"
@@ -2603,18 +2602,12 @@ nsFocusManager::GetNextTabbableContent(nsIPresShell* aPresShell,
         return NS_OK;
 
       
-      nsTreeWalker walker(aRootContent, nsIDOMNodeFilter::SHOW_ALL, nsnull, PR_TRUE);
-      nsCOMPtr<nsIDOMNode> nextNode = do_QueryInterface(iterStartContent);
-      walker.SetCurrentNode(nextNode);
-      if (NS_SUCCEEDED(aForward ? walker.NextNode(getter_AddRefs(nextNode)) :
-                                  walker.PreviousNode(getter_AddRefs(nextNode)))) {
-        iterStartContent = do_QueryInterface(nextNode);
-        
-        
-        getNextFrame = PR_FALSE;
-        if (iterStartContent)
-          continue;
-      }
+      iterStartContent = aForward ? iterStartContent->GetNextNode() : iterStartContent->GetPreviousContent();
+      
+      
+      getNextFrame = PR_FALSE;
+      if (iterStartContent)
+        continue;
 
       
       iterStartContent = aRootContent;

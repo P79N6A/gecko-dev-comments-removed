@@ -1123,6 +1123,38 @@ public:
   
 
 
+
+
+
+
+  nsIContent* GetPreviousContent(const nsINode* aRoot = nsnull) const
+  {
+      
+      
+#ifdef DEBUG
+      if (aRoot) {
+        const nsINode* cur = this;
+        for (; cur; cur = cur->GetNodeParent())
+          if (cur == aRoot) break;
+        NS_ASSERTION(cur, "aRoot not an ancestor of |this|?");
+      }
+#endif
+
+    if (this == aRoot) {
+      return nsnull;
+    }
+    nsIContent* cur = this->GetParent();
+    nsIContent* iter = this->GetPreviousSibling();
+    while (iter) {
+      cur = iter;
+      iter = reinterpret_cast<nsINode*>(iter)->GetLastChild();
+    }
+    return cur;
+  }
+
+  
+
+
 private:
   enum BooleanFlag {
     
