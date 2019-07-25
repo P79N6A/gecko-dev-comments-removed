@@ -9,7 +9,7 @@ SimpleTest.waitForExplicitFinish();
 
 function runTest() {
   browserElementTestHelpers.setEnabledPref(true);
-  browserElementTestHelpers.addToWhitelist();
+  browserElementTestHelpers.addPermission();
 
   
   

@@ -12,7 +12,7 @@
 SimpleTest.waitForExplicitFinish();
 
 browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addToWhitelist();
+browserElementTestHelpers.addPermission();
 
 
 
