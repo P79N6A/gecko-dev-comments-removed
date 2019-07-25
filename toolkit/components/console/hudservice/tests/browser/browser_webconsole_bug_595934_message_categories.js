@@ -49,6 +49,51 @@ const TESTS = [
     category: "SVG",
     matchString: "fooBarSVG",
   },
+  { 
+    file: "test-bug-595934-workers.html",
+    category: "DOM Worker javascript",
+    matchString: "fooBarWorker",
+  },
+  { 
+    file: "test-bug-595934-dom-html-external.html",
+    category: "DOM:HTML",
+    matchString: "document.all",
+  },
+  { 
+    file: "test-bug-595934-dom-events-external.html",
+    category: "DOM Events",
+    matchString: "clientWidth",
+  },
+  { 
+    file: "test-bug-595934-dom-events-external2.html",
+    category: "DOM Events",
+    matchString: "preventBubble()",
+  },
+  { 
+    file: "test-bug-595934-canvas.html",
+    category: "Canvas",
+    matchString: "strokeStyle",
+  },
+  { 
+    file: "test-bug-595934-css-parser.html",
+    category: "CSS Parser",
+    matchString: "foobarCssParser",
+  },
+  { 
+    file: "test-bug-595934-malformedxml-external.html",
+    category: "malformed-xml",
+    matchString: "malformed-xml",
+  },
+  { 
+    file: "test-bug-595934-empty-getelementbyid.html",
+    category: "DOM",
+    matchString: "getElementById",
+  },
+  { 
+    file: "test-bug-595934-canvas-css.html",
+    category: "CSS Parser",
+    matchString: "foobarCanvasCssParser",
+  },
 ];
 
 let pos = -1;
@@ -63,7 +108,7 @@ let TestObserver = {
     }
 
     is(aSubject.category, TESTS[pos].category,
-      "test #" + pos + ": error category");
+      "test #" + pos + ": error category '" + TESTS[pos].category + "'");
 
     if (aSubject.category == TESTS[pos].category) {
       executeSoon(performTest);
@@ -114,13 +159,13 @@ function testEnd() {
 function performTest() {
   let textContent = hud.outputNode.textContent;
   isnot(textContent.indexOf(TESTS[pos].matchString), -1,
-    "test #" + pos + ": message found");
+    "test #" + pos + ": message found '" + TESTS[pos].matchString + "'");
 
   testNext();
 }
 
 function test() {
-  addTab("data:text/html,Web Console test for bug 595934.");
+  addTab("data:text/html,Web Console test for bug 595934 - message categories coverage.");
   browser.addEventListener("load", tabLoad, true);
 }
 
