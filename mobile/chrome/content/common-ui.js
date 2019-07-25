@@ -480,6 +480,10 @@ var FindHelperUI = {
     messageManager.addMessageListener("FindAssist:Hide", this);
 
     
+    Elements.browsers.addEventListener("PanBegin", this, false);
+    Elements.browsers.addEventListener("PanFinished", this, false);
+
+    
     document.getElementById("tabs").addEventListener("TabSelect", this, true);
     Elements.browsers.addEventListener("URLChanged", this, true);
   },
@@ -509,6 +513,16 @@ var FindHelperUI = {
       case "URLChanged":
         if (aEvent.detail && aEvent.target == getBrowser())
           this.hide();
+        break;
+
+      case "PanBegin":
+        this._container.style.visibility = "hidden";
+        this._textbox.collapsed = true;
+        break;
+
+      case "PanFinished":
+        this._container.style.visibility = "visible";
+        this._textbox.collapsed = false;
         break;
     }
   },
@@ -607,7 +621,7 @@ var FormHelperUI = {
 
   init: function formHelperInit() {
     this._container = document.getElementById("content-navigator");
-    this._autofillContainer = document.getElementById("form-helper-autofill");
+    this._suggestionsContainer = document.getElementById("form-helper-suggestions-container");
     this._cmdPrevious = document.getElementById(this.commands.previous);
     this._cmdNext = document.getElementById(this.commands.next);
 
@@ -628,21 +642,35 @@ var FormHelperUI = {
     
     messageManager.addMessageListener("DOMWillOpenModalDialog", this);
     messageManager.addMessageListener("DOMModalDialogClosed", this);
+
+    
+    window.addEventListener("keydown", this, true);
+    window.addEventListener("keyup", this, true);
+    window.addEventListener("keypress", this, true);
+
+    
+    Elements.browsers.addEventListener("PanBegin", this, false);
+    Elements.browsers.addEventListener("PanFinished", this, false);
+    window.addEventListener("AnimatedZoomBegin", this, false);
+    window.addEventListener("AnimatedZoomEnd", this, false);
   },
 
   _currentBrowser: null,
   show: function formHelperShow(aElement, aHasPrevious, aHasNext) {
     this._currentBrowser = Browser.selectedBrowser;
+    this._currentCaretRect = null;
 
     
     this._cmdPrevious.setAttribute("disabled", !aHasPrevious);
     this._cmdNext.setAttribute("disabled", !aHasNext);
+    this._hasSuggestions = false;
     this._open = true;
 
     let lastElement = this._currentElement || null;
     this._currentElement = {
       id: aElement.id,
       name: aElement.name,
+      title: aElement.title,
       value: aElement.value,
       maxLength: aElement.maxLength,
       type: aElement.type,
@@ -650,8 +678,9 @@ var FormHelperUI = {
       list: aElement.choices
     }
 
-    this._updateContainer(lastElement, this._currentElement);
+    this._updateContainerForSelect(lastElement, this._currentElement);
     this._zoom(Rect.fromRect(aElement.rect), Rect.fromRect(aElement.caretRect));
+    this._updateSuggestionsFor(this._currentElement);
 
     
     this._currentBrowser.scrollSync = false;
@@ -669,6 +698,7 @@ var FormHelperUI = {
     this._currentCaretRect = null;
 
     this._updateContainerForSelect(this._currentElement, null);
+    this._resetSuggestions();
 
     this._currentBrowser.messageManager.sendAsyncMessage("FormAssist:Closed", { });
     this._open = false;
@@ -687,16 +717,44 @@ var FormHelperUI = {
         this.hide();
         break;
 
+      case "PanBegin":
+        
+        
+        
+        
+        this._container.style.visibility = "hidden";
+
+      case "AnimatedZoomBegin":
+        
+        
+        if (this._hasSuggestions)
+          this._suggestionsContainer.style.visibility = "hidden";
+        break;
+
+      case "PanFinished":
+        this._container.style.visibility = "visible";
+
+      case "AnimatedZoomEnd":
+        if (this._hasSuggestions) {
+          this._suggestionsContainer.style.visibility = "visible";
+          this._ensureSuggestionsVisible();
+        }
+        break;
+
       case "URLChanged":
         if (aEvent.detail && aEvent.target == getBrowser())
           this.hide();
         break;
 
+      case "keydown":
+      case "keypress":
+      case "keyup":
+        Browser.keySender.handleEvent(aEvent);
+        break;
+
       case "SizeChanged":
         setTimeout(function(self) {
-          SelectHelperUI.resize();
-          self._container.contentHasChanged();
-
+          SelectHelperUI.sizeToContent();
           self._zoom(self._currentElementRect, self._currentCaretRect);
         }, 0, this);
         break;
@@ -714,7 +772,7 @@ var FormHelperUI = {
         
         
         this.enabled ? this.show(json.current, json.hasPrevious, json.hasNext)
-                     : SelectHelperUI.show(json.current.choices);
+                     : SelectHelperUI.show(json.current.choices, json.current.title);
         break;
 
       case "FormAssist:Hide":
@@ -728,8 +786,7 @@ var FormHelperUI = {
         break;
 
       case "FormAssist:AutoComplete":
-        this._updateAutocompleteFor(json.current);
-        this._container.contentHasChanged();
+        this._updateSuggestionsFor(json.current);
         break;
 
        case "FormAssist:Update":
@@ -739,17 +796,13 @@ var FormHelperUI = {
         break;
 
       case "DOMWillOpenModalDialog":
-        if (aMessage.target == Browser.selectedBrowser) {
+        if (aMessage.target == Browser.selectedBrowser && this._container.isActive)
           this._container.style.display = "none";
-          this._container._spacer.hidden = true;
-        }
         break;
 
       case "DOMModalDialogClosed":
-        if (aMessage.target == Browser.selectedBrowser) {
+        if (aMessage.target == Browser.selectedBrowser && this._container.isActive)
           this._container.style.display = "-moz-box";
-          this._container._spacer.hidden = false;
-        }
         break;
     }
   },
@@ -784,6 +837,10 @@ var FormHelperUI = {
       this._zoomFinish();
       this._currentElement = null;
       this._container.hide(this);
+
+      
+      
+      this._container.style.display = "";
     }
 
     let evt = document.createEvent("UIEvents");
@@ -791,26 +848,45 @@ var FormHelperUI = {
     this._container.dispatchEvent(evt);
   },
 
-  _updateAutocompleteFor: function _formHelperUpdateAutocompleteFor(aElement) {
+  _hasSuggestions: false,
+  _updateSuggestionsFor: function _formHelperUpdateAutocompleteFor(aElement) {
     let suggestions = this._getAutocompleteSuggestions(aElement);
-    this._displaySuggestions(suggestions);
-  },
+    if (!suggestions.length) {
+      this._resetSuggestions();
+      return;
+    }
+    
+    
+    this._suggestionsContainer.style.visibility = "hidden";
+    this._suggestionsContainer.hidden = false;
 
-  _displaySuggestions: function _formHelperDisplaySuggestions(aSuggestions) {
-    let autofill = this._autofillContainer;
-    while (autofill.hasChildNodes())
-      autofill.removeChild(autofill.lastChild);
+    
+    
+    if (AnimatedZoom.isZooming()) {
+      let self = this;
+      window.addEventListener("AnimatedZoomEnd", function() {
+        window.removeEventListener("AnimatedZoomEnd", arguments.callee, true);
+          self._updateSuggestionsFor(aElement);
+      }, true);
+      return;
+    }
+
+    let container = this._suggestionsContainer.firstChild;
+    while (container.hasChildNodes())
+      container.removeChild(container.lastChild);
 
     let fragment = document.createDocumentFragment();
-    for (let i = 0; i < aSuggestions.length; i++) {
-      let value = aSuggestions[i];
+    for (let i = 0; i < suggestions.length; i++) {
+      let value = suggestions[i];
       let button = document.createElement("label");
       button.setAttribute("value", value);
-      button.className = "form-helper-autofill-label";
+      button.className = "form-helper-suggestions-label";
       fragment.appendChild(button);
     }
-    autofill.appendChild(fragment);
-    autofill.collapsed = !aSuggestions.length;
+    container.appendChild(fragment);
+
+    this._hasSuggestions = true;
+    this._ensureSuggestionsVisible();
   },
 
   
@@ -832,12 +908,85 @@ var FormHelperUI = {
     return suggestions;
   },
 
+  _resetSuggestions: function _formHelperResetAutocomplete() {
+    this._suggestionsContainer.hidden = true;
+    this._hasSuggestions = false;
+  },
+
+  
+
+
+
+
+
+  _ensureSuggestionsVisible: function _formHelperEnsureSuggestionsVisible() {
+    let container = this._suggestionsContainer;
+    container.firstChild.style.maxWidth = (window.innerWidth * 0.75) + "px";
+
+    let browser = getBrowser();
+    let rect = this._currentElementRect.clone().scale(browser.scale, browser.scale);
+    let scroll = browser.getRootView().getPosition();
+
+    
+    
+    let [leftVis, rightVis, leftW, rightW] = Browser.computeSidebarVisibility();
+    let leftOffset = leftVis * leftW;
+    let rightOffset = rightVis * rightW;
+    let topOffset = (BrowserUI.toolbarH - Browser.getScrollboxPosition(Browser.pageScrollboxScroller).y);
+    let virtualContentRect = {
+      width: rect.width,
+      height: rect.height,
+      left: Math.ceil(rect.left - scroll.x + leftOffset - rightOffset),
+      right: Math.floor(rect.left + rect.width - scroll.x + leftOffset - rightOffset),
+      top: Math.ceil(rect.top - scroll.y + topOffset),
+      bottom: Math.floor(rect.top + rect.height - scroll.y + topOffset)
+    };
+
+    
+    let browserRect = Rect.fromRect(browser.getBoundingClientRect());
+    if (BrowserUI.isToolbarLocked()) {
+      
+      
+      browserRect = new Rect(browserRect.left + leftOffset - rightOffset, browserRect.top + BrowserUI.toolbarH,
+                             browserRect.width + leftOffset - rightOffset, browserRect.height - BrowserUI.toolbarH);
+    }
+
+    if (browserRect.intersect(Rect.fromRect(virtualContentRect)).isEmpty()) {
+      container.style.visibility = "hidden";
+      return;
+    }
+
+    
+    let left = rect.left - scroll.x + leftOffset - rightOffset;
+    let top = rect.top - scroll.y + topOffset + (rect.height);
+
+    
+    
+    let arrowboxRect = Rect.fromRect(container.getBoundingClientRect());
+    if (left + arrowboxRect.width > window.innerWidth)
+      left -= (left + arrowboxRect.width - window.innerWidth);
+    container.left = left;
+
+    
+    let buttonsHeight = this._container.getBoundingClientRect().height;
+    if (top + arrowboxRect.height >= window.innerHeight - buttonsHeight)
+      top -= (rect.height + arrowboxRect.height);
+    container.top = top;
+  
+    
+    let virtualContentElement = {
+      getBoundingClientRect: function() {
+        return virtualContentRect;
+      }
+    };
+    container.anchorTo(virtualContentElement);
+    container.style.visibility = "visible";
+  },
+
   
   _updateContainer: function _formHelperUpdateContainer(aLastElement, aCurrentElement) {
     this._updateContainerForSelect(aLastElement, aCurrentElement);
 
-    
-    this._updateAutocompleteFor(aCurrentElement);
     this._container.contentHasChanged();
   },
 
@@ -846,15 +995,10 @@ var FormHelperUI = {
     let lastHasChoices = aLastElement && (aLastElement.list != null);
     let currentHasChoices = aCurrentElement && (aCurrentElement.list != null);
 
-    if (!lastHasChoices && currentHasChoices) {
-      SelectHelperUI.dock(this._container);
-      SelectHelperUI.show(aCurrentElement.list);
-    } else if (lastHasChoices && currentHasChoices) {
-      SelectHelperUI.reset();
-      SelectHelperUI.show(aCurrentElement.list);
-    } else if (lastHasChoices && !currentHasChoices) {
+    if (currentHasChoices)
+      SelectHelperUI.show(aCurrentElement.list, aCurrentElement.title);
+    else if (lastHasChoices)
       SelectHelperUI.hide();
-    }
   },
 
   

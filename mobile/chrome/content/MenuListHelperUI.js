@@ -45,7 +45,7 @@ var MenuListHelperUI = {
 
       
       
-      item.setAttribute("class", "menulist-command prompt-button" + (child.selected ? " selected" : ""));
+      item.setAttribute("class", "option-command prompt-button" + (child.selected ? " selected" : ""));
 
       let image = document.createElement("image");
       image.setAttribute("src", child.image || "");
