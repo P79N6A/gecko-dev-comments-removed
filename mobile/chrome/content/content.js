@@ -586,25 +586,34 @@ let ViewportHandler = {
     sendAsyncMessage("Browser:ViewportMetadata", this.metadata);
   },
 
-  getViewportMetadata: function getViewportMetadata() {
-    let dpiScale = Services.prefs.getIntPref("zoom.dpiScale") / 100;
+  
 
+
+
+
+
+
+
+
+
+
+  getViewportMetadata: function getViewportMetadata() {
     let doctype = content.document.doctype;
     if (doctype && /(WAP|WML|Mobile)/.test(doctype.publicId))
-      return { defaultZoom: dpiScale, autoSize: true };
+      return { defaultZoom: 1, autoSize: true, allowZoom: true, autoScale: true };
 
     let windowUtils = Util.getWindowUtils(content);
     let handheldFriendly = windowUtils.getDocumentMetadata("HandheldFriendly");
     if (handheldFriendly == "true")
-      return { defaultZoom: dpiScale, autoSize: true };
+      return { defaultZoom: 1, autoSize: true, allowZoom: true, autoScale: true };
 
     if (content.document instanceof XULDocument)
-      return { defaultZoom: 1.0, autoSize: true, allowZoom: false };
+      return { defaultZoom: 1, autoSize: true, allowZoom: false, autoScale: false };
 
     
     
     if (Util.isParentProcess())
-      return { defaultZoom: 1.0, autoSize: true, allowZoom: false };
+      return { defaultZoom: 1, autoSize: true, allowZoom: false, autoScale: false };
 
     
     
@@ -612,43 +621,35 @@ let ViewportHandler = {
 
     
     
-    let viewportScale = parseFloat(windowUtils.getDocumentMetadata("viewport-initial-scale"));
-    let viewportMinScale = parseFloat(windowUtils.getDocumentMetadata("viewport-minimum-scale"));
-    let viewportMaxScale = parseFloat(windowUtils.getDocumentMetadata("viewport-maximum-scale"));
-    let viewportWidthStr = windowUtils.getDocumentMetadata("viewport-width");
-    let viewportHeightStr = windowUtils.getDocumentMetadata("viewport-height");
+    let scale = parseFloat(windowUtils.getDocumentMetadata("viewport-initial-scale"));
+    let minScale = parseFloat(windowUtils.getDocumentMetadata("viewport-minimum-scale"));
+    let maxScale = parseFloat(windowUtils.getDocumentMetadata("viewport-maximum-scale"));
 
-    viewportScale = Util.clamp(viewportScale, kViewportMinScale, kViewportMaxScale);
-    viewportMinScale = Util.clamp(viewportMinScale, kViewportMinScale, kViewportMaxScale);
-    viewportMaxScale = Util.clamp(viewportMaxScale, kViewportMinScale, kViewportMaxScale);
+    let widthStr = windowUtils.getDocumentMetadata("viewport-width");
+    let heightStr = windowUtils.getDocumentMetadata("viewport-height");
+    let width = Util.clamp(parseInt(widthStr), kViewportMinWidth, kViewportMaxWidth);
+    let height = Util.clamp(parseInt(heightStr), kViewportMinHeight, kViewportMaxHeight);
 
-    
-    let autoSize = (viewportWidthStr == "device-width" ||
-                    viewportHeightStr == "device-height" ||
-                    (viewportScale == 1.0 && !viewportWidthStr));
+    let allowZoomStr = windowUtils.getDocumentMetadata("viewport-user-scalable");
+    let allowZoom = !/^(0|no|false)$/.test(allowZoomStr); 
 
-    let viewportWidth = Util.clamp(parseInt(viewportWidthStr), kViewportMinWidth, kViewportMaxWidth);
-    let viewportHeight = Util.clamp(parseInt(viewportHeightStr), kViewportMinHeight, kViewportMaxHeight);
+    scale = Util.clamp(scale, kViewportMinScale, kViewportMaxScale);
+    minScale = Util.clamp(minScale, kViewportMinScale, kViewportMaxScale);
+    maxScale = Util.clamp(maxScale, kViewportMinScale, kViewportMaxScale);
 
     
-    
-    
-    
-    
-    
-    
-    let defaultZoom = viewportScale * dpiScale;
-    let minZoom = viewportMinScale * dpiScale;
-    let maxZoom = viewportMaxScale * dpiScale;
+    let autoSize = (widthStr == "device-width" ||
+                    (!widthStr && (heightStr == "device-height" || scale == 1.0)));
 
     return {
-      defaultZoom: defaultZoom,
-      minZoom: minZoom,
-      maxZoom: maxZoom,
-      width: viewportWidth,
-      height: viewportHeight,
+      defaultZoom: scale,
+      minZoom: minScale,
+      maxZoom: maxScale,
+      width: width,
+      height: height,
       autoSize: autoSize,
-      allowZoom: windowUtils.getDocumentMetadata("viewport-user-scalable") != "no"
+      allowZoom: allowZoom,
+      autoScale: true
     };
   }
 };
