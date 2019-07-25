@@ -3214,9 +3214,6 @@ ScriptAnalysis::resolveNameAccess(JSContext *cx, jsid id, bool addDependency)
 
         if (script->analysis()->addsScopeObjects() ||
             js_GetOpcode(cx, script, script->code) == JSOP_GENERATOR) {
-            if (prev)
-                DetachNestingParent(prev);
-            DetachNestingParent(script);
             return access;
         }
 
@@ -3242,15 +3239,6 @@ ScriptAnalysis::resolveNameAccess(JSContext *cx, jsid id, bool addDependency)
             access.index = index;
             return access;
         } else if (kind != NONE) {
-            return access;
-        }
-
-        
-
-
-
-        if (script->analysis()->extendsScope()) {
-            DetachNestingParent(script);
             return access;
         }
 
@@ -4113,16 +4101,38 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
     for (unsigned i = 0; i < script->nfixed; i++)
         TypeScript::LocalTypes(script, i)->addType(cx, Type::UndefinedType());
 
-    
+    TypeScriptNesting *nesting = script->hasFunction ? script->nesting() : NULL;
+    if (nesting && nesting->parent) {
+        
 
 
 
 
 
+        if (!nesting->parent->ensureRanInference(cx))
+            return;
+
+        
+        if (!usesScopeChain() && !script->isOuterFunction)
+            DetachNestingParent(script);
+
+        
 
 
-    if (script->hasFunction && !usesScopeChain() && script->nesting())
-        DetachNestingParent(script);
+
+        if (nesting->parent && extendsScope())
+            DetachNestingParent(script);
+
+        
+
+
+
+        if (nesting->parent &&
+            (nesting->parent->analysis()->addsScopeObjects() ||
+             js_GetOpcode(cx, nesting->parent, nesting->parent->code) == JSOP_GENERATOR)) {
+            DetachNestingParent(script);
+        }
+    }
 
     TypeInferenceState state(cx);
 
@@ -5276,15 +5286,6 @@ NestingEpilogue(StackFrame *fp)
 
     JS_ASSERT(nesting->activeFrames != 0);
     nesting->activeFrames--;
-
-    if (script->isOuterFunction) {
-        
-
-
-
-        nesting->argArray = nesting->activeCall->callObjArgArray();
-        nesting->varArray = nesting->activeCall->callObjVarArray();
-    }
 }
 
 } } 

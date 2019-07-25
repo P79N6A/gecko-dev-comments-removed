@@ -961,6 +961,16 @@ js_PutCallObject(StackFrame *fp)
                     callobj.setSlot(JSObject::CALL_RESERVED_SLOTS + nargs + e, fp->slots()[e]);
                 }
             }
+
+            
+
+
+
+            types::TypeScriptNesting *nesting = script->nesting();
+            if (nesting && script->isOuterFunction) {
+                nesting->argArray = callobj.callObjArgArray();
+                nesting->varArray = callobj.callObjVarArray();
+            }
         }
 
         
