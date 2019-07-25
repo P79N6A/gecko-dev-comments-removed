@@ -140,6 +140,12 @@ var gPluginHandler = {
         self.pluginUnavailable(plugin, event.type);
         break;
 
+      case "PluginVulnerableUpdatable":
+        let updateLink = doc.getAnonymousElementByAttribute(plugin, "class", "checkForUpdatesLink");
+        self.addLinkClickCallback(updateLink, "openPluginUpdatePage");
+        
+
+      case "PluginVulnerableNoUpdate":
       case "PluginClickToPlay":
         self._handleClickToPlayEvent(plugin);
         break;
@@ -151,9 +157,10 @@ var gPluginHandler = {
     }
 
     
-    if (event.type != "PluginCrashed" && event.type != "PluginClickToPlay") {
+    if (event.type != "PluginCrashed") {
       let overlay = doc.getAnonymousElementByAttribute(plugin, "class", "mainBox");
-      if (self.isTooSmall(plugin, overlay))
+      
+      if (overlay != null && self.isTooSmall(plugin, overlay))
           overlay.style.visibility = "hidden";
     }
   },
@@ -224,6 +231,12 @@ var gPluginHandler = {
   managePlugins: function (aEvent) {
     BrowserOpenAddonsMgr("addons://list/plugin");
   },
+ 
+  
+  
+  openPluginUpdatePage: function (aEvent) {
+    openURL(Services.urlFormatter.formatURLPref("plugins.update.url"));
+  },
 
 #ifdef MOZ_CRASHREPORTER
   
@@ -258,15 +271,18 @@ var gPluginHandler = {
       objLoadingContent.playPlugin();
       return;
     } else if (pluginsPermission == Ci.nsIPermissionManager.DENY_ACTION) {
-      overlay.style.visibility = "hidden";
+      if (overlay)
+        overlay.style.visibility = "hidden";
       return;
     }
 
-    let overlay = doc.getAnonymousElementByAttribute(aPlugin, "class", "mainBox");
     
     if (overlay) {
       overlay.addEventListener("click", function(aEvent) {
-        if (aEvent.button == 0 && aEvent.isTrusted)
+        
+        
+        if (aEvent.target instanceof XULElement && 
+            aEvent.button == 0 && aEvent.isTrusted)
           gPluginHandler.activateSinglePlugin(aEvent.target.ownerDocument.defaultView.top, aPlugin);
       }, true);
     }
