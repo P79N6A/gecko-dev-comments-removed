@@ -65,7 +65,7 @@ class PuppetWidget : public nsBaseWidget, public nsSupportsWeakReference
   static const size_t kMaxDimension;
 
 public:
-  PuppetWidget();
+  PuppetWidget(PBrowserChild *aTabChild);
   virtual ~PuppetWidget();
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -151,6 +151,8 @@ public:
   virtual nsIntPoint WidgetToScreenOffset()
   { return nsIntPoint(0, 0); }
 
+  void InitEvent(nsGUIEvent& event, nsIntPoint* aPoint = nsnull);
+
   NS_IMETHOD DispatchEvent(nsGUIEvent* event, nsEventStatus& aStatus);
 
   NS_IMETHOD CaptureRollupEvents(nsIRollupListener* aListener, nsIMenuRollup* aMenuRollup,
@@ -181,6 +183,13 @@ private:
     PuppetWidget* mWidget;
   };
 
+  
+  
+  
+  
+  
+  
+  PBrowserChild *mTabChild;
   
   
   nsRefPtr<PuppetWidget> mChild;
