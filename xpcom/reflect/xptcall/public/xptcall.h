@@ -114,33 +114,21 @@ struct nsXPTCVariant : public nsXPTCMiniVariant
         
         PTR_IS_DATA    = 0x1,
 
-        VAL_IS_ALLOCD  = 0x2,  
-        VAL_IS_IFACE   = 0x4,  
-        VAL_IS_ARRAY   = 0x8,  
-        VAL_IS_DOMSTR  = 0x10, 
-        VAL_IS_UTF8STR = 0x20, 
-        VAL_IS_CSTR    = 0x40, 
-        VAL_IS_JSROOT  = 0x80  
+        
+        
+        
+        
+        
+        
+        VAL_NEEDS_CLEANUP = 0x2
     };
 
     void ClearFlags()         {flags = 0;}
     void SetIndirect()        {ptr = &val; flags |= PTR_IS_DATA;}
-    void SetValIsAllocated()  {flags |= VAL_IS_ALLOCD;}
-    void SetValIsInterface()  {flags |= VAL_IS_IFACE;}
-    void SetValIsArray()      {flags |= VAL_IS_ARRAY;}
-    void SetValIsDOMString()  {flags |= VAL_IS_DOMSTR;}
-    void SetValIsUTF8String() {flags |= VAL_IS_UTF8STR;}
-    void SetValIsCString()    {flags |= VAL_IS_CSTR;}
-    void SetValIsJSRoot()     {flags |= VAL_IS_JSROOT;}
+    void SetValNeedsCleanup() {flags |= VAL_NEEDS_CLEANUP;}
 
-    PRBool IsIndirect()      const  {return 0 != (flags & PTR_IS_DATA);}
-    PRBool IsValAllocated()  const  {return 0 != (flags & VAL_IS_ALLOCD);}
-    PRBool IsValInterface()  const  {return 0 != (flags & VAL_IS_IFACE);}
-    PRBool IsValArray()      const  {return 0 != (flags & VAL_IS_ARRAY);}
-    PRBool IsValDOMString()  const  {return 0 != (flags & VAL_IS_DOMSTR);}
-    PRBool IsValUTF8String() const  {return 0 != (flags & VAL_IS_UTF8STR);}
-    PRBool IsValCString()    const  {return 0 != (flags & VAL_IS_CSTR);}    
-    PRBool IsValJSRoot()     const  {return 0 != (flags & VAL_IS_JSROOT);}
+    PRBool IsIndirect()         const  {return 0 != (flags & PTR_IS_DATA);}
+    PRBool DoesValNeedCleanup() const  {return 0 != (flags & VAL_NEEDS_CLEANUP);}
 
     
     PRBool IsPtrData()       const  {return 0 != (flags & PTR_IS_DATA);}
