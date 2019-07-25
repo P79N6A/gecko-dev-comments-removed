@@ -89,6 +89,10 @@ function InputHandler() {
   this._suppressNextClick = true;
 
   
+  window.addEventListener("URLChanged", this, true);
+  window.addEventListener("TabSelect", this, true);
+
+  
   window.addEventListener("mouseout", this, true);
 
   
@@ -153,6 +157,12 @@ InputHandler.prototype = {
   handleEvent: function handleEvent(aEvent) {
     if (this._ignoreEvents)
       return;
+
+    
+    if (aEvent.type == "URLChanged" || aEvent.type == "TabSelect") {
+      this.grab(null);
+      return;
+    }
 
     if (this._suppressNextClick && aEvent.type == "click") {
       this._suppressNextClick = false;
@@ -447,7 +457,7 @@ function KineticData(owner) {
     
     this._decelerationRate = gPrefService.getIntPref("browser.ui.kinetic.decelerationRate") / 100;
   }
-  catch (e) { 
+  catch (e) {
     this._updateInterval = 33;
     this._emaAlpha = .8;
     this._decelerationRate = .15;
@@ -488,13 +498,13 @@ KineticData.prototype = {
         let dx = Math.round(self._speedX * self._updateInterval);
         let dy = Math.round(self._speedY * self._updateInterval);
         
-  
+
         let panned = self._owner._dragBy(dx, dy);
         if (!panned) {
           self.endKinetic();
           return;
         }
-        
+
         if (self._speedX < 0) {
           self._speedX = Math.min(self._speedX + self._decelerationRate, 0);
         } else if (self._speedX > 0) {
@@ -537,7 +547,7 @@ KineticData.prototype = {
       let me = mb[i];
 
       let timeDiff = me.t - prev.t;
-      
+
       this._speedX = ema( ((me.sx - prev.sx) / timeDiff), this._speedX, this._emaAlpha);
       this._speedY = ema( ((me.sy - prev.sy) / timeDiff), this._speedY, this._emaAlpha);
 
