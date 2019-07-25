@@ -2372,10 +2372,16 @@ imgContainer::SyncDecode()
 
 
 
- 
-NS_IMETHODIMP imgContainer::Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter, 
-                                 gfxMatrix &aUserSpaceToImageSpace, gfxRect &aFill,
-                                 nsIntRect &aSubimage, PRUint32 aFlags)
+
+
+
+
+NS_IMETHODIMP imgContainer::Draw(gfxContext *aContext,
+                                 gfxPattern::GraphicsFilter aFilter,
+                                 const gfxMatrix &aUserSpaceToImageSpace,
+                                 const gfxRect &aFill,
+                                 const nsIntRect &aSubimage,
+                                 PRUint32 aFlags)
 {
   if (mError)
     return NS_ERROR_FAILURE;
