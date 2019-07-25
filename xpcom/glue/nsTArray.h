@@ -432,6 +432,12 @@ public:
 
   
   
+  size_t SizeOf() const {
+    return this->Capacity() * sizeof(elem_type) + sizeof(*this->Hdr());
+  }
+
+  
+  
   
 
   
