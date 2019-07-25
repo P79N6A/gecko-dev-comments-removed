@@ -2761,6 +2761,9 @@ PluginInstanceChild::PaintRectWithAlphaExtraction(const nsIntRect& aRect,
 
     
     whiteImage = new gfxImageSurface(targetSize, gfxASurface::ImageFormatRGB24);
+    if (whiteImage->CairoStatus()) {
+        return;
+    }
 
 #ifdef XP_WIN
     
