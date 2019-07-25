@@ -1492,42 +1492,48 @@ TokenStream::getTokenInternal()
         ungetCharIgnoreEOL(c);
 
         
+        if (hadUnicodeEscape && !putIdentInTokenbuf(identStart))
+            goto error;
+
+        
+        if (!(flags & TSF_KEYWORD_IS_NAME)) {
+            const KeywordInfo *kw;
+            if (hadUnicodeEscape)
+                kw = FindKeyword(tokenbuf.begin(), tokenbuf.length());
+            else
+                kw = FindKeyword(identStart, userbuf.addressOfNextRawChar() - identStart);
+
+            if (kw) {
+                if (kw->tokentype == TOK_RESERVED) {
+                    if (!ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR,
+                                                  JSMSG_RESERVED_ID, kw->chars)) {
+                        goto error;
+                    }
+                } else if (kw->tokentype == TOK_STRICT_RESERVED) {
+                    if (isStrictMode()
+                        ? !ReportStrictModeError(cx, this, NULL, NULL, JSMSG_RESERVED_ID, kw->chars)
+                        : !ReportCompileErrorNumber(cx, this, NULL,
+                                                    JSREPORT_STRICT | JSREPORT_WARNING,
+                                                    JSMSG_RESERVED_ID, kw->chars)) {
+                        goto error;
+                    }
+                } else {
+                    if (kw->version <= versionNumber()) {
+                        tt = kw->tokentype;
+                        tp->t_op = (JSOp) kw->op;
+                        goto out;
+                    }
+
+                    
 
 
 
-        const KeywordInfo *kw;
-        if (!hadUnicodeEscape &&
-            !(flags & TSF_KEYWORD_IS_NAME) &&
-            (kw = FindKeyword(identStart, userbuf.addressOfNextRawChar() - identStart))) {
-            if (kw->tokentype == TOK_RESERVED) {
-                if (!ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR,
-                                              JSMSG_RESERVED_ID, kw->chars)) {
-                    goto error;
-                }
-            } else if (kw->tokentype == TOK_STRICT_RESERVED) {
-                if (isStrictMode()
-                    ? !ReportStrictModeError(cx, this, NULL, NULL, JSMSG_RESERVED_ID, kw->chars)
-                    : !ReportCompileErrorNumber(cx, this, NULL,
-                                                JSREPORT_STRICT | JSREPORT_WARNING,
-                                                JSMSG_RESERVED_ID, kw->chars)) {
-                    goto error;
-                }
-            } else {
-                if (kw->version <= versionNumber()) {
-                    tt = kw->tokentype;
-                    tp->t_op = (JSOp) kw->op;
-                    goto out;
-                }
 
-                
-
-
-
-
-                if ((kw->tokentype == TOK_LET || kw->tokentype == TOK_YIELD) &&
-                    !ReportStrictModeError(cx, this, NULL, NULL, JSMSG_RESERVED_ID, kw->chars))
-                {
-                    goto error;
+                    if ((kw->tokentype == TOK_LET || kw->tokentype == TOK_YIELD) &&
+                        !ReportStrictModeError(cx, this, NULL, NULL, JSMSG_RESERVED_ID, kw->chars))
+                    {
+                        goto error;
+                    }
                 }
             }
         }
@@ -1540,10 +1546,8 @@ TokenStream::getTokenInternal()
         JSAtom *atom;
         if (!hadUnicodeEscape)
             atom = js_AtomizeChars(cx, identStart, userbuf.addressOfNextRawChar() - identStart);
-        else if (putIdentInTokenbuf(identStart))
-            atom = atomize(cx, tokenbuf);
         else
-            atom = NULL;
+            atom = atomize(cx, tokenbuf);
         if (!atom)
             goto error;
         tp->setName(JSOP_NAME, atom->asPropertyName());
