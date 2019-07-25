@@ -8,6 +8,12 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://services-sync/addonsreconciler.js");
 Cu.import("resource://services-sync/async.js");
 Cu.import("resource://services-sync/engines/addons.js");
+Cu.import("resource://services-sync/ext/Preferences.js");
+Cu.import("resource://services-sync/service.js");
+
+let prefs = new Preferences();
+prefs.set("extensions.getAddons.get.url",
+          "http://localhost:8888/search/guid:%IDS%");
 
 loadAddonTestFunctions();
 startupManager();
@@ -134,11 +140,108 @@ add_test(function test_get_changed_ids() {
   advance_test();
 });
 
+add_test(function test_disabled_install_semantics() {
+  _("Ensure that syncing a disabled add-on preserves proper state.");
+
+  
+  
+  
+
+  Svc.Prefs.set("addons.ignoreRepositoryChecking", true);
+
+  const USER       = "foo";
+  const PASSWORD   = "password";
+  const PASSPHRASE = "abcdeabcdeabcdeabcdeabcdea";
+  const ADDON_ID   = "addon1@tests.mozilla.org";
+
+  Service.username   = USER;
+  Service.password   = PASSWORD;
+  Service.passphrase = PASSPHRASE;
+  Service.serverURL  = TEST_SERVER_URL;
+  Service.clusterURL = TEST_CLUSTER_URL;
+
+  generateNewKeys();
+
+  let contents = {
+    meta: {global: {engines: {addons: {version: engine.version,
+                                      syncID:  engine.syncID}}}},
+    crypto: {},
+    addons: {}
+  };
+
+  let server = new SyncServer();
+  server.registerUser(USER, "password");
+  server.createContents(USER, contents);
+  server.start();
+
+  let amoServer = new nsHttpServer();
+  amoServer.registerFile("/search/guid:addon1%40tests.mozilla.org",
+                         do_get_file("addon1-search.xml"));
+
+  let installXPI = ExtensionsTestPath("/addons/test_install1.xpi");
+  amoServer.registerFile("/addon1.xpi", do_get_file(installXPI));
+  amoServer.start(8888);
+
+  
+  let id = Utils.makeGUID();
+  let now = Date.now() / 1000;
+
+  let record = encryptPayload({
+    id:            id,
+    applicationID: Services.appinfo.ID,
+    addonID:       ADDON_ID,
+    enabled:       false,
+    deleted:       false,
+    source:        "amo",
+  });
+  let wbo = new ServerWBO(id, record, now - 2);
+  server.insertWBO(USER, "addons", wbo);
+
+  _("Performing sync of add-ons engine.");
+  engine._sync();
+
+  
+
+  
+  let cb = Async.makeSpinningCallback();
+  amoServer.stop(cb);
+  cb.wait();
+
+  
+  let addon = reconciler.getAddonStateFromSyncGUID(id);
+  do_check_neq(null, addon);
+  do_check_eq(false, addon.enabled);
+
+  
+  
+  restartManager();
+
+  engine._sync();
+
+  
+  
+  let collection = server.getCollection(USER, "addons");
+  do_check_eq(1, collection.count());
+
+  let payload = collection.payloads()[0];
+  do_check_neq(null, collection.wbo(id));
+  do_check_eq(ADDON_ID, payload.addonID);
+  do_check_false(payload.enabled);
+
+  server.stop(advance_test);
+});
+
 function run_test() {
   initTestLogging("Trace");
-  Log4Moz.repository.getLogger("Sync.Engine.Addons").level = Log4Moz.Level.Trace;
+  Log4Moz.repository.getLogger("Sync.Engine.Addons").level =
+    Log4Moz.Level.Trace;
+  Log4Moz.repository.getLogger("Sync.Store.Addons").level = Log4Moz.Level.Trace;
+  Log4Moz.repository.getLogger("Sync.Tracker.Addons").level =
+    Log4Moz.Level.Trace;
   Log4Moz.repository.getLogger("Sync.AddonsRepository").level =
     Log4Moz.Level.Trace;
+
+  new SyncTestingInfrastructure();
 
   reconciler.startListening();
 

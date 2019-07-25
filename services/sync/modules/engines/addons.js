@@ -317,12 +317,12 @@ AddonsStore.prototype = {
 
 
   create: function create(record) {
-    
-    
-    
-
     let cb = Async.makeSpinningCallback();
-    this.installAddonsFromIDs([record.addonID], cb);
+    this.installAddons([{
+      id:       record.addonID,
+      syncGUID: record.id,
+      enabled:  record.enabled
+    }], cb);
 
     
     
@@ -342,12 +342,6 @@ AddonsStore.prototype = {
     }
 
     this._log.info("Add-on installed: " + record.addonID);
-    this._log.info("Setting add-on Sync GUID to remote: " + record.id);
-    addon.syncGUID = record.id;
-
-    cb = Async.makeSpinningCallback();
-    this.updateUserDisabled(addon, !record.enabled, cb);
-    cb.wait();
   },
 
   
@@ -698,8 +692,17 @@ AddonsStore.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
   installAddonFromSearchResult:
-    function installAddonFromSearchResult(addon, cb) {
+    function installAddonFromSearchResult(addon, options, cb) {
     this._log.info("Trying to install add-on from search result: " + addon.id);
 
     this.getInstallFromSearchResult(addon, function(error, install) {
@@ -715,8 +718,28 @@ AddonsStore.prototype = {
 
       try {
         this._log.info("Installing " + addon.id);
+        let log = this._log;
 
         let listener = {
+          onInstallStarted: function(install) {
+            if (!options) {
+              return;
+            }
+
+            if (options.syncGUID) {
+              log.info("Setting syncGUID of " + install.name  +": " +
+                       options.syncGUID);
+              install.addon.syncGUID = options.syncGUID;
+            }
+
+            
+            
+            if ("enabled" in options && !options.enabled) {
+              log.info("Marking add-on as disabled for install: " +
+                       install.name);
+              install.addon.userDisabled = true;
+            }
+          },
           onInstallEnded: function(install, addon) {
             install.removeListener(listener);
 
@@ -913,9 +936,21 @@ AddonsStore.prototype = {
 
 
 
-  installAddonsFromIDs: function installAddonsFromIDs(ids, cb) {
+
+
+
+
+
+
+
+  installAddons: function installAddons(installs, cb) {
     if (!cb) {
       throw new Error("Invalid argument: cb is not defined.");
+    }
+
+    let ids = [];
+    for each (let addon in installs) {
+      ids.push(addon.id);
     }
 
     AddonRepository.getAddonsByIDs(ids, {
@@ -1009,7 +1044,15 @@ AddonsStore.prototype = {
         
         
         for each (let addon in toInstall) {
-          this.installAddonFromSearchResult(addon, installCallback);
+          let options = {};
+          for each (let install in installs) {
+            if (install.id == addon.id) {
+              options = install;
+              break;
+            }
+          }
+
+          this.installAddonFromSearchResult(addon, options, installCallback);
         }
 
       }.bind(this),

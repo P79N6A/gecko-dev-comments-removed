@@ -133,7 +133,7 @@ Addon.prototype = {
     
     
     let store = Engines.get("addons")._store;
-    store.installAddonsFromIDs([this.id], cb);
+    store.installAddons([{id: this.id}], cb);
     let result = cb.wait();
 
     Logger.AssertEqual(1, result.installedIDs.length, "Exactly 1 add-on was installed.");
