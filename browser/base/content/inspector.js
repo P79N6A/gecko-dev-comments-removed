@@ -336,6 +336,7 @@ var InspectorUI = {
   showTextNodesWithWhitespace: false,
   inspecting: false,
   treeLoaded: false,
+  prefEnabledName: "devtools.inspector.enabled",
 
   
 
