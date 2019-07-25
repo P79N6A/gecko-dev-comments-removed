@@ -99,6 +99,16 @@ public:
     
 
 
+    static void PathFromRegion(gfxContext* aContext, const nsIntRegion& aRegion);
+
+    
+
+
+    static void PathFromRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion);
+
+    
+
+
     static int ImageFormatToDepth(gfxASurface::gfxImageFormat aFormat);
 
     
