@@ -371,8 +371,7 @@ public:
                       float aViewportWidth, float aViewportHeight,
                       float aViewboxX, float aViewboxY,
                       float aViewboxWidth, float aViewboxHeight,
-                      const nsSVGPreserveAspectRatio &aPreserveAspectRatio,
-                      PRBool aIgnoreAlign = PR_FALSE);
+                      const nsSVGPreserveAspectRatio &aPreserveAspectRatio);
 
   
 
