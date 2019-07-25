@@ -214,6 +214,7 @@ nsICanvasRenderingContextWebGL_TexImage2D(JSContext *cx, uintN argc, jsval *vp)
     jsval *argv = JS_ARGV(cx, vp);
 
     int32 intargs[8];
+    JSObject *arg9 = nsnull;
 
     
     for (jsuint i = 0; i < 2; ++i) {
@@ -237,9 +238,7 @@ nsICanvasRenderingContextWebGL_TexImage2D(JSContext *cx, uintN argc, jsval *vp)
             }
 
             rv = self->TexImage2D_dom(intargs[0], intargs[1], elt, (GLboolean) intargs[3], (GLboolean) intargs[4]);
-            if (NS_FAILED(rv))
-                return xpc_qsThrowMethodFailed(cx, rv, vp);
-            return JS_TRUE;
+            goto check_rv_and_return;
         }
     }
 
@@ -255,32 +254,25 @@ nsICanvasRenderingContextWebGL_TexImage2D(JSContext *cx, uintN argc, jsval *vp)
     }
 
     
-    js::TypedArray *wa = 0;
-    js::ArrayBuffer *wb = 0;
-
-    JSObject *arg9 = JSVAL_TO_OBJECT(argv[8]);
+    arg9 = JSVAL_TO_OBJECT(argv[8]);
     if (js_IsArrayBuffer(arg9)) {
-        wb = js::ArrayBuffer::fromJSObject(arg9);
-    } else if (js_IsTypedArray(arg9)) {
-        wa = js::TypedArray::fromJSObject(arg9);
-    } else {
-        xpc_qsThrowBadArg(cx, NS_ERROR_FAILURE, vp, 8);
-        return JS_FALSE;
-    }
-
-    if (wa) {
-        rv = self->TexImage2D_array(intargs[0], intargs[1], intargs[2], intargs[3],
+        rv = self->TexImage2D_buf(intargs[0], intargs[1], intargs[2], intargs[3],
                                     intargs[4], intargs[5], intargs[6], intargs[7],
-                                    wa);
-    } else if (wb) {
+                                    js::ArrayBuffer::fromJSObject(arg9));
+    } else if (js_IsTypedArray(arg9)) {
+        rv = self->TexImage2D_array(intargs[0], intargs[1], intargs[2], intargs[3],
+                                  intargs[4], intargs[5], intargs[6], intargs[7],
+                                  js::TypedArray::fromJSObject(arg9));
+    } else if (arg9 == nsnull) {
         rv = self->TexImage2D_buf(intargs[0], intargs[1], intargs[2], intargs[3],
                                   intargs[4], intargs[5], intargs[6], intargs[7],
-                                  wb);
+                                  nsnull);
     } else {
         xpc_qsThrowBadArg(cx, NS_ERROR_FAILURE, vp, 8);
         return JS_FALSE;
     }
 
+check_rv_and_return:
     if (NS_FAILED(rv))
         return xpc_qsThrowMethodFailed(cx, rv, vp);
 

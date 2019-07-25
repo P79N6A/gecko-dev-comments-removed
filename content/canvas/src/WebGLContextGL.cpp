@@ -2663,7 +2663,16 @@ WebGLContext::TexImage2D_base(GLenum target, GLint level, GLenum internalformat,
     if (byteLength) {
         gl->fTexImage2D(target, level, internalformat, width, height, border, format, type, data);
     } else {
-        gl->fTexImage2D(target, level, internalformat, width, height, border, format, type, NULL);
+        
+        
+        
+        void *tempZeroData = calloc(1, bytesNeeded);
+        if (!tempZeroData)
+            return ErrorMessage("texImage2D: could not allocate %d bytes", bytesNeeded);
+
+        gl->fTexImage2D(target, level, internalformat, width, height, border, format, type, tempZeroData);
+
+        free(tempZeroData);
     }
 
     if (mBound2DTextures[mActiveTexture])
