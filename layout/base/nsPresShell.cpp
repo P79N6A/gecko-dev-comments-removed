@@ -3655,40 +3655,49 @@ PresShell::DispatchSynthMouseMove(nsGUIEvent *aEvent,
 NS_IMETHODIMP_(void)
 PresShell::ClearMouseCapture(nsIView* aView)
 {
-  if (gCaptureInfo.mContent) {
-    if (aView) {
-      
-      
-      nsIFrame* frame = gCaptureInfo.mContent->GetPrimaryFrame();
-      if (frame) {
-        nsIView* view = frame->GetClosestView();
-        
-        
-        if (view) {
-          do {
-            if (view == aView) {
-              NS_RELEASE(gCaptureInfo.mContent);
-              
-              
-              gCaptureInfo.mAllowed = false;
-              break;
-            }
+  if (!aView) {
+    nsIPresShell::ClearMouseCapture(static_cast<nsIFrame*>(nsnull));
+    return;
+  }
 
-            view = view->GetParent();
-          } while (view);
-          
-          return;
-        }
-      }
-    }
+  nsIFrame* frame = nsnull;
+  nsIView* view = aView;
+  while (!frame && view) {
+    frame = static_cast<nsIFrame*>(view->GetClientData());
+    view = view->GetParent();
+  }
 
-    NS_RELEASE(gCaptureInfo.mContent);
+  if (frame) {
+    nsIPresShell::ClearMouseCapture(frame);
+  }
+}
+
+void
+nsIPresShell::ClearMouseCapture(nsIFrame* aFrame)
+{
+  if (!gCaptureInfo.mContent) {
+    gCaptureInfo.mAllowed = false;
+    return;
   }
 
   
-  
-  
-  gCaptureInfo.mAllowed = false;
+  if (!aFrame) {
+    NS_RELEASE(gCaptureInfo.mContent);
+    gCaptureInfo.mAllowed = false;
+    return;
+  }
+
+  nsIFrame* capturingFrame = gCaptureInfo.mContent->GetPrimaryFrame();
+  if (!capturingFrame) {
+    NS_RELEASE(gCaptureInfo.mContent);
+    gCaptureInfo.mAllowed = false;
+    return;
+  }
+
+  if (nsLayoutUtils::IsAncestorFrameCrossDoc(aFrame, capturingFrame)) {
+    NS_RELEASE(gCaptureInfo.mContent);
+    gCaptureInfo.mAllowed = false;
+  }
 }
 
 nsresult
@@ -6034,17 +6043,7 @@ PresShell::HandleEvent(nsIView         *aView,
       
       
       if (!eventTarget || !eventTarget->GetPrimaryFrame()) {
-        nsCOMPtr<nsIDOMHTMLDocument> htmlDoc = do_QueryInterface(mDocument);
-        if (htmlDoc) {
-          nsCOMPtr<nsIDOMHTMLElement> body;
-          htmlDoc->GetBody(getter_AddRefs(body));
-          eventTarget = do_QueryInterface(body);
-          if (!eventTarget) {
-            eventTarget = mDocument->GetRootElement();
-          }
-        } else {
-          eventTarget = mDocument->GetRootElement();
-        }
+        eventTarget = mDocument->GetRootElement();
       }
 
       if (aEvent->message == NS_KEY_DOWN) {
