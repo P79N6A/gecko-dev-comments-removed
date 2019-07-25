@@ -150,6 +150,7 @@ let DeveloperToolbarTest = {
 
 
 
+
   exec: function DTT_exec(test) {
     test = test || {};
 
@@ -201,10 +202,21 @@ let DeveloperToolbarTest = {
     let displayed = DeveloperToolbar.outputPanel._div.textContent;
 
     if (test.outputMatch) {
-      if (!test.outputMatch.test(displayed)) {
-        ok(false, "html output for " + typed + " (textContent sent to info)");
-        info("Actual textContent");
-        info(displayed);
+      function doTest(match, against) {
+        if (!match.test(against)) {
+          ok(false, "html output for " + typed + " against " + match.source +
+                  " (textContent sent to info)");
+          info("Actual textContent");
+          info(against);
+        }
+      }
+      if (Array.isArray(test.outputMatch)) {
+        test.outputMatch.forEach(function(match) {
+          doTest(match, displayed);
+        });
+      }
+      else {
+        doTest(test.outputMatch, displayed);
       }
     }
 
