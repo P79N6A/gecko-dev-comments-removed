@@ -120,6 +120,8 @@ public:
   static void Teardown();
   static void Invalidate();
   static HANDLE GetTheme(nsUXThemeClass cls);
+  static HMODULE GetThemeDLL();
+  static HMODULE GetDwmDLL();
 
   
   static void InitTitlebarInfo();
