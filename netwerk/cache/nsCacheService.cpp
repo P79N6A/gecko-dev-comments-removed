@@ -99,7 +99,11 @@ static const char * prefList[] = {
 
 const PRInt32 DEFAULT_CACHE_SIZE = 250 * 1024;  
 const PRInt32 MIN_CACHE_SIZE = 50 * 1024;       
+#ifdef ANDROID
+const PRInt32 MAX_CACHE_SIZE = 200 * 1024;      
+#else
 const PRInt32 MAX_CACHE_SIZE = 1024 * 1024;     
+#endif
 
 const PRInt32 PRE_GECKO_2_0_DEFAULT_CACHE_SIZE = 50 * 1024;
 
@@ -548,8 +552,17 @@ SmartCacheSize(const PRUint32 availKB)
         avail10MBs = 50;
     }
 
+#ifdef ANDROID
+    
+    
+    
+
+    
+    sz10MBs += NS_MAX<PRUint32>(1, avail10MBs * .2);
+#else
     
     sz10MBs += NS_MAX<PRUint32>(5, avail10MBs * .4);
+#endif
 
     return NS_MIN<PRUint32>(MAX_CACHE_SIZE, sz10MBs * 10 * 1024);
 }
