@@ -1020,15 +1020,20 @@ nsDiskCacheDevice::OpenDiskCache()
         
         rv = mCacheMap.Open(mCacheDirectory);        
         
-        if (rv == NS_ERROR_FILE_CORRUPTED) {
+        if (NS_SUCCEEDED(rv)) {
+            Telemetry::Accumulate(Telemetry::DISK_CACHE_CORRUPT, 0);
+        } else if (rv == NS_ERROR_FILE_CORRUPTED) {
+            Telemetry::Accumulate(Telemetry::DISK_CACHE_CORRUPT, 1);
             
             rv = nsDeleteDir::DeleteDir(mCacheDirectory, true, 60000);
             if (NS_FAILED(rv))
                 return rv;
             exists = false;
-        }
-        else if (NS_FAILED(rv))
+        } else {
+            
+            
             return rv;
+        }
     }
 
     
