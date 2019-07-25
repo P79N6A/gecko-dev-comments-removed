@@ -1186,9 +1186,16 @@ Compiler::defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *scrip
             rval.setUndefined();
         }
 
+        
+
+
+
+
+
+
         const Shape *shape =
             DefineNativeProperty(cx, globalObj, id, rval, PropertyStub, StrictPropertyStub,
-                                 JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0);
+                                 JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0, DNP_SKIP_TYPE);
         if (!shape)
             return false;
         def.knownSlot = shape->slot;

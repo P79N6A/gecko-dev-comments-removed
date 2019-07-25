@@ -769,6 +769,9 @@ FindWatchPoint(JSRuntime *rt, JSObject *obj, jsid id)
 JSBool
 js_watch_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
 {
+    
+    cx->addTypePropertyId(obj->getType(), id, types::TYPE_UNKNOWN);
+
     assertSameCompartment(cx, obj);
     JSRuntime *rt = cx->runtime;
     DBG_LOCK(rt);
@@ -986,8 +989,6 @@ UpdateWatchpointShape(JSContext *cx, JSWatchPoint *wp, const Shape *newShape)
 
 
     StrictPropertyOp originalSetter = newShape->setter();
-
-    cx->addTypePropertyId(wp->object->getType(), newShape->propid, types::TYPE_UNKNOWN);
 
     
 

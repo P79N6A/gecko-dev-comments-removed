@@ -598,6 +598,10 @@ struct JSScript {
     inline void typeMonitor(JSContext *cx, const jsbytecode *pc, const js::Value &val);
 
     
+    inline void typeMonitorAssign(JSContext *cx, const jsbytecode *pc,
+                                  JSObject *obj, jsid id, const js::Value &val);
+
+    
     inline void typeSetThis(JSContext *cx, js::types::jstype type);
     inline void typeSetThis(JSContext *cx, const js::Value &value);
     inline void typeSetThis(JSContext *cx, js::types::ClonedTypeSet *types);

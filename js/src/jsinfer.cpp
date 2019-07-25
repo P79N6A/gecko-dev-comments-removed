@@ -1977,43 +1977,6 @@ TypeCompartment::addPendingRecompile(JSContext *cx, JSScript *script)
 }
 
 void
-TypeCompartment::dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Value &rval)
-{
-    if (obj->isWith())
-        obj = js_UnwrapWithObject(cx, obj);
-
-    jstype rvtype = GetValueType(cx, rval);
-    TypeObject *object = obj->getType();
-
-    if (object->unknownProperties())
-        return;
-
-    id = MakeTypeId(cx, id);
-
-    
-
-
-
-
-
-    JSOp op = JSOp(*cx->regs().pc);
-    if (id == id___proto__(cx) || (op == JSOP_SETELEM && !JSID_IS_VOID(id))) {
-        cx->markTypeObjectUnknownProperties(object);
-        return;
-    }
-
-    AutoEnterTypeInference enter(cx);
-
-    TypeSet *assignTypes = object->getProperty(cx, id, true);
-    if (!assignTypes || assignTypes->hasType(rvtype))
-        return;
-
-    InferSpew(ISpewOps, "externalType: monitorAssign %s %s: %s",
-              object->name(), TypeIdString(id), TypeString(rvtype));
-    assignTypes->addType(cx, rvtype);
-}
-
-void
 TypeCompartment::monitorBytecode(JSContext *cx, JSScript *script, uint32 offset)
 {
     if (script->analysis(cx)->getCode(offset).monitoredTypes)

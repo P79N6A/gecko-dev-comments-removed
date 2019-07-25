@@ -603,6 +603,26 @@ struct TypeObject
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     Property **propertySet;
     unsigned propertyCount;
 
@@ -850,7 +870,6 @@ struct TypeCompartment
 
 
     void dynamicPush(JSContext *cx, JSScript *script, uint32 offset, jstype type);
-    void dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Value &rval);
     void dynamicCall(JSContext *cx, JSObject *callee, const CallArgs &args, bool constructing);
 
     void nukeTypes(JSContext *cx);
