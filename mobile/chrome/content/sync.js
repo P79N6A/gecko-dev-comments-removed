@@ -34,6 +34,8 @@
 
 
 
+
+
 let WeaveGlue = {
   setupData: null,
   autoConnect: false,
@@ -82,7 +84,7 @@ let WeaveGlue = {
   open: function open() {
     
     this.abortEasySetup();
-    
+
     
     document.getElementById("syncsetup-container").hidden = false;
     document.getElementById("syncsetup-jpake").hidden = false;
@@ -126,7 +128,7 @@ let WeaveGlue = {
 
   openManual: function openManual() {
     this.abortEasySetup();
-    
+
     
     let scrollbox = document.getElementById("syncsetup-scrollbox").boxObject.QueryInterface(Ci.nsIScrollBoxObject);
     scrollbox.scrollTo(0, 0);
@@ -153,7 +155,7 @@ let WeaveGlue = {
       }
     }
   },
-  
+
   close: function close() {
     let scrollbox = document.getElementById("syncsetup-scrollbox").boxObject.QueryInterface(Ci.nsIScrollBoxObject);
     scrollbox.scrollTo(0, 0);
@@ -185,10 +187,11 @@ let WeaveGlue = {
     if (!useCustomServer)
       this._elements.customserver.value = "";
   },
-  
+
   showDetails: function showDetails() {
     
-    let show = this._elements.details.checked;
+    let show = this._elements.sync.collapsed;
+    this._elements.details.checked = show;
     this._elements.sync.collapsed = !show;
     this._elements.device.collapsed = !show;
     this._elements.disconnect.collapsed = !show;
@@ -407,7 +410,7 @@ let WeaveGlue = {
         serverURL = "";
       this.setupData.serverURL = serverURL;
     }
-    
+
     
     if (aTopic == "weave:service:login:finish" || aTopic == "weave:service:login:error")
       this.autoConnect = false;
