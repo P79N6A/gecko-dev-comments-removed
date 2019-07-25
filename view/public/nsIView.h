@@ -62,8 +62,8 @@ enum nsViewVisibility {
 };
 
 #define NS_IVIEW_IID    \
-  { 0xba00349c, 0xe58a, 0x436a, \
-    { 0x9f, 0x1f, 0x05, 0xb3, 0xdd, 0x9d, 0x9d, 0x36 } }
+  { 0x01258624, 0xca90, 0x47a4, \
+    { 0xb1, 0xfd, 0x52, 0x11, 0x26, 0xe6, 0xc8, 0xdc } }
 
 
 #define NS_VIEW_FLAGS_PUBLIC              0x00FF
@@ -286,7 +286,10 @@ public:
 
 
 
-  nsresult CreateWidget(nsWidgetInitData *aWidgetInitData = nsnull,
+
+
+  nsresult CreateWidget(const nsIID &aWindowIID,
+                        nsWidgetInitData *aWidgetInitData = nsnull,
                         PRBool aEnableDragDrop = PR_TRUE,
                         PRBool aResetVisibility = PR_TRUE,
                         nsContentType aContentType = eContentTypeInherit);
@@ -296,7 +299,8 @@ public:
 
 
 
-  nsresult CreateWidgetForParent(nsIWidget* aParentWidget,
+  nsresult CreateWidgetForParent(const nsIID &aWindowIID,
+                                 nsIWidget* aParentWidget,
                                  nsWidgetInitData *aWidgetInitData = nsnull,
                                  PRBool aEnableDragDrop = PR_TRUE,
                                  PRBool aResetVisibility = PR_TRUE,
@@ -309,7 +313,8 @@ public:
 
 
 
-  nsresult CreateWidgetForPopup(nsWidgetInitData *aWidgetInitData,
+  nsresult CreateWidgetForPopup(const nsIID &aWindowIID,
+                                nsWidgetInitData *aWidgetInitData,
                                 nsIWidget* aParentWidget = nsnull,
                                 PRBool aEnableDragDrop = PR_TRUE,
                                 PRBool aResetVisibility = PR_TRUE,
