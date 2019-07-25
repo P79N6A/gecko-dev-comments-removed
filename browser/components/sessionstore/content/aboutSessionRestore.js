@@ -162,7 +162,8 @@ function onListClick(aEvent) {
   if (col.value) {
     
     
-    if ((aEvent.button == 1 || aEvent.ctrlKey) && col.value.id == "title" &&
+    if ((aEvent.button == 1 || aEvent.button == 0 && aEvent.detail == 2 || aEvent.ctrlKey) &&
+        col.value.id == "title" &&
         !treeView.isContainer(row.value))
       restoreSingleTab(row.value, aEvent.shiftKey);
     else if (col.value.id == "restore")
