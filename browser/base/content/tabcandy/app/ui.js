@@ -113,11 +113,7 @@ var Tabbar = {
 
       var tabbrowser = Utils.getCurrentWindow().gBrowser;
       var tabBarTabs = this.getAllTabs();
-      var visibleTabs = [];
-
-      tabs.forEach(function(tab) {
-        visibleTabs.push(tab.tab.raw);
-      });
+      var visibleTabs = tabs.map(function(tab) tab.tab.raw);
 
       
       tabBarTabs.forEach(function(tab){
