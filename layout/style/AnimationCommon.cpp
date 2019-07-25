@@ -136,8 +136,7 @@ CommonAnimationManager::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) con
  size_t
 CommonAnimationManager::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 {
-  return aMallocSizeOf(this, sizeof(CommonAnimationManager)) +
-         SizeOfExcludingThis(aMallocSizeOf);
+  return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
  bool

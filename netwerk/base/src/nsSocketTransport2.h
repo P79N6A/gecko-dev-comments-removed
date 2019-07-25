@@ -226,7 +226,11 @@ private:
 
     nsCOMPtr<nsICancelable> mDNSRequest;
     nsCOMPtr<nsIDNSRecord>  mDNSRecord;
+
+    
+    
     PRNetAddr               mNetAddr;
+    bool                    mNetAddrIsSet;
 
     
 

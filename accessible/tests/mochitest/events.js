@@ -1340,10 +1340,10 @@ function caretMoveChecker(aCaretOffset, aTargetOrFunc, aTargetFuncArg)
 
 
 function stateChangeChecker(aState, aIsExtraState, aIsEnabled,
-                            aTargetOrFunc, aTargetFuncArg)
+                            aTargetOrFunc, aTargetFuncArg, aIsAsync)
 {
   this.__proto__ = new invokerChecker(EVENT_STATE_CHANGE, aTargetOrFunc,
-                                      aTargetFuncArg);
+                                      aTargetFuncArg, aIsAsync);
 
   this.check = function stateChangeChecker_check(aEvent)
   {
@@ -1370,6 +1370,22 @@ function stateChangeChecker(aState, aIsExtraState, aIsEnabled,
     var unxpdExtraState = aIsEnabled ? 0 : (aIsExtraState ? aState : 0);
     testStates(event.accessible, state, extraState, unxpdState, unxpdExtraState);
   }
+
+  this.match = function stateChangeChecker_match(aEvent)
+  {
+    if (aEvent instanceof nsIAccessibleStateChangeEvent) {
+      var scEvent = aEvent.QueryInterface(nsIAccessibleStateChangeEvent);
+      return aEvent.accessible = this.target && scEvent.state == aState;
+    }
+    return false;
+  }
+}
+
+function asyncStateChangeChecker(aState, aIsExtraState, aIsEnabled,
+                                 aTargetOrFunc, aTargetFuncArg)
+{
+  this.__proto__ = new stateChangeChecker(aState, aIsExtraState, aIsEnabled,
+                                          aTargetOrFunc, aTargetFuncArg, true);
 }
 
 

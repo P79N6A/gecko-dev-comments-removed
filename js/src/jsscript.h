@@ -656,6 +656,10 @@ struct JSScript : public js::gc::Cell {
     void resetUseCount() { useCount = 0; }
 
     
+
+
+
+
     size_t sizeOfJitScripts(JSMallocSizeOfFun mallocSizeOf);
 
 #endif

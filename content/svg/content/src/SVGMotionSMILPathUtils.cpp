@@ -41,6 +41,7 @@
 #include "nsContentCreatorFunctions.h" 
 #include "nsCharSeparatedTokenizer.h"
 #include "nsContentUtils.h"
+#include "nsSVGUtils.h"
 
 namespace mozilla {
 

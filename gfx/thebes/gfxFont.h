@@ -1076,6 +1076,18 @@ public:
         kAntialiasSubpixel
     } AntialiasOption;
 
+    
+    typedef enum {
+        
+        
+        GLYPH_FILL = 1,
+        
+        GLYPH_STROKE = 2,
+        
+        
+        GLYPH_PATH = 4
+    } DrawMode;
+
 protected:
     nsAutoRefCnt mRefCnt;
     cairo_scaled_font_t *mScaledFont;
@@ -1299,7 +1311,7 @@ public:
 
 
     virtual void Draw(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aEnd,
-                      gfxContext *aContext, bool aDrawToPath, gfxPoint *aBaselineOrigin,
+                      gfxContext *aContext, DrawMode aDrawMode, gfxPoint *aBaselineOrigin,
                       Spacing *aSpacing);
     
 
@@ -2093,7 +2105,7 @@ private:
         }
 
         size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) {
-            return aMallocSizeOf(this, sizeof(DetailedGlyphStore)) +
+            return aMallocSizeOf(this) +
                 mDetails.SizeOfExcludingThis(aMallocSizeOf) +
                 mOffsetToIndex.SizeOfExcludingThis(aMallocSizeOf);
         }
@@ -2343,28 +2355,10 @@ public:
 
 
     void Draw(gfxContext *aContext, gfxPoint aPt,
+              gfxFont::DrawMode aDrawMode,
               PRUint32 aStart, PRUint32 aLength,
               PropertyProvider *aProvider,
               gfxFloat *aAdvanceWidth);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    void DrawToPath(gfxContext *aContext, gfxPoint aPt,
-                    PRUint32 aStart, PRUint32 aLength,
-                    PropertyProvider *aBreakProvider,
-                    gfxFloat *aAdvanceWidth);
 
     
 
@@ -2807,8 +2801,9 @@ private:
                                  Metrics *aMetrics);
 
     
-    void DrawGlyphs(gfxFont *aFont, gfxContext *aContext, bool aDrawToPath,
-                    gfxPoint *aPt, PRUint32 aStart, PRUint32 aEnd,
+    void DrawGlyphs(gfxFont *aFont, gfxContext *aContext,
+                    gfxFont::DrawMode aDrawMode, gfxPoint *aPt,
+                    PRUint32 aStart, PRUint32 aEnd,
                     PropertyProvider *aProvider,
                     PRUint32 aSpacingStart, PRUint32 aSpacingEnd);
 

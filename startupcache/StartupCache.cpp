@@ -367,7 +367,7 @@ StartupCache::HeapSizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
 {
     
     
-    return aMallocSizeOf(this, sizeof(StartupCache)) +
+    return aMallocSizeOf(this) +
            mTable.SizeOfExcludingThis(SizeOfEntryExcludingThis, aMallocSizeOf);
 }
 

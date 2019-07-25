@@ -35,6 +35,8 @@
 #define NS_SVGATTRTEAROFFTABLE_H_
 
 #include "nsDataHashtable.h"
+#include "nsDebug.h"
+#include "nsHashKeys.h"
 
 
 

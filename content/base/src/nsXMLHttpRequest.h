@@ -88,6 +88,7 @@ protected:
   nsRefPtr<nsDOMEventListenerWrapper> mOnLoadStartListener;
   nsRefPtr<nsDOMEventListenerWrapper> mOnProgressListener;
   nsRefPtr<nsDOMEventListenerWrapper> mOnLoadendListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnTimeoutListener;
 };
 
 class nsXMLHttpRequestUpload : public nsXHREventTarget,
@@ -343,17 +344,35 @@ protected:
   PRUint64 mUploadProgress; 
   PRUint64 mUploadProgressMax; 
 
+  
+  PRTime mRequestSentTime;
+  PRUint32 mTimeoutMilliseconds;
+  nsCOMPtr<nsITimer> mTimeoutTimer;
+  void StartTimeoutTimer();
+  void HandleTimeoutCallback();
+
   bool mErrorLoad;
 
-  bool mTimerIsActive;
+  bool mProgressTimerIsActive;
   bool mProgressEventWasDelayed;
-  bool mLoadLengthComputable;
   bool mIsHtml;
   bool mWarnAboutMultipartHtml;
   bool mWarnAboutSyncHtml;
+  bool mLoadLengthComputable;
   PRUint64 mLoadTotal; 
   PRUint64 mLoadTransferred;
   nsCOMPtr<nsITimer> mProgressNotifier;
+  void HandleProgressTimerCallback();
+
+  
+
+
+
+
+
+
+
+  void CloseRequestWithError(const nsAString& aType, const PRUint32 aFlag);
 
   bool mFirstStartRequestSeen;
   bool mInLoadProgressEvent;

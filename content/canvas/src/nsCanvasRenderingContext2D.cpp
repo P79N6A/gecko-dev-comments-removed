@@ -2790,22 +2790,14 @@ struct NS_STACK_CLASS nsCanvasBidiProcessor : public nsBidiPresUtils::BidiProces
             
         }
 
-        
-        if (mOp == nsCanvasRenderingContext2D::TEXT_DRAW_OPERATION_STROKE)
-            mTextRun->DrawToPath(mThebes,
-                                 point,
-                                 0,
-                                 mTextRun->GetLength(),
-                                 nsnull,
-                                 nsnull);
-        else
-            
-            mTextRun->Draw(mThebes,
-                           point,
-                           0,
-                           mTextRun->GetLength(),
-                           nsnull,
-                           nsnull);
+        mTextRun->Draw(mThebes,
+                       point,
+                       mOp == nsCanvasRenderingContext2D::TEXT_DRAW_OPERATION_STROKE ?
+                                    gfxFont::GLYPH_STROKE : gfxFont::GLYPH_FILL,
+                       0,
+                       mTextRun->GetLength(),
+                       nsnull,
+                       nsnull);
     }
 
     
@@ -2887,10 +2879,11 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
       isRTL = GET_BIDI_OPTION_DIRECTION(document->GetBidiOptions()) == IBMBIDI_TEXTDIRECTION_RTL;
     }
 
-    
-    bool doDrawShadow = aOp == TEXT_DRAW_OPERATION_FILL && NeedToDrawShadow();
-    bool doUseIntermediateSurface = aOp == TEXT_DRAW_OPERATION_FILL &&
-        (NeedToUseIntermediateSurface() || NeedIntermediateSurfaceToHandleGlobalAlpha(STYLE_FILL));
+    Style style = aOp == TEXT_DRAW_OPERATION_FILL ? STYLE_FILL : STYLE_STROKE;
+
+    bool doDrawShadow = NeedToDrawShadow();
+    bool doUseIntermediateSurface = NeedToUseIntermediateSurface()
+        || NeedIntermediateSurfaceToHandleGlobalAlpha(style);
 
     
     ClearSurfaceForUnboundedSource();
@@ -3027,6 +3020,7 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
         gfxContext* ctx = ShadowInitialize(drawExtents, blur);
 
         if (ctx) {
+            ApplyStyle(style, false);
             CopyContext(ctx, mThebes);
             ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
             processor.mThebes = ctx;
@@ -3052,22 +3046,14 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
 
     gfxContextPathAutoSaveRestore pathSR(mThebes, false);
 
-    
-    if (aOp == nsCanvasRenderingContext2D::TEXT_DRAW_OPERATION_STROKE) {
-        pathSR.Save();
-        mThebes->NewPath();
-    }
-    
-    else {
-        if (doUseIntermediateSurface) {
-            mThebes->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+    if (doUseIntermediateSurface) {
+        mThebes->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
 
-            
-            mThebes->SetOperator(gfxContext::OPERATOR_SOURCE);
-        }
-
-        ApplyStyle(STYLE_FILL);
+        
+        mThebes->SetOperator(gfxContext::OPERATOR_SOURCE);
     }
+
+    ApplyStyle(style);
 
     rv = nsBidiPresUtils::ProcessText(textToDraw.get(),
                                       textToDraw.Length(),
@@ -3089,13 +3075,8 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
     if (NS_FAILED(rv))
         return rv;
 
-    if (aOp == nsCanvasRenderingContext2D::TEXT_DRAW_OPERATION_STROKE) {
-        
-        rv = DrawPath(STYLE_STROKE);
-        if (NS_FAILED(rv))
-            return rv;
-    } else if (doUseIntermediateSurface)
-        mThebes->Paint(CurrentState().StyleIsColor(STYLE_FILL) ? 1.0 : CurrentState().globalAlpha);
+    if (doUseIntermediateSurface)
+        mThebes->Paint(CurrentState().StyleIsColor(style) ? 1.0 : CurrentState().globalAlpha);
 
     if (aOp == nsCanvasRenderingContext2D::TEXT_DRAW_OPERATION_FILL && !doDrawShadow)
         return RedrawUser(boundingBox);

@@ -38,10 +38,17 @@
 #ifndef MOZILLA_SVGMOTIONSMILANIMATIONFUNCTION_H_
 #define MOZILLA_SVGMOTIONSMILANIMATIONFUNCTION_H_
 
-#include "nsSMILAnimationFunction.h"
-#include "SVGMotionSMILType.h" 
 #include "gfxPath.h"  
+#include "nsAutoPtr.h"
+#include "nsSMILAnimationFunction.h"
+#include "nsTArray.h"
+#include "SVGMotionSMILType.h"  
 
+class nsAttrValue;
+class nsIAtom;
+class nsIContent;
+class nsISMILAttr;
+class nsSMILValue;
 class nsSVGMpathElement;
 
 namespace mozilla {

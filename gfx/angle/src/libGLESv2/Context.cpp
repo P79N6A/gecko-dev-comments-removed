@@ -22,6 +22,7 @@
 #include "libGLESv2/Fence.h"
 #include "libGLESv2/FrameBuffer.h"
 #include "libGLESv2/Program.h"
+#include "libGLESv2/Query.h"
 #include "libGLESv2/RenderBuffer.h"
 #include "libGLESv2/Shader.h"
 #include "libGLESv2/Texture.h"
@@ -170,6 +171,7 @@ Context::Context(const egl::Config *config, const gl::Context *shareContext, boo
     mSupportsDXT3Textures = false;
     mSupportsDXT5Textures = false;
     mSupportsEventQueries = false;
+    mSupportsOcclusionQueries = false;
     mNumCompressedTextureFormats = 0;
     mMaxSupportedSamples = 0;
     mMaskedClearSavedState = NULL;
@@ -198,6 +200,11 @@ Context::~Context()
         deleteFence(mFenceMap.begin()->first);
     }
 
+    while (!mQueryMap.empty())
+    {
+        deleteQuery(mQueryMap.begin()->first);
+    }
+
     while (!mMultiSampleSupport.empty())
     {
         delete [] mMultiSampleSupport.begin()->second;
@@ -220,6 +227,11 @@ Context::~Context()
     for (int i = 0; i < MAX_VERTEX_ATTRIBS; i++)
     {
         mState.vertexAttribute[i].mBoundBuffer.set(NULL);
+    }
+
+    for (int i = 0; i < QUERY_TYPE_COUNT; i++)
+    {
+        mState.activeQuery[i].set(NULL);
     }
 
     mState.arrayBuffer.set(NULL);
@@ -294,6 +306,7 @@ void Context::makeCurrent(egl::Display *display, egl::Surface *surface)
         mMaxSupportedSamples = max;
 
         mSupportsEventQueries = mDisplay->getEventQuerySupport();
+        mSupportsOcclusionQueries = mDisplay->getOcclusionQuerySupport();
         mSupportsDXT1Textures = mDisplay->getDXT1TextureSupport();
         mSupportsDXT3Textures = mDisplay->getDXT3TextureSupport();
         mSupportsDXT5Textures = mDisplay->getDXT5TextureSupport();
@@ -805,6 +818,32 @@ GLuint Context::getArrayBufferHandle() const
     return mState.arrayBuffer.id();
 }
 
+GLuint Context::getActiveQuery(GLenum target) const
+{
+    Query *queryObject = NULL;
+    
+    switch (target)
+    {
+      case GL_ANY_SAMPLES_PASSED_EXT:
+        queryObject = mState.activeQuery[QUERY_ANY_SAMPLES_PASSED].get();
+        break;
+      case GL_ANY_SAMPLES_PASSED_CONSERVATIVE_EXT:
+        queryObject = mState.activeQuery[QUERY_ANY_SAMPLES_PASSED_CONSERVATIVE].get();
+        break;
+      default:
+        ASSERT(false);
+    }
+
+    if (queryObject)
+    {
+        return queryObject->id();
+    }
+    else
+    {
+        return 0;
+    }
+}
+
 void Context::setEnableVertexAttribArray(unsigned int attribNum, bool enabled)
 {
     mState.vertexAttribute[attribNum].mArrayEnabled = enabled;
@@ -910,6 +949,16 @@ GLuint Context::createFence()
     return handle;
 }
 
+
+GLuint Context::createQuery()
+{
+    GLuint handle = mQueryHandleAllocator.allocate();
+
+    mQueryMap[handle] = NULL;
+
+    return handle;
+}
+
 void Context::deleteBuffer(GLuint buffer)
 {
     if (mResourceManager->getBuffer(buffer))
@@ -974,6 +1023,20 @@ void Context::deleteFence(GLuint fence)
         mFenceHandleAllocator.release(fenceObject->first);
         delete fenceObject->second;
         mFenceMap.erase(fenceObject);
+    }
+}
+
+void Context::deleteQuery(GLuint query)
+{
+    QueryMap::iterator queryObject = mQueryMap.find(query);
+    if (queryObject != mQueryMap.end())
+    {
+        mQueryHandleAllocator.release(queryObject->first);
+        if (queryObject->second)
+        {
+            queryObject->second->release();
+        }
+        mQueryMap.erase(queryObject);
     }
 }
 
@@ -1093,6 +1156,93 @@ void Context::useProgram(GLuint program)
     }
 }
 
+void Context::beginQuery(GLenum target, GLuint query)
+{
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    for (int i = 0; i < QUERY_TYPE_COUNT; i++)
+    {
+        if (mState.activeQuery[i].get() != NULL)
+        {
+            return error(GL_INVALID_OPERATION);
+        }
+    }
+
+    QueryType qType;
+    switch (target)
+    {
+      case GL_ANY_SAMPLES_PASSED_EXT: 
+        qType = QUERY_ANY_SAMPLES_PASSED; 
+        break;
+      case GL_ANY_SAMPLES_PASSED_CONSERVATIVE_EXT: 
+        qType = QUERY_ANY_SAMPLES_PASSED_CONSERVATIVE; 
+        break;
+      default: 
+        ASSERT(false);
+    }
+
+    Query *queryObject = getQuery(query, true, target);
+
+    
+    if (!queryObject)
+    {
+        return error(GL_INVALID_OPERATION);
+    }
+
+    
+    if (queryObject->getType() != target)
+    {
+        return error(GL_INVALID_OPERATION);
+    }
+
+    
+    mState.activeQuery[qType].set(queryObject);
+
+    
+    queryObject->begin();
+}
+
+void Context::endQuery(GLenum target)
+{
+    QueryType qType;
+
+    switch (target)
+    {
+      case GL_ANY_SAMPLES_PASSED_EXT: 
+        qType = QUERY_ANY_SAMPLES_PASSED; 
+        break;
+      case GL_ANY_SAMPLES_PASSED_CONSERVATIVE_EXT: 
+        qType = QUERY_ANY_SAMPLES_PASSED_CONSERVATIVE; 
+        break;
+      default: 
+        ASSERT(false);
+    }
+
+    Query *queryObject = mState.activeQuery[qType].get();
+
+    if (queryObject == NULL)
+    {
+        return error(GL_INVALID_OPERATION);
+    }
+
+    queryObject->end();
+
+    mState.activeQuery[qType].set(NULL);
+}
+
 void Context::setFramebufferZero(Framebuffer *buffer)
 {
     delete mFramebufferMap[0];
@@ -1134,6 +1284,25 @@ Fence *Context::getFence(unsigned int handle)
     else
     {
         return fence->second;
+    }
+}
+
+Query *Context::getQuery(unsigned int handle, bool create, GLenum type)
+{
+    QueryMap::iterator query = mQueryMap.find(handle);
+
+    if (query == mQueryMap.end())
+    {
+        return NULL;
+    }
+    else
+    {
+        if (!query->second && create)
+        {
+            query->second = new Query(handle, type);
+            query->second->addRef();
+        }
+        return query->second;
     }
 }
 
@@ -2859,56 +3028,7 @@ void Context::drawElements(GLenum mode, GLsizei count, GLenum type, const void *
 
 void Context::sync(bool block)
 {
-    egl::Display *display = getDisplay();
-    IDirect3DQuery9 *eventQuery = NULL;
-    HRESULT result;
-
-    result = mDevice->CreateQuery(D3DQUERYTYPE_EVENT, &eventQuery);
-    if (FAILED(result))
-    {
-        ERR("CreateQuery failed hr=%x\n", result);
-        if (result == D3DERR_OUTOFVIDEOMEMORY || result == E_OUTOFMEMORY)
-        {
-            return error(GL_OUT_OF_MEMORY);
-        }
-        ASSERT(false);
-        return;
-    }
-
-    result = eventQuery->Issue(D3DISSUE_END);
-    if (FAILED(result))
-    {
-        ERR("eventQuery->Issue(END) failed hr=%x\n", result);
-        ASSERT(false);
-        eventQuery->Release();
-        return;
-    }
-
-    do
-    {
-        result = eventQuery->GetData(NULL, 0, D3DGETDATA_FLUSH);
-
-        if(block && result == S_FALSE)
-        {
-            
-            Sleep(0);
-            
-            
-            
-            if (display->testDeviceLost())
-            {
-                result = D3DERR_DEVICELOST;
-            }
-        }
-    }
-    while(block && result == S_FALSE);
-
-    eventQuery->Release();
-
-    if (checkDeviceLost(result))
-    {
-        error(GL_OUT_OF_MEMORY);
-    }
+    mDisplay->sync(block);
 }
 
 void Context::drawClosingLine(unsigned int first, unsigned int last, int minIndex)
@@ -3160,6 +3280,11 @@ int Context::getNearestSupportedSamples(D3DFORMAT format, int requested) const
 bool Context::supportsEventQueries() const
 {
     return mSupportsEventQueries;
+}
+
+bool Context::supportsOcclusionQueries() const
+{
+    return mSupportsOcclusionQueries;
 }
 
 bool Context::supportsDXT1Textures() const
@@ -3476,6 +3601,11 @@ void Context::initExtensionString()
     }
 
     
+    if (supportsOcclusionQueries())
+    {
+        mExtensionString += "GL_EXT_occlusion_query_boolean ";
+    }
+
     mExtensionString += "GL_EXT_read_format_bgra ";
     mExtensionString += "GL_EXT_robustness ";
 
