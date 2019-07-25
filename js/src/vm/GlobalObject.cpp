@@ -319,7 +319,9 @@ GlobalObject::clear(JSContext *cx)
 
 
 
+    setSlot(BOOLEAN_VALUEOF, UndefinedValue());
     setSlot(EVAL, UndefinedValue());
+    setSlot(CREATE_DATAVIEW_FOR_THIS, UndefinedValue());
     setSlot(THROWTYPEERROR, UndefinedValue());
 
     

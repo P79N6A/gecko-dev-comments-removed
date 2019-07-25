@@ -1443,6 +1443,93 @@ CallArgsFromSp(unsigned argc, Value *sp)
     return CallArgsFromArgv(argc, sp - argc);
 }
 
+
+typedef bool (*IsAcceptableThis)(const Value &v);
+
+
+
+
+
+typedef bool (*NativeImpl)(JSContext *cx, CallArgs args);
+
+namespace detail {
+
+
+extern JS_PUBLIC_API(bool)
+CallMethodIfWrapped(JSContext *cx, IsAcceptableThis test, NativeImpl impl, CallArgs args);
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+JS_ALWAYS_INLINE bool
+CallNonGenericMethod(JSContext *cx, IsAcceptableThis test, NativeImpl impl, CallArgs args)
+{
+    const Value &thisv = args.thisv();
+    if (test(thisv))
+        return impl(cx, args);
+
+    return detail::CallMethodIfWrapped(cx, test, impl, args);
+}
+
 }  
 
 
@@ -3955,7 +4042,7 @@ struct JSClass {
 
 
 
-#define JSCLASS_GLOBAL_SLOT_COUNT      (JSProto_LIMIT * 3 + 8)
+#define JSCLASS_GLOBAL_SLOT_COUNT      (JSProto_LIMIT * 3 + 19)
 #define JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(n)                                    \
     (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSCLASS_GLOBAL_SLOT_COUNT + (n)))
 #define JSCLASS_GLOBAL_FLAGS                                                  \
@@ -4703,66 +4790,6 @@ JS_DefineFunctionById(JSContext *cx, JSObject *obj, jsid id, JSNative call,
 
 extern JS_PUBLIC_API(JSObject *)
 JS_CloneFunctionObject(JSContext *cx, JSObject *funobj, JSObject *parent);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_CallNonGenericMethodOnProxy(JSContext *cx, unsigned argc, jsval *vp, JSNative native, JSClass *clasp);
 
 
 

@@ -264,6 +264,21 @@ XDRInterpretedFunction(XDRState<mode> *xdr, HandleObject enclosingScope,
 extern JSObject *
 CloneInterpretedFunction(JSContext *cx, HandleObject enclosingScope, HandleFunction fun);
 
+
+
+
+
+
+extern void
+ReportIncompatibleMethod(JSContext *cx, CallReceiver call, Class *clasp);
+
+
+
+
+
+extern void
+ReportIncompatible(JSContext *cx, CallReceiver call);
+
 } 
 
 extern JSBool
