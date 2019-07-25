@@ -208,16 +208,8 @@ private:
   nsIntRect mPicture;
 
   
-  
-  PRInt32 mForceStereoMode;
-
-  
   bool mHasVideo;
   bool mHasAudio;
-
-  
-  
-  bool mStereoModeForced;
 };
 
 #endif
