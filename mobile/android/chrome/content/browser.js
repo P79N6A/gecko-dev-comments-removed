@@ -1371,6 +1371,8 @@ var SelectionHandler = {
     this._viewRef = Cu.getWeakReference(aView);
   },
 
+  _isRTL: false,
+
   
   get _start() {
     if (this._startRef)
@@ -1421,6 +1423,7 @@ var SelectionHandler = {
 
     
     this._view = aElement.ownerDocument.defaultView;
+    this._isRTL = (this._view.getComputedStyle(aElement, "").direction == "rtl");
 
     
     this.selectedText = "";
@@ -1445,7 +1448,9 @@ var SelectionHandler = {
 
       
       selectionController.wordMove(false, false);
-      selectionController.wordMove(true, true);
+
+      
+      selectionController.wordMove(!this._isRTL, true);
     } catch(e) {
       
       Cu.reportError("Error selecting word: " + e);
@@ -1506,11 +1511,22 @@ var SelectionHandler = {
     let cwu = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
 
     
-    if (aIsStartHandle)
-      this._sendStartMouseEvents(cwu);
-
     
-    this._sendEndMouseEvents(cwu);
+    if (this._isRTL) {
+      
+      if (!aIsStartHandle)
+        this._sendEndMouseEvents(cwu, false);
+
+      
+      this._sendStartMouseEvents(cwu, true);
+    } else {
+      
+      if (aIsStartHandle)
+        this._sendStartMouseEvents(cwu, false);
+
+      
+      this._sendEndMouseEvents(cwu, true);
+    }
 
     
     let selectionReversed = this.updateCacheForSelection(aIsStartHandle);
@@ -1527,47 +1543,46 @@ var SelectionHandler = {
       this._end = oldStart;
 
       
-      this._sendStartMouseEvents(cwu);
-      this._sendEndMouseEvents(cwu);
+      if (this._isRTL) {
+        this._sendEndMouseEvents(cwu, false);
+        this._sendStartMouseEvents(cwu, true);
+      } else {
+        this._sendStartMouseEvents(cwu, false);
+        this._sendEndMouseEvents(cwu, true);
+      }
     }
   },
 
-  
-  _sendStartMouseEvents: function sh_sendStartMouseEvents(cwu) {
+  _sendStartMouseEvents: function sh_sendStartMouseEvents(cwu, useShift) {
     let start = this._start.getBoundingClientRect();
     let x = start.right - this.HANDLE_PADDING;
     
     let y = start.top - 1;
 
-    if (!this._shouldSendMouseEvent(x, y))
-      return;
-
-    cwu.sendMouseEventToWindow("mousedown", x, y, 0, 0, 0, true);
-    cwu.sendMouseEventToWindow("mouseup", x, y, 0, 0, 0, true);
+    this._sendMouseEvents(cwu, useShift, x, y);
   },
 
-  
-  _sendEndMouseEvents: function sh_sendEndMouseEvents(cwu) {
+  _sendEndMouseEvents: function sh_sendEndMouseEvents(cwu, useShift) {
     let end = this._end.getBoundingClientRect();
     let x = end.left + this.HANDLE_PADDING;
     
     let y = end.top - 1;
 
-    if (!this._shouldSendMouseEvent(x, y))
-      return;
-
-    cwu.sendMouseEventToWindow("mousedown", x, y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
-    cwu.sendMouseEventToWindow("mouseup", x, y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
+    this._sendMouseEvents(cwu, useShift, x, y);
   },
 
-  _shouldSendMouseEvent: function sh_shouldSendMouseEvent(x, y) {
+  _sendMouseEvents: function sh_sendMouseEvents(cwu, useShift, x, y) {
     let contentWindow = BrowserApp.selectedBrowser.contentWindow;
     let element = ElementTouchHelper.elementFromPoint(contentWindow, x, y);
     if (!element)
       element = ElementTouchHelper.anyElementFromPoint(contentWindow, x, y);
 
     
-    return !(element instanceof Ci.nsIDOMHTMLHtmlElement);
+    if (element instanceof Ci.nsIDOMHTMLHtmlElement)
+      return;
+
+    cwu.sendMouseEventToWindow("mousedown", x, y, 0, 0, useShift ? Ci.nsIDOMNSEvent.SHIFT_MASK : 0, true);
+    cwu.sendMouseEventToWindow("mouseup", x, y, 0, 0, useShift ? Ci.nsIDOMNSEvent.SHIFT_MASK : 0, true);
   },
 
   
@@ -1599,6 +1614,7 @@ var SelectionHandler = {
       }
     }
 
+    this._isRTL = false;
     this._view = null;
     this.cache = null;
   },
