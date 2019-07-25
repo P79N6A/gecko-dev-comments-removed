@@ -6846,7 +6846,6 @@ exports.shutdown = function() {
 
 
 
-
 function FocusManager(options, components) {
   options = options || {};
 
@@ -6866,12 +6865,6 @@ function FocusManager(options, components) {
   this._hasFocus = false;
   this._helpRequested = false;
   this._recentOutput = false;
-
-  
-  
-  
-  
-  
 
   this.onVisibilityChange = util.createEvent('FocusManager.onVisibilityChange');
 
@@ -6907,7 +6900,6 @@ FocusManager.prototype.destroy = function() {
     this._blurDelayTimeout = null;
   }
 
-  
   delete this._focused;
   delete this._document;
   delete this._window;
@@ -6998,8 +6990,6 @@ FocusManager.prototype._reportFocus = function(where) {
     console.log('FocusManager._reportFocus(' + (where || 'unknown') + ')');
   }
 
-  
-
   if (this._blurDelayTimeout) {
     if (this._debug) {
       console.log('FocusManager.cancelBlur');
@@ -7025,8 +7015,6 @@ FocusManager.prototype._reportBlur = function(where) {
     console.log('FocusManager._reportBlur(' + where + ')');
   }
 
-  
-
   if (this._hasFocus) {
     if (this._blurDelayTimeout) {
       if (this._debug) {
@@ -7049,35 +7037,6 @@ FocusManager.prototype._reportBlur = function(where) {
 
 
 
-
-FocusManager.prototype._resetSlowTypingAlarm = function() {
-  
-  
-  
-};
-
-
-
-
-FocusManager.prototype._cancelSlowTypingAlarm = function() {
-  
-  
-  
-  
-  
-};
-
-
-
-
-FocusManager.prototype._onSlowTyping = function() {
-  
-  
-};
-
-
-
-
 FocusManager.prototype._eagerHelperChanged = function() {
   this._checkShow();
 };
@@ -7087,8 +7046,6 @@ FocusManager.prototype._eagerHelperChanged = function() {
 
 
 FocusManager.prototype.onInputChange = function(ev) {
-  
-  
   this._recentOutput = false;
   this._checkShow();
 };
@@ -7102,8 +7059,6 @@ FocusManager.prototype.helpRequest = function() {
     console.log('FocusManager.helpRequest');
   }
 
-  
-  
   this._helpRequested = true;
   this._recentOutput = false;
   this._checkShow();
@@ -7118,8 +7073,6 @@ FocusManager.prototype.removeHelp = function() {
     console.log('FocusManager.removeHelp');
   }
 
-  
-  
   this._importantFieldFlag = false;
   this._isError = false;
   this._helpRequested = false;
@@ -7204,10 +7157,6 @@ FocusManager.prototype._shouldShowTooltip = function() {
   if (this._importantFieldFlag) {
     return { visible: true, reason: 'importantFieldFlag' };
   }
-
-  
-  
-  
 
   return { visible: false, reason: 'default' };
 };
