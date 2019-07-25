@@ -96,14 +96,25 @@ private:
   void RenderVisibleRegion();
 
   
-  void DrawRegion(const nsIntRegion &aRegion, SurfaceMode aMode);
+  void DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode);
 
   
   void CreateNewTextures(const gfxIntSize &aSize, SurfaceMode aMode);
 
   void CopyRegion(IDirect3DTexture9* aSrc, const nsIntPoint &aSrcOffset,
                   IDirect3DTexture9* aDest, const nsIntPoint &aDestOffset,
-                  const nsIntRegion &aCopyRegion, nsIntRegion* aValidRegion);
+                  const nsIntRegion &aCopyRegion, nsIntRegion* aValidRegion,
+                  float aXRes, float aYRes);
+
+  
+
+
+
+
+  void GetDesiredResolutions(float& aXRes, float& aYRes);
+
+  
+  bool ResolutionChanged(float aXRes, float aYRes);
 };
 
 } 
