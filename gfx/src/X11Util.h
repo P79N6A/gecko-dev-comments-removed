@@ -126,7 +126,6 @@ private:
 
 class NS_GFX ScopedXErrorHandler
 {
-public:
     
     struct ErrorEvent
     {
@@ -137,8 +136,6 @@ public:
             memset(this, 0, sizeof(ErrorEvent));
         }
     };
-
-private:
 
     
     ErrorEvent mXError;
