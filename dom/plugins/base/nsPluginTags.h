@@ -100,20 +100,14 @@ public:
   PRBool IsEnabled();
   void RegisterWithCategoryManager(PRBool aOverrideInternalTypes,
                                    nsRegisterType aType = ePluginRegister);
-
-  
-  
-  
-  void RemoveJavaSentinel(PRInt32 sentinelIndex);
   
   nsRefPtr<nsPluginTag> mNext;
   nsPluginHost *mPluginHost;
   nsCString     mName; 
   nsCString     mDescription; 
-  PRInt32       mVariants;
-  char          **mMimeTypeArray;
-  nsTArray<nsCString> mMimeDescriptionArray; 
-  char          **mExtensionsArray;
+  nsTArray<nsCString> mMimeTypes; 
+  nsTArray<nsCString> mMimeDescriptions; 
+  nsTArray<nsCString> mExtensions; 
   PRLibrary     *mLibrary;
   nsRefPtr<nsNPAPIPlugin> mEntryPoint;
   PRPackedBool  mCanUnloadLibrary;
