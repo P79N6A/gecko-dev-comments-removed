@@ -36,6 +36,8 @@
 
 #ifdef MOZ_IPC
 #include "mozilla/dom/PGeolocationRequestChild.h"
+
+#undef CreateEvent
 #endif
 
 #include "nsCOMPtr.h"
