@@ -286,7 +286,7 @@ mjit::Compiler::scanInlineCalls(uint32 index, uint32 depth)
 
 
 
-        uint32 stackLimit = outerScript->nslots + StackSpace::STACK_EXTRA
+        uint32 stackLimit = outerScript->nslots + StackSpace::STACK_JIT_EXTRA
             - VALUES_PER_STACK_FRAME - FrameState::TEMPORARY_LIMIT - 1;
 
         
@@ -742,8 +742,7 @@ mjit::Compiler::generatePrologue()
 
 
 
-        JS_STATIC_ASSERT(StackSpace::STACK_EXTRA >= VALUES_PER_STACK_FRAME);
-        uint32 nvals = script->nslots + VALUES_PER_STACK_FRAME + StackSpace::STACK_EXTRA;
+        uint32 nvals = VALUES_PER_STACK_FRAME + script->nslots + StackSpace::STACK_JIT_EXTRA;
         masm.addPtr(Imm32(nvals * sizeof(Value)), JSFrameReg, Registers::ReturnReg);
         Jump stackCheck = masm.branchPtr(Assembler::AboveOrEqual, Registers::ReturnReg,
                                          FrameAddress(offsetof(VMFrame, stackLimit)));

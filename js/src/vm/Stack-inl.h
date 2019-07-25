@@ -47,6 +47,7 @@
 #include "Stack.h"
 
 #include "ArgumentsObject-inl.h"
+#include "methodjit/MethodJIT.h"
 
 namespace js {
 
@@ -803,7 +804,7 @@ inline Value *
 StackSpace::getStackLimit(JSContext *cx)
 {
     FrameRegs &regs = cx->regs();
-    uintN minSpace = regs.fp()->numSlots() + STACK_EXTRA;
+    uintN minSpace = regs.fp()->numSlots() + STACK_JIT_EXTRA;
     Value *sp = regs.sp;
     Value *required = sp + minSpace;
     Value *desired = sp + STACK_QUOTA;
@@ -855,12 +856,6 @@ struct LimitCheck
     JS_ALWAYS_INLINE bool
     operator()(JSContext *cx, StackSpace &space, Value *from, uintN nvals)
     {
-        
-
-
-
-        nvals += StackSpace::STACK_EXTRA + VALUES_PER_STACK_FRAME;
-
         JS_ASSERT(from < *limit);
         if (*limit - from >= ptrdiff_t(nvals))
             return true;
@@ -889,7 +884,7 @@ ContextStack::getCallFrame(JSContext *cx, Value *firstUnused, uintN nactual,
     JS_ASSERT(space().firstUnused() == firstUnused);
 
     
-    uintN nvals = StackSpace::STACK_EXTRA + script->nslots;
+    uintN nvals = VALUES_PER_STACK_FRAME + script->nslots + StackSpace::STACK_JIT_EXTRA;
     uintN nformal = fun->nargs;
 
     
@@ -1091,6 +1086,40 @@ ContextStack::findFrameAtLevel(uintN targetLevel) const
         fp = fp->prev();
     }
     return fp;
+}
+
+inline JSScript *
+ContextStack::currentScript(jsbytecode **ppc) const
+{
+    StackFrame *fp = regs_->fp();
+    if (!fp) {
+        if (ppc)
+            *ppc = NULL;
+        return NULL;
+    }
+    while (fp->isDummyFrame())
+        fp = fp->prev();
+
+#ifdef JS_METHODJIT
+    mjit::CallSite *inlined = regs_->inlined();
+    if (inlined) {
+        JS_ASSERT(inlined->inlineIndex < fp->jit()->nInlineFrames);
+        mjit::InlineFrame *frame = &fp->jit()->inlineFrames()[inlined->inlineIndex];
+        if (ppc)
+            *ppc = frame->fun->script()->code + inlined->pcOffset;
+        return frame->fun->script();
+    }
+#endif
+
+    if (ppc)
+        *ppc = regs_->pc;
+    return fp->script();
+}
+
+inline JSObject *
+ContextStack::currentScriptedScopeChain() const
+{
+    return &regs_->fp()->scopeChain();
 }
 
 

@@ -4737,19 +4737,17 @@ MarkTypeCallerUnexpectedSlow(JSContext *cx, jstype type)
 
 
 
-    StackFrame *caller = js_GetScriptedCaller(cx, NULL);
-    if (!caller)
+    jsbytecode *pc;
+    JSScript *script = cx->stack.currentScript(&pc);
+    if (!script)
         return;
 
     
 
 
 
-    if (caller->script()->compartment != cx->compartment)
+    if (script->compartment != cx->compartment)
         return;
-
-    JSScript *script;
-    jsbytecode *pc = caller->inlinepc(cx, &script);
 
     js::analyze::UntrapOpcode untrap(cx, script, pc);
 

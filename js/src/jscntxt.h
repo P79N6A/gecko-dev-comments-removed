@@ -2454,6 +2454,11 @@ TriggerAllOperationCallbacks(JSRuntime *rt);
 
 } 
 
+
+
+
+
+
 extern js::StackFrame *
 js_GetScriptedCaller(JSContext *cx, js::StackFrame *fp);
 

@@ -450,9 +450,8 @@ class StackFrame
 
 
 
-
-
     
+
 
 
 
@@ -473,9 +472,6 @@ class StackFrame
         JS_ASSERT(flags_ & HAS_PREVPC);
         return prevInline_;
     }
-
-    
-    jsbytecode *inlinepc(JSContext *cx, JSScript **pscript);
 
     JSScript *script() const {
         JS_ASSERT(isScriptFrame());
@@ -1198,7 +1194,8 @@ class StackSpace
 
 
 
-    static const size_t STACK_EXTRA = (VALUES_PER_STACK_FRAME + 18) * 10;
+
+    static const size_t STACK_JIT_EXTRA = (VALUES_PER_STACK_FRAME + 18) * 10;
 
     
 
@@ -1415,6 +1412,12 @@ class ContextStack
 
     
     static size_t offsetOfRegs() { return offsetof(ContextStack, regs_); }
+
+    
+    inline JSScript *currentScript(jsbytecode **pc = NULL) const;
+
+    
+    inline JSObject *currentScriptedScopeChain() const;
 };
 
 

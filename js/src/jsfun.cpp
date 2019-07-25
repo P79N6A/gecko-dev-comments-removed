@@ -1617,6 +1617,8 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 
 
 
+
+
         if (fun->isInterpreted())
             MarkTypeObjectFlags(cx, fun->getType(), OBJECT_FLAG_UNINLINEABLE);
     }
@@ -1632,6 +1634,10 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 #ifdef JS_METHODJIT
     if (slot == FUN_CALLER && fp && fp->prev()) {
         
+
+
+
+
         JSInlinedSite *inlined;
         fp->prev()->pc(cx, fp, &inlined);
         if (inlined) {

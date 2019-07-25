@@ -113,6 +113,10 @@ using namespace js::types;
 JSObject *
 js::GetScopeChain(JSContext *cx)
 {
+    
+
+
+
     StackFrame *fp = js_GetTopStackFrame(cx, FRAME_EXPAND_NONE);
     if (!fp) {
         
