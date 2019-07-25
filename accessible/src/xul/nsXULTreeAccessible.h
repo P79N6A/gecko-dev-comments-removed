@@ -53,6 +53,14 @@ const PRUint32 kDefaultTreeCacheSize = 256;
 
 
 
+#define NS_XULTREEACCESSIBLE_IMPL_CID                   \
+{  /* 2692e149-6176-42ee-b8e1-2c44b04185e3 */           \
+  0x2692e149,                                           \
+  0x6176,                                               \
+  0x42ee,                                               \
+  { 0xb8, 0xe1, 0x2c, 0x44, 0xb0, 0x41, 0x85, 0xe3 }    \
+}
+
 class nsXULTreeAccessible : public nsAccessibleWrap
 {
 public:
@@ -101,6 +109,8 @@ public:
 
   
 
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_XULTREEACCESSIBLE_IMPL_CID)
+
   
 
 
@@ -146,6 +156,9 @@ protected:
   nsCOMPtr<nsITreeView> mTreeView;
   nsAccessibleHashtable mAccessibleCache;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsXULTreeAccessible,
+                              NS_XULTREEACCESSIBLE_IMPL_CID)
 
 
 
