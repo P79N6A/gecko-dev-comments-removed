@@ -464,7 +464,7 @@ mjit::Compiler::generateMethod()
 
           BEGIN_CASE(JSOP_FORLOCAL)
             iterNext();
-            frame.storeLocal(GET_SLOTNO(PC));
+            frame.storeLocal(GET_SLOTNO(PC), true);
             frame.pop();
           END_CASE(JSOP_FORLOCAL)
 
@@ -2477,38 +2477,39 @@ mjit::Compiler::iterNext()
     Address privSlot(reg, offsetof(JSObject, fslots) + sizeof(Value) * JSSLOT_PRIVATE);
     masm.loadData32(privSlot, T1);
 
-    RegisterID T2 = frame.allocReg();
     RegisterID T3 = frame.allocReg();
+    RegisterID T4 = frame.allocReg();
+
+    
+    masm.load32(Address(T1, offsetof(NativeIterator, flags)), T3);
+    masm.and32(Imm32(JSITER_FOREACH), T3);
+    notFast = masm.branchTest32(Assembler::NonZero, T3, T3);
+    stubcc.linkExit(notFast);
+
+    RegisterID T2 = frame.allocReg();
 
     
     masm.loadPtr(Address(T1, offsetof(NativeIterator, props_cursor)), T2);
 
     
-    Jump isString = masm.branch32(Assembler::Equal,
-                                  masm.payloadOf(Address(T2, 0)),
-                                  Imm32(int32(JSVAL_TAG_STRING)));
-
-    
-    masm.load32(Address(T1, offsetof(NativeIterator, flags)), T3);
-    masm.and32(Imm32(JSITER_FOREACH), T3);
-    notFast = masm.branchTest32(Assembler::Zero, T3, T3);
+    masm.loadPtr(T2, T3);
+    masm.move(T3, T4);
+    masm.andPtr(Imm32(JSID_TYPE_MASK), T4);
+    notFast = masm.branchTestPtr(Assembler::NonZero, T4, T4);
     stubcc.linkExit(notFast);
-    isString.linkTo(masm.label(), &masm);
 
     
-    masm.addPtr(Imm32(sizeof(Value)), T2, T3);
-    masm.storePtr(T3, Address(T1, offsetof(NativeIterator, props_cursor)));
+    masm.addPtr(Imm32(sizeof(jsid)), T2, T4);
+    masm.storePtr(T4, Address(T1, offsetof(NativeIterator, props_cursor)));
 
-    
+    frame.freeReg(T4);
     frame.freeReg(T1);
-    frame.freeReg(T3);
+    frame.freeReg(T2);
 
     stubcc.leave();
     stubcc.call(stubs::IterNext);
 
-    
-    frame.freeReg(T2);
-    frame.push(Address(T2, 0));
+    frame.pushUntypedPayload(JSVAL_TAG_STRING, T3);
 
     
     stubcc.rejoin(1);

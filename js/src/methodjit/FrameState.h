@@ -200,7 +200,8 @@ class FrameState
 
 
     inline void pushUntypedPayload(JSValueTag tag, RegisterID payload,
-                                   bool popGuaranteed = false);
+                                   bool popGuaranteed = false,
+                                   bool fastTyped = false);
 
     
 
