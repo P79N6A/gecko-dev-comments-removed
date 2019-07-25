@@ -43,7 +43,6 @@ const gTimeout = 5000;
 
 var websites = [
                 "https://litmus.mozilla.org/testcase_files/firefox/5918/index.html",
-                "http://www.google.com",
                 "https://litmus.mozilla.org/testcase_files/firefox/cookies/cookie_single.html"
                ];
 
@@ -94,20 +93,10 @@ var testPermissionsDisabled = function()
   controller.keypress(null, "VK_ESCAPE", {});
 
   
-  controller.open(websites[1]);
-  controller.waitForPageLoad();
-
-  var image = new elementslib.ID(controller.tabs.activeTab, "logo");
-  var blockImages = new elementslib.ID(controller.window.document, "context-blockimage");
-
-  controller.rightClick(image);
-  controller.assertProperty(blockImages, "hidden", true);
-
-  
   PrefsAPI.openPreferencesDialog(prefCookieHandler);
 
   
-  controller.open(websites[2]);
+  controller.open(websites[1]);
   controller.waitForPageLoad();
 }
 
