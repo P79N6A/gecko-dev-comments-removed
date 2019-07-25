@@ -109,18 +109,6 @@ NS_IMETHODIMP nsHTMLEditor::RemoveAllDefaultProperties()
 }
 
 
-
-
-NS_IMETHODIMP nsHTMLEditor::SetCSSInlineProperty(nsIAtom *aProperty, 
-                            const nsAString & aAttribute, 
-                            const nsAString & aValue)
-{
-  if (IsCSSEnabled()) {
-    return SetInlineProperty(aProperty, aAttribute, aValue);
-  }
-  return NS_OK;
-}
-
 NS_IMETHODIMP nsHTMLEditor::SetInlineProperty(nsIAtom *aProperty, 
                             const nsAString & aAttribute, 
                             const nsAString & aValue)
@@ -385,60 +373,58 @@ nsHTMLEditor::SetInlinePropertyOnNode( nsIDOMNode *aNode,
   nsAutoString tag;
   aProperty->ToString(tag);
   ToLowerCase(tag);
-  
-  if (IsCSSEnabled())
-  {
+
+  bool useCSS = (IsCSSEnabled() &&
+    mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty, aAttribute)) ||
     
-    if (mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty, aAttribute))
+    aAttribute->EqualsLiteral("bgcolor");
+  
+  if (useCSS) {
+    nsCOMPtr<nsIDOMNode> tmp = aNode;
+    if (IsTextNode(tmp))
     {
       
       
-      nsCOMPtr<nsIDOMNode> tmp = aNode;
-      if (IsTextNode(tmp))
-      {
-        
-        
-        InsertContainerAbove( aNode, 
-                              address_of(tmp), 
-                              NS_LITERAL_STRING("span"),
-                              nsnull,
-                              nsnull);
-      }
-      nsCOMPtr<nsIDOMElement>element;
-      element = do_QueryInterface(tmp);
-      
-      
-      res = RemoveStyleInside(tmp, aProperty, aAttribute, true);
-      NS_ENSURE_SUCCESS(res, res);
-      PRInt32 count;
-      
-      res = mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(element, aProperty, aAttribute, aValue, &count, false);
-      NS_ENSURE_SUCCESS(res, res);
-
-      nsCOMPtr<nsIDOMNode> nextSibling, previousSibling;
-      GetNextHTMLSibling(tmp, address_of(nextSibling));
-      GetPriorHTMLSibling(tmp, address_of(previousSibling));
-      if (nextSibling || previousSibling)
-      {
-        nsCOMPtr<nsIDOMNode> mergeParent;
-        res = tmp->GetParentNode(getter_AddRefs(mergeParent));
-        NS_ENSURE_SUCCESS(res, res);
-        if (previousSibling &&
-            nsEditor::NodeIsType(previousSibling, nsEditProperty::span) &&
-            NodesSameType(tmp, previousSibling))
-        {
-          res = JoinNodes(previousSibling, tmp, mergeParent);
-          NS_ENSURE_SUCCESS(res, res);
-        }
-        if (nextSibling &&
-            nsEditor::NodeIsType(nextSibling, nsEditProperty::span) &&
-            NodesSameType(tmp, nextSibling))
-        {
-          res = JoinNodes(tmp, nextSibling, mergeParent);
-        }
-      }
-      return res;
+      InsertContainerAbove(aNode, 
+                           address_of(tmp), 
+                           NS_LITERAL_STRING("span"),
+                           nsnull,
+                           nsnull);
     }
+    nsCOMPtr<nsIDOMElement>element;
+    element = do_QueryInterface(tmp);
+    
+    
+    res = RemoveStyleInside(tmp, aProperty, aAttribute, true);
+    NS_ENSURE_SUCCESS(res, res);
+    PRInt32 count;
+    
+    res = mHTMLCSSUtils->SetCSSEquivalentToHTMLStyle(element, aProperty, aAttribute, aValue, &count, false);
+    NS_ENSURE_SUCCESS(res, res);
+
+    nsCOMPtr<nsIDOMNode> nextSibling, previousSibling;
+    GetNextHTMLSibling(tmp, address_of(nextSibling));
+    GetPriorHTMLSibling(tmp, address_of(previousSibling));
+    if (nextSibling || previousSibling)
+    {
+      nsCOMPtr<nsIDOMNode> mergeParent;
+      res = tmp->GetParentNode(getter_AddRefs(mergeParent));
+      NS_ENSURE_SUCCESS(res, res);
+      if (previousSibling &&
+          nsEditor::NodeIsType(previousSibling, nsEditProperty::span) &&
+          NodesSameType(tmp, previousSibling))
+      {
+        res = JoinNodes(previousSibling, tmp, mergeParent);
+        NS_ENSURE_SUCCESS(res, res);
+      }
+      if (nextSibling &&
+          nsEditor::NodeIsType(nextSibling, nsEditProperty::span) &&
+          NodesSameType(tmp, nextSibling))
+      {
+        res = JoinNodes(tmp, nextSibling, mergeParent);
+      }
+    }
+    return res;
   }
   
   
