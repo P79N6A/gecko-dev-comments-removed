@@ -42,6 +42,8 @@
 #ifdef CAIRO_HAS_D2D_SURFACE
 #include "gfxD2DSurface.h"
 #endif
+#include "gfxTeeSurface.h"
+#include "gfxUtils.h"
 
 namespace mozilla {
 namespace layers {
@@ -70,69 +72,22 @@ ThebesLayerD3D9::~ThebesLayerD3D9()
 #define RETENTION_THRESHOLD 16384
 
 void
-ThebesLayerD3D9::SetVisibleRegion(const nsIntRegion &aRegion)
+ThebesLayerD3D9::InvalidateRegion(const nsIntRegion &aRegion)
 {
-  if (aRegion.IsEqual(mVisibleRegion)) {
-    return;
-  }
+  mValidRegion.Sub(mValidRegion, aRegion);
+}
 
-  nsIntRegion oldVisibleRegion = mVisibleRegion;
-  ThebesLayer::SetVisibleRegion(aRegion);
-
-  if (!mTexture) {
-    
-    
-    
-    return;
-  }
-
-  D3DFORMAT fmt = (CanUseOpaqueSurface() && !mD2DSurface) ?
-                    D3DFMT_X8R8G8B8 : D3DFMT_A8R8G8B8;
-
-  D3DSURFACE_DESC desc;
-  mTexture->GetLevelDesc(0, &desc);
-
-  if (fmt != desc.Format) {
-    
-    
-    mTexture = nsnull;
-  }
-
-  VerifyContentType();
-
-  nsRefPtr<IDirect3DTexture9> oldTexture = mTexture;
-
-  nsIntRect oldBounds = oldVisibleRegion.GetBounds();
-  nsIntRect newBounds = mVisibleRegion.GetBounds();
-
-  CreateNewTexture(gfxIntSize(newBounds.width, newBounds.height));
-
-  
-  
-  oldVisibleRegion.And(oldVisibleRegion, mVisibleRegion);
-  
-  oldVisibleRegion.And(oldVisibleRegion, mValidRegion);
-
-  nsIntRect largeRect = oldVisibleRegion.GetLargestRectangle();
-
-  
-  
-  
-  
-  
-  
-  if (!oldTexture || !mTexture ||
-      largeRect.width * largeRect.height < RETENTION_THRESHOLD) {
-    mValidRegion.SetEmpty();
-    return;
-  }
-
+void
+ThebesLayerD3D9::CopyRegion(IDirect3DTexture9* aSrc, const nsIntPoint &aSrcOffset,
+                            IDirect3DTexture9* aDest, const nsIntPoint &aDestOffset,
+                            const nsIntRegion &aCopyRegion, nsIntRegion* aValidRegion)
+{
   nsRefPtr<IDirect3DSurface9> srcSurface, dstSurface;
-  oldTexture->GetSurfaceLevel(0, getter_AddRefs(srcSurface));
-  mTexture->GetSurfaceLevel(0, getter_AddRefs(dstSurface));
+  aSrc->GetSurfaceLevel(0, getter_AddRefs(srcSurface));
+  aDest->GetSurfaceLevel(0, getter_AddRefs(dstSurface));
 
   nsIntRegion retainedRegion;
-  nsIntRegionRectIterator iter(oldVisibleRegion);
+  nsIntRegionRectIterator iter(aCopyRegion);
   const nsIntRect *r;
   while ((r = iter.Next())) {
     if (r->width * r->height > RETENTION_THRESHOLD) {
@@ -140,13 +95,13 @@ ThebesLayerD3D9::SetVisibleRegion(const nsIntRegion &aRegion)
 
       
       
-      oldRect.left = r->x - oldBounds.x;
-      oldRect.top = r->y - oldBounds.y;
+      oldRect.left = r->x - aSrcOffset.x;
+      oldRect.top = r->y - aSrcOffset.y;
       oldRect.right = oldRect.left + r->width;
       oldRect.bottom = oldRect.top + r->height;
 
-      newRect.left = r->x - newBounds.x;
-      newRect.top = r->y - newBounds.y;
+      newRect.left = r->x - aDestOffset.x;
+      newRect.top = r->y - aDestOffset.y;
       newRect.right = newRect.left + r->width;
       newRect.bottom = newRect.top + r->height;
 
@@ -161,81 +116,61 @@ ThebesLayerD3D9::SetVisibleRegion(const nsIntRegion &aRegion)
   }
 
   
-  mValidRegion.And(mValidRegion, retainedRegion);  
+  aValidRegion->And(*aValidRegion, retainedRegion);
 }
 
-
-void
-ThebesLayerD3D9::InvalidateRegion(const nsIntRegion &aRegion)
+static PRUint64 RectArea(const nsIntRect& aRect)
 {
-  mValidRegion.Sub(mValidRegion, aRegion);
+  return aRect.width*PRUint64(aRect.height);
 }
 
 void
-ThebesLayerD3D9::RenderLayer()
+ThebesLayerD3D9::UpdateTextures(SurfaceMode aMode)
 {
-  if (mVisibleRegion.IsEmpty()) {
-    return;
-  }
-
   nsIntRect visibleRect = mVisibleRegion.GetBounds();
 
-  
-  
-  D3DFORMAT fmt = (CanUseOpaqueSurface() && !mD2DSurface) ?
-                    D3DFMT_X8R8G8B8 : D3DFMT_A8R8G8B8;
+  if (HaveTextures(aMode)) {
+    if (mTextureRect != visibleRect) {
+      nsRefPtr<IDirect3DTexture9> oldTexture = mTexture;
+      nsRefPtr<IDirect3DTexture9> oldTextureOnWhite = mTextureOnWhite;
 
-  if (mTexture) {
-    D3DSURFACE_DESC desc;
-    mTexture->GetLevelDesc(0, &desc);
-
-    if (fmt != desc.Format) {
+      NS_ASSERTION(mTextureRect.Contains(mValidRegion.GetBounds()),
+                   "How can we have valid data outside the texture?");
+      nsIntRegion retainRegion;
       
       
-      mTexture = nsnull;
-      mValidRegion.SetEmpty();
+      retainRegion.And(mValidRegion, mVisibleRegion);
+
+      CreateNewTextures(gfxIntSize(visibleRect.width, visibleRect.height), aMode);
+
+      
+      
+      
+      
+      if (!HaveTextures(aMode)) {
+        mValidRegion.SetEmpty();
+      } else {
+        CopyRegion(oldTexture, mTextureRect.TopLeft(), mTexture, visibleRect.TopLeft(),
+                   retainRegion, &mValidRegion);
+        if (aMode == SURFACE_COMPONENT_ALPHA) {
+          CopyRegion(oldTextureOnWhite, mTextureRect.TopLeft(), mTextureOnWhite, visibleRect.TopLeft(),
+                     retainRegion, &mValidRegion);
+        }
+      }
+
+      mTextureRect = visibleRect;
     }
-  }
-
-  VerifyContentType();
-
-  if (!mTexture) {
-    CreateNewTexture(gfxIntSize(visibleRect.width, visibleRect.height));
+  } else {
+    CreateNewTextures(gfxIntSize(visibleRect.width, visibleRect.height), aMode);
+    mTextureRect = visibleRect;
     
-    if (!mTexture) {
-	NS_WARNING("Failed to create texture for thebes layer - not drawing.");
-	return;
-    }
-
-    mValidRegion.SetEmpty();
+    NS_ASSERTION(mValidRegion.IsEmpty(), "Someone forgot to empty the region");
   }
+}
 
-  if (!mValidRegion.IsEqual(mVisibleRegion)) {
-    
-
-
-
-
-
-    nsIntRegion region;
-    region.Sub(mVisibleRegion, mValidRegion);
-
-    DrawRegion(region);
-
-    mValidRegion = mVisibleRegion;
-  }
-
-  SetShaderTransformAndOpacity();
-
-#ifdef CAIRO_HAS_D2D_SURFACE
-  if (mD2DSurface && CanUseOpaqueSurface()) {
-    mD3DManager->SetShaderMode(DeviceManagerD3D9::RGBLAYER);
-  } else
-#endif
-  mD3DManager->SetShaderMode(DeviceManagerD3D9::RGBALAYER);
-
-  device()->SetTexture(0, mTexture);
-
+void
+ThebesLayerD3D9::RenderVisibleRegion()
+{
   nsIntRegionRectIterator iter(mVisibleRegion);
 
   const nsIntRect *iterRect;
@@ -249,12 +184,76 @@ ThebesLayerD3D9::RenderLayer()
 
     device()->SetVertexShaderConstantF(CBvTextureCoords,
       ShaderConstantRect(
-        (float)(iterRect->x - visibleRect.x) / (float)visibleRect.width,
-        (float)(iterRect->y - visibleRect.y) / (float)visibleRect.height,
-        (float)iterRect->width / (float)visibleRect.width,
-        (float)iterRect->height / (float)visibleRect.height), 1);
+        (float)(iterRect->x - mTextureRect.x) / (float)mTextureRect.width,
+        (float)(iterRect->y - mTextureRect.y) / (float)mTextureRect.height,
+        (float)iterRect->width / (float)mTextureRect.width,
+        (float)iterRect->height / (float)mTextureRect.height), 1);
 
     device()->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
+  }
+}
+
+void
+ThebesLayerD3D9::RenderLayer()
+{
+  if (mVisibleRegion.IsEmpty()) {
+    return;
+  }
+
+  SurfaceMode mode = GetSurfaceMode();
+  if (mode == SURFACE_COMPONENT_ALPHA &&
+      (!mParent || !mParent->SupportsComponentAlphaChildren())) {
+    mode = SURFACE_SINGLE_CHANNEL_ALPHA;
+  }
+  VerifyContentType(mode);
+  UpdateTextures(mode);
+  if (!HaveTextures(mode)) {
+    NS_WARNING("Texture creation failed");
+    return;
+  }
+
+  if (!mValidRegion.IsEqual(mVisibleRegion)) {
+    
+
+
+
+
+
+    nsIntRegion region;
+    region.Sub(mVisibleRegion, mValidRegion);
+    DrawRegion(region, mode);
+
+    mValidRegion = mVisibleRegion;
+  }
+
+  SetShaderTransformAndOpacity();
+
+  if (mode == SURFACE_COMPONENT_ALPHA) {
+    mD3DManager->SetShaderMode(DeviceManagerD3D9::COMPONENTLAYERPASS1);
+    device()->SetTexture(0, mTexture);
+    device()->SetTexture(1, mTextureOnWhite);
+    device()->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ZERO);
+    device()->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCCOLOR);
+    RenderVisibleRegion();
+
+    mD3DManager->SetShaderMode(DeviceManagerD3D9::COMPONENTLAYERPASS2);
+    device()->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+    device()->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
+    RenderVisibleRegion();
+
+    
+    device()->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+    device()->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    device()->SetTexture(1, NULL);
+  } else {
+#ifdef CAIRO_HAS_D2D_SURFACE
+    if (mD2DSurface && CanUseOpaqueSurface()) {
+      mD3DManager->SetShaderMode(DeviceManagerD3D9::RGBLAYER);
+    } else
+#endif
+    mD3DManager->SetShaderMode(DeviceManagerD3D9::RGBALAYER);
+    device()->SetTexture(0, mTexture);
+    RenderVisibleRegion();
   }
 
   
@@ -267,6 +266,7 @@ void
 ThebesLayerD3D9::CleanResources()
 {
   mTexture = nsnull;
+  mTextureOnWhite = nsnull;
 }
 
 void
@@ -289,10 +289,12 @@ ThebesLayerD3D9::IsEmpty()
 }
 
 void
-ThebesLayerD3D9::VerifyContentType()
+ThebesLayerD3D9::VerifyContentType(SurfaceMode aMode)
 {
 #ifdef CAIRO_HAS_D2D_SURFACE
   if (mD2DSurface) {
+    NS_ASSERTION(!mTextureOnWhite, "No component-alpha textures should be around with D2D");
+
     gfxASurface::gfxContentType type = CanUseOpaqueSurface() ?
       gfxASurface::CONTENT_COLOR : gfxASurface::CONTENT_COLOR_ALPHA;
 
@@ -301,13 +303,110 @@ ThebesLayerD3D9::VerifyContentType()
       
       mD2DSurface = nsnull;
       mTexture = nsnull;
+      mValidRegion.SetEmpty();
     }
+    return;
   }
 #endif
+
+  if (!mTexture)
+    return;
+
+  D3DSURFACE_DESC desc;
+  mTexture->GetLevelDesc(0, &desc);
+
+  switch (aMode) {
+  case SURFACE_OPAQUE:
+    if (desc.Format == D3DFMT_X8R8G8B8 && !mTextureOnWhite)
+      return;
+    break;
+
+  case SURFACE_SINGLE_CHANNEL_ALPHA:
+    if (desc.Format == D3DFMT_A8R8G8B8 && !mTextureOnWhite)
+      return;
+    break;
+
+  case SURFACE_COMPONENT_ALPHA:
+    if (mTextureOnWhite) {
+      NS_ASSERTION(desc.Format == D3DFMT_X8R8G8B8, "Wrong format for component alpha texture");
+      return;
+    }
+    break;
+  }
+
+  
+  
+  mTexture = nsnull;
+  mTextureOnWhite = nsnull;
+  mValidRegion.SetEmpty();
+}
+
+class OpaqueRenderer {
+public:
+  OpaqueRenderer(const nsIntRegion& aUpdateRegion) :
+    mUpdateRegion(aUpdateRegion), mDC(NULL) {}
+  already_AddRefed<gfxWindowsSurface> Begin(LayerD3D9* aLayer);
+  void End();
+  IDirect3DTexture9* GetTexture() { return mTmpTexture; }
+
+private:
+  const nsIntRegion& mUpdateRegion;
+  nsRefPtr<IDirect3DTexture9> mTmpTexture;
+  nsRefPtr<IDirect3DSurface9> mSurface;
+  HDC mDC;
+};
+
+already_AddRefed<gfxWindowsSurface>
+OpaqueRenderer::Begin(LayerD3D9* aLayer)
+{
+  nsIntRect bounds = mUpdateRegion.GetBounds();
+
+  HRESULT hr = aLayer->device()->
+      CreateTexture(bounds.width, bounds.height, 1, 0, D3DFMT_X8R8G8B8,
+                    D3DPOOL_SYSTEMMEM, getter_AddRefs(mTmpTexture), NULL);
+
+  if (FAILED(hr)) {
+    aLayer->ReportFailure(NS_LITERAL_CSTRING("Failed to create temporary texture in system memory."), hr);
+    return nsnull;
+  }
+
+  hr = mTmpTexture->GetSurfaceLevel(0, getter_AddRefs(mSurface));
+
+  if (FAILED(hr)) {
+    
+    NS_WARNING("Failed to get texture surface level.");
+    return nsnull;
+  }
+
+  hr = mSurface->GetDC(&mDC);
+  if (FAILED(hr)) {
+    NS_WARNING("Failed to get device context for texture surface.");
+    return nsnull;
+  }
+
+  nsRefPtr<gfxWindowsSurface> result = new gfxWindowsSurface(mDC);
+  return result.forget();
 }
 
 void
-ThebesLayerD3D9::DrawRegion(const nsIntRegion &aRegion)
+OpaqueRenderer::End()
+{
+  mSurface->ReleaseDC(mDC);
+}
+
+static void
+FillSurface(gfxASurface* aSurface, const nsIntRegion& aRegion,
+            const nsIntPoint& aOffset, const gfxRGBA& aColor)
+{
+  nsRefPtr<gfxContext> ctx = new gfxContext(aSurface);
+  ctx->Translate(-gfxPoint(aOffset.x, aOffset.y));
+  gfxUtils::ClipToRegion(ctx, aRegion);
+  ctx->SetColor(aColor);
+  ctx->Paint();
+}
+
+void
+ThebesLayerD3D9::DrawRegion(const nsIntRegion &aRegion, SurfaceMode aMode)
 {
   HRESULT hr;
   nsIntRect visibleRect = mVisibleRegion.GetBounds();
@@ -346,50 +445,54 @@ ThebesLayerD3D9::DrawRegion(const nsIntRegion &aRegion)
   }
 #endif
 
-  D3DFORMAT fmt = CanUseOpaqueSurface() ? D3DFMT_X8R8G8B8 : D3DFMT_A8R8G8B8;
-  nsIntRect bounds = aRegion.GetBounds();
-
-  gfxASurface::gfxImageFormat imageFormat = gfxASurface::ImageFormatARGB32;
   nsRefPtr<gfxASurface> destinationSurface;
-
+  nsIntRect bounds = aRegion.GetBounds();
   nsRefPtr<IDirect3DTexture9> tmpTexture;
-  hr = device()->CreateTexture(bounds.width, bounds.height, 1,
-                               0, fmt,
-                               D3DPOOL_SYSTEMMEM, getter_AddRefs(tmpTexture), NULL);
+  OpaqueRenderer opaqueRenderer(aRegion);
+  OpaqueRenderer opaqueRendererOnWhite(aRegion);
 
-  if (FAILED(hr)) {
-    ReportFailure(NS_LITERAL_CSTRING("Failed to create temporary texture in system memory."), hr);
-    return;
-  }
+  switch (aMode)
+  {
+    case SURFACE_OPAQUE:
+      destinationSurface = opaqueRenderer.Begin(this);
+      break;
 
-  nsRefPtr<IDirect3DSurface9> surf;
-  HDC dc;
-  if (CanUseOpaqueSurface()) {
-    hr = tmpTexture->GetSurfaceLevel(0, getter_AddRefs(surf));
+    case SURFACE_SINGLE_CHANNEL_ALPHA: {
+      hr = device()->CreateTexture(bounds.width, bounds.height, 1,
+                                   0, D3DFMT_A8R8G8B8,
+                                   D3DPOOL_SYSTEMMEM, getter_AddRefs(tmpTexture), NULL);
 
-    if (FAILED(hr)) {
+      if (FAILED(hr)) {
+        ReportFailure(NS_LITERAL_CSTRING("Failed to create temporary texture in system memory."), hr);
+        return;
+      }
+
       
-      NS_WARNING("Failed to get texture surface level.");
-      return;
+      
+      
+      nsRefPtr<gfxWindowsSurface> dest = new gfxWindowsSurface(
+          gfxIntSize(bounds.width, bounds.height), gfxASurface::ImageFormatARGB32);
+      
+      
+      
+      dest->SetSubpixelAntialiasingEnabled(!(mContentFlags & CONTENT_COMPONENT_ALPHA));
+      destinationSurface = dest.forget();
+      break;
     }
 
-    hr = surf->GetDC(&dc);
-
-    if (FAILED(hr)) {
-      NS_WARNING("Failed to get device context for texture surface.");
-      return;
+    case SURFACE_COMPONENT_ALPHA: {
+      nsRefPtr<gfxWindowsSurface> onBlack = opaqueRenderer.Begin(this);
+      nsRefPtr<gfxWindowsSurface> onWhite = opaqueRendererOnWhite.Begin(this);
+      FillSurface(onBlack, aRegion, bounds.TopLeft(), gfxRGBA(0.0, 0.0, 0.0, 1.0));
+      FillSurface(onWhite, aRegion, bounds.TopLeft(), gfxRGBA(1.0, 1.0, 1.0, 1.0));
+      gfxASurface* surfaces[2] = { onBlack.get(), onWhite.get() };
+      destinationSurface = new gfxTeeSurface(surfaces, NS_ARRAY_LENGTH(surfaces));
+      
+      
+      
+      destinationSurface->SetAllowUseAsSource(PR_FALSE);
+      break;
     }
-
-    destinationSurface = new gfxWindowsSurface(dc);
-  } else {
-    
-    
-    
-    destinationSurface =
-    gfxPlatform::GetPlatform()->
-      CreateOffscreenSurface(gfxIntSize(bounds.width,
-                                        bounds.height),
-                             gfxASurface::ContentFromFormat(imageFormat));
   }
 
   context = new gfxContext(destinationSurface);
@@ -397,60 +500,87 @@ ThebesLayerD3D9::DrawRegion(const nsIntRegion &aRegion)
   LayerManagerD3D9::CallbackInfo cbInfo = mD3DManager->GetCallbackInfo();
   cbInfo.Callback(this, context, aRegion, nsIntRegion(), cbInfo.CallbackData);
 
-  if (CanUseOpaqueSurface()) {
-    surf->ReleaseDC(dc);
-  } else {
-    D3DLOCKED_RECT r;
-    tmpTexture->LockRect(0, &r, NULL, 0);
+  nsAutoTArray<IDirect3DTexture9*,2> srcTextures;
+  nsAutoTArray<IDirect3DTexture9*,2> destTextures;
+  switch (aMode)
+  {
+    case SURFACE_OPAQUE:
+      opaqueRenderer.End();
+      srcTextures.AppendElement(opaqueRenderer.GetTexture());
+      destTextures.AppendElement(mTexture);
+      break;
 
-    nsRefPtr<gfxImageSurface> imgSurface =
-    new gfxImageSurface((unsigned char *)r.pBits,
-                        gfxIntSize(bounds.width,
-                                   bounds.height),
-                        r.Pitch,
-                        imageFormat);
+    case SURFACE_SINGLE_CHANNEL_ALPHA: {
+      D3DLOCKED_RECT r;
+      tmpTexture->LockRect(0, &r, NULL, 0);
 
-    context = new gfxContext(imgSurface);
-    context->SetSource(destinationSurface);
-    context->SetOperator(gfxContext::OPERATOR_SOURCE);
-    context->Paint();
+      nsRefPtr<gfxImageSurface> imgSurface =
+        new gfxImageSurface((unsigned char *)r.pBits,
+                            gfxIntSize(bounds.width,
+                                       bounds.height),
+                            r.Pitch,
+                            gfxASurface::ImageFormatARGB32);
 
-    imgSurface = NULL;
+      context = new gfxContext(imgSurface);
+      context->SetSource(destinationSurface);
+      context->SetOperator(gfxContext::OPERATOR_SOURCE);
+      context->Paint();
 
-    tmpTexture->UnlockRect(0);
+      imgSurface = NULL;
+
+      tmpTexture->UnlockRect(0);
+
+      srcTextures.AppendElement(tmpTexture);
+      destTextures.AppendElement(mTexture);
+      break;
+    }
+
+    case SURFACE_COMPONENT_ALPHA: {
+      opaqueRenderer.End();
+      opaqueRendererOnWhite.End();
+      srcTextures.AppendElement(opaqueRenderer.GetTexture());
+      destTextures.AppendElement(mTexture);
+      srcTextures.AppendElement(opaqueRendererOnWhite.GetTexture());
+      destTextures.AppendElement(mTextureOnWhite);
+      break;
+    }
   }
+  NS_ASSERTION(srcTextures.Length() == destTextures.Length(), "Mismatched lengths");
 
-  nsRefPtr<IDirect3DSurface9> srcSurface;
-  nsRefPtr<IDirect3DSurface9> dstSurface;
+  for (PRUint32 i = 0; i < srcTextures.Length(); ++i) {
+    nsRefPtr<IDirect3DSurface9> srcSurface;
+    nsRefPtr<IDirect3DSurface9> dstSurface;
 
-  mTexture->GetSurfaceLevel(0, getter_AddRefs(dstSurface));
-  tmpTexture->GetSurfaceLevel(0, getter_AddRefs(srcSurface));
+    destTextures[i]->GetSurfaceLevel(0, getter_AddRefs(dstSurface));
+    srcTextures[i]->GetSurfaceLevel(0, getter_AddRefs(srcSurface));
 
-  nsIntRegionRectIterator iter(aRegion);
-  const nsIntRect *iterRect;
-  while ((iterRect = iter.Next())) {
-    RECT rect;
-    rect.left = iterRect->x - bounds.x;
-    rect.top = iterRect->y - bounds.y;
-    rect.right = rect.left + iterRect->width;
-    rect.bottom = rect.top + iterRect->height;
-    POINT point;
-    point.x = iterRect->x - visibleRect.x;
-    point.y = iterRect->y - visibleRect.y;
-    device()->UpdateSurface(srcSurface, &rect, dstSurface, &point);
+    nsIntRegionRectIterator iter(aRegion);
+    const nsIntRect *iterRect;
+    while ((iterRect = iter.Next())) {
+      RECT rect;
+      rect.left = iterRect->x - bounds.x;
+      rect.top = iterRect->y - bounds.y;
+      rect.right = rect.left + iterRect->width;
+      rect.bottom = rect.top + iterRect->height;
+      POINT point;
+      point.x = iterRect->x - visibleRect.x;
+      point.y = iterRect->y - visibleRect.y;
+      device()->UpdateSurface(srcSurface, &rect, dstSurface, &point);
+    }
   }
 }
 
 void
-ThebesLayerD3D9::CreateNewTexture(const gfxIntSize &aSize)
+ThebesLayerD3D9::CreateNewTextures(const gfxIntSize &aSize,
+                                   SurfaceMode aMode)
 {
-  if (aSize.width == 0 | aSize.height == 0) {
+  if (aSize.width == 0 || aSize.height == 0) {
     
     return;
   }
 
   mTexture = nsnull;
-  PRBool canUseOpaqueSurface = CanUseOpaqueSurface();
+  mTextureOnWhite = nsnull;
 #ifdef CAIRO_HAS_D2D_SURFACE
   if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
       gfxWindowsPlatform::RENDER_DIRECT2D) {
@@ -462,7 +592,7 @@ ThebesLayerD3D9::CreateNewTexture(const gfxIntSize &aSize)
                                   D3DPOOL_DEFAULT, getter_AddRefs(mTexture), &sharedHandle);
 
           mD2DSurfaceInitialized = false;
-          mD2DSurface = new gfxD2DSurface(sharedHandle, canUseOpaqueSurface ?
+          mD2DSurface = new gfxD2DSurface(sharedHandle, aMode == SURFACE_OPAQUE ?
             gfxASurface::CONTENT_COLOR : gfxASurface::CONTENT_COLOR_ALPHA);
 
           
@@ -475,8 +605,15 @@ ThebesLayerD3D9::CreateNewTexture(const gfxIntSize &aSize)
 #endif
   if (!mTexture) {
     device()->CreateTexture(aSize.width, aSize.height, 1,
-                            D3DUSAGE_RENDERTARGET, canUseOpaqueSurface ? D3DFMT_X8R8G8B8 : D3DFMT_A8R8G8B8,
+                            D3DUSAGE_RENDERTARGET,
+                            aMode != SURFACE_SINGLE_CHANNEL_ALPHA ? D3DFMT_X8R8G8B8 : D3DFMT_A8R8G8B8,
                             D3DPOOL_DEFAULT, getter_AddRefs(mTexture), NULL);
+    if (aMode == SURFACE_COMPONENT_ALPHA) {
+      device()->CreateTexture(aSize.width, aSize.height, 1,
+                              D3DUSAGE_RENDERTARGET,
+                              D3DFMT_X8R8G8B8,
+                              D3DPOOL_DEFAULT, getter_AddRefs(mTextureOnWhite), NULL);
+    }
   }
 }
 

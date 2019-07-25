@@ -53,9 +53,6 @@ public:
   virtual ~ThebesLayerD3D9();
 
   
-  void SetVisibleRegion(const nsIntRegion& aRegion);
-
-  
   void InvalidateRegion(const nsIntRegion& aRegion);
 
   
@@ -70,20 +67,48 @@ private:
 
 
   nsRefPtr<IDirect3DTexture9> mTexture;
-
   
-  void VerifyContentType();
+
+
+  nsRefPtr<IDirect3DTexture9> mTextureOnWhite;
+  
+
+
+  nsIntRect mTextureRect;
 
   
   nsRefPtr<gfxASurface> mD2DSurface;
 
   bool mD2DSurfaceInitialized;
 
-  
-  void DrawRegion(const nsIntRegion &aRegion);
+  bool HaveTextures(SurfaceMode aMode)
+  {
+    return mTexture && (aMode != SURFACE_COMPONENT_ALPHA || mTextureOnWhite);
+  }
 
   
-  void CreateNewTexture(const gfxIntSize &aSize);
+  void VerifyContentType(SurfaceMode aMode);
+
+  
+
+
+
+  void UpdateTextures(SurfaceMode aMode);
+
+  
+
+
+  void RenderVisibleRegion();
+
+  
+  void DrawRegion(const nsIntRegion &aRegion, SurfaceMode aMode);
+
+  
+  void CreateNewTextures(const gfxIntSize &aSize, SurfaceMode aMode);
+
+  void CopyRegion(IDirect3DTexture9* aSrc, const nsIntPoint &aSrcOffset,
+                  IDirect3DTexture9* aDest, const nsIntPoint &aDestOffset,
+                  const nsIntRegion &aCopyRegion, nsIntRegion* aValidRegion);
 };
 
 } 
