@@ -65,6 +65,42 @@ NewTryNote(JSContext *cx, BytecodeEmitter *bce, JSTryNoteKind kind, unsigned sta
 static bool
 SetSrcNoteOffset(JSContext *cx, BytecodeEmitter *bce, unsigned index, unsigned which, ptrdiff_t offset);
 
+struct js::StmtInfoBCE : public js::StmtInfoBase
+{
+    StmtInfoBCE     *down;          
+    StmtInfoBCE     *downScope;     
+
+    ptrdiff_t       update;         
+    ptrdiff_t       breaks;         
+    ptrdiff_t       continues;      
+
+    StmtInfoBCE(JSContext *cx) : StmtInfoBase(cx) {}
+
+    
+
+
+
+
+
+
+
+
+    ptrdiff_t &gosubs() {
+        JS_ASSERT(type == STMT_FINALLY);
+        return breaks;
+    }
+
+    ptrdiff_t &catchNote() {
+        JS_ASSERT(type == STMT_TRY || type == STMT_FINALLY);
+        return update;
+    }
+
+    ptrdiff_t &guardJump() {
+        JS_ASSERT(type == STMT_TRY || type == STMT_FINALLY);
+        return continues;
+    }
+};
+
 BytecodeEmitter::BytecodeEmitter(BytecodeEmitter *parent, Parser *parser, SharedContext *sc,
                                  HandleScript script, StackFrame *callerFrame, bool hasGlobalScope,
                                  unsigned lineno)
@@ -1558,6 +1594,19 @@ CheckSideEffects(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, bool *answe
         break;
     }
     return ok;
+}
+
+bool
+BytecodeEmitter::checkSingletonContext()
+{
+    if (!script->compileAndGo || sc->inFunction())
+        return false;
+    for (StmtInfoBCE *stmt = topStmt; stmt; stmt = stmt->down) {
+        if (stmt->isLoop())
+            return false;
+    }
+    hasSingletons = true;
+    return true;
 }
 
 bool

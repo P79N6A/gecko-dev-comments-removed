@@ -375,41 +375,6 @@ struct StmtInfoTC : public StmtInfoBase {
     StmtInfoTC(JSContext *cx) : StmtInfoBase(cx), isFunctionBodyBlock(false) {}
 };
 
-struct StmtInfoBCE : public StmtInfoBase {
-    StmtInfoBCE     *down;          
-    StmtInfoBCE     *downScope;     
-
-    ptrdiff_t       update;         
-    ptrdiff_t       breaks;         
-    ptrdiff_t       continues;      
-
-    StmtInfoBCE(JSContext *cx) : StmtInfoBase(cx) {}
-
-    
-
-
-
-
-
-
-
-
-    ptrdiff_t &gosubs() {
-        JS_ASSERT(type == STMT_FINALLY);
-        return breaks;
-    }
-
-    ptrdiff_t &catchNote() {
-        JS_ASSERT(type == STMT_TRY || type == STMT_FINALLY);
-        return update;
-    }
-
-    ptrdiff_t &guardJump() {
-        JS_ASSERT(type == STMT_TRY || type == STMT_FINALLY);
-        return continues;
-    }
-};
-
 namespace frontend {
 
 bool
