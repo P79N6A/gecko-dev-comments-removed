@@ -531,8 +531,7 @@ nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowState* aState,
   
   
   
-  aMetrics->mOverflowArea.UnionRect(aMetrics->mOverflowArea,
-                                    nsRect(0, 0, aMetrics->width, aMetrics->height));
+  aMetrics->UnionOverflowAreasWithDesiredBounds();
 
   aState->mContentsOverflowArea = aMetrics->mOverflowArea;
   aState->mReflowedContentsWithHScrollbar = aAssumeHScroll;
@@ -710,7 +709,7 @@ nsHTMLScrollFrame::PlaceScrollArea(const ScrollReflowState& aState,
   nsContainerFrame::SyncFrameViewAfterReflow(scrolledFrame->PresContext(),
                                              scrolledFrame,
                                              scrolledFrame->GetView(),
-                                             &scrolledArea,
+                                             scrolledArea,
                                              0);
 }
 
@@ -858,7 +857,7 @@ nsHTMLScrollFrame::Reflow(nsPresContext*           aPresContext,
   aDesiredSize.height = state.mInsideBorderSize.height +
     state.mComputedBorder.TopBottom();
 
-  aDesiredSize.mOverflowArea = nsRect(0, 0, aDesiredSize.width, aDesiredSize.height);
+  aDesiredSize.SetOverflowAreasToDesiredBounds();
 
   CheckInvalidateSizeChange(aDesiredSize);
 

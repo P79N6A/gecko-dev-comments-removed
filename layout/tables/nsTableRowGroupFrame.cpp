@@ -475,7 +475,7 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
         aReflowState.availSize.height -= height;
       }
     }
-    ConsiderChildOverflow(aDesiredSize.mOverflowArea, kidFrame);
+    ConsiderChildOverflow(aDesiredSize.mOverflowAreas, kidFrame);
   }
 
   if (haveRow)
@@ -548,11 +548,11 @@ nsTableRowGroupFrame::DidResizeRows(nsHTMLReflowMetrics& aDesiredSize)
   
   
   
-  aDesiredSize.mOverflowArea = nsRect(0, 0, 0, 0);
+  aDesiredSize.mOverflowAreas.Clear();
   for (nsTableRowFrame* rowFrame = GetFirstRow();
        rowFrame; rowFrame = rowFrame->GetNextRow()) {
     rowFrame->DidResize();
-    ConsiderChildOverflow(aDesiredSize.mOverflowArea, rowFrame);
+    ConsiderChildOverflow(aDesiredSize.mOverflowAreas, rowFrame);
   }
 }
 
@@ -1349,8 +1349,7 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
   
   aDesiredSize.width = aReflowState.availableWidth;
 
-  aDesiredSize.mOverflowArea.UnionRect(aDesiredSize.mOverflowArea, nsRect(0, 0, aDesiredSize.width,
-	                                                                      aDesiredSize.height));
+  aDesiredSize.UnionOverflowAreasWithDesiredBounds();
 
   
   

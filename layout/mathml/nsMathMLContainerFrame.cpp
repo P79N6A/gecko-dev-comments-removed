@@ -856,12 +856,15 @@ nsMathMLContainerFrame::GatherAndStoreOverflow(nsHTMLReflowMetrics* aMetrics)
 {
   
   
-  nsRect frameRect(0, 0, aMetrics->width, aMetrics->height);
+  aMetrics->SetOverflowAreasToDesiredBounds();
 
   
   if (PresContext()->CompatibilityMode() != eCompatibility_NavQuirks) {
+    nsRect frameRect(0, 0, aMetrics->width, aMetrics->height);
     nsRect shadowRect = nsLayoutUtils::GetTextShadowRectsUnion(frameRect, this);
-    frameRect.UnionRect(frameRect, shadowRect);
+    
+    nsRect& visOverflow = aMetrics->VisualOverflow();
+    visOverflow.UnionRect(visOverflow, shadowRect);
   }
 
   
@@ -871,7 +874,9 @@ nsMathMLContainerFrame::GatherAndStoreOverflow(nsHTMLReflowMetrics* aMetrics)
                      mBoundingMetrics.rightBearing - mBoundingMetrics.leftBearing,
                      mBoundingMetrics.ascent + mBoundingMetrics.descent);
 
-  aMetrics->mOverflowArea.UnionRect(frameRect, boundingBox);
+  
+  
+  aMetrics->mOverflowAreas.UnionAllWith(boundingBox);
 
   
   
@@ -879,7 +884,7 @@ nsMathMLContainerFrame::GatherAndStoreOverflow(nsHTMLReflowMetrics* aMetrics)
   
   nsIFrame* childFrame = mFrames.FirstChild();
   while (childFrame) {
-    ConsiderChildOverflow(aMetrics->mOverflowArea, childFrame);
+    ConsiderChildOverflow(aMetrics->mOverflowAreas, childFrame);
     childFrame = childFrame->GetNextSibling();
   }
 

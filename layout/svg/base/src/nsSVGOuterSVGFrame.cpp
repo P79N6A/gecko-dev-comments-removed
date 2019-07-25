@@ -345,7 +345,7 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
 
   
   
-  aDesiredSize.mOverflowArea.SetRect(0, 0, aDesiredSize.width, aDesiredSize.height);
+  aDesiredSize.SetOverflowAreasToDesiredBounds();
   FinishAndStoreOverflow(&aDesiredSize);
 
   

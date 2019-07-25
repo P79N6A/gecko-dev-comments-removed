@@ -830,8 +830,7 @@ nsContainerFrame::FinishReflowChild(nsIFrame*                  aKidFrame,
     
     
     SyncFrameViewAfterReflow(aPresContext, aKidFrame, view,
-                             &aDesiredSize.mOverflowArea,
-                             aFlags);
+                             aDesiredSize.VisualOverflow(), aFlags);
   }
 
   if (!(aFlags & NS_FRAME_NO_MOVE_VIEW) &&
@@ -847,7 +846,7 @@ nsContainerFrame::FinishReflowChild(nsIFrame*                  aKidFrame,
     
     
     
-    aKidFrame->Invalidate(aDesiredSize.mOverflowArea);
+    aKidFrame->Invalidate(aDesiredSize.VisualOverflow());
   }
 
   return aKidFrame->DidReflow(aPresContext, aReflowState, NS_FRAME_REFLOW_FINISHED);
@@ -948,7 +947,7 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
         dirtyRect.MoveBy(oldRect.x, oldRect.y);
         Invalidate(dirtyRect);
 
-        dirtyRect = frame->GetOverflowRect();
+        dirtyRect = frame->GetVisualOverflowRect();
         dirtyRect.MoveBy(rect.x, rect.y);
         Invalidate(dirtyRect);
       }

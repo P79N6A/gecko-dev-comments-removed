@@ -679,7 +679,7 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
 
   
   
-  aMetrics.mOverflowArea.SetRect(0, 0, 0, 0);
+  aMetrics.mOverflowAreas.Clear();
 
 #ifdef NOISY_FINAL_SIZE
   ListTag(stdout);

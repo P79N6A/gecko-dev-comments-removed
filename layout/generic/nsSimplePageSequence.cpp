@@ -165,8 +165,7 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
     
     aDesiredSize.height  = mSize.height * PresContext()->GetPrintPreviewScale();
     aDesiredSize.width   = mSize.width * PresContext()->GetPrintPreviewScale();
-    aDesiredSize.mOverflowArea = nsRect(0, 0, aDesiredSize.width,
-                                        aDesiredSize.height);
+    aDesiredSize.SetOverflowAreasToDesiredBounds();
     FinishAndStoreOverflow(&aDesiredSize);
     return NS_OK;
   }
@@ -350,8 +349,7 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
   aDesiredSize.height  = y * PresContext()->GetPrintPreviewScale(); 
   aDesiredSize.width   = w * PresContext()->GetPrintPreviewScale();
 
-  aDesiredSize.mOverflowArea = nsRect(0, 0, aDesiredSize.width,
-                                      aDesiredSize.height);
+  aDesiredSize.SetOverflowAreasToDesiredBounds();
   FinishAndStoreOverflow(&aDesiredSize);
 
   

@@ -249,9 +249,8 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
   
   
   
-  aMetrics.mOverflowArea.UnionRect(aMetrics.mOverflowArea,
-                           nsRect(0, 0, aMetrics.width, aMetrics.height));
-  ConsiderChildOverflow(aMetrics.mOverflowArea, kid);
+  aMetrics.UnionOverflowAreasWithDesiredBounds();
+  ConsiderChildOverflow(aMetrics.mOverflowAreas, kid);
 
   
   
