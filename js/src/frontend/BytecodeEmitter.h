@@ -435,8 +435,6 @@ struct TreeContext {
     int sharpSlotBase;
     bool ensureSharpSlots();
 
-    BytecodeCompiler *compiler() { return (BytecodeCompiler *) parser; }
-
     
     
     
@@ -656,6 +654,8 @@ struct BytecodeEmitter : public TreeContext
     OwnedAtomIndexMapPtr upvarIndices; 
 
     UpvarCookies    upvarMap;       
+
+    GlobalScope     *globalScope;   
 
     typedef Vector<GlobalSlotArray::Entry, 16> GlobalUseVector;
 
