@@ -41,6 +41,7 @@
 #define mozilla_places_History_h_
 
 #include "mozilla/IHistory.h"
+#include "mozilla/Mutex.h"
 #include "mozIAsyncHistory.h"
 #include "nsIDownloadHistory.h"
 #include "Database.h"
@@ -140,6 +141,13 @@ public:
     return mDB->GetStatement(aQuery);
   }
 
+  bool IsShuttingDown() const {
+    return mShuttingDown;
+  }
+  Mutex& GetShutdownMutex() {
+    return mShutdownMutex;
+  }
+
 private:
   virtual ~History();
 
@@ -178,6 +186,12 @@ private:
 
   
   bool mShuttingDown;
+  
+  
+  
+  
+  
+  Mutex mShutdownMutex;
 
   typedef nsTObserverArray<mozilla::dom::Link* > ObserverArray;
 
