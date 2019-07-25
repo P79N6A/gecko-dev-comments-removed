@@ -66,7 +66,9 @@ var Trench = function(element, xory, type, edge) {
   
   
   
+  
   this.el = element;
+  this.parentItem = null;
   this.xory = xory; 
   this.type = type; 
   this.edge = edge; 
@@ -110,7 +112,16 @@ Trench.prototype = {
   
   
   
-  get radius() { return this.customRadius || Trenches.defaultRadius; },
+  get radius() this.customRadius || Trenches.defaultRadius,
+
+  setParentItem: function Trench_setParentItem(item) {
+    if (!item.isAnItem) {
+      Utils.assert("parentItem must be an Item",false);
+      return false;
+    }
+    this.parentItem = item;
+    return true;
+  },
 
   
   
@@ -493,6 +504,32 @@ var Trenches = {
     var trench = new Trench(element, xory, type, edge);
     this.trenches[trench.id] = trench;
     return trench.id;
+  },
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  registerWithItem: function Trenches_registerWithItem(item, type) {
+    var container = item.container;
+    var ids = {};
+    ids.left = Trenches.register(container,"x",type,"left");
+    ids.right = Trenches.register(container,"x",type,"right");
+    ids.top = Trenches.register(container,"y",type,"top");
+    ids.bottom = Trenches.register(container,"y",type,"bottom");
+
+    this.getById(ids.left).setParentItem(item);
+    this.getById(ids.right).setParentItem(item);
+    this.getById(ids.top).setParentItem(item);
+    this.getById(ids.bottom).setParentItem(item);
+
+    return ids;
   },
 
   
