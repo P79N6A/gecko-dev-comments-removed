@@ -45,6 +45,7 @@
 #include "nsIDocShellTreeItem.h"
 #include "nsLayoutUtils.h"
 #include "nsDOMEvent.h"
+#include "nsGlobalWindow.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -381,11 +382,15 @@ nsScreen::MozLockOrientation(const nsAString& aOrientation, bool* aReturn)
       return NS_OK;
     }
 
-    bool fullscreen;
-    doc->GetMozFullScreen(&fullscreen);
-    if (!fullscreen) {
-      *aReturn = false;
-      return NS_OK;
+    
+    
+    if (!static_cast<nsGlobalWindow*>(GetOwner())->IsPartOfApp()) {
+      bool fullscreen;
+      doc->GetMozFullScreen(&fullscreen);
+      if (!fullscreen) {
+        *aReturn = false;
+        return NS_OK;
+      }
     }
 
     nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(GetOwner());
