@@ -147,7 +147,7 @@ Layer::CanUseOpaqueSurface()
 {
   
   
-  if (IsOpaqueContent())
+  if (GetContentFlags() & CONTENT_OPAQUE)
     return PR_TRUE;
   
   
@@ -221,14 +221,24 @@ Layer::PrintInfo(nsACString& aTo, const char* aPrefix)
   if (mUseClipRect) {
     AppendToString(aTo, mClipRect, " [clip=", "]");
   }
-  if (!mTransform.IsIdentity())
+  if (!mTransform.IsIdentity()) {
     AppendToString(aTo, mTransform, " [transform=", "]");
-  if (!mVisibleRegion.IsEmpty())
+  }
+  if (!mVisibleRegion.IsEmpty()) {
     AppendToString(aTo, mVisibleRegion, " [visible=", "]");
-  if (1.0 != mOpacity)
+  }
+  if (1.0 != mOpacity) {
     aTo.AppendPrintf(" [opacity=%g]", mOpacity);
-  if (IsOpaqueContent())
+  }
+  if (GetContentFlags() & CONTENT_OPAQUE) {
     aTo += " [opaqueContent]";
+  }
+  if (GetContentFlags() & CONTENT_NO_TEXT) {
+    aTo += " [noText]";
+  }
+  if (GetContentFlags() & CONTENT_NO_TEXT_OVER_TRANSPARENT) {
+    aTo += " [noTextOverTransparent]";
+  }
 
   return aTo;
 }
