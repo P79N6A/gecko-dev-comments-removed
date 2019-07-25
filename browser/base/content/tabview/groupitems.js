@@ -1274,16 +1274,15 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
       
       
-      if (self.expanded)
-        return;
-
-      
-      data.onMouseMove = function (e) {
-        let cursor = new Point(e.pageX, e.pageY);
-        if (!self.bounds.contains(cursor))
-          self._unfreezeItemSize();
+      if (!self.expanded) {
+        
+        data.onMouseMove = function (e) {
+          let cursor = new Point(e.pageX, e.pageY);
+          if (!self.bounds.contains(cursor))
+            self._unfreezeItemSize();
+        }
+        iQ(window).mousemove(data.onMouseMove);
       }
-      iQ(window).mousemove(data.onMouseMove);
     }
 
     this.arrange({animate: true, count: data.lastItemCount});
