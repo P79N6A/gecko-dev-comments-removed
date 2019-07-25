@@ -1300,96 +1300,34 @@ gfxFont::Measure(gfxTextRun *aTextRun,
     return metrics;
 }
 
-#define MAX_SHAPING_LENGTH  32760 // slightly less than 32K, trying to avoid
-                                  
-
-#define BACKTRACK_LIMIT  1024 // If we can't find a space or a cluster start
-                              
-                              
-                              
-
 PRBool
 gfxFont::InitTextRun(gfxContext *aContext,
                      gfxTextRun *aTextRun,
                      const PRUnichar *aString,
                      PRUint32 aRunStart,
                      PRUint32 aRunLength,
-                     PRInt32 aRunScript,
-                     PRBool aPreferPlatformShaping)
+                     PRInt32 aRunScript)
 {
-    PRBool ok;
+    PRBool ok = PR_FALSE;
 
-    do {
-        
-        
-        
-        
-        
-        
-        
-        
-
-        PRUint32 thisRunLength;
-        ok = PR_FALSE;
-
-        if (aRunLength <= MAX_SHAPING_LENGTH) {
-            thisRunLength = aRunLength;
-        } else {
-            
-            PRUint32 offset = aRunStart + MAX_SHAPING_LENGTH;
-            PRUint32 clusterStart = 0;
-            while (offset > aRunStart + MAX_SHAPING_LENGTH - BACKTRACK_LIMIT) {
-                if (aTextRun->IsClusterStart(offset)) {
-                    if (!clusterStart) {
-                        clusterStart = offset;
-                    }
-                    if (aString[offset] == ' ' || aString[offset - 1] == ' ') {
-                        break;
-                    }
-                }
-                --offset;
-            }
-            
-            if (offset > MAX_SHAPING_LENGTH - BACKTRACK_LIMIT) {
-                
-                thisRunLength = offset - aRunStart;
-            } else if (clusterStart != 0) {
-                
-                thisRunLength = clusterStart - aRunStart;
-            } else {
-                
-                
-                
-                
-                
-                thisRunLength = MAX_SHAPING_LENGTH;
-            }
+    if (mHarfBuzzShaper) {
+        if (gfxPlatform::GetPlatform()->UseHarfBuzzLevel() >=
+            gfxUnicodeProperties::ScriptShapingLevel(aRunScript)) {
+            ok = mHarfBuzzShaper->InitTextRun(aContext, aTextRun, aString,
+                                              aRunStart, aRunLength, aRunScript);
         }
+    }
 
-        if (mHarfBuzzShaper && !aPreferPlatformShaping) {
-            if (gfxPlatform::GetPlatform()->UseHarfBuzzLevel() >=
-                gfxUnicodeProperties::ScriptShapingLevel(aRunScript)) {
-                ok = mHarfBuzzShaper->InitTextRun(aContext, aTextRun, aString,
-                                                  aRunStart, thisRunLength,
-                                                  aRunScript);
-            }
+    if (!ok) {
+        if (!mPlatformShaper) {
+            CreatePlatformShaper();
+            NS_ASSERTION(mPlatformShaper, "no platform shaper available!");
         }
-
-        if (!ok) {
-            if (!mPlatformShaper) {
-                CreatePlatformShaper();
-                NS_ASSERTION(mPlatformShaper, "no platform shaper available!");
-            }
-            if (mPlatformShaper) {
-                ok = mPlatformShaper->InitTextRun(aContext, aTextRun, aString,
-                                                  aRunStart, thisRunLength,
-                                                  aRunScript);
-            }
+        if (mPlatformShaper) {
+            ok = mPlatformShaper->InitTextRun(aContext, aTextRun, aString,
+                                              aRunStart, aRunLength, aRunScript);
         }
-        
-        aRunStart += thisRunLength;
-        aRunLength -= thisRunLength;
-    } while (ok && aRunLength > 0);
+    }
 
     NS_WARN_IF_FALSE(ok, "shaper failed, expect scrambled or missing text");
     return ok;

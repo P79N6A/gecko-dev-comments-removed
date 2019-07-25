@@ -62,8 +62,7 @@ public:
                                const PRUnichar *aString,
                                PRUint32 aRunStart,
                                PRUint32 aRunLength,
-                               PRInt32 aRunScript,
-                               PRBool aPreferPlatformShaping = PR_FALSE);
+                               PRInt32 aRunScript);
 
     
     virtual const gfxFont::Metrics& GetMetrics() {
