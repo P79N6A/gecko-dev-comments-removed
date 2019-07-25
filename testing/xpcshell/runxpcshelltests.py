@@ -705,7 +705,7 @@ class XPCShellTests(object):
       
       cmdT = self.buildCmdTestFile(name)
 
-      args = self.xpcsRunArgs
+      args = self.xpcsRunArgs[:]
       if 'debug' in test:
           args.insert(0, '-d')
 
