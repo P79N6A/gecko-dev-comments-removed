@@ -50,5 +50,26 @@ public abstract class LayerClient {
     public void setLayerController(LayerController layerController) {
         mLayerController = layerController;
     }
+
+    
+
+
+
+    public void beginTransaction(TileLayer aTileLayer) {
+        if (mLayerController != null) {
+            LayerView view = mLayerController.getView();
+            if (view != null) {
+                aTileLayer.beginTransaction(view);
+                return;
+            }
+        }
+
+        aTileLayer.beginTransaction();
+    }
+
+    
+    public void endTransaction(TileLayer aTileLayer) {
+        aTileLayer.endTransaction();
+    }
 }
 

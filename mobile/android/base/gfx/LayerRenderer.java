@@ -77,6 +77,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
     
     private long mFrameCountTimestamp;
+    private long mFrameTime;
     private int mFrameCount;            
 
     public LayerRenderer(LayerView view) {
@@ -225,8 +226,16 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     }
 
     private void checkFPS() {
+        mFrameTime += mView.getRenderTime();
+        mFrameCount ++;
+
         if (System.currentTimeMillis() >= mFrameCountTimestamp + 1000) {
             mFrameCountTimestamp = System.currentTimeMillis();
+
+            
+            
+            
+            mFrameCount = (int)(mFrameCount * 1000000000L / mFrameTime);
 
             mFPSLayer.beginTransaction();
             try {
@@ -236,8 +245,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             }
 
             mFrameCount = 0;
-        } else {
-            mFrameCount++;
+            mFrameTime = 0;
         }
     }
 }
