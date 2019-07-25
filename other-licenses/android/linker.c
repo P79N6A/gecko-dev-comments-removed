@@ -1925,6 +1925,7 @@ static unsigned int plt_reloc(soinfo *si, unsigned int num)
       return *(unsigned int *)(si->base + si->plt_rela[num].r_offset);
     }
 #endif
+    return 0;   
 }
 
 
