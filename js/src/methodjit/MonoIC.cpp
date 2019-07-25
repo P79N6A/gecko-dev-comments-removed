@@ -1035,12 +1035,12 @@ ic::NativeNew(VMFrame &f, CallICInfo *ic)
         stubs::SlowNew(f, ic->frameSize.staticArgc());
 }
 
-static inline bool
-BumpStack(VMFrame &f, uintN inc)
-{
-    static const unsigned MANY_ARGS = 1024;
-    static const unsigned MIN_SPACE = 500;
+static const unsigned MANY_ARGS = 1024;
+static const unsigned MIN_SPACE = 500;
 
+static bool
+BumpStackFull(VMFrame &f, uintN inc)
+{
     
     if (inc < MANY_ARGS) {
         if (f.regs.sp + inc < f.stackLimit)
@@ -1081,6 +1081,15 @@ BumpStack(VMFrame &f, uintN inc)
     return true;
 }
 
+static JS_ALWAYS_INLINE bool
+BumpStack(VMFrame &f, uintN inc)
+{
+    
+    if (inc < MANY_ARGS && f.regs.sp + inc < f.stackLimit)
+        return true;
+    return BumpStackFull(f, inc);
+}
+
 
 
 
@@ -1109,21 +1118,38 @@ ic::SplatApplyArgs(VMFrame &f)
         JS_ASSERT(JS_CALLEE(cx, vp).toObject().getFunctionPrivate()->u.n.native == js_fun_apply);
 
         JSStackFrame *fp = f.regs.fp;
-        if (!fp->hasOverriddenArgs() &&
-            (!fp->hasArgsObj() ||
-             (fp->hasArgsObj() && !fp->argsObj().isArgsLengthOverridden() &&
-              !js_PrototypeHasIndexedProperties(cx, &fp->argsObj())))) {
-
-            uintN n = fp->numActualArgs();
-            if (!BumpStack(f, n))
-                THROWV(false);
-            f.regs.sp += n;
-
-            Value *argv = JS_ARGV(cx, vp + 1 );
-            if (fp->hasArgsObj())
-                fp->forEachCanonicalActualArg(CopyNonHoleArgsTo(&fp->argsObj(), argv));
-            else
+        if (!fp->hasOverriddenArgs()) {
+            uintN n;
+            if (!fp->hasArgsObj()) {
+                
+                n = fp->numActualArgs();
+                if (!BumpStack(f, n))
+                    THROWV(false);
+                Value *argv = JS_ARGV(cx, vp + 1 );
+                f.regs.sp += n;
                 fp->forEachCanonicalActualArg(CopyTo(argv));
+            } else {
+                
+                JSObject *aobj = &fp->argsObj();
+
+                
+                uintN length;
+                if (!js_GetLengthProperty(cx, aobj, &length))
+                    THROWV(false);
+
+                
+                JS_ASSERT(length <= JS_ARGS_LENGTH_MAX);
+                n = length;
+
+                if (!BumpStack(f, n))
+                    THROWV(false);
+
+                
+                Value *argv = JS_ARGV(cx, &vp[1]);  
+                f.regs.sp += n;  
+                if (!GetElements(cx, aobj, n, argv))
+                    THROWV(false);
+            }
 
             f.u.call.dynamicArgc = n;
             return true;
