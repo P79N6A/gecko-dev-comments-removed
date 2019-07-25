@@ -230,8 +230,8 @@ Reporter.prototype = {
   treeNameMatches: function(aTreeName) {
     
     
-    aTreeName += "/";
-    return this._unsafePath.slice(0, aTreeName.length) === aTreeName;
+    return this._unsafePath.indexOf(aTreeName) === 0 &&
+           this._unsafePath.charAt(aTreeName.length) === '/';
   }
 };
 
