@@ -55,10 +55,11 @@ BrowserElementChild.prototype = {
     
     
     
-    
+    let appManifestURL = sendSyncMsg('get-mozapp-manifest-url')[0];
+
     content.QueryInterface(Ci.nsIInterfaceRequestor)
            .getInterface(Components.interfaces.nsIDOMWindowUtils)
-           .setIsApp(sendSyncMsg('get-mozapp')[0]);
+           .setIsApp(!!appManifestURL);
 
     addEventListener('DOMTitleChanged',
                      this._titleChangedHandler.bind(this),
