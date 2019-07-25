@@ -103,6 +103,15 @@ window.Group = function(listOfEls, options) {
   
   this._activeTab = null;
   
+ 	
+ 	
+ 	
+ 	
+ 	
+  this.xDensity = 0;
+  this.yDensity = 0;
+
+  
   if(isPoint(options.userSize))  
     this.userSize = new Point(options.userSize);
 
@@ -302,7 +311,8 @@ window.Group = function(listOfEls, options) {
     this.setResizable(true);
   
   Groups.register(this);
-  
+
+	
   this.setBounds(rectToBe);
   this.snap();
   
@@ -869,10 +879,31 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
 
         if(this.isNewTabsGroup()) {
           arrangeOptions.count++;
-        } else if(!count)
+        } else if (!count) {
+					this.xDensity = 0;
+					this.yDensity = 0;
           return;
+        }
     
         var rects = Items.arrange(this._children, bb, arrangeOptions);
+    		
+    		
+    		
+    		this.yDensity = (rects[rects.length - 1].bottom - bb.top) / (bb.height);
+
+    		
+    		
+    		
+    		
+    		
+    		var rightMostRight = 0;
+				for each (let rect in rects) {
+					if (rect.right > rightMostRight)
+						rightMostRight = rect.right;
+					else
+						break;
+				}
+    		this.xDensity = (rightMostRight - bb.left) / (bb.width);
         
         iQ.each(this._children, function(index, child) {
           if(!child.locked.bounds) {
@@ -925,19 +956,31 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     
     var zIndex = this.getZ() + count + 1;
     
+    var Pi = Math.acos(-1);
+    var maxRotation = 35; 
     var scale = 0.8;
     var newTabsPad = 10;
     var w;
     var h; 
     var itemAspect = TabItems.tabHeight / TabItems.tabWidth;
     var bbAspect = bb.height / bb.width;
+
+    
+    
     if(bbAspect > itemAspect) { 
       w = bb.width * scale;
       h = w * itemAspect;
+			
+			this.xDensity = 1;
+			this.yDensity = h / (bb.height * scale);
     } else { 
       h = bb.height * scale;
       w = h * (1 / itemAspect);
+			this.yDensity = 1;
+			this.xDensity = h / (bb.width * scale);
     }
+    
+    
     
     var x = (bb.width - w) / 2;
     if(this.isNewTabsGroup())
@@ -962,7 +1005,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
         
         child.addClass("stacked");
         child.setBounds(box, !animate);
-        child.setRotation(self._randRotate(35, index));
+        child.setRotation(self._randRotate(maxRotation, index));
       }
     });
     
