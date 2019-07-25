@@ -118,14 +118,6 @@ public:
   
 
 
-
-  static void GetPositionAndSizeForXULContainerItem(nsIContent *aContent,
-                                                    PRInt32 *aPosInSet,
-                                                    PRInt32 *aSetSize);
-
-  
-
-
   static PRInt32 GetLevelForXULContainerItem(nsIContent *aContent);
 
   
