@@ -455,9 +455,19 @@ AndroidGraphicBuffer::Bind()
   return ensureNoGLError("glEGLImageTargetTexture2DOES");
 }
 
-static const char* sAllowedBoards[] = {
-  "venus2", 
-  "tuna", 
+static const char* const sAllowedBoards[] = {
+  "venus2",     
+  "tuna",       
+  "omap4sdp",   
+  "droid2",     
+  "targa",      
+  "spyder",     
+  "shadow",     
+  "SGH-I897",   
+  "GT-I9100",   
+  "sgh-i997",   
+  "herring",    
+  "sgh-t839",   
   NULL
 };
 
@@ -480,6 +490,7 @@ AndroidGraphicBuffer::IsBlacklisted()
     return true;
   }
 
+  
   for (int i = 0; sAllowedBoards[i]; i++) {
     if (board.Find(sAllowedBoards[i]) >= 0) {
       LOG("allowing board '%s' based on '%s'\n", boardUtf8, sAllowedBoards[i]);
