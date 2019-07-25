@@ -39,12 +39,10 @@
 
 
 
-#ifndef jsion_ion_spew_h__
-#define jsion_ion_spew_h__
-
 #include <stdarg.h>
-#include "jscntxt.h"
-#include "MIR.h"
+#include "C1Spewer.h"
+#include "JSONSpewer.h"
+#include "MIRGraph.h"
 
 namespace js {
 namespace ion {
@@ -81,25 +79,28 @@ static inline void IonSpewVA(IonSpewChannel, const char *fmt, va_list ap)
 
 void CheckLogging();
 
-class C1Spewer
+class IonSpewer
 {
-    MIRGraph &graph;
-    JSScript *script;
-    FILE *spewout_;
+  private:
+    MIRGraph *graph;
+    JSScript *function;
+    C1Spewer c1Spewer;
+    JSONSpewer jsonSpewer;
 
   public:
-    C1Spewer(MIRGraph &graph, JSScript *script);
-    ~C1Spewer();
-    void enable(const char *path);
-    void spew(const char *pass);
+    IonSpewer(MIRGraph *graph, JSScript *function)
+      : graph(graph),
+        function(function),
+        c1Spewer(*graph, function)
+    { }
 
-  private:
-    void spew(FILE *fp, const char *pass);
-    void spew(FILE *fp, MBasicBlock *block);
+    bool init();
+    void spewPass(const char *pass);
+    void finish();
+
 };
 
-} 
-} 
 
-#endif 
 
+}
+}
