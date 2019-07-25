@@ -39,8 +39,6 @@
 
 #include "places_test_harness.h"
 #include "nsIBrowserHistory.h"
-#include "nsIPrefService.h"
-#include "nsIPrefBranch.h"
 
 #include "mock_Link.h"
 using namespace mozilla::dom;
@@ -128,22 +126,6 @@ NS_IMPL_ISUPPORTS1(
 
 
 
-
-void
-test_set_places_enabled()
-{
-  
-  nsresult rv;
-  nsCOMPtr<nsIPrefBranch> prefBranch =
-    do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
-  do_check_success(rv);
-
-  rv = prefBranch->SetBoolPref("places.history.enabled", PR_TRUE);
-  do_check_success(rv);
-
-  
-  run_next_test();
-}
 
 
 
@@ -447,7 +429,7 @@ test_visituri_inserts()
   do_check_true(place.id > 0);
   do_check_false(place.hidden);
   do_check_false(place.typed);
-  do_check_true(place.visitCount == 1);
+  do_check_eq(1, place.visitCount);
 
   run_next_test();
 }
@@ -471,7 +453,7 @@ test_visituri_updates()
   PlaceRecord place;
   do_get_place(visitedURI, place);
 
-  do_check_true(place.visitCount == 2);
+  do_check_eq(2, place.visitCount);
 
   run_next_test();
 }
@@ -515,8 +497,8 @@ test_visituri_creates_visit()
   do_get_lastVisit(place.id, visit);
 
   do_check_true(visit.id > 0);
-  do_check_true(visit.lastVisitId == 0);
-  do_check_true(visit.transitionType == nsINavHistoryService::TRANSITION_LINK);
+  do_check_eq(0, visit.lastVisitId);
+  do_check_eq(nsINavHistoryService::TRANSITION_LINK, visit.transitionType);
 
   run_next_test();
 }
@@ -603,7 +585,6 @@ test_two_null_links_same_uri()
 
 
 Test gTests[] = {
-  TEST(test_set_places_enabled), 
   TEST(test_unvisted_does_not_notify_part1), 
   TEST(test_visited_notifies),
   TEST(test_unvisted_does_not_notify_part2), 
