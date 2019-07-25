@@ -212,6 +212,7 @@ private:
   
   
   
+  
   PRUint32 mVorbisSerial;
   PRUint32 mTheoraSerial;
   vorbis_info mVorbisInfo;
