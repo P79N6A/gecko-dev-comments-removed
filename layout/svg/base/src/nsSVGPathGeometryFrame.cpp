@@ -202,82 +202,11 @@ nsSVGPathGeometryFrame::GetCoveredRegion()
 NS_IMETHODIMP
 nsSVGPathGeometryFrame::UpdateCoveredRegion()
 {
-  mRect.SetEmpty();
-
-  nsRefPtr<gfxContext> context =
-    new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
-
-  GeneratePath(context);
-  context->IdentityMatrix();
-
-  gfxRect extent = context->GetUserPathExtent();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  if (HasStroke()) {
-    SetupCairoStrokeGeometry(context);
-    if (extent.Width() <= 0 && extent.Height() <= 0) {
-      
-      
-      
-      extent = context->GetUserStrokeExtent();
-      extent += gfxPoint(extent.width, extent.height)/2;
-      extent.SizeTo(gfxSize(0, 0));
-    }
-    extent = nsSVGUtils::PathExtentsToMaxStrokeExtents(extent, this);
-  } else if (GetStyleSVG()->mFill.mType == eStyleSVGPaintType_None) {
-    extent = gfxRect(0, 0, 0, 0);
-  }
-
-  if (!extent.IsEmpty()) {
-    mRect = nsSVGUtils::ToAppPixelRect(PresContext(), extent);
-  }
-
-  
-  if (static_cast<nsSVGPathGeometryElement*>(mContent)->IsMarkable()) {
-
-    float strokeWidth = GetStrokeWidth();
-    MarkerProperties properties = GetMarkerProperties(this);
-
-    if (properties.MarkersExist()) {
-      nsTArray<nsSVGMark> marks;
-      static_cast<nsSVGPathGeometryElement*>(mContent)->GetMarkPoints(&marks);
-      PRUint32 num = marks.Length();
-
-      if (num) {
-        nsSVGMarkerFrame *frame = properties.GetMarkerStartFrame();
-        if (frame) {
-          nsRect rect = frame->RegionMark(this, &marks[0], strokeWidth);
-          mRect.UnionRect(mRect, rect);
-        }
-
-        frame = properties.GetMarkerMidFrame();
-        if (frame) {
-          for (PRUint32 i = 1; i < num - 1; i++) {
-            nsRect rect = frame->RegionMark(this, &marks[i], strokeWidth);
-            mRect.UnionRect(mRect, rect);
-          }
-        }
-
-        frame = properties.GetMarkerEndFrame();
-        if (frame) {
-          nsRect rect = frame->RegionMark(this, &marks[num-1], strokeWidth);
-          mRect.UnionRect(mRect, rect);
-        }
-      }
-    }
-  }
-
+  gfxRect extent = GetBBoxContribution(GetCanvasTM(),
+    nsSVGUtils::eBBoxIncludeFill | nsSVGUtils::eBBoxIgnoreFillIfNone |
+    nsSVGUtils::eBBoxIncludeStroke | nsSVGUtils::eBBoxIgnoreStrokeIfNone |
+    nsSVGUtils::eBBoxIncludeMarkers);
+  mRect = nsSVGUtils::ToAppPixelRect(PresContext(), extent);
   return NS_OK;
 }
 
@@ -324,17 +253,107 @@ nsSVGPathGeometryFrame::NotifyRedrawUnsuspended()
 }
 
 gfxRect
-nsSVGPathGeometryFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace)
+nsSVGPathGeometryFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
+                                            PRUint32 aFlags)
 {
   if (aToBBoxUserspace.IsSingular()) {
     
     return gfxRect(0.0, 0.0, 0.0, 0.0);
   }
+
   nsRefPtr<gfxContext> context =
     new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
+
   GeneratePath(context, &aToBBoxUserspace);
   context->IdentityMatrix();
-  return context->GetUserPathExtent();
+
+  gfxRect bbox;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  gfxRect pathExtents = context->GetUserPathExtent();
+
+  
+  if ((aFlags & nsSVGUtils::eBBoxIncludeFill) != 0 &&
+      ((aFlags & nsSVGUtils::eBBoxIgnoreFillIfNone) == 0 ||
+       GetStyleSVG()->mFill.mType != eStyleSVGPaintType_None)) {
+    bbox = pathExtents;
+  }
+
+  
+  if ((aFlags & nsSVGUtils::eBBoxIncludeStroke) != 0 &&
+      ((aFlags & nsSVGUtils::eBBoxIgnoreStrokeIfNone) == 0 || HasStroke())) {
+    
+    
+    
+    if (pathExtents.Width() <= 0 && pathExtents.Height() <= 0) {
+      
+      
+      
+      
+      
+      
+      SetupCairoStrokeGeometry(context);
+      pathExtents.MoveTo(context->GetUserStrokeExtent().Center());
+      pathExtents.SizeTo(0, 0);
+    }
+    bbox =
+      bbox.Union(nsSVGUtils::PathExtentsToMaxStrokeExtents(pathExtents, this));
+  }
+
+  
+  if ((aFlags & nsSVGUtils::eBBoxIncludeMarkers) != 0 &&
+      static_cast<nsSVGPathGeometryElement*>(mContent)->IsMarkable()) {
+
+    float strokeWidth = GetStrokeWidth();
+    MarkerProperties properties = GetMarkerProperties(this);
+
+    if (properties.MarkersExist()) {
+      nsTArray<nsSVGMark> marks;
+      static_cast<nsSVGPathGeometryElement*>(mContent)->GetMarkPoints(&marks);
+      PRUint32 num = marks.Length();
+
+      if (num) {
+        nsSVGMarkerFrame *frame = properties.GetMarkerStartFrame();
+        if (frame) {
+          gfxRect mbbox =
+            frame->GetMarkBBoxContribution(aToBBoxUserspace, aFlags, this,
+                                           &marks[0], strokeWidth);
+          bbox.UnionRect(bbox, mbbox);
+        }
+
+        frame = properties.GetMarkerMidFrame();
+        if (frame) {
+          for (PRUint32 i = 1; i < num - 1; i++) {
+            gfxRect mbbox =
+              frame->GetMarkBBoxContribution(aToBBoxUserspace, aFlags, this,
+                                             &marks[i], strokeWidth);
+            bbox.UnionRect(bbox, mbbox);
+          }
+        }
+
+        frame = properties.GetMarkerEndFrame();
+        if (frame) {
+          gfxRect mbbox =
+            frame->GetMarkBBoxContribution(aToBBoxUserspace, aFlags, this,
+                                           &marks[num-1], strokeWidth);
+          bbox.UnionRect(bbox, mbbox);
+        }
+      }
+    }
+  }
+
+  return bbox;
 }
 
 

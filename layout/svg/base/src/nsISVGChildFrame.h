@@ -123,7 +123,11 @@ public:
 
 
 
-  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace) = 0;
+
+
+
+  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
+                                      PRUint32 aFlags) = 0;
 
   
   NS_IMETHOD_(bool) IsDisplayContainer()=0;
