@@ -917,7 +917,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     
     this.$undoContainer.click(function(e) {
       
-      if (e.target.nodeName != self.$undoContainer[0].nodeName)
+      if (e.target == undoClose[0])
         return;
 
       self.$undoContainer.fadeOut(function() { self._unhide(); });
