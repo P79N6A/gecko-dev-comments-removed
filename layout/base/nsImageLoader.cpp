@@ -213,39 +213,7 @@ nsImageLoader::DoRedraw(const nsRect* aDamageRect)
   
 
   
-  
-
-  nsRect bounds(nsPoint(0, 0), mFrame->GetSize());
-
-  if (mFrame->GetType() == nsGkAtoms::canvasFrame) {
-    
-    bounds = mFrame->GetVisualOverflowRect();
-  }
-
-  
-  
-#if 0
-  
-  
-  
-  nsStyleContext* styleContext;
-  mFrame->GetStyleContext(&styleContext);
-  const nsStyleBackground* bg = styleContext->GetStyleBackground();
-
-  if ((bg->mBackgroundFlags & NS_STYLE_BG_IMAGE_NONE) ||
-      (bg->mBackgroundRepeat == NS_STYLE_BG_REPEAT_OFF)) {
-    
-    
-    
-
-    if (aDamageRect) {
-      bounds.IntersectRect(*aDamageRect, bounds);
-    }
-  }
-
-#endif
-
   if (mFrame->GetStyleVisibility()->IsVisible()) {
-    mFrame->Invalidate(bounds);
+    mFrame->InvalidateFrame();
   }
 }

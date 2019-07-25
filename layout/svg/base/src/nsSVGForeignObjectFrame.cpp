@@ -166,38 +166,6 @@ nsSVGForeignObjectFrame::Reflow(nsPresContext*           aPresContext,
   return NS_OK;
 }
 
-void
-nsSVGForeignObjectFrame::InvalidateInternal(const nsRect& aDamageRect,
-                                            nscoord aX, nscoord aY,
-                                            nsIFrame* aForChild,
-                                            PRUint32 aFlags)
-{
-  
-
-  if (GetStateBits() & NS_FRAME_IS_DIRTY) {
-    
-    
-    return;
-  }
-
-  if (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD) {
-    nsSVGEffects::InvalidateRenderingObservers(this);
-    return;
-  }
-
-  if (!mInReflow) {
-    
-    
-    InvalidateDirtyRect(nsSVGUtils::GetOuterSVGFrame(this), aDamageRect + nsPoint(aX, aY), aFlags);
-    return;
-  }
-
-  nsRegion* region = (aFlags & INVALIDATE_CROSS_DOC)
-    ? &mSubDocDirtyRegion : &mSameDocDirtyRegion;
-  region->Or(*region, aDamageRect + nsPoint(aX, aY));
-}
-
-
 
 
 
@@ -361,12 +329,6 @@ nsSVGForeignObjectFrame::UpdateBounds()
                            PresContext()->AppUnitsPerCSSPixel());
   
   mCoveredRegion = ToCanvasBounds(gfxRect(0.0, 0.0, w, h), GetCanvasTM(), PresContext());
-
-  
-  
-  
-  mSameDocDirtyRegion.SetEmpty();
-  mSubDocDirtyRegion.SetEmpty();
 
   
   
@@ -583,58 +545,20 @@ nsSVGForeignObjectFrame::DoReflow()
                     NS_FRAME_NO_MOVE_FRAME);
   
   mInReflow = false;
-
-  if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
-    FlushDirtyRegion(0);
-  }
 }
 
-void
-nsSVGForeignObjectFrame::InvalidateDirtyRect(nsSVGOuterSVGFrame* aOuter,
-    const nsRect& aRect, PRUint32 aFlags)
+nsRect
+nsSVGForeignObjectFrame::GetInvalidRegion()
 {
-  if (aRect.IsEmpty())
-    return;
-
-  
-  nsRect rect = aRect.Intersect(nsRect(nsPoint(0,0), mRect.Size()));
-  if (rect.IsEmpty())
-    return;
-
-  
-  
-  
-
-  gfxRect r(aRect.x, aRect.y, aRect.width, aRect.height);
-  r.Scale(1.0 / nsPresContext::AppUnitsPerCSSPixel());
-  rect = ToCanvasBounds(r, GetCanvasTM(), PresContext());
-  rect = nsSVGUtils::FindFilterInvalidation(this, rect);
-  aOuter->InvalidateWithFlags(rect, aFlags);
+  nsIFrame* kid = GetFirstPrincipalChild();
+  if (kid->HasInvalidFrameInSubtree()) {
+    gfxRect r(mRect.x, mRect.y, mRect.width, mRect.height);
+    r.Scale(1.0 / nsPresContext::AppUnitsPerCSSPixel());
+    nsRect rect = ToCanvasBounds(r, GetCanvasTM(), PresContext());
+    rect = nsSVGUtils::FindFilterInvalidation(this, rect);
+    return rect;
+  }
+  return nsRect();
 }
 
-void
-nsSVGForeignObjectFrame::FlushDirtyRegion(PRUint32 aFlags)
-{
-  NS_ABORT_IF_FALSE(!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
-                    "Should not have been called");
 
-  NS_ASSERTION(!mInReflow,
-               "We shouldn't be flushing while we have a pending flush");
-
-  if (mSameDocDirtyRegion.IsEmpty() && mSubDocDirtyRegion.IsEmpty()) {
-    return;
-  }
-
-  nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(this);
-  if (!outerSVGFrame) {
-    NS_ERROR("null outerSVGFrame");
-    return;
-  }
-
-  InvalidateDirtyRect(outerSVGFrame, mSameDocDirtyRegion.GetBounds(), aFlags);
-  InvalidateDirtyRect(outerSVGFrame, mSubDocDirtyRegion.GetBounds(),
-                      aFlags | INVALIDATE_CROSS_DOC);
-
-  mSameDocDirtyRegion.SetEmpty();
-  mSubDocDirtyRegion.SetEmpty();
-}

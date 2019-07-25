@@ -115,6 +115,22 @@ protected:
   bool                      mAddedScrollPositionListener;
 };
 
+class nsDisplayCanvasBackgroundGeometry : public nsDisplayItemGeometry
+{
+public:
+  virtual void MoveBy(const nsPoint& aOffset)
+  {
+    mBounds.MoveBy(aOffset);
+    mChildBorder.MoveBy(aOffset);
+    mPaddingRect.MoveBy(aOffset);
+    mContentRect.MoveBy(aOffset);
+  }
+
+  nsRect mChildBorder;
+  nsRect mPaddingRect;
+  nsRect mContentRect;
+};
+
 
 
 
@@ -168,7 +184,46 @@ public:
     
     aOutFrames->AppendElement(mFrame);
   }
+  
+  virtual nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder)
+  {
+    nsDisplayCanvasBackgroundGeometry* geometry = new nsDisplayCanvasBackgroundGeometry;
+    nsIFrame *child = mFrame->GetFirstPrincipalChild();
+    bool snap;
+    geometry->mBounds = GetBounds(aBuilder, &snap);
+    if (child) {
+      geometry->mChildBorder = child->GetRect();
+    }
+    geometry->mPaddingRect = GetPaddingRect();
+    geometry->mContentRect = GetContentRect();
+    return geometry;
+  }
 
+  virtual void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
+                                         const nsDisplayItemGeometry* aGeometry,
+                                         nsRegion* aInvalidRegion)
+  {
+    const nsDisplayCanvasBackgroundGeometry* geometry = static_cast<const nsDisplayCanvasBackgroundGeometry*>(aGeometry);
+    if (ShouldFixToViewport(aBuilder)) {
+      
+      return;
+    }
+
+    nsIFrame *child = mFrame->GetFirstPrincipalChild();
+
+    bool snap;
+    if (!geometry->mBounds.IsEqualInterior(GetBounds(aBuilder, &snap)) ||
+        (child && !geometry->mChildBorder.IsEqualInterior(child->GetRect())) ||
+        !geometry->mPaddingRect.IsEqualInterior(GetPaddingRect()) ||
+        !geometry->mContentRect.IsEqualInterior(GetContentRect())) {
+      if (!RenderingMightDependOnFrameSize() && geometry->mBounds.TopLeft() == GetBounds(aBuilder, &snap).TopLeft()) {
+        aInvalidRegion->Xor(GetBounds(aBuilder, &snap), geometry->mBounds);
+      } else {
+        aInvalidRegion->Or(GetBounds(aBuilder, &snap), geometry->mBounds);
+      }
+    }
+  }
+  
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      nsRenderingContext* aCtx);
 

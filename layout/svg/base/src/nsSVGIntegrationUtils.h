@@ -49,8 +49,8 @@ public:
   
 
 
-  static nsRect
-  GetInvalidAreaForChangedSource(nsIFrame* aFrame, const nsRect& aInvalidRect);
+  static nsIntRect
+  GetInvalidAreaForChangedSource(nsIFrame* aFrame, const nsIntRect& aInvalidRect);
   
 
 

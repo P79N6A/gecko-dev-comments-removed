@@ -111,9 +111,9 @@ nsSVGIntegrationUtils::ComputeFrameEffectsRect(nsIFrame* aFrame,
   return r + userSpaceRect.TopLeft() - aFrame->GetOffsetTo(firstFrame);
 }
 
-nsRect
+nsIntRect
 nsSVGIntegrationUtils::GetInvalidAreaForChangedSource(nsIFrame* aFrame,
-                                                      const nsRect& aInvalidRect)
+                                                      const nsIntRect& aInvalidRect)
 {
   
   
@@ -129,22 +129,23 @@ nsSVGIntegrationUtils::GetInvalidAreaForChangedSource(nsIFrame* aFrame,
     return aInvalidRect;
   }
 
+  PRInt32 appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
+
   nsSVGFilterFrame* filterFrame = prop->GetFilterFrame();
   if (!filterFrame) {
     
     
     
-    return aFrame->GetVisualOverflowRect();
+    nsRect overflow = aFrame->GetVisualOverflowRect();
+    return overflow.ToOutsidePixels(appUnitsPerDevPixel);
   }
 
-  PRInt32 appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
   nsRect userSpaceRect = GetNonSVGUserSpace(firstFrame);
   nsPoint offset = aFrame->GetOffsetTo(firstFrame) - userSpaceRect.TopLeft();
-  nsRect r = aInvalidRect + offset;
-  nsIntRect p = r.ToOutsidePixels(appUnitsPerDevPixel);
+  nsIntPoint o = offset.ToNearestPixels(appUnitsPerDevPixel);
+  nsIntRect p = aInvalidRect + o;
   p = filterFrame->GetInvalidationBBox(firstFrame, p);
-  r = p.ToAppUnits(appUnitsPerDevPixel);
-  return r - offset;
+  return p - o;
 }
 
 nsRect

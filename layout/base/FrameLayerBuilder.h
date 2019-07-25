@@ -12,6 +12,8 @@
 #include "nsRegion.h"
 #include "nsIFrame.h"
 #include "Layers.h"
+#include "nsDisplayListInvalidation.h"
+#include "LayerTreeInvalidation.h"
 
 class nsDisplayListBuilder;
 class nsDisplayList;
@@ -22,6 +24,7 @@ class nsRootPresContext;
 namespace mozilla {
 
 class FrameLayerBuilder;
+class LayerManagerData;
 
 enum LayerState {
   LAYER_NONE,
@@ -51,13 +54,6 @@ public:
 };
 
 extern PRUint8 gLayerManagerLayerBuilder;
-
-class ContainerLayerPresContext : public layers::LayerUserData {
-public:
-  nsPresContext* mPresContext;
-};
-
-extern PRUint8 gContainerLayerPresContext;
 
 static inline FrameLayerBuilder *GetLayerBuilderForManager(layers::LayerManager* aManager)
 {
@@ -138,14 +134,7 @@ public:
 
 
 
-  void WillEndTransaction(LayerManager* aManager);
-
-  
-
-
-
-
-  void DidEndTransaction(LayerManager* aManager);
+  void WillEndTransaction();
 
   struct ContainerParameters {
     ContainerParameters() :
@@ -218,25 +207,7 @@ public:
 
 
   Layer* GetLeafLayerFor(nsDisplayListBuilder* aBuilder,
-                         LayerManager* aManager,
                          nsDisplayItem* aItem);
-
-  
-
-
-
-
-
-  static void InvalidateThebesLayerContents(nsIFrame* aFrame,
-                                            const nsRect& aRect);
-
-  
-
-
-
-
-
-  static void InvalidateThebesLayersInSubtree(nsIFrame* aFrame);
 
   
 
@@ -250,7 +221,7 @@ public:
 
 
   static Layer* GetDedicatedLayer(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
-
+  
   
 
 
@@ -277,9 +248,16 @@ public:
   
 
 
+
+
+
+
+
+
   void AddLayerDisplayItem(Layer* aLayer,
                            nsDisplayItem* aItem,
-                           LayerState aLayerState);
+                           LayerState aLayerState,
+                           LayerManager* aManager = nsnull);
 
   
 
@@ -301,9 +279,17 @@ public:
 
 
 
-  Layer* GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
+  Layer* GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey, nsDisplayItemGeometry** aOldGeometry = nsnull);
 
   static Layer* GetDebugOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
+
+  
+
+
+
+
+  LayerManager* GetInactiveLayerManagerFor(nsDisplayItem* aItem);
+
   
 
 
@@ -339,7 +325,10 @@ public:
 
 
 
-  static bool HasRetainedLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
+
+
+
+  static bool HasRetainedLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey, LayerManager* aManager);
 
   
 
@@ -455,11 +444,35 @@ protected:
   class DisplayItemData {
   public:
     DisplayItemData(Layer* aLayer, PRUint32 aKey, LayerState aLayerState)
-      : mLayer(aLayer), mDisplayItemKey(aKey), mLayerState(aLayerState) {}
+      : mLayer(aLayer), mDisplayItemKey(aKey), mLayerState(aLayerState), mUsed(false) {}
+    
+    DisplayItemData()
+      : mUsed(false)
+    {}
+    DisplayItemData(DisplayItemData &toCopy)
+    {
+      
+      
+      mLayer = toCopy.mLayer;
+      mInactiveManager = toCopy.mInactiveManager;
+      mGeometry = toCopy.mGeometry;
+      mDisplayItemKey = toCopy.mDisplayItemKey;
+      mLayerState = toCopy.mLayerState;
+      mUsed = toCopy.mUsed;
+    }
 
     nsRefPtr<Layer> mLayer;
+    nsRefPtr<LayerManager> mInactiveManager;
+    nsAutoPtr<nsDisplayItemGeometry> mGeometry;
     PRUint32        mDisplayItemKey;
     LayerState      mLayerState;
+
+    
+
+
+
+
+    bool            mUsed;
   };
 
   static void RemoveFrameFromLayerManager(nsIFrame* aFrame, void* aPropertyValue);
@@ -474,25 +487,32 @@ protected:
 
   class DisplayItemDataEntry : public nsPtrHashKey<nsIFrame> {
   public:
-    DisplayItemDataEntry(const nsIFrame *key) : nsPtrHashKey<nsIFrame>(key), mIsSharingContainerLayer(false) {}
+    DisplayItemDataEntry(const nsIFrame *key) : nsPtrHashKey<nsIFrame>(key) { MOZ_COUNT_CTOR(DisplayItemDataEntry); }
     DisplayItemDataEntry(DisplayItemDataEntry &toCopy) :
-      nsPtrHashKey<nsIFrame>(toCopy.mKey), mIsSharingContainerLayer(toCopy.mIsSharingContainerLayer)
+      nsPtrHashKey<nsIFrame>(toCopy.mKey)
     {
+      MOZ_COUNT_CTOR(DisplayItemDataEntry);
       
       
       mData.SwapElements(toCopy.mData);
     }
+    ~DisplayItemDataEntry() { MOZ_COUNT_DTOR(DisplayItemDataEntry); }
 
     bool HasNonEmptyContainerLayer();
 
     nsAutoTArray<DisplayItemData, 1> mData;
-    bool mIsSharingContainerLayer;
 
     enum { ALLOW_MEMMOVE = false };
   };
 
   
   friend class LayerManagerData;
+
+  
+
+
+
+  void StoreDataForFrame(nsIFrame* aFrame, DisplayItemData& data);
 
   
   static void FlashPaint(gfxContext *aContext);
@@ -504,7 +524,16 @@ protected:
 
 
 
-  static nsTArray<DisplayItemData>* GetDisplayItemDataArrayForFrame(nsIFrame *aFrame);
+  nsTArray<DisplayItemData>* GetDisplayItemDataArrayForFrame(nsIFrame *aFrame);
+
+  
+
+
+
+  static DisplayItemData* GetDisplayItemDataForManager(nsIFrame* aFrame, 
+                                                       PRUint32 aDisplayItemKey, 
+                                                       LayerManager* aManager);
+  static DisplayItemData* GetDisplayItemDataForManager(nsDisplayItem* aItem, LayerManager* aManager);
 
   
 
@@ -513,10 +542,7 @@ protected:
 
 
   static PLDHashOperator RemoveDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
-                                                       void* aClosure)
-  {
-    return UpdateDisplayItemDataForFrame(aEntry, nsnull);
-  }
+                                                       void* aClosure);
 
   
 
@@ -534,9 +560,18 @@ protected:
     {
     }
 
+    ~ClippedDisplayItem();
+
     nsDisplayItem* mItem;
+
+    
+
+
+
+
+    nsRefPtr<LayerManager> mInactiveLayer;
+
     Clip mClip;
-    bool mInactiveLayer;
   };
 
   
@@ -579,11 +614,14 @@ public:
     return mThebesLayerItems.GetEntry(aLayer);
   }
 
+  static PLDHashOperator ProcessRemovedDisplayItems(DisplayItemDataEntry* aEntry,
+                                                    void* aUserArg);
 protected:
   void RemoveThebesItemsForLayerSubtree(Layer* aLayer);
 
   static PLDHashOperator UpdateDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
                                                        void* aUserArg);
+  
   static PLDHashOperator StoreNewDisplayItemData(DisplayItemDataEntry* aEntry,
                                                  void* aUserArg);
 
@@ -603,6 +641,11 @@ protected:
 
 
   nsRootPresContext*                  mRootPresContext;
+
+  
+
+
+  nsDisplayListBuilder*               mDisplayListBuilder;
   
 
 
