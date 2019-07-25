@@ -659,8 +659,10 @@ nsImageFrame::FrameChanged(imgIContainer *aContainer,
     
     return NS_OK;
   }
-  
-  nsRect r = SourceRectToDest(*aDirtyRect);
+
+  nsRect r = (*aDirtyRect == mozilla::imagelib::kFullImageSpaceRect) ?
+    GetInnerArea() :
+    SourceRectToDest(*aDirtyRect);
 
   
   Invalidate(r);
