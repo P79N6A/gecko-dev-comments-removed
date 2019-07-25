@@ -4,6 +4,7 @@ $.expr[':'].icontains = function(obj, index, meta, stack){
 return (obj.textContent || obj.innerText || jQuery(obj).text() || '').toLowerCase().indexOf(meta[3].toLowerCase()) >= 0;
 };
 
+
 Navbar = {
   get el(){
     var win = Utils.activeWindow;
@@ -14,11 +15,31 @@ Navbar = {
   hide: function(){ this.el.collapsed = true;}
 }
 
+
 var Tabbar = {
   get el(){ return window.Tabs[0].raw.parentNode; },
   hide: function(){ this.el.collapsed = true },
   show: function(){ this.el.collapsed = false }
 }
+
+
+window.TabItem = function(container, tab) {
+  this.container = container;
+  this.tab = tab;
+}
+
+window.TabItem.prototype = {
+  
+  getBounds: function() {
+    return Utils.getBounds(this.container);
+  },
+  
+  
+  setPosition: function(left, top) {
+    $(this.container).animate({left: left, top: top});
+  },
+}
+
 
 var Page = {
   init: function() {
@@ -108,6 +129,10 @@ var Page = {
         var p = Page.findOpenSpaceFor($div);
         $div.css({left: p.x, top: p.y});
       }
+      
+      $div.each(function() {
+        $(this).data('tabItem', new TabItem(this, Tabs.tab(this)));
+      });
       
       
       

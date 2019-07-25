@@ -6,7 +6,7 @@
   -moz-box-shadow: 0px 0px 10px rgba(255,0,0,1);
 }
 
-.group{
+.group {
   border: 1px inset rgba(0,0,0,.3);
   background-color: white;
   cursor: move;
@@ -28,6 +28,10 @@ input.name{
 }
 
 
+
+.resizer{
+  background-image: url(../../img/shared/resizer.png);
+}
 
 .ui-resizable { position: relative;}
 .ui-resizable-handle { position: absolute;font-size: 0.1px;z-index: 99999; display: block;}
