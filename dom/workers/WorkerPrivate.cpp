@@ -127,8 +127,15 @@ NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(JsWorkerMallocSizeOf, "js-worker")
 
 struct WorkerJSRuntimeStats : public JS::RuntimeStats
 {
-  WorkerJSRuntimeStats()
-   : JS::RuntimeStats(JsWorkerMallocSizeOf) { }
+  WorkerJSRuntimeStats(nsACString &aRtPath)
+   : JS::RuntimeStats(JsWorkerMallocSizeOf), mRtPath(aRtPath) { }
+
+  ~WorkerJSRuntimeStats() {
+    for (size_t i = 0; i != compartmentStatsVector.length(); i++) {
+      free(compartmentStatsVector[i].extra1);
+      
+    }
+  }
 
   virtual void initExtraCompartmentStats(JSCompartment *c,
                                          JS::CompartmentStats *cstats) MOZ_OVERRIDE
@@ -141,12 +148,19 @@ struct WorkerJSRuntimeStats : public JS::RuntimeStats
 
     
     
-    
-    cstats->extra1 = NULL;
+    nsCString cJSPathPrefix(mRtPath);
+    cJSPathPrefix += js::IsAtomsCompartment(c)
+                   ? NS_LITERAL_CSTRING("compartment(web-worker-atoms)/")
+                   : NS_LITERAL_CSTRING("compartment(web-worker)/");
+    cstats->extra1 = strdup(cJSPathPrefix.get());
 
     
-    cstats->extra2 = (void *)(js::IsAtomsCompartment(c) ? "Web Worker Atoms" : "Web Worker");
+    
+    cstats->extra2 = (void *)"explicit/workers/?!/";
   }
+
+private:
+  nsCString mRtPath;
 };
   
 class WorkerMemoryReporter MOZ_FINAL : public nsIMemoryMultiReporter
@@ -232,7 +246,7 @@ public:
   {
     AssertIsOnMainThread();
 
-    WorkerJSRuntimeStats rtStats;
+    WorkerJSRuntimeStats rtStats(mRtPath);
     nsresult rv = CollectForRuntime(false, &rtStats);
     if (NS_FAILED(rv)) {
       return rv;
@@ -1581,7 +1595,7 @@ public:
       *static_cast<int64_t*>(mData) = JS::GetExplicitNonHeapForRuntime(rt, JsWorkerMallocSizeOf);
       *mSucceeded = true;
     } else {
-      *mSucceeded = JS::CollectRuntimeStats(rt, static_cast<JS::RuntimeStats*>(mData));
+      *mSucceeded = JS::CollectRuntimeStats(rt, static_cast<JS::RuntimeStats*>(mData), nsnull);
     }
 
     {
