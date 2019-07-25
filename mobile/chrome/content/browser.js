@@ -1926,6 +1926,13 @@ IdentityHandler.prototype = {
   },
 
   toggle: function ih_toggle() {
+    
+    
+    if (Elements.urlbarState.getAttribute("mode") == "edit") {
+      CommandUpdater.doCommand("cmd_opensearch");
+      return;
+    }
+
     if (this._identityPopup.hidden)
       this.show();
     else
@@ -1937,13 +1944,6 @@ IdentityHandler.prototype = {
 
   handleIdentityButtonEvent: function(aEvent) {
     aEvent.stopPropagation();
-
-    
-    
-    if (Elements.urlbarState.getAttribute("mode") == "edit") {
-      CommandUpdater.doCommand("cmd_opensearch");
-      return;
-    }
 
     if ((aEvent.type == "click" && aEvent.button != 0) ||
         (aEvent.type == "keypress" && aEvent.charCode != KeyEvent.DOM_VK_SPACE &&

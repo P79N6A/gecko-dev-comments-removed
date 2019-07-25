@@ -677,6 +677,13 @@ var BrowserUI = {
   handleEscape: function (aEvent) {
     aEvent.stopPropagation();
 
+    
+    if (this._popup) {
+      this._hidePopup();
+      return;
+    }
+
+    
     if (BrowserUI.activePanel) {
       BrowserUI.activePanel = null;
       return;
@@ -686,12 +693,6 @@ var BrowserUI = {
     let dialog = this.activeDialog;
     if (dialog) {
       dialog.close();
-      return;
-    }
-
-    
-    if (this._popup) {
-      this._hidePopup();
       return;
     }
 
