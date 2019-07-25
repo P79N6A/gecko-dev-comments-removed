@@ -852,8 +852,9 @@ BookmarksStore.prototype = {
         PlacesUtils.bookmarks.changeBookmarkURI(itemId, Utils.makeURI(val));
         break;
       case "tags":
-        if (Array.isArray(val)) {
-          this._tagURI(PlacesUtils.bookmarks.getBookmarkURI(itemId), val);
+        if (Array.isArray(val) &&
+            (remoteRecordType in ["bookmark", "microsummary", "query"])) {
+          this._tagID(itemId, val);
         }
         break;
       case "keyword":
@@ -1217,15 +1218,43 @@ BookmarksStore.prototype = {
     return items;
   },
 
-  _tagURI: function BStore_tagURI(bmkURI, tags) {
+  
+
+
+
+
+
+  _tagID: function _tagID(itemID, tags) {
+    if (!itemID || !tags) {
+      return;
+    }
+
+    try {
+      let u = PlacesUtils.bookmarks.getBookmarkURI(itemId);
+      _tagURI(u, tags);
+    } catch (e) {
+      
+      return;
+    }
+  },
+
+  
+
+
+
+  _tagURI: function _tagURI(bookmarkURI, tags) {
+    if (!bookmarkURI || !tags) {
+      return;
+    }
+
     
     tags = tags.filter(function(t) t);
 
     
     let dummyURI = Utils.makeURI("about:weave#BStore_tagURI");
     PlacesUtils.tagging.tagURI(dummyURI, tags);
-    PlacesUtils.tagging.untagURI(bmkURI, null);
-    PlacesUtils.tagging.tagURI(bmkURI, tags);
+    PlacesUtils.tagging.untagURI(bookmarkURI, null);
+    PlacesUtils.tagging.tagURI(bookmarkURI, tags);
     PlacesUtils.tagging.untagURI(dummyURI, null);
   },
 
