@@ -3,184 +3,105 @@
 
 function test() {
   waitForExplicitFinish();
-  requestLongerTimeout(2);
 
-  newWindowWithTabView(onTabViewWindowLoaded);
-}
+  function moveTabOutOfGroup(aTab, aGroup, aCW, aCallback) {
+    let tabPos = aTab.getBounds().center();
+    let groupPos = aGroup.getBounds();
+    let groupPosX = (groupPos.left + groupPos.right) / 2;
+    let groupPosY = groupPos.bottom + 200;
+    let offsetX = Math.round(groupPosX - tabPos.x);
+    let offsetY = Math.round(groupPosY - tabPos.y);
 
-function onTabViewWindowLoaded(win) {
-  ok(win.TabView.isVisible(), "Tab View is visible");
+    simulateDragDrop(aTab, offsetX, offsetY, aCW);
+  }
 
-  let contentWindow = win.document.getElementById("tab-view").contentWindow;
-  let [originalTab] = win.gBrowser.visibleTabs;
+  function moveTabInGroup(aTab, aIndexTo, aGroup, aCW) {
+    let tabTo = aGroup.getChild(aIndexTo);
+    let tabPos = aTab.getBounds().center();
+    let tabToPos = tabTo.getBounds().center();
+    let offsetX = Math.round(tabToPos.x - tabPos.x);
+    let offsetY = Math.round(tabToPos.y - tabPos.y);
 
-  let currentGroup = contentWindow.GroupItems.getActiveGroupItem();
+    simulateDragDrop(aTab, offsetX, offsetY, aCW);
+  }
 
-  
-  let box = new contentWindow.Rect(100, 100, 400, 430);
-  let group = new contentWindow.GroupItem([], { bounds: box });
-  ok(group.isEmpty(), "This group is empty");
-  contentWindow.UI.setActive(group);
-  
-  
-  let tabs = [];
-  tabs.push(win.gBrowser.loadOneTab("about:blank#0", {inBackground: true}));
-  tabs.push(win.gBrowser.loadOneTab("about:blank#1", {inBackground: true}));
-  tabs.push(win.gBrowser.loadOneTab("about:blank#2", {inBackground: true}));
-  tabs.push(win.gBrowser.loadOneTab("about:blank#3", {inBackground: true}));
-  tabs.push(win.gBrowser.loadOneTab("about:blank#4", {inBackground: true}));
-  tabs.push(win.gBrowser.loadOneTab("about:blank#5", {inBackground: true}));
-  tabs.push(win.gBrowser.loadOneTab("about:blank#6", {inBackground: true}));
+  function getTabNumbers(aGroup) {
+    return aGroup.getChildren().map(function (child) {
+      let url = child.tab.linkedBrowser.currentURI.spec;
+      return url.replace("about:blank#", "");
+    }).join(",");
+  }
 
-  ok(!group.shouldStack(group._children.length), "Group should not stack.");
-  is(group._columns, 3, "There should be three columns.");
-  
-  
-  let currentTarget = tabs[6]._tabViewTabItem;
-  let currentPos = currentTarget.getBounds().center();
-  let targetPos = tabs[2]._tabViewTabItem.getBounds().center();
-  let vector = new contentWindow.Point(targetPos.x - currentPos.x,
-                                       targetPos.y - currentPos.y);
-  checkDropIndexAndDropSpace(currentTarget, group, vector.x, vector.y, contentWindow,
-                             function(index, dropSpaceActiveValues) {
+  function moveTabs(aGroup, aCW) {
     
-    is(index, 2, "Tab 6 is now in the third position");
-    is(dropSpaceActiveValues[0], true, "dropSpace was always showing");
+    let tab = aGroup.getChild(6);
+    moveTabInGroup(tab, 2, aGroup, aCW);
+    is(getTabNumbers(aGroup), "0,1,6,2,3,4,5", "Validate tab positions in test 1.");
 
     
-    let currentTarget = tabs[1]._tabViewTabItem;
-    let currentPos = currentTarget.getBounds().center();
-    
-    let groupBounds = group.getBounds();
-    let bottomPos = new contentWindow.Point(
-                      (groupBounds.left + groupBounds.right) / 2,
-                      groupBounds.bottom - 15);
-    let vector = new contentWindow.Point(bottomPos.x - currentPos.x,
-                                         bottomPos.y - currentPos.y);
-    checkDropIndexAndDropSpace(currentTarget, group, vector.x, vector.y, contentWindow,
-                               function(index, dropSpaceActiveValues) {
-      
-      is(index, 6, "Tab 1 is now at the end of the group");
-      is(dropSpaceActiveValues[0], true, "dropSpace was always showing");
-    
-      
-      
-      let currentTarget = tabs[4]._tabViewTabItem;
-      let currentPos = currentTarget.getBounds().center();
-      
-      let belowPos = new contentWindow.Point(
-                        (groupBounds.left + groupBounds.right) / 2,
-                        groupBounds.bottom + 300);
-      let vector = new contentWindow.Point(belowPos.x - currentPos.x,
-                                           belowPos.y - currentPos.y);
-      checkDropIndexAndDropSpace(currentTarget, group, vector.x, vector.y, contentWindow,
-                                 function(index, dropSpaceActiveValues) {
-        
-        is(index, -1, "Tab 5 is no longer in the group");
-        contentWindow.Utils.log('dropSpaceActiveValues',dropSpaceActiveValues);
-        is(dropSpaceActiveValues[0], true, "The group began by showing a dropSpace");
-        is(dropSpaceActiveValues[dropSpaceActiveValues.length - 1], false, "In the end, the group was not showing a dropSpace");
-        
-        
-        
-        setTimeout(function() {
-          
-          let currentTarget = tabs[4]._tabViewTabItem;
-          let currentPos = currentTarget.getBounds().center();
-          let targetPos = tabs[5]._tabViewTabItem.getBounds().center();
-          
-          vector = new contentWindow.Point(targetPos.x - currentPos.x,
-                                               targetPos.y - currentPos.y);
-          
-          checkDropIndexAndDropSpace(currentTarget, group, vector.x, vector.y, contentWindow,
-                                     function(index, dropSpaceActiveValues) {
+    tab = aGroup.getChild(1);
+    moveTabInGroup(tab, 6, aGroup, aCW);
+    is(getTabNumbers(aGroup), "0,6,2,3,4,5,1", "Validate tab positions in test 2.");
 
-            is(group._columns, 3, "There should be three columns.");
-
-            
-            is(index, 4, "Tab 5 is back and again the fifth tab.");
-            contentWindow.Utils.log('dropSpaceActiveValues',dropSpaceActiveValues);
-            is(dropSpaceActiveValues[0], false, "The group began by not showing a dropSpace");
-            is(dropSpaceActiveValues[dropSpaceActiveValues.length - 1], true, "In the end, the group was showing a dropSpace");
-            
-            
-            win.close();
-            finish();
-          }, 10000, false);
-        }, 2000);
-        
-      });
     
+    tab = aGroup.getChild(4);
+    moveTabOutOfGroup(tab, aGroup, aCW);
+    is(getTabNumbers(aGroup), "0,6,2,3,5,1", "Validate tab positions in test 3.");
+    is(aCW.GroupItems.groupItems.length, 3, "Validate group count in test 3.");
+
+    
+    waitForTransition(tab, function() {
+      moveTabInGroup(tab, 4, aGroup, aCW);
+      is(getTabNumbers(aGroup), "0,6,2,3,4,5,1", "Validate tab positions in test 4.");
+      is(aCW.GroupItems.groupItems.length, 2, "Validate group count in test 4.");
+      closeGroupItem(aGroup, function() { hideTabView(finish) });
     });
+  }
 
-  });
+  function createGroup(win) {
+    registerCleanupFunction(function() win.close());
+    let cw = win.TabView.getContentWindow();
+    let group = createGroupItemWithTabs(win, 400, 430, 100, [
+      "about:blank#0", "about:blank#1", "about:blank#2", "about:blank#3",
+      "about:blank#4", "about:blank#5", "about:blank#6"
+    ]);
+    let groupSize = group.getChildren().length;
+
+    is(cw.GroupItems.groupItems.length, 2, "Validate group count in tab view.");
+    ok(!group.shouldStack(groupSize), "Check that group should not stack.");
+    is(group._columns, 3, "Check the there should be three columns.");
+
+    moveTabs(group, cw);
+  }
+
+  newWindowWithTabView(createGroup);
 }
 
-function simulateSlowDragDrop(srcElement, offsetX, offsetY, contentWindow, time) {
-  
-  let dataTransfer;
-
-  let bounds = srcElement.getBoundingClientRect();
+function simulateDragDrop(aTab, aOffsetX, aOffsetY, aCW) {
+  let target = aTab.container;
+  let rect = target.getBoundingClientRect();
+  let startX = (rect.right - rect.left) / 2;
+  let startY = (rect.bottom - rect.top) / 2;
+  let steps = 2;
+  let incrementX = aOffsetX / steps;
+  let incrementY = aOffsetY / steps;
 
   EventUtils.synthesizeMouse(
-    srcElement, 2, 2, { type: "mousedown" }, contentWindow);
-  let event = contentWindow.document.createEvent("DragEvents");
-  event.initDragEvent(
-    "dragenter", true, true, contentWindow, 0, 0, 0, 0, 0,
-    false, false, false, false, 1, null, dataTransfer);
-  srcElement.dispatchEvent(event);
-  
-  let steps = 20;
-  
-  
-  let moveIncremental = function moveIncremental(i, steps) {
-    
-    let offsetXDiff = Math.round(i * offsetX / steps) - Math.round((i - 1) * offsetX / steps);
-    let offsetYDiff = Math.round(i * offsetY / steps) - Math.round((i - 1) * offsetY / steps);
-    
-    
+    target, startX, startY, { type: "mousedown" }, aCW);
+  for (let i = 1; i <= steps; i++) {
     EventUtils.synthesizeMouse(
-      srcElement, offsetXDiff + 2, offsetYDiff + 2,
-      { type: "mousemove" }, contentWindow);
-    
-    let event = contentWindow.document.createEvent("DragEvents");
-    event.initDragEvent(
-      "dragover", true, true, contentWindow, 0, 0, 0, 0, 0,
-      false, false, false, false, 0, null, dataTransfer);
-    srcElement.dispatchEvent(event);
-    let bounds = srcElement.getBoundingClientRect();
-    
+      target, incrementX + startX, incrementY + startY,
+      { type: "mousemove" }, aCW);
   };
-  for (let i = 1; i <= steps; i++)
-    setTimeout(moveIncremental, i / (steps + 1) * time, i, steps);
-
-  
-  let finalDrop = function finalDrop() {
-    EventUtils.synthesizeMouseAtCenter(srcElement, { type: "mouseup" }, contentWindow);
-    event = contentWindow.document.createEvent("DragEvents");
-    event.initDragEvent(
-      "drop", true, true, contentWindow, 0, 0, 0, 0, 0,
-      false, false, false, false, 0, null, dataTransfer);
-    srcElement.dispatchEvent(event);
-    contentWindow.iQ(srcElement).css({border: 'green 1px solid'});
-  }
-  setTimeout(finalDrop, time);
+  EventUtils.synthesizeMouseAtCenter(target, { type: "mouseup" }, aCW);
 }
 
-function checkDropIndexAndDropSpace(item, group, offsetX, offsetY, contentWindow, callback, time) {
-  contentWindow.UI.setActive(item);
-  let dropSpaceActiveValues = [];
-  let recordDropSpaceValue = function() {
-    dropSpaceActiveValues.push(group._dropSpaceActive);
-  };
-
-  let onDrop = function() {
-    item.container.removeEventListener('dragover', recordDropSpaceValue, false);
-    item.container.removeEventListener('drop', onDrop, false);
-    let index = group._children.indexOf(item);
-    callback(index, dropSpaceActiveValues);
-  };
-  item.container.addEventListener('dragover', recordDropSpaceValue, false);
-  item.container.addEventListener('drop', onDrop, false);
-  simulateSlowDragDrop(item.container, offsetX, offsetY, contentWindow, time || 1000);
+function waitForTransition(aTab, aCallback) {
+  let groupContainer = aTab.parent.container;
+  groupContainer.addEventListener("transitionend", function onTransitionEnd(aEvent) {
+    if (aEvent.target == groupContainer) {
+      groupContainer.removeEventListener("transitionend", onTransitionEnd);
+      executeSoon(aCallback);
+    }
+  });
 }
