@@ -42,7 +42,10 @@
 #ifndef __nsIRollupListener_h__
 #define __nsIRollupListener_h__
 
+#include "nsTArray.h"
+
 class nsIContent;
+class nsIWidget;
 
 class nsIRollupListener {
  public: 
@@ -54,18 +57,29 @@ class nsIRollupListener {
 
 
 
-  NS_IMETHOD Rollup(PRUint32 aCount, nsIContent **aContent) = 0;
+
+
+  virtual nsIContent* Rollup(PRUint32 aCount, bool aGetLastRolledUp = false) = 0;
 
   
 
 
-  NS_IMETHOD ShouldRollupOnMouseWheelEvent(bool *aShould) = 0;
+  virtual bool ShouldRollupOnMouseWheelEvent() = 0;
 
   
 
 
-  NS_IMETHOD ShouldRollupOnMouseActivate(bool *aShould) = 0;
+  virtual bool ShouldRollupOnMouseActivate() = 0;
 
+  
+
+
+
+
+
+
+
+  virtual PRUint32 GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain) = 0;
 };
 
 #endif 

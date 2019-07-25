@@ -320,8 +320,7 @@ nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
       case NS_MOVE: {
         
         
-        nsCOMPtr<nsIMenuRollup> pm =
-          do_GetService("@mozilla.org/xul/xul-popup-manager;1");
+        nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
         if (pm) {
           nsCOMPtr<nsPIDOMWindow> window = do_GetInterface(docShell);
           pm->AdjustPopupsOnWindowChange(window);
@@ -333,8 +332,7 @@ nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
         break;
       }
       case NS_SIZE: {
-        nsCOMPtr<nsIMenuRollup> pm =
-          do_GetService("@mozilla.org/xul/xul-popup-manager;1");
+        nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
         if (pm) {
           nsCOMPtr<nsPIDOMWindow> window = do_GetInterface(docShell);
           pm->AdjustPopupsOnWindowChange(window);

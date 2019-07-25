@@ -192,20 +192,24 @@ public:
 
 
 
-  NS_IMETHOD Rollup(PRUint32 aCount, nsIContent** aLastRolledUp);
-  
-
-
-
-  NS_IMETHOD ShouldRollupOnMouseWheelEvent(bool *aShouldRollup)
-    { *aShouldRollup = true; return NS_OK;}
+  virtual nsIContent* Rollup(PRUint32 aCount, bool aGetLastRolledUp = false);
 
   
 
 
 
-  NS_IMETHOD ShouldRollupOnMouseActivate(bool *aShouldRollup)
-    { *aShouldRollup = false; return NS_OK;}
+  virtual bool ShouldRollupOnMouseWheelEvent()
+    { return true; }
+
+  
+
+
+
+  virtual bool ShouldRollupOnMouseActivate()
+    { return false; }
+
+  virtual PRUint32 GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain)
+    { return 0; }
 
   
   NS_IMETHOD SaveState(SpecialStateID aStateID, nsPresState** aState);
