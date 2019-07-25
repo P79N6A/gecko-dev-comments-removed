@@ -77,20 +77,24 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
-  nsIdleServiceDaily(nsIdleService* aIdleService);
+  nsIdleServiceDaily(nsIIdleService* aIdleService);
 
   
 
 
 
-  void Shutdown();
+
+  void Init();
+
+  virtual ~nsIdleServiceDaily();
 
 private:
   
 
 
 
-  nsIdleService* mIdleService;
+
+  nsIIdleService* mIdleService;
 
   
 
@@ -192,7 +196,7 @@ private:
   
 
 
-  nsCOMPtr<nsIdleServiceDaily> mDailyIdle;
+  nsRefPtr<nsIdleServiceDaily> mDailyIdle;
 
   
 
