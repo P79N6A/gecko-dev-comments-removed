@@ -62,6 +62,8 @@
 #include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
 #include "nsProxyRelease.h"
+#include "mozilla/Mutex.h"
+#include "mozilla/CondVar.h"
 
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
 #ifdef _WIN32_WINNT
@@ -91,6 +93,56 @@ struct ICONENTRY {
   PRUint16 ieBitCount;
   PRUint32 ieSizeImage;
   PRUint32 ieFileOffset;
+};
+
+class ExtensionFetcherRunnable : public nsRunnable {
+  typedef mozilla::Mutex Mutex;
+  typedef mozilla::CondVar CondVar;
+public:
+  ExtensionFetcherRunnable(nsString& aFilePath,
+                           nsACString& aFileExt,
+                           nsACString& aContentType)
+    : mFilePath(aFilePath), mFileExt(aFileExt), mContentType(aContentType),
+      mLock("ExtensionFetcherRunnable"), mCondVar(mLock, "ExtensionFetcherRunnable"),
+      mSignaled(PR_FALSE)
+  { }
+
+  NS_IMETHOD Run()
+  {
+    mozilla::MutexAutoLock autoLock(mLock);
+
+    nsresult rv;
+    nsCOMPtr<nsIMIMEService> mimeService (do_GetService(NS_MIMESERVICE_CONTRACTID, &rv));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCAutoString defFileExt;
+    mimeService->GetPrimaryExtension(mContentType, mFileExt, defFileExt);
+    
+    
+    
+    mFilePath = NS_LITERAL_STRING(".") + NS_ConvertUTF8toUTF16(defFileExt);
+
+    
+    mSignaled = PR_TRUE;
+    mCondVar.Notify();
+
+    return NS_OK;
+  }
+
+  void Call() {
+    mozilla::MutexAutoLock autoLock(mLock);
+    NS_DispatchToMainThread(this);
+
+    while (!mSignaled)
+      mCondVar.Wait();
+  }
+private:
+  nsString& mFilePath;
+  const nsACString& mFileExt;
+  const nsACString& mContentType;
+  Mutex mLock;
+  CondVar mCondVar;
+  PRBool mSignaled;
 };
 
 
@@ -258,15 +310,11 @@ nsresult GetHIconFromFile(nsIMozIconURI* aIconURI, nsIFile* aFile, HICON *hIcon)
   
   if (!fileExists && !contentType.IsEmpty())
   {
-    nsCOMPtr<nsIMIMEService> mimeService (do_GetService(NS_MIMESERVICE_CONTRACTID, &rv));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCAutoString defFileExt;
-    mimeService->GetPrimaryExtension(contentType, fileExt, defFileExt);
     
     
-    
-    filePath = NS_LITERAL_STRING(".") + NS_ConvertUTF8toUTF16(defFileExt);
+    nsRefPtr<ExtensionFetcherRunnable> runnable =
+      new ExtensionFetcherRunnable(filePath, fileExt, contentType);
+    runnable->Call();
   }
 
   
