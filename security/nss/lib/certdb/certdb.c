@@ -1269,6 +1269,7 @@ CERT_KeyUsageAndTypeForCertUsage(SECCertUsage usage,
 
 
 
+
 	    requiredKeyUsage = KU_DIGITAL_SIGNATURE;
 	    requiredCertType = NS_CERT_TYPE_SSL_CLIENT;
 	    break;
@@ -1294,7 +1295,8 @@ CERT_KeyUsageAndTypeForCertUsage(SECCertUsage usage,
 	    requiredCertType = NS_CERT_TYPE_EMAIL;
 	    break;
 	  case certUsageObjectSigner:
-	    requiredKeyUsage = KU_DIGITAL_SIGNATURE_OR_NON_REPUDIATION;
+	    
+	    requiredKeyUsage = KU_DIGITAL_SIGNATURE;
 	    requiredCertType = NS_CERT_TYPE_OBJECT_SIGNING;
 	    break;
 	  case certUsageStatusResponder:
