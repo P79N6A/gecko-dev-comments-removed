@@ -4,7 +4,12 @@
 
 
 
-do_load_httpd_js();
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+const Cr = Components.results;
+
+Cu.import("resource://testing-common/httpd.js");
 
 var sSame;
 var sOther;
@@ -29,19 +34,19 @@ function checkResults(xhr, method, status)
     return false;
 
   do_check_eq(xhr.status, status);
-  
+
   if (status == 200) {
     
     do_check_eq(xhr.getResponseHeader("X-Received-Method"), method);
   }
-  
+
   return true;
 }
 
 function run_test() {
   
-  sSame = new nsHttpServer();
-  
+  sSame = new HttpServer();
+
   
   sSame.registerPathHandler("/bug" + BUGID + "-redirect301", bug676059redirect301);
   sSame.registerPathHandler("/bug" + BUGID + "-redirect302", bug676059redirect302);
@@ -55,13 +60,13 @@ function run_test() {
   sSame.registerPathHandler("/bug" + OTHERBUGID + "-redirect303", bug696849redirect303);
   sSame.registerPathHandler("/bug" + OTHERBUGID + "-redirect307", bug696849redirect307);
   sSame.registerPathHandler("/bug" + OTHERBUGID + "-redirect308", bug696849redirect308);
-  
+
   
   sSame.registerPathHandler("/bug" + BUGID + "-target", echoMethod);
   sSame.start(pSame);
 
   
-  sOther = new nsHttpServer();
+  sOther = new HttpServer();
   sOther.registerPathHandler("/bug" + OTHERBUGID + "-target", echoMethod);
   sOther.start(pOther);
 

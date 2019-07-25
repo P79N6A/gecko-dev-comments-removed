@@ -15,7 +15,12 @@
 
 
 
-do_load_httpd_js();
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+const Cr = Components.results;
+
+Cu.import("resource://testing-common/httpd.js");
 
 var httpserver = null;
 
@@ -233,7 +238,7 @@ function testFinished() {
 }
 
 function run_test() {
-  httpserver = new nsHttpServer();
+  httpserver = new HttpServer();
   httpserver.registerPathHandler("/test_2", handler_2);
   httpserver.registerPathHandler("/test_3", handler_3);
   httpserver.registerPathHandler("/test_4", handler_4);

@@ -13,9 +13,14 @@
 
 
 
-do_load_httpd_js();
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+const Cr = Components.results;
 
-var httpserver = new nsHttpServer();
+Cu.import("resource://testing-common/httpd.js");
+
+var httpserver = new HttpServer();
 var index = 0;
 var tests = [
     {url: "/freshness",   server: "0", expected: "0"},

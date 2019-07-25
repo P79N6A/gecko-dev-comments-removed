@@ -1,5 +1,12 @@
 
-do_load_httpd_js();
+
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+const Cr = Components.results;
+
+Cu.import("resource://testing-common/httpd.js");
+
 
 
 
@@ -73,7 +80,7 @@ function init_profile() {
 }
 
 function init_http_server() {
-  httpServer = new nsHttpServer();
+  httpServer = new HttpServer();
   httpServer.registerPathHandler("/app.appcache", manifest_handler);
   httpServer.registerPathHandler("/app", app_handler);
   for (i = 1; i <= 4; i++) {
