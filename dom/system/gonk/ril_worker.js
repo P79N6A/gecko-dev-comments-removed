@@ -54,7 +54,6 @@ const PDU_HEX_OCTET_SIZE = 4;
 const DEFAULT_EMERGENCY_NUMBERS = ["112", "911"];
 
 let RILQUIRKS_CALLSTATE_EXTRA_UINT32 = libcutils.property_get("ro.moz.ril.callstate_extra_int");
-let RILQUIRKS_DATACALLSTATE_DOWN_IS_UP = libcutils.property_get("ro.moz.ril.callstate_down_is_up");
 
 
 let RILQUIRKS_V5_LEGACY = libcutils.property_get("ro.moz.ril.v5_legacy");
@@ -2495,11 +2494,6 @@ let RIL = {
         datacall.state = GECKO_NETWORK_STATE_DISCONNECTED;
         break;
       case DATACALL_ACTIVE_DOWN:
-        datacall.state = GECKO_NETWORK_STATE_SUSPENDED;
-        if (RILQUIRKS_DATACALLSTATE_DOWN_IS_UP) {
-          datacall.state = GECKO_NETWORK_STATE_CONNECTED;
-        }
-        break;
       case DATACALL_ACTIVE_UP:
         datacall.state = GECKO_NETWORK_STATE_CONNECTED;
         break;
