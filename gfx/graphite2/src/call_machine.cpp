@@ -105,8 +105,6 @@ Machine::stack_t  Machine::run(const instr   * program,
 {
     assert(program != 0);
 
-
-
     
     const instr   * ip = program-1;
     const byte    * dp = data;

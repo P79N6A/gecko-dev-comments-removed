@@ -213,7 +213,8 @@ size_t Silf::readClassMap(const byte *p, size_t data_len, uint32 version)
 	for (const uint32 *o = m_classOffsets + m_nLinear, * const o_end = m_classOffsets + m_nClass; o != o_end; ++o)
 	{
 		const uint16 * lookup = m_classData + *o;
-		if (lookup[0] == 0							
+		if (*o > max_off - 4                        
+         || lookup[0] == 0							
 		 || lookup[0] > (max_off - *o - 4)/2  	    
 		 || lookup[3] != lookup[0] - lookup[1])		
 			return 0;

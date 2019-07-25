@@ -179,7 +179,6 @@ inline void Machine::check_final_stack(const int32 * const sp)
     if      (sp <  base)    _status = stack_underflow;       
     else if (sp >= limit)   _status = stack_overflow;        
     else if (sp != base)    _status = stack_not_empty;
-    else                    _status = finished;
 }
 
 } 
