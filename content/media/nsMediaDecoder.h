@@ -366,7 +366,7 @@ public:
 
   
   
-  nsresult RequestFrameBufferLength(PRUint32 aLength);
+  virtual nsresult RequestFrameBufferLength(PRUint32 aLength);
 
   
   
