@@ -20,7 +20,7 @@
 
 #include "frontend/ParseMaps.h"
 #include "frontend/ParseNode.h"
-#include "frontend/TreeContext.h"
+#include "frontend/ParseContext.h"
 
 namespace js {
 namespace frontend {
@@ -40,7 +40,7 @@ struct Parser : private AutoGCRooter
     ParseNodeAllocator  allocator;
     ObjectBox           *traceListHead; 
 
-    TreeContext         *tc;            
+    ParseContext        *pc;            
 
     
     AutoKeepAtoms       keepAtoms;
@@ -86,13 +86,13 @@ struct Parser : private AutoGCRooter
 
     ObjectBox *newObjectBox(JSObject *obj);
 
-    FunctionBox *newFunctionBox(JSObject *obj, ParseNode *fn, TreeContext *tc);
+    FunctionBox *newFunctionBox(JSObject *obj, ParseNode *fn, ParseContext *pc);
 
     
 
 
 
-    JSFunction *newFunction(TreeContext *tc, JSAtom *atom, FunctionSyntaxKind kind);
+    JSFunction *newFunction(ParseContext *pc, JSAtom *atom, FunctionSyntaxKind kind);
 
     void trace(JSTracer *trc);
 
@@ -229,7 +229,7 @@ struct Parser : private AutoGCRooter
 
 #if JS_HAS_XML_SUPPORT
     
-    bool allowsXML() const { return !tc->sc->inStrictMode() && tokenStream.allowsXML(); }
+    bool allowsXML() const { return !pc->sc->inStrictMode() && tokenStream.allowsXML(); }
 
     ParseNode *endBracketedExpr();
 
@@ -309,10 +309,5 @@ DefineArg(ParseNode *pn, JSAtom *atom, unsigned i, Parser *parser);
 
 } 
 } 
-
-
-
-
-#define TS(p) (&(p)->tokenStream)
 
 #endif 
