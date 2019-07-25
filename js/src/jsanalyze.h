@@ -291,6 +291,10 @@ class Script
         return false;
     }
 
+    void trace(JSTracer *trc);
+    void sweep(JSContext *cx);
+    void detach();
+
   private:
     void setOOM(JSContext *cx) {
         if (!outOfMemory)
@@ -347,7 +351,7 @@ class Script
     bool isGlobal() { return !parent || (!fun && !parent->analysis->parent); }
 
     unsigned argCount() { return fun ? fun->nargs : 0; }
-    types::TypeFunction *function() { return fun->getTypeObject()->asFunction(); }
+    types::TypeFunction *function() { return fun->getType()->asFunction(); }
 
     
 
@@ -478,10 +482,8 @@ class Script
     
 
     void addVariable(JSContext *cx, jsid id, types::Variable *&var);
-    void trace(JSTracer *trc);
 
 #endif 
-
 };
 
 static inline unsigned

@@ -736,8 +736,7 @@ ProcessArgs(JSContext *cx, JSObject *obj, char **argv, int argc)
 
 
 
-    js::types::TypeObject *argstype = cx->getFixedTypeObject(js::types::TYPE_OBJECT_ARGUMENTS);
-    argsObj = js_NewArrayObject(cx, 0, NULL, argstype);
+    argsObj = js_NewArrayObject(cx, 0, NULL);
     if (!argsObj)
         return 1;
 

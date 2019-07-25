@@ -2395,37 +2395,28 @@ private:
 public:
 
     
-
-
-
-
-    
-    inline js::types::TypeObject *
-    getGlobalTypeObject();
+    js::types::TypeFunction *newTypeFunction(const char *name, JSObject *proto);
+    js::types::TypeObject   *newTypeObject(const char *name, JSObject *proto);
 
     
-    inline js::types::TypeObject *
-    getFixedTypeObject(js::types::FixedTypeObjectName which);
+    js::types::TypeObject *newTypeObject(const char *base, const char *postfix, JSObject *proto);
+
+    
+    inline js::types::TypeObject *getTypeNewObject(JSProtoKey key);
 
     
 
 
 
 
-    
-    inline js::types::TypeObject *getTypeFunction(const char *name,
-                                                  js::types::TypeObject *prototype = NULL);
-    inline js::types::TypeObject *getTypeObject(const char *name,
-                                                js::types::TypeObject *prototype);
+
+    inline js::types::TypeObject *globalTypeObject();
 
     
-    inline js::types::TypeFunction *
-    getTypeFunctionHandler(const char *name, JSTypeHandler handler,
-                           js::types::TypeObject *prototype = NULL);
+    inline js::types::TypeObject *emptyTypeObject();
 
     
-    inline void
-    setTypeFunctionScript(JSFunction *fun, JSScript *script);
+    inline void setTypeFunctionScript(JSFunction *fun, JSScript *script);
 
     
     inline js::types::TypeObject *
@@ -2449,20 +2440,13 @@ public:
     inline void typeMonitorEntry(JSScript *script, const js::Value &thisv);
 
     
-
-
-
-    inline void markTypeBuiltinFunction(js::types::TypeObject *fun);
-
-    
-    inline void setTypeFunctionPrototype(js::types::TypeObject *fun,
-                                         js::types::TypeObject *proto);
-
-    
     inline void addTypeProperty(js::types::TypeObject *obj, const char *name, js::types::jstype type);
     inline void addTypeProperty(js::types::TypeObject *obj, const char *name, const js::Value &value);
     inline void addTypePropertyId(js::types::TypeObject *obj, jsid id, js::types::jstype type);
     inline void addTypePropertyId(js::types::TypeObject *obj, jsid id, const js::Value &value);
+
+    
+    inline js::types::TypeObject *getTypeGetSet();
 
     
     inline void aliasTypeProperties(js::types::TypeObject *obj, jsid first, jsid second);

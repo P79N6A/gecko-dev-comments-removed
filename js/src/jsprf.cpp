@@ -47,11 +47,11 @@
 #include <stdlib.h>
 #include "jsprf.h"
 #include "jsstdint.h"
+#include "jslong.h"
 #include "jsutil.h"
 #include "jspubtd.h"
 #include "jsstr.h"
-
-using namespace js;
+#include "jsobjinlines.h"
 
 
 
@@ -293,8 +293,13 @@ static int cvt_l(SprintfState *ss, long num, int width, int prec, int radix,
 static int cvt_ll(SprintfState *ss, JSInt64 num, int width, int prec, int radix,
                   int type, int flags, const char *hexp)
 {
+    char cvtbuf[100];
+    char *cvt;
+    int digits;
+    JSInt64 rad;
+
     
-    if (prec == 0 && num == 0) {
+    if ((prec == 0) && (JSLL_IS_ZERO(num))) {
         return 0;
     }
 
@@ -303,14 +308,14 @@ static int cvt_ll(SprintfState *ss, JSInt64 num, int width, int prec, int radix,
 
 
 
-    JSInt64 rad = JSInt64(radix);
-    char cvtbuf[100];
-    char *cvt = cvtbuf + sizeof(cvtbuf);
-    int digits = 0;
-    while (num != 0) {
-        JSInt64 quot = JSUint64(num) / rad;
-        JSInt64 rem = JSUint64(num) % rad;
-        JSInt32 digit = JSInt32(rem);
+    JSLL_I2L(rad, radix);
+    cvt = cvtbuf + sizeof(cvtbuf);
+    digits = 0;
+    while (!JSLL_IS_ZERO(num)) {
+        JSInt32 digit;
+        JSInt64 quot, rem;
+        JSLL_UDIVMOD(&quot, &rem, num, rad);
+        JSLL_L2I(digit, rem);
         *--cvt = hexp[digit & 0xf];
         digits++;
         num = quot;
@@ -404,11 +409,11 @@ static int cvt_ws(SprintfState *ss, const jschar *ws, int width, int prec,
 
     if (ws) {
         int slen = js_strlen(ws);
-        char *s = DeflateString(NULL, ws, slen);
+        char *s = js_DeflateString(NULL, ws, slen);
         if (!s)
             return -1; 
         result = cvt_s(ss, s, width, prec, flags);
-        UnwantedForeground::free_(s);
+        js_free(s);
     } else {
         result = cvt_s(ss, NULL, width, prec, flags);
     }
@@ -626,7 +631,7 @@ static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, 
 
     if( *rv < 0 ){
         if( nas != nasArray )
-            UnwantedForeground::free_( nas );
+            js_free( nas );
         return NULL;
     }
 
@@ -663,7 +668,7 @@ static struct NumArgState* BuildArgArray( const char *fmt, va_list ap, int* rv, 
 
         default:
             if( nas != nasArray )
-                UnwantedForeground::free_( nas );
+                js_free( nas );
             *rv = -1;
             return NULL;
         }
@@ -752,7 +757,7 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
 
             if( nas[i-1].type == TYPE_UNKNOWN ){
                 if( nas && ( nas != nasArray ) )
-                    UnwantedForeground::free_( nas );
+                    js_free( nas );
                 return -1;
             }
 
@@ -893,8 +898,8 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
 
               case TYPE_INT64:
                 u.ll = va_arg(ap, JSInt64);
-                if (u.ll < 0) {
-                    u.ll = -u.ll;
+                if (!JSLL_GE_ZERO(u.ll)) {
+                    JSLL_NEG(u.ll, u.ll);
                     flags |= FLAG_NEG;
                 }
                 goto do_longlong;
@@ -1033,7 +1038,7 @@ static int dosprintf(SprintfState *ss, const char *fmt, va_list ap)
     rv = (*ss->stuff)(ss, "\0", 1);
 
     if( nas && ( nas != nasArray ) ){
-        UnwantedForeground::free_( nas );
+        js_free( nas );
     }
 
     return rv;
@@ -1094,9 +1099,9 @@ static int GrowStuff(SprintfState *ss, const char *sp, JSUint32 len)
         
         newlen = ss->maxlen + ((len > 32) ? len : 32);
         if (ss->base) {
-            newbase = (char*) OffTheBooks::realloc_(ss->base, newlen);
+            newbase = (char*) js_realloc(ss->base, newlen);
         } else {
-            newbase = (char*) OffTheBooks::malloc_(newlen);
+            newbase = (char*) js_malloc(newlen);
         }
         if (!newbase) {
             
@@ -1135,7 +1140,7 @@ JS_PUBLIC_API(char *) JS_smprintf(const char *fmt, ...)
 
 JS_PUBLIC_API(void) JS_smprintf_free(char *mem)
 {
-        Foreground::free_(mem);
+        js_free(mem);
 }
 
 JS_PUBLIC_API(char *) JS_vsmprintf(const char *fmt, va_list ap)
@@ -1150,7 +1155,7 @@ JS_PUBLIC_API(char *) JS_vsmprintf(const char *fmt, va_list ap)
     rv = dosprintf(&ss, fmt, ap);
     if (rv < 0) {
         if (ss.base) {
-            Foreground::free_(ss.base);
+            js_free(ss.base);
         }
         return 0;
     }
@@ -1249,7 +1254,7 @@ JS_PUBLIC_API(char *) JS_vsprintf_append(char *last, const char *fmt, va_list ap
     rv = dosprintf(&ss, fmt, ap);
     if (rv < 0) {
         if (ss.base) {
-            Foreground::free_(ss.base);
+            js_free(ss.base);
         }
         return 0;
     }

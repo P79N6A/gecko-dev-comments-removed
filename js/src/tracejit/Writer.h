@@ -141,7 +141,7 @@ static const nanojit::AccSet ACCSET_RUNTIME       = (1 <<  8);
 static const nanojit::AccSet ACCSET_OBJ_CLASP     = (1 <<  9);
 static const nanojit::AccSet ACCSET_OBJ_FLAGS     = (1 << 10);
 static const nanojit::AccSet ACCSET_OBJ_SHAPE     = (1 << 11);
-static const nanojit::AccSet ACCSET_OBJ_PROTO     = (1 << 12);
+static const nanojit::AccSet ACCSET_OBJ_TYPE      = (1 << 12);
 static const nanojit::AccSet ACCSET_OBJ_PARENT    = (1 << 13);
 static const nanojit::AccSet ACCSET_OBJ_PRIVATE   = (1 << 14);
 static const nanojit::AccSet ACCSET_OBJ_CAPACITY  = (1 << 15);
@@ -475,7 +475,9 @@ class Writer
     }
 
     nj::LIns *ldpObjProto(nj::LIns *obj) const {
-        return name(lir->insLoad(nj::LIR_ldp, obj, offsetof(JSObject, proto), ACCSET_OBJ_PROTO),
+        nj::LIns *type = name(lir->insLoad(nj::LIR_ldp, obj, offsetof(JSObject, type), ACCSET_OBJ_TYPE),
+                              "type");
+        return name(lir->insLoad(nj::LIR_ldp, type, offsetof(types::TypeObject, proto), 0),
                     "proto");
     }
 
