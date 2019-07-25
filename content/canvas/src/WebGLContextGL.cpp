@@ -1777,28 +1777,7 @@ WebGLContext::GenerateMipmap(WebGLenum target)
     tex->SetGeneratedMipmap();
 
     MakeContextCurrent();
-
-#ifdef XP_MACOSX
-    
-    
-    
-    
-    
-    
-    if (tex->DoesMinFilterRequireMipmap()) {
-        gl->fGenerateMipmap(target);
-    } else {
-        
-        
-        
-        gl->fTexParameteri(target, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_LINEAR_MIPMAP_LINEAR);
-        gl->fGenerateMipmap(target);
-        gl->fTexParameteri(target, LOCAL_GL_TEXTURE_MIN_FILTER, tex->MinFilter());
-    }
-#else
     gl->fGenerateMipmap(target);
-#endif
-    
     return NS_OK;
 }
 
