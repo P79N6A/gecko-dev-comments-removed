@@ -213,6 +213,8 @@ public:
   
   static void CCIfUserInactive();
 
+  static void MaybeCCIfUserInactive();
+
   static void FireGCTimer(PRBool aLoadInProgress);
 
 protected:
