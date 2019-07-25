@@ -219,6 +219,12 @@ StringsEqual(Vector<jschar, N, AP> &v, JSString* str)
 
 
 
+JS_ALWAYS_INLINE void
+ASSERT_OK(JSBool ok)
+{
+  JS_ASSERT(ok);
+}
+
 
 enum ErrorNum {
 #define MSG_DEF(name, number, count, exception, format) \
