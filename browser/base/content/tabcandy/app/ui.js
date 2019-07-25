@@ -129,21 +129,16 @@ window.Page = {
   init: function() {    
     Utils.homeTab.raw.maxWidth = 60;
     Utils.homeTab.raw.minWidth = 60;
-    
-    
-
-
-
-
-
-
-    
+        
     Tabs.onClose(function(){
       
       
       var group = Groups.getActiveGroup();
-      if( group && group._children.length == 0 ){
+      if( group && group._children.length == 0 )
         Page.show();
+      else {
+        Utils.homeTab.focus();
+        UI.tabBar.hide(false);        
       }
       return false;
     });
