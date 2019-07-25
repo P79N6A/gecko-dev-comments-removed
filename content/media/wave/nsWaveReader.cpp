@@ -261,7 +261,7 @@ nsresult nsWaveReader::Seek(PRInt64 aTarget, PRInt64 aStartTime, PRInt64 aEndTim
   PRInt64 position = RoundDownToFrame(static_cast<PRInt64>(TimeToBytes(seekTime)));
   NS_ASSERTION(PR_INT64_MAX - mWavePCMOffset > position, "Integer overflow during wave seek");
   position += mWavePCMOffset;
-  return mDecoder->GetStream()->Seek(nsISeekableStream::NS_SEEK_SET, position);
+  return mDecoder->GetCurrentStream()->Seek(nsISeekableStream::NS_SEEK_SET, position);
 }
 
 static double RoundToUsecs(double aSeconds) {
@@ -270,9 +270,9 @@ static double RoundToUsecs(double aSeconds) {
 
 nsresult nsWaveReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
 {
-  PRInt64 startOffset = mDecoder->GetStream()->GetNextCachedData(mWavePCMOffset);
+  PRInt64 startOffset = mDecoder->GetCurrentStream()->GetNextCachedData(mWavePCMOffset);
   while (startOffset >= 0) {
-    PRInt64 endOffset = mDecoder->GetStream()->GetCachedDataEnd(startOffset);
+    PRInt64 endOffset = mDecoder->GetCurrentStream()->GetCachedDataEnd(startOffset);
     
     NS_ASSERTION(startOffset >= mWavePCMOffset, "Integer underflow in GetBuffered");
     NS_ASSERTION(endOffset >= mWavePCMOffset, "Integer underflow in GetBuffered");
@@ -282,7 +282,7 @@ nsresult nsWaveReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
     
     aBuffered->Add(RoundToUsecs(BytesToTime(startOffset - mWavePCMOffset)),
                    RoundToUsecs(BytesToTime(endOffset - mWavePCMOffset)));
-    startOffset = mDecoder->GetStream()->GetNextCachedData(endOffset);
+    startOffset = mDecoder->GetCurrentStream()->GetNextCachedData(endOffset);
   }
   return NS_OK;
 }
@@ -296,7 +296,7 @@ nsWaveReader::ReadAll(char* aBuf, PRInt64 aSize, PRInt64* aBytesRead)
   }
   do {
     PRUint32 read = 0;
-    if (NS_FAILED(mDecoder->GetStream()->Read(aBuf + got, PRUint32(aSize - got), &read))) {
+    if (NS_FAILED(mDecoder->GetCurrentStream()->Read(aBuf + got, PRUint32(aSize - got), &read))) {
       NS_WARNING("Stream read failed");
       return false;
     }
@@ -318,7 +318,7 @@ nsWaveReader::LoadRIFFChunk()
   char riffHeader[RIFF_INITIAL_SIZE];
   const char* p = riffHeader;
 
-  NS_ABORT_IF_FALSE(mDecoder->GetStream()->Tell() == 0,
+  NS_ABORT_IF_FALSE(mDecoder->GetCurrentStream()->Tell() == 0,
                     "LoadRIFFChunk called when stream in invalid state");
 
   if (!ReadAll(riffHeader, sizeof(riffHeader))) {
@@ -390,7 +390,7 @@ nsWaveReader::LoadFormatChunk()
   const char* p = waveFormat;
 
   
-  NS_ABORT_IF_FALSE(mDecoder->GetStream()->Tell() % 2 == 0,
+  NS_ABORT_IF_FALSE(mDecoder->GetCurrentStream()->Tell() % 2 == 0,
                     "LoadFormatChunk called with unaligned stream");
 
   
@@ -455,7 +455,7 @@ nsWaveReader::LoadFormatChunk()
   }
 
   
-  NS_ABORT_IF_FALSE(mDecoder->GetStream()->Tell() % 2 == 0,
+  NS_ABORT_IF_FALSE(mDecoder->GetCurrentStream()->Tell() % 2 == 0,
                     "LoadFormatChunk left stream unaligned");
 
   
@@ -485,7 +485,7 @@ bool
 nsWaveReader::FindDataOffset()
 {
   
-  NS_ABORT_IF_FALSE(mDecoder->GetStream()->Tell() % 2 == 0,
+  NS_ABORT_IF_FALSE(mDecoder->GetCurrentStream()->Tell() % 2 == 0,
                     "FindDataOffset called with unaligned stream");
 
   
@@ -495,7 +495,7 @@ nsWaveReader::FindDataOffset()
     return false;
   }
 
-  PRInt64 offset = mDecoder->GetStream()->Tell();
+  PRInt64 offset = mDecoder->GetCurrentStream()->Tell();
   if (offset <= 0 || offset > PR_UINT32_MAX) {
     NS_WARNING("PCM data offset out of range");
     return false;
@@ -535,7 +535,7 @@ nsWaveReader::GetDataLength()
   
   
   
-  PRInt64 streamLength = mDecoder->GetStream()->GetLength();
+  PRInt64 streamLength = mDecoder->GetCurrentStream()->GetLength();
   if (streamLength >= 0) {
     PRInt64 dataLength = NS_MAX<PRInt64>(0, streamLength - mWavePCMOffset);
     length = NS_MIN(dataLength, length);
@@ -546,5 +546,5 @@ nsWaveReader::GetDataLength()
 PRInt64
 nsWaveReader::GetPosition()
 {
-  return mDecoder->GetStream()->Tell();
+  return mDecoder->GetCurrentStream()->Tell();
 }

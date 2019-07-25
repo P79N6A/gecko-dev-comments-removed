@@ -371,11 +371,9 @@ protected:
 
 
 
-
   nsresult InitializeDecoderAsClone(nsMediaDecoder* aOriginal);
 
   
-
 
 
 
@@ -385,22 +383,7 @@ protected:
   
 
 
-
   nsresult FinishDecoderSetup(nsMediaDecoder* aDecoder);
-
-  
-
-
-  void AddMediaElementToURITable();
-  
-
-
-  void RemoveMediaElementFromURITable();
-  
-
-
-
-  nsHTMLMediaElement* LookupMediaElementURITable(nsIURI* aURI);
 
   
 
@@ -448,7 +431,7 @@ protected:
   
 
 
-  nsresult LoadResource();
+  nsresult LoadResource(nsIURI* aURI);
 
   
 
@@ -513,7 +496,7 @@ protected:
 
 
 
-  void SuspendLoad();
+  void SuspendLoad(nsIURI* aURI);
 
   
 
@@ -552,7 +535,6 @@ protected:
 
   void ProcessMediaFragmentURI();
 
-  
   nsRefPtr<nsMediaDecoder> mDecoder;
 
   
