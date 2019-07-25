@@ -815,7 +815,7 @@ class GetPropCompiler : public PICStubCompiler
     {
         Assembler masm;
 
-        Jump notArgs = masm.testObjClass(Assembler::NotEqual, pic.objReg, obj->getClass());
+        Jump notArgs = masm.guardShape(pic.objReg, obj);
 
         masm.load32(Address(pic.objReg, JSObject::getFixedSlotOffset(ArgumentsObject::INITIAL_LENGTH_SLOT)), pic.objReg);
         masm.move(pic.objReg, pic.shapeReg);
@@ -896,7 +896,7 @@ class GetPropCompiler : public PICStubCompiler
     {
         Assembler masm;
 
-        Jump notStringObj = masm.testObjClass(Assembler::NotEqual, pic.objReg, obj->getClass());
+        Jump notStringObj = masm.guardShape(pic.objReg, obj);
 
         masm.loadPayload(Address(pic.objReg, JSObject::getPrimitiveThisOffset()), pic.objReg);
         masm.loadPtr(Address(pic.objReg, JSString::offsetOfLengthAndFlags()), pic.objReg);
@@ -1185,7 +1185,9 @@ class GetPropCompiler : public PICStubCompiler
         bool setStubShapeOffset = true;
         if (obj->isDenseArray()) {
             start = masm.label();
-            shapeGuardJump = masm.testObjClass(Assembler::NotEqual, pic.objReg, obj->getClass());
+            shapeGuardJump = masm.branchPtr(Assembler::NotEqual,
+                                            Address(pic.objReg, offsetof(JSObject, lastProp)),
+                                            ImmPtr(obj->lastProperty()));
 
             
 
@@ -2331,8 +2333,8 @@ GetElementIC::purge(Repatcher &repatcher)
     
     if (inlineTypeGuardPatched)
         repatcher.relink(fastPathStart.jumpAtOffset(inlineTypeGuard), slowPathStart);
-    if (inlineClaspGuardPatched)
-        repatcher.relink(fastPathStart.jumpAtOffset(inlineClaspGuard), slowPathStart);
+    if (inlineShapeGuardPatched)
+        repatcher.relink(fastPathStart.jumpAtOffset(inlineShapeGuard), slowPathStart);
 
     if (slowCallPatched) {
         if (op == JSOP_GETELEM) {
@@ -2393,12 +2395,7 @@ GetElementIC::attachGetProp(VMFrame &f, JSContext *cx, JSObject *obj, const Valu
         atomIdGuard = masm.branchPtr(Assembler::NotEqual, idRemat.dataReg(), ImmPtr(v.toString()));
 
     
-    Jump shapeGuard;
-    if (obj->isDenseArray()) {
-        shapeGuard = masm.testObjClass(Assembler::NotEqual, objReg, obj->getClass());
-    } else {
-        shapeGuard = masm.branchPtr(Assembler::NotEqual, typeReg, ImmPtr(obj->lastProperty()));
-    }
+    Jump shapeGuard = masm.branchPtr(Assembler::NotEqual, typeReg, ImmPtr(obj->lastProperty()));
 
     
     MaybeJump protoGuard;
@@ -2455,7 +2452,7 @@ GetElementIC::attachGetProp(VMFrame &f, JSContext *cx, JSObject *obj, const Valu
 #endif
 
     
-    if (shouldPatchInlineTypeGuard() || shouldPatchUnconditionalClaspGuard()) {
+    if (shouldPatchInlineTypeGuard() || shouldPatchUnconditionalShapeGuard()) {
         Repatcher repatcher(cx->fp()->jit());
 
         if (shouldPatchInlineTypeGuard()) {
@@ -2468,15 +2465,15 @@ GetElementIC::attachGetProp(VMFrame &f, JSContext *cx, JSObject *obj, const Valu
             inlineTypeGuardPatched = true;
         }
 
-        if (shouldPatchUnconditionalClaspGuard()) {
+        if (shouldPatchUnconditionalShapeGuard()) {
             
             
             
             
             JS_ASSERT(!hasInlineTypeGuard());
 
-            repatcher.relink(fastPathStart.jumpAtOffset(inlineClaspGuard), cs);
-            inlineClaspGuardPatched = true;
+            repatcher.relink(fastPathStart.jumpAtOffset(inlineShapeGuard), cs);
+            inlineShapeGuardPatched = true;
         }
     }
 
@@ -2536,7 +2533,7 @@ GetElementIC::attachArguments(JSContext *cx, JSObject *obj, const Value &v, jsid
 
     Assembler masm;
 
-    Jump claspGuard = masm.testObjClass(Assembler::NotEqual, objReg, obj->getClass());
+    Jump shapeGuard = masm.guardShape(objReg, obj);
 
     masm.move(objReg, typeReg);
     masm.load32(Address(objReg, JSObject::getFixedSlotOffset(ArgumentsObject::INITIAL_LENGTH_SLOT)), 
@@ -2642,7 +2639,7 @@ GetElementIC::attachArguments(JSContext *cx, JSObject *obj, const Value &v, jsid
     if (!buffer.verifyRange(cx->fp()->jit()))
         return disable(cx, "code memory is out of range");
 
-    buffer.link(claspGuard, slowPathStart);
+    buffer.link(shapeGuard, slowPathStart);
     buffer.link(overridden, slowPathStart);
     buffer.link(outOfBounds, slowPathStart);
     buffer.link(holeCheck, slowPathStart);
@@ -2654,12 +2651,12 @@ GetElementIC::attachArguments(JSContext *cx, JSObject *obj, const Value &v, jsid
     JaegerSpew(JSpew_PICs, "generated getelem arguments stub at %p\n", cs.executableAddress());
 
     Repatcher repatcher(cx->fp()->jit());
-    repatcher.relink(fastPathStart.jumpAtOffset(inlineClaspGuard), cs);
+    repatcher.relink(fastPathStart.jumpAtOffset(inlineShapeGuard), cs);
 
-    JS_ASSERT(!shouldPatchUnconditionalClaspGuard());
-    JS_ASSERT(!inlineClaspGuardPatched);
+    JS_ASSERT(!shouldPatchUnconditionalShapeGuard());
+    JS_ASSERT(!inlineShapeGuardPatched);
 
-    inlineClaspGuardPatched = true;
+    inlineShapeGuardPatched = true;
     stubsGenerated++;
 
     if (stubsGenerated == MAX_GETELEM_IC_STUBS)
@@ -2690,7 +2687,7 @@ GetElementIC::attachTypedArray(JSContext *cx, JSObject *obj, const Value &v, jsi
     Assembler masm;
 
     
-    Jump claspGuard = masm.testObjClass(Assembler::NotEqual, objReg, obj->getClass());
+    Jump shapeGuard = masm.guardShape(objReg, obj);
 
     
     Jump outOfBounds;
@@ -2724,7 +2721,7 @@ GetElementIC::attachTypedArray(JSContext *cx, JSObject *obj, const Value &v, jsi
     if (!buffer.verifyRange(cx->fp()->jit()))
         return disable(cx, "code memory is out of range");
 
-    buffer.link(claspGuard, slowPathStart);
+    buffer.link(shapeGuard, slowPathStart);
     buffer.link(outOfBounds, slowPathStart);
     buffer.link(done, fastPathRejoin);
 
@@ -2733,12 +2730,12 @@ GetElementIC::attachTypedArray(JSContext *cx, JSObject *obj, const Value &v, jsi
 
     
     
-    JS_ASSERT(!shouldPatchUnconditionalClaspGuard());
-    JS_ASSERT(!inlineClaspGuardPatched);
+    JS_ASSERT(!shouldPatchUnconditionalShapeGuard());
+    JS_ASSERT(!inlineShapeGuardPatched);
 
     Repatcher repatcher(cx->fp()->jit());
-    repatcher.relink(fastPathStart.jumpAtOffset(inlineClaspGuard), cs);
-    inlineClaspGuardPatched = true;
+    repatcher.relink(fastPathStart.jumpAtOffset(inlineShapeGuard), cs);
+    inlineShapeGuardPatched = true;
 
     stubsGenerated++;
 
@@ -2914,8 +2911,8 @@ void
 SetElementIC::purge(Repatcher &repatcher)
 {
     
-    if (inlineClaspGuardPatched)
-        repatcher.relink(fastPathStart.jumpAtOffset(inlineClaspGuard), slowPathStart);
+    if (inlineShapeGuardPatched)
+        repatcher.relink(fastPathStart.jumpAtOffset(inlineShapeGuard), slowPathStart);
     if (inlineHoleGuardPatched)
         repatcher.relink(fastPathStart.jumpAtOffset(inlineHoleGuard), slowPathStart);
 
@@ -3029,12 +3026,12 @@ LookupStatus
 SetElementIC::attachTypedArray(JSContext *cx, JSObject *obj, int32 key)
 {
     
-    JS_ASSERT(!inlineClaspGuardPatched);
+    JS_ASSERT(!inlineShapeGuardPatched);
 
     Assembler masm;
 
     
-    Jump claspGuard = masm.testObjClass(Assembler::NotEqual, objReg, obj->getClass());
+    Jump shapeGuard = masm.guardShape(objReg, obj);
 
     
     Jump outOfBounds;
@@ -3089,7 +3086,7 @@ SetElementIC::attachTypedArray(JSContext *cx, JSObject *obj, int32 key)
         return disable(cx, "code memory is out of range");
 
     
-    buffer.link(claspGuard, slowPathStart);
+    buffer.link(shapeGuard, slowPathStart);
     buffer.link(outOfBounds, fastPathRejoin);
     buffer.link(done, fastPathRejoin);
     masm.finalize(buffer);
@@ -3098,8 +3095,8 @@ SetElementIC::attachTypedArray(JSContext *cx, JSObject *obj, int32 key)
     JaegerSpew(JSpew_PICs, "generated setelem typed array stub at %p\n", cs.executableAddress());
 
     Repatcher repatcher(cx->fp()->jit());
-    repatcher.relink(fastPathStart.jumpAtOffset(inlineClaspGuard), cs);
-    inlineClaspGuardPatched = true;
+    repatcher.relink(fastPathStart.jumpAtOffset(inlineShapeGuard), cs);
+    inlineShapeGuardPatched = true;
 
     stubsGenerated++;
 

@@ -40,6 +40,7 @@
 #include "Logging.h"
 #include "assembler/jit/ExecutableAllocator.h"
 #include "assembler/assembler/RepatchBuffer.h"
+#include "jstracer.h"
 #include "jsgcmark.h"
 #include "BaseAssembler.h"
 #include "Compiler.h"
@@ -57,17 +58,6 @@
 using namespace js;
 using namespace js::mjit;
 
-#ifdef __GCC_HAVE_DWARF2_CFI_ASM
-# define CFI(str) str
-#else
-# define CFI(str)
-#endif
-
-
-
-
-
-CFI(asm(".cfi_sections .debug_frame");)
 
 js::mjit::CompilerAllocPolicy::CompilerAllocPolicy(JSContext *cx, Compiler &compiler)
 : TempAllocPolicy(cx),
@@ -190,69 +180,6 @@ JS_STATIC_ASSERT(offsetof(FrameRegs, sp) == 0);
 # define HIDE_SYMBOL(name)
 #endif
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if defined(__GNUC__) && !defined(_WIN64)
 
 
@@ -281,24 +208,14 @@ asm (
 ".globl " SYMBOL_STRING(JaegerTrampoline) "\n"
 SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
     
-    CFI(".cfi_startproc"                 "\n")
-    CFI(".cfi_def_cfa rsp, 8"            "\n")
     "pushq %rbp"                         "\n"
-    CFI(".cfi_def_cfa_offset 16"         "\n")
-    CFI(".cfi_offset rbp, -16"           "\n")
     "movq %rsp, %rbp"                    "\n"
-    CFI(".cfi_def_cfa_register rbp"      "\n")
     
     "pushq %r12"                         "\n"
-    CFI(".cfi_offset r12, -24"           "\n")
     "pushq %r13"                         "\n"
-    CFI(".cfi_offset r13, -32"           "\n")
     "pushq %r14"                         "\n"
-    CFI(".cfi_offset r14, -40"           "\n")
     "pushq %r15"                         "\n"
-    CFI(".cfi_offset r15, -48"           "\n")
     "pushq %rbx"                         "\n"
-    CFI(".cfi_offset rbx, -56"           "\n")
 
     
     "movq $0xFFFF800000000000, %r13"     "\n"
@@ -333,21 +250,10 @@ SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
 
     
     "jmp *0(%rsp)"                      "\n"
-    CFI(".cfi_endproc"                  "\n")
 );
 
 asm (
 ".text\n"
-    
-    CFI(".cfi_startproc"                 "\n")
-    CFI(".cfi_def_cfa rbp, 16"           "\n")
-    CFI(".cfi_offset rbp, -16"           "\n")
-    CFI(".cfi_offset r12, -24"           "\n")
-    CFI(".cfi_offset r13, -32"           "\n")
-    CFI(".cfi_offset r14, -40"           "\n")
-    CFI(".cfi_offset r15, -48"           "\n")
-    CFI(".cfi_offset rbx, -56"           "\n")
-    CFI("nop"                            "\n")
 ".globl " SYMBOL_STRING(JaegerTrampolineReturn) "\n"
 SYMBOL_STRING(JaegerTrampolineReturn) ":"       "\n"
     "or   %rdi, %rsi"                    "\n"
@@ -362,24 +268,12 @@ SYMBOL_STRING(JaegerTrampolineReturn) ":"       "\n"
     "popq %r13"                          "\n"
     "popq %r12"                          "\n"
     "popq %rbp"                          "\n"
-    CFI(".cfi_def_cfa rsp, 8"            "\n")
     "movq $1, %rax"                      "\n"
     "ret"                                "\n"
-    CFI(".cfi_endproc"                   "\n")
 );
 
 asm (
 ".text\n"
-    
-    CFI(".cfi_startproc"                    "\n")
-    CFI(".cfi_def_cfa rbp, 16"              "\n")
-    CFI(".cfi_offset rbp, -16"              "\n")
-    CFI(".cfi_offset r12, -24"              "\n")
-    CFI(".cfi_offset r13, -32"              "\n")
-    CFI(".cfi_offset r14, -40"              "\n")
-    CFI(".cfi_offset r15, -48"              "\n")
-    CFI(".cfi_offset rbx, -56"              "\n")
-    CFI("nop"                               "\n")
 ".globl " SYMBOL_STRING(JaegerThrowpoline)  "\n"
 SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     "movq %rsp, %rdi"                       "\n"
@@ -397,24 +291,12 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     "popq %r13"                             "\n"
     "popq %r12"                             "\n"
     "popq %rbp"                             "\n"
-    CFI(".cfi_def_cfa rsp, 8"               "\n")
     "xorq %rax,%rax"                        "\n"
     "ret"                                   "\n"
-    CFI(".cfi_endproc"                      "\n")
 );
 
 asm (
 ".text\n"
-    
-    CFI(".cfi_startproc"                    "\n")
-    CFI(".cfi_def_cfa rbp, 16"              "\n")
-    CFI(".cfi_offset rbp, -16"              "\n")
-    CFI(".cfi_offset r12, -24"              "\n")
-    CFI(".cfi_offset r13, -32"              "\n")
-    CFI(".cfi_offset r14, -40"              "\n")
-    CFI(".cfi_offset r15, -48"              "\n")
-    CFI(".cfi_offset rbx, -56"              "\n")
-    CFI("nop"                               "\n")
 ".globl " SYMBOL_STRING(JaegerInterpoline)  "\n"
 SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
     "movq %rsp, %rcx"                       "\n"
@@ -439,30 +321,17 @@ SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
     "popq %r13"                             "\n"
     "popq %r12"                             "\n"
     "popq %rbp"                             "\n"
-    CFI(".cfi_def_cfa rsp, 8"               "\n")
     "xorq %rax,%rax"                        "\n"
     "ret"                                   "\n"
-    CFI(".cfi_endproc"                      "\n")
 );
 
 asm (
 ".text\n"
-    
-    CFI(".cfi_startproc"                            "\n")
-    CFI(".cfi_def_cfa rbp, 16"                      "\n")
-    CFI(".cfi_offset rbp, -16"                      "\n")
-    CFI(".cfi_offset r12, -24"                      "\n")
-    CFI(".cfi_offset r13, -32"                      "\n")
-    CFI(".cfi_offset r14, -40"                      "\n")
-    CFI(".cfi_offset r15, -48"                      "\n")
-    CFI(".cfi_offset rbx, -56"                      "\n")   
-    CFI("nop"                                       "\n")
 ".globl " SYMBOL_STRING(JaegerInterpolineScripted)  "\n"
 SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
     "movq 0x20(%rbx), %rbx"                         "\n" 
     "movq %rbx, 0x38(%rsp)"                         "\n"
     "jmp " SYMBOL_STRING_RELOC(JaegerInterpoline)   "\n"
-    CFI(".cfi_endproc"                              "\n")
 );
 
 # elif defined(JS_CPU_X86)
@@ -483,20 +352,12 @@ asm (
 ".globl " SYMBOL_STRING(JaegerTrampoline) "\n"
 SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
     
-    CFI(".cfi_startproc"                 "\n")
-    CFI(".cfi_def_cfa esp, 4"            "\n")
     "pushl %ebp"                         "\n"
-    CFI(".cfi_def_cfa_offset 8"          "\n")
-    CFI(".cfi_offset ebp, -8"            "\n")
     "movl %esp, %ebp"                    "\n"
-    CFI(".cfi_def_cfa_register ebp"      "\n")
     
     "pushl %esi"                         "\n"
-    CFI(".cfi_offset esi, -12"           "\n")
     "pushl %edi"                         "\n"
-    CFI(".cfi_offset edi, -16"           "\n")
     "pushl %ebx"                         "\n"
-    CFI(".cfi_offset ebx, -20"           "\n")
 
     
 
@@ -519,19 +380,10 @@ SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
 
     "movl 28(%esp), %ebp"                "\n"   
     "jmp *88(%esp)"                      "\n"
-    CFI(".cfi_endproc"                   "\n")
 );
 
 asm (
 ".text\n"
-    
-    CFI(".cfi_startproc"                 "\n")
-    CFI(".cfi_def_cfa ebp, 8"            "\n")
-    CFI(".cfi_offset ebp, -8"            "\n")
-    CFI(".cfi_offset esi, -12"           "\n")
-    CFI(".cfi_offset edi, -16"           "\n")
-    CFI(".cfi_offset ebx, -20"           "\n")
-    CFI("nop"                            "\n")
 ".globl " SYMBOL_STRING(JaegerTrampolineReturn) "\n"
 SYMBOL_STRING(JaegerTrampolineReturn) ":" "\n"
     "movl  %esi, 0x18(%ebp)"             "\n"
@@ -546,22 +398,12 @@ SYMBOL_STRING(JaegerTrampolineReturn) ":" "\n"
     "popl %edi"                          "\n"
     "popl %esi"                          "\n"
     "popl %ebp"                          "\n"
-    CFI(".cfi_def_cfa esp, 4"            "\n")
     "movl $1, %eax"                      "\n"
     "ret"                                "\n"
-    CFI(".cfi_endproc"                   "\n")
 );
 
 asm (
 ".text\n"
-    
-    CFI(".cfi_startproc"                 "\n")
-    CFI(".cfi_def_cfa ebp, 8"            "\n")
-    CFI(".cfi_offset ebp, -8"            "\n")
-    CFI(".cfi_offset esi, -12"           "\n")
-    CFI(".cfi_offset edi, -16"           "\n")
-    CFI(".cfi_offset ebx, -20"           "\n")
-    CFI("nop"                            "\n")
 ".globl " SYMBOL_STRING(JaegerThrowpoline)  "\n"
 SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     
@@ -585,22 +427,12 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     "popl %edi"                          "\n"
     "popl %esi"                          "\n"
     "popl %ebp"                          "\n"
-    CFI(".cfi_def_cfa esp, 4"            "\n")
     "xorl %eax, %eax"                    "\n"
     "ret"                                "\n"
-    CFI(".cfi_endproc"                   "\n")
 );
 
 asm (
 ".text\n"
-    
-    CFI(".cfi_startproc"                 "\n")
-    CFI(".cfi_def_cfa ebp, 8"            "\n")
-    CFI(".cfi_offset ebp, -8"            "\n")
-    CFI(".cfi_offset esi, -12"           "\n")
-    CFI(".cfi_offset edi, -16"           "\n")
-    CFI(".cfi_offset ebx, -20"           "\n")
-    CFI("nop"                            "\n")
 ".globl " SYMBOL_STRING(JaegerInterpoline)  "\n"
 SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
     
@@ -625,28 +457,17 @@ SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
     "popl %edi"                          "\n"
     "popl %esi"                          "\n"
     "popl %ebp"                          "\n"
-    CFI(".cfi_def_cfa esp, 4"            "\n")
     "xorl %eax, %eax"                    "\n"
     "ret"                                "\n"
-    CFI(".cfi_endproc"                   "\n")
 );
 
 asm (
 ".text\n"
-    
-    CFI(".cfi_startproc"                            "\n")
-    CFI(".cfi_def_cfa ebp, 8"                       "\n")
-    CFI(".cfi_offset ebp, -8"                       "\n")
-    CFI(".cfi_offset esi, -12"                      "\n")
-    CFI(".cfi_offset edi, -16"                      "\n")
-    CFI(".cfi_offset ebx, -20"                      "\n")      
-    CFI("nop"                                       "\n")
 ".globl " SYMBOL_STRING(JaegerInterpolineScripted)  "\n"
 SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
     "movl 0x10(%ebp), %ebp"                         "\n" 
     "movl  %ebp, 0x1C(%esp)"                        "\n"
     "jmp " SYMBOL_STRING_RELOC(JaegerInterpoline)   "\n"
-    CFI(".cfi_endproc"                              "\n")
 );
 
 # elif defined(JS_CPU_ARM)
@@ -1131,6 +952,11 @@ mjit::JaegerShot(JSContext *cx, bool partial)
     JSScript *script = fp->script();
     JITScript *jit = script->getJIT(fp->isConstructing());
 
+#ifdef JS_TRACER
+    if (TRACE_RECORDER(cx))
+        AbortRecording(cx, "attempt to enter method JIT while recording");
+#endif
+
     JS_ASSERT(cx->regs().pc == script->code);
 
     return CheckStackAndEnterMethodJIT(cx, cx->fp(), jit->invokeEntry, partial);
@@ -1139,6 +965,10 @@ mjit::JaegerShot(JSContext *cx, bool partial)
 JaegerStatus
 js::mjit::JaegerShotAtSafePoint(JSContext *cx, void *safePoint, bool partial)
 {
+#ifdef JS_TRACER
+    JS_ASSERT(!TRACE_RECORDER(cx));
+#endif
+
     return CheckStackAndEnterMethodJIT(cx, cx->fp(), safePoint, partial);
 }
 
@@ -1160,10 +990,16 @@ JITScript::callSites() const
     return (js::mjit::CallSite *)&inlineFrames()[nInlineFrames];
 }
 
+JSObject **
+JITScript::rootedObjects() const
+{
+    return (JSObject **)&callSites()[nCallSites];
+}
+
 char *
 JITScript::commonSectionLimit() const
 {
-    return (char *)&callSites()[nCallSites];
+    return (char *)&rootedObjects()[nRootedObjects];
 }
 
 #ifdef JS_MONOIC
@@ -1192,10 +1028,16 @@ JITScript::equalityICs() const
     return (ic::EqualityICInfo *)&callICs()[nCallICs];
 }
 
+ic::TraceICInfo *
+JITScript::traceICs() const
+{
+    return (ic::TraceICInfo *)&equalityICs()[nEqualityICs];
+}
+
 char *
 JITScript::monoICSectionsLimit() const
 {
-    return (char *)&equalityICs()[nEqualityICs];
+    return (char *)&traceICs()[nTraceICs];
 }
 #else   
 char *
@@ -1243,6 +1085,17 @@ static inline void Destroy(T &t)
     t.~T();
 }
 
+void
+mjit::JITScript::purgeNativeCallStubs()
+{
+    for (unsigned i = 0; i < nativeCallStubs.length(); i++) {
+        JSC::ExecutablePool *pool = nativeCallStubs[i].pool;
+        if (pool)
+            pool->release();
+    }
+    nativeCallStubs.clear();
+}
+
 mjit::JITScript::~JITScript()
 {
     code.release();
@@ -1273,11 +1126,7 @@ mjit::JITScript::~JITScript()
         (*pExecPool)->release();
     }
 
-    for (unsigned i = 0; i < nativeCallStubs.length(); i++) {
-        JSC::ExecutablePool *pool = nativeCallStubs[i].pool;
-        if (pool)
-            pool->release();
-    }
+    purgeNativeCallStubs();
 
     ic::CallICInfo *callICs_ = callICs();
     for (uint32 i = 0; i < nCallICs; i++) {
@@ -1302,30 +1151,33 @@ mjit::JITScript::~JITScript()
 }
 
 size_t
-JSScript::jitDataSize(JSMallocSizeOfFun mallocSizeOf)
+JSScript::jitDataSize(JSUsableSizeFun usf)
 {
     size_t n = 0;
     if (jitNormal)
-        n += jitNormal->scriptDataSize(mallocSizeOf); 
+        n += jitNormal->scriptDataSize(usf); 
     if (jitCtor)
-        n += jitCtor->scriptDataSize(mallocSizeOf); 
+        n += jitCtor->scriptDataSize(usf); 
     return n;
 }
 
 
 size_t
-mjit::JITScript::scriptDataSize(JSMallocSizeOfFun mallocSizeOf)
+mjit::JITScript::scriptDataSize(JSUsableSizeFun usf)
 {
-    size_t computedSize =
+    size_t usable = usf ? usf(this) : 0;
+    return usable ? usable :
         sizeof(JITScript) +
         sizeof(NativeMapEntry) * nNmapPairs +
         sizeof(InlineFrame) * nInlineFrames +
         sizeof(CallSite) * nCallSites +
+        sizeof(JSObject *) * nRootedObjects +
 #if defined JS_MONOIC
         sizeof(ic::GetGlobalNameIC) * nGetGlobalNames +
         sizeof(ic::SetGlobalNameIC) * nSetGlobalNames +
         sizeof(ic::CallICInfo) * nCallICs +
         sizeof(ic::EqualityICInfo) * nEqualityICs +
+        sizeof(ic::TraceICInfo) * nTraceICs +
 #endif
 #if defined JS_POLYIC
         sizeof(ic::PICInfo) * nPICs +
@@ -1333,8 +1185,6 @@ mjit::JITScript::scriptDataSize(JSMallocSizeOfFun mallocSizeOf)
         sizeof(ic::SetElementIC) * nSetElems +
 #endif
         0;
-    
-    return mallocSizeOf ? mallocSizeOf(this, computedSize) : computedSize;
 }
 
 void
@@ -1348,7 +1198,6 @@ mjit::ReleaseScriptCode(JSContext *cx, JSScript *script, bool construct)
     void **parity = construct ? &script->jitArityCheckCtor : &script->jitArityCheckNormal;
 
     if (*pjit) {
-        Probes::discardMJITCode(cx, *pjit, script, (*pjit)->code.m_code.executableAddress());
         (*pjit)->~JITScript();
         cx->free_(*pjit);
         *pjit = NULL;
@@ -1460,6 +1309,25 @@ jsbytecode *
 mjit::NativeToPC(JITScript *jit, void *ncode, mjit::CallSite **pinline)
 {
     return jit->nativeToPC(ncode, pinline);
+}
+
+void
+JITScript::trace(JSTracer *trc)
+{
+    
+
+
+
+
+    InlineFrame *inlineFrames_ = inlineFrames();
+    for (unsigned i = 0; i < nInlineFrames; i++)
+        MarkObject(trc, *inlineFrames_[i].fun, "jitscript_fun");
+
+    for (uint32 i = 0; i < nRootedObjects; ++i)
+        MarkObject(trc, *rootedObjects()[i], "mjit rooted object");
+
+    if (denseArrayShape)
+        MarkShape(trc, denseArrayShape, "mjit rooted shape");
 }
 
  const double mjit::Assembler::oneDouble = 1.0;

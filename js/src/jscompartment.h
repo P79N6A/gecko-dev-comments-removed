@@ -476,7 +476,8 @@ struct JS_FRIEND_API(JSCompartment) {
 
 
 
-    js::EmptyShape               *emptyArgumentsShape;
+    js::EmptyShape               *emptyStrictArgumentsShape;
+    js::EmptyShape               *emptyNormalArgumentsShape;
     js::EmptyShape               *emptyBlockShape;
     js::EmptyShape               *emptyCallShape;
     js::EmptyShape               *emptyDeclEnvShape;

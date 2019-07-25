@@ -1296,6 +1296,21 @@ JSObject::makeDenseArraySlow(JSContext *cx)
                         OBJECT_FLAG_NON_PACKED_ARRAY |
                         OBJECT_FLAG_NON_DENSE_ARRAY);
     markDenseArrayNotPacked(cx);
+    backfillDenseArrayHoles(cx);
+
+    uint32 arrayCapacity = getDenseArrayCapacity();
+    uint32 arrayInitialized = getDenseArrayInitializedLength();
+
+    
+
+
+
+
+    if (denseArrayHasInlineSlots()) {
+        if (!allocSlots(cx, numSlots()))
+            return false;
+        JS_ASSERT(!denseArrayHasInlineSlots());
+    }
 
     
 
@@ -1309,25 +1324,7 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     if (!InitScopeForObject(cx, this, &SlowArrayClass, getProto()->getNewType(cx), kind))
         return false;
 
-    backfillDenseArrayHoles(cx);
-
-    uint32 arrayCapacity = getDenseArrayCapacity();
-    uint32 arrayInitialized = getDenseArrayInitializedLength();
-
-    
-
-
-
-
-    if (denseArrayHasInlineSlots()) {
-        if (!allocSlots(cx, numSlots())) {
-            setMap(oldMap);
-            return false;
-        }
-        JS_ASSERT(!denseArrayHasInlineSlots());
-    }
     capacity = numFixedSlots() + arrayCapacity;
-    clasp = &SlowArrayClass;
 
     
 
@@ -1347,7 +1344,6 @@ JSObject::makeDenseArraySlow(JSContext *cx)
         setMap(oldMap);
         capacity = arrayCapacity;
         initializedLength = arrayInitialized;
-        clasp = &ArrayClass;
         return false;
     }
 
@@ -1370,7 +1366,6 @@ JSObject::makeDenseArraySlow(JSContext *cx)
             setMap(oldMap);
             capacity = arrayCapacity;
             initializedLength = arrayInitialized;
-            clasp = &ArrayClass;
             return false;
         }
 

@@ -1555,9 +1555,17 @@ mjit::Compiler::jsop_setelem(bool popGuaranteed)
     RESERVE_OOL_SPACE(stubcc.masm);
     ic.slowPathStart = stubcc.syncExit(Uses(3));
 
+    if (!denseArrayShape) {
+        denseArrayShape = BaseShape::lookupEmpty(cx, &ArrayClass);
+        if (!denseArrayShape)
+            return false;
+    }
+
     
-    ic.claspGuard = masm.testObjClass(Assembler::NotEqual, ic.objReg, &ArrayClass);
-    stubcc.linkExitDirect(ic.claspGuard, ic.slowPathStart);
+    ic.shapeGuard = masm.branchPtr(Assembler::NotEqual,
+                                   Address(ic.objReg, offsetof(JSObject, lastProp)),
+                                   ImmPtr(denseArrayShape));
+    stubcc.linkExitDirect(ic.shapeGuard, ic.slowPathStart);
 
     
     Jump initlenGuard = masm.guardArrayExtent(offsetof(JSObject, initializedLength),
@@ -2108,9 +2116,17 @@ mjit::Compiler::jsop_getelem(bool isCall)
             stubcc.linkExitDirect(ic.typeGuard.get(), ic.slowPathStart);
         }
 
+        if (!denseArrayShape) {
+            denseArrayShape = BaseShape::lookupEmpty(cx, &ArrayClass);
+            if (!denseArrayShape)
+                return false;
+        }
+
         
-        ic.claspGuard = masm.testObjClass(Assembler::NotEqual, ic.objReg, &ArrayClass);
-        stubcc.linkExitDirect(ic.claspGuard, ic.slowPathStart);
+        ic.shapeGuard = masm.branchPtr(Assembler::NotEqual,
+                                       Address(ic.objReg, offsetof(JSObject, lastProp)),
+                                       ImmPtr(denseArrayShape));
+        stubcc.linkExitDirect(ic.shapeGuard, ic.slowPathStart);
 
         Int32Key key = id->isConstant()
                        ? Int32Key::FromConstant(id->getValue().toInt32())
@@ -2132,8 +2148,8 @@ mjit::Compiler::jsop_getelem(bool isCall)
     } else {
         
         
-        ic.claspGuard = masm.jump();
-        stubcc.linkExitDirect(ic.claspGuard, ic.slowPathStart);
+        ic.shapeGuard = masm.jump();
+        stubcc.linkExitDirect(ic.shapeGuard, ic.slowPathStart);
     }
 
     stubcc.leave();

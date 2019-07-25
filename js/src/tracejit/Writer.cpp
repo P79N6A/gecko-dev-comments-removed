@@ -410,7 +410,8 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
             couldBeObjectOrString(base))
 
       case ACCSET_OBJ_CLASP:
-        ok = OK_OBJ_FIELD(LIR_ldp, clasp);
+        ok = false;
+        
         break;
 
       case ACCSET_OBJ_FLAGS:

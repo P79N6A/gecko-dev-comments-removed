@@ -239,7 +239,7 @@ struct GetElementIC : public BasePolyIC {
     
     
     
-    unsigned inlineClaspGuard : 8;
+    unsigned inlineShapeGuard : 8;
 
     
     
@@ -251,7 +251,7 @@ struct GetElementIC : public BasePolyIC {
     
     
     
-    bool inlineClaspGuardPatched : 1;
+    bool inlineShapeGuardPatched : 1;
 
     
     
@@ -285,18 +285,18 @@ struct GetElementIC : public BasePolyIC {
     bool shouldPatchInlineTypeGuard() {
         return hasInlineTypeGuard() && !inlineTypeGuardPatched;
     }
-    bool shouldPatchUnconditionalClaspGuard() {
+    bool shouldPatchUnconditionalShapeGuard() {
         
         
         if (idRemat.isTypeKnown() && idRemat.knownType() != JSVAL_TYPE_INT32)
-            return !inlineClaspGuardPatched;
+            return !inlineShapeGuardPatched;
         return false;
     }
 
     void reset() {
         BasePolyIC::reset();
         inlineTypeGuardPatched = false;
-        inlineClaspGuardPatched = false;
+        inlineShapeGuardPatched = false;
         typeRegHasBaseShape = false;
         hasLastStringStub = false;
     }
@@ -330,10 +330,10 @@ struct SetElementIC : public BaseIC {
     int32 objRemat       : MIN_STATE_REMAT_BITS;
 
     
-    unsigned inlineClaspGuard : 6;
+    unsigned inlineShapeGuard : 6;
 
     
-    bool inlineClaspGuardPatched : 1;
+    bool inlineShapeGuardPatched : 1;
 
     
     unsigned inlineHoleGuard : 8;
@@ -367,7 +367,7 @@ struct SetElementIC : public BaseIC {
         if (execPool != NULL)
             execPool->release();
         execPool = NULL;
-        inlineClaspGuardPatched = false;
+        inlineShapeGuardPatched = false;
         inlineHoleGuardPatched = false;
     }
     void purge(Repatcher &repatcher);

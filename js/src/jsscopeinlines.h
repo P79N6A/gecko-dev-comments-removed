@@ -324,9 +324,11 @@ EmptyShape::EmptyShape(BaseShape *base)
 }
 
  inline EmptyShape *
-EmptyShape::getEmptyArgumentsShape(JSContext *cx)
+EmptyShape::getEmptyArgumentsShape(JSContext *cx, bool strict)
 {
-    return ensure(cx, &NormalArgumentsObjectClass, &cx->compartment->emptyArgumentsShape);
+    if (strict)
+        return ensure(cx, &StrictArgumentsObjectClass, &cx->compartment->emptyStrictArgumentsShape);
+    return ensure(cx, &NormalArgumentsObjectClass, &cx->compartment->emptyNormalArgumentsShape);
 }
 
  inline EmptyShape *
