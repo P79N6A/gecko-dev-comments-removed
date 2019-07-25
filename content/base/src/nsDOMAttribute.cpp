@@ -165,8 +165,14 @@ nsDOMAttribute::SetMap(nsDOMAttributeMap *aMap)
   if (content) {
     content->RemoveMutationObserver(this);
   }
-  
+
   mAttrMap = aMap;
+
+  
+  content = GetContentInternal();
+  if (content) {
+    content->AddMutationObserver(this);
+  }
 }
 
 nsIContent*
