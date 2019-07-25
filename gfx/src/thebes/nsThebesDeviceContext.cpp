@@ -597,21 +597,7 @@ nsThebesDeviceContext::IsPrinterSurface()
 nsresult
 nsThebesDeviceContext::SetDPI()
 {
-    PRInt32 dpi = -1;
-    PRBool dotsArePixels = PR_TRUE;
-    
-    
-    
-    float prefDevPixelsPerCSSPixel = -1.0;
-
-    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-    if (prefs) {
-        nsXPIDLCString prefString;
-        nsresult rv = prefs->GetCharPref("layout.css.devPixelsPerPx", getter_Copies(prefString));
-        if (NS_SUCCEEDED(rv) && !prefString.IsEmpty()) {
-            prefDevPixelsPerCSSPixel = static_cast<float>(atof(prefString));
-        }
-    }
+    float dpi = -1.0f;
 
     
     
@@ -620,13 +606,13 @@ nsThebesDeviceContext::SetDPI()
             case gfxASurface::SurfaceTypePDF:
             case gfxASurface::SurfaceTypePS:
             case gfxASurface::SurfaceTypeQuartz:
-                dpi = 72;
+                dpi = 72.0f;
                 break;
 #ifdef XP_WIN
             case gfxASurface::SurfaceTypeWin32:
             case gfxASurface::SurfaceTypeWin32Printing: {
                 PRInt32 OSVal = GetDeviceCaps(GetPrintHDC(), LOGPIXELSY);
-                dpi = 144;
+                dpi = 144.0f;
                 mPrintingScale = float(OSVal) / dpi;
                 break;
             }
@@ -642,58 +628,64 @@ nsThebesDeviceContext::SetDPI()
                 NS_NOTREACHED("Unexpected printing surface type");
                 break;
         }
-        dotsArePixels = PR_FALSE;
+
+        mAppUnitsPerDevNotScaledPixel =
+          NS_lround((AppUnitsPerCSSPixel() * 96) / dpi);
     } else {
-        nsresult rv;
+        nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+
         
         
         
         
         PRInt32 prefDPI = -1;
         if (prefs) {
-            rv = prefs->GetIntPref("layout.css.dpi", &prefDPI);
+            nsresult rv = prefs->GetIntPref("layout.css.dpi", &prefDPI);
             if (NS_FAILED(rv)) {
                 prefDPI = -1;
             }
         }
 
-        dpi = gfxPlatform::GetDPI();
-
-#ifdef MOZ_ENABLE_GTK2
-        if (prefDPI < 0) 
-            dpi = PR_MAX(dpi, 96);
-#endif
- 
-        if (prefDPI > 0 && !mPrintingSurface)
+        if (prefDPI > 0) {
             dpi = prefDPI;
-    }
+        } else if (mWidget) {
+            dpi = mWidget->GetDPI();
 
-    NS_ASSERTION(dpi != -1, "no dpi set");
-
-    if (dotsArePixels) {
-        if (prefDevPixelsPerCSSPixel <= 0) {
-            
-            
-            
-            
-            PRUint32 roundedDPIScaleFactor = dpi/96;
-            mAppUnitsPerDevNotScaledPixel =
-                PR_MAX(1, AppUnitsPerCSSPixel() / PR_MAX(1, roundedDPIScaleFactor));
+            if (prefDPI < 0) {
+                dpi = PR_MAX(96.0f, dpi);
+            }
         } else {
-            mAppUnitsPerDevNotScaledPixel =
-                PR_MAX(1, static_cast<PRInt32>(AppUnitsPerCSSPixel() /
-                                               prefDevPixelsPerCSSPixel));
+            dpi = 96.0f;
         }
-    } else {
+
         
+        
+        
+        float devPixelsPerCSSPixel = -1.0;
 
+        if (prefs) {
+            nsXPIDLCString prefString;
+            nsresult rv = prefs->GetCharPref("layout.css.devPixelsPerPx", getter_Copies(prefString));
+            if (NS_SUCCEEDED(rv) && !prefString.IsEmpty()) {
+                devPixelsPerCSSPixel = static_cast<float>(atof(prefString));
+            }
+        }
 
+        if (devPixelsPerCSSPixel <= 0) {
+            if (mWidget) {
+                devPixelsPerCSSPixel = mWidget->GetDefaultScale();
+            } else {
+                devPixelsPerCSSPixel = 1.0;
+            }
+        }
 
-        mAppUnitsPerDevNotScaledPixel = (AppUnitsPerCSSPixel() * 96) / dpi;
+        mAppUnitsPerDevNotScaledPixel =
+            PR_MAX(1, NS_lround(AppUnitsPerCSSPixel() / devPixelsPerCSSPixel));
     }
 
-    mAppUnitsPerInch = NSIntPixelsToAppUnits(dpi, mAppUnitsPerDevNotScaledPixel);
+    NS_ASSERTION(dpi != -1.0, "no dpi set");
 
+    mAppUnitsPerInch = NS_lround(dpi * mAppUnitsPerDevNotScaledPixel);
     UpdateScaledAppUnits();
 
     return NS_OK;
