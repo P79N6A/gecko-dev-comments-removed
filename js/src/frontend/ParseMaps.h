@@ -327,6 +327,20 @@ template <> struct IsPodType<DefinitionList> {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class AtomDecls
 {
     

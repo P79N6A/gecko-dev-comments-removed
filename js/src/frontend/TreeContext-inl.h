@@ -164,6 +164,14 @@ frontend::FinishPopStatement(ContextT *ct)
     }
 }
 
+
+
+
+
+
+
+
+
 template <class ContextT>
 typename ContextT::StmtInfo *
 frontend::LexicalLookup(ContextT *ct, HandleAtom atom, int *slotp, typename ContextT::StmtInfo *stmt)
@@ -171,6 +179,11 @@ frontend::LexicalLookup(ContextT *ct, HandleAtom atom, int *slotp, typename Cont
     if (!stmt)
         stmt = ct->topScopeStmt;
     for (; stmt; stmt = stmt->downScope) {
+        
+
+
+
+
         if (stmt->type == STMT_WITH)
             break;
 

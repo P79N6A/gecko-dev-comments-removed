@@ -117,6 +117,12 @@ class ContextFlags {
     { }
 };
 
+
+
+
+
+
+
 struct SharedContext {
     JSContext       *const context;
 
@@ -201,6 +207,14 @@ struct SharedContext {
 typedef HashSet<JSAtom *> FuncStmtSet;
 struct Parser;
 struct StmtInfoTC;
+
+
+
+
+
+
+
+
 
 struct TreeContext {                
 
