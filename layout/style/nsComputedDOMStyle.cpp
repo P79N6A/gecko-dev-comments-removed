@@ -436,12 +436,12 @@ nsComputedDOMStyle::DocToUpdate()
   return nsnull;
 }
 
-nsresult
-nsComputedDOMStyle::GetCSSParsingEnvironment(nsIURI**, nsIURI**, nsIPrincipal**,
-                                             css::Loader**)
+void
+nsComputedDOMStyle::GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv)
 {
   NS_RUNTIMEABORT("called nsComputedDOMStyle::GetCSSParsingEnvironment");
-  return NS_ERROR_FAILURE;
+  
+  aCSSParseEnv.mPrincipal = nsnull;
 }
 
 NS_IMETHODIMP

@@ -103,19 +103,26 @@ protected:
   
   
   
-  virtual nsresult GetCSSParsingEnvironment(nsIURI** aSheetURI,
-                                            nsIURI** aBaseURI,
-                                            nsIPrincipal** aSheetPrincipal,
-                                            mozilla::css::Loader** aCSSLoader) = 0;
+  
+  
+  
+  
+  struct CSSParsingEnvironment {
+    nsIURI* mSheetURI;
+    nsCOMPtr<nsIURI> mBaseURI;
+    nsIPrincipal* mPrincipal;
+    mozilla::css::Loader* mCSSLoader;
+  };
+  
+  
+  
+  
+  virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv) = 0;
 
   
   
-  static nsresult
-  GetCSSParsingEnvironmentForRule(nsICSSRule* aRule,
-                                  nsIURI** aSheetURI,
-                                  nsIURI** aBaseURI,
-                                  nsIPrincipal** aSheetPrincipal,
-                                  mozilla::css::Loader** aCSSLoader);
+  static void GetCSSParsingEnvironmentForRule(nsICSSRule* aRule,
+                                              CSSParsingEnvironment& aCSSParseEnv);
 
   nsresult ParsePropertyValue(const nsCSSProperty aPropID,
                               const nsAString& aPropValue,

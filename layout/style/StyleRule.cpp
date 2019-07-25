@@ -953,10 +953,7 @@ public:
   void DropReference(void);
   virtual css::Declaration* GetCSSDeclaration(PRBool aAllocate);
   virtual nsresult SetCSSDeclaration(css::Declaration* aDecl);
-  virtual nsresult GetCSSParsingEnvironment(nsIURI** aSheetURI,
-                                            nsIURI** aBaseURI,
-                                            nsIPrincipal** aSheetPrincipal,
-                                            css::Loader** aCSSLoader);
+  virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv);
   virtual nsIDocument* DocToUpdate();
 
   
@@ -1055,19 +1052,10 @@ DOMCSSDeclarationImpl::GetCSSDeclaration(PRBool aAllocate)
   }
 }
 
-
-
-
-
-
-nsresult
-DOMCSSDeclarationImpl::GetCSSParsingEnvironment(nsIURI** aSheetURI,
-                                                nsIURI** aBaseURI,
-                                                nsIPrincipal** aSheetPrincipal,
-                                                css::Loader** aCSSLoader)
+void
+DOMCSSDeclarationImpl::GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv)
 {
-  return GetCSSParsingEnvironmentForRule(mRule, aSheetURI, aBaseURI,
-                                         aSheetPrincipal, aCSSLoader);
+  GetCSSParsingEnvironmentForRule(mRule, aCSSParseEnv);
 }
 
 NS_IMETHODIMP

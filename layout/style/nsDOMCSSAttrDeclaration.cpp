@@ -170,40 +170,22 @@ nsDOMCSSAttributeDeclaration::GetCSSDeclaration(PRBool aAllocate)
   return decl;
 }
 
-
-
-
-
-
-nsresult
-nsDOMCSSAttributeDeclaration::GetCSSParsingEnvironment(nsIURI** aSheetURI,
-                                                       nsIURI** aBaseURI,
-                                                       nsIPrincipal** aSheetPrincipal,
-                                                       mozilla::css::Loader** aCSSLoader)
+void
+nsDOMCSSAttributeDeclaration::GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv)
 {
   NS_ASSERTION(mElement, "Something is severely broken -- there should be an Element here!");
-  
-  *aSheetURI = nsnull;
-  *aBaseURI = nsnull;
-  *aSheetPrincipal = nsnull;
-  *aCSSLoader = nsnull;
 
   nsIDocument* doc = mElement->GetOwnerDoc();
   if (!doc) {
     
-    return NS_ERROR_NOT_AVAILABLE;
+    aCSSParseEnv.mPrincipal = nsnull;
+    return;
   }
 
-  nsCOMPtr<nsIURI> baseURI = mElement->GetBaseURI();
-  nsCOMPtr<nsIURI> sheetURI = doc->GetDocumentURI();
-
-  NS_ADDREF(*aCSSLoader = doc->CSSLoader());
-
-  baseURI.swap(*aBaseURI);
-  sheetURI.swap(*aSheetURI);
-  NS_ADDREF(*aSheetPrincipal = mElement->NodePrincipal());
-
-  return NS_OK;
+  aCSSParseEnv.mSheetURI = doc->GetDocumentURI();
+  aCSSParseEnv.mBaseURI = mElement->GetBaseURI();
+  aCSSParseEnv.mPrincipal = mElement->NodePrincipal();
+  aCSSParseEnv.mCSSLoader = doc->CSSLoader();
 }
 
 NS_IMETHODIMP

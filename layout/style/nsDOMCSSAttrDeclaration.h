@@ -76,10 +76,7 @@ public:
   
   
   virtual mozilla::css::Declaration* GetCSSDeclaration(PRBool aAllocate);
-  virtual nsresult GetCSSParsingEnvironment(nsIURI** aSheetURI,
-                                            nsIURI** aBaseURI,
-                                            nsIPrincipal** aSheetPrincipal,
-                                            mozilla::css::Loader** aCSSLoader);
+  virtual void GetCSSParsingEnvironment(CSSParsingEnvironment& aCSSParseEnv);
   NS_IMETHOD GetParentRule(nsIDOMCSSRule **aParent);
 
   virtual nsINode* GetParentObject();
