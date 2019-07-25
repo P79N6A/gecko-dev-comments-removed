@@ -94,7 +94,7 @@ ImmutableSync::allocReg()
         if (!(Registers::maskReg(reg) & Registers::AvailRegs))
             continue;
 
-        lastResort = 0;
+        lastResort = i;
 
         if (!regs[i]) {
             

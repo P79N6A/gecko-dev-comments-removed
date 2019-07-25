@@ -216,7 +216,7 @@ struct VMFrame
     }
 };
 
-#ifdef JS_CPU_ARM
+#if defined(JS_CPU_ARM) || defined(JS_CPU_SPARC)
 
 extern "C" void JaegerStubVeneer(void);
 #endif

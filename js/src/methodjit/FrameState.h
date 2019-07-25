@@ -278,6 +278,13 @@ class FrameState
     inline void push(Address address, JSValueType knownType, bool reuseBase = false);
 
     
+
+
+
+
+    inline void pushWord(Address address, JSValueType knownType, bool reuseBase = false);
+
+    
     inline void loadIntoRegisters(Address address, bool reuseBase,
                                   RegisterID *ptypeReg, RegisterID *pdataReg);
 

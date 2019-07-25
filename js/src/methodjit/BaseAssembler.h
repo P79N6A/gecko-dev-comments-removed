@@ -183,7 +183,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
 #elif defined(JS_CPU_SPARC)
 static const JSC::MacroAssembler::RegisterID JSReturnReg_Type = JSC::SparcRegisters::l2;
 static const JSC::MacroAssembler::RegisterID JSReturnReg_Data = JSC::SparcRegisters::l3;
-static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegisters::i2;
+static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegisters::l4;
 #endif
 
     size_t distanceOf(Label l) {
@@ -318,6 +318,17 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
 
         moveWithPatch(Imm32(intptr_t(fun)), JSC::ARMRegisters::ip);
 
+        return JS_FUNC_TO_DATA_PTR(void *, JaegerStubVeneer);
+#elif defined(JS_CPU_SPARC)
+        
+
+
+
+
+
+
+
+        moveWithPatch(Imm32(intptr_t(fun)), JSC::SparcRegisters::i0);
         return JS_FUNC_TO_DATA_PTR(void *, JaegerStubVeneer);
 #else
         
