@@ -502,6 +502,14 @@ struct JSObject : js::gc::Cell
 
 
 
+
+    inline void removeLastProperty(JSContext *cx);
+    inline bool canRemoveLastProperty();
+
+    
+
+
+
     bool setSlotSpan(JSContext *cx, uint32 span);
 
     static inline size_t offsetOfShape() { return offsetof(JSObject, shape_); }
@@ -544,7 +552,8 @@ struct JSObject : js::gc::Cell
     };
 
     uint32      flags;                      
-    JSObject    *parent;                    
+
+    uint32 padding;
 
   private:
     js::Value   *slots;                     
@@ -843,7 +852,6 @@ struct JSObject : js::gc::Cell
 
     static inline size_t offsetOfType() { return offsetof(JSObject, type_); }
 
-    inline bool clearType(JSContext *cx);
     inline void setType(js::types::TypeObject *newType);
 
     js::types::TypeObject *getNewType(JSContext *cx, JSFunction *fun = NULL,
@@ -867,8 +875,7 @@ struct JSObject : js::gc::Cell
     }
 
     inline JSObject *getParent() const;
-    inline void clearParent();
-    inline void setParent(JSObject *newParent);
+    bool setParent(JSContext *cx, JSObject *newParent);
 
     JS_FRIEND_API(js::GlobalObject *) getGlobal() const;
 
@@ -888,6 +895,7 @@ struct JSObject : js::gc::Cell
 
     inline JSObject *getParentOrScopeChain() const;
     inline JSObject *getParentMaybeScope() const;
+    inline JSObject *getStaticBlockScopeChain() const;
 
     static const uint32 SCOPE_CHAIN_SLOT = 0;
 
@@ -898,6 +906,10 @@ struct JSObject : js::gc::Cell
 
     
     inline JSPrincipals *principals(JSContext *cx);
+
+    
+    inline bool clearType(JSContext *cx);
+    bool clearParent(JSContext *cx);
 
     
 
@@ -1237,8 +1249,7 @@ struct JSObject : js::gc::Cell
     }
 
     
-    void init(JSContext *cx, js::types::TypeObject *type,
-              JSObject *parent, bool denseArray);
+    void init(JSContext *cx, js::types::TypeObject *type, bool denseArray);
 
     inline void finish(JSContext *cx);
     JS_ALWAYS_INLINE void finalize(JSContext *cx, bool background);
@@ -1250,7 +1261,6 @@ struct JSObject : js::gc::Cell
     inline bool initSharingEmptyShape(JSContext *cx,
                                       js::Class *clasp,
                                       js::types::TypeObject *type,
-                                      JSObject *parent,
                                       void *priv,
                                       js::gc::AllocKind kind);
 
@@ -1434,7 +1444,6 @@ struct JSObject : js::gc::Cell
 
         JS_STATIC_ASSERT(offsetof(JSObject, shape_) == offsetof(js::shadow::Object, shape));
         JS_STATIC_ASSERT(offsetof(JSObject, flags) == offsetof(js::shadow::Object, flags));
-        JS_STATIC_ASSERT(offsetof(JSObject, parent) == offsetof(js::shadow::Object, parent));
         JS_STATIC_ASSERT(offsetof(JSObject, slots) == offsetof(js::shadow::Object, slots));
         JS_STATIC_ASSERT(offsetof(JSObject, type_) == offsetof(js::shadow::Object, type));
         JS_STATIC_ASSERT(sizeof(JSObject) == sizeof(js::shadow::Object));

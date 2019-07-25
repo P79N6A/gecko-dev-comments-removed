@@ -211,6 +211,8 @@ class Bindings {
     inline bool extensibleParents();
     bool setExtensibleParents(JSContext *cx);
 
+    bool setParent(JSContext *cx, JSObject *obj);
+
     enum {
         
 

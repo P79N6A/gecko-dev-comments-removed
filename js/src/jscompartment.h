@@ -477,22 +477,19 @@ struct JS_FRIEND_API(JSCompartment) {
 
 
 
-    js::EmptyShape               *emptyStrictArgumentsShape;
-    js::EmptyShape               *emptyNormalArgumentsShape;
-    js::EmptyShape               *emptyBlockShape;
-    js::EmptyShape               *emptyCallShape;
-    js::EmptyShape               *emptyDeclEnvShape;
-    js::EmptyShape               *emptyEnumeratorShape;
-    js::EmptyShape               *emptyWithShape;
 
-    
+
+
+
+
+
 
 
 
 
     struct BaseShapeEntry {
         js::UnownedBaseShape *base;
-        js::EmptyShape *empty;
+        js::Shape *shape;
 
         typedef const js::BaseShape *Lookup;
 
@@ -528,18 +525,6 @@ struct JS_FRIEND_API(JSCompartment) {
 
     
     inline js::types::TypeObject *getEmptyType(JSContext *cx);
-
-    
-
-
-
-
-
-
-
-
-    const js::Shape              *initialRegExpShape;
-    const js::Shape              *initialStringShape;
 
   private:
     enum { DebugFromC = 1, DebugFromJS = 2 };

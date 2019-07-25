@@ -640,9 +640,6 @@ struct JITScript {
     
     Vector<NativeCallStub, 0, SystemAllocPolicy> nativeCallStubs;
 
-    
-    Shape *denseArrayShape;
-
     NativeMapEntry *nmap() const;
     js::mjit::InlineFrame *inlineFrames() const;
     js::mjit::CallSite *callSites() const;

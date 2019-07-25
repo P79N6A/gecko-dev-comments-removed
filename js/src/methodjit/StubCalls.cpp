@@ -88,7 +88,7 @@ stubs::BindName(VMFrame &f)
     PropertyCacheEntry *entry;
 
     
-    JS_ASSERT(f.fp()->scopeChain().isScope());
+    JS_ASSERT(!f.fp()->scopeChain().isGlobal());
 
     JSAtom *atom;
     JSObject *obj2;

@@ -1338,7 +1338,8 @@ JSObject::makeDenseArraySlow(JSContext *cx)
 
     
     gc::AllocKind kind = getAllocKind();
-    if (!InitScopeForObject(cx, this, &SlowArrayClass, getProto()->getNewType(cx), kind)) {
+    if (!InitScopeForObject(cx, this, &SlowArrayClass, oldShape->getObjectParent(),
+                            getProto()->getNewType(cx), kind)) {
         setLastPropertyInfallible(oldShape);
         return false;
     }
