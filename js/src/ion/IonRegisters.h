@@ -227,6 +227,12 @@ class TypedRegisterSet
         JS_ASSERT(!has(reg));
         addUnchecked(reg);
     }
+    
+    
+    
+    bool someAllocated(const TypedRegisterSet &allocatable) const {
+        return allocatable.bits_ & ~bits_;
+    }
     bool empty() const {
         return !bits_;
     }

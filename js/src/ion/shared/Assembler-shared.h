@@ -260,6 +260,49 @@ class DeferredData : public TempObject
     virtual void copy(IonCode *code, uint8 *buffer) const = 0;
 };
 
+typedef void* VMFun;
+
+struct IonCode;
+
+
+struct VMFunction
+{
+    enum ReturnType {
+        
+        ReturnBool,
+        
+        ReturnPointer,
+        
+        ReturnValue
+    };
+
+    
+    VMFun wrapped;
+
+    
+    uint32 argc;
+
+    bool fallible;
+
+    ReturnType returnType;
+
+    inline uint32 returnSize() const {
+        switch (returnType)
+        {
+          case ReturnBool:
+            return sizeof(bool);
+          case ReturnPointer:
+            return sizeof(void *);
+          case ReturnValue:
+            return sizeof(Value);
+        }
+        JS_NOT_REACHED("unreachable");
+        return 0;
+    }
+};
+
+
+
 } 
 } 
 

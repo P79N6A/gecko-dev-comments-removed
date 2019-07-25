@@ -82,11 +82,21 @@ class IonCompartment
     
     IonCode *argumentsRectifier_;
 
+    
+    VMWrapperMap *functionWrappers_;
+
+    
+    IonCFrame *topCFrame_;
+
+  private:
     IonCode *generateEnterJIT(JSContext *cx);
     IonCode *generateReturnError(JSContext *cx);
     IonCode *generateArgumentsRectifier(JSContext *cx);
     IonCode *generateBailoutTable(JSContext *cx, uint32 frameClass);
     IonCode *generateBailoutHandler(JSContext *cx);
+
+  public:
+    IonCode *generateCWrapper(JSContext *cx, const VMFunction &f);
 
   public:
     bool initialize(JSContext *cx);
@@ -143,6 +153,10 @@ class IonCompartment
 
     IonActivation *activation() const {
         return active_;
+    }
+
+    IonCFrame *topCFrame() const {
+        return topCFrame_;
     }
 };
 

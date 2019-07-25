@@ -105,6 +105,58 @@ CodeGeneratorX86Shared::generateEpilogue()
     return true;
 }
 
+
+
+
+bool
+CodeGeneratorX86Shared::callVM(const VMFunction * f, LSnapshot *snapshot)
+{
+    JS_ASSERT(f);
+    const VMFunction& fun = *f;
+
+    
+    
+    
+
+    
+    IonCompartment *ion = gen->cx->compartment->ionCompartment();
+    IonCode *wrapper = ion->generateCWrapper(gen->cx, fun);
+    if (!wrapper)
+        return false;
+
+    if (!encode(snapshot))
+        return false;
+
+
+    
+    uint32 frame_size = masm.framePushed();
+
+    masm.push(Imm32(snapshot->snapshotOffset()));
+    masm.push(Imm32(frame_size));
+
+    
+    
+    
+    
+    
+
+    
+    
+    masm.call(wrapper);
+
+    
+    
+
+    
+    
+    
+    if (!bailoutIf(Assembler::Equal, snapshot))
+        return false;
+
+    return true;
+}
+
+
 bool
 OutOfLineBailout::accept(CodeGeneratorX86Shared *codegen)
 {

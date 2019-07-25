@@ -377,3 +377,146 @@ IonCompartment::generateBailoutHandler(JSContext *cx)
     return linker.newCode(cx);
 }
 
+IonCode *
+IonCompartment::generateCWrapper(JSContext *cx, const VMFunction& f)
+{
+    typedef MoveResolver::MoveOperand MoveOperand;
+
+    JS_ASSERT(functionWrappers_);
+    JS_ASSERT(functionWrappers_->initialized());
+    VMWrapperMap::AddPtr p = functionWrappers_->lookupForAdd(&f);
+    if (p)
+        return p->value;
+
+    
+    MacroAssembler masm;
+    Register cframe, tmp, args, cxarg;
+
+    
+    
+    const GeneralRegisterSet allocatableRegs(Registers::VolatileMask & ~Registers::ArgRegMask);
+    GeneralRegisterSet regs(allocatableRegs);
+
+    
+    
+    
+    
+    
+    
+
+    
+    masm.subPtr(Imm32(offsetof(IonCFrame, returnAddress)), StackPointer);
+
+    
+    cframe = StackPointer;
+
+    
+    tmp = regs.takeAny();
+    masm.mov(Operand(cframe, offsetof(IonCFrame, frameSize)), tmp);
+
+    
+    masm.lea(Operand(cframe, tmp, TimesOne, sizeof(IonCFrame) + f.argc * sizeof(void *)), tmp);
+    masm.mov(tmp, Operand(cframe, offsetof(IonCFrame, topFrame)));
+
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    masm.movePtr(ImmWord(this), tmp);
+    masm.mov(cframe, Operand(tmp, offsetof(IonCompartment, topCFrame_)));
+
+    
+    if (f.argc)
+    {
+        args = regs.takeAny();
+        masm.lea(Operand(cframe, sizeof(IonCFrame)), args);
+    }
+
+    
+    masm.setupUnalignedABICall(f.argc + 1, tmp, f.returnSize());
+
+    bool largeResult = f.returnSize() > sizeof(void *);
+    if (!GetArgReg(largeResult ? 1 : 0, &cxarg))
+        cxarg = regs.getAny();
+
+    masm.movePtr(ImmWord(cx), cxarg);
+    masm.setABIArg(0, MoveOperand(cxarg));
+
+    if (f.argc)
+    {
+        for (uint32 i = 0; i < f.argc; i++)
+            masm.setABIArg(i + 1, MoveOperand(args, i * sizeof(void *)));
+        regs.add(args);
+    }
+
+    regs.add(tmp);
+
+    
+    JS_ASSERT(!regs.someAllocated(allocatableRegs));
+    masm.callWithABI(f.wrapped);
+
+    
+    if (largeResult)
+    {
+        JS_ASSERT(f.returnType == VMFunction::ReturnValue);
+        masm.loadValue(Operand(ReturnReg, 0), JSCReturnOperand);
+    }
+
+    masm.finalizeABICall();
+
+    
+    
+    
+
+    
+    regs = GeneralRegisterSet(Registers::VolatileMask & ~Registers::JSCCallMask);
+    tmp = regs.takeAny();
+
+    
+    masm.mov(Operand(StackPointer, offsetof(IonCFrame, returnAddress)), tmp);
+
+    
+    masm.addPtr(Imm32(sizeof(IonCFrame) + f.argc * sizeof(void *)), StackPointer);
+
+    
+    masm.push(tmp);
+    
+
+    
+    
+    
+    switch (f.returnType)
+    {
+      case VMFunction::ReturnBool:
+      case VMFunction::ReturnPointer:
+        masm.testPtr(ReturnReg, ReturnReg);
+        break;
+      case VMFunction::ReturnValue:
+        {
+            DebugOnly<Assembler::Condition> c =
+                masm.testError(Assembler::Equal, JSCReturnOperand);
+            JS_ASSERT(c == Assembler::Equal);
+        }
+        break;
+    }
+
+    masm.ret();
+
+    Linker linker(masm);
+    IonCode *wrapper = linker.newCode(cx);
+    if (!wrapper)
+        return NULL;
+
+    if(!functionWrappers_->add(p, &f, wrapper))
+        return NULL;
+
+    return wrapper;
+}
