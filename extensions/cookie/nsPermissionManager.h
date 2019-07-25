@@ -250,17 +250,6 @@ private:
 
   
   nsTArray<nsCString>          mTypeArray;
-
-  
-  
-  
-  PRBool                       mUpdateChildProcess;
-
-public:
-  void ChildRequestPermissions()
-  {
-    mUpdateChildProcess = PR_TRUE;
-  }
 };
 
 

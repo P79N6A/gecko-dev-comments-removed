@@ -109,6 +109,8 @@ pref("dom.enable_performance", true);
 
 pref("browser.sessionhistory.max_total_viewers", -1);
 
+pref("browser.sessionhistory.optimize_eviction", true);
+
 pref("ui.use_native_colors", true);
 pref("ui.click_hold_context_menus", false);
 pref("browser.display.use_document_fonts",  1);  
@@ -1354,6 +1356,20 @@ pref("layout.selection.caret_style", 0);
 
 
 
+
+
+
+
+
+
+
+
+pref("layout.selection.drag.autoscroll.edge_width", 32);
+pref("layout.selection.drag.autoscroll.edge_scroll_amount", 8);
+
+
+
+
 pref("layout.enable_japanese_specific_transform", false);
 
 
@@ -1455,16 +1471,11 @@ pref("dom.max_script_run_time", 10);
 pref("dom.ipc.plugins.timeoutSecs", 45);
 
 
-
-pref("dom.ipc.plugins.parentTimeoutSecs", 15);
-
-
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
 #else
 
 pref("dom.ipc.plugins.timeoutSecs", 0);
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 0);
-pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 #endif
 
 
@@ -1481,6 +1492,8 @@ pref("dom.ipc.plugins.enabled.602plugin.so", false);
 #endif
 #endif
 #endif
+
+pref("dom.ipc.processCount", 1);
 
 pref("svg.smil.enabled", true);
 
@@ -3328,6 +3341,3 @@ pref("network.buffer.cache.size",  32768);
 
 
 pref("notification.feature.enabled", false);
-
-
-pref("layout.3d-transforms.enabled, false);
