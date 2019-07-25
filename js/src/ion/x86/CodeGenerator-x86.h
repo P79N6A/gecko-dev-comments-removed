@@ -77,6 +77,10 @@ class CodeGeneratorX86 : public CodeGeneratorX86Shared
   protected:
     ValueOperand ToValue(LInstruction *ins, size_t pos);
 
+    
+    Register splitTagForTest(const ValueOperand &value);
+    Assembler::Condition testStringTruthy(bool truthy, const ValueOperand &value);
+
   protected:
     void linkAbsoluteLabels();
 
