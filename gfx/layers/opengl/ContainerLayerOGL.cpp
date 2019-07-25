@@ -169,9 +169,8 @@ ContainerLayerOGL::RenderLayer(int aPreviousFrameBuffer,
     childOffset.x = visibleRect.x;
     childOffset.y = visibleRect.y;
 
-    
-    
-    
+    gl()->PushViewportRect();
+    mOGLManager->SetupPipeline(visibleRect.width, visibleRect.height);
 
     gl()->fScissor(0, 0, visibleRect.width, visibleRect.height);
     gl()->fClearColor(0.0, 0.0, 0.0, 0.0);
@@ -214,6 +213,12 @@ ContainerLayerOGL::RenderLayer(int aPreviousFrameBuffer,
 
   if (needsFramebuffer) {
     
+    
+    
+    gl()->PopViewportRect();
+    nsIntRect viewport = gl()->ViewportRect();
+    mOGLManager->SetupPipeline(viewport.width, viewport.height);
+
     gl()->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, aPreviousFrameBuffer);
     gl()->fDeleteFramebuffers(1, &frameBuffer);
 

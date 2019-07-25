@@ -314,12 +314,18 @@ public:
   }
 
 #ifdef MOZ_LAYERS_HAVE_LOG
-   virtual const char* Name() const { return "OGL"; }
+  virtual const char* Name() const { return "OGL"; }
 #endif 
 
-   const nsIntSize& GetWigetSize() {
-     return mWidgetSize;
-   }
+  const nsIntSize& GetWigetSize() {
+    return mWidgetSize;
+  }
+  
+  
+
+
+
+  void SetupPipeline(int aWidth, int aHeight);
 
 private:
   
@@ -382,15 +388,12 @@ private:
 
 
   void Render();
-  
 
-
-
-  void SetupPipeline(int aWidth, int aHeight);
   
 
 
   void SetupBackBuffer(int aWidth, int aHeight);
+
   
 
 

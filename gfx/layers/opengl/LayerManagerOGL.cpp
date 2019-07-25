@@ -677,19 +677,6 @@ LayerManagerOGL::SetupPipeline(int aWidth, int aHeight)
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   mGLContext->fViewport(0, 0, aWidth, aHeight);
 
   
