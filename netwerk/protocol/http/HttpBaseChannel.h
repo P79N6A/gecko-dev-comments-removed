@@ -203,6 +203,12 @@ protected:
                                            bool forProxy);
 
   
+
+
+
+  virtual bool UsingPrivateBrowsing();
+
+  
   template <class T>
   void GetCallback(nsCOMPtr<T> &aResult)
   {

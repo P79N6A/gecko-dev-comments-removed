@@ -142,6 +142,13 @@ public:
 
     OfflineCacheEntryAsForeignMarker* GetOfflineCacheEntryAsForeignMarker();
 
+    
+
+
+
+    virtual bool UsingPrivateBrowsing();
+    void OverridePrivateBrowsing(bool usingPrivateBrowsing);
+
 private:
     typedef nsresult (nsHttpChannel::*nsContinueRedirectionFunc)(nsresult result);
 
@@ -331,6 +338,12 @@ private:
     
     
     PRUint32                          mRequestTimeInitialized : 1;
+
+    
+    
+    
+    PRUint32                          mOverridePrivateBrowsing : 1;
+    PRUint32                          mUsingPrivateBrowsing : 1;
 
     nsTArray<nsContinueRedirectionFunc> mRedirectFuncStack;
 
