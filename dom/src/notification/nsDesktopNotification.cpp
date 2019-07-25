@@ -36,6 +36,17 @@
 
 #include "nsDesktopNotification.h"
 
+#ifdef MOZ_IPC
+#include "nsContentPermissionHelper.h"
+#include "nsXULAppAPI.h"
+
+#include "mozilla/dom/PBrowserChild.h"
+#include "TabChild.h"
+
+using namespace mozilla::dom;
+#endif
+
+
 class nsDesktopNotification;
 
 
@@ -171,14 +182,45 @@ nsDOMDesktopNotification::HandleAlertServiceNotification(const char *aTopic)
 NS_IMETHODIMP
 nsDOMDesktopNotification::Show()
 {
-  nsCOMPtr<nsIRunnable> request;
+  
+  
   if (nsContentUtils::GetBoolPref("notification.prompt.testing", PR_FALSE) &&
       nsContentUtils::GetBoolPref("notification.prompt.testing.allow", PR_TRUE)) {
-    request  = new NotificationRequestAllowEvent(this);
-  } else {
-    request = new nsDesktopNotificationRequest(this);
+    nsCOMPtr<nsIRunnable> request = new NotificationRequestAllowEvent(this);
+    NS_DispatchToMainThread(request);
+    return NS_OK;
   }
 
+  
+  nsRefPtr<nsDesktopNotificationRequest> request = new nsDesktopNotificationRequest(this);
+
+  
+#ifdef MOZ_IPC
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+
+    
+    
+    
+    if (!mOwner)
+      return NS_OK;
+
+    
+    
+    TabChild* child = GetTabChildFrom(mOwner->GetDocShell());
+    
+    
+    
+    request->AddRef();
+
+    nsCString type = NS_LITERAL_CSTRING("desktop-notification");
+    child->SendPContentPermissionRequestConstructor(request, type, IPC::URI(mURI));
+    
+    request->Sendprompt();
+    return NS_OK;
+  }
+#endif
+
+  
   NS_DispatchToMainThread(request);
   return NS_OK;
 }
