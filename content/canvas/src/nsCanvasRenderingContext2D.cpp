@@ -1132,6 +1132,18 @@ nsCanvasRenderingContext2D::Swap(mozilla::ipc::Shmem &aBack,
     memcpy(mBackBuffer.get<unsigned char>(), mFrontBuffer.get<unsigned char>(),
            mWidth * mHeight * 4);
 
+    
+    nsCOMPtr<nsIContent> content = do_QueryInterface(mCanvasElement);
+    nsIDocument* ownerDoc = nsnull;
+    if (content)
+	ownerDoc = content->GetOwnerDoc();
+
+    if (ownerDoc && mCanvasElement) {
+	nsContentUtils::DispatchTrustedEvent(ownerDoc, mCanvasElement, 
+					     NS_LITERAL_STRING("MozAsyncCanvasRender"),
+					      PR_TRUE,  PR_TRUE);
+    }
+
     return NS_OK;
 #endif
 }
