@@ -480,10 +480,8 @@ DependsOnIntrinsicSize(const nsIFrame* aEmbeddingFrame)
   
   
   
-  return (width.GetUnit() != eStyleUnit_Coord &&
-          (!width.IsCalcUnit() || width.CalcHasPercent())) ||
-         (height.GetUnit() != eStyleUnit_Coord &&
-          (!height.IsCalcUnit() || height.CalcHasPercent()));
+  return !width.ConvertsToLength() ||
+         !height.ConvertsToLength();
 }
 
 NS_IMETHODIMP
