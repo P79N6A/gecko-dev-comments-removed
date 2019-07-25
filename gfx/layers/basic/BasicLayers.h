@@ -28,6 +28,7 @@ class ShadowCanvasLayer;
 class ShadowColorLayer;
 class ReadbackProcessor;
 class ImageFactory;
+class PaintContext;
 
 
 
@@ -158,6 +159,15 @@ protected:
     PHASE_NONE, PHASE_CONSTRUCTION, PHASE_DRAWING, PHASE_FORWARD
   };
   TransactionPhase mPhase;
+
+  
+  
+  
+  void PaintSelfOrChildren(PaintContext& aPaintContext, gfxContext* aGroupTarget);
+
+  
+  
+  void FlushGroup(PaintContext& aPaintContext, bool aNeedsClipToVisibleRegion);
 
   
   void PaintLayer(gfxContext* aTarget,
