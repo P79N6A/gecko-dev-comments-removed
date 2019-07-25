@@ -60,11 +60,11 @@ Storage = {
       var alreadyReady = Utils.getCurrentWindow().__SSi;
       if (alreadyReady) {
         callback();
-      } else {    
+      } else {
         var obsService =
           Components.classes["@mozilla.org/observer-service;1"]
           .getService(Components.interfaces.nsIObserverService);
-        var observer = {      
+        var observer = {
           observe: function(subject, topic, data) {
             try {
               if (topic == "browser-delayed-startup-finished") {
@@ -77,13 +77,13 @@ Storage = {
             }
           }
         };
-          
+
         obsService.addObserver(
           observer, "browser-delayed-startup-finished", false);
       }
     } catch(e) {
       Utils.log(e);
-    }  
+    }
   },
 
   
@@ -101,26 +101,26 @@ Storage = {
   wipe: function() {
     try {
       var win = Utils.getCurrentWindow();
-      
+
       var self = this;
-      
+
       
       Tabs.forEach(function(tab) {
         self.saveTab(tab.raw, null);
       });
-      
+
       
       this.saveGroupsData(win, {});
       this.saveUIData(win, {});
       this.saveVisibilityData(win, {});
-      
+
       this._sessionStore.setWindowValue(win, this.GROUP_DATA_IDENTIFIER,
         JSON.stringify({}));
     } catch (e) {
       Utils.log("Error in wipe: "+e);
     }
   },
-  
+
   
   
   
@@ -148,7 +148,7 @@ Storage = {
       
       Utils.log(e);
     }
-    
+
 
     return existingData;
   },
@@ -204,7 +204,7 @@ Storage = {
   readGroupsData: function(win) {
     return this.readData(win, this.GROUPS_DATA_IDENTIFIER);
   },
-  
+
   
   
   
@@ -232,7 +232,7 @@ Storage = {
   readVisibilityData: function(win) {
     return this.readData(win, this.VISIBILITY_DATA_IDENTIFIER);
   },
-    
+
   
   
   
@@ -242,7 +242,7 @@ Storage = {
     } catch (e) {
       Utils.log("Error in saveData: "+e);
     }
-    
+
 
   },
 
@@ -258,7 +258,7 @@ Storage = {
     } catch (e) {
       Utils.log("Error in readData: "+e);
     }
-    
+
 
     return existingData;
   }

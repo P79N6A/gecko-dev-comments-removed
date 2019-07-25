@@ -63,7 +63,7 @@ var Drag = function(item, event, isResizing) {
   try {
     Utils.assert('must be an item, or at least a faux item',
                  item && (item.isAnItem || item.isAFauxItem));
-    
+
     this.isResizing = isResizing || false;
     this.item = item;
     this.el = item.container;
@@ -71,17 +71,17 @@ var Drag = function(item, event, isResizing) {
     this.parent = this.item.parent;
     this.startPosition = new Point(event.clientX, event.clientY);
     this.startTime = Utils.getMilliseconds();
-    
+
     this.item.isDragging = true;
     this.item.setZ(999999);
-    
+
     if (this.item.isATabItem && !isResizing)
       this.safeWindowBounds = Items.getSafeWindowBounds( true );
     else
       this.safeWindowBounds = Items.getSafeWindowBounds( );
 
     Trenches.activateOthersTrenches(this.el);
-    
+
     
     if (this.item.isAGroup) {
       var tab = Page.getActiveTab();
@@ -121,7 +121,7 @@ Drag.prototype = {
     if ( 
          !Keys.meta
          
-         && !(this.item.isATabItem && this.item.overlapsWithOtherItems()) ) { 
+         && !(this.item.isATabItem && this.item.overlapsWithOtherItems()) ) {
       newRect = Trenches.snap(bounds,stationaryCorner,assumeConstantSize,keepProportional);
       if (newRect) { 
         update = true;
@@ -151,7 +151,7 @@ Drag.prototype = {
 
     return update ? bounds : false;
   },
-  
+
   
   
   
@@ -173,7 +173,7 @@ Drag.prototype = {
     }
     return false;
   },
-  
+
   
   
   
@@ -188,7 +188,7 @@ Drag.prototype = {
   
   
   snapToEdge: function Drag_snapToEdge(rect, stationaryCorner, assumeConstantSize, keepProportional) {
-  
+
     var swb = this.safeWindowBounds;
     var update = false;
     var updateX = false;
@@ -204,7 +204,7 @@ Drag.prototype = {
       updateX = true;
       snappedTrenches.left = 'edge';
     }
-    
+
     if (rect.right > swb.right - snapRadius) {
       if (updateX || !assumeConstantSize) {
         var newWidth = swb.right - rect.left;
@@ -241,20 +241,20 @@ Drag.prototype = {
       snappedTrenches.top = 'edge';
       delete snappedTrenches.bottom;
     }
-    
+
     if (update) {
       rect.snappedTrenches = snappedTrenches;
       return rect;
     }
     return false;
   },
-  
+
   
   
   
   drag: function(event, ui) {
     this.snap('topleft',true);
-      
+
     if (this.parent && this.parent.expanded) {
       var now = Utils.getMilliseconds();
       var distance = this.startPosition.distance(new Point(event.clientX, event.clientY));
@@ -272,21 +272,21 @@ Drag.prototype = {
     Trenches.hideGuides();
     this.item.isDragging = false;
 
-    if (this.parent && !this.parent.locked.close && this.parent != this.item.parent 
+    if (this.parent && !this.parent.locked.close && this.parent != this.item.parent
         && this.parent.isEmpty()) {
       this.parent.close();
     }
-     
+
     if (this.parent && this.parent.expanded)
       this.parent.arrange();
-      
+
     if (this.item && !this.item.parent) {
       this.item.setZ(drag.zIndex);
       drag.zIndex++;
-      
+
       this.item.pushAway();
     }
-    
+
     Trenches.disactivate();
   }
 };

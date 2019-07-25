@@ -97,13 +97,13 @@ window.Group = function Group(listOfEls, options) {
   this.expanded = null;
   this.locked = (options.locked ? Utils.copy(options.locked) : {});
   this.topChild = null;
-  
+
   this.keepProportional = false;
-  
+
   
   
   this._activeTab = null;
-  
+
    
    
    
@@ -112,8 +112,8 @@ window.Group = function Group(listOfEls, options) {
   this.xDensity = 0;
   this.yDensity = 0;
 
-  
-  if (isPoint(options.userSize))  
+
+  if (isPoint(options.userSize))
     this.userSize = new Point(options.userSize);
 
   var self = this;
@@ -123,44 +123,44 @@ window.Group = function Group(listOfEls, options) {
     Utils.assert("options.bounds must be a Rect",isRect(options.bounds));
     rectToBe = new Rect(options.bounds);
   }
-    
+
   if (!rectToBe) {
     rectToBe = Groups.getBoundingBox(listOfEls);
     rectToBe.inset( -30, -30 );
   }
 
-  var $container = options.container; 
+  var $container = options.container;
   if (!$container) {
     $container = iQ('<div>')
       .addClass('group')
       .css({position: 'absolute'})
       .css(rectToBe);
-    
+
     if ( this.isNewTabsGroup() ) $container.addClass("newTabGroup");
   }
-  
+
   this.bounds = $container.bounds();
-  
+
   this.isDragging = false;
   $container
     .css({zIndex: -100})
     .appendTo("body");
 
-        
+
   
   this.$ntb = iQ("<div>")
     .appendTo($container);
-    
-  this.$ntb    
+
+  this.$ntb
     .addClass(this.isNewTabsGroup() ? 'newTabButtonAlt' : 'newTabButton')
     .click(function(){
       self.newTab();
     });
-    
+
   this.$ntb.get(0).title = 'New tab';
-  
+
   if ( this.isNewTabsGroup() ) this.$ntb.html("<span>+</span>");
-    
+
   
   this.$resizer = iQ("<div>")
     .addClass('resizer')
@@ -175,31 +175,31 @@ window.Group = function Group(listOfEls, options) {
   
   var html =
     "<div class='title-container'>" +
-      "<input class='name' value='" + (options.title || "") + "'/>" + 
-      "<div class='title-shield' />" + 
+      "<input class='name' value='" + (options.title || "") + "'/>" +
+      "<div class='title-shield' />" +
     "</div>";
-       
+
   this.$titlebar = iQ('<div>')
     .addClass('titlebar')
-    .html(html)        
+    .html(html)
     .appendTo($container);
-    
+
   this.$titlebar.css({
       position: "absolute",
     });
-  
+
   var $close = iQ('<div>')
     .addClass('close')
     .click(function() {
       self.closeAll();
     })
     .appendTo($container);
-  
+
   
   this.$titleContainer = iQ('.title-container', this.$titlebar);
   this.$title = iQ('.name', this.$titlebar);
   this.$titleShield = iQ('.title-shield', this.$titlebar);
-  
+
   var titleUnfocus = function() {
     self.$titleShield.show();
     if (!self.getTitle()) {
@@ -217,7 +217,7 @@ window.Group = function Group(listOfEls, options) {
         });
     }
   };
-  
+
   var handleKeyPress = function(e){
     if ( e.which == 13 ) { 
       self.$title.get(0).blur();
@@ -226,12 +226,12 @@ window.Group = function Group(listOfEls, options) {
         .one("mouseout", function(){
           self.$title.removeClass("transparentBorder");
         });
-    } else 
+    } else
       self.adjustTitleSize();
-      
+
     self.save();
   };
-  
+
   this.$title
     .css({backgroundRepeat: 'no-repeat'})
     .blur(titleUnfocus)
@@ -239,7 +239,7 @@ window.Group = function Group(listOfEls, options) {
       if (self.locked.title) {
         self.$title.get(0).blur();
         return;
-      }  
+      }
       self.$title.get(0).select();
       if (!self.getTitle()) {
         self.$title
@@ -248,9 +248,9 @@ window.Group = function Group(listOfEls, options) {
       }
     })
     .keyup(handleKeyPress);
-  
+
   titleUnfocus();
-  
+
   if (this.locked.title)
     this.$title.addClass('name-locked');
   else {
@@ -258,19 +258,19 @@ window.Group = function Group(listOfEls, options) {
       .mousedown(function(e) {
         self.lastMouseDownTarget = (Utils.isRightClick(e) ? null : e.target);
       })
-      .mouseup(function(e) { 
+      .mouseup(function(e) {
         var same = (e.target == self.lastMouseDownTarget);
         self.lastMouseDownTarget = null;
         if (!same)
           return;
-        
-        if (!self.isDragging) {        
+
+        if (!self.isDragging) {
           self.$titleShield.hide();
           self.$title.get(0).focus();
         }
       });
   }
-    
+
   
   
   this.$content = iQ('<div>')
@@ -281,38 +281,38 @@ window.Group = function Group(listOfEls, options) {
       position: 'absolute'
     })
     .appendTo($container);
-    
+
   
   this.$expander = iQ("<img/>")
     .attr('src', 'chrome://browser/skin/tabcandy/stack-expander.png')
     .addClass("stackExpander")
     .appendTo($container)
-    .hide(); 
-  
+    .hide();
+
   
   if (this.locked.bounds)
-    $container.css({cursor: 'default'});    
-    
+    $container.css({cursor: 'default'});
+
   if (this.locked.close)
     $close.hide();
-    
+
   
   this._init($container.get(0));
 
-  if (this.$debug) 
+  if (this.$debug)
     this.$debug.css({zIndex: -1000});
+
   
-  
-  Array.prototype.forEach.call(listOfEls, function(el) {  
+  Array.prototype.forEach.call(listOfEls, function(el) {
     self.add(el, null, options);
   });
 
   
   this._addHandlers($container);
-  
+
   if (!this.locked.bounds)
     this.setResizable(true);
-  
+
   Groups.register(this);
 
   
@@ -320,10 +320,10 @@ window.Group = function Group(listOfEls, options) {
   this.snap();
   if ($container)
     this.setBounds(rectToBe);
-  
+
   
   if (!options.dontPush)
-    this.pushAway();   
+    this.pushAway();
 
   this._inited = true;
   this.save();
@@ -343,15 +343,15 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   addOnClose: function(referenceObject, callback) {
-    this.addSubscriber(referenceObject, "close", callback);      
+    this.addSubscriber(referenceObject, "close", callback);
   },
 
   
   
   removeOnClose: function(referenceObject) {
-    this.removeSubscriber(referenceObject, "close");      
+    this.removeSubscriber(referenceObject, "close");
   },
-  
+
   
   
   
@@ -366,22 +366,22 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   getActiveTab: function(){
     return this._activeTab;
   },
-  
+
   
   
   
   getStorageData: function() {
     var data = {
-      bounds: this.getBounds(), 
+      bounds: this.getBounds(),
       userSize: null,
-      locked: Utils.copy(this.locked), 
+      locked: Utils.copy(this.locked),
       title: this.getTitle(),
       id: this.id
     };
-    
-    if (isPoint(this.userSize))  
+
+    if (isPoint(this.userSize))
       data.userSize = new Point(this.userSize);
-  
+
     return data;
   },
 
@@ -403,7 +403,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     if (Groups.groupStorageSanity(data))
       Storage.saveGroup(Utils.getCurrentWindow(), data);
   },
-  
+
   
   
   
@@ -411,7 +411,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   isNewTabsGroup: function() {
     return (this.locked.bounds && this.locked.title && this.locked.close);
   },
-  
+
   
   
   
@@ -424,7 +424,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   setTitle: function(value) {
-    this.$title.val(value); 
+    this.$title.val(value);
     this.save();
   },
 
@@ -438,7 +438,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     this.$title.css(css);
     this.$titleShield.css(css);
   },
-  
+
   
   
   
@@ -448,15 +448,15 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     box.top += titleHeight;
     box.height -= titleHeight;
     box.inset(6, 6);
-    
+
     if (this.isNewTabsGroup())
       box.height -= 12; 
     else
       box.height -= 33; 
-      
+
     return box;
   },
-  
+
   
   
   
@@ -473,15 +473,15 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       Utils.trace('Group.setBounds: rect is not a real rectangle!', rect);
       return;
     }
-    
+
     if (!options)
       options = {};
-    
+
     rect.width = Math.max( 110, rect.width );
     rect.height = Math.max( 125, rect.height);
-    
+
     var titleHeight = this.$titlebar.height();
-    
+
     
     var css = {};
     var titlebarCSS = {};
@@ -489,10 +489,10 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
 
     if (rect.left != this.bounds.left || options.force)
       css.left = rect.left;
-      
+
     if (rect.top != this.bounds.top || options.force)
       css.top = rect.top;
-      
+
     if (rect.width != this.bounds.width || options.force) {
       css.width = rect.width;
       titlebarCSS.width = rect.width;
@@ -503,10 +503,10 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       css.height = rect.height;
       contentCSS.height = rect.height - titleHeight;
     }
-      
+
     if (iQ.isEmptyObject(css))
       return;
-      
+
     var offset = new Point(rect.left - this.bounds.left, rect.top - this.bounds.top);
     this.bounds = new Rect(rect);
 
@@ -528,22 +528,22 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     } else {
       TabMirror.pausePainting();
       iQ(this.container).animate(css, {
-        duration: 350, 
-        easing: 'tabcandyBounce', 
+        duration: 350,
+        easing: 'tabcandyBounce',
         complete: function() {
           TabMirror.resumePainting();
         }
       });
-      
+
       this.$titlebar.animate(titlebarCSS, {
         duration: 350
       });
-      
+
       this.$content.animate(contentCSS, {
         duration: 350
       });
     }
-    
+
     this.adjustTitleSize();
 
     this._updateDebugBounds();
@@ -553,7 +553,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
 
     this.save();
   },
-    
+
   
   
   
@@ -562,7 +562,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
 
     iQ(this.container).css({zIndex: value});
 
-    if (this.$debug) 
+    if (this.$debug)
       this.$debug.css({zIndex: value + 1});
 
     var count = this._children.length;
@@ -580,7 +580,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       });
     }
   },
-    
+
   
   
   
@@ -596,7 +596,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
 
     Storage.deleteGroup(Utils.getCurrentWindow(), this.id);
   },
-  
+
   
   
   
@@ -608,12 +608,12 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
         child.removeOnClose(self);
         child.close();
       });
-    } 
-    
+    }
+
     if (!this.locked.close)
       this.close();
   },
-    
+
   
   
   
@@ -629,97 +629,97 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       var $el;
       if (a.isAnItem) {
         item = a;
-        $el = iQ(a.container);  
+        $el = iQ(a.container);
       } else {
         $el = iQ(a);
         item = Items.item($el);
       }
-      
+
       Utils.assertThrow('shouldn\'t already be in another group', !item.parent || item.parent == this);
 
       item.removeTrenches();
-        
-      if (!dropPos) 
+
+      if (!dropPos)
         dropPos = {top:window.innerWidth, left:window.innerHeight};
-        
+
       if (typeof(options) == 'undefined')
         options = {};
-        
+
       var self = this;
-      
+
       var wasAlreadyInThisGroup = false;
       var oldIndex = this._children.indexOf(item);
       if (oldIndex != -1) {
-        this._children.splice(oldIndex, 1); 
+        this._children.splice(oldIndex, 1);
         wasAlreadyInThisGroup = true;
       }
-  
+
       
       
       function findInsertionPoint(dropPos){
         if (self.shouldStack(self._children.length + 1))
           return 0;
-          
+
         var best = {dist: Infinity, item: null};
         var index = 0;
         var box;
-        self._children.forEach(function(child) {        
+        self._children.forEach(function(child) {
           box = child.getBounds();
           if (box.bottom < dropPos.top || box.top > dropPos.top)
             return;
-          
-          var dist = Math.sqrt( Math.pow((box.top+box.height/2)-dropPos.top,2) 
+
+          var dist = Math.sqrt( Math.pow((box.top+box.height/2)-dropPos.top,2)
               + Math.pow((box.left+box.width/2)-dropPos.left,2) );
-              
+
           if ( dist <= best.dist ){
             best.item = child;
             best.dist = dist;
             best.index = index;
           }
         });
-  
+
         if ( self._children.length ){
           if (best.item) {
             box = best.item.getBounds();
             var insertLeft = dropPos.left <= box.left + box.width/2;
-            if ( !insertLeft ) 
+            if ( !insertLeft )
               return best.index+1;
             return best.index;
           }
           return self._children.length;
         }
-        
-        return 0;      
+
+        return 0;
       }
-      
+
       
       var index = findInsertionPoint(dropPos);
       this._children.splice( index, 0, item );
-  
+
       item.setZ(this.getZ() + 1);
       $el.addClass("tabInGroup");
       if ( this.isNewTabsGroup() ) $el.addClass("inNewTabGroup")
-      
+
       if (!wasAlreadyInThisGroup) {
         item.droppable(false);
         item.groupData = {};
-    
+
         item.addOnClose(this, function() {
           self.remove($el);
         });
-        
+
         item.setParent(this);
-        
+
         if (typeof(item.setResizable) == 'function')
           item.setResizable(false);
-          
+
         if (item.tab == Utils.activeTab)
           Groups.setActiveGroup(this);
       }
-      
+
       if (!options.dontArrange)
         this.arrange();
-      
+
       if ( this._nextNewTabCallback ){
         this._nextNewTabCallback.apply(this, [item])
         this._nextNewTabCallback = null;
@@ -728,7 +728,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       Utils.log('Group.add error', e);
     }
   },
-  
+
   
   
   
@@ -739,38 +739,38 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   remove: function(a, options) {
     try {
-      var $el;  
+      var $el;
       var item;
-       
+
       if (a.isAnItem) {
         item = a;
         $el = iQ(item.container);
       } else {
-        $el = iQ(a);  
+        $el = iQ(a);
         item = Items.item($el);
       }
-      
+
       if (typeof(options) == 'undefined')
         options = {};
-      
+
       var index = this._children.indexOf(item);
       if (index != -1)
-        this._children.splice(index, 1); 
-      
+        this._children.splice(index, 1);
+
       item.setParent(null);
       item.removeClass("tabInGroup");
-      item.removeClass("inNewTabGroup")    
+      item.removeClass("inNewTabGroup")
       item.removeClass("stacked");
       item.removeClass("stack-trayed");
       item.setRotation(0);
       item.setSize(item.defaultSize.x, item.defaultSize.y);
-  
-      item.droppable(true);    
+
+      item.droppable(true);
       item.removeOnClose(this);
-      
+
       if (typeof(item.setResizable) == 'function')
         item.setResizable(true);
-  
+
       if (!this._children.length && !this.locked.close && !this.getTitle() && !options.dontClose){
         this.close();
       } else if (!options.dontArrange) {
@@ -780,7 +780,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       Utils.log(e);
     }
   },
-  
+
   
   
   
@@ -791,7 +791,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       self.remove(child, {dontArrange: true});
     });
   },
-    
+
   
   
   
@@ -804,7 +804,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     else
       this.$ntb.css(box.css());
   },
-  
+
   
   
   
@@ -819,7 +819,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     var childBB = this.getChild(0).getBounds();
     var dT = childBB.top - this.getBounds().top;
     var dL = childBB.left - this.getBounds().left;
-    
+
     this.$expander
         .show()
         .css({
@@ -838,13 +838,13 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   shouldStack: function(count) {
     if (count <= 1)
       return false;
-      
+
     var bb = this.getContentBounds();
     var options = {
       pretend: true,
       count: (this.isNewTabsGroup() ? count + 1 : count)
     };
-    
+
     var rects = Items.arrange(null, bb, options);
     return (rects[0].width < TabItems.minTabWidth * 1.35 );
   },
@@ -866,20 +866,20 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       var count = this._children.length;
       if (!this.shouldStack(count)) {
         var animate;
-        if (!options || typeof(options.animate) == 'undefined') 
+        if (!options || typeof(options.animate) == 'undefined')
           animate = true;
-        else 
+        else
           animate = options.animate;
-    
+
         if (typeof(options) == 'undefined')
           options = {};
-          
+
         this._children.forEach(function(child){
             child.removeClass("stacked")
         });
-  
+
         this.topChild = null;
-        
+
         var arrangeOptions = Utils.copy(options);
         iQ.extend(arrangeOptions, {
           pretend: true,
@@ -893,16 +893,16 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
           this.yDensity = 0;
           return;
         }
-    
+
         var rects = Items.arrange(this._children, bb, arrangeOptions);
-        
+
         
         
         this.yDensity = (rects[rects.length - 1].bottom - bb.top) / (bb.height);
 
         
         
-        
+
         
         
         var rightMostRight = 0;
@@ -913,7 +913,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
             break;
         }
         this.xDensity = (rightMostRight - bb.left) / (bb.width);
-        
+
         this._children.forEach(function(child, index) {
           if (!child.locked.bounds) {
             child.setBounds(rects[index], !animate);
@@ -922,22 +922,23 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
               child.setZ(options.z);
           }
         });
-        
+
         if (this.isNewTabsGroup()) {
           var box = rects[rects.length - 1];
           box.left -= this.bounds.left;
           box.top -= this.bounds.top;
           this.setNewTabButtonBounds(box, !animate);
         }
-        
+
         this._isStacked = false;
       } else
         this._stackArrange(bb, options);
     }
-    
+
     if ( this._isStacked && !this.expanded) this.showExpandControl();
     else this.hideExpandControl();
   },
+
   
   
   
@@ -948,12 +949,11 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   
-  
-  _stackArrange: function(bb, options) { 
+  _stackArrange: function(bb, options) {
     var animate;
-    if (!options || typeof(options.animate) == 'undefined') 
+    if (!options || typeof(options.animate) == 'undefined')
       animate = true;
-    else 
+    else
       animate = options.animate;
 
     if (typeof(options) == 'undefined')
@@ -962,15 +962,15 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     var count = this._children.length;
     if (!count)
       return;
-    
+
     var zIndex = this.getZ() + count + 1;
-    
+
     var Pi = Math.acos(-1);
     var maxRotation = 35; 
     var scale = 0.8;
     var newTabsPad = 10;
     var w;
-    var h; 
+    var h;
     var itemAspect = TabItems.tabHeight / TabItems.tabWidth;
     var bbAspect = bb.height / bb.width;
 
@@ -988,16 +988,16 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       this.yDensity = 1;
       this.xDensity = h / (bb.width * scale);
     }
-    
+
     
     
     var x = (bb.width - w) / 2;
     if (this.isNewTabsGroup())
       x -= (w + newTabsPad) / 2;
-      
+
     var y = Math.min(x, (bb.height - h) / 2);
     var box = new Rect(bb.left + x, bb.top + y, w, h);
-    
+
     var self = this;
     var children = [];
     this._children.forEach(function(child) {
@@ -1006,18 +1006,18 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       else
         children.push(child);
     });
-    
+
     children.forEach(function(child, index) {
       if (!child.locked.bounds) {
         child.setZ(zIndex);
         zIndex--;
-        
+
         child.addClass("stacked");
         child.setBounds(box, !animate);
         child.setRotation(self._randRotate(maxRotation, index));
       }
     });
-    
+
     if (this.isNewTabsGroup()) {
       box.left += box.width + newTabsPad;
       box.left -= this.bounds.left;
@@ -1035,9 +1035,9 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     if ( index >= this._stackAngles.length ){
       var randAngle = 5*index + parseInt( (Math.random()-.5)*1 );
       this._stackAngles.push(randAngle);
-      return randAngle;          
+      return randAngle;
     }
-    
+
     if ( index > 5 ) index = 5;
 
     return this._stackAngles[index];
@@ -1052,7 +1052,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   childHit: function(child) {
     var self = this;
-    
+
     
     if (!this._isStacked || this.expanded) {
       return {
@@ -1068,14 +1068,14 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
 
 
 
-        
+
     Groups.setActiveGroup(self);
     return { shouldZoom: true };
-    
+
     
 
   },
-  
+
   expand: function(){
     var self = this;
     
@@ -1099,16 +1099,16 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
 
     var overlayWidth = Math.min(window.innerWidth - (padding * 2), w*col + padding*(col+1));
     var overlayHeight = Math.min(window.innerHeight - (padding * 2), h*row + padding*(row+1));
-    
+
     var pos = {left: startBounds.left, top: startBounds.top};
     pos.left -= overlayWidth/3;
-    pos.top  -= overlayHeight/3;      
-          
+    pos.top  -= overlayHeight/3;
+
     if ( pos.top < 0 )  pos.top = 20;
-    if ( pos.left < 0 ) pos.left = 20;      
+    if ( pos.left < 0 ) pos.left = 20;
     if ( pos.top+overlayHeight > window.innerHeight ) pos.top = window.innerHeight-overlayHeight-20;
     if ( pos.left+overlayWidth > window.innerWidth )  pos.left = window.innerWidth-overlayWidth-20;
-    
+
     $tray
       .animate({
         width:  overlayWidth,
@@ -1116,7 +1116,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
         top: pos.top,
         left: pos.left
       }, {
-        duration: 200, 
+        duration: 200,
         easing: 'tabcandyBounce'
       })
       .addClass("overlay");
@@ -1149,14 +1149,14 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
         self.collapse();
       });
     }, 200);
-      
+
     this.expanded = {
       $tray: $tray,
       $shield: $shield,
       bounds: new Rect(pos.left, pos.top, overlayWidth, overlayHeight)
     };
-    
-    this.arrange();    
+
+    this.arrange();
   },
 
   
@@ -1180,27 +1180,27 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
           duration: 350,
           easing: 'tabcandyBounce',
           complete: function() {
-            iQ(this).remove();  
+            iQ(this).remove();
           }
         });
-  
+
       this.expanded.$shield.remove();
       this.expanded = null;
 
       this._children.forEach(function(child){
         child.removeClass("stack-trayed");
       });
-                  
+
       this.arrange({z: z + 2});
     }
   },
-  
+
   
   
   
   _addHandlers: function(container) {
     var self = this;
-    
+
     this.dropOptions.over = function(){
       if ( !this.isNewTabsGroup() )
         iQ(this.container).addClass("acceptsDrop");
@@ -1209,21 +1209,21 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       iQ(this.container).removeClass("acceptsDrop");
       this.add( drag.info.$el, {left:event.pageX, top:event.pageY} );
     };
-    
+
     if (!this.locked.bounds)
       this.draggable();
-    
+
     iQ(container)
-      .mousedown(function(e){        
+      .mousedown(function(e){
         self._mouseDown = {
           location: new Point(e.clientX, e.clientY),
           className: e.target.className
         };
-      })    
+      })
       .mouseup(function(e){
         if (!self._mouseDown || !self._mouseDown.location || !self._mouseDown.className)
           return;
-          
+
         
         var className = self._mouseDown.className;
         if (className.indexOf('title-shield') != -1
@@ -1233,31 +1233,31 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
             || className.indexOf('stackExpander') != -1 ) {
           return;
         }
-        
+
         var location = new Point(e.clientX, e.clientY);
-      
-        if (location.distance(self._mouseDown.location) > 1.0) 
+
+        if (location.distance(self._mouseDown.location) > 1.0)
           return;
-          
+
         
-        if ( self.isNewTabsGroup() ) 
+        if ( self.isNewTabsGroup() )
           return;
-        
+
         
         
         var activeTab = self.getActiveTab();
         if( !self._isStacked ){
-          if ( activeTab ) 
+          if ( activeTab )
             activeTab.zoomIn();
           else if (self.getChild(0))
-            self.getChild(0).zoomIn();          
+            self.getChild(0).zoomIn();
         }
-          
+
         self._mouseDown = null;
     });
-    
+
     this.droppable(true);
-    
+
     this.$expander.click(function(){
       self.expand();
     });
@@ -1278,14 +1278,14 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       this.resizable(false);
     }
   },
-  
+
   
   
   
   newTab: function(url) {
-    Groups.setActiveGroup(this);          
+    Groups.setActiveGroup(this);
     var newTab = Tabs.open(url || "about:blank", true);
-    
+
     
     
     
@@ -1309,12 +1309,12 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
           height: tab.bounds.height-10,
           zIndex: 999,
           opacity: 0
-        })      
+        })
         .appendTo("body")
         .animate({
           opacity: 1.0
         }, {
-          duration: 500, 
+          duration: 500,
           complete: function() {
             $anim.animate({
               top: 0,
@@ -1322,7 +1322,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
               width: window.innerWidth,
               height: window.innerHeight
             }, {
-              duration: 270, 
+              duration: 270,
               complete: function(){
                 iQ(tab.container).css({opacity: 1});
                 newTab.focus();
@@ -1338,17 +1338,17 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
                   UI.tabBar.showOnlyTheseTabs(Groups.getActiveGroup()._children);
                 }, 400);
               }
-            });      
+            });
           }
         });
-    }    
+    }
+
     
     
     
     
-    
-    
-    self.onNextNewTab(doNextTab); 
+
+    self.onNextNewTab(doNextTab);
   },
 
   
@@ -1357,32 +1357,32 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   
-  reorderBasedOnTabOrder: function(){    
+  reorderBasedOnTabOrder: function(){
     var groupTabs = [];
     for ( var i=0; i<UI.tabBar.el.children.length; i++ ){
       var tab = UI.tabBar.el.children[i];
       if (!tab.collapsed)
         groupTabs.push(tab);
     }
-     
+
     this._children.sort(function(a,b){
       return groupTabs.indexOf(a.tab.raw) - groupTabs.indexOf(b.tab.raw)
     });
-    
+
     this.arrange({animate: false});
     
   },
+
   
   
   
-  
-  setTopChild: function(topChild){    
+  setTopChild: function(topChild){
     this.topChild = topChild;
-    
+
     this.arrange({animate: false});
     
   },
-  
+
   
   
   
@@ -1423,7 +1423,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
 
 
 window.Groups = {
-  
+
   
   
   
@@ -1432,7 +1432,7 @@ window.Groups = {
     this.nextID = 1;
     this._inited = false;
   },
-  
+
   
   
   
@@ -1451,10 +1451,10 @@ window.Groups = {
     this.groups.forEach(function(group) {
       data.groups.push(group.getStorageData());
     });
-    
+
     return data;
   },
-  
+
   
   
   
@@ -1464,7 +1464,7 @@ window.Groups = {
       group.save();
     });
   },
-  
+
   
   
   
@@ -1485,7 +1485,7 @@ window.Groups = {
     var top    = min( [ b.top    for each (b in bounds) ] );
     var right  = max( [ b.right  for each (b in bounds) ] );
     var bottom = max( [ b.bottom for each (b in bounds) ] );
-    
+
     return new Rect(left, top, right-left, bottom-top);
   },
 
@@ -1497,7 +1497,7 @@ window.Groups = {
     try {
       if (groupsData && groupsData.nextID)
         this.nextID = groupsData.nextID;
-        
+
       if (groupData) {
         for (var id in groupData) {
           var group = groupData[id];
@@ -1505,44 +1505,44 @@ window.Groups = {
             var isNewTabsGroup = (group.title == 'New Tabs');
             var options = {
               locked: {
-                close: isNewTabsGroup, 
+                close: isNewTabsGroup,
                 title: isNewTabsGroup,
                 bounds: isNewTabsGroup
               },
               dontPush: true
             };
-            
-            new Group([], iQ.extend({}, group, options)); 
+
+            new Group([], iQ.extend({}, group, options));
           }
         }
       }
-      
+
       var group = this.getNewTabGroup();
       if (!group) {
         var box = this.getBoundsForNewTabGroup();
         var options = {
           locked: {
-            close: true, 
+            close: true,
             title: true,
             bounds: true
           },
-          dontPush: true, 
+          dontPush: true,
           bounds: box,
           title: 'New Tabs'
         };
-  
-        new Group([], options); 
-      } 
-      
+
+        new Group([], options);
+      }
+
       this.repositionNewTabGroup();
-      
+
       this._inited = true;
       this.save(); 
     }catch(e){
       Utils.log("error in recons: "+e);
     }
   },
-  
+
   
   
   
@@ -1553,10 +1553,10 @@ window.Groups = {
       Utils.log('Groups.groupStorageSanity: bad bounds', groupData.bounds);
       sane = false;
     }
-    
+
     return sane;
   },
-  
+
   
   
   
@@ -1570,10 +1570,10 @@ window.Groups = {
         return false;
       }
     });
-    
+
     return result;
-  }, 
- 
+  },
+
   
   
   
@@ -1582,10 +1582,10 @@ window.Groups = {
     var array = this.groups.filter(function(group) {
       return group.getTitle() == groupTitle;
     });
-    
-    if (array.length) 
+
+    if (array.length)
       return array[0];
-      
+
     return null;
   },
 
@@ -1609,7 +1609,7 @@ window.Groups = {
     var group = this.getNewTabGroup();
     group.setBounds(box, true);
   },
-  
+
   
   
   
@@ -1618,19 +1618,19 @@ window.Groups = {
     Utils.assert('only register once per group', this.groups.indexOf(group) == -1);
     this.groups.push(group);
   },
-  
+
   
   
   
   unregister: function(group) {
     var index = this.groups.indexOf(group);
     if (index != -1)
-      this.groups.splice(index, 1);  
-    
+      this.groups.splice(index, 1);
+
     if (group == this._activeGroup)
-      this._activeGroup = null;   
+      this._activeGroup = null;
   },
-  
+
   
   
   
@@ -1643,10 +1643,10 @@ window.Groups = {
         return false;
       }
     });
-    
+
     return result;
   },
-  
+
   
   
   
@@ -1654,23 +1654,23 @@ window.Groups = {
     var bounds = Items.getPageBounds();
     var count = this.groups.length - 1;
     var columns = Math.ceil(Math.sqrt(count));
-    var rows = ((columns * columns) - count >= columns ? columns - 1 : columns); 
+    var rows = ((columns * columns) - count >= columns ? columns - 1 : columns);
     var padding = 12;
     var startX = bounds.left + padding;
     var startY = bounds.top + padding;
     var totalWidth = bounds.width - padding;
     var totalHeight = bounds.height - padding;
-    var box = new Rect(startX, startY, 
+    var box = new Rect(startX, startY,
         (totalWidth / columns) - padding,
         (totalHeight / rows) - padding);
-    
+
     var i = 0;
     this.groups.forEach(function(group) {
       if (group.locked.bounds)
-        return; 
-        
+        return;
+
       group.setBounds(box, true);
-      
+
       box.left += box.width + padding;
       i++;
       if (i % columns == 0) {
@@ -1679,7 +1679,7 @@ window.Groups = {
       }
     });
   },
-  
+
   
   
   
@@ -1689,7 +1689,7 @@ window.Groups = {
       group.removeAll();
     });
   },
-  
+
   
   
   
@@ -1697,11 +1697,11 @@ window.Groups = {
     var group = this.getActiveGroup();
     if ( group == null )
       group = this.getNewTabGroup();
-    
+
     var $el = iQ(tabItem.container);
     if (group) group.add($el);
   },
-  
+
   
   
   
@@ -1710,7 +1710,7 @@ window.Groups = {
   getActiveGroup: function() {
     return this._activeGroup;
   },
-  
+
   
   
   
@@ -1724,20 +1724,20 @@ window.Groups = {
     this._activeGroup = group;
     this.updateTabBarForActiveGroup();
   },
-  
+
   
   
   
   updateTabBarForActiveGroup: function() {
     if (!window.UI)
       return; 
-      
+
     if (this._activeGroup)
       UI.tabBar.showOnlyTheseTabs( this._activeGroup._children );
     else if ( this._activeGroup == null)
       UI.tabBar.showOnlyTheseTabs( this.getOrphanedTabs(), {dontReorg: true});
   },
-  
+
   
   
   
@@ -1748,7 +1748,7 @@ window.Groups = {
     });
     return tabs;
   }
-  
+
 };
 
 

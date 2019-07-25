@@ -68,9 +68,9 @@ var Tabbar = {
   
   
   get el() {
-    return window.Tabs[0].raw.parentNode; 
+    return window.Tabs[0].raw.parentNode;
   },
-  
+
   
   
   
@@ -82,7 +82,7 @@ var Tabbar = {
     });
     return visibleTabCount;
   },
-  
+
   
   
   
@@ -98,7 +98,7 @@ var Tabbar = {
     }
     return tabBarTabs;
   },
-  
+
   
   
   
@@ -107,13 +107,13 @@ var Tabbar = {
   
   
   showOnlyTheseTabs: function(tabs, options){
-    try { 
+    try {
       if (!options)
         options = {};
-          
+
       var tabbrowser = Utils.getCurrentWindow().gBrowser;
       var tabBarTabs = this.getAllTabs();
-            
+
       
       tabBarTabs.forEach(function(tab){
         var collapsed = true;
@@ -128,7 +128,7 @@ var Tabbar = {
         });
         tab.collapsed = collapsed;
       });
-      
+
       
       
       
@@ -157,12 +157,12 @@ var Tabbar = {
 
 
 window.Page = {
-  startX: 30, 
+  startX: 30,
   startY: 70,
   closedLastVisibleTab: false,
   closedSelectedTabInTabCandy: false,
   stopZoomPreparation: false,
-    
+
   
   
   
@@ -170,7 +170,7 @@ window.Page = {
     return (Utils.getCurrentWindow().document.getElementById("tab-candy-deck").
              selectedIndex == 1);
   },
-  
+
   
   
   
@@ -178,11 +178,11 @@ window.Page = {
     var currentWin = Utils.getCurrentWindow();
     currentWin.document.getElementById("tab-candy-deck").selectedIndex = 1;
     currentWin.document.getElementById("tab-candy").contentWindow.focus();
-    
+
     currentWin.gBrowser.updateTitlebar();
     this._setActiveTitleColor(true);
   },
-    
+
   
   
   
@@ -190,7 +190,7 @@ window.Page = {
     var currentWin = Utils.getCurrentWindow();
     var tabContainer = currentWin.gBrowser.tabContainer;
     currentWin.document.getElementById("tab-candy-deck").selectedIndex = 0;
-    
+
     
 
       tabContainer.adjustTabstrip();
@@ -245,7 +245,7 @@ window.Page = {
         var activeGroup = Groups.getActiveGroup();
         if ( activeGroup )
           activeGroup.setTopChild(item);
-  
+
         window.Groups.setActiveGroup(null);
         UI.resize(true);
       });
@@ -257,7 +257,7 @@ window.Page = {
   
   init: function() {
     var self = this;
-        
+
     
     
     var tabCandyContentDoc =
@@ -298,21 +298,21 @@ window.Page = {
       }
       return false;
     });
-    
+
     Tabs.onMove(function() {
       iQ.timeout(function() { 
         var activeGroup = Groups.getActiveGroup();
         if ( activeGroup ) {
-          activeGroup.reorderBasedOnTabOrder();                
+          activeGroup.reorderBasedOnTabOrder();
         }
       }, 1);
     });
-    
+
     Tabs.onFocus(function() {
       self.tabOnFocus(this);
     });
   },
-  
+
   
   
   
@@ -321,14 +321,14 @@ window.Page = {
     var currentTab = UI.currentTab;
     var currentWindow = Utils.getCurrentWindow();
     var self = this;
-    
+
     UI.currentTab = focusTab;
     
     if (this.isTabCandyVisible() &&
         (this.closedLastVisibleTab || this.closedSelectedTabInTabCandy)) {
       this.closedLastVisibleTab = false;
       this.closedSelectedTabInTabCandy = false;
-      return;      
+      return;
     }
 
     
@@ -339,7 +339,7 @@ window.Page = {
     
     this.closedLastVisibleTab = false;
     this.closedSelectedTabInTabCandy = false;
-    
+
     iQ.timeout(function() { 
       
       if (self.stopZoomPreparation) {
@@ -351,18 +351,18 @@ window.Page = {
         }
         return;
       }
-      
+
       if (focusTab != UI.currentTab) {
         
         return;
       }
-      
+
       var visibleTabCount = Tabbar.getVisibleTabCount();
 
       var newItem = null;
       if (focusTab && focusTab.mirror)
         newItem = TabItems.getItemByTabElement(focusTab.mirror.el);
-  
+
       if (newItem)
         Groups.setActiveGroup(newItem.parent);
 
@@ -374,7 +374,7 @@ window.Page = {
       if (newItem != oldItem) {
         if (oldItem)
           oldItem.setZoomPrep(false);
-        
+
         
         
         if (visibleTabCount > 0) {
@@ -396,10 +396,10 @@ window.Page = {
     iQ(window).keyup(function(e){
       if (!e.metaKey) window.Keys.meta = false;
     });
-    
+
     iQ(window).keydown(function(event){
       if (event.metaKey) window.Keys.meta = true;
-      
+
       if (!self.getActiveTab() || iQ(":focus").length > 0) {
         
         
@@ -408,8 +408,8 @@ window.Page = {
           event.preventDefault();
         }
         return;
-      }  
-     
+      }
+
       function getClosestTabBy(norm){
         var centers =
           [[item.bounds.center(), item] for each(item in TabItems.getItems())];
@@ -438,14 +438,14 @@ window.Page = {
         case 38: 
           norm = function(a, me){return a.y < me.y}
           break;
-      }        
-     
+      }
+
       if (norm != null) {
         var nextTab = getClosestTabBy(norm);
         if (nextTab) {
           if (nextTab.inStack() && !nextTab.parent.expanded)
             nextTab = nextTab.parent.getChild(0);
-          self.setActiveTab(nextTab);        
+          self.setActiveTab(nextTab);
         }
         event.stopPropagation();
         event.preventDefault();
@@ -462,7 +462,7 @@ window.Page = {
                           Groups.getOrphanedTabs());
           var length = tabItems.length;
           var currentIndex = tabItems.indexOf(activeTab);
-            
+
           if (length > 1) {
             if (event.shiftKey) {
               if (currentIndex == 0) {
@@ -475,9 +475,9 @@ window.Page = {
                 newIndex = 0;
               } else {
                 newIndex = (currentIndex + 1);
-              } 
+              }
             }
-            self.setActiveTab(tabItems[newIndex]);        
+            self.setActiveTab(tabItems[newIndex]);
           }
         }
         event.stopPropagation();
@@ -493,7 +493,7 @@ window.Page = {
   createGroupOnDrag: function(e){
     const minSize = 60;
     const minMinSize = 15;
-    
+
     var startPos = {x:e.clientX, y:e.clientY}
     var phantom = iQ("<div>")
       .addClass('group phantom')
@@ -526,9 +526,9 @@ window.Page = {
       pushAway: function () {},
     };
     item.setBounds( new Rect( startPos.y, startPos.x, 0, 0 ) );
-    
+
     var dragOutInfo = new Drag(item, e, true); 
-    
+
     function updateSize(e){
       var box = new Rect();
       box.left = Math.min(startPos.x, e.clientX);
@@ -536,32 +536,32 @@ window.Page = {
       box.top = Math.min(startPos.y, e.clientY);
       box.bottom = Math.max(startPos.y, e.clientY);
       item.setBounds(box);
-      
+
       
       var stationaryCorner = '';
-      
+
       if (startPos.y == box.top)
         stationaryCorner += 'top';
       else
         stationaryCorner += 'bottom';
-        
+
       if (startPos.x == box.left)
         stationaryCorner += 'left';
       else
         stationaryCorner += 'right';
-      
+
       dragOutInfo.snap(stationaryCorner, false, false); 
 
       box = item.getBounds();
       if (box.width > minMinSize && box.height > minMinSize
-          && (box.width > minSize || box.height > minSize)) 
+          && (box.width > minSize || box.height > minSize))
         item.setOpacity(1);
-      else 
+      else
         item.setOpacity(0.7);
-      
-      e.preventDefault();     
+
+      e.preventDefault();
     }
-    
+
     function collapse(){
       phantom.animate({
         width: 0,
@@ -575,11 +575,11 @@ window.Page = {
         }
       });
     }
-    
+
     function finalize(e){
       iQ(window).unbind("mousemove", updateSize);
       dragOutInfo.stop();
-      if ( phantom.css("opacity") != 1 ) 
+      if ( phantom.css("opacity") != 1 )
         collapse();
       else {
         var bounds = item.getBounds();
@@ -593,19 +593,19 @@ window.Page = {
             insideTabs.push(tab);
           }
         }
-        
+
         var group = new Group(insideTabs,{bounds:bounds});
         phantom.remove();
         dragOutInfo = null;
       }
     }
-    
+
     iQ(window).mousemove(updateSize)
     iQ(Utils.getCurrentWindow()).one('mouseup', finalize);
-    e.preventDefault();  
+    e.preventDefault();
     return false;
   },
-  
+
   
   
   
@@ -619,14 +619,14 @@ window.Page = {
   setActiveTab: function(tab){
     if (tab == this._activeTab)
       return;
-      
-    if (this._activeTab) { 
+
+    if (this._activeTab) {
       this._activeTab.makeDeactive();
       this._activeTab.removeOnClose(this);
     }
-      
+
     this._activeTab = tab;
-    
+
     if (this._activeTab) {
       var self = this;
       this._activeTab.addOnClose(this, function() {
@@ -636,7 +636,7 @@ window.Page = {
       this._activeTab.makeActive();
     }
   },
-  
+
   
   
   
@@ -649,21 +649,21 @@ window.Page = {
 
 
 
-function UIClass() { 
+function UIClass() {
   try {
     
     
     this.navBar = Navbar;
-    
+
     
     
     this.tabBar = Tabbar;
-    
+
     
     
     
     this.devMode = false;
-    
+
     
     
     
@@ -692,17 +692,17 @@ UIClass.prototype = {
       Utils.log(e);
     }
   },
-  
+
   
   
   
   
   _secondaryInit: function() {
-    try {   
+    try {
       var self = this;
-      
+
       this._setBrowserKeyHandler();
-      
+
       
       this.addDevMenu();
 
@@ -717,22 +717,22 @@ UIClass.prototype = {
       iQ(window).bind('beforeunload', function() {
         
         if (self.showChrome)
-          self.showChrome();  
-          
+          self.showChrome();
+
         if (self.tabBar && self.tabBar.showAllTabs)
           self.tabBar.showAllTabs();
       });
-      
+
       
       var currentWindow = Utils.getCurrentWindow();
       Page.init();
-      
+
       currentWindow.addEventListener(
         "tabcandyshow", function() {
           Page.hideChrome();
           Page.showTabCandy();
         }, false);
-        
+
       currentWindow.addEventListener(
         "tabcandyhide", function() {
           var activeTab = Page.getActiveTab();
@@ -740,7 +740,7 @@ UIClass.prototype = {
             activeTab.zoomIn();
           }
         }, false);
-          
+
       
       Storage.onReady(function() {
         self._delayInit();
@@ -757,24 +757,24 @@ UIClass.prototype = {
     try {
       
       var currentWindow = Utils.getCurrentWindow();
-      
+
       var data = Storage.readUIData(currentWindow);
       this.storageSanity(data);
-  
+
       var groupsData = Storage.readGroupsData(currentWindow);
       var firstTime = !groupsData || iQ.isEmptyObject(groupsData);
       var groupData = Storage.readGroupData(currentWindow);
       Groups.reconstitute(groupsData, groupData);
-  
+
       TabItems.init();
-  
+
       if (firstTime) {
         var padding = 10;
         var infoWidth = 350;
         var infoHeight = 350;
         var pageBounds = Items.getPageBounds();
-        pageBounds.inset(padding, padding);      
-                
+        pageBounds.inset(padding, padding);
+
         
         var box = new Rect(pageBounds);
         box.width = Math.min(box.width * 0.667, pageBounds.width - (infoWidth + padding));
@@ -782,53 +782,53 @@ UIClass.prototype = {
         var options = {
           bounds: box
         };
-  
-        var group = new Group([], options); 
+
+        var group = new Group([], options);
 
         var items = TabItems.getItems();
         items.forEach(function(item) {
           if (item.parent)
             item.parent.remove(item);
-            
+
           group.add(item);
         });
+
         
-        
-        var html = 
+        var html =
           "<div class='intro'>"
             + "<h1>Welcome to Firefox Tab Sets</h1>"
             + "<div>(more goes here)</div><br>"
             + "<video src='http://html5demos.com/assets/dizzy.ogv' width='100%' preload controls>"
           + "</div>";
-        
+
         box.left = box.right + padding;
         box.width = infoWidth;
         box.height = infoHeight;
         var infoItem = new InfoItem(box);
         infoItem.html(html);
-      } 
-          
+      }
+
       
       if (data.pageBounds) {
         this.pageBounds = data.pageBounds;
         this.resize(true);
       } else
         this.pageBounds = Items.getPageBounds();
-  
+
       var self = this;
       iQ(window).resize(function() {
         self.resize();
       });
-      
+
       
       var visibilityData = Storage.readVisibilityData(currentWindow);
       if (visibilityData && visibilityData.visible) {
         var currentTab = UI.currentTab;
         var item;
 
-        if (currentTab && currentTab.mirror) 
+        if (currentTab && currentTab.mirror)
           item = TabItems.getItemByTabElement(currentTab.mirror.el);
-          
+
         if (item)
           item.setZoomPrep(false);
         else
@@ -836,8 +836,8 @@ UIClass.prototype = {
 
         Page.hideChrome();
       } else
-        Page.showChrome();        
-      
+        Page.showChrome();
+
       
       Components.utils.import("resource://gre/modules/Services.jsm");
       var observer = {
@@ -930,7 +930,7 @@ UIClass.prototype = {
             }
             break;
       }
-      
+
       if (!handled) {
         
         
@@ -948,10 +948,10 @@ UIClass.prototype = {
             event.preventDefault();
           }
         }
-      }      
+      }
     }, false);
   },
-  
+
   
   
   
@@ -965,7 +965,7 @@ UIClass.prototype = {
     var tabs = tabbox.tabs;
     var visibleTabs = [];
     var selectedIndex;
-    
+
     for (var i = 0; i < tabs.childNodes.length ; i++) {
       var tab = tabs.childNodes[i];
       if (!tab.collapsed) {
@@ -975,7 +975,7 @@ UIClass.prototype = {
         }
       }
     }
-    
+
     
     if (index && index > 0) {
       if (visibleTabs.length > 1) {
@@ -984,7 +984,7 @@ UIClass.prototype = {
         } else {
           tabs.selectedItem = visibleTabs[visibleTabs.length - 1];
         }
-      } 
+      }
     } else {
       if (visibleTabs.length > 1) {
         if (reverse) {
@@ -996,7 +996,7 @@ UIClass.prototype = {
             (selectedIndex == (visibleTabs.length - 1)) ? visibleTabs[0] :
               visibleTabs[selectedIndex + 1];
         }
-      } 
+      }
     }
   },
 
@@ -1018,15 +1018,15 @@ UIClass.prototype = {
       
       
       return;
-    }   
+    }
 
     var oldPageBounds = new Rect(this.pageBounds);
     var newPageBounds = Items.getPageBounds();
     if (newPageBounds.equals(oldPageBounds))
       return;
-        
+
     var items = Items.getTopLevelItems();
-    
+
     
     var itemBounds = new Rect(this.pageBounds); 
                                                 
@@ -1035,11 +1035,11 @@ UIClass.prototype = {
     items.forEach(function(item) {
       if (item.locked.bounds)
         return;
-        
+
       var bounds = item.getBounds();
       itemBounds = (itemBounds ? itemBounds.union(bounds) : new Rect(bounds));
     });
-      
+
     Groups.repositionNewTabGroup(); 
 
     if (newPageBounds.width < this.pageBounds.width && newPageBounds.width > itemBounds.width)
@@ -1058,32 +1058,32 @@ UIClass.prototype = {
       wScale = newPageBounds.width / itemBounds.width;
       hScale = newPageBounds.height / this.pageBounds.height;
     }
-    
+
     var scale = Math.min(hScale, wScale);
     var self = this;
     var pairs = [];
     items.forEach(function(item) {
       if (item.locked.bounds)
         return;
-        
+
       var bounds = item.getBounds();
 
       bounds.left += newPageBounds.left - self.pageBounds.left;
       bounds.left *= scale;
       bounds.width *= scale;
 
-      bounds.top += newPageBounds.top - self.pageBounds.top;            
+      bounds.top += newPageBounds.top - self.pageBounds.top;
       bounds.top *= scale;
       bounds.height *= scale;
-      
+
       pairs.push({
         item: item,
         bounds: bounds
       });
     });
-    
+
     Items.unsquish(pairs);
-    
+
     pairs.forEach(function(pair) {
       pair.item.setBounds(pair.bounds, true);
       pair.item.snap();
@@ -1092,20 +1092,20 @@ UIClass.prototype = {
     this.pageBounds = Items.getPageBounds();
     this.save();
   },
-  
+
   
   
   
   addDevMenu: function() {
     try {
       var self = this;
-      
+
       var $select = iQ('<select>')
         .css({
           position: 'absolute',
           bottom: 5,
           right: 5,
-          zIndex: 99999, 
+          zIndex: 99999,
           opacity: .2
         })
         .appendTo('#content')
@@ -1118,44 +1118,44 @@ UIClass.prototype = {
           }
           iQ(this).val(0);
         });
-        
+
       var commands = [{
-        name: 'dev menu', 
+        name: 'dev menu',
         code: function() {
         }
       }, {
-        name: 'show trenches', 
+        name: 'show trenches',
         code: function() {
           Trenches.toggleShown();
           iQ(this).html((Trenches.showDebug ? 'hide' : 'show') + ' trenches');
         }
       }, {
-        name: 'refresh', 
+        name: 'refresh',
         code: function() {
           location.href = 'tabcandy.html';
         }
       }, {
-        name: 'reset', 
+        name: 'reset',
         code: function() {
           self.reset();
         }
       }, {
-        name: 'code docs', 
+        name: 'code docs',
         code: function() {
           self.newTab('http://hg.mozilla.org/labs/tabcandy/raw-file/tip/content/doc/index.html');
         }
       }, {
-        name: 'save', 
+        name: 'save',
         code: function() {
           self.saveAll();
         }
       }, {
-        name: 'group sites', 
+        name: 'group sites',
         code: function() {
           self.arrangeBySite();
         }
       }];
-        
+
       var count = commands.length;
       var a;
       for (a = 0; a < count; a++) {
@@ -1175,14 +1175,14 @@ UIClass.prototype = {
   
   reset: function() {
     Storage.wipe();
-    location.href = '';      
+    location.href = '';
   },
-    
+
   
   
   
   
-  saveAll: function() {  
+  saveAll: function() {
     this.save();
     Groups.saveAll();
     TabItems.saveAll();
@@ -1191,14 +1191,14 @@ UIClass.prototype = {
   
   
   
-  save: function() {  
-    if (!this.initialized) 
+  save: function() {
+    if (!this.initialized)
       return;
-      
+
     var data = {
       pageBounds: this.pageBounds
     };
-    
+
     if (this.storageSanity(data))
       Storage.saveUIData(Utils.getCurrentWindow(), data);
   },
@@ -1209,13 +1209,13 @@ UIClass.prototype = {
   storageSanity: function(data) {
     if (iQ.isEmptyObject(data))
       return true;
-      
+
     if (!isRect(data.pageBounds)) {
       Utils.log('UI.storageSanity: bad pageBounds', data.pageBounds);
       data.pageBounds = null;
       return false;
     }
-      
+
     return true;
   },
 
@@ -1236,30 +1236,30 @@ UIClass.prototype = {
         set.forEach(function(el) {
           group.add(el);
         });
-      } else 
-        new Group(set, {dontPush: true, dontArrange: true, title: key});      
+      } else
+        new Group(set, {dontPush: true, dontArrange: true, title: key});
     }
 
     Groups.removeAll();
-    
+
     var newTabsGroup = Groups.getNewTabGroup();
     var groups = [];
     var items = TabItems.getItems();
     items.forEach(function(item) {
-      var url = item.getURL(); 
-      var domain = url.split('/')[2]; 
+      var url = item.getURL();
+      var domain = url.split('/')[2];
       if (!domain)
         newTabsGroup.add(item);
       else {
         var domainParts = domain.split('.');
         var mainDomain = domainParts[domainParts.length - 2];
-        if (groups[mainDomain]) 
+        if (groups[mainDomain])
           groups[mainDomain].push(item.container);
-        else 
+        else
           groups[mainDomain] = [item.container];
       }
     });
-    
+
     var leftovers = [];
     for (key in groups) {
       var set = groups[key];
@@ -1268,12 +1268,12 @@ UIClass.prototype = {
       } else
         leftovers.push(set[0]);
     }
-    
+
     putInGroup(leftovers, 'mixed');
-    
+
     Groups.arrange();
-  }, 
-  
+  },
+
   
   
   

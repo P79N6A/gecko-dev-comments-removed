@@ -60,28 +60,28 @@ window.Item = function() {
   
   
   this.isAnItem = true;
-  
+
   
   
   this.bounds = null;
-  
+
   
   
   this.zIndex = 0;
-  
+
   
   
   
   this.debug = false;
-  
+
   
   
   this.$debug = null;
-  
+
   
   
   this.container = null;
-  
+
   
   
   
@@ -90,16 +90,16 @@ window.Item = function() {
   
   
   this.locked = null;
-  
+
   
   
   this.parent = null;
-  
+
   
   
   
   this.userSize = null;
-  
+
   
   
   
@@ -109,7 +109,7 @@ window.Item = function() {
   
   
   this.dragOptions = null;
-  
+
   
   
   
@@ -119,7 +119,7 @@ window.Item = function() {
   
   
   this.dropOptions = null;
-  
+
   
   
   
@@ -131,13 +131,13 @@ window.Item = function() {
   
   
   this.resizeOptions = null;
-  
+
   
   
   this.isDragging = false;
 };
 
-window.Item.prototype = { 
+window.Item.prototype = {
   
   
   
@@ -155,9 +155,9 @@ window.Item.prototype = {
     Utils.assert('Subclass must provide defaultSize', isPoint(this.defaultSize));
     Utils.assert('Subclass must provide locked', this.locked);
     Utils.assert('Subclass must provide bounds', isRect(this.bounds));
-    
+
     this.container = container;
-    
+
     if (this.debug) {
       this.$debug = iQ('<div>')
         .css({
@@ -167,7 +167,7 @@ window.Item.prototype = {
         })
         .appendTo('body');
     }
-    
+
     iQ(this.container).data('item', this);
 
     
@@ -184,7 +184,7 @@ window.Item.prototype = {
         drag.info = null;
       }
     };
-    
+
     
     this.dropOptions = {
       over: function(){},
@@ -193,7 +193,7 @@ window.Item.prototype = {
         if (group) {
           group.remove(drag.info.$el, {dontClose: true});
         }
-          
+
         iQ(this.container).removeClass("acceptsDrop");
       },
       drop: function(event){
@@ -206,7 +206,7 @@ window.Item.prototype = {
         return (item && item.isATabItem && (!item.parent || !item.parent.expanded));
       }
     };
-    
+
     
     var self = this;
     var resizeInfo = null;
@@ -226,17 +226,17 @@ window.Item.prototype = {
         self.pushAway();
         resizeInfo.stop();
         resizeInfo = null;
-      } 
+      }
     };
-    
+
   },
-  
+
   
   
   
   getBounds: function() {
     Utils.assert('this.bounds', isRect(this.bounds));
-    return new Rect(this.bounds);    
+    return new Rect(this.bounds);
   },
 
   
@@ -253,7 +253,7 @@ window.Item.prototype = {
       return myBounds.intersects(bounds);
     } );
   },
-  
+
   
   
   
@@ -290,7 +290,7 @@ window.Item.prototype = {
     this.userSize = new Point(this.bounds.width, this.bounds.height);
     this.save();
   },
-  
+
   
   
   
@@ -305,7 +305,7 @@ window.Item.prototype = {
     var value = "rotate(%deg)".replace(/%/, degrees);
     iQ(this.container).css({"-moz-transform": value});
   },
-    
+
   
   
   
@@ -320,7 +320,7 @@ window.Item.prototype = {
   
   pushAway: function() {
     var buffer = Math.floor( Items.defaultGutter / 2 );
-    
+
     var items = Items.getTopLevelItems();
     
     items.forEach(function pushAway_setupPushAwayData(item) {
@@ -331,7 +331,7 @@ window.Item.prototype = {
       data.generation = Infinity;
       item.pushAwayData = data;
     });
-    
+
     
     var itemsToPush = [this];
     this.pushAwayData.generation = 0;
@@ -345,51 +345,51 @@ window.Item.prototype = {
       bb.inset(-buffer, -buffer);
       
       var bbc = bb.center();
-    
+
       items.forEach(function(item) {
         if (item == baseItem || item.locked.bounds)
           return;
-          
+
         var data = item.pushAwayData;
         
         
         if (data.generation <= baseData.generation)
           return;
-        
+
         
         var bounds = data.bounds;
         var box = new Rect(bounds);
         box.inset(-buffer, -buffer);
-        
+
         
         if (box.intersects(bb)) {
-        
+
           
-          
+
           
           var offset = new Point();
           
           var center = box.center();
-          
+
           
           
           if (Math.abs(center.x - bbc.x) < Math.abs(center.y - bbc.y)) {
             
             if (center.y > bbc.y)
-              offset.y = bb.bottom - box.top; 
+              offset.y = bb.bottom - box.top;
             else
               offset.y = bb.top - box.bottom;
           } else { 
             
             if (center.x > bbc.x)
-              offset.x = bb.right - box.left; 
+              offset.x = bb.right - box.left;
             else
               offset.x = bb.left - box.right;
           }
+
           
-          
-          bounds.offset(offset); 
-          
+          bounds.offset(offset);
+
           
           data.generation = baseData.generation + 1;
           
@@ -398,13 +398,13 @@ window.Item.prototype = {
           itemsToPush.push(item);
         }
       });
-    };   
-    
+    };
+
     
     
     
     while (itemsToPush.length)
-      pushOne(itemsToPush.shift());         
+      pushOne(itemsToPush.shift());
 
     
     var pageBounds = Items.getSafeWindowBounds();
@@ -417,13 +417,13 @@ window.Item.prototype = {
         var data = item.pushAwayData;
         if (data.generation == 0)
           return;
-          
+
         var bounds = data.bounds;
-        bounds.width -= sizeStep.x; 
+        bounds.width -= sizeStep.x;
         bounds.height -= sizeStep.y;
         bounds.left += posStep.x;
         bounds.top += posStep.y;
-        
+
         if (!item.isAGroup) {
           if (sizeStep.y > sizeStep.x) {
             var newWidth = bounds.height * (TabItems.tabWidth / TabItems.tabHeight);
@@ -435,9 +435,9 @@ window.Item.prototype = {
             bounds.height = newHeight;
           }
         }
-        
+
         var pusher = data.pusher;
-        if (pusher)  
+        if (pusher)
           apply(pusher, posStep.plus(posStep2), posStep2, sizeStep);
       }
 
@@ -446,29 +446,29 @@ window.Item.prototype = {
       var posStep2 = new Point();
       var sizeStep = new Point();
 
-      if (bounds.left < pageBounds.left) {      
+      if (bounds.left < pageBounds.left) {
         posStep.x = pageBounds.left - bounds.left;
         sizeStep.x = posStep.x / data.generation;
-        posStep2.x = -sizeStep.x;                
-      } else if (bounds.right > pageBounds.right) {      
+        posStep2.x = -sizeStep.x;
+      } else if (bounds.right > pageBounds.right) {
         posStep.x = pageBounds.right - bounds.right;
         sizeStep.x = -posStep.x / data.generation;
         posStep.x += sizeStep.x;
         posStep2.x = sizeStep.x;
       }
 
-      if (bounds.top < pageBounds.top) {      
+      if (bounds.top < pageBounds.top) {
         posStep.y = pageBounds.top - bounds.top;
         sizeStep.y = posStep.y / data.generation;
-        posStep2.y = -sizeStep.y;                
-      } else if (bounds.bottom > pageBounds.bottom) {      
+        posStep2.y = -sizeStep.y;
+      } else if (bounds.bottom > pageBounds.bottom) {
         posStep.y = pageBounds.bottom - bounds.bottom;
         sizeStep.y = -posStep.y / data.generation;
         posStep.y += sizeStep.y;
         posStep2.y = sizeStep.y;
       }
 
-      if (posStep.x || posStep.y || sizeStep.x || sizeStep.y) 
+      if (posStep.x || posStep.y || sizeStep.x || sizeStep.y)
         apply(item, posStep, posStep2, sizeStep);
     });
 
@@ -481,7 +481,7 @@ window.Item.prototype = {
         bounds: data.bounds
       });
     });
-    
+
     Items.unsquish(pairs);
 
     
@@ -493,7 +493,7 @@ window.Item.prototype = {
       }
     });
   },
-  
+
   
   
   
@@ -503,7 +503,7 @@ window.Item.prototype = {
       this.$debug.css(this.bounds.css());
     }
   },
-  
+
   
   
   
@@ -523,14 +523,14 @@ window.Item.prototype = {
     if (!this.guideTrenches)
       this.guideTrenches = Trenches.registerWithItem(this,"guide");
 
-    var gT = this.guideTrenches;    
+    var gT = this.guideTrenches;
     Trenches.getById(gT.left).setWithRect(rect);
     Trenches.getById(gT.right).setWithRect(rect);
     Trenches.getById(gT.top).setWithRect(rect);
     Trenches.getById(gT.bottom).setWithRect(rect);
 
   },
-  
+
   
   
   
@@ -544,7 +544,7 @@ window.Item.prototype = {
     }
     this.guideTrenches = null;
   },
-  
+
   
   
   
@@ -552,26 +552,26 @@ window.Item.prototype = {
     
     var defaultRadius = Trenches.defaultRadius;
     Trenches.defaultRadius = 2 * defaultRadius; 
-    
+
     var event = {startPosition:{}}; 
     var FauxDragInfo = new Drag(this,event);
     FauxDragInfo.snap('none',false);
     FauxDragInfo.stop();
-    
+
     Trenches.defaultRadius = defaultRadius;
   },
-  
+
   
   
   
   draggable: function() {
     try {
       Utils.assert('dragOptions', this.dragOptions);
-        
+
       var cancelClasses = [];
       if (typeof(this.dragOptions.cancelClass) == 'string')
         cancelClasses = this.dragOptions.cancelClass.split(' ');
-        
+
       var self = this;
       var $container = iQ(this.container);
       var startMouse;
@@ -580,7 +580,7 @@ window.Item.prototype = {
       var startEvent;
       var droppables;
       var dropTarget;
-      
+
       
       var handleMouseMove = function(e) {
         
@@ -588,28 +588,28 @@ window.Item.prototype = {
         var box = self.getBounds();
         box.left = startPos.x + (mouse.x - startMouse.x);
         box.top = startPos.y + (mouse.y - startMouse.y);
-        
+
         self.setBounds(box, true);
 
         
         if (!startSent) {
           if (iQ.isFunction(self.dragOptions.start)) {
-            self.dragOptions.start.apply(self, 
+            self.dragOptions.start.apply(self,
                 [startEvent, {position: {left: startPos.x, top: startPos.y}}]);
           }
-          
+
           startSent = true;
         }
 
         if (iQ.isFunction(self.dragOptions.drag))
           self.dragOptions.drag.apply(self, [e, {position: box.position()}]);
-          
+
         
         var best = {
           dropTarget: null,
           score: 0
         };
-        
+
         droppables.forEach(function(droppable) {
           var intersection = box.intersection(droppable.bounds);
           if (intersection && intersection.area() > best.score) {
@@ -620,7 +620,7 @@ window.Item.prototype = {
               if (dropOptions && iQ.isFunction(dropOptions.accept))
                 accept = dropOptions.accept.apply(possibleDropTarget, [self]);
             }
-            
+
             if (accept) {
               best.dropTarget = possibleDropTarget;
               best.score = intersection.area();
@@ -635,8 +635,8 @@ window.Item.prototype = {
             if (dropOptions && iQ.isFunction(dropOptions.out))
               dropOptions.out.apply(dropTarget, [e]);
           }
-          
-          dropTarget = best.dropTarget; 
+
+          dropTarget = best.dropTarget;
 
           if (dropTarget) {
             dropOptions = dropTarget.dropOptions;
@@ -644,16 +644,16 @@ window.Item.prototype = {
               dropOptions.over.apply(dropTarget, [e]);
           }
         }
-          
+
         e.preventDefault();
       };
-        
+
       
       var handleMouseUp = function(e) {
         iQ(Utils.getCurrentWindow())
           .unbind('mousemove', handleMouseMove)
           .unbind('mouseup', handleMouseUp);
-          
+
         if (dropTarget) {
           var dropOptions = dropTarget.dropOptions;
           if (dropOptions && iQ.isFunction(dropOptions.drop))
@@ -662,15 +662,15 @@ window.Item.prototype = {
 
         if (startSent && iQ.isFunction(self.dragOptions.stop))
           self.dragOptions.stop.apply(self, [e]);
-          
-        e.preventDefault();    
+
+        e.preventDefault();
       };
-      
+
       
       $container.mousedown(function(e) {
         if (Utils.isRightClick(e))
           return;
-        
+
         var cancel = false;
         var $target = iQ(e.target);
         cancelClasses.forEach(function(className) {
@@ -679,24 +679,24 @@ window.Item.prototype = {
             return false;
           }
         });
-        
+
         if (cancel) {
           e.preventDefault();
           return;
         }
-          
+
         startMouse = new Point(e.pageX, e.pageY);
         startPos = self.getBounds().position();
         startEvent = e;
         startSent = false;
         dropTarget = null;
-        
+
         droppables = [];
         iQ('.iq-droppable').each(function(elem) {
           if (elem != self.container) {
             var item = Items.item(elem);
             droppables.push({
-              item: item, 
+              item: item,
               bounds: item.getBounds()
             });
           }
@@ -704,13 +704,13 @@ window.Item.prototype = {
 
         iQ(Utils.getCurrentWindow())
           .mousemove(handleMouseMove)
-          .mouseup(handleMouseUp);          
-                    
+          .mouseup(handleMouseUp);
+
         e.preventDefault();
       });
     } catch(e) {
       Utils.log(e);
-    }  
+    }
   },
 
   
@@ -723,14 +723,14 @@ window.Item.prototype = {
         $container.addClass('iq-droppable');
       else {
         Utils.assert('dropOptions', this.dropOptions);
-        
+
         $container.removeClass('iq-droppable');
       }
     } catch(e) {
       Utils.log(e);
     }
   },
-  
+
   
   
   
@@ -743,13 +743,13 @@ window.Item.prototype = {
         $container.removeClass('iq-resizable');
       } else {
         Utils.assert('resizeOptions', this.resizeOptions);
-        
+
         $container.addClass('iq-resizable');
 
         var self = this;
         var startMouse;
         var startSize;
-        
+
         
         var handleMouseMove = function(e) {
           var mouse = new Point(e.pageX, e.pageY);
@@ -763,29 +763,29 @@ window.Item.prototype = {
             else
               box.width = box.height / startAspect;
           }
-                        
+
           self.setBounds(box, true);
-  
+
           if (iQ.isFunction(self.resizeOptions.resize))
             self.resizeOptions.resize.apply(self, [e]);
-            
+
           e.preventDefault();
           e.stopPropagation();
         };
-          
+
         
         var handleMouseUp = function(e) {
           iQ(Utils.getCurrentWindow())
             .unbind('mousemove', handleMouseMove)
             .unbind('mouseup', handleMouseUp);
-            
+
           if (iQ.isFunction(self.resizeOptions.stop))
             self.resizeOptions.stop.apply(self, [e]);
-            
-          e.preventDefault();    
+
+          e.preventDefault();
           e.stopPropagation();
         };
-        
+
         
         iQ('<div>')
           .addClass('iq-resizable-handle iq-resizable-se')
@@ -793,18 +793,18 @@ window.Item.prototype = {
           .mousedown(function(e) {
             if (Utils.isRightClick(e))
               return;
-            
+
             startMouse = new Point(e.pageX, e.pageY);
             startSize = self.getBounds().size();
             startAspect = startSize.y / startSize.x;
-            
+
             if (iQ.isFunction(self.resizeOptions.start))
               self.resizeOptions.start.apply(self, [e]);
-            
+
             iQ(Utils.getCurrentWindow())
               .mousemove(handleMouseMove)
-              .mouseup(handleMouseUp);          
-                        
+              .mouseup(handleMouseUp);
+
             e.preventDefault();
             e.stopPropagation();
           });
@@ -813,7 +813,7 @@ window.Item.prototype = {
       Utils.log(e);
     }
   }
-};  
+};
 
 
 
@@ -823,35 +823,35 @@ window.Items = {
   
   
   defaultGutter: 15,
-  
+
   
   
   
   init: function() {
   },
-  
+
   
   
   
   item: function(el) {
     return iQ(el).data('item');
   },
-  
+
   
   
   
   getTopLevelItems: function() {
     var items = [];
-    
+
     iQ('.tab, .group, .info-item').each(function(elem) {
       var $this = iQ(elem);
-      var item = $this.data('item');  
+      var item = $this.data('item');
       if (item && !item.parent && !$this.hasClass('phantom'))
         items.push(item);
     });
-    
+
     return items;
-  }, 
+  },
 
   
   
@@ -862,7 +862,7 @@ window.Items = {
     var height = Math.max(100, window.innerHeight - bottom);
     return new Rect(0, 0, width, height);
   },
-  
+
   
   
   
@@ -875,13 +875,13 @@ window.Items = {
     
     var topGutter = 5;
     if (dontCountNewTabGroup)
-      return new Rect( gutter, topGutter, 
+      return new Rect( gutter, topGutter,
         window.innerWidth - 2 * gutter, window.innerHeight - gutter - topGutter );
     return new Rect( gutter, topGutter,
       window.innerWidth - 2 * gutter, newTabGroupBounds.top -  gutter - topGutter );
 
   },
-  
+
   
   
   
@@ -903,23 +903,23 @@ window.Items = {
   
   arrange: function(items, bounds, options) {
     var animate;
-    if (!options || typeof(options.animate) == 'undefined') 
+    if (!options || typeof(options.animate) == 'undefined')
       animate = true;
-    else 
+    else
       animate = options.animate;
 
     if (typeof(options) == 'undefined')
       options = {};
-    
+
     var rects = null;
     if (options.pretend)
       rects = [];
-      
+
     var tabAspect = TabItems.tabHeight / TabItems.tabWidth;
     var count = options.count || (items ? items.length : 0);
     if (!count)
       return rects;
-      
+
     var columns = 1;
     var padding = options.padding || 0;
     var yScale = 1.1; 
@@ -929,30 +929,30 @@ window.Items = {
     var totalHeight;
 
     function figure() {
-      rows = Math.ceil(count / columns);          
+      rows = Math.ceil(count / columns);
       tabWidth = (bounds.width - (padding * (columns - 1))) / columns;
-      tabHeight = tabWidth * tabAspect; 
-      totalHeight = (tabHeight * yScale * rows) + (padding * (rows - 1)); 
-    } 
-    
+      tabHeight = tabWidth * tabAspect;
+      totalHeight = (tabHeight * yScale * rows) + (padding * (rows - 1));
+    }
+
     figure();
-    
+
     while (rows > 1 && totalHeight > bounds.height) {
-      columns++; 
+      columns++;
       figure();
     }
-    
+
     if (rows == 1) {
       var maxWidth = Math.max(TabItems.tabWidth, bounds.width / 2);
       tabWidth = Math.min(Math.min(maxWidth, bounds.width / count), bounds.height / tabAspect);
       tabHeight = tabWidth * tabAspect;
     }
-    
+
     var box = new Rect(bounds.left, bounds.top, tabWidth, tabHeight);
     var row = 0;
     var column = 0;
     var immediately;
-    
+
     var a;
     for (a = 0; a < count; a++) {
 
@@ -961,7 +961,7 @@ window.Items = {
 
 
         immediately = !animate;
-        
+
       if (rects)
         rects.push(new Rect(box));
       else if (items && a < items.length) {
@@ -973,12 +973,12 @@ window.Items = {
             item.setZ(options.z);
         }
       }
-      
 
 
 
 
-      
+
+
       box.left += box.width + padding;
       column++;
       if (column == columns) {
@@ -988,10 +988,10 @@ window.Items = {
         row++;
       }
     }
-    
+
     return rects;
   },
-  
+
   
   
   
@@ -1013,22 +1013,22 @@ window.Items = {
         });
       });
     }
-  
+
     var pageBounds = Items.getSafeWindowBounds();
     pairs.forEach(function(pair) {
       var item = pair.item;
       if (item.locked.bounds || item == ignore)
         return;
-        
+
       var bounds = pair.bounds;
       var newBounds = new Rect(bounds);
 
       var newSize;
-      if (isPoint(item.userSize)) 
+      if (isPoint(item.userSize))
         newSize = new Point(item.userSize);
       else
         newSize = new Point(TabItems.tabWidth, TabItems.tabHeight);
-        
+
       if (item.isAGroup) {
           newBounds.width = Math.max(newBounds.width, newSize.x);
           newBounds.height = Math.max(newBounds.height, newSize.y);
@@ -1041,7 +1041,7 @@ window.Items = {
 
       newBounds.left -= (newBounds.width - bounds.width) / 2;
       newBounds.top -= (newBounds.height - bounds.height) / 2;
-      
+
       var offset = new Point();
       if (newBounds.left < pageBounds.left)
         offset.x = pageBounds.left - newBounds.left;
@@ -1052,22 +1052,22 @@ window.Items = {
         offset.y = pageBounds.top - newBounds.top;
       else if (newBounds.bottom > pageBounds.bottom)
         offset.y = pageBounds.bottom - newBounds.bottom;
-        
+
       newBounds.offset(offset);
 
-      if (!bounds.equals(newBounds)) {        
+      if (!bounds.equals(newBounds)) {
         var blocked = false;
         pairs.forEach(function(pair2) {
           if (pair2 == pair || pair2.item == ignore)
             return;
-            
+
           var bounds2 = pair2.bounds;
           if (bounds2.intersects(newBounds)) {
             blocked = true;
             return false;
           }
         });
-        
+
         if (!blocked) {
           pair.bounds.copy(newBounds);
         }

@@ -51,7 +51,7 @@ function _isIframe(doc){
 
 
 
-var TabCanvas = function(tab, canvas){ 
+var TabCanvas = function(tab, canvas){
   this.init(tab, canvas);
 };
 
@@ -62,28 +62,28 @@ TabCanvas.prototype = {
     this.tab = tab;
     this.canvas = canvas;
     this.window = window;
-            
+
     var $canvas = iQ(canvas).data("link", this);
 
     var w = $canvas.width();
     var h = $canvas.height();
     canvas.width = w;
     canvas.height = h;
-      
+
     var self = this;
-    this.paintIt = function(evt) { 
+    this.paintIt = function(evt) {
       
       self.tab.mirror.triggerPaint();
 
     };
   },
-  
+
   
   
   attach: function() {
     this.tab.contentWindow.addEventListener("MozAfterPaint", this.paintIt, false);
   },
-     
+
   
   
   detach: function() {
@@ -93,25 +93,25 @@ TabCanvas.prototype = {
       
     }
   },
-  
+
   
   
   paint: function(evt){
     var ctx = this.canvas.getContext("2d");
-  
+
     var w = this.canvas.width;
     var h = this.canvas.height;
     if (!w || !h)
       return;
-  
+
     var fromWin = this.tab.contentWindow;
     if (fromWin == null) {
       Utils.log('null fromWin in paint');
       return;
     }
-    
+
     var scaler = w/fromWin.innerWidth;
-  
+
     
 
     ctx.save();
@@ -119,12 +119,12 @@ TabCanvas.prototype = {
     try{
       ctx.drawWindow( fromWin, fromWin.scrollX, fromWin.scrollY, w/scaler, h/scaler, "#fff" );
     } catch(e){
-      Utils.error('paint', e);   
+      Utils.error('paint', e);
     }
-    
+
     ctx.restore();
   },
-  
+
   
   
   toImageData: function() {
@@ -140,7 +140,7 @@ function Mirror(tab, manager) {
 
   this.tab = tab;
   this.manager = manager;
-  
+
   var $div = iQ('<div>')
     .data("tab", this.tab)
     .addClass('tab')
@@ -150,7 +150,7 @@ function Mirror(tab, manager) {
 	  "<span class='tab-title'>&nbsp;</span>"
     )
     .appendTo('body');
-    
+
   this.needsPaint = 0;
   this.canvasSizeForced = false;
   this.isShowingCachedData = false;
@@ -162,18 +162,18 @@ function Mirror(tab, manager) {
 
   var doc = this.tab.contentDocument;
   if ( !_isIframe(doc) ) {
-    this.tabCanvas = new TabCanvas(this.tab, this.canvasEl);    
+    this.tabCanvas = new TabCanvas(this.tab, this.canvasEl);
     this.tabCanvas.attach();
     this.triggerPaint();
   }
-  
+
 
   this.tab.mirror = this;
   this.manager._customize(this);
 
 }
 
-Mirror.prototype = iQ.extend(new Subscribable(), {  
+Mirror.prototype = iQ.extend(new Subscribable(), {
   
   
   
@@ -181,7 +181,7 @@ Mirror.prototype = iQ.extend(new Subscribable(), {
     var date = new Date();
     this.needsPaint = date.getTime();
   },
-  
+
   
   
   
@@ -192,7 +192,7 @@ Mirror.prototype = iQ.extend(new Subscribable(), {
     this.canvasEl.height = h;
     this.tabCanvas.paint();
   },
-  
+
   
   
   
@@ -236,7 +236,7 @@ var TabMirror = function() {
   if (window.Tabs) {
     this.init();
   }
-  else { 
+  else {
     var self = this;
     TabsManager.addSubscriber(this, 'load', function() {
       self.init();
@@ -252,7 +252,7 @@ TabMirror.prototype = {
     var self = this;
 
     
-    Tabs.onOpen(function() { 
+    Tabs.onOpen(function() {
       var tab = this;
       iQ.timeout(function() { 
         self.update(tab);
@@ -289,10 +289,10 @@ TabMirror.prototype = {
     });
 
     this.paintingPaused = 0;
-    this.heartbeatIndex = 0;  
+    this.heartbeatIndex = 0;
     this._fireNextHeartbeat();
   },
-  
+
   
   
   _heartbeat: function() {
@@ -304,9 +304,9 @@ TabMirror.prototype = {
         this.heartbeatIndex++;
         if (this.heartbeatIndex >= count)
           this.heartbeatIndex = 0;
-          
+
         var tab = Tabs[this.heartbeatIndex];
-        var mirror = tab.mirror; 
+        var mirror = tab.mirror;
         if (mirror) {
           var iconUrl = tab.raw.linkedBrowser.mIconURL;
           if ( iconUrl == null ){
@@ -316,8 +316,8 @@ TabMirror.prototype = {
           var label = tab.raw.label;
           var $name = iQ(mirror.nameEl);
           var $canvas = iQ(mirror.canvasEl);
-          
-          if (iconUrl != mirror.favEl.src) { 
+
+          if (iconUrl != mirror.favEl.src) {
             mirror.favEl.src = iconUrl;
             mirror.triggerPaint();
           }
@@ -329,12 +329,12 @@ TabMirror.prototype = {
 	      'urlChanged', {oldURL: oldURL, newURL: tab.url});
             mirror.triggerPaint();
           }
-          
+
           if (!mirror.isShowingCachedData && $name.text() != label) {
             $name.text(label);
             mirror.triggerPaint();
           }
-          
+
           if (!mirror.canvasSizeForced) {
             var w = $canvas.width();
             var h = $canvas.height();
@@ -344,10 +344,10 @@ TabMirror.prototype = {
               mirror.triggerPaint();
             }
           }
-          
+
           if (mirror.needsPaint) {
 	    mirror.tabCanvas.paint();
-            
+
             if (Utils.getMilliseconds() - mirror.needsPaint > 5000)
               mirror.needsPaint = 0;
           }
@@ -356,10 +356,10 @@ TabMirror.prototype = {
     } catch(e) {
       Utils.error('heartbeat', e);
     }
-    
+
     this._fireNextHeartbeat();
   },
-  
+
   
   
   _fireNextHeartbeat: function() {
@@ -367,21 +367,21 @@ TabMirror.prototype = {
     iQ.timeout(function() {
       self._heartbeat();
     }, 100);
-  },   
-    
+  },
+
   
   
   _customize: function(func){
     
     
   },
-  
+
   
   
   _createEl: function(tab){
     new Mirror(tab, this); 
   },
-  
+
   
   
   update: function(tab){
@@ -390,19 +390,19 @@ TabMirror.prototype = {
     if (tab.mirror && tab.mirror.tabCanvas)
       tab.mirror.triggerPaint();
   },
-  
+
   
   
   link: function(tab){
     
     if (tab.mirror)
       return false;
-    
+
     
     this._createEl(tab);
     return true;
   },
-  
+
   
   
   unlink: function(tab){
@@ -412,9 +412,9 @@ TabMirror.prototype = {
       var tabCanvas = mirror.tabCanvas;
       if (tabCanvas)
         tabCanvas.detach();
-      
+
       iQ(mirror.el).remove();
-      
+
       tab.mirror = null;
     }
   }
@@ -422,8 +422,8 @@ TabMirror.prototype = {
 
 
 window.TabMirror = {
-  _private: new TabMirror(), 
-  
+  _private: new TabMirror(),
+
   
   
   
@@ -437,7 +437,7 @@ window.TabMirror = {
       var tab = Tabs.tab(elem);
       func(tab.mirror);
     });
-    
+
     
     TabMirror.prototype._customize = func;
   },
@@ -450,7 +450,7 @@ window.TabMirror = {
   pausePainting: function() {
     this._private.paintingPaused++;
   },
-  
+
   
   
   

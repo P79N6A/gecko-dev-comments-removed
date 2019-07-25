@@ -133,30 +133,30 @@ Trench.prototype = {
   
   setPosition: function Trench_setPos(position, range, minRange) {
     this.position = position;
-    
+
     var page = Items.getPageBounds( true );
-    
+
     
     if (isRange(range)) {
       this.range = range;
     } else {
       this.range = new Range( 0, (this.xory == 'x' ? page.height : page.width) );
     }
-    
+
     
     if (isRange(minRange))
       this.minRange = minRange;
-    
+
     
     if ( this.xory == "x" ) 
       this.rect = new Rect ( this.position - this.radius, this.range.min, 2 * this.radius, this.range.extent );
     else 
       this.rect = new Rect ( this.range.min, this.position - this.radius, this.range.extent, 2 * this.radius );
-      
+
     this.show(); 
 
   },
-  
+
   
   
   
@@ -175,7 +175,7 @@ Trench.prototype = {
       this.guideRect = new Rect( this.activeRange.min, this.position, this.activeRange.extent, 0 );
     }
   },
-  
+
   
   
   
@@ -184,10 +184,10 @@ Trench.prototype = {
   
   
   setWithRect: function Trench_setWithRect(rect) {
-    
+
     if (!isRect(rect))
       Utils.error('argument must be Rect');
-    
+
     
     
     
@@ -208,7 +208,7 @@ Trench.prototype = {
         this.setPosition(rect.bottom + this.gutter, range);
     } else if (this.type == "guide") {
       
-      if (this.edge == "left")    
+      if (this.edge == "left")
         this.setPosition(rect.left, false, range);
       else if (this.edge == "right")
         this.setPosition(rect.right, false, range);
@@ -218,7 +218,7 @@ Trench.prototype = {
         this.setPosition(rect.bottom, false, range);
     }
   },
-  
+
   
   
   
@@ -265,13 +265,13 @@ Trench.prototype = {
       activeVisibleTrench.addClass('activeTrench');
     else
       activeVisibleTrench.removeClass('activeTrench');
-      
+
     visibleTrench.css(this.rect.css());
     activeVisibleTrench.css((this.activeRect || this.rect).css());
     iQ("body").append(visibleTrench);
     iQ("body").append(activeVisibleTrench);
   },
-  
+
   
   
   
@@ -322,7 +322,7 @@ Trench.prototype = {
     }
 
     rect.adjustedEdge = edgeToCheck;
-    
+
     switch (edgeToCheck) {
       case "left":
         if (this.ruleOverlaps(rect.left, rect.yRange)) {
@@ -366,10 +366,10 @@ Trench.prototype = {
           return rect;
         }
     }
-      
+
     return false;
   },
-  
+
   
   
   
@@ -383,7 +383,7 @@ Trench.prototype = {
     return (this.position - this.radius <= position && position <= this.position + this.radius
             && this.activeRange.overlaps(range));
   },
-  
+
   
   
   
@@ -396,14 +396,14 @@ Trench.prototype = {
   adjustRangeIfIntercept: function Trench_adjustRangeIfIntercept(position, range) {
     if (this.position - this.radius > range.min && this.position + this.radius < range.max) {
       var activeRange = new Range(this.activeRange);
+
       
       
       
       
-      
-      
+
       if (position < this.minRange.min) {
-        activeRange.min = Math.min(this.minRange.min,position);        
+        activeRange.min = Math.min(this.minRange.min,position);
       } else if (position > this.minRange.max) {
         activeRange.max = Math.max(this.minRange.max,position);
       } else {
@@ -414,7 +414,7 @@ Trench.prototype = {
     }
     return false;
   },
-  
+
   
   
   
@@ -477,7 +477,7 @@ var Trenches = {
   
   preferTop: true,
   preferLeft: true,
-  
+
   activeTrenches: {},
   trenches: [],
 
@@ -585,7 +585,7 @@ var Trenches = {
     this.trenches.forEach(function(t) {
       t.showGuide = false;
       t.show();
-    });    
+    });
   },
 
   
@@ -607,14 +607,14 @@ var Trenches = {
   
   snap: function Trenches_snap(rect,stationaryCorner,assumeConstantSize,keepProportional) {
     var aT = this.activeTrenches;
-    
+
     
     Trenches.hideGuides();
-    
+
     
     if (iQ(".acceptsDrop").length)
       return;
-    
+
     var updated = false;
     var updatedX = false;
     var updatedY = false;
@@ -629,7 +629,7 @@ var Trenches = {
       var newRect = t.rectOverlaps(rect,stationaryCorner,assumeConstantSize,keepProportional);
 
       if (newRect) { 
-      
+
         if (assumeConstantSize && updatedX && updatedY)
           break;
         if (assumeConstantSize && updatedX && (newRect.adjustedEdge == "left"||newRect.adjustedEdge == "right"))
@@ -639,16 +639,16 @@ var Trenches = {
 
         rect = newRect;
         updated = true;
-  
+
         
         snappedTrenches[newRect.adjustedEdge] = t;
-  
+
         
         if (newRect.adjustedEdge == "left" && this.preferLeft)
           updatedX = true;
         if (newRect.adjustedEdge == "right" && !this.preferLeft)
           updatedX = true;
-  
+
         
         if (newRect.adjustedEdge == "top" && this.preferTop)
           updatedY = true;
@@ -657,7 +657,7 @@ var Trenches = {
 
       }
     }
-        
+
     if (updated) {
       rect.snappedTrenches = snappedTrenches;
       return rect;
@@ -672,7 +672,7 @@ var Trenches = {
     this.trenches.forEach(function(t){
       t.show();
     });
-  }, 
+  },
 
   
   

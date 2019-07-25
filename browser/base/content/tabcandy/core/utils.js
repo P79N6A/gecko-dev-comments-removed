@@ -61,7 +61,7 @@ window.Point = function(a, y) {
   if (isPoint(a)) {
     
     this.x = a.x;
-    
+
     
     this.y = a.y;
   } else {
@@ -78,11 +78,11 @@ window.isPoint = function(p) {
   return (p && Utils.isNumber(p.x) && Utils.isNumber(p.y));
 };
 
-window.Point.prototype = { 
+window.Point.prototype = {
   
   
   
-  distance: function(point) { 
+  distance: function(point) {
     var ax = Math.abs(this.x - point.x);
     var ay = Math.abs(this.y - point.y);
     return Math.sqrt((ax * ax) + (ay * ay));
@@ -91,7 +91,7 @@ window.Point.prototype = {
   
   
   
-  plus: function(point) { 
+  plus: function(point) {
     return new Point(this.x + point.x, this.y + point.y);
   }
 };
@@ -110,13 +110,13 @@ window.Rect = function(a, top, width, height) {
   if (isRect(a)) {
     
     this.left = a.left;
-    
+
     
     this.top = a.top;
-    
+
     
     this.width = a.width;
-    
+
     
     this.height = a.height;
   } else {
@@ -132,7 +132,7 @@ window.Rect = function(a, top, width, height) {
 
 
 window.isRect = function(r) {
-  return (r 
+  return (r
       && Utils.isNumber(r.left)
       && Utils.isNumber(r.top)
       && Utils.isNumber(r.width)
@@ -145,7 +145,7 @@ window.Rect.prototype = {
   get right() {
     return this.left + this.width;
   },
-  
+
   
   set right(value) {
     this.width = value - this.left;
@@ -156,7 +156,7 @@ window.Rect.prototype = {
   get bottom() {
     return this.top + this.height;
   },
-  
+
   
   set bottom(value) {
     this.height = value - this.top;
@@ -168,7 +168,7 @@ window.Rect.prototype = {
   get xRange() {
     return new Range(this.left,this.right);
   },
-  
+
   
   
   
@@ -183,9 +183,9 @@ window.Rect.prototype = {
     return (rect.right > this.left
         && rect.left < this.right
         && rect.bottom > this.top
-        && rect.top < this.bottom);      
+        && rect.top < this.bottom);
   },
-  
+
   
   
   
@@ -196,10 +196,10 @@ window.Rect.prototype = {
     box.bottom = Math.min(rect.bottom, this.bottom);
     if (box.width > 0 && box.height > 0)
       return box;
-      
+
     return null;
   },
-  
+
   
   
   
@@ -213,7 +213,7 @@ window.Rect.prototype = {
          && point.y > this.top
          && point.y < this.bottom )
   },
-  
+
   
   
   
@@ -227,35 +227,35 @@ window.Rect.prototype = {
          && rect.top > this.top
          && rect.bottom < this.bottom )
   },
-  
+
   
   
   
   center: function() {
     return new Point(this.left + (this.width / 2), this.top + (this.height / 2));
   },
-  
+
   
   
   
   size: function() {
     return new Point(this.width, this.height);
   },
-  
+
   
   
   
   position: function() {
     return new Point(this.left, this.top);
   },
-  
+
   
   
   
   area: function() {
     return this.width * this.height;
   },
-  
+
   
   
   
@@ -265,16 +265,16 @@ window.Rect.prototype = {
   
   inset: function(a, b) {
     if (typeof(a.x) != 'undefined' && typeof(a.y) != 'undefined') {
-      b = a.y; 
+      b = a.y;
       a = a.x;
     }
-    
+
     this.left += a;
     this.width -= a * 2;
     this.top += b;
     this.height -= b * 2;
   },
-  
+
   
   
   
@@ -290,7 +290,7 @@ window.Rect.prototype = {
       this.top += b;
     }
   },
-  
+
   
   
   
@@ -300,7 +300,7 @@ window.Rect.prototype = {
         && a.width == this.width
         && a.height == this.height);
   },
-  
+
   
   
   
@@ -309,11 +309,11 @@ window.Rect.prototype = {
     var newTop = Math.min(a.top, this.top);
     var newWidth = Math.max(a.right, this.right) - newLeft;
     var newHeight = Math.max(a.bottom, this.bottom) - newTop;
-    var newRect = new Rect(newLeft, newTop, newWidth, newHeight); 
-  
+    var newRect = new Rect(newLeft, newTop, newWidth, newHeight);
+
     return newRect;
   },
-  
+
   
   
   
@@ -323,7 +323,7 @@ window.Rect.prototype = {
     this.width = a.width;
     this.height = a.height;
   },
-  
+
   
   
   
@@ -359,12 +359,12 @@ window.Range = function(min, max) {
 
 
 window.isRange = function(r) {
-  return (r 
+  return (r
       && Utils.isNumber(r.min)
       && Utils.isNumber(r.max));
 };
 
-window.Range.prototype = {  
+window.Range.prototype = {
   
   
   get extent() {
@@ -404,7 +404,7 @@ window.Range.prototype = {
   
   
   overlaps: function(value) {
-    return Utils.isNumber(value) ? 
+    return Utils.isNumber(value) ?
       this.contains(value) :
       ( value.min <= this.max && this.min <= value.max );
   },
@@ -426,26 +426,26 @@ window.Subscribable.prototype = {
     try {
       Utils.assertThrow("refObject", refObject);
       Utils.assertThrow("callback must be a function", iQ.isFunction(callback));
-      Utils.assertThrow("eventName must be a non-empty string", 
+      Utils.assertThrow("eventName must be a non-empty string",
           eventName && typeof(eventName) == "string");
-          
+
       if (!this.subscribers)
         this.subscribers = {};
-        
+
       if (!this.subscribers[eventName])
         this.subscribers[eventName] = [];
-        
+
       var subs = this.subscribers[eventName];
       var existing = subs.filter(function(element) {
         return element.refObject == refObject;
       });
-      
+
       if (existing.length) {
         Utils.assert('should only ever be one', existing.length == 1);
         existing[0].callback = callback;
-      } else {  
+      } else {
         subs.push({
-          refObject: refObject, 
+          refObject: refObject,
           callback: callback
         });
       }
@@ -453,19 +453,19 @@ window.Subscribable.prototype = {
       Utils.log(e);
     }
   },
-  
+
   
   
   
   removeSubscriber: function(refObject, eventName) {
     try {
       Utils.assertThrow("refObject", refObject);
-      Utils.assertThrow("eventName must be a non-empty string", 
+      Utils.assertThrow("eventName must be a non-empty string",
           eventName && typeof(eventName) == "string");
-          
+
       if (!this.subscribers || !this.subscribers[eventName])
         return;
-        
+
       this.subscribers[eventName] = this.subscribers[eventName].filter(function(element) {
         return element.refObject != refObject;
       });
@@ -473,21 +473,21 @@ window.Subscribable.prototype = {
       Utils.log(e);
     }
   },
-  
+
   
   
   
   _sendToSubscribers: function(eventName, eventInfo) {
     try {
-      Utils.assertThrow("eventName must be a non-empty string", 
+      Utils.assertThrow("eventName must be a non-empty string",
           eventName && typeof(eventName) == "string");
-          
+
       if (!this.subscribers || !this.subscribers[eventName])
         return;
-        
+
       var self = this;
       var subsCopy = iQ.merge([], this.subscribers[eventName]);
-      subsCopy.forEach(function(object) { 
+      subsCopy.forEach(function(object) {
         object.callback(self, eventInfo);
       });
     } catch(e) {
@@ -501,7 +501,7 @@ window.Subscribable.prototype = {
 
 var Utils = {
   _isMac : null,
-  
+
   
 
   
@@ -511,7 +511,7 @@ var Utils = {
     try {
       var tabBrowser = this.getCurrentWindow().gBrowser;
       Utils.assert('tabBrowser', tabBrowser);
-      
+
       var rawTab = tabBrowser.selectedTab;
       for ( var i=0; i<Tabs.length; i++){
         if (Tabs[i].raw == rawTab)
@@ -520,10 +520,10 @@ var Utils = {
     } catch(e) {
       Utils.log(e);
     }
-    
+
     return null;
   },
-  
+
   
   
   
@@ -540,37 +540,37 @@ var Utils = {
         return browserWin;
       }
     }
-    
+
     return null;
   },
-  
+
   
 
   
   
   
   
-  log: function() { 
+  log: function() {
     var text = this.expandArgumentsForLog(arguments);
     consoleService.logStringMessage(text);
-  }, 
+  },
+
   
   
   
   
   
-  
-  error: function() { 
+  error: function() {
     var text = this.expandArgumentsForLog(arguments);
     Cu.reportError('tabcandy error: ' + text);
-  }, 
+  },
+
   
   
   
   
   
-  
-  trace: function() { 
+  trace: function() {
     var text = this.expandArgumentsForLog(arguments);
     if (typeof(printStackTrace) != 'function')
       this.log(text + ' trace: you need to include stacktrace.js');
@@ -579,8 +579,8 @@ var Utils = {
       calls.splice(0, 3); 
       this.log('trace: ' + text + '\n' + calls.join('\n'));
     }
-  }, 
-  
+  },
+
   
   
   
@@ -590,17 +590,17 @@ var Utils = {
       if (typeof(label) == 'undefined')
         text = 'badly formed assert';
       else
-        text = 'tabcandy assert: ' + label;        
-        
+        text = 'tabcandy assert: ' + label;
+
       if (typeof(printStackTrace) == 'function') {
         var calls = printStackTrace();
         text += '\n' + calls[3];
       }
-      
+
       this.trace(text);
     }
   },
-  
+
   
   
   
@@ -610,18 +610,18 @@ var Utils = {
       if (typeof(label) == 'undefined')
         text = 'badly formed assert';
       else
-        text = 'tabcandy assert: ' + label; 
-        
+        text = 'tabcandy assert: ' + label;
+
       if (typeof(printStackTrace) == 'function') {
         var calls = printStackTrace();
         calls.splice(0, 3); 
         text += '\n' + calls.join('\n');
       }
-  
-      throw text;       
+
+      throw text;
     }
   },
-  
+
   
   
   
@@ -630,11 +630,11 @@ var Utils = {
       for (prop in obj) {
         var value;
         try {
-          value = obj[prop]; 
+          value = obj[prop];
         } catch(e) {
           value = '[!!error retrieving property]';
         }
-        
+
         s += prop + ': ';
         if (typeof(value) == 'string')
           s += '\'' + value + '\'';
@@ -646,8 +646,8 @@ var Utils = {
         s += ", ";
       }
       return s + '}';
-    }, 
-    
+    },
+
   
   
   
@@ -659,26 +659,26 @@ var Utils = {
       var arg = args[a];
       if (typeof(arg) == 'object')
         arg = this.expandObject(arg);
-        
+
       s += arg;
       if (a < count - 1)
         s += '; ';
     }
-    
+
     return s;
   },
-  
+
   
   
   
   testLogging: function() {
-    this.log('beginning logging test'); 
+    this.log('beginning logging test');
     this.error('this is an error');
     this.trace('this is a trace');
     this.log(1, null, {'foo': 'hello', 'bar': 2}, 'whatever');
     this.log('ending logging test');
-  }, 
-  
+  },
+
   
 
   
@@ -687,12 +687,12 @@ var Utils = {
   isRightClick: function(event) {
     if (event.which)
       return (event.which == 3);
-    if (event.button) 
+    if (event.button)
       return (event.button == 2);
-    
+
     return false;
   },
-  
+
   
   
   
@@ -700,21 +700,21 @@ var Utils = {
     var date = new Date();
     return date.getTime();
   },
-  
+
   
   
   
   isDOMElement: function(object) {
     return (object && typeof(object.nodeType) != 'undefined' ? true : false);
   },
- 
+
   
   
   
   isNumber: function(n) {
     return (typeof(n) == 'number' && !isNaN(n));
   },
-  
+
   
   
   
@@ -723,10 +723,10 @@ var Utils = {
     if (value && typeof(value) == 'object') {
       if (iQ.isArray(value))
         return iQ.extend([], value);
-        
+
       return iQ.extend({}, value);
     }
-      
+
     return value;
   },
 
@@ -740,7 +740,7 @@ var Utils = {
 	  getService(Components.interfaces.nsIXULRuntime);
       this._isMac = (xulRuntime.OS == "Darwin");
     }
-    
+
     return this._isMac;
   }
 };
@@ -749,7 +749,7 @@ window.Utils = Utils;
 
 window.Math.tanh = function tanh(x){
   var e = Math.exp(x);
-  return (e - 1/e) / (e + 1/e); 
+  return (e - 1/e) / (e + 1/e);
 }
 
 })();
