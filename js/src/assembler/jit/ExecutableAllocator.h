@@ -95,7 +95,18 @@ public:
     
     size_t m_gcNumber;
 
-public:
+    void release(bool willDestroy = false)
+    { 
+        JS_ASSERT(m_refCount != 0);
+        JS_ASSERT_IF(willDestroy, m_refCount = 1);
+        if (--m_refCount == 0) {
+            
+            this->~ExecutablePool();
+            js_free(this);
+        }
+    }
+
+private:
     
     
     
@@ -103,13 +114,6 @@ public:
     {
         JS_ASSERT(m_refCount);
         ++m_refCount;
-    }
-
-    void release()
-    { 
-        JS_ASSERT(m_refCount != 0);
-        if (--m_refCount == 0)
-            this->destroy();
     }
 
 private:
@@ -132,13 +136,6 @@ private:
         return result;
     }
     
-    void destroy()
-    {
-        
-        this->~ExecutablePool();
-        js_free(this);
-    }
-
     size_t available() const { 
         JS_ASSERT(m_end >= m_freePtr);
         return m_end - m_freePtr;
@@ -174,7 +171,7 @@ public:
     ~ExecutableAllocator()
     {
         for (size_t i = 0; i < m_smallAllocationPools.length(); i++)
-            m_smallAllocationPools[i]->destroy();
+            m_smallAllocationPools[i]->release(true);
     }
 
     
