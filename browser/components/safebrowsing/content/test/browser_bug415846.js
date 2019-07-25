@@ -37,7 +37,7 @@ function testNormal_PopupListener() {
   
   
   
-  content.location = "http://www.mozilla.com/firefox/its-a-trap.html";
+  content.location = "http://www.mozilla.org/firefox/its-a-trap.html";
   setTimeout(testPhishing, 2000);
 }
 

@@ -8,7 +8,7 @@ function test() {
   
   
   window.addEventListener("DOMContentLoaded", testMalware, true);
-  content.location = "http://www.mozilla.com/firefox/its-an-attack.html";
+  content.location = "http://www.mozilla.org/firefox/its-an-attack.html";
 }
 
 function testMalware() {
@@ -23,7 +23,7 @@ function testMalware() {
   
   
   window.addEventListener("DOMContentLoaded", testPhishing, true);
-  content.location = "http://www.mozilla.com/firefox/its-a-trap.html";
+  content.location = "http://www.mozilla.org/firefox/its-a-trap.html";
 }
 
 function testPhishing() {
