@@ -605,13 +605,13 @@ function IdentityHandler() {
   this._stringBundle = document.getElementById("bundle_browser");
   this._staticStrings = {};
   this._staticStrings[this.IDENTITY_MODE_DOMAIN_VERIFIED] = {
-    encryption_label: this._stringBundle.getString("identity.encrypted")
+    encryption_label: this._stringBundle.getString("identity.encrypted2")
   };
   this._staticStrings[this.IDENTITY_MODE_IDENTIFIED] = {
-    encryption_label: this._stringBundle.getString("identity.encrypted")
+    encryption_label: this._stringBundle.getString("identity.encrypted2")
   };
   this._staticStrings[this.IDENTITY_MODE_UNKNOWN] = {
-    encryption_label: this._stringBundle.getString("identity.unencrypted")
+    encryption_label: this._stringBundle.getString("identity.unencrypted2")
   };
 
   this._cacheElements();
@@ -632,23 +632,14 @@ IdentityHandler.prototype = {
 
 
   _cacheElements: function() {
-    this._identityPopup = document.getElementById("identity-popup");
     this._identityBox = document.getElementById("identity-box");
+    this._identityPopup = document.getElementById("identity-container");
     this._identityPopupContentBox = document.getElementById("identity-popup-content-box");
     this._identityPopupContentHost = document.getElementById("identity-popup-content-host");
     this._identityPopupContentOwner = document.getElementById("identity-popup-content-owner");
     this._identityPopupContentSupp = document.getElementById("identity-popup-content-supplemental");
     this._identityPopupContentVerif = document.getElementById("identity-popup-content-verifier");
     this._identityPopupEncLabel = document.getElementById("identity-popup-encryption-label");
-  },
-
-  
-
-
-
-  handleMoreInfoClick: function(event) {
-    displaySecurityInfo();
-    event.stopPropagation();
   },
 
   
@@ -730,17 +721,11 @@ IdentityHandler.prototype = {
 
 
   setMode: function(newMode) {
-    if (!this._identityBox) {
-      
-      
-      return;
-    }
-
-    this._identityBox.className = newMode;
+    this._identityBox.setAttribute("mode", newMode);
     this.setIdentityMessages(newMode);
 
     
-    if (this._identityPopup.state == "open")
+    if (!this._identityPopup.hidden)
       this.setPopupMessages(newMode);
   },
 
@@ -800,8 +785,7 @@ IdentityHandler.prototype = {
 
 
   setPopupMessages: function(newMode) {
-
-    this._identityPopup.className = newMode;
+    this._identityPopup.setAttribute("mode", newMode);
     this._identityPopupContentBox.className = newMode;
 
     
@@ -849,15 +833,26 @@ IdentityHandler.prototype = {
     this._identityPopupContentVerif.textContent = verifier;
   },
 
-  hideIdentityPopup: function() {
-    this._identityPopup.hidePopup();
+  show: function ih_show() {
+    this._identityPopup.hidden = false;
+    this._identityPopup.top = BrowserUI.toolbarH;
+    this._identityPopup.focus();
+
+    
+    this.setPopupMessages(this._identityBox.getAttribute("mode") || this.IDENTITY_MODE_UNKNOWN);
+
+    window.addEventListener("blur", this, true);
+  },
+
+  hide: function ih_hide() {
+    window.removeEventListener("blur", this, true);
+    this._identityPopup.hidden = true;
   },
 
   
 
 
   handleIdentityButtonEvent: function(event) {
-
     event.stopPropagation();
 
     if ((event.type == "click" && event.button != 0) ||
@@ -865,20 +860,15 @@ IdentityHandler.prototype = {
          event.keyCode != KeyEvent.DOM_VK_RETURN))
       return; 
 
-    
-    
-    this._identityPopup.hidden = false;
+    if (this._identityPopup.hidden)
+      this.show();
+    else
+      this.hide();
+  },
 
+  handleEvent: function(event) {
     
-    this._identityPopup.popupBoxObject
-        .setConsumeRollupEvent(Ci.nsIPopupBoxObject.ROLLUP_CONSUME);
-
-    
-    this.setPopupMessages(this._identityBox.className ||
-                          this.IDENTITY_MODE_UNKNOWN);
-
-    
-    this._identityPopup.openPopup(this._identityBox, 'after_start');
+    this.hide();
   }
 };
 
