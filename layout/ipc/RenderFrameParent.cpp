@@ -351,35 +351,37 @@ BuildViewMap(ViewMap& oldContentViews, ViewMap& newContentViews,
   const FrameMetrics metrics = container->GetFrameMetrics();
   const ViewID scrollId = metrics.mScrollId;
 
-  nscoord auPerDevPixel = aFrameLoader->GetPrimaryFrameOfOwningContent()
-                                      ->PresContext()->AppUnitsPerDevPixel();
-  nsContentView* view = FindViewForId(oldContentViews, scrollId);
-  if (view) {
-    
-    
-    ViewConfig config = view->GetViewConfig();
-    aXScale *= config.mXScale;
-    aYScale *= config.mYScale;
-    view->mOwnerContent = aFrameLoader->GetOwnerContent();
-  } else {
-    
-    
-    
-    ViewConfig config;
-    config.mScrollOffset = nsPoint(
-      NSIntPixelsToAppUnits(metrics.mViewportScrollOffset.x, auPerDevPixel) * aXScale,
-      NSIntPixelsToAppUnits(metrics.mViewportScrollOffset.y, auPerDevPixel) * aYScale);
-    view = new nsContentView(aFrameLoader->GetOwnerContent(), scrollId, config);
+  if (metrics.IsScrollable()) {
+    nscoord auPerDevPixel = aFrameLoader->GetPrimaryFrameOfOwningContent()
+                                        ->PresContext()->AppUnitsPerDevPixel();
+    nsContentView* view = FindViewForId(oldContentViews, scrollId);
+    if (view) {
+      
+      
+      ViewConfig config = view->GetViewConfig();
+      aXScale *= config.mXScale;
+      aYScale *= config.mYScale;
+      view->mOwnerContent = aFrameLoader->GetOwnerContent();
+    } else {
+      
+      
+      
+      ViewConfig config;
+      config.mScrollOffset = nsPoint(
+        NSIntPixelsToAppUnits(metrics.mViewportScrollOffset.x, auPerDevPixel) * aXScale,
+        NSIntPixelsToAppUnits(metrics.mViewportScrollOffset.y, auPerDevPixel) * aYScale);
+      view = new nsContentView(aFrameLoader->GetOwnerContent(), scrollId, config);
+    }
+
+    view->mViewportSize = nsSize(
+      NSIntPixelsToAppUnits(metrics.mViewport.width, auPerDevPixel) * aXScale,
+      NSIntPixelsToAppUnits(metrics.mViewport.height, auPerDevPixel) * aYScale);
+    view->mContentSize = nsSize(
+      NSIntPixelsToAppUnits(metrics.mContentSize.width, auPerDevPixel) * aXScale,
+      NSIntPixelsToAppUnits(metrics.mContentSize.height, auPerDevPixel) * aYScale);
+
+    newContentViews.insert(ViewMap::value_type(scrollId, view));
   }
-
-  view->mViewportSize = nsSize(
-    NSIntPixelsToAppUnits(metrics.mViewport.width, auPerDevPixel) * aXScale,
-    NSIntPixelsToAppUnits(metrics.mViewport.height, auPerDevPixel) * aYScale);
-  view->mContentSize = nsSize(
-    NSIntPixelsToAppUnits(metrics.mContentSize.width, auPerDevPixel) * aXScale,
-    NSIntPixelsToAppUnits(metrics.mContentSize.height, auPerDevPixel) * aYScale);
-
-  newContentViews.insert(ViewMap::value_type(scrollId, view));
 
   for (Layer* child = aLayer->GetFirstChild();
        child; child = child->GetNextSibling()) {
