@@ -98,7 +98,10 @@ static nscoord CalcLength(const nsCSSValue &aValue,
                           nsPresContext* aPresContext,
                           PRBool &aCanStoreInRuleTree)
 {
-  if (aValue.GetUnit() == eCSSUnit_Pixel) {
+  if (aValue.GetUnit() == eCSSUnit_Pixel ||
+      aValue.GetUnit() == eCSSUnit_Number) {
+    
+    
     
     
     
@@ -173,7 +176,12 @@ nsStyleTransformMatrix::ProcessMatrix(const nsCSSValue::Array* aData,
 }
 
  gfx3DMatrix
-nsStyleTransformMatrix::ProcessMatrix3D(const nsCSSValue::Array* aData)
+nsStyleTransformMatrix::ProcessMatrix3D(const nsCSSValue::Array* aData,
+                                        nsStyleContext* aContext,
+                                        nsPresContext* aPresContext,
+                                        PRBool& aCanStoreInRuleTree,
+                                        nsRect& aBounds, float aAppUnitsPerMatrixUnit,
+                                        PRBool *aPercentX, PRBool *aPercentY)
 {
   NS_PRECONDITION(aData->Count() == 17, "Invalid array!");
 
@@ -191,10 +199,17 @@ nsStyleTransformMatrix::ProcessMatrix3D(const nsCSSValue::Array* aData)
   temp._32 = aData->Item(10).GetFloatValue();
   temp._33 = aData->Item(11).GetFloatValue();
   temp._34 = aData->Item(12).GetFloatValue();
-  temp._41 = aData->Item(13).GetFloatValue();
-  temp._42 = aData->Item(14).GetFloatValue();
-  temp._43 = aData->Item(15).GetFloatValue();
   temp._44 = aData->Item(16).GetFloatValue();
+
+  ProcessTranslatePart(temp._41, aData->Item(13),
+                       aContext, aPresContext, aCanStoreInRuleTree,
+                       aBounds.Width(), aAppUnitsPerMatrixUnit);
+  ProcessTranslatePart(temp._42, aData->Item(14),
+                       aContext, aPresContext, aCanStoreInRuleTree,
+                       aBounds.Height(), aAppUnitsPerMatrixUnit);
+  ProcessTranslatePart(temp._43, aData->Item(15),
+                       aContext, aPresContext, aCanStoreInRuleTree,
+                       aBounds.Height(), aAppUnitsPerMatrixUnit);
   return temp;
 }
 
@@ -701,7 +716,8 @@ nsStyleTransformMatrix::MatrixForTransformFunction(const nsCSSValue::Array * aDa
     return ProcessMatrix(aData, aContext, aPresContext,
                          aCanStoreInRuleTree, aBounds, aAppUnitsPerMatrixUnit);
   case eCSSKeyword_matrix3d:
-    return ProcessMatrix3D(aData);
+    return ProcessMatrix3D(aData, aContext, aPresContext,
+                           aCanStoreInRuleTree, aBounds, aAppUnitsPerMatrixUnit);
   case eCSSKeyword_interpolatematrix:
     return ProcessInterpolateMatrix(aData, aContext, aPresContext,
                                     aCanStoreInRuleTree, aBounds, aAppUnitsPerMatrixUnit);
