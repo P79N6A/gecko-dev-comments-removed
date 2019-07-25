@@ -524,6 +524,8 @@ protected:
 
   void SetChromeEventHandlerInternal(nsPIDOMEventTarget* aChromeEventHandler) {
     mChromeEventHandler = aChromeEventHandler;
+    
+    mParentTarget = nsnull;
   }
 
   
@@ -531,6 +533,8 @@ protected:
   
   nsCOMPtr<nsPIDOMEventTarget> mChromeEventHandler; 
   nsCOMPtr<nsIDOMDocument> mDocument; 
+
+  nsCOMPtr<nsPIDOMEventTarget> mParentTarget; 
 
   
   nsCOMPtr<nsIDOMElement> mFrameElement;
