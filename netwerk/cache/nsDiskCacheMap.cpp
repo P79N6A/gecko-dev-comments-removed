@@ -581,7 +581,9 @@ nsDiskCacheMap::EvictRecords( nsDiskCacheRecordVisitor * visitor)
 
     
     
-    for (int n = 0; n < mHeader.mEntryCount; ++n) {
+    
+    PRInt32 entryCount = mHeader.mEntryCount;
+    for (int n = 0; n < entryCount; ++n) {
     
         
         PRUint32    rank  = 0;
@@ -829,7 +831,6 @@ nsDiskCacheMap::WriteDiskCacheEntry(nsDiskCacheBinding *  binding)
         if ((binding->mRecord.MetaFile() == 0) &&
             (fileIndex == 0)) {  
             
-            
             DecrementTotalSize(binding->mRecord.MetaFileSize());
             NS_ASSERTION(binding->mRecord.MetaFileGeneration() == binding->mGeneration,
                          "generations out of sync");
@@ -877,14 +878,15 @@ nsDiskCacheMap::WriteDiskCacheEntry(nsDiskCacheBinding *  binding)
     if (fileIndex == 0) {
         
         PRUint32 metaFileSizeK = ((size + 0x03FF) >> 10); 
-        nsCOMPtr<nsILocalFile> localFile;
-        
-        
+        if (metaFileSizeK > kMaxDataSizeK)
+            metaFileSizeK = kMaxDataSizeK;
+
         binding->mRecord.SetMetaFileGeneration(binding->mGeneration);
         binding->mRecord.SetMetaFileSize(metaFileSizeK);
         rv = UpdateRecord(&binding->mRecord);
         NS_ENSURE_SUCCESS(rv, rv);
 
+        nsCOMPtr<nsILocalFile> localFile;
         rv = GetLocalFileForDiskCacheRecord(&binding->mRecord,
                                             nsDiskCache::kMetaData,
                                             PR_TRUE,
@@ -904,7 +906,7 @@ nsDiskCacheMap::WriteDiskCacheEntry(nsDiskCacheBinding *  binding)
         if ((bytesWritten != (PRInt32)size) || (err != PR_SUCCESS)) {
             return NS_ERROR_UNEXPECTED;
         }
-        
+
         IncrementTotalSize(metaFileSizeK);
     }
 
