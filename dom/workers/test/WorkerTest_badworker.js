@@ -1,7 +1,0 @@
-
-
-
-
-onmessage = function(event) {
-  throw "Shouldn't be able to read this!";
-}

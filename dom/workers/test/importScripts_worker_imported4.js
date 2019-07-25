@@ -1,6 +1,0 @@
-
-
-
-
-
-throw new Error("Bah!");

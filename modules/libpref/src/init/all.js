@@ -98,11 +98,6 @@ pref("dom.indexedDB.enabled", true);
 pref("dom.indexedDB.warningQuota", 50);
 
 
-pref("dom.workers.enabled", true);
-
-pref("dom.workers.maxPerDomain", 20);
-
-
 pref("dom.enable_performance", true);
 
 
