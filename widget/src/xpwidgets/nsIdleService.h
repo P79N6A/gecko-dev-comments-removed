@@ -215,6 +215,12 @@ private:
 
 
   static void IdleTimerCallback(nsITimer* aTimer, void* aClosure);
+
+  
+
+
+
+  bool mPolledIdleTimeIsValid;
 };
 
 #endif 

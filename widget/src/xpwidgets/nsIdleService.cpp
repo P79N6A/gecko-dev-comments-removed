@@ -179,7 +179,9 @@ nsIdleServiceDaily::DailyCallback(nsITimer* aTimer, void* aClosure)
 
 
 
-nsIdleService::nsIdleService() : mLastIdleReset(0), mLastHandledActivity(0)
+nsIdleService::nsIdleService() : mLastIdleReset(0)
+                               , mLastHandledActivity(0)
+                               , mPolledIdleTimeIsValid(false)
 {
   mDailyIdle = new nsIdleServiceDaily(this);
 }
@@ -239,13 +241,18 @@ nsIdleService::RemoveIdleObserver(nsIObserver* aObserver, PRUint32 aTime)
 void
 nsIdleService::ResetIdleTimeOut()
 {
+  
+  
+  bool calledBefore = mLastIdleReset != 0;
   mLastIdleReset = PR_IntervalToSeconds(PR_IntervalNow());
-  
-  
   if (!mLastIdleReset) mLastIdleReset = 1;
 
   
-  CheckAwayState(true);
+  
+  
+  
+  
+  CheckAwayState(calledBefore);
 }
 
 NS_IMETHODIMP
@@ -258,12 +265,11 @@ nsIdleService::GetIdleTime(PRUint32* idleTime)
 
   
   PRUint32 polledIdleTimeMS;
-  bool polledIdleTimeIsValid;
 
-  polledIdleTimeIsValid = PollIdleTime(&polledIdleTimeMS);
+  mPolledIdleTimeIsValid = PollIdleTime(&polledIdleTimeMS);
 
   
-  if (!polledIdleTimeIsValid && 0 == mLastIdleReset) {
+  if (!mPolledIdleTimeIsValid && 0 == mLastIdleReset) {
     *idleTime = 0;
     return NS_OK;
   }
@@ -279,7 +285,7 @@ nsIdleService::GetIdleTime(PRUint32* idleTime)
     PR_IntervalToSeconds(PR_IntervalNow()) - mLastIdleReset;
 
   
-  if (!polledIdleTimeIsValid) {
+  if (!mPolledIdleTimeIsValid) {
     
     *idleTime = timeSinceReset * 1000;
     return NS_OK;
@@ -326,6 +332,11 @@ nsIdleService::CheckAwayState(bool aNoTimeReset)
   
   PRUint32 idleTime;
   if (NS_FAILED(GetIdleTime(&idleTime))) {
+    return;
+  }
+
+  
+  if (!mPolledIdleTimeIsValid && 0 == mLastIdleReset) {
     return;
   }
 
