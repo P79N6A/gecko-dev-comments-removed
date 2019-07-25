@@ -810,8 +810,10 @@ function setupAddons(aCallback) {
       
       
       
+      
       if (aAddon.type != "plugin" && !aAddon.appDisabled &&
-          !aAddon.userDisabled) {
+          !aAddon.userDisabled &&
+          aAddon.scope != AddonManager.SCOPE_APPLICATION) {
         disabledAddons.push(aAddon);
         aAddon.userDisabled = true;
       }
