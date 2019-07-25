@@ -13,6 +13,8 @@ pref("extensions.weave.autoconnect", true);
 pref("extensions.weave.enabled", true);
 pref("extensions.weave.schedule", 1);
 
+pref("extensions.weave.syncOnQuit.enabled", true);
+
 pref("extensions.weave.engine.bookmarks", true);
 pref("extensions.weave.engine.history", true);
 pref("extensions.weave.engine.cookies", true );
@@ -36,3 +38,5 @@ pref("extensions.weave.xmpp.enabled", true);
 pref("extensions.weave.xmpp.server.url",
      "https://sm-labs01.mozilla.org:81/xmpp");
 pref("extensions.weave.xmpp.server.realm", "sm-labs01.mozilla.org");
+pref("extensions.weave.xmpp.client.name", "");
+pref("extensions.weave.xmpp.client.password", "");
