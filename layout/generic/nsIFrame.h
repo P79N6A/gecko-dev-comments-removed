@@ -287,13 +287,7 @@ typedef PRUint64 nsFrameState;
 #define NS_FRAME_DESCENDANT_NEEDS_PAINT             NS_FRAME_STATE_BIT(46)
 
 
-
-
-
-#define NS_FRAME_ALL_DESCENDANTS_NEED_PAINT         NS_FRAME_STATE_BIT(47)
-
-
-#define NS_FRAME_IN_POPUP                           NS_FRAME_STATE_BIT(48)
+#define NS_FRAME_IN_POPUP                           NS_FRAME_STATE_BIT(47)
 
 
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
