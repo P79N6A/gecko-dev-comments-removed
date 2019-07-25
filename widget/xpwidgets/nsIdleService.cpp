@@ -113,6 +113,9 @@ nsIdleServiceDaily::Observe(nsISupports *,
 #endif
 
   
+  mDailyTimerStart  = PR_Now();
+
+  
   (void)mTimer->InitWithFuncCallback(DailyCallback,
                                      this,
                                      SECONDS_PER_DAY * PR_MSEC_PER_SEC,
@@ -153,6 +156,10 @@ nsIdleServiceDaily::Init()
 #ifdef ANDROID
     __android_log_print(ANDROID_LOG_INFO, "IdleService", "Setting timer a day from now");
 #endif
+
+    
+    mDailyTimerStart  = PR_Now();
+
     
     (void)mTimer->InitWithFuncCallback(DailyCallback,
                                        this,
@@ -182,10 +189,39 @@ void
 nsIdleServiceDaily::DailyCallback(nsITimer* aTimer, void* aClosure)
 {
 #ifdef ANDROID
-  __android_log_print(ANDROID_LOG_INFO, "IdleService", "DailyCallback running, registering Idle observer");
+  __android_log_print(ANDROID_LOG_INFO, "IdleService", "DailyCallback running");
 #endif
 
   nsIdleServiceDaily* me = static_cast<nsIdleServiceDaily*>(aClosure);
+
+  PRTime now = PR_Now();
+  PRTime launchTime = me->mDailyTimerStart + ((PRTime)SECONDS_PER_DAY * PR_USEC_PER_SEC);
+
+  
+  if (now < launchTime) {
+      
+      PRTime newTime = launchTime;
+
+      
+      newTime += 10 * PR_USEC_PER_MSEC;
+
+#ifdef ANDROID
+      __android_log_print(ANDROID_LOG_INFO, "IdleService",
+                          "DailyCallback resetting timer to %lld msec",
+                          (newTime - now) / PR_USEC_PER_MSEC);
+#endif
+
+      
+      (void)me->mTimer->InitWithFuncCallback(DailyCallback,
+                                             me,
+                                             (newTime - now) / PR_USEC_PER_MSEC,
+                                             nsITimer::TYPE_ONE_SHOT);
+      return;
+  }
+
+#ifdef ANDROID
+  __android_log_print(ANDROID_LOG_INFO, "IdleService", "DailyCallback registering Idle observer");
+#endif
 
   
   

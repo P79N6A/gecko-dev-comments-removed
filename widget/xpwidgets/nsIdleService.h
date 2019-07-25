@@ -89,6 +89,12 @@ private:
 
 
   bool mShutdownInProgress;
+
+  
+
+
+
+  PRTime mDailyTimerStart;
 };
 
 class nsIdleService : public nsIIdleServiceInternal
