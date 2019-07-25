@@ -36,6 +36,7 @@
 
 
 
+
 "use strict";
 
 const Cu = Components.utils;
@@ -150,6 +151,16 @@ SourceEditor.EVENTS = {
 
 
   SELECTION: "Selection",
+
+  
+
+
+  FOCUS: "Focus",
+
+  
+
+
+  BLUR: "Blur",
 };
 
 

@@ -37,6 +37,7 @@
 
 
 
+
 "use strict";
 
 const Cu = Components.utils;
@@ -75,6 +76,8 @@ const ORION_EVENTS = {
   ContextMenu: "ContextMenu",
   TextChanged: "ModelChanged",
   Selection: "Selection",
+  Focus: "Focus",
+  Blur: "Blur",
 };
 
 
