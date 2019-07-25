@@ -3,7 +3,7 @@
 
 
 
-#include "nsXULAlertAccessible.h"
+#include "XULAlertAccessible.h"
 
 #include "Role.h"
 #include "States.h"
@@ -14,28 +14,28 @@ using namespace mozilla::a11y;
 
 
 
-nsXULAlertAccessible::
-  nsXULAlertAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+XULAlertAccessible::
+  XULAlertAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   AccessibleWrap(aContent, aDoc)
 {
 }
 
-NS_IMPL_ISUPPORTS_INHERITED0(nsXULAlertAccessible, Accessible)
+NS_IMPL_ISUPPORTS_INHERITED0(XULAlertAccessible, Accessible)
 
 role
-nsXULAlertAccessible::NativeRole()
+XULAlertAccessible::NativeRole()
 {
   return roles::ALERT;
 }
 
 PRUint64
-nsXULAlertAccessible::NativeState()
+XULAlertAccessible::NativeState()
 {
   return Accessible::NativeState() | states::ALERT;
 }
 
 ENameValueFlag
-nsXULAlertAccessible::Name(nsString& aName)
+XULAlertAccessible::Name(nsString& aName)
 {
   
   
@@ -47,13 +47,13 @@ nsXULAlertAccessible::Name(nsString& aName)
 
 
 bool
-nsXULAlertAccessible::IsWidget() const
+XULAlertAccessible::IsWidget() const
 {
   return true;
 }
 
 Accessible*
-nsXULAlertAccessible::ContainerWidget() const
+XULAlertAccessible::ContainerWidget() const
 {
   
   if (mParent && mParent->IsMenuButton())

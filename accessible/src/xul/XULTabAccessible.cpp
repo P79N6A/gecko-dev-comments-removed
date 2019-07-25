@@ -3,7 +3,7 @@
 
 
 
-#include "nsXULTabAccessible.h"
+#include "XULTabAccessible.h"
 
 #include "nsAccUtils.h"
 #include "Relation.h"
@@ -25,8 +25,8 @@ using namespace mozilla::a11y;
 
 
 
-nsXULTabAccessible::
-  nsXULTabAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+XULTabAccessible::
+  XULTabAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   AccessibleWrap(aContent, aDoc)
 {
 }
@@ -35,13 +35,14 @@ nsXULTabAccessible::
 
 
 PRUint8
-nsXULTabAccessible::ActionCount()
+XULTabAccessible::ActionCount()
 {
   return 1;
 }
 
 
-NS_IMETHODIMP nsXULTabAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
+NS_IMETHODIMP
+XULTabAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   if (aIndex == eAction_Switch) {
     aName.AssignLiteral("switch"); 
@@ -51,7 +52,8 @@ NS_IMETHODIMP nsXULTabAccessible::GetActionName(PRUint8 aIndex, nsAString& aName
 }
 
 
-NS_IMETHODIMP nsXULTabAccessible::DoAction(PRUint8 index)
+NS_IMETHODIMP
+XULTabAccessible::DoAction(PRUint8 index)
 {
   if (index == eAction_Switch) {
     nsCOMPtr<nsIDOMXULElement> tab(do_QueryInterface(mContent));
@@ -69,13 +71,13 @@ NS_IMETHODIMP nsXULTabAccessible::DoAction(PRUint8 index)
 
 
 role
-nsXULTabAccessible::NativeRole()
+XULTabAccessible::NativeRole()
 {
   return roles::PAGETAB;
 }
 
 PRUint64
-nsXULTabAccessible::NativeState()
+XULTabAccessible::NativeState()
 {
   
 
@@ -93,7 +95,7 @@ nsXULTabAccessible::NativeState()
 }
 
 PRUint64
-nsXULTabAccessible::NativeInteractiveState() const
+XULTabAccessible::NativeInteractiveState() const
 {
   PRUint64 state = Accessible::NativeInteractiveState();
   return (state & states::UNAVAILABLE) ? state : state | states::SELECTABLE;
@@ -101,7 +103,7 @@ nsXULTabAccessible::NativeInteractiveState() const
 
 
 Relation
-nsXULTabAccessible::RelationByType(PRUint32 aType)
+XULTabAccessible::RelationByType(PRUint32 aType)
 {
   Relation rel = AccessibleWrap::RelationByType(aType);
   if (aType != nsIAccessibleRelation::RELATION_LABEL_FOR)
@@ -129,32 +131,32 @@ nsXULTabAccessible::RelationByType(PRUint32 aType)
 
 
 
-nsXULTabsAccessible::
-  nsXULTabsAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+XULTabsAccessible::
+  XULTabsAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   XULSelectControlAccessible(aContent, aDoc)
 {
 }
 
 role
-nsXULTabsAccessible::NativeRole()
+XULTabsAccessible::NativeRole()
 {
   return roles::PAGETABLIST;
 }
 
 PRUint8
-nsXULTabsAccessible::ActionCount()
+XULTabsAccessible::ActionCount()
 {
   return 0;
 }
 
 void
-nsXULTabsAccessible::Value(nsString& aValue)
+XULTabsAccessible::Value(nsString& aValue)
 {
   aValue.Truncate();
 }
 
 nsresult
-nsXULTabsAccessible::GetNameInternal(nsAString& aName)
+XULTabsAccessible::GetNameInternal(nsAString& aName)
 {
   
   return NS_OK;
@@ -165,14 +167,14 @@ nsXULTabsAccessible::GetNameInternal(nsAString& aName)
 
 
 
-nsXULTabpanelsAccessible::
-  nsXULTabpanelsAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+XULTabpanelsAccessible::
+  XULTabpanelsAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   AccessibleWrap(aContent, aDoc)
 {
 }
 
 role
-nsXULTabpanelsAccessible::NativeRole()
+XULTabpanelsAccessible::NativeRole()
 {
   return roles::PANE;
 }
@@ -182,20 +184,20 @@ nsXULTabpanelsAccessible::NativeRole()
 
 
 
-nsXULTabpanelAccessible::
-  nsXULTabpanelAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+XULTabpanelAccessible::
+  XULTabpanelAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   AccessibleWrap(aContent, aDoc)
 {
 }
 
 role
-nsXULTabpanelAccessible::NativeRole()
+XULTabpanelAccessible::NativeRole()
 {
   return roles::PROPERTYPAGE;
 }
 
 Relation
-nsXULTabpanelAccessible::RelationByType(PRUint32 aType)
+XULTabpanelAccessible::RelationByType(PRUint32 aType)
 {
   Relation rel = AccessibleWrap::RelationByType(aType);
   if (aType != nsIAccessibleRelation::RELATION_LABELLED_BY)

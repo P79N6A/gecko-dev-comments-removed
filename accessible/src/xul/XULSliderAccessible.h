@@ -3,20 +3,23 @@
 
 
 
-#ifndef _nsXULSliderAccessible_H_
-#define _nsXULSliderAccessible_H_
+#ifndef mozilla_a11y_XULSliderAccessible_h__
+#define mozilla_a11y_XULSliderAccessible_h__
 
 #include "AccessibleWrap.h"
 
 #include "nsIDOMElement.h"
 
+namespace mozilla {
+namespace a11y {
 
 
 
-class nsXULSliderAccessible : public AccessibleWrap
+
+class XULSliderAccessible : public AccessibleWrap
 {
 public:
-  nsXULSliderAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  XULSliderAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -30,7 +33,7 @@ public:
 
   
   virtual void Value(nsString& aValue);
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeInteractiveState() const;
   virtual bool NativelyUnavailable() const;
   virtual bool CanHaveAnonChildren();
@@ -58,14 +61,17 @@ private:
 
 
 
-class nsXULThumbAccessible : public AccessibleWrap
+class XULThumbAccessible : public AccessibleWrap
 {
 public:
-  nsXULThumbAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  XULThumbAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
 };
+
+} 
+} 
 
 #endif
 

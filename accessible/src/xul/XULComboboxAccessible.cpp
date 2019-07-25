@@ -3,7 +3,7 @@
 
 
 
-#include "nsXULComboboxAccessible.h"
+#include "XULComboboxAccessible.h"
 
 #include "Accessible-inl.h"
 #include "nsAccessibilityService.h"
@@ -22,8 +22,8 @@ using namespace mozilla::a11y;
 
 
 
-nsXULComboboxAccessible::
-  nsXULComboboxAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+XULComboboxAccessible::
+  XULComboboxAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   AccessibleWrap(aContent, aDoc)
 {
   if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
@@ -34,13 +34,13 @@ nsXULComboboxAccessible::
 }
 
 role
-nsXULComboboxAccessible::NativeRole()
+XULComboboxAccessible::NativeRole()
 {
   return IsAutoComplete() ? roles::AUTOCOMPLETE : roles::COMBOBOX;
 }
 
 PRUint64
-nsXULComboboxAccessible::NativeState()
+XULComboboxAccessible::NativeState()
 {
   
   
@@ -66,7 +66,7 @@ nsXULComboboxAccessible::NativeState()
 }
 
 void
-nsXULComboboxAccessible::Description(nsString& aDescription)
+XULComboboxAccessible::Description(nsString& aDescription)
 {
   aDescription.Truncate();
   
@@ -86,7 +86,7 @@ nsXULComboboxAccessible::Description(nsString& aDescription)
 }
 
 void
-nsXULComboboxAccessible::Value(nsString& aValue)
+XULComboboxAccessible::Value(nsString& aValue)
 {
   aValue.Truncate();
 
@@ -97,7 +97,7 @@ nsXULComboboxAccessible::Value(nsString& aValue)
 }
 
 bool
-nsXULComboboxAccessible::CanHaveAnonChildren()
+XULComboboxAccessible::CanHaveAnonChildren()
 {
   if (mContent->NodeInfo()->Equals(nsGkAtoms::textbox, kNameSpaceID_XUL) ||
       mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::editable,
@@ -112,17 +112,18 @@ nsXULComboboxAccessible::CanHaveAnonChildren()
   
   return false;
 }
+
 PRUint8
-nsXULComboboxAccessible::ActionCount()
+XULComboboxAccessible::ActionCount()
 {
   
   return 1;
 }
 
 NS_IMETHODIMP
-nsXULComboboxAccessible::DoAction(PRUint8 aIndex)
+XULComboboxAccessible::DoAction(PRUint8 aIndex)
 {
-  if (aIndex != nsXULComboboxAccessible::eAction_Click) {
+  if (aIndex != XULComboboxAccessible::eAction_Click) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -140,9 +141,9 @@ nsXULComboboxAccessible::DoAction(PRUint8 aIndex)
 }
 
 NS_IMETHODIMP
-nsXULComboboxAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
+XULComboboxAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
-  if (aIndex != nsXULComboboxAccessible::eAction_Click) {
+  if (aIndex != XULComboboxAccessible::eAction_Click) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -172,7 +173,7 @@ nsXULComboboxAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 
 
 bool
-nsXULComboboxAccessible::IsActiveWidget() const
+XULComboboxAccessible::IsActiveWidget() const
 {
   if (IsAutoComplete() ||
      mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::editable,
@@ -190,7 +191,7 @@ nsXULComboboxAccessible::IsActiveWidget() const
 }
 
 bool
-nsXULComboboxAccessible::AreItemsOperable() const
+XULComboboxAccessible::AreItemsOperable() const
 {
   if (IsAutoComplete()) {
     nsCOMPtr<nsIAutoCompleteInput> autoCompleteInputElm =
