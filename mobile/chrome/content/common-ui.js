@@ -751,7 +751,7 @@ var FormHelperUI = {
         
         
         let focusedElement = gFocusManager.getFocusedElementForWindow(window, true, {});
-        if (focusedElement.localName == "browser")
+        if (focusedElement && focusedElement.localName == "browser")
           return;
 
         Browser.keySender.handleEvent(aEvent);
