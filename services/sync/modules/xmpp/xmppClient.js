@@ -95,7 +95,7 @@ XmppClient.prototype = {
   onIncomingData: function( messageText ) {
     this._log.debug("onIncomingData(): rcvd: " + messageText);
     var responseDOM = this._parser.parseFromString( messageText, "text/xml" );
-    
+
     
     if (messageText.match("^</stream:stream>$")) {
       this._handleServerDisconnection();
@@ -312,7 +312,7 @@ XmppClient.prototype = {
     }
     this._transportLayer.connect();
     this._transportLayer.setCallbackObject( this );
-    this._transportLayer.send( this._makeHeaderXml( host ) );    
+    this._transportLayer.send( this._makeHeaderXml( host ) );
     this._connectionStatus = this.CALLED_SERVER;
     
     
