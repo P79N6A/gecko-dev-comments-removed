@@ -60,6 +60,13 @@ var autoupdateErrDetailString = "security.crl.autoupdate.errDetail.";
 var autoupdateDayCntString    = "security.crl.autoupdate.dayCnt.";
 var autoupdateFreqCntString   = "security.crl.autoupdate.freqCnt.";
 
+function doPrompt(msg)
+{
+  let prompts = Components.classes["@mozilla.org/embedcomp/prompt-service;1"].
+    getService(Components.interfaces.nsIPromptService);
+  prompts.alert(window, null, msg);
+}
+
 function onLoad()
 {
   crlManager = Components.classes[nsCRLManager].getService(nsICRLManager);
@@ -254,13 +261,13 @@ function validatePrefs()
 
    var tmp = parseFloat(dayCnt);
    if(!(tmp > 0.0)){
-     alert(bundle.GetStringFromName("crlAutoUpdateDayCntError"));
+     doPrompt(bundle.GetStringFromName("crlAutoUpdateDayCntError"));
      return false;
    }
    
    tmp = parseFloat(freqCnt);
    if(!(tmp > 0.0)){
-     alert(bundle.GetStringFromName("crlAutoUpdtaeFreqCntError"));
+     doPrompt(bundle.GetStringFromName("crlAutoUpdtaeFreqCntError"));
      return false;
    }
    
