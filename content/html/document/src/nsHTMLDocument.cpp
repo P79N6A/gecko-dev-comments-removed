@@ -2970,6 +2970,16 @@ ConvertToMidasInternalCommandInner(const nsAString& inCommandID,
     if (j == ArrayLength(gBlocks)) {
       outParam.Truncate();
     }
+  } else if (outCommandID.EqualsLiteral("cmd_fontSize")) {
+    
+    
+    
+    
+    outParam.Truncate();
+    PRInt32 size = nsContentUtils::ParseLegacyFontSize(inParam);
+    if (size) {
+      outParam.AppendInt(size);
+    }
   } else {
     CopyUTF16toUTF8(inParam, outParam);
   }
@@ -3106,7 +3116,8 @@ nsHTMLDocument::ExecCommand(const nsAString & commandID,
                                      cmdToDispatch, paramStr, isBool, boolVal))
     return NS_OK;
 
-  if (cmdToDispatch.EqualsLiteral("cmd_paragraphState") && paramStr.IsEmpty()) {
+  if ((cmdToDispatch.EqualsLiteral("cmd_paragraphState") ||
+       cmdToDispatch.EqualsLiteral("cmd_fontSize")) && paramStr.IsEmpty()) {
     
     return NS_OK;
   }
