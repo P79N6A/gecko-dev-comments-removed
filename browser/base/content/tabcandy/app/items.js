@@ -104,6 +104,10 @@ window.Item = function() {
   
   
   this.dropOptions = null;
+  
+  
+  
+  this.isDragging = false;
 };
 
 window.Item.prototype = { 

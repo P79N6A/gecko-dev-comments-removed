@@ -60,6 +60,7 @@ window.TabItem = function(container, tab) {
   
   $div.data('tabItem', this);
   $div.data('isDragging', false);
+  this.isDragging = false;
   
   
   this._init(container);

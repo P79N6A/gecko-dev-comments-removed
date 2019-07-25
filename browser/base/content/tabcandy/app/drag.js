@@ -61,6 +61,7 @@ var Drag = function(element, event) {
   this.startPosition = new Point(event.clientX, event.clientY);
   this.startTime = Utils.getMilliseconds();
   
+  this.item.isDragging = true;
   this.$el.data('isDragging', true);
   this.item.setZ(999999);
   
@@ -81,12 +82,12 @@ var Drag = function(element, event) {
 Drag.prototype = {
   
   snap: function(event, ui){
-		var bounds = this.item.getBounds();
+    var bounds = this.item.getBounds();
 
-		
-		var newRect = Trenches.snap(bounds,true);
-		if (newRect) 
-			this.item.setBounds(newRect,true);
+    
+    var newRect = Trenches.snap(bounds,true);
+    if (newRect) 
+      this.item.setBounds(newRect,true);
 
     return ui;
   },
@@ -118,6 +119,7 @@ Drag.prototype = {
   
   
   stop: function() {
+    this.item.isDragging = false;
     this.$el.data('isDragging', false);    
 
     
