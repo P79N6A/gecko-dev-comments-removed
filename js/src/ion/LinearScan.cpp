@@ -344,6 +344,10 @@ RegisterAllocator::buildLivenessInfo()
             for (size_t i = 0; i < ins->numDefs(); i++) {
                 if (ins->getDef(i)->policy() != LDefinition::REDEFINED) {
                     uint32 reg = ins->getDef(i)->virtualRegister();
+                    
+                    
+                    if (vregs[reg].getInterval(0)->numRanges() == 0)
+                        vregs[reg].getInterval(0)->addRange(outputOf(*ins), outputOf(*ins));
                     vregs[reg].getInterval(0)->setFrom(outputOf(*ins));
                     live->remove(reg);
                 }
@@ -717,7 +721,61 @@ RegisterAllocator::resolveControlFlow()
 bool
 RegisterAllocator::reifyAllocations()
 {
-    
+    for (size_t i = 0; i < graph.numBlocks(); i++) {
+        LBlock *b = graph.getBlock(i);
+
+        
+        for (LInstructionIterator ins(b->begin()); ins != b->end(); ins++) {
+            
+            if (!ins->id()) {
+                JS_ASSERT(ins->isMove());
+                continue;
+            }
+
+            IonSpew(IonSpew_LSRA, " Visiting instruction %u", ins->id());
+
+            
+            for (LInstruction::InputIterator alloc(**ins); alloc.more(); alloc.next()) {
+                if (alloc->isUse()) {
+                    VirtualRegister *vreg = &vregs[alloc->toUse()->virtualRegister()];
+                    LiveInterval *interval = vreg->intervalFor(inputOf(ins->id()));
+                    if (!interval) {
+                        IonSpew(IonSpew_LSRA, "  WARNING: Unsuccessful time travel attempt: Use of %d in %d", vreg->reg(), ins->id());
+                        continue;
+                    }
+                    LAllocation *newAlloc = interval->getAllocation();
+                    JS_ASSERT(!newAlloc->isUse());
+                    alloc.replace(*newAlloc);
+                }
+            }
+
+            
+            for (size_t j = 0; j < ins->numTemps(); j++) {
+                LDefinition *def = ins->getTemp(j);
+                VirtualRegister *vreg = &vregs[def->virtualRegister()];
+                LiveInterval *interval = vreg->intervalFor(outputOf(ins->id()));
+                JS_ASSERT(interval);
+                LAllocation *alloc = interval->getAllocation();
+                JS_ASSERT(!alloc->isUse());
+                def->setOutput(*alloc);
+            }
+
+            
+            for (size_t j = 0; j < ins->numDefs(); j++) {
+                LDefinition *def = ins->getDef(j);
+                VirtualRegister *vreg = &vregs[def->virtualRegister()];
+                LiveInterval *interval = vreg->intervalFor(outputOf(ins->id()));
+                JS_ASSERT(interval);
+                LAllocation *alloc = interval->getAllocation();
+                JS_ASSERT(!alloc->isUse());
+                def->setOutput(*alloc);
+            }
+        }
+
+        
+        while (b->numPhis())
+            b->removePhi(0);
+    }
     return true;
 }
 
