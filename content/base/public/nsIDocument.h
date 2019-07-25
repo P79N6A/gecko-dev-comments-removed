@@ -131,13 +131,6 @@ class Element;
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
 
 
-enum DocumentFlavor {
-  DocumentFlavorLegacyGuess, 
-  DocumentFlavorHTML, 
-  DocumentFlavorSVG 
-};
-
-
 
 
 #define NS_DOCUMENT_STATE_RTL_LOCALE              NS_DEFINE_EVENT_STATE_MACRO(0)
@@ -1898,7 +1891,7 @@ NS_NewDOMDocument(nsIDOMDocument** aInstancePtrResult,
                   nsIPrincipal* aPrincipal,
                   bool aLoadedAsData,
                   nsIScriptGlobalObject* aEventObject,
-                  DocumentFlavor aFlavor);
+                  bool aSVGDocument);
 
 
 

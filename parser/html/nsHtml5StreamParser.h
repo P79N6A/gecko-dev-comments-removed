@@ -79,12 +79,7 @@ enum eParserMode {
   
 
 
-  PLAIN_TEXT,
-
-  
-
-
-  LOAD_AS_DATA
+  PLAIN_TEXT
 };
 
 enum eBomState {
