@@ -610,6 +610,11 @@ let RIL = {
 
   iccInfo: {},
 
+  
+
+
+  aid: null,
+
   voiceRegistrationState: {},
   dataRegistrationState: {},
 
@@ -794,14 +799,21 @@ let RIL = {
 
 
 
+
+
   enterICCPIN: function enterICCPIN(options) {
     Buf.newParcel(REQUEST_ENTER_SIM_PIN, options);
-    Buf.writeUint32(1);
+    Buf.writeUint32(RILQUIRKS_V5_LEGACY ? 1 : 2);
     Buf.writeString(options.pin);
+    if (!RILQUIRKS_V5_LEGACY) {
+      Buf.writeString(options.aid ? options.aid : this.aid);
+    }
     Buf.sendParcel();
   },
 
   
+
+
 
 
 
@@ -809,12 +821,17 @@ let RIL = {
 
   enterICCPIN2: function enterICCPIN2(options) {
     Buf.newParcel(REQUEST_ENTER_SIM_PIN2, options);
-    Buf.writeUint32(1);
+    Buf.writeUint32(RILQUIRKS_V5_LEGACY ? 1 : 2);
     Buf.writeString(options.pin);
+    if (!RILQUIRKS_V5_LEGACY) {
+      Buf.writeString(options.aid ? options.aid : this.aid);
+    }
     Buf.sendParcel();
   },
 
   
+
+
 
 
 
@@ -824,13 +841,18 @@ let RIL = {
 
   changeICCPIN: function changeICCPIN(options) {
     Buf.newParcel(REQUEST_CHANGE_SIM_PIN, options);
-    Buf.writeUint32(2);
+    Buf.writeUint32(RILQUIRKS_V5_LEGACY ? 2 : 3);
     Buf.writeString(options.pin);
     Buf.writeString(options.newPin);
+    if (!RILQUIRKS_V5_LEGACY) {
+      Buf.writeString(options.aid ? options.aid : this.aid);
+    }
     Buf.sendParcel();
   },
 
   
+
+
 
 
 
@@ -840,12 +862,16 @@ let RIL = {
 
   changeICCPIN2: function changeICCPIN2(options) {
     Buf.newParcel(REQUEST_CHANGE_SIM_PIN2, options);
-    Buf.writeUint32(2);
+    Buf.writeUint32(RILQUIRKS_V5_LEGACY ? 2 : 3);
     Buf.writeString(options.pin);
     Buf.writeString(options.newPin);
+    if (!RILQUIRKS_V5_LEGACY) {
+      Buf.writeString(options.aid ? options.aid : this.aid);
+    }
     Buf.sendParcel();
   },
   
+
 
 
 
@@ -856,9 +882,12 @@ let RIL = {
 
    enterICCPUK: function enterICCPUK(options) {
      Buf.newParcel(REQUEST_ENTER_SIM_PUK, options);
-     Buf.writeUint32(2);
+     Buf.writeUint32(RILQUIRKS_V5_LEGACY ? 2 : 3);
      Buf.writeString(options.puk);
      Buf.writeString(options.newPin);
+     if (!RILQUIRKS_V5_LEGACY) {
+       Buf.writeString(options.aid ? options.aid : this.aid);
+     }
      Buf.sendParcel();
    },
 
@@ -871,11 +900,15 @@ let RIL = {
 
 
 
+
    enterICCPUK2: function enterICCPUK2(options) {
      Buf.newParcel(REQUEST_ENTER_SIM_PUK2, options);
-     Buf.writeUint32(2);
+     Buf.writeUint32(RILQUIRKS_V5_LEGACY ? 2 : 3);
      Buf.writeString(options.puk);
      Buf.writeString(options.newPin);
+     if (!RILQUIRKS_V5_LEGACY) {
+       Buf.writeString(options.aid ? options.aid : this.aid);
+     }
      Buf.sendParcel();
    },
 
@@ -904,12 +937,17 @@ let RIL = {
 
 
 
+
+
   queryICCFacilityLock: function queryICCFacilityLock(options) {
     Buf.newParcel(REQUEST_QUERY_FACILITY_LOCK, options);
-    Buf.writeUint32(3);
+    Buf.writeUint32(RILQUIRKS_V5_LEGACY ? 3 : 4);
     Buf.writeString(options.facility);
     Buf.writeString(options.password);
     Buf.writeString(options.serviceClass.toString());
+    if (!RILQUIRKS_V5_LEGACY) {
+      Buf.writeString(options.aid ? options.aid : this.aid);
+    }
     Buf.sendParcel();
   },
 
@@ -945,13 +983,18 @@ let RIL = {
 
 
 
+
+
   setICCFacilityLock: function setICCFacilityLock(options) {
     Buf.newParcel(REQUEST_SET_FACILITY_LOCK, options);
-    Buf.writeUint32(4);
+    Buf.writeUint32(RILQUIRKS_V5_LEGACY ? 3 : 4);
     Buf.writeString(options.facility);
     Buf.writeString(options.enabled ? "1" : "0");
     Buf.writeString(options.password);
     Buf.writeString(options.serviceClass.toString());
+    if (!RILQUIRKS_V5_LEGACY) {
+      Buf.writeString(options.aid ? options.aid : this.aid);
+    }
     Buf.sendParcel();
   },
 
@@ -987,8 +1030,9 @@ let RIL = {
     Buf.writeUint32(options.p3);
     Buf.writeString(options.data);
     Buf.writeString(options.pin2 ? options.pin2 : null);
-    let appIndex = this.iccStatus.gsmUmtsSubscriptionAppIndex;
-    Buf.writeString(this.iccStatus.apps[appIndex].aid);
+    if (!RILQUIRKS_V5_LEGACY) {
+      Buf.writeString(options.aid ? options.aid : this.aid);
+    }
     Buf.sendParcel();
   },
 
@@ -1011,15 +1055,20 @@ let RIL = {
     this.sendDOMMessage(this.iccInfo);
   },
 
-  getIMSI: function getIMSI() {
+  
+
+
+
+
+
+  getIMSI: function getIMSI(aid) {
     if (RILQUIRKS_V5_LEGACY) {
       Buf.simpleRequest(REQUEST_GET_IMSI);
       return;
     }
     let token = Buf.newParcel(REQUEST_GET_IMSI);
     Buf.writeUint32(1);
-    let appIndex = this.iccStatus.gsmUmtsSubscriptionAppIndex;
-    Buf.writeString(this.iccStatus.apps[appIndex].aid);
+    Buf.writeString(aid ? aid : this.aid);
     Buf.sendParcel();
   },
 
@@ -1969,6 +2018,11 @@ let RIL = {
     if (this.cardState == newCardState) {
       return;
     }
+
+    
+    
+    let index = iccStatus.gsmUmtsSubscriptionAppIndex;
+    this.aid = iccStatus.apps[index].aid;
 
     
     this.requestNetworkInfo();
