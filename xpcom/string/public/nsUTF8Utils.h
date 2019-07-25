@@ -43,6 +43,7 @@
 
 
 #include "nscore.h"
+#include "mozilla/SSE.h"
 
 #include "nsCharTraits.h"
 
@@ -665,36 +666,86 @@ class CalculateUTF8Size
 
 
 
-template <class FromCharT, class ToCharT>
-class LossyConvertEncoding
+class LossyConvertEncoding8to16
   {
     public:
-      typedef FromCharT value_type;
- 
-      typedef FromCharT input_type;
-      typedef ToCharT   output_type;
-
-      typedef typename nsCharTraits<FromCharT>::unsigned_char_type unsigned_input_type;
+      typedef char      value_type;
+      typedef char      input_type;
+      typedef PRUnichar output_type;
 
     public:
-      LossyConvertEncoding( output_type* aDestination ) : mDestination(aDestination) { }
+      LossyConvertEncoding8to16( PRUnichar* aDestination ) :
+        mDestination(aDestination) { }
 
       void
-      write( const input_type* aSource, PRUint32 aSourceLength )
+      write( const char* aSource, PRUint32 aSourceLength )
         {
-          const input_type* done_writing = aSource + aSourceLength;
+#ifdef MOZILLA_MAY_SUPPORT_SSE2
+          if (mozilla::supports_sse2())
+            {
+              write_sse2(aSource, aSourceLength);
+              return;
+            }
+#endif
+          const char* done_writing = aSource + aSourceLength;
           while ( aSource < done_writing )
-            *mDestination++ = (output_type)(unsigned_input_type)(*aSource++);  
+            *mDestination++ = (PRUnichar)(unsigned char)(*aSource++);
         }
+
+      void
+      write_sse2( const char* aSource, PRUint32 aSourceLength );
 
       void
       write_terminator()
         {
-          *mDestination = output_type(0);
+          *mDestination = (PRUnichar)(0);
         }
 
     private:
-      output_type* mDestination;
+      PRUnichar* mDestination;
+  };
+
+
+
+
+
+class LossyConvertEncoding16to8
+  {
+    public:
+      typedef PRUnichar value_type;
+      typedef PRUnichar input_type;
+      typedef char      output_type;
+
+      LossyConvertEncoding16to8( char* aDestination ) : mDestination(aDestination) { }
+
+      void
+      write( const PRUnichar* aSource, PRUint32 aSourceLength)
+        {
+#ifdef MOZILLA_MAY_SUPPORT_SSE2
+          if (mozilla::supports_sse2())
+            {
+              write_sse2(aSource, aSourceLength);
+              return;
+            }
+#endif
+            const PRUnichar* done_writing = aSource + aSourceLength;
+            while ( aSource < done_writing )
+              *mDestination++ = (char)(*aSource++);
+        }
+
+#ifdef MOZILLA_MAY_SUPPORT_SSE2
+      void
+      write_sse2( const PRUnichar* aSource, PRUint32 aSourceLength );
+#endif
+
+      void
+      write_terminator()
+        {
+          *mDestination = '\0';
+        }
+
+    private:
+      char *mDestination;
   };
 #endif 
 

@@ -227,9 +227,7 @@ nsTextFragment::SetTo(const PRUnichar* aBuffer, PRInt32 aLength)
     }
 
     
-    
-    
-    LossyConvertEncoding<PRUnichar, char> converter(buff);
+    LossyConvertEncoding16to8 converter(buff);
     copy_string(aBuffer, aBuffer+aLength, converter);
     m1b = buff;
   }
@@ -260,9 +258,8 @@ nsTextFragment::CopyTo(PRUnichar *aDest, PRInt32 aOffset, PRInt32 aCount)
     } else {
       const char *cp = m1b + aOffset;
       const char *end = cp + aCount;
-      while (cp < end) {
-        *aDest++ = (unsigned char)(*cp++);
-      }
+      LossyConvertEncoding8to16 converter(aDest);
+      copy_string(cp, end, converter);
     }
   }
 }
@@ -317,10 +314,9 @@ nsTextFragment::Append(const PRUnichar* aBuffer, PRUint32 aLength)
     }
 
     
-    for (PRUint32 i = 0; i < mState.mLength; ++i) {
-      buff[i] = (unsigned char)m1b[i];
-    }
-    
+    LossyConvertEncoding8to16 converter(buff);
+    copy_string(m1b, m1b+mState.mLength, converter);
+
     memcpy(buff + mState.mLength, aBuffer, aLength * sizeof(PRUnichar));
 
     mState.mLength += aLength;
@@ -354,10 +350,10 @@ nsTextFragment::Append(const PRUnichar* aBuffer, PRUint32 aLength)
     memcpy(buff, m1b, mState.mLength);
     mState.mInHeap = PR_TRUE;
   }
-    
-  for (PRUint32 i = 0; i < aLength; ++i) {
-    buff[mState.mLength + i] = (char)aBuffer[i];
-  }
+
+  
+  LossyConvertEncoding16to8 converter(buff + mState.mLength);
+  copy_string(aBuffer, aBuffer + aLength, converter);
 
   m1b = buff;
   mState.mLength += aLength;
