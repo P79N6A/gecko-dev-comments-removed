@@ -141,6 +141,8 @@ class nsCocoaUtils
   
   static NSPoint EventLocationForWindow(NSEvent* anEvent, NSWindow* aWindow);
 
+  static BOOL IsMomentumScrollEvent(NSEvent* aEvent);
+
   
   static void HideOSChromeOnScreen(PRBool aShouldHide, NSScreen* aScreen);
 
