@@ -4619,8 +4619,7 @@ nsTextFrame::GetTextDecorations(nsPresContext* aPresContext,
     } else {
       
       
-      if (f->IsFloating() ||
-          (disp->IsAbsolutelyPositioned() && !f->IsSVGText())) {
+      if (f->IsFloating() || f->IsAbsolutelyPositioned()) {
         break;
       }
     }

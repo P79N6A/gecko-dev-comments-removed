@@ -395,7 +395,7 @@ IsQuirkContainingBlockHeight(const nsHTMLReflowState* rs, nsIAtom* aFrameType)
     
     
     if (NS_AUTOHEIGHT == rs->ComputedHeight()) {
-      if (!rs->frame->GetStyleDisplay()->IsAbsolutelyPositioned()) {
+      if (!rs->frame->IsAbsolutelyPositioned()) {
         return false;
       }
     }
@@ -641,13 +641,13 @@ nsHTMLReflowState::InitFrameType(nsIAtom* aFrameType)
     return;
   }
 
-  NS_ASSERTION(frame->GetStyleDisplay()->IsAbsolutelyPositioned() ==
-                 disp->IsAbsolutelyPositioned(),
+  NS_ASSERTION(frame->GetStyleDisplay()->IsAbsolutelyPositionedStyle() ==
+                 disp->IsAbsolutelyPositionedStyle(),
                "Unexpected position style");
   NS_ASSERTION(frame->GetStyleDisplay()->IsFloatingStyle() ==
                  disp->IsFloatingStyle(), "Unexpected float style");
   if (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
-    if (disp->IsAbsolutelyPositioned()) {
+    if (disp->IsAbsolutelyPositioned(frame)) {
       frameType = NS_CSS_FRAME_TYPE_ABSOLUTE;
       
       
@@ -1608,7 +1608,7 @@ CalcQuirkContainingBlockHeight(const nsHTMLReflowState* aCBReflowState)
       
       
       if (NS_AUTOHEIGHT == rs->ComputedHeight()) {
-        if (rs->frame->GetStyleDisplay()->IsAbsolutelyPositioned()) {
+        if (rs->frame->IsAbsolutelyPositioned()) {
           break;
         } else {
           continue;
@@ -1694,7 +1694,7 @@ nsHTMLReflowState::ComputeContainingBlockRectangle(nsPresContext*          aPres
   
   if (NS_FRAME_GET_TYPE(mFrameType) == NS_CSS_FRAME_TYPE_ABSOLUTE ||
       (frame->GetType() == nsGkAtoms::tableFrame &&
-       frame->GetStyleDisplay()->IsAbsolutelyPositioned() &&
+       frame->IsAbsolutelyPositioned() &&
        (frame->GetParent()->GetStateBits() & NS_FRAME_OUT_OF_FLOW))) {
     
     if (NS_FRAME_GET_TYPE(aContainingBlockRS->mFrameType) == NS_CSS_FRAME_TYPE_INLINE) {
@@ -1897,7 +1897,7 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
     
     
     
-    if (NS_STYLE_POSITION_RELATIVE == mStyleDisplay->mPosition) {
+    if (mStyleDisplay->IsRelativelyPositioned(frame)) {
       PRUint8 direction = NS_STYLE_DIRECTION_LTR;
       if (cbrs && NS_STYLE_DIRECTION_RTL == cbrs->mStyleVisibility->mDirection) {
         direction = NS_STYLE_DIRECTION_RTL;
