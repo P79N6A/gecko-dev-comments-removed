@@ -191,6 +191,8 @@ PopupNotifications.prototype = {
 
 
 
+
+
   show: function PopupNotifications_show(browser, id, message, anchorID,
                                          mainAction, secondaryActions, options) {
     function isInvalidAction(a) {
@@ -201,8 +203,6 @@ PopupNotifications.prototype = {
       throw "PopupNotifications_show: invalid browser";
     if (!id)
       throw "PopupNotifications_show: invalid ID";
-    if (!message)
-      throw "PopupNotifications_show: invalid message";
     if (mainAction && isInvalidAction(mainAction))
       throw "PopupNotifications_show: invalid mainAction";
     if (secondaryActions && secondaryActions.some(isInvalidAction))
@@ -398,7 +398,8 @@ PopupNotifications.prototype = {
 
       
       notificationsToShow = this._currentNotifications.filter(function (n) {
-        return !n.dismissed && n.anchorElement == anchorElement;
+        return !n.dismissed && n.anchorElement == anchorElement &&
+               !n.options.neverShow;
       });
     }
 
