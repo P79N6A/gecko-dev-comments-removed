@@ -345,6 +345,7 @@ class Compiler : public BaseCompiler
     bool jsop_xname(JSAtom *atom);
     void enterBlock(JSObject *obj);
     void leaveBlock();
+    void jsop_eval();
 
     
     void jsop_binary(JSOp op, VoidStub stub);
