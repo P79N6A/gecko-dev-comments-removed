@@ -37,6 +37,7 @@
 
 
 
+
 "use strict"
 
 const Cc = Components.classes;
@@ -778,7 +779,16 @@ RuleEditor.prototype = {
       class: "ruleview-selector",
       textContent: this.rule.selectorText
     });
-    appendText(header, " {");
+
+    this.openBrace = createChild(header, "span", {
+      class: "ruleview-ruleopen",
+      tabindex: "0",
+      textContent: " {"
+    });
+
+    this.openBrace.addEventListener("click", function() {
+      this.newProperty();
+    }.bind(this), true);
 
     this.propertyList = createChild(code, "ul", {
       class: "ruleview-propertylist"

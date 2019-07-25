@@ -38,6 +38,7 @@
 
 
 
+
 :root {
   -moz-appearance: none;
   background: -moz-Field;
@@ -229,6 +230,10 @@
 
 .ruleview-code {
   padding: 2px 5px;
+}
+
+.ruleview-ruleopen {
+  -moz-padding-end: 5px;
 }
 
 .ruleview-propertylist {
