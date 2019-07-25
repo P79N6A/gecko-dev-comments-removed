@@ -50,7 +50,7 @@ DEFAULT_SERVER:                        "@server_url@",
 UPDATED_DEV_URL:                       "https:
 UPDATED_REL_URL:                       "http:
 
-PREFS_BRANCH:                          "extensions.weave.",
+PREFS_BRANCH:                          "services.sync.",
 
 
 PWDMGR_HOST:                           "chrome:

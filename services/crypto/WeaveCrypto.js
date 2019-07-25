@@ -79,7 +79,7 @@ WeaveCrypto.prototype = {
     init : function() {
         try {
             
-            this.prefBranch = Services.prefs.getBranch("extensions.weave.log.");
+            this.prefBranch = Services.prefs.getBranch("services.sync.log.");
             this.prefBranch.QueryInterface(Ci.nsIPrefBranch2);
             this.prefBranch.addObserver("cryptoDebug", this.observer, false);
             this.observer._self = this;

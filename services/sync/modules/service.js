@@ -77,6 +77,7 @@ Cu.import("resource://services-sync/engines/history.js", Weave);
 Cu.import("resource://services-sync/engines/prefs.js", Weave);
 Cu.import("resource://services-sync/engines/passwords.js", Weave);
 Cu.import("resource://services-sync/engines/tabs.js", Weave);
+Cu.import("resource://services-sync/ext/Preferences.js");
 Cu.import("resource://services-sync/identity.js", Weave);
 Cu.import("resource://services-sync/notifications.js", Weave);
 Cu.import("resource://services-sync/resource.js", Weave);
@@ -256,6 +257,7 @@ WeaveSvc.prototype = {
 
 
   onStartup: function onStartup() {
+    this._migratePrefs();
     this._initLogs();
     this._log.info("Loading Weave " + WEAVE_VERSION);
 
@@ -323,6 +325,28 @@ WeaveSvc.prototype = {
       Status.service = STATUS_OK;
 
     return Status.service;
+  },
+
+  _migratePrefs: function _migratePrefs() {
+    
+    if (Svc.Prefs.get("migrated", false))
+      return;
+
+    
+    let oldPrefBranch = "extensions.weave.";
+    let oldPrefNames = Cc["@mozilla.org/preferences-service;1"].
+                       getService(Ci.nsIPrefService).
+                       getBranch(oldPrefBranch).
+                       getChildList("", {});
+
+    
+    let oldPref = new Preferences(oldPrefBranch);
+    for each (let pref in oldPrefNames)
+      Svc.Prefs.set(pref, oldPref.get(pref));
+
+    
+    oldPref.resetBranch("");
+    Svc.Prefs.set("migrated", true);
   },
 
   _initLogs: function WeaveSvc__initLogs() {
