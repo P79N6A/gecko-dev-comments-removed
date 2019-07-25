@@ -1028,12 +1028,15 @@ var FormHelperUI = {
     let autozoomEnabled = Services.prefs.getBoolPref("formhelper.autozoom");
     if (aElementRect && Browser.selectedTab.allowZoom && autozoomEnabled) {
       this._currentElementRect = aElementRect;
+
       
       let zoomLevel = Browser.selectedTab.clampZoomLevel(this._getZoomLevelForRect(aElementRect));
 
       zoomRect = Browser._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, zoomLevel);
       AnimatedZoom.animateTo(zoomRect);
     } else if (aElementRect && !Browser.selectedTab.allowZoom && autozoomEnabled) {
+      this._currentElementRect = aElementRect;
+
       
       
       zoomRect = Browser._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, browser.scale);
