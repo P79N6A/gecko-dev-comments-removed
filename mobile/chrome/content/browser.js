@@ -81,28 +81,24 @@ var Browser = {
     ws.beginUpdateBatch();
     
     window.gSidebarVisible = false;
-    function panHandler(vr, skipUpdates) {
-      var visibleNow = ws.isWidgetVisible("browser-controls") || ws.isWidgetVisible("tabs-container");
-
-      
-      
-
-      if (visibleNow && !gSidebarVisible) {
-        BrowserUI._showToolbar(true);
+    function panHandler(vr, dx, dy) {
+      if (dx) {
+        let visibleNow = ws.isWidgetVisible("tabs-container") || ws.isWidgetVisible("browser-controls");
+        if (visibleNow && !gSidebarVisible) {
+          BrowserUI._showToolbar(true);
+        }
+        else if (!visibleNow && gSidebarVisible) {
+          BrowserUI._showToolbar(false);
+        }
+        gSidebarVisible = visibleNow;
       }
-      else if (!visibleNow && gSidebarVisible) {
-        BrowserUI._showToolbar(false);
-      }
-      gSidebarVisible = visibleNow;
-
       
-      let stack = document.getElementById("browser-container");
-      stack.style.backgroundPosition =  -vr.left + "px " + -vr.top + "px";
+      
+      browserContainer.style.backgroundPosition =  -vr.left + "px " + -vr.top + "px";
 
       
       
-      if (!skipUpdates)
-        self._windowUtils.processUpdates();
+      self._windowUtils.processUpdates();
     }
 
     ws.setPanHandler(panHandler);
