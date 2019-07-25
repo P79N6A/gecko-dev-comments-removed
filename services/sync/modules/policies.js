@@ -484,7 +484,8 @@ let SyncScheduler = {
 
 
   clearSyncTriggers: function clearSyncTriggers() {
-    this._log.debug("Clearing sync triggers.");
+    this._log.debug("Clearing sync triggers and the global score.");
+    this.globalScore = this.nextSync = 0;
 
     
     if (this.syncTimer)
