@@ -120,13 +120,24 @@ nsTreeBoxObject::GetTreeBody(bool aFlushLayout)
   
   
   
-  nsIFrame* frame = GetFrame(aFlushLayout);
-  if (!frame)
-    return nsnull;
+  
+  
+  nsIFrame* frame;
+  if (aFlushLayout) {
+    frame = GetFrame(aFlushLayout);
+    if (!frame)
+      return nsnull;
+  }
 
   if (mTreeBody) {
     
     return mTreeBody;
+  }
+
+  if (!aFlushLayout) {
+    frame = GetFrame(aFlushLayout);
+    if (!frame)
+      return nsnull;
   }
 
   
