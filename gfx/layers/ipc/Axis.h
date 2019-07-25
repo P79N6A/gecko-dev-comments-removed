@@ -43,7 +43,7 @@ public:
 
 
 
-  void UpdateWithTouchAtDevicePoint(PRInt32 aPos, PRInt32 aTimeDelta);
+  void UpdateWithTouchAtDevicePoint(PRInt32 aPos, const TimeDuration& aTimeDelta);
 
   
 
@@ -68,7 +68,7 @@ public:
 
 
 
-  PRInt32 UpdateAndGetDisplacement(float aScale);
+  PRInt32 GetDisplacementForDuration(float aScale, const TimeDuration& aDelta);
 
   
 
