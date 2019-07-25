@@ -58,6 +58,11 @@ const kDefaultBrowserWidth = 800;
 
 const kTapOverlayTimeout = 200;
 
+
+window.sizeToContent = function() {
+  Components.utils.reportError("window.sizeToContent is not allowed in this window");
+}
+
 const endl = '\n';
 
 function debug() {
