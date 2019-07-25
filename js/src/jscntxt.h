@@ -2265,7 +2265,8 @@ js_ReportOutOfMemory(JSContext *cx);
 void
 js_ReportOutOfScriptQuota(JSContext *maybecx);
 
-extern void
+
+JS_FRIEND_API(void)
 js_ReportOverRecursed(JSContext *maybecx);
 
 extern JS_FRIEND_API(void)
