@@ -707,6 +707,9 @@ enum SpewChannel {
 void InferSpew(SpewChannel which, const char *fmt, ...);
 const char * TypeString(jstype type);
 
+
+bool TypeHasProperty(JSContext *cx, TypeObject *obj, jsid id, const Value &value);
+
 #else
 
 inline void InferSpew(SpewChannel which, const char *fmt, ...) {}

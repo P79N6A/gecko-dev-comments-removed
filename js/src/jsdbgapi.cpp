@@ -912,6 +912,9 @@ UpdateWatchpointShape(JSContext *cx, JSWatchPoint *wp, const Shape *newShape)
 
     StrictPropertyOp originalSetter = newShape->setter();
 
+    if (!cx->addTypePropertyId(wp->object->getType(), newShape->id, types::TYPE_UNKNOWN))
+        return NULL;
+
     
 
 
