@@ -1778,31 +1778,9 @@ nsScriptSecurityManager::CanExecuteScripts(JSContext* cx,
         docshell = window->GetDocShell();
     }
 
-    nsCOMPtr<nsIDocShellTreeItem> globalObjTreeItem =
-        do_QueryInterface(docshell);
-
-    if (globalObjTreeItem) 
-    {
-        nsCOMPtr<nsIDocShellTreeItem> treeItem(globalObjTreeItem);
-        nsCOMPtr<nsIDocShellTreeItem> parentItem;
-
-        
-        do
-        {
-            rv = docshell->GetAllowJavascript(result);
-            if (NS_FAILED(rv)) return rv;
-            if (!*result)
-                return NS_OK; 
-            treeItem->GetParent(getter_AddRefs(parentItem));
-            treeItem.swap(parentItem);
-            docshell = do_QueryInterface(treeItem);
-#ifdef DEBUG
-            if (treeItem && !docshell) {
-              NS_ERROR("cannot get a docshell from a treeItem!");
-            }
-#endif 
-        } while (treeItem && docshell);
-    }
+    rv = docshell->GetCanExecuteScripts(result);
+    if (NS_FAILED(rv)) return rv;
+    if (!*result) return NS_OK;
 
     
     
