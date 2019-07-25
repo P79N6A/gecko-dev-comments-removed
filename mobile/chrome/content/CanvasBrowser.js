@@ -225,6 +225,7 @@ CanvasBrowser.prototype = {
     this._maybeZoomToPage = false;
     this.zoomToPage();
     
+    
     this.flushRegion();
     
     if (this._drawInterval) {
