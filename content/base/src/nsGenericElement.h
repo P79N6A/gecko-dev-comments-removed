@@ -655,7 +655,6 @@ protected:
 
 
 
-
   nsresult SetAttrAndNotify(PRInt32 aNamespaceID,
                             nsIAtom* aName,
                             nsIAtom* aPrefix,
@@ -664,7 +663,7 @@ protected:
                             PRUint8 aModType,
                             bool aFireMutation,
                             bool aNotify,
-                            const nsAString* aValueForAfterSetAttr);
+                            bool aCallAfterSetAttr);
 
   
 
@@ -738,7 +737,7 @@ protected:
   
   
   virtual nsresult AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
-                                const nsAString* aValue, bool aNotify)
+                                const nsAttrValue* aValue, bool aNotify)
   {
     return NS_OK;
   }
