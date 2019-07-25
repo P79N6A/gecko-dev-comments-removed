@@ -1417,6 +1417,7 @@ private:
                                       
 };
 
+#ifdef MOZ_CSS_ANIMATIONS
 struct nsAnimation {
   nsAnimation() {  }
   explicit nsAnimation(const nsAnimation& aCopy);
@@ -1455,6 +1456,7 @@ private:
   PRUint8 mPlayState;
   float mIterationCount; 
 };
+#endif
 
 struct nsStyleDisplay {
   nsStyleDisplay();
@@ -1511,6 +1513,7 @@ struct nsStyleDisplay {
            mTransitionDelayCount,
            mTransitionPropertyCount;
 
+#ifdef MOZ_CSS_ANIMATIONS
   nsAutoTArray<nsAnimation, 1> mAnimations; 
   
   
@@ -1522,6 +1525,7 @@ struct nsStyleDisplay {
            mAnimationFillModeCount,
            mAnimationPlayStateCount,
            mAnimationIterationCountCount;
+#endif
 
   PRBool IsBlockInside() const {
     return NS_STYLE_DISPLAY_BLOCK == mDisplay ||

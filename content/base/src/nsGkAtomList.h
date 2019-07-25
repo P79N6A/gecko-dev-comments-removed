@@ -632,9 +632,11 @@ GK_ATOM(ol, "ol")
 GK_ATOM(omitXmlDeclaration, "omit-xml-declaration")
 GK_ATOM(onabort, "onabort")
 GK_ATOM(onafterscriptexecute, "onafterscriptexecute")
+#ifdef MOZ_CSS_ANIMATIONS
 GK_ATOM(onanimationend, "onanimationend")
 GK_ATOM(onanimationiteration, "onanimationiteration")
 GK_ATOM(onanimationstart, "onanimationstart")
+#endif
 GK_ATOM(onbeforecopy, "onbeforecopy")
 GK_ATOM(onbeforecut, "onbeforecut")
 GK_ATOM(onbeforepaste, "onbeforepaste")
@@ -1832,9 +1834,11 @@ GK_ATOM(volumechange, "volumechange")
 #endif
 
 
+#ifdef MOZ_CSS_ANIMATIONS
 GK_ATOM(animationsProperty, "AnimationsProperty")        
 GK_ATOM(animationsOfBeforeProperty, "AnimationsOfBeforeProperty") 
 GK_ATOM(animationsOfAfterProperty, "AnimationsOfAfterProperty") 
+#endif
 GK_ATOM(transitionsProperty, "TransitionsProperty")        
 GK_ATOM(transitionsOfBeforeProperty, "TransitionsOfBeforeProperty") 
 GK_ATOM(transitionsOfAfterProperty, "TransitionsOfAfterProperty") 

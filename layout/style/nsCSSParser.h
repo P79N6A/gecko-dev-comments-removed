@@ -53,7 +53,9 @@ class nsIURI;
 class nsIUnicharInputStream;
 struct nsCSSSelectorList;
 class nsMediaList;
+#ifdef MOZ_CSS_ANIMATIONS
 class nsCSSKeyframeRule;
+#endif
 
 namespace mozilla {
 namespace css {
@@ -196,6 +198,7 @@ public:
                                PRUint32            aLineNumber,
                                nsCSSSelectorList** aSelectorList);
 
+#ifdef MOZ_CSS_ANIMATIONS
   
 
 
@@ -213,6 +216,7 @@ public:
                                    nsIURI*            aURL,
                                    PRUint32           aLineNumber,
                                    nsTArray<float>&   aSelectorList);
+#endif
 
 protected:
   

@@ -66,7 +66,9 @@
 #include "nsStyleSet.h"
 #include "nsCSSStyleSheet.h" 
 #include "nsIDOMCSSStyleSheet.h"  
+#ifdef MOZ_CSS_ANIMATIONS
 #include "nsAnimationManager.h"
+#endif
 #include "nsINameSpaceManager.h"  
 #include "nsIServiceManager.h"
 #include "nsFrame.h"
@@ -4790,11 +4792,13 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
       mFrameConstructor->ProcessPendingRestyles();
     }
 
+#ifdef MOZ_CSS_ANIMATIONS
     
     
     if (!mIsDestroying) {
       mPresContext->AnimationManager()->DispatchEvents();
     }
+#endif
 
     
     
@@ -5113,7 +5117,9 @@ nsIPresShell::ReconstructStyleDataInternal()
 
   if (mPresContext) {
     mPresContext->RebuildUserFontSet();
+#ifdef MOZ_CSS_ANIMATIONS
     mPresContext->AnimationManager()->KeyframesListIsDirty();
+#endif
   }
 
   Element* root = mDocument->GetRootElement();
