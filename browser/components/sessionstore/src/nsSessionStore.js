@@ -110,7 +110,7 @@ const WINDOW_HIDEABLE_FEATURES = [
 
 const CAPABILITIES = [
   "Subframes", "Plugins", "Javascript", "MetaRedirects", "Images",
-  "DNSPrefetch", "Auth"
+  "DNSPrefetch", "Auth", "WindowControl"
 ];
 
 
