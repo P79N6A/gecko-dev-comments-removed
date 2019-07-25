@@ -53,8 +53,6 @@
 #include "WrapperFactory.h"
 #include "dombindings.h"
 
-#include "nsContentUtils.h"
-
 #include "mozilla/Util.h"
 
 bool
@@ -1482,43 +1480,6 @@ XPCWrappedNative::SystemIsBeingShutDown()
 
 
 
-
-
-
-
-
-
-
-
-class AutoWrapperChanger NS_STACK_CLASS {
-public:
-    AutoWrapperChanger() : mCache(nsnull)
-                         , mCOMObj(nsnull)
-                         , mPreservedWrapper(nsnull)
-    {}
-
-    void init(nsISupports* aCOMObj, nsWrapperCache* aWrapperCache) {
-        mCOMObj = aCOMObj;
-        mCache = aWrapperCache;
-        if (mCache->PreservingWrapper()) {
-            mPreservedWrapper = mCache->GetWrapper();
-            MOZ_ASSERT(mPreservedWrapper);
-            nsContentUtils::ReleaseWrapper(mCOMObj, mCache);
-        }
-    }
-
-    ~AutoWrapperChanger() {
-        if (mPreservedWrapper)
-            nsContentUtils::PreserveWrapper(mCOMObj, mCache);
-    }
-
-private:
-    nsWrapperCache* mCache;
-    nsISupports* mCOMObj;
-    JSObject* mPreservedWrapper;
-};
-
-
 nsresult
 XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                                          XPCWrappedNativeScope* aOldScope,
@@ -1536,16 +1497,10 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
     nsresult rv;
 
     nsRefPtr<XPCWrappedNative> wrapper;
-    AutoWrapperChanger wrapperChanger;
     JSObject *flat;
     nsWrapperCache* cache = nsnull;
     CallQueryInterface(aCOMObj, &cache);
     if (cache) {
-
-        
-        
-        wrapperChanger.init(aCOMObj, cache);
-
         flat = cache->GetWrapper();
         if (flat && !IS_SLIM_WRAPPER_OBJECT(flat)) {
             wrapper = static_cast<XPCWrappedNative*>(xpc_GetJSPrivate(flat));
