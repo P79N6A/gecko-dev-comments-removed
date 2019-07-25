@@ -40,6 +40,8 @@
 #ifndef xpcquickstubs_h___
 #define xpcquickstubs_h___
 
+#include "nsINode.h"
+
 
 
 class XPCCallContext;
@@ -74,6 +76,80 @@ struct xpc_qsHashEntry {
     
     size_t parentInterface;
     size_t chain;
+};
+
+class qsObjectHelper
+{
+public:
+  qsObjectHelper(nsISupports* aObject)
+  : mObject(aObject),
+    mCanonical(nsnull),
+    mCanonicalIsStrong(PR_FALSE),
+    mNode(nsnull)  {}
+
+  ~qsObjectHelper()
+  {
+    if (mCanonicalIsStrong) {
+      NS_RELEASE(mCanonical);
+    }
+  }
+
+  void SetCanonical(already_AddRefed<nsISupports> aCanonical)
+  {
+    mCanonical = aCanonical.get();
+    if (mCanonical) {
+      mCanonicalIsStrong = PR_TRUE;
+    }
+  }
+
+  void SetCanonical(nsISupports* aCanonical) { mCanonical = aCanonical; }
+
+  void SetNode(nsINode* aNode) { mNode = aNode; }
+
+  void SetNode(void* ) { }
+  
+  nsISupports* Object() { return mObject; }
+
+  nsISupports* GetCanonical()
+  {
+    if (!mCanonical) {
+      CallQueryInterface(mObject, &mCanonical);
+      mCanonicalIsStrong = PR_TRUE;
+    }
+    return mCanonical;
+  }
+
+  already_AddRefed<nsISupports> TakeCanonical()
+  {
+    nsISupports* retval = mCanonical;
+    if (mCanonicalIsStrong) {
+      mCanonicalIsStrong = PR_FALSE;
+    } else {
+      NS_IF_ADDREF(mCanonical);
+    }
+    mCanonical = nsnull;
+    return retval;
+  }
+
+  already_AddRefed<nsXPCClassInfo> GetXPCClassInfo()
+  {
+    nsRefPtr<nsXPCClassInfo> ci;
+    if (mNode) {
+      ci = mNode->GetClassInfo();
+    } else {
+      CallQueryInterface(mObject, getter_AddRefs(ci));
+    }
+    return ci.forget();
+  }
+
+private:
+  qsObjectHelper(qsObjectHelper& aOther) {}
+  qsObjectHelper() {}
+
+  nsISupports*           mObject;
+  nsISupports*           mCanonical;
+  PRBool                 mCanonicalIsStrong;
+  nsINode*               mNode;
 };
 
 JSBool
@@ -549,9 +625,12 @@ xpc_qsGetWrapperCache(void *p)
 }
 
 
+
+
+
 JSBool
 xpc_qsXPCOMObjectToJsval(XPCLazyCallContext &lccx,
-                         nsISupports *p,
+                         qsObjectHelper* aHelper,
                          nsWrapperCache *cache,
                          const nsIID *iid,
                          XPCNativeInterface **iface,
@@ -569,6 +648,12 @@ inline nsISupports*
 ToSupports(nsISupports *p)
 {
     return p;
+}
+
+inline nsISupports*
+ToCanonicalSupports(nsISupports* p)
+{
+  return nsnull;
 }
 
 #ifdef DEBUG
