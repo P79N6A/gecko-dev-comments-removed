@@ -2008,13 +2008,16 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
       
       
       
-      nsCOMPtr<nsIDOMHTMLInputElement> selectedRadioButton =
-        do_QueryInterface(aVisitor.mItemData);
-      if (selectedRadioButton) {
-        selectedRadioButton->SetChecked(true);
+      if (oldType == NS_FORM_INPUT_RADIO) {
+        nsCOMPtr<nsIDOMHTMLInputElement> selectedRadioButton =
+          do_QueryInterface(aVisitor.mItemData);
+        if (selectedRadioButton) {
+          selectedRadioButton->SetChecked(true);
+        }
         
         
-        if (mType != NS_FORM_INPUT_RADIO) {
+        
+        if (!selectedRadioButton || mType != NS_FORM_INPUT_RADIO) {
           DoSetChecked(false, true, true);
         }
       } else if (oldType == NS_FORM_INPUT_CHECKBOX) {
