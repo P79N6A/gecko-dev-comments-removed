@@ -277,7 +277,10 @@ window.TabItems = {
     
     var self = this;
         
-    function mod($div){
+    function mod(mirror) {
+      var $div = $(mirror.el);
+      var tab = mirror.tab;
+      
       if(window.Groups) {        
         $div.data('isDragging', false);
         $div.draggable(window.Groups.dragOptions);
@@ -295,65 +298,32 @@ window.TabItems = {
         if(!same)
           return;
         
-        if(e.target.className == "close") {
-          $(this).find("canvas").data("link").tab.close(); }
+        if(e.target.className == "close") 
+          tab.close();
         else {
-          if(!$(this).data('isDragging')) {        
+          if(!$(this).data('isDragging'))
             self.zoomTo(this);
-          } else {
-            $(this).find("canvas").data("link").tab.raw.pos = $(this).position();
-          }
+          else 
+            tab.raw.pos = $(this).position(); 
         }
       });
       
       $("<div class='close'></div>").appendTo($div);
       $("<div class='expander'></div>").appendTo($div);
   
-      var reconnected = false;
-      $div.each(function() {
-        var tab = Tabs.tab(this);
-        if(tab == Utils.homeTab) { 
-          $(this).hide();
-          reconnected = true;
-        } else {
-          var item = new TabItem(this, tab);
-          $(this).data('tabItem', item);    
-          
-          item.addOnClose(self, function() {
-            Items.unsquish(null, item);
-          });
-
-          if(TabItems.reconnect(item))
-            reconnected = true;
-          else  
-            Groups.newTab(item);          
-        }
-      });
-
-       
-
-
-
-
-
-
-
+      if(tab == Utils.homeTab) 
+        $div.hide();
+      else {
+        var item = new TabItem(mirror.el, tab);
+        $div.data('tabItem', item);    
         
-            
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
+        item.addOnClose(self, function() {
+          Items.unsquish(null, item);
+        });
+
+        if(!TabItems.reconnect(item))
+          Groups.newTab(item);          
+      }
     }
     
     window.TabMirror.customize(mod);
@@ -404,7 +374,7 @@ window.TabItems = {
       function onZoomDone(){
         UI.tabBar.show(false);              
         TabMirror.resumePainting();
-        $(tabEl).find("canvas").data("link").tab.focus();
+        tab.focus();
         $(tabEl).css({
           top:   orig.pos.top,
           left:  orig.pos.left,
