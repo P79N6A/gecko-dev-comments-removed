@@ -569,91 +569,12 @@ struct gfxPangoFcFont {
     gfxFcFont *mGfxFont;
 
     static nsReturnRef<PangoFont>
-    NewFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern)
-    {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        gfxPangoFcFont *font = static_cast<gfxPangoFcFont*>
-            (g_object_new(GFX_TYPE_PANGO_FC_FONT,
-                          "pattern", aFontPattern, NULL));
-
-        
-        FcPatternReference(aRequestedPattern);
-        font->mRequestedPattern = aRequestedPattern;
-
-        
-        
-        
-        PangoFontMap *fontmap = GetPangoFontMap();
-        
-        
-        
-        PangoFcFont *fc_font = &font->parent_instance;
-        if (gUseFontMapProperty) {
-            g_object_set(font, "fontmap", fontmap, NULL);
-        } else {
-            
-            
-            
-            
-            
-            fc_font->fontmap = fontmap;
-            g_object_ref(fc_font->fontmap);
-        }
-
-        return nsReturnRef<PangoFont>(PANGO_FONT(font));
-    }
+    NewFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern);
 
     gfxFcFont *GfxFont()
     {
         if (!mGfxFont) {
-            PangoFcFont *fc_font = &parent_instance;
-
-            if (NS_LIKELY(mRequestedPattern)) {
-                
-                nsAutoRef<FcPattern> renderPattern
-                    (FcFontRenderPrepare(NULL, mRequestedPattern,
-                                         fc_font->font_pattern));
-                if (!renderPattern)
-                    return nsnull;
-
-                FcBool hinting = FcTrue;
-                FcPatternGetBool(renderPattern, FC_HINTING, 0, &hinting);
-                fc_font->is_hinted = hinting;
-
-                
-                
-                FcMatrix *matrix;
-                FcResult result = FcPatternGetMatrix(renderPattern,
-                                                     FC_MATRIX, 0, &matrix);
-                fc_font->is_transformed =
-                    result == FcResultMatch &&
-                    (matrix->xy != 0.0 || matrix->yx != 0.0 ||
-                     matrix->xx != 1.0 || matrix->yy != 1.0);
-
-                mGfxFont = gfxFcFont::GetOrMakeFont(renderPattern).get();
-                if (mGfxFont) {
-                    
-                    FcPatternDestroy(mRequestedPattern);
-                    mRequestedPattern = NULL;
-                }
-
-            } else {
-                
-                mGfxFont =
-                    gfxFcFont::GetOrMakeFont(fc_font->font_pattern).get();
-            }                
+            SetGfxFont();
         }
         return mGfxFont;
     }
@@ -662,6 +583,9 @@ struct gfxPangoFcFont {
     {
         return GfxFont()->CairoScaledFont();
     }
+
+private:
+    void SetGfxFont();
 };
 
 struct gfxPangoFcFontClass {
@@ -670,11 +594,95 @@ struct gfxPangoFcFontClass {
 
 G_DEFINE_TYPE (gfxPangoFcFont, gfx_pango_fc_font, PANGO_TYPE_FC_FONT)
 
+ nsReturnRef<PangoFont>
+gfxPangoFcFont::NewFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    gfxPangoFcFont *font = static_cast<gfxPangoFcFont*>
+        (g_object_new(GFX_TYPE_PANGO_FC_FONT, "pattern", aFontPattern, NULL));
+
+    
+    FcPatternReference(aRequestedPattern);
+    font->mRequestedPattern = aRequestedPattern;
+
+    
+    
+    
+    PangoFontMap *fontmap = GetPangoFontMap();
+    
+    
+    
+    PangoFcFont *fc_font = &font->parent_instance;
+    if (gUseFontMapProperty) {
+        g_object_set(font, "fontmap", fontmap, NULL);
+    } else {
+        
+        
+        
+        
+        
+        fc_font->fontmap = fontmap;
+        g_object_ref(fc_font->fontmap);
+    }
+
+    return nsReturnRef<PangoFont>(PANGO_FONT(font));
+}
+
+void
+gfxPangoFcFont::SetGfxFont() {
+    PangoFcFont *fc_font = &parent_instance;
+
+    if (NS_LIKELY(mRequestedPattern)) {
+        
+        nsAutoRef<FcPattern> renderPattern
+            (FcFontRenderPrepare(NULL, mRequestedPattern,
+                                 fc_font->font_pattern));
+        if (!renderPattern)
+            return;
+
+        FcBool hinting = FcTrue;
+        FcPatternGetBool(renderPattern, FC_HINTING, 0, &hinting);
+        fc_font->is_hinted = hinting;
+
+        
+        
+        FcMatrix *matrix;
+        FcResult result = FcPatternGetMatrix(renderPattern,
+                                             FC_MATRIX, 0, &matrix);
+        fc_font->is_transformed =
+            result == FcResultMatch &&
+            (matrix->xy != 0.0 || matrix->yx != 0.0 ||
+             matrix->xx != 1.0 || matrix->yy != 1.0);
+
+        mGfxFont = gfxFcFont::GetOrMakeFont(renderPattern).get();
+        if (mGfxFont) {
+            
+            FcPatternDestroy(mRequestedPattern);
+            mRequestedPattern = NULL;
+        }
+
+    } else {
+        
+        mGfxFont = gfxFcFont::GetOrMakeFont(fc_font->font_pattern).get();
+    }
+}
+
 static void
 gfx_pango_fc_font_init(gfxPangoFcFont *font)
 {
 }
-
 
 static void
 gfx_pango_fc_font_finalize(GObject *object)
