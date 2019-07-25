@@ -310,15 +310,33 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
     
     
     public Cursor getBookmarksInFolder(ContentResolver cr, long folderId) {
-        Cursor c = cr.query(mBookmarksUriWithProfile,
-                            DEFAULT_BOOKMARK_COLUMNS,
-                            Bookmarks.PARENT + " = ? AND " +
-                            Bookmarks._ID + " <> ? AND " +
-                            Bookmarks._ID + " <> ?",
-                            new String[] { String.valueOf(folderId),
-                                           String.valueOf(Bookmarks.FIXED_ROOT_ID),
-                                           String.valueOf(getTagsBookmarksFolderId(cr))},
-                            null);
+        Cursor c = null;
+
+        if (folderId == Bookmarks.FIXED_ROOT_ID) {
+            
+            
+            
+            
+            c = cr.query(mBookmarksUriWithProfile,
+                         DEFAULT_BOOKMARK_COLUMNS,
+                         Bookmarks.PARENT + " = ? AND (" +
+                         Bookmarks.GUID + " = ? OR " +
+                         Bookmarks.GUID + " = ? OR " +
+                         Bookmarks.GUID + " = ? OR " +
+                         Bookmarks.GUID + " = ?)",
+                         new String[] { String.valueOf(folderId),
+                                        Bookmarks.MOBILE_FOLDER_GUID,
+                                        Bookmarks.TOOLBAR_FOLDER_GUID,
+                                        Bookmarks.MENU_FOLDER_GUID,
+                                        Bookmarks.UNFILED_FOLDER_GUID },
+                         null);
+        } else {
+            c = cr.query(mBookmarksUriWithProfile,
+                         DEFAULT_BOOKMARK_COLUMNS,
+                         Bookmarks.PARENT + " = ? ",
+                         new String[] { String.valueOf(folderId) },
+                         null);
+        }
 
         return new LocalDBCursor(c);
     }
@@ -360,14 +378,6 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
 
         mMobileFolderId = getFolderIdFromGuid(cr, Bookmarks.MOBILE_FOLDER_GUID);
         return mMobileFolderId;
-    }
-
-    private long getTagsBookmarksFolderId(ContentResolver cr) {
-        if (mTagsFolderId >= 0)
-            return mTagsFolderId;
-
-        mTagsFolderId = getFolderIdFromGuid(cr, Bookmarks.TAGS_FOLDER_GUID);
-        return mTagsFolderId;
     }
 
     private long getFolderIdFromGuid(ContentResolver cr, String guid) {
