@@ -679,6 +679,13 @@ array_length_setter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value 
     return true;
 }
 
+static JSObject *
+array_iterator(JSContext *cx, JSObject *obj, JSBool keysonly)
+{
+    JS_ASSERT(!keysonly);
+    return ElementIteratorObject::create(cx, obj);
+}
+
 
 static inline bool
 IsDenseArrayIndex(JSObject *obj, uint32_t index)
@@ -1215,7 +1222,7 @@ array_fix(JSContext *cx, JSObject *obj, bool *success, AutoIdVector *props)
 
 Class js::ArrayClass = {
     "Array",
-    Class::NON_NATIVE | JSCLASS_HAS_CACHED_PROTO(JSProto_Array),
+    Class::NON_NATIVE | JSCLASS_HAS_CACHED_PROTO(JSProto_Array) | JSCLASS_FOR_OF_ITERATION,
     JS_PropertyStub,         
     JS_PropertyStub,         
     JS_PropertyStub,         
@@ -1231,7 +1238,14 @@ Class js::ArrayClass = {
     NULL,           
     NULL,           
     array_trace,    
-    JS_NULL_CLASS_EXT,
+    {
+        NULL,       
+        NULL,       
+        NULL,       
+        array_iterator,
+        NULL,       
+        false,      
+    },
     {
         array_lookupGeneric,
         array_lookupProperty,
@@ -1272,14 +1286,30 @@ Class js::ArrayClass = {
 
 Class js::SlowArrayClass = {
     "Array",
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Array),
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Array) | JSCLASS_FOR_OF_ITERATION,
     slowarray_addProperty,
     JS_PropertyStub,         
     JS_PropertyStub,         
     JS_StrictPropertyStub,   
     JS_EnumerateStub,
     JS_ResolveStub,
-    JS_ConvertStub
+    JS_ConvertStub,
+    NULL,
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    NULL,           
+    {
+        NULL,       
+        NULL,       
+        NULL,       
+        array_iterator,
+        NULL,       
+        false,      
+    }
 };
 
 bool

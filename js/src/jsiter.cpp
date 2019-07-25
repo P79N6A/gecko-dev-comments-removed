@@ -110,7 +110,34 @@ Class js::IteratorClass = {
         NULL,                
         NULL,                
         NULL,                
-        iterator_iterator,   
+        iterator_iterator,
+        NULL                 
+    }
+};
+
+Class js::ElementIteratorClass = {
+    "ElementIterator",
+    JSCLASS_HAS_RESERVED_SLOTS(ElementIteratorObject::NumSlots),
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub,
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    {
+        NULL,                
+        NULL,                
+        NULL,                
+        iterator_iterator,
         NULL                 
     }
 };
@@ -1064,6 +1091,110 @@ js_SuppressDeletedElements(JSContext *cx, JSObject *obj, uint32_t begin, uint32_
     return SuppressDeletedPropertyHelper(cx, obj, IndexRangePredicate(begin, end));
 }
 
+const uint32_t CLOSED_INDEX = UINT32_MAX;
+
+JSObject *
+ElementIteratorObject::create(JSContext *cx, JSObject *obj)
+{
+    JS_ASSERT(obj);
+    JSObject *iterobj = NewObjectWithGivenProto(cx, &ElementIteratorClass, NULL, obj);
+    if (iterobj) {
+        iterobj->setReservedSlot(TargetSlot, ObjectValue(*obj));
+        iterobj->setReservedSlot(IndexSlot, Int32Value(0));
+    }
+    return iterobj;
+}
+
+inline uint32_t
+ElementIteratorObject::getIndex() const
+{
+    return uint32_t(getReservedSlot(IndexSlot).toInt32());
+}
+
+inline JSObject *
+ElementIteratorObject::getTargetObject() const
+{
+    return &getReservedSlot(TargetSlot).toObject();
+}
+
+inline void
+ElementIteratorObject::setIndex(uint32_t index)
+{
+    setReservedSlot(IndexSlot, Int32Value(int32_t(index)));
+}
+
+bool
+ElementIteratorObject::iteratorNext(JSContext *cx, Value *vp)
+{
+    uint32_t i, length;
+    JSObject *obj = getTargetObject();
+    if (!js_GetLengthProperty(cx, obj, &length))
+        goto error;
+
+    i = getIndex();
+    if (i >= length) {
+        setIndex(CLOSED_INDEX);
+        vp->setMagic(JS_NO_ITER_VALUE);
+        return true;
+    }
+
+    JS_ASSERT(i + 1 > i);
+
+    
+    if (obj->isDenseArray()) {
+        *vp = obj->getDenseArrayElement(i);
+        if (vp->isMagic(JS_ARRAY_HOLE))
+            vp->setUndefined();
+    } else {
+        
+        jsid id;
+        if (i < uint32_t(INT32_MAX) && INT_FITS_IN_JSID(i)) {
+            id = INT_TO_JSID(i);
+        } else {
+            Value v = DoubleValue(i);
+            if (!js_ValueToStringId(cx, v, &id))
+                goto error;
+        }
+
+        
+        bool has;
+        if (obj->isProxy()) {
+            
+            if (!Proxy::hasOwn(cx, obj, id, &has))
+                goto error;
+        } else {
+            JSObject *obj2;
+            JSProperty *prop;
+            if (!js_HasOwnProperty(cx, obj->getOps()->lookupGeneric, obj, id, &obj2, &prop))
+                goto error;
+            has = !!prop;
+        }
+
+        
+        if (has) {
+            if (!obj->getElement(cx, obj, i, vp))
+                goto error;
+        } else {
+            vp->setUndefined();
+        }
+    }
+
+    
+    setIndex(i + 1);
+    return true;
+
+  error:
+    setIndex(CLOSED_INDEX);
+    return false;
+}
+
+inline js::ElementIteratorObject *
+JSObject::asElementIterator()
+{
+    JS_ASSERT(isElementIterator());
+    return static_cast<js::ElementIteratorObject *>(this);
+}
+
 JSBool
 js_IteratorMore(JSContext *cx, JSObject *iterobj, Value *rval)
 {
@@ -1089,7 +1220,31 @@ js_IteratorMore(JSContext *cx, JSObject *iterobj, Value *rval)
     JS_CHECK_RECURSION(cx, return false);
 
     
-    if (!ni) {
+    if (ni) {
+        JS_ASSERT(!ni->isKeyIter());
+        jsid id;
+        if (!ValueToId(cx, StringValue(*ni->current()), &id))
+            return false;
+        id = js_CheckForStringIndex(id);
+        ni->incCursor();
+        if (!ni->obj->getGeneric(cx, id, rval))
+            return false;
+        if ((ni->flags & JSITER_KEYVALUE) && !NewKeyValuePair(cx, id, *rval, rval))
+            return false;
+    } else if (iterobj->isElementIterator()) {
+        
+
+
+
+        if (!iterobj->asElementIterator()->iteratorNext(cx, rval))
+            return false;
+        if (rval->isMagic(JS_NO_ITER_VALUE)) {
+            cx->iterValue.setMagic(JS_NO_ITER_VALUE);
+            rval->setBoolean(false);
+            return true;
+        }
+    } else {
+        
         jsid id = ATOM_TO_JSID(cx->runtime->atomState.nextAtom);
         if (!js_GetMethod(cx, iterobj, id, JSGET_METHOD_BARRIER, rval))
             return false;
@@ -1103,17 +1258,6 @@ js_IteratorMore(JSContext *cx, JSObject *iterobj, Value *rval)
             rval->setBoolean(false);
             return true;
         }
-    } else {
-        JS_ASSERT(!ni->isKeyIter());
-        jsid id;
-        if (!ValueToId(cx, StringValue(*ni->current()), &id))
-            return false;
-        id = js_CheckForStringIndex(id);
-        ni->incCursor();
-        if (!ni->obj->getGeneric(cx, id, rval))
-            return false;
-        if ((ni->flags & JSITER_KEYVALUE) && !NewKeyValuePair(cx, id, *rval, rval))
-            return false;
     }
 
     
