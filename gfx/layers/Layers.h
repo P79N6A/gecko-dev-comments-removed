@@ -412,7 +412,20 @@ public:
   
 
 
+
+
+
   static already_AddRefed<ImageContainer> CreateImageContainer();
+  
+  
+
+
+
+
+
+
+
+  static already_AddRefed<ImageContainer> CreateAsynchronousImageContainer();
 
   
 

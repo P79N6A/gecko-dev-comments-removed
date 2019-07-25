@@ -81,6 +81,13 @@ public:
   void SchedulePauseOnCompositorThread();
   void ScheduleResumeOnCompositorThread(int width, int height);
 
+  virtual void ScheduleComposition();
+  
+  
+
+
+  static CompositorParent* GetCompositor(PRUint64 id);
+
   
 
 
@@ -103,7 +110,6 @@ protected:
   virtual bool DeallocPLayers(PLayersParent* aLayers);
   virtual void ScheduleTask(CancelableTask*, int);
   virtual void Composite();
-  virtual void ScheduleComposition();
   virtual void SetFirstPaintViewport(const nsIntPoint& aOffset, float aZoom, const nsIntRect& aPageRect, const gfx::Rect& aCssPageRect);
   virtual void SetPageRect(const gfx::Rect& aCssPageRect);
   virtual void SyncViewportInfo(const nsIntRect& aDisplayPort, float aDisplayResolution, bool aLayersUpdated,
@@ -126,6 +132,16 @@ private:
 
 
 
+  static void CreateCompositorMap();
+  static void DestroyCompositorMap();
+
+  
+
+
+
+
+
+
 
 
   static bool CreateThread();
@@ -138,6 +154,16 @@ private:
 
 
   static void DestroyThread();
+
+  
+
+
+  static void AddCompositor(CompositorParent* compositor, PRUint64* id);
+  
+
+
+  static CompositorParent* RemoveCompositor(PRUint64 id);
+
 
   
   
@@ -188,6 +214,8 @@ private:
 
   mozilla::Monitor mPauseCompositionMonitor;
   mozilla::Monitor mResumeCompositionMonitor;
+
+  PRUint64 mCompositorID;
 
   DISALLOW_EVIL_CONSTRUCTORS(CompositorParent);
 };

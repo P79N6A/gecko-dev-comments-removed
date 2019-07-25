@@ -3484,6 +3484,10 @@ pref("network.tcp.sendbuffer", 131072);
 #endif
 
 
+
+pref("layers.async-video.enabled",false);
+
+
 #ifdef MOZ_E10S_COMPAT
 pref("layers.acceleration.disabled", true);
 #else

@@ -37,6 +37,9 @@ class Shmem;
 
 namespace layers {
 
+class ImageContainerChild;
+class ImageBridgeChild;
+
 enum StereoMode {
   STEREO_MODE_MONO,
   STEREO_MODE_LEFT_RIGHT,
@@ -286,18 +289,11 @@ struct RemoteImageData {
 
 class THEBES_API ImageContainer {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
-
 public:
-  ImageContainer() :
-    mReentrantMonitor("ImageContainer.mReentrantMonitor"),
-    mPaintCount(0),
-    mPreviousImagePainted(false),
-    mImageFactory(new ImageFactory()),
-    mRecycleBin(new BufferRecycleBin()),
-    mRemoteData(nsnull),
-    mRemoteDataMutex(nsnull),
-    mCompositionNotifySink(nsnull)
-  {}
+
+  enum { DISABLE_ASYNC = 0x0, ENABLE_ASYNC = 0x01 };
+
+  ImageContainer(int flag = 0);
 
   ~ImageContainer();
 
@@ -324,7 +320,46 @@ public:
 
 
 
+
+
+
+
+
   void SetCurrentImage(Image* aImage);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void SetCurrentImageInTransaction(Image* aImage);
+
+  
+
+
+
+
+  bool IsAsync() const;
+
+  
+
+
+
+
+
+
+
+  PRUint64 GetAsyncContainerID() const;
 
   
 
@@ -477,6 +512,8 @@ public:
 protected:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
 
+  void SetCurrentImageInternal(Image* aImage);
+
   
   
   
@@ -530,6 +567,15 @@ protected:
   CrossProcessMutex *mRemoteDataMutex;
 
   CompositionNotifySink *mCompositionNotifySink;
+
+  
+  
+  
+  
+  
+  
+  
+  nsRefPtr<ImageContainerChild> mImageContainerChild;
 };
  
 class AutoLockImage
@@ -895,4 +941,4 @@ public:
 }
 }
 
-#endif 
+#endif

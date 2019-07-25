@@ -8,6 +8,7 @@
 #endif
 
 #include "mozilla/layers/CompositorParent.h"
+#include "mozilla/layers/ImageBridgeChild.h"
 
 #include "prlog.h"
 #include "prenv.h"
@@ -273,6 +274,10 @@ gfxPlatform::Init()
     if (useOffMainThreadCompositing && (XRE_GetProcessType() == 
                                         GeckoProcessType_Default)) {
         CompositorParent::StartUp();
+        if (Preferences::GetBool("layers.async-video.enabled",false)) {
+            ImageBridgeChild::StartUp();
+        }
+
     }
 
     
@@ -390,6 +395,10 @@ gfxPlatform::Shutdown()
     
     mozilla::gl::GLContextProviderEGL::Shutdown();
 #endif
+
+    
+    
+    ImageBridgeChild::ShutDown();
 
     CompositorParent::ShutDown();
 
