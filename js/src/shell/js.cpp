@@ -449,6 +449,46 @@ Process(JSContext *cx, JSObject *obj, char *filename, JSBool forceTTY)
         JS_SetOptions(cx, oldopts);
         if (script) {
             if (!compileOnly) {
+#ifdef JS_TYPE_INFERENCE
+                if (enableTraceJit || enableMethodJit) {
+                    
+
+
+
+
+
+                    
+                    JSObject *nobj = JS_NewGlobalObject(cx, obj->getJSClass());
+                    if (!nobj || !nobj->ensureSlots(cx, obj->numSlots()))
+                        return;
+                    memcpy(nobj->getSlots(), obj->getSlots(), obj->numSlots() * sizeof(Value));
+                    nobj->lastProp = obj->lastProp;
+                    nobj->objShape = obj->objShape;
+                    nobj->proto = obj->proto;
+                    JS_ASSERT(nobj->flags == obj->flags);
+                    JS_ASSERT(!nobj->parent && !obj->parent);
+                    JS_ASSERT(!nobj->privateData && !obj->privateData);
+                    JS_ASSERT(obj == cx->globalObject);
+
+                    if (enableTraceJit)
+                        JS_ToggleOptions(cx, JSOPTION_JIT);
+                    if (enableMethodJit)
+                        JS_ToggleOptions(cx, JSOPTION_METHODJIT);
+
+                    printf("Running interpreter...\n");
+
+                    (void)JS_ExecuteScript(cx, obj, script, NULL);
+                    t1 = PRMJ_Now();
+
+                    if (enableTraceJit)
+                        JS_ToggleOptions(cx, JSOPTION_JIT);
+                    if (enableMethodJit)
+                        JS_ToggleOptions(cx, JSOPTION_METHODJIT);
+
+                    printf("Running JITs...\n");
+                }
+#endif
+
                 (void)JS_ExecuteScript(cx, obj, script, NULL);
                 int64 t2 = PRMJ_Now() - t1;
                 if (printTiming)
