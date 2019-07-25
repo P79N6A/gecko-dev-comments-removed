@@ -538,6 +538,8 @@ LayerManagerOGL::RootLayer() const
   return static_cast<LayerOGL*>(mRoot->ImplData());
 }
 
+
+
 void
 LayerManagerOGL::FPSState::DrawFPS(GLContext* context, CopyProgram* copyprog)
 {
