@@ -713,6 +713,10 @@ class GetPropCompiler : public PICStubCompiler
             Address fslot(pic.objReg, offsetof(JSObject, fslots) + JSSLOT_PROTO * sizeof(Value));
             do {
                 tempObj = tempObj->getProto();
+                
+                
+                if (!tempObj)
+                    return false;
                 JS_ASSERT(tempObj);
                 JS_ASSERT(tempObj->isNative());
 
