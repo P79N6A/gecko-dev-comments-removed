@@ -872,11 +872,6 @@ ShowNativePrintDialog(HWND              aHWnd,
     }
   }
 
-  NS_ASSERTION(!printerName.IsEmpty(), "We have to have a printer name");
-  if (printerName.IsEmpty()) {
-    return NS_ERROR_FAILURE;
-  }
-
   
 
   PRUint32 len = printerName.Length();
