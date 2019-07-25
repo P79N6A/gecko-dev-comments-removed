@@ -909,48 +909,63 @@ function JSPropertyProvider(aScope, aInputValue)
     return null;
   }
 
-  let properties = completionPart.split(".");
-  let matchProp;
-  if (properties.length > 1) {
-    matchProp = properties.pop().trimLeft();
-    for (let i = 0; i < properties.length; i++) {
-      let prop = properties[i].trim();
-      if (!prop) {
-        return null;
-      }
+  let matches = null;
+  let matchProp = "";
 
-      
-      
-      if (obj == null) {
-        return null;
-      }
+  let lastDot = completionPart.lastIndexOf(".");
+  if (lastDot > 0 &&
+      (completionPart[0] == "'" || completionPart[0] == '"') &&
+      completionPart[lastDot - 1] == completionPart[0]) {
+    
+    obj = obj.String.prototype;
+    matchProp = completionPart.slice(lastDot + 1);
 
-      
-      
-      if (WCU.isNonNativeGetter(obj, prop)) {
-        return null;
-      }
-      try {
-        obj = obj[prop];
-      }
-      catch (ex) {
-        return null;
-      }
-    }
   }
   else {
-    matchProp = properties[0].trimLeft();
-  }
+    
 
-  
-  
-  if (obj == null) {
-    return null;
-  }
+    let properties = completionPart.split(".");
+    if (properties.length > 1) {
+      matchProp = properties.pop().trimLeft();
+      for (let i = 0; i < properties.length; i++) {
+        let prop = properties[i].trim();
+        if (!prop) {
+          return null;
+        }
 
-  
-  if (WCU.isIteratorOrGenerator(obj)) {
-    return null;
+        
+        
+        if (obj == null) {
+          return null;
+        }
+
+        
+        
+        if (WCU.isNonNativeGetter(obj, prop)) {
+          return null;
+        }
+        try {
+          obj = obj[prop];
+        }
+        catch (ex) {
+          return null;
+        }
+      }
+    }
+    else {
+      matchProp = properties[0].trimLeft();
+    }
+
+    
+    
+    if (obj == null) {
+      return null;
+    }
+
+    
+    if (WCU.isIteratorOrGenerator(obj)) {
+      return null;
+    }
   }
 
   let matches = Object.keys(getMatchedProps(obj, {matchProp:matchProp}));
