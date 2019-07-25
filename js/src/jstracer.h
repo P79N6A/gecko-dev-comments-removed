@@ -1612,7 +1612,20 @@ class TraceRecorder
 
 
 
-            return !tracker.has(globalObj->getSlots() + slot);
+            Value *vp = globalObj->getSlots() + slot;
+
+            
+            if (tracker.has(vp))
+                return false;
+            
+            
+
+
+
+
+
+
+            return tree->globalSlots->offsetOf(nativeGlobalSlot(vp)) == -1;
         }
         pendingGlobalSlotToSet = -1;
         return true;
