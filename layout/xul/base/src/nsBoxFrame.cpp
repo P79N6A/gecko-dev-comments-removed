@@ -1054,6 +1054,12 @@ nsBoxFrame::InsertFrames(nsIAtom*        aListName,
    if (mLayoutManager)
      mLayoutManager->ChildrenInserted(this, state, aPrevFrame, newFrames);
 
+   
+   
+   
+   
+   CheckBoxOrder(state);
+
 #ifdef DEBUG_LAYOUT
    
    if (mState & NS_STATE_CURRENTLY_IN_DEBUG)
@@ -1080,6 +1086,12 @@ nsBoxFrame::AppendFrames(nsIAtom*        aListName,
    
    if (mLayoutManager)
      mLayoutManager->ChildrenAppended(this, state, newFrames);
+
+   
+   
+   
+   
+   CheckBoxOrder(state);
 
 #ifdef DEBUG_LAYOUT
    
