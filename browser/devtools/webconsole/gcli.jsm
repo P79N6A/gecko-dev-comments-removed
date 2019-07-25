@@ -6544,6 +6544,7 @@ define('gcli/ui/field', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10
 
 var dom = require('gcli/util').dom;
 var createEvent = require('gcli/util').createEvent;
+var KeyEvent = require('gcli/util').event.KeyEvent;
 var l10n = require('gcli/l10n');
 
 var Argument = require('gcli/argument').Argument;
@@ -6581,7 +6582,12 @@ var Menu = require('gcli/ui/menu').Menu;
 
 
 
-function Field(document, type, named, name, requ) {
+
+
+function Field(type, options) {
+  this.type = type;
+  this.document = options.document;
+  this.requisition = options.requisition;
 }
 
 
@@ -6638,10 +6644,14 @@ Field.prototype.setMessage = function(message) {
 
 
 
-Field.prototype.onInputChange = function() {
+Field.prototype.onInputChange = function(ev) {
   var conversion = this.getConversion();
   this.fieldChanged({ conversion: conversion });
   this.setMessage(conversion.message);
+
+  if (ev.keyCode === KeyEvent.DOM_VK_RETURN) {
+    this.requisition.exec();
+  }
 };
 
 
@@ -6715,8 +6725,7 @@ exports.getField = getField;
 
 
 function StringField(type, options) {
-  this.document = options.document;
-  this.type = type;
+  Field.call(this, type, options);
   this.arg = new Argument();
 
   this.element = dom.createElement(this.document, 'input');
@@ -6763,8 +6772,7 @@ addField(StringField);
 
 
 function NumberField(type, options) {
-  this.document = options.document;
-  this.type = type;
+  Field.call(this, type, options);
   this.arg = new Argument();
 
   this.element = dom.createElement(this.document, 'input');
@@ -6818,8 +6826,8 @@ addField(NumberField);
 
 
 function BooleanField(type, options) {
-  this.document = options.document;
-  this.type = type;
+  Field.call(this, type, options);
+
   this.name = options.name;
   this.named = options.named;
 
@@ -6876,8 +6884,8 @@ addField(BooleanField);
 
 
 function SelectionField(type, options) {
-  this.document = options.document;
-  this.type = type;
+  Field.call(this, type, options);
+
   this.items = [];
 
   this.element = dom.createElement(this.document, 'select');
@@ -6944,9 +6952,7 @@ addField(SelectionField);
 
 
 function JavascriptField(type, options) {
-  this.document = options.document;
-  this.type = type;
-  this.requ = options.requisition;
+  Field.call(this, type, options);
 
   this.onInputChange = this.onInputChange.bind(this);
   this.arg = new Argument('', '{ ', ' }');
@@ -7050,10 +7056,8 @@ addField(JavascriptField);
 
 
 function DeferredField(type, options) {
-  this.document = options.document;
-  this.type = type;
+  Field.call(this, type, options);
   this.options = options;
-  this.requisition = options.requisition;
   this.requisition.assignmentChange.add(this.update, this);
 
   this.element = dom.createElement(this.document, 'div');
@@ -7111,8 +7115,8 @@ addField(DeferredField);
 
 
 function BlankField(type, options) {
-  this.document = options.document;
-  this.type = type;
+  Field.call(this, type, options);
+
   this.element = dom.createElement(this.document, 'div');
 
   this.fieldChanged = createEvent('BlankField.fieldChanged');
@@ -7139,10 +7143,8 @@ addField(BlankField);
 
 
 function ArrayField(type, options) {
-  this.document = options.document;
-  this.type = type;
+  Field.call(this, type, options);
   this.options = options;
-  this.requ = options.requisition;
 
   this._onAdd = this._onAdd.bind(this);
   this.members = [];
