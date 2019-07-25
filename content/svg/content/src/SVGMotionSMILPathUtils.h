@@ -62,7 +62,7 @@ public:
   
   class PathGenerator {
   public:
-    PathGenerator(nsSVGElement* aSVGElement)
+    PathGenerator(const nsSVGElement* aSVGElement)
       : mSVGElement(aSVGElement),
         mGfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface()),
         mHaveReceivedCommands(PR_FALSE)
@@ -91,7 +91,7 @@ public:
                                float& aXVal, float& aYVal);
 
     
-    nsSVGElement* mSVGElement; 
+    const nsSVGElement* mSVGElement; 
     gfxContext    mGfxContext;
     PRPackedBool  mHaveReceivedCommands;
   };

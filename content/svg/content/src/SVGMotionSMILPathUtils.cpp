@@ -37,7 +37,7 @@
 
 #include "SVGMotionSMILPathUtils.h"
 #include "nsSVGElement.h"
-#include "nsSVGLength2.h"
+#include "SVGLength.h"
 #include "nsContentCreatorFunctions.h" 
 #include "nsCharSeparatedTokenizer.h"
 
@@ -126,31 +126,30 @@ SVGMotionSMILPathUtils::PathGenerator::
     tokenizer(aCoordPairStr, ',',
               nsCharSeparatedTokenizer::SEPARATOR_OPTIONAL);
 
-  nsSVGLength2 x, y;
-  nsresult rv;
+  SVGLength x, y;
 
-  if (!tokenizer.hasMoreTokens()) { 
-    return PR_FALSE;
-  }
-  
-  x.Init();
-  rv = x.SetBaseValueString(tokenizer.nextToken(), nsnull, PR_FALSE);
-  if (NS_FAILED(rv) ||                
-      !tokenizer.hasMoreTokens()) {   
+  if (!tokenizer.hasMoreTokens() ||
+      !x.SetValueFromString(tokenizer.nextToken())) {
     return PR_FALSE;
   }
 
-  
-  y.Init();
-  rv = y.SetBaseValueString(tokenizer.nextToken(), nsnull, PR_FALSE);
-  if (NS_FAILED(rv) ||                           
-      tokenizer.lastTokenEndedWithSeparator() || 
+  if (!tokenizer.hasMoreTokens() ||
+      !y.SetValueFromString(tokenizer.nextToken())) { 
+    return PR_FALSE;
+  }
+
+  if (tokenizer.lastTokenEndedWithSeparator() || 
       tokenizer.hasMoreTokens()) {               
     return PR_FALSE;
   }
 
-  aXVal = x.GetBaseValue(mSVGElement);
-  aYVal = y.GetBaseValue(mSVGElement);
+  float xRes = x.GetValueInUserUnits(mSVGElement, nsSVGUtils::X);
+  float yRes = y.GetValueInUserUnits(mSVGElement, nsSVGUtils::Y);
+
+  NS_ENSURE_FINITE2(xRes, yRes, PR_FALSE);
+
+  aXVal = xRes;
+  aYVal = yRes;
   return PR_TRUE;
 }
 

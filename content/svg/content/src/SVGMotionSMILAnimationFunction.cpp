@@ -184,12 +184,8 @@ SVGMotionSMILAnimationFunction::
     return;
   }
 
-  
-  
-  
-  nsSVGElement* svgCtx =
-    static_cast<nsSVGElement*>(const_cast<nsIContent*>(aContextElem));
-  SVGMotionSMILPathUtils::PathGenerator pathGenerator(svgCtx);
+  SVGMotionSMILPathUtils::PathGenerator
+    pathGenerator(static_cast<const nsSVGElement*>(aContextElem));
 
   PRBool success = PR_FALSE;
   if (HasAttr(nsGkAtoms::values)) {
