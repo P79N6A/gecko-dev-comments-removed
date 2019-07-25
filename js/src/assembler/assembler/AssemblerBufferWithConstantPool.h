@@ -229,11 +229,13 @@ public:
             flushConstantPool(false);
     }
 
+    
     uint32_t* poolAddress()
     {
         return m_pool;
     }
 
+    
     int sizeOfConstantPool()
     {
         return m_numConsts;
@@ -263,6 +265,8 @@ private:
         m_lastConstDelta = constSize;
     }
 
+    
+    
     void flushConstantPool(bool useBarrier = true)
     {
         js::JaegerSpew(js::JSpew_Insns, " -- FLUSHING CONSTANT POOL WITH %d CONSTANTS --\n",
