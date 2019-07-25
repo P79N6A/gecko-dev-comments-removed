@@ -3311,11 +3311,6 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
       bool windowless = false;
       mInstance->IsWindowless(&windowless);
       nsIDocument *doc = mContent ? mContent->OwnerDoc() : nsnull;
-#ifndef XP_MACOSX
-      if (!windowless && doc && doc->IsFullScreenDoc()) {
-        nsIDocument::ExitFullScreen(true);
-      }
-#endif
       
       nsPresContext* context = mObjectFrame->PresContext();
       rv = mObjectFrame->CreateWidget(context->DevPixelsToAppUnits(mPluginWindow->width),

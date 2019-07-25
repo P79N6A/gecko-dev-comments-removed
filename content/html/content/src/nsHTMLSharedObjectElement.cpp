@@ -290,20 +290,6 @@ nsHTMLSharedObjectElement::BindToTree(nsIDocument *aDocument,
     nsContentUtils::AddScriptRunner(NS_NewRunnableMethod(this, start));
   }
 
-#ifndef XP_MACOSX
-  if (aDocument &&
-      aDocument->IsFullScreenDoc() &&
-      nsContentUtils::HasPluginWithUncontrolledEventDispatch(this)) {
-    
-    
-    
-    nsIDocument::ExitFullScreen(true);
-    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                    "DOM", aDocument,
-                                    nsContentUtils::eDOM_PROPERTIES,
-                                    "AddedWindowedPluginWhileFullScreen");
-  }
-#endif
   return NS_OK;
 }
 
