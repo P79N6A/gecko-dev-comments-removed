@@ -112,6 +112,9 @@ public:
   }
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual already_AddRefed<nsIURI> GetBaseURI() const;
+  virtual PRBool IsEqualNode(nsINode *aOtherNode);
+  virtual void GetTextContent(nsAString &aTextContent);
+  virtual nsresult SetTextContent(const nsAString& aTextContent);
 
   static void Initialize();
   static void Shutdown();

@@ -81,7 +81,7 @@ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_INODEINFO_IID)
 
   nsINodeInfo()
-    : mInner(nsnull, nsnull, kNameSpaceID_None, 0, nsnull),
+    : mInner(nsnull, nsnull, kNameSpaceID_None),
       mOwnerManager(nsnull)
   {
   }
@@ -123,15 +123,10 @@ public:
   
 
 
-  const nsString& NodeName() const {
-    return mNodeName;
-  }
-
-  
 
 
-  const nsString& LocalName() const {
-    return mLocalName;
+  const nsString& QualifiedNameCorrectedCase() const {
+    return mQualifiedNameCorrectedCase;
   }
 
 #ifdef MOZILLA_INTERNAL_API
@@ -165,32 +160,27 @@ public:
   
 
 
+
+
+
+
+
+
   virtual nsresult GetNamespaceURI(nsAString& aNameSpaceURI) const = 0;
 
   
 
 
 
+
+
+
+
+
+
   PRInt32 NamespaceID() const
   {
     return mInner.mNamespaceID;
-  }
-
-  
-
-
-
-  PRUint16 NodeType() const
-  {
-    return mInner.mNodeType;
-  }
-
-  
-
-
-  nsIAtom* GetExtraName() const
-  {
-    return mInner.mExtraName;
   }
 
   
@@ -332,28 +322,24 @@ protected:
   public:
     nsNodeInfoInner()
       : mName(nsnull), mPrefix(nsnull), mNamespaceID(kNameSpaceID_Unknown),
-        mNodeType(0), mNameString(nsnull), mExtraName(nsnull)
+        mNameString(nsnull)
     {
     }
-    nsNodeInfoInner(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID,
-                    PRUint16 aNodeType, nsIAtom* aExtraName)
+    nsNodeInfoInner(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID)
       : mName(aName), mPrefix(aPrefix), mNamespaceID(aNamespaceID),
-        mNodeType(aNodeType), mNameString(nsnull), mExtraName(aExtraName)
+        mNameString(nsnull)
     {
     }
-    nsNodeInfoInner(const nsAString& aTmpName, nsIAtom *aPrefix,
-                    PRInt32 aNamespaceID, PRUint16 aNodeType)
+    nsNodeInfoInner(const nsAString& aTmpName, nsIAtom *aPrefix, PRInt32 aNamespaceID)
       : mName(nsnull), mPrefix(aPrefix), mNamespaceID(aNamespaceID),
-        mNodeType(aNodeType), mNameString(&aTmpName), mExtraName(nsnull)
+        mNameString(&aTmpName)
     {
     }
 
     nsIAtom*            mName;
     nsIAtom*            mPrefix;
     PRInt32             mNamespaceID;
-    PRUint16            mNodeType; 
     const nsAString*    mNameString;
-    nsIAtom*            mExtraName; 
   };
 
   
@@ -373,11 +359,8 @@ protected:
   nsString mQualifiedName;
 
   
-  nsString mNodeName;
-
   
-  
-  nsString mLocalName;
+  nsString mQualifiedNameCorrectedCase;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsINodeInfo, NS_INODEINFO_IID)

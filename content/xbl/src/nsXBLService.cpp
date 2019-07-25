@@ -73,6 +73,7 @@
 #include "nsCRT.h"
 #include "nsContentUtils.h"
 #include "nsSyncLoadService.h"
+#include "nsIDOM3Node.h"
 #include "nsContentPolicyUtils.h"
 #include "nsTArray.h"
 #include "nsContentErrors.h"
@@ -950,36 +951,42 @@ nsXBLService::GetBinding(nsIContent* aBoundElement, nsIURI* aURI,
       nsAutoString nameSpace;
 
       if (!prefix.IsEmpty()) {
-        child->LookupNamespaceURI(prefix, nameSpace);
+        nsCOMPtr<nsIAtom> prefixAtom = do_GetAtom(prefix);
 
-        if (!nameSpace.IsEmpty()) {
-          if (!hasDisplay) {
+        nsCOMPtr<nsIDOM3Node> node(do_QueryInterface(child));
+
+        if (node) {
+          node->LookupNamespaceURI(prefix, nameSpace);
+
+          if (!nameSpace.IsEmpty()) {
+            if (!hasDisplay) {
+              
+              
+              protoBinding->SetHasBasePrototype(PR_FALSE);
+              
+            }
+
+            PRInt32 nameSpaceID =
+              nsContentUtils::NameSpaceManager()->GetNameSpaceID(nameSpace);
+
+            nsCOMPtr<nsIAtom> tagName = do_GetAtom(display);
             
-            
-            protoBinding->SetHasBasePrototype(PR_FALSE);
-            
+            if (!CheckTagNameWhiteList(nameSpaceID, tagName)) {
+              const PRUnichar* params[] = { display.get() };
+              nsContentUtils::ReportToConsole(nsContentUtils::eXBL_PROPERTIES,
+                                              "InvalidExtendsBinding",
+                                              params, NS_ARRAY_LENGTH(params),
+                                              nsnull,
+                                              EmptyString(), 0, 0,
+                                              nsIScriptError::errorFlag,
+                                              "XBL", doc);
+              NS_ASSERTION(!IsChromeOrResourceURI(aURI),
+                           "Invalid extends value");
+              return NS_ERROR_ILLEGAL_VALUE;
+            }
+
+            protoBinding->SetBaseTag(nameSpaceID, tagName);
           }
-
-          PRInt32 nameSpaceID =
-            nsContentUtils::NameSpaceManager()->GetNameSpaceID(nameSpace);
-
-          nsCOMPtr<nsIAtom> tagName = do_GetAtom(display);
-          
-          if (!CheckTagNameWhiteList(nameSpaceID, tagName)) {
-            const PRUnichar* params[] = { display.get() };
-            nsContentUtils::ReportToConsole(nsContentUtils::eXBL_PROPERTIES,
-                                            "InvalidExtendsBinding",
-                                            params, NS_ARRAY_LENGTH(params),
-                                            nsnull,
-                                            EmptyString(), 0, 0,
-                                            nsIScriptError::errorFlag,
-                                            "XBL", doc);
-            NS_ASSERTION(!IsChromeOrResourceURI(aURI),
-                         "Invalid extends value");
-            return NS_ERROR_ILLEGAL_VALUE;
-          }
-
-          protoBinding->SetBaseTag(nameSpaceID, tagName);
         }
       }
 
