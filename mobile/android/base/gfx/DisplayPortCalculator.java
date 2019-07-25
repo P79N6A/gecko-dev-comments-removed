@@ -24,6 +24,10 @@ final class DisplayPortCalculator {
     private static final String PREF_DISPLAYPORT_VB_MULTIPLIER = "gfx.displayport.strategy_vb.multiplier";
     private static final String PREF_DISPLAYPORT_VB_VELOCITY_THRESHOLD = "gfx.displayport.strategy_vb.threshold";
     private static final String PREF_DISPLAYPORT_VB_REVERSE_BUFFER = "gfx.displayport.strategy_vb.reverse_buffer";
+    private static final String PREF_DISPLAYPORT_VB_DANGER_X_BASE = "gfx.displayport.strategy_vb.danger_x_base";
+    private static final String PREF_DISPLAYPORT_VB_DANGER_Y_BASE = "gfx.displayport.strategy_vb.danger_y_base";
+    private static final String PREF_DISPLAYPORT_VB_DANGER_X_INCR = "gfx.displayport.strategy_vb.danger_x_incr";
+    private static final String PREF_DISPLAYPORT_VB_DANGER_Y_INCR = "gfx.displayport.strategy_vb.danger_y_incr";
 
     private static DisplayPortStrategy sStrategy = new VelocityBiasStrategy(null);
 
@@ -46,6 +50,10 @@ final class DisplayPortCalculator {
         prefs.put(PREF_DISPLAYPORT_VB_MULTIPLIER);
         prefs.put(PREF_DISPLAYPORT_VB_VELOCITY_THRESHOLD);
         prefs.put(PREF_DISPLAYPORT_VB_REVERSE_BUFFER);
+        prefs.put(PREF_DISPLAYPORT_VB_DANGER_X_BASE);
+        prefs.put(PREF_DISPLAYPORT_VB_DANGER_Y_BASE);
+        prefs.put(PREF_DISPLAYPORT_VB_DANGER_X_INCR);
+        prefs.put(PREF_DISPLAYPORT_VB_DANGER_Y_INCR);
     }
 
     
@@ -280,11 +288,55 @@ final class DisplayPortCalculator {
         private final float VELOCITY_THRESHOLD;
         
         private final float REVERSE_BUFFER;
+        
+        
+        
+        
+        private final float DANGER_ZONE_BASE_X_MULTIPLIER;
+        private final float DANGER_ZONE_BASE_Y_MULTIPLIER;
+        private final float DANGER_ZONE_INCR_X_MULTIPLIER;
+        private final float DANGER_ZONE_INCR_Y_MULTIPLIER;
 
         VelocityBiasStrategy(Map<String, Integer> prefs) {
             SIZE_MULTIPLIER = getFloatPref(prefs, PREF_DISPLAYPORT_VB_MULTIPLIER, 1500);
             VELOCITY_THRESHOLD = GeckoAppShell.getDpi() * getFloatPref(prefs, PREF_DISPLAYPORT_VB_VELOCITY_THRESHOLD, 32);
             REVERSE_BUFFER = getFloatPref(prefs, PREF_DISPLAYPORT_VB_REVERSE_BUFFER, 200);
+            DANGER_ZONE_BASE_X_MULTIPLIER = getFloatPref(prefs, PREF_DISPLAYPORT_VB_DANGER_X_BASE, 1000);
+            DANGER_ZONE_BASE_Y_MULTIPLIER = getFloatPref(prefs, PREF_DISPLAYPORT_VB_DANGER_Y_BASE, 1000);
+            DANGER_ZONE_INCR_X_MULTIPLIER = getFloatPref(prefs, PREF_DISPLAYPORT_VB_DANGER_X_INCR, 0);
+            DANGER_ZONE_INCR_Y_MULTIPLIER = getFloatPref(prefs, PREF_DISPLAYPORT_VB_DANGER_Y_INCR, 0);
+        }
+
+        
+
+
+
+
+
+
+
+        private RectF velocityBiasedMargins(float xAmount, float yAmount, PointF velocity) {
+            RectF margins = new RectF();
+
+            if (velocity.x > VELOCITY_THRESHOLD) {
+                margins.left = xAmount * REVERSE_BUFFER;
+            } else if (velocity.x < -VELOCITY_THRESHOLD) {
+                margins.left = xAmount * (1.0f - REVERSE_BUFFER);
+            } else {
+                margins.left = xAmount / 2.0f;
+            }
+            margins.right = xAmount - margins.left;
+    
+            if (velocity.y > VELOCITY_THRESHOLD) {
+                margins.top = yAmount * REVERSE_BUFFER;
+            } else if (velocity.y < -VELOCITY_THRESHOLD) {
+                margins.top = yAmount * (1.0f - REVERSE_BUFFER);
+            } else {
+                margins.top = yAmount / 2.0f;
+            }
+            margins.bottom = yAmount - margins.top;
+
+            return margins;
         }
 
         public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
@@ -308,27 +360,7 @@ final class DisplayPortCalculator {
 
             
             
-            
-            RectF margins = new RectF();
-            if (velocity.x > VELOCITY_THRESHOLD) {
-                margins.left = horizontalBuffer * REVERSE_BUFFER;
-            } else if (velocity.x < -VELOCITY_THRESHOLD) {
-                margins.left = horizontalBuffer * (1.0f - REVERSE_BUFFER);
-            } else {
-                margins.left = horizontalBuffer / 2.0f;
-            }
-            margins.right = horizontalBuffer - margins.left;
-
-            if (velocity.y > VELOCITY_THRESHOLD) {
-                margins.top = verticalBuffer * REVERSE_BUFFER;
-            } else if (velocity.y < -VELOCITY_THRESHOLD) {
-                margins.top = verticalBuffer * (1.0f - REVERSE_BUFFER);
-            } else {
-                margins.top = verticalBuffer / 2.0f;
-            }
-            margins.bottom = verticalBuffer - margins.top;
-
-            
+            RectF margins = velocityBiasedMargins(horizontalBuffer, verticalBuffer, velocity);
             margins = shiftMarginsForPageBounds(margins, metrics);
 
             return new DisplayPortMetrics(metrics.viewportRectLeft - margins.left,
@@ -340,16 +372,33 @@ final class DisplayPortCalculator {
 
         public boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort) {
             
+            float dangerZoneX = metrics.getWidth() * (DANGER_ZONE_BASE_X_MULTIPLIER + (velocity.x * DANGER_ZONE_INCR_X_MULTIPLIER));
+            float dangerZoneY = metrics.getHeight() * (DANGER_ZONE_BASE_Y_MULTIPLIER + (velocity.y * DANGER_ZONE_INCR_Y_MULTIPLIER));
             
             
+            dangerZoneX = Math.min(dangerZoneX, metrics.pageSizeWidth - metrics.getWidth());
+            dangerZoneY = Math.min(dangerZoneY, metrics.pageSizeHeight - metrics.getHeight());
+
             
             
-            return true;
+            RectF dangerMargins = velocityBiasedMargins(dangerZoneX, dangerZoneY, velocity);
+            dangerMargins = shiftMarginsForPageBounds(dangerMargins, metrics);
+
+            
+            
+            RectF adjustedViewport = new RectF(
+                    metrics.viewportRectLeft - dangerMargins.left,
+                    metrics.viewportRectTop - dangerMargins.top,
+                    metrics.viewportRectRight + dangerMargins.right,
+                    metrics.viewportRectBottom + dangerMargins.bottom);
+            return !displayPort.contains(adjustedViewport);
         }
 
         @Override
         public String toString() {
-            return "VelocityBiasStrategy mult=" + SIZE_MULTIPLIER + ", threshold=" + VELOCITY_THRESHOLD + ", reverse=" + REVERSE_BUFFER;
+            return "VelocityBiasStrategy mult=" + SIZE_MULTIPLIER + ", threshold=" + VELOCITY_THRESHOLD + ", reverse=" + REVERSE_BUFFER
+                + ", dangerBaseX=" + DANGER_ZONE_BASE_X_MULTIPLIER + ", dangerBaseY=" + DANGER_ZONE_BASE_Y_MULTIPLIER
+                + ", dangerIncrX=" + DANGER_ZONE_INCR_Y_MULTIPLIER + ", dangerIncrY=" + DANGER_ZONE_INCR_Y_MULTIPLIER;
         }
     }
 

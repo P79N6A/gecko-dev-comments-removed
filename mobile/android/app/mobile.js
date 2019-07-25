@@ -377,6 +377,10 @@ pref("gfx.displayport.strategy_fm.danger_y", -1);
 pref("gfx.displayport.strategy_vb.multiplier", -1); 
 pref("gfx.displayport.strategy_vb.threshold", -1); 
 pref("gfx.displayport.strategy_vb.reverse_buffer", -1); 
+pref("gfx.displayport.strategy_vb.danger_x_base", -1); 
+pref("gfx.displayport.strategy_vb.danger_y_base", -1); 
+pref("gfx.displayport.strategy_vb.danger_x_incr", -1); 
+pref("gfx.displayport.strategy_vb.danger_y_incr", -1); 
 #endif
 
 
