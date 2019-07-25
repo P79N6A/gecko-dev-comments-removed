@@ -31,7 +31,6 @@ const SCRATCHPAD_CONTEXT_CONTENT = 1;
 const SCRATCHPAD_CONTEXT_BROWSER = 2;
 const SCRATCHPAD_L10N = "chrome://browser/locale/devtools/scratchpad.properties";
 const DEVTOOLS_CHROME_ENABLED = "devtools.chrome.enabled";
-const PREF_RECENT_FILES_MAX = "devtools.scratchpad.recentFilesMax";
 const BUTTON_POSITION_SAVE = 0;
 const BUTTON_POSITION_CANCEL = 1;
 const BUTTON_POSITION_DONT_SAVE = 2;
@@ -161,7 +160,7 @@ var Scratchpad = {
 
 
 
-  setState: function SP_setState(aState)
+  setState: function SP_getState(aState)
   {
     if (aState.filename) {
       this.setFilename(aState.filename);
@@ -617,202 +616,18 @@ var Scratchpad = {
   
 
 
-
-
-
-  openFile: function SP_openFile(aIndex)
+  openFile: function SP_openFile()
   {
-    let fp;
-    if (!aIndex && aIndex !== 0) {
-      fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-      fp.init(window, this.strings.GetStringFromName("openFile.title"),
-              Ci.nsIFilePicker.modeOpen);
-      fp.defaultString = "";
-    }
-
-    if (aIndex > - 1 || fp.show() != Ci.nsIFilePicker.returnCancel) {
-      this.promptSave(function(aCloseFile, aSaved, aStatus) {
-        let shouldOpen = aCloseFile;
-        if (aSaved && !Components.isSuccessCode(aStatus)) {
-          shouldOpen = false;
-        }
-
-        if (shouldOpen) {
-          this._skipClosePrompt = true;
-
-          let file;
-          if (fp) {
-            file = fp.file;
-          } else {
-            file = Components.classes["@mozilla.org/file/local;1"].
-                   createInstance(Components.interfaces.nsILocalFile);
-            let filePath = this.getRecentFiles()[aIndex];
-            file.initWithPath(filePath);
-          }
-
-          this.setFilename(file.path);
-          this.importFromFile(file, false);
-          this.setRecentFile(file);
-        }
-      }.bind(this));
+    let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+    fp.init(window, this.strings.GetStringFromName("openFile.title"),
+            Ci.nsIFilePicker.modeOpen);
+    fp.defaultString = "";
+    if (fp.show() != Ci.nsIFilePicker.returnCancel) {
+      this.setFilename(fp.file.path);
+      this.importFromFile(fp.file, false);
     }
   },
 
-  
-
-
-
-
-
-  getRecentFiles: function SP_getRecentFiles()
-  {
-    let maxRecent = Services.prefs.getIntPref(PREF_RECENT_FILES_MAX);
-    let branch = Services.prefs.
-                 getBranch("devtools.scratchpad.");
-
-    let filePaths = [];
-    if (branch.prefHasUserValue("recentFilePaths")) {
-      filePaths = JSON.parse(branch.getCharPref("recentFilePaths"));
-    }
-
-    return filePaths;
-  },
-
-  
-
-
-
-
-
-  setRecentFile: function SP_setRecentFile(aFile)
-  {
-    let maxRecent = Services.prefs.getIntPref(PREF_RECENT_FILES_MAX);
-    if (maxRecent < 1) {
-      return;
-    }
-
-    let filePaths = this.getRecentFiles();
-    let filesCount = filePaths.length;
-    let pathIndex = filePaths.indexOf(aFile.path);
-
-    
-    if (pathIndex > -1) {
-      
-      if (pathIndex === (filesCount - 1)) {
-        
-        
-        
-        this.populateRecentFilesMenu();
-        return;
-      }
-
-      
-      
-      filePaths.splice(pathIndex, 1);
-    }
-    
-    
-    else if (filesCount === maxRecent) {
-      filePaths.shift();
-    }
-
-    filePaths.push(aFile.path);
-
-    let branch = Services.prefs.
-                 getBranch("devtools.scratchpad.");
-    branch.setCharPref("recentFilePaths", JSON.stringify(filePaths));
-    return;
-  },
-
-  
-
-
-  populateRecentFilesMenu: function SP_populateRecentFilesMenu()
-  {
-    let maxRecent = Services.prefs.getIntPref(PREF_RECENT_FILES_MAX);
-    let recentFilesMenu = document.getElementById("sp-open_recent-menu");
-
-    if (maxRecent < 1) {
-      recentFilesMenu.setAttribute("hidden", true);
-      return;
-    }
-
-    let recentFilesPopup = recentFilesMenu.firstChild;
-    let filePaths = this.getRecentFiles();
-    let filename = this.getState().filename;
-
-    recentFilesMenu.setAttribute("disabled", true);
-    while (recentFilesPopup.hasChildNodes()) {
-      recentFilesPopup.removeChild(recentFilesPopup.firstChild);
-    }
-
-    if (filePaths.length > 0) {
-      recentFilesMenu.removeAttribute("disabled");
-
-      
-      for (let i = filePaths.length - 1; i >= 0; --i) {
-        let menuitem = document.createElement("menuitem");
-        menuitem.setAttribute("type", "radio");
-        menuitem.setAttribute("label", filePaths[i]);
-
-        if (filePaths[i] === filename) {
-          menuitem.setAttribute("checked", true);
-          menuitem.setAttribute("disabled", true);
-        }
-
-        menuitem.setAttribute("oncommand", "Scratchpad.openFile(" + i + ");");
-        recentFilesPopup.appendChild(menuitem);
-      }
-
-      recentFilesPopup.appendChild(document.createElement("menuseparator"));
-      let clearItems = document.createElement("menuitem");
-      clearItems.setAttribute("id", "sp-menu-clear_recent");
-      clearItems.setAttribute("label",
-                              this.strings.
-                              GetStringFromName("clearRecentMenuItems.label"));
-      clearItems.setAttribute("command", "sp-cmd-clearRecentFiles");
-      recentFilesPopup.appendChild(clearItems);
-    }
-  },
-
-  
-
-
-  clearRecentFiles: function SP_clearRecentFiles()
-  {
-    Services.prefs.clearUserPref("devtools.scratchpad.recentFilePaths");
-  },
-
-  
-
-
-  handleRecentFileMaxChange: function SP_handleRecentFileMaxChange()
-  {
-    let maxRecent = Services.prefs.getIntPref(PREF_RECENT_FILES_MAX);
-    let menu = document.getElementById("sp-open_recent-menu");
-
-    
-    if (maxRecent < 1) {
-      menu.setAttribute("hidden", true);
-    } else {
-      if (menu.hasAttribute("hidden")) {
-        if (!menu.firstChild.hasChildNodes()) {
-          this.populateRecentFilesMenu();
-        }
-
-        menu.removeAttribute("hidden");
-      }
-
-      let filePaths = this.getRecentFiles();
-      if (maxRecent < filePaths.length) {
-        let branch = Services.prefs.
-                     getBranch("devtools.scratchpad.");
-        let diff = filePaths.length - maxRecent;        
-        filePaths.splice(0, diff);
-        branch.setCharPref("recentFilePaths", JSON.stringify(filePaths));
-      }
-    }
-  },
   
 
 
@@ -831,7 +646,6 @@ var Scratchpad = {
     this.exportToFile(file, true, false, function(aStatus) {
       if (Components.isSuccessCode(aStatus)) {
         this.editor.dirty = false;
-        this.setRecentFile(file);
       }
       if (aCallback) {
         aCallback(aStatus);
@@ -857,7 +671,6 @@ var Scratchpad = {
       this.exportToFile(fp.file, true, false, function(aStatus) {
         if (Components.isSuccessCode(aStatus)) {
           this.editor.dirty = false;
-          this.setRecentFile(fp.file);
         }
         if (aCallback) {
           aCallback(aStatus);
@@ -1014,9 +827,6 @@ var Scratchpad = {
     this.initialized = true;
 
     this._triggerObservers("Ready");
-
-    this.populateRecentFilesMenu();
-    PreferenceObserver.init();
   },
 
   
@@ -1151,7 +961,6 @@ var Scratchpad = {
 
       if (shouldClose) {
         this._skipClosePrompt = true;
-        PreferenceObserver.uninit();
         window.close();
       }
     }.bind(this));
@@ -1175,7 +984,6 @@ var Scratchpad = {
 
       if (shouldClose) {
         this._skipClosePrompt = true;
-        PreferenceObserver.uninit();
         window.close();
       }
       if (aCallback) {
@@ -1253,48 +1061,6 @@ var Scratchpad = {
     this.browserWindow.focus();
     this.gBrowser.selectedTab = newTab;
   },
-};
-
-
-
-
-
-var PreferenceObserver = {
-  _initialized: false,
-
-  init: function PO_init()
-  {
-    if (this._initialized) {
-      return;
-    }
-
-    this.branch = Services.prefs.getBranch("devtools.scratchpad.");
-    this.branch.addObserver("", this, false);
-    this._initialized = true;
-  },
-
-  observe: function PO_observe(aMessage, aTopic, aData)
-  {
-    if (aTopic != "nsPref:changed") {
-      return;
-    }
-
-    if (aData == "recentFilesMax") {
-      Scratchpad.handleRecentFileMaxChange();
-    }
-    else if (aData == "recentFilePaths") {
-      Scratchpad.populateRecentFilesMenu();
-    }
-  },
-
-  uninit: function PO_uninit () {
-    if (!this.branch) {
-      return;
-    }
-
-    this.branch.removeObserver("devtools.scratchpad.", this);
-    this.branch = null;
-  }
 };
 
 XPCOMUtils.defineLazyGetter(Scratchpad, "strings", function () {
