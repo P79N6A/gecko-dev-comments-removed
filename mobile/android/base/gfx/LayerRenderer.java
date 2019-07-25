@@ -266,16 +266,19 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
 
     public void onDrawFrame(GL10 gl) {
-        RenderContext pageContext = createPageContext(mView.getController().getViewportMetrics());
-        RenderContext screenContext = createScreenContext();
-        Frame frame = createFrame(pageContext, screenContext);
-        synchronized (mView.getController()) {
-            frame.beginDrawing();
-            frame.drawBackground();
-            frame.drawRootLayer();
-            frame.drawForeground();
-            frame.endDrawing();
-        }
+	
+
+
+
+
+
+
+
+
+
+
+
+
     }
 
     private void printCheckerboardStats() {
