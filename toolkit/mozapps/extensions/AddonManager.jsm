@@ -47,6 +47,8 @@ const PREF_EM_LAST_APP_VERSION        = "extensions.lastAppVersion";
 const PREF_EM_LAST_PLATFORM_VERSION   = "extensions.lastPlatformVersion";
 const PREF_EM_AUTOUPDATE_DEFAULT      = "extensions.update.autoUpdateDefault";
 
+const VALID_TYPES_REGEXP = /^[\w\-]+$/;
+
 Components.utils.import("resource://gre/modules/Services.jsm");
 
 var EXPORTED_SYMBOLS = [ "AddonManager", "AddonManagerPrivate" ];
@@ -211,6 +213,54 @@ AddonScreenshot.prototype = {
   }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function AddonType(aId, aLocaleURI, aLocaleKey, aViewType, aUIPriority, aFlags) {
+  if (!aId)
+    throw new Error("An AddonType must have an ID");
+  if (aViewType && aUIPriority === undefined)
+    throw new Error("An AddonType with a defined view must have a set UI priority");
+  if (!aLocaleKey)
+    throw new Error("An AddonType must have a displayable name");
+
+  this.id = aId;
+  this.uiPriority = aUIPriority;
+  this.viewType = aViewType;
+  this.flags = aFlags;
+
+  if (aLocaleURI) {
+    this.__defineGetter__("name", function() {
+      delete this.name;
+      let bundle = Services.strings.createBundle(aLocaleURI);
+      this.name = bundle.GetStringFromName(aLocaleKey.replace("%ID%", aId));
+      return this.name;
+    });
+  }
+  else {
+    this.name = aLocaleKey;
+  }
+}
+
 var gStarted = false;
 
 
@@ -220,7 +270,56 @@ var gStarted = false;
 var AddonManagerInternal = {
   installListeners: [],
   addonListeners: [],
+  typeListeners: [],
   providers: [],
+  types: {},
+
+  
+  typesProxy: Proxy.create({
+    getOwnPropertyDescriptor: function(aName) {
+      if (!(aName in AddonManagerInternal.types))
+        return undefined;
+
+      return {
+        value: AddonManagerInternal.types[aName].type,
+        writable: false,
+        configurable: false,
+        enumerable: true
+      }
+    },
+
+    getPropertyDescriptor: function(aName) {
+      return this.getOwnPropertyDescriptor(aName);
+    },
+
+    getOwnPropertyNames: function() {
+      return Object.keys(AddonManagerInternal.types);
+    },
+
+    getPropertyNames: function() {
+      return this.getOwnPropertyNames();
+    },
+
+    delete: function(aName) {
+      
+      return false;
+    },
+
+    defineProperty: function(aName, aProperty) {
+      
+    },
+
+    fix: function() {
+      return undefined;
+    },
+
+    
+    
+    enumerate: function() {
+      
+      return this.getPropertyNames();
+    }
+  }),
 
   
 
@@ -295,8 +394,35 @@ var AddonManagerInternal = {
 
 
 
-  registerProvider: function AMI_registerProvider(aProvider) {
+
+
+  registerProvider: function AMI_registerProvider(aProvider, aTypes) {
     this.providers.push(aProvider);
+
+    if (aTypes) {
+      aTypes.forEach(function(aType) {
+        if (!(aType.id in this.types)) {
+          if (!VALID_TYPES_REGEXP.test(aType.id)) {
+            WARN("Ignoring invalid type " + aType.id);
+            return;
+          }
+
+          this.types[aType.id] = {
+            type: aType,
+            providers: [aProvider]
+          };
+
+          this.typeListeners.forEach(function(aListener) {
+            safeCall(function() {
+              aListener.onTypeAdded(aType);
+            });
+          });
+        }
+        else {
+          this.types[aType.id].providers.push(aProvider);
+        }
+      }, this);
+    }
 
     
     if (gStarted)
@@ -318,6 +444,20 @@ var AddonManagerInternal = {
         pos++;
     }
 
+    for (let type in this.types) {
+      this.types[type].providers = this.types[type].providers.filter(function(p) p != aProvider);
+      if (this.types[type].providers.length == 0) {
+        let oldType = this.types[type].type;
+        delete this.types[type];
+
+        this.typeListeners.forEach(function(aListener) {
+          safeCall(function() {
+            aListener.onTypeRemoved(oldType);
+          });
+        });
+      }
+    }
+
     
     if (gStarted)
       callProvider(aProvider, "shutdown");
@@ -334,6 +474,7 @@ var AddonManagerInternal = {
 
     this.installListeners.splice(0);
     this.addonListeners.splice(0);
+    this.typeListeners.splice(0);
     gStarted = false;
   },
 
@@ -869,6 +1010,25 @@ var AddonManagerInternal = {
     }
   },
 
+  addTypeListener: function AMI_addTypeListener(aListener) {
+    if (!this.typeListeners.some(function(i) { return i == aListener; }))
+      this.typeListeners.push(aListener);
+  },
+
+  removeTypeListener: function AMI_removeTypeListener(aListener) {
+    let pos = 0;
+    while (pos < this.typeListeners.length) {
+      if (this.typeListeners[pos] == aListener)
+        this.typeListeners.splice(pos, 1);
+      else
+        pos++;
+    }
+  },
+
+  get addonTypes() {
+    return this.typesProxy;
+  },
+
   get autoUpdateDefault() {
     try {
       return Services.prefs.getBoolPref(PREF_EM_AUTOUPDATE_DEFAULT);
@@ -888,8 +1048,8 @@ var AddonManagerPrivate = {
     AddonManagerInternal.startup();
   },
 
-  registerProvider: function AMP_registerProvider(aProvider) {
-    AddonManagerInternal.registerProvider(aProvider);
+  registerProvider: function AMP_registerProvider(aProvider, aTypes) {
+    AddonManagerInternal.registerProvider(aProvider, aTypes);
   },
 
   unregisterProvider: function AMP_unregisterProvider(aProvider) {
@@ -923,7 +1083,9 @@ var AddonManagerPrivate = {
 
   AddonAuthor: AddonAuthor,
 
-  AddonScreenshot: AddonScreenshot
+  AddonScreenshot: AddonScreenshot,
+
+  AddonType: AddonType
 };
 
 
@@ -1037,6 +1199,11 @@ var AddonManager = {
   SCOPE_ALL: 15,
 
   
+  VIEW_TYPE_LIST: "list",
+
+  TYPE_UI_HIDE_EMPTY: 16,
+
+  
   
   AUTOUPDATE_DISABLE: 0,
   
@@ -1112,6 +1279,18 @@ var AddonManager = {
 
   removeAddonListener: function AM_removeAddonListener(aListener) {
     AddonManagerInternal.removeAddonListener(aListener);
+  },
+
+  addTypeListener: function AM_addTypeListener(aListener) {
+    AddonManagerInternal.addTypeListener(aListener);
+  },
+
+  removeTypeListener: function AM_removeTypeListener(aListener) {
+    AddonManagerInternal.removeTypeListener(aListener);
+  },
+
+  get addonTypes() {
+    return AddonManagerInternal.addonTypes;
   },
 
   get autoUpdateDefault() {
