@@ -176,6 +176,7 @@
 #endif
 #include "LayerManagerOGL.h"
 #endif
+#include "BasicLayers.h"
 
 #if !defined(WINCE)
 #include "nsUXThemeConstants.h"
@@ -1140,6 +1141,12 @@ NS_METHOD nsWindow::Show(PRBool bState)
   
   
   mIsVisible = bState;
+
+#ifdef CAIRO_HAS_D2D_SURFACE
+  if (!mIsVisible && wasVisible) {
+      ClearD2DSurface();
+  }
+#endif
 
   if (mWnd) {
     if (bState) {
@@ -7860,6 +7867,31 @@ VOID CALLBACK nsWindow::HookTimerForPopups(HWND hwnd, UINT uMsg, UINT idEvent, D
   }
 }
 #endif 
+
+#ifdef CAIRO_HAS_D2D_SURFACE
+BOOL CALLBACK nsWindow::ClearD2DSurfaceCallback(HWND aWnd, LPARAM aMsg)
+{
+    nsWindow *window = nsWindow::GetNSWindowPtr(aWnd);
+    if (window) {
+        window->ClearD2DSurface();
+    }  
+    return TRUE;
+}
+
+void
+nsWindow::ClearD2DSurface()
+{
+    mD2DWindowSurface = nsnull;
+    if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
+        gfxWindowsPlatform::RENDER_DIRECT2D) {
+        
+        
+        
+        mLayerManager = nsnull;
+    }
+    ::EnumChildWindows(mWnd, nsWindow::ClearD2DSurfaceCallback, NULL);
+}
+#endif
 
 static PRBool IsDifferentThreadWindow(HWND aWnd)
 {
