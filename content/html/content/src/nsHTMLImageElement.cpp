@@ -156,7 +156,7 @@ protected:
 };
 
 nsGenericHTMLElement*
-NS_NewHTMLImageElement(nsINodeInfo *aNodeInfo, PRBool aFromParser)
+NS_NewHTMLImageElement(nsINodeInfo *aNodeInfo, PRUint32 aFromParser)
 {
   
 
