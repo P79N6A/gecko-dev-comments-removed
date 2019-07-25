@@ -1,0 +1,205 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.hud-box {
+    border-bottom: 1px solid #aaa;
+}
+
+.hud-outer-wrapper {
+    width: 100%; 
+    height: 100%;
+}
+
+.hud-filter-btn > .toolbarbutton-icon { display: none; }
+
+.hud-console-wrapper {
+    width: 100%; 
+    overflow: auto; 
+    max-height: 400px; 
+    height: 400px; 
+}
+
+.hud-main-label {
+    font-size: 1em;
+    padding-top: 0.33em;
+    font-weight: bold;
+}
+
+.hud-output-node div {
+    -moz-user-select: text;
+}
+
+.hud-output-node .hud-network {
+    color: blue;
+}
+
+.hud-output-node .hud-error {
+    color: red;
+}
+
+.hud-output-node .hud-log {
+    color: black;
+}
+
+.hud-output-node .hud-warn {
+    color: orange;
+}
+
+.hud-output-node .hud-info {
+    color: green;
+}
+
+.hud-output-node .hud-exception {
+    color: red; font-weight: bold;
+}
+
+.hud-hidden {
+    display: none;
+}
+
+.hud-msg-node {    
+    width: 100%;
+    margin-top: 0.3em; 
+    margin-bottom: 0.3em; 
+    padding-left: 0.3em;
+    border-bottom: 1px solid #eee;   
+}
+
+.hud-output-node {
+    height:380px; 
+    max-height: 380px;
+    border-bottom: 1px solid #ddd; 
+    border-top: 1px solid #ddd; 
+    overflow-x: auto; overflow: auto;
+    font: 1em monospace; background-color: white;
+    width: 100%;
+}
+
+
+
+.jsterm-wrapper-node {
+    font-family: monospace; 
+    font-size: 1em;
+    background-color: #000; 
+    border: 1px solid #333; 
+    padding: 0.1em;
+    width: 100%;
+    height: 400px;
+}
+
+.jsterm-output-node {
+    width: 100%; 
+    height: 400px; 
+    color: white; 
+    background-color: black; 
+    overflow: auto; 
+    overflow-x: auto; 
+    position: absolute; 
+    -moz-box-direction: reverse;
+}
+
+.jsterm-output-node div {
+    -moz-user-select: text;
+}
+
+.jsterm-scroll-to-node {
+    height: 1px; width: 1px; position: relative; top: 92%; display: block;
+}
+
+.jsterm-input-node {
+    width: 98%;
+    font-family: monospace;
+    font-size: 1.2em; 
+    line-height: 1.6em;
+    background-color: black;
+    color: white;
+}
+
+.jsterm-output-line {
+    font-size: 1.2em;
+}
+
+%include ../../../themes/pinstripe/global/shared.inc
+
+toolbar[mode="text"] .toolbarbutton-text {
+    margin: 1px 2px !important;
+}
+
+toolbarbutton:hover:active,
+toolbarbutton[open="true"] {
+    padding-top: 2px;
+    padding-bottom: 2px;
+    -moz-padding-start: 2px;
+    -moz-padding-end: 1px;
+}
+
+toolbarbutton[disabled="true"],
+toolbarbutton[disabled="true"]:hover,
+toolbarbutton[disabled="true"]:hover:active,
+toolbarbutton[disabled="true"][open="true"] {
+    padding-top: 2px;
+    padding-bottom: 2px;
+    -moz-padding-start: 2px;
+    -moz-padding-end: 1px;
+}
+
+
+
+toolbarbutton[checked="true"] {
+    border-color: ThreeDShadow ThreeDHighlight ThreeDHighlight ThreeDShadow !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    -moz-padding-start: 2px !important;
+    -moz-padding-end: 1px !important;
+}
+
+
+
+toolbarbutton[checked="false"] {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    -moz-padding-start: 2px !important;
+    -moz-padding-end: 1px !important;
+}
+
+toolbar {
+    padding: 1px 0px;
+    -moz-box-align: center;
+}
+
+
+
