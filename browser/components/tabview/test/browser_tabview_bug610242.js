@@ -67,34 +67,30 @@ function onTabViewWindowLoaded(win) {
   }
 
   afterAllTabsLoaded(function() {
-    afterAllTabItemsUpdated(function() {
-      let children = group.getChildren();
-      let len = children.length;
-      let iconUpdateCounter = 0;
+    let children = group.getChildren();
+    let len = children.length;
+    let iconUpdateCounter = 0;
 
-      children.forEach(function(tabItem) {
-        tabItem.addSubscriber("iconUpdated", function onIconUpdated() {
+    children.forEach(function(tabItem) {
+      tabItem.addSubscriber("iconUpdated", function onIconUpdated() {
+        tabItem.removeSubscriber("iconUpdated", onIconUpdated);
+
+        if (++iconUpdateCounter == len) {
+          check(datatext, "datatext", false);
+          check(datahtml, "datahtml", false);
+          check(mozilla, "about:mozilla", false);
+          check(robots, "about:robots", true);
+          check(html, "html", true);
+          check(png, "png", false);
+          check(svg, "svg", true);
+
           
-          if (tabItem.tab.linkedBrowser.currentURI.spec == "about:blank")
-            return;
-
-          tabItem.removeSubscriber("iconUpdated", onIconUpdated);
-
-          if (++iconUpdateCounter == len) {
-            check(datatext, "datatext", false);
-            check(datahtml, "datahtml", false);
-            check(mozilla, "about:mozilla", false);
-            check(robots, "about:robots", true);
-            check(html, "html", true);
-            check(png, "png", false);
-            check(svg, "svg", true);
-
-            
-            
-            closeGroupItem(group);
-          }
-        });
+          
+          closeGroupItem(group);
+        }
       });
-    }, win);
+    });
+
+    afterAllTabItemsUpdated(function () {}, win);
   }, win);
 }
