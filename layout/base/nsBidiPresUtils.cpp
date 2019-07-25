@@ -603,27 +603,30 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame)
       
       
       
-      if (numRun + 1 < runCount && runLength <= 0 && !frame->GetNextInFlow()) {
-        nsIFrame* child = frame;
-        nsIFrame* parent = frame->GetParent();
-        
-        
-        
-        
-        
-        while (parent &&
-               IsBidiSplittable(parent) &&
-               !child->GetNextSibling()) {
-          nsIFrame* next = parent->GetNextInFlow();
-          if (next) {
-            parent->SetNextContinuation(next);
-            next->SetPrevContinuation(parent);
+      if (runLength <= 0 && !frame->GetNextInFlow()) {
+        if (numRun + 1 < runCount) {
+          nsIFrame* child = frame;
+          nsIFrame* parent = frame->GetParent();
+          
+          
+          
+          
+          
+          
+          while (parent &&
+                 IsBidiSplittable(parent) &&
+                 !child->GetNextSibling()) {
+            nsIFrame* next = parent->GetNextInFlow();
+            if (next) {
+              parent->SetNextContinuation(next);
+              next->SetPrevContinuation(parent);
+            }
+            child = parent;
+            parent = child->GetParent();
           }
-          child = parent;
-          parent = child->GetParent();
+          if (parent && IsBidiSplittable(parent))
+            SplitInlineAncestors(child);
         }
-        if (parent && IsBidiSplittable(parent))
-          SplitInlineAncestors(child);
       }
       else {
         
