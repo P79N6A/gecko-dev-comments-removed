@@ -60,7 +60,9 @@ import android.telephony.TelephonyManager;
 
 
 
-final class GeckoNetworkManager extends BroadcastReceiver {
+public class GeckoNetworkManager
+  extends BroadcastReceiver
+{
   static private final GeckoNetworkManager sInstance = new GeckoNetworkManager();
 
   static private final double  kDefaultBandwidth    = -1.0;

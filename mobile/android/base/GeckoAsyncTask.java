@@ -8,7 +8,7 @@ package org.mozilla.gecko;
 
 
 
-abstract class GeckoAsyncTask<Params, Progress, Result> {
+public abstract class GeckoAsyncTask<Params, Progress, Result> {
     public static final int PRIORITY_NORMAL = 0;
     public static final int PRIORITY_HIGH = 1;
 
@@ -18,7 +18,7 @@ abstract class GeckoAsyncTask<Params, Progress, Result> {
         mPriority = PRIORITY_NORMAL;
     }
 
-    private final class BackgroundTaskRunnable implements Runnable {
+    private class BackgroundTaskRunnable implements Runnable {
         private Params[] mParams;
 
         public BackgroundTaskRunnable(Params... params) {

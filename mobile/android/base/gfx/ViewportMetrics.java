@@ -19,7 +19,7 @@ import org.json.JSONObject;
 
 
 
-public final class ViewportMetrics {
+public class ViewportMetrics {
     private static final String LOGTAG = "GeckoViewportMetrics";
 
     private RectF mPageRect;
@@ -227,3 +227,4 @@ public final class ViewportMetrics {
         return buff.toString();
     }
 }
+

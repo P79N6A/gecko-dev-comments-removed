@@ -20,8 +20,8 @@ import android.util.Log;
 
 
 
-final class GeckoJarReader {
-    private static final String LOGTAG = "GeckoJarReader";
+public class GeckoJarReader {
+    private static String LOGTAG = "GeckoJarReader";
 
     public static BitmapDrawable getBitmapDrawable(String url) {
         Stack<String> jarUrls = parseUrl(url);

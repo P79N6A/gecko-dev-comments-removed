@@ -36,7 +36,7 @@ import java.util.ArrayList;
 
 
 
-public final class MatrixBlobCursor extends AbstractCursor {
+public class MatrixBlobCursor extends AbstractCursor {
 
     private final String[] columnNames;
     private Object[] data;
@@ -197,7 +197,7 @@ public final class MatrixBlobCursor extends AbstractCursor {
 
 
 
-    public final class RowBuilder {
+    public class RowBuilder {
 
         private int index;
         private final int endIndex;

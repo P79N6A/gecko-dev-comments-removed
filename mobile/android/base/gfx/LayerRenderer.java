@@ -30,7 +30,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 
 
-public final class LayerRenderer {
+public class LayerRenderer {
     private static final String LOGTAG = "GeckoLayerRenderer";
     private static final String PROFTAG = "GeckoLayerRendererProf";
 
@@ -368,7 +368,7 @@ public final class LayerRenderer {
         return new Frame(metrics);
     }
 
-    private final class FadeRunnable implements Runnable {
+    class FadeRunnable implements Runnable {
         private boolean mStarted;
         private long mRunAt;
 
@@ -404,7 +404,7 @@ public final class LayerRenderer {
         }
     }
 
-    public final class Frame {
+    public class Frame {
         
         private long mFrameStartTime;
         

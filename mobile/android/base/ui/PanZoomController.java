@@ -36,7 +36,7 @@ import java.util.TimerTask;
 
 
 
-public final class PanZoomController
+public class PanZoomController
     extends GestureDetector.SimpleOnGestureListener
     implements SimpleScaleGestureDetector.SimpleScaleGestureListener, GeckoEventListener
 {
@@ -651,7 +651,7 @@ public final class PanZoomController
     }
 
     
-    private final class BounceRunnable extends AnimationRunnable {
+    private class BounceRunnable extends AnimationRunnable {
         
         private int mBounceFrame;
         
@@ -711,7 +711,7 @@ public final class PanZoomController
     }
 
     
-    private final class FlingRunnable extends AnimationRunnable {
+    private class FlingRunnable extends AnimationRunnable {
         protected void animateFrame() {
             
 
@@ -831,7 +831,7 @@ public final class PanZoomController
         return viewportMetrics;
     }
 
-    private final class AxisX extends Axis {
+    private class AxisX extends Axis {
         AxisX(SubdocumentScrollHelper subscroller) { super(subscroller); }
         @Override
         public float getOrigin() { return mController.getOrigin().x; }
@@ -843,7 +843,7 @@ public final class PanZoomController
         protected float getPageLength() { return mController.getPageRect().width(); }
     }
 
-    private final class AxisY extends Axis {
+    private class AxisY extends Axis {
         AxisY(SubdocumentScrollHelper subscroller) { super(subscroller); }
         @Override
         public float getOrigin() { return mController.getOrigin().y; }

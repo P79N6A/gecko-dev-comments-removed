@@ -19,7 +19,7 @@ import java.util.Map.Entry;
 
 
 
-public final class SQLiteBridge {
+public class SQLiteBridge {
     private static final String LOGTAG = "SQLiteBridge";
 
     

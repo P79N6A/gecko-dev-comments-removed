@@ -23,7 +23,7 @@ import android.view.GestureDetector;
 
 
 
-public final class LayerController {
+public class LayerController {
     private static final String LOGTAG = "GeckoLayerController";
 
     private Layer mRootLayer;                   

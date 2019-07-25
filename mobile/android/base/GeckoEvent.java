@@ -29,7 +29,7 @@ import java.nio.ByteBuffer;
 
 
 
-public final class GeckoEvent {
+public class GeckoEvent {
     private static final String LOGTAG = "GeckoEvent";
 
     private static final int INVALID = -1;

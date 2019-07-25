@@ -16,7 +16,7 @@ import java.nio.FloatBuffer;
 
 
 
-final class NinePatchTileLayer extends TileLayer {
+public class NinePatchTileLayer extends TileLayer {
     private static final int PATCH_SIZE = 16;
     private static final int TEXTURE_SIZE = 64;
 

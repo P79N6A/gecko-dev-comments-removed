@@ -14,7 +14,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.util.Log;
 
-final class GeckoConnectivityReceiver extends BroadcastReceiver {
+public class GeckoConnectivityReceiver extends BroadcastReceiver {
     
 
 

@@ -15,7 +15,9 @@ import android.os.Build;
 import android.os.SystemClock;
 import android.util.Log;
 
-final class GeckoBatteryManager extends BroadcastReceiver {
+public class GeckoBatteryManager
+  extends BroadcastReceiver
+{
   private static final String LOGTAG = "GeckoBatteryManager";
 
   

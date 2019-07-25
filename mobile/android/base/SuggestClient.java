@@ -23,7 +23,7 @@ import java.util.ArrayList;
 
 
 
-final class SuggestClient {
+public class SuggestClient {
     private static final String LOGTAG = "GeckoSuggestClient";
     private static final String USER_AGENT = GeckoApp.mAppContext.getDefaultUAString();
 

@@ -10,7 +10,7 @@ import android.graphics.Bitmap;
 
 
 
-final class CairoUtils {
+public class CairoUtils {
     private CairoUtils() {  }
 
     public static int bitsPerPixelForCairoFormat(int cairoFormat) {
@@ -48,3 +48,4 @@ final class CairoUtils {
         }
     }
 }
+

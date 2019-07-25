@@ -8,7 +8,7 @@ package org.mozilla.gecko;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-public final class WebAppAllocator {
+public class WebAppAllocator {
     
     private final static int MAX_WEB_APPS = 100;
 
