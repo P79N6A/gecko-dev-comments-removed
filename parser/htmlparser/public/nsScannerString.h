@@ -482,7 +482,7 @@ SameFragment( const nsScannerIterator& a, const nsScannerIterator& b )
   
 
 
-NS_SPECIALIZE_TEMPLATE
+template <>
 struct nsCharSourceTraits<nsScannerIterator>
   {
     typedef nsScannerIterator::difference_type difference_type;

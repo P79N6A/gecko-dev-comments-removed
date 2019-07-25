@@ -894,7 +894,7 @@ class nsCOMPtr MOZ_FINAL
 
 
 
-NS_SPECIALIZE_TEMPLATE
+template <>
 class nsCOMPtr<nsISupports>
     : private nsCOMPtr_base
   {
@@ -1365,7 +1365,7 @@ class nsGetterAddRefs
   };
 
 
-NS_SPECIALIZE_TEMPLATE
+template <>
 class nsGetterAddRefs<nsISupports>
   {
     public:

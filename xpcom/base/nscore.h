@@ -385,16 +385,7 @@ typedef PRUint32 nsrefcnt;
 
 
   
-
-
-
-
-
-
-
-  
 #if defined(_MSC_VER) && (_MSC_VER>=1100)
-  #define HAVE_CPP_MODERN_SPECIALIZE_TEMPLATE_SYNTAX
   #define HAVE_CPP_2BYTE_WCHAR_T
 #endif
 
@@ -409,12 +400,6 @@ typedef PRUint32 nsrefcnt;
   #else
     typedef PRUint16 PRUnichar;
   #endif
-#endif
-
-#ifdef HAVE_CPP_MODERN_SPECIALIZE_TEMPLATE_SYNTAX
-  #define NS_SPECIALIZE_TEMPLATE  template <>
-#else
-  #define NS_SPECIALIZE_TEMPLATE
 #endif
 
 
