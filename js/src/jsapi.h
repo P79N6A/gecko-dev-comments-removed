@@ -4096,7 +4096,10 @@ typedef enum JSGCParamKey {
     JSGC_DYNAMIC_HEAP_GROWTH = 17,
 
     
-    JSGC_DYNAMIC_MARK_SLICE = 18
+    JSGC_DYNAMIC_MARK_SLICE = 18,
+
+    
+    JSGC_ANALYSIS_PURGE_TRIGGER = 19
 } JSGCParamKey;
 
 typedef enum JSGCMode {

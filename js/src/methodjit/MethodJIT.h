@@ -37,6 +37,10 @@ namespace mjit {
     struct JITScript;
 }
 
+namespace analyze {
+    struct ScriptLiveness;
+}
+
 struct VMFrame
 {
 #if defined(JS_CPU_SPARC)
@@ -299,6 +303,9 @@ enum RejoinState {
 
 
     REJOIN_THIS_PROTOTYPE,
+
+    
+    REJOIN_THIS_CREATED,
 
     
 
@@ -649,6 +656,8 @@ struct JITChunk
     uint32_t        nCallSites;
     uint32_t        nRootedTemplates;
     uint32_t        nRootedRegExps;
+    uint32_t        nMonitoredBytecodes;
+    uint32_t        nTypeBarrierBytecodes;
 #ifdef JS_MONOIC
     uint32_t        nGetGlobalNames;
     uint32_t        nSetGlobalNames;
@@ -677,6 +686,15 @@ struct JITChunk
     js::mjit::CallSite *callSites() const;
     JSObject **rootedTemplates() const;
     RegExpShared **rootedRegExps() const;
+
+    
+
+
+
+
+    uint32_t *monitoredBytecodes() const;
+    uint32_t *typeBarrierBytecodes() const;
+
 #ifdef JS_MONOIC
     ic::GetGlobalNameIC *getGlobalNames() const;
     ic::SetGlobalNameIC *setGlobalNames() const;
@@ -785,6 +803,12 @@ struct JITScript
 
 
     JSC::ExecutablePool *shimPool;
+
+    
+
+
+
+    analyze::ScriptLiveness *liveness;
 
 #ifdef JS_MONOIC
     
