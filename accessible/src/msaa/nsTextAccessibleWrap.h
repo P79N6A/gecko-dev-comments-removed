@@ -50,7 +50,7 @@ class nsTextAccessibleWrap : public nsTextAccessible,
                              public ISimpleDOMText
 {
 public:
-  nsTextAccessibleWrap(nsIContent *aContent, nsIWeakReference *aShell);
+  nsTextAccessibleWrap(nsIContent* aContent, nsDocAccessible* aDoc);
   virtual ~nsTextAccessibleWrap() {}
 
     
