@@ -256,6 +256,8 @@ class MInstruction : public TempObject
     
     MOperand *uses_;
 
+    uint32 id_;
+
   private:
     void setBlock(MBasicBlock *block) {
         block_ = block;
@@ -270,7 +272,11 @@ class MInstruction : public TempObject
     { }
 
     virtual Opcode op() const = 0;
+    void printName(FILE *fp);
 
+    uint32 id() const {
+        return id_;
+    }
     Representation::Kind representation() const {
         return representation_;
     }
@@ -302,6 +308,9 @@ class MInstruction : public TempObject
 
     
     void unlinkUse(MOperand *prev, MOperand *use);
+
+    
+    size_t useCount() const;
 
     
     virtual MInstruction *getOperand(size_t index) const = 0;
