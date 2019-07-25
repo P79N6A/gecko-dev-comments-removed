@@ -82,9 +82,9 @@ public:
 
 
   nsTextAttrsMgr(nsHyperTextAccessible *aHyperTextAcc,
-                 nsIDOMNode *aHyperTextNode,
                  PRBool aIncludeDefAttrs = PR_TRUE,
-                 nsIDOMNode *oOffsetNode = nsnull);
+                 nsAccessible *aOffsetAcc = nsnull,
+                 PRInt32 aOffsetAccIdx = -1);
 
   
 
@@ -115,41 +115,13 @@ protected:
    nsresult GetRange(const nsTPtrArray<nsITextAttr>& aTextAttrArray,
                      PRInt32 *aStartHTOffset, PRInt32 *aEndHTOffset);
 
-  
-
-
-
-
-
-
-
-
-
-   PRBool FindEndOffsetInSubtree(const nsTPtrArray<nsITextAttr>& aTextAttrArray,
-                                 nsIDOMNode *aCurrNode, PRInt32 *aHTOffset);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-   PRBool FindStartOffsetInSubtree(const nsTPtrArray<nsITextAttr>& aTextAttrArray,
-                                   nsIDOMNode *aCurrNode, nsIDOMNode *aPrevNode,
-                                   PRInt32 *aHTOffset);
-
 private:
   nsRefPtr<nsHyperTextAccessible> mHyperTextAcc;
-  nsCOMPtr<nsIDOMNode> mHyperTextNode;
 
   PRBool mIncludeDefAttrs;
-  nsCOMPtr<nsIDOMNode> mOffsetNode;
+
+  nsRefPtr<nsAccessible> mOffsetAcc;
+  PRInt32 mOffsetAccIdx;
 };
 
 

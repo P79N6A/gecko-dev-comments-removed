@@ -253,6 +253,18 @@ protected:
   PRInt32 GetCaretLineNumber();
 
   
+
+
+
+
+
+
+
+  nsAccessible *GetAccessibleAtOffset(PRInt32 aOffset, PRInt32 *aAccIdx,
+                                      PRInt32 *aStartOffset,
+                                      PRInt32 *aEndOffset);
+
+  
   nsresult GetDOMPointByFrameOffset(nsIFrame *aFrame, PRInt32 aOffset,
                                     nsIAccessible *aAccessible,
                                     nsIDOMNode **aNode, PRInt32 *aNodeOffset);
