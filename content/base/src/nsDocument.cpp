@@ -2119,7 +2119,6 @@ nsDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
   }
 #endif
 
-  SetPrincipal(nsnull);
   mSecurityInfo = nsnull;
 
   mDocumentLoadGroup = nsnull;
@@ -2168,6 +2167,12 @@ nsDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
 
   
   mDOMStyleSheets = nsnull;
+
+  
+  
+  
+  
+  SetPrincipal(nsnull);
 
   
   mOriginalURI = nsnull;
