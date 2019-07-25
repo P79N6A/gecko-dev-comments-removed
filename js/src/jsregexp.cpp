@@ -963,7 +963,7 @@ static JSBool
 regexp_construct(JSContext *cx, uintN argc, Value *vp)
 {
     Value *argv = JS_ARGV(cx, vp);
-    if (IsConstructing(vp)) {
+    if (!IsConstructing(vp)) {
         
 
 
