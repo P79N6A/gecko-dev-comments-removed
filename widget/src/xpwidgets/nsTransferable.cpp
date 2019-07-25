@@ -46,6 +46,7 @@
 
 
 
+
  
 #include "nsTransferable.h"
 #include "nsString.h"
@@ -315,19 +316,24 @@ nsTransferable::GetTransferData(const char *aFlavor, nsISupports **aData, PRUint
   for (i = 0; i < mDataArray.Length(); ++i ) {
     DataStruct& data = mDataArray.ElementAt(i);
     if ( data.GetFlavor().Equals(aFlavor) ) {
-      data.GetData(aData, aDataLen);
-      if (*aDataLen == kFlavorHasDataProvider) {
+      nsCOMPtr<nsISupports> dataBytes;
+      PRUint32 len;
+      data.GetData(getter_AddRefs(dataBytes), &len);
+      if (len == kFlavorHasDataProvider && dataBytes) {
         
-        nsCOMPtr<nsIFlavorDataProvider> dataProvider = do_QueryInterface(*aData);
+        nsCOMPtr<nsIFlavorDataProvider> dataProvider = do_QueryInterface(dataBytes);
         if (dataProvider) {
-          rv = dataProvider->GetFlavorData(this, aFlavor, aData, aDataLen);
+          rv = dataProvider->GetFlavorData(this, aFlavor,
+                                           getter_AddRefs(dataBytes), &len);
           if (NS_FAILED(rv))
             break;    
         }
       }
-      if (*aData && *aDataLen > 0)
+      if (dataBytes && len > 0) { 
+        *aDataLen = len;
+        dataBytes.forget(aData);
         return NS_OK;
-    
+      }
       break;
     }
   }
@@ -344,11 +350,12 @@ nsTransferable::GetTransferData(const char *aFlavor, nsISupports **aData, PRUint
         nsCOMPtr<nsISupports> dataBytes;
         PRUint32 len;
         data.GetData(getter_AddRefs(dataBytes), &len);
-        if (len == kFlavorHasDataProvider) {
+        if (len == kFlavorHasDataProvider && dataBytes) {
           
           nsCOMPtr<nsIFlavorDataProvider> dataProvider = do_QueryInterface(dataBytes);
           if (dataProvider) {
-            rv = dataProvider->GetFlavorData(this, aFlavor, getter_AddRefs(dataBytes), &len);
+            rv = dataProvider->GetFlavorData(this, aFlavor,
+                                             getter_AddRefs(dataBytes), &len);
             if (NS_FAILED(rv))
               break;  
           }
