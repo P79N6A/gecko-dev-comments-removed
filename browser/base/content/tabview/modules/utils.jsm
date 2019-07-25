@@ -136,10 +136,10 @@ Rect.prototype = {
   
   
   intersects: function(rect) {
-    return (rect.right > this.left
-        && rect.left < this.right
-        && rect.bottom > this.top
-        && rect.top < this.bottom);
+    return (rect.right > this.left &&
+           rect.left < this.right &&
+           rect.bottom > this.top &&
+           rect.top < this.bottom);
   },
 
   
@@ -164,10 +164,10 @@ Rect.prototype = {
   
   
   contains: function(rect) {
-    return(rect.left > this.left
-         && rect.right < this.right
-         && rect.top > this.top
-         && rect.bottom < this.bottom)
+    return (rect.left > this.left &&
+           rect.right < this.right &&
+           rect.top > this.top &&
+           rect.bottom < this.bottom);
   },
 
   
@@ -237,10 +237,10 @@ Rect.prototype = {
   
   
   equals: function(rect) {
-    return (rect.left == this.left
-        && rect.top == this.top
-        && rect.width == this.width
-        && rect.height == this.height);
+    return (rect.left == this.left &&
+           rect.top == this.top &&
+           rect.width == this.width &&
+           rect.height == this.height);
   },
 
   
@@ -386,7 +386,7 @@ Subscribable.prototype = {
     try {
       Utils.assertThrow(refObject, "refObject");
       Utils.assertThrow(typeof callback == "function", "callback must be a function");
-      Utils.assertThrow(eventName && typeof(eventName) == "string",
+      Utils.assertThrow(eventName && typeof eventName == "string",
           "eventName must be a non-empty string");
 
       if (!this.subscribers)
@@ -420,7 +420,7 @@ Subscribable.prototype = {
   removeSubscriber: function(refObject, eventName) {
     try {
       Utils.assertThrow(refObject, "refObject");
-      Utils.assertThrow(eventName && typeof(eventName) == "string",
+      Utils.assertThrow(eventName && typeof eventName == "string",
           "eventName must be a non-empty string");
 
       if (!this.subscribers || !this.subscribers[eventName])
@@ -439,7 +439,7 @@ Subscribable.prototype = {
   
   _sendToSubscribers: function(eventName, eventInfo) {
     try {
-      Utils.assertThrow(eventName && typeof(eventName) == "string",
+      Utils.assertThrow(eventName && typeof eventName == "string",
           "eventName must be a non-empty string");
 
       if (!this.subscribers || !this.subscribers[eventName])
@@ -501,7 +501,7 @@ let Utils = {
   assert: function Utils_assert(condition, label) {
     if (!condition) {
       let text;
-      if (typeof(label) != 'string')
+      if (typeof label != 'string')
         text = 'badly formed assert';
       else
         text = "tabview assert: " + label;
@@ -516,7 +516,7 @@ let Utils = {
   assertThrow: function(condition, label) {
     if (!condition) {
       let text;
-      if (typeof(label) != 'string')
+      if (typeof label != 'string')
         text = 'badly formed assert';
       else
         text = "tabview assert: " + label;
@@ -542,9 +542,9 @@ let Utils = {
       }
 
       s += prop + ': ';
-      if (typeof(value) == 'string')
+      if (typeof value == 'string')
         s += '\'' + value + '\'';
-      else if (typeof(value) == 'function')
+      else if (typeof value == 'function')
         s += 'function';
       else
         s += value;
@@ -560,7 +560,7 @@ let Utils = {
   expandArgumentsForLog: function(args) {
     var that = this;
     return Array.map(args, function(arg) {
-      return typeof(arg) == 'object' ? that.expandObject(arg) : arg;
+      return typeof arg == 'object' ? that.expandObject(arg) : arg;
     }).join('; ');
   },
 
@@ -584,27 +584,27 @@ let Utils = {
   
   
   isNumber: function(n) {
-    return (typeof(n) == 'number' && !isNaN(n));
+    return typeof n == 'number' && !isNaN(n);
   },
 
   
   
   
   isRect: function(r) {
-    return (r
-        && this.isNumber(r.left)
-        && this.isNumber(r.top)
-        && this.isNumber(r.width)
-        && this.isNumber(r.height));
+    return (r &&
+           this.isNumber(r.left) &&
+           this.isNumber(r.top) &&
+           this.isNumber(r.width) &&
+           this.isNumber(r.height));
   },
 
   
   
   
   isRange: function(r) {
-    return (r
-        && this.isNumber(r.min)
-        && this.isNumber(r.max));
+    return (r &&
+           this.isNumber(r.min) &&
+           this.isNumber(r.max));
   },
 
   
@@ -620,17 +620,17 @@ let Utils = {
   isPlainObject: function(obj) {
     
     
-    if (!obj || Object.prototype.toString.call(obj) !== "[object Object]"
-        || obj.nodeType || obj.setInterval) {
+    if (!obj || Object.prototype.toString.call(obj) !== "[object Object]" ||
+       obj.nodeType || obj.setInterval) {
       return false;
     }
 
     
     const hasOwnProperty = Object.prototype.hasOwnProperty;
 
-    if (obj.constructor
-      && !hasOwnProperty.call(obj, "constructor")
-      && !hasOwnProperty.call(obj.constructor.prototype, "isPrototypeOf")) {
+    if (obj.constructor &&
+       !hasOwnProperty.call(obj, "constructor") &&
+       !hasOwnProperty.call(obj.constructor.prototype, "isPrototypeOf")) {
       return false;
     }
 
@@ -657,7 +657,7 @@ let Utils = {
   
   
   copy: function(value) {
-    if (value && typeof(value) == 'object') {
+    if (value && typeof value == 'object') {
       if (Array.isArray(value))
         return this.extend([], value);
       return this.extend({}, value);
@@ -677,9 +677,9 @@ let Utils = {
   
   
   extend: function() {
-    
-    var target = arguments[0] || {}, i = 1, length = arguments.length, options, name, src, copy;
 
+    
+    let target = arguments[0] || {};
     
     if (typeof target === "boolean") {
       this.assert(false, "The first argument of extend cannot be a boolean." +
@@ -689,6 +689,7 @@ let Utils = {
 
     
     
+    let length = arguments.length;
     if (length === 1) {
       this.assert(false, "Extending the iQ prototype using extend is not supported.");
       return target;
@@ -699,13 +700,13 @@ let Utils = {
       target = {};
     }
 
-    for (; i < length; i++) {
+    for (let i = 1; i < length; i++) {
       
-      if ((options = arguments[i]) != null) {
+      let options = arguments[i];
+      if (options != null) {
         
-        for (name in options) {
-          src = target[name];
-          copy = options[name];
+        for (let name in options) {
+          let copy = options[name];
 
           
           if (target === copy)

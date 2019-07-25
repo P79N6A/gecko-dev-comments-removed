@@ -120,11 +120,11 @@ Drag.prototype = {
 
     
     if ( 
-         !Keys.meta
-         && (!checkItemStatus 
-              
-              || (!(this.item.isATabItem && this.item.overlapsWithOtherItems())
-                 && !iQ(".acceptsDrop").length))
+         !Keys.meta &&
+         (!checkItemStatus || 
+         
+         (!(this.item.isATabItem && this.item.overlapsWithOtherItems()) &&
+             !iQ(".acceptsDrop").length))
         ) {
       newRect = Trenches.snap(bounds,stationaryCorner,assumeConstantSize,keepProportional);
       if (newRect) { 
@@ -276,8 +276,8 @@ Drag.prototype = {
     Trenches.hideGuides();
     this.item.isDragging = false;
 
-    if (this.parent && !this.parent.locked.close && this.parent != this.item.parent
-        && this.parent.isEmpty()) {
+    if (this.parent && !this.parent.locked.close && this.parent != this.item.parent &&
+       this.parent.isEmpty()) {
       this.parent.close();
     }
 

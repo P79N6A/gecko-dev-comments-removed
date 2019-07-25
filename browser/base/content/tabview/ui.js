@@ -729,8 +729,8 @@ var UIManager = {
       dragOutInfo.snap(stationaryCorner, false, false); 
 
       box = item.getBounds();
-      if (box.width > minMinSize && box.height > minMinSize
-          && (box.width > minSize || box.height > minSize))
+      if (box.width > minMinSize && box.height > minMinSize &&
+         (box.width > minSize || box.height > minSize))
         item.setOpacity(1);
       else
         item.setOpacity(0.7);
@@ -790,7 +790,7 @@ var UIManager = {
   
   
   _resize: function(force) {
-    if (typeof(force) == "undefined")
+    if (typeof force == "undefined")
       force = false;
 
     
