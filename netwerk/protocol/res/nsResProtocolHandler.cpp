@@ -154,20 +154,6 @@ nsResProtocolHandler::~nsResProtocolHandler()
 }
 
 nsresult
-nsResProtocolHandler::AddSpecialDir(const char* aSpecialDir, const nsACString& aSubstitution)
-{
-    nsCOMPtr<nsIFile> file;
-    nsresult rv = NS_GetSpecialDirectory(aSpecialDir, getter_AddRefs(file));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCOMPtr<nsIURI> uri;
-    rv = mIOService->NewFileURI(file, getter_AddRefs(uri));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    return SetSubstitution(aSubstitution, uri);
-}
-
-nsresult
 nsResProtocolHandler::Init()
 {
     if (!mSubstitutions.Init(32))
@@ -178,24 +164,31 @@ nsResProtocolHandler::Init()
     mIOService = do_GetIOService(&rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
-#ifdef MOZ_OMNIJAR
-    nsCOMPtr<nsIFile> omniJar(mozilla::OmnijarPath());
-    if (omniJar)
-        return Init(omniJar);
-#endif
-
-    
-
-    
-    
-    
-    rv = AddSpecialDir(NS_OS_CURRENT_PROCESS_DIR, EmptyCString());
+    nsCAutoString appURI, greURI;
+    rv = mozilla::Omnijar::GetURIString(mozilla::Omnijar::APP, appURI);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = mozilla::Omnijar::GetURIString(mozilla::Omnijar::GRE, greURI);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
     
     
-    rv = AddSpecialDir(NS_GRE_DIR, kGRE);
+    nsCOMPtr<nsIURI> uri;
+    rv = NS_NewURI(getter_AddRefs(uri), appURI.Length() ? appURI : greURI);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = SetSubstitution(EmptyCString(), uri);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    if (appURI.Length()) { 
+        rv = NS_NewURI(getter_AddRefs(uri), greURI);
+        NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    rv = SetSubstitution(kGRE, uri);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -206,34 +199,6 @@ nsResProtocolHandler::Init()
 
     return rv;
 }
-
-#ifdef MOZ_OMNIJAR
-nsresult
-nsResProtocolHandler::Init(nsIFile *aOmniJar)
-{
-    nsresult rv;
-    nsCOMPtr<nsIURI> uri;
-    nsCAutoString omniJarSpec;
-    NS_GetURLSpecFromActualFile(aOmniJar, omniJarSpec, mIOService);
-
-    nsCAutoString urlStr("jar:");
-    urlStr += omniJarSpec;
-    urlStr += "!/";
-
-    rv = mIOService->NewURI(urlStr, nsnull, nsnull, getter_AddRefs(uri));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-
-    
-    SetSubstitution(EmptyCString(), uri);
-
-    
-    SetSubstitution(kGRE, uri);
-
-    return NS_OK;
-}
-#endif
 
 static PLDHashOperator
 EnumerateSubstitution(const nsACString& aKey,
