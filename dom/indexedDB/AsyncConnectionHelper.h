@@ -56,6 +56,8 @@ class mozIStorageConnection;
 
 BEGIN_INDEXEDDB_NAMESPACE
 
+class IDBTransactionRequest;
+
 
 
 
@@ -93,6 +95,9 @@ public:
 
 protected:
   AsyncConnectionHelper(IDBDatabaseRequest* aDatabase,
+                        IDBRequest* aRequest);
+
+  AsyncConnectionHelper(IDBTransactionRequest* aTransaction,
                         IDBRequest* aRequest);
 
   virtual ~AsyncConnectionHelper();
@@ -147,6 +152,7 @@ protected:
 
 protected:
   nsRefPtr<IDBDatabaseRequest> mDatabase;
+  nsRefPtr<IDBTransactionRequest> mTransaction;
   nsRefPtr<IDBRequest> mRequest;
 
 private:
