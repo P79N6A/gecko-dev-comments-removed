@@ -56,7 +56,7 @@ function getBrowser() {
   return Browser.selectedBrowser;
 }
 
-const kDefaultBrowserWidth = 980;
+const kDefaultBrowserWidth = 800;
 
 
 window.sizeToContent = function() {
@@ -261,7 +261,6 @@ function onDebugKeyPress(ev) {
     dump("Forced a GC\n");
     break;
   case r:
-    bv.onAfterVisibleMove();
     
 
   case d:
@@ -343,8 +342,6 @@ var Browser = {
   _selectedTab : null,
   windowUtils: window.QueryInterface(Ci.nsIInterfaceRequestor)
                      .getInterface(Ci.nsIDOMWindowUtils),
-  contentScrollbox: null,
-  contentScrollboxScroller: null,
   controlsScrollbox: null,
   controlsScrollboxScroller: null,
   pageScrollbox: null,
@@ -363,23 +360,45 @@ var Browser = {
       dump("###########" + e + "\n");
     }
 
-    let container = document.getElementById("tile-container");
+    let needOverride = Util.needHomepageOverride();
+    if (needOverride == "new profile")
+      this.initNewProfile();
+
+    let container = document.getElementById("browsers");
     let bv = this._browserView = new BrowserView(container, Browser.getVisibleRect);
 
     
     container.customClicker = new ContentCustomClicker(bv);
     container.customKeySender = new ContentCustomKeySender(bv);
+    container.customDragger = new Browser.MainDragger(bv);
 
-    
-    let contentScrollbox = this.contentScrollbox = document.getElementById("content-scrollbox");
-    this.contentScrollboxScroller = contentScrollbox.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
-    contentScrollbox.customDragger = new Browser.MainDragger(bv);
+    this.contentScrollbox = container;
+    this.contentScrollboxScroller = {
+      scrollBy: function(x, y) {
+        
+        if (getBrowser().contentWindow) {
+          getBrowser().contentWindow.scrollBy(x, y);
+        }
+      },
+
+      scrollTo: function(x, y) {
+        
+        if (getBrowser().contentWindow) {
+          getBrowser().contentWindow.scrollTo(x, y);
+        }
+      },
+
+      getPosition: function(scrollX, scrollY) {
+        let cwu = Util.getWindowUtils(getBrowser().contentWindow);
+        cwu.getScrollXY(false, scrollX, scrollY);
+      }
+    };
 
     
     let controlsScrollbox = this.controlsScrollbox = document.getElementById("controls-scrollbox");
     this.controlsScrollboxScroller = controlsScrollbox.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
     controlsScrollbox.customDragger = {
-      isDraggable: function isDraggable(target, content) { return false; },
+      isDraggable: function isDraggable(target, content) { return {}; },
       dragStart: function dragStart(cx, cy, target, scroller) {},
       dragStop: function dragStop(dx, dy, scroller) { return false; },
       dragMove: function dragMove(dx, dy, scroller) { return false; }
@@ -389,9 +408,6 @@ var Browser = {
     let pageScrollbox = this.pageScrollbox = document.getElementById("page-scrollbox");
     this.pageScrollboxScroller = pageScrollbox.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
     pageScrollbox.customDragger = controlsScrollbox.customDragger;
-
-    
-    bv.beginBatchOperation();
 
     let stylesheet = document.styleSheets[0];
     for each (let style in ["viewport-width", "viewport-height", "window-width", "window-height", "toolbar-height"]) {
@@ -409,8 +425,6 @@ var Browser = {
       let maximize = (document.documentElement.getAttribute("sizemode") == "maximized");
       if (maximize && w > screen.width)
         return;
-
-      bv.beginBatchOperation();
 
       let toolbarHeight = Math.round(document.getElementById("toolbar-main").getBoundingClientRect().height);
       let scaledDefaultH = (kDefaultBrowserWidth * (h / w));
@@ -439,12 +453,9 @@ var Browser = {
       if (bv.isDefaultZoom())
         
         Browser.hideSidebars();
-      bv.onAfterVisibleMove();
 
       for (let i = Browser.tabs.length - 1; i >= 0; i--)
         Browser.tabs[i].updateViewportSize();
-
-      bv.commitBatchOperation();
 
       let curEl = document.activeElement;
       if (curEl && curEl.scrollIntoView)
@@ -466,7 +477,6 @@ var Browser = {
     function notificationHandler() {
       
       Browser.forceChromeReflow();
-      bv.onAfterVisibleMove();
     }
     let notifications = document.getElementById("notifications");
     notifications.addEventListener("AlertActive", notificationHandler, false);
@@ -504,20 +514,45 @@ var Browser = {
     Util.forceOnline();
 
     
-    
-    let defaultURL = this.getHomePage();
-    if (window.arguments && window.arguments[0])
-      defaultURL = window.arguments[0];
+    let whereURI = this.getHomePage();
+    if (needOverride == "new profile")
+        whereURI = "about:firstrun";
 
-    this.addTab(defaultURL, true);
+    
+    
+    if (window.arguments && window.arguments[0] &&
+        window.arguments[0] instanceof Ci.nsICommandLine) {
+      try {
+        var cmdLine = window.arguments[0];
+
+        
+        if (cmdLine.length == 1) {
+          
+          var uri = cmdLine.getArgument(0);
+          if (uri != "" && uri[0] != '-') {
+            whereURI = cmdLine.resolveURI(uri);
+            if (whereURI)
+              whereURI = whereURI.spec;
+          }
+        }
+
+        
+        var uriFlag = cmdLine.handleFlagWithParam("url", false);
+        if (uriFlag) {
+          whereURI = cmdLine.resolveURI(uriFlag);
+          if (whereURI)
+            whereURI = whereURI.spec;
+        }
+      } catch (e) {}
+    }
+
+    this.addTab(whereURI, true);
 
     
     if (Services.prefs.getBoolPref("browser.console.showInPanel")){
       let button = document.getElementById("tool-console");
       button.hidden = false;
     }
-
-    bv.commitBatchOperation();
 
     
     if (Services.prefs.prefHasUserValue("extensions.disabledAddons")) {
@@ -532,6 +567,9 @@ var Browser = {
       }
       Services.prefs.clearUserPref("extensions.disabledAddons");
     }
+
+    
+    ImagePreloader.cache();
 
     messageManager.addMessageListener("Browser:ViewportMetadata", this);
     messageManager.addMessageListener("Browser:FormSubmit", this);
@@ -557,7 +595,7 @@ var Browser = {
       let shouldPrompt = Services.prefs.getBoolPref("browser.tabs.warnOnClose");
       if (shouldPrompt) {
         let prompt = Services.prompt;
-  
+
         
         let warnOnClose = { value: true };
 
@@ -601,7 +639,7 @@ var Browser = {
     Services.obs.notifyObservers(closingCanceled, "browser-lastwindow-close-requested", null);
     if (closingCanceled.data)
       return false;
-  
+
     Services.obs.notifyObservers(null, "browser-lastwindow-close-granted", null);
     return true;
   },
@@ -620,6 +658,9 @@ var Browser = {
     window.controllers.removeController(BrowserUI);
   },
 
+  initNewProfile: function initNewProfile() {
+  },
+
   getHomePage: function () {
     let url = "about:home";
     try {
@@ -636,53 +677,19 @@ var Browser = {
   scrollContentToTop: function scrollContentToTop() {
     this.contentScrollboxScroller.scrollTo(0, 0);
     this.pageScrollboxScroller.scrollTo(0, 0);
-    this._browserView.onAfterVisibleMove();
-  },
-
-  
-  scrollContentToBottom: function scrollContentToTop() {
-    let x = {}, y = {};
-    this.contentScrollboxScroller.getScrolledSize(x, y);
-    this.contentScrollboxScroller.scrollTo(0, y.value);
-
-    this.pageScrollboxScroller.getScrolledSize(x, y);
-    this.pageScrollboxScroller.scrollTo(0, y.value);
-
-    this._browserView.onAfterVisibleMove();
-  },
-
-  
-  scrollBrowserToContent: function scrollBrowserToContent() {
-    let browser = this.selectedBrowser;
-    if (browser) {
-      let scroll = Browser.getScrollboxPosition(Browser.contentScrollboxScroller);
-      browser.messageManager.sendAsyncMessage("Content:ScrollTo", { x: scroll.x, y: scroll.y });
-    }
-  },
-
-  
-  scrollContentToBrowser: function scrollContentToBrowser(aScrollX, aScrollY) {
-    if (aScrollY != 0)
-      Browser.hideTitlebar();
-
-    let zoomLevel = this._browserView.getZoomLevel();
-    Browser.contentScrollboxScroller.scrollTo(aScrollX*zoomLevel, aScrollY*zoomLevel);
-    this._browserView.onAfterVisibleMove();
   },
 
   hideSidebars: function scrollSidebarsOffscreen() {
-    let container = this.contentScrollbox;
+    let container = document.getElementById("browsers");
     let rect = container.getBoundingClientRect();
     this.controlsScrollboxScroller.scrollBy(Math.round(rect.left), 0);
-    this._browserView.onAfterVisibleMove();
   },
 
   hideTitlebar: function hideTitlebar() {
-    let container = this.contentScrollbox;
+    let container = document.getElementById("browsers");
     let rect = container.getBoundingClientRect();
     this.pageScrollboxScroller.scrollBy(0, Math.round(rect.top));
     this.tryUnfloatToolbar();
-    this._browserView.onAfterVisibleMove();
   },
 
   
@@ -706,13 +713,13 @@ var Browser = {
         this.closeTab(oldTab);
         oldTab = null;
       }
-      Browser.addTab(aURI, true, oldTab, aParams);
+      let tab = Browser.addTab(aURI, true, oldTab);
+      tab.browser.stop();
     }
-    else {
-      let params = aParams || {};
-      let flags = params.flags || Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
-      getBrowser().loadURIWithFlags(aURI, flags, params.referrerURI, params.charset, params.postData);
-    }
+
+    let params = aParams || {};
+    let flags = params.flags || Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
+    getBrowser().loadURIWithFlags(aURI, flags, params.referrerURI, params.charset, params.postData);
   },
 
   
@@ -749,12 +756,12 @@ var Browser = {
     return null;
   },
 
-  addTab: function(aURI, aBringFront, aOwner, aParams) {
-    let newTab = new Tab(aURI, aParams);
+  addTab: function(uri, bringFront, aOwner) {
+    let newTab = new Tab(uri);
     newTab.owner = aOwner || null;
     this._tabs.push(newTab);
 
-    if (aBringFront)
+    if (bringFront)
       this.selectedTab = newTab;
 
     let event = document.createEvent("Events");
@@ -814,7 +821,6 @@ var Browser = {
       return;
 
     if (this._selectedTab) {
-      this._selectedTab.contentScrollOffset = this.getScrollboxPosition(this.contentScrollboxScroller);
       this._selectedTab.pageScrollOffset = this.getScrollboxPosition(this.pageScrollboxScroller);
 
       
@@ -830,10 +836,7 @@ var Browser = {
     if (this._selectedTab.isLoading())
       BrowserUI.lockToolbar();
 
-    bv.beginBatchOperation();
-
     bv.setBrowser(tab.browser, tab.browserViewportState);
-    bv.forceContainerResize();
     bv.updateDefaultZoom();
 
     document.getElementById("tabs").selectedTab = tab.chromeTab;
@@ -851,19 +854,10 @@ var Browser = {
 
     tab.lastSelected = Date.now();
 
-    
-    if (tab.contentScrollOffset) {
-      let { x: scrollX, y: scrollY } = tab.contentScrollOffset;
-      Browser.contentScrollboxScroller.scrollTo(scrollX, scrollY);
-    }
     if (tab.pageScrollOffset) {
       let { x: pageScrollX, y: pageScrollY } = tab.pageScrollOffset;
       Browser.pageScrollboxScroller.scrollTo(pageScrollX, pageScrollY);
     }
-
-    bv.setAggressive(!tab._loading);
-
-    bv.commitBatchOperation();
   },
 
   supportsCommand: function(cmd) {
@@ -891,7 +885,7 @@ var Browser = {
     }
   },
 
-  getNotificationBox: function getNotificationBox(aBrowser) {
+  getNotificationBox: function getNotificationBox() {
     return document.getElementById("notifications");
   },
 
@@ -975,31 +969,31 @@ var Browser = {
 
 
 
+
   computeSidebarVisibility: function computeSidebarVisibility(dx, dy) {
-    function visibility(aSidebarRect, aVisibleRect) {
-      let width = aSidebarRect.width;
-      aSidebarRect.restrictTo(aVisibleRect);
-      return aSidebarRect.width / width;
+    function visibility(bar, visrect) {
+      let w = bar.width;
+      bar.restrictTo(visrect);
+      return bar.width / w;
     }
 
     if (!dx) dx = 0;
     if (!dy) dy = 0;
 
-    let [leftSidebar, rightSidebar] = [Elements.tabs.getBoundingClientRect(), Elements.controls.getBoundingClientRect()];
-    if (leftSidebar.left > rightSidebar.left)
-      [rightSidebar, leftSidebar] = [leftSidebar, rightSidebar]; 
+    let leftbarCBR = document.getElementById('tabs-container').getBoundingClientRect();
+    let ritebarCBR = document.getElementById('browser-controls').getBoundingClientRect();
 
-    let visibleRect = new Rect(0, 0, window.innerWidth, 1);
-    let leftRect = new Rect(Math.round(leftSidebar.left) - dx, 0, Math.round(leftSidebar.width), 1);
-    let rightRect = new Rect(Math.round(rightSidebar.left) - dx, 0, Math.round(rightSidebar.width), 1);
+    let leftbar = new Rect(Math.round(leftbarCBR.left) - dx, 0, Math.round(leftbarCBR.width), 1);
+    let ritebar = new Rect(Math.round(ritebarCBR.left) - dx, 0, Math.round(ritebarCBR.width), 1);
+    let leftw = leftbar.width;
+    let ritew = ritebar.width;
 
-    let leftTotalWidth = leftRect.width;
-    let leftVisibility = visibility(leftRect, visibleRect);
+    let visrect = new Rect(0, 0, window.innerWidth, 1);
 
-    let rightTotalWidth = rightRect.width;
-    let rightVisibility = visibility(rightRect, visibleRect);
+    let leftvis = visibility(leftbar, visrect);
+    let ritevis = visibility(ritebar, visrect);
 
-    return [leftVisibility, rightVisibility, leftTotalWidth, rightTotalWidth];
+    return [leftvis, ritevis, leftw, ritew];
   },
 
   
@@ -1152,26 +1146,13 @@ var Browser = {
     bv.beginOffscreenOperation(rect);
 
     
-    
-    bv.beginBatchOperation();
-
-    
     this.hideSidebars();
     this.hideTitlebar();
 
     bv.setZoomLevel(zoomLevel);
 
-    
-    bv.forceContainerResize();
-    this.forceChromeReflow();
     this.contentScrollboxScroller.scrollTo(scrollX, scrollY);
-    bv.onAfterVisibleMove();
 
-    
-    
-    bv.forceViewportChange();
-
-    bv.commitBatchOperation();
     bv.commitOffscreenOperation();
   },
 
@@ -1206,7 +1187,7 @@ var Browser = {
 
 
   clientToBrowserView: function clientToBrowserView(x, y) {
-    let container = document.getElementById("tile-container");
+    let container = document.getElementById("browsers");
     let containerBCR = container.getBoundingClientRect();
 
     let x0 = Math.round(containerBCR.left);
@@ -1218,7 +1199,7 @@ var Browser = {
   },
 
   browserViewToClient: function browserViewToClient(x, y) {
-    let container = document.getElementById("tile-container");
+    let container = document.getElementById("browsers");
     let containerBCR = container.getBoundingClientRect();
 
     let x0 = Math.round(-containerBCR.left);
@@ -1230,7 +1211,7 @@ var Browser = {
   },
 
   browserViewToClientRect: function browserViewToClientRect(rect) {
-    let container = document.getElementById("tile-container");
+    let container = document.getElementById("browsers");
     let containerBCR = container.getBoundingClientRect();
     return rect.clone().translate(Math.round(containerBCR.left), Math.round(containerBCR.top));
   },
@@ -1249,7 +1230,7 @@ var Browser = {
 
   getVisibleRect: function getVisibleRect() {
     let stack = document.getElementById("tile-stack");
-    let container = document.getElementById("tile-container");
+    let container = document.getElementById("browsers");
     let containerBCR = container.getBoundingClientRect();
 
     let x = Math.round(-containerBCR.left);
@@ -1270,6 +1251,8 @@ var Browser = {
   getScrollboxPosition: function getScrollboxPosition(scroller) {
     let x = {};
     let y = {};
+    
+    return new Point(0, 0);
     scroller.getPosition(x, y);
     return new Point(x.value, y.value);
   },
@@ -1318,11 +1301,11 @@ Browser.MainDragger = function MainDragger(browserView) {
 };
 
 Browser.MainDragger.prototype = {
-  isDraggable: function isDraggable(target, scroller) { return true; },
+  isDraggable: function isDraggable(target, scroller) {
+    return { xDraggable: true, yDraggable: true };
+  },
 
   dragStart: function dragStart(clientX, clientY, target, scroller) {
-    this._nextRender = Date.now() + 500;
-    this._dragMoved = false;
   },
 
   dragStop: function dragStop(dx, dy, scroller) {
@@ -1330,9 +1313,6 @@ Browser.MainDragger.prototype = {
     this.dragMove(Browser.snapSidebars(), 0, scroller);
 
     Browser.tryUnfloatToolbar();
-
-    if (this._dragMoved)
-      this.bv.resumeRendering();
   },
 
   dragMove: function dragMove(dx, dy, scroller) {
@@ -1340,7 +1320,6 @@ Browser.MainDragger.prototype = {
 
     if (!this._dragMoved) {
       this._dragMoved = true;
-      this.bv.pauseRendering();
     }
 
     
@@ -1355,13 +1334,6 @@ Browser.MainDragger.prototype = {
     Browser.tryFloatToolbar(doffset.x, 0);
     this._panScroller(Browser.controlsScrollboxScroller, doffset);
     this._panScroller(Browser.pageScrollboxScroller, doffset);
-
-    this.bv.onAfterVisibleMove();
-
-    if (Date.now() >= this._nextRender) {
-      this.bv.renderNow();
-      this._nextRender = Date.now() + 500;
-    }
 
     return !doffset.equals(dx, dy);
   },
@@ -1432,8 +1404,7 @@ nsBrowserAccess.prototype = {
       let url = aURI ? aURI.spec : "about:blank";
       let newWindow = openDialog("chrome://browser/content/browser.xul", "_blank",
                                  "all,dialog=no", url, null, null, null);
-      
-      return null;
+      browser = newWindow.Browser.selectedBrowser;
     } else if (aWhere == Ci.nsIBrowserDOMWindow.OPEN_NEWTAB) {
       browser = Browser.addTab("about:blank", true, Browser.selectedTab).browser;
     } else { 
@@ -1502,17 +1473,7 @@ const BrowserSearch = {
   get engines() {
     if (this._engines)
       return this._engines;
-
-    let engines = Services.search.getVisibleEngines({ }).map(
-      function(item, index, array) {
-        return { 
-          label: item.name,
-          default: (item == Services.search.defaultEngine),
-          image: item.iconURI ? item.iconURI.spec : null
-        }
-    });
-
-    return this._engines = engines;
+    return this._engines = Services.search.getVisibleEngines({ });
   },
 
   updatePageSearchEngines: function updatePageSearchEngines(aNode) {
@@ -1541,6 +1502,29 @@ const BrowserSearch = {
     return !BrowserSearch.engines.some(function(item) {
       return aEngine.title == item.name;
     });
+  },
+
+  updateSearchButtons: function updateSearchButtons() {
+    let container = document.getElementById("search-buttons");
+    if (this._engines && container.hasChildNodes())
+      return;
+
+    
+    while (container.hasChildNodes())
+      container.removeChild(container.lastChild);
+
+    let engines = this.engines;
+    for (let e = 0; e < engines.length; e++) {
+      let button = document.createElement("radio");
+      let engine = engines[e];
+      button.id = engine.name;
+      button.setAttribute("label", engine.name);
+      button.className = "searchengine";
+      if (engine.iconURI)
+        button.setAttribute("src", engine.iconURI.spec);
+      container.appendChild(button);
+      button.engine = engine;
+    }
   }
 };
 
@@ -1593,13 +1577,11 @@ ContentCustomClicker.prototype = {
 
     this._dispatchMouseEvent("Browser:MouseCancel");
 
-    const kDoubleClickRadius = 100;
+    const kDoubleClickRadius = 32;
 
     let maxRadius = kDoubleClickRadius * Browser._browserView.getZoomLevel();
-    let dx = aX2 - aX1;
-    let dy = aY1 - aY2;
-
-    if (dx*dx + dy*dy < maxRadius*maxRadius)
+    let isClickInRadius = (Math.abs(aX1 - aX2) < maxRadius && Math.abs(aY1 - aY2) < maxRadius);
+    if (isClickInRadius)
       this._dispatchMouseEvent("Browser:ZoomToPoint", aX1, aY1);
   },
 
@@ -1662,9 +1644,6 @@ function IdentityHandler() {
   this._staticStrings[this.IDENTITY_MODE_UNKNOWN] = {
     encryption_label: Elements.browserBundle.getString("identity.unencrypted2")
   };
-
-  
-  document.getElementById("browsers").addEventListener("URLChanged", this, true);
 
   this._cacheElements();
 }
@@ -1860,7 +1839,6 @@ IdentityHandler.prototype = {
 
   show: function ih_show() {
     
-    BrowserUI.activePanel = null;
     while (BrowserUI.activeDialog)
       BrowserUI.activeDialog.close();
 
@@ -1886,13 +1864,6 @@ IdentityHandler.prototype = {
   },
 
   toggle: function ih_toggle() {
-    
-    
-    if (Elements.urlbarState.getAttribute("mode") == "edit") {
-      CommandUpdater.doCommand("cmd_opensearch");
-      return;
-    }
-
     if (this._identityPopup.hidden)
       this.show();
     else
@@ -1902,20 +1873,15 @@ IdentityHandler.prototype = {
   
 
 
-  handleIdentityButtonEvent: function(aEvent) {
-    aEvent.stopPropagation();
+  handleIdentityButtonEvent: function(event) {
+    event.stopPropagation();
 
-    if ((aEvent.type == "click" && aEvent.button != 0) ||
-        (aEvent.type == "keypress" && aEvent.charCode != KeyEvent.DOM_VK_SPACE &&
-         aEvent.keyCode != KeyEvent.DOM_VK_RETURN))
+    if ((event.type == "click" && event.button != 0) ||
+        (event.type == "keypress" && event.charCode != KeyEvent.DOM_VK_SPACE &&
+         event.keyCode != KeyEvent.DOM_VK_RETURN))
       return; 
 
     this.toggle();
-  },
-
-  handleEvent: function(aEvent) {
-    if (aEvent.type == "URLChanged" && !this._identityPopup.hidden)
-      this.hide();
   }
 };
 
@@ -2117,6 +2083,7 @@ const gSessionHistoryObserver = {
   }
 };
 
+
 var MemoryObserver = {
   observe: function mo_observe() {
     window.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -2125,8 +2092,8 @@ var MemoryObserver = {
   }
 };
 
-function getNotificationBox(aBrowser) {
-  return Browser.getNotificationBox(aBrowser);
+function getNotificationBox(aWindow) {
+  return Browser.getNotificationBox();
 }
 
 function importDialog(aParent, aSrc, aArguments) {
@@ -2151,9 +2118,8 @@ function importDialog(aParent, aSrc, aArguments) {
   var dialog  = null;
 
   
-  
-  let menulistContainer = document.getElementById("menulist-container");
-  let parentNode = menulistContainer.parentNode;
+  let selectContainer = document.getElementById("select-container");
+  let parentNode = selectContainer.parentNode;
 
   
   let event = document.createEvent("Events");
@@ -2165,7 +2131,7 @@ function importDialog(aParent, aSrc, aArguments) {
   let back = document.createElement("box");
   back.setAttribute("class", "modal-block");
   dialog = back.appendChild(document.importNode(doc, true));
-  parentNode.insertBefore(back, menulistContainer);
+  parentNode.insertBefore(back, selectContainer);
 
   dialog.arguments = aArguments;
   dialog.parent = aParent;
@@ -2182,24 +2148,6 @@ var AlertsHelper = {
   _listener: null,
   _cookie: "",
   _clickable: false,
-  get container() {
-    delete this.container;
-    let container = document.getElementById("alerts-container");
-
-    
-    let [leftSidebar, rightSidebar] = [Elements.tabs.getBoundingClientRect(), Elements.controls.getBoundingClientRect()];
-    if (leftSidebar.left > rightSidebar.left) {
-      container.removeAttribute("right");
-      container.setAttribute("left", "0");
-    }
-
-    let self = this;
-    container.addEventListener("transitionend", function() {
-      self.alertTransitionOver();
-    }, true);
-
-    return this.container = container;
-  },
 
   showAlertNotification: function ah_show(aImageURL, aTitle, aText, aTextClickable, aCookie, aListener) {
     this._clickable = aTextClickable || false;
@@ -2209,33 +2157,28 @@ var AlertsHelper = {
     document.getElementById("alerts-image").setAttribute("src", aImageURL);
     document.getElementById("alerts-title").value = aTitle;
     document.getElementById("alerts-text").textContent = aText;
-    
-    let container = this.container;
+
+    let container = document.getElementById("alerts-container");
     container.hidden = false;
-    container.height = container.getBoundingClientRect().height;
-    container.classList.add("showing");
+
+    let rect = container.getBoundingClientRect();
+    container.top = window.innerHeight - (rect.height + 20);
+    container.left = window.innerWidth - (rect.width + 20);
 
     let timeout = Services.prefs.getIntPref("alerts.totalOpenTime");
     let self = this;
-    if (this._timeoutID)
-      clearTimeout(this._timeoutID);
     this._timeoutID = setTimeout(function() { self._timeoutAlert(); }, timeout);
   },
-    
+
   _timeoutAlert: function ah__timeoutAlert() {
     this._timeoutID = -1;
-    
-    this.container.classList.remove("showing");
+    let container = document.getElementById("alerts-container");
+    container.hidden = true;
+
     if (this._listener)
       this._listener.observe(null, "alertfinished", this._cookie);
-  },
-  
-  alertTransitionOver: function ah_alertTransitionOver() {
-    let container = this.container;
-    if (!container.classList.contains("showing")) {
-      container.height = 0;
-      container.hidden = true;
-    }
+
+    
   },
 
   click: function ah_click(aEvent) {
@@ -2380,25 +2323,9 @@ ProgressController.prototype = {
   },
 
   _documentStop: function _documentStop() {
-    if (this._tab == Browser.selectedTab) {
-      
-      
-      
-      Util.executeSoon(function() {
-        let scroll = Browser.getScrollboxPosition(Browser.contentScrollboxScroller);
-        if (scroll.isZero())
-          Browser.scrollContentToBrowser(0, 0);
-      });
-    }
-    else {
-      
-      
-      this._tab.contentScrollOffset = new Point(0, 0);
-
       
       
       this._tab.pageScrollOffset = new Point(0, 0);
-    }
   }
 };
 
@@ -2488,7 +2415,7 @@ var OfflineApps = {
   }
 };
 
-function Tab(aURI, aParams) {
+function Tab(aURI) {
   this._id = null;
   this._browser = null;
   this._browserViewportState = null;
@@ -2502,9 +2429,7 @@ function Tab(aURI, aParams) {
   
   this.lastSelected = 0;
 
-  
-  
-  this.create(aURI, aParams || {});
+  this.create(aURI);
 }
 
 Tab.prototype = {
@@ -2593,50 +2518,23 @@ Tab.prototype = {
     if (this._loading) throw "Already Loading!";
 
     this._loading = true;
-
-    let bv = Browser._browserView;
-
-    if (this == Browser.selectedTab) {
-      bv.setAggressive(false);
-      
-      
-      bv.ignorePageScroll(true);
-      Browser.scrollBrowserToContent();
-    }
   },
 
   endLoading: function endLoading() {
     if (!this._loading) throw "Not Loading!";
     this._loading = false;
-
-    if (this == Browser.selectedTab) {
-      let bv = Browser._browserView;
-      bv.ignorePageScroll(false);
-      bv.setAggressive(true);
-    }
   },
 
   isLoading: function isLoading() {
     return this._loading;
   },
 
-  create: function create(aURI, aParams) {
+  create: function create(aURI) {
     
     this._browserViewportState = BrowserView.Util.createBrowserViewportState();
 
     this._chromeTab = document.getElementById("tabs").addTab();
-    let browser = this._createBrowser(aURI);
-
-    
-    let flags = Ci.nsIWebProgress.NOTIFY_LOCATION |
-                Ci.nsIWebProgress.NOTIFY_SECURITY |
-                Ci.nsIWebProgress.NOTIFY_STATE_NETWORK |
-                Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT;
-    this._listener = new ProgressController(this);
-    browser.webProgress.addProgressListener(this._listener, flags);
-
-    let flags = aParams.flags || Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
-    browser.loadURIWithFlags(aURI, flags, aParams.referrerURI, aParams.charset, aParams.postData);
+    this._createBrowser(aURI);
   },
 
   destroy: function destroy() {
@@ -2653,7 +2551,6 @@ Tab.prototype = {
     let browser = this._browser = document.createElement("browser");
     this._chromeTab.linkedBrowser = browser;
 
-    browser.setAttribute("style", "overflow: -moz-hidden-unscrollable; visibility: hidden;");
     browser.setAttribute("type", "content");
 
     let useRemote = Services.prefs.getBoolPref("browser.tabs.remote");
@@ -2666,7 +2563,15 @@ Tab.prototype = {
     
     browser.stop();
 
-    return browser;
+    
+    let flags = Ci.nsIWebProgress.NOTIFY_LOCATION |
+                Ci.nsIWebProgress.NOTIFY_SECURITY |
+                Ci.nsIWebProgress.NOTIFY_STATE_NETWORK |
+                Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT;
+    this._listener = new ProgressController(this);
+    browser.webProgress.addProgressListener(this._listener, flags);
+
+    browser.setAttribute("src", aURI);
   },
 
   _destroyBrowser: function _destroyBrowser() {
@@ -2708,37 +2613,31 @@ Tab.prototype = {
   }
 };
 
+var ImagePreloader = {
+  cache: function ip_cache() {
+    
+    let images = ["button-active", "button-default",
+                  "buttondark-active", "buttondark-default",
+                  "toggleon-active", "toggleon-inactive",
+                  "toggleoff-active", "toggleoff-inactive",
+                  "toggleleft-active", "toggleleft-inactive",
+                  "togglemiddle-active", "togglemiddle-inactive",
+                  "toggleright-active", "toggleright-inactive",
+                  "toggleboth-active", "toggleboth-inactive",
+                  "toggledarkleft-active", "toggledarkleft-inactive",
+                  "toggledarkmiddle-active", "toggledarkmiddle-inactive",
+                  "toggledarkright-active", "toggledarkright-inactive",
+                  "toggledarkboth-active", "toggledarkboth-inactive",
+                  "toolbarbutton-active", "toolbarbutton-default",
+                  "addons-active", "addons-default",
+                  "downloads-active", "downloads-default",
+                  "preferences-active", "preferences-default",
+                  "settings-active", "settings-open"];
 
-function rendererFactory(aBrowser, aCanvas) {
-  let wrapper = {};
-
-  if (aBrowser.contentWindow) {
-    let ctx = aCanvas.getContext("2d");
-    let draw = function(browser, aLeft, aTop, aWidth, aHeight, aColor, aFlags) {
-      ctx.drawWindow(browser.contentWindow, aLeft, aTop, aWidth, aHeight, aColor, aFlags);
-      let e = document.createEvent("HTMLEvents");
-      e.initEvent("MozAsyncCanvasRender", true, true);
-      aCanvas.dispatchEvent(e);
-    };
-    wrapper.checkBrowser = function(browser) {
-      return browser.contentWindow;
-    };
-    wrapper.drawContent = function(callback) {
-      callback(ctx, draw);
-    };
+    let size = screen.width > 400 ? "-64" : "-36";
+    for (let i = 0; i < images.length; i++) {
+      let image = new Image();
+      image.src = "chrome://browser/skin/images/" + images[i] + size + ".png";
+    }
   }
-  else {
-    let ctx = aCanvas.MozGetIPCContext("2d");
-    let draw = function(browser, aLeft, aTop, aWidth, aHeight, aColor, aFlags) {
-      ctx.asyncDrawXULElement(browser, aLeft, aTop, aWidth, aHeight, aColor, aFlags);
-    };
-    wrapper.checkBrowser = function(browser) {
-      return !browser.contentWindow;
-    };
-    wrapper.drawContent = function(callback) {
-      callback(ctx, draw);
-    };
-  }
-
-  return wrapper;
-}
+};

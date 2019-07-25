@@ -46,6 +46,7 @@ const kBrowserFormZoomLevelMax = 2.0;
 const kBrowserViewZoomLevelPrecision = 10000;
 const kBrowserViewPrefetchBeginIdleWait = 1;    
 const kBrowserViewPrefetchBeginIdleWaitLoading = 10;    
+const kBrowserViewCacheSize = 6;
 
 
 
@@ -201,35 +202,38 @@ BrowserView.prototype = {
     this._browserViewportState = null;
     this._renderMode = 0;
     this._offscreenDepth = 0;
-    this._visibleScreenArea = new Rect(0, 0, 0, 0);
 
-    let cacheSize = Services.prefs.getIntPref("tile.cache.size");
+    let cacheSize = kBrowserViewCacheSize;
+    try {
+      cacheSize = Services.prefs.getIntPref("tile.cache.size");
+    } catch(e) {}
 
-    this._tileManager = new TileManager(this._appendTile, this._removeTile, this, cacheSize, container);
+    if (cacheSize == -1) {
+      let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
+      let device = sysInfo.get("device");
+      switch (device) {
+#ifdef MOZ_PLATFORM_MAEMO
+        case "Nokia N900":
+          cacheSize = 26;
+          break;
+        case "Nokia N8xx":
+          
+          cacheSize = 10;
+          break;
+#endif
+        default:
+          
+          cacheSize = 6;
+      }
+    }
+
     this._visibleRectFactory = visibleRectFactory;
 
-    this._idleServiceObserver = new BrowserView.IdleServiceObserver(this);
-    this._idleService = Cc["@mozilla.org/widget/idleservice;1"].getService(Ci.nsIIdleService);
-    this._idleService.addIdleObserver(this._idleServiceObserver, kBrowserViewPrefetchBeginIdleWait);
-    this._idleServiceWait = kBrowserViewPrefetchBeginIdleWait;
-
-    let self = this;
     messageManager.addMessageListener("Browser:MozScrolledAreaChanged", this);
-    messageManager.addMessageListener("Browser:MozAfterPaint", this);
     messageManager.addMessageListener("Browser:PageScroll", this);
   },
 
   uninit: function uninit() {
-    this.setBrowser(null, null);
-    this._idleService.removeIdleObserver(this._idleServiceObserver, this._idleServiceWait);
-  },
-
-  
-  setAggressive: function setAggressive(aggro) {
-    let wait = aggro ? kBrowserViewPrefetchBeginIdleWait : kBrowserViewPrefetchBeginIdleWaitLoading;
-    this._idleService.removeIdleObserver(this._idleServiceObserver, this._idleServiceWait);
-    this._idleService.addIdleObserver(this._idleServiceObserver, wait);
-    this._idleServiceWait = wait;
   },
 
   getVisibleRect: function getVisibleRect() {
@@ -254,6 +258,8 @@ BrowserView.prototype = {
   },
 
   setZoomLevel: function setZoomLevel(zoomLevel) {
+    return;
+
     let bvs = this._browserViewportState;
     if (!bvs)
       return;
@@ -302,6 +308,8 @@ BrowserView.prototype = {
   },
 
   beginOffscreenOperation: function beginOffscreenOperation(rect) {
+    return;
+
     if (this._offscreenDepth == 0) {
       let vis = this.getVisibleRect();
       rect = rect || vis;
@@ -320,97 +328,13 @@ BrowserView.prototype = {
   },
 
   commitOffscreenOperation: function commitOffscreenOperation() {
+    return;
+
     this._offscreenDepth--;
     if (this._offscreenDepth == 0) {
       this.resumeRendering();
       Elements.viewBuffer.style.display = "none";
     }
-  },
-
-  beginBatchOperation: function beginBatchOperation() {
-    this._batchOps.push(BrowserView.Util.getNewBatchOperationState());
-    this.pauseRendering();
-  },
-
-  commitBatchOperation: function commitBatchOperation() {
-    let bops = this._batchOps;
-    if (bops.length == 0)
-      return;
-
-    let opState = bops.pop();
-
-    
-    
-    this._viewportChanged(opState.viewportSizeChanged, opState.dirtyAll);
-    this.resumeRendering();
-  },
-
-  discardBatchOperation: function discardBatchOperation() {
-    let bops = this._batchOps;
-    bops.pop();
-    this.resumeRendering();
-  },
-
-  discardAllBatchOperations: function discardAllBatchOperations() {
-    let bops = this._batchOps;
-    while (bops.length > 0)
-      this.discardBatchOperation();
-  },
-
-  
-
-
-
-  pauseRendering: function pauseRendering() {
-    this._renderMode++;
-    if (this._renderMode == 1 && this._browser) {
-      let event = document.createEvent("Events");
-      event.initEvent("RenderStateChanged", true, false);
-      event.isRendering = false;
-      this._browser.dispatchEvent(event);
-    }
-  },
-
-  
-
-
-
-  resumeRendering: function resumeRendering(renderNow) {
-    if (this._renderMode > 0)
-      this._renderMode--;
-
-    if (renderNow || this._renderMode == 0)
-      this.renderNow();
-
-    if (this._renderMode == 0 && this._browser) {
-      let event = document.createEvent("Events");
-      event.initEvent("RenderStateChanged", true, false);
-      event.isRendering = true;
-      this._browser.dispatchEvent(event);
-    }
-  },
-
-  
-
-
-  renderNow: function renderNow() {
-    this._tileManager.criticalRectPaint();
-  },
-
-  isRendering: function isRendering() {
-    return (this._renderMode == 0);
-  },
-
-  onAfterVisibleMove: function onAfterVisibleMove() {
-    let vs = this._browserViewportState;
-    let vr = this.getVisibleRect();
-
-    vs.visibleX = vr.left;
-    vs.visibleY = vr.top;
-
-    let cr = BrowserView.Util.visibleRectToCriticalRect(vr, vs);
-
-    this._tileManager.criticalMove(cr, this.isRendering());
   },
 
   
@@ -426,6 +350,7 @@ BrowserView.prototype = {
 
     if (oldBrowser) {
       oldBrowser.setAttribute("type", "content");
+      oldBrowser.setAttribute("style", "display: none;");
       oldBrowser.messageManager.sendAsyncMessage("Browser:Blur", {});
     }
 
@@ -434,14 +359,11 @@ BrowserView.prototype = {
 
     if (browser) {
       browser.setAttribute("type", "content-primary");
+      browser.setAttribute("style", "display: block;");
       browser.messageManager.sendAsyncMessage("Browser:Focus", {});
-
-      this.beginBatchOperation();
 
       if (browserChanged)
         this._viewportChanged(true, true);
-
-      this.commitBatchOperation();
     }
   },
 
@@ -451,9 +373,6 @@ BrowserView.prototype = {
 
   receiveMessage: function receiveMessage(aMessage) {
     switch (aMessage.name) {
-      case "Browser:MozAfterPaint":
-        this.updateDirtyTiles(aMessage);
-        break;
       case "Browser:PageScroll":
         this.updatePageScroll(aMessage);
         break;
@@ -463,39 +382,10 @@ BrowserView.prototype = {
     }
   },
 
-  updateDirtyTiles: function updateDirtyTiles(aMessage) {
-    let browser = aMessage.target;
-    if (browser != this._browser)
-      return;
-    
-    let rects = aMessage.json.rects;
-
-    let tm = this._tileManager;
-    let vs = this._browserViewportState;
-
-    let dirtyRects = [];
-    
-    for (let i = rects.length - 1; i >= 0; --i) {
-      let r = Rect.fromRect(rects[i]);
-      r = this.browserToViewportRect(r);
-      r.expandToIntegers();
-
-      r.restrictTo(vs.viewportRect);
-      if (!r.isEmpty())
-        dirtyRects.push(r);
-    }
-
-    tm.dirtyRects(dirtyRects, this.isRendering(), true);
-  },
-
   
   updatePageScroll: function updatePageScroll(aMessage) {
     if (aMessage.target != this._browser || this._ignorePageScroll)
       return;
-
-    
-    let json = aMessage.json;
-    Browser.scrollContentToBrowser(json.scrollX, json.scrollY);
   },
 
   _ignorePageScroll: false,
@@ -527,8 +417,7 @@ BrowserView.prototype = {
       if (vis.right > viewport.right || vis.bottom > viewport.bottom) {
         
         
-        Browser.contentScrollboxScroller.scrollBy(0, 0);
-        this.onAfterVisibleMove();
+
       }
     }
   },
@@ -653,6 +542,8 @@ BrowserView.prototype = {
 
 
   renderToCanvas: function renderToCanvas(destCanvas, destWidth, destHeight, srcRect) {
+    return;
+
     let bvs = this._browserViewportState;
     if (!bvs) {
       throw "Browser viewport state null in call to renderToCanvas (probably no browser set on BrowserView).";
@@ -703,43 +594,11 @@ BrowserView.prototype = {
     ctx.scale(f, f);
   },
 
-  forceContainerResize: function forceContainerResize() {
-    let bvs = this._browserViewportState;
-    if (bvs)
-      BrowserView.Util.resizeContainerToViewport(this._container, bvs.viewportRect);
-  },
-
-  
-
-
-
-  forceViewportChange: function forceViewportChange() {
-    let bops = this._batchOps;
-    if (bops.length > 0) {
-      let opState = bops[bops.length - 1];
-      this._applyViewportChanges(opState.viewportSizeChanged, opState.dirtyAll);
-      opState.viewportSizeChanged = false;
-      opState.dirtyAll = false;
-    }
-  },
-
   
   
   
 
   _viewportChanged: function _viewportChanged(viewportSizeChanged, dirtyAll) {
-    let bops = this._batchOps;
-    if (bops.length > 0) {
-      let opState = bops[bops.length - 1];
-
-      if (viewportSizeChanged)
-        opState.viewportSizeChanged = viewportSizeChanged;
-      if (dirtyAll)
-        opState.dirtyAll = dirtyAll;
-
-      return;
-    }
-
     this._applyViewportChanges(viewportSizeChanged, dirtyAll);
   },
 
@@ -747,44 +606,8 @@ BrowserView.prototype = {
     let bvs = this._browserViewportState;
     if (bvs) {
       BrowserView.Util.resizeContainerToViewport(this._container, bvs.viewportRect);
-
-      let vr = this.getVisibleRect();
-      this._tileManager.viewportChangeHandler(bvs.viewportRect,
-                                              BrowserView.Util.visibleRectToCriticalRect(vr, bvs),
-                                              viewportSizeChanged,
-                                              dirtyAll);
-
-      let rects = vr.subtract(bvs.viewportRect);
-      this._tileManager.clearRects(rects);
     }
   },
-
-  _appendTile: function _appendTile(tile) {
-    let canvas = tile.getContentImage();
-
-    
-    
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    canvas.setAttribute("style", "display: none; position: absolute; left: " + tile.boundRect.left + "px; " + "top: " + tile.boundRect.top + "px;");
-
-    this._container.appendChild(canvas);
-  },
-
-  _removeTile: function _removeTile(tile) {
-    let canvas = tile.getContentImage();
-
-    this._container.removeChild(canvas);
-  }
-
 };
 
 
@@ -822,41 +645,4 @@ BrowserView.BrowserViewportState.prototype = {
     return "[BrowserViewportState] {\n" + props.join(",\n") + "\n}";
   }
 
-};
-
-
-
-
-
-
-
-BrowserView.IdleServiceObserver = function IdleServiceObserver(browserView) {
-  this._browserView = browserView;
-  this._idle = false;
-  this._paused = false;
-};
-
-BrowserView.IdleServiceObserver.prototype = {
-  
-  pause: function pause() {
-    this._paused = true;
-    this._updateTileManager();
-  },
-
-  
-  resume: function resume() {
-    this._paused = false;
-    this._updateTileManager();
-  },
-
-  
-  observe: function observe(aSubject, aTopic, aUserIdleTime) {
-    this._idle = (aTopic == "idle") ? true : false;
-    this._updateTileManager();
-  },
-
-  _updateTileManager: function _updateTileManager() {
-    let bv = this._browserView;
-    bv._tileManager.setPrefetch(this._idle && !this._paused);
-  }
 };

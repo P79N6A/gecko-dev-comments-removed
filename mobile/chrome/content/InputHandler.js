@@ -46,11 +46,10 @@
 const kDoubleClickInterval = 400;
 
 
-
 const kDoubleClickThreshold = 200;
 
 
-const kTapRadius = Services.prefs.getIntPref("ui.dragThresholdX");
+const kTapRadius = 25;
 
 
 const kAxisLockRevertThreshold = 200;
@@ -128,7 +127,6 @@ function InputHandler(browserViewContainer) {
   window.addEventListener("mousemove", this, true);
   window.addEventListener("click", this, true);
   window.addEventListener("contextmenu", this, false);
-  window.addEventListener("MozSwipeGesture", this, true);
   window.addEventListener("MozMagnifyGestureStart", this, true);
   window.addEventListener("MozMagnifyGestureUpdate", this, true);
   window.addEventListener("MozMagnifyGesture", this, true);
@@ -235,10 +233,6 @@ InputHandler.prototype = {
     if (this._ignoreEvents)
       return;
 
-    
-    if (aEvent.view != window)
-      return;
-
     if (this._suppressNextClick && aEvent.type == "click") {
       this._suppressNextClick = false;
       aEvent.stopPropagation();
@@ -340,8 +334,8 @@ function MouseModule(owner, browserViewContainer) {
   this._targetScrollInterface = null;
 
   var self = this;
-  this._kinetic = new KineticController(this._dragBy.bind(this),
-                                        this._kineticStop.bind(this));
+  this._kinetic = new KineticController(Util.bind(this._dragBy, this),
+                                        Util.bind(this._kineticStop, this));
 
   messageManager.addMessageListener("Browser:ContextMenu", this);
 }
@@ -351,6 +345,16 @@ MouseModule.prototype = {
   handleEvent: function handleEvent(aEvent) {
     if (aEvent.button !== 0 && aEvent.type != "contextmenu")
       return;
+
+    try {
+      if (aEvent.view != window) {
+        
+        
+        
+        
+        
+      }
+    } catch (e) {};
 
     switch (aEvent.type) {
       case "mousedown":
@@ -428,29 +432,38 @@ MouseModule.prototype = {
 
     
     
+    let target = (aEvent.view == window) ? aEvent.target : getBrowser();
     let [targetScrollbox, targetScrollInterface]
-      = this.getScrollboxFromElement(aEvent.target);
+      = this.getScrollboxFromElement(target);
+    let targetDragger = targetScrollbox ? targetScrollbox.customDragger : null;
+    if (!targetDragger && targetScrollInterface)
+      targetDragger = this._defaultDragger;
 
     
-    let oldInterface = this._targetScrollInterface;
-    if (this._kinetic.isActive() && targetScrollInterface != oldInterface)
+    let oldDragger = this._dragger;
+    if (this._kinetic.isActive() && targetDragger != oldDragger)
       this._kinetic.end();
 
-    let targetClicker = this.getClickerFromElement(aEvent.target);
+    
+    let targetClicker = this.getClickerFromElement(target);
 
     this._targetScrollInterface = targetScrollInterface;
-    this._dragger = (targetScrollInterface) ? (targetScrollbox.customDragger || this._defaultDragger)
-                                            : null;
+    this._dragger = targetDragger;
     this._clicker = (targetClicker) ? targetClicker.customClicker : null;
 
     if (this._clicker)
       this._clicker.mouseDown(aEvent.clientX, aEvent.clientY);
 
-    if (targetScrollInterface && this._dragger.isDraggable(targetScrollbox, targetScrollInterface))
+    let draggable = this._dragger ? this._dragger.isDraggable(targetScrollbox, targetScrollInterface) : {};
+    if (this._dragger && (draggable.xDraggable || draggable.yDraggable))
       this._doDragStart(aEvent);
+    else
+      this._dragger = null;
 
     if (this._targetIsContent(aEvent)) {
       this._recordEvent(aEvent);
+      aEvent.stopPropagation();
+      aEvent.preventDefault();
     }
     else {
       if (this._clickTimeout) {
@@ -459,12 +472,9 @@ MouseModule.prototype = {
         this._cleanClickBuffer();
       }
 
-      if (targetScrollInterface) {
+      if (this._dragger) {
         
-        let cX = {}, cY = {};
-        targetScrollInterface.getScrolledSize(cX, cY);
-        let rect = targetScrollbox.getBoundingClientRect();
-        dragData.locked = ((cX.value > rect.width) != (cY.value > rect.height));
+        dragData.locked = !draggable.xDraggable || !draggable.yDraggable;
       }
     }
   },
@@ -488,6 +498,8 @@ MouseModule.prototype = {
     }
 
     if (this._targetIsContent(aEvent)) {
+      aEvent.stopPropagation();
+      aEvent.preventDefault();
       
       this._recordEvent(aEvent);
       let commitToClicker = this._clicker && dragData.isClick() && (this._downUpEvents.length > 1);
@@ -549,16 +561,7 @@ MouseModule.prototype = {
 
 
   _targetIsContent: function _targetIsContent(aEvent) {
-    let target = aEvent.target;
-    while (target) {
-      if (target === window)
-        return false;
-      if (target === this._browserViewContainer)
-        return true;
-
-      target = target.parentNode;
-    }
-    return false;
+    return aEvent.view !== window;
   },
 
   
@@ -590,12 +593,6 @@ MouseModule.prototype = {
     } else {
       
       this._dragger.dragStop(0, 0, this._targetScrollInterface);
-
-      if (dragData.isPan()) {
-        let event = document.createEvent("Events");
-        event.initEvent("PanFinished", true, false);
-        this._browserViewContainer.dispatchEvent(event);
-      }
     }
   },
 
@@ -712,7 +709,7 @@ MouseModule.prototype = {
       let sX = {}, sY = {};
       scroller.getScrolledSize(sX, sY);
       let rect = target.getBoundingClientRect();
-      return sX.value > rect.width || sY.value > rect.height;
+      return { xDraggable: sX.value > rect.width, yDraggable: sY.value > rect.height };
     },
 
     dragStart: function dragStart(cx, cy, target, scroller) {},
@@ -777,6 +774,9 @@ MouseModule.prototype = {
             scrollbox._cachedSBO = qinterface = qi;
             break;
           }
+        } else if (elem.customDragger) {
+          scrollbox = elem;
+          break;
         }
       } catch (e) { 
 
@@ -1229,6 +1229,7 @@ function GestureModule(owner, browserViewContainer) {
 }
 
 GestureModule.prototype = {
+
   
 
 
@@ -1240,24 +1241,6 @@ GestureModule.prototype = {
     try {
       let consume = false;
       switch (aEvent.type) {
-        case "MozSwipeGesture":
-          let gesture = Ci.nsIDOMSimpleGestureEvent;
-          switch (aEvent.direction) {
-            case gesture.DIRECTION_UP:
-              Browser.scrollContentToBottom();
-              break;
-            case gesture.DIRECTION_DOWN:
-              Browser.scrollContentToTop();
-              break;
-            case gesture.DIRECTION_LEFT:
-              CommandUpdater.doCommand("cmd_back");
-              break;
-            case gesture.DIRECTION_RIGHT:
-              CommandUpdater.doCommand("cmd_forward");
-              break;
-          }
-          break;
-
         case "MozMagnifyGestureStart":
           consume = true;
           this._pinchStart(aEvent);
@@ -1369,4 +1352,3 @@ GestureModule.prototype = {
     }
   }
 };
-
