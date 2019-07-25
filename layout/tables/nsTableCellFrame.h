@@ -253,8 +253,7 @@ protected:
 
 
 
-
-  virtual void GetSelfOverflow(nsRect& aOverflowArea);
+  virtual nsMargin GetBorderOverflow();
 
   friend class nsTableRowFrame;
 
@@ -333,7 +332,7 @@ public:
   
   void SetBorderWidth(mozilla::css::Side aSide, BCPixelSize aPixelValue);
 
-  virtual void GetSelfOverflow(nsRect& aOverflowArea);
+  virtual nsMargin GetBorderOverflow();
 
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
