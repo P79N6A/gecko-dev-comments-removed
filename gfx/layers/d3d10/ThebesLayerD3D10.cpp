@@ -65,36 +65,71 @@ ThebesLayerD3D10::~ThebesLayerD3D10()
 #define RETENTION_THRESHOLD 16384
 
 void
-
-ThebesLayerD3D10::InvalidateRegion(const nsIntRegion &aRegion)
+ThebesLayerD3D10::SetVisibleRegion(const nsIntRegion &aRegion)
 {
-  mValidRegion.Sub(mValidRegion, aRegion);
-}
+  if (aRegion.IsEqual(mVisibleRegion)) {
+    return;
+  }
 
-void ThebesLayerD3D10::CopyRegion(ID3D10Texture2D* aSrc, const nsIntPoint &aSrcOffset,
-                                  ID3D10Texture2D* aDest, const nsIntPoint &aDestOffset,
-                                  const nsIntRegion &aCopyRegion, nsIntRegion* aValidRegion)
-{
+  nsIntRegion oldVisibleRegion = mVisibleRegion;
+  ThebesLayer::SetVisibleRegion(aRegion);
+
+  if (!mTexture) {
+    
+    
+    
+    return;
+  }
+
+  VerifyContentType();
+
+  nsRefPtr<ID3D10Texture2D> oldTexture = mTexture;
+
+  nsIntRect oldBounds = oldVisibleRegion.GetBounds();
+  nsIntRect newBounds = mVisibleRegion.GetBounds();
+
+  CreateNewTexture(gfxIntSize(newBounds.width, newBounds.height));
+
+  
+  
+  oldVisibleRegion.And(oldVisibleRegion, mVisibleRegion);
+  
+  oldVisibleRegion.And(oldVisibleRegion, mValidRegion);
+
+  nsIntRect largeRect = oldVisibleRegion.GetLargestRectangle();
+
+  
+  
+  
+  
+  
+  
+  if (!oldTexture || !mTexture ||
+      largeRect.width * largeRect.height < RETENTION_THRESHOLD) {
+    mValidRegion.SetEmpty();
+    return;
+  }
+
   nsIntRegion retainedRegion;
-  nsIntRegionRectIterator iter(aCopyRegion);
+  nsIntRegionRectIterator iter(oldVisibleRegion);
   const nsIntRect *r;
   while ((r = iter.Next())) {
     if (r->width * r->height > RETENTION_THRESHOLD) {
       
       
       D3D10_BOX box;
-      box.left = r->x - aSrcOffset.x;
-      box.top = r->y - aSrcOffset.y;
+      box.left = r->x - oldBounds.x;
+      box.top = r->y - oldBounds.y;
       box.right = box.left + r->width;
       box.bottom = box.top + r->height;
-      box.back = 1;
+      box.back = 1.0f;
       box.front = 0;
 
-      device()->CopySubresourceRegion(aDest, 0,
-                                      r->x - aDestOffset.x,
-                                      r->y - aDestOffset.y,
+      device()->CopySubresourceRegion(mTexture, 0,
+                                      r->x - newBounds.x,
+                                      r->y - newBounds.y,
                                       0,
-                                      aSrc, 0,
+                                      oldTexture, 0,
                                       &box);
 
       retainedRegion.Or(retainedRegion, *r);
@@ -102,7 +137,14 @@ void ThebesLayerD3D10::CopyRegion(ID3D10Texture2D* aSrc, const nsIntPoint &aSrcO
   }
 
   
-  aValidRegion->And(*aValidRegion, retainedRegion);  
+  mValidRegion.And(mValidRegion, retainedRegion);  
+}
+
+
+void
+ThebesLayerD3D10::InvalidateRegion(const nsIntRegion &aRegion)
+{
+  mValidRegion.Sub(mValidRegion, aRegion);
 }
 
 void
@@ -168,42 +210,6 @@ ThebesLayerD3D10::Validate()
 
   nsIntRect visibleRect = mVisibleRegion.GetBounds();
 
-  if (mTexture) {
-    if (!mTextureRegion.IsEqual(mVisibleRegion)) {
-      nsRefPtr<ID3D10Texture2D> oldTexture = mTexture;
-
-      nsIntRegion retainRegion = mTextureRegion;
-      nsIntRect oldBounds = mTextureRegion.GetBounds();
-      nsIntRect newBounds = mVisibleRegion.GetBounds();
-
-      CreateNewTexture(gfxIntSize(newBounds.width, newBounds.height));
-
-      
-      
-      retainRegion.And(retainRegion, mVisibleRegion);
-      
-      retainRegion.And(retainRegion, mValidRegion);
-
-      nsIntRect largeRect = retainRegion.GetLargestRectangle();
-
-      
-      
-      
-      
-      
-      
-      if (!oldTexture || !mTexture ||
-          largeRect.width * largeRect.height < RETENTION_THRESHOLD) {
-        mValidRegion.SetEmpty();
-      } else {
-        CopyRegion(oldTexture, oldBounds.TopLeft(),
-                   mTexture, newBounds.TopLeft(),
-                   retainRegion, &mValidRegion);
-      }
-      mTextureRegion = mVisibleRegion;
-    }
-  }
-
   if (!mTexture) {
     CreateNewTexture(gfxIntSize(visibleRect.width, visibleRect.height));
     mValidRegion.SetEmpty();
@@ -266,6 +272,7 @@ ThebesLayerD3D10::VerifyContentType()
 void
 ThebesLayerD3D10::DrawRegion(const nsIntRegion &aRegion)
 {
+  HRESULT hr;
   nsIntRect visibleRect = mVisibleRegion.GetBounds();
 
   if (!mD2DSurface) {
