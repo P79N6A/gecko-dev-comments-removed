@@ -41,6 +41,7 @@
 #define mozilla_ipc_SharedMemory_h
 
 #include "nsDebug.h"
+#include "nsISupportsImpl.h"    
 
 
 
@@ -97,6 +98,8 @@ public:
     
     SystemProtect(aAddr, aSize, aRights);
   }
+
+  NS_INLINE_DECL_REFCOUNTING(SharedMemory)
 
   static void SystemProtect(char* aAddr, size_t aSize, int aRights);
   static size_t SystemPageSize();
