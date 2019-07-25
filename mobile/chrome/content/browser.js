@@ -2508,7 +2508,7 @@ Tab.prototype = {
 
     
     
-    if (!browser || this._lastThumbnailWindow == browser.contentWindowId)
+    if (!browser || this._thumbnailWindowId == browser.contentWindowId)
       return;
 
     
@@ -2516,7 +2516,7 @@ Tab.prototype = {
     if (!browser.contentWindowWidth || !browser.contentWindowHeight)
       return;
 
-    this._lastThumbnailWindow = browser.contentWindowId;
+    this._thumbnailWindowId = browser.contentWindowId;
     this._chromeTab.updateThumbnail(browser, browser.contentWindowWidth, browser.contentWindowHeight);
   },
 
