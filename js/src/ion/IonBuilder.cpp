@@ -982,6 +982,7 @@ IonBuilder::processIfEnd(CFGState &state)
     }
 
     current = state.branch.ifFalse;
+    graph_.moveBlockToEnd(current);
     pc = current->pc();
     return ControlStatus_Joined;
 }
@@ -996,6 +997,7 @@ IonBuilder::processIfElseTrueEnd(CFGState &state)
     state.stopAt = state.branch.falseEnd;
     pc = state.branch.ifFalse->pc();
     current = state.branch.ifFalse;
+    graph_.moveBlockToEnd(current);
     return ControlStatus_Jumped;
 }
 
@@ -1054,7 +1056,10 @@ IonBuilder::processBrokenLoop(CFGState &state)
     
     
     current = state.loop.successor;
-    JS_ASSERT_IF(current, current->loopDepth() == loopDepth_);
+    if (current) {
+        JS_ASSERT(current->loopDepth() == loopDepth_);
+        graph_.moveBlockToEnd(current);
+    }
 
     
     if (state.loop.breaks) {
@@ -1096,8 +1101,10 @@ IonBuilder::finishLoop(CFGState &state, MBasicBlock *successor)
     
     if (!state.loop.entry->setBackedge(current))
         return ControlStatus_Error;
-    if (successor)
+    if (successor) {
+        graph_.moveBlockToEnd(successor);
         successor->inheritPhis(state.loop.entry);
+    }
 
     if (state.loop.breaks) {
         
@@ -1350,6 +1357,9 @@ IonBuilder::processNextTableSwitchCase(CFGState &state)
     if (current) {
         current->end(MGoto::New(successor));
         successor->addPredecessor(current);
+
+        
+        graph_.moveBlockToEnd(successor);
     }
 
     
@@ -1409,6 +1419,7 @@ IonBuilder::processAndOrEnd(CFGState &state)
         return ControlStatus_Error;
 
     current = state.branch.ifFalse;
+    graph_.moveBlockToEnd(current);
     pc = current->pc();
     return ControlStatus_Joined;
 }
@@ -1879,6 +1890,9 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
 
         pc2 += JUMP_OFFSET_LEN;
     }
+
+    
+    graph_.moveBlockToEnd(defaultcase);
 
     JS_ASSERT(tableswitch->numCases() == (uint32)(high - low + 1));
     JS_ASSERT(tableswitch->numSuccessors() > 0);
@@ -2747,6 +2761,14 @@ IonBuilder::newBlock(MBasicBlock *predecessor, jsbytecode *pc)
 }
 
 MBasicBlock *
+IonBuilder::newBlockAfter(MBasicBlock *at, MBasicBlock *predecessor, jsbytecode *pc)
+{
+    MBasicBlock *block = MBasicBlock::New(graph(), info(), predecessor, pc, MBasicBlock::NORMAL);
+    graph_.insertBlockAfter(at, block);
+    return block;
+}
+
+MBasicBlock *
 IonBuilder::newBlock(MBasicBlock *predecessor, jsbytecode *pc, uint32 loopDepth)
 {
     MBasicBlock *block = MBasicBlock::New(graph(), info(), predecessor, pc, MBasicBlock::NORMAL);
@@ -2762,7 +2784,8 @@ IonBuilder::newOsrPreheader(MBasicBlock *predecessor, jsbytecode *loopHead, jsby
 
     
     
-    MBasicBlock *osrBlock  = newBlock(loopEntry);
+    
+    MBasicBlock *osrBlock  = newBlockAfter(*graph_.begin(), loopEntry);
     MBasicBlock *preheader = newBlock(predecessor, loopEntry);
 
     MOsrEntry *entry = MOsrEntry::New();

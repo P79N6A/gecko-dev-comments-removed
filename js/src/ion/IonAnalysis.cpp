@@ -64,7 +64,7 @@ ion::SplitCriticalEdges(MIRGenerator *gen, MIRGraph &graph)
             
             MBasicBlock *split = MBasicBlock::NewSplitEdge(graph, block->info(), *block);
             split->setLoopDepth(block->loopDepth());
-            graph.addBlock(split);
+            graph.insertBlockAfter(*block, split);
             split->end(MGoto::New(target));
 
             block->replaceSuccessor(i, split);
@@ -412,139 +412,11 @@ ion::ApplyTypeInformation(MIRGraph &graph)
 }
 
 bool
-ion::ReorderBlocks(MIRGraph &graph)
+ion::RenumberBlocks(MIRGraph &graph)
 {
-    InlineList<MBasicBlock> pending;
-    Vector<unsigned int, 0, IonAllocPolicy> successors;
-    InlineList<MBasicBlock> done;
-
-    MBasicBlock *current = *graph.begin();
-
-    
-    
-    
-    unsigned int nextSuccessor = current->numSuccessors() - 1;
-
-#ifdef DEBUG
-    size_t numBlocks = graph.numBlocks();
-#endif
-
-    graph.clearBlockList();
-
-    
-    while (true) {
-        if (!current->isMarked()) {
-            current->mark();
-
-            
-            
-            
-            if (nextSuccessor < current->numSuccessors()) {
-                pending.pushFront(current);
-                if (!successors.append(nextSuccessor))
-                    return false;
-
-                current = current->getSuccessor(nextSuccessor);
-                nextSuccessor = current->numSuccessors() - 1;
-                continue;
-            }
-
-            done.pushFront(current);
-        }
-
-        if (pending.empty())
-            break;
-
-        current = pending.popFront();
-        current->unmark();
-        nextSuccessor = successors.popCopy() - 1;
-    }
-
-    JS_ASSERT(pending.empty());
-    JS_ASSERT(successors.empty());
-
-    
-    current = done.popFront();
-    current->unmark();
-    graph.addBlock(current);
-
-    
-    
-    
-    if (graph.osrBlock())
-        graph.addBlock(graph.osrBlock());
-
-    
-    
-    
-    uint32 loopDepth = 0;
-
-    
-    Vector<MBasicBlock *, 8, IonAllocPolicy> pendingNonLoopBlocks;
-
-    
-    
-    Vector<size_t, 4, IonAllocPolicy> loops;
-
-    Vector<MBasicBlock *, 4, IonAllocPolicy> headers;
-
-    while (!done.empty()) {
-        current = done.popFront();
-        current->unmark();
-
-        if (current->isLoopHeader()) {
-            if (current->loopDepth() > loopDepth) {
-                
-                loopDepth = current->loopDepth();
-                if (!loops.append(pendingNonLoopBlocks.length()))
-                    return false;
-                if (!headers.append(current))
-                    return false;
-            } else {
-                
-                
-                JS_ASSERT(current->loopDepth() == loopDepth);
-                if (!pendingNonLoopBlocks.append(current))
-                    return false;
-                continue;
-            }
-        }
-
-        if (current->isLoopBackedge()) {
-            if (current->loopHeaderOfBackedge() == headers.back()) {
-                loopDepth--;
-                headers.popBack();
-
-                graph.addBlock(current);
-
-                
-                
-                size_t nblocks = pendingNonLoopBlocks.length() - loops.popCopy();
-                for (size_t i = 0; i < nblocks; i++)
-                    done.pushFront(pendingNonLoopBlocks.popCopy());
-                continue;
-            } else {
-                
-                if (!pendingNonLoopBlocks.append(current))
-                    return false;
-                continue;
-            }
-        } else if (current->loopDepth() < loopDepth) {
-            
-            
-            
-            if (!pendingNonLoopBlocks.append(current))
-                return false;
-            continue;
-        }
-
-        graph.addBlock(current);
-    }
-
-    JS_ASSERT(loopDepth == 0);
-    JS_ASSERT(headers.empty());
-    JS_ASSERT(pendingNonLoopBlocks.empty());
-    JS_ASSERT(graph.numBlocks() == numBlocks);
+    size_t id = 0;
+    for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++)
+        block->setId(id++);
 
     return true;
 }
@@ -837,6 +709,26 @@ CheckMarkedAsUse(MInstruction *ins, MDefinition *operand)
 }
 #endif 
 
+#ifdef DEBUG
+static void
+AssertReversePostOrder(MIRGraph &graph)
+{
+    
+    for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
+        JS_ASSERT(!block->isMarked());
+
+        for (size_t i = 0; i < block->numPredecessors(); i++) {
+            MBasicBlock *pred = block->getPredecessor(i);
+            JS_ASSERT_IF(!pred->isLoopBackedge(), pred->isMarked());
+        }
+
+        block->mark();
+    }
+
+    graph.unmarkBlocks();
+}
+#endif
+
 void
 ion::AssertGraphCoherency(MIRGraph &graph)
 {
@@ -854,6 +746,8 @@ ion::AssertGraphCoherency(MIRGraph &graph)
                 JS_ASSERT(CheckMarkedAsUse(*ins, ins->getOperand(i)));
         }
     }
+
+    AssertReversePostOrder(graph);
 #endif
 }
 
