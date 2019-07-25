@@ -251,6 +251,14 @@ Tester.prototype = {
       if (this.done) {
         
         
+        
+        
+        
+        gBrowser.addTab();
+        gBrowser.removeCurrentTab();
+
+        
+        
         Cu.schedulePreciseGC((function () {
           let winutils = window.QueryInterface(Ci.nsIInterfaceRequestor)
                                .getInterface(Ci.nsIDOMWindowUtils);
