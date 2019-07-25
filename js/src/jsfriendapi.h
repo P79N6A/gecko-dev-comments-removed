@@ -577,7 +577,7 @@ class ProfileEntry
     const char * volatile string; 
     void * volatile sp;           
     JSScript * volatile script_;  
-    uint32_t volatile idx;        
+    int32_t volatile idx;         
 
   public:
     
@@ -610,6 +610,13 @@ class ProfileEntry
     static size_t offsetOfStackAddress() { return offsetof(ProfileEntry, sp); }
     static size_t offsetOfPCIdx() { return offsetof(ProfileEntry, idx); }
     static size_t offsetOfScript() { return offsetof(ProfileEntry, script_); }
+
+    
+
+
+
+
+    static const int32_t NullPCIndex = -1;
 };
 
 JS_FRIEND_API(void)
