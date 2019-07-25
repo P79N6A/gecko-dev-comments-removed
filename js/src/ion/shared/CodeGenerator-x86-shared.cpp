@@ -725,8 +725,8 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
     masm.movePtr(Operand(objreg, offsetof(JSScript, ion)), objreg);
 
     
-    masm.testPtr(objreg, objreg);
-    if (!bailoutIf(Assembler::Zero, call->snapshot()))
+    masm.cmpPtr(objreg, ImmWord(ION_DISABLED_SCRIPT));
+    if (!bailoutIf(Assembler::BelowOrEqual, call->snapshot()))
         return false;
 
     
