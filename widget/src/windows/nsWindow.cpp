@@ -178,7 +178,6 @@
 #include "nsNativeDragTarget.h"
 #include <mmsystem.h> 
 #include <zmouse.h>
-#include <pbt.h>
 #include <richedit.h>
 
 #if defined(ACCESSIBILITY)
