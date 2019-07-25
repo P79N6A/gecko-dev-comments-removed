@@ -1502,6 +1502,9 @@ nsTableFrame::IntrinsicWidthOffsets(nsRenderingContext* aRenderingContext)
   IntrinsicWidthOffsetData result =
     nsHTMLContainerFrame::IntrinsicWidthOffsets(aRenderingContext);
 
+  result.hMargin = 0;
+  result.hPctMargin = 0;
+
   if (IsBorderCollapse()) {
     result.hPadding = 0;
     result.hPctPadding = 0;
@@ -2335,6 +2338,14 @@ nsTableFrame::GetUsedPadding() const
     return nsHTMLContainerFrame::GetUsedPadding();
 
   return nsMargin(0,0,0,0);
+}
+
+ nsMargin
+nsTableFrame::GetUsedMargin() const
+{
+  
+  
+  return nsMargin(0, 0, 0, 0);
 }
 
 

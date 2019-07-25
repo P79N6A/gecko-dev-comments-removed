@@ -6976,97 +6976,25 @@ nsBlockFrame::WidthToClearPastFloats(nsBlockReflowState& aState,
                                aState.mContentArea.width);
 
   ReplacedElementWidthToClear result;
+  aState.ComputeReplacedBlockOffsetsForFloats(aFrame, aFloatAvailableSpace,
+                                              leftOffset, rightOffset);
+  nscoord availWidth = aState.mContentArea.width - leftOffset - rightOffset;
+
   
   
-  if (aFrame->GetType() == nsGkAtoms::tableOuterFrame) {
-    nsIFrame *innerTable = aFrame->GetFirstPrincipalChild();
-    nsIFrame *caption = aFrame->GetFirstChild(kCaptionList);
-
-    nsMargin tableMargin, captionMargin;
-    {
-      nsCSSOffsetState tableOS(innerTable, aState.mReflowState.rendContext,
-                               aState.mContentArea.width);
-      tableMargin = tableOS.mComputedMargin;
-    }
-
-    if (caption) {
-      nsCSSOffsetState captionOS(caption, aState.mReflowState.rendContext,
-                                 aState.mContentArea.width);
-      captionMargin = captionOS.mComputedMargin;
-    }
-
-    PRUint8 captionSide;
-    if (!caption ||
-        ((captionSide = caption->GetStyleTableBorder()->mCaptionSide)
-           == NS_STYLE_CAPTION_SIDE_TOP ||
-         captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM)) {
-      result.marginLeft = tableMargin.left;
-      result.marginRight = tableMargin.right;
-    } else if (captionSide == NS_STYLE_CAPTION_SIDE_TOP_OUTSIDE ||
-               captionSide == NS_STYLE_CAPTION_SIDE_BOTTOM_OUTSIDE) {
-      
-      
-      
-      result.marginLeft  = NS_MIN(tableMargin.left,  captionMargin.left);
-      result.marginRight = NS_MIN(tableMargin.right, captionMargin.right);
-    } else {
-      NS_ASSERTION(captionSide == NS_STYLE_CAPTION_SIDE_LEFT ||
-                   captionSide == NS_STYLE_CAPTION_SIDE_RIGHT,
-                   "unexpected caption-side");
-      if (captionSide == NS_STYLE_CAPTION_SIDE_LEFT) {
-        result.marginLeft = captionMargin.left;
-        result.marginRight = tableMargin.right;
-      } else {
-        result.marginLeft = tableMargin.left;
-        result.marginRight = captionMargin.right;
-      }
-    }
-
-    aState.ComputeReplacedBlockOffsetsForFloats(aFrame, aFloatAvailableSpace,
-                                                leftOffset, rightOffset,
-                                                &result);
-
-    
-    nscoord availWidth = aState.mContentArea.width - leftOffset - rightOffset;
-    
-    
-    result.borderBoxWidth =
-      aFrame->ComputeSize(aState.mReflowState.rendContext,
-                          nsSize(aState.mContentArea.width,
-                                 NS_UNCONSTRAINEDSIZE),
-                          availWidth,
-                          nsSize(offsetState.mComputedMargin.LeftRight(),
-                                 offsetState.mComputedMargin.TopBottom()),
-                          nsSize(offsetState.mComputedBorderPadding.LeftRight() -
-                                   offsetState.mComputedPadding.LeftRight(),
-                                 offsetState.mComputedBorderPadding.TopBottom() -
-                                   offsetState.mComputedPadding.TopBottom()),
-                          nsSize(offsetState.mComputedPadding.LeftRight(),
-                                 offsetState.mComputedPadding.TopBottom()),
-                          PR_TRUE).width +
-      offsetState.mComputedBorderPadding.LeftRight() -
-      (result.marginLeft + result.marginRight);
-  } else {
-    aState.ComputeReplacedBlockOffsetsForFloats(aFrame, aFloatAvailableSpace,
-                                                leftOffset, rightOffset);
-    nscoord availWidth = aState.mContentArea.width - leftOffset - rightOffset;
-
-    
-    
-    
-    
-    
-    
-    nsSize availSpace(availWidth, NS_UNCONSTRAINEDSIZE);
-    nsHTMLReflowState reflowState(aState.mPresContext, aState.mReflowState,
-                                  aFrame, availSpace);
-    result.borderBoxWidth = reflowState.ComputedWidth() +
-                            reflowState.mComputedBorderPadding.LeftRight();
-    
-    
-    result.marginLeft  = offsetState.mComputedMargin.left;
-    result.marginRight = offsetState.mComputedMargin.right;
-  }
+  
+  
+  
+  
+  nsSize availSpace(availWidth, NS_UNCONSTRAINEDSIZE);
+  nsHTMLReflowState reflowState(aState.mPresContext, aState.mReflowState,
+                                aFrame, availSpace);
+  result.borderBoxWidth = reflowState.ComputedWidth() +
+                          reflowState.mComputedBorderPadding.LeftRight();
+  
+  
+  result.marginLeft  = offsetState.mComputedMargin.left;
+  result.marginRight = offsetState.mComputedMargin.right;
   return result;
 }
  

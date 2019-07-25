@@ -168,10 +168,7 @@ void
 nsBlockReflowState::ComputeReplacedBlockOffsetsForFloats(nsIFrame* aFrame,
                                                          const nsRect& aFloatAvailableSpace,
                                                          nscoord& aLeftResult,
-                                                         nscoord& aRightResult,
-                                                         nsBlockFrame::
-                                                      ReplacedElementWidthToClear
-                                                                 *aReplacedWidth)
+                                                         nscoord& aRightResult)
 {
   
   
@@ -188,28 +185,18 @@ nsBlockReflowState::ComputeReplacedBlockOffsetsForFloats(nsIFrame* aFrame,
     leftOffset = 0;
     rightOffset = 0;
   } else {
-    
-    
-    
-    
-    
+    nsMargin frameMargin;
     nsCSSOffsetState os(aFrame, mReflowState.rendContext, mContentArea.width);
-    NS_ASSERTION(!aReplacedWidth ||
-                 aFrame->GetType() == nsGkAtoms::tableOuterFrame ||
-                 (aReplacedWidth->marginLeft  == os.mComputedMargin.left &&
-                  aReplacedWidth->marginRight == os.mComputedMargin.right),
-                 "unexpected aReplacedWidth");
+    frameMargin = os.mComputedMargin;
 
     nscoord leftFloatXOffset = aFloatAvailableSpace.x - mContentArea.x;
-    leftOffset = NS_MAX(leftFloatXOffset, os.mComputedMargin.left) -
-                 (aReplacedWidth ? aReplacedWidth->marginLeft
-                                 : os.mComputedMargin.left);
+    leftOffset = NS_MAX(leftFloatXOffset, frameMargin.left) -
+                 frameMargin.left;
     leftOffset = NS_MAX(leftOffset, 0); 
     nscoord rightFloatXOffset =
       mContentArea.XMost() - aFloatAvailableSpace.XMost();
-    rightOffset = NS_MAX(rightFloatXOffset, os.mComputedMargin.right) -
-                  (aReplacedWidth ? aReplacedWidth->marginRight
-                                  : os.mComputedMargin.right);
+    rightOffset = NS_MAX(rightFloatXOffset, frameMargin.right) -
+                  frameMargin.right;
     rightOffset = NS_MAX(rightOffset, 0); 
   }
   aLeftResult = leftOffset;
@@ -285,19 +272,9 @@ nsBlockReflowState::ComputeBlockAvailSpace(nsIFrame* aFrame,
     }
   }
   else {
-    nsBlockFrame::ReplacedElementWidthToClear replacedWidthStruct;
-    nsBlockFrame::ReplacedElementWidthToClear *replacedWidth = nsnull;
-    if (aFrame->GetType() == nsGkAtoms::tableOuterFrame) {
-      replacedWidth = &replacedWidthStruct;
-      replacedWidthStruct =
-        nsBlockFrame::WidthToClearPastFloats(*this, aFloatAvailableSpace.mRect,
-                                             aFrame);
-    }
-
     nscoord leftOffset, rightOffset;
     ComputeReplacedBlockOffsetsForFloats(aFrame, aFloatAvailableSpace.mRect,
-                                         leftOffset, rightOffset,
-                                         replacedWidth);
+                                         leftOffset, rightOffset);
     aResult.x = mContentArea.x + leftOffset;
     aResult.width = mContentArea.width - leftOffset - rightOffset;
   }

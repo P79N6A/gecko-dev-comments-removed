@@ -1835,7 +1835,9 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
       NS_ASSERTION(mComputedHeight == NS_UNCONSTRAINEDSIZE ||
                    mComputedHeight >= 0, "Bogus height");
 
-      if (isBlock && !IsSideCaption(frame, mStyleDisplay))
+      
+      if (isBlock && !IsSideCaption(frame, mStyleDisplay) &&
+          frame->GetStyleDisplay()->mDisplay != NS_STYLE_DISPLAY_INLINE_TABLE)
         CalculateBlockSideMargins(availableWidth, mComputedWidth);
     }
   }
@@ -1947,6 +1949,10 @@ nsCSSOffsetState::InitOffsets(nscoord aContainingBlockWidth,
       mComputedPadding.SizeTo(0,0,0,0);
       mComputedBorderPadding = tableFrame->GetIncludedOuterBCBorder();
     }
+
+    
+    
+    mComputedMargin.SizeTo(0, 0, 0, 0);
   } else if (frameType == nsGkAtoms::scrollbarFrame) {
     
     

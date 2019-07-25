@@ -153,13 +153,10 @@ public:
 
   
   
-  
   void ComputeReplacedBlockOffsetsForFloats(nsIFrame* aFrame,
                                             const nsRect& aFloatAvailableSpace,
                                             nscoord& aLeftResult,
-                                            nscoord& aRightResult,
-                                       nsBlockFrame::ReplacedElementWidthToClear
-                                                      *aReplacedWidth = nsnull);
+                                            nscoord& aRightResult);
 
   
   void ComputeBlockAvailSpace(nsIFrame* aFrame,

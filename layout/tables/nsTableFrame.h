@@ -193,6 +193,7 @@ public:
 
   virtual nsMargin GetUsedBorder() const;
   virtual nsMargin GetUsedPadding() const;
+  virtual nsMargin GetUsedMargin() const;
 
   
   nsMargin GetChildAreaOffset(const nsHTMLReflowState* aReflowState) const;

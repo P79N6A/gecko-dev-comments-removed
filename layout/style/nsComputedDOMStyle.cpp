@@ -3424,7 +3424,12 @@ nsComputedDOMStyle::GetMarginWidthFor(mozilla::css::Side aSide)
   } else {
     AssertFlushedPendingReflows();
 
-    val->SetAppUnits(mInnerFrame->GetUsedMargin().Side(aSide));
+    
+    
+    val->SetAppUnits(mOuterFrame->GetUsedMargin().Side(aSide));
+    NS_ASSERTION(mOuterFrame == mInnerFrame ||
+                 mInnerFrame->GetUsedMargin() == nsMargin(0, 0, 0, 0),
+                 "Inner tables must have zero margins");
   }
 
   return val;
