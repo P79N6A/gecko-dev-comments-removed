@@ -8644,9 +8644,11 @@ nsIPrincipal*
 nsDocShell::GetInheritedPrincipal(bool aConsiderCurrentDocument)
 {
     nsCOMPtr<nsIDocument> document;
+    bool inheritedFromCurrent = false;
 
     if (aConsiderCurrentDocument && mContentViewer) {
         document = mContentViewer->GetDocument();
+        inheritedFromCurrent = true;
     }
 
     if (!document) {
@@ -8674,7 +8676,17 @@ nsDocShell::GetInheritedPrincipal(bool aConsiderCurrentDocument)
 
     
     if (document) {
-        return document->NodePrincipal();
+        nsIPrincipal *docPrincipal = document->NodePrincipal();
+
+        
+        
+        if (inheritedFromCurrent &&
+            mItemType == typeContent &&
+            nsContentUtils::IsSystemPrincipal(docPrincipal)) {
+            return nsnull;
+        }
+
+        return docPrincipal;
     }
 
     return nsnull;
