@@ -79,6 +79,7 @@ function FormAssistant() {
   addEventListener("focus", this, true);
   addEventListener("pageshow", this, false);
   addEventListener("pagehide", this, false);
+  addEventListener("submit", this, false);
 
   this._enabled = Services.prefs.getBoolPref("formhelper.enabled");
 };
@@ -295,6 +296,11 @@ FormAssistant.prototype = {
 
     let currentElement = this.currentElement;
     switch (aEvent.type) {
+      case "submit":
+        
+        this.close();
+        break;
+
       case "pagehide":
       case "pageshow":
         
