@@ -352,8 +352,6 @@ WebGLContext::SetContextOptions(nsIPropertyBag *aOptions)
 NS_IMETHODIMP
 WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
 {
-    ScopedGfxFeatureReporter reporter("WebGL");
-
     if (mCanvasElement) {
         HTMLCanvasElement()->InvalidateCanvas();
     }
@@ -372,6 +370,8 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
         mResetLayer = PR_TRUE;
         return NS_OK;
     }
+
+    ScopedGfxFeatureReporter reporter("WebGL");
 
     
     
