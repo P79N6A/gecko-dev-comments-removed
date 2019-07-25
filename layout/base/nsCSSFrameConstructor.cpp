@@ -1397,6 +1397,10 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
   , mInLazyFCRefresh(PR_FALSE)
   , mHoverGeneration(0)
   , mRebuildAllExtraHint(nsChangeHint(0))
+  , mPendingRestyles(ELEMENT_HAS_PENDING_RESTYLE |
+                     ELEMENT_IS_POTENTIAL_RESTYLE_ROOT, this)
+  , mPendingAnimationRestyles(ELEMENT_HAS_PENDING_ANIMATION_RESTYLE |
+                              ELEMENT_IS_POTENTIAL_ANIMATION_RESTYLE_ROOT, this)
 {
   
   if (!mPendingRestyles.Init() || !mPendingAnimationRestyles.Init()) {
@@ -11589,26 +11593,6 @@ nsCSSFrameConstructor::RestyleForRemove(Element* aContainer,
 }
 
 
-static PLDHashOperator
-CollectRestyles(nsISupports* aElement,
-                nsCSSFrameConstructor::RestyleData& aData,
-                void* aRestyleArrayPtr)
-{
-  nsCSSFrameConstructor::RestyleEnumerateData** restyleArrayPtr =
-    static_cast<nsCSSFrameConstructor::RestyleEnumerateData**>
-               (aRestyleArrayPtr);
-  nsCSSFrameConstructor::RestyleEnumerateData* currentRestyle =
-    *restyleArrayPtr;
-  currentRestyle->mElement = static_cast<Element*>(aElement);
-  currentRestyle->mRestyleHint = aData.mRestyleHint;
-  currentRestyle->mChangeHint = aData.mChangeHint;
-
-  
-  *restyleArrayPtr = currentRestyle + 1; 
-
-  return PL_DHASH_NEXT;
-}
-
 void
 nsCSSFrameConstructor::ProcessOneRestyle(Element* aElement,
                                          nsRestyleHint aRestyleHint,
@@ -11639,8 +11623,6 @@ nsCSSFrameConstructor::ProcessOneRestyle(Element* aElement,
     RestyleLaterSiblings(aElement);
   }
 }
-
-#define RESTYLE_ARRAY_STACKSIZE 128
 
 void
 nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
@@ -11700,58 +11682,6 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
 }
 
 void
-nsCSSFrameConstructor::ProcessPendingRestyleTable(
-                   nsDataHashtable<nsISupportsHashKey, RestyleData>& aRestyles)
-{
-  PRUint32 count = aRestyles.Count();
-
-  
-  
-  BeginUpdate();
-
-  
-  while (count) {
-    
-    nsAutoTArray<RestyleEnumerateData, RESTYLE_ARRAY_STACKSIZE> restyleArr;
-    RestyleEnumerateData* restylesToProcess = restyleArr.AppendElements(count);
-  
-    if (!restylesToProcess) {
-      return;
-    }
-
-    RestyleEnumerateData* lastRestyle = restylesToProcess;
-    aRestyles.Enumerate(CollectRestyles, &lastRestyle);
-
-    NS_ASSERTION(lastRestyle - restylesToProcess == PRInt32(count),
-                 "Enumeration screwed up somehow");
-
-    
-    
-    aRestyles.Clear();
-
-    for (RestyleEnumerateData* currentRestyle = restylesToProcess;
-         currentRestyle != lastRestyle;
-         ++currentRestyle) {
-      ProcessOneRestyle(currentRestyle->mElement,
-                        currentRestyle->mRestyleHint,
-                        currentRestyle->mChangeHint);
-    }
-
-    count = aRestyles.Count();
-  }
-
-  
-  
-  mInStyleRefresh = PR_FALSE;
-
-  EndUpdate();
-
-#ifdef DEBUG
-  mPresShell->VerifyStyleTree();
-#endif
-}
-
-void
 nsCSSFrameConstructor::ProcessPendingRestyles()
 {
   NS_PRECONDITION(mDocument, "No document?  Pshaw!");
@@ -11764,7 +11694,7 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
                     "Nesting calls to ProcessPendingRestyles?");
   presContext->SetProcessingRestyles(PR_TRUE);
 
-  ProcessPendingRestyleTable(mPendingRestyles);
+  mPendingRestyles.ProcessRestyles();
 
 #ifdef DEBUG
   PRUint32 oldPendingRestyleCount = mPendingRestyles.Count();
@@ -11779,7 +11709,7 @@ nsCSSFrameConstructor::ProcessPendingRestyles()
   
   
   presContext->SetProcessingAnimationStyleChange(PR_TRUE);
-  ProcessPendingRestyleTable(mPendingAnimationRestyles);
+  mPendingAnimationRestyles.ProcessRestyles();
   presContext->SetProcessingAnimationStyleChange(PR_FALSE);
 
   presContext->SetProcessingRestyles(PR_FALSE);
@@ -11810,19 +11740,9 @@ nsCSSFrameConstructor::PostRestyleEventCommon(Element* aElement,
     return;
   }
 
-  RestyleData existingData;
-  existingData.mRestyleHint = nsRestyleHint(0);
-  existingData.mChangeHint = NS_STYLE_HINT_NONE;
-
-  nsDataHashtable<nsISupportsHashKey, RestyleData> &restyles =
+  RestyleTracker& tracker =
     aForAnimation ? mPendingAnimationRestyles : mPendingRestyles;
-
-  restyles.Get(aElement, &existingData);
-  existingData.mRestyleHint =
-    nsRestyleHint(existingData.mRestyleHint | aRestyleHint);
-  NS_UpdateHint(existingData.mChangeHint, aMinChangeHint);
-
-  restyles.Put(aElement, existingData);
+  tracker.AddPendingRestyle(aElement, aRestyleHint, aMinChangeHint);
 
   PostRestyleEventInternal(PR_FALSE);
 }
