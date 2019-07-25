@@ -5578,39 +5578,6 @@ js_GetClassPrototype(JSContext *cx, JSObject *scope, JSProtoKey protoKey,
     return FindClassPrototype(cx, scope, protoKey, protop, clasp);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static JSBool
-CheckCtorGetAccess(JSContext *cx, JSObject *obj, jsid id, Value *vp)
-{
-    JSAtom *atom = cx->runtime->atomState.constructorAtom;
-    JS_ASSERT(id == ATOM_TO_JSID(atom));
-    uintN attrs;
-    return CheckAccess(cx, obj, ATOM_TO_JSID(atom), JSACC_READ, vp, &attrs);
-}
-
-static JSBool
-CheckCtorSetAccess(JSContext *cx, JSObject *obj, jsid id, Value *vp)
-{
-    JSAtom *atom = cx->runtime->atomState.constructorAtom;
-    JS_ASSERT(id == ATOM_TO_JSID(atom));
-    uintN attrs;
-    return CheckAccess(cx, obj, ATOM_TO_JSID(atom), JSACC_WRITE, vp, &attrs);
-}
-
 JSBool
 js_SetClassPrototype(JSContext *cx, JSObject *ctor, JSObject *proto, uintN attrs)
 {
@@ -5630,7 +5597,7 @@ js_SetClassPrototype(JSContext *cx, JSObject *ctor, JSObject *proto, uintN attrs
 
 
     return proto->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.constructorAtom),
-                                 ObjectOrNullValue(ctor), CheckCtorGetAccess, CheckCtorSetAccess, 0);
+                                 ObjectOrNullValue(ctor), PropertyStub, PropertyStub, 0);
 }
 
 JSBool
