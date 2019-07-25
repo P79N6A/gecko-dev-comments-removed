@@ -23,14 +23,12 @@ static const float MAX_EVENT_ACCELERATION = 0.5f;
 
 
 
-
-static const float FLING_FRICTION_FAST = 0.0025f;
-
+static const float FLING_FRICTION = 0.013f;
 
 
 
 
-static const float FLING_FRICTION_SLOW = 0.0015f;
+
 
 
 
@@ -117,10 +115,8 @@ bool Axis::FlingApplyFrictionOrCancel(const TimeDuration& aDelta) {
     
     mVelocity = 0.0f;
     return false;
-  } else if (fabsf(mVelocity) >= VELOCITY_THRESHOLD) {
-    mVelocity *= NS_MAX(1.0f - FLING_FRICTION_FAST * aDelta.ToMilliseconds(), 0.0);
   } else {
-    mVelocity *= NS_MAX(1.0f - FLING_FRICTION_SLOW * aDelta.ToMilliseconds(), 0.0);
+    mVelocity *= NS_MAX(1.0f - FLING_FRICTION * aDelta.ToMilliseconds(), 0.0);
   }
   return true;
 }
