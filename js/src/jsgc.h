@@ -99,7 +99,7 @@ const size_t ArenaMask = ArenaSize - 1;
 
 
 
-const static uint32_t MaxFreeCommittedArenas = (32 << 20) / ArenaSize;
+const static uint32_t FreeCommittedArenasThreshold = (32 << 20) / ArenaSize;
 
 
 
@@ -749,7 +749,7 @@ struct Chunk {
     static inline void release(JSRuntime *rt, Chunk *chunk);
 
   private:
-    inline void init(JSRuntime *rt);
+    inline void init();
 
     
     jsuint findDecommittedArenaOffset();
