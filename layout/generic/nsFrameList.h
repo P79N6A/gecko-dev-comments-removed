@@ -156,6 +156,7 @@ public:
 
 
 
+
   nsFrameList RemoveFramesAfter(nsIFrame* aAfterFrame);
 
   
