@@ -119,6 +119,8 @@ NS_IMETHODIMP nsPlaintextEditor::InsertTextFromTransferable(nsITransferable *aTr
                                                             PRInt32 aDestOffset,
                                                             PRBool aDoDeleteSelection)
 {
+  FireTrustedInputEvent trusted(this);
+
   nsresult rv = NS_OK;
   char* bestFlavor = nsnull;
   nsCOMPtr<nsISupports> genericDataObj;
@@ -431,14 +433,8 @@ NS_IMETHODIMP nsPlaintextEditor::Paste(PRInt32 aSelectionType)
         return NS_OK;
 
       
-      NS_ASSERTION(mLastKeypressEventWasTrusted == eTriUnset, "How come our status is not clear?");
-      mLastKeypressEventWasTrusted = eTriTrue;
-
-      
       
       rv = InsertTextFromTransferable(trans, nsnull, nsnull, PR_TRUE);
-
-      mLastKeypressEventWasTrusted = eTriUnset;
     }
   }
 
