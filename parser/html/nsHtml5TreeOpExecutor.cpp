@@ -203,7 +203,7 @@ nsHtml5TreeOpExecutor::FlushPendingNotifications(mozFlushType aType)
 {
   if (aType >= Flush_InterruptibleLayout) {
     
-    nsContentSink::StartLayout(PR_FALSE);
+    nsContentSink::StartLayout(PR_TRUE);
   }
 }
 
