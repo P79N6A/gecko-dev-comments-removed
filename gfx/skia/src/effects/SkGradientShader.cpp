@@ -872,35 +872,6 @@ typedef void (*LinearShadeProc)(TileProc proc, SkFixed dx, SkFixed fx,
 
 
 
-void shadeSpan_linear_vertical(TileProc proc, SkFixed dx, SkFixed fx,
-                               SkPMColor* SK_RESTRICT dstC,
-                               const SkPMColor* SK_RESTRICT cache,
-                               int toggle, int count) {
-    if (proc == clamp_tileproc) {
-        
-        
-        if (fx < 0) {
-            sk_memset32(dstC, cache[-1], count);
-            return;
-        } else if (fx > 0xFFFF) {
-            sk_memset32(dstC, cache[Gradient_Shader::kCache32Count * 2], count);
-            return;
-        }
-    }
-
-    
-    
-    
-    unsigned fullIndex = proc(fx);
-    unsigned fi = fullIndex >> (16 - Gradient_Shader::kCache32Bits);
-    sk_memset32_dither(dstC,
-            cache[toggle + fi],
-            cache[(toggle ^ Gradient_Shader::kDitherStride32) + fi],
-            count);
-}
-
-
-
 
 void shadeSpan_linear_vertical_lerp(TileProc proc, SkFixed dx, SkFixed fx,
                                     SkPMColor* SK_RESTRICT dstC,
@@ -2136,6 +2107,8 @@ private:
     const SkPoint fCenter;
 };
 
+#ifndef SK_SCALAR_IS_FLOAT 
+
 #ifdef COMPUTE_SWEEP_TABLE
 #define PI  3.14159265
 static bool gSweepTableReady;
@@ -2173,10 +2146,13 @@ static const uint8_t gSweepTable[] = {
 static const uint8_t* build_sweep_table() { return gSweepTable; }
 #endif
 
+#endif
 
 
 
 
+
+#ifndef SK_SCALAR_IS_FLOAT
 
 static unsigned div_64(int numer, int denom) {
     SkASSERT(numer <= denom);
@@ -2299,6 +2275,7 @@ static unsigned atan_0_90(SkFixed y, SkFixed x) {
     SkASSERT(result <= 63);
     return result;
 }
+#endif
 
 
 #ifdef SK_SCALAR_IS_FLOAT

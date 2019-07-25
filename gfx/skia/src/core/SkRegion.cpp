@@ -925,10 +925,6 @@ static int operate(const SkRegion::RunType a_runs[],
 
 
 
-static int count_to_intervals(int count) {
-    SkASSERT(count >= 6);   
-    return (count - 4) >> 1;
-}
 
 
 
