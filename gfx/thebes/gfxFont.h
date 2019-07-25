@@ -1484,13 +1484,8 @@ public:
 
 
 
-
-
-
-
     void Draw(gfxContext *aContext, gfxPoint aPt,
               PRUint32 aStart, PRUint32 aLength,
-              const gfxRect *aDirtyRect,
               PropertyProvider *aProvider,
               gfxFloat *aAdvanceWidth);
 
@@ -2030,8 +2025,8 @@ private:
                                      PropertyProvider *aProvider);
     gfxFloat ComputePartialLigatureWidth(PRUint32 aPartStart, PRUint32 aPartEnd,
                                          PropertyProvider *aProvider);
-    void DrawPartialLigature(gfxFont *aFont, gfxContext *aCtx, PRUint32 aStart,
-                             PRUint32 aEnd, const gfxRect *aDirtyRect, gfxPoint *aPt,
+    void DrawPartialLigature(gfxFont *aFont, gfxContext *aCtx,
+                             PRUint32 aStart, PRUint32 aEnd, gfxPoint *aPt,
                              PropertyProvider *aProvider);
     
     
