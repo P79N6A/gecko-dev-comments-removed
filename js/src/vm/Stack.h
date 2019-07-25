@@ -1363,6 +1363,8 @@ class StackSpace
         return (Value *)fp >= base_ && (Value *)fp <= trustedEnd_;
     }
 
+    void markAndClobberFrame(JSTracer *trc, StackFrame *fp, Value *slotsEnd, jsbytecode *pc);
+
   public:
     StackSpace();
     bool init();
@@ -1414,8 +1416,7 @@ class StackSpace
     bool tryBumpLimit(JSContext *cx, Value *from, unsigned nvals, Value **limit);
 
     
-    void mark(JSTracer *trc);
-    void markFrameValues(JSTracer *trc, StackFrame *fp, Value *slotsEnd, jsbytecode *pc);
+    void markAndClobber(JSTracer *trc);
 
     
     void markActiveCompartments();
