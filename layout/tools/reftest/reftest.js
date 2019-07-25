@@ -944,7 +944,9 @@ function shouldWaitForExplicitPaintWaiters() {
 }
 
 function shouldWaitForPendingPaints() {
-    return gWindowUtils.isMozAfterPaintPending;
+    
+    
+    return gCurrentCanvas && gWindowUtils.isMozAfterPaintPending;
 }
 
 function shouldWaitForReftestWaitRemoval() {
