@@ -66,6 +66,7 @@
 #include "nsStyleSet.h"
 #include "nsCSSStyleSheet.h" 
 #include "nsIDOMCSSStyleSheet.h"  
+#include "nsAnimationManager.h"
 #include "nsINameSpaceManager.h"  
 #include "nsIServiceManager.h"
 #include "nsFrame.h"
@@ -5105,6 +5106,7 @@ nsIPresShell::ReconstructStyleDataInternal()
 
   if (mPresContext) {
     mPresContext->RebuildUserFontSet();
+    mPresContext->AnimationManager()->KeyframesListIsDirty();
   }
 
   Element* root = mDocument->GetRootElement();

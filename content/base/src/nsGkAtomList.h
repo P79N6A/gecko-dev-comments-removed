@@ -1829,6 +1829,9 @@ GK_ATOM(volumechange, "volumechange")
 #endif
 
 
+GK_ATOM(animationsProperty, "AnimationsProperty")        
+GK_ATOM(animationsOfBeforeProperty, "AnimationsOfBeforeProperty") 
+GK_ATOM(animationsOfAfterProperty, "AnimationsOfAfterProperty") 
 GK_ATOM(transitionsProperty, "TransitionsProperty")        
 GK_ATOM(transitionsOfBeforeProperty, "TransitionsOfBeforeProperty") 
 GK_ATOM(transitionsOfAfterProperty, "TransitionsOfAfterProperty") 

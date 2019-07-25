@@ -240,6 +240,7 @@ class nsStyleSet
     eStyleAttrSheet,
     eOverrideSheet, 
     eTransitionSheet,
+    eAnimationSheet,
     eSheetTypeCount
     
     
@@ -364,7 +365,9 @@ class nsStyleSet
              PRBool aIsLink,
              PRBool aIsVisitedLink,
              nsIAtom* aPseudoTag,
-             nsCSSPseudoElements::Type aPseudoType);
+             nsCSSPseudoElements::Type aPseudoType,
+             PRBool aDoAnimation,
+             mozilla::dom::Element* aElementForAnimation);
 
   nsPresContext* PresContext() { return mRuleTree->GetPresContext(); }
 
