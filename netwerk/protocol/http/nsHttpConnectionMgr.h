@@ -218,6 +218,7 @@ private:
     PRBool   BuildPipeline(nsConnectionEntry *, nsAHttpTransaction *, nsHttpPipeline **);
     nsresult ProcessNewTransaction(nsHttpTransaction *);
     nsresult EnsureSocketThreadTargetIfOnline();
+    void     ClosePersistentConnections(nsConnectionEntry *ent);
 
     
     typedef void (nsHttpConnectionMgr:: *nsConnEventHandler)(PRInt32, void *);

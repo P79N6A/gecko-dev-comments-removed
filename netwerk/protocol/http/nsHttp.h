@@ -128,6 +128,11 @@ typedef PRUint8 nsHttpVersion;
 
 
 
+#define NS_HTTP_CLEAR_KEEPALIVES     (1<<5)
+
+
+
+
 
 
 #define NS_HTTP_MAX_PIPELINED_REQUESTS 8 
