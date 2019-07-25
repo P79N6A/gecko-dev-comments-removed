@@ -88,27 +88,50 @@ nsTArray_base<Alloc>::EnsureCapacity(size_type capacity, size_type elemSize) {
   
   
   
-  
-  capacity = NS_MAX<size_type>(capacity, mHdr->mCapacity * 2U);
+  const PRUint32 pageSizeBytes = 12;
+  const PRUint32 pageSize = 1 << pageSizeBytes;
+
+  PRUint32 minBytes = capacity * elemSize + sizeof(Header);
+  PRUint32 bytesToAlloc;
+  if (minBytes >= pageSize) {
+    
+    bytesToAlloc = pageSize * ((minBytes + pageSize - 1) / pageSize);
+  }
+  else {
+    
+    
+    bytesToAlloc = minBytes - 1;
+    bytesToAlloc |= bytesToAlloc >> 1;
+    bytesToAlloc |= bytesToAlloc >> 2;
+    bytesToAlloc |= bytesToAlloc >> 4;
+    bytesToAlloc |= bytesToAlloc >> 8;
+    bytesToAlloc |= bytesToAlloc >> 16;
+    bytesToAlloc++;
+
+    NS_ASSERTION((bytesToAlloc & (bytesToAlloc - 1)) == 0,
+                 "nsTArray's allocation size should be a power of two!");
+  }
 
   Header *header;
   if (UsesAutoArrayBuffer()) {
     
-    header = static_cast<Header*>
-             (Alloc::Malloc(sizeof(Header) + capacity * elemSize));
+    header = static_cast<Header*>(Alloc::Malloc(bytesToAlloc));
     if (!header)
       return PR_FALSE;
 
     memcpy(header, mHdr, sizeof(Header) + Length() * elemSize);
   } else {
     
-    size_type size = sizeof(Header) + capacity * elemSize;
-    header = static_cast<Header*>(Alloc::Realloc(mHdr, size));
+    header = static_cast<Header*>(Alloc::Realloc(mHdr, bytesToAlloc));
     if (!header)
       return PR_FALSE;
   }
 
-  header->mCapacity = capacity;
+  
+  PRUint32 newCapacity = (bytesToAlloc - sizeof(Header)) / elemSize;
+  NS_ASSERTION(newCapacity >= capacity, "Didn't enlarge the array enough!");
+  header->mCapacity = newCapacity;
+
   mHdr = header;
 
   return PR_TRUE;
