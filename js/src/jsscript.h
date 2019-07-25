@@ -240,6 +240,7 @@ struct JSScript {
     bool            warnedAboutTwoArgumentEval:1; 
 
 
+    bool            hasSingletons:1;  
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
     bool            singleStepMode:1; 
