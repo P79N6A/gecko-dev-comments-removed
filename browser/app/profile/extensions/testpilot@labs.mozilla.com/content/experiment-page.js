@@ -379,8 +379,22 @@ var stringBundle;
       window.setTimeout(function() { loadExperimentPage(); }, 2000);
       return;
     }
+
+    
     experiment.getWebContent(function(webContent) {
       contentDiv.innerHTML = webContent;
+
+      
+      showMetaData();
+      getTestEndingDate(eid);
+      if (experiment._recursAutomatically &&
+        experiment.status != TaskConstants.STATUS_FINISHED) {
+        showRecurControls(experiment);
+      }
+
+      
+      
+      experiment.webContent.onPageLoad(experiment, document, jQuery);
     });
 
     experiment.getDataPrivacyContent(function(dataPrivacyContent) {
@@ -389,17 +403,6 @@ var stringBundle;
         dataPrivacyDiv.removeAttribute("hidden");
       }
     });
-
-    
-    showMetaData();
-    getTestEndingDate(eid);
-    if (experiment._recursAutomatically &&
-        experiment.status != TaskConstants.STATUS_FINISHED) {
-      showRecurControls(experiment);
-    }
-
-    
-    experiment.webContent.onPageLoad(experiment, document, jQuery);
   }
 
   function onStatusPageLoad() {
