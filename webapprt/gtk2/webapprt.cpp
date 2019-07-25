@@ -139,7 +139,7 @@ bool GRELoadAndLaunch(const char* firefoxDir, const char* profile)
   
   char programClass[MAXPATHLEN];
   snprintf(programClass, MAXPATHLEN, "owa-%s", profile);
-  gdk_set_program_class(programClass);
+  g_set_prgname(programClass);
 
   
   { 
