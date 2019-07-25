@@ -90,23 +90,6 @@ static const char kCookiesAskPermission[] = "network.cookie.warnAboutCookies";
 
 static const char kPermissionType[] = "cookie";
 
-#ifdef MOZ_MAIL_NEWS
-
-
-static bool
-IsFromMailNews(nsIURI *aURI)
-{
-  static const char *kMailNewsProtocols[] =
-      { "imap", "news", "snews", "mailbox", nsnull };
-  bool result;
-  for (const char **p = kMailNewsProtocols; *p; ++p) {
-    if (NS_SUCCEEDED(aURI->SchemeIs(*p, &result)) && result)
-      return true;
-  }
-  return false;
-}
-#endif
-
 NS_IMPL_ISUPPORTS2(nsCookiePermission,
                    nsICookiePermission,
                    nsIObserver)
@@ -206,21 +189,22 @@ nsCookiePermission::CanAccess(nsIURI         *aURI,
                               nsIChannel     *aChannel,
                               nsCookieAccess *aResult)
 {
-#ifdef MOZ_MAIL_NEWS
   
-  
-  if (IsFromMailNews(aURI)) {
+  bool hasFlags;
+  nsresult rv =
+    NS_URIChainHasFlags(aURI, nsIProtocolHandler::URI_FORBIDS_COOKIE_ACCESS,
+                        &hasFlags);
+  if (NS_FAILED(rv) || hasFlags) {
     *aResult = ACCESS_DENY;
     return NS_OK;
   }
-#endif 
 
   
   if (!EnsureInitialized())
     return NS_ERROR_UNEXPECTED;
 
   
-  nsresult rv = mPermMgr->TestPermission(aURI, kPermissionType, (PRUint32 *) aResult);
+  rv = mPermMgr->TestPermission(aURI, kPermissionType, (PRUint32 *) aResult);
   if (NS_SUCCEEDED(rv)) {
     switch (*aResult) {
     

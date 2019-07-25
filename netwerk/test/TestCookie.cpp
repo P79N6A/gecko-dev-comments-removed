@@ -577,29 +577,6 @@ main(PRInt32 argc, char *argv[])
 
 
       
-      sBuffer = PR_sprintf_append(sBuffer, "*** Beginning mailnews tests...\n");
-
-      
-      
-      
-      SetACookie(cookieService, "mailbox://mail.co.uk/", nsnull, "test=mailnews", nsnull);
-      GetACookie(cookieService, "mailbox://mail.co.uk/", nsnull, getter_Copies(cookie));
-      rv[0] = CheckResult(cookie.get(), MUST_BE_NULL);
-      GetACookie(cookieService, "http://mail.co.uk/", nsnull, getter_Copies(cookie));
-      rv[1] = CheckResult(cookie.get(), MUST_BE_NULL);
-      SetACookie(cookieService, "http://mail.co.uk/", nsnull, "test=mailnews", nsnull);
-      GetACookie(cookieService, "mailbox://mail.co.uk/", nsnull, getter_Copies(cookie));
-      rv[2] = CheckResult(cookie.get(), MUST_BE_NULL);
-      GetACookie(cookieService, "http://mail.co.uk/", nsnull, getter_Copies(cookie));
-      rv[3] = CheckResult(cookie.get(), MUST_EQUAL, "test=mailnews");
-      SetACookie(cookieService, "http://mail.co.uk/", nsnull, "test=mailnews; max-age=0", nsnull);
-      GetACookie(cookieService, "http://mail.co.uk/", nsnull, getter_Copies(cookie));
-      rv[4] = CheckResult(cookie.get(), MUST_BE_NULL);
-
-      allTestsPassed = PrintResult(rv, 5) && allTestsPassed;
-
-
-      
       sBuffer = PR_sprintf_append(sBuffer, "*** Beginning path ordering tests...\n");
 
       
