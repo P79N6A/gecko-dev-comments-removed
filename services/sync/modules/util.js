@@ -999,11 +999,6 @@ let FakeSvc = {
 
 
 
-Utils.lazySvc(FakeSvc, "@labs.mozilla.com/Weave/Crypto;2",
-              "@labs.mozilla.com/Weave/Crypto;1", "IWeaveCrypto");
-
-
-
 
 let Svc = {};
 Svc.Prefs = new Preferences(PREFS_BRANCH);
@@ -1019,7 +1014,6 @@ this.__defineGetter__("_sessionCID", function() {
 [["Annos", "@mozilla.org/browser/annotation-service;1", "nsIAnnotationService"],
  ["AppInfo", "@mozilla.org/xre/app-info;1", "nsIXULAppInfo"],
  ["Bookmark", "@mozilla.org/browser/nav-bookmarks-service;1", "nsINavBookmarksService"],
- ["Crypto", "@labs.mozilla.com/Weave/Crypto;2", "IWeaveCrypto"],
  ["Directory", "@mozilla.org/file/directory_service;1", "nsIProperties"],
  ["Env", "@mozilla.org/process/environment;1", "nsIEnvironment"],
  ["Favicon", "@mozilla.org/browser/favicon-service;1", "nsIFaviconService"],
@@ -1040,6 +1034,21 @@ this.__defineGetter__("_sessionCID", function() {
  ["WinWatcher", "@mozilla.org/embedcomp/window-watcher;1", "nsIWindowWatcher"],
  ["Session", this._sessionCID, "nsISessionStore"],
 ].forEach(function(lazy) Utils.lazySvc(Svc, lazy[0], lazy[1], lazy[2]));
+
+Svc.__defineGetter__("Crypto", function() {
+  let cryptoSvc;
+  try {
+    let ns = {};
+    Cu.import("resource://services-crypto/WeaveCrypto.js", ns);
+    cryptoSvc = new ns.WeaveCrypto();
+  } catch (ex) {
+    
+    cryptoSvc = Cc["@labs.mozilla.com/Weave/Crypto;1"].
+                getService(Ci.IWeaveCrypto);
+  }
+  delete Svc.Crypto;
+  return Svc.Crypto = cryptoSvc;
+});
 
 let Str = {};
 ["errors", "sync"]
