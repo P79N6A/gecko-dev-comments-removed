@@ -148,16 +148,7 @@ enum nsCSSUnit {
   eCSSUnit_Number       = 91,     
 
   
-  
-  eCSSUnit_Inch         = 100,    
-
-  
-  eCSSUnit_Millimeter   = 207,    
-  eCSSUnit_PhysicalMillimeter = 208,   
-  eCSSUnit_Centimeter   = 209,    
-
-  
-  eCSSUnit_Pica         = 301,    
+  eCSSUnit_PhysicalMillimeter = 200,   
 
   
   
@@ -168,7 +159,11 @@ enum nsCSSUnit {
 
   
   eCSSUnit_Point        = 900,    
-  eCSSUnit_Pixel        = 901,    
+  eCSSUnit_Inch         = 901,    
+  eCSSUnit_Millimeter   = 902,    
+  eCSSUnit_Centimeter   = 903,    
+  eCSSUnit_Pica         = 904,    
+  eCSSUnit_Pixel        = 905,    
 
   
   eCSSUnit_Degree       = 1000,    
@@ -230,14 +225,14 @@ public:
 
   nsCSSUnit GetUnit() const { return mUnit; }
   PRBool    IsLengthUnit() const
-    { return eCSSUnit_Inch <= mUnit && mUnit <= eCSSUnit_Pixel; }
+    { return eCSSUnit_PhysicalMillimeter <= mUnit && mUnit <= eCSSUnit_Pixel; }
   
 
 
 
 
   PRBool    IsFixedLengthUnit() const  
-    { return eCSSUnit_Inch <= mUnit && mUnit <= eCSSUnit_Pica; }
+    { return mUnit == eCSSUnit_PhysicalMillimeter; }
   
 
 
