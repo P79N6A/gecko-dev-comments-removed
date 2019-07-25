@@ -474,7 +474,7 @@ nsFileControlFrame::CaptureMouseListener::MouseClick(nsIDOMEvent* aMouseEvent)
     
     PRBool oldState = mFrame->mTextFrame->GetFireChangeEventState();
     mFrame->mTextFrame->SetFireChangeEventState(PR_TRUE);
-    inputElement->SetFiles(newFiles);
+    inputElement->SetFiles(newFiles, true);
 
     mFrame->mTextFrame->SetFireChangeEventState(oldState);
     
