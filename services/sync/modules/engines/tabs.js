@@ -62,16 +62,16 @@ TabEngine.prototype = {
   get serverPrefix() "user-data/tabs/",
   get store() this._store,
 
+  get _core() {
+    let core = new TabSyncCore(this);
+    this.__defineGetter__("_core", function() core);
+    return this._core;
+  },
+
   get _store() {
     let store = new TabStore();
     this.__defineGetter__("_store", function() store);
     return this._store;
-  },
-  
-  get _core() {
-    let core = new TabSyncCore(this._store);
-    this.__defineGetter__("_core", function() core);
-    return this._core;
   },
 
   get _tracker() {
@@ -82,21 +82,43 @@ TabEngine.prototype = {
 
 };
 
-function TabSyncCore(store) {
-  this._store = store;
+function TabSyncCore(engine) {
+  this._engine = engine;
   this._init();
 }
 TabSyncCore.prototype = {
   __proto__: new SyncCore(),
 
   _logName: "TabSync",
-  _store: null,
+
+  _engine: null,
 
   get _sessionStore() {
     let sessionStore = Cc["@mozilla.org/browser/sessionstore;1"].
 		       getService(Ci.nsISessionStore);
     this.__defineGetter__("_sessionStore", function() sessionStore);
     return this._sessionStore;
+  },
+
+  _itemExists: function TSC__itemExists(GUID) {
+    
+    
+    
+    
+    
+
+    
+    let tabs = this._engine.store.wrap();
+
+    
+    
+    if (GUID in tabs) {
+      this._log.trace("_itemExists: " + GUID + " exists");
+      return true;
+    }
+
+    this._log.trace("_itemExists: " + GUID + " doesn't exist");
+    return false;
   },
 
   _commandLike: function TSC_commandLike(a, b) {
@@ -239,27 +261,6 @@ TabStore.prototype = {
     this._saveVirtualTabs();
 
     self.done();
-  },
-
-  _itemExists: function TabStore__itemExists(GUID) {
-    
-    
-    
-    
-    
-
-    
-    let tabs = this.wrap();
-
-    
-    
-    if (GUID in tabs) {
-      this._log.trace("_itemExists: " + GUID + " exists");
-      return true;
-    }
-
-    this._log.trace("_itemExists: " + GUID + " doesn't exist");
-    return false;
   },
 
   _createCommand: function TabStore__createCommand(command) {
@@ -418,7 +419,8 @@ TabStore.prototype = {
     this._saveVirtualTabs();
   },
 
-  resetGUIDs: function TabStore_resetGUIDs() {
+  _resetGUIDs: function TabStore__resetGUIDs() {
+    let self = yield;
     
   }
 

@@ -54,18 +54,18 @@ CookieEngine.prototype = {
   get logName() { return "CookieEngine"; },
   get serverPrefix() { return "user-data/cookies/"; },
 
+  __core: null,
+  get _core() {
+    if (!this.__core)
+      this.__core = new CookieSyncCore();
+    return this.__core;
+  },
+
   __store: null,
   get _store() {
     if (!this.__store)
       this.__store = new CookieStore();
     return this.__store;
-  },
-
-  __core: null,
-  get _core() {
-    if (!this.__core)
-      this.__core = new CookieSyncCore(this._store);
-    return this.__core;
   },
 
   __tracker: null,
@@ -77,13 +77,61 @@ CookieEngine.prototype = {
 };
 CookieEngine.prototype.__proto__ = new Engine();
 
-function CookieSyncCore(store) {
-  this._store = store;
+function CookieSyncCore() {
   this._init();
 }
 CookieSyncCore.prototype = {
   _logName: "CookieSync",
-  _store: null,
+
+  __cookieManager: null,
+  get _cookieManager() {
+    if (!this.__cookieManager)
+      this.__cookieManager = Cc["@mozilla.org/cookiemanager;1"].
+                             getService(Ci.nsICookieManager2);
+    
+
+    return this.__cookieManager;
+  },
+
+
+  _itemExists: function CSC__itemExists(GUID) {
+    
+
+
+
+
+
+    
+
+
+
+    let cookieArray = GUID.split( ":" );
+    let cookieHost = cookieArray[0];
+    let cookiePath = cookieArray[1];
+    let cookieName = cookieArray[2];
+
+    
+
+
+
+    let enumerator = this._cookieManager.enumerator;
+    while (enumerator.hasMoreElements())
+      {
+	let aCookie = enumerator.getNext();
+	if (aCookie.host == cookieHost &&
+	    aCookie.path == cookiePath &&
+	    aCookie.name == cookieName ) {
+	  return true;
+	}
+      }
+    return false;
+    
+
+
+
+
+
+  },
 
   _commandLike: function CSC_commandLike(a, b) {
     
@@ -107,7 +155,7 @@ function CookieStore( cookieManagerStub ) {
 }
 CookieStore.prototype = {
   _logName: "CookieStore",
-  _lookup: null,
+
 
   
   
@@ -138,7 +186,7 @@ CookieStore.prototype = {
     
     return this.__cookieManager;
   },
-  
+
   _createCommand: function CookieStore__createCommand(command) {
     
 
@@ -227,39 +275,39 @@ CookieStore.prototype = {
     
 
 
+
     let items = {};
     var iter = this._cookieManager.enumerator;
-    while (iter.hasMoreElements()) {
+    while (iter.hasMoreElements()){
       var cookie = iter.getNext();
-      if (cookie.QueryInterface( Ci.nsICookie )) {
-	      
-	      
-	      if ( cookie.isSession ) {
-	        
-	        continue;
-	      }
+      if (cookie.QueryInterface( Ci.nsICookie )){
+	
+	
+	if ( cookie.isSession ) {
+	  
+	  continue;
+	}
 
-	      let key = cookie.host + ":" + cookie.path + ":" + cookie.name;
-	      items[ key ] = { parentGUID: '',
-			                    name: cookie.name,
-			                    value: cookie.value,
-			                    isDomain: cookie.isDomain,
-			                    host: cookie.host,
-			                    path: cookie.path,
-			                    isSecure: cookie.isSecure,
-			                    
-			                    rawHost: cookie.rawHost,
-			                    isSession: cookie.isSession,
-			                    expiry: cookie.expiry,
-			                    isHttpOnly: cookie.isHttpOnly };
+	let key = cookie.host + ":" + cookie.path + ":" + cookie.name;
+	items[ key ] = { parentGUID: '',
+			 name: cookie.name,
+			 value: cookie.value,
+			 isDomain: cookie.isDomain,
+			 host: cookie.host,
+			 path: cookie.path,
+			 isSecure: cookie.isSecure,
+			 
+			 rawHost: cookie.rawHost,
+			 isSession: cookie.isSession,
+			 expiry: cookie.expiry,
+			 isHttpOnly: cookie.isHttpOnly };
 
-	      
+	
 
 
 
       }
     }
-    this._lookup = items;
     return items;
   },
 
@@ -271,7 +319,8 @@ CookieStore.prototype = {
     this._cookieManager.removeAll();
   },
 
-  resetGUIDs: function CookieStore_resetGUIDs() {
+  _resetGUIDs: function CookieStore__resetGUIDs() {
+    let self = yield;
     
 
 
