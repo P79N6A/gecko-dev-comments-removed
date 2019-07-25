@@ -119,21 +119,21 @@ protected:
 
 public:
   ColorModel
-  GetInputColorModel(nsSVGFilterInstance* aInstance, PRInt32 aInputIndex,
+  GetInputColorModel(nsSVGFilterInstance* aInstance, PRUint32 aInputIndex,
                      Image* aImage) {
     return ColorModel(
           (OperatesOnSRGB(aInstance, aInputIndex, aImage) ?
              ColorModel::SRGB : ColorModel::LINEAR_RGB),
-          (OperatesOnPremultipledAlpha(aInputIndex) ?
+          (OperatesOnPremultipledAlpha() ?
              ColorModel::PREMULTIPLIED : ColorModel::UNPREMULTIPLIED));
   }
 
   ColorModel
   GetOutputColorModel(nsSVGFilterInstance* aInstance) {
     return ColorModel(
-          (OperatesOnSRGB(aInstance, -1, nsnull) ?
+          (OperatesOnSRGB(aInstance, 0, nsnull) ?
              ColorModel::SRGB : ColorModel::LINEAR_RGB),
-          (OperatesOnPremultipledAlpha(-1) ?
+          (OperatesOnPremultipledAlpha() ?
              ColorModel::PREMULTIPLIED : ColorModel::UNPREMULTIPLIED));
   }
 
@@ -199,13 +199,13 @@ public:
   operator nsISupports*() { return static_cast<nsIContent*>(this); }
   
 protected:
-  virtual PRBool OperatesOnPremultipledAlpha(PRInt32) { return PR_TRUE; }
+  virtual PRBool OperatesOnPremultipledAlpha() { return PR_TRUE; }
 
   
   
   
   virtual PRBool OperatesOnSRGB(nsSVGFilterInstance* aInstance,
-                                PRInt32 aInputIndex, Image* aImage) {
+                                PRUint32 aInputIndex, Image* aImage) {
     nsIFrame* frame = GetPrimaryFrame();
     if (!frame) return PR_FALSE;
 
