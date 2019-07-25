@@ -2622,6 +2622,7 @@ ProgressController.prototype = {
     if (location != this.browser.lastSpec) {
       this.browser.lastSpec = this.browser.currentURI.spec;
       Browser.removeTransientNotificationsForTab(this._tab);
+      this._tab.resetZoomLevel();
 
       if (this._tab == Browser.selectedTab) {
         BrowserUI.updateURI();
@@ -2870,8 +2871,6 @@ Tab.prototype = {
     if (this._loading) throw "Already Loading!";
 
     this._loading = true;
-    let bvs = this._browserViewportState;
-    bvs.defaultZoomLevel = bvs.zoomLevel; 
 
     if (!this._loadingTimeout) {
       let bv = Browser._browserView;
@@ -2882,6 +2881,7 @@ Tab.prototype = {
         bv.setAggressive(false);
         
         
+        bv.ignorePageScroll(true);
         Browser.scrollBrowserToContent();
       }
     }
@@ -2932,8 +2932,11 @@ Tab.prototype = {
     this.setIcon(browser.mIconURL);
     this._loading = false;
 
-    if (this == Browser.selectedTab)
-      Browser._browserView.setAggressive(true);
+    if (this == Browser.selectedTab) {
+      let bv = Browser._browserView;
+      bv.ignorePageScroll(false);
+      bv.setAggressive(true);
+    }
 
     this._stopResizeAndPaint();
 
@@ -3072,6 +3075,15 @@ Tab.prototype = {
     this.browser.contentWindow.scrollY = state._scroll.y;
 
     this._state = null;
+  },
+
+  
+
+
+
+  resetZoomLevel: function resetZoomLevel() {
+    let bvs = this._browserViewportState;
+    bvs.defaultZoomLevel = bvs.zoomLevel;
   },
 
   updateThumbnail: function updateThumbnail() {
