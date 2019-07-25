@@ -422,6 +422,9 @@ FrameLayerBuilder::MakeContainerLayerFor(nsDisplayListBuilder* aBuilder,
     Layer* child = layerItems[i]->mLayer;
     container->InsertAfter(child, lastChild);
     lastChild = child;
+    
+    
+    layerItems[i]->mLayer = nsnull;
   }
   container->SetIsOpaqueContent(aChildren.IsOpaque());
   nsRefPtr<Layer> layer = container.forget();

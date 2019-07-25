@@ -190,7 +190,7 @@ public:
   
   float mFrameRate;
 
-  float mAspectRatio;
+  float mPixelAspectRatio;
 };
 
 class nsSkeletonState : public nsOggCodecState {

@@ -56,7 +56,7 @@ class nsVideoInfo {
 public:
   nsVideoInfo()
     : mFramerate(0.0),
-      mAspectRatio(1.0),
+      mPixelAspectRatio(1.0),
       mCallbackPeriod(1),
       mAudioRate(0),
       mAudioChannels(0),
@@ -69,7 +69,7 @@ public:
   float mFramerate;
 
   
-  float mAspectRatio;
+  float mPixelAspectRatio;
 
   
   

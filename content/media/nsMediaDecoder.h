@@ -231,7 +231,7 @@ public:
   
   
   void SetVideoData(const gfxIntSize& aSize,
-                    float aAspectRatio,
+                    float aPixelAspectRatio,
                     Image* aImage);
 
 protected:
@@ -283,7 +283,7 @@ protected:
   float mFramerate;
 
   
-  float mAspectRatio;
+  float mPixelAspectRatio;
 
   
   PRPackedBool mSizeChanged;
