@@ -82,7 +82,7 @@ class BlobImpl;
 
 
 static void *
-DataSourceAllocTable(void *pool, PRSize size)
+DataSourceAllocTable(void *pool, size_t size)
 {
     return PR_MALLOC(size);
 }

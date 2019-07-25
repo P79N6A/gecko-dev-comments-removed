@@ -184,7 +184,7 @@ void nsBidi::Init()
 
 
 
-bool nsBidi::GetMemory(void **aMemory, PRSize *aSize, bool aMayAllocate, PRSize aSizeNeeded)
+bool nsBidi::GetMemory(void **aMemory, size_t *aSize, bool aMayAllocate, size_t aSizeNeeded)
 {
   
   if(*aMemory==NULL) {
