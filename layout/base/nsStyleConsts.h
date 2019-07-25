@@ -409,6 +409,12 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_ALIGN_ITEMS_INITIAL_VALUE      NS_STYLE_ALIGN_ITEMS_STRETCH
 
 
+
+
+
+#define NS_STYLE_ALIGN_SELF_AUTO                5
+
+
 #define NS_STYLE_FLEX_DIRECTION_ROW             0
 #define NS_STYLE_FLEX_DIRECTION_ROW_REVERSE     1
 #define NS_STYLE_FLEX_DIRECTION_COLUMN          2

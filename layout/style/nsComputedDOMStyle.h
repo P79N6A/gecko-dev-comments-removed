@@ -360,6 +360,7 @@ private:
 #ifdef MOZ_FLEXBOX
   
   nsIDOMCSSValue* DoGetAlignItems();
+  nsIDOMCSSValue* DoGetAlignSelf();
   nsIDOMCSSValue* DoGetFlexDirection();
   nsIDOMCSSValue* DoGetOrder();
   nsIDOMCSSValue* DoGetJustifyContent();

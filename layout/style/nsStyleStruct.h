@@ -1095,6 +1095,7 @@ struct nsStylePosition {
   PRUint8       mBoxSizing;             
 #ifdef MOZ_FLEXBOX
   PRUint8       mAlignItems;            
+  PRUint8       mAlignSelf;             
   PRUint8       mFlexDirection;         
   PRUint8       mJustifyContent;        
   PRInt32       mOrder;                 

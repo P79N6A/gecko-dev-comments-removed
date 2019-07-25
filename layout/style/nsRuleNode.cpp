@@ -6432,6 +6432,60 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
               NS_STYLE_ALIGN_ITEMS_INITIAL_VALUE, 0, 0, 0, 0);
 
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (aRuleData->ValueForAlignSelf()->GetUnit() == eCSSUnit_Inherit) {
+    
+    
+    
+    PRUint8 inheritedAlignSelf = parentPos->mAlignSelf;
+    if (inheritedAlignSelf == NS_STYLE_ALIGN_SELF_AUTO) {
+      if (parentPos == pos) {
+        
+        
+        
+        inheritedAlignSelf = NS_STYLE_ALIGN_ITEMS_INITIAL_VALUE;
+      } else {
+        
+        
+        NS_ABORT_IF_FALSE(aContext->GetParent(),
+                          "we've got a distinct parent style-struct already, "
+                          "so we should have a parent style-context");
+        nsStyleContext* grandparentContext = aContext->GetParent()->GetParent();
+        if (!grandparentContext) {
+          
+          
+          inheritedAlignSelf = NS_STYLE_ALIGN_ITEMS_INITIAL_VALUE;
+        } else {
+          
+          
+          const nsStylePosition* grandparentPos =
+            grandparentContext->GetStylePosition();
+          inheritedAlignSelf = grandparentPos->mAlignItems;
+        }
+      }
+    }
+
+    pos->mAlignSelf = inheritedAlignSelf;
+    canStoreInRuleTree = false;
+  } else {
+    SetDiscrete(*aRuleData->ValueForAlignSelf(),
+                pos->mAlignSelf, canStoreInRuleTree,
+                SETDSC_ENUMERATED,
+                parentPos->mAlignSelf, 
+                NS_STYLE_ALIGN_SELF_AUTO, 
+                0, 0, 0, 0);
+  }
+
+  
   SetDiscrete(*aRuleData->ValueForFlexDirection(),
               pos->mFlexDirection, canStoreInRuleTree,
               SETDSC_ENUMERATED, parentPos->mFlexDirection,
