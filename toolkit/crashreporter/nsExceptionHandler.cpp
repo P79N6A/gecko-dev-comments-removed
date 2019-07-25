@@ -1105,6 +1105,10 @@ static PLDHashOperator EnumerateEntries(const nsACString& key,
   return PL_DHASH_NEXT;
 }
 
+
+#ifdef _MSC_VER
+#pragma optimize("", off)
+#endif
 static nsresult
 EscapeAnnotation(const nsACString& key, const nsACString& data, nsCString& escapedData)
 {
@@ -1125,6 +1129,9 @@ EscapeAnnotation(const nsACString& key, const nsACString& data, nsCString& escap
               NS_LITERAL_CSTRING("\\n"));
   return NS_OK;
 }
+#ifdef _MSC_VER
+#pragma optimize("", on)
+#endif
 
 class DelayedNote
 {
