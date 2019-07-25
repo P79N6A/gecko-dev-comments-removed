@@ -80,7 +80,6 @@ class nsHashKey;
 #define NS_INPUT_EVENT                     8
 #define NS_KEY_EVENT                       9
 #define NS_MOUSE_EVENT                    10
-#define NS_MENU_EVENT                     11
 #define NS_SCRIPT_ERROR_EVENT             12
 #define NS_TEXT_EVENT                     13
 #define NS_COMPOSITION_EVENT              14
@@ -192,15 +191,6 @@ class nsHashKey;
 #define NS_TABCHANGE                    (NS_WINDOW_START + 35)
 
 #define NS_OS_TOOLBAR                   (NS_WINDOW_START + 36)
-
-
-#define NS_MENU_SELECTED                (NS_WINDOW_START + 38)
-
-
-
-
-
-#define NS_CONTROL_CHANGE                (NS_WINDOW_START + 39)
 
 
 #define NS_DISPLAYCHANGED                (NS_WINDOW_START + 40)
@@ -1261,26 +1251,6 @@ public:
 
   PRPackedBool mSucceeded;                                 
   PRPackedBool mIsEnabled;                                 
-};
-
-
-
-
-
-
-
-
-class nsMenuEvent : public nsGUIEvent
-{
-public:
-  nsMenuEvent(PRBool isTrusted, PRUint32 msg, nsIWidget *w)
-    : nsGUIEvent(isTrusted, msg, w, NS_MENU_EVENT),
-      mMenuItem(nsnull), mCommand(0)
-  {
-  }
-
-  nsIMenuItem * mMenuItem;
-  PRUint32      mCommand;
 };
 
 
