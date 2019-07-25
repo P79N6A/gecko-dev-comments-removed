@@ -226,6 +226,8 @@ static PRLogModuleInfo* gDOMLeakPRLog;
 #endif
 
 using namespace mozilla::dom;
+using mozilla::TimeStamp;
+using mozilla::TimeDuration;
 
 nsIDOMStorageList *nsGlobalWindow::sGlobalStorageList  = nsnull;
 
@@ -8184,14 +8186,14 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
     timeout->mPrincipal = ourPrincipal;
   }
 
-  PRTime delta = (PRTime)realInterval * PR_USEC_PER_MSEC;
+  TimeDuration delta = TimeDuration::FromMilliseconds(realInterval);
 
   if (!IsFrozen() && !mTimeoutsSuspendDepth) {
     
     
     
 
-    timeout->mWhen = PR_Now() + delta;
+    timeout->mWhen = TimeStamp::Now() + delta;
 
     timeout->mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
     if (NS_FAILED(rv)) {
@@ -8216,8 +8218,9 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
     
     
     
+    
 
-    timeout->mWhen = delta;
+    timeout->mTimeRemaining = delta;
   }
 
   timeout->mWindow = this;
@@ -8323,8 +8326,8 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
 
   
   
-  PRTime now = PR_Now();
-  PRTime deadline;
+  TimeStamp now = TimeStamp::Now();
+  TimeStamp deadline;
 
   if (aTimeout && aTimeout->mWhen > now) {
     
@@ -8366,6 +8369,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   
   
   dummy_timeout.mFiringDepth = firingDepth;
+  dummy_timeout.mWhen = now;
   PR_INSERT_AFTER(&dummy_timeout, last_expired_timeout);
 
   
@@ -8474,13 +8478,9 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     } else {
       
       
-      PRTime lateness = now - timeout->mWhen;
+      TimeDuration lateness = now - timeout->mWhen;
 
-      
-      
-      
-      handler->SetLateness((PRIntervalTime)(lateness /
-                                            (PRTime)PR_USEC_PER_MSEC));
+      handler->SetLateness(lateness.ToMilliseconds());
 
       nsCOMPtr<nsIVariant> dummy;
       nsCOMPtr<nsISupports> me(static_cast<nsIDOMWindow *>(this));
@@ -8537,35 +8537,32 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     
     if (timeout->mInterval) {
       
-      PRTime nextInterval = (PRTime)timeout->mInterval * PR_USEC_PER_MSEC;
+      
+      TimeDuration nextInterval =
+        TimeDuration::FromMilliseconds(NS_MAX(timeout->mInterval,
+                                              PRUint32(DOM_MIN_TIMEOUT_VALUE)));
 
       
       
       
-      if (nextInterval < (PRTime)(DOM_MIN_TIMEOUT_VALUE * PR_USEC_PER_MSEC)) {
-         nextInterval = DOM_MIN_TIMEOUT_VALUE * PR_USEC_PER_MSEC;
-      }
-
       
       
-      
-      
-      
-      if (!aTimeout || nextInterval + timeout->mWhen <= now)
-        nextInterval += now;
+      TimeStamp firingTime;
+      if (!aTimeout || timeout->mWhen + nextInterval <= now)
+        firingTime = now + nextInterval;
       else
-        nextInterval += timeout->mWhen;
+        firingTime = timeout->mWhen + nextInterval;
 
-      PRTime delay = nextInterval - PR_Now();
+      TimeDuration delay = firingTime - TimeStamp::Now();
 
       
       
-      if (delay < 0) {
-        delay = 0;
+      if (delay < TimeDuration(0)) {
+        delay = TimeDuration(0);
       }
 
       if (timeout->mTimer) {
-        timeout->mWhen = nextInterval;
+        timeout->mWhen = firingTime;
 
         
         
@@ -8579,7 +8576,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
         
         nsresult rv = timeout->mTimer->
           InitWithFuncCallback(TimerCallback, timeout,
-                               (PRInt32)(delay / (PRTime)PR_USEC_PER_MSEC),
+                               delay.ToMilliseconds(),
                                nsITimer::TYPE_ONE_SHOT);
 
         if (NS_FAILED(rv)) {
@@ -8603,7 +8600,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
                      "How'd our timer end up null if we're not frozen or "
                      "suspended?");
 
-        timeout->mWhen = delay;
+        timeout->mTimeRemaining = delay;
         isInterval = PR_TRUE;
       }
     }
@@ -8808,7 +8805,11 @@ nsGlobalWindow::InsertTimeoutIntoList(nsTimeout *aTimeout)
   nsTimeout* prevSibling;
   for (prevSibling = LastTimeout();
        IsTimeout(prevSibling) && prevSibling != mTimeoutInsertionPoint &&
-         prevSibling->mWhen > aTimeout->mWhen;
+         
+         
+         ((IsFrozen() || mTimeoutsSuspendDepth) ?
+          prevSibling->mTimeRemaining > aTimeout->mTimeRemaining :
+          prevSibling->mWhen > aTimeout->mWhen);
        prevSibling = prevSibling->Prev()) {
     
   }
@@ -9123,13 +9124,13 @@ nsGlobalWindow::SuspendTimeouts(PRUint32 aIncrease,
       dts->SuspendWorkersForGlobal(static_cast<nsIScriptGlobalObject*>(this));
     }
   
-    PRTime now = PR_Now();
+    TimeStamp now = TimeStamp::Now();
     for (nsTimeout *t = FirstTimeout(); IsTimeout(t); t = t->Next()) {
       
       if (t->mWhen > now)
-        t->mWhen -= now;
+        t->mTimeRemaining = now - t->mWhen;
       else
-        t->mWhen = 0;
+        t->mTimeRemaining = TimeDuration(0);
   
       
       if (t->mTimer) {
@@ -9200,7 +9201,7 @@ nsGlobalWindow::ResumeTimeouts(PRBool aThawChildren)
     
     
 
-    PRTime now = PR_Now();
+    TimeStamp now = TimeStamp::Now();
 
 #ifdef DEBUG
     PRBool _seenDummyTimeout = PR_FALSE;
@@ -9221,15 +9222,13 @@ nsGlobalWindow::ResumeTimeouts(PRBool aThawChildren)
       
       
       
-      
-      
       PRUint32 delay =
-        NS_MAX(((PRUint32)(t->mWhen / (PRTime)PR_USEC_PER_MSEC)),
-               (PRUint32)DOM_MIN_TIMEOUT_VALUE);
+        NS_MAX(PRInt32(t->mTimeRemaining.ToMilliseconds()),
+               DOM_MIN_TIMEOUT_VALUE);
 
       
       
-      t->mWhen += now;
+      t->mWhen = now + t->mTimeRemaining;
 
       t->mTimer = do_CreateInstance("@mozilla.org/timer;1");
       NS_ENSURE_TRUE(t->mTimer, NS_ERROR_OUT_OF_MEMORY);
