@@ -122,8 +122,6 @@ public:
     return new nsDOMClassInfo(aData);
   }
 
-  static nsresult ThrowJSException(JSContext *cx, nsresult aResult);
-
   
 
 
