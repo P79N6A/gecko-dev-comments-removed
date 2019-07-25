@@ -9,12 +9,7 @@
   <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
 </head>
-
-
-
-
-
-<body onload="window.setTimeout(runTests, 2000);">
+<body onload="SimpleTest.executeSoon(runTests);">
 <script type="application/javascript">
   netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
   var prefs = Components.classes["@mozilla.org/preferences-service;1"]
