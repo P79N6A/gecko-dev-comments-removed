@@ -413,9 +413,7 @@ private:
 
 
 
-
-
-  nsresult DoComposite(imgFrame** aFrameToUse, nsIntRect* aDirtyRect,
+  nsresult DoComposite(nsIntRect* aDirtyRect,
                        imgFrame* aPrevFrame,
                        imgFrame* aNextFrame,
                        PRInt32 aNextFrameIndex);
