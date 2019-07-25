@@ -4,6 +4,33 @@
 
 
 
+function contentDispatchEvent(type, data, sync) {
+  if (typeof(data) == "undefined") {
+    data = {};
+  }
+
+  var element = document.createEvent("datacontainerevent");
+  element.initEvent("contentEvent", true, false);
+  element.setData("sync", sync);
+  element.setData("type", type);
+  element.setData("data", JSON.stringify(data));
+  document.dispatchEvent(element);
+}
+
+function contentSyncEvent(type, data) {
+  contentDispatchEvent(type, data, 1);
+}
+
+function contentAsyncEvent(type, data) {
+  contentDispatchEvent(type, data, 0);
+}
+
+
+
+
+
+
+
 
 
 var TestRunner = {};
@@ -14,6 +41,16 @@ TestRunner._urls = [];
 
 TestRunner.timeout = 5 * 60 * 1000; 
 TestRunner.maxTimeouts = 4; 
+
+TestRunner.ipcMode = false; 
+try {
+  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+  var ipcsanity = Components.classes["@mozilla.org/preferences-service;1"]
+                    .getService(Components.interfaces.nsIPrefBranch);
+  ipcsanity.setIntPref("mochitest.ipcmode", 0);
+} catch (e) {
+  TestRunner.ipcMode = true;
+}
 
 
 
@@ -89,6 +126,10 @@ TestRunner._makeIframe = function (url, retry) {
          ("activeElement" in document && document.activeElement != iframe))) {
         
         
+
+        if (TestRunner.ipcMode) {
+          contentAsyncEvent("Focus");
+        }
         window.focus();
         iframe.focus();
         if (retry < 3) {

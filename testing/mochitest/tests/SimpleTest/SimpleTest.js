@@ -27,6 +27,12 @@ if (typeof(parent) != "undefined" && parent.TestRunner) {
 }
 
 
+var ipcMode = false;
+if (parentRunner) {
+  ipcMode = parentRunner.ipcMode;
+}
+
+
 if (parentRunner) {
     SimpleTest._logEnabled = parentRunner.logEnabled;
 }
@@ -258,6 +264,17 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
     if (!targetWindow)
       targetWindow = window;
 
+    if (ipcMode) {
+      var domutils = targetWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor).
+                     getInterface(Components.interfaces.nsIDOMWindowUtils);
+
+      
+      if (parent && parent.ipcWaitForFocus != undefined) {
+        parent.contentAsyncEvent("waitForFocus", {"callback":callback, "targetWindow":domutils.outerWindowID});
+      }
+      return;
+    }
+
     SimpleTest.waitForFocus_started = false;
     expectBlankPage = !!expectBlankPage;
 
@@ -372,6 +389,12 @@ SimpleTest.waitForClipboard_polls = 0;
 
 
 SimpleTest.waitForClipboard = function(aExpectedVal, aSetupFn, aSuccessFn, aFailureFn) {
+    if (ipcMode) {
+      
+      dump("E10S_TODO: bug 573735 addresses adding support for this");
+      return;
+    }
+
     netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
 
     var cbSvc = Components.classes["@mozilla.org/widget/clipboard;1"].

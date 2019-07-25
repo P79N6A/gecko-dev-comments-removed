@@ -1,10 +1,17 @@
 
 
 
+
 try {
   netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-  const Cc = Components.classes;
-  const Ci = Components.interfaces;
+
+  if (Cc === undefined) {
+    var Cc = Components.classes;
+    var Ci = Components.interfaces;
+  }
+} catch (ex) {} 
+
+try {
   const FOSTREAM_CID = "@mozilla.org/network/file-output-stream;1";
   const LF_CID = "@mozilla.org/file/local;1";
   
@@ -32,15 +39,29 @@ try {
   
   const PR_EXCL         = 0x80;
 } catch (ex) {
-  
+ 
 }
 
 
 
-var MozillaFileLogger = {}
+var MozillaFileLogger = {};
+
+var ipcMode = false;
+try {
+  if (typeof(TestRunner) != undefined)
+    ipcMode = TestRunner.ipcMode;
+} catch(e) { };
 
 MozillaFileLogger.init = function(path) {
-  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+  if (ipcMode) {
+    contentAsyncEvent("LoggerInit", {"filename": path});
+    return;
+  }
+
+  try {
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+  } catch (ex) {} 
+
   MozillaFileLogger._file = Cc[LF_CID].createInstance(Ci.nsILocalFile);
   MozillaFileLogger._file.initWithPath(path);
   MozillaFileLogger._foStream = Cc[FOSTREAM_CID].createInstance(Ci.nsIFileOutputStream);
@@ -49,8 +70,17 @@ MozillaFileLogger.init = function(path) {
 }
 
 MozillaFileLogger.getLogCallback = function() {
+  if (ipcMode) {
+    return function(msg) {
+      contentAsyncEvent("Logger", {"num": msg.num, "level": msg.level, "info": msg.info.join(' ')});
+    }
+  }
+
   return function (msg) {
-    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+    try {
+      netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+    } catch(ex) {} 
+
     var data = msg.num + " " + msg.level + " " + msg.info.join(' ') + "\n";
     MozillaFileLogger._foStream.write(data, data.length);
     if (data.indexOf("SimpleTest FINISH") >= 0) {
@@ -60,7 +90,15 @@ MozillaFileLogger.getLogCallback = function() {
 }
 
 MozillaFileLogger.close = function() {
-  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+  if (ipcMode) {
+    contentAsyncEvent("LoggerClose");
+    return;
+  }
+
+  try {
+    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+  } catch(ex) {} 
+
   MozillaFileLogger._foStream.close();
   MozillaFileLogger._foStream = null;
   MozillaFileLogger._file = null;
