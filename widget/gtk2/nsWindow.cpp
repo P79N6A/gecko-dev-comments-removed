@@ -2656,7 +2656,27 @@ nsWindow::InitButtonEvent(nsMouseEvent &aEvent,
         aEvent.refPoint = point - WidgetToScreenOffset();
     }
 
-    KeymapWrapper::InitInputEvent(aEvent, aGdkEvent->state);
+    guint modifierState = aGdkEvent->state;
+    
+    
+    
+    
+    
+    if (aGdkEvent->type != GDK_BUTTON_RELEASE) {
+        switch (aGdkEvent->button) {
+            case 1:
+                modifierState |= GDK_BUTTON1_MASK;
+                break;
+            case 2:
+                modifierState |= GDK_BUTTON2_MASK;
+                break;
+            case 3:
+                modifierState |= GDK_BUTTON3_MASK;
+                break;
+        }
+    }
+
+    KeymapWrapper::InitInputEvent(aEvent, modifierState);
 
     aEvent.time = aGdkEvent->time;
 
