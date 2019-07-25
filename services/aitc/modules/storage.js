@@ -294,12 +294,12 @@ AitcStorageImpl.prototype = {
     for each (let app in remoteApps) {
       
       let origin = app.origin;
-      if (!app.deleted) {
+      if (!app.hidden) {
         delete toDelete[origin];
       }
 
       
-      if (app.deleted && !localApps[origin]) {
+      if (app.hidden && !localApps[origin]) {
         continue;
       }
 
@@ -323,7 +323,7 @@ AitcStorageImpl.prototype = {
     
     let toUninstall = [];
     for (let origin in toDelete) {
-      toUninstall.push({id: toDelete[origin].id, deleted: true});
+      toUninstall.push({id: toDelete[origin].id, hidden: true});
     }
 
     
