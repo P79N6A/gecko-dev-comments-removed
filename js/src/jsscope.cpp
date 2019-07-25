@@ -829,10 +829,6 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
 
 
-
-
-
-
         StackBaseShape base(self->lastProperty()->base());
         base.updateGetterSetter(attrs, getter, setter);
         UnownedBaseShape *nbase = BaseShape::getUnowned(cx, base);
