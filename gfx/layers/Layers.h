@@ -360,7 +360,14 @@ public:
 
 
 
+
+
+#ifdef DEBUG
+  
+  virtual void Mutated(Layer* aLayer);
+#else
   virtual void Mutated(Layer* aLayer) { }
+#endif
 
   
 
@@ -623,6 +630,10 @@ public:
   }
 
   
+
+
+
+
 
 
 
