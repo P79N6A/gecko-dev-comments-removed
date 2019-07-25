@@ -11,8 +11,6 @@ try {
 }
 catch(ex) {
 
-do_get_profile();
-
 
 let OS = "XPCShell";
 if ("@mozilla.org/windows-registry-key;1" in Cc)
