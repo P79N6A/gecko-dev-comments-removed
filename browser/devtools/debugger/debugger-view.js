@@ -814,6 +814,12 @@ PropertiesView.prototype = {
     element.addToHierarchy = this.addScopeToHierarchy.bind(this, element);
 
     
+    element.refresh(function() {
+      let title = element.getElementsByClassName("title")[0];
+      title.classList.add("devtools-toolbar");
+    }.bind(this));
+
+    
     return element;
   },
 
@@ -1035,12 +1041,12 @@ PropertiesView.prototype = {
 
         
         if (value !== undefined) {
-          this._addProperty(aVar, [i, value]);
+          this._addProperty(aVar, [i, value], desc);
         }
         if (getter !== undefined || setter !== undefined) {
           let prop = this._addProperty(aVar, [i]).expand();
-          prop.getter = this._addProperty(prop, ["get", getter]);
-          prop.setter = this._addProperty(prop, ["set", setter]);
+          prop.getter = this._addProperty(prop, ["get", getter], desc);
+          prop.setter = this._addProperty(prop, ["set", setter], desc);
         }
       }
     }
@@ -1071,7 +1077,9 @@ PropertiesView.prototype = {
 
 
 
-  _addProperty: function DVP__addProperty(aVar, aProperty, aName, aId) {
+
+
+  _addProperty: function DVP__addProperty(aVar, aProperty, aFlags, aName, aId) {
     
     if (!aVar) {
       return null;
@@ -1109,7 +1117,15 @@ PropertiesView.prototype = {
 
       if ("undefined" !== typeof pKey) {
         
-        nameLabel.className = "key plain";
+        let className = "";
+        if (aFlags) {
+          if (aFlags.configurable === false) { className += "non-configurable "; }
+          if (aFlags.enumerable === false) { className += "non-enumerable "; }
+          if (aFlags.writable === false) { className += "non-writable "; }
+        }
+        if (pKey === "__proto__ ") { className += "proto "; }
+
+        nameLabel.className = className + "key plain";
         nameLabel.setAttribute("value", pKey.trim());
         title.appendChild(nameLabel);
       }
