@@ -45,20 +45,18 @@ import java.net.SocketException;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Timer;
-
 import com.mozilla.SUTAgentAndroid.service.ASMozStub;
 import com.mozilla.SUTAgentAndroid.service.DoCommand;
-import com.mozilla.watcher.*;
+
 
 import android.app.Activity;
 import android.app.KeyguardManager;
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
+
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.ActivityInfo;
-import android.content.res.Configuration;
 import android.net.Uri;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiConfiguration;
@@ -85,6 +83,7 @@ public class SUTAgentAndroid extends Activity
 	MenuItem mExitMenuItem;
 	Timer timer = null;
 	
+
     public static String sUniqueID = null;
     public static String sLocalIPAddr = null;
     public static String sACStatus = null;
@@ -106,7 +105,8 @@ public class SUTAgentAndroid extends Activity
     private PowerManager.WakeLock pwl = null;
     
     private BroadcastReceiver battReceiver = null;
-    
+
+
 	public boolean onCreateOptionsMenu(Menu menu)
 		{
 		mExitMenuItem = menu.add("Exit");
@@ -133,9 +133,14 @@ public class SUTAgentAndroid extends Activity
     public void onCreate(Bundle savedInstanceState)
     	{
         super.onCreate(savedInstanceState);
-        
         setContentView(R.layout.main);
 
+
+
+
+
+
+        
         
         KeyguardManager km = (KeyguardManager)getSystemService(Context.KEYGUARD_SERVICE);
         if (km != null)
@@ -154,8 +159,6 @@ public class SUTAgentAndroid extends Activity
         		pwl.acquire();
         	}
         
-        fixScreenOrientation();
-        
         DoCommand dc = new DoCommand(getApplication());
         
         
@@ -172,6 +175,8 @@ public class SUTAgentAndroid extends Activity
 
         if (getLocalIpAddress() == null)
         	setUpNetwork(sIniFile);
+        
+
         
         WifiInfo wifi;
         WifiManager wifiMan = (WifiManager)getSystemService(Context.WIFI_SERVICE);
@@ -190,7 +195,7 @@ public class SUTAgentAndroid extends Activity
         if (sUniqueID == null)
         	{
         	BluetoothAdapter ba = BluetoothAdapter.getDefaultAdapter();
-        	if ((ba != null) && (ba.isEnabled() != true))
+        	if (ba.isEnabled() != true)
         		{
         		ba.enable();
         		while(ba.getState() != BluetoothAdapter.STATE_ON)
@@ -220,11 +225,8 @@ public class SUTAgentAndroid extends Activity
         		}
         	else
         		{
-        		if (ba != null)
-        			{
-        			sUniqueID = ba.getAddress();
-        			sUniqueID.toLowerCase();
-        			}
+        		sUniqueID = ba.getAddress();
+        		sUniqueID.toLowerCase();
         		}
         	}
 
@@ -271,23 +273,14 @@ public class SUTAgentAndroid extends Activity
         
         String sTemp = Uri.encode(sRegString,"=&");
         sRegString = "register " + sTemp;
-
-
-
-
         
         if (!bNetworkingStarted)
         	{
         	Thread thread = new Thread(null, doStartService, "StartServiceBkgnd");
         	thread.start();
-        	bNetworkingStarted = true;
-        	
-        	
 
-        	String sRegRet = dc.UpdateCallBack("update.info");
-        	
-        	sRegRet = "";
-        	
+        	bNetworkingStarted = true;
+        	String sRegRet = "";
         	if (RegSvrIPAddr.length() > 0)
         		{
         		sRegRet = dc.RegisterTheDevice(RegSvrIPAddr, RegSvrIPPort, sRegString);
@@ -315,49 +308,7 @@ public class SUTAgentAndroid extends Activity
     			finish();
                 }
         	});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            	
         }
-    
-    public void fixScreenOrientation()
-    	{
-    	setRequestedOrientation((getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) ?
-    							ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE : ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);    	
-    	}
     
     protected void onActivityResult(int requestCode, int resultCode, Intent data)
     	{
@@ -377,8 +328,6 @@ public class SUTAgentAndroid extends Activity
     		listenerSvc.setAction("com.mozilla.SUTAgentAndroid.service.LISTENER_SERVICE");
     		stopService(listenerSvc);
     		bNetworkingStarted = false;
-    		
-
     		
 			unregisterReceiver(battReceiver);
 	        KeyguardManager km = (KeyguardManager)getSystemService(Context.KEYGUARD_SERVICE);
@@ -673,8 +622,101 @@ public class SUTAgentAndroid extends Activity
 			Intent listenerService = new Intent();
 			listenerService.setAction("com.mozilla.SUTAgentAndroid.service.LISTENER_SERVICE");
 			startService(listenerService);
+
     		}
     	};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
 	
     public String getLocalIpAddress()
 		{
@@ -699,24 +741,4 @@ public class SUTAgentAndroid extends Activity
     		}
 		return null;
 		}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
 }
