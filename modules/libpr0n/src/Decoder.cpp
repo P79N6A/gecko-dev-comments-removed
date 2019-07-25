@@ -175,6 +175,9 @@ Decoder::PostFrameStop()
   mInFrame = false;
 
   
+  FlushInvalidations();
+
+  
   if (mObserver)
     mObserver->OnStopFrame(nsnull, mFrameCount - 1); 
 }
@@ -187,9 +190,6 @@ Decoder::PostInvalidation(nsIntRect& aRect)
 
   
   mInvalidRect.UnionRect(mInvalidRect, aRect);
-
-  
-  FlushInvalidations();
 }
 
 } 

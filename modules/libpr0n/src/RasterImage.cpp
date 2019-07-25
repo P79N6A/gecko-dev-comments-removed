@@ -1243,6 +1243,13 @@ RasterImage::AddSourceData(const char *aBuffer, PRUint32 aCount)
   if (!StoringSourceData()) {
     rv = WriteToDecoder(aBuffer, aCount);
     CONTAINER_ENSURE_SUCCESS(rv);
+
+    
+    
+    
+    mInDecoder = PR_TRUE;
+    mDecoder->FlushInvalidations();
+    mInDecoder = PR_FALSE;
   }
 
   
@@ -2377,6 +2384,14 @@ RasterImage::SyncDecode()
   CONTAINER_ENSURE_SUCCESS(rv);
 
   
+  
+  
+  
+  mInDecoder = PR_TRUE;
+  mDecoder->FlushInvalidations();
+  mInDecoder = PR_FALSE;
+
+  
   if (IsDecodeFinished()) {
     rv = ShutdownDecoder(eShutdownIntent_Done);
     CONTAINER_ENSURE_SUCCESS(rv);
@@ -2629,6 +2644,11 @@ imgDecodeWorker::Run()
     haveMoreData =
       image->mSourceData.Length() > image->mBytesDecoded;
   }
+
+  
+  image->mInDecoder = PR_TRUE;
+  image->mDecoder->FlushInvalidations();
+  image->mInDecoder = PR_FALSE;
 
   
   if (image->IsDecodeFinished()) {
