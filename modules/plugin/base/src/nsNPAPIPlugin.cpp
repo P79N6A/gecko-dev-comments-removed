@@ -288,6 +288,7 @@ static PRInt32 OSXVersion()
   return gOSXVersion;
 }
 
+#if defined(__i386__)
 
 
 #define CGLRendererIDMatchingMask 0x00FE7F00
@@ -311,6 +312,7 @@ static PRBool GMA9XXGraphics()
   }
   return hasIntelGMA9XX;
 }
+#endif
 #endif
 
 PRBool
@@ -345,11 +347,14 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
         return PR_FALSE;
       }
     }
+
+#if defined(__i386__)
     
     
     if (GMA9XXGraphics()) {
       return PR_FALSE;
     }
+#endif
   }
 #endif
 
