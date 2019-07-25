@@ -387,6 +387,9 @@ nsTextControlFrame::EnsureEditorInitialized()
   
   mUseEditor = PR_TRUE;
 
+  
+  SetSelectionEndPoints(0, 0);
+
   return NS_OK;
 }
 
