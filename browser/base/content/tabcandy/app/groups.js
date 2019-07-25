@@ -1243,9 +1243,9 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   
-  newTab: function() {
+  newTab: function(url) {
     Groups.setActiveGroup(this);          
-    var newTab = Tabs.open("about:blank", true);
+    var newTab = Tabs.open(url || "about:blank", true);
     
     
     
