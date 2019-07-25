@@ -236,3 +236,56 @@ gTests.push({
     runNextTest();
   }
 });
+
+
+
+gTests.push({
+  desc: "Test editing title of desktop folder",
+  bmId: null,
+  
+  run: function() {
+    
+    gCurrentTest.bmId = PlacesUtils.bookmarks
+                                   .insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                                   makeURI(testURL_02),
+                                                   Ci.nsINavBookmarksService.DEFAULT_INDEX,
+                                                   testURL_02);
+
+    
+    BookmarkList.show();
+
+    
+    BookmarkList.toggleManage();
+
+    waitFor(gCurrentTest.onBookmarksReady, function() { return document.getElementById("bookmark-items").manageUI == true; });
+  },
+  
+  onBookmarksReady: function() {
+    
+    var first = BookmarkList._bookmarks._children.firstChild;
+    is(first.itemId, BookmarkList._bookmarks._desktopFolderId, "Desktop folder is showing");
+
+    
+    is(first.isEditing, false, "Desktop folder is not in edit mode");
+
+
+    
+    EventUtils.synthesizeMouse(first, first.clientWidth / 2, first.clientHeight / 2, {});
+
+    
+    
+    first = BookmarkList._bookmarks._children.firstChild;
+
+    
+    isnot(first.itemId, BookmarkList._bookmarks._desktopFolderId, "Desktop folder is not showing after mouse click");
+
+    
+    isnot(BookmarkList._bookmarks._readOnlyFolders.indexOf(parseInt(first.itemId)), -1, "Desktop subfolder is showing after mouse click");
+    
+    BookmarkList.close();
+
+    PlacesUtils.bookmarks.removeItem(gCurrentTest.bmId);
+
+    runNextTest();
+  }
+});
