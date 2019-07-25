@@ -53,7 +53,7 @@
 using namespace mozilla;
 
 
-const PRInt32 kMaxDropDownRows          = 20; 
+const nscoord kMaxDropDownRows          = 20; 
 const PRInt32 kNothingSelected          = -1;
 
 
@@ -112,7 +112,6 @@ nsListControlFrame::nsListControlFrame(
   : nsHTMLScrollFrame(aShell, aContext, false),
     mMightNeedSecondPass(false),
     mHasPendingInterruptAtStartOfReflow(false),
-    mDropdownCanGrow(false),
     mLastDropdownComputedHeight(NS_UNCONSTRAINEDSIZE)
 {
   mComboboxFrame      = nsnull;
@@ -510,12 +509,11 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
 
 #ifdef DEBUG
   nscoord oldHeightOfARow = HeightOfARow();
-  nscoord oldVisibleHeight = (GetStateBits() & NS_FRAME_FIRST_REFLOW) ?
-    NS_UNCONSTRAINEDSIZE : GetScrolledFrame()->GetSize().height;
 #endif
 
   nsHTMLReflowState state(aReflowState);
 
+  nscoord oldVisibleHeight;
   if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
     
     
@@ -523,6 +521,11 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
     
     
     state.SetComputedHeight(mLastDropdownComputedHeight);
+    oldVisibleHeight = GetScrolledFrame()->GetSize().height;
+  } else {
+    
+    
+    oldVisibleHeight = NS_UNCONSTRAINEDSIZE;
   }
 
   nsresult rv = nsHTMLScrollFrame::Reflow(aPresContext, aDesiredSize,
@@ -565,33 +568,47 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
   nsHTMLScrollFrame::DidReflow(aPresContext, &state, aStatus);
 
   
-  
-  
+  mNumDisplayRows = kMaxDropDownRows;
+  if (visibleHeight > mNumDisplayRows * heightOfARow) {
+    visibleHeight = mNumDisplayRows * heightOfARow;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsRect screen = nsFormControlFrame::GetUsableScreenRect(aPresContext);
+    nscoord screenHeight = screen.height;
 
-  mDropdownCanGrow = false;
-  if (visibleHeight <= 0 || heightOfARow <= 0) {
+    nscoord availDropHgt = (screenHeight / 2) - (heightOfARow*2); 
+    availDropHgt -= aReflowState.mComputedBorderPadding.top + aReflowState.mComputedBorderPadding.bottom;
+
+    nscoord hgt = visibleHeight + aReflowState.mComputedBorderPadding.top + aReflowState.mComputedBorderPadding.bottom;
+    if (heightOfARow > 0) {
+      if (hgt > availDropHgt) {
+        visibleHeight = (availDropHgt / heightOfARow) * heightOfARow;
+      }
+      mNumDisplayRows = visibleHeight / heightOfARow;
+    } else {
+      
+      visibleHeight   = 1;
+      mNumDisplayRows = 1;
+    }
+
+    state.SetComputedHeight(mNumDisplayRows * heightOfARow);
+    
+    
+    
+  } else if (visibleHeight == 0) {
     
     state.SetComputedHeight(heightOfARow);
-    mNumDisplayRows = 1;
   } else {
-    nsComboboxControlFrame* combobox = static_cast<nsComboboxControlFrame*>(mComboboxFrame);
-    nsPoint translation;
-    nscoord above, below;
-    combobox->GetAvailableDropdownSpace(&above, &below, &translation);
-    if (above <= 0 && below <= 0) {
-      state.SetComputedHeight(heightOfARow);
-      mNumDisplayRows = 1;
-    } else {
-      nscoord bp = aReflowState.mComputedBorderPadding.TopBottom();
-      nscoord availableHeight = NS_MAX(above, below) - bp;
-      nscoord height = NS_MIN(visibleHeight, availableHeight);
-      PRInt32 rows = height / heightOfARow;
-      mNumDisplayRows = clamped(rows, 1, kMaxDropDownRows);
-      nscoord newHeight = mNumDisplayRows * heightOfARow;
-      state.SetComputedHeight(newHeight);
-      mDropdownCanGrow = visibleHeight - newHeight >= heightOfARow &&
-                         mNumDisplayRows != kMaxDropDownRows;
-    }
+    
+    state.SetComputedHeight(NS_UNCONSTRAINEDSIZE);
   }
 
   
@@ -1581,6 +1598,18 @@ nsListControlFrame::GetFormProperty(nsIAtom* aName, nsAString& aValue) const
 }
 
 void
+nsListControlFrame::SyncViewWithFrame()
+{
+    
+    
+    
+    
+  mComboboxFrame->AbsolutelyPositionDropDown();
+
+  nsContainerFrame::PositionFrameView(this);
+}
+
+void
 nsListControlFrame::AboutToDropDown()
 {
   NS_ASSERTION(IsInDropDownMode(),
@@ -1644,7 +1673,14 @@ nsListControlFrame::DidReflow(nsPresContext*           aPresContext,
   bool wasInterrupted = !mHasPendingInterruptAtStartOfReflow &&
                           aPresContext->HasPendingInterrupt();
 
-  rv = nsHTMLScrollFrame::DidReflow(aPresContext, aReflowState, aStatus);
+  if (IsInDropDownMode()) 
+  {
+    
+    rv = nsHTMLScrollFrame::DidReflow(aPresContext, aReflowState, aStatus);
+    SyncViewWithFrame();
+  } else {
+    rv = nsHTMLScrollFrame::DidReflow(aPresContext, aReflowState, aStatus);
+  }
 
   if (mNeedToReset && !wasInterrupted) {
     mNeedToReset = false;
