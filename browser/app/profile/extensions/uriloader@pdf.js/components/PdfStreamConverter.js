@@ -30,23 +30,11 @@ function log(aMsg) {
   Services.console.logStringMessage(msg);
   dump(msg + '\n');
 }
-function getWindow(top, id) {
-  return top.QueryInterface(Ci.nsIInterfaceRequestor)
-            .getInterface(Ci.nsIDOMWindowUtils)
-            .getOuterWindowWithId(id);
-}
-function windowID(win) {
-  return win.QueryInterface(Ci.nsIInterfaceRequestor)
-            .getInterface(Ci.nsIDOMWindowUtils)
-            .outerWindowID;
-}
-function topWindow(win) {
-  return win.QueryInterface(Ci.nsIInterfaceRequestor)
-            .getInterface(Ci.nsIWebNavigation)
-            .QueryInterface(Ci.nsIDocShellTreeItem)
-            .rootTreeItem
-            .QueryInterface(Ci.nsIInterfaceRequestor)
-            .getInterface(Ci.nsIDOMWindow);
+
+function getDOMWindow(aChannel) {
+  var requestor = aChannel.notificationCallbacks;
+  var win = requestor.getInterface(Components.interfaces.nsIDOMWindow);
+  return win;
 }
 
 
@@ -74,6 +62,7 @@ ChromeActions.prototype = {
     return application.prefs.getValue(EXT_PREFIX + '.pdfBugEnabled', false);
   }
 };
+
 
 
 function RequestListener(actions) {
@@ -163,38 +152,32 @@ PdfStreamConverter.prototype = {
     var channel = ioService.newChannel(
                     'resource://pdf.js/web/viewer.html', null, null);
 
+    var listener = this.listener;
+    
+    
+    var proxy = {
+      onStartRequest: function() {
+        listener.onStartRequest.apply(listener, arguments);
+      },
+      onDataAvailable: function() {
+        listener.onDataAvailable.apply(listener, arguments);
+      },
+      onStopRequest: function() {
+        var domWindow = getDOMWindow(channel);
+        
+        if (domWindow.document.documentURIObject.equals(aRequest.URI)) {
+          let requestListener = new RequestListener(new ChromeActions);
+          domWindow.addEventListener(PDFJS_EVENT_ID, function(event) {
+            requestListener.receive(event);
+          }, false, true);
+        }
+        listener.onStopRequest.apply(listener, arguments);
+      }
+    };
+
     
     channel.originalURI = aRequest.URI;
-    channel.asyncOpen(this.listener, aContext);
-
-    
-    
-    
-    
-    let window = aRequest.loadGroup.groupObserver
-                         .QueryInterface(Ci.nsIWebProgress)
-                         .DOMWindow;
-    let top = topWindow(window);
-    let id = windowID(window);
-    window = null;
-
-    top.addEventListener('DOMWindowCreated', function onDOMWinCreated(event) {
-      let doc = event.originalTarget;
-      let win = doc.defaultView;
-
-      if (id == windowID(win)) {
-        top.removeEventListener('DOMWindowCreated', onDOMWinCreated, true);
-        if (!doc.documentURIObject.equals(aRequest.URI))
-          return;
-
-        let requestListener = new RequestListener(new ChromeActions);
-        win.addEventListener(PDFJS_EVENT_ID, function(event) {
-          requestListener.receive(event);
-        }, false, true);
-      } else if (!getWindow(top, id)) {
-        top.removeEventListener('DOMWindowCreated', onDOMWinCreated, true);
-      }
-    }, true);
+    channel.asyncOpen(proxy, aContext);
   },
 
   
