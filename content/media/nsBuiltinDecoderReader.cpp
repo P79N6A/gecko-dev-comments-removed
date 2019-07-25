@@ -50,8 +50,6 @@ using namespace mozilla;
 using mozilla::layers::ImageContainer;
 using mozilla::layers::PlanarYCbCrImage;
 
-using mozilla::layers::PlanarYCbCrImage;
-
 
 
 PR_STATIC_ASSERT(MAX_VIDEO_WIDTH < PlanarYCbCrImage::MAX_DIMENSION);

@@ -390,8 +390,13 @@ template <class T> class MediaQueue : private nsDeque {
     return last->mTime - first->mTime;
   }
 
+  void LockedForEach(nsDequeFunctor& aFunctor) const {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+    ForEach(aFunctor);
+  }
+
 private:
-  ReentrantMonitor mReentrantMonitor;
+  mutable ReentrantMonitor mReentrantMonitor;
 
   
   
@@ -464,6 +469,48 @@ public:
   
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered,
                                PRInt64 aStartTime) = 0;
+
+  class VideoQueueMemoryFunctor : public nsDequeFunctor {
+  public:
+    VideoQueueMemoryFunctor() : mResult(0) {}
+
+    virtual void* operator()(void* anObject) {
+      const VideoData* v = static_cast<const VideoData*>(anObject);
+      NS_ASSERTION(v->mImage->GetFormat() == mozilla::layers::Image::PLANAR_YCBCR,
+                   "Wrong format?");
+      mozilla::layers::PlanarYCbCrImage* vi = static_cast<mozilla::layers::PlanarYCbCrImage*>(v->mImage.get());
+
+      mResult += vi->GetDataSize();
+      return nsnull;
+    }
+
+    PRInt64 mResult;
+  };
+
+  PRInt64 VideoQueueMemoryInUse() {
+    VideoQueueMemoryFunctor functor;
+    mVideoQueue.LockedForEach(functor);
+    return functor.mResult;
+  }
+
+  class AudioQueueMemoryFunctor : public nsDequeFunctor {
+  public:
+    AudioQueueMemoryFunctor() : mResult(0) {}
+
+    virtual void* operator()(void* anObject) {
+      const SoundData* soundData = static_cast<const SoundData*>(anObject);
+      mResult += soundData->mSamples * soundData->mChannels * sizeof(SoundDataValue);
+      return nsnull;
+    }
+
+    PRInt64 mResult;
+  };
+
+  PRInt64 AudioQueueMemoryInUse() {
+    AudioQueueMemoryFunctor functor;
+    mAudioQueue.LockedForEach(functor);
+    return functor.mResult;
+  }
 
   
   
