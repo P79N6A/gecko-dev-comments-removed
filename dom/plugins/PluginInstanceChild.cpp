@@ -2935,7 +2935,7 @@ PluginInstanceChild::AnswerNPP_Destroy(NPError* aResult)
     mCurrentSurface = nsnull;
     mBackSurface = nsnull;
 
-    nsTArray<PBrowserStreamChild*> streams;
+    InfallibleTArray<PBrowserStreamChild*> streams;
     ManagedPBrowserStreamChild(streams);
 
     
