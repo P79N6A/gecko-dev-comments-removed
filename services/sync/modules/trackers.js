@@ -93,7 +93,7 @@ Tracker.prototype = {
     this._score = 0;
   }
 };
- 
+
 
 
 
@@ -121,7 +121,7 @@ BookmarksTracker.prototype = {
   onItemVisited: function BMT_onItemVisited() {
 
   },
-  
+
   
 
 
@@ -140,14 +140,14 @@ BookmarksTracker.prototype = {
   _init: function BMT__init() {
     this._log = Log4Moz.Service.getLogger("Service." + this._logName);
     this._score = 0;
-     
+
     Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
     getService(Ci.nsINavBookmarksService).
     addObserver(this, false);
   }
 }
 BookmarksTracker.prototype.__proto__ = new Tracker();
-  
+
 function HistoryTracker() {
   this._init();
 }
@@ -167,7 +167,7 @@ HistoryTracker.prototype = {
   onTitleChanged: function HT_onTitleChanged() {
 
   },
-  
+
   
 
 
@@ -189,7 +189,7 @@ HistoryTracker.prototype = {
   _init: function HT__init() {
     this._log = Log4Moz.Service.getLogger("Service." + this._logName);
     this._score = 0;
-     
+
     Cc["@mozilla.org/browser/nav-history-service;1"].
     getService(Ci.nsINavHistoryService).
     addObserver(this, false);
@@ -279,7 +279,7 @@ FormsTracker.prototype = {
       return 100;
     else
       return this._score;
-  }, 
+  },
 
   resetScore: function FormsTracker_resetScore() {
     var stmnt = this._formDB.createStatement("SELECT COUNT(fieldname) FROM moz_formhistory");
