@@ -42,10 +42,10 @@
 typedef struct {
   const char* mPosition;
   const char* mCalibrate;
-  nsAccelerometerSystemDriver mToken;
-} Accelerometer;
+  nsDeviceMotionSystemDriver mToken;
+} DeviceMotion;
 
-static const Accelerometer gAccelerometers[] = {
+static const DeviceMotion gDeviceMotions[] = {
   
   {"/sys/devices/platform/applesmc.768/position",
    "/sys/devices/platform/applesmc.768/calibrate",
@@ -194,13 +194,13 @@ void nsDeviceMotionSystem::Startup()
 {
   
   
-  for (unsigned int i = 0; i < NS_ARRAY_LENGTH(gAccelerometers); i++) {
-    if (!(mPositionFile = fopen(gAccelerometers[i].mPosition, "r")))
+  for (unsigned int i = 0; i < NS_ARRAY_LENGTH(gDeviceMotions); i++) {
+    if (!(mPositionFile = fopen(gDeviceMotions[i].mPosition, "r")))
       continue;
 
-    mType = gAccelerometers[i].mToken;
-    if (gAccelerometers[i].mCalibrate) {
-      mCalibrateFile = fopen(gAccelerometers[i].mCalibrate, "r");
+    mType = gDeviceMotions[i].mToken;
+    if (gDeviceMotions[i].mCalibrate) {
+      mCalibrateFile = fopen(gDeviceMotions[i].mCalibrate, "r");
       if (!mCalibrateFile) {
         fclose(mPositionFile);
         mPositionFile = nsnull;
