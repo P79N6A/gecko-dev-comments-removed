@@ -66,7 +66,7 @@ HttpChannelChild::HttpChannelChild()
   , mSendResumeAt(false)
   , mSuspendCount(0)
   , mIPCOpen(false)
-  , mDeferredIPDLClose(false)
+  , mKeptAlive(false)
 {
   LOG(("Creating HttpChannelChild @%x\n", this));
 }
@@ -90,8 +90,8 @@ NS_IMETHODIMP_(nsrefcnt) HttpChannelChild::Release()
   --mRefCnt;
   NS_LOG_RELEASE(this, mRefCnt, "HttpChannelChild");
 
-  if (mRefCnt == 1 && mDeferredIPDLClose && mIPCOpen) {
-    mDeferredIPDLClose = false;
+  if (mRefCnt == 1 && mKeptAlive && mIPCOpen) {
+    mKeptAlive = false;
     
     
     PHttpChannelChild::Send__delete__(this);
@@ -112,7 +112,6 @@ NS_INTERFACE_MAP_BEGIN(HttpChannelChild)
   NS_INTERFACE_MAP_ENTRY(nsIHttpChannel)
   NS_INTERFACE_MAP_ENTRY(nsIHttpChannelInternal)
   NS_INTERFACE_MAP_ENTRY(nsICacheInfoChannel)
-  NS_INTERFACE_MAP_ENTRY(nsICacheInfoChannel_GECKO_2_0)
   NS_INTERFACE_MAP_ENTRY(nsIResumableChannel)
   NS_INTERFACE_MAP_ENTRY(nsISupportsPriority)
   NS_INTERFACE_MAP_ENTRY(nsIProxiedChannel)
@@ -392,7 +391,16 @@ HttpChannelChild::OnStopRequest(const nsresult& statusCode)
       mLoadGroup->RemoveRequest(this, nsnull, mStatus);
   }
 
-  MaybeCloseIPDL();
+  if (!(mLoadFlags & LOAD_DOCUMENT_URI)) {
+    
+    
+    PHttpChannelChild::Send__delete__(this);
+  } else {
+    
+    
+    mKeptAlive = true;
+    SendDocumentChannelCleanup();
+  }
 }
 
 class ProgressEvent : public ChannelEvent
@@ -549,7 +557,8 @@ HttpChannelChild::OnCancel(const nsresult& status)
   mListener = NULL;
   mListenerContext = NULL;
 
-  MaybeCloseIPDL(true );
+  if (mIPCOpen)
+    PHttpChannelChild::Send__delete__(this);
 }
 
 class DeleteSelfEvent : public ChannelEvent
@@ -575,34 +584,7 @@ HttpChannelChild::RecvDeleteSelf()
 void
 HttpChannelChild::DeleteSelf()
 {
-  MaybeCloseIPDL(true );
-}
-
-void
-HttpChannelChild::MaybeCloseIPDL(bool forceDocumentLoadDeletion)
-{
-  if (mCacheEntryClosePreventionCount) {
-    
-    
-    mDeferredIPDLClose = true;
-    return;
-  }
-
-  if ((mLoadFlags & LOAD_DOCUMENT_URI) && !forceDocumentLoadDeletion) {
-    
-    
-    mDeferredIPDLClose = true;
-    if (mIPCOpen)
-      SendDocumentChannelCleanup();
-    return;
-  }
-
-  
-  
-  
-  mDeferredIPDLClose = false;
-  if (mIPCOpen)
-    PHttpChannelChild::Send__delete__(this);
+  Send__delete__(this);
 }
 
 class Redirect1Event : public ChannelEvent
@@ -1014,21 +996,6 @@ HttpChannelChild::SetRequestHeader(const nsACString& aHeader,
   return NS_OK;
 }
 
-NS_IMETHODIMP
-HttpChannelChild::SetResponseHeader(const nsACString& aHeader,
-                                    const nsACString& aValue,
-                                    PRBool aMerge)
-{
-  nsresult rv = HttpBaseChannel::SetResponseHeader(aHeader, aValue, aMerge);
-  if (NS_FAILED(rv))
-    return rv;
-
-  nsCString header(aHeader);
-  nsCString value(aValue);
-  SendSetResponseHeader(header, value, aMerge);
-  return NS_OK;
-}
-
 
 
 
@@ -1084,36 +1051,6 @@ HttpChannelChild::IsFromCache(PRBool *value)
 
   *value = mIsFromCache;
   return NS_OK;
-}
-
-
-
-
-
-NS_IMETHODIMP
-HttpChannelChild::GetCacheEntryClosePreventer(nsISupports** _retval)
-{
-  NS_ADDREF(*_retval = new CacheEntryClosePreventer(this));
-  return NS_OK;
-}
-
-void
-HttpChannelChild::OnIncreaseCacheEntryClosePreventCount()
-{
-  LOG(("HttpChannelChild::mCacheEntryClosePreventionCount increased to %d, [this=%x]",
-       mCacheEntryClosePreventionCount, this));
-  ++mCacheEntryClosePreventionCount;
-}
-
-void
-HttpChannelChild::OnDecreaseCacheEntryClosePreventCount()
-{
-  LOG(("HttpChannelChild::mCacheEntryClosePreventionCount decreased to %d, [this=%x]",
-       mCacheEntryClosePreventionCount, this));
-  --mCacheEntryClosePreventionCount;
-
-  if (!mCacheEntryClosePreventionCount && mDeferredIPDLClose)
-    MaybeCloseIPDL();
 }
 
 
