@@ -516,20 +516,21 @@ ReferenceFinder::addReferrer(jsval referrer, Path *path)
     Root<jsval> referrerRoot(context, &referrer);
 
     
-    JS::Value v;
+    jsval v;
     if (!JS_GetProperty(context, result, pathName, &v))
         return false;
-    if (v.isUndefined()) {
+    if (JSVAL_IS_VOID(v)) {
         
         JSObject *array = JS_NewArrayObject(context, 1, &referrer);
         if (!array)
             return false;
-        v.setObject(*array);
+        v = OBJECT_TO_JSVAL(array);
         return !!JS_SetProperty(context, result, pathName, &v);
     }
 
     
-    RootedVarObject array(context, &v.toObject());
+    JS_ASSERT(JSVAL_IS_OBJECT(v) && !JSVAL_IS_NULL(v));
+    RootedVarObject array(context, JSVAL_TO_OBJECT(v));
     JS_ASSERT(JS_IsArrayObject(context, array));
 
     
@@ -560,8 +561,8 @@ FindReferences(JSContext *cx, unsigned argc, jsval *vp)
         return false;
     }
 
-    JS::Value target = JS_ARGV(cx, vp)[0];
-    if (!target.isObject()) {
+    jsval target = JS_ARGV(cx, vp)[0];
+    if (!JSVAL_IS_OBJECT(target) || JSVAL_IS_NULL(target)) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_UNEXPECTED_TYPE,
                              "argument", "not an object");
         return false;
@@ -574,7 +575,7 @@ FindReferences(JSContext *cx, unsigned argc, jsval *vp)
 
     
     ReferenceFinder finder(cx, reverser);
-    JSObject *references = finder.findReferences(RootedVarObject(cx, &target.toObject()));
+    JSObject *references = finder.findReferences(RootedVarObject(cx, JSVAL_TO_OBJECT(target)));
     if (!references)
         return false;
     

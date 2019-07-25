@@ -308,14 +308,14 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(XPCCallContext& ccx,
 
             if (JS_GetPendingException(cx, &jsexception)) {
                 nsresult rv;
-                if (jsexception.isObject()) {
+                if (JSVAL_IS_OBJECT(jsexception)) {
                     
                     
                     nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
 
                     nsXPConnect::GetXPConnect()->
                         GetWrappedNativeOfJSObject(ccx,
-                                                   &jsexception.toObject(),
+                                                   JSVAL_TO_OBJECT(jsexception),
                                                    getter_AddRefs(wrapper));
 
                     if (wrapper) {
