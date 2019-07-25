@@ -116,7 +116,7 @@ protected:
 
   
   
-  virtual nsresult UpdateSelectedLocale() = 0;
+  virtual void UpdateSelectedLocale() = 0;
 
   static void LogMessage(const char* aMsg, ...);
   static void LogMessageWithContext(nsIURI* aURL, PRUint32 aLineNumber, PRUint32 flags,
