@@ -1025,6 +1025,16 @@ class LStoreSlotT : public LInstructionHelper<0, 2, 0>
     }
 };
 
+class LLoadPropertyGeneric : public LVMCallInstructionHelper<LDefinition::BOX, BOX_PIECES, 1, 0>
+{
+  public:
+    LIR_HEADER(LoadPropertyGeneric);
+
+    MLoadProperty *mir() const {
+        return mir_->toLoadProperty();
+    }
+};
+
 
 class LWriteBarrierV : public LInstructionHelper<0, BOX_PIECES, 0>
 {

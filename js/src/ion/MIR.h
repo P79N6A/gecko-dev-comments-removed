@@ -2040,6 +2040,37 @@ class MStoreSlot
 };
 
 
+class MLoadProperty
+  : public MUnaryInstruction,
+    public ObjectPolicy
+{
+    JSAtom *atom_;
+
+  public:
+    MLoadProperty(MDefinition *obj, JSAtom *atom)
+      : MUnaryInstruction(obj),
+        atom_(atom)
+    {
+        setResultType(MIRType_Value);
+    }
+
+    INSTRUCTION_HEADER(LoadProperty);
+
+    TypePolicy *typePolicy() {
+        return this;
+    }
+    MDefinition *obj() const {
+        return getOperand(0);
+    }
+    JSAtom *atom() const {
+        return atom_;
+    }
+    bool congruentTo(MDefinition * const &) const {
+        return false;
+    }
+};
+
+
 
 class MTypeBarrier : public MUnaryInstruction
 {
