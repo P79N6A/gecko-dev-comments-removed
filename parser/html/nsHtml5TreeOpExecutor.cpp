@@ -352,9 +352,6 @@ nsHtml5TreeOpExecutor::UpdateStyleSheet(nsIContent* aElement)
 void
 nsHtml5TreeOpExecutor::FlushSpeculativeLoads()
 {
-  if (NS_UNLIKELY(!mParser)) {
-    return;
-  }
   nsTArray<nsHtml5SpeculativeLoad> speculativeLoadQueue;
   mStage.MoveSpeculativeLoadsTo(speculativeLoadQueue);
   const nsHtml5SpeculativeLoad* start = speculativeLoadQueue.Elements();
@@ -362,6 +359,10 @@ nsHtml5TreeOpExecutor::FlushSpeculativeLoads()
   for (nsHtml5SpeculativeLoad* iter = const_cast<nsHtml5SpeculativeLoad*>(start);
        iter < end;
        ++iter) {
+    if (NS_UNLIKELY(!mParser)) {
+      
+      return;
+    }
     iter->Perform(this);
   }
 }
@@ -453,11 +454,21 @@ nsHtml5TreeOpExecutor::RunFlushLoop()
            iter < end;
            ++iter) {
         iter->Perform(this);
+        if (NS_UNLIKELY(!mParser)) {
+          
+          mOpQueue.Clear(); 
+          return;
+        }
       }
     } else {
       FlushSpeculativeLoads(); 
                                
                                
+      if (NS_UNLIKELY(!mParser)) {
+        
+        mOpQueue.Clear(); 
+        return;
+      }
       
       
       nsRefPtr<nsHtml5StreamParser> streamKungFuDeathGrip = 
@@ -547,15 +558,15 @@ nsHtml5TreeOpExecutor::RunFlushLoop()
 void
 nsHtml5TreeOpExecutor::FlushDocumentWrite()
 {
-  if (!mParser) {
+  FlushSpeculativeLoads(); 
+                
+
+  if (NS_UNLIKELY(!mParser)) {
     
     mOpQueue.Clear(); 
     return;
   }
   
-  FlushSpeculativeLoads(); 
-                
-
   if (mFlushState != eNotFlushing) {
     
     return;
