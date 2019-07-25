@@ -99,7 +99,6 @@ public:
   FrameLayerBuilder() :
     mRetainingManager(nsnull),
     mDetectedDOMModification(PR_FALSE),
-    mInvalidateAllThebesContent(PR_FALSE),
     mInvalidateAllLayers(PR_FALSE)
   {
     mNewDisplayItemData.Init();
@@ -180,12 +179,6 @@ public:
 
 
   static void InvalidateThebesLayersInSubtree(nsIFrame* aFrame);
-
-  
-
-
-
-  static void InvalidateAllThebesLayerContents(LayerManager* aManager);
 
   
 
@@ -494,11 +487,6 @@ protected:
 
 
   PRPackedBool                        mDetectedDOMModification;
-  
-
-
-
-  PRPackedBool                        mInvalidateAllThebesContent;
   
 
 

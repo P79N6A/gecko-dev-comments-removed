@@ -64,7 +64,6 @@ namespace {
 class LayerManagerData : public LayerUserData {
 public:
   LayerManagerData(LayerManager *aManager) :
-    mInvalidateAllThebesContent(PR_FALSE),
     mInvalidateAllLayers(PR_FALSE),
     mLayerManager(aManager)
   {
@@ -83,7 +82,6 @@ public:
 
 
   nsTHashtable<nsPtrHashKey<nsIFrame> > mFramesWithLayers;
-  PRPackedBool mInvalidateAllThebesContent;
   PRPackedBool mInvalidateAllLayers;
   
   nsRefPtr<LayerManager> mLayerManager;
@@ -468,7 +466,6 @@ FrameLayerBuilder::DidBeginRetainedLayerTransaction(LayerManager* aManager)
   LayerManagerData* data = static_cast<LayerManagerData*>
     (aManager->GetUserData(&gLayerManagerUserData));
   if (data) {
-    mInvalidateAllThebesContent = data->mInvalidateAllThebesContent;
     mInvalidateAllLayers = data->mInvalidateAllLayers;
   }
 }
@@ -527,7 +524,6 @@ FrameLayerBuilder::WillEndTransaction(LayerManager* aManager)
   
   
   mNewDisplayItemData.EnumerateEntries(StoreNewDisplayItemData, data);
-  data->mInvalidateAllThebesContent = PR_FALSE;
   data->mInvalidateAllLayers = PR_FALSE;
 
   NS_ASSERTION(data->mFramesWithLayers.Count() > 0,
@@ -762,7 +758,6 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
     } else {
       InvalidatePostTransformRegion(layer, mInvalidThebesContent);
     }
-    
     
     
     
@@ -1557,10 +1552,6 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
           DisplayItemData(containerLayer, containerDisplayItemKey));
     }
 
-    if (mInvalidateAllThebesContent) {
-      state.SetInvalidateAllThebesContent();
-    }
-
     nsRegion* invalidThebesContent(static_cast<nsRegion*>
       (props.Get(ThebesLayerInvalidRegionProperty())));
     if (invalidThebesContent) {
@@ -1682,16 +1673,6 @@ InternalInvalidateThebesLayersInSubtree(nsIFrame* aFrame)
 FrameLayerBuilder::InvalidateThebesLayersInSubtree(nsIFrame* aFrame)
 {
   InternalInvalidateThebesLayersInSubtree(aFrame);
-}
-
- void
-FrameLayerBuilder::InvalidateAllThebesLayerContents(LayerManager* aManager)
-{
-  LayerManagerData* data = static_cast<LayerManagerData*>
-    (aManager->GetUserData(&gLayerManagerUserData));
-  if (data) {
-    data->mInvalidateAllThebesContent = PR_TRUE;
-  }
 }
 
  void
