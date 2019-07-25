@@ -2133,10 +2133,13 @@ nsObjectLoadingContent::StopPluginInstance()
   }
 #endif
 
-  DoStopPlugin(mInstanceOwner, delayedStop);
-
+  
+  
+  
+  
+  nsRefPtr<nsPluginInstanceOwner> instOwner = mInstanceOwner;
   mInstanceOwner = nsnull;
-
+  DoStopPlugin(instOwner, delayedStop);
   return NS_OK;
 }
 
