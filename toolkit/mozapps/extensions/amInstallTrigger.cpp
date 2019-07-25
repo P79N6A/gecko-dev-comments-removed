@@ -1,39 +1,39 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is the Extension Manager.
+ *
+ * The Initial Developer of the Original Code is
+ * the Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Dave Townsend <dtownsend@oxymoronical.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "amInstallTrigger.h"
 #include "nsIClassInfoImpl.h"
@@ -51,9 +51,9 @@
 #include "nsIScriptSecurityManager.h"
 #include "mozilla/ModuleUtils.h"
 
-
-
-
+//
+// Helper function for URI verification
+//
 static nsresult
 CheckLoadURIFromScript(JSContext *aCx, const nsACString& aUriStr)
 {
@@ -61,21 +61,21 @@ CheckLoadURIFromScript(JSContext *aCx, const nsACString& aUriStr)
   nsCOMPtr<nsIScriptSecurityManager> secman(do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // get the script principal
   nsCOMPtr<nsIPrincipal> principal;
   rv = secman->GetSubjectPrincipal(getter_AddRefs(principal));
   NS_ENSURE_SUCCESS(rv, rv);
   if (!principal)
     return NS_ERROR_FAILURE;
 
-  
-  
-  
+  // convert the requested URL string to a URI
+  // Note that we use a null base URI here, since that's what we use when we
+  // actually convert the string into a URI to load.
   nsCOMPtr<nsIURI> uri;
   rv = NS_NewURI(getter_AddRefs(uri), aUriStr);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // are we allowed to load this one?
   rv = secman->CheckLoadURIWithPrincipal(principal, uri,
                   nsIScriptSecurityManager::DISALLOW_INHERIT_PRINCIPAL);
   return rv;
@@ -99,13 +99,13 @@ amInstallTrigger::GetJSContext()
 {
   nsCOMPtr<nsIXPConnect> xpc = do_GetService(nsIXPConnect::GetCID());
 
-  
+  // get the xpconnect native call context
   nsAXPCNativeCallContext *cc = nsnull;
   xpc->GetCurrentNativeCallContext(&cc);
   if (!cc)
     return nsnull;
 
-  
+  // Get JSContext of current call
   JSContext* cx;
   nsresult rv = cc->GetJSContext(&cx);
   if (NS_FAILED(rv))
@@ -144,14 +144,14 @@ amInstallTrigger::GetOriginatingURI(nsIDOMWindowInternal* aWindow)
   return uri;
 }
 
-
+/* boolean updateEnabled (); */
 NS_IMETHODIMP
 amInstallTrigger::UpdateEnabled(PRBool *_retval NS_OUTPARAM)
 {
   return Enabled(_retval);
 }
 
-
+/* boolean enabled (); */
 NS_IMETHODIMP
 amInstallTrigger::Enabled(PRBool *_retval NS_OUTPARAM)
 {
@@ -161,7 +161,7 @@ amInstallTrigger::Enabled(PRBool *_retval NS_OUTPARAM)
   return mManager->IsInstallEnabled(NS_LITERAL_STRING("application/x-xpinstall"), referer, _retval);
 }
 
-
+/* boolean install (in nsIVariant args, [optional] in amIInstallCallback callback); */
 NS_IMETHODIMP
 amInstallTrigger::Install(nsIVariant *aArgs,
                           amIInstallCallback *aCallback,
@@ -243,7 +243,7 @@ amInstallTrigger::Install(nsIVariant *aArgs,
     }
 
     nsCString tmpURI = NS_ConvertUTF16toUTF8(uri);
-    
+    // Get relative URL to load
     if (referer) {
       rv = referer->Resolve(tmpURI, tmpURI);
       if (NS_FAILED(rv)) {
@@ -269,7 +269,7 @@ amInstallTrigger::Install(nsIVariant *aArgs,
         }
       }
 
-      
+      // If the page can't load the icon then just ignore it
       rv = CheckLoadURIFromScript(cx, tmpIcon);
       if (NS_FAILED(rv))
         icon = nsnull;
@@ -300,7 +300,7 @@ amInstallTrigger::Install(nsIVariant *aArgs,
   return rv;
 }
 
-
+/* boolean installChrome (in PRUint32 type, in AString url, in AString skin); */
 NS_IMETHODIMP
 amInstallTrigger::InstallChrome(PRUint32 aType,
                                 const nsAString & aUrl,
@@ -310,7 +310,7 @@ amInstallTrigger::InstallChrome(PRUint32 aType,
   return StartSoftwareUpdate(aUrl, 0, _retval);
 }
 
-
+/* boolean startSoftwareUpdate (in AString url, [optional] in PRInt32 flags); */
 NS_IMETHODIMP
 amInstallTrigger::StartSoftwareUpdate(const nsAString & aUrl,
                                       PRInt32 aFlags,
@@ -328,7 +328,7 @@ amInstallTrigger::StartSoftwareUpdate(const nsAString & aUrl,
   nsTArray<const PRUnichar*> hashes;
 
   nsCString tmpURI = NS_ConvertUTF16toUTF8(aUrl);
-  
+  // Get relative URL to load
   if (referer) {
     rv = referer->Resolve(tmpURI, tmpURI);
     NS_ENSURE_SUCCESS(rv, rv);
