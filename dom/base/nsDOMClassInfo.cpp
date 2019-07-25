@@ -5250,9 +5250,7 @@ nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JSObject *obj,
 
   nsHTMLDocument *document = GetDocument(obj);
 
-  if (!document ||
-      document->GetCompatibilityMode() != eCompatibility_NavQuirks) {
-    
+  if (!document) {
     
 
     return JS_TRUE;
