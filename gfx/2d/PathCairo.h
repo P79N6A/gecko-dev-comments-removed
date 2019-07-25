@@ -68,10 +68,6 @@ public:
   
   bool ContainsPath(const Path* path);
 
-  
-  
-  void ObserveTarget(DrawTargetCairo* aDrawTarget);
-
   cairo_t* GetContext() const { return mContext; }
   DrawTargetCairo* GetDrawTarget() const { return mDrawTarget; }
   Matrix GetTransform() const { return mTransform; }

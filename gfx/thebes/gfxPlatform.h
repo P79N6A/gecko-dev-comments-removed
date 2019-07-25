@@ -38,6 +38,9 @@ class gfxTextRun;
 class nsIURI;
 class nsIAtom;
 
+extern mozilla::gfx::UserDataKey kThebesSurfaceKey;
+void DestroyThebesSurface(void *data);
+
 extern cairo_user_data_key_t kDrawTarget;
 
 
@@ -127,7 +130,7 @@ GetBackendName(mozilla::gfx::BackendType aBackend)
       case mozilla::gfx::BACKEND_NONE:
         return "none";
   }
-  MOZ_NOT_REACHED("Incomplete switch");
+  MOZ_NOT_REACHED("Incomplet switch");
 }
 
 class THEBES_API gfxPlatform {
@@ -169,12 +172,9 @@ public:
                                                         gfxASurface::gfxImageFormat format);
 
     virtual mozilla::RefPtr<mozilla::gfx::DrawTarget>
-      CreateDrawTargetForSurface(gfxASurface *aSurface, const mozilla::gfx::IntSize& aSize);
+      CreateDrawTargetForSurface(gfxASurface *aSurface);
 
     
-
-
-
 
 
 
@@ -183,7 +183,7 @@ public:
       GetSourceSurfaceForSurface(mozilla::gfx::DrawTarget *aTarget, gfxASurface *aSurface);
 
     virtual mozilla::RefPtr<mozilla::gfx::ScaledFont>
-      GetScaledFontForFont(mozilla::gfx::DrawTarget* aTarget, gfxFont *aFont);
+      GetScaledFontForFont(gfxFont *aFont);
 
     virtual already_AddRefed<gfxASurface>
       GetThebesSurfaceForDrawTarget(mozilla::gfx::DrawTarget *aTarget);
@@ -195,12 +195,13 @@ public:
       CreateDrawTargetForData(unsigned char* aData, const mozilla::gfx::IntSize& aSize, 
                               int32_t aStride, mozilla::gfx::SurfaceFormat aFormat);
 
-    
-    bool SupportsAzureCanvas(mozilla::gfx::BackendType& aBackend);
+    virtual bool SupportsAzure(mozilla::gfx::BackendType& aBackend) { return false; }
 
-    
-    void GetAzureCanvasBackendInfo(mozilla::widget::InfoObject &aObj) {
-      aObj.DefineProperty("AzureBackend", GetBackendName(mPreferredCanvasBackend));
+    void GetAzureBackendInfo(mozilla::widget::InfoObject &aObj) {
+      mozilla::gfx::BackendType backend;
+      if (SupportsAzure(backend)) {
+        aObj.DefineProperty("AzureBackend", GetBackendName(backend)); 
+      }
     }
 
     
@@ -454,30 +455,7 @@ protected:
 
     void AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, 
                             eFontPrefLang aCharLang, eFontPrefLang aPageLang);
-
-    
-
-
-
-    mozilla::RefPtr<mozilla::gfx::DrawTarget>
-      CreateDrawTargetForBackend(mozilla::gfx::BackendType aBackend,
-                                 const mozilla::gfx::IntSize& aSize,
-                                 mozilla::gfx::SurfaceFormat aFormat);
-
-    
-
-
-
-
-
-    void InitCanvasBackend(PRUint32 aBackendBitmask);
-    
-
-
-
-    static mozilla::gfx::BackendType GetCanvasBackendPref(PRUint32 aBackendBitmask);
-    static mozilla::gfx::BackendType BackendTypeForName(const nsCString& aName);
-
+                                               
     PRInt8  mAllowDownloadableFonts;
     PRInt8  mDownloadableFontsSanitize;
 #ifdef MOZ_GRAPHITE
@@ -493,6 +471,9 @@ protected:
     
     PRInt32 mUseHarfBuzzScripts;
 
+    
+    mozilla::gfx::BackendType mPreferredDrawTargetBackend;
+
 private:
     
 
@@ -505,13 +486,7 @@ private:
     nsTArray<PRUint32> mCJKPrefLangs;
     nsCOMPtr<nsIObserver> mSRGBOverrideObserver;
     nsCOMPtr<nsIObserver> mFontPrefsObserver;
-
-    
-    mozilla::gfx::BackendType mPreferredCanvasBackend;
-    
-    mozilla::gfx::BackendType mFallbackCanvasBackend;
-
-    mozilla::widget::GfxInfoCollector<gfxPlatform> mAzureCanvasBackendCollector;
+    mozilla::widget::GfxInfoCollector<gfxPlatform> mAzureBackendCollector;
     bool mWorkAroundDriverBugs;
 };
 

@@ -464,7 +464,8 @@ public:
 
   
   NS_IMETHOD SetDimensions(PRInt32 width, PRInt32 height);
-  NS_IMETHOD InitializeWithSurface(nsIDocShell *shell, gfxASurface *surface, PRInt32 width, PRInt32 height);
+  NS_IMETHOD InitializeWithSurface(nsIDocShell *shell, gfxASurface *surface, PRInt32 width, PRInt32 height)
+  { return NS_ERROR_NOT_IMPLEMENTED; }
 
   NS_IMETHOD Render(gfxContext *ctx,
                     gfxPattern::GraphicsFilter aFilter,
@@ -482,7 +483,6 @@ public:
   already_AddRefed<CanvasLayer> GetCanvasLayer(nsDisplayListBuilder* aBuilder,
                                                 CanvasLayer *aOldLayer,
                                                 LayerManager *aManager);
-  virtual bool ShouldForceInactiveLayer(LayerManager *aManager);
   void MarkContextClean();
   NS_IMETHOD SetIsIPC(bool isIPC);
   
@@ -542,11 +542,6 @@ protected:
                              uint32_t aWidth, uint32_t aHeight,
                              JSObject** aRetval);
 
-  
-
-
-  nsresult Initialize(PRInt32 width, PRInt32 height);
-
   nsresult InitializeWithTarget(mozilla::gfx::DrawTarget *surface,
                                 PRInt32 width, PRInt32 height);
 
@@ -602,13 +597,10 @@ protected:
 
 
 
-
   void EnsureWritablePath();
 
   
-  
-  
-  void EnsureUserSpacePath(bool aCommitTransform = true);
+  void EnsureUserSpacePath();
 
   void TransformWillUpdate();
 

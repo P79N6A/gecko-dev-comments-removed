@@ -123,7 +123,7 @@ public:
 
   virtual void *GetNativeSurface(NativeSurfaceType aType);
 
-  bool Init(cairo_surface_t* aSurface, const IntSize& aSize);
+  bool Init(cairo_surface_t* aSurface);
 
   void SetPathObserver(CairoPathContext* aPathObserver);
 
@@ -155,13 +155,8 @@ private:
   
   void MarkSnapshotsIndependent();
 
-  
-  
-  void ClearSurfaceForUnboundedSource(const CompositionOp &aOperator);
 private: 
   cairo_t* mContext;
-  cairo_surface_t* mSurface;
-  IntSize mSize;
   std::vector<SourceSurfaceCairo*> mSnapshots;
   mutable RefPtr<CairoPathContext> mPathObserver;
 };

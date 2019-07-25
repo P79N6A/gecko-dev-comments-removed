@@ -45,28 +45,6 @@ CairoPathContext::~CairoPathContext()
 }
 
 void
-CairoPathContext::ObserveTarget(DrawTargetCairo* aDrawTarget)
-{
-  if (!aDrawTarget) {
-    return;
-  }
-
-  if (mDrawTarget) {
-    mDrawTarget->SetPathObserver(NULL);
-  }
-  mDrawTarget = aDrawTarget;
-
-  
-  
-  if (!mTransform.IsIdentity()) {
-    ForgetDrawTarget();
-    return;
-  }
-
-  mDrawTarget->SetPathObserver(this);
-}
-
-void
 CairoPathContext::DuplicateContextAndPath(const Matrix& aMatrix )
 {
   
@@ -342,7 +320,11 @@ PathCairo::CopyPathTo(cairo_t* aContext, DrawTargetCairo* aDrawTarget)
 
     
     
-    mPathContext->ObserveTarget(aDrawTarget);
+    
+    
+    mPathContext = new CairoPathContext(aContext, aDrawTarget,
+                                        mPathContext->GetFillRule(),
+                                        mPathContext->GetTransform());
   }
 }
 

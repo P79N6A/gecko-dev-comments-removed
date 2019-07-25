@@ -103,7 +103,6 @@ SourceSurfaceCairo::DrawTargetWillChange()
     cairo_set_source(ctx, pat);
     cairo_paint(ctx);
     cairo_destroy(ctx);
-    cairo_pattern_destroy(pat);
 
     
     cairo_surface_destroy(mSurface);
