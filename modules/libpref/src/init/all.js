@@ -813,6 +813,12 @@ pref("network.websocket.extensions.stream-deflate", false);
 
 
 
+pref("dom.server-events.enabled", true);
+
+pref("dom.server-events.default-reconnection-time", 5000); 
+
+
+
 
 pref("network.jar.open-unsafe-types", false);
 
