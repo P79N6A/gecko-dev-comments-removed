@@ -142,11 +142,20 @@ public:
     LAYERS_D3D9
   };
 
-  LayerManager() : mUserData(nsnull)
+  LayerManager() : mUserData(nsnull), mDestroyed(PR_FALSE)
   {
     InitLog();
   }
   virtual ~LayerManager() {}
+
+  
+
+
+
+
+
+  virtual void Destroy() { mDestroyed = PR_TRUE; }
+  PRBool IsDestroyed() { return mDestroyed; }
 
   
 
@@ -297,6 +306,7 @@ public:
 protected:
   nsRefPtr<Layer> mRoot;
   void* mUserData;
+  PRPackedBool mDestroyed;
 
   
   
@@ -328,6 +338,8 @@ public:
   virtual ~Layer() {}
 
   
+
+
 
 
   LayerManager* Manager() { return mManager; }
@@ -387,6 +399,7 @@ public:
     }
     Mutated();
   }
+
   
 
 

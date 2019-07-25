@@ -172,6 +172,13 @@ public:
 
   virtual gfxIntSize GetCurrentSize() = 0;
 
+  
+
+
+
+
+  virtual PRBool SetLayerManager(LayerManager *aManager) = 0;
+
 protected:
   LayerManager* mManager;
 
