@@ -466,13 +466,20 @@ Subscribable.prototype = {
 let Utils = {
   
 
+  useConsole: true, 
+  showTime: false,
+
   
   
   
   
   log: function() {
     var text = this.expandArgumentsForLog(arguments);
-    Services.console.logStringMessage(text);
+    var prefix = this.showTime ? Date.now() + ': ' : '';
+    if (this.useConsole)    
+      Services.console.logStringMessage(prefix + text);
+    else
+      dump(prefix + text + '\n');
   },
 
   
@@ -481,7 +488,11 @@ let Utils = {
   
   error: function() {
     var text = this.expandArgumentsForLog(arguments);
-    Cu.reportError("tabview error: " + text);
+    var prefix = this.showTime ? Date.now() + ': ' : '';
+    if (this.useConsole)    
+      Cu.reportError(prefix + "tabview error: " + text);
+    else
+      dump(prefix + "TABVIEW ERROR: " + text + '\n');
   },
 
   
