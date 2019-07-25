@@ -1306,10 +1306,11 @@ nsAutoCompleteController::ProcessResult(PRInt32 aSearchIndex, nsIAutoCompleteRes
   
   
   
-  if (mRowCount)
+  if (mRowCount) {
     OpenPopup();
-  else if (result != nsIAutoCompleteResult::RESULT_NOMATCH_ONGOING)
+  } else if (mSearchesOngoing == 0) {
     ClosePopup();
+  }
 
   if (mSearchesOngoing == 0) {
     
