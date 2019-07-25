@@ -2180,13 +2180,9 @@ nsFocusManager::GetSelectionLocation(nsIDocument* aDocument,
       
       
 
-      nsCOMPtr<nsIDOMNode> domNode(do_QueryInterface(startContent));
-      PRUint16 nodeType;
-      domNode->GetNodeType(&nodeType);
-
-      if (nodeType == nsIDOMNode::TEXT_NODE) {
+      if (startContent->NodeType() == nsIDOMNode::TEXT_NODE) {
         nsAutoString nodeValue;
-        domNode->GetNodeValue(nodeValue);
+        startContent->AppendTextTo(nodeValue);
 
         PRBool isFormControl =
           startContent->IsNodeOfType(nsINode::eHTML_FORM_CONTROL);
