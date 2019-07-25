@@ -291,7 +291,7 @@ GetEffectivePageStep::Run()
 
   
   
-  if (!canAddToHistory || history->IsHistoryDisabled()) {
+  if (!canAddToHistory) {
     
     mozIStorageStatement* stmt = history->GetStatementById(DB_GET_PAGE_INFO_BY_URL);
     
