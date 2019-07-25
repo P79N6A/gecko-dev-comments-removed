@@ -1062,20 +1062,20 @@ js::NukeCrossCompartmentWrapper(JSObject *wrapper)
 
 
 JS_FRIEND_API(JSBool)
-js::NukeChromeCrossCompartmentWrappersForGlobal(JSContext *cx, JSObject *obj,
-                                                js::NukedGlobalHandling nukeGlobal)
+js::NukeCrossCompartmentWrappers(JSContext* cx, 
+                                 const CompartmentFilter& sourceFilter,
+                                 const CompartmentFilter& targetFilter,
+                                 js::NukedGlobalHandling nukeGlobal)
 {
     CHECK_REQUEST(cx);
-
     JSRuntime *rt = cx->runtime;
-    JSObject *global = &obj->global();
 
     
     
 
     for (CompartmentsIter c(rt); !c.done(); c.next()) {
         
-        if (!js::IsSystemCompartment(c))
+        if (!sourceFilter.match(c))
             continue;
 
         
@@ -1090,10 +1090,10 @@ js::NukeChromeCrossCompartmentWrappersForGlobal(JSContext *cx, JSObject *obj,
             JSObject *wobj = &e.front().value.get().toObject();
             JSObject *wrapped = UnwrapObject(wobj, false);
 
-            if (nukeGlobal == DontNukeForGlobalObject && wrapped == global)
+            if (nukeGlobal == DontNukeForGlobalObject && wrapped->isGlobal())
                 continue;
 
-            if (&wrapped->global() == global) {
+            if (targetFilter.match(wrapped->compartment())) {
                 
                 e.removeFront();
                 NukeCrossCompartmentWrapper(wobj);

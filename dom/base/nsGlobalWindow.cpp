@@ -6866,10 +6866,11 @@ public:
           nsContentUtils::ThreadJSContextStack()->GetSafeJSContext();
 
         JSAutoRequest ar(cx);
-
-        js::NukeChromeCrossCompartmentWrappersForGlobal(cx, obj,
-                                                        window->IsInnerWindow() ? js::DontNukeForGlobalObject :
-                                                                                  js::NukeForGlobalObject);
+        js::NukeCrossCompartmentWrappers(cx, 
+                                         js::ChromeCompartmentsOnly(),
+                                         js::SingleCompartment(js::GetObjectCompartment(obj)),
+                                         window->IsInnerWindow() ? js::DontNukeForGlobalObject :
+                                                                   js::NukeForGlobalObject);
       }
     }
 
