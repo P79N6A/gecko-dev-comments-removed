@@ -66,6 +66,8 @@ const PREF_EM_EXTENSION_FORMAT        = "extensions.";
 const PREF_EM_ENABLED_SCOPES          = "extensions.enabledScopes";
 const PREF_XPI_ENABLED                = "xpinstall.enabled";
 const PREF_XPI_WHITELIST_REQUIRED     = "xpinstall.whitelist.required";
+const PREF_XPI_WHITELIST_PERMISSIONS  = "xpinstall.whitelist.add";
+const PREF_XPI_BLACKLIST_PERMISSIONS  = "xpinstall.blacklist.add";
 
 const DIR_EXTENSIONS                  = "extensions";
 const DIR_STAGE                       = "staged";
@@ -1508,6 +1510,31 @@ var XPIProvider = {
 
 
 
+  importPermissions: function XPI_importPermissions() {
+    function importList(aPrefBranch, aAction) {
+      let list = Services.prefs.getChildList(aPrefBranch, {});
+      list.forEach(function(aPref) {
+        let hosts = Prefs.getCharPref(aPref, "");
+        if (!hosts)
+          return;
+
+        hosts.split(",").forEach(function(aHost) {
+          Services.perms.add(NetUtil.newURI("http://" + aHost), XPI_PERMISSION,
+                             aAction);
+        });
+      });
+    }
+
+    importList(PREF_XPI_WHITELIST_PERMISSIONS,
+               Ci.nsIPermissionManager.ALLOW_ACTION);
+    importList(PREF_XPI_BLACKLIST_PERMISSIONS,
+               Ci.nsIPermissionManager.DENY_ACTION);
+  },
+
+  
+
+
+
 
 
 
@@ -1515,6 +1542,10 @@ var XPIProvider = {
 
   checkForChanges: function XPI_checkForChanges(aAppChanged) {
     LOG("checkForChanges");
+
+    
+    if (aAppChanged)
+      this.importPermissions();
 
     
     
