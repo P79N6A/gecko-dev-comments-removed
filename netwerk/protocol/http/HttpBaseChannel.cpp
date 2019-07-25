@@ -78,7 +78,6 @@ HttpBaseChannel::HttpBaseChannel()
   , mChooseApplicationCache(PR_FALSE)
   , mLoadedFromApplicationCache(PR_FALSE)
   , mChannelIsForDownload(PR_FALSE)
-  , mSuspendCount(0)
   , mRedirectedCachekeys(nsnull)
 {
   LOG(("Creating HttpBaseChannel @%x\n", this));
@@ -1311,28 +1310,6 @@ HttpBaseChannel::GetEntityID(nsACString& aEntityID)
 
 
 
-
-void
-HttpBaseChannel::DoNotifyListener()
-{
-  
-  
-  
-  if (mListener) {
-    mListener->OnStartRequest(this, mListenerContext);
-    mIsPending = PR_FALSE;
-    mListener->OnStopRequest(this, mListenerContext, mStatus);
-    mListener = 0;
-    mListenerContext = 0;
-  } else {
-    mIsPending = PR_FALSE;
-  }
-  
-  mCallbacks = nsnull;
-  mProgressSink = nsnull;
-
-  DoNotifyListenerCleanup();
-}
 
 void
 HttpBaseChannel::AddCookiesToRequest()

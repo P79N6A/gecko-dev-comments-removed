@@ -110,13 +110,14 @@ AutoRedirectVetoNotifier::ReportRedirectResult(bool succeeded)
 
 
 nsHttpChannel::nsHttpChannel()
-    : HttpAsyncAborter<nsHttpChannel>(this)
-    , mLogicalOffset(0)
+    : mLogicalOffset(0)
     , mCacheAccess(0)
     , mPostID(0)
     , mRequestTime(0)
     , mOnCacheEntryAvailableCallback(nsnull)
     , mAsyncCacheOpen(PR_FALSE)
+    , mPendingAsyncCallOnResume(nsnull)
+    , mSuspendCount(0)
     , mCachedContentIsValid(PR_FALSE)
     , mCachedContentIsPartial(PR_FALSE)
     , mTransactionReplaced(PR_FALSE)
@@ -169,6 +170,22 @@ nsHttpChannel::Init(nsIURI *uri,
 
 
 
+
+nsresult
+nsHttpChannel::AsyncCall(nsAsyncCallback funcPtr,
+                         nsRunnableMethod<nsHttpChannel> **retval)
+{
+    nsresult rv;
+
+    nsRefPtr<nsRunnableMethod<nsHttpChannel> > event =
+        NS_NewRunnableMethod(this, funcPtr);
+    rv = NS_DispatchToCurrentThread(event);
+    if (NS_SUCCEEDED(rv) && retval) {
+        *retval = event;
+    }
+
+    return rv;
+}
 
 nsresult
 nsHttpChannel::Connect(PRBool firstTime)
@@ -314,9 +331,60 @@ nsHttpChannel::Connect(PRBool firstTime)
     return NS_OK;
 }
 
-void
-nsHttpChannel::DoNotifyListenerCleanup()
+
+nsresult
+nsHttpChannel::AsyncAbort(nsresult status)
 {
+    LOG(("nsHttpChannel::AsyncAbort [this=%p status=%x]\n", this, status));
+
+    mStatus = status;
+    mIsPending = PR_FALSE;
+
+    nsresult rv = AsyncCall(&nsHttpChannel::HandleAsyncNotifyListener);
+    
+    
+    
+    if (mLoadGroup)
+        mLoadGroup->RemoveRequest(this, nsnull, status);
+
+    return rv;
+}
+
+void
+nsHttpChannel::HandleAsyncNotifyListener()
+{
+    NS_PRECONDITION(!mPendingAsyncCallOnResume, "How did that happen?");
+    
+    if (mSuspendCount) {
+        LOG(("Waiting until resume to do async notification [this=%p]\n",
+             this));
+        mPendingAsyncCallOnResume = &nsHttpChannel::HandleAsyncNotifyListener;
+        return;
+    }
+
+    DoNotifyListener();
+}
+
+void
+nsHttpChannel::DoNotifyListener()
+{
+    
+    
+    
+    if (mListener) {
+        mListener->OnStartRequest(this, mListenerContext);
+        mIsPending = PR_FALSE;
+        mListener->OnStopRequest(this, mListenerContext, mStatus);
+        mListener = 0;
+        mListenerContext = 0;
+    }
+    else {
+        mIsPending = PR_FALSE;
+    }
+    
+    mCallbacks = nsnull;
+    mProgressSink = nsnull;
+
     
     CleanRedirectCacheChainIfNecessary();
 }
@@ -324,11 +392,11 @@ nsHttpChannel::DoNotifyListenerCleanup()
 void
 nsHttpChannel::HandleAsyncRedirect()
 {
-    NS_PRECONDITION(!mCallOnResume, "How did that happen?");
+    NS_PRECONDITION(!mPendingAsyncCallOnResume, "How did that happen?");
     
     if (mSuspendCount) {
         LOG(("Waiting until resume to do async redirect [this=%p]\n", this));
-        mCallOnResume = &nsHttpChannel::HandleAsyncRedirect;
+        mPendingAsyncCallOnResume = &nsHttpChannel::HandleAsyncRedirect;
         return;
     }
 
@@ -382,12 +450,12 @@ nsHttpChannel::ContinueHandleAsyncRedirect(nsresult rv)
 void
 nsHttpChannel::HandleAsyncNotModified()
 {
-    NS_PRECONDITION(!mCallOnResume, "How did that happen?");
+    NS_PRECONDITION(!mPendingAsyncCallOnResume, "How did that happen?");
     
     if (mSuspendCount) {
         LOG(("Waiting until resume to do async not-modified [this=%p]\n",
              this));
-        mCallOnResume = &nsHttpChannel::HandleAsyncNotModified;
+        mPendingAsyncCallOnResume = &nsHttpChannel::HandleAsyncNotModified;
         return;
     }
     
@@ -406,11 +474,11 @@ nsHttpChannel::HandleAsyncNotModified()
 void
 nsHttpChannel::HandleAsyncFallback()
 {
-    NS_PRECONDITION(!mCallOnResume, "How did that happen?");
+    NS_PRECONDITION(!mPendingAsyncCallOnResume, "How did that happen?");
 
     if (mSuspendCount) {
         LOG(("Waiting until resume to do async fallback [this=%p]\n", this));
-        mCallOnResume = &nsHttpChannel::HandleAsyncFallback;
+        mPendingAsyncCallOnResume = &nsHttpChannel::HandleAsyncFallback;
         return;
     }
 
@@ -1227,12 +1295,13 @@ nsHttpChannel::ProxyFailover()
 void
 nsHttpChannel::HandleAsyncReplaceWithProxy()
 {
-    NS_PRECONDITION(!mCallOnResume, "How did that happen?");
+    NS_PRECONDITION(!mPendingAsyncCallOnResume, "How did that happen?");
 
     if (mSuspendCount) {
         LOG(("Waiting until resume to do async proxy replacement [this=%p]\n",
              this));
-        mCallOnResume = &nsHttpChannel::HandleAsyncReplaceWithProxy;
+        mPendingAsyncCallOnResume =
+            &nsHttpChannel::HandleAsyncReplaceWithProxy;
         return;
     }
 
@@ -1260,7 +1329,7 @@ nsHttpChannel::ContinueHandleAsyncReplaceWithProxy(nsresult status)
         mLoadGroup->RemoveRequest(this, nsnull, mStatus);
     }
     else if (NS_FAILED(status)) {
-        AsyncAbort(status);
+       AsyncAbort(status);
     }
 
     
@@ -1275,11 +1344,11 @@ nsHttpChannel::ContinueHandleAsyncReplaceWithProxy(nsresult status)
 void
 nsHttpChannel::HandleAsyncRedirectChannelToHttps()
 {
-    NS_PRECONDITION(!mCallOnResume, "How did that happen?");
+    NS_PRECONDITION(!mPendingAsyncCallOnResume, "How did that happen?");
 
     if (mSuspendCount) {
         LOG(("Waiting until resume to do async redirect to https [this=%p]\n", this));
-        mCallOnResume = &nsHttpChannel::HandleAsyncRedirectChannelToHttps;
+        mPendingAsyncCallOnResume = &nsHttpChannel::HandleAsyncRedirectChannelToHttps;
         return;
     }
 
@@ -1574,16 +1643,6 @@ nsHttpChannel::ResponseWouldVary()
     }
     return PR_FALSE;
 }
-
-
-
-
-void
-nsHttpChannel::HandleAsyncAbort()
-{
-    HttpAsyncAborter<nsHttpChannel>::HandleAsyncAbort();
-}
-
 
 nsresult
 nsHttpChannel::Hash(const char *buf, nsACString &hash)
@@ -3532,9 +3591,9 @@ nsHttpChannel::Resume()
     
     LOG(("nsHttpChannel::Resume [this=%p]\n", this));
         
-    if (--mSuspendCount == 0 && mCallOnResume) {
-        nsresult rv = AsyncCall(mCallOnResume);
-        mCallOnResume = nsnull;
+    if (--mSuspendCount == 0 && mPendingAsyncCallOnResume) {
+        nsresult rv = AsyncCall(mPendingAsyncCallOnResume);
+        mPendingAsyncCallOnResume = nsnull;
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
