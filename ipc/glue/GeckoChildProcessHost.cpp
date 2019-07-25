@@ -70,14 +70,14 @@
 #define NS_TASKBAR_CONTRACTID "@mozilla.org/windows-taskbar;1"
 #endif
 
-#ifdef ANDROID
+#ifdef MOZ_WIDGET_ANDROID
 #include "APKOpen.h"
 #endif
 
 using mozilla::MonitorAutoLock;
 using mozilla::ipc::GeckoChildProcessHost;
 
-#ifdef ANDROID
+#ifdef MOZ_WIDGET_ANDROID
 
 
 
@@ -446,7 +446,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
         nsCString path;
         greDir->GetNativePath(path);
 # ifdef OS_LINUX
-#  ifdef ANDROID
+#  ifdef MOZ_WIDGET_ANDROID
         path += "/lib";
 #  endif  
         const char *ld_library_path = PR_GetEnv("LD_LIBRARY_PATH");
@@ -489,7 +489,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   FilePath exePath;
   GetPathToBinary(exePath);
 
-#ifdef ANDROID
+#ifdef MOZ_WIDGET_ANDROID
   
   chmod(exePath.value().c_str(), 0700);
   int cacheCount = 0;
@@ -589,7 +589,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
 
   childArgv.push_back(childProcessType);
 
-#ifdef ANDROID
+#ifdef MOZ_WIDGET_ANDROID
   childArgv.push_back(cacheStr.get());
 #endif
 

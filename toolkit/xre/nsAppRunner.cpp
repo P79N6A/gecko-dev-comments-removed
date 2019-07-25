@@ -217,7 +217,7 @@ using mozilla::unused;
 
 #include "mozilla/FunctionTimer.h"
 
-#ifdef ANDROID
+#ifdef MOZ_WIDGET_ANDROID
 #include "AndroidBridge.h"
 #endif
 
@@ -1607,7 +1607,7 @@ static nsresult LaunchChild(nsINativeAppSupport* aNative,
 
   SaveToEnv("MOZ_LAUNCHED_CHILD=1");
 
-#if defined(ANDROID)
+#if defined(MOZ_WIDGET_ANDROID)
   mozilla::AndroidBridge::Bridge()->ScheduleRestart();
 #else
 #if defined(XP_MACOSX)

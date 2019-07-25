@@ -41,6 +41,7 @@
 #define ANDROID_STUB_H
 
 #include "dlfcn.h"
+#ifdef ANDROID_VERSION
 #if ANDROID_VERSION < 8
 
 
@@ -49,6 +50,7 @@ typedef struct {
 } Dl_info;
 
 #define dladdr(foo, bar) 0
+#endif
 #endif
 
 
