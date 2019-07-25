@@ -4494,12 +4494,8 @@ nsEventStateManager::CheckForAndDispatchClick(nsPresContext* aPresContext,
   if (0 != aEvent->clickCount) {
     
     
-    if (aEvent->widget) {
-      bool enabled;
-      aEvent->widget->IsEnabled(&enabled);
-      if (!enabled) {
-        return ret;
-      }
+    if (aEvent->widget && !aEvent->widget->IsEnabled()) {
+      return ret;
     }
     
     if (aEvent->button == nsMouseEvent::eMiddleButton ||
