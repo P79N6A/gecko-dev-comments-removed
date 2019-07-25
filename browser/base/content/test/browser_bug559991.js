@@ -43,9 +43,9 @@ function test() {
   
   
   function endTest() {
-    gBrowser.removeTab(tab);
     FullZoom._applyPrefToSetting = oldAPTS;
     FullZoom.onLocationChange = oldOLC;
+    gBrowser.removeTab(tab);
 
     oldAPTS = null;
     oldOLC = null;
