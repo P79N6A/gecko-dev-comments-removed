@@ -19,8 +19,8 @@ using namespace js;
 static ObjectElements emptyElementsHeader(0, 0);
 
 
-HeapValue *js::emptyObjectElements =
-    reinterpret_cast<HeapValue *>(uintptr_t(&emptyElementsHeader) + sizeof(ObjectElements));
+HeapSlot *js::emptyObjectElements =
+    reinterpret_cast<HeapSlot *>(uintptr_t(&emptyElementsHeader) + sizeof(ObjectElements));
 
 #if defined(_MSC_VER) && _MSC_VER >= 1500
 

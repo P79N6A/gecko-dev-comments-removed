@@ -434,7 +434,7 @@ struct JSObject : public js::ObjectImpl
                                    js::gc::AllocKind kind,
                                    js::HandleShape shape,
                                    js::HandleTypeObject type,
-                                   js::HeapValue *slots);
+                                   js::HeapSlot *slots);
 
     
     static inline JSObject *createDenseArray(JSContext *cx,
@@ -546,9 +546,12 @@ struct JSObject : public js::ObjectImpl
 
 
 
-    void getSlotRange(size_t start, size_t length,
-                      js::HeapValue **fixedStart, js::HeapValue **fixedEnd,
-                      js::HeapValue **slotsStart, js::HeapValue **slotsEnd);
+    inline void getSlotRangeUnchecked(size_t start, size_t length,
+                                      js::HeapSlot **fixedStart, js::HeapSlot **fixedEnd,
+                                      js::HeapSlot **slotsStart, js::HeapSlot **slotsEnd);
+    inline void getSlotRange(size_t start, size_t length,
+                             js::HeapSlot **fixedStart, js::HeapSlot **fixedEnd,
+                             js::HeapSlot **slotsStart, js::HeapSlot **slotsEnd);
   public:
 
     
@@ -560,7 +563,7 @@ struct JSObject : public js::ObjectImpl
     inline size_t dynamicSlotIndex(size_t slot);
 
     
-    inline const js::HeapValue *getRawSlots();
+    inline const js::HeapSlot *getRawSlots();
 
     
 
@@ -620,14 +623,16 @@ struct JSObject : public js::ObjectImpl
     bool slotInRange(uintN slot, SentinelAllowed sentinel = SENTINEL_NOT_ALLOWED) const;
 #endif
 
-    js::HeapValue *getSlotAddressUnchecked(uintN slot) {
+  private:
+    js::HeapSlot *getSlotAddressUnchecked(uintN slot) {
         size_t fixed = numFixedSlots();
         if (slot < fixed)
             return fixedSlots() + slot;
         return slots + (slot - fixed);
     }
 
-    js::HeapValue *getSlotAddress(uintN slot) {
+  public:
+    js::HeapSlot *getSlotAddress(uintN slot) {
         
 
 
@@ -637,12 +642,12 @@ struct JSObject : public js::ObjectImpl
         return getSlotAddressUnchecked(slot);
     }
 
-    js::HeapValue &getSlotRef(uintN slot) {
+    js::HeapSlot &getSlotRef(uintN slot) {
         JS_ASSERT(slotInRange(slot));
         return *getSlotAddress(slot);
     }
 
-    inline js::HeapValue &nativeGetSlotRef(uintN slot);
+    inline js::HeapSlot &nativeGetSlotRef(uintN slot);
 
     const js::Value &getSlot(uintN slot) const {
         JS_ASSERT(slotInRange(slot));
@@ -663,12 +668,13 @@ struct JSObject : public js::ObjectImpl
     inline void nativeSetSlotWithType(JSContext *cx, const js::Shape *shape, const js::Value &value);
 
     inline const js::Value &getReservedSlot(uintN index) const;
-    inline js::HeapValue &getReservedSlotRef(uintN index);
+    inline js::HeapSlot &getReservedSlotRef(uintN index);
+    inline void initReservedSlot(uintN index, const js::Value &v);
     inline void setReservedSlot(uintN index, const js::Value &v);
 
     
 
-    js::HeapValue &getFixedSlotRef(uintN slot) {
+    js::HeapSlot &getFixedSlotRef(uintN slot) {
         JS_ASSERT(slot < numFixedSlots());
         return fixedSlots()[slot];
     }
@@ -834,7 +840,7 @@ struct JSObject : public js::ObjectImpl
     inline void setDenseArrayLength(uint32_t length);
     inline void setDenseArrayInitializedLength(uint32_t length);
     inline void ensureDenseArrayInitializedLength(JSContext *cx, uintN index, uintN extra);
-    inline js::HeapValueArray getDenseArrayElements();
+    inline js::HeapSlotArray getDenseArrayElements();
     inline const js::Value &getDenseArrayElement(uintN idx);
     inline void setDenseArrayElement(uintN idx, const js::Value &val);
     inline void initDenseArrayElement(uintN idx, const js::Value &val);

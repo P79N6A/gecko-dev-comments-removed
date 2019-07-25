@@ -152,8 +152,8 @@ class CallObject : public ScopeObject
 
 
 
-    inline js::HeapValueArray argArray();
-    inline js::HeapValueArray varArray();
+    inline js::HeapSlotArray argArray();
+    inline js::HeapSlotArray varArray();
 
     inline void copyValues(uintN nargs, Value *argv, uintN nvars, Value *slots);
 };
@@ -210,7 +210,7 @@ class BlockObject : public NestedScopeObject
 
   protected:
     
-    inline HeapValue &slotValue(unsigned i);
+    inline HeapSlot &slotValue(unsigned i);
 };
 
 class StaticBlockObject : public BlockObject
