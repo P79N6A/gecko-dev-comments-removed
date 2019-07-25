@@ -1102,7 +1102,13 @@ struct JSPendingProxyOperation {
 };
 
 struct JSThreadData {
+#ifdef JS_THREADSAFE
     
+    unsigned            requestDepth;
+#endif
+
+    
+
 
 
 
@@ -1184,17 +1190,8 @@ struct JSThreadData {
     void mark(JSTracer *trc);
     void purge(JSContext *cx);
 
-    static const jsword INTERRUPT_OPERATION_CALLBACK = 0x1;
-
-    void triggerOperationCallback() {
-        
-
-
-
-
-
-        JS_ATOMIC_SET_MASK(&interruptFlags, INTERRUPT_OPERATION_CALLBACK);
-    }
+    
+    inline void triggerOperationCallback(JSRuntime *rt);
 };
 
 #ifdef JS_THREADSAFE
@@ -1226,9 +1223,6 @@ struct JSThread {
 
 
     bool                gcWaiting;
-
-    
-    unsigned            requestDepth;
 
     
     unsigned            suspendCount;
@@ -1611,7 +1605,10 @@ struct JSRuntime {
     JSObject            *anynameObject;
     JSObject            *functionNamespaceObject;
 
-#ifndef JS_THREADSAFE
+#ifdef JS_THREADSAFE
+    
+    volatile jsword     interruptCounter;
+#else
     JSThreadData        threadData;
 
 #define JS_THREAD_DATA(cx)      (&(cx)->runtime->threadData)
@@ -2483,7 +2480,7 @@ class AutoCheckRequestDepth {
 
 # define CHECK_REQUEST(cx)                                                    \
     JS_ASSERT((cx)->thread);                                                  \
-    JS_ASSERT((cx)->thread->requestDepth || (cx)->thread == (cx)->runtime->gcThread); \
+    JS_ASSERT((cx)->thread->data.requestDepth || (cx)->thread == (cx)->runtime->gcThread); \
     AutoCheckRequestDepth _autoCheckRequestDepth(cx);
 
 #else
@@ -3222,7 +3219,7 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 #ifdef JS_THREADSAFE
 # define JS_ASSERT_REQUEST_DEPTH(cx)  (JS_ASSERT((cx)->thread),               \
-                                       JS_ASSERT((cx)->thread->requestDepth >= 1))
+                                       JS_ASSERT((cx)->thread->data.requestDepth >= 1))
 #else
 # define JS_ASSERT_REQUEST_DEPTH(cx)  ((void) 0)
 #endif
@@ -3234,7 +3231,27 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 #define JS_CHECK_OPERATION_LIMIT(cx)                                          \
     (JS_ASSERT_REQUEST_DEPTH(cx),                                             \
-     (!(JS_THREAD_DATA(cx)->interruptFlags & JSThreadData::INTERRUPT_OPERATION_CALLBACK) || js_InvokeOperationCallback(cx)))
+     (!JS_THREAD_DATA(cx)->interruptFlags || js_InvokeOperationCallback(cx)))
+
+JS_ALWAYS_INLINE void
+JSThreadData::triggerOperationCallback(JSRuntime *rt)
+{
+    
+
+
+
+
+
+    if (interruptFlags)
+        return;
+    JS_ATOMIC_SET(&interruptFlags, 1);
+
+#ifdef JS_THREADSAFE
+    
+    if (requestDepth != 0)
+        JS_ATOMIC_INCREMENT(&rt->interruptCounter);
+#endif
+}
 
 
 
@@ -3248,6 +3265,10 @@ js_HandleExecutionInterrupt(JSContext *cx);
 
 namespace js {
 
+
+
+void
+TriggerOperationCallback(JSContext *cx);
 
 void
 TriggerAllOperationCallbacks(JSRuntime *rt);
