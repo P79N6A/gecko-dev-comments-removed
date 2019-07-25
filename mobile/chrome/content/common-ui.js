@@ -636,6 +636,13 @@ var FormHelperUI = {
     
     this._cmdPrevious.setAttribute("disabled", !aHasPrevious);
     this._cmdNext.setAttribute("disabled", !aHasNext);
+
+    
+    if (!aHasNext && !aHasPrevious)
+      this._container.setAttribute("disabled", "true");
+    else
+      this._container.removeAttribute("disabled");
+
     this._hasSuggestions = false;
     this._open = true;
 
@@ -840,6 +847,8 @@ var FormHelperUI = {
       this._zoomFinish();
       this._currentElement = null;
       this._container.hide(this);
+
+      this._container.removeAttribute("disabled");
 
       
       
