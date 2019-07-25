@@ -578,9 +578,8 @@ WeaveSvc.prototype = {
         Svc.Version.compare(MIN_SERVER_STORAGE_VERSION,
                             meta.payload.storageVersion) > 0) {
       
-      
-      if (Records.lastResource.lastChannel.responseStatus != 404 ||
-          Records.lastResource.lastChannel.responseStatus != 200) {
+      let status = Records.lastResource.lastChannel.responseStatus;
+      if (status != 200 && status != 404) {
 	this._log.warn("Unknown error while downloading metadata record.  " +
 			"Aborting sync.");
 	self.done(false);
