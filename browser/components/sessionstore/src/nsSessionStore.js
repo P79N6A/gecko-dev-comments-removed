@@ -497,265 +497,43 @@ SessionStoreService.prototype = {
 
 
   observe: function sss_observe(aSubject, aTopic, aData) {
-    
-    var _this = this;
-
     switch (aTopic) {
-    case "domwindowopened": 
-      aSubject.addEventListener("load", function(aEvent) {
-        aEvent.currentTarget.removeEventListener("load", arguments.callee, false);
-        _this.onLoad(aEvent.currentTarget);
-      }, false);
-      break;
-    case "domwindowclosed": 
-      this.onClose(aSubject);
-      break;
-    case "quit-application-requested":
-      
-      this._forEachBrowserWindow(function(aWindow) {
-        this._collectWindowData(aWindow);
-      });
-      
-      
-      var activeWindow = this._getMostRecentBrowserWindow();
-      if (activeWindow)
-        this.activeWindowSSiCache = activeWindow.__SSi || "";
-      this._dirtyWindows = [];
-      break;
-    case "quit-application-granted":
-      
-      this._loadState = STATE_QUITTING;
-      break;
-    case "browser-lastwindow-close-granted":
-      
-      
-      
-      
-      this._restoreLastWindow = true;
-      break;
-    case "quit-application":
-      if (aData == "restart") {
-        this._prefBranch.setBoolPref("sessionstore.resume_session_once", true);
-        
-        
-        
-        
-        
-        
-        Services.obs.removeObserver(this, "browser:purge-session-history");
-      }
-      else if (this._resume_session_once_on_shutdown != null) {
-        
-        
-        
-        
-        
-        this._prefBranch.setBoolPref("sessionstore.resume_session_once",
-                                     this._resume_session_once_on_shutdown);
-      }
-
-      if (aData != "restart") {
-        
-        this._lastSessionState = null;
-      }
-
-      this._loadState = STATE_QUITTING; 
-      this._uninit();
-      break;
-    case "browser:purge-session-history": 
-      this._clearDisk();
-      
-      
-      
-      if (this._loadState == STATE_QUITTING)
-        return;
-      this._lastSessionState = null;
-      let openWindows = {};
-      this._forEachBrowserWindow(function(aWindow) {
-        Array.forEach(aWindow.gBrowser.tabs, function(aTab) {
-          delete aTab.linkedBrowser.__SS_data;
-          delete aTab.linkedBrowser.__SS_tabStillLoading;
-          delete aTab.linkedBrowser.__SS_formDataSaved;
-          delete aTab.linkedBrowser.__SS_hostSchemeData;
-          if (aTab.linkedBrowser.__SS_restoreState)
-            this._resetTabRestoringState(aTab);
-        });
-        openWindows[aWindow.__SSi] = true;
-      });
-      
-      for (let ix in this._windows) {
-        if (ix in openWindows) {
-          this._windows[ix]._closedTabs = [];
-        }
-        else {
-          delete this._windows[ix];
-          delete this._internalWindows[ix];
-        }
-      }
-      
-      this._closedWindows = [];
-      
-      var win = this._getMostRecentBrowserWindow();
-      if (win)
-        win.setTimeout(function() { _this.saveState(true); }, 0);
-      else if (this._loadState == STATE_RUNNING)
-        this.saveState(true);
-      
-      if ("_stateBackup" in this)
-        delete this._stateBackup;
-
-      this._clearRestoringWindows();
-      break;
-    case "browser:purge-domain-data":
-      
-      function containsDomain(aEntry) {
-        try {
-          if (this._getURIFromString(aEntry.url).host.hasRootDomain(aData))
-            return true;
-        }
-        catch (ex) {  }
-        return aEntry.children && aEntry.children.some(containsDomain, this);
-      }
-      
-      for (let ix in this._windows) {
-        let closedTabs = this._windows[ix]._closedTabs;
-        for (let i = closedTabs.length - 1; i >= 0; i--) {
-          if (closedTabs[i].state.entries.some(containsDomain, this))
-            closedTabs.splice(i, 1);
-        }
-      }
-      
-      
-      for (let ix = this._closedWindows.length - 1; ix >= 0; ix--) {
-        let closedTabs = this._closedWindows[ix]._closedTabs;
-        let openTabs = this._closedWindows[ix].tabs;
-        let openTabCount = openTabs.length;
-        for (let i = closedTabs.length - 1; i >= 0; i--)
-          if (closedTabs[i].state.entries.some(containsDomain, this))
-            closedTabs.splice(i, 1);
-        for (let j = openTabs.length - 1; j >= 0; j--) {
-          if (openTabs[j].entries.some(containsDomain, this)) {
-            openTabs.splice(j, 1);
-            if (this._closedWindows[ix].selected > j)
-              this._closedWindows[ix].selected--;
-          }
-        }
-        if (openTabs.length == 0) {
-          this._closedWindows.splice(ix, 1);
-        }
-        else if (openTabs.length != openTabCount) {
-          
-          let selectedTab = openTabs[this._closedWindows[ix].selected - 1];
-          
-          let activeIndex = (selectedTab.index || selectedTab.entries.length) - 1;
-          if (activeIndex >= selectedTab.entries.length)
-            activeIndex = selectedTab.entries.length - 1;
-          this._closedWindows[ix].title = selectedTab.entries[activeIndex].title;
-        }
-      }
-      if (this._loadState == STATE_RUNNING)
-        this.saveState(true);
-
-      this._clearRestoringWindows();
-      break;
-    case "nsPref:changed": 
-      switch (aData) {
-      
-      
-      case "sessionstore.max_tabs_undo":
-        this._max_tabs_undo = this._prefBranch.getIntPref("sessionstore.max_tabs_undo");
-        for (let ix in this._windows) {
-          this._windows[ix]._closedTabs.splice(this._max_tabs_undo, this._windows[ix]._closedTabs.length);
-        }
+      case "domwindowopened": 
+        this.onOpen(aSubject);
         break;
-      case "sessionstore.max_windows_undo":
-        this._max_windows_undo = this._prefBranch.getIntPref("sessionstore.max_windows_undo");
-        this._capClosedWindows();
+      case "domwindowclosed": 
+        this.onClose(aSubject);
         break;
-      case "sessionstore.interval":
-        this._interval = this._prefBranch.getIntPref("sessionstore.interval");
-        
-        if (this._saveTimer) {
-          this._saveTimer.cancel();
-          this._saveTimer = null;
-        }
-        this.saveStateDelayed(null, -1);
+      case "quit-application-requested":
+        this.onQuitApplicationRequested();
         break;
-      case "sessionstore.resume_from_crash":
-        this._resume_from_crash = this._prefBranch.getBoolPref("sessionstore.resume_from_crash");
-        
-        if (this._resume_session_once_on_shutdown != null) {
-          this._prefBranch.setBoolPref("sessionstore.resume_session_once",
-                                       this._resume_session_once_on_shutdown);
-          this._resume_session_once_on_shutdown = null;
-        }
-        
-        
-        if (!this._resume_from_crash)
-          this._clearDisk();
-        this.saveState(true);
+      case "quit-application-granted":
+        this.onQuitApplicationGranted();
         break;
-      case "sessionstore.restore_on_demand":
-        this._restoreOnDemand =
-          this._prefBranch.getBoolPref("sessionstore.restore_on_demand");
+      case "browser-lastwindow-close-granted":
+        this.onLastWindowCloseGranted();
         break;
-      case "sessionstore.restore_hidden_tabs":
-        this._restoreHiddenTabs =
-          this._prefBranch.getBoolPref("sessionstore.restore_hidden_tabs");
+      case "quit-application":
+        this.onQuitApplication(aData);
         break;
-      case "sessionstore.restore_pinned_tabs_on_demand":
-        this._restorePinnedTabsOnDemand =
-          this._prefBranch.getBoolPref("sessionstore.restore_pinned_tabs_on_demand");
+      case "browser:purge-session-history": 
+        this.onPurgeSessionHistory();
         break;
-      }
-      break;
-    case "timer-callback": 
-      this._saveTimer = null;
-      this.saveState();
-      break;
-    case "private-browsing":
-      switch (aData) {
-      case "enter":
-        this._inPrivateBrowsing = true;
+      case "browser:purge-domain-data":
+        this.onPurgeDomainData(aData);
         break;
-      case "exit":
-        aSubject.QueryInterface(Ci.nsISupportsPRBool);
-        let quitting = aSubject.data;
-        if (quitting) {
-          
-          
-          
-          
-          
-          if ("_stateBackup" in this) {
-            var oState = this._stateBackup;
-            oState.session = { state: STATE_STOPPED_STR };
-
-            this._saveStateObject(oState);
-          }
-        }
-        else
-          this._inPrivateBrowsing = false;
-        delete this._stateBackup;
+      case "nsPref:changed": 
+        this.onPrefChange(aData);
         break;
-      }
-
-      this._clearRestoringWindows();
-      break;
-    case "private-browsing-change-granted":
-      if (aData == "enter") {
-        this.saveState(true);
-        
-        
-        
-        this._stateBackup = JSON.parse(this._toJSONString(this._getCurrentState(true)));
-      }
-      
-      
-      this._resetRestoringState();
-
-      this._clearRestoringWindows();
-      break;
+      case "timer-callback": 
+        this.onTimerCallback();
+        break;
+      case "private-browsing":
+        this.onPrivateBrowsing(aSubject, aData);
+        break;
+      case "private-browsing-change-granted":
+        this.onPrivateBrowsingChangeGranted(aData);
+        break;
     }
   },
 
@@ -956,6 +734,20 @@ SessionStoreService.prototype = {
       tabbrowser.tabContainer.addEventListener(aEvent, this, true);
     }, this);
   },
+  
+  
+
+
+
+
+  onOpen: function sss_onOpen(aWindow) {
+    var _this = this;
+    aWindow.addEventListener("load", function(aEvent) {
+      aEvent.currentTarget.removeEventListener("load", arguments.callee, false);
+      _this.onLoad(aEvent.currentTarget);
+    }, false);
+    return;
+  },
 
   
 
@@ -1046,6 +838,305 @@ SessionStoreService.prototype = {
     aWindow.__SS_dyingCache = winData;
     
     delete aWindow.__SSi;
+  },
+
+  
+
+
+  onQuitApplicationRequested: function sss_onQuitApplicationRequested() {
+    
+    this._forEachBrowserWindow(function(aWindow) {
+      this._collectWindowData(aWindow);
+    });
+    
+    
+    var activeWindow = this._getMostRecentBrowserWindow();
+    if (activeWindow)
+      this.activeWindowSSiCache = activeWindow.__SSi || "";
+    this._dirtyWindows = [];
+  },
+  
+  
+
+
+  onQuitApplicationGranted: function sss_onQuitApplicationGranted() {
+    
+    this._loadState = STATE_QUITTING;
+  },
+  
+  
+
+
+  onLastWindowCloseGranted: function sss_onLastWindowCloseGranted() {
+    
+    
+    
+    
+    this._restoreLastWindow = true;
+  },
+
+  
+
+
+
+
+  onQuitApplication: function sss_onQuitApplication(aData) {
+    if (aData == "restart") {
+      this._prefBranch.setBoolPref("sessionstore.resume_session_once", true);
+      
+      
+      
+      
+      
+      
+      Services.obs.removeObserver(this, "browser:purge-session-history");
+    }
+    else if (this._resume_session_once_on_shutdown != null) {
+      
+      
+      
+      
+      
+      this._prefBranch.setBoolPref("sessionstore.resume_session_once",
+                                   this._resume_session_once_on_shutdown);
+    }
+
+    if (aData != "restart") {
+      
+      this._lastSessionState = null;
+    }
+
+    this._loadState = STATE_QUITTING; 
+    this._uninit();
+  },
+
+  
+
+
+  onPurgeSessionHistory: function sss_onPurgeSessionHistory() {
+    var _this = this;
+    this._clearDisk();
+    
+    
+    
+    if (this._loadState == STATE_QUITTING)
+      return;
+    this._lastSessionState = null;
+    let openWindows = {};
+    this._forEachBrowserWindow(function(aWindow) {
+      Array.forEach(aWindow.gBrowser.tabs, function(aTab) {
+        delete aTab.linkedBrowser.__SS_data;
+        delete aTab.linkedBrowser.__SS_tabStillLoading;
+        delete aTab.linkedBrowser.__SS_formDataSaved;
+        delete aTab.linkedBrowser.__SS_hostSchemeData;
+        if (aTab.linkedBrowser.__SS_restoreState)
+          this._resetTabRestoringState(aTab);
+      });
+      openWindows[aWindow.__SSi] = true;
+    });
+    
+    for (let ix in this._windows) {
+      if (ix in openWindows) {
+        this._windows[ix]._closedTabs = [];
+      }
+      else {
+        delete this._windows[ix];
+        delete this._internalWindows[ix];
+      }
+    }
+    
+    this._closedWindows = [];
+    
+    var win = this._getMostRecentBrowserWindow();
+    if (win)
+      win.setTimeout(function() { _this.saveState(true); }, 0);
+    else if (this._loadState == STATE_RUNNING)
+      this.saveState(true);
+    
+    if ("_stateBackup" in this)
+      delete this._stateBackup;
+
+    this._clearRestoringWindows();
+  },
+
+  
+
+
+
+
+  onPurgeDomainData: function sss_onPurgeDomainData(aData) {
+    
+    function containsDomain(aEntry) {
+      try {
+        if (this._getURIFromString(aEntry.url).host.hasRootDomain(aData))
+          return true;
+      }
+      catch (ex) {  }
+      return aEntry.children && aEntry.children.some(containsDomain, this);
+    }
+    
+    for (let ix in this._windows) {
+      let closedTabs = this._windows[ix]._closedTabs;
+      for (let i = closedTabs.length - 1; i >= 0; i--) {
+        if (closedTabs[i].state.entries.some(containsDomain, this))
+          closedTabs.splice(i, 1);
+      }
+    }
+    
+    
+    for (let ix = this._closedWindows.length - 1; ix >= 0; ix--) {
+      let closedTabs = this._closedWindows[ix]._closedTabs;
+      let openTabs = this._closedWindows[ix].tabs;
+      let openTabCount = openTabs.length;
+      for (let i = closedTabs.length - 1; i >= 0; i--)
+        if (closedTabs[i].state.entries.some(containsDomain, this))
+          closedTabs.splice(i, 1);
+      for (let j = openTabs.length - 1; j >= 0; j--) {
+        if (openTabs[j].entries.some(containsDomain, this)) {
+          openTabs.splice(j, 1);
+          if (this._closedWindows[ix].selected > j)
+            this._closedWindows[ix].selected--;
+        }
+      }
+      if (openTabs.length == 0) {
+        this._closedWindows.splice(ix, 1);
+      }
+      else if (openTabs.length != openTabCount) {
+        
+        let selectedTab = openTabs[this._closedWindows[ix].selected - 1];
+        
+        let activeIndex = (selectedTab.index || selectedTab.entries.length) - 1;
+        if (activeIndex >= selectedTab.entries.length)
+          activeIndex = selectedTab.entries.length - 1;
+        this._closedWindows[ix].title = selectedTab.entries[activeIndex].title;
+      }
+    }
+    if (this._loadState == STATE_RUNNING)
+      this.saveState(true);
+
+    this._clearRestoringWindows();
+  },
+
+  
+
+
+
+
+  onPrefChange: function sss_onPrefChange(aData) {
+    switch (aData) {
+      
+      
+      case "sessionstore.max_tabs_undo":
+        this._max_tabs_undo = this._prefBranch.getIntPref("sessionstore.max_tabs_undo");
+        for (let ix in this._windows) {
+          this._windows[ix]._closedTabs.splice(this._max_tabs_undo, this._windows[ix]._closedTabs.length);
+        }
+        break;
+      case "sessionstore.max_windows_undo":
+        this._max_windows_undo = this._prefBranch.getIntPref("sessionstore.max_windows_undo");
+        this._capClosedWindows();
+        break;
+      case "sessionstore.interval":
+        this._interval = this._prefBranch.getIntPref("sessionstore.interval");
+        
+        if (this._saveTimer) {
+          this._saveTimer.cancel();
+          this._saveTimer = null;
+        }
+        this.saveStateDelayed(null, -1);
+        break;
+      case "sessionstore.resume_from_crash":
+        this._resume_from_crash = this._prefBranch.getBoolPref("sessionstore.resume_from_crash");
+        
+        if (this._resume_session_once_on_shutdown != null) {
+          this._prefBranch.setBoolPref("sessionstore.resume_session_once",
+                                       this._resume_session_once_on_shutdown);
+          this._resume_session_once_on_shutdown = null;
+        }
+        
+        
+        if (!this._resume_from_crash)
+          this._clearDisk();
+        this.saveState(true);
+        break;
+      case "sessionstore.restore_on_demand":
+        this._restoreOnDemand =
+          this._prefBranch.getBoolPref("sessionstore.restore_on_demand");
+        break;
+      case "sessionstore.restore_hidden_tabs":
+        this._restoreHiddenTabs =
+          this._prefBranch.getBoolPref("sessionstore.restore_hidden_tabs");
+        break;
+      case "sessionstore.restore_pinned_tabs_on_demand":
+        this._restorePinnedTabsOnDemand =
+          this._prefBranch.getBoolPref("sessionstore.restore_pinned_tabs_on_demand");
+        break;
+    }
+  },
+
+  
+
+
+  onTimerCallback: function sss_onTimerCallback() {
+    this._saveTimer = null;
+    this.saveState();
+  },
+
+  
+
+
+
+
+
+
+  onPrivateBrowsing: function sss_onPrivateBrowsing(aSubject, aData) {
+    switch (aData) {
+      case "enter":
+        this._inPrivateBrowsing = true;
+        break;
+      case "exit":
+        aSubject.QueryInterface(Ci.nsISupportsPRBool);
+        let quitting = aSubject.data;
+        if (quitting) {
+          
+          
+          
+          
+          
+          if ("_stateBackup" in this) {
+            var oState = this._stateBackup;
+            oState.session = { state: STATE_STOPPED_STR };
+
+            this._saveStateObject(oState);
+          }
+        }
+        else
+          this._inPrivateBrowsing = false;
+        delete this._stateBackup;
+        break;
+    }
+
+    this._clearRestoringWindows();
+  },
+
+  
+
+
+
+
+  onPrivateBrowsingChangeGranted: function sss_onPrivateBrowsingChangeGranted(aData) {
+    if (aData == "enter") {
+      this.saveState(true);
+      
+      
+      
+      this._stateBackup = JSON.parse(this._toJSONString(this._getCurrentState(true)));
+    }
+    
+    
+    this._resetRestoringState();
+
+    this._clearRestoringWindows();
   },
 
   
