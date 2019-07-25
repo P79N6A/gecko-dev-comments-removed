@@ -467,7 +467,7 @@ public:
     
     typedef T* RawRef;
     
-    static RawRef Void() { return nsnull; };
+    static RawRef Void() { return nsnull; }
 };
 
 
