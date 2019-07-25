@@ -185,6 +185,7 @@ TiltVisualizer.Presenter = function TV_Presenter(
   this.canvas = aCanvas;
   this.contentWindow = aContentWindow;
   this.inspectorUI = aInspectorUI;
+  this.tiltUI = aInspectorUI.chromeWin.Tilt;
 
   
 
@@ -1000,6 +1001,10 @@ TiltVisualizer.Controller.prototype = {
       e.preventDefault();
       e.stopPropagation();
     }
+    if (code === e.DOM_VK_ESCAPE) {
+      this.presenter.tiltUI.destroy(this.presenter.tiltUI.currentWindowId);
+    }
+
     this.arcball.keyUp(code);
   },
 
