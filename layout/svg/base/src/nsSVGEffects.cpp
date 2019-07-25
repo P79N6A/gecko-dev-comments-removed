@@ -193,6 +193,13 @@ nsSVGRenderingObserver::InvalidateViaReferencedElement()
 }
 
 void
+nsSVGRenderingObserver::NotifyEvictedFromRenderingObserverList()
+{
+  mInObserverList = PR_FALSE; 
+  StopListening();            
+}
+
+void
 nsSVGRenderingObserver::AttributeChanged(nsIDocument* aDocument,
                                          dom::Element* aElement,
                                          PRInt32 aNameSpaceID,
@@ -542,6 +549,21 @@ nsSVGRenderingObserverList::InvalidateAll()
   }
 }
 
+void
+nsSVGRenderingObserverList::RemoveAll()
+{
+  nsAutoTArray<nsSVGRenderingObserver*,10> observers;
+
+  
+  mObservers.EnumerateEntries(GatherEnumerator, &observers);
+
+  
+  
+  for (PRUint32 i = 0; i < observers.Length(); ++i) {
+    observers[i]->NotifyEvictedFromRenderingObserverList();
+  }
+}
+
 static void
 DestroyObservers(void *aObject, nsIAtom *aPropertyName,
                  void *aPropertyValue, void *aData)
@@ -574,6 +596,16 @@ nsSVGEffects::RemoveRenderingObserver(Element *aElement, nsSVGRenderingObserver 
     if (observerList->IsEmpty()) {
       aElement->SetHasRenderingObservers(false);
     }
+  }
+}
+
+void
+nsSVGEffects::RemoveAllRenderingObservers(Element *aElement)
+{
+  nsSVGRenderingObserverList *observerList = GetObserverList(aElement);
+  if (observerList) {
+    observerList->RemoveAll();
+    aElement->SetHasRenderingObservers(false);
   }
 }
 
