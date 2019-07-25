@@ -273,6 +273,7 @@ WeaveSvc.prototype = {
                       "Weave, since it will not work correctly.");
     }
 
+    Svc.Obs.add("weave:service:setup-complete", this);
     Svc.Obs.add("network:offline-status-changed", this);
     Svc.Obs.add("weave:service:sync:finish", this);
     Svc.Obs.add("weave:service:sync:error", this);
@@ -292,6 +293,10 @@ WeaveSvc.prototype = {
 
     this._updateCachedURLs();
 
+    let status = this._checkSetup();
+    if (status != STATUS_DISABLED && status != CLIENT_NOT_CONFIGURED)
+      Svc.Obs.notify("weave:engine:start-tracking");
+
     
     
     let delay = Svc.Prefs.get("autoconnectDelay");
@@ -306,7 +311,10 @@ WeaveSvc.prototype = {
   },
 
   _checkSetup: function WeaveSvc__checkSetup() {
-    if (!this.username) {
+    if (!this.enabled) {
+      Status.service = STATUS_DISABLED;
+    }
+    else if (!this.username) {
       this._log.debug("checkSetup: no username set");
       Status.login = LOGIN_FAILED_NO_USERNAME;
     }
@@ -404,6 +412,11 @@ WeaveSvc.prototype = {
 
   observe: function WeaveSvc__observe(subject, topic, data) {
     switch (topic) {
+      case "weave:service:setup-complete":
+        let status = this._checkSetup();
+        if (status != STATUS_DISABLED && status != CLIENT_NOT_CONFIGURED)
+            Svc.Obs.notify("weave:engine:start-tracking");
+        break;
       case "network:offline-status-changed":
         
         this._log.trace("Network offline status change: " + data);
@@ -704,6 +717,7 @@ WeaveSvc.prototype = {
       Svc.Login.removeLogin(login);
     });
     Svc.Obs.notify("weave:service:start-over");
+    Svc.Obs.notify("weave:engine:stop-tracking");
   },
 
   delayedAutoConnect: function delayedAutoConnect(delay) {
@@ -752,6 +766,7 @@ WeaveSvc.prototype = {
       if (Svc.IO.offline)
         throw "Application is offline, login should not be called";
 
+      let initialStatus = this._checkSetup();
       if (username)
         this.username = username;
       if (password)
@@ -761,6 +776,12 @@ WeaveSvc.prototype = {
 
       if (this._checkSetup() == CLIENT_NOT_CONFIGURED)
         throw "aborting login, client not configured";
+
+      
+      
+      if (initialStatus == CLIENT_NOT_CONFIGURED
+          && (username || password || passphrase))
+        Svc.Obs.notify("weave:service:setup-complete");
 
       this._log.info("Logging in user " + this.username);
 
@@ -1317,8 +1338,6 @@ WeaveSvc.prototype = {
     
     Status.resetBackoff();
 
-    this.globalScore = 0;
-
     
     let infoURL = this.infoURL;
     let now = Math.floor(Date.now() / 1000);
@@ -1330,8 +1349,15 @@ WeaveSvc.prototype = {
 
     
     let info = new Resource(infoURL).get();
-    if (!info.success)
+    if (!info.success) {
+      if (info.status == 401) {
+        this.logout();
+        Status.login = LOGIN_FAILED_LOGIN_REJECTED;
+      }
       throw "aborting sync, failed to get collections";
+    }
+
+    this.globalScore = 0;
 
     
     for each (let engine in [Clients].concat(Engines.getAll()))
@@ -1498,7 +1524,7 @@ WeaveSvc.prototype = {
     if (Utils.checkStatus(resp.status, null, [500, [502, 504]])) {
       Status.enforceBackoff = true;
       if (resp.status == 503 && resp.headers["retry-after"])
-        Observers.notify("weave:service:backoff:interval", parseInt(resp.headers["retry-after"], 10));
+        Svc.Obs.notify("weave:service:backoff:interval", parseInt(resp.headers["retry-after"], 10));
     }
   },
   
@@ -1521,7 +1547,7 @@ WeaveSvc.prototype = {
 
 
   wipeServer: function WeaveSvc_wipeServer(collections)
-    this._catch(this._notify("wipe-server", "", function() {
+    this._notify("wipe-server", "", function() {
       if (!collections) {
         collections = [];
         let info = new Resource(this.infoURL).get();
@@ -1529,19 +1555,23 @@ WeaveSvc.prototype = {
           collections.push(name);
       }
       for each (let name in collections) {
-        try {
-          new Resource(this.storageURL + name).delete();
-
-          
-          let crypto = this.storageURL + "crypto/" + name;
-          new Resource(crypto).delete();
-          CryptoMetas.del(crypto);
+        let url = this.storageURL + name;
+        let response = new Resource(url).delete();
+        if (response.status != 200 && response.status != 404) {
+          throw "Aborting wipeServer. Server responded with "
+                + response.status + " response for " + url;
         }
-        catch(ex) {
-          this._log.debug("Exception on wipe of '" + name + "': " + Utils.exceptionStr(ex));
+
+        
+        let crypto = this.storageURL + "crypto/" + name;
+        response = new Resource(crypto).delete();
+        CryptoMetas.del(crypto);
+        if (response.status != 200 && response.status != 404) {
+          throw "Aborting wipeServer. Server responded with "
+                + response.status + " response for " + crypto;
         }
       }
-    }))(),
+    })(),
 
   
 
