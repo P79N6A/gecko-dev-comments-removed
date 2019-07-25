@@ -987,8 +987,8 @@ var Browser = {
 
       
       dump("moving toolbar to stack\n");
-      stackToolbarContainer.setAttribute("hidden", false);
       stackToolbarContainer.appendChild(toolbarMain);
+      stackToolbarContainer.setAttribute("hidden", false);
 
       return true;
     }

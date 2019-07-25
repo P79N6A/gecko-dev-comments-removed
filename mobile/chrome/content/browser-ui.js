@@ -259,17 +259,11 @@ var BrowserUI = {
 
   _initControls : false,
   sizeControls : function(windowW, windowH) {
-    let toolbar = document.getElementById("toolbar-main");
     let tabs = document.getElementById("tabs-container");
     let controls = document.getElementById("browser-controls");
     if (!this._initControls) {
       this._initControls = true;
-      
-      
-      
     }
-
-    toolbar.width = windowW;
 
     let popup = document.getElementById("popup_autocomplete");
     popup.top = this.toolbarH;
@@ -284,11 +278,6 @@ var BrowserUI = {
 
     
     document.getElementById("identity-container").width = windowW;
-
-    
-    let sideBarHeight = windowH - this.toolbarH;
-    controls.height = sideBarHeight;
-    tabs.height = sideBarHeight;
 
     
     let bmkeditor = document.getElementById("bookmark-container");
