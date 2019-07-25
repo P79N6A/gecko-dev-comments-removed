@@ -180,6 +180,12 @@ public:
 
 
   bool Contains(nsIAtom* aValue, nsCaseTreatment aCaseSensitive) const;
+  
+
+
+
+
+  bool Contains(const nsAString& aValue) const;
 
   void ParseAtom(const nsAString& aValue);
   void ParseAtomArray(const nsAString& aValue);

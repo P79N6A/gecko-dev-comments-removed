@@ -74,8 +74,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
                               NS_ISCRIPTCONTEXTPRINCIPAL_IID)
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0x827d1e82, 0x5aab, 0x4e3a, \
-  { 0x88, 0x76, 0x53, 0xf7, 0xed, 0x1e, 0x3f, 0xbe } }
+{ 0x2e583bf4, 0x3c1f, 0x432d, \
+  { 0x82, 0x83, 0x8d, 0xee, 0x7e, 0xcc, 0xc8, 0x8b } }
 
 
 
@@ -113,7 +113,7 @@ public:
 
 
   virtual nsresult EvaluateString(const nsAString& aScript,
-                                  void *aScopeObject,
+                                  JSObject* aScopeObject,
                                   nsIPrincipal *aPrincipal,
                                   const char *aURL,
                                   PRUint32 aLineNo,
@@ -172,8 +172,8 @@ public:
 
 
 
-  virtual nsresult ExecuteScript(void* aScriptObject,
-                                 void* aScopeObject,
+  virtual nsresult ExecuteScript(JSScript* aScriptObject,
+                                 JSObject* aScopeObject,
                                  nsAString* aRetValue,
                                  bool* aIsUndefined) = 0;
 
@@ -226,7 +226,7 @@ public:
 
 
   virtual nsresult CallEventHandler(nsISupports* aTarget,
-                                    void *aScope, void* aHandler,
+                                    JSObject* aScope, void* aHandler,
                                     nsIArray *argv, nsIVariant **rval) = 0;
 
   
@@ -251,7 +251,7 @@ public:
 
 
   virtual nsresult BindCompiledEventHandler(nsISupports* aTarget,
-                                            void *aScope,
+                                            JSObject* aScope,
                                             void* aHandler,
                                             nsScriptObjectHolder& aBoundHandler) = 0;
 
@@ -296,7 +296,7 @@ public:
 
 
 
-  virtual void *GetNativeGlobal() = 0;
+  virtual JSObject* GetNativeGlobal() = 0;
 
   
 
@@ -380,7 +380,7 @@ public:
   virtual void ScriptEvaluated(bool aTerminated) = 0;
 
   virtual nsresult Serialize(nsIObjectOutputStream* aStream,
-                             void *aScriptObject) = 0;
+                             JSScript* aScriptObject) = 0;
   
   
 
@@ -458,13 +458,6 @@ public:
 
 
   virtual void DidInitializeContext() = 0;
-
-  
-
-
-
-
-  virtual void DidSetDocument(nsISupports *aDoc, void *aGlobal) = 0;
 
   
 

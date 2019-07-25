@@ -212,8 +212,12 @@ public:
                                     mozIStoragePendingStatement** _pendingStmt);
 
   
-  
-  
+
+
+
+
+
+
   nsresult CreateContainerWithID(PRInt64 aId, PRInt64 aParent,
                                  const nsACString& aTitle,
                                  const nsAString& aContractId,

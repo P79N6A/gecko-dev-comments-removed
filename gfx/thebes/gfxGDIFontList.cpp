@@ -478,7 +478,7 @@ GDIFontFamily::FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
     GDIFontFamily *ff = reinterpret_cast<GDIFontFamily*>(data);
 
     
-    logFont.lfWeight = NS_MAX<LONG>(NS_MIN<LONG>(logFont.lfWeight, 900), 100);
+    logFont.lfWeight = clamped(logFont.lfWeight, LONG(100), LONG(900));
 
     gfxWindowsFontType feType = GDIFontEntry::DetermineFontType(metrics, fontType);
 

@@ -427,6 +427,7 @@ public:
 
 
 
+
 template<class E, class Alloc=nsTArrayDefaultAllocator>
 class nsTArray : public nsTArray_base<Alloc>,
                  public nsTArray_SafeElementAtHelper<E, nsTArray<E, Alloc> >

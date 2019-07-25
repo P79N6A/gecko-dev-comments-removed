@@ -260,11 +260,6 @@ protected:
 
     already_AddRefed<nsPIWindowRoot> GetWindowRoot();
 
-    PRInt32 GetDefaultNamespaceID() const
-    {
-        return kNameSpaceID_XUL;
-    }
-
     static NS_HIDDEN_(int) DirectionChanged(const char* aPrefName, void* aData);
 
     
@@ -396,7 +391,7 @@ protected:
 
 
 
-    nsresult ExecuteScript(nsIScriptContext *aContext, void* aScriptObject);
+    nsresult ExecuteScript(nsIScriptContext *aContext, JSScript* aScriptObject);
 
     
 

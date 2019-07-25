@@ -77,6 +77,21 @@ PreparePatternForUntiledDrawing(gfxPattern* aPattern,
     
     switch (currentTarget->GetType()) {
 
+        
+        
+        
+        
+        
+        
+        
+        
+        case gfxASurface::SurfaceTypePDF:
+        case gfxASurface::SurfaceTypePS:
+        case gfxASurface::SurfaceTypeWin32Printing:
+            aPattern->SetExtend(gfxPattern::EXTEND_NONE);
+            aPattern->SetFilter(aDefaultFilter);
+            break;
+
 #ifdef MOZ_X11
         case gfxASurface::SurfaceTypeXlib:
         {

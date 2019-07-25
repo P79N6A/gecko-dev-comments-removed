@@ -321,7 +321,6 @@ public:
   virtual nsresult EnsureScriptEnvironment(PRUint32 aLangID);
 
   virtual nsIScriptContext *GetScriptContext(PRUint32 lang);
-  virtual void *GetScriptGlobal(PRUint32 lang);
 
   
   

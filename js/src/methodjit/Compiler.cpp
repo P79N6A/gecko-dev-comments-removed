@@ -746,16 +746,7 @@ mjit::Compiler::generatePrologue()
             stubcc.crossJump(stubcc.masm.jump(), masm.label());
         }
 
-        
-
-
-
-        for (uint32 i = 0; i < script->nfixed; i++) {
-            if (analysis->localHasUseBeforeDef(i)) {
-                Address local(JSFrameReg, sizeof(StackFrame) + i * sizeof(Value));
-                masm.storeValue(UndefinedValue(), local);
-            }
-        }
+        markUndefinedLocals();
 
         types::TypeScriptNesting *nesting = script->nesting();
 
@@ -875,6 +866,28 @@ mjit::Compiler::ensureDoubleArguments()
         uint32 slot = ArgSlot(i);
         if (a->varTypes[slot].type == JSVAL_TYPE_DOUBLE && analysis->trackSlot(slot))
             frame.ensureDouble(frame.getArg(i));
+    }
+}
+
+void
+mjit::Compiler::markUndefinedLocals()
+{
+    uint32 depth = ssa.getFrame(a->inlineIndex).depth;
+
+    
+
+
+
+    for (uint32 i = 0; i < script->nfixed; i++) {
+        uint32 slot = LocalSlot(script, i);
+        Address local(JSFrameReg, sizeof(StackFrame) + (depth + i) * sizeof(Value));
+        if (!cx->typeInferenceEnabled() || !analysis->trackSlot(slot)) {
+            masm.storeValue(UndefinedValue(), local);
+        } else {
+            Lifetime *lifetime = analysis->liveness(slot).live(0);
+            if (lifetime)
+                masm.storeValue(UndefinedValue(), local);
+        }
     }
 }
 
@@ -2106,7 +2119,8 @@ mjit::Compiler::generateMethod()
 
             if (!done) {
                 JaegerSpew(JSpew_Insns, " --- SCRIPTED CALL --- \n");
-                inlineCallHelper(GET_ARGC(PC), callingNew, frameSize);
+                if (!inlineCallHelper(GET_ARGC(PC), callingNew, frameSize))
+                    return Compile_Error;
                 JaegerSpew(JSpew_Insns, " --- END SCRIPTED CALL --- \n");
             }
           }
@@ -3461,7 +3475,7 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew, FrameSize 
     if (!cx->typeInferenceEnabled()) {
         CompileStatus status = callArrayBuiltin(callImmArgc, callingNew);
         if (status != Compile_InlineAbort)
-            return status;
+            return (status == Compile_Okay);
     }
 
     
@@ -3974,6 +3988,8 @@ mjit::Compiler::inlineScriptedFunction(uint32 argc, bool callingNew)
 
 
         ensureDoubleArguments();
+
+        markUndefinedLocals();
 
         status = generateMethod();
         if (status != Compile_Okay) {

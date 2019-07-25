@@ -374,10 +374,17 @@ nsStyleContext::ApplyStyleFixups(nsPresContext* aPresContext)
         disp->mDisplay != NS_STYLE_DISPLAY_TABLE) {
       nsStyleDisplay *mutable_display = static_cast<nsStyleDisplay*>
                                                    (GetUniqueStyleData(eStyleStruct_Display));
+      
+      
+      
+      
+      
       if (mutable_display->mDisplay == NS_STYLE_DISPLAY_INLINE_TABLE)
-        mutable_display->mDisplay = NS_STYLE_DISPLAY_TABLE;
+        mutable_display->mOriginalDisplay = mutable_display->mDisplay =
+          NS_STYLE_DISPLAY_TABLE;
       else
-        mutable_display->mDisplay = NS_STYLE_DISPLAY_BLOCK;
+        mutable_display->mOriginalDisplay = mutable_display->mDisplay =
+          NS_STYLE_DISPLAY_BLOCK;
     }
   }
 

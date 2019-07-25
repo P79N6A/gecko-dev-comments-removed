@@ -1258,6 +1258,7 @@ public:
                                    const char *extension);
 
     GLint GetMaxTextureSize() { return mMaxTextureSize; }
+    GLint GetMaxTextureImageSize() { return mMaxTextureImageSize; }
     void SetFlipped(bool aFlipped) { mFlipped = aFlipped; }
 
     
@@ -1397,6 +1398,7 @@ protected:
     nsTArray<nsIntRect> mScissorStack;
 
     GLint mMaxTextureSize;
+    GLint mMaxTextureImageSize;
     GLint mMaxRenderbufferSize;
 
 public:

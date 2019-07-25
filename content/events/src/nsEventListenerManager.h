@@ -264,7 +264,7 @@ protected:
 
 
   nsresult SetJSEventListener(nsIScriptContext *aContext,
-                              void *aScopeGlobal,
+                              JSObject* aScopeGlobal,
                               nsIAtom* aName,
                               JSObject *aHandler,
                               bool aPermitUntrustedEvents,

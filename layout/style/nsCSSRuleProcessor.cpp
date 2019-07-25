@@ -1257,9 +1257,10 @@ nsCSSRuleProcessor::GetContentState(Element* aElement)
   
   
   
-  if ((!gSupportVisitedPseudo ||
-      gPrivateBrowsingObserver->InPrivateBrowsing()) &&
-      state.HasState(NS_EVENT_STATE_VISITED)) {
+  if (state.HasState(NS_EVENT_STATE_VISITED) &&
+      (!gSupportVisitedPseudo ||
+       aElement->OwnerDoc()->IsBeingUsedAsImage() ||
+       gPrivateBrowsingObserver->InPrivateBrowsing())) {
     state &= ~NS_EVENT_STATE_VISITED;
     state |= NS_EVENT_STATE_UNVISITED;
   }

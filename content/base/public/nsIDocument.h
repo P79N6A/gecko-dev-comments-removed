@@ -125,9 +125,9 @@ class Element;
 } 
 } 
 
-#define NS_IDOCUMENT_IID      \
-{ 0x448c396a, 0x013c, 0x47b8, \
- { 0x95, 0xf4, 0x56, 0x68, 0x0f, 0x5f, 0x12, 0xf8 } }
+#define NS_IDOCUMENT_IID \
+{ 0x3d24831e, 0x2a2b, 0x42f4, \
+  { 0x9d, 0x98, 0x17, 0x60, 0x18, 0xab, 0x6e, 0xfb } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -511,7 +511,7 @@ public:
   
 
 
-  virtual nsresult SetSubDocumentFor(nsIContent *aContent,
+  virtual nsresult SetSubDocumentFor(Element* aContent,
                                      nsIDocument* aSubDoc) = 0;
 
   
@@ -522,7 +522,7 @@ public:
   
 
 
-  virtual nsIContent *FindContentForSubDocument(nsIDocument *aDocument) const = 0;
+  virtual Element* FindContentForSubDocument(nsIDocument* aDocument) const = 0;
 
   
 
@@ -914,12 +914,8 @@ public:
   
 
 
-
-
-
   virtual nsresult CreateElem(const nsAString& aName, nsIAtom *aPrefix,
                               PRInt32 aNamespaceID,
-                              bool aDocumentDefaultType,
                               nsIContent** aResult) = 0;
 
   
@@ -938,7 +934,10 @@ public:
 
 
 
-  virtual PRInt32 GetDefaultNamespaceID() const = 0;
+  PRInt32 GetDefaultNamespaceID() const
+  {
+    return mDefaultElementType;
+  }
 
   void DeleteAllProperties();
   void DeleteAllPropertiesFor(nsINode* aNode);
@@ -1800,6 +1799,8 @@ protected:
 
   nsCOMPtr<nsIStructuredCloneContainer> mStateObjectContainer;
   nsCOMPtr<nsIVariant> mStateObjectCached;
+
+  PRUint8 mDefaultElementType;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocument, NS_IDOCUMENT_IID)

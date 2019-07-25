@@ -152,7 +152,7 @@ function TabItem(tab, options) {
 
   
   if (!TabItems.reconnectingPaused())
-    this._reconnect();
+    this._reconnect(options);
 };
 
 TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
@@ -339,11 +339,19 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  _reconnect: function TabItem__reconnect() {
+  
+  
+  
+  
+  
+  
+  
+  _reconnect: function TabItem__reconnect(options) {
     Utils.assertThrow(!this._reconnected, "shouldn't already be reconnected");
     Utils.assertThrow(this.tab, "should have a xul:tab");
 
     let tabData = Storage.getTabData(this.tab);
+    let groupItem;
 
     if (tabData && TabItems.storageSanity(tabData)) {
       this.loadThumbnail(tabData);
@@ -351,13 +359,10 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       if (this.parent)
         this.parent.remove(this, {immediately: true});
 
-      let groupItem;
-
-      if (tabData.groupID) {
+      if (tabData.groupID)
         groupItem = GroupItems.groupItem(tabData.groupID);
-      } else {
+      else
         groupItem = new GroupItem([], {immediately: true, bounds: tabData.bounds});
-      }
 
       if (groupItem) {
         groupItem.add(this, {immediately: true});
@@ -373,8 +378,15 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
           UI.setActive(this.parent);
       }
     } else {
-      
-      GroupItems.newTab(this, {immediately: true});
+      if (options && options.groupItemId)
+        groupItem = GroupItems.groupItem(options.groupItemId);
+
+      if (groupItem) {
+        groupItem.add(this, {immediately: true});
+      } else {
+        
+        GroupItems.newTab(this, {immediately: true});
+      }
     }
 
     this._reconnected = true;
@@ -834,12 +846,21 @@ let TabItems = {
       AllTabs.register(name, this._eventListeners[name]);
     }
 
+    let activeGroupItem = GroupItems.getActiveGroupItem();
+    let activeGroupItemId = activeGroupItem ? activeGroupItem.id : null;
     
     AllTabs.tabs.forEach(function (tab) {
       if (tab.pinned)
         return;
 
-      self.link(tab, {immediately: true});
+      let options = {immediately: true};
+      
+      
+      
+      
+      if (!tab.hidden && activeGroupItemId)
+         options.groupItemId = activeGroupItemId;
+      self.link(tab, options);
       self.update(tab);
     });
   },
