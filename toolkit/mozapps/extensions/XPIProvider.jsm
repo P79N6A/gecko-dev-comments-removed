@@ -78,9 +78,7 @@ const PREF_XPI_UNPACK                 = "extensions.alwaysUnpack";
 const PREF_INSTALL_REQUIREBUILTINCERTS = "extensions.install.requireBuiltInCerts";
 const PREF_INSTALL_DISTRO_ADDONS      = "extensions.installDistroAddons";
 const PREF_BRANCH_INSTALLED_ADDON     = "extensions.installedDistroAddon.";
-const PREF_SHOWN_SELECTION_UI         = "extensions.shownSelectionUI";
 
-const URI_EXTENSION_SELECT_DIALOG     = "chrome://mozapps/content/extensions/selectAddons.xul";
 const URI_EXTENSION_UPDATE_DIALOG     = "chrome://mozapps/content/extensions/update.xul";
 const URI_EXTENSION_STRINGS           = "chrome://mozapps/locale/extensions/extensions.properties";
 
@@ -1586,12 +1584,8 @@ var XPIProvider = {
     
     if (aAppChanged && !this.allAppGlobal &&
         Prefs.getBoolPref(PREF_EM_SHOW_MISMATCH_UI, true)) {
-      this.showUpgradeUI();
+      this.showMismatchWindow();
       flushCaches = true;
-    }
-    else if (aAppChanged === undefined) {
-      
-      Services.prefs.setBoolPref(PREF_SHOWN_SELECTION_UI, true);
     }
 
     if (flushCaches) {
@@ -1707,24 +1701,16 @@ var XPIProvider = {
   
 
 
-  showUpgradeUI: function XPI_showUpgradeUI() {
-    if (!Prefs.getBoolPref(PREF_SHOWN_SELECTION_UI, false)) {
-      
-      var features = "chrome,centerscreen,dialog,titlebar,modal";
-      Services.ww.openWindow(null, URI_EXTENSION_SELECT_DIALOG, "", features, null);
-      Services.prefs.setBoolPref(PREF_SHOWN_SELECTION_UI, true);
-    }
-    else {
-      var variant = Cc["@mozilla.org/variant;1"].
-                    createInstance(Ci.nsIWritableVariant);
-      variant.setFromVariant(this.inactiveAddonIDs);
-  
-      
-      var features = "chrome,centerscreen,dialog,titlebar,modal";
-      var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-               getService(Ci.nsIWindowWatcher);
-      ww.openWindow(null, URI_EXTENSION_UPDATE_DIALOG, "", features, variant);
-    }
+  showMismatchWindow: function XPI_showMismatchWindow() {
+    var variant = Cc["@mozilla.org/variant;1"].
+                  createInstance(Ci.nsIWritableVariant);
+    variant.setFromVariant(this.inactiveAddonIDs);
+
+    
+    var features = "chrome,centerscreen,dialog,titlebar,modal";
+    var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
+             getService(Ci.nsIWindowWatcher);
+    ww.openWindow(null, URI_EXTENSION_UPDATE_DIALOG, "", features, variant);
 
     
     XPIDatabase.writeAddonsList([]);
