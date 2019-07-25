@@ -214,6 +214,7 @@ public:
   
   PRBool   IsTooLong();
   PRBool   IsValueMissing();
+  PRBool   HasTypeMismatch();
   PRBool   IsBarredFromConstraintValidation();
   nsresult GetValidationMessage(nsAString& aValidationMessage,
                                 ValidationMessageType aType);
@@ -245,6 +246,28 @@ protected:
     
     VALUE_MODE_FILENAME
   };
+
+  
+
+
+
+
+
+
+
+  static PRBool IsValidEmailAddress(const nsAString& aValue);
+
+  
+
+
+
+
+
+
+
+
+
+  static PRBool IsValidEmailAddressList(const nsAString& aValue);
 
   
   nsresult SetValueInternal(const nsAString& aValue,
