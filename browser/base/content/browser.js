@@ -939,8 +939,8 @@ const gFormSubmitObserver = {
     element.addEventListener("blur", blurHandler, false);
 
     
-    this.panel.addEventListener("popuphiding", function(aEvent) {
-      aEvent.target.removeEventListener("popuphiding", arguments.callee, false);
+    this.panel.addEventListener("popuphiding", function onPopupHiding(aEvent) {
+      aEvent.target.removeEventListener("popuphiding", onPopupHiding, false);
       element.removeEventListener("input", inputHandler, false);
       element.removeEventListener("blur", blurHandler, false);
     }, false);
@@ -3746,8 +3746,8 @@ function BrowserCustomizeToolbar()
     
     
     panel.style.visibility = "hidden";
-    gNavToolbox.addEventListener("beforecustomization", function () {
-      gNavToolbox.removeEventListener("beforecustomization", arguments.callee, false);
+    gNavToolbox.addEventListener("beforecustomization", function onBeforeCustomization() {
+      gNavToolbox.removeEventListener("beforecustomization", onBeforeCustomization, false);
       panel.style.removeProperty("visibility");
     }, false);
     panel.openPopup(gNavToolbox, "after_start", 0, 0);
@@ -5182,9 +5182,9 @@ var TabsProgressListener = {
         Components.isSuccessCode(aStatus) &&
         /^about:/.test(aWebProgress.DOMWindow.document.documentURI)) {
       aBrowser.addEventListener("click", BrowserOnClick, false);
-      aBrowser.addEventListener("pagehide", function () {
+      aBrowser.addEventListener("pagehide", function onPageHide() {
         aBrowser.removeEventListener("click", BrowserOnClick, false);
-        aBrowser.removeEventListener("pagehide", arguments.callee, true);
+        aBrowser.removeEventListener("pagehide", onPageHide, true);
       }, true);
 
       
@@ -6922,8 +6922,8 @@ function BrowserOpenAddonsMgr(aView) {
   if (aView) {
     
     
-    Services.obs.addObserver(function (aSubject, aTopic, aData) {
-      Services.obs.removeObserver(arguments.callee, aTopic);
+    Services.obs.addObserver(function observer(aSubject, aTopic, aData) {
+      Services.obs.removeObserver(observer, aTopic);
       aSubject.loadView(aView);
     }, "EM-loaded", false);
   }
@@ -8330,8 +8330,8 @@ var gIdentityHandler = {
     
     this._identityBox.setAttribute("open", "true");
     var self = this;
-    this._identityPopup.addEventListener("popuphidden", function (e) {
-      e.currentTarget.removeEventListener("popuphidden", arguments.callee, false);
+    this._identityPopup.addEventListener("popuphidden", function onPopupHidden(e) {
+      e.currentTarget.removeEventListener("popuphidden", onPopupHidden, false);
       self._identityBox.removeAttribute("open");
     }, false);
 
