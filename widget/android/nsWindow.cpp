@@ -1079,17 +1079,12 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
     JNIEnv *env = AndroidBridge::GetJNIEnv();
     if (!env)
         return;
-    AutoLocalJNIFrame jniFrame(env);
+    AutoLocalJNIFrame jniFrame;
 
 #ifdef MOZ_JAVA_COMPOSITOR
     
     if (sCompositorPaused || gAndroidBounds.width <= 0 || gAndroidBounds.height <= 0) {
         return;
-    }
-
-    if (!mLayerManager) {
-        if (!AndroidBridge::HaveValidSurface(env))
-            return;
     }
 
     layers::renderTraceEventStart("Get surface", "424545");
