@@ -7505,34 +7505,18 @@ nsDocShell::CreateContentViewer(const char *aContentType,
         mLoadType = mFailedLoadType;
 
         nsCOMPtr<nsIChannel> failedChannel = mFailedChannel;
-
-        
-        nsCOMPtr<nsIURI> failedURI;
-        if (failedChannel) {
-            NS_GetFinalChannelURI(failedChannel, getter_AddRefs(failedURI));
-        }
-
-        if (!failedURI) {
-            failedURI = mFailedURI;
-        }
-
-        
-        
-        MOZ_ASSERT(failedURI, "We don't have a URI for history APIs.");
-
+        nsCOMPtr<nsIURI> failedURI = mFailedURI;
         mFailedChannel = nsnull;
         mFailedURI = nsnull;
 
         
-        if (failedURI) {
-#ifdef DEBUG
-            bool errorOnLocationChangeNeeded =
-#endif
-            OnNewURI(failedURI, failedChannel, nsnull, mLoadType, true, false,
+        if (failedChannel) {
+            mURIResultedInDocument = true;
+            OnLoadingSite(failedChannel, true, false);
+        } else if (failedURI) {
+            mURIResultedInDocument = true;
+            OnNewURI(failedURI, nsnull, nsnull, mLoadType, true, false,
                      false);
-
-            MOZ_ASSERT(!errorOnLocationChangeNeeded,
-                       "We have to fire onLocationChange again.");
         }
 
         
@@ -7548,6 +7532,9 @@ nsDocShell::CreateContentViewer(const char *aContentType,
                                              getter_AddRefs(entry));
             mLSHE = do_QueryInterface(entry);
         }
+
+        
+        SetCurrentURI(failedURI);
 
         mLoadType = LOAD_ERROR_PAGE;
     }
