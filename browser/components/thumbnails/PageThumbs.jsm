@@ -368,7 +368,7 @@ let PageThumbsStorageMigrator = {
       this.removeThumbnailsFromRoamingProfile();
     }
     if (version < 2) {
-      this.clearThumbnailsFolder();
+      this.renameThumbnailsFolder();
     }
 
     this.currentVersion = LATEST_STORAGE_VERSION;
@@ -389,11 +389,10 @@ let PageThumbsStorageMigrator = {
     }
   },
 
-  clearThumbnailsFolder: function Migrator_clearThumbnailsFolder() {
+  renameThumbnailsFolder: function Migrator_renameThumbnailsFolder() {
     let dir = FileUtils.getDir("ProfLD", [THUMBNAIL_DIRECTORY]);
-    dir.followLinks = false;
     try {
-      dir.remove(true);
+      dir.moveTo(null, dir.leafName + "-old");
     } catch (e) {
       
     }
