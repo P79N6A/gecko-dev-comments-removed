@@ -112,8 +112,10 @@ protected:
   nsresult EstablishConnection();
 
   
-  nsresult FailConnection();
-  nsresult CloseConnection();
+  nsresult FailConnection(PRUint16 reasonCode,
+                          const nsACString& aReasonString = EmptyCString());
+  nsresult CloseConnection(PRUint16 reasonCode,
+                           const nsACString& aReasonString = EmptyCString());
   nsresult Disconnect();
 
   nsresult ConsoleError();
@@ -166,13 +168,12 @@ protected:
   bool mKeepingAlive;
   bool mCheckMustKeepAlive;
   bool mTriggeredCloseEvent;
-  bool mClosedCleanly;
   bool mDisconnected;
 
-  nsCString mClientReason;
-  nsString  mServerReason;
-  PRUint16  mClientReasonCode;
-  PRUint16  mServerReasonCode;
+  
+  bool      mCloseEventWasClean;
+  nsString  mCloseEventReason;
+  PRUint16  mCloseEventCode;
 
   nsCString mAsciiHost;  
   PRUint32  mPort;
