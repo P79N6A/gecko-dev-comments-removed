@@ -1189,7 +1189,6 @@ Browser.MainDragger.prototype = {
         this._hideScrollbars();
 
         
-        let browser = getBrowser();
         browser._updateCSSViewport();
         break;
     }
