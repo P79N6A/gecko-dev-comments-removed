@@ -253,6 +253,10 @@ function WorkerHandle(port, worker) {
   this._worker = worker;
 }
 WorkerHandle.prototype = {
+  get document() {
+    return this._worker.frame.contentDocument;
+  },
+
   
   
   
