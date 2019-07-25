@@ -749,6 +749,9 @@ nsHtml5StreamParser::OnDataAvailable(nsIRequest* aRequest,
 void
 nsHtml5StreamParser::internalEncodingDeclaration(nsString* aEncoding)
 {
+  
+  
+  
   NS_ASSERTION(IsParserThread(), "Wrong thread!");
   if (mCharsetSource >= kCharsetFromMetaTag) { 
     return;
@@ -758,14 +761,21 @@ nsHtml5StreamParser::internalEncodingDeclaration(nsString* aEncoding)
     return; 
   }
 
+  nsCAutoString newEncoding;
+  CopyUTF16toUTF8(*aEncoding, newEncoding);
+  
+  if (newEncoding.LowerCaseEqualsLiteral("utf-16") ||
+      newEncoding.LowerCaseEqualsLiteral("utf-16be") ||
+      newEncoding.LowerCaseEqualsLiteral("utf-16le")) {
+    newEncoding.Assign("UTF-8");
+  }
+
   nsresult rv = NS_OK;
   nsCOMPtr<nsICharsetAlias> calias(do_GetService(kCharsetAliasCID, &rv));
   if (NS_FAILED(rv)) {
     NS_NOTREACHED("Charset alias service not available.");
     return;
   }
-  nsCAutoString newEncoding;
-  CopyUTF16toUTF8(*aEncoding, newEncoding);
   PRBool eq;
   rv = calias->Equals(newEncoding, mCharset, &eq);
   if (NS_FAILED(rv)) {
@@ -787,6 +797,21 @@ nsHtml5StreamParser::internalEncodingDeclaration(nsString* aEncoding)
     return;
   }
   
+  if (preferred.LowerCaseEqualsLiteral("utf-16") ||
+      preferred.LowerCaseEqualsLiteral("utf-16be") ||
+      preferred.LowerCaseEqualsLiteral("utf-16le") ||
+      preferred.LowerCaseEqualsLiteral("utf-32") ||
+      preferred.LowerCaseEqualsLiteral("utf-32be") ||
+      preferred.LowerCaseEqualsLiteral("utf-32le") ||
+      preferred.LowerCaseEqualsLiteral("utf-7") ||
+      preferred.LowerCaseEqualsLiteral("jis_x0212-1990") ||
+      preferred.LowerCaseEqualsLiteral("x-jis0208") ||
+      preferred.LowerCaseEqualsLiteral("x-imap4-modified-utf7") ||
+      preferred.LowerCaseEqualsLiteral("x-user-defined")) {
+    
+    return;
+  }
+
   mTreeBuilder->NeedsCharsetSwitchTo(preferred);
   FlushTreeOpsAndDisarmTimer();
   Interrupt();
