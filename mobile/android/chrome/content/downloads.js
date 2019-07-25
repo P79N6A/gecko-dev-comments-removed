@@ -3,7 +3,7 @@
 
 
 
-const URI_GENERIC_ICON_DOWNLOAD = "drawable://alertdownloads";
+const URI_GENERIC_ICON_DOWNLOAD = "drawable://alert_download";
 
 var Downloads = {
   _initialized: false,
