@@ -577,7 +577,6 @@ JS_GetEmptyStringValue(JSContext *cx);
 
 
 
-
 extern JS_PUBLIC_API(JSBool)
 JS_ConvertArguments(JSContext *cx, uintN argc, jsval *argv, const char *format,
                     ...);
