@@ -93,6 +93,4 @@ typedef JSInt16 int16;
 typedef JSInt8 int8;
 #endif 
 
-typedef JSFloat64 float64;
-
 #endif 
