@@ -419,10 +419,17 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       childItems.AppendToTop(layerItem);
     }
 
+    nsDisplayList list;
     
-    rv = aLists.Content()->AppendNewToTop(
+    rv = list.AppendNewToTop(
         new (aBuilder) nsDisplayClip(aBuilder, this, &childItems,
                                      subdocBoundsInParentUnits));
+
+    if (mIsInline) {
+      WrapReplacedContentForBorderRadius(aBuilder, &list, aLists);
+    } else {
+      aLists.Content()->AppendToTop(&list);
+    }
   }
   
   childItems.DeleteAll();
