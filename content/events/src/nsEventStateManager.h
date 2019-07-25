@@ -195,8 +195,19 @@ public:
 
   static bool IsRemoteTarget(nsIContent* aTarget);
 
+  
+  
+  
+  
+  
+  
   static nsIntPoint sLastScreenPoint;
+
+  
+  
+  
   static nsIntPoint sLastClientPoint;
+
   static bool sIsPointerLocked;
   static nsWeakPtr sPointerLockedElement;
   static nsWeakPtr sPointerLockedDoc;
@@ -454,6 +465,8 @@ private:
   PRInt32     mLockCursor;
 
   
+  
+  
   nsIntPoint  mPreLockPoint;
 
   nsWeakFrame mCurrentTarget;
@@ -461,8 +474,10 @@ private:
   nsWeakFrame mLastMouseOverFrame;
   nsCOMPtr<nsIContent> mLastMouseOverElement;
   static nsWeakFrame sLastDragOverFrame;
+
+  
+  
   static nsIntPoint sLastRefPoint;
-  static nsIntPoint sLastScreenOffset;
 
   
   nsIntPoint mGestureDownPoint; 
