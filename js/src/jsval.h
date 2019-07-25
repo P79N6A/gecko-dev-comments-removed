@@ -237,6 +237,7 @@ typedef union jsval_layout
             void           *ptr;
             JSWhyMagic     why;
             size_t         word;
+            uintptr_t      uintptr;
         } payload;
         JSValueTag tag;
     } s;
@@ -264,6 +265,7 @@ typedef union jsval_layout
     double asDouble;
     void *asPtr;
     size_t asWord;
+    uintptr_t asUIntPtr;
 } JSVAL_ALIGNMENT jsval_layout;
 # endif  
 #else   
@@ -282,6 +284,7 @@ typedef union jsval_layout
             void           *ptr;
             JSWhyMagic     why;
             size_t         word;
+            uintptr_t      uintptr;
         } payload;
     } s;
     double asDouble;
@@ -306,6 +309,7 @@ typedef union jsval_layout
     double asDouble;
     void *asPtr;
     size_t asWord;
+    uintptr_t asUIntPtr;
 } JSVAL_ALIGNMENT jsval_layout;
 # endif 
 #endif  
