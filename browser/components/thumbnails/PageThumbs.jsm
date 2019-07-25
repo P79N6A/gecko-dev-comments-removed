@@ -76,7 +76,9 @@ let PageThumbs = {
 
 
 
-  capture: function PageThumbs_capture(aWindow) {
+
+
+  capture: function PageThumbs_capture(aWindow, aCallback) {
     let telemetryCaptureTime = new Date();
     let [sw, sh, scale] = this._determineCropSize(aWindow);
 
@@ -94,10 +96,11 @@ let PageThumbs = {
       
     }
 
-    Services.telemetry.getHistogramById("FX_THUMBNAILS_CAPTURE_TIME_MS")
+    let telemetry = Services.telemetry;
+    telemetry.getHistogramById("FX_THUMBNAILS_CAPTURE_TIME_MS")
       .add(new Date() - telemetryCaptureTime);
 
-    return canvas;
+    canvas.mozFetchAsStream(aCallback, this.contentType);
   },
 
   
@@ -108,7 +111,7 @@ let PageThumbs = {
 
 
 
-  store: function PageThumbs_store(aKey, aCanvas, aCallback) {
+  store: function PageThumbs_store(aKey, aInputStream, aCallback) {
     let telemetryStoreTime = new Date();
 
     function finish(aSuccessful) {
@@ -121,8 +124,6 @@ let PageThumbs = {
         aCallback(aSuccessful);
     }
 
-    let self = this;
-
     
     PageThumbsCache.getWriteEntry(aKey, function (aEntry) {
       if (!aEntry) {
@@ -130,35 +131,17 @@ let PageThumbs = {
         return;
       }
 
+      let outputStream = aEntry.openOutputStream(0);
+
       
-      self._readImageData(aCanvas, function (aData) {
-        let outputStream = aEntry.openOutputStream(0);
+      NetUtil.asyncCopy(aInputStream, outputStream, function (aResult) {
+        let success = Components.isSuccessCode(aResult);
+        if (success)
+          aEntry.markValid();
 
-        
-        NetUtil.asyncCopy(aData, outputStream, function (aResult) {
-          let success = Components.isSuccessCode(aResult);
-          if (success)
-            aEntry.markValid();
-
-          aEntry.close();
-          finish(success);
-        });
+        aEntry.close();
+        finish(success);
       });
-    });
-  },
-
-  
-
-
-
-
-  _readImageData: function PageThumbs_readImageData(aCanvas, aCallback) {
-    let dataUri = aCanvas.toDataURL(PageThumbs.contentType, "");
-    let uri = Services.io.newURI(dataUri, "UTF8", null);
-
-    NetUtil.asyncFetch(uri, function (aData, aResult) {
-      if (Components.isSuccessCode(aResult) && aData && aData.available())
-        aCallback(aData);
     });
   },
 
