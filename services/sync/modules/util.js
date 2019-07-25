@@ -130,6 +130,20 @@ let Utils = {
     return uuidgen.generateUUID().toString().replace(/[{}]/g, '');
   },
 
+  anno: function anno(id, anno, val, expire) {
+    switch (arguments.length) {
+      case 2:
+        
+        return Svc.Annos.getItemAnnotation(id, anno);
+      case 3:
+        expire = Svc.Annos.EXPIRE_NEVER;
+        
+      case 4:
+        
+        return Svc.Annos.setItemAnnotation(id, anno, val, 0, expire);
+    }
+  },
+
   
   
   
@@ -722,7 +736,8 @@ Utils.EventListener.prototype = {
 
 let Svc = {};
 Svc.Prefs = new Preferences(PREFS_BRANCH);
-[["AppInfo", "@mozilla.org/xre/app-info;1", "nsIXULAppInfo"],
+[["Annos", "@mozilla.org/browser/annotation-service;1", "nsIAnnotationService"],
+ ["AppInfo", "@mozilla.org/xre/app-info;1", "nsIXULAppInfo"],
  ["Bookmark", "@mozilla.org/browser/nav-bookmarks-service;1", "nsINavBookmarksService"],
  ["Crypto", "@labs.mozilla.com/Weave/Crypto;1", "IWeaveCrypto"],
  ["Directory", "@mozilla.org/file/directory_service;1", "nsIProperties"],
