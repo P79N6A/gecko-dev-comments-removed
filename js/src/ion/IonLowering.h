@@ -111,6 +111,10 @@ class LIRGenerator : public MInstructionVisitor
     inline LAllocation useRegisterOrConstant(MInstruction *mir);
 
     
+    
+    virtual bool fillBoxUses(LInstruction *lir, size_t n, MInstruction *mir) = 0;
+
+    
     inline LDefinition temp(LDefinition::Type type);
 
     template <size_t Ops, size_t Temps>

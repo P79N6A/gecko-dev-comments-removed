@@ -104,8 +104,55 @@ class LGoto : public LInstructionHelper<0, 0, 0>
     { }
 };
 
-class LTest : public LInstruction
+
+class LTestIAndBranch : public LInstructionHelper<0, 1, 0>
 {
+    MBasicBlock *ifTrue;
+    MBasicBlock *ifFalse;
+
+  public:
+    LIR_HEADER(TestIAndBranch);
+
+    LTestIAndBranch(const LAllocation &in, MBasicBlock *ifTrue, MBasicBlock *ifFalse)
+      : ifTrue(ifTrue),
+        ifFalse(ifFalse)
+    {
+        setOperand(0, in);
+    }
+};
+
+
+class LTestDAndBranch : public LInstructionHelper<0, 1, 1>
+{
+    MBasicBlock *ifTrue;
+    MBasicBlock *ifFalse;
+
+  public:
+    LIR_HEADER(TestDAndBranch);
+
+    LTestDAndBranch(const LAllocation &in, const LDefinition &temp,
+                    MBasicBlock *ifTrue, MBasicBlock *ifFalse)
+      : ifTrue(ifTrue),
+        ifFalse(ifFalse)
+    {
+        setOperand(0, in);
+        setTemp(0, temp);
+    }
+};
+
+
+class LTestVAndBranch : public LInstructionHelper<0, BOX_PIECES, 0>
+{
+    MBasicBlock *ifTrue;
+    MBasicBlock *ifFalse;
+
+  public:
+    LIR_HEADER(TestVAndBranch);
+
+    LTestVAndBranch(MBasicBlock *ifTrue, MBasicBlock *ifFalse)
+      : ifTrue(ifTrue),
+        ifFalse(ifFalse)
+    { }
 };
 
 
