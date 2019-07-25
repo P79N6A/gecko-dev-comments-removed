@@ -496,7 +496,7 @@ AllocateArena(JSContext *cx, unsigned thingKind)
 JS_FRIEND_API(bool)
 IsAboutToBeFinalized(JSContext *cx, void *thing)
 {
-    if (JSString::isStatic(thing))
+    if (JSString::isGCThingStatic(thing))
         return false;
     JS_ASSERT(cx);
 
@@ -1436,7 +1436,7 @@ gc_root_traversal(JSTracer *trc, const RootEntry &entry)
     }
 
     if (ptr) {
-        if (!JSString::isStatic(ptr)) {
+        if (!JSString::isGCThingStatic(ptr)) {
             bool root_points_to_gcArenaList = false;
             JSCompartment **c = trc->context->runtime->compartments.begin();
             for (; c != trc->context->runtime->compartments.end(); ++c) {
@@ -1685,7 +1685,7 @@ MarkRuntime(JSTracer *trc)
               }
             }
 
-            if (JSString::isStatic(thing))
+            if (JSString::isGCThingStatic(thing))
                 continue;
 
             if (!reinterpret_cast<Cell *>(thing)->isMarked()) {
@@ -1854,7 +1854,7 @@ void
 js_FinalizeStringRT(JSRuntime *rt, JSString *str)
 {
     JS_RUNTIME_UNMETER(rt, liveStrings);
-    JS_ASSERT(!JSString::isStatic(str));
+    JS_ASSERT(!str->isStaticAtom());
     JS_ASSERT(!str->isRope());
 
     if (str->isDependent()) {

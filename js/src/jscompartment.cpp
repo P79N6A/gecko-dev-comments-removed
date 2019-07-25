@@ -201,7 +201,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
         JSString *str = vp->toString();
 
         
-        if (JSString::isStatic(str))
+        if (str->isStaticAtom())
             return true;
 
         
@@ -209,7 +209,7 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
             return true;
 
         
-        if (str->isAtomized()) {
+        if (str->isAtom()) {
             JS_ASSERT(str->asCell()->compartment() == cx->runtime->atomsCompartment);
             return true;
         }
