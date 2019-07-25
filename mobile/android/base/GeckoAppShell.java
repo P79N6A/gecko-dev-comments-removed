@@ -1550,6 +1550,19 @@ public class GeckoAppShell
         GeckoSmsManager.send(aNumber, aMessage);
     }
 
+    public static boolean isTablet() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
+            Configuration config = GeckoApp.mAppContext.getResources().getConfiguration();
+            
+            
+            
+            if ((config.screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_XLARGE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static void emitGeckoAccessibilityEvent (int eventType, String role, String text, String description, boolean enabled, boolean checked, boolean password) {
         AccessibilityManager accessibilityManager =
             (AccessibilityManager) GeckoApp.mAppContext.getSystemService(Context.ACCESSIBILITY_SERVICE);
