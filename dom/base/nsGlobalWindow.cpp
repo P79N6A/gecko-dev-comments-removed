@@ -1469,7 +1469,7 @@ nsGlobalWindow::SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal)
       
       return;
     }
-    
+
 #ifdef DEBUG
     
     
@@ -1479,13 +1479,11 @@ nsGlobalWindow::SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal)
                  IsAboutBlank(mDoc->GetDocumentURI()),
                  "Unexpected original document");
 #endif
-    
-    
-    
-    mDoc->SetPrincipal(aPrincipal);
+
+    nsCOMPtr<nsIDocShell_MOZILLA_2_0_BRANCH> ds(do_QueryInterface(GetDocShell()));
+    ds->CreateAboutBlankContentViewer(aPrincipal);
+    mDoc->SetIsInitialDocument(PR_TRUE);
   }
-    
-  mOpenerScriptPrincipal = aPrincipal;
 }
 
 nsIPrincipal*
