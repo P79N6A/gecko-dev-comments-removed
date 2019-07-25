@@ -51,6 +51,13 @@ Cu.import("resource://weave/log4moz.js");
 
 let Utils = {
   
+  makeGUID: function makeGUID() {
+    let uuidgen = Cc["@mozilla.org/uuid-generator;1"].
+                  getService(Ci.nsIUUIDGenerator);
+    return uuidgen.generateUUID().toString().replace(/[{}]/g, '');
+  },
+
+  
   
   
   

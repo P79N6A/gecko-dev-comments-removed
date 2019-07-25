@@ -95,7 +95,7 @@ BookmarksEngine.prototype = {
       this.__tracker = new BookmarksTracker();
     return this.__tracker;
   },
-  
+
   __annoSvc: null,
   get _annoSvc() {
     if (!this.__anoSvc)
@@ -295,7 +295,7 @@ BookmarksEngine.prototype = {
   },
   _updateAllOutgoingShares: function BmkEngine__updateAllOutgoing() {
     let self = yield;
-    let shares = this._annoSvc.getItemsWithAnnotation(OUTGOING_SHARED_ANNO, 
+    let shares = this._annoSvc.getItemsWithAnnotation(OUTGOING_SHARED_ANNO,
                                                       {});
     for ( let i=0; i < shares.length; i++ ) {
       
@@ -321,9 +321,7 @@ BookmarksEngine.prototype = {
 
     
 
-    let uuidgen = Cc["@mozilla.org/uuid-generator;1"].
-        getService(Ci.nsIUUIDGenerator);
-    let folderGuid = uuidgen.generateUUID().toString().replace(/[{}]/g, '');
+    let folderGuid = Utils.makeGUID();
 
     
     let serverPath = "/user/" + myUserName + "/share/" + folderGuid;
@@ -419,7 +417,7 @@ BookmarksEngine.prototype = {
                                                       SERVER_PATH_ANNO );
     let username = this._annoSvc.getItemAnnotation( folderNode,
                                                     OUTGOING_SHARE_ANNO );
-    
+
     
     let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
     keyringFile.delete(self.cb);
@@ -429,7 +427,7 @@ BookmarksEngine.prototype = {
     yield;
     
     
-    
+
     
     this._annoSvc.setItemAnnotation(folderNode,
                                     SERVER_PATH_ANNO,
