@@ -98,6 +98,8 @@ public:
 
     NS_IMETHOD TargetSetTimeCallback (nsIDragSessionGTKTimeCB aCallback);
 
+    static nsDragService* GetInstance();
+
     
 
     
