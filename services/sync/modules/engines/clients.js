@@ -60,6 +60,9 @@ ClientEngine.prototype = {
   _recordObj: ClientsRec,
 
   
+  get enabled() true,
+
+  
   get stats() {
     let stats = {
       hasMobile: this.localType == "mobile",
@@ -192,11 +195,8 @@ ClientStore.prototype = {
 
   update: function update(record) {
     
-    if (record.id == Clients.localID) {
-      Clients.localName = record.name;
-      Clients.localType = record.type;
+    if (record.id == Clients.localID)
       Clients.localCommands = record.commands;
-    }
     else
       this._remoteClients[record.id] = record.cleartext;
   },

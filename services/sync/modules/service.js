@@ -1182,22 +1182,6 @@ WeaveSvc.prototype = {
 
     this.globalScore = 0;
 
-    if (!(this._remoteSetup()))
-      throw "aborting sync, remote setup failed";
-
-    
-    switch (Svc.Prefs.get("firstSync")) {
-      case "resetClient":
-        this.resetClient(Engines.getEnabled().map(function(e) e.name));
-        break;
-      case "wipeClient":
-        this.wipeClient(Engines.getEnabled().map(function(e) e.name));
-        break;
-      case "wipeRemote":
-        this.wipeRemote(Engines.getEnabled().map(function(e) e.name));
-        break;
-    }
-
     
     let infoURL = this.infoURL;
     let now = Math.floor(Date.now() / 1000);
@@ -1216,8 +1200,25 @@ WeaveSvc.prototype = {
     for each (let engine in [Clients].concat(Engines.getAll()))
       engine.lastModified = info.obj[engine.name] || 0;
 
+    if (!(this._remoteSetup()))
+      throw "aborting sync, remote setup failed";
+
+    
     this._log.trace("Refreshing client list");
     Clients.sync();
+
+    
+    switch (Svc.Prefs.get("firstSync")) {
+      case "resetClient":
+        this.resetClient(Engines.getEnabled().map(function(e) e.name));
+        break;
+      case "wipeClient":
+        this.wipeClient(Engines.getEnabled().map(function(e) e.name));
+        break;
+      case "wipeRemote":
+        this.wipeRemote(Engines.getEnabled().map(function(e) e.name));
+        break;
+    }
 
     
     if (Clients.localCommands) {
@@ -1424,7 +1425,7 @@ WeaveSvc.prototype = {
   wipeRemote: function WeaveSvc_wipeRemote(engines)
     this._catch(this._notify("wipe-remote", "", function() {
       
-      this.syncID = "";
+      this.resetClient(engines);
 
       
       this.wipeServer(engines);
