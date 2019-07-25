@@ -106,6 +106,19 @@ WebGLContext::Invalidate()
 }
 
 
+NS_IMETHODIMP
+WebGLContext::GetCanvas(nsIDOMHTMLCanvasElement **canvas)
+{
+    if (mCanvasElement == nsnull) {
+        *canvas = nsnull;
+        return NS_OK;
+    }
+
+    NS_ADDREF(*canvas = static_cast<nsIDOMHTMLCanvasElement*>(mCanvasElement));
+    return NS_OK;
+}
+
+
 
 
 
