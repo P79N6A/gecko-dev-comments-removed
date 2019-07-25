@@ -827,7 +827,7 @@ LinearScanAllocator::reifyAllocations()
         graph.getBlock(i)->clearPhis();
 
     
-    graph.setStackHeight(stackAssignment.stackHeight());
+    graph.setLocalSlotCount(stackAssignment.stackHeight());
 
     return true;
 }

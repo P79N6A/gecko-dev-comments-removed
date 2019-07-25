@@ -62,6 +62,29 @@ class CodeGeneratorShared : public LInstructionVisitor
         return a->toConstant()->toInt32();
     }
 
+  protected:
+    
+    
+    
+    int32 frameDepth_;
+
+    
+    
+    
+    int32 framePushed_;
+
+    inline int32 ArgToStackOffset(int32 slot) {
+        JS_ASSERT(slot >= 0);
+        return framePushed_ + frameDepth_ + ION_FRAME_PREFIX_SIZE + slot;
+    }
+
+    inline int32 SlotToStackOffset(int32 slot) {
+        JS_ASSERT(slot >= 0 && slot <= int32(graph.localSlotCount()));
+        int32 offset = framePushed_ + frameDepth_ - slot * STACK_SLOT_SIZE;
+        JS_ASSERT(offset >= 0);
+        return offset;
+    }
+
   private:
     virtual bool generatePrologue() = 0;
     bool generateBody();

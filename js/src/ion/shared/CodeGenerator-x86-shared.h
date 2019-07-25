@@ -56,17 +56,6 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
     }
 
   protected:
-    
-    
-    
-    int32 frameDepth_;
-
-    
-    
-    
-    int32 framePushed_;
-
-  protected:
     inline Operand ToOperand(const LAllocation &a) {
         if (a.isGeneralReg())
             return Operand(a.toGeneralReg()->reg());
@@ -84,16 +73,6 @@ class CodeGeneratorX86Shared : public CodeGeneratorShared
     }
     inline Operand ToOperand(const LDefinition *def) {
         return ToOperand(def->output());
-    }
-
-    inline int32 ArgToStackOffset(int32 slot) {
-        JS_ASSERT(slot >= 0);
-        return framePushed_ + frameDepth_ + ION_FRAME_PREFIX_SIZE + slot;
-    }
-
-    inline int32 SlotToStackOffset(int32 slot) {
-        JS_ASSERT(slot >= 0 && slot < int32(graph.stackHeight()));
-        return framePushed_ + slot * STACK_SLOT_SIZE;
     }
 
   public:
