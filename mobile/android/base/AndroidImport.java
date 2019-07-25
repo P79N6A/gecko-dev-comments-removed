@@ -1,0 +1,135 @@
+
+
+
+
+
+package org.mozilla.gecko;
+
+import org.mozilla.gecko.db.BrowserContract;
+import org.mozilla.gecko.db.BrowserContract.Bookmarks;
+import org.mozilla.gecko.db.LocalBrowserDB;
+import org.mozilla.gecko.R;
+
+import android.app.ProgressDialog;
+import android.content.ContentResolver;
+import android.content.ContentProviderResult;
+import android.content.ContentProviderOperation;
+import android.content.Context;
+import android.content.OperationApplicationException;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteConstraintException;
+import android.net.Uri;
+import android.os.Build;
+import android.os.RemoteException;
+import android.preference.Preference;
+import android.provider.Browser;
+import android.provider.Browser.BookmarkColumns;
+import android.util.Log;
+
+import java.util.ArrayList;
+import java.util.Collections;
+
+class AndroidImport implements Runnable {
+    static final private String LOGTAG = "AndroidImport";
+    private Context mContext;
+    private Runnable mOnDoneRunnable;
+    private ArrayList<ContentProviderOperation> mOperations;
+    private ContentResolver mCr;
+    private LocalBrowserDB mDB;
+
+    public AndroidImport(Context context, Runnable onDoneRunnable) {
+        mContext = context;
+        mOnDoneRunnable = onDoneRunnable;
+        mOperations = new ArrayList<ContentProviderOperation>();
+        mCr = mContext.getContentResolver();
+        mDB = new LocalBrowserDB(GeckoProfile.get(context).getName());
+    }
+
+    public void mergeBookmarks() {
+        Cursor cursor = mCr.query(Browser.BOOKMARKS_URI,
+                                  null,
+                                  Browser.BookmarkColumns.BOOKMARK + " = 1",
+                                  null,
+                                  null);
+
+        final int faviconCol = cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.FAVICON);
+        final int titleCol = cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.TITLE);
+        final int urlCol = cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.URL);
+        
+        final int createCol = cursor.getColumnIndex(Browser.BookmarkColumns.CREATED);
+
+        cursor.moveToFirst();
+        while (!cursor.isAfterLast()) {
+            String url = cursor.getString(urlCol);
+            String title = cursor.getString(titleCol);
+            
+            long created = System.currentTimeMillis();
+            byte[] data = cursor.getBlob(faviconCol);
+            mDB.updateBookmarkInBatch(mCr, mOperations,
+                                      url, title, null, -1,
+                                      created, created, BrowserContract.Bookmarks.DEFAULT_POSITION,
+                                      null, Bookmarks.TYPE_BOOKMARK);
+            if (data != null) {
+                mDB.updateFaviconInBatch(mCr, mOperations, url, null, null, data);
+            }
+            cursor.moveToNext();
+        }
+        cursor.close();
+
+        flushBatchOperations();
+    }
+
+    public void mergeHistory() {
+        Cursor cursor = mCr.query(Browser.BOOKMARKS_URI,
+                                  null,
+                                  Browser.BookmarkColumns.BOOKMARK + " = 0 AND " +
+                                  Browser.BookmarkColumns.VISITS + " > 0",
+                                  null,
+                                  null);
+
+        final int dateCol = cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.DATE);
+        final int faviconCol = cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.FAVICON);
+        final int titleCol = cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.TITLE);
+        final int urlCol = cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.URL);
+        final int visitsCol = cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.VISITS);
+
+        cursor.moveToFirst();
+        while (!cursor.isAfterLast()) {
+            String url = cursor.getString(urlCol);
+            String title = cursor.getString(titleCol);
+            long date = cursor.getLong(dateCol);
+            int visits = cursor.getInt(visitsCol);
+            byte[] data = cursor.getBlob(faviconCol);
+            mDB.updateHistoryInBatch(mCr, mOperations, url, title, date, visits);
+            if (data != null) {
+                mDB.updateFaviconInBatch(mCr, mOperations, url, null, null, data);
+            }
+            cursor.moveToNext();
+        }
+        cursor.close();
+
+        flushBatchOperations();
+    }
+
+    protected void flushBatchOperations() {
+        Log.d(LOGTAG, "Flushing " + mOperations.size() + " DB operations");
+        try {
+            
+            mCr.applyBatch(BrowserContract.AUTHORITY, mOperations);
+        } catch (RemoteException e) {
+            Log.e(LOGTAG, "Remote exception while updating db: ", e);
+        } catch (OperationApplicationException e) {
+            
+            Log.d(LOGTAG, "Error while applying database updates: ", e);
+        }
+        mOperations.clear();
+    }
+
+    @Override
+    public void run() {
+        mergeBookmarks();
+        mergeHistory();
+
+        mOnDoneRunnable.run();
+    }
+}
