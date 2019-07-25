@@ -845,36 +845,50 @@ LayerManager* nsBaseWidget::GetLayerManager(PLayersChild* aShadowManager,
 
     if (mUseAcceleratedRendering) {
 
-      nsRefPtr<LayerManagerOGL> layerManager = new LayerManagerOGL(this);
       
+      bool useCompositor =
+        Preferences::GetBool("layers.offmainthreadcomposition.enabled", false);
+      if (useCompositor) {
+        CompositorChild *compositorChild = CompositorChild::CreateCompositor();
 
+        if (compositorChild) {
+          
+          
+          NS_ASSERTION(aShadowManager == NULL, "Async Compositor not supported with e10s");
+          WidgetDescriptor desc = MacChildViewWidget((uintptr_t)dynamic_cast<nsIWidget*>(this));
+          PLayersChild* shadowManager = compositorChild->SendPLayersConstructor(
+                                          LayerManager::LAYERS_OPENGL,
+                                          desc);
 
+          if (shadowManager) {
+            LayerManager* lm = CreateBasicLayerManager();
+            ShadowLayerForwarder* lf = lm->AsShadowForwarder();
+            if (!lf) {
+              delete lm;
+              delete compositorChild;
+            }
+            lf->SetShadowManager(shadowManager);
+            printf("Async layer manager\n");
 
-
-
-
-      if (layerManager->Initialize()) {
-        mLayerManager = layerManager;
-        
-        bool useCompositor =
-          Preferences::GetBool("layers.offmainthreadcomposition.enabled", false);
-        if (useCompositor) {
-          Thread* compositorThread = new Thread("CompositorThread");
-          if (compositorThread->Start()) {
-            MessageLoop *parentMessageLoop = MessageLoop::current();
-            MessageLoop *childMessageLoop = compositorThread->message_loop();
-            CompositorParent *compositorParent = new CompositorParent();
-            CompositorChild *compositorChild = new CompositorChild();
-            mozilla::ipc::AsyncChannel *parentChannel = compositorParent->GetIPCChannel();
-            mozilla::ipc::AsyncChannel *childChannel = compositorChild->GetIPCChannel();
-            mozilla::ipc::AsyncChannel::Side childSide =
-              mozilla::ipc::AsyncChannel::Child;
-
-            compositorChild->Open(parentChannel, childMessageLoop, childSide);
-            compositorChild->CallInit();
-            LayerManager::LayersBackend be;
-            PLayersChild* shadowManager = compositorChild->SendPLayersConstructor(LayerManager::LAYERS_OPENGL);
+            mLayerManager = lm;
+          } else {
+            NS_WARNING("fail to construct LayersChild");
+            delete compositorChild;
           }
+        }
+      }
+
+      if (!mLayerManager) {
+        nsRefPtr<LayerManagerOGL> layerManager = new LayerManagerOGL(this);
+        
+
+
+
+
+
+
+        if (layerManager->Initialize()) {
+          mLayerManager = layerManager;
         }
       }
     }

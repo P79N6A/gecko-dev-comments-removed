@@ -47,7 +47,8 @@
 #include "gfxFailure.h"
 #include "prenv.h"
 #include "mozilla/Preferences.h"
-#include "sampler.h"
+
+NSOpenGLContext* nsGLContext;
 
 namespace mozilla {
 namespace gl {
@@ -153,11 +154,7 @@ public:
     bool Init()
     {
         MakeCurrent();
-        if (!InitWithPrefix("gl", true))
-            return false;
-
-        InitFramebuffers();
-        return true;
+        return InitWithPrefix("gl", true);
     }
 
     void *GetNativeData(NativeDataType aType)
@@ -200,7 +197,6 @@ public:
 
     bool SwapBuffers()
     {
-      SAMPLE_LABEL("GLContext", "SwapBuffers");
       [mContext flushBuffer];
       return true;
     }
@@ -450,6 +446,7 @@ GLContextProviderCGL::CreateForWindow(nsIWidget *aWidget)
     if (!context) {
         return nsnull;
     }
+    nsGLContext = context;
 
     NSView *childView = (NSView *)aWidget->GetNativeData(NS_NATIVE_WIDGET);
     [context setView:childView];
@@ -460,7 +457,7 @@ GLContextProviderCGL::CreateForWindow(nsIWidget *aWidget)
                                                         context);
     if (!glContext->Init()) {
         return nsnull;
-    }
+    }    
 
     return glContext.forget();
 }
@@ -558,7 +555,6 @@ CreateOffscreenPBufferContext(const gfxIntSize& aSize,
     [pbFormat release];
 
     nsRefPtr<GLContextCGL> glContext = new GLContextCGL(aFormat, shareContext, context, pb);
-
     return glContext.forget();
 }
 
@@ -584,7 +580,6 @@ CreateOffscreenFBOContext(const ContextFormat& aFormat,
     }
 
     nsRefPtr<GLContextCGL> glContext = new GLContextCGL(aFormat, shareContext, context, true);
-
     return glContext.forget();
 }
 
