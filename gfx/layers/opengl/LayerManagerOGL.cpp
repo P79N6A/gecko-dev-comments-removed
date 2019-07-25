@@ -535,14 +535,6 @@ LayerManagerOGL::Render()
 
   DEBUG_GL_ERROR_CHECK(mGLContext);
 
-#if 0
-  
-  
-  
-  
-  
-  
-
   const nsIntRect *clipRect = mRoot->GetClipRect();
 
   if (clipRect) {
@@ -553,9 +545,6 @@ LayerManagerOGL::Render()
   }
 
   mGLContext->fEnable(LOCAL_GL_SCISSOR_TEST);
-#else
-  mGLContext->fDisable(LOCAL_GL_SCISSOR_TEST);
-#endif
 
   DEBUG_GL_ERROR_CHECK(mGLContext);
 
