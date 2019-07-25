@@ -38,8 +38,11 @@
 
 
 
+
 #include "mozilla/net/HttpChannelParent.h"
 #include "mozilla/dom/TabParent.h"
+#include "mozilla/net/NeckoParent.h"
+#include "HttpChannelParentListener.h"
 #include "nsHttpChannel.h"
 #include "nsHttpHandler.h"
 #include "nsNetUtil.h"
@@ -51,7 +54,6 @@
 
 namespace mozilla {
 namespace net {
-
 
 HttpChannelParent::HttpChannelParent(PBrowserParent* iframeEmbedding)
 : mIPCClosed(false)
@@ -82,11 +84,8 @@ HttpChannelParent::ActorDestroy(ActorDestroyReason why)
 
 
 
-NS_IMPL_ISUPPORTS4(HttpChannelParent, 
-                   nsIRequestObserver, 
-                   nsIStreamListener,
-                   nsIInterfaceRequestor,
-                   nsIProgressEventSink);
+NS_IMPL_ISUPPORTS1(HttpChannelParent,
+                   nsIProgressEventSink)
 
 
 
@@ -107,11 +106,11 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
                                  const PRBool&              allowPipelining,
                                  const PRBool&              forceAllowThirdPartyCookie)
 {
-  nsCOMPtr<nsIURI> uri = aURI;
-  nsCOMPtr<nsIURI> originalUri = aOriginalURI;
-  nsCOMPtr<nsIURI> docUri = aDocURI;
-  nsCOMPtr<nsIURI> referrerUri = aReferrerURI;
-  
+  nsCOMPtr<nsIURI> uri(aURI);
+  nsCOMPtr<nsIURI> originalUri(aOriginalURI);
+  nsCOMPtr<nsIURI> docUri(aDocURI);
+  nsCOMPtr<nsIURI> referrerUri(aReferrerURI);
+
   nsCString uriSpec;
   uri->GetSpec(uriSpec);
   LOG(("HttpChannelParent RecvAsyncOpen [this=%x uri=%s]\n", 
@@ -145,7 +144,9 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
                                requestHeaders[i].mMerge);
   }
 
-  httpChan->SetNotificationCallbacks(this);
+  mChannelListener = new HttpChannelParentListener(this);
+
+  httpChan->SetNotificationCallbacks(mChannelListener);
 
   httpChan->SetRequestMethod(nsDependentCString(requestMethod.get()));
 
@@ -167,7 +168,7 @@ HttpChannelParent::RecvAsyncOpen(const IPC::URI&            aURI,
   httpChan->SetAllowPipelining(allowPipelining);
   httpChan->SetForceAllowThirdPartyCookie(forceAllowThirdPartyCookie);
 
-  rv = httpChan->AsyncOpen(this, nsnull);
+  rv = httpChan->AsyncOpen(mChannelListener, nsnull);
   if (NS_FAILED(rv))
     return false;       
 
@@ -191,14 +192,27 @@ HttpChannelParent::RecvSetCacheTokenCachedCharset(const nsCString& charset)
   return true;
 }
 
+bool
+HttpChannelParent::RecvRedirect2Result(const nsresult& result, 
+                                       const RequestHeaderTuples& changedHeaders)
+{
+  if (mChannelListener)
+    mChannelListener->OnContentRedirectResultReceived(result, changedHeaders);
+  return true;
+}
 
 
 
 
-NS_IMETHODIMP
+
+nsresult
 HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
 {
   LOG(("HttpChannelParent::OnStartRequest [this=%x]\n", this));
+
+  
+  
+  mChannelListener = nsnull;
 
   nsHttpChannel *chan = static_cast<nsHttpChannel *>(aRequest);
   nsHttpResponseHead *responseHead = chan->GetResponseHead();
@@ -224,7 +238,7 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
   return NS_OK;
 }
 
-NS_IMETHODIMP
+nsresult
 HttpChannelParent::OnStopRequest(nsIRequest *aRequest, 
                                  nsISupports *aContext, 
                                  nsresult aStatusCode)
@@ -237,11 +251,7 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
   return NS_OK;
 }
 
-
-
-
-
-NS_IMETHODIMP
+nsresult
 HttpChannelParent::OnDataAvailable(nsIRequest *aRequest, 
                                    nsISupports *aContext, 
                                    nsIInputStream *aInputStream, 
@@ -271,59 +281,6 @@ HttpChannelParent::OnDataAvailable(nsIRequest *aRequest,
 
 
 
-NS_IMETHODIMP 
-HttpChannelParent::GetInterface(const nsIID& aIID, void **result)
-{
-  if (aIID.Equals(NS_GET_IID(nsIAuthPromptProvider))) {
-    if (!mTabParent)
-      return NS_NOINTERFACE;
-    return mTabParent->QueryInterface(aIID, result);
-  }
-
-  
-  
-  if (
-
-      
-      
-      
-      
-      
-      
-      aIID.Equals(NS_GET_IID(nsIAuthPrompt2)) ||
-      aIID.Equals(NS_GET_IID(nsIAuthPrompt))  ||
-      
-      
-      
-      
-      
-      aIID.Equals(NS_GET_IID(nsIChannelEventSink)) || 
-      aIID.Equals(NS_GET_IID(nsIHttpEventSink))  ||
-      
-      aIID.Equals(NS_GET_IID(nsIApplicationCacheContainer)) ||
-      aIID.Equals(NS_GET_IID(nsIProgressEventSink)) ||
-      
-      aIID.Equals(NS_GET_IID(nsIDocShellTreeItem)) ||
-      
-      aIID.Equals(NS_GET_IID(nsIBadCertListener2))) 
-  {
-    return QueryInterface(aIID, result);
-  } else {
-    nsPrintfCString msg(2000, 
-       "HttpChannelParent::GetInterface: interface UUID=%s not yet supported! "
-       "Use 'grep -ri UUID <mozilla_src>' to find the name of the interface, "
-       "check http://tinyurl.com/255ojvu to see if a bug has already been "
-       "filed, and if not, add one and make it block bug 516730. Thanks!",
-       aIID.ToString());
-    NECKO_MAYBE_ABORT(msg);
-    return NS_NOINTERFACE;
-  }
-}
-
-
-
-
- 
 NS_IMETHODIMP
 HttpChannelParent::OnProgress(nsIRequest *aRequest, 
                               nsISupports *aContext, 
@@ -345,7 +302,6 @@ HttpChannelParent::OnStatus(nsIRequest *aRequest,
     return NS_ERROR_UNEXPECTED;
   return NS_OK;
 }
-
 
 }} 
 

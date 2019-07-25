@@ -46,6 +46,12 @@
 #include "nsMimeTypes.h"
 #include "nsNetUtil.h"
 
+#include "nsICachingChannel.h"
+#include "nsISeekableStream.h"
+#include "nsIEncodedChannel.h"
+#include "nsIResumableChannel.h"
+#include "nsIApplicationCacheChannel.h"
+
 namespace mozilla {
 namespace net {
 
@@ -62,6 +68,9 @@ HttpBaseChannel::HttpBaseChannel()
   , mAllowPipelining(PR_TRUE)
   , mForceAllowThirdPartyCookie(PR_FALSE)
   , mUploadStreamHasHeaders(PR_FALSE)
+  , mInheritApplicationCache(PR_TRUE)
+  , mChooseApplicationCache(PR_FALSE)
+  , mLoadedFromApplicationCache(PR_FALSE)
 {
   LOG(("Creating HttpBaseChannel @%x\n", this));
 
@@ -978,6 +987,135 @@ HttpBaseChannel::AddCookiesToRequest()
   
   
   SetRequestHeader(nsDependentCString(nsHttp::Cookie), cookie, PR_FALSE);
+}
+
+static PLDHashOperator
+CopyProperties(const nsAString& aKey, nsIVariant *aData, void *aClosure)
+{
+  nsIWritablePropertyBag* bag = static_cast<nsIWritablePropertyBag*>
+                                           (aClosure);
+  bag->SetProperty(aKey, aData);
+  return PL_DHASH_NEXT;
+}
+
+nsresult
+HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI, 
+                                         nsIChannel   *newChannel,
+                                         PRBool        preserveMethod)
+{
+  LOG(("HttpBaseChannel::SetupReplacementChannel "
+     "[this=%p newChannel=%p preserveMethod=%d]",
+     this, newChannel, preserveMethod));
+  PRUint32 newLoadFlags = mLoadFlags | LOAD_REPLACE;
+  
+  
+  
+  
+  
+  
+  if (mConnectionInfo->UsingSSL())
+    newLoadFlags &= ~INHIBIT_PERSISTENT_CACHING;
+
+  
+  newLoadFlags &= ~nsICachingChannel::LOAD_CHECK_OFFLINE_CACHE;
+
+  newChannel->SetLoadGroup(mLoadGroup); 
+  newChannel->SetNotificationCallbacks(mCallbacks);
+  newChannel->SetLoadFlags(newLoadFlags);
+
+  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(newChannel);
+  if (!httpChannel)
+    return NS_OK; 
+
+  if (preserveMethod) {
+    nsCOMPtr<nsIUploadChannel> uploadChannel =
+      do_QueryInterface(httpChannel);
+    nsCOMPtr<nsIUploadChannel2> uploadChannel2 =
+      do_QueryInterface(httpChannel);
+    if (mUploadStream && (uploadChannel2 || uploadChannel)) {
+      
+      nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mUploadStream);
+      if (seekable)
+        seekable->Seek(nsISeekableStream::NS_SEEK_SET, 0);
+
+      
+      if (uploadChannel2) {
+        const char *ctype = mRequestHead.PeekHeader(nsHttp::Content_Type);
+        if (!ctype)
+          ctype = "";
+        const char *clen  = mRequestHead.PeekHeader(nsHttp::Content_Length);
+        PRInt64 len = clen ? nsCRT::atoll(clen) : -1;
+        uploadChannel2->ExplicitSetUploadStream(
+            mUploadStream,
+            nsDependentCString(ctype),
+            len,
+            nsDependentCString(mRequestHead.Method()),
+            mUploadStreamHasHeaders);
+      } else {
+        if (mUploadStreamHasHeaders) {
+          uploadChannel->SetUploadStream(mUploadStream, EmptyCString(),
+                           -1);
+        } else {
+          const char *ctype =
+            mRequestHead.PeekHeader(nsHttp::Content_Type);
+          const char *clen =
+            mRequestHead.PeekHeader(nsHttp::Content_Length);
+          if (!ctype) {
+            ctype = "application/octet-stream";
+          }
+          if (clen) {
+            uploadChannel->SetUploadStream(mUploadStream,
+                             nsDependentCString(ctype),
+                             atoi(clen));
+          }
+        }
+      }
+    }
+    
+    
+    
+    
+
+    httpChannel->SetRequestMethod(nsDependentCString(mRequestHead.Method()));
+  }
+  
+  if (mReferrer)
+    httpChannel->SetReferrer(mReferrer);
+  
+  httpChannel->SetAllowPipelining(mAllowPipelining);
+  
+  httpChannel->SetRedirectionLimit(mRedirectionLimit - 1);
+
+  nsCOMPtr<nsIHttpChannelInternal> httpInternal = do_QueryInterface(newChannel);
+  if (httpInternal) {
+    
+    httpInternal->SetForceAllowThirdPartyCookie(mForceAllowThirdPartyCookie);
+
+    
+    
+    
+    
+    if (newURI && (mURI == mDocumentURI))
+      httpInternal->SetDocumentURI(newURI);
+    else
+      httpInternal->SetDocumentURI(mDocumentURI);
+  } 
+  
+  
+  nsCOMPtr<nsIApplicationCacheChannel> appCacheChannel =
+    do_QueryInterface(newChannel);
+  if (appCacheChannel) {
+    appCacheChannel->SetApplicationCache(mApplicationCache);
+    appCacheChannel->SetInheritApplicationCache(mInheritApplicationCache);
+    
+  }
+
+  
+  nsCOMPtr<nsIWritablePropertyBag> bag(do_QueryInterface(newChannel));
+  if (bag)
+    mPropertyHash.EnumerateRead(CopyProperties, bag.get());
+
+  return NS_OK;
 }
 
 

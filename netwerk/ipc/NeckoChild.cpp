@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsHttp.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/dom/ContentChild.h"
@@ -87,11 +88,17 @@ void NeckoChild::DestroyNeckoChild()
 }
 
 PHttpChannelChild* 
-NeckoChild::AllocPHttpChannel(PBrowserChild* iframeEmbedding)
+NeckoChild::AllocPHttpChannel(PBrowserChild* browser)
 {
   
-  NS_RUNTIMEABORT("AllocPHttpChannel should not be called");
-  return nsnull;
+  
+  
+  
+
+  
+  HttpChannelChild* httpChannel = new HttpChannelChild();
+  httpChannel->AddIPDLReference();
+  return httpChannel;
 }
 
 bool 
