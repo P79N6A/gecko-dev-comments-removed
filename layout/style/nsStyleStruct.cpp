@@ -1125,6 +1125,9 @@ nsStylePosition::nsStylePosition(void)
   mMinHeight.SetCoordValue(0);
   mMaxHeight.SetNoneValue();
   mBoxSizing = NS_STYLE_BOX_SIZING_CONTENT;
+#ifdef MOZ_FLEXBOX
+  mJustifyContent = NS_STYLE_JUSTIFY_CONTENT_FLEX_START;
+#endif 
   mZIndex.SetAutoValue();
 }
 
@@ -1148,6 +1151,15 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
     
     return NS_CombineHint(hint, nsChangeHint_ReflowFrame);
   }
+
+#ifdef MOZ_FLEXBOX
+  
+  
+  
+  if (mJustifyContent != aOther.mJustifyContent) {
+    NS_UpdateHint(hint, nsChangeHint_NeedReflow);
+  }
+#endif 
 
   if (mHeight != aOther.mHeight ||
       mMinHeight != aOther.mMinHeight ||

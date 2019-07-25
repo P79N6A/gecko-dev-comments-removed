@@ -397,6 +397,15 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_DISPLAY_INLINE_FLEX            30
 #endif 
 
+#ifdef MOZ_FLEXBOX
+
+#define NS_STYLE_JUSTIFY_CONTENT_FLEX_START     0
+#define NS_STYLE_JUSTIFY_CONTENT_FLEX_END       1
+#define NS_STYLE_JUSTIFY_CONTENT_CENTER         2
+#define NS_STYLE_JUSTIFY_CONTENT_SPACE_BETWEEN  3
+#define NS_STYLE_JUSTIFY_CONTENT_SPACE_AROUND   4
+#endif 
+
 
 #define NS_STYLE_FLOAT_NONE                     0
 #define NS_STYLE_FLOAT_LEFT                     1

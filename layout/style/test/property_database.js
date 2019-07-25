@@ -736,6 +736,17 @@ var gCSSProperties = {
 		],
 		invalid_values: [ "20", "-1px", "50%" ]
 	},
+
+
+
+
+
+
+
+
+
+
+
 	"-moz-float-edge": {
 		domProp: "MozFloatEdge",
 		inherited: false,
