@@ -849,8 +849,10 @@ nsPlacesExpiration.prototype = {
         
         if (aAction != ACTION.TIMED && aAction != ACTION.TIMED_OVERLIMIT &&
             aAction != ACTION.IDLE) {
-          
           params.null_skips_last = -1;
+        }
+        else {
+          params.null_skips_last = null;
         }
         params.limit_uris = baseLimit;
         break;
