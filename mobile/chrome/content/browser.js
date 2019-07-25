@@ -1269,7 +1269,22 @@ const ContentTouchHandler = {
     document.addEventListener("TapUp", this, false);
     document.addEventListener("TapSingle", this, false);
     document.addEventListener("TapDouble", this, false);
+    document.addEventListener("TapLong", this, false);
     document.addEventListener("PanBegin", this, false);
+
+    document.addEventListener("PopupChanged", this._popupChanged.bind(this), false);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    messageManager.addMessageListener("Browser:ContextMenu", this);
   },
 
   handleEvent: function handleEvent(ev) {
@@ -1292,10 +1307,22 @@ const ContentTouchHandler = {
       case "TapDouble":
         this.tapDouble(ev.clientX1, ev.clientY1, ev.clientX2, ev.clientY2);
         break;
+      case "TapLong":
+        this.tapLong();
+        break;
       case "PanBegin":
         this.panBegin();
         break;
     }
+  },
+
+  receiveMessage: function receiveMessage(aMessage) {
+    this._contextMenu = { name: aMessage.name, json: aMessage.json, target: aMessage.target };
+  },
+
+  _popupChanged: function _popupChanged() {
+    TapHighlightHelper.hide(200);
+    this._contextMenu = null;
   },
 
   
@@ -1329,15 +1356,19 @@ const ContentTouchHandler = {
 
   tapUp: function tapUp(aX, aY) {
     TapHighlightHelper.hide(200);
+    this._contextMenu = null;
   },
 
   panBegin: function panBegin() {
     TapHighlightHelper.hide(0);
+    this._contextMenu = null;
+
     this._dispatchMouseEvent("Browser:MouseCancel");
   },
 
   tapSingle: function tapSingle(aX, aY, aModifiers) {
     TapHighlightHelper.hide(200);
+    this._contextMenu = null;
 
     
     if (!ContextHelper.popupState)
@@ -1347,6 +1378,8 @@ const ContentTouchHandler = {
 
   tapDouble: function tapDouble(aX1, aY1, aX2, aY2) {
     TapHighlightHelper.hide();
+    this._contextMenu = null;
+
 
     this._dispatchMouseEvent("Browser:MouseCancel");
 
@@ -1358,6 +1391,16 @@ const ContentTouchHandler = {
 
     if (dx*dx + dy*dy < maxRadius*maxRadius)
       this._dispatchMouseEvent("Browser:ZoomToPoint", aX1, aY1);
+  },
+
+  tapLong: function tapLong() {
+    if (this._contextMenu) {
+      TapHighlightHelper.hide();
+      if (ContextHelper.showPopup(this._contextMenu))
+        
+        ih.cancelPending();
+      this._contextMenu = null;
+    }
   },
 
   toString: function toString() {

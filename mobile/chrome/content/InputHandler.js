@@ -46,7 +46,7 @@
 const kDoubleClickInterval = 400;
 
 
-const kLongTapWait = 700;
+const kLongTapWait = 500;
 
 
 
@@ -581,7 +581,7 @@ MouseModule.prototype = {
     let ev = this._downUpEvents[0];
 
     let event = document.createEvent("Events");
-    event.initEvent("LongTap", true, false);
+    event.initEvent("TapLong", true, false);
     event.clientX = ev.clientX;
     event.clientY = ev.clientY;
     ev.target.dispatchEvent(event);
