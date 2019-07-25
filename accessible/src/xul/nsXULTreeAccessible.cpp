@@ -784,19 +784,12 @@ nsXULTreeItemAccessibleBase::GetRelationByType(PRUint32 aRelationType,
   return nsAccessible::GetRelationByType(aRelationType, aRelation);
 }
 
-NS_IMETHODIMP
-nsXULTreeItemAccessibleBase::GetNumActions(PRUint8 *aActionsCount)
+PRUint8
+nsXULTreeItemAccessibleBase::ActionCount()
 {
-  NS_ENSURE_ARG_POINTER(aActionsCount);
-  *aActionsCount = 0;
-
-  if (IsDefunct())
-    return NS_ERROR_FAILURE;
-
   
   
-  *aActionsCount = IsExpandable() ? 2 : 1;
-  return NS_OK;
+  return IsExpandable() ? 2 : 1;
 }
 
 NS_IMETHODIMP

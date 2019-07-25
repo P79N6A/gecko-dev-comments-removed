@@ -408,12 +408,9 @@ nsAccessibleWrap::CreateMaiInterfaces(void)
     
     interfacesBits |= 1 << MAI_INTERFACE_COMPONENT;
 
-    
-    PRUint8 actionCount = 0;
-    nsresult rv = GetNumActions(&actionCount);
-    if (NS_SUCCEEDED(rv) && actionCount > 0) {
-       interfacesBits |= 1 << MAI_INTERFACE_ACTION; 
-    }
+  
+  if (ActionCount() > 0)
+    interfacesBits |= 1 << MAI_INTERFACE_ACTION;
 
     
     nsCOMPtr<nsIAccessibleText> accessInterfaceText;

@@ -421,6 +421,11 @@ public:
   
 
 
+  virtual PRUint8 ActionCount();
+
+  
+
+
   virtual KeyBinding AccessKey() const;
 
   

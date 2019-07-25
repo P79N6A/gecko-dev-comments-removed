@@ -112,14 +112,11 @@ nsOuterDocAccessible::GetAttributesInternal(nsIPersistentProperties *aAttributes
 
 
 
-NS_IMETHODIMP
-nsOuterDocAccessible::GetNumActions(PRUint8 *aNumActions)
+PRUint8
+nsOuterDocAccessible::ActionCount()
 {
-  NS_ENSURE_ARG_POINTER(aNumActions);
-  *aNumActions = 0;
-
   
-  return NS_OK;
+  return 0;
 }
 
 NS_IMETHODIMP

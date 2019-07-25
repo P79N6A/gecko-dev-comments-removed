@@ -59,13 +59,15 @@ public:
   nsHTMLCheckboxAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  NS_IMETHOD GetNumActions(PRUint8 *_retval);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD DoAction(PRUint8 index);
 
   
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
+
+  
+  virtual PRUint8 ActionCount();
 };
 
 
@@ -98,7 +100,6 @@ public:
   nsHTMLButtonAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  NS_IMETHOD GetNumActions(PRUint8 *_retval);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD DoAction(PRUint8 index);
 
@@ -106,6 +107,9 @@ public:
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
+
+  
+  virtual PRUint8 ActionCount();
 };
 
 
@@ -121,13 +125,15 @@ public:
   nsHTML4ButtonAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  NS_IMETHOD GetNumActions(PRUint8 *_retval);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD DoAction(PRUint8 index);
 
   
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
+
+  
+  virtual PRUint8 ActionCount();
 };
 
 
@@ -146,7 +152,6 @@ public:
 
   
   NS_IMETHOD GetValue(nsAString& _retval); 
-  NS_IMETHOD GetNumActions(PRUint8 *_retval);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD DoAction(PRUint8 index);
 
@@ -157,6 +162,9 @@ public:
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
+
+  
+  virtual PRUint8 ActionCount();
 };
 
 
