@@ -1501,8 +1501,8 @@ Tab.prototype = {
       pageHeight = Math.max(body.scrollHeight, html.scrollHeight);
 
       
-      pageWidth = Math.round(pageWidth * this._viewport.zoom);
-      pageHeight = Math.round(pageHeight * this._viewport.zoom);
+      pageWidth *= this._viewport.zoom;
+      pageHeight *= this._viewport.zoom;
 
       
 
