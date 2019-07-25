@@ -128,9 +128,6 @@ private:
   bool mRememberClientAuthCertificate;
   PRIntervalTime mHandshakeStartTime;
 
-  
-  nsRefPtr<nsSSLStatus> mSSLStatus;
-
   nsresult ActivateSSL();
 
   nsCString mNegotiatedNPN;
