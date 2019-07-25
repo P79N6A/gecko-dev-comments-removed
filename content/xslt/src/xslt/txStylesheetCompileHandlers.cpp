@@ -2791,7 +2791,7 @@ const txHandlerTableData gTxEmbedTableData = {
   
   { 0, 0, txFnStartEmbed, txFnEndEmbed },
   
-  { 0, 0, txFnStartElementIgnore, txFnEndElementIgnore },
+  { 0, 0, txFnStartEmbed, txFnEndEmbed },
   
   txFnTextIgnore
 };
