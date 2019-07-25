@@ -914,7 +914,10 @@ ParallelArrayObject::getParallelArrayElement(JSContext *cx, IndexInfo &iv, Mutab
     
     uint32_t rowLength = iv.partialProducts[d - 1];
     uint32_t offset = base + iv.toScalar();
-    if (offset + rowLength > end) {
+
+    
+    
+    if (offset >= end || offset + rowLength > end) {
         vp.setUndefined();
         return true;
     }
