@@ -499,21 +499,7 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
       return SpecialPowers.getPrivilegedProps(aWindow, 'location.href');
     }
 
-    function debugFocusLog(prefix) {
-        info(prefix + " -- loaded: " + targetWindow.document.readyState +
-            " active window: " +
-                (SpecialPowers.activeWindow() ? "(" + SpecialPowers.activeWindow() + ") " + getHref(SpecialPowers.activeWindow()) : "<no window active>") +
-            " focused window: " +
-                (SpecialPowers.focusedWindow() ? "(" + SpecialPowers.focusedWindow() + ") " + getHref(SpecialPowers.focusedWindow()) : "<no window focused>") +
-            " desired window: (" + targetWindow + ") " + getHref(targetWindow) +
-            " child window: (" + childTargetWindow + ") " + getHref(childTargetWindow));
-    }
-
-    debugFocusLog("before wait for focus");
-
     function maybeRunTests() {
-        debugFocusLog("maybe run tests <load:" +
-                      SimpleTest.waitForFocus_loaded + ", focus:" + SimpleTest.waitForFocus_focused + ">");
         if (SimpleTest.waitForFocus_loaded &&
             SimpleTest.waitForFocus_focused &&
             !SimpleTest.waitForFocus_started) {
@@ -524,8 +510,6 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
 
     function waitForEvent(event) {
         try {
-            debugFocusLog("waitForEvent called <type:" + event.type + ", target" + event.target + ">");
-
             
             
             if (event.type == "load" && (expectBlankPage != (event.target.location == "about:blank")))
@@ -564,7 +548,6 @@ SimpleTest.waitForFocus = function (callback, targetWindow, expectBlankPage) {
     
     SimpleTest.waitForFocus_focused = (focusedChildWindow == childTargetWindow);
     if (SimpleTest.waitForFocus_focused) {
-        info("already focused");
         
         maybeRunTests();
     }
