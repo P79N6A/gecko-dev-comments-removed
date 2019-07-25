@@ -213,7 +213,9 @@ class ValueOperand
     }
 };
 
+
 static const ValueOperand JSReturnOperand = ValueOperand(JSReturnReg);
+
 static const ValueOperand JSCReturnOperand = ValueOperand(JSCReturnReg);
 
 class Assembler : public AssemblerX86Shared

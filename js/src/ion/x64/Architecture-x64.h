@@ -131,10 +131,13 @@ class Registers {
 
     static const uint32 AllocatableMask = AllMask & ~NonAllocatableMask;
 
+    
     static const uint32 JSCallClobberMask =
         AllocatableMask & ~(1 << JSC::X86Registers::ecx);
+
+    
     static const uint32 JSCCallMask =
-        (1 << JSC::X86Registers::ecx);
+        (1 << JSC::X86Registers::eax);
 
     typedef JSC::MacroAssembler::RegisterID RegisterID;
 

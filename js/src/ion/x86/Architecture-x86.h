@@ -115,12 +115,15 @@ class Registers {
     
     static const uint32 TempMask = VolatileMask & ~NonAllocatableMask;
 
+    
     static const uint32 JSCallClobberMask =
         AllocatableMask &
         ~(1 << JSC::X86Registers::ecx) &
         ~(1 << JSC::X86Registers::edx);
+
+    
     static const uint32 JSCCallMask =
-        (1 << JSC::X86Registers::ecx) |
+        (1 << JSC::X86Registers::eax) |
         (1 << JSC::X86Registers::edx);
 
     typedef JSC::MacroAssembler::RegisterID RegisterID;
