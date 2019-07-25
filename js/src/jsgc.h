@@ -786,7 +786,7 @@ class ChunkPool {
     void expire(JSRuntime *rt, bool releaseAll);
 
     
-    JS_FRIEND_API(int64_t) countDecommittedArenas(JSRuntime *rt);
+    JS_FRIEND_API(int64_t) countCleanDecommittedArenas(JSRuntime *rt);
 };
 
 inline uintptr_t
