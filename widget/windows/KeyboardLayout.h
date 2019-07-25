@@ -7,6 +7,7 @@
 #define KeyboardLayout_h__
 
 #include "nscore.h"
+#include "nsEvent.h"
 #include <windows.h>
 
 #define NS_NUM_OF_KEYS          54
@@ -57,6 +58,99 @@ enum eKeyShiftFlags
   eCtrl     = 0x02,
   eAlt      = 0x04,
   eCapsLock = 0x08
+};
+
+class ModifierKeyState {
+public:
+  ModifierKeyState()
+  {
+    Update();
+  }
+
+  ModifierKeyState(bool aIsShiftDown, bool aIsControlDown, bool aIsAltDown)
+  {
+    Update();
+    Unset(MODIFIER_SHIFT | MODIFIER_CONTROL | MODIFIER_ALT | MODIFIER_ALTGRAPH);
+    Modifiers modifiers = 0;
+    if (aIsShiftDown) {
+      modifiers |= MODIFIER_SHIFT;
+    }
+    if (aIsControlDown) {
+      modifiers |= MODIFIER_CONTROL;
+    }
+    if (aIsAltDown) {
+      modifiers |= MODIFIER_ALT;
+    }
+    if (modifiers) {
+      Set(modifiers);
+    }
+  }
+
+  void Update();
+
+  void Unset(Modifiers aRemovingModifiers)
+  {
+    mModifiers &= ~aRemovingModifiers;
+    
+    
+    
+  }
+
+  void Set(Modifiers aAddingModifiers)
+  {
+    mModifiers |= aAddingModifiers;
+    EnsureAltGr();
+  }
+
+  void SetKeyShiftFlags(PRUint8 aKeyShiftFlags)
+  {
+    Unset(MODIFIER_SHIFT | MODIFIER_CONTROL | MODIFIER_ALT |
+          MODIFIER_ALTGRAPH | MODIFIER_CAPSLOCK);
+    Modifiers modifiers = 0;
+    if (aKeyShiftFlags & eShift) {
+      modifiers |= MODIFIER_SHIFT;
+    }
+    if (aKeyShiftFlags & eCtrl) {
+      modifiers |= MODIFIER_CONTROL;
+    }
+    if (aKeyShiftFlags & eAlt) {
+      modifiers |= MODIFIER_ALT;
+    }
+    if (aKeyShiftFlags & eCapsLock) {
+      modifiers |= MODIFIER_CAPSLOCK;
+    }
+    if (modifiers) {
+      Set(modifiers);
+    }
+  }
+
+  void InitInputEvent(nsInputEvent& aInputEvent) const;
+
+  bool IsShift() const { return (mModifiers & MODIFIER_SHIFT) != 0; }
+  bool IsControl() const { return (mModifiers & MODIFIER_CONTROL) != 0; }
+  bool IsAlt() const { return (mModifiers & MODIFIER_ALT) != 0; }
+  bool IsAltGr() const { return IsControl() && IsAlt(); }
+  bool IsWin() const { return (mModifiers & MODIFIER_WIN) != 0; }
+
+  bool IsCapsLocked() const { return (mModifiers & MODIFIER_CAPSLOCK) != 0; }
+  bool IsNumLocked() const { return (mModifiers & MODIFIER_NUMLOCK) != 0; }
+  bool IsScrollLocked() const { return (mModifiers & MODIFIER_SCROLL) != 0; }
+
+private:
+  Modifiers mModifiers;
+
+  void EnsureAltGr()
+  {
+    
+    
+    
+    
+    if (IsAltGr()) {
+      mModifiers |= MODIFIER_ALTGRAPH;
+    }
+  }
+
+  void InitMouseEvent(nsInputEvent& aMouseEvent) const;
 };
 
 struct DeadKeyEntry;
@@ -193,7 +287,7 @@ public:
   
 
 
-  static PRUint8 GetShiftState(const nsModifierKeyState& aModifierKeyState);
+  static PRUint8 GetShiftState(const ModifierKeyState& aModifierKeyState);
 
   static bool IsPrintableCharKey(PRUint8 aVirtualKey);
   static bool IsNumpadKey(PRUint8 aVirtualKey);
