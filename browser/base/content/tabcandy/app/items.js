@@ -451,6 +451,12 @@ window.Items = {
   
   
   
+  
+  
+  
+  
+  
+  
   arrange: function(items, bounds, options) {
     var animate;
     if(!options || typeof(options.animate) == 'undefined') 
@@ -461,10 +467,14 @@ window.Items = {
     if(typeof(options) == 'undefined')
       options = {};
     
+    var rects = null;
+    if(options.pretend)
+      rects = [];
+      
     var tabAspect = TabItems.tabHeight / TabItems.tabWidth;
-    var count = items.length;
+    var count = options.count || (items ? items.length : 0);
     if(!count)
-      return;
+      return rects;
       
     var columns = 1;
     var padding = options.padding || 0;
@@ -498,7 +508,8 @@ window.Items = {
     var column = 0;
     var immediately;
     
-    $.each(items, function(index, item) {
+    var a;
+    for(a = 0; a < count; a++) {
 
 
 
@@ -506,11 +517,16 @@ window.Items = {
 
         immediately = !animate;
         
-      if(!item.locked) {
-        item.setBounds(box, immediately);
-        item.setRotation(0);
-        if(options.z)
-          item.setZ(options.z);
+      if(rects)
+        rects.push(new Rect(box));
+      else if(items && a < items.length) {
+        var item = items[a];
+        if(!item.locked) {
+          item.setBounds(box, immediately);
+          item.setRotation(0);
+          if(options.z)
+            item.setZ(options.z);
+        }
       }
       
 
@@ -526,7 +542,9 @@ window.Items = {
         column = 0;
         row++;
       }
-    });
+    }
+    
+    return rects;
   }
 };
 
