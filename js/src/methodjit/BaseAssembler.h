@@ -1212,6 +1212,82 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
     }
 
     
+
+
+
+
+    Jump getNewObject(JSContext *cx, RegisterID result, JSObject *templateObject)
+    {
+        unsigned thingKind = templateObject->arenaHeader()->getThingKind();
+
+        JS_ASSERT(thingKind >= gc::FINALIZE_OBJECT0 && thingKind <= gc::FINALIZE_OBJECT_LAST);
+        size_t thingSize = gc::GCThingSizeMap[thingKind];
+
+        JS_ASSERT(cx->typeInferenceEnabled());
+        JS_ASSERT(!templateObject->hasSlotsArray());
+
+#ifdef JS_GC_ZEAL
+        if (cx->runtime->needZealousGC())
+            return jump();
+#endif
+
+        
+
+
+
+        gc::FreeSpan *list = &cx->compartment->freeLists.lists[thingKind];
+
+        loadPtr(&list->start, result);
+        Jump jump = branchPtr(Assembler::Equal, AbsoluteAddress(&list->end), result);
+
+        addPtr(Imm32(thingSize), result);
+        storePtr(result, &list->start);
+
+        
+
+
+
+
+
+
+
+
+
+        
+
+
+
+        if (templateObject->isDenseArray()) {
+            JS_ASSERT(!templateObject->initializedLength);
+            addPtr(Imm32(-thingSize + sizeof(JSObject)), result);
+            storePtr(result, Address(result, -sizeof(JSObject) + JSObject::offsetOfSlots()));
+            addPtr(Imm32(-sizeof(JSObject)), result);
+        } else {
+            JS_ASSERT(!templateObject->newType);
+            addPtr(Imm32(-thingSize), result);
+            storePtr(ImmPtr(NULL), Address(result, JSObject::offsetOfSlots()));
+        }
+
+        storePtr(ImmPtr(templateObject->lastProp), Address(result, offsetof(JSObject, lastProp)));
+        storePtr(ImmPtr(templateObject->clasp), Address(result, offsetof(JSObject, clasp)));
+        store32(Imm32(templateObject->flags), Address(result, offsetof(JSObject, flags)));
+        store32(Imm32(templateObject->objShape), Address(result, offsetof(JSObject, objShape)));
+        storePtr(ImmPtr(templateObject->newType), Address(result, offsetof(JSObject, newType)));
+        storePtr(ImmPtr(templateObject->parent), Address(result, offsetof(JSObject, parent)));
+        storePtr(ImmPtr(templateObject->privateData), Address(result, offsetof(JSObject, privateData)));
+        storePtr(ImmPtr((void *) templateObject->capacity), Address(result, offsetof(JSObject, capacity)));
+        storePtr(ImmPtr(templateObject->gctype()), Address(result, JSObject::offsetOfType()));
+
+        
+        if (!templateObject->isDenseArray()) {
+            for (unsigned i = 0; i < templateObject->numFixedSlots(); i++)
+                storeValue(UndefinedValue(), Address(result, JSObject::getFixedSlotOffset(i)));
+        }
+
+        return jump;
+    }
+
+    
     void addCounter(const double *value, double *counter, RegisterID scratch)
     {
         loadDouble(value, Registers::FPConversionTemp);
