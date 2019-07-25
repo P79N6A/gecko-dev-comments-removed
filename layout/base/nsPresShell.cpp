@@ -5150,6 +5150,13 @@ PresShell::ContentRemoved(nsIDocument *aDocument,
 nsresult
 PresShell::ReconstructFrames(void)
 {
+  NS_PRECONDITION(!FrameManager()->GetRootFrame() || mDidInitialReflow,
+                  "Must not have root frame before initial reflow");
+  if (!mDidInitialReflow) {
+    
+    return NS_OK;
+  }
+
   nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
 
   
