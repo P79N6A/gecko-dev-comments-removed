@@ -6286,23 +6286,19 @@ nsGlobalWindow::CanClose()
 NS_IMETHODIMP
 nsGlobalWindow::Close()
 {
-  printf("start of close\n");
   FORWARD_TO_OUTER(Close, (), NS_ERROR_NOT_INITIALIZED);
-  
+
   if (IsFrame() || !mDocShell || IsInModalState()) {
     
     
     
-    printf("IsFrame: %s, mDocShell: %s, IsInModalState: %s\n",
-      (IsFrame() ? "true" : "false"), (mDocShell ? "true" : "false"),
-      (IsInModalState() ? "true" : "false"));
+
     return NS_OK;
   }
 
   if (mHavePendingClose) {
     
     
-    printf("mhavependingclose\n");
     return NS_OK;
   }
 
@@ -6317,7 +6313,6 @@ nsGlobalWindow::Close()
   
   
   if (!mHadOriginalOpener && !nsContentUtils::IsCallerTrustedForWrite()) {
-    printf("disallow scripts from content\n");
     bool allowClose =
       Preferences::GetBool("dom.allow_scripts_to_close_windows", true);
     if (!allowClose) {
@@ -6349,12 +6344,11 @@ nsGlobalWindow::Close()
   if (!DispatchCustomEvent("DOMWindowClose")) {
     
     
-    printf("prevetn default on close\n");
+
     mInClose = wasInClose;
     return NS_OK;
   }
 
-  printf("calling finalclose\n");
   return FinalClose();
 }
 
@@ -6605,7 +6599,6 @@ private:
 void
 nsGlobalWindow::LeaveModalState(nsIDOMWindow *aCallerWin)
 {
-  printf("LeaveModalState\n");
   nsGlobalWindow *topWin = GetTop();
 
   if (!topWin) {
