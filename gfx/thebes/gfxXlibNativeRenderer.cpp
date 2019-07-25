@@ -40,6 +40,7 @@
 #include "gfxXlibNativeRenderer.h"
 
 #include "gfxXlibSurface.h"
+#include "gfxImageSurface.h"
 #include "gfxContext.h"
 #include "cairo-xlib.h"
 #include "cairo-xlib-xrender.h"
@@ -59,6 +60,26 @@
 #else
 #define NATIVE_DRAWING_NOTE(m) do {} while (0)
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -97,7 +118,7 @@ _get_rectangular_clip (cairo_t *cr,
     cliplist = cairo_copy_clip_rectangle_list (cr);
     if (cliplist->status != CAIRO_STATUS_SUCCESS) {
         retval = PR_FALSE;
-        NATIVE_DRAWING_NOTE("TAKING SLOW PATH: non-rectangular clip\n");
+        NATIVE_DRAWING_NOTE("FALLBACK: non-rectangular clip");
         goto FINISH;
     }
 
@@ -113,7 +134,7 @@ _get_rectangular_clip (cairo_t *cr,
             !_convert_coord_to_int (clips[i].height, &rect.height))
         {
             retval = PR_FALSE;
-            NATIVE_DRAWING_NOTE("TAKING SLOW PATH: non-integer clip\n");
+            NATIVE_DRAWING_NOTE("FALLBACK: non-integer clip");
             goto FINISH;
         }
 
@@ -128,7 +149,7 @@ _get_rectangular_clip (cairo_t *cr,
 
         if (i >= max_rectangles) {
             retval = PR_FALSE;
-            NATIVE_DRAWING_NOTE("TAKING SLOW PATH: unsupported clip rectangle count\n");
+            NATIVE_DRAWING_NOTE("FALLBACK: unsupported clip rectangle count");
             goto FINISH;
         }
 
@@ -158,15 +179,9 @@ gfxXlibNativeRenderer::DrawDirect(gfxContext *ctx, nsIntSize size,
     cairo_t *cr = ctx->GetCairo();
 
     
-    if (cairo_get_operator (cr) != CAIRO_OPERATOR_OVER) {
-        NATIVE_DRAWING_NOTE("TAKING SLOW PATH: non-OVER operator\n");
-        return PR_FALSE;
-    }
-    
-    
     cairo_surface_t *target = cairo_get_group_target (cr);
     if (cairo_surface_get_type (target) != CAIRO_SURFACE_TYPE_XLIB) {
-        NATIVE_DRAWING_NOTE("TAKING SLOW PATH: non-X surface\n");
+        NATIVE_DRAWING_NOTE("FALLBACK: non-X surface");
         return PR_FALSE;
     }
     
@@ -175,18 +190,18 @@ gfxXlibNativeRenderer::DrawDirect(gfxContext *ctx, nsIntSize size,
   
     PRBool supports_alternate_visual =
         (flags & DRAW_SUPPORTS_ALTERNATE_VISUAL) != 0;
-    PRBool supports_alternate_screen = supports_alternate_visual
-        && (flags & DRAW_SUPPORTS_ALTERNATE_SCREEN);
+    PRBool supports_alternate_screen = supports_alternate_visual &&
+        (flags & DRAW_SUPPORTS_ALTERNATE_SCREEN);
     if (!supports_alternate_screen &&
         cairo_xlib_surface_get_screen (target) != screen) {
-        NATIVE_DRAWING_NOTE("TAKING SLOW PATH: non-default screen\n");
+        NATIVE_DRAWING_NOTE("FALLBACK: non-default screen");
         return PR_FALSE;
     }
         
     
     Visual *target_visual = cairo_xlib_surface_get_visual (target);
     if (!target_visual) {
-        NATIVE_DRAWING_NOTE("TAKING SLOW PATH: no Visual for surface\n");
+        NATIVE_DRAWING_NOTE("FALLBACK: no Visual for surface");
         return PR_FALSE;
     }        
     
@@ -198,7 +213,7 @@ gfxXlibNativeRenderer::DrawDirect(gfxContext *ctx, nsIntSize size,
         if (!target_format ||
             (target_format !=
              XRenderFindVisualFormat (DisplayOfScreen(screen), visual))) {
-            NATIVE_DRAWING_NOTE("TAKING SLOW PATH: unsupported Visual\n");
+            NATIVE_DRAWING_NOTE("FALLBACK: unsupported Visual");
             return PR_FALSE;
         }
     }
@@ -269,57 +284,174 @@ gfxXlibNativeRenderer::DrawDirect(gfxContext *ctx, nsIntSize size,
 }
 
 static PRBool
-FormatHasAlpha(const XRenderPictFormat *format) {
-    if (!format)
-        return false;
-
-    if (format->type != PictTypeDirect)
-        return false;
-
-    return format->direct.alphaMask != 0;
+VisualHasAlpha(Screen *screen, Visual *visual) {
+    
+    
+    return visual->c_class == TrueColor &&
+        visual->bits_per_rgb == 8 &&
+        visual->red_mask == 0xff0000 &&
+        visual->green_mask == 0xff00 &&
+        visual->blue_mask == 0xff &&
+        gfxXlibSurface::DepthOfVisual(screen, visual) == 32;
 }
 
+
+
+static PRBool
+FormatConversionIsExact(Screen *screen, Visual *visual, XRenderPictFormat *format) {
+    if (!format ||
+        visual->c_class != TrueColor ||
+        format->type != PictTypeDirect ||
+        gfxXlibSurface::DepthOfVisual(screen, visual) != format->depth)
+        return PR_FALSE;
+
+    XRenderPictFormat *visualFormat =
+        XRenderFindVisualFormat(DisplayOfScreen(screen), visual);
+
+    if (visualFormat->type != PictTypeDirect )
+        return PR_FALSE;
+
+    const XRenderDirectFormat& a = visualFormat->direct;
+    const XRenderDirectFormat& b = format->direct;
+    return a.redMask == b.redMask &&
+        a.greenMask == b.greenMask &&
+        a.blueMask == b.blueMask;
+}
+
+
+
+enum DrawingMethod {
+    eSimple,
+    eCopyBackground,
+    eAlphaExtraction
+};
+
 static already_AddRefed<gfxXlibSurface>
-_create_temp_xlib_surface (cairo_t *cr, nsIntSize size,
-                           PRUint32 flags, Screen *screen, Visual *visual)
+CreateTempXlibSurface (gfxASurface *destination, nsIntSize size,
+                       PRBool canDrawOverBackground,
+                       PRUint32 flags, Screen *screen, Visual *visual,
+                       DrawingMethod *method)
 {
-    Drawable drawable = None;
+    PRBool drawIsOpaque = (flags & gfxXlibNativeRenderer::DRAW_IS_OPAQUE) != 0;
+    PRBool supportsAlternateVisual =
+        (flags & gfxXlibNativeRenderer::DRAW_SUPPORTS_ALTERNATE_VISUAL) != 0;
+    PRBool supportsAlternateScreen = supportsAlternateVisual &&
+        (flags & gfxXlibNativeRenderer::DRAW_SUPPORTS_ALTERNATE_SCREEN);
+
+    cairo_surface_t *target = destination->CairoSurface();
+    cairo_surface_type_t target_type = cairo_surface_get_type (target);
+    cairo_content_t target_content = cairo_surface_get_content (target);
+
+    Screen *target_screen = target_type == CAIRO_SURFACE_TYPE_XLIB ?
+        cairo_xlib_surface_get_screen (target) : screen;
 
     
     
     
-    cairo_surface_t *target = cairo_get_group_target (cr);
-    if ((flags & gfxXlibNativeRenderer::DRAW_IS_OPAQUE)
-        && cairo_surface_get_type (target) == CAIRO_SURFACE_TYPE_XLIB) {
+    
+    PRBool doCopyBackground = !drawIsOpaque && canDrawOverBackground &&
+        target_content == CAIRO_CONTENT_COLOR;
 
-        Screen *target_screen = cairo_xlib_surface_get_screen (target);
-        PRBool supports_alternate_visual =
-            (flags & gfxXlibNativeRenderer::DRAW_SUPPORTS_ALTERNATE_VISUAL) != 0;
-        PRBool supports_alternate_screen = supports_alternate_visual
-            && (flags & gfxXlibNativeRenderer::DRAW_SUPPORTS_ALTERNATE_SCREEN);
-        if (target_screen == screen || supports_alternate_screen) {
+    if (supportsAlternateScreen && screen != target_screen && drawIsOpaque) {
+        
+        
+        visual = DefaultVisualOfScreen(target_screen);
+        screen = target_screen;
 
-            if (supports_alternate_visual) {
-                Visual *target_visual = cairo_xlib_surface_get_visual (target);
-                if (target_visual &&
-                    (!FormatHasAlpha(cairo_xlib_surface_get_xrender_format (target)))) {
-                    visual = target_visual;
-                } else if (target_screen != screen) {
-                    visual = DefaultVisualOfScreen (target_screen);
-                }
+    } else if (doCopyBackground || (supportsAlternateVisual && drawIsOpaque)) {
+        
+        
+        
+        Visual *target_visual = NULL;
+        XRenderPictFormat *target_format = NULL;
+        switch (target_type) {
+        case CAIRO_SURFACE_TYPE_XLIB:
+            target_visual = cairo_xlib_surface_get_visual (target);
+            target_format = cairo_xlib_surface_get_xrender_format (target);
+            break;
+        case CAIRO_SURFACE_TYPE_IMAGE: {
+            gfxASurface::gfxImageFormat imageFormat =
+                static_cast<gfxImageSurface*>(destination)->Format();
+            target_visual = gfxXlibSurface::FindVisual(screen, imageFormat);
+            Display *dpy = DisplayOfScreen(screen);
+            if (target_visual) {
+                target_format = XRenderFindVisualFormat(dpy, visual);
+            } else {
+                target_format =
+                    gfxXlibSurface::FindRenderFormat(dpy, imageFormat);
+            }                
+            break;
+        }
+        default:
+            break;
+        }
+
+        if (supportsAlternateVisual &&
+            (supportsAlternateScreen || screen == target_screen)) {
+            if (target_visual) {
+                visual = target_visual;
+                screen = target_screen;
             }
+        }
+        
+        
+        
+        
 
-            drawable = cairo_xlib_surface_get_drawable (target);
-            screen = target_screen;
+        if (doCopyBackground && visual != target_visual &&
+            !FormatConversionIsExact(screen, visual, target_format)) {
+            doCopyBackground = PR_FALSE;
         }
     }
 
-    if (!drawable) {
-        drawable = RootWindowOfScreen (screen);
+    if (supportsAlternateVisual && !drawIsOpaque &&
+        (screen != target_screen ||
+         !(doCopyBackground || VisualHasAlpha(screen, visual)))) {
+        
+        Screen *visualScreen =
+            supportsAlternateScreen ? target_screen : screen;
+        Visual *argbVisual =
+            gfxXlibSurface::FindVisual(visualScreen,
+                                       gfxASurface::ImageFormatARGB32);
+        if (argbVisual) {
+            visual = argbVisual;
+            screen = visualScreen;
+        } else if (!doCopyBackground &&
+                   gfxXlibSurface::DepthOfVisual(screen, visual) != 24) {
+            
+            
+            Visual *rgb24Visual =
+                gfxXlibSurface::FindVisual(screen,
+                                           gfxASurface::ImageFormatRGB24);
+            if (rgb24Visual) {
+                visual = rgb24Visual;
+            }
+        }
     }
-    return gfxXlibSurface::Create(screen, visual,
-                                  gfxIntSize(size.width, size.height),
-                                  drawable);
+
+    Drawable drawable =
+        (screen == target_screen && target_type == CAIRO_SURFACE_TYPE_XLIB) ?
+        cairo_xlib_surface_get_drawable (target) : RootWindowOfScreen(screen);
+
+    nsRefPtr<gfxXlibSurface> surface =
+        gfxXlibSurface::Create(screen, visual,
+                               gfxIntSize(size.width, size.height),
+                               drawable);
+
+    if (drawIsOpaque ||
+        surface->GetContentType() == gfxASurface::CONTENT_COLOR_ALPHA) {
+        NATIVE_DRAWING_NOTE(drawIsOpaque ?
+                            ", SIMPLE OPAQUE\n" : ", SIMPLE WITH ALPHA");
+        *method = eSimple;
+    } else if (doCopyBackground) {
+        NATIVE_DRAWING_NOTE(", COPY BACKGROUND\n");
+        *method = eCopyBackground;
+    } else {
+        NATIVE_DRAWING_NOTE(", SLOW ALPHA EXTRACTION\n");
+        *method = eAlphaExtraction;
+    }
+
+    return surface.forget();
 }
 
 PRBool
@@ -456,9 +588,17 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
         result->mUniformAlpha = PR_FALSE;
         result->mUniformColor = PR_FALSE;
     }
+
+    PRBool drawIsOpaque = (flags & DRAW_IS_OPAQUE) != 0;
+    gfxMatrix matrix = ctx->CurrentMatrix();
+
     
-    PRBool matrixIsIntegerTranslation =
-        !ctx->CurrentMatrix().HasNonIntegerTranslation();
+    
+    
+    
+    PRBool matrixIsIntegerTranslation = !matrix.HasNonIntegerTranslation();
+    PRBool canDrawOverBackground = matrixIsIntegerTranslation &&
+        ctx->CurrentOperator() == gfxContext::OPERATOR_OVER;
 
     
     
@@ -469,8 +609,11 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
         
         affectedRect.Outset(filterRadius);
 
-        NATIVE_DRAWING_NOTE("TAKING SLOW PATH: matrix not integer translation\n");
+        NATIVE_DRAWING_NOTE("FALLBACK: matrix not integer translation");
+    } else if (!canDrawOverBackground) {
+        NATIVE_DRAWING_NOTE("FALLBACK: unsupported operator");
     }
+
     
     
     gfxRect clipExtents;
@@ -482,42 +625,59 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
         if (clipExtents.IsEmpty())
             return; 
 
-        if (matrixIsIntegerTranslation &&
+        if (canDrawOverBackground &&
             DrawDirect(ctx, size, flags, screen, visual))
             return;
     }
 
     nsIntRect drawingRect(nsIntPoint(0, 0), size);
-    PRBool drawIsOpaque = (flags & DRAW_IS_OPAQUE) != 0;
-    if (drawIsOpaque || !result) {
+    
+    
+    if (!matrixIsIntegerTranslation) {
         
         
-        if (!matrixIsIntegerTranslation) {
-            
-            
-            clipExtents.Outset(filterRadius);
-        }
-        clipExtents.RoundOut();
-
-        nsIntRect intExtents(PRInt32(clipExtents.X()),
-                             PRInt32(clipExtents.Y()),
-                             PRInt32(clipExtents.Width()),
-                             PRInt32(clipExtents.Height()));
-        drawingRect.IntersectRect(drawingRect, intExtents);
+        clipExtents.Outset(filterRadius);
     }
+    clipExtents.RoundOut();
+
+    nsIntRect intExtents(PRInt32(clipExtents.X()),
+                         PRInt32(clipExtents.Y()),
+                         PRInt32(clipExtents.Width()),
+                         PRInt32(clipExtents.Height()));
+    drawingRect.IntersectRect(drawingRect, intExtents);
     gfxPoint offset(drawingRect.x, drawingRect.y);
 
-    cairo_t *cr = ctx->GetCairo();
+    DrawingMethod method;
+    nsRefPtr<gfxASurface> target = ctx->CurrentSurface();
     nsRefPtr<gfxXlibSurface> tempXlibSurface = 
-        _create_temp_xlib_surface (cr, drawingRect.Size(),
-                                   flags, screen, visual);
-    if (tempXlibSurface == NULL)
+        CreateTempXlibSurface(target, drawingRect.Size(),
+                              canDrawOverBackground, flags, screen, visual,
+                              &method);
+    if (!tempXlibSurface)
         return;
   
+    if (drawingRect.Size() != size || method == eCopyBackground) {
+        
+        
+        result = NULL;
+    }
+
     nsRefPtr<gfxContext> tmpCtx;
     if (!drawIsOpaque) {
         tmpCtx = new gfxContext(tempXlibSurface);
-        tmpCtx->SetOperator(gfxContext::OPERATOR_CLEAR);
+        if (method == eCopyBackground) {
+            tmpCtx->SetOperator(gfxContext::OPERATOR_SOURCE);
+            tmpCtx->SetSource(target, -(offset + matrix.GetTranslation()));
+            
+            
+            
+            
+            NS_ASSERTION(tempXlibSurface->GetContentType()
+                         == gfxASurface::CONTENT_COLOR,
+                         "Don't copy background with a transparent surface");
+        } else {
+            tmpCtx->SetOperator(gfxContext::OPERATOR_CLEAR);
+        }
         tmpCtx->Paint();
     }
 
@@ -525,7 +685,7 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
         return;
     }
   
-    if (drawIsOpaque) {
+    if (method != eAlphaExtraction) {
         ctx->SetSource(tempXlibSurface, offset);
         ctx->Paint();
         if (result) {
@@ -561,6 +721,7 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
         _compute_alpha_values ((uint32_t*)black_data, (uint32_t*)white_data, width, height, result);
         cairo_surface_mark_dirty (black_image_surface);
         
+        cairo_t *cr = ctx->GetCairo();
         cairo_set_source_surface (cr, black_image_surface, offset.x, offset.y);
         
 
