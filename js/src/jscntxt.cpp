@@ -2216,18 +2216,8 @@ ComputeIsJITBroken()
         return false;
     }
 
-    std::string line;
-
-    
-    std::ifstream osrelease("/proc/sys/kernel/osrelease");
-    std::getline(osrelease, line);
-    if (line.npos == line.find("2.6.29")) {
-        
-        return false;
-    }
-
-    
     bool broken = false;
+    std::string line;
     std::ifstream cpuinfo("/proc/cpuinfo");
     do {
         if (0 == line.find("Hardware")) {
@@ -2284,7 +2274,7 @@ JSContext::updateJITEnabled()
 # endif
                         ;
 #ifdef JS_TRACER
-    profilingEnabled = (options & JSOPTION_PROFILING) && traceJitEnabled;
+    profilingEnabled = (options & JSOPTION_PROFILING) && traceJitEnabled && methodJitEnabled;
 #endif
 #endif
 }
