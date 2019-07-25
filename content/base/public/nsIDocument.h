@@ -34,6 +34,7 @@
 
 
 
+
 #ifndef nsIDocument_h___
 #define nsIDocument_h___
 
@@ -1519,6 +1520,44 @@ public:
   virtual nsresult GetStateObject(nsIVariant** aResult) = 0;
 
   virtual Element* FindImageMap(const nsAString& aNormalizedMapName) = 0;
+
+  enum DeprecatedOperations {
+    eGetAttributeNode = 0,
+    eSetAttributeNode,
+    eGetAttributeNodeNS,
+    eSetAttributeNodeNS,
+    eRemoveAttributeNode,
+    eCreateAttribute,
+    eCreateAttributeNS,
+    eSpecified,
+    eOwnerElement,
+    eNodeName,
+    eNodeValue,
+    eNodeType,
+    eParentNode,
+    eChildNodes,
+    eHasChildNodes,
+    eHasAttributes,
+    eFirstChild,
+    eLastChild,
+    ePreviousSibling,
+    eNextSibling,
+    eAttributes,
+    eInsertBefore,
+    eReplaceChild,
+    eRemoveChild,
+    eAppendChild,
+    eCloneNode,
+    eOwnerDocument,
+    eNormalize,
+    eIsSupported,
+    eIsEqualNode,
+    eTextContent
+  };
+  void WarnOnceAbout(DeprecatedOperations aOperation);
+
+private:
+  PRUint32 mWarnedAbout;
 
 protected:
   ~nsIDocument()
