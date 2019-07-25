@@ -66,6 +66,7 @@
 
 
 
+
 function GroupItem(listOfEls, options) {
   if (!options)
     options = {};
@@ -226,9 +227,12 @@ function GroupItem(listOfEls, options) {
     .hide();
 
   
+  let appTabTrayContainer = iQ("<div/>")
+    .addClass("appTabTrayContainer")
+    .appendTo($container);
   this.$appTabTray = iQ("<div/>")
     .addClass("appTabTray")
-    .appendTo($container);
+    .appendTo(appTabTrayContainer);
 
   AllTabs.tabs.forEach(function(xulTab) {
     if (xulTab.pinned && xulTab.ownerDocument.defaultView == gWindow)
@@ -378,13 +382,85 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  
+  
+  
+  
+  
+  adjustAppTabTray: function GroupItem_adjustAppTabTray(arrangeGroup) {
+    let icons = iQ(".appTabIcon", this.$appTabTray);
+    let container = iQ(this.$appTabTray[0].parentNode);
+    if (!icons.length) {
+      
+      if (parseInt(container.css("width")) != 0) {
+        this.$appTabTray.css("-moz-column-count", 0);
+        this.$appTabTray.css("height", 0);
+        container.css("width", 0);
+        container.css("height", 0);
+
+        if (container.hasClass("appTabTrayContainerTruncated"))
+          container.removeClass("appTabTrayContainerTruncated");
+
+        if (arrangeGroup)
+          this.arrange();
+      }
+      return;
+    }
+
+    let iconBounds = iQ(icons[0]).bounds();
+    let boxBounds = this.getBounds();
+    let contentHeight = boxBounds.height -
+                        parseInt(container.css("top")) -
+                        this.$resizer.height();
+    let rows = Math.floor(contentHeight / iconBounds.height);
+    let columns = Math.ceil(icons.length / rows);
+    let columnsGap = parseInt(this.$appTabTray.css("-moz-column-gap"));
+    let iconWidth = iconBounds.width + columnsGap;
+    let maxColumns = Math.floor((boxBounds.width * 0.20) / iconWidth);
+
+    if (columns > maxColumns)
+      container.addClass("appTabTrayContainerTruncated");
+    else if (container.hasClass("appTabTrayContainerTruncated"))
+      container.removeClass("appTabTrayContainerTruncated");
+
+    
+    
+    if (parseInt(this.$appTabTray.css("-moz-column-count")) != columns)
+      this.$appTabTray.css("-moz-column-count", columns);
+
+    if (parseInt(this.$appTabTray.css("height")) != contentHeight) {
+      this.$appTabTray.css("height", contentHeight + "px");
+      container.css("height", contentHeight + "px");
+    }
+
+    let fullTrayWidth = iconWidth * columns - columnsGap;
+    if (parseInt(this.$appTabTray.css("width")) != fullTrayWidth)
+      this.$appTabTray.css("width", fullTrayWidth + "px");
+
+    let trayWidth = iconWidth * Math.min(columns, maxColumns) - columnsGap;
+    if (parseInt(container.css("width")) != trayWidth) {
+      container.css("width", trayWidth + "px");
+
+      
+      if (arrangeGroup)
+        this.arrange();
+    }
+  },
+
+  
+  
+  
   getContentBounds: function GroupItem_getContentBounds() {
     var box = this.getBounds();
     var titleHeight = this.$titlebar.height();
     box.top += titleHeight;
     box.height -= titleHeight;
 
-    var appTabTrayWidth = this.$appTabTray.width();
+    let appTabTrayContainer = iQ(this.$appTabTray[0].parentNode);
+    var appTabTrayWidth = appTabTrayContainer.width();
+    if (appTabTrayWidth)
+      appTabTrayWidth += parseInt(appTabTrayContainer.css(UI.rtl ? "left" : "right"));
+
     box.width -= appTabTrayWidth;
     if (UI.rtl) {
       box.left += appTabTrayWidth;
@@ -452,6 +528,10 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
     var offset = new Point(rect.left - this.bounds.left, rect.top - this.bounds.top);
     this.bounds = new Rect(rect);
+
+    
+    if (css.width || css.height)
+      this.adjustAppTabTray();
 
     
     if (css.width || css.height) {
@@ -1054,11 +1134,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       });
 
     
-    let columnWidth = $appTab.width();
-    if (parseInt(this.$appTabTray.css("width")) != columnWidth) {
-      this.$appTabTray.css({width: columnWidth});
-      this.arrange();
-    }
+    this.adjustAppTabTray(true);
   },
 
   
@@ -1074,10 +1150,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     });
     
     
-    if (!iQ(".appTabIcon", this.$appTabTray).length) {
-      this.$appTabTray.css({width: 0});
-      this.arrange();
-    }
+    this.adjustAppTabTray(true);
 
     xulTab.removeEventListener("error", this._onAppTabError, false);
   },
