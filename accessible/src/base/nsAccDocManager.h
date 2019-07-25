@@ -78,16 +78,17 @@ public:
   
 
 
-
-
-  void ShutdownDocAccessiblesInTree(nsIDocument *aDocument);
+  inline nsDocAccessible* GetDocAccessibleFromCache(nsIDocument* aDocument) const
+  {
+    return mDocAccessibleCache.GetWeak(aDocument);
+  }
 
   
 
 
-  inline nsDocAccessible* GetDocAccessibleFromCache(nsIDocument* aDocument) const
+  inline void NotifyOfDocumentShutdown(nsIDocument* aDocument)
   {
-    return mDocAccessibleCache.GetWeak(aDocument);
+    mDocAccessibleCache.Remove(aDocument);
   }
 
 protected:
@@ -102,11 +103,6 @@ protected:
 
 
   void Shutdown();
-
-  
-
-
-  void ShutdownDocAccessible(nsIDocument* aDocument);
 
 private:
   nsAccDocManager(const nsAccDocManager&);
@@ -155,12 +151,6 @@ private:
 
 
   nsDocAccessible *CreateDocOrRootAccessible(nsIDocument *aDocument);
-
-  
-
-
-  void ShutdownDocAccessiblesInTree(nsIDocShellTreeItem *aTreeItem,
-                                    nsIDocument *aDocument);
 
   typedef nsRefPtrHashtable<nsPtrHashKey<const nsIDocument>, nsDocAccessible>
     nsDocAccessibleHashtable;
