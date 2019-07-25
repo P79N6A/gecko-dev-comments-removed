@@ -461,7 +461,7 @@ public:
 
 
 
-  static gfx3DMatrix ChangeMatrixBasis(const gfxPoint &aOrigin, const gfx3DMatrix &aMatrix);
+  static gfx3DMatrix ChangeMatrixBasis(const gfxPoint3D &aOrigin, const gfx3DMatrix &aMatrix);
 
   
 

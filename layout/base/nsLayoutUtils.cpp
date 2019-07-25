@@ -1002,16 +1002,14 @@ nsLayoutUtils::GetPopupFrameForEventCoordinates(nsPresContext* aPresContext,
 }
 
 gfx3DMatrix
-nsLayoutUtils::ChangeMatrixBasis(const gfxPoint &aOrigin,
+nsLayoutUtils::ChangeMatrixBasis(const gfxPoint3D &aOrigin,
                                  const gfx3DMatrix &aMatrix)
 {
   
 
 
-
-
-  gfx3DMatrix worldToOrigin = gfx3DMatrix::From2D(gfxMatrix(1.0, 0.0, 0.0, 1.0, -aOrigin.x, -aOrigin.y));
-  gfx3DMatrix originToWorld = gfx3DMatrix::From2D(gfxMatrix(1.0, 0.0, 0.0, 1.0,  aOrigin.x,  aOrigin.y));
+  gfx3DMatrix worldToOrigin = gfx3DMatrix::Translation(-aOrigin);
+  gfx3DMatrix originToWorld = gfx3DMatrix::Translation(aOrigin);
 
   
   return worldToOrigin * aMatrix * originToWorld;

@@ -2298,9 +2298,9 @@ nsDisplayTransform::GetFrameBoundsForTransform(const nsIFrame* aFrame)
 
 
 static
-gfxPoint GetDeltaToMozTransformOrigin(const nsIFrame* aFrame,
-                                      float aFactor,
-                                      const nsRect* aBoundsOverride)
+gfxPoint3D GetDeltaToMozTransformOrigin(const nsIFrame* aFrame,
+                                        float aFactor,
+                                        const nsRect* aBoundsOverride)
 {
   NS_PRECONDITION(aFrame, "Can't get delta for a null frame!");
   NS_PRECONDITION(aFrame->GetStyleDisplay()->HasTransform(),
@@ -2315,8 +2315,8 @@ gfxPoint GetDeltaToMozTransformOrigin(const nsIFrame* aFrame,
                          nsDisplayTransform::GetFrameBoundsForTransform(aFrame));
 
   
-  gfxPoint result;
-  gfxFloat* coords[2] = {&result.x, &result.y};
+  gfxPoint3D result;
+  gfxFloat* coords[3] = {&result.x, &result.y, &result.z};
   const nscoord* dimensions[2] =
     {&boundingRect.width, &boundingRect.height};
 
@@ -2338,6 +2338,8 @@ gfxPoint GetDeltaToMozTransformOrigin(const nsIFrame* aFrame,
       *coords[index] = NSAppUnitsToFloatPixels(coord.GetCoordValue(), aFactor);
     }
   }
+
+  *coords[2] = NSAppUnitsToFloatPixels(display->mTransformOrigin[2].GetCoordValue(), aFactor);
   
   
   result.x += NSAppUnitsToFloatPixels(boundingRect.x, aFactor);
@@ -2363,9 +2365,10 @@ nsDisplayTransform::GetResultingTransformMatrix(const nsIFrame* aFrame,
   
 
 
-  gfxPoint toMozOrigin = GetDeltaToMozTransformOrigin(aFrame, aFactor, aBoundsOverride);
-  gfxPoint newOrigin = gfxPoint(NSAppUnitsToFloatPixels(aOrigin.x, aFactor),
-                                NSAppUnitsToFloatPixels(aOrigin.y, aFactor));
+  gfxPoint3D toMozOrigin = GetDeltaToMozTransformOrigin(aFrame, aFactor, aBoundsOverride);
+  gfxPoint3D newOrigin = gfxPoint3D(NSAppUnitsToFloatPixels(aOrigin.x, aFactor),
+                                    NSAppUnitsToFloatPixels(aOrigin.y, aFactor),
+                                    0.0f);
 
   
 

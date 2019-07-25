@@ -153,6 +153,7 @@ public:
 
 
   static gfx3DMatrix Translation(float aX, float aY, float aZ);
+  static gfx3DMatrix Translation(const gfxPoint3D& aPoint);
 
   
 
