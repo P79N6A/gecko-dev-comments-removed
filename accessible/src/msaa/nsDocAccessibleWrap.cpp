@@ -268,9 +268,9 @@ nsDocAccessibleWrap::GetNativeWindow() const
 
 
 void
-nsDocAccessibleWrap::NotifyOfInitialUpdate()
+nsDocAccessibleWrap::DoInitialUpdate()
 {
-  nsDocAccessible::NotifyOfInitialUpdate();
+  nsDocAccessible::DoInitialUpdate();
 
   if (nsWinUtils::IsWindowEmulationStarted()) {
     

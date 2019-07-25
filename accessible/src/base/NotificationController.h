@@ -130,14 +130,6 @@ public:
   
 
 
-  inline bool IsTreeConstructed()
-  {
-    return mTreeConstructedState == eTreeConstructed;
-  }
-
-  
-
-
   void Shutdown();
 
   
@@ -155,11 +147,8 @@ public:
 
   inline void ScheduleTextUpdate(nsIContent* aTextNode)
   {
-    
-    if (mTreeConstructedState != eTreeConstructionPending &&
-        mTextHash.PutEntry(aTextNode)) {
+    if (mTextHash.PutEntry(aTextNode))
       ScheduleProcessing();
-    }
   }
 
   
@@ -298,17 +287,6 @@ private:
 
 
   nsIPresShell* mPresShell;
-
-  
-
-
-
-
-  enum eTreeConstructedState {
-    eTreeConstructed,
-    eTreeConstructionPending
-  };
-  eTreeConstructedState mTreeConstructedState;
 
   
 

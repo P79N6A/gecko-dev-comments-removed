@@ -123,24 +123,6 @@ private:
   
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-  PRBool IsEventTargetDocument(nsIDocument *aDocument) const;
-
-  
-
-
   void AddListeners(nsIDocument *aDocument, PRBool aAddPageShowListener);
 
   

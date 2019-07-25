@@ -105,7 +105,8 @@ nsDocAccessible::
   nsDocAccessible(nsIDocument *aDocument, nsIContent *aRootContent,
                   nsIWeakReference *aShell) :
   nsHyperTextAccessibleWrap(aRootContent, aShell),
-  mDocument(aDocument), mScrollPositionChangedTicks(0), mIsLoaded(PR_FALSE)
+  mDocument(aDocument), mScrollPositionChangedTicks(0),
+  mLoadState(eTreeConstructionPending), mLoadEventType(0)
 {
   mFlags |= eDocAccessible;
 
@@ -310,10 +311,15 @@ nsDocAccessible::NativeState()
   }
 
   
-  if (!mIsLoaded || !mNotificationController->IsTreeConstructed()) {
-    state |= states::BUSY | states::STALE;
-  }
- 
+  
+  if (!HasLoadState(eReady))
+    state |= states::STALE;
+
+  
+  
+  if (!HasLoadState(eCompletelyLoaded))
+    state |= states::BUSY;
+
   nsIFrame* frame = GetFrame();
   if (!frame || !nsCoreUtils::CheckVisibilityInParentChain(frame)) {
     state |= states::INVISIBLE | states::OFFSCREEN;
@@ -605,7 +611,7 @@ nsDocAccessible::Init()
   
   
   if (mDocument->GetReadyStateEnum() == nsIDocument::READYSTATE_COMPLETE)
-    mIsLoaded = PR_TRUE;
+    mLoadState |= eDOMLoaded;
 
   AddEventListeners();
   return PR_TRUE;
@@ -1377,7 +1383,8 @@ nsDocAccessible::ContentInserted(nsIContent* aContainerNode,
                                  nsIContent* aEndChildNode)
 {
   
-  if (mNotificationController) {
+  
+  if (mNotificationController && HasLoadState(eTreeConstructed)) {
     
     
     nsAccessible* container = aContainerNode ?
@@ -1467,8 +1474,36 @@ nsDocAccessible::CacheChildren()
 
 
 void
-nsDocAccessible::NotifyOfInitialUpdate()
+nsDocAccessible::NotifyOfLoading(bool aIsReloading)
 {
+  
+  
+  mLoadState &= ~eDOMLoaded;
+
+  if (!IsLoadEventTarget())
+    return;
+
+  if (aIsReloading) {
+    
+    
+    
+    nsRefPtr<AccEvent> reloadEvent =
+      new AccEvent(nsIAccessibleEvent::EVENT_DOCUMENT_RELOAD, this);
+    nsEventShell::FireEvent(reloadEvent);
+  }
+
+  
+  
+  nsRefPtr<AccEvent> stateEvent =
+    new AccStateChangeEvent(mDocument, states::BUSY, PR_TRUE);
+  FireDelayedAccessibleEvent(stateEvent);
+}
+
+void
+nsDocAccessible::DoInitialUpdate()
+{
+  mLoadState |= eTreeConstructed;
+
   
   
   
@@ -1489,6 +1524,34 @@ nsDocAccessible::NotifyOfInitialUpdate()
                    AccEvent::eCoalesceFromSameSubtree);
     ParentDocument()->FireDelayedAccessibleEvent(reorderEvent);
   }
+}
+
+void
+nsDocAccessible::ProcessLoad()
+{
+  mLoadState |= eCompletelyLoaded;
+
+  
+  
+  
+  
+  
+  
+  if (!IsLoadEventTarget())
+    return;
+
+  
+  if (mLoadEventType) {
+    nsRefPtr<AccEvent> loadEvent = new AccEvent(mLoadEventType, this);
+    nsEventShell::FireEvent(loadEvent);
+
+    mLoadEventType = 0;
+  }
+
+  
+  nsRefPtr<AccEvent> stateEvent =
+    new AccStateChangeEvent(this, states::BUSY, PR_FALSE);
+  nsEventShell::FireEvent(stateEvent);
 }
 
 void
@@ -1964,3 +2027,30 @@ nsDocAccessible::ShutdownChildrenInSubtree(nsAccessible* aAccessible)
 
   UnbindFromDocument(aAccessible);
 }
+
+bool
+nsDocAccessible::IsLoadEventTarget() const
+{
+  nsCOMPtr<nsISupports> container = mDocument->GetContainer();
+  nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem =
+    do_QueryInterface(container);
+  NS_ASSERTION(docShellTreeItem, "No document shell for document!");
+
+  nsCOMPtr<nsIDocShellTreeItem> parentTreeItem;
+  docShellTreeItem->GetParent(getter_AddRefs(parentTreeItem));
+
+  
+  if (parentTreeItem) {
+    nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
+    docShellTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
+
+    
+    return (sameTypeRoot == docShellTreeItem);
+  }
+
+  
+  PRInt32 contentType;
+  docShellTreeItem->GetItemType(&contentType);
+  return (contentType == nsIDocShellTreeItem::typeContent);
+}
+

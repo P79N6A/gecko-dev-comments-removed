@@ -134,19 +134,34 @@ public:
 
   PRBool IsContentLoaded() const
   {
+    
+    
+    
     return mDocument && mDocument->IsVisible() &&
-      (mDocument->IsShowing() || mIsLoaded);
+      (mDocument->IsShowing() || HasLoadState(eDOMLoaded));
   }
 
   
 
 
+  enum LoadState {
+    
+    eTreeConstructionPending = 0,
+    
+    eTreeConstructed = 1,
+    
+    eDOMLoaded = 1 << 1,
+    
+    eReady = eTreeConstructed | eDOMLoaded,
+    
+    eCompletelyLoaded = eReady | 1 << 2
+  };
+
+  
 
 
-
-
-  void MarkAsLoaded() { mIsLoaded = PR_TRUE; }
-  void MarkAsLoading() { mIsLoaded = PR_FALSE; }
+  bool HasLoadState(LoadState aState) const
+    { return (mLoadState & aState) == aState; }
 
   
 
@@ -326,7 +341,8 @@ public:
   {
     NS_ASSERTION(mNotificationController, "The document was shut down!");
 
-    if (mNotificationController)
+    
+    if (mNotificationController && HasLoadState(eTreeConstructed))
       mNotificationController->ScheduleTextUpdate(aTextNode);
   }
 
@@ -348,8 +364,27 @@ protected:
   
 
 
+  inline void NotifyOfLoad(PRUint32 aLoadEventType)
+  {
+    mLoadState |= eDOMLoaded;
+    mLoadEventType = aLoadEventType;
+  }
 
-  virtual void NotifyOfInitialUpdate();
+  void NotifyOfLoading(bool aIsReloading);
+
+  friend class nsAccDocManager;
+
+  
+
+
+
+  virtual void DoInitialUpdate();
+
+  
+
+
+
+  void ProcessLoad();
 
     void AddScrollListener();
     void RemoveScrollListener();
@@ -489,7 +524,27 @@ protected:
 
 
 
+
+
+
+
+
+
+
+
+
+
+  bool IsLoadEventTarget() const;
+
+  
+
+
+
+
+
   static void ScrollTimerCallback(nsITimer* aTimer, void* aClosure);
+
+protected:
 
   
 
@@ -502,12 +557,15 @@ protected:
     nsCOMPtr<nsITimer> mScrollWatchTimer;
     PRUint16 mScrollPositionChangedTicks; 
 
-protected:
+  
+
+
+  PRUint32 mLoadState;
 
   
 
 
-  PRPackedBool mIsLoaded;
+  PRUint32 mLoadEventType;
 
   static PRUint64 gLastFocusedAccessiblesState;
 

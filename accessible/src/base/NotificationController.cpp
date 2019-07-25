@@ -55,7 +55,7 @@
 NotificationController::NotificationController(nsDocAccessible* aDocument,
                                                nsIPresShell* aPresShell) :
   mObservingState(eNotObservingRefresh), mDocument(aDocument),
-  mPresShell(aPresShell), mTreeConstructedState(eTreeConstructionPending)
+  mPresShell(aPresShell)
 {
   mTextHash.Init();
 
@@ -154,10 +154,6 @@ NotificationController::ScheduleContentInsertion(nsAccessible* aContainer,
                                                  nsIContent* aStartChildNode,
                                                  nsIContent* aEndChildNode)
 {
-  
-  if (mTreeConstructedState == eTreeConstructionPending)
-    return;
-
   nsRefPtr<ContentInsertion> insertion = new ContentInsertion(mDocument,
                                                               aContainer);
   if (insertion && insertion->InitChildList(aStartChildNode, aEndChildNode) &&
@@ -207,7 +203,7 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
   mObservingState = eRefreshProcessingForUpdate;
 
   
-  if (mTreeConstructedState == eTreeConstructionPending) {
+  if (!mDocument->HasLoadState(nsDocAccessible::eTreeConstructed)) {
     
     
     if (!mDocument->IsBoundToParent())
@@ -218,8 +214,7 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
            mDocument.get(), mDocument->GetDocumentNode());
 #endif
 
-    mTreeConstructedState = eTreeConstructed;
-    mDocument->NotifyOfInitialUpdate();
+    mDocument->DoInitialUpdate();
 
     NS_ASSERTION(mContentInsertions.Length() == 0,
                  "Pending content insertions while initial accessible tree isn't created!");
@@ -250,8 +245,8 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
   mTextHash.Clear();
 
   
-  PRUint32 childDocCount = mHangingChildDocuments.Length();
-  for (PRUint32 idx = 0; idx < childDocCount; idx++) {
+  PRUint32 hangingDocCnt = mHangingChildDocuments.Length();
+  for (PRUint32 idx = 0; idx < hangingDocCnt; idx++) {
     nsDocAccessible* childDoc = mHangingChildDocuments[idx];
 
     nsIContent* ownerContent = mDocument->GetDocumentNode()->
@@ -270,6 +265,25 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
     }
   }
   mHangingChildDocuments.Clear();
+
+  
+  
+  if (mDocument->HasLoadState(nsDocAccessible::eReady) &&
+      !mDocument->HasLoadState(nsDocAccessible::eCompletelyLoaded) &&
+      hangingDocCnt == 0) {
+    PRUint32 childDocCnt = mDocument->ChildDocumentCount(), childDocIdx = 0;
+    for (; childDocIdx < childDocCnt; childDocIdx++) {
+      nsDocAccessible* childDoc = mDocument->GetChildDocumentAt(childDocIdx);
+      if (!childDoc->HasLoadState(nsDocAccessible::eCompletelyLoaded))
+        break;
+    }
+
+    if (childDocIdx == childDocCnt) {
+      mDocument->ProcessLoad();
+      if (!mDocument)
+        return;
+    }
+  }
 
   
   nsTArray < nsRefPtr<Notification> > notifications;
@@ -313,7 +327,9 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
   
   
   if (mContentInsertions.Length() == 0 && mNotifications.Length() == 0 &&
-      mEvents.Length() == 0 &&
+      mEvents.Length() == 0 && mTextHash.Count() == 0 &&
+      mHangingChildDocuments.Length() == 0 &&
+      mDocument->HasLoadState(nsDocAccessible::eCompletelyLoaded) &&
       mPresShell->RemoveRefreshObserver(this, Flush_Display)) {
     mObservingState = eNotObservingRefresh;
   }

@@ -97,7 +97,7 @@ public:
 
 protected:
   
-  virtual void NotifyOfInitialUpdate();
+  virtual void DoInitialUpdate();
 
 protected:
   void* mHWND;

@@ -190,9 +190,6 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
   NS_LOG_ACCDOCLOAD("start document loading", aWebProgress, aRequest,
                     aStateFlags)
 
-  if (!IsEventTargetDocument(document))
-    return NS_OK;
-
   nsDocAccessible* docAcc = mDocAccessibleCache.GetWeak(document);
   if (!docAcc)
     return NS_OK;
@@ -201,32 +198,17 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
   nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(webNav));
   NS_ENSURE_STATE(docShell);
 
-  
-  
-  
+  bool isReloading = false;
   PRUint32 loadType;
   docShell->GetLoadType(&loadType);
   if (loadType == LOAD_RELOAD_NORMAL ||
       loadType == LOAD_RELOAD_BYPASS_CACHE ||
       loadType == LOAD_RELOAD_BYPASS_PROXY ||
       loadType == LOAD_RELOAD_BYPASS_PROXY_AND_CACHE) {
-
-    
-    nsRefPtr<AccEvent> reloadEvent =
-      new AccEvent(nsIAccessibleEvent::EVENT_DOCUMENT_RELOAD, docAcc);
-    nsEventShell::FireEvent(reloadEvent);
+    isReloading = true;
   }
 
-  
-  
-  docAcc->MarkAsLoading();
-
-  
-  
-  nsRefPtr<AccEvent> stateEvent =
-    new AccStateChangeEvent(document, states::BUSY, PR_TRUE);
-  docAcc->FireDelayedAccessibleEvent(stateEvent);
-
+  docAcc->NotifyOfLoading(isReloading);
   return NS_OK;
 }
 
@@ -338,54 +320,7 @@ nsAccDocManager::HandleDOMDocumentLoad(nsIDocument *aDocument,
       return;
   }
 
-  
-  docAcc->MarkAsLoaded();
-
-  
-  
-  
-  
-  
-  
-  if (!IsEventTargetDocument(aDocument))
-    return;
-
-  
-  if (aLoadEventType) {
-    nsRefPtr<AccEvent> loadEvent = new AccEvent(aLoadEventType, aDocument);
-    docAcc->FireDelayedAccessibleEvent(loadEvent);
-  }
-
-  
-  nsRefPtr<AccEvent> stateEvent =
-    new AccStateChangeEvent(aDocument, states::BUSY, PR_FALSE);
-  docAcc->FireDelayedAccessibleEvent(stateEvent);
-}
-
-PRBool
-nsAccDocManager::IsEventTargetDocument(nsIDocument *aDocument) const
-{
-  nsCOMPtr<nsISupports> container = aDocument->GetContainer();
-  nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem =
-    do_QueryInterface(container);
-  NS_ASSERTION(docShellTreeItem, "No document shell for document!");
-
-  nsCOMPtr<nsIDocShellTreeItem> parentTreeItem;
-  docShellTreeItem->GetParent(getter_AddRefs(parentTreeItem));
-
-  
-  if (parentTreeItem) {
-    nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
-    docShellTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
-
-    
-    return (sameTypeRoot == docShellTreeItem);
-  }
-
-  
-  PRInt32 contentType;
-  docShellTreeItem->GetItemType(&contentType);
-  return (contentType == nsIDocShellTreeItem::typeContent);
+  docAcc->NotifyOfLoad(aLoadEventType);
 }
 
 void
