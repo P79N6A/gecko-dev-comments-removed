@@ -169,7 +169,12 @@ BookmarksEngine.prototype = {
           lazyMap[parentName] = {};
 
         
-        lazyMap[parentName][key] = guid;
+        let entry = new String(guid);
+        entry.hasDupe = lazyMap[parentName][key] != null;
+
+        
+        lazyMap[parentName][key] = entry;
+        this._log.trace("Mapped: " + [parentName, key, entry, entry.hasDupe]);
       }
 
       
@@ -209,7 +214,19 @@ BookmarksEngine.prototype = {
     this._tracker._ensureMobileQuery();
   },
 
+  _createRecord: function _createRecord(id) {
+    
+    let record = SyncEngine.prototype._createRecord.call(this, id);
+    let entry = this._lazyMap(record);
+    if (entry != null && entry.hasDupe)
+      record.hasDupe = true;
+    return record;
+  },
+
   _findDupe: function _findDupe(item) {
+    
+    if (item.hasDupe)
+      return;
     return this._lazyMap(item);
   },
 
