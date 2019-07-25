@@ -893,7 +893,20 @@ inline bool
 ScriptPrologue(JSContext *cx, JSStackFrame *fp, JSScript *script);
 
 inline bool
-ScriptEpilogue(JSContext *cx, JSStackFrame *fp, JSScript *script, bool ok);
+ScriptEpilogue(JSContext *cx, JSStackFrame *fp, bool ok);
+
+
+
+
+
+
+
+
+inline bool
+ScriptPrologueOrGeneratorResume(JSContext *cx, JSStackFrame *fp);
+
+inline bool
+ScriptEpilogueOrGeneratorYield(JSContext *cx, JSStackFrame *fp, bool ok);
 
 
 
