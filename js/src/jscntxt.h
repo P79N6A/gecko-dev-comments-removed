@@ -439,7 +439,6 @@ struct JSRuntime
 
     
     void                *gcMarkStackObjs[js::OBJECT_MARK_STACK_SIZE / sizeof(void *)];
-    void                *gcMarkStackRopes[js::ROPES_MARK_STACK_SIZE / sizeof(void *)];
     void                *gcMarkStackTypes[js::TYPE_MARK_STACK_SIZE / sizeof(void *)];
     void                *gcMarkStackXMLs[js::XML_MARK_STACK_SIZE / sizeof(void *)];
     void                *gcMarkStackLarges[js::LARGE_MARK_STACK_SIZE / sizeof(void *)];

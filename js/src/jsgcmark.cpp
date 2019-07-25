@@ -732,11 +732,22 @@ ScanLinearString(GCMarker *gcmarker, JSLinearString *str)
     }
 }
 
+
+
+
+
+
+
+
+
+
 static void
 ScanRope(GCMarker *gcmarker, JSRope *rope)
 {
-    JS_ASSERT(rope->JSString::isRope());
-    do {
+    unsigned savedTos = gcmarker->objStack.tos;
+    for (;;) {
+        JS_ASSERT(GetGCThingTraceKind(rope) == JSTRACE_STRING);
+        JS_ASSERT(rope->JSString::isRope());
         JS_COMPARTMENT_ASSERT_STR(gcmarker->runtime, rope);
         JS_ASSERT(rope->isMarked());
         JSRope *next = NULL;
@@ -758,13 +769,30 @@ ScanRope(GCMarker *gcmarker, JSRope *rope)
 
 
 
-                if (next)
-                    gcmarker->pushRope(next);
+                if (next && !gcmarker->objStack.push(next))
+                    gcmarker->delayMarkingChildren(next);
                 next = &left->asRope();
             }
         }
-        rope = next;
-    } while (rope);
+        if (next) {
+            rope = next;
+        } else if (savedTos != gcmarker->objStack.tos) {
+            JS_ASSERT(savedTos < gcmarker->objStack.tos);
+            rope = static_cast<JSRope *>(gcmarker->objStack.pop());
+        } else {
+            break;
+        }
+    }
+    JS_ASSERT(savedTos == gcmarker->objStack.tos);
+ }
+
+static inline void
+ScanString(GCMarker *gcmarker, JSString *str)
+{
+    if (str->isLinear())
+        ScanLinearString(gcmarker, &str->asLinear());
+    else
+        ScanRope(gcmarker, &str->asRope());
 }
 
 static inline void
@@ -776,12 +804,9 @@ PushMarkStack(GCMarker *gcmarker, JSString *str)
 
 
 
-    if (str->markIfUnmarked()) {
-        if (str->isLinear())
-            ScanLinearString(gcmarker, &str->asLinear());
-        else
-            ScanRope(gcmarker, &str->asRope());
-    }
+
+    if (str->markIfUnmarked())
+        ScanString(gcmarker, str);
 }
 
 static const uintN LARGE_OBJECT_CHUNK_SIZE = 2048;
@@ -1053,11 +1078,8 @@ GCMarker::drainMarkStack()
     rt->gcCheckCompartment = rt->gcCurrentCompartment;
 
     while (!isMarkStackEmpty()) {
-        while (!ropeStack.isEmpty())
-            ScanRope(this, ropeStack.pop());
-
         while (!objStack.isEmpty())
-            ScanObject(this, objStack.pop());
+            ScanObject(this, static_cast<JSObject *>(objStack.pop()));
 
         while (!typeStack.isEmpty())
             ScanTypeObject(this, typeStack.pop());
