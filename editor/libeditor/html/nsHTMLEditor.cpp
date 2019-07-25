@@ -3865,6 +3865,11 @@ nsHTMLEditor::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
   }
   
   else if (!mAction && (aContainer ? aContainer->IsEditable() : aDocument->IsEditable())) {
+    nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aChild);
+    if (node && IsMozEditorBogusNode(node)) {
+      
+      return;
+    }
     mRules->DocumentModified();
   }
 }
@@ -3879,6 +3884,11 @@ nsHTMLEditor::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
   }
   
   else if (!mAction && (aContainer ? aContainer->IsEditable() : aDocument->IsEditable())) {
+    nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aChild);
+    if (node && IsMozEditorBogusNode(node)) {
+      
+      return;
+    }
     mRules->DocumentModified();
   }
 }
