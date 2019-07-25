@@ -52,6 +52,22 @@ function currentTabDocument()
 
 
 
+function browserAt(aIndex)
+{
+  return tabBrowser().getBrowserAtIndex(aIndex);
+}
+
+
+
+
+function tabDocumentAt(aIndex)
+{
+  return browserAt(aIndex).contentDocument;
+}
+
+
+
+
 function urlbarInput()
 {
   return browserWindow().document.getElementById("urlbar").inputField;
