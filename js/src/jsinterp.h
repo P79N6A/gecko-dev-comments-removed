@@ -1004,9 +1004,6 @@ CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs);
 extern bool
 StrictlyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *equal);
 
-extern bool
-LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *equal);
-
 
 extern bool
 SameValue(JSContext *cx, const Value &v1, const Value &v2, JSBool *same);
