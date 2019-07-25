@@ -187,7 +187,7 @@ BookmarksSharingManager.prototype = {
 	
 	bmkSharing._log.info("Accepted bookmark share from " + user);
 	bmkSharing._createIncomingShare(user, serverPath, folderName);
-	bmkSharing._updateAllIncomingShares();
+	bmkSharing.updateAllIncomingShares();
 	return false;
       }
     );
@@ -302,13 +302,12 @@ BookmarksSharingManager.prototype = {
 
 
     let self = yield;
-    let mounts = this._engine._store.findIncomingShares();
-
-      
+    
 
 
     for (let i = 0; i < mounts.length; i++) {
       try {
+	this._log.trace("Update incoming share from " + mounts[i].serverPath);
         this._updateIncomingShare.async(this, self.cb, mounts[i]);
         yield;
       } catch (e) {
@@ -533,6 +532,8 @@ BookmarksSharingManager.prototype = {
 
     
 
+    dump( "I'm in _createIncomingShare.  user= " + user + "path = " +
+	  serverPath + ", title= " + title + "\n" );
     let root;
     let a = this._annoSvc.getItemsWithAnnotation(INCOMING_SHARE_ROOT_ANNO,
                                                  {});
@@ -588,6 +589,9 @@ BookmarksSharingManager.prototype = {
 
 
 
+    
+    
+
 
     let self = yield;
     let user = mountData.userid;
@@ -596,42 +600,60 @@ BookmarksSharingManager.prototype = {
     let serverPath = mountData.serverPath;
     
     
+    this._log.trace("UpdateIncomingShare: getting keyring file.");
     let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
-    keyringFile.get(self.cb);
-    let keys = yield;
+    keyringFile.pushFilter(new JsonFilter());
+    let keys = yield keyringFile.get(self.cb);
 
     
+    this._log.trace("UpdateIncomingShare: decrypting sym key.");
+    let idRSA = ID.get('WeaveCryptoID');
+    let bulkKey = yield Crypto.unwrapKey.async(Crypto, self.cb,
+                           keys.ring[this._myUsername], idRSA);
+    let bulkIV = keys.bulkIV;
+
+    
+    this._log.trace("UpdateIncomingShare: getting encrypted bookmark file.");
     let bmkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
-    bmkFile.pushFilter( new JsonFilter() );
-    bmkFile.get(self.cb);
-    let cyphertext = yield;
+    let cyphertext = yield bmkFile.get(self.cb);
     let tmpIdentity = {
                         realm   : "temp ID",
-                        bulkKey : keys.ring[this._myUsername],
-                        bulkIV  : keys.bulkIV
+			bulkKey : bulkKey,
+                        bulkIV  : bulkIV
                       };
+    this._log.trace("UpdateIncomingShare: Decrypting.");
     Crypto.decryptData.async( Crypto, self.cb, cyphertext, tmpIdentity );
     let json = yield;
     
+    this._log.trace("UpdateIncomingShare: De-JSON-izing.");
+    let jsonService = Components.classes["@mozilla.org/dom/json;1"]
+                 .createInstance(Components.interfaces.nsIJSON);
+    let serverContents = jsonService.decode( json );
 
     
-    for (let guid in json) {
-      if (json[guid].type != "bookmark")
-        delete json[guid];
+    this._log.trace("UpdateIncomingShare: Pruning.");
+    for (let guid in serverContents) {
+      if (serverContents[guid].type != "bookmark")
+        delete serverContents[guid];
       else
-        json[guid].parentGUID = mountData.rootGUID;
+        serverContents[guid].parentGUID = mountData.rootGUID;
     }
 
     
-    
-    
-    
-    
+    this._log.trace("Wiping local contents of incoming share...");
+    this._bms.removeFolderChildren( mountData.node );
+
     
 
     this._log.trace("Got bookmarks from " + user + ", comparing with local copy");
-    this._engine._core.detectUpdates(self.cb, json, {});
+    this._engine._core.detectUpdates(self.cb, {}, serverContents);
     let diff = yield;
+
+    
+
+
+
+
 
     
     this._log.trace("Applying changes to folder from " + user);
@@ -893,6 +915,7 @@ BookmarksStore.prototype = {
       parentId = this._bms.bookmarksMenuFolder;
     }
 
+    dump( "Processing createCommand for a " + command.data.type + " type.\n");
     switch (command.data.type) {
     case "query":
     case "bookmark":

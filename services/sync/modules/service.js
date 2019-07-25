@@ -53,16 +53,16 @@ const Cu = Components.utils;
 
 
 
-const SCHEDULED_SYNC_INTERVAL = 60 * 1000 * 5; 
+const SCHEDULED_SYNC_INTERVAL = 60 * 1000; 
 
 
 
 
-const INITIAL_THRESHOLD = 75;
+const INITIAL_THRESHOLD = 100;
 
 
 
-const THRESHOLD_DECREMENT_STEP = 25;
+const THRESHOLD_DECREMENT_STEP = 5;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://weave/log4moz.js");
@@ -172,9 +172,6 @@ WeaveSvc.prototype = {
         createInstance(Ci.nsIJSON);
     return this.__json;
   },
-
-  
-  _keyPair: {},
 
   
   _scheduleTimer: null,
@@ -403,33 +400,23 @@ WeaveSvc.prototype = {
 
     
     
+    DAV.GET("private/privkey", self.cb);
+    let privkeyResp = yield;
+    Utils.ensureStatus(privkeyResp.status,
+                       "Could not get private key from server", statuses);
 
-    if (!(this._keyPair['private'] && this._keyPair['public'])) {
-      this._log.info("Fetching keypair from server.");
+    DAV.GET("public/pubkey", self.cb);
+    let pubkeyResp = yield;
+    Utils.ensureStatus(pubkeyResp.status,
+                       "Could not get public key from server", statuses);
 
-      DAV.GET("private/privkey", self.cb);
-      let privkeyResp = yield;
-      Utils.ensureStatus(privkeyResp.status,
-                         "Could not get private key from server", statuses);
-
-      DAV.GET("public/pubkey", self.cb);
-      let pubkeyResp = yield;
-      Utils.ensureStatus(pubkeyResp.status,
-                         "Could not get public key from server", statuses);
-
-      if (privkeyResp.status == 404 || pubkeyResp.status == 404) {
-        yield this._generateKeys.async(this, self.cb);
-        return;
-      }
-
-      this._keyPair['private'] = this._json.decode(privkeyResp.responseText);
-      this._keyPair['public'] = this._json.decode(pubkeyResp.responseText);
-    } else {
-      this._log.info("Using cached keypair");
+    if (privkeyResp.status == 404 || pubkeyResp.status == 404) {
+      yield this._generateKeys.async(this, self.cb);
+      return;
     }
 
-    let privkeyData = this._keyPair['private']
-    let pubkeyData  = this._keyPair['public'];
+    let privkeyData = this._json.decode(privkeyResp.responseText);
+    let pubkeyData  = this._json.decode(pubkeyResp.responseText);
 
     if (!privkeyData || !pubkeyData)
       throw "Bad keypair JSON";
@@ -517,7 +504,9 @@ WeaveSvc.prototype = {
   },
 
   _onQuitApplication: function WeaveSvc__onQuitApplication() {
-    if (!this.enabled || !this._loggedIn)
+    if (!this.enabled ||
+        !Utils.prefs.getBoolPref("syncOnQuit.enabled") ||
+        !this._loggedIn)
       return;
 
     let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
@@ -616,7 +605,6 @@ WeaveSvc.prototype = {
     this._log.info("Logging out");
     this._disableSchedule();
     this._loggedIn = false;
-    this._keyPair = {};
     ID.get('WeaveID').setTempPassword(null); 
     ID.get('WeaveCryptoID').setTempPassword(null); 
     this._os.notifyObservers(null, "weave:service:logout:success", "");
@@ -644,7 +632,6 @@ WeaveSvc.prototype = {
   _serverWipe: function WeaveSvc__serverWipe() {
     let self = yield;
 
-    this._keyPair = {};
     DAV.listFiles.async(DAV, self.cb);
     let names = yield;
 
@@ -675,11 +662,6 @@ WeaveSvc.prototype = {
         continue;
       yield this._notify(engines[i].name + "-engine:sync",
                          this._syncEngine, engines[i]).async(this, self.cb);
-    }
-
-    if (this._syncError) {
-      this._syncError = false;
-      throw "Some engines did not sync correctly";
     }
   },
 
@@ -734,11 +716,6 @@ WeaveSvc.prototype = {
           this._syncThresholds[engine.name] = 1;
       }
     }
-
-    if (this._syncError) {
-      this._syncError = false;
-      throw "Some engines did not sync correctly";
-    }
   },
 
   _syncEngine: function WeaveSvc__syncEngine(engine) {
@@ -749,7 +726,6 @@ WeaveSvc.prototype = {
     } catch(e) {
       this._log.error(Utils.exceptionStr(e));
       this._log.error(Utils.stackTrace(e));
-      this._syncError = true;
     }
   },
 
@@ -863,6 +839,18 @@ WeaveSvc.prototype = {
       ret = false;
     }
     self.done(ret);
+  },
+
+  
+  checkForIncomingShares: function WeaveSvc_checkIncomingShares() {
+    
+    let bmkEngine = Engines.get("bookmarks");
+    let user = "avarma";
+    let serverPath = "/user/avarma/share/982b0210-5064-874c-9f75-44e04c2a0973";
+    let folderName = "Ubuntu and Free Software Links";
+    if (bmkEngine.enabled) {
+      bmkEngine._sharing._incomingShareOffer(user, serverPath, folderName);
+    }
   }
 
 };
