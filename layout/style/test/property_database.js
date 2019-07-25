@@ -1582,6 +1582,7 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		initial_values: [ " auto" ],
 		
+		prerequisites: { "display": "block" },
 		other_values: [ "15px", "3em", "15%" ],
 		invalid_values: [ "none", "-moz-max-content", "-moz-min-content", "-moz-fit-content", "-moz-available" ]
 	},
