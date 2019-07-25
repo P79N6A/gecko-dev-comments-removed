@@ -4587,12 +4587,32 @@ nsGlobalWindow::MakeScriptDialogTitle(nsAString &aOutTitle)
   }
 }
 
-
 PRBool
 nsGlobalWindow::CanMoveResizeWindows()
 {
-  if (!CanSetProperty("dom.disable_window_move_resize"))
-    return PR_FALSE;
+  
+  if (!nsContentUtils::IsCallerTrustedForWrite()) {
+    
+    
+    if (!mHadOriginalOpener) {
+      return PR_FALSE;
+    }
+
+    if (!CanSetProperty("dom.disable_window_move_resize")) {
+      return PR_FALSE;
+    }
+
+    
+    nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
+    GetTreeOwner(getter_AddRefs(treeOwner));
+    if (treeOwner) {
+      PRUint32 itemCount;
+      if (NS_SUCCEEDED(treeOwner->GetTargetableShellCount(&itemCount)) &&
+          itemCount > 1) {
+        return PR_FALSE;
+      }
+    }
+  }
 
   if (gMouseDown && !gDragServiceDisabled) {
     nsCOMPtr<nsIDragService> ds =
