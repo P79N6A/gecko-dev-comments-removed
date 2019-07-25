@@ -45,6 +45,9 @@
 #if defined(MOZ_WIDGET_GTK2)
 #  include <gdk/gdkx.h>
 #elif defined(MOZ_WIDGET_QT)
+
+
+#undef CursorShape
 #  include <QX11Info>
 #else
 #  error Unknown toolkit
