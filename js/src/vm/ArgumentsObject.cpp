@@ -162,6 +162,12 @@ ArgSetter(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, MutableHa
     if (!obj->isNormalArguments())
         return true;
 
+    unsigned attrs;
+    if (!baseops::GetAttributes(cx, obj, id, &attrs))
+        return false;
+    JS_ASSERT(!(attrs & JSPROP_READONLY));
+    attrs &= (JSPROP_ENUMERATE | JSPROP_PERMANENT); 
+
     NormalArgumentsObject &argsobj = obj->asNormalArguments();
     JSScript *script = argsobj.containingScript();
 
@@ -191,7 +197,7 @@ ArgSetter(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, MutableHa
 
     RootedValue value(cx);
     return baseops::DeleteGeneric(cx, obj, id, &value, false) &&
-           baseops::DefineGeneric(cx, obj, id, vp, NULL, NULL, JSPROP_ENUMERATE);
+           baseops::DefineGeneric(cx, obj, id, vp, NULL, NULL, attrs);
 }
 
 static JSBool
@@ -284,6 +290,12 @@ StrictArgSetter(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Mut
     if (!obj->isStrictArguments())
         return true;
 
+    unsigned attrs;
+    if (!baseops::GetAttributes(cx, obj, id, &attrs))
+        return false;
+    JS_ASSERT(!(attrs & JSPROP_READONLY));
+    attrs &= (JSPROP_ENUMERATE | JSPROP_PERMANENT); 
+
     Rooted<StrictArgumentsObject*> argsobj(cx, &obj->asStrictArguments());
 
     if (JSID_IS_INT(id)) {
@@ -304,7 +316,7 @@ StrictArgSetter(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Mut
 
     RootedValue value(cx);
     return baseops::DeleteGeneric(cx, argsobj, id, &value, strict) &&
-           baseops::SetPropertyHelper(cx, argsobj, argsobj, id, 0, vp, strict);
+           baseops::DefineGeneric(cx, argsobj, id, vp, NULL, NULL, attrs);
 }
 
 static JSBool
