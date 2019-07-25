@@ -359,6 +359,11 @@ TabTracker.prototype = {
     this._init();
 
     
+    this.onTabOpened = Utils.bind2(this, this.onTabOpened);
+    this.onTabClosed = Utils.bind2(this, this.onTabClosed);
+    this.onTabSelected = Utils.bind2(this, this.onTabSelected);
+
+    
 
     
     var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"]
