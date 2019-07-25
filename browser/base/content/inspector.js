@@ -37,6 +37,7 @@
 
 
 
+
 #endif
 
 const INSPECTOR_INVISIBLE_ELEMENTS = {
@@ -260,7 +261,8 @@ PanelHighlighter.prototype = {
     
     let midpoint = this.midPoint(a, b);
 
-    return this.win.document.elementFromPoint(midpoint.x, midpoint.y);
+    return InspectorUI.elementFromPoint(this.win.document, midpoint.x,
+      midpoint.y);
   },
 
   
@@ -312,8 +314,8 @@ PanelHighlighter.prototype = {
       return;
     }
     let browserRect = this.browser.getBoundingClientRect();
-    let element = this.win.document.elementFromPoint(aEvent.clientX -
-      browserRect.left, aEvent.clientY - browserRect.top);
+    let element = InspectorUI.elementFromPoint(this.win.document,
+      aEvent.clientX - browserRect.left, aEvent.clientY - browserRect.top);
     if (element && element != this.node) {
       InspectorUI.inspectNode(element);
     }
@@ -857,8 +859,8 @@ var InspectorUI = {
         }
         break;
       case "mousemove":
-        let element = this.win.document.elementFromPoint(event.clientX,
-          event.clientY);
+        let element = this.elementFromPoint(event.target.ownerDocument,
+          event.clientX, event.clientY);
         if (element && element != this.node) {
           this.inspectNode(element);
         }
@@ -929,6 +931,35 @@ var InspectorUI = {
     this.treeView.selectedNode = aNode;
     this.selectEventsSuppressed = false;
     this.updateStylePanel(aNode);
+  },
+
+  
+
+
+
+
+
+
+
+
+  elementFromPoint: function IUI_elementFromPoint(aDocument, aX, aY)
+  {
+    let node = aDocument.elementFromPoint(aX, aY);
+    if (node && node.contentDocument) {
+      switch (node.nodeName.toLowerCase()) {
+        case "iframe":
+          let rect = node.getBoundingClientRect();
+          aX -= rect.left;
+          aY -= rect.top;
+
+        case "frame":
+          let subnode = this.elementFromPoint(node.contentDocument, aX, aY);
+          if (subnode) {
+            node = subnode;
+          }
+      }
+    }
+    return node;
   },
 
   
