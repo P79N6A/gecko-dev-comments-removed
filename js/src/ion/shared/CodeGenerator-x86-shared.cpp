@@ -546,31 +546,39 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
     Register lhs = ToRegister(ins->lhs());
     Register rhs = ToRegister(ins->rhs());
 
+    MDiv *mir = ins->mir();
+
     JS_ASSERT(remainder == edx);
     JS_ASSERT(lhs == eax);
 
     
-    masm.testl(rhs, rhs);
-    if (!bailoutIf(Assembler::Zero, ins->snapshot()))
-        return false;
+    if (mir->canBeDivideByZero()) {
+        masm.testl(rhs, rhs);
+        if (!bailoutIf(Assembler::Zero, ins->snapshot()))
+            return false;
+    }
 
     
-    Label notmin;
-    masm.cmpl(lhs, Imm32(INT_MIN));
-    masm.j(Assembler::NotEqual, &notmin);
-    masm.cmpl(rhs, Imm32(-1));
-    if (!bailoutIf(Assembler::Equal, ins->snapshot()))
-        return false;
-    masm.bind(&notmin);
+    if (mir->canBeNegativeOverflow()) {
+        Label notmin;
+        masm.cmpl(lhs, Imm32(INT_MIN));
+        masm.j(Assembler::NotEqual, &notmin);
+        masm.cmpl(rhs, Imm32(-1));
+        if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+            return false;
+        masm.bind(&notmin);
+    }
 
     
-    Label nonzero;
-    masm.testl(lhs, lhs);
-    masm.j(Assembler::NonZero, &nonzero);
-    masm.cmpl(rhs, Imm32(0));
-    if (!bailoutIf(Assembler::LessThan, ins->snapshot()))
-        return false;
-    masm.bind(&nonzero);
+    if (mir->canBeNegativeZero()) {
+        Label nonzero;
+        masm.testl(lhs, lhs);
+        masm.j(Assembler::NonZero, &nonzero);
+        masm.cmpl(rhs, Imm32(0));
+        if (!bailoutIf(Assembler::LessThan, ins->snapshot()))
+            return false;
+        masm.bind(&nonzero);
+    }
 
     
     masm.cdq();

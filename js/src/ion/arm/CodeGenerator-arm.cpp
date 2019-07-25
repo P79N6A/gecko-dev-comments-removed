@@ -452,12 +452,17 @@ CodeGeneratorARM::visitDivI(LDivI *ins)
     
     Register lhs = ToRegister(ins->lhs());
     Register rhs = ToRegister(ins->rhs());
-    
-    
-    masm.ma_cmp(lhs, Imm32(INT_MIN)); 
-    masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal); 
-    if (!bailoutIf(Assembler::Equal, ins->snapshot()))
-        return false;
+    MDiv *mir = ins->mir();
+
+    if (mir->canBeNegativeOverflow()) {
+        
+        
+        masm.ma_cmp(lhs, Imm32(INT_MIN)); 
+        masm.ma_cmp(rhs, Imm32(-1), Assembler::Equal); 
+        if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+            return false;
+    }
+
     
     
     
@@ -471,10 +476,12 @@ CodeGeneratorARM::visitDivI(LDivI *ins)
     
     
     
-    masm.ma_cmp(rhs, Imm32(0));
-    masm.ma_cmp(lhs, Imm32(0), Assembler::LessThan);
-    if (!bailoutIf(Assembler::Equal, ins->snapshot()))
-        return false;
+    if (mir->canBeDividebyZero() || mir->canBeNegativeZero()) {
+        masm.ma_cmp(rhs, Imm32(0));
+        masm.ma_cmp(lhs, Imm32(0), Assembler::LessThan);
+        if (!bailoutIf(Assembler::Equal, ins->snapshot()))
+            return false;
+    }
     masm.setupAlignedABICall(2);
     masm.passABIArg(lhs);
     masm.passABIArg(rhs);
