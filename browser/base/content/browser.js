@@ -56,6 +56,7 @@
 #   Patrick Walton <pcwalton@mozilla.com>
 #   Mihai Sucan <mihai.sucan@gmail.com>
 #   Victor Porof <vporof@mozilla.com>
+#   Frank Yan <fyan@mozilla.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -1563,6 +1564,49 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   gHomeButton.updateTooltip(homeButton);
   gHomeButton.updatePersonalToolbarStyle(homeButton);
 
+#ifdef HAVE_SHELL_SERVICE
+  
+  var shell = getShellService();
+  if (shell) {
+#ifdef DEBUG
+    var shouldCheck = false;
+#else
+    var shouldCheck = shell.shouldCheckDefaultBrowser;
+#endif
+    var willRecoverSession = false;
+    try {
+      var ss = Cc["@mozilla.org/browser/sessionstartup;1"].
+               getService(Ci.nsISessionStartup);
+      willRecoverSession =
+        (ss.sessionType == Ci.nsISessionStartup.RECOVER_SESSION);
+    }
+    catch (ex) {  }
+    if (shouldCheck && !shell.isDefaultBrowser(true) && !willRecoverSession) {
+      
+      
+      setTimeout(function () {
+        var brandBundle = document.getElementById("bundle_brand");
+        var shellBundle = document.getElementById("bundle_shell");
+
+        var brandShortName = brandBundle.getString("brandShortName");
+        var promptTitle = shellBundle.getString("setDefaultBrowserTitle");
+        var promptMessage = shellBundle.getFormattedString("setDefaultBrowserMessage",
+                                                           [brandShortName]);
+        var checkboxLabel = shellBundle.getFormattedString("setDefaultBrowserDontAsk",
+                                                           [brandShortName]);
+        var checkEveryTime = { value: shouldCheck };
+        var ps = Services.prompt;
+        var rv = ps.confirmEx(window, promptTitle, promptMessage,
+                              ps.STD_YES_NO_BUTTONS,
+                              null, null, null, checkboxLabel, checkEveryTime);
+        if (rv == 0)
+          shell.setDefaultBrowser(true, false);
+        shell.shouldCheckDefaultBrowser = checkEveryTime.value;
+      }, 0);
+    }
+  }
+#endif
+
   
   gBidiUI = isBidiEnabled();
   if (gBidiUI) {
@@ -2706,11 +2750,7 @@ function BrowserOnAboutPageLoad(document) {
     let ss = Components.classes["@mozilla.org/browser/sessionstore;1"].
              getService(Components.interfaces.nsISessionStore);
     if (!ss.canRestoreLastSession)
-      document.getElementById("sessionRestoreContainer").hidden = true;
-    
-    if (Services.prefs.prefHasUserValue("services.sync.username")) {
-      document.getElementById("setupSyncLink").hidden = true;
-    }
+      document.getElementById("launcher").removeAttribute("session");
   }
 }
 
@@ -2718,19 +2758,17 @@ function BrowserOnAboutPageLoad(document) {
 
 
 function BrowserOnClick(event) {
-    
-    if (!event.isTrusted ||
-        (event.target.localName != "button" &&
-         event.target.className != "sync-link"))
+    if (!event.isTrusted || 
+        event.button == 2 || event.target.localName != "button")
       return;
 
     var ot = event.originalTarget;
-    var errorDoc = ot.ownerDocument;
+    var ownerDoc = ot.ownerDocument;
 
     
     
-    if (/^about:certerror/.test(errorDoc.documentURI)) {
-      if (ot == errorDoc.getElementById('exceptionDialogButton')) {
+    if (/^about:certerror/.test(ownerDoc.documentURI)) {
+      if (ot == ownerDoc.getElementById('exceptionDialogButton')) {
         var params = { exceptionAdded : false, handlePrivateBrowsing : true };
 
         try {
@@ -2738,7 +2776,7 @@ function BrowserOnClick(event) {
             case 2 : 
               params.prefetchCert = true;
             case 1 : 
-              params.location = errorDoc.location.href;
+              params.location = ownerDoc.location.href;
           }
         } catch (e) {
           Components.utils.reportError("Couldn't get ssl_override pref: " + e);
@@ -2749,22 +2787,22 @@ function BrowserOnClick(event) {
 
         
         if (params.exceptionAdded)
-          errorDoc.location.reload();
+          ownerDoc.location.reload();
       }
-      else if (ot == errorDoc.getElementById('getMeOutOfHereButton')) {
+      else if (ot == ownerDoc.getElementById('getMeOutOfHereButton')) {
         getMeOutOfHere();
       }
     }
-    else if (/^about:blocked/.test(errorDoc.documentURI)) {
+    else if (/^about:blocked/.test(ownerDoc.documentURI)) {
       
       
       
-      var isMalware = /e=malwareBlocked/.test(errorDoc.documentURI);
+      var isMalware = /e=malwareBlocked/.test(ownerDoc.documentURI);
 
-      if (ot == errorDoc.getElementById('getMeOutButton')) {
+      if (ot == ownerDoc.getElementById('getMeOutButton')) {
         getMeOutOfHere();
       }
-      else if (ot == errorDoc.getElementById('reportButton')) {
+      else if (ot == ownerDoc.getElementById('reportButton')) {
         
         
         
@@ -2774,7 +2812,7 @@ function BrowserOnClick(event) {
           
           try {
             let reportURL = formatURL("browser.safebrowsing.malware.reportURL", true);
-            reportURL += errorDoc.location.href;
+            reportURL += ownerDoc.location.href;
             content.location = reportURL;
           } catch (e) {
             Components.utils.reportError("Couldn't get malware report URL: " + e);
@@ -2788,7 +2826,7 @@ function BrowserOnClick(event) {
           }
         }
       }
-      else if (ot == errorDoc.getElementById('ignoreWarningButton')) {
+      else if (ot == ownerDoc.getElementById('ignoreWarningButton')) {
         
         
         
@@ -2843,23 +2881,31 @@ function BrowserOnClick(event) {
         );
       }
     }
-    else if (/^about:home$/i.test(errorDoc.documentURI)) {
-      if (ot == errorDoc.getElementById("restorePreviousSession")) {
+    else if (/^about:home$/i.test(ownerDoc.documentURI)) {
+      if (ot == ownerDoc.getElementById("restorePreviousSession")) {
         let ss = Cc["@mozilla.org/browser/sessionstore;1"].
                  getService(Ci.nsISessionStore);
         if (ss.canRestoreLastSession)
           ss.restoreLastSession();
-        errorDoc.getElementById("sessionRestoreContainer").hidden = true;
+        ownerDoc.getElementById("launcher").removeAttribute("session");
       }
-      else if (ot == errorDoc.getElementById("pairDeviceLink")) {
-        if (Services.prefs.prefHasUserValue("services.sync.username")) {
-          gSyncUI.openAddDevice();
-        } else {
-          gSyncUI.openSetup("pair");
-        }
+      else if (ot == ownerDoc.getElementById("bookmarks")) {
+        PlacesCommandHook.showPlacesOrganizer("AllBookmarks");
       }
-      else if (ot == errorDoc.getElementById("setupSyncLink")) {
-        gSyncUI.openSetup(null);
+      else if (ot == ownerDoc.getElementById("history")) {
+        PlacesCommandHook.showPlacesOrganizer("History");
+      }
+      else if (ot == ownerDoc.getElementById("settings")) {
+        openPreferences();
+      }
+      else if (ot == ownerDoc.getElementById("addons")) {
+        BrowserOpenAddonsMgr();
+      }
+      else if (ot == ownerDoc.getElementById("downloads")) {
+        BrowserDownloadsUI();
+      }
+      else if (ot == ownerDoc.getElementById("sync")) {
+        openPreferences("paneSync");
       }
     }
 }
@@ -3946,20 +3992,8 @@ var FullScreen = {
     }
   },
 
-  exitDomFullScreen : function() {
+  exitDomFullScreen : function(e) {
     document.mozCancelFullScreen();
-  },
-
-  handleEvent: function (event) {
-    switch (event.type) {
-      case "deactivate":
-        
-        
-        
-        
-        setTimeout(this.exitDomFullScreen.bind(this), 0);
-        break;
-    }
   },
 
   enterDomFullScreen : function(event) {
@@ -4008,7 +4042,7 @@ var FullScreen = {
 
     
     if (gPrefService.getBoolPref("full-screen-api.exit-on-deactivate")) {
-      window.addEventListener("deactivate", this);
+      window.addEventListener("deactivate", this.exitDomFullScreen, true);
     }
 
     
@@ -4043,7 +4077,7 @@ var FullScreen = {
       gBrowser.tabContainer.removeEventListener("TabOpen", this.exitDomFullScreen);
       gBrowser.tabContainer.removeEventListener("TabClose", this.exitDomFullScreen);
       gBrowser.tabContainer.removeEventListener("TabSelect", this.exitDomFullScreen);
-      window.removeEventListener("deactivate", this);
+      window.removeEventListener("deactivate", this.exitDomFullScreen, true);
     }
   },
 
@@ -5331,7 +5365,6 @@ function setToolbarVisibility(toolbar, isVisible) {
 
 var TabsOnTop = {
   init: function TabsOnTop_init() {
-    this._initialized = true;
     this.syncUI();
     Services.prefs.addObserver(this._prefName, this, false);
   },
@@ -5345,9 +5378,6 @@ var TabsOnTop = {
   },
 
   syncUI: function () {
-    if (!this._initialized)
-      return;
-
     let userEnabled = Services.prefs.getBoolPref(this._prefName);
     let enabled = userEnabled && gBrowser.tabContainer.visible;
 
@@ -6095,112 +6125,101 @@ function charsetLoadListener(event) {
 }
 
 
-var gPageStyleMenu = {
+function getAllStyleSheets(frameset) {
+  var styleSheetsArray = Array.slice(frameset.document.styleSheets);
+  for (let i = 0; i < frameset.frames.length; i++) {
+    let frameSheets = getAllStyleSheets(frameset.frames[i]);
+    styleSheetsArray = styleSheetsArray.concat(frameSheets);
+  }
+  return styleSheetsArray;
+}
 
-  getAllStyleSheets: function (frameset) {
-    var styleSheetsArray = Array.slice(frameset.document.styleSheets);
-    for (let i = 0; i < frameset.frames.length; i++) {
-      let frameSheets = this.getAllStyleSheets(frameset.frames[i]);
-      styleSheetsArray = styleSheetsArray.concat(frameSheets);
-    }
-    return styleSheetsArray;
-  },
+function stylesheetFillPopup(menuPopup) {
+  var noStyle = menuPopup.firstChild;
+  var persistentOnly = noStyle.nextSibling;
+  var sep = persistentOnly.nextSibling;
+  while (sep.nextSibling)
+    menuPopup.removeChild(sep.nextSibling);
 
-  stylesheetFillPopup: function (menuPopup) {
-    var noStyle = menuPopup.firstChild;
-    var persistentOnly = noStyle.nextSibling;
-    var sep = persistentOnly.nextSibling;
-    while (sep.nextSibling)
-      menuPopup.removeChild(sep.nextSibling);
+  var styleSheets = getAllStyleSheets(window.content);
+  var currentStyleSheets = {};
+  var styleDisabled = getMarkupDocumentViewer().authorStyleDisabled;
+  var haveAltSheets = false;
+  var altStyleSelected = false;
 
-    var styleSheets = this.getAllStyleSheets(window.content);
-    var currentStyleSheets = {};
-    var styleDisabled = getMarkupDocumentViewer().authorStyleDisabled;
-    var haveAltSheets = false;
-    var altStyleSelected = false;
+  for (let i = 0; i < styleSheets.length; ++i) {
+    let currentStyleSheet = styleSheets[i];
 
-    for (let i = 0; i < styleSheets.length; ++i) {
-      let currentStyleSheet = styleSheets[i];
+    if (!currentStyleSheet.title)
+      continue;
 
-      if (!currentStyleSheet.title)
+    
+    if (currentStyleSheet.media.length > 0) {
+      let mediaQueryList = currentStyleSheet.media.mediaText;
+      if (!window.content.matchMedia(mediaQueryList).matches)
         continue;
-
-      
-      if (currentStyleSheet.media.length > 0) {
-        let mediaQueryList = currentStyleSheet.media.mediaText;
-        if (!window.content.matchMedia(mediaQueryList).matches)
-          continue;
-      }
-
-      if (!currentStyleSheet.disabled)
-        altStyleSelected = true;
-
-      haveAltSheets = true;
-
-      let lastWithSameTitle = null;
-      if (currentStyleSheet.title in currentStyleSheets)
-        lastWithSameTitle = currentStyleSheets[currentStyleSheet.title];
-
-      if (!lastWithSameTitle) {
-        let menuItem = document.createElement("menuitem");
-        menuItem.setAttribute("type", "radio");
-        menuItem.setAttribute("label", currentStyleSheet.title);
-        menuItem.setAttribute("data", currentStyleSheet.title);
-        menuItem.setAttribute("checked", !currentStyleSheet.disabled && !styleDisabled);
-        menuPopup.appendChild(menuItem);
-        currentStyleSheets[currentStyleSheet.title] = menuItem;
-      } else if (currentStyleSheet.disabled) {
-        lastWithSameTitle.removeAttribute("checked");
-      }
     }
 
-    noStyle.setAttribute("checked", styleDisabled);
-    persistentOnly.setAttribute("checked", !altStyleSelected && !styleDisabled);
-    persistentOnly.hidden = (window.content.document.preferredStyleSheetSet) ? haveAltSheets : false;
-    sep.hidden = (noStyle.hidden && persistentOnly.hidden) || !haveAltSheets;
-    return true;
-  },
+    if (!currentStyleSheet.disabled)
+      altStyleSelected = true;
 
-  stylesheetInFrame: function (frame, title) {
-    return Array.some(frame.document.styleSheets,
-                      function (stylesheet) stylesheet.title == title);
-  },
+    haveAltSheets = true;
 
-  stylesheetSwitchFrame: function (frame, title) {
-    var docStyleSheets = frame.document.styleSheets;
+    let lastWithSameTitle = null;
+    if (currentStyleSheet.title in currentStyleSheets)
+      lastWithSameTitle = currentStyleSheets[currentStyleSheet.title];
 
-    for (let i = 0; i < docStyleSheets.length; ++i) {
-      let docStyleSheet = docStyleSheets[i];
-
-      if (title == "_nostyle")
-        docStyleSheet.disabled = true;
-      else if (docStyleSheet.title)
-        docStyleSheet.disabled = (docStyleSheet.title != title);
-      else if (docStyleSheet.disabled)
-        docStyleSheet.disabled = false;
+    if (!lastWithSameTitle) {
+      let menuItem = document.createElement("menuitem");
+      menuItem.setAttribute("type", "radio");
+      menuItem.setAttribute("label", currentStyleSheet.title);
+      menuItem.setAttribute("data", currentStyleSheet.title);
+      menuItem.setAttribute("checked", !currentStyleSheet.disabled && !styleDisabled);
+      menuPopup.appendChild(menuItem);
+      currentStyleSheets[currentStyleSheet.title] = menuItem;
+    } else if (currentStyleSheet.disabled) {
+      lastWithSameTitle.removeAttribute("checked");
     }
-  },
+  }
 
-  stylesheetSwitchAll: function (frameset, title) {
-    if (!title || title == "_nostyle" || this.stylesheetInFrame(frameset, title))
-      this.stylesheetSwitchFrame(frameset, title);
+  noStyle.setAttribute("checked", styleDisabled);
+  persistentOnly.setAttribute("checked", !altStyleSelected && !styleDisabled);
+  persistentOnly.hidden = (window.content.document.preferredStyleSheetSet) ? haveAltSheets : false;
+  sep.hidden = (noStyle.hidden && persistentOnly.hidden) || !haveAltSheets;
+  return true;
+}
 
-    for (let i = 0; i < frameset.frames.length; i++)
-      this.stylesheetSwitchAll(frameset.frames[i], title);
-  },
+function stylesheetInFrame(frame, title) {
+  return Array.some(frame.document.styleSheets,
+                    function (stylesheet) stylesheet.title == title);
+}
 
-  setStyleDisabled: function (disabled) {
-    getMarkupDocumentViewer().authorStyleDisabled = disabled;
-  },
-};
+function stylesheetSwitchFrame(frame, title) {
+  var docStyleSheets = frame.document.styleSheets;
 
+  for (let i = 0; i < docStyleSheets.length; ++i) {
+    let docStyleSheet = docStyleSheets[i];
 
-var getAllStyleSheets     = gPageStyleMenu.getAllStyleSheets;
-var stylesheetFillPopup   = gPageStyleMenu.stylesheetFillPopup;
-var stylesheetInFrame     = gPageStyleMenu.stylesheetInFrame;
-var stylesheetSwitchFrame = gPageStyleMenu.stylesheetSwitchFrame;
-var stylesheetSwitchAll   = gPageStyleMenu.stylesheetSwitchAll;
-var setStyleDisabled      = gPageStyleMenu.setStyleDisabled;
+    if (title == "_nostyle")
+      docStyleSheet.disabled = true;
+    else if (docStyleSheet.title)
+      docStyleSheet.disabled = (docStyleSheet.title != title);
+    else if (docStyleSheet.disabled)
+      docStyleSheet.disabled = false;
+  }
+}
+
+function stylesheetSwitchAll(frameset, title) {
+  if (!title || title == "_nostyle" || stylesheetInFrame(frameset, title))
+    stylesheetSwitchFrame(frameset, title);
+
+  for (let i = 0; i < frameset.frames.length; i++)
+    stylesheetSwitchAll(frameset.frames[i], title);
+}
+
+function setStyleDisabled(disabled) {
+  getMarkupDocumentViewer().authorStyleDisabled = disabled;
+}
 
 
 var BrowserOffline = {
