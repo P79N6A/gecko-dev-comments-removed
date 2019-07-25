@@ -1136,6 +1136,11 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     voidDenseOnlyArraySlots();
 
     
+
+
+
+
+
     clasp = &js_SlowArrayClass;
     return true;
 }
@@ -3036,8 +3041,14 @@ js_InitArrayClass(JSContext *cx, JSObject *obj)
                                    NULL, array_methods, NULL, array_static_methods);
     if (!proto)
         return NULL;
-    proto->setArrayLength(0);
 
+    
+
+
+
+    JS_ASSERT(proto->emptyShape->getClass() == proto->getClass());
+
+    proto->setArrayLength(0);
     return proto;
 }
 
