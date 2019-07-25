@@ -415,6 +415,14 @@ nsContentList::nsContentList(nsINode* aRootNode,
     mMatchAll = PR_FALSE;
   }
   mRootNode->AddMutationObserver(this);
+
+  
+  
+  
+  
+  
+  nsIDocument* doc = mRootNode->GetCurrentDoc();
+  mFlushesNeeded = doc && !doc->IsHTML();
 }
 
 nsContentList::nsContentList(nsINode* aRootNode,
@@ -485,7 +493,7 @@ nsContentList::Length(PRBool aDoFlush)
 nsIContent *
 nsContentList::Item(PRUint32 aIndex, PRBool aDoFlush)
 {
-  if (mRootNode && aDoFlush) {
+  if (mRootNode && aDoFlush && mFlushesNeeded) {
     
     nsIDocument* doc = mRootNode->GetCurrentDoc();
     if (doc) {
@@ -932,7 +940,7 @@ nsContentList::RemoveFromHashtable()
 void
 nsContentList::BringSelfUpToDate(PRBool aDoFlush)
 {
-  if (mRootNode && aDoFlush) {
+  if (mRootNode && aDoFlush && mFlushesNeeded) {
     
     nsIDocument* doc = mRootNode->GetCurrentDoc();
     if (doc) {

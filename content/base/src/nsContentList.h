@@ -398,22 +398,32 @@ protected:
   
 
 
-  PRPackedBool mMatchAll;
-  
-
-
 
   PRUint8 mState;
+
+  
+  
+  
+  
+  
+  
+
+
+  PRUint8 mMatchAll : 1;
   
 
 
 
-  PRPackedBool mDeep;
+  PRUint8 mDeep : 1;
   
 
 
 
-  PRPackedBool mFuncMayDependOnAttr;
+  PRUint8 mFuncMayDependOnAttr : 1;
+  
+
+
+  PRUint8 mFlushesNeeded : 1;
 
 #ifdef DEBUG_CONTENT_LIST
   void AssertInSync();
