@@ -110,17 +110,24 @@ public class LayerController {
     public Context getContext()                   { return mContext; }
     public ViewportMetrics getViewportMetrics()   { return mViewportMetrics; }
 
-    public Rect getViewport() {
+    public RectF getViewport() {
         return mViewportMetrics.getViewport();
     }
 
-    public IntSize getViewportSize() {
-        Rect viewport = getViewport();
-        return new IntSize(viewport.width(), viewport.height());
+    public FloatSize getViewportSize() {
+        return mViewportMetrics.getSize();
     }
 
-    public IntSize getPageSize() {
+    public FloatSize getPageSize() {
         return mViewportMetrics.getPageSize();
+    }
+
+    public PointF getOrigin() {
+        return mViewportMetrics.getOrigin();
+    }
+
+    public float getZoomFactor() {
+        return mViewportMetrics.getZoomFactor();
     }
 
     public Bitmap getCheckerboardPattern()  { return getDrawable("checkerboard"); }
@@ -144,7 +151,7 @@ public class LayerController {
 
 
 
-    public void setViewportSize(IntSize size) {
+    public void setViewportSize(FloatSize size) {
         mViewportMetrics.setSize(size);
 
         notifyLayerClientOfGeometryChange();
@@ -152,21 +159,28 @@ public class LayerController {
     }
 
     public void scrollTo(PointF point) {
-        mViewportMetrics.setOrigin(new Point(Math.round(point.x),
-                                             Math.round(point.y)));
+        mViewportMetrics.setOrigin(point);
+        notifyLayerClientOfGeometryChange();
+        mPanZoomController.geometryChanged();
+    }
+
+    public void scrollBy(PointF point) {
+        PointF origin = mViewportMetrics.getOrigin();
+        origin.offset(point.x, point.y);
+        mViewportMetrics.setOrigin(origin);
 
         notifyLayerClientOfGeometryChange();
         mPanZoomController.geometryChanged();
     }
 
-    public void setViewport(Rect viewport) {
+    public void setViewport(RectF viewport) {
         mViewportMetrics.setViewport(viewport);
         notifyLayerClientOfGeometryChange();
         mPanZoomController.geometryChanged();
     }
 
-    public void setPageSize(IntSize size) {
-        if (mViewportMetrics.getPageSize().equals(size))
+    public void setPageSize(FloatSize size) {
+        if (mViewportMetrics.getPageSize().fuzzyEquals(size))
             return;
 
         mViewportMetrics.setPageSize(size);
@@ -182,6 +196,14 @@ public class LayerController {
         
         
         mPanZoomController.geometryChanged();
+    }
+
+    public void scaleTo(float zoomFactor, PointF focus) {
+        mViewportMetrics.scaleTo(zoomFactor, focus);
+
+        
+        
+        notifyLayerClientOfGeometryChange();
     }
 
     public boolean post(Runnable action) { return mView.post(action); }
@@ -204,7 +226,7 @@ public class LayerController {
 
 
     public boolean getRedrawHint() {
-        return aboutToCheckerboard();
+        return true;
     }
 
     private RectF getTileRect() {
@@ -231,7 +253,8 @@ public class LayerController {
             return null;
 
         
-        PointF newPoint = new PointF(mViewportMetrics.getOrigin());
+        PointF origin = mViewportMetrics.getOrigin();
+        PointF newPoint = new PointF(origin.x, origin.y);
         newPoint.offset(viewPoint.x, viewPoint.y);
 
         Point rootOrigin = mRootLayer.getOrigin();

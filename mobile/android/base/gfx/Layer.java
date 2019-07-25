@@ -35,6 +35,7 @@
 
 
 
+
 package org.mozilla.gecko.gfx;
 
 import android.graphics.Point;
@@ -47,14 +48,17 @@ public abstract class Layer {
     private boolean mInTransaction;
     private Point mOrigin;
     private Point mNewOrigin;
+    private float mResolution;
+    private float mNewResolution;
 
     public Layer() {
         mTransactionLock = new ReentrantLock();
         mOrigin = new Point(0, 0);
+        mResolution = 1.0f;
     }
 
     
-    public final void draw(GL10 gl) {
+    public final void update(GL10 gl) {
         if (mTransactionLock.isHeldByCurrentThread()) {
             throw new RuntimeException("draw() called while transaction lock held by this " +
                                        "thread?!");
@@ -67,9 +71,17 @@ public abstract class Layer {
                 mTransactionLock.unlock();
             }
         }
+    }
 
-        gl.glPushMatrix();
+    
+    public final void transform(GL10 gl) {
+        gl.glScalef(1.0f / mResolution, 1.0f / mResolution, 1.0f);
         gl.glTranslatef(mOrigin.x, mOrigin.y, 0.0f);
+    }
+
+    
+    public final void draw(GL10 gl) {
+        gl.glPushMatrix();
 
         onDraw(gl);
 
@@ -88,6 +100,7 @@ public abstract class Layer {
             throw new RuntimeException("Nested transactions are not supported");
         mTransactionLock.lock();
         mInTransaction = true;
+        mNewResolution = mResolution;
     }
 
     
@@ -116,6 +129,22 @@ public abstract class Layer {
     }
 
     
+    public float getResolution() {
+        return mResolution;
+    }
+
+    
+
+
+
+
+    public void setResolution(float newResolution) {
+        if (!mInTransaction)
+            throw new RuntimeException("setResolution() is only valid inside a transaction");
+        mNewResolution = newResolution;
+    }
+
+    
 
 
 
@@ -132,6 +161,7 @@ public abstract class Layer {
             mOrigin = mNewOrigin;
             mNewOrigin = null;
         }
+        mResolution = mNewResolution;
     }
 }
 

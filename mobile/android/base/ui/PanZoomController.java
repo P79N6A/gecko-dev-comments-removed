@@ -38,11 +38,13 @@
 package org.mozilla.gecko.ui;
 
 import org.json.JSONObject;
-import org.mozilla.gecko.gfx.IntSize;
+import org.mozilla.gecko.gfx.FloatSize;
 import org.mozilla.gecko.gfx.LayerController;
+import org.mozilla.gecko.FloatUtils;
 import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
+import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -89,9 +91,7 @@ public class PanZoomController
     private Timer mFlingTimer;
     private Axis mX, mY;
     
-    private float mInitialZoomSpan;
-    
-    private PointF mInitialZoomFocus;
+    private PointF mLastZoomFocus;
 
     private enum PanZoomState {
         NOTHING,        
@@ -322,8 +322,8 @@ public class PanZoomController
 
     
     private void populatePositionAndLength() {
-        IntSize pageSize = mController.getPageSize();
-        RectF visibleRect = new RectF(mController.getViewport());
+        FloatSize pageSize = mController.getPageSize();
+        RectF visibleRect = mController.getViewport();
 
         mX.setPageLength(pageSize.width);
         mX.viewportPos = visibleRect.left;
@@ -379,11 +379,6 @@ public class PanZoomController
         return 1.0f - excess / (viewportLength * SNAP_LIMIT);
     }
 
-    private static boolean floatsApproxEqual(float a, float b) {
-        
-        return Math.abs(a - b) < 1e-6;
-    }
-
     
     private static class Axis {
         public enum FlingStates {
@@ -411,13 +406,13 @@ public class PanZoomController
         public float viewportPos;
         private float mViewportLength;
         private int mScreenLength;
-        private int mPageLength;
+        private float mPageLength;
 
         public FlingStates getFlingState() { return mFlingState; }
 
         public void setViewportLength(float viewportLength) { mViewportLength = viewportLength; }
         public void setScreenLength(int screenLength) { mScreenLength = screenLength; }
-        public void setPageLength(int pageLength) { mPageLength = pageLength; }
+        public void setPageLength(float pageLength) { mPageLength = pageLength; }
 
         private float getViewportEnd() { return viewportPos + mViewportLength; }
 
@@ -458,7 +453,7 @@ public class PanZoomController
             }
 
             float excess = getExcess();
-            if (floatsApproxEqual(excess, 0.0f))
+            if (FloatUtils.fuzzyEquals(excess, 0.0f))
                 mFlingState = FlingStates.STOPPED;
             else
                 mFlingState = FlingStates.WAITING_TO_SNAP;
@@ -483,7 +478,7 @@ public class PanZoomController
         private void scroll() {
             
             float excess = getExcess();
-            if (floatsApproxEqual(excess, 0.0f)) {
+            if (FloatUtils.fuzzyEquals(excess, 0.0f)) {
                 velocity *= FRICTION;
                 if (Math.abs(velocity) < 0.1f) {
                     velocity = 0.0f;
@@ -603,47 +598,34 @@ public class PanZoomController
 
     @Override
     public boolean onScale(ScaleGestureDetector detector) {
-        
+        float newZoomFactor = mController.getZoomFactor() *
+                              (detector.getCurrentSpan() / detector.getPreviousSpan());
 
+        mController.scrollBy(new PointF(mLastZoomFocus.x - detector.getFocusX(),
+                                        mLastZoomFocus.y - detector.getFocusY()));
+        mController.scaleTo(newZoomFactor, new PointF(detector.getFocusX(), detector.getFocusY()));
 
-
-
-
-
-
-
-
-
-
+        mLastZoomFocus.set(detector.getFocusX(), detector.getFocusY());
 
         return true;
     }
 
     @Override
     public boolean onScaleBegin(ScaleGestureDetector detector) {
-        
-
-
-
-
-
-
-
-
-
+        mState = PanZoomState.PINCHING;
+        mLastZoomFocus = new PointF(detector.getFocusX(), detector.getFocusY());
+        GeckoApp.mAppContext.hidePluginViews();
 
         return true;
     }
 
     @Override
     public void onScaleEnd(ScaleGestureDetector detector) {
-        
+        mState = PanZoomState.PANNING_HOLD_LOCKED;
+        mX.firstTouchPos = mX.touchPos = detector.getFocusX();
+        mY.firstTouchPos = mY.touchPos = detector.getFocusY();
 
-
-
-
-
-
+        GeckoApp.mAppContext.showPluginViews();
     }
 
     @Override
