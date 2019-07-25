@@ -1690,6 +1690,16 @@ public:
 
   static PRBool IsFocusedContent(const nsIContent *aContent);
 
+  
+
+
+
+
+
+
+
+  static bool IsSubDocumentTabbable(nsIContent* aContent);
+
 private:
 
   static PRBool InitializeEventTable();

@@ -144,6 +144,12 @@ private:
 
   NS_HIDDEN_(void) StartObjectLoad(PRBool aNotify);
 
+  
+
+
+
+  bool IsFocusableForTabIndex();
+
   PRPackedBool mIsDoneAddingChildren;
 };
 
@@ -297,23 +303,61 @@ nsHTMLObjectElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
   return nsGenericHTMLFormElement::UnsetAttr(aNameSpaceID, aAttribute, aNotify);
 }
 
+bool
+nsHTMLObjectElement::IsFocusableForTabIndex()
+{
+  nsIDocument* doc = GetCurrentDoc();
+  if (!doc || doc->HasFlag(NODE_IS_EDITABLE)) {
+    return false;
+  }
+
+  return Type() == eType_Plugin || IsEditableRoot() ||
+         (Type() == eType_Document && nsContentUtils::IsSubDocumentTabbable(this));
+}
+
 PRBool
 nsHTMLObjectElement::IsHTMLFocusable(PRBool aWithMouse,
                                      PRBool *aIsFocusable, PRInt32 *aTabIndex)
 {
-  if (Type() == eType_Plugin) {
+  
+  
+  nsIDocument *doc = GetCurrentDoc();
+  if (!doc || doc->HasFlag(NODE_IS_EDITABLE)) {
+    if (aTabIndex) {
+      GetIntAttr(nsGkAtoms::tabindex, -1, aTabIndex);
+    }
+
+    *aIsFocusable = PR_FALSE;
+
+    return PR_FALSE;
+  }
+
+  
+  
+  if (Type() == eType_Plugin || IsEditableRoot() ||
+      (Type() == eType_Document && nsContentUtils::IsSubDocumentTabbable(this))) {
     
     
     if (aTabIndex) {
-      GetTabIndex(aTabIndex);
+      GetIntAttr(nsGkAtoms::tabindex, 0, aTabIndex);
     }
-  
+
     *aIsFocusable = PR_TRUE;
 
     return PR_FALSE;
   }
 
-  return nsGenericHTMLFormElement::IsHTMLFocusable(aWithMouse, aIsFocusable, aTabIndex);
+  
+  
+  const nsAttrValue* attrVal = mAttrsAndChildren.GetAttr(nsGkAtoms::tabindex);
+
+  *aIsFocusable = attrVal && attrVal->Type() == nsAttrValue::eInteger;
+
+  if (aTabIndex && *aIsFocusable) {
+    *aTabIndex = attrVal->GetIntegerValue();
+  }
+
+  return PR_FALSE;
 }
 
 PRUint32
@@ -375,7 +419,8 @@ NS_IMPL_STRING_ATTR(nsHTMLObjectElement, Height, height)
 NS_IMPL_INT_ATTR(nsHTMLObjectElement, Hspace, hspace)
 NS_IMPL_STRING_ATTR(nsHTMLObjectElement, Name, name)
 NS_IMPL_STRING_ATTR(nsHTMLObjectElement, Standby, standby)
-NS_IMPL_INT_ATTR_DEFAULT_VALUE(nsHTMLObjectElement, TabIndex, tabindex, 0)
+NS_IMPL_INT_ATTR_DEFAULT_VALUE(nsHTMLObjectElement, TabIndex, tabindex,
+                               IsFocusableForTabIndex() ? 0 : -1)
 NS_IMPL_STRING_ATTR(nsHTMLObjectElement, Type, type)
 NS_IMPL_STRING_ATTR(nsHTMLObjectElement, UseMap, usemap)
 NS_IMPL_INT_ATTR(nsHTMLObjectElement, Vspace, vspace)

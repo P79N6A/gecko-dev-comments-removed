@@ -774,7 +774,6 @@ protected:
   
   already_AddRefed<nsIURI> GetHrefURIForAnchors() const;
 
-private:
   
 
 
@@ -787,6 +786,7 @@ private:
 
   PRBool IsEditableRoot() const;
 
+private:
   void ChangeEditableState(PRInt32 aChange);
 };
 

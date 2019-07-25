@@ -6250,6 +6250,42 @@ nsContentUtils::IsFocusedContent(const nsIContent* aContent)
   return fm && fm->GetFocusedContent() == aContent;
 }
 
+bool
+nsContentUtils::IsSubDocumentTabbable(nsIContent* aContent)
+{
+  nsIDocument* doc = aContent->GetCurrentDoc();
+  if (!doc) {
+    return false;
+  }
+
+  
+  
+  nsIDocument* subDoc = doc->GetSubDocumentFor(aContent);
+  if (!subDoc) {
+    return false;
+  }
+
+  nsCOMPtr<nsISupports> container = subDoc->GetContainer();
+  nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(container);
+  if (!docShell) {
+    return false;
+  }
+
+  nsCOMPtr<nsIContentViewer> contentViewer;
+  docShell->GetContentViewer(getter_AddRefs(contentViewer));
+  if (!contentViewer) {
+    return false;
+  }
+
+  nsCOMPtr<nsIContentViewer> zombieViewer;
+  contentViewer->GetPreviousViewer(getter_AddRefs(zombieViewer));
+
+  
+  
+  
+  return !zombieViewer;
+}
+
 void nsContentUtils::RemoveNewlines(nsString &aString)
 {
   

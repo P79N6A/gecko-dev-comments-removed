@@ -2425,36 +2425,9 @@ nsGenericHTMLFrameElement::IsHTMLFocusable(PRBool aWithMouse,
     return PR_TRUE;
   }
 
-  
-  PRBool isFocusable = PR_FALSE;
-  nsIDocument *doc = GetCurrentDoc();
-  if (doc) {
-    
-    
-    nsIDocument *subDoc = doc->GetSubDocumentFor(this);
-    if (subDoc) {
-      nsCOMPtr<nsISupports> container = subDoc->GetContainer();
-      nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(container));
-      if (docShell) {
-        nsCOMPtr<nsIContentViewer> contentViewer;
-        docShell->GetContentViewer(getter_AddRefs(contentViewer));
-        if (contentViewer) {
-          isFocusable = PR_TRUE;
-          nsCOMPtr<nsIContentViewer> zombieViewer;
-          contentViewer->GetPreviousViewer(getter_AddRefs(zombieViewer));
-          if (zombieViewer) {
-            
-            
-            
-            isFocusable = PR_FALSE;
-          }
-        }
-      }
-    }
-  }
+  *aIsFocusable = nsContentUtils::IsSubDocumentTabbable(this);
 
-  *aIsFocusable = isFocusable;
-  if (!isFocusable && aTabIndex) {
+  if (!*aIsFocusable && aTabIndex) {
     *aTabIndex = -1;
   }
 
