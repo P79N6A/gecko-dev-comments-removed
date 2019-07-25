@@ -105,8 +105,9 @@
 
 
 #define CSS_PROPERTY_VALUE_PARSER_FUNCTION        (1<<12)
-PR_STATIC_ASSERT((CSS_PROPERTY_PARSE_PROPERTY_MASK &
-                  CSS_PROPERTY_VALUE_PARSER_FUNCTION) == 0);
+MOZ_STATIC_ASSERT((CSS_PROPERTY_PARSE_PROPERTY_MASK &
+                   CSS_PROPERTY_VALUE_PARSER_FUNCTION) == 0,
+                  "didn't leave enough room for the parse property constants");
 
 #define CSS_PROPERTY_VALUE_RESTRICTION_MASK       (3<<13)
 
