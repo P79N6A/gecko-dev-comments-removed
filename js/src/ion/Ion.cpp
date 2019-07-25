@@ -773,6 +773,7 @@ CheckFrame(StackFrame *fp)
     if (fp->isEvalFrame()) {
         
         
+        
         IonSpew(IonSpew_Abort, "eval frame");
         return false;
     }

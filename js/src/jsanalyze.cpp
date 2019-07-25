@@ -354,6 +354,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           case JSOP_SETCONST:
             checkAliasedName(cx, pc);
             extendsScope_ = true;
+            usesScopeChain_ = true; 
             isInlineable = canTrackVars = false;
             break;
 
