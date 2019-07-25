@@ -89,26 +89,6 @@ BrowserElementChild.prototype = {
 
     
     
-    
-    
-    
-    
-    
-    
-    
-    let appManifestURL = sendSyncMsg('get-mozapp-manifest-url')[0];
-    let windowUtils = content.QueryInterface(Ci.nsIInterfaceRequestor)
-                             .getInterface(Ci.nsIDOMWindowUtils);
-
-    if (!!appManifestURL) {
-      windowUtils.setIsApp(true);
-      windowUtils.setApp(appManifestURL);
-    } else {
-      windowUtils.setIsApp(false);
-    }
-
-    
-    
     this._ctxHandlers = {};
     
     this._ctxCounter = 0;

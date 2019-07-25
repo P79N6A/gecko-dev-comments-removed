@@ -9165,8 +9165,15 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
 
   NS_ASSERTION(mDocShell, "Must have docshell here");
 
+  
+  bool isApp = false;
+  if (mDoc) {
+    isApp = mDoc->NodePrincipal()->GetAppStatus() >=
+              nsIPrincipal::APP_STATUS_INSTALLED;
+  }
+
   const bool checkForPopup = !nsContentUtils::IsCallerChrome() &&
-    !IsPartOfApp() && !aDialog && !WindowExists(aName, !aCalledNoScript);
+    !isApp && !aDialog && !WindowExists(aName, !aCalledNoScript);
 
   
   
