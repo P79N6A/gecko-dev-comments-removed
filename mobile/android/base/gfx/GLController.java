@@ -115,6 +115,8 @@ public class GLController {
         return true;
     }
 
+    
+    
     public synchronized void waitForValidSurface() {
         while (!mSurfaceValid) {
             try {
