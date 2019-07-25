@@ -747,7 +747,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
         }
     }
 
-    CCNodeType type;
+    PRBool isMarked;
 
 #ifdef DEBUG_CC
     
@@ -765,14 +765,13 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
         
         PLDHashEntryHdr* entry =
             PL_DHashTableOperate(&mJSRoots, p, PL_DHASH_LOOKUP);
-        type = markJSObject || PL_DHASH_ENTRY_IS_BUSY(entry) ? GCMarked :
-                                                               GCUnmarked;
+        isMarked = markJSObject || PL_DHASH_ENTRY_IS_BUSY(entry);
     }
     else
 #endif
     {
         
-        type = !markJSObject && xpc_IsGrayGCThing(p) ? GCUnmarked : GCMarked;
+        isMarked = markJSObject || !xpc_IsGrayGCThing(p);
     }
 
     if (cb.WantDebugInfo()) {
@@ -845,19 +844,19 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
             char fullname[100];
             JS_snprintf(fullname, sizeof(fullname),
                         "%s (global=%p)", name, global);
-            cb.DescribeNode(type, 0, sizeof(JSObject), fullname);
+            cb.DescribeGCedNode(isMarked, sizeof(JSObject), fullname);
         } else {
-            cb.DescribeNode(type, 0, sizeof(JSObject), name);
+            cb.DescribeGCedNode(isMarked, sizeof(JSObject), name);
         }
     } else {
-        cb.DescribeNode(type, 0, sizeof(JSObject), "JS Object");
+        cb.DescribeGCedNode(isMarked, sizeof(JSObject), "JS Object");
     }
 
     
     
     
     
-    if(!cb.WantAllTraces() && type == GCMarked)
+    if(!cb.WantAllTraces() && isMarked)
         return NS_OK;
 
     TraversalTracer trc(cb);
@@ -932,8 +931,7 @@ public:
         
         
         unsigned refCount = nsXPConnect::GetXPConnect()->GetOutstandingRequests(cx) + 1;
-
-        cb.DescribeNode(RefCounted, refCount, sizeof(JSContext), "JSContext");
+        NS_IMPL_CYCLE_COLLECTION_DESCRIBE(JSContext, refCount)
         NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "[global object]");
         if (cx->globalObject) {
             cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT,
