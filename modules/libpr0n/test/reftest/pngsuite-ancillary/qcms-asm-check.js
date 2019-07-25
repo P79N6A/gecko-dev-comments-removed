@@ -18,7 +18,7 @@ function check_qcms_has_assembly()
 
     
     
-    if (navigator.platform.match(/(i[3456]86|x86_64|amd64)/)) {
+    if (navigator.platform.match(/(i[3456]86|x86_64|amd64|i86)/)) {
         return true;
     }
 
