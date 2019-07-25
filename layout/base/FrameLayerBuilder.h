@@ -40,6 +40,10 @@ enum LayerState {
 };
 
 extern PRUint8 gLayerManagerLayerBuilder;
+extern PRUint8 gLayerManagerSecondary;
+
+class LayerManagerSecondary : public layers::LayerUserData {
+};
 
 
 
@@ -258,6 +262,47 @@ public:
 
 
 
+  static void SetWidgetLayerManager(LayerManager* aManager)
+  {
+    LayerManagerSecondary* secondary = 
+      static_cast<LayerManagerSecondary*>(aManager->GetUserData(&gLayerManagerSecondary));
+    sWidgetManagerSecondary = !!secondary;
+  }
+
+  
+
+
+
+  static const FramePropertyDescriptor* GetDescriptorForManager(LayerManager* aManager);
+
+  
+
+
+
+  static LayerManagerData* GetManagerData(nsIFrame* aFrame, LayerManager* aManager = nsnull);
+
+  
+
+
+
+  static void SetManagerData(nsIFrame* aFrame, LayerManagerData* aData);
+
+  
+
+
+
+  static void ClearManagerData(nsIFrame* aFrame);
+
+  
+
+
+
+  static void ClearManagerData(nsIFrame* aFrame, LayerManagerData* aData);
+
+  
+
+
+
 
 
 
@@ -284,10 +329,7 @@ public:
 
 
 
-  static void DestroyDisplayItemDataFor(nsIFrame* aFrame)
-  {
-    aFrame->Properties().Delete(LayerManagerDataProperty());
-  }
+  static void DestroyDisplayItemDataFor(nsIFrame* aFrame);
 
   LayerManager* GetRetainingLayerManager() { return mRetainingManager; }
 
@@ -416,6 +458,12 @@ public:
       return !(*this == aOther);
     }
   };
+  
+  NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(LayerManagerDataProperty,
+                                               RemoveFrameFromLayerManager)
+
+  NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(LayerManagerSecondaryDataProperty,
+                                               RemoveFrameFromLayerManager)
 
 protected:
   
@@ -463,11 +511,11 @@ protected:
 
     bool            mUsed;
   };
+  
+  
+  friend class LayerManagerData;
 
   static void RemoveFrameFromLayerManager(nsIFrame* aFrame, void* aPropertyValue);
-
-  NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(LayerManagerDataProperty,
-                                               RemoveFrameFromLayerManager)
 
   
 
@@ -495,9 +543,6 @@ protected:
 
     enum { ALLOW_MEMMOVE = false };
   };
-
-  
-  friend class LayerManagerData;
 
   
 
@@ -672,6 +717,12 @@ protected:
 
   PRUint32                            mContainerLayerGeneration;
   PRUint32                            mMaxContainerLayerGeneration;
+
+  
+
+
+
+  static bool                         sWidgetManagerSecondary;
 };
 
 static inline FrameLayerBuilder *GetLayerBuilderForManager(layers::LayerManager* aManager)
