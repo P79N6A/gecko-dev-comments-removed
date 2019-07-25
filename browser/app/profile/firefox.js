@@ -511,19 +511,22 @@ pref("browser.gesture.twist.left", "");
 pref("browser.gesture.tap", "cmd_fullZoomReset");
 
 
+
+
+
 #ifdef XP_MACOSX
 
 
 
-pref("mousewheel.withshiftkey.action",0);
-pref("mousewheel.withaltkey.action",2);
-pref("mousewheel.withmetakey.action",0);
+pref("mousewheel.with_alt.action", 2);
+pref("mousewheel.with_shift.action", 1);
 #else
-pref("mousewheel.withshiftkey.action",2);
-pref("mousewheel.withaltkey.action",0);
-pref("mousewheel.withmetakey.action",0);
+pref("mousewheel.with_alt.action", 1);
+pref("mousewheel.with_shift.action", 2);
 #endif
-pref("mousewheel.withcontrolkey.action",3);
+pref("mousewheel.with_control.action",3);
+pref("mousewheel.with_meta.action", 1);  
+pref("mousewheel.with_win.action", 1);
 
 
 pref("alerts.slideIncrement", 1);
