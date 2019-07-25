@@ -302,7 +302,39 @@ class nsINode : public nsIDOMEventTarget,
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_INODE_IID)
 
-  NS_DECL_DOM_MEMORY_REPORTER_SIZEOF
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  NS_DECL_SIZEOF_EXCLUDING_THIS
+
+  
+  
+  
+  
+  
+  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
+    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+  }
 
   friend class nsNodeUtils;
   friend class nsNodeWeakReference;
@@ -1331,6 +1363,7 @@ protected:
 public:
   
   virtual nsXPCClassInfo* GetClassInfo() = 0;
+
 protected:
 
   

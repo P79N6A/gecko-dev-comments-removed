@@ -429,6 +429,20 @@ nsTextFragment::Append(const PRUnichar* aBuffer, PRUint32 aLength, bool aUpdateB
 
 }
 
+ size_t
+nsTextFragment::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  if (Is2b()) {
+    return aMallocSizeOf(m2b);
+  }
+
+  if (mState.mInHeap) {
+    return aMallocSizeOf(m1b);
+  }
+
+  return 0;
+}
+
 
 
 void

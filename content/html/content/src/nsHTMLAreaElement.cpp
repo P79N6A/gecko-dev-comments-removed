@@ -62,6 +62,9 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
+  
+
+  
   NS_FORWARD_NSIDOMNODE(nsGenericHTMLElement::)
 
   
