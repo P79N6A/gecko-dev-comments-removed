@@ -251,6 +251,7 @@ RasterImage::~RasterImage()
 nsresult
 RasterImage::Init(imgIDecoderObserver *aObserver,
                   const char* aMimeType,
+                  const char* aURIString,
                   PRUint32 aFlags)
 {
   
@@ -273,6 +274,7 @@ RasterImage::Init(imgIDecoderObserver *aObserver,
   
   mObserver = do_GetWeakReference(aObserver);
   mSourceDataMimeType.Assign(aMimeType);
+  mURIString.Assign(aURIString);
   mDiscardable = !!(aFlags & INIT_FLAG_DISCARDABLE);
   mDecodeOnDraw = !!(aFlags & INIT_FLAG_DECODE_ON_DRAW);
   mMultipart = !!(aFlags & INIT_FLAG_MULTIPART);
@@ -336,7 +338,7 @@ RasterImage::ExtractFrame(PRUint32 aWhichFrame,
   
   
   
-  img->Init(nsnull, "", INIT_FLAG_NONE);
+  img->Init(nsnull, "", "", INIT_FLAG_NONE);
   img->SetSize(aRegion.width, aRegion.height);
   img->mDecoded = PR_TRUE; 
   img->mHasBeenDecoded = PR_TRUE;

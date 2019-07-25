@@ -1107,9 +1107,15 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
       imageFlags |= Image::INIT_FLAG_MULTIPART;
 
     
+    nsCAutoString uriString;
+    rv = mURI->GetSpec(uriString);
+    if (NS_FAILED(rv))
+      uriString.Assign("<unknown image URI>");
+
     
     
-    rv = mImage->Init(this, mContentType.get(), imageFlags);
+    
+    rv = mImage->Init(this, mContentType.get(), uriString.get(), imageFlags);
     if (NS_FAILED(rv)) { 
 
       this->Cancel(rv);

@@ -177,6 +177,7 @@ public:
   
   nsresult Init(imgIDecoderObserver* aObserver,
                 const char* aMimeType,
+                const char* aURIString,
                 PRUint32 aFlags);
   void     GetCurrentFrameRect(nsIntRect& aRect);
   PRUint32 GetDataSize();
@@ -473,6 +474,7 @@ private:
   
   nsTArray<char>             mSourceData;
   nsCString                  mSourceDataMimeType;
+  nsCString                  mURIString;
 
   friend class imgDecodeWorker;
   friend class DiscardTracker;

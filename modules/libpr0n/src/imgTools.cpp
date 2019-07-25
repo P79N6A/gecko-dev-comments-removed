@@ -94,7 +94,7 @@ NS_IMETHODIMP imgTools::DecodeImageData(nsIInputStream* aInStr,
   
   
   nsCString mimeType(aMimeType);
-  rv = image->Init(nsnull, mimeType.get(), Image::INIT_FLAG_NONE);
+  rv = image->Init(nsnull, mimeType.get(), "<unknown>", Image::INIT_FLAG_NONE);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIInputStream> inStream = aInStr;
