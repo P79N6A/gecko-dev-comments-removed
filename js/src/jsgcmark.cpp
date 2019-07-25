@@ -45,6 +45,35 @@
 #include "jsobjinlines.h"
 #include "jsscopeinlines.h"
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 using namespace js;
 using namespace js::gc;
 
