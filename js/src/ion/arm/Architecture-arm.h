@@ -43,7 +43,6 @@
 #define jsion_architecture_arm_h__
 
 #include "assembler/assembler/ARMAssembler.h"
-#include "ion/shared/Assembler-shared.h"
 
 namespace js {
 namespace ion {
@@ -114,6 +113,9 @@ class Registers
         (1 << JSC::ARMRegisters::sp) |
         (1 << JSC::ARMRegisters::r12) | 
         (1 << JSC::ARMRegisters::pc);
+
+    
+    static const uint32 TempMask = VolatileMask & ~NonAllocatableMask;
 
     static const uint32 JSCallClobberMask =
               (1 << JSC::ARMRegisters::r0) |

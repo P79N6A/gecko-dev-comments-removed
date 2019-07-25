@@ -140,6 +140,9 @@ class IonFrameIterator
     uint32 pcOffset() const {
         return reader_.pcOffset();
     }
+    BailoutKind bailoutKind() const {
+        return reader_.bailoutKind();
+    }
 
     bool nextFrame() {
         reader_.finishReading();
@@ -242,6 +245,9 @@ ConvertFrames(JSContext *cx, IonActivation *activation, BailoutEnvironment *env)
         
         JS_NOT_REACHED("NYI");
     }
+
+    
+    JS_ASSERT(iter.bailoutKind() == Bailout_Normal);
 
     return true;
 }

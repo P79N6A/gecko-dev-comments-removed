@@ -87,6 +87,12 @@ IonBuilder::readIndex(jsbytecode *pc)
     return (atoms - script->atoms) + GET_INDEX(pc);
 }
 
+JSAtom *
+IonBuilder::readAtom(jsbytecode *pc)
+{
+    return script->getAtom(readIndex(pc));
+}
+
 IonBuilder::CFGState
 IonBuilder::CFGState::If(jsbytecode *join, MBasicBlock *ifFalse)
 {
@@ -222,7 +228,7 @@ IonBuilder::rewriteParameters()
             break;
 
           default:
-            actual = MUnbox::NewUnchecked(param, MIRTypeFromValueType(definiteType));
+            actual = MUnbox::New(param, MIRTypeFromValueType(definiteType), MUnbox::Infallible);
             break;
         }
 
@@ -526,6 +532,9 @@ IonBuilder::inspectOpcode(JSOp op)
 
       case JSOP_UINT16:
         return pushConstant(Int32Value(GET_UINT16(pc)));
+
+      case JSOP_GETGNAME:
+        return jsop_getgname(readAtom(pc));
 
       case JSOP_UINT24:
         return pushConstant(Int32Value(GET_UINT24(pc)));
@@ -1884,5 +1893,166 @@ IonBuilder::resumeAt(MInstruction *ins, jsbytecode *pc)
         return false;
     ins->setResumePoint(resumePoint);
     return true;
+}
+
+static inline bool
+TestSingletonProperty(JSContext *cx, JSObject *obj, jsid id, bool *result)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    *result = false;
+
+    JSObject *pobj = obj;
+    while (pobj) {
+        if (!pobj->isNative())
+            return true;
+        if (pobj->getClass()->ops.lookupProperty)
+            return true;
+        pobj = pobj->getProto();
+    }
+
+    JSObject *holder;
+    JSProperty *prop = NULL;
+    if (!obj->lookupProperty(cx, id, &holder, &prop))
+        return false;
+    if (!prop)
+        return true;
+
+    Shape *shape = (Shape *)prop;
+    if (shape->hasDefaultGetter()) {
+        if (!shape->hasSlot())
+            return true;
+        if (holder->getSlot(shape->slot).isUndefined())
+            return true;
+    } else if (!shape->isMethod()) {
+        return true;
+    }
+
+    *result = true;
+    return true;
+}
+
+bool
+IonBuilder::pushTypeBarrier(MInstruction *ins, types::TypeSet *observed)
+{
+    
+    
+    
+    
+    
+    current->push(ins);
+    if (!ins->isIdempotent() && !resumeAfter(ins))
+        return false;
+
+    if (!observed || observed->unknown())
+        return true;
+    observed->addFreeze(cx);
+
+    
+    current->pop();
+
+    MInstruction *barrier;
+    JSValueType type = observed->getKnownTypeTag(cx);
+    if (type == JSVAL_TYPE_UNKNOWN) {
+        barrier = MTypeBarrier::New(ins, observed);
+        current->add(barrier);
+
+        if (type == JSVAL_TYPE_UNDEFINED)
+            return pushConstant(UndefinedValue());
+        if (type == JSVAL_TYPE_NULL)
+            return pushConstant(NullValue());
+    } else {
+        MUnbox::Mode mode = ins->isIdempotent() ? MUnbox::Fallible : MUnbox::TypeBarrier;
+        barrier = MUnbox::New(ins, MIRTypeFromValueType(type), mode);
+        barrier->setTypeSet(observed);
+        current->add(barrier);
+    }
+    current->push(barrier);
+    return true;
+}
+
+bool
+IonBuilder::jsop_getgname(JSAtom *atom)
+{
+    
+    if (atom == cx->runtime->atomState.typeAtoms[JSTYPE_VOID])
+        return pushConstant(UndefinedValue());
+    if (atom == cx->runtime->atomState.NaNAtom)
+        return pushConstant(cx->runtime->NaNValue);
+    if (atom == cx->runtime->atomState.InfinityAtom)
+        return pushConstant(cx->runtime->positiveInfinityValue);
+
+    jsid id = ATOM_TO_JSID(atom);
+    JSObject *globalObj = script->global();
+    JS_ASSERT(globalObj->isNative());
+
+    
+    
+    const js::Shape *shape = globalObj->nativeLookup(cx, id);
+    if (!shape)
+        return abort("GETGNAME property not found on global");
+    if (!shape->hasDefaultGetterOrIsMethod())
+        return abort("GETGNAME found a getter");
+    if (!shape->hasSlot())
+        return abort("GETGNAME property has no slot");
+
+    
+    bool needShapeGuard = shape->configurable();
+    JSValueType knownType = JSVAL_TYPE_UNKNOWN;
+
+    types::TypeSet *barrier;
+    types::TypeSet *types = oracle->propertyRead(script, pc, &barrier);
+    if (types) {
+        JSObject *singleton = types->getSingleton(cx);
+
+        knownType = types->getKnownTypeTag(cx);
+        if (!barrier) {
+            if (singleton) {
+                
+                bool result;
+                if (!TestSingletonProperty(cx, globalObj, id, &result))
+                    return false;
+                if (result)
+                    return pushConstant(ObjectValue(*singleton));
+            }
+            if (knownType == JSVAL_TYPE_UNDEFINED)
+                return pushConstant(UndefinedValue());
+            if (knownType == JSVAL_TYPE_NULL)
+                return pushConstant(NullValue());
+        }
+    }
+
+    MInstruction *global = MConstant::New(ObjectValue(*globalObj));
+    current->add(global);
+
+    if (needShapeGuard) {
+        MGuardShape *guard = MGuardShape::New(global, shape);
+        current->add(guard);
+    }
+
+    JS_ASSERT(shape->slot >= globalObj->numFixedSlots());
+
+    MSlots *slots = MSlots::New(global);
+    current->add(slots);
+    MLoadSlot *load = MLoadSlot::New(slots, shape->slot - globalObj->numFixedSlots());
+    current->add(load);
+    load->setTypeSet(types);
+
+    
+    if (knownType != JSVAL_TYPE_UNKNOWN && !barrier) {
+        load->setResultType(MIRTypeFromValueType(knownType));
+        current->push(load);
+        return true;
+    }
+
+    return pushTypeBarrier(load, barrier);
 }
 

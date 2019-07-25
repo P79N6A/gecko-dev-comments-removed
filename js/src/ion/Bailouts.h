@@ -43,6 +43,7 @@
 #define jsion_bailouts_h__
 
 #include "jstypes.h"
+#include "vm/Stack.h"
 
 #if defined(JS_CPU_X86)
 # include "ion/x86/Bailouts-x86.h"
@@ -132,6 +133,21 @@ namespace ion {
 
 typedef uint32 BailoutId;
 static const BailoutId INVALID_BAILOUT_ID = BailoutId(-1);
+
+
+
+enum BailoutKind
+{
+    
+    
+    Bailout_Normal,
+
+    
+    
+    Bailout_TypeBarrier
+};
+
+static const uint32 BAILOUT_KIND_BITS = 1;
 
 
 static const uint32 BAILOUT_TABLE_SIZE = 16;

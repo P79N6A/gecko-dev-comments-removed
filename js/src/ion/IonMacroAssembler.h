@@ -145,7 +145,8 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     
     
-    void guardTypeSet(const Address &address, types::TypeSet *types, Register scratch,
+    template <typename T>
+    void guardTypeSet(const T &address, types::TypeSet *types, Register scratch,
                       Label *mismatched);
 };
 

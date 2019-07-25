@@ -61,6 +61,11 @@ static const int32 INVALID_STACK_SLOT       = -1;
 
 
 
+static const int32 NUNBOX32_TYPE_OFFSET         = 4;
+static const int32 NUNBOX32_PAYLOAD_OFFSET      = 0;
+
+
+
 
 
 

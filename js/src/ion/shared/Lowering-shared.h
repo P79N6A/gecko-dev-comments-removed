@@ -134,12 +134,16 @@ class LIRGeneratorShared : public MInstructionVisitor
     
     inline bool redefine(MDefinition *ins, MDefinition *as);
 
+    
+    
+    inline bool defineAs(LInstruction *outLir, MDefinition *outMir, MDefinition *inMir);
+
     uint32 getVirtualRegister() {
         return lirGraph_.getVirtualRegister();
     }
 
     template <typename T> bool annotate(T *ins);
-    template <typename T> bool add(T *ins);
+    template <typename T> bool add(T *ins, MInstruction *mir = NULL);
 
     void lowerTypedPhiInput(MPhi *phi, uint32 inputPosition, LBlock *block, size_t lirIndex);
     bool defineTypedPhi(MPhi *phi, size_t lirIndex);
