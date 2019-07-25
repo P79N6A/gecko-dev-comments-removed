@@ -478,7 +478,10 @@ public:
             
             
             
-            errorevent.fileName = nsnull;
+            
+            
+            static PRUnichar nullFilename[] = { PRUnichar(0) };
+            errorevent.fileName = nullFilename;
           }
 
           nsEventDispatcher::Dispatch(win, presContext, &errorevent, nsnull,
