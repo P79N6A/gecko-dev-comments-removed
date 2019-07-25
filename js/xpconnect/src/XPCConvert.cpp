@@ -58,6 +58,8 @@
 #include "dombindings.h"
 #include "nsWrapperCacheInlines.h"
 
+#include "jstypedarray.h"
+
 using namespace mozilla;
 
 
@@ -1690,12 +1692,168 @@ failure:
 }
 
 
+
+
+
+
+
+static JSBool
+CheckTargetAndPopulate(const nsXPTType& type,
+                       PRUint8 requiredType,
+                       size_t typeSize,
+                       JSUint32 count,
+                       JSObject* tArr,
+                       void** output,
+                       nsresult* pErr)
+{
+    
+    
+    
+    if (type.TagPart() != requiredType) {
+        if (pErr)
+            *pErr = NS_ERROR_XPC_BAD_CONVERT_JS;
+
+        return false;
+    }
+
+    
+    
+    size_t max = PR_UINT32_MAX / typeSize;
+
+    
+    size_t byteSize = count * typeSize;
+    if (count > max || !(*output = nsMemory::Alloc(byteSize))) {
+        if (pErr)
+            *pErr = NS_ERROR_OUT_OF_MEMORY;
+
+        return false;
+    }
+
+    memcpy(*output, JS_GetTypedArrayData(tArr), byteSize);
+    return true;
+}
+
+
+
+
+
+
+
+
+
+
+JSBool
+XPCConvert::JSTypedArray2Native(XPCCallContext& ccx,
+                                void** d,
+                                JSObject* jsArray,
+                                JSUint32 count,
+                                const nsXPTType& type,
+                                nsresult* pErr)
+{
+    NS_ABORT_IF_FALSE(jsArray, "bad param");
+    NS_ABORT_IF_FALSE(d, "bad param");
+    NS_ABORT_IF_FALSE(js_IsTypedArray(jsArray), "not a typed array");
+
+    
+    
+    JSUint32 len = JS_GetTypedArrayLength(jsArray);
+    if (len < count) {
+        if (pErr)
+            *pErr = NS_ERROR_XPC_NOT_ENOUGH_ELEMENTS_IN_ARRAY;
+
+        return false;
+    }
+
+    void* output = nsnull;
+
+    switch (JS_GetTypedArrayType(jsArray)) {
+    case js::TypedArray::TYPE_INT8:
+        if (!CheckTargetAndPopulate(nsXPTType::T_I8, type,
+                                    sizeof(int8), count,
+                                    jsArray, &output, pErr)) {
+            return false;
+        }
+        break;
+
+    case js::TypedArray::TYPE_UINT8:
+    case js::TypedArray::TYPE_UINT8_CLAMPED:
+        if (!CheckTargetAndPopulate(nsXPTType::T_U8, type,
+                                    sizeof(uint8), count,
+                                    jsArray, &output, pErr)) {
+            return false;
+        }
+        break;
+
+    case js::TypedArray::TYPE_INT16:
+        if (!CheckTargetAndPopulate(nsXPTType::T_I16, type,
+                                    sizeof(int16), count,
+                                    jsArray, &output, pErr)) {
+            return false;
+        }
+        break;
+
+    case js::TypedArray::TYPE_UINT16:
+        if (!CheckTargetAndPopulate(nsXPTType::T_U16, type,
+                                    sizeof(uint16), count,
+                                    jsArray, &output, pErr)) {
+            return false;
+        }
+        break;
+
+    case js::TypedArray::TYPE_INT32:
+        if (!CheckTargetAndPopulate(nsXPTType::T_I32, type,
+                                    sizeof(int32), count,
+                                    jsArray, &output, pErr)) {
+            return false;
+        }
+        break;
+
+    case js::TypedArray::TYPE_UINT32:
+        if (!CheckTargetAndPopulate(nsXPTType::T_U32, type,
+                                    sizeof(uint32), count,
+                                    jsArray, &output, pErr)) {
+            return false;
+        }
+        break;
+
+    case js::TypedArray::TYPE_FLOAT32:
+        if (!CheckTargetAndPopulate(nsXPTType::T_FLOAT, type,
+                                    sizeof(float), count,
+                                    jsArray, &output, pErr)) {
+            return false;
+        }
+        break;
+
+    case js::TypedArray::TYPE_FLOAT64:
+        if (!CheckTargetAndPopulate(nsXPTType::T_DOUBLE, type,
+                                    sizeof(double), count,
+                                    jsArray, &output, pErr)) {
+            return false;
+        }
+        break;
+
+    
+    default:
+        if (pErr)
+            *pErr = NS_ERROR_XPC_BAD_CONVERT_JS;
+
+        return false;
+    }
+
+    *d = output;
+    if (pErr)
+        *pErr = NS_OK;
+
+    return true;
+}
+
+
 JSBool
 XPCConvert::JSArray2Native(XPCCallContext& ccx, void** d, jsval s,
                            JSUint32 count, const nsXPTType& type,
-                           const nsID* iid, uintN* pErr)
+                           const nsID* iid, nsresult* pErr)
 {
-    NS_PRECONDITION(d, "bad param");
+    NS_ABORT_IF_FALSE(d, "bad param");
 
     JSContext* cx = ccx.GetJSContext();
 
@@ -1731,13 +1889,19 @@ XPCConvert::JSArray2Native(XPCCallContext& ccx, void** d, jsval s,
     }
 
     jsarray = JSVAL_TO_OBJECT(s);
+
+    
+    if (js_IsTypedArray(jsarray)) {
+        return JSTypedArray2Native(ccx, d, jsarray, count, type, pErr);
+    }
+
     if (!JS_IsArrayObject(cx, jsarray)) {
         if (pErr)
             *pErr = NS_ERROR_XPC_CANT_CONVERT_OBJECT_TO_ARRAY;
         return false;
     }
 
-    jsuint len;
+    JSUint32 len;
     if (!JS_GetArrayLength(cx, jsarray, &len) || len < count) {
         if (pErr)
             *pErr = NS_ERROR_XPC_NOT_ENOUGH_ELEMENTS_IN_ARRAY;
@@ -1781,7 +1945,7 @@ XPCConvert::JSArray2Native(XPCCallContext& ccx, void** d, jsval s,
     case nsXPTType::T_U64           : POPULATE(na, uint64);         break;
     case nsXPTType::T_FLOAT         : POPULATE(na, float);          break;
     case nsXPTType::T_DOUBLE        : POPULATE(na, double);         break;
-    case nsXPTType::T_BOOL          : POPULATE(na, bool);         break;
+    case nsXPTType::T_BOOL          : POPULATE(na, bool);           break;
     case nsXPTType::T_CHAR          : POPULATE(na, char);           break;
     case nsXPTType::T_WCHAR         : POPULATE(na, jschar);         break;
     case nsXPTType::T_VOID          : NS_ERROR("bad type"); goto failure;
@@ -1874,7 +2038,7 @@ XPCConvert::NativeStringWithSize2JS(JSContext* cx,
 JSBool
 XPCConvert::JSStringWithSize2Native(XPCCallContext& ccx, void* d, jsval s,
                                     JSUint32 count, const nsXPTType& type,
-                                    uintN* pErr)
+                                    nsresult* pErr)
 {
     NS_PRECONDITION(!JSVAL_IS_NULL(s), "bad param");
     NS_PRECONDITION(d, "bad param");
