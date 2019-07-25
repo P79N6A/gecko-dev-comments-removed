@@ -1479,6 +1479,10 @@ urlInlineComplete.prototype = {
 
   
   
+  get searchType() Ci.nsIAutoCompleteSearchDescriptor.SEARCH_TYPE_IMMEDIATE,
+
+  
+  
 
   handleResult: function UIC_handleResult(aResultSet)
   {
@@ -1609,6 +1613,7 @@ urlInlineComplete.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIAutoCompleteSearch,
+    Ci.nsIAutoCompleteSearchDescriptor,
     Ci.mozIStorageStatementCallback,
     Ci.nsIObserver,
     Ci.nsISupportsWeakReference,
