@@ -292,7 +292,7 @@ nsTableFrame::PageBreakAfter(nsIFrame* aSourceFrame,
   const nsStyleDisplay* display = aSourceFrame->GetStyleDisplay();
   nsTableRowGroupFrame* prevRg = do_QueryFrame(aSourceFrame);
   
-  if (display->mBreakAfter || (prevRg && prevRg->HasInternalBreakAfter()) &&
+  if ((display->mBreakAfter || (prevRg && prevRg->HasInternalBreakAfter())) &&
       !IsRepeatedFrame(aSourceFrame)) {
     return !(aNextFrame && IsRepeatedFrame(aNextFrame)); 
   }
@@ -301,8 +301,8 @@ nsTableFrame::PageBreakAfter(nsIFrame* aSourceFrame,
     display = aNextFrame->GetStyleDisplay();
     
      nsTableRowGroupFrame* nextRg = do_QueryFrame(aNextFrame);
-    if (display->mBreakBefore ||
-        (nextRg && nextRg->HasInternalBreakBefore()) &&
+    if ((display->mBreakBefore ||
+        (nextRg && nextRg->HasInternalBreakBefore())) &&
         !IsRepeatedFrame(aNextFrame)) {
       return !IsRepeatedFrame(aSourceFrame); 
     }
