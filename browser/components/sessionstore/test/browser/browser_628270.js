@@ -1,9 +1,6 @@
 
 
 
-let ss = Cc["@mozilla.org/browser/sessionstore;1"].
-         getService(Ci.nsISessionStore);
-
 function test() {
   let assertNumberOfTabs = function (num, msg) {
     is(gBrowser.tabs.length, num, msg);

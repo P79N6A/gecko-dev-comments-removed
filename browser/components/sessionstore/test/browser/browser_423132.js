@@ -38,13 +38,10 @@ function test() {
   
   
 
-  
   waitForExplicitFinish();
 
   let cs = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager2);
   cs.removeAll();
-
-  let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
 
   
   

@@ -153,9 +153,6 @@ function test() {
   }
 
   
-  let ss = Cc["@mozilla.org/browser/sessionstore;1"].
-           getService(Ci.nsISessionStore);
-  
   let sessionStoreJS = getSessionstoreFile();
   if (sessionStoreJS.exists())
     sessionStoreJS.remove(false);

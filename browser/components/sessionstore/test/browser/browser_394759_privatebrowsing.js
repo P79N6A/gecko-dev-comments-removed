@@ -47,8 +47,6 @@ function test() {
 
   
   
-  let ss = Cc["@mozilla.org/browser/sessionstore;1"].
-           getService(Ci.nsISessionStore);
   let blankState = JSON.stringify({
     windows: [{
       tabs: [{ entries: [{ url: "about:blank" }] }],
@@ -87,8 +85,6 @@ function continue_test() {
            getService(Ci.nsIPrivateBrowsingService);
   
   ok(!pb.privateBrowsingEnabled, "Private Browsing is disabled");
-  let ss = Cc["@mozilla.org/browser/sessionstore;1"].
-           getService(Ci.nsISessionStore);
 
   let closedWindowCount = ss.getClosedWindowCount();
   is(closedWindowCount, 0, "Correctly set window count");

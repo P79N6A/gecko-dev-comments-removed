@@ -8,19 +8,9 @@ function test() {
     catch (ex) { }
     return false;
   }
-  
-  
-  let tabbrowser = gBrowser;
+
   waitForExplicitFinish();
-  
-  
-  let ssComponent = test(function() Cc["@mozilla.org/browser/sessionstore;1"]);
-  ok(ssComponent, "reference the sessionstore component");
-  
-  
-  let ss = test(function() ssComponent.getService(Ci.nsISessionStore));
-  ok(ss, "reference the sessionstore service");
-  
+
   
   
   
@@ -47,7 +37,7 @@ function test() {
   
   key = "Unique name: " + Math.random();
   value = "Unique value: " + Date.now();
-  let tab = tabbrowser.addTab();
+  let tab = gBrowser.addTab();
   tab.linkedBrowser.stop();
   
   
@@ -66,7 +56,7 @@ function test() {
   ok(test(function() ss.deleteTabValue(tab, key)), "delete non-existent tab value");
   
   
-  tabbrowser.removeTab(tab);
+  gBrowser.removeTab(tab);
   
   
   
@@ -80,14 +70,14 @@ function test() {
   
   
   let testURL = "about:";
-  tab = tabbrowser.addTab(testURL);
+  tab = gBrowser.addTab(testURL);
   tab.linkedBrowser.addEventListener("load", function(aEvent) {
     this.removeEventListener("load", arguments.callee, true);
     
     gPrefService.setIntPref("browser.sessionstore.max_tabs_undo", max_tabs_undo + 1);
     
     
-    tabbrowser.removeTab(tab);
+    gBrowser.removeTab(tab);
     
     
     var newcount = ss.getClosedTabCount(window);
@@ -104,7 +94,7 @@ function test() {
       
       if (gPrefService.prefHasUserValue("browser.sessionstore.max_tabs_undo"))
         gPrefService.clearUserPref("browser.sessionstore.max_tabs_undo");
-      tabbrowser.removeTab(tab);
+      gBrowser.removeTab(tab);
       finish();
     }, true);
   }, true);

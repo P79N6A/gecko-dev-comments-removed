@@ -35,8 +35,7 @@
 
 
 
-const SS_SVC = Cc["@mozilla.org/browser/sessionstore;1"].
-               getService(Ci.nsISessionStore);
+let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
 
 
 function waitForBrowserState(aState, aSetStateCallback) {
@@ -118,7 +117,7 @@ function waitForBrowserState(aState, aSetStateCallback) {
   gBrowser.tabContainer.addEventListener("SSTabRestored", onSSTabRestored, true);
 
   
-  SS_SVC.setBrowserState(JSON.stringify(aState));
+  ss.setBrowserState(JSON.stringify(aState));
 }
 
 

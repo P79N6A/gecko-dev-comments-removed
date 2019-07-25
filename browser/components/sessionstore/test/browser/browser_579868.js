@@ -45,8 +45,6 @@ function test() {
 
     
     let newTabState = '{"entries":[{"url":"about:robots"}],"pinned":true,"userTypedValue":"Hello World!"}';
-    let ss = Cc["@mozilla.org/browser/sessionstore;1"]
-               .getService(Ci.nsISessionStore);
     ss.setTabState(tab1, newTabState);
 
     

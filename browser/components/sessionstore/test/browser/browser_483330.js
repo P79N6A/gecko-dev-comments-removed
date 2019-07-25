@@ -1,8 +1,6 @@
 function test() {
   
 
-  
-  let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
   waitForExplicitFinish();
 
   let tab = gBrowser.addTab();

@@ -41,9 +41,6 @@ function test() {
   
   waitForExplicitFinish();
 
-  let ss = Cc["@mozilla.org/browser/sessionstore;1"].
-           getService(Ci.nsISessionStore);
-
   
   let profilePath = Cc["@mozilla.org/file/directory_service;1"].
                     getService(Ci.nsIProperties).

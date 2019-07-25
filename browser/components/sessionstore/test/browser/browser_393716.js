@@ -1,13 +1,6 @@
 function test() {
   
-  
-  
-  try {
-    var ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
-  }
-  catch (ex) { }
-  ok(ss, "SessionStore service is available");
-  let tabbrowser = gBrowser;
+
   waitForExplicitFinish();
   
   
@@ -18,7 +11,7 @@ function test() {
   let testURL = "about:config";
   
   
-  let tab = tabbrowser.addTab(testURL);
+  let tab = gBrowser.addTab(testURL);
   ss.setTabValue(tab, key, value);
   tab.linkedBrowser.addEventListener("load", function(aEvent) {
     this.removeEventListener("load", arguments.callee, true);
@@ -36,7 +29,7 @@ function test() {
        "Got the expected state object (test manually set tab value)");
     
     
-    tabbrowser.removeTab(tab);
+    gBrowser.removeTab(tab);
   }, true);
   
   
@@ -48,7 +41,7 @@ function test() {
   let state = { entries: [{ url: testURL }], extData: { key2: value2 } };
   
   
-  let tab2 = tabbrowser.addTab();
+  let tab2 = gBrowser.addTab();
   
   ss.setTabState(tab2, JSON.stringify(state));
   tab2.linkedBrowser.addEventListener("load", function(aEvent) {
@@ -63,7 +56,7 @@ function test() {
     
     
     let duplicateTab = ss.duplicateTab(window, tab2);
-    tabbrowser.removeTab(tab2);
+    gBrowser.removeTab(tab2);
     
     duplicateTab.linkedBrowser.addEventListener("load", function(aEvent) {
       this.removeEventListener("load", arguments.callee, true);
@@ -74,7 +67,7 @@ function test() {
       is(textbox.value, value3, "also duplicated text data");
       
       
-      tabbrowser.removeTab(duplicateTab);
+      gBrowser.removeTab(duplicateTab);
       finish();
     }, true);
   }, true);

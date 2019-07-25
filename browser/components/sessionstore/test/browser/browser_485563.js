@@ -37,7 +37,6 @@
 function test() {
   
   
-  let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
   waitForExplicitFinish();
   
   let uniqueValue = Math.random() + "\u2028Second line\u2029Second paragraph\u2027";

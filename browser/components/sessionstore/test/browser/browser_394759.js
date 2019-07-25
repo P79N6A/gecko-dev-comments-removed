@@ -51,8 +51,6 @@ function test() {
   
   requestLongerTimeout(2);
   
-  
-  let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
   let pb = Cc["@mozilla.org/privatebrowsing;1"].getService(Ci.nsIPrivateBrowsingService);
   waitForExplicitFinish();
   

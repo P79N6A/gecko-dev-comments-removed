@@ -110,10 +110,6 @@ function test() {
   gPrefService.setBoolPref("browser.privatebrowsing.keep_current_session", true);
 
   
-  let ss = test(function() Cc["@mozilla.org/browser/sessionstore;1"].
-                           getService(Ci.nsISessionStore));
-
-  
   
   
 
