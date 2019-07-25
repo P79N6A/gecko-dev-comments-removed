@@ -193,7 +193,7 @@ nsHTMLFieldSetElement::InsertChildAt(nsIContent* aChild, PRUint32 aIndex,
     } else {
       
       
-      if (PRInt32(aIndex) <= IndexOf(mFirstLegend)) {
+      if (aIndex <= IndexOf(mFirstLegend)) {
         mFirstLegend = aChild;
         firstLegendHasChanged = true;
       }
