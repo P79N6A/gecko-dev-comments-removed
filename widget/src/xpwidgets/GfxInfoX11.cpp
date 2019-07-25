@@ -308,6 +308,13 @@ GfxInfo::GetDWriteVersion(nsAString & aDwriteVersion)
 
 
 NS_IMETHODIMP
+GfxInfo::GetCleartypeParameters(nsAString & aCleartypeParams)
+{
+  return NS_ERROR_FAILURE;
+}
+
+
+NS_IMETHODIMP
 GfxInfo::GetAdapterDescription(nsAString & aAdapterDescription)
 {
   GetData();
