@@ -6,6 +6,7 @@ package org.mozilla.gecko.sync;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -195,7 +196,19 @@ public class SyncConfiguration implements CredentialsSource {
 
 
 
-  public Set<String>     enabledEngineNames;
+  public Set<String> enabledEngineNames;
+
+  
+
+
+
+
+
+
+
+
+
+  public Collection<String> stagesToSync;
 
   
   

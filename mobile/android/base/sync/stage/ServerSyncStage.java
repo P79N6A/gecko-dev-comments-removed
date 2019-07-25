@@ -81,7 +81,22 @@ public abstract class ServerSyncStage implements
     }
 
     
-    return session.engineIsEnabled(this.getEngineName(), engineSettings);
+    
+    boolean enabledInMetaGlobal = session.engineIsEnabled(this.getEngineName(), engineSettings);
+    if (!enabledInMetaGlobal) {
+      Logger.debug(LOG_TAG, "Stage " + this.getEngineName() + " disabled by server meta/global.");
+      return false;
+    }
+
+    
+    if (session.config.stagesToSync == null) {
+      return true;
+    }
+    boolean enabledThisSync = session.config.stagesToSync.contains(this.getEngineName()); 
+    if (!enabledThisSync) {
+      Logger.debug(LOG_TAG, "Stage " + this.getEngineName() + " disabled just for this sync.");
+    }
+    return enabledThisSync;
   }
 
   protected EngineSettings getEngineSettings() throws NonObjectJSONException, IOException, ParseException {
@@ -160,7 +175,7 @@ public abstract class ServerSyncStage implements
 
 
 
-  public void resetLocal(String syncID) {
+  protected void resetLocal(String syncID) {
     
     SynchronizerConfiguration config;
     try {
@@ -437,7 +452,7 @@ public abstract class ServerSyncStage implements
 
     try {
       if (!this.isEnabled()) {
-        Logger.info(LOG_TAG, "Stage " + name + " disabled; skipping.");
+        Logger.info(LOG_TAG, "Skipping stage " + name + ".");
         session.advance();
         return;
       }

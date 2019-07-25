@@ -23,7 +23,7 @@ public interface GlobalSyncStage {
 
 
 
-    syncClientsEngine("clients"),
+    syncClientsEngine(SyncClientsEngineStage.STAGE_NAME),
     
 
 
