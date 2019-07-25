@@ -229,6 +229,13 @@ pref("browser.search.updateinterval", 6);
 pref("browser.search.suggest.enabled", true);
 
 
+pref("browser.search.loadFromJars", true);
+pref("browser.search.jarURIs", "chrome://browser/locale/searchplugins/");
+
+
+pref("browser.search.noCurrentEngine", true);
+
+
 pref("browser.xul.error_pages.enabled", true);
 
 
@@ -401,6 +408,3 @@ pref("ui.window", "#efebe7");
 pref("ui.windowtext", "#101010");
 pref("ui.windowframe", "#efebe7");
 
-
-pref("browser.search.loadFromJars", true);
-pref("browser.search.jarURIs", "chrome://browser/locale/searchplugins/");
