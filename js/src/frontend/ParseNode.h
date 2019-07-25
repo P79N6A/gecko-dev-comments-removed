@@ -80,7 +80,8 @@ enum ParseNodeKind {
     PNK_DOT,
     PNK_LB,
     PNK_RB,
-    PNK_LC,
+    PNK_STATEMENTLIST,
+    PNK_XMLCURLYEXPR,
     PNK_RC,
     PNK_LP,
     PNK_RP,
@@ -195,6 +196,11 @@ enum ParseNodeKind {
 
     PNK_LIMIT 
 };
+
+
+
+
+
 
 
 

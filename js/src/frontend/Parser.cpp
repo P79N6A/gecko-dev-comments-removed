@@ -261,7 +261,7 @@ GenerateBlockIdForStmtNode(ParseNode *pn, TreeContext *tc)
 {
     JS_ASSERT(tc->topStmt);
     JS_ASSERT(STMT_MAYBE_SCOPE(tc->topStmt));
-    JS_ASSERT(pn->isKind(PNK_LC) || pn->isKind(PNK_LEXICALSCOPE));
+    JS_ASSERT(pn->isKind(PNK_STATEMENTLIST) || pn->isKind(PNK_LEXICALSCOPE));
     if (!GenerateBlockId(tc, tc->topStmt->blockid))
         return false;
     pn->pn_blockid = tc->topStmt->blockid;
@@ -321,7 +321,7 @@ HasFinalReturn(ParseNode *pn)
     uintN rv, rv2, hasDefault;
 
     switch (pn->getKind()) {
-      case PNK_LC:
+      case PNK_STATEMENTLIST:
         if (!pn->pn_head)
             return ENDS_IN_OTHER;
         return HasFinalReturn(pn->last());
@@ -368,7 +368,7 @@ HasFinalReturn(ParseNode *pn)
             if (pn2->isKind(PNK_DEFAULT))
                 hasDefault = ENDS_IN_RETURN;
             pn3 = pn2->pn_right;
-            JS_ASSERT(pn3->isKind(PNK_LC));
+            JS_ASSERT(pn3->isKind(PNK_STATEMENTLIST));
             if (pn3->pn_head) {
                 rv2 = HasFinalReturn(pn3->last());
                 if (rv2 == ENDS_IN_OTHER && pn2->pn_next)
@@ -1771,7 +1771,7 @@ Parser::statements()
 
     JS_CHECK_RECURSION(context, return NULL);
 
-    ParseNode *pn = ListNode::create(PNK_LC, tc);
+    ParseNode *pn = ListNode::create(PNK_STATEMENTLIST, tc);
     if (!pn)
         return NULL;
     pn->makeEmpty();
@@ -2951,7 +2951,7 @@ Parser::switchStatement()
     PushStatement(tc, &stmtInfo, STMT_SWITCH, -1);
 
     
-    ParseNode *pn2 = ListNode::create(PNK_LC, tc);
+    ParseNode *pn2 = ListNode::create(PNK_STATEMENTLIST, tc);
     if (!pn2)
         return NULL;
     pn2->makeEmpty();
@@ -3003,7 +3003,7 @@ Parser::switchStatement()
 
         MUST_MATCH_TOKEN(TOK_COLON, JSMSG_COLON_AFTER_CASE);
 
-        ParseNode *pn4 = ListNode::create(PNK_LC, tc);
+        ParseNode *pn4 = ListNode::create(PNK_STATEMENTLIST, tc);
         if (!pn4)
             return NULL;
         pn4->makeEmpty();
@@ -3757,7 +3757,7 @@ Parser::expressionStatement()
 
         
         if (pn->isKind(PNK_SEMI) && !pn->pn_kid) {
-            pn->setKind(PNK_LC);
+            pn->setKind(PNK_STATEMENTLIST);
             pn->setArity(PN_LIST);
             pn->makeEmpty();
         }
@@ -6038,7 +6038,7 @@ Parser::xmlExpr(JSBool inTag)
     JS_ASSERT(!tc->inStrictMode());
 
     JS_ASSERT(tokenStream.currentToken().type == TOK_LC);
-    ParseNode *pn = UnaryNode::create(PNK_LC, tc);
+    ParseNode *pn = UnaryNode::create(PNK_XMLCURLYEXPR, tc);
     if (!pn)
         return NULL;
 
@@ -6135,7 +6135,7 @@ Parser::xmlNameExpr()
 
 #define XML_FOLDABLE(pn)        ((pn)->isArity(PN_LIST)                     \
                                  ? ((pn)->pn_xflags & PNX_CANTFOLD) == 0    \
-                                 : !(pn)->isKind(PNK_LC))
+                                 : !(pn)->isKind(PNK_XMLCURLYEXPR))
 
 
 
@@ -6333,7 +6333,7 @@ Parser::xmlElementOrList(JSBool allowList)
                 freeTree(pn);
                 pn = pn2;
             } else {
-                JS_ASSERT(pn2->isKind(PNK_XMLNAME) || pn2->isKind(PNK_LC));
+                JS_ASSERT(pn2->isKind(PNK_XMLNAME) || pn2->isKind(PNK_XMLCURLYEXPR));
                 pn->initList(pn2);
                 if (!XML_FOLDABLE(pn2))
                     pn->pn_xflags |= PNX_CANTFOLD;
@@ -6395,7 +6395,7 @@ Parser::xmlElementOrList(JSBool allowList)
             }
 
             
-            JS_ASSERT(pn2->isKind(PNK_XMLNAME) || pn2->isKind(PNK_LC));
+            JS_ASSERT(pn2->isKind(PNK_XMLNAME) || pn2->isKind(PNK_XMLCURLYEXPR));
             list = ListNode::create(PNK_XMLETAGO, tc);
             if (!list)
                 return NULL;
