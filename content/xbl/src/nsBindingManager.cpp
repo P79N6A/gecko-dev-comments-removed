@@ -621,11 +621,17 @@ nsBindingManager::SetWrappedJS(nsIContent* aContent, nsIXPConnectWrappedJS* aWra
   return SetOrRemoveObject(mWrapperTable, aContent, aWrappedJS);
 }
 
-void
-nsBindingManager::RemovedFromDocumentInternal(nsIContent* aContent,
-                                              nsIDocument* aOldDocument)
+nsresult
+nsBindingManager::ChangeDocumentFor(nsIContent* aContent, nsIDocument* aOldDocument,
+                                    nsIDocument* aNewDocument)
 {
+  
+  
   NS_PRECONDITION(aOldDocument != nsnull, "no old document");
+  NS_PRECONDITION(!aNewDocument,
+                  "Changing to a non-null new document not supported yet");
+  if (! aOldDocument)
+    return NS_ERROR_NULL_POINTER;
 
   
   
@@ -644,14 +650,18 @@ nsBindingManager::RemovedFromDocumentInternal(nsIContent* aContent,
   }
 
   if (binding) {
-    binding->ChangeDocument(aOldDocument, nsnull);
+    binding->ChangeDocument(aOldDocument, aNewDocument);
     SetBinding(aContent, nsnull);
+    if (aNewDocument)
+      aNewDocument->BindingManager()->SetBinding(aContent, binding);
   }
 
   
   SetInsertionParent(aContent, nsnull);
   SetContentListFor(aContent, nsnull);
   SetAnonymousNodesFor(aContent, nsnull);
+
+  return NS_OK;
 }
 
 nsIAtom*

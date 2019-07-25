@@ -92,14 +92,13 @@ public:
 
 
 
-  void RemovedFromDocument(nsIContent* aContent, nsIDocument* aOldDocument)
-  {
-    if (aContent->HasFlag(NODE_MAY_BE_IN_BINDING_MNGR)) {
-      RemovedFromDocumentInternal(aContent, aOldDocument);
-    }
-  }
-  void RemovedFromDocumentInternal(nsIContent* aContent,
-                                   nsIDocument* aOldDocument);
+
+
+
+
+
+  nsresult ChangeDocumentFor(nsIContent* aContent, nsIDocument* aOldDocument,
+                             nsIDocument* aNewDocument);
 
   nsIAtom* ResolveTag(nsIContent* aContent, PRInt32* aNameSpaceID);
 
