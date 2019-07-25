@@ -408,6 +408,8 @@ nsPermissionManager::InitDB(bool aRemoveFile)
 
       
 
+    
+    case 0:
     case 2:
       {
         
@@ -428,20 +430,6 @@ nsPermissionManager::InitDB(bool aRemoveFile)
     
     case HOSTS_SCHEMA_VERSION:
       break;
-
-    case 0:
-      {
-        NS_WARNING("couldn't get schema version!");
-          
-        
-        
-        
-        
-        
-        rv = mDBConn->SetSchemaVersion(HOSTS_SCHEMA_VERSION);
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-      
 
     
     
