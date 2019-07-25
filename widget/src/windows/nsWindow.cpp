@@ -1974,6 +1974,14 @@ NS_METHOD nsWindow::GetBounds(nsIntRect &aRect)
 
     
     
+    if (mWindowType == eWindowType_popup) {
+      aRect.x = r.left;
+      aRect.y = r.top;
+      return NS_OK;
+    }
+
+    
+    
     
     
     
