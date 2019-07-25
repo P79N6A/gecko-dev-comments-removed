@@ -33,12 +33,14 @@
 
 
 
+#include <pthread.h>
 #include <stdlib.h>
 #include <alsa/asoundlib.h>
 #include "sydney_audio.h"
 
 
 
+pthread_mutex_t sa_alsa_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct sa_stream {
   snd_pcm_t*        output_unit;
@@ -123,6 +125,8 @@ sa_stream_open(sa_stream_t *s) {
     return SA_ERROR_INVALID;
   }
 
+  pthread_mutex_lock(&sa_alsa_mutex);
+
   
   snd_lib_error_set_handler(quiet_error_handler);
 
@@ -130,6 +134,7 @@ sa_stream_open(sa_stream_t *s) {
                    "default", 
                    SND_PCM_STREAM_PLAYBACK, 
                    0) < 0) {
+    pthread_mutex_unlock(&sa_alsa_mutex);
     return SA_ERROR_NO_DEVICE;
   }
   
@@ -146,9 +151,12 @@ sa_stream_open(sa_stream_t *s) {
                          250000) < 0) {
     snd_pcm_close(s->output_unit);
     s->output_unit = NULL;
+    pthread_mutex_unlock(&sa_alsa_mutex);
     return SA_ERROR_NOT_SUPPORTED;
   }
   
+  pthread_mutex_unlock(&sa_alsa_mutex);
+
   return SA_SUCCESS;
 }
 
@@ -164,9 +172,11 @@ sa_stream_destroy(sa_stream_t *s) {
 
 
   if (s->output_unit != NULL) {
+    pthread_mutex_lock(&sa_alsa_mutex);
     if (snd_pcm_close(s->output_unit) < 0) {
       result = SA_ERROR_SYSTEM;
     }
+    pthread_mutex_unlock(&sa_alsa_mutex);
   }
   free(s);
   return result;
