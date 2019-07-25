@@ -112,7 +112,7 @@ var tests = [
 
   
   
-  ["attachment; filename=basic; filename*0*=UTF-8''multi\r\n"
+  ["attachment; filename=basic; filename*0*=UTF-8''multi;\r\n"
     + " filename*1=line;\r\n" 
     + " filename*0*=UTF-8''wrong;\r\n"
     + " filename*1=bad;\r\n"
@@ -397,9 +397,16 @@ var tests = [
    "attachment", "basic"],
 
   
+  
 
   ["attachment; extension=bla filename=foo", 
+   "attachment", Cr.NS_ERROR_INVALID_ARG], 
+
+  ["attachment; filename=foo extension=bla", 
    "attachment", "foo"], 
+
+  ["attachment filename=foo", 
+   "attachment", Cr.NS_ERROR_INVALID_ARG], 
 ];
 
 var rfc5987paramtests = [

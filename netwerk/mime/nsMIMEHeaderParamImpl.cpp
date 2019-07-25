@@ -619,7 +619,13 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
     
 increment_str:      
     while (nsCRT::IsAsciiSpace(*str)) ++str;
-    if (*str == ';') ++str;
+    if (*str == ';') {
+      ++str;
+    } else {
+      
+      
+      break;
+    }
     while (nsCRT::IsAsciiSpace(*str)) ++str;
   }
 
