@@ -158,6 +158,9 @@ public:
   RasterImage();
   virtual ~RasterImage();
 
+  
+  virtual PRUint16 GetType() { return imgIContainer::TYPE_RASTER; }
+
   static NS_METHOD WriteToContainer(nsIInputStream* in, void* closure,
                                     const char* fromRawSegment,
                                     PRUint32 toOffset, PRUint32 count,
