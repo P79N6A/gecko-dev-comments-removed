@@ -1258,10 +1258,10 @@ struct JSCompartment {
 #ifdef JS_METHODJIT
     
     JSC::ExecutableAllocator *execPool;
+#endif
 
     
     JSCList scripts;
-#endif
 
     JSCompartment(JSRuntime *cx);
     ~JSCompartment();
