@@ -1394,8 +1394,9 @@ nsListBoxBodyFrame::OnContentRemoved(nsPresContext* aPresContext,
       
       ChildIterator iter, last;
       ChildIterator::Init(mContent, &iter, &last);
-      if (last.position() > 0) {
-        iter.seek(last.position() - 1);
+      if (iter != last) {
+        iter = last;
+        --iter;
         nsIContent *lastChild = *iter;
         nsIFrame* lastChildFrame = lastChild->GetPrimaryFrame();
       
