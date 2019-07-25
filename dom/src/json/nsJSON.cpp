@@ -38,6 +38,7 @@
 
 
 
+
 #include "jsapi.h"
 #include "jsdbgapi.h"
 #include "nsIServiceManager.h"
@@ -75,6 +76,31 @@ nsJSON::~nsJSON()
 {
 }
 
+NS_IMETHODIMP
+nsJSON::Encode(nsAString &aJSON)
+{
+  
+  nsresult rv;
+
+  nsJSONWriter writer;
+  rv = EncodeInternal(&writer);
+
+  
+  if (NS_SUCCEEDED(rv) || rv == NS_ERROR_INVALID_ARG) {
+    rv = NS_OK;
+    
+    if (!writer.DidWrite()) {
+      aJSON.Truncate();
+      aJSON.SetIsVoid(PR_TRUE);
+    } else {
+      writer.FlushBuffer();
+      aJSON.Append(writer.mOutputString);
+    }
+  }
+
+  return rv;
+}
+
 static const char UTF8BOM[] = "\xEF\xBB\xBF";
 static const char UTF16LEBOM[] = "\xFF\xFE";
 static const char UTF16BEBOM[] = "\xFE\xFF";
@@ -90,11 +116,6 @@ static nsresult CheckCharset(const char* aCharset)
 
   return NS_OK;
 }
-
-
-
-
-
 
 NS_IMETHODIMP
 nsJSON::EncodeToStream(nsIOutputStream *aStream,
@@ -205,24 +226,28 @@ nsJSON::EncodeInternal(nsJSONWriter *writer)
   if (!xpc)
     return NS_ERROR_FAILURE;
 
+  
+  
+  
+  const PRUint32 firstArg = writer->mStream ? 3 : 0;
+
   nsAXPCNativeCallContext *cc = nsnull;
   rv = xpc->GetCurrentNativeCallContext(&cc);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  JSContext *cx = nsnull;
-  rv = cc->GetJSContext(&cx);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  JSAutoRequest ar(cx);
 
   PRUint32 argc = 0;
   rv = cc->GetArgc(&argc);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  
-  NS_ABORT_IF_FALSE(writer->mStream != NULL, "should have a stream");
-  PRUint32 firstArg = 3;
+  if (argc <= firstArg)
+    return NS_OK;
+
+  JSContext *cx = nsnull;
+  rv = cc->GetJSContext(&cx);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  JSAutoRequest ar(cx);
 
   
   jsval *argv = nsnull;
@@ -231,12 +256,57 @@ nsJSON::EncodeInternal(nsJSONWriter *writer)
 
   
   if (argc <= firstArg)
-    return NS_OK;
+    return NS_ERROR_INVALID_ARG;
 
   jsval *vp = &argv[firstArg];
+  
+  
+  
+  JSObject *obj;
+  if (!JSVAL_IS_OBJECT(*vp) || !(obj = JSVAL_TO_OBJECT(*vp)))
+    return NS_ERROR_INVALID_ARG;
+
+  
+
+
+
+
+
+  jsval toJSON;
+  if (JS_GetMethod(cx, obj, "toJSON", NULL, &toJSON) &&
+      !JSVAL_IS_PRIMITIVE(toJSON) &&
+      JS_ObjectIsCallable(cx, JSVAL_TO_OBJECT(toJSON))) {
+
+    
+    if (!JS_CallFunctionValue(cx, obj, toJSON, 0, NULL, vp)) {
+      if (JS_IsExceptionPending(cx))
+        
+        return NS_OK;
+
+      
+      return NS_ERROR_FAILURE;
+    }
+
+    
+    
+    if (JSVAL_IS_PRIMITIVE(*vp))
+      return NS_ERROR_INVALID_ARG;
+  }
+  
+  else if (JS_IsExceptionPending(cx))
+    
+    return NS_OK;
+
+  
+  
+  JSType type = JS_TypeOfValue(cx, *vp);
+  if (type == JSTYPE_FUNCTION || type == JSTYPE_XML)
+    return NS_ERROR_INVALID_ARG;
+
+  
   if (!JS_Stringify(cx, vp, NULL, JSVAL_NULL, WriteCallback, writer))
     return NS_ERROR_FAILURE;
-    
+
   return NS_OK;
 }
 
@@ -349,6 +419,20 @@ nsJSONWriter::WriteToStream(nsIOutputStream *aStream,
   mDidWrite = PR_TRUE;
 
   return rv;
+}
+
+NS_IMETHODIMP
+nsJSON::Decode(const nsAString& json)
+{
+  const PRUnichar *data;
+  PRUint32 len = NS_StringGetData(json, &data);
+  nsCOMPtr<nsIInputStream> stream;
+  nsresult rv = NS_NewByteInputStream(getter_AddRefs(stream),
+                                      (const char*) data,
+                                      len * sizeof(PRUnichar),
+                                      NS_ASSIGNMENT_DEPEND);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return DecodeInternal(stream, len, PR_FALSE);
 }
 
 NS_IMETHODIMP
