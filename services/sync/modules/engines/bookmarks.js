@@ -190,8 +190,8 @@ BookmarksEngine.prototype = {
 
 
 
-    dump( "I was offered the directory " + dir + " from user " + dir );
-    _createIncomingShare( user, serverPath, folderName );
+    this._log.info("User " + user + " offered to share folder " + folderName);
+    this._createIncomingShare( user, serverPath, folderName );
   },
 
   _incomingShareWithdrawn: function BmkEngine__incomingShareStop(user,
@@ -201,10 +201,8 @@ BookmarksEngine.prototype = {
 
 
 
-
-
-
-
+    this._log.info("User " + user + " stopped sharing folder " + folderName);
+    this._stopIncomingShare(user, serverPath, folderName);
   },
 
   _sync: function BmkEngine__sync() {
@@ -261,6 +259,36 @@ BookmarksEngine.prototype = {
 
     this._log.info("Shared " + folderName +" with " + username);
     ret = true;
+    self.done( ret );
+  },
+
+  _stopSharing: function BmkEngine__stopSharing( selectedFolder, username ) {
+    let self = yield;
+    let folderName = selectedFolder.getAttribute( "label" );
+    let serverPath = this._annoSvc.getItemAnnotation(folderNode,
+                                                     SERVER_PATH_ANNO);
+
+    
+
+
+
+
+    
+    this._stopOutgoingShare.async( this, self.cb, selectedFolder);
+    yield;
+
+    
+    if ( this._xmppClient ) {
+      if ( this._xmppClient._connectionStatus == this._xmppClient.CONNECTED ) {
+	let msgText = "stop " + serverPath + " " + folderName;
+	this._log.debug( "Sending XMPP message: " + msgText );
+	this._xmppClient.sendMessage( username, msgText );
+      } else {
+	this._log.warn( "No XMPP connection for share notification." );
+      }
+    }
+
+    this._log.info("Stopped sharing " + folderName + "with " + username);
     self.done( true );
   },
 
@@ -341,40 +369,28 @@ BookmarksEngine.prototype = {
                                     this._annoSvc.EXPIRE_NEVER);
 
     
-    
-    
-    let tmpIdentity = {
-                        realm   : "temp ID",
-                        bulkKey : null,
-                        bulkIV  : null
-                      };
-    Crypto.randomKeyGen.async(Crypto, self.cb, tmpIdentity);
-    yield;
-    let bulkKey = tmpIdentity.bulkKey;
-    let bulkIV  = tmpIdentity.bulkIV;
+    Crypto.PBEkeygen.async(Crypto, self.cb);
+    let newSymKey = yield;
 
     
 
-    let idRSA = ID.get('WeaveCryptoID');
+    let myPubKeyFile = new Resource("/user/" + myUserName + "/public/pubkey");
+    myPubKeyFile.get(self.cb);
+    let myPubKey = yield;
     let userPubKeyFile = new Resource("/user/" + username + "/public/pubkey");
     userPubKeyFile.get(self.cb);
     let userPubKey = yield;
 
     
 
-    Crypto.wrapKey.async(Crypto, self.cb, bulkKey, {realm : "tmpWrapID", pubkey: idRSA.pubkey} );
+    Crypto.RSAencrypt.async(Crypto, self.cb, symKey, {pubkey: myPubKey} );
     let encryptedForMe = yield;
-    Crypto.wrapKey.async(Crypto, self.cb, bulkKey, {realm : "tmpWrapID", pubkey: userPubKey} );
+    Crypto.RSAencrypt.async(Crypto, self.cb, symKey, {pubkey: userPubKey} );
     let encryptedForYou = yield;
-    let keys = {
-                 ring   : { },
-                 bulkIV : bulkIV
-               };
-    keys.ring[myUserName] = encryptedForMe;
-    keys.ring[username]   = encryptedForYou;
-
+    let keyring = { myUserName: encryptedForMe,
+                    username: encryptedForYou };
     let keyringFile = new Resource( serverPath + "/" + KEYRING_FILE_NAME );
-    keyringFile.put( self.cb, this._json.encode( keys ) );
+    keyringFile.put( self.cb, this._json.encode( keyring ) );
     yield;
 
     
@@ -402,14 +418,8 @@ BookmarksEngine.prototype = {
     
     let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
     keyringFile.get(self.cb);
-    let keys = yield;
-
-    
-    let idRSA = ID.get('WeaveCryptoID');
-    let bulkKey = yield Crypto.unwrapKey.async(Crypto, self.cb,
-                           keys.ring[myUserName], idRSA);
-    let bulkIV = keys.bulkIV;
-
+    let keyring = yield;
+    let symKey = keyring[ myUserName ];
     
     let json = this._store._wrapMount( folderNode, myUserName );
     
@@ -417,12 +427,7 @@ BookmarksEngine.prototype = {
 
     
     let bmkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
-    let tmpIdentity = {
-                        realm   : "temp ID",
-                        bulkKey : bulkKey,
-                        bulkIV  : bulkIV 
-                      };
-    Crypto.encryptData.async( Crypto, self.cb, json, tmpIdentity );
+    Crypto.PBEencrypt.async( Crypto, self.cb, json, {password:symKey} );
     let cyphertext = yield;
     bmkFile.put( self.cb, cyphertext );
     yield;
@@ -463,19 +468,7 @@ BookmarksEngine.prototype = {
                                     this._annoSvc.EXPIRE_NEVER);
     
     
-
-    
-    if ( this._xmppClient ) {
-      if ( this._xmppClient._connectionStatus == this._xmppClient.CONNECTED ) {
- 	let folderName = folderNode.getAttribute( "label" );
-	let msgText = "stop " + serverPath + " " + folderName;
-	this._log.debug( "Sending XMPP message: " + msgText );
-	this._xmppClient.sendMessage( username, msgText );
-      } else {
-	this._log.warn( "No XMPP connection for share notification." );
-      }
-    }
-
+    self.done();
   },
 
   _createIncomingShare: function BookmarkEngine__createShare(user,
@@ -568,18 +561,14 @@ BookmarksEngine.prototype = {
     
     let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
     keyringFile.get(self.cb);
-    let keys = yield;
+    let keyring = yield;
+    let symKey = keyring[ myUserName ];
 
     
     let bmkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
     bmkFile.get(self.cb);
     let cyphertext = yield;
-    let tmpIdentity = {
-                        realm   : "temp ID",
-                        bulkKey : keys.ring[myUserName],
-                        bulkIV  : keys.bulkIV
-                      };
-    Crypto.decryptData.async( Crypto, self.cb, cyphertext, tmpIdentity );
+    Crypto.PBEdecrypt.async( Crypto, self.cb, cyphertext, {password:symKey} );
     let json = yield;
     
 
@@ -603,6 +592,27 @@ BookmarksEngine.prototype = {
     yield;
 
     this._log.trace("Shared folder from " + user + " successfully synced!");
+  },
+
+  _stopIncomingShare: function BmkEngine__stopIncomingShare(user,
+                                                            serverPath,
+                                                            folderName)
+  {
+  
+
+
+
+    let bms = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
+              getService(Ci.nsINavBookmarksService);
+
+    let a = this._annoSvc.getItemsWithAnnotation(OUTGOING_SHARED_ANNO, {});
+    for (let i = 0; i < a.length; i++) {
+      let creator = this._annoSvc.getItemAnnotation(a[i], OUTGOING_SHARED_ANNO);
+      let path = this._annoSvc.getItemAnnotation(a[i], SERVER_PATH_ANNO);
+      if ( creator == user && path == serverPath ) {
+        bms.removeFolder( a[i]);
+      }
+    }
   }
 };
 BookmarksEngine.prototype.__proto__ = new Engine();
@@ -828,9 +838,6 @@ BookmarksStore.prototype = {
                                       command.data.index);
       break;
     case "mounted-share":
-    
-    
-    
       this._log.debug(" -> creating share mountpoint \"" + command.data.title + "\"");
       newId = this._bms.createFolder(parentId,
                                      command.data.title,
