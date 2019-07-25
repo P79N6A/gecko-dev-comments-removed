@@ -99,12 +99,10 @@ public:
 protected:
   
   nsresult AppendRulesToCssText(nsAString& aCssText);
-  
-  nsresult GetParentRule(nsIDOMCSSRule** aParentRule);
 
   
   
-  nsIDOMCSSRuleList* GetCssRules();
+  nsresult GetCssRules(nsIDOMCSSRuleList* *aRuleList);
   nsresult InsertRule(const nsAString & aRule, PRUint32 aIndex,
                       PRUint32* _retval);
   nsresult DeleteRule(PRUint32 aIndex);
