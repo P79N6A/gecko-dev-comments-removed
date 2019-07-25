@@ -44,6 +44,8 @@ public:
   bool GetTransformMatrix(gfx3DMatrix& aMatrix);
   int ID() { return mID; }
 
+  
+  
   void SetFrameAvailableCallback(nsIRunnable* aRunnable);
 
   
