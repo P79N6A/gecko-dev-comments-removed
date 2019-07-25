@@ -2924,9 +2924,30 @@ js_DefineFunction(JSContext *cx, JSObject *obj, jsid id, Native native,
     } else {
         gsop = NULL;
     }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    JSObject *parent = (JSCLASS_CACHED_PROTO_KEY(obj->clasp) != JSProto_Null)
+                       ? obj->getGlobal()
+                       : obj;
+
     fun = js_NewFunction(cx, NULL, native, nargs,
                          attrs & (JSFUN_FLAGS_MASK | JSFUN_TRCINFO),
-                         obj, JSID_IS_ATOM(id) ? JSID_TO_ATOM(id) : NULL);
+                         parent,
+                         JSID_IS_ATOM(id) ? JSID_TO_ATOM(id) : NULL);
     if (!fun)
         return NULL;
     if (!obj->defineProperty(cx, id, ObjectValue(*fun), gsop, gsop, attrs & ~JSFUN_FLAGS_MASK))
