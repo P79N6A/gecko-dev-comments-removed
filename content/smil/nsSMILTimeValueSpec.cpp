@@ -322,6 +322,32 @@ nsSMILTimeValueSpec::GetTimedElement(Element* aElement)
   return &animElement->TimedElement();
 }
 
+
+
+bool
+nsSMILTimeValueSpec::IsWhitelistedEvent()
+{
+  
+  if (mParams.mType == nsSMILTimeValueSpecParams::REPEAT) {
+    return true;
+  }
+
+  
+  
+  
+  
+  
+  if (mParams.mType == nsSMILTimeValueSpecParams::EVENT &&
+      (mParams.mEventSymbol == nsGkAtoms::repeat ||
+       mParams.mEventSymbol == NS_NewAtom("repeatEvent") ||
+       mParams.mEventSymbol == NS_NewAtom("beginEvent") ||
+       mParams.mEventSymbol == NS_NewAtom("endEvent"))) {
+    return true;
+  }
+
+  return false;
+}
+
 void
 nsSMILTimeValueSpec::RegisterEventListener(Element* aTarget)
 {
@@ -335,9 +361,10 @@ nsSMILTimeValueSpec::RegisterEventListener(Element* aTarget)
     return;
 
   
-  if (mParams.mType == nsSMILTimeValueSpecParams::ACCESSKEY &&
-      !aTarget->GetOwnerDocument()->IsScriptEnabled())
+  if (!aTarget->GetOwnerDocument()->IsScriptEnabled() &&
+      !IsWhitelistedEvent()) {
     return;
+  }
 
   if (!mEventListener) {
     mEventListener = new EventListener(this);
