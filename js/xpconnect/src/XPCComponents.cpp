@@ -2731,7 +2731,6 @@ nsXPCComponents_Utils::LookupMethod(const JS::Value& object,
         
         *retval = JSVAL_VOID;
         JSPropertyDescriptor desc;
-        memset(&desc, 0, sizeof(desc)); 
         if (!JS_GetPropertyDescriptorById(cx, xray, methodId, 0, &desc))
             return NS_ERROR_FAILURE;
 
