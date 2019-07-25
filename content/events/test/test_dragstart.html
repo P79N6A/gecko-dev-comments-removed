@@ -5,9 +5,9 @@
   <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>      
   <script type="application/javascript" src="/tests/SimpleTest/EventUtils.js"></script>      
 
-<!--
- This test checks the dragstart event and the DataTransfer object
-  -->
+
+
+
  
 <script>
 
@@ -129,6 +129,8 @@ function doDragStartSelection(event)
   // text/plain data
   is(dt.getData("text/unicode"), "This is a draggable bit of text.", "initial selection text/unicode");
   is(dt.getData("Text"), "This is a draggable bit of text.", "initial selection Text");
+  is(dt.getData("TEXT"), "This is a draggable bit of text.", "initial selection TEXT");
+  is(dt.getData("text/UNICODE"), "This is a draggable bit of text.", "initial selection text/UNICODE"); 
 
   is(dt.mozItemCount, 1, "initial selection item count");
 
@@ -569,7 +571,7 @@ function expectError(fn, eid, testid)
   </div>
 </div>
 
-<!--iframe src="http://www.mozilla.org" width="400" height="400"></iframe-->
+
 
 <div id="synthetic" ondragstart="doDragStartSynthetic(event)">Synthetic Event Dispatch</div>
 <div id="synthetic2" ondragover="doDragOverSynthetic(event)">Synthetic Event Dispatch</div>
