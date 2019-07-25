@@ -1870,7 +1870,7 @@ ReparentWaiverWrappers(JSDHashTable *table, JSDHashEntryHdr *hdr,
 
     
     
-    JSObject *parent = JS_GetParent(value);
+    JSObject *parent = JS_GetParent(closure->mCx, value);
     JSObject *outer = JS_ObjectToOuterObject(closure->mCx, parent);
     if (outer) {
       JSObject *inner = JS_ObjectToInnerObject(closure->mCx, outer);
@@ -9975,7 +9975,7 @@ nsGlobalWindow::SaveWindowState(nsISupports **aState)
                                                getter_AddRefs(proto));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  JSObject *realProto = JS_GetPrototype(mJSObject);
+  JSObject *realProto = JS_GetPrototype(cx, mJSObject);
   nsCOMPtr<nsIXPConnectJSObjectHolder> realProtoHolder;
   if (realProto) {
     rv = xpc->HoldObject(cx, realProto, getter_AddRefs(realProtoHolder));

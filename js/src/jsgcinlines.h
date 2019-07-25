@@ -195,7 +195,7 @@ GetGCKindSlots(AllocKind thingKind, Class *clasp)
 }
 
 static inline void
-GCPoke(JSRuntime *rt, Value oldval)
+GCPoke(JSContext *cx, Value oldval)
 {
     
 
@@ -203,15 +203,15 @@ GCPoke(JSRuntime *rt, Value oldval)
 
 
 #if 1
-    rt->gcPoke = true;
+    cx->runtime->gcPoke = JS_TRUE;
 #else
-    rt->gcPoke = oldval.isGCThing();
+    cx->runtime->gcPoke = oldval.isGCThing();
 #endif
 
 #ifdef JS_GC_ZEAL
     
-    if (rt->gcZeal() >= js::gc::ZealPokeThreshold)
-        rt->gcNextScheduled = 1;
+    if (cx->runtime->gcZeal() >= js::gc::ZealPokeThreshold)
+        cx->runtime->gcNextScheduled = 1;
 #endif
 }
 
