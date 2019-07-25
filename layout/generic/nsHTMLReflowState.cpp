@@ -257,6 +257,9 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
       !(parent->GetType() == nsGkAtoms::scrollFrame &&
         parent->GetStyleDisplay()->mOverflowY != NS_STYLE_OVERFLOW_HIDDEN)) {
     frame->AddStateBits(NS_FRAME_IN_CONSTRAINED_HEIGHT);
+  } else if (type == nsGkAtoms::svgForeignObjectFrame) {
+    
+    frame->AddStateBits(NS_FRAME_IN_CONSTRAINED_HEIGHT);
   } else if ((mStylePosition->mHeight.GetUnit() != eStyleUnit_Auto ||
               mStylePosition->mMaxHeight.GetUnit() != eStyleUnit_None) &&
               
