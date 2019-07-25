@@ -81,6 +81,7 @@ public:
 
   void InvalidateViaReferencedElement();
   nsIFrame* GetReferencedFrame();
+  PRBool IsInObserverList() const { return mInObserverList; }
 
   
 
