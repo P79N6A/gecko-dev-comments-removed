@@ -71,9 +71,7 @@ ClientEngine.prototype = {
 
   
   
-  _recordLike: function SyncEngine__recordLike(a, b) {
-    return false;
-  },
+  _findLikeId: function ClientEngine__findLikeId() {},
 
   
 
