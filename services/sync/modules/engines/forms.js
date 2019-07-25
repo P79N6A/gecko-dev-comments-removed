@@ -227,22 +227,68 @@ FormTracker.prototype = {
   notify: function FormTracker_notify(formElement, aWindow, actionURI) {
     if (this.ignoreAll)
       return;
-      
+
     this._log.trace("Form submission notification for " + actionURI.spec);
+
     
+    
+    
+
+    
+    let completeOff = function(domNode) {
+      let autocomplete = domNode.getAttribute("autocomplete");
+      return autocomplete && autocomplete.search(/^off$/i) == 0;
+    }
+
+    if (completeOff(formElement)) {
+      this._log.trace("Form autocomplete set to off");
+      return;
+    }
+
     
     let len = formElement.length;
     let elements = formElement.elements;
     for (let i = 0; i < len; i++) {
-      let element = elements.item(i);
-      let inputElement = element.QueryInterface(Ci.nsIDOMHTMLInputElement);
+      let el = elements.item(i);
+
       
-      if (inputElement && inputElement.type == "text") {
-        this._log.trace("Logging form element: " + inputElement.name + "::" +
-                            inputElement.value);
-        this.addChangedID(Utils.sha1(inputElement.name + inputElement.value));
-        this._score += 10;
+      let name = el.name;
+      if (name === "")
+        name = el.id;
+
+      if (!(el instanceof Ci.nsIDOMHTMLInputElement)) {
+        this._log.trace(name + " is not a DOMHTMLInputElement: " + el);
+        continue;
       }
+
+      if (el.type.search(/^text$/i) != 0) {
+        this._log.trace(name + "'s type is not 'text': " + el.type);
+        continue;
+      }
+
+      if (completeOff(el)) {
+        this._log.trace(name + "'s autocomplete set to off");
+        continue;
+      }
+
+      if (el.value === "") {
+        this._log.trace(name + "'s value is empty");
+        continue;
+      }
+
+      if (el.value == el.defaultValue) {
+        this._log.trace(name + "'s value is the default");
+        continue;
+      }
+
+      if (name === "") {
+        this._log.trace("Text input element has no name or id");
+        continue;
+      }
+
+      this._log.trace("Logging form element: " + name + " :: " + el.value);
+      this.addChangedID(Utils.sha1(name + el.value));
+      this._score += 10;
     }
   }
 };
