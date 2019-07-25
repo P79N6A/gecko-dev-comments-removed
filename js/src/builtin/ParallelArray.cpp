@@ -960,9 +960,13 @@ ParallelArrayObject::create(JSContext *cx, HandleObject buffer, uint32_t offset,
     
     if (cx->typeInferenceEnabled()) {
         AutoEnterTypeInference enter(cx);
-        TypeSet *bufferTypes = buffer->getType(cx)->getProperty(cx, JSID_VOID, false);
-        TypeSet *resultTypes = result->getType(cx)->getProperty(cx, JSID_VOID, true);
-        bufferTypes->addSubset(cx, resultTypes);
+        TypeObject *bufferType = buffer->getType(cx);
+        TypeObject *resultType = result->getType(cx);
+        if (!bufferType->unknownProperties() && !resultType->unknownProperties()) {
+            TypeSet *bufferIndexTypes = bufferType->getProperty(cx, JSID_VOID, false);
+            TypeSet *resultIndexTypes = resultType->getProperty(cx, JSID_VOID, true);
+            bufferIndexTypes->addSubset(cx, resultIndexTypes);
+        }
     }
 
     
