@@ -348,7 +348,7 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
   PRInt64 ampleAudioThreshold = AMPLE_AUDIO_USECS;
 
   MediaQueue<VideoData>& videoQueue = mReader->mVideoQueue;
-  MediaQueue<SoundData>& audioQueue = mReader->mAudioQueue;
+  MediaQueue<AudioData>& audioQueue = mReader->mAudioQueue;
 
   
   PRBool videoPlaying = HasVideo();
@@ -516,7 +516,7 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
   
   
   nsRefPtr<nsAudioStream> audioStream = nsAudioStream::AllocateStream();
-  audioStream->Init(channels, rate, MOZ_SOUND_DATA_FORMAT);
+  audioStream->Init(channels, rate, MOZ_AUDIO_DATA_FORMAT);
 
   {
     
@@ -581,7 +581,7 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
                  "Should have data to play");
     
     
-    const SoundData* s = mReader->mAudioQueue.PeekFront();
+    const AudioData* s = mReader->mAudioQueue.PeekFront();
 
     
     
@@ -669,8 +669,8 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
           
           
           PRUint32 numValues = samples * channels;
-          nsAutoArrayPtr<SoundDataValue> buf(new SoundDataValue[numValues]);
-          memset(buf.get(), 0, sizeof(SoundDataValue) * numValues);
+          nsAutoArrayPtr<AudioDataValue> buf(new AudioDataValue[numValues]);
+          memset(buf.get(), 0, sizeof(AudioDataValue) * numValues);
           mAudioStream->Write(buf, numValues);
         }
       }
@@ -727,8 +727,8 @@ PRUint32 nsBuiltinDecoderStateMachine::PlaySilence(PRUint32 aSamples,
   PRUint32 maxSamples = SILENCE_BYTES_CHUNK / aChannels;
   PRUint32 samples = NS_MIN(aSamples, maxSamples);
   PRUint32 numValues = samples * aChannels;
-  nsAutoArrayPtr<SoundDataValue> buf(new SoundDataValue[numValues]);
-  memset(buf.get(), 0, sizeof(SoundDataValue) * numValues);
+  nsAutoArrayPtr<AudioDataValue> buf(new AudioDataValue[numValues]);
+  memset(buf.get(), 0, sizeof(AudioDataValue) * numValues);
   mAudioStream->Write(buf, numValues);
   
   mEventManager.QueueWrittenAudioData(buf.get(), numValues,
@@ -741,7 +741,7 @@ PRUint32 nsBuiltinDecoderStateMachine::PlayFromAudioQueue(PRUint64 aSampleOffset
 {
   NS_ASSERTION(OnAudioThread(), "Only call on audio thread.");
   NS_ASSERTION(!mAudioStream->IsPaused(), "Don't play when paused");
-  nsAutoPtr<SoundData> sound(mReader->mAudioQueue.PopFront());
+  nsAutoPtr<AudioData> audioData(mReader->mAudioQueue.PopFront());
   {
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
     NS_WARN_IF_FALSE(IsPlaying(), "Should be playing");
@@ -759,19 +759,19 @@ PRUint32 nsBuiltinDecoderStateMachine::PlayFromAudioQueue(PRUint64 aSampleOffset
   
   
   if (!mAudioStream->IsPaused()) {
-    mAudioStream->Write(sound->mAudioData,
-                        sound->AudioDataLength());
+    mAudioStream->Write(audioData->mAudioData,
+                        audioData->AudioDataLength());
 
-    offset = sound->mOffset;
-    samples = sound->mSamples;
+    offset = audioData->mOffset;
+    samples = audioData->mSamples;
 
     
-    mEventManager.QueueWrittenAudioData(sound->mAudioData.get(),
-                                        sound->AudioDataLength(),
+    mEventManager.QueueWrittenAudioData(audioData->mAudioData.get(),
+                                        audioData->AudioDataLength(),
                                         (aSampleOffset + samples) * aChannels);
   } else {
-    mReader->mAudioQueue.PushFront(sound);
-    sound.forget();
+    mReader->mAudioQueue.PushFront(audioData);
+    audioData.forget();
   }
   if (offset != -1) {
     mDecoder->UpdatePlaybackOffset(offset);
@@ -1312,7 +1312,7 @@ void nsBuiltinDecoderStateMachine::DecodeSeek()
                           mediaTime);
     }
     if (NS_SUCCEEDED(res)) {
-      SoundData* audio = HasAudio() ? mReader->mAudioQueue.PeekFront() : nsnull;
+      AudioData* audio = HasAudio() ? mReader->mAudioQueue.PeekFront() : nsnull;
       NS_ASSERTION(!audio || (audio->mTime <= seekTime &&
                               seekTime <= audio->mTime + audio->mDuration),
                     "Seek target should lie inside the first audio block after seek");

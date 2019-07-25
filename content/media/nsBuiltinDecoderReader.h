@@ -93,37 +93,37 @@ public:
 #ifdef MOZ_TREMOR
 #include <ogg/os_types.h>
 typedef ogg_int32_t VorbisPCMValue;
-typedef short SoundDataValue;
+typedef short AudioDataValue;
 
-#define MOZ_SOUND_DATA_FORMAT (nsAudioStream::FORMAT_S16_LE)
+#define MOZ_AUDIO_DATA_FORMAT (nsAudioStream::FORMAT_S16_LE)
 #define MOZ_CLIP_TO_15(x) ((x)<-32768?-32768:(x)<=32767?(x):32767)
 
 #define MOZ_CONVERT_VORBIS_SAMPLE(x) \
- (static_cast<SoundDataValue>(MOZ_CLIP_TO_15((x)>>9)))
+ (static_cast<AudioDataValue>(MOZ_CLIP_TO_15((x)>>9)))
 
-#define MOZ_CONVERT_SOUND_SAMPLE(x) ((x)*(1.F/32768))
+#define MOZ_CONVERT_AUDIO_SAMPLE(x) ((x)*(1.F/32768))
 #define MOZ_SAMPLE_TYPE_S16LE 1
 
 #else 
 
 typedef float VorbisPCMValue;
-typedef float SoundDataValue;
+typedef float AudioDataValue;
 
-#define MOZ_SOUND_DATA_FORMAT (nsAudioStream::FORMAT_FLOAT32)
+#define MOZ_AUDIO_DATA_FORMAT (nsAudioStream::FORMAT_FLOAT32)
 #define MOZ_CONVERT_VORBIS_SAMPLE(x) (x)
-#define MOZ_CONVERT_SOUND_SAMPLE(x) (x)
+#define MOZ_CONVERT_AUDIO_SAMPLE(x) (x)
 #define MOZ_SAMPLE_TYPE_FLOAT32 1
 
 #endif
 
 
-class SoundData {
+class AudioData {
 public:
-  SoundData(PRInt64 aOffset,
+  AudioData(PRInt64 aOffset,
             PRInt64 aTime,
             PRInt64 aDuration,
             PRUint32 aSamples,
-            SoundDataValue* aData,
+            AudioDataValue* aData,
             PRUint32 aChannels)
   : mOffset(aOffset),
     mTime(aTime),
@@ -132,13 +132,13 @@ public:
     mChannels(aChannels),
     mAudioData(aData)
   {
-    MOZ_COUNT_CTOR(SoundData);
+    MOZ_COUNT_CTOR(AudioData);
   }
 
-  SoundData(PRInt64 aOffset,
+  AudioData(PRInt64 aOffset,
             PRInt64 aDuration,
             PRUint32 aSamples,
-            SoundDataValue* aData,
+            AudioDataValue* aData,
             PRUint32 aChannels)
   : mOffset(aOffset),
     mTime(-1),
@@ -147,12 +147,12 @@ public:
     mChannels(aChannels),
     mAudioData(aData)
   {
-    MOZ_COUNT_CTOR(SoundData);
+    MOZ_COUNT_CTOR(AudioData);
   }
 
-  ~SoundData()
+  ~AudioData()
   {
-    MOZ_COUNT_DTOR(SoundData);
+    MOZ_COUNT_DTOR(AudioData);
   }
 
   PRUint32 AudioDataLength() {
@@ -167,7 +167,7 @@ public:
   const PRInt64 mDuration; 
   const PRUint32 mSamples;
   const PRUint32 mChannels;
-  nsAutoArrayPtr<SoundDataValue> mAudioData;
+  nsAutoArrayPtr<AudioDataValue> mAudioData;
 };
 
 
@@ -457,7 +457,7 @@ public:
 
   
   
-  MediaQueue<SoundData> mAudioQueue;
+  MediaQueue<AudioData> mAudioQueue;
 
   
   
@@ -501,8 +501,8 @@ public:
     AudioQueueMemoryFunctor() : mResult(0) {}
 
     virtual void* operator()(void* anObject) {
-      const SoundData* soundData = static_cast<const SoundData*>(anObject);
-      mResult += soundData->mSamples * soundData->mChannels * sizeof(SoundDataValue);
+      const AudioData* audioData = static_cast<const AudioData*>(anObject);
+      mResult += audioData->mSamples * audioData->mChannels * sizeof(AudioDataValue);
       return nsnull;
     }
 

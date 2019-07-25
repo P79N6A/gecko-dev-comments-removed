@@ -228,10 +228,10 @@ VideoData* nsBuiltinDecoderReader::FindStartTime(PRInt64& aOutStartTime)
     }
   }
   if (HasAudio()) {
-    SoundData* soundData = DecodeToFirstData(&nsBuiltinDecoderReader::DecodeAudioData,
+    AudioData* audioData = DecodeToFirstData(&nsBuiltinDecoderReader::DecodeAudioData,
                                              mAudioQueue);
-    if (soundData) {
-      audioStartTime = soundData->mTime;
+    if (audioData) {
+      audioStartTime = audioData->mTime;
     }
   }
 
@@ -321,7 +321,7 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(PRInt64 aTarget)
           }
         }
       }
-      const SoundData* audio = mAudioQueue.PeekFront();
+      const AudioData* audio = mAudioQueue.PeekFront();
       if (!audio)
         break;
       PRInt64 startSample = 0;
@@ -362,15 +362,15 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(PRInt64 aTarget)
       }
       PRUint32 samples = audio->mSamples - static_cast<PRUint32>(samplesToPrune);
       PRUint32 channels = audio->mChannels;
-      nsAutoArrayPtr<SoundDataValue> audioData(new SoundDataValue[samples * channels]);
+      nsAutoArrayPtr<AudioDataValue> audioData(new AudioDataValue[samples * channels]);
       memcpy(audioData.get(),
              audio->mAudioData.get() + (samplesToPrune * channels),
-             samples * channels * sizeof(SoundDataValue));
+             samples * channels * sizeof(AudioDataValue));
       PRInt64 duration;
       if (!SamplesToUsecs(samples, mInfo.mAudioRate, duration)) {
         return NS_ERROR_FAILURE;
       }
-      nsAutoPtr<SoundData> data(new SoundData(audio->mOffset,
+      nsAutoPtr<AudioData> data(new AudioData(audio->mOffset,
                                               aTarget,
                                               duration,
                                               samples,
