@@ -732,15 +732,6 @@ public:
   void SetIsFixedPosition(bool aFixedPosition) { mIsFixedPosition = aFixedPosition; }
 
   
-
-
-
-
-
-
-  void SetFixedPositionAnchor(const gfxPoint& aAnchor) { mAnchor = aAnchor; }
-
-  
   float GetOpacity() { return mOpacity; }
   const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nsnull; }
   PRUint32 GetContentFlags() { return mContentFlags; }
@@ -752,7 +743,6 @@ public:
   virtual Layer* GetLastChild() { return nsnull; }
   const gfx3DMatrix& GetTransform() { return mTransform; }
   bool GetIsFixedPosition() { return mIsFixedPosition; }
-  gfxPoint GetFixedPositionAnchor() { return mAnchor; }
   Layer* GetMaskLayer() { return mMaskLayer; }
 
   
@@ -1002,7 +992,6 @@ protected:
   bool mUseClipRect;
   bool mUseTileSourceRect;
   bool mIsFixedPosition;
-  gfxPoint mAnchor;
   DebugOnly<PRUint32> mDebugColorIndex;
 };
 

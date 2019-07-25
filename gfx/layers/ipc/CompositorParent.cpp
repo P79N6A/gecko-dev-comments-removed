@@ -313,35 +313,27 @@ Translate2D(gfx3DMatrix& aTransform, const gfxPoint& aOffset)
 }
 
 void
-CompositorParent::TransformFixedLayers(Layer* aLayer,
-                                       const gfxPoint& aTranslation,
-                                       const gfxPoint& aScaleDiff)
+CompositorParent::TranslateFixedLayers(Layer* aLayer,
+                                       const gfxPoint& aTranslation)
 {
   if (aLayer->GetIsFixedPosition() &&
       !aLayer->GetParent()->GetIsFixedPosition()) {
-    
-    
-    
-    const gfxPoint& anchor = aLayer->GetFixedPositionAnchor();
-    gfxPoint translation(aTranslation.x - (anchor.x - anchor.x / aScaleDiff.x),
-                         aTranslation.y - (anchor.y - anchor.y / aScaleDiff.y));
-
     gfx3DMatrix layerTransform = aLayer->GetTransform();
-    Translate2D(layerTransform, translation);
+    Translate2D(layerTransform, aTranslation);
     ShadowLayer* shadow = aLayer->AsShadowLayer();
     shadow->SetShadowTransform(layerTransform);
 
     const nsIntRect* clipRect = aLayer->GetClipRect();
     if (clipRect) {
       nsIntRect transformedClipRect(*clipRect);
-      transformedClipRect.MoveBy(translation.x, translation.y);
+      transformedClipRect.MoveBy(aTranslation.x, aTranslation.y);
       shadow->SetShadowClipRect(&transformedClipRect);
     }
   }
 
   for (Layer* child = aLayer->GetFirstChild();
        child; child = child->GetNextSibling()) {
-    TransformFixedLayers(child, aTranslation, aScaleDiff);
+    TranslateFixedLayers(child, aTranslation);
   }
 }
 
@@ -421,28 +413,14 @@ CompositorParent::TransformShadowTree()
 
   
   
-  gfxPoint scaleDiff(tempScaleDiffX, tempScaleDiffY);
-  gfxPoint offset(clamped(mScrollOffset.x / tempScaleDiffX, mContentRect.x / tempScaleDiffX,
-                          (mContentRect.XMost() - mWidgetSize.width / tempScaleDiffX)) -
-                  metricsScrollOffset.x,
-                  clamped(mScrollOffset.y / tempScaleDiffY, mContentRect.y / tempScaleDiffY,
-                          (mContentRect.YMost() - mWidgetSize.height / tempScaleDiffY)) -
-                  metricsScrollOffset.y);
+  float offsetX = mScrollOffset.x / tempScaleDiffX;
+  float offsetY = mScrollOffset.y / tempScaleDiffY;
+  offsetX = NS_MAX((float)mContentRect.x, NS_MIN(offsetX, (float)(mContentRect.XMost() - mWidgetSize.width)));
+  offsetY = NS_MAX((float)mContentRect.y, NS_MIN(offsetY, (float)(mContentRect.YMost() - mWidgetSize.height)));
+  gfxPoint reverseViewTranslation(offsetX - metricsScrollOffset.x,
+                                  offsetY - metricsScrollOffset.y);
 
-  
-  
-  
-  if (mContentRect.width * tempScaleDiffX < mWidgetSize.width) {
-    offset.x = -metricsScrollOffset.x;
-    scaleDiff.x = NS_MIN(1.0f, mWidgetSize.width / (float)mContentRect.width);
-  }
-
-  if (mContentRect.height * tempScaleDiffY < mWidgetSize.height) {
-    offset.y = -metricsScrollOffset.y;
-    scaleDiff.y = NS_MIN(1.0f, mWidgetSize.height / (float)mContentRect.height);
-  }
-
-  TransformFixedLayers(layer, offset, scaleDiff);
+  TranslateFixedLayers(layer, reverseViewTranslation);
 }
 
 void

@@ -2168,16 +2168,8 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     
     
     if (!list.IsEmpty()) {
-      
-      
-      nsDisplayItem* item;
-      if (!child->GetParent()->GetParent() &&
-          disp->mPosition == NS_STYLE_POSITION_FIXED) {
-        item = new (aBuilder) nsDisplayFixedPosition(aBuilder, child, &list);
-      } else {
-        item = new (aBuilder) nsDisplayWrapList(aBuilder, child, &list);
-      }
-      rv = aLists.PositionedDescendants()->AppendNewToTop(item);
+      rv = aLists.PositionedDescendants()->AppendNewToTop(new (aBuilder)
+          nsDisplayWrapList(aBuilder, child, &list));
       NS_ENSURE_SUCCESS(rv, rv);
     }
   } else if (disp->IsFloating()) {
