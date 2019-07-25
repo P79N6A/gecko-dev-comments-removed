@@ -472,7 +472,10 @@ public class PanZoomController
         }
 
         mState = PanZoomState.BOUNCE;
-
+        
+        
+        
+        mController.setAnimationTarget(metrics);
         startAnimationTimer(new BounceRunnable(bounceStartMetrics, metrics));
     }
 

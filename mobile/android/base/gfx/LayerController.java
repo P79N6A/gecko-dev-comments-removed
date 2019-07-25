@@ -263,6 +263,18 @@ public class LayerController implements Tabs.OnTabsChangedListener {
         mView.requestRender();
     }
 
+    public void setAnimationTarget(ViewportMetrics viewport) {
+        if (mLayerClient != null) {
+            
+            
+            
+            
+            ImmutableViewportMetrics metrics = new ImmutableViewportMetrics(viewport);
+            DisplayPortMetrics displayPort = DisplayPortCalculator.calculate(metrics, null);
+            mLayerClient.adjustViewport(displayPort);
+        }
+    }
+
     
 
 
