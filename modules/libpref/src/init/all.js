@@ -216,7 +216,7 @@ pref("gfx.font_rendering.harfbuzz.scripts", 71);
 pref("gfx.font_rendering.harfbuzz.scripts", 71);
 #else
 
-pref("gfx.font_rendering.harfbuzz.scripts", 3);
+pref("gfx.font_rendering.harfbuzz.scripts", 7);
 #endif
 #endif
 
@@ -821,6 +821,8 @@ pref("network.http.spdy.chunk-size", 4096);
 pref("network.http.spdy.timeout", 180);
 pref("network.http.spdy.coalesce-hostnames", true);
 pref("network.http.spdy.use-alternate-protocol", true);
+pref("network.http.spdy.ping-threshold", 44);
+pref("network.http.spdy.ping-timeout", 8);
 
 
 
@@ -3415,6 +3417,7 @@ pref("full-screen-api.enabled", false);
 pref("full-screen-api.allow-trusted-requests-only", true);
 pref("full-screen-api.key-input-restricted", true);
 pref("full-screen-api.warning.enabled", true);
+pref("full-screen-api.exit-on-deactivate", true);
 
 
 
