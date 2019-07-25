@@ -2955,15 +2955,17 @@ var XPIProvider = {
 
     let state = this.getInstallLocationStates();
 
-    
-    
-    let dbFile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_DATABASE], true);
-    updateDatabase |= !dbFile.exists();
     if (!updateDatabase) {
       
       let cache = Prefs.getCharPref(PREF_INSTALL_CACHE, null);
       updateDatabase |= cache != JSON.stringify(state);
     }
+
+    
+    
+    
+    if (!XPIDatabase.dbfileExists)
+      updateDatabase = state.length > 0;
 
     if (!updateDatabase) {
       let bootstrapDescriptors = [this.bootstrappedAddons[b].descriptor
@@ -2976,7 +2978,7 @@ var XPIProvider = {
             bootstrapDescriptors.splice(pos, 1);
         }
       });
-  
+
       if (bootstrapDescriptors.length > 0) {
         WARN("Bootstrap state is invalid (missing add-ons: " + bootstrapDescriptors.toSource() + ")");
         updateDatabase = true;
@@ -2990,7 +2992,7 @@ var XPIProvider = {
       
       
       if (updateDatabase || hasPendingChanges) {
-        let migrateData = XPIDatabase.openConnection(false);
+        let migrateData = XPIDatabase.openConnection(false, true);
 
         try {
           extensionListChanged = this.processFileChanges(state, manifests,
@@ -4041,6 +4043,8 @@ var XPIDatabase = {
   addonCache: [],
   
   transactionCount: 0,
+  
+  dbfile: FileUtils.getFile(KEY_PROFILEDIR, [FILE_DATABASE], true),
 
   
   statements: {
@@ -4132,6 +4136,11 @@ var XPIDatabase = {
     rollbackSavepoint: "ROLLBACK TO SAVEPOINT 'default'"
   },
 
+  get dbfileExists() {
+    delete this.dbfileExists;
+    return this.dbfileExists = this.dbfile.exists();
+  },
+
   
 
 
@@ -4195,6 +4204,7 @@ var XPIDatabase = {
     
     try {
       connection = Services.storage.openUnsharedDatabase(aDBFile);
+      this.dbfileExists = true;
     }
     catch (e) {
       ERROR("Failed to open database (1st attempt)", e);
@@ -4232,12 +4242,17 @@ var XPIDatabase = {
 
 
 
-  openConnection: function XPIDB_openConnection(aRebuildOnError) {
-    this.initialized = true;
-    let dbfile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_DATABASE], true);
+  openConnection: function XPIDB_openConnection(aRebuildOnError, aForceOpen) {
     delete this.connection;
 
-    this.connection = this.openDatabaseFile(dbfile);
+    if (!aForceOpen && !this.dbfileExists) {
+      this.connection = null;
+      return {};
+    }
+
+    this.initialized = true;
+
+    this.connection = this.openDatabaseFile(this.dbfile);
 
     let migrateData = null;
     
@@ -4254,11 +4269,11 @@ var XPIDatabase = {
         
         this.connection.close();
         try {
-          if (dbfile.exists())
-            dbfile.remove(true);
+          if (this.dbfileExists)
+            this.dbfile.remove(true);
 
           
-          this.connection = this.openDatabaseFile(dbfile);
+          this.connection = this.openDatabaseFile(this.dbfile);
         }
         catch (e) {
           ERROR("Failed to remove old database", e);
@@ -4269,7 +4284,6 @@ var XPIDatabase = {
       }
       else if (Prefs.getIntPref(PREF_DB_SCHEMA, 0) == 0) {
         
-        LOG("Migrating data from extensions.rdf");
         migrateData = this.getMigrateDataFromRDF();
       }
 
@@ -4369,6 +4383,7 @@ var XPIDatabase = {
     
     let rdffile = FileUtils.getFile(KEY_PROFILEDIR, [FILE_OLD_DATABASE], true);
     if (rdffile.exists()) {
+      LOG("Migrating data from extensions.rdf");
       let ds = gRDF.GetDataSourceBlocking(Services.io.newFileURI(rdffile).spec);
       let root = Cc["@mozilla.org/rdf/container;1"].
                  createInstance(Ci.nsIRDFContainer);
@@ -4982,6 +4997,9 @@ var XPIDatabase = {
 
 
   getInstallLocations: function XPIDB_getInstallLocations() {
+    if (!this.connection)
+      return [];
+
     let stmt = this.getStatement("getInstallLocations");
 
     return [row.location for each (row in resultRows(stmt))];
@@ -4995,6 +5013,9 @@ var XPIDatabase = {
 
 
   getAddonsInLocation: function XPIDB_getAddonsInLocation(aLocation) {
+    if (!this.connection)
+      return [];
+
     let stmt = this.getStatement("getAddonsInLocation");
 
     stmt.params.location = aLocation;
@@ -5013,6 +5034,11 @@ var XPIDatabase = {
 
 
   getAddonInLocation: function XPIDB_getAddonInLocation(aId, aLocation, aCallback) {
+    if (!this.connection) {
+      aCallback(null);
+      return;
+    }
+
     let stmt = this.getStatement("getAddonInLocation");
 
     stmt.params.id = aId;
@@ -5039,6 +5065,11 @@ var XPIDatabase = {
 
 
   getVisibleAddonForID: function XPIDB_getVisibleAddonForID(aId, aCallback) {
+    if (!this.connection) {
+      aCallback(null);
+      return;
+    }
+
     let stmt = this.getStatement("getVisibleAddonForID");
 
     stmt.params.id = aId;
@@ -5064,6 +5095,11 @@ var XPIDatabase = {
 
 
   getVisibleAddons: function XPIDB_getVisibleAddons(aTypes, aCallback) {
+    if (!this.connection) {
+      aCallback([]);
+      return;
+    }
+
     let stmt = null;
     if (!aTypes || aTypes.length == 0) {
       stmt = this.getStatement("getVisibleAddons");
@@ -5095,6 +5131,9 @@ var XPIDatabase = {
 
 
   getAddonsByType: function XPIDB_getAddonsByType(aType) {
+    if (!this.connection)
+      return [];
+
     let stmt = this.getStatement("getAddonsByType");
 
     stmt.params.type = aType;
@@ -5109,6 +5148,9 @@ var XPIDatabase = {
 
 
   getVisibleAddonForInternalName: function XPIDB_getVisibleAddonForInternalName(aInternalName) {
+    if (!this.connection)
+      return null;
+
     let stmt = this.getStatement("getVisibleAddonForInternalName");
 
     let addon = null;
@@ -5131,6 +5173,11 @@ var XPIDatabase = {
 
   getVisibleAddonsWithPendingOperations:
     function XPIDB_getVisibleAddonsWithPendingOperations(aTypes, aCallback) {
+    if (!this.connection) {
+      aCallback([]);
+      return;
+    }
+
     let stmt = null;
     if (!aTypes || aTypes.length == 0) {
       stmt = this.getStatement("getVisibleAddonsWithPendingOperations");
@@ -5162,6 +5209,9 @@ var XPIDatabase = {
 
 
   getAddons: function XPIDB_getAddons() {
+    if (!this.connection)
+      return [];
+
     let stmt = this.getStatement("getAddons");
 
     return [this.makeAddonFromRow(row) for each (row in resultRows(stmt))];;
@@ -5176,6 +5226,10 @@ var XPIDatabase = {
 
 
   addAddonMetadata: function XPIDB_addAddonMetadata(aAddon, aDescriptor) {
+    
+    if (!this.connection)
+      this.openConnection(false, true);
+
     this.beginTransaction();
 
     var self = this;
@@ -5449,28 +5503,34 @@ var XPIDatabase = {
     let enabledAddons = [];
     let text = "[ExtensionDirs]\r\n";
     let count = 0;
+    let stmt;
 
-    let stmt = this.getStatement("getActiveAddons");
+    if (this.connection) {
+      stmt = this.getStatement("getActiveAddons");
 
-    for (let row in resultRows(stmt)) {
-      text += "Extension" + (count++) + "=" + row.descriptor + "\r\n";
-      enabledAddons.push(row.id + ":" + row.version);
+      for (let row in resultRows(stmt)) {
+        text += "Extension" + (count++) + "=" + row.descriptor + "\r\n";
+        enabledAddons.push(row.id + ":" + row.version);
+      }
     }
 
     
     
     text += "\r\n[ThemeDirs]\r\n";
-    if (Prefs.getBoolPref(PREF_EM_DSS_ENABLED)) {
-      stmt = this.getStatement("getThemes");
-    }
-    else {
-      stmt = this.getStatement("getActiveTheme");
-      stmt.params.internalName = XPIProvider.selectedSkin;
-    }
-    count = 0;
-    for (let row in resultRows(stmt)) {
-      text += "Extension" + (count++) + "=" + row.descriptor + "\r\n";
-      enabledAddons.push(row.id + ":" + row.version);
+
+    if (this.connection) {
+      if (Prefs.getBoolPref(PREF_EM_DSS_ENABLED)) {
+        stmt = this.getStatement("getThemes");
+      }
+      else {
+        stmt = this.getStatement("getActiveTheme");
+        stmt.params.internalName = XPIProvider.selectedSkin;
+      }
+      count = 0;
+      for (let row in resultRows(stmt)) {
+        text += "Extension" + (count++) + "=" + row.descriptor + "\r\n";
+        enabledAddons.push(row.id + ":" + row.version);
+      }
     }
 
     var fos = FileUtils.openSafeFileOutputStream(addonsList);
