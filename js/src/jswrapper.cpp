@@ -1189,3 +1189,45 @@ js::RemapAllWrappersForObject(JSContext *cx, JSObject *oldTarget,
 
     return true;
 }
+
+JS_FRIEND_API(bool)
+js::RecomputeWrappers(JSContext *cx, const CompartmentFilter &sourceFilter,
+                      const CompartmentFilter &targetFilter)
+{
+    AutoValueVector toRecompute(cx);
+
+    for (CompartmentsIter c(cx->runtime); !c.done(); c.next()) {
+        
+        if (!sourceFilter.match(c))
+            continue;
+
+        
+        WrapperMap &pmap = c->crossCompartmentWrappers;
+        for (WrapperMap::Enum e(pmap); !e.empty(); e.popFront()) {
+            
+            const CrossCompartmentKey &k = e.front().key;
+            if (k.kind != CrossCompartmentKey::ObjectWrapper)
+                continue;
+
+            
+            Value wrapper = e.front().value.get();
+            if (!targetFilter.match(k.wrapped->compartment()))
+                continue;
+
+            
+            if (!toRecompute.append(wrapper))
+                return false;
+        }
+    }
+
+    
+    for (Value *begin = toRecompute.begin(), *end = toRecompute.end(); begin != end; ++begin)
+    {
+        JSObject *wrapper = &begin->toObject();
+        JSObject *wrapped = Wrapper::wrappedObject(wrapper);
+        if (!RemapWrapper(cx, wrapper, wrapped))
+            return false;
+    }
+
+    return true;
+}
