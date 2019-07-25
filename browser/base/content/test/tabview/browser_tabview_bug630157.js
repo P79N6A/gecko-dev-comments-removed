@@ -1,0 +1,84 @@
+
+
+
+function test() {
+  let cw;
+
+  let createGroupItem = function () {
+    let bounds = new cw.Rect(20, 20, 400, 200);
+    let groupItem = new cw.GroupItem([], {bounds: bounds, immediately: true});
+
+    let groupItemId = groupItem.id;
+    registerCleanupFunction(function() {
+      let groupItem = cw.GroupItems.groupItem(groupItemId);
+      if (groupItem)
+        groupItem.close();
+    });
+
+    return groupItem;
+  }
+
+  let assertNumberOfGroups = function (num) {
+    is(cw.GroupItems.groupItems.length, num, 'there should be ' + num + ' groups');
+  }
+
+  let assertNumberOfTabs = function (num) {
+    is(gBrowser.tabs.length, num, 'there should be ' + num + ' tabs');
+  }
+
+  let simulateDoubleClick = function (target, button) {
+    for (let i=0; i<2; i++)
+      EventUtils.synthesizeMouseAtCenter(target, {button: button || 0}, cw);
+  }
+
+  let finishTest = function () {
+    let tabItem = gBrowser.tabs[0]._tabViewTabItem;
+    cw.GroupItems.updateActiveGroupItemAndTabBar(tabItem);
+
+    gBrowser.removeTab(gBrowser.tabs[1]);
+    assertNumberOfGroups(1);
+    assertNumberOfTabs(1);
+
+    finish();
+  }
+
+  let testDoubleClick = function () {
+    let groupItem = createGroupItem();
+    assertNumberOfGroups(2);
+    assertNumberOfTabs(1);
+
+    
+    let input = groupItem.$title[0];
+    simulateDoubleClick(input);
+    assertNumberOfTabs(1);
+
+    
+    let titlebar = groupItem.$titlebar[0];
+    simulateDoubleClick(titlebar);
+    assertNumberOfTabs(1);
+
+    
+    let container = groupItem.container;
+    simulateDoubleClick(container, 1);
+    assertNumberOfTabs(1);
+
+    
+    simulateDoubleClick(container, 2);
+    assertNumberOfTabs(1);
+
+    
+    let container = groupItem.container;
+    simulateDoubleClick(container);
+    assertNumberOfTabs(2);
+
+    whenTabViewIsHidden(finishTest);
+  }
+
+  waitForExplicitFinish();
+  registerCleanupFunction(function () TabView.hide());
+
+  showTabView(function () {
+    cw = TabView.getContentWindow();
+    testDoubleClick();
+  });
+}

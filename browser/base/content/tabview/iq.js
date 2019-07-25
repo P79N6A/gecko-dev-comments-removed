@@ -54,6 +54,7 @@
 
 
 
+
 function iQ(selector, context) {
   
   return new iQClass(selector, context);
@@ -291,6 +292,30 @@ iQClass.prototype = {
     }
 
     return iQ(ret);
+  },
+
+  
+  
+  
+  contains: function iQClass_contains(selector) {
+    Utils.assert(this.length == 1, 'does not yet support multi-objects (or null objects)');
+
+    
+    if ('string' == typeof selector)
+      return null != this[0].querySelector(selector);
+
+    let object = iQ(selector);
+    Utils.assert(object.length <= 1, 'does not yet support multi-objects');
+
+    let elem = object[0];
+    if (!elem || !elem.parentNode)
+      return false;
+
+    do {
+      elem = elem.parentNode;
+    } while (elem && this[0] != elem);
+
+    return this[0] == elem;
   },
 
   
