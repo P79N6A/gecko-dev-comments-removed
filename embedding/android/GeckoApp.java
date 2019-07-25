@@ -510,6 +510,14 @@ abstract public class GeckoApp
         String uri = lastHistoryEntry.mUri;
         String title = lastHistoryEntry.mTitle;
 
+        String lastUri = prefs.getString("last-uri", "");
+        String lastTitle = prefs.getString("last-title", uri);
+
+
+        
+        if (uri.equals(lastUri) && title.equals(lastTitle))
+            return;
+
         editor.putString("last-uri", uri);
         editor.putString("last-title", title);
 
@@ -1273,7 +1281,13 @@ abstract public class GeckoApp
     public void onPause()
     {
         Log.i(LOG_NAME, "pause");
-        rememberLastScreen(false);
+
+        
+        mMainHandler.postDelayed(new Runnable() {
+          public void run() {
+              rememberLastScreen(false);
+          }
+        }, 500);
 
         GeckoAppShell.sendEventToGecko(new GeckoEvent(GeckoEvent.ACTIVITY_PAUSING));
         
