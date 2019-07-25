@@ -2864,9 +2864,8 @@ Tab.prototype = {
         });
 
         
-        
-        Reader.checkTabReadability(this.id, function(isReadable) {
-          if (!isReadable)
+        Reader.parseDocumentFromTab(this.id, function (article) {
+          if (article == null)
             return;
 
           sendMessageToJava({
@@ -6433,11 +6432,7 @@ let Reader = {
           return;
         }
 
-        
-        
-        
-        let doc = tab.browser.contentWindow.document.cloneNode(true);
-
+        let doc = tab.browser.contentWindow.document;
         let readability = new Readability(uri, doc);
         readability.parse(function (article) {
           if (!article) {
@@ -6455,33 +6450,6 @@ let Reader = {
     } catch (e) {
       this.log("Error parsing document from tab: " + e);
       callback(null);
-    }
-  },
-
-  checkTabReadability: function Reader_checkTabReadability(tabId, callback) {
-    try {
-      this.log("checkTabReadability: " + tabId);
-
-      let tab = BrowserApp.getTabForId(tabId);
-      let url = tab.browser.contentWindow.location.href;
-
-      
-      this.getArticleFromCache(url, function(article) {
-        if (article) {
-          this.log("Page found in cache, page is definitely readable");
-          callback(true);
-          return;
-        }
-
-        let uri = Services.io.newURI(url, null, null);
-        let doc = tab.browser.contentWindow.document;
-
-        let readability = new Readability(uri, doc);
-        readability.check(callback);
-      }.bind(this));
-    } catch (e) {
-      this.log("Error checking tab readability: " + e);
-      callback(false);
     }
   },
 

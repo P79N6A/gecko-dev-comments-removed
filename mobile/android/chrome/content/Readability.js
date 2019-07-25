@@ -66,7 +66,6 @@ Readability.prototype = {
   FLAG_STRIP_UNLIKELYS: 0x1,
   FLAG_WEIGHT_CLASSES: 0x2,
   FLAG_CLEAN_CONDITIONALLY: 0x4,
-  FLAG_READABILITY_CHECK: 0x8,
 
   
   
@@ -218,9 +217,6 @@ Readability.prototype = {
 
 
   _prepDocument: function() {
-    if (this._flagIsActive(this.FLAG_READABILITY_CHECK))
-      return;
-
     let doc = this._doc;
 
     
@@ -497,7 +493,6 @@ Readability.prototype = {
     while (true) {
       let doc = this._doc;
       let stripUnlikelyCandidates = this._flagIsActive(this.FLAG_STRIP_UNLIKELYS);
-      let isChecking = this._flagIsActive(this.FLAG_READABILITY_CHECK);
       let isPaging = (page !== null ? true: false);
 
       page = page ? page : this._doc.body;
@@ -536,15 +531,12 @@ Readability.prototype = {
         
         if (node.tagName === "DIV") {
           if (node.innerHTML.search(this.REGEXPS.divToPElements) === -1) {
-            if (!isChecking) {
-              let newNode = doc.createElement('p');
-              newNode.innerHTML = node.innerHTML;
-              node.parentNode.replaceChild(newNode, node);
-              nodeIndex -= 1;
-            }
-
+            let newNode = doc.createElement('p');
+            newNode.innerHTML = node.innerHTML;
+            node.parentNode.replaceChild(newNode, node);
+            nodeIndex -= 1;
             nodesToScore[nodesToScore.length] = node;
-          } else if (!isChecking) {
+          } else {
             
             for (let i = 0, il = node.childNodes.length; i < il; i += 1) {
               let childNode = node.childNodes[i];
@@ -644,13 +636,6 @@ Readability.prototype = {
       
       
       if (topCandidate === null || topCandidate.tagName === "BODY") {
-        
-        
-        if (isChecking) {
-          dump('No top candidate found, failed readability check');
-          yield null;
-        }
-
         topCandidate = doc.createElement("DIV");
         topCandidate.innerHTML = page.innerHTML;
 
@@ -658,12 +643,6 @@ Readability.prototype = {
         page.appendChild(topCandidate);
 
         this._initializeNode(topCandidate);
-      } else if (isChecking) {
-        dump('Found a top candidate, passed readability check');
-
-        
-        
-        yield {};
       }
 
       
@@ -776,9 +755,6 @@ Readability.prototype = {
 
 
   _removeScripts: function(doc) {
-    if (this._flagIsActive(this.FLAG_READABILITY_CHECK))
-      return;
-
     let scripts = doc.getElementsByTagName('script');
     for (let i = scripts.length - 1; i >= 0; i -= 1) {
       scripts[i].nodeValue="";
@@ -1457,14 +1433,6 @@ Readability.prototype = {
         return;
       }
 
-      
-      
-      
-      if (this._flagIsActive(this.FLAG_READABILITY_CHECK)) {
-        callback({});
-        return;
-      }
-
       this._postProcessContent(articleContent);
 
       
@@ -1478,15 +1446,5 @@ Readability.prototype = {
       callback({ title: this._getInnerText(articleTitle),
                  content: articleContent.innerHTML });
     }.bind(this));
-  },
-
-  check: function (callback) {
-    
-    
-    this._flags = this.FLAG_READABILITY_CHECK;
-
-    this.parse(function (result) {
-      callback(result != null);
-    });
   }
 };
