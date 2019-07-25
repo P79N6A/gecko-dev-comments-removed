@@ -24,10 +24,6 @@ namespace gl {
 #include "GLContextProviderImpl.h"
 #undef GL_CONTEXT_PROVIDER_NAME
 
-#define GL_CONTEXT_PROVIDER_NAME GLContextProviderOSMesa
-#include "GLContextProviderImpl.h"
-#undef GL_CONTEXT_PROVIDER_NAME
-
 #ifdef XP_WIN
 #define GL_CONTEXT_PROVIDER_NAME GLContextProviderWGL
 #include "GLContextProviderImpl.h"
