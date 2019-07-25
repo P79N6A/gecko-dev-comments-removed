@@ -893,6 +893,15 @@ abstract public class GeckoApp
 
     public void hideTabs() { }
 
+    
+
+
+
+
+
+
+    public boolean autoHideTabs() { return false; }
+
     public boolean areTabsShown() { return false; }
 
     public void handleMessage(String event, JSONObject message) {
@@ -2689,8 +2698,7 @@ abstract public class GeckoApp
 
     @Override
     public void onBackPressed() {
-        if (mTabsPanel != null && mTabsPanel.isShown() && !isTablet()) {
-            mTabsPanel.hide();
+        if (autoHideTabs()) {
             return;
         }
 
