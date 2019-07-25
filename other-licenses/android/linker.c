@@ -2449,7 +2449,7 @@ void simple_linker_init(void)
 
     struct link_map *map = debug->r_map;
     while (map) {
-        if (strcmp(map->l_name, "libmozglue.so"))
+        if (strcmp(map->l_name, "libmozutils.so"))
             r_debug_insert = map;
         map = map->l_next;
     }
