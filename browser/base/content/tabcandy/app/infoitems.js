@@ -121,18 +121,6 @@ window.InfoItem = function(bounds, options) {
 
 
 window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
-  
-  
-  
-  addOnClose: function(referenceObject, callback) {
-    this.addSubscriber(referenceObject, "close", callback);
-  },
-
-  
-  
-  removeOnClose: function(referenceObject) {
-    this.removeSubscriber(referenceObject, "close");
-  },
 
   
   
@@ -196,19 +184,19 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         return;
 
       this.bounds = new Rect(rect);
-      Utils.assertThrow('Group.setBounds: this.bounds must be a real rectangle!', 
+      Utils.assertThrow('Group.setBounds: this.bounds must be a real rectangle!',
                         Utils.isRect(this.bounds));
 
       
       if (immediately) {
         iQ(this.container).css(css);
       } else {
-        TabMirror.pausePainting();
+        TabItems.pausePainting();
         iQ(this.container).animate(css, {
           duration: 350,
           easing: 'tabcandyBounce',
           complete: function() {
-            TabMirror.resumePainting();
+            TabItems.resumePainting();
           }
         });
       }

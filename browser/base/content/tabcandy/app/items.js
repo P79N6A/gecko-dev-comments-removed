@@ -145,12 +145,14 @@ window.Item.prototype = {
   
   
   _init: function(container) {
+    Utils.assert( 'Subclass must implement the Subscribable interface',
+      typeof(this.addSubscriber) == 'function' &&
+      typeof(this.removeSubscriber) == 'function' &&
+      typeof(this._sendToSubscribers) == 'function' );
     Utils.assert('container must be a DOM element', Utils.isDOMElement(container));
     Utils.assert('Subclass must provide setBounds', typeof(this.setBounds) == 'function');
     Utils.assert('Subclass must provide setZ', typeof(this.setZ) == 'function');
     Utils.assert('Subclass must provide close', typeof(this.close) == 'function');
-    Utils.assert('Subclass must provide addOnClose', typeof(this.addOnClose) == 'function');
-    Utils.assert('Subclass must provide removeOnClose', typeof(this.removeOnClose) == 'function');
     Utils.assert('Subclass must provide save', typeof(this.save) == 'function');
     Utils.assert('Subclass must provide defaultSize', Utils.isPoint(this.defaultSize));
     Utils.assert('Subclass must provide locked', this.locked);

@@ -44,10 +44,40 @@
 
 
 
-window.TabItem = function(container, tab) {
-  Utils.assert('container', container);
+
+
+
+window.TabItem = function(tab) {
+
   Utils.assert('tab', tab);
-  Utils.assert('tab.mirror', tab.mirror);
+
+  this.tab = tab;
+  
+  this.tab.tabItem = this;
+
+  
+  var $div = iQ('<div>')
+    .data("tab", this.tab)
+    .addClass('tab')
+    .html("<div class='thumb'><div class='thumb-shadow'></div>" +
+          "<img class='cached-thumb' style='display:none'/><canvas/></div>" +
+          "<div class='favicon'><img/></div>" +
+          "<span class='tab-title'>&nbsp;</span>"
+    )
+    .appendTo('body');
+
+  this.needsPaint = 0;
+  this.canvasSizeForced = false;
+  this.isShowingCachedData = false;
+  this.favEl = iQ('.favicon>img', $div).get(0);
+  this.nameEl = iQ('.tab-title', $div).get(0);
+  this.canvasEl = iQ('.thumb canvas', $div).get(0);
+  this.cachedThumbEl = iQ('img.cached-thumb', $div).get(0);
+  this.okayToHideCache = false;
+
+  this.tabCanvas = new TabCanvas(this.tab, this.canvasEl);
+  this.tabCanvas.attach();
+  this.triggerPaint();
 
   this.defaultSize = new Point(TabItems.tabWidth, TabItems.tabHeight);
   this.locked = {};
@@ -56,11 +86,8 @@ window.TabItem = function(container, tab) {
   this.sizeExtra = new Point();
   this.keepProportional = true;
 
-  
-  var $div = iQ(container);
   var self = this;
 
-  $div.data('tabItem', this);
   this.isDragging = false;
 
   this.sizeExtra.x = parseInt($div.css('padding-left'))
@@ -74,7 +101,7 @@ window.TabItem = function(container, tab) {
   this.bounds.height += this.sizeExtra.y;
 
   
-  this._init(container);
+  this._init($div.get(0));
 
   
   
@@ -176,26 +203,85 @@ window.TabItem = function(container, tab) {
   
   this.reconnected = false;
   this._hasBeenDrawn = false;
-  this.tab = tab;
   this.setResizable(true);
 
   this._updateDebugBounds();
 
   TabItems.register(this);
-  this.tab.mirror.addSubscriber(this, "close", function(who, info) {
+  this.addSubscriber(this, "close", function(who, info) {
     TabItems.unregister(self);
     self.removeTrenches();
   });
 
-  this.tab.mirror.addSubscriber(this, 'urlChanged', function(who, info) {
+  this.addSubscriber(this, 'urlChanged', function(who, info) {
     if (!self.reconnected && (info.oldURL == 'about:blank' || !info.oldURL))
       TabItems.reconnect(self);
 
     self.save();
   });
+
+  this.addSubscriber(TabItems, "close", function() {
+    Items.unsquish(null, self);
+  });
+
+  if (!TabItems.reconnect(this))
+    Groups.newTab(this);
 };
 
-window.TabItem.prototype = Utils.extend(new Item(), {
+window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
+  
+  
+  
+  triggerPaint: function() {
+    var date = new Date();
+    this.needsPaint = date.getTime();
+  },
+
+  
+  
+  
+  
+  forceCanvasSize: function(w, h) {
+    this.canvasSizeForced = true;
+    this.canvasEl.width = w;
+    this.canvasEl.height = h;
+    this.tabCanvas.paint();
+  },
+
+  
+  
+  
+  
+  
+  
+  unforceCanvasSize: function() {
+    this.canvasSizeForced = false;
+  },
+
+  
+  
+  
+  
+  showCachedData: function(tabData) {
+    this.isShowingCachedData = true;
+    var $nameElement = iQ(this.nameEl);
+    var $canvasElement = iQ(this.canvasEl);
+    var $cachedThumbElement = iQ(this.cachedThumbEl);
+    $cachedThumbElement.attr("src", tabData.imageData).show();
+    $canvasElement.css({opacity: 0.0});
+    $nameElement.text(tabData.title ? tabData.title : "");
+  },
+
+  
+  
+  
+  hideCachedData: function() {
+    var $canvasElement = iQ(this.canvasEl);
+    var $cachedThumbElement = iQ(this.cachedThumbEl);
+    $cachedThumbElement.hide();
+    $canvasElement.css({opacity: 1.0});
+  },
+
   
   
   
@@ -208,8 +294,8 @@ window.TabItem.prototype = Utils.extend(new Item(), {
       userSize: (Utils.isPoint(this.userSize) ? new Point(this.userSize) : null),
       url: this.tab.linkedBrowser.currentURI.spec,
       groupID: (this.parent ? this.parent.id : 0),
-      imageData: (getImageData && this.tab.mirror.tabCanvas ?
-                  this.tab.mirror.tabCanvas.toImageData() : null),
+      imageData: (getImageData && this.tabCanvas ?
+                  this.tabCanvas.toImageData() : null),
       title: getImageData && this.tab.label || null
     };
   },
@@ -295,12 +381,12 @@ window.TabItem.prototype = Utils.extend(new Item(), {
   
         $container.css(css);
       } else {
-        TabMirror.pausePainting();
+        TabItems.pausePainting();
         $container.animate(css, {
           duration: 200,
           easing: 'tabcandyBounce',
           complete: function() {
-            TabMirror.resumePainting();
+            TabItems.resumePainting();
           }
         });
     
@@ -410,21 +496,6 @@ window.TabItem.prototype = Utils.extend(new Item(), {
   
   
   
-  addOnClose: function(referenceObject, callback) {
-    this.tab.mirror.addSubscriber(referenceObject, "close", callback);
-  },
-
-  
-  
-  
-  removeOnClose: function(referenceObject) {
-    this.tab.mirror.removeSubscriber(referenceObject, "close");
-  },
-
-  
-  
-  
-  
   setResizable: function(value){
     var $resizer = iQ('.expander', this.container);
 
@@ -481,7 +552,7 @@ window.TabItem.prototype = Utils.extend(new Item(), {
       var tab = this.tab;
 
       function onZoomDone(){
-        TabMirror.resumePainting();
+        TabItems.resumePainting();
         
         if (gBrowser.selectedTab == tab) {
           UI.tabOnFocus(tab);
@@ -520,7 +591,7 @@ window.TabItem.prototype = Utils.extend(new Item(), {
       
       
       var scaleCheat = 1.7;
-      TabMirror.pausePainting();
+      TabItems.pausePainting();
       $tabEl
         .addClass("front")
         .animate({
@@ -551,7 +622,7 @@ window.TabItem.prototype = Utils.extend(new Item(), {
     box.width -= this.sizeExtra.x;
     box.height -= this.sizeExtra.y;
 
-    TabMirror.pausePainting();
+    TabItems.pausePainting();
 
     var self = this;
     $tab.animate({
@@ -565,7 +636,7 @@ window.TabItem.prototype = Utils.extend(new Item(), {
       complete: function() { 
         $tab.removeClass('front');
 
-        TabMirror.resumePainting();
+        TabItems.resumePainting();
 
         self._zoomPrep = false;
         self.setBounds(self.getBounds(), true, {force: true});
@@ -625,6 +696,200 @@ window.TabItems = {
   fontSize: 9,
   items: [],
 
+  paintingPaused: 0,
+  heartbeatIndex: 0,
+
+  
+  
+  
+  init: function() {
+    Utils.assert("TabManager must be initialized first", window.Tabs);
+    var self = this;
+
+    
+    Tabs.onOpen(function() {
+      var tab = this;
+      Utils.timeout(function() { 
+        self.update(tab);
+      }, 1);
+    });
+
+    
+    Tabs.onReady(function(evt) {
+      var tab = evt.tab;
+      Utils.timeout(function() { 
+        self.update(tab);
+      }, 1);
+    });
+
+    
+    
+    Tabs.onLoad(function(evt) {
+      var tab = evt.tab;
+      Utils.timeout(function() { 
+        tab.tabItem.okayToHideCache = true;
+        self.update(tab);
+      }, 1);
+    });
+
+    
+    Tabs.onClose( function(){
+      var tab = this;
+      Utils.timeout(function() { 
+        self.unlink(tab);
+      }, 1);
+    });
+
+    
+    Tabs.forEach(function(tab){
+      self.link(tab);
+    });
+
+    this.paintingPaused = 0;
+    this.heartbeatIndex = 0;
+    this._fireNextHeartbeat();
+  },
+
+  
+  
+  _heartbeat: function() {
+    try {
+      var now = Date.now();
+      var count = Tabs.length;
+      if (count && this.paintingPaused <= 0) {
+        this.heartbeatIndex++;
+        if (this.heartbeatIndex >= count)
+          this.heartbeatIndex = 0;
+
+        var tab = Tabs[this.heartbeatIndex];
+        var tabItem = tab.tabItem;
+        if (tabItem) {
+          let iconUrl = tab.image;
+          if ( iconUrl == null ){
+            iconUrl = "chrome://mozapps/skin/places/defaultFavicon.png";
+          }
+
+          let label = tab.label;
+          var $name = iQ(tabItem.nameEl);
+          var $canvas = iQ(tabItem.canvasEl);
+
+          if (iconUrl != tabItem.favEl.src) {
+            tabItem.favEl.src = iconUrl;
+            tabItem.triggerPaint();
+          }
+
+          let tabUrl = tab.linkedBrowser.currentURI.spec;
+          if (tabUrl != tabItem.url) {
+            var oldURL = tabItem.url;
+            tabItem.url = tabUrl;
+            tabItem._sendToSubscribers(
+              'urlChanged', {oldURL: oldURL, newURL: tabUrl});
+            tabItem.triggerPaint();
+          }
+
+          if (!tabItem.isShowingCachedData && $name.text() != label) {
+            $name.text(label);
+            tabItem.triggerPaint();
+          }
+
+          if (!tabItem.canvasSizeForced) {
+            var w = $canvas.width();
+            var h = $canvas.height();
+            if (w != tabItem.canvasEl.width || h != tabItem.canvasEl.height) {
+              tabItem.canvasEl.width = w;
+              tabItem.canvasEl.height = h;
+              tabItem.triggerPaint();
+            }
+          }
+
+          if (tabItem.needsPaint) {
+            tabItem.tabCanvas.paint();
+
+            if (tabItem.isShowingCachedData && tabItem.okayToHideCache)
+              tabItem.hideCachedData();
+
+            if (Date.now() - tabItem.needsPaint > 5000)
+              tabItem.needsPaint = 0;
+          }
+        }
+      }
+    } catch(e) {
+      Utils.error('heartbeat', e);
+    }
+
+    this._fireNextHeartbeat();
+  },
+
+  
+  
+  _fireNextHeartbeat: function() {
+    var self = this;
+    Utils.timeout(function() {
+      self._heartbeat();
+    }, 100);
+  },
+
+  
+  
+  update: function(tab){
+    this.link(tab);
+
+    if (tab.tabItem && tab.tabItem.tabCanvas)
+      tab.tabItem.triggerPaint();
+  },
+
+  
+  
+  link: function(tab){
+    
+    if (tab.tabItem)
+      return false;
+
+    
+    new TabItem(tab); 
+    return true;
+  },
+
+  
+  
+  unlink: function(tab){
+    var tabItem = tab.tabItem;
+    if (tabItem) {
+      tabItem._sendToSubscribers("close");
+      var tabCanvas = tabItem.tabCanvas;
+      if (tabCanvas)
+        tabCanvas.detach();
+
+      iQ(tabItem.container).remove();
+
+      tab.tabItem = null;
+    }
+  },
+
+  
+  
+  
+  
+  
+  pausePainting: function() {
+    this.paintingPaused++;
+  },
+
+  
+  
+  
+  
+  resumePainting: function() {
+    this.paintingPaused--;
+  },
+
+  
+  
+  
+  isPaintingPaused: function() {
+    return this.paintingPause > 0;
+  },
+
   
   
   
@@ -648,14 +913,6 @@ window.TabItems = {
   
   getItems: function() {
     return Utils.copy(this.items);
-  },
-
-  
-  
-  
-  
-  getItemByTabElement: function(tabElement) {
-    return iQ(tabElement).data("tabItem");
   },
 
   
@@ -723,13 +980,12 @@ window.TabItems = {
         }
 
         if (tabData.imageData) {
-          var mirror = item.tab.mirror;
-          mirror.showCachedData(tabData);
+          item.showCachedData(tabData);
           
           
           Utils.timeout(function() {
-            if (mirror && mirror.isShowingCachedData) {
-              mirror.hideCachedData();
+            if (item && item.isShowingCachedData) {
+              item.hideCachedData();
             }
           }, 15000);
         }
@@ -747,5 +1003,89 @@ window.TabItems = {
     }
 
     return found;
+  }
+};
+
+
+
+
+
+var TabCanvas = function(tab, canvas){
+  this.init(tab, canvas);
+};
+
+TabCanvas.prototype = {
+  
+  
+  init: function(tab, canvas){
+    this.tab = tab;
+    this.canvas = canvas;
+
+    var $canvas = iQ(canvas).data("link", this);
+
+    var w = $canvas.width();
+    var h = $canvas.height();
+    canvas.width = w;
+    canvas.height = h;
+
+    var self = this;
+    this.paintIt = function(evt) {
+      self.tab.tabItem.triggerPaint();
+    };
+  },
+
+  
+  
+  attach: function() {
+    this.tab.linkedBrowser.contentWindow.
+      addEventListener("MozAfterPaint", this.paintIt, false);
+  },
+
+  
+  
+  detach: function() {
+    try {
+      this.tab.linkedBrowser.contentWindow.
+        removeEventListener("MozAfterPaint", this.paintIt, false);
+    } catch(e) {
+      
+    }
+  },
+
+  
+  
+  paint: function(evt){
+    var ctx = this.canvas.getContext("2d");
+
+    var w = this.canvas.width;
+    var h = this.canvas.height;
+    if (!w || !h)
+      return;
+
+    let fromWin = this.tab.linkedBrowser.contentWindow;
+    if (fromWin == null) {
+      Utils.log('null fromWin in paint');
+      return;
+    }
+
+    var scaler = w/fromWin.innerWidth;
+
+    
+
+    ctx.save();
+    ctx.scale(scaler, scaler);
+    try{
+      ctx.drawWindow( fromWin, fromWin.scrollX, fromWin.scrollY, w/scaler, h/scaler, "#fff" );
+    } catch(e){
+      Utils.error('paint', e);
+    }
+
+    ctx.restore();
+  },
+
+  
+  
+  toImageData: function() {
+    return this.canvas.toDataURL("image/png", "");
   }
 };
