@@ -1435,7 +1435,7 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
 
 
             f.regs.restorePartialFrame(oldsp); 
-            f.scratch = (void *) argc;         
+            f.scratch = (void *) uintptr_t(argc); 
             f.fp()->setNativeReturnAddress(JS_FUNC_TO_DATA_PTR(void *, JaegerInterpolineScripted));
             fp->setRejoin(REJOIN_SCRIPTED | ((pc - script->code) << 1));
             return returnReg;
