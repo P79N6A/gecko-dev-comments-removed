@@ -1,0 +1,61 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+
+
+:root {
+  -moz-appearance: none;
+  padding: 18px;
+  background-color: Window;
+  background-image: -moz-linear-gradient(top, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 160px),
+                    -moz-linear-gradient(-moz-dialog, Window 160px);
+  color: WindowText;
+}
+
+
+.main-content {
+  
+  
+
+
+  background-color: -moz-Field;
+  color: -moz-FieldText;
+  border: 1px solid ThreeDShadow;
+  border-radius: 5px;
+}
