@@ -1076,9 +1076,8 @@ WeaveSvc.prototype = {
       throw "aborting sync, failed to get collections";
 
     
-    info = JSON.parse(info);
     for each (let engine in [Clients].concat(Engines.getEnabled()))
-      engine.lastModified = info[engine.name] || 0;
+      engine.lastModified = info.obj[engine.name] || 0;
 
     this._log.debug("Refreshing client list");
     Clients.sync();
@@ -1215,12 +1214,8 @@ WeaveSvc.prototype = {
   wipeServer: function WeaveSvc_wipeServer(engines)
     this._catch(this._notify("wipe-server", "", function() {
       
-      let res = new Resource(this.infoURL);
-      res.get();
-
-      
-      let allCollections = JSON.parse(res.data);
-      for (let name in allCollections) {
+      let info = new Resource(this.infoURL).get();
+      for (let name in info.obj) {
         try {
           
           if (engines && engines.indexOf(name) == -1)
