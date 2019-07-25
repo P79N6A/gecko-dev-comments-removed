@@ -39,8 +39,8 @@
 #include "nsX11ErrorHandler.h"
 
 #ifdef MOZ_IPC
-#include "mozilla/plugins/PluginThreadChild.h"
-using mozilla::plugins::PluginThreadChild;
+#include "mozilla/plugins/PluginProcessChild.h"
+using mozilla::plugins::PluginProcessChild;
 #endif
 
 #include "prenv.h"
@@ -157,7 +157,7 @@ X11Error(Display *display, XErrorEvent *event) {
       
       
       
-      PluginThreadChild::AppendNotesToCrashReport(notes);
+      PluginProcessChild::AppendNotesToCrashReport(notes);
     }
     break;
 #endif
