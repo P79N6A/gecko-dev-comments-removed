@@ -1206,6 +1206,10 @@ BasicLayerManager::PaintLayer(Layer* aLayer,
 
   if (needsGroup) {
     mTarget->PopGroupToSource();
+    
+    
+    
+    gfxUtils::ClipToRegionSnapped(mTarget, aLayer->GetEffectiveVisibleRegion());
     mTarget->Paint(aLayer->GetEffectiveOpacity());
   }
 
