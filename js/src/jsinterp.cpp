@@ -6805,7 +6805,6 @@ END_CASE(JSOP_ARRAYPUSH)
         
         regs.pc = regs.fp->imacropc();
         regs.fp->clearImacropc();
-        atoms = script->atomMap.vector;
     }
 #endif
 
@@ -6833,6 +6832,9 @@ END_CASE(JSOP_ARRAYPUSH)
         JSThrowHook handler;
         JSTryNote *tn, *tnlimit;
         uint32 offset;
+
+        
+        atoms = script->atomMap.vector;
 
         
         handler = cx->debugHooks->throwHook;
