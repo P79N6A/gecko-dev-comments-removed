@@ -124,6 +124,20 @@ public:
 
     static PRInt32 GetDPI();
 
+    static PRBool UseClientSideRendering() {
+#if defined(MOZ_X11) && defined(MOZ_GFX_OPTIMIZE_MOBILE)
+        
+        
+        
+        
+        
+        
+        return PR_TRUE;
+#else
+        return PR_FALSE;
+#endif
+    }
+
 protected:
     static gfxFontconfigUtils *sFontconfigUtils;
 
