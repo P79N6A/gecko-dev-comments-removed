@@ -281,15 +281,6 @@ PluginModuleChild::ActorDestroy(ActorDestroyReason why)
 {
     
     
-
-
-
-#ifdef OS_LINUX
-    fprintf(stderr, "TEST-UNEXPECTED-FAIL | plugin process %d | initiating shutdown\n", getpid());
-#endif
-
-
-
     XRE_ShutdownChildProcess();
 }
 
