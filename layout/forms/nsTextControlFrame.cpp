@@ -1938,15 +1938,6 @@ void nsTextControlFrame::SetFocus(PRBool aOn, PRBool aRepaint)
   if (NS_SUCCEEDED(InitFocusedValue()))
     MaybeBeginSecureKeyboardInput();
 
-  
-  nsRefPtr<ScrollOnFocusEvent> event = new ScrollOnFocusEvent(this);
-  nsresult rv = NS_DispatchToCurrentThread(event);
-  if (NS_SUCCEEDED(rv)) {
-    mScrollEvent = event;
-  }
-
-  
-
   nsCOMPtr<nsISelection> ourSel;
   mSelCon->GetSelection(nsISelectionController::SELECTION_NORMAL, 
     getter_AddRefs(ourSel));
@@ -1955,6 +1946,19 @@ void nsTextControlFrame::SetFocus(PRBool aOn, PRBool aRepaint)
   nsIPresShell* presShell = PresContext()->GetPresShell();
   nsRefPtr<nsCaret> caret = presShell->GetCaret();
   if (!caret) return;
+
+  
+  nsISelection *caretSelection = caret->GetCaretDOMSelection();
+  const PRBool isFocusedRightNow = ourSel == caretSelection;
+  if (!isFocusedRightNow) {
+    nsRefPtr<ScrollOnFocusEvent> event = new ScrollOnFocusEvent(this);
+    nsresult rv = NS_DispatchToCurrentThread(event);
+    if (NS_SUCCEEDED(rv)) {
+      mScrollEvent = event;
+    }
+  }
+
+  
   caret->SetCaretDOMSelection(ourSel);
 
   
