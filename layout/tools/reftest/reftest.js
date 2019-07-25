@@ -401,11 +401,11 @@ function BuildConditionSandbox(aURL) {
       sandbox.d2d = false;
     }
 
-    if (gWindowUtils && gWindowUtils.layerManagerType != "Basic")
-      sandbox.layersGPUAccelerated = true;
-    else
-      sandbox.layersGPUAccelerated = false;
- 
+    sandbox.layersGPUAccelerated =
+      gWindowUtils && gWindowUtils.layerManagerType != "Basic";
+    sandbox.layersOpenGL =
+      gWindowUtils && gWindowUtils.layerManagerType == "OpenGL";
+
     
     sandbox.Android = xr.OS == "Android";
     sandbox.cocoaWidget = xr.widgetToolkit == "cocoa";
