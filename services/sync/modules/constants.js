@@ -53,6 +53,8 @@ PREFS_BRANCH:                          "services.sync.",
 
 
 PWDMGR_HOST:                           "chrome://weave",
+PWDMGR_PASSWORD_REALM:                 "Mozilla Services Password",
+PWDMGR_PASSPHRASE_REALM:               "Mozilla Services Encryption Passphrase",
 
 
 SINGLE_USER_SYNC:                      24 * 60 * 60 * 1000, 
