@@ -17,6 +17,7 @@
 #include "frontend/TreeContext.h"
 
 namespace js {
+namespace frontend {
 
 
 
@@ -1504,6 +1505,7 @@ struct FunctionBox : public ObjectBox
     void recursivelySetStrictMode(StrictMode::StrictModeState strictness);
 };
 
+} 
 } 
 
 #endif 
