@@ -39,8 +39,8 @@
 #include "nsX11ErrorHandler.h"
 
 #ifdef MOZ_IPC
-#include "mozilla/plugins/PluginThreadChild.h"
-using mozilla::plugins::PluginThreadChild;
+#include "mozilla/plugins/PluginProcessChild.h"
+using mozilla::plugins::PluginProcessChild;
 #endif
 
 #include "prenv.h"
@@ -48,19 +48,12 @@ using mozilla::plugins::PluginThreadChild;
 #include "nsExceptionHandler.h"
 #include "nsDebug.h"
 
+#include "mozilla/X11Util.h"
 #include <X11/Xlib.h>
-#ifdef MOZ_WIDGET_GTK2
-#include <gdk/gdkx.h>
-#endif
 
 #define BUFSIZE 2048 // What Xlib uses with XGetErrorDatabaseText
 
 extern "C" {
-static int
-IgnoreError(Display *display, XErrorEvent *event) {
-  return 0; 
-}
-
 static int
 X11Error(Display *display, XErrorEvent *event) {
   nsCAutoString notes;
@@ -71,32 +64,39 @@ X11Error(Display *display, XErrorEvent *event) {
   unsigned long age = NextRequest(display) - event->serial;
 
   
-  
-  XSetErrorHandler(IgnoreError);
-
-  
   nsCAutoString message;
   if (event->request_code < 128) {
     
     message.AppendInt(event->request_code);
   } else {
     
-    int nExts;
-    char** extNames = XListExtensions(display, &nExts);
-    if (extNames) {
-      for (int i = 0; i < nExts; ++i) {
-        int major_opcode, first_event, first_error;
-        if (XQueryExtension(display, extNames[i],
-                            &major_opcode, &first_event, &first_error)
-            && major_opcode == event->request_code) {
-          message.Append(extNames[i]);
-          message.Append('.');
-          message.AppendInt(event->minor_code);
-          break;
-        }
-      }
 
-      XFreeExtensionList(extNames);
+    
+    
+    
+    
+    
+    
+    Display *tmpDisplay = XOpenDisplay(NULL);
+    if (tmpDisplay) {
+      int nExts;
+      char** extNames = XListExtensions(tmpDisplay, &nExts);
+      if (extNames) {
+        for (int i = 0; i < nExts; ++i) {
+          int major_opcode, first_event, first_error;
+          if (XQueryExtension(tmpDisplay, extNames[i],
+                              &major_opcode, &first_event, &first_error)
+              && major_opcode == event->request_code) {
+            message.Append(extNames[i]);
+            message.Append('.');
+            message.AppendInt(event->minor_code);
+            break;
+          }
+        }
+
+        XFreeExtensionList(extNames);
+      }
+      XCloseDisplay(tmpDisplay);
     }
   }
 
@@ -155,7 +155,7 @@ X11Error(Display *display, XErrorEvent *event) {
       
       
       
-      PluginThreadChild::AppendNotesToCrashReport(notes);
+      PluginProcessChild::AppendNotesToCrashReport(notes);
     }
     break;
 #endif
@@ -169,7 +169,7 @@ X11Error(Display *display, XErrorEvent *event) {
   
   notes.Append("; id=0x");
   notes.AppendInt(PRUint32(event->resourceid), 16);
-#ifdef MOZ_WIDGET_GTK2
+#ifdef MOZ_X11
   
   
   
@@ -177,6 +177,16 @@ X11Error(Display *display, XErrorEvent *event) {
     notes.Append("\nRe-running with MOZ_X_SYNC=1 in the environment may give a more helpful backtrace.");
   }
 #endif
+#endif
+
+#ifdef MOZ_WIDGET_QT
+  
+  
+  
+  if (!PR_GetEnv("MOZ_X_SYNC")) {
+    fprintf(stderr, "XError: %s\n", notes.get());
+    return 0; 
+  }
 #endif
 
   NS_RUNTIMEABORT(notes.get());
@@ -189,10 +199,9 @@ InstallX11ErrorHandler()
 {
   XSetErrorHandler(X11Error);
 
-#ifdef MOZ_WIDGET_GTK2
-  NS_ASSERTION(GDK_DISPLAY(), "No GDK display");
+  Display *display = mozilla::DefaultXDisplay();
+  NS_ASSERTION(display, "No X display");
   if (PR_GetEnv("MOZ_X_SYNC")) {
-    XSynchronize(GDK_DISPLAY(), True);
+    XSynchronize(display, True);
   }
-#endif
 }
