@@ -894,10 +894,6 @@ static inline CheckAccessOp     Valueify(JSCheckAccessOp f)   { return (CheckAcc
 static inline JSCheckAccessOp   Jsvalify(CheckAccessOp f)     { return (JSCheckAccessOp)f; }
 static inline EqualityOp        Valueify(JSEqualityOp f);     
 static inline JSEqualityOp      Jsvalify(EqualityOp f);       
-static inline DefinePropOp      Valueify(JSDefinePropOp f)    { return (DefinePropOp)f; }
-static inline JSDefinePropOp    Jsvalify(DefinePropOp f)      { return (JSDefinePropOp)f; }
-static inline PropertyIdOp      Valueify(JSPropertyIdOp f);   
-static inline JSPropertyIdOp    Jsvalify(PropertyIdOp f);     
 
 static const PropertyOp    PropertyStub  = (PropertyOp)JS_PropertyStub;
 static const JSEnumerateOp EnumerateStub = JS_EnumerateStub;
