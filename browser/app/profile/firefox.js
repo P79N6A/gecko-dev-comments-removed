@@ -320,8 +320,6 @@ pref("browser.urlbar.default.behavior", 0);
 pref("browser.urlbar.formatting.enabled", true);
 pref("browser.urlbar.trimURLs", true);
 
-pref("browser.altClickSave", false);
-
 
 
 
