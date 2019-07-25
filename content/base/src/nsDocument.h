@@ -1208,6 +1208,11 @@ private:
                                        PRBool aUpdateCSSLoader);
 
   
+  void RevokeAnimationFrameNotifications();
+  
+  void RescheduleAnimationFrameNotifications();
+
+  
   nsDocument(const nsDocument& aOther);
   nsDocument& operator=(const nsDocument& aOther);
 
