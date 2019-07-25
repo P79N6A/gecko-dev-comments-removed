@@ -797,6 +797,20 @@ public:
 
 
   virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface) = 0;
+  
+  
+
+
+
+
+
+
+
+
+  nsIntRect CalculateScissorRect(bool aIntermediate,
+                                 const nsIntRect& aVisibleRect,
+                                 const nsIntRect& aParentScissor,
+                                 const gfxMatrix& aTransform);
 
   virtual const char* Name() const =0;
   virtual LayerType GetType() const =0;
