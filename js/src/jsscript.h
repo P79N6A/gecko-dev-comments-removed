@@ -514,7 +514,6 @@ struct JSScript : public js::gc::Cell
   private:
     
     
-    
     ArrayBitsT      hasArrayBits;
 
     
@@ -565,24 +564,19 @@ struct JSScript : public js::gc::Cell
     
     
 
-    
-
-
-
-
-
-
-
-
-
-
   public:
-    static JSScript *NewScript(JSContext *cx, uint32_t length, uint32_t nsrcnotes, uint32_t natoms,
-                               uint32_t nobjects, uint32_t nregexps,
-                               uint32_t ntrynotes, uint32_t nconsts,
-                               uint16_t nClosedArgs, uint16_t nClosedVars, uint32_t nTypeSets,
-                               JSVersion version);
-    static JSScript *NewScriptFromEmitter(JSContext *cx, js::BytecodeEmitter *bce);
+    static JSScript *Create(JSContext *cx);
+
+    
+    
+    
+    
+    bool partiallyInit(JSContext *cx, uint32_t length, uint32_t nsrcnotes, uint32_t natoms,
+                       uint32_t nobjects, uint32_t nregexps, uint32_t ntrynotes, uint32_t nconsts,
+                       uint16_t nClosedArgs, uint16_t nClosedVars, uint32_t nTypeSets,
+                       JSVersion version);
+    bool fullyInitTrivial(JSContext *cx, JSVersion version);  
+    bool fullyInitFromEmitter(JSContext *cx, js::BytecodeEmitter *bce);
 
     void setVersion(JSVersion v) { version = v; }
 
@@ -943,6 +937,7 @@ JS_STATIC_ASSERT(sizeof(JSScript::ArrayBitsT) * 8 >= JSScript::LIMIT);
 
 
 JS_STATIC_ASSERT(sizeof(JSScript) % js::gc::Cell::CellSize == 0);
+
 
 
 

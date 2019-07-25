@@ -77,6 +77,8 @@ struct BytecodeEmitter
 
     BytecodeEmitter *parent;        
 
+    Rooted<JSScript*> script;       
+
     struct {
         jsbytecode  *base;          
         jsbytecode  *limit;         
@@ -130,7 +132,7 @@ struct BytecodeEmitter
 
     bool            inForInit:1;        
 
-    BytecodeEmitter(Parser *parser, SharedContext *sc, unsigned lineno,
+    BytecodeEmitter(Parser *parser, SharedContext *sc, Handle<JSScript*> script, unsigned lineno,
                     bool noScriptRval, bool needScriptGlobal);
     bool init();
 
