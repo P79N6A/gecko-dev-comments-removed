@@ -195,6 +195,9 @@ protected:
   TimeContainerHashtable     mChildContainerTable;
   PRPackedBool               mResampleNeeded;
   PRPackedBool               mDeferredStartSampling;
+#ifdef DEBUG
+  PRPackedBool               mRunningSample;
+#endif
 
   
   

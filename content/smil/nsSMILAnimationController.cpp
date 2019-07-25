@@ -70,10 +70,12 @@ GetRefreshDriverForDoc(nsIDocument* aDoc)
 
 
 
-
 nsSMILAnimationController::nsSMILAnimationController()
   : mResampleNeeded(PR_FALSE),
     mDeferredStartSampling(PR_FALSE),
+#ifdef DEBUG
+    mRunningSample(PR_FALSE),
+#endif
     mDocument(nsnull)
 {
   mAnimationElementTable.Init();
@@ -175,6 +177,7 @@ void
 nsSMILAnimationController::RegisterAnimationElement(
                                   nsISMILAnimationElement* aAnimationElement)
 {
+  NS_ASSERTION(!mRunningSample, "Registering content during sample.");
   mAnimationElementTable.PutEntry(aAnimationElement);
   if (mDeferredStartSampling) {
     
@@ -190,6 +193,7 @@ void
 nsSMILAnimationController::UnregisterAnimationElement(
                                   nsISMILAnimationElement* aAnimationElement)
 {
+  NS_ASSERTION(!mRunningSample, "Unregistering content during sample.");
   mAnimationElementTable.RemoveEntry(aAnimationElement);
 }
 
@@ -322,6 +326,14 @@ void
 nsSMILAnimationController::DoSample(PRBool aSkipUnchangedContainers)
 {
   
+  
+  mResampleNeeded = PR_FALSE;
+  mDocument->FlushPendingNotifications(Flush_Style);
+#ifdef DEBUG
+  mRunningSample = PR_TRUE;
+#endif
+  
+  
   mResampleNeeded = PR_FALSE;
 
   
@@ -363,8 +375,6 @@ nsSMILAnimationController::DoSample(PRBool aSkipUnchangedContainers)
   
   nsAutoPtr<nsSMILCompositorTable>
     currentCompositorTable(new nsSMILCompositorTable());
-  if (!currentCompositorTable)
-    return;
   currentCompositorTable->Init(0);
 
   SampleAnimationParams saParams = { &activeContainers,
@@ -398,6 +408,9 @@ nsSMILAnimationController::DoSample(PRBool aSkipUnchangedContainers)
   
   
   currentCompositorTable->EnumerateEntries(DoComposeAttribute, nsnull);
+#ifdef DEBUG
+  mRunningSample = PR_FALSE;
+#endif
 
   
   mLastCompositorTable = currentCompositorTable.forget();
