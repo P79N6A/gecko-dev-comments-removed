@@ -130,6 +130,12 @@ static void *frameBufferWatcher(void *) {
     return NULL;
 }
 
+static int
+CancelBufferNoop(ANativeWindow* aWindow, ANativeWindowBuffer* aBuffer)
+{
+    return 0;
+}
+
 } 
 
 nsWindow::nsWindow()
@@ -147,6 +153,12 @@ nsWindow::nsWindow()
         
         
         gNativeWindow = new android::FramebufferNativeWindow();
+
+        
+        
+        
+        
+        gNativeWindow->cancelBuffer = CancelBufferNoop;
 
         nsIntSize screenSize;
         bool gotFB = Framebuffer::GetSize(&screenSize);
