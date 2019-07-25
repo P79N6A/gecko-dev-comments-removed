@@ -167,7 +167,7 @@ class WorkerParent {
 
     bool addChild(Worker *w) {
         AutoLock hold(getLock());
-        return children.put(w) != NULL;
+        return children.put(w);
     }
 
     
