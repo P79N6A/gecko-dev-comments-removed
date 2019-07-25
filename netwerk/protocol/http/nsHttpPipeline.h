@@ -111,6 +111,11 @@ private:
     char     *mPushBackBuf;
     PRUint32  mPushBackLen;
     PRUint32  mPushBackMax;
+
+    
+    PRUint64  mReceivingFromProgress;
+    PRUint64  mSendingToProgress;
+    bool      mSuppressSendEvents;
 };
 
 #endif 
