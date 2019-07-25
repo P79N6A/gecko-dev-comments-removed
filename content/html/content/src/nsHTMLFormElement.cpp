@@ -384,6 +384,17 @@ NS_IMPL_STRING_ATTR(nsHTMLFormElement, Name, name)
 NS_IMPL_STRING_ATTR(nsHTMLFormElement, Target, target)
 
 NS_IMETHODIMP
+nsHTMLFormElement::GetMozActionUri(nsAString& aValue)
+{
+  GetAttr(kNameSpaceID_None, nsGkAtoms::action, aValue);
+  if (aValue.IsEmpty()) {
+    
+    return NS_OK;
+  }
+  return GetURIAttr(nsGkAtoms::action, nsnull, aValue);
+}
+
+NS_IMETHODIMP
 nsHTMLFormElement::Submit()
 {
   
@@ -1331,11 +1342,7 @@ nsHTMLFormElement::GetActionURL(nsIURI** aActionURL)
   
   
   nsAutoString action;
-  GetAttr(kNameSpaceID_None, nsGkAtoms::action, action);
-  
-  if (!action.IsEmpty()) {
-    GetURIAttr(nsGkAtoms::action, nsnull, action);
-  }
+  GetMozActionUri(action);
 
   
   
