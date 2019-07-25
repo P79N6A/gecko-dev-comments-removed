@@ -234,8 +234,23 @@ window.Page = {
     Navbar.show();    
     window.statusbar.visible = true;
     
+    this.setCloseButtonOnTabs();
+    
     
     Utils.getCurrentWindow().document.getElementById("main-window").removeAttribute("activetitlebarcolor");     
+  },
+  
+  setCloseButtonOnTabs : function() {
+    
+    
+    
+    setTimeout(function() {
+      var tabContainer = Utils.getCurrentWindow().gBrowser.tabContainer;
+      if (tabContainer.mCloseButtons == 1 &&
+          tabContainer.getAttribute("overflow") != "true") {
+        tabContainer.setAttribute("closebuttons", "alltabs");
+      };
+    }, 50);
   },
   
   setupKeyHandlers: function(){
@@ -607,10 +622,11 @@ UIClass.prototype = {
       });
       
       
-      Page.init();
-      
-      
       var currentWindow = Utils.getCurrentWindow();
+      Page.init();
+      currentWindow.addEventListener(
+        "resize", function() { Page.setCloseButtonOnTabs(); }, false)
+      
       
       var data = Storage.readUIData(currentWindow);
       this.storageSanity(data);
