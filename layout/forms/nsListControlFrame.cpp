@@ -1629,13 +1629,9 @@ nsListControlFrame::FireOnChange()
   }
 
   
-  nsEventStatus status = nsEventStatus_eIgnore;
-  nsEvent event(PR_TRUE, NS_FORM_CHANGE);
-
-  nsCOMPtr<nsIPresShell> presShell = PresContext()->GetPresShell();
-  if (presShell) {
-    presShell->HandleEventWithTarget(&event, this, nsnull, &status);
-  }
+  nsContentUtils::DispatchTrustedEvent(mContent->GetOwnerDoc(), mContent,
+                                       NS_LITERAL_STRING("change"), PR_TRUE,
+                                       PR_FALSE);
 }
 
 NS_IMETHODIMP

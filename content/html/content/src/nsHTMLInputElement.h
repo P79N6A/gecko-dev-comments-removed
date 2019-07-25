@@ -422,11 +422,6 @@ protected:
   
 
 
-  void FireOnChange();
-
-  
-
-
 
   nsresult VisitGroup(nsIRadioVisitor* aVisitor, PRBool aFlushContent);
 

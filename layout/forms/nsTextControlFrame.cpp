@@ -1360,10 +1360,9 @@ nsTextControlFrame::CheckFireOnChange()
   {
     mFocusedValue = value;
     
-    nsEventStatus status = nsEventStatus_eIgnore;
-    nsInputEvent event(PR_TRUE, NS_FORM_CHANGE, nsnull);
-    nsCOMPtr<nsIPresShell> shell = PresContext()->PresShell();
-    shell->HandleEventWithTarget(&event, nsnull, mContent, &status);
+    nsContentUtils::DispatchTrustedEvent(mContent->GetOwnerDoc(), mContent,
+                                         NS_LITERAL_STRING("change"), PR_TRUE,
+                                         PR_FALSE);
   }
   return NS_OK;
 }
