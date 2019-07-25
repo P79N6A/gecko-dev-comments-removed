@@ -941,27 +941,33 @@ ContainerState::ThebesLayerData::Accumulate(nsDisplayListBuilder* aBuilder,
                                             const FrameLayerBuilder::Clip& aClip)
 {
   nscolor uniformColor;
-  if (aItem->IsUniform(aBuilder, &uniformColor) &&
-      aItem->GetBounds(aBuilder).ToInsidePixels(AppUnitsPerDevPixel(aItem)).Contains(aVisibleRect)) {
-    if (mVisibleRegion.IsEmpty()) {
-      
-      mSolidColor = uniformColor;
-      mIsSolidColorInVisibleRegion = PR_TRUE;
-    } else if (mIsSolidColorInVisibleRegion &&
-               mVisibleRegion.IsEqual(nsIntRegion(aVisibleRect))) {
-      
-      mSolidColor = NS_ComposeColors(mSolidColor, uniformColor);
+  PRBool isUniform = aItem->IsUniform(aBuilder, &uniformColor);
+  
+  
+  
+  if (!isUniform || NS_GET_A(uniformColor) > 0) {
+    if (isUniform &&
+        aItem->GetBounds(aBuilder).ToInsidePixels(AppUnitsPerDevPixel(aItem)).Contains(aVisibleRect)) {
+      if (mVisibleRegion.IsEmpty()) {
+        
+        mSolidColor = uniformColor;
+        mIsSolidColorInVisibleRegion = PR_TRUE;
+      } else if (mIsSolidColorInVisibleRegion &&
+                 mVisibleRegion.IsEqual(nsIntRegion(aVisibleRect))) {
+        
+        mSolidColor = NS_ComposeColors(mSolidColor, uniformColor);
+      } else {
+        mIsSolidColorInVisibleRegion = PR_FALSE;
+      }
     } else {
       mIsSolidColorInVisibleRegion = PR_FALSE;
     }
-  } else {
-    mIsSolidColorInVisibleRegion = PR_FALSE;
-  }
 
-  mVisibleRegion.Or(mVisibleRegion, aVisibleRect);
-  mVisibleRegion.SimplifyOutward(4);
-  mDrawRegion.Or(mDrawRegion, aDrawRect);
-  mDrawRegion.SimplifyOutward(4);
+    mVisibleRegion.Or(mVisibleRegion, aVisibleRect);
+    mVisibleRegion.SimplifyOutward(4);
+    mDrawRegion.Or(mDrawRegion, aDrawRect);
+    mDrawRegion.SimplifyOutward(4);
+  }
 
   PRBool forceTransparentSurface = PR_FALSE;
   nsRegion opaque = aItem->GetOpaqueRegion(aBuilder, &forceTransparentSurface);
