@@ -10210,6 +10210,11 @@ TraceRecorder::getThis(LIns*& this_ins)
         RETURN_ERROR("computeThis failed");
 
     
+#ifdef DEBUG
+    JS_ASSERT(thisv.isObject());
+    JSObject *thisObj = &thisv.toObject();
+    JS_ASSERT(thisObj->getClass()->ext.innerObject);
+#endif
     this_ins = INS_CONSTOBJ(globalObj);
     set(&thisv, this_ins);
     return RECORD_CONTINUE;
