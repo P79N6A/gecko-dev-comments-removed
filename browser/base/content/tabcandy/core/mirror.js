@@ -41,6 +41,8 @@
 
 (function(){
 
+
+
 function _isIframe(doc){
   var win = doc.defaultView;
   return win.parent != win;
@@ -290,6 +292,8 @@ TabMirror.prototype = {
     this._fireNextHeartbeat();
   },
   
+  
+  
   _heartbeat: function() {
     try {
 
@@ -355,6 +359,8 @@ TabMirror.prototype = {
     this._fireNextHeartbeat();
   },
   
+  
+  
   _fireNextHeartbeat: function() {
     var self = this;
     iQ.timeout(function() {
@@ -362,14 +368,20 @@ TabMirror.prototype = {
     }, 100);
   },   
     
+  
+  
   _customize: function(func){
     
     
   },
   
+  
+  
   _createEl: function(tab){
     new Mirror(tab, this); 
   },
+  
+  
   
   update: function(tab){
     this.link(tab);
@@ -377,6 +389,8 @@ TabMirror.prototype = {
     if (tab.mirror && tab.mirror.tabCanvas)
       tab.mirror.triggerPaint();
   },
+  
+  
   
   link: function(tab){
     
@@ -387,6 +401,8 @@ TabMirror.prototype = {
     this._createEl(tab);
     return true;
   },
+  
+  
   
   unlink: function(tab){
     var mirror = tab.mirror;

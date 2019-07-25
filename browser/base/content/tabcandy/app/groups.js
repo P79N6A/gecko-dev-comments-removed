@@ -1249,11 +1249,13 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
         
         
         
-        
-
-
-
-
+        var activeTab = self.getActiveTab();
+        if( !self._isStacked ){
+          if ( activeTab ) 
+            activeTab.zoomIn();
+          else if (self.getChild(0))
+            self.getChild(0).zoomIn();          
+        }
           
         self._mouseDown = null;
     });
