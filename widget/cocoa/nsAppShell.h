@@ -46,6 +46,14 @@ private:
   nsTArray<nsCocoaAppModalWindowListItem> mList;
 };
 
+
+
+
+@interface GeckoNSApplication : NSApplication
+{
+}
+@end
+
 @class AppShellDelegate;
 
 class nsAppShell : public nsBaseAppShell
