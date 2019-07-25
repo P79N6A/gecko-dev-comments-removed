@@ -14,7 +14,7 @@ const ENCTYPE_SDR = 1;
 
 
 
-const CURRENT_SCHEMA = 4;
+const CURRENT_SCHEMA = 5;
 
 function run_test() {
 
@@ -293,6 +293,37 @@ do_check_eq(1, t2.timesUsed);
 do_check_true(LoginTest.is_about_now(t2.timeCreated));
 do_check_true(LoginTest.is_about_now(t2.timeLastUsed));
 do_check_true(LoginTest.is_about_now(t2.timePasswordChanged));
+
+
+
+testnum++;
+testdesc = "Test upgrade from v4 storage"
+
+LoginTest.copyFile("signons-v4.sqlite");
+
+dbConnection = LoginTest.openDB("signons-v4.sqlite");
+do_check_eq(4, dbConnection.schemaVersion);
+do_check_false(dbConnection.tableExists("moz_deleted_logins"));
+
+storage = LoginTest.reloadStorage(OUTDIR, "signons-v4.sqlite");
+do_check_eq(CURRENT_SCHEMA, dbConnection.schemaVersion);
+do_check_true(dbConnection.tableExists("moz_deleted_logins"));
+
+
+
+testnum++;
+testdesc = "Test upgrade from v4->v5->v4 storage"
+
+LoginTest.copyFile("signons-v4v5.sqlite");
+
+dbConnection = LoginTest.openDB("signons-v4v5.sqlite");
+do_check_eq(4, dbConnection.schemaVersion);
+do_check_true(dbConnection.tableExists("moz_deleted_logins"));
+
+storage = LoginTest.reloadStorage(OUTDIR, "signons-v4v5.sqlite");
+do_check_eq(CURRENT_SCHEMA, dbConnection.schemaVersion);
+do_check_true(dbConnection.tableExists("moz_deleted_logins"));
+
 
 } catch (e) {
     throw "FAILED in test #" + testnum + " -- " + testdesc + ": " + e;
