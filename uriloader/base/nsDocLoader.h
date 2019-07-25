@@ -60,6 +60,7 @@
 #include "nsCOMPtr.h"
 #include "pldhash.h"
 #include "prclist.h"
+#include "nsAutoPtr.h"
 
 struct nsRequestInfo;
 struct nsListenerInfo;
@@ -154,10 +155,28 @@ protected:
                               PRInt64 aTotalProgress,
                               PRInt64 aMaxTotalProgress);
 
+    
+    
+    
+    
+    
+    typedef nsAutoTArray<nsRefPtr<nsDocLoader>, 8> WebProgressList;
+    void GatherAncestorWebProgresses(WebProgressList& aList);
+
     void FireOnStateChange(nsIWebProgress *aProgress,
                            nsIRequest* request,
                            PRInt32 aStateFlags,
                            nsresult aStatus);
+
+    
+    
+    
+    
+    
+    void DoFireOnStateChange(nsIWebProgress * const aProgress,
+                             nsIRequest* const request,
+                             PRInt32 &aStateFlags,
+                             const nsresult aStatus);
 
     void FireOnStatusChange(nsIWebProgress *aWebProgress,
                             nsIRequest *aRequest,

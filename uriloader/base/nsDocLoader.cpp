@@ -950,22 +950,29 @@ void nsDocLoader::doStopDocumentLoad(nsIRequest *request,
   
   
   
-  FireOnStateChange(this,
-                    request,
-                    nsIWebProgressListener::STATE_STOP |
-                    nsIWebProgressListener::STATE_IS_DOCUMENT,
-                    aStatus);
+  WebProgressList list;
+  GatherAncestorWebProgresses(list);
+  
+  
+  
+  
+  
+  PRInt32 flags = nsIWebProgressListener::STATE_STOP |
+                  nsIWebProgressListener::STATE_IS_DOCUMENT;
+  for (PRUint32 i = 0; i < list.Length(); ++i) {
+    list[i]->DoFireOnStateChange(this, request, flags, aStatus);
+  }
 
   
   
   
   
-  FireOnStateChange(this,
-                    request,
-                    nsIWebProgressListener::STATE_STOP |
-                    nsIWebProgressListener::STATE_IS_WINDOW |
-                    nsIWebProgressListener::STATE_IS_NETWORK,
-                    aStatus);
+  flags = nsIWebProgressListener::STATE_STOP |
+          nsIWebProgressListener::STATE_IS_WINDOW |
+          nsIWebProgressListener::STATE_IS_NETWORK;
+  for (PRUint32 i = 0; i < list.Length(); ++i) {
+    list[i]->DoFireOnStateChange(this, request, flags, aStatus);
+  }
 }
 
 
@@ -1295,11 +1302,29 @@ void nsDocLoader::FireOnProgressChange(nsDocLoader *aLoadInitiator,
   }
 }
 
+void nsDocLoader::GatherAncestorWebProgresses(WebProgressList& aList)
+{
+  for (nsDocLoader* loader = this; loader; loader = loader->mParent) {
+    aList.AppendElement(loader);
+  }
+}
 
 void nsDocLoader::FireOnStateChange(nsIWebProgress *aProgress,
                                     nsIRequest *aRequest,
                                     PRInt32 aStateFlags,
                                     nsresult aStatus)
+{
+  WebProgressList list;
+  GatherAncestorWebProgresses(list);
+  for (PRUint32 i = 0; i < list.Length(); ++i) {
+    list[i]->DoFireOnStateChange(aProgress, aRequest, aStateFlags, aStatus);
+  }
+}
+
+void nsDocLoader::DoFireOnStateChange(nsIWebProgress * const aProgress,
+                                      nsIRequest * const aRequest,
+                                      PRInt32 &aStateFlags,
+                                      const nsresult aStatus)
 {
   
   
@@ -1359,11 +1384,6 @@ void nsDocLoader::FireOnStateChange(nsIWebProgress *aProgress,
   }
 
   mListenerInfoList.Compact();
-
-  
-  if (mParent) {
-    mParent->FireOnStateChange(aProgress, aRequest, aStateFlags, aStatus);
-  }
 }
 
 
