@@ -787,15 +787,17 @@ ConservativeGCThreadData::recordStackTop()
     nativeStackTop = &dummy;
 
     
+
+
+
 #if defined(_MSC_VER)
 # pragma warning(push)
 # pragma warning(disable: 4611)
 #endif
-    setjmp(registerSnapshot.jmpbuf);
+    (void) setjmp(registerSnapshot.jmpbuf);
 #if defined(_MSC_VER)
 # pragma warning(pop)
 #endif
-
 }
 
 static inline void
