@@ -579,8 +579,6 @@ nsWindow::nsWindow()
         initialize_prefs();
     }
 
-    memset(mKeyDownFlags, 0, sizeof(mKeyDownFlags));
-
     if (mLastDragMotionWindow == this)
         mLastDragMotionWindow = NULL;
     mDragMotionWidget = 0;
@@ -3124,12 +3122,6 @@ nsWindow::DispatchKeyDownEvent(GdkEventKey *aEvent, PRBool *aCancelled)
 
     PRUint32 domVirtualKeyCode = GdkKeyCodeToDOMKeyCode(aEvent->keyval);
 
-    if (IsKeyDown(domVirtualKeyCode)) {
-        return PR_FALSE;
-    }
-
-    SetKeyDownFlag(domVirtualKeyCode);
-
     
     nsEventStatus status;
     nsKeyEvent downEvent(PR_TRUE, NS_KEY_DOWN, this);
@@ -3340,9 +3332,6 @@ nsWindow::OnKeyReleaseEvent(GtkWidget *aWidget, GdkEventKey *aEvent)
     
     nsKeyEvent event(PR_TRUE, NS_KEY_UP, this);
     InitKeyEvent(event, aEvent);
-
-    
-    ClearKeyDownFlag(event.keyCode);
 
     nsEventStatus status;
     DispatchEvent(&event, status);
