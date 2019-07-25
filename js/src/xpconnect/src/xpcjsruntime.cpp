@@ -49,6 +49,8 @@
 #include "mozilla/FunctionTimer.h"
 #include "prsystem.h"
 
+using namespace mozilla;
+
 
 
 const char* XPCJSRuntime::mStrings[] = {
@@ -339,10 +341,10 @@ void XPCJSRuntime::TraceJS(JSTracer* trc, void* data)
     
     if(!self->GetXPConnect()->IsShuttingDown())
     {
-        PRLock* threadLock = XPCPerThreadData::GetLock();
+        Mutex* threadLock = XPCPerThreadData::GetLock();
         if(threadLock)
         { 
-            nsAutoLock lock(threadLock);
+            MutexAutoLock lock(*threadLock);
 
             XPCPerThreadData* iterp = nsnull;
             XPCPerThreadData* thread;
@@ -758,10 +760,10 @@ JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
             
             if(!self->GetXPConnect()->IsShuttingDown())
             {
-                PRLock* threadLock = XPCPerThreadData::GetLock();
+                Mutex* threadLock = XPCPerThreadData::GetLock();
                 if(threadLock)
                 { 
-                    nsAutoLock lock(threadLock);
+                    MutexAutoLock lock(*threadLock);
 
                     XPCPerThreadData* iterp = nsnull;
                     XPCPerThreadData* thread;
@@ -852,13 +854,13 @@ JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
             
             if(!self->GetXPConnect()->IsShuttingDown())
             {
-                PRLock* threadLock = XPCPerThreadData::GetLock();
+                Mutex* threadLock = XPCPerThreadData::GetLock();
                 if(threadLock)
                 {
                     
                     
                     { 
-                        nsAutoLock lock(threadLock);
+                        MutexAutoLock lock(*threadLock);
 
                         XPCPerThreadData* iterp = nsnull;
                         XPCPerThreadData* thread;

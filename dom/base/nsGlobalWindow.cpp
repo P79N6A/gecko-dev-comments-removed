@@ -45,6 +45,7 @@
 
 
 
+
 #ifdef MOZ_IPC
 #include "base/basictypes.h"
 #endif
@@ -67,6 +68,8 @@
 #include "nsReadableUtils.h"
 #include "nsDOMClassInfo.h"
 #include "nsJSEnvironment.h"
+#include "nsCharSeparatedTokenizer.h" 
+#include "nsUnicharUtils.h"
 
 
 #include "nsIEventListenerManager.h"
@@ -271,7 +274,7 @@ static PRBool               gDOMWindowDumpEnabled      = PR_FALSE;
 #endif
 
 
-#define DEFAULT_MIN_TIMEOUT_VALUE 10 // 10ms
+#define DEFAULT_MIN_TIMEOUT_VALUE 4 // 4ms
 #define DEFAULT_MIN_BACKGROUND_TIMEOUT_VALUE 1000 // 1000ms
 static PRInt32 gMinTimeoutValue;
 static PRInt32 gMinBackgroundTimeoutValue;
@@ -3618,10 +3621,8 @@ nsGlobalWindow::SetInnerWidth(PRInt32 aInnerWidth)
 
   nsRefPtr<nsIPresShell> presShell;
   mDocShell->GetPresShell(getter_AddRefs(presShell));
-  nsCOMPtr<nsIPresShell_MOZILLA_2_0_BRANCH> presShell20 =
-    do_QueryInterface(presShell);
 
-  if (presShell20 && presShell20->GetIsViewportOverridden())
+  if (presShell && presShell->GetIsViewportOverridden())
   {
     nscoord height = 0;
     nscoord width  = 0;
@@ -3687,10 +3688,8 @@ nsGlobalWindow::SetInnerHeight(PRInt32 aInnerHeight)
 
   nsRefPtr<nsIPresShell> presShell;
   mDocShell->GetPresShell(getter_AddRefs(presShell));
-  nsCOMPtr<nsIPresShell_MOZILLA_2_0_BRANCH> presShell20 =
-    do_QueryInterface(presShell);
 
-  if (presShell20 && presShell20->GetIsViewportOverridden())
+  if (presShell && presShell->GetIsViewportOverridden())
   {
     nscoord height = 0;
     nscoord width  = 0;
@@ -10144,8 +10143,7 @@ nsGlobalChromeWindow::SetCursor(const nsAString& aCursor)
     nsIViewManager* vm = presShell->GetViewManager();
     NS_ENSURE_TRUE(vm, NS_ERROR_FAILURE);
 
-    nsIView *rootView;
-    vm->GetRootView(rootView);
+    nsIView* rootView = vm->GetRootView();
     NS_ENSURE_TRUE(rootView, NS_ERROR_FAILURE);
 
     nsIWidget* widget = rootView->GetNearestWidget(nsnull);
@@ -10565,19 +10563,56 @@ nsNavigator::GetAppName(nsAString& aAppName)
   return NS_GetNavigatorAppName(aAppName);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
 NS_IMETHODIMP
 nsNavigator::GetLanguage(nsAString& aLanguage)
 {
-  nsresult rv;
-  nsCOMPtr<nsIHttpProtocolHandler>
-    service(do_GetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "http", &rv));
-  if (NS_SUCCEEDED(rv)) {
-    nsCAutoString lang;
-    rv = service->GetLanguage(lang);
-    CopyASCIItoUTF16(lang, aLanguage);
-  }
+  
+  const nsAdoptingString& acceptLang =
+      nsContentUtils::GetLocalizedStringPref("intl.accept_languages");
+  
+  nsCharSeparatedTokenizer langTokenizer(acceptLang, ',');
+  const nsSubstring &firstLangPart = langTokenizer.nextToken();
+  nsCharSeparatedTokenizer qTokenizer(firstLangPart, ';');
+  aLanguage.Assign(qTokenizer.nextToken());
 
-  return rv;
+  
+  
+  if (aLanguage.Length() > 2 && aLanguage[2] == PRUnichar('_'))
+    aLanguage.Replace(2, 1, PRUnichar('-')); 
+  
+  
+  if (aLanguage.Length() > 2)
+  {
+    nsCharSeparatedTokenizer localeTokenizer(aLanguage, '-');
+    PRInt32 pos = 0;
+    bool first = true;
+    while (localeTokenizer.hasMoreTokens())
+    {
+      const nsSubstring &code = localeTokenizer.nextToken();
+      if (code.Length() == 2 && !first)
+      {
+        nsAutoString upper(code);
+        ::ToUpperCase(upper);
+        aLanguage.Replace(pos, code.Length(), upper);
+      }
+      pos += code.Length() + 1; 
+      if (first)
+        first = false;
+    }
+  }
+  return NS_OK;
 }
 
 NS_IMETHODIMP

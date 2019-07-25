@@ -577,6 +577,23 @@ class HashTable : private AllocPolicy
 #endif
     }
 
+    void finish()
+    {
+        JS_ASSERT(!entered);
+
+        if (!table)
+            return;
+        
+        destroyTable(*this, table, tableCapacity);
+        table = NULL;
+        gen++;
+        entryCount = 0;
+        removedCount = 0;
+#ifdef DEBUG
+        mutationCount++;
+#endif
+    }
+
     Range all() const {
         return Range(table, table + tableCapacity);
     }
@@ -745,22 +762,34 @@ struct DefaultHasher
 };
 
 
-template <class T>
-struct DefaultHasher<T *>
+
+
+
+template <typename Key, size_t zeroBits>
+struct PointerHasher
 {
-    typedef T *Lookup;
-    static HashNumber hash(T *l) {
-        
-
-
-
-        return HashNumber(reinterpret_cast<size_t>(l) >>
-                          tl::FloorLog2<sizeof(void *)>::result);
+    typedef Key Lookup;
+    static HashNumber hash(const Lookup &l) {
+        size_t word = reinterpret_cast<size_t>(l) >> zeroBits;
+        JS_STATIC_ASSERT(sizeof(HashNumber) == 4);
+#if JS_BYTES_PER_WORD == 4
+        return HashNumber(word);
+#else
+        JS_STATIC_ASSERT(sizeof word == 8);
+        return HashNumber((word >> 32) ^ word);
+#endif
     }
-    static bool match(T *k, T *l) {
+    static bool match(const Key &k, const Lookup &l) {
         return k == l;
     }
 };
+
+
+
+
+
+template <class T>
+struct DefaultHasher<T *>: PointerHasher<T *, tl::FloorLog2<sizeof(void *)>::result> { };
 
 
 
@@ -936,9 +965,18 @@ class HashMap
     typedef typename Impl::Enum Enum;
 
     
+
+
+
     void clear()                                      { impl.clear(); }
 
     
+
+
+
+    void finish()                                     { impl.finish(); }
+
+   
     bool empty() const                                { return impl.empty(); }
 
     
@@ -1125,7 +1163,16 @@ class HashSet
     typedef typename Impl::Enum Enum;
 
     
+
+
+
     void clear()                                      { impl.clear(); }
+
+    
+
+
+
+    void finish()                                     { impl.finish(); }
 
     
     bool empty() const                                { return impl.empty(); }

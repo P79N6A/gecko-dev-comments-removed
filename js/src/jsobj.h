@@ -1192,6 +1192,14 @@ struct JSObject : js::gc::Cell {
     bool reportNotConfigurable(JSContext* cx, jsid id, uintN report = JSREPORT_ERROR);
     bool reportNotExtensible(JSContext *cx, uintN report = JSREPORT_ERROR);
 
+    
+
+
+
+
+
+    bool callMethod(JSContext *cx, jsid id, uintN argc, js::Value *argv, js::Value *vp);
+
   private:
     js::Shape *getChildProperty(JSContext *cx, js::Shape *parent, js::Shape &child);
 
@@ -1904,10 +1912,6 @@ js_ValueToNonNullObject(JSContext *cx, const js::Value &v);
 
 extern JSBool
 js_TryValueOf(JSContext *cx, JSObject *obj, JSType type, js::Value *rval);
-
-extern JSBool
-js_TryMethod(JSContext *cx, JSObject *obj, JSAtom *atom,
-             uintN argc, js::Value *argv, js::Value *rval);
 
 extern JSBool
 js_XDRObject(JSXDRState *xdr, JSObject **objp);
