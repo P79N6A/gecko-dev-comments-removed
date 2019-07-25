@@ -76,6 +76,10 @@ static NS_DEFINE_IID(kRangeCID, NS_RANGE_CID);
 
 
 
+PR_STATIC_ASSERT(CH_SHY <= 255);
+
+
+
 
 
 
