@@ -25,6 +25,7 @@
 
 
 
+
 #include <ft2build.h>
 
 #include FT_INTERNAL_DEBUG_H
@@ -606,6 +607,9 @@
       return PCF_Err_Invalid_File_Format;
 
     face->nmetrics = nmetrics;
+
+    if ( !nmetrics )
+      return PCF_Err_Invalid_Table;
 
     FT_TRACE4(( "pcf_get_metrics:\n" ));
 

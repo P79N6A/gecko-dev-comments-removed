@@ -527,7 +527,7 @@
                    FT_Byte*    base,
                    FT_Byte*    limit )
   {
-    AFM_Stream  stream;
+    AFM_Stream  stream = NULL;
     FT_Error    error;
 
 

@@ -182,11 +182,6 @@ typedef unsigned long  ulg;
 #endif
 
 
-#ifndef ZLIB_DEBUG
-#undef DEBUG
-#endif
-
-
 #ifdef DEBUG
 #  include <stdio.h>
    extern int z_verbose;

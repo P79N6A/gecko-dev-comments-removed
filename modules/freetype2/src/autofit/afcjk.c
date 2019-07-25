@@ -1371,7 +1371,7 @@
     FT_UNUSED( metrics );
 
 
-    error = af_glyph_hints_reload( hints, outline, 0 );
+    error = af_glyph_hints_reload( hints, outline );
     if ( error )
       goto Exit;
 

@@ -246,6 +246,18 @@
       
       FT_Memory  memory = stream->memory;
 
+
+      
+      if ( count > stream->size )
+      {
+        FT_ERROR(( "FT_Stream_EnterFrame:"
+                   " frame size (%lu) larger than stream size (%lu)\n",
+                   count, stream->size ));
+
+        error = FT_Err_Invalid_Stream_Operation;
+        goto Exit;
+      }
+
 #ifdef FT_DEBUG_MEMORY
       
       stream->base = (unsigned char*)ft_mem_qalloc( memory, count, &error );

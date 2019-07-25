@@ -286,8 +286,7 @@ FT_BEGIN_HEADER
 
   FT_LOCAL( FT_Error )
   af_glyph_hints_reload( AF_GlyphHints  hints,
-                         FT_Outline*    outline,
-                         FT_Bool        get_inflections );
+                         FT_Outline*    outline );
 
   FT_LOCAL( void )
   af_glyph_hints_save( AF_GlyphHints  hints,

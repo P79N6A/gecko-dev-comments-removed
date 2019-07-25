@@ -470,6 +470,11 @@
   }
 
 
+  
+
+  static const char  empty[1] = { 0 };      
+
+
   static char *
   _bdf_list_join( _bdf_list_t*    list,
                   int             c,
@@ -494,16 +499,12 @@
       if ( i + 1 < list->used )
         dp[j++] = (char)c;
     }
-    dp[j] = 0;
+    if ( dp != empty )
+      dp[j] = 0;
 
     *alen = j;
     return dp;
   }
-
-
-  
-
-  static const char  empty[1] = { 0 };      
 
 
   static FT_Error
@@ -648,8 +649,9 @@
     {
       if ( refill )
       {
-        bytes  = (ptrdiff_t)FT_Stream_TryRead( stream, (FT_Byte*)buf + cursor,
-                                               (FT_ULong)(buf_size - cursor) );
+        bytes  = (ptrdiff_t)FT_Stream_TryRead(
+                   stream, (FT_Byte*)buf + cursor,
+                   (FT_ULong)( buf_size - cursor ) );
         avail  = cursor + bytes;
         cursor = 0;
         refill = 0;
@@ -719,6 +721,10 @@
       {
         error = (*cb)( buf + start, end - start, lineno,
                        (void*)&cb, client_data );
+        
+        if ( error == -1 )
+          error = (*cb)( buf + start, end - start, lineno,
+                         (void*)&cb, client_data );
         if ( error )
           break;
       }
@@ -1371,7 +1377,8 @@
 
     
     
-    if ( ft_memcmp( name, "COMMENT", 7 ) != 0 ) {
+    if ( ft_memcmp( name, "COMMENT", 7 ) != 0 )
+    {
       
       error = hash_insert( fp->name,
                            font->props_used,
@@ -1867,6 +1874,9 @@
     error = BDF_Err_Invalid_File_Format;
 
   Exit:
+    if ( error && ( p->flags & _BDF_GLYPH ) )
+      FT_FREE( p->glyph_name );
+
     return error;
   }
 
@@ -2077,6 +2087,14 @@
     
     if ( ft_memcmp( line, "STARTPROPERTIES", 15 ) == 0 )
     {
+      if ( !( p->flags & _BDF_FONT_BBX ) )
+      {
+        
+        FT_ERROR(( "_bdf_parse_start: " ERRMSG1, lineno, "FONTBOUNDINGBOX" ));
+        error = BDF_Err_Missing_Fontboundingbox_Field;
+        goto Exit;
+      }
+
       error = _bdf_list_split( &p->list, (char *)" +", line, linelen );
       if ( error )
         goto Exit;
@@ -2095,7 +2113,7 @@
     
     if ( ft_memcmp( line, "FONTBOUNDINGBOX", 15 ) == 0 )
     {
-      if ( !(p->flags & _BDF_SIZE ) )
+      if ( !( p->flags & _BDF_SIZE ) )
       {
         
         FT_ERROR(( "_bdf_parse_start: " ERRMSG1, lineno, "SIZE" ));
@@ -2138,6 +2156,9 @@
         error = BDF_Err_Invalid_File_Format;
         goto Exit;
       }
+
+      
+      FT_FREE( p->font->name );
 
       if ( FT_NEW_ARRAY( p->font->name, slen + 1 ) )
         goto Exit;
@@ -2208,6 +2229,45 @@
       goto Exit;
     }
 
+    
+    if ( ft_memcmp( line, "CHARS", 5 ) == 0 )
+    {
+      char  nbuf[128];
+
+
+      if ( !( p->flags & _BDF_FONT_BBX ) )
+      {
+        
+        FT_ERROR(( "_bdf_parse_start: " ERRMSG1, lineno, "FONTBOUNDINGBOX" ));
+        error = BDF_Err_Missing_Fontboundingbox_Field;
+        goto Exit;
+      }
+
+      
+      
+      p->font->font_ascent = p->font->bbx.ascent;
+      ft_sprintf( nbuf, "%hd", p->font->bbx.ascent );
+      error = _bdf_add_property( p->font, (char *)"FONT_ASCENT", nbuf );
+      if ( error )
+        goto Exit;
+      FT_TRACE2(( "_bdf_parse_properties: " ACMSG1, p->font->bbx.ascent ));
+
+      p->font->font_descent = p->font->bbx.descent;
+      ft_sprintf( nbuf, "%hd", p->font->bbx.descent );
+      error = _bdf_add_property( p->font, (char *)"FONT_DESCENT", nbuf );
+      if ( error )
+        goto Exit;
+      FT_TRACE2(( "_bdf_parse_properties: " ACMSG2, p->font->bbx.descent ));
+
+      p->font->modified = 1;
+
+      *next = _bdf_parse_glyphs;
+
+      
+      error = -1;
+      goto Exit;
+    }
+
     error = BDF_Err_Invalid_File_Format;
 
   Exit:
@@ -2229,7 +2289,7 @@
                  bdf_font_t*    *font )
   {
     unsigned long  lineno = 0; 
-    _bdf_parse_t   *p;
+    _bdf_parse_t   *p     = NULL;
 
     FT_Memory      memory = extmemory;
     FT_Error       error  = BDF_Err_Ok;
@@ -2344,7 +2404,8 @@
       
       memory = p->font->memory;
 
-      if ( p->font->comments_len > 0 ) {
+      if ( p->font->comments_len > 0 )
+      {
         if ( FT_RENEW_ARRAY( p->font->comments,
                              p->font->comments_len,
                              p->font->comments_len + 1 ) )
@@ -2448,8 +2509,8 @@
     hash_free( &(font->proptbl), memory );
 
     
-    for (prop = font->user_props, i = 0;
-         i < font->nuser_props; i++, prop++ )
+    for ( prop = font->user_props, i = 0;
+          i < font->nuser_props; i++, prop++ )
     {
       FT_FREE( prop->name );
       if ( prop->format == BDF_ATOM )

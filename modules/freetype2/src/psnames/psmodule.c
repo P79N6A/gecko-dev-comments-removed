@@ -366,11 +366,13 @@
 
       if ( count == 0 )
       {
+        
         FT_FREE( table->maps );
         if ( !error )
-          error = PSnames_Err_Invalid_Argument;  
+          error = PSnames_Err_No_Unicode_Glyph_Name;
       }
-      else {
+      else
+      {
         
         if ( count < num_glyphs / 2 )
         {

@@ -137,25 +137,22 @@
     FT_UInt   nib;
     FT_UInt   phase;
 
-    FT_Long   result, number, rest, exponent;
+    FT_Long   result, number, exponent;
     FT_Int    sign = 0, exponent_sign = 0;
     FT_Long   exponent_add, integer_length, fraction_length;
 
 
     if ( scaling )
-      *scaling  = 0;
+      *scaling = 0;
 
     result = 0;
 
     number   = 0;
-    rest     = 0;
     exponent = 0;
 
     exponent_add    = 0;
     integer_length  = 0;
     fraction_length = 0;
-
-    FT_UNUSED( rest );
 
     
     phase = 4;
@@ -332,9 +329,17 @@
         goto Exit;
 
       
-      if ( integer_length < 0 ) {
+      if ( integer_length < 0 )
+      {
         number          /= power_tens[-integer_length];
         fraction_length += integer_length;
+      }
+
+      
+      if ( fraction_length == 10 )
+      {
+        number          /= 10;
+        fraction_length -= 1;
       }
 
       
@@ -702,7 +707,7 @@
     clazz[i].count_offset = 0;
 
     *output_class = clazz;
-    return FT_Err_Ok;
+    return CFF_Err_Ok;
   }
 
 

@@ -194,6 +194,8 @@
   
   
   
+  
+  
   FT_CALLBACK_DEF( unsigned long )
   ft_ansi_stream_io( FT_Stream       stream,
                      unsigned long   offset,
@@ -202,6 +204,9 @@
   {
     FT_FILE*  file;
 
+
+    if ( !count && offset > stream->size )
+      return 1;
 
     file = STREAM_FILE( stream );
 

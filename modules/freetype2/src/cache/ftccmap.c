@@ -16,6 +16,7 @@
 
 
 
+
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_CACHE_H
@@ -153,7 +154,7 @@
     FTC_CMapQuery  query  = (FTC_CMapQuery)ftcquery;
     FT_Error       error;
     FT_Memory      memory = cache->memory;
-    FTC_CMapNode   node;
+    FTC_CMapNode   node   = NULL;
     FT_UInt        nn;
 
 
@@ -314,15 +315,7 @@
 
 
 
-
-
-
-
-
-
-
-
-    if ( cmap_index >= 16 && !no_cmap_change )
+    if ( cmap_index > FT_MAX_CHARMAP_CACHEABLE && !no_cmap_change )
     {
       FTC_OldCMapDesc  desc = (FTC_OldCMapDesc) face_id;
 
@@ -384,7 +377,7 @@
     
     if ( (FT_UInt)( char_code - FTC_CMAP_NODE( node )->first >=
                     FTC_CMAP_INDICES_MAX ) )
-      return 0;
+      return 0; 
 
     gindex = FTC_CMAP_NODE( node )->indices[char_code -
                                             FTC_CMAP_NODE( node )->first];
@@ -400,6 +393,12 @@
                                       &face );
       if ( error )
         goto Exit;
+
+#ifdef FT_MAX_CHARMAP_CACHEABLE
+      
+      if ( cmap_index > FT_MAX_CHARMAP_CACHEABLE )
+        return 0; 
+#endif
 
       if ( (FT_UInt)cmap_index < (FT_UInt)face->num_charmaps )
       {

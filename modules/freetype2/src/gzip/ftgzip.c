@@ -107,7 +107,7 @@
   {
     FT_ULong    sz = (FT_ULong)size * items;
     FT_Error    error;
-    FT_Pointer  p;
+    FT_Pointer  p  = NULL;
 
 
     (void)FT_ALLOC( p, sz );
@@ -390,7 +390,7 @@
   ft_gzip_file_fill_output( FT_GZipFile  zip )
   {
     z_stream*  zstream = &zip->zstream;
-    FT_Error   error   = 0;
+    FT_Error   error   = Gzip_Err_Ok;
 
 
     zip->cursor        = zip->buffer;
@@ -656,7 +656,7 @@
           ft_gzip_file_io( zip, 0, NULL, 0 );
           FT_FREE( zip_buff );
         }
-        error = 0;
+        error = Gzip_Err_Ok;
       }
     }
 

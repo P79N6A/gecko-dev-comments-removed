@@ -15,6 +15,7 @@
 
 
 
+
 #include <ft2build.h>
 #include FT_INTERNAL_DEBUG_H
 #include FT_INTERNAL_STREAM_H
@@ -417,7 +418,7 @@
   tt_face_load_eblc( TT_Face    face,
                      FT_Stream  stream )
   {
-    FT_Error   error  = 0;
+    FT_Error   error  = SFNT_Err_Ok;
     FT_Memory  memory = stream->memory;
     FT_Fixed   version;
     FT_ULong   num_strikes;

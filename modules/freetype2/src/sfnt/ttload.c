@@ -17,6 +17,7 @@
 
 
 
+
 #include <ft2build.h>
 #include FT_INTERNAL_DEBUG_H
 #include FT_INTERNAL_STREAM_H
@@ -77,7 +78,8 @@
     {
       
       
-      if ( entry->Tag == tag ) {
+      if ( entry->Tag == tag )
+      {
         if ( entry->Length != 0 )
         {
           FT_TRACE4(( "found table.\n" ));
@@ -692,6 +694,15 @@
                     " some glyphs might be rendered incorrectly\n" ));
 
         maxProfile->maxTwilightPoints = 0xFFFFU - 4;
+      }
+
+      
+      if ( maxProfile->maxComponentDepth > 100 )
+      {
+        FT_TRACE0(( "tt_face_load_maxp:"
+                    " abnormally large component depth (%d) set to 100\n",
+                    maxProfile->maxComponentDepth ));
+        maxProfile->maxComponentDepth = 100;
       }
     }
 

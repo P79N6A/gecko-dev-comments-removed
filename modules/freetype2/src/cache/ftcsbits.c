@@ -191,7 +191,7 @@
       sbit->width  = 255;
       sbit->height = 0;
       sbit->buffer = NULL;
-      error        = 0;
+      error        = FTC_Err_Ok;
       if ( asize )
         *asize = 0;
     }
@@ -218,7 +218,7 @@
     total = clazz->family_get_count( family, cache->manager );
     if ( total == 0 || gindex >= total )
     {
-      error = FT_Err_Invalid_Argument;
+      error = FTC_Err_Invalid_Argument;
       goto Exit;
     }
 

@@ -69,7 +69,7 @@
   FT_GlyphLoader_New( FT_Memory        memory,
                       FT_GlyphLoader  *aloader )
   {
-    FT_GlyphLoader  loader;
+    FT_GlyphLoader  loader = NULL;
     FT_Error        error;
 
 

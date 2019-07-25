@@ -239,6 +239,14 @@ FT_BEGIN_HEADER
                       FT_Int          range );
 
 
+  FT_LOCAL( FT_Error )
+  Update_Max( FT_Memory  memory,
+              FT_ULong*  size,
+              FT_Long    multiplier,
+              void*      _pbuff,
+              FT_ULong   new_max );
+
+
   
   
   

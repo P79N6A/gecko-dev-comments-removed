@@ -24,6 +24,9 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_TYPE1_TABLES_H
+#include FT_INTERNAL_SERVICE_H
+#include FT_SERVICE_POSTSCRIPT_CMAPS_H
+#include FT_INTERNAL_POSTSCRIPT_HINTS_H
 
 
 FT_BEGIN_HEADER
@@ -204,8 +207,7 @@ FT_BEGIN_HEADER
     CFF_PrivateRec      private_dict;
 
     CFF_IndexRec        local_subrs_index;
-    FT_UInt             num_local_subrs;
-    FT_Byte**           local_subrs;
+    FT_Byte**           local_subrs; 
 
   } CFF_SubFontRec, *CFF_SubFont;
 
@@ -229,7 +231,6 @@ FT_BEGIN_HEADER
 
     CFF_IndexRec     name_index;
     CFF_IndexRec     top_dict_index;
-    CFF_IndexRec     string_index;
     CFF_IndexRec     global_subrs_index;
 
     CFF_EncodingRec  encoding;
@@ -241,8 +242,14 @@ FT_BEGIN_HEADER
     CFF_IndexRec     local_subrs_index;
 
     FT_String*       font_name;
-    FT_UInt          num_global_subrs;
+
+    
     FT_Byte**        global_subrs;
+
+    
+    FT_UInt          num_strings;
+    FT_Byte**        strings;
+    FT_Byte*         string_pool;
 
     CFF_SubFontRec   top_font;
     FT_UInt          num_subfonts;
@@ -251,10 +258,10 @@ FT_BEGIN_HEADER
     CFF_FDSelectRec  fd_select;
 
     
-    void*            pshinter;
+    PSHinter_Service  pshinter;
 
     
-    void*            psnames;
+    FT_Service_PsCMaps  psnames;
 
     
     PS_FontInfoRec*  font_info;   

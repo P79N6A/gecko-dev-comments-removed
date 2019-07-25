@@ -131,7 +131,7 @@
   cid_size_init( FT_Size  cidsize )     
   {
     CID_Size           size  = (CID_Size)cidsize;
-    FT_Error           error = 0;
+    FT_Error           error = CID_Err_Ok;
     PSH_Globals_Funcs  funcs = cid_size_get_globals_funcs( size );
 
 

@@ -28,12 +28,14 @@
 #define __FTMISC_H__
 
 
+
 #include FT_CONFIG_STANDARD_LIBRARY_H
 
 #define FT_BEGIN_HEADER
 #define FT_END_HEADER
 
 #define FT_LOCAL_DEF( x )   static x
+
 
   
 
@@ -77,11 +79,21 @@
 
   } FT_MemoryRec;
 
+
   
 
-#include <inttypes.h>
+#if ( defined _WIN32 || defined _WIN64 )
+
+  typedef __int64  FT_Int64;
+
+#else
+
+#include "inttypes.h"
 
   typedef int64_t  FT_Int64;
+
+#endif
+
 
   static FT_Long
   FT_MulDiv( FT_Long  a,

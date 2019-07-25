@@ -282,7 +282,7 @@
    {
      FT_Memory  memory = library->memory;
      FT_Error   error;
-     FT_Glyph   glyph;
+     FT_Glyph   glyph  = NULL;
 
 
      *aglyph = 0;

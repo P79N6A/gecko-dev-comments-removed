@@ -670,7 +670,7 @@
 
 
     FTC_MruList_RemoveSelection( &manager->faces,
-                                 (FTC_MruNode_CompareFunc)NULL,
+                                 ftc_face_node_compare,
                                  face_id );
 
     for ( nn = 0; nn < manager->num_caches; nn++ )

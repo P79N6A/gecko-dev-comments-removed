@@ -161,6 +161,47 @@ FT_BEGIN_HEADER
   FT_Library_SetLcdFilter( FT_Library    library,
                            FT_LcdFilter  filter );
 
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  FT_EXPORT( FT_Error )
+  FT_Library_SetLcdFilterWeights( FT_Library      library,
+                                  unsigned char  *weights );
+
   
 
 

@@ -161,7 +161,30 @@
                      &top_bearing,
                      &advance_height );
 
+    loader->left_bearing = left_bearing;
+    loader->advance      = advance_width;
+    loader->top_bearing  = top_bearing;
+    loader->vadvance     = advance_height;
+
+    if ( !loader->linear_def )
+    {
+      loader->linear_def = 1;
+      loader->linear     = advance_width;
+    }
+  }
+
+
 #ifdef FT_CONFIG_OPTION_INCREMENTAL
+
+  static void
+  tt_get_metrics_incr_overrides( TT_Loader  loader,
+                                 FT_UInt    glyph_index )
+  {
+    TT_Face  face = (TT_Face)loader->face;
+
+    FT_Short   left_bearing = 0, top_bearing = 0;
+    FT_UShort  advance_width = 0, advance_height = 0;
+
 
     
     
@@ -172,9 +195,9 @@
       FT_Error                   error;
 
 
-      metrics.bearing_x = left_bearing;
+      metrics.bearing_x = loader->left_bearing;
       metrics.bearing_y = 0;
-      metrics.advance   = advance_width;
+      metrics.advance   = loader->advance;
       metrics.advance_v = 0;
 
       error = face->root.internal->incremental_interface->funcs->get_glyph_metrics(
@@ -190,8 +213,8 @@
 
       
       metrics.bearing_x = 0;
-      metrics.bearing_y = top_bearing;
-      metrics.advance   = advance_height;
+      metrics.bearing_y = loader->top_bearing;
+      metrics.advance   = loader->vadvance;
 
       error = face->root.internal->incremental_interface->funcs->get_glyph_metrics(
                 face->root.internal->incremental_interface->object,
@@ -204,23 +227,23 @@
 
 #endif 
 
+      loader->left_bearing = left_bearing;
+      loader->advance      = advance_width;
+      loader->top_bearing  = top_bearing;
+      loader->vadvance     = advance_height;
+
+      if ( !loader->linear_def )
+      {
+        loader->linear_def = 1;
+        loader->linear     = advance_width;
+      }
     }
 
   Exit:
+    return;
+  }
 
 #endif 
-
-    loader->left_bearing = left_bearing;
-    loader->advance      = advance_width;
-    loader->top_bearing  = top_bearing;
-    loader->vadvance     = advance_height;
-
-    if ( !loader->linear_def )
-    {
-      loader->linear_def = 1;
-      loader->linear     = advance_width;
-    }
-  }
 
 
   
@@ -271,7 +294,7 @@
     FT_UNUSED( glyph_index );
 
 
-    FT_TRACE5(( "Glyph %ld\n", glyph_index ));
+    FT_TRACE4(( "Glyph %ld\n", glyph_index ));
 
     
     if ( FT_STREAM_SEEK( offset ) || FT_FRAME_ENTER( byte_count ) )
@@ -367,7 +390,7 @@
       if ( cont[0] <= prev_cont )
       {
         
-        error = FT_Err_Invalid_Table;
+        error = TT_Err_Invalid_Table;
         goto Fail;
       }
       prev_cont = cont[0];
@@ -1118,7 +1141,8 @@
 
     {
       FT_Stream  stream = loader->stream;
-      FT_UShort  n_ins;
+      FT_UShort  n_ins, max_ins;
+      FT_ULong   tmp;
 
 
       
@@ -1130,12 +1154,27 @@
       FT_TRACE5(( "  Instructions size = %d\n", n_ins ));
 
       
-      if ( n_ins > ((TT_Face)loader->face)->max_profile.maxSizeOfInstructions )
+      max_ins = ((TT_Face)loader->face)->max_profile.maxSizeOfInstructions;
+      if ( n_ins > max_ins )
       {
-        FT_TRACE0(( "TT_Process_Composite_Glyph: too many instructions (%d)\n",
-                    n_ins ));
+        
+        if ( (FT_Int)n_ins > loader->byte_len )
+        {
+          FT_TRACE1(( "TT_Process_Composite_Glyph: "
+                      "too many instructions (%d) for glyph with length %d\n",
+                      n_ins, loader->byte_len ));
+          return TT_Err_Too_Many_Hints;
+        }
 
-        return TT_Err_Too_Many_Hints;
+        tmp = loader->exec->glyphSize;
+        error = Update_Max( loader->exec->memory,
+                            &tmp,
+                            sizeof ( FT_Byte ),
+                            (void*)&loader->exec->glyphIns,
+                            n_ins );
+        loader->exec->glyphSize = (FT_UShort)tmp;
+        if ( error )
+          return error;
       }
       else if ( n_ins == 0 )
         return TT_Err_Ok;
@@ -1316,7 +1355,13 @@
       if ( header_only )
         goto Exit;
 
+      
+      
       TT_LOADER_SET_PP( loader );
+
+#ifdef FT_CONFIG_OPTION_INCREMENTAL
+      tt_get_metrics_incr_overrides( loader, glyph_index );
+#endif
 
 #ifdef TT_CONFIG_OPTION_GX_VAR_SUPPORT
 
@@ -1353,7 +1398,13 @@
       goto Exit;
     }
 
+    
+    
     TT_LOADER_SET_PP( loader );
+
+#ifdef FT_CONFIG_OPTION_INCREMENTAL
+    tt_get_metrics_incr_overrides( loader, glyph_index );
+#endif
 
     
     
@@ -1481,6 +1532,7 @@
         FT_UInt      num_base_subgs = gloader->base.num_subglyphs;
 
         FT_Stream    old_stream     = loader->stream;
+        FT_Int       old_byte_len   = loader->byte_len;
 
 
         FT_GlyphLoader_Add( gloader );
@@ -1535,7 +1587,8 @@
                                           num_base_points );
         }
 
-        loader->stream = old_stream;
+        loader->stream   = old_stream;
+        loader->byte_len = old_byte_len;
 
         
         loader->ins_pos = ins_pos;
@@ -2033,7 +2086,9 @@
 
         
         
-        if ( ( face->header.Flags & 2 ) == 0 && loader.pp1.x )
+        
+        
+        if ( loader.pp1.x )
           FT_Outline_Translate( &glyph->outline, -loader.pp1.x, 0 );
       }
 

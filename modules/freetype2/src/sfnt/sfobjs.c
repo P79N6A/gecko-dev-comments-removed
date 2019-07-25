@@ -50,9 +50,9 @@
   tt_name_entry_ascii_from_utf16( TT_NameEntry  entry,
                                   FT_Memory     memory )
   {
-    FT_String*  string;
+    FT_String*  string = NULL;
     FT_UInt     len, code, n;
-    FT_Byte*    read = (FT_Byte*)entry->string;
+    FT_Byte*    read   = (FT_Byte*)entry->string;
     FT_Error    error;
 
 
@@ -81,9 +81,9 @@
   tt_name_entry_ascii_from_other( TT_NameEntry  entry,
                                   FT_Memory     memory )
   {
-    FT_String*  string;
+    FT_String*  string = NULL;
     FT_UInt     len, code, n;
-    FT_Byte*    read = (FT_Byte*)entry->string;
+    FT_Byte*    read   = (FT_Byte*)entry->string;
     FT_Error    error;
 
 

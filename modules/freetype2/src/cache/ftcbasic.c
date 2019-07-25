@@ -834,7 +834,7 @@
 
 
     if ( !desc )
-      return FT_Err_Invalid_Argument;
+      return FTC_Err_Invalid_Argument;
 
     ftc_image_type_from_old_desc( &type0, desc );
 

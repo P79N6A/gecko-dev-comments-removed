@@ -205,7 +205,7 @@ FT_BEGIN_HEADER
     FT_UFast              _idx;                                          \
                                                                          \
                                                                          \
-    error = 0;                                                           \
+    error = FTC_Err_Ok;                                                  \
     node  = NULL;                                                        \
     _idx  = _hash & _cache->mask;                                        \
     if ( _idx < _cache->p )                                              \
@@ -288,7 +288,7 @@ FT_BEGIN_HEADER
 
 
 #define FTC_CACHE_TRYLOOP_END()                                   \
-      if ( !error || error != FT_Err_Out_Of_Memory )              \
+      if ( !error || error != FTC_Err_Out_Of_Memory )             \
         break;                                                    \
                                                                   \
       _try_done = FTC_Manager_FlushN( _try_manager, _try_count ); \

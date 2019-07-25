@@ -557,13 +557,13 @@ FT_BEGIN_HEADER
   
   typedef enum  FT_Sfnt_Tag_
   {
-    ft_sfnt_head = 0,
-    ft_sfnt_maxp = 1,
-    ft_sfnt_os2  = 2,
-    ft_sfnt_hhea = 3,
-    ft_sfnt_vhea = 4,
-    ft_sfnt_post = 5,
-    ft_sfnt_pclt = 6,
+    ft_sfnt_head = 0,    
+    ft_sfnt_maxp = 1,    
+    ft_sfnt_os2  = 2,    
+    ft_sfnt_hhea = 3,    
+    ft_sfnt_vhea = 4,    
+    ft_sfnt_post = 5,    
+    ft_sfnt_pclt = 6,    
 
     sfnt_max   
 
@@ -572,6 +572,9 @@ FT_BEGIN_HEADER
   
 
 
+  
+  
+  
   
   
   

@@ -45,13 +45,15 @@
     }
   }
 
+
   FT_Error
-  tt_driver_class_pic_init(  FT_Library library )
+  tt_driver_class_pic_init( FT_Library  library )
   {
-    FT_PIC_Container* pic_container = &library->pic_container;
-    FT_Error        error = FT_Err_Ok;
-    TTModulePIC* container;
-    FT_Memory memory = library->memory;
+    FT_PIC_Container*  pic_container = &library->pic_container;
+    FT_Error           error         = TT_Err_Ok;
+    TTModulePIC*       container;
+    FT_Memory          memory        = library->memory;
+
 
     
     if ( FT_ALLOC ( container, sizeof ( *container ) ) )

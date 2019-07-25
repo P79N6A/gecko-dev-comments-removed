@@ -141,10 +141,6 @@ FT_BEGIN_HEADER
   
   
   
-  
-  
-  
-  
   typedef struct  FT_Renderer_Class_
   {
     FT_Module_Class            root;

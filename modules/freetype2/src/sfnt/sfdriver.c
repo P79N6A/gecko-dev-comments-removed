@@ -362,7 +362,7 @@
           *acharset_registry = registry.u.atom;
         }
         else
-          error = FT_Err_Invalid_Argument;
+          error = SFNT_Err_Invalid_Argument;
       }
     }
 
@@ -436,7 +436,7 @@
     FT_UNUSED( face_index );
     FT_UNUSED( header );
 
-    return FT_Err_Unimplemented_Feature;
+    return SFNT_Err_Unimplemented_Feature;
   }
 
 
@@ -449,7 +449,7 @@
     FT_UNUSED( stream );
     FT_UNUSED( header );
 
-    return FT_Err_Unimplemented_Feature;
+    return SFNT_Err_Unimplemented_Feature;
   }
 
 
@@ -460,7 +460,7 @@
     FT_UNUSED( face );
     FT_UNUSED( stream );
 
-    return FT_Err_Unimplemented_Feature;
+    return SFNT_Err_Unimplemented_Feature;
   }
 
 
@@ -513,7 +513,7 @@
 
 
 
-    return FT_Err_Unimplemented_Feature;
+    return SFNT_Err_Unimplemented_Feature;
   }
 
 
@@ -534,7 +534,7 @@
     FT_UNUSED( cmap );
     FT_UNUSED( input );
 
-    return FT_Err_Unimplemented_Feature;
+    return SFNT_Err_Unimplemented_Feature;
   }
 
 
@@ -545,7 +545,7 @@
     FT_UNUSED( face );
     FT_UNUSED( cmap );
 
-    return 0;
+    return SFNT_Err_Ok;
   }
 
 #endif 

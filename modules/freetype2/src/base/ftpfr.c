@@ -24,10 +24,11 @@
   static FT_Service_PfrMetrics
   ft_pfr_check( FT_Face  face )
   {
-    FT_Service_PfrMetrics  service;
+    FT_Service_PfrMetrics  service = NULL;
 
 
-    FT_FACE_LOOKUP_SERVICE( face, service, PFR_METRICS );
+    if ( face )
+      FT_FACE_LOOKUP_SERVICE( face, service, PFR_METRICS );
 
     return service;
   }

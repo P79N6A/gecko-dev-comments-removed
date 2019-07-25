@@ -84,7 +84,7 @@
       if ( gindex < phys->num_chars )
       {
         *anadvance = phys->chars[gindex].advance;
-        error = 0;
+        error = PFR_Err_Ok;
       }
     }
 

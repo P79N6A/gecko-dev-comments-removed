@@ -485,13 +485,13 @@
     FTC_Node*  bucket;
     FTC_Node*  pnode;
     FTC_Node   node;
-    FT_Error   error = 0;
+    FT_Error   error = FTC_Err_Ok;
 
     FTC_Node_CompareFunc  compare = cache->clazz.node_compare;
 
 
     if ( cache == NULL || anode == NULL )
-      return FT_Err_Invalid_Argument;
+      return FTC_Err_Invalid_Argument;
 
     idx = hash & cache->mask;
     if ( idx < cache->p )

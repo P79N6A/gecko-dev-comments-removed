@@ -115,7 +115,7 @@
       num_pairs = FT_NEXT_USHORT( p );
       p        += 6;
 
-      if ( ( p_next - p ) / 6 < (int)num_pairs ) 
+      if ( ( p_next - p ) < 6 * (int)num_pairs ) 
         num_pairs = (FT_UInt)( ( p_next - p ) / 6 );
 
       avail |= mask;
@@ -220,7 +220,7 @@
       num_pairs = FT_NEXT_USHORT( p );
       p        += 6;
 
-      if ( ( next - p ) / 6 < (int)num_pairs )  
+      if ( ( next - p ) < 6 * (int)num_pairs )  
         num_pairs = (FT_UInt)( ( next - p ) / 6 );
 
       switch ( coverage >> 8 )

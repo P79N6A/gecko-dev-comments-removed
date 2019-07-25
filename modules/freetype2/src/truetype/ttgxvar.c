@@ -210,12 +210,12 @@
   ft_var_readpackeddeltas( FT_Stream  stream,
                            FT_Offset  delta_cnt )
   {
-    FT_Short  *deltas;
+    FT_Short  *deltas = NULL;
     FT_UInt    runcnt;
     FT_Offset  i;
     FT_UInt    j;
     FT_Memory  memory = stream->memory;
-    FT_Error   error = TT_Err_Ok;
+    FT_Error   error  = TT_Err_Ok;
 
     FT_UNUSED( error );
 
@@ -683,10 +683,10 @@
            fvar_head.countSizePairs != 2                                  ||
            fvar_head.axisSize != 20                                       ||
            
-           fvar_head.axisCount > 0x3ffe                                   ||
+           fvar_head.axisCount > 0x3FFE                                   ||
            fvar_head.instanceSize != 4 + 4 * fvar_head.axisCount          ||
            
-           fvar_head.instanceCount > 0x7eff                               ||
+           fvar_head.instanceCount > 0x7EFF                               ||
            fvar_head.offsetToData + fvar_head.axisCount * 20U +
              fvar_head.instanceCount * fvar_head.instanceSize > table_len )
       {

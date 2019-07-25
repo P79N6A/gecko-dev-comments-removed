@@ -16,6 +16,7 @@
 
 
 
+
 #include <ft2build.h>
 #include FT_INTERNAL_POSTSCRIPT_AUX_H
 #include FT_INTERNAL_DEBUG_H
@@ -1588,6 +1589,13 @@
     FT_Error     error;
 
 
+    
+    if ( !outline )
+    {
+      FT_ERROR(( "t1_builder_add_contour: no outline to add points to\n" ));
+      return PSaux_Err_Invalid_File_Format;
+    }
+
     if ( !builder->load_points )
     {
       outline->n_contours++;
@@ -1621,7 +1629,7 @@
 
     if ( builder->parse_state == T1_Parse_Have_Path )
       error = PSaux_Err_Ok;
-    else if ( builder->parse_state == T1_Parse_Have_Moveto )
+    else
     {
       builder->parse_state = T1_Parse_Have_Path;
       error = t1_builder_add_contour( builder );

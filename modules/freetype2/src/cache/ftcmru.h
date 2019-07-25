@@ -166,7 +166,7 @@ FT_BEGIN_HEADER
     FTC_MruNode              _first, _node;                                 \
                                                                             \
                                                                             \
-    error  = 0;                                                             \
+    error  = FTC_Err_Ok;                                                    \
     _first = *(_pfirst);                                                    \
     _node  = NULL;                                                          \
                                                                             \

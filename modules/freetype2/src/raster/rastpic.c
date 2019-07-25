@@ -43,16 +43,17 @@
 
 
   FT_Error
-  ft_raster1_renderer_class_pic_init(  FT_Library library )
+  ft_raster1_renderer_class_pic_init( FT_Library library )
   {
     FT_PIC_Container* pic_container = &library->pic_container;
-    FT_Error        error = FT_Err_Ok;
-    RasterPIC* container;
-    FT_Memory memory = library->memory;
+    FT_Error          error         = Raster_Err_Ok;
+    RasterPIC*        container;
+    FT_Memory         memory        = library->memory;
+
 
     
 
-    if(pic_container->raster)
+    if ( pic_container->raster )
     {
       ((RasterPIC*)pic_container->raster)->ref_count++;
       return error;

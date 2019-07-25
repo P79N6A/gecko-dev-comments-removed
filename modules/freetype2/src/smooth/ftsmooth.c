@@ -200,7 +200,7 @@
 
     
     
-    if ( width > 0xFFFFU || height > 0xFFFFU )
+    if ( width > 0x7FFFU || height > 0x7FFFU )
     {
       FT_ERROR(( "ft_smooth_render_generic: glyph too large: %d x %d\n",
                  width, height ));

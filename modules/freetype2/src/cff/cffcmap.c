@@ -120,27 +120,15 @@
   
 
   FT_CALLBACK_DEF( const char* )
-  cff_sid_to_glyph_name( TT_Face   face,
-                         FT_UInt   idx )
+  cff_sid_to_glyph_name( TT_Face  face,
+                         FT_UInt  idx )
   {
-    CFF_Font            cff     = (CFF_Font)face->extra.data;
-    CFF_Charset         charset = &cff->charset;
-    FT_Service_PsCMaps  psnames = (FT_Service_PsCMaps)cff->psnames;
-    FT_UInt             sid     = charset->sids[idx];
+    CFF_Font     cff     = (CFF_Font)face->extra.data;
+    CFF_Charset  charset = &cff->charset;
+    FT_UInt      sid     = charset->sids[idx];
 
 
-    return cff_index_get_sid_string( &cff->string_index, sid, psnames );
-  }
-
-
-  FT_CALLBACK_DEF( void )
-  cff_sid_free_glyph_name( TT_Face      face,
-                           const char*  gname )
-  {
-    FT_Memory  memory = FT_FACE_MEMORY( face );
-
-
-    FT_FREE( gname );
+    return cff_index_get_sid_string( cff, sid );
   }
 
 
@@ -155,14 +143,15 @@
 
 
     
+    
     if ( !charset->sids )
-      return CFF_Err_Invalid_Argument;
+      return CFF_Err_No_Unicode_Glyph_Name;
 
     return psnames->unicodes_init( memory,
                                    unicodes,
                                    cff->num_glyphs,
                                    (PS_GetGlyphNameFunc)&cff_sid_to_glyph_name,
-                                   (PS_FreeGlyphNameFunc)&cff_sid_free_glyph_name,
+                                   (PS_FreeGlyphNameFunc)NULL,
                                    (FT_Pointer)face );
   }
 

@@ -126,6 +126,7 @@ names_dump( FILE*         out,
 {
   int  nn;
 
+
   switch ( format )
   {
     case OUTPUT_WINDOWS_DEF:
@@ -151,22 +152,25 @@ names_dump( FILE*         out,
     case OUTPUT_WATCOM_LBC:
       {
         
-        char   temp[512];
-        char*  dot;
+        char         temp[512];
+        const char*  dot;
+
 
         if ( dll_name == NULL )
         {
           fprintf( stderr,
-                   "you must provide a DLL name with the -d option !!\n" );
-          exit(4);
+                   "you must provide a DLL name with the -d option!\n" );
+          exit( 4 );
         }
 
         dot = strchr( dll_name, '.' );
         if ( dot != NULL )
         {
-          int  len = (dot - dll_name);
-          if ( len > (int)(sizeof(temp)-1) )
-            len = sizeof(temp)-1;
+          int  len = dot - dll_name;
+
+
+          if ( len > (int)( sizeof( temp ) - 1 ) )
+            len = sizeof ( temp ) - 1;
 
           memcpy( temp, dll_name, len );
           temp[len] = 0;

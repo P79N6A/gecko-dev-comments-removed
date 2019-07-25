@@ -16,6 +16,7 @@
 
 
 
+
 #include <ft2build.h>
 #include "t1afm.h"
 #include "t1errors.h"
@@ -235,10 +236,10 @@
                    FT_Stream  stream )
   {
     PSAux_Service  psaux;
-    FT_Memory      memory = stream->memory;
+    FT_Memory      memory  = stream->memory;
     AFM_ParserRec  parser;
-    AFM_FontInfo   fi;
-    FT_Error       error = T1_Err_Unknown_File_Format;
+    AFM_FontInfo   fi      = NULL;
+    FT_Error       error   = T1_Err_Unknown_File_Format;
     T1_Font        t1_font = &( (T1_Face)t1_face )->type1;
 
 

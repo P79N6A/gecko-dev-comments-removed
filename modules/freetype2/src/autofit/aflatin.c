@@ -77,7 +77,7 @@
 
       af_glyph_hints_rescale( hints, (AF_ScriptMetrics)dummy );
 
-      error = af_glyph_hints_reload( hints, &face->glyph->outline, 0 );
+      error = af_glyph_hints_reload( hints, &face->glyph->outline );
       if ( error )
         goto Exit;
 
@@ -2105,7 +2105,7 @@
     int       dim;
 
 
-    error = af_glyph_hints_reload( hints, outline, 1 );
+    error = af_glyph_hints_reload( hints, outline );
     if ( error )
       goto Exit;
 

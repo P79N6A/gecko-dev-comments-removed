@@ -167,8 +167,11 @@
 
       for ( nn = 0; nn < globals->glyph_count; nn++ )
       {
-        if ( gscripts[nn] == AF_SCRIPT_LIST_NONE )
-          gscripts[nn] = AF_SCRIPT_LIST_DEFAULT;
+        if ( ( gscripts[nn] & ~AF_DIGIT ) == AF_SCRIPT_LIST_NONE )
+        {
+          gscripts[nn] &= ~AF_SCRIPT_LIST_NONE;
+          gscripts[nn] |= AF_SCRIPT_LIST_DEFAULT;
+        }
       }
     }
 
@@ -183,7 +186,7 @@
   {
     FT_Error        error;
     FT_Memory       memory;
-    AF_FaceGlobals  globals;
+    AF_FaceGlobals  globals = NULL;
 
 
     memory = face->memory;

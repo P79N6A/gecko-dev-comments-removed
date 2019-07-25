@@ -1122,13 +1122,13 @@
 
     if ( Dx > 0 )
     {
-      Ix = ( ras.precision * Dx ) / Dy;
+      Ix = SMulDiv( ras.precision, Dx,  Dy);
       Rx = ( ras.precision * Dx ) % Dy;
       Dx = 1;
     }
     else
     {
-      Ix = -( ( ras.precision * -Dx ) / Dy );
+      Ix = SMulDiv( ras.precision, -Dx,  Dy) * -1;
       Rx =    ( ras.precision * -Dx ) % Dy;
       Dx = -1;
     }
@@ -3408,7 +3408,7 @@
                 PRaster    *araster )
   {
     FT_Error  error;
-    PRaster   raster;
+    PRaster   raster = NULL;
 
 
     *araster = 0;
@@ -3447,9 +3447,8 @@
         PWorker  worker = (PWorker)pool_base;
 
 
-        raster->buffer      = pool_base + ( (sizeof ( *worker ) + 7 ) & ~7 );
-        raster->buffer_size = ( ( pool_base + pool_size ) -
-                                (char*)raster->buffer ) / sizeof ( Long );
+        raster->buffer      = pool_base + ( ( sizeof ( *worker ) + 7 ) & ~7 );
+        raster->buffer_size = pool_base + pool_size - (char*)raster->buffer;
         raster->worker      = worker;
       }
       else

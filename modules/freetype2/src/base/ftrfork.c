@@ -751,7 +751,7 @@
                           const char  *original_name,
                           const char  *insertion )
   {
-    char*        new_name;
+    char*        new_name = NULL;
     const char*  tmp;
     const char*  slash;
     size_t       new_length;

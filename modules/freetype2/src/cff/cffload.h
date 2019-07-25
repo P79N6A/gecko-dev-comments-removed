@@ -22,7 +22,6 @@
 
 #include <ft2build.h>
 #include "cfftypes.h"
-#include FT_SERVICE_POSTSCRIPT_CMAPS_H
 
 
 FT_BEGIN_HEADER
@@ -32,13 +31,12 @@ FT_BEGIN_HEADER
 
 
   FT_LOCAL( FT_String* )
-  cff_index_get_name( CFF_Index  idx,
-                      FT_UInt    element );
+  cff_index_get_string( CFF_Font  font,
+                        FT_UInt   element );
 
   FT_LOCAL( FT_String* )
-  cff_index_get_sid_string( CFF_Index          idx,
-                            FT_UInt            sid,
-                            FT_Service_PsCMaps psnames );
+  cff_index_get_sid_string( CFF_Font  font,
+                            FT_UInt   sid );
 
 
   FT_LOCAL( FT_Error )
@@ -50,6 +48,10 @@ FT_BEGIN_HEADER
   FT_LOCAL( void )
   cff_index_forget_element( CFF_Index  idx,
                             FT_Byte**  pbytes );
+
+  FT_LOCAL( FT_String* )
+  cff_index_get_name( CFF_Font  font,
+                      FT_UInt   element );
 
 
   FT_LOCAL( FT_UInt )
