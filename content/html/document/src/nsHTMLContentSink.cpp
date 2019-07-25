@@ -102,7 +102,6 @@
 #include "nsIScriptContext.h"
 #include "nsStyleLinkElement.h"
 
-#include "nsReadableUtils.h"
 #include "nsWeakReference.h" 
 #include "nsIPrompt.h"
 #include "nsLayoutCID.h"

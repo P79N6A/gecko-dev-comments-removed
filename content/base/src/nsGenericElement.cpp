@@ -108,7 +108,6 @@
 #include "nsContentUtils.h"
 #include "nsIJSContextStack.h"
 
-#include "nsIServiceManager.h"
 #include "nsIDOMEventListener.h"
 #include "nsIWebNavigation.h"
 #include "nsIBaseWindow.h"
@@ -127,7 +126,6 @@
 #include "nsEventDispatcher.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsIControllers.h"
-#include "nsLayoutUtils.h"
 #include "nsIView.h"
 #include "nsIViewManager.h"
 #include "nsIScrollableFrame.h"
@@ -219,7 +217,6 @@ nsINode::nsSlots::Unlink()
 nsINode::~nsINode()
 {
   NS_ASSERTION(!HasSlots(), "nsNodeUtils::LastRelease was not called?");
-  NS_ASSERTION(mSubtreeRoot == this, "Didn't restore state properly?");
 }
 
 void*
@@ -3166,10 +3163,6 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     
 
     
-    
-    ClearSubtreeRootPointer();
-
-    
     SetInDocument();
 
     
@@ -3178,9 +3171,6 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                NODE_NEEDS_FRAME | NODE_DESCENDANTS_NEED_FRAMES |
                
                ELEMENT_ALL_RESTYLE_FLAGS);
-  } else {
-    
-    SetSubtreeRootPointer(aParent->SubtreeRoot());
   }
 
   
@@ -3271,9 +3261,6 @@ nsGenericElement::UnbindFromTree(bool aDeep, bool aNullParent)
     SetParentIsContent(false);
   }
   ClearInDocument();
-
-  
-  SetSubtreeRootPointer(aNullParent ? this : mParent->SubtreeRoot());
 
   if (document) {
     
