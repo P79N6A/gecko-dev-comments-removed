@@ -64,6 +64,7 @@ class nsClientRectList;
 #include "gfxPattern.h"
 #include "imgIContainer.h"
 #include "nsCSSPseudoElements.h"
+#include "nsHTMLReflowState.h"
 
 class nsBlockFrame;
 class gfxDrawable;
@@ -787,6 +788,14 @@ public:
     if (result < 0)
       result = 0; 
     return result;
+  }
+
+  static PRBool IsAutoHeight(const nsStyleCoord &aCoord, nscoord aCBHeight)
+  {
+    nsStyleUnit unit = aCoord.GetUnit();
+    return unit == eStyleUnit_Auto ||  
+           unit == eStyleUnit_None ||  
+           (aCBHeight == NS_AUTOHEIGHT && aCoord.HasPercent());
   }
 
   
