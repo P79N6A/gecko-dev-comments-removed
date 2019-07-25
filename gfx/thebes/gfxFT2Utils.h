@@ -69,6 +69,10 @@ public:
 
 
     PRUint32 GetGlyph(PRUint32 aCharCode);
+    
+
+
+    PRUint32 GetUVSGlyph(PRUint32 aCharCode, PRUint32 aVariantSelector);
 
     void GetMetrics(gfxFont::Metrics* aMetrics, PRUint32* aSpaceGlyph);
 
