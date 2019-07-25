@@ -445,7 +445,7 @@ public:
 
   mozIStorageStatement* GetStatementById(
     enum mozilla::places::HistoryStatementId aStatementId
-  ) const
+  )
   {
     using namespace mozilla::places;
 
@@ -453,29 +453,29 @@ public:
 
     switch(aStatementId) {
       case DB_GET_PAGE_INFO_BY_URL:
-        return mDBGetURLPageInfo;
+        return GetStatement(mDBGetURLPageInfo);
       case DB_GET_TAGS:
-        return mDBGetTags;
+        return GetStatement(mDBGetTags);
       case DB_IS_PAGE_VISITED:
-        return mDBIsPageVisited;
+        return GetStatement(mDBIsPageVisited);
       case DB_INSERT_VISIT:
-        return mDBInsertVisit;
+        return GetStatement(mDBInsertVisit);
       case DB_RECENT_VISIT_OF_URL:
-        return mDBRecentVisitOfURL;
+        return GetStatement(mDBRecentVisitOfURL);
       case DB_GET_PAGE_VISIT_STATS:
-        return mDBGetPageVisitStats;
+        return GetStatement(mDBGetPageVisitStats);
       case DB_UPDATE_PAGE_VISIT_STATS:
-        return mDBUpdatePageVisitStats;
+        return GetStatement(mDBUpdatePageVisitStats);
       case DB_ADD_NEW_PAGE:
-        return mDBAddNewPage;
+        return GetStatement(mDBAddNewPage);
       case DB_GET_URL_PAGE_INFO:
-        return mDBGetURLPageInfo;
+        return GetStatement(mDBGetURLPageInfo);
       case DB_SET_PLACE_TITLE:
-        return mDBSetPlaceTitle;
+        return GetStatement(mDBSetPlaceTitle);
       case DB_PAGE_INFO_FOR_FRECENCY:
-        return mDBPageInfoForFrecency;
+        return GetStatement(mDBPageInfoForFrecency);
       case DB_VISITS_FOR_FRECENCY:
-        return mDBVisitsForFrecency;
+        return GetStatement(mDBVisitsForFrecency);
     }
     return nsnull;
   }
@@ -594,9 +594,16 @@ protected:
   nsCOMPtr<nsIFile> mDBFile;
   PRInt32 mDBPageSize;
 
+
+  
+
+
+  mozIStorageStatement* GetStatement(const nsCOMPtr<mozIStorageStatement>& aStmt);
+
+  
+  
   nsCOMPtr<mozIStorageStatement> mDBGetURLPageInfo;   
   nsCOMPtr<mozIStorageStatement> mDBGetIdPageInfo;     
-
   nsCOMPtr<mozIStorageStatement> mDBRecentVisitOfURL; 
   nsCOMPtr<mozIStorageStatement> mDBRecentVisitOfPlace; 
   nsCOMPtr<mozIStorageStatement> mDBInsertVisit; 
@@ -609,15 +616,23 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBSetPlaceTitle; 
   nsCOMPtr<mozIStorageStatement> mDBRegisterOpenPage; 
   nsCOMPtr<mozIStorageStatement> mDBUnregisterOpenPage; 
-
-  
-  
-  mozIStorageStatement *GetDBVisitToURLResult();
   nsCOMPtr<mozIStorageStatement> mDBVisitToURLResult; 
-  mozIStorageStatement *GetDBVisitToVisitResult();
   nsCOMPtr<mozIStorageStatement> mDBVisitToVisitResult; 
-  mozIStorageStatement *GetDBBookmarkToUrlResult();
   nsCOMPtr<mozIStorageStatement> mDBBookmarkToUrlResult; 
+  nsCOMPtr<mozIStorageStatement> mDBUpdateFrecency;
+  nsCOMPtr<mozIStorageStatement> mDBUpdateHiddenOnFrecency;
+  nsCOMPtr<mozIStorageStatement> mDBGetPlaceVisitStats;
+  
+  
+  
+  mutable nsCOMPtr<mozIStorageStatement> mDBVisitsForFrecency;
+  mutable nsCOMPtr<mozIStorageStatement> mDBPageInfoForFrecency;
+  mutable nsCOMPtr<mozIStorageStatement> mDBAsyncThreadVisitsForFrecency;
+  mutable nsCOMPtr<mozIStorageStatement> mDBAsyncThreadPageInfoForFrecency;
+#ifdef MOZ_XUL
+  
+  nsCOMPtr<mozIStorageStatement> mDBFeedbackIncrease;
+#endif
 
   
 
@@ -644,17 +659,6 @@ protected:
 
   nsresult CalculateFrecency(PRInt64 aPageID, PRInt32 aTyped, PRInt32 aVisitCount, nsCAutoString &aURL, PRInt32 *aFrecency);
   nsresult CalculateFrecencyInternal(PRInt64 aPageID, PRInt32 aTyped, PRInt32 aVisitCount, PRBool aIsBookmarked, PRInt32 *aFrecency);
-  nsCOMPtr<mozIStorageStatement> mDBVisitsForFrecency;
-  nsCOMPtr<mozIStorageStatement> mDBUpdateFrecency;
-  nsCOMPtr<mozIStorageStatement> mDBUpdateHiddenOnFrecency;
-  nsCOMPtr<mozIStorageStatement> mDBGetPlaceVisitStats;
-  nsCOMPtr<mozIStorageStatement> mDBPageInfoForFrecency;
-
-  
-  
-  
-  nsCOMPtr<mozIStorageStatement> mDBAsyncThreadVisitsForFrecency;
-  nsCOMPtr<mozIStorageStatement> mDBAsyncThreadPageInfoForFrecency;
 
   
 
@@ -814,10 +818,6 @@ protected:
   PRInt64 mLastSessionID;
 
 #ifdef MOZ_XUL
-  
-  mozIStorageStatement *GetDBFeedbackIncrease();
-  nsCOMPtr<mozIStorageStatement> mDBFeedbackIncrease;
-
   nsresult AutoCompleteFeedback(PRInt32 aIndex,
                                 nsIAutoCompleteController *aController);
 #endif
