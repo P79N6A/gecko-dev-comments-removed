@@ -321,6 +321,8 @@ struct JITScript {
     void            *fastEntry;         
     void            *arityCheckEntry;   
 
+    ~JITScript();
+
     bool isValidCode(void *ptr) {
         char *jitcode = (char *)code.m_code.executableAddress();
         char *jcheck = (char *)ptr;
@@ -330,7 +332,6 @@ struct JITScript {
     void sweepCallICs();
     void purgeMICs();
     void purgePICs();
-    void release();
 };
 
 
