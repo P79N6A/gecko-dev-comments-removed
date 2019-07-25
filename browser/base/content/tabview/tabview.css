@@ -91,7 +91,17 @@ body {
 
 
 
-.groupItem,
+.groupItem {
+  position: absolute;
+}
+
+.appTabTray {
+  position: absolute;
+}
+
+
+
+
 .info-item {
   position: absolute;
 }

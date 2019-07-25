@@ -190,6 +190,17 @@ body {
 
 }
 
+.appTabTray {
+  top: 34px;
+  right: 1px;
+}
+
+.appTabIcon {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
 
 
 

@@ -468,6 +468,16 @@ let UI = {
 
   
   
+  goToTab: function UI_goToTab(xulTab) {
+    
+    if (gBrowser.selectedTab == xulTab)
+      this.onTabSelect(xulTab);
+    else
+      gBrowser.selectedTab = xulTab;
+  },
+
+  
+  
   
   onTabSelect: function UI_onTabSelect(tab) {
     let currentTab = this._currentTab;
@@ -491,7 +501,7 @@ let UI = {
 
     let oldItem = null;
     let newItem = null;
-    
+
     if (currentTab && currentTab.tabItem)
       oldItem = currentTab.tabItem;
     if (tab && tab.tabItem) {
@@ -614,13 +624,13 @@ let UI = {
           event.stopPropagation();
           event.preventDefault();
         }
-      } else if (event.keyCode == KeyEvent.DOM_VK_ESCAPE || 
+      } else if (event.keyCode == KeyEvent.DOM_VK_ESCAPE ||
                  event.keyCode == KeyEvent.DOM_VK_RETURN ||
                  event.keyCode == KeyEvent.DOM_VK_ENTER) {
         let activeTab = self.getActiveTab();
         let activeGroupItem = GroupItems.getActiveGroupItem();
 
-        if (activeGroupItem && activeGroupItem.expanded && 
+        if (activeGroupItem && activeGroupItem.expanded &&
             event.keyCode == KeyEvent.DOM_VK_ESCAPE)
           activeGroupItem.collapse();
         else if (activeTab)

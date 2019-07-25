@@ -64,7 +64,6 @@
 
 
 function GroupItem(listOfEls, options) {
-  try {
   if (typeof options == 'undefined')
     options = {};
 
@@ -254,6 +253,16 @@ function GroupItem(listOfEls, options) {
     .hide();
 
   
+  this.$appTabTray = iQ("<div/>")
+    .addClass("appTabTray")
+    .appendTo($container);
+
+  AllTabs.tabs.forEach(function(xulTab) {
+    if (xulTab.pinned && xulTab.ownerDocument.defaultView == gWindow)
+      self.addAppTab(xulTab);
+  });
+
+  
   if (this.locked.bounds)
     $container.css({cursor: 'default'});
 
@@ -292,10 +301,6 @@ function GroupItem(listOfEls, options) {
 
   this._inited = true;
   this.save();
-  } catch(e) {
-    Utils.log("Error in GroupItem()");
-    Utils.log(e.stack);
-  }
 };
 
 
@@ -308,11 +313,15 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  
   setActiveTab: function GroupItem_setActiveTab(tab) {
-    Utils.assert(tab && tab.isATabItem, 'tab must be a TabItem');
+    Utils.assertThrow((!tab && this._children.length == 0) || tab.isATabItem,
+        "tab must be null (if no children) or a TabItem");
+
     this._activeTab = tab;
   },
 
+  
   
   
   
@@ -396,6 +405,8 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     var titleHeight = this.$titlebar.height();
     box.top += titleHeight;
     box.height -= titleHeight;
+
+    box.width -= this.$appTabTray.width();
 
     
     
@@ -695,6 +706,13 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       var index = this._children.indexOf(item);
       if (index != -1)
         this._children.splice(index, 1);
+        
+      if (item == this._activeTab) {
+        if (this._children.length)
+          this._activeTab = this._children[0];
+        else
+          this._activeTab = null;
+      }
 
       item.setParent(null);
       item.removeClass("tabInGroupItem");
@@ -730,6 +748,33 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     toRemove.forEach(function(child) {
       self.remove(child, {dontArrange: true});
     });
+  },
+
+  
+  
+  addAppTab: function GroupItem_addAppTab(xulTab) {
+    let self = this;
+
+    let icon = xulTab.image || Utils.defaultFaviconURL;
+    let $appTab = iQ("<img>")
+      .addClass("appTabIcon")
+      .attr("src", icon)
+      .data("xulTab", xulTab)
+      .appendTo(this.$appTabTray)
+      .click(function(event) {
+        if (Utils.isRightClick(event))
+          return;
+
+        GroupItems.setActiveGroupItem(self);
+        GroupItems._updateTabBar();
+        UI.goToTab(iQ(this).data("xulTab"));
+      });
+      
+    let columnWidth = $appTab.width();
+    if (parseInt(this.$appTabTray.css("width")) != columnWidth) {
+      this.$appTabTray.css({width: columnWidth});
+      this.arrange();
+    }
   },
 
   
@@ -1129,6 +1174,8 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
            className.indexOf('name') != -1 ||
            className.indexOf('close') != -1 ||
            className.indexOf('newTabButton') != -1 ||
+           className.indexOf('appTabTray') != -1 ||
+           className.indexOf('appTabIcon') != -1 ||
            className.indexOf('stackExpander') != -1) {
           return;
         }
@@ -1181,6 +1228,8 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     GroupItems.setActiveGroupItem(this);
     let newTab = gBrowser.loadOneTab(url || "about:blank", {inBackground: true});
 
+    
+    
     
     let newItem = newTab.tabItem;
 
@@ -1606,14 +1655,16 @@ let GroupItems = {
   
   
   updateActiveGroupItemAndTabBar: function GroupItems_updateActiveGroupItemAndTabBar(tabItem) {
-    if (tabItem.parent) {
-      let groupItem = tabItem.parent;
-      this.setActiveGroupItem(groupItem);
+    Utils.assertThrow(tabItem && tabItem.isATabItem, "tabItem must be a TabItem");
+
+    let groupItem = tabItem.parent;
+    this.setActiveGroupItem(groupItem);
+
+    if (groupItem)
       groupItem.setActiveTab(tabItem);
-    } else {
-      this.setActiveGroupItem(null);
+    else
       this.setActiveOrphanTab(tabItem);
-    }
+
     this._updateTabBar();
   },
 
@@ -1696,7 +1747,14 @@ let GroupItems = {
   
   
   
+  
+  
   moveTabToGroupItem : function GroupItems_moveTabToGroupItem (tab, groupItemId) {
+    if (tab.pinned) 
+      return;
+      
+    Utils.assertThrow(tab.tabItem, "tab must be linked to a TabItem");
+      
     let shouldUpdateTabBar = false;
     let shouldShowTabView = false;
     let groupItem;
