@@ -5091,10 +5091,10 @@ nsEventStateManager::DeltaAccumulator::InitLineOrPageDelta(
       
       
       if (mX && aEvent->deltaX && ((aEvent->deltaX > 0.0) != (mX > 0.0))) {
-        mX = 0.0;
+        mX = mPendingScrollAmountX = 0.0;
       }
       if (mY && aEvent->deltaY && ((aEvent->deltaY > 0.0) != (mY > 0.0))) {
-        mY = 0.0;
+        mY = mPendingScrollAmountY = 0.0;
       }
     }
   }
@@ -5109,6 +5109,17 @@ nsEventStateManager::DeltaAccumulator::InitLineOrPageDelta(
         mHandlingPixelOnlyDevice) &&
       !nsEventStateManager::WheelPrefs::GetInstance()->
         NeedToComputeLineOrPageDelta(aEvent)) {
+    
+    
+    
+    
+    
+    if (aEvent->deltaX) {
+      mX = aEvent->deltaX;
+    }
+    if (aEvent->deltaY) {
+      mY = aEvent->deltaY;
+    }
     mLastTime = TimeStamp::Now();
     return;
   }
