@@ -179,7 +179,7 @@ js_IsIdentifier(JSString *str)
 
 TokenStream::TokenStream(JSContext *cx)
   : cx(cx), tokens(), cursor(), lookahead(), ungetpos(), ungetbuf(), flags(),
-    linelen(), linepos(), file(), listenerTSData(), saveEOL(), tokenbuf(cx)
+    linepos(), lineposNext(), file(), listenerTSData(), tokenbuf(cx)
 {}
 
 #ifdef _MSC_VER
@@ -265,153 +265,150 @@ js_fgets(char *buf, int size, FILE *file)
     return i;
 }
 
+
+
+
+
+int
+TokenStream::fillUserbuf()
+{
+    
+
+
+
+
+
+
+    jschar *buf = userbuf.base;
+    int n = LINE_LIMIT - 1;     
+    JS_ASSERT(n > 0);
+    int i;
+    i = 0;
+    while (true) {
+        int c = fast_getc(file);
+        if (c == EOF)
+            break;
+        buf[i] = (jschar) (unsigned char) c;
+        i++;
+
+        if (i == n) {
+            if (buf[i - 1] == '\r') {
+                
+                c = fast_getc(file);
+                if (c == EOF)
+                    break;
+                if (c == '\n') {
+                    buf[i] = (jschar) (unsigned char) c;
+                    i++;
+                    break;
+                }
+                ungetc(c, file);    
+            }
+            break;
+        }
+    }
+    return i;
+}
+
+int32
+TokenStream::getCharFillLinebuf()
+{
+    ptrdiff_t ulen = userbuf.limit - userbuf.ptr;
+    if (ulen <= 0) {
+        if (!file) {
+            flags |= TSF_EOF;
+            return EOF;
+        }
+
+        
+        ulen = fillUserbuf();
+        JS_ASSERT(ulen >= 0);
+        if (ulen == 0) {
+            flags |= TSF_EOF;
+            return EOF;
+        }
+        userbuf.limit = userbuf.base + ulen;
+        userbuf.ptr = userbuf.base;
+    }
+    if (listener)
+        listener(filename, lineno, userbuf.ptr, ulen, &listenerTSData, listenerData);
+
+    
+
+
+
+
+
+
+
+
+    jschar *from = userbuf.ptr;
+    jschar *to = linebuf.base;
+
+    int llenAdjust = 0;
+    int limit = JS_MIN(size_t(ulen), LINE_LIMIT);
+    int i = 0;
+    while (i < limit) {
+        
+        jschar d = to[i] = from[i];
+        i++;
+
+        
+
+
+
+
+        if ((d & 0xDFD0) == 0) {
+            if (d == '\n') {
+                break;
+            }
+
+            if (d == '\r') {
+                to[i - 1] = '\n';       
+                if (i < ulen && from[i] == '\n') {
+                    i++;                
+                    llenAdjust = -1;
+                }
+                break;
+            }
+
+            if (d == LINE_SEPARATOR || d == PARA_SEPARATOR) {
+                to[i - 1] = '\n';       
+                break;
+            }
+        }
+    }
+    
+    
+    ulen = i;
+    userbuf.ptr += ulen;
+
+    
+    linebuf.ptr = linebuf.base;
+    linebuf.limit = linebuf.base + ulen + llenAdjust;
+
+    
+    linepos = lineposNext;
+    if (linebuf.limit[-1] == '\n')
+        lineposNext = 0;
+    else
+        lineposNext += ulen;
+
+    return *linebuf.ptr++;
+}
+
+
+
+
 int32
 TokenStream::getChar()
 {
     int32 c;
-    ptrdiff_t i, j, len, olen;
-    JSBool crflag;
-    char cbuf[LINE_LIMIT];
-    jschar *ubuf, *nl;
-
     if (ungetpos != 0) {
         c = ungetbuf[--ungetpos];
+    } else if (linebuf.ptr == linebuf.limit) {
+        c = getCharFillLinebuf();
     } else {
-        if (linebuf.ptr == linebuf.limit) {
-            len = userbuf.limit - userbuf.ptr;
-            if (len <= 0) {
-                if (!file) {
-                    flags |= TSF_EOF;
-                    return EOF;
-                }
-
-                
-                crflag = (flags & TSF_CRFLAG) != 0;
-                len = js_fgets(cbuf, LINE_LIMIT - crflag, file);
-                if (len <= 0) {
-                    flags |= TSF_EOF;
-                    return EOF;
-                }
-                olen = len;
-                ubuf = userbuf.base;
-                i = 0;
-                if (crflag) {
-                    flags &= ~TSF_CRFLAG;
-                    if (cbuf[0] != '\n') {
-                        ubuf[i++] = '\n';
-                        len++;
-                        linepos--;
-                    }
-                }
-                for (j = 0; i < len; i++, j++)
-                    ubuf[i] = (jschar) (unsigned char) cbuf[j];
-                userbuf.limit = ubuf + len;
-                userbuf.ptr = ubuf;
-            }
-            if (listener)
-                listener(filename, lineno, userbuf.ptr, len, &listenerTSData, listenerData);
-
-            nl = saveEOL;
-            if (!nl) {
-                
-
-
-
-
-                for (nl = userbuf.ptr; nl < userbuf.limit; nl++) {
-                    
-
-
-
-                    if ((*nl & 0xDFD0) == 0) {
-                        if (*nl == '\n')
-                            break;
-                        if (*nl == '\r') {
-                            if (nl + 1 < userbuf.limit && nl[1] == '\n')
-                                nl++;
-                            break;
-                        }
-                        if (*nl == LINE_SEPARATOR || *nl == PARA_SEPARATOR)
-                            break;
-                    }
-                }
-            }
-
-            
-
-
-
-            if (nl < userbuf.limit)
-                len = (nl - userbuf.ptr) + 1;
-            if (len >= (ptrdiff_t) LINE_LIMIT) {
-                len = LINE_LIMIT - 1;
-                saveEOL = nl;
-            } else {
-                saveEOL = NULL;
-            }
-            js_strncpy(linebuf.base, userbuf.ptr, len);
-            userbuf.ptr += len;
-            olen = len;
-
-            
-
-
-
-            if (nl < userbuf.limit) {
-                if (*nl == '\r') {
-                    if (linebuf.base[len-1] == '\r') {
-                        
-
-
-
-
-
-                        if (nl + 1 == userbuf.limit && file) {
-                            len--;
-                            flags |= TSF_CRFLAG; 
-                            if (len == 0) {
-                                
-
-
-
-
-
-                                return getChar();
-                            }
-                        } else {
-                            linebuf.base[len-1] = '\n';
-                        }
-                    }
-                } else if (*nl == '\n') {
-                    if (nl > userbuf.base &&
-                        nl[-1] == '\r' &&
-                        linebuf.base[len-2] == '\r') {
-                        len--;
-                        JS_ASSERT(linebuf.base[len] == '\n');
-                        linebuf.base[len-1] = '\n';
-                    }
-                } else if (*nl == LINE_SEPARATOR || *nl == PARA_SEPARATOR) {
-                    linebuf.base[len-1] = '\n';
-                }
-            }
-
-            
-            linebuf.limit = linebuf.base + len;
-            linebuf.ptr = linebuf.base;
-
-            
-            if (!(flags & TSF_NLFLAG))
-                linepos += linelen;
-            else
-                linepos = 0;
-            if (linebuf.limit[-1] == '\n')
-                flags |= TSF_NLFLAG;
-            else
-                flags &= ~TSF_NLFLAG;
-
-            
-            linelen = olen;
-        }
         c = *linebuf.ptr++;
     }
     if (c == '\n')
@@ -471,7 +468,7 @@ TokenStream::reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN erro
     uintN index, i;
     JSErrorReporter onError;
 
-    JS_ASSERT(linebuf.limit < linebuf.base + LINE_LIMIT);
+    JS_ASSERT(linebuf.limit <= linebuf.base + LINE_LIMIT);
 
     if (JSREPORT_IS_STRICT(flags) && !JS_HAS_STRICT_OPTION(cx))
         return JS_TRUE;

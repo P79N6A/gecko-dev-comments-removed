@@ -222,7 +222,9 @@ struct JSScope : public JSObjectMap
 #endif
     JSObject        *object;            
     uint32          freeslot;           
+  protected:
     uint8           flags;              
+  public:
     int8            hashShift;          
 
     uint16          spare;              
@@ -267,7 +269,7 @@ struct JSScope : public JSObjectMap
 
     
     inline void updateShape(JSContext *cx);
-    inline void updateFlags(const JSScopeProperty *sprop);
+    inline void updateFlags(const JSScopeProperty *sprop, bool isDefinitelyAtom = false);
 
   protected:
     void initMinimal(JSContext *cx, uint32 newShape);
@@ -349,7 +351,7 @@ struct JSScope : public JSObjectMap
     void clear(JSContext *cx);
 
     
-    void extend(JSContext *cx, JSScopeProperty *sprop);
+    void extend(JSContext *cx, JSScopeProperty *sprop, bool isDefinitelyAtom = false);
 
     
 
@@ -421,9 +423,10 @@ struct JSScope : public JSObjectMap
 
 
 
-    bool branded()              { JS_ASSERT(!generic()); return flags & BRANDED; }
+    bool branded()              { return flags & BRANDED; }
 
     bool brand(JSContext *cx, uint32 slot, const js::Value &) {
+        JS_ASSERT(!generic());
         JS_ASSERT(!branded());
         generateOwnShape(cx);
         if (js_IsPropertyCacheDisabled(cx))  
@@ -433,7 +436,17 @@ struct JSScope : public JSObjectMap
     }
 
     bool generic()              { return flags & GENERIC; }
-    void setGeneric()           { flags |= GENERIC; }
+
+    
+
+
+
+
+
+    void unbrand(JSContext *cx) {
+        if (!branded())
+            flags |= GENERIC;
+    }
 
     bool hadIndexedProperties() { return flags & INDEXED_PROPERTIES; }
     void setIndexedProperties() { flags |= INDEXED_PROPERTIES; }
@@ -498,6 +511,13 @@ struct JSScope : public JSObjectMap
 
     static bool initRuntimeState(JSContext *cx);
     static void finishRuntimeState(JSContext *cx);
+
+    enum {
+        EMPTY_ARGUMENTS_SHAPE = 1,
+        EMPTY_BLOCK_SHAPE     = 2,
+        EMPTY_CALL_SHAPE      = 3,
+        LAST_RESERVED_SHAPE   = 3
+    };
 };
 
 struct JSEmptyScope : public JSScope
@@ -507,10 +527,11 @@ struct JSEmptyScope : public JSScope
 
     JSEmptyScope(JSContext *cx, const JSObjectOps *ops, js::Class *clasp);
 
-    void hold() {
+    JSEmptyScope *hold() {
         
         JS_ASSERT(nrefs >= 1);
         JS_ATOMIC_INCREMENT(&nrefs);
+        return this;
     }
 
     void drop(JSContext *cx) {
@@ -657,13 +678,7 @@ struct JSScopeProperty {
     };
 
     JSScopeProperty(jsid id, js::PropertyOp getter, js::PropertyOp setter, uint32 slot,
-                    uintN attrs, uintN flags, intN shortid)
-        : id(id), rawGetter(getter), rawSetter(setter), slot(slot), attrs(uint8(attrs)),
-          flags(uint8(flags)), shortid(int16(shortid))
-    {
-        JS_ASSERT_IF(getter && (attrs & JSPROP_GETTER), getterObj->isCallable());
-        JS_ASSERT_IF(setter && (attrs & JSPROP_SETTER), setterObj->isCallable());
-    }
+                    uintN attrs, uintN flags, intN shortid);
 
     bool marked() const { return (flags & MARK) != 0; }
     void mark() { flags |= MARK; }
@@ -975,6 +990,9 @@ JSScopeProperty::get(JSContext* cx, JSObject *obj, JSObject *pobj, js::Value* vp
     }
 
     
+
+
+
     if (obj->getClass() == &js_WithClass)
         obj = js_UnwrapWithObject(cx, obj);
     return getterOp()(cx, obj, SPROP_USERID(this), vp);
@@ -993,7 +1011,7 @@ JSScopeProperty::set(JSContext* cx, JSObject *obj, js::Value* vp)
 
     
     if (obj->getClass() == &js_WithClass)
-        obj = obj->map->ops->thisObject(cx, obj);
+        obj = js_UnwrapWithObject(cx, obj);
     return setterOp()(cx, obj, SPROP_USERID(this), vp);
 }
 

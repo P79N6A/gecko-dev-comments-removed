@@ -445,9 +445,8 @@ JS_IsSystemObject(JSContext *cx, JSObject *obj);
 
 
 
-extern JS_PUBLIC_API(JSObject *)
-JS_NewSystemObject(JSContext *cx, JSClass *clasp, JSObject *proto,
-                   JSObject *parent, JSBool system);
+extern JS_PUBLIC_API(JSBool)
+JS_MakeSystemObject(JSContext *cx, JSObject *obj);
 
 
 

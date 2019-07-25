@@ -184,17 +184,39 @@ typedef enum JSGCInvocationKind {
     
 
 
-    GC_LOCK_HELD        = 0x10,
-
-    
-
-
-
-    GC_SET_SLOT_REQUEST = GC_LOCK_HELD | 1
+    GC_LOCK_HELD        = 0x10
 } JSGCInvocationKind;
 
 extern void
 js_GC(JSContext *cx, JSGCInvocationKind gckind);
+
+
+
+
+
+
+
+
+
+extern bool
+js_SetProtoOrParentCheckingForCycles(JSContext *cx, JSObject *obj,
+                                     uint32 slot, JSObject *pobj);
+
+#ifdef JS_THREADSAFE
+
+
+
+
+
+
+extern void
+js_WaitForGC(JSRuntime *rt);
+
+#else 
+
+# define js_WaitForGC(rt)    ((void) 0)
+
+#endif
 
 
 
@@ -407,7 +429,6 @@ struct JSGCStats {
     uint32  maxunmarked;
 
 #endif
-    uint32  maxlevel;       
     uint32  poke;           
     uint32  afree;          
     uint32  stackseg;       
@@ -552,6 +573,12 @@ MarkGCThing(JSTracer *trc, void *thing, const char *name, size_t index)
     JS_SET_TRACING_INDEX(trc, name, index);
     MarkGCThingRaw(trc, thing);
 }
+
+JSCompartment *
+NewCompartment(JSContext *cx);
+
+void
+SweepCompartments(JSContext *cx);
 
 } 
 

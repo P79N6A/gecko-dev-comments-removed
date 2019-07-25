@@ -68,6 +68,7 @@
 #include "nsReadableUtils.h"
 #include "nsIPrefBranch2.h"
 #include "mozilla/AutoRestore.h"
+#include "nsINode.h"
 
 #include "jsapi.h"
 
@@ -75,7 +76,6 @@ struct nsNativeKeyEvent;
 
 class nsIDOMScriptObjectFactory;
 class nsIXPConnect;
-class nsINode;
 class nsIContent;
 class nsIDOMNode;
 class nsIDOMKeyEvent;
@@ -138,9 +138,14 @@ typedef int (*PR_CALLBACK PrefChangedFunc)(const char *, void *);
 namespace mozilla {
   class IHistory;
 
+namespace layers {
+  class LayerManager;
+} 
+
 namespace dom {
 class Element;
 } 
+
 } 
 
 extern const char kLoadAsData[];
@@ -172,6 +177,8 @@ struct nsShortcutCandidate {
 
 class nsContentUtils
 {
+  typedef mozilla::dom::Element Element;
+
 public:
   static nsresult Init();
 
@@ -223,8 +230,8 @@ public:
 
 
 
-  static PRBool ContentIsDescendantOf(nsINode* aPossibleDescendant,
-                                      nsINode* aPossibleAncestor);
+  static PRBool ContentIsDescendantOf(const nsINode* aPossibleDescendant,
+                                      const nsINode* aPossibleAncestor);
 
   
 
@@ -273,27 +280,10 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-
-  static PRUint16 ComparePosition(nsINode* aNode1,
-                                  nsINode* aNode2);
-
-  
-
-
-
   static PRBool PositionIsBefore(nsINode* aNode1,
                                  nsINode* aNode2)
   {
-    return (ComparePosition(aNode1, aNode2) &
+    return (aNode2->CompareDocumentPosition(aNode1) &
       (nsIDOM3Node::DOCUMENT_POSITION_PRECEDING |
        nsIDOM3Node::DOCUMENT_POSITION_DISCONNECTED)) ==
       nsIDOM3Node::DOCUMENT_POSITION_PRECEDING;
@@ -331,14 +321,12 @@ public:
 
 
 
-  static nsIContent* MatchElementId(nsIContent *aContent,
-                                    const nsAString& aId);
+  static Element* MatchElementId(nsIContent *aContent, const nsAString& aId);
 
   
 
 
-  static nsIContent* MatchElementId(nsIContent *aContent,
-                                    nsIAtom* aId);
+  static Element* MatchElementId(nsIContent *aContent, nsIAtom* aId);
 
   
 
@@ -1366,12 +1354,6 @@ public:
 
 
 
-  static nsIAtom* IsNamedItem(mozilla::dom::Element* aElement);
-
-  
-
-
-
 
 
 
@@ -1611,6 +1593,36 @@ public:
   {
     sIsHandlingKeyBoardEvent = aHandling;
   }
+
+  
+
+
+
+  static nsresult GetElementsByClassName(nsINode* aRootNode,
+                                         const nsAString& aClasses,
+                                         nsIDOMNodeList** aReturn);
+
+  
+
+
+
+
+
+
+
+
+
+  static already_AddRefed<mozilla::layers::LayerManager>
+  LayerManagerForDocument(nsIDocument *aDoc);
+
+  
+
+
+
+
+
+  static PRBool IsFocusedContent(nsIContent *aContent);
+
 private:
 
   static PRBool InitializeEventTable();
@@ -1711,7 +1723,7 @@ public:
   PRBool RePush(nsPIDOMEventTarget *aCurrentTarget);
   
   
-  PRBool Push(JSContext *cx);
+  PRBool Push(JSContext *cx, PRBool aRequiresScriptContext = PR_TRUE);
   
   PRBool PushNull();
 

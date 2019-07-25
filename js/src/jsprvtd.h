@@ -70,6 +70,7 @@
 #define INT_JSVAL_TO_JSID(v)        ((jsid)(v))
 #define INT_JSID_TO_VALUE(id)       (js::Valueify((jsval)(id)))
 #define INT_JSID_TO_JSVAL(id)       ((jsval)(id))
+#define INT_FITS_IN_JSID(i)         INT_FITS_IN_JSVAL(i)
 
 #define JSID_IS_OBJECT(id)          JSVAL_IS_OBJECT((jsval)(id))
 #define JSID_TO_OBJECT(id)          JSVAL_TO_OBJECT((jsval)(id))
@@ -87,6 +88,7 @@
 
 
 static const uintN JS_GCTHING_ALIGN = 8;
+static const uintN JS_GCTHING_ZEROBITS = 3;
 
 
 typedef uint8  jsbytecode;
@@ -108,7 +110,7 @@ struct Compiler;
 
 typedef struct JSArgumentFormatMap  JSArgumentFormatMap;
 typedef struct JSCodeGenerator      JSCodeGenerator;
-typedef struct JSGCThing            JSGCThing;
+typedef union JSGCThing             JSGCThing;
 typedef struct JSGenerator          JSGenerator;
 typedef struct JSNativeEnumerator   JSNativeEnumerator;
 typedef struct JSFunctionBox        JSFunctionBox;
@@ -358,11 +360,8 @@ typedef JSBool
 
 
 
-
-
 typedef JSBool
-(* JSAttributesOp)(JSContext *cx, JSObject *obj, jsid id, JSProperty *prop,
-                   uintN *attrsp);
+(* JSAttributesOp)(JSContext *cx, JSObject *obj, jsid id, uintN *attrsp);
 
 
 
@@ -372,15 +371,6 @@ typedef JSBool
 typedef JSBool
 (* JSCheckAccessIdOp)(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
                       jsval *vp, uintN *attrsp);
-
-
-
-
-
-
-
-typedef void
-(* JSPropertyRefOp)(JSContext *cx, JSObject *obj, JSProperty *prop);
 
 
 

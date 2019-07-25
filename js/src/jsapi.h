@@ -247,7 +247,7 @@ JSVAL_TO_GCTHING(jsval v)
 static JS_ALWAYS_INLINE jsval
 PRIVATE_TO_JSVAL(void *ptr)
 {
-    return PRIVATE_TO_JSVAL_IMPL(ptr).asBits;
+    return PRIVATE_PTR_TO_JSVAL_IMPL(ptr).asBits;
 }
 
 static JS_ALWAYS_INLINE void *
@@ -256,13 +256,15 @@ JSVAL_TO_PRIVATE(jsval v)
     jsval_layout l;
     JS_ASSERT(JSVAL_IS_DOUBLE(v));
     l.asBits = v;
-    return JSVAL_TO_PRIVATE_IMPL(l);
+    return JSVAL_TO_PRIVATE_PTR_IMPL(l);
 }
 
 static JS_ALWAYS_INLINE JSBool
-JSVAL_MAY_BE_PRIVATE(jsval v)
+JSVAL_IS_UNDERLYING_TYPE_OF_PRIVATE(jsval v)
 {
-    return JSVAL_IS_DOUBLE(v);
+    jsval_layout l;
+    l.asBits = v;
+    return JSVAL_IS_UNDERLYING_TYPE_OF_PRIVATE_IMPL(l);
 }
 
 
@@ -285,6 +287,8 @@ JSVAL_MAY_BE_PRIVATE(jsval v)
                                            object that delegates to a prototype
                                            containing this property */
 #define JSPROP_INDEX            0x80    /* name is actually (jsint) index */
+#define JSPROP_SHORTID          0x100   /* set in JSPropertyDescriptor.attrs
+                                           if getters/setters use a shortid */
 
 
 #define JSFUN_LAMBDA            0x08    /* expressed, not declared, function */
@@ -757,8 +761,6 @@ JS_StringToVersion(const char *string);
                                                    leaving that up to the
                                                    embedding. */
 
-#define JSOPTION_METHODJIT      JS_BIT(14)      /* Whole-method JIT. */
-
 extern JS_PUBLIC_API(uint32)
 JS_GetOptions(JSContext *cx);
 
@@ -801,7 +803,7 @@ JS_InitStandardClasses(JSContext *cx, JSObject *obj);
 
 
 extern JS_PUBLIC_API(JSBool)
-JS_ResolveStandardClass(JSContext *cx, JSObject *obj, jsval id,
+JS_ResolveStandardClass(JSContext *cx, JSObject *obj, jsid id,
                         JSBool *resolved);
 
 extern JS_PUBLIC_API(JSBool)
@@ -825,6 +827,9 @@ JS_GetScopeChain(JSContext *cx);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForObject(JSContext *cx, JSObject *obj);
+
+extern JS_PUBLIC_API(JSObject *)
+JS_GetGlobalForScopeChain(JSContext *cx);
 
 #ifdef JS_HAS_CTYPES
 
@@ -888,6 +893,7 @@ JS_strdup(JSContext *cx, const char *s);
 
 extern JS_PUBLIC_API(JSBool)
 JS_NewNumberValue(JSContext *cx, jsdouble d, jsval *rval);
+
 
 
 
@@ -1454,10 +1460,16 @@ JS_GetExternalStringGCType(JSRuntime *rt, JSString *str);
 
 
 
+extern JS_PUBLIC_API(void)
+JS_SetThreadStackLimit(JSContext *cx, jsuword limitAddr);
+
+
+
 
 
 extern JS_PUBLIC_API(void)
-JS_SetThreadStackLimit(JSContext *cx, jsuword limitAddr);
+JS_SetNativeStackQuota(JSContext *cx, size_t stackSize);
+
 
 
 
@@ -1570,7 +1582,9 @@ struct JSExtendedClass {
 
 
 #define JSCLASS_GLOBAL_FLAGS \
-    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT * 2))
+    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT * 3 + 1))
+
+#define JSRESERVED_GLOBAL_COMPARTMENT (JSProto_LIMIT * 3)
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)
@@ -1619,13 +1633,13 @@ JS_IdToValue(JSContext *cx, jsid id, jsval *vp);
 #define JSRESOLVE_WITH          0x20    /* resolve inside a with statement */
 
 extern JS_PUBLIC_API(JSBool)
-JS_PropertyStub(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+JS_PropertyStub(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 extern JS_PUBLIC_API(JSBool)
 JS_EnumerateStub(JSContext *cx, JSObject *obj);
 
 extern JS_PUBLIC_API(JSBool)
-JS_ResolveStub(JSContext *cx, JSObject *obj, jsval id);
+JS_ResolveStub(JSContext *cx, JSObject *obj, jsid id);
 
 extern JS_PUBLIC_API(JSBool)
 JS_ConvertStub(JSContext *cx, JSObject *obj, JSType type, jsval *vp);
@@ -1747,6 +1761,9 @@ JS_GetConstructor(JSContext *cx, JSObject *proto);
 
 extern JS_PUBLIC_API(JSBool)
 JS_GetObjectId(JSContext *cx, JSObject *obj, jsid *idp);
+
+extern JS_PUBLIC_API(JSObject *)
+JS_NewGlobalObject(JSContext *cx, JSClass *clasp);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent);
@@ -1876,6 +1893,7 @@ struct JSPropertyDescriptor {
     uintN        attrs;
     JSPropertyOp getter;
     JSPropertyOp setter;
+    uintN        shortid;
     jsval        value;
 };
 
@@ -2986,8 +3004,8 @@ struct BooleanTag {
     bool boo;
 };
 
-struct PrivateVoidPtrTag {
-    explicit PrivateVoidPtrTag(void *ptr) : ptr(ptr) {}
+struct PrivateTag {
+    explicit PrivateTag(void *ptr) : ptr(ptr) {}
     void *ptr;
 };
 
@@ -3294,7 +3312,6 @@ class Value
 
     JSObject &asObject() const {
         JS_ASSERT(isObject());
-        JS_ASSERT(JSVAL_TO_OBJECT_IMPL(data));
         return *JSVAL_TO_OBJECT_IMPL(data);
     }
 
@@ -3335,33 +3352,34 @@ class Value
 
 
 
-    Value(PrivateVoidPtrTag arg) {
-        setPrivateVoidPtr(arg.ptr);
+    Value(PrivateTag arg) {
+        setPrivate(arg.ptr);
     }
 
-    void setPrivateVoidPtr(void *ptr) {
-		data = PRIVATE_TO_JSVAL_IMPL(ptr);
+    bool isUnderlyingTypeOfPrivate() const {
+        return JSVAL_IS_UNDERLYING_TYPE_OF_PRIVATE_IMPL(data);
     }
 
-    void *asPrivateVoidPtr() const {
-		JS_ASSERT(isDouble());
-		return JSVAL_TO_PRIVATE_IMPL(data);
+    void setPrivate(void *ptr) {
+		data = PRIVATE_PTR_TO_JSVAL_IMPL(ptr);
     }
 
-    void *asPrivateVoidPtrUnchecked() const {
-        return JSVAL_TO_PRIVATE_IMPL(data);
+    void *asPrivate() const {
+		JS_ASSERT(JSVAL_IS_UNDERLYING_TYPE_OF_PRIVATE_IMPL(data));
+		return JSVAL_TO_PRIVATE_PTR_IMPL(data);
     }
 
-    void setPrivateUint32(uint32 u) {
-		setInt32((int32)u);
+    void setPrivateUint32(uint32 ui) {
+        data = PRIVATE_UINT32_TO_JSVAL_IMPL(ui);
     }
 
     uint32 asPrivateUint32() const {
-		return (uint32)asInt32();
+		JS_ASSERT(JSVAL_IS_UNDERLYING_TYPE_OF_PRIVATE_IMPL(data));
+		return JSVAL_TO_PRIVATE_UINT32_IMPL(data);
     }
 
     uint32 &asPrivateUint32Ref() {
-		JS_ASSERT(isInt32());
+		JS_ASSERT(isDouble());
 		return data.s.payload.u32;
     }
 } VALUE_ALIGNMENT;
@@ -3430,10 +3448,23 @@ struct ExtendedClass {
 
 JS_STATIC_ASSERT(sizeof(JSExtendedClass) == sizeof(ExtendedClass));
 
-static JS_ALWAYS_INLINE JSClass *         Jsvalify(Class *c)           { return (JSClass *)c; }
-static JS_ALWAYS_INLINE Class *           Valueify(JSClass *c)         { return (Class *)c; }
-static JS_ALWAYS_INLINE JSExtendedClass * Jsvalify(ExtendedClass *c)   { return (JSExtendedClass *)c; }
-static JS_ALWAYS_INLINE ExtendedClass *   Valueify(JSExtendedClass *c) { return (ExtendedClass *)c; }
+struct PropertyDescriptor {
+    JSObject     *obj;
+    uintN        attrs;
+    PropertyOp   getter;
+    PropertyOp   setter;
+    uintN        shortid;
+    Value        value;
+};
+
+JS_STATIC_ASSERT(sizeof(JSPropertyDescriptor) == sizeof(PropertyDescriptor));
+
+static JS_ALWAYS_INLINE JSClass *              Jsvalify(Class *c)                { return (JSClass *)c; }
+static JS_ALWAYS_INLINE Class *                Valueify(JSClass *c)              { return (Class *)c; }
+static JS_ALWAYS_INLINE JSExtendedClass *      Jsvalify(ExtendedClass *c)        { return (JSExtendedClass *)c; }
+static JS_ALWAYS_INLINE ExtendedClass *        Valueify(JSExtendedClass *c)      { return (ExtendedClass *)c; }
+static JS_ALWAYS_INLINE JSPropertyDescriptor * Jsvalify(PropertyDescriptor *p) { return (JSPropertyDescriptor *) p; }
+static JS_ALWAYS_INLINE PropertyDescriptor *   Valueify(JSPropertyDescriptor *p) { return (PropertyDescriptor *) p; }
 
 } 
 #endif  

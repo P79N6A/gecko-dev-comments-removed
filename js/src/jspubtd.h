@@ -152,6 +152,7 @@ typedef struct JSExceptionState  JSExceptionState;
 typedef struct JSLocaleCallbacks JSLocaleCallbacks;
 typedef struct JSSecurityCallbacks JSSecurityCallbacks;
 typedef struct JSONParser        JSONParser;
+typedef struct JSCompartment     JSCompartment;
 
 
 
@@ -371,7 +372,7 @@ JSVAL_IS_SPECIFIC_BOOLEAN(jsval_layout l, JSBool b)
 }
 
 static JS_ALWAYS_INLINE jsval_layout
-PRIVATE_TO_JSVAL_IMPL(void *ptr)
+PRIVATE_PTR_TO_JSVAL_IMPL(void *ptr)
 {
     jsval_layout l;
     JS_ASSERT(((uint32)ptr & 1) == 0);
@@ -381,7 +382,7 @@ PRIVATE_TO_JSVAL_IMPL(void *ptr)
 }
 
 static JS_ALWAYS_INLINE void *
-JSVAL_TO_PRIVATE_IMPL(jsval_layout l)
+JSVAL_TO_PRIVATE_PTR_IMPL(jsval_layout l)
 {
     return l.s.payload.ptr;
 }
@@ -508,16 +509,16 @@ JSVAL_IS_SPECIFIC_BOOLEAN(jsval_layout l, JSBool b)
 }
 
 static JS_ALWAYS_INLINE jsval_layout
-PRIVATE_TO_JSVAL_IMPL(void *ptr)
+PRIVATE_PTR_TO_JSVAL_IMPL(void *ptr)
 {
     JS_ASSERT(((uint32)(size_t)ptr & 1) == 0);
     jsval_layout l;
-    l.asBits = 0x8000000000000000LL | ((size_t)ptr >> 1);
+    l.asBits = (size_t)ptr >> 1;
     return l;
 }
 
 static JS_ALWAYS_INLINE void *
-JSVAL_TO_PRIVATE_IMPL(jsval_layout l)
+JSVAL_TO_PRIVATE_PTR_IMPL(jsval_layout l)
 {
     return (void *)(l.asBits << 1);
 }
@@ -597,6 +598,27 @@ JSVAL_TRACE_KIND_IMPL(jsval_layout l)
     return (uint32)(l.s.u.mask32 == JSVAL_MASK32_STRING);
 }
 
+static JS_ALWAYS_INLINE jsval_layout
+PRIVATE_UINT32_TO_JSVAL_IMPL(uint32 ui)
+{
+    jsval_layout l;
+    l.s.u.mask32 = 0;
+    l.s.payload.u32 = ui;
+    return l;
+}
+
+static JS_ALWAYS_INLINE uint32
+JSVAL_TO_PRIVATE_UINT32_IMPL(jsval_layout l)
+{
+    return l.s.payload.u32;
+}
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_UNDERLYING_TYPE_OF_PRIVATE_IMPL(jsval_layout l)
+{
+    return JSVAL_IS_DOUBLE_IMPL(l);
+}
+
 
 
 
@@ -607,7 +629,7 @@ JSVAL_TRACE_KIND_IMPL(jsval_layout l)
 
 
 typedef JSBool
-(* JSPropertyOp)(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+(* JSPropertyOp)(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
 
 
 
@@ -660,7 +682,7 @@ typedef JSBool
 
 
 typedef JSBool
-(* JSResolveOp)(JSContext *cx, JSObject *obj, jsval id);
+(* JSResolveOp)(JSContext *cx, JSObject *obj, jsid id);
 
 
 
@@ -692,7 +714,7 @@ typedef JSBool
 
 
 typedef JSBool
-(* JSNewResolveOp)(JSContext *cx, JSObject *obj, jsval id, uintN flags,
+(* JSNewResolveOp)(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                    JSObject **objp);
 
 
@@ -759,7 +781,7 @@ typedef JSObjectOps *
 
 
 typedef JSBool
-(* JSCheckAccessOp)(JSContext *cx, JSObject *obj, jsval id, JSAccessMode mode,
+(* JSCheckAccessOp)(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
                     jsval *vp);
 
 
@@ -1048,7 +1070,7 @@ typedef JSBool
 typedef JSBool
 (* FastNative)(JSContext *cx, uintN argc, Value *vp);
 typedef JSBool
-(* PropertyOp)(JSContext *cx, JSObject *obj, jsval id, Value *vp);
+(* PropertyOp)(JSContext *cx, JSObject *obj, jsid id, Value *vp);
 typedef JSBool
 (* ConvertOp)(JSContext *cx, JSObject *obj, JSType type, Value *vp);
 typedef JSBool
@@ -1057,7 +1079,7 @@ typedef JSBool
 typedef JSBool
 (* HasInstanceOp)(JSContext *cx, JSObject *obj, Value v, JSBool *bp);
 typedef JSBool
-(* CheckAccessOp)(JSContext *cx, JSObject *obj, jsval id, JSAccessMode mode,
+(* CheckAccessOp)(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
                   Value *vp);
 typedef JSObjectOps *
 (* GetObjectOps)(JSContext *cx, Class *clasp);

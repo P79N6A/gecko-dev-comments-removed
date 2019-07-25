@@ -50,8 +50,8 @@
 #include "jsscript.h"
 
 typedef struct JSFrameRegs {
-    js::Value       *sp;            
     jsbytecode      *pc;            
+    js::Value       *sp;            
 } JSFrameRegs;
 
 
@@ -65,9 +65,8 @@ enum JSFrameFlags {
     JSFRAME_EVAL               =  0x10, 
     JSFRAME_FLOATING_GENERATOR =  0x20, 
     JSFRAME_YIELDING           =  0x40, 
-    JSFRAME_ITERATOR           =  0x80, 
-    JSFRAME_GENERATOR          = 0x200, 
-    JSFRAME_OVERRIDE_ARGS      = 0x400, 
+    JSFRAME_GENERATOR          =  0x80, 
+    JSFRAME_OVERRIDE_ARGS      = 0x100, 
 
     JSFRAME_SPECIAL            = JSFRAME_DEBUGGER | JSFRAME_EVAL
 };
@@ -101,12 +100,6 @@ struct JSStackFrame
     jsbytecode          *savedPC;       
 #ifdef DEBUG
     static jsbytecode *const sInvalidPC;
-#endif
-
-#if defined(JS_CPU_X86) || defined(JS_CPU_ARM)
-    void                *ncode;         
-    
-    void                *align_[3];
 #endif
 
     
@@ -213,7 +206,6 @@ struct JSStackFrame
 };
 
 namespace js {
-
 JS_STATIC_ASSERT(sizeof(JSStackFrame) % sizeof(Value) == 0);
 static const size_t VALUES_PER_STACK_FRAME = sizeof(JSStackFrame) / sizeof(Value);
 
@@ -326,12 +318,11 @@ InvokeFriendAPI(JSContext *cx, const InvokeArgsGuard &args, uintN flags);
 
 
 #define JSINVOKE_CONSTRUCT      JSFRAME_CONSTRUCTING
-#define JSINVOKE_ITERATOR       JSFRAME_ITERATOR
 
 
 
 
-#define JSINVOKE_FUNFLAGS       (JSINVOKE_CONSTRUCT | JSINVOKE_ITERATOR)
+#define JSINVOKE_FUNFLAGS       JSINVOKE_CONSTRUCT
 
 extern bool
 InternalInvoke(JSContext *cx, JSObject *obj, const Value &fval, uintN flags,
@@ -364,9 +355,6 @@ InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args, JSBool clampReturn
 
 extern JS_REQUIRES_STACK bool
 Interpret(JSContext *cx);
-
-extern JS_REQUIRES_STACK bool
-RunScript(JSContext *cx, JSScript *script, JSFunction *fun, JSObject *scopeChain);
 
 #define JSPROP_INITIALIZER 0x100   /* NB: Not a valid property attribute. */
 
@@ -445,6 +433,19 @@ js_EnterWith(JSContext *cx, jsint stackIndex);
 extern JS_REQUIRES_STACK void
 js_LeaveWith(JSContext *cx);
 
+extern JS_REQUIRES_STACK js::Class *
+js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth);
+
+
+
+
+
+extern JS_REQUIRES_STACK JSBool
+js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind);
+
+extern JSBool
+js_OnUnknownMethod(JSContext *cx, js::Value *vp);
+
 
 
 
@@ -471,19 +472,6 @@ extern void
 js_MeterSlotOpcode(JSOp op, uint32 slot);
 
 #endif 
-
-extern JS_REQUIRES_STACK js::Class *
-js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth);
-
-
-
-
-
-extern JS_REQUIRES_STACK JSBool
-js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind);
-
-extern JSBool
-js_OnUnknownMethod(JSContext *cx, js::Value *vp);
 
 inline JSObject *
 JSStackFrame::getThisObject(JSContext *cx)

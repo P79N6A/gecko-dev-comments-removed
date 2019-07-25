@@ -76,8 +76,6 @@
 #include "jstracer.h"
 #include "jslibmath.h"
 #include "jsvector.h"
-#include "methodjit/MethodJIT.h"
-#include "methodjit/Logging.h"
 
 #include "jsatominlines.h"
 #include "jscntxtinlines.h"
@@ -323,7 +321,7 @@ Class js_NoSuchMethodClass = {
 
 
 
-JSBool
+JS_STATIC_INTERPRET JSBool
 js_OnUnknownMethod(JSContext *cx, Value *vp)
 {
     JS_ASSERT(!vp[1].isPrimitive());
@@ -400,52 +398,20 @@ const uint32 PrimitiveValue::Masks[PrimitiveValue::THISP_ARRAY_SIZE] = {
     JSVAL_MASK32_BOOLEAN | FAKE_NUMBER_MASK | JSVAL_MASK32_STRING  
 };
 
-struct AutoInterpPreparer 
-{
+class AutoPreserveEnumerators {
     JSContext *cx;
-    JSScript *script;
+    JSObject *enumerators;
 
-    AutoInterpPreparer(JSContext *cx, JSScript *script)
-      : cx(cx), script(script)
+  public:
+    AutoPreserveEnumerators(JSContext *cx) : cx(cx), enumerators(cx->enumerators)
     {
-        if (script->staticLevel < JS_DISPLAY_SIZE) {
-            JSStackFrame **disp = &cx->display[script->staticLevel];
-            cx->fp->displaySave = *disp;
-            *disp = cx->fp;
-        }
-        cx->interpLevel++;
     }
 
-    ~AutoInterpPreparer()
+    ~AutoPreserveEnumerators()
     {
-        if (script->staticLevel < JS_DISPLAY_SIZE)
-            cx->display[script->staticLevel] = cx->fp->displaySave;
-        --cx->interpLevel;
+        cx->enumerators = enumerators;
     }
 };
-
-JS_REQUIRES_STACK bool
-RunScript(JSContext *cx, JSScript *script, JSFunction *fun, JSObject *scopeChain)
-{
-    JS_ASSERT(script);
-
-#ifdef JS_METHODJIT_SPEW
-    JMCheckLogging();
-#endif
-
-    AutoInterpPreparer prepareInterp(cx, script);
-
-#ifdef JS_METHODJIT
-    mjit::CompileStatus status = mjit::CanMethodJIT(cx, script, fun, scopeChain);
-    if (status == mjit::Compile_Error)
-        return JS_FALSE;
-
-    if (status == mjit::Compile_Okay)
-        return mjit::JaegerShot(cx);
-#endif
-
-    return Interpret(cx);
-}
 
 
 
@@ -557,13 +523,13 @@ Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
 #ifdef DEBUG_NOT_THROWING
         JSBool alreadyThrowing = cx->throwing;
 #endif
-        JSBool ok = ((FastNative) native)(cx, argc, vp);
+        bool ok = ((FastNative) native)(cx, argc, vp);
         JS_RUNTIME_METER(cx->runtime, nativeCalls);
 #ifdef DEBUG_NOT_THROWING
         if (ok && !alreadyThrowing)
             ASSERT_NOT_THROWING(cx);
 #endif
-        return !!ok;
+        return ok;
     }
 
     
@@ -676,7 +642,8 @@ Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
 #endif
     } else {
         JS_ASSERT(script);
-        ok = RunScript(cx, script, fun, fp->scopeChain);
+        AutoPreserveEnumerators preserve(cx);
+        ok = Interpret(cx);
     }
 
     DTrace::exitJSFun(cx, fp, fun, fp->rval);
@@ -752,7 +719,7 @@ InternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, const Value &fval,
 }
 
 bool
-Execute(JSContext *cx, JSObject *chain, JSScript *script,
+Execute(JSContext *cx, JSObject *const chain, JSScript *script,
         JSStackFrame *down, uintN flags, Value *result)
 {
     if (script->isEmpty()) {
@@ -828,25 +795,25 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
     } else {
         fp->callobj = NULL;
         fp->argsobj = NULL;
-        JSObject *obj = chain;
-        if (cx->options & JSOPTION_VAROBJFIX)
-            obj = obj->getGlobal();
         fp->fun = NULL;
-        JSObject *thisp = chain->thisObject(cx);
-        if (!thisp)
-            return false;
-        fp->thisv.setObject(*thisp);
+        
         fp->flags = flags | JSFRAME_COMPUTED_THIS;
         fp->argc = 0;
         fp->argv = NULL;
         fp->annotation = NULL;
-        Innerize(cx, &chain);
-        if (!chain)
-            return false;
-        fp->scopeChain = chain;
 
-        initialVarObj = obj;
+        JSObject *innerizedChain = chain;
+        Innerize(cx, &innerizedChain);
+        if (!innerizedChain)
+            return false;
+        fp->scopeChain = innerizedChain;
+
+        initialVarObj = (cx->options & JSOPTION_VAROBJFIX)
+                        ? chain->getGlobal()
+                        : chain;
     }
+    JS_ASSERT(initialVarObj->map->ops->defineProperty == js_DefineProperty);
+
     fp->script = script;
     fp->imacpc = NULL;
     fp->rval.setUndefined();
@@ -859,11 +826,20 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
     
     cx->stack().pushExecuteFrame(cx, frame, regs, initialVarObj);
 
+    
+    if (!down) {
+        JSObject *thisp = chain->thisObject(cx);
+        if (!thisp)
+            return false;
+        fp->thisv.setObject(*thisp);
+    }
+
     void *hookData = NULL;
     if (JSInterpreterHook hook = cx->debugHooks->executeHook)
         hookData = hook(cx, fp, JS_TRUE, 0, cx->debugHooks->executeHookData);
 
-    JSBool ok = RunScript(cx, script, fp->fun, fp->scopeChain);
+    AutoPreserveEnumerators preserve(cx);
+    JSBool ok = Interpret(cx);
     if (result)
         *result = fp->rval;
 
@@ -901,21 +877,21 @@ CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs,
     JS_ASSERT_IF(attrs == JSPROP_INITIALIZER, !propp);
 
     if (!obj->lookupProperty(cx, id, &obj2, &prop))
-        return JS_FALSE;
+        return false;
     if (!prop)
-        return JS_TRUE;
+        return true;
+    if (obj2->isNative()) {
+        oldAttrs = ((JSScopeProperty *) prop)->attributes();
 
-    
-    if (!obj2->getAttributes(cx, id, prop, &oldAttrs)) {
-        obj2->dropProperty(cx, prop);
-        return JS_FALSE;
+        
+        if (!propp)
+            JS_UNLOCK_OBJ(cx, obj2);
+    } else {
+        if (!obj2->getAttributes(cx, id, &oldAttrs))
+            return false;
     }
 
-    
-
-
     if (!propp) {
-        obj2->dropProperty(cx, prop);
         prop = NULL;
     } else {
         *objp = obj2;
@@ -996,7 +972,7 @@ static JS_ALWAYS_INLINE bool
 EqualObjects(JSContext *cx, JSObject *lobj, JSObject *robj)
 {
     return lobj == robj ||
-           js_GetWrappedObject(cx, lobj) == js_GetWrappedObject(cx, robj);
+           lobj->wrappedObject(cx) == robj->wrappedObject(cx);
 }
 
 bool
@@ -1169,13 +1145,15 @@ ValueToId(JSContext *cx, const Value &v, jsid *idp)
 
 #if JS_HAS_XML_SUPPORT
     if (v.isObject()) {
-        Class *clasp = v.asObject().getClass();
-        if (JS_UNLIKELY(clasp == &js_QNameClass.base ||
-                        clasp == &js_AttributeNameClass ||
-                        clasp == &js_AnyNameClass)) {
-            *idp = OBJECT_TO_JSID(&v.asObject());
-            return true;
+        JSObject *obj = &v.asObject();
+        if (obj->isXML()) {
+            *idp = OBJECT_TO_JSID(obj);
+            return JS_TRUE;
         }
+        if (!js_IsFunctionQName(cx, obj, idp))
+            return JS_FALSE;
+        if (*idp != 0)
+            return JS_TRUE;
     }
 #endif
 
@@ -1253,7 +1231,7 @@ js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth)
 
 
 
-JS_REQUIRES_STACK JSBool
+JS_STATIC_INTERPRET JS_REQUIRES_STACK JSBool
 js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind)
 {
     JSObject *obj;
@@ -1685,7 +1663,7 @@ namespace reprmeter {
     
     
     static void
-    MeterRepr(JSStackFrame *fp)
+    MeterRepr(JSContext *cx)
     {
         
         
@@ -1695,13 +1673,13 @@ namespace reprmeter {
             opinputsInitialized = true;
         }
 
-        JSOp op = JSOp(*fp->regs->pc);
-        unsigned nuses = js_GetStackUses(&js_CodeSpec[op], op, fp->regs->pc);
+        JSOp op = JSOp(*cx->regs->pc);
+        int nuses = js_GetStackUses(&js_CodeSpec[op], op, cx->regs->pc);
 
         
         OpInput opinput(op);
-        for (unsigned i = 0; i < nuses; ++i) {
-            jsval v = fp->regs->sp[-nuses+i];
+        for (int i = 0; i < nuses; ++i) {
+            jsval v = cx->regs->sp[-nuses+i];
             opinput.uses[i] = GetRepr(v);
         }
 
@@ -1834,9 +1812,9 @@ CanIncDecWithoutOverflow(int32_t i)
 #endif
 
 #ifdef JS_REPRMETER
-# define METER_REPR(fp)         (reprmeter::MeterRepr(fp))
+# define METER_REPR(cx)         (reprmeter::MeterRepr(cx))
 #else
-# define METER_REPR(fp)         ((void) 0)
+# define METER_REPR(cx)         ((void) 0)
 #endif 
 
 
@@ -2006,7 +1984,7 @@ IteratorNext(JSContext *cx, JSObject *iterobj, Value *rval)
     if (iterobj->getClass() == &js_IteratorClass.base) {
         NativeIterator *ni = (NativeIterator *) iterobj->getPrivate();
         JS_ASSERT(ni->props_cursor < ni->props_end);
-        *rval = *ni->props_cursor;
+        *rval = ID_TO_VALUE(*ni->props_cursor);
         if (rval->isString() || (ni->flags & JSITER_FOREACH)) {
             ni->props_cursor++;
             return true;
@@ -2089,7 +2067,7 @@ Interpret(JSContext *cx)
 # define DO_NEXT_OP(n)      JS_BEGIN_MACRO                                    \
                                 METER_OP_PAIR(op, JSOp(regs.pc[n]));          \
                                 op = (JSOp) *(regs.pc += (n));                \
-                                METER_REPR(fp);                               \
+                                METER_REPR(cx);                               \
                                 DO_OP();                                      \
                             JS_END_MACRO
 
@@ -2247,7 +2225,7 @@ Interpret(JSContext *cx)
 
 #define CHECK_BRANCH()                                                        \
     JS_BEGIN_MACRO                                                            \
-        if (cx->interruptFlags && !js_HandleExecutionInterrupt(cx))           \
+        if (!JS_CHECK_OPERATION_LIMIT(cx))                                    \
             goto error;                                                       \
     JS_END_MACRO
 
@@ -2292,6 +2270,13 @@ Interpret(JSContext *cx)
     JSVersion originalVersion = (JSVersion) cx->version;
     if (currentVersion != originalVersion)
         js_SetVersion(cx, currentVersion);
+
+    
+    if (script->staticLevel < JS_DISPLAY_SIZE) {
+        JSStackFrame **disp = &cx->display[script->staticLevel];
+        fp->displaySave = *disp;
+        *disp = fp;
+    }
 
 #define CHECK_INTERRUPT_HANDLER()                                             \
     JS_BEGIN_MACRO                                                            \
@@ -2619,6 +2604,8 @@ Interpret(JSContext *cx)
     JS_ASSERT_IF(!fp->isGenerator(), !js_IsActiveWithOrBlock(cx, fp->scopeChain, 0));
 
     
+    if (script->staticLevel < JS_DISPLAY_SIZE)
+        cx->display[script->staticLevel] = fp->displaySave;
     if (cx->version == currentVersion && currentVersion != originalVersion)
         js_SetVersion(cx, originalVersion);
     --cx->interpLevel;

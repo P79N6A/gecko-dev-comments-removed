@@ -171,6 +171,9 @@ struct JSFunction : public JSObject
         return u.i.nvars;
     }
 
+    
+    enum { MAX_ARGS_AND_VARS = 2 * ((1U << 16) - 1) };
+
     uintN countArgsAndVars() const {
         JS_ASSERT(FUN_INTERPRETED(this));
         return nargs + u.i.nvars;
@@ -341,7 +344,6 @@ js_DefineFunction(JSContext *cx, JSObject *obj, JSAtom *atom, js::Native native,
 
 
 #define JSV2F_CONSTRUCT         JSINVOKE_CONSTRUCT
-#define JSV2F_ITERATOR          JSINVOKE_ITERATOR
 #define JSV2F_SEARCH_STACK      0x10000
 
 extern JSFunction *
