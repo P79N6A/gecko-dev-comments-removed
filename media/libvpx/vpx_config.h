@@ -16,27 +16,11 @@
 
 #include "vpx_config_x86-darwin9-gcc.h"
 
-#elif defined(__linux__) && defined(__i386__)
+#elif defined(__ELF__) && (defined(__i386) || defined(__i386__))
 
 #include "vpx_config_x86-linux-gcc.h"
 
-#elif defined(__linux__) && defined(__x86_64__)
-
-#include "vpx_config_x86_64-linux-gcc.h"
-
-#elif defined(__OpenBSD__) && defined(__i386__)
-
-#include "vpx_config_x86-linux-gcc.h"
-
-#elif defined(__OpenBSD__) && defined(__x86_64__)
-
-#include "vpx_config_x86_64-linux-gcc.h"
-
-#elif defined(__sun) && defined(__i386)
-
-#include "vpx_config_x86-linux-gcc.h"
-
-#elif defined(__sun) && defined(__x86_64)
+#elif defined(__ELF__) && (defined(__x86_64) || defined(__x86_64__))
 
 #include "vpx_config_x86_64-linux-gcc.h"
 
