@@ -119,13 +119,13 @@ FileIOObject::DispatchError(nsresult rv, nsAString& finalEvent)
   
   switch (rv) {
   case NS_ERROR_FILE_NOT_FOUND:
-    mError = new nsDOMFileError(nsIDOMFileError::NOT_FOUND_ERR);
+    mError = DOMError::CreateWithName(NS_LITERAL_STRING("NotFoundError"));
     break;
   case NS_ERROR_FILE_ACCESS_DENIED:
-    mError = new nsDOMFileError(nsIDOMFileError::SECURITY_ERR);
+    mError = DOMError::CreateWithName(NS_LITERAL_STRING("SecurityError"));
     break;
   default:
-    mError = new nsDOMFileError(nsIDOMFileError::NOT_READABLE_ERR);
+    mError = DOMError::CreateWithName(NS_LITERAL_STRING("NotReadableError"));
     break;
   }
 
@@ -258,14 +258,17 @@ FileIOObject::OnStopRequest(nsIRequest* aRequest, nsISupports* aContext,
 NS_IMETHODIMP
 FileIOObject::Abort()
 {
-  if (mReadyState != 1)
+  if (mReadyState != 1) {
+    
     return NS_ERROR_DOM_FILE_ABORT_ERR;
+  }
 
   ClearProgressEventTimer();
 
   mReadyState = 2; 
                    
-  mError = new nsDOMFileError(nsIDOMFileError::ABORT_ERR);
+  
+  mError = DOMError::CreateWithName(NS_LITERAL_STRING("AbortError"));
 
   nsString finalEvent;
   nsresult rv = DoAbort(finalEvent);
@@ -285,7 +288,7 @@ FileIOObject::GetReadyState(PRUint16 *aReadyState)
 }
 
 NS_IMETHODIMP
-FileIOObject::GetError(nsIDOMFileError** aError)
+FileIOObject::GetError(nsIDOMDOMError** aError)
 {
   NS_IF_ADDREF(*aError = mError);
   return NS_OK;
