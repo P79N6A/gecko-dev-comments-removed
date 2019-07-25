@@ -556,14 +556,8 @@ struct JSGCArenaStats {
 };
 
 struct JSGCStats {
-    uint32  finalfail;  
-    uint32  lockborn;   
     uint32  lock;       
     uint32  unlock;     
-    uint32  depth;      
-    uint32  maxdepth;   
-    uint32  cdepth;     
-    uint32  maxcdepth;  
     uint32  unmarked;   
 
 #ifdef DEBUG
@@ -572,12 +566,6 @@ struct JSGCStats {
 #endif
     uint32  poke;           
     uint32  afree;          
-    uint32  stackseg;       
-    uint32  segslots;       
-    uint32  nclose;         
-    uint32  maxnclose;      
-    uint32  closelater;     
-    uint32  maxcloselater;  
     uint32  nallarenas;     
     uint32  maxnallarenas;  
     uint32  nchunks;        
