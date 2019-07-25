@@ -325,7 +325,7 @@ struct AutoPaintSetup {
       mPaint.setAntiAlias(false);
     }
 
-    NS_ASSERTION(aOptions.mSnapping == SNAP_NONE, "Pixel snapping not supported yet!");
+    MOZ_ASSERT(aOptions.mSnapping == SNAP_NONE, "Pixel snapping not supported yet!");
     
     
     
