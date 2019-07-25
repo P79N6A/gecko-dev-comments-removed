@@ -293,8 +293,8 @@ nsContentSink::Init(nsIDocument* aDoc,
     if (mDocShell) {
       PRUint32 loadType = 0;
       mDocShell->GetLoadType(&loadType);
-      mDocument->SetChangeScrollPosWhenScrollingToRef(
-        (loadType & nsIDocShell::LOAD_CMD_HISTORY) == 0);
+      mChangeScrollPosWhenScrollingToRef =
+        ((loadType & nsIDocShell::LOAD_CMD_HISTORY) == 0);
     }
 
     
@@ -350,7 +350,7 @@ nsContentSink::StyleSheetLoaded(nsCSSStyleSheet* aSheet,
       }
 
       
-      ScrollToRef();
+      ScrollToRefImpl();
     }
     
     mScriptLoader->RemoveExecuteBlocker();
@@ -1183,9 +1183,56 @@ nsContentSink::ProcessOfflineManifest(const nsAString& aManifestSpec)
 }
 
 void
-nsContentSink::ScrollToRef()
+nsContentSink::ScrollToRefImpl()
 {
-  mDocument->ScrollToRef();
+  if (mScrollToRef.IsEmpty()) {
+    return;
+  }
+
+  if (mScrolledToRefAlready) {
+    return;
+  }
+
+  char* tmpstr = ToNewCString(mScrollToRef);
+  if (!tmpstr) {
+    return;
+  }
+
+  nsUnescape(tmpstr);
+  nsCAutoString unescapedRef;
+  unescapedRef.Assign(tmpstr);
+  nsMemory::Free(tmpstr);
+
+  nsresult rv = NS_ERROR_FAILURE;
+  
+  
+  NS_ConvertUTF8toUTF16 ref(unescapedRef);
+
+  nsCOMPtr<nsIPresShell> shell = mDocument->GetShell();
+  if (shell) {
+    
+    if (!ref.IsEmpty()) {
+      
+      rv = shell->GoToAnchor(ref, mChangeScrollPosWhenScrollingToRef);
+    } else {
+      rv = NS_ERROR_FAILURE;
+    }
+
+    
+    
+
+    if (NS_FAILED(rv)) {
+      const nsACString &docCharset = mDocument->GetDocumentCharacterSet();
+
+      rv = nsContentUtils::ConvertStringFromCharset(docCharset, unescapedRef, ref);
+
+      if (NS_SUCCEEDED(rv) && !ref.IsEmpty())
+        rv = shell->GoToAnchor(ref, mChangeScrollPosWhenScrollingToRef);
+    }
+    if (NS_SUCCEEDED(rv)) {
+      mScrolledToRefAlready = PR_TRUE;
+    }
+  }
 }
 
 void
@@ -1235,7 +1282,7 @@ nsContentSink::StartLayout(PRBool aIgnorePendingSheets)
   
   
 
-  mDocument->SetScrollToRef(mDocumentURI);
+  SetScrollToRef();
 }
 
 void
@@ -1297,7 +1344,7 @@ nsContentSink::Notify(nsITimer *timer)
 
     
     
-    ScrollToRef();
+    ScrollToRefImpl();
   }
 
   mNotificationTimer = nsnull;
@@ -1355,7 +1402,7 @@ nsContentSink::WillInterruptImpl()
                     "run out time; backoff count: %d", mBackoffCount));
         result = FlushTags();
         if (mDroppedTimer) {
-          ScrollToRef();
+          ScrollToRefImpl();
           mDroppedTimer = PR_FALSE;
         }
       } else if (!mNotificationTimer) {
@@ -1620,7 +1667,7 @@ nsContentSink::WillBuildModelImpl()
     mBeginLoadTime = PR_IntervalToMicroseconds(PR_IntervalNow());
   }
 
-  mDocument->ResetScrolledToRefAlready();
+  mScrolledToRefAlready = PR_FALSE;
 
   if (mProcessLinkHeaderEvent.get()) {
     mProcessLinkHeaderEvent.Revoke();
@@ -1659,6 +1706,31 @@ nsContentSink::NotifyDocElementCreated(nsIDocument* aDoc)
     observerService->
       NotifyObservers(domDoc, "document-element-inserted",
                       EmptyString().get());
+  }
+}
+
+void
+nsContentSink::SetScrollToRef() {
+  if (mDocumentURI) {
+    nsCAutoString ref;
+
+    
+    
+    
+    
+
+    mDocumentURI->GetSpec(ref);
+
+    nsReadingIterator<char> start, end;
+
+    ref.BeginReading(start);
+    ref.EndReading(end);
+
+    if (FindCharInReadable('#', start, end)) {
+      ++start; 
+
+      mScrollToRef = Substring(start, end);
+    }
   }
 }
 

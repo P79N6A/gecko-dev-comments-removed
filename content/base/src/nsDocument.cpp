@@ -6381,20 +6381,27 @@ nsDocument::CreateEventGroup(nsIDOMEventGroup **aInstancePtrResult)
   return NS_OK;
 }
 
+already_AddRefed<nsIContentSink>
+nsDocument::GetContentSink()
+{
+  nsCOMPtr<nsIContentSink> sink;
+  if (mParser) {
+    sink = mParser->GetContentSink();
+  } else {
+    sink = do_QueryReferent(mWeakSink);
+    if (!sink) {
+      mWeakSink = nsnull;
+    }
+  }
+  return sink.forget();
+}
+
 void
 nsDocument::FlushPendingNotifications(mozFlushType aType)
 {
   if ((!IsHTML() || aType > Flush_ContentAndNotify) &&
       (mParser || mWeakSink)) {
-    nsCOMPtr<nsIContentSink> sink;
-    if (mParser) {
-      sink = mParser->GetContentSink();
-    } else {
-      sink = do_QueryReferent(mWeakSink);
-      if (!sink) {
-        mWeakSink = nsnull;
-      }
-    }
+    nsCOMPtr<nsIContentSink> sink = GetContentSink();
     
     
     if (sink && (aType == Flush_Content || IsSafeToFlush())) {
@@ -7944,97 +7951,12 @@ nsDocument::UnregisterFileDataUri(const nsACString& aUri)
 }
 
 void
-nsDocument::SetScrollToRef(nsIURI *aDocumentURI)
-{
-  if (!aDocumentURI) {
-    return;
-  }
-
-  nsCAutoString ref;
-
-  
-  
-  
-  
-
-  aDocumentURI->GetSpec(ref);
-
-  nsReadingIterator<char> start, end;
-
-  ref.BeginReading(start);
-  ref.EndReading(end);
-
-  if (FindCharInReadable('#', start, end)) {
-    ++start; 
-
-    mScrollToRef = Substring(start, end);
-  }
-}
-
-void
 nsDocument::ScrollToRef()
 {
-  if (mScrolledToRefAlready) {
-    return;
+  nsCOMPtr<nsIContentSink> sink = GetContentSink();
+  if (sink) {
+    sink->ScrollToRef();
   }
-
-  if (mScrollToRef.IsEmpty()) {
-    return;
-  }
-
-  char* tmpstr = ToNewCString(mScrollToRef);
-  if (!tmpstr) {
-    return;
-  }
-
-  nsUnescape(tmpstr);
-  nsCAutoString unescapedRef;
-  unescapedRef.Assign(tmpstr);
-  nsMemory::Free(tmpstr);
-
-  nsresult rv = NS_ERROR_FAILURE;
-  
-  
-  NS_ConvertUTF8toUTF16 ref(unescapedRef);
-
-  nsCOMPtr<nsIPresShell> shell = GetShell();
-  if (shell) {
-    
-    if (!ref.IsEmpty()) {
-      
-      rv = shell->GoToAnchor(ref, mChangeScrollPosWhenScrollingToRef);
-    } else {
-      rv = NS_ERROR_FAILURE;
-    }
-
-    
-    
-
-    if (NS_FAILED(rv)) {
-      const nsACString &docCharset = GetDocumentCharacterSet();
-
-      rv = nsContentUtils::ConvertStringFromCharset(docCharset, unescapedRef, ref);
-
-      if (NS_SUCCEEDED(rv) && !ref.IsEmpty()) {
-        rv = shell->GoToAnchor(ref, mChangeScrollPosWhenScrollingToRef);
-      }
-    }
-    if (NS_SUCCEEDED(rv)) {
-      mScrolledToRefAlready = PR_TRUE;
-    }
-  }
-}
-
-void
-nsDocument::ResetScrolledToRefAlready()
-{
-  mScrolledToRefAlready = PR_FALSE;
-}
-
-void
-nsDocument::SetChangeScrollPosWhenScrollingToRef(PRBool aValue)
-{
-  mChangeScrollPosWhenScrollingToRef = aValue;
 }
 
 void
