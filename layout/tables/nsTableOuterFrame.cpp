@@ -56,7 +56,7 @@
 
 
 
-#define NS_TABLE_FRAME_CAPTION_LIST_INDEX 0
+#define NS_TABLE_FRAME_CAPTION_LIST_INDEX 1
 #define NO_SIDE 100
 
 
@@ -208,6 +208,7 @@ nsTableOuterFrame::IsContainingBlock() const
 void
 nsTableOuterFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
+  DestroyAbsoluteFrames(aDestructRoot);
   mCaptionFrames.DestroyFramesFrom(aDestructRoot);
   nsHTMLContainerFrame::DestroyFrom(aDestructRoot);
 }
@@ -936,7 +937,6 @@ nsTableOuterFrame::UpdateReflowMetrics(PRUint8              aCaptionSide,
   if (mCaptionFrames.NotEmpty()) {
     ConsiderChildOverflow(aMet.mOverflowAreas, mCaptionFrames.FirstChild());
   }
-  FinishAndStoreOverflow(&aMet);
 }
 
 NS_METHOD nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
@@ -1129,7 +1129,8 @@ NS_METHOD nsTableOuterFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   UpdateReflowMetrics(captionSide, aDesiredSize, innerMargin, captionMargin);
-  
+  FinishReflowWithAbsoluteFrames(aPresContext, aDesiredSize, aOuterRS, aStatus);
+
   
 
   NS_FRAME_SET_TRUNCATION(aStatus, aOuterRS, aDesiredSize);
