@@ -1650,6 +1650,16 @@ extern JS_PUBLIC_DATA(jsid) JSID_EMPTY;
 
 
 
+
+static JS_ALWAYS_INLINE JSBool
+JSVAL_IS_UNIVERSAL(jsval v)
+{
+    return !JSVAL_IS_GCTHING(v);
+}
+
+
+
+
 #define JSVAL_LOCK(cx,v)        (JSVAL_IS_GCTHING(v)                          \
                                  ? JS_LockGCThing(cx, JSVAL_TO_GCTHING(v))    \
                                  : JS_TRUE)
