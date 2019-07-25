@@ -2497,6 +2497,10 @@ RasterImage::Draw(gfxContext *aContext,
     mFrameDecodeFlags = DECODE_FLAGS_DEFAULT;
   }
 
+  if (!mDecoded) {
+      mDrawStartTime = TimeStamp::Now();
+  }
+
   
   if (aFlags & FLAG_SYNC_DECODE) {
     nsresult rv = SyncDecode();
@@ -2515,6 +2519,12 @@ RasterImage::Draw(gfxContext *aContext,
 
   frame->Draw(aContext, aFilter, aUserSpaceToImageSpace, aFill, padding, aSubimage);
 
+  if (mDecoded && !mDrawStartTime.IsNull()) {
+      TimeDuration drawLatency = TimeStamp::Now() - mDrawStartTime;
+      Telemetry::Accumulate(Telemetry::IMAGE_DECODE_ON_DRAW_LATENCY, PRInt32(drawLatency.ToMicroseconds()));
+      
+      mDrawStartTime = TimeStamp();
+  }
   return NS_OK;
 }
 
