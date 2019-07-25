@@ -1677,18 +1677,14 @@ FixLazyArguments(JSContext *cx, JSScript *script)
     if (!analysis || analysis->OOM())
         return;
 
-    for (AllFramesIter iter(cx); !iter.done(); ++iter) {
+    for (FrameRegsIter iter(cx, FRAME_EXPAND_NONE); !iter.done(); ++iter) {
         StackFrame *fp = iter.fp();
         if (fp->isScriptFrame() && fp->script() == script) {
-            JSInlinedSite *inline_;
-            jsbytecode *pc = fp->pc(cx, NULL, &inline_);
-            JS_ASSERT(!inline_);
-
             
 
 
 
-            Value *sp = fp->base() + analysis->getCode(pc).stackDepth;
+            Value *sp = fp->base() + analysis->getCode(iter.pc()).stackDepth;
             for (Value *vp = fp->slots(); vp < sp; vp++) {
                 if (vp->isMagicCheck(JS_LAZY_ARGUMENTS)) {
                     if (!js_GetArgsValue(cx, fp, vp))
@@ -2930,10 +2926,6 @@ TypeObject::clearNewScript(JSContext *cx)
             prop->types.setOwnProperty(cx, true);
     }
 
-#ifdef JS_METHODJIT
-    mjit::ExpandInlineFrames(cx, true);
-#endif
-
     
 
 
@@ -2942,15 +2934,13 @@ TypeObject::clearNewScript(JSContext *cx)
 
 
 
-    for (AllFramesIter iter(cx); !iter.done(); ++iter) {
+    for (FrameRegsIter iter(cx, FRAME_EXPAND_ALL); !iter.done(); ++iter) {
         StackFrame *fp = iter.fp();
         if (fp->isScriptFrame() && fp->isConstructing() &&
             fp->script() == newScript->script && fp->thisValue().isObject() &&
             fp->thisValue().toObject().type == this) {
             JSObject *obj = &fp->thisValue().toObject();
-            JSInlinedSite *inline_;
-            jsbytecode *pc = fp->pc(cx, NULL, &inline_);
-            JS_ASSERT(!inline_);
+            jsbytecode *pc = iter.pc();
 
             
             bool finished = false;
@@ -2983,8 +2973,7 @@ TypeObject::clearNewScript(JSContext *cx)
                         if (seg.currentFrame() == fp)
                             break;
                         fp = seg.computeNextFrame(fp);
-                        pc = fp->pc(cx, NULL, &inline_);
-                        JS_ASSERT(!inline_);
+                        pc = fp->pcQuadratic(cx);
                     } else {
                         
                         depth = 1;

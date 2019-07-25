@@ -1,43 +1,43 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99 ft=cpp:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla SpiderMonkey JavaScript 1.9 code, released
+ * May 28, 2008.
+ *
+ * The Initial Developer of the Original Code is
+ *   Brendan Eich <brendan@mozilla.org>
+ *
+ * Contributor(s):
+ *   Andreas Gal <gal@mozilla.com>
+ *   Mike Shaver <shaver@mozilla.org>
+ *   David Anderson <danderson@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef jstracer_h___
 #define jstracer_h___
@@ -168,25 +168,25 @@ public:
 
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * Tracker is used to keep track of values being manipulated by the interpreter
+ * during trace recording.  It maps opaque, 4-byte aligned address to LIns pointers.
+ * pointers. To do this efficiently, we observe that the addresses of jsvals
+ * living in the interpreter tend to be aggregated close to each other -
+ * usually on the same page (where a tracker page doesn't have to be the same
+ * size as the OS page size, but it's typically similar).  The Tracker
+ * consists of a linked-list of structures representing a memory page, which
+ * are created on-demand as memory locations are used.
+ *
+ * For every address, first we split it into two parts: upper bits which
+ * represent the "base", and lower bits which represent an offset against the
+ * base.  For the offset, we then right-shift it by two because the bottom two
+ * bits of a 4-byte aligned address are always zero.  The mapping then
+ * becomes:
+ *
+ *   page = page in pagelist such that Base(address) == page->base,
+ *   page->map[Offset(address)]
+ */
 class Tracker {
     #define TRACKER_PAGE_SZB        4096
     #define TRACKER_PAGE_ENTRIES    (TRACKER_PAGE_SZB >> 2)    // each slot is 4 bytes
@@ -199,7 +199,7 @@ class Tracker {
     };
     struct TrackerPage* pagelist;
 
-    
+    /* Keep track of memory allocation. */
     JSContext* cx;
 
     jsuword             getTrackerPageBase(const void* v) const;
@@ -222,10 +222,10 @@ public:
       : Fragment(_ip verbose_only(, profFragID))
     {}
 
-    
-
-
-
+    /*
+     * If this is anchored off a TreeFragment, this points to that tree fragment.
+     * Otherwise, it is |this|.
+     */
     TreeFragment* root;
 
     TreeFragment* toTreeFragment();
@@ -233,14 +233,14 @@ public:
 
 #if defined(JS_JIT_SPEW)
 
-
+// Top level Nanojit config object.
 extern nanojit::Config NJConfig;
 
-
+// Top level logging controller object.
 extern nanojit::LogControl LogController;
 
-
-
+// Top level profiling hook, needed to harvest profile info from Fragments
+// whose logical lifetime is about to finish
 extern void FragProfiling_FragFinalizer(nanojit::Fragment* f, TraceMonitor*);
 
 #define debug_only_stmt(stmt) \
@@ -264,19 +264,19 @@ extern void FragProfiling_FragFinalizer(nanojit::Fragment* f, TraceMonitor*);
 
 #else
 
-#define debug_only_stmt(action)
+#define debug_only_stmt(action)            /* */
 #define debug_only_printf(mask, fmt, ...)  JS_BEGIN_MACRO JS_END_MACRO
 #define debug_only_print0(mask, str)       JS_BEGIN_MACRO JS_END_MACRO
 
 #endif
 
-
-
-
-
-
-
-
+/*
+ * The oracle keeps track of hit counts for program counter locations, as
+ * well as slots that should not be demoted to int because we know them to
+ * overflow or they result in type-unstable traces. We are using simple
+ * hash tables.  Collisions lead to loss of optimization (demotable slots
+ * are not demoted, etc.) but have no correctness implications.
+ */
 #define ORACLE_SIZE 4096
 
 class Oracle {
@@ -469,42 +469,42 @@ public:
     bool mOutOfMemory;
     size_t mSize;
 
-    
+    /* See nanojit::Allocator::allocChunk() for details on these. */
     char* mReserve;
     size_t mReserveSize;
     uintptr_t mReserveCurr;
     uintptr_t mReserveLimit;
 
-    
+    /* To keep track of allocation. */
     JSRuntime* mRt;
 };
 
 struct FrameInfo {
-    JSObject*       block;      
-    jsbytecode*     pc;         
-    jsbytecode*     imacpc;     
-    uint32          spdist;     
+    JSObject*       block;      // caller block chain head
+    jsbytecode*     pc;         // caller fp->regs->pc
+    jsbytecode*     imacpc;     // caller fp->imacpc
+    uint32          spdist;     // distance from fp->slots to fp->regs->sp at JSOP_CALL
 
-    
-
-
-
-
+    /*
+     * Bit  15 (0x8000) is a flag that is set if constructing (called through new).
+     * Bits 0-14 are the actual argument count. This may be less than fun->nargs.
+     * NB: This is argc for the callee, not the caller.
+     */
     uint32          argc;
 
-    
-
-
-
-
-
-
+    /*
+     * Number of stack slots in the caller, not counting slots pushed when
+     * invoking the callee. That is, slots after JSOP_CALL completes but
+     * without the return value. This is also equal to the number of slots
+     * between fp->prev->argv[-2] (calleR fp->callee) and fp->argv[-2]
+     * (calleE fp->callee).
+     */
     uint32          callerHeight;
 
-    
+    /* argc of the caller */
     uint32          callerArgc;
 
-    
+    // Safer accessors for argc.
     enum { CONSTRUCTING_FLAG = 0x10000 };
     void   set_argc(uint16 argc, bool constructing) {
         this->argc = uint32(argc) | (constructing ? CONSTRUCTING_FLAG: 0);
@@ -512,7 +512,7 @@ struct FrameInfo {
     uint16 get_argc() const { return uint16(argc & ~CONSTRUCTING_FLAG); }
     bool   is_constructing() const { return (argc & CONSTRUCTING_FLAG) != 0; }
 
-    
+    // The typemap just before the callee is called.
     JSValueType* get_typemap() { return (JSValueType*) (this+1); }
     const JSValueType* get_typemap() const { return (JSValueType*) (this+1); }
 };
@@ -538,15 +538,15 @@ struct LinkableFragment : public VMFragment
     SlotList*               globalSlots;
 };
 
-
-
-
-
-
-
-
-
-
+/*
+ * argc is cx->fp->argc at the trace loop header, i.e., the number of arguments
+ * pushed for the innermost JS frame. This is required as part of the fragment
+ * key because the fragment will write those arguments back to the interpreter
+ * stack when it exits, using its typemap, which implicitly incorporates a
+ * given value of argc. Without this feature, a fragment could be called as an
+ * inner tree with two different values of argc, and entry type checking or
+ * exit frame synthesis could crash.
+ */
 struct TreeFragment : public LinkableFragment
 {
     TreeFragment(const void* _ip, nanojit::Allocator* alloc, Oracle *oracle, JSObject* _globalObj,
@@ -571,9 +571,9 @@ struct TreeFragment : public LinkableFragment
     JSObject* globalObj;
     uint32 globalShape;
     uint32 argc;
-    
+    /* Dependent trees must be trashed if this tree dies, and updated on missing global types */
     Queue<TreeFragment*>    dependentTrees;
-    
+    /* Linked trees must be updated on missing global types, but are not dependent */
     Queue<TreeFragment*>    linkedTrees;
 #ifdef DEBUG
     const char*             treeFileName;
@@ -585,13 +585,13 @@ struct TreeFragment : public LinkableFragment
     Queue<VMSideExit*>      sideExits;
     ptrdiff_t               nativeStackBase;
     unsigned                maxCallDepth;
-    
+    /* All embedded GC things are registered here so the GC can scan them. */
     Queue<Value>            gcthings;
     Queue<const js::Shape*> shapes;
     unsigned                maxNativeStackSlots;
-    
+    /* Gives the number of times we have entered this trace. */
     uintN                   execs;
-    
+    /* Gives the total number of iterations executed by the trace (up to a limit). */
     uintN                   iters;
 
     inline unsigned nGlobalTypes() {
@@ -624,99 +624,99 @@ enum MonitorResult {
 const uintN PROFILE_MAX_INNER_LOOPS = 8;
 const uintN PROFILE_MAX_STACK = 6;
 
-
-
-
-
+/*
+ * A loop profile keeps track of the instruction mix of a hot loop. We use this
+ * information to predict whether tracing would be beneficial for the loop.
+ */
 class LoopProfile
 {
 public:
-    
+    /* Instructions are divided into a few categories. */
     enum OpKind {
-        OP_FLOAT, 
-        OP_INT, 
-        OP_BIT, 
-        OP_EQ, 
-        OP_EVAL, 
-        OP_CALL, 
-        OP_FWDJUMP, 
-        OP_NEW, 
-        OP_RECURSIVE, 
-        OP_ARRAY_READ, 
-        OP_TYPED_ARRAY, 
-        OP_SCRIPTED_GETTER, 
+        OP_FLOAT, // Floating point arithmetic
+        OP_INT, // Integer arithmetic
+        OP_BIT, // Bit operations
+        OP_EQ, // == and !=
+        OP_EVAL, // Calls to eval()
+        OP_CALL, // JSOP_CALL instructions
+        OP_FWDJUMP, // Jumps with positive delta
+        OP_NEW, // JSOP_NEW instructions
+        OP_RECURSIVE, // Recursive calls
+        OP_ARRAY_READ, // Reads from dense arrays
+        OP_TYPED_ARRAY, // Accesses to typed arrays
+        OP_SCRIPTED_GETTER, // Getters defined in JS
         OP_LIMIT
     };
 
-    
+    /* The TraceMonitor for which we're profiling. */
     TraceMonitor *traceMonitor;
     
-    
+    /* The script in which the loop header lives. */
     JSScript *entryScript;
 
-    
+    /* The stack frame where we started profiling. Only valid while profiling! */
     StackFrame *entryfp;
 
-    
+    /* The bytecode locations of the loop header and the back edge. */
     jsbytecode *top, *bottom;
 
-    
+    /* Number of times we have seen this loop executed; used to decide when to profile. */
     uintN hits;
 
-    
+    /* Whether we have run a complete profile of the loop. */
     bool profiled;
 
-    
+    /* Sometimes we can't decide in one profile run whether to trace, so we set undecided. */
     bool undecided;
 
-    
+    /* If we have profiled the loop, this saves the decision of whether to trace it. */
     bool traceOK;
 
-    
+    /* Memoized value of isCompilationUnprofitable. */
     bool unprofitable;
 
-    
-
-
-
-
-
+    /*
+     * Sometimes loops are not good tracing opportunities, but they are nested inside
+     * loops that we want to trace. In that case, we set their traceOK flag to true,
+     * but we set execOK to false. That way, the loop is traced so that it can be
+     * integrated into the outer trace. But we never execute the trace on its only.
+     */
     bool execOK;
 
-    
+    /* Instruction mix for the loop and total number of instructions. */
     uintN allOps[OP_LIMIT];
     uintN numAllOps;
 
-    
+    /* Instruction mix and total for the loop, excluding nested inner loops. */
     uintN selfOps[OP_LIMIT];
     uintN numSelfOps;
 
-    
-
-
-
-
-
+    /*
+     * A prediction of the number of instructions we would have to compile
+     * for the loop. This takes into account the fact that a branch may cause us to
+     * compile every instruction after it twice. Polymorphic calls are
+     * treated as n-way branches.
+     */
     double numSelfOpsMult;
 
-    
-
-
-
-
-
+    /*
+     * This keeps track of the number of times that every succeeding instruction
+     * in the trace will have to be compiled. Every time we hit a branch, we
+     * double this number. Polymorphic calls multiply it by n (for n-way
+     * polymorphism).
+     */
     double branchMultiplier;
 
-    
+    /* Set to true if the loop is short (i.e., has fewer than 8 iterations). */
     bool shortLoop;
 
-    
+    /* Set to true if the loop may be short (has few iterations at profiling time). */
     bool maybeShortLoop;
 
-    
-
-
-
+    /*
+     * When we hit a nested loop while profiling, we record where it occurs
+     * and how many iterations we execute it.
+     */
     struct InnerLoop {
         StackFrame *entryfp;
         jsbytecode *top, *bottom;
@@ -727,22 +727,22 @@ public:
             : entryfp(entryfp), top(top), bottom(bottom), iters(0) {}
     };
 
-    
+    /* These two variables track all the inner loops seen while profiling (up to a limit). */
     InnerLoop innerLoops[PROFILE_MAX_INNER_LOOPS];
     uintN numInnerLoops;
 
-    
-
-
-
+    /*
+     * These two variables track the loops that we are currently nested
+     * inside while profiling. Loops get popped off here when they exit.
+     */
     InnerLoop loopStack[PROFILE_MAX_INNER_LOOPS];
     uintN loopStackDepth;
 
-    
-
-
-
-
+    /*
+     * These fields keep track of values on the JS stack. If the stack grows larger
+     * than PROFILE_MAX_STACK, we continue to track sp, but we return conservative results
+     * for stackTop().
+     */
     struct StackValue {
         bool isConst;
         bool hasValue;
@@ -783,7 +783,7 @@ public:
         ProfComplete
     };
 
-    
+    /* These two functions track the instruction mix. */
     inline void increment(OpKind kind)
     {
         allOps[kind]++;
@@ -793,13 +793,13 @@ public:
 
     inline uintN count(OpKind kind) { return allOps[kind]; }
 
+    /* Called for every back edge being profiled. */
+    MonitorResult profileLoopEdge(JSContext* cx);
     
-    MonitorResult profileLoopEdge(JSContext* cx, uintN& inlineCallCount);
-    
-    
+    /* Called for every instruction being profiled. */
     ProfileAction profileOperation(JSContext *cx, JSOp op);
 
-    
+    /* Once a loop's profile is done, these decide whether it should be traced. */
     bool isCompilationExpensive(JSContext *cx, uintN depth);
     bool isCompilationUnprofitable(JSContext *cx, uintN goodOps);
     void decide(JSContext *cx);
@@ -807,11 +807,11 @@ public:
     void stopProfiling(JSContext *cx);
 };
 
-
-
-
-
-
+/*
+ * BUILTIN_NO_FIXUP_NEEDED indicates that after the initial LeaveTree of a deep
+ * bail, the builtin call needs no further fixup when the trace exits and calls
+ * LeaveTree the second time.
+ */
 typedef enum BuiltinStatus {
     BUILTIN_BAILED = 1,
     BUILTIN_ERROR = 2
@@ -830,7 +830,7 @@ WasBuiltinSuccessful(TraceMonitor *tm)
 }
 
 #ifdef DEBUG_RECORDING_STATUS_NOT_BOOL
-
+/* #define DEBUG_RECORDING_STATUS_NOT_BOOL to detect misuses of RecordingStatus */
 struct RecordingStatus {
     int code;
     bool operator==(RecordingStatus &s) { return this->code == s.code; };
@@ -889,48 +889,48 @@ StatusAbortsRecorderIfActive(AbortableRecordingStatus ars)
 }
 #else
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * Normally, during recording, when the recorder cannot continue, it returns
+ * ARECORD_STOP to indicate that recording should be aborted by the top-level
+ * recording function. However, if the recorder reenters the interpreter (e.g.,
+ * when executing an inner loop), there will be an immediate abort. This
+ * condition must be carefully detected and propagated out of all nested
+ * recorder calls lest the now-invalid TraceRecorder object be accessed
+ * accidentally. This condition is indicated by the ARECORD_ABORTED value.
+ *
+ * The AbortableRecordingStatus enumeration represents the general set of
+ * possible results of calling a recorder function. Functions that cannot
+ * possibly return ARECORD_ABORTED may statically guarantee this to the caller
+ * using the RecordingStatus enumeration. Ideally, C++ would allow subtyping
+ * of enumerations, but it doesn't. To simulate subtype conversion manually,
+ * code should call InjectStatus to inject a value of the restricted set into a
+ * value of the general set.
+ */
 
 enum RecordingStatus {
-    RECORD_STOP       = 0,  
-                            
-    RECORD_ERROR      = 1,  
-                            
-                            
-    RECORD_CONTINUE   = 2,  
-    RECORD_IMACRO     = 3   
-                            
+    RECORD_STOP       = 0,  // Recording should be aborted at the top-level
+                            // call to the recorder.
+    RECORD_ERROR      = 1,  // Recording should be aborted at the top-level
+                            // call to the recorder and the interpreter should
+                            // goto error
+    RECORD_CONTINUE   = 2,  // Continue recording.
+    RECORD_IMACRO     = 3   // Entered imacro; continue recording.
+                            // Only JSOP_IS_IMACOP opcodes may return this.
 };
 
 enum AbortableRecordingStatus {
-    ARECORD_STOP      = 0,  
-    ARECORD_ERROR     = 1,  
-                            
-                            
-                            
-    ARECORD_CONTINUE  = 2,  
-    ARECORD_IMACRO    = 3,  
-    ARECORD_IMACRO_ABORTED = 4, 
-    ARECORD_ABORTED   = 5,  
-                            
-    ARECORD_COMPLETED = 6   
-                            
+    ARECORD_STOP      = 0,  // see RECORD_STOP
+    ARECORD_ERROR     = 1,  // Recording may or may not have been aborted.
+                            // Recording should be aborted at the top-level
+                            // if it has not already been and the interpreter
+                            // should goto error
+    ARECORD_CONTINUE  = 2,  // see RECORD_CONTINUE
+    ARECORD_IMACRO    = 3,  // see RECORD_IMACRO
+    ARECORD_IMACRO_ABORTED = 4, // see comment in TR::monitorRecording.
+    ARECORD_ABORTED   = 5,  // Recording has already been aborted; the
+                            // interpreter should continue executing
+    ARECORD_COMPLETED = 6   // Recording completed successfully, the
+                            // trace recorder has been deleted
 };
 
 static JS_ALWAYS_INLINE AbortableRecordingStatus
@@ -945,12 +945,12 @@ InjectStatus(AbortableRecordingStatus ars)
     return ars;
 }
 
-
-
-
-
-
-
+/*
+ * Return whether the recording status requires the current recording session
+ * to be deleted. ERROR means the recording session should be deleted if it
+ * hasn't already. ABORTED and COMPLETED indicate the recording session is
+ * already deleted, so they return 'false'.
+ */
 static JS_ALWAYS_INLINE bool
 StatusAbortsRecorderIfActive(AbortableRecordingStatus ars)
 {
@@ -961,12 +961,12 @@ StatusAbortsRecorderIfActive(AbortableRecordingStatus ars)
 class SlotMap;
 class SlurpInfo;
 
-
+/* Results of trying to compare two typemaps together */
 enum TypeConsensus
 {
-    TypeConsensus_Okay,         
-    TypeConsensus_Undemotes,    
-    TypeConsensus_Bad           
+    TypeConsensus_Okay,         /* Two typemaps are compatible */
+    TypeConsensus_Undemotes,    /* Not compatible now, but would be with pending undemotes. */
+    TypeConsensus_Bad           /* Typemaps are not compatible */
 };
 
 enum TracePointAction {
@@ -991,151 +991,151 @@ class TraceRecorder
 {
     JS_DECLARE_ALLOCATION_FRIENDS_FOR_PRIVATE_CONSTRUCTOR;
 
-    
+    /*************************************************************** Recording session constants */
 
-    
+    /* The context in which recording started. */
     JSContext* const                cx;
 
-    
+    /* Cached value of JS_TRACE_MONITOR(cx). */
     TraceMonitor* const             traceMonitor;
 
-    
+    /* Cached oracle keeps track of hit counts for program counter locations */
     Oracle*                         oracle;
 
-    
+    /* The Fragment being recorded by this recording session. */
     VMFragment* const               fragment;
 
-    
+    /* The root fragment representing the tree. */
     TreeFragment* const             tree;
 
-    
+    /* The global object from the start of recording until now. */
     JSObject* const                 globalObj;
 
-    
+    /* If non-null, the script of outer loop aborted to start recording this loop. */
     JSScript* const                 outerScript;
     
-    
+    /* If non-null, the pc of the outer loop aborted to start recording this loop. */
     jsbytecode* const               outerPC;
 
-    
+    /* If |outerPC|, the argc to use when looking up |outerPC| in the fragments table. */
     uint32 const                    outerArgc;
 
-    
+    /* If non-null, the side exit from which we are growing. */
     VMSideExit* const               anchor;
 
-    
+    /* Instructions yielding the corresponding trace-const members of TracerState. */
     nanojit::LIns* const            cx_ins;
     nanojit::LIns* const            eos_ins;
     nanojit::LIns* const            eor_ins;
     nanojit::LIns* const            loopLabel;
 
-    
+    /* Lazy slot import state. */
     unsigned                        importStackSlots;
     unsigned                        importGlobalSlots;
     TypeMap                         importTypeMap;
 
-    
-
-
-
+    /*
+     * The LirBuffer used to supply memory to our LirWriter pipeline. Also contains the most recent
+     * instruction for {sp, rp, state}. Also contains names for debug JIT spew. Should be split.
+     */
     nanojit::LirBuffer* const       lirbuf;
 
-    
-
-
-
+    /*
+     * Remembers traceAlloc state before recording started; automatically rewinds when mark is
+     * destroyed on a failed compilation.
+     */
     VMAllocator::Mark               mark;
 
-    
+    /* Remembers the number of sideExits in treeInfo before recording started. */
     const unsigned                  numSideExitsBefore;
 
-    
+    /*********************************************************** Recording session mutable state */
 
-    
+    /* Maps interpreter stack values to the instruction generating that value. */
     Tracker                         tracker;
 
-    
+    /* Maps interpreter stack values to the instruction writing back to the native stack. */
     Tracker                         nativeFrameTracker;
 
-    
+    /* The start of the global object's slots we assume for the trackers. */
     Value*                          global_slots;
 
-    
+    /* The number of interpreted calls entered (and not yet left) since recording began. */
     unsigned                        callDepth;
 
-    
+    /* The current atom table, mirroring the interpreter loop's variable of the same name. */
     JSAtom**                        atoms;
     Value*                          consts;
 
-    
+    /* An instruction yielding the current script's strict mode code flag.  */
     nanojit::LIns*                  strictModeCode_ins;
 
-    
+    /* FIXME: Dead, but soon to be used for something or other. */
     Queue<jsbytecode*>              cfgMerges;
 
-    
+    /* Indicates whether the current tree should be trashed when the recording session ends. */
     bool                            trashSelf;
 
-    
+    /* A list of trees to trash at the end of the recording session. */
     Queue<TreeFragment*>            whichTreesToTrash;
 
-    
+    /* The set of objects whose shapes already have been guarded. */
     GuardedShapeTable               guardedShapeTable;
 
-    
+    /* Current initializer depth, and whether any of the initializers are unoptimized NEWINIT. */
     int                             initDepth;
     bool                            hadNewInit;
 
 #ifdef DEBUG
-    
-
-
-
+    /*
+     * If we are expecting a record_AddProperty callback for this instruction,
+     * the shape of the object before adding the data property. Else NULL.
+     */
     const js::Shape* addPropShapeBefore;
 #endif
 
-    
+    /***************************************** Temporal state hoisted into the recording session */
 
-    
+    /* Carry the return value from a STOP/RETURN to the subsequent record_LeaveFrame. */
     nanojit::LIns*                  rval_ins;
 
-    
+    /* Carry the return value from a native call to the record_NativeCallComplete. */
     nanojit::LIns*                  native_rval_ins;
 
-    
+    /* Carry the return value of js_CreateThis to record_NativeCallComplete. */
     nanojit::LIns*                  newobj_ins;
 
-    
+    /* Carry the JSSpecializedNative used to generate a call to record_NativeCallComplete. */
     JSSpecializedNative*            pendingSpecializedNative;
 
-    
+    /* Carry whether this is a jsval on the native stack from finishGetProp to monitorRecording. */
     Value*                          pendingUnboxSlot;
 
-    
+    /* Carry a guard condition to the beginning of the next monitorRecording. */
     nanojit::LIns*                  pendingGuardCondition;
 
-    
+    /* See AbortRecordingIfUnexpectedGlobalWrite. */
     js::Vector<unsigned>            pendingGlobalSlotsToSet;
 
-    
+    /* Carry whether we have an always-exit from emitIf to checkTraceEnd. */
     bool                            pendingLoop;
 
-    
+    /* Temporary JSSpecializedNative used to describe non-specialized fast natives. */
     JSSpecializedNative             generatedSpecializedNative;
 
-    
+    /* Temporary JSValueType array used to construct temporary typemaps. */
     js::Vector<JSValueType, 256>    tempTypeMap;
 
-    
+    /* Used to generate LIR.  Has a short name because it's used a lot. */
     tjit::Writer w;
 
-    
+    /************************************************************* 10 bajillion member functions */
 
-    
-
-
-
-
+    /*
+     * These would be in Writer if they didn't modify TraceRecorder state.
+     * They are invoked the via macros below that make them look like they are
+     * part of Writer (hence the "w_" prefix, which looks like "w.").
+     */
     nanojit::LIns* w_immpObjGC(JSObject* obj);
     nanojit::LIns* w_immpFunGC(JSFunction* fun);
     nanojit::LIns* w_immpStrGC(JSString* str);
@@ -1149,23 +1149,23 @@ class TraceRecorder
     #define immpShapeGC(shape)    name(w_immpShapeGC(shape), #shape)
     #define immpIdGC(id)          name(w_immpIdGC(id), #id)
 
-    
-
-
-
+    /*
+     * Examines current interpreter state to record information suitable for returning to the
+     * interpreter through a side exit of the given type.
+     */
     JS_REQUIRES_STACK VMSideExit* snapshot(ExitType exitType);
 
-    
-
-
-
+    /*
+     * Creates a separate but identical copy of the given side exit, allowing the guards associated
+     * with each to be entirely separate even after subsequent patching.
+     */
     JS_REQUIRES_STACK VMSideExit* copy(VMSideExit* exit);
 
-    
-
-
-
-
+    /*
+     * Creates an instruction whose payload is a GuardRecord for the given exit.  The instruction
+     * is suitable for use as the final argument of a single call to LirBuffer::insGuard; do not
+     * reuse the returned value.
+     */
     JS_REQUIRES_STACK nanojit::GuardRecord* createGuardRecord(VMSideExit* exit);
 
     JS_REQUIRES_STACK JS_INLINE void markSlotUndemotable(LinkableFragment* f, unsigned slot);
@@ -1231,11 +1231,11 @@ class TraceRecorder
     JS_REQUIRES_STACK bool knownImpl(const void* p);
     JS_REQUIRES_STACK bool known(const Value* p);
     JS_REQUIRES_STACK bool known(JSObject** p);
-    
-
-
-
-
+    /*
+     * The slots of the global object are sometimes reallocated by the
+     * interpreter.  This function checks for that condition and re-maps the
+     * entries of the tracker accordingly.
+     */
     JS_REQUIRES_STACK void checkForGlobalObjectReallocation() {
         if (global_slots != globalObj->getRawSlots())
             checkForGlobalObjectReallocationHelper();
@@ -1254,14 +1254,14 @@ class TraceRecorder
     JS_REQUIRES_STACK void updateAtoms(JSScript *script);
 
     struct NameResult {
-        
-        
-        
+        // |tracked| is true iff the result of the name lookup is a variable that
+        // is already in the tracker. The rest of the fields are set only if
+        // |tracked| is false.
         bool             tracked;
-        Value            v;              
-        JSObject         *obj;           
-        nanojit::LIns    *obj_ins;       
-        js::Shape        *shape;         
+        Value            v;              // current property value
+        JSObject         *obj;           // Call object where name was found
+        nanojit::LIns    *obj_ins;       // LIR value for obj
+        js::Shape        *shape;         // shape name was resolved to
     };
 
     JS_REQUIRES_STACK nanojit::LIns* scopeChain();
@@ -1450,18 +1450,18 @@ class TraceRecorder
     nanojit::LIns* unbox_string_id(nanojit::LIns* id_ins);
     nanojit::LIns* unbox_int_id(nanojit::LIns* id_ins);
 
-    
+    /* Box a slot on trace into the given address at the given offset. */
     void box_value_into(const Value& v, nanojit::LIns* v_ins, tjit::Address addr);
 
-    
-
-
-
-
-
+    /*
+     * Box a slot so that it may be passed with value semantics to a native. On
+     * 32-bit, this currently means boxing the value into insAlloc'd memory and
+     * returning the address which is passed as a Value*. On 64-bit, this
+     * currently means returning the boxed value which is passed as a jsval.
+     */
     nanojit::LIns* box_value_for_native_call(const Value& v, nanojit::LIns* v_ins);
 
-    
+    /* Box a slot into insAlloc'd memory. */
     nanojit::LIns* box_value_into_alloc(const Value& v, nanojit::LIns* v_ins);
 
     JS_REQUIRES_STACK void guardClassHelper(bool cond, nanojit::LIns* obj_ins, Class* clasp,
@@ -1539,18 +1539,16 @@ class TraceRecorder
     JS_REQUIRES_STACK void determineGlobalTypes(JSValueType* typeMap);
     JS_REQUIRES_STACK VMSideExit* downSnapshot(FrameInfo* downFrame);
     JS_REQUIRES_STACK TreeFragment* findNestedCompatiblePeer(TreeFragment* f);
-    JS_REQUIRES_STACK AbortableRecordingStatus attemptTreeCall(TreeFragment* inner,
-                                                               uintN& inlineCallCount);
+    JS_REQUIRES_STACK AbortableRecordingStatus attemptTreeCall(TreeFragment* inner);
 
-    static JS_REQUIRES_STACK MonitorResult recordLoopEdge(JSContext* cx, TraceRecorder* r,
-                                                          uintN& inlineCallCount);
+    static JS_REQUIRES_STACK MonitorResult recordLoopEdge(JSContext* cx, TraceRecorder* r);
 
-    
+    /* Allocators associated with this recording session. */
     VMAllocator& tempAlloc() const { return *traceMonitor->tempAlloc; }
     VMAllocator& traceAlloc() const { return *traceMonitor->traceAlloc; }
     VMAllocator& dataAlloc() const { return *traceMonitor->dataAlloc; }
 
-    
+    /* Member declarations for each opcode, to be called before interpreting the opcode. */
 #define OPDEF(op,val,name,token,length,nuses,ndefs,prec,format)               \
     JS_REQUIRES_STACK AbortableRecordingStatus record_##op();
 # include "jsopcode.tbl"
@@ -1562,7 +1560,7 @@ class TraceRecorder
                   VMSideExit* expectedInnerExit, JSScript* outerScript, jsbytecode* outerPC,
                   uint32 outerArgc, bool speculate);
 
-    
+    /* The destructor should only be called through finish*, not directly. */
     ~TraceRecorder();
     JS_REQUIRES_STACK AbortableRecordingStatus finishSuccessfully();
 
@@ -1570,7 +1568,7 @@ class TraceRecorder
     JS_REQUIRES_STACK AbortResult finishAbort(const char* reason);
 
 #ifdef DEBUG
-    
+    /* Debug printing functionality to emit printf() on trace. */
     JS_REQUIRES_STACK void tprint(const char *format, int count, nanojit::LIns *insa[]);
     JS_REQUIRES_STACK void tprint(const char *format);
     JS_REQUIRES_STACK void tprint(const char *format, nanojit::LIns *ins);
@@ -1597,9 +1595,8 @@ class TraceRecorder
     friend class SlotMap;
     friend class DefaultSlotMap;
     friend class DetermineTypesVisitor;
-    friend MonitorResult RecordLoopEdge(JSContext*, TraceMonitor*, uintN&);
-    friend TracePointAction RecordTracePoint(JSContext*, TraceMonitor*, uintN &inlineCallCount,
-                                             bool *blacklist);
+    friend MonitorResult RecordLoopEdge(JSContext*, TraceMonitor*);
+    friend TracePointAction RecordTracePoint(JSContext*, TraceMonitor*, bool *blacklist);
     friend AbortResult AbortRecording(JSContext*, const char*);
     friend class BoxArg;
     friend void TraceMonitor::sweep(JSContext *cx);
@@ -1611,14 +1608,14 @@ class TraceRecorder
                   VMSideExit* expectedInnerExit, JSScript* outerScript, jsbytecode* outerPC,
                   uint32 outerArgc, bool speculate);
 
-    
+    /* Accessors. */
     VMFragment*         getFragment() const { return fragment; }
     TreeFragment*       getTree() const { return tree; }
     bool                outOfMemory() const { return traceMonitor->outOfMemory(); }
     Oracle*             getOracle() const { return oracle; }
     JSObject*           getGlobal() const { return globalObj; }
 
-    
+    /* Entry points / callbacks from the interpreter. */
     JS_REQUIRES_STACK AbortableRecordingStatus monitorRecording(JSOp op);
     JS_REQUIRES_STACK AbortableRecordingStatus record_EnterFrame();
     JS_REQUIRES_STACK AbortableRecordingStatus record_LeaveFrame();
@@ -1631,23 +1628,23 @@ class TraceRecorder
     bool globalSetExpected(unsigned slot) {
         unsigned *pi = Find(pendingGlobalSlotsToSet, slot);
         if (pi == pendingGlobalSlotsToSet.end()) {
-            
-
-
-
+            /*
+             * Do slot arithmetic manually to avoid getSlotRef assertions which
+             * do not need to be satisfied for this purpose.
+             */
             Value *vp = globalObj->getRawSlot(slot, globalObj->getRawSlots());
 
-            
+            /* If this global is definitely being tracked, then the write is unexpected. */
             if (tracker.has(vp))
                 return false;
             
-            
-
-
-
-
-
-
+            /*
+             * Otherwise, only abort if the global is not present in the
+             * import typemap. Just deep aborting false here is not acceptable,
+             * because the recorder does not guard on every operation that
+             * could lazily resolve. Since resolving adds properties to
+             * reserved slots, the tracer will never have imported them.
+             */
             return tree->globalSlots->offsetOf((uint16)nativeGlobalSlot(vp)) == -1;
         }
         pendingGlobalSlotsToSet.erase(pi);
@@ -1655,7 +1652,7 @@ class TraceRecorder
     }
 };
 
-
+/* :FIXME: bug 637856 disabling traceJit if inference is enabled */
 #define TRACING_ENABLED(cx)       ((cx)->traceJitEnabled && !(cx)->typeInferenceEnabled())
 #define REGEX_JIT_ENABLED(cx)     ((cx)->traceJitEnabled || (cx)->methodJitEnabled)
 
@@ -1686,14 +1683,14 @@ class TraceRecorder
 #define TRACE_2(x,a,b)          TRACE_ARGS(x, (a, b))
 
 extern JS_REQUIRES_STACK MonitorResult
-MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount, InterpMode interpMode);
+MonitorLoopEdge(JSContext* cx, InterpMode interpMode);
 
 extern JS_REQUIRES_STACK TracePointAction
-RecordTracePoint(JSContext*, uintN& inlineCallCount, bool* blacklist);
+RecordTracePoint(JSContext*, bool* blacklist);
 
 extern JS_REQUIRES_STACK TracePointAction
-MonitorTracePoint(JSContext*, uintN& inlineCallCount, bool* blacklist,
-                  void** traceData, uintN *traceEpoch, uint32 *loopCounter, uint32 hits);
+MonitorTracePoint(JSContext*, bool* blacklist, void** traceData, uintN *traceEpoch,
+                  uint32 *loopCounter, uint32 hits);
 
 extern JS_REQUIRES_STACK TraceRecorder::AbortResult
 AbortRecording(JSContext* cx, const char* reason);
@@ -1736,26 +1733,26 @@ StopTraceVis();
 extern JS_FRIEND_API(JSBool)
 StopTraceVisNative(JSContext *cx, uintN argc, jsval *vp);
 
-
+/* Must contain no more than 16 items. */
 enum TraceVisState {
-    
+    // Special: means we returned from current activity to last
     S_EXITLAST,
-    
+    // Activities
     S_INTERP,
     S_MONITOR,
     S_RECORD,
     S_COMPILE,
     S_EXECUTE,
     S_NATIVE,
-    
+    // Events: these all have (bit 3) == 1.
     S_RESET = 8
 };
 
-
+/* Reason for an exit to the interpreter. */
 enum TraceVisExitReason {
     R_NONE,
     R_ABORT,
-    
+    /* Reasons in MonitorLoopEdge */
     R_INNER_SIDE_EXIT,
     R_DOUBLES,
     R_CALLBACK_PENDING,
@@ -1811,11 +1808,11 @@ LogTraceVisState(JSContext *cx, TraceVisState s, TraceVisExitReason r)
     }
 }
 
-
-
-
-
-
+/*
+ * Although this runs the same code as LogTraceVisState, it is a separate
+ * function because the meaning of the log entry is different. Also, the entry
+ * formats may diverge someday.
+ */
 static inline void
 LogTraceVisEvent(JSContext *cx, TraceVisState s, TraceVisFlushReason r)
 {
@@ -1849,30 +1846,30 @@ struct TraceVisStateObj {
     }
 };
 
-#endif 
+#endif /* MOZ_TRACEVIS */
 
-}      
+}      /* namespace js */
 
-#else  
+#else  /* !JS_TRACER */
 
 #define TRACE_0(x)              ((void)0)
 #define TRACE_1(x,a)            ((void)0)
 #define TRACE_2(x,a,b)          ((void)0)
 
-#endif 
+#endif /* !JS_TRACER */
 
 namespace js {
 
-
-
-
-
-
-
-
-
-
-
+/*
+ * While recording, the slots of the global object may change payload or type.
+ * This is fine as long as the recorder expects this change (and therefore has
+ * generated the corresponding LIR, snapshots, etc). The recorder indicates
+ * that it expects a write to a global slot by setting pendingGlobalSlotsToSet
+ * in the recorder, before the write is made by the interpreter, and clearing
+ * pendingGlobalSlotsToSet before recording the next op. Any global slot write
+ * that has not been whitelisted in this manner is therefore unexpected and, if
+ * the global slot is actually being tracked, recording must be aborted.
+ */
 static JS_INLINE void
 AbortRecordingIfUnexpectedGlobalWrite(JSContext *cx, JSObject *obj, unsigned slot)
 {
@@ -1884,6 +1881,6 @@ AbortRecordingIfUnexpectedGlobalWrite(JSContext *cx, JSObject *obj, unsigned slo
 #endif
 }
 
-}  
+}  /* namespace js */
 
-#endif 
+#endif /* jstracer_h___ */

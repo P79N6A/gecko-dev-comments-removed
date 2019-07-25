@@ -89,8 +89,6 @@ struct JSArenaPool {
     JSArena     *current;       
     size_t      arenasize;      
     jsuword     mask;           
-    size_t      *quotap;        
-
 #ifdef JS_ARENAMETER
     JSArenaStats stats;
 #endif
@@ -211,7 +209,7 @@ struct JSArenaPool {
 
 extern JS_PUBLIC_API(void)
 JS_InitArenaPool(JSArenaPool *pool, const char *name, size_t size,
-                 size_t align, size_t *quotap);
+                 size_t align);
 
 
 

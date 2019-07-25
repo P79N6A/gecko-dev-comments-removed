@@ -101,6 +101,7 @@ nsXPConnect::nsXPConnect()
         mDefaultSecurityManager(nsnull),
         mDefaultSecurityManagerFlags(0),
         mShuttingDown(JS_FALSE),
+        mNeedGCBeforeCC(JS_TRUE),
         mCycleCollectionContext(nsnull)
 {
     mRuntime = XPCJSRuntime::newXPCJSRuntime(this);
@@ -339,6 +340,12 @@ nsXPConnect::GetInfoForName(const char * name, nsIInterfaceInfo** info)
     return FindInfo(NameTester, name, mInterfaceInfoManager, info);
 }
 
+bool
+nsXPConnect::NeedCollect()
+{
+    return !!mNeedGCBeforeCC;
+}
+
 void
 nsXPConnect::Collect()
 {
@@ -384,6 +391,8 @@ nsXPConnect::Collect()
     
     
     
+
+    mNeedGCBeforeCC = JS_FALSE;
 
     XPCCallContext ccx(NATIVE_CALLER);
     if(!ccx.IsValid())
@@ -574,9 +583,35 @@ xpc_GCThingIsGrayCCThing(void *thing)
     return ADD_TO_CC(kind) && xpc_IsGrayGCThing(thing);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static void
 UnmarkGrayChildren(JSTracer *trc, void *thing, uint32 kind)
 {
+    int stackDummy;
+    if (!JS_CHECK_STACK_SIZE(trc->context->stackLimit, &stackDummy)) {
+        
+
+
+
+        nsXPConnect* xpc = nsXPConnect::GetXPConnect();
+        xpc->EnsureGCBeforeCC();
+        return;
+    }
+
     
     if(!ADD_TO_CC(kind) || !xpc_IsGrayGCThing(thing))
         return;
