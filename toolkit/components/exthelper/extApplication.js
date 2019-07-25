@@ -590,9 +590,10 @@ extApplication.prototype = {
       this.events.dispatch("unload", "application");
 
       
-      while (gShutdown.length) {
-        gShutdown.shift()();
+      for (let i = 0; i < gShutdown.length; i++) {
+        gShutdown[i]();
       }
+      gShutdown.splice(0, gShutdown.length);
 
       
       this._obs.removeObserver(this, "app-startup");
