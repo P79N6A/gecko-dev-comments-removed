@@ -9,6 +9,8 @@ let gTests = [];
 let gCurrentTest = null;
 let gCurrentTab;
 
+const kDoubleClickIntervalPlus = kDoubleClickInterval + 100;
+
 let gEvents = [];
 function dumpEvents(aEvent) {
   if (aEvent.target != gCurrentTab.browser.parentNode)
@@ -93,15 +95,19 @@ function test() {
   window.addEventListener("TapLong", dumpEvents, true);
 
   
-  messageManager.addMessageListener("pageshow", function() {
+  messageManager.addMessageListener("Browser:FirstPaint", function() {
   if (gCurrentTab.browser.currentURI.spec == testURL) {
-    messageManager.removeMessageListener("pageshow", arguments.callee);
+    messageManager.removeMessageListener("Browser:FirstPaint", arguments.callee);
     
     
     gCurrentTab.__defineGetter__("allowZoom", function() {
       return true;
     });
-    setTimeout(runNextTest, 0);
+
+    
+    
+    
+    runNextTest();
   }});
 }
 
@@ -146,7 +152,7 @@ gTests.push({
       ok(checkEvents(["TapSingle"]), "Fired a good single tap");
       clearEvents();
       gCurrentTest.doubleTapTest();
-    }, kDoubleClickInterval);
+    }, kDoubleClickIntervalPlus);
   },
 
   doubleTapTest: function() {
@@ -165,7 +171,7 @@ gTests.push({
       clearEvents();
 
       gCurrentTest.doubleTapFailTest();
-    }, 500);
+    }, kDoubleClickIntervalPlus);
   },
 
   doubleTapFailTest: function() {
