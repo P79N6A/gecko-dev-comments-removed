@@ -56,12 +56,12 @@ RenderColorLayer(ColorLayer* aLayer, LayerManagerOGL *aManager,
 
 
 
-  float opacity = aLayer->GetEffectiveOpacity();
   gfxRGBA color(aLayer->GetColor());
+  float opacity = aLayer->GetEffectiveOpacity() * color.a;
   color.r *= opacity;
   color.g *= opacity;
   color.b *= opacity;
-  color.a *= opacity;
+  color.a = opacity;
 
   SolidColorLayerProgram *program = aManager->GetColorLayerProgram();
   program->Activate();
