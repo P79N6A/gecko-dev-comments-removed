@@ -306,10 +306,10 @@ nsresult JSContextAutoPopper::Push(JSContext *cx)
     return NS_ERROR_FAILURE;
 
   mService = do_GetService(sJSStackContractID);
-  if(mService) {
+  if (mService) {
     
-    if (!cx && NS_FAILED(mService->GetSafeJSContext(&cx))) {
-      cx = nsnull;
+    if (!cx) {
+      cx = mService->GetSafeJSContext();
     }
 
     
