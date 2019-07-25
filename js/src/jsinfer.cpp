@@ -3844,9 +3844,28 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSScript *script, JS
 
         nextOffset += GetBytecodeLength(pc);
 
+        Bytecode *code = analysis->maybeCode(pc);
+        if (!code)
+            continue;
+
         
-        if (op == JSOP_EVAL)
+
+
+
+        if (op == JSOP_RETURN || op == JSOP_STOP || op == JSOP_RETRVAL) {
+            if (offset < lastThisPopped) {
+                *pbaseobj = NULL;
+                return false;
+            }
+            return code->unconditional;
+        }
+
+        
+        if (op == JSOP_EVAL) {
+            if (offset < lastThisPopped)
+                *pbaseobj = NULL;
             return false;
+        }
 
         
 
@@ -3865,13 +3884,16 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSScript *script, JS
         }
 
         
-
-        
         if (offset < lastThisPopped) {
             *pbaseobj = NULL;
             return false;
         }
         lastThisPopped = uses->offset;
+
+        
+        Bytecode *poppedCode = analysis->maybeCode(uses->offset);
+        if (!poppedCode || !poppedCode->unconditional)
+            return false;
 
         pc = script->code + uses->offset;
         op = JSOp(*pc);
@@ -4006,6 +4028,8 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSScript *script, JS
         }
     }
 
+    
+    JS_NOT_REACHED("bad");
     return true;
 }
 
