@@ -119,11 +119,9 @@ _callHook(JSDContext *jsdc, JSContext *cx, JSStackFrame *fp, JSBool before,
     if (!jsdc || !jsdc->inited)
         return JS_FALSE;
 
-    if (!hook && !(jsdc->flags & JSD_COLLECT_PROFILE_DATA) &&
-        jsdc->flags & JSD_DISABLE_OBJECT_TRACE)
+    if (!hook && !(jsdc->flags & JSD_COLLECT_PROFILE_DATA))
     {
         
-
 
 
         return hookresult;

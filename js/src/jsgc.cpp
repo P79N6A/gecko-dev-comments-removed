@@ -2514,25 +2514,6 @@ FinalizeFunction(JSContext *cx, JSFunction *fun, unsigned thingKind)
     FinalizeObject(cx, FUN_OBJECT(fun), thingKind);
 }
 
-inline void
-FinalizeHookedObject(JSContext *cx, JSObject *obj, unsigned thingKind)
-{
-    if (!obj->map)
-        return;
-
-    if (cx->debugHooks->objectHook) {
-        cx->debugHooks->objectHook(cx, obj, JS_FALSE,
-                                   cx->debugHooks->objectHookData);
-    }
-    FinalizeObject(cx, obj, thingKind);
-}
-
-inline void
-FinalizeHookedFunction(JSContext *cx, JSFunction *fun, unsigned thingKind)
-{
-    FinalizeHookedObject(cx, FUN_OBJECT(fun), thingKind);
-}
-
 #if JS_HAS_XML_SUPPORT
 inline void
 FinalizeXML(JSContext *cx, JSXML *xml, unsigned thingKind)
@@ -3032,18 +3013,9 @@ GC(JSContext *cx  GCTIMER_PARAM)
 
 
 
-
-
-
-
     JS_ASSERT(!rt->gcEmptyArenaList);
-    if (!cx->debugHooks->objectHook) {
-        FinalizeArenaList<JSObject, FinalizeObject>(cx, FINALIZE_OBJECT);
-        FinalizeArenaList<JSFunction, FinalizeFunction>(cx, FINALIZE_FUNCTION);
-    } else {
-        FinalizeArenaList<JSObject, FinalizeHookedObject>(cx, FINALIZE_OBJECT);
-        FinalizeArenaList<JSFunction, FinalizeHookedFunction>(cx, FINALIZE_FUNCTION);
-    }
+    FinalizeArenaList<JSObject, FinalizeObject>(cx, FINALIZE_OBJECT);
+    FinalizeArenaList<JSFunction, FinalizeFunction>(cx, FINALIZE_FUNCTION);
 #if JS_HAS_XML_SUPPORT
     FinalizeArenaList<JSXML, FinalizeXML>(cx, FINALIZE_XML);
 #endif
