@@ -50,8 +50,6 @@
 
 USING_INDEXEDDB_NAMESPACE
 
-const extern PRUint32 kDefaultDatabaseTimeoutSeconds = 30; 
-
 namespace {
 
 nsresult
@@ -537,21 +535,13 @@ public:
                        const nsAString& aName,
                        const nsACString& aASCIIOrigin)
   : AsyncConnectionHelper(static_cast<IDBDatabase*>(nsnull), aRequest),
-    mOpenHelper(aHelper), mOpenRequest(aRequest),
+    mOpenRequest(aRequest), mOpenHelper(aHelper),
     mCurrentVersion(aCurrentVersion), mName(aName),
     mASCIIOrigin(aASCIIOrigin)
   { }
 
   nsresult GetSuccessResult(JSContext* aCx,
                             jsval* aVal);
-
-  void ReleaseMainThreadObjects()
-  {
-    mOpenHelper = nsnull;
-    mOpenRequest = nsnull;
-
-    AsyncConnectionHelper::ReleaseMainThreadObjects();
-  }
 
 protected:
   nsresult DoDatabaseWork(mozIStorageConnection* aConnection);
@@ -853,8 +843,7 @@ OpenDatabaseHelper::StartSetVersion()
   nsTArray<nsString> storesToOpen;
   nsRefPtr<IDBTransaction> transaction =
     IDBTransaction::Create(mDatabase, storesToOpen,
-                           IDBTransaction::VERSION_CHANGE,
-                           kDefaultDatabaseTimeoutSeconds, true);
+                           IDBTransaction::VERSION_CHANGE, true);
   NS_ENSURE_TRUE(transaction, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
   nsRefPtr<SetVersionHelper> helper =
