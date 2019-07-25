@@ -56,6 +56,7 @@
 #include "nsFirstLetterFrame.h"
 #include "gfxUnicodeProperties.h"
 #include "nsIThebesFontMetrics.h"
+#include "nsTextFrame.h"
 
 #undef NOISY_BIDI
 #undef REALLY_NOISY_BIDI
@@ -165,22 +166,31 @@ SplitInlineAncestors(nsIFrame*     aFrame)
   return NS_OK;
 }
 
+static void
+MakeContinuationFluid(nsIFrame* aFrame, nsIFrame* aNext)
+{
+  NS_ASSERTION (!aFrame->GetNextInFlow() || aFrame->GetNextInFlow() == aNext, 
+                "next-in-flow is not next continuation!");
+  aFrame->SetNextInFlow(aNext);
+
+  NS_ASSERTION (!aNext->GetPrevInFlow() || aNext->GetPrevInFlow() == aFrame,
+                "prev-in-flow is not prev continuation!");
+  aNext->SetPrevInFlow(aFrame);
+}
+
 
 
 static void
 JoinInlineAncestors(nsIFrame* aFrame)
 {
-  nsIFrame* frame = aFrame;
+  if (aFrame->GetNextSibling()) {
+    return;
+  }
+  nsIFrame* frame = aFrame->GetParent();
   while (frame && IsBidiSplittable(frame)) {
     nsIFrame* next = frame->GetNextContinuation();
     if (next) {
-      NS_ASSERTION (!frame->GetNextInFlow() || frame->GetNextInFlow() == next, 
-                    "next-in-flow is not next continuation!");
-      frame->SetNextInFlow(next);
-
-      NS_ASSERTION (!next->GetPrevInFlow() || next->GetPrevInFlow() == frame,
-                    "prev-in-flow is not prev continuation!");
-      next->SetPrevInFlow(frame);
+      MakeContinuationFluid(frame, next);
     }
     
     if (frame->GetNextSibling())
@@ -190,8 +200,9 @@ JoinInlineAncestors(nsIFrame* aFrame)
 }
 
 static nsresult
-CreateBidiContinuation(nsIFrame*       aFrame,
-                       nsIFrame**      aNewFrame)
+CreateContinuation(nsIFrame*       aFrame,
+                   nsIFrame**      aNewFrame,
+                   PRBool          aIsFluid)
 {
   NS_PRECONDITION(aNewFrame, "null OUT ptr");
   NS_PRECONDITION(aFrame, "null ptr");
@@ -200,10 +211,10 @@ CreateBidiContinuation(nsIFrame*       aFrame,
 
   nsPresContext *presContext = aFrame->PresContext();
   nsIPresShell *presShell = presContext->PresShell();
-  NS_ASSERTION(presShell, "PresShell must be set on PresContext before calling nsBidiPresUtils::CreateBidiContinuation");
+  NS_ASSERTION(presShell, "PresShell must be set on PresContext before calling nsBidiPresUtils::CreateContinuation");
 
   nsIFrame* parent = aFrame->GetParent();
-  NS_ASSERTION(parent, "Couldn't get frame parent in nsBidiPresUtils::CreateBidiContinuation");
+  NS_ASSERTION(parent, "Couldn't get frame parent in nsBidiPresUtils::CreateContinuation");
 
   nsresult rv = NS_OK;
   
@@ -214,12 +225,12 @@ CreateBidiContinuation(nsIFrame*       aFrame,
       parent->GetStyleDisplay()->IsFloating()) {
     nsFirstLetterFrame* letterFrame = do_QueryFrame(parent);
     rv = letterFrame->CreateContinuationForFloatingParent(presContext, aFrame,
-                                                          aNewFrame, PR_FALSE);
+                                                          aNewFrame, aIsFluid);
     return rv;
   }
 
   rv = presShell->FrameConstructor()->
-    CreateContinuingFrame(presContext, aFrame, parent, aNewFrame, PR_FALSE);
+    CreateContinuingFrame(presContext, aFrame, parent, aNewFrame, aIsFluid);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -232,10 +243,12 @@ CreateBidiContinuation(nsIFrame*       aFrame,
     return rv;
   }
   
-  
-  rv = SplitInlineAncestors(aFrame);
-  if (NS_FAILED(rv)) {
-    return rv;
+  if (!aIsFluid) {
+    
+    rv = SplitInlineAncestors(aFrame);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
   }
 
   return NS_OK;
@@ -388,6 +401,7 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
   if (ch != 0) {
     mLogicalFrames.AppendElement(NS_BIDI_CONTROL_FRAME);
     mBuffer.Append(kPDF);
+    NS_ASSERTION(mEmbeddingStack.Length(), "embedding/override underflow");
     mEmbeddingStack.TruncateLength(mEmbeddingStack.Length() - 1);
   }
 
@@ -406,7 +420,6 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame)
     mSuccess = NS_OK;
     return;
   }
-  
   mBuffer.ReplaceChar("\t\r\n", kSpace);
 
   PRInt32 runCount;
@@ -563,10 +576,15 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame)
 
             PRInt32 newIndex = frameIndex;
             do {
-            } while (mLogicalFrames[++newIndex] == NS_BIDI_CONTROL_FRAME);
-            RemoveBidiContinuation(frame, frameIndex, newIndex, lineOffset);
-          } else if (runLength == fragmentLength) {
+            } while (++newIndex < frameCount &&
+                     mLogicalFrames[newIndex] == NS_BIDI_CONTROL_FRAME);
+            if (newIndex < frameCount) {
+              RemoveBidiContinuation(frame, frameIndex, newIndex, lineOffset);
+            }
+          } else if (runLength == fragmentLength &&
+                     numRun + 1 < runCount) {
             
+
 
 
 
@@ -621,12 +639,11 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame)
         if (parent && IsBidiSplittable(parent))
           SplitInlineAncestors(child);
       }
-      else if (!frame->GetNextSibling()) {
+      else {
         
         
         
-        nsIFrame* parent = frame->GetParent();
-        JoinInlineAncestors(parent);
+        JoinInlineAncestors(frame);
       }
     }
   } 
@@ -730,7 +747,94 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame* aBlockFrame,
       if (nsGkAtoms::textFrame == frameType) {
         if (content != mPrevContent) {
           mPrevContent = content;
-          content->AppendTextTo(mBuffer);
+          if (!frame->GetStyleContext()->GetStyleText()->NewlineIsSignificant()) {
+            content->AppendTextTo(mBuffer);
+          } else {
+            
+
+
+
+            nsAutoString text;
+            content->AppendTextTo(text);
+            nsIFrame* next;
+            do {
+              next = nsnull;
+
+              PRInt32 start, end;
+              frame->GetOffsets(start, end);
+              PRInt32 endLine = text.FindCharInSet(NS_LITERAL_STRING("\n\r"),
+                                                   start);
+              if (endLine == -1) {
+                
+
+
+
+                mBuffer.Append(Substring(text, start));
+                break;
+              }
+
+              
+
+
+
+
+              ++endLine;
+
+              
+
+
+
+              while (end < endLine) {
+                mBuffer.Append(Substring(text, start, end - start));
+                frame = frame->GetNextContinuation();
+                NS_ASSERTION(frame, "Premature end of continuation chain");
+                frame->GetOffsets(start, end);
+                mLogicalFrames.AppendElement(frame);
+
+                
+
+
+
+                if (frame == nextSibling) {
+                  nextSibling = frame->GetNextSibling();
+                }
+              }
+
+              mBuffer.Append(Substring(text, start, endLine - start));
+
+              if (PRUint32(endLine) < text.Length()) {
+                nsTextFrame* textFrame = static_cast<nsTextFrame*>(frame);
+                textFrame->SetLength(endLine - start, nsnull);
+                next = frame->GetNextInFlow();
+                if (!next) {
+                  
+                  next = frame->GetNextContinuation();
+                  if (next) {
+                    MakeContinuationFluid(frame, next);
+                    JoinInlineAncestors(frame);
+                  } else {
+                    
+                    CreateContinuation(frame, &next, PR_TRUE);
+                  }
+                }
+              }
+              ResolveParagraphWithinBlock(aBlockFrame);
+
+              if (next) {
+                frame = next;
+                mLogicalFrames.AppendElement(frame);
+              }
+
+              
+
+
+
+              if (frame && frame == nextSibling) {
+                nextSibling = frame->GetNextSibling();
+              }
+
+            } while (next);
+          }
         }
       } else if (nsGkAtoms::brFrame == frameType) {
         
@@ -759,6 +863,7 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame* aBlockFrame,
       
       mLogicalFrames.AppendElement(NS_BIDI_CONTROL_FRAME);
       mBuffer.Append(kPDF);
+      NS_ASSERTION(mEmbeddingStack.Length(), "embedding/override underflow");
       mEmbeddingStack.TruncateLength(mEmbeddingStack.Length() - 1);
     }
     childFrame = nextSibling;
@@ -1241,7 +1346,7 @@ nsBidiPresUtils::EnsureBidiContinuation(nsIFrame*       aFrame,
   NS_PRECONDITION(aFrame, "aFrame is null");
 
   aFrame->AdjustOffsetsForBidi(aStart, aEnd);
-  mSuccess = CreateBidiContinuation(aFrame, aNewFrame);
+  mSuccess = CreateContinuation(aFrame, aNewFrame, PR_FALSE);
 }
 
 void
@@ -1273,14 +1378,7 @@ nsBidiPresUtils::RemoveBidiContinuation(nsIFrame*       aFrame,
       while (frame) {
         nsIFrame* prev = frame->GetPrevContinuation();
         if (prev) {
-          NS_ASSERTION (!frame->GetPrevInFlow() || frame->GetPrevInFlow() == prev, 
-                        "prev-in-flow is not prev continuation!");
-          frame->SetPrevInFlow(prev);
-
-          NS_ASSERTION (!prev->GetNextInFlow() || prev->GetNextInFlow() == frame,
-                        "next-in-flow is not next continuation!");
-          prev->SetNextInFlow(frame);
-
+          MakeContinuationFluid(prev, frame);
           frame = frame->GetParent();
         } else {
           break;
