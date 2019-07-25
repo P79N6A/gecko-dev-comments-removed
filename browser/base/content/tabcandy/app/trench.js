@@ -109,14 +109,6 @@ var Trench = function(element, xory, type, edge) {
   this.range = new Range(0,10000);
   this.minRange = new Range(0,0);
   this.activeRange = new Range(0,10000);
-  
-  
-  
-  
-  
-  
-  this.extended = false;
-  this.snapBeginTime = false;
 };
 Trench.prototype = {
   
@@ -223,30 +215,21 @@ Trench.prototype = {
   
   
   
-  show: function Trench_show( animateExtend ) { 
+  show: function Trench_show() { 
 
-    if (this.active && (this.showGuide || this.extended)) {
-      if (!this.dom.guideTrench) {
-        var guideTrench = this.dom.guideTrench = iQ("<div/>").addClass('guideTrench').css({id: 'guideTrench'+this.id});
-
-          guideTrench.css(this.guideRect);
-        iQ("body").append(guideTrench);
-      }
-      if (animateExtend) {
-        this.animatingExtend = true;
-        var self = this;
-        this.dom.guideTrench.animate( this.guideRect, {
-          complete: function () { self.animatingExtend = false; },
-          duration: 500,
-        } );
-      }
+    if (this.active && this.showGuide) {
+      if (!this.dom.guideTrench)
+        this.dom.guideTrench = iQ("<div/>").addClass('guideTrench').css({id: 'guideTrench'+this.id});
+      var guideTrench = this.dom.guideTrench;
+      guideTrench.css(this.guideRect);
+      iQ("body").append(guideTrench);
     } else {
       if (this.dom.guideTrench) {
         this.dom.guideTrench.remove();
         delete this.dom.guideTrench;
       }
     }
-    
+
     if (!Trenches.showDebug) {
       this.hide( true ); 
       return;
@@ -287,8 +270,6 @@ Trench.prototype = {
       this.dom.activeVisibleTrench.remove();
     if (!dontHideGuides && this.dom.guideTrench)
       this.dom.guideTrench.remove();
-    if (!dontHideGuides && this.extended)
-      this.unextend();
   },
 
   
@@ -428,12 +409,6 @@ Trench.prototype = {
     
     if (this.type != 'guide')
       return;
-    
-    
-    if (!this.extended) {
-      this.setActiveRange(new Range(this.minRange.min - 30, this.minRange.max + 30));
-      return;
-    }
 
     var groups = Groups.groups;
     var trench = this;
@@ -462,21 +437,6 @@ Trench.prototype = {
           trench.setActiveRange(activeRange);
       }
     });
-  },
-  
-  extend: function Trench_extend() {
-    this.extended = true;
-    this.calculateActiveRange();
-    this.show( true );
-  },
-  
-  unextend: function Trench_unextend() {
-    this.snapBeginTime = false;
-    if (this.extended) {
-      this.extended = false;
-      this.calculateActiveRange();
-      this.show();
-    }
   }
 };
 
@@ -489,11 +449,9 @@ var Trenches = {
   
   
   
-  
   nextId: 0,
   showDebug: false,
   defaultRadius: 10,
-  extendTime: 1000, 
 
   
   
@@ -576,10 +534,8 @@ var Trenches = {
   
   
   
-  hideGuides: function Trenches_hideGuides( dontHideExtendedGuides ) {
+  hideGuides: function Trenches_hideGuides() {
     this.trenches.forEach(function(t) {
-      if (!dontHideExtendedGuides)
-        t.unextend();
       t.showGuide = false;
       t.show();
     });    
@@ -652,34 +608,18 @@ var Trenches = {
       }
     }
     
-    let stamp = Date.now();
-    if (updated) {
-      for (let i in snappedTrenches) {
-        let t = snappedTrenches[i];
-        t.showGuide = true;
-        t.show();
-        if (t.type == 'guide' && !t.snapBeginTime) {
-          t.snapBeginTime = stamp;
-          iQ.timeout(function(){
-            
-            
-            if (stamp == t.snapBeginTime)
-              t.extend();
-          }, Trenches.extendTime);
-        }
-      }
-    }
-    
     let snappedIds = [ snappedTrenches[j].id for (j in snappedTrenches) ];
     for (let i in this.trenches) {
       let t = this.trenches[i];
       
+      if (snappedIds.indexOf(t.id) != -1) {
+        t.showGuide = true;
+        t.show();
+      }
+      
       if (t.showGuide && snappedIds.indexOf(t.id) == -1) {
         t.showGuide = false;
         t.show();
-      }
-      if (t.snapBeginTime && snappedIds.indexOf(t.id) == -1 ) {
-        t.snapBeginTime = false;
       }
     }
 
@@ -687,7 +627,7 @@ var Trenches = {
       rect.snappedTrenches = snappedTrenches;
       return rect;
     } else {
-      Trenches.hideGuides( true );
+      Trenches.hideGuides();
       return false;
     }
   },
