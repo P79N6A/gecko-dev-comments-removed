@@ -263,8 +263,20 @@ pref("privacy.item.formdata", true);
 pref("privacy.item.downloads", true);
 pref("privacy.item.passwords", true);
 pref("privacy.item.sessions", true);
+pref("privacy.item.geolocation", true);
+pref("privacy.item.siteSettings", true);
+
 
 pref("plugins.enabled", true);
+
+
+pref("browser.geolocation.warning.infoURL", "http://%LOCALE%.www.mozilla.com/%LOCALE%/firefox/geolocation/");
+
+
+pref("geo.wifi.uri", "https://www.google.com/loc/json");
+
+
+pref("geo.enabled", true);
 
 #ifdef WINCE
 pref("layout.css.dpi", 96);
@@ -279,3 +291,4 @@ pref("javascript.options.jit.chrome", true);
 
 pref("dom.max_chrome_script_run_time", 30);
 pref("dom.max_script_run_time", 20);
+
