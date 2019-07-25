@@ -227,6 +227,9 @@ class nsHashKey;
 
 #define NS_UISTATECHANGED               (NS_WINDOW_START + 43)
 
+
+#define NS_DONESIZEMOVE                 (NS_WINDOW_START + 44)
+
 #define NS_RESIZE_EVENT                 (NS_WINDOW_START + 60)
 #define NS_SCROLL_EVENT                 (NS_WINDOW_START + 61)
 
