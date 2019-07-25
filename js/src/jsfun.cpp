@@ -1539,48 +1539,16 @@ StackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
     return true;
 }
 
-
-enum {
-    FUN_ARGUMENTS   = -1,       
-    FUN_LENGTH      = -2,       
-    FUN_ARITY       = -3,       
-    FUN_NAME        = -4,       
-    FUN_CALLER      = -5        
-};
-
 static JSBool
 fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 {
-    if (!JSID_IS_INT(id))
-        return true;
-
-    jsint slot = JSID_TO_INT(id);
-
     
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     while (!obj->isFunction()) {
-        if (slot != FUN_LENGTH)
-            return true;
         obj = obj->getProto();
         if (!obj)
             return true;
@@ -1588,44 +1556,31 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
     JSFunction *fun = obj->getFunctionPrivate();
 
     
+    vp->setNull();
+
+    
     StackFrame *fp = js_GetTopStackFrame(cx);
-    while (fp && (fp->maybeFun() != fun || fp->isEvalInFunction()))
+    while (!fp->isFunctionFrame() || fp->fun() != fun) {
         fp = fp->prev();
+        if (!fp)
+			return true;
+    }
 
-    switch (slot) {
-      case FUN_ARGUMENTS:
-        
-        if (!JS_ReportErrorFlagsAndNumber(cx,
-                                          JSREPORT_WARNING | JSREPORT_STRICT,
-                                          js_GetErrorMessage, NULL,
-                                          JSMSG_DEPRECATED_USAGE,
-                                          js_arguments_str)) {
+    if (JSID_IS_ATOM(id, cx->runtime->atomState.argumentsAtom)) {
+		
+		if (!JS_ReportErrorFlagsAndNumber(cx, JSREPORT_WARNING | JSREPORT_STRICT, js_GetErrorMessage,
+                                          NULL, JSMSG_DEPRECATED_USAGE, js_arguments_str)) {
             return false;
         }
-        if (fp) {
-            if (!js_GetArgsValue(cx, fp, vp))
+        if (!js_GetArgsValue(cx, fp, vp))
                 return false;
-        } else {
-            vp->setNull();
-        }
-        break;
-
-      case FUN_LENGTH:
-      case FUN_ARITY:
-        vp->setInt32(fun->nargs);
-        break;
-
-      case FUN_NAME:
-        vp->setString(fun->atom ? fun->atom
-                                : cx->runtime->emptyString);
-        break;
-
-      case FUN_CALLER: {
-        vp->setNull();
-
-        StackFrame *callerframe = (fp && fp->prev()) ? js_GetScriptedCaller(cx, fp->prev()) : NULL;
-        if (callerframe && !callerframe->getValidCalleeObject(cx, vp))
+    } else if (JSID_IS_ATOM(id, cx->runtime->atomState.callerAtom)) {
+        if (!fp->prev())
             return false;
+
+        StackFrame *frame = js_GetScriptedCaller(cx, fp->prev());
+        if (!frame || !frame->getValidCalleeObject(cx, vp))
+			return false;
 
         if (vp->isObject()) {
             JSObject &caller = vp->toObject();
@@ -1633,7 +1588,7 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
             
             if (caller.compartment() != cx->compartment) {
                 vp->setNull();
-            } else if (caller.isFunction()) {
+            } else if (caller.isFunction()) {			
                 JSFunction *callerFun = caller.getFunctionPrivate();
                 if (callerFun->isInterpreted() && callerFun->inStrictMode()) {
                     JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR, js_GetErrorMessage, NULL,
@@ -1642,38 +1597,20 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
                 }
             }
         }
-        break;
-      }
-
-      default:
+    } else {
         JS_NOT_REACHED("fun_getProperty");
     }
 
     return true;
 }
 
-struct LazyFunctionDataProp {
-    uint16      atomOffset;
-    int8        tinyid;
-    uint8       attrs;
-};
-
-struct PoisonPillProp {
-    uint16       atomOffset;
-    int8         tinyid;
-};
 
 
 
-static const LazyFunctionDataProp lazyFunctionDataProps[] = {
-    {ATOM_OFFSET(arity),     FUN_ARITY,      JSPROP_PERMANENT|JSPROP_READONLY},
-    {ATOM_OFFSET(name),      FUN_NAME,       JSPROP_PERMANENT|JSPROP_READONLY},
-};
 
-
-static const PoisonPillProp poisonPillProps[] = {
-    {ATOM_OFFSET(arguments), FUN_ARGUMENTS },
-    {ATOM_OFFSET(caller),    FUN_CALLER    },
+static const uint16 poisonPillProps[] = {
+    ATOM_OFFSET(arguments),
+    ATOM_OFFSET(caller),
 };
 
 static JSBool
@@ -1693,17 +1630,14 @@ fun_enumerate(JSContext *cx, JSObject *obj)
     id = ATOM_TO_JSID(cx->runtime->atomState.lengthAtom);
     if (!obj->hasProperty(cx, id, &found, JSRESOLVE_QUALIFIED))
         return false;
-
-    for (uintN i = 0; i < JS_ARRAY_LENGTH(lazyFunctionDataProps); i++) {
-        const LazyFunctionDataProp &lfp = lazyFunctionDataProps[i];
-        id = ATOM_TO_JSID(OFFSET_TO_ATOM(cx->runtime, lfp.atomOffset));
-        if (!obj->hasProperty(cx, id, &found, JSRESOLVE_QUALIFIED))
-            return false;
-    }
+        
+    id = ATOM_TO_JSID(cx->runtime->atomState.nameAtom);
+    if (!obj->hasProperty(cx, id, &found, JSRESOLVE_QUALIFIED))
+        return false;
 
     for (uintN i = 0; i < JS_ARRAY_LENGTH(poisonPillProps); i++) {
-        const PoisonPillProp &p = poisonPillProps[i];
-        id = ATOM_TO_JSID(OFFSET_TO_ATOM(cx->runtime, p.atomOffset));
+        const uint16 offset = poisonPillProps[i];
+        id = ATOM_TO_JSID(OFFSET_TO_ATOM(cx->runtime, offset));
         if (!obj->hasProperty(cx, id, &found, JSRESOLVE_QUALIFIED))
             return false;
     }
@@ -1785,10 +1719,17 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
         return true;
     }
 
-    if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom)) {
+    if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom) ||
+        JSID_IS_ATOM(id, cx->runtime->atomState.nameAtom)) {
         JS_ASSERT(!IsInternalFunctionObject(obj));
-        if (!DefineNativeProperty(cx, obj, id, Int32Value(fun->nargs),
-                                  PropertyStub, StrictPropertyStub,
+
+        Value v;
+        if (JSID_IS_ATOM(id, cx->runtime->atomState.lengthAtom))
+            v.setInt32(fun->nargs);
+        else
+            v.setString(fun->atom ? fun->atom : cx->runtime->emptyString);
+        
+        if (!DefineNativeProperty(cx, obj, id, v, PropertyStub, StrictPropertyStub,
                                   JSPROP_PERMANENT | JSPROP_READONLY, 0, 0)) {
             return false;
         }
@@ -1796,25 +1737,10 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
         return true;
     }
 
-    for (uintN i = 0; i < JS_ARRAY_LENGTH(lazyFunctionDataProps); i++) {
-        const LazyFunctionDataProp *lfp = &lazyFunctionDataProps[i];
-
-        if (JSID_IS_ATOM(id, OFFSET_TO_ATOM(cx->runtime, lfp->atomOffset))) {
-            JS_ASSERT(!IsInternalFunctionObject(obj));
-            if (!DefineNativeProperty(cx, obj, id, UndefinedValue(),
-                                      fun_getProperty, StrictPropertyStub,
-                                      lfp->attrs, Shape::HAS_SHORTID, lfp->tinyid)) {
-                return false;
-            }
-            *objp = obj;
-            return true;
-        }
-    }
-
     for (uintN i = 0; i < JS_ARRAY_LENGTH(poisonPillProps); i++) {
-        const PoisonPillProp &p = poisonPillProps[i];
+        const uint16 offset = poisonPillProps[i];
 
-        if (JSID_IS_ATOM(id, OFFSET_TO_ATOM(cx->runtime, p.atomOffset))) {
+        if (JSID_IS_ATOM(id, OFFSET_TO_ATOM(cx->runtime, offset))) {
             JS_ASSERT(!IsInternalFunctionObject(obj));
 
             PropertyOp getter;
@@ -1832,7 +1758,7 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
             }
 
             if (!DefineNativeProperty(cx, obj, id, UndefinedValue(), getter, setter,
-                                      attrs, Shape::HAS_SHORTID, p.tinyid)) {
+                                      attrs, 0, 0)) {
                 return false;
             }
             *objp = obj;
