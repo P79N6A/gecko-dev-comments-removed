@@ -50,7 +50,6 @@
 #include "nsIDOMClassInfo.h"
 #include "nsReadableUtils.h"
 #include "nsCRT.h"
-#include "nsLoadListenerProxy.h"
 #include "nsStreamUtils.h"
 #include "nsThreadUtils.h"
 #include "nsNetCID.h"
@@ -63,60 +62,13 @@
 
 using namespace mozilla;
 
-
-nsresult
-nsDOMParser::HandleEvent(nsIDOMEvent* aEvent)
-{
-  return NS_OK;
-}
-
-
-nsresult
-nsDOMParser::Load(nsIDOMEvent* aEvent)
-{
-  mLoopingForSyncLoad = PR_FALSE;
-
-  return NS_OK;
-}
-
-nsresult
-nsDOMParser::BeforeUnload(nsIDOMEvent* aEvent)
-{
-  return NS_OK;
-}
-
-nsresult
-nsDOMParser::Unload(nsIDOMEvent* aEvent)
-{
-  return NS_OK;
-}
-
-nsresult
-nsDOMParser::Abort(nsIDOMEvent* aEvent)
-{
-  mLoopingForSyncLoad = PR_FALSE;
-
-  return NS_OK;
-}
-
-nsresult
-nsDOMParser::Error(nsIDOMEvent* aEvent)
-{
-  mLoopingForSyncLoad = PR_FALSE;
-
-  return NS_OK;
-}
-
 nsDOMParser::nsDOMParser()
-  : mLoopingForSyncLoad(PR_FALSE),
-    mAttemptedInit(PR_FALSE)
+  : mAttemptedInit(PR_FALSE)
 {
 }
 
 nsDOMParser::~nsDOMParser()
 {
-  NS_ABORT_IF_FALSE(!mLoopingForSyncLoad, "we rather crash than hang");
-  mLoopingForSyncLoad = PR_FALSE;
 }
 
 DOMCI_DATA(DOMParser, nsDOMParser)
@@ -126,8 +78,6 @@ NS_INTERFACE_MAP_BEGIN(nsDOMParser)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMParser)
   NS_INTERFACE_MAP_ENTRY(nsIDOMParser)
   NS_INTERFACE_MAP_ENTRY(nsIDOMParserJS)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMLoadListener)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(DOMParser)
@@ -238,19 +188,6 @@ nsDOMParser::ParseFromStream(nsIInputStream *stream,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  nsCOMPtr<nsPIDOMEventTarget> target(do_QueryInterface(domDocument));
-  if (target) {
-    nsWeakPtr requestWeak(do_GetWeakReference(static_cast<nsIDOMParser*>(this)));
-    nsLoadListenerProxy* proxy = new nsLoadListenerProxy(requestWeak);
-    if (!proxy) return NS_ERROR_OUT_OF_MEMORY;
-
-    
-    rv = target->AddEventListenerByIID(static_cast<nsIDOMEventListener*>(proxy), 
-                                       NS_GET_IID(nsIDOMLoadListener));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  
   nsCOMPtr<nsIChannel> parserChannel;
   NS_NewInputStreamChannel(getter_AddRefs(parserChannel), mDocumentURI, nsnull,
                            nsDependentCString(contentType), nsnull);
@@ -265,9 +202,6 @@ nsDOMParser::ParseFromStream(nsIInputStream *stream,
 
   
   nsCOMPtr<nsIStreamListener> listener;
-
-  AutoRestore<PRPackedBool> restoreSyncLoop(mLoopingForSyncLoad);
-  mLoopingForSyncLoad = PR_TRUE;
 
   
   
@@ -317,15 +251,6 @@ nsDOMParser::ParseFromStream(nsIInputStream *stream,
 
   if (NS_FAILED(rv)) {
     return NS_ERROR_FAILURE;
-  }
-
-  
-  
-
-  nsIThread *thread = NS_GetCurrentThread();
-  while (mLoopingForSyncLoad) {
-    if (!NS_ProcessNextEvent(thread))
-      break;
   }
 
   domDocument.swap(*aResult);
