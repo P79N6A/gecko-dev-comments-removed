@@ -3381,7 +3381,13 @@ nsGenericHTMLElement::Focus()
 
 nsresult nsGenericHTMLElement::MozRequestFullScreen()
 {
-  if (!nsContentUtils::IsFullScreenApiEnabled()) {
+  
+  
+  
+  
+  
+  if (!nsContentUtils::IsFullScreenApiEnabled() ||
+      !nsContentUtils::IsRequestFullScreenAllowed()) {
     return NS_OK;
   }
 
