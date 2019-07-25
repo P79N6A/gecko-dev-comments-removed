@@ -104,6 +104,12 @@
 #define NS_THEME_PROGRESSBAR_CHUNK_VERTICAL                54
 
 
+#define NS_THEME_METERBAR                                  55
+
+
+#define NS_THEME_METERBAR_CHUNK                            56
+
+
 #define NS_THEME_TAB                                       61
 
 
