@@ -459,6 +459,10 @@ BookmarksStore.prototype = {
 
     for (let key in command.data) {
       switch (key) {
+      case "type":
+        
+        
+        break;
       case "GUID":
         var existing = this._getItemIdForGUID(command.data.GUID);
         if (existing < 0)
@@ -676,7 +680,7 @@ HistoryStore.prototype = {
   _createCommand: function HistStore__createCommand(command) {
     this._log.debug("  -> creating history entry: " + command.GUID);
     try {
-      let uri = Utils.makeURI(command.GUID);
+      let uri = Utils.makeURI(command.data.URI);
       this._hsvc.addVisit(uri, command.data.time, null,
                           this._hsvc.TRANSITION_TYPED, false, null);
       this._hsvc.setPageTitle(uri, command.data.title);
@@ -686,7 +690,7 @@ HistoryStore.prototype = {
   },
 
   _removeCommand: function HistStore__removeCommand(command) {
-    this._log.debug("  -> NOT removing history entry: " + command.GUID);
+    this._log.trace("  -> NOT removing history entry: " + command.GUID);
     
     
     
@@ -694,7 +698,7 @@ HistoryStore.prototype = {
   },
 
   _editCommand: function HistStore__editCommand(command) {
-    this._log.debug("  -> FIXME: NOT editing history entry: " + command.GUID);
+    this._log.trace("  -> FIXME: NOT editing history entry: " + command.GUID);
     
   },
 
@@ -703,9 +707,9 @@ HistoryStore.prototype = {
         options = this._hsvc.getNewQueryOptions();
 
     query.minVisits = 1;
-    options.maxResults = 500;
-    options.resultType = options.RESULTS_AS_FULL_VISIT;
-    options.sortingMode = query.SORT_BY_LASTMODIFIED_DESCENDING;
+    options.maxResults = 1000;
+    options.resultType = options.RESULTS_AS_VISIT; 
+    options.sortingMode = options.SORT_BY_DATE_DESCENDING;
     options.queryType = options.QUERY_TYPE_HISTORY;
 
     let root = this._hsvc.executeQuery(query, options).root;
@@ -719,7 +723,8 @@ HistoryStore.prototype = {
     let items = {};
     for (let i = 0; i < root.childCount; i++) {
       let item = root.getChild(i);
-      items[item.uri] = {parentGUID: '',
+      let guid = item.time + ":" + item.uri
+      items[guid] = {parentGUID: '',
 			 title: item.title,
 			 URI: item.uri,
 			 time: item.time
