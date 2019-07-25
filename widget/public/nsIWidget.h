@@ -243,6 +243,9 @@ struct IMEContext {
 
   
   nsString mHTMLInputType;
+
+  
+  nsString mActionHint;
 };
 
 
