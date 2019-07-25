@@ -372,6 +372,10 @@ LivemarkService.prototype = {
     bms.setFolderReadonly(folderId, true);
 
     
+    
+    
+    this._lastCreatedLivemarkFolderId = folderId;
+    
     ans.setItemAnnotation(folderId, LMANNO_FEEDURI, aFeedURI.spec,
                           0, ans.EXPIRE_NEVER);
 
@@ -391,6 +395,11 @@ LivemarkService.prototype = {
       return true;
     }
     catch (ex) {}
+    
+    
+    
+    if (this._lastCreatedLivemarkFolderId === aFolderId)
+      return ans.itemHasAnnotation(aFolderId, LMANNO_FEEDURI);
     return false;
   },
 
