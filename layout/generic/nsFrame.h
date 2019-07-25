@@ -130,6 +130,7 @@
 
 
 struct nsBoxLayoutMetrics;
+class nsDisplayBackground;
 
 
 
@@ -510,9 +511,12 @@ public:
 
 
 
+
+
   nsresult DisplayBackgroundUnconditional(nsDisplayListBuilder*   aBuilder,
                                           const nsDisplayListSet& aLists,
-                                          bool aForceBackground = false);
+                                          bool aForceBackground,
+                                          nsDisplayBackground** aBackground);
   
 
 
