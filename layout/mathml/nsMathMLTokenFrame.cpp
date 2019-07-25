@@ -111,7 +111,6 @@ nsMathMLTokenFrame::SetInitialChildList(ChildListID     aListID,
 
   ForceTrimChildTextFrames();
 
-  SetQuotes(false);
   ProcessTextData();
   return rv;
 }
@@ -248,20 +247,6 @@ nsMathMLTokenFrame::MarkIntrinsicWidthsDirty()
   nsMathMLContainerFrame::MarkIntrinsicWidthsDirty();
 }
 
-NS_IMETHODIMP
-nsMathMLTokenFrame::AttributeChanged(int32_t         aNameSpaceID,
-                                     nsIAtom*        aAttribute,
-                                     int32_t         aModType)
-{
-  if (nsGkAtoms::lquote_ == aAttribute ||
-      nsGkAtoms::rquote_ == aAttribute) {
-    SetQuotes(true);
-  }
-
-  return nsMathMLContainerFrame::
-         AttributeChanged(aNameSpaceID, aAttribute, aModType);
-}
-
 void
 nsMathMLTokenFrame::ProcessTextData()
 {
@@ -368,56 +353,4 @@ nsMathMLTokenFrame::SetTextStyle()
   }
 
   return false;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-static void
-SetQuote(nsIFrame* aFrame, nsString& aValue, bool aNotify)
-{
-  if (!aFrame)
-    return;
-
-  nsIFrame* textFrame = aFrame->GetFirstPrincipalChild();
-  if (!textFrame)
-    return;
-
-  nsIContent* quoteContent = textFrame->GetContent();
-  if (!quoteContent->IsNodeOfType(nsINode::eTEXT))
-    return;
-
-  quoteContent->SetText(aValue, aNotify);
-}
-
-void
-nsMathMLTokenFrame::SetQuotes(bool aNotify)
-{
-  if (mContent->Tag() != nsGkAtoms::ms_)
-    return;
-
-  nsAutoString value;
-  
-  if (GetAttribute(mContent, mPresentationData.mstyle,
-                   nsGkAtoms::lquote_, value)) {
-    SetQuote(nsLayoutUtils::GetBeforeFrame(this), value, aNotify);
-  }
-  
-  if (GetAttribute(mContent, mPresentationData.mstyle,
-                   nsGkAtoms::rquote_, value)) {
-    SetQuote(nsLayoutUtils::GetAfterFrame(this), value, aNotify);
-  }
 }

@@ -60,11 +60,6 @@ public:
 
   virtual void MarkIntrinsicWidthsDirty();
 
-  NS_IMETHOD
-  AttributeChanged(int32_t         aNameSpaceID,
-                   nsIAtom*        aAttribute,
-                   int32_t         aModType);
-
   virtual nsresult
   ChildListChanged(int32_t aModType)
   {
@@ -84,9 +79,6 @@ protected:
   
   
   bool SetTextStyle();
-
-  
-  void SetQuotes(bool aNotify);
 
   void ForceTrimChildTextFrames();
 };
