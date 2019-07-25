@@ -240,7 +240,16 @@ public:
   
 
 
+  void SetShadowManager(PLayersChild* aShadowManager)
+  {
+    mShadowManager = aShadowManager;
+  }
+
+  
+
+
   PRBool HasShadowManager() const { return !!mShadowManager; }
+  PLayersChild* GetShadowManager() const { return mShadowManager; }
 
   
 
