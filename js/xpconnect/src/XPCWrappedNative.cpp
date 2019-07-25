@@ -3082,47 +3082,22 @@ inline nsresult UnexpectedFailure(nsresult rv)
 }
 
 
-NS_IMETHODIMP XPCWrappedNative::RefreshPrototype()
+NS_IMETHODIMP XPCWrappedNative::FinishInitForWrappedGlobal()
 {
+    
+    MOZ_ASSERT(mScriptableInfo);
+    MOZ_ASSERT(mScriptableInfo->GetFlags().IsGlobalObject());
+    MOZ_ASSERT(HasProto());
+
+    
     XPCCallContext ccx(NATIVE_CALLER);
     if (!ccx.IsValid())
         return UnexpectedFailure(NS_ERROR_FAILURE);
 
-    if (!HasProto())
-        return NS_OK;
-
-    if (!mFlatJSObject)
-        return UnexpectedFailure(NS_ERROR_FAILURE);
-
-    JSAutoEnterCompartment ac;
-    if (!ac.enter(ccx, GetFlatJSObject()))
-        return UnexpectedFailure(NS_ERROR_FAILURE);
-
-    AutoMarkingWrappedNativeProtoPtr oldProto(ccx);
-    AutoMarkingWrappedNativeProtoPtr newProto(ccx);
-
-    oldProto = GetProto();
-
-    XPCNativeScriptableInfo *info = oldProto->GetScriptableInfo();
-    XPCNativeScriptableCreateInfo ci(*info);
-    newProto = XPCWrappedNativeProto::GetNewOrUsed(ccx, oldProto->GetScope(),
-                                                   oldProto->GetClassInfo(), &ci,
-                                                   oldProto->GetOffsetsMasked());
-    if (!newProto)
-        return UnexpectedFailure(NS_ERROR_FAILURE);
-
     
-
-    if (newProto.get() == oldProto.get())
-        return NS_OK;
-
-    if (!JS_SplicePrototype(ccx, GetFlatJSObject(), newProto->GetJSProtoObject()))
-        return UnexpectedFailure(NS_ERROR_FAILURE);
-
-    SetProto(newProto);
-
-    if (mScriptableInfo == oldProto->GetScriptableInfo())
-        UpdateScriptableInfo(newProto->GetScriptableInfo());
+    bool success = GetProto()->CallPostCreatePrototype(ccx);
+    if (!success)
+        return NS_ERROR_FAILURE;
 
     return NS_OK;
 }
