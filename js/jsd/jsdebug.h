@@ -502,6 +502,17 @@ JSD_GetClosestLine(JSDContext* jsdc, JSDScript* jsdscript, jsuword pc);
 
 
 
+extern JSD_PUBLIC_API(JSBool)
+JSD_GetLinePCs(JSDContext* jsdc, JSDScript* jsdscript,
+               uintN startLine, uintN maxLines,
+               uintN* count, uintN** lines, jsuword** pcs);
+
+
+
+
+
+
+
 
 
 
