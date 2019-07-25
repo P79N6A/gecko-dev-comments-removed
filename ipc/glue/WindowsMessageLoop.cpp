@@ -47,6 +47,7 @@
 #include "nsIXULAppInfo.h"
 
 #include "mozilla/Mutex.h"
+#include "mozilla/PaintTracker.h"
 
 using mozilla::ipc::SyncChannel;
 using mozilla::ipc::RPCChannel;
@@ -102,15 +103,6 @@ using namespace mozilla::ipc::windows;
 
 
 namespace {
-
-UINT gEventLoopMessage =
-    RegisterWindowMessage(L"SyncChannel Windows Message Loop Message");
-
-UINT gOOPPSpinNativeLoopEvent =
-    RegisterWindowMessage(L"SyncChannel Spin Inner Loop Message");
-
-UINT gOOPPStopNativeLoopEvent =
-    RegisterWindowMessage(L"SyncChannel Stop Inner Loop Message");
 
 const wchar_t kOldWndProcProp[] = L"MozillaIPCOldWndProc";
 
@@ -217,6 +209,7 @@ ProcessOrDeferMessage(HWND hwnd,
     case WM_NCDESTROY:
     case WM_PARENTNOTIFY:
     case WM_SETFOCUS:
+    case WM_SYSCOMMAND:
     case WM_SHOWWINDOW: 
     case WM_XP_THEMECHANGED: {
       deferred = new DeferredSendMessage(hwnd, uMsg, wParam, lParam);
@@ -283,19 +276,32 @@ ProcessOrDeferMessage(HWND hwnd,
       break;
     }
 
+    case WM_STYLECHANGED: {
+      deferred = new DeferredStyleChangeMessage(hwnd, wParam, lParam);
+      break;
+    }
+
+    case WM_SETICON: {
+      deferred = new DeferredSetIconMessage(hwnd, uMsg, wParam, lParam);
+      break;
+    }
+
     
     case WM_ENTERIDLE:
     case WM_GETICON:
     case WM_GETMINMAXINFO:
     case WM_GETTEXT:
     case WM_NCHITTEST:
-    case WM_SETICON:
-    case WM_STYLECHANGING:
-    case WM_STYLECHANGED:
-    case WM_SYNCPAINT: 
-    case WM_WINDOWPOSCHANGING: {
+    case WM_STYLECHANGING:  
+    case WM_WINDOWPOSCHANGING: { 
       return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
+
+    
+    
+    
+    case WM_SYNCPAINT:
+      return 0;
 
     
     default: {
@@ -352,7 +358,7 @@ NeuteredWindowProc(HWND hwnd,
 }
 
 static bool
-WindowIsMozillaWindow(HWND hWnd)
+WindowIsDeferredWindow(HWND hWnd)
 {
   if (!IsWindow(hWnd)) {
     NS_WARNING("Window has died!");
@@ -366,11 +372,20 @@ WindowIsMozillaWindow(HWND hWnd)
     return false;
   }
 
+  
   nsDependentString className(buffer, length);
   if (StringBeginsWith(className, NS_LITERAL_STRING("Mozilla")) ||
       StringBeginsWith(className, NS_LITERAL_STRING("Gecko")) ||
       className.EqualsLiteral("nsToolkitClass") ||
       className.EqualsLiteral("nsAppShell:EventWindowClass")) {
+    return true;
+  }
+
+  
+  
+  
+  if (className.EqualsLiteral("ShockwaveFlashFullScreen") ||
+      className.EqualsLiteral("AGFullScreenWinClass")) {
     return true;
   }
 
@@ -408,7 +423,7 @@ WindowIsMozillaWindow(HWND hWnd)
 bool
 NeuterWindowProcedure(HWND hWnd)
 {
-  if (!WindowIsMozillaWindow(hWnd)) {
+  if (!WindowIsDeferredWindow(hWnd)) {
     
     return false;
   }
@@ -447,8 +462,8 @@ NeuterWindowProcedure(HWND hWnd)
 void
 RestoreWindowProcedure(HWND hWnd)
 {
-  NS_ASSERTION(WindowIsMozillaWindow(hWnd),
-               "Not a mozilla window, this shouldn't be in our list!");
+  NS_ASSERTION(WindowIsDeferredWindow(hWnd),
+               "Not a deferred window, this shouldn't be in our list!");
 
   LONG_PTR oldWndProc = (LONG_PTR)RemoveProp(hWnd, kOldWndProcProp);
   if (oldWndProc) {
@@ -558,11 +573,75 @@ TimeoutHasExpired(const TimeoutData& aData)
 
 } 
 
-bool
+RPCChannel::SyncStackFrame::SyncStackFrame(SyncChannel* channel, bool rpc)
+  : mRPC(rpc)
+  , mSpinNestedEvents(false)
+  , mChannel(channel)
+  , mPrev(mChannel->mTopFrame)
+  , mStaticPrev(sStaticTopFrame)
+{
+  mChannel->mTopFrame = this;
+  sStaticTopFrame = this;
+
+  if (!mStaticPrev) {
+    NS_ASSERTION(!gNeuteredWindows, "Should only set this once!");
+    gNeuteredWindows = new nsAutoTArray<HWND, 20>();
+    NS_ASSERTION(gNeuteredWindows, "Out of memory!");
+  }
+}
+
+RPCChannel::SyncStackFrame::~SyncStackFrame()
+{
+  NS_ASSERTION(this == mChannel->mTopFrame,
+               "Mismatched RPC stack frames");
+  NS_ASSERTION(this == sStaticTopFrame,
+               "Mismatched static RPC stack frames");
+
+  mChannel->mTopFrame = mPrev;
+  sStaticTopFrame = mStaticPrev;
+
+  if (!mStaticPrev) {
+    NS_ASSERTION(gNeuteredWindows, "Bad pointer!");
+    delete gNeuteredWindows;
+    gNeuteredWindows = NULL;
+  }
+}
+
+SyncChannel::SyncStackFrame* SyncChannel::sStaticTopFrame;
+
+void
+RPCChannel::ProcessNativeEventsInRPCCall()
+{
+  if (!mTopFrame) {
+    NS_ERROR("Child logic error: no RPC frame");
+    return;
+  }
+
+  mTopFrame->mSpinNestedEvents = true;
+}
+
+
+
+
+
+
+
+void
 RPCChannel::SpinInternalEventLoop()
 {
+  if (mozilla::PaintTracker::IsPainting()) {
+    NS_RUNTIMEABORT("Don't spin an event loop while painting.");
+  }
+
+  NS_ASSERTION(mTopFrame && mTopFrame->mSpinNestedEvents,
+               "Spinning incorrectly");
+
   
   
+  
+  
+  
+
   do {
     MSG msg = { 0 };
 
@@ -570,48 +649,12 @@ RPCChannel::SpinInternalEventLoop()
     {
       MutexAutoLock lock(mMutex);
       if (!Connected()) {
-        RPCChannel::ExitModalLoop();
-        return false;
+        return;
       }
-    }
-
-    if (!RPCChannel::IsSpinLoopActive()) {
-      return false;
-    }
-
-    
-    
-    
-    
-    if (PeekMessageW(&msg, (HWND)-1, gOOPPStopNativeLoopEvent,
-                     gOOPPStopNativeLoopEvent, PM_REMOVE)) {
-      RPCChannel::ExitModalLoop();
-      return false;
-    }
-
-    
-    
-    
-    if (PeekMessageW(&msg, (HWND)-1, gEventLoopMessage, gEventLoopMessage,
-                     PM_REMOVE)) {
-      return true;
     }
 
     
     if (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
-      if (msg.message == gOOPPStopNativeLoopEvent) {
-        RPCChannel::ExitModalLoop();
-        return false;
-      }
-      else if (msg.message == gOOPPSpinNativeLoopEvent) {
-        
-        RPCChannel::EnterModalLoop();
-        continue;
-      }
-      else if (msg.message == gEventLoopMessage) {
-        return true;
-      }
-
       
       
       if (msg.message == WM_QUIT) {
@@ -619,23 +662,23 @@ RPCChannel::SpinInternalEventLoop()
       } else {
           TranslateMessage(&msg);
           DispatchMessageW(&msg);
+          return;
       }
-    } else {
+    }
+
+    
+    
+    
+    
+
+    
+    DWORD result = MsgWaitForMultipleObjects(1, &mEvent, FALSE, INFINITE,
+                                             QS_ALLINPUT);
+    if (result == WAIT_OBJECT_0) {
       
-      WaitMessage();
+      return;
     }
   } while (true);
-}
-
-bool
-RPCChannel::IsMessagePending()
-{
-  MSG msg = { 0 };
-  if (PeekMessageW(&msg, (HWND)-1, gEventLoopMessage, gEventLoopMessage,
-                   PM_REMOVE)) {
-    return true;
-  }
-  return false;
 }
 
 bool
@@ -646,15 +689,12 @@ SyncChannel::WaitForNotify()
   
   Init();
 
+  NS_ASSERTION(mTopFrame && !mTopFrame->mRPC,
+               "Top frame is not a sync frame!");
+
   MutexAutoUnlock unlock(mMutex);
 
   bool retval = true;
-
-  if (++gEventLoopDepth == 1) {
-    NS_ASSERTION(!gNeuteredWindows, "Should only set this once!");
-    gNeuteredWindows = new nsAutoTArray<HWND, 20>();
-    NS_ASSERTION(gNeuteredWindows, "Out of memory!");
-  }
 
   UINT_PTR timerId = NULL;
   TimeoutData timeoutData = { 0 };
@@ -671,6 +711,7 @@ SyncChannel::WaitForNotify()
   
   NS_ASSERTION(!SyncChannel::IsPumpingMessages(),
                "Shouldn't be pumping already!");
+
   SyncChannel::SetIsPumpingMessages(true);
   HHOOK windowHook = SetWindowsHookEx(WH_CALLWNDPROC, CallWindowProcedureHook,
                                       NULL, gUIThreadId);
@@ -693,9 +734,14 @@ SyncChannel::WaitForNotify()
       
       
       
-      DWORD result = MsgWaitForMultipleObjects(0, NULL, FALSE, INFINITE,
+      DWORD result = MsgWaitForMultipleObjects(1, &mEvent, FALSE, INFINITE,
                                                QS_ALLINPUT);
-      if (result != WAIT_OBJECT_0) {
+      if (result == WAIT_OBJECT_0) {
+        
+        ResetEvent(mEvent);
+        break;
+      } else
+      if (result != (WAIT_OBJECT_0 + 1)) {
         NS_ERROR("Wait failed!");
         break;
       }
@@ -724,13 +770,6 @@ SyncChannel::WaitForNotify()
 
       
       
-      if (PeekMessageW(&msg, (HWND)-1, gEventLoopMessage, gEventLoopMessage,
-                       PM_REMOVE)) {
-        break;
-      }
-
-      
-      
       
       
       
@@ -748,12 +787,6 @@ SyncChannel::WaitForNotify()
   
   
   UnhookNeuteredWindows();
-
-  if (--gEventLoopDepth == 0) {
-    NS_ASSERTION(gNeuteredWindows, "Bad pointer!");
-    delete gNeuteredWindows;
-    gNeuteredWindows = NULL;
-  }
 
   
   
@@ -783,88 +816,28 @@ RPCChannel::WaitForNotify()
   
   Init();
 
+  NS_ASSERTION(mTopFrame && mTopFrame->mRPC,
+               "Top frame is not a sync frame!");
+
   MutexAutoUnlock unlock(mMutex);
 
   bool retval = true;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (RPCChannel::IsSpinLoopActive()) {
-    SpinInternalEventLoop();
-    return true; 
-  }
-
-  if (++gEventLoopDepth == 1) {
-    NS_ASSERTION(!gNeuteredWindows, "Should only set this once!");
-    gNeuteredWindows = new nsAutoTArray<HWND, 20>();
-    NS_ASSERTION(gNeuteredWindows, "Out of memory!");
-  }
-
   UINT_PTR timerId = NULL;
   TimeoutData timeoutData = { 0 };
 
-  if (mTimeoutMs != kNoTimeout) {
-    InitTimeoutData(&timeoutData, mTimeoutMs);
-
-    
-    
-    timerId = SetTimer(NULL, 0, mTimeoutMs, NULL);
-    NS_ASSERTION(timerId, "SetTimer failed!");
-  }
-
   
-  NS_ASSERTION(!SyncChannel::IsPumpingMessages(),
-               "Shouldn't be pumping already!");
-  SyncChannel::SetIsPumpingMessages(true);
-  HHOOK windowHook = SetWindowsHookEx(WH_CALLWNDPROC, CallWindowProcedureHook,
-                                      NULL, gUIThreadId);
-  NS_ASSERTION(windowHook, "Failed to set hook!");
+  
+  
+  
+  HHOOK windowHook = NULL;
 
-  {
-    while (1) {
-      MSG msg = { 0 };
+  while (1) {
+    NS_ASSERTION((!!windowHook) == SyncChannel::IsPumpingMessages(),
+                 "windowHook out of sync with reality");
 
-      
-      {
-        MutexAutoLock lock(mMutex);
-        if (!Connected()) {
-          break;
-        }
-      }
-
-      DWORD result = MsgWaitForMultipleObjects(0, NULL, FALSE, INFINITE,
-                                               QS_ALLINPUT);
-      if (result != WAIT_OBJECT_0) {
-        NS_ERROR("Wait failed!");
-        break;
-      }
-
-      if (TimeoutHasExpired(timeoutData)) {
-        
-        retval = false;
-        break;
-      }
-
-      
-      bool haveSentMessagesPending =
-        (HIWORD(GetQueueStatus(QS_SENDMESSAGE)) & QS_SENDMESSAGE) != 0;
-
-      
-      
-      
-      
-      
-      
-      if (PeekMessageW(&msg, (HWND)-1, gOOPPSpinNativeLoopEvent,
-                       gOOPPSpinNativeLoopEvent, PM_REMOVE)) {
-        
+    if (mTopFrame->mSpinNestedEvents) {
+      if (windowHook) {
         UnhookWindowsHookEx(windowHook);
         windowHook = NULL;
 
@@ -884,50 +857,85 @@ RPCChannel::WaitForNotify()
         
         
         ScheduleDeferredMessageRun();
-        
-        
-        
-        
-        
-        RPCChannel::EnterModalLoop();
-        SpinInternalEventLoop();
-        return true; 
       }
+      SpinInternalEventLoop();
+      ResetEvent(mEvent);
+      return true;
+    }
 
-      if (PeekMessageW(&msg, (HWND)-1, gEventLoopMessage, gEventLoopMessage,
-                       PM_REMOVE)) {
+    if (!windowHook) {
+      SyncChannel::SetIsPumpingMessages(true);
+      windowHook = SetWindowsHookEx(WH_CALLWNDPROC, CallWindowProcedureHook,
+                                    NULL, gUIThreadId);
+      NS_ASSERTION(windowHook, "Failed to set hook!");
+
+      NS_ASSERTION(!timerId, "Timer already initialized?");
+
+      if (mTimeoutMs != kNoTimeout) {
+        InitTimeoutData(&timeoutData, mTimeoutMs);
+        timerId = SetTimer(NULL, 0, mTimeoutMs, NULL);
+        NS_ASSERTION(timerId, "SetTimer failed!");
+      }
+    }
+
+    MSG msg = { 0 };
+
+    
+    {
+      MutexAutoLock lock(mMutex);
+      if (!Connected()) {
         break;
       }
+    }
 
-      if (!PeekMessageW(&msg, NULL, 0, 0, PM_NOREMOVE) &&
-          !haveSentMessagesPending) {
-        
-        SwitchToThread();
-      }
+    DWORD result = MsgWaitForMultipleObjects(1, &mEvent, FALSE, INFINITE,
+                                             QS_ALLINPUT);
+    if (result == WAIT_OBJECT_0) {
+      
+      ResetEvent(mEvent);
+      break;
+    } else
+    if (result != (WAIT_OBJECT_0 + 1)) {
+      NS_ERROR("Wait failed!");
+      break;
+    }
+
+    if (TimeoutHasExpired(timeoutData)) {
+      
+      retval = false;
+      break;
+    }
+
+    
+    bool haveSentMessagesPending =
+      (HIWORD(GetQueueStatus(QS_SENDMESSAGE)) & QS_SENDMESSAGE) != 0;
+
+    
+    
+    if (!PeekMessageW(&msg, NULL, 0, 0, PM_NOREMOVE) &&
+        !haveSentMessagesPending) {
+      
+      SwitchToThread();
     }
   }
 
-  
-  UnhookWindowsHookEx(windowHook);
+  if (windowHook) {
+    
+    UnhookWindowsHookEx(windowHook);
 
-  
-  
-  UnhookNeuteredWindows();
+    
+    
+    UnhookNeuteredWindows();
 
-  if (--gEventLoopDepth == 0) {
-    NS_ASSERTION(gNeuteredWindows, "Bad pointer!");
-    delete gNeuteredWindows;
-    gNeuteredWindows = NULL;
-  }
+    
+    
+    
+    
+    ScheduleDeferredMessageRun();
 
-  
-  
-  
-  
-  ScheduleDeferredMessageRun();
-
-  if (timerId) {
-    KillTimer(NULL, timerId);
+    if (timerId) {
+      KillTimer(NULL, timerId);
+    }
   }
 
   SyncChannel::SetIsPumpingMessages(false);
@@ -939,9 +947,9 @@ void
 SyncChannel::NotifyWorkerThread()
 {
   mMutex.AssertCurrentThreadOwns();
-  NS_ASSERTION(gUIThreadId, "This should have been set already!");
-  if (!PostThreadMessage(gUIThreadId, gEventLoopMessage, 0, 0)) {
-    NS_WARNING("Failed to post thread message!");
+  NS_ASSERTION(mEvent, "No signal event to set, this is really bad!");
+  if (!SetEvent(mEvent)) {
+    NS_WARNING("Failed to set NotifyWorkerThread event!");
   }
 }
 
@@ -1008,15 +1016,14 @@ DeferredSettingChangeMessage::DeferredSettingChangeMessage(HWND aHWnd,
     lParam = reinterpret_cast<LPARAM>(lParamString);
   }
   else {
+    lParamString = NULL;
     lParam = NULL;
   }
 }
 
 DeferredSettingChangeMessage::~DeferredSettingChangeMessage()
 {
-  if (lParamString) {
-    free(lParamString);
-  }
+  free(lParamString);
 }
 
 DeferredWindowPosMessage::DeferredWindowPosMessage(HWND aHWnd,
@@ -1121,4 +1128,51 @@ DeferredCopyDataMessage::DeferredCopyDataMessage(HWND aHWnd,
 DeferredCopyDataMessage::~DeferredCopyDataMessage()
 {
   free(copyData.lpData);
+}
+
+DeferredStyleChangeMessage::DeferredStyleChangeMessage(HWND aHWnd,
+                                                       WPARAM aWParam,
+                                                       LPARAM aLParam)
+: hWnd(aHWnd)
+{
+  index = static_cast<int>(aWParam);
+  style = reinterpret_cast<STYLESTRUCT*>(aLParam)->styleNew;
+}
+
+void
+DeferredStyleChangeMessage::Run()
+{
+  SetWindowLongPtr(hWnd, index, style);
+}
+
+DeferredSetIconMessage::DeferredSetIconMessage(HWND aHWnd,
+                                               UINT aMessage,
+                                               WPARAM aWParam,
+                                               LPARAM aLParam)
+: DeferredSendMessage(aHWnd, aMessage, aWParam, aLParam)
+{
+  NS_ASSERTION(aMessage == WM_SETICON, "Wrong message type!");
+}
+
+void
+DeferredSetIconMessage::Run()
+{
+  AssertWindowIsNotNeutered(hWnd);
+  if (!IsWindow(hWnd)) {
+    NS_ERROR("Invalid window!");
+    return;
+  }
+
+  WNDPROC wndproc =
+    reinterpret_cast<WNDPROC>(GetWindowLongPtr(hWnd, GWLP_WNDPROC));
+  if (!wndproc) {
+    NS_ERROR("Invalid window procedure!");
+    return;
+  }
+
+  HICON hOld = reinterpret_cast<HICON>(
+    CallWindowProc(wndproc, hWnd, message, wParam, lParam));
+  if (hOld) {
+    DestroyIcon(hOld);
+  }
 }
