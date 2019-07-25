@@ -37,15 +37,15 @@
 
 
 
-#include <math.h>
-
-#include "mozilla/Util.h"
 
 
+
+#include <math.h> 
 
 #include "nsCSSScanner.h"
 #include "nsString.h"
 #include "nsCRT.h"
+#include "mozilla/Util.h"
 
 
 #include "nsCOMPtr.h"
@@ -70,12 +70,6 @@ static nsIConsoleService *gConsoleService;
 static nsIFactory *gScriptErrorFactory;
 static nsIStringBundle *gStringBundle;
 #endif
-
-
-#undef COLLECT_WHITESPACE
-
-
-static const PRUnichar CSS_ESCAPE  = PRUnichar('\\');
 
 static const PRUint8 IS_HEX_DIGIT  = 0x01;
 static const PRUint8 START_IDENT   = 0x02;
@@ -231,7 +225,7 @@ nsCSSToken::AppendToString(nsString& aBuffer)
     case eCSSToken_Percentage:
       NS_ASSERTION(!mIntegerValid, "How did a percentage token get this set?");
       aBuffer.AppendFloat(mNumber * 100.0f);
-      aBuffer.Append(PRUnichar('%')); 
+      aBuffer.Append(PRUnichar('%'));
       break;
     case eCSSToken_Dimension:
       if (mIntegerValid) {
@@ -619,10 +613,6 @@ nsCSSScanner::Close()
   }
 }
 
-#ifdef CSS_REPORT_PARSE_ERRORS
-#define TAB_STOP_WIDTH 8
-#endif
-
 
 PRInt32
 nsCSSScanner::Read()
@@ -651,18 +641,11 @@ nsCSSScanner::Read()
         ++mLineNumber;
 #ifdef CSS_REPORT_PARSE_ERRORS
       mColNumber = 0;
-#endif
-    } 
-#ifdef CSS_REPORT_PARSE_ERRORS
-    else if (rv == '\t') {
-      mColNumber = ((mColNumber - 1 + TAB_STOP_WIDTH) / TAB_STOP_WIDTH)
-                   * TAB_STOP_WIDTH;
-    } else if (rv != '\n') {
+    } else {
       mColNumber++;
-    }
 #endif
+    }
   }
-
   return rv;
 }
 
@@ -677,7 +660,6 @@ nsCSSScanner::Peek()
     mPushback[0] = PRUnichar(ch);
     mPushbackCount++;
   }
-
   return PRInt32(mPushback[mPushbackCount - 1]);
 }
 
@@ -808,17 +790,8 @@ nsCSSScanner::Next(nsCSSToken& aToken)
     if (ch == '/' && !IsSVGMode()) {
       PRInt32 nextChar = Peek();
       if (nextChar == '*') {
-        (void) Read();
-#if 0
+        Read();
         
-        
-        
-        
-        aToken.mIdent.SetCapacity(2);
-        aToken.mIdent.Assign(PRUnichar(ch));
-        aToken.mIdent.Append(PRUnichar(nextChar));
-        return ParseCComment(aToken);
-#endif
         if (!SkipCComment()) {
           return false;
         }
@@ -937,7 +910,7 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
   for (;;) {
     ch = Read();
     if (ch < 0) break;
-    if (ch == CSS_ESCAPE) {
+    if (ch == '\\') {
       if (!ParseAndAppendEscape(ident, false)) {
         ok = false;
         Pushback(ch);
@@ -1065,7 +1038,7 @@ nsCSSScanner::ParseAndAppendEscape(nsString& aOutput, bool aInString)
 bool
 nsCSSScanner::GatherIdent(PRInt32 aChar, nsString& aIdent)
 {
-  if (aChar == CSS_ESCAPE) {
+  if (aChar == '\\') {
     if (!ParseAndAppendEscape(aIdent, false)) {
       return false;
     }
@@ -1094,7 +1067,7 @@ nsCSSScanner::GatherIdent(PRInt32 aChar, nsString& aIdent)
 
     aChar = Read();
     if (aChar < 0) break;
-    if (aChar == CSS_ESCAPE) {
+    if (aChar == '\\') {
       if (!ParseAndAppendEscape(aIdent, false)) {
         Pushback(aChar);
         break;
@@ -1120,7 +1093,7 @@ nsCSSScanner::ParseRef(PRInt32 aChar, nsCSSToken& aToken)
   if (ch < 0) {
     return true;
   }
-  if (IsIdent(ch) || ch == CSS_ESCAPE) {
+  if (IsIdent(ch) || ch == '\\') {
     
     
     nsCSSTokenType type =
@@ -1341,17 +1314,12 @@ nsCSSScanner::ParseString(PRInt32 aStop, nsCSSToken& aToken)
       
       for (;n < mCount; ++n) {
         PRUnichar nextChar = mReadPointer[n];
-        if ((nextChar == aStop) || (nextChar == CSS_ESCAPE) ||
+        if ((nextChar == aStop) || (nextChar == '\\') ||
             (nextChar == '\n') || (nextChar == '\r') || (nextChar == '\f')) {
           break;
         }
 #ifdef CSS_REPORT_PARSE_ERRORS
-        if (nextChar == '\t') {
-          mColNumber = ((mColNumber - 1 + TAB_STOP_WIDTH) / TAB_STOP_WIDTH)
-                       * TAB_STOP_WIDTH;
-        } else {
-          ++mColNumber;
-        }
+        ++mColNumber;
 #endif
       }
       
@@ -1371,7 +1339,7 @@ nsCSSScanner::ParseString(PRInt32 aStop, nsCSSToken& aToken)
 #endif
       break;
     }
-    if (ch == CSS_ESCAPE) {
+    if (ch == '\\') {
       if (!ParseAndAppendEscape(aToken.mIdent, true)) {
         aToken.mType = eCSSToken_Bad_String;
         Pushback(ch);
