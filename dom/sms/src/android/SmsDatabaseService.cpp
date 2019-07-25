@@ -59,6 +59,14 @@ SmsDatabaseService::SaveSentMessage(const nsAString& aReceiver,
   return NS_OK;
 }
 
+NS_IMETHODIMP
+SmsDatabaseService::GetMessageMoz(PRInt32 aMessageId, PRInt32 aRequestId,
+                                  PRUint64 aProcessId)
+{
+  
+  return NS_OK;
+}
+
 } 
 } 
 } 
