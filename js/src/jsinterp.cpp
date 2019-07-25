@@ -101,13 +101,12 @@ using namespace js;
 static JS_REQUIRES_STACK JSBool
 AllocateAfterSP(JSContext *cx, jsval *sp, uintN nslots)
 {
-    jsval *avail = (jsval *) cx->stackPool.getCurrent()->getAvail();
-    JS_ASSERT((jsval *) cx->stackPool.getCurrent()->getBase() <= sp);
-    JS_ASSERT(sp <= avail);
-
-    uintN surplus = avail - sp;
+    uintN surplus;
     jsval *sp2;
 
+    JS_ASSERT((jsval *) cx->stackPool.current->base <= sp);
+    JS_ASSERT(sp <= (jsval *) cx->stackPool.current->avail);
+    surplus = (jsval *) cx->stackPool.current->avail - sp;
     if (nslots <= surplus)
         return JS_TRUE;
 
@@ -115,10 +114,11 @@ AllocateAfterSP(JSContext *cx, jsval *sp, uintN nslots)
 
 
 
-    if (nslots > (size_t) ((jsval *) cx->stackPool.getCurrent()->getLimit() - sp))
+    if (nslots > (size_t) ((jsval *) cx->stackPool.current->limit - sp))
         return JS_FALSE;
 
-    cx->stackPool.allocateCast<jsval *>(sp2, (nslots - surplus) * sizeof(jsval));
+    JS_ARENA_ALLOCATE_CAST(sp2, jsval *, &cx->stackPool,
+                           (nslots - surplus) * sizeof(jsval));
     JS_ASSERT(sp2 == sp + surplus);
     return JS_TRUE;
 }
@@ -131,10 +131,11 @@ js_AllocRawStack(JSContext *cx, uintN nslots, void **markp)
     JS_ASSERT(nslots != 0);
     JS_ASSERT_NOT_ON_TRACE(cx);
 
-    if (!cx->stackPool.getSecond()) {
+    if (!cx->stackPool.first.next) {
         int64 *timestamp;
 
-        cx->stackPool.allocateCast<int64 *>(timestamp, sizeof *timestamp);
+        JS_ARENA_ALLOCATE_CAST(timestamp, int64 *,
+                               &cx->stackPool, sizeof *timestamp);
         if (!timestamp) {
             js_ReportOutOfScriptQuota(cx);
             return NULL;
@@ -143,8 +144,8 @@ js_AllocRawStack(JSContext *cx, uintN nslots, void **markp)
     }
 
     if (markp)
-        *markp = cx->stackPool.getMark();
-    cx->stackPool.allocateCast<jsval *>(sp, nslots * sizeof(jsval));
+        *markp = JS_ARENA_MARK(&cx->stackPool);
+    JS_ARENA_ALLOCATE_CAST(sp, jsval *, &cx->stackPool, nslots * sizeof(jsval));
     if (!sp)
         js_ReportOutOfScriptQuota(cx);
     return sp;
@@ -153,19 +154,20 @@ js_AllocRawStack(JSContext *cx, uintN nslots, void **markp)
 JS_STATIC_INTERPRET JS_REQUIRES_STACK void
 js_FreeRawStack(JSContext *cx, void *mark)
 {
-    cx->stackPool.release(mark);
+    JS_ARENA_RELEASE(&cx->stackPool, mark);
 }
 
 JS_REQUIRES_STACK JS_FRIEND_API(jsval *)
 js_AllocStack(JSContext *cx, uintN nslots, void **markp)
 {
     jsval *sp;
+    JSArena *a;
     JSStackHeader *sh;
 
     
     if (nslots == 0) {
         *markp = NULL;
-        return (jsval *) cx->stackPool.getMark();
+        return (jsval *) JS_ARENA_MARK(&cx->stackPool);
     }
 
     
@@ -174,12 +176,12 @@ js_AllocStack(JSContext *cx, uintN nslots, void **markp)
         return NULL;
 
     
-    JSArena *a = cx->stackPool.getCurrent();
+    a = cx->stackPool.current;
     sh = cx->stackHeaders;
     if (sh && JS_STACK_SEGMENT(sh) + sh->nslots == sp) {
         
         sh->nslots += nslots;
-        a->setAvail(a->getAvail() - 2 * sizeof(jsval));
+        a->avail -= 2 * sizeof(jsval);
     } else {
         
 
@@ -223,7 +225,7 @@ js_FreeStack(JSContext *cx, void *mark)
         cx->stackHeaders = sh->down;
 
     
-    cx->stackPool.release(mark);
+    JS_ARENA_RELEASE(&cx->stackPool, mark);
 }
 
 JSObject *
@@ -582,11 +584,11 @@ js_Invoke(JSContext *cx, uintN argc, jsval *vp, uintN flags)
     JS_ASSERT(argc <= JS_ARGS_LENGTH_MAX);
 
     
-    JS_ASSERT((jsval *) cx->stackPool.getCurrent()->getBase() <= vp);
-    JS_ASSERT(vp + 2 + argc <= (jsval *) cx->stackPool.getCurrent()->getAvail());
+    JS_ASSERT((jsval *) cx->stackPool.current->base <= vp);
+    JS_ASSERT(vp + 2 + argc <= (jsval *) cx->stackPool.current->avail);
 
     
-    mark = cx->stackPool.getMark();
+    mark = JS_ARENA_MARK(&cx->stackPool);
     MUST_FLOW_THROUGH("out2");
     v = *vp;
 
@@ -849,7 +851,7 @@ out:
 
 out2:
     
-    cx->stackPool.release(mark);
+    JS_ARENA_RELEASE(&cx->stackPool, mark);
     if (!ok)
         *vp = JSVAL_NULL;
     return ok;
