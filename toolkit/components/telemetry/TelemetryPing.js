@@ -490,12 +490,40 @@ TelemetryPing.prototype = {
   send: function send(reason, server) {
     
     this.gatherMemory();
-    for (let data in this.getPayloads(reason)) {
-      this.doPing(server, data.slug, data.payload, !data.previous);
-    }
+    this.sendPingsFromIterator(server, Iterator(this.getPayloads(reason)));
   },
 
-  doPing: function doPing(server, slug, payload, recordSuccess) {
+  
+
+
+
+
+
+
+
+
+
+
+
+  sendPingsFromIterator: function sendPingsFromIterator(server, i) {
+    let data = null;
+    try {
+      data = i.next();
+    } catch (e if e instanceof StopIteration) {
+      return;
+    }
+    function onSuccess() {
+      this.sendPingsFromIterator(server, i);
+    }
+    function onError() {
+      
+    }
+    this.doPing(server, data.slug, data.payload, !data.previous,
+                onSuccess.bind(this), onError.bind(this));
+  },
+
+  doPing: function doPing(server, slug, payload, recordSuccess,
+                          onSuccess, onError) {
     let submitPath = "/submit/telemetry/" + slug;
     let url = server + submitPath;
     let request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
@@ -527,8 +555,12 @@ TelemetryPing.prototype = {
       if (slug == "test-ping" && recordSuccess)
         Services.obs.notifyObservers(null, "telemetry-test-xhr-complete", null);
     }
-    request.addEventListener("error", function(aEvent) finishRequest(request.channel), false);
-    request.addEventListener("load", function(aEvent) finishRequest(request.channel), false);
+
+    function handler(callback) {
+      return function(event) { finishRequest(request.channel); callback() };
+    }
+    request.addEventListener("error", handler(onError), false);
+    request.addEventListener("load", handler(onSuccess), false);
 
     request.setRequestHeader("Content-Encoding", "gzip");
     let payloadStream = Cc["@mozilla.org/io/string-input-stream;1"]
