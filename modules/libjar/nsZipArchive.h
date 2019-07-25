@@ -310,9 +310,24 @@ public:
 
 
 
-  PRUint8* Read(PRUint32 *aBytesRead);
+  PRUint8* Read(PRUint32 *aBytesRead) {
+    return ReadOrCopy(aBytesRead, false);
+  }
+
+  
+
+
+
+
+
+  PRUint8* Copy(PRUint32 *aBytesRead) {
+    return ReadOrCopy(aBytesRead, true);
+  }
 
 private:
+  
+  PRUint8* ReadOrCopy(PRUint32 *aBytesRead, bool aCopy);
+
   nsZipItem *mItem; 
   PRUint8  *mBuf; 
   PRUint32  mBufSize; 
