@@ -627,6 +627,10 @@ public:
   
 
 
+
+
+
+
   virtual TemporaryRef<PathBuilder> CreatePathBuilder(FillRule aFillRule = FILL_WINDING) const = 0;
 
   
