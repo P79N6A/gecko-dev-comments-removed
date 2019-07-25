@@ -38,6 +38,7 @@ public class DoorHanger extends LinearLayout implements Button.OnClickListener {
     static private LayoutInflater mInflater;
 
     private int mPersistence = 0;
+    private boolean mPersistWhileVisible = false;
     private long mTimeout = 0;
 
     public DoorHanger(Context aContext, String aValue) {
@@ -127,6 +128,10 @@ public class DoorHanger extends LinearLayout implements Button.OnClickListener {
         } catch (JSONException e) { }
 
         try {
+            mPersistWhileVisible = options.getBoolean("persistWhileVisible");
+        } catch (JSONException e) { }
+
+        try {
             mTimeout = options.getLong("timeout");
         } catch (JSONException e) { }
 
@@ -163,6 +168,13 @@ public class DoorHanger extends LinearLayout implements Button.OnClickListener {
     
     
     public boolean shouldRemove() {
+        if (mPersistWhileVisible && GeckoApp.mAppContext.mDoorHangerPopup.isShowing()) {
+            
+            if (mPersistence != 0)
+                mPersistence--;
+            return false;
+        }
+
         
         
         if (mPersistence != 0) {
