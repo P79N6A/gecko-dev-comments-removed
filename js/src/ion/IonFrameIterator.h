@@ -69,12 +69,14 @@ class IonFrameIterator
     uint8 *current_;
     FrameType type_;
     uint8 *returnAddressToFp_;
+    size_t frameSize_;
 
   public:
     IonFrameIterator(uint8 *top)
       : current_(top),
         type_(IonFrame_Exit),
-        returnAddressToFp_(NULL)
+        returnAddressToFp_(NULL),
+        frameSize_(0)
     { }
 
     
@@ -112,6 +114,10 @@ class IonFrameIterator
     inline size_t prevFrameLocalSize() const;
     inline FrameType prevType() const;
     uint8 *prevFp() const;
+
+    
+    
+    inline size_t frameSize() const;
 
     
     
