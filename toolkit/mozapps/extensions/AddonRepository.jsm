@@ -899,8 +899,9 @@ var AddonRepository = {
       let localName = node.localName;
 
       
+      
       if (localName in STRING_KEY_MAP) {
-        addon[STRING_KEY_MAP[localName]] = this._getTextContent(node);
+        addon[STRING_KEY_MAP[localName]] = this._getTextContent(node) || addon[STRING_KEY_MAP[localName]];
         continue;
       }
 
