@@ -6816,6 +6816,57 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return NS_OK;
   }
 
+  if (id == sLocation_id) {
+    
+    
+    
+    
+
+    
+    
+    
+
+    if (win->IsOuterWindow()) {
+      win->EnsureInnerWindow();
+    }
+
+    nsCOMPtr<nsIDOMLocation> location;
+    rv = win->GetLocation(getter_AddRefs(location));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    JSObject *scope = nsnull;
+    if (win->IsOuterWindow()) {
+      nsGlobalWindow *innerWin = win->GetCurrentInnerWindowInternal();
+
+      if (innerWin) {
+        scope = innerWin->GetGlobalJSObject();
+      }
+    }
+
+    if (!scope) {
+      wrapper->GetJSObject(&scope);
+    }
+
+    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
+    jsval v;
+    rv = WrapNative(cx, scope, location, &NS_GET_IID(nsIDOMLocation), PR_TRUE,
+                    &v, getter_AddRefs(holder));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    JSBool ok = JS_WrapValue(cx, &v) &&
+                JS_DefinePropertyById(cx, obj, id, v, nsnull, nsnull,
+                                      JSPROP_PERMANENT | JSPROP_ENUMERATE);
+
+    if (!ok) {
+      return NS_ERROR_FAILURE;
+    }
+
+    *objp = obj;
+
+    return NS_OK;
+  }
 
   
   
@@ -6915,58 +6966,6 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                                  nsnull,
                                  JSPROP_ENUMERATE | JSPROP_GETTER |
                                  JSPROP_SHARED)) {
-      return NS_ERROR_FAILURE;
-    }
-
-    *objp = obj;
-
-    return NS_OK;
-  }
-
-  if (id == sLocation_id) {
-    
-    
-    
-    
-
-    
-    
-    
-
-    if (win->IsOuterWindow()) {
-      win->EnsureInnerWindow();
-    }
-
-    nsCOMPtr<nsIDOMLocation> location;
-    rv = win->GetLocation(getter_AddRefs(location));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    
-    JSObject *scope = nsnull;
-    if (win->IsOuterWindow()) {
-      nsGlobalWindow *innerWin = win->GetCurrentInnerWindowInternal();
-
-      if (innerWin) {
-        scope = innerWin->GetGlobalJSObject();
-      }
-    }
-
-    if (!scope) {
-      wrapper->GetJSObject(&scope);
-    }
-
-    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-    jsval v;
-    rv = WrapNative(cx, scope, location, &NS_GET_IID(nsIDOMLocation), PR_TRUE,
-                    &v, getter_AddRefs(holder));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    JSBool ok = JS_WrapValue(cx, &v) &&
-                JS_DefinePropertyById(cx, obj, id, v, nsnull, nsnull,
-                                      JSPROP_PERMANENT | JSPROP_ENUMERATE);
-
-    if (!ok) {
       return NS_ERROR_FAILURE;
     }
 
