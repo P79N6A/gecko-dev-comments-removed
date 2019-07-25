@@ -115,6 +115,10 @@ public:
   void StartSampling(nsRefreshDriver* aRefreshDriver);
   void StopSampling(nsRefreshDriver* aRefreshDriver);
 
+  
+  PRBool HasRegisteredAnimations()
+  { return mAnimationElementTable.Count() != 0; }
+
 protected:
   
   typedef nsPtrHashKey<nsSMILTimeContainer> TimeContainerPtrKey;
