@@ -106,18 +106,6 @@ NS_GetRadioGetCheckedChangedVisitor(PRBool* aCheckedChanged,
 
 
 
-nsIRadioVisitor*
-NS_GetRadioGroupRequiredVisitor(nsIFormControl* aExcludeElement,
-                                bool* aRequired);
-
-
-
-
-
-
-
-
-
 
 nsIRadioVisitor*
 NS_SetRadioValueMissingState(nsIFormControl* aExcludeElement,
