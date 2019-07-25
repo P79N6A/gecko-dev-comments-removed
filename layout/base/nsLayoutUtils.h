@@ -729,6 +729,13 @@ public:
 
   static void GetAllInFlowRects(nsIFrame* aFrame, nsIFrame* aRelativeTo,
                                 RectCallback* aCallback, PRUint32 aFlags = 0);
+  
+
+
+
+
+  static void GetAllInFlowPaddingRects(nsIFrame* aFrame, nsIFrame* aRelativeTo,
+                                RectCallback* aCallback, PRUint32 aFlags = 0);
 
   
 
@@ -739,6 +746,14 @@ public:
 
   static nsRect GetAllInFlowRectsUnion(nsIFrame* aFrame, nsIFrame* aRelativeTo,
                                        PRUint32 aFlags = 0);
+
+  
+
+
+
+  static nsRect GetAllInFlowPaddingRectsUnion(nsIFrame* aFrame,
+                                              nsIFrame* aRelativeTo,
+                                              PRUint32 aFlags = 0);
 
   enum {
     EXCLUDE_BLUR_SHADOWS = 0x01
