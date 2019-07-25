@@ -245,6 +245,14 @@ class LTestVAndBranch : public LInstructionHelper<0, BOX_PIECES, 0>
 
 
 
+class LBitNot : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(BitNot);
+};
+
+
+
 class LBitOp : public LInstructionHelper<1, 2, 0>
 {
     JSOp op_;
