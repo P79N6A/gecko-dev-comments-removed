@@ -1048,6 +1048,10 @@ WebGLContext::DrawArrays(GLenum mode, WebGLint first, WebGLsizei count)
         return ErrorInvalidValue("DrawArrays: negative first or count");
 
     
+    if (count == 0)
+        return NS_OK;
+
+    
     
     if (!mCurrentProgram)
         return NS_OK;
@@ -1059,10 +1063,6 @@ WebGLContext::DrawArrays(GLenum mode, WebGLint first, WebGLsizei count)
 
     if (!ValidateBuffers(checked_firstPlusCount.value()))
         return ErrorInvalidOperation("DrawArrays: bound vertex attribute buffers do not have sufficient size for given first and count");
-
-    
-    if (count == 0)
-        return NS_OK;
 
     MakeContextCurrent();
 
@@ -1090,6 +1090,10 @@ WebGLContext::DrawElements(WebGLenum mode, WebGLsizei count, WebGLenum type, Web
 
     if (count < 0 || byteOffset < 0)
         return ErrorInvalidValue("DrawElements: negative count or offset");
+
+    
+    if (count == 0)
+        return NS_OK;
 
     CheckedUint32 checked_byteCount;
 
@@ -1142,10 +1146,6 @@ WebGLContext::DrawElements(WebGLenum mode, WebGLsizei count, WebGLenum type, Web
         return ErrorInvalidOperation("DrawElements: bound vertex attribute buffers do not have sufficient "
                                      "size for given indices from the bound element array");
     }
-
-    
-    if (count == 0)
-        return NS_OK;
 
     MakeContextCurrent();
 
