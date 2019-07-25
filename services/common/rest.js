@@ -4,10 +4,15 @@
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
-const EXPORTED_SYMBOLS = ["RESTRequest", "RESTResponse"];
+const EXPORTED_SYMBOLS = [
+  "RESTRequest",
+  "RESTResponse",
+  "TokenAuthenticatedRESTRequest"
+];
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://services-crypto/utils.js");
 Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-common/preferences.js");
 Cu.import("resource://services-common/utils.js");
@@ -575,4 +580,40 @@ RESTResponse.prototype = {
 
   body: null
 
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function TokenAuthenticatedRESTRequest(uri, authToken, extra) {
+  RESTRequest.call(this, uri);
+  this.authToken = authToken;
+  this.extra = extra || {};
+}
+TokenAuthenticatedRESTRequest.prototype = {
+  __proto__: RESTRequest.prototype,
+
+  dispatch: function dispatch(method, data, onComplete, onProgress) {
+    let sig = CryptoUtils.computeHTTPMACSHA1(
+      this.authToken.id, this.authToken.key, method, this.uri, this.extra
+    );
+
+    this.setHeader("Authorization", sig.getHeader());
+
+    return RESTRequest.prototype.dispatch.call(
+      this, method, data, onComplete, onProgress
+    );
+  },
 };
