@@ -267,7 +267,12 @@ public class PanZoomController
 
         switch (mState) {
         case ANIMATED_ZOOM:
-            return false;
+            
+            
+            
+            mController.setForceRedraw();
+            mController.notifyLayerClientOfGeometryChange();
+            
         case FLING:
         case BOUNCE:
         case NOTHING:
@@ -289,11 +294,15 @@ public class PanZoomController
     private boolean onTouchMove(MotionEvent event) {
 
         switch (mState) {
-        case NOTHING:
         case FLING:
         case BOUNCE:
             
             Log.e(LOGTAG, "Received impossible touch move while in " + mState);
+            
+        case ANIMATED_ZOOM:
+        case NOTHING:
+            
+            
             return false;
 
         case TOUCHING:
@@ -323,7 +332,6 @@ public class PanZoomController
             track(event);
             return true;
 
-        case ANIMATED_ZOOM:
         case PINCHING:
             
             return false;
@@ -335,12 +343,17 @@ public class PanZoomController
     private boolean onTouchEnd(MotionEvent event) {
 
         switch (mState) {
-        case NOTHING:
         case FLING:
         case BOUNCE:
             
             Log.e(LOGTAG, "Received impossible touch end while in " + mState);
+            
+        case ANIMATED_ZOOM:
+        case NOTHING:
+            
+            
             return false;
+
         case TOUCHING:
             mState = PanZoomState.NOTHING;
             
@@ -348,6 +361,7 @@ public class PanZoomController
             
             bounce();
             return false;
+
         case PANNING:
         case PANNING_LOCKED:
         case PANNING_HOLD:
@@ -355,11 +369,10 @@ public class PanZoomController
             mState = PanZoomState.FLING;
             fling();
             return true;
+
         case PINCHING:
             mState = PanZoomState.NOTHING;
             return true;
-        case ANIMATED_ZOOM:
-            return false;
         }
         Log.e(LOGTAG, "Unhandled case " + mState + " in onTouchEnd");
         return false;
@@ -472,7 +485,7 @@ public class PanZoomController
             return;
         }
 
-        mState = PanZoomState.BOUNCE;
+        
         
         
         
@@ -482,6 +495,7 @@ public class PanZoomController
 
     
     private void bounce() {
+        mState = PanZoomState.BOUNCE;
         bounce(getValidViewportMetrics());
     }
 
@@ -595,7 +609,7 @@ public class PanZoomController
 
 
 
-            if (mState != PanZoomState.BOUNCE) {
+            if (!(mState == PanZoomState.BOUNCE || mState == PanZoomState.ANIMATED_ZOOM)) {
                 finishAnimation();
                 return;
             }
