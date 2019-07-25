@@ -197,6 +197,12 @@ HDC cairo_d2d_get_dc(cairo_surface_t *surface, cairo_bool_t retain_contents);
 
 
 void cairo_d2d_release_dc(cairo_surface_t *surcace, const cairo_rectangle_int_t *updated_rect);
+
+
+
+
+
+int cairo_d2d_get_image_surface_cache_usage();
 #endif
 
 CAIRO_END_DECLS
