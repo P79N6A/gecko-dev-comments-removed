@@ -1945,13 +1945,16 @@ nsObjectLoadingContent::SyncStartPluginInstance()
                "Must be able to run script in order to instantiate a plugin instance!");
 
   
-  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
+  
+  nsCOMPtr<nsIContent> thisContent =
+    do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
   if (!thisContent->IsInDoc()) {
     return NS_ERROR_FAILURE;
   }
 
   nsCOMPtr<nsIURI> kungFuURIGrip(mURI);
-  return InstantiatePluginInstance(mContentType.get(), mURI.get());
+  nsCString contentType(mContentType);
+  return InstantiatePluginInstance(contentType.get(), mURI.get());
 }
 
 NS_IMETHODIMP
