@@ -266,7 +266,7 @@ public:
         return PR_TRUE;
     }
 
-    virtual nsresult GetFontTable(PRUint32 aTableTag, nsTArray<PRUint8>& aBuffer) {
+    virtual nsresult GetFontTable(PRUint32 aTableTag, FallibleTArray<PRUint8>& aBuffer) {
         return NS_ERROR_FAILURE; 
     }
 
@@ -295,12 +295,12 @@ public:
     
     
     hb_blob_t *ShareFontTableAndGetBlob(PRUint32 aTag,
-                                        nsTArray<PRUint8>* aTable);
+                                        FallibleTArray<PRUint8>* aTable);
 
     
     
     
-    void PreloadFontTable(PRUint32 aTag, nsTArray<PRUint8>& aTable);
+    void PreloadFontTable(PRUint32 aTag, FallibleTArray<PRUint8>& aTable);
 
     nsString         mName;
 
@@ -428,12 +428,12 @@ private:
         
         
         hb_blob_t *
-        ShareTableAndGetBlob(nsTArray<PRUint8>& aTable,
+        ShareTableAndGetBlob(FallibleTArray<PRUint8>& aTable,
                              nsTHashtable<FontTableHashEntry> *aHashtable);
 
         
         
-        void SaveTable(nsTArray<PRUint8>& aTable);
+        void SaveTable(FallibleTArray<PRUint8>& aTable);
 
         
         
@@ -559,7 +559,7 @@ protected:
                                        PRBool anItalic, PRInt16 aStretch);
 
     PRBool ReadOtherFamilyNamesForFace(gfxPlatformFontList *aPlatformFontList,
-                                       nsTArray<PRUint8>& aNameTable,
+                                       FallibleTArray<PRUint8>& aNameTable,
                                        PRBool useFullName = PR_FALSE);
 
     

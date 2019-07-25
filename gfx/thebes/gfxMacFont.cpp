@@ -208,7 +208,7 @@ gfxMacFont::InitMetrics()
     
     
     const PRUint32 kHeadTableTag = TRUETYPE_TAG('h','e','a','d');
-    nsAutoTArray<PRUint8,sizeof(HeadTable)> headData;
+    AutoFallibleTArray<PRUint8,sizeof(HeadTable)> headData;
     if (NS_SUCCEEDED(mFontEntry->GetFontTable(kHeadTableTag, headData)) &&
         headData.Length() >= sizeof(HeadTable)) {
         HeadTable *head = reinterpret_cast<HeadTable*>(headData.Elements());

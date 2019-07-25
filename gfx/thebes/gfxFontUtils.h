@@ -691,7 +691,7 @@ public:
     
     static nsresult
     MakeEOTHeader(const PRUint8 *aFontData, PRUint32 aFontDataLength,
-                  nsTArray<PRUint8> *aHeader, FontDataOverlay *aOverlay);
+                  FallibleTArray<PRUint8> *aHeader, FontDataOverlay *aOverlay);
 
     
     
@@ -713,17 +713,17 @@ public:
     
     static nsresult
     RenameFont(const nsAString& aName, const PRUint8 *aFontData, 
-               PRUint32 aFontDataLength, nsTArray<PRUint8> *aNewFont);
+               PRUint32 aFontDataLength, FallibleTArray<PRUint8> *aNewFont);
     
     
     static nsresult
-    ReadNames(nsTArray<PRUint8>& aNameTable, PRUint32 aNameID, 
+    ReadNames(FallibleTArray<PRUint8>& aNameTable, PRUint32 aNameID, 
               PRInt32 aPlatformID, nsTArray<nsString>& aNames);
       
     
     
     static nsresult
-    ReadCanonicalName(nsTArray<PRUint8>& aNameTable, PRUint32 aNameID, 
+    ReadCanonicalName(FallibleTArray<PRUint8>& aNameTable, PRUint32 aNameID, 
                       nsString& aName);
       
     
@@ -802,7 +802,7 @@ public:
 
 protected:
     static nsresult
-    ReadNames(nsTArray<PRUint8>& aNameTable, PRUint32 aNameID, 
+    ReadNames(FallibleTArray<PRUint8>& aNameTable, PRUint32 aNameID, 
               PRInt32 aLangID, PRInt32 aPlatformID, nsTArray<nsString>& aNames);
 
     

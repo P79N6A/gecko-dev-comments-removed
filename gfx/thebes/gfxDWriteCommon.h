@@ -109,7 +109,7 @@ FontStretchFromDWriteStretch(DWRITE_FONT_STRETCH aStretch)
 
 struct ffReferenceKey
 {
-    nsTArray<PRUint8> *mArray;
+    FallibleTArray<PRUint8> *mArray;
     nsID mGUID;
 };
 
@@ -184,7 +184,7 @@ public:
 
 
 
-    gfxDWriteFontFileStream(nsTArray<PRUint8> *aData);
+    gfxDWriteFontFileStream(FallibleTArray<PRUint8> *aData);
     ~gfxDWriteFontFileStream();
 
     
@@ -232,7 +232,7 @@ public:
     virtual HRESULT STDMETHODCALLTYPE GetLastWriteTime(OUT UINT64* lastWriteTime);
 
 private:
-    nsTArray<PRUint8> mData;
+    FallibleTArray<PRUint8> mData;
     nsAutoRefCnt mRefCnt;
 }; 
 
