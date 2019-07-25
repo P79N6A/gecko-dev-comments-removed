@@ -203,7 +203,7 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub, JSValueType type, types::Typ
 
 
 
-            script->typeMonitorOverflow(cx, PC);
+            script->types.monitorOverflow(cx, PC);
             return false;
         }
         frame.popn(2);
@@ -947,7 +947,7 @@ mjit::Compiler::jsop_mod()
     if (tryBinaryConstantFold(cx, frame, JSOP_MOD, lhs, rhs, &v)) {
         types::TypeSet *pushed = pushedTypeSet(0);
         if (!v.isInt32() && pushed && !pushed->hasType(types::TYPE_DOUBLE)) {
-            script->typeMonitorOverflow(cx, PC);
+            script->types.monitorOverflow(cx, PC);
             return false;
         }
         frame.popn(2);

@@ -514,8 +514,27 @@ struct JSScript {
 
   public:
 
+    
+    JSFunction *fun;
+
+    
+
+
+
+    bool typeSetFunction(JSContext *cx, JSFunction *fun);
+
+    
+    js::GlobalObject *global_;
+    inline bool hasGlobal() const;
+    inline js::GlobalObject *global() const;
+
+    inline bool hasClearedGlobal() const;
+
 #ifdef DEBUG
     
+
+
+
     unsigned id_;
     unsigned id() { return id_; }
 #else
@@ -523,25 +542,9 @@ struct JSScript {
 #endif
 
     
-    JSFunction *fun;
 
-    
-    js::GlobalObject *global;
 
-    
-    js::types::TypeSet *typeArray;
 
-    
-    js::types::TypeObject *typeObjects;
-
-    
-    js::types::TypeIntermediate *intermediateTypes;
-    void addIntermediateType(js::types::TypeIntermediate *type) {
-        type->next = intermediateTypes;
-        intermediateTypes = type;
-    }
-
-    
   private:
     js::analyze::ScriptAnalysis *analysis_;
     void makeAnalysis(JSContext *cx);
@@ -555,71 +558,14 @@ struct JSScript {
         return analysis_;
     }
 
-    inline JSObject *getGlobal();
-    inline js::types::TypeObject *getGlobalType();
+    
+    inline bool ensureRanInference(JSContext *cx);
 
     
-    inline bool ensureTypeArray(JSContext *cx);
+    js::types::TypeScript types;
 
-    inline js::types::TypeSet *bytecodeTypes(const jsbytecode *pc);
-    inline js::types::TypeSet *returnTypes();
-    inline js::types::TypeSet *thisTypes();
-    inline js::types::TypeSet *argTypes(unsigned i);
-    inline js::types::TypeSet *localTypes(unsigned i);
-    inline js::types::TypeSet *upvarTypes(unsigned i);
-
-    
-    inline js::types::TypeSet *slotTypes(unsigned slot);
-
-  private:
-    bool makeTypeArray(JSContext *cx);
-  public:
-
-#ifdef DEBUG
-    
-    void typeCheckBytecode(JSContext *cx, const jsbytecode *pc, const js::Value *sp);
-#endif
-
-    
-    inline js::types::TypeObject *getTypeNewObject(JSContext *cx, JSProtoKey key);
-
-    bool condenseTypes(JSContext *cx);
+    inline bool isAboutToBeFinalized(JSContext *cx);
     void sweepAnalysis(JSContext *cx);
-
-    
-    inline js::types::TypeObject *
-    getTypeInitObject(JSContext *cx, const jsbytecode *pc, bool isArray);
-
-    
-    inline void typeMonitorOverflow(JSContext *cx, jsbytecode *pc);
-    inline void typeMonitorString(JSContext *cx, jsbytecode *pc);
-    inline void typeMonitorUnknown(JSContext *cx, jsbytecode *pc);
-
-    
-    inline void typeMonitor(JSContext *cx, jsbytecode *pc, const js::Value &val);
-
-    
-    inline void typeMonitorAssign(JSContext *cx, jsbytecode *pc,
-                                  JSObject *obj, jsid id, const js::Value &val);
-
-    
-    inline void typeSetThis(JSContext *cx, js::types::jstype type);
-    inline void typeSetThis(JSContext *cx, const js::Value &value);
-    inline void typeSetThis(JSContext *cx, js::types::ClonedTypeSet *types);
-    inline void typeSetNewCalled(JSContext *cx);
-    inline void typeSetLocal(JSContext *cx, unsigned local, js::types::jstype type);
-    inline void typeSetLocal(JSContext *cx, unsigned local, const js::Value &value);
-    inline void typeSetLocal(JSContext *cx, unsigned local, js::types::ClonedTypeSet *types);
-    inline void typeSetArgument(JSContext *cx, unsigned arg, js::types::jstype type);
-    inline void typeSetArgument(JSContext *cx, unsigned arg, const js::Value &value);
-    inline void typeSetArgument(JSContext *cx, unsigned arg, js::types::ClonedTypeSet *types);
-    inline void typeSetUpvar(JSContext *cx, unsigned upvar, const js::Value &value);
-
-    
-
-
-
-    bool typeSetFunction(JSContext *cx, JSFunction *fun);
 
 #ifdef JS_METHODJIT
     

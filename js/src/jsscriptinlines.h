@@ -48,6 +48,7 @@
 #include "jsregexp.h"
 #include "jsscript.h"
 #include "jsscope.h"
+#include "vm/GlobalObject.h"
 
 namespace js {
 
@@ -159,6 +160,30 @@ JSScript::isEmpty() const
     if (noScriptRval && JSOp(*pc) == JSOP_FALSE)
         ++pc;
     return JSOp(*pc) == JSOP_STOP;
+}
+
+inline bool
+JSScript::hasGlobal() const
+{
+    
+
+
+
+
+    return global_ && !global_->isCleared();
+}
+
+inline js::GlobalObject *
+JSScript::global() const
+{
+    JS_ASSERT(hasGlobal());
+    return global_;
+}
+
+inline bool
+JSScript::hasClearedGlobal() const
+{
+    return global_ && global_->isCleared();
 }
 
 #endif 

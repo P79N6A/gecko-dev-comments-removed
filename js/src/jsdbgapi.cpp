@@ -223,12 +223,6 @@ JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, JSBool debug)
         mjit::ReleaseScriptCode(cx, script, true);
         mjit::ReleaseScriptCode(cx, script, false);
         script->debugMode = !!debug;
-
-        
-        if (script->usesArguments && debug) {
-            types::MarkTypeObjectFlags(cx, script->fun->getType(),
-                                       types::OBJECT_FLAG_CREATED_ARGUMENTS);
-        }
     }
 #endif
 

@@ -785,8 +785,83 @@ struct TypeCallsite
 
     
     inline TypeObject* getInitObject(JSContext *cx, bool isArray);
+};
 
-    inline bool hasGlobal();
+
+struct TypeScript
+{
+    inline JSScript *script();
+
+    
+    TypeSet *typeArray;
+    inline unsigned numTypeSets();
+
+    
+    TypeObject *typeObjects;
+
+    
+    TypeIntermediate *intermediateList;
+    void addIntermediate(TypeIntermediate *type) {
+        type->next = intermediateList;
+        intermediateList = type;
+    }
+
+    
+    inline bool ensureTypeArray(JSContext *cx);
+
+    inline TypeSet *bytecodeTypes(const jsbytecode *pc);
+    inline TypeSet *returnTypes();
+    inline TypeSet *thisTypes();
+    inline TypeSet *argTypes(unsigned i);
+    inline TypeSet *localTypes(unsigned i);
+    inline TypeSet *upvarTypes(unsigned i);
+
+    
+    inline TypeSet *slotTypes(unsigned slot);
+
+  private:
+    bool makeTypeArray(JSContext *cx);
+  public:
+
+#ifdef DEBUG
+    
+    void checkBytecode(JSContext *cx, jsbytecode *pc, const js::Value *sp);
+#endif
+
+    
+    inline TypeObject *standardType(JSContext *cx, JSProtoKey key);
+
+    
+    inline TypeObject *initObject(JSContext *cx, const jsbytecode *pc, bool isArray);
+
+    
+    inline void monitorOverflow(JSContext *cx, jsbytecode *pc);
+    inline void monitorString(JSContext *cx, jsbytecode *pc);
+    inline void monitorUnknown(JSContext *cx, jsbytecode *pc);
+
+    
+    inline void monitor(JSContext *cx, jsbytecode *pc, const js::Value &val);
+
+    
+    inline void monitorAssign(JSContext *cx, jsbytecode *pc,
+                              JSObject *obj, jsid id, const js::Value &val);
+
+    
+    inline void setThis(JSContext *cx, jstype type);
+    inline void setThis(JSContext *cx, const js::Value &value);
+    inline void setThis(JSContext *cx, ClonedTypeSet *types);
+    inline void setNewCalled(JSContext *cx);
+    inline void setLocal(JSContext *cx, unsigned local, jstype type);
+    inline void setLocal(JSContext *cx, unsigned local, const js::Value &value);
+    inline void setLocal(JSContext *cx, unsigned local, ClonedTypeSet *types);
+    inline void setArgument(JSContext *cx, unsigned arg, jstype type);
+    inline void setArgument(JSContext *cx, unsigned arg, const js::Value &value);
+    inline void setArgument(JSContext *cx, unsigned arg, ClonedTypeSet *types);
+    inline void setUpvar(JSContext *cx, unsigned upvar, const js::Value &value);
+
+    bool condenseTypes(JSContext *cx);
+    void trace(JSTracer *trc);
+    void destroy(JSContext *cx);
 };
 
 struct ArrayTableKey;

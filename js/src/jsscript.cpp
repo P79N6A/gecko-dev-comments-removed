@@ -1341,9 +1341,9 @@ JSScript::NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
     if (script->compileAndGo) {
         GlobalScope *globalScope = cg->compiler()->globalScope;
         if (globalScope->globalObj && globalScope->globalObj->isGlobal())
-            script->global = globalScope->globalObj->asGlobal();
+            script->global_ = globalScope->globalObj->asGlobal();
         else if (cx->globalObject->isGlobal())
-            script->global = cx->globalObject->asGlobal();
+            script->global_ = cx->globalObject->asGlobal();
     }
 
     if (cg->globalUses.length()) {
@@ -1511,23 +1511,7 @@ DestroyScript(JSContext *cx, JSScript *script)
 
     JS_ASSERT(!script->hasAnalysis());
 
-    
-    types::TypeObject *obj = script->typeObjects;
-    while (obj) {
-        types::TypeObject *next = obj->next;
-        obj->next = script->compartment->types.objects;
-        script->compartment->types.objects = obj;
-        obj = next;
-    }
-
-    types::TypeIntermediate *result = script->intermediateTypes;
-    while (result) {
-        types::TypeIntermediate *next = result->next;
-        cx->delete_(result);
-        result = next;
-    }
-
-    cx->free_(script->typeArray);
+    script->types.destroy(cx);
 
 #if defined(JS_METHODJIT)
     mjit::ReleaseScriptCode(cx, script, true);
@@ -1609,17 +1593,7 @@ js_TraceScript(JSTracer *trc, JSScript *script)
         js_MarkScriptFilename(script->filename);
 
     script->bindings.trace(trc);
-
-    
-
-
-
-    types::TypeObject *obj = script->typeObjects;
-    while (obj) {
-        if (!obj->marked)
-            obj->trace(trc);
-        obj = obj->next;
-    }
+    script->types.trace(trc);
 
 #ifdef JS_METHODJIT
     if (script->jitNormal)

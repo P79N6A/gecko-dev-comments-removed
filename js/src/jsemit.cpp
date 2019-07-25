@@ -2822,6 +2822,9 @@ EmitPropOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg,
     } else if (op == JSOP_GETPROP && pn->pn_type == TOK_DOT) {
         if (pn2->pn_type == TOK_NAME) {
             
+
+
+
             if (!BindNameToSlot(cx, cg, pn2))
                 return JS_FALSE;
             if (!cx->typeInferenceEnabled() &&
@@ -2911,6 +2914,7 @@ EmitElemOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg)
 
 
 
+
         if (left->pn_type == TOK_NAME && next->pn_type == TOK_NUMBER) {
             if (!BindNameToSlot(cx, cg, left))
                 return JS_FALSE;
@@ -2986,6 +2990,9 @@ EmitElemOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg)
         }
 
         
+
+
+
         if (op == JSOP_GETELEM &&
             left->pn_type == TOK_NAME &&
             right->pn_type == TOK_NUMBER) {
