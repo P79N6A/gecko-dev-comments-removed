@@ -5012,6 +5012,32 @@ nsContentUtils::URIIsLocalFile(nsIURI *aURI)
          isFile;
 }
 
+nsresult
+nsContentUtils::SplitURIAtHash(nsIURI *aURI,
+                               nsACString &aBeforeHash,
+                               nsACString &aAfterHash)
+{
+  
+
+  aBeforeHash.Truncate();
+  aAfterHash.Truncate();
+
+  NS_ENSURE_ARG_POINTER(aURI);
+
+  nsCAutoString spec;
+  nsresult rv = aURI->GetSpec(spec);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRInt32 index = spec.FindChar('#');
+  if (index == -1) {
+    index = spec.Length();
+  }
+
+  aBeforeHash.Assign(Substring(spec, 0, index));
+  aAfterHash.Assign(Substring(spec, index));
+  return NS_OK;
+}
+
 
 nsIScriptContext*
 nsContentUtils::GetContextForEventHandlers(nsINode* aNode,

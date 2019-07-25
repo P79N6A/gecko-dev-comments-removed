@@ -1418,6 +1418,14 @@ public:
 
 
 
+  static nsresult SplitURIAtHash(nsIURI *aURI,
+                                 nsACString &aBeforeHash,
+                                 nsACString &aAfterHash);
+
+  
+
+
+
 
 
 
