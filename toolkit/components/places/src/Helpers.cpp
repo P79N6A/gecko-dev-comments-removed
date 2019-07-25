@@ -260,7 +260,7 @@ Base64urlEncode(const PRUint8* aBytes,
 
 
 #include <windows.h>
-#include <Wincrypt.h>
+#include <wincrypt.h>
 #endif
 
 static
