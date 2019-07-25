@@ -746,6 +746,15 @@ WebGLContext::InitAndValidateGL()
         }
     }
 
+#ifdef XP_MACOSX
+    if (gl->WorkAroundDriverBugs() &&
+        gl->Vendor() == gl::GLContext::VendorATI) {
+        
+        
+        gl->fPointParameterf(LOCAL_GL_POINT_SPRITE_COORD_ORIGIN, LOCAL_GL_LOWER_LEFT);
+    }
+#endif
+
     
     NS_ENSURE_TRUE(Preferences::GetRootBranch(), false);
 
