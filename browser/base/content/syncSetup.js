@@ -113,6 +113,12 @@ var gSyncSetup = {
     addRem(true);
     window.addEventListener("unload", function() addRem(false), false);
 
+    window.setTimeout(function () {
+      
+      
+      Weave.Service;
+    }, 0);
+
     this.captchaBrowser = document.getElementById("captcha");
     this.wizard = document.getElementById("accountSetup");
 
