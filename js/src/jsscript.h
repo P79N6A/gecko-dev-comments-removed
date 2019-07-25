@@ -463,6 +463,7 @@ struct JSScript {
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
     bool            singleStepMode:1; 
+    bool            inlineParents:1;  
 #endif
 
     jsbytecode      *main;      

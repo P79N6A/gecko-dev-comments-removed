@@ -351,15 +351,15 @@ class Compiler : public BaseCompiler
         Label label;
     };
 
-    JSStackFrame *fp;
     JSScript *outerScript;
+    bool isConstructing;
+    bool isEval;
+
+    JSObject *globalObj;
 
     
     const Vector<PatchableFrame> *patchFrames;
 
-    JSObject *scopeChain;
-    JSObject *globalObj;
-    bool isConstructing;
     bool *savedTraps;
     Assembler masm;
     FrameState frame;
@@ -452,7 +452,9 @@ class Compiler : public BaseCompiler
     
     enum { LengthAtomIndex = uint32(-2) };
 
-    Compiler(JSContext *cx, JSStackFrame *fp, const Vector<PatchableFrame> *patchFrames, bool recompiling);
+    Compiler(JSContext *cx, JSScript *outerScript, bool isConstructing, bool isEval,
+             JSObject *globalObj,
+             const Vector<PatchableFrame> *patchFrames, bool recompiling);
     ~Compiler();
 
     CompileStatus compile();

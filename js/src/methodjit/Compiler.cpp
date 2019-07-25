@@ -89,14 +89,15 @@ static const char *OpcodeNames[] = {
 
 static const size_t CALLS_BACKEDGES_BEFORE_INLINING = 10000;
 
-mjit::Compiler::Compiler(JSContext *cx, JSStackFrame *fp,
+mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript,
+                         bool isConstructing, bool isEval, JSObject *globalObj,
                          const Vector<PatchableFrame> *patchFrames, bool recompiling)
   : BaseCompiler(cx),
-    fp(fp), outerScript(fp->script()),
+    outerScript(outerScript),
+    isConstructing(isConstructing),
+    isEval(isEval),
+    globalObj(globalObj),
     patchFrames(patchFrames),
-    scopeChain(&fp->scopeChain()),
-    globalObj(scopeChain->getGlobal()),
-    isConstructing(fp->isConstructing()),
     savedTraps(NULL),
     frame(cx, *this, masm, stubcc),
     a(NULL), outer(NULL), script(NULL), PC(NULL),
@@ -283,8 +284,6 @@ mjit::Compiler::popActiveFrame()
 CompileStatus
 mjit::Compiler::performCompilation(JITScript **jitp)
 {
-    outerScript = fp->script();
-
     JaegerSpew(JSpew_Scripts, "compiling script (file \"%s\") (line \"%d\") (length \"%d\")\n",
                outerScript->filename, outerScript->lineno, outerScript->length);
 
@@ -323,6 +322,39 @@ mjit::Compiler::performCompilation(JITScript **jitp)
 
     if (!*jitp)
         return Compile_Abort;
+
+    
+
+
+
+    for (unsigned i = 0; i < (*jitp)->nInlineFrames; i++) {
+        JSScript *script = (*jitp)->inlineFrames()[i].fun->script();
+
+        script->inlineParents = true;
+
+        
+        JS_ASSERT(script->jitArityCheckNormal != JS_UNJITTABLE_SCRIPT);
+
+        if (script->jitNormal && !script->jitNormal->rejoinPoints) {
+            mjit::Recompiler recompiler(cx, script);
+            if (!recompiler.recompile()) {
+                ReleaseScriptCode(cx, outerScript);
+                return Compile_Error;
+            }
+        }
+
+        if (!script->jitNormal) {
+            CompileStatus status = Compile_Retry;
+            while (status == Compile_Retry) {
+                mjit::Compiler cc(cx, script, isConstructing, false, globalObj, NULL, true);
+                status = cc.compile();
+            }
+            if (status != Compile_Okay) {
+                ReleaseScriptCode(cx, outerScript);
+                return status;
+            }
+        }
+    }
 
     return Compile_Okay;
 }
@@ -417,7 +449,8 @@ mjit::TryCompile(JSContext *cx, JSStackFrame *fp)
     
     CompileStatus status = Compile_Retry;
     for (unsigned i = 0; status == Compile_Retry && i < 5; i++) {
-        Compiler cc(cx, fp, NULL, false);
+        Compiler cc(cx, fp->script(), fp->isConstructing(), fp->isEvalFrame(),
+                    fp->scopeChain().getGlobal(), NULL, fp->script()->inlineParents);
         status = cc.compile();
     }
 
@@ -700,6 +733,12 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
     cursor += sizeof(JITScript);
 
     JS_ASSERT(outerScript == script);
+
+    
+
+
+
+    JS_ASSERT_IF(outerScript->inlineParents, recompiling);
 
     jit->script = script;
     jit->code = JSC::MacroAssemblerCodeRef(result, execPool, masm.size() + stubcc.size());
@@ -2902,7 +2941,7 @@ mjit::Compiler::emitReturn(FrameEntry *fe)
             emitFinalReturn(stubcc.masm);
         }
     } else {
-        if (fp->isEvalFrame() && script->strictModeCode) {
+        if (isEval && script->strictModeCode) {
             
             prepareStubCall(Uses(fe ? 1 : 0));
             INLINE_STUBCALL(stubs::PutStrictEvalCallObject);
@@ -3575,6 +3614,7 @@ mjit::Compiler::inlineScriptedFunction(uint32 argc, bool callingNew)
         JSFunction *fun = object->singleton->getFunctionPrivate();
         if (!fun->isInterpreted())
             return Compile_InlineAbort;
+        JSScript *script = fun->script();
 
         
 
@@ -3583,22 +3623,22 @@ mjit::Compiler::inlineScriptedFunction(uint32 argc, bool callingNew)
 
         if (!outerScript->compileAndGo ||
             (outerScript->fun && outerScript->fun->getParent() != globalObj) ||
-            !fun->script()->compileAndGo ||
+            !script->compileAndGo ||
             fun->getParent() != globalObj ||
-            outerScript->strictModeCode != fun->script()->strictModeCode) {
+            outerScript->strictModeCode != script->strictModeCode) {
             return Compile_InlineAbort;
         }
 
         
         ActiveFrame *checka = a;
         while (checka) {
-            if (checka->script == fun->script())
+            if (checka->script == script)
                 return Compile_InlineAbort;
             checka = checka->parent;
         }
 
         analyze::Script analysis;
-        analysis.analyze(cx, fun->script());
+        analysis.analyze(cx, script);
 
         if (analysis.OOM())
             return Compile_Error;
@@ -4213,7 +4253,7 @@ mjit::Compiler::jsop_callprop_str(JSAtom *atom)
 
 
     JSObject *obj;
-    if (!js_GetClassPrototype(cx, &fp->scopeChain(), JSProto_String, &obj))
+    if (!js_GetClassPrototype(cx, globalObj, JSProto_String, &obj))
         return false;
 
     

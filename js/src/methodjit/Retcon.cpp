@@ -256,20 +256,10 @@ Recompiler::expandInlineFrameChain(JSContext *cx, JSStackFrame *outer, InlineFra
 
 
 
-    if (fp->jit() && !fp->jit()->rejoinPoints) {
-        mjit::Recompiler recompiler(cx, fp->script());
-        if (!recompiler.recompile())
-            return NULL; 
-    }
-    if (!fp->jit()) {
-        CompileStatus status = Compile_Retry;
-        while (status == Compile_Retry) {
-            mjit::Compiler cc(cx, fp, NULL, true);
-            status = cc.compile();
-        }
-        if (status != Compile_Okay)
-            return NULL; 
-    }
+
+
+
+    JS_ASSERT(fp->jit() && fp->jit()->rejoinPoints);
 
     PatchableAddress patch;
     patch.location = fp->addressOfNativeReturnAddress();
@@ -522,6 +512,17 @@ Recompiler::recompile()
         return false;
     }
 
+    
+    if (script->inlineParents && !script->jitNormal) {
+        CompileStatus status = Compile_Retry;
+        while (status == Compile_Retry) {
+            mjit::Compiler cc(cx, script, false, false, script->global, NULL, true);
+            status = cc.compile();
+        }
+        if (status != Compile_Okay)
+            return false;
+    }
+
     return true;
 }
 
@@ -566,7 +567,8 @@ Recompiler::recompile(Vector<PatchableFrame> &frames, Vector<PatchableAddress> &
 
     CompileStatus status = Compile_Retry;
     while (status == Compile_Retry) {
-        Compiler cc(cx, fp, &frames, true);
+        Compiler cc(cx, fp->script(), fp->isConstructing(), fp->isEvalFrame(),
+                    fp->scopeChain().getGlobal(), &frames, true);
         if (!cc.loadOldTraps(sites))
             return false;
         status = cc.compile();

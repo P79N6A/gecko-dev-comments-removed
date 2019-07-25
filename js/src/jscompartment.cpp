@@ -424,6 +424,7 @@ JSCompartment::wrap(JSContext *cx, AutoIdVector &props)
 
 
 
+
 static inline bool
 ScriptPoolDestroyed(JSContext *cx, mjit::JITScript *jit,
                     uint32 releaseInterval, uint32 &counter)
@@ -444,7 +445,34 @@ ScriptPoolDestroyed(JSContext *cx, mjit::JITScript *jit,
     }
     return pool->m_destroy;
 }
-#endif
+
+static inline void
+ScriptTryDestroyCode(JSContext *cx, JSScript *script, mjit::JITScript *jit,
+                     uint32 releaseInterval, uint32 &counter)
+{
+    
+
+
+
+
+
+
+    if (ScriptPoolDestroyed(cx, jit, releaseInterval, counter)) {
+        mjit::ReleaseScriptCode(cx, script);
+        return;
+    }
+
+    for (unsigned i = 0; i < jit->nInlineFrames; i++) {
+        JSScript *inner = jit->inlineFrames()[i].fun->script();
+        JS_ASSERT(inner->jitNormal);
+        if (ScriptPoolDestroyed(cx, inner->jitNormal, releaseInterval, counter)) {
+            mjit::ReleaseScriptCode(cx, script);
+            return;
+        }
+    }
+}
+
+#endif 
 
 
 
@@ -541,15 +569,10 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
         if (script->hasJITCode()) {
             mjit::ic::SweepCallICs(cx, script, discardScripts);
             if (discardScripts) {
-                if (script->jitNormal &&
-                    ScriptPoolDestroyed(cx, script->jitNormal, releaseInterval, counter)) {
-                    mjit::ReleaseScriptCode(cx, script);
-                    continue;
-                }
-                if (script->jitCtor &&
-                    ScriptPoolDestroyed(cx, script->jitCtor, releaseInterval, counter)) {
-                    mjit::ReleaseScriptCode(cx, script);
-                }
+                if (script->jitNormal)
+                    ScriptTryDestroyCode(cx, script, script->jitNormal, releaseInterval, counter);
+                if (script->jitCtor)
+                    ScriptTryDestroyCode(cx, script, script->jitCtor, releaseInterval, counter);
             }
         }
     }
