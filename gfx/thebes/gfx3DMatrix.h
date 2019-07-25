@@ -131,6 +131,18 @@ public:
 
 
 
+
+
+
+  
+
+
+
+
+
+
+
+
   void Translate(const gfxPoint3D& aPoint);
 
   
@@ -138,13 +150,92 @@ public:
 
 
 
-  void TranslatePost(const gfxPoint3D& aPoint);
 
-  void SkewXY(float aSkew);
-  void SkewXZ(float aSkew);
-  void SkewYZ(float aSkew);
+
+
+
+  void SkewXY(double aXSkew, double aYSkew);
+  
+  void SkewXY(double aSkew);
+  void SkewXZ(double aSkew);
+  void SkewYZ(double aSkew);
+
+  
+
+
+
+
+
+
+
 
   void Scale(float aX, float aY, float aZ);
+
+  
+
+
+
+
+
+
+
+
+  void RotateX(double aTheta);
+  
+  
+
+
+
+
+
+
+
+
+  void RotateY(double aTheta);
+  
+  
+
+
+
+
+
+
+
+
+  void RotateZ(double aTheta);
+
+  
+
+
+
+
+
+
+
+
+  void Perspective(float aDepth);
+
+  
+
+
+
+  void PreMultiply(const gfx3DMatrix& aOther);
+  void PreMultiply(const gfxMatrix& aOther);
+
+  
+
+
+
+
+
+
+  
+  
+
+
+
+
+  void TranslatePost(const gfxPoint3D& aPoint);
 
   
 
