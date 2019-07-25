@@ -105,12 +105,12 @@ static GetWindowInfoPtr sGetWindowInfoPtrStub = NULL;
 static HWND sBrowserHwnd = NULL;
 #endif
 
-PluginModuleChild::PluginModuleChild() :
-    mLibrary(0),
-    mQuirks(QUIRKS_NOT_INITIALIZED),
-    mShutdownFunc(0),
-    mInitializeFunc(0)
+PluginModuleChild::PluginModuleChild()
+  : mLibrary(0)
   , mPluginFilename("")
+  , mQuirks(QUIRKS_NOT_INITIALIZED)
+  , mShutdownFunc(0)
+  , mInitializeFunc(0)
 #if defined(OS_WIN) || defined(OS_MACOSX)
   , mGetEntryPointsFunc(0)
 #elif defined(MOZ_WIDGET_GTK2)
