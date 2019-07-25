@@ -285,7 +285,6 @@ SourceSurfaceCGBitmapContext::SourceSurfaceCGBitmapContext(DrawTargetCG *aDrawTa
 {
   mDrawTarget = aDrawTarget;
   mCg = (CGContextRef)aDrawTarget->GetNativeSurface(NATIVE_SURFACE_CGCONTEXT);
-  CGContextRetain(mCg);
 
   mSize.width = CGBitmapContextGetWidth(mCg);
   mSize.height = CGBitmapContextGetHeight(mCg);
@@ -297,10 +296,14 @@ SourceSurfaceCGBitmapContext::SourceSurfaceCGBitmapContext(DrawTargetCG *aDrawTa
 
 void SourceSurfaceCGBitmapContext::EnsureImage() const
 {
+  
+  
+  
+  
+  
+  
+  
   if (!mImage) {
-    if (mCg) {
-      mImage = CGBitmapContextCreateImage(mCg);
-    } else {
       
       CGColorSpaceRef colorSpace = NULL;
       CGBitmapInfo bitinfo = 0;
@@ -311,7 +314,19 @@ void SourceSurfaceCGBitmapContext::EnsureImage() const
       colorSpace = CGColorSpaceCreateDeviceRGB();
       bitinfo = kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host;
 
-      dataProvider = CGDataProviderCreateWithData (mData,
+      void *info;
+      if (mCg) {
+          
+          
+          
+          info = NULL;
+      } else {
+          
+          
+          info = mData;
+      }
+
+      dataProvider = CGDataProviderCreateWithData (info,
                                                    mData,
                                                    mSize.height * mStride,
                                                    releaseCallback);
@@ -329,7 +344,6 @@ void SourceSurfaceCGBitmapContext::EnsureImage() const
 
       CGDataProviderRelease(dataProvider);
       CGColorSpaceRelease (colorSpace);
-    }
   }
 }
 
@@ -343,12 +357,23 @@ void
 SourceSurfaceCGBitmapContext::DrawTargetWillChange()
 {
   if (mDrawTarget) {
+    
     size_t stride = CGBitmapContextGetBytesPerRow(mCg);
     size_t height = CGBitmapContextGetHeight(mCg);
+
     
     mData = malloc(stride * height);
+
+    
+    
+    
     memcpy(mData, CGBitmapContextGetData(mCg), stride*height);
-    CGContextRelease(mCg);
+
+    
+    if (mImage)
+      CGImageRelease(mImage);
+    mImage = NULL;
+
     mCg = NULL;
     mDrawTarget = NULL;
   }
@@ -360,8 +385,6 @@ SourceSurfaceCGBitmapContext::~SourceSurfaceCGBitmapContext()
     
     free(mData);
   }
-  if (mCg)
-    CGContextRelease(mCg);
   if (mImage)
     CGImageRelease(mImage);
 }

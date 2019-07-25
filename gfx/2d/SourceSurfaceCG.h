@@ -97,10 +97,17 @@ private:
   void DrawTargetWillChange();
   void EnsureImage() const;
 
+  
+  
   DrawTargetCG *mDrawTarget;
   CGContextRef mCg;
+
   mutable CGImageRef mImage;
+
+  
+  
   void *mData;
+
   int32_t mStride;
   IntSize mSize;
 };
