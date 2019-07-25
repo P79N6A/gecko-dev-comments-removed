@@ -164,6 +164,28 @@ class LGoto : public LInstructionHelper<0, 0, 0>
 };
 
 
+class LTableSwitch : public LInstructionHelper<0, 1, 2>
+{
+    MTableSwitch *mir_;
+
+  public:
+    LIR_HEADER(TableSwitch);
+
+    LTableSwitch(const LAllocation &in, const LDefinition &inputCopy,
+                 const LDefinition &jumpTablePointer, MTableSwitch *mir)
+      : mir_(mir)
+    {
+        setOperand(0, in);
+        setTemp(0, inputCopy);
+        setTemp(1, jumpTablePointer);
+    }
+
+    MTableSwitch *mir() const {
+        return mir_;
+    }
+};
+
+
 class LTestIAndBranch : public LInstructionHelper<0, 1, 0>
 {
     MBasicBlock *ifTrue_;

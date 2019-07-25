@@ -137,6 +137,38 @@ LIRGenerator::visitParameter(MParameter *param)
 }
 
 bool
+LIRGenerator::visitTableSwitch(MTableSwitch *tableswitch)
+{
+    MDefinition *opd = tableswitch->getOperand(0);
+
+    
+    JS_ASSERT(tableswitch->numSuccessors() > 0);
+
+    
+    if (tableswitch->numSuccessors() == 1)
+        return add(new LGoto(tableswitch->getDefault()));        
+
+    
+    if (opd->type() != MIRType_Int32)
+        return add(new LGoto(tableswitch->getDefault()));
+
+    
+    if (opd->isConstant()) {
+        MConstant *ins = opd->toConstant();
+
+        int32 switchval = ins->value().toInt32();
+        if (switchval < tableswitch->low() || switchval > tableswitch->high())
+            return add(new LGoto(tableswitch->getDefault()));
+
+        return add(new LGoto(tableswitch->getCase(switchval-tableswitch->low())));
+    }
+
+    
+    return add(new LTableSwitch(useRegister(opd), temp(LDefinition::INTEGER),
+                                temp(LDefinition::POINTER), tableswitch));
+}
+
+bool
 LIRGenerator::visitGoto(MGoto *ins)
 {
     return add(new LGoto(ins->target()));

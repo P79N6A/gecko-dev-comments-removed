@@ -132,7 +132,7 @@ IonBuilder::pushLoop(CFGState::State initial, jsbytecode *stopAt, MBasicBlock *e
     if (!continuepc)
         continuepc = entry->pc();
 
-    LoopInfo loop(cfgStack_.length(), continuepc);
+    ControlFlowInfo loop(cfgStack_.length(), continuepc);
     if (!loops_.append(loop))
         return false;
 
@@ -311,6 +311,9 @@ IonBuilder::snoopControlFlow(JSOp op)
           case SRC_CONT2LABEL:
             return processContinue(op, sn);
 
+          case SRC_SWITCHBREAK:
+            return processSwitchBreak(op, sn);
+
           case SRC_WHILE:
             
             if (!whileLoop(op, sn))
@@ -330,6 +333,9 @@ IonBuilder::snoopControlFlow(JSOp op)
         }
         break;
       }
+
+      case JSOP_TABLESWITCH:
+        return tableSwitch(op, js_GetSrcNote(script, pc));
 
       case JSOP_IFNE:
       case JSOP_IFNEX:
@@ -516,6 +522,9 @@ IonBuilder::processCfgEntry(CFGState &state)
       case CFGState::FOR_LOOP_UPDATE:
         return processForUpdateEnd(state);
 
+      case CFGState::TABLE_SWITCH:
+        return processNextTableSwitchCase(state);
+
       default:
         JS_NOT_REACHED("unknown cfgstate");
     }
@@ -599,24 +608,9 @@ IonBuilder::finalizeLoop(CFGState &state, MDefinition *last)
     
     MBasicBlock *breaks = NULL;
     if (state.loop.breaks) {
-        DeferredEdge *edge = state.loop.breaks;
-
-        breaks = newBlock(edge->block, state.loop.exitpc);
+        breaks = createBreakCatchBlock(state.loop.breaks, state.loop.exitpc);
         if (!breaks)
-            return false;
-
-        
-        
-        edge->block->end(MGoto::New(breaks));
-        edge = edge->next;
-
-        
-        while (edge) {
-            edge->block->end(MGoto::New(breaks));
-            if (!breaks->addPredecessor(edge->block))
-                return false;
-            edge = edge->next;
-        }
+            return ControlStatus_Error;
     }
 
     
@@ -818,6 +812,30 @@ IonBuilder::processDeferredContinues(CFGState &state)
     return true;
 }
 
+MBasicBlock *
+IonBuilder::createBreakCatchBlock(DeferredEdge *edge, jsbytecode *pc)
+{
+    
+    MBasicBlock *successor = newBlock(edge->block, pc);
+    if (!successor)
+        return NULL;
+
+    
+    
+    edge->block->end(MGoto::New(successor));
+    edge = edge->next;
+
+    
+    while (edge) {
+        edge->block->end(MGoto::New(successor));
+        if (!successor->addPredecessor(edge->block))
+            return NULL;
+        edge = edge->next;
+    }
+
+    return successor;
+}
+
 IonBuilder::ControlStatus
 IonBuilder::processForBodyEnd(CFGState &state)
 {
@@ -845,6 +863,74 @@ IonBuilder::processForUpdateEnd(CFGState &state)
         return ControlStatus_Ended;
 
     pc = current->pc();
+    return ControlStatus_Joined;
+}
+
+IonBuilder::ControlStatus
+IonBuilder::processNextTableSwitchCase(CFGState &state)
+{
+    JS_ASSERT(state.state == CFGState::TABLE_SWITCH);
+
+    state.tableswitch.currentSuccessor++;
+
+    
+    if (state.tableswitch.currentSuccessor >= state.tableswitch.ins->numSuccessors())
+        return processTableSwitchEnd(state);
+
+    
+    MBasicBlock *successor = state.tableswitch.ins->getSuccessor(state.tableswitch.currentSuccessor);
+
+    
+    
+    
+    if (current) {
+        current->end(MGoto::New(successor));
+        successor->addPredecessor(current);
+    }
+
+    
+    
+    if (state.tableswitch.currentSuccessor+1 < state.tableswitch.ins->numSuccessors())
+        state.stopAt = state.tableswitch.ins->getSuccessor(state.tableswitch.currentSuccessor+1)->pc();
+    else
+        state.stopAt = state.tableswitch.exitpc;
+
+    current = successor;
+    pc = current->pc();
+    return ControlStatus_Jumped;
+}
+
+IonBuilder::ControlStatus
+IonBuilder::processTableSwitchEnd(CFGState &state)
+{
+    
+    
+    
+    if (!state.tableswitch.breaks && !current)
+        return ControlStatus_Ended;
+
+    
+    
+    
+    MBasicBlock *successor = NULL;
+    if (state.tableswitch.breaks)
+        successor = createBreakCatchBlock(state.tableswitch.breaks, state.tableswitch.exitpc);
+    else
+        successor = newBlock(current, state.tableswitch.exitpc);
+
+    if (!successor)
+        return ControlStatus_Ended;
+
+    
+    
+    if (current) {
+        current->end(MGoto::New(successor));
+        if (state.tableswitch.breaks)
+            successor->addPredecessor(current);
+    }
+
+    pc = state.tableswitch.exitpc;
+    current = successor;
     return ControlStatus_Joined;
 }
 
@@ -897,6 +983,33 @@ IonBuilder::processContinue(JSOp op, jssrcnote *sn)
     CFGState &state = *found;
 
     state.loop.continues = new DeferredEdge(current, state.loop.continues);
+
+    current = NULL;
+    pc += js_CodeSpec[op].length;
+    return processControlEnd();
+}
+
+IonBuilder::ControlStatus
+IonBuilder::processSwitchBreak(JSOp op, jssrcnote *sn)
+{
+    JS_ASSERT(op == JSOP_GOTO || op == JSOP_GOTOX);
+
+    
+    CFGState *found = NULL;
+    jsbytecode *target = pc + GetJumpOffset(pc);
+    for (size_t i = switches_.length() - 1; i < switches_.length(); i--) {
+        if (switches_[i].continuepc == target) {
+            found = &cfgStack_[switches_[i].cfgEntry];
+            break;
+        }
+    }
+
+    
+    
+    JS_ASSERT(found);
+    CFGState &state = *found;
+
+    state.tableswitch.breaks = new DeferredEdge(current, state.tableswitch.breaks);
 
     current = NULL;
     pc += js_CodeSpec[op].length;
@@ -1117,6 +1230,108 @@ IonBuilder::forLoop(JSOp op, jssrcnote *sn)
     current = header;
     return ControlStatus_Jumped;
 }
+
+IonBuilder::ControlStatus
+IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    JS_ASSERT(op == JSOP_TABLESWITCH);
+
+    
+    MDefinition *ins = current->pop();
+
+    
+    jsbytecode *exitpc = pc + js_GetSrcNoteOffset(sn, 0);
+    jsbytecode *defaultpc = pc + GET_JUMP_OFFSET(pc);
+
+    JS_ASSERT(defaultpc > pc && defaultpc <= exitpc);
+
+    
+    jsbytecode *pc2 = pc;
+    pc2 += JUMP_OFFSET_LEN;
+    jsint low = GET_JUMP_OFFSET(pc2);
+    pc2 += JUMP_OFFSET_LEN;
+    jsint high = GET_JUMP_OFFSET(pc2);
+    pc2 += JUMP_OFFSET_LEN;
+
+    
+    MTableSwitch *tableswitch = MTableSwitch::New(ins, low, high);
+
+    
+    MBasicBlock *defaultcase = newBlock(current, defaultpc);
+    if (!defaultcase)
+        return ControlStatus_Error;
+
+    
+    jsbytecode *casepc = NULL, *prevcasepc; 
+    for (jsint i = 0; i < high-low+1; i++) {
+        prevcasepc = casepc;
+        casepc = pc + GET_JUMP_OFFSET(pc2);
+
+        JS_ASSERT(casepc > pc && casepc <= exitpc);
+
+        
+        
+        if (defaultpc >= prevcasepc && defaultpc < casepc)
+            tableswitch->addDefault(defaultcase);
+
+        MBasicBlock *caseblock = newBlock(current, casepc);
+        if (!caseblock)
+            return ControlStatus_Error;
+        tableswitch->addCase(caseblock);
+
+        pc2 += JUMP_OFFSET_LEN;
+    }
+
+    
+    
+    if (!casepc || defaultpc >= casepc)
+        tableswitch->addDefault(defaultcase);
+
+    JS_ASSERT(tableswitch->numSuccessors() == (uint32)(high - low + 2));
+    JS_ASSERT(tableswitch->numSuccessors() > 0);
+
+    
+    ControlFlowInfo switchinfo(cfgStack_.length(), exitpc);
+    if (!switches_.append(switchinfo))
+        return ControlStatus_Error;
+
+    
+    CFGState state;
+    state.state = CFGState::TABLE_SWITCH;
+    state.tableswitch.exitpc = exitpc;
+    state.tableswitch.breaks = NULL;
+    state.tableswitch.ins = tableswitch;
+    state.tableswitch.currentSuccessor = 0;
+
+    
+    current->end(tableswitch);
+
+    
+    
+    if (tableswitch->numSuccessors() == 1)
+        state.stopAt = state.tableswitch.exitpc;
+    else
+        state.stopAt = tableswitch->getSuccessor(1)->pc();
+    current = tableswitch->getSuccessor(0);
+
+    if (!cfgStack_.append(state))
+        return ControlStatus_Error;
+
+    pc = current->pc();
+    return ControlStatus_Jumped;
+}
+
 
 bool
 IonBuilder::jsop_ifeq(JSOp op)
