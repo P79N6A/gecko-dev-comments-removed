@@ -192,44 +192,50 @@ public class GeckoEvent {
     }
 
     public void addMotionPoint(int index, int eventIndex, MotionEvent event) {
-        PointF geckoPoint = new PointF(event.getX(eventIndex), event.getY(eventIndex));
-        geckoPoint = GeckoApp.mAppContext.getLayerController().convertViewPointToLayerPoint(geckoPoint);
-
-        mPoints[index] = new Point(Math.round(geckoPoint.x), Math.round(geckoPoint.y));
-        mPointIndicies[index] = event.getPointerId(eventIndex);
-        
-        if (Build.VERSION.SDK_INT >= 9) {
-            double radians = event.getOrientation(eventIndex);
-            mOrientations[index] = (float) Math.toDegrees(radians);
+        try {
+            PointF geckoPoint = new PointF(event.getX(eventIndex), event.getY(eventIndex));
+            geckoPoint = GeckoApp.mAppContext.getLayerController().convertViewPointToLayerPoint(geckoPoint);
+    
+            mPoints[index] = new Point(Math.round(geckoPoint.x), Math.round(geckoPoint.y));
+            mPointIndicies[index] = event.getPointerId(eventIndex);
             
-            
-            if (mOrientations[index] == 90)
-                mOrientations[index] = -90;
-
-            
-            
-            
-            
-            
-            
-            
-            if (mOrientations[index] < 0) {
-                mOrientations[index] += 90;
-                mPointRadii[index] = new Point((int)event.getToolMajor(eventIndex)/2,
-                                               (int)event.getToolMinor(eventIndex)/2);
+            if (Build.VERSION.SDK_INT >= 9) {
+                double radians = event.getOrientation(eventIndex);
+                mOrientations[index] = (float) Math.toDegrees(radians);
+                
+                
+                if (mOrientations[index] == 90)
+                    mOrientations[index] = -90;
+    
+                
+                
+                
+                
+                
+                
+                
+                if (mOrientations[index] < 0) {
+                    mOrientations[index] += 90;
+                    mPointRadii[index] = new Point((int)event.getToolMajor(eventIndex)/2,
+                                                   (int)event.getToolMinor(eventIndex)/2);
+                } else {
+                    mPointRadii[index] = new Point((int)event.getToolMinor(eventIndex)/2,
+                                                   (int)event.getToolMajor(eventIndex)/2);
+                }
             } else {
-                mPointRadii[index] = new Point((int)event.getToolMinor(eventIndex)/2,
-                                               (int)event.getToolMajor(eventIndex)/2);
+                float size = event.getSize(eventIndex);
+                DisplayMetrics displaymetrics = new DisplayMetrics();
+                GeckoApp.mAppContext.getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
+                size = size*Math.min(displaymetrics.heightPixels, displaymetrics.widthPixels);
+                mPointRadii[index] = new Point((int)size,(int)size);
+                mOrientations[index] = 0;
             }
-        } else {
-            float size = event.getSize(eventIndex);
-            DisplayMetrics displaymetrics = new DisplayMetrics();
-            GeckoApp.mAppContext.getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
-            size = size*Math.min(displaymetrics.heightPixels, displaymetrics.widthPixels);
-            mPointRadii[index] = new Point((int)size,(int)size);
-            mOrientations[index] = 0;
+            mPressures[index] = event.getPressure(eventIndex);
+        } catch(Exception ex) {
+            Log.e(LOGTAG, "Error creating motion point " + index, ex);
+            mPointRadii[index] = new Point(0, 0);
+            mPoints[index] = new Point(0, 0);
         }
-        mPressures[index] = event.getPressure(eventIndex);
     }
 
     public GeckoEvent(SensorEvent s) {
