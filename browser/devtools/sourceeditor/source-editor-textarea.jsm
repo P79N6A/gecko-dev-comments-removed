@@ -44,8 +44,22 @@ const Ci = Components.interfaces;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource:///modules/source-editor-ui.jsm");
 
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+
+
+
+
+const DEFAULT_KEYBINDINGS = [
+  {
+    _action: "_doTab",
+    keyCode: Ci.nsIDOMKeyEvent.DOM_VK_TAB,
+    shiftKey: false,
+    accelKey: false,
+    altKey: false,
+  },
+];
 
 var EXPORTED_SYMBOLS = ["SourceEditor"];
 
@@ -69,6 +83,8 @@ function SourceEditor() {
 
   this._listeners = {};
   this._lastSelection = {};
+
+  this.ui = new SourceEditorUI(this);
 }
 
 SourceEditor.prototype = {
@@ -79,6 +95,13 @@ SourceEditor.prototype = {
   _editActionListener: null,
   _expandTab: null,
   _tabSize: null,
+
+  
+
+
+
+
+  ui: null,
 
   
 
@@ -161,6 +184,20 @@ SourceEditor.prototype = {
 
     this._config = aConfig;
 
+    for each (let key in DEFAULT_KEYBINDINGS) {
+      for (let prop in key) {
+        if (prop == "accelKey") {
+          let newProp = Services.appinfo.OS == "Darwin" ? "metaKey" : "ctrlKey";
+          key[newProp] = key[prop];
+          delete key[prop];
+          break;
+        }
+      }
+    }
+
+    this.ui.init();
+    this.ui.onReady();
+
     if (aCallback) {
       aCallback(this);
     }
@@ -174,16 +211,34 @@ SourceEditor.prototype = {
 
 
 
+
   _onKeyPress: function SE__onKeyPress(aEvent)
   {
-    if (aEvent.keyCode != aEvent.DOM_VK_TAB || aEvent.shiftKey ||
-        aEvent.metaKey || aEvent.ctrlKey || aEvent.altKey) {
-      return;
+    for each (let key in DEFAULT_KEYBINDINGS) {
+      let matched = true;
+      for (let prop in key) {
+        if (prop.charAt(0) != "_" && aEvent[prop] !== key[prop]) {
+          matched = false;
+          break;
+        }
+      }
+      if (matched) {
+        let context = key._context ? this[key._context] : this;
+        context[key._action].call(context);
+        aEvent.preventDefault();
+        break;
+      }
     }
+  },
 
-    aEvent.preventDefault();
+  
 
-    let caret = this.getCaretOffset();
+
+
+  _doTab: function SE__doTab()
+  {
+    let selection = this.getSelection();
+    let caret = selection.start;
     let indent = "\t";
 
     if (this._expandTab) {
@@ -201,8 +256,8 @@ SourceEditor.prototype = {
       indent = (new Array(spaces + 1)).join(" ");
     }
 
-    this.setText(indent, caret, caret);
-    this.setCaretOffset(caret + indent.length);
+    this.setText(indent, selection.start, selection.end);
+    this.setCaretOffset(selection.start + indent.length);
   },
 
   
@@ -616,8 +671,8 @@ SourceEditor.prototype = {
     aColumn = aColumn || 0;
 
     let text = this._textbox.value;
-    let i = 0, n = text.length, c0, c1;
-    let line = 0, col = 0;
+    let i = -1, n = text.length, c0, c1;
+    let line = 0, col = -1;
     while (i < n) {
       c1 = text.charAt(i++);
       if (line < aLine && (c1 == "\r" || (c0 != "\r" && c1 == "\n"))) {
@@ -709,6 +764,10 @@ SourceEditor.prototype = {
     }
 
     this._editor.removeEditActionListener(this._editActionListener);
+
+    this.ui.destroy();
+    this.ui = null;
+
     this.parentElement.removeChild(this._textbox);
     this.parentElement = null;
     this._editor = null;
@@ -717,6 +776,7 @@ SourceEditor.prototype = {
     this._listeners = null;
     this._lastSelection = null;
     this._editActionListener = null;
+    this._lastFind = null;
   },
 };
 
