@@ -533,32 +533,10 @@ StackFrames.prototype = {
         paramVar.setGrip(paramVal);
         this._addExpander(paramVar, paramVal);
       }
-
-      
-      if ("arguments" in frame.environment.bindings.variables) {
-        
-        DebuggerController.dispatchEvent("Debugger:FetchedVariables");
-        return;
-      }
     }
 
     
-    
-    
-    
-    if (frame.arguments && frame.arguments.length > 0) {
-      
-      let argsVar = localScope.addVar("arguments");
-      argsVar.setGrip({
-        type: "object",
-        class: "Arguments"
-      });
-      this._addExpander(argsVar, frame.arguments);
-
-      
-      DebuggerController.dispatchEvent("Debugger:FetchedVariables");
-    }
-
+    DebuggerController.dispatchEvent("Debugger:FetchedVariables");
   },
 
   
@@ -567,9 +545,8 @@ StackFrames.prototype = {
 
   _addExpander: function SF__addExpander(aVar, aObject) {
     
-    
     if (!aVar || !aObject || typeof aObject !== "object" ||
-        (aObject.type !== "object" && !Array.isArray(aObject))) {
+        aObject.type !== "object") {
       return;
     }
 
@@ -585,23 +562,6 @@ StackFrames.prototype = {
   _addVarProperties: function SF__addVarProperties(aVar, aObject) {
     
     if (aVar.fetched) {
-      return;
-    }
-
-    
-    if (Array.isArray(aObject)) {
-      let properties = { length: { value: aObject.length } };
-      for (let i = 0, l = aObject.length; i < l; i++) {
-        properties[i] = { value: aObject[i] };
-      }
-      aVar.addProperties(properties);
-
-      
-      for (let i = 0, l = aObject.length; i < l; i++) {
-        this._addExpander(aVar[i], aObject[i]);
-      }
-
-      aVar.fetched = true;
       return;
     }
 
