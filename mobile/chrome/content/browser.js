@@ -1361,6 +1361,15 @@ Browser.MainDragger.prototype = {
   isDraggable: function isDraggable(target, scroller) { return true; },
 
   dragStart: function dragStart(clientX, clientY, target, scroller) {
+    
+    this.bv.pauseRendering();
+
+    
+    
+    
+    
+    this.bv._idleServiceObserver.pause();
+
     let [x, y] = Browser.transformClientToBrowser(clientX, clientY);
     let element = Browser.elementFromPoint(x, y);
 
@@ -1414,14 +1423,6 @@ Browser.MainDragger.prototype = {
 
     if (element)
       this.draggedFrame = element.ownerDocument.defaultView;
-
-    this.bv.pauseRendering();
-
-    
-    
-    
-    
-    this.bv._idleServiceObserver.pause();
   },
 
   dragStop: function dragStop(dx, dy, scroller) {
