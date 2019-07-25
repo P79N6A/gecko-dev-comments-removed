@@ -144,7 +144,6 @@ imgContainer::imgContainer() :
   mLoopCount(-1),
   mObserver(nsnull),
   mLockCount(0),
-  mDiscardTimer(nsnull),
   mDecoder(nsnull),
   mWorker(nsnull),
   mBytesDecoded(0),
@@ -161,6 +160,10 @@ imgContainer::imgContainer() :
   mInDecoder(PR_FALSE),
   mError(PR_FALSE)
 {
+  
+  mDiscardTrackerNode.curr = this;
+  mDiscardTrackerNode.prev = mDiscardTrackerNode.next = nsnull;
+
   
   num_containers++;
 }
@@ -190,10 +193,7 @@ imgContainer::~imgContainer()
              discardable_source_bytes));
   }
 
-  if (mDiscardTimer) {
-    mDiscardTimer->Cancel();
-    mDiscardTimer = nsnull;
-  }
+  imgDiscardTracker::Remove(&mDiscardTrackerNode);
 
   
   if (mDecoder) {
@@ -1026,9 +1026,9 @@ NS_IMETHODIMP imgContainer::DecodingComplete(void)
 
   
   if (CanDiscard()) {
-    NS_ABORT_IF_FALSE(!mDiscardTimer,
+    NS_ABORT_IF_FALSE(!DiscardingActive(),
                       "We shouldn't have been discardable before this");
-    rv = ResetDiscardTimer();
+    rv = imgDiscardTracker::Reset(&mDiscardTrackerNode);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
 
@@ -1345,7 +1345,7 @@ NS_IMETHODIMP imgContainer::SourceDataComplete()
 
   
   if (CanDiscard()) {
-    nsresult rv = ResetDiscardTimer();
+    nsresult rv = imgDiscardTracker::Reset(&mDiscardTrackerNode);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
   return NS_OK;
@@ -2014,46 +2014,32 @@ NS_IMETHODIMP imgContainer::GetKeys(PRUint32 *count, char ***keys)
   return mProperties->GetKeys(count, keys);
 }
 
-static int
-get_discard_timer_ms (void)
-{
-  
-  return 15000; 
-}
-
 void
-imgContainer::sDiscardTimerCallback(nsITimer *aTimer, void *aClosure)
+imgContainer::Discard()
 {
   
-  imgContainer *self = (imgContainer *) aClosure;
-  NS_ABORT_IF_FALSE(aTimer == self->mDiscardTimer, 
-                    "imgContainer::DiscardTimerCallback() got a callback "
-                    "for an unknown timer");
-  self->mDiscardTimer = nsnull;
+  NS_ABORT_IF_FALSE(CanDiscard(), "Asked to discard but can't!");
 
   
-  NS_ABORT_IF_FALSE(self->CanDiscard(), "Hit discard callback but can't discard!");
-
-  
-  NS_ABORT_IF_FALSE(!self->mDecoder, "Discard callback fired with open decoder!");
+  NS_ABORT_IF_FALSE(!mDecoder, "Asked to discard with open decoder!");
 
   
   
-  NS_ABORT_IF_FALSE(!self->mAnim, "Discard callback fired for animated image!");
+  NS_ABORT_IF_FALSE(!mAnim, "Asked to discard for animated image!");
 
   
-  int old_frame_count = self->mFrames.Length();
+  int old_frame_count = mFrames.Length();
 
   
   for (int i = 0; i < old_frame_count; ++i)
-    delete self->mFrames[i];
-  self->mFrames.Clear();
+    delete mFrames[i];
+  mFrames.Clear();
 
   
-  self->mDecoded = PR_FALSE;
+  mDecoded = PR_FALSE;
 
   
-  nsCOMPtr<imgIDecoderObserver> observer(do_QueryReferent(self->mObserver));
+  nsCOMPtr<imgIDecoderObserver> observer(do_QueryReferent(mObserver));
   if (observer)
     observer->OnDiscard(nsnull);
 
@@ -2063,41 +2049,14 @@ imgContainer::sDiscardTimerCallback(nsITimer *aTimer, void *aClosure)
           "data from imgContainer %p (%s) - %d frames (cached count: %d); "
           "Total Containers: %d, Discardable containers: %d, "
           "Total source bytes: %lld, Source bytes for discardable containers %lld",
-          self,
-          self->mSourceDataMimeType.get(),
+          this,
+          mSourceDataMimeType.get(),
           old_frame_count,
-          self->mFrames.Length(),
+          mFrames.Length(),
           num_containers,
           num_discardable_containers,
           total_source_bytes,
           discardable_source_bytes));
-}
-
-nsresult
-imgContainer::ResetDiscardTimer()
-{
-  
-  NS_ABORT_IF_FALSE(CanDiscard(), "Calling ResetDiscardTimer but can't discard!");
-
-  
-  NS_ABORT_IF_FALSE(!mAnim, "Trying to reset discard timer on animated image!");
-
-  
-  if (mDiscardTimer) {
-    nsresult rv = mDiscardTimer->Cancel();
-    CONTAINER_ENSURE_SUCCESS(rv);
-    mDiscardTimer = nsnull;
-  }
-
-  
-  mDiscardTimer = do_CreateInstance("@mozilla.org/timer;1");
-  CONTAINER_ENSURE_TRUE(mDiscardTimer, NS_ERROR_OUT_OF_MEMORY);
-
-  
-  return mDiscardTimer->InitWithFuncCallback(sDiscardTimerCallback,
-                                             (void *) this,
-                                             get_discard_timer_ms (),
-                                             nsITimer::TYPE_ONE_SHOT);
 }
 
 
@@ -2108,6 +2067,13 @@ imgContainer::CanDiscard() {
           (mLockCount == 0) &&   
           mHasSourceData &&      
           mDecoded);             
+}
+
+
+
+PRBool
+imgContainer::DiscardingActive() {
+  return !!(mDiscardTrackerNode.prev || mDiscardTrackerNode.next);
 }
 
 
@@ -2130,7 +2096,7 @@ imgContainer::InitDecoder (PRUint32 dFlags)
   NS_ABORT_IF_FALSE(!mDecoded, "Calling InitDecoder() but already decoded!");
 
   
-  NS_ABORT_IF_FALSE(!mDiscardTimer, "Discard Timer active in InitDecoder()!");
+  NS_ABORT_IF_FALSE(!DiscardingActive(), "Discard Timer active in InitDecoder()!");
 
   
   nsCAutoString decoderCID(NS_LITERAL_CSTRING("@mozilla.org/image/decoder;3?type=") +
@@ -2279,8 +2245,9 @@ imgContainer::WantDecodedFrames()
 
   
   if (CanDiscard()) {
-    NS_ABORT_IF_FALSE(mDiscardTimer, "Decoded and discardable but timer not set!");
-    rv = ResetDiscardTimer();
+    NS_ABORT_IF_FALSE(DiscardingActive(),
+                      "Decoded and discardable but discarding not activated!");
+    rv = imgDiscardTracker::Reset(&mDiscardTrackerNode);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
 
@@ -2445,11 +2412,7 @@ imgContainer::LockImage()
     return NS_ERROR_FAILURE;
 
   
-  if (mDiscardTimer) {
-    mDiscardTimer->Cancel();
-    mDiscardTimer = nsnull; 
-                            
-  }
+  imgDiscardTracker::Remove(&mDiscardTrackerNode);
 
   
   mLockCount++;
@@ -2472,14 +2435,14 @@ imgContainer::UnlockImage()
     return NS_ERROR_ABORT;
 
   
-  NS_ABORT_IF_FALSE(!mDiscardTimer, "Locked, but discard timer set!");
+  NS_ABORT_IF_FALSE(!DiscardingActive(), "Locked, but discarding activated");
 
   
   mLockCount--;
 
   
   if (CanDiscard()) {
-    nsresult rv = ResetDiscardTimer();
+    nsresult rv = imgDiscardTracker::Reset(&mDiscardTrackerNode);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
 
