@@ -256,6 +256,10 @@ public:
 
 
 
+
+
+
+
   virtual void ParentChainChanged(nsIContent *aContent) = 0;
 };
 
