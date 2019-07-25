@@ -63,7 +63,7 @@
 
 
 
-#define NS_E10S_IOSERVICE_SET_OFFLINE_TOPIC "e10s:network:set-offline"
+#define NS_IPC_IOSERVICE_SET_OFFLINE_TOPIC "ipc:network:set-offline"
 
 static const char gScheme[][sizeof("resource")] =
     {"chrome", "file", "http", "jar", "resource"};
