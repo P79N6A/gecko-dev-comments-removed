@@ -1552,7 +1552,7 @@ types::MarkArgumentsCreated(JSContext *cx, JSScript *script)
     AutoEnterTypeInference enter(cx);
 
 #ifdef JS_METHODJIT
-    mjit::ExpandInlineFrames(cx->compartment, true);
+    mjit::ExpandInlineFrames(cx->compartment);
 #endif
 
     if (!script->ensureRanBytecode(cx))
@@ -1955,7 +1955,7 @@ TypeCompartment::processPendingRecompiles(JSContext *cx)
 
 #ifdef JS_METHODJIT
 
-    mjit::ExpandInlineFrames(cx->compartment, true);
+    mjit::ExpandInlineFrames(cx->compartment);
 
     for (unsigned i = 0; i < pending->length(); i++) {
         JSScript *script = (*pending)[i];
@@ -2025,7 +2025,7 @@ TypeCompartment::nukeTypes(JSContext *cx)
 
 #ifdef JS_METHODJIT
 
-    mjit::ExpandInlineFrames(cx->compartment, true);
+    mjit::ExpandInlineFrames(cx->compartment);
 
     
     for (JSCList *cursor = compartment->scripts.next;
@@ -2787,9 +2787,13 @@ TypeObject::setFlags(JSContext *cx, TypeObjectFlags flags)
 
     AutoEnterTypeInference enter(cx);
 
-    
-    JS_ASSERT_IF(flags & OBJECT_FLAG_CREATED_ARGUMENTS,
-                 (flags & OBJECT_FLAG_UNINLINEABLE) && functionScript->createdArgs);
+    if (singleton) {
+        
+        JS_ASSERT_IF(flags & OBJECT_FLAG_CREATED_ARGUMENTS,
+                     (flags & OBJECT_FLAG_UNINLINEABLE) && functionScript->createdArgs);
+        JS_ASSERT_IF(flags & OBJECT_FLAG_UNINLINEABLE, functionScript->uninlineable);
+        JS_ASSERT_IF(flags & OBJECT_FLAG_ITERATED, singleton->flags & JSObject::ITERATED);
+    }
 
     this->flags |= flags;
 

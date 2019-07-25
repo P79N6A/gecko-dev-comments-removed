@@ -1754,13 +1754,6 @@ class GeneratorFrameGuard : public FrameGuard
 
 
 
-enum FrameExpandKind {
-    FRAME_EXPAND_NONE,
-    FRAME_EXPAND_TOP,
-    FRAME_EXPAND_ALL
-};
-
-
 
 
 

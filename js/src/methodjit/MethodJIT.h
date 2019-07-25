@@ -676,7 +676,7 @@ ReleaseScriptCode(JSContext *cx, JSScript *script, bool normal);
 
 
 void
-ExpandInlineFrames(JSCompartment *compartment, bool all);
+ExpandInlineFrames(JSCompartment *compartment);
 
 
 

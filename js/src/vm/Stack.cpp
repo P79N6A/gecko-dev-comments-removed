@@ -577,8 +577,25 @@ ContextStack::ensureOnTop(JSContext *cx, MaybeReportError report, uintN nvars,
 
 
 
-    if (cx->hasfp() && cx->regs().inlined())
-        mjit::ExpandInlineFrames(cx->compartment, false);
+
+
+
+
+
+    if (cx->hasfp() && cx->fp()->isFunctionFrame() && cx->fp()->fun()->isInterpreted()) {
+        if (report) {
+            
+
+
+
+
+
+            cx->fp()->fun()->script()->uninlineable = true;
+            types::MarkTypeObjectFlags(cx, cx->fp()->fun(),
+                                       types::OBJECT_FLAG_UNINLINEABLE);
+        }
+        JS_ASSERT(!cx->regs().inlined());
+    }
 #endif
 
     if (onTop() && extend) {
@@ -817,6 +834,10 @@ ContextStack::popGeneratorFrame(const GeneratorFrameGuard &gfg)
 bool
 ContextStack::saveFrameChain()
 {
+#ifdef JS_METHODJIT
+    mjit::ExpandInlineFrames(cx_->compartment);
+#endif
+
     
 
 
@@ -1085,7 +1106,7 @@ StackIter::StackIter(JSContext *cx, SavedOption savedOption)
     savedOption_(savedOption)
 {
 #ifdef JS_METHODJIT
-    mjit::ExpandInlineFrames(cx->compartment, true);
+    mjit::ExpandInlineFrames(cx->compartment);
 #endif
 
     LeaveTrace(cx);

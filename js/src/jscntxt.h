@@ -2314,14 +2314,17 @@ CanLeaveTrace(JSContext *cx);
 
 #ifdef JS_METHODJIT
 namespace mjit {
-    void ExpandInlineFrames(JSCompartment *compartment, bool all);
+    void ExpandInlineFrames(JSCompartment *compartment);
 }
 #endif
 
 } 
 
 
-
+enum FrameExpandKind {
+    FRAME_EXPAND_NONE = 0,
+    FRAME_EXPAND_ALL = 1
+};
 
 
 
@@ -2330,13 +2333,13 @@ namespace mjit {
 
 
 static JS_FORCES_STACK JS_INLINE js::StackFrame *
-js_GetTopStackFrame(JSContext *cx, js::FrameExpandKind expand)
+js_GetTopStackFrame(JSContext *cx, FrameExpandKind expand)
 {
     js::LeaveTrace(cx);
 
 #ifdef JS_METHODJIT
-    if (expand != js::FRAME_EXPAND_NONE)
-        js::mjit::ExpandInlineFrames(cx->compartment, expand == js::FRAME_EXPAND_ALL);
+    if (expand)
+        js::mjit::ExpandInlineFrames(cx->compartment);
 #endif
 
     return cx->maybefp();
