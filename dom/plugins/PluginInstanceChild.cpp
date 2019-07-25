@@ -548,6 +548,10 @@ PluginInstanceChild::AnswerNPP_HandleEvent(const NPRemoteEvent& event,
 
 #ifdef OS_WIN
     
+    if (WM_NULL == evcopy.event)
+        return true;
+
+    
     if (mWindow.type == NPWindowTypeDrawable) {
        if (evcopy.event == WM_PAINT) {
           *handled = SharedSurfacePaint(evcopy);

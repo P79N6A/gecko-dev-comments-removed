@@ -134,7 +134,11 @@ struct ParamTraits<mozilla::plugins::NPRemoteEvent>
                     break;
 
                 
-                return;
+                
+                
+                
+                paramCopy.event.event = WM_NULL;
+                break;
         }
 
         aMsg->WriteBytes(&paramCopy, sizeof(paramType));
