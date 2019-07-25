@@ -687,6 +687,7 @@ nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
       
       
       mReparseForbidden = PR_TRUE;
+      mFeedChardet = PR_FALSE; 
     }
   }
 
@@ -904,6 +905,7 @@ nsHtml5StreamParser::internalEncodingDeclaration(nsString* aEncoding)
   }
   if (eq) {
     mCharsetSource = kCharsetFromMetaTag; 
+    mFeedChardet = PR_FALSE; 
     return PR_FALSE;
   }
   
@@ -929,9 +931,14 @@ nsHtml5StreamParser::internalEncodingDeclaration(nsString* aEncoding)
     return PR_FALSE;
   }
 
+  
+  
+  mFeedChardet = PR_FALSE;
   mTreeBuilder->NeedsCharsetSwitchTo(preferred, kCharsetFromMetaTag);
   FlushTreeOpsAndDisarmTimer();
   Interrupt();
+  
+  
   
   
   
