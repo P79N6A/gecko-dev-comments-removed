@@ -395,6 +395,7 @@ function parseRDFManifest(aId, aType, aUpdateKey, aRequest) {
         updateURL: getProperty(ds, targetApp, "updateLink"),
         updateHash: getProperty(ds, targetApp, "updateHash"),
         updateInfoURL: getProperty(ds, targetApp, "updateInfoURL"),
+        strictCompatibility: getProperty(ds, targetApp, "strictCompatibility") == "true",
         targetApplications: [appEntry]
       };
 
@@ -602,8 +603,11 @@ UpdateParser.prototype = {
 
 
 
+
+
 function matchesVersions(aUpdate, aAppVersion, aPlatformVersion,
-                         aIgnoreMaxVersion, aCompatOverrides) {
+                         aIgnoreMaxVersion, aIgnoreStrictCompat,
+                         aCompatOverrides) {
   if (aCompatOverrides) {
     let override = AddonRepository.findMatchingCompatOverride(aUpdate.version,
                                                               aCompatOverrides,
@@ -612,6 +616,9 @@ function matchesVersions(aUpdate, aAppVersion, aPlatformVersion,
     if (override && override.type == "incompatible")
       return false;
   }
+
+  if (aUpdate.strictCompatibility && !aIgnoreStrictCompat)
+    aIgnoreMaxVersion = false;
 
   let result = false;
   for (let i = 0; i < aUpdate.targetApplications.length; i++) {
@@ -660,11 +667,14 @@ var AddonUpdateChecker = {
 
 
 
+
+
   getCompatibilityUpdate: function AUC_getCompatibilityUpdate(aUpdates, aVersion,
                                                               aIgnoreCompatibility,
                                                               aAppVersion,
                                                               aPlatformVersion,
-                                                              aIgnoreMaxVersion) {
+                                                              aIgnoreMaxVersion,
+                                                              aIgnoreStrictCompat) {
     if (!aAppVersion)
       aAppVersion = Services.appinfo.version;
     if (!aPlatformVersion)
@@ -680,7 +690,7 @@ var AddonUpdateChecker = {
           }
         }
         else if (matchesVersions(aUpdates[i], aAppVersion, aPlatformVersion,
-                                 aIgnoreMaxVersion)) {
+                                 aIgnoreMaxVersion, aIgnoreStrictCompat)) {
           return aUpdates[i];
         }
       }
@@ -703,10 +713,13 @@ var AddonUpdateChecker = {
 
 
 
+
+
   getNewestCompatibleUpdate: function AUC_getNewestCompatibleUpdate(aUpdates,
                                                                     aAppVersion,
                                                                     aPlatformVersion,
                                                                     aIgnoreMaxVersion,
+                                                                    aIgnoreStrictCompat,
                                                                     aCompatOverrides) {
     if (!aAppVersion)
       aAppVersion = Services.appinfo.version;
@@ -726,7 +739,8 @@ var AddonUpdateChecker = {
         continue;
       if ((newest == null || (Services.vc.compare(newest.version, aUpdates[i].version) < 0)) &&
           matchesVersions(aUpdates[i], aAppVersion, aPlatformVersion,
-                          aIgnoreMaxVersion, aCompatOverrides)) {
+                          aIgnoreMaxVersion, aIgnoreStrictCompat,
+                          aCompatOverrides)) {
         newest = aUpdates[i];
       }
     }
