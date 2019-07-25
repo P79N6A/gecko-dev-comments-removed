@@ -719,6 +719,13 @@ struct TypeObject : gc::Cell
     JSObject *singleton;
 
     
+
+
+
+    static const size_t LAZY_SINGLETON = 1;
+    bool lazy() const { return singleton == (JSObject *) LAZY_SINGLETON; }
+
+    
     js::ShapeKindArray *emptyShapes;
 
     
