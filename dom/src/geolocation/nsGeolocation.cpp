@@ -741,6 +741,12 @@ nsGeolocationService::StartDevice()
   if (!sGeoEnabled)
     return NS_ERROR_NOT_AVAILABLE;
 
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    ContentChild* cpc = ContentChild::GetSingleton();
+    cpc->SendGeolocationStart();
+    return NS_OK;
+  }
+
   
   nsresult rv = NS_ERROR_NOT_AVAILABLE;
   for (PRUint32 i = mProviders.Count() - 1; i != PRUint32(-1); --i) {
@@ -781,13 +787,19 @@ nsGeolocationService::SetDisconnectTimer()
 void 
 nsGeolocationService::StopDevice()
 {
-  for (PRUint32 i = mProviders.Count() - 1; i != PRUint32(-1); --i) {
-    mProviders[i]->Shutdown();
-  }
-
   if(mDisconnectTimer) {
     mDisconnectTimer->Cancel();
     mDisconnectTimer = nsnull;
+  }
+
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    ContentChild* cpc = ContentChild::GetSingleton();
+    cpc->SendGeolocationStop();
+    return; 
+  }
+
+  for (PRUint32 i = mProviders.Count() - 1; i != PRUint32(-1); --i) {
+    mProviders[i]->Shutdown();
   }
 }
 
