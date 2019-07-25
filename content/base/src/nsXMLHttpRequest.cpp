@@ -1230,23 +1230,20 @@ nsXMLHttpRequest::GetResponseHeader(const nsACString& header,
   return rv;
 }
 
-nsresult
-nsXMLHttpRequest::GetLoadGroup(nsILoadGroup **aLoadGroup)
+already_AddRefed<nsILoadGroup>
+nsXMLHttpRequest::GetLoadGroup() const
 {
-  NS_ENSURE_ARG_POINTER(aLoadGroup);
-  *aLoadGroup = nsnull;
-
   if (mState & XML_HTTP_REQUEST_BACKGROUND) {
-    return NS_OK;
+    return nsnull;
   }
 
   nsCOMPtr<nsIDocument> doc =
     nsContentUtils::GetDocumentFromScriptContext(mScriptContext);
   if (doc) {
-    *aLoadGroup = doc->GetDocumentLoadGroup().get();  
+    return doc->GetDocumentLoadGroup();
   }
 
-  return NS_OK;
+  return nsnull;
 }
 
 nsresult
@@ -1493,8 +1490,7 @@ nsXMLHttpRequest::Open(const nsACString& method, const nsACString& url,
   
   
   
-  nsCOMPtr<nsILoadGroup> loadGroup;
-  GetLoadGroup(getter_AddRefs(loadGroup));
+  nsCOMPtr<nsILoadGroup> loadGroup = GetLoadGroup();
 
   
   nsCOMPtr<nsIChannelPolicy> channelPolicy;
@@ -2076,7 +2072,7 @@ GetRequestBody(nsIVariant* aBody, nsIInputStream** aResult,
     
     nsCOMPtr<nsIInputStream> stream = do_QueryInterface(supports);
     if (stream) {
-      *aResult = stream.forget().get();
+      stream.forget(aResult);
       aCharset.Truncate();
 
       return NS_OK;

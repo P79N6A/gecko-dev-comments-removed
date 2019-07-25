@@ -214,7 +214,7 @@ protected:
   
   
   nsresult ChangeState(PRUint32 aState, PRBool aBroadcast = PR_TRUE);
-  nsresult GetLoadGroup(nsILoadGroup **aLoadGroup);
+  already_AddRefed<nsILoadGroup> GetLoadGroup() const;
   nsIURI *GetBaseURI();
 
   nsresult RemoveAddEventListener(const nsAString& aType,
