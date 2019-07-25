@@ -64,29 +64,6 @@ TaggingService.prototype = {
   
 
 
-  _getTagResult: function TS__getTagResult(aTagNameOrId) {
-    if (!aTagNameOrId)
-      throw Cr.NS_ERROR_INVALID_ARG;
-
-    var tagId = null;
-    if (typeof(aTagNameOrId) == "string")
-      tagId = this._getItemIdForTag(aTagNameOrId);
-    else
-      tagId = aTagNameOrId;
-
-    if (tagId == -1)
-      return null;
-
-    var options = PlacesUtils.history.getNewQueryOptions();
-    var query = PlacesUtils.history.getNewQuery();
-    query.setFolders([tagId], 1);
-    var result = PlacesUtils.history.executeQuery(query, options);
-    return result;
-  },
-
-  
-
-
 
 
 
@@ -116,11 +93,24 @@ TaggingService.prototype = {
     var tagId = this._getItemIdForTag(aTagName);
     if (tagId == -1)
       return -1;
-    var bookmarkIds = PlacesUtils.bookmarks.getBookmarkIdsForURI(aURI);
-    for (var i=0; i < bookmarkIds.length; i++) {
-      var parent = PlacesUtils.bookmarks.getFolderIdForItem(bookmarkIds[i]);
-      if (parent == tagId)
-        return bookmarkIds[i];
+    
+    
+    let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
+                                .DBConnection;
+    let stmt = db.createStatement(
+      "SELECT id FROM moz_bookmarks "
+    + "WHERE parent = :tag_id "
+    + "AND fk = (SELECT id FROM moz_places WHERE url = :page_url)"
+    );
+    stmt.params.tag_id = tagId;
+    stmt.params.page_url = aURI.spec;
+    try {
+      if (stmt.executeStep()) {
+        return stmt.row.id;
+      }
+    }
+    finally {
+      stmt.finalize();
     }
     return -1;
   },
@@ -223,14 +213,24 @@ TaggingService.prototype = {
 
 
   _removeTagIfEmpty: function TS__removeTagIfEmpty(aTagId) {
-    var result = this._getTagResult(aTagId);
-    if (!result)
-      return;
-    var node = PlacesUtils.asContainer(result.root);
-    node.containerOpen = true;
-    var cc = node.childCount;
-    node.containerOpen = false;
-    if (cc == 0) {
+    let count = 0;
+    let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
+                                .DBConnection;
+    let stmt = db.createStatement(
+      "SELECT count(*) AS count FROM moz_bookmarks "
+    + "WHERE parent = :tag_id"
+    );
+    stmt.params.tag_id = aTagId;
+    try {
+      if (stmt.executeStep()) {
+        count = stmt.row.count;
+      }
+    }
+    finally {
+      stmt.finalize();
+    }
+
+    if (count == 0) {
       PlacesUtils.bookmarks.removeItem(aTagId);
     }
   },
@@ -271,27 +271,34 @@ TaggingService.prototype = {
   },
 
   
-  getURIsForTag: function TS_getURIsForTag(aTag) {
-    if (!aTag || aTag.length == 0)
+  getURIsForTag: function TS_getURIsForTag(aTagName) {
+    if (!aTagName || aTagName.length == 0)
       throw Cr.NS_ERROR_INVALID_ARG;
 
-    var uris = [];
-    var tagResult = this._getTagResult(aTag);
-    if (tagResult) {
-      var tagNode = tagResult.root;
-      tagNode.QueryInterface(Ci.nsINavHistoryContainerResultNode);
-      tagNode.containerOpen = true;
-      var cc = tagNode.childCount;
-      for (var i = 0; i < cc; i++) {
+    let uris = [];
+    let tagId = this._getItemIdForTag(aTagName);
+    if (tagId == -1)
+      return uris;
+
+    let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
+                                .DBConnection;
+    let stmt = db.createStatement(
+      "SELECT h.url FROM moz_places h "
+    + "JOIN moz_bookmarks b ON b.fk = h.id "
+    + "WHERE b.parent = :tag_id "
+    );
+    stmt.params.tag_id = tagId;
+    try {
+      while (stmt.executeStep()) {
         try {
-          uris.push(Services.io.newURI(tagNode.getChild(i).uri, null, null));
-        } catch (ex) {
-          
-          
-        }
+          uris.push(Services.io.newURI(stmt.row.url, null, null));
+        } catch (ex) {}
       }
-      tagNode.containerOpen = false;
     }
+    finally {
+      stmt.finalize();
+    }
+
     return uris;
   },
 
@@ -321,18 +328,21 @@ TaggingService.prototype = {
   get _tagFolders() {
     if (!this.__tagFolders) {
       this.__tagFolders = [];
-      var options = PlacesUtils.history.getNewQueryOptions();
-      var query = PlacesUtils.history.getNewQuery();
-      query.setFolders([PlacesUtils.tagsFolderId], 1);
-      var tagsResult = PlacesUtils.history.executeQuery(query, options);
-      var root = tagsResult.root;
-      root.containerOpen = true;
-      var cc = root.childCount;
-      for (var i=0; i < cc; i++) {
-        var child = root.getChild(i);
-        this.__tagFolders[child.itemId] = child.title;
+
+      let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
+                                  .DBConnection;
+      let stmt = db.createStatement(
+        "SELECT id, title FROM moz_bookmarks WHERE parent = :tags_root "
+      );
+      stmt.params.tags_root = PlacesUtils.tagsFolderId;
+      try {
+        while (stmt.executeStep()) {
+          this.__tagFolders[stmt.row.id] = stmt.row.title;
+        }
       }
-      root.containerOpen = false;
+      finally {
+        stmt.finalize();
+      }
     }
 
     return this.__tagFolders;
@@ -374,20 +384,38 @@ TaggingService.prototype = {
 
 
 
-  _getTagsIfUnbookmarkedURI: function TS__getTagsIfUnbookmarkedURI(aURI) {
-    var tagIds = [];
+  _getTaggedItemIdsIfUnbookmarkedURI:
+  function TS__getTaggedItemIdsIfUnbookmarkedURI(aURI) {
+    var itemIds = [];
     var isBookmarked = false;
-    var itemIds = PlacesUtils.bookmarks.getBookmarkIdsForURI(aURI);
 
-    for (let i = 0; !isBookmarked && i < itemIds.length; i++) {
-      var parentId = PlacesUtils.bookmarks.getFolderIdForItem(itemIds[i]);
-      if (this._tagFolders[parentId])
-        tagIds.push(parentId);
-      else
-        isBookmarked = true;
+    
+    
+    let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
+                                .DBConnection;
+    let stmt = db.createStatement(
+      "SELECT id, parent "
+    + "FROM moz_bookmarks "
+    + "WHERE fk = (SELECT id FROM moz_places WHERE url = :page_url)"
+    );
+    stmt.params.page_url = aURI.spec;
+    try {
+      while (stmt.executeStep() && !isBookmarked) {
+        if (this._tagFolders[stmt.row.parent]) {
+          
+          itemIds.push(stmt.row.id);
+        }
+        else {
+          
+          isBookmarked = true;
+        }
+      }
+    }
+    finally {
+      stmt.finalize();
     }
 
-    return !isBookmarked && tagIds.length > 0 ? tagIds : null;
+    return isBookmarked ? [] : itemIds;
   },
 
   
@@ -404,20 +432,21 @@ TaggingService.prototype = {
   onItemRemoved: function TS_onItemRemoved(aItemId, aFolderId, aIndex,
                                            aItemType, aURI) {
     
-    if (aFolderId == PlacesUtils.tagsFolderId && this._tagFolders[aItemId])
+    if (aFolderId == PlacesUtils.tagsFolderId && this._tagFolders[aItemId]) {
       delete this._tagFolders[aItemId];
-
+    }
     
     else if (aURI && !this._tagFolders[aFolderId]) {
-
       
       
       
-      var tagIds = this._getTagsIfUnbookmarkedURI(aURI);
-      if (tagIds)
-        this.untagURI(aURI, tagIds);
+      let itemIds = this._getTaggedItemIdsIfUnbookmarkedURI(aURI);
+      for (let i = 0; i < itemIds.length; i++) {
+        try {
+          PlacesUtils.bookmarks.removeItem(itemIds[i]);
+        } catch (ex) {}
+      }
     }
-
     
     else if (aURI && this._tagFolders[aFolderId]) {
       this._removeTagIfEmpty(aFolderId);
