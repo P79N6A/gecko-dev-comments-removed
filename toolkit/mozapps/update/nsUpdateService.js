@@ -1699,14 +1699,18 @@ UpdateService.prototype = {
 
 
 
+
+
   _sendServiceInstalledTelemetryPing: function AUS__svcInstallTelemetryPing() {
     let installed = 0;
+    let attempted = 0;
     try {
       let wrk = Components.classes["@mozilla.org/windows-registry-key;1"]
                 .createInstance(Components.interfaces.nsIWindowsRegKey);
       wrk.open(wrk.ROOT_KEY_LOCAL_MACHINE,
                "SOFTWARE\\Mozilla\\MaintenanceService",
                wrk.ACCESS_READ | wrk.WOW64_64);
+      attempted = wrk.readIntValue("Attempted");
       installed = wrk.readIntValue("Installed");
       wrk.close();
     } catch(e) {
@@ -1714,6 +1718,13 @@ UpdateService.prototype = {
     try {
       let h = Services.telemetry.getHistogramById("UPDATER_SERVICE_INSTALLED");
       h.add(installed);
+    } catch(e) {
+      
+      Components.utils.reportError(e);
+    }
+    try {
+      let h = Services.telemetry.getHistogramById("UPDATER_SERVICE_MANUALLY_UNINSTALLED");
+      h.add(!installed && attempted ? 1 : 0);
     } catch(e) {
       
       Components.utils.reportError(e);
