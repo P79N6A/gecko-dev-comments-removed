@@ -34,6 +34,7 @@
 
 
 
+
 var EXPORTED_SYMBOLS = [ "DownloadUtils" ];
 
 
@@ -84,21 +85,19 @@ __defineGetter__("gDecimalSymbol", function() {
 const kDownloadProperties =
   "chrome://mozapps/locale/downloads/downloads.properties";
 
-
-
-let kStrings = {
-  statusFormat: "statusFormat2",
-  transferSameUnits: "transferSameUnits",
-  transferDiffUnits: "transferDiffUnits",
-  transferNoTotal: "transferNoTotal",
-  timePair: "timePair",
-  timeLeftSingle: "timeLeftSingle",
-  timeLeftDouble: "timeLeftDouble",
+let gStr = {
+  statusFormat: "statusFormat3",
+  transferSameUnits: "transferSameUnits2",
+  transferDiffUnits: "transferDiffUnits2",
+  transferNoTotal: "transferNoTotal2",
+  timePair: "timePair2",
+  timeLeftSingle: "timeLeftSingle2",
+  timeLeftDouble: "timeLeftDouble2",
   timeFewSeconds: "timeFewSeconds",
   timeUnknown: "timeUnknown",
-  monthDate: "monthDate",
+  monthDate: "monthDate2",
   yesterday: "yesterday",
-  doneScheme: "doneScheme",
+  doneScheme: "doneScheme2",
   doneFileScheme: "doneFileScheme",
   units: ["bytes", "kilobyte", "megabyte", "gigabyte"],
   
@@ -106,54 +105,12 @@ let kStrings = {
 };
 
 
-let gStr = {
-  
-
-
-  _init: function()
-  {
-    
-    
-    for (let [name, value] in Iterator(kStrings))
-      let ([n, v] = [name, value])
-        gStr.__defineGetter__(n, function() gStr._getStr(n, v));
-  },
-
-  
-
-
-
-  get _getStr()
-  {
-    
-    delete gStr._getStr;
-
-    
-    let getStr = Cc["@mozilla.org/intl/stringbundle;1"].
-                 getService(Ci.nsIStringBundleService).
-                 createBundle(kDownloadProperties).
-                 GetStringFromName;
-
-    
-    return gStr._getStr = function(name, value) {
-      
-      delete gStr[name];
-
-      try {
-        
-        return gStr[name] = typeof value == "string" ?
-                            getStr(value) :
-                            value.map(getStr);
-      } catch (e) {
-        log(["Couldn't get string '", name, "' from property '", value, "'"]);
-        
-        
-      }
-    };
-  },
-};
-
-gStr._init();
+__defineGetter__("gBundle", function() {
+  delete gBundle;
+  return this.gBundle = Cc["@mozilla.org/intl/stringbundle;1"].
+                        getService(Ci.nsIStringBundleService).
+                        createBundle(kDownloadProperties);
+});
 
 
 
@@ -189,28 +146,14 @@ let DownloadUtils = {
     let seconds = (aSpeed > 0) && (aMaxBytes > 0) ?
       (aMaxBytes - aCurrBytes) / aSpeed : -1;
 
-    
-    let status;
-    let (transfer = DownloadUtils.getTransferTotal(aCurrBytes, aMaxBytes)) {
-      
-      status = replaceInsert(gStr.statusFormat, 1, transfer);
-    }
+    let transfer = DownloadUtils.getTransferTotal(aCurrBytes, aMaxBytes);
+    let [rate, unit] = DownloadUtils.convertByteUnits(aSpeed);
+    let [timeLeft, newLast] = DownloadUtils.getTimeLeft(seconds, aLastSec);
 
-    
-    let ([rate, unit] = DownloadUtils.convertByteUnits(aSpeed)) {
-      
-      status = replaceInsert(status, 2, rate);
-      
-      status = replaceInsert(status, 3, unit);
-    }
-
-    
-    let ([timeLeft, newLast] = DownloadUtils.getTimeLeft(seconds, aLastSec)) {
-      
-      status = replaceInsert(status, 4, timeLeft);
-
-      return [status, newLast];
-    }
+    let params = [transfer, rate, unit, timeLeft];
+    let status = gBundle.formatStringFromName(gStr.statusFormat, params,
+                                              params.length);
+    return [status, newLast];
   },
 
   
@@ -233,20 +176,31 @@ let DownloadUtils = {
     let [total, totalUnits] = DownloadUtils.convertByteUnits(aMaxBytes);
 
     
-    let transfer;
-    if (aMaxBytes < 0)
-      transfer = gStr.transferNoTotal;
-    else if (progressUnits == totalUnits)
-      transfer = gStr.transferSameUnits;
-    else
-      transfer = gStr.transferDiffUnits;
+    let name, values;
+    if (aMaxBytes < 0) {
+      name = gStr.transferNoTotal;
+      values = [
+        progress,
+        progressUnits,
+      ];
+    } else if (progressUnits == totalUnits) {
+      name = gStr.transferSameUnits;
+      values = [
+        progress,
+        total,
+        totalUnits,
+      ];
+    } else {
+      name = gStr.transferDiffUnits;
+      values = [
+        progress,
+        progressUnits,
+        total,
+        totalUnits,
+      ];
+    }
 
-    transfer = replaceInsert(transfer, 1, progress);
-    transfer = replaceInsert(transfer, 2, progressUnits);
-    transfer = replaceInsert(transfer, 3, total);
-    transfer = replaceInsert(transfer, 4, totalUnits);
-
-    return transfer;
+    return gBundle.formatStringFromName(name, values, values.length);
   },
 
   
@@ -267,7 +221,7 @@ let DownloadUtils = {
       aLastSec = Infinity;
 
     if (aSeconds < 0)
-      return [gStr.timeUnknown, aLastSec];
+      return [gBundle.GetStringFromName(gStr.timeUnknown), aLastSec];
 
     
     aLastSec = gCachedLast.reduce(function(aResult, aItem)
@@ -300,25 +254,26 @@ let DownloadUtils = {
     let timeLeft;
     if (aSeconds < 4) {
       
-      timeLeft = gStr.timeFewSeconds;
+      timeLeft = gBundle.GetStringFromName(gStr.timeFewSeconds);
     } else {
       
       let [time1, unit1, time2, unit2] =
         DownloadUtils.convertTimeUnits(aSeconds);
 
-      let pair1 = replaceInsert(gStr.timePair, 1, time1);
-      pair1 = replaceInsert(pair1, 2, unit1);
-      let pair2 = replaceInsert(gStr.timePair, 1, time2);
-      pair2 = replaceInsert(pair2, 2, unit2);
+      let pair1 =
+        gBundle.formatStringFromName(gStr.timePair, [time1, unit1], 2);
+      let pair2 =
+        gBundle.formatStringFromName(gStr.timePair, [time2, unit2], 2);
 
       
       
       if ((aSeconds < 3600 && time1 >= 4) || time2 == 0) {
-        timeLeft = replaceInsert(gStr.timeLeftSingle, 1, pair1);
+        timeLeft = gBundle.formatStringFromName(gStr.timeLeftSingle,
+                                                [pair1], 1);
       } else {
         
-        timeLeft = replaceInsert(gStr.timeLeftDouble, 1, pair1);
-        timeLeft = replaceInsert(timeLeft, 2, pair2);
+        timeLeft = gBundle.formatStringFromName(gStr.timeLeftDouble,
+                                                [pair1, pair2], 2);
       }
     }
 
@@ -364,7 +319,7 @@ let DownloadUtils = {
                                        0);
     } else if (today - aDate < (24 * 60 * 60 * 1000)) {
       
-      dateTimeCompact = gStr.yesterday;
+      dateTimeCompact = gBundle.GetStringFromName(gStr.yesterday);
     } else if (today - aDate < (6 * 24 * 60 * 60 * 1000)) {
       
       dateTimeCompact = aDate.toLocaleFormat("%A");
@@ -373,8 +328,7 @@ let DownloadUtils = {
       let month = aDate.toLocaleFormat("%B");
       
       let date = Number(aDate.toLocaleFormat("%d"));
-      dateTimeCompact = replaceInsert(gStr.monthDate, 1, month);
-      dateTimeCompact = replaceInsert(dateTimeCompact, 2, date);
+      dateTimeCompact = gBundle.formatStringFromName(gStr.monthDate, [month, date], 2);
     }
 
     let dateTimeFull = dts.FormatDateTime("",
@@ -437,11 +391,12 @@ let DownloadUtils = {
     
     if (uri.scheme == "file") {
       
-      displayHost = gStr.doneFileScheme;
+      displayHost = gBundle.GetStringFromName(gStr.doneFileScheme);
       fullHost = displayHost;
     } else if (displayHost.length == 0) {
       
-      displayHost = replaceInsert(gStr.doneScheme, 1, uri.scheme);
+      displayHost =
+        gBundle.formatStringFromName(gStr.doneScheme, [uri.scheme], 1);
       fullHost = displayHost;
     } else if (uri.port != -1) {
       
@@ -479,7 +434,7 @@ let DownloadUtils = {
 
     if (gDecimalSymbol != ".")
       aBytes = aBytes.replace(".", gDecimalSymbol);
-    return [aBytes, gStr.units[unitIndex]];
+    return [aBytes, gBundle.GetStringFromName(gStr.units[unitIndex])];
   },
 
   
@@ -552,23 +507,7 @@ function convertTimeUnitsUnits(aTime, aIndex)
   if (aIndex < 0)
     return "";
 
-  return PluralForm.get(aTime, gStr.timeUnits[aIndex]);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-function replaceInsert(aText, aIndex, aValue)
-{
-  return aText.replace("#" + aIndex, aValue);
+  return PluralForm.get(aTime, gBundle.GetStringFromName(gStr.timeUnits[aIndex]));
 }
 
 

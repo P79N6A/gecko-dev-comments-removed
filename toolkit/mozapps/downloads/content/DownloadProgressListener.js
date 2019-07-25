@@ -63,6 +63,7 @@ DownloadProgressListener.prototype = {
     
     onUpdateProgress();
 
+    let dl;
     let state = aDownload.state;
     switch (state) {
       case nsIDM.DOWNLOAD_QUEUED:
@@ -82,16 +83,26 @@ DownloadProgressListener.prototype = {
         if (state == nsIDM.DOWNLOAD_FINISHED)
           autoRemoveAndClose(aDownload);
         break;
+      case nsIDM.DOWNLOAD_DOWNLOADING: {
+        dl = getDownload(aDownload.id);
+
+        
+        dl.setAttribute("progressmode", aDownload.percentComplete == -1 ?
+                                        "undetermined" : "normal");
+
+        
+        let referrer = aDownload.referrer;
+        if (referrer)
+          dl.setAttribute("referrer", referrer.spec);
+
+        break;
+      }
     }
 
     
     try {
-      let dl = getDownload(aDownload.id);
-
-      
-      let referrer = aDownload.referrer;
-      if (referrer)
-        dl.setAttribute("referrer", referrer.spec);
+      if (!dl)
+        dl = getDownload(aDownload.id);
 
       
       dl.setAttribute("state", state);
@@ -112,18 +123,15 @@ DownloadProgressListener.prototype = {
     var download = getDownload(aDownload.id);
 
     
-    if (aDownload.percentComplete == -1) {
-      download.setAttribute("progressmode", "undetermined");
-    } else {
-      download.setAttribute("progressmode", "normal");
+    if (aDownload.percentComplete != -1) {
       download.setAttribute("progress", aDownload.percentComplete);
-    }
 
-    
-    var event = document.createEvent("Events");
-    event.initEvent("ValueChange", true, true);
-    document.getAnonymousElementByAttribute(download, "anonid", "progressmeter")
-            .dispatchEvent(event);
+      
+      let event = document.createEvent("Events");
+      event.initEvent("ValueChange", true, true);
+      document.getAnonymousElementByAttribute(download, "anonid", "progressmeter")
+              .dispatchEvent(event);
+    }
 
     
     download.setAttribute("currBytes", aDownload.amountTransferred);
