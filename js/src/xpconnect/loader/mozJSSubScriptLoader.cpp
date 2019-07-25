@@ -221,6 +221,13 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar * aURL
 
     
     
+    if (target_obj->isWrapper())
+    {
+        target_obj = target_obj->unwrap();
+    }
+
+    
+    
     if (JSObjectOp op = target_obj->getClass()->ext.innerObject)
     {
         target_obj = op(cx, target_obj);
@@ -228,10 +235,6 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar * aURL
 #ifdef DEBUG_rginda
         fprintf (stderr, "Final global: %p\n", target_obj);
 #endif
-    }
-    else if (target_obj->isWrapper())
-    {
-        target_obj = target_obj->unwrap();
     }
 
     JSAutoEnterCompartment ac;
