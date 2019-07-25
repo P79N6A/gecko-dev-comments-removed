@@ -1,3 +1,41 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 package org.mozilla.gecko.sync.repositories.android;
 
 import org.json.simple.JSONArray;
@@ -96,8 +134,11 @@ public class AndroidBrowserHistoryDataExtender extends SQLiteOpenHelper {
     
     ContentValues cv = new ContentValues();
     cv.put(COL_GUID, guid);
-    if (visits == null) cv.put(COL_VISITS, new JSONArray().toJSONString());
-    else cv.put(COL_VISITS, visits.toJSONString());
+    if (visits == null) {
+      cv.put(COL_VISITS, "[]");
+    } else {
+      cv.put(COL_VISITS, visits.toJSONString());
+    }
     long rowId = db.insert(TBL_HISTORY_EXT, null, cv);
     Log.i(TAG, "Inserted history extension record into row: " + rowId);
     return rowId;
@@ -106,8 +147,10 @@ public class AndroidBrowserHistoryDataExtender extends SQLiteOpenHelper {
   public Cursor fetch(String guid) throws NullCursorException {
     SQLiteDatabase db = this.getCachedReadableDatabase();
     long queryStart = System.currentTimeMillis();
-    Cursor cur = db.query(TBL_HISTORY_EXT, new String[] { COL_GUID, COL_VISITS },
-        COL_GUID + " = '" + guid + "'", null, null, null, null);
+    Cursor cur = db.query(TBL_HISTORY_EXT,
+                          new String[] { COL_GUID, COL_VISITS },
+                          COL_GUID + " = '" + guid + "'",
+                          null, null, null, null);
     RepoUtils.queryTimeLogger("AndroidBrowserHistoryDataExtender.fetch(guid)", queryStart, System.currentTimeMillis());
     if (cur == null) {
       Log.e(TAG, "Got a null cursor while doing fetch for guid " + guid + " on history extension table");
@@ -120,5 +163,4 @@ public class AndroidBrowserHistoryDataExtender extends SQLiteOpenHelper {
     SQLiteDatabase db = this.getCachedWritableDatabase();
     db.delete(TBL_HISTORY_EXT, COL_GUID + " = '" + guid + "'", null);
   }
-
 }

@@ -83,6 +83,7 @@ public class PasswordRecord extends Record {
   @Override
   public CryptoRecord getPayload() {
     
+    
     return null;
   }
   

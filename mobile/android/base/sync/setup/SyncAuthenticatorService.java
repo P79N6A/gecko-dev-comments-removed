@@ -35,6 +35,7 @@
 
 
 
+
 package org.mozilla.gecko.sync.setup;
 
 import java.io.UnsupportedEncodingException;
@@ -98,6 +99,7 @@ public class SyncAuthenticatorService extends Service {
       intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE,
           response);
       intent.putExtra("accountType", Constants.ACCOUNTTYPE_SYNC);
+      intent.putExtra(Constants.INTENT_EXTRA_IS_SETUP, true);
 
       final Bundle result = new Bundle();
       result.putParcelable(AccountManager.KEY_INTENT, intent);
@@ -133,6 +135,7 @@ public class SyncAuthenticatorService extends Service {
 
       
       
+      Log.d(LOG_TAG, "AccountManager.get(" + mContext + ")");
       final AccountManager am = AccountManager.get(mContext);
       final String password = am.getPassword(account);
       if (password != null) {
@@ -168,6 +171,7 @@ public class SyncAuthenticatorService extends Service {
         result.putString(AccountManager.KEY_AUTHTOKEN, password);
         return result;
       }
+      Log.w(LOG_TAG, "Returning null bundle for getAuthToken.");
       return null;
     }
 

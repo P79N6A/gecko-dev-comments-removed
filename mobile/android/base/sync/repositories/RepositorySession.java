@@ -38,6 +38,9 @@
 
 package org.mozilla.gecko.sync.repositories;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import org.mozilla.gecko.sync.repositories.delegates.RepositorySessionBeginDelegate;
 import org.mozilla.gecko.sync.repositories.delegates.RepositorySessionFetchRecordsDelegate;
 import org.mozilla.gecko.sync.repositories.delegates.RepositorySessionFinishDelegate;
@@ -73,6 +76,19 @@ public abstract class RepositorySession {
   private static final String LOG_TAG = "RepositorySession";
   protected SessionStatus status = SessionStatus.UNSTARTED;
   protected Repository repository;
+  protected RepositorySessionStoreDelegate delegate;
+
+  
+
+
+  protected ExecutorService delegateQueue  = Executors.newSingleThreadExecutor();
+
+  
+
+
+
+
+  protected ExecutorService storeWorkQueue = Executors.newSingleThreadExecutor();
 
   
   public long lastSyncTimestamp;
@@ -89,7 +105,48 @@ public abstract class RepositorySession {
   public abstract void fetchSince(long timestamp, RepositorySessionFetchRecordsDelegate delegate);
   public abstract void fetch(String[] guids, RepositorySessionFetchRecordsDelegate delegate);
   public abstract void fetchAll(RepositorySessionFetchRecordsDelegate delegate);
-  public abstract void store(Record record, RepositorySessionStoreDelegate delegate);
+
+  
+
+
+
+
+
+
+  public boolean dataAvailable() {
+    return true;
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  public void setStoreDelegate(RepositorySessionStoreDelegate delegate) {
+    Log.d(LOG_TAG, "Setting store delegate to " + delegate);
+    this.delegate = delegate;
+  }
+  public abstract void store(Record record) throws NoStoreDelegateException;
+
+  public void storeDone() {
+    Log.d(LOG_TAG, "Scheduling onStoreCompleted for after storing is done.");
+    Runnable command = new Runnable() {
+      @Override
+      public void run() {
+        delegate.onStoreCompleted();
+      }
+    };
+    storeWorkQueue.execute(command);
+  }
+
   public abstract void wipe(RepositorySessionWipeDelegate delegate);
 
   public void unbundle(RepositorySessionBundle bundle) {
@@ -128,10 +185,9 @@ public abstract class RepositorySession {
   public void begin(RepositorySessionBeginDelegate delegate) {
     try {
       sharedBegin();
-      delegate.deferredBeginDelegate().onBeginSucceeded(this);
-
+      delegate.deferredBeginDelegate(delegateQueue).onBeginSucceeded(this);
     } catch (Exception e) {
-      delegate.deferredBeginDelegate().onBeginFailed(e);
+      delegate.deferredBeginDelegate(delegateQueue).onBeginFailed(e);
     }
   }
 
@@ -168,17 +224,21 @@ public abstract class RepositorySession {
 
   public void abort(RepositorySessionFinishDelegate delegate) {
     this.status = SessionStatus.DONE;    
-    delegate.deferredFinishDelegate().onFinishSucceeded(this, this.getBundle(null));
+    delegate.deferredFinishDelegate(delegateQueue).onFinishSucceeded(this, this.getBundle(null));
   }
 
-  public void finish(RepositorySessionFinishDelegate delegate) {
+  public void finish(final RepositorySessionFinishDelegate delegate) {
     if (this.status == SessionStatus.ACTIVE) {
       this.status = SessionStatus.DONE;
-      delegate.deferredFinishDelegate().onFinishSucceeded(this, this.getBundle(null));
+      delegate.deferredFinishDelegate(delegateQueue).onFinishSucceeded(this, this.getBundle(null));
     } else {
       Log.e(LOG_TAG, "Tried to finish() an unstarted or already finished session");
-      delegate.deferredFinishDelegate().onFinishFailed(new InvalidSessionTransitionException(null));
+      Exception e = new InvalidSessionTransitionException(null);
+      delegate.deferredFinishDelegate(delegateQueue).onFinishFailed(e);
     }
+    Log.i(LOG_TAG, "Shutting down work queues.");
+ 
+ 
   }
 
   public boolean isActive() {
@@ -188,5 +248,7 @@ public abstract class RepositorySession {
   public void abort() {
     
     status = SessionStatus.ABORTED;
+    storeWorkQueue.shutdown();
+    delegateQueue.shutdown();
   }
 }

@@ -48,19 +48,19 @@ import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import org.mozilla.apache.commons.codec.binary.Base64;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.mozilla.apache.commons.codec.binary.Base64;
+import org.mozilla.gecko.sync.ExtendedJSONObject;
+import org.mozilla.gecko.sync.NonObjectJSONException;
+import org.mozilla.gecko.sync.ThreadPool;
+import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.sync.crypto.CryptoException;
 import org.mozilla.gecko.sync.crypto.CryptoInfo;
 import org.mozilla.gecko.sync.crypto.Cryptographer;
 import org.mozilla.gecko.sync.crypto.KeyBundle;
 import org.mozilla.gecko.sync.crypto.NoKeyBundleException;
-import org.mozilla.gecko.sync.crypto.Utils;
-import org.mozilla.gecko.sync.ExtendedJSONObject;
-import org.mozilla.gecko.sync.NonObjectJSONException;
-import org.mozilla.gecko.sync.ThreadPool;
 import org.mozilla.gecko.sync.net.ResourceDelegate;
 import org.mozilla.gecko.sync.net.SyncResourceDelegate;
 import org.mozilla.gecko.sync.setup.Constants;
@@ -106,16 +106,18 @@ public class JPakeClient implements JPakeRequestDelegate {
   private String              mySignerId;
   private String              theirEtag;
   private String              theirSignerId;
+  private String              jpakeServer;
 
   
+  private boolean             pairWithPin;
+  private boolean             paired                  = false;
   private boolean             finished                = false;
   private State               state                   = State.GET_CHANNEL;
-  private State               nextPhase;
+  private State               stateContext;
   private String              error;
   private int                 pollTries               = 0;
-  private boolean             paired                  = false;
 
-  private String              jpakeServer;
+  
   private int                 jpakePollInterval;
   private int                 jpakeMaxTries;
   private String              channel;
@@ -130,9 +132,6 @@ public class JPakeClient implements JPakeRequestDelegate {
   private ExtendedJSONObject  jOutgoing;
   private ExtendedJSONObject  jIncoming;
 
-  private JSONObject          newData;
-  private String              jOutData;
-
   private JPakeParty          jParty;
   private JPakeNumGenerator   numGen;
 
@@ -143,53 +142,20 @@ public class JPakeClient implements JPakeRequestDelegate {
     
     jpakeServer = "https://setup.services.mozilla.com/";
     jpakePollInterval = 1 * 1000; 
+    jpakeMaxTries = MAX_TRIES;
+
+    if (!jpakeServer.endsWith("/")) {
+      jpakeServer += "/";
+    }
 
     timerScheduler = new Timer();
 
     setClientId();
   }
 
-  private static void runOnThread(Runnable run) {
-    ThreadPool.run(run);
-  }
-
-  public enum State {
-    GET_CHANNEL, STEP_ONE_GET, STEP_TWO_GET, PUT, ABORT, ENCRYPT_PUT, REPORT_FAILURE, KEY_VERIFY;
-  }
-
-  public class GetStepTimerTask extends TimerTask {
-
-    private JPakeRequest request;
-
-    public GetStepTimerTask(JPakeRequest request) {
-      this.request = request;
-    }
-
-    @Override
-    public void run() {
-      request.get();
-    }
-
-  }
   
 
 
-
-  private void scheduleGetRequest(int delay) {
-    JPakeRequest getRequest = null;
-    try {
-      getRequest = new JPakeRequest(channelUrl, makeRequestResourceDelegate());
-    } catch (URISyntaxException e) {
-      e.printStackTrace();
-      abort(Constants.JPAKE_ERROR_CHANNEL);
-      return;
-    }
-
-    GetStepTimerTask getStepTimerTask = new GetStepTimerTask(getRequest);
-    timerScheduler.schedule(getStepTimerTask, delay);
-  }
-
-  
 
 
 
@@ -198,6 +164,8 @@ public class JPakeClient implements JPakeRequestDelegate {
   public void receiveNoPin() {
     mySignerId = JPAKE_SIGNERID_RECEIVER;
     theirSignerId = JPAKE_SIGNERID_SENDER;
+    pairWithPin = false;
+
     
     jpakeMaxTries = MAX_TRIES_FIRST_MSG;
 
@@ -212,6 +180,811 @@ public class JPakeClient implements JPakeRequestDelegate {
         self.getChannel();
       }
     });
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  public void pairWithPin(String pin, boolean expectDelay) {
+    mySignerId = JPAKE_SIGNERID_SENDER;
+    theirSignerId = JPAKE_SIGNERID_RECEIVER;
+    pairWithPin = true;
+
+    
+    secret = pin.substring(0, JPAKE_LENGTH_SECRET);
+    channel = pin.substring(JPAKE_LENGTH_SECRET);
+    channelUrl = jpakeServer + channel;
+
+    jParty = new JPakeParty(mySignerId);
+    numGen = new JPakeNumGeneratorRandom();
+
+    final JPakeClient self = this;
+    runOnThread(new Runnable() {
+      @Override
+      public void run() {
+        
+        self.state = State.SNDR_STEP_ZERO;
+        scheduleGetRequest(jpakePollInterval);
+      }
+    });
+  }
+
+  private static void runOnThread(Runnable run) {
+    ThreadPool.run(run);
+  }
+
+  public enum State {
+    GET_CHANNEL, SNDR_STEP_ZERO, SNDR_STEP_ONE, SNDR_STEP_TWO, RCVR_STEP_ONE, RCVR_STEP_TWO, PUT, ABORT, ENCRYPT_PUT, REPORT_FAILURE, VERIFY_KEY, VERIFY_PAIRING;
+  }
+
+  
+
+  
+
+
+  private void getChannel() {
+    Log.d(LOG_TAG, "Getting channel.");
+    if (finished)
+      return;
+
+    JPakeRequest channelRequest = null;
+    try {
+      channelRequest = new JPakeRequest(jpakeServer + "new_channel",
+          makeRequestResourceDelegate());
+    } catch (URISyntaxException e) {
+      e.printStackTrace();
+      abort(Constants.JPAKE_ERROR_CHANNEL);
+      return;
+    }
+    channelRequest.get();
+  }
+
+  
+
+
+
+  private void putStep() {
+    Log.d(LOG_TAG, "Uploading message.");
+    runOnThread(new Runnable() {
+      @Override
+      public void run() {
+        JPakeRequest putRequest = null;
+        try {
+          putRequest = new JPakeRequest(channelUrl,
+              makeRequestResourceDelegate());
+        } catch (URISyntaxException e) {
+          e.printStackTrace();
+          abort(Constants.JPAKE_ERROR_CHANNEL);
+          return;
+        }
+        try {
+          putRequest.put(jsonEntity(jOutgoing.object));
+        } catch (UnsupportedEncodingException e) {
+          e.printStackTrace();
+        }
+        Log.d(LOG_TAG, "outgoing: " + jOutgoing.toJSONString());
+      }
+    });
+  }
+
+  
+
+
+  private void computeStepOne() {
+    Log.d(LOG_TAG, "Computing round 1.");
+
+    JPakeCrypto.round1(jParty, numGen);
+
+    
+    ExtendedJSONObject jOne = new ExtendedJSONObject();
+    jOne.put(Constants.ZKP_KEY_GX1,
+        BigIntegerHelper.toEvenLengthHex(jParty.gx1));
+    jOne.put(Constants.ZKP_KEY_GX2,
+        BigIntegerHelper.toEvenLengthHex(jParty.gx2));
+
+    Zkp zkp1 = jParty.zkp1;
+    Zkp zkp2 = jParty.zkp2;
+    ExtendedJSONObject jZkp1 = makeJZkp(zkp1.gr, zkp1.b, mySignerId);
+    ExtendedJSONObject jZkp2 = makeJZkp(zkp2.gr, zkp2.b, mySignerId);
+
+    jOne.put(Constants.ZKP_KEY_ZKP_X1, jZkp1);
+    jOne.put(Constants.ZKP_KEY_ZKP_X2, jZkp2);
+
+    jOutgoing = new ExtendedJSONObject();
+    jOutgoing.put(Constants.JSON_KEY_TYPE, mySignerId + "1");
+    jOutgoing.put(Constants.JSON_KEY_PAYLOAD, jOne);
+    jOutgoing.put(Constants.JSON_KEY_VERSION, KEYEXCHANGE_VERSION);
+    Log.d(LOG_TAG, "Sending: " + jOutgoing.toJSONString());
+
+    
+    stateContext = pairWithPin ? State.SNDR_STEP_ONE : State.RCVR_STEP_ONE;
+    state = State.PUT;
+    putStep();
+  }
+
+  
+
+
+
+
+
+  private void computeStepTwo() {
+    Log.d(LOG_TAG, "Computing round 2.");
+
+    
+    if (!jIncoming.get(Constants.JSON_KEY_TYPE).equals(theirSignerId + "1")) {
+      Log.e(LOG_TAG, "Invalid round 1 message: " + jIncoming.toJSONString());
+      abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
+      return;
+    }
+
+    
+    ExtendedJSONObject iPayload = null;
+    try {
+      iPayload = jIncoming.getObject(Constants.JSON_KEY_PAYLOAD);
+      if (iPayload == null
+          || iPayload.getObject(Constants.ZKP_KEY_ZKP_X1) == null
+          || !theirSignerId.equals(iPayload.getObject(Constants.ZKP_KEY_ZKP_X1)
+              .get(Constants.ZKP_KEY_ID))
+          || iPayload.getObject(Constants.ZKP_KEY_ZKP_X2) == null
+          || !theirSignerId.equals(iPayload.getObject(Constants.ZKP_KEY_ZKP_X2)
+              .get(Constants.ZKP_KEY_ID))) {
+        Log.e(LOG_TAG, "Invalid round 1 message: " + jIncoming.toJSONString());
+        abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
+        return;
+      }
+    } catch (NonObjectJSONException e) {
+      e.printStackTrace();
+    }
+
+    
+    jParty.gx3 = new BigInteger((String) iPayload.get(Constants.ZKP_KEY_GX1),
+        16);
+    jParty.gx4 = new BigInteger((String) iPayload.get(Constants.ZKP_KEY_GX2),
+        16);
+
+    ExtendedJSONObject zkpPayload3 = null;
+    ExtendedJSONObject zkpPayload4 = null;
+    try {
+      zkpPayload3 = iPayload.getObject(Constants.ZKP_KEY_ZKP_X1);
+      zkpPayload4 = iPayload.getObject(Constants.ZKP_KEY_ZKP_X2);
+      if (zkpPayload3 == null || zkpPayload4 == null) {
+        Log.e(LOG_TAG, "Invalid round 1 zkpPayload message");
+        abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
+        return;
+      }
+    } catch (NonObjectJSONException e) {
+      e.printStackTrace();
+    }
+
+    
+    String zkp3_gr = (String) zkpPayload3.get(Constants.ZKP_KEY_GR);
+    String zkp3_b = (String) zkpPayload3.get(Constants.ZKP_KEY_B);
+    String zkp3_id = (String) zkpPayload3.get(Constants.ZKP_KEY_ID);
+
+    String zkp4_gr = (String) zkpPayload4.get(Constants.ZKP_KEY_GR);
+    String zkp4_b = (String) zkpPayload4.get(Constants.ZKP_KEY_B);
+    String zkp4_id = (String) zkpPayload4.get(Constants.ZKP_KEY_ID);
+
+    jParty.zkp3 = new Zkp(new BigInteger(zkp3_gr, 16), new BigInteger(zkp3_b,
+        16), zkp3_id);
+    jParty.zkp4 = new Zkp(new BigInteger(zkp4_gr, 16), new BigInteger(zkp4_b,
+        16), zkp4_id);
+
+    
+    try {
+      JPakeCrypto.round2(secret, jParty, numGen);
+    } catch (Gx4IsOneException e) {
+      Log.e(LOG_TAG, "gx4 cannot equal 1.");
+      abort(Constants.JPAKE_ERROR_INTERNAL);
+    } catch (IncorrectZkpException e) {
+      Log.e(LOG_TAG, "ZKP mismatch");
+      abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
+    }
+
+    
+    Zkp zkpA = jParty.thisZkpA;
+    ExtendedJSONObject oPayload = new ExtendedJSONObject();
+    ExtendedJSONObject jZkpA = makeJZkp(zkpA.gr, zkpA.b, zkpA.id);
+    oPayload.put(Constants.ZKP_KEY_A,
+        BigIntegerHelper.toEvenLengthHex(jParty.thisA));
+    oPayload.put(Constants.ZKP_KEY_ZKP_A, jZkpA);
+
+    
+    jOutgoing = new ExtendedJSONObject();
+    jOutgoing.put(Constants.JSON_KEY_TYPE, mySignerId + "2");
+    jOutgoing.put(Constants.JSON_KEY_VERSION, KEYEXCHANGE_VERSION);
+    jOutgoing.put(Constants.JSON_KEY_PAYLOAD, oPayload);
+
+    
+    if (pairWithPin) {
+      state = State.SNDR_STEP_TWO;
+      stateContext = State.PUT;
+      scheduleGetRequest(jpakePollInterval);
+    } else {
+      stateContext = State.RCVR_STEP_TWO;
+      state = State.PUT;
+      putStep();
+    }
+  }
+
+  
+
+
+
+
+
+  private void computeFinal() {
+    Log.d(LOG_TAG, "Computing final round.");
+    
+    if (!jIncoming.get(Constants.JSON_KEY_TYPE).equals(theirSignerId + "2")) {
+      Log.e(LOG_TAG, "Invalid round 2 message: " + jIncoming.toJSONString());
+      abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
+      return;
+    }
+
+    
+    ExtendedJSONObject iPayload = null;
+    try {
+      iPayload = jIncoming.getObject(Constants.JSON_KEY_PAYLOAD);
+      if (iPayload == null
+          || iPayload.getObject(Constants.ZKP_KEY_ZKP_A) == null
+          || !theirSignerId.equals(iPayload.getObject(Constants.ZKP_KEY_ZKP_A)
+              .get(Constants.ZKP_KEY_ID))) {
+        Log.e(LOG_TAG, "Invalid round 2 message: " + jIncoming.toJSONString());
+        abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
+        return;
+      }
+    } catch (NonObjectJSONException e) {
+      e.printStackTrace();
+    }
+    
+    jParty.otherA = new BigInteger((String) iPayload.get(Constants.ZKP_KEY_A),
+        16);
+
+    ExtendedJSONObject zkpPayload = null;
+    try {
+      zkpPayload = iPayload.getObject(Constants.ZKP_KEY_ZKP_A);
+    } catch (NonObjectJSONException e) {
+      e.printStackTrace();
+    }
+    
+    String gr = (String) zkpPayload.get(Constants.ZKP_KEY_GR);
+    String b = (String) zkpPayload.get(Constants.ZKP_KEY_B);
+    String id = (String) zkpPayload.get(Constants.ZKP_KEY_ID);
+
+    jParty.otherZkpA = new Zkp(new BigInteger(gr, 16), new BigInteger(b, 16),
+        id);
+
+    myKeyBundle = null;
+    try {
+      myKeyBundle = JPakeCrypto.finalRound(secret, jParty);
+    } catch (IncorrectZkpException e) {
+      Log.e(LOG_TAG, "ZKP mismatch");
+      abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
+      e.printStackTrace();
+    }
+
+    if (pairWithPin) { 
+      Log.d(LOG_TAG, "get: verifyPairing");
+      this.state = State.VERIFY_PAIRING;
+      scheduleGetRequest(jpakePollInterval);
+    } else { 
+      jOutgoing = computeKeyVerification(myKeyBundle);
+      stateContext = State.VERIFY_KEY;
+      this.state = State.PUT;
+      putStep();
+    }
+  }
+
+  
+
+
+
+  public ExtendedJSONObject computeKeyVerification(KeyBundle keyBundle) {
+    Log.d(LOG_TAG, "Encrypting key verification value.");
+    
+    ExtendedJSONObject jPayload = null;
+    try {
+      jPayload = encryptPayload(JPAKE_VERIFY_VALUE, keyBundle);
+    } catch (UnsupportedEncodingException e) {
+      Log.e(LOG_TAG, "Failed to encrypt key verification value.", e);
+      abort(Constants.JPAKE_ERROR_INTERNAL);
+    } catch (CryptoException e) {
+      Log.e(LOG_TAG, "Failed to encrypt key verification value.", e);
+      abort(Constants.JPAKE_ERROR_INTERNAL);
+    }
+    Log.d(
+        LOG_TAG,
+        "enc key64: "
+            + new String(Base64.encodeBase64(keyBundle.getEncryptionKey())));
+    Log.e(LOG_TAG,
+        "hmac64: " + new String(Base64.encodeBase64(keyBundle.getHMACKey())));
+
+    ExtendedJSONObject result = new ExtendedJSONObject();
+    result.put(Constants.JSON_KEY_TYPE, mySignerId + "3");
+    result.put(Constants.JSON_KEY_VERSION, KEYEXCHANGE_VERSION);
+    result.put(Constants.JSON_KEY_PAYLOAD, jPayload.object);
+    return result;
+  }
+
+  
+
+
+
+  private boolean verifyPairing(ExtendedJSONObject verificationObject,
+      KeyBundle keyBundle) throws CryptoException, IOException, ParseException,
+      NonObjectJSONException {
+    if (!verificationObject.get(Constants.JSON_KEY_TYPE).equals(
+        theirSignerId + "3")) {
+      Log.e(LOG_TAG,
+          "Invalid round 3 message: " + verificationObject.toJSONString());
+      abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
+      return false;
+    }
+    ExtendedJSONObject payload = verificationObject
+        .getObject(Constants.JSON_KEY_PAYLOAD);
+    String theirCiphertext = (String) payload
+        .get(Constants.JSON_KEY_CIPHERTEXT);
+    String iv = (String) payload.get(Constants.JSON_KEY_IV);
+    boolean correctPairing = verifyCiphertext(theirCiphertext, iv, keyBundle);
+    return correctPairing;
+  }
+
+  
+
+
+
+  public boolean verifyCiphertext(String theirCiphertext, String iv,
+      KeyBundle keyBundle) throws UnsupportedEncodingException, CryptoException {
+    byte[] cleartextBytes = JPAKE_VERIFY_VALUE.getBytes("UTF-8");
+    CryptoInfo info = new CryptoInfo(cleartextBytes, keyBundle);
+    info.setIV(Base64.decodeBase64(iv));
+
+    Cryptographer.encrypt(info);
+    String myCiphertext = new String(Base64.encodeBase64(info.getMessage()));
+    return myCiphertext.equals(theirCiphertext);
+  }
+
+  
+
+
+
+
+  public void sendAndComplete(JSONObject jObj)
+      throws JPakeNoActivePairingException {
+    if (paired && !finished) {
+      String outData = jObj.toJSONString();
+      state = State.ENCRYPT_PUT;
+      encryptData(myKeyBundle, outData);
+      putStep();
+    } else {
+      Log.e(LOG_TAG, "Can't send data, no active pairing!");
+      throw new JPakeNoActivePairingException();
+    }
+  }
+
+  
+
+
+
+
+
+
+
+  private void encryptData(KeyBundle keyBundle, String payload) {
+    Log.d(LOG_TAG, "Encrypting data.");
+    ExtendedJSONObject jPayload = null;
+    try {
+      jPayload = encryptPayload(payload, keyBundle);
+    } catch (UnsupportedEncodingException e) {
+      Log.e(LOG_TAG, "Failed to encrypt data.", e);
+      abort(Constants.JPAKE_ERROR_INTERNAL);
+    } catch (CryptoException e) {
+      Log.e(LOG_TAG, "Failed to encrypt data.", e);
+      abort(Constants.JPAKE_ERROR_INTERNAL);
+    }
+    jOutgoing = new ExtendedJSONObject();
+    jOutgoing.put(Constants.JSON_KEY_TYPE, mySignerId + "3");
+    jOutgoing.put(Constants.JSON_KEY_VERSION, KEYEXCHANGE_VERSION);
+    jOutgoing.put(Constants.JSON_KEY_PAYLOAD, jPayload.object);
+  }
+
+  
+
+
+
+
+
+
+  private void decryptData(KeyBundle keyBundle) {
+    Log.d(LOG_TAG, "Verifying their key");
+    if (!(theirSignerId + "3").equals((String) jIncoming
+        .get(Constants.JSON_KEY_TYPE))) {
+      try {
+        Log.e(LOG_TAG, "Invalid round 3 data: " + jsonEntity(jIncoming.object));
+      } catch (UnsupportedEncodingException e) {
+        e.printStackTrace();
+      }
+      abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
+    }
+
+    
+    ExtendedJSONObject iPayload = null;
+    try {
+      iPayload = jIncoming.getObject(Constants.JSON_KEY_PAYLOAD);
+    } catch (NonObjectJSONException e1) {
+      Log.e(LOG_TAG, "Invalid round 3 data.", e1);
+      abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
+    }
+    Log.d(LOG_TAG, "Decrypting data.");
+    String cleartext = null;
+    try {
+      cleartext = new String(decryptPayload(iPayload, keyBundle), "UTF-8");
+    } catch (UnsupportedEncodingException e1) {
+      Log.e(LOG_TAG, "Failed to decrypt data.", e1);
+      abort(Constants.JPAKE_ERROR_INTERNAL);
+    } catch (CryptoException e1) {
+      Log.e(LOG_TAG, "Failed to decrypt data.", e1);
+      abort(Constants.JPAKE_ERROR_KEYMISMATCH);
+    }
+    JSONObject jCreds = null;
+    try {
+      jCreds = getJSONObject(cleartext);
+    } catch (Exception e) {
+      Log.e(LOG_TAG, "Invalid data: " + cleartext);
+      abort(Constants.JPAKE_ERROR_INVALID);
+      return;
+    }
+    complete(jCreds);
+  }
+
+  
+
+
+
+
+  private void complete(JSONObject jCreds) {
+    Log.d(LOG_TAG, "Exchange complete.");
+    finished = true;
+    ssActivity.onComplete(jCreds);
+  }
+
+  
+  @Override
+  public void onRequestFailure(HttpResponse res) {
+    JPakeResponse response = new JPakeResponse(res);
+    switch (this.state) {
+    case GET_CHANNEL:
+      Log.e(LOG_TAG, "getChannel failure: " + response.getStatusCode());
+      abort(Constants.JPAKE_ERROR_CHANNEL);
+      break;
+    case VERIFY_PAIRING:
+    case VERIFY_KEY:
+    case SNDR_STEP_ZERO:
+    case SNDR_STEP_ONE:
+    case SNDR_STEP_TWO:
+    case RCVR_STEP_ONE:
+    case RCVR_STEP_TWO:
+      int statusCode = response.getStatusCode();
+      switch (statusCode) {
+      case 304:
+        Log.d(LOG_TAG, "Channel hasn't been updated yet. Will try again later");
+        if (pollTries >= jpakeMaxTries) {
+          Log.e(LOG_TAG, "Tried for " + pollTries + " times, maxTries " + jpakeMaxTries + ", aborting");
+          abort(Constants.JPAKE_ERROR_TIMEOUT);
+          return;
+        }
+        pollTries += 1;
+        if (!finished) {
+          scheduleGetRequest(jpakePollInterval);
+        }
+        return;
+      case 404:
+        Log.e(LOG_TAG, "No data found in channel.");
+        abort(Constants.JPAKE_ERROR_NODATA);
+        break;
+      case 412: 
+        Log.d(LOG_TAG, "Message already replaced on server by other party.");
+        onRequestSuccess(res);
+        break;
+      default:
+        Log.e(LOG_TAG, "Could not retrieve data. Server responded with HTTP "
+            + statusCode);
+        abort(Constants.JPAKE_ERROR_SERVER);
+        return;
+      }
+      pollTries = 0;
+      break;
+    case PUT:
+      Log.e(LOG_TAG, "Could not upload data. Server responded with HTTP "
+          + response.getStatusCode());
+      abort(Constants.JPAKE_ERROR_SERVER);
+      break;
+    case ABORT:
+      Log.e(LOG_TAG, "Abort: request failure.");
+      break;
+    case REPORT_FAILURE:
+      Log.e(LOG_TAG, "ReportFailure: failure. Server responded with HTTP "
+          + response.getStatusCode());
+      break;
+    default:
+      Log.e(LOG_TAG, "Unhandled request failure " + response.getStatusCode());
+    }
+  }
+
+  @Override
+  public void onRequestError(Exception e) {
+    abort(Constants.JPAKE_ERROR_NETWORK);
+  }
+
+  @Override
+  public void onRequestSuccess(HttpResponse res) {
+    if (finished)
+      return;
+    JPakeResponse response = new JPakeResponse(res);
+    Header[] etagHeaders;
+    switch (this.state) {
+    case GET_CHANNEL:
+      Object body = null;
+      try {
+        body = response.jsonBody();
+      } catch (IllegalStateException e1) {
+        e1.printStackTrace();
+      } catch (IOException e1) {
+        e1.printStackTrace();
+      } catch (ParseException e1) {
+        abort(Constants.JPAKE_ERROR_CHANNEL);
+      }
+      String channel = body instanceof String ? (String) body : null;
+      if (channel == null) { 
+        abort(Constants.JPAKE_ERROR_CHANNEL);
+        return;
+      }
+      channelUrl = jpakeServer + channel;
+      Log.d(LOG_TAG, "using channel " + channel);
+
+      ssActivity.displayPin(secret + channel);
+
+      
+      this.state = State.RCVR_STEP_ONE;
+      computeStepOne();
+      break;
+
+    
+    case RCVR_STEP_ONE:
+      ssActivity.onPairingStart();
+      jpakeMaxTries = MAX_TRIES;
+      
+    case RCVR_STEP_TWO:
+    case SNDR_STEP_ZERO:
+    case SNDR_STEP_ONE:
+    case SNDR_STEP_TWO:
+    case VERIFY_KEY:
+    case VERIFY_PAIRING:
+      etagHeaders = response.httpResponse().getHeaders("etag");
+      if (etagHeaders == null) {
+        try {
+          Log.e(LOG_TAG,
+              "Server did not supply ETag for message: " + response.body());
+          abort(Constants.JPAKE_ERROR_SERVER);
+        } catch (IllegalStateException e) {
+          e.printStackTrace();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+        return;
+      }
+
+      theirEtag = etagHeaders[0].toString();
+      try {
+        jIncoming = response.jsonObjectBody();
+      } catch (IllegalStateException e) {
+        e.printStackTrace();
+      } catch (IOException e) {
+        e.printStackTrace();
+      } catch (ParseException e) {
+        abort(Constants.JPAKE_ERROR_INVALID);
+        return;
+      } catch (NonObjectJSONException e) {
+        abort(Constants.JPAKE_ERROR_INVALID);
+        return;
+      }
+      Log.d(LOG_TAG, "incoming message: " + jIncoming.toJSONString());
+
+      if (this.state == State.SNDR_STEP_ZERO) {
+        computeStepOne();
+      } else if (this.state == State.RCVR_STEP_ONE
+          || this.state == State.SNDR_STEP_ONE) {
+        computeStepTwo();
+      } else if (this.state == State.SNDR_STEP_TWO) {
+        stateContext = state;
+        state = State.PUT;
+        putStep();
+      } else if (this.state == State.RCVR_STEP_TWO) {
+        computeFinal();
+      } else if (this.state == State.VERIFY_KEY) {
+        decryptData(myKeyBundle);
+      } else if (this.state == State.VERIFY_PAIRING) {
+        try {
+          if (verifyPairing(jIncoming, myKeyBundle)) {
+            paired = true;
+            ssActivity.onPaired();
+          } else {
+            abort(Constants.JPAKE_ERROR_KEYMISMATCH);
+          }
+        } catch (NonObjectJSONException e) {
+          e.printStackTrace();
+        } catch (CryptoException e) {
+          e.printStackTrace();
+        } catch (IOException e) {
+          e.printStackTrace();
+        } catch (ParseException e) {
+          e.printStackTrace();
+        }
+      }
+      break;
+
+    case PUT:
+      etagHeaders = response.httpResponse().getHeaders("etag");
+      myEtag = response.httpResponse().getHeaders("etag")[0].getValue();
+
+      state = stateContext;
+      if (state == State.VERIFY_KEY) {
+        jpakeMaxTries = MAX_TRIES_LAST_MSG;
+        ssActivity.onPaired();
+      }
+      if (state == State.SNDR_STEP_ONE) {
+        computeStepTwo();
+        return; 
+      }
+      if (state == State.SNDR_STEP_TWO) {
+        computeFinal();
+        return; 
+      }
+
+      
+      scheduleGetRequest(2 * jpakePollInterval);
+      Log.i(LOG_TAG, "scheduling 2xPollInterval for " + state.name());
+      break;
+
+    case ENCRYPT_PUT:
+      complete(null); 
+                      
+      break;
+
+    case ABORT:
+      Log.e(LOG_TAG, "Key exchange successfully aborted.");
+      break;
+    default:
+      Log.e(LOG_TAG, "Unhandled response success.");
+    }
+  }
+
+  
+  public ResourceDelegate makeRequestResourceDelegate() {
+    return new JpakeRequestResourceDelegate(this);
+  }
+
+  public class JpakeRequestResourceDelegate implements ResourceDelegate {
+
+    private JPakeRequestDelegate requestDelegate;
+
+    public JpakeRequestResourceDelegate(JPakeRequestDelegate delegate) {
+      this.requestDelegate = delegate;
+    }
+
+    @Override
+    public String getCredentials() {
+      
+      return null;
+    }
+
+    @Override
+    public void addHeaders(HttpRequestBase request, DefaultHttpClient client) {
+      request.setHeader(new BasicHeader("X-KeyExchange-Id", clientId));
+
+      switch (state) {
+      case REPORT_FAILURE:
+        
+
+      case ABORT:
+        request.setHeader(new BasicHeader("X-KeyExchange-Cid", channel));
+        break;
+
+      case PUT:
+        if (myEtag == null && state == State.RCVR_STEP_ONE) {
+          request.setHeader(new BasicHeader("If-None-Match", "*"));
+        }
+        
+      case VERIFY_KEY:
+      case VERIFY_PAIRING:
+      case RCVR_STEP_ONE:
+      case RCVR_STEP_TWO:
+        if (myEtag != null) {
+          request.setHeader(new BasicHeader("If-None-Match", myEtag));
+        }
+        break;
+      }
+    }
+
+    @Override
+    public void handleHttpResponse(HttpResponse response) {
+      
+      if (isSuccess(response)) {
+        this.requestDelegate.onRequestSuccess(response);
+      } else {
+        this.requestDelegate.onRequestFailure(response);
+      }
+      SyncResourceDelegate.consumeEntity(response.getEntity());
+    }
+
+    @Override
+    public void handleHttpProtocolException(ClientProtocolException e) {
+      Log.e(LOG_TAG, "Got HTTP protocol exception.", e);
+      this.requestDelegate.onRequestError(e);
+    }
+
+    @Override
+    public void handleTransportException(GeneralSecurityException e) {
+      Log.e(LOG_TAG, "Got HTTP transport exception.", e);
+      this.requestDelegate.onRequestError(e);
+    }
+
+    @Override
+    public void handleHttpIOException(IOException e) {
+      
+      Log.e(LOG_TAG, "HttpIOException", e);
+      switch (state) {
+      case GET_CHANNEL:
+        Log.e(LOG_TAG, "Failed on GetChannel.", e);
+        break;
+
+      case RCVR_STEP_ONE:
+      case RCVR_STEP_TWO:
+        Log.e(LOG_TAG, "Failed on GET", e);
+        break;
+      case PUT:
+        Log.e(LOG_TAG, "Failed on PUT.", e);
+        break;
+
+      case REPORT_FAILURE:
+        Log.e(LOG_TAG, "Report failed: " + error);
+        break;
+      default:
+        Log.e(LOG_TAG, "Unhandled HTTP I/O exception.", e);
+      }
+      abort(Constants.JPAKE_ERROR_NETWORK);
+    }
+
+    @Override
+    public int connectionTimeout() {
+      return REQUEST_TIMEOUT;
+    }
+
+    @Override
+    public int socketTimeout() {
+      return SOCKET_TIMEOUT;
+    }
+
+    private int getStatusCode(HttpResponse response) {
+      return response.getStatusLine().getStatusCode();
+    }
+
+    private boolean isSuccess(HttpResponse response) {
+      return getStatusCode(response) == 200;
+    }
   }
 
   
@@ -297,7 +1070,7 @@ public class JPakeClient implements JPakeRequestDelegate {
     byte[] rBytes = generateRandomBytes(JPAKE_LENGTH_SECRET);
     StringBuilder secret = new StringBuilder();
     for (byte b : rBytes) {
-      secret.append(key.charAt((int) (Math.abs(b) * keylen / 256)));
+      secret.append(key.charAt(Math.abs(b) * keylen / 256));
     }
     this.secret = secret.toString();
   }
@@ -309,13 +1082,46 @@ public class JPakeClient implements JPakeRequestDelegate {
 
 
 
-
-
   protected StringEntity jsonEntity(JSONObject body)
       throws UnsupportedEncodingException {
     StringEntity e = new StringEntity(body.toJSONString(), "UTF-8");
     e.setContentType("application/json");
     return e;
+  }
+
+  
+
+
+
+  public class GetStepTimerTask extends TimerTask {
+    private JPakeRequest request;
+
+    public GetStepTimerTask(JPakeRequest request) {
+      this.request = request;
+    }
+
+    @Override
+    public void run() {
+      request.get();
+    }
+  }
+
+  
+
+
+
+  private void scheduleGetRequest(int delay) {
+    JPakeRequest getRequest = null;
+    try {
+      getRequest = new JPakeRequest(channelUrl, makeRequestResourceDelegate());
+    } catch (URISyntaxException e) {
+      e.printStackTrace();
+      abort(Constants.JPAKE_ERROR_CHANNEL);
+      return;
+    }
+
+    GetStepTimerTask getStepTimerTask = new GetStepTimerTask(getRequest);
+    timerScheduler.schedule(getStepTimerTask, delay);
   }
 
   
@@ -364,8 +1170,7 @@ public class JPakeClient implements JPakeRequestDelegate {
 
 
   public byte[] decryptPayload(ExtendedJSONObject payload, KeyBundle keybundle)
-                                                                               throws CryptoException,
-                                                                               UnsupportedEncodingException {
+      throws CryptoException, UnsupportedEncodingException {
     byte[] ciphertext = Utils.decodeBase64((String) payload
         .get(Constants.JSON_KEY_CIPHERTEXT));
     byte[] iv = Utils.decodeBase64((String) payload.get(Constants.JSON_KEY_IV));
@@ -404,653 +1209,5 @@ public class JPakeClient implements JPakeRequestDelegate {
       payload.put(Constants.JSON_KEY_HMAC, hmac);
     }
     return payload;
-  }
-
-  
-  private void getChannel() {
-    Log.d(LOG_TAG, "Getting channel.");
-    if (finished)
-      return;
-
-    JPakeRequest channelRequest = null;
-    try {
-      channelRequest = new JPakeRequest(jpakeServer + "new_channel",
-          makeRequestResourceDelegate());
-    } catch (URISyntaxException e) {
-      e.printStackTrace();
-      abort(Constants.JPAKE_ERROR_CHANNEL);
-      return;
-    }
-    channelRequest.get();
-  }
-
-  private void putStep() {
-    Log.d(LOG_TAG, "Uploading message.");
-    runOnThread(new Runnable() {
-      @Override
-      public void run() {
-        JPakeRequest putRequest = null;
-        try {
-          putRequest = new JPakeRequest(channelUrl,
-              makeRequestResourceDelegate());
-        } catch (URISyntaxException e) {
-          e.printStackTrace();
-          abort(Constants.JPAKE_ERROR_CHANNEL);
-          return;
-        }
-        try {
-          putRequest.put(jsonEntity(jOutgoing.object));
-        } catch (UnsupportedEncodingException e) {
-          e.printStackTrace();
-        }
-        Log.d(LOG_TAG, "outgoing: " + jOutgoing.toJSONString());
-      }
-    });
-  }
-
-  private void computeStepOne() {
-    Log.d(LOG_TAG, "Computing round 1.");
-
-    JPakeCrypto.round1(jParty, numGen);
-
-    
-    ExtendedJSONObject jOne = new ExtendedJSONObject();
-    jOne.put(Constants.ZKP_KEY_GX1,
-        BigIntegerHelper.toEvenLengthHex(jParty.gx1));
-    jOne.put(Constants.ZKP_KEY_GX2,
-        BigIntegerHelper.toEvenLengthHex(jParty.gx2));
-
-    Zkp zkp1 = jParty.zkp1;
-    Zkp zkp2 = jParty.zkp2;
-    ExtendedJSONObject jZkp1 = makeJZkp(zkp1.gr, zkp1.b, mySignerId);
-    ExtendedJSONObject jZkp2 = makeJZkp(zkp2.gr, zkp2.b, mySignerId);
-
-    jOne.put(Constants.ZKP_KEY_ZKP_X1, jZkp1);
-    jOne.put(Constants.ZKP_KEY_ZKP_X2, jZkp2);
-
-    jOutgoing = new ExtendedJSONObject();
-    jOutgoing.put(Constants.JSON_KEY_TYPE, mySignerId + "1");
-    jOutgoing.put(Constants.JSON_KEY_PAYLOAD, jOne);
-    jOutgoing.put(Constants.JSON_KEY_VERSION, KEYEXCHANGE_VERSION);
-    Log.d(LOG_TAG, "Sending: " + jOutgoing.toJSONString());
-
-    nextPhase = State.STEP_ONE_GET;
-    state = State.PUT;
-    putStep();
-  }
-
-  private void computeStepTwo() {
-    Log.d(LOG_TAG, "Computing round 2.");
-
-    
-    if (!jIncoming.get(Constants.JSON_KEY_TYPE).equals(theirSignerId + "1")) {
-      Log.e(LOG_TAG, "Invalid round 1 message: " + jIncoming.toJSONString());
-      abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
-      return;
-    }
-
-    
-    ExtendedJSONObject iPayload = null;
-    try {
-      iPayload = jIncoming.getObject(Constants.JSON_KEY_PAYLOAD);
-      if (iPayload == null
-          || iPayload.getObject(Constants.ZKP_KEY_ZKP_X1) == null
-          || !theirSignerId.equals(iPayload.getObject(Constants.ZKP_KEY_ZKP_X1)
-              .get(Constants.ZKP_KEY_ID))
-          || iPayload.getObject(Constants.ZKP_KEY_ZKP_X2) == null
-          || !theirSignerId.equals(iPayload.getObject(Constants.ZKP_KEY_ZKP_X2)
-              .get(Constants.ZKP_KEY_ID))) {
-        Log.e(LOG_TAG, "Invalid round 1 message: " + jIncoming.toJSONString());
-        abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
-        return;
-      }
-    } catch (NonObjectJSONException e) {
-      e.printStackTrace();
-    }
-
-    
-    jParty.gx3 = new BigInteger((String) iPayload.get(Constants.ZKP_KEY_GX1),
-        16);
-    jParty.gx4 = new BigInteger((String) iPayload.get(Constants.ZKP_KEY_GX2),
-        16);
-
-    ExtendedJSONObject zkpPayload3 = null;
-    ExtendedJSONObject zkpPayload4 = null;
-    try {
-      zkpPayload3 = iPayload.getObject(Constants.ZKP_KEY_ZKP_X1);
-      zkpPayload4 = iPayload.getObject(Constants.ZKP_KEY_ZKP_X2);
-      if (zkpPayload3 == null || zkpPayload4 == null) {
-        Log.e(LOG_TAG, "Invalid round 1 zkpPayload message");
-        abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
-        return;
-      }
-    } catch (NonObjectJSONException e) {
-      e.printStackTrace();
-    }
-
-    
-    String zkp3_gr = (String) zkpPayload3.get(Constants.ZKP_KEY_GR);
-    String zkp3_b = (String) zkpPayload3.get(Constants.ZKP_KEY_B);
-    String zkp3_id = (String) zkpPayload3.get(Constants.ZKP_KEY_ID);
-
-    String zkp4_gr = (String) zkpPayload4.get(Constants.ZKP_KEY_GR);
-    String zkp4_b = (String) zkpPayload4.get(Constants.ZKP_KEY_B);
-    String zkp4_id = (String) zkpPayload4.get(Constants.ZKP_KEY_ID);
-
-    jParty.zkp3 = new Zkp(new BigInteger(zkp3_gr, 16), new BigInteger(zkp3_b,
-        16), zkp3_id);
-    jParty.zkp4 = new Zkp(new BigInteger(zkp4_gr, 16), new BigInteger(zkp4_b,
-        16), zkp4_id);
-
-    
-    try {
-      JPakeCrypto.round2(secret, jParty, numGen);
-    } catch (Gx4IsOneException e) {
-      e.printStackTrace();
-    } catch (IncorrectZkpException e) {
-      Log.e(LOG_TAG, "ZKP mismatch");
-      abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
-    }
-
-    
-    Zkp zkpA = jParty.thisZkpA;
-    ExtendedJSONObject oPayload = new ExtendedJSONObject();
-    ExtendedJSONObject jZkpA = makeJZkp(zkpA.gr, zkpA.b, zkpA.id);
-    oPayload.put(Constants.ZKP_KEY_A,
-        BigIntegerHelper.toEvenLengthHex(jParty.thisA));
-    oPayload.put(Constants.ZKP_KEY_ZKP_A, jZkpA);
-
-    
-    jOutgoing = new ExtendedJSONObject();
-    jOutgoing.put(Constants.JSON_KEY_TYPE, mySignerId + "2");
-    jOutgoing.put(Constants.JSON_KEY_VERSION, KEYEXCHANGE_VERSION);
-    jOutgoing.put(Constants.JSON_KEY_PAYLOAD, oPayload);
-
-    nextPhase = State.STEP_TWO_GET;
-    state = State.PUT;
-    putStep();
-  }
-
-  private void computeFinal() {
-    Log.d(LOG_TAG, "Computing final round.");
-    
-    if (!jIncoming.get(Constants.JSON_KEY_TYPE).equals(theirSignerId + "2")) {
-      Log.e(LOG_TAG, "Invalid round 2 message: " + jIncoming.toJSONString());
-      abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
-      return;
-    }
-
-    
-    ExtendedJSONObject iPayload = null;
-    try {
-      iPayload = jIncoming.getObject(Constants.JSON_KEY_PAYLOAD);
-      if (iPayload == null
-          || iPayload.getObject(Constants.ZKP_KEY_ZKP_A) == null
-          || !theirSignerId.equals(iPayload.getObject(Constants.ZKP_KEY_ZKP_A)
-              .get(Constants.ZKP_KEY_ID))) {
-        Log.e(LOG_TAG, "Invalid round 2 message: " + jIncoming.toJSONString());
-        abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
-        return;
-      }
-    } catch (NonObjectJSONException e) {
-      e.printStackTrace();
-    }
-    
-    jParty.otherA = new BigInteger((String) iPayload.get(Constants.ZKP_KEY_A),
-        16);
-
-    ExtendedJSONObject zkpPayload = null;
-    try {
-      zkpPayload = iPayload.getObject(Constants.ZKP_KEY_ZKP_A);
-    } catch (NonObjectJSONException e) {
-      e.printStackTrace();
-    }
-    
-    String gr = (String) zkpPayload.get(Constants.ZKP_KEY_GR);
-    String b = (String) zkpPayload.get(Constants.ZKP_KEY_B);
-    String id = (String) zkpPayload.get(Constants.ZKP_KEY_ID);
-
-    jParty.otherZkpA = new Zkp(new BigInteger(gr, 16), new BigInteger(b, 16),
-        id);
-
-    myKeyBundle = null;
-    try {
-      myKeyBundle = JPakeCrypto.finalRound(secret, jParty);
-    } catch (IncorrectZkpException e) {
-      Log.e(LOG_TAG, "ZKP mismatch");
-      abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
-      e.printStackTrace();
-    }
-    jOutgoing = computeKeyVerification(myKeyBundle);
-    nextPhase = State.KEY_VERIFY;
-    this.state = State.PUT;
-    putStep();
-  }
-
-  
-
-
-  public ExtendedJSONObject computeKeyVerification(KeyBundle keyBundle) {
-    Log.d(LOG_TAG, "Encrypting key verification value.");
-    
-    ExtendedJSONObject jPayload = null;
-    try {
-      jPayload = encryptPayload(JPAKE_VERIFY_VALUE, keyBundle);
-    } catch (UnsupportedEncodingException e) {
-      e.printStackTrace();
-    } catch (CryptoException e) {
-      e.printStackTrace();
-    }
-    Log.d(
-        LOG_TAG,
-        "enc key64: "
-            + new String(Base64.encodeBase64(keyBundle.getEncryptionKey())));
-    Log.e(LOG_TAG,
-        "hmac64: " + new String(Base64.encodeBase64(keyBundle.getHMACKey())));
-
-    ExtendedJSONObject result = new ExtendedJSONObject();
-    result.put(Constants.JSON_KEY_TYPE, mySignerId + "3");
-    result.put(Constants.JSON_KEY_VERSION, KEYEXCHANGE_VERSION);
-    result.put(Constants.JSON_KEY_PAYLOAD, jPayload.object);
-    return result;
-  }
-
-  
-
-
-
-
-
-  private boolean verifyPairing(ExtendedJSONObject verificationObject,
-      KeyBundle keyBundle) throws CryptoException, IOException, ParseException,
-      NonObjectJSONException {
-    if (!jIncoming.get(Constants.JSON_KEY_TYPE).equals(theirSignerId + "3")) {
-      Log.e(LOG_TAG,
-          "Invalid round 3 message: " + verificationObject.toJSONString());
-      abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
-      return false;
-    }
-    ExtendedJSONObject payload = verificationObject
-        .getObject(Constants.JSON_KEY_PAYLOAD);
-    String theirCiphertext = (String) payload
-        .get(Constants.JSON_KEY_CIPHERTEXT);
-    String iv = (String) payload.get(Constants.JSON_KEY_IV);
-    boolean correctPairing = verifyCiphertext(theirCiphertext, iv, keyBundle);
-    return correctPairing;
-  }
-
-  
-
-
-
-
-
-
-  public boolean verifyCiphertext(String theirCiphertext, String iv,
-      KeyBundle keyBundle) throws UnsupportedEncodingException, CryptoException {
-    byte[] cleartextBytes = JPAKE_VERIFY_VALUE.getBytes("UTF-8");
-    CryptoInfo info = new CryptoInfo(cleartextBytes, keyBundle);
-    info.setIV(Base64.decodeBase64(iv));
-
-    Cryptographer.encrypt(info);
-    String myCiphertext = new String(Base64.encodeBase64(info.getMessage()));
-    return myCiphertext.equals(theirCiphertext);
-  }
-
-  
-
-
-  public void sendAndComplete(JSONObject jObj)
-      throws JPakeNoActivePairingException {
-    if (!paired || finished) {
-      Log.e(LOG_TAG, "Can't send data, no active pairing!");
-      throw new JPakeNoActivePairingException();
-    }
-
-    jOutData = jObj.toJSONString();
-    encryptData(myKeyBundle);
-  }
-
-  private void encryptData(KeyBundle keyBundle) {
-    Log.d(LOG_TAG, "Encrypting data.");
-    state = State.ENCRYPT_PUT;
-    ExtendedJSONObject jPayload = null;
-    try {
-      jPayload = encryptPayload(jOutData, keyBundle);
-    } catch (UnsupportedEncodingException e) {
-      e.printStackTrace();
-    } catch (CryptoException e) {
-      e.printStackTrace();
-    }
-    jOutgoing = new ExtendedJSONObject();
-    jOutgoing.put(Constants.JSON_KEY_TYPE, mySignerId + "3");
-    jOutgoing.put(Constants.JSON_KEY_VERSION, KEYEXCHANGE_VERSION);
-    jOutgoing.put(Constants.JSON_KEY_PAYLOAD, jPayload.object);
-
-    putStep();
-  }
-
-  private void decryptData(KeyBundle keyBundle) {
-    Log.d(LOG_TAG, "Verifying their key");
-    if (!(theirSignerId + "3").equals((String) jIncoming
-        .get(Constants.JSON_KEY_TYPE))) {
-      try {
-        Log.e(LOG_TAG, "Invalid round 3 data: " + jsonEntity(jIncoming.object));
-      } catch (UnsupportedEncodingException e) {
-        e.printStackTrace();
-      }
-      abort(Constants.JPAKE_ERROR_WRONGMESSAGE);
-    }
-
-    
-    ExtendedJSONObject iPayload = null;
-    try {
-      iPayload = jIncoming.getObject(Constants.JSON_KEY_PAYLOAD);
-    } catch (NonObjectJSONException e1) {
-      e1.printStackTrace();
-    }
-    Log.d(LOG_TAG, "Decrypting data.");
-    String cleartext = null;
-    try {
-      cleartext = new String(decryptPayload(iPayload, keyBundle), "UTF-8");
-    } catch (UnsupportedEncodingException e1) {
-      
-      e1.printStackTrace();
-    } catch (CryptoException e1) {
-      
-      e1.printStackTrace();
-    }
-    try {
-      newData = getJSONObject(cleartext);
-    } catch (Exception e) {
-      e.printStackTrace();
-      Log.e(LOG_TAG, "Invalid data: " + cleartext);
-      abort(Constants.JPAKE_ERROR_INVALID);
-      return;
-    }
-    complete();
-  }
-
-  private void complete() {
-    Log.d(LOG_TAG, "Exchange complete.");
-    finished = true;
-    ssActivity.onComplete(newData);
-  }
-
-  
-  @Override
-  public void onRequestFailure(HttpResponse res) {
-    JPakeResponse response = new JPakeResponse(res);
-    switch (this.state) {
-    case GET_CHANNEL:
-      Log.e(LOG_TAG, "getChannel failure: " + response.getStatusCode());
-      abort(Constants.JPAKE_ERROR_CHANNEL);
-      break;
-    case KEY_VERIFY:
-    case STEP_ONE_GET:
-    case STEP_TWO_GET:
-      int statusCode = response.getStatusCode();
-      switch (statusCode) {
-      case 304:
-        Log.d(LOG_TAG, "Channel hasn't been updated yet. Will try again later");
-        if (pollTries >= jpakeMaxTries) {
-          Log.e(LOG_TAG, "Tried for " + pollTries + " times, aborting");
-          abort(Constants.JPAKE_ERROR_TIMEOUT);
-          return;
-        }
-        pollTries += 1;
-        if (!finished) {
-          scheduleGetRequest(jpakePollInterval);
-        }
-        return;
-      case 404:
-        Log.e(LOG_TAG, "No data found in channel.");
-        abort(Constants.JPAKE_ERROR_NODATA);
-        break;
-      case 412: 
-        Log.d(LOG_TAG, "Message already replaced on server by other party.");
-        onRequestSuccess(res);
-        break;
-      default:
-        Log.e(LOG_TAG, "Could not retrieve data. Server responded with HTTP "
-            + statusCode);
-        abort(Constants.JPAKE_ERROR_SERVER);
-        return;
-      }
-      pollTries = 0;
-      break;
-    case PUT:
-      Log.e(LOG_TAG, "Could not upload data. Server responded with HTTP "
-          + response.getStatusCode());
-      abort(Constants.JPAKE_ERROR_SERVER);
-      break;
-    case ABORT:
-      Log.e(LOG_TAG, "Abort: request failure.");
-      break;
-    case REPORT_FAILURE:
-      Log.e(LOG_TAG, "ReportFailure: failure. Server responded with HTTP "
-          + response.getStatusCode());
-      break;
-    default:
-      Log.e(LOG_TAG, "Unhandled request failure " + response.getStatusCode());
-    }
-  }
-
-  @Override
-  public void onRequestError(Exception e) {
-    
-  }
-
-  @Override
-  public void onRequestSuccess(HttpResponse res) {
-    if (finished)
-      return;
-    JPakeResponse response = new JPakeResponse(res);
-    Header[] etagHeaders;
-    switch (this.state) {
-    case GET_CHANNEL:
-      Object body = null;
-      try {
-        body = response.jsonBody();
-      } catch (IllegalStateException e1) {
-        e1.printStackTrace();
-      } catch (IOException e1) {
-        e1.printStackTrace();
-      } catch (ParseException e1) {
-        e1.printStackTrace();
-      }
-      String channel = body instanceof String ? (String) body : null;
-      if (channel == null) { 
-        abort(Constants.JPAKE_ERROR_INVALID);
-        return;
-      }
-      channelUrl = jpakeServer + channel;
-      Log.d(LOG_TAG, "using channel " + channel);
-
-      ssActivity.displayPin(secret + channel);
-
-      
-      this.state = State.STEP_ONE_GET;
-      computeStepOne();
-      break;
-
-    case STEP_ONE_GET:
-      ssActivity.onPairingStart();
-      jpakeMaxTries = MAX_TRIES;
-      
-    case KEY_VERIFY:
-      jpakeMaxTries = MAX_TRIES_LAST_MSG;
-    case STEP_TWO_GET:
-      etagHeaders = response.httpResponse().getHeaders("etag");
-      if (etagHeaders == null) {
-        try {
-          Log.e(LOG_TAG,
-              "Server did not supply ETag for message: " + response.body());
-          abort(Constants.JPAKE_ERROR_SERVER);
-        } catch (IllegalStateException e) {
-          e.printStackTrace();
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-        return;
-      }
-
-      theirEtag = etagHeaders[0].toString();
-      try {
-        jIncoming = response.jsonObjectBody();
-      } catch (IllegalStateException e) {
-        e.printStackTrace();
-      } catch (IOException e) {
-        e.printStackTrace();
-      } catch (ParseException e) {
-        e.printStackTrace();
-      } catch (NonObjectJSONException e) {
-        e.printStackTrace();
-      }
-      Log.d(LOG_TAG, "incoming message: " + jIncoming.toJSONString());
-      if (this.state == State.STEP_ONE_GET) {
-        computeStepTwo();
-      } else if (this.state == State.STEP_TWO_GET) {
-        computeFinal();
-      } else if (this.state == State.KEY_VERIFY) {
-        decryptData(myKeyBundle);
-      }
-      break;
-
-    case PUT:
-      etagHeaders = response.httpResponse().getHeaders("etag");
-      myEtag = response.httpResponse().getHeaders("etag")[0].getValue();
-
-      
-      state = nextPhase;
-      if (state == State.KEY_VERIFY) {
-        ssActivity.onPaired();
-      }
-      scheduleGetRequest(2 * jpakePollInterval);
-      Log.i(LOG_TAG, "scheduling 2xPollInterval for " + state.name());
-      break;
-
-    case ENCRYPT_PUT:
-      complete();
-      break;
-
-    case ABORT:
-      Log.e(LOG_TAG, "Key exchange successfully aborted.");
-      break;
-    default:
-      Log.e(LOG_TAG, "Unhandled response success.");
-    }
-  }
-
-  
-  public ResourceDelegate makeRequestResourceDelegate() {
-    return new JpakeRequestResourceDelegate(this);
-  }
-
-  public class JpakeRequestResourceDelegate implements ResourceDelegate {
-
-    private JPakeRequestDelegate requestDelegate;
-
-    public JpakeRequestResourceDelegate(JPakeRequestDelegate delegate) {
-      this.requestDelegate = delegate;
-    }
-
-    @Override
-    public String getCredentials() {
-      
-      return null;
-    }
-
-    @Override
-    public void addHeaders(HttpRequestBase request, DefaultHttpClient client) {
-      request.setHeader(new BasicHeader("X-KeyExchange-Id", clientId));
-
-      switch (state) {
-      case REPORT_FAILURE:
-        
-
-      case ABORT:
-        request.setHeader(new BasicHeader("X-KeyExchange-Cid", channel));
-        break;
-
-      case PUT:
-        if (myEtag == null) {
-          request.setHeader(new BasicHeader("If-None-Match", "*"));
-        }
-        
-      case KEY_VERIFY:
-      case STEP_ONE_GET:
-      case STEP_TWO_GET:
-        if (myEtag != null) {
-          request.setHeader(new BasicHeader("If-None-Match", myEtag));
-        }
-        break;
-      }
-    }
-
-    @Override
-    public void handleHttpResponse(HttpResponse response) {
-      
-      if (isSuccess(response)) {
-        this.requestDelegate.onRequestSuccess(response);
-      } else {
-        this.requestDelegate.onRequestFailure(response);
-      }
-      SyncResourceDelegate.consumeEntity(response.getEntity());
-    }
-
-    @Override
-    public void handleHttpProtocolException(ClientProtocolException e) {
-      Log.e(LOG_TAG, "Got HTTP protocol exception.", e);
-      this.requestDelegate.onRequestError(e);
-    }
-
-    @Override
-    public void handleTransportException(GeneralSecurityException e) {
-      Log.e(LOG_TAG, "Got HTTP transport exception.", e);
-      this.requestDelegate.onRequestError(e);
-    }
-
-    @Override
-    public void handleHttpIOException(IOException e) {
-      
-      Log.e(LOG_TAG, "HttpIOException", e);
-      switch (state) {
-      case GET_CHANNEL:
-        Log.e(LOG_TAG, "Failed on GetChannel.", e);
-        break;
-
-      case STEP_ONE_GET:
-      case STEP_TWO_GET:
-        break;
-      case PUT:
-        break;
-
-      case REPORT_FAILURE:
-        Log.e(LOG_TAG, "Report failed: " + error);
-        break;
-
-      default:
-        Log.e(LOG_TAG, "Unhandled HTTP I/O exception.", e);
-      }
-    }
-
-    @Override
-    public int connectionTimeout() {
-      return REQUEST_TIMEOUT;
-    }
-
-    @Override
-    public int socketTimeout() {
-      return SOCKET_TIMEOUT;
-    }
-
-    private int getStatusCode(HttpResponse response) {
-      return response.getStatusLine().getStatusCode();
-    }
-
-    private boolean isSuccess(HttpResponse response) {
-      return getStatusCode(response) == 200;
-    }
   }
 }

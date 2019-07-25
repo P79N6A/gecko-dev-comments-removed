@@ -37,10 +37,10 @@
 
 package org.mozilla.gecko.sync;
 
-public class NonObjectJSONException extends Exception {
-  private static final long serialVersionUID = 435366246452253073L;
-  Object obj;
+public class NonObjectJSONException extends UnexpectedJSONException {
+  private static final long serialVersionUID = 2214238763035650087L;
+
   public NonObjectJSONException(Object object) {
-    obj = object;
+    super(object);
   }
 }

@@ -43,6 +43,14 @@ import org.mozilla.gecko.sync.repositories.domain.Record;
 
 interface RecordsConsumerDelegate {
   public abstract ConcurrentLinkedQueue<Record> getQueue();
-  public abstract void consumerIsDone();
+
+  
+
+
+
+
+
+
+  public abstract void consumerIsDone(boolean forced);
   public abstract void store(Record record);
 }
