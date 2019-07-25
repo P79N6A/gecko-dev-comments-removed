@@ -183,7 +183,6 @@ static NS_DEFINE_CID(kDOMEventGroupCID, NS_DOMEVENTGROUP_CID);
 #include "mozAutoDocUpdate.h"
 #include "nsGlobalWindow.h"
 #include "mozilla/dom/indexedDB/IndexedDatabaseManager.h"
-#include "nsDOMNavigationTiming.h"
 
 #ifdef MOZ_SMIL
 #include "nsSMILAnimationController.h"
@@ -4104,10 +4103,6 @@ nsDocument::DispatchContentLoadedEvents()
   
   
   mPreloadingImages.Clear();
-
-  if (mTiming) {
-    mTiming->NotifyDOMContentLoadedStart(nsIDocument::GetDocumentURI());
-  }
     
   
   
@@ -4115,10 +4110,6 @@ nsDocument::DispatchContentLoadedEvents()
   nsContentUtils::DispatchTrustedEvent(this, static_cast<nsIDocument*>(this),
                                        NS_LITERAL_STRING("DOMContentLoaded"),
                                        PR_TRUE, PR_TRUE);
-
-  if (mTiming) {
-    mTiming->NotifyDOMContentLoadedEnd(nsIDocument::GetDocumentURI());
-  }
 
   
   
@@ -7704,26 +7695,6 @@ void
 nsDocument::SetReadyStateInternal(ReadyState rs)
 {
   mReadyState = rs;
-  if (mTiming) {
-    switch (rs) {
-      case READYSTATE_LOADING:
-        mTiming->NotifyDOMLoading(nsIDocument::GetDocumentURI());
-        break;
-      case READYSTATE_INTERACTIVE:
-        mTiming->NotifyDOMInteractive(nsIDocument::GetDocumentURI());
-        break;
-      case READYSTATE_COMPLETE:
-        mTiming->NotifyDOMComplete(nsIDocument::GetDocumentURI());
-        break;
-      default:
-        NS_WARNING("Unexpected ReadyState value");
-        break;
-    }
-  }
-  
-  if (READYSTATE_LOADING == rs) {
-    mLoadingTimeStamp = mozilla::TimeStamp::Now();
-  }
 
   nsRefPtr<nsPLDOMEvent> plevent =
     new nsPLDOMEvent(this, NS_LITERAL_STRING("readystatechange"), PR_FALSE, PR_FALSE); 
@@ -8192,22 +8163,6 @@ nsDocument::GetStateObject(nsIVariant** aState)
   return NS_OK;
 }
 
-nsDOMNavigationTiming*
-nsDocument::GetNavigationTiming() const
-{
-  return mTiming;
-}
-
-nsresult
-nsDocument::SetNavigationTiming(nsDOMNavigationTiming* aTiming)
-{
-  mTiming = aTiming;
-  if (!mLoadingTimeStamp.IsNull() && mTiming) {
-    mTiming->SetDOMLoadingTimeStamp(nsIDocument::GetDocumentURI(), mLoadingTimeStamp);
-  }
-  return NS_OK;
-}
-
 nsresult
 nsDocument::AddImage(imgIRequest* aImage)
 {
@@ -8428,3 +8383,4 @@ nsDocument::CreateTouchList(nsIVariant* aPoints,
   *aRetVal = retval.forget().get();
   return NS_OK;
 }
+
