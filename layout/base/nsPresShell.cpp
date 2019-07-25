@@ -4365,64 +4365,24 @@ nsresult PresShell::GetLinkLocation(nsIDOMNode* aNode, nsAString& aLocationStrin
 #endif
 
   NS_ENSURE_ARG_POINTER(aNode);
-  nsresult rv;
-  nsAutoString anchorText;
-  static const char strippedChars[] = "\t\r\n";
 
-  
-  nsCOMPtr<nsIDOMHTMLAnchorElement> anchor(do_QueryInterface(aNode));
-  nsCOMPtr<nsIDOMHTMLAreaElement> area;
-  nsCOMPtr<nsIDOMHTMLLinkElement> link;
-  nsAutoString xlinkType;
-  if (anchor) {
-    rv = anchor->GetHref(anchorText);
-    NS_ENSURE_SUCCESS(rv, rv);
-  } else {
-    
-    area = do_QueryInterface(aNode);
-    if (area) {
-      rv = area->GetHref(anchorText);
+  nsCOMPtr<nsIContent> content(do_QueryInterface(aNode));
+  if (content) {
+    nsCOMPtr<nsIURI> hrefURI = content->GetHrefURI();
+    if (hrefURI) {
+      nsCAutoString specUTF8;
+      nsresult rv = hrefURI->GetSpec(specUTF8);
       NS_ENSURE_SUCCESS(rv, rv);
-    } else {
+
+      nsAutoString anchorText;
+      CopyUTF8toUTF16(specUTF8, anchorText);
+
       
-      link = do_QueryInterface(aNode);
-      if (link) {
-        rv = link->GetHref(anchorText);
-        NS_ENSURE_SUCCESS(rv, rv);
-      } else {
-        
-        nsCOMPtr<nsIDOMElement> element(do_QueryInterface(aNode));
-        if (element) {
-          NS_NAMED_LITERAL_STRING(xlinkNS,"http://www.w3.org/1999/xlink");
-          element->GetAttributeNS(xlinkNS,NS_LITERAL_STRING("type"),xlinkType);
-          if (xlinkType.EqualsLiteral("simple")) {
-            element->GetAttributeNS(xlinkNS,NS_LITERAL_STRING("href"),anchorText);
-            if (!anchorText.IsEmpty()) {
-              
-
-              nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
-              NS_ENSURE_TRUE(node, NS_ERROR_UNEXPECTED);
-              nsCOMPtr<nsIURI> baseURI = node->GetBaseURI();
-
-              nsCAutoString spec;
-              rv = baseURI->Resolve(NS_ConvertUTF16toUTF8(anchorText),spec);
-              NS_ENSURE_SUCCESS(rv, rv);
-
-              CopyUTF8toUTF16(spec, anchorText);
-            }
-          }
-        }
-      }
+      static const char strippedChars[] = "\t\r\n";
+      anchorText.StripChars(strippedChars);
+      aLocationString = anchorText;
+      return NS_OK;
     }
-  }
-
-  if (anchor || area || link || xlinkType.EqualsLiteral("simple")) {
-    
-    anchorText.StripChars(strippedChars);
-
-    aLocationString = anchorText;
-
-    return NS_OK;
   }
 
   
