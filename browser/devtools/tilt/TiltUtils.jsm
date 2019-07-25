@@ -675,6 +675,16 @@ TiltUtils.getDocumentZoom = function TU_getDocumentZoom() {
 
 
 
+
+
+TiltUtils.setDocumentZoom = function TU_getDocumentZoom(aZoom) {
+  TiltUtils.getBrowserWindow()
+           .gBrowser.selectedBrowser.markupDocumentViewer.fullZoom = aZoom;
+};
+
+
+
+
 TiltUtils.gc = function TU_gc()
 {
   TiltUtils.getBrowserWindow()

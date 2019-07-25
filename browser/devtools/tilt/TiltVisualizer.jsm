@@ -945,6 +945,9 @@ TiltVisualizer.Controller = function TV_Controller(aCanvas, aPresenter)
   this.width = aCanvas.width;
   this.height = aCanvas.height;
 
+  this.left *= TiltUtils.getDocumentZoom();
+  this.top *= TiltUtils.getDocumentZoom();
+
   
 
 
