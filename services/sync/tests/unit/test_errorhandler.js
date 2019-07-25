@@ -1264,6 +1264,62 @@ add_test(function test_sync_engine_generic_fail() {
   Service.sync();
 });
 
+add_test(function test_logs_on_sync_error_despite_shouldReportError() {
+  _("Ensure that an error is still logged when weave:service:sync:error " +
+    "is notified, despite shouldReportError returning false.");
+
+  let log = Log4Moz.repository.getLogger("Sync.ErrorHandler");
+  Svc.Prefs.set("log.appender.file.logOnError", true);
+  log.info("TESTING");
+
+  
+  Status.login = MASTER_PASSWORD_LOCKED;
+  do_check_false(ErrorHandler.shouldReportError());
+
+  Svc.Obs.add("weave:service:reset-file-log", function onResetFileLog() {
+    Svc.Obs.remove("weave:service:reset-file-log", onResetFileLog);
+
+    
+    let entries = logsdir.directoryEntries;
+    do_check_true(entries.hasMoreElements());
+    let logfile = entries.getNext().QueryInterface(Ci.nsILocalFile);
+    do_check_eq(logfile.leafName.slice(0, LOG_PREFIX_ERROR.length),
+                LOG_PREFIX_ERROR);
+
+    clean();
+    run_next_test();
+  });
+  Svc.Obs.notify("weave:service:sync:error", {});
+});
+
+add_test(function test_logs_on_login_error_despite_shouldReportError() {
+  _("Ensure that an error is still logged when weave:service:login:error " +
+    "is notified, despite shouldReportError returning false.");
+
+  let log = Log4Moz.repository.getLogger("Sync.ErrorHandler");
+  Svc.Prefs.set("log.appender.file.logOnError", true);
+  log.info("TESTING");
+
+  
+  Status.login = MASTER_PASSWORD_LOCKED;
+  do_check_false(ErrorHandler.shouldReportError());
+
+  Svc.Obs.add("weave:service:reset-file-log", function onResetFileLog() {
+    Svc.Obs.remove("weave:service:reset-file-log", onResetFileLog);
+
+    
+    let entries = logsdir.directoryEntries;
+    do_check_true(entries.hasMoreElements());
+    let logfile = entries.getNext().QueryInterface(Ci.nsILocalFile);
+    do_check_eq(logfile.leafName.slice(0, LOG_PREFIX_ERROR.length),
+                LOG_PREFIX_ERROR);
+
+    clean();
+    run_next_test();
+  });
+  Svc.Obs.notify("weave:service:login:error", {});
+});
+
 
 
 add_test(function test_engine_applyFailed() {
