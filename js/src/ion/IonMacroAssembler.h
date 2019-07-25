@@ -138,7 +138,12 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     
     
-    void setABIArg(uint32 arg, const Register &reg);
+    void setABIArg(uint32 arg, const MoveOperand &from);
+
+    void setABIArg(uint32 arg, const Register &reg){
+        setABIArg(arg, MoveOperand(reg));
+    }
+
 
     
     void callWithABI(void *fun);
