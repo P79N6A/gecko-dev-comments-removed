@@ -512,6 +512,14 @@ BrowserElementChild.prototype = {
 
       if (stateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
         sendAsyncMsg('loadend');
+
+        if (status == Cr.NS_OK) {
+          return;
+        }
+
+        
+        
+        sendAsyncMsg('error', {type: 'other'});
       }
     },
 
