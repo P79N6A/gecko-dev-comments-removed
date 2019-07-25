@@ -3024,8 +3024,9 @@ BeginMarkPhase(JSRuntime *rt)
     gcstats::AutoPhase ap1(rt->gcStats, gcstats::PHASE_MARK);
     gcstats::AutoPhase ap2(rt->gcStats, gcstats::PHASE_MARK_ROOTS);
 
-    for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront())
-        r.front()->bitmap.clear();
+    
+    for (GCCompartmentsIter c(rt); !c.done(); c.next())
+        c->arenas.unmarkAll();
 
     MarkRuntime(gcmarker);
 }
@@ -3086,13 +3087,38 @@ EndMarkPhase(JSRuntime *rt)
         ValidateIncrementalMarking(rt);
 #endif
 
-#ifdef DEBUG
     
-    for (CompartmentsIter c(rt); !c.done(); c.next()) {
-        JS_ASSERT_IF(!c->isCollecting() && c != rt->atomsCompartment,
-                     c->arenas.checkArenaListAllUnmarked());
+
+
+
+
+
+
+    bool foundBlackGray = false;
+    for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
+        for (WrapperMap::Enum e(c->crossCompartmentWrappers); !e.empty(); e.popFront()) {
+            Cell *dst = e.front().key.wrapped;
+            Cell *src = ToMarkable(e.front().value);
+            JS_ASSERT(src->compartment() == c.get());
+            if (IsCellMarked(&src) && !src->isMarked(GRAY) && dst->isMarked(GRAY)) {
+                JS_ASSERT(!dst->compartment()->isCollecting());
+                foundBlackGray = true;
+            }
+        }
     }
-#endif
+
+    
+
+
+
+
+    if (foundBlackGray) {
+        JS_ASSERT(false);
+        for (CompartmentsIter c(rt); !c.done(); c.next()) {
+            if (!c->isCollecting())
+                c->arenas.unmarkAll();
+        }
+    }
 
     rt->gcMarker.stop();
 
