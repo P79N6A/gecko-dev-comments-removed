@@ -1,4 +1,3 @@
-#
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
 #
@@ -12,11 +11,11 @@
 # for the specific language governing rights and limitations under the
 # License.
 #
-# The Original Code is mozilla.org code.
+# The Original Code is the Mozilla build system.
 #
 # The Initial Developer of the Original Code is
-# Netscape Communications Corporation.
-# Portions created by the Initial Developer are Copyright (C) 1998
+# Google Inc.
+# Portions created by the Initial Developer are Copyright (C) 2006
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):
@@ -35,48 +34,47 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH		= ..
-topsrcdir	= @top_srcdir@
-srcdir		= @srcdir@
-VPATH		= @srcdir@
+# NOTE: We need NSPR and xpcom, but their build.mk may or may not be
+# included yet. Include it if needed.
 
-include $(DEPTH)/config/autoconf.mk
-
-MODULE		= necko
-
-DIRS		= \
-		base \
-		cookie \
-		dns \
-		socket \
-		mime \
-		streamconv \
-		cache \
-		protocol \
-		system \
-        $(NULL)
-
-ifdef MOZ_IPC
-DIRS 		+= \
-	        ipc  \
-	        $(NULL)
+ifndef tier_nspr_dirs
+include $(topsrcdir)/config/nspr/build.mk
 endif
 
-ifdef NECKO_WIFI
-DIRS 		+= wifi
+ifndef tier_xpcom_dirs
+include $(topsrcdir)/xpcom/build.mk
 endif
 
-DIRS		+= \
-		build \
-		locales \
+TIERS += zlib
+
+ifndef MOZ_NATIVE_ZLIB
+tier_zlib_dirs	+= modules/zlib
+endif
+
+#
+# tier "necko" - the networking library and its dependencies
+#
+
+# the offline cache uses mozStorage
+ifdef MOZ_STORAGE
+tier_necko_dirs += storage/public
+endif
+
+# these are only in the necko tier because libpref needs it
+
+ifndef WINCE
+ifneq (,$(MOZ_XPINSTALL))
+tier_necko_dirs += modules/libreg
+endif
+endif
+
+tier_necko_dirs += \
+		modules/libpref \
+		intl \
+		netwerk \
 		$(NULL)
 
-ifdef ENABLE_TESTS
-TOOL_DIRS  += test
+ifdef MOZ_AUTH_EXTENSION
+tier_necko_dirs += extensions/auth
 endif
 
-EXPORTS     = necko-config.h
-
-include $(topsrcdir)/config/rules.mk
-
-DEFINES += -DIMPL_NS_NET
