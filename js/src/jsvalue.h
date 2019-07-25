@@ -317,8 +317,8 @@ class Value
   public:
     
 
-    
-    Value() { data.asBits = 0; }
+
+
 
     
 
