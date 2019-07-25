@@ -333,7 +333,7 @@ protected:
 
 
 
-  void InvalidateForLayerChange(nsDisplayItem* aItem, Layer* aNewLayer, const FrameLayerBuilder::Clip& aClip);
+  void InvalidateForLayerChange(nsDisplayItem* aItem, Layer* aNewLayer);
   
 
 
@@ -950,8 +950,7 @@ FrameLayerBuilder::HasRetainedLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKe
 }
 
 Layer*
-FrameLayerBuilder::GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey, 
-                                  nsDisplayItemGeometry** aOldGeometry, Clip** aOldClip)
+FrameLayerBuilder::GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey, nsDisplayItemGeometry** aOldGeometry)
 {
   
   
@@ -968,9 +967,6 @@ FrameLayerBuilder::GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey,
       if (layer->Manager() == mRetainingManager) {
         if (aOldGeometry) {
           *aOldGeometry = array->ElementAt(i).mGeometry.get();
-        }
-        if (aOldClip) {
-          *aOldClip = &array->ElementAt(i).mClip;
         }
         return layer;
       }
@@ -1870,14 +1866,14 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       
       
       if (itemVisibleRect.IsEmpty() && layerState != LAYER_ACTIVE_EMPTY) {
-        InvalidateForLayerChange(item, nsnull, aClip);
+        InvalidateForLayerChange(item, nsnull);
         continue;
       }
 
       
       nsRefPtr<Layer> ownLayer = item->BuildLayer(mBuilder, mManager, mParameters);
       if (!ownLayer) {
-        InvalidateForLayerChange(item, ownLayer, aClip);
+        InvalidateForLayerChange(item, ownLayer);
         continue;
       }
 
@@ -1936,10 +1932,10 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       NS_ASSERTION(!mNewChildLayers.Contains(ownLayer),
                    "Layer already in list???");
 
-      InvalidateForLayerChange(item, ownLayer, aClip);
+      InvalidateForLayerChange(item, ownLayer);
 
       mNewChildLayers.AppendElement(ownLayer);
-      mLayerBuilder->AddLayerDisplayItem(ownLayer, item, aClip, layerState, nsnull);
+      mLayerBuilder->AddLayerDisplayItem(ownLayer, item, layerState, nsnull);
     } else {
       ThebesLayerData* data =
         FindThebesLayerFor(item, itemVisibleRect, itemDrawRect, aClip,
@@ -1949,7 +1945,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
         !nsLayoutUtils::IsScrolledByRootContentDocumentDisplayportScrolling(
                                        activeScrolledRoot, mBuilder));
 
-      InvalidateForLayerChange(item, data->mLayer, aClip);
+      InvalidateForLayerChange(item, data->mLayer);
 
       mLayerBuilder->AddThebesDisplayItem(data->mLayer, item, aClip,
                                           mContainerFrame,
@@ -1963,16 +1959,15 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
 }
 
 void
-ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem, Layer* aNewLayer, const FrameLayerBuilder::Clip& aClip)
+ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem, Layer* aNewLayer)
 {
   nsIFrame* f = aItem->GetUnderlyingFrame();
   NS_ASSERTION(f, "Display items that render using Thebes must have a frame");
   PRUint32 key = aItem->GetPerFrameKey();
   NS_ASSERTION(key, "Display items that render using Thebes must have a key");
   nsDisplayItemGeometry *oldGeometry = NULL;
-  FrameLayerBuilder::Clip* oldClip = NULL;
   nsAutoPtr<nsDisplayItemGeometry> geometry(aItem->AllocateGeometry(mBuilder));
-  Layer* oldLayer = mLayerBuilder->GetOldLayerFor(f, key, &oldGeometry, &oldClip);
+  Layer* oldLayer = mLayerBuilder->GetOldLayerFor(f, key, &oldGeometry);
   if (aNewLayer != oldLayer && oldLayer) {
     
     
@@ -2021,22 +2016,16 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem, Layer* aNewLayer,
   nsRegion combined;
   if (!oldLayer) {
     
-    
     combined = geometry->ComputeInvalidationRegion();
 #ifdef DEBUG_INVALIDATIONS
     printf("Display item type %s(%p) added to layer %p!\n", aItem->Name(), f, aNewLayer);
 #endif
-  } else if (aItem->IsInvalid() || *oldClip != aClip) {
-    
-    
-    
+  } else if (aItem->IsInvalid()) {
     combined.Or(geometry->ComputeInvalidationRegion(), oldGeometry->ComputeInvalidationRegion());
 #ifdef DEBUG_INVALIDATIONS
     printf("Display item type %s(%p) (in layer %p) belongs to an invalidated frame!\n", aItem->Name(), f, aNewLayer);
 #endif
   } else {
-    
-    
     ThebesDisplayItemLayerUserData* data =
         static_cast<ThebesDisplayItemLayerUserData*>(newThebesLayer->GetUserData(&gThebesDisplayItemLayerUserData));
     nsIntPoint paintOffset = GetTranslationForThebesLayer(newThebesLayer);
@@ -2102,7 +2091,7 @@ FrameLayerBuilder::AddThebesDisplayItem(ThebesLayer* aLayer,
     }
   }
 
-  AddLayerDisplayItem(aLayer, aItem, aClip, aLayerState, tempManager);
+  AddLayerDisplayItem(aLayer, aItem, aLayerState, tempManager);
 
   ThebesLayerItemsEntry* entry = mThebesLayerItems.PutEntry(aLayer);
   if (entry) {
@@ -2184,7 +2173,6 @@ FrameLayerBuilder::ClippedDisplayItem::~ClippedDisplayItem()
 void
 FrameLayerBuilder::AddLayerDisplayItem(Layer* aLayer,
                                        nsDisplayItem* aItem,
-                                       const Clip& aClip,
                                        LayerState aLayerState,
                                        LayerManager* aManager)
 {
@@ -2211,7 +2199,6 @@ FrameLayerBuilder::AddLayerDisplayItem(Layer* aLayer,
     ThebesLayer *t = aLayer->AsThebesLayer();
     if (t) {
       data->mGeometry = aItem->AllocateGeometry(mDisplayListBuilder);
-      data->mClip = aClip;
       data->mGeometry->mAppUnitsPerDevPixel = AppUnitsPerDevPixel(aItem);
       ThebesDisplayItemLayerUserData* userData =
                     static_cast<ThebesDisplayItemLayerUserData*>(t->GetUserData(&gThebesDisplayItemLayerUserData));
