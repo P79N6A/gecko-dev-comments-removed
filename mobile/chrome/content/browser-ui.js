@@ -428,7 +428,7 @@ var BrowserUI = {
     window.addEventListener("mousedown", this, true);
 
     
-    window.addEventListener("keypress", this, true);
+    window.addEventListener("keypress", this, false);
 
     
     window.addEventListener("AppCommand", this, true);
