@@ -108,6 +108,7 @@
 #include "nsIPageSequenceFrame.h"
 #include "nsCaret.h"
 #include "nsIDOMHTMLDocument.h"
+#include "nsIXPointer.h"
 #include "nsIDOMXMLDocument.h"
 #include "nsIParser.h"
 #include "nsParserCIID.h"
@@ -1036,10 +1037,12 @@ protected:
   struct RenderingState {
     RenderingState(PresShell* aPresShell) 
       : mRenderFlags(aPresShell->mRenderFlags)
+      , mDisplayPort(aPresShell->mDisplayPort)
       , mXResolution(aPresShell->mXResolution)
       , mYResolution(aPresShell->mYResolution)
     { }
     PRUint32 mRenderFlags;
+    nsRect mDisplayPort;
     float mXResolution;
     float mYResolution;
   };
@@ -1053,6 +1056,7 @@ protected:
     ~AutoSaveRestoreRenderingState()
     {
       mPresShell->mRenderFlags = mOldState.mRenderFlags;
+      mPresShell->mDisplayPort = mOldState.mDisplayPort;
       mPresShell->mXResolution = mOldState.mXResolution;
       mPresShell->mYResolution = mOldState.mYResolution;
     }
@@ -3875,6 +3879,77 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, PRBool aScroll)
     }
   }
 
+  nsCOMPtr<nsIDOMRange> jumpToRange;
+  nsCOMPtr<nsIXPointerResult> xpointerResult;
+  if (!content) {
+    nsCOMPtr<nsIDOMXMLDocument> xmldoc = do_QueryInterface(mDocument);
+    if (xmldoc) {
+      
+      xmldoc->EvaluateXPointer(aAnchorName, getter_AddRefs(xpointerResult));
+      if (xpointerResult) {
+        xpointerResult->Item(0, getter_AddRefs(jumpToRange));
+        if (!jumpToRange) {
+          
+          
+          
+          return NS_ERROR_FAILURE;
+        }
+      }
+
+      
+      if (!jumpToRange) {
+        xmldoc->EvaluateFIXptr(aAnchorName,getter_AddRefs(jumpToRange));
+      }
+
+      if (jumpToRange) {
+        nsCOMPtr<nsIDOMNode> node;
+        jumpToRange->GetStartContainer(getter_AddRefs(node));
+        if (node) {
+          PRUint16 nodeType;
+          node->GetNodeType(&nodeType);
+          PRInt32 offset = -1;
+          jumpToRange->GetStartOffset(&offset);
+          switch (nodeType) {
+            case nsIDOMNode::ATTRIBUTE_NODE:
+            {
+              
+              nsCOMPtr<nsIAttribute> attr = do_QueryInterface(node);
+              content = attr->GetContent();
+              break;
+            }
+            case nsIDOMNode::DOCUMENT_NODE:
+            {
+              if (offset >= 0) {
+                nsCOMPtr<nsIDocument> document = do_QueryInterface(node);
+                content = document->GetChildAt(offset);
+              }
+              break;
+            }
+            case nsIDOMNode::DOCUMENT_FRAGMENT_NODE:
+            case nsIDOMNode::ELEMENT_NODE:
+            case nsIDOMNode::ENTITY_REFERENCE_NODE:
+            {
+              if (offset >= 0) {
+                nsCOMPtr<nsIContent> parent = do_QueryInterface(node);
+                content = parent->GetChildAt(offset);
+              }
+              break;
+            }
+            case nsIDOMNode::CDATA_SECTION_NODE:
+            case nsIDOMNode::COMMENT_NODE:
+            case nsIDOMNode::TEXT_NODE:
+            case nsIDOMNode::PROCESSING_INSTRUCTION_NODE:
+            {
+              
+              content = do_QueryInterface(node);
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
   esm->SetContentState(content, NS_EVENT_STATE_URLTARGET);
 
 #ifdef ACCESSIBILITY
@@ -3902,14 +3977,16 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, PRBool aScroll)
     
     
     
-    nsCOMPtr<nsIDOMRange> jumpToRange = do_CreateInstance(kRangeCID);
-    if (jumpToRange) {
-      while (content && content->GetChildCount() > 0) {
-        content = content->GetChildAt(0);
+    if (!jumpToRange) {
+      jumpToRange = do_CreateInstance(kRangeCID);
+      if (jumpToRange) {
+        while (content && content->GetChildCount() > 0) {
+          content = content->GetChildAt(0);
+        }
+        nsCOMPtr<nsIDOMNode> node(do_QueryInterface(content));
+        NS_ASSERTION(node, "No nsIDOMNode for descendant of anchor");
+        jumpToRange->SelectNodeContents(node);
       }
-      nsCOMPtr<nsIDOMNode> node(do_QueryInterface(content));
-      NS_ASSERTION(node, "No nsIDOMNode for descendant of anchor");
-      jumpToRange->SelectNodeContents(node);
     }
     if (jumpToRange) {
       
@@ -3921,6 +3998,17 @@ PresShell::GoToAnchor(const nsAString& aAnchorName, PRBool aScroll)
         if (!selectAnchor) {
           
           sel->CollapseToStart();
+        }
+
+        if (selectAnchor && xpointerResult) {
+          
+          PRUint32 count, i;
+          xpointerResult->GetLength(&count);
+          for (i = 1; i < count; i++) { 
+            nsCOMPtr<nsIDOMRange> range;
+            xpointerResult->Item(i, getter_AddRefs(range));
+            sel->AddRange(range);
+          }
         }
       }
       
@@ -5929,7 +6017,14 @@ void PresShell::SetIgnoreViewportScrolling(PRBool aIgnore)
 
 void PresShell::SetDisplayPort(const nsRect& aDisplayPort)
 {
-  NS_ABORT_IF_FALSE(false, "SetDisplayPort is deprecated");
+  if (UsingDisplayPort() && mDisplayPort == aDisplayPort) {
+    return;
+  }
+  RenderingState state(this);
+  state.mRenderFlags = ChangeFlag(mRenderFlags, PR_TRUE,
+                                  STATE_USING_DISPLAYPORT);
+  state.mDisplayPort = aDisplayPort;
+  SetRenderingState(state);
 }
 
 nsresult PresShell::SetResolution(float aXResolution, float aYResolution)
@@ -5959,8 +6054,37 @@ void PresShell::SetRenderingState(const RenderingState& aState)
   }
 
   mRenderFlags = aState.mRenderFlags;
+  if (UsingDisplayPort()) {
+    mDisplayPort = aState.mDisplayPort;
+  } else {
+    mDisplayPort = nsRect();
+  }
   mXResolution = aState.mXResolution;
   mYResolution = aState.mYResolution;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsPresContext* rootPresContext = mPresContext->GetRootPresContext();
+  if (rootPresContext) {
+    nsIPresShell* rootPresShell = rootPresContext->GetPresShell();
+    nsIFrame* rootFrame = rootPresShell->FrameManager()->GetRootFrame();
+    if (rootFrame) {
+      rootFrame->InvalidateFrameSubtree();
+    }
+  }
 }
 
 void PresShell::SynthesizeMouseMove(PRBool aFromScroll)

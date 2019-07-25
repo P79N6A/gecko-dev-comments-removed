@@ -133,7 +133,7 @@
 #include "nsIViewManager.h"
 #include "nsIScrollableFrame.h"
 #include "nsXBLInsertionPoint.h"
-#include "nsICSSStyleRule.h" 
+#include "mozilla/css/StyleRule.h" 
 #include "nsCSSRuleProcessor.h"
 #include "nsRuleProcessorData.h"
 
@@ -155,6 +155,7 @@
 #endif 
 
 using namespace mozilla::dom;
+namespace css = mozilla::css;
 
 NS_DEFINE_IID(kThisPtrOffsetsSID, NS_THISPTROFFSETS_SID);
 
@@ -2558,8 +2559,13 @@ nsresult
 nsGenericElement::GetElementsByTagName(const nsAString& aTagname,
                                        nsIDOMNodeList** aReturn)
 {
+  nsAutoString lowercaseName;
+  nsContentUtils::ASCIIToLower(aTagname, lowercaseName);
+  nsCOMPtr<nsIAtom> XMLAtom = do_GetAtom(aTagname);
+  nsCOMPtr<nsIAtom> HTMLAtom = do_GetAtom(lowercaseName);
+
   nsContentList *list = NS_GetContentList(this, kNameSpaceID_Unknown, 
-                                          aTagname).get();
+                                          HTMLAtom, XMLAtom).get();
 
   
   *aReturn = list;
@@ -2685,9 +2691,9 @@ nsGenericElement::GetElementsByTagNameNS(const nsAString& aNamespaceURI,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  NS_ASSERTION(nameSpaceId != kNameSpaceID_Unknown, "Unexpected namespace ID!");
+  nsCOMPtr<nsIAtom> nameAtom = do_GetAtom(aLocalName);
 
-  nsContentList *list = NS_GetContentList(this, nameSpaceId, aLocalName).get();
+  nsContentList *list = NS_GetContentList(this, nameSpaceId, nameAtom).get();
 
   
   *aReturn = list;
@@ -3363,7 +3369,7 @@ nsGenericElement::GetSMILOverrideStyle(nsIDOMCSSStyleDeclaration** aStyle)
   return NS_OK;
 }
 
-nsICSSStyleRule*
+css::StyleRule*
 nsGenericElement::GetSMILOverrideStyleRule()
 {
   nsGenericElement::nsDOMSlots *slots = GetExistingDOMSlots();
@@ -3371,7 +3377,7 @@ nsGenericElement::GetSMILOverrideStyleRule()
 }
 
 nsresult
-nsGenericElement::SetSMILOverrideStyleRule(nsICSSStyleRule* aStyleRule,
+nsGenericElement::SetSMILOverrideStyleRule(css::StyleRule* aStyleRule,
                                            PRBool aNotify)
 {
   nsGenericElement::nsDOMSlots *slots = DOMSlots();
@@ -3395,14 +3401,14 @@ nsGenericElement::SetSMILOverrideStyleRule(nsICSSStyleRule* aStyleRule,
 }
 #endif 
 
-nsICSSStyleRule*
+css::StyleRule*
 nsGenericElement::GetInlineStyleRule()
 {
   return nsnull;
 }
 
 NS_IMETHODIMP
-nsGenericElement::SetInlineStyleRule(nsICSSStyleRule* aStyleRule,
+nsGenericElement::SetInlineStyleRule(css::StyleRule* aStyleRule,
                                      PRBool aNotify)
 {
   NS_NOTYETIMPLEMENTED("nsGenericElement::SetInlineStyleRule");

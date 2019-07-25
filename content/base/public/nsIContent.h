@@ -50,7 +50,6 @@ class nsIDOMEvent;
 class nsIContent;
 class nsIEventListenerManager;
 class nsIURI;
-class nsICSSStyleRule;
 class nsRuleWalker;
 class nsAttrValue;
 class nsAttrName;
@@ -62,6 +61,12 @@ class nsISMILAttr;
 class nsIDOMCSSStyleDeclaration;
 #endif 
 
+namespace mozilla {
+namespace css {
+class StyleRule;
+}
+}
+
 enum nsLinkState {
   eLinkState_Unknown    = 0,
   eLinkState_Unvisited  = 1,
@@ -71,8 +76,8 @@ enum nsLinkState {
 
 
 #define NS_ICONTENT_IID       \
-{ 0x71afb9e6, 0xe8a7, 0x475d, \
-  { 0x89, 0xc4, 0xe4, 0x62, 0x21, 0xeb, 0xe1, 0xa4 } }
+{ 0x557a7d96, 0xb9cd, 0x4be2, \
+  { 0xa3, 0xe7, 0x5f, 0x43, 0x6d, 0xfd, 0xd9, 0x4f } }
 
 
 
@@ -823,13 +828,13 @@ public:
   
 
 
-  virtual nsICSSStyleRule* GetInlineStyleRule() = 0;
+  virtual mozilla::css::StyleRule* GetInlineStyleRule() = 0;
 
   
 
 
 
-  NS_IMETHOD SetInlineStyleRule(nsICSSStyleRule* aStyleRule, PRBool aNotify) = 0;
+  NS_IMETHOD SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule, PRBool aNotify) = 0;
 
   
 
@@ -916,14 +921,14 @@ public:
 
 
 
-  virtual nsICSSStyleRule* GetSMILOverrideStyleRule() = 0;
+  virtual mozilla::css::StyleRule* GetSMILOverrideStyleRule() = 0;
 
   
 
 
 
 
-  virtual nsresult SetSMILOverrideStyleRule(nsICSSStyleRule* aStyleRule,
+  virtual nsresult SetSMILOverrideStyleRule(mozilla::css::StyleRule* aStyleRule,
                                             PRBool aNotify) = 0;
 #endif 
 
