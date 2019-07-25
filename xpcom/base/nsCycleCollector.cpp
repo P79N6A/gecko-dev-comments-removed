@@ -1075,6 +1075,7 @@ struct nsCycleCollector
     TimeStamp mCollectionStart;
 
     nsCycleCollectionLanguageRuntime *mRuntimes[nsIProgrammingLanguage::MAX+1];
+    nsCycleCollectionJSRuntime *mJSRuntime;
     nsCycleCollectionXPCOMRuntime mXPCOMRuntime;
 
     GCGraph mGraph;
@@ -2607,6 +2608,7 @@ nsCycleCollector::nsCycleCollector() :
     mCollectionInProgress(false),
     mScanInProgress(false),
     mResults(nsnull),
+    mJSRuntime(nsnull),
     mWhiteNodes(nsnull),
     mWhiteNodeCount(0),
     mVisitedRefCounted(0),
@@ -2648,6 +2650,10 @@ nsCycleCollector::RegisterRuntime(PRUint32 langID,
         Fault("multiple registrations of language runtime", rt);
 
     mRuntimes[langID] = rt;
+
+    if (langID == nsIProgrammingLanguage::JAVASCRIPT) {
+        mJSRuntime = static_cast<nsCycleCollectionJSRuntime *>(rt);
+    }
 }
 
 void 
@@ -2663,6 +2669,10 @@ nsCycleCollector::ForgetRuntime(PRUint32 langID)
         Fault("forgetting non-registered language runtime");
 
     mRuntimes[langID] = nsnull;
+
+    if (langID == nsIProgrammingLanguage::JAVASCRIPT) {
+        mJSRuntime = nsnull;
+    }
 }
 
 #ifdef DEBUG_CC
@@ -2956,14 +2966,11 @@ nsCycleCollector::GCIfNeeded(bool aForceGC)
     if (mParams.mDoNothing)
         return;
 
-    if (!mRuntimes[nsIProgrammingLanguage::JAVASCRIPT])
+    if (!mJSRuntime)
         return;
 
-    nsCycleCollectionJSRuntime* rt =
-        static_cast<nsCycleCollectionJSRuntime*>
-            (mRuntimes[nsIProgrammingLanguage::JAVASCRIPT]);
     if (!aForceGC) {
-        bool needGC = rt->NeedCollect();
+        bool needGC = mJSRuntime->NeedCollect();
         
         Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_NEED_GC, needGC);
         if (!needGC)
@@ -2977,7 +2984,7 @@ nsCycleCollector::GCIfNeeded(bool aForceGC)
     
     
     
-    rt->Collect(js::gcreason::CC_FORCED, nsGCNormal);
+    mJSRuntime->Collect(js::gcreason::CC_FORCED, nsGCNormal);
     timeLog.Checkpoint("GC()");
 }
 
@@ -3399,12 +3406,6 @@ class nsCycleCollectorRunner : public nsRunnable
     bool mShutdown;
     bool mCollected;
 
-    nsCycleCollectionJSRuntime *GetJSRuntime()
-    {
-        return static_cast<nsCycleCollectionJSRuntime*>
-                 (mCollector->mRuntimes[nsIProgrammingLanguage::JAVASCRIPT]);
-    }
-
 public:
     NS_IMETHOD Run()
     {
@@ -3435,9 +3436,9 @@ public:
                 return NS_OK;
             }
 
-            GetJSRuntime()->NotifyEnterCycleCollectionThread();
+            mCollector->mJSRuntime->NotifyEnterCycleCollectionThread();
             mCollected = mCollector->BeginCollection(mListener);
-            GetJSRuntime()->NotifyLeaveCycleCollectionThread();
+            mCollector->mJSRuntime->NotifyLeaveCycleCollectionThread();
 
             mReply.Notify();
         }
@@ -3485,10 +3486,10 @@ public:
             aListener = nsnull;
         mListener = aListener;
 
-        if (GetJSRuntime()->NotifyLeaveMainThread()) {
+        if (mCollector->mJSRuntime->NotifyLeaveMainThread()) {
             mRequest.Notify();
             mReply.Wait();
-            GetJSRuntime()->NotifyEnterMainThread();
+            mCollector->mJSRuntime->NotifyEnterMainThread();
         } else {
             mCollected = mCollector->BeginCollection(mListener);
         }
