@@ -3330,8 +3330,6 @@ pref("geo.enabled", true);
 pref("device.motion.enabled", true);
 
 
-pref("html5.parser.enable", true);
-
 pref("html5.offmainthread", true);
 
 
