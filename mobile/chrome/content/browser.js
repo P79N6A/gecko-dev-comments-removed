@@ -892,7 +892,15 @@ var BrowserEventHandler = {
           aEvent.stopPropagation();
           aEvent.preventDefault();
         } else {
-          FormAssistant.handleClick(aEvent);
+          let closest = ElementTouchHelper.elementFromPoint(BrowserApp.selectedBrowser.contentWindow, aEvent.clientX, aEvent.clientY);
+          if (closest) {
+            aEvent.stopPropagation();
+            aEvent.preventDefault();
+            this._sendMouseEvent("mousedown", closest, aEvent.clientX, aEvent.clientY);
+            this._sendMouseEvent("mouseup", closest, aEvent.clientX, aEvent.clientY);
+          } else {
+            FormAssistant.handleClick(aEvent);
+          }
         }
         break;
 
@@ -1215,6 +1223,41 @@ var BrowserEventHandler = {
     this.motionBuffer.push({ dx: dx, dy: dy, time: this.lastTime });
   },
 
+  _sendMouseEvent: function _sendMouseEvent(aName, aElement, aX, aY, aButton) {
+    
+    
+    if (!(aElement instanceof HTMLHtmlElement)) {
+      let isTouchClick = true;
+      let rects = ElementTouchHelper.getContentClientRects(aElement);
+      for (let i = 0; i < rects.length; i++) {
+        let rect = rects[i];
+        
+        
+        let inBounds = 
+          (aX > rect.left + 1 && aX < (rect.left + rect.width - 1)) &&
+          (aY > rect.top + 1 && aY < (rect.top + rect.height - 1));
+        if (inBounds) {
+          isTouchClick = false;
+          break;
+        }
+      }
+
+      if (isTouchClick) {
+        let rect = {x: rects[0].left, y: rects[0].top, w: rects[0].width, h: rects[0].height};
+        if (rect.w == 0 && rect.h == 0)
+          return;
+
+        let point = { x: rect.x + rect.w/2, y: rect.y + rect.h/2 };
+        aX = point.x;
+        aY = point.y;
+      }
+    }
+
+    let cwu = aElement.ownerDocument.defaultView.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+    aButton = aButton || 0;
+    cwu.sendMouseEventToWindow(aName, Math.round(aX), Math.round(aY), aButton, 1, 0, true);
+  },
+
   _findScrollableElement: function(elem, checkElem) {
     
     let scrollable = false;
@@ -1282,6 +1325,161 @@ var BrowserEventHandler = {
   }
 };
 
+const kReferenceDpi = 240; 
+
+const ElementTouchHelper = {
+  elementFromPoint: function(aWindow, aX, aY) {
+    
+    
+    let cwu = aWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+    aX = aX;
+    aY = aY;
+    let elem = this.getClosest(cwu, aX, aY);
+
+    
+    while (elem && (elem instanceof HTMLIFrameElement || elem instanceof HTMLFrameElement)) {
+      
+      let rect = elem.getBoundingClientRect();
+      aX -= rect.left;
+      aY -= rect.top;
+      cwu = elem.contentDocument.defaultView.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+      elem = ElementTouchHelper.getClosest(cwu, aX, aY);
+    }
+  
+    return elem;
+  },
+
+  get radius() {
+    let prefs = Services.prefs;
+    delete this.radius;
+    return this.radius = { "top": prefs.getIntPref("browser.ui.touch.top"),
+                           "right": prefs.getIntPref("browser.ui.touch.right"),
+                           "bottom": prefs.getIntPref("browser.ui.touch.bottom"),
+                           "left": prefs.getIntPref("browser.ui.touch.left")
+                         };
+  },
+
+  get weight() {
+    delete this.weight;
+    return this.weight = { "visited": Services.prefs.getIntPref("browser.ui.touch.weight.visited") };
+  },
+
+  
+  getClosest: function getClosest(aWindowUtils, aX, aY) {
+    if (!this.dpiRatio)
+      this.dpiRatio = aWindowUtils.displayDPI / kReferenceDpi;
+
+    let dpiRatio = this.dpiRatio;
+
+    let target = aWindowUtils.elementFromPoint(aX, aY,
+                                               true,   
+                                               false); 
+
+    
+    if (this._isElementClickable(target))
+      return null;
+    let target = null;
+    let nodes = aWindowUtils.nodesFromRect(aX, aY, this.radius.top * dpiRatio,
+                                                   this.radius.right * dpiRatio,
+                                                   this.radius.bottom * dpiRatio,
+                                                   this.radius.left * dpiRatio, true, false);
+
+    let threshold = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < nodes.length; i++) {
+      let current = nodes[i];
+      if (!current.mozMatchesSelector || !this._isElementClickable(current))
+        continue;
+
+      let rect = current.getBoundingClientRect();
+      let distance = this._computeDistanceFromRect(aX, aY, rect);
+
+      
+      if (current && current.mozMatchesSelector("*:visited"))
+        distance *= (this.weight.visited / 100);
+
+      if (distance < threshold) {
+        target = current;
+        threshold = distance;
+      }
+    }
+
+    return target;
+  },
+
+  _isElementClickable: function _isElementClickable(aElement) {
+    const selector = "a,:link,:visited,[role=button],button,input,select,textarea,label";
+    for (let elem = aElement; elem; elem = elem.parentNode) {
+      if (this._hasMouseListener(elem))
+        return true;
+      if (elem.mozMatchesSelector && elem.mozMatchesSelector(selector))
+        return true;
+    }
+    return false;
+  },
+
+  _computeDistanceFromRect: function _computeDistanceFromRect(aX, aY, aRect) {
+    let x = 0, y = 0;
+    let xmost = aRect.left + aRect.width;
+    let ymost = aRect.top + aRect.height;
+
+    
+    
+    if (aRect.left < aX && aX < xmost)
+      x = Math.min(xmost - aX, aX - aRect.left);
+    else if (aX < aRect.left)
+      x = aRect.left - aX;
+    else if (aX > xmost)
+      x = aX - xmost;
+
+    
+    
+    if (aRect.top < aY && aY < ymost)
+      y = Math.min(ymost - aY, aY - aRect.top);
+    else if (aY < aRect.top)
+      y = aRect.top - aY;
+    if (aY > ymost)
+      y = aY - ymost;
+
+    return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+  },
+
+  _els: Cc["@mozilla.org/eventlistenerservice;1"].getService(Ci.nsIEventListenerService),
+  _clickableEvents: ["mousedown", "mouseup", "click"],
+  _hasMouseListener: function _hasMouseListener(aElement) {
+    let els = this._els;
+    let listeners = els.getListenerInfoFor(aElement, {});
+    for (let i = 0; i < listeners.length; i++) {
+      if (this._clickableEvents.indexOf(listeners[i].type) != -1)
+        return true;
+    }
+    return false;
+  },
+  getContentClientRects: function(aElement) {
+    let offset = {x: 0, y: 0};
+  
+    let nativeRects = aElement.getClientRects();
+    
+    for (let frame = aElement.ownerDocument.defaultView; frame != content; frame = frame.parent) {
+      
+      let rect = frame.frameElement.getBoundingClientRect();
+      let left = frame.getComputedStyle(frame.frameElement, "").borderLeftWidth;
+      let top = frame.getComputedStyle(frame.frameElement, "").borderTopWidth;
+      offset.x += rect.left + parseInt(left);
+      offset.y += rect.top + parseInt(top);
+    }
+  
+    let result = [];
+    for (let i = nativeRects.length - 1; i >= 0; i--) {
+      let r = nativeRects[i];
+      result.push({ left: r.left + offset.x,
+                    top: r.top + offset.y,
+                    width: r.width,
+                    height: r.height
+                  });
+    }
+    return result;
+  }
+};
 
 var ErrorPageEventHandler = {
   handleEvent: function(aEvent) {
