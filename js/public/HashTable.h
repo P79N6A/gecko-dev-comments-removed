@@ -48,6 +48,8 @@
 
 namespace js {
 
+class TempAllocPolicy;
+
 
 typedef uint32_t HashNumber;
 
@@ -958,7 +960,10 @@ struct IsPodType<HashMapEntry<K, V> >
 
 
 
-template <class Key, class Value, class HashPolicy, class AllocPolicy>
+template <class Key,
+          class Value,
+          class HashPolicy = DefaultHasher<Key>,
+          class AllocPolicy = TempAllocPolicy>
 class HashMap
 {
   public:
@@ -1200,7 +1205,7 @@ class HashMap
 
 
 
-template <class T, class HashPolicy, class AllocPolicy>
+template <class T, class HashPolicy = DefaultHasher<T>, class AllocPolicy = TempAllocPolicy>
 class HashSet
 {
     typedef typename HashPolicy::Lookup Lookup;
