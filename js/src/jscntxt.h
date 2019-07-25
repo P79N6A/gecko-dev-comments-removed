@@ -122,10 +122,6 @@ template<typename T> class Seq;
 
 }  
 
-namespace JSC {
-    class ExecutableAllocator;
-}
-
 namespace js {
 
 
@@ -221,24 +217,6 @@ struct TracerState
                 uintN &inlineCallCountp, VMSideExit** innermostNestedGuardp);
     ~TracerState();
 };
-
-namespace mjit {
-    struct ThreadData
-    {
-        JSC::ExecutableAllocator *execPool;
-
-        
-        typedef js::HashSet<JSScript*, DefaultHasher<JSScript*>, js::SystemAllocPolicy> ScriptSet;
-        ScriptSet picScripts;
-
-        bool Initialize();
-        void Finish();
-
-        bool addScript(JSScript *script);
-        void removeScript(JSScript *script);
-        void purge(JSContext *cx);
-    };
-}
 
 
 
@@ -651,6 +629,9 @@ class StackSpace
     inline Value *firstUnused() const;
 
     inline void assertIsCurrent(JSContext *cx) const;
+#ifdef DEBUG
+    CallStack *getCurrentCallStack() const { return currentCallStack; }
+#endif
 
     
 
@@ -777,8 +758,6 @@ class StackSpace
     
     JS_REQUIRES_STACK
     JS_FRIEND_API(bool) pushInvokeArgsFriendAPI(JSContext *, uintN, InvokeArgsGuard &);
-
-    CallStack *getCurrentCallStack() const { return currentCallStack; }
 };
 
 JS_STATIC_ASSERT(StackSpace::CAPACITY_VALS % StackSpace::COMMIT_VALS == 0);
@@ -809,20 +788,6 @@ class FrameRegsIter
     JSStackFrame *fp() const { return curfp; }
     Value *sp() const { return cursp; }
     jsbytecode *pc() const { return curpc; }
-};
-
-class AllFramesIter
-{
-    CallStack         *curcs;
-    JSStackFrame      *curfp;
-
-  public:
-    JS_REQUIRES_STACK AllFramesIter(JSContext *cx);
-
-    bool done() const { return curfp == NULL; }
-    AllFramesIter &operator++();
-
-    JSStackFrame *fp() const { return curfp; }
 };
 
 
@@ -1053,10 +1018,6 @@ struct JSThreadData {
 #ifdef JS_TRACER
     
     js::TraceMonitor    traceMonitor;
-#endif
-
-#ifdef JS_METHODJIT
-    js::mjit::ThreadData jmData;
 #endif
 
     
@@ -1610,7 +1571,6 @@ struct JSRuntime {
 #define JS_GSN_CACHE(cx)        (JS_THREAD_DATA(cx)->gsnCache)
 #define JS_PROPERTY_CACHE(cx)   (JS_THREAD_DATA(cx)->propertyCache)
 #define JS_TRACE_MONITOR(cx)    (JS_THREAD_DATA(cx)->traceMonitor)
-#define JS_METHODJIT_DATA(cx)   (JS_THREAD_DATA(cx)->jmData)
 #define JS_SCRIPTS_TO_GC(cx)    (JS_THREAD_DATA(cx)->scriptsToGC)
 
 #ifdef JS_EVAL_CACHE_METERING
@@ -1696,9 +1656,7 @@ struct JSContext
 
 
 
-    volatile jsword     interruptFlags;
-
-    static const jsword INTERRUPT_OPERATION_CALLBACK = 0x1;
+    volatile jsint      operationCallbackFlag;
 
     
     JSCList             link;
@@ -1737,7 +1695,7 @@ struct JSContext
     JSPackedBool        insideGCMarkCallback;
 
     
-    JSBool              throwing;           
+    JSPackedBool        throwing;           
     js::Value           exception;          
 
     
@@ -1763,7 +1721,7 @@ struct JSContext
     JS_REQUIRES_STACK
     JSFrameRegs         *regs;
 
-  public:
+  private:
     friend class js::StackSpace;
     friend bool js::Interpret(JSContext *);
 
@@ -1776,6 +1734,7 @@ struct JSContext
         this->regs = regs;
     }
 
+  public:
     
     JSArenaPool         tempPool;
 
@@ -2268,9 +2227,10 @@ class AutoGCRooter {
         XML =         -10, 
         OBJECT =      -11, 
         ID =          -12, 
-        VECTOR =      -13, 
+        VALVECTOR =   -13, 
         DESCRIPTOR =  -14, 
-        STRING =      -15  
+        STRING =      -15, 
+        IDVECTOR =    -16  
     };
 
     private:
@@ -2966,8 +2926,7 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 
 #define JS_CHECK_OPERATION_LIMIT(cx) \
-    (!((cx)->interruptFlags & JSContext::INTERRUPT_OPERATION_CALLBACK) || \
-     js_InvokeOperationCallback(cx))
+    (!(cx)->operationCallbackFlag || js_InvokeOperationCallback(cx))
 
 
 
@@ -2983,9 +2942,6 @@ js_InvokeOperationCallback(JSContext *cx);
 
 void
 js_TriggerAllOperationCallbacks(JSRuntime *rt, JSBool gcLocked);
-
-extern JSBool
-js_HandleExecutionInterrupt(JSContext *cx);
 
 extern JSStackFrame *
 js_GetScriptedCaller(JSContext *cx, JSStackFrame *fp);
@@ -3109,7 +3065,7 @@ class AutoValueVector : private AutoGCRooter
   public:
     explicit AutoValueVector(JSContext *cx
                              JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : AutoGCRooter(cx, VECTOR), vector(cx)
+        : AutoGCRooter(cx, VALVECTOR), vector(cx)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
@@ -3119,6 +3075,10 @@ class AutoValueVector : private AutoGCRooter
     bool append(const Value &v) { return vector.append(v); }
 
     void popBack() { vector.popBack(); }
+
+    bool growBy(size_t inc) {
+        return vector.growBy(inc);
+    }
 
     bool resize(size_t newLength) {
         return vector.resize(newLength);
@@ -3143,6 +3103,52 @@ class AutoValueVector : private AutoGCRooter
     
   private:
     Vector<Value, 8> vector;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+class AutoIdVector : private AutoGCRooter
+{
+  public:
+    explicit AutoIdVector(JSContext *cx
+                          JS_GUARD_OBJECT_NOTIFIER_PARAM)
+        : AutoGCRooter(cx, IDVECTOR), vector(cx)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    size_t length() const { return vector.length(); }
+
+    bool append(jsid id) { return vector.append(id); }
+
+    void popBack() { vector.popBack(); }
+
+    bool growBy(size_t inc) {
+        return vector.growBy(inc);
+    }
+
+    bool resize(size_t newLength) {
+        return vector.resize(newLength);
+    }
+
+    bool reserve(size_t newLength) {
+        return vector.reserve(newLength);
+    }
+
+    const jsid &operator[](size_t i) { return vector[i]; }
+    const jsid &operator[](size_t i) const { return vector[i]; }
+
+    const jsid *begin() const { return vector.begin(); }
+    jsid *begin() { return vector.begin(); }
+
+    const jsid *end() const { return vector.end(); }
+    jsid *end() { return vector.end(); }
+
+    const jsid &back() const { return vector.back(); }
+
+    friend void AutoGCRooter::trace(JSTracer *trc);
+    
+  private:
+    Vector<jsid, 8> vector;
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 

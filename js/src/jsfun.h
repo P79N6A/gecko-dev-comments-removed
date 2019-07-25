@@ -131,7 +131,7 @@ struct JSFunction : public JSObject
     uint16          nargs;        
 
     uint16          flags;        
-    union U {
+    union {
         struct {
             uint16      extra;    
             uint16      spare;    
@@ -140,7 +140,7 @@ struct JSFunction : public JSObject
 
             JSNativeTraceInfo *trcinfo;
         } n;
-        struct Scripted {
+        struct {
             uint16      nvars;    
             uint16      nupvars;  
 
@@ -256,12 +256,7 @@ JSObject::isFunction() const
     return getClass() == &js_FunctionClass;
 }
 
-
-
-
-
-#define VALUE_IS_FUNCTION(cx, v)                                              \
-    (!JSVAL_IS_PRIMITIVE(v) && JSVAL_TO_OBJECT(v)->isFunction())
+#define VALUE_IS_FUNCTION(cx, v) (Valueify(v).isFunObj())
 
 
 
@@ -375,16 +370,16 @@ extern JSFunction *
 js_GetCallObjectFunction(JSObject *obj);
 
 extern JSBool
-js_GetCallArg(JSContext *cx, JSObject *obj, jsval id, js::Value *vp);
+js_GetCallArg(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
-js_GetCallVar(JSContext *cx, JSObject *obj, jsval id, js::Value *vp);
+js_GetCallVar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
-SetCallArg(JSContext *cx, JSObject *obj, jsval id, js::Value *vp);
+SetCallArg(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
-SetCallVar(JSContext *cx, JSObject *obj, jsval id, js::Value *vp);
+SetCallVar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 
 
@@ -403,7 +398,7 @@ js_SetCallVar(JSContext *cx, JSObject *obj, uint32 slotid, js::Value *vp);
 
 
 extern JSBool
-js_GetCallVarChecked(JSContext *cx, JSObject *obj, jsval id, js::Value *vp);
+js_GetCallVarChecked(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
 js_GetArgsValue(JSContext *cx, JSStackFrame *fp, js::Value *vp);

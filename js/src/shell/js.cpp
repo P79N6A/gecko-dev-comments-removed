@@ -104,7 +104,7 @@
 #endif
 
 #ifdef XP_WIN
-#include "jswin.h"
+#include <windows.h>
 #endif
 
 using namespace js;
@@ -144,8 +144,7 @@ static jsdouble MAX_TIMEOUT_INTERVAL = 1800.0;
 static jsdouble gTimeoutInterval = -1.0;
 static volatile bool gCanceled = false;
 
-static bool enableTraceJit = false;
-static bool enableMethodJit = false;
+static bool enableJit = false;
 
 static JSBool
 SetTimeoutValue(JSContext *cx, jsdouble t);
@@ -227,6 +226,17 @@ public:
     , mThrow(aThrow)
     {
         mStr = JS_ValueToString(cx, v);
+        if (!aThrow && !mStr && JS_IsExceptionPending(cx)) {
+            if (!JS_ReportPendingException(cx))
+                JS_ClearPendingException(cx);
+        }
+        JS_AddNamedStringRoot(cx, &mStr, "Value ToString helper");
+    }
+    ToString(JSContext *aCx, jsid id, JSBool aThrow = JS_FALSE)
+    : cx(aCx)
+    , mThrow(aThrow)
+    {
+        mStr = JS_ValueToString(cx, IdToJsval(id));
         if (!aThrow && !mStr && JS_IsExceptionPending(cx)) {
             if (!JS_ReportPendingException(cx))
                 JS_ClearPendingException(cx);
@@ -562,8 +572,7 @@ static const struct {
 } js_options[] = {
     {"anonfunfix",      JSOPTION_ANONFUNFIX},
     {"atline",          JSOPTION_ATLINE},
-    {"tracejit",        JSOPTION_JIT},
-    {"methodjit",       JSOPTION_METHODJIT},
+    {"jit",             JSOPTION_JIT},
     {"relimit",         JSOPTION_RELIMIT},
     {"strict",          JSOPTION_STRICT},
     {"werror",          JSOPTION_WERROR},
@@ -715,18 +724,13 @@ ProcessArgs(JSContext *cx, JSObject *obj, char **argv, int argc)
             break;
 
         case 'j':
-            enableTraceJit = !enableTraceJit;
+            enableJit = !enableJit;
             JS_ToggleOptions(cx, JSOPTION_JIT);
 #if defined(JS_TRACER) && defined(DEBUG)
             js::InitJITStatsClass(cx, JS_GetGlobalObject(cx));
             JS_DefineObject(cx, JS_GetGlobalObject(cx), "tracemonkey",
                             &js::jitstats_class, NULL, 0);
 #endif
-            break;
-
-        case 'm':
-            enableMethodJit = !enableMethodJit;
-            JS_ToggleOptions(cx, JSOPTION_METHODJIT);
             break;
 
         case 'o':
@@ -2652,7 +2656,7 @@ split_enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
         if (!JS_NextProperty(cx, iterator, idp))
             return JS_FALSE;
 
-        if (!JSVAL_IS_VOID(*idp))
+        if (!JSID_IS_VOID(*idp))
             break;
         
 
@@ -2764,7 +2768,7 @@ split_getObjectOps(JSContext *cx, JSClass *clasp)
 }
 
 static JSBool
-split_equality(JSContext *cx, JSObject *obj, jsval v, JSBool *bp);
+split_equality(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
 
 static JSObject *
 split_innerObject(JSContext *cx, JSObject *obj)
@@ -2795,13 +2799,13 @@ static JSExtendedClass split_global_class = {
 };
 
 static JSBool
-split_equality(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
+split_equality(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp)
 {
     *bp = JS_FALSE;
-    if (JSVAL_IS_PRIMITIVE(v))
+    if (JSVAL_IS_PRIMITIVE(*v))
         return JS_TRUE;
 
-    JSObject *obj2 = JSVAL_TO_OBJECT(v);
+    JSObject *obj2 = JSVAL_TO_OBJECT(*v);
     if (JS_GET_CLASS(cx, obj2) != &split_global_class.base)
         return JS_TRUE;
 
@@ -4397,7 +4401,7 @@ its_enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
         if (!JS_NextProperty(cx, iterator, idp))
             return JS_FALSE;
 
-        if (!JSVAL_IS_VOID(*idp))
+        if (!JSID_IS_VOID(*idp))
             break;
         
 
@@ -4900,10 +4904,8 @@ NewContext(JSRuntime *rt)
     JS_SetErrorReporter(cx, my_ErrorReporter);
     JS_SetVersion(cx, JSVERSION_LATEST);
     SetContextOptions(cx);
-    if (enableTraceJit)
+    if (enableJit)
         JS_ToggleOptions(cx, JSOPTION_JIT);
-    if (enableMethodJit)
-        JS_ToggleOptions(cx, JSOPTION_METHODJIT);
     return cx;
 }
 
@@ -5069,10 +5071,6 @@ main(int argc, char **argv, char **envp)
     JSBool jsdbc;
 #endif 
 #endif 
-#ifdef XP_WIN
-    DWORD oldmode = SetErrorMode(SEM_NOGPFAULTERRORBOX);
-    SetErrorMode(oldmode | SEM_NOGPFAULTERRORBOX);
-#endif
 
     CheckHelpMessages();
 #ifdef HAVE_SETLOCALE

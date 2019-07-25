@@ -70,7 +70,7 @@ CastAsObject(PropertyOp op)
 }
 
 inline Value
-CastAsObjectJSVal(PropertyOp op)
+CastAsObjectJsval(PropertyOp op)
 {
     return ObjectTag(*CastAsObject(op));
 }
@@ -209,7 +209,7 @@ struct JSObjectMap {
 
     explicit JSObjectMap(const JSObjectOps *ops, uint32 shape) : ops(ops), shape(shape) {}
 
-    enum { INVALID_SHAPE = 0x8fffffff, SHAPELESS = 0xffffffff };
+    enum { SHAPELESS = 0xffffffff };
 
 private:
     
@@ -447,10 +447,10 @@ struct JSObject {
 
 
 
+  private:
     
     static const uint32 JSSLOT_ARRAY_LENGTH = JSSLOT_PRIVATE;
 
-  private:
     
     static const uint32 JSSLOT_DENSE_ARRAY_COUNT     = JSSLOT_PRIVATE + 1;
     static const uint32 JSSLOT_DENSE_ARRAY_MINLENCAP = JSSLOT_PRIVATE + 2;
@@ -1242,7 +1242,7 @@ js_Construct(JSContext *cx, JSObject *obj, uintN argc, js::Value *argv,
              js::Value *rval);
 
 extern JSBool
-js_HasInstance(JSContext *cx, JSObject *obj, js::Value v, JSBool *bp);
+js_HasInstance(JSContext *cx, JSObject *obj, const js::Value *v, JSBool *bp);
 
 extern JSBool
 js_SetProtoOrParent(JSContext *cx, JSObject *obj, uint32 slot, JSObject *pobj,

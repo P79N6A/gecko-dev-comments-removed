@@ -48,6 +48,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define __STDC_LIMIT_MACROS
 #include "jsstdint.h"
 
 #include "jstypes.h"
@@ -80,7 +81,7 @@
 #include "jscntxtinlines.h"
 
 #ifdef XP_WIN
-# include "jswin.h"
+# include <windows.h>
 #elif defined(XP_OS2)
 # define INCL_DOSMEMMGR
 # include <os2.h>
@@ -508,40 +509,6 @@ FrameRegsIter::operator++()
     return *this;
 }
 
-JS_REQUIRES_STACK
-AllFramesIter::AllFramesIter(JSContext *cx)
-{
-#ifdef JS_THREADSAFE
-    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
-#endif
-
-    curcs = cx->stack().getCurrentCallStack();
-    if (!curcs) {
-        curfp = NULL;
-        return;
-    }
-
-    curfp = curcs->getCurrentFrame();
-}
-
-AllFramesIter &
-AllFramesIter::operator++()
-{
-    JS_ASSERT(!done());
-
-    if (curfp == curcs->getInitialFrame()) {
-        curcs = curcs->getPreviousInThread();
-        if (curcs)
-            curfp = curcs->getCurrentFrame();
-        else
-            curfp = NULL;
-    } else {
-        curfp = curfp->down;
-    }
-
-    return *this;
-}
-
 bool
 JSThreadData::init()
 {
@@ -554,9 +521,6 @@ JSThreadData::init()
         return false;
 #ifdef JS_TRACER
     InitJIT(&traceMonitor);
-#endif
-#ifdef JS_METHODJIT
-    jmData.Initialize();
 #endif
     dtoaState = js_NewDtoaState();
     if (!dtoaState) {
@@ -585,9 +549,6 @@ JSThreadData::finish()
     propertyCache.~PropertyCache();
 #if defined JS_TRACER
     FinishJIT(&traceMonitor);
-#endif
-#if defined JS_METHODJIT
-    jmData.Finish();
 #endif
     stackSpace.finish();
 }
@@ -620,9 +581,6 @@ JSThreadData::purge(JSContext *cx)
 
     if (cx->runtime->gcRegenShapes)
         traceMonitor.needFlush = JS_TRUE;
-#endif
-#ifdef JS_METHODJIT
-    jmData.purge(cx);
 #endif
 
     
@@ -1296,8 +1254,7 @@ resolving_HashKey(JSDHashTable *table, const void *ptr)
 {
     const JSResolvingKey *key = (const JSResolvingKey *)ptr;
 
-    return (JSDHashNumber(uintptr_t(key->obj)) >> JS_GCTHING_ALIGN) ^ 
-           JSDHashNumber(key->id) ^ JSDHashNumber(key->id >> 32);
+    return (JSDHashNumber(uintptr_t(key->obj)) >> JS_GCTHING_ALIGN) ^ JSID_BITS(key->id);
 }
 
 static JSBool
@@ -2148,15 +2105,14 @@ js_GetErrorMessage(void *userRef, const char *locale, const uintN errorNumber)
 JSBool
 js_InvokeOperationCallback(JSContext *cx)
 {
-    JS_ASSERT(cx->interruptFlags & JSContext::INTERRUPT_OPERATION_CALLBACK);
+    JS_ASSERT(cx->operationCallbackFlag);
 
     
 
 
 
 
-    JS_ATOMIC_CLEAR_MASK((jsword*)&cx->interruptFlags,
-                         JSContext::INTERRUPT_OPERATION_CALLBACK);
+    cx->operationCallbackFlag = 0;
 
     
 
@@ -2197,15 +2153,6 @@ js_InvokeOperationCallback(JSContext *cx)
 
 
     return !cb || cb(cx);
-}
-
-JSBool
-js_HandleExecutionInterrupt(JSContext *cx)
-{
-    JSBool result = JS_TRUE;
-    if (cx->interruptFlags & JSContext::INTERRUPT_OPERATION_CALLBACK)
-        result = js_InvokeOperationCallback(cx) && result;
-    return result;
 }
 
 void
