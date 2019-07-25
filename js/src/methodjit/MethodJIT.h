@@ -108,10 +108,10 @@ struct VMFrame
 
     VMFrame      *previous;
     void         *scratch;
-    JSFrameRegs  regs;
+    FrameRegs    regs;
     JSContext    *cx;
     Value        *stackLimit;
-    JSStackFrame *entryfp;
+    StackFrame   *entryfp;
 
 
 
@@ -200,12 +200,19 @@ struct VMFrame
 
 
 
-    JSStackFrame *&fp() { return regs.fp; }
+    StackFrame *fp() { return regs.fp(); }
     mjit::JITScript *jit() { return fp()->jit(); }
 
     
     inline JSScript *script();
     inline jsbytecode *pc();
+
+    static const size_t offsetOfFp = 4 * sizeof(void *) + FrameRegs::offsetOfFp;
+    static const size_t offsetOfInlined = 4 * sizeof(void *) + FrameRegs::offsetOfInlined;
+    static void staticAssert() {
+        JS_STATIC_ASSERT(offsetOfFp == offsetof(VMFrame, regs) + FrameRegs::offsetOfFp);
+        JS_STATIC_ASSERT(offsetOfInlined == offsetof(VMFrame, regs) + FrameRegs::offsetOfInlined);
+    }
 };
 
 #ifdef JS_CPU_ARM
@@ -499,7 +506,7 @@ struct JITScript {
 
 
 
-JSBool EnterMethodJIT(JSContext *cx, JSStackFrame *fp, void *code, Value *stackLimit);
+JSBool EnterMethodJIT(JSContext *cx, StackFrame *fp, void *code, Value *stackLimit);
 
 
 JSBool JaegerShot(JSContext *cx);
@@ -521,7 +528,7 @@ void JS_FASTCALL
 ProfileStubCall(VMFrame &f);
 
 CompileStatus JS_NEVER_INLINE
-TryCompile(JSContext *cx, JSStackFrame *fp);
+TryCompile(JSContext *cx, StackFrame *fp);
 
 void
 ReleaseScriptCode(JSContext *cx, JSScript *script, bool normal);
@@ -661,16 +668,16 @@ inline void * bsearch_nmap(NativeMapEntry *nmap, size_t nPairs, size_t bcOff)
 inline JSScript *
 VMFrame::script()
 {
-    if (regs.inlined)
-        return jit()->inlineFrames()[regs.inlined->inlineIndex].fun->script();
+    if (regs.inlined())
+        return jit()->inlineFrames()[regs.inlined()->inlineIndex].fun->script();
     return fp()->script();
 }
 
 inline jsbytecode *
 VMFrame::pc()
 {
-    if (regs.inlined)
-        return script()->code + regs.inlined->pcOffset;
+    if (regs.inlined())
+        return script()->code + regs.inlined()->pcOffset;
     return regs.pc;
 }
 

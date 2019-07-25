@@ -188,7 +188,6 @@ let gInitialPages = [
 
 XPCOMUtils.defineLazyGetter(this, "Win7Features", function () {
 #ifdef XP_WIN
-#ifndef WINCE
   const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
   if (WINTASKBAR_CONTRACTID in Cc &&
       Cc[WINTASKBAR_CONTRACTID].getService(Ci.nsIWinTaskbar).available) {
@@ -204,7 +203,6 @@ XPCOMUtils.defineLazyGetter(this, "Win7Features", function () {
       }
     };
   }
-#endif
 #endif
   return null;
 });
@@ -3296,16 +3294,15 @@ const BrowserSearch = {
         win.BrowserSearch.webSearch();
       } else {
         
-
-        
-        
-        function webSearchCallback() {
-          setTimeout(BrowserSearch.webSearch, 0);
+        function observer(subject, topic, data) {
+          if (subject == win) {
+            BrowserSearch.webSearch();
+            Services.obs.removeObserver(observer, "browser-delayed-startup-finished");
+          }
         }
-
         win = window.openDialog("chrome://browser/content/", "_blank",
                                 "chrome,all,dialog=no", "about:blank");
-        win.addEventListener("load", webSearchCallback, false);
+        Services.obs.addObserver(observer, "browser-delayed-startup-finished", false); 
       }
       return;
     }
@@ -4034,16 +4031,19 @@ var FullScreen = {
     
     var fullscreenflex = document.getElementById("fullscreenflex");
     var fullscreenctls = document.getElementById("window-controls");
-    var ctlsOnTabbar = TabsOnTop.enabled &&
-                       !gPrefService.getBoolPref("browser.tabs.autoHide");
-    if (fullscreenctls.parentNode.id == "nav-bar" && ctlsOnTabbar) {
+    var navbar = document.getElementById("nav-bar");
+    var ctlsOnTabbar = window.toolbar.visible &&
+                       (navbar.collapsed ||
+                          (TabsOnTop.enabled &&
+                           !gPrefService.getBoolPref("browser.tabs.autoHide")));
+    if (fullscreenctls.parentNode == navbar && ctlsOnTabbar) {
       document.getElementById("TabsToolbar").appendChild(fullscreenctls);
       
       
       fullscreenflex.removeAttribute("fullscreencontrol");
     }
     else if (fullscreenctls.parentNode.id == "TabsToolbar" && !ctlsOnTabbar) {
-      document.getElementById("nav-bar").appendChild(fullscreenctls);
+      navbar.appendChild(fullscreenctls);
       fullscreenflex.setAttribute("fullscreencontrol", "true");
     }
 
@@ -5557,7 +5557,7 @@ function middleMousePaste(event) {
 
   
   
-  clipboard.replace(/\s*\n\s*/g, "");
+  clipboard = clipboard.replace(/\s*\n\s*/g, "");
 
   let url = getShortcutOrURI(clipboard);
   try {
@@ -7794,7 +7794,7 @@ var gIdentityHandler = {
     dt.setData("text/uri-list", value);
     dt.setData("text/plain", value);
     dt.setData("text/html", htmlString);
-    dt.addElement(event.currentTarget);
+    dt.setDragImage(gProxyFavIcon, 16, 16);
   }
 };
 

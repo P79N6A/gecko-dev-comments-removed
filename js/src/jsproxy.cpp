@@ -42,6 +42,8 @@
 #include <string.h>
 #include "jsapi.h"
 #include "jscntxt.h"
+#include "jsgc.h"
+#include "jsgcmark.h"
 #include "jsprvtd.h"
 #include "jsnum.h"
 #include "jsobj.h"
@@ -981,6 +983,19 @@ proxy_TraceFunction(JSTracer *trc, JSObject *obj)
     MarkValue(trc, GetConstruct(obj), "construct");
 }
 
+static JSBool
+proxy_Fix(JSContext *cx, JSObject *obj, bool *fixed, AutoIdVector *props)
+{
+    JS_ASSERT(obj->isProxy());
+    JSBool isFixed;
+    bool ok = FixProxy(cx, obj, &isFixed);
+    if (ok) {
+        *fixed = isFixed;
+        return GetPropertyNames(cx, obj, JSITER_OWNONLY | JSITER_HIDDEN, props);
+    }
+    return false;
+}
+
 static void
 proxy_Finalize(JSContext *cx, JSObject *obj)
 {
@@ -1036,7 +1051,7 @@ JS_FRIEND_API(Class) ObjectProxyClass = {
         proxy_DeleteProperty,
         NULL,             
         proxy_TypeOf,
-        NULL,             
+        proxy_Fix,        
         NULL,             
         NULL,             
     }
@@ -1458,5 +1473,8 @@ js_InitProxyClass(JSContext *cx, JSObject *obj)
     }
     if (!JS_DefineFunctionsWithPrefix(cx, module, static_methods, "Proxy"))
         return NULL;
+
+    MarkStandardClassInitializedNoProto(obj, &js_ProxyClass);
+
     return module;
 }

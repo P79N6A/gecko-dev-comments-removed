@@ -56,6 +56,7 @@
 #include "jsexn.h"
 #include "jsfun.h"
 #include "jsgc.h"
+#include "jsgcmark.h"
 #include "jshashtable.h"
 #include "jsinterp.h"
 #include "jsiter.h"
@@ -64,6 +65,7 @@
 #include "jsobj.h"
 #include "jsopcode.h"
 #include "jsproxy.h"
+#include "jsscan.h"
 #include "jsscope.h"
 #include "jsscript.h"
 #include "jsstaticcheck.h"
@@ -73,12 +75,12 @@
 #include "jsxml.h"
 #endif
 
-#include "jscntxtinlines.h"
 #include "jsinferinlines.h"
-#include "jsinterpinlines.h"
 #include "jsobjinlines.h"
 #include "jsstrinlines.h"
 #include "jsautooplen.h"
+
+#include "vm/Stack-inl.h"
 
 using namespace js;
 using namespace js::gc;
@@ -1102,7 +1104,7 @@ generator_trace(JSTracer *trc, JSObject *obj)
     if (gen->state == JSGEN_RUNNING || gen->state == JSGEN_CLOSING)
         return;
 
-    JSStackFrame *fp = gen->floatingFrame();
+    StackFrame *fp = gen->floatingFrame();
     JS_ASSERT(gen->liveFrame() == fp);
 
     
@@ -1145,13 +1147,6 @@ Class js_GeneratorClass = {
     }
 };
 
-static inline void
-RebaseRegsFromTo(JSFrameRegs *regs, JSStackFrame *from, JSStackFrame *to)
-{
-    regs->fp = to;
-    regs->sp = to->slots() + (regs->sp - from->slots());
-}
-
 
 
 
@@ -1167,8 +1162,8 @@ js_NewGenerator(JSContext *cx)
     if (!obj)
         return NULL;
 
-    JSStackFrame *stackfp = cx->fp();
-    JS_ASSERT(stackfp->base() == cx->regs->sp);
+    StackFrame *stackfp = cx->fp();
+    JS_ASSERT(stackfp->base() == cx->regs().sp);
     JS_ASSERT(stackfp->actualArgs() <= stackfp->formalArgs());
 
     
@@ -1188,7 +1183,7 @@ js_NewGenerator(JSContext *cx)
 
     
     Value *genvp = gen->floatingStack;
-    JSStackFrame *genfp = reinterpret_cast<JSStackFrame *>(genvp + vplen);
+    StackFrame *genfp = reinterpret_cast<StackFrame *>(genvp + vplen);
 
     
     gen->obj = obj;
@@ -1197,11 +1192,11 @@ js_NewGenerator(JSContext *cx)
     gen->floating = genfp;
 
     
-    gen->regs = *cx->regs;
-    RebaseRegsFromTo(&gen->regs, stackfp, genfp);
+    gen->regs = cx->regs();
+    gen->regs.rebaseFromTo(stackfp, genfp);
 
     
-    genfp->stealFrameAndSlots(genvp, stackfp, stackvp, cx->regs->sp);
+    genfp->stealFrameAndSlots(genvp, stackfp, stackvp, cx->regs().sp);
     genfp->initFloatingGenerator();
 
     obj->setPrivate(gen);
@@ -1209,7 +1204,7 @@ js_NewGenerator(JSContext *cx)
 }
 
 JSGenerator *
-js_FloatingFrameToGenerator(JSStackFrame *fp)
+js_FloatingFrameToGenerator(StackFrame *fp)
 {
     JS_ASSERT(fp->isGeneratorFrame() && fp->isFloatingGenerator());
     char *floatingStackp = (char *)(fp->actualArgs() - 2);
@@ -1277,11 +1272,11 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
         break;
     }
 
-    JSStackFrame *genfp = gen->floatingFrame();
+    StackFrame *genfp = gen->floatingFrame();
     Value *genvp = gen->floatingStack;
     uintN vplen = genfp->formalArgsEnd() - genvp;
 
-    JSStackFrame *stackfp;
+    StackFrame *stackfp;
     Value *stackvp;
     JSBool ok;
     {
@@ -1290,7 +1285,7 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
 
 
         GeneratorFrameGuard frame;
-        if (!cx->stack().getGeneratorFrame(cx, vplen, genfp->numSlots(), &frame)) {
+        if (!cx->stack.getGeneratorFrame(cx, vplen, genfp->numSlots(), &frame)) {
             gen->state = JSGEN_CLOSED;
             return JS_FALSE;
         }
@@ -1301,11 +1296,11 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
         stackfp->stealFrameAndSlots(stackvp, genfp, genvp, gen->regs.sp);
         stackfp->resetGeneratorPrev(cx);
         stackfp->unsetFloatingGenerator();
-        RebaseRegsFromTo(&gen->regs, genfp, stackfp);
+        gen->regs.rebaseFromTo(genfp, stackfp);
         MUST_FLOW_THROUGH("restore");
 
         
-        cx->stack().pushGeneratorFrame(cx, &gen->regs, &frame);
+        cx->stack.pushGeneratorFrame(gen->regs, &frame);
 
         cx->enterGenerator(gen);   
         JSObject *enumerators = cx->enumerators;
@@ -1325,7 +1320,7 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
         genfp->setFloatingGenerator();
     }
     MUST_FLOW_LABEL(restore)
-    RebaseRegsFromTo(&gen->regs, stackfp, genfp);
+    gen->regs.rebaseFromTo(stackfp, genfp);
 
     if (gen->floatingFrame()->isYielding()) {
         

@@ -1048,14 +1048,14 @@ namespace js {
 
 struct Parser : private js::AutoGCRooter
 {
-    JSContext           * const context; 
+    JSContext           *const context; 
     JSAtomListElement   *aleFreeList;
     void                *tempFreeList[NUM_TEMP_FREELISTS];
     TokenStream         tokenStream;
     void                *tempPoolMark;  
     JSPrincipals        *principals;    
-    JSStackFrame *const callerFrame;    
-    JSObject     *const callerVarObj;   
+    StackFrame          *const callerFrame;  
+    JSObject            *const callerVarObj; 
     JSParseNode         *nodeList;      
     uint32              functionCount;  
     JSObjectBox         *traceListHead; 
@@ -1064,7 +1064,7 @@ struct Parser : private js::AutoGCRooter
     
     js::AutoKeepAtoms   keepAtoms;
 
-    Parser(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL);
+    Parser(JSContext *cx, JSPrincipals *prin = NULL, StackFrame *cfp = NULL);
     ~Parser();
 
     friend void js::AutoGCRooter::trace(JSTracer *trc);
@@ -1237,7 +1237,7 @@ struct Compiler
     Parser parser;
     GlobalScope *globalScope;
 
-    Compiler(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL);
+    Compiler(JSContext *cx, JSPrincipals *prin = NULL, StackFrame *cfp = NULL);
 
     
 
@@ -1254,7 +1254,7 @@ struct Compiler
                         const char *filename, uintN lineno, JSVersion version);
 
     static JSScript *
-    compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
+    compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerFrame,
                   JSPrincipals *principals, uint32 tcflags,
                   const jschar *chars, size_t length,
                   const char *filename, uintN lineno, JSVersion version,

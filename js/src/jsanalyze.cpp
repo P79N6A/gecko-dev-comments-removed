@@ -1,41 +1,41 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: c++; c-basic-offset: 4; tab-width: 40; indent-tabs-mode: nil -*- */
+/* vim: set ts=40 sw=4 et tw=99: */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is the Mozilla SpiderMonkey bytecode analysis
+ *
+ * The Initial Developer of the Original Code is
+ *   Mozilla Foundation
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Brian Hackett <bhackett@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "jsanalyze.h"
 #include "jsautooplen.h"
@@ -55,41 +55,41 @@ JSScript::makeAnalysis(JSContext *cx)
 namespace js {
 namespace analyze {
 
-
-
-
+/////////////////////////////////////////////////////////////////////
+// Bytecode
+/////////////////////////////////////////////////////////////////////
 
 bool
 Bytecode::mergeDefines(JSContext *cx, ScriptAnalysis *script, bool initial,
                        unsigned newDepth, uint32 *newArray, unsigned newCount)
 {
     if (initial) {
-        
-
-
-
+        /*
+         * Haven't handled any incoming edges to this bytecode before.
+         * Define arrays are copy on write, so just reuse the array for this bytecode.
+         */
         stackDepth = newDepth;
         defineArray = newArray;
         defineCount = newCount;
         return true;
     }
 
-    
-
-
-
+    /*
+     * This bytecode has multiple incoming edges, intersect the new array with any
+     * variables known to be defined along other incoming edges.
+     */
     if (analyzed) {
 #ifdef DEBUG
-        
-
-
-
-
-
-
-
-
-
+        /*
+         * Once analyzed, a bytecode has its full set of definitions.  There are two
+         * properties we depend on to ensure this.  First, bytecode for a function
+         * is emitted in topological order, and since we analyze bytecodes in the
+         * order they were emitted we will have seen all incoming jumps except
+         * for any loop back edges.  Second, javascript has structured control flow,
+         * so loop heads dominate their bodies; the set of variables defined
+         * on a back edge will be at least as large as at the head of the loop,
+         * so no intersection or further analysis needs to be done.
+         */
         JS_ASSERT(stackDepth == newDepth);
         for (unsigned i = 0; i < defineCount; i++) {
             bool found = false;
@@ -110,11 +110,11 @@ Bytecode::mergeDefines(JSContext *cx, ScriptAnalysis *script, bool initial,
                     found = true;
             }
             if (!found) {
-                
-
-
-
-
+                /*
+                 * Get a mutable copy of the defines.  This can end up making
+                 * several copies for a bytecode if it has many incoming edges
+                 * with progressively smaller sets of defined variables.
+                 */
                 if (!owned) {
                     uint32 *reallocArray =
                         ArenaArray<uint32>(cx->compartment->pool, defineCount);
@@ -127,7 +127,7 @@ Bytecode::mergeDefines(JSContext *cx, ScriptAnalysis *script, bool initial,
                     owned = true;
                 }
 
-                
+                /* Swap with the last element and pop the array. */
                 defineArray[i--] = defineArray[--defineCount];
             }
         }
@@ -150,9 +150,9 @@ PrintBytecode(JSContext *cx, JSScript *script, jsbytecode *pc)
 }
 #endif
 
-
-
-
+/////////////////////////////////////////////////////////////////////
+// Bytecode Analysis
+/////////////////////////////////////////////////////////////////////
 
 inline bool
 ScriptAnalysis::addJump(JSContext *cx, unsigned offset,
@@ -180,10 +180,10 @@ ScriptAnalysis::addJump(JSContext *cx, unsigned offset,
         if (op == JSOP_TRACE || op == JSOP_NOTRACE)
             code->loopHead = true;
 
-        
+        /* Scripts containing loops are never inlined. */
         isInlineable = false;
 
-        
+        /* Don't follow back edges to bytecode which has already been analyzed. */
         if (!code->analyzed) {
             if (*forwardJump == 0)
                 *forwardJump = *currentOffset;
@@ -202,26 +202,26 @@ ScriptAnalysis::setLocal(uint32 local, uint32 offset)
     JS_ASSERT(local < script->nfixed);
     JS_ASSERT(offset != LOCAL_CONDITIONALLY_DEFINED);
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * It isn't possible to change the point when a variable becomes unconditionally
+     * defined, or to mark it as unconditionally defined after it has already been
+     * marked as having a use before def.  It *is* possible to mark it as having
+     * a use before def after marking it as unconditionally defined.  In a loop such as:
+     *
+     * while ((a = b) != 0) { x = a; }
+     *
+     * When walking through the body of this loop, we will first analyze the test
+     * (which comes after the body in the bytecode stream) as unconditional code,
+     * and mark a as definitely defined.  a is not in the define array when taking
+     * the loop's back edge, so it is treated as possibly undefined when written to x.
+     */
     JS_ASSERT(definedLocals[local] == LOCAL_CONDITIONALLY_DEFINED ||
               definedLocals[local] == offset || offset == LOCAL_USE_BEFORE_DEF);
 
     definedLocals[local] = offset;
 }
 
-
+// return whether op bytecodes do not fallthrough (they may do a jump).
 static inline bool
 BytecodeNoFallThrough(JSOp op)
 {
@@ -242,7 +242,7 @@ BytecodeNoFallThrough(JSOp op)
         return true;
       case JSOP_GOSUB:
       case JSOP_GOSUBX:
-        
+        // these fall through indirectly, after executing a 'finally'.
         return false;
       default:
         return false;
@@ -275,12 +275,12 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
     for (unsigned i = 0; i < script->nfixed; i++)
         definedLocals[i] = LOCAL_CONDITIONALLY_DEFINED;
 
-    
-
-
-
-
-
+    /*
+     * Populate arg and local slots which can escape and be accessed in ways
+     * other than through ARG* and LOCAL* opcodes (though arguments can still
+     * be indirectly read but not written through 'arguments' properties).
+     * All escaping locals are treated as having possible use-before-defs.
+     */
 
     PodZero(escapedSlots, numSlots);
 
@@ -308,15 +308,15 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
         }
     }
 
-    
+    /* Maximum number of locals we will keep track of in defined variables analysis. */
     static const uint32 LOCAL_LIMIT = 50;
     for (unsigned i = LOCAL_LIMIT; i < script->nfixed; i++)
         setLocal(i, LOCAL_USE_BEFORE_DEF);
 
-    
-
-
-
+    /*
+     * If the script is in debug mode, JS_SetFrameReturnValue can be called at
+     * any safe point.
+     */
     if (cx->compartment->debugMode)
         usesRval = true;
 
@@ -329,20 +329,20 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
 
     canTrackVars = true;
 
-    
-
-
-
-
+    /*
+     * If we are in the middle of one or more jumps, the offset of the highest
+     * target jumping over this bytecode.  Includes implicit jumps from
+     * try/catch/finally blocks.
+     */
     unsigned forwardJump = 0;
 
-    
-
-
-
+    /*
+     * If we are in the middle of a try block, the offset of the highest
+     * catch/finally/enditer.
+     */
     unsigned forwardCatch = 0;
 
-    
+    /* Fill in stack depth and definitions at initial bytecode. */
     Bytecode *startcode = ArenaNew<Bytecode>(pool);
     if (!startcode) {
         setOOM(cx);
@@ -358,7 +358,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
 
         JS_ASSERT(forwardCatch <= forwardJump);
 
-        
+        /* Check if the current forward jump/try-block has finished. */
         if (forwardJump && forwardJump == offset)
             forwardJump = 0;
         if (forwardCatch && forwardCatch == offset)
@@ -372,22 +372,22 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
         JSOp op = (JSOp)*pc;
         JS_ASSERT(op < JSOP_LIMIT);
 
-        
+        /* Immediate successor of this bytecode. */
         unsigned successorOffset = offset + GetBytecodeLength(pc);
 
-        
-
-
-
+        /*
+         * Next bytecode to analyze.  This is either the successor, or is an
+         * earlier bytecode if this bytecode has a loop backedge.
+         */
         nextOffset = successorOffset;
 
         if (!code) {
-            
+            /* Haven't found a path by which this bytecode is reachable. */
             continue;
         }
 
         if (code->analyzed) {
-            
+            /* No need to reanalyze, see Bytecode::mergeDefines. */
             continue;
         }
 
@@ -406,15 +406,15 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
         unsigned defineCount = code->defineCount;
 
         if (!forwardJump) {
-            
-
-
-
-
-
-
-
-
+            /*
+             * There is no jump over this bytecode, nor a containing try block.
+             * Either this bytecode will definitely be executed, or an exception
+             * will be thrown which the script does not catch.  Either way,
+             * any variables definitely defined at this bytecode will stay
+             * defined throughout the rest of the script.  We just need to
+             * remember the offset where the variable became unconditionally
+             * defined, rather than continue to maintain it in define arrays.
+             */
             for (unsigned i = 0; i < defineCount; i++) {
                 uint32 local = defineArray[i];
                 JS_ASSERT_IF(definedLocals[local] != LOCAL_CONDITIONALLY_DEFINED &&
@@ -470,7 +470,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
 
           case JSOP_CALL:
           case JSOP_NEW:
-            
+            /* Only consider potentially inlineable calls here. */
             hasCalls = true;
             break;
 
@@ -541,12 +541,12 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           }
 
           case JSOP_TRY: {
-            
-
-
-
-
-
+            /*
+             * Everything between a try and corresponding catch or finally is conditional.
+             * Note that there is no problem with code which is skipped by a thrown
+             * exception but is not caught by a later handler in the same function:
+             * no more code will execute, and it does not matter what is defined.
+             */
             isInlineable = canTrackVars = false;
             JSTryNote *tn = script->trynotes()->vector;
             JSTryNote *tnlimit = tn + script->trynotes()->length;
@@ -555,7 +555,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
                 if (startOffset == offset + 1) {
                     unsigned catchOffset = startOffset + tn->length;
 
-                    
+                    /* This will overestimate try block code, for multiple catch/finally. */
                     if (catchOffset > forwardCatch)
                         forwardCatch = catchOffset;
 
@@ -573,11 +573,11 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           }
 
           case JSOP_GETLOCAL:
-            
-
-
-
-
+            /*
+             * Watch for uses of variables not known to be defined, and mark
+             * them as having possible uses before definitions.  Ignore GETLOCAL
+             * followed by a POP, these are generated for, e.g. 'var x;'
+             */
             if (pc[JSOP_GETLOCAL_LENGTH] != JSOP_POP) {
                 uint32 local = GET_SLOTNO(pc);
                 if (local < script->nfixed && !localDefined(local, offset)) {
@@ -604,16 +604,16 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
           case JSOP_FORLOCAL: {
             uint32 local = GET_SLOTNO(pc);
 
-            
-
-
-
-
-
-
+            /*
+             * The local variable may already have been marked as unconditionally
+             * defined at a later point in the script, if that definition was in the
+             * condition for a loop which then jumped back here.  In such cases we
+             * will not treat the variable as ever being defined in the loop body
+             * (see setLocal).
+             */
             if (local < script->nfixed && definedLocals[local] == LOCAL_CONDITIONALLY_DEFINED) {
                 if (forwardJump) {
-                    
+                    /* Add this local to the variables defined after this bytecode. */
                     uint32 *newArray = ArenaArray<uint32>(pool, defineCount + 1);
                     if (!newArray) {
                         setOOM(cx);
@@ -624,14 +624,14 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
                     defineArray = newArray;
                     defineArray[defineCount++] = local;
                 } else {
-                    
+                    /* This local is unconditionally defined by this bytecode. */
                     setLocal(local, offset);
                 }
             }
             break;
           }
 
-          
+          /* Additional opcodes which can be compiled but which can't be inlined. */
           case JSOP_ARGUMENTS:
           case JSOP_EVAL:
           case JSOP_FORARG:
@@ -664,9 +664,9 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
 
         uint32 type = JOF_TYPE(js_CodeSpec[op].format);
 
-        
+        /* Check basic jump opcodes, which may or may not have a fallthrough. */
         if (type == JOF_JUMP || type == JOF_JUMPX) {
-            
+            /* Some opcodes behave differently on their branching path. */
             unsigned newStackDepth = stackDepth;
 
             switch (op) {
@@ -674,17 +674,17 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
               case JSOP_AND:
               case JSOP_ORX:
               case JSOP_ANDX:
-                
-
-
-
-
+                /*
+                 * OR/AND instructions push the operation result when branching.
+                 * We accounted for this in GetDefCount, so subtract the pushed value
+                 * for the fallthrough case.
+                 */
                 stackDepth--;
                 break;
 
               case JSOP_CASE:
               case JSOP_CASEX:
-                
+                /* Case instructions do not push the lvalue back when branching. */
                 newStackDepth--;
                 break;
 
@@ -698,7 +698,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
             }
         }
 
-        
+        /* Handle any fallthrough from this opcode. */
         if (!BytecodeNoFallThrough(op)) {
             JS_ASSERT(successorOffset < script->length);
 
@@ -721,7 +721,7 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
                 return;
             }
 
-            
+            /* Treat the fallthrough of a branch instruction as a jump target. */
             if (type == JOF_JUMP || type == JOF_JUMPX)
                 nextcode->jumpTarget = true;
             else
@@ -735,9 +735,9 @@ ScriptAnalysis::analyzeBytecode(JSContext *cx)
     ranBytecode_ = true;
 }
 
-
-
-
+/////////////////////////////////////////////////////////////////////
+// Lifetime Analysis
+/////////////////////////////////////////////////////////////////////
 
 void
 ScriptAnalysis::analyzeLifetimes(JSContext *cx)
@@ -759,10 +759,10 @@ ScriptAnalysis::analyzeLifetimes(JSContext *cx)
     }
     PodZero(lifetimes, numSlots);
 
-    
-
-
-
+    /*
+     * Variables which are currently dead. On forward branches to locations
+     * where these are live, they need to be marked as live.
+     */
     LifetimeVariable **saved = (LifetimeVariable **)
         cx->calloc_(numSlots * sizeof(LifetimeVariable*));
     if (!saved) {
@@ -787,12 +787,12 @@ ScriptAnalysis::analyzeLifetimes(JSContext *cx)
         UntrapOpcode untrap(cx, script, script->code + offset);
 
         if (code->loop) {
-            
-
-
-
-
-
+            /*
+             * This is the head of a loop, we need to go and make sure that any
+             * variables live at the head are live at the backedge and points prior.
+             * For each such variable, look for the last lifetime segment in the body
+             * and extend it to the end of the loop.
+             */
             JS_ASSERT(loop == code->loop);
             unsigned backedge = code->loop->backedge;
             for (unsigned i = 0; i < numSlots; i++) {
@@ -804,7 +804,7 @@ ScriptAnalysis::analyzeLifetimes(JSContext *cx)
             JS_ASSERT_IF(loop, loop->head < offset);
         }
 
-        
+        /* Find the last jump target in the loop, other than the initial entry point. */
         if (loop && code->jumpTarget && offset != loop->entry && offset > loop->lastBlock)
             loop->lastBlock = offset;
 
@@ -852,123 +852,12 @@ ScriptAnalysis::analyzeLifetimes(JSContext *cx)
             break;
           }
 
-          case JSOP_IFEQ:
-          case JSOP_IFEQX:
-          case JSOP_IFNE:
-          case JSOP_IFNEX:
-          case JSOP_OR:
-          case JSOP_ORX:
-          case JSOP_AND:
-          case JSOP_ANDX:
-          case JSOP_GOTO:
-          case JSOP_GOTOX:
-          case JSOP_ENDFILTER: {
-            
-
-
-
-
-            uint32 targetOffset = FollowBranch(script, offset);
-
-            
-
-
-
-            if (loop && loop->entry == targetOffset && loop->entry > loop->lastBlock)
-                loop->lastBlock = loop->entry;
-
-            if (targetOffset < offset) {
-                
-
-#ifdef DEBUG
-                JSOp nop = JSOp(script->code[targetOffset]);
-                JS_ASSERT(nop == JSOP_TRACE || nop == JSOP_NOTRACE);
-#endif
-
-                
-
-
-
-
-                if (loop && loop->entry > loop->lastBlock)
-                    loop->lastBlock = loop->entry;
-
-                LoopAnalysis *nloop = ArenaNew<LoopAnalysis>(pool);
-                if (!nloop) {
-                    cx->free_(saved);
-                    setOOM(cx);
-                    return;
-                }
-                PodZero(nloop);
-
-                if (loop)
-                    loop->hasCallsLoops = true;
-
-                nloop->parent = loop;
-                loop = nloop;
-
-                getCode(targetOffset).loop = loop;
-                loop->head = targetOffset;
-                loop->backedge = offset;
-                loop->lastBlock = loop->head;
-
-                
-
-
-
-                uint32 entry = targetOffset;
-                if (entry) {
-                    do {
-                        entry--;
-                    } while (!maybeCode(entry));
-
-                    jsbytecode *entrypc = script->code + entry;
-                    if (JSOp(*entrypc) == JSOP_GOTO || JSOp(*entrypc) == JSOP_GOTOX)
-                        loop->entry = entry + GetJumpOffset(entrypc, entrypc);
-                    else
-                        loop->entry = targetOffset;
-                } else {
-                    
-                    loop->entry = targetOffset;
-                }
-
-                break;
-            }
-            for (unsigned i = 0; i < savedCount; i++) {
-                LifetimeVariable &var = *saved[i];
-                JS_ASSERT(!var.lifetime && var.saved);
-                if (var.live(targetOffset)) {
-                    
-
-
-
-                    var.lifetime = ArenaNew<Lifetime>(pool, offset, var.savedEnd, var.saved);
-                    if (!var.lifetime) {
-                        cx->free_(saved);
-                        setOOM(cx);
-                        return;
-                    }
-                    var.saved = NULL;
-                    saved[i--] = saved[--savedCount];
-                } else if (loop && !var.savedEnd) {
-                    
-
-
-
-
-
-
-                    var.savedEnd = offset;
-                }
-            }
-            break;
-          }
-
           case JSOP_LOOKUPSWITCH:
           case JSOP_LOOKUPSWITCHX:
           case JSOP_TABLESWITCH:
           case JSOP_TABLESWITCHX:
-            
+          case JSOP_TRY:
+            /* Restore all saved variables. :FIXME: maybe do this precisely. */
             for (unsigned i = 0; i < savedCount; i++) {
                 LifetimeVariable &var = *saved[i];
                 var.lifetime = ArenaNew<Lifetime>(pool, offset, var.savedEnd, var.saved);
@@ -995,6 +884,107 @@ ScriptAnalysis::analyzeLifetimes(JSContext *cx)
           default:;
         }
 
+        uint32 type = JOF_TYPE(js_CodeSpec[op].format);
+        if (type == JOF_JUMP || type == JOF_JUMPX) {
+            /*
+             * Forward jumps need to pull in all variables which are live at
+             * their target offset --- the variables live before the jump are
+             * the union of those live at the fallthrough and at the target.
+             */
+            uint32 targetOffset = FollowBranch(script, offset);
+
+            /*
+             * Watch for 'continue' statements in the loop body, which are
+             * jumps to the entry offset separate from the initial jump.
+             */
+            if (loop && loop->entry == targetOffset && loop->entry > loop->lastBlock)
+                loop->lastBlock = loop->entry;
+
+            if (targetOffset < offset) {
+                /* This is a loop back edge, no lifetime to pull in yet. */
+
+#ifdef DEBUG
+                JSOp nop = JSOp(script->code[targetOffset]);
+                JS_ASSERT(nop == JSOP_TRACE || nop == JSOP_NOTRACE);
+#endif
+
+                /*
+                 * If we already have a loop, it is an outer loop and we
+                 * need to prune the last block in the loop --- we do not
+                 * track 'continue' statements for outer loops.
+                 */
+                if (loop && loop->entry > loop->lastBlock)
+                    loop->lastBlock = loop->entry;
+
+                LoopAnalysis *nloop = ArenaNew<LoopAnalysis>(pool);
+                if (!nloop) {
+                    cx->free_(saved);
+                    setOOM(cx);
+                    return;
+                }
+                PodZero(nloop);
+
+                if (loop)
+                    loop->hasCallsLoops = true;
+
+                nloop->parent = loop;
+                loop = nloop;
+
+                getCode(targetOffset).loop = loop;
+                loop->head = targetOffset;
+                loop->backedge = offset;
+                loop->lastBlock = loop->head;
+
+                /*
+                 * Find the entry jump, which will be a GOTO for 'for' or
+                 * 'while' loops or a fallthrough for 'do while' loops.
+                 */
+                uint32 entry = targetOffset;
+                if (entry) {
+                    do {
+                        entry--;
+                    } while (!maybeCode(entry));
+
+                    jsbytecode *entrypc = script->code + entry;
+                    if (JSOp(*entrypc) == JSOP_GOTO || JSOp(*entrypc) == JSOP_GOTOX)
+                        loop->entry = entry + GetJumpOffset(entrypc, entrypc);
+                    else
+                        loop->entry = targetOffset;
+                } else {
+                    /* Do-while loop at the start of the script. */
+                    loop->entry = targetOffset;
+                }
+            } else {
+                for (unsigned i = 0; i < savedCount; i++) {
+                    LifetimeVariable &var = *saved[i];
+                    JS_ASSERT(!var.lifetime && var.saved);
+                    if (var.live(targetOffset)) {
+                        /*
+                         * Jumping to a place where this variable is live. Make a new
+                         * lifetime segment for the variable.
+                         */
+                        var.lifetime = ArenaNew<Lifetime>(pool, offset, var.savedEnd, var.saved);
+                        if (!var.lifetime) {
+                            cx->free_(saved);
+                            setOOM(cx);
+                            return;
+                        }
+                        var.saved = NULL;
+                        saved[i--] = saved[--savedCount];
+                    } else if (loop && !var.savedEnd) {
+                        /*
+                         * This jump precedes the basic block which killed the variable,
+                         * remember it and use it for the end of the next lifetime
+                         * segment should the variable become live again. This is needed
+                         * for loops, as if we wrap liveness around the loop the isLive
+                         * test below may have given the wrong answer.
+                         */
+                        var.savedEnd = offset;
+                    }
+                }
+            }
+        }
+
         offset--;
     }
 
@@ -1014,7 +1004,7 @@ LifetimeVariable::print() const
     }
     printf("\n");
 }
-#endif 
+#endif /* DEBUG */
 
 inline void
 ScriptAnalysis::addVariable(JSContext *cx, LifetimeVariable &var, unsigned offset,
@@ -1025,7 +1015,7 @@ ScriptAnalysis::addVariable(JSContext *cx, LifetimeVariable &var, unsigned offse
         var.lifetime->start = offset;
     } else {
         if (var.saved) {
-            
+            /* Remove from the list of saved entries. */
             for (unsigned i = 0; i < savedCount; i++) {
                 if (saved[i] == &var) {
                     JS_ASSERT(savedCount);
@@ -1048,7 +1038,7 @@ ScriptAnalysis::killVariable(JSContext *cx, LifetimeVariable &var, unsigned offs
                              LifetimeVariable **&saved, unsigned &savedCount)
 {
     if (!var.lifetime) {
-        
+        /* Make a point lifetime indicating the write. */
         if (!var.saved)
             saved[savedCount++] = &var;
         var.saved = ArenaNew<Lifetime>(cx->compartment->pool, offset, var.savedEnd, var.saved);
@@ -1062,11 +1052,11 @@ ScriptAnalysis::killVariable(JSContext *cx, LifetimeVariable &var, unsigned offs
     }
     JS_ASSERT(offset < var.lifetime->start);
 
-    
-
-
-
-
+    /*
+     * The variable is considered to be live at the bytecode which kills it
+     * (just not at earlier bytecodes). This behavior is needed by downstream
+     * register allocation (see FrameState::bestEvictReg).
+     */
     var.lifetime->start = offset;
     var.lifetime->write = true;
 
@@ -1084,39 +1074,39 @@ ScriptAnalysis::extendVariable(JSContext *cx, LifetimeVariable &var,
     JS_ASSERT(var.lifetime);
     var.lifetime->start = start;
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * When walking backwards through loop bodies, we don't know which vars
+     * are live at the loop's backedge. We save the endpoints for lifetime
+     * segments which we *would* use if the variables were live at the backedge
+     * and extend the variable with new lifetimes if we find the variable is
+     * indeed live at the head of the loop.
+     *
+     * while (...) {
+     *   if (x #1) { ... }
+     *   ...
+     *   if (... #2) { x = 0; #3}
+     * }
+     *
+     * If x is not live after the loop, we treat it as dead in the walk and
+     * make a point lifetime for the write at #3. At the beginning of that
+     * basic block (#2), we save the loop endpoint; if we knew x was live in
+     * the next iteration then a new lifetime would be made here. At #1 we
+     * mark x live again, make a segment between the head of the loop and #1,
+     * and then extend x with loop tail lifetimes from #1 to #2, and from #3
+     * to the back edge.
+     */
 
     Lifetime *segment = var.lifetime;
     while (segment && segment->start < end) {
         uint32 savedEnd = segment->savedEnd;
         if (!segment->next || segment->next->start >= end) {
-            
-
-
-
-
+            /*
+             * savedEnd is only set for variables killed in the middle of the
+             * loop. Make a tail segment connecting the last use with the
+             * back edge.
+             */
             if (segment->end >= end) {
-                
+                /* Variable known to be live after the loop finishes. */
                 break;
             }
             savedEnd = end;
@@ -1131,11 +1121,11 @@ ScriptAnalysis::extendVariable(JSContext *cx, LifetimeVariable &var,
             tail->start = segment->end;
             tail->loopTail = true;
 
-            
-
-
-
-
+            /*
+             * Clear the segment's saved end, but preserve in the tail if this
+             * is the last segment in the loop and the variable is killed in an
+             * outer loop before the backedge.
+             */
             if (segment->savedEnd > end) {
                 JS_ASSERT(savedEnd == end);
                 tail->savedEnd = segment->savedEnd;
@@ -1154,11 +1144,11 @@ ScriptAnalysis::extendVariable(JSContext *cx, LifetimeVariable &var,
 void
 ScriptAnalysis::clearAllocations()
 {
-    
-
-
-
-
+    /*
+     * Clear out storage used for register allocations in a compilation once
+     * that compilation has finished. Register allocations are only used for
+     * a single compilation.
+     */
     for (unsigned i = 0; i < script->length; i++) {
         Bytecode *code = maybeCode(i);
         if (code)
@@ -1166,9 +1156,9 @@ ScriptAnalysis::clearAllocations()
     }
 }
 
-
-
-
+/////////////////////////////////////////////////////////////////////
+// SSA Analysis
+/////////////////////////////////////////////////////////////////////
 
 void
 ScriptAnalysis::analyzeSSA(JSContext *cx)
@@ -1184,10 +1174,10 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
     JSArenaPool &pool = cx->compartment->pool;
     unsigned maxDepth = script->nslots - script->nfixed;
 
-    
-
-
-
+    /*
+     * Current value of each variable and stack value. Empty for missing or
+     * untracked entries, i.e. escaping locals and arguments.
+     */
     SSAValue *values = (SSAValue *)
         cx->calloc_((numSlots + maxDepth) * sizeof(SSAValue));
     if (!values) {
@@ -1203,11 +1193,11 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
             values[slot].initInitial(slot);
     }
 
-    
-
-
-
-
+    /*
+     * All target offsets for forward jumps we in the middle of. We lazily add
+     * pending entries at these targets for the original value of variables
+     * modified before the branch rejoins.
+     */
     Vector<uint32> branchTargets(cx);
 
     uint32 offset = 0;
@@ -1228,21 +1218,21 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
         stackDepth = code->stackDepth;
 
         if (code->loop) {
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            /*
+             * Make sure there is a pending value array for phi nodes at the
+             * loop head. We won't be able to clear these until we reach the
+             * loop's back edge.
+             *
+             * We need phi nodes for all variables which might be modified
+             * during the loop. This ensures that in the loop body we have
+             * already updated state to reflect possible changes that happen
+             * before the back edge, and don't need to go back and fix things
+             * up when we *do* get to the back edge. This could be made lazier.
+             *
+             * We don't make phi nodes for values on the stack at the head of
+             * the loop. These may be popped during the loop (i.e. for ITER
+             * loops), but in such cases the original value is pushed back.
+             */
             Vector<SlotValue> *&pending = code->pendingValues;
             if (pending) {
                 removeBranchTarget(branchTargets, offset);
@@ -1254,11 +1244,11 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
                 }
             }
 
-            
-
-
-
-
+            /*
+             * Make phi nodes and update state for slots which are already in
+             * pending from previous branches to the loop head, and which are
+             * modified in the body of the loop.
+             */
             for (unsigned i = 0; i < pending->length(); i++) {
                 SlotValue &v = (*pending)[i];
                 if (v.slot < numSlots && liveness(v.slot).firstWrite(code->loop) != uint32(-1)) {
@@ -1276,20 +1266,20 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
                 values[v.slot] = v.value;
             }
 
-            
-
-
-
-
-
-
+            /*
+             * Make phi nodes for all other slots which might be modified
+             * during the loop. This ensures that in the loop body we have
+             * already updated state to reflect possible changes that happen
+             * before the back edge, and don't need to go back and fix things
+             * up when we *do* get to the back edge. This could be made lazier.
+             */
             for (uint32 slot = ArgSlot(0); slot < numSlots + stackDepth; slot++) {
                 if (slot >= numSlots || !trackSlot(slot))
                     continue;
                 if (liveness(slot).firstWrite(code->loop) == uint32(-1))
                     continue;
                 if (values[slot].kind() == SSAValue::PHI && values[slot].phiOffset() == offset) {
-                    
+                    /* There is already a pending entry for this slot. */
                     continue;
                 }
                 SSAValue ov;
@@ -1305,12 +1295,12 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
                 }
             }
         } else if (code->pendingValues) {
-            
-
-
-
-
-
+            /*
+             * New values at this point from a previous jump to this bytecode.
+             * If there is fallthrough from the previous instruction, merge
+             * with the current state and create phi nodes where necessary,
+             * otherwise replace current values with the new values.
+             */
             removeBranchTarget(branchTargets, offset);
             Vector<SlotValue> *pending = code->pendingValues;
             for (unsigned i = 0; i < pending->length(); i++) {
@@ -1341,10 +1331,10 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
                 v.clear();
             }
             if (xuses > nuses) {
-                
-
-
-
+                /*
+                 * For SETLOCAL, INCLOCAL, etc. opcodes, add an extra popped
+                 * value holding the value of the local before the op.
+                 */
                 uint32 slot = GetBytecodeSlot(script, pc);
                 if (trackSlot(slot))
                     code->poppedValues[nuses] = values[slot];
@@ -1423,16 +1413,16 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
           case JSOP_CALLLOCAL: {
             uint32 slot = GetBytecodeSlot(script, pc);
             if (trackSlot(slot)) {
-                
-
-
-
+                /*
+                 * Propagate the current value of the local to the pushed value,
+                 * and remember it with an extended use on the opcode.
+                 */
                 stack[stackDepth - 1] = code->poppedValues[0] = values[slot];
             }
             break;
           }
 
-          
+          /* Short circuit ops which push back one of their operands. */
 
           case JSOP_MOREITER:
           case JSOP_FORELEM:
@@ -1454,14 +1444,14 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
             stack[stackDepth - 1] = code->poppedValues[2];
             break;
 
-          
-
-
-
-
-
-
-
+          /*
+           * Switch and try blocks preserve the stack between the original op
+           * and all case statements or exception/finally handlers. Even though
+           * we don't track the values of variables in scripts containing such
+           * switch and try blocks, propagate the stack now to all targets as
+           * the values on the stack may be popped by intervening cleanup ops
+           * (e.g. LEAVEBLOCK, ENDITER).
+           */
 
           case JSOP_TABLESWITCH:
           case JSOP_TABLESWITCHX: {
@@ -1529,10 +1519,10 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
             unsigned targetOffset = FollowBranch(script, offset);
             checkBranchTarget(cx, targetOffset, branchTargets, values, stackDepth);
 
-            
-
-
-
+            /*
+             * If this is a back edge, we're done with the loop and can freeze
+             * the phi values at the head now.
+             */
             if (targetOffset < offset)
                 freezeNewValues(cx, targetOffset);
         }
@@ -1543,7 +1533,7 @@ ScriptAnalysis::analyzeSSA(JSContext *cx)
     ranSSA_ = true;
 }
 
-
+/* Get a phi node's capacity for a given length. */
 static inline unsigned
 PhiNodeCapacity(unsigned length)
 {
@@ -1576,11 +1566,11 @@ ScriptAnalysis::insertPhi(JSContext *cx, SSAValue &phi, const SSAValue &v)
     JS_ASSERT(phi.kind() == SSAValue::PHI);
     SSAPhiNode *node = phi.phiNode();
 
-    
-
-
-
-
+    /*
+     * Filter dupes inserted into small nodes to keep things clean and avoid
+     * extra type constraints, but don't bother on large phi nodes to avoid
+     * quadratic behavior.
+     */
     if (node->length <= 8) {
         for (unsigned i = 0; i < node->length; i++) {
             if (v.equals(node->options[i]))
@@ -1624,7 +1614,7 @@ ScriptAnalysis::insertPhi(JSContext *cx, SSAValue &phi, const SSAValue &v)
 inline void
 ScriptAnalysis::mergeValue(JSContext *cx, uint32 offset, const SSAValue &v, SlotValue *pv)
 {
-    
+    /* Make sure that v is accounted for in the pending value or phi value at pv. */
     JS_ASSERT(v.kind() != SSAValue::EMPTY && pv->value.kind() != SSAValue::EMPTY);
 
     if (v.equals(pv->value))
@@ -1666,11 +1656,11 @@ ScriptAnalysis::checkBranchTarget(JSContext *cx, uint32 targetOffset,
     unsigned targetDepth = getCode(targetOffset).stackDepth;
     JS_ASSERT(targetDepth <= stackDepth);
 
-    
-
-
-
-
+    /*
+     * If there is already an active branch to target, make sure its pending
+     * values reflect any changes made since the first branch. Otherwise, add a
+     * new pending branch and determine its pending values lazily.
+     */
     Vector<SlotValue> *&pending = getCode(targetOffset).pendingValues;
     if (pending) {
         for (unsigned i = 0; i < pending->length(); i++) {
@@ -1685,12 +1675,12 @@ ScriptAnalysis::checkBranchTarget(JSContext *cx, uint32 targetOffset,
         }
     }
 
-    
-
-
-
-
-
+    /*
+     * Make sure there is a pending entry for each value on the stack.
+     * The number of stack entries at join points is usually zero, and
+     * we don't want to look at the active branches while popping and
+     * pushing values in each opcode.
+     */
     for (unsigned i = 0; i < targetDepth; i++) {
         uint32 slot = StackSlot(script, i);
         checkPendingValue(cx, values[slot], slot, pending);
@@ -1702,20 +1692,20 @@ ScriptAnalysis::mergeBranchTarget(JSContext *cx, const SSAValue &value, uint32 s
                                   const Vector<uint32> &branchTargets)
 {
     if (slot >= numSlots) {
-        
-
-
-
-
+        /*
+         * There is no need to lazily check that there are pending values at
+         * branch targets for slots on the stack, these are added to pending
+         * eagerly.
+         */
         return;
     }
 
     JS_ASSERT(trackSlot(slot));
 
-    
-
-
-
+    /*
+     * Before changing the value of a variable, make sure the old value is
+     * marked at the target of any branches jumping over the current opcode.
+     */
     for (unsigned i = 0; i < branchTargets.length(); i++) {
         Vector<SlotValue> *pending = getCode(branchTargets[i]).pendingValues;
         checkPendingValue(cx, value, slot, pending);
@@ -1840,7 +1830,7 @@ SSAValue::print() const
     }
 }
 
-#endif  
+#endif  /* DEBUG */
 
-} 
-} 
+} /* namespace analyze */
+} /* namespace js */

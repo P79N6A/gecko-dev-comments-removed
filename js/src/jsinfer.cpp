@@ -1305,7 +1305,17 @@ TypeSet::getKnownTypeTag(JSContext *cx)
     else
         type = GetValueTypeFromTypeFlags(flags);
 
-    if (cx->compartment->types.compiledScript && type != JSVAL_TYPE_UNKNOWN) {
+    
+
+
+
+
+
+
+    bool empty = flags == 0 && objectCount == 0;
+    JS_ASSERT_IF(empty, type == JSVAL_TYPE_UNKNOWN);
+
+    if (cx->compartment->types.compiledScript && (empty || type != JSVAL_TYPE_UNKNOWN)) {
         add(cx, ArenaNew<TypeConstraintFreezeTypeTag>(cx->compartment->pool,
                                                       cx->compartment->types.compiledScript), false);
     }
@@ -2099,7 +2109,7 @@ TypeCompartment::dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Valu
 
 
 
-    JSOp op = JSOp(*cx->regs->pc);
+    JSOp op = JSOp(*cx->regs().pc);
     if (id == id___proto__(cx) || (op == JSOP_SETELEM && !JSID_IS_VOID(id)))
         return cx->markTypeObjectUnknownProperties(object);
 

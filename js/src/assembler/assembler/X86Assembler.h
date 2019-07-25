@@ -1,31 +1,31 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sw=4 et tw=79:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Copyright (C) 2008 Apple Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE INC. ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL APPLE INC. OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+ * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * 
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef X86Assembler_h
 #define X86Assembler_h
@@ -138,7 +138,7 @@ namespace X86Registers {
 #       endif
     }
 
-} 
+} /* namespace X86Registers */
 
 
 class X86Assembler {
@@ -239,7 +239,7 @@ private:
         OP_HLT                          = 0xF4,
         OP_GROUP3_EbIb                  = 0xF6,
         OP_GROUP3_Ev                    = 0xF7,
-        OP_GROUP3_EvIz                  = 0xF7, 
+        OP_GROUP3_EvIz                  = 0xF7, // OP_GROUP3_Ev has an immediate, when instruction is a test. 
         OP_GROUP5_Ev                    = 0xFF
     } OneByteOpcodeID;
 
@@ -374,7 +374,7 @@ public:
     unsigned char *buffer() const { return m_formatter.buffer(); }
     bool oom() const { return m_formatter.oom(); }
 
-    
+    // Stack operations:
 
     void push_r(RegisterID reg)
     {
@@ -413,7 +413,7 @@ public:
         m_formatter.oneByteOp(OP_GROUP1A_Ev, GROUP1A_OP_POP, base, offset);
     }
 
-    
+    // Arithmetic operations:
 
 #if !WTF_CPU_X86_64
     void adcl_im(int imm, void* addr)
@@ -995,7 +995,7 @@ public:
         m_formatter.oneByteOp(OP_GROUP3_Ev, GROUP3_OP_IDIV, dst);
     }
 
-    
+    // Comparisons:
 
     void cmpl_rr(RegisterID src, RegisterID dst)
     {
@@ -1318,7 +1318,7 @@ public:
         setne_r(dst);
     }
 
-    
+    // Various move ops:
 
     void cdq()
     {
@@ -1724,9 +1724,9 @@ public:
 
     void movzbl_rr(RegisterID src, RegisterID dst)
     {
-        
-        
-        
+        // In 64-bit, this may cause an unnecessary REX to be planted (if the dst register
+        // is in the range ESP-EDI, and the src would not have required a REX).  Unneeded
+        // REX prefixes are defined to be silently ignored by the processor.
         js::JaegerSpew(js::JSpew_Insns,
                        IPFX "movzbl      %s, %s\n", MAYBE_PAD,
                        nameIReg(4,src), nameIReg(4,dst));
@@ -1758,7 +1758,7 @@ public:
     }
 #endif
 
-    
+    // Flow control:
 
     JmpSrc call()
     {
@@ -1793,9 +1793,9 @@ public:
         return r;
     }
     
-    
-    
-    
+    // Return a JmpSrc so we have a label to the jump, so we can use this
+    // To make a tail recursive call on x86-64.  The MacroAssembler
+    // really shouldn't wrap this as a Jump, since it can't be linked. :-/
     JmpSrc jmp_r(RegisterID dst)
     {
         js::JaegerSpew(js::JSpew_Insns,
@@ -1825,7 +1825,7 @@ public:
     
     JmpSrc jnz()
     {
-        
+        // printing done by jne()
         return jne();
     }
 
@@ -1838,7 +1838,7 @@ public:
     
     JmpSrc jz()
     {
-        
+        // printing done by je()
         return je();
     }
 
@@ -1927,7 +1927,7 @@ public:
         return r;
     }
 
-    
+    // SSE operations:
 
     void addsd_rr(XMMRegisterID src, XMMRegisterID dst)
     {
@@ -2276,10 +2276,10 @@ public:
                        nameIReg(src), nameFPReg(dst));
         m_formatter.prefix(PRE_SSE_66);
         m_formatter.threeByteOp(OP3_PINSRD_VsdWsd, (RegisterID)dst, (RegisterID)src);
-        m_formatter.immediate8(0x01); 
+        m_formatter.immediate8(0x01); // the $1
     }
 
-    
+    // Misc instructions:
 
     void int3()
     {
@@ -2313,7 +2313,7 @@ public:
     }
 #endif
 
-    
+    // Assembler admin methods:
 
     JmpDst label()
     {
@@ -2338,13 +2338,13 @@ public:
         return label();
     }
 
-    
-    
-    
-    
-    
-    
-    
+    // Linking & patching:
+    //
+    // 'link' and 'patch' methods are for use on unprotected code - such as the code
+    // within the AssemblerBuffer, and code being patched by the patch buffer.  Once
+    // code has been finalized it is (platform support permitting) within a non-
+    // writable region of memory; to modify the code in an execute-only execuable
+    // pool the 'repatch' and 'relink' methods should be used.
 
     void linkJump(JmpSrc from, JmpDst to)
     {
@@ -2429,8 +2429,8 @@ public:
                        where);
 
 #if WTF_CPU_X86_64
-        
-        
+        // On x86-64 pointer memory accesses require a 64-bit operand, and as such a REX prefix.
+        // Skip over the prefix byte.
         where = reinterpret_cast<char*>(where) + 1;
 #endif
         *reinterpret_cast<unsigned char*>(where) = static_cast<unsigned char>(OP_LEA);
@@ -2442,8 +2442,8 @@ public:
                        ISPFX "##repatchLEAToLoadPtr ((where=%p))\n",
                        where);
 #if WTF_CPU_X86_64
-        
-        
+        // On x86-64 pointer memory accesses require a 64-bit operand, and as such a REX prefix.
+        // Skip over the prefix byte.
         where = reinterpret_cast<char*>(where) + 1;
 #endif
         *reinterpret_cast<unsigned char*>(where) = static_cast<unsigned char>(OP_MOV_GvEv);
@@ -2528,28 +2528,28 @@ private:
 
     public:
 
-        
-        
-        
+        // Legacy prefix bytes:
+        //
+        // These are emmitted prior to the instruction.
 
         void prefix(OneByteOpcodeID pre)
         {
             m_buffer.putByte(pre);
         }
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        // Word-sized operands / no operand instruction formatters.
+        //
+        // In addition to the opcode, the following operand permutations are supported:
+        //   * None - instruction takes no operands.
+        //   * One register - the low three bits of the RegisterID are added into the opcode.
+        //   * Two registers - encode a register form ModRm (for all ModRm formats, the reg field is passed first, and a GroupOpcodeID may be passed in its place).
+        //   * Three argument ModRM - a register, and a register and an offset describing a memory operand.
+        //   * Five argument ModRM - a register, and a base register, an index, scale, and offset describing a memory operand.
+        //
+        // For 32-bit x86 targets, the address operand may also be provided as a void*.
+        // On 64-bit targets REX prefixes will be planted as necessary, where high numbered registers are used.
+        //
+        // The twoByteOp methods plant two-byte Intel instructions sequences (first opcode byte 0x0F).
 
         void oneByteOp(OneByteOpcodeID opcode)
         {
@@ -2660,11 +2660,11 @@ private:
         }
 
 #if WTF_CPU_X86_64
-        
-        
-        
-        
-        
+        // Quad-word-sized operands:
+        //
+        // Used to format 64-bit operantions, planting a REX.w prefix.
+        // When planting d64 or f64 instructions, not requiring a REX.w prefix,
+        // the normal (non-'64'-postfixed) formatters should be used.
 
         void oneByteOp64(OneByteOpcodeID opcode)
         {
@@ -2722,30 +2722,30 @@ private:
         }
 #endif
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        // Byte-operands:
+        //
+        // These methods format byte operations.  Byte operations differ from the normal
+        // formatters in the circumstances under which they will decide to emit REX prefixes.
+        // These should be used where any register operand signifies a byte register.
+        //
+        // The disctinction is due to the handling of register numbers in the range 4..7 on
+        // x86-64.  These register numbers may either represent the second byte of the first
+        // four registers (ah..bh) or the first byte of the second four registers (spl..dil).
+        //
+        // Since ah..bh cannot be used in all permutations of operands (specifically cannot
+        // be accessed where a REX prefix is present), these are likely best treated as
+        // deprecated.  In order to ensure the correct registers spl..dil are selected a
+        // REX prefix will be emitted for any byte register operand in the range 4..15.
+        //
+        // These formatters may be used in instructions where a mix of operand sizes, in which
+        // case an unnecessary REX will be emitted, for example:
+        //     movzbl %al, %edi
+        // In this case a REX will be planted since edi is 7 (and were this a byte operand
+        // a REX would be required to specify dil instead of bh).  Unneeded REX prefixes will
+        // be silently ignored by the processor.
+        //
+        // Address operands should still be checked using regRequiresRex(), while byteRegRequiresRex()
+        // is provided to check byte register operands.
 
         void oneByteOp8(OneByteOpcodeID opcode, GroupOpcodeID groupOp, RegisterID rm)
         {
@@ -2798,10 +2798,10 @@ private:
             registerModRM(groupOp, rm);
         }
 
-        
-        
-        
-        
+        // Immediates:
+        //
+        // An immedaite should be appended where appropriate after an op has been emitted.
+        // The writes are unchecked since the opcode formatters above will have ensured space.
 
         void immediate8(int imm)
         {
@@ -2829,7 +2829,7 @@ private:
             return JmpSrc(m_buffer.size());
         }
 
-        
+        // Administrative methods:
 
         size_t size() const { return m_buffer.size(); }
         unsigned char *buffer() const { return m_buffer.buffer(); }
@@ -2842,9 +2842,9 @@ private:
 
     private:
 
-        
+        // Internals; ModRm and REX formatters.
 
-        
+        // Byte operand register spl & above require a REX prefix (to prevent the 'H' registers be accessed).
         inline bool byteRegRequiresRex(int reg)
         {
             return (reg >= X86Registers::esp);
@@ -2857,43 +2857,43 @@ private:
         static const RegisterID noBase2 = X86Registers::r13;
         static const RegisterID hasSib2 = X86Registers::r12;
 
-        
+        // Registers r8 & above require a REX prefixe.
         inline bool regRequiresRex(int reg)
         {
             return (reg >= X86Registers::r8);
         }
 
-        
+        // Format a REX prefix byte.
         inline void emitRex(bool w, int r, int x, int b)
         {
             m_buffer.putByteUnchecked(PRE_REX | ((int)w << 3) | ((r>>3)<<2) | ((x>>3)<<1) | (b>>3));
         }
 
-        
+        // Used to plant a REX byte with REX.w set (for 64-bit operations).
         inline void emitRexW(int r, int x, int b)
         {
             emitRex(true, r, x, b);
         }
 
-        
-        
-        
-        
-        
-        
+        // Used for operations with byte operands - use byteRegRequiresRex() to check register operands,
+        // regRequiresRex() to check other registers (i.e. address base & index).
+        // 
+        // NB: WebKit's use of emitRexIf() is limited such that the reqRequiresRex() checks are
+        // not needed. SpiderMonkey extends oneByteOp8 functionality such that r, x, and b can
+        // all be used.
         inline void emitRexIf(bool condition, int r, int x, int b)
         {
             if (condition || regRequiresRex(r) || regRequiresRex(x) || regRequiresRex(b))
                 emitRex(false, r, x, b);
         }
 
-        
+        // Used for word sized operations, will plant a REX prefix if necessary (if any register is r8 or above).
         inline void emitRexIfNeeded(int r, int x, int b)
         {
             emitRexIf(regRequiresRex(r) || regRequiresRex(x) || regRequiresRex(b), r, x, b);
         }
 #else
-        
+        // No REX prefix bytes on 32-bit x86.
         inline bool regRequiresRex(int) { return false; }
         inline void emitRexIf(bool, int, int, int) {}
         inline void emitRexIfNeeded(int, int, int) {}
@@ -2926,7 +2926,7 @@ private:
 
         void memoryModRM(int reg, RegisterID base, int offset)
         {
-            
+            // A base of esp or r12 would be interpreted as a sib, so force a sib with no index & put the base in there.
 #if WTF_CPU_X86_64
             if ((base == hasSib) || (base == hasSib2)) {
 #else
@@ -2960,7 +2960,7 @@ private:
     
         void memoryModRM_disp32(int reg, RegisterID base, int offset)
         {
-            
+            // A base of esp or r12 would be interpreted as a sib, so force a sib with no index & put the base in there.
 #if WTF_CPU_X86_64
             if ((base == hasSib) || (base == hasSib2)) {
 #else
@@ -2996,7 +2996,7 @@ private:
 #if !WTF_CPU_X86_64
         void memoryModRM(int reg, const void* address)
         {
-            
+            // noBase + ModRmMemoryNoDisp means noBase + ModRmMemoryDisp32!
             putModRm(ModRmMemoryNoDisp, reg, noBase);
             m_buffer.putIntUnchecked(reinterpret_cast<int32_t>(address));
         }
@@ -3006,8 +3006,8 @@ private:
     } m_formatter;
 };
 
-} 
+} // namespace JSC
 
-#endif 
+#endif // ENABLE(ASSEMBLER) && CPU(X86)
 
-#endif
+#endif // X86Assembler_h

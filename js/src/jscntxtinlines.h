@@ -1,49 +1,48 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=78:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is SpiderMonkey code.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Jeff Walden <jwalden+code@mit.edu> (original author)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef jscntxtinlines_h___
 #define jscntxtinlines_h___
 
 #include "jscntxt.h"
 #include "jscompartment.h"
-#include "jsparse.h"
 #include "jsstaticcheck.h"
 #include "jsxml.h"
 #include "jsregexp.h"
@@ -51,20 +50,36 @@
 
 namespace js {
 
-static inline JSObject *
+struct PreserveRegsGuard
+{
+    JSContext *cx;
+    const FrameRegs &regs;
+    FrameRegs *prevContextRegs;
+    PreserveRegsGuard(JSContext *cx, FrameRegs &regs)
+      : cx(cx), regs(regs), prevContextRegs(cx->maybeRegs()) {
+        cx->stack.repointRegs(&regs);
+    }
+    ~PreserveRegsGuard() {
+        JS_ASSERT(cx->maybeRegs() == &regs);
+        *prevContextRegs = regs;
+        cx->stack.repointRegs(prevContextRegs);
+    }
+};
+
+static inline GlobalObject *
 GetGlobalForScopeChain(JSContext *cx)
 {
-    
-
-
-
-
-
-
-
+    /*
+     * This is essentially GetScopeChain(cx)->getGlobal(), but without
+     * falling off trace.
+     *
+     * This use of cx->fp, possibly on trace, is deliberate:
+     * cx->fp->scopeChain->getGlobal() returns the same object whether we're on
+     * trace or not, since we do not trace calls across global objects.
+     */
     VOUCH_DOES_NOT_REQUIRE_STACK();
 
-    if (cx->hasfp())
+    if (cx->running())
         return cx->fp()->scopeChain().getGlobal();
 
     JSObject *scope = cx->globalObject;
@@ -73,444 +88,7 @@ GetGlobalForScopeChain(JSContext *cx)
         return NULL;
     }
     OBJ_TO_INNER_OBJECT(cx, scope);
-    return scope;
-}
-
-}
-
-#ifdef JS_METHODJIT
-inline js::mjit::JaegerCompartment *JSContext::jaegerCompartment()
-{
-    return compartment->jaegerCompartment;
-}
-#endif
-
-inline bool
-JSContext::ensureGeneratorStackSpace()
-{
-    bool ok = genStack.reserve(genStack.length() + 1);
-    if (!ok)
-        js_ReportOutOfMemory(this);
-    return ok;
-}
-
-inline js::RegExpStatics *
-JSContext::regExpStatics()
-{
-    return js::RegExpStatics::extractFrom(js::GetGlobalForScopeChain(this));
-}
-
-namespace js {
-
-struct PreserveRegsGuard
-{
-    JSContext *cx;
-    const JSFrameRegs &regs;
-    JSFrameRegs *prevContextRegs;
-    PreserveRegsGuard(JSContext *cx, JSFrameRegs &regs)
-        : cx(cx), regs(regs), prevContextRegs(cx->regs) {
-        cx->setCurrentRegs(&regs);
-    }
-    ~PreserveRegsGuard() {
-        JS_ASSERT(cx->regs == &regs);
-        *prevContextRegs = regs;
-        cx->setCurrentRegs(prevContextRegs);
-    }
-};
-
-JS_REQUIRES_STACK JS_ALWAYS_INLINE JSFrameRegs *
-StackSegment::getCurrentRegs() const
-{
-    JS_ASSERT(inContext());
-    return isActive() ? cx->regs : getSuspendedRegs();
-}
-
-JS_REQUIRES_STACK JS_ALWAYS_INLINE JSStackFrame *
-StackSegment::getCurrentFrame() const
-{
-    return getCurrentRegs()->fp;
-}
-
-JS_REQUIRES_STACK inline Value *
-StackSpace::firstUnused() const
-{
-    StackSegment *seg = currentSegment;
-    if (!seg) {
-        JS_ASSERT(invokeArgEnd == NULL);
-        return base;
-    }
-    if (seg->inContext()) {
-        Value *sp = seg->getCurrentRegs()->sp;
-        if (invokeArgEnd > sp) {
-            JS_ASSERT(invokeSegment == currentSegment);
-            
-            
-            return invokeArgEnd;
-        }
-        return sp;
-    }
-    JS_ASSERT(invokeArgEnd);
-    JS_ASSERT(invokeSegment == currentSegment);
-    return invokeArgEnd;
-}
-
-
-
-JS_ALWAYS_INLINE bool
-StackSpace::isCurrentAndActive(JSContext *cx) const
-{
-#ifdef DEBUG
-    JS_ASSERT_IF(cx->getCurrentSegment(),
-                 cx->getCurrentSegment()->maybeContext() == cx);
-    cx->assertSegmentsInSync();
-#endif
-    return currentSegment &&
-           currentSegment->isActive() &&
-           currentSegment == cx->getCurrentSegment();
-}
-
-STATIC_POSTCONDITION(!return || ubound(from) >= nvals)
-JS_ALWAYS_INLINE bool
-StackSpace::ensureSpace(JSContext *maybecx, Value *from, ptrdiff_t nvals) const
-{
-    JS_ASSERT(from >= firstUnused());
-#ifdef XP_WIN
-    JS_ASSERT(from <= commitEnd);
-    if (commitEnd - from >= nvals)
-        goto success;
-    if (end - from < nvals) {
-        if (maybecx)
-            js_ReportOutOfScriptQuota(maybecx);
-        return false;
-    }
-    if (!bumpCommit(from, nvals)) {
-        if (maybecx)
-            js_ReportOutOfScriptQuota(maybecx);
-        return false;
-    }
-    goto success;
-#else
-    if (end - from < nvals) {
-        if (maybecx)
-            js_ReportOutOfScriptQuota(maybecx);
-        return false;
-    }
-    goto success;
-#endif
-  success:
-#ifdef DEBUG
-    memset(from, 0xde, nvals * sizeof(js::Value));
-#endif
-    return true;
-}
-
-JS_ALWAYS_INLINE bool
-StackSpace::ensureEnoughSpaceToEnterTrace()
-{
-#ifdef XP_WIN
-    return ensureSpace(NULL, firstUnused(), MAX_TRACE_SPACE_VALS);
-#endif
-    return end - firstUnused() > MAX_TRACE_SPACE_VALS;
-}
-
-JS_ALWAYS_INLINE bool
-StackSpace::EnsureSpaceCheck::operator()(const StackSpace &stack, JSContext *cx,
-                                         Value *from, uintN nvals)
-{
-    return stack.ensureSpace(cx, from, nvals);
-}
-
-JS_ALWAYS_INLINE bool
-StackSpace::LimitCheck::operator()(const StackSpace &stack, JSContext *cx,
-                                   Value *from, uintN nvals)
-{
-    JS_ASSERT(from == stack.firstUnused());
-    JS_ASSERT(from < *limit);
-    if (*limit - from >= ptrdiff_t(nvals))
-        return true;
-    if (stack.bumpCommitAndLimit(base, from, nvals, limit))
-        return true;
-    js_ReportOverRecursed(cx);
-    return false;
-}
-
-JS_REQUIRES_STACK JS_ALWAYS_INLINE bool
-StackSpace::pushInvokeArgs(JSContext *cx, uintN argc, InvokeArgsGuard *ag)
-{
-    if (JS_UNLIKELY(!isCurrentAndActive(cx)))
-        return pushSegmentForInvoke(cx, argc, ag);
-
-    Value *sp = cx->regs->sp;
-    Value *start = invokeArgEnd > sp ? invokeArgEnd : sp;
-    JS_ASSERT(start == firstUnused());
-    uintN nvals = 2 + argc;
-    if (!ensureSpace(cx, start, nvals))
-        return false;
-
-    Value *vp = start;
-    Value *vpend = vp + nvals;
-    
-
-    
-    ag->prevInvokeArgEnd = invokeArgEnd;
-    invokeArgEnd = vpend;
-#ifdef DEBUG
-    ag->prevInvokeSegment = invokeSegment;
-    invokeSegment = currentSegment;
-    ag->prevInvokeFrame = invokeFrame;
-    invokeFrame = cx->maybefp();
-#endif
-
-    ag->cx = cx;
-    ImplicitCast<CallArgs>(*ag) = CallArgsFromVp(argc, vp);
-    return true;
-}
-
-JS_REQUIRES_STACK JS_ALWAYS_INLINE void
-StackSpace::popInvokeArgs(const InvokeArgsGuard &ag)
-{
-    if (JS_UNLIKELY(ag.seg != NULL)) {
-        popSegmentForInvoke(ag);
-        return;
-    }
-
-    JS_ASSERT(isCurrentAndActive(ag.cx));
-    JS_ASSERT(invokeSegment == currentSegment);
-    
-    JS_ASSERT(invokeArgEnd == ag.argv() + ag.argc());
-
-#ifdef DEBUG
-    invokeSegment = ag.prevInvokeSegment;
-    invokeFrame = ag.prevInvokeFrame;
-#endif
-    invokeArgEnd = ag.prevInvokeArgEnd;
-}
-
-JS_ALWAYS_INLINE
-InvokeArgsGuard::~InvokeArgsGuard()
-{
-    if (JS_UNLIKELY(!pushed()))
-        return;
-    cx->stack().popInvokeArgs(*this);
-}
-
-template <class Check>
-JS_REQUIRES_STACK JS_ALWAYS_INLINE JSStackFrame *
-StackSpace::getCallFrame(JSContext *cx, Value *firstUnused, uintN nactual,
-                         JSFunction *fun, JSScript *script, uint32 *flags,
-                         Check check) const
-{
-    JS_ASSERT(fun->script() == script);
-
-    
-    uintN nvals = STACK_EXTRA + script->nslots;
-    uintN nformal = fun->nargs;
-
-    
-
-    if (nactual == nformal) {
-        if (JS_UNLIKELY(!check(*this, cx, firstUnused, nvals)))
-            return NULL;
-        return reinterpret_cast<JSStackFrame *>(firstUnused);
-    }
-
-    if (nactual < nformal) {
-        *flags |= JSFRAME_UNDERFLOW_ARGS;
-        uintN nmissing = nformal - nactual;
-        if (JS_UNLIKELY(!check(*this, cx, firstUnused, nmissing + nvals)))
-            return NULL;
-        SetValueRangeToUndefined(firstUnused, nmissing);
-        return reinterpret_cast<JSStackFrame *>(firstUnused + nmissing);
-    }
-
-    *flags |= JSFRAME_OVERFLOW_ARGS;
-    uintN ncopy = 2 + nformal;
-    if (JS_UNLIKELY(!check(*this, cx, firstUnused, ncopy + nvals)))
-        return NULL;
-
-    Value *dst = firstUnused;
-    Value *src = firstUnused - (2 + nactual);
-    PodCopy(dst, src, ncopy);
-    Debug_SetValueRangeToCrashOnTouch(src, ncopy);
-    return reinterpret_cast<JSStackFrame *>(firstUnused + ncopy);
-}
-
-JS_REQUIRES_STACK JS_ALWAYS_INLINE bool
-StackSpace::getInvokeFrame(JSContext *cx, const CallArgs &args,
-                           JSFunction *fun, JSScript *script,
-                           uint32 *flags, InvokeFrameGuard *fg) const
-{
-    JS_ASSERT(firstUnused() == args.argv() + args.argc());
-
-    Value *firstUnused = args.argv() + args.argc();
-    fg->regs_.fp = getCallFrame(cx, firstUnused, args.argc(), fun, script, flags,
-                                EnsureSpaceCheck());
-    fg->regs_.sp = fg->regs_.fp->slots() + script->nfixed;
-    fg->regs_.pc = script->code;
-    fg->regs_.inlined = NULL;
-
-    return fg->regs_.fp != NULL;
-}
-
-JS_REQUIRES_STACK JS_ALWAYS_INLINE void
-StackSpace::pushInvokeFrame(JSContext *cx, const CallArgs &args,
-                            InvokeFrameGuard *fg)
-{
-    JS_ASSERT(firstUnused() == args.argv() + args.argc());
-
-    if (JS_UNLIKELY(!currentSegment->inContext())) {
-        cx->pushSegmentAndFrame(currentSegment, fg->regs_);
-    } else {
-        fg->prevRegs_ = cx->regs;
-        cx->setCurrentRegs(&fg->regs_);
-    }
-
-    fg->cx_ = cx;
-    JS_ASSERT(isCurrentAndActive(cx));
-}
-
-JS_REQUIRES_STACK JS_ALWAYS_INLINE void
-StackSpace::popInvokeFrame(const InvokeFrameGuard &fg)
-{
-    JSContext *cx = fg.cx_;
-    JSStackFrame *fp = fg.regs_.fp;
-
-    PutActivationObjects(cx, fp);
-
-    JS_ASSERT(isCurrentAndActive(cx));
-    if (JS_UNLIKELY(currentSegment->getInitialFrame() == fp)) {
-        cx->popSegmentAndFrame();
-    } else {
-        JS_ASSERT(&fg.regs_ == cx->regs);
-        JS_ASSERT(fp->prev_ == fg.prevRegs_->fp);
-        JS_ASSERT(fp->prevpc() == fg.prevRegs_->pc);
-        cx->setCurrentRegs(fg.prevRegs_);
-    }
-}
-
-JS_ALWAYS_INLINE void
-InvokeFrameGuard::pop()
-{
-    JS_ASSERT(pushed());
-    cx_->stack().popInvokeFrame(*this);
-    cx_ = NULL;
-}
-
-JS_REQUIRES_STACK JS_ALWAYS_INLINE JSStackFrame *
-StackSpace::getInlineFrame(JSContext *cx, Value *sp, uintN nactual,
-                           JSFunction *fun, JSScript *script, uint32 *flags) const
-{
-    JS_ASSERT(isCurrentAndActive(cx));
-    JS_ASSERT(cx->hasActiveSegment());
-    JS_ASSERT(cx->regs->sp == sp);
-
-    return getCallFrame(cx, sp, nactual, fun, script, flags, EnsureSpaceCheck());
-}
-
-JS_REQUIRES_STACK JS_ALWAYS_INLINE JSStackFrame *
-StackSpace::getInlineFrameWithinLimit(JSContext *cx, Value *sp, uintN nactual,
-                                      JSFunction *fun, JSScript *script, uint32 *flags,
-                                      JSStackFrame *base, Value **limit) const
-{
-    JS_ASSERT(isCurrentAndActive(cx));
-    JS_ASSERT(cx->hasActiveSegment());
-    JS_ASSERT(cx->regs->sp == sp);
-
-    return getCallFrame(cx, sp, nactual, fun, script, flags, LimitCheck(base, limit));
-}
-
-JS_REQUIRES_STACK JS_ALWAYS_INLINE void
-StackSpace::pushInlineFrame(JSContext *cx, JSScript *script, JSStackFrame *fp,
-                            JSFrameRegs *regs)
-{
-    JS_ASSERT(isCurrentAndActive(cx));
-    JS_ASSERT(cx->regs == regs && script == fp->script());
-
-    regs->fp = fp;
-    regs->pc = script->code;
-    regs->inlined = NULL;
-    regs->sp = fp->slots() + script->nfixed;
-}
-
-JS_REQUIRES_STACK JS_ALWAYS_INLINE void
-StackSpace::popInlineFrame(JSContext *cx, JSStackFrame *prev, Value *newsp)
-{
-    JSFrameRegs *regs = cx->regs;
-    JSStackFrame *fp = regs->fp;
-
-    JS_ASSERT(isCurrentAndActive(cx));
-    JS_ASSERT(cx->hasActiveSegment());
-    JS_ASSERT(fp->prev_ == prev);
-    JS_ASSERT(!fp->hasImacropc());
-    JS_ASSERT(prev->base() <= newsp && newsp <= fp->formalArgsEnd());
-
-    PutActivationObjects(cx, fp);
-
-    regs->pc = prev->pc(cx, fp, &regs->inlined);
-    regs->fp = prev;
-    regs->sp = newsp;
-}
-
-JS_ALWAYS_INLINE Value *
-StackSpace::getStackLimit(JSContext *cx)
-{
-    Value *sp = cx->regs->sp;
-    JS_ASSERT(sp == firstUnused());
-    Value *limit = sp + STACK_QUOTA;
-
-    
-
-
-
-
-#ifdef XP_WIN
-    if (JS_LIKELY(limit <= commitEnd))
-        return limit;
-    if (ensureSpace(NULL , sp, STACK_QUOTA))
-        return limit;
-    uintN minimum = cx->fp()->numSlots() + STACK_EXTRA;
-    return ensureSpace(cx, sp, minimum) ? sp + minimum : NULL;
-#else
-    if (JS_LIKELY(limit <= end))
-        return limit;
-    uintN minimum = cx->fp()->numSlots() + STACK_EXTRA;
-    return ensureSpace(cx, sp, minimum) ? sp + minimum : NULL;
-#endif
-}
-
-JS_REQUIRES_STACK inline
-FrameRegsIter::FrameRegsIter(JSContext *cx)
-  : cx(cx)
-{
-    curseg = cx->getCurrentSegment();
-    if (JS_UNLIKELY(!curseg || !curseg->isActive())) {
-        initSlow();
-        return;
-    }
-    JS_ASSERT(cx->regs->fp);
-    curfp = cx->regs->fp;
-    cursp = cx->regs->sp;
-    curpc = cx->regs->pc;
-    return;
-}
-
-inline FrameRegsIter &
-FrameRegsIter::operator++()
-{
-    JSStackFrame *fp = curfp;
-    JSStackFrame *prev = curfp = curfp->prev();
-    if (!prev)
-        return *this;
-
-    curpc = curfp->pc(cx, fp);
-
-    if (JS_UNLIKELY(fp == curseg->getInitialFrame())) {
-        incSlow(fp, prev);
-        return *this;
-    }
-
-    cursp = fp->formalArgsEnd();
-    return *this;
+    return scope->asGlobal();
 }
 
 inline GSNCache *
@@ -546,20 +124,20 @@ class CompartmentChecker
 
   public:
     explicit CompartmentChecker(JSContext *cx) : context(cx), compartment(cx->compartment) {
-        check(cx->hasfp() ? JS_GetGlobalForScopeChain(cx) : cx->globalObject);
+        check(cx->running() ? JS_GetGlobalForScopeChain(cx) : cx->globalObject);
         VOUCH_DOES_NOT_REQUIRE_STACK();
     }
 
-    
-
-
-
+    /*
+     * Set a breakpoint here (break js::CompartmentChecker::fail) to debug
+     * compartment mismatches.
+     */
     static void fail(JSCompartment *c1, JSCompartment *c2) {
         printf("*** Compartment mismatch %p vs. %p\n", (void *) c1, (void *) c2);
         JS_NOT_REACHED("compartment mismatched");
     }
 
-    
+    /* Note: should only be used when neither c1 nor c2 may be the default compartment. */
     static void check(JSCompartment *c1, JSCompartment *c2) {
         JS_ASSERT(c1 != c1->rt->atomsCompartment);
         JS_ASSERT(c2 != c2->rt->atomsCompartment);
@@ -576,7 +154,7 @@ class CompartmentChecker
         }
     }
 
-    void check(JSPrincipals *) {  }
+    void check(JSPrincipals *) { /* nothing for now */ }
 
     void check(JSObject *obj) {
         if (obj)
@@ -631,17 +209,17 @@ class CompartmentChecker
         }
     }
 
-    void check(JSStackFrame *fp) {
+    void check(StackFrame *fp) {
         check(&fp->scopeChain());
     }
 };
 
 #endif
 
-
-
-
-
+/*
+ * Don't perform these checks when called from a finalizer. The checking
+ * depends on other objects not having been swept yet.
+ */
 #define START_ASSERT_SAME_COMPARTMENT()                                       \
     if (cx->runtime->gcRunning)                                               \
         return;                                                               \
@@ -734,21 +312,21 @@ CallJSNativeConstructor(JSContext *cx, js::Native native, uintN argc, js::Value 
     if (!CallJSNative(cx, native, argc, vp))
         return false;
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * Native constructors must return non-primitive values on success.
+     * Although it is legal, if a constructor returns the callee, there is a
+     * 99.9999% chance it is a bug. If any valid code actually wants the
+     * constructor to return the callee, the assertion can be removed or
+     * (another) conjunct can be added to the antecedent.
+     *
+     * Proxies are exceptions to both rules: they can return primitives and
+     * they allow content to return the callee.
+     *
+     * CallOrConstructBoundFunction is an exception as well because we
+     * might have used bind on a proxy function.
+     *
+     * (new Object(Object)) returns the callee.
+     */
     extern JSBool proxy_Construct(JSContext *, uintN, Value *);
     JS_ASSERT_IF(native != proxy_Construct && native != js::CallOrConstructBoundFunction &&
                  (!callee->isFunction() || callee->getFunctionPrivate()->u.n.clasp != &js_ObjectClass),
@@ -791,13 +369,13 @@ CallSetter(JSContext *cx, JSObject *obj, jsid id, js::StrictPropertyOp op, uintN
 }
 
 #ifdef JS_TRACER
-
-
-
-
-
-
-
+/*
+ * Reconstruct the JS stack and clear cx->tracecx. We must be currently in a
+ * _FAIL builtin from trace on cx or another context on the same thread. The
+ * machine code for the trace remains on the C stack when js_DeepBail returns.
+ *
+ * Implemented in jstracer.cpp.
+ */
 JS_FORCES_STACK JS_FRIEND_API(void)
 DeepBail(JSContext *cx);
 #endif
@@ -827,7 +405,29 @@ CanLeaveTrace(JSContext *cx)
 #endif
 }
 
-}  
+}  /* namespace js */
+
+#ifdef JS_METHODJIT
+inline js::mjit::JaegerCompartment *JSContext::jaegerCompartment()
+{
+    return compartment->jaegerCompartment;
+}
+#endif
+
+inline bool
+JSContext::ensureGeneratorStackSpace()
+{
+    bool ok = genStack.reserve(genStack.length() + 1);
+    if (!ok)
+        js_ReportOutOfMemory(this);
+    return ok;
+}
+
+inline js::RegExpStatics *
+JSContext::regExpStatics()
+{
+    return js::RegExpStatics::extractFrom(js::GetGlobalForScopeChain(this));
+}
 
 inline void
 JSContext::setPendingException(js::Value v) {
@@ -836,4 +436,4 @@ JSContext::setPendingException(js::Value v) {
     assertSameCompartment(this, v);
 }
 
-#endif 
+#endif /* jscntxtinlines_h___ */

@@ -41,6 +41,8 @@
 
 #include "jsapi.h"
 #include "jscntxt.h"
+#include "jsgc.h"
+#include "jsgcmark.h"
 #include "jsiter.h"
 #include "jsnum.h"
 #include "jsregexp.h"
@@ -406,7 +408,7 @@ AutoCompartment::enter()
         JS_ASSERT(scopeChain->isNative());
 
         frame.construct();
-        if (!context->stack().pushDummyFrame(context, *scopeChain, &frame.ref())) {
+        if (!context->stack.pushDummyFrame(context, *scopeChain, &frame.ref())) {
             context->setCompartment(origin);
             return false;
         }
