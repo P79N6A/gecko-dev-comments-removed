@@ -1382,7 +1382,8 @@ GLContext::UploadSurfaceToTexture(gfxASurface *aSurface,
     if (!imageSurface || 
         (imageSurface->Format() != gfxASurface::ImageFormatARGB32 &&
          imageSurface->Format() != gfxASurface::ImageFormatRGB24 &&
-         imageSurface->Format() != gfxASurface::ImageFormatRGB16_565)) {
+         imageSurface->Format() != gfxASurface::ImageFormatRGB16_565 &&
+         imageSurface->Format() != gfxASurface::ImageFormatA8)) {
         
         nsIntRect bounds = aDstRegion.GetBounds();
         imageSurface = 
@@ -1429,6 +1430,12 @@ GLContext::UploadSurfaceToTexture(gfxASurface *aSurface,
             format = LOCAL_GL_RGB;
             type = LOCAL_GL_UNSIGNED_SHORT_5_6_5;
             shader = RGBALayerProgramType;
+            break;
+        case gfxASurface::ImageFormatA8:
+            format = LOCAL_GL_LUMINANCE;
+            type = LOCAL_GL_UNSIGNED_BYTE;
+            
+            shader = ShaderProgramType(0);
             break;
         default:
             NS_ASSERTION(false, "Unhandled image surface format!");
