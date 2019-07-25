@@ -787,7 +787,14 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
         
         ContentProviderOperation.Builder builder =
             ContentProviderOperation.newUpdate(bookmarkUri);
-        builder.withSelection(Bookmarks.URL + " = ?", new String[] { url });
+        
+        builder.withSelection(Bookmarks.URL + " = ? AND "
+                              + Bookmarks.PARENT + " = ? AND "
+                              + Bookmarks.PARENT + " != ?",
+                              new String[] { url,
+                                             Long.toString(parent),
+                                             String.valueOf(Bookmarks.FIXED_READING_LIST_ID)
+                              });
         builder.withValues(values);
 
         
