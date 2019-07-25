@@ -453,7 +453,9 @@ nsEditingSession::SetupEditorOnWindow(nsIDOMWindow *aWindow)
 
   
   nsCOMPtr<nsIEditor> editor = do_QueryReferent(mExistingEditor);
-  if (!editor) {
+  if (editor) {
+    editor->PreDestroy(PR_FALSE);
+  } else {
     editor = do_CreateInstance(classString, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
     mExistingEditor = do_GetWeakReference(editor);
