@@ -107,6 +107,11 @@ CaseInsensitiveFindInReadable(const nsAString& aPattern,
                         nsCaseInsensitiveStringComparator());
 }
 
+#else 
+
+NS_HIDDEN_(PRInt32)
+CaseInsensitiveCompare(const PRUnichar *a, const PRUnichar *b, PRUint32 len);
+
 #endif 
 
 #endif  
