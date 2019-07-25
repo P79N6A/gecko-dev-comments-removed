@@ -70,7 +70,7 @@
 
 #ifdef _WIN32
 # include <windows.h>
-#else
+#elif !defined(__OS2__)
 # include <unistd.h>
 # include <sys/mman.h>
 # ifndef MAP_ANON
@@ -127,6 +127,38 @@ GetDesiredRegionSize()
   SYSTEM_INFO sinfo;
   GetSystemInfo(&sinfo);
   return sinfo.dwAllocationGranularity;
+}
+
+#define RESERVE_FAILED 0
+
+#elif defined(__OS2__)
+static void *
+ReserveRegion(PRUword region, PRUword size)
+{
+  
+  
+  return (void*)0xFFFD0000;
+}
+
+static void
+ReleaseRegion(void *region, PRUword size)
+{
+  return;
+}
+
+static bool
+ProbeRegion(PRUword region, PRUword size)
+{
+  
+  
+  return false;
+}
+
+static PRUword
+GetDesiredRegionSize()
+{
+  
+  return 0x1000;
 }
 
 #define RESERVE_FAILED 0
