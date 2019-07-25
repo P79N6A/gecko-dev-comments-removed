@@ -385,6 +385,7 @@ pref("content.sink.pending_event_mode", 0);
 pref("content.sink.perf_deflect_count", 1000000);
 pref("content.sink.perf_parse_time", 50000000);
 
+pref("javascript.options.mem.gc_frequency", 300);
 pref("javascript.options.mem.high_water_mark", 32);
 
 pref("dom.max_chrome_script_run_time", 0); 
@@ -647,7 +648,7 @@ pref("browser.safebrowsing.malware.reportURL", "http://safebrowsing.clients.goog
 
 
 pref("browser.firstrun.show.uidiscovery", true);
-pref("browser.firstrun.show.localepicker", false);
+pref("browser.firstrun.show.localepicker", true);
 
 
 pref("content.ime.strict_policy", true);
