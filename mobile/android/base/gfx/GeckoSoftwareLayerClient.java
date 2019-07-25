@@ -43,7 +43,7 @@ import org.mozilla.gecko.gfx.IntSize;
 import org.mozilla.gecko.gfx.LayerClient;
 import org.mozilla.gecko.gfx.LayerController;
 import org.mozilla.gecko.gfx.LayerRenderer;
-import org.mozilla.gecko.gfx.SingleTileLayer;
+import org.mozilla.gecko.gfx.MultiTileLayer;
 import org.mozilla.gecko.gfx.PointUtils;
 import org.mozilla.gecko.gfx.WidgetTileLayer;
 import org.mozilla.gecko.FloatUtils;
@@ -182,7 +182,7 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
             mRenderOffset.set(0, 0);
         } else {
             Log.i(LOGTAG, "Creating MultiTileLayer");
-            mTileLayer = new SingleTileLayer(mCairoImage);
+            mTileLayer = new MultiTileLayer(mCairoImage, TILE_SIZE);
         }
 
         getLayerController().setRoot(mTileLayer);
@@ -197,13 +197,12 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
     public boolean beginDrawing(int width, int height, int tileWidth, int tileHeight, String metadata, boolean hasDirectTexture) {
         
         if (setHasDirectTexture(hasDirectTexture)) {
-            Log.i(LOGTAG, "we've changed surface types, cancel this draw");
             return false;
         }
 
         
         
-        if (mHasDirectTexture || mTileLayer instanceof SingleTileLayer) {
+        if (mHasDirectTexture) {
             if (tileWidth != 0 || tileHeight != 0) {
                 Log.e(LOGTAG, "Aborting draw, incorrect tile size of " + tileWidth + "x" + tileHeight);
                 return false;
@@ -236,24 +235,8 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         
         
         if (!(mTileLayer instanceof MultiTileLayer)) {
-            if (mBufferSize.width != width || mBufferSize.height != height) {
+            if (mBufferSize.width != width || mBufferSize.height != height)
                 mBufferSize = new IntSize(width, height);
-                if (mTileLayer instanceof SingleTileLayer) {
-                    int size = mBufferSize.getArea() * 2;
-                    if (mBuffer == null || mBuffer.capacity() != size) {
-                        
-                        if (mBuffer != null) {
-                            GeckoAppShell.freeDirectBuffer(mBuffer);
-                            mBuffer = null;
-                        }
-                        
-                        mBuffer = GeckoAppShell.allocateDirectBuffer(size);
-                    }
-                }
-            } 
-            if (!(mTileLayer instanceof SingleTileLayer)){
-                Log.i(LOGTAG, "returning early from beginDraw");
-            }        
             return true;
         }
 
@@ -282,7 +265,7 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
             IntSize realBufferSize = new IntSize(width + TILE_SIZE.width,
                                                  height + TILE_SIZE.height);
 
-
+            
             int bpp = CairoUtils.bitsPerPixelForCairoFormat(mFormat) / 8;
             int size = realBufferSize.getArea() * bpp;
             if (mBuffer == null || mBuffer.capacity() != size) {
@@ -295,8 +278,6 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
                 mBuffer = GeckoAppShell.allocateDirectBuffer(size);
             }
         }
-
-        Log.i(LOGTAG, "beginDraw finishing");
 
         return true;
     }
@@ -336,13 +317,10 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
             try {
                 updateViewport(!mUpdateViewportOnEndDraw);
                 mUpdateViewportOnEndDraw = false;
-                Rect rect = new Rect(x, y, x + width, y + height);
-                rect.offset(mRenderOffset.x, mRenderOffset.y);
-
-                if (mTileLayer instanceof SingleTileLayer)
-                       ((SingleTileLayer)mTileLayer).invalidate(rect);
 
                 if (mTileLayer instanceof MultiTileLayer) {
+                    Rect rect = new Rect(x, y, x + width, y + height);
+                    rect.offset(mRenderOffset.x, mRenderOffset.y);
                     ((MultiTileLayer)mTileLayer).invalidate(rect);
                     ((MultiTileLayer)mTileLayer).setRenderOffset(mRenderOffset);
                 }
@@ -469,16 +447,10 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
 
         
         if (!mHasDirectTexture) {
-            if (mTileLayer instanceof MultiTileLayer) {
-                
-                bufferSize = new IntSize(((mScreenSize.width + LayerController.MIN_BUFFER.width - 1) / TILE_SIZE.width + 1) * TILE_SIZE.width,
-                                         ((mScreenSize.height + LayerController.MIN_BUFFER.height - 1) / TILE_SIZE.height + 1) * TILE_SIZE.height);
-                tileSize = TILE_SIZE;
-            } else {
-                bufferSize = new IntSize(IntSize.nextPowerOfTwo(mScreenSize.width + LayerController.MIN_BUFFER.width),                                         
-                                         IntSize.nextPowerOfTwo(mScreenSize.height + LayerController.MIN_BUFFER.height));
-                tileSize = new IntSize(0, 0);
-            }
+            
+            bufferSize = new IntSize(((mScreenSize.width + LayerController.MIN_BUFFER.width - 1) / TILE_SIZE.width + 1) * TILE_SIZE.width,
+                                     ((mScreenSize.height + LayerController.MIN_BUFFER.height - 1) / TILE_SIZE.height + 1) * TILE_SIZE.height);
+            tileSize = TILE_SIZE;
         } else {
             int maxSize = getLayerController().getView().getMaxTextureSize();
 
