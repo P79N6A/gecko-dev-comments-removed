@@ -461,6 +461,9 @@ public:
                         nsCOMPtr<nsIDOMNode> *aResultNode,
                         bool         bNoBlockCrossing = false,
                         nsIContent  *aActiveEditorRoot = nsnull);
+  nsIContent* GetPriorNode(nsINode* aCurrentNode, bool aEditableNode,
+                           bool aNoBlockCrossing = false,
+                           nsIContent* aActiveEditorRoot = nsnull);
 
   
   nsresult GetPriorNode(nsIDOMNode  *aParentNode, 
@@ -469,7 +472,13 @@ public:
                         nsCOMPtr<nsIDOMNode> *aResultNode,
                         bool         bNoBlockCrossing = false,
                         nsIContent  *aActiveEditorRoot = nsnull);
-                       
+  nsIContent* GetPriorNode(nsINode* aParentNode,
+                           PRInt32 aOffset,
+                           bool aEditableNode,
+                           bool aNoBlockCrossing = false,
+                           nsIContent* aActiveEditorRoot = nsnull);
+
+
   
 
 
@@ -494,6 +503,11 @@ public:
                        nsCOMPtr<nsIDOMNode> *aResultNode,
                        bool         bNoBlockCrossing = false,
                        nsIContent  *aActiveEditorRoot = nsnull);
+  nsIContent* GetNextNode(nsINode* aParentNode,
+                          PRInt32 aOffset,
+                          bool aEditableNode,
+                          bool aNoBlockCrossing = false,
+                          nsIContent* aActiveEditorRoot = nsnull);
 
   
   nsIContent* FindNode(nsINode *aCurrentNode,
