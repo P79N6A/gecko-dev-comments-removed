@@ -1500,13 +1500,6 @@ public:
   
 
 
-
-  static bool HasAnimationsForCompositor(nsIContent* aContent,
-                                         nsCSSProperty aProperty);
-
-  
-
-
   static bool Are3DTransformsEnabled();
 
   

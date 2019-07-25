@@ -18,7 +18,6 @@
 #include "gfxPattern.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
-#include "nsStyleAnimation.h"
 #include "LayersBackend.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/TimeStamp.h"
@@ -44,14 +43,8 @@ namespace gl {
 class GLContext;
 }
 
-namespace css {
-class ComputedTimingFunction;
-}
-
 namespace layers {
 
-class Animation;
-class CommonLayerAttributes;
 class Layer;
 class ThebesLayer;
 class ContainerLayer;
@@ -537,13 +530,6 @@ private:
 };
 
 class ThebesLayer;
-typedef InfallibleTArray<Animation> AnimationArray;
-
-struct AnimData {
-  InfallibleTArray<nsStyleAnimation::Value> mStartValues;
-  InfallibleTArray<nsStyleAnimation::Value> mEndValues;
-  InfallibleTArray<mozilla::css::ComputedTimingFunction*> mFunctions;
-};
 
 
 
@@ -565,7 +551,7 @@ public:
     TYPE_THEBES
   };
 
-  virtual ~Layer();
+  virtual ~Layer() {}
 
   
 
@@ -722,13 +708,6 @@ public:
     Mutated();
   }
 
-  void SetScale(float aXScale, float aYScale)
-  {
-    mXScale = aXScale;
-    mYScale = aYScale;
-    Mutated();
-  }
-
   
 
 
@@ -736,14 +715,6 @@ public:
 
 
   void SetIsFixedPosition(bool aFixedPosition) { mIsFixedPosition = aFixedPosition; }
-
-  
-  void AddAnimation(const Animation& aAnimation);
-  
-  void ClearAnimations();
-  
-  
-  void SetAnimations(const AnimationArray& aAnimations);
 
   
 
@@ -765,13 +736,10 @@ public:
   virtual Layer* GetFirstChild() { return nsnull; }
   virtual Layer* GetLastChild() { return nsnull; }
   const gfx3DMatrix& GetTransform() { return mTransform; }
-  float GetXScale() { return mXScale; }
-  float GetYScale() { return mYScale; }
   bool GetIsFixedPosition() { return mIsFixedPosition; }
   gfxPoint GetFixedPositionAnchor() { return mAnchor; }
   Layer* GetMaskLayer() { return mMaskLayer; }
-  AnimationArray& GetAnimations() { return mAnimations; }
-  InfallibleTArray<AnimData>& GetAnimationData() { return mAnimationData; }
+
   
 
 
@@ -972,7 +940,20 @@ public:
 #endif
 
 protected:
-  Layer(LayerManager* aManager, void* aImplData);
+  Layer(LayerManager* aManager, void* aImplData) :
+    mManager(aManager),
+    mParent(nsnull),
+    mNextSibling(nsnull),
+    mPrevSibling(nsnull),
+    mImplData(aImplData),
+    mMaskLayer(nsnull),
+    mOpacity(1.0),
+    mContentFlags(0),
+    mUseClipRect(false),
+    mUseTileSourceRect(false),
+    mIsFixedPosition(false),
+    mDebugColorIndex(0)
+    {}
 
   void Mutated() { mManager->Mutated(this); }
 
@@ -987,13 +968,7 @@ protected:
 
 
 
-  const gfx3DMatrix GetLocalTransform();
-
-  
-
-
-
-  const float GetLocalOpacity();
+  const gfx3DMatrix& GetLocalTransform();
 
   
 
@@ -1019,11 +994,7 @@ protected:
   gfx::UserData mUserData;
   nsIntRegion mVisibleRegion;
   gfx3DMatrix mTransform;
-  float mXScale;
-  float mYScale;
   gfx3DMatrix mEffectiveTransform;
-  AnimationArray mAnimations;
-  InfallibleTArray<AnimData> mAnimationData;
   float mOpacity;
   nsIntRect mClipRect;
   nsIntRect mTileSourceRect;
