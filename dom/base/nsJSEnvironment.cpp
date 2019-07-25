@@ -718,7 +718,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
   
   
   nsCOMPtr<nsIPrompt> prompt = GetPromptFromContext(ctx);
-  NS_ENSURE_TRUE(prompt, JS_TRUE);
+  NS_ENSURE_TRUE(prompt, JS_FALSE);
 
   
   JSStackFrame* fp = ::JS_GetScriptedCaller(cx, NULL);
@@ -1302,6 +1302,14 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
     
   }
   else {
+    
+    
+    
+    
+    if (mExecuteDepth > 0 || JS_IsRunning(mContext)) {
+      rv = NS_ERROR_FAILURE;
+    }
+
     if (aIsUndefined) {
       *aIsUndefined = true;
     }
@@ -1501,6 +1509,14 @@ nsJSContext::EvaluateString(const nsAString& aScript,
     rv = JSValueToAString(mContext, val, aRetValue, aIsUndefined);
   }
   else {
+    
+    
+    
+    
+    if (mExecuteDepth > 1 || JS_IsRunning(mContext)) {
+      rv = NS_ERROR_FAILURE;
+    }
+
     if (aIsUndefined) {
       *aIsUndefined = true;
     }
@@ -1638,6 +1654,14 @@ nsJSContext::ExecuteScript(JSScript* aScriptObject,
     rv = JSValueToAString(mContext, val, aRetValue, aIsUndefined);
   } else {
     ReportPendingException();
+
+    
+    
+    
+    
+    if (mExecuteDepth > 1 || JS_IsRunning(mContext)) {
+      rv = NS_ERROR_FAILURE;
+    }
 
     if (aIsUndefined) {
       *aIsUndefined = true;
@@ -3115,7 +3139,10 @@ nsJSContext::ScriptEvaluated(bool aTerminated)
 
   JS_MaybeGC(mContext);
 
-  if (aTerminated) {
+  
+  
+  
+  if (aTerminated && mExecuteDepth == 0 && !JS_IsRunning(mContext)) {
     mOperationCallbackTime = 0;
     mModalStateTime = 0;
   }
