@@ -7993,8 +7993,13 @@ GetBindingURL(Element *aElement, nsIDocument *aDocument,
   
   
   
+  
+  bool isXULorPluginElement = (aElement->IsXUL() ||
+                               aElement->IsHTML(nsGkAtoms::object) ||
+                               aElement->IsHTML(nsGkAtoms::embed) ||
+                               aElement->IsHTML(nsGkAtoms::applet));
   nsIPresShell *shell = aDocument->GetShell();
-  if (!shell || aElement->GetPrimaryFrame() || !aElement->IsXUL()) {
+  if (!shell || aElement->GetPrimaryFrame() || !isXULorPluginElement) {
     *aResult = nullptr;
 
     return true;
@@ -9824,18 +9829,18 @@ nsHTMLPluginObjElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper,
     
     
     NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "SetupProtoChain failed!");
-    return NS_OK;
+  }
+  else {
+    
+    
+    nsCOMPtr<nsIScriptContext> scriptContext = GetScriptContextFromJSContext(cx);
+
+    nsRefPtr<nsPluginProtoChainInstallRunner> runner =
+      new nsPluginProtoChainInstallRunner(wrapper, scriptContext);
+    nsContentUtils::AddScriptRunner(runner);
   }
 
-  
-  
-  nsCOMPtr<nsIScriptContext> scriptContext = GetScriptContextFromJSContext(cx);
-
-  nsRefPtr<nsPluginProtoChainInstallRunner> runner =
-    new nsPluginProtoChainInstallRunner(wrapper, scriptContext);
-  nsContentUtils::AddScriptRunner(runner);
-
-  return NS_OK;
+  return nsElementSH::PostCreate(wrapper, cx, obj);
 }
 
 NS_IMETHODIMP
