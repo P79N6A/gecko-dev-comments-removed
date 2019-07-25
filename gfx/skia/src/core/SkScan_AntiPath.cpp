@@ -31,7 +31,7 @@
 
 
 
-
+#define SK_SUPPORT_NEW_AA
 
 
 
