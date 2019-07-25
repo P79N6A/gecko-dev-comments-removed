@@ -702,37 +702,33 @@ void nsDisplayList::BuildLayers(nsDisplayListBuilder* aBuilder,
 
 
 
-
 already_AddRefed<Layer>
 nsDisplayList::BuildLayer(nsDisplayListBuilder* aBuilder,
                           LayerManager* aManager,
                           nsTArray<LayerItems>* aLayers) const {
   BuildLayers(aBuilder, aManager, aLayers);
 
-  nsRefPtr<Layer> layer;
-  if (aLayers->Length() == 1) {
-    
-    layer = aLayers->ElementAt(0).mLayer;
-  } else {
-    
-    nsRefPtr<ContainerLayer> container =
-      aManager->CreateContainerLayer();
-    if (!container)
-      return nsnull;
-    
-    Layer* lastChild = nsnull;
-    nsIntRect visibleRect;
-    for (PRUint32 i = 0; i < aLayers->Length(); ++i) {
-      LayerItems* layerItems = &aLayers->ElementAt(i);
-      visibleRect.UnionRect(visibleRect, layerItems->mVisibleRect);
-      Layer* child = layerItems->mLayer;
-      container->InsertAfter(child, lastChild);
-      lastChild = child;
-    }
-    container->SetVisibleRegion(nsIntRegion(visibleRect));
-    layer = container.forget();
+  
+  
+  
+  
+  nsRefPtr<ContainerLayer> container =
+    aManager->CreateContainerLayer();
+  if (!container)
+    return nsnull;
+
+  Layer* lastChild = nsnull;
+  nsIntRect visibleRect;
+  for (PRUint32 i = 0; i < aLayers->Length(); ++i) {
+    LayerItems* layerItems = &aLayers->ElementAt(i);
+    visibleRect.UnionRect(visibleRect, layerItems->mVisibleRect);
+    Layer* child = layerItems->mLayer;
+    container->InsertAfter(child, lastChild);
+    lastChild = child;
   }
-  layer->SetIsOpaqueContent(mIsOpaque);
+  container->SetVisibleRegion(nsIntRegion(visibleRect));
+  container->SetIsOpaqueContent(mIsOpaque);
+  nsRefPtr<Layer> layer = container.forget();
   return layer.forget();
 }
 
