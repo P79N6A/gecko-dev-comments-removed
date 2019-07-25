@@ -2504,6 +2504,12 @@ mjit::Compiler::generateMethod()
             
           END_CASE(JSOP_CONDSWITCH)
 
+          BEGIN_CASE(JSOP_LABEL)
+          END_CASE(JSOP_LABEL)
+
+          BEGIN_CASE(JSOP_LABELX)
+          END_CASE(JSOP_LABELX)
+
           BEGIN_CASE(JSOP_DEFFUN)
           {
             uint32 index = fullAtomIndex(PC);
