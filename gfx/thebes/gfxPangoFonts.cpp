@@ -99,6 +99,8 @@
 #define IS_MISSING_GLYPH(g) ((g) & PANGO_GLYPH_UNKNOWN_FLAG)
 #define IS_EMPTY_GLYPH(g) ((g) == PANGO_GLYPH_EMPTY)
 
+#define PRINTING_FC_PROPERTY "gfx.printing"
+
 class gfxPangoFcFont;
 
 
@@ -1680,6 +1682,7 @@ PrepareSortPattern(FcPattern *aPattern, double aFallbackSize,
        cairo_font_options_set_antialias (options, CAIRO_ANTIALIAS_GRAY);
        cairo_ft_font_options_substitute(options, aPattern);
        cairo_font_options_destroy(options);
+       FcPatternAddBool(aPattern, PRINTING_FC_PROPERTY, FcTrue);
     } else {
 #ifdef MOZ_GFX_OPTIMIZE_MOBILE
        cairo_font_options_t *options = cairo_font_options_create();
@@ -2430,6 +2433,11 @@ CreateScaledFont(FcPattern *aPattern, cairo_font_face_t *aFace)
         cairo_matrix_init_identity(&fontMatrix);
     cairo_matrix_scale(&fontMatrix, size, size);
 
+    FcBool printing;
+    if (FcPatternGetBool(aPattern, PRINTING_FC_PROPERTY, 0, &printing) != FcResultMatch) {
+        printing = FcFalse;
+    }
+
     
     
     
@@ -2475,7 +2483,11 @@ CreateScaledFont(FcPattern *aPattern, cairo_font_face_t *aFace)
 #ifdef MOZ_GFX_OPTIMIZE_MOBILE
     cairo_font_options_set_hint_metrics(fontOptions, CAIRO_HINT_METRICS_OFF);
 #else
-    cairo_font_options_set_hint_metrics(fontOptions, CAIRO_HINT_METRICS_ON);
+    if (printing) {
+        cairo_font_options_set_hint_metrics(fontOptions, CAIRO_HINT_METRICS_OFF);
+    } else {
+        cairo_font_options_set_hint_metrics(fontOptions, CAIRO_HINT_METRICS_ON);
+    }
 #endif
 
     
@@ -2507,7 +2519,7 @@ CreateScaledFont(FcPattern *aPattern, cairo_font_face_t *aFace)
     }
 #endif
     cairo_hint_style_t hint_style;
-    if (!hinting) {
+    if (printing || !hinting) {
         hint_style = CAIRO_HINT_STYLE_NONE;
     } else {
 #ifdef FC_HINT_STYLE  
