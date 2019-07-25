@@ -76,6 +76,13 @@ ImageLoader::AssociateRequestToFrame(imgIRequest* aRequest,
 
     mRequestToFrameMap.Put(aRequest, newFrameSet);
     frameSet = newFrameSet.forget();
+
+    nsPresContext* presContext = GetPresContext();
+    if (presContext) {
+      nsLayoutUtils::RegisterImageRequestIfAnimated(presContext,
+                                                    aRequest,
+                                                    nullptr);
+    }
   }
 
   RequestSet* requestSet = nullptr;
@@ -365,9 +372,12 @@ ImageLoader::OnStartContainer(imgIRequest* aRequest, imgIContainer* aImage)
 NS_IMETHODIMP
 ImageLoader::OnImageIsAnimated(imgIRequest* aRequest)
 {
-  
-  
   if (!mDocument) {
+    return NS_OK;
+  }
+
+  FrameSet* frameSet = nullptr;
+  if (!mRequestToFrameMap.Get(aRequest, &frameSet)) {
     return NS_OK;
   }
 
