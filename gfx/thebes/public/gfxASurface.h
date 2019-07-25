@@ -132,6 +132,27 @@ public:
 
     virtual void Finish();
 
+    
+
+
+
+
+    virtual already_AddRefed<gfxASurface> CreateSimilarSurface(gfxContentType aType,
+                                                               const gfxIntSize& aSize);
+    
+
+
+
+
+
+
+
+
+    virtual PRBool AreSimilarSurfacesSensitiveToContentType()
+    {
+      return PR_TRUE;
+    }
+
     int CairoStatus();
 
     
@@ -178,10 +199,11 @@ protected:
         RecordMemoryFreed();
     }
 
+    cairo_surface_t *mSurface;
+
 private:
     static void SurfaceDestroyFunc(void *data);
 
-    cairo_surface_t *mSurface;
     PRInt32 mFloatingRefs;
     PRInt32 mBytesRecorded;
 
