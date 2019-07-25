@@ -117,6 +117,22 @@ private:
   
   
   ViewMap mContentViews;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool mFrameLoaderDestroyed;
 };
 
 } 
