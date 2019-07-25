@@ -37,7 +37,6 @@
 
 
 
-
 #include "imgLoader.h"
 #include "imgRequestProxy.h"
 
@@ -1731,7 +1730,6 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
 {
   NS_ASSERTION(channel, "imgLoader::LoadImageWithChannel -- NULL channel pointer");
 
-  nsresult rv;
   nsRefPtr<imgRequest> request;
 
   nsCOMPtr<nsIURI> uri;
@@ -1801,6 +1799,7 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
   
   requestFlags &= 0xFFFF;
 
+  nsresult rv = NS_OK;
   if (request) {
     
 
@@ -1821,11 +1820,6 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
     request->Init(originalURI, uri, channel, channel, entry, NS_GetCurrentThread(), aCX);
 
     ProxyListener *pl = new ProxyListener(static_cast<nsIStreamListener *>(request.get()));
-    if (!pl) {
-      request->CancelAndAbort(NS_ERROR_OUT_OF_MEMORY);
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-
     NS_ADDREF(pl);
 
     *listener = static_cast<nsIStreamListener*>(pl);
