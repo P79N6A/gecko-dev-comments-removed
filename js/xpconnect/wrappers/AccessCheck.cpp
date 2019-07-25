@@ -427,24 +427,6 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
         if (!wrapperAC.enter(cx, wrapper))
             return false;
 
-        
-        if (!JS_ObjectIsFunction(cx, wrappedObject)) {
-
-            
-            nsCOMPtr<nsPIDOMWindow> win =
-                do_QueryInterface(nsJSUtils::GetStaticScriptGlobal(cx, wrapper));
-            if (win) {
-                nsCOMPtr<nsIDocument> doc =
-                    do_QueryInterface(win->GetExtantDocument());
-                if (doc) {
-                    doc->WarnOnceAbout(nsIDocument::eNoExposedProps,
-                                        true);
-                }
-            }
-
-            perm = PermitPropertyAccess;
-            return true;
-        }
         return PermitIfUniversalXPConnect(cx, id, act, perm); 
     }
 
