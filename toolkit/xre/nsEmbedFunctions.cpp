@@ -517,7 +517,9 @@ XRE_InitChildProcess(int aArgc,
       
       
       process->CleanUp();
-      mozilla::Omnijar::SetBase(nsnull, nsnull);
+#ifdef MOZ_OMNIJAR
+      mozilla::SetOmnijar(nsnull);
+#endif
     }
   }
 
