@@ -194,6 +194,12 @@ public:
                                    LayerManager* aManager);
 
   ImageContainer* GetImageContainer(LayerManager* aManager = nsnull);
+  
+
+
+
+
+  nsRect GetPaintedRect(nsDisplayPlugin* aItem);
 
   
 
