@@ -1675,10 +1675,9 @@ GCGraphBuilder::NoteScriptChild(PRUint32 langID, void *child)
     }
 
     
-    if (langID == nsIProgrammingLanguage::JAVASCRIPT) {
-        JSObject *obj = static_cast<JSObject*>(child);
-        if (!xpc_IsGrayGCThing(obj) && !WantAllTraces())
-            return;
+    if (langID == nsIProgrammingLanguage::JAVASCRIPT &&
+        !xpc_GCThingIsGrayCCThing(child) && !WantAllTraces()) {
+        return;
     }
 
     nsCycleCollectionParticipant *cp = mRuntimes[langID]->ToParticipant(child);
@@ -2771,13 +2770,6 @@ nsCycleCollector::Shutdown()
     
     
 
-#ifdef DEBUG_CC
-    if (sCollector->mParams.mDrawGraphs) {
-        nsCOMPtr<nsICycleCollectorListener> listener =
-            new nsCycleCollectorLogger();
-        Collect(SHUTDOWN_COLLECTIONS(mParams), listener);
-    } else
-#endif
     Collect(SHUTDOWN_COLLECTIONS(mParams), nsnull);
 
 #ifdef DEBUG_CC

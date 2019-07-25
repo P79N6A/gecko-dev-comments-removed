@@ -569,6 +569,13 @@ nsXPConnect::Unroot(void *p)
     return NS_OK;
 }
 
+JSBool
+xpc_GCThingIsGrayCCThing(void *thing)
+{
+    uint32 kind = js_GetGCThingTraceKind(thing);
+    return ADD_TO_CC(kind) && xpc_IsGrayGCThing(thing);
+}
+
 static void
 UnmarkGrayChildren(JSTracer *trc, void *thing, uint32 kind)
 {
@@ -728,7 +735,8 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 #endif
     {
         
-        type = !markJSObject && xpc_IsGrayGCThing(p) ? GCUnmarked : GCMarked;
+        NS_ASSERTION(xpc_IsGrayGCThing(p), "Tried to traverse a non-gray object.");
+        type = markJSObject ? GCMarked : GCUnmarked;
     }
 
     if (cb.WantDebugInfo()) {

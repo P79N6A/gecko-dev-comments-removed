@@ -147,11 +147,20 @@ xpc_FastGetCachedWrapper(nsWrapperCache *cache, JSObject *scope)
 
 
 
+
+
 inline JSBool
 xpc_IsGrayGCThing(void *thing)
 {
     return js_GCThingIsMarked(thing, XPC_GC_COLOR_GRAY);
 }
+
+
+
+
+
+extern JSBool
+xpc_GCThingIsGrayCCThing(void *thing);
 
 
 extern void
