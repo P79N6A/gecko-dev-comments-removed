@@ -173,8 +173,7 @@ TelemetryPing.prototype = {
   _startupHistogramRegex: /SQLITE|HTTP|SPDY|CACHE|DNS/,
   _slowSQLStartup: {},
   _prevSession: null,
-  
-  _disablePersistentTelemetrySending: true,
+  _hasWindowRestoredObserver : false,
 
   
 
@@ -628,6 +627,7 @@ TelemetryPing.prototype = {
     Services.obs.addObserver(this, "profile-before-change", false);
     Services.obs.addObserver(this, "sessionstore-windows-restored", false);
     Services.obs.addObserver(this, "quit-application-granted", false);
+    this._hasWindowRestoredObserver = true;
 
     
     
@@ -645,10 +645,6 @@ TelemetryPing.prototype = {
   },
 
   loadHistograms: function loadHistograms(file, sync) {
-    if (this._disablePersistentTelemetrySending) {
-      return;
-    }
-
     let self = this;
     let loadCallback = function(data) {
       self._prevSession = data;
@@ -661,10 +657,9 @@ TelemetryPing.prototype = {
 
   uninstall: function uninstall() {
     this.detachObservers()
-    try {
+    if (this._hasWindowRestoredObserver) {
       Services.obs.removeObserver(this, "sessionstore-windows-restored");
-    } catch (e) {
-      
+      this._hasWindowRestoredObserver = false;
     }
     Services.obs.removeObserver(this, "profile-before-change");
     Services.obs.removeObserver(this, "private-browsing");
@@ -706,6 +701,7 @@ TelemetryPing.prototype = {
       break;
     case "sessionstore-windows-restored":
       Services.obs.removeObserver(this, "sessionstore-windows-restored");
+      this._hasWindowRestoredObserver = false;
       
     case "test-gather-startup":
       this.gatherStartupInformation();
@@ -735,9 +731,6 @@ TelemetryPing.prototype = {
       break;
     case "test-load-histograms":
       this.loadHistograms(aSubject.QueryInterface(Ci.nsILocalFile), true);
-      break;
-    case "test-enable-persistent-telemetry-send":
-      this._disablePersistentTelemetrySending = false;
       break;
     case "test-ping":
       server = aData;
