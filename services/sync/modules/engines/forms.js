@@ -64,7 +64,7 @@ Utils.deferGetSet(FormRec, "cleartext", ["name", "value"]);
 
 let FormWrapper = {
   _log: Log4Moz.repository.getLogger("Sync.Engine.Forms"),
-    
+
   getAllEntries: function getAllEntries() {
     
     let query = Svc.Form.DBConnection.createAsyncStatement(
@@ -93,7 +93,7 @@ let FormWrapper = {
 
     
     let item = Async.querySpinningly(getQuery, ["guid"])[0];
-    
+
     if (!item) {
       
       
@@ -102,9 +102,10 @@ let FormWrapper = {
                       JSON.stringify(value) + ") => " + item);
       return null;
     }
-    
-    if (item.guid != null)
+
+    if (item.guid != null) {
       return item.guid;
+    }
 
     
     let setQuery = Svc.Form.DBConnection.createAsyncStatement(
@@ -149,8 +150,9 @@ FormEngine.prototype = {
   get prefName() "history",
 
   _findDupe: function _findDupe(item) {
-    if (Svc.Form.entryExists(item.name, item.value))
+    if (Svc.Form.entryExists(item.name, item.value)) {
       return FormWrapper.getGUID(item.name, item.value);
+    }
   }
 };
 
@@ -173,8 +175,9 @@ FormStore.prototype = {
 
   getAllIDs: function FormStore_getAllIDs() {
     let guids = {};
-    for each (let {name, value} in FormWrapper.getAllEntries())
+    for each (let {name, value} in FormWrapper.getAllEntries()) {
       guids[FormWrapper.getGUID(name, value)] = true;
+    }
     return guids;
   },
 
@@ -192,9 +195,9 @@ FormStore.prototype = {
     if (entry != null) {
       record.name = entry.name;
       record.value = entry.value;
-    }
-    else
+    } else {
       record.deleted = true;
+    }
     return record;
   },
 
@@ -208,8 +211,9 @@ FormStore.prototype = {
 
     
     let entry = FormWrapper.getEntry(record.id);
-    if (entry == null)
+    if (entry == null) {
       return;
+    }
 
     Svc.Form.removeEntry(entry.name, entry.value);
   },
@@ -281,8 +285,9 @@ FormTracker.prototype = {
   },
 
   notify: function FormTracker_notify(formElement, aWindow, actionURI) {
-    if (this.ignoreAll)
+    if (this.ignoreAll) {
       return;
+    }
 
     this._log.trace("Form submission notification for " + actionURI.spec);
 
@@ -309,8 +314,9 @@ FormTracker.prototype = {
 
       
       let name = el.name;
-      if (name === "")
+      if (name === "") {
         name = el.id;
+      }
 
       if (!(el instanceof Ci.nsIDOMHTMLInputElement)) {
         this._log.trace(name + " is not a DOMHTMLInputElement: " + el);
