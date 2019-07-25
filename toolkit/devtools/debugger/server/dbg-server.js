@@ -124,9 +124,7 @@ var DebuggerServer = {
 
 
 
-
-
-  openListener: function DH_openListener(aPort, aLocalOnly) {
+  openListener: function DH_openListener(aPort) {
     if (!Services.prefs.getBoolPref("devtools.debugger.remote-enabled")) {
       return false;
     }
@@ -136,8 +134,14 @@ var DebuggerServer = {
       throw "Debugging listener already open.";
     }
 
+    let localOnly = false;
+    
+    if (Services.prefs.getBoolPref("devtools.debugger.force-local")) {
+      localOnly = true;
+    }
+
     try {
-      let socket = new ServerSocket(aPort, aLocalOnly, 4);
+      let socket = new ServerSocket(aPort, localOnly, 4);
       socket.asyncListen(this);
       this._listener = socket;
     } catch (e) {
