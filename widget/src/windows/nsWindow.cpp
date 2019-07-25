@@ -157,6 +157,7 @@
 #include "nsHashKeys.h"
 #include "nsString.h"
 #include "mozilla/Services.h"
+#include "nsNativeThemeWin.h"
 
 #if defined(WINCE)
 #include "nsWindowCE.h"
@@ -414,29 +415,34 @@ nsWindow::nsWindow() : nsBaseWidget()
   
   if (!sInstanceCount) {
 #if !defined(WINCE)
-  gKbdLayout.LoadLayout(::GetKeyboardLayout(0));
+    gKbdLayout.LoadLayout(::GetKeyboardLayout(0));
 #endif
 
-  
-  nsIMM32Handler::Initialize();
+    
+    nsIMM32Handler::Initialize();
 
 #ifdef NS_ENABLE_TSF
-  nsTextStore::Initialize();
+    nsTextStore::Initialize();
 #endif
 
 #if !defined(WINCE)
-  if (SUCCEEDED(::OleInitialize(NULL)))
-    sIsOleInitialized = TRUE;
-  NS_ASSERTION(sIsOleInitialized, "***** OLE is not initialized!\n");
+    if (SUCCEEDED(::OleInitialize(NULL)))
+      sIsOleInitialized = TRUE;
+    NS_ASSERTION(sIsOleInitialized, "***** OLE is not initialized!\n");
 #endif
 
 #if defined(HEAP_DUMP_EVENT)
-  InitHeapDump();
+    InitHeapDump();
 #endif
 
 #if !defined(WINCE)
-  InitTrackPointHack();
+    InitTrackPointHack();
 #endif
+
+    
+    if (GetWindowsVersion() >= VISTA_VERSION) {
+      nsUXThemeData::InitTitlebarInfo();
+    }
   } 
 
   mIdleService = nsnull;
@@ -1228,6 +1234,16 @@ NS_METHOD nsWindow::Show(PRBool bState)
     Invalidate(PR_FALSE);
 #endif
 
+  
+  if (!nsUXThemeData::sTitlebarInfoPopulated && bState &&
+      GetWindowsVersion() >= VISTA_VERSION &&
+      (mWindowType == eWindowType_toplevel || mWindowType == eWindowType_dialog) &&
+      (mBorderStyle == eBorderStyle_default || mBorderStyle == eBorderStyle_all)) {
+    TITLEBARINFOEX info = {0};
+    info.cbSize = sizeof(TITLEBARINFOEX);
+    SendMessage(mWnd, WM_GETTITLEBARINFOEX, 0, (LPARAM)&info); 
+    nsUXThemeData::UpdateTitlebarInfo(info);
+  }
   return NS_OK;
 }
 
