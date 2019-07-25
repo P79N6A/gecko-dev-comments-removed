@@ -791,7 +791,7 @@ let UI = {
         if (gBrowser.tabs.length > 1) {
           
           for (let a = 0; a < gBrowser._numPinnedTabs; a++) {
-            if (Utils.isValidXULTab(gBrowser.tabs[a]))
+            if (!gBrowser.tabs[a].closing)
               return;
           }
 
@@ -1710,11 +1710,19 @@ let UI = {
           callback(tabImage);
         } else {
           
-          
-          let url = null;
-          if (this._shouldLoadFavIcon(tab))
-            url = gFavIconService.getFaviconImageForPage(tab.linkedBrowser.currentURI).spec;
-          callback(url);
+          if (!this._shouldLoadFavIcon(tab)) {
+            callback(null);
+          } else {
+            
+            gFavIconService.getFaviconURLForPage(tab.linkedBrowser.currentURI,
+              function (uri) {
+                if (!uri) {
+                  callback(gFavIconService.defaultFavicon.spec);
+                } else {
+                  callback(gFavIconService.getFaviconLinkForIcon(uri).spec);
+                }
+              });
+          }
         }
       }
     }.bind(this));

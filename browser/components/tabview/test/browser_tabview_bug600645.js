@@ -1,6 +1,12 @@
 
 
 
+
+
+
+
+
+
 const fi = Cc["@mozilla.org/browser/favicon-service;1"].
            getService(Ci.nsIFaviconService);
 
@@ -40,17 +46,19 @@ function onTabPinned() {
     
     executeSoon(function() {
       let iconSrc = $icon.attr("src");
-      let hasData = true;
-      try {
-        fi.getFaviconDataAsDataURL(iconSrc);
-      } catch(e) {
-        hasData = false;
-      }
-      ok(!hasData, "The icon src doesn't return any data");
+
       
       
       ok(/^moz-anno:favicon:/.test(iconSrc),
          "The icon url starts with moz-anno:favicon so the default fav icon would be displayed");
+
+      
+      
+      
+      
+      
+      
+      
 
       
       gBrowser.removeTab(newTab);
