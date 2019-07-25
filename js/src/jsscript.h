@@ -466,6 +466,15 @@ struct JSScript {
 
 
 
+
+
+
+    uint32          stepMode;
+
+    
+
+
+
   public:
     uint8           objectsOffset;  
 
@@ -492,7 +501,6 @@ struct JSScript {
     bool            hasSingletons:1;  
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
-    bool            singleStepMode:1; 
 #endif
 
     jsbytecode      *main;      
@@ -679,6 +687,42 @@ struct JSScript {
     }
 
     void copyClosedSlotsTo(JSScript *other);
+
+  private:
+    static const uint32 stepFlagMask = 0x80000000U;
+    static const uint32 stepCountMask = 0x7fffffffU;
+
+    
+
+
+
+    bool recompileForStepMode(JSContext *cx);
+
+    
+    bool tryNewStepMode(JSContext *cx, uint32 newValue);
+
+  public:
+    
+
+
+
+
+
+    bool setStepModeFlag(JSContext *cx, bool step);
+    
+    
+
+
+
+
+
+    bool changeStepModeCount(JSContext *cx, int delta);
+
+    bool stepModeEnabled() { return !!stepMode; }
+
+#ifdef DEBUG
+    uint32 stepModeCount() { return stepMode & stepCountMask; }
+#endif
 };
 
 #define SHARP_NSLOTS            2       /* [#array, #depth] slots if the script
