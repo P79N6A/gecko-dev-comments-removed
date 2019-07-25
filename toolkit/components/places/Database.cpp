@@ -48,6 +48,7 @@
 
 
 
+
 #include "Database.h"
 
 #include "nsINavBookmarksService.h"
@@ -642,6 +643,12 @@ Database::InitSchema(bool* aDatabaseMigrated)
         rv = MigrateV13Up();
         NS_ENSURE_SUCCESS(rv, rv);
       }
+
+      if (currentSchemaVersion < 14) {
+        rv = MigrateV14Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
       
 
       
@@ -1307,8 +1314,6 @@ Database::MigrateV13Up()
   MOZ_ASSERT(NS_IsMainThread());
 
   
-
-  
   nsCOMPtr<mozIStorageAsyncStatement> deleteDynContainersStmt;
   nsresult rv = mMainConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
       "DELETE FROM moz_bookmarks WHERE type = :item_type"),
@@ -1322,6 +1327,38 @@ Database::MigrateV13Up()
   rv = deleteDynContainersStmt->ExecuteAsync(nsnull, getter_AddRefs(ps));
   NS_ENSURE_SUCCESS(rv, rv);
 
+  return NS_OK;
+}
+
+nsresult
+Database::MigrateV14Up()
+{
+  
+  
+  
+  nsCOMPtr<mozIStorageStatement> hasGuidStatement;
+  nsresult rv = mMainConn->CreateStatement(NS_LITERAL_CSTRING(
+      "SELECT guid FROM moz_favicons"),
+    getter_AddRefs(hasGuidStatement));
+
+  if (NS_FAILED(rv)) {
+    rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "ALTER TABLE moz_favicons "
+      "ADD COLUMN guid TEXT"
+    ));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "UPDATE moz_favicons "
+      "SET guid = GENERATE_GUID()"
+    ));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_FAVICONS_GUID);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
   return NS_OK;
 }
 
@@ -1411,6 +1448,10 @@ Database::Observe(nsISupports *aSubject,
         "UNION ALL "
         "SELECT 1 "
         "FROM moz_bookmarks "
+        "WHERE guid IS NULL "
+        "UNION ALL "
+        "SELECT 1 "
+        "FROM moz_favicons "
         "WHERE guid IS NULL "
       ), getter_AddRefs(stmt));
       NS_ENSURE_SUCCESS(rv, rv);

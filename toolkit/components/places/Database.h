@@ -47,7 +47,7 @@
 
 
 
-#define DATABASE_SCHEMA_VERSION 13
+#define DATABASE_SCHEMA_VERSION 14
 
 
 #define TOPIC_PLACES_INIT_COMPLETE "places-init-complete"
@@ -288,8 +288,10 @@ protected:
   nsresult MigrateV9Up();
   nsresult MigrateV10Up();
   nsresult MigrateV11Up();
-  nsresult CheckAndUpdateGUIDs();
   nsresult MigrateV13Up();
+  nsresult MigrateV14Up();
+
+  nsresult CheckAndUpdateGUIDs();
 
 private:
   ~Database();

@@ -146,4 +146,12 @@
   )
 
 
+
+
+
+#define CREATE_IDX_MOZ_FAVICONS_GUID \
+  CREATE_PLACES_IDX( \
+    "guid_uniqueindex", "moz_favicons", "guid", "UNIQUE" \
+  )
+
 #endif 

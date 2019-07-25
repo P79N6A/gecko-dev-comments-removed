@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef __nsPlacesTables_h__
 #define __nsPlacesTables_h__
 
@@ -127,6 +128,7 @@
     ", data BLOB" \
     ", mime_type VARCHAR(32)" \
     ", expiration LONG" \
+    ", guid TEXT" \
   ")" \
 )
 
