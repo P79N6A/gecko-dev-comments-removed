@@ -81,16 +81,6 @@ struct ElementTransitions : public mozilla::css::CommonElementAnimationData
   bool CanPerformOnCompositorThread() const;
   
   nsTArray<ElementPropertyTransition> mPropertyTransitions;
-
-  
-  
-  
-  
-  
-  
-  nsRefPtr<mozilla::css::AnimValuesStyleRule> mStyleRule;
-  
-  mozilla::TimeStamp mStyleRuleRefreshTime;
 };
 
 

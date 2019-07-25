@@ -153,16 +153,6 @@ struct ElementAnimations : public mozilla::css::CommonElementAnimationData
   
   bool CanPerformOnCompositorThread() const;
   bool HasAnimationOfProperty(nsCSSProperty aProperty) const;
-  
-  
-  
-  
-  
-  
-  
-  nsRefPtr<mozilla::css::AnimValuesStyleRule> mStyleRule;
-  
-  TimeStamp mStyleRuleRefreshTime;
 
   
   

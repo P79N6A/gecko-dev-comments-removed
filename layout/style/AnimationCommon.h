@@ -164,6 +164,17 @@ struct CommonElementAnimationData : public PRCList
 
   CommonAnimationManager *mManager;
 
+  
+  
+  
+  
+  
+  
+  
+  nsRefPtr<mozilla::css::AnimValuesStyleRule> mStyleRule;
+  
+  TimeStamp mStyleRuleRefreshTime;
+
 #ifdef DEBUG
   bool mCalledPropertyDtor;
 #endif
