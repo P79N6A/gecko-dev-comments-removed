@@ -533,9 +533,22 @@ protected:
 
 
 
-    return mSelectionHasChanged ||
-           (mForm && mForm->HasEverTriedInvalidSubmit()) ||
-           GetValidityState(VALIDITY_STATE_CUSTOM_ERROR);
+
+
+    if (mForm) {
+      if (mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) {
+        return false;
+      }
+      if (mForm->HasEverTriedInvalidSubmit()) {
+        return true;
+      }
+    }
+
+    if (GetValidityState(VALIDITY_STATE_CUSTOM_ERROR)) {
+      return true;
+    }
+
+    return mSelectionHasChanged;
   }
 
   
@@ -545,9 +558,18 @@ protected:
 
 
   bool ShouldShowValidUI() const {
-    return mSelectionHasChanged ||
-           (mForm && mForm->HasEverTriedInvalidSubmit());
+    if (mForm) {
+      if (mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) {
+        return false;
+      }
+      if (mForm->HasEverTriedInvalidSubmit()) {
+        return true;
+      }
+    }
+
+    return mSelectionHasChanged;
   }
+
   
   nsRefPtr<nsHTMLOptionCollection> mOptions;
   

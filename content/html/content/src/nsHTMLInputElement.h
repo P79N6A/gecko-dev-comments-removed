@@ -567,8 +567,18 @@ protected:
 
 
 
-    if ((mForm && mForm->HasEverTriedInvalidSubmit()) ||
-        GetValidityState(VALIDITY_STATE_CUSTOM_ERROR)) {
+
+
+    if (mForm) {
+      if (mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) {
+        return false;
+      }
+      if (mForm->HasEverTriedInvalidSubmit()) {
+        return true;
+      }
+    }
+
+    if (GetValidityState(VALIDITY_STATE_CUSTOM_ERROR)) {
       return true;
     }
 
@@ -593,8 +603,13 @@ protected:
 
 
   bool ShouldShowValidUI() const {
-    if (mForm && mForm->HasEverTriedInvalidSubmit()) {
-      return true;
+    if (mForm) {
+      if (mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) {
+        return false;
+      }
+      if (mForm->HasEverTriedInvalidSubmit()) {
+        return true;
+      }
     }
 
     switch (GetValueMode()) {

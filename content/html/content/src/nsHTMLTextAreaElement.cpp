@@ -294,8 +294,22 @@ protected:
 
 
 
-    return (mForm && mForm->HasEverTriedInvalidSubmit()) ||
-           mValueChanged || GetValidityState(VALIDITY_STATE_CUSTOM_ERROR);
+
+
+    if (mForm) {
+      if (mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) {
+        return false;
+      }
+      if (mForm->HasEverTriedInvalidSubmit()) {
+        return true;
+      }
+    }
+
+    if (GetValidityState(VALIDITY_STATE_CUSTOM_ERROR)) {
+      return true;
+    }
+
+    return mValueChanged;
   }
 
   
@@ -305,7 +319,16 @@ protected:
 
 
   bool ShouldShowValidUI() const {
-    return (mForm && mForm->HasEverTriedInvalidSubmit()) || mValueChanged;
+    if (mForm) {
+      if (mForm->HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate)) {
+        return false;
+      }
+      if (mForm->HasEverTriedInvalidSubmit()) {
+        return true;
+      }
+    }
+
+    return mValueChanged;
   }
 
   
