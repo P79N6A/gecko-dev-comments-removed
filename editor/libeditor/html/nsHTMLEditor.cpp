@@ -4799,28 +4799,19 @@ nsHTMLEditor::IsVisTextNode(nsIContent* aNode,
                             bool* outIsEmptyNode,
                             bool aSafeToAskFrames)
 {
-  nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aNode);
-  return IsVisTextNode(node);
-}
-
-nsresult
-nsHTMLEditor::IsVisTextNode( nsIDOMNode* aNode, 
-                             bool *outIsEmptyNode, 
-                             bool aSafeToAskFrames)
-{
   NS_ENSURE_TRUE(aNode && outIsEmptyNode, NS_ERROR_NULL_POINTER);
   *outIsEmptyNode = true;
-  nsresult res = NS_OK;
 
-  nsCOMPtr<nsIContent> textContent = do_QueryInterface(aNode);
   
-  if (!textContent || !textContent->IsNodeOfType(nsINode::eTEXT)) 
+  if (!aNode->IsNodeOfType(nsINode::eTEXT)) {
     return NS_ERROR_NULL_POINTER;
-  PRUint32 length = textContent->TextLength();
+  }
+
+  PRUint32 length = aNode->TextLength();
   if (aSafeToAskFrames)
   {
     nsCOMPtr<nsISelectionController> selCon;
-    res = GetSelectionController(getter_AddRefs(selCon));
+    nsresult res = GetSelectionController(getter_AddRefs(selCon));
     NS_ENSURE_SUCCESS(res, res);
     NS_ENSURE_TRUE(selCon, NS_ERROR_FAILURE);
     bool isVisible = false;
@@ -4830,7 +4821,7 @@ nsHTMLEditor::IsVisTextNode( nsIDOMNode* aNode,
     
     
     
-    res = selCon->CheckVisibility(aNode, 0, length, &isVisible);
+    res = selCon->CheckVisibilityContent(aNode, 0, length, &isVisible);
     NS_ENSURE_SUCCESS(res, res);
     if (isVisible) 
     {
@@ -4839,18 +4830,20 @@ nsHTMLEditor::IsVisTextNode( nsIDOMNode* aNode,
   }
   else if (length)
   {
-    if (textContent->TextIsOnlyWhitespace())
+    if (aNode->TextIsOnlyWhitespace())
     {
-      nsWSRunObject wsRunObj(this, aNode, 0);
+      nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aNode);
+      nsWSRunObject wsRunObj(this, node, 0);
       nsCOMPtr<nsIDOMNode> visNode;
       PRInt32 outVisOffset=0;
       PRInt16 visType=0;
-      res = wsRunObj.NextVisibleNode(aNode, 0, address_of(visNode), &outVisOffset, &visType);
+      nsresult res = wsRunObj.NextVisibleNode(node, 0, address_of(visNode),
+                                              &outVisOffset, &visType);
       NS_ENSURE_SUCCESS(res, res);
       if ( (visType == nsWSRunObject::eNormalWS) ||
            (visType == nsWSRunObject::eText) )
       {
-        *outIsEmptyNode = (aNode != visNode);
+        *outIsEmptyNode = (node != visNode);
       }
     }
     else
