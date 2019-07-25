@@ -290,8 +290,13 @@ nsContextMenu.prototype = {
     this.setItemAttr("context-viewvideo",  "disabled", !this.mediaURL);
 
     
-    this.showItem("context-viewbgimage", shouldShow && !this._hasMultipleBGImages);
-    this.showItem("context-sep-viewbgimage", shouldShow && !this._hasMultipleBGImages);
+    
+    this.showItem("context-viewbgimage", shouldShow &&
+                                         !this._hasMultipleBGImages &&
+                                         !this.inSyntheticDoc);
+    this.showItem("context-sep-viewbgimage", shouldShow &&
+                                             !this._hasMultipleBGImages &&
+                                             !this.inSyntheticDoc);
     document.getElementById("context-viewbgimage")
             .disabled = !this.hasBGImage;
 
@@ -387,7 +392,9 @@ nsContextMenu.prototype = {
     this.showItem("context-delete", this.onTextInput);
     this.showItem("context-sep-paste", this.onTextInput);
     this.showItem("context-selectall", !(this.onLink || this.onImage ||
-                  this.onVideo || this.onAudio) || this.isDesignMode);
+                                         this.onVideo || this.onAudio ||
+                                         this.inSyntheticDoc) ||
+                                       this.isDesignMode);
     this.showItem("context-sep-selectall", this.isContentSelected );
 
     
