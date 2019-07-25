@@ -937,6 +937,14 @@ public class PanZoomController
 
         synchronized (mController) {
             float newZoomFactor = mController.getZoomFactor() * spanRatio;
+            if (newZoomFactor >= MAX_ZOOM) {
+                
+                
+                
+                float excessZoom = newZoomFactor - MAX_ZOOM;
+                excessZoom = 1.0f - (float)Math.exp(-excessZoom);
+                newZoomFactor = MAX_ZOOM + excessZoom;
+            }
 
             mController.scrollBy(new PointF(mLastZoomFocus.x - detector.getFocusX(),
                                             mLastZoomFocus.y - detector.getFocusY()));
