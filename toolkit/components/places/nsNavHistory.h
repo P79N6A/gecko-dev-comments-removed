@@ -399,19 +399,6 @@ public:
                                    nsNavHistoryQueryOptions** aOptions);
 
   
-  
-  
-  
-  
-  
-  nsresult AddPageWithVisits(nsIURI *aURI,
-                             const nsString &aTitle,
-                             PRInt32 aVisitCount,
-                             PRInt32 aTransitionType,
-                             PRTime aFirstVisitDate,
-                             PRTime aLastVisitDate);
-
-  
   nsresult UpdateSchemaVersion();
 
   

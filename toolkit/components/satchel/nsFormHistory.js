@@ -322,12 +322,6 @@ FormHistory.prototype = {
                 stmt.reset();
             }
         }
-
-        
-        let oldFile = Services.dirsvc.get("ProfD", Ci.nsIFile);
-        oldFile.append("formhistory.dat");
-        if (oldFile.exists())
-            oldFile.remove(false);
     },
 
 

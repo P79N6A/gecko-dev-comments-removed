@@ -495,28 +495,6 @@ nsNavHistory::Init()
 
   
   
-  
-  if (mDatabaseStatus == DATABASE_STATUS_CREATE ||
-      mDatabaseStatus == DATABASE_STATUS_UPGRADED) {
-    if (mDatabaseStatus == DATABASE_STATUS_CREATE) {
-      
-      nsCOMPtr<nsIFile> historyFile;
-      rv = NS_GetSpecialDirectory(NS_APP_HISTORY_50_FILE,
-                                  getter_AddRefs(historyFile));
-      if (NS_SUCCEEDED(rv) && historyFile) {
-        (void)ImportHistory(historyFile);
-      }
-    }
-
-    
-    
-    
-    if (obsSvc)
-      (void)obsSvc->AddObserver(this, TOPIC_PLACES_INIT_COMPLETE, PR_FALSE);
-  }
-
-  
-  
 
   return NS_OK;
 }
@@ -4612,18 +4590,6 @@ nsNavHistory::RemoveAllPages()
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavHistoryObserver, OnClearHistory());
 
-  
-  nsCOMPtr<nsIFile> oldHistoryFile;
-  rv = NS_GetSpecialDirectory(NS_APP_HISTORY_50_FILE,
-                              getter_AddRefs(oldHistoryFile));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  PRBool fileExists;
-  if (NS_SUCCEEDED(oldHistoryFile->Exists(&fileExists)) && fileExists) {
-    rv = oldHistoryFile->Remove(PR_FALSE);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
   return NS_OK;
 }
 
@@ -5549,17 +5515,6 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
     else if (NS_LITERAL_STRING(NS_PRIVATE_BROWSING_LEAVE).Equals(aData)) {
       mInPrivateBrowsing = PR_FALSE;
     }
-  }
-
-  else if (strcmp(aTopic, TOPIC_PLACES_INIT_COMPLETE) == 0) {
-    nsCOMPtr<nsIObserverService> os =
-      do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
-    NS_ENSURE_TRUE(os, NS_ERROR_FAILURE);
-    (void)os->RemoveObserver(this, TOPIC_PLACES_INIT_COMPLETE);
-
-    
-    
-    (void)FixInvalidFrecencies();
   }
 
   return NS_OK;
@@ -6845,92 +6800,6 @@ nsNavHistory::SetPageTitleInternal(nsIURI* aURI, const nsAString& aTitle)
   MOZ_ASSERT(!guid.IsEmpty());
   NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                    nsINavHistoryObserver, OnTitleChanged(aURI, aTitle, guid));
-
-  return NS_OK;
-}
-
-nsresult
-nsNavHistory::AddPageWithVisits(nsIURI *aURI,
-                                const nsString &aTitle,
-                                PRInt32 aVisitCount,
-                                PRInt32 aTransitionType,
-                                PRTime aFirstVisitDate,
-                                PRTime aLastVisitDate)
-{
-  PRBool canAdd = PR_FALSE;
-  nsresult rv = CanAddURI(aURI, &canAdd);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (!canAdd) {
-    return NS_OK;
-  }
-
-  
-  DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(stmt, mDBGetPageVisitStats);
-  rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"), aURI);
-  NS_ENSURE_SUCCESS(rv, rv);
-  PRBool alreadyVisited = PR_FALSE;
-  rv = stmt->ExecuteStep(&alreadyVisited);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  PRInt64 placeId = 0;
-  PRInt32 typed = 0;
-  PRInt32 hidden = 0;
-
-  nsCAutoString guid;
-  if (alreadyVisited) {
-    
-    rv = stmt->GetInt64(0, &placeId);
-    NS_ENSURE_SUCCESS(rv, rv);
-    
-    rv = stmt->GetInt32(2, &typed);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->GetInt32(3, &hidden);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = stmt->GetUTF8String(4, guid);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (typed == 0 && aTransitionType == TRANSITION_TYPED) {
-      typed = 1;
-      
-      DECLARE_AND_ASSIGN_SCOPED_LAZY_STMT(updateStmt, mDBUpdatePageVisitStats);
-      rv = updateStmt->BindInt64ByName(NS_LITERAL_CSTRING("page_id"), placeId);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = updateStmt->BindInt32ByName(NS_LITERAL_CSTRING("hidden"), hidden);
-      NS_ENSURE_SUCCESS(rv, rv);
-      rv = updateStmt->BindInt32ByName(NS_LITERAL_CSTRING("typed"), typed);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = updateStmt->Execute();
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-  } else {
-    
-    rv = InternalAddNewPage(aURI, aTitle, hidden == 1,
-                            aTransitionType == TRANSITION_TYPED, 0,
-                            PR_FALSE, &placeId, guid);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  NS_ASSERTION(placeId != 0, "Cannot add a visit to a nonexistent page");
-
-  if (aFirstVisitDate != -1) {
-    
-    PRInt64 visitId;
-    rv = InternalAddVisit(placeId, 0, 0,
-                          aFirstVisitDate, aTransitionType, &visitId);
-    aVisitCount--;
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  if (aLastVisitDate != -1) {
-   
-   for (PRInt64 i = 0; i < aVisitCount; i++) {
-      PRInt64 visitId;
-      rv = InternalAddVisit(placeId, 0, 0,
-                            aLastVisitDate - i, aTransitionType, &visitId);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-  }
 
   return NS_OK;
 }
