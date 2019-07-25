@@ -42,6 +42,14 @@ class CallOnStop;
 class CallOnServerClose;
 class CallAcknowledge;
 
+
+enum wsConnectingState {
+  NOT_CONNECTING = 0,     
+  CONNECTING_QUEUED,      
+  CONNECTING_DELAYED,     
+  CONNECTING_IN_PROGRESS  
+};
+
 class WebSocketChannel : public BaseWebSocketChannel,
                          public nsIHttpUpgradeListener,
                          public nsIStreamListener,
@@ -101,6 +109,7 @@ protected:
 private:
   friend class OutboundEnqueuer;
   friend class nsWSAdmissionManager;
+  friend class FailDelayManager;
   friend class CallOnMessageAvailable;
   friend class CallOnStop;
   friend class CallOnServerClose;
@@ -117,7 +126,7 @@ private:
   void GeneratePong(PRUint8 *payload, PRUint32 len);
   void GeneratePing();
 
-  nsresult BeginOpen();
+  bool     BeginOpen();
   nsresult HandleExtensions();
   nsresult SetupRequest();
   nsresult ApplyForAdmission();
@@ -149,7 +158,11 @@ private:
   nsCOMPtr<nsIRandomGenerator>             mRandomGenerator;
 
   nsCString                       mHashedSecret;
+
+  
+  
   nsCString                       mAddress;
+  PRInt32                         mPort;          
 
   nsCOMPtr<nsISocketTransport>    mTransport;
   nsCOMPtr<nsIAsyncInputStream>   mSocketIn;
@@ -160,6 +173,8 @@ private:
 
   nsCOMPtr<nsITimer>              mOpenTimer;
   PRUint32                        mOpenTimeout;  
+  wsConnectingState               mConnecting;   
+  nsCOMPtr<nsITimer>              mReconnectDelayTimer;
 
   nsCOMPtr<nsITimer>              mPingTimer;
   PRUint32                        mPingTimeout;  
@@ -183,8 +198,6 @@ private:
   PRUint32                        mAutoFollowRedirects       : 1;
   PRUint32                        mReleaseOnTransmit         : 1;
   PRUint32                        mTCPClosed                 : 1;
-  PRUint32                        mOpenBlocked               : 1;
-  PRUint32                        mOpenRunning               : 1;
   PRUint32                        mChannelWasOpened          : 1;
   PRUint32                        mDataStarted               : 1;
   PRUint32                        mIncrementedSessionCount   : 1;
