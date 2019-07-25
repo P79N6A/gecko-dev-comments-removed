@@ -928,12 +928,10 @@ let RIL = {
 
 
   hangUp: function hangUp(options) {
-    
-    
-    Buf.newParcel(REQUEST_HANGUP);
-    Buf.writeUint32(1);
-    Buf.writeUint32(options.callIndex);
-    Buf.sendParcel();
+    let call = this.currentCalls[options.callIndex];
+    if (call && call.state != CALL_STATE_HOLDING) {
+      Buf.simpleRequest(REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND);
+    }
   },
 
   
@@ -961,8 +959,18 @@ let RIL = {
     
     
     let call = this.currentCalls[options.callIndex];
-    if (call && call.state == CALL_STATE_INCOMING) {
-      Buf.simpleRequest(REQUEST_ANSWER);
+    if (!call) {
+      return;
+    }
+    
+    switch (call.state) {
+      case CALL_STATE_INCOMING:
+        Buf.simpleRequest(REQUEST_ANSWER);
+        break;
+      case CALL_STATE_WAITING:
+        
+        Buf.simpleRequest(REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE);
+        break;
     }
   },
 
@@ -972,14 +980,24 @@ let RIL = {
 
 
 
-  rejectCall: function rejectCall() {
+  rejectCall: function rejectCall(options) {
     
     
     
     
     let call = this.currentCalls[options.callIndex];
-    if (call && call.state == CALL_STATE_INCOMING) {
-      Buf.simpleRequest(REQUEST_UDUB);
+    if (!call) {
+      return;
+    }
+    
+    switch (call.state) {
+      case CALL_STATE_INCOMING:
+        Buf.simpleRequest(REQUEST_UDUB);
+        break;
+      case CALL_STATE_WAITING:
+        
+        Buf.simpleRequest(REQUEST_HANGUP_WAITING_OR_BACKGROUND);
+        break;
     }
   },
   
@@ -1856,9 +1874,27 @@ RIL[REQUEST_HANGUP] = function REQUEST_HANGUP(length, options) {
 
   this.getCurrentCalls();
 }; 
-RIL[REQUEST_HANGUP_WAITING_OR_BACKGROUND] = null;
-RIL[REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND] = null;
-RIL[REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE] = null;
+RIL[REQUEST_HANGUP_WAITING_OR_BACKGROUND] = function REQUEST_HANGUP_WAITING_OR_BACKGROUND(length, options) {
+  if (options.rilRequestError) {
+    return;
+  }
+  
+  this.getCurrentCalls();
+};
+RIL[REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND] = function REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND(length, options) {
+  if (options.rilRequestError) {
+    return;
+  }
+
+  this.getCurrentCalls();
+};
+RIL[REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE] = function REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE(length, options) {
+  if (options.rilRequestError) {
+    return;
+  }
+
+  this.getCurrentCalls();
+};
 RIL[REQUEST_SWITCH_HOLDING_AND_ACTIVE] = function REQUEST_SWITCH_HOLDING_AND_ACTIVE(length, options) {
   if (options.rilRequestError) {
     return;
