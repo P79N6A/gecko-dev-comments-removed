@@ -943,7 +943,8 @@ nsresult nsHTMLMediaElement::LoadResource(nsIURI* aURI)
     channelPolicy->SetContentSecurityPolicy(csp);
     channelPolicy->SetLoadType(nsIContentPolicy::TYPE_MEDIA);
   }
-  rv = NS_NewChannel(getter_AddRefs(mChannel),
+  nsCOMPtr<nsIChannel> channel;
+  rv = NS_NewChannel(getter_AddRefs(channel),
                      aURI,
                      nsnull,
                      loadGroup,
@@ -959,34 +960,27 @@ nsresult nsHTMLMediaElement::LoadResource(nsIURI* aURI)
   
   
   nsRefPtr<MediaLoadListener> loadListener = new MediaLoadListener(this);
-  if (!loadListener) return NS_ERROR_OUT_OF_MEMORY;
 
-  
-  
-  nsContentUtils::RegisterShutdownObserver(loadListener);
-  mChannel->SetNotificationCallbacks(loadListener);
+  channel->SetNotificationCallbacks(loadListener);
 
   nsCOMPtr<nsIStreamListener> listener;
   if (ShouldCheckAllowOrigin()) {
-    nsCrossSiteListenerProxy* crossSiteListener =
+    listener =
       new nsCrossSiteListenerProxy(loadListener,
                                    NodePrincipal(),
-                                   mChannel,
+                                   channel,
                                    PR_FALSE,
                                    &rv);
-    listener = crossSiteListener;
-    NS_ENSURE_TRUE(crossSiteListener, NS_ERROR_OUT_OF_MEMORY);
-    NS_ENSURE_SUCCESS(rv, rv);
   } else {
     rv = nsContentUtils::GetSecurityManager()->
            CheckLoadURIWithPrincipal(NodePrincipal(),
                                      aURI,
                                      nsIScriptSecurityManager::STANDARD);
-    NS_ENSURE_SUCCESS(rv,rv);
     listener = loadListener;
   }
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(mChannel);
+  nsCOMPtr<nsIHttpChannel> hc = do_QueryInterface(channel);
   if (hc) {
     
     
@@ -998,21 +992,17 @@ nsresult nsHTMLMediaElement::LoadResource(nsIURI* aURI)
     SetRequestHeaders(hc);
   }
 
-  rv = mChannel->AsyncOpen(listener, nsnull);
-  if (NS_FAILED(rv)) {
-    
-    
-    
-    
-    
-    
-    mChannel = nsnull;
-    return rv;
-  }
+  rv = channel->AsyncOpen(listener, nsnull);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
   
+  mChannel = channel;
+
+  
+  
+  nsContentUtils::RegisterShutdownObserver(loadListener);
   return NS_OK;
 }
 
