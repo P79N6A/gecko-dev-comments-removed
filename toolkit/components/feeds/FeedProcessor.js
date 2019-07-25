@@ -871,42 +871,14 @@ function rssArrayElement(s) {
 
 
 
-
-
-function isValidRFC822Date(aDateStr) {
-  var regex = new RegExp(RFC822_RE);
-  return regex.test(aDateStr);
-}
-
-
-const RFC822_RE = "^((Mon|Tue|Wed|Thu|Fri|Sat|Sun)([a-z]+)?,? *)?\\d\\d?"
-+ " +(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)([a-z]+)?"
-+ " +\\d\\d(\\d\\d)? +\\d?\\d:\\d\\d(:\\d\\d)?"
-+ " +([+-]?\\d\\d\\d\\d|GMT|UT[C]?|(E|C|M|P)(ST|DT)|[A-IK-Z])$";
-
-
-
-
-
-
-
-
-
-
-function dateParse(dateString) {
-  var date = dateString.trim();
-
-  
-  if (/^\d{4}/.test(date))
-    return new Date(dateString).toUTCString();
-
-  if (isValidRFC822Date(date))
-    return date; 
-
-  
+function dateParse(aDateString) {
+  let dateString = aDateString.trim();
+  let date = new Date(dateString);
+  if (!isNaN(date)) {
+    return date.toUTCString();
+  }
   return null;
 } 
-
 
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 
