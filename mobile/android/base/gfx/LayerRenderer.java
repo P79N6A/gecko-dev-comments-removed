@@ -220,9 +220,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         
         GLES20.glUniformMatrix4fv(mTMatrixHandle, 1, false, DEFAULT_TEXTURE_MATRIX, 0);
 
-        Log.e(LOGTAG, "### Position handle is " + mPositionHandle + ", texture handle is " +
-              mTextureHandle + ", last error is " + GLES20.glGetError());
-
         
         GLES20.glEnableVertexAttribArray(mPositionHandle);
         GLES20.glEnableVertexAttribArray(mTextureHandle);

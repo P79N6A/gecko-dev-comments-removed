@@ -1733,9 +1733,7 @@ abstract public class GeckoApp
             
 
 
-            Log.e(LOGTAG, "### Creating GeckoLayerClient");
             mLayerClient = new GeckoLayerClient(this);
-            Log.e(LOGTAG, "### Done creating GeckoLayerClient");
 
             
 
