@@ -678,6 +678,12 @@ js_fun_apply(JSContext *cx, unsigned argc, Value *vp)
         return js_fun_call(cx, (argc > 0) ? 1 : 0, vp);
 
     InvokeArgsGuard args;
+
+    
+
+
+
+
     if (vp[3].isMagic(JS_OPTIMIZED_ARGUMENTS)) {
         
 
