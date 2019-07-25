@@ -1290,8 +1290,10 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
   }
 
   
+  
   nscoord twipsRadii[8];
-  NS_ASSERTION(aFrameArea.Size() == aForFrame->GetSize(), "unexpected size");
+  NS_ASSERTION(aForFrame->GetType() == nsGkAtoms::fieldSetFrame ||
+               aFrameArea.Size() == aForFrame->GetSize(), "unexpected size");
   PRBool hasBorderRadius = aForFrame->GetBorderRadii(twipsRadii);
   nscoord twipsPerPixel = aPresContext->DevPixelsToAppUnits(1);
 
@@ -1374,12 +1376,16 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
                         PR_MAX(clipRectRadii[C_BL].height, clipRectRadii[C_BR].height), 0);
     }
 
+    
+    
+    
+    
     gfxContext* renderContext = aRenderingContext.ThebesContext();
     nsRefPtr<gfxContext> shadowContext;
     nsContextBoxBlur blurringArea;
-
-    shadowContext = blurringArea.Init(shadowPaintRect, 0, blurRadius, twipsPerPixel, renderContext,
-                                      aDirtyRect, &skipGfxRect);
+    shadowContext =
+      blurringArea.Init(shadowPaintRect, 0, blurRadius, twipsPerPixel,
+                        renderContext, aDirtyRect, &skipGfxRect);
     if (!shadowContext)
       continue;
 
@@ -1404,8 +1410,6 @@ nsCSSRendering::PaintBoxShadowInner(nsPresContext* aPresContext,
       renderContext->RoundedRectangle(shadowGfxRect, innerRadii, PR_FALSE);
     else
       renderContext->Rectangle(shadowGfxRect);
-    renderContext->Rectangle(skipGfxRect);
-    renderContext->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
     renderContext->Clip();
 
     
