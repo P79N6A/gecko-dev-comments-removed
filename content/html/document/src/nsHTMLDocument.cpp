@@ -3377,12 +3377,6 @@ nsHTMLDocument::EditingStateChanged()
     NS_ENSURE_SUCCESS(rv, rv);
 
     presShell->ReconstructStyleData();
-
-    if (designMode) {
-      
-      
-      FlushPendingNotifications(Flush_Style);
-    }
   }
 
   mEditingState = newState;
