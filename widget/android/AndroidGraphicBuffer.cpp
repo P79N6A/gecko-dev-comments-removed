@@ -46,6 +46,7 @@
 
 #define EGL_NATIVE_BUFFER_ANDROID 0x3140
 #define EGL_IMAGE_PRESERVED_KHR   0x30D2
+#define GL_TEXTURE_EXTERNAL_OES   0x8D65
 
 typedef PRUint32 EGLenum;
 typedef PRInt32 EGLint;
@@ -62,9 +63,22 @@ typedef gfxASurface::gfxImageFormat gfxImageFormat;
 #define ANDROID_LIBUI_PATH "libui.so"
 #define ANDROID_GLES_PATH "libGLESv2.so"
 #define ANDROID_EGL_PATH "libEGL.so"
+#define ANDROID_LIBC_PATH "libc.so"
 
 
 #define GRAPHIC_BUFFER_SIZE 1024
+
+
+
+
+struct android_native_base_t
+{
+  int magic;
+  int version;
+  void* reserved[4];
+  void (*incRef)(android_native_base_t* base);
+  void (*decRef)(android_native_base_t* base);
+};
 
 enum {
     
@@ -163,6 +177,9 @@ public:
   typedef int (*pfnGraphicBufferReallocate)(void*, PRUint32 w, PRUint32 h, PRUint32 format);
   pfnGraphicBufferReallocate fGraphicBufferReallocate;
 
+  typedef void* (*pfnMalloc)(size_t size);
+  pfnMalloc fMalloc;
+
   bool EnsureInitialized()
   {
     if (mInitialized) {
@@ -197,6 +214,19 @@ public:
 
     if (!fImageTargetTexture2DOES || !fBindTexture || !fGLGetError) {
       LOG("Failed to find some GL functions");
+      return false;
+    }
+
+    handle = dlopen(ANDROID_LIBC_PATH, RTLD_LAZY);
+    if (!handle) {
+      LOG("Couldn't load libc.so");
+      return false;
+    }
+
+    fMalloc = (pfnMalloc)dlsym(handle, "malloc");
+
+    if (!fMalloc) {
+      LOG("Failed to lookup malloc");
       return false;
     }
 
@@ -268,43 +298,41 @@ AndroidGraphicBuffer::~AndroidGraphicBuffer()
 void
 AndroidGraphicBuffer::DestroyBuffer()
 {
-  
-
-
-
-
-
-
-
-
-
-
-#if 0
   if (mEGLImage) {
     if (sGLFunctions.EnsureInitialized()) {
-      sGLFunctions.fDestroyImageKHR(sGLFunctions.fGetDisplay(EGL_DEFAULT_DISPLAY), mEGLImage);
+      EGLDisplay display = sGLFunctions.fGetDisplay(EGL_DEFAULT_DISPLAY);
+      sGLFunctions.fDestroyImageKHR(display, mEGLImage);
       mEGLImage = NULL;
     }
   }
-#endif
   mEGLImage = NULL;
 
-  if (mHandle) {
-    if (sGLFunctions.EnsureInitialized()) {
-      sGLFunctions.fGraphicBufferDtor(mHandle);
-    }
-    free(mHandle);
-    mHandle = NULL;
-  }
-
+  
+  
+  
+  void* nativeBuffer = sGLFunctions.fGraphicBufferGetNativeBuffer(mHandle);
+  android_native_base_t* nativeBufferBase = (android_native_base_t*)nativeBuffer;
+  nativeBufferBase->decRef(nativeBufferBase);
+  mHandle = NULL;
 }
 
 bool
 AndroidGraphicBuffer::EnsureBufferCreated()
 {
   if (!mHandle) {
-    mHandle = malloc(GRAPHIC_BUFFER_SIZE);
+    
+    
+    
+    
+    
+    mHandle = sGLFunctions.fMalloc(GRAPHIC_BUFFER_SIZE);
     sGLFunctions.fGraphicBufferCtor(mHandle, mWidth, mHeight, GetAndroidFormat(mFormat), GetAndroidUsage(mUsage));
+
+    void* nativeBuffer = sGLFunctions.fGraphicBufferGetNativeBuffer(mHandle);
+
+    android_native_base_t* nativeBufferBase = (android_native_base_t*)nativeBuffer;
+    nativeBufferBase->incRef(nativeBufferBase);
+
   }
 
   return true;
@@ -427,15 +455,23 @@ AndroidGraphicBuffer::EnsureEGLImage()
   if (!EnsureInitialized())
     return false;
 
-  EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
-  void* nativeBuffer = sGLFunctions.fGraphicBufferGetNativeBuffer(mHandle);
+  EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR,
+                           EGL_TRUE, EGL_NONE, EGL_NONE };
 
-  mEGLImage = sGLFunctions.fCreateImageKHR(sGLFunctions.fGetDisplay(EGL_DEFAULT_DISPLAY), EGL_NO_CONTEXT, EGL_NATIVE_BUFFER_ANDROID, (EGLClientBuffer)nativeBuffer, eglImgAttrs);
+  EGLDisplay display = sGLFunctions.fGetDisplay(EGL_DEFAULT_DISPLAY);
+  if (!display) {
+    return false;
+  }
+  void* nativeBuffer = sGLFunctions.fGraphicBufferGetNativeBuffer(mHandle);
+  mEGLImage = sGLFunctions.fCreateImageKHR(display, EGL_NO_CONTEXT,
+                                           EGL_NATIVE_BUFFER_ANDROID,
+                                           (EGLClientBuffer)nativeBuffer,
+                                           eglImgAttrs);
   return mEGLImage != NULL;
 }
 
 bool
-AndroidGraphicBuffer::Bind()
+AndroidGraphicBuffer::Bind(GLenum target)
 {
   if (!EnsureInitialized())
     return false;
@@ -446,7 +482,7 @@ AndroidGraphicBuffer::Bind()
   }
 
   clearGLError();
-  sGLFunctions.fImageTargetTexture2DOES(GL_TEXTURE_2D, mEGLImage);
+  sGLFunctions.fImageTargetTexture2DOES(target, mEGLImage);
   return ensureNoGLError("glEGLImageTargetTexture2DOES");
 }
 
