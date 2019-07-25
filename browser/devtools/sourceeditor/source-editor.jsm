@@ -107,92 +107,12 @@ SourceEditor.THEMES = {
 
 
 
-
 SourceEditor.DEFAULTS = {
-  
-
-
-
-  initialText: "",
-
-  
-
-
-
-
-
-
-  mode: SourceEditor.MODES.TEXT,
-
-  
-
-
-
-
-
-
-  theme: SourceEditor.THEMES.MOZILLA,
-
-  
-
-
-
-  undoLimit: 200,
-
-  
-
-
-
-
-
-  tabSize: 4,
-
-  
-
-
-
-
-  expandTab: true,
-
-  
-
-
-
-  readOnly: false,
-
-  
-
-
-
-  showLineNumbers: false,
-
-  
-
-
-
-
-  showAnnotationRuler: false,
-
-  
-
-
-
-
-  showOverviewRuler: false,
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  keys: null,
+  MODE: SourceEditor.MODES.TEXT,
+  THEME: SourceEditor.THEMES.MOZILLA,
+  UNDO_LIMIT: 200,
+  TAB_SIZE: 4, 
+  EXPAND_TAB: true, 
 };
 
 
@@ -265,17 +185,6 @@ SourceEditor.EVENTS = {
 
 
   MOUSE_OUT: "MouseOut",
-
-  
-
-
-
-
-
-
-
-
-  BREAKPOINT_CHANGE: "BreakpointChange",
 };
 
 
