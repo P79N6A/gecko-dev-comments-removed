@@ -110,7 +110,7 @@ void test1 ( void )
 
   
   
-  JSC::LinkBuffer patchBuffer(am, ep);
+  JSC::LinkBuffer patchBuffer(am, ep, JSC::METHOD_CODE);
 
   
   JSC::MacroAssemblerCodeRef cr = patchBuffer.finalizeCode();
@@ -266,7 +266,7 @@ void test2 ( void )
 
   
   
-  JSC::LinkBuffer patchBuffer(am, ep);
+  JSC::LinkBuffer patchBuffer(am, ep, JSC::METHOD_CODE);
 
   
   JSC::MacroAssemblerCodeRef cr = patchBuffer.finalizeCode();
@@ -453,7 +453,7 @@ void test3 ( void )
 
   
   
-  JSC::LinkBuffer patchBuffer(am, ep);
+  JSC::LinkBuffer patchBuffer(am, ep, JSC::METHOD_CODE);
 
   
   JSC::MacroAssemblerCodeRef cr = patchBuffer.finalizeCode();
@@ -663,7 +663,7 @@ void test4 ( void )
 
   
   
-  JSC::LinkBuffer patchBuffer(am, ep);
+  JSC::LinkBuffer patchBuffer(am, ep, JSC::METHOD_CODE);
 
   
   
@@ -869,7 +869,7 @@ void test5 ( void )
 
   
   
-  JSC::LinkBuffer patchBuffer(am, ep);
+  JSC::LinkBuffer patchBuffer(am, ep, JSC::METHOD_CODE);
 
   
   JSC::FunctionPtr target = JSC::FunctionPtr::FunctionPtr( &cube );
