@@ -76,8 +76,6 @@ LSPAnnotationGatherer::Annotate()
     cr->AnnotateCrashReport(NS_LITERAL_CSTRING("Winsock_LSP"), mString);
     nsCString note = NS_LITERAL_CSTRING("Winsock LSPs: ");
     note.Append(mString);
-    
-    cr->AppendAppNotesToCrashReport(mString);
   }
   mThread->Shutdown();
 }
