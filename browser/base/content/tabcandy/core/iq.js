@@ -631,10 +631,6 @@ iQ.fn = iQ.prototype = {
         for(var prop in css){
           prop = prop.replace( rupper, "-$1" ).toLowerCase();
           iQ(this).css(prop, cStyle.getPropertyValue(prop));
-          
-          
-          
-          if( typeof css[prop] == "number" ) css[prop] = css[prop] + "px"
         }    
       });
 
