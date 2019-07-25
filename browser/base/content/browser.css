@@ -64,16 +64,6 @@ tabbrowser {
   display: block; 
 }
 
-
-
-
-
-
-
-browser[pending] {
-  display: none;
-}
-
 #alltabs-popup {
   -moz-binding: url("chrome://browser/content/tabbrowser.xml#tabbrowser-alltabs-popup");
 }
