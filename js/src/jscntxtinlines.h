@@ -288,7 +288,7 @@ StackSpace::getCallFrame(JSContext *cx, Value *firstUnused, uintN nactual,
     JS_ASSERT(fun->script() == script);
 
     
-    uintN nvals = VALUES_PER_STACK_FRAME + script->nslots;
+    uintN nvals = STACK_EXTRA + script->nslots;
     uintN nformal = fun->nargs;
 
     
@@ -447,12 +447,12 @@ StackSpace::getStackLimit(JSContext *cx)
         return limit;
     if (ensureSpace(NULL , sp, STACK_QUOTA))
         return limit;
-    uintN minimum = cx->fp()->numSlots() + VALUES_PER_STACK_FRAME;
+    uintN minimum = cx->fp()->numSlots() + STACK_EXTRA;
     return ensureSpace(cx, sp, minimum) ? sp + minimum : NULL;
 #else
     if (JS_LIKELY(limit <= end))
         return limit;
-    uintN minimum = cx->fp()->numSlots() + VALUES_PER_STACK_FRAME;
+    uintN minimum = cx->fp()->numSlots() + STACK_EXTRA;
     return ensureSpace(cx, sp, minimum) ? sp + minimum : NULL;
 #endif
 }

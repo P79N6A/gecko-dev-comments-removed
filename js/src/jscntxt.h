@@ -657,6 +657,12 @@ class StackSpace
                                          JS_MAX_INLINE_CALL_COUNT;
 
     
+
+
+
+    static const size_t STACK_EXTRA    = (VALUES_PER_STACK_FRAME + 18) * 10;
+
+    
     bool init();
     void finish();
 

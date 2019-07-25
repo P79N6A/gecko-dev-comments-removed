@@ -542,10 +542,9 @@ mjit::Compiler::generatePrologue()
 
 
 
-
-        masm.addPtr(Imm32((script->nslots + VALUES_PER_STACK_FRAME * 2) * sizeof(Value)),
-                    JSFrameReg,
-                    Registers::ReturnReg);
+        JS_STATIC_ASSERT(StackSpace::STACK_EXTRA >= VALUES_PER_STACK_FRAME);
+        uint32 nvals = script->nslots + VALUES_PER_STACK_FRAME + StackSpace::STACK_EXTRA;
+        masm.addPtr(Imm32(nvals * sizeof(Value)), JSFrameReg, Registers::ReturnReg);
         Jump stackCheck = masm.branchPtr(Assembler::AboveOrEqual, Registers::ReturnReg,
                                          FrameAddress(offsetof(VMFrame, stackLimit)));
 
@@ -3600,6 +3599,13 @@ mjit::Compiler::inlineScriptedFunction(uint32 argc, bool callingNew)
 
 
 
+
+    uint32 stackLimit = outerScript->nslots + StackSpace::STACK_EXTRA - VALUES_PER_STACK_FRAME;
+
+    
+
+
+
     for (unsigned i = 0; i < types->objectCount; i++) {
         types::TypeObject *object;
         if (types->objectCount == 1)
@@ -3636,6 +3642,10 @@ mjit::Compiler::inlineScriptedFunction(uint32 argc, bool callingNew)
                 return Compile_InlineAbort;
             checka = checka->parent;
         }
+
+        
+        if (frame.totalDepth() + VALUES_PER_STACK_FRAME + fun->script()->nslots >= stackLimit)
+            return Compile_InlineAbort;
 
         analyze::Script analysis;
         analysis.analyze(cx, script);

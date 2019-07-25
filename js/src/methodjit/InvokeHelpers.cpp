@@ -227,7 +227,7 @@ void JS_FASTCALL
 stubs::HitStackQuota(VMFrame &f)
 {
     
-    uintN nvals = f.fp()->script()->nslots + VALUES_PER_STACK_FRAME;
+    uintN nvals = f.fp()->script()->nslots + StackSpace::STACK_EXTRA;
     JS_ASSERT(f.regs.sp == f.fp()->base());
     if (f.cx->stack().bumpCommitAndLimit(f.entryfp, f.regs.sp, nvals, &f.stackLimit))
         return;
