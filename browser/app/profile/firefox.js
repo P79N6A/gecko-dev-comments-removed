@@ -1034,9 +1034,6 @@ pref("devtools.styleinspector.enabled", true);
 pref("devtools.tilt.enabled", true);
 
 
-pref("devtools.tilt.force-enabled", false);
-
-
 pref("devtools.ruleview.enabled", true);
 
 

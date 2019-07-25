@@ -1551,26 +1551,11 @@ TiltVisualizer.Prefs = {
   
 
 
-  get forceEnabled()
-  {
-    return this._forceEnabled;
-  },
-
-  set forceEnabled(value)
-  {
-    TiltUtils.Preferences.set("force-enabled", "boolean", value);
-    this._forceEnabled = value;
-  },
-
-  
-
-
   load: function TVC_load()
   {
     let prefs = TiltUtils.Preferences;
 
     TiltVisualizer.Prefs._enabled = prefs.get("enabled", "boolean");
-    TiltVisualizer.Prefs._forceEnabled = prefs.get("force-enabled", "boolean");
   }
 };
 
