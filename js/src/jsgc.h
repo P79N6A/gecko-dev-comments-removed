@@ -750,6 +750,9 @@ struct Chunk {
     
     static inline void release(JSRuntime *rt, Chunk *chunk);
 
+    
+    inline void prepareToBeFreed(JSRuntime *rt);
+
   private:
     inline void init();
 
@@ -782,10 +785,13 @@ class ChunkPool {
     inline Chunk *get(JSRuntime *rt);
 
     
-    inline void put(JSRuntime *rt, Chunk *chunk);
+    inline void put(Chunk *chunk);
 
     
-    void expire(JSRuntime *rt, bool releaseAll);
+
+
+
+    Chunk *expire(JSRuntime *rt, bool releaseAll);
 
     
     JS_FRIEND_API(int64_t) countCleanDecommittedArenas(JSRuntime *rt);
@@ -1720,7 +1726,7 @@ struct GCMarker : public JSTracer {
     void drainMarkStack();
 
     inline void processMarkStackTop();
-    
+
     void pushObject(JSObject *obj) {
         pushTaggedPtr(ObjectTag, obj);
     }
