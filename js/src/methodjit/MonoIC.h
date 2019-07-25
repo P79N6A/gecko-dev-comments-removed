@@ -161,6 +161,8 @@ void CallFastNative(JSContext *cx, JSScript *script, MICInfo &mic, JSFunction *f
 
 #endif 
 
+void PurgeMICs(JSContext *cx, JSScript *script);
+
 } 
 } 
 } 
