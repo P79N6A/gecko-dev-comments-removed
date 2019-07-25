@@ -55,6 +55,7 @@ typedef _cairo_scaled_font cairo_scaled_font_t;
 
 struct ID3D10Device1;
 struct ID3D10Texture2D;
+struct IDWriteRenderingParams;
 
 namespace mozilla {
 namespace gfx {
@@ -493,6 +494,23 @@ protected:
 
 
 
+
+class GlyphRenderingOptions : public RefCounted<GlyphRenderingOptions>
+{
+public:
+  virtual ~GlyphRenderingOptions() {}
+
+  virtual FontType GetType() const = 0;
+
+protected:
+  GlyphRenderingOptions() {}
+};
+
+
+
+
+
+
 class DrawTarget : public RefCounted<DrawTarget>
 {
 public:
@@ -640,7 +658,8 @@ public:
   virtual void FillGlyphs(ScaledFont *aFont,
                           const GlyphBuffer &aBuffer,
                           const Pattern &aPattern,
-                          const DrawOptions &aOptions = DrawOptions()) = 0;
+                          const DrawOptions &aOptions = DrawOptions(),
+                          const GlyphRenderingOptions *aRenderingOptions = NULL) = 0;
 
   
 
@@ -805,6 +824,9 @@ public:
   static TemporaryRef<DrawTarget> CreateDrawTargetForD3D10Texture(ID3D10Texture2D *aTexture, SurfaceFormat aFormat);
   static void SetDirect3D10Device(ID3D10Device1 *aDevice);
   static ID3D10Device1 *GetDirect3D10Device();
+
+  static TemporaryRef<GlyphRenderingOptions>
+    CreateDWriteGlyphRenderingOptions(IDWriteRenderingParams *aParams);
 
 private:
   static ID3D10Device1 *mD3D10Device;
