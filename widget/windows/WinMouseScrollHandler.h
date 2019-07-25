@@ -35,6 +35,21 @@ public:
                              LRESULT *aRetValue,
                              bool &aEatMessage);
 
+  
+
+
+
+
+
+
+
+
+
+
+  POINT ComputeMessagePos(UINT aMessage,
+                          WPARAM aWParam,
+                          LPARAM aLParam);
+
 private:
   MouseScrollHandler();
   ~MouseScrollHandler();
@@ -366,6 +381,20 @@ public:
 
       static bool IsObsoleteDriverInstalled();
     }; 
+
+    class SetPoint {
+    public:
+      
+
+
+
+
+      static bool IsGetMessagePosResponseValid(UINT aMessage,
+                                               WPARAM aWParam,
+                                               LPARAM aLParam);
+    private:
+      static bool sMightBeUsing;
+    };
 
     static void Init();
 

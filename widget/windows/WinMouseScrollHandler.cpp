@@ -65,6 +65,8 @@ bool MouseScrollHandler::Device::Elantech::sUseSwipeHack = false;
 bool MouseScrollHandler::Device::Elantech::sUsePinchHack = false;
 DWORD MouseScrollHandler::Device::Elantech::sZoomUntil = 0;
 
+bool MouseScrollHandler::Device::SetPoint::sMightBeUsing = false;
+
 
 
 
@@ -195,6 +197,26 @@ MouseScrollHandler::GetModifierKeyState(UINT aMessage)
     result.mIsControlDown = Device::Elantech::IsZooming();
   }
   return result;
+}
+
+POINT
+MouseScrollHandler::ComputeMessagePos(UINT aMessage,
+                                      WPARAM aWParam,
+                                      LPARAM aLParam)
+{
+  POINT point;
+  if (Device::SetPoint::IsGetMessagePosResponseValid(aMessage,
+                                                     aWParam, aLParam)) {
+    PR_LOG(gMouseScrollLog, PR_LOG_ALWAYS,
+      ("MouseScroll::ComputeMessagePos: Using ::GetCursorPos()"));
+    ::GetCursorPos(&point);
+  } else {
+    DWORD dwPoints = ::GetMessagePos();
+    point.x = GET_X_LPARAM(dwPoints);
+    point.y = GET_Y_LPARAM(dwPoints);
+  }
+
+  return point;
 }
 
 MouseScrollHandler::ScrollTargetInfo
@@ -1149,6 +1171,52 @@ MouseScrollHandler::Device::UltraNav::IsObsoleteDriverInstalled()
      "found driver version = %d.%d",
      majorVersion, minorVersion));
   return majorVersion < 15 || majorVersion == 15 && minorVersion == 0;
+}
+
+
+
+
+
+
+
+
+bool
+MouseScrollHandler::Device::SetPoint::IsGetMessagePosResponseValid(
+                                        UINT aMessage,
+                                        WPARAM aWParam,
+                                        LPARAM aLParam)
+{
+  if (aMessage != WM_MOUSEHWHEEL) {
+    return false;
+  }
+
+  DWORD messagePos = ::GetMessagePos();
+
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!sMightBeUsing && !aLParam && (DWORD)aLParam != messagePos &&
+      ::InSendMessage()) {
+    sMightBeUsing = true;
+    PR_LOG(gMouseScrollLog, PR_LOG_ALWAYS,
+      ("MouseScroll::Device::SetPoint::IsGetMessagePosResponseValid(): "
+       "Might using SetPoint"));
+  } else if (sMightBeUsing && aLParam != 0 && ::InSendMessage()) {
+    
+    
+    sMightBeUsing = false;
+    PR_LOG(gMouseScrollLog, PR_LOG_ALWAYS,
+      ("MouseScroll::Device::SetPoint::IsGetMessagePosResponseValid(): "
+       "Might stop using SetPoint"));
+  }
+  return (sMightBeUsing && !aLParam && !messagePos);
 }
 
 } 

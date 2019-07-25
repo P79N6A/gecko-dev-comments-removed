@@ -7042,37 +7042,8 @@ nsWindow::OnMouseWheel(UINT aMsg, WPARAM aWParam, LPARAM aLParam,
 {
   *aRetValue = (aMsg != WM_MOUSEHWHEEL) ? TRUE : FALSE;
 
-  POINT point;
-  DWORD dwPoints = ::GetMessagePos();
-  point.x = GET_X_LPARAM(dwPoints);
-  point.y = GET_Y_LPARAM(dwPoints);
-
-  static bool sMayBeUsingLogitechMouse = false;
-  if (aMsg == WM_MOUSEHWHEEL) {
-    
-    
-    
-    
-    
-    
-    
-    
-    if (!sMayBeUsingLogitechMouse && aLParam == 0 && (DWORD)aLParam != dwPoints &&
-        ::InSendMessage()) {
-      sMayBeUsingLogitechMouse = true;
-    } else if (sMayBeUsingLogitechMouse && aLParam != 0 && ::InSendMessage()) {
-      
-      
-      sMayBeUsingLogitechMouse = false;
-    }
-    
-    
-    
-    if (sMayBeUsingLogitechMouse && aLParam == 0 && dwPoints == 0) {
-      ::GetCursorPos(&point);
-    }
-  }
-
+  MouseScrollHandler* handler = MouseScrollHandler::GetInstance();
+  POINT point = handler->ComputeMessagePos(aMsg, aWParam, aLParam);
   HWND underCursorWnd = ::WindowFromPoint(point);
   if (!underCursorWnd) {
     return;
