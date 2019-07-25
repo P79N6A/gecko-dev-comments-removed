@@ -749,6 +749,27 @@ js_LineNumberToPC(JSScript *script, uintN lineno);
 extern JS_FRIEND_API(uintN)
 js_GetScriptLineExtent(JSScript *script);
 
+namespace js {
+
+
+
+
+
+
+
+
+
+
+enum LineOption {
+    CALLED_FROM_JSOP_EVAL,
+    NOT_CALLED_FROM_JSOP_EVAL
+};
+
+inline const char *
+CurrentScriptFileAndLine(JSContext *cx, uintN *linenop, LineOption = NOT_CALLED_FROM_JSOP_EVAL);
+
+}
+
 static JS_INLINE JSOp
 js_GetOpcode(JSContext *cx, JSScript *script, jsbytecode *pc)
 {

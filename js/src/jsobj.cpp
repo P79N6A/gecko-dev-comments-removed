@@ -929,69 +929,19 @@ js_CheckContentSecurityPolicy(JSContext *cx, JSObject *scopeobj)
     return !v.isFalse();
 }
 
-
-
-
-
-
-JSBool
-js_CheckPrincipalsAccess(JSContext *cx, JSObject *scopeobj,
-                         JSPrincipals *principals, JSAtom *caller)
+static void
+AssertScopeChainValidity(JSContext *cx, JSObject &scopeobj)
 {
-    JSSecurityCallbacks *callbacks;
-    JSPrincipals *scopePrincipals;
-
-    callbacks = JS_GetSecurityCallbacks(cx);
-    if (callbacks && callbacks->findObjectPrincipals) {
-        scopePrincipals = callbacks->findObjectPrincipals(cx, scopeobj);
-        if (!principals || !scopePrincipals ||
-            !principals->subsume(principals, scopePrincipals)) {
-            JSAutoByteString callerstr;
-            if (!js_AtomToPrintableString(cx, caller, &callerstr))
-                return JS_FALSE;
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                 JSMSG_BAD_INDIRECT_CALL, callerstr.ptr());
-            return JS_FALSE;
-        }
-    }
-    return JS_TRUE;
-}
-
-static bool
-CheckScopeChainValidity(JSContext *cx, JSObject *scopeobj)
-{
-    JSObject *inner = scopeobj;
+#ifdef DEBUG
+    JSObject *inner = &scopeobj;
     OBJ_TO_INNER_OBJECT(cx, inner);
-    if (!inner)
-        return false;
-    JS_ASSERT(inner == scopeobj);
+    JS_ASSERT(inner && inner == &scopeobj);
 
-    
-    while (scopeobj) {
-        JSObjectOp op = scopeobj->getClass()->ext.innerObject;
-        if (op && op(cx, scopeobj) != scopeobj) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_INDIRECT_CALL,
-                                 js_eval_str);
-            return false;
-        }
-        scopeobj = scopeobj->getParent();
+    for (JSObject *o = &scopeobj; o; o = o->getParent()) {
+        if (JSObjectOp op = o->getClass()->ext.innerObject)
+            JS_ASSERT(op(cx, o) == &scopeobj);
     }
-
-    return true;
-}
-
-const char *
-js_ComputeFilename(JSContext *cx, JSStackFrame *caller,
-                   JSPrincipals *principals, uintN *linenop)
-{
-    jsbytecode *pc = caller->pc(cx);
-    if (pc && js_GetOpcode(cx, caller->script(), pc) == JSOP_EVAL) {
-        JS_ASSERT(js_GetOpcode(cx, caller->script(), pc + JSOP_EVAL_LENGTH) == JSOP_LINENO);
-        *linenop = GET_UINT16(pc + JSOP_EVAL_LENGTH);
-    } else {
-        *linenop = js_FramePCToLineNumber(cx, caller);
-    }
-    return caller->script()->filename;
+#endif
 }
 
 #ifndef EVAL_CACHE_CHAIN_LIMIT
@@ -1103,53 +1053,85 @@ EvalCacheLookup(JSContext *cx, JSLinearString *str, JSStackFrame *caller, uintN 
 }
 
 
-static JSBool
-eval(JSContext *cx, uintN argc, Value *vp)
+
+
+
+
+
+
+
+
+
+
+class EvalScriptGuard
 {
-    
+    JSContext *cx_;
+    JSLinearString *str_;
+    JSScript **bucket_;
+    JSScript *script_;
 
-
-
-
-    JSStackFrame *caller = js_GetScriptedCaller(cx, NULL);
-
-    
-    if (!caller) {
-        
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                             JSMSG_BAD_INDIRECT_CALL, js_eval_str);
-        return false;
+  public:
+    EvalScriptGuard(JSContext *cx, JSLinearString *str)
+      : cx_(cx),
+        str_(str),
+        script_(NULL) {
+        bucket_ = EvalCacheHash(cx, str);
     }
 
-    return EvalKernel(cx, argc, vp, INDIRECT_EVAL, caller, *vp[0].toObject().getGlobal());
-}
+    ~EvalScriptGuard() {
+        if (script_) {
+            js_CallDestroyScriptHook(cx_, script_);
+            script_->u.nextToGC = *bucket_;
+            *bucket_ = script_;
+#ifdef CHECK_SCRIPT_OWNER
+            script_->owner = NULL;
+#endif
+        }
+    }
 
-namespace js {
+    void lookupInEvalCache(JSStackFrame *caller, uintN staticLevel,
+                           JSPrincipals *principals, JSObject &scopeobj) {
+        if (JSScript *found = EvalCacheLookup(cx_, str_, caller, staticLevel,
+                                              principals, scopeobj, bucket_)) {
+            js_CallNewScriptHook(cx_, found, NULL);
+            script_ = found;
+        }
+    }
 
-bool
-EvalKernel(JSContext *cx, uintN argc, Value *vp, EvalType evalType, JSStackFrame *caller,
+    void setNewScript(JSScript *script) {
+        
+        JS_ASSERT(!script_ && script);
+        script_ = script;
+    }
+
+    bool foundScript() {
+        return !!script_;
+    }
+
+    JSScript *script() const {
+        JS_ASSERT(script_);
+        return script_;
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
+enum EvalType { DIRECT_EVAL, INDIRECT_EVAL };
+
+static bool
+EvalKernel(JSContext *cx, const CallArgs &call, EvalType evalType, JSStackFrame *caller,
            JSObject &scopeobj)
 {
-    
-
-
-
-    JS_ASSERT(caller);
-
-    
-
-
-
-
-    JSScript *callerScript = caller->script();
-    if (argc > 1 && !callerScript->warnedAboutTwoArgumentEval) {
-        static const char TWO_ARGUMENT_WARNING[] =
-            "Support for eval(code, scopeObject) has been removed. "
-            "Use |with (scopeObject) eval(code);| instead.";
-        if (!JS_ReportWarning(cx, TWO_ARGUMENT_WARNING))
-            return false;
-        callerScript->warnedAboutTwoArgumentEval = true;
-    }
+    JS_ASSERT((evalType == INDIRECT_EVAL) == (caller == NULL));
+    AssertScopeChainValidity(cx, scopeobj);
 
     
 
@@ -1161,20 +1143,17 @@ EvalKernel(JSContext *cx, uintN argc, Value *vp, EvalType evalType, JSStackFrame
     }
 
     
-    if (argc < 1) {
-        vp->setUndefined();
+    if (call.argc() < 1) {
+        call.rval().setUndefined();
         return true;
     }
-    if (!vp[2].isString()) {
-        *vp = vp[2];
+    if (!call[0].isString()) {
+        call.rval() = call[0];
         return true;
     }
-    JSString *str = vp[2].toString();
+    JSString *str = call[0].toString();
 
     
-    JSObject *callee = JSVAL_TO_OBJECT(JS_CALLEE(cx, Jsvalify(vp)));
-    JS_ASSERT(IsAnyBuiltinEval(callee->getFunctionPrivate()));
-    JSPrincipals *principals = js_EvalFramePrincipals(cx, callee, caller);
 
     
 
@@ -1191,16 +1170,9 @@ EvalKernel(JSContext *cx, uintN argc, Value *vp, EvalType evalType, JSStackFrame
         JS_ASSERT(callerPC && js_GetOpcode(cx, caller->script(), callerPC) == JSOP_EVAL);
 #endif
     } else {
-        
+        JS_ASSERT(call.callee().getGlobal() == &scopeobj);
         staticLevel = 0;
-
-        JS_ASSERT(&scopeobj == scopeobj.getGlobal());
-        JS_ASSERT(scopeobj.isGlobal());
     }
-
-    
-    if (!CheckScopeChainValidity(cx, &scopeobj))
-        return false;
 
     JSLinearString *linearStr = str->ensureLinear(cx);
     if (!linearStr)
@@ -1216,21 +1188,26 @@ EvalKernel(JSContext *cx, uintN argc, Value *vp, EvalType evalType, JSStackFrame
 
     if (length > 2 && chars[0] == '(' && chars[length - 1] == ')') {
 #if USE_OLD_AND_BUSTED_JSON_PARSER
-        JSONParser *jp = js_BeginJSONParse(cx, vp, true);
+        Value tmp;
+        JSONParser *jp = js_BeginJSONParse(cx, &tmp, true);
         if (jp != NULL) {
             
             bool ok = js_ConsumeJSONText(cx, jp, chars + 1, length - 2);
             ok &= js_FinishJSONParse(cx, jp, NullValue());
-            if (ok)
+            if (ok) {
+                call.rval() = tmp;
                 return true;
-        }
+            }
 #else
         JSONSourceParser parser(cx, chars + 1, length - 2, JSONSourceParser::StrictJSON,
                                 JSONSourceParser::NoError);
-        if (!parser.parse(vp))
+        Value tmp;
+        if (!parser.parse(&tmp))
             return false;
-        if (!vp->isUndefined())
+        if (!tmp.isUndefined()) {
+            call.rval() = tmp;
             return true;
+        }
 #endif
     }
 
@@ -1242,63 +1219,93 @@ EvalKernel(JSContext *cx, uintN argc, Value *vp, EvalType evalType, JSStackFrame
     if (evalType == DIRECT_EVAL && !caller->computeThis(cx))
         return false;
 
-    JSScript *script = NULL;
-    JSScript **bucket = EvalCacheHash(cx, linearStr);
-    if (evalType == DIRECT_EVAL && caller->isNonEvalFunctionFrame()) {
-        script = EvalCacheLookup(cx, linearStr, caller, staticLevel, principals, scopeobj, bucket);
+    EvalScriptGuard esg(cx, linearStr);
 
-        
+    JSPrincipals *principals = PrincipalsForCompiledCode(call, cx);
+
+    if (evalType == DIRECT_EVAL && caller->isNonEvalFunctionFrame())
+        esg.lookupInEvalCache(caller, staticLevel, principals, scopeobj);
+
+    if (!esg.foundScript()) {
+        uintN lineno;
+        const char *filename = CurrentScriptFileAndLine(cx, &lineno,
+                                                        evalType == DIRECT_EVAL
+                                                        ? CALLED_FROM_JSOP_EVAL
+                                                        : NOT_CALLED_FROM_JSOP_EVAL);
+        uint32 tcflags = TCF_COMPILE_N_GO | TCF_NEED_MUTABLE_SCRIPT | TCF_COMPILE_FOR_EVAL;
+        JSScript *compiled = Compiler::compileScript(cx, &scopeobj, caller, principals, tcflags,
+                                                     chars, length, filename, lineno,
+                                                     cx->findVersion(), linearStr, staticLevel);
+        if (!compiled)
+            return false;
+
+        esg.setNewScript(compiled);
+    }
+
+    return Execute(cx, scopeobj, esg.script(), caller, JSFRAME_EVAL, &call.rval());
+}
 
 
 
 
 
 
+static inline bool
+WarnOnTooManyArgs(JSContext *cx, const CallArgs &call)
+{
+    if (call.argc() > 1) {
+        if (JSStackFrame *caller = js_GetScriptedCaller(cx, NULL)) {
+            if (!caller->script()->warnedAboutTwoArgumentEval) {
+                static const char TWO_ARGUMENT_WARNING[] =
+                    "Support for eval(code, scopeObject) has been removed. "
+                    "Use |with (scopeObject) eval(code);| instead.";
+                if (!JS_ReportWarning(cx, TWO_ARGUMENT_WARNING))
+                    return false;
+                caller->script()->warnedAboutTwoArgumentEval = true;
+            }
+        } else {
+            
 
-        if (script) {
-            js_CallNewScriptHook(cx, script, NULL);
-            MUST_FLOW_THROUGH("destroy");
+
+
         }
     }
 
+    return true;
+}
+
+
+
+
+
+
+static JSBool
+eval(JSContext *cx, uintN argc, Value *vp)
+{
+    CallArgs call = CallArgsFromVp(argc, vp);
+    return WarnOnTooManyArgs(cx, call) &&
+           EvalKernel(cx, call, INDIRECT_EVAL, NULL, *call.callee().getGlobal());
+}
+
+namespace js {
+
+bool
+DirectEval(JSContext *cx, const CallArgs &call)
+{
     
+    JSStackFrame *caller = cx->fp();
+    JS_ASSERT(caller->isScriptFrame());
+    JS_ASSERT(IsBuiltinEvalForScope(&caller->scopeChain(), call.calleev()));
+    JS_ASSERT(*cx->regs->pc == JSOP_EVAL);
 
+    AutoFunctionCallProbe callProbe(cx, call.callee().getFunctionPrivate(), caller->script());
 
+    JSObject *scopeChain =
+        GetScopeChainFast(cx, caller, JSOP_EVAL, JSOP_EVAL_LENGTH + JSOP_LINENO_LENGTH);
 
-    JSStackFrame *callerFrame = (staticLevel != 0) ? caller : NULL;
-    if (!script) {
-        uintN lineno;
-        const char *filename = js_ComputeFilename(cx, caller, principals, &lineno);
-
-        uint32 tcflags = TCF_COMPILE_N_GO | TCF_NEED_MUTABLE_SCRIPT | TCF_COMPILE_FOR_EVAL;
-        script = Compiler::compileScript(cx, &scopeobj, callerFrame,
-                                         principals, tcflags, chars, length,
-                                         filename, lineno, cx->findVersion(),
-                                         linearStr, staticLevel);
-        if (!script)
-            return false;
-    }
-
-    assertSameCompartment(cx, &scopeobj, script);
-
-    
-
-
-
-    JSBool ok = js_CheckPrincipalsAccess(cx, &scopeobj, principals,
-                                         cx->runtime->atomState.evalAtom) &&
-                Execute(cx, scopeobj, script, callerFrame, JSFRAME_EVAL, vp);
-
-    MUST_FLOW_LABEL(destroy);
-    js_CallDestroyScriptHook(cx, script);
-
-    script->u.nextToGC = *bucket;
-    *bucket = script;
-#ifdef CHECK_SCRIPT_OWNER
-    script->owner = NULL;
-#endif
-
-    return ok;
+    return scopeChain &&
+           WarnOnTooManyArgs(cx, call) &&
+           EvalKernel(cx, call, DIRECT_EVAL, caller, *scopeChain);
 }
 
 bool
@@ -1315,7 +1322,44 @@ IsAnyBuiltinEval(JSFunction *fun)
     return fun->maybeNative() == eval;
 }
 
+JSPrincipals *
+PrincipalsForCompiledCode(const CallArgs &call, JSContext *cx)
+{
+    JS_ASSERT(IsAnyBuiltinEval(call.callee().getFunctionPrivate()) ||
+              IsBuiltinFunctionConstructor(call.callee().getFunctionPrivate()));
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    JSPrincipals *calleePrincipals = call.callee().compartment()->principals;
+
+#ifdef DEBUG
+    if (calleePrincipals) {
+        if (JSStackFrame *caller = js_GetScriptedCaller(cx, NULL)) {
+            if (JSPrincipals *callerPrincipals = caller->principals(cx)) {
+                JS_ASSERT(callerPrincipals->subsume(callerPrincipals, calleePrincipals));
+            }
+        }
+    }
+#endif
+
+    return calleePrincipals;
 }
+
+}  
 
 #if JS_HAS_OBJ_WATCHPOINT
 
@@ -1324,20 +1368,13 @@ obj_watch_handler(JSContext *cx, JSObject *obj, jsid id, jsval old,
                   jsval *nvp, void *closure)
 {
     JSObject *callable = (JSObject *) closure;
-    JSSecurityCallbacks *callbacks = JS_GetSecurityCallbacks(cx);
-    if (callbacks && callbacks->findObjectPrincipals) {
-        
+    if (JSPrincipals *watcher = callable->principals(cx)) {
         if (JSStackFrame *caller = js_GetScriptedCaller(cx, NULL)) {
-            
-
-
-
-            JSPrincipals *watcher = callbacks->findObjectPrincipals(cx, callable);
-            JSPrincipals *subject = js_StackFramePrincipals(cx, caller);
-
-            if (watcher && subject && !watcher->subsume(watcher, subject)) {
-                
-                return true;
+            if (JSPrincipals *subject = caller->principals(cx)) {
+                if (!watcher->subsume(watcher, subject)) {
+                    
+                    return JS_TRUE;
+                }
             }
         }
     }

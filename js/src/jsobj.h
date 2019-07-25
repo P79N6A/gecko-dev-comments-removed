@@ -761,6 +761,8 @@ struct JSObject : js::gc::Cell {
         privateData = data;
     }
 
+    
+    inline JSPrincipals *principals(JSContext *cx);
 
     
 
@@ -1936,18 +1938,9 @@ js_GetReservedSlot(JSContext *cx, JSObject *obj, uint32 index, js::Value *vp);
 extern bool
 js_SetReservedSlot(JSContext *cx, JSObject *obj, uint32 index, const js::Value &v);
 
-extern JSBool
-js_CheckPrincipalsAccess(JSContext *cx, JSObject *scopeobj,
-                         JSPrincipals *principals, JSAtom *caller);
-
 
 extern JSBool
 js_CheckContentSecurityPolicy(JSContext *cx, JSObject *scopeObj);
-
-
-extern const char *
-js_ComputeFilename(JSContext *cx, JSStackFrame *caller,
-                   JSPrincipals *principals, uintN *linenop);
 
 extern JSBool
 js_ReportGetterOnlyAssignment(JSContext *cx);
@@ -1981,21 +1974,13 @@ SetProto(JSContext *cx, JSObject *obj, JSObject *proto, bool checkForCycles);
 extern JSString *
 obj_toStringHelper(JSContext *cx, JSObject *obj);
 
-enum EvalType { INDIRECT_EVAL, DIRECT_EVAL };
 
 
 
 
 
-
-
-
-
-
-
-extern bool
-EvalKernel(JSContext *cx, uintN argc, js::Value *vp, EvalType evalType, JSStackFrame *caller,
-           JSObject &scopeobj);
+extern JS_REQUIRES_STACK bool
+DirectEval(JSContext *cx, const CallArgs &call);
 
 
 
@@ -2007,6 +1992,10 @@ IsBuiltinEvalForScope(JSObject *scopeChain, const js::Value &v);
 
 extern bool
 IsAnyBuiltinEval(JSFunction *fun);
+
+
+extern JSPrincipals *
+PrincipalsForCompiledCode(const CallArgs &call, JSContext *cx);
 
 }
 

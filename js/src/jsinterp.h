@@ -544,6 +544,20 @@ struct JSStackFrame
 
 
 
+    JSCompartment *compartment() const {
+        JS_ASSERT_IF(isScriptFrame(), scopeChain().compartment() == script()->compartment);
+        return scopeChain().compartment();
+    }
+
+    inline JSPrincipals *principals(JSContext *cx) const;
+
+    
+
+
+
+
+
+
 
     bool hasImacropc() const {
         return flags_ & JSFRAME_HAS_IMACRO_PC;
@@ -1018,24 +1032,6 @@ InvokeConstructorWithGivenThis(JSContext *cx, JSObject *thisobj, const Value &fv
 extern bool
 ExternalInvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv,
                           Value *rval);
-
-
-
-
-
-
-extern JS_REQUIRES_STACK bool
-DirectEval(JSContext *cx, uint32 argc, Value *vp);
-
-
-
-
-
-
-
-
-extern JS_REQUIRES_STACK bool
-DirectEval(JSContext *cx, JSFunction *evalfun, uint32 argc, Value *vp);
 
 
 
