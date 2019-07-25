@@ -2526,6 +2526,74 @@ nsRootPresContext::GetPluginGeometryUpdates(nsIFrame* aChangedSubtree,
   closure.mAffectedPlugins.EnumerateEntries(PluginHideEnumerator, &closure);
 }
 
+static PRBool
+HasOverlap(const nsIntPoint& aOffset1, const nsTArray<nsIntRect>& aClipRects1,
+           const nsIntPoint& aOffset2, const nsTArray<nsIntRect>& aClipRects2)
+{
+  nsIntPoint offsetDelta = aOffset1 - aOffset2;
+  for (PRUint32 i = 0; i < aClipRects1.Length(); ++i) {
+    for (PRUint32 j = 0; j < aClipRects2.Length(); ++j) {
+      if ((aClipRects1[i] + offsetDelta).Intersects(aClipRects2[j]))
+        return PR_TRUE;
+    }
+  }
+  return PR_FALSE;
+}
+
+
+
+
+
+
+
+
+
+
+static void
+SortConfigurations(nsTArray<nsIWidget::Configuration>* aConfigurations)
+{
+  if (aConfigurations->Length() > 10) {
+    
+    return;
+  }
+
+  nsTArray<nsIWidget::Configuration> pluginsToMove;
+  pluginsToMove.SwapElements(*aConfigurations);
+
+  
+  
+  
+  
+  while (!pluginsToMove.IsEmpty()) {
+    
+    PRUint32 i;
+    for (i = 0; i + 1 < pluginsToMove.Length(); ++i) {
+      nsIWidget::Configuration* config = &pluginsToMove[i];
+      PRBool foundOverlap = PR_FALSE;
+      for (PRUint32 j = 0; j < pluginsToMove.Length(); ++j) {
+        if (i == j)
+          continue;
+        nsIntRect bounds;
+        pluginsToMove[j].mChild->GetBounds(bounds);
+        nsAutoTArray<nsIntRect,1> clipRects;
+        pluginsToMove[j].mChild->GetWindowClipRegion(&clipRects);
+        if (HasOverlap(bounds.TopLeft(), clipRects,
+                       config->mBounds.TopLeft(),
+                       config->mClipRegion)) {
+          foundOverlap = PR_TRUE;
+          break;
+        }
+      }
+      if (!foundOverlap)
+        break;
+    }
+    
+    
+    aConfigurations->AppendElement(pluginsToMove[i]);
+    pluginsToMove.RemoveElementAt(i);
+  }
+}
+
 void
 nsRootPresContext::UpdatePluginGeometry()
 {
@@ -2546,6 +2614,7 @@ nsRootPresContext::UpdatePluginGeometry()
   GetPluginGeometryUpdates(f, &configurations);
   if (configurations.IsEmpty())
     return;
+  SortConfigurations(&configurations);
   nsIWidget* widget = FrameManager()->GetRootFrame()->GetNearestWidget();
   NS_ASSERTION(widget, "Plugins must have a parent window");
   widget->ConfigureChildren(configurations);

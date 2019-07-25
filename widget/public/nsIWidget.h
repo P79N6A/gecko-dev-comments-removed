@@ -693,6 +693,10 @@ class nsIWidget : public nsISupports {
 
 
 
+
+
+
+
     virtual nsresult ConfigureChildren(const nsTArray<Configuration>& aConfigurations) = 0;
 
     
