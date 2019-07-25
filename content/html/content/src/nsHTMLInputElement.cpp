@@ -120,12 +120,6 @@
 #include "nsContentUtils.h"
 #include "nsRadioVisitor.h"
 
-#include "nsTextEditRules.h"
-
-
-#include "jsapi.h"
-#include "jscntxt.h"
-
 using namespace mozilla::dom;
 
 
