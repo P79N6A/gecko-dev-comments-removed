@@ -243,11 +243,6 @@ struct JSStmtInfo {
 
 
 
-#define TCF_FUN_USES_EVAL       0x800000
-
-
-
-
 #define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
 
 
@@ -259,7 +254,6 @@ struct JSStmtInfo {
                                  TCF_FUN_HEAVYWEIGHT     |                    \
                                  TCF_FUN_IS_GENERATOR    |                    \
                                  TCF_FUN_USES_OWN_NAME   |                    \
-                                 TCF_FUN_USES_EVAL       |                    \
                                  TCF_HAS_SHARPS          |                    \
                                  TCF_STRICT_MODE_CODE)
 
@@ -293,8 +287,6 @@ struct JSTreeContext {
 
     JSFunctionBox   *functionList;
 
-    JSParseNode     *innermostWith; 
-
 #ifdef JS_SCOPE_DEPTH_METER
     uint16          scopeDepth;     
     uint16          maxScopeDepth;  
@@ -304,7 +296,7 @@ struct JSTreeContext {
       : flags(0), ngvars(0), bodyid(0), blockidGen(0),
         topStmt(NULL), topScopeStmt(NULL), blockChain(NULL), blockNode(NULL),
         parser(prs), scopeChain(NULL), parent(prs->tc), staticLevel(0),
-        funbox(NULL), functionList(NULL), innermostWith(NULL), sharpSlotBase(-1)
+        funbox(NULL), functionList(NULL), sharpSlotBase(-1)
     {
         prs->tc = this;
         JS_SCOPE_DEPTH_METERING(scopeDepth = maxScopeDepth = 0);
