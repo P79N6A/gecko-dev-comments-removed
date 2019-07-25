@@ -124,13 +124,6 @@ public:
 
 
 
-  virtual nsEventStates GetContentState(nsIContent *aContent);
-
-  
-
-
-
-
 
 
 

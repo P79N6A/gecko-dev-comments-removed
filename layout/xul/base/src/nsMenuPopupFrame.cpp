@@ -836,12 +836,13 @@ nsMenuPopupFrame::HidePopup(PRBool aDeselectMenu, nsPopupState aNewState)
   
   
   
-  nsEventStateManager *esm = PresContext()->EventStateManager();
+  NS_ASSERTION(mContent->IsElement(), "How do we have a non-element?");
+  nsEventStates state = mContent->AsElement()->State();
 
-  nsEventStates state = esm->GetContentState(mContent);
-
-  if (state.HasState(NS_EVENT_STATE_HOVER))
+  if (state.HasState(NS_EVENT_STATE_HOVER)) {
+    nsEventStateManager *esm = PresContext()->EventStateManager();
     esm->SetContentState(nsnull, NS_EVENT_STATE_HOVER);
+  }
 
   nsMenuFrame* menuFrame = GetParentMenu();
   if (menuFrame) {

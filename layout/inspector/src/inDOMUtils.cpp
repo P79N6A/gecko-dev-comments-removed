@@ -289,20 +289,13 @@ NS_IMETHODIMP
 inDOMUtils::GetContentState(nsIDOMElement *aElement, nsEventStates::InternalType* aState)
 {
   *aState = 0;
+  nsCOMPtr<nsIContent> content = do_QueryInterface(aElement);
+  NS_ENSURE_ARG_POINTER(content);
 
-  NS_ENSURE_ARG_POINTER(aElement);
-
-  nsRefPtr<nsEventStateManager> esm = inLayoutUtils::GetEventStateManagerFor(aElement);
-  if (esm) {
-    nsCOMPtr<nsIContent> content;
-    content = do_QueryInterface(aElement);
-    
-    
-    *aState = esm->GetContentState(content).GetInternalValue();
-    return NS_OK;
-  }
-
-  return NS_ERROR_FAILURE;
+  
+  
+  *aState = content->AsElement()->State().GetInternalValue();
+  return NS_OK;
 }
 
  nsresult
