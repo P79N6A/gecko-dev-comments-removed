@@ -932,10 +932,6 @@ protected:
 
   
   
-  PRUint64 mWindowID;
-
-  
-  
   PRUint32                      mDialogAbuseCount;
 
   

@@ -554,6 +554,11 @@ public:
 
   virtual PRUint32 GetSerial() = 0;
 
+  
+
+
+  PRUint64 WindowID() const { return mWindowID; }
+
 protected:
   
   
@@ -611,6 +616,10 @@ protected:
   
   
   nsCOMPtr<nsIContent> mFocusedNode;
+
+  
+  
+  PRUint64 mWindowID;
 };
 
 
