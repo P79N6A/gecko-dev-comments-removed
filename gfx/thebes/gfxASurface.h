@@ -223,8 +223,6 @@ public:
     
 
 
-
-
     void SetAllowUseAsSource(PRBool aAllow) { mAllowUseAsSource = aAllow; }
     PRBool GetAllowUseAsSource() { return mAllowUseAsSource; }
 
