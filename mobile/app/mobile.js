@@ -389,7 +389,7 @@ pref("geo.enabled", true);
 
 
 
-/pref("content.sink.perf_deflect_count", 1000000);
+
 
 
 
