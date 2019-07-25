@@ -143,6 +143,9 @@ AsyncResource.prototype = {
   _logName: "Net.Resource",
 
   
+  ABORT_TIMEOUT: 300000,
+
+  
   
   
   
@@ -270,7 +273,7 @@ AsyncResource.prototype = {
     
     
     let listener = new ChannelListener(this._onComplete, this._onProgress,
-                                       this._log);
+                                       this._log, this.ABORT_TIMEOUT);
     channel.requestMethod = action;
     channel.asyncOpen(listener, null);
   },
@@ -412,7 +415,9 @@ Resource.prototype = {
       return doRequest(action, data, callback);
     } catch(ex) {
       
+      
       let error = Error(ex.message);
+      error.result = ex.result;
       let chanStack = [];
       if (ex.stack)
         chanStack = ex.stack.trim().split(/\n/).slice(1);
@@ -466,15 +471,14 @@ Resource.prototype = {
 
 
 
-function ChannelListener(onComplete, onProgress, logger) {
+function ChannelListener(onComplete, onProgress, logger, timeout) {
   this._onComplete = onComplete;
   this._onProgress = onProgress;
   this._log = logger;
+  this._timeout = timeout;
   this.delayAbort();
 }
 ChannelListener.prototype = {
-  
-  ABORT_TIMEOUT: 300000,
 
   onStartRequest: function Channel_onStartRequest(channel) {
     channel.QueryInterface(Ci.nsIHttpChannel);
@@ -498,8 +502,12 @@ ChannelListener.prototype = {
       this._data = null;
 
     
+    
+    
     if (!Components.isSuccessCode(status)) {
-      this._onComplete(Error(Components.Exception("", status).name));
+      let message = Components.Exception("", status).name;
+      let error = Components.Exception(message, status);
+      this._onComplete(error);
       return;
     }
 
@@ -535,14 +543,15 @@ ChannelListener.prototype = {
 
 
   delayAbort: function delayAbort() {
-    Utils.delay(this.abortRequest, this.ABORT_TIMEOUT, this, "abortTimer");
+    Utils.delay(this.abortRequest, this._timeout, this, "abortTimer");
   },
 
   abortRequest: function abortRequest() {
     
     this.onStopRequest = function() {};
-    this.onDataAvailable = function() {};
-    this._onComplete(Error("Aborting due to channel inactivity."));
+    let error = Components.Exception("Aborting due to channel inactivity.",
+                                     Cr.NS_ERROR_NET_TIMEOUT);
+    this._onComplete(error);
   }
 };
 
