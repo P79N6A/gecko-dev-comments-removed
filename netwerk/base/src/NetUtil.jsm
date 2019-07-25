@@ -262,6 +262,56 @@ const NetUtil = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+    readInputStreamToString: function NetUtil_readInputStreamToString(aInputStream,
+                                                                      aCount)
+    {
+        if (!(aInputStream instanceof Ci.nsIInputStream)) {
+            let exception = new Components.Exception(
+                "First argument should be an nsIInputStream",
+                Cr.NS_ERROR_INVALID_ARG,
+                Components.stack.caller
+            );
+            throw exception;
+        }
+
+        if (!aCount) {
+            let exception = new Components.Exception(
+                "Non-zero amount of bytes must be specified",
+                Cr.NS_ERROR_INVALID_ARG,
+                Components.stack.caller
+            );
+            throw exception;
+        }
+
+        let sis = Cc["@mozilla.org/scriptableinputstream;1"].
+                  createInstance(Ci.nsIScriptableInputStream);
+        sis.init(aInputStream);
+        try {
+            return sis.readBytes(aCount);
+        }
+        catch (e) {
+            
+            throw new Components.Exception(e.message, e.result,
+                                           Components.stack.caller, e.data);
+        }
+    },
+
+    
+
+
+
+
     get ioService()
     {
         delete this.ioService;
