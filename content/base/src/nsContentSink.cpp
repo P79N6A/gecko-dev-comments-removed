@@ -557,13 +557,6 @@ nsContentSink::DoProcessLinkHeader()
   ProcessLinkHeader(nsnull, value);
 }
 
-static const PRUnichar kSemiCh = PRUnichar(';');
-static const PRUnichar kCommaCh = PRUnichar(',');
-static const PRUnichar kEqualsCh = PRUnichar('=');
-static const PRUnichar kLessThanCh = PRUnichar('<');
-static const PRUnichar kGreaterThanCh = PRUnichar('>');
-
-
 
 
 
@@ -642,22 +635,31 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
     end = start;
     last = end - 1;
 
+    PRBool needsUnescape = PR_FALSE;
     
-    while (*end != kNullCh && *end != kSemiCh && *end != kCommaCh) {
+    
+    while (*end != kNullCh && *end != kSemicolon && *end != kComma) {
       PRUnichar ch = *end;
 
-      if (ch == kApostrophe || ch == kQuote || ch == kLessThanCh) {
+      if (ch == kApostrophe || ch == kQuote || ch == kLessThan) {
         
 
-        PRUnichar quote = *end;
-        if (quote == kLessThanCh) {
-          quote = kGreaterThanCh;
+        PRUnichar quote = ch;
+        if (quote == kLessThan) {
+          quote = kGreaterThan;
         }
-
+        
+        needsUnescape = (ch == kQuote);
+        
         PRUnichar* closeQuote = (end + 1);
 
         
         while (*closeQuote != kNullCh && quote != *closeQuote) {
+          
+          if (needsUnescape && *closeQuote == kBackSlash && *(closeQuote + 1) != kNullCh) {
+            ++closeQuote;
+          }
+
           ++closeQuote;
         }
 
@@ -671,14 +673,14 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
 
           ch = *(end + 1);
 
-          if (ch != kNullCh && ch != kSemiCh && ch != kCommaCh) {
+          if (ch != kNullCh && ch != kSemicolon && ch != kComma) {
             
             *(++end) = kNullCh;
 
             ch = *(end + 1);
 
             
-            while (ch != kNullCh && ch != kSemiCh && ch != kCommaCh) {
+            while (ch != kNullCh && ch != kSemicolon && ch != kComma) {
               ++end;
 
               ch = *end;
@@ -697,7 +699,7 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
     *end = kNullCh;
 
     if (start < end) {
-      if ((*start == kLessThanCh) && (*last == kGreaterThanCh)) {
+      if ((*start == kLessThan) && (*last == kGreaterThan)) {
         *last = kNullCh;
 
         if (href.IsEmpty()) { 
@@ -707,7 +709,7 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
       } else {
         PRUnichar* equals = start;
 
-        while ((*equals != kNullCh) && (*equals != kEqualsCh)) {
+        while ((*equals != kNullCh) && (*equals != kEqual)) {
           equals++;
         }
 
@@ -727,6 +729,21 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
             value++;
           }
 
+          if (needsUnescape) {
+            
+            PRUnichar* unescaped = value;
+            PRUnichar *src = value;
+            
+            while (*src != kNullCh) {
+              if (*src == kBackSlash && *(src + 1) != kNullCh) {
+                src++;
+              }
+              *unescaped++ = *src++;
+            }
+
+            *unescaped = kNullCh;
+          }
+          
           if (attr.LowerCaseEqualsLiteral("rel")) {
             if (rel.IsEmpty()) {
               rel = value;
@@ -759,7 +776,7 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
       }
     }
 
-    if (endCh == kCommaCh) {
+    if (endCh == kComma) {
       
 
       href.Trim(" \t\n\r\f"); 
