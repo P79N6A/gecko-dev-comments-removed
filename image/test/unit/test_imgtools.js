@@ -432,6 +432,214 @@ compareArrays(encodedBytes, referenceBytes);
 
 
 
+testnum++;
+testdesc = "test cropping a JPG";
+
+
+imgName = "image2.jpg";
+inMimeType = "image/jpeg";
+imgFile = do_get_file(imgName);
+
+istream = getFileInputStream(imgFile);
+do_check_eq(istream.available(), 3494);
+
+outParam = {};
+imgTools.decodeImageData(istream, inMimeType, outParam);
+container = outParam.value;
+
+
+
+do_check_eq(container.width,  32);
+do_check_eq(container.height, 32);
+
+
+istream = imgTools.encodeCroppedImage(container, "image/jpeg", 0, 0, 16, 16);
+encodedBytes = streamToArray(istream);
+
+
+refName = "image2jpg16x16cropped.jpg";
+refFile = do_get_file(refName);
+istream = getFileInputStream(refFile);
+do_check_eq(istream.available(), 879);
+referenceBytes = streamToArray(istream);
+
+
+compareArrays(encodedBytes, referenceBytes);
+
+
+
+testnum++;
+testdesc = "test cropping a JPG with an offset";
+
+
+istream = imgTools.encodeCroppedImage(container, "image/jpeg", 16, 16, 16, 16);
+encodedBytes = streamToArray(istream);
+
+
+refName = "image2jpg16x16cropped2.jpg";
+refFile = do_get_file(refName);
+istream = getFileInputStream(refFile);
+do_check_eq(istream.available(), 878);
+referenceBytes = streamToArray(istream);
+
+
+compareArrays(encodedBytes, referenceBytes);
+
+
+
+testnum++;
+testdesc = "test cropping a JPG without a given height";
+
+
+istream = imgTools.encodeCroppedImage(container, "image/jpeg", 0, 0, 16, 0);
+encodedBytes = streamToArray(istream);
+
+
+refName = "image2jpg16x32cropped3.jpg";
+refFile = do_get_file(refName);
+istream = getFileInputStream(refFile);
+do_check_eq(istream.available(), 1127);
+referenceBytes = streamToArray(istream);
+
+
+compareArrays(encodedBytes, referenceBytes);
+
+
+
+testnum++;
+testdesc = "test cropping a JPG without a given width";
+
+
+istream = imgTools.encodeCroppedImage(container, "image/jpeg", 0, 0, 0, 16);
+encodedBytes = streamToArray(istream);
+
+
+refName = "image2jpg32x16cropped4.jpg";
+refFile = do_get_file(refName);
+istream = getFileInputStream(refFile);
+do_check_eq(istream.available(), 1135);
+referenceBytes = streamToArray(istream);
+
+
+compareArrays(encodedBytes, referenceBytes);
+
+
+
+testnum++;
+testdesc = "test cropping a JPG without a given width and height";
+
+
+istream = imgTools.encodeCroppedImage(container, "image/jpeg", 0, 0, 0, 0);
+encodedBytes = streamToArray(istream);
+
+
+refName = "image2jpg32x32.jpg";
+refFile = do_get_file(refName);
+istream = getFileInputStream(refFile);
+do_check_eq(istream.available(), 1634);
+referenceBytes = streamToArray(istream);
+
+
+compareArrays(encodedBytes, referenceBytes);
+
+
+
+testnum++;
+testdesc = "test scaling a JPG without a given width";
+
+
+istream = imgTools.encodeScaledImage(container, "image/jpeg", 0, 16);
+encodedBytes = streamToArray(istream);
+
+
+refName = "image2jpg32x16scaled.jpg";
+refFile = do_get_file(refName);
+istream = getFileInputStream(refFile);
+do_check_eq(istream.available(), 1227);
+referenceBytes = streamToArray(istream);
+
+
+compareArrays(encodedBytes, referenceBytes);
+
+
+
+testnum++;
+testdesc = "test scaling a JPG without a given height";
+
+
+istream = imgTools.encodeScaledImage(container, "image/jpeg", 16, 0);
+encodedBytes = streamToArray(istream);
+
+
+refName = "image2jpg16x32scaled.jpg";
+refFile = do_get_file(refName);
+istream = getFileInputStream(refFile);
+do_check_eq(istream.available(), 1219);
+referenceBytes = streamToArray(istream);
+
+
+compareArrays(encodedBytes, referenceBytes);
+
+
+
+testnum++;
+testdesc = "test scaling a JPG without a given width and height";
+
+
+istream = imgTools.encodeScaledImage(container, "image/jpeg", 0, 0);
+encodedBytes = streamToArray(istream);
+
+
+refName = "image2jpg32x32.jpg";
+refFile = do_get_file(refName);
+istream = getFileInputStream(refFile);
+do_check_eq(istream.available(), 1634);
+referenceBytes = streamToArray(istream);
+
+
+compareArrays(encodedBytes, referenceBytes);
+
+
+
+testnum++;
+testdesc = "test invalid arguments for cropping";
+
+var numErrors = 0;
+
+try {
+  
+  imgTools.encodeScaledImage(container, "image/jpeg", -1, -1);
+} catch (e) { numErrors++; }
+
+try {
+  
+  imgTools.encodeCroppedImage(container, "image/jpeg", -1, -1, 16, 16);
+} catch (e) { numErrors++; }
+
+try {
+  
+  imgTools.encodeCroppedImage(container, "image/jpeg", 0, 0, -1, -1);
+} catch (e) { numErrors++; }
+
+try {
+  
+  imgTools.encodeCroppedImage(container, "image/jpeg", 17, 17, 16, 16);
+} catch (e) { numErrors++; }
+
+try {
+  
+  imgTools.encodeCroppedImage(container, "image/jpeg", 0, 0, 33, 33);
+} catch (e) { numErrors++; }
+
+try {
+  
+  imgTools.encodeCroppedImage(container, "image/jpeg", 1, 1, 0, 0);
+} catch (e) { numErrors++; }
+
+do_check_eq(numErrors, 6);
+
+
+
 testnum = 363986;
 testdesc = "test PNG and JPEG encoders' Read/ReadSegments methods";
 
