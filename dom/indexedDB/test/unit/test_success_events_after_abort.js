@@ -36,23 +36,23 @@ function testSteps()
     sawError = true;
     event.preventDefault();
   }
-  
+
   transaction.abort();
-  
+
   event = yield;
 
   is(event.type, "abort", "Got abort event");
   is(sawError, true, "Saw get() error");
   if (this.window) {
     
-    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-    var thread = Components.classes["@mozilla.org/thread-manager;1"]
-                           .getService(Components.interfaces.nsIThreadManager)
-                           .currentThread;
+    let comp = SpecialPowers.wrap(Components);
+    let thread = comp.classes["@mozilla.org/thread-manager;1"]
+                     .getService(comp.interfaces.nsIThreadManager)
+                     .currentThread;
     while (thread.hasPendingEvents()) {
       thread.processNextEvent(false);
     }
-  }  
+  }
 
   finishTest();
   yield;
