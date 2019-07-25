@@ -1165,6 +1165,11 @@ nsAttrValue::ParseColor(const nsAString& aString, nsIDocument* aDocument)
   }
 
   
+  
+  
+  
+
+  
   if (NS_LooseHexToRGB(colorStr, &color)) {
     SetColorValue(color, aString);
     return PR_TRUE;
