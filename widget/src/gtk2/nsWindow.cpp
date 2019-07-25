@@ -2136,6 +2136,11 @@ nsWindow::OnExposeEvent(GtkWidget *aWidget, GdkEventExpose *aEvent)
         nsPaintEvent willPaintEvent(PR_TRUE, NS_WILL_PAINT, this);
         willPaintEvent.willSendDidPaint = PR_TRUE;
         DispatchEvent(&willPaintEvent, status);
+
+        
+        
+        if (!mGdkWindow)
+            return TRUE;
     }
 
     nsPaintEvent event(PR_TRUE, NS_PAINT, this);
