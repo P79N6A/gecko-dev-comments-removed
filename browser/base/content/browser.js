@@ -3091,17 +3091,6 @@ const DOMLinkHandler = {
             var targetDoc = link.ownerDocument;
             var uri = makeURI(link.href, targetDoc.characterSet);
 
-            
-            
-            
-            if (uri.userPass != "") {
-              
-              try {
-                uri.userPass = null;
-              }
-              catch (e) {}
-            }
-
             if (gBrowser.isFailedIcon(uri))
               break;
 
@@ -3146,7 +3135,7 @@ const DOMLinkHandler = {
               break;
 
             let tab = gBrowser.tabs[browserIndex];
-            gBrowser.setIcon(tab, uri);
+            gBrowser.setIcon(tab, link.href);
             iconAdded = true;
           }
           break;
