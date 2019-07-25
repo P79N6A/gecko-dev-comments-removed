@@ -86,9 +86,9 @@ nsDataDocumentContentPolicy::ShouldLoad(PRUint32 aContentType,
     return NS_OK;
   }
 
-  
-  
   if (doc->IsBeingUsedAsImage()) {
+    
+    
     PRBool hasFlags;
     nsresult rv = NS_URIChainHasFlags(aContentLocation,
                                       nsIProtocolHandler::URI_IS_LOCAL_RESOURCE,
@@ -107,6 +107,16 @@ nsDataDocumentContentPolicy::ShouldLoad(PRUint32 aContentType,
             nsnull, NS_LITERAL_STRING("CheckSameOriginError"), principalURI,
             aContentLocation);
         }
+      }
+    } else if (aContentType == nsIContentPolicy::TYPE_IMAGE &&
+               doc->GetDocumentURI()) {
+      
+      PRBool isRecursiveLoad;
+      rv = aContentLocation->EqualsExceptRef(doc->GetDocumentURI(),
+                                             &isRecursiveLoad);
+      if (NS_FAILED(rv) || isRecursiveLoad) {
+        NS_WARNING("Refusing to recursively load image");
+        *aDecision = nsIContentPolicy::REJECT_TYPE;
       }
     }
     return NS_OK;
