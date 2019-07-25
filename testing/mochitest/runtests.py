@@ -377,13 +377,19 @@ class WebSocketServer(object):
   def start(self):
     
     
-    if self.debuggerInfo and self.debuggerInfo['interactive']:
-        scriptPath = 'pywebsocket_ignore_sigint.py'
-    else:
-        scriptPath = 'pywebsocket/standalone.py'
-
+    
+    
+    
+    
+    
+    
+    scriptPath = 'pywebsocket_wrapper.py'
     script = os.path.join(self._scriptdir, scriptPath)
-    cmd = [sys.executable, script, '-p', str(self.port), '-w', self._scriptdir, '-l', os.path.join(self._scriptdir, "websock.log"), '--log-level=debug']
+
+    cmd = [sys.executable, script]
+    if self.debuggerInfo and self.debuggerInfo['interactive']:
+        cmd += ['--interactive']
+    cmd += ['-p', str(self.port), '-w', self._scriptdir, '-l', os.path.join(self._scriptdir, "websock.log"), '--log-level=debug']
 
     self._process = self._automation.Process(cmd)
     pid = self._process.pid
@@ -645,15 +651,19 @@ class Mochitest(object):
       self.startVMwareRecording(options);
 
     self.automation.log.info("INFO | runtests.py | Running tests: start.\n")
-    status = self.automation.runApp(testURL, browserEnv, options.app,
-                                options.profilePath, options.browserArgs,
-                                runSSLTunnel = self.runSSLTunnel,
-                                utilityPath = options.utilityPath,
-                                xrePath = options.xrePath,
-                                certPath=options.certPath,
-                                debuggerInfo=debuggerInfo,
-                                symbolsPath=options.symbolsPath,
-                                timeout = timeout)
+    try:
+      status = self.automation.runApp(testURL, browserEnv, options.app,
+                                  options.profilePath, options.browserArgs,
+                                  runSSLTunnel = self.runSSLTunnel,
+                                  utilityPath = options.utilityPath,
+                                  xrePath = options.xrePath,
+                                  certPath=options.certPath,
+                                  debuggerInfo=debuggerInfo,
+                                  symbolsPath=options.symbolsPath,
+                                  timeout = timeout)
+    except KeyboardInterrupt:
+      self.automation.log.info("INFO | runtests.py | Received keyboard interrupt.\n");
+      status = -1
 
     if options.vmwareRecording:
       self.stopVMwareRecording();
