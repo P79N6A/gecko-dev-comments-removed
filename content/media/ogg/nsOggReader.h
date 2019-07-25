@@ -232,7 +232,9 @@ private:
   
   
   
-  nsresult DecodeTheora(ogg_packet* aPacket);
+  
+  
+  nsresult DecodeTheora(ogg_packet* aPacket, PRInt64 aTimeThreshold);
 
   
   
