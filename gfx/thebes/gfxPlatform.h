@@ -337,6 +337,17 @@ public:
 
     static qcms_transform* GetCMSRGBATransform();
 
+    
+
+
+    static PRInt32 GetDPI() {
+        if (sDPI < 0) {
+            gfxPlatform::GetPlatform()->InitDisplayCaps();
+        }
+        NS_ASSERTION(sDPI > 0, "Something is wrong");
+        return sDPI;
+    }
+
     virtual void FontsPrefsChanged(nsIPrefBranch *aPrefBranch, const char *aPref);
 
 protected:
@@ -348,6 +359,12 @@ protected:
     void AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, 
                             eFontPrefLang aCharLang, eFontPrefLang aPageLang);
                                                
+    
+
+
+    virtual void InitDisplayCaps();
+    static PRInt32 sDPI;
+
     PRBool  mAllowDownloadableFonts;
 
     

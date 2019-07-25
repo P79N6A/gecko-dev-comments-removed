@@ -86,6 +86,8 @@
 
 gfxPlatform *gPlatform = nsnull;
 
+PRInt32 gfxPlatform::sDPI = -1;
+
 
 static qcms_profile *gCMSOutputProfile = nsnull;
 static qcms_profile *gCMSsRGBProfile = nsnull;
@@ -1059,6 +1061,13 @@ static void MigratePrefs()
         prefs->ClearUserPref(CMPrefNameOld);
     }
 
+}
+
+void
+gfxPlatform::InitDisplayCaps()
+{
+    
+    gfxPlatform::sDPI = 96;
 }
 
 

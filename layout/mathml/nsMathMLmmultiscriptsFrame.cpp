@@ -175,7 +175,7 @@ nsMathMLmmultiscriptsFrame::Place(nsIRenderingContext& aRenderingContext,
   
   
   nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
-  nscoord scriptSpace = NS_MAX(nsPresContext::CSSPointsToAppUnits(0.5f), onePixel);
+  nscoord scriptSpace = NS_MAX(PresContext()->PointsToAppUnits(0.5f), onePixel);
 
   
   

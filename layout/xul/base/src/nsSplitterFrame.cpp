@@ -423,7 +423,7 @@ nsSplitterFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   {
     
     return aLists.Outlines()->AppendNewToTop(new (aBuilder)
-        nsDisplayEventReceiver(aBuilder, this));
+        nsDisplayEventReceiver(this));
   }
 
   return NS_OK;

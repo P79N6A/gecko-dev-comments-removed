@@ -485,7 +485,7 @@ nsPresContext::GetFontPreferences()
     mMinimumFontSize = CSSPixelsToAppUnits(size);
   }
   else if (unit == eUnit_pt) {
-    mMinimumFontSize = CSSPointsToAppUnits(size);
+    mMinimumFontSize = this->PointsToAppUnits(size);
   }
 
   
@@ -549,10 +549,10 @@ nsPresContext::GetFontPreferences()
     size = nsContentUtils::GetIntPref(pref.get());
     if (size > 0) {
       if (unit == eUnit_px) {
-        font->size = CSSPixelsToAppUnits(size);
+        font->size = nsPresContext::CSSPixelsToAppUnits(size);
       }
       else if (unit == eUnit_pt) {
-        font->size = CSSPointsToAppUnits(size);
+        font->size = this->PointsToAppUnits(size);
       }
     }
 
@@ -765,40 +765,31 @@ nsPresContext::GetUserPreferences()
   SetBidi(bidiOptions, PR_FALSE);
 }
 
-PRBool
-nsPresContext::CheckDPIChange()
-{
-  PRInt32 oldAppUnitsPerDevPixel = AppUnitsPerDevPixel();
-  if (!mDeviceContext->CheckDPIChange())
-    return PR_FALSE;
-  if (mShell) {
-    mDeviceContext->FlushFontCache();
-
-    
-    
-    nscoord oldWidthAppUnits, oldHeightAppUnits;
-    nsIViewManager* vm = mShell->GetViewManager();
-    vm->GetWindowDimensions(&oldWidthAppUnits, &oldHeightAppUnits);
-    float oldWidthDevPixels = oldWidthAppUnits/oldAppUnitsPerDevPixel;
-    float oldHeightDevPixels = oldHeightAppUnits/oldAppUnitsPerDevPixel;
-
-    nscoord width = NSToCoordRound(oldWidthDevPixels*AppUnitsPerDevPixel());
-    nscoord height = NSToCoordRound(oldHeightDevPixels*AppUnitsPerDevPixel());
-    vm->SetWindowDimensions(width, height);
-
-    MediaFeatureValuesChanged(PR_TRUE);
-    RebuildAllStyleData(NS_STYLE_HINT_REFLOW);
-  }
-  return PR_TRUE;
-}
-
 void
 nsPresContext::PreferenceChanged(const char* aPrefName)
 {
   nsDependentCString prefName(aPrefName);
   if (prefName.EqualsLiteral("layout.css.dpi") ||
       prefName.EqualsLiteral("layout.css.devPixelsPerPx")) {
-    CheckDPIChange();
+    PRInt32 oldAppUnitsPerDevPixel = AppUnitsPerDevPixel();
+    if (mDeviceContext->CheckDPIChange() && mShell) {
+      mDeviceContext->FlushFontCache();
+
+      
+      
+      nscoord oldWidthAppUnits, oldHeightAppUnits;
+      nsIViewManager* vm = mShell->GetViewManager();
+      vm->GetWindowDimensions(&oldWidthAppUnits, &oldHeightAppUnits);
+      float oldWidthDevPixels = oldWidthAppUnits/oldAppUnitsPerDevPixel;
+      float oldHeightDevPixels = oldHeightAppUnits/oldAppUnitsPerDevPixel;
+
+      nscoord width = NSToCoordRound(oldWidthDevPixels*AppUnitsPerDevPixel());
+      nscoord height = NSToCoordRound(oldHeightDevPixels*AppUnitsPerDevPixel());
+      vm->SetWindowDimensions(width, height);
+
+      MediaFeatureValuesChanged(PR_TRUE);
+      RebuildAllStyleData(NS_STYLE_HINT_REFLOW);
+    }
     return;
   }
   if (StringBeginsWith(prefName, NS_LITERAL_CSTRING("font."))) {
@@ -1519,11 +1510,6 @@ nsPresContext::ThemeChanged()
 void
 nsPresContext::ThemeChangedInternal()
 {
-  
-  
-  if (!mShell)
-    return;
-
   mPendingThemeChanged = PR_FALSE;
   
   
@@ -1541,12 +1527,6 @@ nsPresContext::ThemeChangedInternal()
 
   
   nsCSSRuleProcessor::FreeSystemMetrics();
-
-  if (CheckDPIChange()) {
-    
-    
-    return;
-  }
 
   
   MediaFeatureValuesChanged(PR_TRUE);

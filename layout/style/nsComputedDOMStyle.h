@@ -493,6 +493,8 @@ private:
 
   nsIPresShell* mPresShell;
 
+  PRInt32 mAppUnitsPerInch; 
+
   PRPackedBool mExposeVisitedStyle;
 
 #ifdef DEBUG

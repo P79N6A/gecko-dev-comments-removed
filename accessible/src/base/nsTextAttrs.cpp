@@ -465,10 +465,9 @@ nsFontSizeTextAttr::Format(const nscoord& aValue, nsAString& aFormattedValue)
   
   
   
-  float px =
-    NSAppUnitsToFloatPixels(aValue, nsIDeviceContext::AppUnitsPerCSSPixel());
-  
-  int pts = NS_lround(px*3/4);
+  float inches = static_cast<float>(aValue) /
+    static_cast<float>(mDC->AppUnitsPerInch());
+  int pts = static_cast<int>(inches * 72 + .5); 
 
   nsAutoString value;
   value.AppendInt(pts);

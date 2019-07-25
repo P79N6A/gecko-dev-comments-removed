@@ -111,8 +111,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0x193fcc7a, 0x2456, 0x4625, \
-    { 0x85, 0x40, 0x38, 0xed, 0x00, 0x69, 0x93, 0xf5 } }
+  { 0x21eff578, 0x942a, 0x40ff, \
+    { 0x98, 0xb9, 0x75, 0x49, 0x0b, 0x68, 0x24, 0xa2 } }
 
 
 
@@ -313,20 +313,6 @@ class nsIWidget : public nsISupports {
 
 
     virtual nsIWidget* GetSheetWindowParent(void) = 0;
-
-    
-
-
-
-    virtual float GetDPI() = 0;
-
-    
-
-
-
-
-
-    virtual double GetDefaultScale() = 0;
 
     
 

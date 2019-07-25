@@ -568,28 +568,6 @@ nsIWidget* nsWindow::GetParent()
   return mParent;
 }
 
-static PRInt32 sDPI = 0;
-
-float nsWindow::GetDPI()
-{
-    if (!sDPI) {
-        
-        HDC dc = DevOpenDC((HAB)1, OD_MEMORY,"*",0L, NULL, NULLHANDLE);
-        if (dc > 0) {
-            
-            LONG lDPI;
-            if (DevQueryCaps(dc, CAPS_VERTICAL_FONT_RES, 1, &lDPI))
-                sDPI = lDPI;
-            DevCloseDC(dc);
-        }
-        if (sDPI <= 0) {
-            
-            sDPI = 96;
-        }
-    }
-    return sDPI;  
-}
-
 
 
 NS_METHOD nsWindow::Enable(PRBool aState)

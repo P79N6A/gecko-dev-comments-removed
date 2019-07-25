@@ -1204,9 +1204,7 @@ pref("layout.css.dpi", -1);
 
 
 
-
-
-pref("layout.css.devPixelsPerPx", "1.0");
+pref("layout.css.devPixelsPerPx", "-1");
 
 
 

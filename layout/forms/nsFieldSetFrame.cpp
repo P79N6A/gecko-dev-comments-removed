@@ -176,9 +176,8 @@ nsFieldSetFrame::SetInitialChildList(nsIAtom*       aListName,
 
 class nsDisplayFieldSetBorderBackground : public nsDisplayItem {
 public:
-  nsDisplayFieldSetBorderBackground(nsDisplayListBuilder* aBuilder,
-                                    nsFieldSetFrame* aFrame)
-    : nsDisplayItem(aBuilder, aFrame) {
+  nsDisplayFieldSetBorderBackground(nsFieldSetFrame* aFrame)
+    : nsDisplayItem(aFrame) {
     MOZ_COUNT_CTOR(nsDisplayFieldSetBorderBackground);
   }
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -208,7 +207,7 @@ nsDisplayFieldSetBorderBackground::Paint(nsDisplayListBuilder* aBuilder,
                                          nsIRenderingContext* aCtx)
 {
   static_cast<nsFieldSetFrame*>(mFrame)->
-    PaintBorderBackground(*aCtx, ToReferenceFrame(),
+    PaintBorderBackground(*aCtx, aBuilder->ToReferenceFrame(mFrame),
                           mVisibleRect, aBuilder->GetBackgroundPaintFlags());
 }
 
@@ -223,14 +222,14 @@ nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   if (IsVisibleForPainting(aBuilder)) {
     if (GetStyleBorder()->mBoxShadow) {
       nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
-          nsDisplayBoxShadowOuter(aBuilder, this));
+          nsDisplayBoxShadowOuter(this));
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
     
     
     nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
-        nsDisplayFieldSetBorderBackground(aBuilder, this));
+        nsDisplayFieldSetBorderBackground(this));
     NS_ENSURE_SUCCESS(rv, rv);
   
     rv = DisplayOutlineUnconditional(aBuilder, aLists);

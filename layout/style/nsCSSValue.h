@@ -56,7 +56,6 @@
 class imgIRequest;
 class nsIDocument;
 class nsIPrincipal;
-class nsPresContext;
 
 
 #define NS_CSS_DELETE_LIST_MEMBER(type_, ptr_, member_)                        \
@@ -109,7 +108,6 @@ enum nsCSSUnit {
   eCSSUnit_Attr         = 14,     
   eCSSUnit_Local_Font   = 15,     
   eCSSUnit_Font_Format  = 16,     
-  eCSSUnit_Element      = 17,     
   eCSSUnit_Array        = 20,     
   eCSSUnit_Counter      = 21,     
   eCSSUnit_Counters     = 22,     
@@ -149,7 +147,16 @@ enum nsCSSUnit {
   eCSSUnit_Number       = 91,     
 
   
-  eCSSUnit_PhysicalMillimeter = 200,   
+  
+  eCSSUnit_Inch         = 100,    
+
+  
+  eCSSUnit_Millimeter   = 207,    
+  eCSSUnit_Centimeter   = 208,    
+
+  
+  eCSSUnit_Point        = 300,    
+  eCSSUnit_Pica         = 301,    
 
   
   
@@ -159,12 +166,7 @@ enum nsCSSUnit {
   eCSSUnit_RootEM       = 803,    
 
   
-  eCSSUnit_Point        = 900,    
-  eCSSUnit_Inch         = 901,    
-  eCSSUnit_Millimeter   = 902,    
-  eCSSUnit_Centimeter   = 903,    
-  eCSSUnit_Pica         = 904,    
-  eCSSUnit_Pixel        = 905,    
+  eCSSUnit_Pixel        = 900,    
 
   
   eCSSUnit_Degree       = 1000,    
@@ -226,30 +228,11 @@ public:
 
   nsCSSUnit GetUnit() const { return mUnit; }
   PRBool    IsLengthUnit() const
-    { return eCSSUnit_PhysicalMillimeter <= mUnit && mUnit <= eCSSUnit_Pixel; }
-  
-
-
-
-
+    { return eCSSUnit_Inch <= mUnit && mUnit <= eCSSUnit_Pixel; }
   PRBool    IsFixedLengthUnit() const  
-    { return mUnit == eCSSUnit_PhysicalMillimeter; }
-  
-
-
-
-
-
-
-
-
+    { return eCSSUnit_Inch <= mUnit && mUnit <= eCSSUnit_Pica; }
   PRBool    IsRelativeLengthUnit() const  
-    { return eCSSUnit_EM <= mUnit && mUnit <= eCSSUnit_RootEM; }
-  
-
-
-  PRBool    IsPixelLengthUnit() const
-    { return eCSSUnit_Point <= mUnit && mUnit <= eCSSUnit_Pixel; }
+    { return eCSSUnit_EM <= mUnit && mUnit <= eCSSUnit_Pixel; }
   PRBool    IsAngularUnit() const  
     { return eCSSUnit_Degree <= mUnit && mUnit <= eCSSUnit_Radian; }
   PRBool    IsFrequencyUnit() const  
@@ -260,7 +243,7 @@ public:
     { return eCSSUnit_Calc <= mUnit && mUnit <= eCSSUnit_Calc_Maximum; }
 
   PRBool    UnitHasStringValue() const
-    { return eCSSUnit_String <= mUnit && mUnit <= eCSSUnit_Element; }
+    { return eCSSUnit_String <= mUnit && mUnit <= eCSSUnit_Font_Format; }
   PRBool    UnitHasArrayValue() const
     { return eCSSUnit_Array <= mUnit && mUnit <= eCSSUnit_Calc_Maximum; }
 
@@ -359,8 +342,7 @@ public:
   
   imgIRequest* GetImageValue() const;
 
-  nscoord GetFixedLength(nsPresContext* aPresContext) const;
-  nscoord GetPixelLength() const;
+  nscoord GetLengthTwips() const;
 
   void Reset()  
   {

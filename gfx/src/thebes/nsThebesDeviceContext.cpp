@@ -280,7 +280,7 @@ nsThebesDeviceContext::nsThebesDeviceContext()
     PR_LOG(gThebesGFXLog, PR_LOG_DEBUG, ("#### Creating DeviceContext %p\n", this));
 
     mAppUnitsPerDevPixel = nscoord(-1);
-    mAppUnitsPerPhysicalInch = nscoord(-1);
+    mAppUnitsPerInch = nscoord(-1);
     mAppUnitsPerDevNotScaledPixel = nscoord(-1);
     mPixelScale = 1.0f;
 
@@ -597,7 +597,21 @@ nsThebesDeviceContext::IsPrinterSurface()
 nsresult
 nsThebesDeviceContext::SetDPI()
 {
-    float dpi = -1.0f;
+    PRInt32 dpi = -1;
+    PRBool dotsArePixels = PR_TRUE;
+    
+    
+    
+    float prefDevPixelsPerCSSPixel = -1.0;
+
+    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    if (prefs) {
+        nsXPIDLCString prefString;
+        nsresult rv = prefs->GetCharPref("layout.css.devPixelsPerPx", getter_Copies(prefString));
+        if (NS_SUCCEEDED(rv) && !prefString.IsEmpty()) {
+            prefDevPixelsPerCSSPixel = static_cast<float>(atof(prefString));
+        }
+    }
 
     
     
@@ -606,13 +620,13 @@ nsThebesDeviceContext::SetDPI()
             case gfxASurface::SurfaceTypePDF:
             case gfxASurface::SurfaceTypePS:
             case gfxASurface::SurfaceTypeQuartz:
-                dpi = 72.0f;
+                dpi = 72;
                 break;
 #ifdef XP_WIN
             case gfxASurface::SurfaceTypeWin32:
             case gfxASurface::SurfaceTypeWin32Printing: {
                 PRInt32 OSVal = GetDeviceCaps(GetPrintHDC(), LOGPIXELSY);
-                dpi = 144.0f;
+                dpi = 144;
                 mPrintingScale = float(OSVal) / dpi;
                 break;
             }
@@ -628,64 +642,58 @@ nsThebesDeviceContext::SetDPI()
                 NS_NOTREACHED("Unexpected printing surface type");
                 break;
         }
-
-        mAppUnitsPerDevNotScaledPixel =
-          NS_lround((AppUnitsPerCSSPixel() * 96) / dpi);
+        dotsArePixels = PR_FALSE;
     } else {
-        nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-
+        nsresult rv;
         
         
         
         
         PRInt32 prefDPI = -1;
         if (prefs) {
-            nsresult rv = prefs->GetIntPref("layout.css.dpi", &prefDPI);
+            rv = prefs->GetIntPref("layout.css.dpi", &prefDPI);
             if (NS_FAILED(rv)) {
                 prefDPI = -1;
             }
         }
 
-        if (prefDPI > 0) {
+        dpi = gfxPlatform::GetDPI();
+
+#ifdef MOZ_ENABLE_GTK2
+        if (prefDPI < 0) 
+            dpi = PR_MAX(dpi, 96);
+#endif
+ 
+        if (prefDPI > 0 && !mPrintingSurface)
             dpi = prefDPI;
-        } else if (mWidget) {
-            dpi = mWidget->GetDPI();
-
-            if (prefDPI < 0) {
-                dpi = PR_MAX(96.0f, dpi);
-            }
-        } else {
-            dpi = 96.0f;
-        }
-
-        
-        
-        
-        float devPixelsPerCSSPixel = -1.0;
-
-        if (prefs) {
-            nsXPIDLCString prefString;
-            nsresult rv = prefs->GetCharPref("layout.css.devPixelsPerPx", getter_Copies(prefString));
-            if (NS_SUCCEEDED(rv) && !prefString.IsEmpty()) {
-                devPixelsPerCSSPixel = static_cast<float>(atof(prefString));
-            }
-        }
-
-        if (devPixelsPerCSSPixel <= 0) {
-            if (mWidget) {
-                devPixelsPerCSSPixel = mWidget->GetDefaultScale();
-            } else {
-                devPixelsPerCSSPixel = 1.0;
-            }
-        }
-
-        mAppUnitsPerDevNotScaledPixel =
-            PR_MAX(1, NS_lround(AppUnitsPerCSSPixel() / devPixelsPerCSSPixel));
     }
 
-    NS_ASSERTION(dpi != -1.0, "no dpi set");
+    NS_ASSERTION(dpi != -1, "no dpi set");
 
-    mAppUnitsPerPhysicalInch = NS_lround(dpi * mAppUnitsPerDevNotScaledPixel);
+    if (dotsArePixels) {
+        if (prefDevPixelsPerCSSPixel <= 0) {
+            
+            
+            
+            
+            PRUint32 roundedDPIScaleFactor = dpi/96;
+            mAppUnitsPerDevNotScaledPixel =
+                PR_MAX(1, AppUnitsPerCSSPixel() / PR_MAX(1, roundedDPIScaleFactor));
+        } else {
+            mAppUnitsPerDevNotScaledPixel =
+                PR_MAX(1, static_cast<PRInt32>(AppUnitsPerCSSPixel() /
+                                               prefDevPixelsPerCSSPixel));
+        }
+    } else {
+        
+
+
+
+        mAppUnitsPerDevNotScaledPixel = (AppUnitsPerCSSPixel() * 96) / dpi;
+    }
+
+    mAppUnitsPerInch = NSIntPixelsToAppUnits(dpi, mAppUnitsPerDevNotScaledPixel);
+
     UpdateScaledAppUnits();
 
     return NS_OK;
@@ -1182,10 +1190,8 @@ nsThebesDeviceContext::CalcPrintingSize()
     }
 
     if (inPoints) {
-        
-        
-        mWidth = NSToCoordRound(float(size.width) * AppUnitsPerPhysicalInch() / 72);
-        mHeight = NSToCoordRound(float(size.height) * AppUnitsPerPhysicalInch() / 72);
+        mWidth = NSToCoordRound(float(size.width) * AppUnitsPerInch() / 72);
+        mHeight = NSToCoordRound(float(size.height) * AppUnitsPerInch() / 72);
     } else {
         mWidth = NSToIntRound(size.width);
         mHeight = NSToIntRound(size.height);
@@ -1194,12 +1200,12 @@ nsThebesDeviceContext::CalcPrintingSize()
 
 PRBool nsThebesDeviceContext::CheckDPIChange() {
     PRInt32 oldDevPixels = mAppUnitsPerDevNotScaledPixel;
-    PRInt32 oldInches = mAppUnitsPerPhysicalInch;
+    PRInt32 oldInches = mAppUnitsPerInch;
 
     SetDPI();
 
     return oldDevPixels != mAppUnitsPerDevNotScaledPixel ||
-           oldInches != mAppUnitsPerPhysicalInch;
+           oldInches != mAppUnitsPerInch;
 }
 
 PRBool

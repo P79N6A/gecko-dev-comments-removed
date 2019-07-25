@@ -89,7 +89,7 @@ nsMathMLmsupFrame::Place(nsIRenderingContext& aRenderingContext,
                          nsHTMLReflowMetrics& aDesiredSize)
 {
   
-  nscoord scriptSpace = nsPresContext::CSSPointsToAppUnits(0.5f); 
+  nscoord scriptSpace = PresContext()->PointsToAppUnits(0.5f); 
 
   
   nsAutoString value;
