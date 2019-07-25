@@ -304,9 +304,17 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins)
     masm.callWithExitFrame(wrapper);
     if (!createSafepoint(ins))
         return false;
-
+#if defined(JS_CPU_ARM)
     
-    masm.implicitPop(fun.explicitArgs + argumentPadding / sizeof(void *));
+    
+    
+    
+    int extraPop = (sizeof(IonExitFrameLayout) - sizeof(void*)) / sizeof(void*);
+#else
+    int extraPop = 0;
+#endif
+    
+    masm.implicitPop(fun.explicitArgs + argumentPadding / sizeof(void *) + extraPop);
 
     
     

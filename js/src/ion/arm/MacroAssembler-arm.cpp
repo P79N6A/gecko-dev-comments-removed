@@ -998,18 +998,23 @@ void
 MacroAssemblerARMCompat::callWithExitFrame(IonCode *target)
 {
     uint32 descriptor = MakeFrameDescriptor(framePushed(), IonFrame_JS);
-    ma_push(ScratchRegister); 
-    push(Imm32(descriptor)); 
+    Push(ScratchRegister); 
+    Push(Imm32(descriptor)); 
     
     ma_mov(Imm32((int) target->raw()), ScratchRegister);
-    ma_callIon(ScratchRegister);
+    callIon(ScratchRegister);
 }
 
 void
 MacroAssemblerARMCompat::callIon(const Register &callee)
 {
-    ma_callIon(callee);
-    framePushed_ += 4; 
+    JS_ASSERT((framePushed() & 3) == 0);
+    if (framePushed() & 7 == 4) {
+        ma_callIonHalfPush(callee);
+    } else {
+        adjustFrame(sizeof(void*));
+        ma_callIon(callee);
+    }
 }
 
 void
@@ -1017,7 +1022,7 @@ MacroAssemblerARMCompat::reserveStack(uint32 amount)
 {
     if (amount)
         ma_sub(Imm32(amount), sp);
-    framePushed_ += amount;
+    adjustFrame(amount);
 }
 void
 MacroAssemblerARMCompat::freeStack(uint32 amount)
@@ -1025,7 +1030,7 @@ MacroAssemblerARMCompat::freeStack(uint32 amount)
     JS_ASSERT(amount <= framePushed_);
     if (amount)
         ma_add(Imm32(amount), sp);
-    framePushed_ -= amount;
+    adjustFrame(-amount);
 }
 void
 MacroAssemblerARMCompat::move32(const Imm32 &imm, const Register &dest)
@@ -1241,6 +1246,13 @@ MacroAssemblerARMCompat::testObject(Assembler::Condition cond, const Register &t
     JS_ASSERT(cond == Equal || cond == NotEqual);
     ma_cmp(tag, ImmTag(JSVAL_TAG_OBJECT));
     return cond;
+}
+Assembler::Condition
+MacroAssemblerARMCompat::testNumber(Condition cond, const Register &tag)
+{
+    JS_ASSERT(cond == Equal || cond == NotEqual);
+    ma_cmp(tag, ImmTag(JSVAL_UPPER_INCL_TAG_OF_NUMBER_SET));
+    return cond == Equal ? BelowOrEqual : Above;
 }
 
 
@@ -1493,19 +1505,24 @@ MacroAssemblerARM::ma_callIon(const Register r)
 {
     
     
-
+    
     as_dtr(IsStore, 32, PreIndex, pc, DTRAddr(sp, DtrOffImm(-8)));
     as_blx(r);
 }
 void
 MacroAssemblerARM::ma_callIonNoPush(const Register r)
 {
+    
+    
     as_dtr(IsStore, 32, Offset, pc, DTRAddr(sp, DtrOffImm(0)));
     as_blx(r);
 }
 void
 MacroAssemblerARM::ma_callIonHalfPush(const Register r)
 {
+    
+    
+    
     ma_push(pc);
     as_blx(r);
 }
@@ -1652,4 +1669,3 @@ MacroAssemblerARMCompat::handleException()
     as_dtr(IsLoad, 32, PostIndex, pc, DTRAddr(sp, DtrOffImm(4)));
     
 }
-
