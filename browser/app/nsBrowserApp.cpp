@@ -36,19 +36,14 @@
 
 
 
-#include "nsXPCOMGlue.h"
 #include "nsXULAppAPI.h"
-#if defined(XP_WIN)
+#ifdef XP_WIN
 #include <windows.h>
 #include <stdlib.h>
-#elif defined(XP_UNIX)
-#include <sys/time.h>
-#include <sys/resource.h>
 #endif
 
 #include <stdio.h>
 #include <stdarg.h>
-#include <string.h>
 
 #include "plstr.h"
 #include "prprf.h"
@@ -60,13 +55,10 @@
 
 #ifdef XP_WIN
 
-#include "nsWindowsWMain.cpp"
-#define snprintf _snprintf
-#define strcasecmp _stricmp
-#endif
-#include "BinaryPath.h"
+#define XRE_WANT_DLL_BLOCKLIST
 
-#include "nsXPCOMPrivate.h" 
+#include "nsWindowsWMain.cpp"
+#endif
 
 static void Output(const char *fmt, ... )
 {
@@ -93,12 +85,12 @@ static PRBool IsArg(const char* arg, const char* s)
   {
     if (*++arg == '-')
       ++arg;
-    return !strcasecmp(arg, s);
+    return !PL_strcasecmp(arg, s);
   }
 
 #if defined(XP_WIN) || defined(XP_OS2)
   if (*arg == '/')
-    return !strcasecmp(++arg, s);
+    return !PL_strcasecmp(++arg, s);
 #endif
 
   return PR_FALSE;
@@ -114,48 +106,22 @@ public:
   ~ScopedLogging() { NS_LogTerm(); }
 };
 
-XRE_GetFileFromPathType XRE_GetFileFromPath;
-XRE_CreateAppDataType XRE_CreateAppData;
-XRE_FreeAppDataType XRE_FreeAppData;
-#ifdef XRE_HAS_DLL_BLOCKLIST
-XRE_SetupDllBlocklistType XRE_SetupDllBlocklist;
-#endif
-XRE_TelemetryAddType XRE_TelemetryAdd;
-XRE_mainType XRE_main;
-
-static const nsDynamicFunctionLoad kXULFuncs[] = {
-    { "XRE_GetFileFromPath", (NSFuncPtr*) &XRE_GetFileFromPath },
-    { "XRE_CreateAppData", (NSFuncPtr*) &XRE_CreateAppData },
-    { "XRE_FreeAppData", (NSFuncPtr*) &XRE_FreeAppData },
-#ifdef XRE_HAS_DLL_BLOCKLIST
-    { "XRE_SetupDllBlocklist", (NSFuncPtr*) &XRE_SetupDllBlocklist },
-#endif
-    { "XRE_TelemetryAdd", (NSFuncPtr*) &XRE_TelemetryAdd },
-    { "XRE_main", (NSFuncPtr*) &XRE_main },
-    { nsnull, nsnull }
-};
-
-static int do_main(const char *exePath, int argc, char* argv[])
+int main(int argc, char* argv[])
 {
+  ScopedLogging log;
+
   nsCOMPtr<nsILocalFile> appini;
-#ifdef XP_WIN
-  
-  
-  nsresult rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(exePath), PR_FALSE,
-                                getter_AddRefs(appini));
-#else
-  nsresult rv = NS_NewNativeLocalFile(nsDependentCString(exePath), PR_FALSE,
-                                      getter_AddRefs(appini));
-#endif
+  nsresult rv = XRE_GetBinaryPath(argv[0], getter_AddRefs(appini));
   if (NS_FAILED(rv)) {
+    Output("Couldn't calculate the application directory.");
     return 255;
   }
-
   appini->SetNativeLeafName(NS_LITERAL_CSTRING("application.ini"));
 
   
   
-  const char *appDataFile = getenv("XUL_APP_FILE");
+  char *appEnv = nsnull;
+  const char *appDataFile = PR_GetEnv("XUL_APP_FILE");
   if (appDataFile && *appDataFile) {
     rv = XRE_GetFileFromPath(appDataFile, getter_AddRefs(appini));
     if (NS_FAILED(rv)) {
@@ -175,12 +141,8 @@ static int do_main(const char *exePath, int argc, char* argv[])
       return 255;
     }
 
-    char appEnv[MAXPATHLEN];
-    snprintf(appEnv, MAXPATHLEN, "XUL_APP_FILE=%s", argv[2]);
-    if (putenv(appEnv)) {
-      Output("Couldn't set %s.\n", appEnv);
-      return 255;
-    }
+    appEnv = PR_smprintf("XUL_APP_FILE=%s", argv[2]);
+    PR_SetEnv(appEnv);
     argv[2] = argv[0];
     argv += 2;
     argc -= 2;
@@ -195,90 +157,7 @@ static int do_main(const char *exePath, int argc, char* argv[])
 
   int result = XRE_main(argc, argv, appData);
   XRE_FreeAppData(appData);
-  return result;
-}
-
-int main(int argc, char* argv[])
-{
-  char exePath[MAXPATHLEN];
-
-  nsresult rv = mozilla::BinaryPath::Get(argv[0], exePath);
-  if (NS_FAILED(rv)) {
-    Output("Couldn't calculate the application directory.\n");
-    return 255;
-  }
-
-  char *lastSlash = strrchr(exePath, XPCOM_FILE_PATH_SEPARATOR[0]);
-  if (!lastSlash || (lastSlash - exePath > MAXPATHLEN - sizeof(XPCOM_DLL) - 1))
-    return 255;
-
-  strcpy(++lastSlash, XPCOM_DLL);
-
-  int gotCounters;
-#if defined(XP_UNIX)
-  struct rusage initialRUsage;
-  gotCounters = !getrusage(RUSAGE_SELF, &initialRUsage);
-#elif defined(XP_WIN)
-  
-  
-  
-  
-  
-  IO_COUNTERS ioCounters;
-  gotCounters = GetProcessIoCounters(GetCurrentProcess(), &ioCounters);
-  if (gotCounters && !ioCounters.ReadOperationCount)
-#endif
-  {
-      XPCOMGlueEnablePreload();
-  }
-
-
-  rv = XPCOMGlueStartup(exePath);
-  if (NS_FAILED(rv)) {
-    Output("Couldn't load XPCOM.\n");
-    return 255;
-  }
-
-  rv = XPCOMGlueLoadXULFunctions(kXULFuncs);
-  if (NS_FAILED(rv)) {
-    Output("Couldn't load XRE functions.\n");
-    return 255;
-  }
-
-#ifdef XRE_HAS_DLL_BLOCKLIST
-  XRE_SetupDllBlocklist();
-#endif
-
-  if (gotCounters) {
-#if defined(XP_WIN)
-    XRE_TelemetryAdd("Early.GlueStartup::ProcessIoCounters.ReadOperationCount",
-                     int(ioCounters.ReadOperationCount), 1, 100, 12, HISTOGRAM_LINEAR);
-    XRE_TelemetryAdd("Early.GlueStartup::ProcessIoCounters.ReadTransferCount (KB)",
-                     int(ioCounters.ReadTransferCount / 1024), 1, 50 * 1024, 12, HISTOGRAM_LINEAR);
-    IO_COUNTERS newIoCounters;
-    if (GetProcessIoCounters(GetCurrentProcess(), &newIoCounters)) {
-      XRE_TelemetryAdd("GlueStartup::ProcessIoCounters.ReadOperationCount",
-                       int(newIoCounters.ReadOperationCount - ioCounters.ReadOperationCount), 1, 100, 12, HISTOGRAM_LINEAR);
-      XRE_TelemetryAdd("GlueStartup::ProcessIoCounters.ReadTransferCount (KB)",
-                       int((newIoCounters.ReadTransferCount - ioCounters.ReadTransferCount) / 1024), 1, 50 * 1024, 12, HISTOGRAM_LINEAR);
-    }
-#elif defined(XP_UNIX)
-    XRE_TelemetryAdd("Early.GlueStartup::HardFaults",
-                     int(initialRUsage.ru_majflt), 1, 100, 12, HISTOGRAM_LINEAR);
-    struct rusage newRUsage;
-    if (!getrusage(RUSAGE_SELF, &newRUsage)) {
-      XRE_TelemetryAdd("GlueStartup::HardFaults",
-                       int(newRUsage.ru_majflt - initialRUsage.ru_majflt), 1, 500, 12, HISTOGRAM_LINEAR);
-    }
-#endif
-  }
-
-  int result;
-  {
-    ScopedLogging log;
-    result = do_main(exePath, argc, argv);
-  }
-
-  XPCOMGlueShutdown();
+  if (appEnv)
+    PR_smprintf_free(appEnv);
   return result;
 }
