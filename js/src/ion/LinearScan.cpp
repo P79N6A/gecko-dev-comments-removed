@@ -670,6 +670,14 @@ LinearScanAllocator::buildLivenessInfo()
         JS_ASSERT_IF(!mblock->numPredecessors(), live->empty());
     }
 
+    
+    
+    
+    if (fixedIntervalsUnion->numRanges() == 0) {
+        fixedIntervalsUnion->addRange(CodePosition(0, CodePosition::INPUT),
+                                      CodePosition(0, CodePosition::OUTPUT));
+    }
+
     return true;
 }
 
