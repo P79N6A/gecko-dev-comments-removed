@@ -153,11 +153,11 @@ static PRInt64 total_source_bytes;
 static PRInt64 discardable_source_bytes;
 
 
-static PRBool
+static bool
 DiscardingEnabled()
 {
-  static PRBool inited;
-  static PRBool enabled;
+  static bool inited;
+  static bool enabled;
 
   if (!inited) {
     inited = PR_TRUE;
@@ -1549,9 +1549,9 @@ RasterImage::DoComposite(imgFrame** aFrameToUse,
     prevFrameDisposalMethod = kDisposeClear;
 
   nsIntRect prevFrameRect = aPrevFrame->GetRect();
-  PRBool isFullPrevFrame = (prevFrameRect.x == 0 && prevFrameRect.y == 0 &&
-                            prevFrameRect.width == mSize.width &&
-                            prevFrameRect.height == mSize.height);
+  bool isFullPrevFrame = (prevFrameRect.x == 0 && prevFrameRect.y == 0 &&
+                          prevFrameRect.width == mSize.width &&
+                          prevFrameRect.height == mSize.height);
 
   
   
@@ -1561,9 +1561,9 @@ RasterImage::DoComposite(imgFrame** aFrameToUse,
 
   PRInt32 nextFrameDisposalMethod = aNextFrame->GetFrameDisposalMethod();
   nsIntRect nextFrameRect = aNextFrame->GetRect();
-  PRBool isFullNextFrame = (nextFrameRect.x == 0 && nextFrameRect.y == 0 &&
-                            nextFrameRect.width == mSize.width &&
-                            nextFrameRect.height == mSize.height);
+  bool isFullNextFrame = (nextFrameRect.x == 0 && nextFrameRect.y == 0 &&
+                          nextFrameRect.width == mSize.width &&
+                          nextFrameRect.height == mSize.height);
 
   if (!aNextFrame->GetIsPaletted()) {
     
@@ -1625,7 +1625,7 @@ RasterImage::DoComposite(imgFrame** aFrameToUse,
     return NS_OK;
   }
 
-  PRBool needToBlankComposite = PR_FALSE;
+  bool needToBlankComposite = false;
 
   
   if (!mAnim->compositingFrame) {
@@ -1640,12 +1640,12 @@ RasterImage::DoComposite(imgFrame** aFrameToUse,
       mAnim->compositingFrame = nsnull;
       return rv;
     }
-    needToBlankComposite = PR_TRUE;
+    needToBlankComposite = true;
   } else if (aNextFrameIndex != mAnim->lastCompositedFrameIndex+1) {
 
     
     
-    needToBlankComposite = PR_TRUE;
+    needToBlankComposite = true;
   }
 
   
@@ -1654,15 +1654,15 @@ RasterImage::DoComposite(imgFrame** aFrameToUse,
   
   
   
-  PRBool doDisposal = PR_TRUE;
+  bool doDisposal = true;
   if (!aNextFrame->GetHasAlpha() &&
       nextFrameDisposalMethod != kDisposeRestorePrevious) {
     if (isFullNextFrame) {
       
       
-      doDisposal = PR_FALSE;
+      doDisposal = false;
       
-      needToBlankComposite = PR_FALSE;
+      needToBlankComposite = false;
     } else {
       if ((prevFrameRect.x >= nextFrameRect.x) &&
           (prevFrameRect.y >= nextFrameRect.y) &&
@@ -1670,7 +1670,7 @@ RasterImage::DoComposite(imgFrame** aFrameToUse,
           (prevFrameRect.y + prevFrameRect.height <= nextFrameRect.y + nextFrameRect.height)) {
         
         
-        doDisposal = PR_FALSE;  
+        doDisposal = false;
       }
     }      
   }
@@ -2221,11 +2221,11 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
 
   
   
-  PRBool failed = PR_FALSE;
+  bool failed = false;
   if (wasSizeDecode && !mHasSize)
-    failed = PR_TRUE;
+    failed = true;
   if (!wasSizeDecode && !mDecoded)
-    failed = PR_TRUE;
+    failed = true;
   if ((aIntent == eShutdownIntent_Done) && failed) {
     DoError();
     return NS_ERROR_FAILURE;
@@ -2669,7 +2669,7 @@ imgDecodeWorker::Run()
     ? image->mSourceData.Length() : gDecodeBytesAtATime;
 
   
-  PRBool haveMoreData = PR_TRUE;
+  bool haveMoreData = true;
   TimeStamp start = TimeStamp::Now();
   TimeStamp deadline = start + TimeDuration::FromMilliseconds(gMaxMSBeforeYield);
 
