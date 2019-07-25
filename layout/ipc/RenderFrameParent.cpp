@@ -158,7 +158,9 @@ ComputeShadowTreeTransform(nsIFrame* aContainerFrame,
   nsIntPoint scrollOffset =
     aConfig.mScrollOffset.ToNearestPixels(auPerDevPixel);
   
-  nsIntPoint metricsScrollOffset = aMetrics->mViewportScrollOffset;
+  gfx::Point metricsScrollOffset = aMetrics->mViewportScrollOffset;
+  nsIntPoint roundedMetricsScrollOffset =
+    nsIntPoint(NS_lround(metricsScrollOffset.x), NS_lround(metricsScrollOffset.y));
 
   if (aRootFrameLoader->AsyncScrollEnabled() && !aMetrics->mDisplayPort.IsEmpty()) {
     
@@ -166,8 +168,8 @@ ComputeShadowTreeTransform(nsIFrame* aContainerFrame,
     
     
     nsIntPoint scrollCompensation(
-      (scrollOffset.x / aTempScaleX - metricsScrollOffset.x) * aConfig.mXScale,
-      (scrollOffset.y / aTempScaleY - metricsScrollOffset.y) * aConfig.mYScale);
+      (scrollOffset.x / aTempScaleX - roundedMetricsScrollOffset.x) * aConfig.mXScale,
+      (scrollOffset.y / aTempScaleY - roundedMetricsScrollOffset.y) * aConfig.mYScale);
 
     return ViewTransform(-scrollCompensation, aConfig.mXScale, aConfig.mYScale);
   } else {

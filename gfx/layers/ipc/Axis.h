@@ -44,13 +44,13 @@ public:
 
 
 
-  void UpdateWithTouchAtDevicePoint(int32_t aPos, const TimeDuration& aTimeDelta);
+  void UpdateWithTouchAtDevicePoint(PRInt32 aPos, const TimeDuration& aTimeDelta);
 
   
 
 
 
-  void StartTouch(int32_t aPos);
+  void StartTouch(PRInt32 aPos);
 
   
 
@@ -84,7 +84,7 @@ public:
 
 
 
-  int32_t GetDisplacementForDuration(float aScale, const TimeDuration& aDelta);
+  float GetDisplacementForDuration(float aScale, const TimeDuration& aDelta);
 
   
 
@@ -114,7 +114,7 @@ public:
 
 
 
-  int32_t GetExcess();
+  float GetExcess();
 
   
 
@@ -126,24 +126,13 @@ public:
 
 
 
-  Overscroll DisplacementWillOverscroll(int32_t aDisplacement);
+  Overscroll DisplacementWillOverscroll(PRInt32 aDisplacement);
 
   
 
 
 
-  int32_t DisplacementWillOverscrollAmount(int32_t aDisplacement);
-
-  
-
-
-
-
-
-
-
-
-  Overscroll ScaleWillOverscroll(float aScale, int32_t aFocus);
+  float DisplacementWillOverscrollAmount(PRInt32 aDisplacement);
 
   
 
@@ -153,7 +142,18 @@ public:
 
 
 
-  int32_t ScaleWillOverscrollAmount(float aScale, int32_t aFocus);
+
+  Overscroll ScaleWillOverscroll(float aScale, PRInt32 aFocus);
+
+  
+
+
+
+
+
+
+
+  float ScaleWillOverscrollAmount(float aScale, PRInt32 aFocus);
 
   
 
@@ -164,27 +164,27 @@ public:
 
   bool ScaleWillOverscrollBothSides(float aScale);
 
-  int32_t GetOrigin();
-  int32_t GetViewportLength();
-  int32_t GetPageStart();
-  int32_t GetPageLength();
-  int32_t GetViewportEnd();
-  int32_t GetPageEnd();
+  float GetOrigin();
+  float GetViewportLength();
+  float GetPageStart();
+  float GetPageLength();
+  float GetViewportEnd();
+  float GetPageEnd();
 
-  virtual int32_t GetPointOffset(const nsIntPoint& aPoint) = 0;
-  virtual int32_t GetRectLength(const gfx::Rect& aRect) = 0;
-  virtual int32_t GetRectOffset(const gfx::Rect& aRect) = 0;
+  virtual float GetPointOffset(const gfx::Point& aPoint) = 0;
+  virtual float GetRectLength(const gfx::Rect& aRect) = 0;
+  virtual float GetRectOffset(const gfx::Rect& aRect) = 0;
 
 protected:
-  int32_t mPos;
-  int32_t mStartPos;
+  PRInt32 mPos;
+  PRInt32 mStartPos;
   float mVelocity;
   
   
   
   
   
-  int32_t mAcceleration;
+  PRInt32 mAcceleration;
   nsRefPtr<AsyncPanZoomController> mAsyncPanZoomController;
   bool mLockPanning;
 };
@@ -192,17 +192,17 @@ protected:
 class AxisX : public Axis {
 public:
   AxisX(AsyncPanZoomController* mAsyncPanZoomController);
-  virtual int32_t GetPointOffset(const nsIntPoint& aPoint);
-  virtual int32_t GetRectLength(const gfx::Rect& aRect);
-  virtual int32_t GetRectOffset(const gfx::Rect& aRect);
+  virtual float GetPointOffset(const gfx::Point& aPoint);
+  virtual float GetRectLength(const gfx::Rect& aRect);
+  virtual float GetRectOffset(const gfx::Rect& aRect);
 };
 
 class AxisY : public Axis {
 public:
   AxisY(AsyncPanZoomController* mAsyncPanZoomController);
-  virtual int32_t GetPointOffset(const nsIntPoint& aPoint);
-  virtual int32_t GetRectLength(const gfx::Rect& aRect);
-  virtual int32_t GetRectOffset(const gfx::Rect& aRect);
+  virtual float GetPointOffset(const gfx::Point& aPoint);
+  virtual float GetRectLength(const gfx::Rect& aRect);
+  virtual float GetRectOffset(const gfx::Rect& aRect);
 };
 
 }

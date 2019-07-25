@@ -280,7 +280,7 @@ protected:
   
 
 
-  void ScrollBy(const nsIntPoint& aOffset);
+  void ScrollBy(const gfx::Point& aOffset);
 
   
 

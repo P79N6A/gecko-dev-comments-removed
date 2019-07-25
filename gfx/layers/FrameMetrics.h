@@ -71,7 +71,7 @@ public:
   
   nsIntRect mViewport;
   nsIntRect mContentRect;
-  nsIntPoint mViewportScrollOffset;
+  gfx::Point mViewportScrollOffset;
   nsIntRect mDisplayPort;
   ViewID mScrollId;
 

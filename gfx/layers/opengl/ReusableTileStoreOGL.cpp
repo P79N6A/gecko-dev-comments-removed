@@ -13,7 +13,7 @@ ReusableTileStoreOGL::~ReusableTileStoreOGL()
     return;
 
   mContext->MakeCurrent();
-  for (uint32_t i = 0; i < mTiles.Length(); i++)
+  for (PRUint32 i = 0; i < mTiles.Length(); i++)
     mContext->fDeleteTextures(1, &mTiles[i]->mTexture.mTextureHandle);
   mTiles.Clear();
 }
@@ -55,7 +55,7 @@ ReusableTileStoreOGL::InvalidateTiles(TiledThebesLayerOGL* aLayer,
   
   
   mContext->MakeCurrent();
-  for (uint32_t i = 0; i < mTiles.Length();) {
+  for (PRUint32 i = 0; i < mTiles.Length();) {
     ReusableTiledTextureOGL* tile = mTiles[i];
 
     
@@ -220,7 +220,9 @@ ReusableTileStoreOGL::DrawTiles(TiledThebesLayerOGL* aLayer,
             TransformBounds(gfxRect(parentMetrics.mDisplayPort));
           const FrameMetrics& metrics = scrollableLayer->GetFrameMetrics();
           const nsIntSize& contentSize = metrics.mContentRect.Size();
-          const nsIntPoint& contentOrigin = metrics.mContentRect.TopLeft() - metrics.mViewportScrollOffset;
+          const gfx::Point& scrollOffset = metrics.mViewportScrollOffset;
+          const nsIntPoint& contentOrigin = metrics.mContentRect.TopLeft() -
+            nsIntPoint(NS_lround(scrollOffset.x), NS_lround(scrollOffset.y));
           gfxRect contentRect = gfxRect(contentOrigin.x, contentOrigin.y,
                                         contentSize.width, contentSize.height);
           contentBounds = scrollableLayer->GetEffectiveTransform().TransformBounds(contentRect);
@@ -229,7 +231,7 @@ ReusableTileStoreOGL::DrawTiles(TiledThebesLayerOGL* aLayer,
   }
 
   
-  for (uint32_t i = 0; i < mTiles.Length(); i++) {
+  for (PRUint32 i = 0; i < mTiles.Length(); i++) {
     ReusableTiledTextureOGL* tile = mTiles[i];
 
     
