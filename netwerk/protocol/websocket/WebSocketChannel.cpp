@@ -158,8 +158,6 @@ class FailDelayManager
 public:
   FailDelayManager()
   {
-    MOZ_COUNT_CTOR(nsWSAdmissionManager);
-
     mDelaysDisabled = false;
 
     nsCOMPtr<nsIPrefBranch> prefService =
@@ -170,14 +168,6 @@ public:
                                   &boolpref);
     if (NS_SUCCEEDED(rv) && !boolpref) {
       mDelaysDisabled = true;
-    }
-  }
-
-  ~FailDelayManager()
-  {
-    MOZ_COUNT_DTOR(nsWSAdmissionManager);
-    for (PRUint32 i = 0; i < mEntries.Length(); i++) {
-      delete mEntries[i];
     }
   }
 
@@ -202,23 +192,15 @@ public:
     if (mDelaysDisabled)
       return nsnull;
 
-    FailDelay *result = nsnull;
-    TimeStamp rightNow = TimeStamp::Now();
-
-    
-    
-    for (PRInt32 i = mEntries.Length() - 1; i >= 0; --i) {
+    for (PRUint32 i = 0; i < mEntries.Length(); i++) {
       FailDelay *fail = mEntries[i];
       if (fail->mAddress.Equals(address) && fail->mPort == port) {
         if (outIndex)
           *outIndex = i;
-        result = fail;
-      } else if (fail->IsExpired(rightNow)) {
-        mEntries.RemoveElementAt(i);
-        delete fail;
+        return fail;
       }
     }
-    return result;
+    return nsnull;
   }
 
   
