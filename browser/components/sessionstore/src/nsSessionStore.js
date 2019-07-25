@@ -196,7 +196,11 @@ SessionStoreService.prototype = {
   _browserSetState: false,
 
   
-  _lastSaveTime: 0, 
+  _lastSaveTime: 0,
+
+  
+  
+  _sessionStartTime: Date.now(),
 
   
   _windows: {},
@@ -343,7 +347,12 @@ SessionStoreService.prototype = {
               this._initialState = { windows: [{ tabs: [{ entries: [pageData] }] }] };
             }
           }
+
           
+          this._sessionStartTime = this._initialState.session &&
+                                   this._initialState.session.startTime ||
+                                   this._sessionStartTime;
+
           
           delete this._initialState.windows[0].hidden;
           
@@ -1509,9 +1518,13 @@ SessionStoreService.prototype = {
       this._closedWindows = this._closedWindows.concat(lastSessionState._closedWindows);
       this._capClosedWindows();
     }
+
     
     this._recentCrashes = lastSessionState.session &&
                           lastSessionState.session.recentCrashes || 0;
+    this._sessionStartTime = lastSessionState.session &&
+                             lastSessionState.session.startTime ||
+                             this._sessionStartTime;
 
     this._lastSessionState = null;
   },
@@ -3420,7 +3433,8 @@ SessionStoreService.prototype = {
 
     oState.session = {
       state: this._loadState == STATE_RUNNING ? STATE_RUNNING_STR : STATE_STOPPED_STR,
-      lastUpdate: Date.now()
+      lastUpdate: Date.now(),
+      startTime: this._sessionStartTime
     };
     if (this._recentCrashes)
       oState.session.recentCrashes = this._recentCrashes;
