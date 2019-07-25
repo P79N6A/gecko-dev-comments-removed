@@ -80,6 +80,7 @@ class SVGUserUnitList;
 class SVGAnimatedPointList;
 class SVGAnimatedPathSegList;
 class SVGAnimatedPreserveAspectRatio;
+class SVGAnimatedTransformList;
 }
 
 typedef nsStyledElementNotElementCSSInlineStyle nsSVGElementBase;
@@ -100,6 +101,7 @@ public:
   typedef mozilla::SVGAnimatedPointList SVGAnimatedPointList;
   typedef mozilla::SVGAnimatedPathSegList SVGAnimatedPathSegList;
   typedef mozilla::SVGAnimatedPreserveAspectRatio SVGAnimatedPreserveAspectRatio;
+  typedef mozilla::SVGAnimatedTransformList SVGAnimatedTransformList;
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -188,6 +190,7 @@ public:
   virtual void DidChangeLengthList(PRUint8 aAttrEnum, PRBool aDoSetAttr);
   virtual void DidChangePointList(PRBool aDoSetAttr);
   virtual void DidChangePathSegList(PRBool aDoSetAttr);
+  virtual void DidChangeTransformList(PRBool aDoSetAttr);
   virtual void DidChangeString(PRUint8 aAttrEnum) {}
 
   virtual void DidAnimateLength(PRUint8 aAttrEnum);
@@ -204,7 +207,7 @@ public:
   virtual void DidAnimateLengthList(PRUint8 aAttrEnum);
   virtual void DidAnimatePointList();
   virtual void DidAnimatePathSegList();
-  virtual void DidAnimateTransform();
+  virtual void DidAnimateTransformList();
   virtual void DidAnimateString(PRUint8 aAttrEnum);
   virtual void DidAnimateClass();
 
@@ -223,6 +226,11 @@ public:
     
     
     
+    return nsnull;
+  }
+  
+  
+  virtual SVGAnimatedTransformList* GetAnimatedTransformList() {
     return nsnull;
   }
 
@@ -244,6 +252,9 @@ public:
     return nsnull;
   }
   virtual nsIAtom* GetPathDataAttrName() const {
+    return nsnull;
+  }
+  virtual nsIAtom* GetTransformListAttrName() const {
     return nsnull;
   }
 
@@ -524,8 +535,6 @@ protected:
   static nsSVGEnumMapping sSVGUnitTypesMap[];
 
 private:
-  void ResetOldStyleBaseType(nsISVGValue *svg_value);
-
   struct ObservableModificationData {
     
     
