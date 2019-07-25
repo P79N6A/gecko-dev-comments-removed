@@ -208,8 +208,6 @@ private:
     
     GtkWidget     *mHiddenWidget;
     
-    GtkWidget     *mGrabWidget;
-    
     nsCOMPtr<nsISupportsArray> mSourceDataItems;
 
     nsCOMPtr<nsIScriptableRegion> mSourceRegion;

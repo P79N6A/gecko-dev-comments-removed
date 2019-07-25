@@ -100,7 +100,12 @@ FuncToGpointer(T aFunction)
 }
 
 static PRLogModuleInfo *sDragLm = NULL;
+
+
+
 static guint sMotionEventTimerID;
+static GdkEvent *sMotionEvent;
+static GtkWidget *sGrabWidget;
 
 static const char gMimeListType[] = "application/x-moz-internal-item-list";
 static const char gMozUrlType[] = "_NETSCAPE_URL";
@@ -167,7 +172,6 @@ nsDragService::nsDragService()
     if (!sDragLm)
         sDragLm = PR_NewLogModule("nsDragService");
     PR_LOG(sDragLm, PR_LOG_DEBUG, ("nsDragService::nsDragService"));
-    mGrabWidget = 0;
     mCanDrop = false;
     mTargetDragDataReceived = false;
     mTargetDragData = 0;
@@ -232,42 +236,21 @@ nsDragService::Observe(nsISupports *aSubject, const char *aTopic,
 
 
 
-struct MotionEventData {
-    MotionEventData(GtkWidget *aWidget, GdkEvent *aEvent)
-        : mWidget(aWidget), mEvent(gdk_event_copy(aEvent))
-    {
-        MOZ_COUNT_CTOR(MotionEventData);
-        g_object_ref(mWidget);
-    }
-    ~MotionEventData()
-    {
-        MOZ_COUNT_DTOR(MotionEventData);
-        g_object_unref(mWidget);
-        gdk_event_free(mEvent);
-    }
-    GtkWidget *mWidget;
-    GdkEvent *mEvent;
-};
-
-static void
-DestroyMotionEventData(gpointer data)
-{
-    delete static_cast<MotionEventData*>(data);
-}
-
 static gboolean
 DispatchMotionEventCopy(gpointer aData)
 {
-    MotionEventData *data = static_cast<MotionEventData*>(aData);
-
+    
     
     sMotionEventTimerID = 0;
 
+    GdkEvent *event = sMotionEvent;
+    sMotionEvent = NULL;
     
     
-    if (gtk_widget_has_grab(data->mWidget)) {
-        gtk_propagate_event(data->mWidget, data->mEvent);
+    if (gtk_widget_has_grab(sGrabWidget)) {
+        gtk_propagate_event(sGrabWidget, event);
     }
+    gdk_event_free(event);
 
     
     
@@ -277,26 +260,34 @@ DispatchMotionEventCopy(gpointer aData)
 static void
 OnSourceGrabEventAfter(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 {
-    if (event->type != GDK_MOTION_NOTIFY)
+    
+    
+    if (!gtk_widget_has_grab(sGrabWidget))
         return;
+
+    GdkModifierType state;
+    if (event->type == GDK_MOTION_NOTIFY) {
+        if (sMotionEvent) {
+            gdk_event_free(sMotionEvent);
+        }
+        sMotionEvent = gdk_event_copy(event);
+
+        
+        
+        nsDragService *dragService = static_cast<nsDragService*>(user_data);
+        dragService->SetDragEndPoint(nsIntPoint(event->motion.x_root,
+                                                event->motion.y_root));
+    } else if (sMotionEvent && (event->type != GDK_KEY_PRESS ||
+                                event->type != GDK_KEY_RELEASE)) {
+        
+        sMotionEvent->motion.state = event->key.state;
+    } else {
+        return;
+    }
 
     if (sMotionEventTimerID) {
         g_source_remove(sMotionEventTimerID);
-        sMotionEventTimerID = 0;
     }
-
-    
-    
-    if (!gtk_widget_has_grab(widget))
-        return;
-
-    
-    
-    nsDragService *dragService = static_cast<nsDragService*>(user_data);
-    dragService->
-        SetDragEndPoint(nsIntPoint(event->motion.x_root, event->motion.y_root));
-
-    MotionEventData *data = new MotionEventData(widget, event);
 
     
     
@@ -306,7 +297,7 @@ OnSourceGrabEventAfter(GtkWidget *widget, GdkEvent *event, gpointer user_data)
     
     sMotionEventTimerID = 
         g_timeout_add_full(G_PRIORITY_DEFAULT_IDLE, 350,
-                           DispatchMotionEventCopy, data, DestroyMotionEventData);
+                           DispatchMotionEventCopy, NULL, NULL);
 }
 
 static GtkWindow*
@@ -421,12 +412,12 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
         StartDragSession();
 
         
-        mGrabWidget = gtk_window_group_get_current_grab(window_group);
-        if (mGrabWidget) {
-            g_object_ref(mGrabWidget);
+        sGrabWidget = gtk_window_group_get_current_grab(window_group);
+        if (sGrabWidget) {
+            g_object_ref(sGrabWidget);
             
             
-            g_signal_connect(mGrabWidget, "event-after",
+            g_signal_connect(sGrabWidget, "event-after",
                              G_CALLBACK(OnSourceGrabEventAfter), this);
         }
         
@@ -504,15 +495,19 @@ nsDragService::EndDragSession(bool aDoneDrag)
     PR_LOG(sDragLm, PR_LOG_DEBUG, ("nsDragService::EndDragSession %d",
                                    aDoneDrag));
 
-    if (mGrabWidget) {
-        g_signal_handlers_disconnect_by_func(mGrabWidget,
+    if (sGrabWidget) {
+        g_signal_handlers_disconnect_by_func(sGrabWidget,
              FuncToGpointer(OnSourceGrabEventAfter), this);
-        g_object_unref(mGrabWidget);
-        mGrabWidget = NULL;
+        g_object_unref(sGrabWidget);
+        sGrabWidget = NULL;
 
         if (sMotionEventTimerID) {
             g_source_remove(sMotionEventTimerID);
             sMotionEventTimerID = 0;
+        }
+        if (sMotionEvent) {
+            gdk_event_free(sMotionEvent);
+            sMotionEvent = NULL;
         }
     }
 
