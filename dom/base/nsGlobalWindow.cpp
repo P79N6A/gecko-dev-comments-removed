@@ -175,7 +175,6 @@
 #include "nsNetUtil.h"
 #include "nsFocusManager.h"
 #include "nsIJSON.h"
-#include "nsIXULWindow.h"
 #ifdef MOZ_XUL
 #include "nsXULPopupManager.h"
 #include "nsIDOMXULControlElement.h"
@@ -227,8 +226,6 @@ static PRLogModuleInfo* gDOMLeakPRLog;
 #endif
 
 using namespace mozilla::dom;
-using mozilla::TimeStamp;
-using mozilla::TimeDuration;
 
 nsIDOMStorageList *nsGlobalWindow::sGlobalStorageList  = nsnull;
 
@@ -1288,22 +1285,15 @@ nsGlobalWindow::SetScriptContext(PRUint32 lang_id, nsIScriptContext *aScriptCont
                "We don't support this language ID");
   NS_ASSERTION(IsOuterWindow(), "Uh, SetScriptContext() called on inner window!");
 
-  if (!aScriptContext) {
-    NS_WARNING("Possibly early removal of script object, see bug #41608");
-  } else {
+  NS_ASSERTION(!aScriptContext || !mContext, "Bad call to SetContext()!");
+
+  if (aScriptContext) {
     
     aScriptContext->WillInitializeContext();
 
-    
-    nsresult rv = aScriptContext->InitContext(this);
+    nsresult rv = aScriptContext->InitContext();
     NS_ENSURE_SUCCESS(rv, rv);
-  }
 
-  NS_ASSERTION(!aScriptContext || !mContext, "Bad call to SetContext()!");
-
-  void *script_glob = nsnull;
-
-  if (aScriptContext) {
     if (IsFrame()) {
       
       
@@ -1312,13 +1302,12 @@ nsGlobalWindow::SetScriptContext(PRUint32 lang_id, nsIScriptContext *aScriptCont
       aScriptContext->SetGCOnDestruction(PR_FALSE);
     }
 
+    aScriptContext->CreateOuterObject(this);
     aScriptContext->DidInitializeContext();
-    script_glob = aScriptContext->GetNativeGlobal();
-    NS_ASSERTION(script_glob, "GetNativeGlobal returned NULL!");
+    mJSObject = (JSObject *)aScriptContext->GetNativeGlobal();
   }
 
   mContext = aScriptContext;
-  mJSObject = (JSObject *)script_glob;
   return NS_OK;
 }
 
@@ -1332,7 +1321,8 @@ nsGlobalWindow::EnsureScriptEnvironment(PRUint32 aLangID)
   if (mJSObject)
       return NS_OK;
 
-  NS_ASSERTION(!GetCurrentInnerWindowInternal(), "Huh?");
+  NS_ASSERTION(!GetCurrentInnerWindowInternal(),
+               "mJSObject is null, but we have an inner window?");
 
   nsCOMPtr<nsIScriptRuntime> scriptRuntime;
   nsresult rv = NS_GetScriptRuntimeByID(aLangID, getter_AddRefs(scriptRuntime));
@@ -1897,13 +1887,11 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     
     
     
-    JS_BeginRequest((JSContext *)mContext->GetNativeContext());
-    mContext->InitContext(this);
+    mContext->InitOuterWindow();
 
     
     
     mContext->ConnectToInner(newInnerWindow, mJSObject);
-    JS_EndRequest((JSContext *)mContext->GetNativeContext());
 
     nsCOMPtr<nsIContent> frame = do_QueryInterface(GetFrameElementInternal());
     if (frame && frame->GetOwnerDoc()) {
@@ -1988,7 +1976,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
         
 
         
-        JSAutoRequest ar(cx);
         ::JS_DeleteProperty(cx, currentInner->mJSObject, "document");
       }
     } else {
@@ -2001,7 +1988,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
       if (navigatorHolder) {
         
-        JSAutoRequest ar(cx);
 
         ::JS_DefineProperty(cx, newInnerWindow->mJSObject, "navigator",
                             nav, nsnull, nsnull,
@@ -2167,9 +2153,7 @@ nsGlobalWindow::SetDocShell(nsIDocShell* aDocShell)
       mDoc = nsnull;
     }
 
-    if (mContext) {
-      mContext->ClearScope(mJSObject, PR_TRUE);
-    }
+    mContext->ClearScope(mJSObject, PR_TRUE);
 
     ClearControllers();
 
@@ -2183,11 +2167,9 @@ nsGlobalWindow::SetDocShell(nsIDocShell* aDocShell)
       mArgumentsOrigin = nsnull;
     }
 
-    if (mContext) {
-      mContext->GC();
-      mContext->FinalizeContext();
-      mContext = nsnull;
-    }
+    mContext->GC();
+    mContext->FinalizeContext();
+    mContext = nsnull;
 
 #ifdef DEBUG
     nsCycleCollector_DEBUG_shouldBeFreed(mContext);
@@ -3948,15 +3930,6 @@ nsGlobalWindow::SetFullScreen(PRBool aFullScreen)
   
   if (!DispatchCustomEvent("fullscreen")) {
     return NS_OK;
-  }
-
-  
-  
-  nsCOMPtr<nsIBaseWindow> treeOwnerAsWin;
-  GetTreeOwner(getter_AddRefs(treeOwnerAsWin));
-  nsCOMPtr<nsIXULWindow> xulWin(do_GetInterface(treeOwnerAsWin));
-  if (aFullScreen && xulWin) {
-    xulWin->SetIntrinsicallySized(PR_FALSE);
   }
 
   nsCOMPtr<nsIWidget> widget = GetMainWidget();
@@ -8200,14 +8173,14 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
     timeout->mPrincipal = ourPrincipal;
   }
 
-  TimeDuration delta = TimeDuration::FromMilliseconds(realInterval);
+  PRTime delta = (PRTime)realInterval * PR_USEC_PER_MSEC;
 
   if (!IsFrozen() && !mTimeoutsSuspendDepth) {
     
     
     
 
-    timeout->mWhen = TimeStamp::Now() + delta;
+    timeout->mWhen = PR_Now() + delta;
 
     timeout->mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
     if (NS_FAILED(rv)) {
@@ -8232,9 +8205,8 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
     
     
     
-    
 
-    timeout->mTimeRemaining = delta;
+    timeout->mWhen = delta;
   }
 
   timeout->mWindow = this;
@@ -8340,8 +8312,8 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
 
   
   
-  TimeStamp now = TimeStamp::Now();
-  TimeStamp deadline;
+  PRTime now = PR_Now();
+  PRTime deadline;
 
   if (aTimeout && aTimeout->mWhen > now) {
     
@@ -8383,7 +8355,6 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
   
   
   dummy_timeout.mFiringDepth = firingDepth;
-  dummy_timeout.mWhen = now;
   PR_INSERT_AFTER(&dummy_timeout, last_expired_timeout);
 
   
@@ -8492,9 +8463,13 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     } else {
       
       
-      TimeDuration lateness = now - timeout->mWhen;
+      PRTime lateness = now - timeout->mWhen;
 
-      handler->SetLateness(lateness.ToMilliseconds());
+      
+      
+      
+      handler->SetLateness((PRIntervalTime)(lateness /
+                                            (PRTime)PR_USEC_PER_MSEC));
 
       nsCOMPtr<nsIVariant> dummy;
       nsCOMPtr<nsISupports> me(static_cast<nsIDOMWindow *>(this));
@@ -8551,32 +8526,35 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     
     if (timeout->mInterval) {
       
+      PRTime nextInterval = (PRTime)timeout->mInterval * PR_USEC_PER_MSEC;
+
       
-      TimeDuration nextInterval =
-        TimeDuration::FromMilliseconds(NS_MAX(timeout->mInterval,
-                                              PRUint32(DOM_MIN_TIMEOUT_VALUE)));
+      
+      
+      if (nextInterval < (PRTime)(DOM_MIN_TIMEOUT_VALUE * PR_USEC_PER_MSEC)) {
+         nextInterval = DOM_MIN_TIMEOUT_VALUE * PR_USEC_PER_MSEC;
+      }
 
       
       
       
       
       
-      TimeStamp firingTime;
-      if (!aTimeout || timeout->mWhen + nextInterval <= now)
-        firingTime = now + nextInterval;
+      if (!aTimeout || nextInterval + timeout->mWhen <= now)
+        nextInterval += now;
       else
-        firingTime = timeout->mWhen + nextInterval;
+        nextInterval += timeout->mWhen;
 
-      TimeDuration delay = firingTime - TimeStamp::Now();
+      PRTime delay = nextInterval - PR_Now();
 
       
       
-      if (delay < TimeDuration(0)) {
-        delay = TimeDuration(0);
+      if (delay < 0) {
+        delay = 0;
       }
 
       if (timeout->mTimer) {
-        timeout->mWhen = firingTime;
+        timeout->mWhen = nextInterval;
 
         
         
@@ -8590,7 +8568,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
         
         nsresult rv = timeout->mTimer->
           InitWithFuncCallback(TimerCallback, timeout,
-                               delay.ToMilliseconds(),
+                               (PRInt32)(delay / (PRTime)PR_USEC_PER_MSEC),
                                nsITimer::TYPE_ONE_SHOT);
 
         if (NS_FAILED(rv)) {
@@ -8614,7 +8592,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
                      "How'd our timer end up null if we're not frozen or "
                      "suspended?");
 
-        timeout->mTimeRemaining = delay;
+        timeout->mWhen = delay;
         isInterval = PR_TRUE;
       }
     }
@@ -8819,11 +8797,7 @@ nsGlobalWindow::InsertTimeoutIntoList(nsTimeout *aTimeout)
   nsTimeout* prevSibling;
   for (prevSibling = LastTimeout();
        IsTimeout(prevSibling) && prevSibling != mTimeoutInsertionPoint &&
-         
-         
-         ((IsFrozen() || mTimeoutsSuspendDepth) ?
-          prevSibling->mTimeRemaining > aTimeout->mTimeRemaining :
-          prevSibling->mWhen > aTimeout->mWhen);
+         prevSibling->mWhen > aTimeout->mWhen;
        prevSibling = prevSibling->Prev()) {
     
   }
@@ -9138,13 +9112,13 @@ nsGlobalWindow::SuspendTimeouts(PRUint32 aIncrease,
       dts->SuspendWorkersForGlobal(static_cast<nsIScriptGlobalObject*>(this));
     }
   
-    TimeStamp now = TimeStamp::Now();
+    PRTime now = PR_Now();
     for (nsTimeout *t = FirstTimeout(); IsTimeout(t); t = t->Next()) {
       
       if (t->mWhen > now)
-        t->mTimeRemaining = t->mWhen - now;
+        t->mWhen -= now;
       else
-        t->mTimeRemaining = TimeDuration(0);
+        t->mWhen = 0;
   
       
       if (t->mTimer) {
@@ -9215,7 +9189,7 @@ nsGlobalWindow::ResumeTimeouts(PRBool aThawChildren)
     
     
 
-    TimeStamp now = TimeStamp::Now();
+    PRTime now = PR_Now();
 
 #ifdef DEBUG
     PRBool _seenDummyTimeout = PR_FALSE;
@@ -9236,13 +9210,15 @@ nsGlobalWindow::ResumeTimeouts(PRBool aThawChildren)
       
       
       
+      
+      
       PRUint32 delay =
-        NS_MAX(PRInt32(t->mTimeRemaining.ToMilliseconds()),
-               DOM_MIN_TIMEOUT_VALUE);
+        NS_MAX(((PRUint32)(t->mWhen / (PRTime)PR_USEC_PER_MSEC)),
+               (PRUint32)DOM_MIN_TIMEOUT_VALUE);
 
       
       
-      t->mWhen = now + t->mTimeRemaining;
+      t->mWhen += now;
 
       t->mTimer = do_CreateInstance("@mozilla.org/timer;1");
       NS_ENSURE_TRUE(t->mTimer, NS_ERROR_OUT_OF_MEMORY);
@@ -9444,25 +9420,6 @@ nsGlobalChromeWindow::GetAttentionWithCycleCount(PRInt32 aCycleCount)
   }
 
   return rv;
-}
-
-NS_IMETHODIMP
-nsGlobalChromeWindow::BeginWindowMove(nsIDOMEvent *aMouseDownEvent)
-{
-  nsCOMPtr<nsIWidget> widget = GetMainWidget();
-  if (!widget) {
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIPrivateDOMEvent> privEvent = do_QueryInterface(aMouseDownEvent);
-  NS_ENSURE_TRUE(privEvent, NS_ERROR_FAILURE);
-  nsEvent *internalEvent = privEvent->GetInternalNSEvent();
-  NS_ENSURE_TRUE(internalEvent &&
-                 internalEvent->eventStructType == NS_MOUSE_EVENT,
-                 NS_ERROR_FAILURE);
-  nsMouseEvent *mouseEvent = static_cast<nsMouseEvent*>(internalEvent);
-
-  return widget->BeginMoveDrag(mouseEvent);
 }
 
 
@@ -9834,6 +9791,13 @@ nsNavigator::GetAppVersion(nsAString& aAppVersion)
     if (NS_FAILED(rv))
       return rv;
 
+    AppendASCIItoUTF16(str, aAppVersion);
+
+    aAppVersion.AppendLiteral("; ");
+
+    rv = service->GetLanguage(str);
+    if (NS_FAILED(rv))
+      return rv;
     AppendASCIItoUTF16(str, aAppVersion);
 
     aAppVersion.Append(PRUnichar(')'));
