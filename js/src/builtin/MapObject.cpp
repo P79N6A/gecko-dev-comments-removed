@@ -675,10 +675,8 @@ HashNumber
 HashableValue::hash() const
 {
     
-
-
-
-
+    
+    
     if (value.isString()) {
         JSLinearString &s = value.toString()->asLinear();
         return HashChars(s.chars(), s.length());
