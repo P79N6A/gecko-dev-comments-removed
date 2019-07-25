@@ -379,8 +379,7 @@ WebGLContext::InitAndValidateGL()
     
     GLint val = 0;
 
-    
-    
+    MakeContextCurrent();
 
     gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_ATTRIBS, (GLint*) &mGLMaxVertexAttribs);
     if (mGLMaxVertexAttribs < 8) {

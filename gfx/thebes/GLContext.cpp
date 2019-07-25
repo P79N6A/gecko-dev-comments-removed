@@ -91,14 +91,14 @@ LibrarySymbolLoader::LookupSymbol(PRLibrary *lib,
     }
 
     
-    if (!res) {
-        PRLibrary *leakedLibRef;
-        res = PR_FindFunctionSymbolAndLibrary(sym, &leakedLibRef);
+    if (!res && lookupFunction) {
+        res = lookupFunction(sym);
     }
 
     
-    if (!res && lookupFunction) {
-        res = lookupFunction(sym);
+    if (!res) {
+        PRLibrary *leakedLibRef;
+        res = PR_FindFunctionSymbolAndLibrary(sym, &leakedLibRef);
     }
 
     return res;
