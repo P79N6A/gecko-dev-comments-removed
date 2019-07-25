@@ -55,6 +55,9 @@ namespace CheckedInt_internal {
 
 
 
+
+
+
 struct unsupported_type {};
 
 template<typename T> struct integer_type_manually_recorded_info
@@ -75,14 +78,14 @@ template<> struct integer_type_manually_recorded_info<T>       \
 };
 
 
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt8,   PRInt16,              PRUint8)
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint8,  PRUint16,             PRUint8)
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt16,  PRInt32,              PRUint16)
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint16, PRUint32,             PRUint16)
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt32,  PRInt64,              PRUint32)
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint32, PRUint64,             PRUint32)
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt64,  unsupported_type,     PRUint64)
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint64, unsupported_type,     PRUint64)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(int8_t,   int16_t,              uint8_t)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(uint8_t,  uint16_t,             uint8_t)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(int16_t,  int32_t,              uint16_t)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(uint16_t, uint32_t,             uint16_t)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(int32_t,  int64_t,              uint32_t)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(uint32_t, uint64_t,             uint32_t)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(int64_t,  unsupported_type,     uint64_t)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(uint64_t, unsupported_type,     uint64_t)
 
 
 
