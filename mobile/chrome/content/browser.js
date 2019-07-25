@@ -568,7 +568,35 @@ var Browser = {
 
   closing: function closing() {
     
-    
+    let numTabs = this._tabs.length;
+    if (numTabs > 1) {
+      let shouldPrompt = gPrefService.getBoolPref("browser.tabs.warnOnClose");
+      if (shouldPrompt) {
+        let prompt = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
+  
+        
+        let warnOnClose = { value: true };
+
+        let messageBase = Elements.browserBundle.getString("tabs.closeWarning");
+        let message = PluralForm.get(numTabs, messageBase).replace("#1", numTabs);
+
+        let title = Elements.browserBundle.getString("tabs.closeWarningTitle");
+        let closeText = Elements.browserBundle.getString("tabs.closeButton");
+        let checkText = Elements.browserBundle.getString("tabs.closeWarningPromptMe");
+        let buttons = (prompt.BUTTON_TITLE_IS_STRING * prompt.BUTTON_POS_0) +
+                      (prompt.BUTTON_TITLE_CANCEL * prompt.BUTTON_POS_1);
+        let pressed = prompt.confirmEx(window, title, message, buttons, closeText, null, null, checkText, warnOnClose);
+
+        
+        let reallyClose = (pressed == 0);
+        if (reallyClose && !warnOnClose.value)
+          gPrefService.setBoolPref("browser.tabs.warnOnClose", false);
+
+        
+        if (!reallyClose)
+          return false;
+      }
+    }
 
     
     let lastBrowser = true;
