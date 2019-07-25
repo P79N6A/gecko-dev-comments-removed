@@ -925,7 +925,6 @@ let Items = {
   
   
   
-  
   arrange: function Items_arrange(items, bounds, options) {
     if (!options)
       options = {};

@@ -17,7 +17,7 @@ function onTabViewWindowLoaded(win) {
   
   let group = new contentWindow.GroupItem([], {
     immediately: true,
-    bounds: {left: 20, top: 300, width: 300, height: 300}
+    bounds: {left: 20, top: 300, width: 400, height: 400}
   });
 
   let expander = contentWindow.iQ(group.container).find(".stackExpander");
