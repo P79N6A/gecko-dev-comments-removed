@@ -446,8 +446,8 @@ private:
                               nsIFrame*&     aPageFrame,
                               nsIFrame*&     aCanvasFrame);
 
-  void DoContentStateChanged(nsIContent*     aContent,
-                             PRInt32         aStateMask);
+  void DoContentStateChanged(mozilla::dom::Element* aElement,
+                             PRInt32 aStateMask);
 
   
   
