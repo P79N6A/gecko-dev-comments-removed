@@ -107,41 +107,6 @@ ClientEngine.prototype = {
     return stats;
   },
 
-  
-  clearCommands: function clearCommands() {
-    delete this.localCommands;
-    this._tracker.addChangedID(this.localID);
-  },
-
-  
-  sendCommand: function sendCommand(command, args) {
-    
-    let notDupe = function(other) other.command != command ||
-      JSON.stringify(other.args) != JSON.stringify(args);
-
-    
-    let action = {
-      command: command,
-      args: args,
-    };
-
-    
-    for (let [id, client] in Iterator(this._store._remoteClients)) {
-      
-      if (client.commands == null)
-        client.commands = [action];
-      
-      else if (client.commands.every(notDupe))
-        client.commands.push(action);
-      
-      else
-        continue;
-
-      this._log.trace("Client " + id + " got a new action: " + [command, args]);
-      this._tracker.addChangedID(id);
-    }
-  },
-
   get localID() {
     
     let localID = Svc.Prefs.get("client.GUID", "");
@@ -221,6 +186,147 @@ ClientEngine.prototype = {
 
     
     return SyncEngine.kRecoveryStrategy.ignore;
+  },
+
+  
+
+
+
+
+  _commands: {
+    resetAll:    { args: 0, desc: "Clear temporary local data for all engines" },
+    resetEngine: { args: 1, desc: "Clear temporary local data for engine" },
+    wipeAll:     { args: 0, desc: "Delete all client data for all engines" },
+    wipeEngine:  { args: 1, desc: "Delete all client data for engine" },
+    logout:      { args: 0, desc: "Log out client" }
+  },
+
+  
+
+
+  clearCommands: function clearCommands() {
+    delete this.localCommands;
+    this._tracker.addChangedID(this.localID);
+  },
+
+  
+
+
+
+
+
+
+  _sendCommandToClient: function sendCommandToClient(command, args, clientId) {
+    this._log.trace("Sending " + command + " to " + clientId);
+
+    let client = this._store._remoteClients[clientId];
+    if (!client) {
+      throw new Error("Unknown remote client ID: '" + clientId + "'.");
+    }
+
+    
+    let notDupe = function(other) {
+      return other.command != command || !Utils.deepEquals(other.args, args);
+    };
+
+    let action = {
+      command: command,
+      args: args,
+    };
+
+    if (!client.commands) {
+      client.commands = [action];
+    }
+    
+    else if (client.commands.every(notDupe)) {
+      client.commands.push(action);
+    }
+    
+    else {
+      return;
+    }
+
+    this._log.trace("Client " + clientId + " got a new action: " + [command, args]);
+    this._tracker.addChangedID(clientId);
+  },
+
+  
+
+
+
+
+  processIncomingCommands: function processIncomingCommands() {
+    this._notify("clients:process-commands", "", function() {
+      
+      this.clearCommands();
+
+      
+      for each ({command: command, args: args} in this.localCommands) {
+        this._log.debug("Processing command: " + command + "(" + args + ")");
+
+        let engines = [args[0]];
+        switch (command) {
+          case "resetAll":
+            engines = null;
+            
+          case "resetEngine":
+            Weave.Service.resetClient(engines);
+            break;
+          case "wipeAll":
+            engines = null;
+            
+          case "wipeEngine":
+            Weave.Service.wipeClient(engines);
+            break;
+          case "logout":
+            Weave.Service.logout();
+            return false;
+          default:
+            this._log.debug("Received an unknown command: " + command);
+            break;
+        }
+      }
+
+      return true;
+    })();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  sendCommand: function sendCommand(command, args, clientId) {
+    let commandData = this._commands[command];
+    
+    if (!commandData) {
+      this._log.error("Unknown command to send: " + command);
+      return;
+    }
+    
+    else if (!args || args.length != commandData.args) {
+      this._log.error("Expected " + commandData.args + " args for '" +
+                      command + "', but got " + args);
+      return;
+    }
+
+    if (clientId) {
+      this._sendCommandToClient(command, args, clientId);
+    } else {
+      for (let id in this._store._remoteClients) {
+        this._sendCommandToClient(command, args, id);
+      }
+    }
   }
 };
 
