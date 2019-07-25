@@ -46,7 +46,7 @@ using namespace js;
 using namespace js::ion;
 
 void
-Assembler::writeRelocation(JmpSrc src)
+Assembler::writeRelocation(JmpSrc src, Relocation::Kind reloc)
 {
     if (!jumpRelocations_.length()) {
         
@@ -55,8 +55,10 @@ Assembler::writeRelocation(JmpSrc src)
         
         jumpRelocations_.writeFixedUint32(0);
     }
-    jumpRelocations_.writeUnsigned(src.offset());
-    jumpRelocations_.writeUnsigned(jumps_.length());
+    if (reloc == Relocation::IONCODE) {
+        jumpRelocations_.writeUnsigned(src.offset());
+        jumpRelocations_.writeUnsigned(jumps_.length());
+    }
 }
 
 void
@@ -67,15 +69,16 @@ Assembler::addPendingJump(JmpSrc src, void *target, Relocation::Kind reloc)
     
     
     if (reloc == Relocation::IONCODE)
-        writeRelocation(src);
+        writeRelocation(src, reloc);
     enoughMemory_ &= jumps_.append(RelativePatch(src.offset(), target, reloc));
 }
 
 size_t
 Assembler::addPatchableJump(JmpSrc src, Relocation::Kind reloc)
 {
-    if (reloc == Relocation::IONCODE)
-        writeRelocation(src);
+    
+    
+    writeRelocation(src, reloc);
 
     size_t index = jumps_.length();
     enoughMemory_ &= jumps_.append(RelativePatch(src.offset(), NULL, reloc));
