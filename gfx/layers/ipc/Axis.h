@@ -56,8 +56,15 @@ public:
 
 
 
+  void EndTouch();
 
-  void StopTouch();
+  
+
+
+
+
+
+  void CancelTouch();
 
   
 

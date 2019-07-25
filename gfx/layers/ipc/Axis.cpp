@@ -79,7 +79,6 @@ void Axis::UpdateWithTouchAtDevicePoint(PRInt32 aPos, const TimeDuration& aTimeD
 void Axis::StartTouch(PRInt32 aPos) {
   mStartPos = aPos;
   mPos = aPos;
-  mVelocity = 0.0f;
   mLockPanning = false;
 }
 
@@ -88,6 +87,9 @@ PRInt32 Axis::GetDisplacementForDuration(float aScale, const TimeDuration& aDelt
   
   
   if (DisplacementWillOverscroll(displacement) != OVERSCROLL_NONE) {
+    
+    
+    mVelocity = 0.0f;
     displacement -= DisplacementWillOverscrollAmount(displacement);
   }
   return displacement;
@@ -97,7 +99,10 @@ float Axis::PanDistance() {
   return fabsf(mPos - mStartPos);
 }
 
-void Axis::StopTouch() {
+void Axis::EndTouch() {
+}
+
+void Axis::CancelTouch() {
   mVelocity = 0.0f;
 }
 
