@@ -85,14 +85,17 @@ struct NS_GFX nsRect :
   
   
   
+  
   inline nsRect ConvertAppUnitsRoundOut(PRInt32 aFromAPP, PRInt32 aToAPP) const;
   inline nsRect ConvertAppUnitsRoundIn(PRInt32 aFromAPP, PRInt32 aToAPP) const;
 
   inline nsIntRect ScaleToNearestPixels(float aXScale, float aYScale,
                                         nscoord aAppUnitsPerPixel) const;
   inline nsIntRect ToNearestPixels(nscoord aAppUnitsPerPixel) const;
+  
   inline nsIntRect ScaleToOutsidePixels(float aXScale, float aYScale,
                                         nscoord aAppUnitsPerPixel) const;
+  
   inline nsIntRect ToOutsidePixels(nscoord aAppUnitsPerPixel) const;
   inline nsIntRect ScaleToInsidePixels(float aXScale, float aYScale,
                                        nscoord aAppUnitsPerPixel) const;

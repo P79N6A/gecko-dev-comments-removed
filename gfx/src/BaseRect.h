@@ -295,7 +295,12 @@ struct BaseRect {
 
   
   
+  
   void ScaleRoundOut(double aScale) { ScaleRoundOut(aScale, aScale); }
+  
+  
+  
+  
   void ScaleRoundOut(double aXScale, double aYScale)
   {
     T right = static_cast<T>(NS_ceil(double(XMost()) * aXScale));
@@ -305,7 +310,12 @@ struct BaseRect {
     width = right - x;
     height = bottom - y;
   }
+  
+  
   void ScaleRoundIn(double aScale) { ScaleRoundIn(aScale, aScale); }
+  
+  
+  
   void ScaleRoundIn(double aXScale, double aYScale)
   {
     T right = static_cast<T>(NS_floor(double(XMost()) * aXScale));
@@ -315,7 +325,14 @@ struct BaseRect {
     width = NS_MAX<T>(0, right - x);
     height = NS_MAX<T>(0, bottom - y);
   }
+  
+  
+  
   void ScaleInverseRoundOut(double aScale) { ScaleInverseRoundOut(aScale, aScale); }
+  
+  
+  
+  
   void ScaleInverseRoundOut(double aXScale, double aYScale)
   {
     T right = static_cast<T>(ceil(double(XMost()) / aXScale));
