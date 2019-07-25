@@ -52,7 +52,9 @@
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMEvent.h"
 #include "nsIPrivateDOMEvent.h"
+#include "nsIWebProgressListener2.h"
 #include "nsFrameLoader.h"
+#include "nsNetUtil.h"
 
 using mozilla::ipc::DocumentRendererParent;
 using mozilla::ipc::DocumentRendererShmemParent;
@@ -60,8 +62,14 @@ using mozilla::dom::ContentProcessParent;
 using mozilla::jsipc::PContextWrapperParent;
 using mozilla::jsipc::ContextWrapperParent;
 
+
+
+#define NOTIFY_FLAG_SHIFT 16
+
 namespace mozilla {
 namespace dom {
+
+NS_IMPL_ISUPPORTS1(TabParent, nsIWebProgress)
 
 TabParent::TabParent()
 {
@@ -96,6 +104,240 @@ TabParent::RecvsendEvent(const RemoteDOMEvent& aEvent)
 
   PRBool dummy;
   target->DispatchEvent(event, &dummy);
+  return true;
+}
+
+bool
+TabParent::RecvnotifyProgressChange(const PRInt64& aProgress,
+                                    const PRInt64& aProgressMax,
+                                    const PRInt64& aTotalProgress,
+                                    const PRInt64& aMaxTotalProgress)
+{
+  
+
+
+
+
+
+  nsCOMPtr<nsIWebProgressListener> listener;
+  PRUint32 count = mListenerInfoList.Length();
+
+  while (count-- > 0) {
+    TabParentListenerInfo *info = &mListenerInfoList[count];
+    if (!(info->mNotifyMask & nsIWebProgress::NOTIFY_PROGRESS)) {
+      continue;
+    }
+
+    listener = do_QueryReferent(info->mWeakListener);
+    if (!listener) {
+      
+      mListenerInfoList.RemoveElementAt(count);
+      continue;
+    }
+
+    nsCOMPtr<nsIWebProgressListener2> listener2 =
+      do_QueryReferent(info->mWeakListener);
+    if (listener2) {
+      listener2->OnProgressChange64(this, nsnull, aProgress, aProgressMax,
+                                    aTotalProgress, aMaxTotalProgress);
+    } else {
+      listener->OnProgressChange(this, nsnull, PRInt32(aProgress),
+                                 PRInt32(aProgressMax),
+                                 PRInt32(aTotalProgress), 
+                                 PRInt32(aMaxTotalProgress));
+    }
+  }
+
+  return true;
+}
+
+bool
+TabParent::RecvnotifyStateChange(const PRUint32& aStateFlags,
+                                 const nsresult& aStatus)
+{
+  
+
+
+
+
+
+  nsCOMPtr<nsIWebProgressListener> listener;
+  PRUint32 count = mListenerInfoList.Length();
+  
+  while (count-- > 0) {
+    TabParentListenerInfo *info = &mListenerInfoList[count];
+
+    
+    
+    
+    
+    
+    
+    
+    if (!(info->mNotifyMask & (aStateFlags >> NOTIFY_FLAG_SHIFT))) {
+        continue;
+    }
+    
+    listener = do_QueryReferent(info->mWeakListener);
+    if (!listener) {
+      
+      mListenerInfoList.RemoveElementAt(count);
+      continue;
+    }
+    
+    listener->OnStateChange(this, nsnull, aStateFlags, aStatus); 
+  }   
+
+  return true;
+ }
+
+bool
+TabParent::RecvnotifyLocationChange(const nsCString& aUri)
+{
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = NS_NewURI(getter_AddRefs(uri), aUri);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+
+  
+
+
+
+
+
+  nsCOMPtr<nsIWebProgressListener> listener;
+  PRUint32 count = mListenerInfoList.Length();
+
+  while (count-- > 0) {
+    TabParentListenerInfo *info = &mListenerInfoList[count];
+    if (!(info->mNotifyMask & nsIWebProgress::NOTIFY_LOCATION)) {
+      continue;
+    }
+    
+    listener = do_QueryReferent(info->mWeakListener);
+    if (!listener) {
+      
+      mListenerInfoList.RemoveElementAt(count);
+      continue;
+    }
+    
+    listener->OnLocationChange(this, nsnull, uri);
+  }
+
+  return true;
+}
+
+bool
+TabParent::RecvnotifyStatusChange(const nsresult& status,
+                                  const nsString& message)
+{
+  
+
+
+
+
+
+  nsCOMPtr<nsIWebProgressListener> listener;
+  PRUint32 count = mListenerInfoList.Length();
+
+  while (count-- > 0) {
+    TabParentListenerInfo *info = &mListenerInfoList[count];
+    if (!(info->mNotifyMask & nsIWebProgress::NOTIFY_STATUS)) {
+      continue;
+    }
+
+    listener = do_QueryReferent(info->mWeakListener);
+    if (!listener) {
+      
+      mListenerInfoList.RemoveElementAt(count);
+      continue;
+    }
+
+    listener->OnStatusChange(this, nsnull, status, message.BeginReading());
+  }
+
+  return true;
+}
+
+bool
+TabParent::RecvnotifySecurityChange(const PRUint32& aState)
+{
+  
+
+
+
+
+
+
+  nsCOMPtr<nsIWebProgressListener> listener;
+  PRUint32 count = mListenerInfoList.Length();
+
+  while (count-- > 0) {
+    TabParentListenerInfo *info = &mListenerInfoList[count];
+    if (!(info->mNotifyMask & nsIWebProgress::NOTIFY_SECURITY)) {
+      continue;
+    }
+
+    listener = do_QueryReferent(info->mWeakListener);
+    if (!listener) {
+      
+      mListenerInfoList.RemoveElementAt(count);
+      continue;
+    }
+
+    listener->OnSecurityChange(this, nsnull, aState);
+  }
+
+  return true;
+}
+
+bool
+TabParent::RecvrefreshAttempted(const nsCString& aURI, const PRInt32& aMillis, 
+                                const bool& aSameURI, bool* refreshAllowed)
+{
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = NS_NewURI(getter_AddRefs(uri), aURI);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+  
+
+
+
+
+
+
+  nsCOMPtr<nsIWebProgressListener> listener;
+  PRUint32 count = mListenerInfoList.Length();
+
+  *refreshAllowed = true;
+  while (count-- > 0) {
+    TabParentListenerInfo *info = &mListenerInfoList[count];
+    if (!(info->mNotifyMask & nsIWebProgress::NOTIFY_REFRESH)) {
+      continue;
+    }
+
+    listener = do_QueryReferent(info->mWeakListener);
+    if (!listener) {
+      
+      mListenerInfoList.RemoveElementAt(count);
+      continue;
+    }
+
+    nsCOMPtr<nsIWebProgressListener2> listener2 =
+      do_QueryReferent(info->mWeakListener);
+    if (!listener2) {
+      continue;
+    }
+
+    
+    PRBool allowed = true;
+    listener2->OnRefreshAttempted(this, uri, 
+                                  aMillis, aSameURI, &allowed);
+    *refreshAllowed = allowed && *refreshAllowed;
+  }
+
   return true;
 }
 
@@ -264,6 +506,78 @@ TabParent::RecvsendAsyncMessageToParent(const nsString& aMessage,
     }
   }
   return true;
+}
+
+
+nsresult
+TabParent::AddProgressListener(nsIWebProgressListener* aListener,
+                               PRUint32 aNotifyMask)
+{
+  nsresult rv;
+
+  TabParentListenerInfo* info = GetListenerInfo(aListener);
+  if (info) {
+    
+    return NS_ERROR_FAILURE;
+  }
+
+  nsWeakPtr listener = do_GetWeakReference(aListener);
+  if (!listener) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  info = new TabParentListenerInfo(listener, aNotifyMask);
+  if (!info) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  rv = mListenerInfoList.AppendElement(*info) ? NS_OK : NS_ERROR_FAILURE;
+  if (NS_FAILED(rv)) {
+    delete info;
+  }
+  return rv;
+}
+
+NS_IMETHODIMP
+TabParent::RemoveProgressListener(nsIWebProgressListener *aListener)
+{
+  nsAutoPtr<TabParentListenerInfo> info(GetListenerInfo(aListener));
+  
+  return info && mListenerInfoList.RemoveElement(*info) ?
+    NS_OK : NS_ERROR_FAILURE;
+}
+
+TabParentListenerInfo * 
+TabParent::GetListenerInfo(nsIWebProgressListener *aListener)
+{
+  PRUint32 i, count;
+  TabParentListenerInfo *info;
+
+  nsCOMPtr<nsISupports> listener1 = do_QueryInterface(aListener);
+  count = mListenerInfoList.Length();
+  for (i = 0; i < count; ++i) {
+    info = &mListenerInfoList[i];
+
+    if (info) {
+      nsCOMPtr<nsISupports> listener2 = do_QueryReferent(info->mWeakListener);
+      if (listener1 == listener2) {
+        return info;
+      }
+    }
+  }
+  return nsnull;
+}
+
+NS_IMETHODIMP
+TabParent::GetDOMWindow(nsIDOMWindow **aResult)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TabParent::GetIsLoadingDocument(PRBool *aIsLoadingDocument)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 } 
