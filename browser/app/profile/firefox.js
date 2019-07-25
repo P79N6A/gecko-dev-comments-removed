@@ -1122,3 +1122,8 @@ pref("browser.newtabpage.enabled", true);
 
 
 pref("full-screen-api.enabled", true);
+
+
+
+
+pref("toolkit.startup.max_resumed_crashes", 2);
