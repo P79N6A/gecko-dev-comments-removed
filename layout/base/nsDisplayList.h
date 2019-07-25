@@ -158,6 +158,10 @@ public:
   
 
 
+  PRBool IsForPainting() { return mMode == PAINTING; }
+  
+
+
 
   PRBool IsBackgroundOnly() {
     NS_ASSERTION(mPresShellStates.Length() > 0,
