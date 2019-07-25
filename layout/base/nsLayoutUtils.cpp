@@ -4669,28 +4669,6 @@ nsLayoutUtils::FontSizeInflationInner(const nsIFrame *aFrame,
   
   
   
-  for (const nsIFrame* f = aFrame;
-       f && !IsContainerForFontSizeInflation(f);
-       f = f->GetParent()) {
-    nsIContent* content = f->GetContent();
-    
-    
-    if (!(f->GetParent() &&
-          f->GetParent()->GetContent() == content) &&
-        f->GetType() != nsGkAtoms::inlineFrame) {
-      nsStyleCoord stylePosWidth = f->GetStylePosition()->mWidth;
-      nsStyleCoord stylePosHeight = f->GetStylePosition()->mHeight;
-      if (stylePosWidth.GetUnit() != eStyleUnit_Auto ||
-          stylePosHeight.GetUnit() != eStyleUnit_Auto) {
-
-        return 1.0;
-      }
-    }
-  }
-
-  
-  
-  
   
   float ratio = float(styleFontSize) / float(aMinFontSize);
   if (ratio >= 1.5f) {
