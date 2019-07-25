@@ -202,6 +202,7 @@
 #include "mozilla/Telemetry.h"
 
 #include "Layers.h"
+#include "nsPLDOMEvent.h"
 
 #ifdef NS_FUNCTION_TIMER
 #define NS_TIME_FUNCTION_DECLARE_DOCURL                \
@@ -6345,14 +6346,6 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
       case NS_KEY_PRESS:
       case NS_KEY_DOWN:
       case NS_KEY_UP: {
-        if (IsFullScreenAndRestrictedKeyEvent(mCurrentEventContent, aEvent) &&
-            aEvent->message == NS_KEY_UP) {
-          
-          
-          NS_DispatchToCurrentThread(
-            NS_NewRunnableMethod(mCurrentEventContent->OwnerDoc(),
-                                 &nsIDocument::CancelFullScreen));
-        }
         nsIDocument *doc = mCurrentEventContent ?
                            mCurrentEventContent->OwnerDoc() : nsnull;
         if (doc &&
@@ -6364,6 +6357,22 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
           
           aEvent->flags |= (NS_EVENT_FLAG_NO_DEFAULT |
                             NS_EVENT_FLAG_ONLY_CHROME_DISPATCH);
+
+          if (aEvent->message == NS_KEY_UP) {
+           
+           
+           NS_DispatchToCurrentThread(
+             NS_NewRunnableMethod(mCurrentEventContent->OwnerDoc(),
+                                  &nsIDocument::CancelFullScreen));
+          }
+        } else if (IsFullScreenAndRestrictedKeyEvent(mCurrentEventContent, aEvent)) {
+          
+          
+          
+          nsRefPtr<nsPLDOMEvent> e =
+            new nsPLDOMEvent(doc, NS_LITERAL_STRING("MozShowFullScreenWarning"),
+                             true, true);
+          e->PostDOMEvent();
         }
         
         
