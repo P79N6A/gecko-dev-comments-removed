@@ -1531,11 +1531,8 @@ nsPlaintextEditor::InsertAsQuotation(const nsAString& aQuotedText,
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
 
   
-  nsCOMPtr<nsICiter> citer = new nsInternetCiter();
-
-  
   nsString quotedStuff;
-  nsresult rv = citer->GetCiteString(aQuotedText, quotedStuff);
+  nsresult rv = nsInternetCiter::GetCiteString(aQuotedText, quotedStuff);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -1630,13 +1627,9 @@ nsPlaintextEditor::Rewrap(PRBool aRespectNewlines)
                           &isCollapsed, current);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsICiter> citer = new nsInternetCiter();
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_TRUE(citer, NS_ERROR_UNEXPECTED);
-
   nsString wrapped;
   PRUint32 firstLineOffset = 0;   
-  rv = citer->Rewrap(current, wrapCol, firstLineOffset, aRespectNewlines,
+  rv = nsInternetCiter::Rewrap(current, wrapCol, firstLineOffset, aRespectNewlines,
                      wrapped);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1659,11 +1652,8 @@ nsPlaintextEditor::StripCites()
                                    &isCollapsed, current);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsICiter> citer = new nsInternetCiter();
-  NS_ENSURE_TRUE(citer, NS_ERROR_UNEXPECTED);
-
   nsString stripped;
-  rv = citer->StripCites(current, stripped);
+  rv = nsInternetCiter::StripCites(current, stripped);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (isCollapsed)    
