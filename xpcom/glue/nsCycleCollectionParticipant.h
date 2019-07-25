@@ -226,7 +226,7 @@ public:
 
     NS_IMETHOD_(void) Trace(void *p, TraceCallback cb, void *closure);
 
-    NS_IMETHOD_(void) UnmarkPurple(nsISupports *p);
+    NS_IMETHOD_(void) UnmarkIfPurple(nsISupports *p);
 
     bool CheckForRightISupports(nsISupports *s);
 };
@@ -593,9 +593,9 @@ public:
 public:                                                                        \
   NS_IMETHOD Traverse(void *p,                                                 \
                       nsCycleCollectionTraversalCallback &cb);                 \
-  NS_IMETHOD_(void) UnmarkPurple(nsISupports *s)                               \
+  NS_IMETHOD_(void) UnmarkIfPurple(nsISupports *s)                             \
   {                                                                            \
-    Downcast(s)->UnmarkPurple();                                               \
+    Downcast(s)->UnmarkIfPurple();                                             \
   }                                                                            \
   static _class* Downcast(nsISupports* s)                                      \
   {                                                                            \
@@ -764,7 +764,7 @@ NS_CYCLE_COLLECTION_PARTICIPANT_INSTANCE
 
 
 #define NS_DECL_CYCLE_COLLECTION_UNMARK_PURPLE_STUB(_class)                    \
-  NS_IMETHODIMP_(void) UnmarkPurple()                                          \
+  NS_IMETHODIMP_(void) UnmarkIfPurple()                                        \
   {                                                                            \
   }                                                                            \
 
