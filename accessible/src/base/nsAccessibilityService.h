@@ -171,6 +171,12 @@ public:
   
 
 
+
+  void PresShellDestroyed(nsIPresShell* aPresShell);
+
+  
+
+
   virtual void PresShellActivated(nsIPresShell* aPresShell);
 
   

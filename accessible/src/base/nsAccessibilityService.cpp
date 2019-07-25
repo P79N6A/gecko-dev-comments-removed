@@ -25,7 +25,6 @@
 #include "nsAccessiblePivot.h"
 #include "nsAccUtils.h"
 #include "nsARIAMap.h"
-#include "nsEventShell.h"
 #include "nsIAccessibleProvider.h"
 #include "nsXFormsFormControlsAccessible.h"
 #include "nsXFormsWidgetsAccessible.h"
@@ -568,6 +567,31 @@ nsAccessibilityService::UpdateImageMap(nsImageFrame* aImageFrame)
       RecreateAccessible(presShell, aImageFrame->GetContent());
     }
   }
+}
+
+void
+nsAccessibilityService::PresShellDestroyed(nsIPresShell *aPresShell)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  nsIDocument* doc = aPresShell->GetDocument();
+  if (!doc)
+    return;
+
+#ifdef DEBUG
+  if (logging::IsEnabled(logging::eDocDestroy))
+    logging::DocDestroy("presshell destroyed", doc);
+#endif
+
+  DocAccessible* docAccessible = GetDocAccessibleFromCache(doc);
+  if (docAccessible)
+    docAccessible->Shutdown();
 }
 
 void
