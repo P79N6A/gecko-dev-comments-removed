@@ -84,6 +84,44 @@ struct NS_GFX nsRect :
   
   
   
+  void SaturatingInflate(const nsMargin& aMargin)
+  {
+#ifdef NS_COORD_IS_FLOAT
+    Inflate(aMargin);
+#else
+    PRInt64 nx = PRInt64(x) - aMargin.left;
+    if (nx < nscoord_MIN) {
+      NS_WARNING("Underflowed nscoord_MIN in conversion to nscoord x");
+      nx = nscoord_MIN;
+    }
+    x = nscoord(nx);
+
+    PRInt64 ny = PRInt64(y) - aMargin.top;
+    if (ny < nscoord_MIN) {
+      NS_WARNING("Underflowed nscoord_MIN in conversion to nscoord y");
+      ny = nscoord_MIN;
+    }
+    y = nscoord(ny);
+
+    PRInt64 w = PRInt64(width) + PRInt64(aMargin.left) + aMargin.right;
+    if (w > nscoord_MAX) {
+      NS_WARNING("Overflowed nscoord_MAX in conversion to nscoord width");
+      w = nscoord_MAX;
+    }
+    width = nscoord(w);
+
+    PRInt64 h = PRInt64(height) + PRInt64(aMargin.top) + aMargin.bottom;
+    if (h > nscoord_MAX) {
+      NS_WARNING("Overflowed nscoord_MAX in conversion to nscoord height");
+      h = nscoord_MAX;
+    }
+    height = nscoord(h);
+#endif
+  }
+
+  
+  
+  
 
   nsRect SaturatingUnion(const nsRect& aRect) const
   {
