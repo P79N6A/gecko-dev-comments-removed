@@ -1111,6 +1111,10 @@ nsWindow::Show(PRBool aState)
 NS_IMETHODIMP
 nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, PRBool aRepaint)
 {
+    
+    
+    
+
     mBounds.SizeTo(GetSafeWindowSize(nsIntSize(aWidth, aHeight)));
 
     if (!mCreated)
@@ -1547,11 +1551,13 @@ nsWindow::GetScreenBounds(nsIntRect &aRect)
     else {
         aRect.MoveTo(WidgetToScreenOffset());
     }
+    
+    
+    
+    
     aRect.SizeTo(mBounds.Size());
-    LOG(("GetScreenBounds %d %d | %d %d | %d %d\n",
-         aRect.x, aRect.y,
-         mBounds.width, mBounds.height,
-         aRect.width, aRect.height));
+    LOG(("GetScreenBounds %d,%d | %dx%d\n",
+         aRect.x, aRect.y, aRect.width, aRect.height));
     return NS_OK;
 }
 
@@ -2353,13 +2359,25 @@ nsWindow::OnExposeEvent(GtkWidget *aWidget, GdkEventExpose *aEvent)
 gboolean
 nsWindow::OnConfigureEvent(GtkWidget *aWidget, GdkEventConfigure *aEvent)
 {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
     LOG(("configure event [%p] %d %d %d %d\n", (void *)this,
          aEvent->x, aEvent->y, aEvent->width, aEvent->height));
-
-    
-    if (mBounds.x == aEvent->x &&
-        mBounds.y == aEvent->y)
-        return FALSE;
 
     if (mWindowType == eWindowType_toplevel || mWindowType == eWindowType_dialog) {
         check_for_rollup(aEvent->window, 0, 0, PR_FALSE, PR_TRUE);
@@ -2367,17 +2385,38 @@ nsWindow::OnConfigureEvent(GtkWidget *aWidget, GdkEventConfigure *aEvent)
 
     
     
+
     
-    nsIntPoint pnt(aEvent->x, aEvent->y);
-    if (mIsTopLevel) {
+    
+    NS_ASSERTION(GTK_IS_WINDOW(aWidget),
+                 "Configure event on widget that is not a GtkWindow");
+    gint type;
+    g_object_get(aWidget, "type", &type, NULL);
+    if (type == GTK_WINDOW_POPUP) {
         
-        mBounds.MoveTo(WidgetToScreenOffset());
-        pnt = mBounds.TopLeft();
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        return FALSE;
     }
+
+    
+    
+    
+    
+    mBounds.MoveTo(WidgetToScreenOffset());
 
     nsGUIEvent event(PR_TRUE, NS_MOVE, this);
 
-    event.refPoint = pnt;
+    event.refPoint = mBounds.TopLeft();
 
     
     
@@ -4405,7 +4444,9 @@ nsWindow::NativeResize(PRInt32 aX, PRInt32 aY,
     ResizeTransparencyBitmap(aWidth, aHeight);
 
     if (mIsTopLevel) {
+        
         gtk_window_move(GTK_WINDOW(mShell), aX, aY);
+        
         gtk_window_resize(GTK_WINDOW(mShell), aWidth, aHeight);
     }
     else if (mContainer) {
