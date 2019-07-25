@@ -730,7 +730,6 @@ nsSMILParserUtils::ParseClockValue(const nsAString& aSpec,
   PRUint8 colonCount = 0;
 
   bool started = false;
-  bool isValid = true;
 
   PRInt32 metricMultiplicand = MSEC_PER_SEC;
 
@@ -759,16 +758,14 @@ nsSMILParserUtils::ParseClockValue(const nsAString& aSpec,
 
     } else if ((aFlags & kClockValueAllowSign)
                && (*start == '+' || *start == '-')) {
+      
       if (sign != 0) {
-        
-        isValid = false;
-        break;
+        return NS_ERROR_FAILURE;
       }
 
+      
       if (started) {
-        
-        isValid = false;
-        break;
+        return NS_ERROR_FAILURE;
       }
 
       sign = (*start == '+') ? 1 : -1;
@@ -778,10 +775,8 @@ nsSMILParserUtils::ParseClockValue(const nsAString& aSpec,
       prevNumCouldBeMin = numCouldBeMin;
 
       if (!ParseClockComponent(start, end, component, numIsReal, numCouldBeMin,
-                               numCouldBeSec)) {
-        isValid = false;
-        break;
-      }
+                               numCouldBeSec))
+        return NS_ERROR_FAILURE;
 
       started = true;
     } else if (*start == ':') {
@@ -789,31 +784,27 @@ nsSMILParserUtils::ParseClockValue(const nsAString& aSpec,
 
       
       if (numIsReal) {
-        isValid = false;
-        break;
+        return NS_ERROR_FAILURE;
       }
 
       
       if (!started) {
-        isValid = false;
-        break;
+        return NS_ERROR_FAILURE;
       }
 
       
       if (colonCount > 2) {
-        isValid = false;
-        break;
+        return NS_ERROR_FAILURE;
       }
 
       
-      offset = offset * 60 + PRInt64(component);
+      offset = offset * 60 + nsSMILTime(component);
 
       component = 0.0;
       ++start;
     } else if (NS_IS_ALPHA(*start)) {
       if (colonCount > 0) {
-        isValid = false;
-        break;
+        return NS_ERROR_FAILURE;
       }
 
       if ((aFlags & kClockValueAllowIndefinite)
@@ -828,68 +819,68 @@ nsSMILParserUtils::ParseClockValue(const nsAString& aSpec,
       } else if (aIsMedia && ConsumeSubstring(start, end, "media")) {
         *aIsMedia = true;
       } else if (!ParseMetricMultiplicand(start, end, metricMultiplicand)) {
-        isValid = false;
-        break;
+        return NS_ERROR_FAILURE;
       }
 
       
       break;
     } else {
-      isValid = false;
-      break;
+      return NS_ERROR_FAILURE;
     }
   }
 
   if (!started) {
-    isValid = false;
+    return NS_ERROR_FAILURE;
   }
 
   
   
   SkipBeginWsp(start, end);
   if (start != end) {
-    isValid = false;
+    return NS_ERROR_FAILURE;
   }
 
   
-  if (isIndefinite || (aIsMedia && *aIsMedia))
+  if (isIndefinite || (aIsMedia && *aIsMedia)) {
     return NS_OK;
+  }
 
   
   
   
   
   if (colonCount > 0 && (!prevNumCouldBeMin || !numCouldBeSec)) {
-    isValid = false;
+    return NS_ERROR_FAILURE;
   }
 
-  if (isValid) {
+  
+  if (colonCount > 0) {
+    offset = offset * 60 * 1000;
+    component *= 1000;
     
-    if (colonCount > 0) {
-      offset = offset * 60 * 1000;
-      component *= 1000;
-      
-      component = (component >= 0) ? component + 0.5 : component - 0.5;
-      offset += PRInt64(component);
-    } else {
-      component *= metricMultiplicand;
-      
-      component = (component >= 0) ? component + 0.5 : component - 0.5;
-      offset = PRInt64(component);
-    }
-
-    if (aResult) {
-      nsSMILTime millis = offset;
-
-      if (sign == -1) {
-        millis = -offset;
-      }
-
-      aResult->SetMillis(millis);
-    }
+    component = (component >= 0) ? component + 0.5 : component - 0.5;
+    offset += nsSMILTime(component);
+  } else {
+    component *= metricMultiplicand;
+    
+    component = (component >= 0) ? component + 0.5 : component - 0.5;
+    offset = nsSMILTime(component);
   }
 
-  return (isValid) ? NS_OK : NS_ERROR_FAILURE;
+  
+  
+  if (offset < 0) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (aResult) {
+    if (sign == -1) {
+      offset = -offset;
+    }
+    aResult->SetMillis(offset);
+  }
+
+  return NS_OK;
 }
 
 PRInt32
