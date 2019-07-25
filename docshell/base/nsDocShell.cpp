@@ -9652,11 +9652,6 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
                           NS_ERROR_FAILURE);
 
         
-        nsString title;
-        mOSHE->GetTitle(getter_Copies(title));
-        newSHEntry->SetTitle(title);
-
-        
         
         mOSHE = newSHEntry;
 
