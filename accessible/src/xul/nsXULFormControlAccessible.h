@@ -277,6 +277,9 @@ protected:
   virtual void CacheChildren();
 
   
+  virtual already_AddRefed<nsFrameSelection> FrameSelection();
+
+  
   already_AddRefed<nsIContent> GetInputField() const;
 };
 

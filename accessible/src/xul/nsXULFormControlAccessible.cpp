@@ -885,6 +885,17 @@ nsXULTextFieldAccessible::CacheChildren()
 
 
 
+already_AddRefed<nsFrameSelection>
+nsXULTextFieldAccessible::FrameSelection()
+{
+  nsCOMPtr<nsIContent> inputContent(GetInputField());
+  nsIFrame* frame = inputContent->GetPrimaryFrame();
+  return frame->GetFrameSelection();
+}
+
+
+
+
 already_AddRefed<nsIContent>
 nsXULTextFieldAccessible::GetInputField() const
 {
