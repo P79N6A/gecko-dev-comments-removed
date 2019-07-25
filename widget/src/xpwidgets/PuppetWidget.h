@@ -164,7 +164,7 @@ public:
   
 
 
-  virtual LayerManager*     GetLayerManager();
+  virtual LayerManager*     GetLayerManager(bool* aAllowRetaining = nsnull);
 
   virtual gfxASurface*      GetThebesSurface();
 

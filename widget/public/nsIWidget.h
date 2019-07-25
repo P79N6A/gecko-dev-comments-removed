@@ -119,8 +119,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-  { 0x8bd36c8c, 0x8218, 0x4859, \
-    { 0xbf, 0xbc, 0xca, 0x5d, 0x78, 0xb5, 0x2f, 0x7d } }
+  { 0xcc443f0b, 0xaf39, 0x415d, \
+    { 0x9c, 0x4b, 0x7e, 0x06, 0xea, 0xa8, 0xb1, 0x3b } }
 
 
 
@@ -858,7 +858,8 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual LayerManager* GetLayerManager() = 0;
+
+    virtual LayerManager* GetLayerManager(bool* aAllowRetaining = nsnull) = 0;
 
     
 
