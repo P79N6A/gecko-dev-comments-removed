@@ -3400,24 +3400,8 @@ DefineGlobal(JSParseNode *pn, JSCodeGenerator *cg, JSAtom *atom)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static bool
-BindGvar(JSParseNode *pn, JSTreeContext *tc, bool inWith = false)
+BindGvar(JSParseNode *pn, JSTreeContext *tc)
 {
     JS_ASSERT(pn->pn_op == JSOP_NAME);
     JS_ASSERT(!tc->inFunction());
@@ -3427,36 +3411,10 @@ BindGvar(JSParseNode *pn, JSTreeContext *tc, bool inWith = false)
 
     JSCodeGenerator *cg = (JSCodeGenerator *) tc;
 
-    if (!(pn->pn_dflags & PND_CONST) && !inWith) {
-        if (!DefineGlobal(pn, cg, pn->pn_atom))
-            return false;
-        if (pn->pn_dflags & PND_BOUND)
-            return true;
-    }
-
-    
-
-    
-    JSAtomListElement *ale = cg->atomList.add(tc->parser, pn->pn_atom);
-    if (!ale)
-        return false;
-
-    
-    uintN slot = ALE_INDEX(ale);
-    if ((slot + 1) >> 16)
+    if (pn->pn_dflags & PND_CONST)
         return true;
 
-    if ((uint16)(slot + 1) > cg->ngvars)
-        cg->ngvars = (uint16)(slot + 1);
-
-    
-    if (!inWith) {
-        pn->pn_op = JSOP_GETGVAR;
-        pn->pn_cookie = MAKE_UPVAR_COOKIE(tc->staticLevel, slot);
-        pn->pn_dflags |= PND_BOUND | PND_GVAR;
-    }
-
-    return true;
+    return DefineGlobal(pn, cg, pn->pn_atom);
 }
 
 static JSBool
@@ -3474,7 +3432,7 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
 
     if (stmt && stmt->type == STMT_WITH) {
         data->fresh = false;
-        return tc->inFunction() || BindGvar(pn, tc, true);
+        return true;
     }
 
     JSAtomListElement *ale = tc->decls.lookup(atom);
@@ -3731,12 +3689,11 @@ BindDestructuringVar(JSContext *cx, BindData *data, JSParseNode *pn,
 
 
     if (pn->pn_dflags & PND_BOUND) {
-        JS_ASSERT_IF((pn->pn_dflags & PND_GVAR),
-                     PN_OP(pn) == JSOP_GETGVAR || PN_OP(pn) == JSOP_GETGLOBAL);
+        JS_ASSERT_IF((pn->pn_dflags & PND_GVAR), PN_OP(pn) == JSOP_GETGLOBAL);
         pn->pn_op = (pn->pn_op == JSOP_ARGUMENTS)
                     ? JSOP_SETNAME
                     : (pn->pn_dflags & PND_GVAR)
-                    ? (PN_OP(pn) == JSOP_GETGVAR ? JSOP_SETGVAR : JSOP_SETGLOBAL)
+                    ? JSOP_SETGLOBAL
                     : JSOP_SETLOCAL;
     } else {
         pn->pn_op = (data->op == JSOP_DEFCONST)
@@ -5991,13 +5948,12 @@ Parser::variables(bool inLetHead)
                 pn2->pn_expr = init;
             }
 
-            JS_ASSERT_IF((pn2->pn_dflags & PND_GVAR),
-                         PN_OP(pn2) == JSOP_GETGVAR || PN_OP(pn2) == JSOP_GETGLOBAL);
+            JS_ASSERT_IF((pn2->pn_dflags & PND_GVAR), PN_OP(pn2) == JSOP_GETGLOBAL);
 
             pn2->pn_op = (PN_OP(pn2) == JSOP_ARGUMENTS)
                          ? JSOP_SETNAME
                          : (pn2->pn_dflags & PND_GVAR)
-                         ? (PN_OP(pn2) == JSOP_GETGVAR ? JSOP_SETGVAR : JSOP_SETGLOBAL)
+                         ? JSOP_SETGLOBAL
                          : (pn2->pn_dflags & PND_BOUND)
                          ? JSOP_SETLOCAL
                          : (data.op == JSOP_DEFCONST)
