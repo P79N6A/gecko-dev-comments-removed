@@ -402,6 +402,12 @@ public class PanZoomController
     }
 
     private void track(float x, float y, float lastX, float lastY, float timeDelta) {
+        if (FloatUtils.fuzzyEquals(timeDelta, 0)) {
+            
+            
+            return;
+        }
+
         if (mState == PanZoomState.PANNING_LOCKED) {
             
             double angle = Math.atan2(y - mY.firstTouchPos, x - mX.firstTouchPos); 
