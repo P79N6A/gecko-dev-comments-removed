@@ -173,7 +173,7 @@ public:
 
 
 
-  static PRBool ShouldCreateImageFrameFor(nsIContent* aContent,
+  static PRBool ShouldCreateImageFrameFor(mozilla::dom::Element* aElement,
                                           nsStyleContext* aStyleContext);
   
   void DisplayAltFeedback(nsRenderingContext& aRenderingContext,

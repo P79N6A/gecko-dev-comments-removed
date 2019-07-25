@@ -86,6 +86,14 @@ public:
 #ifdef MOZILLA_INTERNAL_API
   Element(already_AddRefed<nsINodeInfo> aNodeInfo) : nsIContent(aNodeInfo) {}
 #endif 
+
+  
+
+
+
+
+
+  virtual nsEventStates IntrinsicState() const;
 };
 
 } 

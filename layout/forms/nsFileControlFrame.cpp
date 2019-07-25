@@ -93,9 +93,6 @@
 #include "nsDOMFile.h"
 #include "nsEventStates.h"
 
-#include "nsIDOMDOMStringList.h"
-#include "nsIDOMDragEvent.h"
-
 namespace dom = mozilla::dom;
 
 #define SYNC_TEXT 0x1
@@ -138,15 +135,6 @@ nsFileControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   mTextFrame = nsnull;
   ENSURE_TRUE(mContent);
-
-  
-  nsCOMPtr<nsIDOMEventTarget> dragTarget = do_QueryInterface(mContent);
-  if (dragTarget) {
-    dragTarget->RemoveEventListener(NS_LITERAL_STRING("drop"),
-                                    mMouseListener, PR_FALSE);
-    dragTarget->RemoveEventListener(NS_LITERAL_STRING("dragover"),
-                                    mMouseListener, PR_FALSE);
-  }
 
   
   NS_NAMED_LITERAL_STRING(click, "click");
@@ -269,14 +257,6 @@ nsFileControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 
   if (!aElements.AppendElement(mTextContent))
     return NS_ERROR_OUT_OF_MEMORY;
-
-  
-  nsCOMPtr<nsIDOMEventTarget> dragTarget = do_QueryInterface(mContent);
-  NS_ENSURE_STATE(dragTarget);
-  dragTarget->AddEventListener(NS_LITERAL_STRING("drop"),
-                               mMouseListener, PR_FALSE);
-  dragTarget->AddEventListener(NS_LITERAL_STRING("dragover"),
-                               mMouseListener, PR_FALSE);
 
   NS_NAMED_LITERAL_STRING(click, "click");
   nsCOMPtr<nsIDOMEventGroup> systemGroup;
@@ -518,74 +498,6 @@ nsFileControlFrame::BrowseMouseListener::MouseClick(nsIDOMEvent* aMouseEvent)
   return input ? input->FireAsyncClickHandler() : NS_OK;
 }
 
-
-
-
-
-
-NS_IMETHODIMP
-nsFileControlFrame::BrowseMouseListener::HandleEvent(nsIDOMEvent* aEvent)
-{
-  NS_ASSERTION(mFrame, "We should have been unregistered");
-  nsCOMPtr<nsIDOMNSUIEvent> uiEvent = do_QueryInterface(aEvent);
-  NS_ENSURE_STATE(uiEvent);
-  PRBool defaultPrevented = PR_FALSE;
-  uiEvent->GetPreventDefault(&defaultPrevented);
-  if (defaultPrevented) {
-    return NS_OK;
-  }
-  
-  nsCOMPtr<nsIDOMDragEvent> dragEvent = do_QueryInterface(aEvent);
-  if (!dragEvent || !IsValidDropData(dragEvent)) {
-    return NS_OK;
-  }
-
-  nsAutoString eventType;
-  aEvent->GetType(eventType);
-  if (eventType.EqualsLiteral("dragover")) {
-    
-    aEvent->PreventDefault();
-    return NS_OK;
-  }
-
-  if (eventType.EqualsLiteral("drop")) {
-    aEvent->StopPropagation();
-    aEvent->PreventDefault();
-
-    nsIContent* content = mFrame->GetContent();
-    NS_ASSERTION(content, "The frame has no content???");
-
-    nsHTMLInputElement* inputElement = nsHTMLInputElement::FromContent(content);
-    NS_ASSERTION(inputElement, "No input element for this file upload control frame!");
-
-    nsCOMPtr<nsIDOMDataTransfer> dataTransfer;
-    dragEvent->GetDataTransfer(getter_AddRefs(dataTransfer));
-
-    nsCOMPtr<nsIDOMFileList> fileList;
-    dataTransfer->GetFiles(getter_AddRefs(fileList));
-    inputElement->SetFiles(fileList, true);
-  }
-
-  return NS_OK;
-}
-
- PRBool
-nsFileControlFrame::BrowseMouseListener::IsValidDropData(nsIDOMDragEvent* aEvent)
-{
-  nsCOMPtr<nsIDOMDataTransfer> dataTransfer;
-  aEvent->GetDataTransfer(getter_AddRefs(dataTransfer));
-  NS_ENSURE_TRUE(dataTransfer, PR_FALSE);
-
-  nsCOMPtr<nsIDOMDOMStringList> types;
-  dataTransfer->GetTypes(getter_AddRefs(types));
-  NS_ENSURE_TRUE(types, PR_FALSE);
-
-  
-  PRBool typeSupported;
-  types->Contains(NS_LITERAL_STRING("Files"), &typeSupported);
-  return typeSupported;
-}
-
 nscoord
 nsFileControlFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 {
@@ -679,7 +591,7 @@ nsFileControlFrame::SyncAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
 void
 nsFileControlFrame::SyncDisabledState()
 {
-  nsEventStates eventStates = mContent->IntrinsicState();
+  nsEventStates eventStates = mContent->AsElement()->IntrinsicState();
   if (eventStates.HasState(NS_EVENT_STATE_DISABLED)) {
     mTextContent->SetAttr(kNameSpaceID_None, nsGkAtoms::disabled, EmptyString(),
                           PR_TRUE);
@@ -792,7 +704,7 @@ nsFileControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  nsEventStates eventStates = mContent->IntrinsicState();
+  nsEventStates eventStates = mContent->AsElement()->IntrinsicState();
   if (eventStates.HasState(NS_EVENT_STATE_DISABLED) && IsVisibleForPainting(aBuilder)) {
     rv = aLists.Content()->AppendNewToTop(
         new (aBuilder) nsDisplayEventReceiver(aBuilder, this));

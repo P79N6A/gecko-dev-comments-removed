@@ -117,6 +117,7 @@ using namespace mozilla;
 #define ALIGN_UNSET PRUint8(-1)
 
 using namespace mozilla::layers;
+using namespace mozilla::dom;
 
 
 nsImageFrame::IconLoad* nsImageFrame::gIconLoad = nsnull;
@@ -472,10 +473,10 @@ nsImageFrame::SourceRectToDest(const nsIntRect& aRect)
 
 
 PRBool
-nsImageFrame::ShouldCreateImageFrameFor(nsIContent* aContent,
+nsImageFrame::ShouldCreateImageFrameFor(Element* aElement,
                                         nsStyleContext* aStyleContext)
 {
-  nsEventStates state = aContent->IntrinsicState();
+  nsEventStates state = aElement->IntrinsicState();
   if (IMAGE_OK(state,
                HaveFixedSize(aStyleContext->GetStylePosition()))) {
     
@@ -509,12 +510,12 @@ nsImageFrame::ShouldCreateImageFrameFor(nsIContent* aContent,
     else {
       
       
-      nsIAtom *localName = aContent->NodeInfo()->NameAtom();
+      nsIAtom *localName = aElement->Tag();
 
       
       
       
-      if (!aContent->HasAttr(kNameSpaceID_None, nsGkAtoms::alt) &&
+      if (!aElement->HasAttr(kNameSpaceID_None, nsGkAtoms::alt) &&
           localName != nsGkAtoms::object &&
           localName != nsGkAtoms::input) {
         useSizedBox = PR_TRUE;
@@ -1163,9 +1164,10 @@ static void PaintAltFeedback(nsIFrame* aFrame, nsRenderingContext* aCtx,
      const nsRect& aDirtyRect, nsPoint aPt)
 {
   nsImageFrame* f = static_cast<nsImageFrame*>(aFrame);
+  nsEventStates state = f->GetContent()->AsElement()->IntrinsicState();
   f->DisplayAltFeedback(*aCtx,
                         aDirtyRect,
-                        IMAGE_OK(f->GetContent()->IntrinsicState(), PR_TRUE)
+                        IMAGE_OK(state, PR_TRUE)
                            ? nsImageFrame::gIconLoad->mLoadingImage
                            : nsImageFrame::gIconLoad->mBrokenImage,
                         aPt);
@@ -1326,7 +1328,7 @@ nsImageFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               getter_AddRefs(currentRequest));
     }
 
-    nsEventStates contentState = mContent->IntrinsicState();
+    nsEventStates contentState = mContent->AsElement()->IntrinsicState();
     PRBool imageOK = IMAGE_OK(contentState, PR_TRUE);
 
     nsCOMPtr<imgIContainer> imgCon;

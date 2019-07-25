@@ -88,7 +88,8 @@ nsButtonFrameRenderer::isDisabled()
 {
   
   
-  return mFrame->GetContent()->IntrinsicState().HasState(NS_EVENT_STATE_DISABLED);
+  return mFrame->GetContent()->AsElement()->
+    IntrinsicState().HasState(NS_EVENT_STATE_DISABLED);
 }
 
 class nsDisplayButtonBoxShadowOuter : public nsDisplayItem {
