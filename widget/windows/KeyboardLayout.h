@@ -131,6 +131,35 @@ public:
                        PRUint8* aFinalShiftState) const;
 };
 
+class NativeKey {
+public:
+  NativeKey() :
+    mVirtualKeyCode(0), mOriginalVirtualKeyCode(0),
+    mScanCode(0), mIsExtended(false)
+  {
+  }
+
+  NativeKey(HKL aKeyboardLayout,
+            HWND aWnd,
+            const MSG& aKeyOrCharMessage);
+
+  
+  PRUint32 GetKeyLocation() const;
+  PRUint8 GetVirtualKeyCode() const { return mVirtualKeyCode; }
+  PRUint8 GetOriginalVirtualKeyCode() const { return mOriginalVirtualKeyCode; }
+
+private:
+  
+  PRUint8 mVirtualKeyCode;
+  
+  
+  
+  PRUint8 mOriginalVirtualKeyCode;
+  WORD    mScanCode;
+  bool    mIsExtended;
+
+  UINT GetScanCodeWithExtendedFlag() const;
+};
 
 class KeyboardLayout
 {
