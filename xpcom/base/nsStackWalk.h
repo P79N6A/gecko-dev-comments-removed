@@ -15,8 +15,11 @@
 
 PR_BEGIN_EXTERN_C
 
+
+
+
 typedef void
-(* NS_WalkStackCallback)(void *aPC, void *aClosure);
+(* NS_WalkStackCallback)(void *aPC, void *aSP, void *aClosure);
 
 
 
