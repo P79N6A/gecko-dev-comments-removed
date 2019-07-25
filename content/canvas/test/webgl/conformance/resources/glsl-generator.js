@@ -223,7 +223,10 @@ var runFeatureTest = function(params) {
 
   var wtu = WebGLTestUtils;
   var gridRes = params.gridRes;
-  var tolerance = params.tolerance || 0;
+  var vertexTolerance = params.tolerance || 0;
+  var fragmentTolerance = vertexTolerance;
+  if ('fragmentTolerance' in params)
+    fragmentTolerance = params.fragmentTolerance || 0;
 
   description("Testing GLSL feature: " + params.feature);
 
@@ -252,13 +255,15 @@ var runFeatureTest = function(params) {
       input: "color",
       output: "vColor",
       vertexShaderTemplate: vertexShaderTemplate,
-      fragmentShaderTemplate: baseFragmentShader
+      fragmentShaderTemplate: baseFragmentShader,
+      tolerance: vertexTolerance
     },
     { type: "fragment",
       input: "vColor",
       output: "gl_FragColor",
       vertexShaderTemplate: baseVertexShader,
-      fragmentShaderTemplate: fragmentShaderTemplate
+      fragmentShaderTemplate: fragmentShaderTemplate,
+      tolerance: fragmentTolerance
     }
   ];
   for (var ss = 0; ss < shaderInfos.length; ++ss) {
@@ -328,7 +333,7 @@ var runFeatureTest = function(params) {
       }
       var testImg = makeImage(canvas);
 
-      reportResults(refData, refImg, testData, testImg);
+      reportResults(refData, refImg, testData, testImg, shaderInfo.tolerance);
     }
   }
 
@@ -364,7 +369,7 @@ var runFeatureTest = function(params) {
     console.appendChild(div);
   }
 
-  function reportResults(refData, refImage, testData, testImage) {
+  function reportResults(refData, refImage, testData, testImage, tolerance) {
     var same = true;
     for (var yy = 0; yy < height; ++yy) {
       for (var xx = 0; xx < width; ++xx) {
@@ -440,6 +445,18 @@ var runFeatureTest = function(params) {
 
 return {
   
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
