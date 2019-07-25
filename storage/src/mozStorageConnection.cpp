@@ -393,14 +393,6 @@ Connection::initialize(nsIFile *aDatabaseFile)
   PR_LOG(gStorageLog, PR_LOG_NOTICE, ("Opening connection to '%s' (%p)",
                                       leafName.get(), this));
 #endif
-  
-  sqlite3_stmt *stmt;
-  srv = prepareStmt(mDBConn, NS_LITERAL_CSTRING("PRAGMA page_size = 32768"),
-                    &stmt);
-  if (srv == SQLITE_OK) {
-    (void)stepStmt(stmt);
-    (void)::sqlite3_finalize(stmt);
-  }
 
   
   srv = registerFunctions(mDBConn);
@@ -420,6 +412,7 @@ Connection::initialize(nsIFile *aDatabaseFile)
 
   
   
+  sqlite3_stmt *stmt;
   srv = prepareStmt(mDBConn, NS_LITERAL_CSTRING("SELECT * FROM sqlite_master"),
                     &stmt);
   if (srv == SQLITE_OK) {
