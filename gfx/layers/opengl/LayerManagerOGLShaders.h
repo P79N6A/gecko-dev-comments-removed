@@ -1,112 +1,108 @@
 
 
 
-
-
-
-
 static const char sLayerVS[] = "/* sLayerVS */\n\
-\n\
+/* Vertex Shader */\n\
 uniform mat4 uMatrixProj;\n\
 uniform mat4 uLayerQuadTransform;\n\
 uniform mat4 uLayerTransform;\n\
 uniform vec4 uRenderTargetOffset;\n\
 attribute vec4 aVertexCoord;\n\
 attribute vec2 aTexCoord;\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+void main()\n\
+{\n\
+vec4 finalPosition = aVertexCoord;\n\
+finalPosition = uLayerQuadTransform * finalPosition;\n\
+finalPosition = uLayerTransform * finalPosition;\n\
+finalPosition.xyz /= finalPosition.w;\n\
+\n\
+\n\
+finalPosition = finalPosition - uRenderTargetOffset;\n\
+finalPosition.xyz *= finalPosition.w;\n\
+finalPosition = uMatrixProj * finalPosition;\n\
+vTexCoord = aTexCoord;\n\
+gl_Position = finalPosition;\n\
+}\n\
+";
 
 static const char sLayerMaskVS[] = "/* sLayerMaskVS */\n\
-\n\
+/* Vertex Shader */\n\
 uniform mat4 uMatrixProj;\n\
 uniform mat4 uLayerQuadTransform;\n\
 uniform mat4 uLayerTransform;\n\
 uniform vec4 uRenderTargetOffset;\n\
 attribute vec4 aVertexCoord;\n\
 attribute vec2 aTexCoord;\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+uniform mat4 uMaskQuadTransform;\n\
+varying vec2 vMaskCoord;\n\
+\n\
+void main()\n\
+{\n\
+vec4 finalPosition = aVertexCoord;\n\
+finalPosition = uLayerQuadTransform * finalPosition;\n\
+finalPosition = uLayerTransform * finalPosition;\n\
+finalPosition.xyz /= finalPosition.w;\n\
+vMaskCoord = (uMaskQuadTransform * finalPosition).xy;\n\
+\n\
+finalPosition = finalPosition - uRenderTargetOffset;\n\
+finalPosition.xyz *= finalPosition.w;\n\
+finalPosition = uMatrixProj * finalPosition;\n\
+vTexCoord = aTexCoord;\n\
+gl_Position = finalPosition;\n\
+}\n\
+";
 
 static const char sLayerMask3DVS[] = "/* sLayerMask3DVS */\n\
-\n\
+/* Vertex Shader */\n\
 uniform mat4 uMatrixProj;\n\
 uniform mat4 uLayerQuadTransform;\n\
 uniform mat4 uLayerTransform;\n\
 uniform vec4 uRenderTargetOffset;\n\
 attribute vec4 aVertexCoord;\n\
 attribute vec2 aTexCoord;\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+uniform mat4 uMaskQuadTransform;\n\
+varying vec3 vMaskCoord;\n\
+\n\
+void main()\n\
+{\n\
+vec4 finalPosition = aVertexCoord;\n\
+finalPosition = uLayerQuadTransform * finalPosition;\n\
+finalPosition = uLayerTransform * finalPosition;\n\
+finalPosition.xyz /= finalPosition.w;\n\
+vMaskCoord.xy = (uMaskQuadTransform * vec4(finalPosition.xyz, 1.0)).xy;\n\
+// correct for perspective correct interpolation, see comment in D3D10 shader\n\
+vMaskCoord.z = 1.0;\n\
+vMaskCoord *= finalPosition.w;\n\
+\n\
+finalPosition = finalPosition - uRenderTargetOffset;\n\
+finalPosition.xyz *= finalPosition.w;\n\
+finalPosition = uMatrixProj * finalPosition;\n\
+vTexCoord = aTexCoord;\n\
+gl_Position = finalPosition;\n\
+}\n\
+";
 
 static const char sSolidColorLayerFS[] = "/* sSolidColorLayerFS */\n\
 #define NO_LAYER_OPACITY 1\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -114,24 +110,24 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+uniform vec4 uRenderColor;\n\
+void main()\n\
+{\n\
+float mask = 1.0;\n\
+\n\
+gl_FragColor = mask * uRenderColor;\n\
+}\n\
+";
 
 static const char sSolidColorLayerMaskFS[] = "/* sSolidColorLayerMaskFS */\n\
 #define NO_LAYER_OPACITY 1\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -139,26 +135,26 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+varying vec2 vMaskCoord;\n\
+uniform sampler2D uMaskTexture;\n\
+\n\
+uniform vec4 uRenderColor;\n\
+void main()\n\
+{\n\
+float mask = texture2D(uMaskTexture, vMaskCoord).r;\n\
+\n\
+gl_FragColor = mask * uRenderColor;\n\
+}\n\
+";
 
 static const char sRGBATextureLayerFS[] = "/* sRGBATextureLayerFS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -166,23 +162,23 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+uniform sampler2D uTexture;\n\
+void main()\n\
+{\n\
+float mask = 1.0;\n\
+\n\
+gl_FragColor = texture2D(uTexture, vTexCoord) * uLayerOpacity * mask;\n\
+}\n\
+";
 
 static const char sRGBATextureLayerMaskFS[] = "/* sRGBATextureLayerMaskFS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -190,26 +186,26 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+varying vec2 vMaskCoord;\n\
+uniform sampler2D uMaskTexture;\n\
+\n\
+uniform sampler2D uTexture;\n\
+void main()\n\
+{\n\
+float mask = texture2D(uMaskTexture, vMaskCoord).r;\n\
+\n\
+gl_FragColor = texture2D(uTexture, vTexCoord) * uLayerOpacity * mask;\n\
+}\n\
+";
 
 static const char sRGBATextureLayerMask3DFS[] = "/* sRGBATextureLayerMask3DFS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -217,24 +213,24 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+varying vec3 vMaskCoord;\n\
+uniform sampler2D uMaskTexture;\n\
+\n\
+uniform sampler2D uTexture;\n\
+void main()\n\
+{\n\
+vec2 maskCoords = vMaskCoord.xy / vMaskCoord.z;\n\
+float mask = texture2D(uMaskTexture, maskCoords).r;\n\
+\n\
+gl_FragColor = texture2D(uTexture, vTexCoord) * uLayerOpacity * mask;\n\
+}\n\
+";
 
 static const char sRGBARectTextureLayerFS[] = "/* sRGBARectTextureLayerFS */\n\
 #extension GL_ARB_texture_rectangle : enable\n\
@@ -346,7 +342,7 @@ gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n\
 ";
 
 static const char sBGRATextureLayerFS[] = "/* sBGRATextureLayerFS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -354,23 +350,23 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+uniform sampler2D uTexture;\n\
+void main()\n\
+{\n\
+float mask = 1.0;\n\
+\n\
+gl_FragColor = texture2D(uTexture, vTexCoord).bgra * uLayerOpacity * mask;\n\
+}\n\
+";
 
 static const char sBGRATextureLayerMaskFS[] = "/* sBGRATextureLayerMaskFS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -378,26 +374,26 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+varying vec2 vMaskCoord;\n\
+uniform sampler2D uMaskTexture;\n\
+\n\
+uniform sampler2D uTexture;\n\
+void main()\n\
+{\n\
+float mask = texture2D(uMaskTexture, vMaskCoord).r;\n\
+\n\
+gl_FragColor = texture2D(uTexture, vTexCoord).bgra * uLayerOpacity * mask;\n\
+}\n\
+";
 
 static const char sRGBXTextureLayerFS[] = "/* sRGBXTextureLayerFS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -405,23 +401,23 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+uniform sampler2D uTexture;\n\
+void main()\n\
+{\n\
+float mask = 1.0;\n\
+\n\
+gl_FragColor = vec4(texture2D(uTexture, vTexCoord).rgb, 1.0) * uLayerOpacity * mask;\n\
+}\n\
+";
 
 static const char sRGBXTextureLayerMaskFS[] = "/* sRGBXTextureLayerMaskFS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -429,26 +425,26 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+varying vec2 vMaskCoord;\n\
+uniform sampler2D uMaskTexture;\n\
+\n\
+uniform sampler2D uTexture;\n\
+void main()\n\
+{\n\
+float mask = texture2D(uMaskTexture, vMaskCoord).r;\n\
+\n\
+gl_FragColor = vec4(texture2D(uTexture, vTexCoord).rgb, 1.0) * uLayerOpacity * mask;\n\
+}\n\
+";
 
 static const char sBGRXTextureLayerFS[] = "/* sBGRXTextureLayerFS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -456,23 +452,23 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+uniform sampler2D uTexture;\n\
+void main()\n\
+{\n\
+float mask = 1.0;\n\
+\n\
+gl_FragColor = vec4(texture2D(uTexture, vTexCoord).bgr, 1.0) * uLayerOpacity * mask;\n\
+}\n\
+";
 
 static const char sBGRXTextureLayerMaskFS[] = "/* sBGRXTextureLayerMaskFS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -480,26 +476,26 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+varying vec2 vMaskCoord;\n\
+uniform sampler2D uMaskTexture;\n\
+\n\
+uniform sampler2D uTexture;\n\
+void main()\n\
+{\n\
+float mask = texture2D(uMaskTexture, vMaskCoord).r;\n\
+\n\
+gl_FragColor = vec4(texture2D(uTexture, vTexCoord).bgr, 1.0) * uLayerOpacity * mask;\n\
+}\n\
+";
 
 static const char sYCbCrTextureLayerFS[] = "/* sYCbCrTextureLayerFS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -507,37 +503,42 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+#ifdef GL_ES\n\
+precision mediump float;\n\
+#endif\n\
+uniform sampler2D uYTexture;\n\
+uniform sampler2D uCbTexture;\n\
+uniform sampler2D uCrTexture;\n\
+void main()\n\
+{\n\
+vec4 color;\n\
+float y = texture2D(uYTexture, vTexCoord).r;\n\
+float cb = texture2D(uCbTexture, vTexCoord).r;\n\
+float cr = texture2D(uCrTexture, vTexCoord).r;\n\
+y = (y - 0.0625) * 1.164;\n\
+cb = cb - 0.5;\n\
+cr = cr - 0.5;\n\
+color.r = y + cr * 1.596;\n\
+color.g = y - 0.813 * cr - 0.391 * cb;\n\
+color.b = y + cb * 2.018;\n\
+color.a = 1.0;\n\
+/*\n\
+float mask = 1.0;\n\
+\n\
+gl_FragColor = color * uLayerOpacity * mask;\n\
+*/\n\
+gl_FragColor = color;\n\
+}\n\
+";
 
 static const char sYCbCrTextureLayerMaskFS[] = "/* sYCbCrTextureLayerMaskFS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -545,40 +546,45 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+varying vec2 vMaskCoord;\n\
+uniform sampler2D uMaskTexture;\n\
+\n\
+#ifdef GL_ES\n\
+precision mediump float;\n\
+#endif\n\
+uniform sampler2D uYTexture;\n\
+uniform sampler2D uCbTexture;\n\
+uniform sampler2D uCrTexture;\n\
+void main()\n\
+{\n\
+vec4 color;\n\
+float y = texture2D(uYTexture, vTexCoord).r;\n\
+float cb = texture2D(uCbTexture, vTexCoord).r;\n\
+float cr = texture2D(uCrTexture, vTexCoord).r;\n\
+y = (y - 0.0625) * 1.164;\n\
+cb = cb - 0.5;\n\
+cr = cr - 0.5;\n\
+color.r = y + cr * 1.596;\n\
+color.g = y - 0.813 * cr - 0.391 * cb;\n\
+color.b = y + cb * 2.018;\n\
+color.a = 1.0;\n\
+/*\n\
+float mask = texture2D(uMaskTexture, vMaskCoord).r;\n\
+\n\
+gl_FragColor = color * uLayerOpacity * mask;\n\
+*/\n\
+gl_FragColor = color;\n\
+}\n\
+";
 
 static const char sComponentPass1FS[] = "/* sComponentPass1FS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -586,27 +592,27 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+uniform sampler2D uBlackTexture;\n\
+uniform sampler2D uWhiteTexture;\n\
+void main()\n\
+{\n\
+vec3 onBlack = texture2D(uBlackTexture, vTexCoord).bgr;\n\
+vec3 onWhite = texture2D(uWhiteTexture, vTexCoord).bgr;\n\
+vec4 alphas = (1.0 - onWhite + onBlack).rgbg;\n\
+float mask = 1.0;\n\
+\n\
+gl_FragColor = alphas * uLayerOpacity * mask;\n\
+}\n\
+";
 
 static const char sComponentPassMask1FS[] = "/* sComponentPassMask1FS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -614,30 +620,30 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+varying vec2 vMaskCoord;\n\
+uniform sampler2D uMaskTexture;\n\
+\n\
+uniform sampler2D uBlackTexture;\n\
+uniform sampler2D uWhiteTexture;\n\
+void main()\n\
+{\n\
+vec3 onBlack = texture2D(uBlackTexture, vTexCoord).bgr;\n\
+vec3 onWhite = texture2D(uWhiteTexture, vTexCoord).bgr;\n\
+vec4 alphas = (1.0 - onWhite + onBlack).rgbg;\n\
+float mask = texture2D(uMaskTexture, vMaskCoord).r;\n\
+\n\
+gl_FragColor = alphas * uLayerOpacity * mask;\n\
+}\n\
+";
 
 static const char sComponentPass2FS[] = "/* sComponentPass2FS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -645,27 +651,27 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+uniform sampler2D uBlackTexture;\n\
+uniform sampler2D uWhiteTexture;\n\
+void main()\n\
+{\n\
+vec3 onBlack = texture2D(uBlackTexture, vTexCoord).bgr;\n\
+vec3 onWhite = texture2D(uWhiteTexture, vTexCoord).bgr;\n\
+vec4 alphas = (1.0 - onWhite + onBlack).rgbg;\n\
+float mask = 1.0;\n\
+\n\
+gl_FragColor = vec4(onBlack, alphas.a) * uLayerOpacity * mask;\n\
+}\n\
+";
 
 static const char sComponentPassMask2FS[] = "/* sComponentPassMask2FS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
@@ -673,30 +679,30 @@ precision lowp float;\n\
 #ifndef NO_LAYER_OPACITY\n\
 uniform float uLayerOpacity;\n\
 #endif\n\
-#ifdef GL_ES 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef GL_ES // for tiling, texcoord can be greater than the lowfp range\n\
+varying mediump vec2 vTexCoord;\n\
+#else\n\
+varying vec2 vTexCoord;\n\
+#endif\n\
+\n\
+varying vec2 vMaskCoord;\n\
+uniform sampler2D uMaskTexture;\n\
+\n\
+uniform sampler2D uBlackTexture;\n\
+uniform sampler2D uWhiteTexture;\n\
+void main()\n\
+{\n\
+vec3 onBlack = texture2D(uBlackTexture, vTexCoord).bgr;\n\
+vec3 onWhite = texture2D(uWhiteTexture, vTexCoord).bgr;\n\
+vec4 alphas = (1.0 - onWhite + onBlack).rgbg;\n\
+float mask = texture2D(uMaskTexture, vMaskCoord).r;\n\
+\n\
+gl_FragColor = vec4(onBlack, alphas.a) * uLayerOpacity * mask;\n\
+}\n\
+";
 
 static const char sCopyVS[] = "/* sCopyVS */\n\
-\n\
+/* Vertex Shader */\n\
 attribute vec4 aVertexCoord;\n\
 attribute vec2 aTexCoord;\n\
 varying vec2 vTexCoord;\n\
@@ -708,7 +714,7 @@ vTexCoord = aTexCoord;\n\
 ";
 
 static const char sCopy2DFS[] = "/* sCopy2DFS */\n\
-\n\
+/* Fragment Shader */\n\
 #ifdef GL_ES\n\
 precision lowp float;\n\
 #endif\n\
