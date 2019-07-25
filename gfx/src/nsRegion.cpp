@@ -1410,6 +1410,16 @@ nsIntRegion nsRegion::ToOutsidePixels (nscoord aAppUnitsPerPixel) const
 
 
 
+
+
+
+
+
+
+
+
+
+
 namespace {
   
   
@@ -1452,13 +1462,52 @@ namespace {
 
   const PRInt64 kVeryLargeNegativeNumber = 0xffff000000000000ll;
 
+  struct SizePair {
+    PRInt64 mSizeContainingRect;
+    PRInt64 mSize;
+
+    SizePair() : mSizeContainingRect(0), mSize(0) {}
+
+    static SizePair VeryLargeNegative() {
+      SizePair result;
+      result.mSize = result.mSizeContainingRect = kVeryLargeNegativeNumber;
+      return result;
+    }
+    SizePair& operator=(const SizePair& aOther) {
+      mSizeContainingRect = aOther.mSizeContainingRect;
+      mSize = aOther.mSize;
+      return *this;
+    }
+    PRBool operator<(const SizePair& aOther) const {
+      if (mSizeContainingRect < aOther.mSizeContainingRect)
+        return PR_TRUE;
+      if (mSizeContainingRect > aOther.mSizeContainingRect)
+        return PR_FALSE;
+      return mSize < aOther.mSize;
+    }
+    PRBool operator>(const SizePair& aOther) const {
+      return aOther.operator<(*this);
+    }
+    SizePair operator+(const SizePair& aOther) const {
+      SizePair result = *this;
+      result.mSizeContainingRect += aOther.mSizeContainingRect;
+      result.mSize += aOther.mSize;
+      return result;
+    }
+    SizePair operator-(const SizePair& aOther) const {
+      SizePair result = *this;
+      result.mSizeContainingRect -= aOther.mSizeContainingRect;
+      result.mSize -= aOther.mSize;
+      return result;
+    }
+  };
+
   
   
-  PRInt64 MaxSum1D(const nsTArray<PRInt64> &A, PRInt32 n,
-                   PRInt32 *minIdx, PRInt32 *maxIdx) {
+  SizePair MaxSum1D(const nsTArray<SizePair> &A, PRInt32 n,
+                    PRInt32 *minIdx, PRInt32 *maxIdx) {
     
-    PRInt64 min = 0,
-            max = 0;
+    SizePair min, max;
     PRInt32 currentMinIdx = 0;
 
     *minIdx = 0;
@@ -1467,7 +1516,7 @@ namespace {
     
     
     for(PRInt32 i = 1; i < n; i++) {
-      PRInt64 cand = A[i] - min;
+      SizePair cand = A[i] - min;
       if (cand > max) {
         max = cand;
         *minIdx = currentMinIdx;
@@ -1483,7 +1532,7 @@ namespace {
   }
 }
 
-nsRect nsRegion::GetLargestRectangle () const {
+nsRect nsRegion::GetLargestRectangle (const nsRect& aContainingRect) const {
   nsRect bestRect;
 
   if (mRectCount <= 1) {
@@ -1502,6 +1551,12 @@ nsRect nsRegion::GetLargestRectangle () const {
     yaxis.InsertCoord(currentRect->y);
     yaxis.InsertCoord(currentRect->YMost());
   }
+  if (!aContainingRect.IsEmpty()) {
+    xaxis.InsertCoord(aContainingRect.x);
+    xaxis.InsertCoord(aContainingRect.XMost());
+    yaxis.InsertCoord(aContainingRect.y);
+    yaxis.InsertCoord(aContainingRect.YMost());
+  }
 
   
   
@@ -1509,9 +1564,8 @@ nsRect nsRegion::GetLargestRectangle () const {
   PRInt32 matrixHeight = yaxis.GetNumStops() - 1;
   PRInt32 matrixWidth = xaxis.GetNumStops() - 1;
   PRInt32 matrixSize = matrixHeight * matrixWidth;
-  nsTArray<PRInt64> areas(matrixSize);
+  nsTArray<SizePair> areas(matrixSize);
   areas.SetLength(matrixSize);
-  memset(areas.Elements(), 0, matrixSize * sizeof(PRInt64));
 
   iter.Reset();
   while ((currentRect = iter.Next())) {
@@ -1524,7 +1578,11 @@ nsRect nsRegion::GetLargestRectangle () const {
       nscoord height = yaxis.StopSize(y);
       for (PRInt32 x = xstart; x < xend; x++) {
         nscoord width = xaxis.StopSize(x);
-        areas[y*matrixWidth+x] = width*PRInt64(height);
+        PRInt64 size = width*PRInt64(height);
+        if (currentRect->Intersects(aContainingRect)) {
+          areas[y*matrixWidth+x].mSizeContainingRect = size;
+        }
+        areas[y*matrixWidth+x].mSize = size;
       }
     }
   }
@@ -1534,21 +1592,17 @@ nsRect nsRegion::GetLargestRectangle () const {
     
     PRInt32 m = matrixHeight + 1;
     PRInt32 n = matrixWidth + 1;
-    nsTArray<PRInt64> pareas(m*n);
+    nsTArray<SizePair> pareas(m*n);
     pareas.SetLength(m*n);
-    
-    for (PRInt32 x = 0; x < n; x++)
-      pareas[x] = 0;
     for (PRInt32 y = 1; y < m; y++) {
-      
-      pareas[y*n] = 0;
       for (PRInt32 x = 1; x < n; x++) {
-        PRInt64 area = areas[(y-1)*matrixWidth+x-1];
-        if (!area)
-          area = kVeryLargeNegativeNumber;
-        area += pareas[    y*n+x-1]
-              + pareas[(y-1)*n+x  ]
-              - pareas[(y-1)*n+x-1];
+        SizePair area = areas[(y-1)*matrixWidth+x-1];
+        if (!area.mSize) {
+          area = SizePair::VeryLargeNegative();
+        }
+        area = area + pareas[    y*n+x-1]
+                    + pareas[(y-1)*n+x  ]
+                    - pareas[(y-1)*n+x-1];
         pareas[y*n+x] = area;
       }
     }
@@ -1556,18 +1610,19 @@ nsRect nsRegion::GetLargestRectangle () const {
     
     areas.SetLength(0);
 
-    PRInt64 bestArea = 0;
+    SizePair bestArea;
     struct {
       PRInt32 left, top, right, bottom;
     } bestRectIndices = { 0, 0, 0, 0 };
     for (PRInt32 m1 = 0; m1 < m; m1++) {
       for (PRInt32 m2 = m1+1; m2 < m; m2++) {
-        nsTArray<PRInt64> B;
+        nsTArray<SizePair> B;
         B.SetLength(n);
-        for (PRInt32 i = 0; i < n; i++)
+        for (PRInt32 i = 0; i < n; i++) {
           B[i] = pareas[m2*n+i] - pareas[m1*n+i];
+        }
         PRInt32 minIdx, maxIdx;
-        PRInt64 area = MaxSum1D(B, n, &minIdx, &maxIdx);
+        SizePair area = MaxSum1D(B, n, &minIdx, &maxIdx);
         if (area > bestArea) {
           bestRectIndices.left = minIdx;
           bestRectIndices.top = m1;

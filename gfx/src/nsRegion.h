@@ -184,7 +184,13 @@ public:
   nsRegion ConvertAppUnitsRoundOut (PRInt32 aFromAPP, PRInt32 aToAPP) const;
   nsRegion ConvertAppUnitsRoundIn (PRInt32 aFromAPP, PRInt32 aToAPP) const;
   nsIntRegion ToOutsidePixels (nscoord aAppUnitsPerPixel) const;
-  nsRect GetLargestRectangle () const;
+  
+
+
+
+
+
+  nsRect GetLargestRectangle (const nsRect& aContainingRect = nsRect()) const;
 
   
 
@@ -421,7 +427,10 @@ public:
   PRUint32 GetNumRects () const { return mImpl.GetNumRects (); }
   nsIntRect GetBounds () const { return FromRect (mImpl.GetBounds ()); }
   nsRegion ToAppUnits (nscoord aAppUnitsPerPixel) const;
-  nsIntRect GetLargestRectangle () const { return FromRect (mImpl.GetLargestRectangle()); }
+  nsIntRect GetLargestRectangle (const nsIntRect& aContainingRect = nsIntRect()) const
+  {
+    return FromRect (mImpl.GetLargestRectangle( ToRect(aContainingRect) ));
+  }
 
   
 
