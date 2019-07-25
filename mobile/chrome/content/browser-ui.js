@@ -325,36 +325,11 @@ var BrowserUI = {
 
   sizeControls : function(windowW, windowH) {
     
-    document.getElementById("tabs").resize();
-
-    
     let popup = document.getElementById("popup_autocomplete");
     popup.top = this.toolbarH;
     popup.height = windowH - this.toolbarH;
     popup.width = windowW;
 
-    
-    document.getElementById("toolbar-container").height = this.toolbarH;
-    document.getElementById("toolbar-main").width = windowW;
-
-    
-    document.getElementById("notifications").width = windowW;
-
-    
-    document.getElementById("findbar-container").width = windowW;
-
-    
-    document.getElementById("identity-container").width = windowW;
-
-    
-    let bmkeditor = document.getElementById("bookmark-container");
-    bmkeditor.width = windowW;
-
-    
-    let bookmarks = document.getElementById("bookmarklist-container");
-    bookmarks.height = windowH;
-    bookmarks.width = windowW;
-    
     
     let bookmarkPopup = document.getElementById("bookmark-popup");
     let bookmarkPopupW = windowW / 4;
@@ -364,16 +339,6 @@ var BrowserUI = {
     const popupMargin = 10;
     bookmarkPopup.top = Math.round(starRect.top) + popupMargin;
     bookmarkPopup.left = windowW - this.sidebarW - bookmarkPopupW - popupMargin;
-
-    
-    let selectlist = document.getElementById("select-container");
-    selectlist.height = windowH;
-    selectlist.width = windowW;
-
-    
-    let panel = document.getElementById("panel-container");
-    panel.height = windowH;
-    panel.width = windowW;
   },
 
   init : function() {
