@@ -99,6 +99,7 @@ nsMathMLmpaddedFrame::ProcessAttributes()
 
 
 
+
   nsAutoString value;
 
   
@@ -137,6 +138,15 @@ nsMathMLmpaddedFrame::ProcessAttributes()
   if (!value.IsEmpty()) {
     ParseAttribute(value, mLeftSpaceSign, mLeftSpace, mLeftSpacePseudoUnit);
   }
+
+  
+  mVerticalOffsetSign = NS_MATHML_SIGN_INVALID;
+  GetAttribute(mContent, nsnull, nsGkAtoms::voffset_, value);
+  if (!value.IsEmpty()) {
+    ParseAttribute(value, mVerticalOffsetSign, mVerticalOffset, 
+                   mVerticalOffsetPseudoUnit);
+  }
+  
 }
 
 
