@@ -75,74 +75,6 @@ CreateClampOrRepeatTextureImage(GLContext *aGl,
   return aGl->CreateTextureImage(aSize, aContentType, wrapMode);
 }
 
-
-
-
-
-
-
-
-static void
-BindAndDrawQuadWithTextureRect(GLContext* aGl,
-                               LayerProgram *aProg,
-                               const nsIntRect& aTexCoordRect,
-                               const nsIntSize& aTexSize,
-                               GLenum aWrapMode)
-{
-  GLuint vertAttribIndex =
-    aProg->AttribLocation(LayerProgram::VertexAttrib);
-  GLuint texCoordAttribIndex =
-    aProg->AttribLocation(LayerProgram::TexCoordAttrib);
-  NS_ASSERTION(texCoordAttribIndex != GLuint(-1), "no texture coords?");
-
-  
-  
-  aGl->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
-
-  
-  
-  
-  
-  
-  
-
-  GLContext::RectTriangles rects;
-
-  if (aWrapMode == LOCAL_GL_REPEAT) {
-    rects.addRect(
-                  0.0f, 0.0f, 1.0f, 1.0f,
-                  
-                  aTexCoordRect.x / GLfloat(aTexSize.width),
-                  aTexCoordRect.y / GLfloat(aTexSize.height),
-                  aTexCoordRect.XMost() / GLfloat(aTexSize.width),
-                  aTexCoordRect.YMost() / GLfloat(aTexSize.height));
-  } else {
-    GLContext::DecomposeIntoNoRepeatTriangles(aTexCoordRect, aTexSize, rects);
-  }
-
-  
-  aGl->fVertexAttribPointer(vertAttribIndex, 2,
-                            LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0,
-                            rects.vertexPointer());
-
-  
-  aGl->fVertexAttribPointer(texCoordAttribIndex, 2,
-                            LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0,
-                            rects.texCoordPointer());
-
-  {
-    aGl->fEnableVertexAttribArray(texCoordAttribIndex);
-    {
-      aGl->fEnableVertexAttribArray(vertAttribIndex);
-
-      aGl->fDrawArrays(LOCAL_GL_TRIANGLES, 0, rects.elements());
-
-      aGl->fDisableVertexAttribArray(vertAttribIndex);
-    }
-    aGl->fDisableVertexAttribArray(texCoordAttribIndex);
-  }
-}
-
 static void
 SetAntialiasingFlags(Layer* aLayer, gfxContext* aTarget)
 {
@@ -269,9 +201,9 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
 
       quadRect.MoveBy(-GetOriginOffset());
 
-      BindAndDrawQuadWithTextureRect(gl(), program, quadRect,
-                                     mTexImage->GetSize(),
-                                     mTexImage->GetWrapMode());
+      aManager->BindAndDrawQuadWithTextureRect(program, quadRect,
+                                               mTexImage->GetSize(),
+                                               mTexImage->GetWrapMode());
     }
   }
 
