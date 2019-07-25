@@ -350,19 +350,6 @@ BrowserGlue.prototype = {
     
     this._migrateUI();
 
-    
-    
-    
-    if (!Services.io.manageOfflineStatus) {
-      
-      try {
-        Services.io.offline = Services.prefs.getBoolPref("browser.offline");
-      }
-      catch (e) {
-        Services.io.offline = false;
-      }
-    }
-
     Services.obs.notifyObservers(null, "browser-ui-startup-complete", "");
   },
 

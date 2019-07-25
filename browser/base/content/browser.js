@@ -5919,10 +5919,6 @@ var BrowserOffline = {
     }
 
     ioService.offline = !ioService.offline;
-
-    
-    
-    gPrefService.setBoolPref("browser.offline", ioService.offline);
   },
 
   

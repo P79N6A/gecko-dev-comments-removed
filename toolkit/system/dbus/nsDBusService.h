@@ -74,9 +74,6 @@ public:
 
 
 
-
-
-
 class nsDBusService : public nsISupports
 {
 public:
