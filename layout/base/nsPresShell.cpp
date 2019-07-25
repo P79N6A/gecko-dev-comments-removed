@@ -2422,12 +2422,8 @@ PresShell::ScrollLine(PRBool aForward)
   nsIScrollableFrame* scrollFrame =
     GetFrameToScrollAsScrollable(nsIPresShell::eVertical);
   if (scrollFrame) {
-    PRInt32 lineCount = 1;
-#ifdef MOZ_WIDGET_COCOA
     
-    
-    lineCount = 2;
-#endif
+    PRInt32 lineCount = 2;
     scrollFrame->ScrollBy(nsIntPoint(0, aForward ? lineCount : -lineCount),
                           nsIScrollableFrame::LINES,
                           nsIScrollableFrame::SMOOTH);
