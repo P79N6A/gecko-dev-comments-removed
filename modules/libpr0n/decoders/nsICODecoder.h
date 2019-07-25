@@ -74,6 +74,8 @@ private:
   
   void FillBitmapInformationBufferHeight(PRInt8 *bih);
   
+  PRInt32 ExtractBIHSizeFromBitmap(PRInt8 *bih);
+  
   PRInt32 ExtractBPPFromBitmap(PRInt8 *bih);
   
   PRUint32 CalcAlphaRowSize();

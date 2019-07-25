@@ -184,6 +184,15 @@ nsICODecoder::ExtractBPPFromBitmap(PRInt8 *bih)
   return bitsPerPixel;
 }
 
+PRInt32 
+nsICODecoder::ExtractBIHSizeFromBitmap(PRInt8 *bih)
+{
+  PRInt32 headerSize;
+  memcpy(&headerSize, bih, sizeof(headerSize));
+  headerSize = LITTLE_TO_NATIVE32(headerSize);
+  return headerSize;
+}
+
 void
 nsICODecoder::SetHotSpotIfCursor() {
   if (!mIsCursor) {
@@ -360,9 +369,16 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
 
   
   if (!mIsPNG && mPos == mImageOffset + BITMAPINFOSIZE) {
+
+    
+    PRInt32 bihSize = ExtractBIHSizeFromBitmap(reinterpret_cast<PRInt8*>(mBIHraw));
+    if (bihSize != BITMAPINFOSIZE) {
+      PostDataError();
+      return;
+    }
     
     
-    mBPP = ExtractBPPFromBitmap((PRInt8*)mBIHraw);
+    mBPP = ExtractBPPFromBitmap(reinterpret_cast<PRInt8*>(mBIHraw));
     
     
     
@@ -399,6 +415,11 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
     if (mContainedDecoder->HasDataError()) {
       return;
     }
+
+    
+    
+    if (IsSizeDecode())
+      return;
 
     
     
@@ -487,7 +508,12 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
             mCurLine--;
             mRowBytes = 0;
 
-            PRUint32* imageData = static_cast<nsBMPDecoder*>(mContainedDecoder.get())->GetImageData();
+            PRUint32* imageData = 
+              static_cast<nsBMPDecoder*>(mContainedDecoder.get())->GetImageData();
+            if (!imageData) {
+              PostDataError();
+              return;
+            }
             PRUint32* decoded = imageData + mCurLine * mDirEntry.mWidth;
             PRUint32* decoded_end = decoded + mDirEntry.mWidth;
             PRUint8* p = mRow, *p_end = mRow + rowSize; 
