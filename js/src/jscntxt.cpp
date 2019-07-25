@@ -1684,6 +1684,13 @@ js_GetErrorMessage(void *userRef, const char *locale, const uintN errorNumber)
     return NULL;
 }
 
+bool
+checkOutOfMemory(JSRuntime *rt)
+{
+    AutoLockGC lock(rt);
+    return rt->gcBytes > rt->gcMaxBytes;
+}
+
 JSBool
 js_InvokeOperationCallback(JSContext *cx)
 {
@@ -1712,16 +1719,24 @@ js_InvokeOperationCallback(JSContext *cx)
 
 
 
-        bool delayedOutOfMemory;
-        JS_LOCK_GC(rt);
-        delayedOutOfMemory = rt->gcBytes > rt->gcMaxBytes;
-        JS_UNLOCK_GC(rt);
-        if (delayedOutOfMemory) {
+        if (checkOutOfMemory(rt)) {
+#ifdef JS_THREADSAFE
+            
+
+
+
+            rt->gcHelperThread.waitBackgroundSweepEnd(rt);
+            if (checkOutOfMemory(rt)) {
+                js_ReportOutOfMemory(cx);
+                return false;
+            }
+#else
             js_ReportOutOfMemory(cx);
             return false;
+#endif
         }
     }
-    
+
 #ifdef JS_THREADSAFE
     
 
