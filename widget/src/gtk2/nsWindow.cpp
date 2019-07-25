@@ -4055,9 +4055,16 @@ nsWindow::Create(nsIWidget        *aParent,
                 GtkWindow* gtkWin = GTK_WINDOW(mShell);
                 
                 
-                PRBool decorated =
-                  (mBorderStyle != eBorderStyle_default && (mBorderStyle & eBorderStyle_title));
-                gtk_window_set_decorated(GTK_WINDOW(mShell), decorated);
+                if (mBorderStyle == eBorderStyle_default) {
+                  gtk_window_set_decorated(GTK_WINDOW(mShell), FALSE);
+                }
+                else {
+                  PRBool decorate = mBorderStyle & eBorderStyle_title;
+                  gtk_window_set_decorated(GTK_WINDOW(mShell), decorate);
+                  if (decorate) {
+                    gtk_window_set_deletable(GTK_WINDOW(mShell), mBorderStyle & eBorderStyle_close);
+                  }
+                }
                 gtk_window_set_skip_taskbar_hint(gtkWin, TRUE);
                 
                 

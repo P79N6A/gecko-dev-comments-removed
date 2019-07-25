@@ -471,6 +471,11 @@ public:
   
 
 
+  void HidePopup(nsIView* aView);
+
+  
+
+
 
 
   void HidePopupAfterDelay(nsMenuPopupFrame* aPopup);
