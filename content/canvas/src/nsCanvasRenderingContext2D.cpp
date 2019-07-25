@@ -3520,7 +3520,7 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
         DirtyAllStyles();
 
         
-        if (CurrentState().globalAlpha = 1. && mThebes->CurrentOperator() == gfxContext::OPERATOR_OVER) {
+        if (CurrentState().globalAlpha == 1.0f && mThebes->CurrentOperator() == gfxContext::OPERATOR_OVER) {
             mThebes->Rectangle(clip);
             mThebes->Fill();
         } else {
