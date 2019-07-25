@@ -3540,6 +3540,13 @@ void
 nsEventStateManager::NotifyDestroyPresContext(nsPresContext* aPresContext)
 {
   nsIMEStateManager::OnDestroyPresContext(aPresContext);
+  if (mHoverContent) {
+    
+    
+    
+    
+    SetContentState(nsnull, NS_EVENT_STATE_HOVER);
+  }
 }
 
 void
