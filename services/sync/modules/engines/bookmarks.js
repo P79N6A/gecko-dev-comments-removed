@@ -1176,12 +1176,12 @@ BookmarksStore.prototype = {
         node.containerOpen = true;
 	
 	if (this._ans.itemHasAnnotation(node.itemId, OUTGOING_SHARED_ANNO)) {
-	  item.serverPathAnno = this._ans.getItemAnnotation(node.itemId,
-                                                      SERVER_PATH_ANNO);
 	  item.outgoingSharedAnno = this._ans.getItemAnnotation(node.itemId,
                                                       OUTGOING_SHARED_ANNO);
-	  
-	  
+	}
+	if (this._ans.itemHasAnnotation(node.itemId, SERVER_PATH_ANNO)) {
+	  item.serverPathAnno = this._ans.getItemAnnotation(node.itemId,
+							    SERVER_PATH_ANNO);
 	}
 
         for (var i = 0; i < node.childCount; i++) {
