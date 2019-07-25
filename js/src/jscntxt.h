@@ -616,6 +616,13 @@ struct JSRuntime : js::RuntimeFriendFields
     js::GCSliceCallback gcSliceCallback;
     JSFinalizeCallback  gcFinalizeCallback;
 
+  private:
+    
+
+
+
+    volatile ptrdiff_t  gcMallocBytes;
+
   public:
     
 
@@ -829,6 +836,8 @@ struct JSRuntime : js::RuntimeFriendFields
 
     void setGCMaxMallocBytes(size_t value);
 
+    void resetGCMallocBytes() { gcMallocBytes = ptrdiff_t(gcMaxMallocBytes); }
+
     
 
 
@@ -838,6 +847,16 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
     void updateMallocCounter(JSContext *cx, size_t nbytes);
+
+    bool isTooMuchMalloc() const {
+        return gcMallocBytes <= 0;
+    }
+
+    
+
+
+    JS_FRIEND_API(void) onTooMuchMalloc();
+
     
 
 
