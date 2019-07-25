@@ -222,6 +222,27 @@ public:
   static nsresult create(mozIStorageConnection *aDBConn);
 };
 
+
+
+
+
+
+
+class GenerateGUIDFunction : public mozIStorageFunction
+{
+public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_MOZISTORAGEFUNCTION
+
+  
+
+
+
+
+
+  static nsresult create(mozIStorageConnection *aDBConn);
+};
+
 } 
 } 
 
