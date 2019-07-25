@@ -1314,15 +1314,23 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
 
     
     if (layerState == LAYER_ACTIVE_FORCE ||
+        layerState == LAYER_ACTIVE_EMPTY ||
         layerState == LAYER_ACTIVE && (aClip.mRoundedClipRects.IsEmpty() ||
         
         
         !aClip.IsRectClippedByRoundedCorner(item->GetVisibleRect()))) {
+
+      
+      
+      NS_ASSERTION(layerState != LAYER_ACTIVE_EMPTY ||
+                   itemVisibleRect.IsEmpty(),
+                   "State is LAYER_ACTIVE_EMPTY but visible rect is not.");
+
       
       
       
       
-      if (itemVisibleRect.IsEmpty()) {
+      if (itemVisibleRect.IsEmpty() && layerState != LAYER_ACTIVE_EMPTY) {
         InvalidateForLayerChange(item, nsnull);
         continue;
       }
