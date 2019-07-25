@@ -216,6 +216,10 @@ public class Tokenizer implements Locator {
 
     public static final int SCRIPT_DATA_DOUBLE_ESCAPE_END = 72;
 
+    public static final int PROCESSING_INSTRUCTION = 73;
+
+    public static final int PROCESSING_INSTRUCTION_QUESTION_MARK = 74;
+
     
 
 
@@ -507,6 +511,8 @@ public class Tokenizer implements Locator {
 
     
 
+    
+
     protected LocatorImpl ampersandLocation;
 
     public Tokenizer(TokenHandler tokenHandler, boolean newAttributesEachTime) {
@@ -531,7 +537,9 @@ public class Tokenizer implements Locator {
 
 
 
-    public Tokenizer(TokenHandler tokenHandler) {
+    public Tokenizer(TokenHandler tokenHandler
+    
+    ) {
         this.tokenHandler = tokenHandler;
         this.encodingDeclarationHandler = null;
         
@@ -545,6 +553,7 @@ public class Tokenizer implements Locator {
         this.publicIdentifier = null;
         this.systemIdentifier = null;
         this.attributes = null;
+    
     }
 
     public void setInterner(Interner interner) {
@@ -556,6 +565,10 @@ public class Tokenizer implements Locator {
         this.publicId = newPublicId;
 
     }
+
+    
+    
+    
 
     
 
@@ -1118,10 +1131,16 @@ public class Tokenizer implements Locator {
 
 
             maybeErrAttributesOnEndTag(attrs);
+            
             tokenHandler.endTag(tagName);
+            
             Portability.delete(attributes);
         } else {
+            
+            
+            
             tokenHandler.startTag(tagName, attrs, selfClosing);
+            
         }
         tagName.release();
         tagName = null;
@@ -1534,6 +1553,13 @@ public class Tokenizer implements Locator {
                                 state = transition(state, Tokenizer.CLOSE_TAG_OPEN, reconsume, pos);
                                 continue stateloop;
                             case '?':
+                                
+                                
+                                
+                                
+                                
+                                
+                                
                                 
 
 
@@ -5715,6 +5741,41 @@ public class Tokenizer implements Locator {
 
                                 continue;
                         }
+                    }
+                    
+                case PROCESSING_INSTRUCTION:
+                    processinginstructionloop: for (;;) {
+                        if (++pos == endPos) {
+                            break stateloop;
+                        }
+                        c = checkChar(buf, pos);
+                        switch (c) {
+                            case '?':
+                                state = transition(
+                                        state,
+                                        Tokenizer.PROCESSING_INSTRUCTION_QUESTION_MARK,
+                                        reconsume, pos);
+                                break processinginstructionloop;
+                            
+                            default:
+                                continue;
+                        }
+                    }
+                case PROCESSING_INSTRUCTION_QUESTION_MARK:
+                    if (++pos == endPos) {
+                        break stateloop;
+                    }
+                    c = checkChar(buf, pos);
+                    switch (c) {
+                        case '>':
+                            state = transition(state, Tokenizer.DATA,
+                                    reconsume, pos);
+                            continue stateloop;
+                        default:
+                            state = transition(state,
+                                    Tokenizer.PROCESSING_INSTRUCTION,
+                                    reconsume, pos);
+                            continue stateloop;
                     }
                     
             }

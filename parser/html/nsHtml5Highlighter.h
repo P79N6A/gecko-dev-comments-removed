@@ -433,6 +433,11 @@ class nsHtml5Highlighter
 
 
     static PRUnichar sEntity[];
+
+    
+
+
+    static PRUnichar sPi[];
 };
 
 #endif 

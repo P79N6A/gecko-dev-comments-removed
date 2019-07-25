@@ -575,6 +575,18 @@ public abstract class TreeBuilder<T> implements TokenHandler,
             contextNode = null;
         } else {
             mode = INITIAL;
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
         }
     }
 
@@ -856,6 +868,9 @@ public abstract class TreeBuilder<T> implements TokenHandler,
 
     public final void characters(@Const @NoLength char[] buf, int start, int length)
             throws SAXException {
+        
+        
+        
         if (needToDropLF) {
             needToDropLF = false;
             if (buf[start] == '\n') {
