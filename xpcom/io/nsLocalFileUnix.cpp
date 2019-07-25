@@ -991,7 +991,7 @@ nsLocalFile::SetLastModifiedTime(PRInt64 aLastModTime)
         ut.actime = mCachedStat.st_atime;
 
         
-        ut.modtime = (time_t)(PRFloat64(aLastModTime) / PR_MSEC_PER_SEC);
+        ut.modtime = (time_t)(double(aLastModTime) / PR_MSEC_PER_SEC);
         result = utime(mPath.get(), &ut);
     } else {
         result = utime(mPath.get(), nullptr);

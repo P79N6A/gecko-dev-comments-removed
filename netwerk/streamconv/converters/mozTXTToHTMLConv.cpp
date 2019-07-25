@@ -19,7 +19,7 @@ static NS_DEFINE_CID(kIOServiceCID, NS_IOSERVICE_CID);
 #include "prinrval.h"
 #endif
 
-const PRFloat64 growthRate = 1.2;
+const double growthRate = 1.2;
 
 
 

@@ -1713,7 +1713,7 @@ class nsSimpleGestureEvent : public nsMouseEvent_base
 {
 public:
   nsSimpleGestureEvent(bool isTrusted, PRUint32 msg, nsIWidget* w,
-                         PRUint32 directionArg, PRFloat64 deltaArg)
+                         PRUint32 directionArg, double deltaArg)
     : nsMouseEvent_base(isTrusted, msg, w, NS_SIMPLE_GESTURE_EVENT),
       direction(directionArg), delta(deltaArg), clickCount(0)
   {
@@ -1727,7 +1727,7 @@ public:
   }
 
   PRUint32 direction;   
-  PRFloat64 delta;      
+  double delta;         
   PRUint32 clickCount;  
 };
 
