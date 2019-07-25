@@ -6103,70 +6103,6 @@ nsBlockFrame::IsVisibleInSelection(nsISelection* aSelection)
   return NS_SUCCEEDED(rv) && visible;
 }
 
- void
-nsBlockFrame::PaintTextDecorationLine(
-                gfxContext* aCtx, 
-                const nsPoint& aPt,
-                nsLineBox* aLine,
-                nscolor aColor, 
-                PRUint8 aStyle,
-                gfxFloat aOffset, 
-                gfxFloat aAscent, 
-                gfxFloat aSize,
-                const nsCharClipDisplayItem::ClipEdges& aClipEdges,
-                const PRUint8 aDecoration) 
-{
-  NS_ASSERTION(!aLine->IsBlock(), "Why did we ask for decorations on a block?");
-
-  nscoord start = aLine->mBounds.x;
-  nscoord width = aLine->mBounds.width;
-
-  AdjustForTextIndent(aLine, start, width);
-  nscoord x = start + aPt.x;
-  aClipEdges.Intersect(&x, &width);
-
-  
-  if (width > 0) {
-    gfxPoint pt(PresContext()->AppUnitsToGfxUnits(x),
-                PresContext()->AppUnitsToGfxUnits(aLine->mBounds.y + aPt.y));
-    gfxSize size(PresContext()->AppUnitsToGfxUnits(width), aSize);
-    nsCSSRendering::PaintDecorationLine(
-      aCtx, aColor, pt, size,
-      PresContext()->AppUnitsToGfxUnits(aLine->GetAscent()),
-      aOffset, aDecoration, aStyle);
-  }
-}
-
- void
-nsBlockFrame::AdjustForTextIndent(const nsLineBox* aLine,
-                                  nscoord& start,
-                                  nscoord& width)
-{
-  if (!GetPrevContinuation() && aLine == begin_lines().get() &&
-      (GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_LTR)) {
-    
-    
-    const nsStyleCoord &textIndent = GetStyleText()->mTextIndent;
-    nscoord pctBasis = 0;
-    if (textIndent.HasPercent()) {
-      
-      
-      nsIFrame* containingBlock =
-        nsHTMLReflowState::GetContainingBlockFor(this);
-      NS_ASSERTION(containingBlock, "Must have containing block!");
-      pctBasis = containingBlock->GetContentRect().width;
-    }
-    nscoord indent = nsRuleNode::ComputeCoordPercentCalc(textIndent, pctBasis);
-
-    
-    
-    
-    
-    start += indent;
-    width -= indent;
-  }
-}
-
 #ifdef DEBUG
 static void DebugOutputDrawLine(PRInt32 aDepth, nsLineBox* aLine, PRBool aDrawn) {
   if (nsBlockFrame::gNoisyDamageRepair) {
@@ -6214,13 +6150,6 @@ DisplayLine(nsDisplayListBuilder* aBuilder, const nsRect& aLineArea,
   nsDisplayListCollection collection;
   nsresult rv;
   nsDisplayList aboveTextDecorations;
-  if (lineInline) {
-    
-    
-    rv = aFrame->DisplayTextDecorations(aBuilder, collection.Content(),
-                                        &aboveTextDecorations, aLine);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
 
   
   

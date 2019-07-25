@@ -66,8 +66,6 @@ class nsLineBox;
 #define CRAZY_HEIGHT(_y) (((_y) < -CRAZY_H) || ((_y) > CRAZY_H))
 #endif
 
-class nsDisplayTextDecoration;
-
 
 
 class nsHTMLContainerFrame : public nsContainerFrame {
@@ -99,104 +97,9 @@ public:
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
-                              
-  nsresult DisplayTextDecorations(nsDisplayListBuilder* aBuilder,
-                                  nsDisplayList* aBelowTextDecorations,
-                                  nsDisplayList* aAboveTextDecorations,
-                                  nsLineBox* aLine);
 
 protected:
   nsHTMLContainerFrame(nsStyleContext *aContext) : nsContainerFrame(aContext) {}
-
-  
-
-
-
-
-
-  nsresult DisplayTextDecorationsAndChildren(nsDisplayListBuilder* aBuilder, 
-                                             const nsRect& aDirtyRect,
-                                             const nsDisplayListSet& aLists);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  void GetTextDecorations(nsPresContext* aPresContext, 
-                          PRBool aIsBlock,
-                          PRUint8& aDecorations, 
-                          nscolor& aUnderColor, 
-                          nscolor& aOverColor, 
-                          nscolor& aStrikeColor,
-                          PRUint8& aUnderStyle,
-                          PRUint8& aOverStyle,
-                          PRUint8& aStrikeStyle);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual void PaintTextDecorationLine(
-                 gfxContext* aCtx,
-                 const nsPoint& aPt,
-                 nsLineBox* aLine,
-                 nscolor aColor,
-                 PRUint8 aStyle,
-                 gfxFloat aOffset,
-                 gfxFloat aAscent,
-                 gfxFloat aSize,
-                 const nsCharClipDisplayItem::ClipEdges& aClipEdges,
-                 const PRUint8 aDecoration);
-
-  virtual void AdjustForTextIndent(const nsLineBox* aLine,
-                                   nscoord& start,
-                                   nscoord& width);
-
-  friend class nsDisplayTextDecoration;
-  friend class nsDisplayTextShadow;
 };
 
 #endif 

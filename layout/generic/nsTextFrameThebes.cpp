@@ -4264,15 +4264,7 @@ void
 nsTextFrame::GetTextDecorations(nsPresContext* aPresContext,
                                 nsTextFrame::TextDecorations& aDecorations)
 {
-  
-  
-  
-  
-  
-  
   const nsCompatibility compatMode = aPresContext->CompatibilityMode();
-  if (compatMode != eCompatibility_NavQuirks)
-    return;
 
   PRBool useOverride = PR_FALSE;
   nscolor overrideColor;
