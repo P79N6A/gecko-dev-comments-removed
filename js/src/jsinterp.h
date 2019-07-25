@@ -783,29 +783,27 @@ namespace js {
 
 static const size_t VALUES_PER_STACK_FRAME = sizeof(JSStackFrame) / sizeof(Value);
 
-} 
+extern JSObject *
+GetBlockChain(JSContext *cx, JSStackFrame *fp);
+
+extern JSObject *
+GetBlockChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
+
+extern JSObject *
+GetScopeChain(JSContext *cx);
+
+
+
+
+
+
 
 
 extern JSObject *
-js_GetBlockChain(JSContext *cx, JSStackFrame *fp);
+GetScopeChain(JSContext *cx, JSStackFrame *fp);
 
 extern JSObject *
-js_GetBlockChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
-
-
-
-
-
-
-
-
-extern JSObject *
-js_GetScopeChain(JSContext *cx, JSStackFrame *fp);
-
-extern JSObject *
-js_GetScopeChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
-
-namespace js {
+GetScopeChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
 
 
 

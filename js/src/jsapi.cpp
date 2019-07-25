@@ -1881,31 +1881,8 @@ JS_GetClassObject(JSContext *cx, JSObject *obj, JSProtoKey key, JSObject **objp)
 JS_PUBLIC_API(JSObject *)
 JS_GetScopeChain(JSContext *cx)
 {
-    JSStackFrame *fp;
-
     CHECK_REQUEST(cx);
-    fp = js_GetTopStackFrame(cx);
-    if (!fp) {
-        
-
-
-
-
-
-
-
-
-
-        JSObject *obj = cx->globalObject;
-        if (!obj) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INACTIVE);
-            return NULL;
-        }
-
-        OBJ_TO_INNER_OBJECT(cx, obj);
-        return obj;
-    }
-    return js_GetScopeChain(cx, fp);
+    return GetScopeChain(cx);
 }
 
 JS_PUBLIC_API(JSObject *)
@@ -1918,26 +1895,8 @@ JS_GetGlobalForObject(JSContext *cx, JSObject *obj)
 JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForScopeChain(JSContext *cx)
 {
-    
-
-
-
-
-
-
-
-    VOUCH_DOES_NOT_REQUIRE_STACK();
-
-    if (cx->hasfp())
-        return cx->fp()->scopeChain().getGlobal();
-
-    JSObject *scope = cx->globalObject;
-    if (!scope) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INACTIVE);
-        return NULL;
-    }
-    OBJ_TO_INNER_OBJECT(cx, scope);
-    return scope;
+    CHECK_REQUEST(cx);
+    return GetGlobalForScopeChain(cx);
 }
 
 JS_PUBLIC_API(jsval)
@@ -4172,7 +4131,7 @@ JS_CloneFunctionObject(JSContext *cx, JSObject *funobj, JSObject *parent)
     assertSameCompartment(cx, parent);  
     if (!parent) {
         if (cx->hasfp())
-            parent = js_GetScopeChain(cx, cx->fp());
+            parent = GetScopeChain(cx, cx->fp());
         if (!parent)
             parent = cx->globalObject;
         JS_ASSERT(parent);

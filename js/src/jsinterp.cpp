@@ -162,6 +162,33 @@ JSStackFrame::pc(JSContext *cx, JSStackFrame *next)
 #endif
 }
 
+JSObject *
+js::GetScopeChain(JSContext *cx)
+{
+    JSStackFrame *fp = js_GetTopStackFrame(cx);
+    if (!fp) {
+        
+
+
+
+
+
+
+
+
+
+        JSObject *obj = cx->globalObject;
+        if (!obj) {
+            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INACTIVE);
+            return NULL;
+        }
+
+        OBJ_TO_INNER_OBJECT(cx, obj);
+        return obj;
+    }
+    return GetScopeChain(cx, fp);
+}
+
 
 
 
@@ -170,7 +197,7 @@ JSStackFrame::pc(JSContext *cx, JSStackFrame *next)
 
 
 JSObject *
-js_GetBlockChain(JSContext *cx, JSStackFrame *fp)
+js::GetBlockChain(JSContext *cx, JSStackFrame *fp)
 {
     if (!fp->isScriptFrame())
         return NULL;
@@ -218,7 +245,7 @@ js_GetBlockChain(JSContext *cx, JSStackFrame *fp)
 
 
 JSObject *
-js_GetBlockChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen)
+js::GetBlockChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen)
 {
     
     jsbytecode *pc = fp->pc(cx);
@@ -278,7 +305,7 @@ js_GetBlockChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen)
 
 
 static JSObject *
-js_GetScopeChainFull(JSContext *cx, JSStackFrame *fp, JSObject *blockChain)
+GetScopeChainFull(JSContext *cx, JSStackFrame *fp, JSObject *blockChain)
 {
     JSObject *sharedBlock = blockChain;
 
@@ -399,15 +426,15 @@ js_GetScopeChainFull(JSContext *cx, JSStackFrame *fp, JSObject *blockChain)
 }
 
 JSObject *
-js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
+js::GetScopeChain(JSContext *cx, JSStackFrame *fp)
 {
-    return js_GetScopeChainFull(cx, fp, js_GetBlockChain(cx, fp));
+    return GetScopeChainFull(cx, fp, GetBlockChain(cx, fp));
 }
 
 JSObject *
-js_GetScopeChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen)
+js::GetScopeChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen)
 {
-    return js_GetScopeChainFull(cx, fp, js_GetBlockChainFast(cx, fp, op, oplen));
+    return GetScopeChainFull(cx, fp, GetBlockChainFast(cx, fp, op, oplen));
 }
 
 
@@ -1348,7 +1375,7 @@ js_EnterWith(JSContext *cx, jsint stackIndex, JSOp op, size_t oplen)
         sp[-1].setObject(*obj);
     }
 
-    JSObject *parent = js_GetScopeChainFast(cx, fp, op, oplen);
+    JSObject *parent = GetScopeChainFast(cx, fp, op, oplen);
     if (!parent)
         return JS_FALSE;
 
@@ -2716,7 +2743,7 @@ BEGIN_CASE(JSOP_POPN)
     regs.sp -= GET_UINT16(regs.pc);
 #ifdef DEBUG
     JS_ASSERT(regs.fp->base() <= regs.sp);
-    JSObject *obj = js_GetBlockChain(cx, regs.fp);
+    JSObject *obj = GetBlockChain(cx, regs.fp);
     JS_ASSERT_IF(obj,
                  OBJ_BLOCK_DEPTH(cx, obj) + OBJ_BLOCK_COUNT(cx, obj)
                  <= (size_t) (regs.sp - regs.fp->base()));
@@ -5368,7 +5395,7 @@ BEGIN_CASE(JSOP_DEFFUN)
     } else {
         JS_ASSERT(!FUN_FLAT_CLOSURE(fun));
 
-        obj2 = js_GetScopeChainFast(cx, regs.fp, JSOP_DEFFUN, JSOP_DEFFUN_LENGTH);
+        obj2 = GetScopeChainFast(cx, regs.fp, JSOP_DEFFUN, JSOP_DEFFUN_LENGTH);
         if (!obj2)
             goto error;
     }
@@ -5515,8 +5542,8 @@ BEGIN_CASE(JSOP_DEFLOCALFUN)
         if (!obj)
             goto error;
     } else {
-        JSObject *parent = js_GetScopeChainFast(cx, regs.fp, JSOP_DEFLOCALFUN,
-                                                JSOP_DEFLOCALFUN_LENGTH);
+        JSObject *parent = GetScopeChainFast(cx, regs.fp, JSOP_DEFLOCALFUN,
+                                             JSOP_DEFLOCALFUN_LENGTH);
         if (!parent)
             goto error;
 
@@ -5679,7 +5706,7 @@ BEGIN_CASE(JSOP_LAMBDA)
             }
 #endif
         } else {
-            parent = js_GetScopeChainFast(cx, regs.fp, JSOP_LAMBDA, JSOP_LAMBDA_LENGTH);
+            parent = GetScopeChainFast(cx, regs.fp, JSOP_LAMBDA, JSOP_LAMBDA_LENGTH);
             if (!parent)
                 goto error;
         }
