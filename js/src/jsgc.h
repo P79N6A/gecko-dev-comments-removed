@@ -238,6 +238,13 @@ struct ArenaHeader {
     uint16_t        firstFreeSpanStart;
     uint16_t        firstFreeSpanEnd;
 
+    
+
+
+
+
+
+
     unsigned        thingKind;
 
     friend struct FreeLists;
@@ -246,6 +253,14 @@ struct ArenaHeader {
     inline uintptr_t address() const;
     inline Chunk *chunk() const;
 
+    void setAsNotAllocated() {
+        thingKind = FINALIZE_LIMIT;
+    }
+
+    bool allocated() const {
+        return thingKind < FINALIZE_LIMIT;
+    }
+
     inline void init(JSCompartment *comp, unsigned thingKind, size_t thingSize);
 
     Arena *getArena() {
@@ -253,6 +268,7 @@ struct ArenaHeader {
     }
 
     unsigned getThingKind() const {
+        JS_ASSERT(allocated());
         return thingKind;
     }
 
@@ -487,9 +503,8 @@ struct Chunk {
     ArenaHeader *allocateArena(JSContext *cx, unsigned thingKind);
 
     void releaseArena(ArenaHeader *aheader);
-
-    JSRuntime *getRuntime();
 };
+
 JS_STATIC_ASSERT(sizeof(Chunk) <= GC_CHUNK_SIZE);
 JS_STATIC_ASSERT(sizeof(Chunk) + BytesPerArena > GC_CHUNK_SIZE);
 
@@ -530,7 +545,7 @@ Cell::isAligned() const
 inline void
 ArenaHeader::init(JSCompartment *comp, unsigned kind, size_t thingSize)
 {
-    JS_ASSERT(!compartment);
+    JS_ASSERT(!allocated());
     JS_ASSERT(!getMarkingDelay()->link);
     compartment = comp;
     thingKind = kind;
@@ -1332,21 +1347,11 @@ struct GCMarker : public JSTracer {
 void
 MarkStackRangeConservatively(JSTracer *trc, Value *begin, Value *end);
 
-static inline uint64
-TraceKindMask(unsigned kind)
-{
-    return uint64(1) << kind;
-}
-
-static inline bool
-TraceKindInMask(unsigned kind, uint64 mask)
-{
-    return !!(mask & TraceKindMask(kind));
-}
-
-typedef void (*IterateCallback)(JSContext *cx, void *data, size_t traceKind, void *obj);
-
-
+typedef void (*IterateCompartmentCallback)(JSContext *cx, void *data, JSCompartment *compartment);
+typedef void (*IterateArenaCallback)(JSContext *cx, void *data, gc::Arena *arena, size_t traceKind,
+                                     size_t thingSize);
+typedef void (*IterateCellCallback)(JSContext *cx, void *data, void *thing, size_t traceKind,
+                                    size_t thingSize);
 
 
 
@@ -1354,8 +1359,10 @@ typedef void (*IterateCallback)(JSContext *cx, void *data, size_t traceKind, voi
 
 
 extern JS_FRIEND_API(void)
-IterateCells(JSContext *cx, JSCompartment *comp, uint64 traceKindMask,
-             void *data, IterateCallback callback);
+IterateCompartmentsArenasCells(JSContext *cx, void *data,
+                               IterateCompartmentCallback compartmentCallback,
+                               IterateArenaCallback arenaCallback,
+                               IterateCellCallback cellCallback);
 
 } 
 
