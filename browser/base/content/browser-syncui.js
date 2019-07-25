@@ -43,6 +43,13 @@ let gSyncUI = {
     
     
     Services.obs.addObserver(this, "weave:service:ready", true);
+
+    
+    
+    window.addEventListener("unload", function() {
+      window.removeEventListener("unload", arguments.callee, false);
+      Services.obs.removeObserver(gSyncUI, "weave:service:ready");
+    }, false);
   },
   initUI: function SUI_initUI() {
     let obs = ["weave:service:sync:start",
