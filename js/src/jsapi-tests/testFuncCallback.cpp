@@ -20,8 +20,7 @@ funcTransition(const JSFunction *,
     if (entering > 0) {
         ++depth;
         ++enters;
-        if (! JS_ON_TRACE(cx))
-            ++interpreted;
+        ++interpreted;
     } else {
         --depth;
         ++leaves;
@@ -94,11 +93,12 @@ BEGIN_TEST(testFuncCallback_bug507012)
     interpreted = enters = leaves = depth = 0;
 
     
+    
     EXEC("function g () { ++x; }");
     interpreted = enters = leaves = depth = 0;
-    EXEC("for (i = 0; i < 50; ++i) { g(); }");
-    CHECK_EQUAL(enters, 1+50);
-    CHECK_EQUAL(leaves, 1+50);
+    EXEC("for (i = 0; i < 5000; ++i) { g(); }");
+    CHECK_EQUAL(enters, 1+5000);
+    CHECK_EQUAL(leaves, 1+5000);
     CHECK_EQUAL(depth, 0);
 
     
