@@ -440,12 +440,18 @@ LayerManagerOGL::Render()
   DEBUG_GL_ERROR_CHECK(mGLContext);
 
   
-  RootLayer()->RenderLayer(mBackBufferFBO, nsIntPoint(0, 0));
+  RootLayer()->RenderLayer(mGLContext->IsDoubleBuffered() ? 0 : mBackBufferFBO,
+                           nsIntPoint(0, 0));
 
   DEBUG_GL_ERROR_CHECK(mGLContext);
 
   if (mTarget) {
     CopyToTarget();
+    return;
+  }
+
+  if (mGLContext->IsDoubleBuffered()) {
+    mGLContext->SwapBuffers();
     return;
   }
 
@@ -529,13 +535,7 @@ LayerManagerOGL::Render()
 
   DEBUG_GL_ERROR_CHECK(mGLContext);
 
-  
-  
-  
-  
-  if (!mGLContext->SwapBuffers()) {
-    mGLContext->fFlush();
-  } 
+  mGLContext->fFlush();
 
   DEBUG_GL_ERROR_CHECK(mGLContext);
 }
@@ -549,10 +549,20 @@ LayerManagerOGL::SetupPipeline(int aWidth, int aHeight)
   
   
   gfx3DMatrix viewMatrix;
-  viewMatrix._11 = 2.0f / float(aWidth);
-  viewMatrix._22 = 2.0f / float(aHeight);
-  viewMatrix._41 = -1.0f;
-  viewMatrix._42 = -1.0f;
+  if (mGLContext->IsDoubleBuffered()) {
+    
+
+
+    viewMatrix._11 = 2.0f / float(aWidth);
+    viewMatrix._22 = -2.0f / float(aHeight);
+    viewMatrix._41 = -1.0f;
+    viewMatrix._42 = 1.0f;
+  } else {
+    viewMatrix._11 = 2.0f / float(aWidth);
+    viewMatrix._22 = 2.0f / float(aHeight);
+    viewMatrix._41 = -1.0f;
+    viewMatrix._42 = -1.0f;
+  }
 
   SetLayerProgramProjectionMatrix(viewMatrix);
 }
@@ -560,6 +570,10 @@ LayerManagerOGL::SetupPipeline(int aWidth, int aHeight)
 void
 LayerManagerOGL::SetupBackBuffer(int aWidth, int aHeight)
 {
+  if (mGLContext->IsDoubleBuffered()) {
+    mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, 0);
+  }
+
   
   if (mBackBufferSize.width == aWidth &&
       mBackBufferSize.height == aHeight)
@@ -612,7 +626,8 @@ LayerManagerOGL::CopyToTarget()
 #ifdef USE_GLES2
   
   
-  mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, mBackBufferFBO);
+  mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER,
+                               mGLContext->IsDoubleBuffered() ? 0 : mBackBufferFBO);
 #else
   mGLContext->fReadBuffer(LOCAL_GL_COLOR_ATTACHMENT0);
 #endif

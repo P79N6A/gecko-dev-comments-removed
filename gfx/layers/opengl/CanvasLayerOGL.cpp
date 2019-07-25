@@ -68,23 +68,25 @@ CanvasLayerOGL::Initialize(const Data& aData)
 {
   NS_ASSERTION(mCanvasSurface == nsnull, "BasicCanvasLayer::Initialize called twice!");
 
+  if (aData.mGLContext != nsnull &&
+      aData.mSurface != nsnull)
+  {
+    NS_WARNING("CanvasLayerOGL can't have both surface and GLContext");
+    return;
+  }
+
   if (aData.mSurface) {
     mCanvasSurface = aData.mSurface;
-    NS_ASSERTION(aData.mGLContext == nsnull,
-                 "CanvasLayerOGL can't have both surface and GLContext");
     mNeedsYFlip = PR_FALSE;
-    if (mCanvasSurface->GetType() == gfxASurface::SurfaceTypeXlib)
-      mCanvasSurfaceAsGLContext = GLContextProvider::CreateForNativePixmapSurface(mCanvasSurface);
   } else if (aData.mGLContext) {
-    
-    void *pbuffer = aData.mGLContext->GetNativeData(GLContext::NativePBuffer);
-    if (!pbuffer) {
-      NS_WARNING("CanvasLayerOGL with GL context without NativePBuffer");
+    if (!aData.mGLContext->IsOffscreen()) {
+      NS_WARNING("CanvasLayerOGL with a non-offscreen GL context given");
       return;
     }
 
     mCanvasGLContext = aData.mGLContext;
     mGLBufferIsPremultiplied = aData.mGLBufferIsPremultiplied;
+
     mNeedsYFlip = PR_TRUE;
   } else {
     NS_WARNING("CanvasLayerOGL::Initialize called without surface or GL context!");
@@ -92,6 +94,23 @@ CanvasLayerOGL::Initialize(const Data& aData)
   }
 
   mBounds.SetRect(0, 0, aData.mSize.width, aData.mSize.height);
+}
+
+void
+CanvasLayerOGL::MakeTexture()
+{
+  if (mTexture != 0)
+    return;
+
+  gl()->fGenTextures(1, &mTexture);
+
+  gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
+  gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
+
+  gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_LINEAR);
+  gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER, LOCAL_GL_LINEAR);
+  gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_S, LOCAL_GL_CLAMP_TO_EDGE);
+  gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
 }
 
 void
@@ -104,38 +123,16 @@ CanvasLayerOGL::Updated(const nsIntRect& aRect)
 
   mUpdatedRect.UnionRect(mUpdatedRect, aRect);
 
-  if (mCanvasSurfaceAsGLContext) {
-    PRBool newTexture = mTexture == 0;
-    if (newTexture) {
-      gl()->fGenTextures(1, &mTexture);
-
-      gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
-      gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
-
-      gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_LINEAR);
-      gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER, LOCAL_GL_LINEAR);
-      gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_S, LOCAL_GL_CLAMP_TO_EDGE);
-      gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
-
-      mUpdatedRect = mBounds;
-    } else {
-      gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
-      gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
+  if (mCanvasGLContext) {
+    if (gl()->BindOffscreenNeedsTexture(mCanvasGLContext) &&
+        mTexture == 0)
+    {
+      MakeTexture();
     }
-    mCanvasSurfaceAsGLContext->BindTexImage();
   } else if (mCanvasSurface) {
     PRBool newTexture = mTexture == 0;
     if (newTexture) {
-      gl()->fGenTextures(1, &mTexture);
-
-      gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
-      gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
-
-      gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_LINEAR);
-      gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER, LOCAL_GL_LINEAR);
-      gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_S, LOCAL_GL_CLAMP_TO_EDGE);
-      gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
-
+      MakeTexture();
       mUpdatedRect = mBounds;
     } else {
       gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
@@ -200,42 +197,6 @@ CanvasLayerOGL::Updated(const nsIntRect& aRect)
                            LOCAL_GL_UNSIGNED_BYTE,
                            updatedAreaImageSurface->Data());
     }
-  } else if (mCanvasGLContext) {
-    
-    PRBool newTexture = mTexture == 0;
-    if (newTexture) {
-      gl()->fGenTextures(1, (GLuint*)&mTexture);
-
-      gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
-
-      gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_LINEAR);
-      gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER, LOCAL_GL_LINEAR);
-      gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_S, LOCAL_GL_CLAMP_TO_EDGE);
-      gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
-
-      mUpdatedRect = mBounds;
-    }
-
-#if defined(XP_MACOSX)
-    
-    if (newTexture) {
-      CGLError err;
-      err = CGLTexImagePBuffer((CGLContextObj) gl()->GetNativeData(GLContext::NativeCGLContext),
-                               (CGLPBufferObj) mCanvasGLContext->GetNativeData(GLContext::NativePBuffer),
-                               LOCAL_GL_BACK);
-      if (err) {
-        NS_WARNING("CanvasLayerOGL::Updated CGLTexImagePBuffer failed");
-      }
-    }
-#elif defined(XP_WIN)
-    
-    if (!sWGLLibrary.fBindTexImage((HANDLE) mCanvasGLContext->GetNativeData(GLContext::NativePBuffer),
-                                   LOCAL_WGL_FRONT_LEFT_ARB)) {
-      NS_WARNING("CanvasLayerOGL::Updated wglBindTexImageARB failed");
-    }
-#else
-    NS_WARNING("CanvasLayerOGL::Updated with GL context, but I don't know how to render on this platform!");
-#endif
   }
 
   
@@ -256,9 +217,17 @@ CanvasLayerOGL::RenderLayer(int aPreviousDestination,
   ColorTextureLayerProgram *program = nsnull;
 
   gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
-  gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
 
-  if (mCanvasGLContext || mCanvasSurfaceAsGLContext) {
+  if (mTexture) {
+    gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
+  }
+
+  if (mCanvasGLContext) {
+    gl()->BindTex2DOffscreen(mCanvasGLContext);
+    DEBUG_GL_ERROR_CHECK(gl());
+  }
+
+  if (mCanvasGLContext) {
     program = mOGLManager->GetRGBALayerProgram();
   } else {
     program = mOGLManager->GetBGRALayerProgram();
@@ -273,14 +242,11 @@ CanvasLayerOGL::RenderLayer(int aPreviousDestination,
 
   mOGLManager->BindAndDrawQuad(program, mNeedsYFlip ? true : false);
 
-#if defined(XP_WIN)
-  
-  
+  DEBUG_GL_ERROR_CHECK(gl());
+
   if (mCanvasGLContext) {
-    sWGLLibrary.fReleaseTexImage((HANDLE) mCanvasGLContext->GetNativeData(GLContext::NativePBuffer),
-                                 LOCAL_WGL_FRONT_LEFT_ARB);
+    gl()->UnbindTex2DOffscreen(mCanvasGLContext);
   }
-#endif
 
   mUpdatedRect.Empty();
 }

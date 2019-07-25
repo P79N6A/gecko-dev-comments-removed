@@ -59,7 +59,9 @@ CanvasLayerD3D9::Initialize(const Data& aData)
                  "CanvasLayer can't have both surface and GLContext");
     mNeedsYFlip = PR_FALSE;
   } else if (aData.mGLContext) {
+    NS_ASSERTION(aData.mGLContext->IsOffscreen(), "canvas gl context isn't offscreen");
     mGLContext = aData.mGLContext;
+    mCanvasFramebuffer = mGLContext->GetOffscreenFBO();
     mGLBufferIsPremultiplied = aData.mGLBufferIsPremultiplied;
     mNeedsYFlip = PR_TRUE;
   } else {
@@ -97,12 +99,25 @@ CanvasLayerD3D9::Updated(const nsIntRect& aRect)
     
     mGLContext->fFlush();
 
+    PRUint32 currentFramebuffer = 0;
+
+    mGLContext->fGetIntegerv(LOCAL_GL_FRAMEBUFFER_BINDING, (GLint*)&currentFramebuffer);
+
+    
+    
+    if (currentFramebuffer != mCanvasFramebuffer)
+      mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, mCanvasFramebuffer);
+
     
     
     
     mGLContext->fReadPixels(0, 0, mBounds.width, mBounds.height,
                             LOCAL_GL_BGRA, LOCAL_GL_UNSIGNED_INT_8_8_8_8_REV,
                             destination);
+
+    
+    if (currentFramebuffer != mCanvasFramebuffer)
+      mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, currentFramebuffer);
 
     if (r.Pitch != mBounds.width * 4) {
       for (int y = 0; y < mBounds.height; y++) {

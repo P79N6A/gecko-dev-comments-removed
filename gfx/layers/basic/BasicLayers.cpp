@@ -522,6 +522,7 @@ protected:
 
   nsRefPtr<gfxASurface> mSurface;
   nsRefPtr<mozilla::gl::GLContext> mGLContext;
+  PRUint32 mCanvasFramebuffer;
 
   nsIntRect mBounds;
   nsIntRect mUpdatedRect;
@@ -543,8 +544,10 @@ BasicCanvasLayer::Initialize(const Data& aData)
                  "CanvasLayer can't have both surface and GLContext");
     mNeedsYFlip = PR_FALSE;
   } else if (aData.mGLContext) {
+    NS_ASSERTION(aData.mGLContext->IsOffscreen(), "canvas gl context isn't offscreen");
     mGLContext = aData.mGLContext;
     mGLBufferIsPremultiplied = aData.mGLBufferIsPremultiplied;
+    mCanvasFramebuffer = mGLContext->GetOffscreenFBO();
     mNeedsYFlip = PR_TRUE;
   } else {
     NS_ERROR("CanvasLayer created without mSurface or mGLContext?");
@@ -580,6 +583,15 @@ BasicCanvasLayer::Updated(const nsIntRect& aRect)
     
     mGLContext->fFlush();
 
+    PRUint32 currentFramebuffer = 0;
+
+    mGLContext->fGetIntegerv(LOCAL_GL_FRAMEBUFFER_BINDING, (GLint*)&currentFramebuffer);
+
+    
+    
+    if (currentFramebuffer != mCanvasFramebuffer)
+      mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, mCanvasFramebuffer);
+
     
     
     
@@ -592,6 +604,10 @@ BasicCanvasLayer::Updated(const nsIntRect& aRect)
                             LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE,
                             isurf->Data());
 #endif
+
+    
+    if (currentFramebuffer != mCanvasFramebuffer)
+      mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, currentFramebuffer);
 
     
     
