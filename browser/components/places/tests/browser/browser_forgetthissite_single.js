@@ -97,7 +97,7 @@ function test() {
           
           let contextmenu = doc.getElementById("placesContext");
           contextmenu.addEventListener("popupshown", function() {
-            contextmenu.removeEventListener("popupshown", arguments.callee, false);
+            contextmenu.removeEventListener("popupshown", arguments.callee, true);
             let forgetThisSite = doc.getElementById("placesContext_deleteHost");
             let hideForgetThisSite = (selectionCount != 1);
             is(forgetThisSite.hidden, hideForgetThisSite,
