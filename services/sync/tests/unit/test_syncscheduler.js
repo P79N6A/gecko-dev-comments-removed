@@ -578,3 +578,119 @@ add_test(function test_sync_failed_partial_400s() {
   Service.startOver();
   server.stop(run_next_test);
 });
+
+add_test(function test_sync_X_Weave_Backoff() {
+  let server = sync_httpd_setup();
+  setUp();
+
+  
+  
+  const BACKOFF = 7337;
+
+  
+  const INFO_COLLECTIONS = "/1.1/johndoe/info/collections";
+  let infoColl = server._handler._overridePaths[INFO_COLLECTIONS];
+  let serverBackoff = false;
+  function infoCollWithBackoff(request, response) {
+    if (serverBackoff) {
+      response.setHeader("X-Weave-Backoff", "" + BACKOFF);
+    }
+    infoColl(request, response);
+  }
+  server.registerPathHandler(INFO_COLLECTIONS, infoCollWithBackoff);
+
+  
+  
+  Clients._store.create({id: "foo", cleartext: "bar"});
+  let rec = Clients._store.createRecord("foo", "clients");
+  rec.encrypt();
+  rec.upload(Clients.engineURL + rec.id);
+
+  
+  
+  Service.sync();
+  do_check_eq(Status.backoffInterval, 0);
+  do_check_eq(Status.minimumNextSync, 0);
+  do_check_eq(SyncScheduler.syncInterval, SyncScheduler.activeInterval);
+  do_check_true(SyncScheduler.nextSync <=
+                Date.now() + SyncScheduler.syncInterval);
+  
+  do_check_true(SyncScheduler.syncInterval < BACKOFF * 1000);
+
+  
+  serverBackoff = true;
+  Service.sync();
+
+  do_check_true(Status.backoffInterval >= BACKOFF * 1000);
+  
+  
+  let minimumExpectedDelay = (BACKOFF - 1) * 1000;
+  do_check_true(Status.minimumNextSync >= Date.now() + minimumExpectedDelay);
+
+  
+  do_check_true(SyncScheduler.nextSync >= Date.now() + minimumExpectedDelay);
+  do_check_true(SyncScheduler.syncTimer.delay >= minimumExpectedDelay);
+
+  Service.startOver();
+  server.stop(run_next_test);
+});
+
+add_test(function test_sync_503_Retry_After() {
+  let server = sync_httpd_setup();
+  setUp();
+
+  
+  
+  const BACKOFF = 7337;
+
+  
+  const INFO_COLLECTIONS = "/1.1/johndoe/info/collections";
+  let infoColl = server._handler._overridePaths[INFO_COLLECTIONS];
+  let serverMaintenance = false;
+  function infoCollWithMaintenance(request, response) {
+    if (!serverMaintenance) {
+      infoColl(request, response);
+      return;
+    }
+    response.setHeader("Retry-After", "" + BACKOFF);
+    response.setStatusLine(request.httpVersion, 503, "Service Unavailable");
+  }
+  server.registerPathHandler(INFO_COLLECTIONS, infoCollWithMaintenance);
+
+  
+  
+  Clients._store.create({id: "foo", cleartext: "bar"});
+  let rec = Clients._store.createRecord("foo", "clients");
+  rec.encrypt();
+  rec.upload(Clients.engineURL + rec.id);
+
+  
+  
+  Service.sync();
+  do_check_false(Status.enforceBackoff);
+  do_check_eq(Status.backoffInterval, 0);
+  do_check_eq(Status.minimumNextSync, 0);
+  do_check_eq(SyncScheduler.syncInterval, SyncScheduler.activeInterval);
+  do_check_true(SyncScheduler.nextSync <=
+                Date.now() + SyncScheduler.syncInterval);
+  
+  do_check_true(SyncScheduler.syncInterval < BACKOFF * 1000);
+
+  
+  serverMaintenance = true;
+  Service.sync();
+
+  do_check_true(Status.enforceBackoff);
+  do_check_true(Status.backoffInterval >= BACKOFF * 1000);
+  
+  
+  let minimumExpectedDelay = (BACKOFF - 1) * 1000;
+  do_check_true(Status.minimumNextSync >= Date.now() + minimumExpectedDelay);
+
+  
+  do_check_true(SyncScheduler.nextSync >= Date.now() + minimumExpectedDelay);
+  do_check_true(SyncScheduler.syncTimer.delay >= minimumExpectedDelay);
+
+  Service.startOver();
+  server.stop(run_next_test);
+});
