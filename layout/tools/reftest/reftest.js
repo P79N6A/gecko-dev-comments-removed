@@ -121,6 +121,12 @@ const TYPE_LOAD = 'load';
                               
 const TYPE_SCRIPT = 'script'; 
 
+
+
+
+
+
+
 const EXPECTED_PASS = 0;
 const EXPECTED_FAIL = 1;
 const EXPECTED_RANDOM = 2;
@@ -505,12 +511,12 @@ function ReadTopManifest(aFileURL)
     var url = gIOService.newURI(aFileURL, null, null);
     if (!url)
       throw "Expected a file or http URL for the manifest.";
-    ReadManifest(url);
+    ReadManifest(url, EXPECTED_PASS);
 }
 
 
 
-function ReadManifest(aURL)
+function ReadManifest(aURL, inherited_status)
 {
     var secMan = CC[NS_SCRIPTSECURITYMANAGER_CONTRACTID]
                      .getService(CI.nsIScriptSecurityManager);
@@ -558,6 +564,7 @@ function ReadManifest(aURL)
         var maxAsserts = 0;
         var needs_focus = false;
         var slow = false;
+        
         while (items[0].match(/^(fails|needs-focus|random|skip|asserts|slow|silentfail)/)) {
             var item = items.shift();
             var stat;
@@ -613,6 +620,8 @@ function ReadManifest(aURL)
             }
         }
 
+        expected_status = Math.max(expected_status, inherited_status);
+
         if (minAsserts > maxAsserts) {
             throw "Bad range in manifest file " + aURL.spec + " line " + lineNo;
         }
@@ -649,7 +658,7 @@ function ReadManifest(aURL)
             var incURI = gIOService.newURI(items[1], null, listURL);
             secMan.checkLoadURI(aURL, incURI,
                                 CI.nsIScriptSecurityManager.DISALLOW_SCRIPT);
-            ReadManifest(incURI);
+            ReadManifest(incURI, expected_status);
         } else if (items[0] == TYPE_LOAD) {
             if (items.length != 2 ||
                 (expected_status != EXPECTED_PASS &&
