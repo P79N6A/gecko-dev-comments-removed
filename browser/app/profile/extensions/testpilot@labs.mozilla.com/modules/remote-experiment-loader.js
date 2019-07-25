@@ -512,15 +512,15 @@ exports.RemoteExperimentLoader.prototype = {
         remoteExperiments[filename] = this._loader.require(filename);
         this._logger.info("Loaded " + filename + " OK.");
       } catch(e) {
-      
+        
 
 
 
-      let errStr = e.name + " on line " + e.lineNumber + " of file " +
-        e.fileName + ": " + e.message;
+        let errStr = e.name + " on line " + e.lineNumber + " of file " +
+          e.fileName + ": " + e.message;
         this._loadErrors.push(errStr);
         this._logger.warn("Error loading " + filename);
-        this._logger.warn(e);
+        this._logger.warn(errStr);
       }
     }
     return remoteExperiments;
