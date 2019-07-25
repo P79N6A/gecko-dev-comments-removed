@@ -205,6 +205,9 @@ PopupNotifications.prototype = {
 
 
 
+
+
+
   show: function PopupNotifications_show(browser, id, message, anchorID,
                                          mainAction, secondaryActions, options) {
     function isInvalidAction(a) {
@@ -265,6 +268,16 @@ PopupNotifications.prototype = {
     this._currentNotifications = this._currentNotifications.filter(function(notification) {
       
       
+      if (notification.options.persistWhileVisible &&
+          this.isPanelOpen) {
+        if ("persistence" in notification.options &&
+          notification.options.persistence)
+          notification.options.persistence--;
+        return true;
+      }
+      
+      
+      
       if ("persistence" in notification.options &&
           notification.options.persistence) {
         notification.options.persistence--;
@@ -278,7 +291,7 @@ PopupNotifications.prototype = {
       }
 
       return false;
-    });
+    }, this);
 
     this._update();
   },

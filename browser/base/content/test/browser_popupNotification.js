@@ -451,6 +451,42 @@ var tests = [
     }
   },
   
+  
+  { 
+    run: function () {
+      this.oldSelectedTab = gBrowser.selectedTab;
+      gBrowser.selectedTab = gBrowser.addTab("about:blank");
+
+      let self = this;
+      loadURI("http://example.com/", function() {
+        self.notifyObj = new basicNotification();
+        self.notifyObj.addOptions({
+          persistWhileVisible: true
+        });
+        self.notification = showNotification(self.notifyObj);
+      });
+    },
+    onShown: function (popup) {
+      this.complete = false;
+
+      let self = this;
+      loadURI("http://example.org/", function() {
+        loadURI("http://example.com/", function() {
+
+          
+          self.complete = true;
+          dismissNotification(popup);
+        });
+      });
+    },
+    onHidden: function (popup) {
+      ok(this.complete, "Should only have hidden the notification after it was dismissed");
+      this.notification.remove();
+      gBrowser.removeTab(gBrowser.selectedTab);
+      gBrowser.selectedTab = this.oldSelectedTab;
+    }
+  },
+  
   { 
     run: function() {
       
