@@ -217,11 +217,9 @@ public:
                     nsRenderingContext *aContext,
                     nsRenderingContext *aTextRunConstructionContext);
 
-#ifdef MOZ_MATHML
     nsBoundingMetrics GetBoundingMetrics(const PRUnichar *aString,
                                          PRUint32 aLength,
                                          nsRenderingContext *aContext);
-#endif 
 
     void SetTextRunRTL(PRBool aIsRTL) { mTextRunRTL = aIsRTL; }
     PRBool GetTextRunRTL() { return mTextRunRTL; }

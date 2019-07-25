@@ -138,14 +138,12 @@ struct nsStyleFont {
   PRUint8 mGenericID;   
                         
 
-#ifdef MOZ_MATHML
   
   PRInt8  mScriptLevel;          
   
   nscoord mScriptUnconstrainedSize;
   nscoord mScriptMinSize;        
   float   mScriptSizeMultiplier; 
-#endif
 };
 
 struct nsStyleGradientStop {

@@ -46,7 +46,6 @@
 
 
 
-#ifdef MOZ_MATHML
 struct nsBoundingMetrics {
 
     
@@ -115,6 +114,5 @@ struct nsBoundingMetrics {
         width += bm.width;
     }
 };
-#endif
 
 #endif

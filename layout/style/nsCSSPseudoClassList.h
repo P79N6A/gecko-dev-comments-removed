@@ -159,11 +159,9 @@ CSS_STATE_PSEUDO_CLASS(mozHandlerBlocked, ":-moz-handler-blocked",
 CSS_STATE_PSEUDO_CLASS(mozHandlerCrashed, ":-moz-handler-crashed",
                        NS_EVENT_STATE_HANDLER_CRASHED)
 
-#ifdef MOZ_MATHML
 CSS_STATE_PSEUDO_CLASS(mozMathIncrementScriptLevel,
                        ":-moz-math-increment-script-level",
                        NS_EVENT_STATE_INCREMENT_SCRIPT_LEVEL)
-#endif
 
 
 

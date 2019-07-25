@@ -44,14 +44,12 @@
 #include "nsISupports.h"
 #include "nsMargin.h"
 #include "nsRect.h"
-#include "nsBoundingMetrics.h" 
+#include "nsBoundingMetrics.h"
 
 
 
 
-#ifdef MOZ_MATHML
 #define NS_REFLOW_CALC_BOUNDING_METRICS  0x0001
-#endif
 
 
 
@@ -238,7 +236,6 @@ struct nsHTMLReflowMetrics {
 
   enum { ASK_FOR_BASELINE = nscoord_MAX };
 
-#ifdef MOZ_MATHML
   
   
   
@@ -246,7 +243,6 @@ struct nsHTMLReflowMetrics {
   
   
   nsBoundingMetrics mBoundingMetrics;  
-#endif
 
   
   

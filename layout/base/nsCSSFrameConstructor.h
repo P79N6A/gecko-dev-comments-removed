@@ -678,12 +678,10 @@ private:
 
 
 #define FCDATA_FORCE_NULL_ABSPOS_CONTAINER 0x10
-#ifdef MOZ_MATHML
   
 
 
 #define FCDATA_WRAP_KIDS_IN_BLOCKS 0x20
-#endif 
   
 
 
@@ -1271,7 +1269,6 @@ private:
                                nsTArray<nsIAnonymousContentCreator::ContentInfo>& aAnonContent);
 
 
-#ifdef MOZ_MATHML
   
 
 
@@ -1289,7 +1286,6 @@ private:
                                                      nsIAtom* aTag,
                                                      PRInt32 aNameSpaceID,
                                                      nsStyleContext* aStyleContext);
-#endif
 
   
   

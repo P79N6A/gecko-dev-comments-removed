@@ -1383,7 +1383,6 @@ GK_ATOM(to, "to")
 GK_ATOM(XML, "XML")
 #endif
 
-#ifdef MOZ_MATHML
 
 
 GK_ATOM(_moz_math_columnalign_, "_moz-math-columnalign")
@@ -1667,7 +1666,6 @@ GK_ATOM(veryverythinmathspace_, "veryverythinmathspace")
 GK_ATOM(voffset_, "voffset")
 GK_ATOM(xref_, "xref")
 GK_ATOM(math, "math") 
-#endif
 
 #ifndef DISABLE_XFORMS_HOOKS
 GK_ATOM(avg, "avg")
