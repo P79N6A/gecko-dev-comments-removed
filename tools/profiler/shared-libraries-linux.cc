@@ -29,7 +29,7 @@ static ssize_t getline(char **lineptr, size_t *n, FILE *stream)
 }
 #endif
 
-#ifndef MOZ_OLD_LINKER
+#if !defined(MOZ_OLD_LINKER) && !defined(MOZ_WIDGET_GONK)
 
 #include "nsDebug.h"
 #ifdef ANDROID
@@ -81,7 +81,7 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf()
 {
   SharedLibraryInfo info;
 
-#ifndef MOZ_OLD_LINKER
+#if !defined(MOZ_OLD_LINKER) && !defined(MOZ_WIDGET_GONK)
   dl_iterate_phdr(dl_iterate_callback, &info);
 #ifndef ANDROID
   return info;
@@ -114,7 +114,7 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf()
       LOG("Get maps line failed");
       continue;
     }
-#if defined(ANDROID) && !defined(MOZ_OLD_LINKER)
+#if defined(ANDROID) && !defined(MOZ_OLD_LINKER) && !defined(MOZ_WIDGET_GONK)
     
     
     if (strcmp(name, "/dev/ashmem/dalvik-jit-code-cache") != 0)
