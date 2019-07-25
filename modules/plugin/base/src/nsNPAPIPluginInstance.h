@@ -146,6 +146,10 @@ public:
 
   void URLRedirectResponse(void* notifyData, NPBool allow);
 
+  
+  
+  void CarbonNPAPIFailure();
+
 protected:
   nsresult InitializePlugin();
 

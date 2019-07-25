@@ -1884,7 +1884,13 @@ PluginModuleChild::AnswerPPluginInstanceConstructor(PPluginInstanceChild* aActor
     
     
     if (childInstance->EventModel() == NPEventModelCarbon) {
-        *rv = NPERR_MODULE_LOAD_FAILED_ERROR;
+      
+      
+      
+      childInstance->SendNegotiatedCarbon();
+
+      
+      *rv = NPERR_MODULE_LOAD_FAILED_ERROR;
     }
 #endif
 
