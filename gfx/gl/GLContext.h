@@ -569,7 +569,7 @@ public:
         mOffscreenColorRB(0),
         mOffscreenDepthRB(0),
         mOffscreenStencilRB(0)
-#if 1
+#ifdef DEBUG
         , mGLError(LOCAL_GL_NO_ERROR)
 #endif
     {
@@ -578,7 +578,7 @@ public:
 
     virtual ~GLContext() {
         NS_ASSERTION(IsDestroyed(), "GLContext implementation must call MarkDestroyed in destructor!");
-#if 1
+#ifdef DEBUG
         if (mSharedContext) {
             GLContext *tip = mSharedContext;
             while (tip->mSharedContext)
@@ -603,7 +603,7 @@ public:
     virtual bool MakeCurrentImpl(bool aForce = false) = 0;
 
     bool MakeCurrent(bool aForce = false) {
-#if 1
+#ifdef DEBUG
         sCurrentGLContext = this;
 #endif
         return MakeCurrentImpl(aForce);
@@ -933,7 +933,7 @@ public:
     }
 
     GLuint GetBoundDrawFBO() {
-#if 1
+#ifdef DEBUG
         GLint ret = 0;
         
         
@@ -952,7 +952,7 @@ public:
     }
 
     GLuint GetBoundReadFBO() {
-#if 1
+#ifdef DEBUG
         GLint ret = 0;
         
         
@@ -1494,7 +1494,7 @@ public:
     static PRUint32 sDebugMode;
 
     static PRUint32 DebugMode() {
-#if 1
+#ifdef DEBUG
         return sDebugMode;
 #else
         return 0;
@@ -1508,7 +1508,7 @@ protected:
 
     GLContextSymbols mSymbols;
 
-#if 1
+#ifdef DEBUG
     
     
     
@@ -1617,7 +1617,7 @@ public:
         return error;
     }
 
-#if 1
+#ifdef DEBUG
 
 #ifndef MOZ_FUNCTION_NAME
 # ifdef __GNUC__
@@ -1718,7 +1718,7 @@ public:
     
 
     GLenum fGetError() {
-#if 1
+#ifdef DEBUG
         
         if (DebugMode()) {
             GLenum err = mGLError;
@@ -2646,7 +2646,7 @@ public:
     }
 
 
-#if 1
+#ifdef DEBUG
      GLContext *TrackingContext() {
          GLContext *tip = this;
          while (tip->mSharedContext)
@@ -2756,7 +2756,7 @@ public:
          return ret;
      }
 
-#if 1
+#ifdef DEBUG
     void THEBES_API CreatedProgram(GLContext *aOrigin, GLuint aName);
     void THEBES_API CreatedShader(GLContext *aOrigin, GLuint aName);
     void THEBES_API CreatedBuffers(GLContext *aOrigin, GLsizei aCount, GLuint *aNames);
