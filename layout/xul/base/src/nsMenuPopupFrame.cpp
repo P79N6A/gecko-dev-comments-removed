@@ -272,11 +272,14 @@ nsMenuPopupFrame::CreateWidgetForView(nsIView* aView)
   widgetData.clipSiblings = PR_TRUE;
   widgetData.mPopupHint = mPopupType;
   widgetData.mNoAutoHide = IsNoAutoHide();
-  
+
+  nsAutoString title;
   if (mContent && widgetData.mNoAutoHide) {
     if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::titlebar,
                               nsGkAtoms::normal, eCaseMatters)) {
       widgetData.mBorderStyle = eBorderStyle_title;
+
+      mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::label, title);
     }
   }
 
@@ -322,6 +325,12 @@ nsMenuPopupFrame::CreateWidgetForView(nsIView* aView)
   nsIWidget* widget = aView->GetWidget();
   widget->SetTransparencyMode(mode);
   widget->SetWindowShadowStyle(GetShadowStyle());
+
+  
+  if (!title.IsEmpty()) {
+    widget->SetTitle(title);
+  }
+
   return NS_OK;
 }
 
@@ -1652,6 +1661,21 @@ nsMenuPopupFrame::AttributeChanged(PRInt32 aNameSpaceID,
   
   if (aAttribute == nsGkAtoms::left || aAttribute == nsGkAtoms::top)
     MoveToAttributePosition();
+
+  if (aAttribute == nsGkAtoms::label) {
+    
+    nsIView* view = GetView();
+    if (view) {
+      nsIWidget* widget = view->GetWidget();
+      if (widget) {
+        nsAutoString title;
+        mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::label, title);
+        if (!title.IsEmpty()) {
+          widget->SetTitle(title);
+        }
+      }
+    }
+  }
 
   
   
