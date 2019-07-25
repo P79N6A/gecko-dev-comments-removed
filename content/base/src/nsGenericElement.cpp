@@ -4620,6 +4620,17 @@ ShouldClearPurple(nsIContent* aContent)
 
 
 
+bool
+NodeHasActiveFrame(nsIDocument* aCurrentDoc, nsINode* aNode)
+{
+  return aCurrentDoc->GetShell() && aNode->IsElement() &&
+         aNode->AsElement()->GetPrimaryFrame();
+}
+
+
+
+
+
 
 
 bool
@@ -4630,17 +4641,16 @@ nsGenericElement::CanSkip(nsINode* aNode)
     return false;
   }
 
-  
-  
-  if (UnoptimizableCCNode(aNode)) {
-    return false;
-  }
-
+  bool unoptimizable = UnoptimizableCCNode(aNode);
   nsIDocument* currentDoc = aNode->GetCurrentDoc();
   if (currentDoc &&
-      nsCCUncollectableMarker::InGeneration(currentDoc->GetMarkedCCGeneration())) {
+      nsCCUncollectableMarker::InGeneration(currentDoc->GetMarkedCCGeneration()) &&
+      (!unoptimizable || NodeHasActiveFrame(currentDoc, aNode))) {
     MarkNodeChildren(aNode);
     return true;
+  }
+  if (unoptimizable) {
+    return false;
   }
 
   nsINode* root = currentDoc ? static_cast<nsINode*>(currentDoc) :
