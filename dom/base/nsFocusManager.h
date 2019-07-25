@@ -467,6 +467,19 @@ protected:
                            nsIContent* aEndSelection,
                            nsIContent** aFocusedContent);
 
+private:
+  
+  
+  
+  
+  
+  
+  
+  
+  static void NotifyFocusStateChange(nsIContent* aContent,
+                                     PRBool aWindowShouldShowFocusRing,
+                                     PRBool aGettingFocus);
+
   
   nsCOMPtr<nsPIDOMWindow> mActiveWindow;
 

@@ -7653,6 +7653,8 @@ nsGlobalWindow::SetKeyboardIndicators(UIStateChangeType aShowAccelerators,
 {
   FORWARD_TO_INNER_VOID(SetKeyboardIndicators, (aShowAccelerators, aShowFocusRings));
 
+  PRBool oldShouldShowFocusRing = ShouldShowFocusRing();
+
   
   if (aShowAccelerators != UIStateChangeType_NoChange)
     mShowAccelerators = aShowAccelerators == UIStateChangeType_Set;
@@ -7675,11 +7677,15 @@ nsGlobalWindow::SetKeyboardIndicators(UIStateChangeType aShowAccelerators,
     }
   }
 
-  if (mHasFocus && mFocusedNode) { 
-    nsIDocument *doc = mFocusedNode->GetCurrentDoc();
-    if (doc) {
-      nsAutoScriptBlocker scriptBlocker;
-      doc->ContentStateChanged(mFocusedNode, NS_EVENT_STATE_FOCUSRING);
+  PRBool newShouldShowFocusRing = ShouldShowFocusRing();
+  if (mHasFocus && mFocusedNode &&
+      oldShouldShowFocusRing != newShouldShowFocusRing &&
+      mFocusedNode->IsElement()) {
+    
+    if (newShouldShowFocusRing) {
+      mFocusedNode->AsElement()->AddStates(NS_EVENT_STATE_FOCUSRING);
+    } else {
+      mFocusedNode->AsElement()->RemoveStates(NS_EVENT_STATE_FOCUSRING);
     }
   }
 }

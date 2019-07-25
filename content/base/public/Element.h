@@ -44,6 +44,8 @@
 #include "nsEventStates.h"
 
 class nsEventStateManager;
+class nsGlobalWindow;
+class nsFocusManager;
 
 
 enum {
@@ -108,7 +110,10 @@ public:
 
 private:
   
+  
   friend class ::nsEventStateManager;
+  friend class ::nsGlobalWindow;
+  friend class ::nsFocusManager;
 
   void NotifyStateChange(nsEventStates aStates);
 
