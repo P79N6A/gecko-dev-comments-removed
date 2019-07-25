@@ -166,8 +166,14 @@ var tasksCfg = [
     },
     args:             "-private-toggle",
     iconIndex:        0, 
-    open:             true,
-    close:            true,
+    get open() {
+      
+      return !_privateBrowsingSvc.autoStarted;
+    },
+    get close() {
+      
+      return !_privateBrowsingSvc.autoStarted;
+    },
   },
 ];
 
