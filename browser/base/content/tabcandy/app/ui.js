@@ -176,8 +176,9 @@ window.Page = {
     this.hideChrome();
   },
 
-  isTabCandyFocused: function(){
-    return !Utils.getCurrentWindow().document.getElementById("tab-candy").hidden;
+  isTabCandyDisplayed: function(){
+    return (Utils.getCurrentWindow().document.getElementById("tab-candy-deck").
+             selectedIndex == 1);
   },
   
   hideChrome: function(){
@@ -300,9 +301,6 @@ window.Page = {
       
       if((e.which == 27 || e.which == 13) && iQ(":focus").length == 0 )
         if( self.getActiveTab() ) self.getActiveTab().zoomIn();
-      
-      
-       
     });
     
   },
@@ -353,40 +351,52 @@ window.Page = {
     });
     
     Tabs.onFocus(function() {
-      var focusTab = this;
-      var currentTab = UI.currentTab;
+      self.tabOnFocus(this);
+    });
+  },
+
+  
+  tabOnFocus: function(tab) {
+    var focusTab = tab;
+    var currentTab = UI.currentTab;
+    
+    UI.currentTab = focusTab;
+    if (this.isTabCandyDisplayed()) {
+      this.showChrome();    
+    }
+
+    iQ.timeout(function() { 
+      if(focusTab != UI.currentTab) {
+        
+        return;
+      }
+       
+      let newItem = null;
+      if(focusTab && focusTab.mirror)
+        newItem = TabItems.getItemByTabElement(focusTab.mirror.el);
+
+      if(newItem)
+        Groups.setActiveGroup(newItem.parent);
+
       
-      Page.showChrome();
+      let oldItem = null;
+      if(currentTab && currentTab.mirror)
+        oldItem = TabItems.getItemByTabElement(currentTab.mirror.el);
 
-      iQ.timeout(function() { 
-        if(focusTab != UI.currentTab) {
-          
-          return;
-        }
-
-        let newItem = null;
-        if(focusTab && focusTab.mirror)
-          newItem = TabItems.getItemByTabElement(focusTab.mirror.el);
+      if(newItem != oldItem) {
+        if(oldItem)
+          oldItem.setZoomPrep(false);
 
         if(newItem)
-          Groups.setActiveGroup(newItem.parent);
-
+          newItem.setZoomPrep(true);
+      } else {
         
-        let oldItem = null;
-        if(currentTab && currentTab.mirror)
-          oldItem = TabItems.getItemByTabElement(currentTab.mirror.el);
-
-        if(newItem != oldItem) {
-          if(oldItem)
-            oldItem.setZoomPrep(false);
-
-          if(newItem)
-            newItem.setZoomPrep(true);
+        
+        if (oldItem) {
+          oldItem.setZoomPrep(true);
         }
-      }, 1);
-      
-      UI.currentTab = focusTab;
-    });
+      }
+    }, 1);
   },
 
   
@@ -786,7 +796,7 @@ UIClass.prototype = {
     
     var isAnimating = iQ.isAnimating();
     if( force == false){
-      if( isAnimating || !Page.isTabCandyFocused() ) {
+      if( isAnimating || !Page.isTabCandyDisplayed() ) {
         
         
         
