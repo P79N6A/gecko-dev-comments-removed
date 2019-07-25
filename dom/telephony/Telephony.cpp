@@ -478,32 +478,25 @@ Telephony::EnumerateCallState(PRUint32 aCallIndex, PRUint16 aCallState,
 
 NS_IMETHODIMP
 Telephony::NotifyError(PRInt32 aCallIndex,
-                       const nsAString& aError)
+                        const nsAString& aError)
 {
-  nsRefPtr<TelephonyCall> callToNotify;
-  if (!mCalls.IsEmpty()) {
-    
-    if (aCallIndex == -1) {
-      callToNotify = mCalls[mCalls.Length() - 1];
-    } else {
-      
-      for (PRUint32 index = 0; index < mCalls.Length(); index++) {
-        nsRefPtr<TelephonyCall>& call = mCalls[index];
-        if (call->CallIndex() == aCallIndex) {
-          callToNotify = call;
-          break;
-        }
-      }
-    }
-  }
-
-  if (!callToNotify) {
-    NS_ERROR("Don't call me with a bad call index!");
-    return NS_ERROR_UNEXPECTED;
-  }
+  PRInt32 index = -1;
+  PRInt32 length = mCalls.Length();
 
   
-  callToNotify->NotifyError(aError);
+  if (aCallIndex == -1) {
+    if (length > 0) {
+      index = length - 1;
+    }
+  } else {
+    if (aCallIndex < 0 || aCallIndex >= length) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    index = aCallIndex;
+  }
+  if (index != -1) {
+    mCalls[index]->NotifyError(aError);
+  }
 
   return NS_OK;
 }
