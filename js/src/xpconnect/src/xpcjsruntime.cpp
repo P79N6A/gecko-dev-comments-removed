@@ -276,7 +276,7 @@ CompartmentCallback(JSContext *cx, JSCompartment *compartment, uintN op)
         XPCCompartmentMap &map = self->GetCompartmentMap();
 #ifdef DEBUG
         {
-            JSCompartment *current;
+            JSCompartment *current = NULL;  
             NS_ASSERTION(map.Get(key, &current), "no compartment?");
             NS_ASSERTION(current == compartment, "compartment mismatch");
         }
@@ -1300,6 +1300,59 @@ NS_MEMORY_REPORTER_IMPLEMENT(XPConnectJSStack,
     "of the stack; any uncommitted portion is not measured because it "
     "hardly costs anything.")
 
+static PRInt64
+GetJSSystemCompartmentCount()
+{
+    JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->GetJSRuntime();
+    size_t n = 0;
+    for (size_t i = 0; i < rt->compartments.length(); i++) {
+        if (rt->compartments[i]->isSystemCompartment) {
+            n++;
+        }
+    }
+    return n;
+}
+
+static PRInt64
+GetJSUserCompartmentCount()
+{
+    JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->GetJSRuntime();
+    size_t n = 0;
+    for (size_t i = 0; i < rt->compartments.length(); i++) {
+        if (!rt->compartments[i]->isSystemCompartment) {
+            n++;
+        }
+    }
+    return n;
+}
+
+
+
+
+
+
+
+
+NS_MEMORY_REPORTER_IMPLEMENT(XPConnectJSSystemCompartmentCount,
+    "js-compartments-system",
+    KIND_OTHER,
+    nsIMemoryReporter::UNITS_COUNT,
+    GetJSSystemCompartmentCount,
+    "The number of JavaScript compartments for system code.  The sum of this "
+    "and 'js-compartments-user' might not match the number of "
+    "compartments listed under 'js' if a garbage collection occurs at an "
+    "inopportune time, but such cases should be rare.")
+
+NS_MEMORY_REPORTER_IMPLEMENT(XPConnectJSUserCompartmentCount,
+    "js-compartments-user",
+    KIND_OTHER,
+    nsIMemoryReporter::UNITS_COUNT,
+    GetJSUserCompartmentCount,
+    "The number of JavaScript compartments for user code.  The sum of this "
+    "and 'js-compartments-system' might not match the number of "
+    "compartments listed under 'js' if a garbage collection occurs at an "
+    "inopportune time, but such cases should be rare.")
+
 class XPConnectJSCompartmentsMultiReporter : public nsIMemoryMultiReporter
 {
 private:
@@ -1798,6 +1851,8 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
 
         NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(XPConnectJSGCHeap));
         NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(XPConnectJSStack));
+        NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(XPConnectJSSystemCompartmentCount));
+        NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(XPConnectJSUserCompartmentCount));
         NS_RegisterMemoryMultiReporter(new XPConnectJSCompartmentsMultiReporter);
     }
 
