@@ -60,7 +60,9 @@ const PRUint32 MSEC_PER_MIN  = 1000 * 60;
 const PRUint32 MSEC_PER_HOUR = 1000 * 60 * 60;
 const PRInt32  DECIMAL_BASE  = 10;
 
-#define ACCESSKEY_PREFIX NS_LITERAL_STRING("accesskey(")
+
+
+#define ACCESSKEY_PREFIX NS_LITERAL_STRING("accessKey(")
 #define REPEAT_PREFIX    NS_LITERAL_STRING("repeat(")
 #define WALLCLOCK_PREFIX NS_LITERAL_STRING("wallclock(")
 
@@ -354,6 +356,9 @@ ParseElementBaseTimeValueSpec(const nsAString& aSpec,
 {
   nsSMILTimeValueSpecParams result;
 
+  
+  
+  
   
   
   
