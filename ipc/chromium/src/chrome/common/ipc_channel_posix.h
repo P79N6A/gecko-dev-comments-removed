@@ -95,7 +95,7 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
   };
 
   
-#if defined(OS_MACOSX)
+#if defined(OS_MACOSX) || defined(OS_NETBSD)
   
   char input_cmsg_buf_[1024];
 #else
