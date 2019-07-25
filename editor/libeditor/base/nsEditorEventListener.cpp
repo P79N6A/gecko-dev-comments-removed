@@ -713,7 +713,8 @@ nsEditorEventListener::CanDrop(nsIDOMDragEvent* aEvent)
   
   nsCOMPtr<nsIDOMNode> sourceNode;
   dataTransferNS->GetMozSourceNode(getter_AddRefs(sourceNode));
-  NS_ENSURE_TRUE(sourceNode, PR_TRUE);
+  if (!sourceNode)
+    return PR_TRUE;
 
   
   
