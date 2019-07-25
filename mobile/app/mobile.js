@@ -135,6 +135,11 @@ pref("signon.expireMasterPassword", false);
 pref("signon.SignonFileName", "signons.txt");
 
 
+pref("formhelper.enabled", true);
+pref("formhelper.autozoom", true);
+pref("formhelper.restore", false);
+
+
 pref("browser.formfill.enable", true);
 
 #ifdef WINCE
