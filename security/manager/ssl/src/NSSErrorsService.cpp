@@ -71,10 +71,11 @@ NSSErrorsService::GetXPCOMFromNSSError(PRInt32 aNSPRCode, nsresult *aXPCOMErrorC
 
   
   
+  
 
   *aXPCOMErrorCode =
-    NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_SECURITY,
-                              -1 * aNSPRCode);
+    (nsresult)NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_SECURITY,
+                                        -1 * aNSPRCode);
   return NS_OK;
 }
 

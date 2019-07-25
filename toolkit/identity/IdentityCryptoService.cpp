@@ -70,7 +70,9 @@ PRErrorCode_to_nsresult(PRErrorCode error)
   }
 
   
-  return NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_SECURITY, -1 * error);
+  
+  return (nsresult)NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_SECURITY,
+                                             -1 * error);
 }
 
 

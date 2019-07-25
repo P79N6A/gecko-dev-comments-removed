@@ -51,7 +51,7 @@ class nsSocketEvent : public nsRunnable
 {
 public:
     nsSocketEvent(nsSocketTransport *transport, PRUint32 type,
-                  nsresult status = NS_OK, nsISupports *param = nullptr)
+                  nsresult status = NS_OK, nsISupports *param = nsnull)
         : mTransport(transport)
         , mType(type)
         , mStatus(status)
@@ -130,7 +130,9 @@ IsNSSErrorCode(PRErrorCode code)
 static nsresult
 GetXPCOMFromNSSError(PRErrorCode code)
 {
-    return NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_SECURITY, -1 * code);
+    
+    return (nsresult)NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_SECURITY,
+                                               -1 * code);
 }
 
 static nsresult
@@ -212,7 +214,7 @@ nsSocketInputStream::OnSocketReady(nsresult condition)
         
         if (NS_FAILED(mCondition) || !(mCallbackFlags & WAIT_CLOSURE_ONLY)) {
             callback = mCallback;
-            mCallback = nullptr;
+            mCallback = nsnull;
             mCallbackFlags = 0;
         }
     }
@@ -308,7 +310,7 @@ nsSocketInputStream::Read(char *buf, PRUint32 count, PRUint32 *countRead)
 
     *countRead = 0;
 
-    PRFileDesc* fd = nullptr;
+    PRFileDesc* fd = nsnull;
     {
         MutexAutoLock lock(mTransport->mLock);
 
@@ -481,7 +483,7 @@ nsSocketOutputStream::OnSocketReady(nsresult condition)
         
         if (NS_FAILED(mCondition) || !(mCallbackFlags & WAIT_CLOSURE_ONLY)) {
             callback = mCallback;
-            mCallback = nullptr;
+            mCallback = nsnull;
             mCallbackFlags = 0;
         }
     }
@@ -531,7 +533,7 @@ nsSocketOutputStream::Write(const char *buf, PRUint32 count, PRUint32 *countWrit
     
     
 
-    PRFileDesc* fd = nullptr;
+    PRFileDesc* fd = nsnull;
     {
         MutexAutoLock lock(mTransport->mLock);
 
@@ -675,7 +677,7 @@ nsSocketOutputStream::AsyncWait(nsIOutputStreamCallback *callback,
 
 
 nsSocketTransport::nsSocketTransport()
-    : mTypes(nullptr)
+    : mTypes(nsnull)
     , mTypeCount(0)
     , mPort(0)
     , mProxyPort(0)
@@ -689,7 +691,7 @@ nsSocketTransport::nsSocketTransport()
     , mResolving(false)
     , mNetAddrIsSet(false)
     , mLock("nsSocketTransport.mLock")
-    , mFD(nullptr)
+    , mFD(nsnull)
     , mFDref(0)
     , mFDconnected(false)
     , mInput(this)
@@ -736,7 +738,7 @@ nsSocketTransport::Init(const char **types, PRUint32 typeCount,
     mPort = port;
     mHost = host;
 
-    const char *proxyType = nullptr;
+    const char *proxyType = nsnull;
     if (proxyInfo) {
         mProxyPort = proxyInfo->Port();
         mProxyHost = proxyInfo->Host();
@@ -745,14 +747,14 @@ nsSocketTransport::Init(const char **types, PRUint32 typeCount,
         if (proxyType && (strcmp(proxyType, "http") == 0 ||
                           strcmp(proxyType, "direct") == 0 ||
                           strcmp(proxyType, "unknown") == 0))
-            proxyType = nullptr;
+            proxyType = nsnull;
     }
 
     SOCKET_LOG(("nsSocketTransport::Init [this=%x host=%s:%hu proxy=%s:%hu]\n",
         this, mHost.get(), mPort, mProxyHost.get(), mProxyPort));
 
     
-    mTypeCount = typeCount + (proxyType != nullptr);
+    mTypeCount = typeCount + (proxyType != nsnull);
     if (!mTypeCount)
         return NS_OK;
 
@@ -906,7 +908,7 @@ nsSocketTransport::ResolveHost()
             
             mState = STATE_RESOLVING;
             PR_SetNetAddr(PR_IpAddrAny, PR_AF_INET, SocketPort(), &mNetAddr);
-            return PostEvent(MSG_DNS_LOOKUP_COMPLETE, NS_OK, nullptr);
+            return PostEvent(MSG_DNS_LOOKUP_COMPLETE, NS_OK, nsnull);
         }
     }
 
@@ -922,7 +924,7 @@ nsSocketTransport::ResolveHost()
         dnsFlags |= nsIDNSService::RESOLVE_DISABLE_IPV6;
 
     SendStatus(STATUS_RESOLVING);
-    rv = dns->AsyncResolve(SocketHost(), dnsFlags, this, nullptr,
+    rv = dns->AsyncResolve(SocketHost(), dnsFlags, this, nsnull,
                            getter_AddRefs(mDNSRequest));
     if (NS_SUCCEEDED(rv)) {
         SOCKET_LOG(("  advancing to STATE_RESOLVING\n"));
@@ -946,7 +948,7 @@ nsSocketTransport::BuildSocket(PRFileDesc *&fd, bool &proxyTransparent, bool &us
         rv = fd ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
     }
     else {
-        fd = nullptr;
+        fd = nsnull;
 
         nsCOMPtr<nsISocketProviderService> spserv =
             do_GetService(kSocketProviderServiceCID, &rv);
@@ -954,7 +956,7 @@ nsSocketTransport::BuildSocket(PRFileDesc *&fd, bool &proxyTransparent, bool &us
 
         const char *host       = mHost.get();
         PRInt32     port       = (PRInt32) mPort;
-        const char *proxyHost  = mProxyHost.IsEmpty() ? nullptr : mProxyHost.get();
+        const char *proxyHost  = mProxyHost.IsEmpty() ? nsnull : mProxyHost.get();
         PRInt32     proxyPort  = (PRInt32) mProxyPort;
         PRUint32    proxyFlags = 0;
 
@@ -1023,7 +1025,7 @@ nsSocketTransport::BuildSocket(PRFileDesc *&fd, bool &proxyTransparent, bool &us
                      (strcmp(mTypes[i], "socks4") == 0)) {
                 
                 
-                proxyHost = nullptr;
+                proxyHost = nsnull;
                 proxyPort = -1;
                 proxyTransparent = true;
             }
@@ -1387,7 +1389,7 @@ nsSocketTransport::GetFD_Locked()
 {
     
     if (!mFDconnected)
-        return nullptr;
+        return nsnull;
 
     if (mFD)
         mFDref++;
@@ -1403,7 +1405,7 @@ nsSocketTransport::ReleaseFD_Locked(PRFileDesc *fd)
     if (--mFDref == 0) {
         SOCKET_LOG(("nsSocketTransport: calling PR_Close [this=%x]\n", this));
         PR_Close(mFD);
-        mFD = nullptr;
+        mFD = nsnull;
     }
 }
 
@@ -1502,7 +1504,7 @@ nsSocketTransport::OnSocketEvent(PRUint32 type, nsresult status, nsISupports *pa
     if (NS_FAILED(mCondition)) {
         SOCKET_LOG(("  after event [this=%x cond=%x]\n", this, mCondition));
         if (!mAttached) 
-            OnSocketDetached(nullptr);
+            OnSocketDetached(nsnull);
     }
     else if (mPollFlags == PR_POLL_EXCEPT)
         mPollFlags = 0; 
@@ -1629,7 +1631,7 @@ nsSocketTransport::OnSocketDetached(PRFileDesc *fd)
     
     nsCOMPtr<nsISSLSocketControl> secCtrl = do_QueryInterface(mSecInfo);
     if (secCtrl)
-        secCtrl->SetNotificationCallbacks(nullptr);
+        secCtrl->SetNotificationCallbacks(nsnull);
 
     
     
@@ -1839,7 +1841,7 @@ nsSocketTransport::IsAlive(bool *result)
 {
     *result = false;
 
-    PRFileDesc* fd = nullptr;
+    PRFileDesc* fd = nsnull;
     {
         MutexAutoLock lock(mLock);
         if (NS_FAILED(mCondition))
@@ -2022,28 +2024,28 @@ nsSocketTransport::GetInterfaces(PRUint32 *count, nsIID * **array)
 NS_IMETHODIMP
 nsSocketTransport::GetHelperForLanguage(PRUint32 language, nsISupports **_retval)
 {
-    *_retval = nullptr;
+    *_retval = nsnull;
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsSocketTransport::GetContractID(char * *aContractID)
 {
-    *aContractID = nullptr;
+    *aContractID = nsnull;
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsSocketTransport::GetClassDescription(char * *aClassDescription)
 {
-    *aClassDescription = nullptr;
+    *aClassDescription = nsnull;
     return NS_OK;
 }
 
 NS_IMETHODIMP
 nsSocketTransport::GetClassID(nsCID * *aClassID)
 {
-    *aClassID = nullptr;
+    *aClassID = nsnull;
     return NS_OK;
 }
 
