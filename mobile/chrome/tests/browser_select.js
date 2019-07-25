@@ -35,16 +35,12 @@ function onPageReady() {
     ok(false, e.type + ' should not have been fired');
   }, true);
 
-  
-  tapOnMultiSelect();
+  let rect = browserViewToClientRect(Rect.fromRect(combo.getBoundingClientRect()));
+  ContentTouchHandler.tapDown(rect.left + 1, rect.top + 1);
+  ContentTouchHandler.tapSingle(rect.left + 1, rect.top + 1);
+  ContentTouchHandler.tapUp(rect.left + 1, rect.top + 1);
 
-
-
-
-
-
-
-
+  waitFor(closeSelect, function() { return document.getElementById("select-container").hidden == false; });
 }
 
 function closeSelect() {
