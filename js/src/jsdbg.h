@@ -99,13 +99,7 @@ class Debug {
     };
 
     
-    
-    
-    
-    
-    
-    
-    typedef WeakMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, CCWReferentKeyMarkPolicy>
+    typedef WeakMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, CrossCompartmentMarkPolicy>
         ObjectWeakMap;
     ObjectWeakMap objects;
 
@@ -212,6 +206,7 @@ class Debug {
     
     
     
+    static void markCrossCompartmentDebugObjectReferents(JSTracer *tracer);
     static bool mark(GCMarker *trc, JSCompartment *compartment, JSGCInvocationKind gckind);
     static void sweepAll(JSContext *cx);
     static void sweepCompartment(JSContext *cx, JSCompartment *compartment);

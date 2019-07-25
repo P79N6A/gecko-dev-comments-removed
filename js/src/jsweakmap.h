@@ -199,6 +199,18 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
         }
 #endif
     }
+
+  public:
+    
+    void markKeysInCompartment(JSTracer *tracer) {
+        JSCompartment *comp = tracer->context->runtime->gcCurrentCompartment;
+        JS_ASSERT(comp);
+        MarkPolicy t(tracer);
+        for (Range r = Base::all(); !r.empty(); r.popFront()) {
+            if (!t.keyMarked(r.front().key))
+                t.markKey(r.front().key, "cross-compartment WeakMap key");
+        }
+    }
 };
 
 template <>
@@ -235,6 +247,32 @@ class DefaultMarkPolicy<JSObject *, JSObject *> {
     }
   protected:
     JSTracer *tracer;
+};
+
+
+
+class CrossCompartmentMarkPolicy {
+  public:
+    CrossCompartmentMarkPolicy(JSTracer *t)
+        : tracer(t), comp(t->context->runtime->gcCurrentCompartment) {}
+    bool keyMarked(JSObject *k) { return isMarked(k); }
+    bool valueMarked(JSObject *v) { return isMarked(v); }
+    void markKey(JSObject *k, const char *description) {
+        js::gc::MarkObject(tracer, *k, description);
+    }
+    void markValue(JSObject *v, const char *description) {
+        js::gc::MarkObject(tracer, *v, description);
+    }
+
+  private:
+    
+    
+    bool isMarked(JSObject *obj) {
+        return (comp && obj->compartment() != comp) || !IsAboutToBeFinalized(tracer->context, obj);
+    }
+
+    JSTracer *tracer;
+    JSCompartment *comp;
 };
 
 
