@@ -173,15 +173,15 @@ IonCompartment::mark(JSTracer *trc, JSCompartment *compartment)
 
     
     if (enterJIT_)
-        MarkIonCode(trc, enterJIT_, "enterJIT");
+        MarkRoot(trc, enterJIT_, "enterJIT");
 
     
     
     if (bailoutHandler_)
-        MarkIonCode(trc, bailoutHandler_, "bailoutHandler");
+        MarkRoot(trc, bailoutHandler_, "bailoutHandler");
     for (size_t i = 0; i < bailoutTables_.length(); i++) {
         if (bailoutTables_[i])
-            MarkIonCode(trc, bailoutTables_[i], "bailoutTable");
+            MarkRoot(trc, bailoutTables_[i], "bailoutTable");
     }
 
     
@@ -319,6 +319,40 @@ IonCode::finalize(JSContext *cx)
 {
     if (pool_)
         pool_->release();
+}
+
+void
+IonCode::readBarrier(IonCode *code)
+{
+#ifdef JSGC_INCREMENTAL
+    if (!code)
+        return;
+
+    JSCompartment *comp = code->compartment();
+    if (comp->needsBarrier())
+        MarkIonCodeUnbarriered(comp->barrierTracer(), code, "ioncode read barrier");
+#endif
+}
+
+void
+IonCode::writeBarrierPre(IonCode *code)
+{
+#ifdef JSGC_INCREMENTAL
+    if (!code)
+        return;
+
+    JSCompartment *comp = code->compartment();
+    if (comp->needsBarrier())
+        MarkIonCodeUnbarriered(comp->barrierTracer(), code, "ioncode write barrier");
+#endif
+}
+
+void
+IonCode::writeBarrierPost(IonCode *code, void *addr)
+{
+#ifdef JSGC_INCREMENTAL
+    
+#endif
 }
 
 IonScript::IonScript()

@@ -44,7 +44,6 @@
 #include "MIR.h"
 #include "MIRGraph.h"
 #include "IonSpewer.h"
-#include "jsanalyze.h"
 #include "jsbool.h"
 #include "jsnum.h"
 #include "jsobjinlines.h"
@@ -140,20 +139,6 @@ LIRGenerator::visitCall(MCall *call)
     return true;
 }
 
-static JSOp
-ReorderComparison(JSOp op, MDefinition **lhsp, MDefinition **rhsp)
-{
-    MDefinition *lhs = *lhsp;
-    MDefinition *rhs = *rhsp;
-
-    if (lhs->isConstant()) {
-        *rhsp = lhs;
-        *lhsp = rhs;
-        return js::analyze::ReverseCompareOp(op);
-    }
-    return op;
-}
-
 bool
 LIRGenerator::visitTest(MTest *test)
 {
@@ -182,8 +167,7 @@ LIRGenerator::visitTest(MTest *test)
         MDefinition *right = comp->getOperand(1);
 
         if (comp->specialization() == MIRType_Int32) {
-            JSOp op = ReorderComparison(comp->jsop(), &left, &right);
-            return add(new LCompareIAndBranch(op, useRegister(left), useOrConstant(right),
+            return add(new LCompareIAndBranch(comp->jsop(), useRegister(left), use(right),
                                               ifTrue, ifFalse));
         }
         if (comp->specialization() == MIRType_Double) {
@@ -224,10 +208,8 @@ LIRGenerator::visitCompare(MCompare *comp)
         if (willOptimize && !comp->isEmittedAtUses())
             return emitAtUses(comp);
 
-        if (comp->specialization() == MIRType_Int32) {
-            JSOp op = ReorderComparison(comp->jsop(), &left, &right);
-            return define(new LCompareI(op, useRegister(left), useOrConstant(right)), comp);
-        }
+        if (comp->specialization() == MIRType_Int32)
+            return define(new LCompareI(comp->jsop(), useRegister(left), use(right)), comp);
 
         if (comp->specialization() == MIRType_Double)
             return define(new LCompareD(comp->jsop(), useRegister(left), useRegister(right)), comp);
@@ -576,9 +558,52 @@ LIRGenerator::visitLoadSlot(MLoadSlot *ins)
 }
 
 bool
+LIRGenerator::emitWriteBarrier(MInstruction *ins, MDefinition *input)
+{
+#ifdef JSGC_INCREMENTAL
+    JS_ASSERT(GetIonContext()->cx->compartment->needsBarrier());
+    LInstruction *barrier;
+
+    switch (input->type()) {
+      
+      case MIRType_Value:
+        barrier = new LWriteBarrierV;
+        if (!useBox(barrier, LWriteBarrierV::Input, input))
+            return false;
+        add(barrier, ins);
+        break;
+
+      
+      case MIRType_String:
+      case MIRType_Object:
+        add(new LWriteBarrierT(useRegisterOrConstant(input)), ins);
+        break;
+
+      
+      case MIRType_Undefined:
+      case MIRType_Null:
+      case MIRType_Boolean:
+      case MIRType_Int32:
+      case MIRType_Double:
+        break;
+
+      
+      default:
+        JS_NOT_REACHED("Unexpected MIRType.");
+    }
+#endif
+    return true;
+}
+
+bool
 LIRGenerator::visitStoreSlot(MStoreSlot *ins)
 {
     LInstruction *lir;
+
+#ifdef JSGC_INCREMENTAL
+    if (ins->needsBarrier() && !emitWriteBarrier(ins, ins->value()))
+        return false;
+#endif
 
     switch (ins->value()->type()) {
       case MIRType_Value:

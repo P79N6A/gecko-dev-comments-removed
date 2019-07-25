@@ -128,6 +128,11 @@ class IonCode : public gc::Cell
     
     
     static IonCode *New(JSContext *cx, uint8 *code, uint32 bufferSize, JSC::ExecutablePool *pool);
+
+  public:
+    static void readBarrier(IonCode *code);
+    static void writeBarrierPre(IonCode *code);
+    static void writeBarrierPost(IonCode *code, void *addr);
 };
 
 #define ION_DISABLED_SCRIPT ((IonScript *)0x1)
@@ -138,10 +143,10 @@ class SnapshotWriter;
 struct IonScript
 {
     
-    IonCode *method_;
+    HeapPtr<IonCode> method_;
 
     
-    IonCode *deoptTable_;
+    HeapPtr<IonCode> deoptTable_;
 
     
     uint32 snapshots_;

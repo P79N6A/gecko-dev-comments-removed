@@ -61,7 +61,7 @@ struct VMFunction;
 
 class IonCompartment
 {
-    typedef WeakCache<const VMFunction *, IonCode *> VMWrapperMap;
+    typedef WeakCache<const VMFunction *, ReadBarriered<IonCode> > VMWrapperMap;
 
     friend class IonActivation;
 
@@ -71,17 +71,17 @@ class IonCompartment
     IonActivation *active_;
 
     
-    IonCode *enterJIT_;
+    ReadBarriered<IonCode> enterJIT_;
 
     
-    js::Vector<IonCode *, 4, SystemAllocPolicy> bailoutTables_;
+    js::Vector<ReadBarriered<IonCode>, 4, SystemAllocPolicy> bailoutTables_;
 
     
-    IonCode *bailoutHandler_;
+    ReadBarriered<IonCode> bailoutHandler_;
 
     
     
-    IonCode *argumentsRectifier_;
+    ReadBarriered<IonCode> argumentsRectifier_;
 
     
     VMWrapperMap *functionWrappers_;
@@ -137,7 +137,7 @@ class IonCompartment
             if (!enterJIT_)
                 return NULL;
         }
-        return enterJIT_->as<EnterIonCode>();
+        return enterJIT_.get()->as<EnterIonCode>();
     }
 
     IonActivation *activation() const {

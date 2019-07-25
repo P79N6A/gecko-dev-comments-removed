@@ -95,6 +95,9 @@ class LIRGenerator : public LIRGeneratorSpecific
     
     void freeArguments(uint32 argc);
 
+    
+    bool emitWriteBarrier(MInstruction *ins, MDefinition *input);
+
   public:
     bool visitInstruction(MInstruction *ins);
     bool visitBlock(MBasicBlock *block);

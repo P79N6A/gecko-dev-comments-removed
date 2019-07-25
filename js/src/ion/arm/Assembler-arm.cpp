@@ -163,7 +163,7 @@ Assembler::executableCopy(uint8 *buffer)
     memcpy(buffer, m_buffer.data(), m_buffer.size());
 
     for (size_t i = 0; i < jumps_.length(); i++) {
-        
+        RelativePatch &rp = jumps_[i];
         JS_NOT_REACHED("Feature NYI");
         
     }
@@ -211,7 +211,7 @@ Assembler::TraceJumpRelocations(JSTracer *trc, IonCode *code, CompactBufferReade
     RelocationIterator iter(reader);
     while (iter.read()) {
         IonCode *child = CodeFromJump(code->raw() + iter.offset());
-        MarkIonCode(trc, child, "rel32");
+        MarkIonCodeUnbarriered(trc, child, "rel32");
     };
 #endif
 }
@@ -244,7 +244,7 @@ Assembler::trace(JSTracer *trc)
     for (size_t i = 0; i < jumps_.length(); i++) {
         RelativePatch &rp = jumps_[i];
         if (rp.kind == Relocation::CODE)
-            MarkIonCode(trc, IonCode::FromExecutable((uint8 *)rp.target), "masmrel32");
+            MarkIonCodeUnbarriered(trc, IonCode::FromExecutable((uint8 *)rp.target), "masmrel32");
     }
 #endif
 }
@@ -473,9 +473,8 @@ ion::getDestVariant(ALUOp op)
         return op_and;
       case op_teq:
         return op_eor;
-      default:
-        return op;
     }
+    return op;
 }
 
 O2RegImmShift
@@ -1431,7 +1430,7 @@ Assembler::retarget(Label *label, Label *target)
             
             
             uint32 prev = target->use(label->offset());
-            JS_ASSERT((int32)prev == Label::INVALID_OFFSET);
+            JS_ASSERT(prev == Label::INVALID_OFFSET);
         }
     }
     label->reset();
@@ -1458,9 +1457,6 @@ Assembler::Bind(IonCode *code, AbsoluteLabel *label, const void *address)
     JS_NOT_REACHED("Feature NYI");
 }
 
-#if 0
-
-
 void
 Assembler::call(Label *label)
 {
@@ -1481,7 +1477,7 @@ Assembler::call(void *addr)
 {
     JS_NOT_REACHED("Feature NYI");
 }
-#endif
+
 void
 Assembler::as_bkpt()
 {

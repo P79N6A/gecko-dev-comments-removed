@@ -297,6 +297,35 @@ CodeGeneratorX64::visitStackArg(LStackArg *arg)
 }
 
 bool
+CodeGeneratorX64::visitWriteBarrierV(LWriteBarrierV *barrier)
+{
+    
+    
+
+    const ValueOperand value = ToValue(barrier, LWriteBarrierV::Input);
+
+    Label skipBarrier;
+    masm.branchTestGCThing(Assembler::NotEqual, value, &skipBarrier);
+    {
+        masm.breakpoint();
+        masm.breakpoint();
+    }
+    masm.bind(&skipBarrier);
+
+    return true;
+}
+
+bool
+CodeGeneratorX64::visitWriteBarrierT(LWriteBarrierT *barrier)
+{
+    
+    
+    masm.breakpoint();
+    masm.breakpoint();
+    return true;
+}
+
+bool
 CodeGeneratorX64::visitGuardShape(LGuardShape *guard)
 {
     Register obj = ToRegister(guard->input());
