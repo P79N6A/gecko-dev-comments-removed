@@ -60,11 +60,6 @@ pref("general.warnOnAboutConfig", true);
 pref("browser.bookmarks.max_backups",       5);
 
 pref("browser.cache.disk.enable",           true);
-
-pref("browser.cache.disk.smart_size.first_run", true);
-
-pref("browser.cache.disk.smart_size.enabled", true);
-
 #ifndef WINCE
 pref("browser.cache.disk.capacity",         256000);
 #else
@@ -3238,6 +3233,7 @@ pref("browser.history.maxStateObjectSize", 655360);
 
 
 pref("xpinstall.whitelist.required", true);
+pref("extensions.alwaysUnpack", false);
 
 pref("network.buffer.cache.count", 24);
 pref("network.buffer.cache.size",  32768);
