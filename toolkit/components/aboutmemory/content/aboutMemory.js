@@ -211,40 +211,22 @@ function processMemoryReporters(aMgr, aIgnoreSingle, aIgnoreMulti,
     aHandleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount, aDescription);
   }
 
-  function handleException(aReporterStr, aUnsafePathOrName, aE)
-  {
-    
-    
-    
-    
-    
-    
-    
-    
-
-    let str = aE.toString();
-    if (str.search(gAssertionFailureMsgPrefix) >= 0) {
-      throw(aE); 
-    } else {
-      debug("Bad memory " + aReporterStr + " '" + aUnsafePathOrName +
-            "': " + aE);
-    }
-  }
-
   let e = aMgr.enumerateReporters();
   while (e.hasMoreElements()) {
     let rOrig = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
-    let unsafePath = rOrig.path;
+    let unsafePath;
     try {
+      unsafePath = rOrig.path;
       if (!aIgnoreSingle(unsafePath)) {
-        handleReport(rOrig.process, unsafePath, rOrig.kind, rOrig.units,
+        handleReport(rOrig.process, unsafePath, rOrig.kind, rOrig.units, 
                      rOrig.amount, rOrig.description);
       }
     }
-    catch (e) {
-      handleException("reporter", unsafePath, e);
+    catch (ex) {
+      debug("Exception thrown by memory reporter: " + unsafePath + ": " + ex);
     }
   }
+
   let e = aMgr.enumerateMultiReporters();
   while (e.hasMoreElements()) {
     let mrOrig = e.getNext().QueryInterface(Ci.nsIMemoryMultiReporter);
@@ -254,8 +236,22 @@ function processMemoryReporters(aMgr, aIgnoreSingle, aIgnoreMulti,
         mrOrig.collectReports(handleReport, null);
       }
     }
-    catch (e) {
-      handleException("multi-reporter", name, e);
+    catch (ex) {
+      
+      
+      
+      
+      
+      
+      
+      
+      let str = ex.toString();
+      if (str.search(gAssertionFailureMsgPrefix) >= 0) {
+        throw(ex); 
+      } else {
+        debug("Exception thrown within memory multi-reporter: " + name + ": " +
+              ex);
+      }
     }
   }
 }
@@ -329,8 +325,6 @@ function appendElementWithText(aP, aTagName, aClassName, aText)
 
 
 
-
-const kUnknown = -1;    
 
 const kTreeDescriptions = {
   'explicit' :
@@ -518,13 +512,8 @@ Report.prototype = {
   
   
   
-  
   merge: function(r) {
-    if (this._amount !== kUnknown && r._amount !== kUnknown) {
-      this._amount += r._amount;
-    } else if (this._amount === kUnknown && r._amount !== kUnknown) {
-      this._amount = r._amount;
-    }
+    this._amount += r._amount;
     this._nMerged = this._nMerged ? this._nMerged + 1 : 2;
   },
 
@@ -594,7 +583,6 @@ function TreeNode(aUnsafeName)
   
   this._unsafeName = aUnsafeName;
   this._kids = [];
-  
   
   
   
@@ -676,12 +664,7 @@ function buildTree(aReports, aTreeName)
         }
       }
       
-      if (r._amount !== kUnknown) {
-        u._amount = r._amount;
-      } else {
-        u._amount = 0;
-        u._isUnknown = true;
-      }
+      u._amount = r._amount;
       u._description = r._description;
       u._kind = r._kind;
       if (r._nMerged) {
@@ -695,7 +678,6 @@ function buildTree(aReports, aTreeName)
   
   t = t._kids[0];
 
-  
   
   function fillInNonLeafNodes(aT)
   {
@@ -714,7 +696,6 @@ function buildTree(aReports, aTreeName)
       aT._description = "The sum of all entries below '" +
                         flipBackslashes(aT._unsafeName) + "'.";
     }
-    assert(aT._amount !== kUnknown, "aT._amount !== kUnknown");
     return aT._amount;
   }
 
@@ -784,17 +765,12 @@ function fixUpExplicitTree(aT, aReports)
   
   
   let heapAllocatedReport = aReports["heap-allocated"];
-  assert(heapAllocatedReport, "no 'heap-allocated' report");
+  if (heapAllocatedReport === undefined)
+    return false;
+
   let heapAllocatedBytes = heapAllocatedReport._amount;
   let heapUnclassifiedT = new TreeNode("heap-unclassified");
-  let hasKnownHeapAllocated = heapAllocatedBytes !== kUnknown;
-  if (hasKnownHeapAllocated) {
-    heapUnclassifiedT._amount =
-      heapAllocatedBytes - getKnownHeapUsedBytes(aT);
-  } else {
-    heapUnclassifiedT._amount = 0;
-    heapUnclassifiedT._isUnknown = true;
-  }
+  heapUnclassifiedT._amount = heapAllocatedBytes - getKnownHeapUsedBytes(aT);
   
   
   
@@ -802,11 +778,9 @@ function fixUpExplicitTree(aT, aReports)
       "Memory not classified by a more specific reporter. This includes " +
       "slop bytes due to internal fragmentation in the heap allocator " +
       "(caused when the allocator rounds up request sizes).";
-
   aT._kids.push(heapUnclassifiedT);
   aT._amount += heapUnclassifiedT._amount;
-
-  return hasKnownHeapAllocated;
+  return true;
 }
 
 
@@ -825,7 +799,6 @@ function sortTreeAndInsertAggregateNodes(aTotalBytes, aT)
   function isInsignificant(aT)
   {
     return !gVerbose &&
-           aTotalBytes !== kUnknown &&
            (100 * aT._amount / aTotalBytes) < kSignificanceThresholdPerc;
   }
 
@@ -897,15 +870,15 @@ function appendWarningElements(aP, aHasKnownHeapAllocated,
     appendElementWithText(aP, "p", "", 
       "WARNING: the 'heap-allocated' memory reporter and the " +
       "moz_malloc_usable_size() function do not work for this platform " +
-      "and/or configuration.  This means that 'heap-unclassified' is zero " +
-      "and the 'explicit' tree shows much less memory than it should.");
+      "and/or configuration.  This means that 'heap-unclassified' is not " +
+      "shown and the 'explicit' tree shows much less memory than it should.");
     appendTextNode(aP, "\n\n");
 
   } else if (!aHasKnownHeapAllocated) {
     appendElementWithText(aP, "p", "", 
       "WARNING: the 'heap-allocated' memory reporter does not work for this " +
       "platform and/or configuration. This means that 'heap-unclassified' " +
-      "is zero and the 'explicit' tree shows less memory than it should.");
+      "is not shown and the 'explicit' tree shows less memory than it should.");
     appendTextNode(aP, "\n\n");
 
   } else if (!aHasMozMallocUsableSize) {
@@ -1151,7 +1124,7 @@ const kHideKids = 1;
 const kShowKids = 2;
 
 function appendMrNameSpan(aP, aKind, aKidsState, aDescription, aUnsafeName,
-                          aIsUnknown, aIsInvalid, aNMerged)
+                          aIsInvalid, aNMerged)
 {
   let text = "";
   if (aKidsState === kNoKids) {
@@ -1170,11 +1143,6 @@ function appendMrNameSpan(aP, aKind, aKidsState, aDescription, aUnsafeName,
                                        flipBackslashes(aUnsafeName));
   nameSpan.title = kindToString(aKind) + aDescription;
 
-  if (aIsUnknown) {
-    let noteSpan = appendElementWithText(aP, "span", "mrNote", " [*]");
-    noteSpan.title =
-      "Warning: this memory reporter was unable to compute a useful value. ";
-  }
   if (aIsInvalid) {
     let noteSpan = appendElementWithText(aP, "span", "mrNote", " [?!]");
     noteSpan.title =
@@ -1372,7 +1340,7 @@ function appendTreeElements(aPOuter, aT, aProcess)
     
     let kind = isExplicitTree ? aT._kind : undefined;
     appendMrNameSpan(d, kind, kidsState, aT._description, aT._unsafeName,
-                     aT._isUnknown, tIsInvalid, aT._nMerged);
+                     tIsInvalid, aT._nMerged);
     appendTextNode(d, "\n");
 
     
@@ -1424,12 +1392,7 @@ function OtherReport(aUnsafePath, aUnits, aAmount, aDescription, aNMerged)
   
   this._unsafePath = aUnsafePath;
   this._units    = aUnits;
-  if (aAmount === kUnknown) {
-    this._amount     = 0;
-    this._isUnknown = true;
-  } else {
-    this._amount = aAmount;
-  }
+  this._amount = aAmount;
   this._description = aDescription;
   this._asString = this.toString();
 }
@@ -1451,9 +1414,8 @@ OtherReport.prototype = {
     switch (this._units) {
       case UNITS_BYTES:
       case UNITS_COUNT:
-      case UNITS_COUNT_CUMULATIVE: return (n !== kUnknown && n < 0);
-      case UNITS_PERCENTAGE:       return (n !== kUnknown &&
-                                           !(0 <= n && n <= 10000));
+      case UNITS_COUNT_CUMULATIVE: return n < 0;
+      case UNITS_PERCENTAGE:       return !(0 <= n && n <= 10000);
       default:
         assert(false, "bad units in OtherReport.isInvalid");
     }
@@ -1514,7 +1476,7 @@ function appendOtherElements(aP, aReportsByProcess)
     }
     appendMrValueSpan(pre, pad(o._asString, maxStringLength, ' '), oIsInvalid);
     appendMrNameSpan(pre, KIND_OTHER, kNoKids, o._description, o._unsafePath,
-                     o._isUnknown, oIsInvalid);
+                     oIsInvalid);
     appendTextNode(pre, "\n");
   }
 
