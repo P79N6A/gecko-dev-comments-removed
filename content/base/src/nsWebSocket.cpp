@@ -393,7 +393,11 @@ nsWebSocket::OnServerClose(nsISupports *aContext, PRUint16 aCode,
     
     
     
-    CloseConnection(aCode, aReason);
+    if (aCode == 1005 || aCode == 1006 || aCode == 1015) {
+      CloseConnection(0, EmptyCString());
+    } else {
+      CloseConnection(aCode, aReason);
+    }
   } else {
     
     NS_ASSERTION (mReadyState == nsIWebSocket::CLOSING, "unknown state");
