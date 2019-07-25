@@ -136,6 +136,7 @@ class UpvarCookie
     F(XMLPI) \
     F(XMLUNARY) \
     F(AT) \
+    F(FUNCTIONNS) \
     F(DBLCOLON) \
     F(ANYNAME) \
     F(DBLDOT) \
@@ -209,6 +210,7 @@ enum ParseNodeKind {
     PNK_ASSIGNMENT_START = PNK_ASSIGN,
     PNK_ASSIGNMENT_LAST = PNK_MODASSIGN
 };
+
 
 
 
