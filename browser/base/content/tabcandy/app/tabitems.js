@@ -222,7 +222,7 @@ window.TabItem.prototype = Utils.extend(new Item(), {
   
   save: function(saveImageData) {
     try{
-      if (!this.tab || !this.reconnected) 
+      if (!this.tab || this.tab.parentNode == null || !this.reconnected) 
         return;
 
       var data = this.getStorageData(saveImageData);
