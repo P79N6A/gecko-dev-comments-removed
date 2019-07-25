@@ -239,19 +239,19 @@ EmitN(JSContext *cx, BytecodeEmitter *bce, JSOp op, size_t extra);
 
 
 
-bool
+JSBool
 DefineCompileTimeConstant(JSContext *cx, BytecodeEmitter *bce, JSAtom *atom, ParseNode *pn);
 
 
 
 
-bool
+JSBool
 EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn);
 
 
 
 
-bool
+JSBool
 EmitFunctionScript(JSContext *cx, BytecodeEmitter *bce, ParseNode *body);
 
 } 
@@ -421,7 +421,7 @@ NewSrcNote3(JSContext *cx, BytecodeEmitter *bce, SrcNoteType type, ptrdiff_t off
 jssrcnote *
 AddToSrcNoteDelta(JSContext *cx, BytecodeEmitter *bce, jssrcnote *sn, ptrdiff_t delta);
 
-bool
+JSBool
 FinishTakingSrcNotes(JSContext *cx, BytecodeEmitter *bce, jssrcnote *notes);
 
 void

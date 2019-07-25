@@ -600,7 +600,7 @@ struct ParseNode {
         } binary;
         struct {                        
             ParseNode   *kid;
-            bool        hidden;         
+            JSBool      hidden;         
 
 
         } unary;

@@ -72,7 +72,7 @@ ContainsVarOrConst(ParseNode *pn)
 
 
 
-static bool
+static JSBool
 FoldType(JSContext *cx, ParseNode *pn, ParseNodeKind kind)
 {
     if (!pn->isKind(kind)) {
@@ -112,7 +112,7 @@ FoldType(JSContext *cx, ParseNode *pn, ParseNodeKind kind)
 
 
 
-static bool
+static JSBool
 FoldBinaryNumeric(JSContext *cx, JSOp op, ParseNode *pn1, ParseNode *pn2,
                   ParseNode *pn, Parser *parser)
 {
@@ -193,7 +193,7 @@ FoldBinaryNumeric(JSContext *cx, JSOp op, ParseNode *pn1, ParseNode *pn2,
 
 #if JS_HAS_XML_SUPPORT
 
-static bool
+static JSBool
 FoldXMLConstants(JSContext *cx, ParseNode *pn, Parser *parser)
 {
     JS_ASSERT(pn->isArity(PN_LIST));

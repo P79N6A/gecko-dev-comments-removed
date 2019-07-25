@@ -829,7 +829,7 @@ FindKeyword(const jschar *s, size_t length);
 
 
 
-bool
+JSBool
 IsIdentifier(JSLinearString *str);
 
 
