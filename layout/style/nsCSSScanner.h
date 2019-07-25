@@ -91,7 +91,7 @@ enum nsCSSTokenType {
   eCSSToken_Function,       
 
   eCSSToken_URL,            
-  eCSSToken_InvalidURL,     
+  eCSSToken_Bad_URL,        
 
   eCSSToken_HTMLComment,    
 
@@ -107,8 +107,7 @@ enum nsCSSTokenType {
                             
 
   
-  
-  eCSSToken_Error           
+  eCSSToken_Bad_String      
 };
 
 struct nsCSSToken {

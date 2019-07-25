@@ -196,7 +196,7 @@ nsCSSToken::AppendToString(nsString& aBuffer)
     case eCSSToken_WhiteSpace:
     case eCSSToken_Function:
     case eCSSToken_URL:
-    case eCSSToken_InvalidURL:
+    case eCSSToken_Bad_URL:
     case eCSSToken_HTMLComment:
     case eCSSToken_URange:
       aBuffer.Append(mIdent);
@@ -251,7 +251,7 @@ nsCSSToken::AppendToString(nsString& aBuffer)
     case eCSSToken_Containsmatch:
       aBuffer.AppendLiteral("*=");
       break;
-    case eCSSToken_Error:
+    case eCSSToken_Bad_String:
       aBuffer.Append(mSymbol);
       aBuffer.Append(mIdent);
       break;
@@ -916,7 +916,7 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
   
   
 
-  aToken.mType = eCSSToken_InvalidURL;
+  aToken.mType = eCSSToken_Bad_URL;
   nsString& ident = aToken.mIdent;
   ident.SetLength(0);
 
@@ -1319,7 +1319,7 @@ nsCSSScanner::ParseString(PRInt32 aStop, nsCSSToken& aToken)
       break;
     }
     if (ch == '\n') {
-      aToken.mType = eCSSToken_Error;
+      aToken.mType = eCSSToken_Bad_String;
 #ifdef CSS_REPORT_PARSE_ERRORS
       ReportUnexpectedToken(aToken, "SEUnterminatedString");
 #endif
