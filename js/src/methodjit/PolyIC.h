@@ -196,13 +196,14 @@ struct PICInfo {
     : uint8_t
 #endif
     {
-        GET,
-        CALL,
-        SET,
-        SETMETHOD,
-        NAME,
-        BIND,
-        GETELEM
+        GET,        
+        CALL,       
+        SET,        
+        SETMETHOD,  
+        NAME,       
+        BIND,       
+        GETELEM,    
+        XNAME       
     };
 
     union {
@@ -356,6 +357,7 @@ void JS_FASTCALL GetElem(VMFrame &f, uint32 index);
 void JS_FASTCALL SetProp(VMFrame &f, uint32 index);
 void JS_FASTCALL CallProp(VMFrame &f, uint32 index);
 void JS_FASTCALL Name(VMFrame &f, uint32 index);
+void JS_FASTCALL XName(VMFrame &f, uint32 index);
 void JS_FASTCALL BindName(VMFrame &f, uint32 index);
 void JS_FASTCALL SetPropDumb(VMFrame &f, uint32 index);
 
