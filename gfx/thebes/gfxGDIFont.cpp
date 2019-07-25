@@ -274,11 +274,30 @@ gfxGDIFont::Initialize()
 
     LOGFONTW logFont;
 
+    
+    GDIFontEntry* fe = static_cast<GDIFontEntry*>(GetFontEntry());
+    bool wantFakeItalic =
+        (mStyle.style & (NS_FONT_STYLE_ITALIC | NS_FONT_STYLE_OBLIQUE)) &&
+        !fe->IsItalic();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool useCairoFakeItalic = wantFakeItalic &&
+        (fe->Family()->HasItalicFace() || fe->mFamilyHasItalicFace);
+
     if (mAdjustedSize == 0.0) {
         mAdjustedSize = mStyle.size;
         if (mStyle.sizeAdjust != 0.0 && mAdjustedSize > 0.0) {
             
-            FillLogFont(logFont, mAdjustedSize);
+            FillLogFont(logFont, mAdjustedSize,
+                        wantFakeItalic && !useCairoFakeItalic);
             mFont = ::CreateFontIndirectW(&logFont);
 
             
@@ -306,7 +325,7 @@ gfxGDIFont::Initialize()
 
     
     mAdjustedSize = ROUND(mAdjustedSize);
-    FillLogFont(logFont, mAdjustedSize);
+    FillLogFont(logFont, mAdjustedSize, wantFakeItalic && !useCairoFakeItalic);
     mFont = ::CreateFontIndirectW(&logFont);
 
     mMetrics = new gfxFont::Metrics;
@@ -351,7 +370,7 @@ gfxGDIFont::Initialize()
         } else {
             
             
-            
+
             
             
             BOOL result = GetTextMetrics(dc.GetDC(), &metrics);
@@ -428,8 +447,9 @@ gfxGDIFont::Initialize()
     cairo_matrix_init_identity(&ctm);
     cairo_matrix_init_scale(&sizeMatrix, mAdjustedSize, mAdjustedSize);
 
-    bool italic = (mStyle.style & (NS_FONT_STYLE_ITALIC | NS_FONT_STYLE_OBLIQUE));
-    if (italic && !mFontEntry->IsItalic()) {
+    if (useCairoFakeItalic) {
+        
+        
         double skewfactor = OBLIQUE_SKEW_FACTOR;
         cairo_matrix_t style;
         cairo_matrix_init(&style,
@@ -479,7 +499,8 @@ gfxGDIFont::Initialize()
 }
 
 void
-gfxGDIFont::FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize)
+gfxGDIFont::FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize,
+                        bool aUseGDIFakeItalic)
 {
     GDIFontEntry *fe = static_cast<GDIFontEntry*>(GetFontEntry());
 
@@ -501,6 +522,11 @@ gfxGDIFont::FillLogFont(LOGFONTW& aLogFont, gfxFloat aSize)
 
     fe->FillLogFont(&aLogFont, weight, aSize, 
                     (mAntialiasOption == kAntialiasSubpixel) ? true : false);
+
+    
+    if (aUseGDIFakeItalic) {
+        aLogFont.lfItalic = 1;
+    }
 }
 
 PRInt32
