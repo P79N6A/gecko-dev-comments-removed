@@ -585,20 +585,16 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 
             {
                 AutoLockGC lock(rt);
-                JSCompartment **compartment = rt->compartments.begin();
-                JSCompartment **end = rt->compartments.end();
-                while (compartment < end) {
-                    (*compartment)->types.print(cx, false);
-                    compartment++;
-                }
+                for (CompartmentsIter c(rt); !c.done(); c.next())
+                    c->types.print(cx, false);
             }
 
             
             js_FinishCommonAtoms(cx);
 
             
-            for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++)
-                (*c)->clearTraps(cx, NULL);
+            for (CompartmentsIter c(rt); !c.done(); c.next())
+                c->clearTraps(cx, NULL);
             JS_ClearAllWatchPoints(cx);
         }
 
