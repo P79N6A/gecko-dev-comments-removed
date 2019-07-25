@@ -125,6 +125,11 @@ public:
     
 
 
+    SHARED_TEXTURE,
+
+    
+
+
     REMOTE_IMAGE_DXGI_TEXTURE
   };
 
