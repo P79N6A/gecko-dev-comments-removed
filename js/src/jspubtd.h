@@ -582,7 +582,7 @@ typedef JSBool
 
 
 typedef JSObject *
-(* JSWrapObjectCallback)(JSContext *cx, JSObject *obj, JSObject *proto, uintN flags);
+(* JSWrapObjectCallback)(JSContext *cx, JSObject *obj, JSObject *proto);
 
 JS_END_EXTERN_C
 

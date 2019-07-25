@@ -2085,7 +2085,7 @@ private:
 
 
 
-    JS_FRIEND_API(void) checkMallocGCPressure(void *p);
+    void checkMallocGCPressure(void *p);
 };
 
 JS_ALWAYS_INLINE JSObject *
@@ -2806,7 +2806,7 @@ js_ReportOutOfScriptQuota(JSContext *cx);
 extern void
 js_ReportOverRecursed(JSContext *cx);
 
-extern JS_FRIEND_API(void)
+extern void
 js_ReportAllocationOverflow(JSContext *cx);
 
 #define JS_CHECK_RECURSION(cx, onerror)                                       \
