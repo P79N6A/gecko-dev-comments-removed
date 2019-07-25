@@ -58,6 +58,8 @@ class ExecuteFrameGuard;
 class DummyFrameGuard;
 class GeneratorFrameGuard;
 
+class ArgumentsObject;
+
 namespace mjit { struct JITScript; }
 namespace detail { struct OOMCheck; }
 
@@ -260,7 +262,7 @@ class StackFrame
     } exec;
     union {                             
         uintN           nactual;        
-        JSObject        *obj;           
+        ArgumentsObject *obj;           
         JSScript        *script;        
     } args;
     mutable JSObject    *scopeChain_;   
@@ -306,8 +308,7 @@ class StackFrame
     
     inline void initEvalFrame(JSContext *cx, JSScript *script, StackFrame *prev,
                               uint32 flags);
-    inline void initGlobalFrame(JSScript *script, JSObject &chain, StackFrame *prev,
-                                uint32 flags);
+    inline void initGlobalFrame(JSScript *script, JSObject &chain, uint32 flags);
 
     
     inline void stealFrameAndSlots(js::Value *vp, StackFrame *otherfp,
@@ -547,17 +548,17 @@ class StackFrame
         return !!(flags_ & HAS_ARGS_OBJ);
     }
 
-    JSObject &argsObj() const {
+    ArgumentsObject &argsObj() const {
         JS_ASSERT(hasArgsObj());
         JS_ASSERT(!isEvalFrame());
         return *args.obj;
     }
 
-    JSObject *maybeArgsObj() const {
+    ArgumentsObject *maybeArgsObj() const {
         return hasArgsObj() ? &argsObj() : NULL;
     }
 
-    inline void setArgsObj(JSObject &obj);
+    inline void setArgsObj(ArgumentsObject &obj);
 
     
 
@@ -851,8 +852,8 @@ class StackFrame
         return !!(flags_ & DEBUGGER);
     }
 
-    bool isDirectEvalOrDebuggerFrame() const {
-        return (flags_ & (EVAL | DEBUGGER)) && !(flags_ & GLOBAL);
+    bool isEvalOrDebuggerFrame() const {
+        return !!(flags_ & (EVAL | DEBUGGER));
     }
 
     bool hasOverriddenArgs() const {

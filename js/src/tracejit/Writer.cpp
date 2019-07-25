@@ -39,9 +39,12 @@
 
 #include "jsprf.h"
 #include "jstl.h"
+
 #include "jscompartment.h"
 #include "Writer.h"
 #include "nanojit.h"
+
+#include "vm/ArgumentsObject.h"
 
 namespace js {
 namespace tjit {
@@ -544,9 +547,9 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
         
         
         
-        ok = (isConstPrivatePtr(base, JSObject::JSSLOT_ARGS_DATA) ||
+        ok = (isConstPrivatePtr(base, ArgumentsObject::DATA_SLOT) ||
               (base->isop(LIR_addp) &&
-               isConstPrivatePtr(base->oprnd1(), JSObject::JSSLOT_ARGS_DATA)));
+               isConstPrivatePtr(base->oprnd1(), ArgumentsObject::DATA_SLOT)));
         break;
 
       default:
@@ -565,7 +568,7 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
     }
 }
 
-}
+} 
 
 #endif
 

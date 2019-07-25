@@ -247,53 +247,6 @@ struct JSFunction : public JSObject_Slots2
     JS_FN(name, fastcall, nargs, flags)
 #endif
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern js::Class js_ArgumentsClass;
-
-namespace js {
-
-extern Class StrictArgumentsClass;
-
-struct ArgumentsData {
-    js::Value   callee;
-    js::Value   slots[1];
-};
-
-}
-
-inline bool
-JSObject::isNormalArguments() const
-{
-    return getClass() == &js_ArgumentsClass;
-}
-
-inline bool
-JSObject::isStrictArguments() const
-{
-    return getClass() == &js::StrictArgumentsClass;
-}
-
-inline bool
-JSObject::isArguments() const
-{
-    return isNormalArguments() || isStrictArguments();
-}
-
-#define JS_ARGUMENTS_OBJECT_ON_TRACE ((void *)0xa126)
-
 extern JS_PUBLIC_DATA(js::Class) js_CallClass;
 extern JS_PUBLIC_DATA(js::Class) js_FunctionClass;
 extern JS_FRIEND_DATA(js::Class) js_DeclEnvClass;

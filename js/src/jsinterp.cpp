@@ -857,9 +857,9 @@ InitSharpSlots(JSContext *cx, StackFrame *fp)
     JS_ASSERT(script->nfixed >= SHARP_NSLOTS);
 
     Value *sharps = &fp->slots()[script->nfixed - SHARP_NSLOTS];
-    if (!fp->isGlobalFrame() && prev->script()->hasSharps) {
+    if (prev && prev->script()->hasSharps) {
         JS_ASSERT(prev->numFixed() >= SHARP_NSLOTS);
-        int base = (prev->isFunctionFrame() && !prev->isDirectEvalOrDebuggerFrame())
+        int base = (prev->isFunctionFrame() && !prev->isEvalOrDebuggerFrame())
                    ? prev->fun()->script()->bindings.sharpSlotBase(cx)
                    : prev->numFixed() - SHARP_NSLOTS;
         if (base < 0)
@@ -875,8 +875,8 @@ InitSharpSlots(JSContext *cx, StackFrame *fp)
 #endif
 
 bool
-Execute(JSContext *cx, JSObject &chain, JSScript *script, StackFrame *prev, uintN flags,
-        Value *result)
+Execute(JSContext *cx, JSObject &chain, JSScript *script,
+        StackFrame *prev, uintN flags, Value *result)
 {
     JS_ASSERT_IF(prev, !prev->isDummyFrame());
     JS_ASSERT_IF(prev, prev->compartment() == cx->compartment);
@@ -927,7 +927,7 @@ Execute(JSContext *cx, JSObject &chain, JSScript *script, StackFrame *prev, uint
             return false;
         }
 
-        frame.fp()->initGlobalFrame(script, *innerizedChain, cx->maybefp(), flags);
+        frame.fp()->initGlobalFrame(script, *innerizedChain, flags);
 
         
         JSObject *thisp = chain.thisObject(cx);
@@ -4096,20 +4096,26 @@ BEGIN_CASE(JSOP_LENGTH)
     vp = &regs.sp[-1];
     if (vp->isString()) {
         vp->setInt32(vp->toString()->length());
-    } else if (vp->isObject()) {
-        JSObject *obj = &vp->toObject();
-        if (obj->isArray()) {
-            jsuint length = obj->getArrayLength();
-            regs.sp[-1].setNumber(length);
-        } else if (obj->isArguments() && !obj->isArgsLengthOverridden()) {
-            uint32 length = obj->getArgsInitialLength();
-            JS_ASSERT(length < INT32_MAX);
-            regs.sp[-1].setInt32(int32_t(length));
-        } else {
-            i = -2;
-            goto do_getprop_with_lval;
-        }
     } else {
+        if (vp->isObject()) {
+            JSObject *obj = &vp->toObject();
+            if (obj->isArray()) {
+                jsuint length = obj->getArrayLength();
+                regs.sp[-1].setNumber(length);
+                DO_NEXT_OP(JSOP_LENGTH_LENGTH);
+            }
+
+            if (obj->isArguments()) {
+                ArgumentsObject *argsobj = obj->asArguments();
+                if (!argsobj->hasOverriddenLength()) {
+                    uint32 length = argsobj->initialLength();
+                    JS_ASSERT(length < INT32_MAX);
+                    regs.sp[-1].setInt32(int32_t(length));
+                    DO_NEXT_OP(JSOP_LENGTH_LENGTH);
+                }
+            }
+        }
+
         i = -2;
         goto do_getprop_with_lval;
     }
@@ -4405,11 +4411,12 @@ BEGIN_CASE(JSOP_GETELEM)
             }
         } else if (obj->isArguments()) {
             uint32 arg = uint32(i);
+            ArgumentsObject *argsobj = obj->asArguments();
 
-            if (arg < obj->getArgsInitialLength()) {
-                copyFrom = obj->addressOfArgsElement(arg);
+            if (arg < argsobj->initialLength()) {
+                copyFrom = argsobj->addressOfElement(arg);
                 if (!copyFrom->isMagic(JS_ARGS_HOLE)) {
-                    if (StackFrame *afp = (StackFrame *) obj->getPrivate())
+                    if (StackFrame *afp = reinterpret_cast<StackFrame *>(argsobj->getPrivate()))
                         copyFrom = &afp->canonicalActualArg(arg);
                     goto end_getelem;
                 }

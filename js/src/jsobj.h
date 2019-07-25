@@ -261,7 +261,11 @@ namespace js {
 
 struct NativeIterator;
 class RegExp;
+
 class GlobalObject;
+class ArgumentsObject;
+class NormalArgumentsObject;
+class StrictArgumentsObject;
 class StringObject;
 
 }
@@ -794,93 +798,10 @@ struct JSObject : js::gc::Cell {
 
     JSBool makeDenseArraySlow(JSContext *cx);
 
-    
-
-
-
-  private:
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    static const uint32 JSSLOT_ARGS_DATA = 1;
-
   public:
-    
-    static const uint32 JSSLOT_ARGS_LENGTH = 0;
-    static const uint32 ARGS_CLASS_RESERVED_SLOTS = 2;
-    static const uint32 ARGS_FIRST_FREE_SLOT = ARGS_CLASS_RESERVED_SLOTS + 1;
-
-    
-    static const uint32 ARGS_LENGTH_OVERRIDDEN_BIT = 0x1;
-    static const uint32 ARGS_PACKED_BITS_COUNT = 1;
-
-    
-
-
-    inline void setArgsLength(uint32 argc);
-
-    
-
-
-
-    inline uint32 getArgsInitialLength() const;
-
-    inline void setArgsLengthOverridden();
-    inline bool isArgsLengthOverridden() const;
-
-    inline js::ArgumentsData *getArgsData() const;
-    inline void setArgsData(js::ArgumentsData *data);
-
-    inline const js::Value &getArgsCallee() const;
-    inline void setArgsCallee(const js::Value &callee);
-
-    inline const js::Value &getArgsElement(uint32 i) const;
-    inline js::Value *getArgsElements() const;
-    inline js::Value *addressOfArgsElement(uint32 i);
-    inline void setArgsElement(uint32 i, const js::Value &v);
+    inline js::ArgumentsObject *asArguments();
+    inline js::NormalArgumentsObject *asNormalArguments();
+    inline js::StrictArgumentsObject *asStrictArguments();
 
   private:
     
