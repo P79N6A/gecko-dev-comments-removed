@@ -38,7 +38,6 @@
 
 #include "nscore.h"
 #include "nsCUPSShim.h"
-#include "nsIDeviceContext.h"       
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
 #include "nsIServiceManager.h"

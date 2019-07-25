@@ -74,7 +74,6 @@
 #include "nsDragService.h"
 #include "nsGfxCIID.h"
 #include "nsHashKeys.h"
-#include "nsIDeviceContext.h"
 #include "nsIMenuRollup.h"
 #include "nsIPrefService.h"
 #include "nsIRollupListener.h"
@@ -364,32 +363,9 @@ NS_METHOD nsWindow::Create(nsIWidget* aParent,
     }
   }
 
-  
-  mEventCallback = aHandleEventFunction;
+  BaseCreate(aParent, aRect, aHandleEventFunction,
+             aContext, aAppShell, aToolkit, aInitData);
 
-  
-  if (aContext) {
-    mContext = aContext;
-    NS_ADDREF(mContext);
-  } else {
-    static NS_DEFINE_IID(kDeviceContextCID, NS_DEVICE_CONTEXT_CID);
-    nsresult rv = CallCreateInstance(kDeviceContextCID, &mContext);
-    NS_ENSURE_SUCCESS(rv, rv);
-    mContext->Init(nsnull);
-  }
-
-  
-  if (!mToolkit) {
-    if (aToolkit) {
-      mToolkit = aToolkit;
-    } else if (pParent) {
-      mToolkit = pParent->GetToolkit();
-    } else {
-      mToolkit = new nsToolkit;
-      mToolkit->Init(PR_GetCurrentThread());
-    }
-    NS_ADDREF(mToolkit);
-  }
 
 #ifdef DEBUG_FOCUS
   mWindowIdentifier = currentWindowIdentifier;
@@ -398,9 +374,6 @@ NS_METHOD nsWindow::Create(nsIWidget* aParent,
 
   
   if (aInitData) {
-    mWindowType = aInitData->mWindowType;
-    mBorderStyle = aInitData->mBorderStyle;
-
     
     
     if (mWindowType == eWindowType_toplevel ||

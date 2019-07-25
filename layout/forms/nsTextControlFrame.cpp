@@ -63,7 +63,6 @@
 #include "nsINameSpaceManager.h"
 #include "nsINodeInfo.h"
 #include "nsFormControlFrame.h" 
-#include "nsIDeviceContext.h" 
 
 #include "nsIContent.h"
 #include "nsIAtom.h"

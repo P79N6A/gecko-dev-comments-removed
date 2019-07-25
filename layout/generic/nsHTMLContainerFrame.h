@@ -42,7 +42,6 @@
 
 #include "nsContainerFrame.h"
 #include "gfxPoint.h"
-#include "nsIDeviceContext.h"
 
 class nsString;
 class nsAbsoluteFrame;
@@ -55,8 +54,11 @@ class nsLineBox;
 
 
 
+
+
+
 #ifdef DEBUG
-#define CRAZY_W (1000000*nsIDeviceContext::AppUnitsPerCSSPixel())
+#define CRAZY_W (1000000*60)
 #define CRAZY_H CRAZY_W
 
 #define CRAZY_WIDTH(_x) (((_x) < -CRAZY_W) || ((_x) > CRAZY_W))
