@@ -335,12 +335,23 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(PRInt64 aTarget)
         audio = nsnull;
         continue;
       }
+      if (startSample > targetSample) {
+        
+        
+        
+        
+        
+        
+        
+        NS_WARNING("Audio not synced after seek, maybe a poorly muxed file?");
+        break;
+      }
 
       
       
       
       NS_ASSERTION(targetSample >= startSample, "Target must at or be after data start.");
-      NS_ASSERTION(startSample + audio->mSamples > targetSample, "Data must end after target.");
+      NS_ASSERTION(targetSample < startSample + audio->mSamples, "Data must end after target.");
 
       PRInt64 samplesToPrune = targetSample - startSample;
       if (samplesToPrune > audio->mSamples) {
