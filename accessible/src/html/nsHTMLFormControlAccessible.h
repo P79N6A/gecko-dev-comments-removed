@@ -166,6 +166,10 @@ public:
 
   
   virtual PRUint8 ActionCount();
+
+  
+  virtual bool IsWidget() const;
+  virtual nsAccessible* ContainerWidget() const;
 };
 
 

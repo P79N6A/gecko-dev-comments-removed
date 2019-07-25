@@ -459,6 +459,11 @@ protected:
   
 
 
+  void ARIAActiveDescendantChanged(nsIContent* aElm);
+
+  
+
+
 
   void ProcessPendingEvent(AccEvent* aEvent);
 

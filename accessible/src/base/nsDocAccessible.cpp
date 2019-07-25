@@ -295,18 +295,10 @@ nsDocAccessible::NativeState()
   PRUint64 state = (mContent->GetCurrentDoc() == mDocument) ?
     0 : states::STALE;
 
-#ifdef MOZ_XUL
-  nsCOMPtr<nsIXULDocument> xulDoc(do_QueryInterface(mDocument));
-  if (!xulDoc)
-#endif
-  {
-    
-    
-    
-    state |= states::FOCUSABLE;
-    if (gLastFocusedNode == mDocument)
-      state |= states::FOCUSED;
-  }
+  
+  state |= states::FOCUSABLE;
+  if (FocusMgr()->IsFocused(this))
+    state |= states::FOCUSED;
 
   
   
@@ -358,22 +350,14 @@ nsAccessible*
 nsDocAccessible::FocusedChild()
 {
   
-
   
-  
-  return gLastFocusedNode ? GetAccService()->GetAccessible(gLastFocusedNode) :
-    nsnull;
+  return FocusMgr()->FocusedAccessible();
 }
 
 NS_IMETHODIMP nsDocAccessible::TakeFocus()
 {
   if (IsDefunct())
     return NS_ERROR_FAILURE;
-
-  PRUint64 state = NativeState();
-  if (0 == (state & states::FOCUSABLE)) {
-    return NS_ERROR_FAILURE; 
-  }
 
   
   nsCOMPtr<nsIFocusManager> fm = do_GetService(FOCUSMANAGER_CONTRACTID);
@@ -1064,10 +1048,6 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
     nsAccessible *multiSelect =
       nsAccUtils::GetMultiSelectableContainer(aContent);
     
-    
-    
-    
-    
     if (multiSelect) {
       
       
@@ -1118,17 +1098,13 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     return;
   }
 
+  
+  
+  
   if (aAttribute == nsGkAtoms::aria_activedescendant) {
-    
-    
-    nsCOMPtr<nsINode> focusedNode = GetCurrentFocus();
-    if (nsCoreUtils::GetRoleContent(focusedNode) == aContent) {
-      nsAccessible* focusedAcc = GetAccService()->GetAccessible(focusedNode);
-      nsRootAccessible* rootAcc = RootAccessible();
-      if (rootAcc && focusedAcc) {
-        rootAcc->FireAccessibleFocusEvent(focusedAcc, nsnull, PR_TRUE);
-      }
-    }
+    mNotificationController->HandleNotification<nsDocAccessible, nsIContent>
+      (this, &nsDocAccessible::ARIAActiveDescendantChanged, aContent);
+
     return;
   }
 
@@ -1197,6 +1173,26 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE,
                                aContent);
     return;
+  }
+}
+
+void
+nsDocAccessible::ARIAActiveDescendantChanged(nsIContent* aElm)
+{
+  if (FocusMgr()->HasDOMFocus(aElm)) {
+    nsAutoString id;
+    if (aElm->GetAttr(kNameSpaceID_None, nsGkAtoms::aria_activedescendant, id)) {
+      nsIDocument* DOMDoc = aElm->GetOwnerDoc();
+      dom::Element* activeDescendantElm = DOMDoc->GetElementById(id);
+      if (activeDescendantElm) {
+        nsAccessible* activeDescendant = GetAccessible(activeDescendantElm);
+        if (activeDescendant) {
+          FocusMgr()->ActiveItemChanged(activeDescendant, false);
+          A11YDEBUG_FOCUS_ACTIVEITEMCHANGE_CAUSE("ARIA activedescedant changed",
+                                                 activeDescendant)
+        }
+      }
+    }
   }
 }
 
@@ -1361,6 +1357,13 @@ nsDocAccessible::UnbindFromDocument(nsAccessible* aAccessible)
 {
   NS_ASSERTION(mAccessibleCache.GetWeak(aAccessible->UniqueID()),
                "Unbinding the unbound accessible!");
+
+  
+  
+  if (FocusMgr()->IsActiveItem(aAccessible)) {
+    FocusMgr()->ActiveItemChanged(nsnull);
+    A11YDEBUG_FOCUS_ACTIVEITEMCHANGE_CAUSE("tree shutdown", aAccessible)
+  }
 
   
   if (aAccessible->IsPrimaryForNode() &&
@@ -1732,7 +1735,6 @@ nsDocAccessible::ProcessPendingEvent(AccEvent* aEvent)
     return;
 
   PRUint32 eventType = aEvent->GetEventType();
-
   if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED) {
     nsCOMPtr<nsIAccessibleText> accessibleText = do_QueryObject(accessible);
     PRInt32 caretOffset;
@@ -1742,13 +1744,6 @@ nsDocAccessible::ProcessPendingEvent(AccEvent* aEvent)
       PRUnichar chAtOffset;
       accessibleText->GetCharacterAtOffset(caretOffset, &chAtOffset);
       printf("\nCaret moved to %d with char %c", caretOffset, chAtOffset);
-#endif
-#ifdef DEBUG_CARET
-      
-      
-      nsAccessible* focusedAcc =
-        GetAccService()->GetAccessible(gLastFocusedNode);
-      nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_ALERT, focusedAcc);
 #endif
       nsRefPtr<AccEvent> caretMoveEvent =
           new AccCaretMoveEvent(accessible, caretOffset);
@@ -1948,10 +1943,11 @@ nsDocAccessible::UpdateTreeInternal(nsAccessible* aChild, bool aIsInsert)
     
     
     
-    if (node == gLastFocusedNode) {
-      FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_FOCUS,
-                                 node, AccEvent::eCoalesceFromSameDocument);
-    }
+    
+    
+    if (FocusMgr()->IsFocused(aChild))
+      FocusMgr()->DispatchFocusEvent(this, aChild);
+
   } else {
     
     

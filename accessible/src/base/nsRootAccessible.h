@@ -90,38 +90,6 @@ public:
   
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ROOTACCESSIBLE_IMPL_CID)
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  void FireAccessibleFocusEvent(nsAccessible* aFocusAccessible,
-                                nsIContent* aRealFocusContent,
-                                PRBool aForceEvent = PR_FALSE,
-                                EIsFromUserInput aIsFromUserInput = eAutoDetect);
-
-    
-
-
-
-    void FireCurrentFocusEvent();
-
     nsCaretAccessible *GetCaretAccessible();
 
   
@@ -130,7 +98,6 @@ public:
   virtual void DocumentActivated(nsDocAccessible* aDocument);
 
 protected:
-  NS_DECL_RUNNABLEMETHOD(nsRootAccessible, FireCurrentFocusEvent)
 
   
 
@@ -151,7 +118,7 @@ protected:
   
 
 
-  void HandlePopupHidingEvent(nsINode* aNode, nsAccessible* aAccessible);
+  void HandlePopupHidingEvent(nsINode* aNode);
 
 #ifdef MOZ_XUL
     void HandleTreeRowCountChangedEvent(nsIDOMEvent* aEvent,
@@ -164,7 +131,6 @@ protected:
     already_AddRefed<nsIDocShellTreeItem>
            GetContentDocShell(nsIDocShellTreeItem *aStart);
     nsRefPtr<nsCaretAccessible> mCaretAccessible;
-  nsCOMPtr<nsINode> mCurrentARIAMenubar;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsRootAccessible, NS_ROOTACCESSIBLE_IMPL_CID)

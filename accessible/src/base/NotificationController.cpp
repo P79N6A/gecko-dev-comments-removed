@@ -44,9 +44,12 @@
 #include "nsDocAccessible.h"
 #include "nsEventShell.h"
 #include "nsTextAccessible.h"
+#include "FocusManager.h"
 #include "TextUpdater.h"
+
 #include "mozilla/dom/Element.h"
 
+using namespace mozilla::a11y;
 
 
 
@@ -182,7 +185,8 @@ NotificationController::IsUpdatePending()
   return mPresShell->IsLayoutFlushObserver() ||
     mObservingState == eRefreshProcessingForUpdate ||
     mContentInsertions.Length() != 0 || mNotifications.Length() != 0 ||
-    mTextHash.Count() != 0;
+    mTextHash.Count() != 0 ||
+    !mDocument->HasLoadState(nsDocAccessible::eTreeConstructed);
 }
 
 
@@ -312,8 +316,15 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
   for (PRUint32 idx = 0; idx < eventCount; idx++) {
     AccEvent* accEvent = events[idx];
     if (accEvent->mEventRule != AccEvent::eDoNotEmit) {
+      
+      if (accEvent->mEventType == nsIAccessibleEvent::EVENT_FOCUS) {
+        FocusMgr()->ProcessFocusEvent(accEvent);
+        continue;
+      }
+
       mDocument->ProcessPendingEvent(accEvent);
 
+      
       AccMutationEvent* showOrHideEvent = downcast_accEvent(accEvent);
       if (showOrHideEvent) {
         if (showOrHideEvent->mTextChangeEvent)
@@ -345,14 +356,14 @@ NotificationController::CoalesceEvents()
   PRInt32 tail = numQueuedEvents - 1;
   AccEvent* tailEvent = mEvents[tail];
 
-  
-  
-  if (!tailEvent->mNode)
-    return;
-
   switch(tailEvent->mEventRule) {
     case AccEvent::eCoalesceFromSameSubtree:
     {
+      
+      
+      if (!tailEvent->mNode)
+        return;
+
       for (PRInt32 index = tail - 1; index >= 0; index--) {
         AccEvent* thisEvent = mEvents[index];
 
@@ -446,17 +457,14 @@ NotificationController::CoalesceEvents()
 
     } break; 
 
-    case AccEvent::eCoalesceFromSameDocument:
+    case AccEvent::eCoalesceOfSameType:
     {
       
-      
-      
       for (PRInt32 index = tail - 1; index >= 0; index--) {
-        AccEvent* thisEvent = mEvents[index];
-        if (thisEvent->mEventType == tailEvent->mEventType &&
-            thisEvent->mEventRule == tailEvent->mEventRule &&
-            thisEvent->GetDocAccessible() == tailEvent->GetDocAccessible()) {
-          thisEvent->mEventRule = AccEvent::eDoNotEmit;
+        AccEvent* accEvent = mEvents[index];
+        if (accEvent->mEventType == tailEvent->mEventType &&
+            accEvent->mEventRule == tailEvent->mEventRule) {
+          accEvent->mEventRule = AccEvent::eDoNotEmit;
           return;
         }
       }

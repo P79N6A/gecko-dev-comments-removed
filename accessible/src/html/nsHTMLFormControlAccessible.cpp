@@ -463,40 +463,29 @@ nsHTMLTextFieldAccessible::NativeState()
                             nsGkAtoms::password, eIgnoreCase)) {
     state |= states::PROTECTED;
   }
-  else {
-    nsAccessible* parent = Parent();
-    if (parent && parent->Role() == nsIAccessibleRole::ROLE_AUTOCOMPLETE)
-      state |= states::HASPOPUP;
-  }
 
   if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::readonly)) {
     state |= states::READONLY;
   }
 
-  nsCOMPtr<nsIDOMHTMLInputElement> htmlInput(do_QueryInterface(mContent));
   
-  if (htmlInput) {
-    state |= states::SINGLE_LINE;
-  }
-  else {
-    state |= states::MULTI_LINE;
-  }
+  nsCOMPtr<nsIDOMHTMLInputElement> htmlInput(do_QueryInterface(mContent));
+  state |= htmlInput ? states::SINGLE_LINE : states::MULTI_LINE;
 
-  if (!(state & states::EDITABLE))
+  if (!(state & states::EDITABLE) ||
+      (state & (states::PROTECTED | states::MULTI_LINE)))
     return state;
 
-  nsCOMPtr<nsIContent> bindingContent = mContent->GetBindingParent();
-  if (bindingContent &&
-      bindingContent->NodeInfo()->Equals(nsGkAtoms::textbox,
-                                         kNameSpaceID_XUL)) {
-     if (bindingContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
-                                     nsGkAtoms::autocomplete,
-                                     eIgnoreCase)) {
-       
-       
-       state |= states::SUPPORTS_AUTOCOMPLETION;
-     }
-  } else if (gIsFormFillEnabled && htmlInput && !(state & states::PROTECTED)) {
+  
+  nsAccessible* widget = ContainerWidget();
+  if (widget && widget-IsAutoComplete()) {
+    state |= states::HASPOPUP | states::SUPPORTS_AUTOCOMPLETION;
+    return state;
+  }
+
+  
+  
+  if (mParent && gIsFormFillEnabled) {
     
     
     
@@ -574,6 +563,23 @@ NS_IMETHODIMP nsHTMLTextFieldAccessible::GetAssociatedEditor(nsIEditor **aEditor
 
   return rv;
 }
+
+
+
+
+bool
+nsHTMLTextFieldAccessible::IsWidget() const
+{
+  return true;
+}
+
+nsAccessible*
+nsHTMLTextFieldAccessible::ContainerWidget() const
+{
+  return mParent && mParent->Role() == nsIAccessibleRole::ROLE_AUTOCOMPLETE ?
+    mParent : nsnull;
+}
+
 
 
 

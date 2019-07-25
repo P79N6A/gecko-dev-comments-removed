@@ -240,78 +240,15 @@ void nsListControlFrame::PaintFocus(nsRenderingContext& aRC, nsPoint aPt)
 {
   if (mFocused != this) return;
 
-  
-  
-  PRInt32 focusedIndex;
-  if (mEndSelectionIndex == kNothingSelected) {
-    focusedIndex = GetSelectedIndex();
-  } else {
-    focusedIndex = mEndSelectionIndex;
-  }
-
   nsPresContext* presContext = PresContext();
 
   nsIFrame* containerFrame = GetOptionsContainer();
   if (!containerFrame) return;
 
-  nsIFrame * childframe = nsnull;
-  nsresult result = NS_ERROR_FAILURE;
-
-  nsCOMPtr<nsIContent> focusedContent;
-
-  nsRefPtr<nsHTMLSelectElement> selectElement =
-    nsHTMLSelectElement::FromContent(mContent);
-  NS_ASSERTION(selectElement, "Can't be null");
-
-  
-  if (focusedIndex != kNothingSelected) {
-    focusedContent = GetOptionContent(focusedIndex);
-    
-    if (focusedContent) {
-      childframe = focusedContent->GetPrimaryFrame();
-    }
-  } else {
-    
-    
-    nsCOMPtr<nsIDOMNode> node;
-
-    PRUint32 length;
-    selectElement->GetLength(&length);
-    if (length) {
-      
-      PRBool isDisabled = PR_TRUE;
-      for (PRUint32 i = 0; i < length && isDisabled; i++) {
-        if (NS_FAILED(selectElement->Item(i, getter_AddRefs(node))) || !node) {
-          break;
-        }
-        if (NS_FAILED(selectElement->IsOptionDisabled(i, &isDisabled))) {
-          break;
-        }
-        if (isDisabled) {
-          node = nsnull;
-        } else {
-          break;
-        }
-      }
-      if (!node) {
-        return;
-      }
-    }
-
-    
-    if (node) {
-      focusedContent = do_QueryInterface(node);
-      childframe = focusedContent->GetPrimaryFrame();
-    }
-    if (!childframe) {
-      
-      
-      childframe = containerFrame->GetFirstPrincipalChild();
-      if (childframe && !childframe->GetContent()->IsElement()) {
-        childframe = nsnull;
-      }
-      result = NS_OK;
-    }
+  nsIFrame* childframe = nsnull;
+  nsCOMPtr<nsIContent> focusedContent = GetCurrentOption();
+  if (focusedContent) {
+    childframe = focusedContent->GetPrimaryFrame();
   }
 
   nsRect fRect;
@@ -820,9 +757,20 @@ nsListControlFrame::SingleSelection(PRInt32 aClickedIndex, PRBool aDoToggle)
                                 PR_TRUE, PR_TRUE);
   }
   ScrollToIndex(aClickedIndex);
+
+#ifdef ACCESSIBILITY
+  bool isCurrentOptionChanged = mEndSelectionIndex != aClickedIndex;
+#endif
   mStartSelectionIndex = aClickedIndex;
   mEndSelectionIndex = aClickedIndex;
   InvalidateFocus();
+
+#ifdef ACCESSIBILITY
+  if (isCurrentOptionChanged) {
+    FireMenuItemActiveEvent();
+  }
+#endif
+
   return wasChanged;
 }
 
@@ -915,11 +863,18 @@ nsListControlFrame::PerformSelection(PRInt32 aClickedIndex,
 
       if (mStartSelectionIndex == kNothingSelected) {
         mStartSelectionIndex = aClickedIndex;
-        mEndSelectionIndex = aClickedIndex;
-      } else {
-        mEndSelectionIndex = aClickedIndex;
       }
+#ifdef ACCESSIBILITY
+      bool isCurrentOptionChanged = mEndSelectionIndex != aClickedIndex;
+#endif
+      mEndSelectionIndex = aClickedIndex;
       InvalidateFocus();
+
+#ifdef ACCESSIBILITY
+      if (isCurrentOptionChanged) {
+        FireMenuItemActiveEvent();
+      }
+#endif
     } else if (aIsControl) {
       wasChanged = SingleSelection(aClickedIndex, PR_TRUE);
     } else {
@@ -1319,6 +1274,55 @@ nsListControlFrame::GetSelectedIndex()
   selectElement->GetSelectedIndex(&aIndex);
   
   return aIndex;
+}
+
+already_AddRefed<nsIContent>
+nsListControlFrame::GetCurrentOption()
+{
+  
+  
+  PRInt32 focusedIndex = (mEndSelectionIndex == kNothingSelected) ?
+    GetSelectedIndex() : mEndSelectionIndex;
+
+  if (focusedIndex != kNothingSelected) {
+    return GetOptionContent(focusedIndex);
+  }
+
+  nsRefPtr<nsHTMLSelectElement> selectElement =
+    nsHTMLSelectElement::FromContent(mContent);
+  NS_ASSERTION(selectElement, "Can't be null");
+
+  
+  
+  nsCOMPtr<nsIDOMNode> node;
+
+  PRUint32 length;
+  selectElement->GetLength(&length);
+  if (length) {
+    PRBool isDisabled = PR_TRUE;
+    for (PRUint32 i = 0; i < length && isDisabled; i++) {
+      if (NS_FAILED(selectElement->Item(i, getter_AddRefs(node))) || !node) {
+        break;
+      }
+      if (NS_FAILED(selectElement->IsOptionDisabled(i, &isDisabled))) {
+        break;
+      }
+      if (isDisabled) {
+        node = nsnull;
+      } else {
+        break;
+      }
+    }
+    if (!node) {
+      return nsnull;
+    }
+  }
+
+  if (node) {
+    nsCOMPtr<nsIContent> focusedOption = do_QueryInterface(node);
+    return focusedOption.forget();
+  }
+  return nsnull;
 }
 
 PRBool 
@@ -1983,19 +1987,7 @@ nsListControlFrame::FireMenuItemActiveEvent()
     return;
   }
 
-  
-  
-  PRInt32 focusedIndex;
-  if (mEndSelectionIndex == kNothingSelected) {
-    focusedIndex = GetSelectedIndex();
-  } else {
-    focusedIndex = mEndSelectionIndex;
-  }
-  if (focusedIndex == kNothingSelected) {
-    return;
-  }
-
-  nsCOMPtr<nsIContent> optionContent = GetOptionContent(focusedIndex);
+  nsCOMPtr<nsIContent> optionContent = GetCurrentOption();
   if (!optionContent) {
     return;
   }
@@ -2104,11 +2096,6 @@ nsListControlFrame::MouseDown(nsIDOMEvent* aMouseEvent)
     mButtonDown = PR_TRUE;
     CaptureMouseEvents(PR_TRUE);
     mChangesSinceDragStart = HandleListSelection(aMouseEvent, selectedIndex);
-#ifdef ACCESSIBILITY
-    if (mChangesSinceDragStart) {
-      FireMenuItemActiveEvent();
-    }
-#endif
   } else {
     
     if (mComboboxFrame) {
@@ -2601,9 +2588,6 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
                 if (!UpdateSelection()) {
                   return NS_OK;
                 }
-#ifdef ACCESSIBILITY
-                FireMenuItemActiveEvent(); 
-#endif
               }
               break;
             }
@@ -2633,6 +2617,10 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
       mEndSelectionIndex = newIndex;
       InvalidateFocus();
       ScrollToIndex(newIndex);
+
+#ifdef ACCESSIBILITY
+      FireMenuItemActiveEvent();
+#endif
     } else if (mControlSelectMode && charcode == ' ') {
       wasChanged = SingleSelection(newIndex, PR_TRUE);
     } else {
@@ -2644,11 +2632,6 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
         return NS_OK;
       }
     }
-#ifdef ACCESSIBILITY
-    if (charcode != ' ') {
-      FireMenuItemActiveEvent();
-    }
-#endif
   }
 
   return NS_OK;

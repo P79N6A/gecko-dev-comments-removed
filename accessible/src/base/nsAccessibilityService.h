@@ -44,9 +44,23 @@
 #include "a11yGeneric.h"
 #include "nsAccDocManager.h"
 
+#include "mozilla/a11y/FocusManager.h"
+
 #include "nsIObserver.h"
 
+namespace mozilla {
+namespace a11y {
+
+
+
+
+FocusManager* FocusMgr();
+
+} 
+} 
+
 class nsAccessibilityService : public nsAccDocManager,
+                               public mozilla::a11y::FocusManager,
                                public nsIAccessibilityService,
                                public nsIObserver
 {
@@ -259,7 +273,7 @@ private:
   
 
 
-  static nsAccessibilityService *gAccessibilityService;
+  static nsAccessibilityService* gAccessibilityService;
 
   
 
@@ -276,6 +290,7 @@ private:
   PRBool HasUniversalAriaProperty(nsIContent *aContent);
 
   friend nsAccessibilityService* GetAccService();
+  friend mozilla::a11y::FocusManager* mozilla::a11y::FocusMgr();
 
   friend nsresult NS_GetAccessibilityService(nsIAccessibilityService** aResult);
 };

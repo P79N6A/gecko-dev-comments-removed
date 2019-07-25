@@ -65,6 +65,9 @@ public:
   virtual bool SelectAll();
   virtual bool UnselectAll();
 
+  
+  virtual nsAccessible* CurrentItem();
+
 protected:
   
   
@@ -100,6 +103,11 @@ public:
   virtual PRUint8 ActionCount();
   virtual KeyBinding AccessKey() const;
   virtual KeyBinding KeyboardShortcut() const;
+
+  
+  virtual bool IsActiveWidget() const;
+  virtual bool AreItemsOperable() const;
+  virtual nsAccessible* ContainerWidget() const;
 };
 
 
@@ -136,6 +144,13 @@ public:
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
+
+  
+  virtual bool IsWidget() const;
+  virtual bool IsActiveWidget() const;
+  virtual bool AreItemsOperable() const;
+
+  virtual nsAccessible* ContainerWidget() const;
 };
 
 
@@ -150,6 +165,11 @@ public:
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
+
+  
+  virtual bool IsActiveWidget() const;
+  virtual bool AreItemsOperable() const;
+  virtual nsAccessible* CurrentItem();
 };
 
 #endif  

@@ -110,11 +110,6 @@ public:
   
 
 
-  static nsINode *gLastFocusedNode;
-
-  
-
-
 
 
 

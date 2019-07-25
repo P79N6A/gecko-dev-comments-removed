@@ -683,12 +683,13 @@ NS_IMETHODIMP nsTreeSelection::SetCurrentIndex(PRInt32 aIndex)
   nsCOMPtr<nsINode> treeDOMNode(do_QueryInterface(treeElt));
   NS_ENSURE_STATE(treeDOMNode);
 
-  nsRefPtr<nsPLDOMEvent> event =
-    new nsPLDOMEvent(treeDOMNode, NS_LITERAL_STRING("DOMMenuItemActive"),
-                     PR_TRUE, PR_FALSE);
-  if (!event)
-    return NS_ERROR_OUT_OF_MEMORY;
+  NS_NAMED_LITERAL_STRING(DOMMenuItemActive, "DOMMenuItemActive");
+  NS_NAMED_LITERAL_STRING(DOMMenuItemInactive, "DOMMenuItemInactive");
 
+  nsRefPtr<nsPLDOMEvent> event =
+    new nsPLDOMEvent(treeDOMNode,
+                     (aIndex != -1 ? DOMMenuItemActive : DOMMenuItemInactive),
+                     PR_TRUE, PR_FALSE);
   return event->PostDOMEvent();
 }
 

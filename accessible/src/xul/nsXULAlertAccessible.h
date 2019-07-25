@@ -57,6 +57,10 @@ public:
   
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
+
+  
+  virtual bool IsWidget() const;
+  virtual nsAccessible* ContainerWidget() const;
 };
 
-#endif  
+#endif

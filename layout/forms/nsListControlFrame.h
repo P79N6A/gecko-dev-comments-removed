@@ -152,7 +152,8 @@ public:
 
     
   virtual void SetComboboxFrame(nsIFrame* aComboboxFrame);
-  virtual PRInt32 GetSelectedIndex(); 
+  virtual PRInt32 GetSelectedIndex();
+  virtual already_AddRefed<nsIContent> GetCurrentOption();
 
   
 

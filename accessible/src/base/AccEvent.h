@@ -80,7 +80,7 @@ public:
 
     
     
-    eCoalesceFromSameDocument,
+    eCoalesceOfSameType,
 
      
      

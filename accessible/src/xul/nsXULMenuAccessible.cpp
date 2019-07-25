@@ -40,6 +40,7 @@
 
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
+#include "nsDocAccessible.h"
 #include "nsXULFormControlAccessible.h"
 #include "States.h"
 
@@ -54,6 +55,8 @@
 #include "nsIPresShell.h"
 #include "nsIContent.h"
 #include "nsGUIEvent.h"
+#include "nsMenuBarFrame.h"
+#include "nsMenuPopupFrame.h"
 
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
@@ -272,6 +275,35 @@ nsXULSelectableAccessible::SelectAll()
 
 
 
+nsAccessible*
+nsXULSelectableAccessible::CurrentItem()
+{
+  if (!mSelectControl)
+    return nsnull;
+
+  nsCOMPtr<nsIDOMXULSelectControlItemElement> currentItemElm;
+  nsCOMPtr<nsIDOMXULMultiSelectControlElement> multiSelectControl =
+    do_QueryInterface(mSelectControl);
+  if (multiSelectControl)
+    multiSelectControl->GetCurrentItem(getter_AddRefs(currentItemElm));
+  else
+    mSelectControl->GetSelectedItem(getter_AddRefs(currentItemElm));
+
+  nsCOMPtr<nsINode> DOMNode;
+  if (currentItemElm)
+    DOMNode = do_QueryInterface(currentItemElm);
+
+  if (DOMNode) {
+    nsDocAccessible* document = GetDocAccessible();
+    if (document)
+      return document->GetAccessible(DOMNode);
+  }
+
+  return nsnull;
+}
+
+
+
 
 
 nsXULMenuitemAccessible::
@@ -284,10 +316,6 @@ PRUint64
 nsXULMenuitemAccessible::NativeState()
 {
   PRUint64 state = nsAccessible::NativeState();
-
-  
-  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::menuactive))
-    state |= states::FOCUSED;
 
   
   if (mContent->NodeInfo()->Equals(nsGkAtoms::menu, kNameSpaceID_XUL)) {
@@ -362,7 +390,10 @@ nsXULMenuitemAccessible::NativeState()
       return state;
     }
   }
+
   state |= (states::FOCUSABLE | states::SELECTABLE);
+  if (FocusMgr()->IsFocused(this))
+    state |= states::FOCUSED;
 
   return state;
 }
@@ -566,6 +597,56 @@ nsXULMenuitemAccessible::ActionCount()
 
 
 
+bool
+nsXULMenuitemAccessible::IsActiveWidget() const
+{
+  
+  nsIContent* menuPopupContent = mContent->GetFirstChild();
+  if (menuPopupContent) {
+    nsMenuPopupFrame* menuPopupFrame =
+      do_QueryFrame(menuPopupContent->GetPrimaryFrame());
+    return menuPopupFrame && menuPopupFrame->IsOpen();
+  }
+  return false;
+}
+
+bool
+nsXULMenuitemAccessible::AreItemsOperable() const
+{
+  
+  nsIContent* menuPopupContent = mContent->GetFirstChild();
+  if (menuPopupContent) {
+    nsMenuPopupFrame* menuPopupFrame =
+      do_QueryFrame(menuPopupContent->GetPrimaryFrame());
+    return menuPopupFrame && menuPopupFrame->IsOpen();
+  }
+  return false;
+}
+
+nsAccessible*
+nsXULMenuitemAccessible::ContainerWidget() const
+{
+  nsMenuFrame* menuFrame = do_QueryFrame(GetFrame());
+  if (menuFrame) {
+    nsMenuParent* menuParent = menuFrame->GetMenuParent();
+    if (menuParent) {
+      if (menuParent->IsMenuBar()) 
+        return mParent;
+
+      
+      if (menuParent->IsMenu())
+        return mParent;
+
+      
+      
+    }
+  }
+  return nsnull;
+}
+
+
+
+
 
 
 nsXULMenuSeparatorAccessible::
@@ -617,7 +698,11 @@ nsXULMenuSeparatorAccessible::ActionCount()
 nsXULMenupopupAccessible::
   nsXULMenupopupAccessible(nsIContent *aContent, nsIWeakReference *aShell) :
   nsXULSelectableAccessible(aContent, aShell)
-{ 
+{
+  nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(GetFrame());
+  if (menuPopupFrame && menuPopupFrame->IsMenu())
+    mFlags |= eMenuPopupAccessible;
+
   
   mSelectControl = do_QueryInterface(mContent->GetParent());
 }
@@ -692,6 +777,65 @@ nsXULMenupopupAccessible::NativeRole()
 
 
 
+bool
+nsXULMenupopupAccessible::IsWidget() const
+{
+  return true;
+}
+
+bool
+nsXULMenupopupAccessible::IsActiveWidget() const
+{
+  
+  nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(GetFrame());
+  return menuPopupFrame && menuPopupFrame->IsOpen();
+}
+
+bool
+nsXULMenupopupAccessible::AreItemsOperable() const
+{
+  nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(GetFrame());
+  return menuPopupFrame && menuPopupFrame->IsOpen();
+}
+
+nsAccessible*
+nsXULMenupopupAccessible::ContainerWidget() const
+{
+  nsDocAccessible* document = GetDocAccessible();
+
+  nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(GetFrame());
+  while (menuPopupFrame) {
+    nsAccessible* menuPopup =
+      document->GetAccessible(menuPopupFrame->GetContent());
+    if (!menuPopup) 
+      return nsnull;
+
+    nsMenuFrame* menuFrame = menuPopupFrame->GetParentMenu();
+    if (!menuFrame) 
+      return nsnull;
+
+    nsMenuParent* menuParent = menuFrame->GetMenuParent();
+    if (!menuParent) 
+      return menuPopup->Parent();
+
+    if (menuParent->IsMenuBar()) { 
+      nsMenuBarFrame* menuBarFrame = static_cast<nsMenuBarFrame*>(menuParent);
+      return document->GetAccessible(menuBarFrame->GetContent());
+    }
+
+    
+    if (!menuParent->IsMenu())
+      return nsnull;
+
+    menuPopupFrame = static_cast<nsMenuPopupFrame*>(menuParent);
+  }
+
+  NS_NOTREACHED("Shouldn't be a real case.");
+  return nsnull;
+}
+
+
+
 
 
 nsXULMenubarAccessible::
@@ -724,3 +868,32 @@ nsXULMenubarAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_MENUBAR;
 }
 
+
+
+
+bool
+nsXULMenubarAccessible::IsActiveWidget() const
+{
+  nsMenuBarFrame* menuBarFrame = do_QueryFrame(GetFrame());
+  return menuBarFrame && menuBarFrame->IsActive();
+}
+
+bool
+nsXULMenubarAccessible::AreItemsOperable() const
+{
+  return true;
+}
+
+nsAccessible*
+nsXULMenubarAccessible::CurrentItem()
+{
+  nsMenuBarFrame* menuBarFrame = do_QueryFrame(GetFrame());
+  if (menuBarFrame) {
+    nsMenuFrame* menuFrame = menuBarFrame->GetCurrentMenuItem();
+    if (menuFrame) {
+      nsIContent* menuItemNode = menuFrame->GetContent();
+      return GetAccService()->GetAccessible(menuItemNode);
+    }
+  }
+  return nsnull;
+}

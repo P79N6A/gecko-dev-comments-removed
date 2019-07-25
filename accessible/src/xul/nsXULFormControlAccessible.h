@@ -77,6 +77,12 @@ public:
   
   virtual PRUint8 ActionCount();
 
+  
+  virtual bool IsWidget() const;
+  virtual bool IsActiveWidget() const;
+  virtual bool AreItemsOperable() const;
+  virtual nsAccessible* ContainerWidget() const;
+
 protected:
 
   
@@ -159,6 +165,9 @@ public:
   virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
                                           PRInt32 *aSetSize);
   virtual PRUint64 NativeState();
+
+  
+  virtual nsAccessible* ContainerWidget() const;
 };
 
 
@@ -172,6 +181,11 @@ public:
   
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
+
+  
+  virtual bool IsWidget() const;
+  virtual bool IsActiveWidget() const;
+  virtual bool AreItemsOperable() const;
 };
 
 

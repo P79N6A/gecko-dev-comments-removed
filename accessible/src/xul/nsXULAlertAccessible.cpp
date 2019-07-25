@@ -73,3 +73,21 @@ nsXULAlertAccessible::GetName(nsAString& aName)
   aName.Truncate();
   return NS_OK;
 }
+
+
+
+
+bool
+nsXULAlertAccessible::IsWidget() const
+{
+  return true;
+}
+
+nsAccessible*
+nsXULAlertAccessible::ContainerWidget() const
+{
+  
+  if (mParent && mParent->IsMenuButton())
+    return mParent;
+  return nsnull;
+}

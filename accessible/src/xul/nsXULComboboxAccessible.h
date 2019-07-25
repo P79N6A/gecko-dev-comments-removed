@@ -40,7 +40,6 @@
 #ifndef __nsXULComboboxAccessible_h__
 #define __nsXULComboboxAccessible_h__
 
-#include "nsCOMPtr.h"
 #include "nsXULMenuAccessible.h"
 
 
@@ -66,6 +65,10 @@ public:
 
   
   virtual PRUint8 ActionCount();
+
+  
+  virtual bool IsActiveWidget() const;
+  virtual bool AreItemsOperable() const;
 };
 
 #endif
