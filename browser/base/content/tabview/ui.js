@@ -931,8 +931,29 @@ let UI = {
         }
         event.stopPropagation();
         event.preventDefault();
+      } else if (event.keyCode == KeyEvent.DOM_VK_SLASH) {
+        
+        
+        self.enableSearch(event);
       }
     });
+  },
+
+  
+  
+  
+  
+  
+  enableSearch: function UI_enableSearch(event) {
+    if (!isSearchEnabled()) {
+      ensureSearchShown(null);
+      SearchEventHandler.switchToInMode();
+      
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+    }
   },
 
   
@@ -1156,17 +1177,31 @@ let UI = {
   
   exit: function UI_exit() {
     let self = this;
-    
-    
-    
-    let activeTabItem = this.getActiveTab();
-    if (!activeTabItem)
-      activeTabItem = gBrowser.selectedTab.tabItem;
+    let zoomedIn = false;
+
+    if (isSearchEnabled()) {
+      let matcher = createSearchTabMacher();
+      let matches = matcher.matched();
+
+      if (matches.length > 0) {
+        matches[0].zoomIn();
+        zoomedIn = true;
+      }
+      hideSearch(null);
+    }
+
+    if (!zoomedIn) {
       
-    if (activeTabItem)
-      activeTabItem.zoomIn(); 
-    else
-      self.goToTab(gBrowser.selectedTab);
+      
+      let activeTabItem = this.getActiveTab();
+      if (!activeTabItem)
+        activeTabItem = gBrowser.selectedTab.tabItem;
+
+      if (activeTabItem)
+        activeTabItem.zoomIn();
+      else
+        self.goToTab(gBrowser.selectedTab);
+    }
   },
 
   
