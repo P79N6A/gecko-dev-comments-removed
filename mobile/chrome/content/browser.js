@@ -1,3 +1,41 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 let Cc = Components.classes;
 let Ci = Components.interfaces;
 let Cu = Components.utils;
@@ -6,6 +44,9 @@ let Cr = Components.results;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/Services.jsm")
+
+XPCOMUtils.defineLazyServiceGetter(this, "URIFixup",
+  "@mozilla.org/docshell/urifixup;1", "nsIURIFixup");
 
 
 
@@ -379,25 +420,28 @@ var BrowserApp = {
     if (!browser)
       return;
 
-    if (aTopic == "session-back")
+    if (aTopic == "session-back") {
       browser.goBack();
-    else if (aTopic == "session-reload")
+    } else if (aTopic == "session-reload") {
       browser.reload();
-    else if (aTopic == "Tab:Add") {
-      let newTab = this.addTab(aData);
+    } else if (aTopic == "Tab:Add") {
+      let uri = URIFixup.createFixupURI(aData, Ci.nsIURIFixup.FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP);
+      let newTab = this.addTab(uri ? uri.spec : aData);
       newTab.active = true;
-    } else if (aTopic == "Tab:Load") 
-      browser.loadURI(aData);
-    else if (aTopic == "Tab:Select") 
+    } else if (aTopic == "Tab:Load") {
+      let uri = URIFixup.createFixupURI(aData, Ci.nsIURIFixup.FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP);
+      browser.loadURI(uri ? uri.spec : aData);
+    } else if (aTopic == "Tab:Select") {
       this.selectTab(this.getTabForId(parseInt(aData)));
-    else if (aTopic == "Tab:Close")
+    } else if (aTopic == "Tab:Close") {
       this.closeTab(this.getTabForId(parseInt(aData)));
-    else if (aTopic == "SaveAs:PDF")
+    }  else if (aTopic == "SaveAs:PDF") {
       this.saveAsPDF(browser);
-    else if (aTopic == "Preferences:Get") 
+    } else if (aTopic == "Preferences:Get") {
       this.getPreferences(aData);
-    else if (aTopic == "Preferences:Set") 
+    } else if (aTopic == "Preferences:Set") {
       this.setPreferences(aData);
+    }
   }
 }
 
