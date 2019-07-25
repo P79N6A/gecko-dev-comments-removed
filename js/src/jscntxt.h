@@ -2421,6 +2421,12 @@ public:
     
     inline void markTypeArrayNotPacked(js::types::TypeObject *obj, bool notDense);
 
+    
+
+
+
+    inline void monitorTypeObject(js::types::TypeObject *obj);
+
   private:
     
     JSContext *thisInInitializer() { return this; }

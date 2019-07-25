@@ -2099,6 +2099,10 @@ array_push(JSContext *cx, uintN argc, Value *vp)
     JSObject *obj = ComputeThisFromVp(cx, vp);
     if (!obj)
         return JS_FALSE;
+
+    if (cx->isTypeCallerMonitored())
+        cx->monitorTypeObject(obj->getTypeObject());
+
     if (argc != 1 || !obj->isDenseArray())
         return array_push_slowly(cx, obj, argc, vp + 2, vp);
 
@@ -2223,6 +2227,10 @@ array_unshift(JSContext *cx, uintN argc, Value *vp)
     JSObject *obj = ComputeThisFromVp(cx, vp);
     if (!obj || !js_GetLengthProperty(cx, obj, &length))
         return JS_FALSE;
+
+    if (cx->isTypeCallerMonitored())
+        cx->monitorTypeObject(obj->getTypeObject());
+
     newlen = length;
     if (argc > 0) {
         
@@ -2283,9 +2291,13 @@ array_splice(JSContext *cx, uintN argc, Value *vp)
 
 
         objType = cx->getTypeCallerInitObject(true);
+        cx->monitorTypeObject(objType);
         cx->markTypeCallerUnexpected((jstype) objType);
     }
 #endif
+
+    if (cx->isTypeCallerMonitored())
+        cx->monitorTypeObject(objType);
 
     
 
@@ -2440,6 +2452,9 @@ array_concat(JSContext *cx, uintN argc, Value *vp)
     
     TypeObject *ntype = cx->getTypeCallerInitObject(true);
 
+    if (cx->isTypeCallerMonitored())
+        cx->monitorTypeObject(ntype);
+
     
     JSObject *aobj = ComputeThisFromVp(cx, vp);
     JSObject *nobj;
@@ -2574,9 +2589,13 @@ array_slice(JSContext *cx, uintN argc, Value *vp)
 
 
         objType = cx->getTypeCallerInitObject(true);
+        cx->monitorTypeObject(objType);
         cx->markTypeCallerUnexpected((jstype) objType);
     }
 #endif
+
+    if (cx->isTypeCallerMonitored())
+        cx->monitorTypeObject(objType);
 
     if (obj->isDenseArray() && end <= obj->getDenseArrayCapacity() &&
         !js_PrototypeHasIndexedProperties(cx, obj)) {
@@ -2794,11 +2813,8 @@ array_extra(JSContext *cx, ArrayExtraMode mode, uintN argc, Value *vp)
 
 
 
-    TypeSet *types = NULL;
-#ifdef JS_TYPE_INFERENCE
-    if (newtype && cx->isTypeCallerMonitored())
-        types = newtype->indexTypes(cx);
-#endif
+    if (cx->isTypeCallerMonitored() && (mode == MAP || mode == FILTER))
+        cx->monitorTypeObject(newtype);
 
     
 
@@ -2858,8 +2874,6 @@ array_extra(JSContext *cx, ArrayExtraMode mode, uintN argc, Value *vp)
             *vp = rval;
             break;
           case MAP:
-            if (types)
-                cx->addTypeProperty(newtype, NULL, rval);
             ok = SetArrayElement(cx, newarr, i, rval);
             if (!ok)
                 goto out;
@@ -2868,8 +2882,6 @@ array_extra(JSContext *cx, ArrayExtraMode mode, uintN argc, Value *vp)
             if (!cond)
                 break;
             
-            if (types)
-                cx->addTypeProperty(newtype, NULL, tvr.value());
             ok = SetArrayElement(cx, newarr, newlen++, tvr.value());
             if (!ok)
                 goto out;
@@ -3259,6 +3271,9 @@ js_Array(JSContext *cx, uintN argc, Value *vp)
             return JS_FALSE;
         vector = NULL;
     }
+
+    if (cx->isTypeCallerMonitored() && vector)
+        cx->monitorTypeObject(type);
 
     
     JSObject *obj = NewDenseArrayObject(cx, type, length);
