@@ -1450,33 +1450,32 @@ SessionStoreService.prototype = {
   undoCloseTab: function sss_undoCloseTab(aWindow, aIndex) {
     if (!aWindow.__SSi)
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
-    
+
     var closedTabs = this._windows[aWindow.__SSi]._closedTabs;
 
     
     aIndex = aIndex || 0;
     if (!(aIndex in closedTabs))
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
-    
+
     
     let closedTab = closedTabs.splice(aIndex, 1).shift();
     let closedTabState = closedTab.state;
 
     this._setWindowStateBusy(aWindow);
     
-    let browser = aWindow.gBrowser;
-    let tab = browser.addTab();
+    let tabbrowser = aWindow.gBrowser;
+    let tab = tabbrowser.addTab();
 
     
     this.restoreHistoryPrecursor(aWindow, [tab], [closedTabState], 1, 0, 0);
-      
-    
-    browser.moveTabTo(tab, closedTab.pos);
 
     
-    let content = browser.getBrowserForTab(tab).contentWindow;
-    aWindow.setTimeout(function() { content.focus(); }, 0);
+    tabbrowser.moveTabTo(tab, closedTab.pos);
+
     
+    tab.linkedBrowser.focus();
+
     return tab;
   },
 
