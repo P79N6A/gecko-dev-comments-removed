@@ -75,6 +75,14 @@ GfxInfo::GetDWriteEnabled(PRBool *aEnabled)
 }
 
 
+NS_IMETHODIMP
+GfxInfo::GetDWriteVersion(nsAString & aDwriteVersion)
+{
+  gfxWindowsPlatform::GetPlatform()->GetDLLVersion(L"dwrite.dll", aDwriteVersion);
+  return NS_OK;
+}
+
+
 
 static nsresult GetKeyValue(const WCHAR* keyLocation, const WCHAR* keyName, nsAString& destString, int type)
 {
