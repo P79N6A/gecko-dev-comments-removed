@@ -1673,6 +1673,28 @@ pref("font.size.inflation.emPerLine", 0);
 
 pref("font.size.inflation.minTwips", 0);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pref("font.size.inflation.lineThreshold", 400);
+
 #ifdef XP_WIN
 
 pref("font.name.serif.ar", "Times New Roman");
