@@ -207,7 +207,7 @@ ConvertFrames(JSContext *cx, IonActivation *activation, FrameRecovery &in)
     
     StackFrame *entryFp = cx->fp();
 
-    SnapshotIterator iter(in.ionScript(), in.snapshotOffset(), in.fp(), in.machine());
+    SnapshotIterator iter(in);
 
     
     in.ionScript()->forbidOsr();
