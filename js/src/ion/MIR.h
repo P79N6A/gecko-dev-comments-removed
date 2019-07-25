@@ -209,6 +209,7 @@ class MDefinition : public MNode
     uint32 id_;                    
                                    
     uint32 valueNumber_;           
+    types::TypeSet *typeSet_;      
     MIRType resultType_;           
     uint32 usedTypes_;             
     uint32 flags_;                 
@@ -240,6 +241,7 @@ class MDefinition : public MNode
     MDefinition()
       : id_(0),
         valueNumber_(0),
+        typeSet_(NULL),
         resultType_(MIRType_None),
         usedTypes_(0),
         flags_(0)
@@ -291,6 +293,10 @@ class MDefinition : public MNode
 
     MIR_FLAG_LIST(FLAG_ACCESSOR)
 #undef FLAG_ACCESSOR
+
+    types::TypeSet *typeSet() const {
+        return typeSet_;
+    }
 
     MIRType type() const {
         return resultType_;
@@ -375,6 +381,10 @@ class MDefinition : public MNode
     inline MInstruction *toInstruction();
     bool isInstruction() const {
         return !isPhi();
+    }
+
+    void setTypeSet(types::TypeSet *types) {
+        typeSet_ = types;
     }
 
     void setResultType(MIRType type) {
@@ -538,7 +548,7 @@ class MParameter : public MAryInstruction<0>
 
   public:
     INSTRUCTION_HEADER(Parameter);
-    static MParameter *New(int32 index);
+    static MParameter *New(int32 index, types::TypeSet *types);
 
     int32 index() const {
         return index_;
