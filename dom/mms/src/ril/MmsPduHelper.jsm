@@ -92,8 +92,13 @@ let Address = {
       type = "num";
     } else if (str.match(/^\w+$/)) {
       type = "alphanum";
+    } else if (str.indexOf("@") > 0) {
+      
+      
+      
+      type = "email";
     } else {
-      type = "unknown";
+      throw new WSP.CodeError("Address: invalid address");
     }
 
     return {address: str, type: type};

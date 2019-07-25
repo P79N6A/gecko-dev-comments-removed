@@ -73,7 +73,10 @@ add_test(function test_Address_decode() {
                       {address: "H0wD0Y0uTurnTh1s0n", type: "alphanum"});
   
   wsp_decode_test(MMS.Address, strToCharCodeArray("Joe User <joe@user.org>"),
-                      {address: "Joe User <joe@user.org>", type: "unknown"});
+                      {address: "Joe User <joe@user.org>", type: "email"});
+  
+  wsp_decode_test(MMS.Address, strToCharCodeArray("@@@@@"),
+                  null, "CodeError");
 
   run_next_test();
 });
