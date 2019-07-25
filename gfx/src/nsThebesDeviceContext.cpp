@@ -44,6 +44,8 @@
 
 #include "nsIServiceManager.h"
 #include "nsIPrefService.h"
+#include "nsIObserver.h"
+#include "nsIObserverService.h"
 #include "nsCRT.h"
 #include "mozilla/Services.h"
 
@@ -92,56 +94,70 @@ static nsSystemFontsAndroid *gSystemFonts = nsnull;
 #error Need to declare gSystemFonts!
 #endif
 
-#ifdef PR_LOGGING
-PRLogModuleInfo* gThebesGFXLog = nsnull;
-#endif
+using mozilla::services::GetObserverService;
 
-class nsFontCache
+class nsFontCache : public nsIObserver
 {
 public:
-    nsFontCache();
-    ~nsFontCache();
+    nsFontCache()   { MOZ_COUNT_CTOR(nsFontCache); }
+    ~nsFontCache()  { MOZ_COUNT_DTOR(nsFontCache); }
 
-    nsresult Init(nsIDeviceContext* aContext);
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIOBSERVER
+
+    void Init(nsIDeviceContext* aContext);
+    void Destroy();
+
     nsresult GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
                            gfxUserFontSet* aUserFontSet,
                            nsFontMetrics*& aMetrics);
 
-    nsresult FontMetricsDeleted(const nsFontMetrics* aFontMetrics);
-    nsresult Compact();
-    nsresult Flush();
+    void FontMetricsDeleted(const nsFontMetrics* aFontMetrics);
+    void Compact();
+    void Flush();
 
 protected:
+    nsIDeviceContext*         mContext; 
     nsTArray<nsFontMetrics*>  mFontMetrics;
-    nsIDeviceContext         *mContext; 
-                                        
 };
 
-nsFontCache::nsFontCache()
+NS_IMPL_ISUPPORTS1(nsFontCache, nsIObserver)
+
+
+
+
+void
+nsFontCache::Init(nsIDeviceContext* aContext)
 {
-    MOZ_COUNT_CTOR(nsFontCache);
-    mContext = nsnull;
+    mContext = aContext;
+    
+    
+    nsCOMPtr<nsIObserverService> obs = GetObserverService();
+    if (obs)
+        obs->AddObserver(this, "memory-pressure", PR_FALSE);
 }
 
-nsFontCache::~nsFontCache()
+void
+nsFontCache::Destroy()
 {
-    MOZ_COUNT_DTOR(nsFontCache);
+    nsCOMPtr<nsIObserverService> obs = GetObserverService();
+    if (obs)
+        obs->RemoveObserver(this, "memory-pressure");
     Flush();
 }
 
-nsresult
-nsFontCache::Init(nsIDeviceContext* aContext)
+NS_IMETHODIMP
+nsFontCache::Observe(nsISupports*, const char* aTopic, const PRUnichar*)
 {
-    NS_PRECONDITION(nsnull != aContext, "null ptr");
-    
-    
-    mContext = aContext;
+    if (!nsCRT::strcmp(aTopic, "memory-pressure"))
+        Compact();
     return NS_OK;
 }
 
 nsresult
 nsFontCache::GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
-  gfxUserFontSet* aUserFontSet, nsFontMetrics*& aMetrics)
+                           gfxUserFontSet* aUserFontSet,
+                           nsFontMetrics*& aMetrics)
 {
     
     
@@ -205,17 +221,19 @@ nsFontCache::GetMetricsFor(const nsFont& aFont, nsIAtom* aLanguage,
         return NS_OK;
     }
 
-    NS_POSTCONDITION(NS_SUCCEEDED(rv), "font metrics should not be null - bug 136248");
+    NS_POSTCONDITION(NS_SUCCEEDED(rv),
+                     "font metrics should not be null - bug 136248");
     return rv;
 }
 
-nsresult nsFontCache::FontMetricsDeleted(const nsFontMetrics* aFontMetrics)
+void
+nsFontCache::FontMetricsDeleted(const nsFontMetrics* aFontMetrics)
 {
     mFontMetrics.RemoveElement(aFontMetrics);
-    return NS_OK;
 }
 
-nsresult nsFontCache::Compact()
+void
+nsFontCache::Compact()
 {
     
     
@@ -227,15 +245,15 @@ nsresult nsFontCache::Compact()
         NS_RELEASE(fm); 
         
         
-        if (mFontMetrics.IndexOf(oldfm) != mFontMetrics.NoIndex) { 
+        if (mFontMetrics.IndexOf(oldfm) != mFontMetrics.NoIndex) {
             
             NS_ADDREF(oldfm);
         }
     }
-    return NS_OK;
 }
 
-nsresult nsFontCache::Flush()
+void
+nsFontCache::Flush()
 {
     for (PRInt32 i = mFontMetrics.Length()-1; i >= 0; --i) {
         nsFontMetrics* fm = mFontMetrics[i];
@@ -245,23 +263,13 @@ nsresult nsFontCache::Flush()
         fm->Destroy();
         NS_RELEASE(fm);
     }
-
     mFontMetrics.Clear();
-
-    return NS_OK;
 }
 
-NS_IMPL_ISUPPORTS3(nsThebesDeviceContext, nsIDeviceContext, nsIObserver, nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS1(nsThebesDeviceContext, nsIDeviceContext)
 
 nsThebesDeviceContext::nsThebesDeviceContext()
 {
-#ifdef PR_LOGGING
-    if (!gThebesGFXLog)
-        gThebesGFXLog = PR_NewLogModule("thebesGfx");
-#endif
-
-    PR_LOG(gThebesGFXLog, PR_LOG_DEBUG, ("#### Creating DeviceContext %p\n", this));
-
     mAppUnitsPerDevPixel = nscoord(-1);
     mAppUnitsPerPhysicalInch = nscoord(-1);
     mAppUnitsPerDevNotScaledPixel = nscoord(-1);
@@ -274,41 +282,26 @@ nsThebesDeviceContext::nsThebesDeviceContext()
     mWidth = 0;
     mHeight = 0;
     mPrintingScale = 1.0f;
-
-#if defined(XP_WIN) && !defined(WINCE)
-    SCRIPT_DIGITSUBSTITUTE sds;
-    ScriptRecordDigitSubstitution(LOCALE_USER_DEFAULT, &sds);
-#endif
 }
+
+
+
 
 nsThebesDeviceContext::~nsThebesDeviceContext()
 {
-    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-    if (obs)
-        obs->RemoveObserver(this, "memory-pressure");
-
-    if (nsnull != mFontCache) {
-        delete mFontCache;
-        mFontCache = nsnull;
+    if (mFontCache) {
+        mFontCache->Destroy();
+        NS_RELEASE(mFontCache);
     }
-}
-
-NS_IMETHODIMP
-nsThebesDeviceContext::Observe(nsISupports* aSubject, const char* aTopic, const PRUnichar* aSomeData)
-{
-    if (mFontCache && !nsCRT::strcmp(aTopic, "memory-pressure")) {
-        mFontCache->Compact();
-    }
-    return NS_OK;
 }
 
 NS_IMETHODIMP nsThebesDeviceContext::CreateFontCache()
 {
     mFontCache = new nsFontCache();
-    if (!mFontCache) {
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
-    return mFontCache->Init(this);
+    NS_ADDREF(mFontCache);
+    mFontCache->Init(this);
+    GetLocaleLanguage();
+    return NS_OK;
 }
 
 NS_IMETHODIMP nsThebesDeviceContext::FontMetricsDeleted(const nsFontMetrics* aFontMetrics)
@@ -337,15 +330,8 @@ nsThebesDeviceContext::GetLocaleLanguage(void)
 NS_IMETHODIMP nsThebesDeviceContext::GetMetricsFor(const nsFont& aFont,
   nsIAtom* aLanguage, gfxUserFontSet* aUserFontSet, nsFontMetrics*& aMetrics)
 {
-    if (nsnull == mFontCache) {
-        nsresult rv = CreateFontCache();
-        if (NS_FAILED(rv)) {
-            aMetrics = nsnull;
-            return rv;
-        }
-        
-        GetLocaleLanguage();
-    }
+    if (!mFontCache)
+        CreateFontCache();
 
     
     
@@ -360,15 +346,9 @@ NS_IMETHODIMP nsThebesDeviceContext::GetMetricsFor(const nsFont& aFont,
                                                    gfxUserFontSet* aUserFontSet,
                                                    nsFontMetrics*& aMetrics)
 {
-    if (nsnull == mFontCache) {
-        nsresult rv = CreateFontCache();
-        if (NS_FAILED(rv)) {
-            aMetrics = nsnull;
-            return rv;
-        }
-        
-        GetLocaleLanguage();
-    }
+    if (!mFontCache)
+        CreateFontCache();
+
     return mFontCache->GetMetricsFor(aFont, mLocaleLanguage, aUserFontSet,
                                      aMetrics);
 }
@@ -409,7 +389,7 @@ nsThebesDeviceContext::GetLocalFontName(const nsString& aFaceName,
 
 NS_IMETHODIMP nsThebesDeviceContext::FlushFontCache(void)
 {
-    if (nsnull != mFontCache)
+    if (mFontCache)
         mFontCache->Flush();
     return NS_OK;
 }
@@ -535,12 +515,6 @@ nsThebesDeviceContext::Init(nsIWidget *aWidget)
 
     if (mScreenManager)
         return NS_OK;
-
-    
-    
-    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
-    if (obs)
-        obs->AddObserver(this, "memory-pressure", PR_TRUE);
 
     mScreenManager = do_GetService("@mozilla.org/gfx/screenmanager;1");
 
