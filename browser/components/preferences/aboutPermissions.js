@@ -81,8 +81,6 @@ function Site(host) {
 
   this.httpURI = NetUtil.newURI("http://" + this.host);
   this.httpsURI = NetUtil.newURI("https://" + this.host);
-
-  this._favicon = "";
 }
 
 Site.prototype = {
@@ -92,18 +90,20 @@ Site.prototype = {
 
 
 
-  get favicon() {
-    if (!this._favicon) {
-      
+
+  getFavicon: function Site_getFavicon(aCallback) {
+    function faviconDataCallback(aURI, aDataLen, aData, aMimeType) {
       try {
-        
-        this._favicon = gFaviconService.getFaviconForPage(this.httpURI).spec;
+        aCallback(aURI.spec);
       } catch (e) {
-        
-        this._favicon = gFaviconService.getFaviconImageForPage(this.httpsURI).spec;
+        Cu.reportError("AboutPermissions: " + e);
       }
     }
-    return this._favicon;
+
+    
+    
+    gFaviconService.getFaviconURLForPage(this.httpURI, faviconDataCallback);
+    gFaviconService.getFaviconURLForPage(this.httpsURI, faviconDataCallback);
   },
 
   
@@ -542,7 +542,10 @@ let AboutPermissions = {
     let item = document.createElement("richlistitem");
     item.setAttribute("class", "site");
     item.setAttribute("value", aSite.host);
-    item.setAttribute("favicon", aSite.favicon);
+
+    aSite.getFavicon(function(aURL) {
+      item.setAttribute("favicon", aURL);
+    });
     aSite.listitem = item;
 
     this.sitesList.appendChild(item);    
