@@ -317,7 +317,7 @@ ClearContainer(ContainerLayer* aContainer)
 
 
 
-static bool
+inline static bool
 IsTempLayerManager(LayerManager* aManager)
 {
   return (mozilla::layers::LAYERS_BASIC == aManager->GetBackendType() &&
