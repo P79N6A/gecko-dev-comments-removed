@@ -109,29 +109,27 @@ var BrowserUI = {
   _favicon : null,
   _dialogs: [],
 
-  _domWillOpenModalDialog: function(e) {
-    if (!e.isTrusted)
-      return;
-
+  _domWillOpenModalDialog: function(aBrowser) {
     
     
 
-    let window = e.target.top;
-    for (let i = 0; i < Browser._tabs.length; i++) {
-      if (Browser._tabs[i].browser.contentWindow == window) {
-        Browser.selectedTab = Browser._tabs[i];
+    for (let i = 0; i < Browser.tabs.length; i++) {
+      if (Browser._tabs[i].browser == aBrowser) {
+        Browser.selectedTab = Browser.tabs[i];
         break;
       }
     }
+
+    return { };
   },
 
-  _titleChanged : function(aDocument) {
+  _titleChanged : function(aBrowser) {
     var browser = Browser.selectedBrowser;
-    if (browser && aDocument != browser.contentDocument)
+    if (browser && aBrowser != browser)
       return;
 
     var url = this.getDisplayURI(browser);
-    var caption = aDocument.title || url;
+    var caption = browser.contentTitle || url;
 
     if (Util.isURLEmpty(url))
       caption = "";
@@ -143,19 +141,17 @@ var BrowserUI = {
 
 
 
-  _domWindowClose: function (aEvent) {
-    if (!aEvent.isTrusted)
-      return;
-
-    
-    let browsers = Browser.browsers;
-    for (let i = 0; i < browsers.length; i++) {
-      if (browsers[i].contentWindow == aEvent.target) {
+  _domWindowClose: function(aBrowser) {
+     
+     let browsers = Browser.browsers;
+     for (let i = 0; i < browsers.length; i++) {
+      if (browsers[i] == aBrowser) {
         Browser.closeTab(Browser.getTabAtIndex(i));
-        aEvent.preventDefault();
-        break;
+        return { preventDefault: true };
       }
     }
+
+    return { };
   },
 
   _metaAdded : function(aEvent) {
@@ -224,7 +220,7 @@ var BrowserUI = {
 
   _tabSelect : function(aEvent) {
     let browser = Browser.selectedBrowser;
-    this._titleChanged(browser.contentDocument);
+    this._titleChanged(browser);
     this._updateToolbar();
     this._updateButtons(browser);
     this._updateIcon(browser.mIconURL);
@@ -430,14 +426,11 @@ var BrowserUI = {
     tabs.addEventListener("TabSelect", this, true);
     tabs.addEventListener("TabOpen", this, true);
 
-    let browsers = document.getElementById("browsers");
-    browsers.addEventListener("DOMWindowClose", this, true);
-
     
-    browsers.addEventListener("DOMTitleChanged", this, true);
-    browsers.addEventListener("DOMLinkAdded", this, true);
-    browsers.addEventListener("DOMMetaAdded", this, true);
-    browsers.addEventListener("DOMWillOpenModalDialog", this, true);
+    messageManager.addMessageListener("DOMLinkAdded", this);
+    messageManager.addMessageListener("DOMTitleChanged", this);
+    messageManager.addMessageListener("DOMWillOpenModalDialog", this);
+    messageManager.addMessageListener("DOMWindowClose", this);
 
     
     window.addEventListener("mousedown", this, true);
@@ -450,9 +443,9 @@ var BrowserUI = {
 
     
     
-    browsers.addEventListener("load", function() {
+    messageManager.addMessageListener("DOMContentLoaded", function() {
       
-      browsers.removeEventListener("load", arguments.callee, true);
+      messageManager.removeMessageListener("DOMContentLoaded", arguments.callee, true);
       
       
       Elements.panelUI.hidden = false;
@@ -462,7 +455,7 @@ var BrowserUI = {
       DownloadsView.init();
       PreferencesView.init();
       ConsoleView.init();
-    }, true);
+    });
   },
 
   uninit : function() {
@@ -728,20 +721,8 @@ var BrowserUI = {
   handleEvent: function (aEvent) {
     switch (aEvent.type) {
       
-      case "DOMWillOpenModalDialog":
-        this._domWillOpenModalDialog(aEvent);
-        break;
-      case "DOMTitleChanged":
-        this._titleChanged(aEvent.target);
-        break;
-      case "DOMLinkAdded":
-        this._linkAdded(aEvent);
-        break;
       case "DOMMetaAdded":
         this._metaAdded(aEvent);
-        break;
-      case "DOMWindowClose":
-        this._domWindowClose(aEvent);
         break;
       case "TabSelect":
         this._tabSelect(aEvent);
@@ -794,6 +775,25 @@ var BrowserUI = {
       
       case "error":
         this._favicon.src = "";
+        break;
+    }
+  },
+
+  receiveMessage: function(aMessage) {
+    let browser = aMessage.target;
+    switch (aMessage.name) {
+      case "DOMTitleChanged":
+        this._titleChanged(browser);
+        break;
+      case "DOMWillOpenModalDialog":
+        return this._domWillOpenModalDialog(browser);
+        break;
+      case "DOMWindowClose":
+        return this._domWindowClose(browser);
+        break;
+      case "DOMLinkAdded":
+        if (Browser.selectedBrowser == browser)
+          this._updateIcon(Browser.selectedBrowser.mIconURL);
         break;
     }
   },
@@ -870,7 +870,7 @@ var BrowserUI = {
       case "cmd_star":
       {
         var bookmarkURI = browser.currentURI;
-        var bookmarkTitle = browser.contentDocument.title || bookmarkURI.spec;
+        var bookmarkTitle = browser.contentTitle || bookmarkURI.spec;
 
         let autoClose = false;
 
