@@ -24,9 +24,7 @@
 @APPNAME@/Contents/Info.plist
 @APPNAME@/Contents/PkgInfo
 @APPNAME@/Contents/Resources/
-#ifdef MOZ_SIGNING
 @APPNAME@/Contents/_CodeSignature/CodeResources
-#endif
 #endif
 
 [@AB_CD@]
@@ -469,6 +467,8 @@
 #ifdef MOZ_SAFE_BROWSING
 @BINPATH@/components/nsSafebrowsingApplication.manifest
 @BINPATH@/components/nsSafebrowsingApplication.js
+#endif
+#ifdef MOZ_URL_CLASSIFIER
 @BINPATH@/components/nsURLClassifier.manifest
 @BINPATH@/components/nsUrlClassifierHashCompleter.js
 @BINPATH@/components/nsUrlClassifierListManager.js
