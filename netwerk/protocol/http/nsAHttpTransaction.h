@@ -63,6 +63,8 @@ class nsAHttpTransaction : public nsISupports
 public:
     
     virtual void SetConnection(nsAHttpConnection *) = 0;
+
+    
     virtual nsAHttpConnection *Connection() = 0;
 
     
@@ -122,13 +124,37 @@ public:
     virtual nsresult AddTransaction(nsAHttpTransaction *transaction) = 0;
     
     
-    virtual PRUint16 PipelineDepthAvailable() = 0;
+    
+    virtual PRUint32 PipelineDepth() = 0;
 
     
     
     
     virtual nsresult SetPipelinePosition(PRInt32) = 0;
     virtual PRInt32  PipelinePosition() = 0;
+
+    
+    
+    
+    enum Classifier  {
+        
+        CLASS_REVALIDATION,
+
+        
+        CLASS_SCRIPT,
+
+        
+        CLASS_IMAGE,
+
+        
+        CLASS_SOLO,
+
+        
+        
+        CLASS_GENERAL,
+
+        CLASS_MAX
+    };
 };
 
 #define NS_DECL_NSAHTTPTRANSACTION \
@@ -150,7 +176,7 @@ public:
     PRUint32 Http1xTransactionCount();                                  \
     nsresult TakeSubTransactions(nsTArray<nsRefPtr<nsAHttpTransaction> > &outTransactions); \
     nsresult AddTransaction(nsAHttpTransaction *);                      \
-    PRUint16 PipelineDepthAvailable();                                  \
+    PRUint32 PipelineDepth();                                           \
     nsresult SetPipelinePosition(PRInt32);                              \
     PRInt32  PipelinePosition();
 

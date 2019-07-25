@@ -47,6 +47,7 @@
 #include "nsAutoPtr.h"
 #include "prinrval.h"
 #include "SpdySession.h"
+#include "mozilla/TimeStamp.h"
 
 #include "nsIStreamListener.h"
 #include "nsISocketTransport.h"
@@ -92,7 +93,7 @@ public:
     nsresult Init(nsHttpConnectionInfo *info, PRUint16 maxHangTime,
                   nsISocketTransport *, nsIAsyncInputStream *,
                   nsIAsyncOutputStream *, nsIInterfaceRequestor *,
-                  nsIEventTarget *);
+                  nsIEventTarget *, PRIntervalTime);
 
     
     
@@ -105,7 +106,7 @@ public:
     
     
 
-    bool     SupportsPipelining() { return mSupportsPipelining; }
+    bool     SupportsPipelining() { return mSupportsPipelining && IsKeepAlive(); }
     bool     IsKeepAlive() { return mUsingSpdy ||
                                     (mKeepAliveMask && mKeepAlive); }
     bool     CanReuse();   
@@ -168,6 +169,12 @@ public:
     
     void  ReadTimeoutTick(PRIntervalTime now);
 
+    nsAHttpTransaction::Classifier Classification() { return mClassification; }
+    void Classify(nsAHttpTransaction::Classifier newclass)
+    {
+        mClassification = newclass;
+    }
+
 private:
     
     nsresult ProxyStartSSL();
@@ -217,7 +224,7 @@ private:
 
     nsRefPtr<nsHttpConnectionInfo> mConnInfo;
 
-    PRUint32                        mLastReadTime;
+    PRIntervalTime                  mLastReadTime;
     PRIntervalTime                  mMaxHangTime;    
     PRIntervalTime                  mIdleTimeout;    
     PRIntervalTime                  mConsiderReusedAfterInterval;
@@ -227,6 +234,8 @@ private:
     PRInt64                         mTotalBytesRead;     
 
     nsRefPtr<nsIAsyncInputStream>   mInputOverflow;
+
+    PRIntervalTime                  mRtt;
 
     bool                            mKeepAlive;
     bool                            mKeepAliveMask;
@@ -240,6 +249,8 @@ private:
     
     
     PRUint32                        mHttp1xTransactionCount;
+
+    nsAHttpTransaction::Classifier  mClassification;
 
     
     bool                            mNPNComplete;
