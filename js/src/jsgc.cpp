@@ -1116,7 +1116,6 @@ js_DumpGCStats(JSRuntime *rt, FILE *fp)
 #ifdef DEBUG
     fprintf(fp, "      max trace later count: %lu\n", ULSTAT(maxunmarked));
 #endif
-    fprintf(fp, "   maximum GC nesting level: %lu\n", ULSTAT(maxlevel));
     fprintf(fp, "potentially useful GC calls: %lu\n", ULSTAT(poke));
     fprintf(fp, "  thing arenas freed so far: %lu\n", ULSTAT(afree));
     fprintf(fp, "     stack segments scanned: %lu\n", ULSTAT(stackseg));
@@ -2045,7 +2044,7 @@ js_CallGCMarker(JSTracer *trc, void *thing, uint32 kind)
     cx = trc->context;
     rt = cx->runtime;
     JS_ASSERT(rt->gcMarkingTracer == trc);
-    JS_ASSERT(rt->gcLevel > 0);
+    JS_ASSERT(rt->gcRunning);
 
     
 
@@ -2365,31 +2364,6 @@ js_TriggerGC(JSContext *cx, JSBool gcLocked)
 
     rt->gcIsNeeded = JS_TRUE;
     js_TriggerAllOperationCallbacks(rt, gcLocked);
-}
-
-static void
-ProcessSetSlotRequest(JSContext *cx, JSSetSlotRequest *ssr)
-{
-    JSObject *obj = ssr->obj;
-    JSObject *pobj = ssr->pobj;
-    uint32 slot = ssr->slot;
-
-    while (pobj) {
-        pobj = js_GetWrappedObject(cx, pobj);
-        if (pobj == obj) {
-            ssr->cycle = true;
-            return;
-        }
-        pobj = JSVAL_TO_OBJECT(pobj->getSlot(slot));
-    }
-
-    pobj = ssr->pobj;
-    if (slot == JSSLOT_PROTO) {
-        obj->setProto(pobj);
-    } else {
-        JS_ASSERT(slot == JSSLOT_PARENT);
-        obj->setParent(pobj);
-    }
 }
 
 void
@@ -3054,64 +3028,17 @@ GC(JSContext *cx  GCTIMER_PARAM)
 #endif 
 }
 
-
-
-
-
-static void
-GCUntilDone(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
-{
-    JS_ASSERT_NOT_ON_TRACE(cx);
-    JSRuntime *rt = cx->runtime;
-    bool firstRun = true;
-
-    do {
-        rt->gcLevel = 1;
-        rt->gcPoke = JS_FALSE;
-
-        AutoUnlockGC unlock(rt);
-        if (firstRun) {
-            PreGCCleanup(cx, gckind);
-            TIMESTAMP(startMark);
-            firstRun = false;
-        }
-        GC(cx  GCTIMER_ARG);
-
-        
-        
-        
-        
-    } while (rt->gcLevel > 1 || rt->gcPoke);
-}
-
 #ifdef JS_THREADSAFE
 
 
 
 
-
-
 static void
-DelegateGC(JSContext *cx)
+LetOtherGCToFinish(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
     JS_ASSERT(rt->gcThread);
-
-    
-    rt->gcLevel++;
-    METER_UPDATE_MAX(rt->gcStats.maxlevel, rt->gcLevel);
-
-    
-
-
-
-
-    if (rt->gcThread == cx->thread)
-        return;
-
-    
-
-
+    JS_ASSERT(cx->thread != rt->gcThread);
 
     size_t requestDebit = js_CountThreadRequests(cx);
     JS_ASSERT(requestDebit <= rt->requestCount);
@@ -3142,10 +3069,10 @@ DelegateGC(JSContext *cx)
 
 
 
-        JS_ASSERT(rt->gcLevel > 0);
+        JS_ASSERT(rt->gcThread);
         do {
             JS_AWAIT_GC_DONE(rt);
-        } while (rt->gcLevel > 0);
+        } while (rt->gcThread);
 
         cx->thread->gcWaiting = false;
         rt->requestCount += requestDebit;
@@ -3163,31 +3090,15 @@ DelegateGC(JSContext *cx)
 
 
 
-
-
-
-
-
-static bool
+static void
 BeginGCSession(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
-
-    METER(rt->gcStats.poke++);
-    rt->gcPoke = JS_FALSE;
+    JS_ASSERT(!rt->gcRunning);
 
 #ifdef JS_THREADSAFE
     
-
-
-
-    if (rt->gcLevel > 0) {
-        DelegateGC(cx);
-        return false;
-    }
-
-    
-    rt->gcLevel = 1;
+    JS_ASSERT(!rt->gcThread);
     rt->gcThread = cx->thread;
 
     
@@ -3225,14 +3136,6 @@ BeginGCSession(JSContext *cx)
         rt->requestCount += requestDebit;
     }
 
-#else  
-
-    
-    rt->gcLevel++;
-    METER_UPDATE_MAX(rt->gcStats.maxlevel, rt->gcLevel);
-    if (rt->gcLevel > 1)
-        return false;
-
 #endif 
 
     
@@ -3241,10 +3144,7 @@ BeginGCSession(JSContext *cx)
 
 
 
-
-
-    rt->gcRunning = JS_TRUE;
-    return true;
+    rt->gcRunning = true;
 }
 
 
@@ -3253,8 +3153,7 @@ EndGCSession(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
 
-    rt->gcLevel = 0;
-    rt->gcRunning = rt->gcRegenShapes = false;
+    rt->gcRunning = false;
 #ifdef JS_THREADSAFE
     JS_ASSERT(rt->gcThread == cx->thread);
     rt->gcThread = NULL;
@@ -3266,100 +3165,64 @@ EndGCSession(JSContext *cx)
 
 
 
-static bool
-FireGCBegin(JSContext *cx, JSGCInvocationKind gckind)
+static void
+GCUntilDone(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
 {
+    if (JS_ON_TRACE(cx))
+        return;
+
     JSRuntime *rt = cx->runtime;
-    JSGCCallback callback = rt->gcCallback;
 
     
-
-
-
-
-
-    if (gckind != GC_SET_SLOT_REQUEST && callback) {
-        Conditionally<AutoUnlockGC> unlockIf(!!(gckind & GC_LOCK_HELD), rt);
-        return callback(cx, JSGC_BEGIN) || gckind == GC_LAST_CONTEXT;
+#ifndef JS_THREADSAFE
+    if (rt->gcRunning) {
+        rt->gcPoke = true;
+        return;
     }
-    return true;
-}
-
-
-
-
-
-static bool
-FireGCEnd(JSContext *cx, JSGCInvocationKind gckind)
-{
-    JSRuntime *rt = cx->runtime;
-    JSGCCallback callback = rt->gcCallback;
-
-    
-
-
-
-
-    if (gckind != GC_SET_SLOT_REQUEST && callback) {
-        Conditionally<AutoUnlockGC> unlockIf(!!(gckind & GC_LOCK_HELD), rt);
-
-        (void) callback(cx, JSGC_END);
+#else 
+    if (rt->gcThread) {
+        rt->gcPoke = true;
+        if (cx->thread == rt->gcThread) {
+            JS_ASSERT(rt->gcRunning);
+            return;
+        }
+        LetOtherGCToFinish(cx);
 
         
 
 
 
-        if (gckind == GC_LAST_CONTEXT && rt->gcPoke)
-            return false;
+        if (!rt->gcPoke)
+            return;
     }
-    return true;
-}
+#endif 
 
+    BeginGCSession(cx);
 
+    METER(rt->gcStats.poke++);
 
+    bool firstRun = true;
+    do {
+        rt->gcPoke = false;
 
-
-static bool
-ProcessAllSetSlotRequests(JSContext *cx, JSGCInvocationKind *gckindp)
-{
-    JSRuntime *rt = cx->runtime;
-
-    while (JSSetSlotRequest *ssr = rt->setSlotRequests) {
-        rt->setSlotRequests = ssr->next;
         AutoUnlockGC unlock(rt);
-        ssr->next = NULL;
-        ProcessSetSlotRequest(cx, ssr);
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    if (rt->gcLevel > 1 || rt->gcPoke || rt->gcIsNeeded) {
-        rt->gcLevel = 0;
-        rt->gcPoke = JS_FALSE;
-        rt->gcRunning = JS_FALSE;
-#ifdef JS_THREADSAFE
-        rt->gcThread = NULL;
-#endif
-        *gckindp = GC_LOCK_HELD;
-        if (!FireGCBegin(cx, *gckindp)) {  
-            JS_NOTIFY_GC_DONE(rt);
-            return false;
+        if (firstRun) {
+            PreGCCleanup(cx, gckind);
+            TIMESTAMP(startMark);
+            firstRun = false;
         }
-        if (!BeginGCSession(cx))  
-            return false;
-    }
-    return true;
+        GC(cx  GCTIMER_ARG);
+
+        
+        
+        
+        
+    } while (rt->gcPoke);
+
+    rt->gcRegenShapes = false;
+    rt->setGCLastBytes(rt->gcBytes);
+
+    EndGCSession(cx);
 }
 
 
@@ -3370,11 +3233,6 @@ void
 js_GC(JSContext *cx, JSGCInvocationKind gckind)
 {
     JSRuntime *rt = cx->runtime;
-
-#ifdef JS_THREADSAFE
-    JS_ASSERT(CURRENT_THREAD_IS_ME(cx->thread));
-    JS_ASSERT(!JS_IS_RUNTIME_LOCKED(rt));
-#endif
 
     
 
@@ -3387,34 +3245,95 @@ js_GC(JSContext *cx, JSGCInvocationKind gckind)
 
     GCTIMER_BEGIN();
 
-    for (;;) {
-        if (!FireGCBegin(cx, gckind))
-            return;
+    do {
+        
+
+
+
+
+
+        if (JSGCCallback callback = rt->gcCallback) {
+            Conditionally<AutoUnlockGC> unlockIf(!!(gckind & GC_LOCK_HELD), rt);
+            if (!callback(cx, JSGC_BEGIN) && gckind != GC_LAST_CONTEXT)
+                return;
+        }
 
         {
             
             Conditionally<AutoLockGC> lockIf(!(gckind & GC_LOCK_HELD), rt);
 
-            if (!BeginGCSession(cx)) {
-                
-                return;
-            }
-
-            if (gckind == GC_SET_SLOT_REQUEST && !ProcessAllSetSlotRequests(cx, &gckind))
-                return;
-
-            if (gckind != GC_SET_SLOT_REQUEST) {
-                if (!JS_ON_TRACE(cx))
-                    GCUntilDone(cx, gckind  GCTIMER_ARG);
-                rt->setGCLastBytes(rt->gcBytes);
-            }
-
-            EndGCSession(cx);
+            GCUntilDone(cx, gckind  GCTIMER_ARG);
         }
 
-        if (FireGCEnd(cx, gckind))
-            break;
-    }
+        
+        if (JSGCCallback callback = rt->gcCallback) {
+            Conditionally<AutoUnlockGC> unlockIf(gckind & GC_LOCK_HELD, rt);
+
+            (void) callback(cx, JSGC_END);
+        }
+
+        
+
+
+
+    } while (gckind == GC_LAST_CONTEXT && rt->gcPoke);
 
     GCTIMER_END(gckind == GC_LAST_CONTEXT);
+}
+
+bool
+js_SetProtoOrParentCheckingForCycles(JSContext *cx, JSObject *obj,
+                                     uint32 slot, JSObject *pobj)
+{
+    JS_ASSERT(slot == JSSLOT_PARENT || slot == JSSLOT_PROTO);
+    JSRuntime *rt = cx->runtime;
+
+    
+
+
+
+#ifdef JS_THREADSAFE
+    JS_ASSERT(cx->requestDepth);
+#endif
+
+    AutoLockGC lock(rt);
+
+    
+
+
+
+
+#ifdef JS_THREADSAFE
+    if (rt->gcThread) {
+        JS_ASSERT(cx->thread != rt->gcThread);
+        LetOtherGCToFinish(cx);
+    }
+#endif
+
+    BeginGCSession(cx);
+
+    bool cycle;
+    {
+        AutoUnlockGC unlock(rt);
+
+        cycle = false;
+        for (JSObject *obj2 = pobj; obj2;) {
+            obj2 = js_GetWrappedObject(cx, obj2);
+            if (obj2 == obj) {
+                cycle = true;
+                break;
+            }
+            obj2 = (slot == JSSLOT_PARENT) ? obj2->getParent() : obj2->getProto();
+        }
+        if (!cycle) {
+            if (slot == JSSLOT_PARENT)
+                obj->setParent(pobj);
+            else
+                obj->setProto(pobj);
+        }
+    }
+
+    EndGCSession(cx);
+
+    return !cycle;
 }

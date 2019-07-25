@@ -1075,15 +1075,6 @@ typedef struct JSPropertyTreeEntry {
     JSScopeProperty     *child;
 } JSPropertyTreeEntry;
 
-typedef struct JSSetSlotRequest JSSetSlotRequest;
-
-struct JSSetSlotRequest {
-    JSObject            *obj;           
-    JSObject            *pobj;          
-    uint16              slot;           
-    JSPackedBool        cycle;          
-    JSSetSlotRequest    *next;          
-};
 
 
 struct JSClassProtoCache {
@@ -1161,7 +1152,6 @@ struct JSRuntime {
     size_t              gcMaxBytes;
     size_t              gcMaxMallocBytes;
     uint32              gcEmptyArenaPoolLifespan;
-    uint32              gcLevel;
     uint32              gcNumber;
     JSTracer            *gcMarkingTracer;
     uint32              gcTriggerFactor;
@@ -1218,13 +1208,6 @@ struct JSRuntime {
 
     JSTraceDataOp       gcExtraRootsTraceOp;
     void                *gcExtraRootsData;
-
-    
-
-
-
-
-    JSSetSlotRequest    *setSlotRequests;
 
     
     jsval               NaNValue;

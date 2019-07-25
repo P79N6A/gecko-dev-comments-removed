@@ -209,17 +209,23 @@ typedef enum JSGCInvocationKind {
     
 
 
-    GC_LOCK_HELD        = 0x10,
-
-    
-
-
-
-    GC_SET_SLOT_REQUEST = GC_LOCK_HELD | 1
+    GC_LOCK_HELD        = 0x10
 } JSGCInvocationKind;
 
 extern void
 js_GC(JSContext *cx, JSGCInvocationKind gckind);
+
+
+
+
+
+
+
+
+
+extern bool
+js_SetProtoOrParentCheckingForCycles(JSContext *cx, JSObject *obj,
+                                     uint32 slot, JSObject *pobj);
 
 extern void
 js_CallGCMarker(JSTracer *trc, void *thing, uint32 kind);
@@ -444,7 +450,6 @@ struct JSGCStats {
     uint32  maxunmarked;
 
 #endif
-    uint32  maxlevel;       
     uint32  poke;           
     uint32  afree;          
     uint32  stackseg;       
