@@ -515,7 +515,7 @@ nsSize
 nsVideoFrame::GetVideoIntrinsicSize(nsIRenderingContext *aRenderingContext)
 {
   
-  nsIntSize size(300,150);
+  nsIntSize size(300, 150);
 
   if (ShouldDisplayPoster()) {
     
@@ -528,7 +528,7 @@ nsVideoFrame::GetVideoIntrinsicSize(nsIRenderingContext *aRenderingContext)
     }
   }
 
-  if (!HasVideoData()) {
+  if (!HasVideoElement()) {
     if (!aRenderingContext || !mFrames.FirstChild()) {
       
       
