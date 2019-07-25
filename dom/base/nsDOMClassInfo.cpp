@@ -9575,7 +9575,8 @@ nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wra
   }
 
   
-  if (!nsContentUtils::IsSafeToRunScript()) {
+  
+  if (!nsContentUtils::IsSafeToRunScript() || !content->OwnerDoc()->IsActive()) {
     return rv;
   }
 
