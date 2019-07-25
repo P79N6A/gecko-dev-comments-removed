@@ -34,67 +34,14 @@
 
 
 
-#include "nsIDOMHTMLFieldSetElement.h"
+
+#include "nsHTMLFieldSetElement.h"
 #include "nsIDOMHTMLFormElement.h"
 #include "nsIDOMEventTarget.h"
-#include "nsGenericHTMLElement.h"
 #include "nsStyleConsts.h"
 #include "nsIForm.h"
 #include "nsIFormControl.h"
-#include "nsIConstraintValidation.h"
 #include "nsEventDispatcher.h"
-
-
-class nsHTMLFieldSetElement : public nsGenericHTMLFormElement,
-                              public nsIDOMHTMLFieldSetElement,
-                              public nsIConstraintValidation
-{
-public:
-  using nsIConstraintValidation::GetValidationMessage;
-
-  nsHTMLFieldSetElement(already_AddRefed<nsINodeInfo> aNodeInfo);
-  virtual ~nsHTMLFieldSetElement();
-
-  
-  NS_DECL_ISUPPORTS_INHERITED
-
-  
-  NS_FORWARD_NSIDOMNODE(nsGenericHTMLFormElement::)
-
-  
-  NS_FORWARD_NSIDOMELEMENT(nsGenericHTMLFormElement::)
-
-  
-  NS_FORWARD_NSIDOMHTMLELEMENT(nsGenericHTMLFormElement::)
-
-  
-  NS_DECL_NSIDOMHTMLFIELDSETELEMENT
-
-  
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
-  virtual nsresult AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
-                                const nsAString* aValue, PRBool aNotify);
-
-  
-  NS_IMETHOD_(PRUint32) GetType() const { return NS_FORM_FIELDSET; }
-  NS_IMETHOD Reset();
-  NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission);
-  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
-  virtual nsXPCClassInfo* GetClassInfo();
-
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsHTMLFieldSetElement,
-                                           nsGenericHTMLFormElement)
-private:
-
-  
-  static PRBool MatchListedElements(nsIContent* aContent, PRInt32 aNamespaceID,
-                                    nsIAtom* aAtom, void* aData);
-
-  
-  nsRefPtr<nsContentList> mElements;
-};
-
-
 
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(FieldSet)
@@ -103,6 +50,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(FieldSet)
 nsHTMLFieldSetElement::nsHTMLFieldSetElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLFormElement(aNodeInfo)
   , mElements(nsnull)
+  , mFirstLegend(nsnull)
 {
   
   SetBarredFromConstraintValidation(PR_TRUE);
@@ -174,7 +122,7 @@ nsHTMLFieldSetElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     PRUint32 length = mElements->Length(PR_TRUE);
     for (PRUint32 i=0; i<length; ++i) {
       static_cast<nsGenericHTMLFormElement*>(mElements->GetNodeAt(i))
-        ->OnFieldSetDisabledChanged(0);
+        ->FieldSetDisabledChanged(0);
     }
   }
 
@@ -231,3 +179,83 @@ nsHTMLFieldSetElement::SubmitNamesValues(nsFormSubmission* aFormSubmission)
 {
   return NS_OK;
 }
+
+nsresult
+nsHTMLFieldSetElement::InsertChildAt(nsIContent* aChild, PRUint32 aIndex,
+                                     PRBool aNotify)
+{
+  bool firstLegendHasChanged = false;
+
+  if (aChild->IsHTML(nsGkAtoms::legend)) {
+    if (!mFirstLegend) {
+      mFirstLegend = aChild;
+      
+    } else {
+      
+      
+      if (aIndex <= IndexOf(mFirstLegend)) {
+        mFirstLegend = aChild;
+        firstLegendHasChanged = true;
+      }
+    }
+  }
+
+  nsresult rv = nsGenericHTMLFormElement::InsertChildAt(aChild, aIndex, aNotify);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (firstLegendHasChanged) {
+    NotifyElementsForFirstLegendChange();
+  }
+
+  return rv;
+}
+
+nsresult
+nsHTMLFieldSetElement::RemoveChildAt(PRUint32 aIndex, PRBool aNotify,
+                                     PRBool aMutationEvent )
+{
+  bool firstLegendHasChanged = false;
+
+  if (GetChildAt(aIndex) == mFirstLegend) {
+    
+    for (nsIContent* child = mFirstLegend; child;
+         child = child->GetNextSibling()) {
+      if (child->IsHTML(nsGkAtoms::legend)) {
+        mFirstLegend = child;
+        firstLegendHasChanged = true;
+        break;
+      }
+    }
+  }
+
+  nsresult rv = nsGenericHTMLFormElement::RemoveChildAt(aIndex, aNotify, aMutationEvent);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (firstLegendHasChanged) {
+    NotifyElementsForFirstLegendChange();
+  }
+
+  return rv;
+}
+
+void
+nsHTMLFieldSetElement::NotifyElementsForFirstLegendChange()
+{
+  
+
+
+
+
+
+  if (!mElements) {
+    mElements = new nsContentList(this, MatchListedElements, nsnull, nsnull,
+                                  PR_TRUE);
+  }
+
+  PRUint32 length = mElements->Length(PR_TRUE);
+  for (PRUint32 i=0; i<length; ++i) {
+    static_cast<nsGenericHTMLFormElement*>(mElements->GetNodeAt(i))
+      ->FieldSetFirstLegendChanged();
+  }
+}
+

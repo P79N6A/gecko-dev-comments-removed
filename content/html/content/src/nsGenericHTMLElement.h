@@ -864,7 +864,15 @@ public:
 
 
 
-  virtual void OnFieldSetDisabledChanged(PRInt32 aStates);
+  virtual void FieldSetDisabledChanged(PRInt32 aStates);
+
+  void FieldSetFirstLegendChanged() {
+    UpdateFieldSet();
+
+    
+    
+    FieldSetDisabledChanged(0);
+  }
 
   
 
