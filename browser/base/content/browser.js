@@ -86,7 +86,8 @@ var gLastValidURLStr = "";
 var gInPrintPreviewMode = false;
 var gDownloadMgr = null;
 var gContextMenu = null; 
-var gDelayedStartupTimeoutId;
+var gDelayedStartupTimeoutId; 
+var gFirstPaintListener = null;
 var gStartupRan = false;
 
 #ifndef XP_MACOSX
@@ -1376,7 +1377,18 @@ function BrowserStartup() {
 
   retrieveToolbarIconsizesFromTheme();
 
-  gDelayedStartupTimeoutId = setTimeout(delayedStartup, 0, isLoadingBlank, mustLoadSidebar);
+  
+  
+  
+  gFirstPaintListener = function(e) {
+    if (e.target == window) {
+      window.removeEventListener("MozAfterPaint", gFirstPaintListener, false);
+      gFirstPaintListener = null;
+      delayedStartup(isLoadingBlank, mustLoadSidebar);
+    }
+  };
+  window.addEventListener("MozAfterPaint", gFirstPaintListener, false);
+
   gStartupRan = true;
 }
 
@@ -1505,7 +1517,6 @@ function prepareForStartup() {
 function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   Cu.import("resource:///modules/TelemetryTimestamps.jsm");
   TelemetryTimestamps.add("delayedStartupStarted");
-  gDelayedStartupTimeoutId = null;
 
   Services.obs.addObserver(gSessionHistoryObserver, "browser:purge-session-history", false);
   Services.obs.addObserver(gXPInstallObserver, "addon-install-disabled", false);
@@ -1766,23 +1777,6 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
     document.getElementById("appmenu_charsetMenu").hidden = true;
 #endif
 
-  let appMenuButton = document.getElementById("appmenu-button");
-  let appMenuPopup = document.getElementById("appmenu-popup");
-  if (appMenuButton && appMenuPopup) {
-    let appMenuOpening = null;
-    appMenuButton.addEventListener("mousedown", function(event) {
-      if (event.button == 0)
-        appMenuOpening = new Date();
-    }, false);
-    appMenuPopup.addEventListener("popupshown", function(event) {
-      if (event.target != appMenuPopup || !appMenuOpening)
-        return;
-      let duration = new Date() - appMenuOpening;
-      appMenuOpening = null;
-      Services.telemetry.getHistogramById("FX_APP_MENU_OPEN_MS").add(duration);
-    }, false);
-  }
-
   window.addEventListener("mousemove", MousePosTracker, false);
   window.addEventListener("dragover", MousePosTracker, false);
 
@@ -1837,8 +1831,9 @@ function BrowserShutdown() {
 
   
   
-  if (gDelayedStartupTimeoutId) {
-    clearTimeout(gDelayedStartupTimeoutId);
+  if (gFirstPaintListener) {
+    window.removeEventListener("MozAfterPaint", gFirstPaintListener, false);
+    gFirstPaintListener = null;
   } else {
     if (Win7Features)
       Win7Features.onCloseWindow();
@@ -8180,13 +8175,11 @@ var gIdentityHandler = {
     this._identityPopup.hidePopup();
   },
 
-  _popupOpenTime : null,
-
   
 
 
   handleIdentityButtonEvent : function(event) {
-    this._popupOpenTime = new Date();
+
     event.stopPropagation();
 
     if ((event.type == "click" && event.button != 0) ||
@@ -8221,17 +8214,6 @@ var gIdentityHandler = {
 
     
     this._identityPopup.openPopup(this._identityBox, "bottomcenter topleft");
-  },
-
-  onPopupShown : function(event) {
-    let openingDuration = new Date() - this._popupOpenTime;
-    this._popupOpenTime = null;
-    try {
-      Services.telemetry.getHistogramById("FX_IDENTITY_POPUP_OPEN_MS").add(openingDuration);
-    } catch (ex) {
-      Components.utils.reportError("Unable to report telemetry for FX_IDENTITY_POPUP_OPEN_MS.");
-    }
-    document.getElementById('identity-popup-more-info-button').focus();
   },
 
   onDragStart: function (event) {
