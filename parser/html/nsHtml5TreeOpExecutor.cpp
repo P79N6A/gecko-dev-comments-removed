@@ -737,16 +737,20 @@ nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
     return;
   }
   
+  if (mPreventScriptExecution) {
+    sele->PreventExecution();
+  }
   if (mFragmentMode) {
-    if (mPreventScriptExecution) {
-      sele->PreventExecution();
-    }
     return;
   }
 
   if (sele->GetScriptDeferred() || sele->GetScriptAsync()) {
-    DebugOnly<bool> block = sele->AttemptToExecute();
-    NS_ASSERTION(!block, "Defer or async script tried to block.");
+    #ifdef DEBUG
+    nsresult rv = 
+    #endif
+    aScriptElement->DoneAddingChildren(true); 
+    NS_ASSERTION(rv != NS_ERROR_HTMLPARSER_BLOCK, 
+                 "Defer or async script tried to block.");
     return;
   }
   
@@ -764,11 +768,12 @@ nsHtml5TreeOpExecutor::RunScript(nsIContent* aScriptElement)
   
   
   
-  bool block = sele->AttemptToExecute();
+  
+  nsresult rv = aScriptElement->DoneAddingChildren(true);
 
   
   
-  if (block) {
+  if (rv == NS_ERROR_HTMLPARSER_BLOCK) {
     mScriptElements.AppendObject(sele);
     if (mParser) {
       mParser->BlockParser();

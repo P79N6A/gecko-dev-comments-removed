@@ -357,6 +357,10 @@ nsHtml5StreamParser::SniffBOMlessUTF16BasicLatin(const PRUint8* aFromSegment,
                                                  PRUint32 aCountToSniffingLimit)
 {
   
+  if (mMode == LOAD_AS_DATA) {
+    return;
+  }
+  
   if (mSniffingLength + aCountToSniffingLimit < 30) {
     return;
   }
@@ -609,6 +613,15 @@ nsHtml5StreamParser::FinalizeSniffing(const PRUint8* aFromSegment,
     mCharset.AssignLiteral("windows-1252");
     mCharsetSource = kCharsetFromWeakDocTypeDefault;
     mTreeBuilder->SetDocumentCharset(mCharset, mCharsetSource);
+  } else if (mMode == LOAD_AS_DATA &&
+             mCharsetSource == kCharsetFromWeakDocTypeDefault) {
+    NS_ASSERTION(mReparseForbidden, "Reparse should be forbidden for XHR");
+    NS_ASSERTION(!mFeedChardet, "Should not feed chardet for XHR");
+    NS_ASSERTION(mCharset.EqualsLiteral("UTF-8"),
+                 "XHR should default to UTF-8");
+    
+    mCharsetSource = kCharsetFromDocTypeDefault;
+    mTreeBuilder->SetDocumentCharset(mCharset, mCharsetSource);
   }
   return SetupDecodingAndWriteSniffingBufferAndCurrentSegment(aFromSegment, aCount, aWriteCount);
 }
@@ -690,7 +703,9 @@ nsHtml5StreamParser::SniffStreamBytes(const PRUint8* aFromSegment,
   }
   
   
-  if (!mMetaScanner && (mMode == NORMAL || mMode == VIEW_SOURCE_HTML)) {
+  if (!mMetaScanner && (mMode == NORMAL ||
+                        mMode == VIEW_SOURCE_HTML ||
+                        mMode == LOAD_AS_DATA)) {
     mMetaScanner = new nsHtml5MetaScanner();
   }
   
@@ -698,7 +713,7 @@ nsHtml5StreamParser::SniffStreamBytes(const PRUint8* aFromSegment,
     
     PRUint32 countToSniffingLimit =
         NS_HTML5_STREAM_PARSER_SNIFFING_BUFFER_SIZE - mSniffingLength;
-    if (mMode == NORMAL || mMode == VIEW_SOURCE_HTML) {
+    if (mMode == NORMAL || mMode == VIEW_SOURCE_HTML || mMode == LOAD_AS_DATA) {
       nsHtml5ByteReadable readable(aFromSegment, aFromSegment +
           countToSniffingLimit);
       mMetaScanner->sniff(&readable, getter_AddRefs(mUnicodeDecoder), mCharset);
@@ -719,7 +734,7 @@ nsHtml5StreamParser::SniffStreamBytes(const PRUint8* aFromSegment,
   }
 
   
-  if (mMode == NORMAL || mMode == VIEW_SOURCE_HTML) {
+  if (mMode == NORMAL || mMode == VIEW_SOURCE_HTML || mMode == LOAD_AS_DATA) {
     nsHtml5ByteReadable readable(aFromSegment, aFromSegment + aCount);
     mMetaScanner->sniff(&readable, getter_AddRefs(mUnicodeDecoder), mCharset);
     if (mUnicodeDecoder) {
@@ -869,7 +884,8 @@ nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
   }
   
   
-  bool scriptingEnabled = mExecutor->IsScriptEnabled();
+  bool scriptingEnabled = mMode == LOAD_AS_DATA ?
+                                   false : mExecutor->IsScriptEnabled();
   mOwner->StartTokenizer(scriptingEnabled);
   mTreeBuilder->setScriptingEnabled(scriptingEnabled);
   mTokenizer->start();
