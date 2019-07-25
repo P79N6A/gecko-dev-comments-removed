@@ -29,9 +29,6 @@ copy = os.path.abspath(sys.argv[1])
 original = os.path.abspath(sys.argv[2])
 
 
-ignored_patterns = ['*~', '.#*', '#*#', '*.orig', '*.rej']
-
-
 
 
 
@@ -61,16 +58,16 @@ def fnmatch_any(filename, patterns):
 
 
 
-def check(copy, original, ignore):
+def check(copy, original):
     os.chdir(copy)
     for (dirpath, dirnames, filenames) in os.walk('.'):
         exceptions = read_exceptions(join(dirpath, 'check-sync-exceptions'))
         for dirname in dirnames:
-            if (dirname in exceptions):
+            if fnmatch_any(dirname, exceptions):
                 dirnames.remove(dirname)
                 break
         for filename in filenames:
-            if (filename in exceptions) or fnmatch_any(filename, ignore):
+            if fnmatch_any(filename, exceptions):
                 continue
             relative_name = join(dirpath, filename)
             original_name = join(original, relative_name)
@@ -93,7 +90,7 @@ def report(copy, original, differing):
     print >> sys.stderr, 'TEST-INFO | check-sync-dirs.py | differing file:                 %s' % differing
     differences_found = True
 
-check(copy, original, ignored_patterns)
+check(copy, original)
 
 if differences_found:
     msg = '''In general, the files in '%s' should always be exact copies of
