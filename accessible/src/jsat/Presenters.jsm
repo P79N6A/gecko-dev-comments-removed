@@ -26,11 +26,6 @@ Presenter.prototype = {
   
 
 
-  BORDER_PADDING: 2,
-
-  
-
-
 
   attach: function attach(aWindow) {},
 
@@ -95,6 +90,11 @@ Presenter.prototype = {
 function VisualPresenter() {}
 
 VisualPresenter.prototype = new Presenter();
+
+
+
+
+VisualPresenter.prototype.BORDER_PADDING = 2;
 
 VisualPresenter.prototype.attach = function(aWindow) {
   this.chromeWin = aWindow;
