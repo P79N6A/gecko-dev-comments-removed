@@ -1833,9 +1833,11 @@ Parser::recognizeDirectivePrologue(ParseNode *pn, bool *isDirectivePrologueMembe
 
 
 ParseNode *
-Parser::statements()
+Parser::statements(bool *hasFunctionStmt)
 {
     JS_CHECK_RECURSION(context, return NULL);
+    if (hasFunctionStmt)
+        *hasFunctionStmt = false;
 
     ParseNode *pn = ListNode::create(PNK_STATEMENTLIST, this);
     if (!pn)
@@ -1885,7 +1887,8 @@ Parser::statements()
 
 
                 JS_ASSERT(tc->sc->hasExtensibleScope());
-                tc->sc->flags |= TCF_HAS_FUNCTION_STMT;
+                if (hasFunctionStmt)
+                    *hasFunctionStmt = true;
             }
         }
         pn->append(next);
@@ -4086,14 +4089,11 @@ Parser::statement()
 
       case TOK_LC:
       {
-        unsigned oldflags;
-
-        oldflags = tc->sc->flags;
-        tc->sc->flags = oldflags & ~TCF_HAS_FUNCTION_STMT;
         StmtInfo stmtInfo(context);
         if (!PushBlocklikeStatement(&stmtInfo, STMT_BLOCK, tc->sc))
             return NULL;
-        pn = statements();
+        bool hasFunctionStmt;
+        pn = statements(&hasFunctionStmt);
         if (!pn)
             return NULL;
 
@@ -4104,11 +4104,9 @@ Parser::statement()
 
 
 
-        if ((tc->sc->flags & TCF_HAS_FUNCTION_STMT) &&
-            (!tc->sc->topStmt || tc->sc->topStmt->type == STMT_BLOCK)) {
+        if (hasFunctionStmt && (!tc->sc->topStmt || tc->sc->topStmt->type == STMT_BLOCK))
             pn->pn_xflags |= PNX_NEEDBRACES;
-        }
-        tc->sc->flags = oldflags | (tc->sc->flags & TCF_FUN_FLAGS);
+
         return pn;
       }
 
