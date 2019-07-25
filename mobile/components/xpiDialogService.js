@@ -53,7 +53,20 @@ XPInstallDialogService.prototype = {
 
   confirmInstall: function(aParent, aPackages, aCount) {
     
-    return true;
+    let wm = Cc["@mozilla.org/appshell/window-mediator;1"].getService(Ci.nsIWindowMediator);
+    let browser = wm.getMostRecentWindow("navigator:browser");
+    if (browser.ExtensionsView.visible)
+      return true;
+    
+    let bundleService = Cc["@mozilla.org/intl/stringbundle;1"].getService(Ci.nsIStringBundleService);
+    let bundle = bundleService.createBundle("chrome://browser/locale/browser.properties");
+    let prompt = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
+
+    let flags = prompt.BUTTON_POS_0 * prompt.BUTTON_TITLE_IS_STRING + prompt.BUTTON_POS_1 * prompt.BUTTON_TITLE_CANCEL;
+    let title = bundle.GetStringFromName("addonsConfirmInstall.title");
+    let button = bundle.GetStringFromName("addonsConfirmInstall.install");
+
+    return prompt.confirmEx(null, title, aPackages[0], flags, button, null, null, null, {value: false}) == 0;
   },
 
   openProgressDialog: function(aPackages, aCount, aManager) {
