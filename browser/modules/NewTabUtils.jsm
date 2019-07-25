@@ -16,6 +16,9 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
   "resource://gre/modules/PlacesUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "PageThumbs",
+  "resource:///modules/PageThumbs.jsm");
+
 XPCOMUtils.defineLazyGetter(this, "gPrincipal", function () {
   let uri = Services.io.newURI("about:newtab", null, null);
   return Services.scriptSecurityManager.getNoAppCodebasePrincipal(uri);
@@ -611,8 +614,6 @@ let Telemetry = {
   }
 };
 
-Telemetry.init();
-
 
 
 
@@ -644,10 +645,46 @@ let LinkChecker = {
   }
 };
 
+let ExpirationFilter = {
+  init: function ExpirationFilter_init() {
+    PageThumbs.addExpirationFilter(this);
+  },
+
+  filterForThumbnailExpiration:
+  function ExpirationFilter_filterForThumbnailExpiration(aCallback) {
+    if (!AllPages.enabled) {
+      aCallback([]);
+      return;
+    }
+
+    Links.populateCache(function () {
+      let urls = [];
+
+      
+      for (let link of Links.getLinks().slice(0, 25)) {
+        if (link && link.url)
+          urls.push(link.url);
+      }
+
+      aCallback(urls);
+    });
+  }
+};
+
 
 
 
 let NewTabUtils = {
+  _initialized: false,
+
+  init: function NewTabUtils_init() {
+    if (!this._initialized) {
+      this._initialized = true;
+      ExpirationFilter.init();
+      Telemetry.init();
+    }
+  },
+
   
 
 
