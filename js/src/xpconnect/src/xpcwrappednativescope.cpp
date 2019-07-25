@@ -693,6 +693,12 @@ XPCWrappedNativeScope::SystemIsBeingShutDown(JSContext* cx)
         if(cur->mComponents)
             cur->mComponents->SystemIsBeingShutDown();
 
+        JSAutoEnterCompartment ac;
+
+        
+        if (cur->mGlobalJSObject)
+            ac.enter(cx, cur->mGlobalJSObject);
+
         
         
         cur->mWrappedNativeProtoMap->

@@ -209,6 +209,10 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar * aURL
 
     
     
+    JSObject *result_obj = target_obj;
+
+    
+    
     if (JSObjectOp op = target_obj->getClass()->ext.innerObject)
     {
         target_obj = op(cx, target_obj);
@@ -383,6 +387,14 @@ mozJSSubScriptLoader::LoadSubScript (const PRUnichar * aURL
         ok = JS_EvaluateScriptForPrincipals (cx, target_obj, jsPrincipals,
                                              buf, len, uriStr.get(), 1, rval);
     }
+
+    {
+        JSAutoEnterCompartment rac;
+
+        if (!rac.enter(cx, result_obj) || !JS_WrapValue(cx, rval))
+            return NS_ERROR_UNEXPECTED; 
+    }
+
     
     JS_SetErrorReporter (cx, er);
 
