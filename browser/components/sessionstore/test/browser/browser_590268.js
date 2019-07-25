@@ -54,6 +54,7 @@ function test() {
   
   let wasLoaded = { };
   let restoringTabsCount = 0;
+  let restoredTabsCount = 0;
   let uniq2 = { };
   let uniq2Count = 0;
   let state = { windows: [{ tabs: [] }] };
@@ -80,6 +81,12 @@ function test() {
       onFirstSSTabRestoring();
     else if (restoringTabsCount == NUM_TABS)
       onLastSSTabRestoring();
+  }
+
+  function onSSTabRestored(aEvent) {
+    if (++restoredTabsCount < NUM_TABS)
+      return;
+    cleanup();
   }
 
   
@@ -120,12 +127,12 @@ function test() {
       }
     }
     is(checked, uniq2Count, "checked the same number of uniq2 as we set");
-    cleanup();
   }
 
   function cleanup() {
     
     gBrowser.tabContainer.removeEventListener("SSTabRestoring", onSSTabRestoring, false);
+    gBrowser.tabContainer.removeEventListener("SSTabRestored", onSSTabRestored, true);
     
     
     
@@ -137,6 +144,7 @@ function test() {
 
   
   gBrowser.tabContainer.addEventListener("SSTabRestoring", onSSTabRestoring, false);
+  gBrowser.tabContainer.addEventListener("SSTabRestored", onSSTabRestored, true);
   
   ss.setBrowserState(JSON.stringify(state));
 }

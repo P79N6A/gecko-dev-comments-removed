@@ -2699,6 +2699,11 @@ SessionStoreService.prototype = {
     if (tabData.userTypedValue) {
       browser.userTypedValue = tabData.userTypedValue;
       if (tabData.userTypedClear) {
+        
+        
+        
+        browser.__SS_restore_data = { url: null };
+        browser.__SS_restore_tab = aTab;
         didStartLoad = true;
         browser.loadURI(tabData.userTypedValue, null, null, true);
       }
@@ -2706,8 +2711,11 @@ SessionStoreService.prototype = {
 
     
     
-    if (!didStartLoad)
+    
+    if (!didStartLoad) {
+      this._sendTabRestoredNotification(aTab);
       this._resetTabRestoringState(aTab);
+    }
 
     return didStartLoad;
   },
@@ -2962,12 +2970,10 @@ SessionStoreService.prototype = {
       var content = aEvent.originalTarget.defaultView;
       restoreTextDataAndScrolling(content, aBrowser.__SS_restore_data, "");
       aBrowser.markupDocumentViewer.authorStyleDisabled = selectedPageStyle == "_nostyle";
-
-      
-      var event = aBrowser.ownerDocument.createEvent("Events");
-      event.initEvent("SSTabRestored", true, false);
-      aBrowser.__SS_restore_tab.dispatchEvent(event);
     }
+
+    
+    this._sendTabRestoredNotification(aBrowser.__SS_restore_tab);
 
     delete aBrowser.__SS_restore_data;
     delete aBrowser.__SS_restore_pageStyle;
@@ -3633,6 +3639,16 @@ SessionStoreService.prototype = {
         this._browserSetState = false;
       }
     }
+  },
+
+  
+
+
+
+  _sendTabRestoredNotification: function sss__sendTabRestoredNotification(aTab) {
+      let event = aTab.ownerDocument.createEvent("Events");
+      event.initEvent("SSTabRestored", true, false);
+      aTab.dispatchEvent(event);
   },
 
   

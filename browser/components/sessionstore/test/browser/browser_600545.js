@@ -62,18 +62,18 @@ function testBug600545() {
 
   
   function waitForBrowserState(aState, aSetStateCallback) {
-    let locationChanges = 0;
-    let tabsRestored = getStateTabCount(aState);
+    let tabsRestored = 0;
+    let expectedTabs = getStateTabCount(aState);
 
     
-    let progressListener = {
-      onLocationChange: function (aBrowser) {
-        if (++locationChanges == tabsRestored) {
-          
-          
-          window.gBrowser.removeTabsProgressListener(this);
-          executeSoon(aSetStateCallback);
-        }
+    let newWin;
+
+    
+    function onTabRestored(aEvent) {
+      if (++tabsRestored == expectedTabs) {
+        gBrowser.tabContainer.removeEventListener("SSTabRestored", onTabRestored, true);
+        newWin.gBrowser.tabContainer.removeEventListener("SSTabRestored", onTabRestored, true);
+        executeSoon(aSetStateCallback);
       }
     }
 
@@ -84,14 +84,17 @@ function testBug600545() {
         theWin.addEventListener("load", function() {
           theWin.removeEventListener("load", arguments.callee, false);
 
+          
+          newWin = theWin;
+
           Services.ww.unregisterNotification(windowObserver);
-          theWin.gBrowser.addTabsProgressListener(progressListener);
+          theWin.gBrowser.tabContainer.addEventListener("SSTabRestored", onTabRestored, true);
         }, false);
       }
     }
 
     Services.ww.registerNotification(windowObserver);
-    window.gBrowser.addTabsProgressListener(progressListener);
+    gBrowser.tabContainer.addEventListener("SSTabRestored", onTabRestored, true);
     ss.setBrowserState(JSON.stringify(aState));
   }
 
