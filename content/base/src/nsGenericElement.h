@@ -713,10 +713,12 @@ protected:
 
 
 
+
   
   
   virtual nsresult BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
-                                 const nsAString* aValue, bool aNotify)
+                                 const nsAttrValueOrString* aValue,
+                                 bool aNotify)
   {
     return NS_OK;
   }
