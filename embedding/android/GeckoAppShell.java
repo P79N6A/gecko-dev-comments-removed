@@ -1834,4 +1834,7 @@ public class GeckoAppShell
     
     public static void showFilePickerAsync(String aMimeType, long id) {
     }
+
+    public static void notifyWakeLockChanged(String topic, String state) {
+    }
 }
