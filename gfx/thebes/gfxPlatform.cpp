@@ -59,6 +59,10 @@
 #include "GLContext.h"
 #include "GLContextProvider.h"
 
+#ifdef MOZ_WIDGET_ANDROID
+#include "TexturePoolOGL.h"
+#endif
+
 #include "mozilla/FunctionTimer.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Assertions.h"
@@ -335,6 +339,11 @@ gfxPlatform::Init()
 
     gPlatform->mWorkAroundDriverBugs = Preferences::GetBool("gfx.work-around-driver-bugs", true);
 
+#ifdef MOZ_WIDGET_ANDROID
+    
+    mozilla::gl::TexturePoolOGL::Init();
+#endif
+
     
     
     nsCOMPtr<nsISupports> forceReg
@@ -370,6 +379,11 @@ gfxPlatform::Shutdown()
         Preferences::RemoveObservers(gPlatform->mFontPrefsObserver, kObservedPrefs);
         gPlatform->mFontPrefsObserver = nsnull;
     }
+
+#ifdef MOZ_WIDGET_ANDROID
+    
+    mozilla::gl::TexturePoolOGL::Shutdown();
+#endif
 
     
     mozilla::gl::GLContextProvider::Shutdown();

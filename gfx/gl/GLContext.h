@@ -23,6 +23,7 @@
 #include "gfxImageSurface.h"
 #include "gfxContext.h"
 #include "gfxRect.h"
+#include "gfx3DMatrix.h"
 #include "nsISupportsImpl.h"
 #include "prlink.h"
 
@@ -51,6 +52,7 @@ typedef uintptr_t SharedTextureHandle;
 
 enum ShaderProgramType {
     RGBALayerProgramType,
+    RGBALayerExternalProgramType,
     BGRALayerProgramType,
     RGBXLayerProgramType,
     BGRXLayerProgramType,
@@ -856,10 +858,26 @@ public:
         return IsExtensionSupported(EXT_framebuffer_blit) || IsExtensionSupported(ANGLE_framebuffer_blit);
     }
 
+    enum SharedTextureBufferType {
+        TextureID
+#ifdef MOZ_WIDGET_ANDROID
+        , SurfaceTexture
+#endif
+    };
+
     
 
 
     virtual SharedTextureHandle CreateSharedHandle(TextureImage::TextureShareType aType) { return 0; }
+    
+
+
+
+
+
+    virtual SharedTextureHandle CreateSharedHandle(TextureImage::TextureShareType aType,
+                                                   void* aBuffer,
+                                                   SharedTextureBufferType aBufferType) { return nsnull; }
     
 
 
@@ -882,12 +900,28 @@ public:
 
     virtual void ReleaseSharedHandle(TextureImage::TextureShareType aType,
                                      SharedTextureHandle aSharedHandle) { }
+
+
+    typedef struct {
+        GLenum mTarget;
+        ShaderProgramType mProgramType;
+        gfx3DMatrix mTextureTransform;
+    } SharedHandleDetails;
+
+    
+
+
+
+    virtual bool GetSharedHandleDetails(TextureImage::TextureShareType aType,
+                                        SharedTextureHandle aSharedHandle,
+                                        SharedHandleDetails& aDetails) { return false; }
     
 
 
 
     virtual bool AttachSharedHandle(TextureImage::TextureShareType aType,
                                     SharedTextureHandle aSharedHandle) { return false; }
+
     
 
 
