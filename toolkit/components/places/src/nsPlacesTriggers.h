@@ -77,12 +77,16 @@
 
 
 
+
+
+
+
 #define CREATE_PLACES_VIEW_INSERT_TRIGGER NS_LITERAL_CSTRING( \
   "CREATE TEMPORARY TRIGGER moz_places_view_insert_trigger " \
   "INSTEAD OF INSERT " \
   "ON moz_places_view " \
   "BEGIN " \
-    "INSERT INTO moz_places_temp (" MOZ_PLACES_COLUMNS ") " \
+    "INSERT OR IGNORE INTO moz_places_temp (" MOZ_PLACES_COLUMNS ") " \
     "VALUES (MAX(IFNULL((SELECT MAX(id) FROM moz_places_temp), 0), " \
                 "IFNULL((SELECT MAX(id) FROM moz_places), 0)) + 1," \
             "NEW.url, NEW.title, NEW.rev_host, " \
