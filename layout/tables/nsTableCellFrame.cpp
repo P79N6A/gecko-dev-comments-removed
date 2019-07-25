@@ -255,7 +255,10 @@ nsTableCellFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     PRInt32 colIndex, rowIndex;
     GetColIndex(colIndex);
     GetRowIndex(rowIndex);
-    nsRect damageArea(colIndex, rowIndex, GetColSpan(), GetRowSpan());
+    
+    
+    nsRect damageArea(colIndex, rowIndex, GetColSpan(), NS_MIN(GetRowSpan(),
+                      tableFrame->GetRowCount() - rowIndex));
     tableFrame->AddBCDamageArea(damageArea);
   }
 }
