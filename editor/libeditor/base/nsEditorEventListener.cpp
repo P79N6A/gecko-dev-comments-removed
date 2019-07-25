@@ -819,12 +819,11 @@ nsEditorEventListener::CanDrop(nsIDOMDragEvent* aEvent)
   
   
 
-  nsCOMPtr<nsIDOMDocument> domdoc;
-  nsresult rv = mEditor->GetDocument(getter_AddRefs(domdoc));
-  NS_ENSURE_SUCCESS(rv, false);
+  nsCOMPtr<nsIDOMDocument> domdoc = mEditor->GetDOMDocument();
+  NS_ENSURE_TRUE(domdoc, false);
 
   nsCOMPtr<nsIDOMDocument> sourceDoc;
-  rv = sourceNode->GetOwnerDocument(getter_AddRefs(sourceDoc));
+  nsresult rv = sourceNode->GetOwnerDocument(getter_AddRefs(sourceDoc));
   NS_ENSURE_SUCCESS(rv, false);
   if (domdoc == sourceDoc)      
   {

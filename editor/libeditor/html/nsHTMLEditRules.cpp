@@ -347,9 +347,8 @@ nsHTMLEditRules::BeforeEdit(PRInt32 action, nsIEditor::EDirection aDirection)
     }
 
     
-    nsCOMPtr<nsIDOMDocument> doc;
-    res = mHTMLEditor->GetDocument(getter_AddRefs(doc));
-    NS_ENSURE_SUCCESS(res, res);
+    nsCOMPtr<nsIDOMDocument> doc = mHTMLEditor->GetDOMDocument();
+    NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
     nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(doc);
     NS_ENSURE_TRUE(htmlDoc, NS_ERROR_FAILURE);
     if (htmlDoc->GetEditingState() == nsIHTMLDocument::eContentEditable) {
@@ -385,9 +384,8 @@ nsHTMLEditRules::AfterEdit(PRInt32 action, nsIEditor::EDirection aDirection)
 
     
     if (mRestoreContentEditableCount) {
-      nsCOMPtr<nsIDOMDocument> doc;
-      res = mHTMLEditor->GetDocument(getter_AddRefs(doc));
-      NS_ENSURE_SUCCESS(res, res);
+      nsCOMPtr<nsIDOMDocument> doc = mHTMLEditor->GetDOMDocument();
+      NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
       nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(doc);
       NS_ENSURE_TRUE(htmlDoc, NS_ERROR_FAILURE);
       if (htmlDoc->GetEditingState() == nsIHTMLDocument::eContentEditable) {
@@ -1261,10 +1259,8 @@ nsHTMLEditRules::WillInsert(nsISelection *aSelection, bool *aCancel)
   }
 
   
-  nsCOMPtr<nsIDOMDocument>doc;
-  res = mHTMLEditor->GetDocument(getter_AddRefs(doc));
-  NS_ENSURE_SUCCESS(res, res);
-  NS_ENSURE_TRUE(doc, NS_ERROR_NULL_POINTER);
+  nsCOMPtr<nsIDOMDocument> doc = mHTMLEditor->GetDOMDocument();
+  NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
     
   
   return CreateStyleForInsertText(aSelection, doc);
@@ -1336,10 +1332,8 @@ nsHTMLEditRules::WillInsertText(PRInt32          aAction,
     return NS_ERROR_FAILURE;
 
   
-  nsCOMPtr<nsIDOMDocument>doc;
-  res = mHTMLEditor->GetDocument(getter_AddRefs(doc));
-  NS_ENSURE_SUCCESS(res, res);
-  NS_ENSURE_TRUE(doc, NS_ERROR_NULL_POINTER);
+  nsCOMPtr<nsIDOMDocument> doc = mHTMLEditor->GetDOMDocument();
+  NS_ENSURE_TRUE(doc, NS_ERROR_NOT_INITIALIZED);
     
   if (aAction == kInsertTextIME) 
   { 

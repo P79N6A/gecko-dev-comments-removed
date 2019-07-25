@@ -153,6 +153,8 @@ public:
                                            nsIEditor)
 
   
+  already_AddRefed<nsIDOMDocument> GetDOMDocument();
+  already_AddRefed<nsIDocument> GetDocument();
   already_AddRefed<nsIPresShell> GetPresShell();
   void NotifyEditorObservers();
 
