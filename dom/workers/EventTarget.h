@@ -47,6 +47,8 @@ BEGIN_WORKERS_NAMESPACE
 
 namespace events {
 
+
+
 class EventTarget : public PrivatizableBase
 {
   ListenerManager mListenerManager;

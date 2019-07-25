@@ -70,6 +70,9 @@ UpdateXHRState(JSContext* aCx, JSObject* aObj, bool aIsUpload,
 
 } 
 
+bool
+ClassIsXMLHttpRequest(JSClass* aClass);
+
 END_WORKERS_NAMESPACE
 
 #endif 
