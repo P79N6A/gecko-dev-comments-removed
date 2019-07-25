@@ -225,16 +225,18 @@ SyncEngine.prototype = {
       return null;
     if (url[url.length-1] != '/')
       url += '/';
-    url += "0.3/user/";
+    url += "0.5/";
     return url;
   },
 
   get engineURL() {
-    return this.baseURL + ID.get('WeaveID').username + '/' + this.name + '/';
+    return this.baseURL + ID.get('WeaveID').username +
+      '/storage/' + this.name + '/';
   },
 
   get cryptoMetaURL() {
-    return this.baseURL + ID.get('WeaveID').username + '/crypto/' + this.name;
+    return this.baseURL + ID.get('WeaveID').username +
+      '/storage/crypto/' + this.name;
   },
 
   get lastSync() {
@@ -270,7 +272,9 @@ SyncEngine.prototype = {
       meta.generateIV();
       meta.addUnwrappedKey(pubkey, symkey);
       let res = new Resource(meta.uri);
-      res.put(meta.serialize());
+      let resp = res.put(meta.serialize());
+      if (!resp.success)
+        throw resp;
 
       
       CryptoMetas.set(meta.uri, meta);
@@ -331,7 +335,9 @@ SyncEngine.prototype = {
       Sync.sleep(0);
     });
 
-    newitems.get();
+    let resp = newitems.get();
+    if (!resp.success)
+      throw resp;
 
     if (this.lastSync < this._lastSyncTmp)
         this.lastSync = this._lastSyncTmp;
@@ -393,6 +399,9 @@ SyncEngine.prototype = {
   
   
   _reconcile: function SyncEngine__reconcile(item) {
+    if (this._log.level <= Log4Moz.Level.Trace)
+      this._log.trace("Incoming: " + item);
+
     
     
     this._log.trace("Reconcile step 1");
@@ -437,8 +446,6 @@ SyncEngine.prototype = {
 
   
   _applyIncoming: function SyncEngine__applyIncoming(item) {
-    if (this._log.level <= Log4Moz.Level.Trace)
-      this._log.trace("Incoming: " + item);
     try {
       this._tracker.ignoreAll = true;
       this._store.applyIncoming(item);
@@ -463,9 +470,15 @@ SyncEngine.prototype = {
       
       let doUpload = Utils.bind2(this, function(desc) {
         this._log.info("Uploading " + desc + " of " + outnum + " records");
-        up.post();
-        if (up.data.modified > this.lastSync)
-          this.lastSync = up.data.modified;
+        let resp = up.post();
+        if (!resp.success)
+          throw resp;
+
+        
+        let modified = resp.headers["X-Weave-Timestamp"];
+        if (modified > this.lastSync)
+          this.lastSync = modified;
+
         up.clearRecords();
       });
 
