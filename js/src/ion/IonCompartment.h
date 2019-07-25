@@ -185,6 +185,13 @@ class BailoutClosure;
 
 class IonActivation
 {
+  public:
+    enum Kind {
+        FUNCTION,
+        OSR
+    };
+
+  private:
     JSContext *cx_;
     JSCompartment *compartment_;
     IonActivation *prev_;
@@ -193,9 +200,10 @@ class IonActivation
     uint8 *prevIonTop_;
     JSContext *prevIonJSContext_;
     JSObject *savedEnumerators_;
+    Kind kind_;
 
   public:
-    IonActivation(JSContext *cx, StackFrame *fp);
+    IonActivation(JSContext *cx, StackFrame *fp, IonActivation::Kind kind);
     ~IonActivation();
 
     StackFrame *entryfp() const {
@@ -233,10 +241,13 @@ class IonActivation
     void updateSavedEnumerators(JSObject *obj) {
         savedEnumerators_ = obj;
     }
+    Kind kind() const {
+        return kind_;
+    }
 };
 
 } 
 } 
 
-#endif 
+#endif
 
