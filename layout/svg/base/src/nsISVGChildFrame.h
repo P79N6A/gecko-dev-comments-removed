@@ -106,11 +106,6 @@ public:
   NS_IMETHOD NotifyRedrawUnsuspended()=0;
 
   
-  
-  NS_IMETHOD SetMatrixPropagation(PRBool aPropagate)=0;
-  virtual PRBool GetMatrixPropagation()=0;
-
-  
 
 
 
