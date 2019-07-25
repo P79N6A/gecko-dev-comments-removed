@@ -528,6 +528,14 @@ public:
   
 
 
+
+
+
+  bool GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsIURI** aURI) const;
+
+  
+
+
   virtual bool IsDisabled() const {
     return false;
   }
@@ -704,14 +712,6 @@ protected:
 
 
   NS_HIDDEN_(nsresult) SetDoubleAttr(nsIAtom* aAttr, double aValue);
-
-  
-
-
-
-
-
-  NS_HIDDEN_(bool) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsIURI** aURI) const;
 
   
 

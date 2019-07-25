@@ -42,6 +42,8 @@
 #include "nsBaseWidgetAccessible.h"
 #include "nsIAccessibleImage.h"
 
+class nsGenericHTMLElement;
+
 
 
 
@@ -76,10 +78,17 @@ private:
   
 
 
+  bool HasLongDesc() const
+  {
+    nsCOMPtr<nsIURI> uri = GetLongDescURI();
+    return uri;
+  }
 
-
-  bool HasLongDesc();
   
+
+
+  already_AddRefed<nsIURI> GetLongDescURI() const;
+
   
 
 
@@ -89,8 +98,12 @@ private:
 
 
 
-  bool IsValidLongDescIndex(PRUint8 aIndex);
+
+
+  inline bool IsLongDescIndex(PRUint8 aIndex);
+
 };
+
 
 
 
