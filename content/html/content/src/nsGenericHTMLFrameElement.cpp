@@ -14,7 +14,6 @@
 #include "nsWeakPtr.h"
 #include "nsVariant.h"
 #include "nsContentUtils.h"
-#include "nsDOMMemoryReporter.h"
 #include "nsEventDispatcher.h"
 #include "nsContentUtils.h"
 #include "nsAsyncDOMEvent.h"
@@ -30,9 +29,10 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsGenericHTMLFrameElement,
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_TABLE_HEAD(nsGenericHTMLFrameElement)
-  NS_INTERFACE_TABLE_INHERITED3(nsGenericHTMLFrameElement,
+  NS_INTERFACE_TABLE_INHERITED4(nsGenericHTMLFrameElement,
                                 nsIFrameLoaderOwner,
                                 nsIDOMMozBrowserFrame,
+                                nsIMozBrowserFrame,
                                 nsIWebProgressListener)
   NS_INTERFACE_TABLE_TO_MAP_SEGUE_CYCLE_COLLECTION(nsGenericHTMLFrameElement)
 NS_INTERFACE_MAP_END_INHERITING(nsGenericHTMLElement)
@@ -299,7 +299,7 @@ nsGenericHTMLFrameElement::MaybeEnsureBrowserFrameListenersRegistered()
 
   
   
-  if (!BrowserFrameSecurityCheck()) {
+  if (!GetReallyIsBrowser()) {
     return;
   }
 
@@ -352,7 +352,7 @@ nsGenericHTMLFrameElement::MaybeEnsureBrowserFrameListenersRegistered()
 
 
 bool
-nsGenericHTMLFrameElement::BrowserFrameSecurityCheck()
+nsGenericHTMLFrameElement::GetReallyIsBrowser()
 {
   
   if (!Preferences::GetBool("dom.mozBrowserFramesEnabled")) {
@@ -379,6 +379,13 @@ nsGenericHTMLFrameElement::BrowserFrameSecurityCheck()
   return true;
 }
 
+NS_IMETHODIMP
+nsGenericHTMLFrameElement::GetReallyIsBrowser(bool *aResult)
+{
+  *aResult = GetReallyIsBrowser();
+  return NS_OK;
+}
+
 
 
 
@@ -400,7 +407,7 @@ nsGenericHTMLFrameElement::MaybeFireBrowserEvent(
   MOZ_ASSERT_IF(aEventType.EqualsLiteral("event"),
                 aValue.IsEmpty());
 
-  if (!BrowserFrameSecurityCheck()) {
+  if (!GetReallyIsBrowser()) {
     return NS_OK;
   }
 
