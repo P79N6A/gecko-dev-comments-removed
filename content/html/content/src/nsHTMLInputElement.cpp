@@ -1627,8 +1627,7 @@ nsHTMLInputElement::NeedToInitializeEditorForEvent(nsEventChainPreVisitor& aVisi
   
   
   
-  if ((mType == NS_FORM_INPUT_TEXT ||
-       mType == NS_FORM_INPUT_PASSWORD) &&
+  if (IsSingleLineTextControl(PR_FALSE) &&
       aVisitor.mEvent->eventStructType != NS_MUTATION_EVENT) {
 
     switch (aVisitor.mEvent->message) {
