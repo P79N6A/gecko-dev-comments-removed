@@ -1028,14 +1028,11 @@ WeaveSvc.prototype = {
     
     if (interval == null) {
       
-      if (this.status.backoffInterval != 0)
-        interval = this.status.backoffInterval;
-      
-      else if (this.nextSync != 0)
+      if (this.nextSync != 0)
         interval = this.nextSync - Date.now();
       
       else 
-        interval = this.syncInterval;
+        interval = Math.max(this.syncInterval, this.status.backoffInterval);
     }
 
     
