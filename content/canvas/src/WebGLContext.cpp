@@ -528,13 +528,13 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     }
 
     
-    
-    if (gl &&
-        gl->ResizeOffscreen(gfxIntSize(width, height)))
-    {
+    if (gl) {
+        gl->ResizeOffscreen(gfxIntSize(width, height)); 
         
-        mWidth = width;
-        mHeight = height;
+
+        
+        mWidth = gl->OffscreenActualSize().width;
+        mHeight = gl->OffscreenActualSize().height;
         mResetLayer = true;
         return NS_OK;
     }

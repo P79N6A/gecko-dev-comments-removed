@@ -400,10 +400,44 @@ GLContextWGL::UnbindTex2DOffscreen(GLContext *aOffscreen)
     }
 }
 
+
+static bool
+GetMaxSize(HDC hDC, int format, gfxIntSize& size)
+{
+    int query[] = {LOCAL_WGL_MAX_PBUFFER_WIDTH_ARB, LOCAL_WGL_MAX_PBUFFER_HEIGHT_ARB};
+    int result[2];
+
+    
+    if (!sWGLLibrary.fGetPixelFormatAttribiv(hDC, format, 0, 2, query, result))
+        return false;
+
+    size.width = result[0];
+    size.height = result[1];
+    return true;
+}
+
+static bool
+IsValidSizeForFormat(HDC hDC, int format, const gfxIntSize& requested)
+{
+    gfxIntSize max;
+    if (!GetMaxSize(hDC, format, max))
+        return true;
+
+    if (requested.width > max.width)
+        return false;
+    if (requested.height > max.height)
+        return false;
+
+    return true;
+}
+
 bool
 GLContextWGL::ResizeOffscreen(const gfxIntSize& aNewSize)
 {
     if (mPBuffer) {
+        if (!IsValidSizeForFormat(gSharedWindowDC, mPixelFormat, aNewSize))
+            return false;
+
         int pbattrs[] = {
             LOCAL_WGL_TEXTURE_FORMAT_ARB,
               mCreationFormat.alpha > 0 ? LOCAL_WGL_TEXTURE_RGBA_ARB
@@ -544,6 +578,9 @@ CreatePBufferOffscreenContext(const gfxIntSize& aSize,
 
     
     int chosenFormat = formats[0];
+
+    if (!IsValidSizeForFormat(gSharedWindowDC, chosenFormat, aSize))
+        return nsnull;
 
     HANDLE pbuffer = sWGLLibrary.fCreatePbuffer(gSharedWindowDC, chosenFormat,
                                                 aSize.width, aSize.height,
