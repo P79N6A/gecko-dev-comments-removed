@@ -271,6 +271,7 @@ class ProtocolType(IPDLType):
         self.manages = [ ]
         self.stateless = stateless
         self.hasDelete = False
+        self.hasReentrantDelete = False
     def isProtocol(self): return True
 
     def name(self):
@@ -827,6 +828,8 @@ class GatherDecls(TcheckVisitor):
                 "destructor declaration `%s(...)' required for managed protocol `%s'",
                 _DELETE_MSG, p.name)
 
+        p.decl.type.hasReentrantDelete = p.decl.type.hasDelete and self.symtab.lookup(_DELETE_MSG).type.isRpc()
+
         for managed in p.managesStmts:
             mgdname = managed.name
             ctordecl = self.symtab.lookup(mgdname +'Constructor')
@@ -852,6 +855,10 @@ class GatherDecls(TcheckVisitor):
         self.declare(loc=State.DEAD.loc,
                      type=StateType(p.decl.type, State.DEAD.name, start=False),
                      progname=State.DEAD.name)
+        if p.decl.type.hasReentrantDelete:
+            self.declare(loc=State.DYING.loc,
+                         type=StateType(p.decl.type, State.DYING.name, start=False),
+                         progname=State.DYING.name)
 
         
         for trans in p.transitionStmts:
@@ -871,6 +878,9 @@ class GatherDecls(TcheckVisitor):
             
             deadtrans = TransitionStmt.makeNullStmt(State.DEAD)
             p.states[State.DEAD] = deadtrans           
+            if p.decl.type.hasReentrantDelete:
+                dyingtrans = TransitionStmt.makeNullStmt(State.DYING)
+                p.states[State.DYING] = dyingtrans
 
         
         

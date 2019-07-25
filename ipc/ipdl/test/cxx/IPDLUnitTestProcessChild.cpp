@@ -3,12 +3,12 @@
 
 
 
-#include "nsRegion.h"
-
 #include "mozilla/ipc/IOThreadChild.h"
 
 #include "IPDLUnitTestProcessChild.h"
 #include "IPDLUnitTests.h"
+
+#include "nsRegion.h"
 
 using mozilla::ipc::IOThreadChild;
 
