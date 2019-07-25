@@ -236,7 +236,7 @@ private:
 
 
 class nsHTMLSelectElement : public nsGenericHTMLFormElement,
-                            public nsIDOMHTMLSelectElement,
+                            public nsIDOMHTMLSelectElement_Mozilla_2_0_Branch,
                             public nsISelectElement,
                             public nsIConstraintValidation
 {
@@ -261,6 +261,9 @@ public:
 
   
   NS_DECL_NSIDOMHTMLSELECTELEMENT
+
+  
+  NS_DECL_NSIDOMHTMLSELECTELEMENT_MOZILLA_2_0_BRANCH
 
   
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
