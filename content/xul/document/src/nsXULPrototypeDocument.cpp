@@ -723,8 +723,7 @@ nsXULPDGlobalObject::EnsureScriptEnvironment(PRUint32 lang_id)
                                         getter_AddRefs(languageRuntime));
   NS_ENSURE_SUCCESS(rv, NS_OK);
 
-  nsCOMPtr<nsIScriptContext> ctxNew;
-  rv = languageRuntime->CreateContext(getter_AddRefs(ctxNew));
+  nsCOMPtr<nsIScriptContext> ctxNew = languageRuntime->CreateContext();
   
   
   
