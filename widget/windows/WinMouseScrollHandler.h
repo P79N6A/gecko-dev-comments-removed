@@ -35,13 +35,6 @@ public:
                              LRESULT *aRetValue,
                              bool &aEatMessage);
 
-  
-
-
-
-
-  static nsModifierKeyState GetModifierKeyState();
-
 private:
   MouseScrollHandler();
   ~MouseScrollHandler();
@@ -55,7 +48,27 @@ private:
 
   static bool DispatchEvent(nsWindow* aWindow, nsGUIEvent& aEvent);
 
-public:
+  
+
+
+
+
+  static nsModifierKeyState GetModifierKeyState();
+
+  
+
+
+
+
+
+
+
+
+
+  void HandleMouseWheelMessage(nsWindow* aWindow,
+                               UINT aMessage,
+                               WPARAM aWParam,
+                               LPARAM aLParam);
 
   class EventInfo;
   
@@ -101,11 +114,6 @@ public:
     bool IsVertical() const { return mIsVertical; }
     bool IsPositive() const { return (mDelta > 0); }
     bool IsPage() const { return mIsPage; }
-
-    LRESULT ComputeMessageResult(bool aWeProcessed) const
-    {
-      return IsVertical() ? !aWeProcessed : aWeProcessed;
-    }
 
     
 
@@ -208,12 +216,8 @@ public:
     PRInt32 mRemainingDeltaForPixel;
   };
 
-  LastEventInfo& GetLastEventInfo() { return mLastEventInfo; }
-
-private:
   LastEventInfo mLastEventInfo;
 
-public:
   class SystemSettings {
   public:
     SystemSettings() : mInitialized(false) {}
@@ -240,12 +244,6 @@ public:
     PRInt32 mScrollChars;
   };
 
-  SystemSettings& GetSystemSettings()
-  {
-    return mSystemSettings;
-  }
-
-private:
   SystemSettings mSystemSettings;
 
 public:

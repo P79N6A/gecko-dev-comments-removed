@@ -5221,21 +5221,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     
     return true;
 
-  case MOZ_WM_MOUSEVWHEEL:
-  case MOZ_WM_MOUSEHWHEEL:
-    {
-      UINT nativeMessage = WinUtils::GetNativeMessage(msg);
-      
-      
-      
-      
-      
-      
-      OnMouseWheelInternal(nativeMessage, wParam, lParam, aRetValue);
-      
-      return true;
-    }
-
   case WM_DWMCOMPOSITIONCHANGED:
     
     
@@ -6256,67 +6241,6 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
   mGesture.CloseGestureInfoHandle((HGESTUREINFO)lParam);
 
   return true; 
-}
-
-
-
-
-
-
-void
-nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
-                               LRESULT *aRetValue)
-{
-  MouseScrollHandler* handler = MouseScrollHandler::GetInstance();
-  MouseScrollHandler::EventInfo eventInfo(this, aMessage, aWParam, aLParam);
-  if (!eventInfo.CanDispatchMouseScrollEvent()) {
-    handler->GetLastEventInfo().ResetTransaction();
-    *aRetValue = eventInfo.ComputeMessageResult(false);
-    return;
-  }
-
-  MouseScrollHandler::LastEventInfo& lastEventInfo =
-                                       handler->GetLastEventInfo();
-
-  
-  
-  
-  if (!lastEventInfo.CanContinueTransaction(eventInfo)) {
-    lastEventInfo.ResetTransaction();
-  }
-
-  lastEventInfo.RecordEvent(eventInfo);
-
-  
-  *aRetValue = eventInfo.ComputeMessageResult(true);
-
-  nsModifierKeyState modKeyState = MouseScrollHandler::GetModifierKeyState();
-
-  
-  
-  MouseScrollHandler::ScrollTargetInfo scrollTargetInfo =
-    handler->GetScrollTargetInfo(this, eventInfo, modKeyState);
-
-  nsMouseScrollEvent scrollEvent(true, NS_MOUSE_SCROLL, this);
-  if (lastEventInfo.InitMouseScrollEvent(this, scrollEvent,
-                                         scrollTargetInfo, modKeyState)) {
-    DispatchWindowEvent(&scrollEvent);
-    if (mOnDestroyCalled) {
-      lastEventInfo.ResetTransaction();
-      return;
-    }
-  }
-
-  nsMouseScrollEvent pixelEvent(true, NS_MOUSE_PIXEL_SCROLL, this);
-  if (lastEventInfo.InitMousePixelScrollEvent(this, pixelEvent,
-                                              scrollTargetInfo, modKeyState)) {
-    DispatchWindowEvent(&pixelEvent);
-    if (mOnDestroyCalled) {
-      lastEventInfo.ResetTransaction();
-      return;
-    }
-  }
-  return;
 }
 
 static bool
