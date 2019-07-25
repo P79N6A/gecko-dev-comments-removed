@@ -56,6 +56,9 @@ const Cu = Components.utils;
 const SCHEDULED_SYNC_INTERVAL = 60 * 1000 * 5; 
 
 
+const IDLE_TIME = 5; 
+
+
 
 
 const INITIAL_THRESHOLD = 75;
@@ -317,6 +320,8 @@ WeaveSvc.prototype = {
     Svc.Observer.addObserver(this, "network:offline-status-changed", true);
     Svc.Observer.addObserver(this, "private-browsing", true);
     Svc.Observer.addObserver(this, "quit-application", true);
+    Svc.Observer.addObserver(this, "weave:service:sync:finish", true);
+    Svc.Observer.addObserver(this, "weave:service:sync:error", true);
     FaultTolerance.Service; 
 
     if (!this.enabled)
@@ -334,7 +339,7 @@ WeaveSvc.prototype = {
     if (Svc.Prefs.get("autoconnect") && this.username) {
       try {
         if (this.login())
-          this.sync(true);
+          this.syncOnIdle();
       } catch (e) {}
     }
   },
@@ -423,22 +428,34 @@ WeaveSvc.prototype = {
           case "enabled":
           case "schedule":
             
-            this._checkSync();
+            this._checkSyncStatus();
             break;
         }
         break;
       case "network:offline-status-changed":
         
         this._log.debug("Network offline status change: " + data);
-        this._checkSync();
+        this._checkSyncStatus();
         break;
       case "private-browsing":
         
         this._log.debug("Private browsing change: " + data);
-        this._checkSync();
+        this._checkSyncStatus();
         break;
       case "quit-application":
         this._onQuitApplication();
+        break;
+      case "weave:service:sync:error":
+        this._handleSyncError();
+        break;
+      case "weave:service:sync:finish":
+        this._scheduleNextSync();
+        this._serverErrors = 0;
+        break;
+      case "idle":
+        this._log.debug("idle time hit, trying to sync");
+        Svc.Idle.removeIdleObserver(this, IDLE_TIME);
+        this.sync(false);
         break;
     }
   },
@@ -620,7 +637,7 @@ WeaveSvc.prototype = {
 
       
       this._loggedIn = true;
-      this._checkSync();
+      this._checkSyncStatus();
 
       return true;
     })))(),
@@ -633,7 +650,7 @@ WeaveSvc.prototype = {
     ID.get('WeaveCryptoID').setTempPassword(null); 
 
     
-    this._checkSync();
+    this._checkSyncStatus();
 
     Svc.Observer.notifyObservers(null, "weave:service:logout:finish", "");
   },
@@ -820,7 +837,6 @@ WeaveSvc.prototype = {
 
 
 
-
   _checkSync: function WeaveSvc__checkSync() {
     let reason = "";
     if (!this.enabled)
@@ -835,31 +851,114 @@ WeaveSvc.prototype = {
     else if (Svc.Prefs.get("schedule", 0) != 1)
       reason = kSyncNotScheduled;
 
+    return reason;
+  },
+
+  
+
+
+  _checkSyncStatus: function WeaveSvc__checkSyncStatus() {
     
-    if (reason) {
-      
+    if (this._checkSync()) {
       if (this._syncTimer) {
         this._syncTimer.cancel();
         this._syncTimer = null;
       }
-      this._log.config("Weave scheduler disabled: " + reason);
-    }
-    
-    else if (!this._syncTimer) {
-      this._syncTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      let listener = new Utils.EventListener(Utils.bind2(this,
-        function WeaveSvc__checkSyncCallback(timer) {
-          if (this.locked)
-            this._log.debug("Skipping scheduled sync: already locked for sync");
-          else
-            this.sync(false);
-        }));
-      this._syncTimer.initWithCallback(listener, SCHEDULED_SYNC_INTERVAL,
-                                       Ci.nsITimer.TYPE_REPEATING_SLACK);
-      this._log.config("Weave scheduler enabled");
+
+      try {
+        Svc.Idle.removeIdleObserver(this, IDLE_TIME);
+      } catch(e) {} 
+
+      return;
     }
 
-    return reason;
+    
+    this._scheduleNextSync();
+  },
+
+  
+
+
+
+  syncOnIdle: function WeaveSvc_syncOnIdle() {
+    this._log.debug("Idle timer created for sync, will sync after " +
+                    IDLE_TIME + " seconds of inactivity.");
+    Svc.Idle.addIdleObserver(this, IDLE_TIME);
+  },
+  
+  
+
+
+  _scheduleNextSync: function WeaveSvc__scheduleNextSync(interval) {
+    if (!interval)
+      interval = SCHEDULED_SYNC_INTERVAL;
+
+    
+    if (this._syncTimer)
+      this._syncTimer.cancel();
+    else
+      this._syncTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    
+    let listener = new Utils.EventListener(Utils.bind2(this,
+      function WeaveSvc__scheduleNextSyncCallback(timer) {
+        this._syncTimer = null;
+        this.syncOnIdle();
+      }));
+    this._syncTimer.initWithCallback(listener, interval,
+                                     Ci.nsITimer.TYPE_ONE_SHOT);
+    this._log.debug("Next sync call in: " + this._syncTimer.delay / 1000 + " seconds.")
+  },
+
+  _serverErrors: 0,
+  
+
+
+  _handleSyncError: function WeaveSvc__handleSyncError() {
+    let shouldBackoff = false;
+    
+    let err = Weave.Service.detailedStatus.sync;
+    
+    switch (err) {
+      case METARECORD_DOWNLOAD_FAIL:
+      case KEYS_DOWNLOAD_FAIL:
+      case KEYS_UPLOAD_FAIL:
+        shouldBackoff = true;
+    }
+
+    
+    
+    
+    if (!shouldBackoff && 
+        Utils.checkStatus(Records.lastResource.lastChannel.responseStatus, null, [500,[502,504]])) {
+       shouldBackoff = true;
+    }
+    
+    
+    if (!shouldBackoff) {
+      this._scheduleNextSync();
+      return;      
+    }
+
+    
+    this._serverErrors++;
+
+    
+    if (this._serverErrors < 2) {
+      this._scheduleNextSync();
+      return;
+    }
+
+    
+    const MINIMUM_BACKOFF_INTERVAL = 15 * 60 * 1000;     
+    const MAXIMUM_BACKOFF_INTERVAL = 8 * 60 * 60 * 1000; 
+    let backoffInterval = this._serverErrors *
+                          (Math.floor(Math.random() * MINIMUM_BACKOFF_INTERVAL) +
+                           MINIMUM_BACKOFF_INTERVAL);
+    backoffInterval = Math.min(backoffInterval, MAXIMUM_BACKOFF_INTERVAL);
+    this._scheduleNextSync(backoffInterval);
+
+    let d = new Date(Date.now() + backoffInterval);
+    this._log.config("Starting backoff, next sync at:" + d.toString());
   },
 
   
@@ -870,12 +969,6 @@ WeaveSvc.prototype = {
 
   sync: function WeaveSvc_sync(fullSync)
     this._catch(this._lock(this._notify("sync", "", function() {
-
-    
-    if (!fullSync && Svc.Idle.idleTime < 30000) {
-      this._log.debug("Skipped sync because the user was active.");
-      return;
-    }
 
     fullSync = true; 
 
