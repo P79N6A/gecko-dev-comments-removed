@@ -97,7 +97,14 @@ class DeviceManagerADB(DeviceManager):
   def shell(self, cmd, outputfile, env=None, cwd=None):
     
     for (index, arg) in enumerate(cmd):
-      if arg.find(" ") or arg.find("(") or arg.find(")") or arg.find("\""):
+      arg.replace('&', '\&')
+
+      needsQuoting = False
+      for char in [ ' ', '(', ')', '"', '&' ]:
+        if arg.find(char):
+          needsQuoting = True
+          break
+      if needsQuoting:
         cmd[index] = '\'%s\'' % arg
 
     
