@@ -119,6 +119,9 @@ public:
 
 
 
+
+
+
   bool CanDraw2D(gfxMatrix* aMatrix = nsnull) const;
 
   
