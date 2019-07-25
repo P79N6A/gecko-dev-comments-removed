@@ -310,7 +310,7 @@ public:
   virtual nsresult HandleAccEvent(AccEvent* aEvent);
 
   
-  static PRInt32 GetChildIDFor(nsIAccessible* aAccessible);
+  static PRInt32 GetChildIDFor(nsAccessible* aAccessible);
   static HWND GetHWNDFor(nsAccessible *aAccessible);
   static HRESULT ConvertToIA2Attributes(nsIPersistentProperties *aAttributes,
                                         BSTR *aIA2Attributes);

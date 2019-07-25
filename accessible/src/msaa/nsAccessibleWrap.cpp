@@ -1354,12 +1354,7 @@ STDMETHODIMP
 nsAccessibleWrap::get_uniqueID(long *uniqueID)
 {
 __try {
-  void *id = nsnull;
-  nsresult rv = GetUniqueID(&id);
-  if (NS_FAILED(rv))
-    return GetHRESULT(rv);
-
-  *uniqueID = - reinterpret_cast<long>(id);
+  *uniqueID = - reinterpret_cast<long>(UniqueID());
   return S_OK;
 
 } __except(nsAccessNodeWrap::FilterA11yExceptions(::GetExceptionCode(), GetExceptionInformation())) { }
@@ -1575,60 +1570,53 @@ nsAccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
   if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED ||
       eventType == nsIAccessibleEvent::EVENT_FOCUS) {
     UpdateSystemCaret();
+
+  } else if (eventType == nsIAccessibleEvent::EVENT_REORDER) {
+    
+    
+    UnattachIEnumVariant();
   }
- 
+
   PRInt32 childID = GetChildIDFor(accessible); 
   if (!childID)
     return NS_OK; 
 
-  
-  nsAccessible *newAccessible = nsnull;
-  if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
-    
-    
-    newAccessible = accessible->GetCachedParent();
-  } else {
-    newAccessible = accessible;
-  }
-
-  HWND hWnd = GetHWNDFor(newAccessible);
+  HWND hWnd = GetHWNDFor(accessible);
   NS_ENSURE_TRUE(hWnd, NS_ERROR_FAILURE);
 
-  
-  
-  
-  
-  
+  nsAutoString tag;
+  nsCAutoString id;
+  nsIContent* cnt = accessible->GetContent();
+  if (cnt) {
+    cnt->Tag()->ToString(tag);
+    nsIAtom* aid = cnt->GetID();
+    if (aid)
+      aid->ToUTF8String(id);
+  }
+
+#ifdef DEBUG_A11Y
+  printf("\n\nMSAA event: event: %d, target: %s@id='%s', childid: %d, hwnd: %d\n\n",
+         eventType, NS_ConvertUTF16toUTF8(tag).get(), id.get(),
+         childID, hWnd);
+#endif
 
   
   NotifyWinEvent(winEvent, hWnd, OBJID_CLIENT, childID);
-
-  
-  
-  if (eventType == nsIAccessibleEvent::EVENT_REORDER)
-    UnattachIEnumVariant();
-
   return NS_OK;
 }
 
 
 
-PRInt32 nsAccessibleWrap::GetChildIDFor(nsIAccessible* aAccessible)
+PRInt32 nsAccessibleWrap::GetChildIDFor(nsAccessible* aAccessible)
 {
   
   
   
 
-  void *uniqueID = nsnull;
-  nsCOMPtr<nsIAccessNode> accessNode(do_QueryInterface(aAccessible));
-  if (!accessNode) {
-    return 0;
-  }
-  accessNode->GetUniqueID(&uniqueID);
-
   
   
-  return - NS_PTR_TO_INT32(uniqueID);
+  
+  return aAccessible ? - NS_PTR_TO_INT32(aAccessible->UniqueID()) : 0;
 }
 
 HWND

@@ -142,9 +142,6 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetUniqueID(void **aUniqueID);
-
-  
   NS_IMETHOD GetFocusedChild(nsIAccessible **aFocusedChild);
 
   NS_IMETHOD GetName(nsAString& aName);
@@ -161,6 +158,7 @@ public:
   
   virtual PRBool IsDefunct();
   virtual PRBool Init();
+  virtual bool IsPrimaryForNode() const;
 
   
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);

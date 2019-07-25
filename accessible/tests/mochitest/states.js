@@ -192,6 +192,16 @@ function getStates(aAccOrElmOrID)
 
 
 
+function hasState(aAccOrElmOrID, aState, aExtraState)
+{
+  var [state, exstate] = getStates(aAccOrElmOrID);
+  return (aState ? state & aState : true) &&
+    (aExtraState ? exstate & aExtraState : true);
+}
+
+
+
+
 
 
 

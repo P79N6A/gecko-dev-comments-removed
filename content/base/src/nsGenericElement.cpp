@@ -140,11 +140,6 @@
 #include "nsIXULDocument.h"
 #endif 
 
-#ifdef ACCESSIBILITY
-#include "nsIAccessibilityService.h"
-#include "nsIAccessibleEvent.h"
-#endif 
-
 #include "nsCycleCollectionParticipant.h"
 #include "nsCCUncollectableMarker.h"
 
@@ -3651,21 +3646,6 @@ nsINode::doRemoveChildAt(PRUint32 aIndex, PRBool aNotify,
                          PRBool aMutationEvent)
 {
   nsIDocument* doc = GetCurrentDoc();
-#ifdef ACCESSIBILITY
-  
-  
-  if (aNotify && doc) {
-    nsIPresShell *presShell = doc->GetShell();
-    if (presShell && presShell->IsAccessibilityActive()) {
-      nsCOMPtr<nsIAccessibilityService> accService = 
-        do_GetService("@mozilla.org/accessibilityService;1");
-      if (accService) {
-        accService->InvalidateSubtreeFor(presShell, aKid,
-                                         nsIAccessibilityService::NODE_REMOVE);
-      }
-    }
-  }
-#endif
 
   nsMutationGuard::DidMutate();
 

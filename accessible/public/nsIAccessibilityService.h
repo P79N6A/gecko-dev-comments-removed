@@ -142,25 +142,17 @@ public:
   
 
 
-  enum {
-    NODE_APPEND = 0x01,
-    NODE_REMOVE = 0x02,
-    NODE_SIGNIFICANT_CHANGE = 0x03,
-    FRAME_SHOW = 0x04,
-    FRAME_HIDE = 0x05,
-    FRAME_SIGNIFICANT_CHANGE = 0x06
-  };
+
+  virtual void ContentRangeInserted(nsIPresShell* aPresShell,
+                                    nsIContent* aContainer,
+                                    nsIContent* aStartChild,
+                                    nsIContent* aEndChild) = 0;
 
   
 
 
-
-
-
-
-  virtual nsresult InvalidateSubtreeFor(nsIPresShell *aPresShell,
-                                        nsIContent *aContent,
-                                        PRUint32 aChangeType) = 0;
+  virtual void ContentRemoved(nsIPresShell* aPresShell, nsIContent* aContainer,
+                              nsIContent* aChild) = 0;
 
   
 
@@ -173,6 +165,12 @@ public:
 
 
   virtual void PresShellDestroyed(nsIPresShell *aPresShell) = 0;
+
+  
+
+
+  virtual void RecreateAccessible(nsIPresShell* aPresShell,
+                                  nsIContent* aContent) = 0;
 
   
 

@@ -110,13 +110,20 @@ public:
   virtual nsAccessible* AddNativeRootAccessible(void* aAtkAccessible);
   virtual void RemoveNativeRootAccessible(nsAccessible* aRootAccessible);
 
-  virtual nsresult InvalidateSubtreeFor(nsIPresShell *aPresShell,
-                                        nsIContent *aContent,
-                                        PRUint32 aChangeType);
+  virtual void ContentRangeInserted(nsIPresShell* aPresShell,
+                                      nsIContent* aContainer,
+                                      nsIContent* aStartChild,
+                                      nsIContent* aEndChild);
+
+  virtual void ContentRemoved(nsIPresShell* aPresShell, nsIContent* aContainer,
+                              nsIContent* aChild);
 
   virtual void NotifyOfAnchorJumpTo(nsIContent *aTarget);
 
   virtual void PresShellDestroyed(nsIPresShell* aPresShell);
+
+  virtual void RecreateAccessible(nsIPresShell* aPresShell,
+                                  nsIContent* aContent);
 
   virtual void FireAccessibleEvent(PRUint32 aEvent, nsAccessible* aTarget);
 
@@ -182,8 +189,18 @@ public:
 
 
 
+  nsAccessible* GetCachedAccessibleOrContainer(nsINode* aNode);
 
-  nsAccessible* GetCachedContainerAccessible(nsINode *aNode);
+  
+
+
+
+
+  inline nsAccessible* GetCachedContainerAccessible(nsINode *aNode)
+  {
+    return aNode ?
+      GetCachedAccessibleOrContainer(aNode->GetNodeParent()) : nsnull;
+  }
 
   
 

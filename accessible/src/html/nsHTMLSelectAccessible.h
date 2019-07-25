@@ -227,10 +227,8 @@ public:
   virtual ~nsHTMLComboboxListAccessible() {}
 
   
-  NS_IMETHOD GetUniqueID(void **aUniqueID);
-
-  
   virtual nsIFrame* GetFrame();
+  virtual bool IsPrimaryForNode() const;
 
   
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);

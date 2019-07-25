@@ -67,10 +67,7 @@ public:
 
 
 
-
-
   static void FireEvent(PRUint32 aEventType, nsAccessible *aAccessible,
-                        PRBool aIsAsynch = PR_FALSE,
                         EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
   
@@ -147,12 +144,6 @@ private:
   
 
 
-  void CoalesceReorderEventsFromSameSource(AccEvent* aAccEvent1,
-                                           AccEvent* aAccEvent2);
-
-  
-
-
 
   void CoalesceReorderEventsFromSameTree(AccEvent* aAccEvent,
                                          AccEvent* aDescendantAccEvent);
@@ -162,14 +153,15 @@ private:
 
   void CoalesceTextChangeEventsFor(AccHideEvent* aTailEvent,
                                    AccHideEvent* aThisEvent);
+  void CoalesceTextChangeEventsFor(AccShowEvent* aTailEvent,
+                                   AccShowEvent* aThisEvent);
 
   
 
 
 
 
-
-  void CreateTextChangeEventFor(AccHideEvent* aEvent);
+  void CreateTextChangeEventFor(AccMutationEvent* aEvent);
 
   
 

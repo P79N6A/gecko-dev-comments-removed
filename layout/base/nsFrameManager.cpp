@@ -95,10 +95,6 @@
 #include "RestyleTracker.h"
 
 #include "nsFrameManager.h"
-#ifdef ACCESSIBILITY
-#include "nsIAccessibilityService.h"
-#include "nsIAccessibleEvent.h"
-#endif
 
   #ifdef DEBUG
     
@@ -1004,7 +1000,6 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                                       nsStyleChangeList *aChangeList, 
                                       nsChangeHint       aMinChange,
                                       nsRestyleHint      aRestyleHint,
-                                      PRBool             aFireAccessibilityEvents,
                                       RestyleTracker&    aRestyleTracker)
 {
   if (!NS_IsHintSubset(nsChangeHint_NeedDirtyReflow, aMinChange)) {
@@ -1047,9 +1042,6 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
   
   nsStyleContext* oldContext = aFrame->GetStyleContext();
   nsStyleSet* styleSet = aPresContext->StyleSet();
-#ifdef ACCESSIBILITY
-  PRBool isVisible = aFrame->GetStyleVisibility()->IsVisible();
-#endif
 
   
   
@@ -1105,12 +1097,10 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       
       
 
-      
-      
       assumeDifferenceHint = ReResolveStyleContext(aPresContext, providerFrame,
                                                    aParentContent, aChangeList,
                                                    aMinChange, aRestyleHint,
-                                                   PR_FALSE, aRestyleTracker);
+                                                   aRestyleTracker);
 
       
       
@@ -1408,32 +1398,6 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       }
     }
 
-    PRBool fireAccessibilityEvents = aFireAccessibilityEvents;
-#ifdef ACCESSIBILITY
-    if (fireAccessibilityEvents && mPresShell->IsAccessibilityActive() &&
-        aFrame->GetStyleVisibility()->IsVisible() != isVisible &&
-        !aFrame->GetPrevContinuation()) {
-      
-      
-      
-
-      
-      
-      
-      nsCOMPtr<nsIAccessibilityService> accService = 
-        do_GetService("@mozilla.org/accessibilityService;1");
-      if (accService) {
-        PRUint32 changeType = isVisible ?
-          nsIAccessibilityService::FRAME_HIDE :
-          nsIAccessibilityService::FRAME_SHOW;
-
-        accService->InvalidateSubtreeFor(mPresShell, aFrame->GetContent(),
-                                         changeType);
-        fireAccessibilityEvents = PR_FALSE;
-      }
-    }
-#endif
-
     if (!(aMinChange & nsChangeHint_ReconstructFrame)) {
       
       
@@ -1478,7 +1442,6 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                                       NS_SubtractHint(aMinChange,
                                                       nsChangeHint_ReflowFrame),
                                       childRestyleHint,
-                                      fireAccessibilityEvents,
                                       aRestyleTracker);
               } while (outOfFlowFrame = outOfFlowFrame->GetNextContinuation());
 
@@ -1487,7 +1450,6 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
               ReResolveStyleContext(aPresContext, child, content,
                                     aChangeList, aMinChange,
                                     childRestyleHint,
-                                    fireAccessibilityEvents,
                                     aRestyleTracker);
             }
             else {  
@@ -1495,7 +1457,6 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                 ReResolveStyleContext(aPresContext, child, content,
                                       aChangeList, aMinChange,
                                       childRestyleHint,
-                                      fireAccessibilityEvents,
                                       aRestyleTracker);
               } else {
                 NOISY_TRACE_FRAME("child frame already resolved as descendant, skipping",aFrame);
@@ -1548,7 +1509,6 @@ nsFrameManager::ComputeStyleChangeFor(nsIFrame          *aFrame,
                               aChangeList, topLevelChange,
                               aRestyleDescendants ?
                                 eRestyle_Subtree : eRestyle_Self,
-                              PR_TRUE,
                               aRestyleTracker);
       NS_UpdateHint(topLevelChange, frameChange);
 

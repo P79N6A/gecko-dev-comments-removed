@@ -238,6 +238,11 @@ nsTextEquivUtils::AppendFromAccessible(nsAccessible *aAccessible,
                                        nsAString *aString)
 {
   
+  nsIFrame* frame = aAccessible->GetFrame();
+  if (!frame || !frame->GetStyleVisibility()->IsVisible())
+    return NS_OK;
+
+  
   if (aAccessible->IsContent()) {
     nsresult rv = AppendTextEquivFromTextContent(aAccessible->GetContent(),
                                                  aString);

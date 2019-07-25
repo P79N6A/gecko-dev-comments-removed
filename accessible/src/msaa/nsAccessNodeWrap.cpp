@@ -257,9 +257,7 @@ __try{
   
   
   
-  void *uniqueID;
-  GetUniqueID(&uniqueID);
-  *aUniqueID = - NS_PTR_TO_INT32(uniqueID);
+  *aUniqueID = - NS_PTR_TO_INT32(UniqueID());
 
   *aNumChildren = GetNode()->GetChildCount();
 

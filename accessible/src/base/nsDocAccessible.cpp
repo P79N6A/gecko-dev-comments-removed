@@ -84,7 +84,6 @@ namespace dom = mozilla::dom;
 
 
 PRUint32 nsDocAccessible::gLastFocusedAccessiblesState = 0;
-nsIAtom *nsDocAccessible::gLastFocusedFrameType = nsnull;
 
 
 
@@ -98,6 +97,7 @@ nsDocAccessible::
 {
   
   mAccessibleCache.Init(kDefaultCacheSize);
+  mNodeToAccessibleMap.Init(kDefaultCacheSize);
 
   
   if (!mDocument)
@@ -134,6 +134,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDocAccessible, nsAccessible)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mEventQueue)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSTARRAY(mChildDocuments)
+  tmp->mNodeToAccessibleMap.Clear();
   ClearCache(tmp->mAccessibleCache);
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -568,16 +569,14 @@ NS_IMETHODIMP nsDocAccessible::GetAssociatedEditor(nsIEditor **aEditor)
 
 
 nsAccessible *
-nsDocAccessible::GetCachedAccessible(void *aUniqueID)
+nsDocAccessible::GetCachedAccessible(nsINode *aNode)
 {
-  nsAccessible* accessible = mAccessibleCache.GetWeak(aUniqueID);
+  nsAccessible* accessible = mNodeToAccessibleMap.Get(aNode);
 
   
   
   if (!accessible) {
-    void* thisUniqueID = nsnull;
-    GetUniqueID(&thisUniqueID);
-    if (thisUniqueID != aUniqueID)
+    if (GetNode() != aNode)
       return nsnull;
 
     accessible = this;
@@ -598,29 +597,26 @@ nsDocAccessible::GetCachedAccessible(void *aUniqueID)
 
 
 PRBool
-nsDocAccessible::CacheAccessible(void *aUniqueID, nsAccessible *aAccessible)
+nsDocAccessible::CacheAccessible(nsAccessible* aAccessible)
 {
-  
-  
-  nsAccessible *accessible = mAccessibleCache.GetWeak(aUniqueID);
-  NS_ASSERTION(!accessible,
-               "Caching new accessible for the DOM node while the old one is alive");
+  if (aAccessible->IsPrimaryForNode() &&
+      !mNodeToAccessibleMap.Put(aAccessible->GetNode(), aAccessible))
+    return PR_FALSE;
 
-  if (accessible)
-    accessible->Shutdown();
-
-  return mAccessibleCache.Put(aUniqueID, aAccessible);
+  return mAccessibleCache.Put(aAccessible->UniqueID(), aAccessible);
 }
 
 
 void
-nsDocAccessible::RemoveAccessNodeFromCache(nsAccessible *aAccessible)
+nsDocAccessible::ShutdownAccessible(nsAccessible *aAccessible)
 {
-  if (!aAccessible)
-    return;
+  
+  if (aAccessible->IsPrimaryForNode() &&
+      mNodeToAccessibleMap.Get(aAccessible->GetNode()) == aAccessible)
+    mNodeToAccessibleMap.Remove(aAccessible->GetNode());
 
-  void *uniqueID = nsnull;
-  aAccessible->GetUniqueID(&uniqueID);
+  void* uniqueID = aAccessible->UniqueID();
+  aAccessible->Shutdown();
   mAccessibleCache.Remove(uniqueID);
 }
 
@@ -646,12 +642,14 @@ nsDocAccessible::Init()
   
   
   nsRefPtr<AccEvent> reorderEvent =
-    new AccReorderEvent(mParent, PR_FALSE, PR_TRUE, mDocument);
-  if (!reorderEvent)
-    return PR_FALSE;
+    new AccEvent(nsIAccessibleEvent::EVENT_REORDER, mParent, eAutoDetect,
+                 AccEvent::eCoalesceFromSameSubtree);
+  if (reorderEvent) {
+    FireDelayedAccessibleEvent(reorderEvent);
+    return PR_TRUE;
+  }
 
-  FireDelayedAccessibleEvent(reorderEvent);
-  return PR_TRUE;
+  return PR_FALSE;
 }
 
 void
@@ -681,6 +679,7 @@ nsDocAccessible::Shutdown()
 
   mWeakShell = nsnull;  
 
+  mNodeToAccessibleMap.Clear();
   ClearCache(mAccessibleCache);
 
   nsCOMPtr<nsIDocument> kungFuDeathGripDoc = mDocument;
@@ -1044,8 +1043,7 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
     
     
     
-    InvalidateCacheSubtree(aContent,
-                           nsIAccessibilityService::NODE_SIGNIFICANT_CHANGE);
+    RecreateAccessible(aContent);
     return;
   }
   
@@ -1218,8 +1216,7 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
     
     
     
-    InvalidateCacheSubtree(aContent,
-                           nsIAccessibilityService::NODE_SIGNIFICANT_CHANGE);
+    RecreateAccessible(aContent);
     return;
   }
 }
@@ -1229,22 +1226,7 @@ void nsDocAccessible::ContentAppended(nsIDocument *aDocument,
                                       nsIContent* aFirstNewContent,
                                       PRInt32 )
 {
-  if (!IsContentLoaded() && mAccessibleCache.Count() <= 1) {
-    
-    InvalidateChildren();
-    return;
-  }
-
-  
-  for (nsIContent* cur = aFirstNewContent; cur; cur = cur->GetNextSibling()) {
-    
-    
-    
-    
-    InvalidateCacheSubtree(cur, nsIAccessibilityService::NODE_APPEND);
-  }
 }
-
 
 void nsDocAccessible::ContentStatesChanged(nsIDocument* aDocument,
                                            nsIContent* aContent1,
@@ -1282,11 +1264,6 @@ void
 nsDocAccessible::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
                                  nsIContent* aChild, PRInt32 )
 {
-  
-  
-  
-  
-  InvalidateCacheSubtree(aChild, nsIAccessibilityService::NODE_APPEND);
 }
 
 void
@@ -1294,12 +1271,6 @@ nsDocAccessible::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
                                 nsIContent* aChild, PRInt32 ,
                                 nsIContent* aPreviousSibling)
 {
-  
-  
-  
-  
-  
-  
 }
 
 void
@@ -1340,21 +1311,165 @@ nsDocAccessible::GetNativeWindow() const
 }
 
 nsAccessible*
-nsDocAccessible::GetCachedAccessibleInSubtree(void* aUniqueID)
+nsDocAccessible::GetCachedAccessibleByUniqueIDInSubtree(void* aUniqueID)
 {
-  nsAccessible* child = GetCachedAccessible(aUniqueID);
+  nsAccessible* child = GetCachedAccessibleByUniqueID(aUniqueID);
   if (child)
     return child;
 
   PRUint32 childDocCount = mChildDocuments.Length();
   for (PRUint32 childDocIdx= 0; childDocIdx < childDocCount; childDocIdx++) {
     nsDocAccessible* childDocument = mChildDocuments.ElementAt(childDocIdx);
-    child = childDocument->GetCachedAccessibleInSubtree(aUniqueID);
+    child = childDocument->GetCachedAccessibleByUniqueIDInSubtree(aUniqueID);
     if (child)
       return child;
   }
 
   return nsnull;
+}
+
+void
+nsDocAccessible::UpdateTree(nsIContent* aContainerNode,
+                            nsIContent* aStartNode,
+                            nsIContent* aEndNode,
+                            PRBool aIsInsert)
+{
+  
+  
+  
+  
+  
+
+  nsCOMPtr<nsIPresShell> presShell = GetPresShell();
+  nsIEventStateManager* esm = presShell->GetPresContext()->EventStateManager();
+  PRBool fireAllEvents = PR_TRUE;
+
+  
+  nsAccessible* container = aIsInsert ?
+    GetAccService()->GetAccessibleOrContainer(aContainerNode, mWeakShell) :
+    GetAccService()->GetCachedAccessibleOrContainer(aContainerNode);
+
+  if (aIsInsert) {
+    
+    
+    
+    
+    
+    container->InvalidateChildren();
+  }
+
+  EIsFromUserInput fromUserInput = esm->IsHandlingUserInputExternal() ?
+    eFromUserInput : eNoUserInput;
+
+  
+  
+  PRUint32 updateFlags =
+    UpdateTreeInternal(container, aStartNode, aEndNode,
+                       aIsInsert, fireAllEvents, fromUserInput);
+
+  
+  if (updateFlags == eNoAccessible)
+    return;
+
+  
+  
+  if (aIsInsert && !(updateFlags & eAlertAccessible)) {
+    
+    
+    nsAccessible* ancestor = container;
+    while (ancestor) {
+      const nsRoleMapEntry* roleMapEntry = ancestor->GetRoleMapEntry();
+      if (roleMapEntry && roleMapEntry->role == nsIAccessibleRole::ROLE_ALERT) {
+        FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_ALERT,
+                                   ancestor->GetNode(), AccEvent::eRemoveDupes,
+                                   fromUserInput);
+        break;
+      }
+
+      
+      if (ancestor == this)
+        break;
+
+      ancestor = ancestor->GetParent();
+    }
+  }
+
+  
+  
+  
+  if (!fireAllEvents)
+    return;
+
+  
+  if (container->Role() == nsIAccessibleRole::ROLE_ENTRY) {
+    nsRefPtr<AccEvent> valueChangeEvent =
+      new AccEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, container,
+                   fromUserInput, AccEvent::eRemoveDupes);
+    FireDelayedAccessibleEvent(valueChangeEvent);
+  }
+
+  
+  
+  nsRefPtr<AccEvent> reorderEvent =
+    new AccEvent(nsIAccessibleEvent::EVENT_REORDER, container->GetNode(),
+                 fromUserInput, AccEvent::eCoalesceFromSameSubtree);
+  if (reorderEvent)
+    FireDelayedAccessibleEvent(reorderEvent);
+}
+
+void
+nsDocAccessible::RecreateAccessible(nsINode* aNode)
+{
+  
+  
+  
+  
+
+  nsAccessible* parent = nsnull;
+
+  
+  nsAccessible* oldAccessible =
+    GetAccService()->GetAccessibleInWeakShell(aNode, mWeakShell);
+  if (oldAccessible) {
+    parent = oldAccessible->GetParent();
+
+    nsRefPtr<AccEvent> hideEvent = new AccHideEvent(oldAccessible, aNode,
+                                                    eAutoDetect);
+    if (hideEvent)
+      FireDelayedAccessibleEvent(hideEvent);
+
+    
+    parent->RemoveChild(oldAccessible);
+
+    if (oldAccessible->IsPrimaryForNode() &&
+        mNodeToAccessibleMap.Get(oldAccessible->GetNode()) == oldAccessible)
+      mNodeToAccessibleMap.Remove(oldAccessible->GetNode());
+
+  } else {
+    parent = GetAccService()->GetContainerAccessible(aNode, mWeakShell);
+  }
+
+  
+  parent->InvalidateChildren();
+
+  nsAccessible* newAccessible =
+    GetAccService()->GetAccessibleInWeakShell(aNode, mWeakShell);
+  if (newAccessible) {
+    nsRefPtr<AccEvent> showEvent = new AccShowEvent(newAccessible, aNode,
+                                                    eAutoDetect);
+    if (showEvent)
+      FireDelayedAccessibleEvent(showEvent);
+  }
+
+  
+  if (oldAccessible || newAccessible) {
+    nsRefPtr<AccEvent> reorderEvent =
+      new AccEvent(nsIAccessibleEvent::EVENT_REORDER, parent->GetNode(),
+                   eAutoDetect, AccEvent::eCoalesceFromSameSubtree);
+
+    if (reorderEvent)
+      FireDelayedAccessibleEvent(reorderEvent);
+  }
 }
 
 
@@ -1369,7 +1484,7 @@ nsDocAccessible::FireValueChangeForTextFields(nsAccessible *aAccessible)
   
   nsRefPtr<AccEvent> valueChangeEvent =
     new AccEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, aAccessible,
-                 PR_FALSE, eAutoDetect, AccEvent::eRemoveDupes);
+                 eAutoDetect, AccEvent::eRemoveDupes);
   FireDelayedAccessibleEvent(valueChangeEvent);
 }
 
@@ -1426,96 +1541,20 @@ nsDocAccessible::FireTextChangeEventForText(nsIContent *aContent,
   
   nsRefPtr<AccEvent> event =
     new AccTextChangeEvent(textAccessible, offset + textOffset, text,
-                           aIsInserted, PR_FALSE);
+                          aIsInserted);
   FireDelayedAccessibleEvent(event);
 
   FireValueChangeForTextFields(textAccessible);
-}
-
-already_AddRefed<AccEvent>
-nsDocAccessible::CreateTextChangeEventForNode(nsAccessible *aContainerAccessible,
-                                              nsIContent *aChangeNode,
-                                              nsAccessible *aChangeChild,
-                                              PRBool aIsInserting,
-                                              PRBool aIsAsynch,
-                                              EIsFromUserInput aIsFromUserInput)
-{
-  nsRefPtr<nsHyperTextAccessible> textAccessible =
-    do_QueryObject(aContainerAccessible);
-  if (!textAccessible) {
-    return nsnull;
-  }
-
-  nsAutoString text;
-  PRInt32 offset = 0;
-  if (aChangeChild) {
-    
-    if (aChangeChild->Role() == nsIAccessibleRole::ROLE_WHITESPACE) {
-      nsCOMPtr<nsIEditor> editor;
-      textAccessible->GetAssociatedEditor(getter_AddRefs(editor));
-      if (editor) {
-        PRBool isEmpty = PR_FALSE;
-        editor->GetDocumentIsEmpty(&isEmpty);
-        if (isEmpty) {
-          return nsnull;
-        }
-      }
-    }
-
-    offset = textAccessible->GetChildOffset(aChangeChild);
-    aChangeChild->AppendTextTo(text, 0, PR_UINT32_MAX);
-
-  } else {
-    
-    
-    
-    
-    nsAccTreeWalker walker(mWeakShell, aChangeNode,
-                           GetAllowsAnonChildAccessibles());
-    nsRefPtr<nsAccessible> child = walker.GetNextChild();
-
-    
-    if (!child)
-      return nsnull;
-
-    offset = textAccessible->GetChildOffset(child);
-    child->AppendTextTo(text, 0, PR_UINT32_MAX);
-
-    nsINode* containerNode = textAccessible->GetNode();
-    PRInt32 childCount = textAccessible->GetChildCount();
-    PRInt32 childIdx = child->GetIndexInParent();
-
-    for (PRInt32 idx = childIdx + 1; idx < childCount; idx++) {
-      nsAccessible* nextChild = textAccessible->GetChildAt(idx);
-      
-      if (!nsCoreUtils::IsAncestorOf(aChangeNode, nextChild->GetNode(),
-                                     containerNode))
-        break;
-
-      nextChild->AppendTextTo(text, 0, PR_UINT32_MAX);
-    }
-  }
-
-  if (text.IsEmpty())
-    return nsnull;
-
-  AccEvent* event = new AccTextChangeEvent(aContainerAccessible, offset, text,
-                                           aIsInserting, aIsAsynch,
-                                           aIsFromUserInput);
-  NS_IF_ADDREF(event);
-
-  return event;
 }
 
 
 nsresult
 nsDocAccessible::FireDelayedAccessibleEvent(PRUint32 aEventType, nsINode *aNode,
                                             AccEvent::EEventRule aAllowDupes,
-                                            PRBool aIsAsynch,
                                             EIsFromUserInput aIsFromUserInput)
 {
   nsRefPtr<AccEvent> event =
-    new AccEvent(aEventType, aNode, aIsAsynch, aIsFromUserInput, aAllowDupes);
+    new AccEvent(aEventType, aNode, aIsFromUserInput, aAllowDupes);
   NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
 
   return FireDelayedAccessibleEvent(event);
@@ -1534,504 +1573,169 @@ nsDocAccessible::FireDelayedAccessibleEvent(AccEvent* aEvent)
   return NS_OK;
 }
 
+
 void
 nsDocAccessible::ProcessPendingEvent(AccEvent* aEvent)
-{  
-  nsAccessible *accessible = aEvent->GetAccessible();
-  nsINode *node = aEvent->GetNode();
-
-  PRUint32 eventType = aEvent->GetEventType();
-  EIsFromUserInput isFromUserInput =
-    aEvent->IsFromUserInput() ? eFromUserInput : eNoUserInput;
-
-  PRBool isAsync = aEvent->IsAsync();
-
-  if (node == gLastFocusedNode && isAsync &&
-      (eventType == nsIAccessibleEvent::EVENT_SHOW ||
-       eventType == nsIAccessibleEvent::EVENT_HIDE)) {
-    
-    
-    
-    
-    nsCOMPtr<nsIContent> focusContent(do_QueryInterface(node));
-    if (focusContent) {
-      nsIFrame *focusFrame = focusContent->GetPrimaryFrame();
-      nsIAtom *newFrameType =
-        (focusFrame && focusFrame->GetStyleVisibility()->IsVisible()) ?
-        focusFrame->GetType() : nsnull;
-
-      if (newFrameType == gLastFocusedFrameType) {
-        
-        
-        FireShowHideEvents(node, PR_TRUE, eventType, eNormalEvent,
-                           isAsync, isFromUserInput);
-        return;
-      }
-      gLastFocusedFrameType = newFrameType;
-    }
-  }
-
-  if (eventType == nsIAccessibleEvent::EVENT_SHOW) {
-
-    nsAccessible* containerAccessible = nsnull;
-    if (accessible) {
-      containerAccessible = accessible->GetParent();
-    } else {
-      nsCOMPtr<nsIWeakReference> weakShell(nsCoreUtils::GetWeakShellFor(node));
-      containerAccessible = GetAccService()->GetContainerAccessible(node,
-                                                                    weakShell);
-    }
-
-    if (!containerAccessible)
-      containerAccessible = this;
-
-    if (isAsync) {
-      
-      containerAccessible->InvalidateChildren();
-
-      
-      
-      
-      InvalidateChildrenInSubtree(node);
-    }
-
-    
-    
-    
-    
-    
-    if (node && node != mDocument) {
-      nsCOMPtr<nsIContent> content(do_QueryInterface(node));
-      nsRefPtr<AccEvent> textChangeEvent =
-        CreateTextChangeEventForNode(containerAccessible, content, accessible,
-                                     PR_TRUE, PR_TRUE, isFromUserInput);
-      if (textChangeEvent) {
-        
-        
-        
-        nsEventShell::FireEvent(textChangeEvent);
-      }
-    }
-
-    
-    FireShowHideEvents(node, PR_FALSE, eventType, eNormalEvent, isAsync,
-                       isFromUserInput); 
-    return;
-  }
-
-  if (accessible) {
-    if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED) {
-      nsCOMPtr<nsIAccessibleText> accessibleText = do_QueryObject(accessible);
-      PRInt32 caretOffset;
-      if (accessibleText && NS_SUCCEEDED(accessibleText->GetCaretOffset(&caretOffset))) {
-#ifdef DEBUG_A11Y
-        PRUnichar chAtOffset;
-        accessibleText->GetCharacterAtOffset(caretOffset, &chAtOffset);
-        printf("\nCaret moved to %d with char %c", caretOffset, chAtOffset);
-#endif
-#ifdef DEBUG_CARET
-        
-        
-        nsAccessible *focusedAcc =
-          GetAccService()->GetAccessible(gLastFocusedNode);
-        nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_ALERT, focusedAcc);
-#endif
-        nsRefPtr<AccEvent> caretMoveEvent =
-          new AccCaretMoveEvent(accessible, caretOffset);
-        if (!caretMoveEvent)
-          return;
-
-        nsEventShell::FireEvent(caretMoveEvent);
-
-        PRInt32 selectionCount;
-        accessibleText->GetSelectionCount(&selectionCount);
-        if (selectionCount) {  
-          nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED,
-                                  accessible, PR_TRUE);
-        }
-      } 
-    }
-    else if (eventType == nsIAccessibleEvent::EVENT_REORDER) {
-      
-      
-      
-      AccReorderEvent* reorderEvent = downcast_accEvent(aEvent);
-      if (reorderEvent->IsUnconditionalEvent() ||
-          reorderEvent->HasAccessibleInReasonSubtree()) {
-        nsEventShell::FireEvent(aEvent);
-      }
-    }
-    else {
-      nsEventShell::FireEvent(aEvent);
-
-      
-      if (eventType == nsIAccessibleEvent::EVENT_HIDE && node) {
-        
-        
-        
-        RefreshNodes(node);
-      }
-    }
-  }
-}
-
-void
-nsDocAccessible::InvalidateChildrenInSubtree(nsINode *aStartNode)
 {
-  nsAccessible *accessible = GetCachedAccessible(aStartNode);
-  if (accessible)
-    accessible->InvalidateChildren();
-
-  
-  PRInt32 index, numChildren = aStartNode->GetChildCount();
-  for (index = 0; index < numChildren; index ++) {
-    nsINode *childNode = aStartNode->GetChildAt(index);
-    InvalidateChildrenInSubtree(childNode);
-  }
-}
-
-void
-nsDocAccessible::RefreshNodes(nsINode *aStartNode)
-{
-  if (mAccessibleCache.Count() <= 1) {
-    return; 
-  }
-
-  
-  
-  nsAccessible *accessible = GetCachedAccessible(aStartNode);
-  if (accessible) {
-    
-    if (accessible->Role() == nsIAccessibleRole::ROLE_MENUPOPUP) {
-      nsCOMPtr<nsIDOMXULPopupElement> popup(do_QueryInterface(aStartNode));
-      if (!popup) {
-        
-        
-        nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END,
-                                accessible);
-      }
-    }
-
-    
-    
-    if (accessible->GetCachedChildCount() > 0) {
-      nsCOMPtr<nsIArray> children;
-      
-      
-      accessible->GetChildren(getter_AddRefs(children));
-      PRUint32 childCount =0;
-      if (children)
-        children->GetLength(&childCount);
-      nsINode *possibleAnonNode = nsnull;
-      for (PRUint32 index = 0; index < childCount; index++) {
-        nsRefPtr<nsAccessNode> childAccessNode;
-        children->QueryElementAt(index, NS_GET_IID(nsAccessNode),
-                                 getter_AddRefs(childAccessNode));
-        possibleAnonNode = childAccessNode->GetNode();
-        nsCOMPtr<nsIContent> iterContent = do_QueryInterface(possibleAnonNode);
-        if (iterContent && iterContent->IsInAnonymousSubtree()) {
-          
-          
-          
-          RefreshNodes(possibleAnonNode);
-        }
-      }
-    }
-  }
-
-  
-  
-  PRUint32 childCount = aStartNode->GetChildCount();
-  for (PRUint32 childIdx = 0; childIdx < childCount; childIdx++) {
-    nsIContent *childContent = aStartNode->GetChildAt(childIdx);
-    RefreshNodes(childContent);
-  }
-
+  nsAccessible* accessible = aEvent->GetAccessible();
   if (!accessible)
     return;
 
-  if (accessible == this) {
-    
-    
-    
-    
-    InvalidateChildren();
-    return;
+  PRUint32 eventType = aEvent->GetEventType();
+
+  if (eventType == nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED) {
+    nsCOMPtr<nsIAccessibleText> accessibleText = do_QueryObject(accessible);
+    PRInt32 caretOffset;
+    if (accessibleText &&
+        NS_SUCCEEDED(accessibleText->GetCaretOffset(&caretOffset))) {
+#ifdef DEBUG_A11Y
+      PRUnichar chAtOffset;
+      accessibleText->GetCharacterAtOffset(caretOffset, &chAtOffset);
+      printf("\nCaret moved to %d with char %c", caretOffset, chAtOffset);
+#endif
+#ifdef DEBUG_CARET
+      
+      
+      nsAccessible* focusedAcc =
+        GetAccService()->GetAccessible(gLastFocusedNode);
+      nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_ALERT, focusedAcc);
+#endif
+      nsRefPtr<AccEvent> caretMoveEvent =
+          new AccCaretMoveEvent(accessible, caretOffset);
+      if (!caretMoveEvent)
+        return;
+
+      nsEventShell::FireEvent(caretMoveEvent);
+
+      PRInt32 selectionCount;
+      accessibleText->GetSelectionCount(&selectionCount);
+      if (selectionCount) {  
+        nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_TEXT_SELECTION_CHANGED,
+                                accessible);
+      }
+    }
   }
+  else {
+    nsEventShell::FireEvent(aEvent);
 
-  
-  void *uniqueID;
-  accessible->GetUniqueID(&uniqueID);
-  accessible->Shutdown();
-
-  
-  mAccessibleCache.Remove(uniqueID);
+    
+    if (eventType == nsIAccessibleEvent::EVENT_HIDE)
+      ShutdownChildrenInSubtree(accessible);
+  }
 }
 
-
-void
-nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
-                                        PRUint32 aChangeType)
+PRUint32
+nsDocAccessible::UpdateTreeInternal(nsAccessible* aContainer,
+                                    nsIContent* aStartNode,
+                                    nsIContent* aEndNode,
+                                    PRBool aIsInsert,
+                                    PRBool aFireAllEvents,
+                                    EIsFromUserInput aFromUserInput)
 {
-  PRBool isHiding =
-    aChangeType == nsIAccessibilityService::FRAME_HIDE ||
-    aChangeType == nsIAccessibilityService::NODE_REMOVE;
+  PRUint32 updateFlags = eNoAccessible;
+  for (nsIContent* node = aStartNode; node != aEndNode;
+       node = node->GetNextSibling()) {
 
-  PRBool isShowing =
-    aChangeType == nsIAccessibilityService::FRAME_SHOW ||
-    aChangeType == nsIAccessibilityService::NODE_APPEND;
-
-#ifdef DEBUG
-  PRBool isChanging =
-    aChangeType == nsIAccessibilityService::NODE_SIGNIFICANT_CHANGE ||
-    aChangeType == nsIAccessibilityService::FRAME_SIGNIFICANT_CHANGE;
-#endif
-
-  NS_ASSERTION(isChanging || isHiding || isShowing,
-               "Incorrect aChangeEventType passed in");
-
-  PRBool isAsynch =
-    aChangeType == nsIAccessibilityService::FRAME_HIDE ||
-    aChangeType == nsIAccessibilityService::FRAME_SHOW ||
-    aChangeType == nsIAccessibilityService::FRAME_SIGNIFICANT_CHANGE;
-
-  
-  
-  
-  
-
-  NS_ENSURE_TRUE(mDocument,);
-
-  nsINode *childNode = aChild;
-  if (!childNode)
-    childNode = mDocument;
-
-  nsCOMPtr<nsIPresShell> presShell = GetPresShell();
-  NS_ENSURE_TRUE(presShell,);
-  
-  if (!IsContentLoaded()) {
     
-    if (mAccessibleCache.Count() <= 1) {
-      
-      
-      
-      
-      
-      
-      
-      InvalidateChildren();
-      return;
+    
+    
+    if (aIsInsert && !node->GetPrimaryFrame())
+      continue;
+
+    nsAccessible* accessible = aIsInsert ?
+      GetAccService()->GetAccessibleInWeakShell(node, mWeakShell) :
+      GetCachedAccessible(node);
+
+    if (!accessible) {
+      updateFlags |= UpdateTreeInternal(aContainer, node->GetFirstChild(),
+                                        nsnull, aIsInsert, aFireAllEvents,
+                                        aFromUserInput);
+      continue;
     }
 
-    nsIEventStateManager *esm = presShell->GetPresContext()->EventStateManager();
-    NS_ENSURE_TRUE(esm,);
+    updateFlags |= eAccessible;
 
-    if (!esm->IsHandlingUserInputExternal()) {
-      
-      
-      
-      nsAccessible *containerAccessible =
-        GetAccService()->GetCachedContainerAccessible(childNode);
-      if (!containerAccessible) {
-        containerAccessible = this;
-      }
-
-      containerAccessible->InvalidateChildren();
-      return;
-    }     
     
-    
-    
-  }
+    if (aFireAllEvents) {
+      nsRefPtr<AccEvent> event;
+      if (aIsInsert)
+        event = new AccShowEvent(accessible, node, aFromUserInput);
+      else
+        event = new AccHideEvent(accessible, node, aFromUserInput);
 
-  
-  nsAccessible *childAccessible = GetCachedAccessible(childNode);
+      if (event)
+        FireDelayedAccessibleEvent(event);
+    }
 
-#ifdef DEBUG_A11Y
-  nsAutoString localName;
-  if (aChild)
-    aChild->NodeInfo()->GetName(localName);
-  const char *hasAccessible = childAccessible ? " (acc)" : "";
-  if (aChangeType == nsIAccessibilityService::FRAME_HIDE)
-    printf("[Hide %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
-  else if (aChangeType == nsIAccessibilityService::FRAME_SHOW)
-    printf("[Show %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
-  else if (aChangeType == nsIAccessibilityService::FRAME_SIGNIFICANT_CHANGE)
-    printf("[Layout change %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
-  else if (aChangeType == nsIAccessibilityService::NODE_APPEND)
-    printf("[Create %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
-  else if (aChangeType == nsIAccessibilityService::NODE_REMOVE)
-    printf("[Destroy  %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
-  else if (aChangeType == nsIAccessibilityService::NODE_SIGNIFICANT_CHANGE)
-    printf("[Type change %s %s]\n", NS_ConvertUTF16toUTF8(localName).get(), hasAccessible);
-#endif
+    if (aIsInsert) {
+      const nsRoleMapEntry* roleMapEntry = accessible->GetRoleMapEntry();
+      if (roleMapEntry) {
+        if (roleMapEntry->role == nsIAccessibleRole::ROLE_MENUPOPUP) {
+          
+          FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
+                                     node, AccEvent::eRemoveDupes, aFromUserInput);
 
-  nsAccessible *containerAccessible =
-    GetAccService()->GetCachedContainerAccessible(childNode);
-  if (!containerAccessible) {
-    containerAccessible = this;
-  }
-
-  if (!isShowing) {
-    
-    if (isHiding) {
-      if (aChild) {
-        nsIFrame *frame = aChild->GetPrimaryFrame();
-        if (frame) {
-          nsIFrame *frameParent = frame->GetParent();
-          if (!frameParent || !frameParent->GetStyleVisibility()->IsVisible()) {
-            
-            
-            
-            
-            
-            return;
-          }
+        } else if (roleMapEntry->role == nsIAccessibleRole::ROLE_ALERT) {
+          
+          updateFlags = eAlertAccessible;
+          FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_ALERT, node,
+                                     AccEvent::eRemoveDupes, aFromUserInput);
         }
       }
-    }
 
-    
-    
-    
-    nsresult rv = FireShowHideEvents(childNode, PR_FALSE,
-                                     nsIAccessibleEvent::EVENT_HIDE,
-                                     eDelayedEvent, isAsynch);
-    if (NS_FAILED(rv))
-      return;
-  }
-
-  
-  
-  
-  
-  
-  
-
-  if (aChild && !isHiding) {
-    if (!isAsynch) {
       
       
-      containerAccessible->InvalidateChildren();
-    }
-
-    
-
-    
-    
-    
-    
-
-    FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_SHOW, childNode,
-                               AccEvent::eCoalesceFromSameSubtree,
-                               isAsynch);
-
-    
-    
-    nsRoleMapEntry *roleMapEntry = nsAccUtils::GetRoleMapEntry(childNode);
-    if (roleMapEntry && roleMapEntry->role == nsIAccessibleRole::ROLE_MENUPOPUP) {
-      FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
-                                 childNode, AccEvent::eRemoveDupes,
-                                 isAsynch);
-    }
-
-    
-    nsIContent *ancestor = aChild;
-    while (PR_TRUE) {
-      if (roleMapEntry && roleMapEntry->role == nsIAccessibleRole::ROLE_ALERT) {
-        FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_ALERT, ancestor,
-                                   AccEvent::eRemoveDupes, isAsynch);
-        break;
+      
+      
+      if (node == gLastFocusedNode) {
+        FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_FOCUS,
+                                   node, AccEvent::eCoalesceFromSameDocument,
+                                   aFromUserInput);
       }
-      ancestor = ancestor->GetParent();
-      if (!ancestor)
-        break;
-
-      roleMapEntry = nsAccUtils::GetRoleMapEntry(ancestor);
+    } else {
+      
+      aContainer->RemoveChild(accessible);
+      UncacheChildrenInSubtree(accessible);
     }
   }
 
-  FireValueChangeForTextFields(containerAccessible);
-
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-
-  PRBool isUnconditionalEvent = childAccessible ||
-    aChild && nsAccUtils::HasAccessibleChildren(childNode);
-
-  nsRefPtr<AccEvent> reorderEvent =
-    new AccReorderEvent(containerAccessible, isAsynch, isUnconditionalEvent,
-                        aChild ? aChild : nsnull);
-  NS_ENSURE_TRUE(reorderEvent,);
-
-  FireDelayedAccessibleEvent(reorderEvent);
+  return updateFlags;
 }
 
-nsresult
-nsDocAccessible::FireShowHideEvents(nsINode *aNode,
-                                    PRBool aAvoidOnThisNode,
-                                    PRUint32 aEventType,
-                                    EEventFiringType aDelayedOrNormal,
-                                    PRBool aIsAsyncChange,
-                                    EIsFromUserInput aIsFromUserInput)
+void
+nsDocAccessible::UncacheChildrenInSubtree(nsAccessible* aRoot)
 {
-  NS_ENSURE_ARG(aNode);
+  PRUint32 count = aRoot->GetCachedChildCount();
+  for (PRUint32 idx = 0; idx < count; idx++)
+    UncacheChildrenInSubtree(aRoot->GetCachedChildAt(idx));
 
-  nsAccessible *accessible = nsnull;
-  if (!aAvoidOnThisNode) {
-    if (aEventType == nsIAccessibleEvent::EVENT_HIDE) {
-      
-      accessible = GetCachedAccessible(aNode);
-    } else {
-      
-      accessible = GetAccService()->GetAccessible(aNode);
-    }
-  }
-
-  if (accessible) {
-    
-    
-    nsRefPtr<AccEvent> event;
-    if (aDelayedOrNormal == eDelayedEvent &&
-        aEventType == nsIAccessibleEvent::EVENT_HIDE) {
-      
-      
-      event = new AccHideEvent(accessible, accessible->GetNode(),
-                               aIsAsyncChange, aIsFromUserInput);
-
-    } else {
-      event = new AccEvent(aEventType, accessible, aIsAsyncChange,
-                           aIsFromUserInput,
-                           AccEvent::eCoalesceFromSameSubtree);
-    }
-    NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
-
-    if (aDelayedOrNormal == eDelayedEvent)
-      return FireDelayedAccessibleEvent(event);
-
-    nsEventShell::FireEvent(event);
-    return NS_OK;
-  }
-
-  
-  
-  PRUint32 count = aNode->GetChildCount();
-  for (PRUint32 index = 0; index < count; index++) {
-    nsINode *childNode = aNode->GetChildAt(index);
-    nsresult rv = FireShowHideEvents(childNode, PR_FALSE, aEventType,
-                                     aDelayedOrNormal, aIsAsyncChange,
-                                     aIsFromUserInput);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  return NS_OK;
+  if (aRoot->IsPrimaryForNode() &&
+      mNodeToAccessibleMap.Get(aRoot->GetNode()) == aRoot)
+    mNodeToAccessibleMap.Remove(aRoot->GetNode());
 }
+
+void
+nsDocAccessible::ShutdownChildrenInSubtree(nsAccessible* aAccessible)
+{
+#ifdef DEBUG
+  nsAccessible* incache = mAccessibleCache.GetWeak(aAccessible->UniqueID());
+#endif
+
+  
+  
+  
+  
+  PRUint32 count = aAccessible->GetCachedChildCount();
+  for (PRUint32 idx = 0, jdx = 0; idx < count; idx++) {
+    nsAccessible* child = aAccessible->GetCachedChildAt(jdx);
+    if (!child->IsBoundToParent()) {
+      NS_ERROR("Parent refers to a child, child doesn't refer to parent!");
+      jdx++;
+    }
+
+    ShutdownChildrenInSubtree(child);
+  }
+
+  ShutdownAccessible(aAccessible);
+}
+

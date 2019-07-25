@@ -171,11 +171,8 @@ public:
 
 
 
-
-
   nsresult FireDelayedAccessibleEvent(PRUint32 aEventType, nsINode *aNode,
                                       AccEvent::EEventRule aAllowDupes = AccEvent::eRemoveDupes,
-                                      PRBool aIsAsynch = PR_FALSE,
                                       EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
   
@@ -191,13 +188,7 @@ public:
 
 
 
-
-
-
-
-
-
-  void InvalidateCacheSubtree(nsIContent *aContent, PRUint32 aEvent);
+  nsAccessible* GetCachedAccessible(nsINode* aNode);
 
   
 
@@ -206,37 +197,48 @@ public:
 
 
 
-
-
-
-  nsAccessible* GetCachedAccessible(void *aUniqueID);
-
-  
-
-
-
-  nsAccessible* GetCachedAccessibleInSubtree(void* aUniqueID);
+  nsAccessible* GetCachedAccessibleByUniqueID(void* aUniqueID)
+  {
+    return UniqueID() == aUniqueID ?
+      this : mAccessibleCache.GetWeak(aUniqueID);
+  }
 
   
 
 
 
-
-
-
-
-  PRBool CacheAccessible(void *aUniqueID, nsAccessible *aAccessible);
+  nsAccessible* GetCachedAccessibleByUniqueIDInSubtree(void* aUniqueID);
 
   
 
 
-  void RemoveAccessNodeFromCache(nsAccessible *aAccessible);
+
+
+
+
+  PRBool CacheAccessible(nsAccessible *aAccessible);
+
+  
+
+
+  void ShutdownAccessible(nsAccessible *aAccessible);
 
   
 
 
 
   void ProcessPendingEvent(AccEvent* aEvent);
+
+  
+
+
+  void UpdateTree(nsIContent* aContainerNode, nsIContent* aStartChildNode,
+                  nsIContent* aEndChildNode, PRBool aIsInsert);
+
+  
+
+
+  void RecreateAccessible(nsINode* aNode);
 
 protected:
 
@@ -263,20 +265,6 @@ protected:
   {
     mChildDocuments.RemoveElement(aChildDocument);
   }
-
-  
-
-
-
-
-
-
-  void InvalidateChildrenInSubtree(nsINode *aStartNode);
-
-  
-
-
-  void RefreshNodes(nsINode *aStartNode);
 
     static void ScrollTimerCallback(nsITimer *aTimer, void *aClosure);
 
@@ -313,49 +301,10 @@ protected:
   
 
 
-
-
-
-
-
-
-
-
-
-
-  already_AddRefed<AccEvent>
-    CreateTextChangeEventForNode(nsAccessible *aContainerAccessible,
-                                 nsIContent *aChangeNode,
-                                 nsAccessible *aAccessible,
-                                 PRBool aIsInserting,
-                                 PRBool aIsAsynch,
-                                 EIsFromUserInput aIsFromUserInput = eAutoDetect);
-
-  
-
-
   enum EEventFiringType {
     eNormalEvent,
     eDelayedEvent
   };
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  nsresult FireShowHideEvents(nsINode *aDOMNode, PRBool aAvoidOnThisNode,
-                              PRUint32 aEventType,
-                              EEventFiringType aDelayedOrNormal,
-                              PRBool aIsAsyncChange,
-                              EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
   
 
@@ -366,7 +315,38 @@ protected:
   
 
 
+
+  enum EUpdateTreeFlags {
+    eNoAccessible = 0,
+    eAccessible = 1,
+    eAlertAccessible = 2
+  };
+
+  PRUint32 UpdateTreeInternal(nsAccessible* aContainer,
+                              nsIContent* aStartNode,
+                              nsIContent* aEndNode,
+                              PRBool aIsInsert,
+                              PRBool aFireEvents,
+                              EIsFromUserInput aFromUserInput);
+
+  
+
+
+  void UncacheChildrenInSubtree(nsAccessible* aRoot);
+
+  
+
+
+
+
+
+  void ShutdownChildrenInSubtree(nsAccessible *aAccessible);
+
+  
+
+
   nsAccessibleHashtable mAccessibleCache;
+  NodeToAccessibleMap mNodeToAccessibleMap;
 
     nsCOMPtr<nsIDocument> mDocument;
     nsCOMPtr<nsITimer> mScrollWatchTimer;

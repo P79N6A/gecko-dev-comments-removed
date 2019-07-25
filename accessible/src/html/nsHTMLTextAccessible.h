@@ -133,13 +133,11 @@ public:
   nsHTMLListBulletAccessible(nsIContent* aContent, nsIWeakReference* aShell);
 
   
-  NS_IMETHOD GetUniqueID(void **aUniqueID);
-
-  
   NS_IMETHOD GetName(nsAString& aName);
 
   
   virtual void Shutdown();
+  virtual bool IsPrimaryForNode() const;
 
   
   virtual PRUint32 NativeRole();

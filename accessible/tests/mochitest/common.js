@@ -233,6 +233,19 @@ function isAccessible(aAccOrElmOrID, aInterfaces)
 
 
 
+function getContainerAccessible(aAccOrElmOrID)
+{
+  var node = getNode(aAccOrElmOrID);
+  if (!node)
+    return null;
+
+  while ((node = node.parentNode) && !isAccessible(node));
+  return node ? getAccessible(node) : null;
+}
+
+
+
+
 function getRootAccessible(aAccOrElmOrID)
 {
   var acc = getAccessible(aAccOrElmOrID ? aAccOrElmOrID : document,
@@ -527,6 +540,15 @@ function prettyName(aIdentifier)
     } catch (e) {
       msg += "defunct";
     }
+
+    if (acc) {
+      var exp = /native\s*@\s*(0x[a-f0-9]+)/g;
+      var match = exp.exec(acc.valueOf());
+      if (match)
+        msg += ", address: " + match[1];
+      else
+        msg += ", address: " + acc.valueOf();
+    }
     msg += "]";
 
     return msg;
@@ -556,14 +578,16 @@ addLoadEvent(initialize);
 function getNodePrettyName(aNode)
 {
   try {
-    if (aNode.nodeType == nsIDOMNode.ELEMENT_NODE && aNode.hasAttribute("id"))
-      return " '" + aNode.getAttribute("id") + "' ";
-
     if (aNode.nodeType == nsIDOMNode.DOCUMENT_NODE)
       return " 'document node' ";
 
-    return " '" + aNode.localName + " node' ";
+    var name = " '" + aNode.localName;
+    if (aNode.nodeType == nsIDOMNode.ELEMENT_NODE && aNode.hasAttribute("id"))
+      name += "@id='" + aNode.getAttribute("id") + "'";
+
+    name += " node' "
+    return name;
   } catch (e) {
-    return "no node info";
+    return "' no node info '";
   }
 }

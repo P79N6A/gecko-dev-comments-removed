@@ -181,6 +181,20 @@ public:
 
   nsIWeakReference* GetWeakShell() const { return mWeakShell; }
 
+  
+
+
+  void* UniqueID() { return static_cast<void*>(this); }
+
+  
+
+
+
+
+
+
+  virtual bool IsPrimaryForNode() const;
+
 protected:
     nsPresContext* GetPresContext();
 

@@ -335,14 +335,8 @@ nsHTMLListBulletAccessible::
   mBulletText += ' '; 
 }
 
-NS_IMETHODIMP
-nsHTMLListBulletAccessible::GetUniqueID(void **aUniqueID)
-{
-  
-  
-  *aUniqueID = static_cast<void*>(this);
-  return NS_OK;
-}
+
+
 
 void
 nsHTMLListBulletAccessible::Shutdown()
@@ -350,6 +344,15 @@ nsHTMLListBulletAccessible::Shutdown()
   mBulletText.Truncate();
   nsLeafAccessible::Shutdown();
 }
+
+bool
+nsHTMLListBulletAccessible::IsPrimaryForNode() const
+{
+  return false;
+}
+
+
+
 
 NS_IMETHODIMP
 nsHTMLListBulletAccessible::GetName(nsAString &aName)

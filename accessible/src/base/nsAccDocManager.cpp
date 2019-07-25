@@ -72,8 +72,7 @@ nsAccDocManager::GetDocAccessible(nsIDocument *aDocument)
   
   nsAccessNode::GetApplicationAccessible()->EnsureChildren();
 
-  nsDocAccessible *docAcc =
-    mDocAccessibleCache.GetWeak(static_cast<void*>(aDocument));
+  nsDocAccessible* docAcc = mDocAccessibleCache.GetWeak(aDocument);
   if (docAcc)
     return docAcc;
 
@@ -81,10 +80,10 @@ nsAccDocManager::GetDocAccessible(nsIDocument *aDocument)
 }
 
 nsAccessible*
-nsAccDocManager::FindAccessibleInCache(void *aUniqueID) const
+nsAccDocManager::FindAccessibleInCache(nsINode* aNode) const
 {
   nsSearchAccessibleInCacheArg arg;
-    arg.mUniqueID = aUniqueID;
+  arg.mNode = aNode;
 
   mDocAccessibleCache.EnumerateRead(SearchAccessibleInDocCache,
                                     static_cast<void*>(&arg));
@@ -136,8 +135,7 @@ nsAccDocManager::Shutdown()
 void
 nsAccDocManager::ShutdownDocAccessible(nsIDocument *aDocument)
 {
-  nsDocAccessible* docAccessible =
-    mDocAccessibleCache.GetWeak(static_cast<void*>(aDocument));
+  nsDocAccessible* docAccessible = mDocAccessibleCache.GetWeak(aDocument);
   if (!docAccessible)
     return;
 
@@ -146,7 +144,7 @@ nsAccDocManager::ShutdownDocAccessible(nsIDocument *aDocument)
   
 
   docAccessible->Shutdown();
-  mDocAccessibleCache.Remove(static_cast<void*>(aDocument));
+  mDocAccessibleCache.Remove(aDocument);
 }
 
 
@@ -215,8 +213,7 @@ nsAccDocManager::OnStateChange(nsIWebProgress *aWebProgress,
   if (!IsEventTargetDocument(document))
     return NS_OK;
 
-  nsDocAccessible *docAcc =
-    mDocAccessibleCache.GetWeak(static_cast<void*>(document));
+  nsDocAccessible* docAcc = mDocAccessibleCache.GetWeak(document);
   if (!docAcc)
     return NS_OK;
 
@@ -346,9 +343,7 @@ nsAccDocManager::HandleDOMDocumentLoad(nsIDocument *aDocument,
 {
   
   
-  nsDocAccessible *docAcc =
-    mDocAccessibleCache.GetWeak(static_cast<void*>(aDocument));
-
+  nsDocAccessible* docAcc = mDocAccessibleCache.GetWeak(aDocument);
   if (!docAcc) {
     docAcc = CreateDocOrRootAccessible(aDocument);
     NS_ASSERTION(docAcc, "Can't create document accessible!");
@@ -365,16 +360,8 @@ nsAccDocManager::HandleDOMDocumentLoad(nsIDocument *aDocument,
   
   
   
-  if (!IsEventTargetDocument(aDocument)) {
-    
-    
-    
-    if (!nsCoreUtils::IsRootDocument(aDocument)) {
-      docAcc->InvalidateCacheSubtree(nsnull,
-                                     nsIAccessibilityService::NODE_SIGNIFICANT_CHANGE);
-    }
+  if (!IsEventTargetDocument(aDocument))
     return;
-  }
 
   
   if (aLoadEventType) {
@@ -493,7 +480,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
     return nsnull;
 
   
-  if (!mDocAccessibleCache.Put(static_cast<void*>(aDocument), docAcc)) {
+  if (!mDocAccessibleCache.Put(aDocument, docAcc)) {
     delete docAcc;
     return nsnull;
   }
@@ -503,7 +490,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
   
   if (!outerDocAcc->AppendChild(docAcc) ||
       !GetAccService()->InitAccessible(docAcc, nsAccUtils::GetRoleMapEntry(aDocument))) {
-    mDocAccessibleCache.Remove(static_cast<void*>(aDocument));
+    mDocAccessibleCache.Remove(aDocument);
     return nsnull;
   }
 
@@ -546,7 +533,7 @@ nsAccDocManager::ShutdownDocAccessiblesInTree(nsIDocShellTreeItem *aTreeItem,
 
 
 PLDHashOperator
-nsAccDocManager::ClearDocCacheEntry(const void* aKey,
+nsAccDocManager::ClearDocCacheEntry(const nsIDocument* aKey,
                                     nsRefPtr<nsDocAccessible>& aDocAccessible,
                                     void* aUserArg)
 {
@@ -560,7 +547,7 @@ nsAccDocManager::ClearDocCacheEntry(const void* aKey,
 }
 
 PLDHashOperator
-nsAccDocManager::SearchAccessibleInDocCache(const void* aKey,
+nsAccDocManager::SearchAccessibleInDocCache(const nsIDocument* aKey,
                                             nsDocAccessible* aDocAccessible,
                                             void* aUserArg)
 {
@@ -570,7 +557,7 @@ nsAccDocManager::SearchAccessibleInDocCache(const void* aKey,
   if (aDocAccessible) {
     nsSearchAccessibleInCacheArg* arg =
       static_cast<nsSearchAccessibleInCacheArg*>(aUserArg);
-    arg->mAccessible = aDocAccessible->GetCachedAccessible(arg->mUniqueID);
+    arg->mAccessible = aDocAccessible->GetCachedAccessible(arg->mNode);
     if (arg->mAccessible)
       return PL_DHASH_STOP;
   }

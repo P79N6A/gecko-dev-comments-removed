@@ -182,9 +182,6 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetUniqueID(void **aUniqueID);
-
-  
   NS_IMETHOD GetFocusedChild(nsIAccessible **aFocusedChild);
 
   NS_IMETHOD GetBounds(PRInt32 *aX, PRInt32 *aY,
@@ -207,6 +204,7 @@ public:
   
   virtual PRBool IsDefunct();
   virtual void Shutdown();
+  virtual bool IsPrimaryForNode() const;
 
   
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);

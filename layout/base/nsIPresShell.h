@@ -1189,18 +1189,6 @@ protected:
   PRPackedBool              mIsActive;
   PRPackedBool              mFrozen;
 
-#ifdef ACCESSIBILITY
-  
-
-
-
-  void InvalidateAccessibleSubtree(nsIContent *aContent);
-#endif
-
-  
-  
-  PRPackedBool              mIsAccessibilityActive;
-
   PRPackedBool              mObservesMutationsForPrint;
 
   PRPackedBool              mReflowScheduled; 

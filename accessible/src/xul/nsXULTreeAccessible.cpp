@@ -509,15 +509,13 @@ nsXULTreeAccessible::InvalidateCache(PRInt32 aRow, PRInt32 aCount)
 
     if (accessible) {
       nsRefPtr<AccEvent> event =
-        new AccEvent(nsIAccessibleEvent::EVENT_HIDE, accessible, PR_FALSE);
+        new AccEvent(nsIAccessibleEvent::EVENT_HIDE, accessible);
       nsEventShell::FireEvent(event);
-
-      accessible->Shutdown();
 
       
       nsDocAccessible *docAccessible = GetDocAccessible();
       if (docAccessible)
-        docAccessible->RemoveAccessNodeFromCache(accessible);
+        docAccessible->ShutdownAccessible(accessible);
 
       mAccessibleCache.Remove(key);
     }
@@ -539,12 +537,10 @@ nsXULTreeAccessible::InvalidateCache(PRInt32 aRow, PRInt32 aCount)
     nsAccessible *accessible = mAccessibleCache.GetWeak(key);
 
     if (accessible) {
-      accessible->Shutdown();
-
       
       nsDocAccessible *docAccessible = GetDocAccessible();
       if (docAccessible)
-        docAccessible->RemoveAccessNodeFromCache(accessible);
+        docAccessible->ShutdownAccessible(accessible);
 
       mAccessibleCache.Remove(key);
     }
@@ -610,7 +606,7 @@ nsXULTreeAccessible::TreeViewChanged()
   
   
   nsRefPtr<AccEvent> eventDestroy =
-    new AccEvent(nsIAccessibleEvent::EVENT_HIDE, this, PR_FALSE);
+    new AccEvent(nsIAccessibleEvent::EVENT_HIDE, this);
   if (!eventDestroy)
     return;
 
@@ -621,7 +617,7 @@ nsXULTreeAccessible::TreeViewChanged()
   mTree->GetView(getter_AddRefs(mTreeView));
 
   nsRefPtr<AccEvent> eventCreate =
-    new AccEvent(nsIAccessibleEvent::EVENT_SHOW, this, PR_FALSE);
+    new AccEvent(nsIAccessibleEvent::EVENT_SHOW, this);
   if (!eventCreate)
     return;
 
@@ -661,18 +657,6 @@ nsXULTreeItemAccessibleBase::
 NS_IMPL_ISUPPORTS_INHERITED1(nsXULTreeItemAccessibleBase,
                              nsAccessible,
                              nsXULTreeItemAccessibleBase)
-
-
-
-
-NS_IMETHODIMP
-nsXULTreeItemAccessibleBase::GetUniqueID(void **aUniqueID)
-{
-  
-  
-  *aUniqueID = static_cast<void*>(this);
-  return NS_OK;
-}
 
 
 
@@ -886,6 +870,12 @@ nsXULTreeItemAccessibleBase::Shutdown()
   mRow = -1;
 
   nsAccessibleWrap::Shutdown();
+}
+
+bool
+nsXULTreeItemAccessibleBase::IsPrimaryForNode() const
+{
+  return false;
 }
 
 
