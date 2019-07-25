@@ -1051,12 +1051,8 @@ WeaveSvc.prototype = {
 
 
 
-
-
-  wipeRemote: function WeaveSvc_wipeRemote(onComplete, engines) {
-    let fn = function WeaveSvc__wipeRemote() {
-      let self = yield;
-
+  wipeRemote: function WeaveSvc_wipeRemote(engines)
+    this._catch(this._notify("wipe-remote", "", function() {
       
       
 
@@ -1068,9 +1064,7 @@ WeaveSvc.prototype = {
 
       
       this.prepCommand("wipeAll", []);
-    };
-    this._catchAll(this._notifyAsync("wipe-remote", "", fn)).async(this, onComplete);
-  },
+    }))(),
 
   
 
