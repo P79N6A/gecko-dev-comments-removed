@@ -349,6 +349,18 @@ mjit::Compiler::scanInlineCalls(uint32 index, uint32 depth)
                 okay = false;
                 break;
             }
+
+            
+
+
+
+
+
+            if (script->analysis(cx)->usesThisValue() &&
+                script->thisTypes()->getKnownTypeTag(cx) != JSVAL_TYPE_OBJECT) {
+                okay = false;
+                break;
+            }
         }
         if (!okay)
             continue;
@@ -5116,14 +5128,19 @@ mjit::Compiler::jsop_this()
 
     if (script->fun && !script->strictModeCode) {
         FrameEntry *thisFe = frame.peek(-1);
+
+        
+
+
+
+        JS_ASSERT(!thisFe->isNotType(JSVAL_TYPE_OBJECT));
+
         if (!thisFe->isType(JSVAL_TYPE_OBJECT)) {
             JSValueType type = cx->typeInferenceEnabled()
                 ? script->thisTypes()->getKnownTypeTag(cx)
                 : JSVAL_TYPE_UNKNOWN;
             if (type != JSVAL_TYPE_OBJECT) {
-                Jump notObj = thisFe->isTypeKnown()
-                    ? masm.jump()
-                    : frame.testObject(Assembler::NotEqual, thisFe);
+                Jump notObj = frame.testObject(Assembler::NotEqual, thisFe);
                 stubcc.linkExit(notObj, Uses(1));
                 stubcc.leave();
                 OOL_STUBCALL(stubs::This, REJOIN_FALLTHROUGH);
