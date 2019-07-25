@@ -77,9 +77,333 @@ ion::SplitCriticalEdges(MIRGenerator *gen, MIRGraph &graph)
     return true;
 }
 
+class TypeAnalyzer
+{
+    MIRGraph &graph;
+    js::Vector<MInstruction *, 0, SystemAllocPolicy> worklist_;
+
+    bool empty() const {
+        return worklist_.empty();
+    }
+    MInstruction *pop() {
+        MInstruction *ins = worklist_.popCopy();
+        ins->setNotInWorklist();
+        return ins;
+    }
+    bool push(MDefinition *def) {
+        if (def->inWorklist() || !def->typePolicy())
+            return true;
+        JS_ASSERT(!def->isPhi());
+        def->setInWorklist();
+        return worklist_.append(def->toInstruction());
+    }
+
+    bool buildWorklist();
+    bool reflow(MDefinition *def);
+    bool despecializePhi(MPhi *phi);
+    bool specializePhi(MPhi *phi);
+    bool specializePhis();
+    bool specializeInstructions();
+    bool determineSpecializations();
+    bool insertConversions();
+    bool adjustPhiInputs(MPhi *phi);
+    bool adjustInputs(MDefinition *def);
+    bool adjustOutput(MDefinition *def);
+
+  public:
+    TypeAnalyzer(MIRGraph &graph)
+      : graph(graph)
+    { }
+
+    bool analyze();
+};
+
+bool
+TypeAnalyzer::buildWorklist()
+{
+    
+    
+    for (size_t i = 0; i < graph.numBlocks(); i++) {
+        MBasicBlock *block = graph.getBlock(i);
+        MInstructionIterator iter = block->begin();
+        while (iter != block->end()) {
+            if (iter->isCopy()) {
+                
+                MCopy *copy = iter->toCopy();
+                copy->replaceAllUsesWith(copy->getOperand(0));
+                iter = block->removeAt(iter);
+                continue;
+            }
+            if (!push(*iter))
+                return false;
+            iter++;
+        }
+    }
+    return true;
+}
+
+bool
+TypeAnalyzer::reflow(MDefinition *def)
+{
+    
+    
+    
+    for (MUseDefIterator uses(def); uses; uses++) {
+        if (!push(uses.def()))
+            return false;
+    }
+    return true;
+}
+
+bool
+TypeAnalyzer::specializeInstructions()
+{
+    
+    
+    
+    while (!empty()) {
+        MInstruction *ins = pop();
+
+        TypePolicy *policy = ins->typePolicy();
+        if (policy->respecialize(ins)) {
+            if (!reflow(ins))
+                return false;
+        }
+    }
+    return true;
+}
+
+static inline MIRType
+GetEffectiveType(MDefinition *def)
+{
+    return def->type() != MIRType_Value
+           ? def->type()
+           : def->usedAsType();
+}
+
+bool
+TypeAnalyzer::despecializePhi(MPhi *phi)
+{
+    
+    if (phi->type() == MIRType_Value)
+        return true;
+
+    phi->specialize(MIRType_Value);
+    if (!reflow(phi))
+        return false;
+    return true;
+}
+
+bool
+TypeAnalyzer::specializePhi(MPhi *phi)
+{
+    
+    
+    if (phi->triedToSpecialize() && phi->type() == MIRType_Value)
+        return true;
+
+    
+    MDefinition *in = phi->getOperand(0);
+    MIRType first = GetEffectiveType(in);
+
+    
+    if (first == MIRType_Value)
+        return despecializePhi(phi);
+
+    for (size_t i = 1; i < phi->numOperands(); i++) {
+        MDefinition *other = phi->getOperand(i);
+        if (GetEffectiveType(other) != first)
+            return despecializePhi(phi);
+    }
+
+    if (phi->type() == first)
+        return true;
+
+    
+    phi->specialize(first);
+    if (!reflow(phi))
+        return false;
+
+    return true;
+}
+
+bool
+TypeAnalyzer::specializePhis()
+{
+    for (size_t i = 0; i < graph.numBlocks(); i++) {
+        MBasicBlock *block = graph.getBlock(i);
+        for (size_t i = 0; i < block->numPhis(); i++) {
+            if (!specializePhi(block->getPhi(i)))
+                return false;
+        }
+    }
+    return true;
+}
+
+bool
+TypeAnalyzer::determineSpecializations()
+{
+    do {
+        
+        if (!specializeInstructions())
+            return false;
+
+        
+        
+        
+        
+        if (!specializePhis())
+            return false;
+    } while (!empty());
+    return true;
+}
+
+bool
+TypeAnalyzer::adjustOutput(MDefinition *def)
+{
+    JS_ASSERT(def->type() == MIRType_Value);
+
+    MIRType usedAs = def->usedAsType();
+    if (usedAs == MIRType_Value) {
+        
+        
+        
+        return true;
+    }
+
+    MBasicBlock *block = def->block();
+    MUnbox *unbox = MUnbox::New(def, usedAs);
+    if (def->isPhi()) {
+        
+        block->insertBefore(*block->begin(), unbox);
+    } else if (block->start() && def->id() < block->start()->id()) {
+        
+        
+        block->insertAfter(block->start(), unbox);
+    } else {
+        
+        block->insertAfter(def->toInstruction(), unbox);
+    }
+
+    JS_ASSERT(def->uses()->node() == unbox);
+
+    MUse *prev = def->uses();
+    MUse *use = def->uses()->next();
+    while (use) {
+        bool replace = true;
+
+        if (use->node()->isSnapshot()) {
+            MSnapshot *snapshot = use->node()->toSnapshot();
+            
+            
+            
+            
+            if (def->isInstruction() && def->toInstruction()->snapshot() == snapshot)
+                replace = false;
+        } else {
+            MDefinition *other = use->node()->toDefinition();
+            if (TypePolicy *policy = other->typePolicy())
+                replace = policy->useSpecializedInput(def->toInstruction(), use->index(), unbox);
+        }
+
+        if (!replace) {
+            prev = use;
+            use = use->next();
+            continue;
+        }
+
+        MUse *next = use->next();
+        use->node()->replaceOperand(prev, use, unbox);
+        use = next;
+    }
+
+    return true;
+}
+
+bool
+TypeAnalyzer::adjustPhiInputs(MPhi *phi)
+{
+    
+    if (phi->type() != MIRType_Value) {
+#ifdef DEBUG
+        for (size_t i = 0; i < phi->numOperands(); i++) {
+            MDefinition *in = phi->getOperand(i);
+            JS_ASSERT(GetEffectiveType(in) == phi->type());
+        }
+#endif
+        return true;
+    }
+
+    
+    for (size_t i = 0; i < phi->numOperands(); i++) {
+        MDefinition *in = phi->getOperand(i);
+        if (in->type() == MIRType_Value)
+            continue;
+
+        MBox *box = MBox::New(in);
+        in->block()->insertBefore(in->block()->lastIns(), box);
+        phi->replaceOperand(i, box);
+    }
+
+    return true;
+}
+
+bool
+TypeAnalyzer::adjustInputs(MDefinition *def)
+{
+    
+    
+    TypePolicy *policy = def->typePolicy();
+    if (policy && !policy->adjustInputs(def->toInstruction()))
+        return false;
+    return true;
+}
+
+bool
+TypeAnalyzer::insertConversions()
+{
+    
+    
+    
+    for (size_t i = 0; i < graph.numBlocks(); i++) {
+        MBasicBlock *block = graph.getBlock(i);
+        for (size_t i = 0; i < block->numPhis(); i++) {
+            MPhi *phi = block->getPhi(i);
+            if (!adjustPhiInputs(phi))
+                return false;
+            if (phi->type() == MIRType_Value && !adjustOutput(phi))
+                return false;
+        }
+        for (MInstructionIterator iter = block->begin(); iter != block->end(); iter++) {
+            if (!adjustInputs(*iter))
+                return false;
+            if (iter->type() == MIRType_Value && !adjustOutput(*iter))
+                return false;
+        }
+    }
+    return true;
+}
+
+bool
+TypeAnalyzer::analyze()
+{
+    if (!buildWorklist())
+        return false;
+    if (!determineSpecializations())
+        return false;
+    if (!insertConversions())
+        return false;
+    return true;
+}
+
 bool
 ion::ApplyTypeInformation(MIRGraph &graph)
 {
+    TypeAnalyzer analyzer(graph);
+
+    if (!analyzer.analyze())
+        return false;
+
     return true;
 }
 
