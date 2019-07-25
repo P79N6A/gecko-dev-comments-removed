@@ -24,6 +24,7 @@
 #include "mozilla/dom/ContentChild.h"
 
 #include "mozilla/Util.h"
+#include "mozilla/Attributes.h"
 
 #include "nsAppRunner.h"
 #include "mozilla/AppData.h"
@@ -1180,7 +1181,7 @@ ScopedXPCOMStartup::Initialize()
 
 
 
-class nsSingletonFactory : public nsIFactory
+class nsSingletonFactory MOZ_FINAL : public nsIFactory
 {
 public:
   NS_DECL_ISUPPORTS
