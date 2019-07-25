@@ -97,8 +97,7 @@ class nsGeolocationRequest
   void Shutdown();
 
   
-  
-  void Update(nsIDOMGeoPosition* aPosition, PRBool isBetter);
+  void Update(nsIDOMGeoPosition* aPosition);
 
   void SendLocation(nsIDOMGeoPosition* location);
   void MarkCleared();
@@ -151,8 +150,6 @@ public:
   
   void AddLocator(nsGeolocation* locator);
   void RemoveLocator(nsGeolocation* locator);
-
-  PRBool IsBetterPosition(nsIDOMGeoPosition* aPosition);
 
   void SetCachedPosition(nsIDOMGeoPosition* aPosition);
   nsIDOMGeoPosition* GetCachedPosition();
@@ -208,8 +205,7 @@ public:
   nsresult Init(nsIDOMWindow* contentDom=nsnull);
 
   
-  
-  void Update(nsIDOMGeoPosition* aPosition, PRBool isBetter);
+  void Update(nsIDOMGeoPosition* aPosition);
 
   
   PRBool HasActiveCallbacks();
