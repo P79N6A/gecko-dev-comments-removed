@@ -5588,84 +5588,86 @@ BEGIN_CASE(JSOP_LAMBDA)
     
     do {
         JSObject *parent;
-        if (fun->joinable()) {
+        if (FUN_NULL_CLOSURE(fun)) {
             parent = &regs.fp->scopeChain();
 
-            jsbytecode *pc2 = AdvanceOverBlockchainOp(regs.pc + JSOP_LAMBDA_LENGTH);
-            JSOp op2 = JSOp(*pc2);
+            if (obj->getParent() == parent) {
+                jsbytecode *pc2 = AdvanceOverBlockchainOp(regs.pc + JSOP_LAMBDA_LENGTH);
+                JSOp op2 = JSOp(*pc2);
 
-            
-
-
-
+                
 
 
 
 
 
-            if (op2 == JSOP_INITMETHOD) {
+
+
+
+                if (op2 == JSOP_INITMETHOD) {
 #ifdef DEBUG
-                const Value &lref = regs.sp[-1];
-                JS_ASSERT(lref.isObject());
-                JSObject *obj2 = &lref.toObject();
-                JS_ASSERT(obj2->getClass() == &js_ObjectClass);
+                    const Value &lref = regs.sp[-1];
+                    JS_ASSERT(lref.isObject());
+                    JSObject *obj2 = &lref.toObject();
+                    JS_ASSERT(obj2->getClass() == &js_ObjectClass);
 #endif
 
-                fun->setMethodAtom(script->getAtom(GET_FULL_INDEX(pc2 - regs.pc)));
-                JS_FUNCTION_METER(cx, joinedinitmethod);
-                break;
-            }
-
-            if (op2 == JSOP_SETMETHOD) {
-#ifdef DEBUG
-                op2 = JSOp(pc2[JSOP_SETMETHOD_LENGTH]);
-                JS_ASSERT(op2 == JSOP_POP || op2 == JSOP_POPV);
-#endif
-                const Value &lref = regs.sp[-1];
-                if (lref.isObject() && lref.toObject().canHaveMethodBarrier()) {
                     fun->setMethodAtom(script->getAtom(GET_FULL_INDEX(pc2 - regs.pc)));
-                    JS_FUNCTION_METER(cx, joinedsetmethod);
+                    JS_FUNCTION_METER(cx, joinedinitmethod);
                     break;
                 }
-            } else if (fun->joinable()) {
-                if (op2 == JSOP_CALL) {
-                    
+
+                if (op2 == JSOP_SETMETHOD) {
+#ifdef DEBUG
+                    op2 = JSOp(pc2[JSOP_SETMETHOD_LENGTH]);
+                    JS_ASSERT(op2 == JSOP_POP || op2 == JSOP_POPV);
+#endif
+                    const Value &lref = regs.sp[-1];
+                    if (lref.isObject() && lref.toObject().canHaveMethodBarrier()) {
+                        fun->setMethodAtom(script->getAtom(GET_FULL_INDEX(pc2 - regs.pc)));
+                        JS_FUNCTION_METER(cx, joinedsetmethod);
+                        break;
+                    }
+                } else if (fun->joinable()) {
+                    if (op2 == JSOP_CALL) {
+                        
 
 
 
 
 
 
-                    int iargc = GET_ARGC(pc2);
+                        int iargc = GET_ARGC(pc2);
 
-                    
-
-
+                        
 
 
-                    const Value &cref = regs.sp[1 - (iargc + 2)];
-                    JSObject *callee;
 
-                    if (IsFunctionObject(cref, &callee)) {
-                        JSFunction *calleeFun = GET_FUNCTION_PRIVATE(cx, callee);
-                        if (Native native = calleeFun->maybeNative()) {
-                            if (iargc == 1 && native == array_sort) {
-                                JS_FUNCTION_METER(cx, joinedsort);
-                                break;
-                            }
-                            if (iargc == 2 && native == str_replace) {
-                                JS_FUNCTION_METER(cx, joinedreplace);
-                                break;
+
+                        const Value &cref = regs.sp[1 - (iargc + 2)];
+                        JSObject *callee;
+
+                        if (IsFunctionObject(cref, &callee)) {
+                            JSFunction *calleeFun = GET_FUNCTION_PRIVATE(cx, callee);
+                            if (Native native = calleeFun->maybeNative()) {
+                                if (iargc == 1 && native == array_sort) {
+                                    JS_FUNCTION_METER(cx, joinedsort);
+                                    break;
+                                }
+                                if (iargc == 2 && native == str_replace) {
+                                    JS_FUNCTION_METER(cx, joinedreplace);
+                                    break;
+                                }
                             }
                         }
-                    }
-                } else if (op2 == JSOP_NULL) {
-                    pc2 += JSOP_NULL_LENGTH;
-                    op2 = JSOp(*pc2);
+                    } else if (op2 == JSOP_NULL) {
+                        pc2 += JSOP_NULL_LENGTH;
+                        op2 = JSOp(*pc2);
 
-                    if (op2 == JSOP_CALL && GET_ARGC(pc2) == 0) {
-                        JS_FUNCTION_METER(cx, joinedmodulepat);
-                        break;
+                        if (op2 == JSOP_CALL && GET_ARGC(pc2) == 0) {
+                            JS_FUNCTION_METER(cx, joinedmodulepat);
+                            break;
+                        }
                     }
                 }
             }

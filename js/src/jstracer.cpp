@@ -15556,7 +15556,7 @@ TraceRecorder::record_JSOP_LAMBDA()
 
 
 
-    if (fun->joinable()) {
+    if (FUN_NULL_CLOSURE(fun) && FUN_OBJECT(fun)->getParent() == &cx->fp()->scopeChain()) {
         jsbytecode *pc2 = AdvanceOverBlockchainOp(cx->regs->pc + JSOP_LAMBDA_LENGTH);
         JSOp op2 = JSOp(*pc2);
 
