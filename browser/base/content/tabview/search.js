@@ -365,6 +365,7 @@ SearchEventHandlerClass.prototype = {
   
   
   inSearchKeyHandler: function (event) {
+    let term = iQ("#searchbox").val();
     if ((event.keyCode == event.DOM_VK_ESCAPE) || 
         (event.keyCode == event.DOM_VK_BACK_SPACE && term.length <= 1)) {
       hideSearch(event);
