@@ -87,7 +87,7 @@ var Scratchpad = {
 
 
 
-  get notificationBox() document.getElementById("scratchpad-notificationbox"),
+  get statusbarStatus() document.getElementById("scratchpad-status"),
 
   
 
@@ -599,15 +599,11 @@ var Scratchpad = {
 
   setContentContext: function SP_setContentContext()
   {
-    if (this.executionContext == SCRATCHPAD_CONTEXT_CONTENT) {
-      return;
-    }
-
     let content = document.getElementById("sp-menu-content");
     document.getElementById("sp-menu-browser").removeAttribute("checked");
     content.setAttribute("checked", true);
     this.executionContext = SCRATCHPAD_CONTEXT_CONTENT;
-    this.notificationBox.removeAllNotifications(false);
+    this.statusbarStatus.label = content.getAttribute("label");
     this.resetContext();
   },
 
@@ -616,20 +612,11 @@ var Scratchpad = {
 
   setBrowserContext: function SP_setBrowserContext()
   {
-    if (this.executionContext == SCRATCHPAD_CONTEXT_BROWSER) {
-      return;
-    }
-
     let browser = document.getElementById("sp-menu-browser");
     document.getElementById("sp-menu-content").removeAttribute("checked");
     browser.setAttribute("checked", true);
     this.executionContext = SCRATCHPAD_CONTEXT_BROWSER;
-    this.notificationBox.appendNotification(
-      this.strings.GetStringFromName("browserContext.notification"),
-      SCRATCHPAD_CONTEXT_BROWSER,
-      null,
-      this.notificationBox.PRIORITY_WARNING_HIGH,
-      null);
+    this.statusbarStatus.label = browser.getAttribute("label");
     this.resetContext();
   },
 
@@ -670,14 +657,17 @@ var Scratchpad = {
       return;
     }
 
+    let chromeContextMenu = document.getElementById("sp-menu-browser");
+    let errorConsoleMenu = document.getElementById("sp-menu-errorConsole");
+    let errorConsoleCommand = document.getElementById("sp-cmd-errorConsole");
+    let chromeContextCommand = document.getElementById("sp-cmd-browserContext");
+
     let chrome = Services.prefs.getBoolPref(DEVTOOLS_CHROME_ENABLED);
     if (chrome) {
-      let environmentMenu = document.getElementById("sp-environment-menu");
-      let errorConsoleCommand = document.getElementById("sp-cmd-errorConsole");
-      let chromeContextCommand = document.getElementById("sp-cmd-browserContext");
-      environmentMenu.removeAttribute("hidden");
-      chromeContextCommand.removeAttribute("disabled");
+      chromeContextMenu.removeAttribute("hidden");
+      errorConsoleMenu.removeAttribute("hidden");
       errorConsoleCommand.removeAttribute("disabled");
+      chromeContextCommand.removeAttribute("disabled");
     }
 
     this.editor = new SourceEditor();
