@@ -956,6 +956,10 @@ namespace JSC {
 
         JmpSrc loadBranchTarget(int rd, Condition cc = AL, int useConstantPool = 0)
         {
+            
+            
+            
+            
             ensureSpace(sizeof(ARMWord), sizeof(ARMWord));
             int s = m_buffer.uncheckedSize();
             ldr_un_imm(rd, InvalidBranchTarget, cc);
