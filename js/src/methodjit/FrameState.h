@@ -144,7 +144,7 @@ class FrameState
     
 
 
-    inline void pushSyncedType(uint32 tag);
+    inline void pushSyncedType(JSValueMask32 tag);
 
     
 
@@ -159,14 +159,14 @@ class FrameState
     
 
 
-    inline void pushTypedPayload(uint32 tag, RegisterID payload);
+    inline void pushTypedPayload(JSValueMask32 tag, RegisterID payload);
 
     
 
 
 
 
-    inline void pushUntypedPayload(uint32 tag, RegisterID payload);
+    inline void pushUntypedPayload(JSValueMask32 tag, RegisterID payload);
 
     
 
@@ -280,7 +280,7 @@ class FrameState
     
 
 
-    inline void learnType(FrameEntry *fe, uint32 tag);
+    inline void learnType(FrameEntry *fe, JSValueMask32 tag);
 
     
 
