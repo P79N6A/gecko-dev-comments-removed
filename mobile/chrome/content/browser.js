@@ -712,6 +712,36 @@ var Browser = {
   
 
 
+
+
+
+  loadURI: function loadURI(aURI, aParams) {
+    let browser = this.selectedBrowser;
+
+    
+    
+    let currentURI = browser.currentURI.spec;
+    let useLocal = Util.isLocalScheme(aURI);
+    let hasLocal = Util.isLocalScheme(currentURI);
+
+    if (hasLocal != useLocal) {
+      let oldTab = this.selectedTab;
+      if (currentURI == "about:blank" && !browser.canGoBack && !browser.canGoForward) {
+        this.closeTab(oldTab);
+        oldTab = null;
+      }
+      let tab = Browser.addTab(aURI, true, oldTab);
+      tab.browser.stop();
+    }
+
+    let params = aParams || {};
+    let flags = params.flags || Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
+    getBrowser().loadURIWithFlags(aURI, flags, params.referrerURI, params.charset, params.postData);
+  },
+
+  
+
+
   get selectedBrowser() {
     return this._selectedTab.browser;
   },
@@ -1432,7 +1462,7 @@ nsBrowserAccess.prototype = {
     } else { 
       browser = Browser.selectedBrowser;
     }
-    
+
     try {
       let referrer;
       if (aURI) {
