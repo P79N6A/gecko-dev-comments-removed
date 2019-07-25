@@ -305,6 +305,13 @@ IonBuilder::buildInline(MResumePoint *callerResumePoint, MDefinition *thisDefn,
         }
     }
 
+    
+    
+    JS_ASSERT(!script->analysis()->usesScopeChain());
+    MInstruction *scope = MConstant::New(UndefinedValue());
+    current->add(scope);
+    current->initSlot(info().scopeChainSlot(), scope);
+
     current->initSlot(info().thisSlot(), thisDefn);
 
     IonSpew(IonSpew_Inlining, "Initializing %u arg slots", nargs);
@@ -329,7 +336,7 @@ IonBuilder::buildInline(MResumePoint *callerResumePoint, MDefinition *thisDefn,
             (void *) current->entryResumePoint(), current->entryResumePoint()->numOperands());
 
     
-    JS_ASSERT(current->entryResumePoint()->numOperands() == nargs + info().nlocals() + 1);
+    JS_ASSERT(current->entryResumePoint()->numOperands() == nargs + info().nlocals() + 2);
 
     return traverseBytecode();
 }
