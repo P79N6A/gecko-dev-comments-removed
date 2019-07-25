@@ -31,19 +31,38 @@ const MEETORSLICE_VALS = [ "meet", "slice" ];
 
 
 
+
+
 function generateSVGDataURI(aViewboxArr, aWidth, aHeight,
-                            aAlign, aMeetOrSlice) {
+                            aAlign, aMeetOrSlice,
+                            aViewParams, aFragmentIdentifier) {
   
   var datauri = "data:image/svg+xml,"
   
   datauri += "%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20shape-rendering%3D%22crispEdges%22";
 
   
+  
   datauri += generateSVGAttrsForParams(aViewboxArr, aWidth, aHeight,
-                                       aAlign, aMeetOrSlice);
+                                       aViewParams ? null : aAlign,
+                                       aMeetOrSlice);
+
+  
+  datauri += "%20font-size%3D%22" + "10px" + "%22";
 
   
   datauri += "%3E";
+
+  if (aViewParams) {
+    
+    datauri += "%3Cview%20id%3D%22" + aFragmentIdentifier + "%22";
+
+    
+    datauri += generateSVGAttrsForParams(aViewParams.viewBox, null, null,
+                                         aAlign, aViewParams.meetOrSlice);
+
+    datauri += "%2F%3E";
+  }
 
   
   datauri += "%3Crect%20x%3D%221%22%20y%3D%221%22%20height%3D%2218%22%20width%3D%2218%22%20stroke-width%3D%222%22%20stroke%3D%22black%22%20fill%3D%22yellow%22%2F%3E%3Ccircle%20cx%3D%2210%22%20cy%3D%2210%22%20r%3D%228%22%20style%3D%22fill%3A%20blue%22%2F%3E%3C%2Fsvg%3E";
@@ -59,8 +78,10 @@ function generateSVGAttrsForParams(aViewboxArr, aWidth, aHeight,
   if (aViewboxArr) {
     str += "%20viewBox%3D%22";
     for (var i in aViewboxArr) {
-        var curVal = aViewboxArr[i];
-        str += curVal + "%20";
+        str += aViewboxArr[i];
+        if (i != aViewboxArr.length - 1) {
+          str += "%20";
+        }
     }
     str += "%22";
   }
@@ -77,9 +98,6 @@ function generateSVGAttrsForParams(aViewboxArr, aWidth, aHeight,
     }
     str += "%22";
   }
-
-  
-  str += "%20font-size%3D%22" + "10px" + "%22";
 
   return str;
 }
@@ -132,7 +150,13 @@ function appendSVGSubArrayWithParams(aSVGParams, aHostNodeTagName,
     var uri = generateSVGDataURI(aSVGParams.viewBox,
                                  aSVGParams.width, aSVGParams.height,
                                  alignVal,
-                                 aSVGParams.meetOrSlice);
+                                 aSVGParams.meetOrSlice,
+                                 aSVGParams.view,
+                                 aSVGParams.fragmentIdentifier);
+
+    if (aSVGParams.fragmentIdentifier) {
+      uri += "#" + aSVGParams.fragmentIdentifier;
+    }
 
     
     var hostNode = generateHostNode(aHostNodeTagName, uri,

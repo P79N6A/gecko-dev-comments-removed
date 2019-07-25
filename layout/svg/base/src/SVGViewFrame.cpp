@@ -1,0 +1,128 @@
+
+
+
+
+
+
+#include "nsFrame.h"
+#include "nsGkAtoms.h"
+#include "nsSVGOuterSVGFrame.h"
+#include "nsSVGSVGElement.h"
+#include "nsSVGViewElement.h"
+
+typedef nsFrame SVGViewFrameBase;
+
+
+
+
+
+
+
+class SVGViewFrame : public SVGViewFrameBase
+{
+  friend nsIFrame*
+  NS_NewSVGViewFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
+protected:
+  SVGViewFrame(nsStyleContext* aContext)
+    : SVGViewFrameBase(aContext)
+  {
+    AddStateBits(NS_STATE_SVG_NONDISPLAY_CHILD);
+  }
+
+public:
+  NS_DECL_FRAMEARENA_HELPERS
+
+#ifdef DEBUG
+  NS_IMETHOD Init(nsIContent* aContent,
+                  nsIFrame*   aParent,
+                  nsIFrame*   aPrevInFlow);
+#endif
+
+  virtual bool IsFrameOfType(uint32_t aFlags) const
+  {
+    return SVGViewFrameBase::IsFrameOfType(aFlags & ~(nsIFrame::eSVG));
+  }
+
+#ifdef DEBUG
+  NS_IMETHOD GetFrameName(nsAString& aResult) const
+  {
+    return MakeFrameName(NS_LITERAL_STRING("SVGView"), aResult);
+  }
+#endif
+
+  
+
+
+
+
+  virtual nsIAtom* GetType() const;
+
+  NS_IMETHOD AttributeChanged(int32_t  aNameSpaceID,
+                              nsIAtom* aAttribute,
+                              int32_t  aModType);
+
+  virtual bool UpdateOverflow() {
+    
+    return false;
+  }
+};
+
+nsIFrame*
+NS_NewSVGViewFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
+{
+  return new (aPresShell) SVGViewFrame(aContext);
+}
+
+NS_IMPL_FRAMEARENA_HELPERS(SVGViewFrame)
+
+#ifdef DEBUG
+NS_IMETHODIMP
+SVGViewFrame::Init(nsIContent* aContent,
+                   nsIFrame* aParent,
+                   nsIFrame* aPrevInFlow)
+{
+  nsCOMPtr<nsIDOMSVGViewElement> elem = do_QueryInterface(aContent);
+  NS_ASSERTION(elem, "Content is not an SVG view");
+
+  return SVGViewFrameBase::Init(aContent, aParent, aPrevInFlow);
+}
+#endif 
+
+nsIAtom *
+SVGViewFrame::GetType() const
+{
+  return nsGkAtoms::svgViewFrame;
+}
+
+NS_IMETHODIMP
+SVGViewFrame::AttributeChanged(int32_t  aNameSpaceID,
+                               nsIAtom* aAttribute,
+                               int32_t  aModType)
+{
+  
+    
+  if (aNameSpaceID == kNameSpaceID_None &&
+      (aAttribute == nsGkAtoms::preserveAspectRatio ||
+       aAttribute == nsGkAtoms::viewBox ||
+       aAttribute == nsGkAtoms::viewTarget)) {
+
+    nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(this);
+    NS_ASSERTION(outerSVGFrame->GetContent()->Tag() == nsGkAtoms::svg,
+                 "Expecting an <svg> element");
+
+    nsSVGSVGElement* svgElement =
+      static_cast<nsSVGSVGElement*>(outerSVGFrame->GetContent());
+
+    nsAutoString viewID;
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::id, viewID);
+
+    if (svgElement->IsOverriddenBy(viewID)) {
+      
+      
+      outerSVGFrame->AttributeChanged(aNameSpaceID, aAttribute, aModType);
+    }
+  }
+
+  return SVGViewFrameBase::AttributeChanged(aNameSpaceID,
+                                            aAttribute, aModType);
+}
