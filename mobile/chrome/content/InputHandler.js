@@ -771,7 +771,7 @@ MouseModule.prototype = {
 
  }
     }
-    return [scrollbox, qinterface, (elem ? (elem.customDragger || this._defaultDragger) : null)];
+    return [scrollbox, qinterface, (scrollbox ? (scrollbox.customDragger || this._defaultDragger) : null)];
   },
 
   
