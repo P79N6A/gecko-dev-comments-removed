@@ -357,13 +357,21 @@ JSCompartment::markCrossCompartmentWrappers(JSTracer *trc)
     for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
         Value v = e.front().value;
         if (v.isObject()) {
+            JSObject *wrapper = &v.toObject();
+
             
 
 
 
-            Value referent = GetProxyPrivate(&v.toObject());
+            Value referent = GetProxyPrivate(wrapper);
             MarkValueRoot(trc, &referent, "cross-compartment wrapper");
-            JS_ASSERT(referent == GetProxyPrivate(&v.toObject()));
+            JS_ASSERT(referent == GetProxyPrivate(wrapper));
+
+            if (IsFunctionProxy(wrapper)) {
+                Value call = GetProxyCall(wrapper);
+                MarkValueRoot(trc, &call, "cross-compartment wrapper");
+                JS_ASSERT(call == GetProxyCall(wrapper));
+            }
         } else {
             
 
