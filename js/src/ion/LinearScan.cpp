@@ -405,6 +405,19 @@ LinearScanAllocator::createDataStructures()
 
 
 
+void
+LinearScanAllocator::addSpillInterval(LInstruction *ins, const Requirement &req)
+{
+    LiveInterval *bogus = new LiveInterval(NULL, 0);
+    bogus->addRange(outputOf(ins), outputOf(ins));
+    bogus->setRequirement(req);
+    unhandled.enqueue(bogus); 
+}
+
+
+
+
+
 
 
 
@@ -467,6 +480,14 @@ LinearScanAllocator::buildLivenessInfo()
         
         
         for (LInstructionReverseIterator ins = block->rbegin(); ins != block->rend(); ins++) {
+            
+            if (ins->isCallGeneric()) {
+                GeneralRegisterSet genset(Registers::JSCallClobberMask);
+                FloatRegisterSet floatset(FloatRegisters::JSCallClobberMask);
+                for (AnyRegisterIterator iter(genset, floatset); iter.more(); iter++)
+                    addSpillInterval(*ins, Requirement(LAllocation(*iter)));
+            }
+
             for (size_t i = 0; i < ins->numDefs(); i++) {
                 if (ins->getDef(i)->policy() != LDefinition::REDEFINED) {
                     LDefinition *def = ins->getDef(i);
@@ -508,12 +529,8 @@ LinearScanAllocator::buildLivenessInfo()
                     }
                     live->insert(use->virtualRegister());
 
-                    if (use->policy() == LUse::COPY) {
-                        LiveInterval *bogus = new LiveInterval(NULL, 0);
-                        bogus->addRange(outputOf(*ins), outputOf(*ins));
-                        bogus->setRequirement(Requirement(use->virtualRegister(), inputOf(*ins)));
-                        unhandled.enqueue(bogus);
-                    }
+                    if (use->policy() == LUse::COPY)
+                        addSpillInterval(*ins, Requirement(use->virtualRegister(), inputOf(*ins)));
                 }
             }
         }
