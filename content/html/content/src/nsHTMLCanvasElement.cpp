@@ -41,6 +41,7 @@
 #include "nsNetUtil.h"
 #include "prmem.h"
 #include "nsDOMFile.h"
+#include "CheckedInt.h"
 
 #include "nsIScriptSecurityManager.h"
 #include "nsIXPConnect.h"
@@ -259,23 +260,29 @@ nsHTMLCanvasElement::ExtractData(const nsAString& aType,
   
   PRUint32 bufSize;
   rv = imgStream->Available(&bufSize);
+  CheckedInt32 safeBufSize(bufSize);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   
-  bufSize += 16;
+  safeBufSize += 16;
+  NS_ENSURE_TRUE(safeBufSize.valid(), NS_ERROR_FAILURE);
   aSize = 0;
-  aResult = (char*)PR_Malloc(bufSize);
+  aResult = (char*)PR_Malloc(safeBufSize.value());
   if (!aResult)
     return NS_ERROR_OUT_OF_MEMORY;
   PRUint32 numReadThisTime = 0;
-  while ((rv = imgStream->Read(&aResult[aSize], bufSize - aSize,
+  while ((rv = imgStream->Read(&aResult[aSize], safeBufSize.value() - aSize,
                          &numReadThisTime)) == NS_OK && numReadThisTime > 0) {
     aSize += numReadThisTime;
-    if (aSize == bufSize) {
+    if (aSize == safeBufSize.value()) {
       
-      bufSize *= 2;
-      char* newImgData = (char*)PR_Realloc(aResult, aSize);
+      safeBufSize *= 2;
+      if (!safeBufSize.valid()) {
+        PR_Free(aResult);
+        return NS_ERROR_FAILURE;
+      }
+      char* newImgData = (char*)PR_Realloc(aResult, safeBufSize.value());
       if (! newImgData) {
         PR_Free(aResult);
         return NS_ERROR_OUT_OF_MEMORY;
