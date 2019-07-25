@@ -991,8 +991,6 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
   
   
   bool strictDebug = Preferences::GetBool(js_strict_debug_option_str);
-  
-  
   if (strictDebug && (newDefaultJSOptions & JSOPTION_STRICT) == 0) {
     if (chromeWindow)
       newDefaultJSOptions |= JSOPTION_STRICT;
@@ -2105,6 +2103,8 @@ nsJSContext::InitContext()
 
   ::JS_SetErrorReporter(mContext, NS_ScriptErrorReporter);
 
+  JSOptionChangedCallback(js_options_dot_str, this);
+
   return NS_OK;
 }
 
@@ -2826,8 +2826,6 @@ nsJSContext::InitClasses(JSObject* aGlobalObj)
   
   ::JS_DefineFunctions(mContext, aGlobalObj, DMDFunctions);
 #endif
-
-  JSOptionChangedCallback(js_options_dot_str, this);
 
   return rv;
 }
