@@ -354,28 +354,18 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupF
     return rv;
 }
 
-static nsresult MangleKeywordIntoURI(const char *aKeyword, const char *aURL,
-                                     nsCString& query)
-{
-    query = (*aKeyword == '?') ? (aKeyword + 1) : aKeyword;
-    query.Trim(" "); 
-
-    
-    char * encQuery = nsEscape(query.get(), url_XPAlphas);
-    if (!encQuery) return NS_ERROR_OUT_OF_MEMORY;
-    query.Adopt(encQuery);
-
-    
-    
-    query.Insert(aURL, 0);
-    return NS_OK;
-}
-
 NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
                                               nsIURI **aURI)
 {
     *aURI = nsnull;
     NS_ENSURE_STATE(mPrefBranch);
+
+    
+    nsCAutoString keyword(aKeyword);
+    if (StringBeginsWith(keyword, NS_LITERAL_CSTRING("?"))) {
+        keyword.Cut(0, 1);
+    }
+    keyword.Trim(" ");
 
     nsXPIDLCString url;
     nsCOMPtr<nsIPrefLocalizedString> keywordURL;
@@ -394,10 +384,13 @@ NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
 
     
     if (!url.IsEmpty()) {
+        
         nsCAutoString spec;
-        nsresult rv = MangleKeywordIntoURI(PromiseFlatCString(aKeyword).get(),
-                                           url.get(), spec);
-        if (NS_FAILED(rv)) return rv;
+        if (!NS_Escape(keyword, spec, url_XPAlphas)) {
+            return NS_ERROR_OUT_OF_MEMORY;
+        }
+
+        spec.Insert(url, 0);
 
         return NS_NewURI(aURI, spec);
     }
@@ -415,13 +408,13 @@ NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
             
             
             
-            defaultEngine->GetSubmission(NS_ConvertUTF8toUTF16(aKeyword),
+            defaultEngine->GetSubmission(NS_ConvertUTF8toUTF16(keyword),
                                          NS_LITERAL_STRING("application/x-moz-keywordsearch"),
                                          getter_AddRefs(submission));
             
             
             if (!submission) {
-                defaultEngine->GetSubmission(NS_ConvertUTF8toUTF16(aKeyword),
+                defaultEngine->GetSubmission(NS_ConvertUTF8toUTF16(keyword),
                                              EmptyString(),
                                              getter_AddRefs(submission));
             }
