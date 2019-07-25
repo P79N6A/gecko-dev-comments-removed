@@ -4638,10 +4638,6 @@ var TabsOnTop = {
     gNavToolbox.setAttribute("tabsontop", !!val);
     this.syncCommand();
 
-    
-    
-    gNavToolbox.style.MozBoxOrdinalGroup = val ? 2 : 3;
-
     return val;
   }
 }
