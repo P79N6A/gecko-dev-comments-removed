@@ -395,6 +395,10 @@ pref("dom.screenEnabledProperty.enabled", true);
 pref("dom.screenBrightnessProperty.enabled", true);
 
 
+pref("dom.mozBrowserFramesEnabled", true);
+pref("dom.mozBrowserFramesWhitelist", "http://localhost:6666");
+
+
 pref("dom.sms.enabled", true);
 pref("dom.sms.whitelist", "file://,http://localhost:6666");
 
