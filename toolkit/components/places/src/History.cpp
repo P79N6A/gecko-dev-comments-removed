@@ -736,8 +736,20 @@ private:
       
       
       
+      if (i == 0) {
+        PRInt64 newSessionId = navHistory->GetNewSessionID();
+        if (mPlaces[0].sessionId > newSessionId) {
+          mPlaces[0].sessionId = newSessionId;
+        }
+      }
+
       
-      if (mPlaces[i].sessionId <= 0) {
+      
+      
+      
+      
+      if (mPlaces[i].sessionId <= 0 ||
+          (i > 0 && mPlaces[i].sessionId >= mPlaces[0].sessionId)) {
         mPlaces[i].sessionId = navHistory->GetNewSessionID();
       }
 

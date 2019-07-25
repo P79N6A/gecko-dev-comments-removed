@@ -498,6 +498,55 @@ function test_invalid_sessionId_ignored()
   });
 }
 
+function test_unstored_sessionId_ignored()
+{
+  let place = {
+    uri: NetUtil.newURI(TEST_DOMAIN +
+                        "test_unstored_sessionId_ignored"),
+    visits: [
+      new VisitInfo(),
+    ],
+  };
+
+  
+  let stmt = DBConn().createStatement(
+    "SELECT MAX(session) as max_session " +
+    "FROM moz_historyvisits"
+  );
+  do_check_true(stmt.executeStep());
+  let maxSessionId = stmt.row.max_session;
+  stmt.finalize();
+
+  
+  place.visits[0].sessionId = maxSessionId + 10;
+  do_check_false(gGlobalHistory.isVisited(place.uri));
+
+  gHistory.updatePlaces(place, function(aResultCode, aPlaceInfo) {
+    do_check_true(Components.isSuccessCode(aResultCode));
+    let uri = aPlaceInfo.uri;
+    do_check_true(gGlobalHistory.isVisited(uri));
+
+    
+    let visit = aPlaceInfo.visits[0];
+    do_check_neq(visit.sessionId, place.visits[0].sessionId);
+
+    
+    let stmt = DBConn().createStatement(
+      "SELECT MAX(session) as max_session " +
+      "FROM moz_historyvisits"
+    );
+    do_check_true(stmt.executeStep());
+
+    
+    
+    let newMaxSessionId = stmt.row.max_session;
+    do_check_eq(maxSessionId + 1, newMaxSessionId);
+    stmt.finalize();
+
+    run_next_test();
+  });
+}
+
 function test_observer_topic_dispatched_when_complete()
 {
   
@@ -972,6 +1021,7 @@ let gTests = [
   test_invalid_referrerURI_ignored,
   test_nonnsIURI_referrerURI_ignored,
   test_invalid_sessionId_ignored,
+  test_unstored_sessionId_ignored,
   test_observer_topic_dispatched_when_complete,
   test_add_visit,
   test_properties_saved,
