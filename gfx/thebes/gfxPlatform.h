@@ -181,11 +181,6 @@ public:
     virtual mozilla::RefPtr<mozilla::gfx::ScaledFont>
       GetScaledFontForFont(gfxFont *aFont);
 
-    
-
-
-
-
     virtual already_AddRefed<gfxASurface>
       GetThebesSurfaceForDrawTarget(mozilla::gfx::DrawTarget *aTarget);
 

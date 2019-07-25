@@ -606,10 +606,6 @@ protected:
   PRPackedBool mPredictManyRedrawCalls;
 
   
-  
-  nsRefPtr<gfxASurface> mThebesSurface;
-
-  
 
 
 
@@ -4242,22 +4238,11 @@ nsCanvasRenderingContext2DAzure::GetThebesSurface(gfxASurface **surface)
     *surface = tmpSurf.forget().get();
     return NS_OK;
   }
-
-  if (!mThebesSurface) {
-    mThebesSurface =
-      gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(mTarget);    
-
-    if (!mThebesSurface) {
-      return NS_ERROR_FAILURE;
-    }
-  } else {
     
-    
-    mTarget->Flush();
-  }
+  nsRefPtr<gfxASurface> newSurf =
+    gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(mTarget);    
 
-  mThebesSurface->AddRef();
-  *surface = mThebesSurface;
+  *surface = newSurf.forget().get();
 
   return NS_OK;
 }
