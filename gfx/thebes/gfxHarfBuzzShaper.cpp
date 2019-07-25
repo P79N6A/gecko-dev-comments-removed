@@ -855,7 +855,9 @@ gfxHarfBuzzShaper::ShapeWord(gfxContext      *aContext,
                              const PRUnichar *aText)
 {
     
-    mFont->SetupCairoFont(aContext);
+    if (!mFont->SetupCairoFont(aContext)) {
+        return false;
+    }
 
     if (!mHBFace) {
 
