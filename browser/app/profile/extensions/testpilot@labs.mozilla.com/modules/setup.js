@@ -56,6 +56,7 @@ const POPUP_CHECK_INTERVAL = "extensions.testpilot.popup.delayAfterStartup";
 const POPUP_REMINDER_INTERVAL = "extensions.testpilot.popup.timeBetweenChecks";
 const ALWAYS_SUBMIT_DATA = "extensions.testpilot.alwaysSubmitData";
 const LOG_FILE_NAME = "TestPilotErrorLog.log";
+const RANDOM_DEPLOY_PREFIX = "extensions.testpilot.deploymentRandomizer";
 
 let TestPilotSetup = {
   didReminderAfterStartup: false,
@@ -694,7 +695,7 @@ let TestPilotSetup = {
 
     let logger = this._logger;
     try {
-      let minTpVer, minFxVer, expName, runOrNotFunc;
+      let minTpVer, minFxVer, expName, runOrNotFunc, randomDeployment;
       
 
       let info = experiment.experimentInfo ?
@@ -709,6 +710,7 @@ let TestPilotSetup = {
       minFxVer = info.minFXVersion;
       expName =  info.testName;
       runOrNotFunc = info.runOrNotFunc;
+      randomDeployment = info.randomDeployment;
 
       
       if (minTpVer && this._isNewerThanMe(minTpVer)) {
@@ -733,6 +735,25 @@ let TestPilotSetup = {
         logger.warn("Not loading " + expName);
         logger.warn("Because it requires Firefox version " + minFxVer);
         return false;
+      }
+
+      
+      if (randomDeployment) {
+        
+
+
+        let prefName = RANDOM_DEPLOY_PREFIX + "." + randomDeployment.rolloutCode;
+        let myRoll = this._prefs.getValue(prefName, null);
+        if (myRoll == null) {
+          myRoll = Math.floor(Math.random()*100);
+          this._prefs.setValue(prefName, myRoll);
+        }
+        if (myRoll < randomDeployment.minRoll) {
+          return false;
+        }
+        if (myRoll > randomDeployment.maxRoll) {
+          return false;
+        }
       }
 
       
