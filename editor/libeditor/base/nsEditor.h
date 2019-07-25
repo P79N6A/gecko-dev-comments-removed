@@ -397,7 +397,7 @@ protected:
   {
     
     
-    return !IsPasswordEditor() && !IsReadonly() && !IsDisabled();
+    return !IsPasswordEditor() && !IsReadonly() && !IsDisabled() && !ShouldSkipSpellCheck();
   }
 
 public:
@@ -694,6 +694,11 @@ public:
   bool DontEchoPassword() const
   {
     return (mFlags & nsIPlaintextEditor::eEditorDontEchoPassword) != 0;
+  }
+  
+  PRBool ShouldSkipSpellCheck() const
+  {
+    return (mFlags & nsIPlaintextEditor::eEditorSkipSpellCheck) != 0;
   }
 
   bool IsTabbable() const

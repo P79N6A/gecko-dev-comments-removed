@@ -905,6 +905,17 @@ nsEditorEventListener::Focus(nsIDOMEvent* aEvent)
   if (mEditor->IsDisabled()) {
     return NS_OK;
   }
+  
+  
+  
+  PRUint32 currentFlags = 0;
+  mEditor->GetFlags(&currentFlags);
+  if(currentFlags & nsIPlaintextEditor::eEditorSkipSpellCheck)
+  {
+    currentFlags ^= nsIPlaintextEditor::eEditorSkipSpellCheck;
+    mEditor->SetFlags(currentFlags);
+  }
+  
 
   nsCOMPtr<nsIDOMEventTarget> target;
   aEvent->GetTarget(getter_AddRefs(target));

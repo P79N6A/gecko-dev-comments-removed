@@ -1163,6 +1163,10 @@ nsTextEditorState::PrepareEditor(const nsAString *aValue)
   
   
   editorFlags |= nsIPlaintextEditor::eEditorUseAsyncUpdatesMask;
+  
+  
+  
+  editorFlags |= nsIPlaintextEditor::eEditorSkipSpellCheck;
 
   bool shouldInitializeEditor = false;
   nsCOMPtr<nsIEditor> newEditor; 
