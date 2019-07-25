@@ -2193,7 +2193,7 @@ mjit::Compiler::generateMethod()
 
             if (cx->typeInferenceEnabled()) {
                 uint32 slot = ArgSlot(GET_SLOTNO(PC));
-                if (a->varTypes[slot].type == JSVAL_TYPE_DOUBLE && fixDoubleSlot(slot))
+                if (a->varTypes[slot].type == JSVAL_TYPE_DOUBLE && analysis->trackSlot(slot))
                     frame.ensureDouble(frame.getArg(GET_SLOTNO(PC)));
             }
 
@@ -2221,7 +2221,7 @@ mjit::Compiler::generateMethod()
 
             if (cx->typeInferenceEnabled()) {
                 uint32 slot = LocalSlot(script, GET_SLOTNO(PC));
-                if (a->varTypes[slot].type == JSVAL_TYPE_DOUBLE && fixDoubleSlot(slot))
+                if (a->varTypes[slot].type == JSVAL_TYPE_DOUBLE && analysis->trackSlot(slot))
                     frame.ensureDouble(frame.getLocal(GET_SLOTNO(PC)));
             }
 
@@ -6712,21 +6712,6 @@ mjit::Compiler::jsop_forgname(JSAtom *atom)
 
 
 
-inline bool
-mjit::Compiler::fixDoubleSlot(uint32 slot)
-{
-    if (!analysis->trackSlot(slot))
-        return false;
-
-    
-
-
-
-    if (slot < LocalSlot(script, 0) && a->parent)
-        return false;
-
-    return true;
-}
 
 void
 mjit::Compiler::fixDoubleTypes(jsbytecode *target)
@@ -6753,7 +6738,7 @@ mjit::Compiler::fixDoubleTypes(jsbytecode *target)
                 types::TypeSet *targetTypes = analysis->getValueTypes(newv->value);
                 VarType &vt = a->varTypes[newv->slot];
                 if (targetTypes->getKnownTypeTag(cx) == JSVAL_TYPE_DOUBLE &&
-                    fixDoubleSlot(newv->slot)) {
+                    analysis->trackSlot(newv->slot)) {
                     FrameEntry *fe = frame.getSlotEntry(newv->slot);
                     if (vt.type == JSVAL_TYPE_INT32) {
                         fixedDoubleEntries.append(newv->slot);
@@ -6798,7 +6783,8 @@ mjit::Compiler::restoreAnalysisTypes()
     
     for (uint32 slot = ArgSlot(0); slot < TotalSlots(script); slot++) {
         JSValueType type = a->varTypes[slot].type;
-        if (type != JSVAL_TYPE_UNKNOWN && (type != JSVAL_TYPE_DOUBLE || fixDoubleSlot(slot))) {
+        if (type != JSVAL_TYPE_UNKNOWN &&
+            (type != JSVAL_TYPE_DOUBLE || analysis->trackSlot(slot))) {
             FrameEntry *fe = frame.getSlotEntry(slot);
             JS_ASSERT_IF(fe->isTypeKnown(), fe->isType(type));
             if (!fe->isTypeKnown())
