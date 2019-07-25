@@ -419,9 +419,8 @@ nsWebSocket::GetInterface(const nsIID &aIID, void **aResult)
       aIID.Equals(NS_GET_IID(nsIAuthPrompt2))) {
     nsresult rv;
 
-    nsIScriptContext* sc = GetContextForEventHandlers(&rv);
     nsCOMPtr<nsIDocument> doc =
-      nsContentUtils::GetDocumentFromScriptContext(sc);
+      nsContentUtils::GetDocumentFromScriptContext(mScriptContext);
     if (!doc)
       return NS_ERROR_NOT_AVAILABLE;
 
@@ -535,18 +534,6 @@ NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
 
 NS_IMPL_ADDREF_INHERITED(nsWebSocket, nsDOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(nsWebSocket, nsDOMEventTargetHelper)
-
-void
-nsWebSocket::DisconnectFromOwner()
-{
-  nsDOMEventTargetHelper::DisconnectFromOwner();
-  NS_DISCONNECT_EVENT_HANDLER(Open)
-  NS_DISCONNECT_EVENT_HANDLER(Message)
-  NS_DISCONNECT_EVENT_HANDLER(Close)
-  NS_DISCONNECT_EVENT_HANDLER(Error)
-  FailConnectionQuietly();
-  DontKeepAliveAnyMore();
-}
 
 
 
@@ -803,7 +790,7 @@ nsWebSocket::CreateAndDispatchMessageEvent(const nsACString& aData,
     return NS_OK;
 
   
-  nsCOMPtr<nsIScriptGlobalObject> sgo = do_QueryInterface(GetOwner());
+  nsCOMPtr<nsIScriptGlobalObject> sgo = do_QueryInterface(mOwner);
   NS_ENSURE_TRUE(sgo, NS_ERROR_FAILURE);
 
   nsIScriptContext* scriptContext = sgo->GetContext();
@@ -1538,11 +1525,12 @@ nsWebSocket::Init(nsIPrincipal* aPrincipal,
   }
 
   mPrincipal = aPrincipal;
+  mScriptContext = aScriptContext;
   if (aOwnerWindow) {
-    BindToOwner(aOwnerWindow->IsOuterWindow() ?
-                aOwnerWindow->GetCurrentInnerWindow() : aOwnerWindow);
+    mOwner = aOwnerWindow->IsOuterWindow() ?
+      aOwnerWindow->GetCurrentInnerWindow() : aOwnerWindow;
   } else {
-    BindToOwner(aOwnerWindow);
+    mOwner = nsnull;
   }
 
   
@@ -1562,17 +1550,12 @@ nsWebSocket::Init(nsIPrincipal* aPrincipal,
     do_GetService("@mozilla.org/js/xpc/ContextStack;1");
   JSContext* cx = nsnull;
   if (stack && NS_SUCCEEDED(stack->Peek(&cx)) && cx) {
-    JSStackFrame *fp = JS_GetScriptedCaller(cx, NULL);
-    if (fp) {
-      JSScript *script = JS_GetFrameScript(cx, fp);
-      if (script) {
-        mScriptFile = JS_GetScriptFilename(cx, script);
-      }
+    unsigned lineno;
+    JSScript *script;
 
-      jsbytecode *pc = JS_GetFramePC(cx, fp);
-      if (script && pc) {
-        mScriptLine = JS_PCToLineNumber(cx, script, pc);
-      }
+    if (JS_DescribeScriptedCaller(cx, &script, &lineno)) {
+        mScriptFile = JS_GetScriptFilename(cx, script);
+        mScriptLine = lineno;
     }
 
     mInnerWindowID = nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(cx);
@@ -1582,9 +1565,8 @@ nsWebSocket::Init(nsIPrincipal* aPrincipal,
   rv = ParseURL(PromiseFlatString(aURL));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsIScriptContext* sc = GetContextForEventHandlers(&rv);
   nsCOMPtr<nsIDocument> originDoc =
-    nsContentUtils::GetDocumentFromScriptContext(sc);
+    nsContentUtils::GetDocumentFromScriptContext(mScriptContext);
 
   
   if (!mSecure &&
@@ -1649,7 +1631,7 @@ nsWebSocket::Observe(nsISupports* aSubject,
   }
 
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aSubject);
-  if (!GetOwner() || window != GetOwner()) {
+  if (!mOwner || window != mOwner) {
     return NS_OK;
   }
 
@@ -1718,10 +1700,8 @@ nsWebSocket::GetLoadGroup(nsILoadGroup **aLoadGroup)
 {
   *aLoadGroup = nsnull;
 
-  nsresult rv;
-  nsIScriptContext* sc = GetContextForEventHandlers(&rv);
   nsCOMPtr<nsIDocument> doc =
-    nsContentUtils::GetDocumentFromScriptContext(sc);
+    nsContentUtils::GetDocumentFromScriptContext(mScriptContext);
 
   if (doc) {
     *aLoadGroup = doc->GetDocumentLoadGroup().get();  

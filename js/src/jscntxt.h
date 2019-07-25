@@ -1530,14 +1530,6 @@ js_InvokeOperationCallback(JSContext *cx);
 extern JSBool
 js_HandleExecutionInterrupt(JSContext *cx);
 
-
-
-
-
-
-extern js::StackFrame *
-js_GetScriptedCaller(JSContext *cx, js::StackFrame *fp);
-
 extern jsbytecode*
 js_GetCurrentBytecodePC(JSContext* cx);
 
