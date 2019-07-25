@@ -5867,13 +5867,12 @@ BEGIN_CASE(JSOP_SETTER)
     }
 
     
-
-
-
     Value rtmp;
     uintN attrs;
-    if (!CheckAccess(cx, obj, id, JSACC_WATCH, &rtmp, &attrs))
+    if (!CheckAccess(cx, obj, id, JSACC_WATCH, &rtmp, &attrs)) {
+        JS_NOT_REACHED("getter/setter access check failed");
         goto error;
+    }
 
     PropertyOp getter, setter;
     if (op == JSOP_GETTER) {
