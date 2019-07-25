@@ -1947,6 +1947,68 @@ nsPluginHost::IsLiveTag(nsIPluginTag* aPluginTag)
   return false;
 }
 
+nsPluginTag*
+nsPluginHost::HaveSamePlugin(const nsPluginTag* aPluginTag)
+{
+  for (nsPluginTag* tag = mPlugins; tag; tag = tag->mNext) {
+    if (tag->HasSameNameAndMimes(aPluginTag)) {
+        return tag;
+    }
+  }
+  return nsnull;
+}
+
+nsPluginTag*
+nsPluginHost::FirstPluginWithPath(const nsCString& path)
+{
+  for (nsPluginTag* tag = mPlugins; tag; tag = tag->mNext) {
+    if (tag->mFullPath.Equals(path)) {
+      return tag;
+    }
+  }
+  return nsnull;
+}
+
+namespace {
+
+PRInt64 GetPluginLastModifiedTime(const nsCOMPtr<nsIFile>& localfile)
+{
+  PRInt64 fileModTime = LL_ZERO;
+
+#if defined(XP_MACOSX)
+  
+  
+  
+  nsCOMPtr<nsILocalFileMac> localFileMac = do_QueryInterface(localfile);
+  if (localFileMac) {
+    localFileMac->GetBundleContentsLastModifiedTime(&fileModTime);
+  } else {
+    localfile->GetLastModifiedTime(&fileModTime);
+  }
+#else
+  localfile->GetLastModifiedTime(&fileModTime);
+#endif
+
+  return fileModTime;
+}
+
+struct CompareFilesByTime 
+{
+  bool 
+  LessThan(const nsCOMPtr<nsIFile>& a, const nsCOMPtr<nsIFile>& b) const 
+  {
+    return LL_CMP(GetPluginLastModifiedTime(a), <, GetPluginLastModifiedTime(b));
+  }
+
+  bool
+  Equals(const nsCOMPtr<nsIFile>& a, const nsCOMPtr<nsIFile>& b) const
+  {
+    return LL_EQ(GetPluginLastModifiedTime(a), GetPluginLastModifiedTime(b));
+  }
+};
+
+} 
+
 typedef NS_NPAPIPLUGIN_CALLBACK(char *, NP_GETMIMEDESCRIPTION)(void);
 
 nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
@@ -1991,9 +2053,11 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
     }
   }
 
+  pluginFiles.Sort(CompareFilesByTime());
+
   bool warnOutdated = false;
 
-  for (PRUint32 i = 0; i < pluginFiles.Length(); i++) {
+  for (PRInt32 i = (pluginFiles.Length() - 1); i >= 0; i--) {
     nsCOMPtr<nsIFile>& localfile = pluginFiles[i];
 
     nsString utf16FilePath;
@@ -2001,21 +2065,8 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
     if (NS_FAILED(rv))
       continue;
 
-    PRInt64 fileModTime = LL_ZERO;
-#if defined(XP_MACOSX)
+    PRInt64 fileModTime = GetPluginLastModifiedTime(localfile);
     
-    
-    
-    nsCOMPtr<nsILocalFileMac> localFileMac = do_QueryInterface(localfile);
-    if (localFileMac) {
-      localFileMac->GetBundleContentsLastModifiedTime(&fileModTime);
-    } else {
-      localfile->GetLastModifiedTime(&fileModTime);
-    }
-#else
-    localfile->GetLastModifiedTime(&fileModTime);
-#endif
-
     
     NS_ConvertUTF16toUTF8 filePath(utf16FilePath);
     nsRefPtr<nsPluginTag> pluginTag;
@@ -2145,6 +2196,21 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
     if (!seenBefore) {
       
       *aPluginsChanged = true;
+    }
+    
+    
+    
+    if (!nsNPAPIPlugin::RunPluginOOP(pluginTag)) {
+      if (nsPluginTag *duplicate = HaveSamePlugin(pluginTag)) {
+        continue;
+      }
+    }
+    
+    
+    if (nsPluginTag* duplicate = FirstPluginWithPath(pluginTag->mFullPath)) {
+      if (LL_EQ(pluginTag->mLastModifiedTime, duplicate->mLastModifiedTime)) {
+        continue;
+      }
     }
 
     
