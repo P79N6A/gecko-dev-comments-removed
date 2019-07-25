@@ -176,11 +176,12 @@ static PRInt64 GetCanvasMemoryUsed(void *) {
 
 
 NS_MEMORY_REPORTER_IMPLEMENT(CanvasMemory,
-                             "canvas-2d-pixel-bytes",
-                             "Memory used by 2D canvases. Each canvas "
-                             "requires (width * height * 4) bytes.",
-                             GetCanvasMemoryUsed,
-                             NULL)
+    "canvas-2d-pixel-bytes",
+    MR_OTHER,
+    "Memory used by 2D canvases. Each canvas requires (width * height * 4) "
+    "bytes.",
+    GetCanvasMemoryUsed,
+    NULL)
 
 static void
 CopyContext(gfxContext* dest, gfxContext* src)

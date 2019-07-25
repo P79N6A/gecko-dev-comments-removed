@@ -48,6 +48,12 @@ var gVerbose = (location.href.split(/[\?,]/).indexOf("verbose") !== -1);
 
 var gAddedObserver = false;
 
+const MR_MAPPED = Ci.nsIMemoryReporter.MR_MAPPED;
+const MR_HEAP   = Ci.nsIMemoryReporter.MR_HEAP;
+const MR_OTHER  = Ci.nsIMemoryReporter.MR_OTHER;
+
+const kUnknown = -1;    
+
 function onLoad()
 {
   var os = Cc["@mozilla.org/observer-service;1"].
@@ -156,6 +162,7 @@ function update()
   
   
   
+  
   var tmrTable = {};
   var e = mgr.enumerateReporters();
   while (e.hasMoreElements()) {
@@ -170,6 +177,7 @@ function update()
       process = mr.path.slice(0, i);
       tmr._tpath = mr.path.slice(i + 1);
     }
+    tmr._kind        = mr.kind;
     tmr._description = mr.description;
     tmr._memoryUsed  = mr.memoryUsed;
 
@@ -201,10 +209,11 @@ function update()
   const CCDesc = "Do a global garbage collection followed by a cycle " +
                  "collection. (It currently is not possible to do a cycle " +
                  "collection on its own, see bug 625302.)";
-  const MPDesc = "Send three \"heap-minimize\" notifications in a row.  Each " +
-                 "notification triggers a global garbage collection followed " +
-                 "by a cycle collection, and causes the process to reduce " +
-                 "memory usage in other ways, e.g. by flushing various caches.";
+  const MPDesc = "Send three \"heap-minimize\" notifications in a " +
+                 "row.  Each notification triggers a global garbage " +
+                 "collection followed by a cycle collection, and causes the " +
+                 "process to reduce memory usage in other ways, e.g. by " +
+                 "flushing various caches.";
 
   text += "<div>" +
     "<button title='" + GCDesc + "' onclick='doGlobalGC()'>GC</button>" +
@@ -222,6 +231,11 @@ function update()
   content.appendChild(div);
 }
 
+function cmpTmrs(a, b)
+{
+  return b._memoryUsed - a._memoryUsed
+};
+
 
 
 
@@ -234,15 +248,6 @@ function update()
 function genProcessText(aProcess, aTmrs)
 {
   
-  
-  var mappedHeapUsedTmr = aTmrs["mapped/heap/used"];
-  aTmrs["heap-used"] = {
-    _tpath:       "heap-used",
-    _description: mappedHeapUsedTmr._description,
-    _memoryUsed:  mappedHeapUsedTmr._memoryUsed
-  };
-
-  
 
 
 
@@ -257,11 +262,11 @@ function genProcessText(aProcess, aTmrs)
 
 
 
-
-
-
-  function buildTree(aTreeName, aOmitThresholdPerc)
+  function buildTree()
   {
+    const treeName = "explicit";
+    const omitThresholdPerc = 0.5; 
+
     function findKid(aName, aKids)
     {
       for (var i = 0; i < aKids.length; i++) {
@@ -275,10 +280,14 @@ function genProcessText(aProcess, aTmrs)
     
     
     
-    var t = { _name: "falseRoot", _kids: [] };
+    var t = {
+      _name: "falseRoot",
+      _kind: MR_OTHER,
+      _kids: []
+    };
     for (var tpath in aTmrs) {
       var tmr = aTmrs[tpath];
-      if (tmr._tpath.slice(0, aTreeName.length) === aTreeName) {
+      if (tmr._tpath.slice(0, treeName.length) === treeName) {
         var names = tmr._tpath.split('/');
         var u = t;
         for (var i = 0; i < names.length; i++) {
@@ -287,11 +296,16 @@ function genProcessText(aProcess, aTmrs)
           if (uMatch) {
             u = uMatch;
           } else {
-            var v = { _name: name, _kids: [] };
+            var v = {
+              _name: name,
+              _kind: MR_OTHER,
+              _kids: []
+            };
             u._kids.push(v);
             u = v;
           }
         }
+        u._kind = tmr._kind;
         u._hasReporter = true;
       }
     }
@@ -307,46 +321,101 @@ function genProcessText(aProcess, aTmrs)
       var tpath = aPretpath ? aPretpath + '/' + aT._name : aT._name;
       if (aT._kids.length === 0) {
         
-        aT._memoryUsed = getBytes(aTmrs, tpath);
         aT._description = getDescription(aTmrs, tpath);
+        var memoryUsed = getBytes(aTmrs, tpath);
+        if (memoryUsed !== kUnknown) {
+          aT._memoryUsed = memoryUsed;
+        } else {
+          aT._memoryUsed = 0;
+          aT._hasProblem = true;
+        }
       } else {
         
         var childrenBytes = 0;
         for (var i = 0; i < aT._kids.length; i++) {
           
           var b = fillInTree(aT._kids[i], tpath);
-          childrenBytes += (b === -1 ? 0 : b);
+          childrenBytes += (b === kUnknown ? 0 : b);
         }
         if (aT._hasReporter === true) {
-          
-          
-          aT._memoryUsed = getBytes(aTmrs, tpath);
           aT._description = getDescription(aTmrs, tpath);
-          if (aT._memoryUsed !== -1) {
+          var memoryUsed = getBytes(aTmrs, tpath);
+          if (memoryUsed !== kUnknown) {
+            
+            
+            aT._memoryUsed = memoryUsed;
             var other = {
               _name: "other",
+              _kind: MR_OTHER,
               _description: "All unclassified " + aT._name + " memory.",
               _memoryUsed: aT._memoryUsed - childrenBytes,
               _kids: []
             };
             aT._kids.push(other);
+          } else {
+            
+            
+            aT._memoryUsed = childrenBytes;
+            aT._hasProblem = true;
           }
         } else {
           
           
           aT._memoryUsed = childrenBytes;
-          aT._description = "The sum of all entries below " + aT._name + ".";
+          aT._description = "The sum of all entries below '" + aT._name + "'.";
         }
       }
       return aT._memoryUsed;
     }
     fillInTree(t, "");
 
+    
+    
+    
+    var s = "";
+    function getKnownHeapUsedBytes(aT)
+    {
+      if (aT._kind === MR_HEAP) {
+        return aT._memoryUsed;
+      } else {
+        var n = 0;
+        for (var i = 0; i < aT._kids.length; i++) {
+          n += getKnownHeapUsedBytes(aT._kids[i]);
+        }
+        return n;
+      }
+    }
+
+    
+    
+    
+    var heapUsedBytes = getBytes(aTmrs, "heap-used", true);
+    var unknownHeapUsedBytes = 0;
+    var hasProblem = true;
+    if (heapUsedBytes !== kUnknown) {
+      unknownHeapUsedBytes = heapUsedBytes - getKnownHeapUsedBytes(t);
+      hasProblem = false;
+    }
+    var heapUnclassified = {
+      _name: "heap-unclassified",
+      _kind: MR_HEAP,
+      _description:
+        "Memory not classified by a more specific reporter. This includes " +
+        "memory allocated by the heap allocator in excess of that requested " +
+        "by the application; this can happen when the heap allocator rounds " +
+        "up request sizes.",
+      _memoryUsed: unknownHeapUsedBytes,
+      _hasProblem: hasProblem,
+      _kids: []
+    }
+    t._kids.push(heapUnclassified);
+    t._memoryUsed += unknownHeapUsedBytes;
+
     function shouldOmit(aBytes)
     {
       return !gVerbose &&
-             t._memoryUsed !== -1 &&
-             (100 * aBytes / t._memoryUsed) < aOmitThresholdPerc;
+             t._memoryUsed !== kUnknown &&
+             (100 * aBytes / t._memoryUsed) < omitThresholdPerc;
     }
 
     
@@ -358,7 +427,6 @@ function genProcessText(aProcess, aTmrs)
 
     function filterTree(aT)
     {
-      var cmpTmrs = function(a, b) { return b._memoryUsed - a._memoryUsed };
       aT._kids.sort(cmpTmrs);
 
       for (var i = 0; i < aT._kids.length; i++) {
@@ -377,6 +445,7 @@ function genProcessText(aProcess, aTmrs)
           var n = i - i0;
           var tmrSub = {
             _name: "(" + n + " omitted)",
+            _kind: MR_OTHER,
             _description: "Omitted sub-trees: " + aggNames.join(", ") + ".",
             _memoryUsed: aggBytes,
             _kids: []
@@ -393,16 +462,9 @@ function genProcessText(aProcess, aTmrs)
   }
 
   
-  
-  
-  var mappedTree   = buildTree("mapped",    0.01);
-  var heapUsedTree = buildTree("heap-used", 0.1);
-
-  
   var text = "";
   text += "<h1>" + aProcess + " Process</h1>\n\n";
-  text += genTreeText(mappedTree, "Mapped Memory");
-  text += genTreeText(heapUsedTree, "Used Heap Memory");
+  text += genTreeText(buildTree());
   text += genOtherText(aTmrs);
   text += "<hr></hr>";
   return text;
@@ -418,10 +480,6 @@ function genProcessText(aProcess, aTmrs)
 function formatBytes(aBytes)
 {
   var unit = gVerbose ? "B" : "MB";
-
-  if (aBytes === -1) {
-    return "??? " + unit;
-  }
 
   function formatInt(aN)
   {
@@ -491,15 +549,19 @@ function pad(aS, aN, aC)
 
 
 
-function getBytes(aTmrs, aTpath)
+
+
+
+function getBytes(aTmrs, aTpath, aDoNotMark)
 {
   var tmr = aTmrs[aTpath];
   if (tmr) {
     var bytes = tmr._memoryUsed;
-    tmr.done = true;
+    if (!aDoNotMark) {
+      tmr._done = true;
+    }
     return bytes;
   }
-  
   
   
   
@@ -526,10 +588,34 @@ function genMrValueText(aValue)
   return "<span class='mrValue'>" + aValue + "</span>";
 }
 
-function genMrNameText(aDesc, aName)
+function kindToString(aKind)
 {
-  return "-- <span class='mrName' title=\"" + aDesc + "\">" +
-         aName + "</span>\n";
+  switch (aKind) {
+   case MR_MAPPED: return "(Mapped) ";
+   case MR_HEAP:   return "(Heap) ";
+   case MR_OTHER:  return "";
+   default:        return "(???) ";
+  }
+}
+
+function escapeQuotes(aStr)
+{
+  return aStr.replace(/'/g, '&#39;');
+}
+
+function genMrNameText(aKind, aDesc, aName, aHasProblem)
+{
+  const problemDesc =
+    "Warning: this memory reporter was unable to compute a useful value. " +
+    "The reported value is the sum of all entries below '" + aName + "', " +
+    "which is probably less than the true value.";
+  var text = "-- <span class='mrName' title='" +
+             kindToString(aKind) + escapeQuotes(aDesc) +
+             "'>" + aName + "</span>";
+  text += aHasProblem
+        ? " <span class='mrStar' title=\"" + problemDesc + "\">[*]</span>\n"
+        : "\n";
+  return text;
 }
 
 
@@ -539,9 +625,7 @@ function genMrNameText(aDesc, aName)
 
 
 
-
-
-function genTreeText(aT, aTreeName)
+function genTreeText(aT)
 {
   var treeBytes = aT._memoryUsed;
   var treeBytesLength = formatBytes(treeBytes).length;
@@ -605,20 +689,17 @@ function genTreeText(aT, aTreeName)
 
     
     var perc = "";
-    if (treeBytes !== -1) {
-      if (aT._memoryUsed === -1) {
-        perc = "??.??";
-      } else if (aT._memoryUsed === treeBytes) {
-        perc = "100.0";
-      } else {
-        perc = (100 * aT._memoryUsed / treeBytes).toFixed(2);
-        perc = pad(perc, 5, '0');
-      }
-      perc = "<span class='mrPerc'>(" + perc + "%)</span> ";
+    if (aT._memoryUsed === treeBytes) {
+      perc = "100.0";
+    } else {
+      perc = (100 * aT._memoryUsed / treeBytes).toFixed(2);
+      perc = pad(perc, 5, '0');
     }
+    perc = "<span class='mrPerc'>(" + perc + "%)</span> ";
 
     var text = indent + genMrValueText(tMemoryUsedStr) + " " + perc +
-               genMrNameText(aT._description, aT._name);
+               genMrNameText(aT._kind, aT._description, aT._name,
+                             aT._hasProblem);
 
     for (var i = 0; i < aT._kids.length; i++) {
       
@@ -631,7 +712,21 @@ function genTreeText(aT, aTreeName)
 
   var text = genTreeText2(aT, [], treeBytesLength);
   
-  return "<h2>" + aTreeName + "</h2>\n<pre>" + text + "</pre>\n";
+  const desc =
+    "This tree covers explicit memory allocations by the application, " +
+    "both at the operating system level (via calls to functions such as " +
+    "VirtualAlloc, vm_allocate, and mmap), and at the heap allocation level " +
+    "(via functions such as malloc, calloc, realloc, memalign, operator " +
+    "new, and operator new[]).  It excludes memory that is mapped implicitly " +
+    "such as code and data segments, and thread stacks.  It also excludes " +
+    "heap memory that has been freed by the application but is still being " +
+    "held onto by the heap allocator.  It is not guaranteed to cover every " +
+    "explicit allocation, but it does cover most (including the entire " +
+    "heap), and therefore it is the single best number to focus on when " +
+    "trying to reduce memory usage.";
+               
+  return "<h2 title='" + escapeQuotes(desc) +
+         "'>Explicit Allocations</h2>\n" + "<pre>" + text + "</pre>\n";
 }
 
 
@@ -646,27 +741,45 @@ function genOtherText(aTmrs)
   
   
   
-  var maxBytes = 0;
+  var maxBytesLength = 0;
+  var tmrArray = [];
   for (var tpath in aTmrs) {
     var tmr = aTmrs[tpath];
-    if (!tmr.done && tmr._memoryUsed > maxBytes) {
-      maxBytes = tmr._memoryUsed;
+    if (!tmr._done) {
+      var hasProblem = false;
+      if (tmr._memoryUsed === kUnknown) {
+        hasProblem = true;
+      }
+      var elem = {
+        _tpath:       tmr._tpath,
+        _kind:        tmr._kind,
+        _description: tmr._description,
+        _memoryUsed:  hasProblem ? 0 : tmr._memoryUsed,
+        _hasProblem:  hasProblem
+      };
+      tmrArray.push(elem);
+      var thisBytesLength = formatBytes(elem._memoryUsed).length;
+      if (thisBytesLength > maxBytesLength) {
+        maxBytesLength = thisBytesLength;
+      }
     }
   }
+  tmrArray.sort(cmpTmrs);
 
   
-  var maxBytesLength = formatBytes(maxBytes).length;
   var text = "";
-  for (var tpath in aTmrs) {
-    var tmr = aTmrs[tpath];
-    if (!tmr.done) {
-      text += genMrValueText(
-                pad(formatBytes(tmr._memoryUsed), maxBytesLength, ' ')) + " ";
-      text += genMrNameText(tmr._description, tmr._tpath);
-    }
+  for (var i = 0; i < tmrArray.length; i++) {
+    var elem = tmrArray[i];
+    text += genMrValueText(
+              pad(formatBytes(elem._memoryUsed), maxBytesLength, ' ')) + " ";
+    text += genMrNameText(elem._kind, elem._description, elem._tpath,
+                          elem._hasProblem);
   }
 
   
-  return "<h2>Other Measurements</h2>\n<pre>" + text + "</pre>\n";
+  const desc = "This list contains other memory measurements that cross-cut " +
+               "the requested memory measurements above."
+  return "<h2 title='" + desc + "'>Other Measurements</h2>\n" +
+         "<pre>" + text + "</pre>\n";
 }
 
