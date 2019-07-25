@@ -138,6 +138,7 @@ ServerWBO.prototype = {
         case "PUT":
           self.put(readBytesFromInputStream(request.bodyInputStream));
           body = JSON.stringify(self.modified);
+          response.setHeader("Content-Type", "application/json");
           response.newModified = self.modified;
           break;
 
@@ -145,6 +146,7 @@ ServerWBO.prototype = {
           self.delete();
           let ts = new_timestamp();
           body = JSON.stringify(ts);
+          response.setHeader("Content-Type", "application/json");
           response.newModified = ts;
           break;
       }
@@ -167,11 +169,107 @@ ServerWBO.prototype = {
 
 
 
-function ServerCollection(wbos, acceptNew) {
-  this.wbos = wbos || {};
+
+
+
+
+
+
+
+
+
+
+function ServerCollection(wbos, acceptNew, timestamp) {
+  this._wbos = wbos || {};
   this.acceptNew = acceptNew || false;
+
+  
+
+
+
+
+  this.timestamp = timestamp || new_timestamp();
 }
 ServerCollection.prototype = {
+
+  
+
+
+
+
+
+
+
+
+
+  keys: function keys(filter) {
+    return [id for ([id, wbo] in Iterator(this._wbos))
+               if (wbo.payload &&
+                   (!filter || filter(id, wbo)))];
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  wbos: function wbos(filter) {
+    let os = [wbo for ([id, wbo] in Iterator(this._wbos))
+              if (wbo.payload)];
+    if (filter) {
+      return os.filter(filter);
+    }
+    return os;
+  },
+
+  
+
+
+
+
+  payloads: function () {
+    return this.wbos().map(function (wbo) {
+      return JSON.parse(JSON.parse(wbo.payload).ciphertext);
+    });
+  },
+
+  
+  wbo: function wbo(id) {
+    return this._wbos[id];
+  },
+
+  payload: function payload(id) {
+    return this.wbo(id).payload;
+  },
+
+  
+
+
+
+
+  insertWBO: function insertWBO(wbo) {
+    return this._wbos[wbo.id] = wbo;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  insert: function insert(id, payload) {
+    return this.insertWBO(new ServerWBO(id, payload));
+  },
 
   _inResultSet: function(wbo, options) {
     return wbo.payload
@@ -182,7 +280,7 @@ ServerCollection.prototype = {
   count: function(options) {
     options = options || {};
     let c = 0;
-    for (let [id, wbo] in Iterator(this.wbos)) {
+    for (let [id, wbo] in Iterator(this._wbos)) {
       if (wbo.modified && this._inResultSet(wbo, options)) {
         c++;
       }
@@ -193,7 +291,7 @@ ServerCollection.prototype = {
   get: function(options) {
     let result;
     if (options.full) {
-      let data = [wbo.get() for ([id, wbo] in Iterator(this.wbos))
+      let data = [wbo.get() for ([id, wbo] in Iterator(this._wbos))
                             
                             if (wbo.modified &&
                                 this._inResultSet(wbo, options))];
@@ -203,7 +301,7 @@ ServerCollection.prototype = {
       
       result = data.join("\n") + "\n";
     } else {
-      let data = [id for ([id, wbo] in Iterator(this.wbos))
+      let data = [id for ([id, wbo] in Iterator(this._wbos))
                      if (this._inResultSet(wbo, options))];
       if (options.limit) {
         data = data.slice(0, options.limit);
@@ -221,11 +319,11 @@ ServerCollection.prototype = {
     
     
     for each (let record in input) {
-      let wbo = this.wbos[record.id];
+      let wbo = this.wbo(record.id);
       if (!wbo && this.acceptNew) {
         _("Creating WBO " + JSON.stringify(record.id) + " on the fly.");
         wbo = new ServerWBO(record.id);
-        this.wbos[record.id] = wbo;
+        this.insertWBO(wbo);
       }
       if (wbo) {
         wbo.payload = record.payload;
@@ -241,7 +339,7 @@ ServerCollection.prototype = {
   },
 
   delete: function(options) {
-    for (let [id, wbo] in Iterator(this.wbos)) {
+    for (let [id, wbo] in Iterator(this._wbos)) {
       if (this._inResultSet(wbo, options)) {
         _("Deleting " + JSON.stringify(wbo));
         wbo.delete();
@@ -305,6 +403,14 @@ ServerCollection.prototype = {
                          false);
       response.setStatusLine(request.httpVersion, statusCode, status);
       response.bodyOutputStream.write(body, body.length);
+
+      
+      
+      if (request.method != "GET") {
+        this.timestamp = (response.newModified >= 0) ?
+                         response.newModified :
+                         new_timestamp();
+      }
     };
   }
 
