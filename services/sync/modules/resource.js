@@ -46,6 +46,7 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
+Cu.import("resource://services-sync/async.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/ext/Observers.js");
 Cu.import("resource://services-sync/ext/Preferences.js");
@@ -452,7 +453,7 @@ Resource.prototype = {
   
   
   _request: function Res__request(action, data) {
-    let cb = Utils.makeSyncCallback();
+    let cb = Async.makeSyncCallback();
     function callback(error, ret) {
       if (error)
         cb.throw(error);
@@ -462,7 +463,7 @@ Resource.prototype = {
     
     try {
       this._doRequest(action, data, callback);
-      return Utils.waitForSyncCallback(cb);
+      return Async.waitForSyncCallback(cb);
     } catch(ex) {
       
       

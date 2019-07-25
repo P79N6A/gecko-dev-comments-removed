@@ -1,3 +1,4 @@
+Cu.import("resource://services-sync/async.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/engines/history.js");
@@ -24,7 +25,7 @@ function removePlacesDatabase() {
   try {
     file.remove(false);
   } catch (ex) {
-    
+    // Windows is awesome. NOT.
   }
 }
 
@@ -33,25 +34,25 @@ Svc.Obs.add("places-shutdown", function () {
 });
 
 
-
+// Verify initial database state. Function borrowed from places tests.
 function test_initial_state() {
-  
-  
+  // Mostly sanity checks our starting DB to make sure it's setup as we expect
+  // it to be.
   let dbFile = gProfD.clone();
   dbFile.append(kDBName);
   let db = storageSvc.openUnsharedDatabase(dbFile);
 
   let stmt = db.createStatement("PRAGMA journal_mode");
   do_check_true(stmt.executeStep());
-  
-  
+  // WAL journal mode should have been unset this database when it was migrated
+  // down to v10.
   do_check_neq(stmt.getString(0).toLowerCase(), "wal");
   stmt.finalize();
 
   do_check_true(db.indexExists("moz_bookmarks_guid_uniqueindex"));
   do_check_true(db.indexExists("moz_places_guid_uniqueindex"));
 
-  
+  // There should be a non-zero amount of bookmarks without a guid.
   stmt = db.createStatement(
     "SELECT COUNT(1) "
   + "FROM moz_bookmarks "
@@ -61,7 +62,7 @@ function test_initial_state() {
   do_check_neq(stmt.getInt32(0), 0);
   stmt.finalize();
 
-  
+  // There should be a non-zero amount of places without a guid.
   stmt = db.createStatement(
     "SELECT COUNT(1) "
   + "FROM moz_places "
@@ -71,7 +72,7 @@ function test_initial_state() {
   do_check_neq(stmt.getInt32(0), 0);
   stmt.finalize();
 
-  
+  // Check our schema version to make sure it is actually at 10.
   do_check_eq(db.schemaVersion, 10);
 
   db.close();
@@ -86,7 +87,7 @@ function test_history_guids() {
   PlacesUtils.history.addPageWithDetails(tburi, "Get Thunderbird!",
                                          Date.now() * 1000);
 
-  
+  // Hack: flush the places db by adding a random bookmark.
   let uri = Utils.makeURI("http://mozilla.com/");
   let fxid = PlacesUtils.bookmarks.insertBookmark(
     PlacesUtils.bookmarks.toolbarFolder,
@@ -104,11 +105,11 @@ function test_history_guids() {
     "SELECT id FROM moz_places WHERE guid = :guid");
 
   stmt.params.guid = fxguid;
-  let result = Utils.queryAsync(stmt, ["id"]);
+  let result = Async.querySpinningly(stmt, ["id"]);
   do_check_eq(result.length, 1);
 
   stmt.params.guid = tbguid;
-  result = Utils.queryAsync(stmt, ["id"]);
+  result = Async.querySpinningly(stmt, ["id"]);
   do_check_eq(result.length, 1);
 
   _("History: Verify GUIDs weren't added to annotations.");
@@ -116,11 +117,11 @@ function test_history_guids() {
     "SELECT a.content AS guid FROM moz_annos a WHERE guid = :guid");
 
   stmt.params.guid = fxguid;
-  result = Utils.queryAsync(stmt, ["guid"]);
+  result = Async.querySpinningly(stmt, ["guid"]);
   do_check_eq(result.length, 0);
 
   stmt.params.guid = tbguid;
-  result = Utils.queryAsync(stmt, ["guid"]);
+  result = Async.querySpinningly(stmt, ["guid"]);
   do_check_eq(result.length, 0);
 }
 
@@ -147,12 +148,12 @@ function test_bookmark_guids() {
     "SELECT id FROM moz_bookmarks WHERE guid = :guid");
 
   stmt.params.guid = fxguid;
-  let result = Utils.queryAsync(stmt, ["id"]);
+  let result = Async.querySpinningly(stmt, ["id"]);
   do_check_eq(result.length, 1);
   do_check_eq(result[0].id, fxid);
 
   stmt.params.guid = tbguid;
-  result = Utils.queryAsync(stmt, ["id"]);
+  result = Async.querySpinningly(stmt, ["id"]);
   do_check_eq(result.length, 1);
   do_check_eq(result[0].id, tbid);
 
@@ -161,11 +162,11 @@ function test_bookmark_guids() {
     "SELECT a.content AS guid FROM moz_items_annos a WHERE guid = :guid");
 
   stmt.params.guid = fxguid;
-  result = Utils.queryAsync(stmt, ["guid"]);
+  result = Async.querySpinningly(stmt, ["guid"]);
   do_check_eq(result.length, 0);
 
   stmt.params.guid = tbguid;
-  result = Utils.queryAsync(stmt, ["guid"]);
+  result = Async.querySpinningly(stmt, ["guid"]);
   do_check_eq(result.length, 0);
 }
 
