@@ -896,6 +896,7 @@ WebGLContext::DoFakeVertexAttrib0(WebGLuint vertexCount)
         mFakeVertexAttrib0Array[4 * i + 3] = mVertexAttrib0Vector[3];
     }
 
+    gl->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
     gl->fVertexAttribPointer(0, 4, LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0, mFakeVertexAttrib0Array);
 }
 
@@ -907,12 +908,21 @@ WebGLContext::UndoFakeVertexAttrib0()
 
     mFakeVertexAttrib0Array = nsnull;
 
+    
+    
+    
+    if (mAttribBuffers[0].buf)
+        gl->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, mAttribBuffers[0].buf->GLName());
+
     gl->fVertexAttribPointer(0,
                              mAttribBuffers[0].size,
                              mAttribBuffers[0].type,
                              mAttribBuffers[0].normalized,
                              mAttribBuffers[0].stride,
                              (const GLvoid *) mAttribBuffers[0].byteOffset);
+
+    
+    gl->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, mBoundArrayBuffer ? mBoundArrayBuffer->GLName() : 0);
 }
 
 PRBool
