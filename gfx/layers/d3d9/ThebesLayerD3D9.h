@@ -71,6 +71,9 @@ private:
   nsRefPtr<IDirect3DTexture9> mTexture;
 
   
+  void VerifyContentType();
+
+  
   nsRefPtr<gfxASurface> mD2DSurface;
 
   bool mD2DSurfaceInitialized;
