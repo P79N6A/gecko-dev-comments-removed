@@ -216,6 +216,7 @@ enum ObjectKind {
     OBJECT_UNKNOWN,
     OBJECT_PACKED_ARRAY,
     OBJECT_DENSE_ARRAY,
+    OBJECT_INLINEABLE_FUNCTION,
     OBJECT_SCRIPTED_FUNCTION,
     OBJECT_NATIVE_FUNCTION,
     OBJECT_NO_SPECIAL_EQUALITY
@@ -439,6 +440,9 @@ struct TypeObject
     bool isPackedArray;
 
     
+    bool isUninlineable;
+
+    
     bool hasSpecialEquality;
 
     
@@ -486,6 +490,7 @@ struct TypeObject
     void addPrototype(JSContext *cx, TypeObject *proto);
     void markNotPacked(JSContext *cx, bool notDense);
     void markUnknown(JSContext *cx);
+    void markUninlineable(JSContext *cx);
     void storeToInstances(JSContext *cx, Property *base);
     void getFromPrototypes(JSContext *cx, Property *base);
 

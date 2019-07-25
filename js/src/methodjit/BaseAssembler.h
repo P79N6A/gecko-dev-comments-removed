@@ -100,6 +100,15 @@ struct ImmIntPtr : public JSC::MacroAssembler::ImmPtr
     { }
 };
 
+struct StackMarker {
+    uint32 base;
+    uint32 bytes;
+
+    StackMarker(uint32 base, uint32 bytes)
+      : base(base), bytes(bytes)
+    { }
+};
+
 class Assembler : public ValueAssembler
 {
     struct CallPatch {
@@ -129,8 +138,11 @@ class Assembler : public ValueAssembler
     Vector<DoublePatch, 16, SystemAllocPolicy> doublePatches;
 
     
-    uint32      saveCount;
-    RegisterID  savedRegs[TotalRegisters];
+    Registers   availInCall;
+
+    
+    
+    uint32      extraStackSpace;
 
     
     Registers::CallConvention callConvention;
@@ -147,7 +159,9 @@ class Assembler : public ValueAssembler
   public:
     Assembler()
       : callPatches(SystemAllocPolicy()),
-        saveCount(0)
+        availInCall(0),
+        extraStackSpace(0),
+        stackAdjust(0)
 #ifdef DEBUG
         , callIsAligned(false)
 #endif
@@ -275,7 +289,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
     }
 
     
-    void *getCallTarget(void *fun) {
+    void *getFallibleCallTarget(void *fun) {
 #ifdef JS_CPU_ARM
         
 
@@ -288,44 +302,50 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
 
 
 
-        void *pfun = JS_FUNC_TO_DATA_PTR(void *, JaegerStubVeneer);
-
-        
 
 
+        moveWithPatch(Imm32(intptr_t(fun)), JSC::ARMRegisters::ip);
 
-
-        move(Imm32(intptr_t(fun)), JSC::ARMRegisters::ip);
+        return JS_FUNC_TO_DATA_PTR(void *, JaegerStubVeneer);
 #else
         
 
 
 
 
-        void *pfun = fun;
+        return fun;
 #endif
-        return pfun;
+    }
+
+    static inline uint32 align(uint32 bytes, uint32 alignment) {
+        return (alignment - (bytes % alignment)) % alignment;
     }
 
     
-#if 0
     
-    void saveRegs(uint32 volatileMask) {
-        
-        JS_ASSERT(saveCount == 0);
-        
-        JS_ASSERT(!callIsAligned);
-
-        Registers set(volatileMask);
-        while (!set.empty()) {
-            JS_ASSERT(saveCount < TotalRegisters);
-
-            RegisterID reg = set.takeAnyReg();
-            savedRegs[saveCount++] = reg;
-            push(reg);
-        }
+    
+    
+    
+    
+    StackMarker allocStack(uint32 bytes, uint32 alignment = 4) {
+        bytes += align(bytes + extraStackSpace, alignment);
+        subPtr(Imm32(bytes), stackPointerRegister);
+        extraStackSpace += bytes;
+        return StackMarker(extraStackSpace, bytes);
     }
-#endif
+
+    
+    void saveReg(RegisterID reg) {
+        push(reg);
+        extraStackSpace += sizeof(void *);
+    }
+
+    
+    void restoreReg(RegisterID reg) {
+        JS_ASSERT(extraStackSpace >= sizeof(void *));
+        extraStackSpace -= sizeof(void *);
+        pop(reg);
+    }
 
     static const uint32 StackAlignment = 16;
 
@@ -333,7 +353,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
 #if defined(JS_CPU_X86) || defined(JS_CPU_X64)
         
         
-        return (StackAlignment - (stackBytes % StackAlignment)) % StackAlignment;
+        return align(stackBytes, StackAlignment);
 #else
         return 0;
 #endif
@@ -375,6 +395,11 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
     
     
     
+    
+    
+    
+    
+    
     void setupABICall(Registers::CallConvention convention, uint32 generalArgs) {
         JS_ASSERT(!callIsAligned);
 
@@ -384,8 +409,15 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
                            : 0;
 
         
-        stackAdjust = (pushCount + saveCount) * sizeof(void *);
-        stackAdjust += alignForCall(stackAdjust);
+        availInCall = Registers::TempRegs;
+
+        
+        
+        uint32 total = (pushCount * sizeof(void *)) +
+                       extraStackSpace;
+
+        stackAdjust = (pushCount * sizeof(void *)) +
+                      alignForCall(total);
 
 #ifdef _WIN64
         
@@ -400,6 +432,24 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
 #ifdef DEBUG
         callIsAligned = true;
 #endif
+    }
+
+    
+    Address vmFrameOffset(uint32 offs) {
+        return Address(stackPointerRegister, stackAdjust + extraStackSpace + offs);
+    }
+
+    
+    Address addressOfExtra(const StackMarker &marker) {
+        
+        
+        
+        
+        
+        
+        
+        JS_ASSERT(marker.base <= extraStackSpace);
+        return Address(stackPointerRegister, stackAdjust + extraStackSpace - marker.base);
     }
 
     
@@ -422,18 +472,65 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
         if (Registers::regForArg(callConvention, i, &to)) {
             if (reg != to)
                 move(reg, to);
+            availInCall.takeRegUnchecked(to);
         } else {
             storePtr(reg, addressOfArg(i));
+        }
+    }
+
+    
+    
+    void storeArg(uint32 i, Address address) {
+        JS_ASSERT(callIsAligned);
+        RegisterID to;
+        if (Registers::regForArg(callConvention, i, &to)) {
+            loadPtr(address, to);
+            availInCall.takeRegUnchecked(to);
+        } else if (!availInCall.empty()) {
+            
+            RegisterID reg = availInCall.takeAnyReg().reg();
+            loadPtr(address, reg);
+            storeArg(i, reg);
+            availInCall.putReg(reg);
+        } else {
+            
+            
+            
+            JS_NOT_REACHED("too much reg pressure");
+        }
+    }
+
+    
+    
+    void storeArgAddr(uint32 i, Address address) {
+        JS_ASSERT(callIsAligned);
+        RegisterID to;
+        if (Registers::regForArg(callConvention, i, &to)) {
+            lea(address, to);
+            availInCall.takeRegUnchecked(to);
+        } else if (!availInCall.empty()) {
+            
+            RegisterID reg = availInCall.takeAnyReg().reg();
+            lea(address, reg);
+            storeArg(i, reg);
+            availInCall.putReg(reg);
+        } else {
+            
+            
+            
+            JS_NOT_REACHED("too much reg pressure");
         }
     }
 
     void storeArg(uint32 i, Imm32 imm) {
         JS_ASSERT(callIsAligned);
         RegisterID to;
-        if (Registers::regForArg(callConvention, i, &to))
+        if (Registers::regForArg(callConvention, i, &to)) {
             move(imm, to);
-        else
+            availInCall.takeRegUnchecked(to);
+        } else {
             store32(imm, addressOfArg(i));
+        }
     }
 
     
@@ -441,7 +538,17 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
     
     
     
-    Call callWithABI(void *fun) {
+    Call callWithABI(void *fun, bool canThrow) {
+        
+        
+        
+        
+            
+            
+            
+            fun = getFallibleCallTarget(fun);
+        
+
         JS_ASSERT(callIsAligned);
 
         Call cl = call();
@@ -450,6 +557,8 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
         if (stackAdjust)
             addPtr(Imm32(stackAdjust), stackPointerRegister);
 
+        stackAdjust = 0;
+
 #ifdef DEBUG
         callIsAligned = false;
 #endif
@@ -457,10 +566,12 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
     }
 
     
-    void restoreRegs() {
-        
-        while (saveCount)
-            pop(savedRegs[--saveCount]);
+    void freeStack(const StackMarker &mark) {
+        JS_ASSERT(!callIsAligned);
+        JS_ASSERT(mark.bytes <= extraStackSpace);
+
+        extraStackSpace -= mark.bytes;
+        addPtr(Imm32(mark.bytes), stackPointerRegister);
     }
 
     
@@ -469,9 +580,9 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
     }
 
 
-#define STUB_CALL_TYPE(type)                                                \
-    Call callWithVMFrame(type stub, jsbytecode *pc, uint32 fd) {            \
-        return fallibleVMCall(JS_FUNC_TO_DATA_PTR(void *, stub), pc, fd);   \
+#define STUB_CALL_TYPE(type)                                                             \
+    Call callWithVMFrame(type stub, jsbytecode *pc, DataLabelPtr *pinlined, uint32 fd) { \
+        return fallibleVMCall(JS_FUNC_TO_DATA_PTR(void *, stub), pc, pinlined, fd);      \
     }
 
     STUB_CALL_TYPE(JSObjStub);
@@ -499,15 +610,20 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
         move(MacroAssembler::stackPointerRegister, Registers::ArgReg0);
     }
 
-    void setupFallibleVMFrame(jsbytecode *pc, int32 frameDepth) {
+    void setupFallibleVMFrame(jsbytecode *pc, DataLabelPtr *pinlined, int32 frameDepth) {
         setupInfallibleVMFrame(frameDepth);
 
         
         storePtr(JSFrameReg, FrameAddress(offsetof(VMFrame, regs.fp)));
 
         
-        storePtr(ImmPtr(pc),
-                 FrameAddress(offsetof(VMFrame, regs) + offsetof(JSFrameRegs, pc)));
+        storePtr(ImmPtr(pc), FrameAddress(offsetof(VMFrame, regs.pc)));
+
+        
+        DataLabelPtr ptr = storePtrWithPatch(ImmPtr(NULL),
+                                             FrameAddress(offsetof(VMFrame, regs.inlined)));
+        if (pinlined)
+            *pinlined = ptr;
     }
 
     
@@ -521,13 +637,18 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
     
     
     
-    Call fallibleVMCall(void *ptr, jsbytecode *pc, int32 frameDepth) {
-        setupFallibleVMFrame(pc, frameDepth);
-        return wrapVMCall(ptr);
+    Call fallibleVMCall(void *ptr, jsbytecode *pc, DataLabelPtr *pinlined, int32 frameDepth) {
+        setupFallibleVMFrame(pc, pinlined, frameDepth);
+        Call call = wrapVMCall(ptr);
+
+        
+        
+        loadPtr(FrameAddress(offsetof(VMFrame, regs.fp)), JSFrameReg);
+
+        return call;
     }
 
     Call wrapVMCall(void *ptr) {
-        JS_ASSERT(!saveCount);
         JS_ASSERT(!callIsAligned);
 
         
@@ -540,7 +661,12 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
         storeArg(0, Registers::ArgReg0);
         storeArg(1, Registers::ArgReg1);
 
-        return callWithABI(getCallTarget(ptr));
+        
+        
+        
+        
+        
+        return callWithABI(ptr, true);
     }
 
     
@@ -683,6 +809,15 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
         else
             loadInlineSlot(objReg, shape->slot, typeReg, dataReg);
     }
+
+    static uint32 maskAddress(Address address) {
+        return Registers::maskReg(address.base);
+    }
+
+    static uint32 maskAddress(BaseIndex address) {
+        return Registers::maskReg(address.base) |
+               Registers::maskReg(address.index);
+    }
 };
 
 
@@ -700,6 +835,33 @@ struct FrameFlagsAddress : JSC::MacroAssembler::Address
     FrameFlagsAddress()
       : Address(JSFrameReg, JSStackFrame::offsetOfFlags())
     {}
+};
+
+class PreserveRegisters {
+    typedef JSC::MacroAssembler::RegisterID RegisterID;
+
+    Assembler   &masm;
+    uint32      count;
+    RegisterID  regs[JSC::MacroAssembler::TotalRegisters];
+
+  public:
+    PreserveRegisters(Assembler &masm) : masm(masm), count(0) { }
+    ~PreserveRegisters() { JS_ASSERT(!count); }
+
+    void preserve(Registers mask) {
+        JS_ASSERT(!count);
+
+        while (!mask.empty()) {
+            RegisterID reg = mask.takeAnyReg().reg();
+            regs[count++] = reg;
+            masm.saveReg(reg);
+        }
+    }
+
+    void restore() {
+        while (count)
+            masm.restoreReg(regs[--count]);
+    }
 };
 
 } 

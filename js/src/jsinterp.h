@@ -50,11 +50,19 @@
 #include "jsscript.h"
 #include "jsvalue.h"
 
+#ifdef JS_METHODJIT
+namespace js { namespace mjit { struct CallSite; } }
+typedef js::mjit::CallSite JSInlinedSite;
+#else
+struct JSInlinedSite {};
+#endif
+
 struct JSFrameRegs
 {
     STATIC_SKIP_INFERENCE
     js::Value       *sp;                  
     jsbytecode      *pc;                  
+    JSInlinedSite   *inlined;             
     JSStackFrame    *fp;                  
 };
 
@@ -129,9 +137,14 @@ struct JSStackFrame
     
     js::Value           rval_;          
     jsbytecode          *prevpc_;       
+    JSInlinedSite       *prevInline_;   
     jsbytecode          *imacropc_;     
     void                *hookData_;     
     void                *annotation_;   
+
+#if JS_BITS_PER_WORD == 32
+    void *padding;
+#endif
 
     friend class js::StackSpace;
     friend class js::FrameRegsIter;
@@ -233,6 +246,9 @@ struct JSStackFrame
     }
 
     inline void resetGeneratorPrev(JSContext *cx);
+    inline void resetInlinePrev(JSStackFrame *prevfp, jsbytecode *prevpc);
+
+    inline void initInlineFrame(JSFunction *fun, JSStackFrame *prevfp, jsbytecode *prevpc);
 
     
 
@@ -263,16 +279,34 @@ struct JSStackFrame
 
 
 
+
+
+
+
+
+
+
+
     
 
 
 
-    jsbytecode *pc(JSContext *cx, JSStackFrame *next = NULL);
+
+
+    jsbytecode *pc(JSContext *cx, JSStackFrame *next = NULL, JSInlinedSite **pinlined = NULL);
 
     jsbytecode *prevpc() {
         JS_ASSERT((prev_ != NULL) && (flags_ & JSFRAME_HAS_PREVPC));
         return prevpc_;
     }
+
+    JSInlinedSite *prevInline() {
+        JS_ASSERT((prev_ != NULL) && (flags_ & JSFRAME_HAS_PREVPC));
+        return prevInline_;
+    }
+
+    
+    jsbytecode *inlinepc(JSContext *cx, JSScript **pscript);
 
     JSScript *script() const {
         JS_ASSERT(isScriptFrame());

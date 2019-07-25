@@ -2159,6 +2159,9 @@ public:
     inline bool markTypeArrayNotPacked(js::types::TypeObject *obj, bool notDense);
 
     
+    inline bool markTypeFunctionUninlineable(js::types::TypeObject *obj);
+
+    
     inline bool markTypeObjectUnknownProperties(js::types::TypeObject *obj);
 
     
@@ -3224,6 +3227,18 @@ class RegExpStatics;
 extern JS_FORCES_STACK JS_FRIEND_API(void)
 LeaveTrace(JSContext *cx);
 
+enum FrameExpandKind {
+    FRAME_EXPAND_NONE,
+    FRAME_EXPAND_TOP,
+    FRAME_EXPAND_ALL
+};
+
+#ifdef JS_METHODJIT
+namespace mjit {
+    void ExpandInlineFrames(JSContext *cx, bool all);
+}
+#endif
+
 } 
 
 
@@ -3232,10 +3247,19 @@ LeaveTrace(JSContext *cx);
 
 
 
+
+
+
 static JS_FORCES_STACK JS_INLINE JSStackFrame *
-js_GetTopStackFrame(JSContext *cx)
+js_GetTopStackFrame(JSContext *cx, js::FrameExpandKind expand)
 {
     js::LeaveTrace(cx);
+
+#ifdef JS_METHODJIT
+    if (expand != js::FRAME_EXPAND_NONE)
+        js::mjit::ExpandInlineFrames(cx, expand == js::FRAME_EXPAND_ALL);
+#endif
+
     return cx->maybefp();
 }
 

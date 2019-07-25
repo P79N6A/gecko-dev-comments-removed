@@ -209,7 +209,7 @@ struct CallICInfo {
     JSObject *fastGuardedNative;
 
     
-    jsbytecode *pc;
+    CallSite *call;
 
     FrameSize frameSize;
 

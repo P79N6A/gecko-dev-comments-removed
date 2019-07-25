@@ -62,11 +62,6 @@ struct VMFrame
 {
     union Arguments {
         struct {
-            void *ptr;
-            void *ptr2;
-            void *ptr3;
-        } x;
-        struct {
             uint32 lazyArgsObj;
             uint32 dynamicArgc;
         } call;
@@ -78,6 +73,7 @@ struct VMFrame
     JSContext    *cx;
     Value        *stackLimit;
     JSStackFrame *entryfp;
+
 
 
 
@@ -146,8 +142,11 @@ struct VMFrame
     JSRuntime *runtime() { return cx->runtime; }
 
     JSStackFrame *&fp() { return regs.fp; }
-    JSScript *script() { return fp()->script(); }
     mjit::JITScript *jit() { return fp()->jit(); }
+
+    
+    inline JSScript *script();
+    inline jsbytecode *pc();
 };
 
 #ifdef JS_CPU_ARM
@@ -300,6 +299,7 @@ typedef void (JS_FASTCALL *VoidStubSetElemIC)(VMFrame &f, js::mjit::ic::SetEleme
 
 namespace mjit {
 
+struct InlineFrame;
 struct CallSite;
 
 struct NativeMapEntry {
@@ -311,6 +311,7 @@ struct JITScript {
     typedef JSC::MacroAssemblerCodeRef CodeRef;
     CodeRef         code;       
 
+    JSScript        *script;
 
     void            *invokeEntry;       
     void            *fastEntry;         
@@ -324,9 +325,12 @@ struct JITScript {
 
 
 
-    uint32          nNmapPairs:31;      
+    uint32          nNmapPairs:30;      
 
     bool            singleStepMode:1;   
+    bool            rejoinPoints:1;     
+    uint32          nInlineFrames;
+    uint32          nCallSites;
 #ifdef JS_MONOIC
     uint32          nGetGlobalNames;
     uint32          nSetGlobalNames;
@@ -339,7 +343,6 @@ struct JITScript {
     uint32          nSetElems;
     uint32          nPICs;
 #endif
-    uint32          nCallSites;
 
     
 
@@ -367,6 +370,8 @@ struct JITScript {
 #endif
 
     NativeMapEntry *nmap() const;
+    js::mjit::InlineFrame *inlineFrames() const;
+    js::mjit::CallSite *callSites() const;
 #ifdef JS_MONOIC
     ic::GetGlobalNameIC *getGlobalNames() const;
     ic::SetGlobalNameIC *setGlobalNames() const;
@@ -379,7 +384,6 @@ struct JITScript {
     ic::SetElementIC *setElems() const;
     ic::PICInfo     *pics() const;
 #endif
-    js::mjit::CallSite *callSites() const;
 
     ~JITScript();
 
@@ -398,7 +402,9 @@ struct JITScript {
 
     size_t mainCodeSize() { return code.m_size; } 
 
-    jsbytecode *nativeToPC(void *returnAddress) const;
+    jsbytecode *nativeToPC(void *returnAddress, CallSite **pinline) const;
+
+    void trace(JSTracer *trc);
 
   private:
     
@@ -422,9 +428,10 @@ JSBool JaegerShotAtSafePoint(JSContext *cx, void *safePoint);
 enum CompileStatus
 {
     Compile_Okay,
-    Compile_Abort,
-    Compile_Overflow,
-    Compile_Error,
+    Compile_Abort,        
+    Compile_InlineAbort,  
+    Compile_Retry,        
+    Compile_Error,        
     Compile_Skipped
 };
 
@@ -437,9 +444,52 @@ TryCompile(JSContext *cx, JSStackFrame *fp);
 void
 ReleaseScriptCode(JSContext *cx, JSScript *script);
 
+
+void
+ExpandInlineFrames(JSContext *cx, bool all);
+
+
+struct UnsyncedEntry
+{
+    
+    uint32 offset;
+
+    bool copy : 1;
+    bool constant : 1;
+    bool knownType : 1;
+    union {
+        uint32 copiedOffset;
+        Value value;
+        JSValueType type;
+    } u;
+};
+
+
+struct InlineFrame
+{
+    InlineFrame *parent;
+    jsbytecode *parentpc;
+    JSFunction *fun;
+
+    
+    
+    uint32 depth;
+
+    
+    
+    
+    
+    
+    
+    
+    uint32 nUnsyncedEntries;
+    UnsyncedEntry *unsyncedEntries;
+};
+
 struct CallSite
 {
     uint32 codeOffset;
+    uint32 inlineIndex;
     uint32 pcOffset;
     size_t id;
 
@@ -455,8 +505,9 @@ struct CallSite
     
     static const size_t NCODE_RETURN_ID = 1;
 
-    void initialize(uint32 codeOffset, uint32 pcOffset, size_t id) {
+    void initialize(uint32 codeOffset, uint32 inlineIndex, uint32 pcOffset, size_t id) {
         this->codeOffset = codeOffset;
+        this->inlineIndex = inlineIndex;
         this->pcOffset = pcOffset;
         this->id = id;
     }
@@ -499,6 +550,22 @@ inline void * bsearch_nmap(NativeMapEntry *nmap, size_t nPairs, size_t bcOff)
 
 } 
 
+inline JSScript *
+VMFrame::script()
+{
+    if (regs.inlined)
+        return jit()->inlineFrames()[regs.inlined->inlineIndex].fun->script();
+    return fp()->script();
+}
+
+inline jsbytecode *
+VMFrame::pc()
+{
+    if (regs.inlined)
+        return script()->code + regs.inlined->pcOffset;
+    return regs.pc;
+}
+
 } 
 
 inline void *
@@ -520,6 +587,8 @@ JSScript::nativeCodeForPC(bool constructing, jsbytecode *pc)
     JS_ASSERT(native);
     return native;
 }
+
+extern "C" void JaegerTrampolineReturn();
 
 #if defined(_MSC_VER) || defined(_WIN64)
 extern "C" void *JaegerThrowpoline(js::VMFrame *vmFrame);

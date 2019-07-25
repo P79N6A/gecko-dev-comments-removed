@@ -1527,6 +1527,12 @@ JSScript::NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
             fun->flags |= JSFUN_HEAVYWEIGHT;
         if (!script->typeSetFunction(cx, fun))
             goto bad;
+
+        
+        if (cx->typeInferenceEnabled() && cg->parent && cg->parent->compiling() &&
+            cg->parent->asCodeGenerator()->checkSingletonContext()) {
+            fun->getType()->singleton = fun;
+        }
     }
 
     
@@ -1662,6 +1668,8 @@ DestroyScript(JSContext *cx, JSScript *script)
         result = next;
     }
 
+    cx->free(script->varTypes);
+
 #if defined(JS_METHODJIT)
     mjit::ReleaseScriptCode(cx, script);
 #endif
@@ -1729,9 +1737,18 @@ js_TraceScript(JSTracer *trc, JSScript *script)
         MarkValueRange(trc, constarray->length, constarray->vector, "consts");
     }
 
+    
+
+
+
+
     if (!script->isCachedEval && !script->isUncachedEval && script->u.object) {
         JS_SET_TRACING_NAME(trc, "object");
         Mark(trc, script->u.object);
+    }
+    if (script->fun) {
+        JS_SET_TRACING_NAME(trc, "script_fun");
+        Mark(trc, script->fun);
     }
 
     if (IS_GC_MARKING_TRACER(trc) && script->filename)
@@ -1750,10 +1767,12 @@ js_TraceScript(JSTracer *trc, JSScript *script)
         obj = obj->next;
     }
 
-    if (script->fun) {
-        JS_SET_TRACING_NAME(trc, "script_fun");
-        Mark(trc, script->fun);
-    }
+#ifdef JS_METHODJIT
+    if (script->jitNormal)
+        script->jitNormal->trace(trc);
+    if (script->jitCtor)
+        script->jitCtor->trace(trc);
+#endif
 }
 
 JSObject *

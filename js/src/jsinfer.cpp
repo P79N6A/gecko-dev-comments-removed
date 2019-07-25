@@ -1378,6 +1378,13 @@ TypeSet::getKnownTypeTag(JSContext *cx, JSScript *script)
     return type;
 }
 
+static inline bool
+ObjectKindPair(ObjectKind v0, ObjectKind v1, ObjectKind cmp0, ObjectKind cmp1)
+{
+    JS_ASSERT(v0 != v1);
+    return (v0 == cmp0 && v1 == cmp1) || (v0 == cmp1 && v1 == cmp0);
+}
+
 
 static inline ObjectKind
 CombineObjectKind(TypeObject *object, ObjectKind kind)
@@ -1391,8 +1398,12 @@ CombineObjectKind(TypeObject *object, ObjectKind kind)
         return OBJECT_UNKNOWN;
 
     ObjectKind nkind;
-    if (object->isFunction)
-        nkind = object->asFunction()->script ? OBJECT_SCRIPTED_FUNCTION : OBJECT_NATIVE_FUNCTION;
+    if (object->isFunction && object->asFunction()->script && !object->isUninlineable)
+        nkind = OBJECT_INLINEABLE_FUNCTION;
+    else if (object->isFunction && object->asFunction()->script)
+        nkind = OBJECT_SCRIPTED_FUNCTION;
+    else if (object->isFunction)
+        nkind = OBJECT_NATIVE_FUNCTION;
     else if (object->isPackedArray)
         nkind = OBJECT_PACKED_ARRAY;
     else if (object->isDenseArray)
@@ -1403,10 +1414,11 @@ CombineObjectKind(TypeObject *object, ObjectKind kind)
     if (kind == nkind || kind == OBJECT_NONE)
         return nkind;
 
-    if ((kind == OBJECT_PACKED_ARRAY && nkind == OBJECT_DENSE_ARRAY) ||
-        (kind == OBJECT_DENSE_ARRAY && nkind == OBJECT_PACKED_ARRAY)) {
+    if (ObjectKindPair(kind, nkind, OBJECT_INLINEABLE_FUNCTION, OBJECT_SCRIPTED_FUNCTION))
+        return OBJECT_SCRIPTED_FUNCTION;
+
+    if (ObjectKindPair(kind, nkind, OBJECT_PACKED_ARRAY, OBJECT_DENSE_ARRAY))
         return OBJECT_DENSE_ARRAY;
-    }
 
     return OBJECT_NO_SPECIAL_EQUALITY;
 }
@@ -1522,6 +1534,24 @@ TypeSet::getKnownObjectKind(JSContext *cx, JSScript *script)
     return kind;
 }
 
+static inline void
+ObjectStateChange(JSContext *cx, TypeObject *object, bool markingUnknown)
+{
+    
+    TypeSet *elementTypes = object->getProperty(cx, JSID_VOID, false);
+    if (!elementTypes)
+        return;
+    if (markingUnknown) {
+        
+        object->unknownProperties = true;
+    }
+    TypeConstraint *constraint = elementTypes->constraintList;
+    while (constraint) {
+        constraint->newObjectState(cx);
+        constraint = constraint->next;
+    }
+}
+
 bool
 TypeSet::knownNonEmpty(JSContext *cx, JSScript *script)
 {
@@ -1566,6 +1596,7 @@ TypeCompartment::init(JSContext *cx)
     typeEmpty.name_ = JSID_VOID;
 #endif
     typeEmpty.hasSpecialEquality = true;
+    typeEmpty.isUninlineable = true;
     typeEmpty.unknownProperties = true;
 
     if (cx && cx->getRunOptions() & JSOPTION_TYPE_INFERENCE)
@@ -1613,7 +1644,7 @@ TypeCompartment::newTypeObject(JSContext *cx, JSScript *script, const char *name
     objects = object;
 
     if (!cx->typeInferenceEnabled())
-        object->hasSpecialEquality = true;
+        object->hasSpecialEquality = true;  
 
     return object;
 }
@@ -1825,6 +1856,17 @@ TypeCompartment::dynamicPush(JSContext *cx, JSScript *script, uint32 offset, jst
 
 
 
+    if (script->fun)
+        ObjectStateChange(cx, script->fun->getType(), false);
+
+    
+
+
+
+
+
+
+
     jsbytecode *pc = script->code + offset;
     JSOp op = JSOp(*pc);
     const JSCodeSpec *cs = &js_CodeSpec[op];
@@ -1879,19 +1921,25 @@ TypeCompartment::processPendingRecompiles(JSContext *cx)
     Vector<JSScript*> *pending = pendingRecompiles;
     pendingRecompiles = NULL;
 
-    for (unsigned i = 0; i < pending->length(); i++) {
+    JS_ASSERT(!pending->empty());
+
 #ifdef JS_METHODJIT
+
+    mjit::ExpandInlineFrames(cx, true);
+
+    for (unsigned i = 0; i < pending->length(); i++) {
         JSScript *script = (*pending)[i];
         mjit::Recompiler recompiler(cx, script);
         if (!recompiler.recompile()) {
             pendingNukeTypes = true;
-            cx->free(pending);
+            js_delete< Vector<JSScript*> >(pending);
             return nukeTypes(cx);
         }
-#endif
     }
 
-    cx->free(pending);
+#endif 
+
+    js_delete< Vector<JSScript*> >(pending);
     return true;
 }
 
@@ -1939,12 +1987,11 @@ TypeCompartment::addPendingRecompile(JSContext *cx, JSScript *script)
     }
 
     if (!pendingRecompiles) {
-        pendingRecompiles = (Vector<JSScript*>*) cx->calloc(sizeof(Vector<JSScript*>));
+        pendingRecompiles = js_new< Vector<JSScript*> >(cx);
         if (!pendingRecompiles) {
             cx->compartment->types.setPendingNukeTypes(cx);
             return;
         }
-        new(pendingRecompiles) Vector<JSScript*>(cx);
     }
 
     for (unsigned i = 0; i < pendingRecompiles->length(); i++) {
@@ -2059,6 +2106,7 @@ TypeCompartment::monitorBytecode(JSContext *cx, JSScript *script, uint32 offset)
 
     script->types->setMonitored(offset);
 
+    
     if (script->hasJITCode())
         cx->compartment->types.addPendingRecompile(cx, script);
 }
@@ -2474,24 +2522,6 @@ TypeObject::addProperty(JSContext *cx, jsid id, Property **pprop)
     return true;
 }
 
-static inline void
-ObjectStateChange(JSContext *cx, TypeObject *object, bool markingUnknown)
-{
-    
-    TypeSet *elementTypes = object->getProperty(cx, JSID_VOID, false);
-    if (!elementTypes)
-        return;
-    if (markingUnknown) {
-        
-        object->unknownProperties = true;
-    }
-    TypeConstraint *constraint = elementTypes->constraintList;
-    while (constraint) {
-        constraint->newObjectState(cx);
-        constraint = constraint->next;
-    }
-}
-
 void
 TypeObject::markNotPacked(JSContext *cx, bool notDense)
 {
@@ -2512,6 +2542,19 @@ TypeObject::markNotPacked(JSContext *cx, bool notDense)
 }
 
 void
+TypeObject::markUninlineable(JSContext *cx)
+{
+    JS_ASSERT(cx->compartment->types.inferenceDepth);
+
+    JS_ASSERT(!isUninlineable);
+    isUninlineable = true;
+
+    InferSpew(ISpewOps, "Uninlineable: %s", name());
+
+    ObjectStateChange(cx, this, false);
+}
+
+void
 TypeObject::markUnknown(JSContext *cx)
 {
     JS_ASSERT(!unknownProperties);
@@ -2520,6 +2563,7 @@ TypeObject::markUnknown(JSContext *cx)
 
     isDenseArray = false;
     isPackedArray = false;
+    isUninlineable = true;
     hasSpecialEquality = true;
 
     ObjectStateChange(cx, this, true);

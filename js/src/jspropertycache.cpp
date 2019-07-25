@@ -49,8 +49,8 @@ using namespace js;
 JS_STATIC_ASSERT(sizeof(PCVal) == sizeof(jsuword));
 
 JS_REQUIRES_STACK PropertyCacheEntry *
-PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, JSObject *pobj,
-                    const Shape *shape, JSBool adding)
+PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoIndex,
+                    JSObject *pobj, const Shape *shape, JSBool adding)
 {
     jsbytecode *pc;
     jsuword kshape, vshape;
@@ -61,6 +61,7 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, JSObject *po
 
     JS_ASSERT(this == &JS_PROPERTY_CACHE(cx));
     JS_ASSERT(!cx->runtime->gcRunning);
+    JS_ASSERT_IF(adding, !obj->isCall());
 
     if (js_IsPropertyCacheDisabled(cx)) {
         PCMETER(disfills++);
@@ -96,26 +97,34 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, JSObject *po
 
 
 
-    JS_ASSERT_IF(obj == pobj, scopeIndex == 0);
-
-    JSObject *tmp = obj;
-    for (uintN i = 0; i != scopeIndex; i++)
-        tmp = tmp->getParent();
-
-    uintN protoIndex = 0;
-    while (tmp != pobj) {
-        tmp = tmp->getProto();
-
-        
 
 
+    JS_ASSERT_IF(scopeIndex == 0 && protoIndex == 0, obj == pobj);
+
+    if (protoIndex != 0) {
+        JSObject *tmp = obj;
+
+        for (uintN i = 0; i != scopeIndex; i++)
+            tmp = tmp->getParent();
+        JS_ASSERT(tmp != pobj);
+
+        protoIndex = 1;
+        for (;;) {
+            tmp = tmp->getProto();
+
+            
 
 
-        if (!tmp || !tmp->isNative()) {
-            PCMETER(noprotos++);
-            return JS_NO_PROP_CACHE_FILL;
+
+
+            if (!tmp || !tmp->isNative()) {
+                PCMETER(noprotos++);
+                return JS_NO_PROP_CACHE_FILL;
+            }
+            if (tmp == pobj)
+                break;
+            ++protoIndex;
         }
-        ++protoIndex;
     }
 
     if (scopeIndex > PCVCAP_SCOPEMASK || protoIndex > PCVCAP_PROTOMASK) {
@@ -127,8 +136,9 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, JSObject *po
 
 
 
-    pc = cx->regs().pc;
-    op = js_GetOpcode(cx, cx->fp()->script(), pc);
+    JSScript *script;
+    pc = cx->fp()->inlinepc(cx, &script);
+    op = js_GetOpcode(cx, script, pc);
     cs = &js_CodeSpec[op];
     kshape = 0;
 
@@ -146,7 +156,7 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, JSObject *po
 
                 JS_ASSERT(pobj->hasMethodBarrier());
                 JSObject &funobj = shape->methodObject();
-                JS_ASSERT(funobj == pobj->nativeGetSlot(shape->slot).toObject());
+                JS_ASSERT(&funobj == &pobj->nativeGetSlot(shape->slot).toObject());
                 vword.setFunObj(funobj);
                 break;
             }
@@ -187,8 +197,6 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, JSObject *po
                     break;
                 }
             }
-        } else if ((cs->format & (JOF_SET | JOF_FOR | JOF_INCDEC)) && obj->watched()) {
-            return JS_NO_PROP_CACHE_FILL;
         }
 
         
@@ -205,7 +213,7 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, JSObject *po
             
             vword.setShape(shape);
             if (adding &&
-                pobj->shape() == shape->shapeid) {
+                pobj->shape() == shape->shape) {
                 
 
 
@@ -236,7 +244,7 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, JSObject *po
                 JS_ASSERT(shape == pobj->lastProperty());
                 JS_ASSERT(!pobj->nativeEmpty());
 
-                kshape = shape->previous()->shapeid;
+                kshape = shape->previous()->shape;
 
                 
 
@@ -305,9 +313,12 @@ GetAtomFromBytecode(JSContext *cx, jsbytecode *pc, JSOp op, const JSCodeSpec &cs
     if (op == JSOP_INSTANCEOF)
         return cx->runtime->atomState.classPrototypeAtom;
 
+    JSScript *script;
+    cx->fp()->inlinepc(cx, &script);
+
     ptrdiff_t pcoff = (JOF_TYPE(cs.format) == JOF_SLOTATOM) ? SLOTNO_LEN : 0;
     JSAtom *atom;
-    GET_ATOM_FROM_BYTECODE(cx->fp()->script(), pc, pcoff, atom);
+    GET_ATOM_FROM_BYTECODE(script, pc, pcoff, atom);
     return atom;
 }
 
@@ -318,13 +329,16 @@ PropertyCache::fullTest(JSContext *cx, jsbytecode *pc, JSObject **objp, JSObject
     JSObject *obj, *pobj, *tmp;
     uint32 vcap;
 
-    StackFrame *fp = cx->fp();
+    JSStackFrame *fp = cx->fp();
+
+    JSScript *script;
+    fp->inlinepc(cx, &script);
 
     JS_ASSERT(this == &JS_PROPERTY_CACHE(cx));
-    JS_ASSERT(uintN((fp->hasImacropc() ? fp->imacropc() : pc) - fp->script()->code)
-              < fp->script()->length);
+    JS_ASSERT(uintN((fp->hasImacropc() ? fp->imacropc() : pc) - script->code)
+              < script->length);
 
-    JSOp op = js_GetOpcode(cx, fp->script(), pc);
+    JSOp op = js_GetOpcode(cx, script, pc);
     const JSCodeSpec &cs = js_CodeSpec[op];
 
     obj = *objp;
@@ -500,15 +514,4 @@ PropertyCache::purgeForScript(JSContext *cx, JSScript *script)
 #endif
         }
     }
-}
-
-void
-PropertyCache::restore(PropertyCacheEntry *entry)
-{
-    PropertyCacheEntry *entry2;
-
-    empty = false;
-
-    entry2 = &table[hash(entry->kpc, entry->kshape)];
-    *entry2 = *entry;
 }

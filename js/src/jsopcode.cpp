@@ -72,10 +72,10 @@
 #include "jsstaticcheck.h"
 #include "jsvector.h"
 
-#include "jscntxtinlines.h"
+#include "jsinterpinlines.h"
 #include "jsobjinlines.h"
-#include "jsopcodeinlines.h"
 #include "jsscriptinlines.h"
+#include "jscntxtinlines.h"
 
 #include "jsautooplen.h"
 
@@ -131,8 +131,6 @@ const char *js_CodeName[] = {
 
 
 
-#define COUNTS_LEN 16
-
 static ptrdiff_t
 GetJumpOffset(jsbytecode *pc, jsbytecode *pc2)
 {
@@ -171,12 +169,14 @@ js_GetIndexFromBytecode(JSContext *cx, JSScript *script, jsbytecode *pc,
     return base + GET_UINT16(pc + pcoff);
 }
 
-size_t
-js_GetVariableBytecodeLength(JSOp op, jsbytecode *pc)
+uintN
+js_GetVariableBytecodeLength(jsbytecode *pc)
 {
+    JSOp op;
     uintN jmplen, ncases;
     jsint low, high;
 
+    op = (JSOp) *pc;
     JS_ASSERT(js_CodeSpec[op].length == -1);
     switch (op) {
       case JSOP_TABLESWITCHX:
@@ -262,7 +262,7 @@ public:
         ptrdiff_t delta = newPC - origPC;
         if (delta) {
             jsbytecode *oldCode = script->code - delta;
-            cx->free_(script->code);
+            cx->free(script->code);
             script->code = oldCode;
             script->main -= delta;
         }
@@ -272,45 +272,26 @@ public:
 #ifdef DEBUG
 
 
-
-
-
 JS_FRIEND_API(JSBool)
-js_DisassembleAtPC(JSContext *cx, JSScript *script, JSBool lines, jsbytecode *pc, Sprinter *sp)
+js_DisassembleAtPC(JSContext *cx, JSScript *script, JSBool lines, FILE *fp, jsbytecode *pc)
 {
     jsbytecode *next, *end;
     uintN len;
-
-    SprintCString(sp, "loc   ");
-    if (script->pcCounters)
-        Sprint(sp, "counts%*s x ", COUNTS_LEN - strlen("counts"), "");
-    if (lines)
-        SprintCString(sp, "line");
-    SprintCString(sp, "  op\n");
-    SprintCString(sp, "----- ");
-    if (script->pcCounters) {
-        for (int i = 0; i < COUNTS_LEN; ++i)
-            SprintCString(sp, "-");
-        SprintCString(sp, "   ");
-    }
-    if (lines)
-        SprintCString(sp, "----");
-    SprintCString(sp, "  --\n");
 
     next = script->code;
     end = next + script->length;
     while (next < end) {
         if (next == script->main)
-            SprintCString(sp, "main:\n");
+            fputs("main:\n", fp);
         if (pc != NULL) {
             if (pc == next)
-                SprintCString(sp, "--> ");
+                fputs("--> ", fp);
             else
-                SprintCString(sp, "    ");
+                fputs("    ", fp);
         }
         len = js_Disassemble1(cx, script, next,
                               next - script->code,
-                              lines, sp);
+                              lines, fp);
         if (!len)
             return JS_FALSE;
         next += len;
@@ -319,33 +300,21 @@ js_DisassembleAtPC(JSContext *cx, JSScript *script, JSBool lines, jsbytecode *pc
 }
 
 JS_FRIEND_API(JSBool)
-js_Disassemble(JSContext *cx, JSScript *script, JSBool lines, Sprinter *sp)
+js_Disassemble(JSContext *cx, JSScript *script, JSBool lines, FILE *fp)
 {
-    return js_DisassembleAtPC(cx, script, lines, NULL, sp);
+    return js_DisassembleAtPC(cx, script, lines, fp, NULL);
 }
 
 JS_FRIEND_API(JSBool)
 js_DumpPC(JSContext *cx)
 {
-    void *mark = JS_ARENA_MARK(&cx->tempPool);
-    Sprinter sprinter;
-    INIT_SPRINTER(cx, &sprinter, &cx->tempPool, 0);
-    JSBool ok = js_DisassembleAtPC(cx, cx->fp()->script(), true, cx->regs().pc, &sprinter);
-    fprintf(stdout, "%s", sprinter.base);
-    JS_ARENA_RELEASE(&cx->tempPool, mark);
-    return ok;
+    return js_DisassembleAtPC(cx, cx->fp()->script(), true, stdout, cx->regs->pc);
 }
 
 JSBool
 js_DumpScript(JSContext *cx, JSScript *script)
 {
-    void *mark = JS_ARENA_MARK(&cx->tempPool);
-    Sprinter sprinter;
-    INIT_SPRINTER(cx, &sprinter, &cx->tempPool, 0);
-    JSBool ok = js_Disassemble(cx, script, true, &sprinter);
-    fprintf(stdout, "%s", sprinter.base);
-    JS_ARENA_RELEASE(&cx->tempPool, mark);
-    return ok;
+    return js_Disassemble(cx, script, true, stdout);
 }
 
 static bool
@@ -364,7 +333,7 @@ ToDisassemblySource(JSContext *cx, jsval v, JSAutoByteString *bytes)
             while (!r.empty()) {
                 const Shape &shape = r.front();
                 JSAutoByteString bytes;
-                if (!js_AtomToPrintableString(cx, JSID_TO_ATOM(shape.propid), &bytes))
+                if (!js_AtomToPrintableString(cx, JSID_TO_ATOM(shape.id), &bytes))
                     return false;
 
                 r.popFront();
@@ -403,7 +372,7 @@ ToDisassemblySource(JSContext *cx, jsval v, JSAutoByteString *bytes)
 
 JS_FRIEND_API(uintN)
 js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
-                uintN loc, JSBool lines, Sprinter *sp)
+                uintN loc, JSBool lines, FILE *fp)
 {
     JSOp op;
     const JSCodeSpec *cs;
@@ -414,7 +383,6 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
     JSObject *obj;
     jsval v;
     jsint i;
-    JSPCCounters& counts(script->pcCounters);
 
     AutoScriptUntrapper untrapper(cx, script, &pc);
 
@@ -429,19 +397,10 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
     }
     cs = &js_CodeSpec[op];
     len = (ptrdiff_t) cs->length;
-    Sprint(sp, "%05u:", loc);
-    if (counts) {
-        ptrdiff_t start = Sprint(sp, "%d", counts.get(0, loc));
-        for (size_t i = 1; i < counts.numRunmodes(); ++i)
-            Sprint(sp, "/%d", counts.get(i, loc));
-        int l = Sprint(sp, "") - start;
-        if (l < COUNTS_LEN)
-            Sprint(sp, "%*s", COUNTS_LEN - l, "");
-        Sprint(sp, " x ");
-    }
+    fprintf(fp, "%05u:", loc);
     if (lines)
-        Sprint(sp, "%4u", JS_PCToLineNumber(cx, script, pc));
-    Sprint(sp, "  %s", js_CodeName[op]);
+        fprintf(fp, "%4u", JS_PCToLineNumber(cx, script, pc));
+    fprintf(fp, "  %s", js_CodeName[op]);
     type = JOF_TYPE(cs->format);
     switch (type) {
       case JOF_BYTE:
@@ -450,7 +409,7 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
       case JOF_JUMP:
       case JOF_JUMPX:
         off = GetJumpOffset(pc, pc);
-        Sprint(sp, " %u (%+d)", loc + (intN) off, (intN) off);
+        fprintf(fp, " %u (%d)", loc + (intN) off, (intN) off);
         break;
 
       case JOF_ATOM:
@@ -475,7 +434,7 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
             JSAutoByteString bytes;
             if (!ToDisassemblySource(cx, v, &bytes))
                 return 0;
-            Sprint(sp, " %s", bytes.ptr());
+            fprintf(fp, " %s", bytes.ptr());
         }
         break;
 
@@ -486,13 +445,13 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
             JSAutoByteString bytes;
             if (!ToDisassemblySource(cx, v, &bytes))
                 return 0;
-            Sprint(sp, " %s", bytes.ptr());
+            fprintf(fp, " %s", bytes.ptr());
         }
         break;
 
       case JOF_UINT16PAIR:
         i = (jsint)GET_UINT16(pc);
-        Sprint(sp, " %d", i);
+        fprintf(fp, " %d", i);
         pc += UINT16_LEN;
         
 
@@ -515,10 +474,10 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
         pc2 += JUMP_OFFSET_LEN;
         high = GET_JUMP_OFFSET(pc2);
         pc2 += JUMP_OFFSET_LEN;
-        Sprint(sp, " defaultOffset %d low %d high %d", intN(off), low, high);
+        fprintf(fp, " defaultOffset %d low %d high %d", (intN) off, low, high);
         for (i = low; i <= high; i++) {
             off = GetJumpOffset(pc, pc2);
-            Sprint(sp, "\n\t%d: %d", i, intN(off));
+            fprintf(fp, "\n\t%d: %d", i, (intN) off);
             pc2 += jmplen;
         }
         len = 1 + pc2 - pc;
@@ -538,7 +497,7 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
         pc2 += jmplen;
         npairs = GET_UINT16(pc2);
         pc2 += UINT16_LEN;
-        Sprint(sp, " offset %d npairs %u", intN(off), uintN(npairs));
+        fprintf(fp, " offset %d npairs %u", (intN) off, (uintN) npairs);
         while (npairs) {
             uint16 constIndex = GET_INDEX(pc2);
             pc2 += INDEX_LEN;
@@ -548,7 +507,7 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
             JSAutoByteString bytes;
             if (!ToDisassemblySource(cx, Jsvalify(script->getConst(constIndex)), &bytes))
                 return 0;
-            Sprint(sp, "\n\t%s: %d", bytes.ptr(), intN(off));
+            fprintf(fp, "\n\t%s: %d", bytes.ptr(), (intN) off);
             npairs--;
         }
         len = 1 + pc2 - pc;
@@ -556,16 +515,16 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
       }
 
       case JOF_QARG:
-        Sprint(sp, " %u", GET_ARGNO(pc));
+        fprintf(fp, " %u", GET_ARGNO(pc));
         break;
 
       case JOF_LOCAL:
-        Sprint(sp, " %u", GET_SLOTNO(pc));
+        fprintf(fp, " %u", GET_SLOTNO(pc));
         break;
 
       case JOF_SLOTATOM:
       case JOF_SLOTOBJECT: {
-        Sprint(sp, " %u", GET_SLOTNO(pc));
+        fprintf(fp, " %u", GET_SLOTNO(pc));
         index = js_GetIndexFromBytecode(cx, script, pc, SLOTNO_LEN);
         if (type == JOF_SLOTATOM) {
             JS_GET_SCRIPT_ATOM(script, pc, index, atom);
@@ -578,7 +537,7 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
         JSAutoByteString bytes;
         if (!ToDisassemblySource(cx, v, &bytes))
             return 0;
-        Sprint(sp, " %s", bytes.ptr());
+        fprintf(fp, " %s", bytes.ptr());
         break;
       }
 
@@ -599,7 +558,7 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
         JS_ASSERT(op == JSOP_INT32);
         i = GET_INT32(pc);
       print_int:
-        Sprint(sp, " %d", i);
+        fprintf(fp, " %d", i);
         break;
 
       default: {
@@ -610,13 +569,28 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
         return 0;
       }
     }
-    SprintCString(sp, "\n");
+    fputs("\n", fp);
     return len;
 }
 
 #endif 
 
 
+
+
+
+
+typedef struct Sprinter {
+    JSContext       *context;       
+    JSArenaPool     *pool;          
+    char            *base;          
+    size_t          size;           
+    ptrdiff_t       offset;         
+} Sprinter;
+
+#define INIT_SPRINTER(cx, sp, ap, off) \
+    ((sp)->context = cx, (sp)->pool = ap, (sp)->base = NULL, (sp)->size = 0,  \
+     (sp)->offset = off)
 
 #define OFF2STR(sp,off) ((sp)->base + (off))
 #define STR2OFF(sp,str) ((str) - (sp)->base)
@@ -638,7 +612,7 @@ SprintEnsureBuffer(Sprinter *sp, size_t len)
         JS_ARENA_GROW_CAST(base, char *, sp->pool, sp->size, nb);
     }
     if (!base) {
-        js_ReportOutOfMemory(sp->context);
+        js_ReportOutOfScriptQuota(sp->context);
         return JS_FALSE;
     }
     sp->base = base;
@@ -646,22 +620,7 @@ SprintEnsureBuffer(Sprinter *sp, size_t len)
     return JS_TRUE;
 }
 
-namespace js {
-
-char *
-SprintReserveAmount(Sprinter *sp, size_t len)
-{
-    
-    if (!SprintEnsureBuffer(sp, len))
-        return NULL;
-
-    
-    ptrdiff_t offset = sp->offset;
-    sp->offset += len;
-    return sp->base + offset;
-}
-
-ptrdiff_t
+static ptrdiff_t
 SprintPut(Sprinter *sp, const char *s, size_t len)
 {
     ptrdiff_t offset = sp->size; 
@@ -685,13 +644,13 @@ SprintPut(Sprinter *sp, const char *s, size_t len)
     return offset;
 }
 
-ptrdiff_t
+static ptrdiff_t
 SprintCString(Sprinter *sp, const char *s)
 {
     return SprintPut(sp, s, strlen(s));
 }
 
-ptrdiff_t
+static ptrdiff_t
 SprintString(Sprinter *sp, JSString *str)
 {
     size_t length = str->length();
@@ -699,18 +658,20 @@ SprintString(Sprinter *sp, JSString *str)
     if (!chars)
         return -1;
 
-    size_t size = GetDeflatedStringLength(sp->context, chars, length);
+    size_t size = js_GetDeflatedStringLength(sp->context, chars, length);
     if (size == (size_t)-1 || !SprintEnsureBuffer(sp, size))
         return -1;
 
     ptrdiff_t offset = sp->offset;
     sp->offset += size;
-    DeflateStringToBuffer(sp->context, chars, length, sp->base + offset, &size);
+    js_DeflateStringToBuffer(sp->context, chars, length, sp->base + offset,
+                             &size);
     sp->base[sp->offset] = 0;
     return offset;
 }
 
-ptrdiff_t
+
+static ptrdiff_t
 Sprint(Sprinter *sp, const char *format, ...)
 {
     va_list ap;
@@ -725,11 +686,9 @@ Sprint(Sprinter *sp, const char *format, ...)
         return -1;
     }
     offset = SprintCString(sp, bp);
-    sp->context->free_(bp);
+    js_free(bp);
     return offset;
 }
-
-} 
 
 const char js_EscapeMap[] = {
     '\b', 'b',
@@ -848,7 +807,7 @@ struct JSPrinter {
     jsbytecode      *dvgfence;      
     jsbytecode      **pcstack;      
     JSFunction      *fun;           
-    Vector<JSAtom *> *localNames;   
+    jsuword         *localNames;    
 };
 
 JSPrinter *
@@ -857,11 +816,11 @@ js_NewPrinter(JSContext *cx, const char *name, JSFunction *fun,
 {
     JSPrinter *jp;
 
-    jp = (JSPrinter *) cx->malloc_(sizeof(JSPrinter));
+    jp = (JSPrinter *) cx->malloc(sizeof(JSPrinter));
     if (!jp)
         return NULL;
     INIT_SPRINTER(cx, &jp->sprinter, &jp->pool, 0);
-    JS_InitArenaPool(&jp->pool, name, 256, 1);
+    JS_InitArenaPool(&jp->pool, name, 256, 1, &cx->scriptStackQuota);
     jp->indent = indent;
     jp->pretty = !!pretty;
     jp->grouped = !!grouped;
@@ -872,8 +831,8 @@ js_NewPrinter(JSContext *cx, const char *name, JSFunction *fun,
     jp->fun = fun;
     jp->localNames = NULL;
     if (fun && fun->isInterpreted() && fun->script()->bindings.hasLocalNames()) {
-        jp->localNames = cx->new_<Vector<JSAtom *> >(cx);
-        if (!jp->localNames || !fun->script()->bindings.getLocalNameArray(cx, jp->localNames)) {
+        jp->localNames = fun->script()->bindings.getLocalNameArray(cx, &jp->pool);
+        if (!jp->localNames) {
             js_DestroyPrinter(jp);
             return NULL;
         }
@@ -885,8 +844,7 @@ void
 js_DestroyPrinter(JSPrinter *jp)
 {
     JS_FinishArenaPool(&jp->pool);
-    Foreground::delete_(jp->localNames);
-    jp->sprinter.context->free_(jp);
+    jp->sprinter.context->free(jp);
 }
 
 JSString *
@@ -958,7 +916,7 @@ js_printf(JSPrinter *jp, const char *format, ...)
     
     bp = JS_vsmprintf(format, ap);      
     if (fp) {
-        jp->sprinter.context->free_(fp);
+        jp->sprinter.context->free(fp);
         format = NULL;
     }
     if (!bp) {
@@ -970,7 +928,7 @@ js_printf(JSPrinter *jp, const char *format, ...)
     cc = strlen(bp);
     if (SprintPut(&jp->sprinter, bp, (size_t)cc) < 0)
         cc = -1;
-    jp->sprinter.context->free_(bp);
+    js_free(bp);
 
     va_end(ap);
     return cc;
@@ -1056,7 +1014,7 @@ GetOff(SprintStack *ss, uintN i)
             if (off < 0)
                 off = 0;
             ss->offsets[i] = off;
-            ss->sprinter.context->free_(bytes);
+            ss->sprinter.context->free(bytes);
             return off;
         }
         if (!ss->sprinter.base && SprintPut(&ss->sprinter, "", 0) >= 0) {
@@ -1311,8 +1269,6 @@ DecompileSwitch(SprintStack *ss, TableEntry *table, uintN tableLength,
                     JSOp junk;
 
                     todo = SprintDoubleValue(&ss->sprinter, key, &junk);
-                    if (todo < 0)
-                        return JS_FALSE;
                     str = NULL;
                 } else {
                     str = js_ValueToString(cx, Valueify(key));
@@ -1379,9 +1335,11 @@ DecompileSwitch(SprintStack *ss, TableEntry *table, uintN tableLength,
 static JSAtom *
 GetArgOrVarAtom(JSPrinter *jp, uintN slot)
 {
+    JSAtom *name;
+
     LOCAL_ASSERT_RV(jp->fun, NULL);
     LOCAL_ASSERT_RV(slot < jp->fun->script()->bindings.countLocalNames(), NULL);
-    JSAtom *name = (*jp->localNames)[slot];
+    name = JS_LOCAL_NAME_TO_ATOM(jp->localNames[slot]);
 #if !JS_HAS_DESTRUCTURING
     LOCAL_ASSERT_RV(name, NULL);
 #endif
@@ -1424,9 +1382,9 @@ GetLocal(SprintStack *ss, jsint i)
                     const Shape &shape = r.front();
 
                     if (shape.shortid == slot) {
-                        LOCAL_ASSERT(JSID_IS_ATOM(shape.propid));
+                        LOCAL_ASSERT(JSID_IS_ATOM(shape.id));
 
-                        JSAtom *atom = JSID_TO_ATOM(shape.propid);
+                        JSAtom *atom = JSID_TO_ATOM(shape.id);
                         const char *rval = QuoteString(&ss->sprinter, atom, 0);
                         if (!rval)
                             return NULL;
@@ -1867,7 +1825,7 @@ InitSprintStack(JSContext *cx, SprintStack *ss, JSPrinter *jp, uintN depth)
     opcodesz = depth * sizeof(jsbytecode);
     JS_ARENA_ALLOCATE(space, &cx->tempPool, offsetsz + opcodesz);
     if (!space) {
-        js_ReportOutOfMemory(cx);
+        js_ReportOutOfScriptQuota(cx);
         return JS_FALSE;
     }
     ss->offsets = (ptrdiff_t *) space;
@@ -1935,8 +1893,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
 
 #define LOCAL_ASSERT(expr)    LOCAL_ASSERT_RV(expr, NULL)
-#define DECOMPILE_CODE_CLEANUP(pc,nb,cleanup) if (!Decompile(ss, pc, nb, JSOP_NOP)) cleanup
-#define DECOMPILE_CODE(pc,nb) DECOMPILE_CODE_CLEANUP(pc,nb,return NULL)
+#define DECOMPILE_CODE(pc,nb) if (!Decompile(ss, pc, nb, JSOP_NOP)) return NULL
 #define NEXT_OP(pc)           (((pc) + (len) == endpc) ? nextop : pc[len])
 #define TOP_STR()             GetStr(ss, ss->top - 1)
 #define POP_STR()             PopStr(ss, op)
@@ -2083,17 +2040,20 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
         token = CodeToken[op];
 
         if (pc + oplen == jp->dvgfence) {
+            JSStackFrame *fp;
+            uint32 format, mode, type;
+
             
 
 
 
 
-            StackFrame *fp = js_GetScriptedCaller(cx, NULL);
-            uint32 format = cs->format;
-            if (((fp && pc == fp->pcQuadratic(cx)) ||
+            fp = js_GetScriptedCaller(cx, NULL);
+            format = cs->format;
+            if (((fp && pc == fp->pc(cx)) ||
                  (pc == startpc && nuses != 0)) &&
                 format & (JOF_SET|JOF_DEL|JOF_INCDEC|JOF_FOR|JOF_VARPROP)) {
-                uint32 mode = JOF_MODE(format);
+                mode = JOF_MODE(format);
                 if (mode == JOF_NAME) {
                     
 
@@ -2101,7 +2061,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
 
 
-                    uint32 type = JOF_TYPE(format);
+                    type = JOF_TYPE(format);
                     op = (type == JOF_QARG)
                          ? JSOP_GETARG
                          : (type == JOF_LOCAL)
@@ -2617,14 +2577,14 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     len = 0;
 
                     if (!Decompile(ss, done, pc - done, JSOP_POP)) {
-                        cx->free_((char *)lval);
+                        cx->free((char *)lval);
                         return NULL;
                     }
 
                     
                     rval = POP_STR();
                     todo = Sprint(&ss->sprinter, "%s, %s", lval, rval);
-                    cx->free_((char *)lval);
+                    cx->free((char *)lval);
                     break;
 
                   case SRC_HIDDEN:
@@ -2656,7 +2616,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                         
                         saveop = JSOP_LEAVEBLOCKEXPR;
                         if (!Decompile(ss, pc, len, saveop)) {
-                            cx->free_((char *)lval);
+                            cx->free((char *)lval);
                             return NULL;
                         }
                         rval = PopStr(ss, JSOP_SETNAME);
@@ -2665,7 +2625,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                                       ? "let (%s) (%s)"
                                       : "let (%s) %s",
                                       lval, rval);
-                        cx->free_((char *)lval);
+                        cx->free((char *)lval);
                     }
                     break;
 
@@ -2728,7 +2688,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                 if ((size_t)argc <= JS_ARRAY_LENGTH(smallv)) {
                     atomv = smallv;
                 } else {
-                    atomv = (JSAtom **) cx->malloc_(argc * sizeof(JSAtom *));
+                    atomv = (JSAtom **) cx->malloc(argc * sizeof(JSAtom *));
                     if (!atomv)
                         return NULL;
                 }
@@ -2742,7 +2702,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     if (!shape.hasShortID())
                         continue;
                     LOCAL_ASSERT_OUT(shape.shortid < argc);
-                    atomv[shape.shortid] = JSID_TO_ATOM(shape.propid);
+                    atomv[shape.shortid] = JSID_TO_ATOM(shape.id);
                 }
                 ok = JS_TRUE;
                 for (i = 0; i < argc; i++) {
@@ -2864,7 +2824,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 #undef LOCAL_ASSERT_OUT
               enterblock_out:
                 if (atomv != smallv)
-                    cx->free_(atomv);
+                    cx->free(atomv);
                 if (!ok)
                     return NULL;
               }
@@ -2916,17 +2876,15 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
               case JSOP_GETFCSLOT:
               case JSOP_CALLFCSLOT:
               {
-                if (!jp->fun)
-                    jp->fun = jp->script->getCallerFunction();
+                if (!jp->fun) {
+                    JS_ASSERT(jp->script->savedCallerFun);
+                    jp->fun = jp->script->getFunction(0);
+                }
 
                 if (!jp->localNames) {
                     JS_ASSERT(fun == jp->fun);
-                    jp->localNames = cx->new_<Vector<JSAtom *> >(cx);
-                    if (!jp->localNames ||
-                        !jp->fun->script()->bindings.getLocalNameArray(cx, jp->localNames))
-                    {
-                        return NULL;
-                    }
+                    jp->localNames =
+                        jp->fun->script()->bindings.getLocalNameArray(cx, &jp->pool);
                 }
 
                 uintN index = GET_UINT16(pc);
@@ -2944,7 +2902,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
 
 
-                    StackFrame *fp = js_GetTopStackFrame(cx);
+                    JSStackFrame *fp = js_GetTopStackFrame(cx, FRAME_EXPAND_ALL);
                     if (fp) {
                         while (!fp->isEvalFrame())
                             fp = fp->prev();
@@ -3389,27 +3347,23 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     if (!xval)
                         return NULL;
                     len = js_GetSrcNoteOffset(sn, 0);
-                    lval = NULL;
-                    DECOMPILE_CODE_CLEANUP(pc + oplen, len - oplen, goto src_cond_error);
+                    DECOMPILE_CODE(pc + oplen, len - oplen);
                     lval = JS_strdup(cx, POP_STR());
-                    if (!lval) goto src_cond_error;
+                    if (!lval) {
+                        cx->free((void *)xval);
+                        return NULL;
+                    }
                     pc += len;
                     LOCAL_ASSERT(*pc == JSOP_GOTO || *pc == JSOP_GOTOX);
                     oplen = js_CodeSpec[*pc].length;
                     len = GetJumpOffset(pc, pc);
-                    DECOMPILE_CODE_CLEANUP(pc + oplen, len - oplen, goto src_cond_error);
+                    DECOMPILE_CODE(pc + oplen, len - oplen);
                     rval = POP_STR();
                     todo = Sprint(&ss->sprinter, "%s ? %s : %s",
                                   xval, lval, rval);
-                    cx->free_((void *)xval);
-                    cx->free_((void *)lval);
+                    cx->free((void *)xval);
+                    cx->free((void *)lval);
                     break;
-
-                    src_cond_error:
-                        cx->free_((void *)xval);
-                        if (lval)
-                           cx->free_((void *)lval);
-                        return NULL;
 
                   default:
                     break;
@@ -3435,7 +3389,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                 pc += len;
                 len = done - pc;
                 if (!Decompile(ss, pc, len, op)) {
-                    cx->free_((char *)lval);
+                    cx->free((char *)lval);
                     return NULL;
                 }
                 rval = POP_STR();
@@ -3448,14 +3402,14 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                         todo = Sprint(&ss->sprinter, "%s %s\n", lval, xval);
                         tail = Sprint(&ss->sprinter, "%*s%s",
                                       jp->indent + 4, "", rval);
-                        cx->free_((char *)rval);
+                        cx->free((char *)rval);
                     }
                     if (tail < 0)
                         todo = -1;
                 } else {
                     todo = Sprint(&ss->sprinter, "%s %s %s", lval, xval, rval);
                 }
-                cx->free_((char *)lval);
+                cx->free((char *)lval);
                 break;
 
               case JSOP_AND:
@@ -3646,7 +3600,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
               case JSOP_FUNAPPLY:
                 argc = GET_ARGC(pc);
                 argv = (char **)
-                    cx->malloc_((size_t)(argc + 1) * sizeof *argv);
+                    cx->malloc((size_t)(argc + 1) * sizeof *argv);
                 if (!argv)
                     return NULL;
 
@@ -3705,8 +3659,8 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     ok = JS_FALSE;
 
                 for (i = 0; i <= argc; i++)
-                    cx->free_(argv[i]);
-                cx->free_(argv);
+                    cx->free(argv[i]);
+                cx->free(argv);
                 if (!ok)
                     return NULL;
                 break;
@@ -4098,8 +4052,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                 sn = js_GetSrcNote(jp->script, pc);
                 if (sn && SN_TYPE(sn) == SRC_GENEXP) {
                     void *mark;
-                    Vector<JSAtom *> *innerLocalNames;
-                    Vector<JSAtom *> *outerLocalNames;
+                    jsuword *innerLocalNames, *outerLocalNames;
                     JSScript *inner, *outer;
                     SprintStack ss2;
                     JSFunction *outerfun;
@@ -4114,12 +4067,10 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
                     mark = JS_ARENA_MARK(&cx->tempPool);
                     if (fun->script()->bindings.hasLocalNames()) {
-                        innerLocalNames = cx->new_<Vector<JSAtom *> >(cx);
-                        if (!innerLocalNames ||
-                            fun->script()->bindings.getLocalNameArray(cx, innerLocalNames))
-                        {
+                        innerLocalNames =
+                            fun->script()->bindings.getLocalNameArray(cx, &cx->tempPool);
+                        if (!innerLocalNames)
                             return NULL;
-                        }
                     } else {
                         innerLocalNames = NULL;
                     }
@@ -4233,7 +4184,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     if (!rval)
                         return NULL;
                     todo = SprintCString(&ss->sprinter, rval);
-                    cx->free_((void *)rval);
+                    cx->free((void *)rval);
                     break;
                 }
 #endif 
@@ -4305,7 +4256,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     ok = JS_TRUE;
                 } else {
                     table = (TableEntry *)
-                            cx->malloc_((size_t)n * sizeof *table);
+                            cx->malloc((size_t)n * sizeof *table);
                     if (!table)
                         return NULL;
                     for (i = j = 0; i < n; i++) {
@@ -4325,13 +4276,13 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                         pc2 += jmplen;
                     }
                     tmp = (TableEntry *)
-                          cx->malloc_((size_t)j * sizeof *table);
+                          cx->malloc((size_t)j * sizeof *table);
                     if (tmp) {
                         VOUCH_DOES_NOT_REQUIRE_STACK();
                         ok = js_MergeSort(table, (size_t)j, sizeof(TableEntry),
                                           CompareOffsets, NULL, tmp,
                                           JS_SORTING_GENERIC);
-                        cx->free_(tmp);
+                        cx->free(tmp);
                     } else {
                         ok = JS_FALSE;
                     }
@@ -4341,7 +4292,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     ok = DecompileSwitch(ss, table, (uintN)j, pc, len, off,
                                          JS_FALSE);
                 }
-                cx->free_(table);
+                cx->free(table);
                 if (!ok)
                     return NULL;
                 todo = -2;
@@ -4367,7 +4318,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                 pc2 += UINT16_LEN;
 
                 table = (TableEntry *)
-                    cx->malloc_((size_t)npairs * sizeof *table);
+                    cx->malloc((size_t)npairs * sizeof *table);
                 if (!table)
                     return NULL;
                 for (k = 0; k < npairs; k++) {
@@ -4388,7 +4339,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
                 ok = DecompileSwitch(ss, table, (uintN)npairs, pc, len, off,
                                      JS_FALSE);
-                cx->free_(table);
+                cx->free(table);
                 if (!ok)
                     return NULL;
                 todo = -2;
@@ -4432,7 +4383,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
 
                 table = (TableEntry *)
-                    cx->malloc_((size_t)ncases * sizeof *table);
+                    cx->malloc((size_t)ncases * sizeof *table);
                 if (!table)
                     return NULL;
                 pc2 = pc;
@@ -4462,7 +4413,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
 
                 ok = DecompileSwitch(ss, table, (uintN)ncases, pc, len, off,
                                      JS_TRUE);
-                cx->free_(table);
+                cx->free(table);
                 if (!ok)
                     return NULL;
                 todo = -2;
@@ -4807,7 +4758,7 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                      (*rval == '\0' ||
                       (SprintPut(&ss->sprinter, " ", 1) >= 0 &&
                        SprintCString(&ss->sprinter, rval)));
-                cx->free_((char *)rval);
+                cx->free((char *)rval);
                 if (!ok)
                     return NULL;
                 SprintPut(&ss->sprinter, "?>", 2);
@@ -4987,7 +4938,7 @@ js_DecompileFunctionBody(JSPrinter *jp)
         return JS_TRUE;
     }
 
-    script = jp->fun->script();
+    script = jp->fun->u.i.script;
     return DecompileBody(jp, script, script->code);
 }
 
@@ -5028,7 +4979,7 @@ js_DecompileFunction(JSPrinter *jp)
         jp->indent -= 4;
         js_printf(jp, "\t}");
     } else {
-        JSScript *script = fun->script();
+        JSScript *script = fun->u.i.script;
 #if JS_HAS_DESTRUCTURING
         SprintStack ss;
         void *mark;
@@ -5124,7 +5075,7 @@ char *
 js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v_in,
                            JSString *fallback)
 {
-    StackFrame *fp;
+    JSStackFrame *fp;
     JSScript *script;
     jsbytecode *pc;
 
@@ -5134,14 +5085,13 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v_in,
               spindex == JSDVG_IGNORE_STACK ||
               spindex == JSDVG_SEARCH_STACK);
 
-    LeaveTrace(cx);
-    
-    if (!cx->hasfp() || !cx->fp()->isScriptFrame())
+    fp = js_GetTopStackFrame(cx, FRAME_EXPAND_TOP);
+
+    if (!cx->regs || !fp || !fp->isScriptFrame())
         goto do_fallback;
 
-    fp = cx->fp();
     script = fp->script();
-    pc = fp->hasImacropc() ? fp->imacropc() : cx->regs().pc;
+    pc = fp->hasImacropc() ? fp->imacropc() : cx->regs->pc;
     JS_ASSERT(script->code <= pc && pc < script->code + script->length);
 
     if (pc < script->main)
@@ -5155,7 +5105,7 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v_in,
 
 
         pcstack = (jsbytecode **)
-                  cx->malloc_(StackDepth(script) * sizeof *pcstack);
+                  cx->malloc(StackDepth(script) * sizeof *pcstack);
         if (!pcstack)
             return NULL;
         intN pcdepth = ReconstructPCStack(cx, script, pc, pcstack);
@@ -5175,7 +5125,7 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v_in,
 
 
             Value *stackBase = fp->base();
-            Value *sp = cx->regs().sp;
+            Value *sp = cx->regs->sp;
             do {
                 if (sp == stackBase) {
                     pcdepth = -1;
@@ -5197,16 +5147,17 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v_in,
         }
 
       release_pcstack:
-        cx->free_(pcstack);
+        cx->free(pcstack);
         if (pcdepth < 0)
             goto do_fallback;
     }
 
     {
-        jsbytecode* basepc = cx->regs().pc;
+        jsbytecode* basepc = cx->regs->pc;
         jsbytecode* savedImacropc = fp->maybeImacropc();
         if (savedImacropc) {
-            cx->regs().pc = savedImacropc;
+            JS_ASSERT(cx->hasfp());
+            cx->regs->pc = savedImacropc;
             fp->clearImacropc();
         }
 
@@ -5221,7 +5172,8 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v_in,
             name = DecompileExpression(cx, script, fp->maybeFun(), pc);
 
         if (savedImacropc) {
-            cx->regs().pc = basepc;
+            JS_ASSERT(cx->hasfp());
+            cx->regs->pc = basepc;
             fp->setImacropc(savedImacropc);
         }
 
@@ -5239,7 +5191,7 @@ js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v_in,
     const jschar *chars = fallback->getChars(cx);
     if (!chars)
         return NULL;
-    return DeflateString(cx, chars, length);
+    return js_DeflateString(cx, chars, length);
 }
 
 static char *
@@ -5328,7 +5280,7 @@ DecompileExpression(JSContext *cx, JSScript *script, JSFunction *fun,
     }
 
     pcstack = (jsbytecode **)
-              cx->malloc_(StackDepth(script) * sizeof *pcstack);
+              cx->malloc(StackDepth(script) * sizeof *pcstack);
     if (!pcstack) {
         name = NULL;
         goto out;
@@ -5355,7 +5307,7 @@ DecompileExpression(JSContext *cx, JSScript *script, JSFunction *fun,
     }
 
 out:
-    cx->free_(pcstack);
+    cx->free(pcstack);
     return name;
 }
 
@@ -5437,7 +5389,7 @@ SimulateImacroCFG(JSContext *cx, JSScript *script,
     jsbytecode** tmp_pcstack = NULL;
     if (pcstack) {
         nbytes = StackDepth(script) * sizeof *pcstack;
-        tmp_pcstack = (jsbytecode **) cx->malloc_(nbytes);
+        tmp_pcstack = (jsbytecode **) cx->malloc(nbytes);
         if (!tmp_pcstack)
             return -1;
         memcpy(tmp_pcstack, pcstack, nbytes);
@@ -5479,13 +5431,13 @@ SimulateImacroCFG(JSContext *cx, JSScript *script,
   success:
     if (tmp_pcstack) {
         memcpy(pcstack, tmp_pcstack, nbytes);
-        cx->free_(tmp_pcstack);
+        cx->free(tmp_pcstack);
     }
     return pcdepth;
 
   failure:
     if (tmp_pcstack)
-        cx->free_(tmp_pcstack);
+        cx->free(tmp_pcstack);
     return -1;
 }
 
@@ -5501,7 +5453,7 @@ ReconstructImacroPCStack(JSContext *cx, JSScript *script,
 
 
 
-    StackFrame *fp = js_GetScriptedCaller(cx, NULL);
+    JSStackFrame *fp = js_GetScriptedCaller(cx, NULL);
     JS_ASSERT(fp->hasImacropc());
     intN pcdepth = ReconstructPCStack(cx, script, fp->imacropc(), pcstack);
     if (pcdepth < 0)
@@ -5587,62 +5539,3 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target,
 
 #undef LOCAL_ASSERT
 #undef LOCAL_ASSERT_RV
-
-namespace js {
-
-bool
-CallResultEscapes(jsbytecode *pc)
-{
-    
-
-
-
-
-
-
-
-
-
-
-
-    if (*pc != JSOP_CALL)
-        return true;
-
-    pc += JSOP_CALL_LENGTH;
-
-    if (*pc == JSOP_TRACE)
-        pc += JSOP_TRACE_LENGTH;
-
-    if (*pc == JSOP_POP)
-        return false;
-
-    if (*pc == JSOP_NOT)
-        pc += JSOP_NOT_LENGTH;
-
-    return (*pc != JSOP_IFEQ);
-}
-
-size_t
-GetBytecodeLength(JSContext *cx, JSScript *script, jsbytecode *pc)
-{
-    JSOp op = js_GetOpcode(cx, script, pc);
-    JS_ASSERT(op < JSOP_LIMIT);
-    JS_ASSERT(op != JSOP_TRAP);
-    if (js_CodeSpec[op].length != -1)
-        return js_CodeSpec[op].length;
-    return js_GetVariableBytecodeLength(op, pc);
-}
-
-extern bool
-IsValidBytecodeOffset(JSContext *cx, JSScript *script, size_t offset)
-{
-    
-    for (BytecodeRange r(cx, script); !r.empty(); r.popFront()) {
-        size_t here = r.frontOffset();
-        if (here >= offset)
-            return here == offset;
-    }
-    return false;
-}
-
-} 

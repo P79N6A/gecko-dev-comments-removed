@@ -139,6 +139,9 @@ class Script
     bool hadFailure;
     bool usesRval;
     bool usesScope;
+    bool usesThis;
+
+    bool isInlineable;
 
     JSPackedBool *closedVars;
     JSPackedBool *closedArgs;
@@ -154,12 +157,16 @@ class Script
 
     bool OOM() { return outOfMemory; }
     bool failed() { return hadFailure; }
+    bool inlineable(uint32 argc) { return isInlineable && argc == script->fun->nargs; }
 
     
     bool usesReturnValue() const { return usesRval; }
 
     
     bool usesScopeChain() const { return usesScope; }
+
+    
+    bool usesThisValue() const { return usesThis; }
 
     bool hasAnalyzed() const { return !!codeArray; }
     JSScript *getScript() const { return script; }
@@ -386,7 +393,6 @@ class LifetimeScript
 {
     analyze::Script *analysis;
     JSScript *script;
-    JSFunction *fun;
 
     LifetimeBytecode *codeArray;
     LifetimeVariable *locals;
@@ -402,7 +408,7 @@ class LifetimeScript
     LifetimeScript();
     ~LifetimeScript();
 
-    bool analyze(JSContext *cx, analyze::Script *analysis, JSScript *script, JSFunction *fun);
+    bool analyze(JSContext *cx, analyze::Script *analysis, JSScript *script);
 
     LifetimeBytecode &getCode(uint32 offset) {
         JS_ASSERT(analysis->maybeCode(offset));
@@ -417,7 +423,7 @@ class LifetimeScript
 #endif
 
     Lifetime * argLive(uint32 arg, uint32 offset) {
-        JS_ASSERT(fun && arg < fun->nargs);
+        JS_ASSERT(script->fun && arg < script->fun->nargs);
         return args[arg].live(offset);
     }
     Lifetime * localLive(uint32 local, uint32 offset) {

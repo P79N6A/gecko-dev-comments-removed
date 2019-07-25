@@ -378,14 +378,8 @@ GetCustomIterator(JSContext *cx, JSObject *obj, uintN flags, Value *vp)
 
 
 
-
-
-
-    if (!(flags & JSITER_OWNONLY) && cx->regs->pc) {
-        JS_ASSERT(JSOp(*cx->regs->pc) == JSOP_ITER);
-        if (!cx->fp()->script()->typeMonitorUnknown(cx, cx->regs->pc))
-            return false;
-    }
+    if (!(flags & JSITER_OWNONLY) && !cx->markTypeCallerUnexpected(types::TYPE_UNKNOWN))
+        return false;
 
     
     LeaveTrace(cx);
