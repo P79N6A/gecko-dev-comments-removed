@@ -2372,7 +2372,11 @@ mjit::Compiler::fixPrimitiveReturn(Assembler *masm, FrameEntry *fe)
     Address thisv(JSFrameReg, JSStackFrame::offsetOfThis(fun));
 
     
-    if (!fe || (fe->isTypeKnown() && fe->getKnownType() != JSVAL_TYPE_OBJECT)) {
+    
+    
+    if ((!fe && !analysis->usesReturnValue()) ||
+        (fe && fe->isTypeKnown() && fe->getKnownType() != JSVAL_TYPE_OBJECT))
+    {
         if (ool)
             masm->loadValueAsComponents(thisv, JSReturnReg_Type, JSReturnReg_Data);
         else
@@ -2381,7 +2385,7 @@ mjit::Compiler::fixPrimitiveReturn(Assembler *masm, FrameEntry *fe)
     }
 
     
-    if (fe->isTypeKnown() && fe->getKnownType() == JSVAL_TYPE_OBJECT) {
+    if (fe && fe->isTypeKnown() && fe->getKnownType() == JSVAL_TYPE_OBJECT) {
         loadReturnValue(masm, fe);
         return;
     }
@@ -4544,6 +4548,7 @@ mjit::Compiler::jsop_getgname(uint32 index, JSValueType type)
     JS_ASSERT(fe->isTypeKnown() && fe->getKnownType() == JSVAL_TYPE_OBJECT);
 
     MICGenInfo mic(ic::MICInfo::GET);
+    RESERVE_IC_SPACE(masm);
     RegisterID objReg;
     Jump shapeGuard;
 
@@ -4657,6 +4662,7 @@ mjit::Compiler::jsop_setgname(uint32 index, bool usePropertyCache)
     JS_ASSERT_IF(objFe->isTypeKnown(), objFe->getKnownType() == JSVAL_TYPE_OBJECT);
 
     MICGenInfo mic(ic::MICInfo::SET);
+    RESERVE_IC_SPACE(masm);
     RegisterID objReg;
     Jump shapeGuard;
 

@@ -1477,17 +1477,16 @@ class ScopeNameCompiler : public PICStubCompiler
             return false;
         }
 
-        if (!obj->isNative() || !holder->isNative()) {
-            if (!obj->getProperty(cx, ATOM_TO_JSID(atom), vp))
-                return false;
-        } else {
-            const Shape *shape = getprop.shape;
-            JS_ASSERT(shape);
-            JSObject *normalized = obj;
-            if (obj->getClass() == &js_WithClass && !shape->hasDefaultGetter())
-                normalized = js_UnwrapWithObject(cx, obj);
-            NATIVE_GET(cx, normalized, holder, shape, JSGET_METHOD_BARRIER, vp, return false);
-        }
+        
+        
+        if (!getprop.shape)
+            return obj->getProperty(cx, ATOM_TO_JSID(atom), vp);
+
+        const Shape *shape = getprop.shape;
+        JSObject *normalized = obj;
+        if (obj->getClass() == &js_WithClass && !shape->hasDefaultGetter())
+            normalized = js_UnwrapWithObject(cx, obj);
+        NATIVE_GET(cx, normalized, holder, shape, JSGET_METHOD_BARRIER, vp, return false);
 
         return true;
     }
@@ -1551,6 +1550,8 @@ class BindNameCompiler : public PICStubCompiler
             masm.loadShape(pic.objReg, pic.shapeReg);
             Jump shapeTest = masm.branch32(Assembler::NotEqual, pic.shapeReg,
                                            Imm32(tobj->shape()));
+            if (!fails.append(shapeTest))
+                return error();
             tobj = tobj->getParent();
         }
         if (tobj != obj)
@@ -2397,24 +2398,21 @@ SetElementIC::attachHoleStub(JSContext *cx, JSObject *obj, int32 keyval)
 
     Assembler masm;
 
-    
-    
-    JSObject *arrayProto = obj->getProto();
-    masm.move(ImmPtr(arrayProto), objReg);
-    Jump extendedArray = masm.branchTest32(Assembler::NonZero,
-                                           Address(objReg, offsetof(JSObject, flags)),
-                                           Imm32(JSObject::INDEXED));
+    Vector<Jump, 4> fails(cx);
 
     
     
-    JSObject *objProto = arrayProto->getProto();
-    Jump sameProto = masm.branchPtr(Assembler::NotEqual,
-                                    Address(objReg, offsetof(JSObject, proto)),
-                                    ImmPtr(objProto));
-    masm.move(ImmPtr(objProto), objReg);
-    Jump extendedObject = masm.branchTest32(Assembler::NonZero,
-                                            Address(objReg, offsetof(JSObject, flags)),
-                                            Imm32(JSObject::INDEXED));
+    
+    
+    
+    for (JSObject *pobj = obj->getProto(); pobj; pobj = pobj->getProto()) {
+        if (!pobj->isNative())
+            return disable(cx, "non-native array prototype");
+        masm.move(ImmPtr(pobj), objReg);
+        Jump j = masm.guardShape(objReg, pobj);
+        if (!fails.append(j))
+            return error(cx);
+    }
 
     
     masm.rematPayload(StateRemat::FromInt32(objRemat), objReg);
@@ -2462,9 +2460,8 @@ SetElementIC::attachHoleStub(JSContext *cx, JSObject *obj, int32 keyval)
         return disable(cx, "code memory is out of range");
 
     
-    buffer.link(extendedArray, slowPathStart);
-    buffer.link(sameProto, slowPathStart);
-    buffer.link(extendedObject, slowPathStart);
+    for (size_t i = 0; i < fails.length(); i++)
+        buffer.link(fails[i], slowPathStart);
     buffer.link(done, fastPathRejoin);
 
     CodeLocationLabel cs = buffer.finalize();

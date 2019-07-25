@@ -545,6 +545,9 @@ JS_GetPositiveInfinityValue(JSContext *cx);
 extern JS_PUBLIC_API(jsval)
 JS_GetEmptyStringValue(JSContext *cx);
 
+extern JS_PUBLIC_API(JSString *)
+JS_GetEmptyString(JSRuntime *rt);
+
 
 
 
@@ -752,6 +755,9 @@ JS_SuspendRequest(JSContext *cx);
 extern JS_PUBLIC_API(void)
 JS_ResumeRequest(JSContext *cx, jsrefcount saveDepth);
 
+extern JS_PUBLIC_API(JSBool)
+JS_IsInRequest(JSContext *cx);
+
 #ifdef __cplusplus
 JS_END_EXTERN_C
 
@@ -815,6 +821,30 @@ class JSAutoSuspendRequest {
     static void *operator new(size_t) CPP_THROW_NEW { return 0; };
     static void operator delete(void *, size_t) { };
 #endif
+};
+
+class JSAutoCheckRequest {
+  public:
+    JSAutoCheckRequest(JSContext *cx JS_GUARD_OBJECT_NOTIFIER_PARAM) {
+#if defined JS_THREADSAFE && defined DEBUG
+        mContext = cx;
+        JS_ASSERT(JS_IsInRequest(cx));
+#endif
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+    
+    ~JSAutoCheckRequest() {
+#if defined JS_THREADSAFE && defined DEBUG
+        JS_ASSERT(JS_IsInRequest(mContext));
+#endif
+    }
+
+
+  private:
+#if defined JS_THREADSAFE && defined DEBUG
+    JSContext *mContext;
+#endif
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 JS_BEGIN_EXTERN_C
@@ -965,7 +995,7 @@ extern JS_PUBLIC_API(JSBool)
 JS_WrapValue(JSContext *cx, jsval *vp);
 
 extern JS_PUBLIC_API(JSObject *)
-JS_TransplantWrapper(JSContext *cx, JSObject *wrapper, JSObject *target);
+JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target);
 
 #ifdef __cplusplus
 JS_END_EXTERN_C
@@ -2440,17 +2470,6 @@ JS_NewFunctionById(JSContext *cx, JSNative call, uintN nargs, uintN flags,
 
 extern JS_PUBLIC_API(JSObject *)
 JS_GetFunctionObject(JSFunction *fun);
-
-
-
-
-
-extern JS_PUBLIC_API(const char *)
-JS_GetFunctionName(JSFunction *fun);
-
-
-
-
 
 
 

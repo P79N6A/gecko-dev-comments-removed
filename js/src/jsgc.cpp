@@ -1374,16 +1374,6 @@ GCMarker::markDelayedChildren()
     JS_ASSERT(!unmarkedArenaStackTop);
 }
 
-void
-GCMarker::slowifyArrays()
-{
-    while (!arraysToSlowify.empty()) {
-        JSObject *obj = arraysToSlowify.back();
-        arraysToSlowify.popBack();
-        if (obj->isMarked())
-            obj->makeDenseArraySlow(context);
-    }
-}
 } 
 
 static void
@@ -2237,12 +2227,6 @@ MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind GCTIMER_PARAM)
     }
     TIMESTAMP(sweepObjectEnd);
 
-    
-
-
-
-    rt->deflatedStringCache->sweep(cx);
-
     for (JSCompartment **comp = rt->compartments.begin(); comp != rt->compartments.end(); comp++) {
         FinalizeArenaList<JSShortString>(*comp, cx, FINALIZE_SHORT_STRING);
         FinalizeArenaList<JSString>(*comp, cx, FINALIZE_STRING);
@@ -2266,9 +2250,6 @@ MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind GCTIMER_PARAM)
 
 
     js_SweepScriptFilenames(rt);
-
-    
-    gcmarker.slowifyArrays();
 
     
 
