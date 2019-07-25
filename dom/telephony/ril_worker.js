@@ -690,6 +690,29 @@ let RIL = {
 
 
 
+
+  startTone: function startTone(dtmfChar) {
+    Buf.newParcel(REQUEST_DTMF_START);
+    Buf.writeString(dtmfChar);
+    Buf.sendParcel();
+  },
+
+  stopTone: function stopTone() {
+    Buf.simpleRequest(REQUEST_DTMF_STOP);
+  },
+
+  sendTone: function sendTone(dtmfChar) {
+    Buf.newParcel(REQUEST_DTMF);
+    Buf.writeString(dtmfChar);
+    Buf.sendParcel();
+  },
+
+  
+
+
+
+
+
   handleParcel: function handleParcel(request_type, length) {
     let method = this[request_type];
     if (typeof method == "function") {
@@ -832,7 +855,9 @@ RIL[REQUEST_OPERATOR] = function REQUEST_OPERATOR(length) {
   Phone.onOperator(operator);
 };
 RIL[REQUEST_RADIO_POWER] = null;
-RIL[REQUEST_DTMF] = null;
+RIL[REQUEST_DTMF] = function REQUEST_DTMF() {
+  Phone.onSendTone();
+};
 RIL[REQUEST_SEND_SMS] = function REQUEST_SEND_SMS() {
   let messageRef = Buf.readUint32();
   let ackPDU = p.readString();
@@ -873,8 +898,12 @@ RIL[REQUEST_QUERY_NETWORK_SELECTION_MODE] = function REQUEST_QUERY_NETWORK_SELEC
 RIL[REQUEST_SET_NETWORK_SELECTION_AUTOMATIC] = null;
 RIL[REQUEST_SET_NETWORK_SELECTION_MANUAL] = null;
 RIL[REQUEST_QUERY_AVAILABLE_NETWORKS] = null;
-RIL[REQUEST_DTMF_START] = null;
-RIL[REQUEST_DTMF_STOP] = null;
+RIL[REQUEST_DTMF_START] = function REQUEST_DTMF_START() {
+  Phone.onStartTone();
+};
+RIL[REQUEST_DTMF_STOP] = function REQUEST_DTMF_STOP() {
+  Phone.onStopTone();
+};
 RIL[REQUEST_BASEBAND_VERSION] = function REQUEST_BASEBAND_VERSION() {
   let version = Buf.readString();
   Phone.onBasebandVersion(version);
@@ -1270,10 +1299,18 @@ let Phone = {
   onSetMute: function onSetMute() {
   },
 
+  onSendTone: function onSendTone() {
+  },
+
+  onStartTone: function onStartTone() {
+  },
+
+  onStopTone: function onStopTone() {
+  },
+
   onSendSMS: function onSendSMS(messageRef, ackPDU, errorCode) {
     
   },
-
 
   
 
@@ -1307,6 +1344,33 @@ let Phone = {
 
   dial: function dial(options) {
     RIL.dial(options.number, 0, 0);
+  },
+
+  
+
+
+
+
+
+  sendTone: function sendTone(options) {
+    RIL.sendTone(options.dtmfChar);
+  },
+
+  
+
+
+
+
+
+  startTone: function startTone(options) {
+    RIL.startTone(options.dtmfChar);
+  },
+
+  
+
+
+  stopTone: function stopTone() {
+    RIL.stopTone();
   },
 
   

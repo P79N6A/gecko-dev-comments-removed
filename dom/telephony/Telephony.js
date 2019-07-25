@@ -274,7 +274,7 @@ Telephony.prototype = {
     event.call = call; 
     
     target = target || call;
-    target.dispatchEvent(event);    
+    target.dispatchEvent(event);
   },
 
   _processCallState: function _processCallState(state) {
@@ -354,6 +354,14 @@ Telephony.prototype = {
     this.callsByIndex[callIndex] = call;
     this.liveCalls.push(call);
     return call;
+  },
+
+  startTone: function startTone(dtmfChar) {
+    this.telephone.startTone(dtmfChar);
+  },
+
+  stopTone: function stopTone() {
+    this.telephone.stopTone();
   },
 
   get muted() {
