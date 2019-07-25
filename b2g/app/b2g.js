@@ -50,9 +50,6 @@ pref("browser.homescreenURL", "file:///data/local/homescreen.html,file:///system
 pref("browser.viewport.scaleRatio", -1);
 
 
-pref("ui.scrollbarsCanOverlapContent", 1);
-
-
 pref("browser.ignoreNativeFrameTextSelection", true);
 
 
