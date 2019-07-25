@@ -1413,7 +1413,7 @@ BrowserGlue.prototype = {
             parent: PlacesUtils.bookmarksMenuFolderId,
             position: menuIndex++,
             newInVersion: 1
-          },
+          }
         };
 
         
@@ -1424,9 +1424,9 @@ BrowserGlue.prototype = {
           let queryId = PlacesUtils.annotations.getItemAnnotation(itemId, SMART_BOOKMARKS_ANNO);
           if (queryId in smartBookmarks) {
             let smartBookmark = smartBookmarks[queryId];
-            smartBookmarks[queryId].itemId = itemId;
-            smartBookmarks[queryId].parent = PlacesUtils.bookmarks.getFolderIdForItem(itemId);
-            smartBookmarks[queryId].position = PlacesUtils.bookmarks.getItemIndex(itemId);
+            smartBookmark.itemId = itemId;
+            smartBookmark.parent = PlacesUtils.bookmarks.getFolderIdForItem(itemId);
+            smartBookmark.position = PlacesUtils.bookmarks.getItemIndex(itemId);
           }
           else {
             
