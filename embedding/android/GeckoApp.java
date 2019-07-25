@@ -475,10 +475,14 @@ abstract public class GeckoApp
 
                 Log.w(LOGTAG, "zerdatime " + new Date().getTime() + " - pre checkLaunchState");
 
-                SharedPreferences settings = getPreferences(Activity.MODE_PRIVATE);
-                String localeCode = settings.getString(getPackageName() + ".locale", "");
-                if (localeCode != null && localeCode.length() > 0)
-                    GeckoAppShell.setSelectedLocale(localeCode);
+                
+
+
+
+
+
+
+
 
                 if (!checkLaunchState(LaunchState.Launched)) {
                     return;
