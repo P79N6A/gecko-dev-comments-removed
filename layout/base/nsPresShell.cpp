@@ -5025,12 +5025,19 @@ PresShell::ContentRemoved(nsIDocument *aDocument,
   
   
   
+  nsIContent* oldNextSibling;
+  if (aContainer) {
+    oldNextSibling = aContainer->GetChildAt(aIndexInContainer);
+  } else {
+    oldNextSibling = nsnull;
+  }
+  
   if (aContainer)
     mFrameConstructor->RestyleForRemove(aContainer->AsElement(), aChild,
-                                        aContainer->GetChildAt(aIndexInContainer));
+                                        oldNextSibling);
 
   PRBool didReconstruct;
-  mFrameConstructor->ContentRemoved(aContainer, aChild, aIndexInContainer,
+  mFrameConstructor->ContentRemoved(aContainer, aChild, oldNextSibling,
                                     nsCSSFrameConstructor::REMOVE_CONTENT,
                                     &didReconstruct);
 

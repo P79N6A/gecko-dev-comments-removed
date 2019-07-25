@@ -6165,22 +6165,18 @@ nsCSSFrameConstructor::AddTextItemIfNeeded(nsFrameConstructorState& aState,
 
 void
 nsCSSFrameConstructor::ReframeTextIfNeeded(nsIContent* aParentContent,
-                                           PRInt32 aContentIndex)
+                                           nsIContent* aContent)
 {
-  NS_ASSERTION(aContentIndex >= 0 &&
-               PRUint32(aContentIndex) < aParentContent->GetChildCount(),
-               "child index out of range");
-  nsIContent* content = aParentContent->GetChildAt(aContentIndex);
-  if (!content->IsNodeOfType(nsINode::eTEXT) ||
-      !content->HasFlag(NS_CREATE_FRAME_IF_NON_WHITESPACE)) {
+  if (!aContent->IsNodeOfType(nsINode::eTEXT) ||
+      !aContent->HasFlag(NS_CREATE_FRAME_IF_NON_WHITESPACE)) {
     
     
     
     return;
   }
-  NS_ASSERTION(!content->GetPrimaryFrame(),
+  NS_ASSERTION(!aContent->GetPrimaryFrame(),
                "Text node has a frame and NS_CREATE_FRAME_IF_NON_WHITESPACE");
-  ContentInserted(aParentContent, content, nsnull, PR_FALSE);
+  ContentInserted(aParentContent, aContent, nsnull, PR_FALSE);
 }
 
 
@@ -6757,7 +6753,8 @@ static
 PRBool NotifyListBoxBody(nsPresContext*    aPresContext,
                          nsIContent*        aContainer,
                          nsIContent*        aChild,
-                         PRInt32            aIndexInContainer,
+                         
+                         nsIContent*        aOldNextSibling,
                          nsIDocument*       aDocument,                         
                          nsIFrame*          aChildFrame,
                          content_operation  aOperation)
@@ -6770,13 +6767,10 @@ PRBool NotifyListBoxBody(nsPresContext*    aPresContext,
       
       if (!aChildFrame || aChildFrame->GetParent() == listBoxBodyFrame) {
         listBoxBodyFrame->OnContentRemoved(aPresContext, aContainer,
-                                           aChildFrame, aIndexInContainer);
+                                           aChildFrame, aOldNextSibling);
         return PR_TRUE;
       }
     } else {
-      
-      
-      
       listBoxBodyFrame->OnContentInserted(aPresContext, aChild);
       return PR_TRUE;
     }
@@ -6863,7 +6857,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
       if (NotifyListBoxBody(mPresShell->GetPresContext(), aContainer,
                             
                             
-                            aStartChild, -1, 
+                            aStartChild, nsnull, 
                             mDocument, nsnull, CONTENT_INSERTED)) {
         return NS_OK;
       }
@@ -7318,7 +7312,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
 nsresult
 nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
                                       nsIContent* aChild,
-                                      PRInt32     aIndexInContainer,
+                                      nsIContent* aOldNextSibling,
                                       RemoveFlags aFlags,
                                       PRBool*     aDidReconstruct)
 {
@@ -7333,10 +7327,11 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
 
 #ifdef DEBUG
   if (gNoisyContentUpdates) {
-    printf("nsCSSFrameConstructor::ContentRemoved container=%p child=%p index=%d\n",
+    printf("nsCSSFrameConstructor::ContentRemoved container=%p child=%p "
+           "old-next-sibling=%p\n",
            static_cast<void*>(aContainer),
            static_cast<void*>(aChild),
-           aIndexInContainer);
+           static_cast<void*>(aOldNextSibling));
     if (gReallyNoisyContentUpdates) {
       aContainer->List(stdout, 0);
     }
@@ -7357,7 +7352,7 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
   }
 
 #ifdef MOZ_XUL
-  if (NotifyListBoxBody(presContext, aContainer, aChild, aIndexInContainer, 
+  if (NotifyListBoxBody(presContext, aContainer, aChild, aOldNextSibling, 
                         mDocument, childFrame, CONTENT_REMOVED))
     return NS_OK;
 
@@ -7532,29 +7527,33 @@ nsCSSFrameConstructor::ContentRemoved(nsIContent* aContainer,
     
     
     
-    if (aContainer && aIndexInContainer >= 0 &&
+    if (aContainer && !aChild->IsRootOfAnonymousSubtree() &&
         aFlags != REMOVE_FOR_RECONSTRUCTION &&
         GetParentType(parentType) == eTypeBlock) {
       
       
       
-      PRInt32 childCount = aContainer->GetChildCount();
       
       
       
       
       
-      PRInt32 prevSiblingIndex = aIndexInContainer - 1;
-      if (prevSiblingIndex > 0 && prevSiblingIndex < childCount - 1) {
-        LAYOUT_PHASE_TEMP_EXIT();
-        ReframeTextIfNeeded(aContainer, prevSiblingIndex);
-        LAYOUT_PHASE_TEMP_REENTER();
+      
+      
+      if (aOldNextSibling) {
+        nsIContent* prevSibling = aOldNextSibling->GetPreviousSibling();
+        if (prevSibling && prevSibling->GetPreviousSibling()) {
+          LAYOUT_PHASE_TEMP_EXIT();
+          ReframeTextIfNeeded(aContainer, prevSibling);
+          LAYOUT_PHASE_TEMP_REENTER();
+        }
       }
       
       
-      if (aIndexInContainer > 0 && aIndexInContainer < childCount - 1) {
+      if (aOldNextSibling && aOldNextSibling->GetNextSibling() &&
+          aOldNextSibling->GetPreviousSibling()) {
         LAYOUT_PHASE_TEMP_EXIT();
-        ReframeTextIfNeeded(aContainer, aIndexInContainer);
+        ReframeTextIfNeeded(aContainer, aOldNextSibling);
         LAYOUT_PHASE_TEMP_REENTER();
       }
     }
@@ -9048,11 +9047,8 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent,
   }
 
   nsINode* containerNode = aContent->GetNodeParent();
+  
   if (containerNode) {
-    
-    
-    PRInt32 indexInContainer = containerNode->IndexOf(aContent);
-
     
     
     CaptureStateForFramesOf(aContent, mTempFrameTreeState);
@@ -9062,9 +9058,11 @@ nsCSSFrameConstructor::RecreateFramesForContent(nsIContent* aContent,
     nsCOMPtr<nsIContent> container = aContent->GetParent();
 
     
-    
     PRBool didReconstruct;
-    rv = ContentRemoved(container, aContent, indexInContainer,
+    rv = ContentRemoved(container, aContent,
+                        aContent->IsRootOfAnonymousSubtree() ?
+                          nsnull :
+                          aContent->GetNextSibling(),
                         REMOVE_FOR_RECONSTRUCTION, &didReconstruct);
 
     if (NS_SUCCEEDED(rv) && !didReconstruct) {

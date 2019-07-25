@@ -238,7 +238,7 @@ public:
   enum RemoveFlags { REMOVE_CONTENT, REMOVE_FOR_RECONSTRUCTION };
   nsresult ContentRemoved(nsIContent* aContainer,
                           nsIContent* aChild,
-                          PRInt32     aIndexInContainer,
+                          nsIContent* aOldNextSibling,
                           RemoveFlags aFlags,
                           PRBool*     aDidReconstruct);
 
@@ -1207,7 +1207,7 @@ private:
   
   
   void ReframeTextIfNeeded(nsIContent* aParentContent,
-                           PRInt32 aContentIndex);
+                           nsIContent* aContent);
 
   void AddPageBreakItem(nsIContent* aContent,
                         nsStyleContext* aMainStyleContext,
