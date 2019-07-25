@@ -1015,7 +1015,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
 
   
   DrainPushedFloats(state);
-  nsRect fcBounds;
+  nsOverflowAreas fcBounds;
   nsReflowStatus fcStatus = NS_FRAME_COMPLETE;
   rv = ReflowPushedFloats(state, fcBounds, fcStatus);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1105,7 +1105,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   aMetrics.mOverflowAreas.UnionWith(ocBounds);
   
-  aMetrics.mOverflowArea.UnionRect(aMetrics.mOverflowArea, fcBounds);
+  aMetrics.mOverflowAreas.UnionWith(fcBounds);
 
   
   
@@ -5802,8 +5802,8 @@ nsBlockFrame::FindTrailingClear()
 
 nsresult
 nsBlockFrame::ReflowPushedFloats(nsBlockReflowState& aState,
-                                       nsRect&             aBounds,
-                                       nsReflowStatus&     aStatus)
+                                 nsOverflowAreas&    aOverflowAreas,
+                                 nsReflowStatus&     aStatus)
 {
   nsresult rv = NS_OK;
   for (nsIFrame* f = mFloats.FirstChild(), *next;
@@ -5841,7 +5841,7 @@ nsBlockFrame::ReflowPushedFloats(nsBlockReflowState& aState,
         NS_MergeReflowStatusInto(&aStatus, NS_FRAME_OVERFLOW_INCOMPLETE);
     }
 
-    ConsiderChildOverflow(aBounds, f);
+    ConsiderChildOverflow(aOverflowAreas, f);
   }
 
   

@@ -477,8 +477,8 @@ protected:
   
 
   nsresult ReflowPushedFloats(nsBlockReflowState& aState,
-                                    nsRect&             aBounds,
-                                    nsReflowStatus&     aStatus);
+                              nsOverflowAreas&    aOverflowAreas,
+                              nsReflowStatus&     aStatus);
 
   
 
