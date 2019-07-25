@@ -454,14 +454,6 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
     self->setIntrinsicsHolder(intrinsicsHolder);
     if (!JS_DefineFunctions(cx, intrinsicsHolder, intrinsic_functions))
         return NULL;
-    
-    RootedValue global(cx, OBJECT_TO_JSVAL(self));
-    if (!JSObject::defineProperty(cx, intrinsicsHolder, cx->runtime->atomState.globalAtom,
-                                  global, JS_PropertyStub, JS_StrictPropertyStub,
-                                  JSPROP_PERMANENT | JSPROP_READONLY))
-    {
-        return NULL;
-    }
 
     
 
