@@ -63,6 +63,11 @@ WindowDraggingElement.prototype = {
       return false;
 
     let target = aEvent.originalTarget, parent = aEvent.originalTarget;
+
+    
+    if (target.ownerDocument.defaultView != this._window)
+      return false;
+
     while (parent != this._elem) {
       let mousethrough = parent.getAttribute("mousethrough");
       if (mousethrough == "always")
