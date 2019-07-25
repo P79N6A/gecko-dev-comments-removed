@@ -1,8 +1,11 @@
-Cu.import("resource://services-sync/util.js");
+
+
+
+Cu.import("resource://testing-common/services-common/utils.js");
 
 function run_test() {
   let thing = {o: {foo: "foo", bar: ["bar"]}, a: ["foo", {bar: "bar"}]};
-  let ret = deepCopy(thing);
+  let ret = TestingUtils.deepCopy(thing);
   do_check_neq(ret, thing)
   do_check_neq(ret.o, thing.o);
   do_check_neq(ret.o.bar, thing.o.bar);
