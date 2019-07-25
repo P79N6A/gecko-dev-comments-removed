@@ -100,7 +100,7 @@ BrowserStartup.prototype = {
         return; 
     }
 
-    Cu.import("resource://gre/modules/PlacesUtils.js");
+    Cu.import("resource://gre/modules/PlacesUtils.jsm");
 
     try {
       let observer = {
