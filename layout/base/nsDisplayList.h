@@ -295,10 +295,7 @@ public:
   
 
 
-  void SetDisplayPort(const nsRect& aDisplayPort) {
-    mHasDisplayPort = PR_TRUE;
-    mDisplayPort = aDisplayPort;
-  }
+  void SetDisplayPort(const nsRect& aDisplayPort);
   const nsRect* GetDisplayPort() { return mHasDisplayPort ? &mDisplayPort : nsnull; }
 
   
