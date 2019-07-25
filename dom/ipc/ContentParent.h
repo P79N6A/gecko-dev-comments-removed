@@ -68,6 +68,8 @@ public:
 
 
     TabParent* CreateTab(PRUint32 aChromeFlags, bool aIsBrowserFrame);
+    
+    void NotifyTabDestroyed(PBrowserParent* aTab);
 
     TestShellParent* CreateTestShell();
     bool DestroyTestShell(TestShellParent* aTestShell);
@@ -77,6 +79,7 @@ public:
     bool RequestRunToCompletion();
 
     bool IsAlive();
+    bool IsForApp();
 
     void SetChildMemoryReporters(const InfallibleTArray<MemoryReport>& report);
 
@@ -106,6 +109,20 @@ private:
     virtual ~ContentParent();
 
     void Init();
+
+    
+
+
+
+    void MarkAsDead();
+
+    
+
+
+
+
+
+    void ShutDown();
 
     virtual PBrowserParent* AllocPBrowser(const PRUint32& aChromeFlags, const bool& aIsBrowserFrame);
     virtual bool DeallocPBrowser(PBrowserParent* frame);
