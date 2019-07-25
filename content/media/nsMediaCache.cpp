@@ -120,6 +120,8 @@ public:
   }
 
   
+  
+  
   nsresult Init();
   
   
@@ -127,6 +129,10 @@ public:
   
   
   static void MaybeShutdown();
+
+  
+  static void Flush();
+  void FlushInternal();
 
   
   
@@ -494,6 +500,7 @@ nsresult
 nsMediaCache::Init()
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+  NS_ASSERTION(!mFD, "Cache file already open?");
 
   if (!mMonitor) {
     
@@ -525,6 +532,36 @@ nsMediaCache::Init()
 #endif
 
   return NS_OK;
+}
+
+void
+nsMediaCache::Flush()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+
+  if (!gMediaCache)
+    return;
+
+  gMediaCache->FlushInternal();
+}
+
+void
+nsMediaCache::FlushInternal()
+{
+  nsAutoMonitor mon(mMonitor);
+
+  for (PRInt32 blockIndex = 0; blockIndex < mIndex.Length(); ++blockIndex) {
+    FreeBlock(blockIndex);
+  }
+
+  
+  Truncate();
+  NS_ASSERTION(mIndex.Length() == 0, "Blocks leaked?");
+  if (mFD) {
+    PR_Close(mFD);
+    mFD = nsnull;
+  }
+  Init();
 }
 
 void
