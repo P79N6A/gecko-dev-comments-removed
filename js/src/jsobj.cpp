@@ -2975,6 +2975,7 @@ js_CreateThisFromTrace(JSContext *cx, Class *clasp, JSObject *ctor)
 
 
 
+            proto = objProto;
         }
     }
 
