@@ -101,7 +101,7 @@ Class js_ErrorClass = {
     NULL,           
     NULL,           
     NULL,           
-    Exception,      
+    NULL,           
     NULL,           
     NULL,           
     JS_CLASS_TRACE(exn_trace)
