@@ -254,7 +254,8 @@ class nsHTMLMediaElement::MediaLoadListener : public nsIStreamListener,
 
 public:
   MediaLoadListener(nsHTMLMediaElement* aElement)
-    : mElement(aElement)
+    : mElement(aElement),
+      mLoadID(aElement->GetCurrentLoadID())
   {
     NS_ABORT_IF_FALSE(mElement, "Must pass an element to call back");
   }
@@ -262,6 +263,7 @@ public:
 private:
   nsRefPtr<nsHTMLMediaElement> mElement;
   nsCOMPtr<nsIStreamListener> mNextListener;
+  PRUint32 mLoadID;
 };
 
 NS_IMPL_ISUPPORTS5(nsHTMLMediaElement::MediaLoadListener, nsIRequestObserver,
@@ -287,6 +289,13 @@ NS_IMETHODIMP nsHTMLMediaElement::MediaLoadListener::OnStartRequest(nsIRequest* 
   
   nsRefPtr<nsHTMLMediaElement> element;
   element.swap(mElement);
+
+  if (mLoadID != element->GetCurrentLoadID()) {
+    
+    
+    
+    return NS_BINDING_ABORTED;
+  }
 
   
   nsresult rv;
