@@ -388,7 +388,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       
       
       return aLists.Content()
-        ->AppendNewToTop(new (aBuilder) nsDisplayRemote(this, rfp));
+        ->AppendNewToTop(new (aBuilder) nsDisplayRemote(aBuilder, this, rfp));
     }
   }
 #endif
