@@ -41,10 +41,13 @@
 
 
 #include "mozilla/Util.h"
+#include "mozilla/StackWalk.h"
 #include "nsDebug.h"
 #include "nsStackWalkPrivate.h"
 
 #include "nsStackWalk.h"
+
+using namespace mozilla;
 
 
 
@@ -214,8 +217,6 @@ StackWalkInitCriticalAddress()
 #define USING_WXP_VERSION 1
 #endif
 #endif
-
-using namespace mozilla;
 
 
 
@@ -1572,9 +1573,6 @@ NS_FormatCodeAddressDetails(void *aPC, const nsCodeAddressDetails *aDetails,
 
 #else 
 
-#define X86_OR_PPC (defined(__i386) || defined(PPC) || defined(__ppc__))
-#if X86_OR_PPC && (NSSTACKWALK_SUPPORTS_MACOSX || NSSTACKWALK_SUPPORTS_LINUX) 
-
 #if __GLIBC__ > 2 || __GLIBC_MINOR > 1
 #define HAVE___LIBC_STACK_END 1
 #else
@@ -1584,25 +1582,12 @@ NS_FormatCodeAddressDetails(void *aPC, const nsCodeAddressDetails *aDetails,
 #if HAVE___LIBC_STACK_END
 extern void *__libc_stack_end; 
 #endif
-
-EXPORT_XPCOM_API(nsresult)
-NS_StackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
-             void *aClosure, uintptr_t aThread)
+namespace mozilla {
+nsresult
+FramePointerStackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
+                      void *aClosure, void **bp)
 {
-  MOZ_ASSERT(gCriticalAddress.mInit);
-  MOZ_ASSERT(!aThread);
   
-
-  
-  void **bp;
-#if defined(__i386) 
-  __asm__( "movl %%ebp, %0" : "=g"(bp));
-#else
-  
-  
-  
-  bp = (void**) __builtin_frame_address(0);
-#endif
 
   int skip = aSkipFrames;
   while (1) {
@@ -1634,6 +1619,33 @@ NS_StackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
     bp = next;
   }
   return NS_OK;
+}
+
+}
+
+#define X86_OR_PPC (defined(__i386) || defined(PPC) || defined(__ppc__))
+#if X86_OR_PPC && (NSSTACKWALK_SUPPORTS_MACOSX || NSSTACKWALK_SUPPORTS_LINUX) 
+
+EXPORT_XPCOM_API(nsresult)
+NS_StackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
+             void *aClosure, uintptr_t aThread)
+{
+  MOZ_ASSERT(gCriticalAddress.mInit);
+  MOZ_ASSERT(!aThread);
+
+  
+  void **bp;
+#if defined(__i386) 
+  __asm__( "movl %%ebp, %0" : "=g"(bp));
+#else
+  
+  
+  
+  bp = (void**) __builtin_frame_address(0);
+#endif
+  return FramePointerStackWalk(aCallback, aSkipFrames,
+                               aClosure, bp);
+
 }
 
 #elif defined(HAVE__UNWIND_BACKTRACE)
