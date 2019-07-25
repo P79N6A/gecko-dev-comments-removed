@@ -393,7 +393,9 @@ class ThebesDisplayItemLayerUserData : public LayerUserData
 {
 public:
   ThebesDisplayItemLayerUserData() :
-    mForcedBackgroundColor(NS_RGBA(0,0,0,0)) {}
+    mForcedBackgroundColor(NS_RGBA(0,0,0,0)),
+    mXScale(1.f), mYScale(1.f),
+    mActiveScrolledRootPosition(0, 0) {}
 
   
 
@@ -404,6 +406,17 @@ public:
 
 
   float mXScale, mYScale;
+  
+
+
+
+
+
+
+
+
+
+  gfxPoint mActiveScrolledRootPosition;
 };
 
 
@@ -854,16 +867,27 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
 
   
   
-  
-  
-  
   nsPoint offset = mBuilder->ToReferenceFrame(aActiveScrolledRoot);
-  nsIntPoint pixOffset = offset.ScaleToNearestPixels(
-      mParameters.mXScale, mParameters.mYScale,
-      aActiveScrolledRoot->PresContext()->AppUnitsPerDevPixel());
+  nscoord appUnitsPerDevPixel = aActiveScrolledRoot->PresContext()->AppUnitsPerDevPixel();
+  gfxPoint scaledOffset(
+      NSAppUnitsToDoublePixels(offset.x, appUnitsPerDevPixel)*mParameters.mXScale,
+      NSAppUnitsToDoublePixels(offset.y, appUnitsPerDevPixel)*mParameters.mYScale);
+  nsIntPoint pixOffset(NSToIntRoundUp(scaledOffset.x), NSToIntRoundUp(scaledOffset.y));
   gfxMatrix matrix;
   matrix.Translate(gfxPoint(pixOffset.x, pixOffset.y));
   layer->SetTransform(gfx3DMatrix::From2D(matrix));
+
+  
+  
+  gfxPoint activeScrolledRootTopLeft = scaledOffset - matrix.GetTranslation();
+  
+  
+  
+  if (activeScrolledRootTopLeft != data->mActiveScrolledRootPosition) {
+    data->mActiveScrolledRootPosition = activeScrolledRootTopLeft;
+    nsIntRect invalidate = layer->GetValidRegion().GetBounds();
+    layer->InvalidateRegion(invalidate);
+  }
 
   return layer.forget();
 }
