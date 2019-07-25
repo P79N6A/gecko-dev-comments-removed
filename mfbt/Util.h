@@ -40,41 +40,9 @@
 #ifndef mozilla_Util_h_
 #define mozilla_Util_h_
 
+#include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Types.h"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-MOZ_BEGIN_EXTERN_C
-
-extern MFBT_API(void)
-JS_Assert(const char *s, const char *file, int ln);
-
-MOZ_END_EXTERN_C
-
-
-
-
-
-
-#ifdef DEBUG
-#  define MOZ_ASSERT(expr_)                                      \
-     ((expr_) ? (void)0 : JS_Assert(#expr_, __FILE__, __LINE__))
-#else
-#  define MOZ_ASSERT(expr_) ((void)0)
-#endif  
 
 
 
