@@ -1,47 +1,47 @@
 %if 0
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998-1999
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Joe Hewitt (hewitt@netscape.com)
+ *   Jason Kersey (kerz@netscape.com)
+ *   Pierre Chanial (chanial@noos.fr)
+ *   Dean Tessman (dean_tessman@hotmail.com)
+ *   Blake Ross (blake@cs.stanford.edu)
+ *   Pamela Greene (pamg.bugs@gmail.com)
+ *   Dão Gottwald (dao@mozilla.com)
+ *   Drew Willcoxon (adw@mozilla.com)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 %endif
 
 @import url("chrome://global/skin/");
@@ -54,11 +54,11 @@
 %define toolbarHighlight rgba(255,255,255,.3)
 
 #menubar-items {
-  -moz-box-orient: vertical; 
+  -moz-box-orient: vertical; /* for flex hack */
 }
 
 #main-menubar {
-  -moz-box-flex: 1; 
+  -moz-box-flex: 1; /* make menu items expand to fill toolbar height */
 }
 
 #navigator-toolbox {
@@ -99,7 +99,7 @@
 }
 
 #browser-bottombox {
-  
+  /* opaque for layers optimization */
   background-color: -moz-Dialog;
 }
 
@@ -108,7 +108,7 @@
   opacity: .85;
 }
 
-
+/* Places toolbar */
 toolbarbutton.bookmark-item {
   margin: 0;
   padding: 2px 3px;
@@ -127,7 +127,7 @@ toolbarbutton.bookmark-item[open="true"] {
   height: 16px;
 }
 
-
+/* Prevent [mode="icons"] from hiding the label */
 .bookmark-item > .toolbarbutton-text {
   display: -moz-box !important;
 }
@@ -136,7 +136,7 @@ toolbarbutton.bookmark-item[open="true"] {
   display: none;
 }
 
-
+/* Dropmarker for folder bookmarks */
 .bookmark-item[container] > .toolbarbutton-menu-dropmarker {
   display: -moz-box !important;
 }
@@ -152,7 +152,7 @@ toolbarbutton.bookmark-item[open="true"] {
   list-style-image: url("chrome://browser/skin/places/bookmarksToolbar.png") !important;
 }
 
-
+/* Bookmark menus */
 menu.bookmark-item,
 menuitem.bookmark-item {
   min-width: 0;
@@ -168,16 +168,16 @@ menuitem.bookmark-item {
   -moz-padding-start: 0px;
 }
 
-
+/* Bookmark drag and drop styles */
 .bookmark-item[dragover-into="true"] {
   background: Highlight !important;
   color: HighlightText !important;
 }
 
-
+/* rules for menupopup drop indicators */
 .menupopup-drop-indicator-bar {
   position: relative;
-  
+  /* these two margins must together compensate the indicator's height */
   margin-top: -1px;
   margin-bottom: -1px;
 }
@@ -189,12 +189,12 @@ menuitem.bookmark-item {
   background-color: Highlight;
 }
 
-
+/* Bookmarks toolbar */
 #PlacesToolbarDropIndicator {
   list-style-image: url(chrome://browser/skin/places/toolbarDropMarker.png);
 }
 
-
+/* Bookmark items */
 .bookmark-item:not([container])  {
   list-style-image: url("moz-icon://stock/gtk-file?size=menu");
 }
@@ -231,7 +231,7 @@ menuitem.bookmark-item {
   list-style-image: url("moz-icon://stock/gtk-directory?size=menu");
 }
 
-
+/* Stock icons for the menu bar items */
 menuitem:not([type]):not(.menuitem-tooltip):not(.menuitem-iconic-tooltip) {
   -moz-binding: url("chrome://global/content/bindings/menu.xml#menuitem-iconic");
 }
@@ -553,7 +553,7 @@ menuitem:not([type]):not(.menuitem-tooltip):not(.menuitem-iconic-tooltip) {
   list-style-image: url("chrome://global/skin/console/console.png");
 }
 
-
+/* Primary toolbar buttons */
 .toolbarbutton-1:not([type="menu-button"]) {
   -moz-box-orient: vertical;
   min-width: 0;
@@ -578,7 +578,7 @@ toolbar[mode="full"] .toolbarbutton-1 > .toolbarbutton-menubutton-button {
   padding: 5px !important;
 }
 
-
+/* 24px primary toolbar buttons */
 #back-button {
   list-style-image: url("moz-icon://stock/gtk-go-back-ltr?size=toolbar");
 }
@@ -628,7 +628,7 @@ toolbar[mode="full"] .toolbarbutton-1 > .toolbarbutton-menubutton-button {
   list-style-image: url("moz-icon://stock/gtk-home?size=toolbar&state=disabled");
 }
 
-
+/* tabview button */
 
 #tabview-button {
   list-style-image: url(chrome://browser/skin/tabview/tabview.png);
@@ -736,7 +736,7 @@ toolbar[mode="full"] .toolbarbutton-1 > .toolbarbutton-menubutton-button {
   opacity: .3;
 }
 
-
+/* 16px primary toolbar buttons */
 toolbar[iconsize="small"] .toolbarbutton-1:not([type="menu-button"]) {
   -moz-box-orient: vertical;
   min-width: 0;
@@ -884,7 +884,7 @@ toolbar[iconsize="small"] #feed-button {
   -moz-image-region: rect(0px 112px 16px 96px);
 }
 
-
+/* Fullscreen window controls */
 #window-controls {
   -moz-box-align: start;
   -moz-margin-start: 10px;
@@ -900,7 +900,7 @@ toolbar[iconsize="small"] #feed-button {
   list-style-image: url("chrome://global/skin/icons/Close.gif");
 }
 
-
+/* Location bar */
 #urlbar {
   width: 7em;
   min-width: 7em;
@@ -954,7 +954,7 @@ toolbar[iconsize="small"] #feed-button {
   color: GrayText;
 }
 
-
+/* over-link in location bar */
 
 .urlbar-over-link-layer {
   margin: -2px 0;
@@ -995,7 +995,7 @@ toolbar[iconsize="small"] #feed-button {
   margin: 0;
 }
 
-
+/* Favicon */
 #page-proxy-favicon,
 #urlbar-throbber {
   width: 16px;
@@ -1021,7 +1021,7 @@ toolbar[iconsize="small"] #feed-button {
   list-style-image: url("chrome://browser/skin/places/searching_16.png");
 }
 
-
+/* Identity indicator */
 #identity-box {
   background-color: rgb(95%,95%,95%);
   background-image: -moz-linear-gradient(rgba(170,170,170,.25), rgba(0,0,0,.3));
@@ -1056,7 +1056,7 @@ toolbar[iconsize="small"] #feed-button {
   text-shadow: 0 1px 0 rgba(0,0,0,.25);
 }
 
-
+/* Identity popup icons */
 #identity-popup-icon {
   height: 64px;
   width: 64px;
@@ -1073,7 +1073,7 @@ toolbar[iconsize="small"] #feed-button {
   -moz-image-region: rect(128px, 64px, 192px, 0px);
 }
 
-
+/* Identity popup body text */
 .identity-popup-description {
   white-space: pre-wrap;
   -moz-padding-start: 15px;
@@ -1116,12 +1116,12 @@ toolbar[iconsize="small"] #feed-button {
   list-style-image: url("chrome://browser/skin/Secure.png");
 }
 
-
+/* Identity popup bounding box */
 #identity-popup-container {
   min-width: 280px;
 }
 
-
+/* Notification popup */
 #notification-popup {
   min-width: 280px;
 }
@@ -1180,7 +1180,7 @@ toolbar[iconsize="small"] #feed-button {
   list-style-image: url(chrome://mozapps/skin/passwordmgr/key-64.png);
 }
 
-
+/* Notification icon box */
 #notification-popup-box {
   margin: 0 3px;
 }
@@ -1281,7 +1281,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   border-top: 1px solid GrayText;
 }
 
-
+/* Go button */
 
 #go-button {
   padding: 3px 2px 2px 2px;
@@ -1292,7 +1292,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   -moz-transform: scaleX(-1);
 }
 
-
+/* Combined go/reload/stop button in location bar */
 
 #urlbar > toolbarbutton {
   -moz-appearance: none;
@@ -1359,12 +1359,12 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   background-image: -moz-linear-gradient(rgb(237,120,120), rgb(216,92,92));
 }
 
-
+/* Popup blocker button */
 #page-report-button {
   list-style-image: url("chrome://browser/skin/Info.png");
 }
 
-
+/* Star button */
 #star-button {
   padding: 1px;
   list-style-image: url("chrome://browser/skin/places/starPage.png");
@@ -1374,7 +1374,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   list-style-image: url("chrome://browser/skin/places/pageStarred.png");
 }
 
-
+/* Bookmarking panel */
 #editBookmarkPanelStarIcon {
   list-style-image: url("chrome://browser/skin/places/starred48.png");
   width: 48px;
@@ -1394,17 +1394,17 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   margin-bottom: .5em;
 }
 
-
+/* Implements editBookmarkPanel resizing on folderTree un-collapse. */
 #editBMPanel_folderTree {
   min-width: 27em;
 }
 
-
+/* Content area */
 #sidebar {
   background-color: Window;
 }
 
-
+/* Throbber */
 #navigator-throbber {
   width: 16px;
   min-height: 16px;
@@ -1420,7 +1420,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   list-style-image: url("chrome://global/skin/icons/notloading_16.png");
 }
 
-
+/* Tabstrip */
 #TabsToolbar {
   min-height: 0;
   padding: 0;
@@ -1455,7 +1455,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   padding: 0;
   -moz-border-image: url(tabbrowser/tab.png) 4 5 3 6 / 4px 5px 3px 6px repeat stretch;
   border-radius: 10px 8px 0 0;
-  min-height: 25px; 
+  min-height: 25px; /* reserve space for the sometimes hidden close button */
 }
 
 .tabbrowser-tab:hover,
@@ -1505,7 +1505,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
 }
 
 .tabbrowser-tab[pinned] {
-  min-height: 18px; 
+  min-height: 18px; /* corresponds to the max. height of non-textual tab contents, i.e. the tab close button */
 }
 
 .tabbrowser-tab:focus > .tab-stack {
@@ -1555,15 +1555,15 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   list-style-image: url("moz-icon://stock/gtk-close?size=menu");
 }
 
-
+/* Tab drag and drop */
 .tab-drop-indicator {
   list-style-image: url(chrome://browser/skin/tabbrowser/tabDragIndicator.png);
 }
 
-
+/* In-tab close button */
 .tab-close-button > .toolbarbutton-icon {
-  
-
+  /* XXX Buttons have padding in widget/ that we don't want here but can't override with good CSS, so we must
+     use evil CSS to give the impression of smaller content */
   margin: -4px;
 }
 
@@ -1575,7 +1575,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   -moz-margin-end: -1px;
 }
 
-
+/* Tabstrip new tab button */
 .tabs-newtab-button,
 #TabsToolbar > #new-tab-button ,
 #TabsToolbar > #wrapper-new-tab-button > #new-tab-button {
@@ -1583,18 +1583,18 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   -moz-image-region: auto;
 }
 
-
+/* Tabstrip close button */
 .tabs-closebutton {
   list-style-image: url("moz-icon://stock/gtk-close?size=menu");
 }
 
 .tabs-closebutton > .toolbarbutton-icon {
-  
-
+  /* XXX Buttons have padding in widget/ that we don't want here but can't override with good CSS, so we must
+     use evil CSS to give the impression of smaller content */
   margin: -2px;
 }
 
-
+/* Tabbrowser arrowscrollbox arrows */
 .tabbrowser-arrowscrollbox > .scrollbutton-up {
   -moz-appearance: tab-scroll-arrow-back;
   margin: 0;
@@ -1632,7 +1632,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   display: none;
 }
 
-
+/* All tabs menupopup */
 .alltabs-item > .menu-iconic-left > .menu-iconic-icon {
   list-style-image: url("moz-icon://stock/gtk-file?size=menu");
 }
@@ -1645,7 +1645,7 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
   list-style-image: url("chrome://global/skin/icons/loading_16.png");
 }
 
-
+/* Sidebar */
 #sidebar-header > .tabs-closebutton {
   margin-bottom: 0px !important;
   padding: 0px 2px 0px 2px !important;
@@ -1674,7 +1674,7 @@ toolbarbutton.chevron > .toolbarbutton-icon {
 }
 
 toolbar[mode="text"] toolbarbutton.chevron > .toolbarbutton-icon {
-  display: -moz-box; 
+  display: -moz-box; /* display chevron icon in text mode */
 }
 
 #download-monitor {
@@ -1683,7 +1683,7 @@ toolbar[mode="text"] toolbarbutton.chevron > .toolbarbutton-icon {
 }
 
 
-
+/* ::::: Keyboard UI Panel ::::: */
 
 .KUI-panel-closebutton {
   list-style-image: url(KUI-close.png);
@@ -1693,7 +1693,7 @@ toolbar[mode="text"] toolbarbutton.chevron > .toolbarbutton-icon {
   margin: 0;
 }
 
-
+/* ::::: Ctrl-Tab and All Tabs Panels ::::: */
 
 .ctrlTab-preview,
 .allTabs-preview {
@@ -1719,7 +1719,7 @@ toolbar[mode="text"] toolbarbutton.chevron > .toolbarbutton-icon {
   padding: 2px;
 }
 
-
+/* Ctrl-Tab */
 
 #ctrlTab-panel {
   padding: 10px;
@@ -1736,7 +1736,7 @@ toolbar[mode="text"] toolbarbutton.chevron > .toolbarbutton-icon {
   margin-top: 10px;
 }
 
-
+/* All Tabs */
 
 #allTabs-panel {
   padding-bottom: 10px;
@@ -1755,7 +1755,7 @@ toolbar[mode="text"] toolbarbutton.chevron > .toolbarbutton-icon {
   -moz-transform: translate(0, 2px);
 }
 
-
+/* Application menu toolbar button */
 
 #appmenu-toolbar-button > .toolbarbutton-text,
 #appmenu-toolbar-button > .toolbarbutton-menu-dropmarker {
@@ -1782,7 +1782,7 @@ toolbar[mode="text"] toolbarbutton.chevron > .toolbarbutton-icon {
   opacity: .3;
 }
 
-
+/* Inspector / Highlighter */
 
 #highlighter-panel {
   -moz-appearance: none;
@@ -1807,7 +1807,7 @@ panel[dimmed="true"] {
   opacity: 0.5;
 }
 
-
+/* Add-on bar */
 
 #addon-bar {
   padding: 0;
@@ -1830,29 +1830,4 @@ panel[dimmed="true"] {
 #addonbar-closebutton > .toolbarbutton-icon {
   margin-top: -2px;
   margin-bottom: -2px;
-}
-
-
-
-.statuspanel-label {
-  margin: 0;
-  padding: 2px 4px;
-  background: -moz-linear-gradient(white, #ddd);
-  border: 1px none #ccc;
-  border-top-style: solid;
-  color: #333;
-}
-
-.statuspanel-label:-moz-locale-dir(ltr):not([mirror]),
-.statuspanel-label:-moz-locale-dir(rtl)[mirror] {
-  border-right-style: solid;
-  border-top-right-radius: .3em;
-  margin-right: 1em;
-}
-
-.statuspanel-label:-moz-locale-dir(rtl):not([mirror]),
-.statuspanel-label:-moz-locale-dir(ltr)[mirror] {
-  border-left-style: solid;
-  border-top-left-radius: .3em;
-  margin-left: 1em;
 }

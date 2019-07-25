@@ -31,7 +31,7 @@ tabbrowser {
   width: 0;
   -moz-transition: min-width 200ms ease-out,
                    max-width 250ms ease-out,
-                   opacity 50ms ease-out 20ms ;
+                   opacity 50ms ease-out 20ms /* hide the tab for the first 20ms of the max-width transition */;
 }
 
 .tabbrowser-tab:not([pinned]):not([fadein]) {
@@ -40,7 +40,7 @@ tabbrowser {
   opacity: 0 !important;
   -moz-transition: min-width 200ms ease-out,
                    max-width 250ms ease-out,
-                   opacity 50ms ease-out 100ms ;
+                   opacity 50ms ease-out 100ms /* hide the tab for the last 100ms of the max-width transition */;
 }
 
 .tab-throbber:not([fadein]):not([pinned]),
@@ -59,7 +59,7 @@ tabbrowser {
 
 .tabbrowser-tabs[positionpinnedtabs] > .tabbrowser-tab[pinned] {
   position: fixed !important;
-  display: block; 
+  display: block; /* position:fixed already does this (bug 579776), but let's be explicit */
 }
 
 #alltabs-popup {
@@ -142,7 +142,7 @@ toolbar[mode="icons"] > #reload-button[displaystop] {
 
 %ifdef XP_MACOSX
 #main-window[inFullscreen="true"] {
-  padding-top: 0; 
+  padding-top: 0; /* override drawintitlebar="true" */
 }
 %endif
 
@@ -192,7 +192,7 @@ splitmenu {
 }
 %endif
 
-
+/* ::::: location bar ::::: */
 #urlbar {
   -moz-binding: url(chrome://browser/content/urlbarBindings.xml#urlbar);
 }
@@ -209,7 +209,7 @@ html|input.uri-element-right-align:-moz-locale-dir(rtl),
   -moz-box-direction: reverse;
 }
 
-
+/* over-link in location bar */
 
 .urlbar-textbox-container[overlinkstate="fade-in"],
 .urlbar-over-link-layer[overlinkstate="fade-out"] {
@@ -271,8 +271,8 @@ html|input.uri-element-right-align:-moz-locale-dir(rtl),
   opacity: 0;
 }
 
-
-
+/* For results that are actions, their description text is shown instead of
+   the URL - this needs to follow the locale's direction, unlike URLs. */
 panel:not([noactions]) > richlistbox > richlistitem[type~="action"]:-moz-locale-dir(rtl) > .ac-url-box {
   direction: rtl;
 }
@@ -333,7 +333,7 @@ panel[noactions] > richlistbox > richlistitem[type~="action"] > .ac-url-box > .a
   visibility: hidden;
 }
 
-
+/* ::::: Unified Back-/Forward Button ::::: */
 #back-button > .toolbarbutton-menu-dropmarker,
 #forward-button > .toolbarbutton-menu-dropmarker {
   display: none;
@@ -355,7 +355,7 @@ toolbarbutton.bookmark-item {
 %endif
 
 #editBMPanel_tagsSelector {
-  
+  /* override default listbox width from xul.css */
   width: auto;
 }
 
@@ -371,12 +371,12 @@ menuitem.spell-suggestion {
   -moz-user-focus: normal;
 }
 
-
+/* apply Fitts' law to the notification bar's close button */
 window[sizemode="maximized"] #content .notification-inner {
   border-right: 0px !important;
 }
 
-
+/* Hide extension toolbars that neglected to set the proper class */
 window[chromehidden~="location"][chromehidden~="toolbar"] toolbar:not(.chromeclass-menubar),
 window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-menubar) {
   display: none;
@@ -389,7 +389,7 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
 }
 
 %ifdef MOZ_SERVICES_SYNC
-
+/* Sync notification UI */
 #sync-notifications {
   -moz-binding: url("chrome://browser/content/syncNotification.xml#notificationbox");
   overflow-y: visible !important;
@@ -400,7 +400,7 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
 }
 %endif
 
-
+/* Identity UI */
 #identity-popup-content-box.unknownIdentity > #identity-popup-connectedToLabel ,
 #identity-popup-content-box.unknownIdentity > #identity-popup-runByLabel ,
 #identity-popup-content-box.unknownIdentity > #identity-popup-content-host ,
@@ -410,7 +410,7 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
   display: none;
 }
 
-
+/*  Full Screen UI */
 
 #fullscr-toggler {
   height: 1px;
@@ -425,7 +425,7 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
   display: none;
 }
 
-
+/* ::::: Keyboard UI Panel ::::: */
 .KUI-panel-closebutton {
   -moz-binding: url("chrome://global/content/bindings/toolbarbutton.xml#toolbarbutton-image");
 }
@@ -454,12 +454,12 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
   height: 16px;
 }
 
-
+/* ::::: Ctrl-Tab Panel ::::: */
 .ctrlTab-preview {
   -moz-binding: url("chrome://browser/content/browser-tabPreviews.xml#ctrlTab-preview");
 }
 
-
+/* ::::: All Tabs Panel ::::: */
 .allTabs-preview {
   -moz-binding: url("chrome://browser/content/browser-tabPreviews.xml#allTabs-preview");
 }
@@ -470,15 +470,15 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
 }
 
 
-
-
+/* notification anchors should only be visible when their associated
+   notifications are */
 .notification-anchor-icon {
   display: none;
   -moz-user-focus: normal;
 }
 
-
-
+/* We use the iconBox as the notification anchor when a popup notification is
+   created with a null anchorID, so in that case use a default anchor icon. */
 #notification-popup-box[anchorid="notification-popup-box"] > #default-notification-icon,
 #notification-popup-box[anchorid="geo-notification-icon"] > #geo-notification-icon,
 #notification-popup-box[anchorid="indexedDB-notification-icon"] > #indexedDB-notification-icon,
@@ -499,40 +499,17 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
   -moz-binding: url("chrome://browser/content/urlbarBindings.xml#addon-progress-notification");
 }
 
-
-
+/* override hidden="true" for the status bar compatibility shim
+   in case it was persisted for the real status bar */
 #status-bar {
   display: -moz-box;
 }
 
-
+/* Remove the resizer from the statusbar compatibility shim */
 #status-bar[hideresizer] > .statusbar-resizerpanel {
   display: none;
 }
 
 browser[tabmodalPromptShowing] {
   -moz-user-focus: none !important;
-}
-
-
-
-statuspanel {
-  -moz-binding: url("chrome://browser/content/tabbrowser.xml#statuspanel");
-  position: relative;
-  margin-top: -3em;
-  pointer-events: none; 
-}
-
-statuspanel[label=""] {
-  visibility: collapse;
-}
-
-statuspanel[mirror] {
-  -moz-box-pack: end;
-}
-
-.statuspanel-inner {
-  height: 3em;
-  -moz-box-align: end;
-  pointer-events: auto;
 }
