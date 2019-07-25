@@ -4,6 +4,8 @@
 
 package org.mozilla.gecko.sync.repositories.android;
 
+import java.util.List;
+
 import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.repositories.NullCursorException;
@@ -176,5 +178,56 @@ public abstract class AndroidBrowserRepositoryDataAccessor {
       return;
     }
     Logger.warn(LOG_TAG, "Unexpectedly updated " + updated + " rows for guid " + guid);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  public int bulkInsert(List<Record> records) throws NullCursorException {
+    if (records.isEmpty()) {
+      Logger.debug(LOG_TAG, "No records to insert, returning.");
+    }
+
+    int size = records.size();
+    ContentValues[] cvs = new ContentValues[size];
+    int index = 0;
+    for (Record record : records) {
+      try {
+        cvs[index] = getContentValues(record);
+        index += 1;
+      } catch (Exception e) {
+        Logger.warn(LOG_TAG, "Got exception in getContentValues for record with guid " + record.guid, e);
+      }
+    }
+
+    if (index != size) {
+      
+      
+      
+      
+      
+      size = index;
+      ContentValues[] temp = new ContentValues[size];
+      System.arraycopy(cvs, 0, temp, 0, size); 
+    }
+
+    int inserted = context.getContentResolver().bulkInsert(getUri(), cvs);
+    if (inserted == size) {
+      Logger.debug(LOG_TAG, "Inserted " + inserted + " records, as expected.");
+    } else {
+      Logger.debug(LOG_TAG, "Inserted " +
+                   inserted + " records but expected " +
+                   size     + " records.");
+    }
+    return inserted;
   }
 }

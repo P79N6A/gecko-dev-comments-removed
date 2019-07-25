@@ -127,13 +127,19 @@ public class AndroidBrowserHistoryRepositorySession extends AndroidBrowserReposi
 
   @Override
   public void abort() {
-    ((AndroidBrowserHistoryDataAccessor) dbHelper).closeExtender();
+    if (dbHelper != null) {
+      ((AndroidBrowserHistoryDataAccessor) dbHelper).closeExtender();
+      dbHelper = null;
+    }
     super.abort();
   }
 
   @Override
   public void finish(final RepositorySessionFinishDelegate delegate) throws InactiveSessionException {
-    ((AndroidBrowserHistoryDataAccessor) dbHelper).closeExtender();
+    if (dbHelper != null) {
+      ((AndroidBrowserHistoryDataAccessor) dbHelper).closeExtender();
+      dbHelper = null;
+    }
     super.finish(delegate);
   }
 
@@ -149,16 +155,9 @@ public class AndroidBrowserHistoryRepositorySession extends AndroidBrowserReposi
 
 
 
-
-
-
   @Override
-  protected Record insert(Record record) throws NoGuidForIdException, NullCursorException, ParentNotFoundException {
-    HistoryRecord toStore = (HistoryRecord) prepareRecord(record);
-    toStore.androidID = -111; 
-    updateBookkeeping(toStore); 
-    enqueueNewRecord(toStore);
-    return toStore;
+  protected void insert(Record record) throws NoGuidForIdException, NullCursorException, ParentNotFoundException {
+    enqueueNewRecord((HistoryRecord) prepareRecord(record));
   }
 
   
@@ -198,7 +197,33 @@ public class AndroidBrowserHistoryRepositorySession extends AndroidBrowserReposi
     recordsBuffer = new ArrayList<HistoryRecord>();
     Logger.debug(LOG_TAG, "Flushing " + outgoing.size() + " records to database.");
     
-    ((AndroidBrowserHistoryDataAccessor) dbHelper).bulkInsert(outgoing, false); 
+    int inserted = ((AndroidBrowserHistoryDataAccessor) dbHelper).bulkInsert(outgoing);
+    if (inserted != outgoing.size()) {
+      
+      
+      for (HistoryRecord failed : outgoing) {
+        delegate.onRecordStoreFailed(new RuntimeException("Failed to insert history item with guid " + failed.guid + "."));
+      }
+      return;
+    }
+
+    
+    for (HistoryRecord succeeded : outgoing) {
+      try {
+        
+        updateBookkeeping(succeeded);
+      } catch (NoGuidForIdException e) {
+        
+        throw new NullCursorException(e);
+      } catch (ParentNotFoundException e) {
+        
+        throw new NullCursorException(e);
+      } catch (NullCursorException e) {
+        throw e;
+      }
+      trackRecord(succeeded);
+      delegate.onRecordStoreSucceeded(succeeded); 
+    }
   }
 
   @Override
@@ -209,7 +234,7 @@ public class AndroidBrowserHistoryRepositorySession extends AndroidBrowserReposi
         synchronized (recordsBufferMonitor) {
           try {
             flushNewRecords();
-          } catch (NullCursorException e) {
+          } catch (Exception e) {
             Logger.warn(LOG_TAG, "Error flushing records to database.", e);
           }
         }

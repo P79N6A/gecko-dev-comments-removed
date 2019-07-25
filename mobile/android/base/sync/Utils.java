@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync;
 
 import java.io.UnsupportedEncodingException;
@@ -46,6 +12,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -308,5 +275,27 @@ public class Utils {
       }
     }
     return out;
+  }
+
+  
+  public static String toDelimitedString(String delimiter, Collection<String> items) {
+    if (items == null || items.size() == 0) {
+      return "";
+    }
+
+    StringBuilder sb = new StringBuilder();
+    int i = 0;
+    int c = items.size();
+    for (String string : items) {
+      sb.append(string);
+      if (++i < c) {
+        sb.append(delimiter);
+      }
+    }
+    return sb.toString();
+  }
+
+  public static String toCommaSeparatedString(Collection<String> items) {
+    return toDelimitedString(", ", items);
   }
 }

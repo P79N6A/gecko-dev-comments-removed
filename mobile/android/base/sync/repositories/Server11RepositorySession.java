@@ -223,6 +223,8 @@ public class Server11RepositorySession extends RepositorySession {
   }
 
   private String flattenIDs(String[] guids) {
+    
+    
     if (guids.length == 0) {
       return "";
     }

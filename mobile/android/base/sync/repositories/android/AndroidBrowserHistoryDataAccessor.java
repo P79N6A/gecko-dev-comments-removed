@@ -18,7 +18,6 @@ import org.mozilla.gecko.sync.repositories.domain.Record;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.database.Cursor;
 import android.net.Uri;
 
 public class AndroidBrowserHistoryDataAccessor extends
@@ -116,9 +115,7 @@ public class AndroidBrowserHistoryDataAccessor extends
 
 
 
-
-
-  public void bulkInsert(ArrayList<HistoryRecord> records, boolean fetchFreshAndroidIDs) throws NullCursorException {
+  public int bulkInsert(ArrayList<HistoryRecord> records) throws NullCursorException {
     if (records.isEmpty()) {
       Logger.debug(LOG_TAG, "No records to insert, returning.");
     }
@@ -149,37 +146,6 @@ public class AndroidBrowserHistoryDataAccessor extends
     }
     
     dataExtender.bulkInsert(records);
-
-    
-    if (!fetchFreshAndroidIDs) {
-      return;
-    }
-
-    
-    String guidIn = RepoUtils.computeSQLInClause(guids.length, BrowserContract.History.GUID);
-    Cursor cursor = queryHelper.safeQuery("", GUID_AND_ID, guidIn, guids, null);
-    int guidIndex = cursor.getColumnIndexOrThrow(BrowserContract.History.GUID);
-    int androidIDIndex = cursor.getColumnIndexOrThrow(BrowserContract.History._ID);
-
-    try {
-      cursor.moveToFirst();
-      while (!cursor.isAfterLast()) {
-        String guid = cursor.getString(guidIndex);
-        int androidID = cursor.getInt(androidIDIndex);
-        cursor.moveToNext();
-
-        Record record = guidToRecord.get(guid);
-        if (record == null) {
-          
-          Logger.warn(LOG_TAG, "Failed to update androidID for record with guid " + guid + ".");
-          continue;
-        }
-        record.androidID = androidID;
-      }
-    } finally {
-      if (cursor != null) {
-        cursor.close();
-      }
-    }
+    return inserted;
   }
 }

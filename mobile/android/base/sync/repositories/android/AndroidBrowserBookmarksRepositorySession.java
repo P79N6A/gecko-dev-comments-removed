@@ -5,6 +5,7 @@
 package org.mozilla.gecko.sync.repositories.android;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,15 +30,20 @@ import org.mozilla.gecko.sync.repositories.delegates.RepositorySessionWipeDelega
 import org.mozilla.gecko.sync.repositories.domain.BookmarkRecord;
 import org.mozilla.gecko.sync.repositories.domain.Record;
 
+import android.content.ContentUris;
 import android.content.Context;
 import android.database.Cursor;
+import android.net.Uri;
 
-public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepositorySession {
+public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepositorySession
+  implements BookmarksInsertionManager.BookmarkInserter {
 
   public static final int DEFAULT_DELETION_FLUSH_THRESHOLD = 50;
+  public static final int DEFAULT_INSERTION_FLUSH_THRESHOLD = 50;
+
   
-  private HashMap<String, Long> guidToID = new HashMap<String, Long>();
-  private HashMap<Long, String> idToGuid = new HashMap<Long, String>();
+  private HashMap<String, Long> parentGuidToIDMap = new HashMap<String, Long>();
+  private HashMap<Long, String> parentIDToGuidMap = new HashMap<Long, String>();
 
   
 
@@ -101,6 +107,7 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
   private AndroidBrowserBookmarksDataAccessor dataAccessor;
 
   protected BookmarksDeletionManager deletionManager;
+  protected BookmarksInsertionManager insertionManager;
 
   
 
@@ -227,13 +234,13 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
   }
 
   private String getGUIDForID(long androidID) {
-    String guid = idToGuid.get(androidID);
+    String guid = parentIDToGuidMap.get(androidID);
     trace("  " + androidID + " => " + guid);
     return guid;
   }
 
   private long getIDForGUID(String guid) {
-    Long id = guidToID.get(guid);
+    Long id = parentGuidToIDMap.get(guid);
     if (id == null) {
       Logger.warn(LOG_TAG, "Couldn't find local ID for GUID " + guid);
       return -1;
@@ -419,7 +426,7 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     if (androidParentGUID == null) {
       Logger.debug(LOG_TAG, "No parent GUID for record " + recordGUID + " with parent " + androidParentID);
       
-      if (idToGuid.containsKey(androidParentID)) {
+      if (parentIDToGuidMap.containsKey(androidParentID)) {
         Logger.error(LOG_TAG, "Have the parent android ID for the record but the parent's GUID wasn't found.");
         throw new NoGuidForIdException(null);
       }
@@ -480,7 +487,7 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
       return null;
     }
 
-    long androidID = guidToID.get(recordGUID);
+    long androidID = parentGuidToIDMap.get(recordGUID);
     JSONArray childArray = getChildrenArray(androidID, persist);
     if (childArray == null) {
       return null;
@@ -512,7 +519,7 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     Logger.debug(LOG_TAG, "Ignoring record with guid: " + bmk.guid + " and type: " + bmk.type);
     return true;
   }
-  
+
   @Override
   public void begin(RepositorySessionBeginDelegate delegate) throws InvalidSessionTransitionException {
     
@@ -534,7 +541,7 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
       delegate.onBeginFailed(e);
       return;
     }
-    
+
     
     
 
@@ -542,15 +549,15 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
 
     
     Logger.debug(LOG_TAG, "Tracking places root as ID 0.");
-    idToGuid.put(0L, "places");
-    guidToID.put("places", 0L);
+    parentIDToGuidMap.put(0L, "places");
+    parentGuidToIDMap.put("places", 0L);
     try {
       cur.moveToFirst();
       while (!cur.isAfterLast()) {
         String guid = getGUID(cur);
         long id = RepoUtils.getLongFromCursor(cur, BrowserContract.Bookmarks._ID);
-        guidToID.put(guid, id);
-        idToGuid.put(id, guid);
+        parentGuidToIDMap.put(guid, id);
+        parentIDToGuidMap.put(id, guid);
         Logger.debug(LOG_TAG, "GUID " + guid + " maps to " + id);
         cur.moveToNext();
       }
@@ -558,14 +565,88 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
       cur.close();
     }
     deletionManager = new BookmarksDeletionManager(dataAccessor, DEFAULT_DELETION_FLUSH_THRESHOLD);
+
+    
+    
+    
+    insertionManager = new BookmarksInsertionManager(DEFAULT_INSERTION_FLUSH_THRESHOLD, parentGuidToIDMap.keySet(), this);
+
     Logger.debug(LOG_TAG, "Done with initial setup of bookmarks session.");
     super.begin(delegate);
+  }
+
+  
+
+
+  @Override
+  public boolean insertFolder(BookmarkRecord record) {
+    
+    
+    Record toStore = prepareRecord(record);
+    try {
+      Uri recordURI = dbHelper.insert(toStore);
+      if (recordURI == null) {
+        delegate.onRecordStoreFailed(new RuntimeException("Got null URI inserting folder with guid " + toStore.guid + "."));
+        return false;
+      }
+      toStore.androidID = ContentUris.parseId(recordURI);
+      Logger.debug(LOG_TAG, "Inserted folder with guid " + toStore.guid + " as androidID " + toStore.androidID);
+
+      updateBookkeeping(toStore);
+    } catch (Exception e) {
+      delegate.onRecordStoreFailed(e);
+      return false;
+    }
+    trackRecord(toStore);
+    delegate.onRecordStoreSucceeded(toStore);
+    return true;
+  }
+
+  
+
+
+  @Override
+  public void bulkInsertNonFolders(Collection<BookmarkRecord> records) {
+    
+    
+    
+    ArrayList<Record> toStores = new ArrayList<Record>(records.size());
+    for (Record record : records) {
+      toStores.add(prepareRecord(record));
+    }
+
+    try {
+      int stored = dataAccessor.bulkInsert(toStores);
+      if (stored != toStores.size()) {
+        
+        
+        for (Record failed : toStores) {
+          delegate.onRecordStoreFailed(new RuntimeException("Possibly failed to bulkInsert non-folder with guid " + failed.guid + "."));
+        }
+        return;
+      }
+    } catch (NullCursorException e) {
+      delegate.onRecordStoreFailed(e); 
+      return;
+    }
+
+    
+    for (Record succeeded : toStores) {
+      try {
+        updateBookkeeping(succeeded);
+      } catch (Exception e) {
+        Logger.warn(LOG_TAG, "Got exception updating bookkeeping of non-folder with guid " + succeeded.guid + ".", e);
+      }
+      trackRecord(succeeded);
+      delegate.onRecordStoreSucceeded(succeeded);
+    }
   }
 
   @Override
   public void finish(RepositorySessionFinishDelegate delegate) throws InactiveSessionException {
     
     deletionManager = null;
+    insertionManager = null;
 
     
     
@@ -671,8 +752,8 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
 
 
   private void handleParenting(BookmarkRecord bmk) {
-    if (guidToID.containsKey(bmk.parentID)) {
-      bmk.androidParentID = guidToID.get(bmk.parentID);
+    if (parentGuidToIDMap.containsKey(bmk.parentID)) {
+      bmk.androidParentID = parentGuidToIDMap.get(bmk.parentID);
 
       
       JSONArray children = parentToChildArray.get(bmk.parentID);
@@ -684,7 +765,7 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
       }
     }
     else {
-      bmk.androidParentID = guidToID.get("unfiled");
+      bmk.androidParentID = parentGuidToIDMap.get("unfiled");
       ArrayList<String> children;
       if (missingParentToChildren.containsKey(bmk.parentID)) {
         children = missingParentToChildren.get(bmk.parentID);
@@ -719,8 +800,8 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     
     
     
-    guidToID.put(bmk.guid,      bmk.androidID);
-    idToGuid.put(bmk.androidID, bmk.guid);
+    parentGuidToIDMap.put(bmk.guid,      bmk.androidID);
+    parentIDToGuidMap.put(bmk.androidID, bmk.guid);
 
     JSONArray childArray = bmk.children;
 
@@ -743,6 +824,15 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
   }
 
   @Override
+  protected void insert(Record record) throws NoGuidForIdException, NullCursorException, ParentNotFoundException {
+    try {
+      insertionManager.enqueueRecord((BookmarkRecord) record);
+    } catch (Exception e) {
+      throw new NullCursorException(e);
+    }
+  }
+
+  @Override
   protected void storeRecordDeletion(final Record record, final Record existingRecord) {
     if (SPECIAL_GUIDS_MAP.containsKey(record.guid)) {
       Logger.debug(LOG_TAG, "Told to delete record " + record.guid + ". Ignoring.");
@@ -755,10 +845,18 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     deletionManager.deleteRecord(bookmarkRecord.guid, isFolder, parentGUID);
   }
 
-  protected void flushDeletions() {
+  protected void flushQueues() {
+    long now = now();
+    Logger.debug(LOG_TAG, "Applying remaining insertions.");
+    try {
+      insertionManager.finishUp();
+      Logger.debug(LOG_TAG, "Done applying remaining insertions.");
+    } catch (Exception e) {
+      Logger.warn(LOG_TAG, "Unable to apply remaining insertions.", e);
+    }
+
     Logger.debug(LOG_TAG, "Applying deletions.");
     try {
-      long now = now();
       untrackGUIDs(deletionManager.flushAll(getIDForGUID("unfiled"), now));
       Logger.debug(LOG_TAG, "Done applying deletions.");
     } catch (Exception e) {
@@ -769,7 +867,7 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
   @SuppressWarnings("unchecked")
   private void finishUp() {
     try {
-      flushDeletions();
+      flushQueues();
       Logger.debug(LOG_TAG, "Have " + parentToChildArray.size() + " folders whose children might need repositioning.");
       for (Entry<String, JSONArray> entry : parentToChildArray.entrySet()) {
         String guid = entry.getKey();
@@ -824,6 +922,7 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
       try {
         
         deletionManager.clear();
+        insertionManager.clear();
         super.run();
       } catch (Exception ex) {
         delegate.onWipeFailed(ex);
