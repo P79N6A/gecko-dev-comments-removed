@@ -34,35 +34,35 @@
 
 
 
-var RELATIVE_ROOT = '../../shared-modules';
-var MODULE_REQUIRES = ['PrivateBrowsingAPI', 'TabbedBrowsingAPI'];
 
-const gDelay = 0;
-const gTimeout = 5000;
 
-var websites = [
-                {url: 'https://addons.mozilla.org/', id: 'search-query'},
-                {url: 'https://bugzilla.mozilla.org', id: 'quicksearch_top'}
-               ];
+const RELATIVE_ROOT = '../../shared-modules';
+const MODULE_REQUIRES = ['PrivateBrowsingAPI', 'TabbedBrowsingAPI', 'UtilsAPI'];
 
-var setupModule = function(module)
-{
+const TIMEOUT = 5000;
+
+const LOCAL_TEST_FOLDER = collector.addHttpResource('../test-files/');
+const LOCAL_TEST_PAGES = [
+  {url: LOCAL_TEST_FOLDER + 'layout/mozilla.html', name: 'community'},
+  {url: LOCAL_TEST_FOLDER + 'layout/mozilla_mission.html', name: 'mission'}
+];
+
+var setupModule = function(module) {
   controller = mozmill.getBrowserController();
   pb = new PrivateBrowsingAPI.privateBrowsing(controller);
+  tabBrowser = new TabbedBrowsingAPI.tabBrowser(controller);
 
   TabbedBrowsingAPI.closeAllTabs(controller);
 }
 
-var teardownModule = function(module)
-{
+var teardownModule = function(module) {
   pb.reset();
 }
 
 
 
 
-var testCloseWindow = function()
-{
+var testCloseWindow = function() {
   
   
   if (!mozmill.isMac)
@@ -76,43 +76,51 @@ var testCloseWindow = function()
 
   
   var newTab = new elementslib.Elem(controller.menus['file-menu'].menu_newNavigatorTab);
-  for (var ii = 0; ii < websites.length; ii++) {
-    controller.open(websites[ii].url);
+  
+  for each (var page in LOCAL_TEST_PAGES) {
+    controller.open(page.url);
     controller.click(newTab);
   }
 
   
-  for (var ii = 0; ii < websites.length; ii++) {
-    var elem = new elementslib.ID(controller.tabs.getTab(ii), websites[ii].id);
-    controller.waitForElement(elem, gTimeout);
+  for (var i = 0; i < LOCAL_TEST_PAGES.length; i++) {
+    var elem = new elementslib.Name(controller.tabs.getTab(i), LOCAL_TEST_PAGES[i].name);
+     controller.waitForElement(elem, TIMEOUT); 
   }
 
   
   pb.start();
 
   
-  controller.keypress(null, "w", {shiftKey: true, accelKey: true});
-  controller.waitForEval("subject.getWindows().length == " + (windowCount - 1),
-                         gTimeout, 100, mozmill.utils);
+  var cmdKey = UtilsAPI.getEntity(tabBrowser.getDtds(), "closeCmd.key");
+  controller.keypress(null, cmdKey, {accelKey: true});
+  
+  controller.waitForEval("subject.utils.getWindows().length == subject.expectedCount",
+                         TIMEOUT, 100,
+                         {utils: mozmill.utils, expectedCount: (windowCount - 1)});
 
   
   
   pb.enabled = false;
-  controller.waitForEval("subject.getWindows().length == " + windowCount,
-                         gTimeout, 100, mozmill.utils);
+  controller.waitForEval("subject.utils.getWindows().length == subject.expectedCount",
+                         TIMEOUT, 100,
+                         {utils: mozmill.utils, expectedCount: windowCount});
 
-  controller.sleep(500);
-  var window = mozmill.wm.getMostRecentWindow("navigator:browser");
-  controller = new mozmill.controller.MozMillController(window);
+  UtilsAPI.handleWindow("type", "navigator:browser", checkWindowOpen, true);
+}
+
+function checkWindowOpen(controller) {
+  
+  controller.assertJS("subject.tabs.length == subject.expectedCount",
+                      {tabs: controller.tabs, expectedCount: (websites.length + 1)});
 
   
-  controller.assertJS("subject.tabs.length == " + (websites.length + 1),
-                      controller);
+  for (var i = 0; i < LOCAL_TEST_PAGES.length; i++) {
+    var tab = controller.tabs.getTab(i);
+    var elem = new elementslib.Name(tab, LOCAL_TEST_PAGES[i].name);
 
-  
-  for (var ii = 0; ii < websites.length; ii++) {
-    var elem = new elementslib.ID(controller.tabs.getTab(ii), websites[ii].id);
-    controller.waitForElement(elem, gTimeout);
+    controller.waitForPageLoad(tab);
+    controller.waitForElement(elem, TIMEOUT);
   }
 }
 

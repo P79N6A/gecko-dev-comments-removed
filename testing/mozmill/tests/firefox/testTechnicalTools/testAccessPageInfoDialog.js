@@ -35,24 +35,36 @@
 
 
 
-var RELATIVE_ROOT = '../../shared-modules';
-var MODULE_REQUIRES = ['UtilsAPI'];
 
-const gDelay = 0;
-const gTimeout = 5000;
+const RELATIVE_ROOT = '../../shared-modules';
+const MODULE_REQUIRES = ['UtilsAPI'];
 
-var setupModule = function(module)
-{
+const TIMEOUT = 5000;
+
+const LOCAL_TEST_FOLDER = collector.addHttpResource('../test-files/');
+const LOCAL_TEST_PAGE = LOCAL_TEST_FOLDER + 'layout/mozilla.html';
+
+var setupModule = function(module) {
   module.controller = mozmill.getBrowserController();
 }
 
-var teardownModule = function(module)
-{
+var teardownModule = function(module) {
   UtilsAPI.closeContentAreaContextMenu(controller);
 }
 
-var testAccessPageInfo = function ()
-{
+var testAccessPageInfo = function () {
+  
+  controller.open(LOCAL_TEST_PAGE);
+  controller.waitForPageLoad();
+
+  
+  controller.rightclick(new elementslib.XPath(controller.tabs.activeTab, "/html"));
+  controller.click(new elementslib.ID(controller.window.document, "context-viewinfo"));
+
+  UtilsAPI.handleWindow("type", "Browser:page-info", checkPageInfoWindow);
+}
+
+function checkPageInfoWindow(controller) {
   
   var panes = [
                {button: 'generalTab', panel: 'generalPanel'},
@@ -63,34 +75,17 @@ var testAccessPageInfo = function ()
               ];
 
   
-  controller.open('http://www.cnn.com');
-  controller.waitForPageLoad();
-
-  
-  controller.rightclick(new elementslib.XPath(controller.tabs.activeTab, "/html"));
-  controller.sleep(gDelay);
-  controller.click(new elementslib.ID(controller.window.document, "context-viewinfo"));
-  controller.sleep(500);
-
-  
-  var window = mozmill.wm.getMostRecentWindow('Browser:page-info');
-  var piController = new mozmill.controller.MozMillController(window);
-
-  
-  for each (pane in panes) {
-    piController.click(new elementslib.ID(piController.window.document, pane.button));
-    piController.sleep(gDelay);
+  for each (var pane in panes) {
+    var paneButton = new elementslib.ID(controller.window.document, pane.button);
+    controller.click(paneButton);
 
     
-    var node = new elementslib.ID(piController.window.document, pane.panel);
-    piController.waitForElement(node, gTimeout);
+    var node = new elementslib.ID(controller.window.document, pane.panel);
+    controller.waitForElement(node, TIMEOUT);
   }
 
   
-  piController.keypress(null, 'VK_ESCAPE', {});
-
-  
-  controller.sleep(200);
+  controller.keypress(null, 'VK_ESCAPE', {});
 }
 
 

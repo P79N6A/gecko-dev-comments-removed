@@ -46,7 +46,7 @@
 var MODULE_NAME = 'PrefsAPI';
 
 const RELATIVE_ROOT = '.'
-const MODULE_REQUIRES = ['ModalDialogAPI'];
+const MODULE_REQUIRES = ['ModalDialogAPI', 'UtilsAPI'];
 
 const gTimeout = 5000;
 
@@ -145,6 +145,16 @@ preferencesDialog.prototype = {
 
 
 
+  getDtds : function preferencesDialog_getDtds() {
+    return null;
+  },
+
+  
+
+
+
+
+
 
 
 
@@ -190,8 +200,8 @@ preferencesDialog.prototype = {
 
 
 var preferences = {
-  _branch : Cc["@mozilla.org/preferences-service;1"].
-            getService(Ci.nsIPrefBranch),
+  _prefService : Cc["@mozilla.org/preferences-service;1"].
+                 getService(Ci.nsIPrefService),
 
   
 
@@ -199,8 +209,28 @@ var preferences = {
 
 
 
-  get branch() {
-    return this._branch;
+  get prefBranch() {
+    return this._prefService.QueryInterface(Ci.nsIPrefBranch);
+  },
+
+  
+
+
+
+
+
+  get defaultPrefBranch() {
+    return this._prefService.getDefaultBranch("");
+  },
+
+  
+
+
+
+
+
+  get prefService() {
+    return this._prefService;
   },
 
   
@@ -213,7 +243,7 @@ var preferences = {
 
   clearUserPref : function preferences_clearUserPref(prefName) {
     try {
-      this._branch.clearUserPref(prefName);
+      this.prefBranch.clearUserPref(prefName);
       return true;
     } catch (e) {
       return false;
@@ -230,15 +260,29 @@ var preferences = {
 
 
 
-  getPref : function preferences_getPref(prefName, defaultValue) {
+
+
+
+
+
+
+  getPref : function preferences_getPref(prefName, defaultValue, defaultBranch,
+                                         interfaceType) {
     try {
+      branch = defaultBranch ? this.defaultPrefBranch : this.prefBranch;
+
+      
+      if (interfaceType != undefined) {
+        return branch.getComplexValue(prefName, interfaceType);
+      }
+
       switch (typeof defaultValue) {
         case ('boolean'):
-          return this._branch.getBoolPref(prefName);
+          return branch.getBoolPref(prefName);
         case ('string'):
-          return this._branch.getCharPref(prefName);
+          return branch.getCharPref(prefName);
         case ('number'):
-          return this._branch.getIntPref(prefName);
+          return branch.getIntPref(prefName);
         default:
           return undefined;
       }
@@ -258,20 +302,23 @@ var preferences = {
 
 
 
-  setPref : function preferences_setPref(name, value) {
+
+
+
+  setPref : function preferences_setPref(prefName, value, interfaceType) {
     try {
       switch (typeof value) {
         case ('boolean'):
-          this._branch.setBoolPref(name, value);
+          this.prefBranch.setBoolPref(prefName, value);
           break;
         case ('string'):
-          this._branch.setCharPref(name, value);
+          this.prefBranch.setCharPref(prefName, value);
           break;
         case ('number'):
-          this._branch.setIntPref(name, value);
+          this.prefBranch.setIntPref(prefName, value);
           break;
         default:
-          return false;
+          this.prefBranch.setComplexValue(prefName, interfaceType, value);
       }
     } catch(e) {
       return false;
@@ -291,8 +338,6 @@ var preferences = {
 
 function openPreferencesDialog(callback, launcher)
 {
-  var prefCtrl = null;
-
   if(!callback)
     throw new Error("No callback given for Preferences Dialog");
 
@@ -306,22 +351,23 @@ function openPreferencesDialog(callback, launcher)
   
   if (launcher) {
     launcher();
-
-    
-    mozmill.controller.sleep(500);
-    var win = Cc["@mozilla.org/appshell/window-mediator;1"]
-                 .getService(Ci.nsIWindowMediator).getMostRecentWindow(null);
-    prefCtrl = new mozmill.controller.MozMillController(win);
   } else {
-    prefCtrl = new mozmill.getPreferencesController();
+    mozmill.getPreferencesController();
+  }
+
+  
+  var prefWindowType = null;
+  switch (mozmill.Application) {
+    case "Thunderbird":
+      prefWindowType = "Mail:Preferences";
+      break;
+    default:
+      prefWindowType = "Browser:Preferences";
   }
 
   
   if (!mozmill.isWindows) {
-    prefCtrl.sleep(500);
-    callback(prefCtrl);
+    var utilsAPI = collector.getModule('UtilsAPI');
+    utilsAPI.handleWindow("type", prefWindowType, callback);
   }
-
-  
-  mozmill.controller.sleep(500);
 }

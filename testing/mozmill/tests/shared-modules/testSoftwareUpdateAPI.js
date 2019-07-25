@@ -39,16 +39,63 @@
 
 
 
-
-
 const MODULE_NAME = 'SoftwareUpdateAPI';
 
 const RELATIVE_ROOT = '.';
-const MODULE_REQUIRES = ['PrefsAPI'];
+const MODULE_REQUIRES = ['PrefsAPI', 'UtilsAPI'];
 
 const gTimeout                = 5000;
 const gTimeoutUpdateCheck     = 10000;
 const gTimeoutUpdateDownload  = 360000;
+
+
+const WIZARD = '/id("updates")';
+const WIZARD_BUTTONS = WIZARD + '/anon({"anonid":"Buttons"})';
+const WIZARD_DECK = WIZARD  + '/anon({"anonid":"Deck"})';
+
+const WIZARD_PAGES = {
+  dummy: 'dummy',
+  checking: 'checking',
+  pluginUpdatesFound: 'pluginupdatesfound',
+  noUpdatesFound: 'noupdatesfound',
+  manualUpdate: 'manualUpdate',
+  incompatibleCheck: 'incompatibleCheck',
+  updatesFoundBasic: 'updatesfoundbasic',
+  updatesFoundBillboard: 'updatesfoundbillboard',
+  license: 'license',
+  incompatibleList: 'incompatibleList',
+  downloading: 'downloading',
+  errors: 'errors',
+  errorPatching: 'errorpatching',
+  finished: 'finished',
+  finishedBackground: 'finishedBackground',
+  installed: 'installed'
+}
+
+
+if (mozmill.isMac) {
+  var WIZARD_BUTTONS_BOX = WIZARD_BUTTONS +
+                             '/anon({"flex":"1"})/{"class":"wizard-buttons-btm"}/';
+  var WIZARD_BUTTON = {
+          back: '{"dlgtype":"back"}',
+          next: '{"dlgtype":"next"}',
+          cancel: '{"dlgtype":"cancel"}',
+          finish: '{"dlgtype":"finish"}',
+          extra1: '{"dlgtype":"extra1"}',
+          extra2: '{"dlgtype":"extra2"}'
+        }
+} else {
+  var WIZARD_BUTTONS_BOX = WIZARD_BUTTONS +
+                       '/anon({"flex":"1"})/{"class":"wizard-buttons-box-2"}/';
+  var WIZARD_BUTTON = {
+    back: '{"dlgtype":"back"}',
+    next: 'anon({"anonid":"WizardButtonDeck"})/[1]/{"dlgtype":"next"}',
+    cancel: '{"dlgtype":"cancel"}',
+    finish: 'anon({"anonid":"WizardButtonDeck"})/[0]/{"dlgtype":"finish"}',
+    extra1: '{"dlgtype":"extra1"}',
+    extra2: '{"dlgtype":"extra2"}'
+  }
+}
 
 
 
@@ -58,46 +105,29 @@ function softwareUpdate()
   this._controller = null;
   this._wizard = null;
 
-  this._aus = Cc["@mozilla.org/updates/update-service;1"]
-                 .getService(Ci.nsIApplicationUpdateService);
-  this._ums = Cc["@mozilla.org/updates/update-manager;1"]
-                 .getService(Ci.nsIUpdateManager);
+  this._prefsAPI = collector.getModule('PrefsAPI');
+  this._utilsAPI = collector.getModule('UtilsAPI');
 
+  this._aus = Cc["@mozilla.org/updates/update-service;1"].
+              getService(Ci.nsIApplicationUpdateService);
   
   
-  if (mozmill.isMac) {
-    var template = '/id("updates")/anon({"anonid":"Buttons"})/anon({"flex":"1"})' +
-                   '/{"class":"wizard-buttons-btm"}/';
-    this._buttons = {
-                      back: template + '{"dlgtype":"back"}',
-                      next: template + '{"dlgtype":"next"}',
-                      cancel: template + '{"dlgtype":"cancel"}',
-                      finish: template + '{"dlgtype":"finish"}',
-                      extra1: template + '{"dlgtype":"extra1"}',
-                      extra2: template + '{"dlgtype":"extra2"}'
-                    };
-  } else if (mozmill.isLinux || mozmill.isWindows) {
-    var template = '/id("updates")/anon({"anonid":"Buttons"})/anon({"flex":"1"})' +
-                   '/{"class":"wizard-buttons-box-2"}/';
-    this._buttons = {
-                      back: template + '{"dlgtype":"back"}',
-                      next: template + 'anon({"anonid":"WizardButtonDeck"})/[1]' +
-                                       '/{"dlgtype":"next"}',
-                      cancel: template + '{"dlgtype":"cancel"}',
-                      finish: template + 'anon({"anonid":"WizardButtonDeck"})/[0]' +
-                                         '/{"dlgtype":"finish"}',
-                      extra1: template + '{"dlgtype":"extra1"}',
-                      extra2: template + '{"dlgtype":"extra2"}'
-                    };
+  
+  if ("nsIApplicationUpdateService2" in Ci) {
+    this._aus.QueryInterface(Ci.nsIApplicationUpdateService2);
   }
+  this._ums = Cc["@mozilla.org/updates/update-manager;1"].
+              getService(Ci.nsIUpdateManager);
 }
 
 
 
 
 softwareUpdate.prototype = {
-
   
+
+
+
 
 
   get activeUpdate() {
@@ -107,15 +137,28 @@ softwareUpdate.prototype = {
   
 
 
+
+
+
   get allowed() {
-    return this._aus.canUpdate;
+    return this._aus.canCheckForUpdates && this._aus.canApplyUpdates;
   },
 
   
 
 
-  get currentStep() {
-    return this._wizard.getAttribute('currentpageid');
+
+
+
+  get controller() {
+    return this._controller;
+  },
+
+  
+
+
+  get currentPage() {
+    return this._wizard.getNode().getAttribute('currentpageid');
   },
 
   
@@ -123,22 +166,47 @@ softwareUpdate.prototype = {
 
   get isCompleteUpdate() {
     
-    if (this.activeUpdate.patchCount > 1) {
-      var patch1 = this.activeUpdate.getPatchAt(0);
-      var patch2 = this.activeUpdate.getPatchAt(1);
+    
+    if (!this.activeUpdate)
+      throw new Error(arguments.callee.name + ": isCompleteUpdate called " +
+                      "when activeUpdate is null!");
 
-      return (patch1.URL == patch2.URL);
-    } else {
-      return (this.activeUpdate.getPatchAt(0).type == "complete");
-    }
+    var patchCount = this.activeUpdate.patchCount;
+    
+    controller.assertJS("subject.patchCount < 3",
+                        {patchCount: patchCount < 3});
+    
+    controller.assertJS("subject.patchCount > 0",
+                        {patchCount: patchCount > 0});
+
+
+
+
+
+
+      
+      
+
+
+
+
+    return (this.activeUpdate.selectedPatch.type  == "complete");
   },
 
   
+
+
 
 
   get updateType() {
-    updateType = new elementslib.ID(this._controller.window.document, "updateType");
-    return updateType.getNode().getAttribute("severity");
+    return this.activeUpdate.type;
+  },
+
+  
+
+
+  get updatesFound() {
+    return this.currentPage.indexOf("updatesfound") == 0;
   },
 
   
@@ -147,10 +215,25 @@ softwareUpdate.prototype = {
 
 
 
-
-  assertUpdateStep : function softwareUpdate_assertUpdateStep(step) {
-    this._controller.waitForEval("subject.currentStep == '" + step + "'",
-                                 gTimeout, 100, this);
+  assertUpdateApplied : function softwareUpdate_assertUpdateApplied(updateData) {
+    
+    
+    var vc = Cc["@mozilla.org/xpcom/version-comparator;1"].
+             getService(Ci.nsIVersionComparator);
+    var check = vc.compare(updateData.postVersion, updateData.preVersion);
+  
+    controller.assertJS("subject.newVersionGreater == true",
+                        {newVersionGreater: check >= 0});
+  
+    
+    if (check == 0) {
+      controller.assertJS("subject.postBuildId == subject.updateBuildId",
+                          {postBuildId: updateData.postBuildId, updateBuildId: updateData.updateBuildId});
+    }
+  
+    
+    controller.assertJS("subject.postLocale == subject.preLocale",
+                        {postLocale: updateData.postLocale, preLocale: updateData.preLocale});
   },
 
   
@@ -161,6 +244,7 @@ softwareUpdate.prototype = {
       this._controller.keypress(null, "VK_ESCAPE", {});
       this._controller.sleep(500);
       this._controller = null;
+      this._wizard = null;
     }
   },
 
@@ -171,29 +255,25 @@ softwareUpdate.prototype = {
 
 
 
-  download : function softwareUpdate_download(updateType, channel, timeout) {
-    timeout = timeout ? timeout : gTimeoutUpdateDownload;
 
-    if (this.currentStep == "updatesfound") {
-      
-      var prefs = collector.getModule('PrefsAPI').preferences;
 
-      this._controller.assertJS("subject.currentChannel == subject.expectedChannel",
-                                {currentChannel: channel, expectedChannel: prefs.getPref('app.update.channel','')});
-
-      
-      this._controller.assertJS("subject.expectedUpdateType == subject.lastUpdateType",
-                                {expectedUpdateType: updateType, lastUpdateType: this.updateType});
-    }
+  download : function softwareUpdate_download(channel, waitForFinish, timeout) {
+    waitForFinish = waitForFinish ? waitForFinish : true;
 
     
-    var next = new elementslib.Lookup(this._controller.window.document,
-                                      this._buttons.next);
+    var prefChannel = this._prefsAPI.preferences.getPref('app.update.channel', '');
+    this._controller.assertJS("subject.currentChannel == subject.expectedChannel",
+                              {currentChannel: channel, expectedChannel: prefChannel});
+
+    
+    var next = this.getElement({type: "button", subtype: "next"});
     this._controller.click(next);
 
     
-    var progress = this._controller.window.document.getElementById("downloadProgress");
-    this._controller.waitForEval("subject.value == 100", timeout, 100, progress);
+    this.waitForWizardPage(WIZARD_PAGES.downloading);
+
+    if (waitForFinish)
+      this.waitforDownloadFinished(timeout);
   },
 
   
@@ -239,12 +319,66 @@ softwareUpdate.prototype = {
 
 
 
-  openDialog: function softwareUpdate_openDialog(browserController) {
-    
-    if (this._controller)
-      return;
 
-    var updateMenu = new elementslib.Elem(browserController.menus.helpMenu.checkForUpdates);
+  getDtds : function softwareUpdate_getDtds() {
+    var dtds = ["chrome://mozapps/locale/update/history.dtd",
+                "chrome://mozapps/locale/update/updates.dtd"]
+    return dtds;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  getElement : function softwareUpdate_getElement(spec) {
+    var elem = null;
+
+    switch(spec.type) {
+      
+
+
+
+      case "button":
+        elem = new elementslib.Lookup(this._controller.window.document,
+                                      WIZARD_BUTTONS_BOX + WIZARD_BUTTON[spec.subtype]);
+        break;
+      case "wizard":
+        elem = new elementslib.Lookup(this._controller.window.document, WIZARD);
+        break;
+      case "wizard_page":
+        elem = new elementslib.Lookup(this._controller.window.document, WIZARD_DECK +
+                                      '/id(' + spec.subtype + ')');
+        break;
+      case "download_progress":
+        elem = new elementslib.ID(this._controller.window.document, "downloadProgress");
+        break;
+      case "menu_update":
+        elem = new elementslib.Elem(spec.value.menus.helpMenu.checkForUpdates);
+        break;
+      default:
+        throw new Error(arguments.callee.name + ": Unknown element type - " + spec.type);
+    }
+
+    return elem;
+  },
+
+  
+
+
+
+
+
+  openDialog: function softwareUpdate_openDialog(browserController) {
+    var updateMenu = this.getElement({type: "menu_update",
+                                      value: browserController});
+    
     browserController.click(updateMenu);
 
     this.waitForDialogOpen(browserController);
@@ -257,7 +391,8 @@ softwareUpdate.prototype = {
   waitForCheckFinished : function softwareUpdate_waitForCheckFinished(timeout) {
     timeout = timeout ? timeout : gTimeoutUpdateCheck;
 
-    this._controller.waitForEval("subject.currentStep != 'checking'", timeout, 100, this);
+    this._controller.waitForEval("subject.wizard.currentPage != subject.checking", timeout, 100,
+                                 {wizard: this, checking: WIZARD_PAGES.checking});
   },
 
   
@@ -265,15 +400,40 @@ softwareUpdate.prototype = {
 
 
 
-  waitForDialogOpen : function softwareUpdate_waitForDialogOpen(browserController) {
-    browserController.sleep(500);
 
-    var window = mozmill.wm.getMostRecentWindow('Update:Wizard');
-    this._controller = new mozmill.controller.MozMillController(window);
-    this._wizard = this._controller.window.document.getElementById('updates');
+  waitForDialogOpen : function softwareUpdate_waitForDialogOpen(browserController) {
+    this._controller = this._utilsAPI.handleWindow("type", "Update:Wizard",
+                                                   null, true);
+    this._wizard = this.getElement({type: "wizard"});
 
     
-    this._controller.waitForEval("subject.currentStep != 'dummy'", gTimeout, 100, this);
+    this._controller.waitForEval("subject.wizard.currentPage != subject.dummy", gTimeout, 100,
+                                 {wizard: this, dummy: WIZARD_PAGES.dummy});
     this._controller.window.focus();
+  },
+
+  
+
+
+
+
+
+  waitforDownloadFinished: function softwareUpdate_waitForDownloadFinished(timeout) {
+    timeout = timeout ? timeout : gTimeoutUpdateDownload;
+
+    
+    var progress =  this.getElement({type: "download_progress"});
+    this._controller.waitForEval("subject.progress.value == 100", timeout, 100,
+                                 {progress: progress.getNode()});
+
+    this.waitForWizardPage(WIZARD_PAGES.finished);
+  },
+
+  
+
+
+  waitForWizardPage : function softwareUpdate_waitForWizardPage(step) {
+    this._controller.waitForEval("subject.currentPage == '" + step + "'",
+                                 gTimeout, 100, this);
   }
 }

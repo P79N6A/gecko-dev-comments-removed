@@ -45,6 +45,9 @@
 
 var MODULE_NAME = 'DownloadsAPI';
 
+const RELATIVE_ROOT = '.';
+const MODULE_REQUIRES = ['UtilsAPI'];
+
 const gTimeout = 5000;
 
 
@@ -67,13 +70,13 @@ const downloadState = {
 
 
 
-function downloadManager()
-{
+function downloadManager() {
   this._controller = null;
-  this._dms = Cc["@mozilla.org/download-manager;1"]
-                 .getService(Ci.nsIDownloadManager);
-
+  this._utilsAPI = collector.getModule('UtilsAPI');
   this.downloadState = downloadState;
+
+  this._dms = Cc["@mozilla.org/download-manager;1"].
+              getService(Ci.nsIDownloadManager);
 }
 
 
@@ -126,13 +129,20 @@ downloadManager.prototype = {
 
 
 
-  cleanAll : function downloadManager_cleanAll()
-  {
+
+
+
+  cleanAll : function downloadManager_cleanAll(downloads) {
     
     this.cancelActiveDownloads();
 
     
-    var downloads = this.getAllDownloads();
+    if (downloads === undefined || downloads.length == 0)
+      downloads = this.getAllDownloads();
+    else
+      downloads = downloads.concat(this.getAllDownloads());
+
+    
     this.deleteDownloadedFiles(downloads);
 
     
@@ -145,8 +155,7 @@ downloadManager.prototype = {
 
 
 
-  close : function downloadManager_close(force)
-  {
+  close : function downloadManager_close(force) {
     var windowCount = mozmill.utils.getWindows().length;
 
     if (this._controller) {
@@ -154,7 +163,8 @@ downloadManager.prototype = {
       if (force) {
         this._controller.window.close();
       } else {
-        this._controller.keypress(null, 'w', {accelKey: true});
+        var cmdKey = this._utilsAPI.getEntity(this.getDtds(), "cmd.close.commandKey");
+        this._controller.keypress(null, cmdKey, {accelKey: true});
       }
 
       this._controller.waitForEval("subject.getWindows().length == " + (windowCount - 1),
@@ -169,8 +179,7 @@ downloadManager.prototype = {
 
 
 
-  deleteDownloadedFiles : function downloadManager_deleteDownloadedFiles(downloads)
-  {
+  deleteDownloadedFiles : function downloadManager_deleteDownloadedFiles(downloads) {
     downloads.forEach(function(download) {
       try {
         var file = getLocalFileFromNativePathOrUrl(download.target);
@@ -186,8 +195,7 @@ downloadManager.prototype = {
 
 
 
-  getAllDownloads : function downloadManager_getAllDownloads()
-  {
+  getAllDownloads : function downloadManager_getAllDownloads() {
     var dbConn = this._dms.DBConnection;
     var stmt = null;
 
@@ -222,6 +230,18 @@ downloadManager.prototype = {
 
   getDownloadState : function downloadManager_getDownloadState(download) {
     return download.getNode().getAttribute('state');
+  },
+
+  
+
+
+
+
+
+  getDtds : function downloadManager_getDtds() {
+    var dtds = ["chrome://browser/locale/browser.dtd",
+                "chrome://mozapps/locale/downloads/downloads.dtd"];
+    return dtds;
   },
 
   
@@ -284,11 +304,13 @@ downloadManager.prototype = {
 
   open : function downloadManager_open(controller, shortcut) {
     if (shortcut) {
-      
-      if (mozmill.isLinux)
-        controller.keypress(null, "y", {ctrlKey: true, shiftKey: true});
-      else
-        controller.keypress(null, "j", {accelKey: true});
+      if (mozmill.isLinux) {
+        var cmdKey = this._utilsAPI.getEntity(this.getDtds(), "downloadsUnix.commandkey");
+        controller.keypress(null, cmdKey, {ctrlKey: true, shiftKey: true});
+      } else {
+        var cmdKey = this._utilsAPI.getEntity(this.getDtds(), "downloads.commandkey");
+        controller.keypress(null, cmdKey, {accelKey: true});
+      }
     } else {
       controller.click(new elementslib.Elem(controller.menus["tools-menu"].menu_openDownloads));
     }
@@ -319,11 +341,8 @@ downloadManager.prototype = {
 
 
   waitForOpened : function downloadManager_waitForOpened(controller) {
-    controller.waitForEval("subject.getMostRecentWindow('Download:Manager') != null",
-                           gTimeout, 100, mozmill.wm);
-
-    var window = mozmill.wm.getMostRecentWindow('Download:Manager');
-    this._controller = new mozmill.controller.MozMillController(window);
+    this._controller = this._utilsAPI.handleWindow("type", "Download:Manager",
+                                                   null, true);
   }
 };
 
@@ -336,34 +355,30 @@ downloadManager.prototype = {
 
 
 
-var downloadFileOfUnknownType = function(controller, url)
-{
+var downloadFileOfUnknownType = function(controller, url) {
+  var utilsAPI = collector.getModule('UtilsAPI');
+
   controller.open(url);
 
   
   controller.waitForEval("subject.getMostRecentWindow('').document.documentElement.id == 'unknownContentType'",
                          gTimeout, 100, mozmill.wm);
 
-  var window = mozmill.wm.getMostRecentWindow('');
-  var utController = new mozmill.controller.MozMillController(window);
-  utController.sleep(500);
-
+  utilsAPI.handleWindow("type", "", function (controller) {
+    
+    var saveFile = new elementslib.ID(controller.window.document, "save");
+    controller.waitThenClick(saveFile, gTimeout);
+    controller.waitForEval("subject.selected == true", gTimeout, 100,
+                           saveFile.getNode());
   
-  var saveFile = new elementslib.ID(utController.window.document, "save");
-  utController.waitThenClick(saveFile, gTimeout);
-  utController.waitForEval("subject.selected == true", gTimeout, 100,
-                         saveFile.getNode());
-
-  
-  var button = new elementslib.Lookup(utController.window.document,
-                                      '/id("unknownContentType")/anon({"anonid":"buttons"})/{"dlgtype":"accept"}');
-  utController.waitForElement(button, gTimeout);
-  utController.waitForEval("subject.okButton.hasAttribute('disabled') == false", gTimeout, 100,
+    
+    var button = new elementslib.Lookup(controller.window.document,
+                                        '/id("unknownContentType")/anon({"anonid":"buttons"})/{"dlgtype":"accept"}');
+    controller.waitForElement(button, gTimeout);
+    controller.waitForEval("subject.okButton.hasAttribute('disabled') == false", gTimeout, 100,
                            {okButton: button.getNode()});
-  utController.click(button);
-
-  utController.waitForEval("subject.getMostRecentWindow('') != this.window", gTimeout, 100,
-                           mozmill.wm);
+    controller.click(button);
+  });
 }
 
 
@@ -373,8 +388,7 @@ var downloadFileOfUnknownType = function(controller, url)
 
 
 
-function getLocalFileFromNativePathOrUrl(aPathOrUrl)
-{
+function getLocalFileFromNativePathOrUrl(aPathOrUrl) {
   if (aPathOrUrl.substring(0,7) == "file://") {
     
     let ioSvc = Cc["@mozilla.org/network/io-service;1"]

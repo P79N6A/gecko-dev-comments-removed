@@ -36,16 +36,21 @@
 
 
 
-var RELATIVE_ROOT = '../../shared-modules';
-var MODULE_REQUIRES = ['ToolbarAPI', 'UtilsAPI'];
 
-const gDelay = 0;
+const RELATIVE_ROOT = '../../shared-modules';
+const MODULE_REQUIRES = ['ToolbarAPI', 'UtilsAPI'];
 
-var setupModule = function(module) {
-  module.controller = mozmill.getBrowserController();
-  module.locationBar = new ToolbarAPI.locationBar(controller);
+const LOCAL_TEST_FOLDER = collector.addHttpResource('../test-files/');
+const LOCAL_TEST_PAGES = [
+  LOCAL_TEST_FOLDER + 'layout/mozilla.html',
+  LOCAL_TEST_FOLDER + 'layout/mozilla_mission.html'
+];
 
-  module.goButton = locationBar.getElement({type: "goButton"});
+var setupModule = function() {
+  controller = mozmill.getBrowserController();
+  locationBar = new ToolbarAPI.locationBar(controller);
+
+  goButton = locationBar.getElement({type: "goButton"});
 }
 
 
@@ -53,7 +58,7 @@ var setupModule = function(module) {
 
 var testGoButtonOnTypeOnly = function() {
   
-  controller.open("http://www.mozilla.org");
+  controller.open(LOCAL_TEST_PAGES[0]);
   controller.waitForPageLoad();
 
   
@@ -75,26 +80,26 @@ var testGoButtonOnTypeOnly = function() {
 
 var testClickLocationBarAndGo = function()
 {
-  var url = "http://www.google.com/webhp?complete=1&hl=en";
 
   
-  controller.open("http://www.mozilla.org");
+  controller.open(LOCAL_TEST_PAGES[0]);
   controller.waitForPageLoad();
 
   
   locationBar.focus({type: "shortcut"});
-  locationBar.type(url);
+  locationBar.type(LOCAL_TEST_PAGES[1]);
 
   
   controller.click(goButton);
   controller.waitForPageLoad();
 
   
-  controller.assertNode(new elementslib.Name(controller.tabs.activeTab, "q"));
+  var pageElement = new elementslib.ID(controller.tabs.activeTab, "organization");
+  controller.assertNode(pageElement);
   UtilsAPI.assertElementVisible(controller, goButton, false);
 
   
-  controller.assertValue(locationBar.urlbar, url);
+  controller.assertValue(locationBar.urlbar, LOCAL_TEST_PAGES[1]);
 }
 
 

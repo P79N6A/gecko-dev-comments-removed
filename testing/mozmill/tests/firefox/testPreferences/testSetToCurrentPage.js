@@ -36,16 +36,19 @@
 
 
 
-var RELATIVE_ROOT = '../../shared-modules';
-var MODULE_REQUIRES = ['PrefsAPI', 'TabbedBrowsingAPI'];
 
-const gDelay = 0;
-const gTimeout = 5000;
+const RELATIVE_ROOT = '../../shared-modules';
+const MODULE_REQUIRES = ['PrefsAPI', 'TabbedBrowsingAPI', 'ToolbarAPI'];
 
-const homepage = 'http://www.mozilla.org/';
+const LOCAL_TEST_FOLDER = collector.addHttpResource('../test-files/');
+const LOCAL_TEST_PAGES = [
+  {url: LOCAL_TEST_FOLDER + 'layout/mozilla.html'},
+  {url: LOCAL_TEST_FOLDER + 'layout/mozilla_mission.html'}
+];
 
-var setupModule = function(module) {
-  module.controller = mozmill.getBrowserController();
+var setupModule = function() {
+  controller = mozmill.getBrowserController();
+  locationBar = new ToolbarAPI.locationBar(controller);
 
   TabbedBrowsingAPI.closeAllTabs(controller);
 }
@@ -59,10 +62,10 @@ var teardownModule = function(module) {
 
 var testSetHomePage = function() {
   
-  controller.open(homepage);
+  controller.open(LOCAL_TEST_PAGES[0].url);
   controller.waitForPageLoad();
 
-  var link = new elementslib.Link(controller.tabs.activeTab, "Mozilla");
+  var link = new elementslib.Link(controller.tabs.activeTab, "Community");
   controller.assertNode(link);
 
   
@@ -75,7 +78,7 @@ var testSetHomePage = function() {
 var testHomeButton = function()
 {
   
-  controller.open('http://www.yahoo.com/');
+  controller.open(LOCAL_TEST_PAGES[1].url);
   controller.waitForPageLoad();
 
   
@@ -83,8 +86,7 @@ var testHomeButton = function()
   controller.waitForPageLoad();
 
   
-  var locationBar = new elementslib.ID(controller.window.document, "urlbar");
-  controller.assertValue(locationBar, homepage);
+  controller.assertValue(locationBar.urlbar, LOCAL_TEST_PAGES[0].url);
 }
 
 

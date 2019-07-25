@@ -34,35 +34,34 @@
 
 
 
-var RELATIVE_ROOT = '../../shared-modules';
-var MODULE_REQUIRES = ['PrivateBrowsingAPI', 'TabbedBrowsingAPI', 'UtilsAPI'];
 
-const gDelay = 0;
-const gTimeout = 5000;
 
-var websites = [
-                {url: 'https://addons.mozilla.org/', id: 'search-query'},
-                {url: 'https://bugzilla.mozilla.org', id: 'quicksearch_top'}
-               ];
+const RELATIVE_ROOT = '../../shared-modules';
+const MODULE_REQUIRES = ['PrivateBrowsingAPI', 'TabbedBrowsingAPI', 'UtilsAPI'];
 
-var setupModule = function(module)
-{
+const TIMEOUT = 5000;
+
+const LOCAL_TEST_FOLDER = collector.addHttpResource('../test-files/');
+const LOCAL_TEST_PAGES = [
+  {url: LOCAL_TEST_FOLDER + 'layout/mozilla_contribute.html', id: 'localization'},
+  {url: LOCAL_TEST_FOLDER + 'layout/mozilla_community.html', id: 'history'}
+];
+
+var setupModule = function(module) {
   controller = mozmill.getBrowserController();
   pb = new PrivateBrowsingAPI.privateBrowsing(controller);
 
   TabbedBrowsingAPI.closeAllTabs(controller);
 }
 
-var teardownModule = function(module)
-{
+var teardownModule = function(module) {
   pb.reset();
 }
 
 
 
 
-var testTabRestoration = function()
-{
+var testTabRestoration = function() {
   
   pb.enabled = false;
   pb.showPrompt = false;
@@ -70,15 +69,15 @@ var testTabRestoration = function()
   
   var newTab = new elementslib.Elem(controller.menus['file-menu'].menu_newNavigatorTab);
 
-  for (var ii = 0; ii < websites.length; ii++) {
-    controller.open(websites[ii].url);
+  for each (var page in LOCAL_TEST_PAGES) {
+    controller.open(page.url);
     controller.click(newTab);
   }
 
   
-  for (var ii = 0; ii < websites.length; ii++) {
-    var elem = new elementslib.ID(controller.tabs.getTab(ii), websites[ii].id);
-    controller.waitForElement(elem, gTimeout);
+  for (var i = 0; i < LOCAL_TEST_PAGES.length; i++) {
+    var elem = new elementslib.ID(controller.tabs.getTab(i), LOCAL_TEST_PAGES[i].id);
+    controller.waitForElement(elem, TIMEOUT);
   }
 
   
@@ -86,16 +85,16 @@ var testTabRestoration = function()
 
   
   pb.stop();
-  controller.waitForPageLoad();
 
   
-  controller.assertJS("subject.tabs.length == " + (websites.length + 1),
-                      controller);
+  controller.assertJS("subject.tabCountActual == subject.tabCountExpected",
+                      {tabCountActual: controller.tabs.length,
+                       tabCountExpected: LOCAL_TEST_PAGES.length + 1});
 
   
-  for (var ii = 0; ii < websites.length; ii++) {
-    var elem = new elementslib.ID(controller.tabs.getTab(ii), websites[ii].id);
-    controller.waitForElement(elem, gTimeout);
+  for (var i = 0; i < LOCAL_TEST_PAGES.length; i++) {
+    var elem = new elementslib.ID(controller.tabs.getTab(i), LOCAL_TEST_PAGES[i].id);
+    controller.waitForElement(elem, TIMEOUT);
   }
 }
 

@@ -43,7 +43,10 @@
 
 
 
+
 var MODULE_NAME = 'UtilsAPI';
+
+const gTimeout = 5000;
 
 
 
@@ -158,18 +161,22 @@ var appInfo = {
 
 
 
-function assertElementVisible(controller, element, visibility)
-{
-  var style = controller.window.getComputedStyle(element.getNode(), "");
-  var state = style.getPropertyValue("visibility");
+function assertElementVisible(controller, elem, expectedVisibility) {
+  var element = elem.getNode();
+  var visible;
 
-  if (visibility) {
-    controller.assertJS("subject.visibilityState == 'visible'",
-                        {visibilityState: state});
-  } else {
-    controller.assertJS("subject.visibilityState != 'visible'",
-                        {visibilityState: state});
+  switch (element.nodeName) {
+    case 'panel':
+      visible = ['open', 'showing'].indexOf(element.state) >= 0;
+      break;
+    default:
+      var style = controller.window.getComputedStyle(element, '');
+      var state = style.getPropertyValue('visibility');
+      visible = (state == 'visible');
   }
+
+  controller.assertJS('subject.visible == subject.expectedVisibility',
+                      {visible: visible, expectedVisibility: expectedVisibility });
 }
 
 
@@ -184,14 +191,15 @@ function assertElementVisible(controller, element, visibility)
 function assertLoadedUrlEqual(controller, targetUrl)
 {
   var locationBar = new elementslib.ID(controller.window.document, "urlbar");
-  var currentUrl = locationBar.getNode().value;
+  var currentURL = locationBar.getNode().value;
 
   
   controller.open(targetUrl);
   controller.waitForPageLoad();
 
   
-  controller.assertValue(locationBar, currentUrl);
+  controller.waitForEval("subject.targetURL.value == subject.currentURL", gTimeout, 100,
+                         {targetURL: locationBar.getNode(),  currentURL: currentURL});
 }
 
 
@@ -254,6 +262,15 @@ function createURI(spec, originCharset, baseURI)
 
 
 
+function emptyClipboard() {
+  var clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].
+                  getService(Ci.nsIClipboardHelper);
+  clipboard.copyString("");
+}
+
+
+
+
 
 
 
@@ -273,6 +290,56 @@ function formatUrlPref(prefName)
 
 
 
+function getDefaultHomepage() {
+  var prefs = collector.getModule('PrefsAPI').preferences;
+
+  var prefValue = prefs.getPref("browser.startup.homepage", "",
+                                true, Ci.nsIPrefLocalizedString);
+  return prefValue.data;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function getEntity(urls, entityId)
+{
+  
+  urls.push("resource:///res/dtd/xhtml11.dtd");
+
+  
+  var extEntities = "";
+  for (i = 0; i < urls.length; i++) {
+    extEntities += '<!ENTITY % dtd' + i + ' SYSTEM "' +
+                   urls[i] + '">%dtd' + i + ';';
+  }
+
+  var parser = Cc["@mozilla.org/xmlextras/domparser;1"]
+                  .createInstance(Ci.nsIDOMParser);
+  var header = '<?xml version="1.0"?><!DOCTYPE elem [' + extEntities + ']>';
+  var elem = '<elem id="elementID">&' + entityId + ';</elem>';
+  var doc = parser.parseFromString(header + elem, 'text/xml');
+  var elemNode = doc.querySelector('elem[id="elementID"]');
+
+  if (elemNode == null)
+    throw new Error(arguments.callee.name + ": Unknown entity - " + entityId);
+
+  return elemNode.textContent;
+}
+
+
+
+
+
+
+
 
 
 
@@ -280,9 +347,72 @@ function formatUrlPref(prefName)
 
 function getProperty(url, prefName)
 {
-  var sbs = Components.classes["@mozilla.org/intl/stringbundle;1"].
-                       getService(Components.interfaces.nsIStringBundleService);
+  var sbs = Cc["@mozilla.org/intl/stringbundle;1"]
+            .getService(Ci.nsIStringBundleService);
   var bundle = sbs.createBundle(url);
 
-  return bundle.GetStringFromName(prefName);
+  try {
+    return bundle.GetStringFromName(prefName);
+  } catch (ex) {
+    throw new Error(arguments.callee.name + ": Unknown property - " + prefName);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function handleWindow(type, text, callback, dontClose) {
+  var func_ptr = null;
+  var window = null;
+
+  if (dontClose === undefined)
+    dontClose = false;
+
+  
+  switch (type) {
+    case "type":
+      func_ptr = mozmill.utils.getWindowByType;
+      break;
+    case "title":
+      func_ptr = mozmill.utils.getWindowByTitle;
+      break;
+    default:
+      throw new Error(arguments.callee.name + ": Unknown opener type - " + type);
+  }
+
+  try {
+    
+    mozmill.controller.waitForEval("subject.getWindow(subject.text) != null", gTimeout, 100,
+                                   {getWindow: func_ptr, text: text});
+    window = func_ptr(text);
+
+    
+    
+    var ctrl = new mozmill.controller.MozMillController(window);
+    ctrl.sleep(200);
+
+    if (callback)
+      callback(ctrl);
+  } finally {
+    
+    if (dontClose != true & window != null) {
+      window.close();
+      mozmill.controller.waitForEval("subject.getWindow(subject.text) != subject.window",
+                                     gTimeout, 100,
+                                     {getWindow: func_ptr, text: text, window: window});
+      return null;
+    }
+
+    return ctrl;
+  }
 }

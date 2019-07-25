@@ -39,7 +39,14 @@
 
 
 
-var EventUtils = {}; Components.utils.import('resource://mozmill/modules/EventUtils.js', EventUtils);
+var EventUtils = {};
+try {
+  
+  
+  Components.utils.import('resource://mozmill/stdlib/EventUtils.js', EventUtils);
+} catch (e) {
+  Components.utils.import('resource://mozmill/modules/EventUtils.js', EventUtils);
+}
 
 var MODULE_NAME = 'WidgetsAPI';
 

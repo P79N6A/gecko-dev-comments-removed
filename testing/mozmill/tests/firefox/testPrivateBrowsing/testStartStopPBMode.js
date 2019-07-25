@@ -34,21 +34,24 @@
 
 
 
-var RELATIVE_ROOT = '../../shared-modules';
-var MODULE_REQUIRES = ['PrivateBrowsingAPI', 'TabbedBrowsingAPI', 'UtilsAPI'];
 
-const gDelay = 0;
-const gTimeout = 5000;
 
-const websites = [
-                  {url: 'http://www.mozilla.org', id: 'q'},
-                  {url: 'about:', id: 'aboutPageList'}
-                 ];
 
-var setupModule = function(module) {
+const RELATIVE_ROOT = '../../shared-modules';
+const MODULE_REQUIRES = ['PrivateBrowsingAPI', 'TabbedBrowsingAPI', 'UtilsAPI'];
+
+const TIMEOUT = 5000;
+
+const LOCAL_TEST_FOLDER = collector.addHttpResource('../test-files/');
+const LOCAL_TEST_PAGES = [
+  {url: LOCAL_TEST_FOLDER + 'layout/mozilla.html', id: 'community'},
+  {url: 'about:', id: 'aboutPageList'}
+];
+
+var setupModule = function() {
   controller = mozmill.getBrowserController();
-  modifier = controller.window.document.documentElement
-                       .getAttribute("titlemodifier_privatebrowsing");
+  modifier = controller.window.document.documentElement.
+             getAttribute("titlemodifier_privatebrowsing");
 
   
   pb = new PrivateBrowsingAPI.privateBrowsing(controller);
@@ -57,57 +60,58 @@ var setupModule = function(module) {
   TabbedBrowsingAPI.closeAllTabs(controller);
 }
 
-var teardownModule = function(module)
-{
+var teardownModule = function() {
   pb.reset();
 }
 
 
 
 
-var testEnablePrivateBrowsingMode = function()
-{
+var testEnablePrivateBrowsingMode = function() {
   
   pb.enabled = false;
   pb.showPrompt = true;
 
   
   var newTab = new elementslib.Elem(controller.menus['file-menu'].menu_newNavigatorTab);
-  for (var ii = 0; ii < websites.length; ii++) {
-    controller.open(websites[ii].url);
-    controller.click(newTab);
+  
+  for each (var page in LOCAL_TEST_PAGES) {
+   controller.open(page.url);
+   controller.click(newTab);
   }
 
   
-  for (var ii = 0; ii < websites.length; ii++) {
-    var elem = new elementslib.ID(controller.tabs.getTab(ii), websites[ii].id);
-    controller.waitForElement(elem, gTimeout);
+  for (var i = 0; i < LOCAL_TEST_PAGES.length; i++) {
+   var elem = new elementslib.ID(controller.tabs.getTab(i), LOCAL_TEST_PAGES[i].id);
+   controller.waitForElement(elem, TIMEOUT);
   }
 
   
   pb.start();
 
   
-  controller.assertJS("subject.tabs.length == 1", controller);
+  controller.assertJS("subject.isOnlyOneTab == true", 
+                      {isOnlyOneTab: controller.tabs.length == 1});
 
   
-  controller.assertJS("subject.title.indexOf('" + modifier + "') != -1",
-                      controller.window.document);
+  controller.assertJS("subject.hasTitleModifier == true",
+                      {hasTitleModifier: controller.window.document.
+                                         title.indexOf(modifier) != -1});
 
   
-  
-  var longDescElem = new elementslib.ID(controller.tabs.activeTab, "errorLongDescText")
+  var description = UtilsAPI.getEntity(pb.getDtds(), "privatebrowsingpage.description");
+  var learnMore = UtilsAPI.getEntity(pb.getDtds(), "privatebrowsingpage.learnMore");
+  var longDescElem = new elementslib.ID(controller.tabs.activeTab, "errorLongDescText");
   var moreInfoElem = new elementslib.ID(controller.tabs.activeTab, "moreInfoLink");
-
-  controller.waitForElement(longDescElem, gTimeout);
-  controller.waitForElement(moreInfoElem, gTimeout);
+  controller.waitForElement(longDescElem, TIMEOUT);  
+  controller.assertText(longDescElem, description);
+  controller.assertText(moreInfoElem, learnMore);
 }
 
 
 
 
-var testStopPrivateBrowsingMode = function()
-{
+var testStopPrivateBrowsingMode = function() {
   
   pb.enabled = true;
 
@@ -115,24 +119,24 @@ var testStopPrivateBrowsingMode = function()
   pb.stop();
 
   
-  controller.assertJS("subject.tabs.length == " + (websites.length + 1),
-                      controller);
+  controller.assertJS("subject.allTabsRestored == true",
+                      {allTabsRestored: controller.tabs.length == LOCAL_TEST_PAGES.length + 1});
 
-  for (var ii = 0; ii < websites.length; ii++) {
-    var elem = new elementslib.ID(controller.tabs.getTab(ii), websites[ii].id);
-    controller.waitForElement(elem, gTimeout);
+  for (var i = 0; i < LOCAL_TEST_PAGES.length; i++) {
+    var elem = new elementslib.ID(controller.tabs.getTab(i), LOCAL_TEST_PAGES[i].id);
+    controller.waitForElement(elem, TIMEOUT);
   }
 
   
-  controller.assertJS("subject.title.indexOf('" + modifier + "') == -1",
-                      controller.window.document);
+  controller.assertJS("subject.noTitleModifier == true",
+                      {noTitleModifier: controller.window.document.
+                                        title.indexOf(modifier) == -1});
 }
 
 
 
 
-var testKeyboardShortcut = function()
-{
+var testKeyboardShortcut = function() {
   
   pb.enabled = false;
   pb.showPrompt = true;
@@ -150,13 +154,15 @@ var testKeyboardShortcut = function()
 
 
 
-var pbStartHandler = function(controller)
-{
+var pbStartHandler = function(controller) {
   
   var checkbox = new elementslib.ID(controller.window.document, 'checkbox');
-  controller.waitThenClick(checkbox, gTimeout);
+  controller.waitThenClick(checkbox, TIMEOUT);
 
-  var okButton = new elementslib.Lookup(controller.window.document, '/id("commonDialog")/anon({"anonid":"buttons"})/{"dlgtype":"accept"}');
+  var okButton = new elementslib.Lookup(controller.window.document, 
+                                        '/id("commonDialog")' +
+                                        '/anon({"anonid":"buttons"})' +
+                                        '/{"dlgtype":"accept"}');
   controller.click(okButton);
 }
 

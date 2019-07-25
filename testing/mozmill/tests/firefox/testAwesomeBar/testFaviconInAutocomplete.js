@@ -36,36 +36,35 @@
 
 
 
-var RELATIVE_ROOT = '../../shared-modules';
-var MODULE_REQUIRES = ['PlacesAPI', 'PrefsAPI', 'ToolbarAPI'];
 
-const gTimeout = 5000;
-const gDelay = 200;
 
-const testSite = {url : 'http://www.google.com/', string: 'google'};
+const RELATIVE_ROOT = '../../shared-modules';
+const MODULE_REQUIRES = ['PlacesAPI', 'PrefsAPI', 'ToolbarAPI'];
 
-var setupModule = function(module)
-{
-  module.controller = mozmill.getBrowserController();
-  module.locationBar =  new ToolbarAPI.locationBar(controller);
+const LOCAL_TEST_FOLDER = collector.addHttpResource('../test-files/');
+const LOCAL_TEST_PAGE = { 
+  url: LOCAL_TEST_FOLDER + 'layout/mozilla.html',
+  string: "mozilla" 
+};
+
+var setupModule = function() {
+  controller = mozmill.getBrowserController();
+  locationBar =  new ToolbarAPI.locationBar(controller);
 
   
-  try {
-    PlacesAPI.historyService.removeAllPages();
-  } catch (ex) {}
+  PlacesAPI.removeAllHistory();
 }
 
 
 
 
 
-var testFaviconInAutoComplete = function()
-{
+var testFaviconInAutoComplete = function() {
   
   PrefsAPI.openPreferencesDialog(prefDialogSuggestsCallback);
 
   
-  locationBar.loadURL(testSite.url);
+  locationBar.loadURL(LOCAL_TEST_PAGE.url);
   controller.waitForPageLoad();
 
   
@@ -78,9 +77,9 @@ var testFaviconInAutoComplete = function()
   locationBar.clear();
 
   
-  for each (letter in testSite.string) {
+  for each (var letter in LOCAL_TEST_PAGE.string) {
     locationBar.type(letter);
-    controller.sleep(gDelay);
+    controller.sleep(200);
   }
 
   
@@ -103,15 +102,14 @@ var testFaviconInAutoComplete = function()
 
 
 
-var prefDialogSuggestsCallback = function(controller)
-{
+var prefDialogSuggestsCallback = function(controller) {
   var prefDialog = new PrefsAPI.preferencesDialog(controller);
   prefDialog.paneId = 'panePrivacy';
 
   var suggests = new elementslib.ID(controller.window.document, "locationBarSuggestion");
   controller.waitForElement(suggests);
   controller.select(suggests, null, null, 1);
-  controller.sleep(gDelay);
+  controller.sleep(200);
 
   prefDialog.close(true);
 }
