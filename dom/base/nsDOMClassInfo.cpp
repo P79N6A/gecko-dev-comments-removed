@@ -8928,21 +8928,16 @@ nsHTMLDocumentSH::CallToGetPropMapper(JSContext *cx, uintN argc, jsval *vp)
     return JS_FALSE;
   }
 
+  
+  
   JSObject *self;
-
-  if (::JS_TypeOfValue(cx, JS_CALLEE(cx, vp)) == JSTYPE_FUNCTION) {
-    
-    
-    
-
+  if (JSVAL_IS_OBJECT(JS_CALLEE(cx, vp)) &&
+      ::JS_GetClass(cx, JSVAL_TO_OBJECT(JS_CALLEE(cx, vp))) == &sHTMLDocumentAllClass) {
+    self = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
+  } else {
     self = JS_THIS_OBJECT(cx, vp);
     if (!self)
       return JS_FALSE;
-  } else {
-    
-    
-
-    self = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
   }
 
   size_t length;
