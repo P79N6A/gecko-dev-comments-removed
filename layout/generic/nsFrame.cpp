@@ -1885,7 +1885,11 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     nsPlaceholderFrame* placeholder = static_cast<nsPlaceholderFrame*>(child);
     child = placeholder->GetOutOfFlowFrame();
     NS_ASSERTION(child, "No out of flow frame?");
-    if (!child || nsLayoutUtils::IsPopup(child))
+    
+    
+    
+    if (!child || nsLayoutUtils::IsPopup(child) ||
+        (child->GetStateBits() & NS_FRAME_IS_PUSHED_FLOAT))
       return NS_OK;
     
     
