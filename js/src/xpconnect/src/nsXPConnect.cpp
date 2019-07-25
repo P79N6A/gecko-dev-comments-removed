@@ -1509,6 +1509,101 @@ MoveableWrapperFinder(JSDHashTable *table, JSDHashEntryHdr *hdr,
     return JS_DHASH_NEXT;
 }
 
+static nsresult
+MoveWrapper(XPCCallContext& ccx, XPCWrappedNative *wrapper,
+            XPCWrappedNativeScope *newScope, XPCWrappedNativeScope *oldScope)
+{
+    
+    
+
+    if (wrapper->GetScope() == newScope)
+    {
+        
+        return NS_OK;
+    }
+
+    nsISupports *identity = wrapper->GetIdentityObject();
+    nsCOMPtr<nsIClassInfo> info(do_QueryInterface(identity));
+
+    
+    
+    
+    if(SameCOMIdentity(identity, info))
+        info = nsnull;
+
+    if(!info)
+        return NS_OK;
+
+    XPCNativeScriptableCreateInfo sciProto;
+    XPCNativeScriptableCreateInfo sci;
+    const XPCNativeScriptableCreateInfo& sciWrapper =
+        XPCWrappedNative::GatherScriptableCreateInfo(identity, info,
+                                                     sciProto, sci);
+
+    
+    
+    if(!sciWrapper.GetFlags().WantPreCreate())
+        return NS_OK;
+
+    JSObject *newParent = oldScope->GetGlobalJSObject();
+    nsresult rv = sciWrapper.GetCallback()->PreCreate(identity, ccx,
+                                                      newParent,
+                                                      &newParent);
+    if(NS_FAILED(rv))
+        return rv;
+
+    if(newParent == oldScope->GetGlobalJSObject())
+    {
+        
+        
+        
+        return NS_OK;
+    }
+
+    
+    
+    
+
+    XPCWrappedNativeScope *betterScope =
+        XPCWrappedNativeScope::FindInJSObjectScope(ccx, newParent);
+    if(betterScope == oldScope)
+    {
+        
+        
+        
+        
+
+        if (!IS_WN_WRAPPER_OBJECT(newParent)) {
+            
+            
+
+            rv = MorphSlimWrapper(ccx, newParent);
+            NS_ENSURE_SUCCESS(rv, rv);
+        }
+
+        XPCWrappedNative *parentWrapper =
+            XPCWrappedNative::GetWrappedNativeOfJSObject(ccx, newParent);
+
+        rv = MoveWrapper(ccx, parentWrapper, newScope, oldScope);
+
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        newParent = parentWrapper->GetFlatJSObjectNoMark();
+    }
+    else
+        NS_ASSERTION(betterScope == newScope, "Weird scope returned");
+
+    
+    
+
+    nsRefPtr<XPCWrappedNative> junk;
+    rv = XPCWrappedNative::ReparentWrapperIfFound(ccx, oldScope,
+                                                  newScope, newParent,
+                                                  wrapper->GetIdentityObject(),
+                                                  getter_AddRefs(junk));
+    return rv;
+}
+
 
 NS_IMETHODIMP
 nsXPConnect::MoveWrappers(JSContext *aJSContext,
@@ -1543,72 +1638,7 @@ nsXPConnect::MoveWrappers(JSContext *aJSContext,
     
     for(PRUint32 i = 0, stop = wrappersToMove.Length(); i < stop; ++i)
     {
-        
-        
-
-        XPCWrappedNative *wrapper = wrappersToMove[i];
-        nsISupports *identity = wrapper->GetIdentityObject();
-        nsCOMPtr<nsIClassInfo> info(do_QueryInterface(identity));
-
-        
-        
-        
-        if(SameCOMIdentity(identity, info))
-            info = nsnull;
-
-        if(!info)
-            continue;
-
-        XPCNativeScriptableCreateInfo sciProto;
-        XPCNativeScriptableCreateInfo sci;
-        const XPCNativeScriptableCreateInfo& sciWrapper =
-            XPCWrappedNative::GatherScriptableCreateInfo(identity, info,
-                                                         sciProto, sci);
-
-        
-        
-        if(!sciWrapper.GetFlags().WantPreCreate())
-            continue;
-
-        JSObject *newParent = aOldScope;
-        nsresult rv = sciWrapper.GetCallback()->PreCreate(identity, ccx,
-                                                          aOldScope,
-                                                          &newParent);
-        if(NS_FAILED(rv))
-            return rv;
-
-        if(newParent == aOldScope)
-        {
-            
-            
-            
-            continue;
-        }
-
-        
-        
-        
-
-        XPCWrappedNativeScope *betterScope =
-            XPCWrappedNativeScope::FindInJSObjectScope(ccx, newParent);
-        if(betterScope == oldScope)
-        {
-            
-            
-            
-            newParent = nsnull;
-        }
-        else
-            NS_ASSERTION(betterScope == newScope, "Weird scope returned");
-
-        
-        
-
-        nsRefPtr<XPCWrappedNative> junk;
-        rv = XPCWrappedNative::ReparentWrapperIfFound(ccx, oldScope,
-                                                      newScope, newParent,
-                                                      wrapper->GetIdentityObject(),
-                                                      getter_AddRefs(junk));
+        nsresult rv = MoveWrapper(ccx, wrappersToMove[i], newScope, oldScope);
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
