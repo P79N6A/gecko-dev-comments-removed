@@ -685,6 +685,12 @@ public:
   
   InputInterval GetNextInputInterval(GraphTime aTime);
 
+  
+
+
+  MediaStreamGraphImpl* GraphImpl();
+  MediaStreamGraph* Graph();
+
 protected:
   friend class MediaStreamGraphImpl;
   friend class MediaStream;
