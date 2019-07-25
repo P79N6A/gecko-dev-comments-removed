@@ -181,9 +181,19 @@ private:
                          const ByteRange& aRange,
                          PRUint32 aFuzz);
 
+  
+  
+  PRBool IsKnownStream(PRUint32 aSerial);
+
 private:
   
   nsClassHashtable<nsUint32HashKey, nsOggCodecState> mCodecStates;
+
+  
+  
+  
+  
+  nsAutoTArray<PRUint32,4> mKnownStreams;
 
   
   nsTheoraState* mTheoraState;
@@ -196,6 +206,16 @@ private:
 
   
   ogg_sync_state mOggState;
+
+  
+  
+  
+  
+  
+  PRUint32 mVorbisSerial;
+  PRUint32 mTheoraSerial;
+  vorbis_info mVorbisInfo;
+  th_info mTheoraInfo;
 
   
   
