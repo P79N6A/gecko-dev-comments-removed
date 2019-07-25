@@ -6073,8 +6073,13 @@ MALLOC_OUT:
 			    default_zone->version == LION_MALLOC_ZONE_T_VERSION);
 
 	
-	if (getenv("NO_MAC_JEMALLOC"))
+	if (getenv("NO_MAC_JEMALLOC")) {
 		osx_use_jemalloc = false;
+#ifdef __i386__
+		malloc_printf("Warning: NO_MAC_JEMALLOC has no effect on "
+			      "i386 machines (such as this one).\n");
+#endif
+	}
 
 	if (osx_use_jemalloc) {
 		
@@ -6167,6 +6172,9 @@ wrap(strdup)(const char *src) {
 	return wrap(strndup)(src, len);
 }
 #endif
+
+
+
 
 
 
