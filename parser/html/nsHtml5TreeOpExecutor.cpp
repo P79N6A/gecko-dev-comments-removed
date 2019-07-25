@@ -861,6 +861,9 @@ nsHtml5TreeOpExecutor::InitializeDocWriteParserState(nsAHtml5TreeBuilderState* a
 already_AddRefed<nsIURI>
 nsHtml5TreeOpExecutor::ConvertIfNotPreloadedYet(const nsAString& aURL)
 {
+  if (aURL.IsEmpty()) {
+    return nsnull;
+  }
   
   nsIURI* documentURI = mDocument->GetDocumentURI();
   
