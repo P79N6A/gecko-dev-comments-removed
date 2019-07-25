@@ -402,7 +402,8 @@ PopupNotifications.prototype = {
       return;
 
     
-    var position = (this.window.getComputedStyle(this.panel, "").direction == "rtl") ? "after_end" : "after_start";
+    var position = (this.window.getComputedStyle(this.panel, "").direction == "rtl") ?
+      "bottomcenter topright" : "bottomcenter topleft";
 
     this._currentAnchorElement = anchorElement;
 
