@@ -5,6 +5,7 @@
 
 
 #ifdef MOZ_WIDGET_QT
+#include <unistd.h> 
 #include <QtCore/QTimer>
 #include "nsQAppInstance.h"
 #include "NestedLoopTimer.h"
