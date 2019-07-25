@@ -1981,7 +1981,9 @@ let RIL = {
       return;
     }
 
-    let app = iccStatus.apps[iccStatus.gsmUmtsSubscriptionAppIndex];
+    
+    let index = iccStatus.gsmUmtsSubscriptionAppIndex;
+    let app = iccStatus.apps[index];
     if (!app) {
       if (DEBUG) {
         debug("Subscription application is not present in iccStatus.");
@@ -1995,6 +1997,8 @@ let RIL = {
                            cardState: this.cardState});
       return;
     }
+    
+    this.aid = app.aid;
 
     let newCardState;
     switch (app.app_state) {
@@ -2021,14 +2025,11 @@ let RIL = {
     }
 
     
-    
-    let index = iccStatus.gsmUmtsSubscriptionAppIndex;
-    this.aid = iccStatus.apps[index].aid;
-
-    
     this.requestNetworkInfo();
     this.getSignalStrength();
-    this.fetchICCRecords();
+    if (newCardState == GECKO_CARDSTATE_READY) {
+      this.fetchICCRecords();
+    }
 
     this.cardState = newCardState;
     this.sendDOMMessage({rilMessageType: "cardstatechange",
