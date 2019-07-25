@@ -51,6 +51,13 @@ var gMainPane = {
     
     this._updateUseCurrentButton();
     window.addEventListener("focus", this._updateUseCurrentButton, false);
+
+    this.updateBrowserStartupLastSession();
+
+    
+    Components.classes["@mozilla.org/observer-service;1"]
+              .getService(Components.interfaces.nsIObserverService)
+              .notifyObservers(window, "main-pane-loaded", null);
   },
 
   
@@ -491,5 +498,26 @@ var gMainPane = {
   showAddonsMgr: function ()
   {
     openUILinkIn("about:addons", "window");
+  },
+
+  
+
+
+
+  updateBrowserStartupLastSession: function()
+  {
+    let pbAutoStartPref = document.getElementById("browser.privatebrowsing.autostart");
+    let startupPref = document.getElementById("browser.startup.page");
+    let menu = document.getElementById("browserStartupPage");
+    let option = document.getElementById("browserStartupLastSession");
+    if (pbAutoStartPref.value) {
+      option.setAttribute("disabled", "true");
+      if (option.selected) {
+        menu.selectedItem = document.getElementById("browserStartupHomePage");
+      }
+    } else {
+      option.removeAttribute("disabled");
+      startupPref.updateElements(); 
+    }
   }
 };
