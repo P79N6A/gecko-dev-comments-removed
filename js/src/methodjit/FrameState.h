@@ -252,12 +252,6 @@ class FrameState
 
 
 
-    inline RegisterID tempRegForConstant(FrameEntry *fe);
-
-    
-
-
-
     inline void emitLoadTypeTag(FrameEntry *fe, RegisterID reg) const;
     inline void emitLoadTypeTag(Assembler &masm, FrameEntry *fe, RegisterID reg) const;
 
@@ -315,6 +309,15 @@ class FrameState
 
 
     RegisterID copyTypeIntoReg(FrameEntry *fe);
+
+    
+
+
+
+
+
+    RegisterID copyConstantIntoReg(FrameEntry *fe);
+    RegisterID copyConstantIntoReg(Assembler &masm, FrameEntry *fe);
 
     
 
