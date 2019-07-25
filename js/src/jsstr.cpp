@@ -104,6 +104,18 @@ js_GetStringChars(JSContext *cx, JSString *str)
 void
 JSString::flatten()
 {
+    
+    
+    JS_LOCK_RUNTIME(asCell()->compartment()->rt);
+    
+    
+    
+    
+    if (!isRope()) {
+        JS_UNLOCK_RUNTIME(asCell()->compartment()->rt);
+        return;
+    }
+
     JSString *topNode;
     jschar *chars;
     size_t capacity;
@@ -181,6 +193,8 @@ JSString::flatten()
     
     chars[pos] = 0;
     topNode->initFlatMutable(chars, pos, capacity);
+
+    JS_UNLOCK_RUNTIME(asCell()->compartment()->rt);
 }
 
 #ifdef JS_TRACER
