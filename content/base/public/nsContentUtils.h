@@ -1702,16 +1702,6 @@ public:
 
 
 
-
-
-
-  static nsresult ReparentClonedObjectToScope(JSContext* cx, JSObject* obj,
-                                              JSObject* scope);
-
-  
-
-
-
   static void RemoveNewlines(nsString &aString);
 
   

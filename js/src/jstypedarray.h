@@ -222,15 +222,6 @@ JS_FRIEND_API(JSObject *)
 js_CreateTypedArrayWithBuffer(JSContext *cx, jsint atype, JSObject *bufArg,
                               jsint byteoffset, jsint length);
 
-
-
-
-
-
-
-JS_FRIEND_API(JSBool)
-js_ReparentTypedArrayToScope(JSContext *cx, JSObject *obj, JSObject *scope);
-
 extern int32 JS_FASTCALL
 js_TypedArray_uint8_clamp_double(const double x);
 
