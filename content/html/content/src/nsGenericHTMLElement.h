@@ -135,6 +135,8 @@ public:
   nsresult GetOffsetParent(nsIDOMElement** aOffsetParent);
   virtual nsresult GetInnerHTML(nsAString& aInnerHTML);
   virtual nsresult SetInnerHTML(const nsAString& aInnerHTML);
+  virtual nsresult InsertAdjacentHTML(const nsAString& aPosition,
+                                      const nsAString& aText);
   nsresult ScrollIntoView(PRBool aTop, PRUint8 optional_argc);
   
   
@@ -571,6 +573,18 @@ protected:
   }
 
 private:
+  
+
+
+
+
+
+
+
+  void FireMutationEventsForDirectParsing(nsIDocument* aDoc,
+                                          nsIContent* aDest,
+                                          PRInt32 aOldChildCount);
+
   void RegUnRegAccessKey(PRBool aDoReg);
 
 protected:
