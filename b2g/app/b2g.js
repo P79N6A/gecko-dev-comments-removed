@@ -199,6 +199,8 @@ pref("app.creditsURL", "http://www.mozilla.org/credits/");
 pref("app.featuresURL", "http://www.mozilla.com/%LOCALE%/b2g/features/");
 pref("app.faqURL", "http://www.mozilla.com/%LOCALE%/b2g/faq/");
 
+pref("app.reportCrashes", true);
+
 
 pref("security.alternate_certificate_error_page", "certerror");
 
