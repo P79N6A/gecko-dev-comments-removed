@@ -35,17 +35,15 @@
 
 
 
-#include "nsISupports.h"
 #include "nscore.h"
 #include "nsString.h"
+#include "nsXPCOMStrings.h"
 #include "nsReadableUtils.h"
-#include "nsIwin32LocaleImpl.h"
+#include "nsWin32Locale.h"
 #include "nsLocaleCID.h"
 #include "prprf.h"
 #include <windows.h>
 #include "nsCRT.h"
- #include "nsReadableUtils.h"
-#include "nsXPCOMStrings.h"
 
 struct iso_pair 
 {
@@ -60,9 +58,8 @@ struct iso_map
 	iso_pair    sublang_list[20];
 };
 
-HMODULE nsIWin32LocaleImpl::sKernelDLL = NULL;
-nsIWin32LocaleImpl::LocaleNameToLCIDPtr nsIWin32LocaleImpl::localeNameToLCID = NULL;
-nsIWin32LocaleImpl::LCIDToLocaleNamePtr nsIWin32LocaleImpl::lcidToLocaleName = NULL;
+nsWin32Locale::LocaleNameToLCIDPtr nsWin32Locale::localeNameToLCID = NULL;
+nsWin32Locale::LCIDToLocaleNamePtr nsWin32Locale::lcidToLocaleName = NULL;
 
 
 
@@ -606,34 +603,31 @@ iso_pair dbg_list[] =
 #define CROATIAN_ISO_CODE "hr"
 #define SERBIAN_ISO_CODE "sr"
 
-
-NS_IMPL_ISUPPORTS1(nsIWin32LocaleImpl,nsIWin32Locale)
-
-nsIWin32LocaleImpl::nsIWin32LocaleImpl(void)
+void
+nsWin32Locale::initFunctionPointers(void)
 {
+  static PRBool sInitialized = PR_FALSE;
   
-  sKernelDLL = LoadLibraryW(L"kernel32.dll");
-  if (sKernelDLL) {
-    localeNameToLCID = (LocaleNameToLCIDPtr) GetProcAddress(sKernelDLL, "LocaleNameToLCID");
-    lcidToLocaleName = (LCIDToLocaleNamePtr) GetProcAddress(sKernelDLL, "LCIDToLocaleName");
+  if (!sInitialized) {
+    HMODULE kernelDLL = GetModuleHandleW(L"kernel32.dll");
+    if (kernelDLL) {
+      localeNameToLCID = (LocaleNameToLCIDPtr) GetProcAddress(kernelDLL, "LocaleNameToLCID");
+      lcidToLocaleName = (LCIDToLocaleNamePtr) GetProcAddress(kernelDLL, "LCIDToLocaleName");
+    }
+    sInitialized = PR_TRUE;
   }
 }
 
-nsIWin32LocaleImpl::~nsIWin32LocaleImpl(void)
+
+
+
+
+
+nsresult
+nsWin32Locale::GetPlatformLocale(const nsAString& locale, LCID* winLCID)
 {
-  if (sKernelDLL)
-    FreeLibrary(sKernelDLL);
-}
+  initFunctionPointers ();
 
-
-
-
-
-
-
-NS_IMETHODIMP
-nsIWin32LocaleImpl::GetPlatformLocale(const nsAString& locale,LCID* winLCID)
-{
   if (localeNameToLCID) {
     nsAutoString locale_autostr(locale);
     LCID lcid = localeNameToLCID(locale_autostr.get(), 0);
@@ -683,9 +677,11 @@ nsIWin32LocaleImpl::GetPlatformLocale(const nsAString& locale,LCID* winLCID)
 #define LOCALE_NAME_MAX_LENGTH 85
 #endif
 
-NS_IMETHODIMP
-nsIWin32LocaleImpl::GetXPLocale(LCID winLCID, nsAString& locale)
+void
+nsWin32Locale::GetXPLocale(LCID winLCID, nsAString& locale)
 {
+  initFunctionPointers ();
+
   if (lcidToLocaleName)
   {
     WCHAR ret_locale[LOCALE_NAME_MAX_LENGTH];
@@ -695,7 +691,7 @@ nsIWin32LocaleImpl::GetXPLocale(LCID winLCID, nsAString& locale)
     if (rv != 0)
     {
       locale.Assign(ret_locale);
-      return NS_OK;
+      return;
     }
   }
 
@@ -710,14 +706,12 @@ nsIWin32LocaleImpl::GetXPLocale(LCID winLCID, nsAString& locale)
   if (lang_id == LANG_NORWEGIAN) {
     if (sublang_id == SUBLANG_NORWEGIAN_BOKMAL) {
       locale.AssignASCII("nb-NO");
-      return NS_OK;
-    }
-    if (sublang_id == SUBLANG_NORWEGIAN_NYNORSK) {
+    } else if (sublang_id == SUBLANG_NORWEGIAN_NYNORSK) {
       locale.AssignASCII("nn-NO");
-      return NS_OK;
+    } else {
+      locale.AssignASCII("no-NO");
     }
-    locale.AssignASCII("no-NO");
-    return NS_OK;
+    return;
   }
 
   for(i=0;i<LENGTH_MAPPING_LIST;i++) {
@@ -740,7 +734,7 @@ nsIWin32LocaleImpl::GetXPLocale(LCID winLCID, nsAString& locale)
           break;
         }
       }
-      return NS_OK;
+      return;
     }
   }
 
@@ -749,8 +743,7 @@ nsIWin32LocaleImpl::GetXPLocale(LCID winLCID, nsAString& locale)
   
   
   locale.AssignLiteral("en-US"); 
-  return NS_OK;
-
+  return;
 }
 
 #ifdef DEBUG
