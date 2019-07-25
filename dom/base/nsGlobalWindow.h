@@ -43,6 +43,8 @@
 #ifndef nsGlobalWindow_h___
 #define nsGlobalWindow_h___
 
+#include "mozilla/XPCOM.h" 
+
 
 
 #include "nsCOMPtr.h"
@@ -108,6 +110,14 @@
 
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
 #define PREF_BROWSER_STARTUP_HOMEPAGE "browser.startup.homepage"
+
+
+
+#define SUCCESSIVE_DIALOG_TIME_LIMIT 3 // 3 sec
+
+
+
+#define MAX_DIALOG_COUNT 10
 
 class nsIDOMBarProp;
 class nsIDocument;
@@ -244,6 +254,9 @@ class nsGlobalWindow : public nsPIDOMWindow,
                        public PRCListStr
 {
 public:
+  typedef mozilla::TimeStamp TimeStamp;
+  typedef mozilla::TimeDuration TimeDuration;
+
   
   nsPIDOMWindow* GetPrivateParent();
   
@@ -394,6 +407,32 @@ public:
   {
     return FromSupports(wrapper->Native());
   }
+
+  inline nsGlobalWindow *GetTop()
+  {
+    nsCOMPtr<nsIDOMWindow> top;
+    GetTop(getter_AddRefs(top));
+    if (top)
+      return static_cast<nsGlobalWindow *>(static_cast<nsIDOMWindow *>(top.get()));
+    return nsnull;
+  }
+
+  
+  
+  
+  bool DialogOpenAttempted();
+
+  
+  
+  bool AreDialogsBlocked();
+
+  
+  
+  
+  bool ConfirmDialogAllowed();
+
+  
+  void PreventFurtherDialogs();
 
   nsIScriptContext *GetContextInternal()
   {
@@ -863,6 +902,18 @@ protected:
   
   
   PRUint64 mWindowID;
+
+  
+  
+  PRUint32                      mDialogAbuseCount;
+
+  
+  
+  
+  
+  
+  TimeStamp                     mLastDialogQuitTime;
+  PRPackedBool                  mDialogDisabled;
 
   friend class nsDOMScriptableHelper;
   friend class nsDOMWindowUtils;
