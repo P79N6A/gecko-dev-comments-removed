@@ -752,11 +752,9 @@ nsDisplayBackground::IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aColor) 
 }
 
 PRBool
-nsDisplayBackground::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder)
+nsDisplayBackground::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
+                                                    nsIFrame* aFrame)
 {
-  NS_ASSERTION(aBuilder->IsMovingFrame(mFrame),
-              "IsVaryingRelativeToMovingFrame called on non-moving frame!");
-
   
   if (mIsThemed)
     return PR_FALSE;
@@ -771,14 +769,12 @@ nsDisplayBackground::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuild
   if (!bg->HasFixedBackground())
     return PR_FALSE;
 
-  nsIFrame* movingFrame = aBuilder->GetRootMovingFrame();
   
   
   
-  
-  
-  
-  return movingFrame->PresContext() == presContext;
+  return aFrame->GetParent() &&
+    (aFrame == mFrame ||
+     nsLayoutUtils::IsProperAncestorFrame(aFrame, mFrame));
 }
 
 PRBool
@@ -1102,10 +1098,8 @@ PRBool nsDisplayWrapList::IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aCo
   return PR_FALSE;
 }
 
-PRBool nsDisplayWrapList::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder) {
-  
-  
-  
+PRBool nsDisplayWrapList::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
+                                                         nsIFrame* aFrame) {
   NS_WARNING("nsDisplayWrapList::IsVaryingRelativeToMovingFrame called unexpectedly");
   
   return PR_TRUE;
