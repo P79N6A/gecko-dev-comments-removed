@@ -2426,12 +2426,14 @@ RasterImage::SyncDecode()
 
 
 
+
 NS_IMETHODIMP
 RasterImage::Draw(gfxContext *aContext,
                   gfxPattern::GraphicsFilter aFilter,
                   const gfxMatrix &aUserSpaceToImageSpace,
                   const gfxRect &aFill,
                   const nsIntRect &aSubimage,
+                  const nsIntSize& ,
                   PRUint32 aFlags)
 {
   if (mError)

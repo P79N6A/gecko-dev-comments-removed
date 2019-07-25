@@ -1023,6 +1023,25 @@ public:
 
 
 
+
+
+
+
+
+
+
+  static void ComputeSizeForDrawing(imgIContainer* aImage,
+                                    nsIntSize&     aImageSize,
+                                    PRBool&        aGotWidth,
+                                    PRBool&        aGotHeight);
+
+  
+
+
+
+
+
+
   static nsRect GetWholeImageDestination(const nsIntSize& aWholeImageSize,
                                          const nsRect& aImageSourceArea,
                                          const nsRect& aDestArea);
