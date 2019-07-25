@@ -123,14 +123,9 @@ browserElementTestHelpers.origPageThumbsEnabledPref = browserElementTestHelpers.
 browserElementTestHelpers.setPageThumbsEnabledPref(false);
 
 
-var oop;
-if (location.pathname.indexOf("_inproc_") != -1) {
-  oop = false;
-}
-else {
-  
-  oop = true;
-}
+
+var oop = navigator.platform.indexOf('Win') == -1 &&
+          location.pathname.indexOf('_inproc_') == -1;
 
 browserElementTestHelpers.setOOPByDefaultPref(oop);
 browserElementTestHelpers.setOOPDisabledPref(false);
