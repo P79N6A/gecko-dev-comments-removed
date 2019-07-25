@@ -1,0 +1,9 @@
+#mozmill-window {
+  
+  background: white !important; 
+}
+
+#mozmill-window iframe {
+  border: none;
+  overflow: hidden;
+}
