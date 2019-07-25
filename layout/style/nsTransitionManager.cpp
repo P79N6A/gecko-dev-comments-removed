@@ -122,9 +122,9 @@ ElementPropertyTransition::ValuePortionFor(TimeStamp aRefreshTime) const
     
     
     if (aRefreshTime >= mStartTime) {
-      timePortion = 0.0;
-    } else {
       timePortion = 1.0;
+    } else {
+      timePortion = 0.0;
     }
   } else {
     timePortion = (aRefreshTime - mStartTime).ToSeconds() / duration;
