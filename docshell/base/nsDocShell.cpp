@@ -8360,11 +8360,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             
             
             if (!aSHEntry) {
-                
-                
-                nsDependentCSubstring curHashName(curHash, 1);
-                nsDependentCSubstring newHashName(newHash, 1);
-                rv = ScrollToAnchor(curHashName, newHashName, aLoadType);
+                rv = ScrollToAnchor(curHash, newHash, aLoadType);
                 NS_ENSURE_SUCCESS(rv, rv);
             }
 
@@ -9161,14 +9157,18 @@ nsDocShell::ScrollToAnchor(nsACString & aCurHash, nsACString & aNewHash,
 
     
     
+    nsDependentCSubstring newHashName(aNewHash, 1);
 
-    if (!aNewHash.IsEmpty()) {
+    
+    
+
+    if (!newHashName.IsEmpty()) {
         
         
         PRBool scroll = aLoadType != LOAD_HISTORY &&
                         aLoadType != LOAD_RELOAD_NORMAL;
 
-        char *str = ToNewCString(aNewHash);
+        char *str = ToNewCString(newHashName);
         if (!str) {
             return NS_ERROR_OUT_OF_MEMORY;
         }
@@ -9210,7 +9210,7 @@ nsDocShell::ScrollToAnchor(nsACString & aCurHash, nsACString & aNewHash,
             nsXPIDLString uStr;
 
             rv = textToSubURI->UnEscapeAndConvert(PromiseFlatCString(aCharset).get(),
-                                                  PromiseFlatCString(aNewHash).get(),
+                                                  PromiseFlatCString(newHashName).get(),
                                                   getter_Copies(uStr));
             NS_ENSURE_SUCCESS(rv, rv);
 
