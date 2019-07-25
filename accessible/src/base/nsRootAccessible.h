@@ -102,11 +102,19 @@ public:
 
 
 
-  PRBool FireAccessibleFocusEvent(nsAccessible *aFocusAccessible,
-                                  nsINode *aFocusNode,
-                                  nsIDOMEvent *aFocusEvent,
-                                  PRBool aForceEvent = PR_FALSE,
-                                  EIsFromUserInput aIsFromUserInput = eAutoDetect);
+
+
+
+
+
+
+
+
+
+  void FireAccessibleFocusEvent(nsAccessible* aFocusAccessible,
+                                nsIContent* aRealFocusContent,
+                                PRBool aForceEvent = PR_FALSE,
+                                EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
     
 

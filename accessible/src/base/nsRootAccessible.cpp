@@ -314,100 +314,72 @@ nsRootAccessible::GetCaretAccessible()
   return mCaretAccessible;
 }
 
-PRBool
-nsRootAccessible::FireAccessibleFocusEvent(nsAccessible *aAccessible,
-                                           nsINode *aNode,
-                                           nsIDOMEvent *aFocusEvent,
+void
+nsRootAccessible::FireAccessibleFocusEvent(nsAccessible* aFocusAccessible,
+                                           nsIContent* aRealFocusContent,
                                            PRBool aForceEvent,
                                            EIsFromUserInput aIsFromUserInput)
 {
   
 
-  if (mCaretAccessible) {
-    nsCOMPtr<nsIDOMNSEvent> nsevent(do_QueryInterface(aFocusEvent));
-    if (nsevent) {
-      
-      
-      
-      
-      
-      
-      
-      
-      nsCOMPtr<nsIDOMEventTarget> domEventTarget;
-      nsevent->GetOriginalTarget(getter_AddRefs(domEventTarget));
-      nsCOMPtr<nsIContent> realFocusedNode(do_QueryInterface(domEventTarget));
-      if (!realFocusedNode) {
-        
-        
-        
-        realFocusedNode = do_QueryInterface(aNode);
-      }
-      if (realFocusedNode) {
-        mCaretAccessible->SetControlSelectionListener(realFocusedNode);
-      }
-    }
-  }
+  
+  if (mCaretAccessible && aRealFocusContent)
+    mCaretAccessible->SetControlSelectionListener(aRealFocusContent);
+
+  nsAccessible* focusAccessible = aFocusAccessible;
 
   
-  nsINode *finalFocusNode = aNode;
-  nsAccessible *finalFocusAccessible = aAccessible;
-
-  nsIContent *finalFocusContent = nsCoreUtils::GetRoleContent(finalFocusNode);
-  if (finalFocusContent) {
+  
+  
+  
+  nsIContent* content = focusAccessible->GetContent();
+  if (content) {
     nsAutoString id;
-    if (finalFocusContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_activedescendant, id)) {
-      nsIDocument *doc = aNode->GetOwnerDoc();
-      finalFocusNode = doc->GetElementById(id);
-      if (!finalFocusNode) {
-        
-        
-        finalFocusNode = aNode;
+    if (content->GetAttr(kNameSpaceID_None,
+                         nsAccessibilityAtoms::aria_activedescendant, id)) {
+      nsIDocument* DOMDoc = content->GetOwnerDoc();
+      nsIContent* activeDescendantContent = DOMDoc->GetElementById(id);
+
+      
+      
+      if (activeDescendantContent) {
+        focusAccessible =
+          GetAccService()->GetAccessible(activeDescendantContent);
       }
-      finalFocusAccessible = nsnull;
     }
   }
 
   
-  if (gLastFocusedNode == finalFocusNode && !aForceEvent) {
-    return PR_FALSE;
-  }
+  
+  nsINode* focusNode = focusAccessible->GetNode();
+  if (gLastFocusedNode == focusNode && !aForceEvent)
+    return;
 
-  if (!finalFocusAccessible) {
-    finalFocusAccessible = GetAccService()->GetAccessible(finalFocusNode);
-    
-    
-    
-    if (!finalFocusAccessible) {
-      return PR_FALSE;
-    }
-  }
+  gLastFocusedAccessiblesState = nsAccUtils::State(focusAccessible);
 
-  gLastFocusedAccessiblesState = nsAccUtils::State(finalFocusAccessible);
-  PRUint32 role = finalFocusAccessible->Role();
-  if (role == nsIAccessibleRole::ROLE_MENUITEM) {
-    if (!mCurrentARIAMenubar) {  
+  
+  if (focusAccessible->ARIARole() == nsIAccessibleRole::ROLE_MENUITEM) {
+    
+    if (!mCurrentARIAMenubar) {
       
-      if (role != finalFocusAccessible->NativeRole()) { 
-        nsAccessible *menuBarAccessible =
-          nsAccUtils::GetAncestorWithRole(finalFocusAccessible,
-                                          nsIAccessibleRole::ROLE_MENUBAR);
-        if (menuBarAccessible) {
-          mCurrentARIAMenubar = menuBarAccessible->GetNode();
-          if (mCurrentARIAMenubar) {
-            nsRefPtr<AccEvent> menuStartEvent =
-              new AccEvent(nsIAccessibleEvent::EVENT_MENU_START,
-                           menuBarAccessible, aIsFromUserInput,
-                           AccEvent::eAllowDupes);
-            if (menuStartEvent) {
-              FireDelayedAccessibleEvent(menuStartEvent);
-            }
-          }
+      nsAccessible* menuBarAccessible =
+        nsAccUtils::GetAncestorWithRole(focusAccessible,
+                                        nsIAccessibleRole::ROLE_MENUBAR);
+      if (menuBarAccessible) {
+        mCurrentARIAMenubar = menuBarAccessible->GetNode();
+        if (mCurrentARIAMenubar) {
+          nsRefPtr<AccEvent> menuStartEvent =
+            new AccEvent(nsIAccessibleEvent::EVENT_MENU_START,
+                         menuBarAccessible, aIsFromUserInput,
+                         AccEvent::eAllowDupes);
+          if (menuStartEvent)
+            FireDelayedAccessibleEvent(menuStartEvent);
         }
       }
     }
   }
   else if (mCurrentARIAMenubar) {
+    
     nsRefPtr<AccEvent> menuEndEvent =
       new AccEvent(nsIAccessibleEvent::EVENT_MENU_END, mCurrentARIAMenubar,
                    aIsFromUserInput, AccEvent::eAllowDupes);
@@ -417,29 +389,15 @@ nsRootAccessible::FireAccessibleFocusEvent(nsAccessible *aAccessible,
     mCurrentARIAMenubar = nsnull;
   }
 
-  nsCOMPtr<nsIContent> focusContent = do_QueryInterface(finalFocusNode);
-  nsIFrame *focusFrame = nsnull;
-  if (focusContent) {
-    nsIPresShell *shell = nsCoreUtils::GetPresShellFor(finalFocusNode);
-
-    NS_ASSERTION(shell, "No pres shell for final focus node!");
-    if (!shell)
-      return PR_FALSE;
-
-    focusFrame = focusContent->GetPrimaryFrame();
-  }
-
   NS_IF_RELEASE(gLastFocusedNode);
-  gLastFocusedNode = finalFocusNode;
+  gLastFocusedNode = focusNode;
   NS_IF_ADDREF(gLastFocusedNode);
 
   
   
   FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_FOCUS,
-                             finalFocusNode, AccEvent::eCoalesceFromSameDocument,
+                             focusNode, AccEvent::eCoalesceFromSameDocument,
                              aIsFromUserInput);
-
-  return PR_TRUE;
 }
 
 void
@@ -545,7 +503,7 @@ nsRootAccessible::HandleEvent(nsIDOMEvent* aEvent)
     nsEventShell::FireEvent(accEvent);
 
     if (isEnabled)
-      FireAccessibleFocusEvent(accessible, targetNode, aEvent);
+      FireAccessibleFocusEvent(accessible, targetContent);
 
     return NS_OK;
   }
@@ -649,7 +607,7 @@ nsRootAccessible::HandleEvent(nsIDOMEvent* aEvent)
         }
       }
     }
-    FireAccessibleFocusEvent(accessible, focusedItem, aEvent);
+    FireAccessibleFocusEvent(accessible, targetContent);
   }
   else if (eventType.EqualsLiteral("blur")) {
     NS_IF_RELEASE(gLastFocusedNode);
@@ -720,7 +678,7 @@ nsRootAccessible::HandleEvent(nsIDOMEvent* aEvent)
     }
     if (fireFocus) {
       
-      FireAccessibleFocusEvent(accessible, targetNode, aEvent, PR_TRUE,
+      FireAccessibleFocusEvent(accessible, targetContent, PR_TRUE,
                                eFromUserInput);
     }
   }
