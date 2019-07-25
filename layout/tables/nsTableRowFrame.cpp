@@ -892,7 +892,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
 
         
         
-        if (!aTableFrame.GetStyleDisplay()->IsFloating()) {
+        if (!aTableFrame.IsFloating()) {
           
           
           

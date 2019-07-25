@@ -292,6 +292,10 @@ public:
   const nsStylePadding*    mStylePadding;
   const nsStyleText*       mStyleText;
 
+  bool IsFloating() const {
+    return mStyleDisplay->IsFloating(frame);
+  }
+
   
   
   nsIPercentHeightObserver* mPercentHeightObserver;
