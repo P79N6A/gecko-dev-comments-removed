@@ -714,6 +714,8 @@ nsCaret::DrawAtPositionWithHint(nsIDOMNode*             aNode,
     mLastContentOffset = aOffset;
     mLastHint = aFrameHint;
     mLastBidiLevel = aBidiLevel;
+    mLastFrame = theFrame;
+    mLastFrameOffset = theFrameOffset;
 
     
     if (aBidiLevel & BIDI_LEVEL_UNDEFINED) {
@@ -912,8 +914,6 @@ nsCaret::GetCaretFrameForNodeOffset(nsIContent*             aContentNode,
   }
   *aReturnFrame = theFrame;
   *aReturnOffset = theFrameOffset;
-  mLastFrame = theFrame;
-  mLastFrameOffset = theFrameOffset;
   return NS_OK;
 }
 
