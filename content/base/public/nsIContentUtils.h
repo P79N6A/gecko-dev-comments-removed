@@ -75,8 +75,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIContentUtils, NS_ICONTENTUTILS_IID)
 
 
 #define NS_ICONTENTUTILS2_IID \
-{ 0x60083ad4, 0xf7ed, 0x488b, \
-{ 0xa7, 0x06, 0xba, 0xcb, 0x37, 0x8f, 0xe1, 0xa5 } }
+{ 0xc7193287, 0x3e3d, 0x467f, \
+{ 0xb6, 0xda, 0x47, 0xb9, 0x14, 0xeb, 0x4c, 0x83 } }
 
 class nsIContentUtils2 : public nsISupports
 {
@@ -85,6 +85,8 @@ public:
   NS_DECL_ISUPPORTS
 
   virtual nsIInterfaceRequestor* GetSameOriginChecker();
+  
+  virtual nsresult CheckSameOrigin(nsIChannel *aOldChannel, nsIChannel *aNewChannel);
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIContentUtils2, NS_ICONTENTUTILS2_IID)
