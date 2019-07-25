@@ -908,6 +908,17 @@ var loadShaderFromFile = function(gl, file, type, opt_errorCallback) {
 
 
 
+var getScript = function(scriptId) {
+  var shaderScript = document.getElementById(scriptId);
+  if (!shaderScript) {
+    throw("*** Error: unknown script element" + scriptId);
+  }
+  return shaderScript.text;
+};
+
+
+
+
 
 
 
@@ -1123,6 +1134,7 @@ return {
   endsWith: endsWith,
   getFileListAsync: getFileListAsync,
   getLastError: getLastError,
+  getScript: getScript,
   getUrlArguments: getUrlArguments,
   glEnumToString: glEnumToString,
   glErrorShouldBe: glErrorShouldBe,
