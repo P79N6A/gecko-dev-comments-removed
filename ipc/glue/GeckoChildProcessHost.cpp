@@ -219,7 +219,7 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts)
   
 
   FilePath exePath;
-#ifdef OS_LINUX
+#if defined(OS_LINUX) || defined(OS_MACOSX)
   base::environment_map newEnvVars;
 #endif
 
@@ -235,6 +235,8 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts)
     path += "/lib";
 #endif
     newEnvVars["LD_LIBRARY_PATH"] = path.get();
+#elif OS_MACOSX
+    newEnvVars["DYLD_LIBRARY_PATH"] = path.get();
 #endif
 #ifdef MOZ_OMNIJAR
     
@@ -249,6 +251,13 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts)
     exePath = FilePath(CommandLine::ForCurrentProcess()->argv()[0]);
     exePath = exePath.DirName();
   }
+
+#ifdef OS_MACOSX
+  
+  
+  exePath = exePath.AppendASCII(MOZ_CHILD_PROCESS_BUNDLE);
+#endif
+
   exePath = exePath.AppendASCII(MOZ_CHILD_PROCESS_NAME);
 
 #ifdef ANDROID
@@ -297,7 +306,7 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts)
 #endif
 
   base::LaunchApp(childArgv, mFileMap,
-#ifdef OS_LINUX
+#if defined(OS_LINUX) || defined(OS_MACOSX)
                   newEnvVars,
 #endif
                   false, &process);
