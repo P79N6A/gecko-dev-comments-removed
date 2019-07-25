@@ -1020,6 +1020,29 @@ struct ConvertImpl<JSUint64, jsdouble> {
 };
 #endif
 
+
+
+
+
+#ifdef SPARC
+
+template<>
+struct ConvertImpl<JSUint64, jsdouble> {
+  static JS_ALWAYS_INLINE JSUint64 Convert(jsdouble d) {
+    return d >= 0xffffffffffffffff ?
+           0x8000000000000000 : JSUint64(d);
+  }
+};
+
+template<>
+struct ConvertImpl<JSInt64, jsdouble> {
+  static JS_ALWAYS_INLINE JSInt64 Convert(jsdouble d) {
+    return d >= 0x7fffffffffffffff ?
+           0x8000000000000000 : JSInt64(d);
+  }
+};
+#endif
+
 template<class TargetType, class FromType>
 static JS_ALWAYS_INLINE TargetType Convert(FromType d)
 {
