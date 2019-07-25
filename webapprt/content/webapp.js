@@ -61,8 +61,8 @@ function onLoad() {
     
     Services.obs.addObserver(function observeOnce(subj, topic, data) {
       Services.obs.removeObserver(observeOnce, "webapprt-test-did-install");
-      gAppBrowser.addProgressListener(progressListener,
-                                      Ci.nsIWebProgress.NOTIFY_LOCATION);
+      gAppBrowser.webProgress.
+        addProgressListener(progressListener,Ci.nsIWebProgress.NOTIFY_LOCATION);
     }, "webapprt-test-did-install", false);
 
     
