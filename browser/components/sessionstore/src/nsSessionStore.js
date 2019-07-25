@@ -2090,9 +2090,6 @@ SessionStoreService.prototype = {
   _updateTextAndScrollData: function sss_updateTextAndScrollData(aWindow) {
     var browsers = aWindow.gBrowser.browsers;
     this._windows[aWindow.__SSi].tabs.forEach(function (tabData, i) {
-      if (browsers[i].__SS_data &&
-          browsers[i].__SS_tabStillLoading)
-        return; 
       try {
         this._updateTextAndScrollDataForTab(aWindow, browsers[i], tabData);
       }
@@ -2114,6 +2111,10 @@ SessionStoreService.prototype = {
 
   _updateTextAndScrollDataForTab:
     function sss_updateTextAndScrollDataForTab(aWindow, aBrowser, aTabData, aFullData) {
+    
+    if (aBrowser.__SS_data && aBrowser.__SS_tabStillLoading)
+      return;
+
     var tabIndex = (aTabData.index || aTabData.entries.length) - 1;
     
     if (!aTabData.entries[tabIndex])
