@@ -40,10 +40,12 @@ typedef ptrdiff_t GLintptr;
 #include "mozilla/StandardInteger.h"
 
 
-typedef struct __GLsync *GLsync;
+typedef struct __GLsync* GLsync;
 typedef int64_t GLint64;
 typedef uint64_t GLuint64;
 
+
+typedef void* GLeglImage;
 
 #ifndef GLAPIENTRY
 # ifdef WIN32
