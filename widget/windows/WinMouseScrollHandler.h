@@ -16,6 +16,7 @@
 class nsWindow;
 class nsGUIEvent;
 class nsMouseScrollEvent;
+struct nsIntPoint;
 struct nsModifierKeyState;
 
 namespace mozilla {
@@ -35,9 +36,32 @@ public:
                              LRESULT *aRetValue,
                              bool &aEatMessage);
 
+  
+
+
+
+  static nsresult SynthesizeNativeMouseScrollEvent(nsWindow* aWindow,
+                                                   const nsIntPoint& aPoint,
+                                                   PRUint32 aNativeMessage,
+                                                   PRInt32 aDelta,
+                                                   PRUint32 aModifierFlags,
+                                                   PRUint32 aAdditionalFlags);
+
+  
+
+
+
+
+  static bool IsWaitingInternalMessage()
+  {
+    return sInstance && sInstance->mIsWaitingInternalMessage;
+  }
+
 private:
   MouseScrollHandler();
   ~MouseScrollHandler();
+
+  bool mIsWaitingInternalMessage;
 
   static MouseScrollHandler* sInstance;
 
@@ -52,10 +76,26 @@ private:
 
 
 
+  static void InitEvent(nsWindow* aWindow,
+                        nsGUIEvent& aEvent,
+                        nsIntPoint* aPoint = nsnull);
+
+  
+
+
+
 
 
 
   static nsModifierKeyState GetModifierKeyState(UINT aMessage);
+
+  
+
+
+
+
+
+  static POINTS GetCurrentMessagePos();
 
   
 
@@ -349,6 +389,70 @@ private:
   };
 
   UserPrefs mUserPrefs;
+
+  class SynthesizingEvent {
+  public:
+    SynthesizingEvent() :
+      mWnd(NULL), mMessage(0), mWParam(0), mLParam(0),
+      mStatus(NOT_SYNTHESIZING)
+    {
+    }
+
+    ~SynthesizingEvent() {}
+
+    static bool IsSynthesizing();
+
+    nsresult Synthesize(const POINTS& aCursorPoint, HWND aWnd,
+                        UINT aMessage, WPARAM aWParam, LPARAM aLParam,
+                        const BYTE (&aKeyStates)[256]);
+
+    void NativeMessageReceived(nsWindow* aWindow, UINT aMessage,
+                               WPARAM aWParam, LPARAM aLParam);
+
+    void NotifyNativeMessageHandlingFinished();
+    void NotifyInternalMessageHandlingFinished();
+
+    const POINTS& GetCursorPoint() const { return mCursorPoint; }
+
+  private:
+    POINTS mCursorPoint;
+    HWND mWnd;
+    UINT mMessage;
+    WPARAM mWParam;
+    LPARAM mLParam;
+    BYTE mKeyState[256];
+    BYTE mOriginalKeyState[256];
+
+    enum Status {
+      NOT_SYNTHESIZING,
+      SENDING_MESSAGE,
+      NATIVE_MESSAGE_RECEIVED,
+      INTERNAL_MESSAGE_POSTED,
+    };
+    Status mStatus;
+
+#ifdef PR_LOGGING
+    const char* GetStatusName()
+    {
+      switch (mStatus) {
+        case NOT_SYNTHESIZING:
+          return "NOT_SYNTHESIZING";
+        case SENDING_MESSAGE:
+          return "SENDING_MESSAGE";
+        case NATIVE_MESSAGE_RECEIVED:
+          return "NATIVE_MESSAGE_RECEIVED";
+        case INTERNAL_MESSAGE_POSTED:
+          return "INTERNAL_MESSAGE_POSTED";
+        default:
+          return "Unknown";
+      }
+    }
+#endif
+
+    void Finish();
+  }; 
+
+  SynthesizingEvent* mSynthesizingEvent;
 
 public:
 

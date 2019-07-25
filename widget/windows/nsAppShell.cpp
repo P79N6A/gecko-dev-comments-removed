@@ -43,6 +43,8 @@
 #include "nsToolkit.h"
 #include "nsThreadUtils.h"
 #include "WinTaskbar.h"
+#include "WinMouseScrollHandler.h"
+#include "nsWindowDefs.h"
 #include "nsString.h"
 #include "nsIMM32Handler.h"
 #include "mozilla/widget/AudioSession.h"
@@ -79,6 +81,19 @@ using mozilla::crashreporter::LSPAnnotate;
 
 static bool PeekUIMessage(MSG* aMsg)
 {
+  
+  
+  
+  
+  
+  
+  
+  if (mozilla::widget::MouseScrollHandler::IsWaitingInternalMessage() &&
+      ::PeekMessageW(aMsg, NULL, MOZ_WM_MOUSEWHEEL_FIRST,
+                     MOZ_WM_MOUSEWHEEL_LAST, PM_REMOVE)) {
+    return true;
+  }
+
   MSG keyMsg, imeMsg, mouseMsg, *pMsg = 0;
   bool haveKeyMsg, haveIMEMsg, haveMouseMsg;
 
