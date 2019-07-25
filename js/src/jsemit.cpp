@@ -4353,7 +4353,7 @@ static JSBool
 EmitVariables(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
               JSBool inLetHead, ptrdiff_t *headNoteIndex)
 {
-    bool let, forInVar, first;
+    bool forInVar, first;
     ptrdiff_t off, noteIndex, tmp;
     JSParseNode *pn2, *pn3, *next;
     JSOp op;
@@ -4375,7 +4375,7 @@ EmitVariables(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
 
 
 
-    let = (pn->pn_op == JSOP_NOP);
+    DebugOnly<bool> let = (pn->pn_op == JSOP_NOP);
     forInVar = (pn->pn_xflags & PNX_FORINVAR) != 0;
 
     off = noteIndex = -1;
@@ -5954,7 +5954,6 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
       case TOK_CATCH:
       {
         ptrdiff_t catchStart, guardJump;
-        JSObject *blockObj;
 
         
 
@@ -5964,7 +5963,6 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         JS_ASSERT(stmt->type == STMT_BLOCK && (stmt->flags & SIF_SCOPE));
         stmt->type = STMT_CATCH;
         catchStart = stmt->update;
-        blockObj = stmt->blockBox->object;
 
         
         stmt = stmt->down;
