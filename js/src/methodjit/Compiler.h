@@ -319,21 +319,86 @@ class Compiler : public BaseCompiler
 
     struct InternalCallSite {
         uint32 returnOffset;
-        DataLabelPtr callPatch;
         DataLabelPtr inlinePatch;
         uint32 inlineIndex;
         jsbytecode *inlinepc;
         size_t id;
-        bool call;
         bool ool;
+
+        
+        bool needsRejoin;
 
         InternalCallSite(uint32 returnOffset,
                          uint32 inlineIndex, jsbytecode *inlinepc, size_t id,
-                         bool call, bool ool)
+                         bool ool, bool needsRejoin)
           : returnOffset(returnOffset),
             inlineIndex(inlineIndex), inlinepc(inlinepc), id(id),
-            call(call), ool(ool)
+            ool(ool), needsRejoin(needsRejoin)
         { }
+    };
+
+    struct InternalRejoinSite {
+        Label label;
+        jsbytecode *pc;
+        size_t id;
+
+        InternalRejoinSite(Label label, jsbytecode *pc, size_t id)
+            : label(label), pc(pc), id(id)
+        { }
+    };
+
+    struct AutoRejoinSite {
+        Compiler *cc;
+        jsbytecode *pc;
+
+        bool ool;
+        Label oolLabel;
+
+        
+        uint32 startSites;
+        uint32 rejoinSites;
+
+        void *stub1;
+        void *stub2;
+        void *stub3;
+
+        AutoRejoinSite(Compiler *cc, void *stub1, void *stub2 = NULL, void *stub3 = NULL)
+            : cc(cc), pc(cc->PC), ool(false),
+              startSites(cc->callSites.length()),
+              rejoinSites(cc->rejoinSites.length()),
+              stub1(stub1), stub2(stub2), stub3(stub3)
+        {}
+
+        
+
+
+
+        void oolRejoin(Label label)
+        {
+            ool = true;
+            oolLabel = label;
+        }
+
+        ~AutoRejoinSite()
+        {
+            if (cc->a != cc->outer)
+                return;
+#ifdef DEBUG
+            JS_ASSERT(pc == cc->PC);
+            cc->checkRejoinSite(startSites, rejoinSites, stub1);
+            if (stub2)
+                cc->checkRejoinSite(startSites, rejoinSites, stub2);
+            if (stub3)
+                cc->checkRejoinSite(startSites, rejoinSites, stub3);
+#endif
+            if (cc->needRejoins(pc)) {
+                cc->addRejoinSite(stub1, ool, oolLabel);
+                if (stub2)
+                    cc->addRejoinSite(stub2, ool, oolLabel);
+                if (stub3)
+                    cc->addRejoinSite(stub3, ool, oolLabel);
+            }
+        }
     };
 
     struct DoublePatch {
@@ -406,6 +471,7 @@ class Compiler : public BaseCompiler
 
     JSScript *script;
     jsbytecode *PC;
+    bool variadicRejoin;  
 
     LoopState *loop;
 
@@ -427,6 +493,7 @@ class Compiler : public BaseCompiler
 #endif
     js::Vector<CallPatchInfo, 64, CompilerAllocPolicy> callPatches;
     js::Vector<InternalCallSite, 64, CompilerAllocPolicy> callSites;
+    js::Vector<InternalRejoinSite, 64, CompilerAllocPolicy> rejoinSites;
     js::Vector<DoublePatch, 16, CompilerAllocPolicy> doubleList;
     js::Vector<JumpTable, 16> jumpTables;
     js::Vector<uint32, 16> jumpTableOffsets;
@@ -441,7 +508,6 @@ class Compiler : public BaseCompiler
 #endif
     bool debugMode_;
     bool addTraceHints;
-    bool recompiling;
     bool inlining;
     bool oomInVector;       
     enum { NoApplyTricks, LazyArgsObj } applyTricks;
@@ -455,7 +521,7 @@ class Compiler : public BaseCompiler
     enum { LengthAtomIndex = uint32(-2) };
 
     Compiler(JSContext *cx, JSScript *outerScript, bool isConstructing,
-             const Vector<PatchableFrame> *patchFrames, bool recompiling);
+             const Vector<PatchableFrame> *patchFrames);
     ~Compiler();
 
     CompileStatus compile();
@@ -464,10 +530,34 @@ class Compiler : public BaseCompiler
     bool knownJump(jsbytecode *pc);
     Label labelOf(jsbytecode *target, uint32 inlineIndex);
     void addCallSite(const InternalCallSite &callSite);
-    void addReturnSite(Label joinPoint, bool ool = false);
+    void addReturnSite();
+    void inlineStubCall(void *stub, bool needsRejoin);
     bool loadOldTraps(const Vector<CallSite> &site);
 
     bool debugMode() { return debugMode_; }
+
+#ifdef DEBUG
+    void checkRejoinSite(uint32 nCallSites, uint32 nRejoinSites, void *stub);
+#endif
+    void addRejoinSite(void *stub, bool ool, Label oolLabel);
+
+    bool needRejoins(jsbytecode *pc)
+    {
+        
+        if (a != outer)
+            return false;
+
+        
+        if (outerScript->inlineParents)
+            return true;
+
+        
+        for (unsigned i = 0; patchFrames && i < patchFrames->length(); i++) {
+            if ((*patchFrames)[i].pc == pc)
+                return true;
+        }
+        return false;
+    }
 
     jsbytecode *outerPC() {
         if (a == outer)
@@ -498,7 +588,9 @@ class Compiler : public BaseCompiler
 
     
     CompileStatus prepareInferenceTypes(JSScript *script, ActiveFrame *a);
-    void fixDoubleTypes(Uses uses);
+    inline bool preserveLocalType(unsigned i);
+    inline bool preserveArgType(unsigned i);
+    void fixDoubleTypes();
     void restoreAnalysisTypes(uint32 stackDepth);
     JSValueType knownThisType();
     JSValueType knownArgumentType(uint32 arg);
@@ -521,7 +613,7 @@ class Compiler : public BaseCompiler
     bool canUseApplyTricks();
 
     
-    bool emitStubCmpOp(BoolStub stub, jsbytecode *target, JSOp fused);
+    bool emitStubCmpOp(BoolStub stub, AutoRejoinSite &rejoin, jsbytecode *target, JSOp fused);
     bool iter(uintN flags);
     void iterNext();
     bool iterMore();
@@ -622,11 +714,10 @@ class Compiler : public BaseCompiler
                              MaybeRegisterID &mreg);
     void maybeJumpIfNotDouble(Assembler &masm, MaybeJump &mj, FrameEntry *fe,
                               MaybeRegisterID &mreg);
-    bool jsop_relational(JSOp op, BoolStub stub, jsbytecode *target, JSOp fused);
-    bool jsop_relational_self(JSOp op, BoolStub stub, jsbytecode *target, JSOp fused);
-    bool jsop_relational_full(JSOp op, BoolStub stub, jsbytecode *target, JSOp fused);
-    bool jsop_relational_double(JSOp op, BoolStub stub, jsbytecode *target, JSOp fused);
-    bool jsop_relational_int(JSOp op, jsbytecode *target, JSOp fused);
+    bool jsop_relational(JSOp op, BoolStub stub, AutoRejoinSite &rejoin, jsbytecode *target, JSOp fused);
+    bool jsop_relational_full(JSOp op, BoolStub stub, AutoRejoinSite &rejoin, jsbytecode *target, JSOp fused);
+    bool jsop_relational_double(JSOp op, BoolStub stub, AutoRejoinSite &rejoin, jsbytecode *target, JSOp fused);
+    bool jsop_relational_int(JSOp op, AutoRejoinSite &rejoin, jsbytecode *target, JSOp fused);
 
     void emitLeftDoublePath(FrameEntry *lhs, FrameEntry *rhs, FrameState::BinaryAlloc &regs,
                             MaybeJump &lhsNotDouble, MaybeJump &rhsNotNumber,
@@ -658,8 +749,8 @@ class Compiler : public BaseCompiler
     void jsop_getelem_dense(bool isPacked);
     bool isCacheableBaseAndIndex(FrameEntry *obj, FrameEntry *id);
     void jsop_stricteq(JSOp op);
-    bool jsop_equality(JSOp op, BoolStub stub, jsbytecode *target, JSOp fused);
-    bool jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *target, JSOp fused);
+    bool jsop_equality(JSOp op, BoolStub stub, AutoRejoinSite &autoRejoin, jsbytecode *target, JSOp fused);
+    bool jsop_equality_int_string(JSOp op, BoolStub stub, AutoRejoinSite &autoRejoin, jsbytecode *target, JSOp fused);
     void jsop_pos();
 
     static inline Assembler::Condition
@@ -685,6 +776,12 @@ class Compiler : public BaseCompiler
         }
     }
 
+    static inline Assembler::Condition
+    GetStubCompareCondition(JSOp fused)
+    {
+        return (fused == JSOP_IFEQ) ? Assembler::Zero : Assembler::NonZero;
+    }
+
     
     JSObject *pushedSingleton(unsigned pushed);
     CompileStatus callArrayBuiltin(uint32 argc, bool callingNew);
@@ -708,25 +805,46 @@ class Compiler : public BaseCompiler
 
 
 #define INLINE_STUBCALL(stub)                                               \
-    do {                                                                    \
-        void *nstub = JS_FUNC_TO_DATA_PTR(void *, (stub));                  \
-        DataLabelPtr inlinePatch;                                           \
-        Call cl = emitStubCall(nstub, &inlinePatch);                        \
-        InternalCallSite site(masm.callReturnOffset(cl), a->inlineIndex, PC, (size_t)nstub, \
-                              true, false);                                 \
-        site.inlinePatch = inlinePatch;                                     \
-        addCallSite(site);                                                  \
-    } while (0)                                                             \
+    inlineStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), true)
+
+
+#define INLINE_STUBCALL_NO_REJOIN(stub)                                     \
+    inlineStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), false)
 
 
 
 
 #define OOL_STUBCALL(stub)                                                  \
-    stubcc.emitStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)))
+    stubcc.emitStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), true)
 
 
 #define OOL_STUBCALL_LOCAL_SLOTS(stub, slots)                               \
-    stubcc.emitStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), (slots))       \
+    stubcc.emitStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), true, (slots))
+
+
+#define OOL_STUBCALL_NO_REJOIN(stub)                                        \
+    stubcc.emitStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), false)
+
+
+
+
+
+
+
+#define REJOIN_SITE(stub)                                                   \
+    AutoRejoinSite autoRejoin(this, JS_FUNC_TO_DATA_PTR(void *, (stub)))
+
+#define REJOIN_SITE_2(stub1, stub2)                                         \
+    AutoRejoinSite autoRejoin(this, JS_FUNC_TO_DATA_PTR(void *, (stub1)),   \
+                              JS_FUNC_TO_DATA_PTR(void *, (stub2)))
+
+#define REJOIN_SITE_3(stub1, stub2, stub3)                                  \
+    AutoRejoinSite autoRejoin(this, JS_FUNC_TO_DATA_PTR(void *, (stub1)),   \
+                              JS_FUNC_TO_DATA_PTR(void *, (stub2)),         \
+                              JS_FUNC_TO_DATA_PTR(void *, (stub3)))
+
+#define REJOIN_SITE_ANY()                                                   \
+    AutoRejoinSite autoRejoin(this, (void *) RejoinSite::VARIADIC_ID)
 
 } 
 } 

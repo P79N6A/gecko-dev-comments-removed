@@ -338,6 +338,7 @@ namespace mjit {
 
 struct InlineFrame;
 struct CallSite;
+struct RejoinSite;
 
 struct NativeMapEntry {
     size_t          bcOff;  
@@ -366,8 +367,10 @@ struct JITScript {
 
     bool            singleStepMode:1;   
     bool            rejoinPoints:1;     
+
     uint32          nInlineFrames;
     uint32          nCallSites;
+    uint32          nRejoinSites;
 #ifdef JS_MONOIC
     uint32          nGetGlobalNames;
     uint32          nSetGlobalNames;
@@ -402,6 +405,7 @@ struct JITScript {
     NativeMapEntry *nmap() const;
     js::mjit::InlineFrame *inlineFrames() const;
     js::mjit::CallSite *callSites() const;
+    js::mjit::RejoinSite *rejoinSites() const;
 #ifdef JS_MONOIC
     ic::GetGlobalNameIC *getGlobalNames() const;
     ic::SetGlobalNameIC *setGlobalNames() const;
@@ -438,7 +442,7 @@ struct JITScript {
 
   private:
     
-    char *nmapSectionLimit() const;
+    char *commonSectionLimit() const;
     char *monoICSectionsLimit() const;
     char *polyICSectionsLimit() const;
 };
@@ -544,6 +548,32 @@ struct CallSite
 
     bool isTrap() const {
         return id == MAGIC_TRAP_ID;
+    }
+};
+
+struct RejoinSite
+{
+    
+    
+    
+    
+    
+    
+
+    
+    
+    uint32 codeOffset;
+    uint32 pcOffset;
+    size_t id;
+
+    
+    
+    static const size_t VARIADIC_ID = 2;
+
+    void initialize(uint32 codeOffset, uint32 pcOffset, size_t id) {
+        this->codeOffset = codeOffset;
+        this->pcOffset = pcOffset;
+        this->id = id;
     }
 };
 

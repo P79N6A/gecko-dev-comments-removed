@@ -286,6 +286,12 @@ class FrameState
     void ensureDouble(FrameEntry *fe);
 
     
+
+
+
+    void ensureInMemoryDoubles(Assembler &masm);
+
+    
     void forgetKnownDouble(FrameEntry *fe);
 
     
