@@ -11,7 +11,8 @@ import os
 
 def get_build_entries(root_path):
     """ Iterates through the root_path, creating a list for each file and
-        directory. Excludes any path starting with extensions or distribution.
+        directory. Excludes any path starting with extensions or distribution
+        and paths ending with channel-prefs.js.
     """
     rel_file_path_set = set()
     rel_dir_path_set = set()
@@ -21,7 +22,8 @@ def get_build_entries(root_path):
             rel_path_file = os.path.join(parent_dir_rel_path, file_name)
             rel_path_file = rel_path_file.replace("\\", "/")
             if not (rel_path_file.startswith("distribution/") or
-                    rel_path_file.startswith("extensions/")):
+                    rel_path_file.startswith("extensions/") or
+                    rel_path_file.endswith("channel-prefs.js")):
                 rel_file_path_set.add(rel_path_file)
 
         for dir_name in dirs:
@@ -40,7 +42,7 @@ def get_build_entries(root_path):
     return rel_file_path_list, rel_dir_path_list
 
 def generate_precomplete():
-    """ Creates the precomplete file containing the remove, remove-cc, and rmdir
+    """ Creates the precomplete file containing the remove and rmdir
         application update instructions. The current working directory is used
         for the location to enumerate and to create the precomplete file.
     """
@@ -54,10 +56,7 @@ def generate_precomplete():
     
     precomplete_file = open(precomplete_file_path, "wb")
     for rel_file_path in rel_file_path_list:
-        if rel_file_path.endswith("channel-prefs.js"):
-            precomplete_file.writelines("remove-cc \""+rel_file_path+"\"\n")
-        else:
-            precomplete_file.writelines("remove \""+rel_file_path+"\"\n")
+        precomplete_file.writelines("remove \""+rel_file_path+"\"\n")
 
     for rel_dir_path in rel_dir_path_list:
         precomplete_file.writelines("rmdir \""+rel_dir_path+"\"\n")
