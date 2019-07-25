@@ -47,11 +47,9 @@
 #ifdef SOLARIS
 #include <ieeefp.h>
 #endif
-#include "jsvalue.h"
 
 #include "jsstdint.h"
 #include "jsstr.h"
-#include "jsobj.h"
 
 
 
@@ -118,11 +116,29 @@ JSDOUBLE_IS_INFINITE(jsdouble d)
 #endif
 }
 
+static inline int
+JSDOUBLE_IS_NEGZERO(jsdouble d)
+{
+#ifdef WIN32
+    return (d == 0 && (_fpclass(d) & _FPCLASS_NZ));
+#elif defined(SOLARIS)
+    return (d == 0 && copysign(1, d) < 0);
+#else
+    return (d == 0 && signbit(d));
+#endif
+}
+
 #define JSDOUBLE_HI32_SIGNBIT   0x80000000
 #define JSDOUBLE_HI32_EXPMASK   0x7ff00000
 #define JSDOUBLE_HI32_MANTMASK  0x000fffff
-#define JSDOUBLE_HI32_NAN       0x7ff80000
-#define JSDOUBLE_LO32_NAN       0x00000000
+
+static inline bool
+JSDOUBLE_IS_INT32(jsdouble d, int32_t& i)
+{
+    if (JSDOUBLE_IS_NEGZERO(d))
+        return false;
+    return d == (i = int32_t(d));
+}
 
 static inline bool
 JSDOUBLE_IS_NEG(jsdouble d)
@@ -162,16 +178,13 @@ extern JSBool
 js_InitRuntimeNumberState(JSContext *cx);
 
 extern void
+js_TraceRuntimeNumberState(JSTracer *trc);
+
+extern void
 js_FinishRuntimeNumberState(JSContext *cx);
 
 
 extern js::Class js_NumberClass;
-
-inline bool
-JSObject::isNumber() const
-{
-    return getClass() == &js_NumberClass;
-}
 
 extern JSObject *
 js_InitNumberClass(JSContext *cx, JSObject *obj);
@@ -186,8 +199,6 @@ extern const char js_isFinite_str[];
 extern const char js_parseFloat_str[];
 extern const char js_parseInt_str[];
 
-extern JSString * JS_FASTCALL
-js_IntToString(JSContext *cx, jsint i);
 
 extern JSString * JS_FASTCALL
 js_NumberToString(JSContext *cx, jsdouble d);
@@ -197,7 +208,7 @@ js_NumberToString(JSContext *cx, jsdouble d);
 
 
 extern JSBool JS_FASTCALL
-js_NumberValueToCharBuffer(JSContext *cx, const js::Value &v, JSCharBuffer &cb);
+js_NumberValueToCharBuffer(JSContext *cx, jsval v, JSCharBuffer &cb);
 
 namespace js {
 
@@ -205,51 +216,32 @@ namespace js {
 
 
 
-const double DOUBLE_INTEGRAL_PRECISION_LIMIT = uint64(1) << 53;
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern bool
-GetPrefixInteger(JSContext *cx, const jschar *start, const jschar *end, int base,
-                 const jschar **endp, jsdouble *dp);
-
-
-
-
-
 JS_ALWAYS_INLINE bool
-ValueToNumber(JSContext *cx, const js::Value &v, double *out)
+ValueToNumber(JSContext *cx, js::Value *vp, double *out)
 {
-    if (v.isNumber()) {
-        *out = v.toNumber();
+    if (vp->isInt32()) {
+        *out = vp->asInt32();
         return true;
     }
-    extern bool ValueToNumberSlow(JSContext *, js::Value, double *);
-    return ValueToNumberSlow(cx, v, out);
+    if (vp->isDouble()) {
+        *out = vp->asDouble();
+        return true;
+    }
+    extern bool ValueToNumberSlow(JSContext *, js::Value *, double *);
+    return ValueToNumberSlow(cx, vp, out);
 }
 
 
 JS_ALWAYS_INLINE bool
 ValueToNumber(JSContext *cx, js::Value *vp)
 {
-    if (vp->isNumber())
+    if (vp->isInt32())
         return true;
-    double d;
-    extern bool ValueToNumberSlow(JSContext *, js::Value, double *);
-    if (!ValueToNumberSlow(cx, *vp, &d))
-        return false;
-    vp->setNumber(d);
-    return true;
+    if (vp->isDouble())
+        return true;
+    double _;
+    extern bool ValueToNumberSlow(JSContext *, js::Value *, double *);
+    return ValueToNumberSlow(cx, vp, &_);
 }
 
 
@@ -258,41 +250,25 @@ ValueToNumber(JSContext *cx, js::Value *vp)
 
 
 JS_ALWAYS_INLINE bool
-ValueToECMAInt32(JSContext *cx, const js::Value &v, int32_t *out)
+ValueToECMAInt32(JSContext *cx, js::Value *vp, int32_t *out)
 {
-    if (v.isInt32()) {
-        *out = v.toInt32();
+    if (vp->isInt32()) {
+        *out = vp->asInt32();
         return true;
     }
-    extern bool ValueToECMAInt32Slow(JSContext *, const js::Value &, int32_t *);
-    return ValueToECMAInt32Slow(cx, v, out);
+    extern bool ValueToECMAInt32Slow(JSContext *, js::Value *, int32_t *);
+    return ValueToECMAInt32Slow(cx, vp, out);
 }
 
 JS_ALWAYS_INLINE bool
-ValueToECMAUint32(JSContext *cx, const js::Value &v, uint32_t *out)
+ValueToECMAUint32(JSContext *cx, js::Value *vp, uint32_t *out)
 {
-    if (v.isInt32()) {
-        *out = (uint32_t)v.toInt32();
+    if (vp->isInt32()) {
+        *out = (uint32_t)vp->asInt32();
         return true;
     }
-    extern bool ValueToECMAUint32Slow(JSContext *, const js::Value &, uint32_t *);
-    return ValueToECMAUint32Slow(cx, v, out);
-}
-
-
-
-
-
-
-JS_ALWAYS_INLINE bool
-ValueToInt32(JSContext *cx, const js::Value &v, int32_t *out)
-{
-    if (v.isInt32()) {
-        *out = v.toInt32();
-        return true;
-    }
-    extern bool ValueToInt32Slow(JSContext *, const js::Value &, int32_t *);
-    return ValueToInt32Slow(cx, v, out);
+    extern bool ValueToECMAUint32Slow(JSContext *, js::Value *, uint32_t *);
+    return ValueToECMAUint32Slow(cx, vp, out);
 }
 
 
@@ -301,14 +277,30 @@ ValueToInt32(JSContext *cx, const js::Value &v, int32_t *out)
 
 
 JS_ALWAYS_INLINE bool
-ValueToUint16(JSContext *cx, const js::Value &v, uint16_t *out)
+ValueToInt32(JSContext *cx, js::Value *vp, int32_t *out)
 {
-    if (v.isInt32()) {
-        *out = (uint16_t)v.toInt32();
+    if (vp->isInt32()) {
+        *out = vp->asInt32();
         return true;
     }
-    extern bool ValueToUint16Slow(JSContext *, const js::Value &, uint16_t *);
-    return ValueToUint16Slow(cx, v, out);
+    extern bool ValueToInt32Slow(JSContext *, js::Value *, int32_t *);
+    return ValueToInt32Slow(cx, vp, out);
+}
+
+
+
+
+
+
+JS_ALWAYS_INLINE bool
+ValueToUint16(JSContext *cx, js::Value *vp, uint16_t *out)
+{
+    if (vp->isInt32()) {
+        *out = (uint16_t)vp->asInt32();
+        return true;
+    }
+    extern bool ValueToUint16Slow(JSContext *, js::Value *, uint16_t *);
+    return ValueToUint16Slow(cx, vp, out);
 }
 
 }  
@@ -401,127 +393,6 @@ js_DoubleToECMAInt32(jsdouble d)
     }
 
     return int32(du.d);
-#elif defined (__arm__) && defined (__GNUC__)
-    int32_t i;
-    uint32_t    tmp0;
-    uint32_t    tmp1;
-    uint32_t    tmp2;
-    asm (
-    
-    
-    
-    
-    
-
-    
-    
-    
-    
-
-    
-"   mov     %1, %R4, LSR #20\n"
-"   bic     %1, %1, #(1 << 11)\n"  
-
-    
-    
-"   orr     %R4, %R4, #(1 << 20)\n"
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-"   sub     %1, %1, #0xff\n"
-"   subs    %1, %1, #0x300\n"
-"   bmi     8f\n"
-
-    
-    
-
-    
-"   subs    %3, %1, #52\n"         
-"   bmi     1f\n"
-
-    
-    
-    
-    
-    
-    
-"   bic     %2, %3, #0xff\n"
-"   orr     %3, %3, %2, LSR #3\n"
-    
-    
-"   mov     %Q4, %Q4, LSL %3\n"
-"   b       2f\n"
-"1:\n" 
-    
-    
-"   rsb     %3, %1, #52\n"
-"   mov     %Q4, %Q4, LSR %3\n"
-
-    
-    
-    
-
-"2:\n"
-    
-    
-    
-    
-    
-    
-    
-"   subs    %3, %1, #31\n"          
-"   mov     %1, %R4, LSL #11\n"     
-"   bmi     3f\n"
-
-    
-    
-"   bic     %2, %3, #0xff\n"
-"   orr     %3, %3, %2, LSR #3\n"
-    
-"   mov     %2, %1, LSL %3\n"
-"   b       4f\n"
-"3:\n" 
-    
-    
-"   rsb     %3, %3, #0\n"          
-"   mov     %2, %1, LSR %3\n"      
-
-    
-    
-    
-
-"4:\n"
-    
-"   orr     %Q4, %Q4, %2\n"
-    
-    
-    
-"   eor     %Q4, %Q4, %R4, ASR #31\n"
-"   add     %0, %Q4, %R4, LSR #31\n"
-"   b       9f\n"
-"8:\n"
-    
-    
-"   mov     %0, #0\n"
-"9:\n"
-    : "=r" (i), "=&r" (tmp0), "=&r" (tmp1), "=&r" (tmp2)
-    : "r" (d)
-    : "cc"
-        );
-    return i;
 #else
     int32 i;
     jsdouble two32, two31;
@@ -580,16 +451,38 @@ extern JSBool
 js_strtod(JSContext *cx, const jschar *s, const jschar *send,
           const jschar **ep, jsdouble *dp);
 
+
+
+
+
+
+
+
+
+
+extern JSBool
+js_strtointeger(JSContext *cx, const jschar *s, const jschar *send,
+                const jschar **ep, jsint radix, jsdouble *dp);
+
 namespace js {
 
 static JS_ALWAYS_INLINE bool
 ValueFitsInInt32(const Value &v, int32_t *pi)
 {
     if (v.isInt32()) {
-        *pi = v.toInt32();
+        *pi = v.asInt32();
         return true;
     }
-    return v.isDouble() && JSDOUBLE_IS_INT32(v.toDouble(), pi);
+    return v.isDouble() && JSDOUBLE_IS_INT32(v.asDouble(), *pi);
+}
+
+static JS_ALWAYS_INLINE void
+Uint32ToValue(uint32_t u, Value *vp)
+{
+    if (JS_UNLIKELY(u > INT32_MAX))
+        vp->setDouble(u);
+    else
+        vp->setInt32((int32_t)u);
 }
 
 template<typename T> struct NumberTraits { };
@@ -628,9 +521,8 @@ StringToNumberType(JSContext *cx, JSString *str)
     
     if (end - bp >= 2 && bp[0] == '0' && (bp[1] == 'x' || bp[1] == 'X')) {
         
-        const jschar *endptr;
-        if (!GetPrefixInteger(cx, bp + 2, end, 16, &endptr, &d) ||
-            js_SkipWhiteSpace(endptr, end) != end) {
+        if (!js_strtointeger(cx, bp, end, &ep, 16, &d) ||
+            js_SkipWhiteSpace(ep, end) != end) {
             return NumberTraits<T>::NaN();
         }
         return NumberTraits<T>::toSelfType(d);

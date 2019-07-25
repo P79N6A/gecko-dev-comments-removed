@@ -47,6 +47,8 @@
 #include "jsprvtd.h"
 #include "jsdbgapi.h"
 
+JS_BEGIN_EXTERN_C
+
 
 
 
@@ -56,60 +58,6 @@ typedef enum JSTryNoteKind {
     JSTRY_FINALLY,
     JSTRY_ITER
 } JSTryNoteKind;
-
-namespace js {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class UpvarCookie 
-{
-    uint32 value;
-
-    static const uint32 FREE_VALUE = 0xfffffffful;
-
-    void checkInvariants() {
-        JS_STATIC_ASSERT(sizeof(UpvarCookie) == sizeof(uint32));
-        JS_STATIC_ASSERT(UPVAR_LEVEL_LIMIT < FREE_LEVEL);
-    }
-
-  public:
-    
-
-
-
-    static const uint16 FREE_LEVEL = 0x3fff;
-
-    
-
-
-
-    static const uint16 UPVAR_LEVEL_LIMIT = 16;
-    static const uint16 CALLEE_SLOT = 0xffff;
-    static bool isLevelReserved(uint16 level) { return level >= FREE_LEVEL; }
-
-    bool isFree() const { return value == FREE_VALUE; }
-    uint32 asInteger() const { return value; }
-    
-    uint16 level() const { JS_ASSERT(!isFree()); return value >> 16; }
-    uint16 slot() const { JS_ASSERT(!isFree()); return uint16(value); }
-
-    void set(const UpvarCookie &other) { set(other.level(), other.slot()); }
-    void set(uint16 newLevel, uint16 newSlot) { value = (uint32(newLevel) << 16) | newSlot; }
-    void makeFree() { set(0xffff, 0xffff); JS_ASSERT(isFree()); }
-};
-
-}
 
 
 
@@ -134,14 +82,16 @@ typedef struct JSObjectArray {
 } JSObjectArray;
 
 typedef struct JSUpvarArray {
-    js::UpvarCookie *vector;    
+    uint32          *vector;    
     uint32          length;     
 } JSUpvarArray;
 
-typedef struct JSConstArray {
-    js::Value       *vector;    
-    uint32          length;
-} JSConstArray;
+#define CALLEE_UPVAR_SLOT               0xffff
+#define FREE_STATIC_LEVEL               0x3fff
+#define FREE_UPVAR_COOKIE               0xffffffff
+#define MAKE_UPVAR_COOKIE(skip,slot)    ((skip) << 16 | (slot))
+#define UPVAR_FRAME_SKIP(cookie)        ((uint32)(cookie) >> 16)
+#define UPVAR_FRAME_SLOT(cookie)        ((uint16)(cookie))
 
 #define JS_OBJECT_ARRAY_SIZE(length)                                          \
     (offsetof(JSObjectArray, vector) + sizeof(JSObject *) * (length))
@@ -165,16 +115,11 @@ struct JSScript {
 
     uint8           trynotesOffset; 
 
-    uint8           constOffset;    
-
     bool            noScriptRval:1; 
 
     bool            savedCallerFun:1; 
     bool            hasSharps:1;      
-    bool            strictModeCode:1; 
-    bool            warnedAboutTwoArgumentEval:1; 
-
-
+    bool            strictModeCode:1;   
 
     jsbytecode      *main;      
     JSAtomMap       atomMap;    
@@ -184,23 +129,7 @@ struct JSScript {
     uint16          staticLevel;
     JSPrincipals    *principals;
     union {
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        JSObject    *object;
+        JSObject    *object;    
         JSScript    *nextToGC;  
     } u;
 #ifdef CHECK_SCRIPT_OWNER
@@ -230,11 +159,6 @@ struct JSScript {
         return (JSTryNoteArray *) ((uint8 *) this + trynotesOffset);
     }
 
-    JSConstArray *consts() {
-        JS_ASSERT(constOffset != 0);
-        return (JSConstArray *) ((uint8 *) this + constOffset);
-    }
-
     JSAtom *getAtom(size_t index) {
         JS_ASSERT(index < atomMap.length);
         return atomMap.vector[index];
@@ -249,12 +173,6 @@ struct JSScript {
     inline JSFunction *getFunction(size_t index);
 
     inline JSObject *getRegExp(size_t index);
-
-    const js::Value &getConst(size_t index) {
-        JSConstArray *arr = consts();
-        JS_ASSERT(index < arr->length);
-        return arr->vector[index];
-    }
 
     
 
@@ -343,7 +261,7 @@ extern void
 js_MarkScriptFilename(const char *filename);
 
 extern void
-js_MarkScriptFilenames(JSRuntime *rt);
+js_MarkScriptFilenames(JSRuntime *rt, JSBool keepAtoms);
 
 extern void
 js_SweepScriptFilenames(JSRuntime *rt);
@@ -368,7 +286,7 @@ js_SweepScriptFilenames(JSRuntime *rt);
 extern JSScript *
 js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
              uint32 nobjects, uint32 nupvars, uint32 nregexps,
-             uint32 ntrynotes, uint32 nconsts);
+             uint32 ntrynotes);
 
 extern JSScript *
 js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
@@ -390,9 +308,6 @@ js_DestroyScript(JSContext *cx, JSScript *script);
 
 extern void
 js_TraceScript(JSTracer *trc, JSScript *script);
-
-extern JSBool
-js_NewScriptObject(JSContext *cx, JSScript *script);
 
 
 
@@ -449,5 +364,7 @@ js_GetOpcode(JSContext *cx, JSScript *script, jsbytecode *pc)
 extern JSBool
 js_XDRScript(JSXDRState *xdr, JSScript **scriptp, bool needMutableScript,
              JSBool *hasMagic);
+
+JS_END_EXTERN_C
 
 #endif 

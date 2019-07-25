@@ -48,15 +48,9 @@
 #undef THIS
 #endif
 
-enum JSTNErrType { INFALLIBLE, FAIL_STATUS, FAIL_NULL, FAIL_NEG, FAIL_NEITHER };
-enum { 
-    JSTN_ERRTYPE_MASK        = 0x07,
-    JSTN_UNBOX_AFTER         = 0x08,
-    JSTN_MORE                = 0x10,
-    JSTN_CONSTRUCTOR         = 0x20,
-    JSTN_RETURN_NULLABLE_STR = 0x40,
-    JSTN_RETURN_NULLABLE_OBJ = 0x80
-};
+enum JSTNErrType { INFALLIBLE, FAIL_STATUS, FAIL_NULL, FAIL_NEG, FAIL_VOID, FAIL_COOKIE };
+enum { JSTN_ERRTYPE_MASK = 0x07, JSTN_UNBOX_AFTER = 0x08, JSTN_MORE = 0x10,
+       JSTN_CONSTRUCTOR = 0x20 };
 
 #define JSTN_ERRTYPE(jstn)  ((jstn)->flags & JSTN_ERRTYPE_MASK)
 
@@ -108,6 +102,14 @@ struct JSNativeTraceInfo {
 };
 
 
+
+
+
+
+
+#define JSVAL_ERROR_COOKIE OBJECT_TO_JSVAL((JSObject*)0x10)
+
+
 #ifdef DEBUG
 #define _JS_CI_NAME(op) ,#op
 #else
@@ -116,10 +118,8 @@ struct JSNativeTraceInfo {
 
 #define _JS_I32_ARGTYPE    nanojit::ARGTYPE_I
 #define _JS_I32_RETTYPE    nanojit::ARGTYPE_I
-#define _JS_U64_ARGTYPE    nanojit::ARGTYPE_Q
-#define _JS_U64_RETTYPE    nanojit::ARGTYPE_Q
-#define _JS_F64_ARGTYPE    nanojit::ARGTYPE_D
-#define _JS_F64_RETTYPE    nanojit::ARGTYPE_D
+#define _JS_F64_ARGTYPE    nanojit::ARGTYPE_F
+#define _JS_F64_RETTYPE    nanojit::ARGTYPE_F
 #define _JS_PTR_ARGTYPE    nanojit::ARGTYPE_P
 #define _JS_PTR_RETTYPE    nanojit::ARGTYPE_P
 
@@ -179,7 +179,9 @@ struct ClosureVarInfo;
 
 
 
+
 #define _JS_CTYPE(ctype, size, pch, ach, flags)     (ctype, size, pch, ach, flags)
+#define _JS_JSVAL_CTYPE(size, pch, ach, flags)  (jsval, size, pch, ach, (flags | JSTN_UNBOX_AFTER))
 
 #define _JS_CTYPE_CONTEXT           _JS_CTYPE(JSContext *,            _JS_PTR,"C", "", INFALLIBLE)
 #define _JS_CTYPE_RUNTIME           _JS_CTYPE(JSRuntime *,            _JS_PTR,"R", "", INFALLIBLE)
@@ -190,14 +192,14 @@ struct ClosureVarInfo;
 #define _JS_CTYPE_CALLEE_PROTOTYPE  _JS_CTYPE(JSObject *,             _JS_PTR,"p","",  INFALLIBLE)
 #define _JS_CTYPE_FUNCTION          _JS_CTYPE(JSFunction *,           _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_PC                _JS_CTYPE(jsbytecode *,           _JS_PTR,"P", "", INFALLIBLE)
-#define _JS_CTYPE_VALUEPTR          _JS_CTYPE(js::Value *,            _JS_PTR, --, --, INFALLIBLE)
-#define _JS_CTYPE_CVALUEPTR         _JS_CTYPE(const js::Value *,      _JS_PTR, --, --, INFALLIBLE)
+#define _JS_CTYPE_JSVALPTR          _JS_CTYPE(jsval *,                _JS_PTR,"P", "", INFALLIBLE)
+#define _JS_CTYPE_JSVAL             _JS_JSVAL_CTYPE(                  _JS_PTR, "","v", INFALLIBLE)
+#define _JS_CTYPE_JSVAL_RETRY       _JS_JSVAL_CTYPE(                  _JS_PTR, --, --, FAIL_COOKIE)
+#define _JS_CTYPE_JSVAL_FAIL        _JS_JSVAL_CTYPE(                  _JS_PTR, --, --, FAIL_STATUS)
 #define _JS_CTYPE_JSID              _JS_CTYPE(jsid,                   _JS_PTR, --, --, INFALLIBLE)
-#define _JS_CTYPE_JSVAL             _JS_CTYPE(js::Value,              _JS_U64, --, --, INFALLIBLE)
 #define _JS_CTYPE_BOOL              _JS_CTYPE(JSBool,                 _JS_I32, "","i", INFALLIBLE)
-#define _JS_CTYPE_BOOL_RETRY        _JS_CTYPE(JSBool,                 _JS_I32, --, --, FAIL_NEITHER)
+#define _JS_CTYPE_BOOL_RETRY        _JS_CTYPE(JSBool,                 _JS_I32, --, --, FAIL_VOID)
 #define _JS_CTYPE_BOOL_FAIL         _JS_CTYPE(JSBool,                 _JS_I32, --, --, FAIL_STATUS)
-#define _JS_CTYPE_BOOLPTR           _JS_CTYPE(JSBool *,               _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_INT32             _JS_CTYPE(int32,                  _JS_I32, "","i", INFALLIBLE)
 #define _JS_CTYPE_INT32_RETRY       _JS_CTYPE(int32,                  _JS_I32, --, --, FAIL_NEG)
 #define _JS_CTYPE_INT32_FAIL        _JS_CTYPE(int32,                  _JS_I32, --, --, FAIL_STATUS)
@@ -210,45 +212,22 @@ struct ClosureVarInfo;
 #define _JS_CTYPE_STRING            _JS_CTYPE(JSString *,             _JS_PTR, "","s", INFALLIBLE)
 #define _JS_CTYPE_STRING_RETRY      _JS_CTYPE(JSString *,             _JS_PTR, --, --, FAIL_NULL)
 #define _JS_CTYPE_STRING_FAIL       _JS_CTYPE(JSString *,             _JS_PTR, --, --, FAIL_STATUS)
-#define _JS_CTYPE_STRING_OR_NULL_FAIL _JS_CTYPE(JSString *,           _JS_PTR, --, --, FAIL_STATUS | \
-                                                                              JSTN_RETURN_NULLABLE_STR)
 #define _JS_CTYPE_STRINGPTR         _JS_CTYPE(JSString **,            _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_OBJECT            _JS_CTYPE(JSObject *,             _JS_PTR, "","o", INFALLIBLE)
 #define _JS_CTYPE_OBJECT_RETRY      _JS_CTYPE(JSObject *,             _JS_PTR, --, --, FAIL_NULL)
 #define _JS_CTYPE_OBJECT_FAIL       _JS_CTYPE(JSObject *,             _JS_PTR, --, --, FAIL_STATUS)
-#define _JS_CTYPE_OBJECT_OR_NULL_FAIL _JS_CTYPE(JSObject *,           _JS_PTR, --, --, FAIL_STATUS | \
-                                                                              JSTN_RETURN_NULLABLE_OBJ)
-#define _JS_CTYPE_OBJECTPTR         _JS_CTYPE(JSObject **,            _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_CONSTRUCTOR_RETRY _JS_CTYPE(JSObject *,             _JS_PTR, --, --, FAIL_NULL | \
                                                                                   JSTN_CONSTRUCTOR)
 #define _JS_CTYPE_REGEXP            _JS_CTYPE(JSObject *,             _JS_PTR, "","r", INFALLIBLE)
-#define _JS_CTYPE_SHAPE             _JS_CTYPE(js::Shape *,            _JS_PTR, --, --, INFALLIBLE)
-#define _JS_CTYPE_TRACERSTATE       _JS_CTYPE(TracerState *,          _JS_PTR, --, --, INFALLIBLE)
+#define _JS_CTYPE_SCOPEPROP         _JS_CTYPE(JSScopeProperty *,      _JS_PTR, --, --, INFALLIBLE)
+#define _JS_CTYPE_INTERPSTATE       _JS_CTYPE(InterpState *,          _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_FRAGMENT          _JS_CTYPE(nanojit::Fragment *,    _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_CLASS             _JS_CTYPE(js::Class *,            _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_DOUBLEPTR         _JS_CTYPE(double *,               _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_CHARPTR           _JS_CTYPE(char *,                 _JS_PTR, --, --, INFALLIBLE)
+#define _JS_CTYPE_APNPTR            _JS_CTYPE(ArgsPrivateNative *,    _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_CVIPTR            _JS_CTYPE(const ClosureVarInfo *, _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_FRAMEINFO         _JS_CTYPE(FrameInfo *,            _JS_PTR, --, --, INFALLIBLE)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if JS_BITS_PER_WORD == 32
-# define _JS_CTYPE_VALUE            _JS_CTYPE(js::ValueArgType,       _JS_PTR, "","v", INFALLIBLE)
-#elif JS_BITS_PER_WORD == 64
-# define _JS_CTYPE_VALUE            _JS_CTYPE(js::ValueArgType,       _JS_U64, "","v", INFALLIBLE)
-#endif
 
 #define _JS_EXPAND(tokens)  tokens
 
@@ -281,14 +260,14 @@ struct ClosureVarInfo;
     _JS_TN_LINKAGE(linkage, crtype) name cargtypes;                                               \
     _JS_CI_LINKAGE(linkage) const nanojit::CallInfo _JS_CALLINFO(name) =                          \
         { (intptr_t) &name, argtypes, nanojit::ABI_CDECL, isPure, storeAccSet _JS_CI_NAME(name) };\
-    JS_STATIC_ASSERT_IF(isPure, (storeAccSet) == nanojit::ACCSET_NONE);
+    JS_STATIC_ASSERT_IF(isPure, storeAccSet == nanojit::ACC_NONE);
 
 #else
 #define _JS_DEFINE_CALLINFO(linkage, name, crtype, cargtypes, argtypes, isPure, storeAccSet)      \
     _JS_TN_LINKAGE(linkage, crtype) FASTCALL name cargtypes;                                      \
     _JS_CI_LINKAGE(linkage) const nanojit::CallInfo _JS_CALLINFO(name) =                          \
         { (intptr_t) &name, argtypes, nanojit::ABI_FASTCALL, isPure, storeAccSet _JS_CI_NAME(name) }; \
-    JS_STATIC_ASSERT_IF(isPure, (storeAccSet) == nanojit::ACCSET_NONE);
+    JS_STATIC_ASSERT_IF(isPure, storeAccSet == nanojit::ACC_NONE);
 #endif
 
 
@@ -327,118 +306,88 @@ struct ClosureVarInfo;
 
 
 #define JS_DEFINE_CALLINFO_1(linkage, rt, op, at0, isPure, storeAccSet)                           \
-    _JS_DEFINE_CALLINFO(linkage, op,                                                              \
-                        _JS_CTYPE_TYPE(rt),                                                       \
-                        (_JS_CTYPE_TYPE(at0)),                                                    \
-                        nanojit::CallInfo::typeSig1(_JS_CTYPE_RETTYPE(rt),                        \
-                                                    _JS_CTYPE_ARGTYPE(at0)),                      \
+    _JS_DEFINE_CALLINFO(linkage, op, _JS_CTYPE_TYPE(rt), (_JS_CTYPE_TYPE(at0)),                   \
+                        (_JS_CTYPE_ARGTYPE(at0) << (1*nanojit::ARGTYPE_SHIFT)) |                  \
+                        _JS_CTYPE_RETTYPE(rt),                                                    \
                         isPure, storeAccSet)
 #define JS_DEFINE_CALLINFO_2(linkage, rt, op, at0, at1, isPure, storeAccSet)                      \
-    _JS_DEFINE_CALLINFO(linkage, op,                                                              \
-                        _JS_CTYPE_TYPE(rt),                                                       \
-                        (_JS_CTYPE_TYPE(at0),                                                     \
-                         _JS_CTYPE_TYPE(at1)),                                                    \
-                        nanojit::CallInfo::typeSig2(_JS_CTYPE_RETTYPE(rt),                        \
-                                                    _JS_CTYPE_ARGTYPE(at0),                       \
-                                                    _JS_CTYPE_ARGTYPE(at1)),                      \
+    _JS_DEFINE_CALLINFO(linkage, op, _JS_CTYPE_TYPE(rt),                                          \
+                        (_JS_CTYPE_TYPE(at0), _JS_CTYPE_TYPE(at1)),                               \
+                        (_JS_CTYPE_ARGTYPE(at0) << (2*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at1) << (1*nanojit::ARGTYPE_SHIFT)) |                  \
+                        _JS_CTYPE_RETTYPE(rt),                                                    \
                         isPure, storeAccSet)
 #define JS_DEFINE_CALLINFO_3(linkage, rt, op, at0, at1, at2, isPure, storeAccSet)                 \
-    _JS_DEFINE_CALLINFO(linkage, op,                                                              \
-                        _JS_CTYPE_TYPE(rt),                                                       \
-                        (_JS_CTYPE_TYPE(at0),                                                     \
-                         _JS_CTYPE_TYPE(at1),                                                     \
-                         _JS_CTYPE_TYPE(at2)),                                                    \
-                        nanojit::CallInfo::typeSig3(_JS_CTYPE_RETTYPE(rt),                        \
-                                                    _JS_CTYPE_ARGTYPE(at0),                       \
-                                                    _JS_CTYPE_ARGTYPE(at1),                       \
-                                                    _JS_CTYPE_ARGTYPE(at2)),                      \
+    _JS_DEFINE_CALLINFO(linkage, op, _JS_CTYPE_TYPE(rt),                                          \
+                        (_JS_CTYPE_TYPE(at0), _JS_CTYPE_TYPE(at1), _JS_CTYPE_TYPE(at2)),          \
+                        (_JS_CTYPE_ARGTYPE(at0) << (3*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at1) << (2*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at2) << (1*nanojit::ARGTYPE_SHIFT)) |                  \
+                        _JS_CTYPE_RETTYPE(rt),                                                    \
                         isPure, storeAccSet)
 #define JS_DEFINE_CALLINFO_4(linkage, rt, op, at0, at1, at2, at3, isPure, storeAccSet)            \
-    _JS_DEFINE_CALLINFO(linkage, op,                                                              \
-                        _JS_CTYPE_TYPE(rt),                                                       \
-                        (_JS_CTYPE_TYPE(at0),                                                     \
-                         _JS_CTYPE_TYPE(at1),                                                     \
-                         _JS_CTYPE_TYPE(at2),                                                     \
+    _JS_DEFINE_CALLINFO(linkage, op, _JS_CTYPE_TYPE(rt),                                          \
+                        (_JS_CTYPE_TYPE(at0), _JS_CTYPE_TYPE(at1), _JS_CTYPE_TYPE(at2),           \
                          _JS_CTYPE_TYPE(at3)),                                                    \
-                        nanojit::CallInfo::typeSig4(_JS_CTYPE_RETTYPE(rt),                        \
-                                                    _JS_CTYPE_ARGTYPE(at0),                       \
-                                                    _JS_CTYPE_ARGTYPE(at1),                       \
-                                                    _JS_CTYPE_ARGTYPE(at2),                       \
-                                                    _JS_CTYPE_ARGTYPE(at3)),                      \
+                        (_JS_CTYPE_ARGTYPE(at0) << (4*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at1) << (3*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at2) << (2*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at3) << (1*nanojit::ARGTYPE_SHIFT)) |                  \
+                        _JS_CTYPE_RETTYPE(rt),                                                    \
                         isPure, storeAccSet)
 #define JS_DEFINE_CALLINFO_5(linkage, rt, op, at0, at1, at2, at3, at4, isPure, storeAccSet)       \
-    _JS_DEFINE_CALLINFO(linkage, op,                                                              \
-                        _JS_CTYPE_TYPE(rt),                                                       \
-                        (_JS_CTYPE_TYPE(at0),                                                     \
-                         _JS_CTYPE_TYPE(at1),                                                     \
-                         _JS_CTYPE_TYPE(at2),                                                     \
-                         _JS_CTYPE_TYPE(at3),                                                     \
-                         _JS_CTYPE_TYPE(at4)),                                                    \
-                        nanojit::CallInfo::typeSig5(_JS_CTYPE_RETTYPE(rt),                        \
-                                                    _JS_CTYPE_ARGTYPE(at0),                       \
-                                                    _JS_CTYPE_ARGTYPE(at1),                       \
-                                                    _JS_CTYPE_ARGTYPE(at2),                       \
-                                                    _JS_CTYPE_ARGTYPE(at3),                       \
-                                                    _JS_CTYPE_ARGTYPE(at4)),                      \
+    _JS_DEFINE_CALLINFO(linkage, op, _JS_CTYPE_TYPE(rt),                                          \
+                        (_JS_CTYPE_TYPE(at0), _JS_CTYPE_TYPE(at1), _JS_CTYPE_TYPE(at2),           \
+                         _JS_CTYPE_TYPE(at3), _JS_CTYPE_TYPE(at4)),                               \
+                        (_JS_CTYPE_ARGTYPE(at0) << (5*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at1) << (4*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at2) << (3*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at3) << (2*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at4) << (1*nanojit::ARGTYPE_SHIFT)) |                  \
+                        _JS_CTYPE_RETTYPE(rt),                                                    \
                         isPure, storeAccSet)
 #define JS_DEFINE_CALLINFO_6(linkage, rt, op, at0, at1, at2, at3, at4, at5, isPure, storeAccSet)  \
-    _JS_DEFINE_CALLINFO(linkage, op,                                                              \
-                        _JS_CTYPE_TYPE(rt),                                                       \
-                        (_JS_CTYPE_TYPE(at0),                                                     \
-                         _JS_CTYPE_TYPE(at1),                                                     \
-                         _JS_CTYPE_TYPE(at2),                                                     \
-                         _JS_CTYPE_TYPE(at3),                                                     \
-                         _JS_CTYPE_TYPE(at4),                                                     \
-                         _JS_CTYPE_TYPE(at5)),                                                    \
-                        nanojit::CallInfo::typeSig6(_JS_CTYPE_RETTYPE(rt),                        \
-                                                    _JS_CTYPE_ARGTYPE(at0),                       \
-                                                    _JS_CTYPE_ARGTYPE(at1),                       \
-                                                    _JS_CTYPE_ARGTYPE(at2),                       \
-                                                    _JS_CTYPE_ARGTYPE(at3),                       \
-                                                    _JS_CTYPE_ARGTYPE(at4),                       \
-                                                    _JS_CTYPE_ARGTYPE(at5)),                      \
+    _JS_DEFINE_CALLINFO(linkage, op, _JS_CTYPE_TYPE(rt),                                          \
+                        (_JS_CTYPE_TYPE(at0), _JS_CTYPE_TYPE(at1), _JS_CTYPE_TYPE(at2),           \
+                         _JS_CTYPE_TYPE(at3), _JS_CTYPE_TYPE(at4), _JS_CTYPE_TYPE(at5)),          \
+                        (_JS_CTYPE_ARGTYPE(at0) << (6*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at1) << (5*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at2) << (4*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at3) << (3*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at4) << (2*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at5) << (1*nanojit::ARGTYPE_SHIFT)) |                  \
+                        _JS_CTYPE_RETTYPE(rt),                                                    \
                         isPure, storeAccSet)
 #define JS_DEFINE_CALLINFO_7(linkage, rt, op, at0, at1, at2, at3, at4, at5, at6, isPure,          \
                              storeAccSet)                                                         \
-    _JS_DEFINE_CALLINFO(linkage, op,                                                              \
-                        _JS_CTYPE_TYPE(rt),                                                       \
-                        (_JS_CTYPE_TYPE(at0),                                                     \
-                         _JS_CTYPE_TYPE(at1),                                                     \
-                         _JS_CTYPE_TYPE(at2),                                                     \
-                         _JS_CTYPE_TYPE(at3),                                                     \
-                         _JS_CTYPE_TYPE(at4),                                                     \
-                         _JS_CTYPE_TYPE(at5),                                                     \
+    _JS_DEFINE_CALLINFO(linkage, op, _JS_CTYPE_TYPE(rt),                                          \
+                        (_JS_CTYPE_TYPE(at0), _JS_CTYPE_TYPE(at1), _JS_CTYPE_TYPE(at2),           \
+                         _JS_CTYPE_TYPE(at3), _JS_CTYPE_TYPE(at4), _JS_CTYPE_TYPE(at5),           \
                          _JS_CTYPE_TYPE(at6)),                                                    \
-                        nanojit::CallInfo::typeSig7(_JS_CTYPE_RETTYPE(rt),                        \
-                                                    _JS_CTYPE_ARGTYPE(at0),                       \
-                                                    _JS_CTYPE_ARGTYPE(at1),                       \
-                                                    _JS_CTYPE_ARGTYPE(at2),                       \
-                                                    _JS_CTYPE_ARGTYPE(at3),                       \
-                                                    _JS_CTYPE_ARGTYPE(at4),                       \
-                                                    _JS_CTYPE_ARGTYPE(at5),                       \
-                                                    _JS_CTYPE_ARGTYPE(at6)),                      \
+                        (_JS_CTYPE_ARGTYPE(at0) << (7*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at1) << (6*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at2) << (5*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at3) << (4*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at4) << (3*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at5) << (2*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at6) << (1*nanojit::ARGTYPE_SHIFT)) |                  \
+                        _JS_CTYPE_RETTYPE(rt),                                                    \
                         isPure, storeAccSet)
 #define JS_DEFINE_CALLINFO_8(linkage, rt, op, at0, at1, at2, at3, at4, at5, at6, at7, isPure,     \
                              storeAccSet)                                                         \
-    _JS_DEFINE_CALLINFO(linkage, op,                                                              \
-                        _JS_CTYPE_TYPE(rt),                                                       \
-                        (_JS_CTYPE_TYPE(at0),                                                     \
-                         _JS_CTYPE_TYPE(at1),                                                     \
-                         _JS_CTYPE_TYPE(at2),                                                     \
-                         _JS_CTYPE_TYPE(at3),                                                     \
-                         _JS_CTYPE_TYPE(at4),                                                     \
-                         _JS_CTYPE_TYPE(at5),                                                     \
-                         _JS_CTYPE_TYPE(at6),                                                     \
-                         _JS_CTYPE_TYPE(at7)),                                                    \
-                        nanojit::CallInfo::typeSig8(_JS_CTYPE_RETTYPE(rt),                        \
-                                                    _JS_CTYPE_ARGTYPE(at0),                       \
-                                                    _JS_CTYPE_ARGTYPE(at1),                       \
-                                                    _JS_CTYPE_ARGTYPE(at2),                       \
-                                                    _JS_CTYPE_ARGTYPE(at3),                       \
-                                                    _JS_CTYPE_ARGTYPE(at4),                       \
-                                                    _JS_CTYPE_ARGTYPE(at5),                       \
-                                                    _JS_CTYPE_ARGTYPE(at6),                       \
-                                                    _JS_CTYPE_ARGTYPE(at7)),                      \
+    _JS_DEFINE_CALLINFO(linkage, op, _JS_CTYPE_TYPE(rt),                                          \
+                        (_JS_CTYPE_TYPE(at0), _JS_CTYPE_TYPE(at1), _JS_CTYPE_TYPE(at2),           \
+                         _JS_CTYPE_TYPE(at3), _JS_CTYPE_TYPE(at4), _JS_CTYPE_TYPE(at5),           \
+                         _JS_CTYPE_TYPE(at6), _JS_CTYPE_TYPE(at7)),                               \
+                        (_JS_CTYPE_ARGTYPE(at0) << (8*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at1) << (7*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at2) << (6*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at3) << (5*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at4) << (4*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at5) << (3*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at6) << (2*nanojit::ARGTYPE_SHIFT)) |                  \
+                        (_JS_CTYPE_ARGTYPE(at7) << (1*nanojit::ARGTYPE_SHIFT)) |                  \
+                        _JS_CTYPE_RETTYPE(rt),                                                    \
                         isPure, storeAccSet)
 
 #define JS_DECLARE_CALLINFO(name)  extern const nanojit::CallInfo _JS_CALLINFO(name);
@@ -576,12 +525,16 @@ JS_DECLARE_CALLINFO(js_Array_dense_setelem)
 JS_DECLARE_CALLINFO(js_Array_dense_setelem_int)
 JS_DECLARE_CALLINFO(js_Array_dense_setelem_double)
 JS_DECLARE_CALLINFO(js_NewEmptyArray)
-JS_DECLARE_CALLINFO(js_NewPreallocatedArray)
-JS_DECLARE_CALLINFO(js_ArrayCompPush_tn)
+JS_DECLARE_CALLINFO(js_NewEmptyArrayWithLength)
+JS_DECLARE_CALLINFO(js_NewArrayWithSlots)
+JS_DECLARE_CALLINFO(js_ArrayCompPush)
 
 
+JS_DECLARE_CALLINFO(js_BoxDouble)
+JS_DECLARE_CALLINFO(js_BoxInt32)
 JS_DECLARE_CALLINFO(js_UnboxDouble)
 JS_DECLARE_CALLINFO(js_UnboxInt32)
+JS_DECLARE_CALLINFO(js_TryUnboxInt32)
 JS_DECLARE_CALLINFO(js_dmod)
 JS_DECLARE_CALLINFO(js_imod)
 JS_DECLARE_CALLINFO(js_DoubleToInt32)
@@ -589,13 +542,14 @@ JS_DECLARE_CALLINFO(js_DoubleToUint32)
 JS_DECLARE_CALLINFO(js_StringToNumber)
 JS_DECLARE_CALLINFO(js_StringToInt32)
 JS_DECLARE_CALLINFO(js_AddProperty)
-JS_DECLARE_CALLINFO(js_AddAtomProperty)
 JS_DECLARE_CALLINFO(js_HasNamedProperty)
 JS_DECLARE_CALLINFO(js_HasNamedPropertyInt32)
 JS_DECLARE_CALLINFO(js_TypeOfObject)
+JS_DECLARE_CALLINFO(js_TypeOfBoolean)
 JS_DECLARE_CALLINFO(js_BooleanIntToString)
 JS_DECLARE_CALLINFO(js_NewNullClosure)
 JS_DECLARE_CALLINFO(js_PopInterpFrame)
+JS_DECLARE_CALLINFO(js_ConcatN)
 
 
 JS_DECLARE_CALLINFO(js_AllocFlatClosure)
@@ -606,6 +560,9 @@ JS_DECLARE_CALLINFO(js_SetCallArg)
 JS_DECLARE_CALLINFO(js_CloneFunctionObject)
 JS_DECLARE_CALLINFO(js_CreateCallObjectOnTrace)
 JS_DECLARE_CALLINFO(js_Arguments)
+
+
+JS_DECLARE_CALLINFO(js_CloseIterator)
 
 
 JS_DECLARE_CALLINFO(js_NumberToString)
@@ -623,7 +580,12 @@ JS_DECLARE_CALLINFO(js_String_tn)
 JS_DECLARE_CALLINFO(js_CompareStrings)
 JS_DECLARE_CALLINFO(js_ConcatStrings)
 JS_DECLARE_CALLINFO(js_EqualStrings)
-JS_DECLARE_CALLINFO(js_Flatten)
+JS_DECLARE_CALLINFO(js_String_getelem)
+JS_DECLARE_CALLINFO(js_String_p_charCodeAt)
+JS_DECLARE_CALLINFO(js_String_p_charCodeAt0)
+JS_DECLARE_CALLINFO(js_String_p_charCodeAt0_int)
+JS_DECLARE_CALLINFO(js_String_p_charCodeAt_double_int)
+JS_DECLARE_CALLINFO(js_String_p_charCodeAt_int_int)
 
 
 JS_DECLARE_CALLINFO(js_TypedArray_uint8_clamp_double)

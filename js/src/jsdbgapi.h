@@ -45,7 +45,6 @@
 
 #include "jsapi.h"
 #include "jsopcode.h"
-#include "jsprvtd.h"
 
 JS_BEGIN_EXTERN_C
 
@@ -56,7 +55,6 @@ JS_BEGIN_EXTERN_C
 
 extern jsbytecode *
 js_UntrapScriptCode(JSContext *cx, JSScript *script);
-
 
 extern JS_PUBLIC_API(JSBool)
 JS_SetTrap(JSContext *cx, JSScript *script, jsbytecode *pc,
@@ -88,11 +86,11 @@ JS_ClearInterrupt(JSRuntime *rt, JSInterruptHook *handlerp, void **closurep);
 
 extern JS_PUBLIC_API(JSBool)
 JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsid id,
-                 JSWatchPointHandler handler, JSObject *closure);
+                 JSWatchPointHandler handler, void *closure);
 
 extern JS_PUBLIC_API(JSBool)
 JS_ClearWatchPoint(JSContext *cx, JSObject *obj, jsid id,
-                   JSWatchPointHandler *handlerp, JSObject **closurep);
+                   JSWatchPointHandler *handlerp, void **closurep);
 
 extern JS_PUBLIC_API(JSBool)
 JS_ClearWatchPointsForObject(JSContext *cx, JSObject *obj);
@@ -111,10 +109,17 @@ js_TraceWatchPoints(JSTracer *trc, JSObject *obj);
 extern void
 js_SweepWatchPoints(JSContext *cx);
 
+extern JSScopeProperty *
+js_FindWatchPoint(JSRuntime *rt, JSScope *scope, jsid id);
+
 #ifdef __cplusplus
 
-extern const js::Shape *
-js_FindWatchPoint(JSRuntime *rt, JSObject *obj, jsid id);
+
+
+
+extern js::PropertyOp
+js_GetWatchedSetter(JSRuntime *rt, JSScope *scope,
+                    const JSScopeProperty *sprop);
 
 extern JSBool
 js_watch_set(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
@@ -123,10 +128,10 @@ extern JSBool
 js_watch_set_wrapper(JSContext *cx, JSObject *obj, uintN argc, js::Value *argv,
                      js::Value *rval);
 
-extern js::PropertyOp
-js_WrapWatchedSetter(JSContext *cx, jsid id, uintN attrs, js::PropertyOp setter);
-
 #endif
+
+extern JSPropertyOp
+js_WrapWatchedSetter(JSContext *cx, jsid id, uintN attrs, JSPropertyOp setter);
 
 #endif 
 
@@ -167,8 +172,10 @@ JS_GetFunctionScript(JSContext *cx, JSFunction *fun);
 extern JS_PUBLIC_API(JSNative)
 JS_GetFunctionNative(JSContext *cx, JSFunction *fun);
 
+#ifdef __cpluscplus
 extern JS_PUBLIC_API(JSFastNative)
 JS_GetFunctionFastNative(JSContext *cx, JSFunction *fun);
+#endif
 
 extern JS_PUBLIC_API(JSPrincipals *)
 JS_GetScriptPrincipals(JSContext *cx, JSScript *script);
@@ -267,39 +274,8 @@ JS_SetFrameReturnValue(JSContext *cx, JSStackFrame *fp, jsval rval);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 extern JS_PUBLIC_API(JSObject *)
 JS_GetFrameCalleeObject(JSContext *cx, JSStackFrame *fp);
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_GetValidFrameCalleeObject(JSContext *cx, JSStackFrame *fp, jsval *vp);
 
 
 
@@ -373,13 +349,11 @@ typedef struct JSPropertyDescArray {
     JSPropertyDesc  *array;     
 } JSPropertyDescArray;
 
-typedef struct JSScopeProperty JSScopeProperty;
-
 extern JS_PUBLIC_API(JSScopeProperty *)
 JS_PropertyIterator(JSObject *obj, JSScopeProperty **iteratorp);
 
 extern JS_PUBLIC_API(JSBool)
-JS_GetPropertyDesc(JSContext *cx, JSObject *obj, JSScopeProperty *shape,
+JS_GetPropertyDesc(JSContext *cx, JSObject *obj, JSScopeProperty *sprop,
                    JSPropertyDesc *pd);
 
 extern JS_PUBLIC_API(JSBool)
@@ -390,22 +364,8 @@ JS_PutPropertyDescArray(JSContext *cx, JSPropertyDescArray *pda);
 
 
 
-extern JS_FRIEND_API(JSBool)
-js_GetPropertyByIdWithFakeFrame(JSContext *cx, JSObject *obj, JSObject *scopeobj, jsid id,
-                                jsval *vp);
-
-extern JS_FRIEND_API(JSBool)
-js_SetPropertyByIdWithFakeFrame(JSContext *cx, JSObject *obj, JSObject *scopeobj, jsid id,
-                                jsval *vp);
-
-extern JS_FRIEND_API(JSBool)
-js_CallFunctionValueWithFakeFrame(JSContext *cx, JSObject *obj, JSObject *scopeobj, jsval funval,
-                                  uintN argc, jsval *argv, jsval *rval);
-
-
-
 extern JS_PUBLIC_API(JSBool)
-JS_SetDebuggerHandler(JSRuntime *rt, JSDebuggerHandler hook, void *closure);
+JS_SetDebuggerHandler(JSRuntime *rt, JSDebuggerHandler handler, void *closure);
 
 extern JS_PUBLIC_API(JSBool)
 JS_SetSourceHandler(JSRuntime *rt, JSSourceHandler handler, void *closure);
@@ -417,7 +377,10 @@ extern JS_PUBLIC_API(JSBool)
 JS_SetCallHook(JSRuntime *rt, JSInterpreterHook hook, void *closure);
 
 extern JS_PUBLIC_API(JSBool)
-JS_SetThrowHook(JSRuntime *rt, JSThrowHook hook, void *closure);
+JS_SetObjectHook(JSRuntime *rt, JSObjectHook hook, void *closure);
+
+extern JS_PUBLIC_API(JSBool)
+JS_SetThrowHook(JSRuntime *rt, JSTrapHandler hook, void *closure);
 
 extern JS_PUBLIC_API(JSBool)
 JS_SetDebugErrorHook(JSRuntime *rt, JSDebugErrorHook hook, void *closure);
@@ -483,8 +446,9 @@ JS_IsSystemObject(JSContext *cx, JSObject *obj);
 
 
 
-extern JS_PUBLIC_API(JSBool)
-JS_MakeSystemObject(JSContext *cx, JSObject *obj);
+extern JS_PUBLIC_API(JSObject *)
+JS_NewSystemObject(JSContext *cx, JSClass *clasp, JSObject *proto,
+                   JSObject *parent, JSBool system);
 
 
 

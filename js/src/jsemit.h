@@ -163,6 +163,88 @@ struct JSStmtInfo {
 # define JS_SCOPE_DEPTH_METERING_IF(code, x) ((void) 0)
 #endif
 
+struct JSTreeContext {              
+    uint32          flags;          
+    uint16          ngvars;         
+    uint32          bodyid;         
+    uint32          blockidGen;     
+    JSStmtInfo      *topStmt;       
+    JSStmtInfo      *topScopeStmt;  
+    JSObject        *blockChain;    
+
+
+    JSParseNode     *blockNode;     
+
+    JSAtomList      decls;          
+    JSCompiler      *compiler;      
+
+    union {
+        JSFunction  *fun;           
+
+        JSObject    *scopeChain;    
+    };
+
+    JSAtomList      lexdeps;        
+    JSTreeContext   *parent;        
+    uintN           staticLevel;    
+
+    JSFunctionBox   *funbox;        
+
+
+    JSFunctionBox   *functionList;
+
+#ifdef JS_SCOPE_DEPTH_METER
+    uint16          scopeDepth;     
+    uint16          maxScopeDepth;  
+#endif
+
+    JSTreeContext(JSCompiler *jsc)
+      : flags(0), ngvars(0), bodyid(0), blockidGen(0),
+        topStmt(NULL), topScopeStmt(NULL), blockChain(NULL), blockNode(NULL),
+        compiler(jsc), scopeChain(NULL), parent(jsc->tc), staticLevel(0),
+        funbox(NULL), functionList(NULL), sharpSlotBase(-1)
+    {
+        jsc->tc = this;
+        JS_SCOPE_DEPTH_METERING(scopeDepth = maxScopeDepth = 0);
+    }
+
+    
+
+
+
+
+    ~JSTreeContext() {
+        compiler->tc = this->parent;
+        JS_SCOPE_DEPTH_METERING_IF((maxScopeDepth != uint16(-1)),
+                                   JS_BASIC_STATS_ACCUM(&compiler
+                                                          ->context
+                                                          ->runtime
+                                                          ->lexicalScopeDepthStats,
+                                                        maxScopeDepth));
+    }
+
+    uintN blockid() { return topStmt ? topStmt->blockid : bodyid; }
+
+    bool atTopLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
+
+    
+    bool inStatement(JSStmtType type);
+
+    inline bool needStrictChecks();
+
+    
+
+
+
+    int sharpSlotBase;
+    bool ensureSharpSlots();
+
+    
+    
+    
+    bool skipSpansGenerator(unsigned skip);
+};
+
 #define TCF_COMPILING           0x01 /* JSTreeContext is JSCodeGenerator */
 #define TCF_IN_FUNCTION         0x02 /* parsing inside function body */
 #define TCF_RETURN_EXPR         0x04 /* function has 'return expr;' */
@@ -178,7 +260,7 @@ struct JSStmtInfo {
                                         own name */
 #define TCF_HAS_FUNCTION_STMT  0x800 /* block contains a function statement */
 #define TCF_GENEXP_LAMBDA     0x1000 /* flag lambda from generator expression */
-#define TCF_COMPILE_N_GO      0x2000 /* compile-and-go mode of script, can
+#define TCF_COMPILE_N_GO      0x2000 /* compiler-and-go mode of script, can
                                         optimize name references based on scope
                                         chain */
 #define TCF_NO_SCRIPT_RVAL    0x4000 /* API caller does not want result value
@@ -234,21 +316,6 @@ struct JSStmtInfo {
 
 
 
-
-
-
-
-#define TCF_FUN_ENTRAINS_SCOPES 0x400000
-
-
-#define TCF_FUN_CALLS_EVAL       0x800000
-
-
-#define TCF_FUN_MUTATES_PARAMETER 0x1000000
-
-
-
-
 #define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
 
 
@@ -261,140 +328,15 @@ struct JSStmtInfo {
                                  TCF_FUN_IS_GENERATOR    |                    \
                                  TCF_FUN_USES_OWN_NAME   |                    \
                                  TCF_HAS_SHARPS          |                    \
-                                 TCF_FUN_CALLS_EVAL      |                    \
-                                 TCF_FUN_MUTATES_PARAMETER |                  \
                                  TCF_STRICT_MODE_CODE)
-
-struct JSTreeContext {              
-    uint32          flags;          
-    uint16          ngvars;         
-    uint32          bodyid;         
-    uint32          blockidGen;     
-    JSStmtInfo      *topStmt;       
-    JSStmtInfo      *topScopeStmt;  
-    JSObject        *blockChain;    
-
-
-    JSParseNode     *blockNode;     
-
-    JSAtomList      decls;          
-    js::Parser      *parser;        
-
-    union {
-        JSFunction  *fun;           
-
-        JSObject    *scopeChain;    
-    };
-
-    JSAtomList      lexdeps;        
-    JSTreeContext   *parent;        
-    uintN           staticLevel;    
-
-    JSFunctionBox   *funbox;        
-
-
-    JSFunctionBox   *functionList;
-
-#ifdef JS_SCOPE_DEPTH_METER
-    uint16          scopeDepth;     
-    uint16          maxScopeDepth;  
-#endif
-
-    JSTreeContext(js::Parser *prs)
-      : flags(0), ngvars(0), bodyid(0), blockidGen(0),
-        topStmt(NULL), topScopeStmt(NULL), blockChain(NULL), blockNode(NULL),
-        parser(prs), scopeChain(NULL), parent(prs->tc), staticLevel(0),
-        funbox(NULL), functionList(NULL), sharpSlotBase(-1)
-    {
-        prs->tc = this;
-        JS_SCOPE_DEPTH_METERING(scopeDepth = maxScopeDepth = 0);
-    }
-
-    
-
-
-
-
-    ~JSTreeContext() {
-        parser->tc = this->parent;
-        JS_SCOPE_DEPTH_METERING_IF((maxScopeDepth != uint16(-1)),
-                                   JS_BASIC_STATS_ACCUM(&parser
-                                                          ->context
-                                                          ->runtime
-                                                          ->lexicalScopeDepthStats,
-                                                        maxScopeDepth));
-    }
-
-    uintN blockid() { return topStmt ? topStmt->blockid : bodyid; }
-
-    bool atTopLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
-
-    
-    bool inStatement(JSStmtType type);
-
-    bool inStrictMode() const {
-        return flags & TCF_STRICT_MODE_CODE;
-    }
-
-    inline bool needStrictChecks();
-
-    
-
-
-
-    int sharpSlotBase;
-    bool ensureSharpSlots();
-
-    
-    
-    
-    bool skipSpansGenerator(unsigned skip);
-
-    bool compileAndGo() const { return flags & TCF_COMPILE_N_GO; }
-    bool inFunction() const { return flags & TCF_IN_FUNCTION; }
-    bool compiling() const { return flags & TCF_COMPILING; }
-
-    bool usesArguments() const {
-        return flags & TCF_FUN_USES_ARGUMENTS;
-    }
-
-    void noteCallsEval() {
-        flags |= TCF_FUN_CALLS_EVAL;
-    }
-
-    bool callsEval() const {
-        JS_ASSERT(inFunction());
-        return flags & TCF_FUN_CALLS_EVAL;
-    }
-
-    void noteParameterMutation() {
-        JS_ASSERT(inFunction());
-        flags |= TCF_FUN_MUTATES_PARAMETER;
-    }
-
-    bool mutatesParameter() const {
-        JS_ASSERT(inFunction());
-        return flags & TCF_FUN_MUTATES_PARAMETER;
-    }
-
-    void noteArgumentsUse() {
-        JS_ASSERT(inFunction());
-        flags |= TCF_FUN_USES_ARGUMENTS;
-        if (funbox)
-            funbox->node->pn_dflags |= PND_FUNARG;
-    }
-
-    bool needsEagerArguments() const {
-        return inStrictMode() && ((usesArguments() && mutatesParameter()) || callsEval());
-    }
-};
 
 
 
 
 
 inline bool JSTreeContext::needStrictChecks() {
-    return JS_HAS_STRICT_OPTION(parser->context) || inStrictMode();
+    return JS_HAS_STRICT_OPTION(compiler->context) ||
+           (flags & TCF_STRICT_MODE_CODE);
 }
 
 
@@ -475,16 +417,6 @@ struct JSCGObjectList {
     void finish(JSObjectArray *array);
 };
 
-class JSGCConstList {
-    js::Vector<js::Value> list;
-  public:
-    JSGCConstList(JSContext *cx) : list(cx) {}
-    bool append(js::Value v) { return list.append(v); }
-    size_t length() const { return list.length(); }
-    void finish(JSConstArray *array);
-
-};
-
 struct JSCodeGenerator : public JSTreeContext
 {
     JSArenaPool     *codePool;      
@@ -524,10 +456,8 @@ struct JSCodeGenerator : public JSTreeContext
 
     uintN           emitLevel;      
 
-    typedef js::HashMap<JSAtom *, js::Value> ConstMap;
+    typedef js::HashMap<JSAtom *, JSAtom *> ConstMap;
     ConstMap        constMap;       
-
-    JSGCConstList   constList;      
 
     JSCGObjectList  objectList;     
     JSCGObjectList  regexpList;     
@@ -541,9 +471,10 @@ struct JSCodeGenerator : public JSTreeContext
 
 
 
-    JSCodeGenerator(js::Parser *parser,
+    JSCodeGenerator(JSCompiler *jsc,
                     JSArenaPool *codePool, JSArenaPool *notePool,
                     uintN lineno);
+
     bool init();
 
     
@@ -566,7 +497,7 @@ struct JSCodeGenerator : public JSTreeContext
     }
 };
 
-#define CG_TS(cg)               TS((cg)->parser)
+#define CG_TS(cg)               TS((cg)->compiler)
 
 #define CG_BASE(cg)             ((cg)->current->base)
 #define CG_LIMIT(cg)            ((cg)->current->limit)

@@ -43,50 +43,115 @@
 
 
 #include <stddef.h>
-#include "jsprvtd.h"
+#include "jspubtd.h"
 #include "jsstr.h"
 
 #ifdef JS_THREADSAFE
 #include "jsdhash.h"
 #endif
 
+struct JSRegExpStatics {
+    JSString    *input;         
+    JSBool      multiline;      
+    uint16      parenCount;     
+    uint16      moreLength;     
+    JSSubString parens[9];      
+    JSSubString *moreParens;    
+    JSSubString lastMatch;      
+    JSSubString lastParen;      
+    JSSubString leftContext;    
+    JSSubString rightContext;   
+};
+
+namespace js { class AutoValueRooter; }
+
+extern JS_FRIEND_API(void)
+js_SaveAndClearRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
+                             js::AutoValueRooter *tvr);
+
+extern JS_FRIEND_API(void)
+js_RestoreRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
+                        js::AutoValueRooter *tvr);
+
+
+
+
+
+
+
+
+
+typedef struct RECharSet {
+    JSPackedBool    converted;
+    JSPackedBool    sense;
+    uint16          length;
+    union {
+        uint8       *bits;
+        struct {
+            size_t  startIndex;
+            size_t  length;
+        } src;
+    } u;
+} RECharSet;
+
+
+
+
+
+#define REGEXP_PAREN_SUBSTRING(res, num)                                      \
+    (((jsuint)(num) < (jsuint)(res)->parenCount)                              \
+     ? ((jsuint)(num) < 9)                                                    \
+       ? &(res)->parens[num]                                                  \
+       : &(res)->moreParens[(num) - 9]                                        \
+     : &js_EmptySubString)
+
+typedef struct RENode RENode;
+
+struct JSRegExp {
+    jsrefcount   nrefs;         
+    uint16       flags;         
+    size_t       parenCount;    
+    size_t       classCount;    
+    RECharSet    *classList;    
+    JSString     *source;       
+    jsbytecode   program[1];    
+};
+
+extern JSRegExp *
+js_NewRegExp(JSContext *cx, js::TokenStream *ts,
+             JSString *str, uintN flags, JSBool flat);
+
+extern JSRegExp *
+js_NewRegExpOpt(JSContext *cx, JSString *str, JSString *opt, JSBool flat);
+
+#define HOLD_REGEXP(cx, re) JS_ATOMIC_INCREMENT(&(re)->nrefs)
+#define DROP_REGEXP(cx, re) js_DestroyRegExp(cx, re)
+
+extern void
+js_DestroyRegExp(JSContext *cx, JSRegExp *re);
+
+
+
+
+
+
+extern JSBool
+js_ExecuteRegExp(JSContext *cx, JSRegExp *re, JSString *str, size_t *indexp,
+                 JSBool test, jsval *rval);
+
+extern void
+js_InitRegExpStatics(JSContext *cx);
+
+extern void
+js_TraceRegExpStatics(JSTracer *trc, JSContext *acx);
+
+extern void
+js_FreeRegExpStatics(JSContext *cx);
+
+#define VALUE_IS_REGEXP(cx, v)                                                \
+    (!JSVAL_IS_PRIMITIVE(v) && JSVAL_TO_OBJECT(v)->isRegExp())
+
 extern js::Class js_RegExpClass;
-
-static inline bool
-VALUE_IS_REGEXP(JSContext *cx, js::Value v)
-{
-    return !v.isPrimitive() && v.toObject().isRegExp();
-}
-
-inline const js::Value &
-JSObject::getRegExpLastIndex() const
-{
-    JS_ASSERT(isRegExp());
-    return fslots[JSSLOT_REGEXP_LAST_INDEX];
-}
-
-inline void
-JSObject::setRegExpLastIndex(const js::Value &v)
-{
-    JS_ASSERT(isRegExp());
-    fslots[JSSLOT_REGEXP_LAST_INDEX] = v;
-}
-
-inline void
-JSObject::setRegExpLastIndex(jsdouble d)
-{
-    JS_ASSERT(isRegExp());
-    fslots[JSSLOT_REGEXP_LAST_INDEX] = js::NumberValue(d);
-}
-
-inline void
-JSObject::zeroRegExpLastIndex()
-{
-    JS_ASSERT(isRegExp());
-    fslots[JSSLOT_REGEXP_LAST_INDEX].setInt32(0);
-}
-
-namespace js { class AutoStringRooter; }
 
 inline bool
 JSObject::isRegExp() const
@@ -97,6 +162,15 @@ JSObject::isRegExp() const
 extern JS_FRIEND_API(JSBool)
 js_ObjectIsRegExp(JSObject *obj);
 
+enum regexp_tinyid {
+    REGEXP_SOURCE       = -1,
+    REGEXP_GLOBAL       = -2,
+    REGEXP_IGNORE_CASE  = -3,
+    REGEXP_LAST_INDEX   = -4,
+    REGEXP_MULTILINE    = -5,
+    REGEXP_STICKY       = -6
+};
+
 extern JSObject *
 js_InitRegExpClass(JSContext *cx, JSObject *obj);
 
@@ -104,23 +178,33 @@ js_InitRegExpClass(JSContext *cx, JSObject *obj);
 
 
 extern JSBool
-js_regexp_toString(JSContext *cx, JSObject *obj, js::Value *vp);
+js_regexp_toString(JSContext *cx, JSObject *obj, jsval *vp);
+
+
+
+
+extern JSObject *
+js_NewRegExpObject(JSContext *cx, js::TokenStream *ts,
+                   const jschar *chars, size_t length, uintN flags);
+
+extern JSBool
+js_XDRRegExpObject(JSXDRState *xdr, JSObject **objp);
 
 extern JS_FRIEND_API(JSObject *) JS_FASTCALL
 js_CloneRegExpObject(JSContext *cx, JSObject *obj, JSObject *proto);
 
+const uint32 JSSLOT_REGEXP_LAST_INDEX = JSSLOT_PRIVATE + 1;
+const uint32 REGEXP_CLASS_FIXED_RESERVED_SLOTS = 1;
+
+static inline void
+js_ClearRegExpLastIndex(JSObject *obj)
+{
+    JS_ASSERT(obj->getClass() == &js_RegExpClass);
+    obj->fslots[JSSLOT_REGEXP_LAST_INDEX].setInt32(0);
+}
 
 
-
-
-extern JS_FRIEND_API(void)
-js_SaveAndClearRegExpStatics(JSContext *cx, js::RegExpStatics *res, js::AutoStringRooter *tvr);
-
-
-extern JS_FRIEND_API(void)
-js_RestoreRegExpStatics(JSContext *cx, js::RegExpStatics *res);
-
-extern JSBool
-js_XDRRegExpObject(JSXDRState *xdr, JSObject **objp);
+extern bool
+js_ContainsRegExpMetaChars(const jschar *chars, size_t length);
 
 #endif 

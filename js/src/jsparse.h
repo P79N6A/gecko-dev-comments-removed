@@ -274,17 +274,6 @@ JS_BEGIN_EXTERN_C
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 typedef enum JSParseNodeArity {
     PN_NULLARY,                         
     PN_UNARY,                           
@@ -331,7 +320,7 @@ struct JSParseNode {
         struct {                        
             JSParseNode *left;
             JSParseNode *right;
-            js::Value   *pval;          
+            jsboxedword val;            
             uintN       iflags;         
         } binary;
         struct {                        
@@ -350,7 +339,7 @@ struct JSParseNode {
 
                 JSDefinition *lexdef;   
             };
-            js::UpvarCookie cookie;     
+            uint32      cookie;         
 
 
             uint32      dflags:12,      
@@ -383,7 +372,7 @@ struct JSParseNode {
 #define pn_kid3         pn_u.ternary.kid3
 #define pn_left         pn_u.binary.left
 #define pn_right        pn_u.binary.right
-#define pn_pval         pn_u.binary.pval
+#define pn_val          pn_u.binary.val
 #define pn_iflags       pn_u.binary.iflags
 #define pn_kid          pn_u.unary.kid
 #define pn_num          pn_u.unary.num
@@ -469,19 +458,19 @@ public:
 #define PNX_DESTRUCT   0x200            /* destructuring special cases:
                                            1. shorthand syntax used, at present
                                               object destructuring ({x,y}) only;
-                                           2. code evaluating destructuring
-                                              arguments occurs before function
-                                              body */
+                                           2. the first child of function body
+                                              is code evaluating destructuring
+                                              arguments */
 #define PNX_HOLEY      0x400            /* array initialiser has holes */
 
     uintN frameLevel() const {
         JS_ASSERT(pn_arity == PN_FUNC || pn_arity == PN_NAME);
-        return pn_cookie.level();
+        return UPVAR_FRAME_SKIP(pn_cookie);
     }
 
     uintN frameSlot() const {
         JS_ASSERT(pn_arity == PN_FUNC || pn_arity == PN_NAME);
-        return pn_cookie.slot();
+        return UPVAR_FRAME_SLOT(pn_cookie);
     }
 
     inline bool test(uintN flag) const;
@@ -542,35 +531,6 @@ public:
         return (pn_pos.begin.lineno == pn_pos.end.lineno &&
                 pn_pos.begin.index + str->length() + 2 == pn_pos.end.index);
     }
-
-#ifdef JS_HAS_GENERATOR_EXPRS
-    
-
-
-    bool isGeneratorExpr() const {
-        if (PN_TYPE(this) == js::TOK_LP) {
-            JSParseNode *callee = this->pn_head;
-            if (PN_TYPE(callee) == js::TOK_FUNCTION) {
-                JSParseNode *body = (PN_TYPE(callee->pn_body) == js::TOK_UPVARS)
-                                    ? callee->pn_body->pn_tree
-                                    : callee->pn_body;
-                if (PN_TYPE(body) == js::TOK_LEXICALSCOPE)
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    JSParseNode *generatorExpr() const {
-        JS_ASSERT(isGeneratorExpr());
-        JSParseNode *callee = this->pn_head;
-        JSParseNode *body = PN_TYPE(callee->pn_body) == js::TOK_UPVARS
-            ? callee->pn_body->pn_tree
-            : callee->pn_body;
-        JS_ASSERT(PN_TYPE(body) == js::TOK_LEXICALSCOPE);
-        return body->pn_expr;
-    }
-#endif
 
     
 
@@ -807,7 +767,7 @@ struct JSDefinition : public JSParseNode
 
     bool isFreeVar() const {
         JS_ASSERT(pn_defn);
-        return pn_cookie.isFree() || test(PND_GVAR);
+        return pn_cookie == FREE_UPVAR_COOKIE || test(PND_GVAR);
     }
 
     
@@ -950,10 +910,7 @@ struct JSFunctionBoxQueue {
 
 typedef struct BindData BindData;
 
-namespace js {
-
-struct Parser : private js::AutoGCRooter
-{
+struct JSCompiler : private js::AutoGCRooter {
     JSContext           * const context; 
     JSAtomListElement   *aleFreeList;
     void                *tempFreeList[NUM_TEMP_FREELISTS];
@@ -970,23 +927,22 @@ struct Parser : private js::AutoGCRooter
     
     js::AutoKeepAtoms   keepAtoms;
 
-    Parser(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL)
-      : js::AutoGCRooter(cx, PARSER), context(cx),
+    JSCompiler(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL)
+      : js::AutoGCRooter(cx, COMPILER), context(cx),
         aleFreeList(NULL), tokenStream(cx), principals(NULL), callerFrame(cfp),
-        callerVarObj(cfp ? cfp->varobj(cx->containingSegment(cfp)) : NULL),
+        callerVarObj(cfp ? cfp->varobj(cx->containingCallStack(cfp)) : NULL),
         nodeList(NULL), functionCount(0), traceListHead(NULL), tc(NULL),
         keepAtoms(cx->runtime)
     {
         js::PodArrayZero(tempFreeList);
         setPrincipals(prin);
-        JS_ASSERT_IF(cfp, cfp->hasScript());
+        JS_ASSERT_IF(cfp, cfp->script);
     }
 
-    ~Parser();
+    ~JSCompiler();
 
     friend void js::AutoGCRooter::trace(JSTracer *trc);
-    friend struct ::JSTreeContext;
-    friend struct Compiler;
+    friend struct JSTreeContext;
 
     
 
@@ -998,11 +954,6 @@ struct Parser : private js::AutoGCRooter
               FILE *fp, const char *filename, uintN lineno);
 
     void setPrincipals(JSPrincipals *prin);
-
-    const char *getFilename()
-    {
-        return tokenStream.getFilename();
-    }
 
     
 
@@ -1036,11 +987,6 @@ struct Parser : private js::AutoGCRooter
     void setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags);
 
     void trace(JSTracer *trc);
-
-    
-
-
-    inline bool reportErrorNumber(JSParseNode *pn, uintN flags, uintN errorNumber, ...);
 
 private:
     
@@ -1078,13 +1024,8 @@ private:
 
 
     bool recognizeDirectivePrologue(JSParseNode *pn);
-
-    enum FunctionType { GETTER, SETTER, GENERAL };
-    bool functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunction *fun,
-                           JSParseNode **list);
     JSParseNode *functionBody();
-    JSParseNode *functionDef(JSAtom *name, FunctionType type, uintN lambda);
-
+    JSParseNode *functionDef(uintN lambda);
     JSParseNode *condition();
     JSParseNode *comprehensionTail(JSParseNode *kid, uintN blockid,
                                    js::TokenKind type = js::TOK_SEMI, JSOp op = JSOP_NOP);
@@ -1110,37 +1051,8 @@ private:
     JSParseNode *xmlElementOrList(JSBool allowList);
     JSParseNode *xmlElementOrListRoot(JSBool allowList);
 #endif 
-};
 
-inline bool
-Parser::reportErrorNumber(JSParseNode *pn, uintN flags, uintN errorNumber, ...)
-{
-    va_list args;
-    va_start(args, errorNumber);
-    bool result = tokenStream.reportCompileErrorNumberVA(pn, flags, errorNumber, args);
-    va_end(args);
-    return result;
-}
-
-struct Compiler
-{
-    Parser parser;
-
-    Compiler(JSContext *cx, JSPrincipals *prin = NULL, JSStackFrame *cfp = NULL)
-      : parser(cx, prin, cfp)
-    {
-    }
-
-    
-
-
-    inline bool
-    init(const jschar *base, size_t length,
-         FILE *fp, const char *filename, uintN lineno)
-    {
-        return parser.init(base, length, fp, filename, lineno);
-    }
-
+public:
     static bool
     compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
                         const jschar *chars, size_t length,
@@ -1155,12 +1067,10 @@ struct Compiler
                   unsigned staticLevel = 0);
 };
 
-} 
 
 
 
-
-#define TS(p) (&(p)->tokenStream)
+#define TS(jsc) (&(jsc)->tokenStream)
 
 extern JSBool
 js_FoldConstants(JSContext *cx, JSParseNode *pn, JSTreeContext *tc,

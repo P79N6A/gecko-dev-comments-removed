@@ -77,9 +77,6 @@
 
 
 
-
-#define DEFINE_LOCAL_CLASS_OF_STATIC_FUNCTION(Name) class Name
-
 #ifdef WIN32
 
 
@@ -114,8 +111,9 @@
 
 
 
-#   undef  DEFINE_LOCAL_CLASS_OF_STATIC_FUNCTION
 #   define DEFINE_LOCAL_CLASS_OF_STATIC_FUNCTION(Name) class __attribute__((visibility ("hidden"))) Name
+#  else
+#   define DEFINE_LOCAL_CLASS_OF_STATIC_FUNCTION class Name
 #  endif
 # elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
 #  define JS_EXTERNAL_VIS __global
@@ -169,7 +167,7 @@
 # define JS_PUBLIC_API(t)   t
 # define JS_PUBLIC_DATA(t)  t
 
-#elif defined(EXPORT_JS_API) || defined(STATIC_EXPORTABLE_JS_API)
+#elif defined(EXPORT_JS_API)
 
 # define JS_PUBLIC_API(t)   JS_EXPORT_API(t)
 # define JS_PUBLIC_DATA(t)  JS_EXPORT_DATA(t)
@@ -215,16 +213,6 @@
 #  define JS_ALWAYS_INLINE   __attribute__((always_inline)) JS_INLINE
 # else
 #  define JS_ALWAYS_INLINE   JS_INLINE
-# endif
-#endif
-
-#ifndef JS_NEVER_INLINE
-# if defined _MSC_VER
-#  define JS_NEVER_INLINE __declspec(noinline)
-# elif defined __GNUC__
-#  define JS_NEVER_INLINE __attribute__((noinline))
-# else
-#  define JS_NEVER_INLINE
 # endif
 #endif
 
@@ -313,27 +301,6 @@
 # include "jsautocfg.h" 
 #endif
 
-
-
-
-
-#ifdef _MSC_VER
-# if defined(_M_X64) || defined(_M_AMD64)
-#  define JS_64BIT
-# endif
-#elif defined(__GNUC__)
-# ifdef __x86_64__
-#  define JS_64BIT
-# endif
-#elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
-# ifdef __x86_64
-#  define JS_64BIT
-# endif
-#else
-# error "Implement me"
-#endif
-
-
 #include "jsinttypes.h"
 
 JS_BEGIN_EXTERN_C
@@ -392,11 +359,6 @@ typedef JSUintPtr JSUptrdiff;
 typedef JSIntn JSBool;
 #define JS_TRUE (JSIntn)1
 #define JS_FALSE (JSIntn)0
-
-
-
-
-#define JS_NEITHER (JSIntn)2
 
 
 

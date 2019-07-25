@@ -77,19 +77,16 @@ class HashTable : AllocPolicy
 
         NonConstT t;
 
-        bool isFree() const           { return keyHash == sFreeKey; }
-        void setFree()                { keyHash = sFreeKey; assignT(t, T()); }
-        bool isRemoved() const        { return keyHash == sRemovedKey; }
-        void setRemoved()             { keyHash = sRemovedKey; assignT(t, T()); }
-        bool isLive() const           { return isLiveHash(keyHash); }
-        void setLive(HashNumber hn)   { JS_ASSERT(isLiveHash(hn)); keyHash = hn; }
+        bool isFree() const           { return keyHash == 0; }
+        void setFree()                { keyHash = 0; assignT(t, T()); }
+        bool isRemoved() const        { return keyHash == 1; }
+        void setRemoved()             { keyHash = 1; assignT(t, T()); }
+        bool isLive() const           { return keyHash > 1; }
+        void setLive(HashNumber hn)   { JS_ASSERT(hn > 1); keyHash = hn; }
 
-        void setCollision()           { JS_ASSERT(isLive()); keyHash |= sCollisionBit; }
-        void setCollision(HashNumber collisionBit) {
-            JS_ASSERT(isLive()); keyHash |= collisionBit;
-        }
-        void unsetCollision()         { JS_ASSERT(isLive()); keyHash &= ~sCollisionBit; }
-        bool hasCollision() const     { JS_ASSERT(isLive()); return keyHash & sCollisionBit; }
+        void setCollision()           { JS_ASSERT(keyHash > 1); keyHash |= sCollisionBit; }
+        void unsetCollision()         { JS_ASSERT(keyHash > 1); keyHash &= ~sCollisionBit; }
+        bool hasCollision() const     { JS_ASSERT(keyHash > 1); return keyHash & sCollisionBit; }
         bool matchHash(HashNumber hn) { return (keyHash & ~sCollisionBit) == hn; }
         HashNumber getKeyHash() const { JS_ASSERT(!hasCollision()); return keyHash; }
     };
@@ -125,15 +122,8 @@ class HashTable : AllocPolicy
     class AddPtr : public Ptr
     {
         friend class HashTable;
-        HashNumber keyHash;
-#ifdef DEBUG
-        uint64 mutationCount;
-
-        AddPtr(Entry &entry, HashNumber hn, uint64 mutationCount)
-            : Ptr(entry), keyHash(hn), mutationCount(mutationCount) {}
-#else
         AddPtr(Entry &entry, HashNumber hn) : Ptr(entry), keyHash(hn) {}
-#endif
+        HashNumber keyHash;
     };
 
     
@@ -191,7 +181,7 @@ class HashTable : AllocPolicy
         void operator=(const Enum &);
 
       public:
-        template<class Map> explicit
+        template<class Map>
         Enum(Map &map) : Range(map.all()), table(map.impl), removed(false) {}
 
         
@@ -257,38 +247,16 @@ class HashTable : AllocPolicy
 #ifdef DEBUG
     friend class js::ReentrancyGuard;
     mutable bool entered;
-    uint64       mutationCount;
 #endif
 
     static const unsigned sMinSizeLog2  = 4;
     static const unsigned sMinSize      = 1 << sMinSizeLog2;
     static const unsigned sSizeLimit    = JS_BIT(24);
     static const unsigned sHashBits     = tl::BitSize<HashNumber>::result;
+    static const unsigned sGoldenRatio  = 0x9E3779B9U;       
     static const uint8    sMinAlphaFrac = 64;  
     static const uint8    sMaxAlphaFrac = 192; 
-    static const uint8    sInvMaxAlpha  = 171; 
-    static const HashNumber sGoldenRatio  = 0x9E3779B9U;       
-    static const HashNumber sCollisionBit = 1;
-    static const HashNumber sFreeKey = 0;
-    static const HashNumber sRemovedKey = 1;
-
-    static bool isLiveHash(HashNumber hash)
-    {
-        return hash > sRemovedKey;
-    }
-
-    static HashNumber prepareHash(const Lookup& l)
-    {
-        HashNumber keyHash = HashPolicy::hash(l);
-
-        
-        keyHash *= sGoldenRatio;
-
-        
-        if (!isLiveHash(keyHash))
-            keyHash -= (sRemovedKey + 1);
-        return keyHash & ~sCollisionBit;
-    }
+    static const unsigned sCollisionBit = 1;
 
     static Entry *createTable(AllocPolicy &alloc, uint32 capacity)
     {
@@ -315,24 +283,17 @@ class HashTable : AllocPolicy
         removedCount(0),
         table(NULL)
 #ifdef DEBUG
-        , entered(false),
-        mutationCount(0)
+        , entered(false)
 #endif
     {}
 
-    bool init(uint32 length)
+    bool init(uint32 capacity)
     {
-        
-
-
-
-        JS_ASSERT(length < (uint32(1) << 23));
-        uint32 capacity = (length * sInvMaxAlpha) >> 7;
-
         if (capacity < sMinSize)
             capacity = sMinSize;
 
         
+        JS_ASSERT(capacity < (uint32(1) << 31));
         uint32 roundUp = sMinSize, roundUpLog2 = sMinSizeLog2;
         while (roundUp < capacity) {
             roundUp <<= 1;
@@ -340,10 +301,8 @@ class HashTable : AllocPolicy
         }
 
         capacity = roundUp;
-        if (capacity >= sSizeLimit) {
-            this->reportAllocOverflow();
+        if (capacity >= sSizeLimit)
             return false;
-        }
 
         table = createTable(*this, capacity);
         if (!table)
@@ -354,10 +313,7 @@ class HashTable : AllocPolicy
         return true;
     }
 
-    bool initialized() const
-    {
-        return !!table;
-    }
+    bool initialized() const { return table; }
 
     ~HashTable()
     {
@@ -366,11 +322,11 @@ class HashTable : AllocPolicy
     }
 
   private:
-    static HashNumber hash1(HashNumber hash0, uint32 shift) {
+    static uint32 hash1(uint32 hash0, uint32 shift) {
         return hash0 >> shift;
     }
 
-    static HashNumber hash2(HashNumber hash0, uint32 log2, uint32 shift) {
+    static uint32 hash2(uint32 hash0, uint32 log2, uint32 shift) {
         return ((hash0 << log2) >> shift) | 1;
     }
 
@@ -387,34 +343,48 @@ class HashTable : AllocPolicy
         return HashPolicy::match(HashPolicy::getKey(e.t), l);
     }
 
-    Entry &lookup(const Lookup &l, HashNumber keyHash, unsigned collisionBit) const
+    struct SetCollisions {
+        static void collide(Entry &e) { e.setCollision(); }
+    };
+
+    struct IgnoreCollisions {
+        static void collide(Entry &) {}
+    };
+
+    template <class Op>
+    AddPtr lookup(const Lookup &l, HashNumber keyHash) const
     {
-        JS_ASSERT(isLiveHash(keyHash));
-        JS_ASSERT(!(keyHash & sCollisionBit));
-        JS_ASSERT(collisionBit == 0 || collisionBit == sCollisionBit);
         JS_ASSERT(table);
         METER(stats.searches++);
 
         
-        HashNumber h1 = hash1(keyHash, hashShift);
+        keyHash *= sGoldenRatio;
+
+        
+        if (keyHash < 2)
+            keyHash -= 2;
+        keyHash &= ~sCollisionBit;
+
+        
+        uint32 h1 = hash1(keyHash, hashShift);
         Entry *entry = &table[h1];
 
         
         if (entry->isFree()) {
             METER(stats.misses++);
-            return *entry;
+            return AddPtr(*entry, keyHash);
         }
 
         
         if (entry->matchHash(keyHash) && match(*entry, l)) {
             METER(stats.hits++);
-            return *entry;
+            return AddPtr(*entry, keyHash);
         }
 
         
         unsigned sizeLog2 = sHashBits - hashShift;
-        HashNumber h2 = hash2(keyHash, sizeLog2, hashShift);
-        HashNumber sizeMask = (HashNumber(1) << sizeLog2) - 1;
+        uint32 h2 = hash2(keyHash, sizeLog2, hashShift);
+        uint32 sizeMask = JS_BITMASK(sizeLog2);
 
         
         Entry *firstRemoved = NULL;
@@ -424,7 +394,7 @@ class HashTable : AllocPolicy
                 if (!firstRemoved)
                     firstRemoved = entry;
             } else {
-                entry->setCollision(collisionBit);
+                Op::collide(*entry);
             }
 
             METER(stats.steps++);
@@ -434,12 +404,12 @@ class HashTable : AllocPolicy
             entry = &table[h1];
             if (entry->isFree()) {
                 METER(stats.misses++);
-                return firstRemoved ? *firstRemoved : *entry;
+                return AddPtr(*(firstRemoved ? firstRemoved : entry), keyHash);
             }
 
             if (entry->matchHash(keyHash) && match(*entry, l)) {
                 METER(stats.hits++);
-                return *entry;
+                return AddPtr(*entry, keyHash);
             }
         }
     }
@@ -460,7 +430,7 @@ class HashTable : AllocPolicy
         
 
         
-        HashNumber h1 = hash1(keyHash, hashShift);
+        uint32 h1 = hash1(keyHash, hashShift);
         Entry *entry = &table[h1];
 
         
@@ -471,8 +441,8 @@ class HashTable : AllocPolicy
 
         
         unsigned sizeLog2 = sHashBits - hashShift;
-        HashNumber h2 = hash2(keyHash, sizeLog2, hashShift);
-        HashNumber sizeMask = (HashNumber(1) << sizeLog2) - 1;
+        uint32 h2 = hash2(keyHash, sizeLog2, hashShift);
+        uint32 sizeMask = JS_BITMASK(sizeLog2);
 
         while(true) {
             JS_ASSERT(!entry->isRemoved());
@@ -497,10 +467,8 @@ class HashTable : AllocPolicy
         uint32 oldCap = tableCapacity;
         uint32 newLog2 = sHashBits - hashShift + deltaLog2;
         uint32 newCapacity = JS_BIT(newLog2);
-        if (newCapacity >= sSizeLimit) {
-            this->reportAllocOverflow();
+        if (newCapacity >= sSizeLimit)
             return false;
-        }
 
         Entry *newTable = createTable(*this, newCapacity);
         if (!newTable)
@@ -535,9 +503,6 @@ class HashTable : AllocPolicy
             e.setFree();
         }
         entryCount--;
-#ifdef DEBUG
-        mutationCount++;
-#endif
     }
 
     void checkUnderloaded()
@@ -555,9 +520,6 @@ class HashTable : AllocPolicy
             *e = Entry();
         removedCount = 0;
         entryCount = 0;
-#ifdef DEBUG
-        mutationCount++;
-#endif
     }
 
     Range all() const {
@@ -578,25 +540,17 @@ class HashTable : AllocPolicy
 
     Ptr lookup(const Lookup &l) const {
         ReentrancyGuard g(*this);
-        HashNumber keyHash = prepareHash(l);
-        return Ptr(lookup(l, keyHash, 0));
+        return lookup<IgnoreCollisions>(l, HashPolicy::hash(l));
     }
 
     AddPtr lookupForAdd(const Lookup &l) const {
         ReentrancyGuard g(*this);
-        HashNumber keyHash = prepareHash(l);
-        Entry &entry = lookup(l, keyHash, sCollisionBit);
-#ifdef DEBUG
-        return AddPtr(entry, keyHash, mutationCount);
-#else
-        return AddPtr(entry, keyHash);
-#endif
+        return lookup<SetCollisions>(l, HashPolicy::hash(l));
     }
 
-    bool add(AddPtr &p)
+    bool add(AddPtr &p, const T &t)
     {
         ReentrancyGuard g(*this);
-        JS_ASSERT(mutationCount == p.mutationCount);
         JS_ASSERT(table);
         JS_ASSERT(!p.found());
         JS_ASSERT(!(p.keyHash & sCollisionBit));
@@ -630,45 +584,10 @@ class HashTable : AllocPolicy
             }
         }
 
+        p.entry->t = t;
         p.entry->setLive(p.keyHash);
         entryCount++;
-#ifdef DEBUG
-        mutationCount++;
-#endif
         return true;
-    }
-
-    
-
-
-
-
-    bool add(AddPtr &p, T** pentry)
-    {
-        if (!add(p))
-            return false;
-        *pentry = &p.entry->t;
-        return true;
-    }
-
-    bool add(AddPtr &p, const T &t)
-    {
-        if (!add(p))
-            return false;
-        p.entry->t = t;
-        return true;
-    }
-
-    bool relookupOrAdd(AddPtr& p, const Lookup &l, const T& t)
-    {
-#ifdef DEBUG
-        p.mutationCount = mutationCount;
-#endif
-        {
-            ReentrancyGuard g(*this);
-            p.entry = &lookup(l, p.keyHash, sCollisionBit);
-        }
-        return p.found() || add(p, t);
     }
 
     void remove(Ptr p)
@@ -715,7 +634,7 @@ template <class Key>
 struct DefaultHasher
 {
     typedef Key Lookup;
-    static HashNumber hash(const Lookup &l) {
+    static uint32 hash(const Lookup &l) {
         
         return l;
     }
@@ -730,13 +649,12 @@ template <class T>
 struct DefaultHasher<T *>
 {
     typedef T *Lookup;
-    static HashNumber hash(T *l) {
+    static uint32 hash(T *l) {
         
 
 
 
-        return HashNumber(reinterpret_cast<size_t>(l) >>
-                          tl::FloorLog2<sizeof(void *)>::result);
+        return (uint32)(unsigned long)l >> 2;
     }
     static bool match(T *k, T *l) {
         return k == l;
@@ -804,7 +722,7 @@ class HashMap
 
 
     HashMap(AllocPolicy a = AllocPolicy()) : impl(a) {}
-    bool init(uint32 len = 0)                         { return impl.init(len); }
+    bool init(uint32 cap = 0)                         { return impl.init(cap); }
     bool initialized() const                          { return impl.initialized(); }
 
     
@@ -844,48 +762,9 @@ class HashMap
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     typedef typename Impl::AddPtr AddPtr;
-    AddPtr lookupForAdd(const Lookup &l) const {
-        return impl.lookupForAdd(l);
-    }
-
-    bool add(AddPtr &p, const Key &k, const Value &v) {
-        Entry *pentry;
-        if (!impl.add(p, &pentry))
-            return false;
-        const_cast<Key &>(pentry->key) = k;
-        pentry->value = v;
-        return true;
-    }
-
-    bool add(AddPtr &p, const Key &k) {
-        Entry *pentry;
-        if (!impl.add(p, &pentry))
-            return false;
-        const_cast<Key &>(pentry->key) = k;
-        return true;
-    }
-
-    bool relookupOrAdd(AddPtr &p, const Key &k, const Value &v) {
-        return impl.relookupOrAdd(p, k, Entry(k, v));
-    }
+    AddPtr lookupForAdd(const Lookup &l) const        { return impl.lookupForAdd(l); }
+    bool add(AddPtr &p, const Key &k, const Value &v) { return impl.add(p,Entry(k,v)); }
 
     
 
@@ -991,7 +870,7 @@ class HashSet
 
 
     HashSet(AllocPolicy a = AllocPolicy()) : impl(a) {}
-    bool init(uint32 len = 0)                         { return impl.init(len); }
+    bool init(uint32 cap = 0)                         { return impl.init(cap); }
     bool initialized() const                          { return impl.initialized(); }
 
     
@@ -1027,36 +906,9 @@ class HashSet
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     typedef typename Impl::AddPtr AddPtr;
-    AddPtr lookupForAdd(const Lookup &l) const {
-        return impl.lookupForAdd(l);
-    }
-
-    bool add(AddPtr &p, const T &t) {
-        return impl.add(p, t);
-    }
-
-    bool relookupOrAdd(AddPtr &p, const Lookup &l, const T &t) {
-        return impl.relookupOrAdd(p, l, t);
-    }
+    AddPtr lookupForAdd(const Lookup &l) const        { return impl.lookupForAdd(l); }
+    bool add(AddPtr &p, const T &t)                   { return impl.add(p,t); }
 
     
 

@@ -49,48 +49,23 @@
 
 
 #include <ctype.h>
-#include "jsapi.h"
+#include "jspubtd.h"
 #include "jsprvtd.h"
 #include "jshashtable.h"
 #include "jslock.h"
-#include "jsobj.h"
-#include "jsvalue.h"
 
 #define JSSTRING_BIT(n)             ((size_t)1 << (n))
 #define JSSTRING_BITMASK(n)         (JSSTRING_BIT(n) - 1)
 
 enum {
     UNIT_STRING_LIMIT        = 256U,
-    SMALL_CHAR_LIMIT         = 128U, 
-    NUM_SMALL_CHARS          = 64U,
-    INT_STRING_LIMIT         = 256U,
-    NUM_HUNDRED_STRINGS      = 156U
+    INT_STRING_LIMIT         = 256U
 };
 
 extern jschar *
 js_GetDependentStringChars(JSString *str);
 
-extern JSString * JS_FASTCALL
-js_ConcatStrings(JSContext *cx, JSString *left, JSString *right);
-
-extern JSString * JS_FASTCALL
-js_ConcatStringsZ(JSContext *cx, const char *left, JSString *right);
-
 JS_STATIC_ASSERT(JS_BITS_PER_WORD >= 32);
-
-struct JSRopeBufferInfo {
-    
-    size_t capacity;
-};
-
-
-
-
-
-
-
-
-
 
 
 
@@ -123,32 +98,17 @@ struct JSString {
     friend JSAtom *
     js_AtomizeString(JSContext *cx, JSString *str, uintN flags);
 
+    friend JSString * JS_FASTCALL
+    js_ConcatStrings(JSContext *cx, JSString *left, JSString *right);
+
     
-
-
-
-    size_t                          mLengthAndFlags;  
+    
+    size_t          mLength;
+    size_t          mOffset;
+    jsword          mFlags;
     union {
-        jschar                      *mChars; 
-        JSString                    *mLeft;  
-    };
-    union {
-        
-
-
-
-        jschar                      mInlineStorage[4]; 
-        struct {
-            union {
-                size_t              mCapacity; 
-                JSString            *mParent; 
-                JSRopeBufferInfo    *mBufferWithInfo; 
-            };
-            union {
-                JSString            *mBase;  
-                JSString            *mRight; 
-            };
-        } e;
+        jschar      *mChars;
+        JSString    *mBase;
     };
 
     
@@ -156,37 +116,12 @@ struct JSString {
 
 
 
-
-
-
-
-
-
-
-
-    static const size_t FLAT =          0;
-    static const size_t DEPENDENT =     1;
-    static const size_t INTERIOR_NODE = 2;
-    static const size_t TOP_NODE =      3;
-
-    
-    static const size_t ROPE_BIT = JSSTRING_BIT(1);
-
-    static const size_t ATOMIZED = JSSTRING_BIT(2);
-    static const size_t MUTABLE = JSSTRING_BIT(3);
-
-    static const size_t FLAGS_LENGTH_SHIFT = 4;
-
-    static const size_t ROPE_TRAVERSAL_COUNT_SHIFT = 2;
-    static const size_t ROPE_TRAVERSAL_COUNT_MASK = JSSTRING_BITMASK(4) -
-                                                    JSSTRING_BITMASK(2);
-    static const size_t ROPE_TRAVERSAL_COUNT_UNIT =
-                                (1 << ROPE_TRAVERSAL_COUNT_SHIFT);
-
-    static const size_t TYPE_MASK = JSSTRING_BITMASK(2);
+    static const size_t DEPENDENT =     JSSTRING_BIT(1);
+    static const size_t MUTABLE =       JSSTRING_BIT(2);
+    static const size_t ATOMIZED =      JSSTRING_BIT(3);
 
     inline bool hasFlag(size_t flag) const {
-        return (mLengthAndFlags & flag) != 0;
+        return (mFlags & flag) != 0;
     }
 
   public:
@@ -196,96 +131,60 @@ struct JSString {
 
     static const size_t MAX_LENGTH = (1 << 28) - 1;
 
-    inline size_t type() const {
-        return mLengthAndFlags & TYPE_MASK;
+    inline bool isDependent() const {
+        return hasFlag(DEPENDENT);
     }
 
-    JS_ALWAYS_INLINE bool isDependent() const {
-        return type() == DEPENDENT;
-    }
-
-    JS_ALWAYS_INLINE bool isFlat() const {
-        return type() == FLAT;
+    inline bool isFlat() const {
+        return !isDependent();
     }
 
     inline bool isMutable() const {
-        return isFlat() && hasFlag(MUTABLE);
+        return !isDependent() && hasFlag(MUTABLE);
     }
 
-    inline bool isRope() const {
-        return hasFlag(ROPE_BIT);
+    inline bool isAtomized() const {
+        return !isDependent() && hasFlag(ATOMIZED);
     }
 
-    JS_ALWAYS_INLINE bool isAtomized() const {
-        return isFlat() && hasFlag(ATOMIZED);
+    inline jschar *chars() {
+        return isDependent() ? dependentChars() : flatChars();
     }
 
-    inline bool isInteriorNode() const {
-        return type() == INTERIOR_NODE;
+    inline size_t length() const {
+        return mLength;
     }
 
-    inline bool isTopNode() const {
-        return type() == TOP_NODE;
-    }
-
-    JS_ALWAYS_INLINE jschar *chars() {
-        if (JS_UNLIKELY(isRope()))
-            flatten();
-        return mChars;
-    }
-
-    JS_ALWAYS_INLINE size_t length() const {
-        return mLengthAndFlags >> FLAGS_LENGTH_SHIFT;
-    }
-
-    JS_ALWAYS_INLINE bool empty() const {
+    inline bool empty() const {
         return length() == 0;
     }
 
-    JS_ALWAYS_INLINE void getCharsAndLength(const jschar *&chars, size_t &length) {
+    inline void getCharsAndLength(const jschar *&chars, size_t &length) {
         chars = this->chars();
         length = this->length();
     }
 
-    JS_ALWAYS_INLINE void getCharsAndEnd(const jschar *&chars, const jschar *&end) {
+    inline void getCharsAndEnd(const jschar *&chars, const jschar *&end) {
         end = length() + (chars = this->chars());
     }
 
-    JS_ALWAYS_INLINE jschar *inlineStorage() {
-        JS_ASSERT(isFlat());
-        return mInlineStorage;
-    }
-
     
-    JS_ALWAYS_INLINE void initFlat(jschar *chars, size_t length) {
+    inline void initFlat(jschar *chars, size_t length) {
         JS_ASSERT(length <= MAX_LENGTH);
-        e.mBase = NULL;
-        e.mCapacity = 0;
-        mLengthAndFlags = (length << FLAGS_LENGTH_SHIFT) | FLAT;
+        mLength = length;
+        mOffset = 0;
+        mFlags = 0;
         mChars = chars;
     }
 
-    JS_ALWAYS_INLINE void initFlatMutable(jschar *chars, size_t length, size_t cap) {
-        JS_ASSERT(length <= MAX_LENGTH);
-        e.mBase = NULL;
-        e.mCapacity = cap;
-        mLengthAndFlags = (length << FLAGS_LENGTH_SHIFT) | FLAT | MUTABLE;
-        mChars = chars;
-    }
-
-    JS_ALWAYS_INLINE jschar *flatChars() const {
+    inline jschar *flatChars() const {
         JS_ASSERT(isFlat());
         return mChars;
     }
 
-    JS_ALWAYS_INLINE size_t flatLength() const {
+    inline size_t flatLength() const {
         JS_ASSERT(isFlat());
         return length();
-    }
-
-    JS_ALWAYS_INLINE size_t flatCapacity() const {
-        JS_ASSERT(isFlat());
-        return e.mCapacity;
     }
 
     
@@ -316,145 +215,47 @@ struct JSString {
 
 
     inline void flatSetAtomized() {
-        JS_ASSERT(isFlat());
-        JS_ATOMIC_SET_MASK((jsword *)&mLengthAndFlags, ATOMIZED);
+        JS_ASSERT(isFlat() && !isMutable());
+        JS_ATOMIC_SET_MASK(&mFlags, ATOMIZED);
     }
 
     inline void flatSetMutable() {
-        JS_ASSERT(isFlat());
-        JS_ASSERT(!isAtomized());
-        mLengthAndFlags |= MUTABLE;
+        JS_ASSERT(isFlat() && !isAtomized());
+        mFlags |= MUTABLE;
     }
 
     inline void flatClearMutable() {
         JS_ASSERT(isFlat());
-        mLengthAndFlags &= ~MUTABLE;
+        if (hasFlag(MUTABLE))
+            mFlags &= ~MUTABLE;
     }
 
-    
-
-
-
-    inline void initDependent(JSString *bstr, jschar *chars, size_t len) {
+    inline void initDependent(JSString *bstr, size_t off, size_t len) {
         JS_ASSERT(len <= MAX_LENGTH);
-        e.mParent = NULL;
-        mChars = chars;
-        mLengthAndFlags = DEPENDENT | (len << FLAGS_LENGTH_SHIFT);
-        e.mBase = bstr;
+        mLength = len;
+        mOffset = off;
+        mFlags = DEPENDENT;
+        mBase = bstr;
     }
 
     inline JSString *dependentBase() const {
         JS_ASSERT(isDependent());
-        return e.mBase;
+        return mBase;
     }
 
-    JS_ALWAYS_INLINE jschar *dependentChars() {
-        return mChars;
+    inline jschar *dependentChars() {
+        return dependentBase()->isDependent()
+               ? js_GetDependentStringChars(this)
+               : dependentBase()->flatChars() + dependentStart();
+    }
+
+    inline size_t dependentStart() const {
+        return mOffset;
     }
 
     inline size_t dependentLength() const {
         JS_ASSERT(isDependent());
         return length();
-    }
-
-    
-    inline void initTopNode(JSString *left, JSString *right, size_t len,
-                            JSRopeBufferInfo *buf) {
-        JS_ASSERT(left->length() + right->length() <= MAX_LENGTH);
-        mLengthAndFlags = TOP_NODE | (len << FLAGS_LENGTH_SHIFT);
-        mLeft = left;
-        e.mRight = right;
-        e.mBufferWithInfo = buf;
-    }
-
-    inline void convertToInteriorNode(JSString *parent) {
-        JS_ASSERT(isTopNode());
-        e.mParent = parent;
-        mLengthAndFlags = INTERIOR_NODE | (length() << FLAGS_LENGTH_SHIFT);
-    }
-
-    inline JSString *interiorNodeParent() const {
-        JS_ASSERT(isInteriorNode());
-        return e.mParent;
-    }
-
-    inline JSString *ropeLeft() const {
-        JS_ASSERT(isRope());
-        return mLeft;
-    }
-
-    inline JSString *ropeRight() const {
-        JS_ASSERT(isRope());
-        return e.mRight;
-    }
-
-    inline size_t topNodeCapacity() const {
-        JS_ASSERT(isTopNode());
-        return e.mBufferWithInfo->capacity;
-    }
-
-    inline JSRopeBufferInfo *topNodeBuffer() const {
-        JS_ASSERT(isTopNode());
-        return e.mBufferWithInfo;
-    }
-
-    inline void nullifyTopNodeBuffer() {
-        JS_ASSERT(isTopNode());
-        e.mBufferWithInfo = NULL;
-    }
-
-    
-
-
-
-    inline void startTraversalConversion(jschar *chars, size_t offset) {
-        JS_ASSERT(isInteriorNode());
-        mChars = chars + offset;
-    }    
-
-    inline void finishTraversalConversion(JSString *base, jschar *chars,
-                                          size_t end) {
-        JS_ASSERT(isInteriorNode());
-        
-        mLengthAndFlags = JSString::DEPENDENT |
-            ((chars + end - mChars) << JSString::FLAGS_LENGTH_SHIFT);
-        e.mBase = base;
-    }
-
-    inline void ropeClearTraversalCount() {
-        JS_ASSERT(isRope());
-        mLengthAndFlags &= ~ROPE_TRAVERSAL_COUNT_MASK;
-    }
-
-    inline size_t ropeTraversalCount() const {
-        JS_ASSERT(isRope());
-        return (mLengthAndFlags & ROPE_TRAVERSAL_COUNT_MASK) >>
-                ROPE_TRAVERSAL_COUNT_SHIFT;
-    }
-
-    inline void ropeIncrementTraversalCount() {
-        JS_ASSERT(isRope());
-        mLengthAndFlags += ROPE_TRAVERSAL_COUNT_UNIT;
-    }
-
-    inline bool ensureNotDependent(JSContext *cx) {
-        return !isDependent() || undepend(cx);
-    }
-
-    inline void ensureNotRope() {
-        if (isRope())
-            flatten();
-    }
-
-    const jschar *undepend(JSContext *cx);
-
-    
-    void flatten();
-
-    typedef uint8 SmallChar;
-
-    static inline bool fitsInSmallChar(jschar c) {
-        return c < SMALL_CHAR_LIMIT && toSmallChar[c] != INVALID_SMALL_CHAR;
     }
 
     static inline bool isUnitString(void *ptr) {
@@ -468,21 +269,10 @@ struct JSString {
         return true;
     }
 
-    static inline bool isLength2String(void *ptr) {
+    static inline bool isIntString(void *ptr) {
         jsuword delta = reinterpret_cast<jsuword>(ptr) -
-                        reinterpret_cast<jsuword>(length2StringTable);
-        if (delta >= NUM_SMALL_CHARS * NUM_SMALL_CHARS * sizeof(JSString))
-            return false;
-
-        
-        JS_ASSERT(delta % sizeof(JSString) == 0);
-        return true;
-    }
-
-    static inline bool isHundredString(void *ptr) {
-        jsuword delta = reinterpret_cast<jsuword>(ptr) -
-                        reinterpret_cast<jsuword>(hundredStringTable);
-        if (delta >= NUM_HUNDRED_STRINGS * sizeof(JSString))
+                        reinterpret_cast<jsuword>(intStringTable);
+        if (delta >= INT_STRING_LIMIT * sizeof(JSString))
             return false;
 
         
@@ -491,219 +281,28 @@ struct JSString {
     }
 
     static inline bool isStatic(void *ptr) {
-        return isUnitString(ptr) || isLength2String(ptr) || isHundredString(ptr);
+        return isUnitString(ptr) || isIntString(ptr);
     }
 
 #ifdef __SUNPRO_CC
-#pragma align 8 (__1cIJSStringPunitStringTable_, __1cIJSStringSlength2StringTable_, __1cIJSStringShundredStringTable_)
+#pragma align 8 (__1cIJSStringPunitStringTable_, __1cIJSStringOintStringTable_)
 #endif
 
-    static const SmallChar INVALID_SMALL_CHAR = -1;
-
-    static jschar fromSmallChar[];
-    static SmallChar toSmallChar[];
     static JSString unitStringTable[];
-    static JSString length2StringTable[];
-    static JSString hundredStringTable[];
-    
-
-
-
-    static JSString *intStringTable[];
-    static const char deflatedIntStringTable[];
+    static JSString intStringTable[];
+    static const char *deflatedIntStringTable[];
     static const char deflatedUnitStringTable[];
-    static const char deflatedLength2StringTable[];
 
     static JSString *unitString(jschar c);
     static JSString *getUnitString(JSContext *cx, JSString *str, size_t index);
-    static JSString *length2String(jschar c1, jschar c2);
     static JSString *intString(jsint i);
 };
 
-
-
-
-
-
-struct JSShortString {
-    JSString mHeader;
-    JSString mDummy;
-
-    
-
-
-
-
-    inline jschar *init(size_t length) {
-        JS_ASSERT(length <= MAX_SHORT_STRING_LENGTH);
-        mHeader.initFlat(mHeader.inlineStorage(), length);
-        return mHeader.inlineStorage();
-    }
-
-    inline void resetLength(size_t length) {
-        mHeader.initFlat(mHeader.flatChars(), length);
-    }
-
-    inline JSString *header() {
-        return &mHeader;
-    }
-
-    static const size_t MAX_SHORT_STRING_LENGTH =
-            ((sizeof(JSString) + 2 * sizeof(size_t)) / sizeof(jschar)) - 1;
-
-    static inline bool fitsIntoShortString(size_t length) {
-        return length <= MAX_SHORT_STRING_LENGTH;
-    }
-};
-
-
-
-
-
-JS_STATIC_ASSERT(offsetof(JSString, mInlineStorage) == 2 * sizeof(void *));
-JS_STATIC_ASSERT(offsetof(JSShortString, mDummy) == sizeof(JSString));
-JS_STATIC_ASSERT(offsetof(JSString, mInlineStorage) +
-                 sizeof(jschar) * (JSShortString::MAX_SHORT_STRING_LENGTH + 1) ==
-                 sizeof(JSShortString));
-
-
-
-
-
-
-
-
-
-
-
-
-class JSRopeNodeIterator {
-  private:
-    JSString *mStr;
-    size_t mUsedFlags;
-
-    static const size_t DONE_LEFT = 0x1;
-    static const size_t DONE_RIGHT = 0x2;
-
-  public:
-    JSRopeNodeIterator(JSString *str)
-      : mUsedFlags(0)
-    {
-        mStr = str;
-    }
-    
-    JSString *init() {
-        
-        if (!mStr->isRope()) {
-            JSString *oldStr = mStr;
-            mStr = NULL;
-            return oldStr;
-        }
-        
-        while (mStr->isInteriorNode())
-            mStr = mStr->interiorNodeParent();
-        while (mStr->ropeLeft()->isInteriorNode())
-            mStr = mStr->ropeLeft();
-        JS_ASSERT(mUsedFlags == 0);
-        return mStr;
-    }
-
-    JSString *next() {
-        if (!mStr)
-            return NULL;
-        if (!mStr->ropeLeft()->isInteriorNode() && !(mUsedFlags & DONE_LEFT)) {
-            mUsedFlags |= DONE_LEFT;
-            return mStr->ropeLeft();
-        }
-        if (!mStr->ropeRight()->isInteriorNode() && !(mUsedFlags & DONE_RIGHT)) {
-            mUsedFlags |= DONE_RIGHT;
-            return mStr->ropeRight();
-        }
-        if (mStr->ropeRight()->isInteriorNode()) {
-            
-
-
-
-            mStr = mStr->ropeRight();
-            while (mStr->ropeLeft()->isInteriorNode())
-                mStr = mStr->ropeLeft();
-        } else {
-            
-
-
-
-            JSString *prev;
-            do {
-                prev = mStr;
-                
-                mStr = mStr->isInteriorNode() ? mStr->interiorNodeParent() : NULL;
-            } while (mStr && mStr->ropeRight() == prev);
-        }
-        mUsedFlags = 0;
-        return mStr;
-    }
-};
-
-
-
-
-
-class JSRopeLeafIterator {
-  private:
-    JSRopeNodeIterator mNodeIterator;
-
-  public:
-
-    JSRopeLeafIterator(JSString *topNode) :
-        mNodeIterator(topNode) {
-        JS_ASSERT(topNode->isTopNode());
-    }
-
-    inline JSString *init() {
-        JSString *str = mNodeIterator.init();
-        while (str->isRope()) {
-            str = mNodeIterator.next();
-            JS_ASSERT(str);
-        }
-        return str;
-    }
-
-    inline JSString *next() {
-        JSString *str;
-        do {
-            str = mNodeIterator.next();
-        } while (str && str->isRope());
-        return str;
-    }
-};
-
-class JSRopeBuilder {
-    JSContext   * const cx;
-    JSString    *mStr;
-
-  public:
-    JSRopeBuilder(JSContext *cx);
-
-    inline bool append(JSString *str) {
-        mStr = js_ConcatStrings(cx, mStr, str);
-        return !!mStr;
-    }
-
-    inline JSString *getStr() {
-        return mStr;
-    }
-};
-     
-JS_STATIC_ASSERT(JSString::INTERIOR_NODE & JSString::ROPE_BIT);
-JS_STATIC_ASSERT(JSString::TOP_NODE & JSString::ROPE_BIT);
-
-JS_STATIC_ASSERT(((JSString::MAX_LENGTH << JSString::FLAGS_LENGTH_SHIFT) >>
-                   JSString::FLAGS_LENGTH_SHIFT) == JSString::MAX_LENGTH);
-
-JS_STATIC_ASSERT(sizeof(JSString) % JS_GCTHING_ALIGN == 0);
-
 extern const jschar *
 js_GetStringChars(JSContext *cx, JSString *str);
+
+extern JSString * JS_FASTCALL
+js_ConcatStrings(JSContext *cx, JSString *left, JSString *right);
 
 extern const jschar *
 js_UndependString(JSContext *cx, JSString *str);
@@ -836,18 +435,15 @@ extern const bool js_alnum[];
 
 #define JS_ISDIGIT(c)   (JS_CTYPE(c) == JSCT_DECIMAL_DIGIT_NUMBER)
 
-const jschar BYTE_ORDER_MARK = 0xFEFF;
-const jschar NO_BREAK_SPACE  = 0x00A0;
-
 static inline bool
 JS_ISSPACE(jschar c)
 {
     unsigned w = c;
 
     if (w < 256)
-        return (w <= ' ' && (w == ' ' || (9 <= w && w <= 0xD))) || w == NO_BREAK_SPACE;
+        return (w <= ' ' && (w == ' ' || (9 <= w && w <= 0xD))) || w == 0xA0;
 
-    return w == BYTE_ORDER_MARK || (JS_CCODE(w) & 0x00070000) == 0x00040000;
+    return (JS_CCODE(w) & 0x00070000) == 0x00040000;
 }
 
 #define JS_ISPRINT(c)   ((c) < 128 && isprint(c))
@@ -874,12 +470,6 @@ JS_ISSPACE(jschar c)
 
 
 extern js::Class js_StringClass;
-
-inline bool
-JSObject::isString() const
-{
-    return getClass() == &js_StringClass;
-}
 
 extern JSObject *
 js_InitStringClass(JSContext *cx, JSObject *obj);
@@ -912,15 +502,9 @@ js_NewDependentString(JSContext *cx, JSString *base, size_t start,
 extern JSString *
 js_NewStringCopyN(JSContext *cx, const jschar *s, size_t n);
 
-extern JSString *
-js_NewStringCopyN(JSContext *cx, const char *s, size_t n);
-
 
 extern JSString *
 js_NewStringCopyZ(JSContext *cx, const jschar *s);
-
-extern JSString *
-js_NewStringCopyZ(JSContext *cx, const char *s);
 
 
 
@@ -1004,18 +588,6 @@ js_strchr_limit(const jschar *s, jschar c, const jschar *limit);
 
 #define js_strncpy(t, s, n)     memcpy((t), (s), (n) * sizeof(jschar))
 
-inline void
-js_short_strncpy(jschar *dest, const jschar *src, size_t num)
-{
-    
-
-
-
-    JS_ASSERT(JSShortString::fitsIntoShortString(num));
-    for (size_t i = 0; i < num; i++)
-        dest[i] = src[i];
-}
-
 
 
 
@@ -1097,26 +669,11 @@ js_GetStringBytes(JSContext *cx, JSString *str);
 
 
 extern JSBool
-js_str_escape(JSContext *cx, JSObject *obj, uintN argc, js::Value *argv,
-              js::Value *rval);
-
-
-
-
-
-namespace js {
-extern JSBool
-str_replace(JSContext *cx, uintN argc, js::Value *vp);
-}
+js_str_escape(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
+              jsval *rval);
 
 extern JSBool
-js_str_toString(JSContext *cx, uintN argc, js::Value *vp);
-
-extern JSBool
-js_str_charAt(JSContext *cx, uintN argc, js::Value *vp);
-
-extern JSBool
-js_str_charCodeAt(JSContext *cx, uintN argc, js::Value *vp);
+js_str_toString(JSContext *cx, uintN argc, jsval *vp);
 
 
 
@@ -1152,7 +709,7 @@ js_PutEscapedStringImpl(char *buffer, size_t bufferSize, FILE *fp,
                         JSString *str, uint32 quote);
 
 extern JSBool
-js_String(JSContext *cx, uintN argc, js::Value *vp);
+js_String(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 
 namespace js {
 
@@ -1171,7 +728,7 @@ class DeflatedStringCache {
     {
         typedef JSString *Lookup;
 
-        static HashNumber hash(JSString *str) {
+        static uint32 hash(JSString *str) {
             
 
 
@@ -1183,7 +740,7 @@ class DeflatedStringCache {
             jsuword ptr = reinterpret_cast<jsuword>(str);
             jsuword key = ptr >> ALIGN_LOG;
             JS_ASSERT((key << ALIGN_LOG) == ptr);
-            return HashNumber(key);
+            return uint32(key);
         }
 
         static bool match(JSString *s1, JSString *s2) {

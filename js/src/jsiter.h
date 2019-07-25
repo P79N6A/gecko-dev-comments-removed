@@ -71,17 +71,17 @@ const uint32 JSSLOT_ITER_FLAGS  = JSSLOT_PRIVATE + 1;
 
 
 extern JS_FRIEND_API(JSBool)
-js_ValueToIterator(JSContext *cx, uintN flags, jsval *vp);
+js_ValueToIterator(JSContext *cx, uintN flags, js::Value *vp);
 
 extern JS_FRIEND_API(JSBool) JS_FASTCALL
-js_CloseIterator(JSContext *cx, jsval v);
+js_CloseIterator(JSContext *cx, const js::Value &v);
 
 
 
 
 
 extern JS_FRIEND_API(JSBool)
-js_CallIteratorNext(JSContext *cx, JSObject *iterobj, jsval *rval);
+js_CallIteratorNext(JSContext *cx, JSObject *iterobj, js::Value *rval);
 
 
 
@@ -160,15 +160,14 @@ js_LiveFrameIfGenerator(JSStackFrame *fp)
 }
 #endif
 
-extern JS_FRIEND_API(JSClass) js_GeneratorClass;
-extern JSClass                js_IteratorClass;
-extern JSClass                js_StopIterationClass;
+extern JS_FRIEND_API(js::Class) js_GeneratorClass;
+extern js::Class                js_IteratorClass;
+extern js::Class                js_StopIterationClass;
 
 static inline bool
-js_ValueIsStopIteration(jsval v)
+js_ValueIsStopIteration(const js::Value &v)
 {
-    return !JSVAL_IS_PRIMITIVE(v) &&
-           JSVAL_TO_OBJECT(v)->getClass() == &js_StopIterationClass;
+    return v.isObject() && v.asObject().getClass() == &js_StopIterationClass;
 }
 
 extern JSObject *

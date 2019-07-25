@@ -44,15 +44,8 @@
 
 
 #include "jsapi.h"
-#include "jsobj.h"
 
 extern js::Class js_BooleanClass;
-
-inline bool
-JSObject::isBoolean() const
-{
-    return getClass() == &js_BooleanClass;
-}
 
 extern JSObject *
 js_InitBooleanClass(JSContext *cx, JSObject *obj);

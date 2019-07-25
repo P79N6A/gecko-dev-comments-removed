@@ -110,7 +110,7 @@ struct JSXDRState {
     JSXDRMode   mode;
     JSXDROps    *ops;
     JSContext   *cx;
-    JSClass     **registry;
+    js::Class   **registry;
     uintN       numclasses;
     uintN       maxclasses;
     void        *reghash;
@@ -164,7 +164,7 @@ extern JS_PUBLIC_API(JSBool)
 JS_XDRStringOrNull(JSXDRState *xdr, JSString **strp);
 
 extern JS_PUBLIC_API(JSBool)
-JS_XDRDouble(JSXDRState *xdr, jsdouble *dp);
+JS_XDRDouble(JSXDRState *xdr, jsdouble **dp);
 
 extern JS_PUBLIC_API(JSBool)
 JS_XDRValue(JSXDRState *xdr, jsval *vp);
@@ -173,12 +173,12 @@ extern JS_PUBLIC_API(JSBool)
 JS_XDRScript(JSXDRState *xdr, JSScript **scriptp);
 
 extern JS_PUBLIC_API(JSBool)
-JS_XDRRegisterClass(JSXDRState *xdr, JSClass *clasp, uint32 *lp);
+JS_XDRRegisterClass(JSXDRState *xdr, js::Class *clasp, uint32 *lp);
 
 extern JS_PUBLIC_API(uint32)
 JS_XDRFindClassIdByName(JSXDRState *xdr, const char *name);
 
-extern JS_PUBLIC_API(JSClass *)
+extern JS_PUBLIC_API(js::Class *)
 JS_XDRFindClassById(JSXDRState *xdr, uint32 id);
 
 
@@ -205,13 +205,16 @@ JS_XDRFindClassById(JSXDRState *xdr, uint32 id);
 
 
 
-#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 67)
+#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 62)
 
 
 
 
 extern JSBool
 js_XDRAtom(JSXDRState *xdr, JSAtom **atomp);
+
+extern JSBool
+js_XDRStringAtom(JSXDRState *xdr, JSAtom **atomp);
 
 JS_END_EXTERN_C
 

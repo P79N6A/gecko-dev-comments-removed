@@ -47,10 +47,6 @@
 #include "jspubtd.h"
 #include "jsutil.h"
 
-#ifdef __cplusplus
-# include "jsvalue.h"
-#endif
-
 JS_BEGIN_EXTERN_C
 
 
@@ -126,7 +122,7 @@ typedef enum JSOp {
 
 #define JOF_SHARPSLOT    (1U<<24) /* first immediate is uint16 stack slot no.
                                      that needs fixup when in global code (see
-                                     Compiler::compileScript) */
+                                     JSCompiler::compileScript) */
 
 
 #define JOF_TYPE(fmt)   ((fmt) & JOF_TYPEMASK)
@@ -338,11 +334,12 @@ js_GetIndexFromBytecode(JSContext *cx, JSScript *script, jsbytecode *pc,
 
 
 
-#define GET_DOUBLE_FROM_BYTECODE(script, pc, pcoff, dbl)                      \
+#define GET_DOUBLE_FROM_BYTECODE(script, pc, pcoff, atom)                     \
     JS_BEGIN_MACRO                                                            \
         uintN index_ = js_GetIndexFromBytecode(cx, (script), (pc), (pcoff));  \
-        JS_ASSERT(index_ < (script)->consts()->length);                       \
-        (dbl) = (script)->getConst(index_).toDouble();                        \
+        JS_ASSERT(index_ < (script)->atomMap.length);                         \
+        (atom) = (script)->atomMap.vector[index_];                            \
+        JS_ASSERT(ATOM_IS_DOUBLE(atom));                                      \
     JS_END_MACRO
 
 #define GET_OBJECT_FROM_BYTECODE(script, pc, pcoff, obj)                      \
@@ -460,24 +457,11 @@ js_DecompileToString(JSContext *cx, const char *name, JSFunction *fun,
 
 
 extern char *
-js_DecompileValueGenerator(JSContext *cx, intN spindex, jsval v,
+js_DecompileValueGenerator(JSContext *cx, intN spindex, const jsval *v,
                            JSString *fallback);
 
 #define JSDVG_IGNORE_STACK      0
 #define JSDVG_SEARCH_STACK      1
-
-#ifdef __cplusplus
-namespace js {
-
-static inline char *
-DecompileValueGenerator(JSContext *cx, intN spindex, const Value &v,
-                        JSString *fallback)
-{
-    return js_DecompileValueGenerator(cx, spindex, Jsvalify(v), fallback);
-}
-
-}
-#endif
 
 
 
