@@ -355,12 +355,6 @@ ProgressController.prototype = {
 
   init : function(aBrowser) {
     this._browser = aBrowser;
-
-    
-    var tabbrowser = this._tabbrowser;
-    this._refreshInterval = setInterval(function () {
-      tabbrowser.updateCanvasState();
-    }, 400);
   },
 
   onStateChange : function(aWebProgress, aRequest, aStateFlags, aStatus) {
@@ -368,11 +362,9 @@ ProgressController.prototype = {
       if (aRequest && aWebProgress.DOMWindow == this._browser.contentWindow) {
         if (aStateFlags & Ci.nsIWebProgressListener.STATE_START) {
           BrowserUI.update(TOOLBARSTATE_LOADING, this._browser);
-          this._tabbrowser.updateCanvasState();
         }
         else if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
           BrowserUI.update(TOOLBARSTATE_LOADED, this._browser);
-          this._tabbrowser.updateCanvasState();
         }
       }
     }
@@ -382,7 +374,7 @@ ProgressController.prototype = {
         aWebProgress.DOMWindow.focus();
         Browser.translatePhoneNumbers();
         this._tabbrowser.updateBrowser(this._browser, true);
-        this._tabbrowser.updateCanvasState(true);
+        this._tabbrowser.updateCanvasState();
         
       }
     }
@@ -430,14 +422,12 @@ ProgressController.prototype = {
     if (aWebProgress.DOMWindow == this._browser.contentWindow) {
       BrowserUI.setURI();
       this._tabbrowser.updateBrowser(this._browser, false);
-      this._tabbrowser.updateCanvasState();
     }
   },
 
   
   
   onStatusChange : function(aWebProgress, aRequest, aStatus, aMessage) {
-    this._tabbrowser.updateCanvasState();
   },
 
  
