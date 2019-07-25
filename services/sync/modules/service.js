@@ -428,7 +428,7 @@ WeaveSvc.prototype = {
 
     this.username = username;
     ID.get('WeaveID').setTempPassword(password);
-    
+
     let id = new Identity('Passphrase Verification', username);
     id.setTempPassword(passphrase);
 
@@ -541,7 +541,7 @@ WeaveSvc.prototype = {
     if (!(yield this._remoteSetup.async(this, self.cb))) {
       throw "aborting sync, remote setup failed";
     }
-
+    
     
     
 
