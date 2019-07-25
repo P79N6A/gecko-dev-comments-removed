@@ -673,6 +673,7 @@ PNG_EXTERN png_fixed_point png_fixed PNGARG((png_structp png_ptr, double fp,
 
 
 #define PNG_FIRST_FRAME_HIDDEN       0x0001
+#define PNG_APNG_APP                 0x0002
 #endif
 
 
