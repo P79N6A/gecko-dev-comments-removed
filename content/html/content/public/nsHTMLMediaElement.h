@@ -153,7 +153,11 @@ public:
   
   
   
-  void DownloadResumed();
+  
+  
+  
+  
+  void DownloadResumed(bool aForceNetworkLoading = false);
 
   
   
