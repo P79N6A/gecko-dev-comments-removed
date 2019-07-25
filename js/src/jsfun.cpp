@@ -1701,6 +1701,10 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
         JS_ASSERT(!obj->isBoundFunction());
 
         
+        if (flags & JSRESOLVE_ASSIGNING)
+            return true;
+
+        
 
 
 

@@ -731,7 +731,7 @@ ScriptEpilogue(JSContext *cx, JSStackFrame *fp, JSBool ok)
 
 
 
-    if (fp->isConstructing() && ok) {
+    if (fp->isConstructing()) {
         if (fp->returnValue().isPrimitive())
             fp->setReturnValue(ObjectValue(fp->constructorThis()));
         JS_RUNTIME_METER(cx->runtime, constructs);
