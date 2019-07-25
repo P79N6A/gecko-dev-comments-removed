@@ -729,7 +729,7 @@ struct JSObject {
 
 
 
-#define MAX_DSLOTS_LENGTH   (JS_MAX(~uint32(0), ~size_t(0)) / sizeof(jsval) - 1)
+#define MAX_DSLOTS_LENGTH   (~size_t(0) / sizeof(jsval) - 1)
 #define MAX_DSLOTS_LENGTH32 (~uint32(0) / sizeof(jsval) - 1)
 
 #define OBJ_CHECK_SLOT(obj,slot)                                              \
