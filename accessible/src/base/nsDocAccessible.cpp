@@ -983,10 +983,13 @@ NS_IMETHODIMP nsDocAccessible::Observe(nsISupports *aSubject, const char *aTopic
 {
   if (!nsCRT::strcmp(aTopic,"obs_documentCreated")) {    
     
+    
+    
+    
     nsRefPtr<nsAccEvent> event =
       new nsAccStateChangeEvent(this, nsIAccessibleStates::EXT_STATE_EDITABLE,
                                 PR_TRUE, PR_TRUE);
-    nsEventShell::FireEvent(event);
+    FireDelayedAccessibleEvent(event);
   }
 
   return NS_OK;
