@@ -156,7 +156,7 @@ struct THEBES_API gfxFontStyle {
     
     
     
-    nsIAtom *language;
+    nsRefPtr<nsIAtom> language;
 
     
     
