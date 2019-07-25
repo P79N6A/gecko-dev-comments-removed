@@ -80,6 +80,13 @@ class Writer;
 
 struct EmptyShape;
 
+
+
+
+
+
+
+
 struct ArgumentsData
 {
     
@@ -95,16 +102,52 @@ struct ArgumentsData
     js::Value   slots[1];
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class ArgumentsObject : public ::JSObject
 {
-    
-
-
-
-
     static const uint32 INITIAL_LENGTH_SLOT = 0;
-
-    
     static const uint32 DATA_SLOT = 1;
 
   protected:
@@ -157,6 +200,27 @@ class ArgumentsObject : public ::JSObject
     
     inline bool hasOverriddenLength() const;
     inline void markLengthOverridden();
+
+    
+
+
+
+
+
+
+
+    inline bool getElement(uint32 i, js::Value *vp);
+
+    
+
+
+
+
+
+
+
+
+    inline bool getElements(uint32 start, uint32 count, js::Value *vp);
 
     inline js::ArgumentsData *data() const;
 

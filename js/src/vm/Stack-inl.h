@@ -516,29 +516,35 @@ StackFrame::canonicalActualArg(uintN i) const
 
 template <class Op>
 inline bool
-StackFrame::forEachCanonicalActualArg(Op op)
+StackFrame::forEachCanonicalActualArg(Op op, uintN start , uintN count )
 {
     uintN nformal = fun()->nargs;
+    JS_ASSERT(start <= nformal);
+
     Value *formals = formalArgsEnd() - nformal;
     uintN nactual = numActualArgs();
-    if (nactual <= nformal) {
-        uintN i = 0;
-        Value *actualsEnd = formals + nactual;
-        for (Value *p = formals; p != actualsEnd; ++p, ++i) {
-            if (!op(i, p))
+    if (count == uintN(-1))
+        count = nactual - start;
+
+    uintN end = start + count;
+    JS_ASSERT(end >= start);
+    JS_ASSERT(end <= nactual);
+
+    if (end <= nformal) {
+        Value *p = formals + start;
+        for (; start < end; ++p, ++start) {
+            if (!op(start, p))
                 return false;
         }
     } else {
-        uintN i = 0;
-        Value *formalsEnd = formalArgsEnd();
-        for (Value *p = formals; p != formalsEnd; ++p, ++i) {
-            if (!op(i, p))
+        for (Value *p = formals + start; start < nformal; ++p, ++start) {
+            if (!op(start, p))
                 return false;
         }
-        Value *actuals = formalsEnd - (nactual + 2);
-        Value *actualsEnd = formals - 2;
-        for (Value *p = actuals; p != actualsEnd; ++p, ++i) {
-            if (!op(i, p))
+        JS_ASSERT(start >= nformal);
+        Value *actuals = formals - (nactual + 2) + start;
+        for (Value *p = actuals; start < end; ++p, ++start) {
+            if (!op(start, p))
                 return false;
         }
     }
@@ -1078,6 +1084,89 @@ FrameRegsIter::operator++()
     pc_ = oldfp->prevpc();
     sp_ = oldfp->formalArgsEnd();
     return *this;
+}
+
+namespace detail {
+
+struct STATIC_SKIP_INFERENCE CopyNonHoleArgsTo
+{
+    CopyNonHoleArgsTo(ArgumentsObject *argsobj, Value *dst) : argsobj(*argsobj), dst(dst) {}
+    ArgumentsObject &argsobj;
+    Value *dst;
+    bool operator()(uint32 argi, Value *src) {
+        if (argsobj.element(argi).isMagic(JS_ARGS_HOLE))
+            return false;
+        *dst++ = *src;
+        return true;
+    }
+};
+
+} 
+
+inline bool
+ArgumentsObject::getElement(uint32 i, Value *vp)
+{
+    if (i >= initialLength())
+        return false;
+
+    *vp = element(i);
+
+    
+
+
+
+    if (vp->isMagic(JS_ARGS_HOLE))
+        return false;
+
+    
+
+
+
+    StackFrame *fp = reinterpret_cast<StackFrame *>(getPrivate());
+    if (fp == JS_ARGUMENTS_OBJECT_ON_TRACE)
+        return false;
+
+    
+
+
+
+
+    JS_ASSERT_IF(isStrictArguments(), !fp);
+    if (fp)
+        *vp = fp->canonicalActualArg(i);
+    return true;
+}
+
+inline bool
+ArgumentsObject::getElements(uint32 start, uint32 count, Value *vp)
+{
+    JS_ASSERT(start + count >= start);
+
+    uint32 length = initialLength();
+    if (start > length || start + count > length)
+        return false;
+
+    StackFrame *fp = reinterpret_cast<StackFrame *>(getPrivate());
+
+    
+    if (!fp) {
+        Value *srcbeg = elements() + start;
+        Value *srcend = srcbeg + count;
+        for (Value *dst = vp, *src = srcbeg; src < srcend; ++dst, ++src) {
+            if (src->isMagic(JS_ARGS_HOLE))
+                return false;
+            *dst = *src;
+        }
+        return true;
+    }
+
+    
+    if (fp == JS_ARGUMENTS_OBJECT_ON_TRACE)
+        return false;
+
+    
+    JS_ASSERT(fp->numActualArgs() <= JS_ARGS_LENGTH_MAX);
+    return fp->forEachCanonicalActualArg(detail::CopyNonHoleArgsTo(this, vp), start, count);
 }
 
 } 
