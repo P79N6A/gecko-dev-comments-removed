@@ -79,7 +79,7 @@ GetScopeChainFast(JSContext *cx, StackFrame *fp, JSOp op, size_t oplen);
 
 
 void
-ReportIncompatibleMethod(JSContext *cx, Value *vp, Class *clasp);
+ReportIncompatibleMethod(JSContext *cx, CallReceiver call, Class *clasp);
 
 
 
@@ -90,7 +90,7 @@ ReportIncompatibleMethod(JSContext *cx, Value *vp, Class *clasp);
 
 
 template <typename T>
-bool GetPrimitiveThis(JSContext *cx, Value *vp, T *v);
+bool GetPrimitiveThis(JSContext *cx, CallReceiver call, T *v);
 
 
 
@@ -154,7 +154,7 @@ enum MaybeConstruct {
 
 
 extern bool
-InvokeKernel(JSContext *cx, const CallArgs &args, MaybeConstruct construct = NO_CONSTRUCT);
+InvokeKernel(JSContext *cx, CallArgs args, MaybeConstruct construct = NO_CONSTRUCT);
 
 
 

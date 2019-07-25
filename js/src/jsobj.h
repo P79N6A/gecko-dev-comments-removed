@@ -2212,7 +2212,7 @@ eval(JSContext *cx, uintN argc, Value *vp);
 
 
 extern JS_REQUIRES_STACK bool
-DirectEval(JSContext *cx, const CallArgs &call);
+DirectEval(JSContext *cx, const CallArgs &args);
 
 
 
@@ -2227,7 +2227,7 @@ IsAnyBuiltinEval(JSFunction *fun);
 
 
 extern JSPrincipals *
-PrincipalsForCompiledCode(const CallArgs &call, JSContext *cx);
+PrincipalsForCompiledCode(const CallReceiver &call, JSContext *cx);
 
 extern JSObject *
 NonNullObject(JSContext *cx, const Value &v);
