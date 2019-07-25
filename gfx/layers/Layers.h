@@ -631,6 +631,20 @@ public:
   
   PRBool CanUseOpaqueSurface();
 
+  enum SurfaceMode {
+    SURFACE_OPAQUE,
+    SURFACE_SINGLE_CHANNEL_ALPHA,
+    SURFACE_COMPONENT_ALPHA
+  };
+  SurfaceMode GetSurfaceMode()
+  {
+    if (CanUseOpaqueSurface())
+      return SURFACE_OPAQUE;
+    if (mContentFlags & CONTENT_COMPONENT_ALPHA)
+      return SURFACE_COMPONENT_ALPHA;
+    return SURFACE_SINGLE_CHANNEL_ALPHA;
+  }
+
   
 
 
