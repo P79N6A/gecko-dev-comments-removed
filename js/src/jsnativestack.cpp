@@ -43,6 +43,10 @@
 #ifdef XP_WIN
 # include <windows.h>
 
+#elif defined(XP_OS2)
+# define INCL_DOSPROCESS
+# include <os2.h>
+
 #elif defined(XP_MACOSX) || defined(DARWIN) || defined(XP_UNIX)
 # include <pthread.h>
 
@@ -140,6 +144,18 @@ GetNativeStackBaseImpl()
     return static_cast<void*>(pTib->StackBase);
 
 # endif
+}
+
+#elif defined(XP_OS2)
+
+void *
+GetNativeStackBaseImpl()
+{
+    PTIB  ptib;
+    PPIB  ppib;
+
+    DosGetInfoBlocks(&ptib, &ppib);
+    return ptib->tib_pstacklimit;
 }
 
 #else 
