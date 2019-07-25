@@ -628,8 +628,6 @@ js_GCThingIsMarked(void *thing, uint32 color = BLACK)
 JSBool
 js_InitGC(JSRuntime *rt, uint32 maxbytes)
 {
-    rt->defaultCompartment->init();
-
     
 
 
@@ -933,13 +931,14 @@ js_FinishGC(JSRuntime *rt)
     if (JS_WANT_GC_METER_PRINT)
         js_DumpGCStats(rt, stdout);
 #endif
+
+    
     for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c) {
         JSCompartment *comp = *c;
         comp->finishArenaLists();
         delete comp;
     }
     rt->compartments.clear();
-
     rt->defaultCompartment = NULL;
 
     for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront())

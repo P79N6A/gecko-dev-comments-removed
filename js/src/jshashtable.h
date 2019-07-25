@@ -323,6 +323,9 @@ class HashTable : AllocPolicy
     bool init(uint32 length)
     {
         
+        JS_ASSERT(table == NULL);
+
+        
 
 
 
