@@ -1011,6 +1011,9 @@ pref("devtools.scratchpad.enabled", true);
 pref("devtools.chrome.enabled", false);
 
 
+pref("devtools.gcli.enable", false);
+
+
 
 
 pref("devtools.hud.height", 0);

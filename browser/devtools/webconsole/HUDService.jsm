@@ -43,6 +43,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -71,6 +72,18 @@ XPCOMUtils.defineLazyServiceGetter(this, "mimeService",
 XPCOMUtils.defineLazyServiceGetter(this, "clipboardHelper",
                                    "@mozilla.org/widget/clipboardhelper;1",
                                    "nsIClipboardHelper");
+
+XPCOMUtils.defineLazyGetter(this, "gcli", function () {
+  var obj = {};
+  Cu.import("resource:///modules/gcli.jsm", obj);
+  return obj.gcli;
+});
+
+XPCOMUtils.defineLazyGetter(this, "GcliCommands", function () {
+  var obj = {};
+  Cu.import("resource:///modules/GcliCommands.jsm", obj);
+  return obj.GcliCommands;
+});
 
 XPCOMUtils.defineLazyGetter(this, "StyleInspector", function () {
   var obj = {};
@@ -1481,6 +1494,24 @@ HUD_SERVICE.prototype =
     if (!aAnimated || hudRef.consolePanel) {
       this.disableAnimation(hudId);
     }
+
+    
+    
+    
+    let procInstr = aContext.ownerDocument.gcliCssProcInstr;
+    if (!procInstr) {
+      procInstr = aContext.ownerDocument.createProcessingInstruction(
+              "xml-stylesheet",
+              "href='chrome://browser/skin/devtools/gcli.css' type='text/css'");
+      procInstr.contexts = [];
+
+      let root = aContext.ownerDocument.getElementsByTagName('window')[0];
+      root.parentNode.insertBefore(procInstr, root);
+      aContext.ownerDocument.gcliCssProcInstr = procInstr;
+    }
+    if (procInstr.contexts.indexOf(hudId) == -1) {
+      procInstr.contexts.push(hudId);
+    }
   },
 
   
@@ -1511,6 +1542,20 @@ HUD_SERVICE.prototype =
       this.unregisterDisplay(hudId);
 
       window.focus();
+    }
+
+    
+    
+    
+    let procInstr = aContext.ownerDocument.gcliCssProcInstr;
+    if (procInstr) {
+      procInstr.contexts = procInstr.contexts.filter(function(id) {
+        return id !== hudId;
+      });
+      if (procInstr.contexts.length == 0 && procInstr.parentNode) {
+        procInstr.parentNode.removeChild(procInstr);
+        delete aContext.ownerDocument.gcliCssProcInstr;
+      }
     }
   },
 
@@ -1750,7 +1795,12 @@ HUD_SERVICE.prototype =
     
     
     
-    hud.jsterm.clearOutput();
+    if (hud.jsterm) {
+      hud.jsterm.clearOutput();
+    }
+    if (hud.gcliterm) {
+      hud.gcliterm.clearOutput();
+    }
 
     hud.destroy();
 
@@ -1769,7 +1819,9 @@ HUD_SERVICE.prototype =
       hud.splitter.parentNode.removeChild(hud.splitter);
     }
 
-    hud.jsterm.autocompletePopup.destroy();
+    if (hud.jsterm) {
+      hud.jsterm.autocompletePopup.destroy();
+    }
 
     delete this.hudReferences[aHUDId];
 
@@ -3091,7 +3143,12 @@ function HeadsUpDisplay(aConfig)
   
   try {
     this.createConsoleInput(this.contentWindow, this.consoleWrap, this.outputNode);
-    this.jsterm.inputNode.focus();
+    if (this.jsterm) {
+      this.jsterm.inputNode.focus();
+    }
+    if (this.gcliterm) {
+      this.gcliterm.inputNode.focus();
+    }
   }
   catch (ex) {
     Cu.reportError(ex);
@@ -3211,6 +3268,9 @@ HeadsUpDisplay.prototype = {
 
       if (this.jsterm) {
         this.jsterm.inputNode.focus();
+      }
+      if (this.gcliterm) {
+        this.gcliterm.inputNode.focus();
       }
     }).bind(this);
 
@@ -3403,6 +3463,9 @@ HeadsUpDisplay.prototype = {
     if (this.jsterm) {
       this.jsterm.inputNode.focus();
     }
+    if (this.gcliterm) {
+      this.gcliterm.inputNode.focus();
+    }
   },
 
   
@@ -3437,18 +3500,35 @@ HeadsUpDisplay.prototype = {
   
 
 
+  gcliterm: null,
+
+  
+
+
 
 
 
   createConsoleInput:
   function HUD_createConsoleInput(aWindow, aParentNode, aExistingConsole)
   {
-    var context = Cu.getWeakReference(aWindow);
+    let usegcli = false;
+    try {
+      usegcli = Services.prefs.getBoolPref("devtools.gcli.enable");
+    }
+    catch (ex) {}
 
     if (appName() == "FIREFOX") {
-      let mixin = new JSTermFirefoxMixin(context, aParentNode,
-                                         aExistingConsole);
-      this.jsterm = new JSTerm(context, aParentNode, mixin, this.console);
+      if (!usegcli) {
+        let context = Cu.getWeakReference(aWindow);
+        let mixin = new JSTermFirefoxMixin(context, aParentNode,
+                                           aExistingConsole);
+        this.jsterm = new JSTerm(context, aParentNode, mixin, this.console);
+      }
+      else {
+        this.gcliterm = new GcliTerm(aWindow, this.hudId, this.chromeDocument,
+                                     this.console, this.hintNode);
+        aParentNode.appendChild(this.gcliterm.element);
+      }
     }
     else {
       throw new Error("Unsupported Gecko Application");
@@ -3471,13 +3551,16 @@ HeadsUpDisplay.prototype = {
       this.consolePanel.label = this.getPanelTitle();
     }
 
-    if (!this.jsterm) {
-      this.createConsoleInput(this.contentWindow, this.consoleWrap, this.outputNode);
-    }
-    else {
+    if (this.jsterm) {
       this.jsterm.context = Cu.getWeakReference(this.contentWindow);
       this.jsterm.console = this.console;
       this.jsterm.createSandbox();
+    }
+    else if (this.gcliterm) {
+      this.gcliterm.reattachConsole(this.contentWindow, this.console);
+    }
+    else {
+      this.createConsoleInput(this.contentWindow, this.consoleWrap, this.outputNode);
     }
   },
 
@@ -3522,14 +3605,6 @@ HeadsUpDisplay.prototype = {
     consoleWrap.setAttribute("class", "hud-console-wrapper");
     consoleWrap.setAttribute("flex", "1");
 
-    this.outputNode = this.makeXULNode("richlistbox");
-    this.outputNode.setAttribute("class", "hud-output-node");
-    this.outputNode.setAttribute("flex", "1");
-    this.outputNode.setAttribute("orient", "vertical");
-    this.outputNode.setAttribute("context", this.hudId + "-output-contextmenu");
-    this.outputNode.setAttribute("style", "direction: ltr;");
-    this.outputNode.setAttribute("seltype", "multiple");
-
     this.filterSpacer = this.makeXULNode("spacer");
     this.filterSpacer.setAttribute("flex", "1");
 
@@ -3548,9 +3623,36 @@ HeadsUpDisplay.prototype = {
     let consoleFilterToolbar = this.makeFilterToolbar();
     consoleFilterToolbar.setAttribute("id", "viewGroup");
     this.consoleFilterToolbar = consoleFilterToolbar;
-    consoleWrap.appendChild(consoleFilterToolbar);
 
-    consoleWrap.appendChild(this.outputNode);
+    let hintSpacerNode = this.makeXULNode("box");
+    hintSpacerNode.setAttribute("flex", 1);
+
+    this.hintNode = this.makeXULNode("div");
+    this.hintNode.setAttribute("class", "gcliterm-hint-node");
+
+    let hintParentNode = this.makeXULNode("vbox");
+    hintParentNode.setAttribute("flex", "0");
+    hintParentNode.setAttribute("class", "gcliterm-hint-parent");
+    hintParentNode.appendChild(hintSpacerNode);
+    hintParentNode.appendChild(this.hintNode);
+    hintParentNode.hidden = true;
+
+    let hbox = this.makeXULNode("hbox");
+    hbox.setAttribute("flex", "1");
+
+    this.outputNode = this.makeXULNode("richlistbox");
+    this.outputNode.setAttribute("class", "hud-output-node");
+    this.outputNode.setAttribute("flex", "1");
+    this.outputNode.setAttribute("orient", "vertical");
+    this.outputNode.setAttribute("context", this.hudId + "-output-contextmenu");
+    this.outputNode.setAttribute("style", "direction: ltr;");
+    this.outputNode.setAttribute("seltype", "multiple");
+
+    hbox.appendChild(hintParentNode);
+    hbox.appendChild(this.outputNode);
+
+    consoleWrap.appendChild(consoleFilterToolbar);
+    consoleWrap.appendChild(hbox);
 
     outerWrap.appendChild(consoleWrap);
 
@@ -3865,7 +3967,13 @@ HeadsUpDisplay.prototype = {
   {
     let hudId = this.hudId;
     function HUD_clearButton_onCommand() {
-      HUDService.getHudReferenceById(hudId).jsterm.clearOutput();
+      let hud = HUDService.getHudReferenceById(hudId);
+      if (hud.jsterm) {
+        hud.jsterm.clearOutput();
+      }
+      if (hud.gcliterm) {
+        hud.gcliterm.clearOutput();
+      }
     }
 
     let clearButton = this.makeXULNode("toolbarbutton");
@@ -3936,7 +4044,12 @@ HeadsUpDisplay.prototype = {
 
   destroy: function HUD_destroy()
   {
-    this.jsterm.destroy();
+    if (this.jsterm) {
+      this.jsterm.destroy();
+    }
+    if (this.gcliterm) {
+      this.gcliterm.destroy();
+    }
 
     this.positionMenuitems.above.removeEventListener("command",
       this._positionConsoleAbove, false);
@@ -5431,6 +5544,7 @@ JSTermFirefoxMixin.prototype = {
     this.completeNode.setAttribute("class", "jsterm-complete-node");
     this.completeNode.setAttribute("multiline", "true");
     this.completeNode.setAttribute("rows", "1");
+    this.completeNode.setAttribute("tabindex", "-1");
 
     this.inputNode = this.xulElementFactory("textbox");
     this.inputNode.setAttribute("class", "jsterm-input-node");
@@ -5444,22 +5558,15 @@ JSTermFirefoxMixin.prototype = {
     inputStack.appendChild(this.inputNode);
 
     if (this.existingConsoleNode == undefined) {
-      this.outputNode = this.xulElementFactory("vbox");
-      this.outputNode.setAttribute("class", "jsterm-output-node");
-
-      this.term = this.xulElementFactory("vbox");
-      this.term.setAttribute("class", "jsterm-wrapper-node");
-      this.term.setAttribute("flex", "1");
-      this.term.appendChild(this.outputNode);
+      throw new Error("This can't happen");
     }
-    else {
-      this.outputNode = this.existingConsoleNode;
 
-      this.term = this.xulElementFactory("hbox");
-      this.term.setAttribute("class", "jsterm-input-container");
-      this.term.setAttribute("style", "direction: ltr;");
-      this.term.appendChild(inputStack);
-    }
+    this.outputNode = this.existingConsoleNode;
+
+    this.term = this.xulElementFactory("hbox");
+    this.term.setAttribute("class", "jsterm-input-container");
+    this.term.setAttribute("style", "direction: ltr;");
+    this.term.appendChild(inputStack);
   },
 
   get inputValue()
@@ -5591,9 +5698,8 @@ ConsoleUtils = {
   function ConsoleUtils_createMessageNode(aDocument, aCategory, aSeverity,
                                           aBody, aHUDId, aSourceURL,
                                           aSourceLine, aClipboardText, aLevel) {
-    if (aBody instanceof Ci.nsIDOMNode && aClipboardText == null) {
-      throw new Error("HUDService.createMessageNode(): DOM node supplied " +
-                      "without any clipboard text");
+    if (typeof aBody != "string" && aClipboardText == null && aBody.innerText) {
+      aClipboardText = aBody.innerText;
     }
 
     
@@ -5631,6 +5737,13 @@ ConsoleUtils = {
                               (aSourceLine ? ":" + aSourceLine : ""));
     aBody = aBody instanceof Ci.nsIDOMNode && !(aLevel == "dir") ?
             aBody : aDocument.createTextNode(aBody);
+
+    if (!aBody.nodeType) {
+      aBody = aDocument.createTextNode(aBody.toString());
+    }
+    if (typeof aBody == "string") {
+      aBody = aDocument.createTextNode(aBody);
+    }
 
     bodyNode.appendChild(aBody);
 
@@ -6761,3 +6874,235 @@ catch (ex) {
   
   
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function GcliTerm(aContentWindow, aHudId, aDocument, aConsole, aHintNode)
+{
+  this.context = Cu.getWeakReference(aContentWindow);
+  this.hudId = aHudId;
+  this.document = aDocument;
+  this.console = aConsole;
+  this.hintNode = aHintNode;
+
+  this.createUI();
+  this.createSandbox();
+
+  this.show = this.show.bind(this);
+  this.hide = this.hide.bind(this);
+
+  this.opts = {
+    environment: { hudId: this.hudId },
+    chromeDocument: this.document,
+    contentDocument: aContentWindow.document,
+    jsEnvironment: {
+      globalObject: aContentWindow,
+      evalFunction: this.evalInSandbox.bind(this)
+    },
+    inputElement: this.inputNode,
+    completeElement: this.completeNode,
+    inputBackgroundElement: this.inputStack,
+    hintElement: this.hintNode,
+    completionPrompt: "",
+    gcliTerm: this
+  };
+
+  gcli._internal.commandOutputManager.addListener(this.onCommandOutput, this);
+  gcli._internal.createView(this.opts);
+  GcliCommands.setDocument(aContentWindow.document);
+}
+
+GcliTerm.prototype = {
+  
+
+
+  hide: function GcliTerm_hide()
+  {
+    this.hintNode.parentNode.hidden = true;
+  },
+
+  
+
+
+  show: function GcliTerm_show()
+  {
+    this.hintNode.parentNode.hidden = false;
+  },
+
+  
+
+
+  destroy: function Gcli_destroy()
+  {
+    GcliCommands.unsetDocument();
+    gcli._internal.removeView(this.opts);
+    gcli._internal.commandOutputManager.removeListener(this.onCommandOutput, this);
+
+    delete this.opts.chromeDocument;
+    delete this.opts.inputElement;
+    delete this.opts.completeElement;
+    delete this.opts.inputBackgroundElement;
+    delete this.opts.hintElement;
+    delete this.opts.contentDocument;
+    delete this.opts.jsEnvironment;
+    delete this.opts.gcliTerm;
+
+    delete this.context;
+    delete this.document;
+    delete this.console;
+    delete this.hintNode;
+
+    delete this.sandbox;
+    delete this.element
+    delete this.inputStack
+    delete this.completeNode
+    delete this.inputNode
+  },
+
+  
+
+
+
+
+
+
+
+  reattachConsole: function Gcli_reattachConsole(aContentWindow, aConsole)
+  {
+    this.context = Cu.getWeakReference(aContentWindow);
+    this.console = aConsole;
+    this.createSandbox();
+  },
+
+  
+
+
+
+  createUI: function Gcli_createUI()
+  {
+    this.element = this.document.createElement("vbox");
+    this.element.setAttribute("class", "gcliterm-input-container");
+    this.element.setAttribute("flex", "0");
+
+    this.inputStack = this.document.createElement("stack");
+    this.inputStack.setAttribute("class", "gcliterm-stack-node");
+    this.element.appendChild(this.inputStack);
+
+    this.completeNode = this.document.createElement("div");
+    this.completeNode.setAttribute("class", "gcliterm-complete-node");
+    this.completeNode.setAttribute("aria-live", "polite");
+    this.inputStack.appendChild(this.completeNode);
+
+    this.inputNode = this.document.createElement("textbox");
+    this.inputNode.setAttribute("class", "gcliterm-input-node");
+    this.inputNode.setAttribute("rows", "1");
+    this.inputStack.appendChild(this.inputNode);
+  },
+
+  
+
+
+  onCommandOutput: function Gcli_onCommandOutput(aEvent)
+  {
+    
+    
+    if (!aEvent.output.completed) {
+      return;
+    }
+
+    this.writeOutput(aEvent.output.typed, { category: CATEGORY_INPUT });
+
+    if (aEvent.output.output == null) {
+      return;
+    }
+
+    let output = aEvent.output.output;
+    if (aEvent.output.command.returnType == "html" && typeof output == "string") {
+      let frag = this.document.createRange().createContextualFragment(
+          '<div xmlns="' + HTML_NS + '" xmlns:xul="' + XUL_NS + '">' +
+          output + '</div>');
+
+      output = this.document.createElementNS(HTML_NS, "div");
+      output.appendChild(frag);
+    }
+    this.writeOutput(output);
+  },
+
+  
+
+
+  createSandbox: function Gcli_createSandbox()
+  {
+    let win = this.context.get().QueryInterface(Ci.nsIDOMWindow);
+
+    
+    this.sandbox = new Cu.Sandbox(win, {
+      sandboxPrototype: win,
+      wantXrays: false
+    });
+    this.sandbox.console = this.console;
+  },
+
+  
+
+
+
+
+
+
+  evalInSandbox: function Gcli_evalInSandbox(aString)
+  {
+    return Cu.evalInSandbox(aString, this.sandbox, "1.8", "Web Console", 1);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  writeOutput: function Gcli_writeOutput(aOutputMessage, aOptions)
+  {
+    aOptions = aOptions || {};
+
+    let node = ConsoleUtils.createMessageNode(
+                    this.document,
+                    aOptions.category || CATEGORY_OUTPUT,
+                    aOptions.severity || SEVERITY_LOG,
+                    aOutputMessage,
+                    this.hudId,
+                    aOptions.sourceUrl || undefined,
+                    aOptions.sourceLine || undefined,
+                    aOptions.clipboardText || undefined);
+
+    ConsoleUtils.outputMessageNode(node, this.hudId);
+  },
+
+  clearOutput: JSTerm.prototype.clearOutput,
+};
+
