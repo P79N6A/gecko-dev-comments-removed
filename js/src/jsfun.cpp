@@ -1645,10 +1645,7 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
         break;
 
       default:
-        
-        if (fp && fp->isFunctionFrame() && uint16(slot) < fp->numFormalArgs())
-            *vp = fp->formalArg(slot);
-        break;
+        JS_NOT_REACHED("fun_getProperty");
     }
 
     return true;
