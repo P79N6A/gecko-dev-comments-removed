@@ -191,7 +191,7 @@ struct Parser : private AutoGCRooter
     void prepareNodeForMutation(ParseNode *pn) { return allocator.prepareNodeForMutation(pn); }
 
     
-    JS_DECLARE_NEW_METHODS(allocParseNode,);
+    JS_DECLARE_NEW_METHODS(allocParseNode, inline)
 
   private:
     
