@@ -49,6 +49,7 @@ function CookieEngine(pbeId) {
   this._init(pbeId);
 }
 CookieEngine.prototype = {
+  get enabled() null, 
   __proto__: SyncEngine.prototype,
 
   get name() { return "cookies"; },

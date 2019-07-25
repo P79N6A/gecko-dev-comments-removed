@@ -50,6 +50,7 @@ function InputEngine(pbeId) {
   this._init(pbeId);
 }
 InputEngine.prototype = {
+  get enabled() null, 
   __proto__: SyncEngine.prototype,
 
   get name() { return "input"; },

@@ -41,6 +41,7 @@ function ExtensionEngine() {
   this._init();
 }
 ExtensionEngine.prototype = {
+  get enabled() null, 
   __proto__: SyncEngine.prototype,
 
   displayName: "Extensions",

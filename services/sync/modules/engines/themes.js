@@ -41,6 +41,7 @@ function ThemeEngine() {
   this._init();
 }
 ThemeEngine.prototype = {
+  get enabled() null, 
   __proto__: SyncEngine.prototype,
 
   displayName: "Themes",

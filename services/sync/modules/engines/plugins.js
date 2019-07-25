@@ -41,6 +41,7 @@ function PluginEngine() {
   this._init();
 }
 PluginEngine.prototype = {
+  get enabled() null, 
   __proto__: SyncEngine.prototype,
 
   displayName: "Plugins",
