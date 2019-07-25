@@ -789,6 +789,72 @@ const gXPInstallObserver = {
   }
 };
 
+const gFormSubmitObserver = {
+  QueryInterface : XPCOMUtils.generateQI([Ci.nsIFormSubmitObserver]),
+
+  panel: null,
+
+  init: function()
+  {
+    this.panel = document.getElementById('invalid-form-popup');
+    this.panel.appendChild(document.createTextNode(""));
+  },
+
+  panelIsOpen: function()
+  {
+    return this.panel && this.panel.state != "hiding" &&
+           this.panel.state != "closed";
+  },
+
+  notifyInvalidSubmit : function (aFormElement, aInvalidElements)
+  {
+    
+    
+    
+    if (!aInvalidElements.length) {
+      return;
+    }
+
+    
+    if (gBrowser.selectedTab.linkedBrowser.contentDocument !=
+        aFormElement.ownerDocument) {
+      return;
+    }
+
+    let element = aInvalidElements.queryElementAt(0, Ci.nsISupports);
+
+    if (!(element instanceof HTMLInputElement ||
+          element instanceof HTMLTextAreaElement ||
+          element instanceof HTMLSelectElement ||
+          element instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    
+    this.panel.firstChild.nodeValue = element.validationMessage.substring(0, 256);
+
+    element.focus();
+
+    
+    
+    let eventHandler = function(e) {
+      gFormSubmitObserver.panel.hidePopup();
+    };
+    element.addEventListener("input", eventHandler, false);
+    element.addEventListener("blur", eventHandler, false);
+
+    
+    this.panel.addEventListener("popuphiding", function(aEvent) {
+      aEvent.target.removeEventListener("popuphiding", arguments.callee, false);
+      element.removeEventListener("input", eventHandler, false);
+      element.removeEventListener("blur", eventHandler, false);
+    }, false);
+
+    this.panel.hidden = false;
+    this.panel.openPopup(element, "after_start", 0, 0);
+  }
+};
+
 
 
 
@@ -1318,10 +1384,12 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   Services.obs.addObserver(gXPInstallObserver, "addon-install-blocked", false);
   Services.obs.addObserver(gXPInstallObserver, "addon-install-failed", false);
   Services.obs.addObserver(gXPInstallObserver, "addon-install-complete", false);
+  Services.obs.addObserver(gFormSubmitObserver, "invalidformsubmit", false);
 
   BrowserOffline.init();
   OfflineApps.init();
   IndexedDBPromptHelper.init();
+  gFormSubmitObserver.init();
 
   gBrowser.addEventListener("pageshow", function(evt) { setTimeout(pageShowEventHandlers, 0, evt); }, true);
 
@@ -1420,7 +1488,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   }
 
   let NP = {};
-  Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
+  Cu.import("resource:
   NP.trackBrowserWindow(window);
 
   
@@ -1473,7 +1541,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
 
     if (Win7Features) {
       let tempScope = {};
-      Cu.import("resource://gre/modules/DownloadTaskbarProgress.jsm",
+      Cu.import("resource:
                 tempScope);
       tempScope.DownloadTaskbarProgress.onBrowserWindowLoad(window);
     }
@@ -1562,6 +1630,7 @@ function BrowserShutdown()
   Services.obs.removeObserver(gXPInstallObserver, "addon-install-failed");
   Services.obs.removeObserver(gXPInstallObserver, "addon-install-complete");
   Services.obs.removeObserver(gPluginHandler.pluginCrashed, "plugin-crashed");
+  Services.obs.removeObserver(gFormSubmitObserver, "invalidformsubmit");
 
   try {
     gBrowser.removeProgressListener(window.XULBrowserWindow);
@@ -2784,11 +2853,11 @@ function FillInHTMLTooltip(tipElement)
 {
   var retVal = false;
   
-  if (tipElement.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" ||
+  if (tipElement.namespaceURI == "http:
       !tipElement.ownerDocument)
     return retVal;
 
-  const XLinkNS = "http://www.w3.org/1999/xlink";
+  const XLinkNS = "http:
 
 
   var titleText = null;
@@ -4190,6 +4259,11 @@ var XULBrowserWindow = {
   onLocationChange: function (aWebProgress, aRequest, aLocationURI) {
     var location = aLocationURI ? aLocationURI.spec : "";
     this._hostChanged = true;
+
+    
+    if (gFormSubmitObserver.panelIsOpen()) {
+      gFormSubmitObserver.panel.hidePopup();
+    }
 
     if (document.tooltipNode) {
       
