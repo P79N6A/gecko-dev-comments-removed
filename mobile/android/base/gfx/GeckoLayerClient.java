@@ -50,6 +50,7 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PointF;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -123,21 +124,23 @@ public abstract class GeckoLayerClient extends LayerClient implements GeckoEvent
         sendResizeEventIfNecessary();
     }
 
-    public boolean beginDrawing(int width, int height, int tileWidth, int tileHeight,
-                                String metadata, boolean hasDirectTexture) {
+    public Rect beginDrawing(int width, int height, int tileWidth, int tileHeight,
+                             String metadata, boolean hasDirectTexture) {
         Log.e(LOGTAG, "### beginDrawing " + width + " " + height + " " + tileWidth + " " +
               tileHeight + " " + hasDirectTexture);
 
         
         if (handleDirectTextureChange(hasDirectTexture)) {
             Log.e(LOGTAG, "### Cancelling draw due to direct texture change");
-            return false;
+            return null;
         }
 
         if (!shouldDrawProceed(tileWidth, tileHeight)) {
             Log.e(LOGTAG, "### Cancelling draw due to shouldDrawProceed()");
-            return false;
+            return null;
         }
+
+        LayerController controller = getLayerController();
 
         try {
             JSONObject viewportObject = new JSONObject(metadata);
@@ -149,16 +152,54 @@ public abstract class GeckoLayerClient extends LayerClient implements GeckoEvent
             String backgroundColorString = viewportObject.optString("backgroundColor");
             if (backgroundColorString != null && !backgroundColorString.equals(mLastCheckerboardColor)) {
                 mLastCheckerboardColor = backgroundColorString;
-                LayerController controller = getLayerController();
                 controller.setCheckerboardColor(parseColorFromGecko(backgroundColorString));
             }
         } catch (JSONException e) {
             Log.e(LOGTAG, "Aborting draw, bad viewport description: " + metadata);
-            return false;
+            return null;
+        }
+
+
+        
+        
+        Rect bufferRect = new Rect(0, 0, width, height);
+
+        if (!mUpdateViewportOnEndDraw) {
+            
+            
+            
+            
+            ViewportMetrics currentMetrics = controller.getViewportMetrics();
+            PointF currentBestOrigin = RectUtils.getOrigin(currentMetrics.getClampedViewport());
+            PointF viewportOffset = currentMetrics.getOptimumViewportOffset(new IntSize(width, height));
+            currentBestOrigin.offset(-viewportOffset.x, -viewportOffset.y);
+
+            Rect currentRect = RectUtils.round(new RectF(currentBestOrigin.x, currentBestOrigin.y,
+                                                         currentBestOrigin.x + width, currentBestOrigin.y + height));
+
+            
+            PointF currentOrigin = mNewGeckoViewport.getDisplayportOrigin();
+            bufferRect = RectUtils.round(new RectF(currentOrigin.x, currentOrigin.y,
+                                                   currentOrigin.x + width, currentOrigin.y + height));
+
+
+            
+            if (!bufferRect.intersect(currentRect)) {
+                
+                
+                beginTransaction(mTileLayer);
+                try {
+                    updateViewport(true);
+                } finally {
+                    endTransaction(mTileLayer);
+                }
+                return null;
+            }
+            bufferRect.offset(Math.round(-currentOrigin.x), Math.round(-currentOrigin.y));
         }
 
         beginTransaction(mTileLayer);
-        return true;
+        return bufferRect;
     }
 
     

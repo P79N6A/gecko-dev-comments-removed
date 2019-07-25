@@ -597,10 +597,9 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
           
           
           
-
           
           
-
+          
           nsIntPoint rotationPoint(mBufferRect.x + mBufferRect.width - mBufferRotation.x, 
                                    mBufferRect.y + mBufferRect.height - mBufferRotation.y);
 
@@ -619,8 +618,8 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
           
           
           
-          
           nsIntRect bottom(mBufferRect.x, rotationPoint.y, mBufferRect.width, mBufferRotation.y);
+          
           nsIntRect topright(rotationPoint.x, mBufferRect.y, mBufferRotation.x, rotationPoint.y - mBufferRect.y);
 
           if (!bottom.IsEmpty()) {

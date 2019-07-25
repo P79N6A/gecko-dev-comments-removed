@@ -163,30 +163,12 @@ public class GeckoSoftwareLayerClient extends GeckoLayerClient {
     }
 
     @Override
-    public boolean beginDrawing(int width, int height, int tileWidth, int tileHeight,
-                                String metadata, boolean hasDirectTexture) {
-        if (!super.beginDrawing(width, height, tileWidth, tileHeight, metadata,
-                                hasDirectTexture)) {
-            return false;
-        }
-
-        
-        
-        
-        if (!(mTileLayer instanceof MultiTileLayer)) {
-            if (mBufferSize.width != width || mBufferSize.height != height)
-                mBufferSize = new IntSize(width, height);
-            return true;
-        }
-
-        
-        
-        boolean originChanged = true;
-        Point origin = PointUtils.round(mNewGeckoViewport.getDisplayportOrigin());
-
-        if (mGeckoViewport != null) {
-            Point oldOrigin = PointUtils.round(mGeckoViewport.getDisplayportOrigin());
-            originChanged = !origin.equals(oldOrigin);
+    public Rect beginDrawing(int width, int height, int tileWidth, int tileHeight,
+                             String metadata, boolean hasDirectTexture) {
+        Rect bufferRect = super.beginDrawing(width, height, tileWidth, tileHeight,
+                                             metadata, hasDirectTexture);
+        if (bufferRect == null) {
+            return bufferRect;
         }
 
         
@@ -209,7 +191,7 @@ public class GeckoSoftwareLayerClient extends GeckoLayerClient {
             }
         }
 
-        return true;
+        return bufferRect;
     }
 
     @Override
@@ -321,6 +303,7 @@ public class GeckoSoftwareLayerClient extends GeckoLayerClient {
             throw new RuntimeException("Screen size of " + mScreenSize +
                                        " larger than maximum texture size of " + maxSize);
         }
+
         
         
         return new IntSize(Math.min(maxSize, IntSize.nextPowerOfTwo(mScreenSize.width +
@@ -334,6 +317,5 @@ public class GeckoSoftwareLayerClient extends GeckoLayerClient {
         
         return !mHasDirectTexture ? TILE_SIZE : new IntSize(0, 0);
     }
-
 }
 
