@@ -312,6 +312,9 @@ class ValidateWriter;
 
 
 
+
+
+
 struct JSObject : js::gc::Cell {
     
 
@@ -387,6 +390,7 @@ struct JSObject : js::gc::Cell {
     JSObject    *parent;                    
     void        *privateData;               
     jsuword     capacity;                   
+
     js::Value   *slots;                     
 
 
