@@ -5890,7 +5890,7 @@ nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
     }
 
     
-    if (!ChannelIsSafeMethod(aNewChannel)) {
+    if (!ChannelIsSafeHTTPMethod(aNewChannel)) {
         
         
         
@@ -8791,7 +8791,7 @@ nsDocShell::DoURILoad(nsIURI * aURI,
 
     
     
-    if (aHttpMethod && ownerPrincipal && !ChannelIsSafeMethod(channel)) {
+    if (aHttpMethod && ownerPrincipal && !ChannelIsSafeHTTPMethod(channel)) {
         if (NS_FAILED(ownerPrincipal->CheckMayLoad(aURI, PR_FALSE))) {
             return NS_OK;
         }
@@ -10438,11 +10438,11 @@ nsDocShell::ChannelIsPost(nsIChannel* aChannel)
 
 
 bool
-nsDocShell::ChannelIsSafeMethod(nsIChannel* aChannel)
+nsDocShell::ChannelIsSafeHTTPMethod(nsIChannel* aChannel)
 {
     nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aChannel));
     if (!httpChannel) {
-        return false;
+        return true;
     }
 
     nsCAutoString method;

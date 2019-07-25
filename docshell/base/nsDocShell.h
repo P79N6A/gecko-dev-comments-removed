@@ -459,7 +459,7 @@ protected:
 
 
 
-     static bool ChannelIsSafeMethod(nsIChannel* aChannel);
+     static bool ChannelIsSafeHTTPMethod(nsIChannel* aChannel);
 
     
 
