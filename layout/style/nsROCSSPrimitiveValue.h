@@ -47,6 +47,10 @@
 class nsIURI;
 class nsDOMCSSRGBColor;
 
+
+
+
+
 class nsROCSSPrimitiveValue : public nsIDOMCSSPrimitiveValue
 {
 public:
