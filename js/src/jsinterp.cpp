@@ -5391,7 +5391,7 @@ BEGIN_CASE(JSOP_DEFFUN)
 
 
             JS_ASSERT(!(attrs & ~(JSPROP_ENUMERATE|JSPROP_PERMANENT)));
-            JS_ASSERT(!(old & JSPROP_READONLY));
+            JS_ASSERT_IF(attrs != JSPROP_ENUMERATE, !(old & JSPROP_READONLY));
             doSet = true;
         }
         pobj->dropProperty(cx, prop);
