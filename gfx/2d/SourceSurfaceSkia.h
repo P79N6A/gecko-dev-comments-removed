@@ -46,6 +46,8 @@
 namespace mozilla {
 namespace gfx {
 
+class DrawTargetSkia;
+
 class SourceSurfaceSkia : public DataSourceSurface
 {
 public:
@@ -63,8 +65,13 @@ public:
                     int32_t aStride,
                     SurfaceFormat aFormat);
 
-  bool InitWithBitmap(SkCanvas* aBitmap,
-                      SurfaceFormat aFormat);
+  
+
+
+
+  bool InitWithBitmap(const SkBitmap& aBitmap,
+                      SurfaceFormat aFormat,
+                      DrawTargetSkia* aOwner);
 
 
   virtual unsigned char *GetData();
@@ -74,10 +81,14 @@ public:
 private:
   friend class DrawTargetSkia;
 
+  void DrawTargetWillChange();
+  void MarkIndependent();
+
   SkBitmap mBitmap;
   SurfaceFormat mFormat;
   IntSize mSize;
   int32_t mStride;
+  DrawTargetSkia* mDrawTarget;
 };
 
 }
