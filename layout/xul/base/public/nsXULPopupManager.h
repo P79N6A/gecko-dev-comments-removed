@@ -433,6 +433,16 @@ public:
 
 
 
+  void ShowTooltipAtScreen(nsIContent* aPopup,
+                           nsIContent* aTriggerContent,
+                           PRInt32 aXPos, PRInt32 aYPos);
+
+  
+
+
+
+
+
   void ShowPopupWithAnchorAlign(nsIContent* aPopup,
                                 nsIContent* aAnchorContent,
                                 nsAString& aAnchor,

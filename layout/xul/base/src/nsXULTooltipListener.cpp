@@ -137,10 +137,6 @@ nsXULTooltipListener::MouseOut(nsIDOMEvent* aMouseEvent)
 {
   
   mTooltipShownOnce = PR_FALSE;
-   
-  
-  
-  mCachedMouseEvent = nsnull;
 
   
   
@@ -219,7 +215,6 @@ nsXULTooltipListener::MouseMove(nsIDOMEvent* aMouseEvent)
     return NS_OK;
   mMouseScreenX = newMouseX;
   mMouseScreenY = newMouseY;
-  mCachedMouseEvent = aMouseEvent;
 
   nsCOMPtr<nsIDOMEventTarget> currentTarget;
   aMouseEvent->GetCurrentTarget(getter_AddRefs(currentTarget));
@@ -549,10 +544,8 @@ nsXULTooltipListener::LaunchTooltip()
 
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
   if (pm) {
-    pm->ShowPopupAtScreen(currentTooltip, mMouseScreenX, mMouseScreenY,
-                          PR_FALSE, mCachedMouseEvent);
-
-    mCachedMouseEvent = nsnull;
+    nsCOMPtr<nsIContent> target = do_QueryReferent(mTargetNode);
+    pm->ShowTooltipAtScreen(currentTooltip, target, mMouseScreenX, mMouseScreenY);
 
     
     if (!pm->IsPopupOpen(currentTooltip))
@@ -565,8 +558,6 @@ nsXULTooltipListener::LaunchTooltip()
 nsresult
 nsXULTooltipListener::HideTooltip()
 {
-  mCachedMouseEvent = nsnull;
-
 #ifdef MOZ_XUL
   nsCOMPtr<nsIContent> currentTooltip = do_QueryReferent(mCurrentTooltip);
   if (currentTooltip) {
