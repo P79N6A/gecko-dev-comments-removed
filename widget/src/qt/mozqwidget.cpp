@@ -114,16 +114,21 @@ void MozQWidget::hoverMoveEvent(QGraphicsSceneHoverEvent* aEvent)
 
 void MozQWidget::keyPressEvent(QKeyEvent* aEvent)
 {
+#if (MOZ_PLATFORM_MAEMO==5)
     
     
     
+#else
+    mReceiver->OnKeyPressEvent(aEvent);
+#endif
 }
 
 void MozQWidget::keyReleaseEvent(QKeyEvent* aEvent)
 {
+#if (MOZ_PLATFORM_MAEMO==5)
     
     mReceiver->OnKeyPressEvent(aEvent);
-
+#endif
     mReceiver->OnKeyReleaseEvent(aEvent);
 }
 
