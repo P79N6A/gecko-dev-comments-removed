@@ -738,7 +738,7 @@ js_GetSrcNoteCached(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 
 extern uintN
-js_FramePCToLineNumber(JSContext *cx, js::StackFrame *fp);
+js_FramePCToLineNumber(JSContext *cx, js::StackFrame *fp, jsbytecode *pc);
 
 extern uintN
 js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc);
@@ -750,6 +750,9 @@ extern JS_FRIEND_API(uintN)
 js_GetScriptLineExtent(JSScript *script);
 
 namespace js {
+
+extern uintN
+CurrentLine(JSContext *cx);
 
 
 

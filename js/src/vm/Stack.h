@@ -430,7 +430,18 @@ class StackFrame
 
 
 
-    jsbytecode *pc(JSContext *cx, StackFrame *next = NULL);
+
+
+
+
+
+
+
+
+
+
+
+    jsbytecode *pcQuadratic(JSContext *cx);
 
     jsbytecode *prevpc() {
         if (flags_ & HAS_PREVPC)
@@ -1101,24 +1112,6 @@ class StackSpace
 
 
 
-    static const size_t MAX_INLINE_CALLS = 3000;
-
-    
-
-
-
-
-
-
-
-    static const size_t STACK_QUOTA = MAX_INLINE_CALLS * (VALUES_PER_STACK_FRAME + 18);
-
-    
-
-
-
-
-
 
 
 
@@ -1127,22 +1120,7 @@ class StackSpace
 
 
     inline Value *getStackLimit(JSContext *cx);
-
-    
-
-
-
-
-
-
-
-    bool bumpLimitWithinQuota(JSContext *maybecx, StackFrame *base, Value *from, uintN nvals, Value **limit) const;
-
-    
-
-
-
-    bool bumpLimit(JSContext *cx, StackFrame *base, Value *from, uintN nvals, Value **limit) const;
+    bool tryBumpLimit(JSContext *maybecx, Value *from, uintN nvals, Value **limit);
 
     
     void mark(JSTracer *trc);
@@ -1322,7 +1300,7 @@ class ContextStack
     inline StackFrame *
     getInlineFrameWithinLimit(JSContext *cx, Value *sp, uintN nactual,
                               JSFunction *fun, JSScript *script, uint32 *flags,
-                              StackFrame *base, Value **limit) const;
+                              Value **limit) const;
     inline void pushInlineFrame(JSScript *script, StackFrame *fp, FrameRegs &regs);
     inline void popInlineFrame();
 
@@ -1424,10 +1402,12 @@ class FrameRegsIter
     void incSlow(StackFrame *oldfp);
 
   public:
-    inline FrameRegsIter(JSContext *cx);
+    FrameRegsIter(JSContext *cx);
 
     bool done() const { return fp_ == NULL; }
-    inline FrameRegsIter &operator++();
+    FrameRegsIter &operator++();
+    bool operator==(const FrameRegsIter &rhs) const;
+    bool operator!=(const FrameRegsIter &rhs) const { return !(*this == rhs); }
 
     StackFrame *fp() const { return fp_; }
     Value *sp() const { return sp_; }
