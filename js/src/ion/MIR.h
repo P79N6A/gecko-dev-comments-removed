@@ -257,7 +257,6 @@ class MDefinition : public MNode
                                    
     uint32 valueNumber_;           
     MIRType resultType_;           
-    uint32 usedTypes_;             
     uint32 flags_;                 
     MDefinition *dependency_;      
 
@@ -289,7 +288,6 @@ class MDefinition : public MNode
       : id_(0),
         valueNumber_(0),
         resultType_(MIRType_None),
-        usedTypes_(0),
         flags_(0),
         dependency_(NULL)
     { }
@@ -346,11 +344,6 @@ class MDefinition : public MNode
     }
 
     
-    
-    
-    MIRType usedAsType() const;
-
-    
     MUseIterator usesBegin() const {
         return uses_.begin();
     }
@@ -388,20 +381,6 @@ class MDefinition : public MNode
     void linkUse(MUse *use) {
         JS_ASSERT(use->node()->getOperand(use->index()) == this);
         uses_.pushFront(use);
-    }
-
-  public:   
-    
-    
-    void addUsedTypes(uint32 types) {
-        usedTypes_ = types | usedTypes();
-    }
-    void useAsType(MIRType type) {
-        JS_ASSERT(type < MIRType_Value);
-        addUsedTypes(1 << uint32(type));
-    }
-    uint32 usedTypes() const {
-        return usedTypes_;
     }
 
     void setVirtualRegister(uint32 vreg) {

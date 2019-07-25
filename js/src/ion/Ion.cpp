@@ -595,7 +595,6 @@ TestCompiler(IonBuilder &builder, MIRGraph &graph)
     
 
     
-    
     if (!EliminateDeadPhis(graph))
         return false;
     IonSpewPass("Eliminate dead phis");
@@ -604,6 +603,10 @@ TestCompiler(IonBuilder &builder, MIRGraph &graph)
         return false;
     
 
+    EliminateCopies(graph);
+    IonSpewPass("Eliminate copies");
+
+    
     if (!ApplyTypeInformation(graph))
         return false;
     IonSpewPass("Apply types");

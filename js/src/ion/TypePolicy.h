@@ -50,31 +50,11 @@ namespace ion {
 class MInstruction;
 class MDefinition;
 
-class TypeAnalysis
-{
-  public:
-    virtual void addPreferredType(MDefinition *def, MIRType type) = 0;
-    inline void preferType(MDefinition *def, MIRType type);
-};
-
 
 
 class TypePolicy
 {
   public:
-    
-    
-    
-    
-    
-    
-    
-    virtual bool respecialize(MInstruction *def) = 0;
-
-    
-    
-    virtual void specializeInputs(MInstruction *ins, TypeAnalysis *analysis) = 0;
-
     
     
     
@@ -90,8 +70,6 @@ class BoxInputsPolicy : public TypePolicy
     MDefinition *boxAt(MInstruction *at, MDefinition *operand);
 
   public:
-    virtual bool respecialize(MInstruction *def);
-    virtual void specializeInputs(MInstruction *ins, TypeAnalysis *analyzer);
     virtual bool adjustInputs(MInstruction *def);
 };
 
@@ -105,8 +83,6 @@ class BinaryArithPolicy : public BoxInputsPolicy
     MIRType specialization_;
 
   public:
-    bool respecialize(MInstruction *def);
-    void specializeInputs(MInstruction *ins, TypeAnalysis *analyzer);
     bool adjustInputs(MInstruction *def);
 };
 
@@ -120,14 +96,12 @@ class BitwisePolicy : public BoxInputsPolicy
     MIRType specialization_;
 
   public:
-    void specializeInputs(MInstruction *ins, TypeAnalysis *analyzer);
     bool adjustInputs(MInstruction *def);
 };
 
 class TableSwitchPolicy : public BoxInputsPolicy
 {
   public:
-    void specializeInputs(MInstruction *ins, TypeAnalysis *analyzer);
     bool adjustInputs(MInstruction *def);
 };
 
@@ -137,15 +111,12 @@ class ComparePolicy : public BoxInputsPolicy
     MIRType specialization_;
 
   public:
-    bool respecialize(MInstruction *def);
-    void specializeInputs(MInstruction *ins, TypeAnalysis *analyzer);
     bool adjustInputs(MInstruction *def);
 };
 
 class CallPolicy : public BoxInputsPolicy
 {
   public:
-    void specializeInputs(MInstruction *ins, TypeAnalysis *analyzer);
     bool adjustInputs(MInstruction *def);
 };
 
@@ -154,7 +125,6 @@ class CallPolicy : public BoxInputsPolicy
 class ObjectPolicy : public BoxInputsPolicy
 {
   public:
-    void specializeInputs(MInstruction *ins, TypeAnalysis *analyzer);
     bool adjustInputs(MInstruction *def);
 };
 
@@ -162,7 +132,6 @@ class ObjectPolicy : public BoxInputsPolicy
 class StringPolicy : public BoxInputsPolicy
 {
   public:
-    void specializeInputs(MInstruction *ins, TypeAnalysis *analyzer);
     bool adjustInputs(MInstruction *def);
 };
 
