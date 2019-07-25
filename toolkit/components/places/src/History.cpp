@@ -88,6 +88,7 @@ struct VisitData {
   , typed(false)
   , transitionType(PR_UINT32_MAX)
   , visitTime(0)
+  , titleChanged(false)
   {
     guid.SetIsVoid(PR_TRUE);
     title.SetIsVoid(PR_TRUE);
@@ -102,6 +103,7 @@ struct VisitData {
   , typed(false)
   , transitionType(PR_UINT32_MAX)
   , visitTime(0)
+  , titleChanged(false)
   {
     (void)aURI->GetSpec(spec);
     (void)GetReversedHostname(aURI, revHost);
@@ -162,6 +164,9 @@ struct VisitData {
   PRTime visitTime;
   nsString title;
   nsCString referrerSpec;
+
+  
+  bool titleChanged;
 };
 
 
@@ -222,8 +227,14 @@ GetStringFromJSObject(JSContext* aCtx,
 {
   jsval val;
   JSBool rc = JS_GetProperty(aCtx, aObject, aProperty, &val);
-  if (!rc || JSVAL_IS_VOID(val) || !JSVAL_IS_STRING(val)) {
+  if (!rc || JSVAL_IS_VOID(val) ||
+      !(JSVAL_IS_NULL(val) || JSVAL_IS_STRING(val))) {
     _string.SetIsVoid(PR_TRUE);
+    return;
+  }
+  
+  if (JSVAL_IS_NULL(val)) {
+    _string.Truncate();
     return;
   }
   size_t length;
@@ -468,6 +479,45 @@ private:
 
 
 
+class NotifyTitleObservers : public nsRunnable
+{
+public:
+  
+
+
+
+
+
+
+
+  NotifyTitleObservers(const nsCString& aSpec,
+                       const nsString& aTitle)
+  : mSpec(aSpec)
+  , mTitle(aTitle)
+  {
+  }
+
+  NS_IMETHOD Run()
+  {
+    NS_PRECONDITION(NS_IsMainThread(),
+                    "This should be called on the main thread");
+
+    nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
+    NS_ENSURE_TRUE(navHistory, NS_ERROR_OUT_OF_MEMORY);
+    nsCOMPtr<nsIURI> uri;
+    (void)NS_NewURI(getter_AddRefs(uri), mSpec);
+    navHistory->NotifyTitleChange(uri, mTitle);
+
+    return NS_OK;
+  }
+private:
+  const nsCString mSpec;
+  const nsString mTitle;
+};
+
+
+
+
 class NotifyCompletion : public nsRunnable
 {
 public:
@@ -640,6 +690,13 @@ public:
       nsCOMPtr<nsIRunnable> event = new NotifyVisitObservers(place, referrer);
       rv = NS_DispatchToMainThread(event);
       NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      if ((!known && !place.title.IsVoid()) || place.titleChanged) {
+        event = new NotifyTitleObservers(place.spec, place.title);
+        rv = NS_DispatchToMainThread(event);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
 
       lastPlace = &mPlaces.ElementAt(i);
     }
@@ -1009,48 +1066,6 @@ private:
 
 
 
-class NotifyTitleObservers : public nsRunnable
-{
-public:
-  
-
-
-
-
-
-
-
-  NotifyTitleObservers(const nsCString& aSpec,
-                       const nsString& aTitle)
-  : mSpec(aSpec)
-  , mTitle(aTitle)
-  {
-    NS_PRECONDITION(!NS_IsMainThread(),
-                    "This should not be called on the main thread");
-  }
-
-  NS_IMETHOD Run()
-  {
-    NS_PRECONDITION(NS_IsMainThread(),
-                    "This should be called on the main thread");
-
-    nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
-    NS_ENSURE_TRUE(navHistory, NS_ERROR_OUT_OF_MEMORY);
-    nsCOMPtr<nsIURI> uri;
-    (void)NS_NewURI(getter_AddRefs(uri), mSpec);
-    navHistory->NotifyTitleChange(uri, mTitle);
-
-    return NS_OK;
-  }
-private:
-  const nsCString mSpec;
-  const nsString mTitle;
-};
-
-
-
-
-
 class SetPageTitle : public nsRunnable
 {
 public:
@@ -1094,7 +1109,7 @@ public:
 
     
     bool exists = mHistory->FetchPageInfo(mPlace);
-    if (!exists) {
+    if (!exists || !mPlace.titleChanged) {
       
       
       return NS_OK;
@@ -1102,13 +1117,6 @@ public:
 
     NS_ASSERTION(mPlace.placeId > 0,
                  "We somehow have an invalid place id here!");
-
-    
-    
-    if (mTitle.Equals(mPlace.title) ||
-        (mTitle.IsVoid() && mPlace.title.IsVoid())) {
-      return NS_OK;
-    }
 
     
     nsCOMPtr<mozIStorageStatement> stmt =
@@ -1328,7 +1336,8 @@ History::InsertPlace(const VisitData& aPlace)
   NS_ENSURE_SUCCESS(rv, rv);
   rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("url"), aPlace.spec);
   NS_ENSURE_SUCCESS(rv, rv);
-  if (aPlace.title.IsVoid()) {
+  
+  if (aPlace.title.IsEmpty()) {
     rv = stmt->BindNullByName(NS_LITERAL_CSTRING("title"));
   }
   else {
@@ -1372,11 +1381,15 @@ History::UpdatePlace(const VisitData& aPlace)
   mozStorageStatementScoper scoper(stmt);
 
   nsresult rv;
-  if (!aPlace.title.IsVoid()) {
+  
+  if (aPlace.title.IsEmpty()) {
+    rv = stmt->BindNullByName(NS_LITERAL_CSTRING("title"));
+  }
+  else {
     rv = stmt->BindStringByName(NS_LITERAL_CSTRING("title"),
                                 StringHead(aPlace.title, TITLE_LENGTH_MAX));
-    NS_ENSURE_SUCCESS(rv, rv);
   }
+  NS_ENSURE_SUCCESS(rv, rv);
   rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("typed"), aPlace.typed);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("hidden"), aPlace.hidden);
@@ -1420,9 +1433,16 @@ History::FetchPageInfo(VisitData& _place)
   rv = stmt->GetInt64(0, &_place.placeId);
   NS_ENSURE_SUCCESS(rv, false);
 
+  nsAutoString title;
+  rv = stmt->GetString(1, title);
+  NS_ENSURE_SUCCESS(rv, true);
+
+  
+  
+  _place.titleChanged = !(_place.title.Equals(title) ||
+                          (_place.title.IsVoid() && title.IsVoid()));
   if (_place.title.IsVoid()) {
-    rv = stmt->GetString(1, _place.title);
-    NS_ENSURE_SUCCESS(rv, true);
+    _place.title = title;
   }
 
   if (_place.hidden) {
