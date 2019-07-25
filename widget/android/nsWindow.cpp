@@ -1118,24 +1118,6 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
         return;
     }
 
-    
-
-
-
-
-    nsCOMPtr<nsIAndroidDrawMetadataProvider> metadataProvider =
-        AndroidBridge::Bridge()->GetDrawMetadataProvider();
-
-    layers::renderTraceEventStart("Check supress", "424242");
-    bool paintingSuppressed = false;
-    if (metadataProvider) {
-        metadataProvider->PaintingSuppressed(&paintingSuppressed);
-    }
-    if (paintingSuppressed) {
-        return;
-    }
-    layers::renderTraceEventEnd("Check supress", "424242");
-
     layers::renderTraceEventStart("Get surface", "424545");
     static unsigned char bits2[32 * 32 * 2];
     nsRefPtr<gfxImageSurface> targetSurface =
