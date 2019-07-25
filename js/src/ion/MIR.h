@@ -345,10 +345,12 @@ class MInstruction
     void assumeType(MIRType type) {
         assumedType_ = type;
     }
-    void assignSnapshot(MSnapshot *snapshot) {
-        JS_ASSERT(!snapshot_);
-        snapshot_ = snapshot;
-    }
+
+    
+    
+    
+    
+    inline void assignSnapshot(MSnapshot *snapshot);
 
     MBasicBlock *block() const {
         JS_ASSERT(block_);
@@ -825,6 +827,15 @@ MUseIterator::unlink()
     MUse *old = use;
     use = def->removeUse(prev(), use);
     return old;
+}
+
+void
+MInstruction::assignSnapshot(MSnapshot *snapshot)
+{
+    JS_ASSERT(!snapshot_);
+    JS_ASSERT(snapshot->id() < id());
+    JS_ASSERT(snapshot->block() == block());
+    snapshot_ = snapshot;
 }
 
 
