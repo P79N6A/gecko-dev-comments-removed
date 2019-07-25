@@ -105,7 +105,7 @@ public:
   
   void InvalidateHierarchy();
 
-  virtual void ProcessPendingUpdates();
+  virtual bool ProcessPendingUpdates();
   virtual void UpdateWidgetGeometry();
 
 protected:
@@ -114,7 +114,10 @@ protected:
 private:
 
   void FlushPendingInvalidates();
-  void ProcessPendingUpdatesForView(nsView *aView,
+  
+
+
+  bool ProcessPendingUpdatesForView(nsView *aView,
                                     bool aFlushDirtyRegion = true);
   void FlushDirtyRegionToWidget(nsView* aView);
   
