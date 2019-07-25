@@ -372,7 +372,7 @@ protected:
   
   virtual nsresult InstallEventListeners();
 
-  virtual nsresult CreateEventListeners();
+  virtual void CreateEventListeners();
 
   
   virtual void RemoveEventListeners();

@@ -446,7 +446,7 @@ protected:
   NS_IMETHOD  InitRules();
 
   
-  virtual nsresult CreateEventListeners();
+  virtual void CreateEventListeners();
 
   virtual nsresult InstallEventListeners();
   virtual void RemoveEventListeners();

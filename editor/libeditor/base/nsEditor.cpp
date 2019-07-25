@@ -288,14 +288,7 @@ nsEditor::PostCreate()
     mDidPostCreate = PR_TRUE;
 
     
-    rv = CreateEventListeners();
-    if (NS_FAILED(rv))
-    {
-      RemoveEventListeners();
-
-      return rv;
-    }
-
+    CreateEventListeners();
     rv = InstallEventListeners();
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -327,14 +320,14 @@ nsEditor::PostCreate()
   return NS_OK;
 }
 
-nsresult
+
+void
 nsEditor::CreateEventListeners()
 {
   
   if (!mEventListener) {
     mEventListener = new nsEditorEventListener();
   }
-  return NS_OK;
 }
 
 nsresult
