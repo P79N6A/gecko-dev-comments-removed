@@ -1,5 +1,6 @@
 
 const TIMEOUT_SECONDS = 30;
+var gConfig;
 
 if (Cc === undefined) {
   var Cc = Components.classes;
