@@ -569,6 +569,7 @@ public class PanZoomController
             finishBounce();
             finishAnimation();
             mState = PanZoomState.NOTHING;
+            GeckoApp.mAppContext.showPluginViews();
         }
 
         

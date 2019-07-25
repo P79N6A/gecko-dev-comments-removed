@@ -538,6 +538,13 @@ public:
                                              const nsRect& aRect,
                                              nsIFrame* aAncestor);
 
+
+  
+
+
+
+  static gfx3DMatrix GetTransformToAncestor(nsIFrame *aFrame, nsIFrame *aAncestor);
+
   
 
 
