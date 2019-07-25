@@ -1946,8 +1946,20 @@ mjit::Compiler::generateMethod()
           BEGIN_CASE(JSOP_GETTHISPROP)
             
             jsop_this();
-            if (cx->typeInferenceEnabled())
-                frame.extra(frame.peek(-1)).types = script->thisTypes();
+            if (cx->typeInferenceEnabled()) {
+                
+
+
+
+
+
+
+                types::TypeSet *newTypes = types::TypeSet::make(cx, "thisprop");
+                if (!newTypes)
+                    return Compile_Error;
+                script->thisTypes()->addTransformThis(cx, script, newTypes);
+                frame.extra(frame.peek(-1)).types = newTypes;
+            }
             if (!jsop_getprop(script->getAtom(fullAtomIndex(PC)), knownPushedType(0)))
                 return Compile_Error;
           END_CASE(JSOP_GETTHISPROP);
