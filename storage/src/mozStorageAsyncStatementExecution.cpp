@@ -534,6 +534,21 @@ NS_IMPL_THREADSAFE_ISUPPORTS2(
   mozIStoragePendingStatement
 )
 
+bool
+AsyncExecuteStatements::statementsNeedTransaction()
+{
+  
+  
+  
+  for (PRUint32 i = 0, transactionsCount = 0; i < mStatements.Length(); ++i) {
+    transactionsCount += mStatements[i].needsTransaction();
+    if (transactionsCount > 1) {
+      return true;
+    }
+  }
+  return false;
+}
+
 
 
 
@@ -575,13 +590,7 @@ AsyncExecuteStatements::Run()
   if (mState == CANCELED)
     return notifyComplete();
 
-  
-  
-  
-  
-  
-  if (mStatements.Length() > 1 || mStatements[0].needsTransaction()) {
-    
+  if (statementsNeedTransaction()) {
     mTransactionManager = new mozStorageTransaction(mConnection, PR_FALSE,
                                                     mozIStorageConnection::TRANSACTION_IMMEDIATE);
   }

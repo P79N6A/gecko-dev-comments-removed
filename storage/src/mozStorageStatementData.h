@@ -45,6 +45,8 @@
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
 #include "nsIEventTarget.h"
+#include "mozilla/Util.h"
+#include "nsThreadUtils.h"
 
 #include "mozStorageBindingParamsArray.h"
 #include "mozIStorageBaseStatement.h"
@@ -147,9 +149,23 @@ public:
 
 
 
-  inline bool needsTransaction() const
+
+
+
+
+
+  inline PRUint32 needsTransaction()
   {
-    return mParamsArray != nsnull && mParamsArray->length() > 1;
+    MOZ_ASSERT(!NS_IsMainThread());
+    
+    
+    
+    sqlite3_stmt *stmt;
+    int rc = getSqliteStatement(&stmt);
+    if (SQLITE_OK != rc || ::sqlite3_stmt_readonly(stmt)) {
+      return 0;
+    }
+    return mParamsArray ? mParamsArray->length() : 1;
   }
 
 private:

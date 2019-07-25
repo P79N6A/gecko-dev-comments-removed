@@ -201,6 +201,14 @@ private:
 
   nsresult notifyResults();
 
+  
+
+
+
+
+
+  bool statementsNeedTransaction();
+
   StatementDataArray mStatements;
   nsRefPtr<Connection> mConnection;
   mozStorageTransaction *mTransactionManager;

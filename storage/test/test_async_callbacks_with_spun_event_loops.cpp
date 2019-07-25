@@ -14,19 +14,6 @@
 
 
 
-
-void
-blocking_async_close(mozIStorageConnection *db)
-{
-  nsRefPtr<AsyncStatementSpinner> spinner(new AsyncStatementSpinner());
-
-  db->AsyncClose(spinner);
-  spinner->SpinUntilCompleted();
-}
-
-
-
-
 void
 spin_events_loop_until_true(const bool* const aCondition)
 {
