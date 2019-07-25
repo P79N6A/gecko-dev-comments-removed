@@ -261,10 +261,8 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
 
   bool resultOverflows;
   gfxIntSize surfaceSize =
-    nsSVGUtils::ConvertToSurfaceSize(
-      gfxSize(patternWidth * fabs(patternMatrix->xx),
-              patternHeight * fabs(patternMatrix->yy)),
-      &resultOverflows);
+    nsSVGUtils::ConvertToSurfaceSize(gfxSize(patternWidth, patternHeight),
+                                     &resultOverflows);
 
   
   if (surfaceSize.width <= 0 || surfaceSize.height <= 0)
