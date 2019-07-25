@@ -29,8 +29,7 @@ function startTest() {
 function seekStarted() {
   if (completed)
     return false;
-  ok(v.currentTime >= seekTime - 0.1,
-     "Video currentTime should be around " + seekTime + ": " + v.currentTime + " (seeking)");
+  ok(v.currentTime >= seekTime - 0.1, "Video currentTime should be around " + seekTime + ": " + v.currentTime);
   v.pause();
   startPassed = true;
   return false;
@@ -44,7 +43,7 @@ function seekEnded() {
   
   
   
-  ok(t >= seekTime - 0.1, "Video currentTime should be around " + seekTime + ": " + t + " (seeked)");
+  ok(t >= seekTime - 0.1, "Video currentTime should be around " + seekTime + ": " + t);
   v.play();
   endPassed = true;
   seekFlagEnd = v.seeking;

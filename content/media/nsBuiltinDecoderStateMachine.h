@@ -106,6 +106,9 @@
 
 
 
+
+
+
 #if !defined(nsBuiltinDecoderStateMachine_h__)
 #define nsBuiltinDecoderStateMachine_h__
 
@@ -116,7 +119,11 @@
 #include "nsAudioAvailableEventManager.h"
 #include "nsHTMLMediaElement.h"
 #include "mozilla/ReentrantMonitor.h"
-#include "nsITimer.h"
+
+
+
+
+
 
 
 
@@ -165,6 +172,12 @@ public:
   virtual void UpdatePlaybackPosition(PRInt64 aTime);
   virtual void StartBuffering();
 
+
+  
+  
+  virtual void LoadMetadata();
+
+  
   
   NS_IMETHOD Run();
 
@@ -201,24 +214,21 @@ public:
 
   
   
-  PRBool OnAudioThread() const {
+  PRBool OnAudioThread() {
     return IsCurrentThread(mAudioThread);
   }
 
-  PRBool OnStateMachineThread() const {
-    return IsCurrentThread(GetStateMachineThread());
+  PRBool OnStateMachineThread() {
+    return mDecoder->OnStateMachineThread();
   }
- 
+
+  
+  void DecodeLoop();
+
   
   
   
-  
-  
-  
-  
-  
-  
-  nsRefPtr<nsBuiltinDecoder> mDecoder;
+  nsBuiltinDecoder* mDecoder;
 
   
   
@@ -246,23 +256,6 @@ public:
   
   
   virtual void SetFrameBufferLength(PRUint32 aLength);
-
-  
-  static nsIThread* GetStateMachineThread();
-
-  
-  
-  
-  
-  nsresult ScheduleStateMachine();
-
-  
-  
-  
-  nsresult ScheduleStateMachine(PRInt64 aUsecs);
-
-  
-  void TimeoutExpired();
 
 protected:
 
@@ -298,12 +291,12 @@ protected:
   
   
   
-  
   void Wait(PRInt64 aUsecs);
 
   
   void UpdateReadyState();
 
+  
   
   void ResetPlayback();
 
@@ -323,6 +316,7 @@ protected:
   
   void UpdatePlaybackPositionInternal(PRInt64 aTime);
 
+  
   
   
   void RenderVideoFrame(VideoData* aData, TimeStamp aTarget);
@@ -352,19 +346,11 @@ protected:
 
   
   
-  void StopDecodeThread();
+  void StopDecodeThreads();
 
   
   
-  void StopAudioThread();
-
-  
-  
-  nsresult StartDecodeThread();
-
-  
-  
-  nsresult StartAudioThread();
+  nsresult StartDecodeThreads();
 
   
   
@@ -374,7 +360,16 @@ protected:
   
   
   
-  void StopPlayback();
+  
+  
+  
+  
+  
+  
+  
+  
+  enum eStopMode {AUDIO_PAUSE, AUDIO_SHUTDOWN};
+  void StopPlayback(eStopMode aMode);
 
   
   
@@ -410,37 +405,9 @@ protected:
 
   
   
-  nsresult DecodeMetadata();
-
   
   
-  void DecodeSeek();
-
-  
-  
-  void DecodeLoop();
-
-  
-  
-  void DecodeThreadRun();
-
-  
-  nsresult CallRunStateMachine();
-
-  
-  
-  
-  nsresult RunStateMachine();
-
-  PRBool IsStateMachineScheduled() const {
-    mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
-    return !mTimeout.IsNull() || mRunAgain;
-  }
-
-  
-  
-  
-  PRBool IsPausedAndDecoderWaiting();
+  ReentrantMonitor mAudioReentrantMonitor;
 
   
   
@@ -455,15 +422,6 @@ protected:
 
   
   nsCOMPtr<nsIThread> mDecodeThread;
-
-  
-  
-  nsCOMPtr<nsITimer> mTimer;
-
-  
-  
-  
-  TimeStamp mTimeout;
 
   
   
@@ -497,7 +455,6 @@ protected:
   
   PRInt64 mSeekTime;
 
-  
   
   
   
@@ -561,18 +518,7 @@ protected:
     
   
   
-  PRPackedBool mStopDecodeThread;
-
-  
-  
-  
-  
-  
-  PRPackedBool mDecodeThreadIdle;
-
-  
-  
-  PRPackedBool mStopAudioThread;
+  PRPackedBool mStopDecodeThreads;
 
   
   
@@ -580,26 +526,6 @@ protected:
   
   
   PRPackedBool mQuickBuffering;
-
-  
-  
-  PRPackedBool mIsRunning;
-
-  
-  
-  PRPackedBool mRunAgain;
-
-  
-  
-  
-  
-  
-  PRPackedBool mDispatchedRunEvent;
-
-  
-  
-  
-  PRPackedBool mDecodeThreadWaiting;
 
 private:
   
