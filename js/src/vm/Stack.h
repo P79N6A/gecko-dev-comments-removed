@@ -1193,6 +1193,9 @@ class StackFrame
 #endif
 
     void methodjitStaticAsserts();
+
+  public:
+    void mark(JSTracer *trc);
 };
 
 static const size_t VALUES_PER_STACK_FRAME = sizeof(StackFrame) / sizeof(Value);
@@ -1365,6 +1368,10 @@ class StackSegment
         return regs_ ? regs_->fp() : NULL;
     }
 
+    jsbytecode *maybepc() const {
+        return regs_ ? regs_->pc : NULL;
+    }
+
     CallArgsList &calls() const {
         JS_ASSERT(calls_);
         return *calls_;
@@ -1535,6 +1542,7 @@ class StackSpace
 
     
     void mark(JSTracer *trc);
+    void markFrameSlots(JSTracer *trc, StackFrame *fp, Value *slotsEnd, jsbytecode *pc);
 
     
     JS_FRIEND_API(size_t) sizeOfCommitted();
