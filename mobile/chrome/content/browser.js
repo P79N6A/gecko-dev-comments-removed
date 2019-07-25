@@ -2746,6 +2746,7 @@ ProgressController.prototype = {
 
        
        
+       
        Browser.scrollContentToTop();
       }
     }
@@ -2826,6 +2827,11 @@ ProgressController.prototype = {
     else {
       let scroll = BrowserView.Util.getContentScrollOffset(this._tab.browser);
       this._tab.contentScrollOffset = new Point(scroll.x, scroll.y);
+
+      
+      
+      if (scroll.isZero())
+        this._tab.pageScrollOffset = new Point(0, 0);
     }
   }
 };
