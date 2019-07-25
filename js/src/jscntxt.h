@@ -1853,6 +1853,9 @@ struct JSContext
 
     DSTOffsetCache dstOffsetCache;
 
+    
+    JSObject *enumerators;
+
   private:
     
 

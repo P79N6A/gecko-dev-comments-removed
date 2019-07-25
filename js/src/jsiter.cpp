@@ -107,6 +107,7 @@ NativeIterator::mark(JSTracer *trc)
         JS_SET_TRACING_INDEX(trc, "props", (vp - props_array));
         js_CallValueTracerIfGCThing(trc, *vp);
     }
+    JS_CALL_OBJECT_TRACER(trc, obj, "obj");
 }
 
 
@@ -230,13 +231,14 @@ EnumerateDenseArrayProperties(JSContext *cx, JSObject *obj, JSObject *pobj, uint
 }
 
 NativeIterator *
-NativeIterator::allocate(JSContext *cx, uintN flags, uint32 *sarray, uint32 slength, uint32 key,
-                         jsval *parray, uint32 plength)
+NativeIterator::allocate(JSContext *cx, JSObject *obj, uintN flags, uint32 *sarray, uint32 slength,
+                         uint32 key, jsval *parray, uint32 plength)
 {
     NativeIterator *ni = (NativeIterator *)
         cx->malloc(sizeof(NativeIterator) + plength * sizeof(jsval) + slength * sizeof(uint32));
     if (!ni)
         return NULL;
+    ni->obj = obj;
     ni->props_array = ni->props_cursor = (jsval *) (ni + 1);
     ni->props_end = ni->props_array + plength;
     if (plength)
@@ -315,7 +317,7 @@ Snapshot(JSContext *cx, JSObject *obj, uintN flags, uint32 *sarray, uint32 sleng
         pobj = pobj->getProto();
     }
 
-    return NativeIterator::allocate(cx, flags, sarray, slength, key, props.begin(), props.length());
+    return NativeIterator::allocate(cx, obj, flags, sarray, slength, key, props.begin(), props.length());
 }
 
 bool
@@ -399,8 +401,18 @@ NewIteratorObject(JSContext *cx, uintN flags)
            : NewObjectWithGivenProto(cx, &js_IteratorClass.base, NULL, NULL);
 }
 
+static inline void
+RegisterEnumerator(JSContext *cx, JSObject *iterobj, NativeIterator *ni)
+{
+    
+    if (ni->flags & JSITER_ENUMERATE) {
+        ni->next = cx->enumerators;
+        cx->enumerators = iterobj;
+    }
+}
+
 bool
-JSIdArrayToIterator(JSContext *cx, uintN flags, JSIdArray *ida, jsval *vp)
+JSIdArrayToIterator(JSContext *cx, JSObject *obj, uintN flags, JSIdArray *ida, jsval *vp)
 {
     JSObject *iterobj = NewIteratorObject(cx, flags);
     if (!iterobj)
@@ -408,12 +420,14 @@ JSIdArrayToIterator(JSContext *cx, uintN flags, JSIdArray *ida, jsval *vp)
 
     *vp = OBJECT_TO_JSVAL(iterobj);
 
-    NativeIterator *ni = NativeIterator::allocate(cx, flags, NULL, 0, 0,
+    NativeIterator *ni = NativeIterator::allocate(cx, obj, flags, NULL, 0, 0,
                                                   ida->vector, ida->length);
     if (!ni)
         return false;
 
     iterobj->setNativeIterator(ni);
+
+    RegisterEnumerator(cx, iterobj, ni);
     return true;
 }
 
@@ -460,6 +474,8 @@ GetIterator(JSContext *cx, JSObject *obj, uintN flags, jsval *vp)
                     Compare(ni->shapes_array, shapes.begin(), ni->shapes_length)) {
                     *vp = OBJECT_TO_JSVAL(iterobj);
                     *hp = ni->next;
+
+                    RegisterEnumerator(cx, iterobj, ni);
                     return true;
                 }
             }
@@ -486,6 +502,8 @@ GetIterator(JSContext *cx, JSObject *obj, uintN flags, jsval *vp)
         return false;
 
     iterobj->setNativeIterator(ni);
+
+    RegisterEnumerator(cx, iterobj, ni);
     return true;
 }
 
@@ -629,6 +647,12 @@ js_CloseIterator(JSContext *cx, jsval v)
     if (clasp == &js_IteratorClass.base) {
         
         NativeIterator *ni = obj->getNativeIterator();
+        if (ni->flags & JSITER_ENUMERATE) {
+            JS_ASSERT(cx->enumerators == obj);
+            cx->enumerators = ni->next;
+        }
+
+        
         if (ni->shapes_length) {
             uint32 hash = ni->shapes_key % NATIVE_ITER_CACHE_SIZE;
             JSObject **hp = &JS_THREAD_DATA(cx)->cachedNativeIterators[hash];
@@ -645,6 +669,67 @@ js_CloseIterator(JSContext *cx, jsval v)
     }
 #endif
     return JS_TRUE;
+}
+
+
+
+
+
+
+
+
+
+
+
+bool
+js_SuppressDeletedProperty(JSContext *cx, JSObject *obj, jsid id)
+{
+    JSObject *iterobj = cx->enumerators;
+    while (iterobj) {
+        NativeIterator *ni = iterobj->getNativeIterator();
+        if (ni->obj == obj && ni->props_cursor < ni->props_end) {
+            
+            for (jsid *idp = ni->props_cursor; idp < ni->props_end; ++idp) {
+                if (*idp == id) {
+                    
+
+
+
+                    if (obj->getProto()) {
+                        AutoObjectRooter proto(cx, obj->getProto());
+                        AutoObjectRooter obj2(cx);
+                        JSProperty *prop;
+                        if (!proto.object()->lookupProperty(cx, id, obj2.addr(), &prop))
+                            return false;
+                        if (obj2.object()) {
+                            uintN attrs;
+                            JSBool ok = obj2.object()->getAttributes(cx, id, prop, &attrs);
+                            obj2.object()->dropProperty(cx, prop);
+                            if (!ok)
+                                return false;
+                            if (attrs & JSPROP_ENUMERATE)
+                                continue;
+                        }
+                    }
+
+                    
+
+
+
+
+                    if (idp == ni->props_cursor) {
+                        ni->props_cursor++;
+                    } else {
+                        memmove(idp, idp + 1, (ni->props_end - (idp + 1)) * sizeof(jsid));
+                        ni->props_end--;
+                    }
+                    break;
+                }
+            }
+        }
+        iterobj = ni->next;
+    }
+    return true;
 }
 
 JSBool
@@ -848,6 +933,7 @@ js_NewGenerator(JSContext *cx)
     JS_ASSERT(cx->regs->sp == fp->slots() + fp->script->nfixed);
     gen->savedRegs.sp = slots + fp->script->nfixed;
     gen->vplen = vplen;
+    gen->enumerators = NULL;
     gen->liveFrame = newfp;
 
     
@@ -995,7 +1081,15 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
         
         cx->stack().pushExecuteFrame(cx, frame, gen->savedRegs, NULL);
 
+        
+        JSObject *enumerators = cx->enumerators;
+        cx->enumerators = gen->enumerators;
+
         ok = js_Interpret(cx);
+
+        
+        gen->enumerators = cx->enumerators;
+        cx->enumerators = enumerators;
 
         
         cx->leaveGenerator(gen);
