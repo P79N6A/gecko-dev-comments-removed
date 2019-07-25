@@ -2540,13 +2540,14 @@ namespace nanojit
             }
 
         } else {
-            const int disp = -8;
-            const Register base = SP;
+            
+            
             Register ra = findRegFor(lhs, GpRegs);
             NanoAssert(rr == FST0);
-            FILDQ(disp, base);
-            STi(base, disp+4, 0);   
-            ST(base, disp, ra);     
+            ADDi(SP, 8);       
+            FILDQ(0, SP);      
+            PUSHr(ra);         
+            PUSHi(0);          
         }
 
         freeResourcesOf(ins);
