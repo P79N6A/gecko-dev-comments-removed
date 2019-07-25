@@ -262,7 +262,7 @@ PlacesTreeView.prototype = {
   {
     
     if (!aContainer.containerOpen)
-      return;
+      return 0;
 
     
     
