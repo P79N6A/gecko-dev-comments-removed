@@ -464,9 +464,13 @@ class XPCShellTests(object):
         failure.setAttribute("message", result["failure"]["message"])
 
         
+        
+        
         cdata = result["failure"]["text"]
-        if cdata is not None:
-            cdata = cdata.replace("]]>", "]] >")
+        if not isinstance(cdata, str):
+            cdata = ""
+
+        cdata = cdata.replace("]]>", "]] >")
         text = doc.createCDATASection(cdata)
         failure.appendChild(text)
         testcase.appendChild(failure)
