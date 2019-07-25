@@ -38,7 +38,6 @@
 
 
 #include "xptcprivate.h"
-#include "xptc_platforms_unixish_x86.h"
 #include "xptc_gcc_x86_unix.h"
 
 extern "C" {
@@ -87,11 +86,6 @@ invoke_copy_to_stack(PRUint32 paramCount, nsXPTCVariant* s, PRUint32* d)
 
 
 
-
-
-
-
-
 #if defined(XP_WIN32) || defined(XP_OS2)
 extern "C" {
     nsresult _NS_InvokeByIndex_P(nsISupports* that, PRUint32 methodIndex,
@@ -119,16 +113,6 @@ __asm__ (
 #endif
 	"pushl %ebp\n\t"
 	"movl  %esp, %ebp\n\t"
-#ifdef MOZ_PRESERVE_PIC 
-	"pushl %ebx\n\t"
-	"call  0f\n\t"
-	".subsection 1\n"
-	"0:\n\t"
-	"movl (%esp), %ebx\n\t"
-	"ret\n\t"
-	".previous\n\t"
-	"addl  $_GLOBAL_OFFSET_TABLE_, %ebx\n\t"
-#endif
 	"movl  0x10(%ebp), %eax\n\t"
 	"leal  0(,%eax,8),%edx\n\t"
 	"movl  %esp, %ecx\n\t"
@@ -150,26 +134,11 @@ __asm__ (
 	"movl  0x14(%ebp), %edx\n\t"
 	"call  " SYMBOL_UNDERSCORE "invoke_copy_to_stack\n\t"
 	"movl  0x08(%ebp), %ecx\n\t"	
-#ifdef CFRONT_STYLE_THIS_ADJUST
-	"movl  (%ecx), %edx\n\t"
-	"movl  0x0c(%ebp), %eax\n\t"    
-	"shll  $3, %eax\n\t"	        
-	"addl  $8, %eax\n\t"	        
-	"addl  %eax, %edx\n\t"
-	"movswl (%edx), %eax\n\t"       
-	"addl  %eax, %ecx\n\t"
-	"pushl %ecx\n\t"
-	"addl  $4, %edx\n\t"	        
-#else 
 	"pushl %ecx\n\t"
 	"movl  (%ecx), %edx\n\t"
 	"movl  0x0c(%ebp), %eax\n\t"    
 	"leal  (%edx,%eax,4), %edx\n\t"
-#endif
 	"call  *(%edx)\n\t"
-#ifdef MOZ_PRESERVE_PIC
-	"movl  -4(%ebp), %ebx\n\t"
-#endif
 	"movl  %ebp, %esp\n\t"
 	"popl  %ebp\n\t"
 	"ret\n"

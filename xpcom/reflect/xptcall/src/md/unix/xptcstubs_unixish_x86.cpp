@@ -38,7 +38,6 @@
 
 
 #include "xptcprivate.h"
-#include "xptc_platforms_unixish_x86.h"
 #include "xptiprivate.h"
 
 static nsresult
