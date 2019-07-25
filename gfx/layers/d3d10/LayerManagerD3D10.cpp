@@ -116,12 +116,6 @@ LayerManagerD3D10::~LayerManagerD3D10()
   Destroy();
 }
 
-static bool
-IsOptimus()
-{
-  return GetModuleHandleA("nvumdshim.dll");
-}
-
 bool
 LayerManagerD3D10::Initialize()
 {
@@ -254,7 +248,7 @@ LayerManagerD3D10::Initialize()
   
   
   
-  if (IsOptimus()) {
+  if (gfxWindowsPlatform::IsOptimus()) {
     swapDesc.Flags = 0;
   } else {
     swapDesc.Flags = DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE;
@@ -536,7 +530,7 @@ LayerManagerD3D10::VerifyBufferSize()
   }
 
   mRTView = nsnull;
-  if (IsOptimus()) {
+  if (gfxWindowsPlatform::IsOptimus()) {
     mSwapChain->ResizeBuffers(1, rect.width, rect.height,
                               DXGI_FORMAT_B8G8R8A8_UNORM,
                               0);
