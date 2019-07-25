@@ -65,6 +65,9 @@ const STATE_QUITTING = -1;
 const STATE_STOPPED_STR = "stopped";
 const STATE_RUNNING_STR = "running";
 
+const TAB_STATE_NEEDS_RESTORE = 1;
+const TAB_STATE_RESTORING = 2;
+
 const PRIVACY_NONE = 0;
 const PRIVACY_ENCRYPTED = 1;
 const PRIVACY_FULL = 2;
@@ -468,9 +471,10 @@ SessionStoreService.prototype = {
     case "browser:purge-session-history": 
       let openWindows = {};
       this._forEachBrowserWindow(function(aWindow) {
-        Array.forEach(aWindow.gBrowser.browsers, function(aBrowser) {
-          delete aBrowser.__SS_data;
-          delete aBrowser.__SS_needsRestore;
+        Array.forEach(aWindow.gBrowser.tabs, function(aTab) {
+          delete aTab.linkedBrowser.__SS_data;
+          if (aTab.linkedBrowser.__SS_restoreState)
+            this._resetTabRestoringState(aTab);
         });
         openWindows[aWindow.__SSi] = true;
       });
@@ -901,7 +905,13 @@ SessionStoreService.prototype = {
 
     
     
-    this._resetTabRestoringState(aTab, true, false);
+    
+    let previousState;
+    if (previousState = browser.__SS_restoreState) {
+      this._resetTabRestoringState(aTab);
+      if (previousState == TAB_STATE_RESTORING)
+        this.restoreNextTab();
+    }
 
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
@@ -999,10 +1009,10 @@ SessionStoreService.prototype = {
       let tab = aWindow.gBrowser.selectedTab;
       
       
-      if (tab.linkedBrowser.__SS_needsRestore) {
-        this._tabsToRestore.visible.splice(this._tabsToRestore.visible.indexOf(tab));
+      
+      if (tab.linkedBrowser.__SS_restoreState &&
+          tab.linkedBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE)
         this.restoreTab(tab);
-      }
 
       
       this._updateCrashReportURL(aWindow);
@@ -1011,7 +1021,8 @@ SessionStoreService.prototype = {
 
   onTabShow: function sss_onTabShow(aTab) {
     
-    if (aTab.linkedBrowser.__SS_needsRestore) {
+    if (aTab.linkedBrowser.__SS_restoreState &&
+        aTab.linkedBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
       this._tabsToRestore.hidden.splice(this._tabsToRestore.hidden.indexOf(aTab));
       
       this._tabsToRestore.visible.push(aTab);
@@ -1020,7 +1031,8 @@ SessionStoreService.prototype = {
 
   onTabHide: function sss_onTabHide(aTab) {
     
-    if (aTab.linkedBrowser.__SS_needsRestore) {
+    if (aTab.linkedBrowser.__SS_restoreState &&
+        aTab.linkedBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
       this._tabsToRestore.visible.splice(this._tabsToRestore.visible.indexOf(aTab));
       
       this._tabsToRestore.hidden.push(aTab);
@@ -2250,9 +2262,14 @@ SessionStoreService.prototype = {
     }
 
     
+    
+    
+    
     if (aOverwriteTabs) {
-      for (let i = 0; i < tabbrowser.tabs.length; i++)
-        this._resetTabRestoringState(tabbrowser.tabs[i], false, false);
+      for (let i = 0; i < tabbrowser.tabs.length; i++) {
+        if (tabbrowser.browsers[i].__SS_restoreState)
+          this._resetTabRestoringState(tabbrowser.tabs[i]);
+      }
     }
 
     
@@ -2326,13 +2343,6 @@ SessionStoreService.prototype = {
   restoreHistoryPrecursor:
     function sss_restoreHistoryPrecursor(aWindow, aTabs, aTabData, aSelectTab, aIx, aCount) {
     var tabbrowser = aWindow.gBrowser;
-
-    
-    
-    
-    if (aCount == 0 &&
-        tabbrowser.mTabsProgressListeners.indexOf(gRestoreTabsProgressListener) == -1)
-      tabbrowser.addTabsProgressListener(gRestoreTabsProgressListener);
 
     
     
@@ -2419,7 +2429,7 @@ SessionStoreService.prototype = {
       
       
       browser.__SS_data = tabData;
-      browser.__SS_needsRestore = true;
+      browser.__SS_restoreState = TAB_STATE_NEEDS_RESTORE;
 
       if (!tabData.entries || tabData.entries.length == 0) {
         
@@ -2556,7 +2566,24 @@ SessionStoreService.prototype = {
     }
   },
 
-  restoreTab: function(aTab) {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  restoreTab: function sss_restoreTab(aTab) {
     let window = aTab.ownerDocument.defaultView;
     let browser = aTab.linkedBrowser;
     let tabData = browser.__SS_data;
@@ -2564,15 +2591,22 @@ SessionStoreService.prototype = {
     
     
     
-    let shouldRestoreNextTab = false;
+    let didStartLoad = false;
+
+    
+    this._ensureTabsProgressListener(window);
+
+    
+    this._removeTabFromTabsToRestore(aTab);
 
     
     this._tabsRestoringCount++;
 
     
-    window.__SS_tabsToRestore--;
+    browser.__SS_restoreState = TAB_STATE_RESTORING;
 
-    delete browser.__SS_needsRestore;
+    
+    this._removeSHistoryListener(aTab);
 
     let activeIndex = (tabData.index || tabData.entries.length) - 1;
     if (activeIndex >= tabData.entries.length)
@@ -2587,9 +2621,9 @@ SessionStoreService.prototype = {
       browser.__SS_restore_tab = aTab;
 
       try {
+        didStartLoad = true;
         
         let label = aTab.label;
-        browser.__SS_restoring = true;
         browser.webNavigation.gotoIndex(activeIndex);
         
         aTab.label = label;
@@ -2597,14 +2631,7 @@ SessionStoreService.prototype = {
       catch (ex) {
         
         aTab.removeAttribute("busy");
-        shouldRestoreNextTab = true;
       }
-    }
-    else {
-      
-      
-      
-      shouldRestoreNextTab = true;
     }
 
     
@@ -2612,24 +2639,31 @@ SessionStoreService.prototype = {
     if (tabData.userTypedValue) {
       browser.userTypedValue = tabData.userTypedValue;
       if (tabData.userTypedClear) {
-        browser.__SS_restoring = true;
+        didStartLoad = true;
         browser.loadURI(tabData.userTypedValue, null, null, true);
-      }
-      else {
-        shouldRestoreNextTab = true;
       }
     }
 
-    if (shouldRestoreNextTab)
-      this.restoreNextTab(true);
+    
+    
+    if (!didStartLoad)
+      this._resetTabRestoringState(aTab);
+
+    return didStartLoad;
   },
 
-  restoreNextTab: function sss_restoreNextTab(aFromTabFinished) {
+  
+
+
+
+
+
+
+
+  restoreNextTab: function sss_restoreNextTab() {
     
     if (this._loadState == STATE_QUITTING)
       return;
-    if (aFromTabFinished)
-      this._tabsRestoringCount--;
 
     
     if (this._maxConcurrentTabRestores >= 0 &&
@@ -2647,17 +2681,11 @@ SessionStoreService.prototype = {
 
     if (nextTabArray) {
       let tab = nextTabArray.shift();
-      this.restoreTab(tab);
-    }
-    else {
+      let didStartLoad = this.restoreTab(tab);
       
-      this._forEachBrowserWindow(function(aWindow) {
-        if (!aWindow.__SS_tabsToRestore) {
-          
-          
-          aWindow.gBrowser.removeTabsProgressListener(gRestoreTabsProgressListener);
-        }
-      });
+      
+      if (!didStartLoad)
+        this.restoreNextTab();
     }
   },
 
@@ -3206,6 +3234,24 @@ SessionStoreService.prototype = {
 
 
 
+
+
+
+
+  _getTabForBrowser: function sss_getTabForBrowser(aBrowser) {
+    let window = aBrowser.ownerDocument.defaultView;
+    for (let i = 0; i < window.gBrowser.tabs.length; i++) {
+      let tab = window.gBrowser.tabs[i];
+      if (tab.linkedBrowser == aBrowser)
+        return tab;
+    }
+  },
+
+
+  
+
+
+
   _doResumeSession: function sss_doResumeSession() {
     if (this._clearingOnShutdown)
       return false;
@@ -3592,64 +3638,87 @@ SessionStoreService.prototype = {
 
 
 
-
-
-
-
-
-
-
-  _resetTabRestoringState:
-    function sss__resetTabRestoringState(aTab, aRestoreNextTab, aRestoreThisTab) {
+  _resetTabRestoringState: function sss__resetTabRestoringState(aTab) {
+    let window = aTab.ownerDocument.defaultView;
     let browser = aTab.linkedBrowser;
 
-    if (browser.__SS_restoring) {
-      
-      
-      if (browser.__SS_shistoryListener) {
-        browser.webNavigation.sessionHistory.
-                              removeSHistoryListener(browser.__SS_shistoryListener);
-        delete browser.__SS_shistoryListener;
-      }
+    
+    let previousState = browser.__SS_restoreState;
 
-      delete browser.__SS_restoring;
-      if (aRestoreNextTab) {
-        
-        this.restoreNextTab(true);
-      }
-      else {
-        
-        
-        this._tabsRestoringCount--;
-      }
+    
+    delete browser.__SS_restoreState;
+
+    
+    
+    window.__SS_tabsToRestore--;
+
+    
+    this._removeTabsProgressListener(window);
+
+    if (previousState == TAB_STATE_RESTORING) {
+      this._tabsRestoringCount--;
     }
-    else if (browser.__SS_needsRestore) {
+    else if (previousState == TAB_STATE_NEEDS_RESTORE) {
       
       
-      let splicedTabs;
-      if (aTab.hidden) {
-        splicedTabs =
-          this._tabsToRestore.hidden.splice(this._tabsToRestore.hidden.indexOf(aTab), 1);
-      }
-      else {
-        splicedTabs =
-          this._tabsToRestore.visible.splice(this._tabsToRestore.visible.indexOf(aTab), 1);
-      }
-      if (aRestoreThisTab && splicedTabs.length) {
-        
-        
-        
-        this.restoreTab(aTab);
-      }
-      else {
-        
-        
-        
-        let window = aTab.ownerDocument.defaultView;
-        window.__SS_tabsToRestore--;
-        delete browser.__SS_needsRestore;
-      }
+      this._removeSHistoryListener(aTab);
 
+      
+      
+      
+      this._removeTabFromTabsToRestore(aTab);
+    }
+  },
+
+  
+
+
+
+
+  _removeTabFromTabsToRestore: function sss__removeTabFromTabsToRestore(aTab) {
+    let arr = this._tabsToRestore[aTab.hidden ? "hidden" : "visible"];
+    let index = arr.indexOf(aTab);
+    if (index > -1)
+      arr.splice(index, 1);
+  },
+
+  
+
+
+
+
+
+  _ensureTabsProgressListener: function sss__ensureTabsProgressListener(aWindow) {
+    let tabbrowser = aWindow.gBrowser;
+    if (tabbrowser.mTabsProgressListeners.indexOf(gRestoreTabsProgressListener) == -1)
+      tabbrowser.addTabsProgressListener(gRestoreTabsProgressListener);
+  },
+
+  
+
+
+
+
+
+  _removeTabsProgressListener: function sss__removeTabsProgressListener(aWindow) {
+    
+    
+    if (!aWindow.__SS_tabsToRestore)
+      aWindow.gBrowser.removeTabsProgressListener(gRestoreTabsProgressListener);
+  },
+
+  
+
+
+
+
+
+  _removeSHistoryListener: function sss__removeSHistoryListener(aTab) {
+    let browser = aTab.linkedBrowser;
+    if (browser.__SS_shistoryListener) {
+      browser.webNavigation.sessionHistory.
+                            removeSHistoryListener(browser.__SS_shistoryListener);
+      delete browser.__SS_shistoryListener;
     }
   },
 
@@ -3786,16 +3855,14 @@ let gRestoreTabsProgressListener = {
   onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
     
     
-    if (aBrowser.__SS_restoring &&
+    if (aBrowser.__SS_restoreState == TAB_STATE_RESTORING &&
         aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
         aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
         aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
       
-      
-      
-      let window = aBrowser.ownerDocument.defaultView;
-      let tab = window.gBrowser._getTabForContentWindow(aBrowser.contentWindow);
-      this.ss._resetTabRestoringState(tab, true, false);
+      let tab = this.ss._getTabForBrowser(aBrowser);
+      this.ss._resetTabRestoringState(tab);
+      this.ss.restoreNextTab();
     }
   }
 }
@@ -3821,8 +3888,7 @@ SessionStoreSHistoryListener.prototype = {
     
     
     
-    
-    this.ss._resetTabRestoringState(this.tab, false, true);
+    this.ss.restoreTab(this.tab);
     
     return false;
   }
