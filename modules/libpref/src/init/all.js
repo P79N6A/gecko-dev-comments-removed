@@ -921,10 +921,6 @@ pref("network.websocket.allowInsecureFromHTTPS", false);
 
 
 
-pref("network.websocket.delay-failed-reconnects", true);
-
-
-
 
 
 pref("dom.server-events.enabled", true);
