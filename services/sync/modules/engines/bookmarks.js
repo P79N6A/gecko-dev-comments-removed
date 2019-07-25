@@ -917,6 +917,11 @@ BookmarksStore.prototype = {
   },
 
   wipe: function BStore_wipe() {
+    
+    try {
+      PlacesUtils.archiveBookmarksFile(null, true);
+    } catch(e) {}
+
     for (let [guid, id] in Iterator(kSpecialIds))
       if (guid != "places")
         this._bms.removeFolderChildren(id);
