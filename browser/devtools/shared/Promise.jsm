@@ -11,31 +11,59 @@ var EXPORTED_SYMBOLS = [ "Promise" ];
 
 
 
-function Promise() {
+
+
+
+function Promise(aTrace) {
   this._status = Promise.PENDING;
   this._value = undefined;
   this._onSuccessHandlers = [];
   this._onErrorHandlers = [];
+  this._trace = aTrace;
 
   
-  this._id = Promise._nextId++;
-  Promise._outstanding[this._id] = this;
+  if (Promise.Debug._debug) {
+    this._id = Promise.Debug._nextId++;
+    Promise.Debug._outstanding[this._id] = this;
+  }
 }
 
 
 
 
-Promise._nextId = 0;
+Promise.Debug = {
+  
 
 
 
 
-Promise._outstanding = [];
+
+  setDebug: function(value) {
+    Promise.Debug._debug = value;
+    if (!value) {
+      Promise.Debug._outstanding = [];
+      Promise.Debug._recent = [];
+    }
+  },
+
+  _debug: false,
+
+  
 
 
+  _nextId: 0,
+
+  
 
 
-Promise._recent = [];
+  _outstanding: [],
+
+  
+
+
+  _recent: []
+};
+
 
 
 
@@ -145,6 +173,45 @@ Promise.prototype._complete = function(list, status, data, name) {
     throw new Error('Promise already complete');
   }
 
+  if (list.length == 0 && status == Promise.ERROR) {
+    var frame;
+    var text;
+
+    
+    
+    Promise._error("Promise rejection ignored and silently dropped", data);
+    if (data.stack) {
+      if (data.fileName && data.lineNumber) {
+        Promise._error("Error originating at", data.fileName,
+                       ", line", data.lineNumber );
+      }
+      try {
+        for (frame = data.stack; frame; frame = frame.caller) {
+          text += frame + "\n";
+        }
+        Promise._error("Attempting to extract exception stack", text);
+      } catch (x) {
+        Promise._error("Could not extract exception stack.");
+      }
+    } else {
+      Promise._error("Exception stack not available.");
+    }
+    if (Components && Components.stack) {
+      try {
+        text = "";
+        for (frame = Components.stack; frame; frame = frame.caller) {
+          text += frame + "\n";
+        }
+        Promise._error("Attempting to extract current stack", text);
+      } catch (x) {
+        Promise._error("Could not extract current stack.");
+      }
+    } else {
+      Promise._error("Current stack not available.");
+    }
+  }
+
+
   this._status = status;
   this._value = data;
 
@@ -157,7 +224,7 @@ Promise.prototype._complete = function(list, status, data, name) {
 
   
   
-  delete Promise._outstanding[this._id];
+  delete Promise.Debug._outstanding[this._id];
   
   
   
@@ -320,4 +387,23 @@ Promise.prototype.always = function(aTrap) {
   };
   this.then(resolve, reject);
   return promise;
+};
+
+
+Promise.prototype.toString = function() {
+  var status;
+  switch (this._status) {
+  case Promise.PENDING:
+    status = "pending";
+    break;
+  case Promise.SUCCESS:
+    status = "resolved";
+    break;
+  case Promise.ERROR:
+    status = "rejected";
+    break;
+  default:
+    status = "invalid status: "+this._status;
+  }
+  return "[Promise " + this._id + " (" + status + ")]";
 };
