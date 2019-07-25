@@ -518,7 +518,7 @@ nsIFrame::GetOrdinal(nsBoxLayoutState& aState)
 
   
   nsIContent* content = GetContent();
-  if (content) {
+  if (content && content->IsXUL()) {
     PRInt32 error;
     nsAutoString value;
 
@@ -812,7 +812,7 @@ nsIBox::AddCSSMinSize(nsBoxLayoutState& aState, nsIBox* aBox, nsSize& aSize,
     
 
     nsIContent* content = aBox->GetContent();
-    if (content) {
+    if (content && content->IsXUL()) {
         nsAutoString value;
         PRInt32 error;
 
@@ -875,7 +875,7 @@ nsIBox::AddCSSMaxSize(nsIBox* aBox, nsSize& aSize, PRBool &aWidthSet, PRBool &aH
     
 
     nsIContent* content = aBox->GetContent();
-    if (content) {
+    if (content && content->IsXUL()) {
         nsAutoString value;
         PRInt32 error;
 
@@ -910,8 +910,11 @@ nsIBox::AddCSSFlex(nsBoxLayoutState& aState, nsIBox* aBox, nscoord& aFlex)
     PRBool flexSet = PR_FALSE;
 
     
+    aFlex = aBox->GetStyleXUL()->mBoxFlex;
+
+    
     nsIContent* content = aBox->GetContent();
-    if (content) {
+    if (content && content->IsXUL()) {
         PRInt32 error;
         nsAutoString value;
 
@@ -921,15 +924,6 @@ nsIBox::AddCSSFlex(nsBoxLayoutState& aState, nsIBox* aBox, nscoord& aFlex)
             aFlex = value.ToInteger(&error);
             flexSet = PR_TRUE;
         }
-        else {
-          
-          const nsStyleXUL* boxInfo = aBox->GetStyleXUL();
-          if (boxInfo->mBoxFlex > 0.0f) {
-            
-            aFlex = (nscoord)boxInfo->mBoxFlex;
-            flexSet = PR_TRUE;
-          }
-        }
     }
 
     if (aFlex < 0)
@@ -937,7 +931,7 @@ nsIBox::AddCSSFlex(nsBoxLayoutState& aState, nsIBox* aBox, nscoord& aFlex)
     if (aFlex >= nscoord_MAX)
       aFlex = nscoord_MAX - 1;
 
-    return flexSet;
+    return flexSet || aFlex > 0;
 }
 
 void
