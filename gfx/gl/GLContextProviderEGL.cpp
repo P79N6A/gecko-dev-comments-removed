@@ -683,6 +683,7 @@ public:
         : mContext(aContext)
         , mTexture(aTexture)
         , mEGLImage(nsnull)
+        , mSyncObject(nsnull)
     {
     }
 
@@ -722,10 +723,46 @@ public:
         return mEGLImage;
     }
 
+    bool MakeSync() {
+        MOZ_ASSERT(mSyncObject == nsnull);
+
+        if (sEGLLibrary.IsExtensionSupported(GLLibraryEGL::KHR_fence_sync)) {
+            mSyncObject = sEGLLibrary.fCreateSync(EGL_DISPLAY(), LOCAL_EGL_SYNC_FENCE, nsnull);
+            
+            
+            
+            mContext->fFlush();
+        }
+
+        if (mSyncObject == EGL_NO_SYNC) {
+            
+            mContext->fFinish();
+        }
+
+        return true;
+    }
+
+    bool WaitSync() {
+        if (!mSyncObject) {
+            
+            return true;
+        }
+
+        EGLint result = sEGLLibrary.fClientWaitSync(EGL_DISPLAY(), mSyncObject, 0, LOCAL_EGL_FOREVER);
+        sEGLLibrary.fDestroySync(EGL_DISPLAY(), mSyncObject);
+        mSyncObject = nsnull;
+
+        
+        MOZ_ASSERT(result != LOCAL_EGL_TIMEOUT_EXPIRED);
+
+        return result == LOCAL_EGL_CONDITION_SATISFIED;
+    }
+
 private:
     nsRefPtr<GLContext> mContext;
     GLuint mTexture;
     EGLImage mEGLImage;
+    EGLSync mSyncObject;
 };
 
 void
@@ -827,6 +864,7 @@ bool GLContextEGL::AttachSharedHandle(TextureImage::TextureShareType aType,
     NS_ASSERTION(mShareWithEGLImage, "EGLImage not supported or disabled in runtime");
 
     EGLTextureWrapper* wrap = (EGLTextureWrapper*)aSharedHandle;
+    wrap->WaitSync();
     sEGLLibrary.fImageTargetTexture2DOES(LOCAL_GL_TEXTURE_2D, wrap->GetEGLImage());
     return true;
 }
