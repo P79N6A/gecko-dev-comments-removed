@@ -1540,8 +1540,17 @@ PRUint32 nsWindowWatcher::CalculateChromeFlags(const char *aFeatures,
     nsIWebBrowserChrome::CHROME_DEPENDENT : 0;
   chromeFlags |= WinHasOption(aFeatures, "modal", 0, nsnull) ?
     (nsIWebBrowserChrome::CHROME_MODAL | nsIWebBrowserChrome::CHROME_DEPENDENT) : 0;
-  chromeFlags |= WinHasOption(aFeatures, "dialog", 0, nsnull) ?
-    nsIWebBrowserChrome::CHROME_OPENAS_DIALOG : 0;
+
+  
+
+
+  bool disableDialogFeature = false;
+  nsCOMPtr<nsIPrefBranch> branch = do_QueryInterface(prefs);
+  branch->GetBoolPref("dom.disable_window_open_dialog_feature", &disableDialogFeature);
+  if (!disableDialogFeature) {
+    chromeFlags |= WinHasOption(aFeatures, "dialog", 0, nsnull) ?
+      nsIWebBrowserChrome::CHROME_OPENAS_DIALOG : 0;
+  }
 
   
 
