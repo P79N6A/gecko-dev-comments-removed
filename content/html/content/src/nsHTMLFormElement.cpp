@@ -769,6 +769,8 @@ nsresult
 nsHTMLFormElement::SubmitSubmission(nsFormSubmission* aFormSubmission)
 {
   nsresult rv;
+  nsIContent* originatingElement = aFormSubmission->GetOriginatingElement();
+
   
   
   
@@ -807,8 +809,18 @@ nsHTMLFormElement::SubmitSubmission(nsFormSubmission* aFormSubmission)
     mIsSubmitting = PR_FALSE;
   }
 
+  
+  
+  
+  
+  
+  
+  
   nsAutoString target;
-  if (!GetAttr(kNameSpaceID_None, nsGkAtoms::target, target)) {
+  if (!(originatingElement && originatingElement->GetAttr(kNameSpaceID_None,
+                                                          nsGkAtoms::formtarget,
+                                                          target)) &&
+      !GetAttr(kNameSpaceID_None, nsGkAtoms::target, target)) {
     GetBaseTarget(target);
   }
 
