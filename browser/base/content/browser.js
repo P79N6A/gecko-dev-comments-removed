@@ -705,6 +705,23 @@ const gXPInstallObserver = {
       PopupNotifications.show(browser, notificationID, messageString, anchorID,
                               action, null, options);
       break;
+    case "addon-install-started":
+      function needsDownload(aInstall) {
+        return aInstall.state != AddonManager.STATE_DOWNLOADED;
+      }
+      
+      
+      if (!installInfo.installs.some(needsDownload))
+        return;
+      notificationID = "addon-progress";
+      messageString = gNavigatorBundle.getString("addonDownloading");
+      messageString = PluralForm.get(installInfo.installs.length, messageString);
+      options.installs = installInfo.installs;
+      options.contentWindow = browser.contentWindow;
+      options.sourceURI = browser.currentURI;
+      PopupNotifications.show(browser, notificationID, messageString, anchorID,
+                              null, null, options);
+      break;
     case "addon-install-failed":
       
       installInfo.installs.forEach(function(aInstall) {
@@ -1384,6 +1401,7 @@ function prepareForStartup() {
 function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   Services.obs.addObserver(gSessionHistoryObserver, "browser:purge-session-history", false);
   Services.obs.addObserver(gXPInstallObserver, "addon-install-disabled", false);
+  Services.obs.addObserver(gXPInstallObserver, "addon-install-started", false);
   Services.obs.addObserver(gXPInstallObserver, "addon-install-blocked", false);
   Services.obs.addObserver(gXPInstallObserver, "addon-install-failed", false);
   Services.obs.addObserver(gXPInstallObserver, "addon-install-complete", false);
@@ -1488,7 +1506,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   }
 
   let NP = {};
-  Cu.import("resource:
+  Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
   NP.trackBrowserWindow(window);
 
   
@@ -1538,7 +1556,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
 
     if (Win7Features) {
       let tempScope = {};
-      Cu.import("resource:
+      Cu.import("resource://gre/modules/DownloadTaskbarProgress.jsm",
                 tempScope);
       tempScope.DownloadTaskbarProgress.onBrowserWindowLoad(window);
     }
@@ -1626,6 +1644,7 @@ function BrowserShutdown()
 
   Services.obs.removeObserver(gSessionHistoryObserver, "browser:purge-session-history");
   Services.obs.removeObserver(gXPInstallObserver, "addon-install-disabled");
+  Services.obs.removeObserver(gXPInstallObserver, "addon-install-started");
   Services.obs.removeObserver(gXPInstallObserver, "addon-install-blocked");
   Services.obs.removeObserver(gXPInstallObserver, "addon-install-failed");
   Services.obs.removeObserver(gXPInstallObserver, "addon-install-complete");
@@ -2800,11 +2819,11 @@ function FillInHTMLTooltip(tipElement)
 {
   var retVal = false;
   
-  if (tipElement.namespaceURI == "http:
+  if (tipElement.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" ||
       !tipElement.ownerDocument)
     return retVal;
 
-  const XLinkNS = "http:
+  const XLinkNS = "http://www.w3.org/1999/xlink";
 
 
   var titleText = null;

@@ -474,6 +474,10 @@ window[chromehidden~="toolbar"] toolbar:not(.toolbar-primary):not(.chromeclass-m
   -moz-binding: url("chrome://browser/content/urlbarBindings.xml#geolocation-notification");
 }
 
+#addon-progress-notification {
+  -moz-binding: url("chrome://browser/content/urlbarBindings.xml#addon-progress-notification");
+}
+
 
 
 #status-bar {
