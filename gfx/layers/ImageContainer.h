@@ -604,11 +604,6 @@ private:
 
 
 
-
-
-
-
-
 class THEBES_API PlanarYCbCrImage : public Image {
 public:
   struct Data {
@@ -616,17 +611,11 @@ public:
     PRUint8* mYChannel;
     PRInt32 mYStride;
     gfxIntSize mYSize;
-    PRInt32 mYOffset;
-    PRInt32 mYSkip;
     
     PRUint8* mCbChannel;
     PRUint8* mCrChannel;
     PRInt32 mCbCrStride;
     gfxIntSize mCbCrSize;
-    PRInt32 mCbOffset;
-    PRInt32 mCbSkip;
-    PRInt32 mCrOffset;
-    PRInt32 mCrSkip;
     
     PRUint32 mPicX;
     PRUint32 mPicY;
@@ -644,7 +633,7 @@ public:
     MAX_DIMENSION = 16384
   };
 
-  virtual ~PlanarYCbCrImage();
+  ~PlanarYCbCrImage();
 
   
 
@@ -667,21 +656,18 @@ public:
   
 
 
-  virtual PRUint32 GetDataSize() { return mBufferSize; }
-
-  virtual bool IsValid() { return !!mBufferSize; }
-
-  virtual gfxIntSize GetSize() { return mSize; }
-
-  PlanarYCbCrImage(BufferRecycleBin *aRecycleBin);
-
-protected:
-  
 
 
 
 
-  void CopyData(const Data& aData);
+
+
+
+
+  void CopyData(const Data& aData,
+                PRInt32 aYOffset = 0, PRInt32 aYSkip = 0,
+                PRInt32 aCbOffset = 0, PRInt32 aCbSkip = 0,
+                PRInt32 aCrOffset = 0, PRInt32 aCrSkip = 0);
 
   
 
@@ -690,11 +676,19 @@ protected:
 
   virtual PRUint8* AllocateBuffer(PRUint32 aSize);
 
+  
+
+
+  virtual PRUint32 GetDataSize() { return mBufferSize; }
+
   already_AddRefed<gfxASurface> GetAsSurface();
+
+  virtual gfxIntSize GetSize() { return mSize; }
 
   void SetOffscreenFormat(gfxASurface::gfxImageFormat aFormat) { mOffscreenFormat = aFormat; }
   gfxASurface::gfxImageFormat GetOffscreenFormat() { return mOffscreenFormat; }
 
+  
   nsAutoArrayPtr<PRUint8> mBuffer;
   PRUint32 mBufferSize;
   Data mData;
@@ -702,6 +696,8 @@ protected:
   gfxASurface::gfxImageFormat mOffscreenFormat;
   nsCountedRef<nsMainThreadSurfaceRef> mSurface;
   nsRefPtr<BufferRecycleBin> mRecycleBin;
+
+  PlanarYCbCrImage(BufferRecycleBin *aRecycleBin);
 };
 
 
