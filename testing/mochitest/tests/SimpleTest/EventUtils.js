@@ -80,21 +80,10 @@ function sendMouseEvent(aEvent, aTarget, aWindow) {
 
 
 
-
-
-
-
-function sendChar(aChar, aTarget) {
+function sendChar(aChar, aWindow) {
   
   var hasShift = (aChar == aChar.toUpperCase());
-  var charCode = aChar.charCodeAt(0);
-  var keyCode = charCode;
-  if (!hasShift) {
-    
-    keyCode -= 0x20;
-  }
-
-  return __doEventDispatch(aTarget, charCode, keyCode, hasShift);
+  synthesizeKey(aChar, { shiftKey: hasShift }, aWindow);
 }
 
 
@@ -103,10 +92,9 @@ function sendChar(aChar, aTarget) {
 
 
 
-
-function sendString(aStr, aTarget) {
+function sendString(aStr, aWindow) {
   for (var i = 0; i < aStr.length; ++i) {
-    sendChar(aStr.charAt(i), aTarget);
+    sendChar(aStr.charAt(i), aWindow);
   }
 }
 
@@ -115,63 +103,9 @@ function sendString(aStr, aTarget) {
 
 
 
-
-
-
-
-function sendKey(aKey, aTarget) {
-  keyName = "DOM_VK_" + aKey.toUpperCase();
-
-  if (!KeyEvent[keyName]) {
-    throw "Unknown key: " + keyName;
-  }
-
-  return __doEventDispatch(aTarget, 0, KeyEvent[keyName], false);
-}
-
-
-
-
-
-
-
-
-
-function __doEventDispatch(aTarget, aCharCode, aKeyCode, aHasShift) {
-  if (aTarget === undefined) {
-    aTarget = "target";
-  }
-
-  var event = document.createEvent("KeyEvents");
-  event.initKeyEvent("keydown", true, true, document.defaultView,
-                     false, false, aHasShift, false,
-                     aKeyCode, 0);
-  var accepted = SpecialPowers.dispatchEvent(window, aTarget, event);
-
-  
-  
-  event = document.createEvent("KeyEvents");
-  if (aCharCode) {
-    event.initKeyEvent("keypress", true, true, document.defaultView,
-                       false, false, aHasShift, false,
-                       0, aCharCode);
-  } else {
-    event.initKeyEvent("keypress", true, true, document.defaultView,
-                       false, false, aHasShift, false,
-                       aKeyCode, 0);
-  }
-  if (!accepted) {
-    event.preventDefault();
-  }
-  accepted = SpecialPowers.dispatchEvent(window, aTarget, event);
-
-  
-  var event = document.createEvent("KeyEvents");
-  event.initKeyEvent("keyup", true, true, document.defaultView,
-                     false, false, aHasShift, false,
-                     aKeyCode, 0);
-  SpecialPowers.dispatchEvent(window, aTarget, event);
-  return accepted;
+function sendKey(aKey, aWindow) {
+  keyName = "VK_" + aKey.toUpperCase();
+  synthesizeKey(keyName, { shiftKey: false }, aWindow);
 }
 
 
@@ -393,9 +327,12 @@ function synthesizeKey(aKey, aEvent, aWindow)
   var utils = _getDOMWindowUtils(aWindow);
   if (utils) {
     var keyCode = 0, charCode = 0;
-    if (aKey.indexOf("VK_") == 0)
+    if (aKey.indexOf("VK_") == 0) {
       keyCode = KeyEvent["DOM_" + aKey];
-    else {
+      if (!keyCode) {
+        throw "Unknown key: " + aKey;
+      }
+    } else {
       charCode = aKey.charCodeAt(0);
       keyCode = _computeKeyCodeFromChar(aKey.charAt(0));
     }
@@ -410,6 +347,7 @@ function synthesizeKey(aKey, aEvent, aWindow)
     } else {
       var keyDownDefaultHappened =
           utils.sendKeyEvent("keydown", keyCode, 0, modifiers);
+      
       utils.sendKeyEvent("keypress", charCode ? 0 : keyCode, charCode,
                          modifiers, !keyDownDefaultHappened);
       utils.sendKeyEvent("keyup", keyCode, 0, modifiers);
