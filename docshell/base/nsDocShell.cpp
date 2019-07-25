@@ -9351,12 +9351,14 @@ nsDocShell::ScrollToAnchor(nsACString & aCurHash, nsACString & aNewHash,
         
         
         if (aLoadType == LOAD_HISTORY || aLoadType == LOAD_RELOAD_NORMAL)
-            return rv;
+            return NS_OK;
         
-        rv = SetCurScrollPosEx(0, 0);
+        
+        
+        SetCurScrollPosEx(0, 0);
     }
 
-    return rv;
+    return NS_OK;
 }
 
 void
