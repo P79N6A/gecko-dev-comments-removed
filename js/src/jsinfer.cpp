@@ -5217,6 +5217,13 @@ TypeScript::SetScope(JSContext *cx, JSScript *script, JSObject *scope)
     if (!cx->typeInferenceEnabled())
         return true;
 
+    
+
+
+
+    if (ion::IsEnabled())
+        return true;
+
     if (!script->isInnerFunction || nullClosure) {
         
 
