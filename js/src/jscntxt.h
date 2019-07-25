@@ -2913,7 +2913,10 @@ CanLeaveTrace(JSContext *cx)
 #endif
 }
 
-}       
+extern void
+SetPendingException(JSContext *cx, const Value &v);
+
+} 
 
 
 
