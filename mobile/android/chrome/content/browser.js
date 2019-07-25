@@ -1676,13 +1676,12 @@ Tab.prototype = {
       return this.browser.docShellIsActive;
   },
 
-  setDisplayPort: function(aViewportX, aViewportY, aDisplayPort) {
+  setDisplayPort: function(aDisplayPort) {
     let zoom = this._zoom;
     let resolution = aDisplayPort.resolution;
     if (zoom <= 0 || resolution <= 0)
       return;
 
-    
     
     
     
@@ -1713,12 +1712,137 @@ Tab.prototype = {
 
     
     
+    
+    
+    
+    let geckoScrollX = this.browser.contentWindow.scrollX;
+    let geckoScrollY = this.browser.contentWindow.scrollY;
+    aDisplayPort = this._dirtiestHackEverToWorkAroundGeckoRounding(aDisplayPort, geckoScrollX, geckoScrollY);
+
     cwu = this.browser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-    cwu.setDisplayPortForElement((aDisplayPort.left / resolution) - (aViewportX / zoom),
-                                 (aDisplayPort.top / resolution) - (aViewportY / zoom),
+    cwu.setDisplayPortForElement((aDisplayPort.left / resolution) - geckoScrollX,
+                                 (aDisplayPort.top / resolution) - geckoScrollY,
                                  (aDisplayPort.right - aDisplayPort.left) / resolution,
                                  (aDisplayPort.bottom - aDisplayPort.top) / resolution,
                                  element);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _dirtiestHackEverToWorkAroundGeckoRounding: function(aDisplayPort, aGeckoScrollX, aGeckoScrollY) {
+    const APP_UNITS_PER_CSS_PIXEL = 60.0;
+    const EXTRA_FUDGE = 0.04;
+
+    let resolution = aDisplayPort.resolution;
+
+    
+
+    function cssPixelsToAppUnits(aVal) {
+      return Math.floor((aVal * APP_UNITS_PER_CSS_PIXEL) + 0.5);
+    }
+
+    function appUnitsToDevicePixels(aVal) {
+      return aVal / APP_UNITS_PER_CSS_PIXEL * resolution;
+    }
+
+    function devicePixelsToAppUnits(aVal) {
+      return cssPixelsToAppUnits(aVal / resolution);
+    }
+
+    
+    
+    let originalWidth = aDisplayPort.right - aDisplayPort.left;
+    let originalHeight = aDisplayPort.bottom - aDisplayPort.top;
+
+    
+    
+    let appUnitDisplayPort = {
+      x: cssPixelsToAppUnits((aDisplayPort.left / resolution) - aGeckoScrollX),
+      y: cssPixelsToAppUnits((aDisplayPort.top / resolution) - aGeckoScrollY),
+      w: cssPixelsToAppUnits((aDisplayPort.right - aDisplayPort.left) / resolution),
+      h: cssPixelsToAppUnits((aDisplayPort.bottom - aDisplayPort.top) / resolution)
+    };
+
+    
+    
+    let geckoTransformX = -Math.floor((-aGeckoScrollX * resolution) + 0.5);
+    let geckoTransformY = -Math.floor((-aGeckoScrollY * resolution) + 0.5);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let errorLeft = (geckoTransformX + appUnitsToDevicePixels(appUnitDisplayPort.x)) - aDisplayPort.left;
+    let errorTop = (geckoTransformY + appUnitsToDevicePixels(appUnitDisplayPort.y)) - aDisplayPort.top;
+
+    
+    
+    
+    
+    if (errorLeft < 0) {
+      aDisplayPort.left += appUnitsToDevicePixels(devicePixelsToAppUnits(EXTRA_FUDGE - errorLeft));
+      
+      appUnitDisplayPort.x = cssPixelsToAppUnits((aDisplayPort.left / resolution) - aGeckoScrollX);
+      appUnitDisplayPort.w = cssPixelsToAppUnits((aDisplayPort.right - aDisplayPort.left) / resolution);
+    }
+    if (errorTop < 0) {
+      aDisplayPort.top += appUnitsToDevicePixels(devicePixelsToAppUnits(EXTRA_FUDGE - errorTop));
+      
+      appUnitDisplayPort.y = cssPixelsToAppUnits((aDisplayPort.top / resolution) - aGeckoScrollY);
+      appUnitDisplayPort.h = cssPixelsToAppUnits((aDisplayPort.bottom - aDisplayPort.top) / resolution);
+    }
+
+    
+    
+    
+
+    
+    
+    let scaledOutDevicePixels = {
+      x: Math.floor(appUnitsToDevicePixels(appUnitDisplayPort.x)),
+      y: Math.floor(appUnitsToDevicePixels(appUnitDisplayPort.y)),
+      w: Math.ceil(appUnitsToDevicePixels(appUnitDisplayPort.x + appUnitDisplayPort.w)) - Math.floor(appUnitsToDevicePixels(appUnitDisplayPort.x)),
+      h: Math.ceil(appUnitsToDevicePixels(appUnitDisplayPort.y + appUnitDisplayPort.h)) - Math.floor(appUnitsToDevicePixels(appUnitDisplayPort.y))
+    };
+
+    
+    
+    
+    
+    
+    let errorRight = (appUnitsToDevicePixels(appUnitDisplayPort.x + appUnitDisplayPort.w) - scaledOutDevicePixels.x) - originalWidth;
+    let errorBottom = (appUnitsToDevicePixels(appUnitDisplayPort.y + appUnitDisplayPort.h) - scaledOutDevicePixels.y) - originalHeight;
+
+    
+    
+    
+    if (errorRight > 0) aDisplayPort.right -= appUnitsToDevicePixels(devicePixelsToAppUnits(errorRight + EXTRA_FUDGE));
+    if (errorBottom > 0) aDisplayPort.bottom -= appUnitsToDevicePixels(devicePixelsToAppUnits(errorBottom + EXTRA_FUDGE));
+
+    
+    return aDisplayPort;
   },
 
   setViewport: function(aViewport) {
@@ -1732,7 +1856,7 @@ Tab.prototype = {
     this.userScrollPos.x = win.scrollX;
     this.userScrollPos.y = win.scrollY;
     this.setResolution(aViewport.zoom, false);
-    this.setDisplayPort(aViewport.x, aViewport.y, aViewport.displayPort);
+    this.setDisplayPort(aViewport.displayPort);
   },
 
   setResolution: function(aZoom, aForce) {
@@ -1831,7 +1955,7 @@ Tab.prototype = {
     }
     let displayPort = sendMessageToJava({ gecko: message });
     if (displayPort != null)
-      this.setDisplayPort(message.x, message.y, JSON.parse(displayPort));
+      this.setDisplayPort(JSON.parse(displayPort));
   },
 
   handleEvent: function(aEvent) {
