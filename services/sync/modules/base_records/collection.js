@@ -127,63 +127,15 @@ Collection.prototype = {
     
     let coll = this;
 
+    
+    coll.setHeader("Accept", "application/newlines");
+
     this._onProgress = function() {
-      
-      if (this._data == "[]")
-        return;
-
-      do {
+      let newline;
+      while ((newline = this._data.indexOf("\n")) > 0) {
         
-        
-        let start = this._data[0];
-        if (start == "[" || start == "," || start == "]")
-          this._data = this._data.slice(1);
-
-        
-        let json = "";
-        let braces = 1;
-        let ignore = false;
-        let escaped = false;
-        let length = this._data.length;
-
-        
-        for (let i = 1; i < length; i++) {
-          let char = this._data[i];
-
-          
-          if (char == '"') {
-            if (!ignore)
-              ignore = true;
-            
-            else if (!escaped)
-              ignore = false;
-          }
-
-          
-          if (ignore) {
-            escaped = char == "\\" ? !escaped : false;
-
-            
-            continue;
-          }
-
-          
-          if (char == "{")
-            braces++;
-          
-          else if (char == "}" && --braces == 0) {
-            
-            json = this._data.slice(0, i + 1);
-            this._data = this._data.slice(i + 1);
-
-            
-            break;
-          }
-        }
-
-        
-        if (json.length == 0)
-          break;
+        let json = this._data.slice(0, newline);
+        this._data = this._data.slice(newline + 1);
 
         
         let record = new coll._recordObj();
@@ -191,9 +143,7 @@ Collection.prototype = {
         record.baseURI = coll.uri;
         record.id = record.data.id;
         onRecord(record);
-
-      
-      } while (true);
+      }
 
       
       
