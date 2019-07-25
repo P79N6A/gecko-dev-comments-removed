@@ -80,6 +80,10 @@ void LaunchMacPostProcess(const char* aAppExe);
 #define USE_EXECV
 #endif
 
+#if defined(MOZ_WIDGET_GONK)
+# include "automounter_gonk.h"
+#endif
+
 #ifdef XP_WIN
 #include "updatehelper.h"
 
@@ -2620,6 +2624,20 @@ int NS_main(int argc, NS_tchar **argv)
   }
 #endif
 
+#if defined(MOZ_WIDGET_GONK)
+  
+  
+  
+  
+
+  {
+    GonkAutoMounter mounter;
+    if (mounter.GetAccess() != MountAccess::ReadWrite) {
+      WriteStatusFile(FILESYSTEM_MOUNT_READWRITE_ERROR);
+      return 1;
+    }
+#endif
+
   if (sBackgroundUpdate) {
     
     
@@ -2861,6 +2879,10 @@ int NS_main(int argc, NS_tchar **argv)
   }
 #endif 
 
+#if defined(MOZ_WIDGET_GONK)
+  } 
+#endif
+
   LogFinish();
 
   if (argc > callbackIndex) {
@@ -2891,6 +2913,7 @@ int NS_main(int argc, NS_tchar **argv)
       LaunchMacPostProcess(argv[callbackIndex]);
     }
 #endif 
+
     LaunchCallbackApp(argv[4], 
                       argc - callbackIndex, 
                       argv + callbackIndex, 
