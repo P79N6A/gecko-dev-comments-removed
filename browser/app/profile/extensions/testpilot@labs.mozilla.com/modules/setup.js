@@ -570,7 +570,7 @@ let TestPilotSetup = {
 	      task.defaultUrl, false, function() {
                 
 
-                task.changeStatus(TaskConstants.STATUS_IN_PROGRESS, true);
+                task.changeStatus(TaskConstants.STATUS_STARTING, true);
                 TestPilotSetup.reloadRemoteExperiments();
               });
             return;
