@@ -532,8 +532,7 @@ class FrameState
 
 
 
-    inline void freeReg(RegisterID reg);
-    inline void freeFPReg(FPRegisterID reg);
+    inline void freeReg(AnyRegisterID reg);
 
     
 
@@ -546,7 +545,7 @@ class FrameState
     
 
 
-    inline RegisterID allocReg(uint32 mask);
+    inline AnyRegisterID allocReg(uint32 mask);
 
     
 
@@ -599,10 +598,11 @@ class FrameState
 
     void syncAndKill(Registers kill, Uses uses, Uses ignored);
     void syncAndKill(Registers kill, Uses uses) { syncAndKill(kill, uses, Uses(0)); }
+    void syncAndKill(Uses uses) { syncAndKill(Registers(Registers::AvailAnyRegs), uses, Uses(0)); }
 
     
     void syncAndKillEverything() {
-        syncAndKill(Registers(Registers::AvailRegs), Uses(frameSlots()));
+        syncAndKill(Registers(Registers::AvailAnyRegs), Uses(frameSlots()));
     }
 
     
@@ -699,14 +699,12 @@ class FrameState
 
 
 
-    inline void pinReg(RegisterID reg) { regstate[reg].pin(); }
-    inline void pinFPReg(FPRegisterID reg) { fpregstate[reg].pin(); }
+    inline void pinReg(AnyRegisterID reg) { regstate(reg).pin(); }
 
     
 
 
-    inline void unpinReg(RegisterID reg) { regstate[reg].unpin(); }
-    inline void unpinFPReg(FPRegisterID reg) { fpregstate[reg].unpin(); }
+    inline void unpinReg(AnyRegisterID reg) { regstate(reg).unpin(); }
 
     
 
@@ -799,15 +797,12 @@ class FrameState
     }
 
   private:
-    inline RegisterID allocReg(FrameEntry *fe, RematInfo::RematType type);
-    inline void forgetReg(RegisterID reg);
-    inline void forgetFPReg(FPRegisterID reg);
-    RegisterID evictSomeReg(uint32 mask);
-    FPRegisterID evictSomeFPReg();
-    void evictReg(RegisterID reg);
+    inline AnyRegisterID allocReg(FrameEntry *fe, bool fp, RematInfo::RematType type);
+    inline void forgetReg(AnyRegisterID reg);
+    AnyRegisterID evictSomeReg(uint32 mask);
+    void evictReg(AnyRegisterID reg);
     inline FrameEntry *rawPush();
     inline void addToTracker(FrameEntry *fe);
-    inline void setFPRegister(FrameEntry *fe, FPRegisterID fpreg, bool reassociate = false);
 
     
     inline void ensureFeSynced(const FrameEntry *fe, Assembler &masm) const;
@@ -855,7 +850,9 @@ class FrameState
         return &entries[index];
     }
 
-    RegisterID evictSomeReg() { return evictSomeReg(Registers::AvailRegs); }
+    AnyRegisterID evictSomeReg(bool fp) {
+        return evictSomeReg(fp ? Registers::AvailFPRegs : Registers::AvailRegs);
+    }
     uint32 indexOf(int32 depth) const {
         JS_ASSERT(uint32((sp + depth) - entries) < feLimit());
         return uint32((sp + depth) - entries);
@@ -869,6 +866,16 @@ class FrameState
     inline bool isClosedVar(uint32 slot);
     inline bool isClosedArg(uint32 slot);
 
+    RegisterState & regstate(AnyRegisterID reg) {
+        JS_ASSERT(reg.reg_ < Registers::TotalAnyRegisters);
+        return regstate_[reg.reg_];
+    }
+
+    const RegisterState & regstate(AnyRegisterID reg) const {
+        JS_ASSERT(reg.reg_ < Registers::TotalAnyRegisters);
+        return regstate_[reg.reg_];
+    }
+
   private:
     JSContext *cx;
     JSScript *script;
@@ -878,7 +885,6 @@ class FrameState
 
     
     Registers freeRegs;
-    FPRegisters freeFPRegs;
 
     
     FrameEntry *entries;
@@ -905,8 +911,7 @@ class FrameState
 
 
 
-    RegisterState regstate[Assembler::TotalRegisters];
-    RegisterState fpregstate[FPRegisters::TotalFPRegisters];
+    RegisterState regstate_[Registers::TotalAnyRegisters];
 
 #if defined JS_NUNBOX32
     mutable ImmutableSync reifier;
