@@ -81,10 +81,6 @@ pref("extensions.blocklist.itemURL", "https://addons.mozilla.org/%LOCALE%/%APP%/
 
 pref("extensions.update.autoUpdateDefault", true);
 
-pref("extensions.hotfix.id", "firefox-hotfix@mozilla.org");
-pref("extensions.hotfix.cert.checkAttributes", true);
-pref("extensions.hotfix.certs.1.sha1Fingerprint", "foo");
-
 
 
 
@@ -931,12 +927,18 @@ pref("browser.taskbar.lists.refreshInSeconds", 120);
 
 #ifdef MOZ_SERVICES_SYNC
 
-pref("services.sync.registerEngines", "Bookmarks,Form,History,Password,Prefs,Tab");
+pref("services.sync.registerEngines", "Bookmarks,Form,History,Password,Prefs,Tab,Addons");
 
 pref("services.sync.prefs.sync.accessibility.blockautorefresh", true);
 pref("services.sync.prefs.sync.accessibility.browsewithcaret", true);
 pref("services.sync.prefs.sync.accessibility.typeaheadfind", true);
 pref("services.sync.prefs.sync.accessibility.typeaheadfind.linksonly", true);
+pref("services.sync.prefs.sync.addons.ignoreUserEnabledChanges", true);
+
+
+
+
+
 pref("services.sync.prefs.sync.app.update.mode", true);
 pref("services.sync.prefs.sync.browser.download.manager.closeWhenDone", true);
 pref("services.sync.prefs.sync.browser.download.manager.retention", true);
@@ -1016,12 +1018,6 @@ pref("devtools.inspector.htmlHeight", 112);
 
 
 pref("devtools.styleinspector.enabled", true);
-
-
-pref("devtools.tilt.enabled", true);
-
-
-pref("devtools.tilt.force-enabled", false);
 
 
 pref("devtools.ruleview.enabled", true);
