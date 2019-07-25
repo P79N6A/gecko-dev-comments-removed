@@ -4323,9 +4323,24 @@ WebGLContext::StencilOpSeparate(WebGLenum face, WebGLenum sfail, WebGLenum dpfai
 }
 
 nsresult
-WebGLContext::SurfaceFromElementResultToImageSurface(nsLayoutUtils::SurfaceFromElementResult& res,
-                                                     gfxImageSurface **imageOut, WebGLTexelFormat *format)
+WebGLContext::DOMElementToImageSurface(Element* imageOrCanvas,
+                                       gfxImageSurface **imageOut, WebGLTexelFormat *format)
 {
+    if (!imageOrCanvas) {
+        return NS_ERROR_FAILURE;
+    }        
+
+    uint32_t flags =
+        nsLayoutUtils::SFE_WANT_NEW_SURFACE |
+        nsLayoutUtils::SFE_WANT_IMAGE_SURFACE;
+
+    if (mPixelStoreColorspaceConversion == LOCAL_GL_NONE)
+        flags |= nsLayoutUtils::SFE_NO_COLORSPACE_CONVERSION;
+    if (!mPixelStorePremultiplyAlpha)
+        flags |= nsLayoutUtils::SFE_NO_PREMULTIPLY_ALPHA;
+
+    nsLayoutUtils::SurfaceFromElementResult res =
+        nsLayoutUtils::SurfaceFromElement(imageOrCanvas, flags);
     if (!res.mSurface)
         return NS_ERROR_FAILURE;
     if (res.mSurface->GetType() != gfxASurface::SurfaceTypeImage) {
@@ -4356,12 +4371,15 @@ WebGLContext::SurfaceFromElementResultToImageSurface(nsLayoutUtils::SurfaceFromE
 
     
     
-    if (res.mIsWriteOnly) {
-        GenerateWarning("The canvas used as source for texImage2D here is tainted (write-only). It is forbidden "
-                        "to load a WebGL texture from a tainted canvas. A Canvas becomes tainted for example "
-                        "when a cross-domain image is drawn on it. "
-                        "See https://developer.mozilla.org/en/WebGL/Cross-Domain_Textures");
-        return NS_ERROR_DOM_SECURITY_ERR;
+    
+    if (nsHTMLCanvasElement* canvas = nsHTMLCanvasElement::FromContent(imageOrCanvas)) {
+        if (canvas->IsWriteOnly()) {
+            GenerateWarning("The canvas used as source for texImage2D here is tainted (write-only). It is forbidden "
+                                "to load a WebGL texture from a tainted canvas. A Canvas becomes tainted for example "
+                                "when a cross-domain image is drawn on it. "
+                                "See https://developer.mozilla.org/en/WebGL/Cross-Domain_Textures");
+            return NS_ERROR_DOM_SECURITY_ERR;
+        }
     }
 
     
@@ -5765,6 +5783,32 @@ WebGLContext::TexImage2D_dom(WebGLenum target, WebGLint level, WebGLenum interna
     return rv.ErrorCode();
 }
 
+void
+WebGLContext::TexImage2D(JSContext* , WebGLenum target,
+                         WebGLint level, WebGLenum internalformat,
+                         WebGLenum format, WebGLenum type, Element* elt,
+                         ErrorResult& rv)
+{
+    if (!IsContextStable())
+        return;
+
+    nsRefPtr<gfxImageSurface> isurf;
+
+    WebGLTexelFormat srcFormat;
+    rv = DOMElementToImageSurface(elt, getter_AddRefs(isurf), &srcFormat);
+    if (rv.Failed())
+        return;
+
+    uint32_t byteLength = isurf->Stride() * isurf->Height();
+
+    return TexImage2D_base(target, level, internalformat,
+                           isurf->Width(), isurf->Height(), isurf->Stride(), 0,
+                           format, type,
+                           isurf->Data(), byteLength,
+                           -1,
+                           srcFormat, mPixelStorePremultiplyAlpha);
+}
+
 NS_IMETHODIMP
 WebGLContext::TexSubImage2D(int32_t)
 {
@@ -5976,6 +6020,33 @@ WebGLContext::TexSubImage2D_dom(WebGLenum target, WebGLint level,
     ErrorResult rv;
     TexSubImage2D(NULL, target, level, xoffset, yoffset, format, type, elt, rv);
     return rv.ErrorCode();
+}
+
+void
+WebGLContext::TexSubImage2D(JSContext* , WebGLenum target,
+                            WebGLint level, WebGLint xoffset, WebGLint yoffset,
+                            WebGLenum format, WebGLenum type,
+                            dom::Element* elt, ErrorResult& rv)
+{
+    if (!IsContextStable())
+        return;
+
+    nsRefPtr<gfxImageSurface> isurf;
+
+    WebGLTexelFormat srcFormat;
+    rv = DOMElementToImageSurface(elt, getter_AddRefs(isurf), &srcFormat);
+    if (rv.Failed())
+        return;
+
+    uint32_t byteLength = isurf->Stride() * isurf->Height();
+
+    return TexSubImage2D_base(target, level,
+                              xoffset, yoffset,
+                              isurf->Width(), isurf->Height(), isurf->Stride(),
+                              format, type,
+                              isurf->Data(), byteLength,
+                              -1,
+                              srcFormat, mPixelStorePremultiplyAlpha);
 }
 
 bool
