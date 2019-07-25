@@ -124,9 +124,9 @@ LivemarkService.prototype = {
     stmt.finalize();
   },
 
-  _onCacheReady: function LS__onCacheReady(aCallback)
+  _onCacheReady: function LS__onCacheReady(aCallback, aWaitForAsyncWrites)
   {
-    if (this._pendingStmt) {
+    if (this._pendingStmt || aWaitForAsyncWrites) {
       
       
       
@@ -421,7 +421,7 @@ LivemarkService.prototype = {
           try {
             aLivemarkCallback.onCompletion(result, livemark);
           } catch(ex2) {}
-        });
+        }, true);
       }
     }
   },
