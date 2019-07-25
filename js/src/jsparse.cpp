@@ -149,15 +149,26 @@ JSParseNode::become(JSParseNode *pn2)
         pn2->pn_used = false;
     }
 
-    
-    if (PN_TYPE(pn2) == TOK_FUNCTION && pn2->pn_arity == PN_FUNC)
-        pn2->pn_funbox->node = this;
-
     pn_type = pn2->pn_type;
     pn_op = pn2->pn_op;
     pn_arity = pn2->pn_arity;
     pn_parens = pn2->pn_parens;
     pn_u = pn2->pn_u;
+
+    
+
+
+
+    if (PN_TYPE(this) == TOK_FUNCTION && pn_arity == PN_FUNC) {
+        
+        JS_ASSERT(pn_funbox->node == pn2);
+        pn_funbox->node = this;
+    } else if (pn_arity == PN_LIST && !pn_head) {
+        
+        JS_ASSERT(pn_tail == &pn2->pn_head);
+        pn_tail = &pn_head;
+    }
+
     pn2->clear();
 }
 
