@@ -31,19 +31,15 @@ public class SQLiteBridge {
     private String mDb;
 
     
-    private ArrayList<String> mColumns;
-    private Long[] mQueryResults;
+    private long[] mQueryResults;
+
+    private static final int RESULT_INSERT_ROW_ID = 0;
+    private static final int RESULT_ROWS_CHANGED = 1;
 
     
-    private int kResultInsertRowId = 0;
-    private int kResultRowsChanged = 1;
-
-    
-    private static native void sqliteCall(String aDb, String aQuery,
-                                          String[] aParams,
-                                          ArrayList<String> aColumns,
-                                          Long[] aUpdateResult,
-                                          ArrayList<Object[]> aRes)
+    private static native MatrixBlobCursor sqliteCall(String aDb, String aQuery,
+                                                      String[] aParams,
+                                                      long[] aUpdateResult)
         throws SQLiteBridgeException;
 
     
@@ -73,7 +69,7 @@ public class SQLiteBridge {
         }
 
         internalQuery(sb.toString(), whereArgs);
-        return mQueryResults[kResultRowsChanged].intValue();
+        return (int)mQueryResults[RESULT_ROWS_CHANGED];
     }
 
     public Cursor query(String table,
@@ -119,22 +115,7 @@ public class SQLiteBridge {
 
     public Cursor rawQuery(String sql, String[] selectionArgs)
         throws SQLiteBridgeException {
-        ArrayList<Object[]> results;
-        results = internalQuery(sql, selectionArgs);
-
-        MatrixBlobCursor cursor =
-            new MatrixBlobCursor(mColumns.toArray(new String[0]));
-        try {
-            for (Object resultRow: results) {
-                Object[] resultColumns = (Object[])resultRow;
-                if (resultColumns.length == mColumns.size())
-                    cursor.addRow(resultColumns);
-            }
-        } catch(IllegalArgumentException ex) {
-            Log.e(LOGTAG, "Error getting rows", ex);
-        }
-
-        return cursor;
+        return internalQuery(sql, selectionArgs);
     }
 
     public long insert(String table, String nullColumnHack, ContentValues values)
@@ -167,7 +148,7 @@ public class SQLiteBridge {
         String[] binds = new String[valueBinds.size()];
         valueBinds.toArray(binds);
         internalQuery(sb.toString(), binds);
-        return mQueryResults[kResultInsertRowId];
+        return mQueryResults[RESULT_INSERT_ROW_ID];
     }
 
     public int update(String table, ContentValues values, String whereClause, String[] whereArgs)
@@ -202,20 +183,17 @@ public class SQLiteBridge {
         valueNames.toArray(binds);
 
         internalQuery(sb.toString(), binds);
-        return mQueryResults[kResultRowsChanged].intValue();
+        return (int)mQueryResults[RESULT_ROWS_CHANGED];
     }
 
     public int getVersion()
                throws SQLiteBridgeException {
-        ArrayList<Object[]> results = null;
-        results = internalQuery("PRAGMA user_version", null);
+        Cursor cursor = internalQuery("PRAGMA user_version", null);
         int ret = -1;
-        if (results != null) {
-            for (Object resultRow: results) {
-                Object[] resultColumns = (Object[])resultRow;
-                String version = (String)resultColumns[0];
-                ret = Integer.parseInt(version);
-            }
+        if (cursor != null) {
+            cursor.moveToFirst();
+            String version = cursor.getString(0);
+            ret = Integer.parseInt(version);
         }
         return ret;
     }
@@ -223,19 +201,10 @@ public class SQLiteBridge {
     
     
     
-    
-    
-    
-    
-    private ArrayList<Object[]> internalQuery(String aQuery, String[] aParams)
+    private Cursor internalQuery(String aQuery, String[] aParams)
         throws SQLiteBridgeException {
-        ArrayList<Object[]> result = new ArrayList<Object[]>();
-        mQueryResults = new Long[2];
-        mColumns = new ArrayList<String>();
-
-        sqliteCall(mDb, aQuery, aParams, mColumns, mQueryResults, result);
-
-        return result;
+        mQueryResults = new long[2];
+        return sqliteCall(mDb, aQuery, aParams, mQueryResults);
     }
 
     
