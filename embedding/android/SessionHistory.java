@@ -36,13 +36,12 @@
 
 
 
-
-
 package org.mozilla.gecko;
 
 import java.util.Stack;
 
-import android.content.*;
+import android.content.ContentValues;
+import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.util.Log;
