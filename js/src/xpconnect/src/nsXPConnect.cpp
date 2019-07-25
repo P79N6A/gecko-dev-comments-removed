@@ -947,58 +947,6 @@ private:
 };
 
 
-
-
-
-
-
-static PRBool
-InitWebGLTypes(JSContext *aJSContext, JSObject *aGlobalJSObj)
-{
-    
-    jsval v;
-
-    
-    if(!JS_GetProperty(aJSContext, aGlobalJSObj, "ArrayBuffer", &v) ||
-       !JS_DefineProperty(aJSContext, aGlobalJSObj, "WebGLArrayBuffer", v,
-                          NULL, NULL, JSPROP_PERMANENT))
-        return PR_FALSE;
-
-    const int webglTypes[] = {
-        js::TypedArray::TYPE_INT8,
-        js::TypedArray::TYPE_UINT8,
-        js::TypedArray::TYPE_INT16,
-        js::TypedArray::TYPE_UINT16,
-        js::TypedArray::TYPE_INT32,
-        js::TypedArray::TYPE_UINT32,
-        js::TypedArray::TYPE_FLOAT32
-    };
-
-    const char *webglNames[] = {
-        "WebGLByteArray",
-        "WebGLUnsignedByteArray",
-        "WebGLShortArray",
-        "WebGLUnsignedShortArray",
-        "WebGLIntArray",
-        "WebGLUnsignedIntArray",
-        "WebGLFloatArray"
-    };
-
-    for(size_t i = 0;
-        i < NS_ARRAY_LENGTH(webglTypes);
-        ++i)
-    {
-        if(!JS_GetProperty(aJSContext, aGlobalJSObj, js::TypedArray::slowClasses[webglTypes[i]].name, &v) ||
-           !JS_DefineProperty(aJSContext, aGlobalJSObj, webglNames[i], v,
-                              NULL, NULL, JSPROP_PERMANENT))
-            return PR_FALSE;
-    }
-
-    return PR_TRUE;
-}
-
-
-
 NS_IMETHODIMP
 nsXPConnect::InitClasses(JSContext * aJSContext, JSObject * aGlobalJSObj)
 {
@@ -1034,9 +982,6 @@ nsXPConnect::InitClasses(JSContext * aJSContext, JSObject * aGlobalJSObj)
         if (!XPCSafeJSObjectWrapper::AttachNewConstructorObject(ccx, aGlobalJSObj))
             return UnexpectedFailure(NS_ERROR_FAILURE);
     }
-
-    if (!InitWebGLTypes(ccx, aGlobalJSObj))
-        return UnexpectedFailure(NS_ERROR_FAILURE);
 
     return NS_OK;
 }
@@ -1214,9 +1159,6 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
                 return UnexpectedFailure(NS_ERROR_FAILURE);
         }
     }
-
-    if (!InitWebGLTypes(ccx, globalJSObj))
-        return UnexpectedFailure(NS_ERROR_FAILURE);
 
     NS_ADDREF(*_retval = holder);
 
