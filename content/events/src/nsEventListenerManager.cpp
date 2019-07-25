@@ -37,6 +37,10 @@
 
 #include "mozilla/Hal.h"
 #include "mozilla/HalSensor.h"
+
+
+#undef CreateEvent
+
 #include "nsISupports.h"
 #include "nsGUIEvent.h"
 #include "nsDOMEvent.h"

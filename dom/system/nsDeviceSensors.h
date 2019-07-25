@@ -74,9 +74,6 @@ private:
   
   nsTArray<nsTArray<nsIDOMWindow*>* > mWindowListeners;
   
-  
-  nsDataHashtable<nsUint32HashKey, nsTArray<PRUint32 > > mSensorsEnabled;
-
   void FireDOMOrientationEvent(class nsIDOMDocument *domDoc, 
                                class nsIDOMEventTarget *target,
                                double alpha,
