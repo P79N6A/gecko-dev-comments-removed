@@ -255,10 +255,10 @@ nsXBLJSClass::Destroy()
 
 
 nsXBLBinding::nsXBLBinding(nsXBLPrototypeBinding* aBinding)
-  : mPrototypeBinding(aBinding),
-    mInsertionPointTable(nsnull),
-    mIsStyleBinding(true),
-    mMarkedForDeath(false)
+  : mIsStyleBinding(true),
+    mMarkedForDeath(false),
+    mPrototypeBinding(aBinding),
+    mInsertionPointTable(nsnull)
 {
   NS_ASSERTION(mPrototypeBinding, "Must have a prototype binding!");
   
