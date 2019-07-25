@@ -13,7 +13,7 @@
 
 #include "mozilla/StandardInteger.h"
 
-class nsArenaMemoryStats;
+struct nsArenaMemoryStats;
 
 
 
