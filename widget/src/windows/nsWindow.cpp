@@ -1230,6 +1230,13 @@ NS_METHOD nsWindow::Show(PRBool bState)
   
   mIsVisible = bState;
 
+  
+  
+  if (mIsVisible)
+    mOldStyle |= WS_VISIBLE;
+  else
+    mOldStyle &= ~WS_VISIBLE;
+
   if (!mIsVisible && wasVisible) {
       ClearCachedResources();
   }
