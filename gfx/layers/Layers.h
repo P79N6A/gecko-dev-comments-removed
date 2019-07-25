@@ -432,12 +432,6 @@ public:
   
 
 
-  virtual gfxASurface::gfxImageFormat MaskImageFormat() 
-  { return gfxASurface::ImageFormatA8; }
-
-  
-
-
 
   virtual TemporaryRef<mozilla::gfx::DrawTarget>
     CreateDrawTarget(const mozilla::gfx::IntSize &aSize,
