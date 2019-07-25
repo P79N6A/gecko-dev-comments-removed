@@ -466,16 +466,20 @@ PlacesViewBase.prototype = {
 
   nodeAnnotationChanged:
   function PVB_nodeAnnotationChanged(aPlacesNode, aAnno) {
+    let elt = aPlacesNode._DOMElement;
+    if (!elt)
+      throw "aPlacesNode must have _DOMElement set";
+
+    
     
     if (aAnno == PlacesUtils.LMANNO_FEEDURI) {
-      let elt = aPlacesNode._DOMElement;
-      if (!elt)
-        throw "aPlacesNode must have _DOMElement set";
-
       let menu = elt.parentNode;
       if (!menu.hasAttribute("livemark"))
         menu.setAttribute("livemark", "true");
+    }
 
+    if ([PlacesUtils.LMANNO_LOADING,
+         PlacesUtils.LMANNO_LOADFAILED].indexOf(aAnno) != -1) {
       
       this._ensureLivemarkStatusMenuItem(elt);
     }
@@ -1169,10 +1173,17 @@ PlacesToolbar.prototype = {
       if (aAnno == PlacesUtils.LMANNO_FEEDURI) {
         elt.setAttribute("livemark", true);
       }
-      return;
-    }
 
-    PlacesViewBase.prototype.nodeAnnotationChanged.apply(this, arguments);
+      if ([PlacesUtils.LMANNO_LOADING,
+           PlacesUtils.LMANNO_LOADFAILED].indexOf(aAnno) != -1) {
+        
+        this._ensureLivemarkStatusMenuItem(elt.firstChild);
+      }
+    }
+    else {
+      
+      PlacesViewBase.prototype.nodeAnnotationChanged.apply(this, arguments);
+    }
   },
 
   nodeTitleChanged: function PT_nodeTitleChanged(aPlacesNode, aNewTitle) {
