@@ -625,7 +625,7 @@ function UIClass() {
     
     
     
-    this.currentTab = Utils.activeTab;
+    this.currentTab = gBrowser.selectedTab.tabcandyBrowserTab;
   } catch(e) {
     Utils.log(e);
   }

@@ -528,27 +528,6 @@ var Utils = {
   
   
   
-  get activeTab(){
-    try {
-      Utils.assert('tabBrowser', gBrowser);
-
-      var rawTab = gBrowser.selectedTab;
-      for ( var i=0; i<Tabs.length; i++){
-        if (Tabs[i].raw == rawTab)
-          return Tabs[i];
-      }
-    } catch(e) {
-      Utils.log(e);
-    }
-
-    return null;
-  },
-
-  
-
-  
-  
-  
   
   log: function() {
     var text = this.expandArgumentsForLog(arguments);
