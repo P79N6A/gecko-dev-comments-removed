@@ -418,25 +418,26 @@ class DeviceManagerADB(DeviceManager):
       outerr = self.runCmd(["pull",  remoteFile, localFile]).communicate()
 
       
-      errl = outerr[1].splitlines()
-      if (len(errl) == 1):
-        if (((errl[0].find("Permission denied") != -1)
-          or (errl[0].find("does not exist") != -1))
-          and self.useRunAs):
-          
-          
-          
-          remoteTmpFile = self.getTempDir() + "/" + os.path.basename(remoteFile)
-          self.checkCmdAs(["shell", "dd", "if=" + remoteFile, "of=" + remoteTmpFile])
-          self.checkCmdAs(["shell", "chmod", "777", remoteTmpFile])
-          self.runCmd(["pull",  remoteTmpFile, localFile]).stdout.read()
-          
-          self.checkCmdAs(["shell", "rm", remoteTmpFile])
+      if outerr[1]:
+        errl = outerr[1].splitlines()
+        if (len(errl) == 1):
+          if (((errl[0].find("Permission denied") != -1)
+            or (errl[0].find("does not exist") != -1))
+            and self.useRunAs):
+            
+            
+            
+            remoteTmpFile = self.getTempDir() + "/" + os.path.basename(remoteFile)
+            self.checkCmdAs(["shell", "dd", "if=" + remoteFile, "of=" + remoteTmpFile])
+            self.checkCmdAs(["shell", "chmod", "777", remoteTmpFile])
+            self.runCmd(["pull",  remoteTmpFile, localFile]).stdout.read()
+            
+            self.checkCmdAs(["shell", "rm", remoteTmpFile])
 
       f = open(localFile)
       ret = f.read()
       f.close()
-      return ret;      
+      return ret
     except:
       return None
 
