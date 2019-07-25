@@ -73,7 +73,7 @@ namespace js {
 
 
 
-class UpvarCookie 
+class UpvarCookie
 {
     uint32 value;
 
@@ -206,15 +206,14 @@ class Bindings {
     inline const js::Shape *lastShape() const;
 
     enum {
-       
+        
 
 
 
-       BINDING_COUNT_LIMIT = 0xFFFF
+        BINDING_COUNT_LIMIT = 0xFFFF
     };
 
     
-
 
 
 

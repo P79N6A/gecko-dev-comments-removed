@@ -2057,7 +2057,6 @@ Parser::markFunArgs(JSFunctionBox *funbox, uintN tcflags)
 
 
 
-
                     lexdep->setFunArg();
 
                     JSFunctionBox *afunbox;
@@ -2381,53 +2380,18 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
 
 
 
-
-
-
-
-
-
-
-                bool mutation = !!(funbox->tcflags & TCF_FUN_SETS_OUTER_NAME);
-                uintN nupvars = 0;
-
-                
-
-
-
-
-
-
-
                 while ((ale = iter()) != NULL) {
                     JSDefinition *lexdep = ALE_DEFN(ale)->resolve();
 
                     if (!lexdep->isFreeVar()) {
                         JS_ASSERT(lexdep->frameLevel() <= funbox->level);
-                        ++nupvars;
-                        if (lexdep->isAssigned())
-                            break;
+                        break;
                     }
                 }
-                if (!ale)
-                    mutation = false;
 
-                if (nupvars == 0) {
+                if (!ale) {
                     FUN_METER(onlyfreevar);
                     FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
-                } else if (!mutation &&
-                           !(funbox->tcflags & (TCF_FUN_IS_GENERATOR | TCF_FUN_ENTRAINS_SCOPES))) {
-                    
-
-
-
-
-
-                    FUN_METER(display);
-                    FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
-                } else {
-                    if (!(funbox->tcflags & TCF_FUN_IS_GENERATOR))
-                        FUN_METER(setupvar);
                 }
             } else {
                 uintN nupvars = 0, nflattened = 0;

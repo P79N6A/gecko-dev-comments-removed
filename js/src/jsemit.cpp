@@ -1988,99 +1988,6 @@ EmitLeaveBlock(JSContext *cx, JSCodeGenerator *cg, JSOp op,
 
 
 
-static bool
-MakeUpvarForEval(JSParseNode *pn, JSCodeGenerator *cg)
-{
-    JSContext *cx = cg->parser->context;
-    JSFunction *fun = cg->parser->callerFrame->fun();
-    uintN upvarLevel = fun->u.i.script->staticLevel;
-
-    JSFunctionBox *funbox = cg->funbox;
-    if (funbox) {
-        
-
-
-
-
-
-        if (funbox->level == fun->u.i.script->staticLevel + 1U &&
-            !(((JSFunction *) funbox->object)->flags & JSFUN_LAMBDA)) {
-            JS_ASSERT_IF(cx->options & JSOPTION_ANONFUNFIX,
-                         ((JSFunction *) funbox->object)->atom);
-            return true;
-        }
-
-        while (funbox->level >= upvarLevel) {
-            if (funbox->node->pn_dflags & PND_FUNARG)
-                return true;
-            funbox = funbox->parent;
-            if (!funbox)
-                break;
-        }
-    }
-
-    JSAtom *atom = pn->pn_atom;
-
-    uintN index;
-    BindingKind kind = fun->script()->bindings.lookup(cx, atom, &index);
-    if (kind == NONE)
-        return true;
-
-    JS_ASSERT(cg->staticLevel > upvarLevel);
-    if (cg->staticLevel >= UpvarCookie::UPVAR_LEVEL_LIMIT)
-        return true;
-
-    JSAtomListElement *ale = cg->upvarList.lookup(atom);
-    if (!ale) {
-        if (cg->inFunction() && !cg->bindings.addUpvar(cx, atom))
-            return false;
-
-        ale = cg->upvarList.add(cg->parser, atom);
-        if (!ale)
-            return false;
-        JS_ASSERT(ALE_INDEX(ale) == cg->upvarList.count - 1);
-
-        UpvarCookie *vector = cg->upvarMap.vector;
-        uint32 length = cg->upvarMap.length;
-
-        JS_ASSERT(ALE_INDEX(ale) <= length);
-        if (ALE_INDEX(ale) == length) {
-            length = 2 * JS_MAX(2, length);
-            vector = reinterpret_cast<UpvarCookie *>(cx->realloc(vector, length * sizeof *vector));
-            if (!vector)
-                return false;
-            cg->upvarMap.vector = vector;
-            cg->upvarMap.length = length;
-        }
-
-        if (kind != ARGUMENT)
-            index += fun->nargs;
-        JS_ASSERT(index < JS_BIT(16));
-
-        uintN skip = cg->staticLevel - upvarLevel;
-        vector[ALE_INDEX(ale)].set(skip, index);
-    }
-
-    pn->pn_op = JSOP_GETUPVAR;
-    pn->pn_cookie.set(cg->staticLevel, uint16(ALE_INDEX(ale)));
-    pn->pn_dflags |= PND_BOUND;
-    return true;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2232,63 +2139,11 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 return JS_TRUE;
             }
 
-            if (!caller->isFunctionFrame())
-                return JS_TRUE;
-
             
 
 
 
-
-
-            JSObject *scopeobj = cg->inFunction()
-                                 ? FUN_OBJECT(cg->fun())->getParent()
-                                 : cg->scopeChain();
-            if (scopeobj != cg->parser->callerVarObj)
-                return JS_TRUE;
-
-            
-
-
-
-
-
-            if (op != JSOP_NAME)
-                return JS_TRUE;
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            if (cg->flags & TCF_FUN_HEAVYWEIGHT)
-                return JS_TRUE;
-
-            
-
-
-
-
-            JSFunction *fun = cg->parser->callerFrame->fun();
-            JS_ASSERT(cg->staticLevel >= fun->u.i.script->staticLevel);
-            unsigned skip = cg->staticLevel - fun->u.i.script->staticLevel;
-            if (cg->skipSpansGenerator(skip))
-                return JS_TRUE;
-
-            return MakeUpvarForEval(pn, cg);
+            return JS_TRUE;
         }
 
         
@@ -2348,50 +2203,6 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
     uint16 level = cookie.level();
     JS_ASSERT(cg->staticLevel >= level);
 
-    
-
-
-
-
-
-
-
-    if (PN_OP(dn) == JSOP_GETUPVAR) {
-        JS_ASSERT(cg->staticLevel >= level);
-        if (op != JSOP_NAME)
-            return JS_TRUE;
-
-#ifdef DEBUG
-        JSStackFrame *caller = cg->parser->callerFrame;
-#endif
-        JS_ASSERT(caller->isScriptFrame());
-
-        JSTreeContext *tc = cg;
-        while (tc->staticLevel != level)
-            tc = tc->parent;
-
-        JSCodeGenerator *evalcg = tc->asCodeGenerator();
-        JS_ASSERT(evalcg->compileAndGo());
-        JS_ASSERT(caller->isFunctionFrame());
-        JS_ASSERT(cg->parser->callerVarObj == evalcg->scopeChain());
-
-        
-
-
-
-        if (evalcg->flags & TCF_IN_FOR_INIT)
-            return JS_TRUE;
-
-        if (cg->staticLevel == level) {
-            pn->pn_op = JSOP_GETUPVAR;
-            pn->pn_cookie = cookie;
-            pn->pn_dflags |= PND_BOUND;
-            return JS_TRUE;
-        }
-
-        return MakeUpvarForEval(pn, cg);
-    }
-
     const uintN skip = cg->staticLevel - level;
     if (skip != 0) {
         JS_ASSERT(cg->inFunction());
@@ -2410,29 +2221,8 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         if (cg->flags & TCF_FUN_HEAVYWEIGHT)
             return JS_TRUE;
 
-        if (cg->fun()->isFlatClosure()) {
-            op = JSOP_GETFCSLOT;
-        } else {
-            
-
-
-
-
-
-
-            if (cg->funbox->node->pn_dflags & PND_FUNARG)
-                return JS_TRUE;
-
-            
-
-
-
-
-            if (cg->skipSpansGenerator(skip))
-                return JS_TRUE;
-
-            op = JSOP_GETUPVAR;
-        }
+        if (!cg->fun()->isFlatClosure())
+            return JS_TRUE;
 
         ale = cg->upvarList.lookup(atom);
         if (ale) {
@@ -2473,7 +2263,7 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             vector[index].set(skip, slot);
         }
 
-        pn->pn_op = op;
+        pn->pn_op = JSOP_GETFCSLOT;
         JS_ASSERT((index & JS_BITMASK(16)) == index);
         pn->pn_cookie.set(0, index);
         pn->pn_dflags |= PND_BOUND;
@@ -2851,9 +2641,6 @@ EmitNameOp(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn,
             break;
           case JSOP_GETLOCAL:
             op = JSOP_CALLLOCAL;
-            break;
-          case JSOP_GETUPVAR:
-            op = JSOP_CALLUPVAR;
             break;
           case JSOP_GETFCSLOT:
             op = JSOP_CALLFCSLOT;
@@ -6267,7 +6054,6 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                         return JS_FALSE;
                     EMIT_INDEX_OP(JSOP_GETXPROP, atomIndex);
                 } else {
-                    JS_ASSERT(PN_OP(pn2) != JSOP_GETUPVAR);
                     EMIT_UINT16_IMM_OP((PN_OP(pn2) == JSOP_SETGNAME)
                                        ? JSOP_GETGNAME
                                        : (PN_OP(pn2) == JSOP_SETGLOBAL)
