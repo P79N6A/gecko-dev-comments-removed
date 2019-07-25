@@ -1799,6 +1799,19 @@ static nsresult CreateNPAPIPlugin(nsPluginTag *aPluginTag,
   return rv;
 }
 
+nsresult nsPluginHost::EnsurePluginLoaded(nsPluginTag* plugin)
+{
+  nsRefPtr<nsNPAPIPlugin> entrypoint = plugin->mEntryPoint;
+  if (!entrypoint) {
+    nsresult rv = CreateNPAPIPlugin(plugin, getter_AddRefs(entrypoint));
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+    plugin->mEntryPoint = entrypoint;
+  }
+  return NS_OK;
+}
+
 NS_IMETHODIMP nsPluginHost::GetPlugin(const char *aMimeType, nsIPlugin** aPlugin)
 {
   nsresult rv = NS_ERROR_FAILURE;
@@ -1822,16 +1835,12 @@ NS_IMETHODIMP nsPluginHost::GetPlugin(const char *aMimeType, nsIPlugin** aPlugin
       printf("For %s found plugin %s\n", aMimeType, pluginTag->mFileName.get());
 #endif
 
-    
-    nsRefPtr<nsNPAPIPlugin> plugin = pluginTag->mEntryPoint;
-    if (!plugin) {
-      rv = CreateNPAPIPlugin(pluginTag, getter_AddRefs(plugin));
-      if (NS_FAILED(rv))
-        return rv;
-      pluginTag->mEntryPoint = plugin;
+    rv = EnsurePluginLoaded(pluginTag);
+    if (NS_FAILED(rv)) {
+      return rv;
     }
 
-    NS_ADDREF(*aPlugin = plugin);
+    NS_ADDREF(*aPlugin = pluginTag->mEntryPoint);
     return NS_OK;
   }
 
@@ -1938,32 +1947,6 @@ nsPluginHost::EnumerateSiteData(const nsACString& domain,
   return NS_OK;
 }
 
-
-nsPluginTag*
-nsPluginHost::EnsurePlugin(nsIPluginTag* plugin)
-{
-  LoadPlugins();
-
-  
-  nsPluginTag* tag;
-  for (tag = mPlugins; tag && tag != plugin; tag = tag->mNext);
-  if (!tag) {
-    return NULL;
-  }
-
-  nsRefPtr<nsNPAPIPlugin> entrypoint = tag->mEntryPoint;
-  if (!entrypoint) {
-    nsresult rv = CreateNPAPIPlugin(tag, getter_AddRefs(entrypoint));
-    if (NS_FAILED(rv)) {
-      return NULL;
-    }
-
-    tag->mEntryPoint = entrypoint;
-  }
-
-  return tag;
-}
-
 NS_IMETHODIMP
 nsPluginHost::ClearSiteData(nsIPluginTag* plugin, const nsACString& domain,
                             PRUint64 flags, PRInt64 maxAge)
@@ -1971,9 +1954,24 @@ nsPluginHost::ClearSiteData(nsIPluginTag* plugin, const nsACString& domain,
   
   NS_ENSURE_ARG(maxAge >= 0 || maxAge == -1);
 
-  nsPluginTag* tag = EnsurePlugin(plugin);
-  if (!tag) {
+  
+  if (!IsLiveTag(plugin)) {
     return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  nsPluginTag* tag = static_cast<nsPluginTag*>(plugin);
+
+  
+  
+  
+  if (!tag->mIsFlashPlugin && !tag->mEntryPoint) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  nsresult rv = EnsurePluginLoaded(tag);
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
   PluginLibrary* library = tag->mEntryPoint->GetLibrary();
@@ -1985,7 +1983,7 @@ nsPluginHost::ClearSiteData(nsIPluginTag* plugin, const nsACString& domain,
 
   
   InfallibleTArray<nsCString> sites;
-  nsresult rv = library->NPP_GetSitesWithData(sites);
+  rv = library->NPP_GetSitesWithData(sites);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -2007,16 +2005,31 @@ NS_IMETHODIMP
 nsPluginHost::SiteHasData(nsIPluginTag* plugin, const nsACString& domain,
                           PRBool* result)
 {
-  nsPluginTag* tag = EnsurePlugin(plugin);
-  if (!tag) {
+  
+  if (!IsLiveTag(plugin)) {
     return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  nsPluginTag* tag = static_cast<nsPluginTag*>(plugin);
+
+  
+  
+  
+  if (!tag->mIsFlashPlugin && !tag->mEntryPoint) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  nsresult rv = EnsurePluginLoaded(tag);
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
   PluginLibrary* library = tag->mEntryPoint->GetLibrary();
 
   
   InfallibleTArray<nsCString> sites;
-  nsresult rv = library->NPP_GetSitesWithData(sites);
+  rv = library->NPP_GetSitesWithData(sites);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -2053,7 +2066,7 @@ static PRBool isUnwantedPlugin(nsPluginTag * tag)
     if (!PL_strcasecmp(tag->mMimeTypeArray[i], "application/pdf"))
       return PR_FALSE;
 
-    if (!PL_strcasecmp(tag->mMimeTypeArray[i], "application/x-shockwave-flash"))
+    if (tag->mIsFlashPlugin)
       return PR_FALSE;
 
     if (!PL_strcasecmp(tag->mMimeTypeArray[i], "application/x-director"))
@@ -2077,6 +2090,19 @@ PRBool nsPluginHost::IsJavaMIMEType(const char* aType)
                           sizeof("application/x-java-applet") - 1)) ||
      (0 == PL_strncasecmp(aType, "application/x-java-bean",
                           sizeof("application/x-java-bean") - 1)));
+}
+
+
+PRBool
+nsPluginHost::IsLiveTag(nsIPluginTag* aPluginTag)
+{
+  nsPluginTag* tag;
+  for (tag = mPlugins; tag; tag = tag->mNext) {
+    if (tag == aPluginTag) {
+      return PR_TRUE;
+    }
+  }
+  return PR_FALSE;
 }
 
 nsPluginTag * nsPluginHost::HaveSamePlugin(nsPluginTag * aPluginTag)

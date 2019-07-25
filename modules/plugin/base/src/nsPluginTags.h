@@ -114,6 +114,7 @@ public:
   PRPackedBool  mCanUnloadLibrary;
   PRPackedBool  mIsJavaPlugin;
   PRPackedBool  mIsNPRuntimeEnabledJavaPlugin;
+  PRPackedBool  mIsFlashPlugin;
   nsCString     mFileName; 
   nsCString     mFullPath; 
   nsCString     mVersion;  

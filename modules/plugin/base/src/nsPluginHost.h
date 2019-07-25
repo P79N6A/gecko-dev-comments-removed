@@ -249,6 +249,8 @@ private:
                            PRBool * aPluginsChanged,
                            PRBool checkForUnwantedPlugins = PR_FALSE);
 
+  nsresult EnsurePluginLoaded(nsPluginTag* plugin);
+
   PRBool IsRunningPlugin(nsPluginTag * plugin);
 
   
@@ -261,6 +263,9 @@ private:
   
   void RemoveCachedPluginsInfo(const char *filePath,
                                nsPluginTag **result);
+
+  
+  PRBool IsLiveTag(nsIPluginTag* tag);
 
   
   nsPluginTag* HaveSamePlugin(nsPluginTag * aPluginTag);
@@ -305,7 +310,6 @@ private:
                              const nsTArray<nsCString>& sites,
                              InfallibleTArray<nsCString>& result,
                              bool firstMatchOnly);
-  nsPluginTag* EnsurePlugin(nsIPluginTag* plugin);
 
   nsWeakPtr mCurrentDocument; 
 
