@@ -363,7 +363,7 @@ RDFContentSinkImpl::~RDFContentSinkImpl()
         
         PRInt32 i = mContextStack->Length();
         while (0 < i--) {
-            nsIRDFResource* resource;
+            nsIRDFResource* resource = nsnull;
             RDFContentSinkState state;
             RDFContentSinkParseMode parseMode;
             PopContext(resource, state, parseMode);
