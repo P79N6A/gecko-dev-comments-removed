@@ -4,7 +4,6 @@
 
 
 
-#include "base/message_loop.h"
 #include "hardware_legacy/uevent.h"
 #include "Hal.h"
 #include "HalImpl.h"
@@ -20,11 +19,9 @@
 #include "nsIThread.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
-#include "nsXULAppAPI.h"
 #include "hardware/lights.h"
 #include "hardware/hardware.h"
 #include "hardware_legacy/vibrator.h"
-#include "UeventPoller.h"
 #include <stdio.h>
 #include <math.h>
 #include <fcntl.h>
@@ -199,74 +196,70 @@ public:
   }
 };
 
-} 
-
-class BatteryObserver : public IUeventObserver,
-                        public RefCounted<BatteryObserver>
-{
+class UEventWatcher : public nsRunnable {
 public:
-  BatteryObserver()
-    :mUpdater(new BatteryUpdater())
+  UEventWatcher()
+    : mUpdater(new BatteryUpdater())
+    , mRunning(false)
   {
   }
 
-  virtual void Notify(const NetlinkEvent &aEvent)
+  NS_IMETHOD Run()
   {
-    
-    NetlinkEvent *event = const_cast<NetlinkEvent*>(&aEvent);
-    const char *subsystem = event->getSubsystem();
-    
-    const char *devpath = event->findParam("DEVPATH");
-    if (strcmp(subsystem, "power_supply") == 0 &&
-        strstr(devpath, "battery")) {
-      
-      NS_DispatchToMainThread(mUpdater);
+    while (mRunning) {
+      char buf[1024];
+      int count = uevent_next_event(buf, sizeof(buf) - 1);
+      if (!count) {
+        NS_WARNING("uevent_next_event() returned 0!");
+        continue;
+      }
+
+      buf[sizeof(buf) - 1] = 0;
+      if (strstr(buf, "battery"))
+        NS_DispatchToMainThread(mUpdater);
     }
+    return NS_OK;
   }
+
+  bool mRunning;
 
 private:
   nsRefPtr<BatteryUpdater> mUpdater;
 };
 
+} 
 
-
-static BatteryObserver *sBatteryObserver = NULL;
-
-static void
-RegisterBatteryObserverIOThread()
-{
-  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
-  MOZ_ASSERT(!sBatteryObserver);
-
-  sBatteryObserver = new BatteryObserver();
-  RegisterUeventListener(sBatteryObserver);
-}
+static bool sUEventInitialized = false;
+static UEventWatcher *sWatcher = NULL;
+static nsIThread *sWatcherThread = NULL;
 
 void
 EnableBatteryNotifications()
 {
-  XRE_GetIOMessageLoop()->PostTask(
-      FROM_HERE,
-      NewRunnableFunction(RegisterBatteryObserverIOThread));
-}
+  if (!sUEventInitialized)
+    sUEventInitialized = uevent_init();
+  if (!sUEventInitialized) {
+    NS_WARNING("uevent_init() failed!");
+    return;
+  }
 
-static void
-UnregisterBatteryObserverIOThread()
-{
-  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
-  MOZ_ASSERT(sBatteryObserver);
+  if (!sWatcher)
+    sWatcher = new UEventWatcher();
+  NS_ADDREF(sWatcher);
 
-  UnregisterUeventListener(sBatteryObserver);
-  delete sBatteryObserver;
-  sBatteryObserver = NULL;
+  sWatcher->mRunning = true;
+  nsresult rv = NS_NewThread(&sWatcherThread, sWatcher);
+  if (NS_FAILED(rv))
+    NS_WARNING("Failed to get new thread for uevent watching");
 }
 
 void
 DisableBatteryNotifications()
 {
-  XRE_GetIOMessageLoop()->PostTask(
-      FROM_HERE,
-      NewRunnableFunction(UnregisterBatteryObserverIOThread));
+  sWatcher->mRunning = false;
+  sWatcherThread->Shutdown();
+  NS_IF_RELEASE(sWatcherThread);
+  delete sWatcher;
 }
 
 void
@@ -329,8 +322,6 @@ namespace {
 
 
 const char *screenEnabledFilename = "/sys/power/state";
-const char *wakeLockFilename = "/sys/power/wake_lock";
-const char *wakeUnlockFilename = "/sys/power/wake_unlock";
 
 template<ssize_t n>
 bool ReadFromFile(const char *filename, char (&buf)[n])
@@ -371,12 +362,6 @@ void WriteToFile(const char *filename, const char *toWrite)
 
 
 bool sScreenEnabled = true;
-
-
-
-
-
-bool sCpuSleepAllowed = true;
 
 } 
 
@@ -428,19 +413,6 @@ SetScreenBrightness(double brightness)
   aConfig.color() = color;
   hal::SetLight(hal::eHalLightID_Backlight, aConfig);
   hal::SetLight(hal::eHalLightID_Buttons, aConfig);
-}
-
-bool
-GetCpuSleepAllowed()
-{
-  return sCpuSleepAllowed;
-}
-
-void
-SetCpuSleepAllowed(bool aAllowed)
-{
-  WriteToFile(aAllowed ? wakeUnlockFilename : wakeLockFilename, "gecko");
-  sCpuSleepAllowed = aAllowed;
 }
 
 static light_device_t* sLights[hal::eHalLightID_Count];	

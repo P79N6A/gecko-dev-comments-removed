@@ -151,17 +151,6 @@ void SetScreenBrightness(double brightness);
 
 
 
-bool GetCpuSleepAllowed();
-
-
-
-
-
-void SetCpuSleepAllowed(bool enabled);
-
-
-
-
 
 
 
