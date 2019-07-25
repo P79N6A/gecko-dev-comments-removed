@@ -142,7 +142,8 @@ public:
 
 
 
-  enum ScrollMode { INSTANT, SMOOTH };
+
+  enum ScrollMode { INSTANT, SMOOTH, NORMAL };
   
 
 
