@@ -72,6 +72,7 @@ protected:
            mConstraintValidation->GetValidityState(aState);
   }
 
+  
   nsConstraintValidation*       mConstraintValidation;
 };
 

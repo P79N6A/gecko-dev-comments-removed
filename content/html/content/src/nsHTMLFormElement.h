@@ -330,6 +330,17 @@ protected:
 
   nsresult GetActionURL(nsIURI** aActionURL, nsIContent* aOriginatingElement);
 
+  
+
+
+
+
+
+
+
+
+  PRBool CheckFormValidity() const;
+
 public:
   
 
