@@ -738,10 +738,10 @@ nsImageMap::FreeAreas()
                  "Unexpected primary frame");
     area->mArea->SetPrimaryFrame(nsnull);
 
-    area->mArea->RemoveEventListener(NS_LITERAL_STRING("focus"), this,
-                                     false);
-    area->mArea->RemoveEventListener(NS_LITERAL_STRING("blur"), this,
-                                     false);
+    area->mArea->RemoveSystemEventListener(NS_LITERAL_STRING("focus"), this,
+                                           false);
+    area->mArea->RemoveSystemEventListener(NS_LITERAL_STRING("blur"), this,
+                                           false);
     delete area;
   }
   mAreas.Clear();
@@ -859,10 +859,10 @@ nsImageMap::AddArea(nsIContent* aArea)
     return NS_ERROR_OUT_OF_MEMORY;
 
   
-  aArea->AddEventListener(NS_LITERAL_STRING("focus"), this, false,
-                          false);
-  aArea->AddEventListener(NS_LITERAL_STRING("blur"), this, false,
-                          false);
+  aArea->AddSystemEventListener(NS_LITERAL_STRING("focus"), this, false,
+                                false);
+  aArea->AddSystemEventListener(NS_LITERAL_STRING("blur"), this, false,
+                                false);
 
   
   
