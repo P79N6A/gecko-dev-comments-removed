@@ -77,6 +77,10 @@ public:
   
   nsresult EnsureConnection();
 
+  nsIThread* ConnectionThread() {
+    return mConnectionThread;
+  }
+
   void OnObjectStoreCreated(const nsAString& aName);
   void OnIndexCreated(const nsAString& aName);
 
@@ -96,7 +100,7 @@ private:
 
   nsCOMPtr<nsIIDBTransaction> mCurrentTransaction;
 
-  nsRefPtr<LazyIdleThread> mStorageThread;
+  nsRefPtr<LazyIdleThread> mConnectionThread;
 
   
   nsCOMPtr<mozIStorageConnection> mConnection;
