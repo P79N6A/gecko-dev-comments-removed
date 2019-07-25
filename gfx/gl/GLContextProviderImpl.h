@@ -66,17 +66,6 @@ public:
     
 
 
-
-
-
-
-
-    static already_AddRefed<GLContext>
-    CreateForNativePixmapSurface(gfxASurface *aSurface);
-
-    
-
-
     static GLContext *
     GetGlobalContext( const ContextFlags aFlags = GLContext::ContextFlagsNone);
 
