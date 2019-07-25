@@ -56,18 +56,18 @@ namespace mozilla {
 namespace scache {
 
 NS_IMPORT nsresult
-NS_NewObjectInputStreamFromBuffer(char* buffer, PRUint32 len, 
-                                  nsIObjectInputStream** stream);
+NewObjectInputStreamFromBuffer(char* buffer, PRUint32 len, 
+                               nsIObjectInputStream** stream);
 
 
 
 NS_IMPORT nsresult
-NS_NewObjectOutputWrappedStorageStream(nsIObjectOutputStream **wrapperStream,
-                                       nsIStorageStream** stream);
+NewObjectOutputWrappedStorageStream(nsIObjectOutputStream **wrapperStream,
+                                    nsIStorageStream** stream);
 
 NS_IMPORT nsresult
-NS_NewBufferFromStorageStream(nsIStorageStream *storageStream, 
-                              char** buffer, PRUint32* len);
+NewBufferFromStorageStream(nsIStorageStream *storageStream, 
+                           char** buffer, PRUint32* len);
 }
 }
 
@@ -223,7 +223,7 @@ TestWriteObject() {
   char* bufPtr = NULL;
   nsAutoArrayPtr<char> buf;
   PRUint32 len;
-  NS_NewBufferFromStorageStream(storageStream, &bufPtr, &len);
+  NewBufferFromStorageStream(storageStream, &bufPtr, &len);
   buf = bufPtr;
 
   
@@ -245,7 +245,7 @@ TestWriteObject() {
   }
   buf2 = buf2Ptr;
 
-  rv = NS_NewObjectInputStreamFromBuffer(buf2, len2, getter_AddRefs(objectInput));
+  rv = NewObjectInputStreamFromBuffer(buf2, len2, getter_AddRefs(objectInput));
   if (NS_FAILED(rv)) {
     fail("failed to created input stream");
     return rv;

@@ -56,8 +56,6 @@
 #include "nsIPrincipal.h"
 #include "mozilla/scache/StartupCache.h"
 
-using namespace mozilla::scache;
-
 #include "xpcIJSGetFactory.h"
 
 
