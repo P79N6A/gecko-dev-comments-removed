@@ -805,6 +805,11 @@ public:
       : GetPosition();
   }
 
+  static void DestroyRegion(void* aPropertyValue)
+  {
+    delete static_cast<nsRegion*>(aPropertyValue);
+  }
+
   static void DestroyMargin(void* aPropertyValue)
   {
     delete static_cast<nsMargin*>(aPropertyValue);
@@ -1794,6 +1799,23 @@ public:
 
 
   virtual PRBool IsLeaf() const;
+
+  
+
+
+
+
+
+
+
+
+
+  void BeginDeferringInvalidatesForDisplayRoot(const nsRegion& aExcludeRegion);
+
+  
+
+
+  void EndDeferringInvalidatesForDisplayRoot();
 
   
 
