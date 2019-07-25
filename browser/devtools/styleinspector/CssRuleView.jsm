@@ -880,6 +880,13 @@ CssRuleView.prototype = {
   
   _viewedElement: null,
 
+  
+
+
+  get isEditing() {
+    return this.element.querySelectorAll(".styleinspector-propertyeditor").length > 0;
+  },
+
   destroy: function CssRuleView_destroy()
   {
     this.clear();
@@ -947,10 +954,20 @@ CssRuleView.prototype = {
   nodeChanged: function CssRuleView_nodeChanged()
   {
     
+    if (this.isEditing) {
+      return;
+    }
+
+    
     this._elementStyle.populate();
 
     
     this._createEditors();
+
+    
+    var evt = this.doc.createEvent("Events");
+    evt.initEvent("CssRuleViewRefreshed", true, false);
+    this.element.dispatchEvent(evt);
   },
 
   
