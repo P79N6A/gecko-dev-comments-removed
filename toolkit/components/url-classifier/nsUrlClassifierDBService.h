@@ -60,6 +60,7 @@
 #define COMPLETE_LENGTH 32
 
 class nsUrlClassifierDBServiceWorker;
+class nsIThread;
 
 
 
@@ -86,6 +87,8 @@ public:
                       nsIUrlClassifierHashCompleter** completer);
   nsresult CacheCompletions(nsTArray<nsUrlClassifierLookupResult> *results);
 
+  static nsIThread* BackgroundThread();
+
 private:
   
   ~nsUrlClassifierDBService();
@@ -100,7 +103,7 @@ private:
   nsresult Shutdown();
   
   nsCOMPtr<nsUrlClassifierDBServiceWorker> mWorker;
-  nsCOMPtr<nsUrlClassifierDBServiceWorker> mWorkerProxy;
+  nsCOMPtr<nsIUrlClassifierDBServiceWorker> mWorkerProxy;
 
   nsInterfaceHashtable<nsCStringHashKey, nsIUrlClassifierHashCompleter> mCompleters;
 
@@ -120,6 +123,9 @@ private:
 
   
   nsTArray<nsCString> mGethashWhitelist;
+
+  
+  static nsIThread* gDbBackgroundThread;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsUrlClassifierDBService, NS_URLCLASSIFIERDBSERVICE_CID)
