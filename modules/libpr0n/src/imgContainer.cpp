@@ -1624,7 +1624,8 @@ nsresult imgContainer::DoComposite(imgFrame** aFrameToUse,
       return rv;
     }
     needToBlankComposite = PR_TRUE;
-  } else if (aNextFrameIndex == 1) {
+  } else if (aNextFrameIndex != mAnim->lastCompositedFrameIndex+1) {
+
     
     needToBlankComposite = PR_TRUE;
   }
