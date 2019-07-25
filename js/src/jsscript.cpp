@@ -405,15 +405,14 @@ js::XDRScript(XDRState<mode> *xdr, JSScript **scriptp, JSScript *parentScript)
     };
 
     uint32_t length, lineno, nslots;
-    uint32_t natoms, nsrcnotes, ntrynotes, nobjects, nregexps, nconsts, i;
-    uint32_t prologLength, version, encodedClosedCount;
-    uint16_t nClosedArgs = 0, nClosedVars = 0;
+    uint32_t natoms, nsrcnotes, ntrynotes, nobjects, nregexps, nconsts, nClosedArgs, nClosedVars, i;
+    uint32_t prologLength, version;
     uint32_t nTypeSets = 0;
     uint32_t scriptBits = 0;
 
     JSContext *cx = xdr->cx();
     JSScript *script;
-    nsrcnotes = ntrynotes = natoms = nobjects = nregexps = nconsts = 0;
+    nsrcnotes = ntrynotes = natoms = nobjects = nregexps = nconsts = nClosedArgs = nClosedVars = 0;
     jssrcnote *notes = NULL;
 
     
@@ -533,18 +532,17 @@ js::XDRScript(XDRState<mode> *xdr, JSScript **scriptp, JSScript *parentScript)
         notes = script->notes();
         nsrcnotes = script->numNotes();
 
+        if (JSScript::isValidOffset(script->constsOffset))
+            nconsts = script->consts()->length;
         if (JSScript::isValidOffset(script->objectsOffset))
             nobjects = script->objects()->length;
         if (JSScript::isValidOffset(script->regexpsOffset))
             nregexps = script->regexps()->length;
         if (JSScript::isValidOffset(script->trynotesOffset))
             ntrynotes = script->trynotes()->length;
-        if (JSScript::isValidOffset(script->constOffset))
-            nconsts = script->consts()->length;
-
-        nClosedArgs = script->nClosedArgs;
-        nClosedVars = script->nClosedVars;
-        encodedClosedCount = (nClosedArgs << 16) | nClosedVars;
+        
+        nClosedArgs = script->nClosedArgs();
+        nClosedVars = script->nClosedVars();
 
         nTypeSets = script->nTypeSets;
 
@@ -597,7 +595,9 @@ js::XDRScript(XDRState<mode> *xdr, JSScript **scriptp, JSScript *parentScript)
         return JS_FALSE;
     if (!xdr->codeUint32(&nconsts))
         return JS_FALSE;
-    if (!xdr->codeUint32(&encodedClosedCount))
+    if (!xdr->codeUint32(&nClosedArgs))
+        return JS_FALSE;
+    if (!xdr->codeUint32(&nClosedVars))
         return JS_FALSE;
     if (!xdr->codeUint32(&nTypeSets))
         return JS_FALSE;
@@ -605,9 +605,6 @@ js::XDRScript(XDRState<mode> *xdr, JSScript **scriptp, JSScript *parentScript)
         return JS_FALSE;
 
     if (mode == XDR_DECODE) {
-        nClosedArgs = encodedClosedCount >> 16;
-        nClosedVars = encodedClosedCount & 0xFFFF;
-
         
         JSVersion version_ = JSVersion(version & JS_BITMASK(16));
         JS_ASSERT((version_ & VersionFlags::FULL_MASK) == unsigned(version_));
@@ -715,11 +712,11 @@ js::XDRScript(XDRState<mode> *xdr, JSScript **scriptp, JSScript *parentScript)
             return false;
     }
     for (i = 0; i != nClosedArgs; ++i) {
-        if (!xdr->codeUint32(&script->closedSlots[i]))
+        if (!xdr->codeUint32(&script->closedArgs()->vector[i]))
             return false;
     }
     for (i = 0; i != nClosedVars; ++i) {
-        if (!xdr->codeUint32(&script->closedSlots[nClosedArgs + i]))
+        if (!xdr->codeUint32(&script->closedVars()->vector[i]))
             return false;
     }
 
@@ -936,14 +933,6 @@ js::FreeScriptFilenames(JSCompartment *comp)
 
 
 
-JS_STATIC_ASSERT(sizeof(JSScript) % sizeof(void *) == 0);
-JS_STATIC_ASSERT(sizeof(JSObjectArray) % sizeof(void *) == 0);
-JS_STATIC_ASSERT(sizeof(JSTryNoteArray) == sizeof(JSObjectArray));
-JS_STATIC_ASSERT(sizeof(JSAtom *) == sizeof(JSObject *));
-JS_STATIC_ASSERT(sizeof(JSObject *) % sizeof(uint32_t) == 0);
-JS_STATIC_ASSERT(sizeof(JSTryNote) == 3 * sizeof(uint32_t));
-JS_STATIC_ASSERT(sizeof(uint32_t) % sizeof(jsbytecode) == 0);
-JS_STATIC_ASSERT(sizeof(jsbytecode) % sizeof(jssrcnote) == 0);
 
 
 
@@ -951,10 +940,67 @@ JS_STATIC_ASSERT(sizeof(jsbytecode) % sizeof(jssrcnote) == 0);
 
 
 
-JS_STATIC_ASSERT(sizeof(JSObjectArray) +
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define KEEPS_JSVAL_ALIGNMENT(T) \
+    (JS_ALIGNMENT_OF(jsval) % JS_ALIGNMENT_OF(T) == 0 && \
+     sizeof(T) % sizeof(jsval) == 0)
+
+#define HAS_JSVAL_ALIGNMENT(T) \
+    (JS_ALIGNMENT_OF(jsval) == JS_ALIGNMENT_OF(T) && \
+     sizeof(T) == sizeof(jsval))
+
+#define NO_PADDING_BETWEEN_ENTRIES(T1, T2) \
+    (JS_ALIGNMENT_OF(T1) % JS_ALIGNMENT_OF(T2) == 0)
+
+
+
+
+
+
+
+JS_STATIC_ASSERT(KEEPS_JSVAL_ALIGNMENT(JSConstArray));
+JS_STATIC_ASSERT(KEEPS_JSVAL_ALIGNMENT(JSObjectArray));     
+JS_STATIC_ASSERT(KEEPS_JSVAL_ALIGNMENT(JSTryNoteArray));
+JS_STATIC_ASSERT(KEEPS_JSVAL_ALIGNMENT(GlobalSlotArray));
+JS_STATIC_ASSERT(KEEPS_JSVAL_ALIGNMENT(ClosedSlotArray));   
+
+
+JS_STATIC_ASSERT(HAS_JSVAL_ALIGNMENT(HeapValue));
+JS_STATIC_ASSERT(NO_PADDING_BETWEEN_ENTRIES(HeapValue, JSAtom *));
+JS_STATIC_ASSERT(NO_PADDING_BETWEEN_ENTRIES(JSAtom *, HeapPtrObject));
+JS_STATIC_ASSERT(NO_PADDING_BETWEEN_ENTRIES(HeapPtrObject, HeapPtrObject));
+JS_STATIC_ASSERT(NO_PADDING_BETWEEN_ENTRIES(HeapPtrObject, JSTryNote));
+JS_STATIC_ASSERT(NO_PADDING_BETWEEN_ENTRIES(JSTryNote, GlobalSlotArray::Entry));
+JS_STATIC_ASSERT(NO_PADDING_BETWEEN_ENTRIES(GlobalSlotArray::Entry, uint32_t));
+JS_STATIC_ASSERT(NO_PADDING_BETWEEN_ENTRIES(uint32_t, uint32_t));
+JS_STATIC_ASSERT(NO_PADDING_BETWEEN_ENTRIES(uint32_t, jsbytecode));
+JS_STATIC_ASSERT(NO_PADDING_BETWEEN_ENTRIES(jsbytecode, jssrcnote));
+
+
+
+
+
+
+
+JS_STATIC_ASSERT(sizeof(JSConstArray) +
+                 sizeof(JSObjectArray) +
                  sizeof(JSObjectArray) +
                  sizeof(JSTryNoteArray) +
-                 sizeof(js::GlobalSlotArray)
+                 sizeof(js::GlobalSlotArray) +
+                 sizeof(js::ClosedSlotArray)
                  < JSScript::INVALID_OFFSET);
 JS_STATIC_ASSERT(JSScript::INVALID_OFFSET <= 255);
 
@@ -964,7 +1010,11 @@ JSScript::NewScript(JSContext *cx, uint32_t length, uint32_t nsrcnotes, uint32_t
                     uint32_t ntrynotes, uint32_t nconsts, uint32_t nglobals,
                     uint16_t nClosedArgs, uint16_t nClosedVars, uint32_t nTypeSets, JSVersion version)
 {
-    size_t size = sizeof(JSAtom *) * natoms;
+    size_t size = 0;
+
+    if (nconsts != 0)
+        size += sizeof(JSConstArray) + nconsts * sizeof(Value);
+    size += sizeof(JSAtom *) * natoms;
     if (nobjects != 0)
         size += sizeof(JSObjectArray) + nobjects * sizeof(JSObject *);
     if (nregexps != 0)
@@ -973,24 +1023,13 @@ JSScript::NewScript(JSContext *cx, uint32_t length, uint32_t nsrcnotes, uint32_t
         size += sizeof(JSTryNoteArray) + ntrynotes * sizeof(JSTryNote);
     if (nglobals != 0)
         size += sizeof(GlobalSlotArray) + nglobals * sizeof(GlobalSlotArray::Entry);
-    uint32_t totalClosed = nClosedArgs + nClosedVars;
-    if (totalClosed != 0)
-        size += totalClosed * sizeof(uint32_t);
+    if (nClosedArgs != 0)
+        size += sizeof(ClosedSlotArray) + nClosedArgs * sizeof(uint32_t);
+    if (nClosedVars != 0)
+        size += sizeof(ClosedSlotArray) + nClosedVars * sizeof(uint32_t);
 
-    
-
-
-
-
-
-    JS_STATIC_ASSERT(sizeof(JSObjectArray) % sizeof(jsval) == 0);
-    JS_STATIC_ASSERT(sizeof(JSTryNoteArray) % sizeof(jsval) == 0);
-    JS_STATIC_ASSERT(sizeof(GlobalSlotArray) % sizeof(jsval) == 0);
-    JS_STATIC_ASSERT(sizeof(JSConstArray) % sizeof(jsval) == 0);
-    if (nconsts != 0)
-        size += sizeof(JSConstArray) + nconsts * sizeof(Value);
-
-    size += length * sizeof(jsbytecode) + nsrcnotes * sizeof(jssrcnote);
+    size += length * sizeof(jsbytecode);
+    size += nsrcnotes * sizeof(jssrcnote);
 
     
 
@@ -1014,6 +1053,12 @@ JSScript::NewScript(JSContext *cx, uint32_t length, uint32_t nsrcnotes, uint32_t
     new (&script->bindings) Bindings(cx);
 
     uint8_t *cursor = data;
+    if (nconsts != 0) {
+        script->constsOffset = uint8_t(cursor - data);
+        cursor += sizeof(JSConstArray);
+    } else {
+        script->constsOffset = JSScript::INVALID_OFFSET;
+    }
     if (nobjects != 0) {
         script->objectsOffset = uint8_t(cursor - data);
         cursor += sizeof(JSObjectArray);
@@ -1038,19 +1083,19 @@ JSScript::NewScript(JSContext *cx, uint32_t length, uint32_t nsrcnotes, uint32_t
     } else {
         script->globalsOffset = JSScript::INVALID_OFFSET;
     }
-    JS_ASSERT(cursor - data < 0xFF);
-    if (nconsts != 0) {
-        script->constOffset = uint8_t(cursor - data);
-        cursor += sizeof(JSConstArray);
+    if (nClosedArgs != 0) {
+        script->closedArgsOffset = uint8_t(cursor - data);
+        cursor += sizeof(ClosedSlotArray);
     } else {
-        script->constOffset = JSScript::INVALID_OFFSET;
+        script->closedArgsOffset = JSScript::INVALID_OFFSET;
     }
-
-    JS_STATIC_ASSERT(sizeof(JSObjectArray) +
-                     sizeof(JSObjectArray) +
-                     sizeof(JSTryNoteArray) +
-                     sizeof(GlobalSlotArray) < 0xFF);
-
+    JS_ASSERT(cursor - data < 0xFF);
+    if (nClosedVars != 0) {
+        script->closedVarsOffset = uint8_t(cursor - data);
+        cursor += sizeof(ClosedSlotArray);
+    } else {
+        script->closedVarsOffset = JSScript::INVALID_OFFSET;
+    }
 
     if (nconsts != 0) {
         JS_ASSERT(reinterpret_cast<uintptr_t>(cursor) % sizeof(jsval) == 0);
@@ -1093,11 +1138,16 @@ JSScript::NewScript(JSContext *cx, uint32_t length, uint32_t nsrcnotes, uint32_t
         cursor += nglobals * sizeof(script->globals()->vector[0]);
     }
 
-    if (totalClosed != 0) {
-        script->nClosedArgs = nClosedArgs;
-        script->nClosedVars = nClosedVars;
-        script->closedSlots = reinterpret_cast<uint32_t *>(cursor);
-        cursor += totalClosed * sizeof(uint32_t);
+    if (nClosedArgs != 0) {
+        script->closedArgs()->length = nClosedArgs;
+        script->closedArgs()->vector = reinterpret_cast<uint32_t *>(cursor);
+        cursor += nClosedArgs * sizeof(script->closedArgs()->vector[0]);
+    }
+
+    if (nClosedVars != 0) {
+        script->closedVars()->length = nClosedVars;
+        script->closedVars()->vector = reinterpret_cast<uint32_t *>(cursor);
+        cursor += nClosedVars * sizeof(script->closedVars()->vector[0]);
     }
 
     JS_ASSERT(nTypeSets <= UINT16_MAX);
@@ -1229,12 +1279,10 @@ JSScript::NewScriptFromEmitter(JSContext *cx, BytecodeEmitter *bce)
                                         bce->globalUses.length());
     }
 
-    if (script->nClosedArgs)
-        PodCopy<uint32_t>(script->closedSlots, &bce->closedArgs[0], script->nClosedArgs);
-    if (script->nClosedVars) {
-        PodCopy<uint32_t>(&script->closedSlots[script->nClosedArgs], &bce->closedVars[0],
-                          script->nClosedVars);
-    }
+    if (nClosedArgs)
+        PodCopy<uint32_t>(script->closedArgs()->vector, &bce->closedArgs[0], nClosedArgs);
+    if (nClosedVars)
+        PodCopy<uint32_t>(script->closedVars()->vector, &bce->closedVars[0], nClosedVars);
 
     script->bindings.transfer(cx, &bce->bindings);
 
@@ -1614,12 +1662,6 @@ js::CloneScript(JSContext *cx, JSScript *script)
     return newScript;
 }
 
-void
-JSScript::copyClosedSlotsTo(JSScript *other)
-{
-    js_memcpy(other->closedSlots, closedSlots, nClosedArgs + nClosedVars);
-}
-
 bool
 JSScript::ensureHasDebug(JSContext *cx)
 {
@@ -1804,7 +1846,7 @@ JSScript::markChildren(JSTracer *trc)
         MarkObjectRange(trc, objarray->length, objarray->vector, "objects");
     }
 
-    if (JSScript::isValidOffset(constOffset)) {
+    if (JSScript::isValidOffset(constsOffset)) {
         JSConstArray *constarray = consts();
         MarkValueRange(trc, constarray->length, constarray->vector, "consts");
     }

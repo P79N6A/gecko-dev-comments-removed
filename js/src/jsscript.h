@@ -101,6 +101,11 @@ struct GlobalSlotArray {
     uint32_t        length;
 };
 
+struct ClosedSlotArray {
+    uint32_t        *vector;    
+    uint32_t        length;     
+};
+
 struct Shape;
 
 enum BindingKind { NONE, ARGUMENT, VARIABLE, CONSTANT };
@@ -350,6 +355,7 @@ struct JSScript : public js::gc::Cell
     jsbytecode      *code;      
     uint8_t         *data;      
 
+
     const char      *filename;  
     JSAtom          **atoms;    
 
@@ -370,8 +376,6 @@ struct JSScript : public js::gc::Cell
 
 
     js::HeapPtr<js::GlobalObject, JSScript*> globalObject;
-
-    uint32_t        *closedSlots; 
 
     
     js::ScriptOpcodeCounts pcCounters;
@@ -440,9 +444,6 @@ struct JSScript : public js::gc::Cell
     uint16_t        nslots;     
     uint16_t        staticLevel;
 
-    uint16_t        nClosedArgs;
-    uint16_t        nClosedVars;
-
     
 
     
@@ -450,6 +451,7 @@ struct JSScript : public js::gc::Cell
 
 
   public:
+    uint8_t         constsOffset;   
     uint8_t         objectsOffset;  
 
 
@@ -457,7 +459,8 @@ struct JSScript : public js::gc::Cell
 
     uint8_t         trynotesOffset; 
     uint8_t         globalsOffset;  
-    uint8_t         constOffset;    
+    uint8_t         closedArgsOffset; 
+    uint8_t         closedVarsOffset; 
 
     
 
@@ -650,6 +653,11 @@ struct JSScript : public js::gc::Cell
     static const uint8_t INVALID_OFFSET = 0xFF;
     static bool isValidOffset(uint8_t offset) { return offset != INVALID_OFFSET; }
 
+    JSConstArray *consts() {
+        JS_ASSERT(isValidOffset(constsOffset));
+        return reinterpret_cast<JSConstArray *>(data + constsOffset);
+    }
+
     JSObjectArray *objects() {
         JS_ASSERT(isValidOffset(objectsOffset));
         return reinterpret_cast<JSObjectArray *>(data + objectsOffset);
@@ -670,9 +678,22 @@ struct JSScript : public js::gc::Cell
         return reinterpret_cast<js::GlobalSlotArray *>(data + globalsOffset);
     }
 
-    JSConstArray *consts() {
-        JS_ASSERT(isValidOffset(constOffset));
-        return reinterpret_cast<JSConstArray *>(data + constOffset);
+    js::ClosedSlotArray *closedArgs() {
+        JS_ASSERT(isValidOffset(closedArgsOffset));
+        return reinterpret_cast<js::ClosedSlotArray *>(data + closedArgsOffset);
+    }
+
+    js::ClosedSlotArray *closedVars() {
+        JS_ASSERT(isValidOffset(closedVarsOffset));
+        return reinterpret_cast<js::ClosedSlotArray *>(data + closedVarsOffset);
+    }
+
+    uint32_t nClosedArgs() {
+        return isValidOffset(closedArgsOffset) ? closedArgs()->length : 0;
+    }
+
+    uint32_t nClosedVars() {
+        return isValidOffset(closedVarsOffset) ? closedVars()->length : 0;
     }
 
     JSAtom *getAtom(size_t index) {
@@ -713,16 +734,16 @@ struct JSScript : public js::gc::Cell
     inline bool isEmpty() const;
 
     uint32_t getClosedArg(uint32_t index) {
-        JS_ASSERT(index < nClosedArgs);
-        return closedSlots[index];
+        js::ClosedSlotArray *arr = closedArgs();
+        JS_ASSERT(index < arr->length);
+        return arr->vector[index];
     }
 
     uint32_t getClosedVar(uint32_t index) {
-        JS_ASSERT(index < nClosedVars);
-        return closedSlots[nClosedArgs + index];
+        js::ClosedSlotArray *arr = closedVars();
+        JS_ASSERT(index < arr->length);
+        return arr->vector[index];
     }
-
-    void copyClosedSlotsTo(JSScript *other);
 
   private:
     
