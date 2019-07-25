@@ -176,9 +176,6 @@
 
 
 
-
-
-
 #define MALLOC_PAGEFILE
 #endif
 
@@ -1201,7 +1198,7 @@ typedef struct {
 
 
 
-static char	*umax2s(uintmax_t x, char *s);
+static char	*umax2s(uintmax_t x, unsigned base, char *s);
 static bool	malloc_mutex_init(malloc_mutex_t *mutex);
 static bool	malloc_spin_init(malloc_spinlock_t *lock);
 static void	wrtmessage(const char *p1, const char *p2, const char *p3,
@@ -1277,8 +1274,10 @@ static
 #endif
 bool		malloc_init_hard(void);
 
-void		_malloc_prefork(void);
-void		_malloc_postfork(void);
+static void	_malloc_prefork(void);
+static void	_malloc_postfork(void);
+
+#ifdef MOZ_MEMORY_DARWIN
 
 
 
@@ -1290,19 +1289,96 @@ void		_malloc_postfork(void);
 
 
 
-#define	UMAX2S_BUFSIZE	21
-static char *
-umax2s(uintmax_t x, char *s)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "osx_zone_types.h"
+
+#define LEOPARD_MALLOC_ZONE_T_VERSION 3
+#define SNOW_LEOPARD_MALLOC_ZONE_T_VERSION 6
+#define LION_MALLOC_ZONE_T_VERSION 8
+
+
+
+
+
+static lion_malloc_zone l_jemalloc_zone, l_szone;
+static malloc_zone_t * const jemalloc_zone = (malloc_zone_t*)(&l_jemalloc_zone);
+static malloc_zone_t * szone = (malloc_zone_t*)(&l_szone);
+
+
+static lion_malloc_introspection l_zone_introspect, l_ozone_introspect;
+static malloc_introspection_t * const zone_introspect =
+	(malloc_introspection_t*)(&l_zone_introspect);
+static malloc_introspection_t * const ozone_introspect =
+	(malloc_introspection_t*)(&l_ozone_introspect);
+static malloc_zone_t *create_zone(unsigned version);
+static void szone2ozone(malloc_zone_t *zone, size_t size);
+static size_t zone_version_size(int version);
+#endif
+
+
+static bool use_jemalloc = false;
+
+
+
+
+
+
+
+
+
+
+
+
+#define	UMAX2S_BUFSIZE	65
+char *
+umax2s(uintmax_t x, unsigned base, char *s)
 {
 	unsigned i;
 
 	i = UMAX2S_BUFSIZE - 1;
 	s[i] = '\0';
-	do {
-		i--;
-		s[i] = "0123456789"[x % 10];
-		x /= 10;
-	} while (x > 0);
+	switch (base) {
+	case 10:
+		do {
+			i--;
+			s[i] = "0123456789"[x % 10];
+			x /= 10;
+		} while (x > 0);
+		break;
+	case 16:
+		do {
+			i--;
+			s[i] = "0123456789abcdef"[x & 0xf];
+			x >>= 4;
+		} while (x > 0);
+		break;
+	default:
+		do {
+			i--;
+			s[i] = "0123456789abcdefghijklmnopqrstuvwxyz"[x % base];
+			x /= base;
+		} while (x > 0);
+	}
 
 	return (&s[i]);
 }
@@ -1328,7 +1404,7 @@ void	(*_malloc_message)(const char *p1, const char *p2, const char *p3,
 #  define assert(e) do {						\
 	if (!(e)) {							\
 		char line_buf[UMAX2S_BUFSIZE];				\
-		_malloc_message(__FILE__, ":", umax2s(__LINE__,		\
+		_malloc_message(__FILE__, ":", umax2s(__LINE__, 10,	\
 		    line_buf), ": Failed assertion: ");			\
 		_malloc_message("\"", #e, "\"\n", "");			\
 		abort();						\
@@ -1659,19 +1735,42 @@ static int
 utrace(const void *addr, size_t len)
 {
 	malloc_utrace_t *ut = (malloc_utrace_t *)addr;
+	char buf_a[UMAX2S_BUFSIZE];
+	char buf_b[UMAX2S_BUFSIZE];
 
 	assert(len == sizeof(malloc_utrace_t));
 
-	if (ut->p == NULL && ut->s == 0 && ut->r == NULL)
-		malloc_printf("%d x USER malloc_init()\n", getpid());
-	else if (ut->p == NULL && ut->r != NULL) {
-		malloc_printf("%d x USER %p = malloc(%zu)\n", getpid(), ut->r,
-		    ut->s);
+	if (ut->p == NULL && ut->s == 0 && ut->r == NULL) {
+		_malloc_message(
+		    umax2s(getpid(), 10, buf_a),
+		    " x USER malloc_init()\n", "", "");
+	} else if (ut->p == NULL && ut->r != NULL) {
+		_malloc_message(
+		    umax2s(getpid(), 10, buf_a),
+		    " x USER 0x",
+		    umax2s((uintptr_t)ut->r, 16, buf_b),
+		    " = malloc(");
+		_malloc_message(
+		    umax2s(ut->s, 10, buf_a),
+		    ")\n", "", "");
 	} else if (ut->p != NULL && ut->r != NULL) {
-		malloc_printf("%d x USER %p = realloc(%p, %zu)\n", getpid(),
-		    ut->r, ut->p, ut->s);
-	} else
-		malloc_printf("%d x USER free(%p)\n", getpid(), ut->p);
+		_malloc_message(
+		    umax2s(getpid(), 10, buf_a),
+		    " x USER 0x",
+		    umax2s((uintptr_t)ut->r, 16, buf_b),
+		    " = realloc(0x");
+		_malloc_message(
+		    umax2s((uintptr_t)ut->p, 16, buf_a),
+		    ", ",
+		    umax2s(ut->s, 10, buf_b),
+		    ")\n");
+	} else {
+		_malloc_message(
+		    umax2s(getpid(), 10, buf_a),
+		    " x USER free(0x",
+		    umax2s((uintptr_t)ut->p, 16, buf_b),
+		    ")\n");
+	}
 
 	return (0);
 }
@@ -2071,59 +2170,7 @@ pages_unmap(void *addr, size_t size)
 			abort();
 	}
 }
-#elif (defined(MOZ_MEMORY_DARWIN))
-static void *
-pages_map(void *addr, size_t size, int pfd)
-{
-	void *ret;
-	kern_return_t err;
-	int flags;
-
-	if (addr != NULL) {
-		ret = addr;
-		flags = 0;
-	} else
-		flags = VM_FLAGS_ANYWHERE;
-
-	err = vm_allocate((vm_map_t)mach_task_self(), (vm_address_t *)&ret,
-	    (vm_size_t)size, flags);
-	if (err != KERN_SUCCESS)
-		ret = NULL;
-
-	assert(ret == NULL || (addr == NULL && ret != addr)
-	    || (addr != NULL && ret == addr));
-	return (ret);
-}
-
-static void
-pages_unmap(void *addr, size_t size)
-{
-	kern_return_t err;
-
-	err = vm_deallocate((vm_map_t)mach_task_self(), (vm_address_t)addr,
-	    (vm_size_t)size);
-	if (err != KERN_SUCCESS) {
-		malloc_message(_getprogname(),
-		    ": (malloc) Error in vm_deallocate(): ",
-		    mach_error_string(err), "\n");
-		if (opt_abort)
-			abort();
-	}
-}
-
-#define	VM_COPY_MIN (pagesize << 5)
-static inline void
-pages_copy(void *dest, const void *src, size_t n)
-{
-
-	assert((void *)((uintptr_t)dest & ~pagesize_mask) == dest);
-	assert(n >= VM_COPY_MIN);
-	assert((void *)((uintptr_t)src & ~pagesize_mask) == src);
-
-	vm_copy(mach_task_self(), (vm_address_t)src, (vm_size_t)n,
-	    (vm_address_t)dest);
-}
-#else 
+#else
 #ifdef JEMALLOC_USES_MAP_ALIGN
 static void *
 pages_map_align(size_t size, int pfd, size_t alignment)
@@ -2212,6 +2259,21 @@ pages_unmap(void *addr, size_t size)
 }
 #endif
 
+#ifdef MOZ_MEMORY_DARWIN
+#define	VM_COPY_MIN (pagesize << 5)
+static inline void
+pages_copy(void *dest, const void *src, size_t n)
+{
+
+	assert((void *)((uintptr_t)dest & ~pagesize_mask) == dest);
+	assert(n >= VM_COPY_MIN);
+	assert((void *)((uintptr_t)src & ~pagesize_mask) == src);
+
+	vm_copy(mach_task_self(), (vm_address_t)src, (vm_size_t)n,
+	    (vm_address_t)dest);
+}
+#endif
+
 #ifdef MALLOC_VALIDATE
 static inline malloc_rtree_t *
 malloc_rtree_new(unsigned bits)
@@ -2226,8 +2288,8 @@ malloc_rtree_new(unsigned bits)
 		height++;
 	assert(height * bits_per_level >= bits);
 
-	ret = (malloc_rtree_t*)base_calloc(1, sizeof(malloc_rtree_t) + (sizeof(unsigned) *
-	    (height - 1)));
+	ret = (malloc_rtree_t*)base_calloc(1, sizeof(malloc_rtree_t) +
+	    (sizeof(unsigned) * (height - 1)));
 	if (ret == NULL)
 		return (NULL);
 
@@ -2252,36 +2314,73 @@ malloc_rtree_new(unsigned bits)
 	return (ret);
 }
 
-
-static inline void *
-malloc_rtree_get(malloc_rtree_t *rtree, uintptr_t key)
-{
-	void *ret;
-	uintptr_t subkey;
-	unsigned i, lshift, height, bits;
-	void **node, **child;
-
-	malloc_spin_lock(&rtree->lock);
-	for (i = lshift = 0, height = rtree->height, node = rtree->root;
-	    i < height - 1;
-	    i++, lshift += bits, node = child) {
-		bits = rtree->level2bits[i];
-		subkey = (key << lshift) >> ((SIZEOF_PTR << 3) - bits);
-		child = (void**)node[subkey];
-		if (child == NULL) {
-			malloc_spin_unlock(&rtree->lock);
-			return (NULL);
-		}
-	}
-
-	
-	bits = rtree->level2bits[i];
-	subkey = (key << lshift) >> ((SIZEOF_PTR << 3) - bits);
-	ret = node[subkey];
-	malloc_spin_unlock(&rtree->lock);
-
-	return (ret);
+#define	MALLOC_RTREE_GET_GENERATE(f)					\
+/* The least significant bits of the key are ignored. */		\
+static inline void *							\
+f(malloc_rtree_t *rtree, uintptr_t key)					\
+{									\
+	void *ret;							\
+	uintptr_t subkey;						\
+	unsigned i, lshift, height, bits;				\
+	void **node, **child;						\
+									\
+	MALLOC_RTREE_LOCK(&rtree->lock);				\
+	for (i = lshift = 0, height = rtree->height, node = rtree->root;\
+	    i < height - 1;						\
+	    i++, lshift += bits, node = child) {			\
+		bits = rtree->level2bits[i];				\
+		subkey = (key << lshift) >> ((SIZEOF_PTR << 3) - bits);	\
+		child = (void**)node[subkey];				\
+		if (child == NULL) {					\
+			MALLOC_RTREE_UNLOCK(&rtree->lock);		\
+			return (NULL);					\
+		}							\
+	}								\
+									\
+	/*								\
+	 * node is a leaf, so it contains values rather than node	\
+	 * pointers.							\
+	 */								\
+	bits = rtree->level2bits[i];					\
+	subkey = (key << lshift) >> ((SIZEOF_PTR << 3) - bits);		\
+	ret = node[subkey];						\
+	MALLOC_RTREE_UNLOCK(&rtree->lock);				\
+									\
+	MALLOC_RTREE_GET_VALIDATE					\
+	return (ret);							\
 }
+
+#ifdef MALLOC_DEBUG
+#  define MALLOC_RTREE_LOCK(l)		malloc_spin_lock(l)
+#  define MALLOC_RTREE_UNLOCK(l)	malloc_spin_unlock(l)
+#  define MALLOC_RTREE_GET_VALIDATE
+MALLOC_RTREE_GET_GENERATE(malloc_rtree_get_locked)
+#  undef MALLOC_RTREE_LOCK
+#  undef MALLOC_RTREE_UNLOCK
+#  undef MALLOC_RTREE_GET_VALIDATE
+#endif
+
+#define	MALLOC_RTREE_LOCK(l)
+#define	MALLOC_RTREE_UNLOCK(l)
+#ifdef MALLOC_DEBUG
+   
+
+
+
+
+
+
+
+
+#  define MALLOC_RTREE_GET_VALIDATE					\
+	assert(malloc_rtree_get_locked(rtree, key) == ret);
+#else
+#  define MALLOC_RTREE_GET_VALIDATE
+#endif
+MALLOC_RTREE_GET_GENERATE(malloc_rtree_get)
+#undef MALLOC_RTREE_LOCK
+#undef MALLOC_RTREE_UNLOCK
+#undef MALLOC_RTREE_GET_VALIDATE
 
 static inline bool
 malloc_rtree_set(malloc_rtree_t *rtree, uintptr_t key, void *val)
@@ -5014,23 +5113,27 @@ malloc_print_stats(void)
 		_malloc_message("\n", "", "", "");
 
 #ifndef MOZ_MEMORY_NARENAS_DEFAULT_ONE
-		_malloc_message("CPUs: ", umax2s(ncpus, s), "\n", "");
+		_malloc_message("CPUs: ", umax2s(ncpus, 10, s), "\n", "");
 #endif
-		_malloc_message("Max arenas: ", umax2s(narenas, s), "\n", "");
+		_malloc_message("Max arenas: ", umax2s(narenas, 10, s), "\n",
+		    "");
 #ifdef MALLOC_BALANCE
 		_malloc_message("Arena balance threshold: ",
-		    umax2s(opt_balance_threshold, s), "\n", "");
+		    umax2s(opt_balance_threshold, 10, s), "\n", "");
 #endif
-		_malloc_message("Pointer size: ", umax2s(sizeof(void *), s),
+		_malloc_message("Pointer size: ", umax2s(sizeof(void *), 10, s),
 		    "\n", "");
-		_malloc_message("Quantum size: ", umax2s(quantum, s), "\n", "");
-		_malloc_message("Max small size: ", umax2s(small_max, s), "\n",
+		_malloc_message("Quantum size: ", umax2s(quantum, 10, s), "\n",
 		    "");
+		_malloc_message("Max small size: ", umax2s(small_max, 10, s),
+		    "\n", "");
 		_malloc_message("Max dirty pages per arena: ",
-		    umax2s(opt_dirty_max, s), "\n", "");
+		    umax2s(opt_dirty_max, 10, s), "\n", "");
 
-		_malloc_message("Chunk size: ", umax2s(chunksize, s), "", "");
-		_malloc_message(" (2^", umax2s(opt_chunk_2pow, s), ")\n", "");
+		_malloc_message("Chunk size: ", umax2s(chunksize, 10, s), "",
+		    "");
+		_malloc_message(" (2^", umax2s(opt_chunk_2pow, 10, s), ")\n",
+		    "");
 
 #ifdef MALLOC_STATS
 		{
@@ -5155,6 +5258,9 @@ malloc_init_hard(void)
 	long result;
 #ifndef MOZ_MEMORY_WINDOWS
 	int linklen;
+#endif
+#ifdef MOZ_MEMORY_DARWIN
+    malloc_zone_t* default_zone;
 #endif
 
 #ifndef MOZ_MEMORY_WINDOWS
@@ -5682,6 +5788,39 @@ MALLOC_OUT:
 #endif
 
 	malloc_initialized = true;
+
+#ifdef MOZ_MEMORY_DARWIN
+    
+
+
+    default_zone = malloc_default_zone();
+
+    
+    use_jemalloc = (default_zone->version <= LION_MALLOC_ZONE_T_VERSION);
+
+    
+	if (getenv("NO_MAC_JEMALLOC"))
+        use_jemalloc = false;
+
+    if (use_jemalloc) {
+        size_t size;
+
+        
+        malloc_zone_register(create_zone(default_zone->version));
+
+        
+
+
+
+
+        size = zone_version_size(default_zone->version);
+        szone2ozone(default_zone, size);
+    }
+    else {
+        szone = default_zone;
+    }
+#endif
+
 #ifndef MOZ_MEMORY_WINDOWS
 	malloc_mutex_unlock(&init_lock);
 #endif
@@ -5709,35 +5848,20 @@ malloc_shutdown()
 
 
 
-
-#ifdef MOZ_MEMORY_DARWIN
-#  define ZONE_INLINE	inline
-#else
-#  define ZONE_INLINE
-#endif
-
-
-
-#if defined(MOZ_MEMORY_DARWIN)
-#define	malloc(a)	moz_malloc(a)
-#define	valloc(a)	moz_valloc(a)
-#define	calloc(a, b)	moz_calloc(a, b)
-#define	realloc(a, b)	moz_realloc(a, b)
-#define	free(a)		moz_free(a)
-#endif
-
-#if defined(MOZ_MEMORY_ANDROID) || defined(WRAP_MALLOC) || defined(WIN32_NEW_STYLE_JEMALLOC)
+#if defined(MOZ_MEMORY_DARWIN) || defined(MOZ_MEMORY_ANDROID) || \
+    defined(WRAP_MALLOC) || defined(WIN32_NEW_STYLE_JEMALLOC)
 inline void sys_free(void* ptr) {return free(ptr);}
-#define	malloc(a)	je_malloc(a)
-#define	valloc(a)	je_valloc(a)
-#define	calloc(a, b)	je_calloc(a, b)
-#define	realloc(a, b)	je_realloc(a, b)
-#define	free(a)		je_free(a)
-#if defined(WIN32_NEW_STYLE_JEMALLOC)
-#define memalign(a, b) je_memalign(a, b)
+#define	malloc(a)               je_malloc(a)
+#if defined(WIN32_NEW_STYLE_JEMALLOC) || defined(MOZ_MEMORY_DARWIN)
+#define	memalign(a, b)          je_memalign(a, b)
 #endif
-#define posix_memalign(a, b, c)  je_posix_memalign(a, b, c)
-#define malloc_usable_size(a) je_malloc_usable_size(a)
+#define	posix_memalign(a, b, c) je_posix_memalign(a, b, c)
+#define	valloc(a)               je_valloc(a)
+#define	calloc(a, b)            je_calloc(a, b)
+#define	realloc(a, b)           je_realloc(a, b)
+#define	free(a)                 je_free(a)
+#define	malloc_usable_size(a)   je_malloc_usable_size(a)
+ 
 
 char    *je_strndup(const char *src, size_t len) {
   char* dst = (char*)je_malloc(len + 1);
@@ -5751,11 +5875,34 @@ char    *je_strdup(const char *src) {
 }
 #endif
 
-ZONE_INLINE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(MOZ_MEMORY_DARWIN) && !defined(__i386__)
+#define DARWIN_ONLY(A) if (!use_jemalloc) { A; }
+#else
+#define DARWIN_ONLY(A)
+#endif
+
 void *
 malloc(size_t size)
 {
 	void *ret;
+
+	DARWIN_ONLY(return (szone->malloc)(szone, size));
 
 	if (malloc_init()) {
 		ret = NULL;
@@ -5835,6 +5982,8 @@ MEMALIGN(size_t alignment, size_t size)
 {
 	void *ret;
 
+	DARWIN_ONLY(return (szone->memalign)(szone, alignment, size));
+
 	assert(((alignment - 1) & alignment) == 0);
 
 	if (malloc_init()) {
@@ -5876,7 +6025,6 @@ extern __typeof(memalign_internal)
 				visibility ("default")));
 #endif
 
-ZONE_INLINE
 int
 posix_memalign(void **memptr, size_t alignment, size_t size)
 {
@@ -5897,11 +6045,8 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 	
 
-#ifdef MOZ_MEMORY_DARWIN
-	result = moz_memalign(alignment, size);
-#else
 	result = MEMALIGN(alignment, size);
-#endif
+
 	if (result == NULL)
 		return (ENOMEM);
 
@@ -5909,23 +6054,19 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 	return (0);
 }
 
-ZONE_INLINE
 void *
 valloc(size_t size)
 {
-#ifdef MOZ_MEMORY_DARWIN
-	return (moz_memalign(pagesize, size));
-#else
 	return (MEMALIGN(pagesize, size));
-#endif
 }
 
-ZONE_INLINE
 void *
 calloc(size_t num, size_t size)
 {
 	void *ret;
 	size_t num_size;
+
+	DARWIN_ONLY(return (szone->calloc)(szone, num, size));
 
 	if (malloc_init()) {
 		num_size = 0;
@@ -5976,11 +6117,12 @@ RETURN:
 	return (ret);
 }
 
-ZONE_INLINE
 void *
 realloc(void *ptr, size_t size)
 {
 	void *ret;
+
+	DARWIN_ONLY(return (szone->realloc)(szone, ptr, size));
 
 	if (size == 0) {
 #ifdef MALLOC_SYSV
@@ -6039,12 +6181,13 @@ RETURN:
 	return (ret);
 }
 
-ZONE_INLINE
 void
 free(void *ptr)
 {
 	size_t offset;
 	
+	DARWIN_ONLY((szone->free)(szone, ptr); return);
+
 	UTRACE(ptr, 0, 0);
 
 	
@@ -6074,6 +6217,7 @@ size_t
 malloc_usable_size(const void *ptr)
 #endif
 {
+	DARWIN_ONLY(return (szone->size)(szone, ptr));
 
 #ifdef MALLOC_VALIDATE
 	return (isalloc_validate(ptr));
@@ -6164,8 +6308,6 @@ jemalloc_stats(jemalloc_stats_t *stats)
 	for (i = 0; i < narenas; i++) {
 		arena_t *arena = arenas[i];
 		if (arena != NULL) {
-			arena_chunk_t *chunk;
-
 			malloc_spin_lock(&arena->lock);
 			stats->allocated += arena->stats.allocated_small;
 			stats->allocated += arena->stats.allocated_large;
@@ -6241,7 +6383,7 @@ _msize(const void *ptr)
 
 
 
-void
+static void
 _malloc_prefork(void)
 {
 	unsigned i;
@@ -6259,7 +6401,7 @@ _malloc_prefork(void)
 	malloc_mutex_lock(&huge_mtx);
 }
 
-void
+static void
 _malloc_postfork(void)
 {
 	unsigned i;
@@ -6287,8 +6429,6 @@ _malloc_postfork(void)
 #endif
 
 #ifdef MOZ_MEMORY_DARWIN
-static malloc_zone_t zone;
-static struct malloc_introspection_t zone_introspect;
 
 static size_t
 zone_size(malloc_zone_t *zone, void *ptr)
@@ -6345,6 +6485,19 @@ zone_realloc(malloc_zone_t *zone, void *ptr, size_t size)
 }
 
 static void *
+zone_memalign(malloc_zone_t *zone, size_t alignment, size_t size)
+{
+	return (memalign(alignment, size));
+}
+
+static void
+zone_free_definite_size(malloc_zone_t *zone, void *ptr, size_t size)
+{
+	assert(isalloc_validate(ptr) == size);
+	free(ptr);
+}
+
+static void *
 zone_destroy(malloc_zone_t *zone)
 {
 
@@ -6389,62 +6542,231 @@ zone_force_unlock(malloc_zone_t *zone)
 }
 
 static malloc_zone_t *
-create_zone(void)
+create_zone(unsigned version)
 {
-
 	assert(malloc_initialized);
 
-	zone.size = (void *)zone_size;
-	zone.malloc = (void *)zone_malloc;
-	zone.calloc = (void *)zone_calloc;
-	zone.valloc = (void *)zone_valloc;
-	zone.free = (void *)zone_free;
-	zone.realloc = (void *)zone_realloc;
-	zone.destroy = (void *)zone_destroy;
-	zone.zone_name = "jemalloc_zone";
-	zone.batch_malloc = NULL;
-	zone.batch_free = NULL;
-	zone.introspect = &zone_introspect;
+	jemalloc_zone->size = (void *)zone_size;
+	jemalloc_zone->malloc = (void *)zone_malloc;
+	jemalloc_zone->calloc = (void *)zone_calloc;
+	jemalloc_zone->valloc = (void *)zone_valloc;
+	jemalloc_zone->free = (void *)zone_free;
+	jemalloc_zone->realloc = (void *)zone_realloc;
+	jemalloc_zone->destroy = (void *)zone_destroy;
+	jemalloc_zone->zone_name = "jemalloc_zone";
+	jemalloc_zone->version = version;
+	jemalloc_zone->batch_malloc = NULL;
+	jemalloc_zone->batch_free = NULL;
+	jemalloc_zone->introspect = zone_introspect;
 
-	zone_introspect.enumerator = NULL;
-	zone_introspect.good_size = (void *)zone_good_size;
-	zone_introspect.check = NULL;
-	zone_introspect.print = NULL;
-	zone_introspect.log = NULL;
-	zone_introspect.force_lock = (void *)zone_force_lock;
-	zone_introspect.force_unlock = (void *)zone_force_unlock;
-	zone_introspect.statistics = NULL;
+	zone_introspect->enumerator = NULL;
+	zone_introspect->good_size = (void *)zone_good_size;
+	zone_introspect->check = NULL;
+	zone_introspect->print = NULL;
+	zone_introspect->log = NULL;
+	zone_introspect->force_lock = (void *)zone_force_lock;
+	zone_introspect->force_unlock = (void *)zone_force_unlock;
+	zone_introspect->statistics = NULL;
 
-	return (&zone);
+	
+
+
+
+
+	
+	l_jemalloc_zone.m15 = (void (*)())zone_memalign;
+	l_jemalloc_zone.m16 = (void (*)())zone_free_definite_size;
+    l_zone_introspect.m9 = NULL;
+
+	
+	l_jemalloc_zone.m17 = NULL;
+	l_zone_introspect.m10 = NULL;
+	l_zone_introspect.m11 = NULL;
+	l_zone_introspect.m12 = NULL;
+	l_zone_introspect.m13 = NULL;
+
+	return jemalloc_zone;
+}
+
+static size_t
+ozone_size(malloc_zone_t *zone, void *ptr)
+{
+	size_t ret = isalloc_validate(ptr);
+	if (ret == 0)
+		ret = szone->size(zone, ptr);
+
+	return ret;
+}
+
+static void
+ozone_free(malloc_zone_t *zone, void *ptr)
+{
+	if (isalloc_validate(ptr) != 0)
+		free(ptr);
+	else {
+		size_t size = szone->size(zone, ptr);
+		if (size != 0)
+			(szone->free)(zone, ptr);
+		
+	}
+}
+
+static void *
+ozone_realloc(malloc_zone_t *zone, void *ptr, size_t size)
+{
+    size_t oldsize;
+	if (ptr == NULL)
+		return (malloc(size));
+
+	oldsize = isalloc_validate(ptr);
+	if (oldsize != 0)
+		return (realloc(ptr, size));
+	else {
+		oldsize = szone->size(zone, ptr);
+		if (oldsize == 0)
+			return (malloc(size));
+		else {
+			void *ret = malloc(size);
+			if (ret != NULL) {
+				memcpy(ret, ptr, (oldsize < size) ? oldsize :
+				    size);
+				(szone->free)(zone, ptr);
+			}
+			return (ret);
+		}
+	}
+}
+
+static unsigned
+ozone_batch_malloc(malloc_zone_t *zone, size_t size, void **results,
+    unsigned num_requested)
+{
+	
+	return 0;
+}
+
+static void
+ozone_batch_free(malloc_zone_t *zone, void **to_be_freed, unsigned num)
+{
+	unsigned i;
+
+	for (i = 0; i < num; i++)
+		ozone_free(zone, to_be_freed[i]);
+}
+
+static void
+ozone_free_definite_size(malloc_zone_t *zone, void *ptr, size_t size)
+{
+	if (isalloc_validate(ptr) != 0) {
+		assert(isalloc_validate(ptr) == size);
+		free(ptr);
+	} else {
+		assert(size == szone->size(zone, ptr));
+		l_szone.m16(zone, ptr, size);
+	}
+}
+
+static void
+ozone_force_lock(malloc_zone_t *zone)
+{
+	
+	szone->introspect->force_lock(zone);
+}
+
+static void
+ozone_force_unlock(malloc_zone_t *zone)
+{
+	
+	szone->introspect->force_unlock(zone);
+}
+
+static size_t
+zone_version_size(int version)
+{
+    switch (version)
+    {
+        case SNOW_LEOPARD_MALLOC_ZONE_T_VERSION:
+            return sizeof(snow_leopard_malloc_zone);
+        case LEOPARD_MALLOC_ZONE_T_VERSION:
+            return sizeof(leopard_malloc_zone);
+        default:
+        case LION_MALLOC_ZONE_T_VERSION:
+            return sizeof(lion_malloc_zone);
+    }
+}
+
+
+
+
+
+
+
+static void
+szone2ozone(malloc_zone_t *default_zone, size_t size)
+{
+    lion_malloc_zone *l_zone;
+	assert(malloc_initialized);
+
+	
+
+
+
+
+
+
+	memcpy(szone, default_zone, size);
+
+	
+	if (default_zone->version >= LION_MALLOC_ZONE_T_VERSION) {
+		void* start_of_page = (void*)((size_t)(default_zone) & ~pagesize_mask);
+		mprotect (start_of_page, size, PROT_READ | PROT_WRITE);
+	}
+
+	default_zone->size = (void *)ozone_size;
+	default_zone->malloc = (void *)zone_malloc;
+	default_zone->calloc = (void *)zone_calloc;
+	default_zone->valloc = (void *)zone_valloc;
+	default_zone->free = (void *)ozone_free;
+	default_zone->realloc = (void *)ozone_realloc;
+	default_zone->destroy = (void *)zone_destroy;
+	default_zone->zone_name = "jemalloc_ozone";
+	default_zone->batch_malloc = NULL;
+	default_zone->batch_free = ozone_batch_free;
+	default_zone->introspect = ozone_introspect;
+
+	ozone_introspect->enumerator = NULL;
+	ozone_introspect->good_size = (void *)zone_good_size;
+	ozone_introspect->check = NULL;
+	ozone_introspect->print = NULL;
+	ozone_introspect->log = NULL;
+	ozone_introspect->force_lock = (void *)ozone_force_lock;
+	ozone_introspect->force_unlock = (void *)ozone_force_unlock;
+	ozone_introspect->statistics = NULL;
+
+    
+    l_zone = (lion_malloc_zone*)(default_zone);
+
+    if (default_zone->version >= SNOW_LEOPARD_MALLOC_ZONE_T_VERSION) {
+        l_zone->m15 = (void (*)())zone_memalign;
+        l_zone->m16 = (void (*)())ozone_free_definite_size;
+        l_ozone_introspect.m9 = NULL;
+    }
+
+    if (default_zone->version >= LION_MALLOC_ZONE_T_VERSION) {
+        l_zone->m17 = NULL;
+        l_ozone_introspect.m10 = NULL;
+        l_ozone_introspect.m11 = NULL;
+        l_ozone_introspect.m12 = NULL;
+        l_ozone_introspect.m13 = NULL;
+    }
 }
 
 __attribute__((constructor))
 void
 jemalloc_darwin_init(void)
 {
-	extern unsigned malloc_num_zones;
-	extern malloc_zone_t **malloc_zones;
-
 	if (malloc_init_hard())
 		abort();
-
-	
-
-
-
-
-	
-	malloc_zone_register(create_zone());
-	assert(malloc_zones[malloc_num_zones - 1] == &zone);
-
-	
-
-
-
-	assert(malloc_num_zones > 1);
-	memmove(&malloc_zones[1], &malloc_zones[0],
-		sizeof(malloc_zone_t *) * (malloc_num_zones - 1));
-	malloc_zones[0] = &zone;
 }
 
 #elif defined(__GLIBC__) && !defined(__UCLIBC__)
