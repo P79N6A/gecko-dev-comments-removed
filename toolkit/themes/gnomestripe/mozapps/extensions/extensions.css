@@ -46,7 +46,9 @@
 
 #view-port-container {
   
-  overflow: hidden;
+  
+
+
   background-color: -moz-Field;
   color: -moz-FieldText;
   border: 1px solid ThreeDShadow;
