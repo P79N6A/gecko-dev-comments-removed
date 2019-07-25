@@ -33,6 +33,7 @@ let SocialUI = {
   observe: function SocialUI_observe(subject, topic, data) {
     switch (topic) {
       case "social:pref-changed":
+        this.updateToggleCommand();
         SocialShareButton.updateButtonHiddenState();
         SocialToolbar.updateButtonHiddenState();
         SocialSidebar.updateSidebar();
@@ -48,15 +49,47 @@ let SocialUI = {
     }
   },
 
+  get toggleCommand() {
+    return document.getElementById("Social:Toggle");
+  },
+
   
   _providerReady: function SocialUI_providerReady() {
     
     if (!Social.provider)
       return;
 
+    this.updateToggleCommand();
+
+    let toggleCommand = this.toggleCommand;
+    let label = gNavigatorBundle.getFormattedString("social.enable.label",
+                                                    [Social.provider.name]);
+    let accesskey = gNavigatorBundle.getString("social.enable.accesskey");
+    toggleCommand.setAttribute("label", label);
+    toggleCommand.setAttribute("accesskey", accesskey);
+
     SocialToolbar.init();
     SocialShareButton.init();
     SocialSidebar.init();
+  },
+
+  updateToggleCommand: function SocialUI_updateToggleCommand() {
+    let toggleCommand = this.toggleCommand;
+    toggleCommand.setAttribute("checked", Social.enabled);
+
+    
+    
+    
+    for (let id of ["appmenu_socialToggle", "menu_socialToggle"]) {
+      let el = document.getElementById(id);
+      if (!el)
+        continue;
+
+      if (Social.active)
+        el.removeAttribute("hidden");
+      else
+        el.setAttribute("hidden", "true");
+    }
   },
 
   
@@ -215,6 +248,14 @@ var SocialToolbar = {
   
   init: function SocialToolbar_init() {
     document.getElementById("social-provider-image").setAttribute("image", Social.provider.iconURL);
+
+    let removeItem = document.getElementById("social-remove-menuitem");
+    let brandShortName = document.getElementById("bundle_brand").getString("brandShortName");
+    let label = gNavigatorBundle.getFormattedString("social.remove.label",
+                                                    [brandShortName]);
+    let accesskey = gNavigatorBundle.getString("social.remove.accesskey");
+    removeItem.setAttribute("label", label);
+    removeItem.setAttribute("accesskey", accesskey);
 
     let statusAreaPopup = document.getElementById("social-statusarea-popup");
     statusAreaPopup.addEventListener("popupshowing", function(e) {
