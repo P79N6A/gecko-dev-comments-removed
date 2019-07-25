@@ -50,6 +50,7 @@
 #include "gfxUserFontSet.h"
 #include "nsHashKeys.h"
 #include "nsTHashtable.h"
+#include "nsCSSRules.h"
 
 class nsIRequest;
 class nsISupports;
@@ -57,6 +58,7 @@ class nsPresContext;
 class nsIPrincipal;
 
 class nsFontFaceLoader;
+class nsCSSFontFaceRule;
 
 
 class nsUserFontSet : public gfxUserFontSet
@@ -77,15 +79,35 @@ public:
   
   void RemoveLoader(nsFontFaceLoader *aLoader);
 
+  PRBool UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules);
+
   nsPresContext *GetPresContext() { return mPresContext; }
 
+  virtual void ReplaceFontEntry(gfxProxyFontEntry *aProxy,
+                                gfxFontEntry *aFontEntry);
+
 protected:
+  
+  
+  
+  
+  struct FontFaceRuleRecord {
+    nsRefPtr<gfxFontEntry>       mFontEntry;
+    nsFontFaceRuleContainer      mContainer;
+  };
+
+  void InsertRule(nsCSSFontFaceRule *aRule, PRUint8 aSheetType,
+                  nsTArray<FontFaceRuleRecord>& oldRules,
+                  PRBool& aFontSetModified);
+
   nsPresContext *mPresContext;  
 
   
   
   
   nsTHashtable< nsPtrHashKey<nsFontFaceLoader> > mLoaders;
+
+  nsTArray<FontFaceRuleRecord>   mRules;
 };
 
 class nsFontFaceLoader : public nsIStreamLoaderObserver

@@ -1110,8 +1110,6 @@ protected:
   
   nsUserFontSet*        mUserFontSet;
   
-  nsTArray<nsFontFaceRuleContainer> mFontFaceRules;
-  
   PRInt32               mFontScaler;
   nscoord               mMinimumFontSizePref;
 
