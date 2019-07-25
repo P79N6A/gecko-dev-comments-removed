@@ -3,13 +3,16 @@
 
 
 
-#include "nsINIParser.h"
+
+#include "nsCRTGlue.h"
 #include "nsError.h"
 #include "nsILocalFile.h"
-#include "nsCRTGlue.h"
+#include "nsINIParser.h"
+#include "mozilla/FileUtils.h" 
 
-#include <stdlib.h>
+
 #include <stdio.h>
+#include <stdlib.h>
 #ifdef XP_WIN
 #include <windows.h>
 #endif
@@ -109,7 +112,7 @@ nsINIParser::InitFromFILE(FILE *fd)
         return NS_ERROR_FAILURE;
 
     
-    mFileContents = new char[flen + 1];
+    mFileContents = new char[flen + 2];
     if (!mFileContents)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -121,9 +124,56 @@ nsINIParser::InitFromFILE(FILE *fd)
     if (rd != flen)
         return NS_BASE_STREAM_OSERROR;
 
-    mFileContents[flen] = '\0';
+    
+    mFileContents[flen] = mFileContents[flen + 1] = '\0';
 
-    char *buffer = mFileContents;
+    char *buffer = &mFileContents[0];
+
+    if (flen >= 3
+    && mFileContents[0] == static_cast<char>(0xEF)
+    && mFileContents[1] == static_cast<char>(0xBB)
+    && mFileContents[2] == static_cast<char>(0xBF)) {
+      
+      
+      
+      buffer = &mFileContents[3];
+    }
+
+#ifdef XP_WIN
+    if (flen >= 2
+     && mFileContents[0] == static_cast<char>(0xFF)
+     && mFileContents[1] == static_cast<char>(0xFE)) {
+        
+        buffer = &mFileContents[2];
+        
+        flen = WideCharToMultiByte(CP_UTF8,
+                                   0,
+                                   reinterpret_cast<LPWSTR>(buffer),
+                                   -1,
+                                   NULL,
+                                   0,
+                                   NULL,
+                                   NULL);
+        if (0 == flen) {
+            return NS_ERROR_FAILURE;
+        }
+
+        nsAutoArrayPtr<char> utf8Buffer = new char[flen];
+        if (0 == WideCharToMultiByte(CP_UTF8,
+                                     0,
+                                     reinterpret_cast<LPWSTR>(buffer),
+                                     -1,
+                                     utf8Buffer,
+                                     flen,
+                                     NULL,
+                                     NULL)) {
+            return NS_ERROR_FAILURE;
+        }
+        mFileContents = utf8Buffer.forget();
+        buffer = mFileContents;
+    }
+#endif
+
     char *currSection = nsnull;
 
     
