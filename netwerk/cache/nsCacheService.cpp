@@ -606,6 +606,9 @@ nsCacheProfilePrefObserver::PermittedToSmartSize(nsIPrefBranch* branch, PRBool
                 return false;
             }
         }
+        
+        
+        branch->SetIntPref(DISK_CACHE_CAPACITY_PREF, MAX_CACHE_SIZE);
     }
     PRBool smartSizeEnabled; 
     rv = branch->GetBoolPref(DISK_CACHE_SMART_SIZE_ENABLED_PREF,
@@ -681,16 +684,20 @@ nsCacheProfilePrefObserver::ReadPrefs(nsIPrefBranch* branch)
             firstSmartSizeRun = PR_FALSE;
         if (PermittedToSmartSize(branch, firstSmartSizeRun)) {
             
+            
             if (!firstSmartSizeRun) {
                 PRInt32 oldSmartSize;
                 rv = branch->GetIntPref(DISK_CACHE_SMART_SIZE_PREF,
                                         &oldSmartSize);
                 mDiskCacheCapacity = oldSmartSize;
             } else {
-                rv = branch->SetIntPref(DISK_CACHE_CAPACITY_PREF, 
-                                        MAX_CACHE_SIZE);
-                if (NS_FAILED(rv)) 
-                    NS_WARNING("Failed setting capacity pref");
+                PRInt32 oldCapacity;
+                rv = branch->GetIntPref(DISK_CACHE_CAPACITY_PREF, &oldCapacity);
+                if (NS_SUCCEEDED(rv)) {
+                    mDiskCacheCapacity = oldCapacity;
+                } else {
+                    mDiskCacheCapacity = DEFAULT_CACHE_SIZE;
+                }
             }
             nsCOMPtr<nsIRunnable> event = 
                 new nsGetSmartSizeEvent(!!firstSmartSizeRun);
