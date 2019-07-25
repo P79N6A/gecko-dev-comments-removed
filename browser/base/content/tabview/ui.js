@@ -43,6 +43,7 @@
 
 
 
+
 let Keys = { meta: false };
 
 
@@ -1358,12 +1359,15 @@ let UI = {
       });
       
       
-      if (unhiddenGroups.length == 0 && GroupItems.getOrphanedTabs().length == 0 &&
-          gBrowser._numPinnedTabs == 0) {
-        let box = new Rect(20, 20, 250, 200);
-        let groupItem = new GroupItem([], { bounds: box, immediately: true });
-        groupItem.newTab();
-        return;
+      if (!unhiddenGroups.length && !GroupItems.getOrphanedTabs().length) {
+        let emptyGroups = GroupItems.groupItems.filter(function (groupItem) {
+          return (!groupItem.hidden && !groupItem.getChildren().length);
+        });
+        let group = (emptyGroups.length ? emptyGroups[0] : GroupItems.newGroup());
+        if (!gBrowser._numPinnedTabs) {
+          group.newTab();
+          return;
+        }
       }
 
       

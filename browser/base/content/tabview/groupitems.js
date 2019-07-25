@@ -643,6 +643,20 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
     
     
+    let remainingGroups = GroupItems.groupItems.filter(function (groupItem) {
+      return (groupItem != self && groupItem.getChildren().length);
+    });
+    if (!gBrowser._numPinnedTabs && !GroupItems.getOrphanedTabs().length &&
+        !remainingGroups.length) {
+      let emptyGroups = GroupItems.groupItems.filter(function (groupItem) {
+        return (groupItem != self && !groupItem.getChildren().length);
+      });
+      let group = (emptyGroups.length ? emptyGroups[0] : GroupItems.newGroup());
+      group.newTab();
+    }
+
+    
+    
     
     
     
@@ -1671,6 +1685,14 @@ let GroupItems = {
 
     
     this.groupItems = null;
+  },
+
+  
+  
+  
+  newGroup: function () {
+    let bounds = new Rect(20, 20, 250, 200);
+    return new GroupItem([], {bounds: bounds, immediately: true});
   },
 
   
