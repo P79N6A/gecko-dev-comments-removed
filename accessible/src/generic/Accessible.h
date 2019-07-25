@@ -53,6 +53,18 @@ enum ENameValueFlag {
  eNameFromTooltip 
 };
 
+
+
+
+struct GroupPos
+{
+  GroupPos() : level(0), posInSet(0), setSize(0) { }
+
+  PRInt32 level;
+  PRInt32 posInSet;
+  PRInt32 setSize;
+};
+
 } 
 } 
 
@@ -228,6 +240,12 @@ public:
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
 
   
+
+
+  virtual mozilla::a11y::GroupPos GroupPosition();
+
+  
+
 
 
   enum EWhichChildAtPoint {
