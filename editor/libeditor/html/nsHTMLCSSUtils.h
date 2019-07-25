@@ -177,13 +177,13 @@ public:
 
 
 
-  nsresult    GetDefaultBackgroundColor(nsAString & aColor);
+  void        GetDefaultBackgroundColor(nsAString & aColor);
 
   
 
 
 
-  nsresult    GetDefaultLengthUnit(nsAString & aLengthUnit);
+  void        GetDefaultLengthUnit(nsAString & aLengthUnit);
 
   
 

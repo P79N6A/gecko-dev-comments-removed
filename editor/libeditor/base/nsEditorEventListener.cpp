@@ -54,12 +54,11 @@
 #include "nsIDOMNSUIEvent.h"
 #include "nsIPrivateTextEvent.h"
 #include "nsIEditorMailSupport.h"
-#include "nsIPrefBranch.h"
-#include "nsIPrefService.h"
 #include "nsILookAndFeel.h"
 #include "nsFocusManager.h"
 #include "nsIEventListenerManager.h"
 #include "nsIDOMEventGroup.h"
+#include "mozilla/Preferences.h"
 
 
 #include "nsIServiceManager.h"
@@ -76,6 +75,8 @@
 #include "nsIFocusManager.h"
 #include "nsIDOMWindow.h"
 #include "nsContentUtils.h"
+
+using namespace mozilla;
 
 class nsAutoEditorKeypressOperation {
 public:
@@ -400,56 +401,49 @@ nsEditorEventListener::MouseClick(nsIDOMEvent* aMouseEvent)
   
   if (button == 1)
   {
-    nsCOMPtr<nsIPrefBranch> prefBranch =
-      do_GetService(NS_PREFSERVICE_CONTRACTID, &rv);
-    if (NS_SUCCEEDED(rv) && prefBranch)
+    if (Preferences::GetBool("middlemouse.paste", PR_FALSE))
     {
-      PRBool doMiddleMousePaste = PR_FALSE;;
-      rv = prefBranch->GetBoolPref("middlemouse.paste", &doMiddleMousePaste);
-      if (NS_SUCCEEDED(rv) && doMiddleMousePaste)
-      {
-        
-        nsCOMPtr<nsIDOMNode> parent;
-        if (NS_FAILED(nsuiEvent->GetRangeParent(getter_AddRefs(parent))))
-          return NS_ERROR_NULL_POINTER;
-        PRInt32 offset = 0;
-        if (NS_FAILED(nsuiEvent->GetRangeOffset(&offset)))
-          return NS_ERROR_NULL_POINTER;
+      
+      nsCOMPtr<nsIDOMNode> parent;
+      if (NS_FAILED(nsuiEvent->GetRangeParent(getter_AddRefs(parent))))
+        return NS_ERROR_NULL_POINTER;
+      PRInt32 offset = 0;
+      if (NS_FAILED(nsuiEvent->GetRangeOffset(&offset)))
+        return NS_ERROR_NULL_POINTER;
 
-        nsCOMPtr<nsISelection> selection;
-        if (NS_SUCCEEDED(mEditor->GetSelection(getter_AddRefs(selection))))
-          (void)selection->Collapse(parent, offset);
+      nsCOMPtr<nsISelection> selection;
+      if (NS_SUCCEEDED(mEditor->GetSelection(getter_AddRefs(selection))))
+        (void)selection->Collapse(parent, offset);
 
-        
-        
-        PRBool ctrlKey = PR_FALSE;
-        mouseEvent->GetCtrlKey(&ctrlKey);
+      
+      
+      PRBool ctrlKey = PR_FALSE;
+      mouseEvent->GetCtrlKey(&ctrlKey);
 
-        nsCOMPtr<nsIEditorMailSupport> mailEditor;
-        if (ctrlKey)
-          mailEditor = do_QueryInterface(static_cast<nsIEditor*>(mEditor));
+      nsCOMPtr<nsIEditorMailSupport> mailEditor;
+      if (ctrlKey)
+        mailEditor = do_QueryInterface(static_cast<nsIEditor*>(mEditor));
 
-        PRInt32 clipboard;
+      PRInt32 clipboard;
 
 #if defined(XP_OS2) || defined(XP_WIN32)
-        clipboard = nsIClipboard::kGlobalClipboard;
+      clipboard = nsIClipboard::kGlobalClipboard;
 #else
-        clipboard = nsIClipboard::kSelectionClipboard;
+      clipboard = nsIClipboard::kSelectionClipboard;
 #endif
 
-        if (mailEditor)
-          mailEditor->PasteAsQuotation(clipboard);
-        else
-          mEditor->Paste(clipboard);
+      if (mailEditor)
+        mailEditor->PasteAsQuotation(clipboard);
+      else
+        mEditor->Paste(clipboard);
 
-        
-        
-        mouseEvent->StopPropagation();
-        mouseEvent->PreventDefault();
+      
+      
+      mouseEvent->StopPropagation();
+      mouseEvent->PreventDefault();
 
-        
-        return NS_OK;
-      }
+      
+      return NS_OK;
     }
   }
   return NS_OK;

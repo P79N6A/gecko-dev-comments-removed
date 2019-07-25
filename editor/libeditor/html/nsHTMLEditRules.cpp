@@ -64,8 +64,6 @@
 #include "nsIRangeUtils.h"
 #include "nsIDOMCharacterData.h"
 #include "nsIEnumerator.h"
-#include "nsIPrefBranch.h"
-#include "nsIPrefService.h"
 #include "nsIDOMNamedNodeMap.h"
 #include "nsIRange.h"
 
@@ -81,6 +79,10 @@
 #include "nsContentUtils.h"
 #include "nsTArray.h"
 #include "nsIHTMLDocument.h"
+
+#include "mozilla/Preferences.h"
+
+using namespace mozilla;
 
 
 
@@ -241,26 +243,15 @@ nsHTMLEditRules::Init(nsPlaintextEditor *aEditor)
   NS_ENSURE_SUCCESS(res, res);
 
   
-  nsCOMPtr<nsIPrefBranch> prefBranch =
-    do_GetService(NS_PREFSERVICE_CONTRACTID, &res);
-  NS_ENSURE_SUCCESS(res, res);
+  static const char kPrefName[] =
+    "editor.html.typing.returnInEmptyListItemClosesList";
+  nsAdoptingCString returnInEmptyLIKillsList =
+    Preferences::GetCString(kPrefName);
 
-  char *returnInEmptyLIKillsList = 0;
-  res = prefBranch->GetCharPref("editor.html.typing.returnInEmptyListItemClosesList",
-                                &returnInEmptyLIKillsList);
-
-  if (NS_SUCCEEDED(res) && returnInEmptyLIKillsList)
-  {
-    if (!strncmp(returnInEmptyLIKillsList, "false", 5))
-      mReturnInEmptyLIKillsList = PR_FALSE; 
-    else
-      mReturnInEmptyLIKillsList = PR_TRUE; 
-  }
-  else
-  {
-    mReturnInEmptyLIKillsList = PR_TRUE; 
-  }
   
+  
+  mReturnInEmptyLIKillsList = !returnInEmptyLIKillsList.EqualsLiteral("false");
+
   
   mUtilRange = do_CreateInstance("@mozilla.org/content/range;1");
   NS_ENSURE_TRUE(mUtilRange, NS_ERROR_NULL_POINTER);
