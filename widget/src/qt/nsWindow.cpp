@@ -1290,7 +1290,7 @@ nsWindow::OnFocusOutEvent(QEvent *aEvent)
     if (!mWidget)
         return nsEventStatus_eIgnore;
 
-#ifdef MOZ_PLATFORM_MAEMO > 5
+#if MOZ_PLATFORM_MAEMO > 5
     if (((QFocusEvent*)aEvent)->reason() == Qt::OtherFocusReason
          && mWidget->isVKBOpen()) {
         
