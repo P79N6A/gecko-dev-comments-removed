@@ -4339,33 +4339,6 @@ nsXPCComponents_Utils::RecomputeWrappers(const jsval &vobj, JSContext *cx)
     return NS_OK;
 }
 
-NS_IMETHODIMP
-nsXPCComponents_Utils::Dispatch(const jsval &runnable_, const jsval &scope,
-                                JSContext *cx)
-{
-    
-    JSAutoEnterCompartment ac;
-    js::Value runnable = runnable_;
-    if (scope.isObject()) {
-        JSObject *scopeObj = js::UnwrapObject(&scope.toObject());
-        if (!scopeObj || !ac.enter(cx, scopeObj) || !JS_WrapValue(cx, &runnable))
-            return NS_ERROR_FAILURE;
-    }
-
-    
-    if (!runnable.isObject())
-        return NS_ERROR_INVALID_ARG;
-    nsCOMPtr<nsIRunnable> run;
-    nsresult rv = nsXPConnect::GetXPConnect()->WrapJS(cx, &runnable.toObject(),
-                                                      NS_GET_IID(nsIRunnable),
-                                                      getter_AddRefs(run));
-    NS_ENSURE_SUCCESS(rv, rv);
-    MOZ_ASSERT(run);
-
-    
-    return NS_DispatchToMainThread(run);
-}
-
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::CanCreateWrapper(const nsIID * iid, char **_retval)
