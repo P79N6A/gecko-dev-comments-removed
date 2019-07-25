@@ -656,6 +656,7 @@ public:
 
 
 
+
   virtual nsRegion GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
                                    bool* aSnap,
                                    bool* aForceTransparentSurface)
