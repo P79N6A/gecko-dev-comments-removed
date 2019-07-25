@@ -80,7 +80,8 @@ class QX11EmbedContainer;
 #endif
 #endif
 
-class nsFrameLoader : public nsIFrameLoader
+class nsFrameLoader : public nsIFrameLoader,
+                      public nsIFrameLoader_MOZILLA_2_0_BRANCH
 {
   friend class AutoResetInShow;
 #ifdef MOZ_IPC
@@ -121,7 +122,8 @@ public:
 
   struct ViewportConfig {
     ViewportConfig()
-      : mScrollOffset(0, 0)
+      : mRenderMode(nsIFrameLoader_MOZILLA_2_0_BRANCH::RENDER_MODE_DEFAULT)
+      , mScrollOffset(0, 0)
       , mXScale(1.0)
       , mYScale(1.0)
     {}
@@ -130,11 +132,21 @@ public:
 
     PRBool operator==(const ViewportConfig& aOther) const
     {
-      return (mScrollOffset == aOther.mScrollOffset &&
+      return (mRenderMode == aOther.mRenderMode &&
+              mScrollOffset == aOther.mScrollOffset &&
               mXScale == aOther.mXScale &&
               mYScale == aOther.mYScale);
     }
 
+    PRBool AsyncScrollEnabled() const
+    {
+      return !!(mRenderMode & RENDER_MODE_ASYNC_SCROLL);
+    }
+
+    
+    
+    
+    PRUint32 mRenderMode;
     
     
     
@@ -162,8 +174,9 @@ public:
   static nsFrameLoader* Create(nsIContent* aOwner, PRBool aNetworkCreated);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(nsFrameLoader)
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsFrameLoader, nsIFrameLoader)
   NS_DECL_NSIFRAMELOADER
+  NS_DECL_NSIFRAMELOADER_MOZILLA_2_0_BRANCH
   NS_HIDDEN_(nsresult) CheckForRecursiveLoad(nsIURI* aURI);
   nsresult ReallyStartLoading();
   void Finalize();

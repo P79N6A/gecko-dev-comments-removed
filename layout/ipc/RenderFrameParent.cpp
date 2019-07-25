@@ -97,20 +97,26 @@ ComputeShadowTreeTransform(nsIFrame* aContainerFrame,
      aContainerFrame->GetContentRect().TopLeft());
   *aShadowTranslation = frameOffset.ToNearestPixels(auPerDevPixel);
 
-  
-  
-  
-  
-  
-  
-  nsIntPoint scrollCompensation =
-    (aConfig.mScrollOffset.ToNearestPixels(auPerDevPixel));
-  scrollCompensation.x -= aMetrics.mViewportScrollOffset.x * aConfig.mXScale;
-  scrollCompensation.y -= aMetrics.mViewportScrollOffset.y * aConfig.mYScale;
-  *aShadowTranslation -= scrollCompensation;
+  if (aConfig.AsyncScrollEnabled()) {
+    
+    
+    
+    
+    
+    
+    nsIntPoint scrollCompensation =
+      (aConfig.mScrollOffset.ToNearestPixels(auPerDevPixel));
+    scrollCompensation.x -= aMetrics.mViewportScrollOffset.x * aConfig.mXScale;
+    scrollCompensation.y -= aMetrics.mViewportScrollOffset.y * aConfig.mYScale;
+    *aShadowTranslation -= scrollCompensation;
 
-  *aShadowXScale = aConfig.mXScale;
-  *aShadowYScale = aConfig.mYScale;
+    *aShadowXScale = aConfig.mXScale;
+    *aShadowYScale = aConfig.mYScale;
+  } else {
+    *aShadowXScale = 1;
+    *aShadowYScale = 1;
+  }
+           
 }
 
 static void
