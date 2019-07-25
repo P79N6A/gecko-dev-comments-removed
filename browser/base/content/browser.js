@@ -3805,7 +3805,8 @@ var FullScreen =
 
     
     
-    gNavToolbox.style.marginTop = aShow ? "" : -gNavToolbox.clientHeight + "px";
+    gNavToolbox.style.marginTop =
+      aShow ? "" : -gNavToolbox.getBoundingClientRect().height + "px";
 
     document.getElementById("fullscr-toggler").collapsed = aShow;
     this._isChromeCollapsed = !aShow;
