@@ -725,7 +725,14 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature, PRInt32 *aStatus, nsAString & aS
   if (adapterVendor != vendorIntel &&
       adapterVendor != vendorNVIDIA &&
       adapterVendor != vendorAMD &&
-      adapterVendor != vendorATI)
+      adapterVendor != vendorATI &&
+      
+      
+      
+      adapterVendor != 0xabcd &&
+      adapterVendor != 0xdcba &&
+      adapterVendor != 0xabab &&
+      adapterVendor != 0xdcdc)
   {
     *aStatus = FEATURE_BLOCKED_DEVICE;
     return NS_OK;
