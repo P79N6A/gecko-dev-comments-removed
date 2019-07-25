@@ -95,15 +95,12 @@ public abstract class TileLayer extends Layer {
 
 
 
-    public void invalidate(Rect rect) {
-        if (!inTransaction())
-            throw new RuntimeException("invalidate() is only valid inside a transaction");
-        mDirtyRect.union(rect);
-    }
 
     public void invalidate() {
+        if (!inTransaction())
+            throw new RuntimeException("invalidate() is only valid inside a transaction");
         IntSize bufferSize = mImage.getSize();
-        invalidate(new Rect(0, 0, bufferSize.width, bufferSize.height));
+        mDirtyRect.union(new Rect(0, 0, bufferSize.width, bufferSize.height));
     }
 
     public boolean isDirty() {
