@@ -209,6 +209,8 @@
 
 
 
+
+
 #define SHAPE_INVALID_SLOT              0xffffffff
 
 namespace js {
@@ -217,10 +219,9 @@ namespace js {
 
 
 
-
-
 struct PropertyTable {
     static const uint32 MAX_LINEAR_SEARCHES = 7;
+    static const uint32 MIN_ENTRIES         = 7;
     static const uint32 MIN_SIZE_LOG2       = 4;
     static const uint32 MIN_SIZE            = JS_BIT(MIN_SIZE_LOG2);
 
@@ -625,6 +626,18 @@ struct Shape : public js::gc::Cell
         return count;
     }
 
+    bool isBigEnoughForAPropertyTable() const {
+        JS_ASSERT(!hasTable());
+        const js::Shape *shape = this;
+        uint32 count = 0;
+        for (js::Shape::Range r = shape->all(); !r.empty(); r.popFront()) {
+            ++count;
+            if (count >= PropertyTable::MIN_ENTRIES)
+                return true;
+        }
+        return false;
+    }
+
 #ifdef DEBUG
     void dump(JSContext *cx, FILE *fp) const;
     void dumpSubtree(JSContext *cx, int level, FILE *fp) const;
@@ -704,6 +717,17 @@ js_GenerateShape(JSContext *cx);
 
 namespace js {
 
+
+
+
+
+
+
+
+
+
+
+
 JS_ALWAYS_INLINE js::Shape **
 Shape::search(JSContext *cx, js::Shape **startp, jsid id, bool adding)
 {
@@ -712,9 +736,12 @@ Shape::search(JSContext *cx, js::Shape **startp, jsid id, bool adding)
         return start->getTable()->search(id, adding);
 
     if (start->numLinearSearches == PropertyTable::MAX_LINEAR_SEARCHES) {
-        if (start->hashify(cx))
+        if (start->isBigEnoughForAPropertyTable() && start->hashify(cx))
             return start->getTable()->search(id, adding);
         
+
+
+
         JS_ASSERT(!start->hasTable());
     } else {
         JS_ASSERT(start->numLinearSearches < PropertyTable::MAX_LINEAR_SEARCHES);
