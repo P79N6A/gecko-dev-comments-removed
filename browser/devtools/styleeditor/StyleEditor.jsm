@@ -88,7 +88,8 @@ function StyleEditor(aDocument, aStyleSheet)
   this._state = {             
     text: "",                 
     selection: {start: 0, end: 0},
-    readOnly: false
+    readOnly: false,
+    topIndex: 0,              
   };
 
   this._styleSheet = aStyleSheet;
@@ -106,8 +107,6 @@ function StyleEditor(aDocument, aStyleSheet)
 
   
   this._onWindowUnloadBinding = this._onWindowUnload.bind(this);
-  
-  this._onInputElementFocusBinding = this._onInputElementFocus.bind(this);
   this._focusOnSourceEditorReady = false;
 }
 
@@ -177,7 +176,8 @@ StyleEditor.prototype = {
         this._state = {
           text: this._sourceEditor.getText(),
           selection: this._sourceEditor.getSelection(),
-          readOnly: this._sourceEditor.readOnly
+          readOnly: this._sourceEditor.readOnly,
+          topIndex: this._sourceEditor.getTopIndex(),
         };
         this._sourceEditor.destroy();
         this._sourceEditor = null;
@@ -185,8 +185,6 @@ StyleEditor.prototype = {
 
       this.window.removeEventListener("unload",
                                       this._onWindowUnloadBinding, false);
-      this._inputElement.removeEventListener("focus",
-        this._onInputElementFocusBinding, true);
       this._triggerAction("Detach");
     }
 
@@ -198,7 +196,6 @@ StyleEditor.prototype = {
     
     this.window.addEventListener("unload", this._onWindowUnloadBinding, false);
     this._focusOnSourceEditorReady = false;
-    aElement.addEventListener("focus", this._onInputElementFocusBinding, true);
 
     this._sourceEditor = null; 
 
@@ -212,19 +209,22 @@ StyleEditor.prototype = {
     };
 
     sourceEditor.init(aElement, config, function onSourceEditorReady() {
-      sourceEditor.setSelection(this._state.selection.start,
-                                this._state.selection.end);
-
-      if (this._focusOnSourceEditorReady) {
-        sourceEditor.focus();
-      }
-
       sourceEditor.addEventListener(SourceEditor.EVENTS.TEXT_CHANGED,
                                     function onTextChanged(aEvent) {
         this.updateStyleSheet();
       }.bind(this));
 
       this._sourceEditor = sourceEditor;
+
+      if (this._focusOnSourceEditorReady) {
+        this._focusOnSourceEditorReady = false;
+        sourceEditor.focus();
+      }
+
+      sourceEditor.setTopIndex(this._state.topIndex);
+      sourceEditor.setSelection(this._state.selection.start,
+                                this._state.selection.end);
+
       this._triggerAction("Attach");
     }.bind(this));
   },
@@ -915,11 +915,7 @@ StyleEditor.prototype = {
   
 
 
-
-
-
-
-  _onInputElementFocus: function SE__onInputElementFocus(aEvent)
+  focus: function SE_focus()
   {
     if (this._sourceEditor) {
       this._sourceEditor.focus();
@@ -932,10 +928,34 @@ StyleEditor.prototype = {
 
 
 
+  onShow: function SE_onShow()
+  {
+    if (this._sourceEditor) {
+      this._sourceEditor.setTopIndex(this._state.topIndex);
+    }
+    this.focus();
+  },
+
+  
 
 
 
-  _persistExpando: function SE__persistExpando() {
+  onHide: function SE_onHide()
+  {
+    if (this._sourceEditor) {
+      this._state.topIndex = this._sourceEditor.getTopIndex();
+    }
+  },
+
+  
+
+
+
+
+
+
+  _persistExpando: function SE__persistExpando()
+  {
     if (!this._styleSheet) {
       return; 
     }
@@ -954,7 +974,8 @@ StyleEditor.prototype = {
 
 
 
-  _restoreExpando: function SE__restoreExpando() {
+  _restoreExpando: function SE__restoreExpando()
+  {
     if (!this._styleSheet) {
       return; 
     }
@@ -972,7 +993,8 @@ StyleEditor.prototype = {
 
 
 
-  _getKeyBindings: function () {
+  _getKeyBindings: function SE__getKeyBindings()
+  {
     let bindings = [];
 
     bindings.push({
@@ -983,6 +1005,7 @@ StyleEditor.prototype = {
         this.saveToFile(this._savedFile);
       }.bind(this)
     });
+
     bindings.push({
       action: "StyleEditor.saveAs",
       code: _("saveStyleSheet.commandkey"),
@@ -990,6 +1013,25 @@ StyleEditor.prototype = {
       shift: true,
       callback: function saveAs() {
         this.saveToFile();
+      }.bind(this)
+    });
+
+    bindings.push({
+      action: "undo",
+      code: _("undo.commandkey"),
+      accel: true,
+      callback: function undo() {
+        this._sourceEditor.undo();
+      }.bind(this)
+    });
+
+    bindings.push({
+      action: "redo",
+      code: _("redo.commandkey"),
+      accel: true,
+      shift: true,
+      callback: function redo() {
+        this._sourceEditor.redo();
       }.bind(this)
     });
 

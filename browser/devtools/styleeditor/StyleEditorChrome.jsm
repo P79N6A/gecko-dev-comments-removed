@@ -452,13 +452,16 @@ StyleEditorChrome.prototype = {
 
         this._triggerChromeListeners("EditorAdded", [editor]);
       }.bind(this),
+      onHide: function ASV_onItemShow(aSummary, aDetails, aData) {
+        aData.editor.onHide();
+      },
       onShow: function ASV_onItemShow(aSummary, aDetails, aData) {
         let editor = aData.editor;
         if (!editor.inputElement) {
           
           editor.inputElement = aDetails.querySelector(".stylesheet-editor-input");
         }
-        editor.inputElement.focus();
+        editor.onShow();
       }
     });
   },

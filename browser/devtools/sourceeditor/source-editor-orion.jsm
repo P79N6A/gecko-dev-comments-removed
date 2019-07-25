@@ -563,6 +563,28 @@ SourceEditor.prototype = {
 
 
 
+  getTopIndex: function SE_getTopIndex()
+  {
+    return this._view.getTopIndex();
+  },
+
+  
+
+
+
+
+
+  setTopIndex: function SE_setTopIndex(aTopIndex)
+  {
+    this._view.setTopIndex(aTopIndex);
+  },
+
+  
+
+
+
+
+
   hasFocus: function SE_hasFocus()
   {
     return this._iframe.ownerDocument.activeElement === this._iframe;

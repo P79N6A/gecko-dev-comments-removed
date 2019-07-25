@@ -3864,6 +3864,8 @@ orion.textview.TextView = (function() {
 					if (!this._hasFocus) {
 						this.focus();
 					}
+				}
+				if (e.preventDefault) {
 					e.preventDefault();
 				}
 			}
