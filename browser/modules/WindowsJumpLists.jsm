@@ -477,8 +477,6 @@ var WinTaskbarJumpList =
     var options = PlacesUtils.history.getNewQueryOptions();
     options.maxResults = aLimit;
     options.sortingMode = aSortingMode;
-    
-    options.redirectsMode = Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_TARGET;
     var query = PlacesUtils.history.getNewQuery();
 
     

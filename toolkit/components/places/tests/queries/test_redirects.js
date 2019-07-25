@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 let visits = [];
 
 
@@ -51,15 +17,18 @@ let visits = [];
 
 function check_results_callback(aSequence) {
   
-  do_check_eq(aSequence.length, 4);
+  do_check_eq(aSequence.length, 3);
   let includeHidden = aSequence[0];
-  let redirectsMode = aSequence[1];
-  let maxResults = aSequence[2];
-  let sortingMode = aSequence[3];
+  let maxResults = aSequence[1];
+  let sortingMode = aSequence[2];
   print("\nTESTING: includeHidden(" + includeHidden + ")," +
-                  " redirectsMode(" + redirectsMode + ")," +
                   " maxResults("    + maxResults    + ")," +
                   " sortingMode("   + sortingMode   + ").");
+
+  function isHidden(aVisit) {
+    return aVisit.transType == Ci.nsINavHistoryService.TRANSITION_FRAMED_LINK ||
+           aVisit.isRedirect;
+  }
 
   
   let expectedData = visits.filter(function (aVisit, aIndex, aArray) {
@@ -67,27 +36,12 @@ function check_results_callback(aSequence) {
     if (aVisit.transType == Ci.nsINavHistoryService.TRANSITION_EMBED)
       return false;
 
-    if (aVisit.transType == Ci.nsINavHistoryService.TRANSITION_FRAMED_LINK &&
-      !includeHidden) {
+    if (!includeHidden && isHidden(aVisit)) {
       
       if (visits.filter(function (refVisit) {
-            return refVisit.uri == aVisit.uri &&
-                   refVisit.transType != Ci.nsINavHistoryService.TRANSITION_FRAMED_LINK;
+        return refVisit.uri == aVisit.uri && !isHidden(refVisit);
           }).length == 0)
         return false;
-    }
-
-    if (redirectsMode == Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_SOURCE) {
-      
-      return aVisit.transType != Ci.nsINavHistoryService.TRANSITION_REDIRECT_PERMANENT &&
-             aVisit.transType != Ci.nsINavHistoryService.TRANSITION_REDIRECT_TEMPORARY;
-    }
-
-    if (redirectsMode == Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_TARGET) {
-      
-      return visits.filter(function (refVisit) {
-        return !refVisit.isRedirect && refVisit.uri == aVisit.uri;
-      }).length > 0;
     }
 
     return true;
@@ -129,7 +83,6 @@ function check_results_callback(aSequence) {
   let query = PlacesUtils.history.getNewQuery();
   let options = PlacesUtils.history.getNewQueryOptions();
   options.includeHidden = includeHidden;
-  options.redirectsMode = redirectsMode;
   options.sortingMode = sortingMode;
   if (maxResults)
     options.maxResults = maxResults;
@@ -256,6 +209,7 @@ function add_visits_to_database() {
       transType: transition,
       uri: "http://" + transition + ".example.com/",
       title: transition + "-example",
+      isRedirect: true,
       lastVisit: timeInMicroseconds--,
       visitCount: (transition == Ci.nsINavHistoryService.TRANSITION_EMBED ||
                    transition == Ci.nsINavHistoryService.TRANSITION_FRAMED_LINK) ? 0 : visitCount++,
@@ -303,6 +257,7 @@ function add_visits_to_database() {
       uri: "http://" + transition + ".example.com/",
       title: getLastValue("http://" + transition + ".example.com/", "title"),
       lastVisit: getLastValue("http://" + transition + ".example.com/", "lastVisit"),
+      isRedirect: true,
       referrer: "http://" + transition + ".redirect.perm.example.com/",
       visitCount: getLastValue("http://" + transition + ".example.com/", "visitCount"),
       isInQuery: true }));
@@ -334,9 +289,6 @@ function run_test() {
   
   
   let includeHidden_options = [true, false];
-  let redirectsMode_options =  [Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_ALL,
-                                Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_SOURCE,
-                                Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_TARGET];
   let maxResults_options = [5, 10, 20, null];
   
   
@@ -344,7 +296,7 @@ function run_test() {
                          Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING,
                          Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_DESCENDING];
   
-  cartProd([includeHidden_options, redirectsMode_options, maxResults_options, sorting_options],
+  cartProd([includeHidden_options, maxResults_options, sorting_options],
            check_results_callback);
 
   remove_all_bookmarks();

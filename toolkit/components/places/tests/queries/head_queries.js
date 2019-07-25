@@ -107,6 +107,25 @@ function populateDB(aArray) {
             }
           }
 
+          if (qdata.isRedirect) {
+            
+            
+            
+            
+            let stmt = DBConn().createStatement(
+              "UPDATE moz_places SET hidden = 1 WHERE url = :url");
+            stmt.params.url = qdata.uri;
+            try {
+              stmt.execute();
+            }
+            catch (ex) {
+              print("Error while setting visit_count.");
+            }
+            finally {
+              stmt.finalize();
+            }
+          }
+
           if (qdata.isDetails) {
             
             PlacesUtils.history.addPageWithDetails(uri(qdata.uri),
