@@ -304,7 +304,6 @@ enum RejoinState {
     REJOIN_CALL_SPLAT,
 
     
-    REJOIN_BINDNAME,
     REJOIN_GETTER,
     REJOIN_POS,
     REJOIN_BINARY,
