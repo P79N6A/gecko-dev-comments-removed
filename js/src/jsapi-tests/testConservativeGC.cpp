@@ -49,7 +49,7 @@ bool checkObjectFields(JSObject *savedCopy, JSObject *obj)
 {
     
     CHECK(savedCopy->lastProp == obj->lastProp);
-    CHECK(savedCopy->clasp == obj->clasp);
+    CHECK(savedCopy->getClass() == obj->getClass());
     CHECK(savedCopy->flags == obj->flags);
     CHECK(savedCopy->newType == obj->newType);
     CHECK(savedCopy->getProto() == obj->getProto());
