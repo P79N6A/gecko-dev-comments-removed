@@ -2211,6 +2211,7 @@ ComputeIsJITBroken()
                 "SGH-I897",     
                 "SCH-I500",     
                 "SPH-D700",     
+                "GT-I9000",     
                 NULL
             };
             for (const char** hw = &blacklist[0]; *hw; ++hw) {
