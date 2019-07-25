@@ -545,6 +545,7 @@ SessionStoreService.prototype = {
       this._forEachBrowserWindow(function(aWindow) {
         Array.forEach(aWindow.gBrowser.tabs, function(aTab) {
           delete aTab.linkedBrowser.__SS_data;
+          delete aTab.linkedBrowser.__SS_tabStillLoading;
           if (aTab.linkedBrowser.__SS_restoreState)
             this._resetTabRestoringState(aTab);
         });
@@ -1041,6 +1042,7 @@ SessionStoreService.prototype = {
     browser.removeEventListener("DOMAutoComplete", this, true);
 
     delete browser.__SS_data;
+    delete browser.__SS_tabStillLoading;
 
     
     
@@ -1120,6 +1122,7 @@ SessionStoreService.prototype = {
     }
     
     delete aBrowser.__SS_data;
+    delete aBrowser.__SS_tabStillLoading;
     this.saveStateDelayed(aWindow);
     
     
@@ -1703,7 +1706,7 @@ SessionStoreService.prototype = {
     if (!browser || !browser.currentURI)
       
       return tabData;
-    else if (browser.__SS_data && browser.__SS_data._tabStillLoading) {
+    else if (browser.__SS_data && browser.__SS_tabStillLoading) {
       
       tabData = browser.__SS_data;
       if (aTab.pinned)
@@ -2039,7 +2042,7 @@ SessionStoreService.prototype = {
     var browsers = aWindow.gBrowser.browsers;
     this._windows[aWindow.__SSi].tabs.forEach(function (tabData, i) {
       if (browsers[i].__SS_data &&
-          browsers[i].__SS_data._tabStillLoading)
+          browsers[i].__SS_tabStillLoading)
         return; 
       try {
         this._updateTextAndScrollDataForTab(aWindow, browsers[i], tabData);
@@ -2859,7 +2862,7 @@ SessionStoreService.prototype = {
       for (let name in tabData.attributes)
         this.xulAttributes[name] = true;
 
-      tabData._tabStillLoading = true;
+      browser.__SS_tabStillLoading = true;
 
       
       
@@ -2926,7 +2929,7 @@ SessionStoreService.prototype = {
   restoreHistory:
     function sss_restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap) {
     var _this = this;
-    while (aTabs.length > 0 && (!aTabData[0]._tabStillLoading || !aTabs[0].parentNode)) {
+    while (aTabs.length > 0 && (!aTabs[0].linkedBrowser.__SS_tabStillLoading || !aTabs[0].parentNode)) {
       aTabs.shift(); 
       aTabData.shift();
     }
