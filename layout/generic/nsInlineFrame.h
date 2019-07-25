@@ -117,6 +117,7 @@ public:
   virtual PRBool CanContinueTextRun() const;
 
   virtual void PullOverflowsFromPrevInFlow();
+  virtual nscoord GetBaseline() const;
 
   
 
@@ -192,7 +193,6 @@ protected:
                           nsIFrame* aFromChild,
                           nsIFrame* aPrevSibling,
                           InlineReflowState& aState);
-
 };
 
 

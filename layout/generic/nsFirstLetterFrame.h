@@ -84,6 +84,7 @@ public:
                     nsReflowStatus&          aStatus);
 
   virtual PRBool CanContinueTextRun() const;
+  virtual nscoord GetBaseline() const;
 
 
   NS_IMETHOD GetChildFrameContainingOffset(PRInt32 inContentOffset,

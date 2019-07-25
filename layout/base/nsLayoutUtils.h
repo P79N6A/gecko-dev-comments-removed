@@ -672,7 +672,7 @@ public:
 
 
 
-  static nsresult GetFontMetricsForFrame(nsIFrame* aFrame,
+  static nsresult GetFontMetricsForFrame(const nsIFrame* aFrame,
                                          nsIFontMetrics** aFontMetrics);
 
   

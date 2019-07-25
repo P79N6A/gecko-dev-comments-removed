@@ -974,8 +974,17 @@ public:
 
 
 
-
   virtual nscoord GetBaseline() const = 0;
+
+  
+
+
+
+
+
+  virtual nscoord GetCaretBaseline() const {
+    return GetBaseline();
+  }
 
   
 

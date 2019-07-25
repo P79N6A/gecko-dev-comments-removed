@@ -194,6 +194,7 @@ public:
   
   virtual PRBool IsEmpty();
   virtual PRBool IsSelfEmpty() { return IsEmpty(); }
+  virtual nscoord GetBaseline() const;
   
   
 
