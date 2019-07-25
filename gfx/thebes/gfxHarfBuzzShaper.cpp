@@ -845,7 +845,12 @@ gfxHarfBuzzShaper::InitTextRun(gfxContext *aContext,
     hb_buffer_set_direction(buffer,
                             aTextRun->IsRightToLeft() ?
                                 HB_DIRECTION_RTL : HB_DIRECTION_LTR);
-    hb_buffer_set_script(buffer, hb_script_t(aRunScript));
+    
+    
+    
+    hb_buffer_set_script(buffer,
+                         aRunScript <= HB_SCRIPT_INHERITED ? HB_SCRIPT_LATIN
+                         : hb_script_t(aRunScript));
     hb_buffer_set_language(buffer, mHBLanguage);
 
     hb_buffer_add_utf16(buffer, reinterpret_cast<const uint16_t*>(aString + aRunStart),
