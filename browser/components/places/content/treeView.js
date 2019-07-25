@@ -683,7 +683,9 @@ PlacesTreeView.prototype = {
         this._result.sortingMode != Ci.nsINavHistoryQueryOptions.SORT_BY_NONE)
       return;
 
-    let oldRow = this._getRowForNode(aNode, true);
+    let parentRow = aParentNode == this._rootNode ?
+                    undefined : this._getRowForNode(aParentNode, true);
+    let oldRow = this._getRowForNode(aNode, true, parentRow, aOldIndex);
     if (oldRow < 0)
       throw Cr.NS_ERROR_UNEXPECTED;
 
