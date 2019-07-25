@@ -733,8 +733,11 @@ nsDiskCacheStreamIO::FlushBufferToFile()
         if (NS_FAILED(rv))  return rv;
 
         PRInt64 dataSize = mBinding->mCacheEntry->PredictedDataSize();
+
+#if 0
         if (dataSize != -1)
             mozilla::fallocate(mFD, PR_MIN(dataSize, kPreallocateLimit));
+#endif
     }
     
     
