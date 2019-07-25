@@ -682,7 +682,7 @@
       
       
 
-      if ( maxProfile->maxFunctionDefs == 0 )
+      if ( maxProfile->maxFunctionDefs < 64 )
         maxProfile->maxFunctionDefs = 64;
 
       

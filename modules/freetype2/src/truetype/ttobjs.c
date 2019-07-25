@@ -16,6 +16,7 @@
 
 
 
+
 #include <ft2build.h>
 #include FT_INTERNAL_DEBUG_H
 #include FT_INTERNAL_STREAM_H
@@ -149,12 +150,13 @@
   tt_check_trickyness( FT_String*  name )
   {
 #define TRICK_NAMES_MAX_CHARACTERS  16
-#define TRICK_NAMES_COUNT 7
+#define TRICK_NAMES_COUNT 8
     static const char trick_names[TRICK_NAMES_COUNT][TRICK_NAMES_MAX_CHARACTERS+1] =
     {
       "DFKaiSho-SB",     
       "DFKaiShu",
       "DFKai-SB",        
+      "HuaTianKaiTi?",   
       "HuaTianSongTi?",  
       "MingLiU",         
       "PMingLiU",        
@@ -164,7 +166,7 @@
 
 
     if ( !name )
-      return FALSE;
+      return TRUE;
 
     
     
@@ -458,7 +460,11 @@
       error = TT_Goto_CodeRange( exec, tt_coderange_font, 0 );
 
       if ( !error )
+      {
+        FT_TRACE4(( "Executing `fpgm' table.\n" ));
+
         error = face->interpreter( exec );
+      }
     }
     else
       error = TT_Err_Ok;
@@ -520,7 +526,11 @@
       error = TT_Goto_CodeRange( exec, tt_coderange_cvt, 0 );
 
       if ( !error && !size->debug )
+      {
+        FT_TRACE4(( "Executing `prep' table.\n" ));
+
         error = face->interpreter( exec );
+      }
     }
     else
       error = TT_Err_Ok;

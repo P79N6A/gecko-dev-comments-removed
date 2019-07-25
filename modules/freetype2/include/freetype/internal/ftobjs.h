@@ -311,6 +311,12 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
+  
+  
+  
   typedef struct  FT_Face_InternalRec_
   {
 #ifdef FT_CONFIG_OPTION_OLD_INTERNALS
@@ -328,6 +334,7 @@ FT_BEGIN_HEADER
 #endif
 
     FT_Bool             ignore_unpatented_hinter;
+    FT_UInt             refcount;
 
   } FT_Face_InternalRec;
 
@@ -808,7 +815,25 @@ FT_BEGIN_HEADER
   
   
   
-
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   typedef struct  FT_LibraryRec_
   {
     FT_Memory          memory;           
@@ -842,6 +867,8 @@ FT_BEGIN_HEADER
 #ifdef FT_CONFIG_OPTION_PIC
     FT_PIC_Container   pic_container;
 #endif
+
+    FT_UInt            refcount;
 
   } FT_LibraryRec;
 

@@ -90,7 +90,7 @@
 
 
     if ( slot->format != FT_GLYPH_FORMAT_OUTLINE &&
-         slot->format != FT_GLYPH_FORMAT_BITMAP )
+         slot->format != FT_GLYPH_FORMAT_BITMAP  )
       return;
 
     
@@ -108,7 +108,7 @@
       xstr = xstr * 2;
       ystr = xstr;
     }
-    else if ( slot->format == FT_GLYPH_FORMAT_BITMAP )
+    else 
     {
       
       xstr &= ~63;

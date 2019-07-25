@@ -1952,6 +1952,9 @@ FT_BEGIN_HEADER
   
   
   
+  
+  
+  
   FT_EXPORT( FT_Error )
   FT_Open_Face( FT_Library           library,
                 const FT_Open_Args*  args,
@@ -2016,6 +2019,37 @@ FT_BEGIN_HEADER
                     FT_Open_Args*  parameters );
 
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  FT_EXPORT( FT_Error )
+  FT_Reference_Face( FT_Face  face );
+
+
+  
+  
+  
+  
   
   
   
@@ -3774,7 +3808,7 @@ FT_BEGIN_HEADER
 
 #define FREETYPE_MAJOR  2
 #define FREETYPE_MINOR  4
-#define FREETYPE_PATCH  1
+#define FREETYPE_PATCH  3
 
 
   

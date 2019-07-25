@@ -2280,6 +2280,8 @@
           
           
           
+          
+          
           args -= 2 + ( args[-2] >> 16 );
           if ( args < stack )
             goto Stack_Underflow;
@@ -2292,6 +2294,22 @@
 
           FT_TRACE4(( " pop (invalid op)\n" ));
 
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
+          
           args++;
           break;
 
@@ -2455,7 +2473,10 @@
           return CFF_Err_Unimplemented_Feature;
         }
 
-      decoder->top = args;
+        decoder->top = args;
+
+        if ( decoder->top - stack >= CFF_MAX_OPERANDS )
+          goto Stack_Overflow;
 
       } 
 
@@ -2728,48 +2749,53 @@
       
       error = cff_get_glyph_data( face, glyph_index,
                                   &charstring, &charstring_len );
-      if ( !error )
-      {
-        error = cff_decoder_prepare( &decoder, size, glyph_index );
-        if ( !error )
-        {
-          error = cff_decoder_parse_charstrings( &decoder,
-                                                 charstring,
-                                                 charstring_len );
+      if ( error )
+        goto Glyph_Build_Finished;
 
-          cff_free_glyph_data( face, &charstring, charstring_len );
+      error = cff_decoder_prepare( &decoder, size, glyph_index );
+      if ( error )
+        goto Glyph_Build_Finished;
 
+      error = cff_decoder_parse_charstrings( &decoder,
+                                             charstring,
+                                             charstring_len );
+
+      cff_free_glyph_data( face, &charstring, charstring_len );
+
+      if ( error )
+        goto Glyph_Build_Finished;
 
 #ifdef FT_CONFIG_OPTION_INCREMENTAL
-          
-          
-          if ( face->root.internal->incremental_interface )
-          {
-            glyph->root.control_data = 0;
-            glyph->root.control_len = 0;
-          }
-          else
+      
+      
+      if ( face->root.internal->incremental_interface )
+      {
+        glyph->root.control_data = 0;
+        glyph->root.control_len = 0;
+      }
+      else
 #endif 
 
-          
-          
-          
-          {
-            CFF_Index  csindex = &cff->charstrings_index;
+      
+      
+      
+      {
+        CFF_Index  csindex = &cff->charstrings_index;
 
 
-            if ( csindex->offsets )
-            {
-              glyph->root.control_data = csindex->bytes +
-                                           csindex->offsets[glyph_index] - 1;
-              glyph->root.control_len  = charstring_len;
-            }
-          }
+        if ( csindex->offsets )
+        {
+          glyph->root.control_data = csindex->bytes +
+                                     csindex->offsets[glyph_index] - 1;
+          glyph->root.control_len  = charstring_len;
         }
       }
 
+  Glyph_Build_Finished:
       
-      cff_builder_done( &decoder.builder );
+      if ( !error )
+        cff_builder_done( &decoder.builder );
+      
     }
 
 #ifdef FT_CONFIG_OPTION_INCREMENTAL

@@ -150,7 +150,7 @@ FT_BEGIN_HEADER
 
     FT_Bool            step_ins;  
                                   
-    FT_Long            cvtSize;
+    FT_ULong           cvtSize;
     FT_Long*           cvt;
 
     FT_UInt            glyphSize; 

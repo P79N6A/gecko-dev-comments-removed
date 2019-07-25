@@ -577,6 +577,12 @@
         }
 
         string_size = T1_ToInt( parser );
+        if ( string_size < 0 )
+        {
+          FT_ERROR(( "t42_parse_sfnts: invalid string size\n" ));
+          error = T42_Err_Invalid_File_Format;
+          goto Fail;
+        }
 
         T1_Skip_PS_Token( parser );             
         if ( parser->root.error )
@@ -584,13 +590,14 @@
 
         string_buf = parser->root.cursor + 1;   
 
-        parser->root.cursor += string_size + 1;
-        if ( parser->root.cursor >= limit )
+        if ( limit - parser->root.cursor < string_size )
         {
           FT_ERROR(( "t42_parse_sfnts: too many binary data\n" ));
           error = T42_Err_Invalid_File_Format;
           goto Fail;
         }
+        else
+          parser->root.cursor += string_size + 1;
       }
 
       if ( !string_buf )

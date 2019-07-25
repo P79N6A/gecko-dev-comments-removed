@@ -520,6 +520,18 @@
       }
 
       
+      
+      if ( off2 > stream->size + 1                    ||
+           idx->data_offset > stream->size - off2 + 1 )
+      {
+        FT_ERROR(( "cff_index_access_element:"
+                   " offset to next entry (%d)"
+                   " exceeds the end of stream (%d)\n",
+                   off2, stream->size - idx->data_offset + 1 ));
+        off2 = stream->size - idx->data_offset + 1;
+      }
+
+      
       if ( off1 && off2 > off1 )
       {
         *pbyte_len = off2 - off1;
@@ -779,11 +791,12 @@
       goto Exit;
 
     for ( i = 0; i < num_glyphs; i++ )
+    {
       if ( charset->sids[i] > max_cid )
         max_cid = charset->sids[i];
-    max_cid++;
+    }
 
-    if ( FT_NEW_ARRAY( charset->cids, max_cid ) )
+    if ( FT_NEW_ARRAY( charset->cids, (FT_ULong)max_cid + 1 ) )
       goto Exit;
 
     
@@ -807,7 +820,7 @@
     FT_UInt  result = 0;
 
 
-    if ( cid < charset->max_cid )
+    if ( cid <= charset->max_cid )
       result = charset->cids[cid];
 
     return result;
@@ -881,20 +894,7 @@
             goto Exit;
 
           for ( j = 1; j < num_glyphs; j++ )
-          {
-            FT_UShort sid = FT_GET_USHORT();
-
-
-            
-            if ( sid < 65000L )
-              charset->sids[j] = sid;
-            else
-            {
-              FT_TRACE0(( "cff_charset_load:"
-                          " invalid SID value %d set to zero\n", sid ));
-              charset->sids[j] = 0;
-            }
-          }
+            charset->sids[j] = FT_GET_USHORT();
 
           FT_FRAME_EXIT();
         }
@@ -928,19 +928,11 @@
             }
 
             
-            
-            if ( glyph_sid >= 65000L )
+            if ( glyph_sid > 0xFFFFL - nleft )
             {
-              FT_ERROR(( "cff_charset_load: invalid SID range\n" ));
-              error = CFF_Err_Invalid_File_Format;
-              goto Exit;
-            }
-
-            
-            if ( nleft > 65000L - 1L || glyph_sid >= 65000L - nleft )
-            {
-              FT_ERROR(( "cff_charset_load: invalid SID range trimmed\n" ));
-              nleft = ( FT_UInt )( 65000L - 1L - glyph_sid );
+              FT_ERROR(( "cff_charset_load: invalid SID range trimmed"
+                         " nleft=%d -> %d\n", nleft, 0xFFFFL - glyph_sid ));
+              nleft = ( FT_UInt )( 0xFFFFL - glyph_sid );
             }
 
             
@@ -1277,9 +1269,7 @@
           if ( gid != 0 )
           {
             encoding->codes[j] = (FT_UShort)gid;
-
-            if ( encoding->count < j + 1 )
-              encoding->count = j + 1;
+            encoding->count    = j + 1;
           }
           else
           {

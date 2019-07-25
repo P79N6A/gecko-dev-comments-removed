@@ -944,7 +944,7 @@
                   FT_Int32      load_flags )
   {
     FNT_Face    face   = (FNT_Face)FT_SIZE_FACE( size );
-    FNT_Font    font   = face->font;
+    FNT_Font    font;
     FT_Error    error  = FNT_Err_Ok;
     FT_Byte*    p;
     FT_Int      len;
@@ -955,7 +955,15 @@
     FT_UNUSED( load_flags );
 
 
-    if ( !face || !font ||
+    if ( !face )
+    {
+      error = FNT_Err_Invalid_Argument;
+      goto Exit;
+    }
+
+    font = face->font;
+
+    if ( !font ||
          glyph_index >= (FT_UInt)( FT_FACE( face )->num_glyphs ) )
     {
       error = FNT_Err_Invalid_Argument;

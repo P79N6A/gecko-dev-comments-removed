@@ -272,6 +272,37 @@ FT_BEGIN_HEADER
   
   
   
+  FT_EXPORT( FT_Error )
+  FT_Reference_Library( FT_Library  library );
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   
@@ -280,6 +311,10 @@ FT_BEGIN_HEADER
                   FT_Library  *alibrary );
 
 
+  
+  
+  
+  
   
   
   

@@ -91,6 +91,11 @@
 #define FT_COMPONENT  trace_smooth
 
 
+  
+  
+#define FT_MAX_CURVE_DEVIATION  16
+
+
 #ifdef _STANDALONE_
 
 
@@ -187,7 +192,7 @@ typedef ptrdiff_t  FT_PtrDist;
             shift_,                                    \
             delta_                                     \
          };
-                                          
+
 #define FT_DEFINE_RASTER_FUNCS( class_, glyph_format_,            \
                                 raster_new_, raster_reset_,       \
                                 raster_set_mode_, raster_render_, \
@@ -354,8 +359,6 @@ typedef ptrdiff_t  FT_PtrDist;
 
     int  band_size;
     int  band_shoot;
-    int  conic_level;
-    int  cubic_level;
 
     ft_jmp_buf  jump_buffer;
 
@@ -888,31 +891,18 @@ typedef ptrdiff_t  FT_PtrDist;
     if ( dx < dy )
       dx = dy;
 
+    if ( dx <= FT_MAX_CURVE_DEVIATION )
+    {
+      gray_render_line( RAS_VAR_ UPSCALE( to->x ), UPSCALE( to->y ) );
+      return;
+    }
+
     level = 1;
-    dx = dx / ras.conic_level;
-    while ( dx > 0 )
+    dx /= FT_MAX_CURVE_DEVIATION;
+    while ( dx > 1 )
     {
       dx >>= 2;
       level++;
-    }
-
-    
-    if ( level <= 1 )
-    {
-      
-      
-      TPos  to_x, to_y, mid_x, mid_y;
-
-
-      to_x  = UPSCALE( to->x );
-      to_y  = UPSCALE( to->y );
-      mid_x = ( ras.x + to_x + 2 * UPSCALE( control->x ) ) / 4;
-      mid_y = ( ras.y + to_y + 2 * UPSCALE( control->y ) ) / 4;
-
-      gray_render_line( RAS_VAR_ mid_x, mid_y );
-      gray_render_line( RAS_VAR_ to_x, to_y );
-
-      return;
     }
 
     arc       = ras.bez_stack;
@@ -957,21 +947,9 @@ typedef ptrdiff_t  FT_PtrDist;
       }
 
     Draw:
-      {
-        TPos  to_x, to_y, mid_x, mid_y;
-
-
-        to_x  = arc[0].x;
-        to_y  = arc[0].y;
-        mid_x = ( ras.x + to_x + 2 * arc[1].x ) / 4;
-        mid_y = ( ras.y + to_y + 2 * arc[1].y ) / 4;
-
-        gray_render_line( RAS_VAR_ mid_x, mid_y );
-        gray_render_line( RAS_VAR_ to_x, to_y );
-
-        top--;
-        arc -= 2;
-      }
+      gray_render_line( RAS_VAR_ arc[0].x, arc[0].y );
+      top--;
+      arc -= 2;
     }
 
     return;
@@ -1011,55 +989,8 @@ typedef ptrdiff_t  FT_PtrDist;
                               const FT_Vector*  control2,
                               const FT_Vector*  to )
   {
-    int         top, level;
-    int*        levels;
     FT_Vector*  arc;
-    int         mid_x = ( DOWNSCALE( ras.x ) + to->x +
-                          3 * (control1->x + control2->x ) ) / 8;
-    int         mid_y = ( DOWNSCALE( ras.y ) + to->y +
-                          3 * (control1->y + control2->y ) ) / 8;
-    TPos        dx = DOWNSCALE( ras.x ) + to->x - ( mid_x << 1 );
-    TPos        dy = DOWNSCALE( ras.y ) + to->y - ( mid_y << 1 );
 
-
-    if ( dx < 0 )
-      dx = -dx;
-    if ( dy < 0 )
-      dy = -dy;
-    if ( dx < dy )
-      dx = dy;
-
-    level = 1;
-    dx /= ras.cubic_level;
-    while ( dx > 0 )
-    {
-      dx >>= 2;
-      level++;
-    }
-
-    if ( level <= 1 )
-    {
-      TPos  to_x, to_y;
-
-
-      to_x  = UPSCALE( to->x );
-      to_y  = UPSCALE( to->y );
-
-      
-      
-
-#if ( PIXEL_BITS != 6 )
-      mid_x = ( ras.x + to_x +
-                3 * UPSCALE( control1->x + control2->x ) ) / 8;
-      mid_y = ( ras.y + to_y +
-                3 * UPSCALE( control1->y + control2->y ) ) / 8;
-#endif
-
-      gray_render_line( RAS_VAR_ mid_x, mid_y );
-      gray_render_line( RAS_VAR_ to_x, to_y );
-
-      return;
-    }
 
     arc      = ras.bez_stack;
     arc[0].x = UPSCALE( to->x );
@@ -1071,58 +1002,121 @@ typedef ptrdiff_t  FT_PtrDist;
     arc[3].x = ras.x;
     arc[3].y = ras.y;
 
-    levels    = ras.lev_stack;
-    top       = 0;
-    levels[0] = level;
-
-    while ( top >= 0 )
+    for (;;)
     {
-      level = levels[top];
-      if ( level > 1 )
+      
+      TPos  min, max, y;
+
+
+      min = max = arc[0].y;
+
+      y = arc[1].y;
+      if ( y < min )
+        min = y;
+      if ( y > max )
+        max = y;
+
+      y = arc[2].y;
+      if ( y < min )
+        min = y;
+      if ( y > max )
+        max = y;
+
+      y = arc[3].y;
+      if ( y < min )
+        min = y;
+      if ( y > max )
+        max = y;
+
+      if ( TRUNC( min ) >= ras.max_ey || TRUNC( max ) < ras.min_ey )
+        goto Draw;
+
+      
+      
+      
+      
+
       {
+        TPos  dx, dy, dx_, dy_;
+        TPos  dx1, dy1, dx2, dy2;
+        TPos  L, s, s_limit;
+
+
         
-        TPos  min, max, y;
+        dx = arc[3].x - arc[0].x;
+        dy = arc[3].y - arc[0].y;
 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
 
-        min = max = arc[0].y;
-        y = arc[1].y;
-        if ( y < min ) min = y;
-        if ( y > max ) max = y;
-        y = arc[2].y;
-        if ( y < min ) min = y;
-        if ( y > max ) max = y;
-        y = arc[3].y;
-        if ( y < min ) min = y;
-        if ( y > max ) max = y;
-        if ( TRUNC( min ) >= ras.max_ey || TRUNC( max ) < 0 )
-          goto Draw;
-        gray_split_cubic( arc );
-        arc += 3;
-        top ++;
-        levels[top] = levels[top - 1] = level - 1;
-        continue;
+        dx_ = FT_ABS( dx );
+        dy_ = FT_ABS( dy );
+        L = ( 236 * FT_MAX( dx_, dy_ ) + 97 * FT_MIN( dx_, dy_ ) ) >> 8;
+
+        
+        if ( L > 32767 )
+          goto Split;
+
+        
+        s_limit = L * (TPos)( FT_MAX_CURVE_DEVIATION / 0.75 );
+
+        
+        dx1 = arc[1].x - arc[0].x;
+        dy1 = arc[1].y - arc[0].y;
+        s = FT_ABS( dy * dx1 - dx * dy1 );
+
+        if ( s > s_limit )
+          goto Split;
+
+        
+        dx2 = arc[2].x - arc[0].x;
+        dy2 = arc[2].y - arc[0].y;
+        s = FT_ABS( dy * dx2 - dx * dy2 );
+
+        if ( s > s_limit )
+          goto Split;
+
+        
+        if ( dy * dy1 + dx * dx1 < 0                                     ||
+             dy * dy2 + dx * dx2 < 0                                     ||
+             dy * (arc[3].y - arc[1].y) + dx * (arc[3].x - arc[1].x) < 0 ||
+             dy * (arc[3].y - arc[2].y) + dx * (arc[3].x - arc[2].x) < 0 )
+          goto Split;
+
+        
+        goto Draw;
       }
+
+    Split:
+      gray_split_cubic( arc );
+      arc += 3;
+      continue;
 
     Draw:
-      {
-        TPos  to_x, to_y;
+      gray_render_line( RAS_VAR_ arc[0].x, arc[0].y );
 
+      if ( arc == ras.bez_stack )
+        return;
 
-        to_x  = arc[0].x;
-        to_y  = arc[0].y;
-        mid_x = ( ras.x + to_x + 3 * ( arc[1].x + arc[2].x ) ) / 8;
-        mid_y = ( ras.y + to_y + 3 * ( arc[1].y + arc[2].y ) ) / 8;
-
-        gray_render_line( RAS_VAR_ mid_x, mid_y );
-        gray_render_line( RAS_VAR_ to_x, to_y );
-        top --;
-        arc -= 3;
-      }
+      arc -= 3;
     }
-
-    return;
   }
-
 
 
   static int
@@ -1759,25 +1753,6 @@ typedef ptrdiff_t  FT_PtrDist;
 
     ras.count_ex = ras.max_ex - ras.min_ex;
     ras.count_ey = ras.max_ey - ras.min_ey;
-
-    
-    
-    
-    ras.conic_level = 32;
-    ras.cubic_level = 16;
-
-    {
-      int  level = 0;
-
-
-      if ( ras.count_ex > 24 || ras.count_ey > 24 )
-        level++;
-      if ( ras.count_ex > 120 || ras.count_ey > 120 )
-        level++;
-
-      ras.conic_level <<= level;
-      ras.cubic_level <<= level;
-    }
 
     
     num_bands = (int)( ( ras.max_ey - ras.min_ey ) / ras.band_size );

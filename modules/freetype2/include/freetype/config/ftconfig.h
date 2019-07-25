@@ -363,7 +363,7 @@ FT_BEGIN_HEADER
 
 #endif 
 
-#if defined( i386 )
+#if defined( __i386__ )
 #define FT_MULFIX_ASSEMBLER  FT_MulFix_i386
 
   
