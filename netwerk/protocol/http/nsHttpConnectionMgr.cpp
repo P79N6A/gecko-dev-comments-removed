@@ -1704,6 +1704,7 @@ void
 nsHttpConnectionMgr::StartedConnect()
 {
     mNumActiveConns++;
+    ActivateTimeoutTick(); 
 }
 
 void
@@ -2161,9 +2162,41 @@ nsHttpConnectionMgr::ReadTimeoutTickCB(const nsACString &key,
     LOG(("nsHttpConnectionMgr::ReadTimeoutTickCB() this=%p host=%s\n",
          self, ent->mConnInfo->Host()));
 
+    
     PRIntervalTime now = PR_IntervalNow();
     for (PRUint32 index = 0; index < ent->mActiveConns.Length(); ++index)
         ent->mActiveConns[index]->ReadTimeoutTick(now);
+
+    
+    if (ent->mHalfOpens.Length()) {
+        TimeStamp now = TimeStamp::Now();
+        double maxConnectTime = gHttpHandler->ConnectTimeout();  
+
+        for (PRUint32 index = ent->mHalfOpens.Length(); index > 0; ) {
+            index--;
+
+            nsHalfOpenSocket *half = ent->mHalfOpens[index];
+            double delta = half->Duration(now);
+            
+            
+            if (delta > maxConnectTime) {
+                LOG(("Force timeout of half open to %s after %.2fms.\n",
+                     ent->mConnInfo->HashKey().get(), delta));
+                if (half->SocketTransport())
+                    half->SocketTransport()->Close(NS_ERROR_NET_TIMEOUT);
+                if (half->BackupTransport())
+                    half->BackupTransport()->Close(NS_ERROR_NET_TIMEOUT);
+            }
+
+            
+            
+            if (delta > maxConnectTime + 5000) {
+                LOG(("Abandon half open to %s after %.2fms.\n",
+                     ent->mConnInfo->HashKey().get(), delta));
+                half->Abandon();
+            }
+        }
+    }
 
     return PL_DHASH_NEXT;
 }
@@ -2301,17 +2334,8 @@ nsHttpConnectionMgr::nsHalfOpenSocket::~nsHalfOpenSocket()
     NS_ABORT_IF_FALSE(!mSynTimer, "syntimer not null");
     LOG(("Destroying nsHalfOpenSocket [this=%p]\n", this));
     
-    if (mEnt) {
-        
-        
-        
-        mEnt->mHalfOpens.RemoveElement(this);
-        
-        
-        
-        if (!mEnt->UnconnectedHalfOpens())
-            gHttpHandler->ConnMgr()->ProcessPendingQForEntry(mEnt);
-    }
+    if (mEnt)
+        mEnt->RemoveHalfOpen(this);
 }
 
 nsresult
@@ -2496,8 +2520,20 @@ nsHttpConnectionMgr::nsHalfOpenSocket::Abandon()
 
     CancelBackupTimer();
 
+    if (mEnt)
+        mEnt->RemoveHalfOpen(this);
     mEnt = nsnull;
 }
+
+double
+nsHttpConnectionMgr::nsHalfOpenSocket::Duration(mozilla::TimeStamp epoch)
+{
+    if (mPrimarySynStarted.IsNull())
+        return 0;
+
+    return (epoch - mPrimarySynStarted).ToMilliseconds();
+}
+
 
 NS_IMETHODIMP 
 nsHttpConnectionMgr::nsHalfOpenSocket::Notify(nsITimer *timer)
@@ -3022,4 +3058,18 @@ nsHttpConnectionMgr::nsConnectionEntry::UnconnectedHalfOpens()
             ++unconnectedHalfOpens;
     }
     return unconnectedHalfOpens;
+}
+
+void
+nsHttpConnectionMgr::
+nsConnectionEntry::RemoveHalfOpen(nsHalfOpenSocket *halfOpen)
+{
+    
+    
+    
+    mHalfOpens.RemoveElement(halfOpen);
+
+    if (!UnconnectedHalfOpens())
+        
+        gHttpHandler->ConnMgr()->ProcessPendingQForEntry(this);
 }

@@ -870,6 +870,10 @@ pref("network.http.connection-retry-timeout", 250);
 
 
 
+pref("network.http.connection-timeout", 90);
+
+
+
 pref("network.http.fast-fallback-to-IPv4", true);
 
 

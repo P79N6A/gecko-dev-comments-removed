@@ -266,6 +266,9 @@ private:
         PRUint32 UnconnectedHalfOpens();
 
         
+        void RemoveHalfOpen(nsHalfOpenSocket *);
+
+        
         const static PRUint32 kPipelineUnlimited  = 1024; 
         const static PRUint32 kPipelineOpen       = 6;    
         const static PRUint32 kPipelineRestricted = 2;    
@@ -388,7 +391,10 @@ private:
         void     SetupBackupTimer();
         void     CancelBackupTimer();
         void     Abandon();
-        
+        double   Duration(mozilla::TimeStamp epoch);
+        nsISocketTransport *SocketTransport() { return mSocketTransport; }
+        nsISocketTransport *BackupTransport() { return mBackupTransport; }
+
         nsAHttpTransaction *Transaction() { return mTransaction; }
 
         bool IsSpeculative() { return mSpeculative; }
