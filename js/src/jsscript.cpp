@@ -1340,29 +1340,8 @@ JSScript::fullyInitFromEmitter(JSContext *cx, BytecodeEmitter *bce)
     RootedFunction fun(cx, NULL);
     if (bce->sc->inFunction()) {
         JS_ASSERT(!bce->script->noScriptRval);
-
         script->isGenerator = bce->sc->funIsGenerator();
-
-        
-
-
-
-        fun = bce->sc->fun();
-        JS_ASSERT(fun->isInterpreted());
-        JS_ASSERT(!fun->script());
-        if (bce->sc->funIsHeavyweight())
-            fun->flags |= JSFUN_HEAVYWEIGHT;
-
-        
-        bool singleton =
-            cx->typeInferenceEnabled() &&
-            bce->parent &&
-            bce->parent->checkSingletonContext();
-
-        fun->setScript(script);
-        script->setFunction(fun);
-        if (!fun->setTypeForScriptedFunction(cx, singleton))
-            return false;
+        script->setFunction(bce->sc->fun());
     }
 
     
