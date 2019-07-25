@@ -55,16 +55,14 @@ extern "C" __declspec(dllimport) void CacheRangeFlush(LPVOID pAddr, DWORD dwLeng
 #endif
 
 #define JIT_ALLOCATOR_PAGE_SIZE (ExecutableAllocator::pageSize)
-#if WTF_PLATFORM_WIN_OS || WTF_PLATFORM_WINCE
 
 
 
 
 
-# define JIT_ALLOCATOR_LARGE_ALLOC_SIZE (ExecutableAllocator::pageSize * 16)
-#else
-# define JIT_ALLOCATOR_LARGE_ALLOC_SIZE (ExecutableAllocator::pageSize * 4)
-#endif
+
+
+#define JIT_ALLOCATOR_LARGE_ALLOC_SIZE (ExecutableAllocator::pageSize * 16)
 
 #if ENABLE_ASSEMBLER_WX_EXCLUSIVE
 #define PROTECTION_FLAGS_RW (PROT_READ | PROT_WRITE)
@@ -203,15 +201,21 @@ public:
 
         if (!pageSize)
             intializePageSize();
-        allocator->m_smallAllocationPool = ExecutablePool::create(JIT_ALLOCATOR_LARGE_ALLOC_SIZE);
-        if (!allocator->m_smallAllocationPool) {
+        ExecutablePool *pool = ExecutablePool::create(JIT_ALLOCATOR_LARGE_ALLOC_SIZE);
+        if (!pool) {
             delete allocator;
             return NULL;
         }
+        JS_ASSERT(allocator->m_smallAllocationPools.empty());
+        allocator->m_smallAllocationPools.append(pool);
         return allocator;
     }
 
-    ~ExecutableAllocator() { delete m_smallAllocationPool; }
+    ~ExecutableAllocator()
+    {
+        for (size_t i = 0; i < m_smallAllocationPools.length(); i++)
+            delete m_smallAllocationPools[i];
+    }
 
     
     
@@ -221,10 +225,20 @@ public:
     {
 #ifndef DEBUG_STRESS_JSC_ALLOCATOR
         
-        if (n < m_smallAllocationPool->available()) {
-	    m_smallAllocationPool->addRef();
-            return m_smallAllocationPool;
-	}
+        
+        
+        
+        
+        ExecutablePool *minPool = NULL;
+        for (size_t i = 0; i < m_smallAllocationPools.length(); i++) {
+            ExecutablePool *pool = m_smallAllocationPools[i];
+            if (n <= pool->available() && (!minPool || pool->available() < minPool->available()))
+                minPool = pool;
+        }
+        if (minPool) {
+            minPool->addRef();
+            return minPool;
+        }
 #endif
 
         
@@ -237,13 +251,29 @@ public:
             return NULL;
   	    
 
-        
-        
-        if ((pool->available() - n) > m_smallAllocationPool->available()) {
-	        m_smallAllocationPool->release();
-            m_smallAllocationPool = pool;
-	        pool->addRef();
-	    }
+        if (m_smallAllocationPools.length() < maxSmallPools) {
+            
+            m_smallAllocationPools.append(pool);
+            pool->addRef();
+        } else {
+            
+            int iMin = 0;
+            for (size_t i = 1; i < m_smallAllocationPools.length(); i++)
+                if (m_smallAllocationPools[i]->available() <
+                    m_smallAllocationPools[iMin]->available())
+                {
+                    iMin = i;
+                }
+
+            
+            
+            ExecutablePool *minPool = m_smallAllocationPools[iMin];
+            if ((pool->available() - n) > minPool->available()) {
+                minPool->release();
+                m_smallAllocationPools[iMin] = pool;
+                pool->addRef();
+            }
+        }
 
    	    
         return pool;
@@ -355,7 +385,9 @@ private:
     static void reprotectRegion(void*, size_t, ProtectionSeting);
 #endif
 
-    ExecutablePool* m_smallAllocationPool;
+    static const size_t maxSmallPools = 4;
+    typedef js::Vector<ExecutablePool *, maxSmallPools, js::SystemAllocPolicy > SmallExecPoolVector;
+    SmallExecPoolVector m_smallAllocationPools;
     static void intializePageSize();
 };
 
