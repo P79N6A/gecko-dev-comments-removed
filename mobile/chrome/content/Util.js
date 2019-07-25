@@ -183,7 +183,9 @@ let Util = {
   },
 
   get isKeyboardOpened() {
-    let isChromeWindow = this.isParentProcess() && window["ViewableAreaObserver"];
+    
+    
+    let isChromeWindow = this.isParentProcess() && typeof window == "object" && window["ViewableAreaObserver"];
     if (isChromeWindow)
       return ViewableAreaObserver.isKeyboardOpened;
 
