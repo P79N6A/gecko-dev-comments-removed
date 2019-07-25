@@ -119,19 +119,13 @@ public:
 
 
 
-  virtual void RequestLinkStateUpdate();
 
+  void UpdateState(bool aNotify);
+  
   
 
 
-
-
-
-
-
-
-
-  void UpdateState(bool aNotify);
+  void UpdateLinkState(nsEventStates aState);
 
 protected:
   
@@ -141,11 +135,6 @@ protected:
 
 
   virtual nsEventStates IntrinsicState() const;
-
-  
-
-
-  void UpdateLinkState(nsEventStates aState);
 
   
 

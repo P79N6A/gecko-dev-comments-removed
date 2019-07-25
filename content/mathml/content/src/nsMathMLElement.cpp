@@ -89,19 +89,23 @@ nsMathMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                 aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aDocument && !aDocument->GetMathMLEnabled()) {
+  if (aDocument) {
+    aDocument->RegisterPendingLinkUpdate(this);
     
-    
-    
-    aDocument->SetMathMLEnabled();
-    aDocument->EnsureCatalogStyleSheet(kMathMLStyleSheetURI);
+    if (!aDocument->GetMathMLEnabled()) {
+      
+      
+      
+      aDocument->SetMathMLEnabled();
+      aDocument->EnsureCatalogStyleSheet(kMathMLStyleSheetURI);
 
-    
-    
-    
-    nsCOMPtr<nsIPresShell> shell = aDocument->GetShell();
-    if (shell) {
-      shell->GetPresContext()->PostRebuildAllStyleDataEvent(nsChangeHint(0));
+      
+      
+      
+      nsCOMPtr<nsIPresShell> shell = aDocument->GetShell();
+      if (shell) {
+        shell->GetPresContext()->PostRebuildAllStyleDataEvent(nsChangeHint(0));
+      }
     }
   }
 
@@ -114,6 +118,11 @@ nsMathMLElement::UnbindFromTree(bool aDeep, bool aNullParent)
   
   
   Link::ResetLinkState(false);
+  
+  nsIDocument* doc = GetCurrentDoc();
+  if (doc) {
+    doc->UnregisterPendingLinkUpdate(this);
+  }
 
   nsMathMLElementBase::UnbindFromTree(aDeep, aNullParent);
 }
@@ -620,12 +629,6 @@ nsLinkState
 nsMathMLElement::GetLinkState() const
 {
   return Link::GetLinkState();
-}
-
-void
-nsMathMLElement::RequestLinkStateUpdate()
-{
-  UpdateLinkState(Link::LinkState());
 }
 
 already_AddRefed<nsIURI>

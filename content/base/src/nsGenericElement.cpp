@@ -1249,11 +1249,6 @@ Element::NotifyStateChange(nsEventStates aStates)
 }
 
 void
-Element::RequestLinkStateUpdate()
-{
-}
-
-void
 Element::UpdateLinkState(nsEventStates aState)
 {
   NS_ABORT_IF_FALSE(!aState.HasAtLeastOneOfStates(~(NS_EVENT_STATE_VISITED |
@@ -5385,6 +5380,7 @@ inline static nsresult FindMatchingElements(nsINode* aRoot,
   nsIDocument* doc = aRoot->OwnerDoc();  
   TreeMatchContext matchingContext(false, nsRuleWalker::eRelevantLinkUnvisited,
                                    doc);
+  doc->FlushPendingLinkUpdates();
 
   
   
@@ -5493,6 +5489,7 @@ nsGenericElement::MozMatchesSelector(const nsAString& aSelector, nsresult* aResu
   *aResult = ParseSelectorList(this, aSelector, getter_Transfers(selectorList));
 
   if (NS_SUCCEEDED(*aResult)) {
+    OwnerDoc()->FlushPendingLinkUpdates();
     TreeMatchContext matchingContext(false,
                                      nsRuleWalker::eRelevantLinkUnvisited,
                                      OwnerDoc());

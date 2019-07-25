@@ -166,6 +166,7 @@ public:
       
       mAllowDNSPrefetch(true),
       mIsBeingUsedAsImage(false),
+      mHasLinksToUpdate(false),
       mPartID(0)
   {
     SetInDocument();
@@ -1554,6 +1555,17 @@ public:
   virtual nsresult SetNavigationTiming(nsDOMNavigationTiming* aTiming) = 0;
 
   virtual Element* FindImageMap(const nsAString& aNormalizedMapName) = 0;
+  
+  
+  void RegisterPendingLinkUpdate(mozilla::dom::Link* aLink);
+  
+  
+  
+  void UnregisterPendingLinkUpdate(mozilla::dom::Link* aElement);
+
+  
+  
+  void FlushPendingLinkUpdates();
 
 #define DEPRECATED_OPERATION(_op) e##_op,
   enum DeprecatedOperations {
@@ -1644,6 +1656,11 @@ protected:
   
   
   nsAutoPtr<nsTHashtable<nsPtrHashKey<nsIContent> > > mFreezableElements;
+  
+  
+  
+  
+  nsTHashtable<nsPtrHashKey<mozilla::dom::Link> > mLinksToUpdate;
 
   
   nsRefPtr<nsSMILAnimationController> mAnimationController;
@@ -1723,6 +1740,9 @@ protected:
   
   
   bool mIsSyntheticDocument;
+
+  
+  bool mHasLinksToUpdate;
 
   
   

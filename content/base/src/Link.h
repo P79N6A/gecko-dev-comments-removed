@@ -109,6 +109,9 @@ public:
 
 
   void ResetLinkState(bool aNotify);
+  
+  
+  Element* GetElement() const { return mElement; }
 
 protected:
   virtual ~Link();
