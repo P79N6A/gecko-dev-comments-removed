@@ -1067,7 +1067,7 @@ LinearScanAllocator::populateSafepoints()
             
             
             if (ins == reg->ins() && !reg->isTemp()) {
-                LDefinition *def = reg->def();
+                DebugOnly<LDefinition*> def = reg->def();
                 JS_ASSERT_IF(def->policy() == LDefinition::MUST_REUSE_INPUT,
                              def->type() == LDefinition::GENERAL || def->type() == LDefinition::DOUBLE);
                 continue;
