@@ -42,7 +42,6 @@
 
 
 
-#include "nsIWeakReference.h"
 #include "nsIWeakReferenceUtils.h"
 
 class nsWeakReference;

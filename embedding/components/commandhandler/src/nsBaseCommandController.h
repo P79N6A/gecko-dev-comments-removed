@@ -49,7 +49,6 @@
 #include "nsIControllerContext.h"
 #include "nsIControllerCommandTable.h"
 #include "nsIInterfaceRequestor.h"
-#include "nsIWeakReference.h"
 #include "nsIWeakReferenceUtils.h"
 
 
