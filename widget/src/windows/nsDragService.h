@@ -86,9 +86,6 @@ protected:
   bool IsCollectionObject(IDataObject* inDataObj);
 
   
-  PRUint64 GetShellVersion();
-
-  
   bool CreateDragImage(nsIDOMNode *aDOMNode,
                          nsIScriptableRegion *aRegion,
                          SHDRAGIMAGE *psdi);
