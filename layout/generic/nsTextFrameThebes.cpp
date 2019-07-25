@@ -6396,6 +6396,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
 
   
   PRInt32 newLineOffset = -1; 
+  PRInt32 contentNewLineOffset = -1;
   
   NewlineProperty* cachedNewlineOffset = nsnull;
   if (textStyle->NewlineIsSignificant()) {
@@ -6404,9 +6405,18 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
     if (cachedNewlineOffset && cachedNewlineOffset->mStartOffset <= offset &&
         (cachedNewlineOffset->mNewlineOffset == -1 ||
          cachedNewlineOffset->mNewlineOffset >= offset)) {
-      newLineOffset = cachedNewlineOffset->mNewlineOffset;
+      contentNewLineOffset = cachedNewlineOffset->mNewlineOffset;
     } else {
-      newLineOffset = FindChar(frag, offset, length, '\n');
+      contentNewLineOffset = FindChar(frag, offset, 
+                                      mContent->TextLength() - offset, '\n');
+    }
+    if (contentNewLineOffset < offset + length) {
+      
+
+
+
+
+      newLineOffset = contentNewLineOffset;
     }
     if (newLineOffset >= 0) {
       length = newLineOffset + 1 - offset;
@@ -6766,7 +6776,8 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
   
   if (contentLength < maxContentLength &&
       textStyle->NewlineIsSignificant() &&
-      (newLineOffset < 0 || mContentOffset + contentLength <= newLineOffset)) {
+      (contentNewLineOffset < 0 ||
+       mContentOffset + contentLength <= contentNewLineOffset)) {
     if (!cachedNewlineOffset) {
       cachedNewlineOffset = new NewlineProperty;
       if (cachedNewlineOffset) {
@@ -6779,7 +6790,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
     }
     if (cachedNewlineOffset) {
       cachedNewlineOffset->mStartOffset = offset;
-      cachedNewlineOffset->mNewlineOffset = newLineOffset;
+      cachedNewlineOffset->mNewlineOffset = contentNewLineOffset;
     }
   } else if (cachedNewlineOffset) {
     mContent->DeleteProperty(nsGkAtoms::newline);
