@@ -22,7 +22,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/IndexedDBHelper.jsm");
 
 const DB_NAME = "contacts";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "contacts";
 
 function ContactDB(aGlobal) {
@@ -32,7 +32,14 @@ function ContactDB(aGlobal) {
 
 ContactDB.prototype = {
   __proto__: IndexedDBHelper.prototype,
-  
+
+  upgradeSchema: function upgradeSchema(aTransaction, aDb, aOldVersion, aNewVersion) {
+    debug("upgrade schema from: " + aOldVersion + " to " + aNewVersion + " called!");
+    let db = aDb;
+    let objectStore;
+    for (let currVersion = aOldVersion; currVersion < aNewVersion; currVersion++) {
+      if (currVersion == 0) {
+        
 
 
 
@@ -43,31 +50,59 @@ ContactDB.prototype = {
 
 
 
-  createSchema: function createSchema(db) {
-    let objectStore = db.createObjectStore(this.dbStoreName, {keyPath: "id"});
+        debug("create schema");
+        objectStore = db.createObjectStore(this.dbStoreName, {keyPath: "id"});
 
-    
-    objectStore.createIndex("published", "published", { unique: false });
-    objectStore.createIndex("updated",   "updated",   { unique: false });
+        
+        objectStore.createIndex("published", "published", { unique: false });
+        objectStore.createIndex("updated",   "updated",   { unique: false });
 
-    
-    objectStore.createIndex("nickname",   "properties.nickname",   { unique: false, multiEntry: true });
-    objectStore.createIndex("name",       "properties.name",       { unique: false, multiEntry: true });
-    objectStore.createIndex("familyName", "properties.familyName", { unique: false, multiEntry: true });
-    objectStore.createIndex("givenName",  "properties.givenName",  { unique: false, multiEntry: true });
-    objectStore.createIndex("tel",        "properties.tel",        { unique: false, multiEntry: true });
-    objectStore.createIndex("email",      "properties.email",      { unique: false, multiEntry: true });
-    objectStore.createIndex("note",       "properties.note",       { unique: false, multiEntry: true });
+        
+        objectStore.createIndex("nickname",   "properties.nickname",   { unique: false, multiEntry: true });
+        objectStore.createIndex("name",       "properties.name",       { unique: false, multiEntry: true });
+        objectStore.createIndex("familyName", "properties.familyName", { unique: false, multiEntry: true });
+        objectStore.createIndex("givenName",  "properties.givenName",  { unique: false, multiEntry: true });
+        objectStore.createIndex("tel",        "properties.tel",        { unique: false, multiEntry: true });
+        objectStore.createIndex("email",      "properties.email",      { unique: false, multiEntry: true });
+        objectStore.createIndex("note",       "properties.note",       { unique: false, multiEntry: true });
 
-    objectStore.createIndex("nicknameLowerCase",   "search.nickname",   { unique: false, multiEntry: true });
-    objectStore.createIndex("nameLowerCase",       "search.name",       { unique: false, multiEntry: true });
-    objectStore.createIndex("familyNameLowerCase", "search.familyName", { unique: false, multiEntry: true });
-    objectStore.createIndex("givenNameLowerCase",  "search.givenName",  { unique: false, multiEntry: true });
-    objectStore.createIndex("telLowerCase",        "search.tel",        { unique: false, multiEntry: true });
-    objectStore.createIndex("emailLowerCase",      "search.email",      { unique: false, multiEntry: true });
-    objectStore.createIndex("noteLowerCase",       "search.note",       { unique: false, multiEntry: true });
+        objectStore.createIndex("nicknameLowerCase",   "search.nickname",   { unique: false, multiEntry: true });
+        objectStore.createIndex("nameLowerCase",       "search.name",       { unique: false, multiEntry: true });
+        objectStore.createIndex("familyNameLowerCase", "search.familyName", { unique: false, multiEntry: true });
+        objectStore.createIndex("givenNameLowerCase",  "search.givenName",  { unique: false, multiEntry: true });
+        objectStore.createIndex("telLowerCase",        "search.tel",        { unique: false, multiEntry: true });
+        objectStore.createIndex("emailLowerCase",      "search.email",      { unique: false, multiEntry: true });
+        objectStore.createIndex("noteLowerCase",       "search.note",       { unique: false, multiEntry: true });
+      } else if (currVersion == 1) {
+        debug("upgrade 1");
 
-    debug("Created object stores and indexes");
+        
+        
+        if (!objectStore) {
+          objectStore = aTransaction.objectStore(STORE_NAME);
+        }
+        
+        objectStore.deleteIndex("tel");
+
+        
+        objectStore.openCursor().onsuccess = function(event) {  
+          let cursor = event.target.result;
+          if (cursor) {
+            debug("upgrade tel1: " + JSON.stringify(cursor.value));
+            for (let number in cursor.value.properties.tel) {
+              cursor.value.properties.tel[number] = {number: number};
+            }
+            cursor.update(cursor.value);
+            debug("upgrade tel2: " + JSON.stringify(cursor.value));
+            cursor.continue();
+          } 
+        };
+
+        
+        objectStore.createIndex("tel", "search.tel", { unique: false, multiEntry: true });
+        objectStore.createIndex("category", "properties.category", { unique: false, multiEntry: true });
+      }
+    }
   },
 
   makeImport: function makeImport(aContact) {
@@ -87,6 +122,7 @@ ContactDB.prototype = {
       adr:             [],
       tel:             [],
       org:             [],
+      jobTitle:        [],
       bday:            null,
       note:            [],
       impp:            [],
@@ -107,6 +143,7 @@ ContactDB.prototype = {
       category:        [],
       tel:             [],
       org:             [],
+      jobTitle:        [],
       note:            [],
       impp:            []
     };
@@ -122,7 +159,7 @@ ContactDB.prototype = {
               
 
               
-              let number = aContact.properties[field][i];
+              let number = aContact.properties[field][i].number;
               for(let i = 0; i < number.length; i++) {
                 contact.search[field].push(number.substring(i, number.length));
               }
@@ -230,11 +267,6 @@ ContactDB.prototype = {
 
 
 
-
-
-
-
-
   find: function find(aSuccessCb, aFailureCb, aOptions) {
     debug("ContactDB:find val:" + aOptions.filterValue + " by: " + aOptions.filterBy + " op: " + aOptions.filterOp + "\n");
 
@@ -277,6 +309,9 @@ ContactDB.prototype = {
       if (key == "id") {
         
         request = store.getAll(options.filterValue);
+      } else if (key == "category") {
+        let index = store.index(key);
+        request = index.getAll(options.filterValue, limit);
       } else if (options.filterOp == "equals") {
         debug("Getting index: " + key);
         
