@@ -169,7 +169,7 @@ public:
   NS_DECL_QUERYFRAME
 
 public: 
-  void FireOnInput();
+  void FireOnInput(PRBool aTrusted);
   void SetValueChanged(PRBool aValueChanged);
   
   nsresult InitFocusedValue();

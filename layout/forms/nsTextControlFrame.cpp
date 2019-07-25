@@ -1330,14 +1330,14 @@ nsTextControlFrame::GetMaxLength(PRInt32* aSize)
 
 
 void
-nsTextControlFrame::FireOnInput()
+nsTextControlFrame::FireOnInput(PRBool aTrusted)
 {
   if (!mNotifyOnInput)
     return; 
   
   
   nsEventStatus status = nsEventStatus_eIgnore;
-  nsUIEvent event(PR_TRUE, NS_FORM_INPUT, 0);
+  nsUIEvent event(aTrusted, NS_FORM_INPUT, 0);
 
   
   
