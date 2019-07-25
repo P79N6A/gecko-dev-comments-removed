@@ -51,18 +51,6 @@
 
 #include "prlink.h"
 
-static PRFuncPtr
-FindFunctionSymbol(const char *name)
-{
-    PRLibrary *lib = nsnull;
-    PRFuncPtr result = PR_FindFunctionSymbolAndLibrary(name, &lib);
-    if (lib) {
-        PR_UnloadLibrary(lib);
-    }
-
-    return result;
-}
-
 
 static inline FT_Long
 ScaleRoundDesignUnits(FT_Short aDesignMetric, FT_Fixed aScale)
@@ -350,10 +338,7 @@ gfxFT2LockedFace::GetUVSGlyph(PRUint32 aCharCode, PRUint32 aVariantSelector)
         return 0;
 
     
-    static GetCharVariantFunction sGetCharVariantPtr =
-        reinterpret_cast<GetCharVariantFunction>
-        (FindFunctionSymbol("FT_Face_GetCharVariantIndex"));
-
+    static CharVariantFunction sGetCharVariantPtr = FindCharVariantFunction();
     if (!sGetCharVariantPtr)
         return 0;
 
@@ -407,4 +392,36 @@ gfxFT2LockedFace::GetCharExtents(char aChar, cairo_text_extents_t* aExtents)
     }
 
     return gid;
+}
+
+gfxFT2LockedFace::CharVariantFunction
+gfxFT2LockedFace::FindCharVariantFunction()
+{
+    
+    PRLibrary *lib = nsnull;
+    CharVariantFunction function =
+        reinterpret_cast<CharVariantFunction>
+        (PR_FindFunctionSymbolAndLibrary("FT_Face_GetCharVariantIndex", &lib));
+    if (!lib) {
+        return nsnull;
+    }
+
+    FT_Int major;
+    FT_Int minor;
+    FT_Int patch;
+    FT_Library_Version(mFace->glyph->library, &major, &minor, &patch);
+
+    
+    
+    
+    if (major == 2 && minor == 4 && patch < 4 &&
+        PR_FindFunctionSymbol(lib, "FT_Alloc")) {
+        function = nsnull;
+    }
+
+    
+    
+    PR_UnloadLibrary(lib);
+
+    return function;
 }
