@@ -96,37 +96,12 @@ bool
 LIRGeneratorX64::visitUnbox(MUnbox *unbox)
 {
     MDefinition *box = unbox->getOperand(0);
+    LUnbox *lir = new LUnbox(useRegister(box));
 
-    switch (unbox->type()) {
-      
-      
-      case MIRType_Boolean: {
-        LUnboxBoolean *ins = new LUnboxBoolean(useRegister(box), temp(LDefinition::INTEGER));
-        return define(ins, unbox) && assignSnapshot(ins);
-      }
-      case MIRType_Int32: {
-        LUnboxInteger *ins = new LUnboxInteger(useRegister(box));
-        return define(ins, unbox) && assignSnapshot(ins);
-      }
-      case MIRType_String: {
-        LUnboxString *ins = new LUnboxString(useRegister(box), temp(LDefinition::INTEGER));
-        return define(ins, unbox) && assignSnapshot(ins);
-      }
-      case MIRType_Object: {
-        
-        LDefinition out(LDefinition::POINTER);
-        LUnboxObject *ins = new LUnboxObject(useRegister(box));
-        return define(ins, unbox, out) && assignSnapshot(ins);
-      }
-      case MIRType_Double: {
-        LUnboxDouble *ins = new LUnboxDouble(useRegister(box));
-        return define(ins, unbox) && assignSnapshot(ins);
-      }
-      default:
-        JS_NOT_REACHED("cannot unbox a value with no payload");
-    }
+    if (unbox->checkType() && !assignSnapshot(lir))
+        return false;
 
-    return false;
+    return define(lir, unbox);
 }
 
 bool
@@ -157,12 +132,6 @@ LIRGeneratorX64::assignSnapshot(LInstruction *ins)
         }
 
         *a = useKeepaliveOrConstant(def);
-#ifdef DEBUG
-        if (a->isUse()) {
-            for (size_t j = 0; j < ins->numDefs(); j++)
-                JS_ASSERT(ins->getDef(j)->virtualRegister() != a->toUse()->virtualRegister());
-        }
-#endif
     }
 
     ins->assignSnapshot(snapshot);

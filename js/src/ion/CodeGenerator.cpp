@@ -170,7 +170,7 @@ CodeGenerator::visitTestVAndBranch(LTestVAndBranch *lir)
 {
     const ValueOperand value = ToValue(lir, LTestVAndBranch::Input);
 
-    Register tag = splitTagForTest(value);
+    Register tag = masm.splitTagForTest(value);
 
     Assembler::Condition cond;
 
@@ -226,6 +226,55 @@ CodeGenerator::visitTruncateDToInt32(LTruncateDToInt32 *lir)
 }
 
 bool
+CodeGenerator::visitParameter(LParameter *lir)
+{
+    return true;
+}
+
+bool
+CodeGenerator::visitStart(LStart *lir)
+{
+    return true;
+}
+
+bool
+CodeGenerator::generateArgumentsChecks()
+{
+    MIRGraph &mir = gen->graph();
+    MResumePoint *rp = mir.entryResumePoint();
+
+    
+    
+    
+    masm.reserveStack(frameSize());
+
+    
+    Register temp = GeneralRegisterSet(Registers::TempMask).getAny();
+
+    Label mismatched;
+    for (uint32 i = 0; i < CountArgSlots(gen->fun()); i++) {
+        
+        MParameter *param = rp->getOperand(i)->toParameter();
+        types::TypeSet *types = param->typeSet();
+        if (!types || types->unknown())
+            continue;
+
+        
+        
+        int32 offset = ArgToStackOffset(i * sizeof(Value));
+        masm.guardTypeSet(Address(StackPointer, offset), types, temp, &mismatched);
+    }
+
+    if (mismatched.used() && !bailoutFrom(&mismatched, graph.entrySnapshot()))
+        return false;
+
+    masm.freeStack(frameSize());
+
+    return true;
+}
+
+
+bool
 CodeGenerator::generateBody()
 {
     for (size_t i = 0; i < graph.numBlocks(); i++) {
@@ -245,6 +294,12 @@ bool
 CodeGenerator::generate()
 {
     JSContext *cx = gen->cx;
+
+    
+    
+    
+    if (!generateArgumentsChecks())
+        return false;
 
     if (frameClass_ != FrameSizeClass::None()) {
         deoptTable_ = cx->compartment->ionCompartment()->getBailoutTable(cx, frameClass_);

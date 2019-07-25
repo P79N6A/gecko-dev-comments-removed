@@ -142,6 +142,11 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     
     void callWithABI(void *fun);
+
+    
+    
+    void guardTypeSet(const Address &address, types::TypeSet *types, Register scratch,
+                      Label *mismatched);
 };
 
 } 

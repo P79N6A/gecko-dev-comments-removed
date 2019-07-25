@@ -149,6 +149,10 @@ class FloatRegisters
     static const uint32 NonAllocatableMask =
         
         (1 << JSC::ARMRegisters::SD0);
+
+    
+    static const uint32 TempMask = VolatileMask & ~NonAllocatableMask;
+
     static const uint32 AllocatableMask = AllMask & ~NonAllocatableMask;
     static const uint32 JSCallClobberMask = AllocatableMask;
 

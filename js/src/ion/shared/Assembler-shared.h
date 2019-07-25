@@ -79,6 +79,17 @@ struct ImmGCPtr
     { }
 };
 
+
+
+struct Address
+{
+    Register base;
+    int32 offset;
+
+    Address(Register base, int32 offset) : base(base), offset(offset)
+    { }
+};
+
 class Relocation {
   public:
     enum Kind {

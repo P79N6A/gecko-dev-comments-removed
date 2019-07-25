@@ -142,9 +142,6 @@ class CodeGeneratorShared : public LInstructionVisitor
 
   public:
     CodeGeneratorShared(MIRGenerator *gen, LIRGraph &graph);
-
-    
-    virtual bool visitParameter(LParameter *param);
 };
 
 

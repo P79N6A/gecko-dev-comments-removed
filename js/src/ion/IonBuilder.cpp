@@ -157,18 +157,7 @@ IonBuilder::build()
 
     IonSpew(IonSpew_MIR, "Analying script %s:%d", script->filename, script->lineno);
 
-    
-    if (fun()) {
-        MParameter *param = MParameter::New(MParameter::THIS_SLOT, oracle->thisTypeSet(script));
-        current->add(param);
-        current->initSlot(thisSlot(), param);
-
-        for (uint32 i = 0; i < nargs(); i++) {
-            param = MParameter::New(int(i), oracle->parameterTypeSet(script, i));
-            current->add(param);
-            current->initSlot(argSlot(i), param);
-        }
-    }
+    initParameters();
 
     
     for (uint32 i = 0; i < nlocals(); i++) {
@@ -177,19 +166,94 @@ IonBuilder::build()
         current->initSlot(localSlot(i), undef);
     }
 
-    current->makeStart(new MStart());
+    current->makeStart(MStart::New());
 
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     for (uint32 i = 0; i < CountArgSlots(fun()); i++) {
-        MParameter *param = current->getEntrySlot(i)->toInstruction()->toParameter();
-        param->setResumePoint(current->entryResumePoint());
+        MInstruction *ins = current->getEntrySlot(i)->toInstruction();
+        if (ins->type() == MIRType_Value)
+            ins->setResumePoint(current->entryResumePoint());
     }
 
     if (!traverseBytecode())
         return false;
 
     return true;
+}
+
+
+
+
+void
+IonBuilder::rewriteParameters()
+{
+    for (uint32 i = 0; i < CountArgSlots(fun()); i++) {
+        MParameter *param = current->getSlot(i)->toParameter();
+        types::TypeSet *types = param->typeSet();
+        if (!types)
+            continue;
+
+        JSValueType definiteType = types->getKnownTypeTag(cx);
+        if (definiteType == JSVAL_TYPE_UNKNOWN)
+            continue;
+
+        MInstruction *actual = NULL;
+        switch (definiteType) {
+          case JSVAL_TYPE_UNDEFINED:
+            actual = MConstant::New(UndefinedValue());
+            break;
+
+          case JSVAL_TYPE_NULL:
+            actual = MConstant::New(NullValue());
+            break;
+
+          default:
+            actual = MUnbox::NewUnchecked(param, MIRTypeFromValueType(definiteType));
+            break;
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        current->rewriteSlot(i, actual);
+    }
+}
+
+void
+IonBuilder::initParameters()
+{
+    if (!fun())
+        return;
+
+    MParameter *param = MParameter::New(MParameter::THIS_SLOT, oracle->thisTypeSet(script));
+    current->add(param);
+    current->initSlot(thisSlot(), param);
+
+    for (uint32 i = 0; i < nargs(); i++) {
+        param = MParameter::New(i, oracle->parameterTypeSet(script, i));
+        current->add(param);
+        current->initSlot(argSlot(i), param);
+    }
 }
 
 
@@ -441,7 +505,8 @@ IonBuilder::inspectOpcode(JSOp op)
         return true;
 
       case JSOP_SETLOCAL:
-        return current->setLocal(GET_SLOTNO(pc));
+        current->setLocal(GET_SLOTNO(pc));
+        return true;
 
       case JSOP_POP:
         current->pop();
@@ -1711,8 +1776,7 @@ IonBuilder::jsop_localinc(JSOp op)
     if (!jsop_binary(JSOP_ADD))
         return false;
 
-    if (!current->setLocal(GET_SLOTNO(pc)))
-        return false;
+    current->setLocal(GET_SLOTNO(pc));
 
     if (post_incr)
         current->pop();
@@ -1737,8 +1801,7 @@ IonBuilder::jsop_arginc(JSOp op)
     if (!jsop_binary(JSOP_ADD))
         return false;
 
-    if (!current->setArg(GET_SLOTNO(pc)))
-        return false;
+    current->setArg(GET_SLOTNO(pc));
 
     if (post_incr)
         current->pop();

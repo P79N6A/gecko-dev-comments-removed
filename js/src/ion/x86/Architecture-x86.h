@@ -106,6 +106,9 @@ class Registers {
 
     static const uint32 AllocatableMask = AllMask & ~NonAllocatableMask;
 
+    
+    static const uint32 TempMask = VolatileMask & ~NonAllocatableMask;
+
     static const uint32 JSCallClobberMask =
         AllocatableMask &
         ~(1 << JSC::X86Registers::ecx) &

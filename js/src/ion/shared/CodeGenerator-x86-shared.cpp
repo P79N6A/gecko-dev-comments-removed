@@ -309,7 +309,7 @@ CodeGeneratorX86Shared::bailout(const T &binder, LSnapshot *snapshot)
     
     
     
-    JS_ASSERT_IF(frameClass_ != FrameSizeClass::None(),
+    JS_ASSERT_IF(frameClass_ != FrameSizeClass::None() && deoptTable_,
                  frameClass_.frameSize() == masm.framePushed());
 
 #ifdef JS_CPU_X86

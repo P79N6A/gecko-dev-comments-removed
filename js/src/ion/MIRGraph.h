@@ -116,7 +116,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     
     
-    bool setVariable(uint32 slot);
+    void setVariable(uint32 slot);
 
   public:
     
@@ -142,8 +142,12 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     
     
-    bool setLocal(uint32 local);
-    bool setArg(uint32 arg);
+    void setLocal(uint32 local);
+    void setArg(uint32 arg);
+
+    
+    
+    void rewriteSlot(uint32 slot, MDefinition *ins);
 
     
     void push(MDefinition *ins);
@@ -432,6 +436,9 @@ class MIRGraph
     }
     uint32 getMaxInstructionId() {
         return idGen_;
+    }
+    MResumePoint *entryResumePoint() {
+        return blocks_.begin()->entryResumePoint();
     }
 };
 

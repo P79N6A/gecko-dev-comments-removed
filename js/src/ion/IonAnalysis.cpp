@@ -443,12 +443,12 @@ ShouldSpecializeInput(MDefinition *box, MNode *use, MUnbox *unbox)
         
         
         
-        MResumePoint *defResumePoint;
+        MResumePoint *defResumePoint = NULL;
         if (box->isInstruction())
             defResumePoint = box->toInstruction()->resumePoint();
         else if (box->isPhi())
             defResumePoint = box->block()->entryResumePoint();
-        return (defResumePoint != resumePoint);
+        return !defResumePoint || (defResumePoint != resumePoint);
     }
 
     MDefinition *def = use->toDefinition();
