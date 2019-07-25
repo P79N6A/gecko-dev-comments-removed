@@ -319,7 +319,7 @@ protected:
     PRBool mTextureInited;
     GLContext* mGLContext;
     nsRefPtr<gfxContext> mUpdateContext;
-    nsIntRect mUpdateRect;
+    nsIntRegion mUpdateRegion;
 
     
     nsIntPoint mUpdateOffset;
@@ -768,11 +768,12 @@ public:
 
 
 
+
     ShaderProgramType UploadSurfaceToTexture(gfxASurface *aSurface, 
-                                             const nsIntRect& aSrcRect,
+                                             const nsIntRegion& aDstRegion,
                                              GLuint& aTexture,
                                              bool aOverwrite = false,
-                                             const nsIntPoint& aDstPoint = nsIntPoint(0, 0),
+                                             const nsIntPoint& aSrcPoint = nsIntPoint(0, 0),
                                              bool aPixelBuffer = PR_FALSE);
 
 #ifndef MOZ_ENABLE_LIBXUL
