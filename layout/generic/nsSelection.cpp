@@ -200,7 +200,14 @@ public:
   nsresult      GetPresShell(nsIPresShell **aPresShell);
   
   
+  
+  
+  
   nsIFrame*     GetSelectionAnchorGeometry(SelectionRegion aRegion, nsRect *aRect);
+  
+  
+  
+  nsIFrame*     GetSelectionEndPointGeometry(SelectionRegion aRegion, nsRect *aRect);
 
   nsresult      PostScrollSelectionIntoViewEvent(SelectionRegion aRegion, PRBool aFirstAncestorOnly);
   enum {
@@ -5501,6 +5508,52 @@ nsTypedSelection::GetPresShell(nsIPresShell **aPresShell)
 nsIFrame *
 nsTypedSelection::GetSelectionAnchorGeometry(SelectionRegion aRegion,
                                              nsRect *aRect)
+{
+  if (!mFrameSelection)
+    return nsnull;  
+
+  NS_ENSURE_TRUE(aRect, nsnull);
+
+  aRect->SetRect(0, 0, 0, 0);
+
+  switch (aRegion) {
+    case nsISelectionController::SELECTION_ANCHOR_REGION:
+    case nsISelectionController::SELECTION_FOCUS_REGION:
+      return GetSelectionEndPointGeometry(aRegion, aRect);
+      break;
+    case nsISelectionController::SELECTION_WHOLE_SELECTION:
+      break;
+    default:
+      return nsnull;
+  }
+
+  NS_ASSERTION(aRegion == nsISelectionController::SELECTION_WHOLE_SELECTION,
+    "should only be SELECTION_WHOLE_SELECTION here");
+
+  nsRect anchorRect;
+  nsIFrame* anchorFrame = GetSelectionEndPointGeometry(
+    nsISelectionController::SELECTION_ANCHOR_REGION, &anchorRect);
+  if (!anchorFrame)
+    return nsnull;
+
+  nsRect focusRect;
+  nsIFrame* focusFrame = GetSelectionEndPointGeometry(
+    nsISelectionController::SELECTION_FOCUS_REGION, &focusRect);
+  if (!focusFrame)
+    return nsnull;
+
+  NS_ASSERTION(anchorFrame->PresContext() == focusFrame->PresContext(),
+    "points of selection in different documents?");
+  
+  focusRect += focusFrame->GetOffsetTo(anchorFrame);
+
+  aRect->UnionRectIncludeEmpty(anchorRect, focusRect);
+  return anchorFrame;
+}
+
+nsIFrame *
+nsTypedSelection::GetSelectionEndPointGeometry(SelectionRegion aRegion,
+                                               nsRect *aRect)
 {
   if (!mFrameSelection)
     return nsnull;  
