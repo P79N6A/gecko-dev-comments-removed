@@ -383,7 +383,7 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts, b
   
   static char* restoreOrigLogName = 0;
   if (!restoreOrigLogName)
-    restoreOrigLogName = strdup(PromiseFlatCString(setChildLogName).get());
+    restoreOrigLogName = strdup(setChildLogName.get());
 
   
   setChildLogName.AppendLiteral(".child-");
@@ -391,7 +391,7 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts, b
 
   
   
-  PR_SetEnv(PromiseFlatCString(setChildLogName).get());
+  PR_SetEnv(setChildLogName.get());
   bool retval = PerformAsyncLaunchInternal(aExtraOpts, arch);
 
   
