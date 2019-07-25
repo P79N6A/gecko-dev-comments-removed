@@ -1212,6 +1212,8 @@ AddHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 
   
   if (mIndexes.Length()) {
+    
+    NS_NOTYETIMPLEMENTED("Implement me!");
   }
 
   rv = savepoint.Release();
