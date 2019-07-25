@@ -298,7 +298,8 @@ public:
   NS_IMETHOD OnStopDecode(imgIRequest *aRequest, nsresult status,
                           const PRUnichar *statusArg);
   
-  NS_IMETHOD FrameChanged(imgIContainer *aContainer,
+  NS_IMETHOD FrameChanged(imgIRequest* aRequest,
+                          imgIContainer *aContainer,
                           const nsIntRect *aDirtyRect);
   
   NS_IMETHOD OnStartContainer(imgIRequest *aRequest,
