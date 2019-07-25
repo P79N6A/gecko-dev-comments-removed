@@ -1,61 +1,21 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function test() {
   let cw;
 
   let createGroupItem = function () {
-    let bounds = new cw.Rect(20, 20, 400, 200);
-    let groupItem = new cw.GroupItem([], {bounds: bounds, immediately: true});
-    cw.GroupItems.setActiveGroupItem(groupItem);
-
-    for (let i=0; i<5; i++)
-      gBrowser.loadOneTab('about:blank', {inBackground: true});
-
-    return groupItem;
+    return createGroupItemWithBlankTabs(window, 400, 200, 0, 5);
   }
 
   let assertCorrectItemOrder = function (items) {
     for (let i=1; i<items.length; i++) {
       if (items[i-1].tab._tPos > items[i].tab._tPos) {
         ok(false, 'tabs were correctly reordered');
-        break;
+        return;
       }
     }
+    ok(true, 'tabs were correctly reordered');
   }
 
   let testVariousTabOrders = function () {
@@ -132,19 +92,11 @@ function test() {
       assertCorrectItemOrder(groupItem2.getChildren());
 
       
-      groupItem.addSubscriber(groupItem, 'groupHidden', function () {
-        groupItem.removeSubscriber(groupItem, 'groupHidden');
-        groupItem.closeHidden();
-        groupItem2.closeAll();
+      closeGroupItem(groupItem, function () {
+        closeGroupItem(groupItem2, function () {
+          hideTabView(finish);
+        });
       });
-
-      groupItem2.addSubscriber(groupItem, 'groupHidden', function () {
-        groupItem2.removeSubscriber(groupItem, 'groupHidden');
-        groupItem2.closeHidden();
-        hideTabView(finish);
-      });
-
-      groupItem.closeAll();
     });
   }
 
