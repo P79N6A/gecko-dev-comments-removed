@@ -150,9 +150,19 @@ var PreferencesView = {
       }
       localeCount++;
     }
-            
+
     
-    this._list.selectedItem = selectedItem;
+    let autoDetect = false;
+    try {
+      autoDetect = gPrefService.getBoolPref("intl.locale.matchOS");
+    }
+    catch (e) {}
+    
+    
+    if (autoDetect)
+      this._list.selectedItem = document.getElementById("prefs-languages-auto");
+    else
+      this._list.selectedItem = selectedItem;
     
     
     if (localeCount == 1)
