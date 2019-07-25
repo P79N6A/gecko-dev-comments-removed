@@ -1059,7 +1059,7 @@ nsSVGUtils::GetCanvasTM(nsIFrame *aFrame)
   
 
   if (!aFrame->IsFrameOfType(nsIFrame::eSVG)) {
-    return nsSVGIntegrationUtils::GetInitialMatrix(aFrame);
+    return nsSVGIntegrationUtils::GetCSSPxToDevPxMatrix(aFrame);
   }
 
   nsIAtom* type = aFrame->GetType();
