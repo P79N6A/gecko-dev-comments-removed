@@ -14,6 +14,36 @@ var log = function(msg) {
   }
 };
 
+
+
+
+
+var error = function(msg) {
+  if (window.console) {
+    if (window.console.error) {
+      window.console.error(msg);
+    }
+    else if (window.console.log) {
+      window.console.log(msg);
+    }
+  }
+};
+
+
+
+
+
+
+
+var glEnumToString = function(gl, value) {
+  for (var p in gl) {
+    if (gl[p] == value) {
+      return p;
+    }
+  }
+  return "0x" + value.toString(16);
+};
+
 var lastError = "";
 
 
@@ -22,6 +52,26 @@ var lastError = "";
 
 var getLastError = function() {
   return lastError;
+};
+
+
+
+
+
+
+
+var endsWith = function(haystack, needle) {
+  return haystack.substr(haystack.length - needle.length) === needle;
+};
+
+
+
+
+
+
+
+var startsWith = function(haystack, needle) {
+  return haystack.substr(0, needle.length) === needle;
 };
 
 
@@ -77,16 +127,18 @@ var setupSimpleTextureFragmentShader = function(gl) {
 
 
 
-var setupProgram = function(gl, shaders, attribs, opt_locations) {
+var setupProgram = function(gl, shaders, opt_attribs, opt_locations) {
   var program = gl.createProgram();
   for (var ii = 0; ii < shaders.length; ++ii) {
     gl.attachShader(program, shaders[ii]);
   }
-  for (var ii = 0; ii < attribs.length; ++ii) {
-    gl.bindAttribLocation(
-        program,
-        opt_locations ? opt_locations[ii] : ii,
-        attribs[ii]);
+  if (opt_attribs) {
+    for (var ii = 0; ii < opt_attribs.length; ++ii) {
+      gl.bindAttribLocation(
+          program,
+          opt_locations ? opt_locations[ii] : ii,
+          opt_attribs[ii]);
+    }
   }
   gl.linkProgram(program);
 
@@ -95,7 +147,7 @@ var setupProgram = function(gl, shaders, attribs, opt_locations) {
   if (!linked) {
       
       lastError = gl.getProgramInfoLog (program);
-      log("Error in program linking:" + lastError);
+      error("Error in program linking:" + lastError);
 
       gl.deleteProgram(program);
       return null;
@@ -130,6 +182,7 @@ var setupSimpleTextureProgram = function(
     gl.deleteShader(fs);
     gl.deleteShader(vs);
   }
+  gl.useProgram(program);
   return program;
 };
 
@@ -148,18 +201,26 @@ var setupUnitQuad = function(gl, opt_positionLocation, opt_texcoordLocation) {
 
   var vertexObject = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(
-      [-1,1,0, 1,1,0, -1,-1,0,
-       -1,-1,0, 1,1,0, 1,-1,0]), gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+       1.0,  1.0, 0.0,
+      -1.0,  1.0, 0.0,
+      -1.0, -1.0, 0.0,
+       1.0,  1.0, 0.0,
+      -1.0, -1.0, 0.0,
+       1.0, -1.0, 0.0]), gl.STATIC_DRAW);
   gl.enableVertexAttribArray(opt_positionLocation);
   gl.vertexAttribPointer(opt_positionLocation, 3, gl.FLOAT, false, 0, 0);
   objects.push(vertexObject);
 
   var vertexObject = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(
-      [0,0, 1,0, 0,1,
-       0,1, 1,0, 1,1]), gl.STATIC_DRAW);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      1.0, 1.0,
+      0.0, 1.0,
+      0.0, 0.0,
+      1.0, 1.0,
+      0.0, 0.0,
+      1.0, 0.0]), gl.STATIC_DRAW);
   gl.enableVertexAttribArray(opt_texcoordLocation);
   gl.vertexAttribPointer(opt_texcoordLocation, 2, gl.FLOAT, false, 0, 0);
   objects.push(vertexObject);
@@ -244,31 +305,63 @@ var drawQuad = function(gl, opt_color) {
 
 
 
-var checkCanvas = function(gl, color, msg) {
-  var width = gl.canvas.width;
-  var height = gl.canvas.height;
+
+
+
+
+var checkCanvasRect = function(gl, x, y, width, height, color, msg) {
   var buf = new Uint8Array(width * height * 4);
-  gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+  gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buf);
   for (var i = 0; i < width * height; ++i) {
     var offset = i * 4;
-    if (buf[offset + 0] != color[0] ||
-        buf[offset + 1] != color[1] ||
-        buf[offset + 2] != color[2] ||
-        buf[offset + 3] != color[3]) {
-      testFailed(msg);
-      debug('expected: ' +
-          color[0] + ', ' +
-          color[1] + ', ' +
-          color[2] + ', ' +
-          color[3] + ' was: ' +
-          buf[offset + 0] + ', ' +
-          buf[offset + 1] + ', ' +
-          buf[offset + 2] + ', ' +
-          buf[offset + 3]);
-      return;
+    for (var j = 0; j < color.length; ++j) {
+      if (buf[offset + j] != color[j]) {
+        testFailed(msg);
+        var was = buf[offset + 0].toString();
+        for (j = 1; j < color.length; ++j) {
+          was += "," + buf[offset + j];
+        }
+        debug('expected: ' + color + ' was ' + was);
+        return;
+      }
     }
   }
   testPassed(msg);
+};
+
+
+
+
+
+
+
+
+var checkCanvas = function(gl, color, msg) {
+  checkCanvasRect(gl, 0, 0, gl.canvas.width, gl.canvas.height, color, msg);
+};
+
+
+
+
+
+
+
+
+
+var loadTexture = function(gl, url, callback) {
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    var image = new Image();
+    image.onload = function() {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        callback(image);
+    };
+    image.src = url;
+    return texture;
 };
 
 
@@ -351,7 +444,7 @@ function create3DContextWithWrapperThatThrowsOnGLError(canvas) {
         wrap[i] = context[i];
       }
     } catch (e) {
-      log("createContextWrapperThatThrowsOnGLError: Error accessing " + i);
+      error("createContextWrapperThatThrowsOnGLError: Error accessing " + i);
     }
   }
   wrap.getError = function() {
@@ -418,11 +511,11 @@ var linkProgram = function(gl, program) {
     
     var error = gl.getProgramInfoLog (program);
 
+    testFailed("Error in program linking:" + error);
+
     gl.deleteProgram(program);
     gl.deleteProgram(fragmentShader);
     gl.deleteProgram(vertexShader);
-
-    testFailed("Error in program linking:" + error);
   }
 };
 
@@ -474,6 +567,9 @@ var setupWebGLWithShaders = function(
 
   gl.useProgram(program);
 
+  gl.clearColor(0,0,0,1);
+  gl.clearDepth(1);
+
   gl.enable(gl.DEPTH_TEST);
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -491,7 +587,7 @@ var readFile = function(file) {
   var xhr = new XMLHttpRequest();
   xhr.open("GET", file, false);
   xhr.send();
-  return xhr.responseText;
+  return xhr.responseText.replace(/\r/g, "");
 };
 
 
@@ -534,7 +630,7 @@ var loadShader = function(gl, shaderSource, shaderType) {
   
   var shader = gl.createShader(shaderType);
   if (shader == null) {
-    log("*** Error: unable to create shader '"+shaderSource+"'");
+    error("*** Error: unable to create shader '"+shaderSource+"'");
     return null;
   }
 
@@ -549,7 +645,7 @@ var loadShader = function(gl, shaderSource, shaderType) {
   if (!compiled) {
     
     lastError = gl.getShaderInfoLog(shader);
-    log("*** Error compiling shader '" + shader + "':" + lastError);
+    error("*** Error compiling shader '" + shader + "':" + lastError);
     gl.deleteShader(shader);
     return null;
   }
@@ -651,6 +747,26 @@ var loadProgramFromScript = function loadProgramFromScript(
   return program;
 };
 
+
+
+
+
+
+
+
+
+var loadProgram = function(gl, vertexShader, fragmentShader) {
+  var program = gl.createProgram();
+  gl.attachShader(
+      program,
+      loadShader(gl, vertexShader, gl.VERTEX_SHADER));
+  gl.attachShader(
+      program,
+      loadShader(gl, fragmentShader,  gl.FRAGMENT_SHADER));
+  linkProgram(gl, program);
+  return program;
+};
+
 var loadStandardVertexShader = function(gl) {
   return loadShaderFromFile(
       gl, "resources/vertexShader.vert", gl.VERTEX_SHADER);
@@ -708,13 +824,17 @@ return {
   create3DContextWithWrapperThatThrowsOnGLError:
     create3DContextWithWrapperThatThrowsOnGLError,
   checkCanvas: checkCanvas,
+  checkCanvasRect: checkCanvasRect,
   createColoredTexture: createColoredTexture,
   drawQuad: drawQuad,
+  endsWith: endsWith,
   getLastError: getLastError,
+  glEnumToString: glEnumToString,
   glErrorShouldBe: glErrorShouldBe,
   fillTexture: fillTexture,
   loadImageAsync: loadImageAsync,
   loadImagesAsync: loadImagesAsync,
+  loadProgram: loadProgram,
   loadProgramFromFile: loadProgramFromFile,
   loadProgramFromScript: loadProgramFromScript,
   loadShader: loadShader,
@@ -723,12 +843,17 @@ return {
   loadStandardProgram: loadStandardProgram,
   loadStandardVertexShader: loadStandardVertexShader,
   loadStandardFragmentShader: loadStandardFragmentShader,
+  loadTexture: loadTexture,
+  log: log,
+  error: error,
   setupProgram: setupProgram,
   setupSimpleTextureFragmentShader: setupSimpleTextureFragmentShader,
   setupSimpleTextureProgram: setupSimpleTextureProgram,
   setupSimpleTextureVertexShader: setupSimpleTextureVertexShader,
   setupTexturedQuad: setupTexturedQuad,
   setupUnitQuad: setupUnitQuad,
+  setupWebGLWithShaders: setupWebGLWithShaders,
+  startsWith: startsWith,
   shouldGenerateGLError: shouldGenerateGLError,
   readFile: readFile,
   readFileList: readFileList,
