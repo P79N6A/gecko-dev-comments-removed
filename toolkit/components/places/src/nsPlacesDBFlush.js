@@ -138,6 +138,18 @@ nsPlacesDBFlush.prototype = {
           
           
           this._self._finalizeInternalStatements();
+
+          
+          
+          
+          
+          
+          let journalStmt = this._self._db.createAsyncStatement(
+            "PRAGMA journal_mode = truncate"
+          );
+          journalStmt.executeAsync();
+          journalStmt.finalize();
+
           this._self._db.asyncClose();
         }
       }, Ci.nsIThread.DISPATCH_NORMAL);

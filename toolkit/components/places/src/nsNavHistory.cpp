@@ -65,6 +65,7 @@
 #include "nsThreadUtils.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsMathUtils.h"
+#include "mozIStorageAsyncStatement.h"
 
 #include "nsNavBookmarks.h"
 #include "nsAnnotationService.h"
@@ -140,10 +141,6 @@ using namespace mozilla::places;
 
 
 #define DATABASE_CORRUPT_FILENAME NS_LITERAL_STRING("places.sqlite.corrupt")
-
-
-
-#define DATABASE_JOURNAL_MODE "TRUNCATE"
 
 
 
@@ -377,6 +374,8 @@ PLACES_FACTORY_SINGLETON_IMPLEMENTATION(nsNavHistory, gHistoryService)
 nsNavHistory::nsNavHistory()
 : mBatchLevel(0)
 , mBatchDBTransaction(nsnull)
+, mDBPageSize(0)
+, mCurrentJournalMode(JOURNAL_DELETE)
 , mCachedNow(0)
 , mExpireNowTimer(nsnull)
 , mLastSessionID(0)
@@ -621,25 +620,82 @@ nsNavHistory::InitDBFile(PRBool aForceInit)
 
 
 nsresult
+nsNavHistory::SetJournalMode(enum JournalMode aJournalMode) {
+  nsCAutoString journalMode;
+  switch (aJournalMode) {
+    case JOURNAL_DELETE:
+      journalMode.AssignLiteral("delete");
+      break;
+    case JOURNAL_TRUNCATE:
+      journalMode.AssignLiteral("truncate");
+      break;
+    case JOURNAL_MEMORY:
+      journalMode.AssignLiteral("memory");
+      break;
+    case JOURNAL_WAL:
+      journalMode.AssignLiteral("wal");
+      break;
+    default:
+      NS_ABORT_IF_FALSE(false, "Trying to set an unknown journal mode.");
+  }
+
+  nsCOMPtr<mozIStorageStatement> statement;
+  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+      "PRAGMA journal_mode = ") + journalMode,
+    getter_AddRefs(statement));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mozStorageStatementScoper scoper(statement);
+  PRBool hasResult;
+  rv = statement->ExecuteStep(&hasResult);
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(hasResult, NS_ERROR_FAILURE);
+
+  nsCAutoString currentJournalMode;
+  rv = statement->GetUTF8String(0, currentJournalMode);
+  NS_ENSURE_SUCCESS(rv, rv);
+  bool succeeded = currentJournalMode.Equals(journalMode);
+  NS_WARN_IF_FALSE(succeeded,
+                   nsPrintfCString(128, "Setting journal mode failed: %s",
+                                   PromiseFlatCString(journalMode).get()).get());
+  if (succeeded) {
+    mCurrentJournalMode = aJournalMode;
+  }
+  else {
+    return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
+}
+
+
+nsresult
 nsNavHistory::InitDB()
 {
+  
+  
+  
+
   
   PRInt32 currentSchemaVersion = 0;
   nsresult rv = mDBConn->GetSchemaVersion(&currentSchemaVersion);
   NS_ENSURE_SUCCESS(rv, rv);
+  {
+    
+    
+    nsCOMPtr<mozIStorageStatement> statement;
+    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA page_size"),
+                                  getter_AddRefs(statement));
+    NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  nsCOMPtr<mozIStorageStatement> statement;
-  rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("PRAGMA page_size"),
-                                getter_AddRefs(statement));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  PRBool hasResult;
-  mozStorageStatementScoper scoper(statement);
-  rv = statement->ExecuteStep(&hasResult);
-  NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && hasResult, NS_ERROR_FAILURE);
-  PRInt32 pageSize = statement->AsInt32(0);
+    PRBool hasResult;
+    mozStorageStatementScoper scoper(statement);
+    rv = statement->ExecuteStep(&hasResult);
+    NS_ENSURE_TRUE(NS_SUCCEEDED(rv) && hasResult, NS_ERROR_FAILURE);
+    rv = statement->GetInt32(0, &mDBPageSize);
+    NS_ENSURE_SUCCESS(rv, rv);
+    NS_ENSURE_TRUE(mDBPageSize > 0, NS_ERROR_UNEXPECTED);
+  }
 
   
   
@@ -671,10 +727,10 @@ nsNavHistory::InitDB()
   PRInt64 cacheSize = physMem * cachePercentage / 100;
 
   
-  PRInt64 cachePages = cacheSize / pageSize;
-  nsCAutoString pageSizePragma("PRAGMA cache_size = ");
-  pageSizePragma.AppendInt(cachePages);
-  rv = mDBConn->ExecuteSimpleSQL(pageSizePragma);
+  PRInt64 cachePages = cacheSize / mDBPageSize;
+  nsCAutoString cacheSizePragma("PRAGMA cache_size = ");
+  cacheSizePragma.AppendInt(cachePages);
+  rv = mDBConn->ExecuteSimpleSQL(cacheSizePragma);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
@@ -683,9 +739,14 @@ nsNavHistory::InitDB()
       "PRAGMA locking_mode = EXCLUSIVE"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-      "PRAGMA journal_mode = " DATABASE_JOURNAL_MODE));
-  NS_ENSURE_SUCCESS(rv, rv);
+  
+  
+  if (NS_FAILED(SetJournalMode(JOURNAL_WAL))) {
+    
+    
+    
+    (void)SetJournalMode(JOURNAL_TRUNCATE);
+  }
 
   
   
@@ -1780,9 +1841,7 @@ nsNavHistory::MigrateV9Up(mozIStorageConnection *aDBConn)
     
     
     
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "PRAGMA journal_mode = MEMORY"));
-    NS_ENSURE_SUCCESS(rv, rv);
+    (void)SetJournalMode(JOURNAL_MEMORY);
 
     rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
         "UPDATE moz_places SET last_visit_date = "
@@ -1792,9 +1851,9 @@ nsNavHistory::MigrateV9Up(mozIStorageConnection *aDBConn)
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    rv = mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-        "PRAGMA journal_mode = " DATABASE_JOURNAL_MODE));
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (NS_FAILED(SetJournalMode(JOURNAL_WAL))) {
+      (void)SetJournalMode(JOURNAL_TRUNCATE);
+    }
   }
 
   return transaction.Commit();
@@ -5900,32 +5959,19 @@ nsNavHistory::VacuumDatabase()
     
     
     
-    nsCOMPtr<mozIStorageStatement> journalToMemory;
-    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-        "PRAGMA journal_mode = MEMORY"),
-      getter_AddRefs(journalToMemory));
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (mCurrentJournalMode == JOURNAL_WAL &&
+        mDBPageSize != SQLITE_DEFAULT_PAGE_SIZE) {
+      (void)SetJournalMode(JOURNAL_TRUNCATE);
+    }
 
-    nsCOMPtr<mozIStorageStatement> vacuum;
-    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING("VACUUM"),
-                                  getter_AddRefs(vacuum));
+    nsCOMPtr<mozIStorageAsyncStatement> vacuum;
+    rv = mDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING("VACUUM"),
+                                       getter_AddRefs(vacuum));
     NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCOMPtr<mozIStorageStatement> journalToDefault;
-    rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
-        "PRAGMA journal_mode = " DATABASE_JOURNAL_MODE),
-      getter_AddRefs(journalToDefault));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    mozIStorageBaseStatement *stmts[] = {
-      journalToMemory,
-      vacuum,
-      journalToDefault
-    };
     nsCOMPtr<mozIStoragePendingStatement> ps;
-    rv = mDBConn->ExecuteAsync(stmts, NS_ARRAY_LENGTH(stmts), nsnull,
-                               getter_AddRefs(ps));
+    rv = vacuum->ExecuteAsync(nsnull, getter_AddRefs(ps));
     NS_ENSURE_SUCCESS(rv, rv);
+    vacuum->Finalize();
 
     if (mPrefBranch) {
       (void)mPrefBranch->SetIntPref(PREF_LAST_VACUUM,
