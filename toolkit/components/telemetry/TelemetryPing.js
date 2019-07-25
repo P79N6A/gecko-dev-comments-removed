@@ -95,51 +95,6 @@ function generateUUID() {
 
 
 
-
-
-
-function getMetadata(reason) {
-  let ai = Services.appinfo;
-  let ret = {
-    reason: reason,
-    OS: ai.OS,
-    appID: ai.ID,
-    appVersion: ai.version,
-    appName: ai.name,
-    appBuildID: ai.appBuildID,
-    platformBuildID: ai.platformBuildID,
-    locale: getLocale(),
-  };
-
-  
-  let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
-  let fields = ["cpucount", "memsize", "arch", "version", "device", "manufacturer", "hardware",
-                "hasMMX", "hasSSE", "hasSSE2", "hasSSE3",
-                "hasSSSE3", "hasSSE4A", "hasSSE4_1", "hasSSE4_2",
-                "hasEDSP", "hasARMv6", "hasNEON"];
-  for each (let field in fields) {
-    let value;
-    try {
-      value = sysInfo.getProperty(field);
-    } catch (e) {
-      continue
-    }
-    if (field == "memsize") {
-      
-      
-      value = Math.round(value / 1024 / 1024)
-    }
-    ret[field] = value
-  }
-  return ret;
-}
-
-
-
-
-
-
-
 function getSimpleMeasurements() {
   let si = Services.startup.getStartupInfo();
 
@@ -259,7 +214,10 @@ TelemetryPing.prototype = {
 
     
     let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
-    let fields = ["cpucount", "memsize", "arch", "version", "device", "manufacturer", "hardware"];
+    let fields = ["cpucount", "memsize", "arch", "version", "device", "manufacturer", "hardware",
+                  "hasMMX", "hasSSE", "hasSSE2", "hasSSE3",
+                  "hasSSSE3", "hasSSE4A", "hasSSE4_1", "hasSSE4_2",
+                  "hasEDSP", "hasARMv6", "hasNEON"];
     for each (let field in fields) {
       let value;
       try {
