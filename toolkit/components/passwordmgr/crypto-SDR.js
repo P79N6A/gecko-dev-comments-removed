@@ -242,6 +242,14 @@ LoginManagerCrypto_SDR.prototype = {
     
 
 
+    get defaultEncType() {
+        return Ci.nsILoginManagerCrypto.ENCTYPE_SDR;
+    },
+
+
+    
+
+
     _notifyObservers : function(topic) {
         this.log("Prompted for a master password, notifying for " + topic);
         Services.obs.notifyObservers(null, topic, null);
