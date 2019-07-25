@@ -141,12 +141,12 @@ struct JSStackFrame
     JSObject        *blockChain;
 
     uint32          flags;          
-    JSStackFrame    *displaySave;   
-
 
     
     void            *hookData;      
     JSVersion       callerVersion;  
+
+    void            *padding;
 
     void putActivationObjects(JSContext *cx) {
         
