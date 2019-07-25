@@ -314,8 +314,8 @@ window.Page = {
             width: data.w,
             height: data.h
           }, {
-            duration: 400,
-            easing: 'easeInQuad',
+            duration: 300,
+            easing: 'cubic-bezier',
             complete: function() { 
               $tab.removeClass('front');
               
@@ -368,13 +368,21 @@ window.Page = {
               
               $tab.data('zoomSave', data);
 
+              
+              
+              
+              
+              
+              
+              
+              
               $tab
                 .addClass('front')
                 .css({
-                  left: 0,
-                  top: 0, 
-                  width: window.innerWidth,
-                  height: data.h * (window.innerWidth / data.w)
+                  left: data.pos.left/2,
+                  top: data.pos.top/2, 
+                  width: window.innerWidth/2,
+                  height: data.h * (window.innerWidth / data.w)/2
                 });
             }                
           }
