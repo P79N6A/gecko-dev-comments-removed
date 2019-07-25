@@ -535,8 +535,23 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
       dt->Flush();
     }
     srcBuffer = aTarget->CreateSourceSurfaceFromNativeSurface(surf);
-  }
+  } else
 #endif
+  if (aSurface->CairoSurface() && aTarget->GetType() == BACKEND_CAIRO) {
+    
+    
+    NativeSurface surf;
+    surf.mFormat = format;
+    surf.mType = NATIVE_SURFACE_CAIRO_SURFACE;
+    surf.mSurface = aSurface->CairoSurface();
+    srcBuffer = aTarget->CreateSourceSurfaceFromNativeSurface(surf);
+
+    if (srcBuffer) {
+      
+      
+      return srcBuffer;
+    }
+  }
 
   if (!srcBuffer) {
     nsRefPtr<gfxImageSurface> imgSurface = aSurface->GetAsImageSurface();
