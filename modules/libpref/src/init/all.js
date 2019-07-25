@@ -832,6 +832,8 @@ pref("network.IDN.whitelist.xn--mgbaam7a8h", true);
 pref("network.IDN.whitelist.xn--fiqz9s", true); 
 pref("network.IDN.whitelist.xn--fiqs8s", true); 
 
+pref("network.IDN.whitelist.xn--wgbh1c", true);
+
 pref("network.IDN.whitelist.xn--j6w193g", true);
 
 pref("network.IDN.whitelist.xn--mgba3a4f16a", true);
