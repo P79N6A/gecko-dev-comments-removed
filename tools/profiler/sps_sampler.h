@@ -234,6 +234,7 @@ public:
     : mStackPointer(0)
     , mMarkerPointer(0)
     , mQueueClearMarker(false)
+    , mStartJSSampling(false)
   { }
 
   void addMarker(const char *aMarker)
@@ -304,16 +305,25 @@ public:
 
   void sampleRuntime(JSRuntime *runtime) {
     mRuntime = runtime;
+    if (mStartJSSampling)
+      installJSSampling();
   }
   void installJSSampling() {
     JS_STATIC_ASSERT(sizeof(mStack[0]) == sizeof(js::ProfileEntry));
-    js::SetRuntimeProfilingStack(mRuntime,
-                                 (js::ProfileEntry*) mStack,
-                                 (uint32_t*) &mStackPointer,
-                                 mozilla::ArrayLength(mStack));
+    if (mRuntime) {
+      js::SetRuntimeProfilingStack(mRuntime,
+                                   (js::ProfileEntry*) mStack,
+                                   (uint32_t*) &mStackPointer,
+                                   mozilla::ArrayLength(mStack));
+      mStartJSSampling = false;
+    } else {
+      mStartJSSampling = true;
+    }
   }
   void uninstallJSSampling() {
-    js::SetRuntimeProfilingStack(mRuntime, NULL, NULL, 0);
+    mStartJSSampling = false;
+    if (mRuntime)
+      js::SetRuntimeProfilingStack(mRuntime, NULL, NULL, 0);
   }
 
   
@@ -327,6 +337,8 @@ public:
   volatile mozilla::sig_safe_t mQueueClearMarker;
   
   JSRuntime *mRuntime;
+  
+  bool mStartJSSampling;
 };
 
 inline ProfileStack* mozilla_profile_stack(void)
