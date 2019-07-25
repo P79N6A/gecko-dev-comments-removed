@@ -110,7 +110,6 @@ public:
     , mViewportScrollOffset(0, 0)
     , mScrollId(NULL_SCROLL_ID)
     , mCSSContentSize(0, 0)
-    , mResolution(1, 1)
   {}
 
   
@@ -152,10 +151,6 @@ public:
   
   
   gfx::Size mCSSContentSize;
-
-  
-  
-  gfxSize mResolution;
 };
 
 #define MOZ_LAYER_DECL_NAME(n, e)                           \
