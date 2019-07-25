@@ -101,10 +101,14 @@
 #include "gfxContext.h"
 #include "gfxASurface.h"
 #include "gfxImageSurface.h"
+#ifdef MOZ_IPC
+#include "gfxSharedImageSurface.h"
+#endif
 #include "gfxPlatform.h"
 #include "gfxFont.h"
 #include "gfxTextRunCache.h"
 #include "gfxBlur.h"
+#include "gfxUtils.h"
 
 #include "nsFrameManager.h"
 
@@ -119,20 +123,30 @@
 #include "nsIMemoryReporter.h"
 
 #ifdef MOZ_IPC
+#  include <algorithm>
 #  include "mozilla/dom/ContentProcessParent.h"
 #  include "mozilla/ipc/PDocumentRendererParent.h"
 #  include "mozilla/ipc/PDocumentRendererShmemParent.h"
+#  include "mozilla/ipc/PDocumentRendererNativeIDParent.h"
 #  include "mozilla/dom/PIFrameEmbeddingParent.h"
 #  include "mozilla/ipc/DocumentRendererParent.h"
 #  include "mozilla/ipc/DocumentRendererShmemParent.h"
+#  include "mozilla/ipc/DocumentRendererNativeIDParent.h"
+#  include "mozilla/ipc/SharedMemorySysV.h"
+
 
 #  undef DrawText
 
-using mozilla::ipc::SharedMemory;
+using namespace mozilla::ipc;
+#endif
+
+#ifdef MOZ_X11
+#include "gfxXlibSurface.h"
 #endif
 
 using namespace mozilla;
 using namespace mozilla::layers;
+using namespace mozilla::dom;
 
 #ifndef M_PI
 #define M_PI		3.14159265358979323846
@@ -407,8 +421,11 @@ public:
     NS_IMETHOD Redraw(const gfxRect &r);
     
     
-    NS_IMETHOD Swap(mozilla::ipc::Shmem& back, PRInt32 x, PRInt32 y, 
+    NS_IMETHOD Swap(Shmem& back, PRInt32 x, PRInt32 y, 
                     PRInt32 w, PRInt32 h);
+    NS_IMETHOD Swap(PRUint32 nativeID, PRInt32 x, PRInt32 y,
+                    PRInt32 w, PRInt32 h);
+ 
 
     
     NS_DECL_ISUPPORTS
@@ -469,23 +486,30 @@ protected:
     void EnsurePremultiplyTable();
 
     
+
+
+
+    gfxASurface::gfxImageFormat GetImageFormat() const;
+
+    
+
+
+    nsresult Swap(const gfxRect& aRect);
+
+    
     PRInt32 mWidth, mHeight;
     PRPackedBool mValid;
     PRPackedBool mOpaque;
 
 #ifdef MOZ_IPC
-    PRPackedBool mShmem;
+    PRPackedBool mAsync;
 
     
     
-    mozilla::ipc::Shmem mFrontBuffer;
-    mozilla::ipc::Shmem mBackBuffer;
+    
     nsRefPtr<gfxASurface> mBackSurface;
-
     
-    
-    bool CreateShmemSegments(PRInt32 width, PRInt32 height,
-                             gfxASurface::gfxImageFormat format);
+    PRPackedBool mIsBackSurfaceReadable;
 #endif
 
     
@@ -783,12 +807,13 @@ NS_NewCanvasRenderingContext2D(nsIDOMCanvasRenderingContext2D** aResult)
 }
 
 nsCanvasRenderingContext2D::nsCanvasRenderingContext2D()
-    : mValid(PR_FALSE), mOpaque(PR_FALSE), mCanvasElement(nsnull),
-      mSaveCount(0), mIsEntireFrameInvalid(PR_FALSE), mInvalidateCount(0),
-      mLastStyle(STYLE_MAX), mStyleStack(20)
+    : mValid(PR_FALSE), mOpaque(PR_FALSE)
 #ifdef MOZ_IPC
-    , mShmem(PR_FALSE)
+    , mAsync(PR_FALSE)
 #endif
+    , mCanvasElement(nsnull)
+    , mSaveCount(0), mIsEntireFrameInvalid(PR_FALSE), mInvalidateCount(0)
+    , mLastStyle(STYLE_MAX), mStyleStack(20)
 {
     sNumLivingContexts++;
 }
@@ -796,6 +821,13 @@ nsCanvasRenderingContext2D::nsCanvasRenderingContext2D()
 nsCanvasRenderingContext2D::~nsCanvasRenderingContext2D()
 {
     Destroy();
+
+    ContentProcessParent* allocator = ContentProcessParent::GetSingleton(PR_FALSE);
+    if (allocator && gfxSharedImageSurface::IsSharedImage(mBackSurface)) {
+        Shmem mem = static_cast<gfxSharedImageSurface*>(mBackSurface.get())->GetShmem();
+        allocator->DeallocShmem(mem);
+    }
+    mBackSurface = nsnull;
 
     sNumLivingContexts--;
     if (!sNumLivingContexts) {
@@ -809,6 +841,11 @@ nsCanvasRenderingContext2D::~nsCanvasRenderingContext2D()
 void
 nsCanvasRenderingContext2D::Destroy()
 {
+    ContentProcessParent* allocator = ContentProcessParent::GetSingleton(PR_FALSE);
+    if (allocator && gfxSharedImageSurface::IsSharedImage(mSurface)) {
+        Shmem &mem = static_cast<gfxSharedImageSurface*>(mSurface.get())->GetShmem();
+        allocator->DeallocShmem(mem);
+    }
     if (mValid)
         gCanvasMemoryUsed -= mWidth * mHeight * 4;
 
@@ -1002,28 +1039,6 @@ nsCanvasRenderingContext2D::Redraw(const gfxRect& r)
     return NS_OK;
 }
 
-#ifdef MOZ_IPC
-bool
-nsCanvasRenderingContext2D::CreateShmemSegments(PRInt32 width, PRInt32 height,
-                                                gfxASurface::gfxImageFormat format)
-{
-    if (!mozilla::dom::ContentProcessParent::GetSingleton()->
-        AllocShmem(width * height * 4, SharedMemory::TYPE_BASIC,
-                   &mFrontBuffer))
-        return false;
-    if (!mozilla::dom::ContentProcessParent::GetSingleton()->
-                AllocShmem(width * height * 4, SharedMemory::TYPE_BASIC,
-                           &mBackBuffer))
-        return false;
-
-    mBackSurface = new gfxImageSurface(mBackBuffer.get<unsigned char>(),
-                                       gfxIntSize(width, height),
-                                       width * 4, format);
-
-    return true;
-}
-#endif
-
 NS_IMETHODIMP
 nsCanvasRenderingContext2D::SetDimensions(PRInt32 width, PRInt32 height)
 {
@@ -1032,24 +1047,43 @@ nsCanvasRenderingContext2D::SetDimensions(PRInt32 width, PRInt32 height)
     nsRefPtr<gfxASurface> surface;
 
     
-    if (gfxASurface::CheckSurfaceSize(gfxIntSize(width, height), 0xffff)) {
-        gfxASurface::gfxImageFormat format = gfxASurface::ImageFormatARGB32;
-        if (mOpaque)
-            format = gfxASurface::ImageFormatRGB24;
+    gfxIntSize size(width, height);
+    if (gfxASurface::CheckSurfaceSize(size, 0xffff)) {
 
-#ifdef MOZ_IPC
-        if (mShmem && CreateShmemSegments(width, height, format)) {
-            NS_ABORT_IF_FALSE(mFrontBuffer.get<unsigned char>(), "No front buffer!");
-            surface = new gfxImageSurface(mFrontBuffer.get<unsigned char>(),
-                                          gfxIntSize(width, height),
-                                          width * 4, format);
-        } else
-#endif
-            surface = gfxPlatform::GetPlatform()->CreateOffscreenSurface
-                (gfxIntSize(width, height), format);
+        gfxASurface::gfxImageFormat format = GetImageFormat();
+
+        surface = gfxPlatform::GetPlatform()->CreateOffscreenSurface
+            (gfxIntSize(width, height), format);
 
         if (surface && surface->CairoStatus() != 0)
             surface = NULL;
+
+#ifdef MOZ_IPC
+        if (mAsync && surface) {
+#ifdef MOZ_X11
+            if (surface->GetType() == gfxASurface::SurfaceTypeXlib) {
+                mBackSurface =
+                    gfxPlatform::GetPlatform()->CreateOffscreenSurface(size, format);
+                NS_ABORT_IF_FALSE(mBackSurface->GetType() ==
+                                  gfxASurface::SurfaceTypeXlib, "need xlib surface");
+                mIsBackSurfaceReadable = PR_TRUE;
+                
+                XSync(static_cast<gfxXlibSurface*>(mBackSurface.get())->XDisplay(), False);
+            } else
+#endif
+            {
+                if (surface->GetType() == gfxASurface::SurfaceTypeImage)
+                    format = static_cast<gfxImageSurface*>(surface.get())->Format();
+                SharedMemory::SharedMemoryType shmtype = SharedMemory::TYPE_BASIC;
+#ifdef MOZ_HAVE_SHAREDMEMORYSYSV
+                shmtype = SharedMemory::TYPE_SYSV;
+#endif
+                ContentProcessParent* allocator = ContentProcessParent::GetSingleton();
+                mBackSurface = new gfxSharedImageSurface();
+                static_cast<gfxSharedImageSurface*>(mBackSurface.get())->Init(allocator, size, format, shmtype);
+            }
+        }
+#endif
     }
     if (surface) {
         if (gCanvasMemoryReporter == nsnull) {
@@ -1140,10 +1174,10 @@ NS_IMETHODIMP
 nsCanvasRenderingContext2D::SetIsShmem(PRBool isShmem)
 {
 #ifdef MOZ_IPC
-    if (isShmem == mShmem)
+    if (isShmem == mAsync)
         return NS_OK;
 
-    mShmem = isShmem;
+    mAsync = isShmem;
 
     if (mValid) {
         
@@ -1158,37 +1192,20 @@ nsCanvasRenderingContext2D::SetIsShmem(PRBool isShmem)
 #endif
 }
 
-NS_IMETHODIMP
-nsCanvasRenderingContext2D::Swap(mozilla::ipc::Shmem& aBack, 
-                                 PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h)
+nsresult
+nsCanvasRenderingContext2D::Swap(const gfxRect& aRect)
 {
-#ifdef MOZ_IPC
-    
-    
-    
-    if (mFrontBuffer.Size<unsigned char>() != aBack.Size<unsigned char>())
-        return NS_OK;
+    gfxContextPathAutoSaveRestore pathSR(mThebes);
+    gfxContextAutoSaveRestore autoSR(mThebes);
 
-    
-    
-    
-    mBackBuffer = mFrontBuffer;
-    mFrontBuffer = aBack;
+    mThebes->SetOperator(gfxContext::OPERATOR_SOURCE);
+    mThebes->NewPath();
+    mThebes->SetSource(mBackSurface);
+    mThebes->Rectangle(aRect, PR_TRUE);
+    mThebes->Clip();
+    mThebes->Paint();
 
-    
-    nsRefPtr<gfxASurface> tmp = mSurface;
-    mSurface = mBackSurface;
-    mBackSurface = tmp;
-
-    nsRefPtr<gfxContext> ctx = new gfxContext(mSurface);
-    CopyContext(ctx, mThebes);
-    mThebes = ctx;
-
-    Redraw(gfxRect(x, y, w, h));
-
-    
-    memcpy(mBackBuffer.get<unsigned char>(), mFrontBuffer.get<unsigned char>(),
-           mWidth * mHeight * 4);
+    Redraw(aRect);
 
     
     nsCOMPtr<nsIContent> content =
@@ -1205,9 +1222,44 @@ nsCanvasRenderingContext2D::Swap(mozilla::ipc::Shmem& aBack,
                                               PR_TRUE);
     }
     return NS_OK;
-#else
-    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsCanvasRenderingContext2D::Swap(Shmem& aBack,
+                                 PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h)
+{
+#ifdef MOZ_IPC
+    if (!gfxSharedImageSurface::IsSharedImage(mBackSurface))
+        return NS_ERROR_FAILURE;
+
+    nsRefPtr<gfxSharedImageSurface> aBackImage = new gfxSharedImageSurface(aBack);
+    if (aBackImage->Data() != static_cast<gfxImageSurface*>(mBackSurface.get())->Data()) {
+        NS_ERROR("Incoming back surface is not equal to our back surface");
+        
+        ContentProcessParent* allocator = ContentProcessParent::GetSingleton(PR_FALSE);
+        if (allocator)
+            allocator->DeallocShmem(aBack);
+        return NS_ERROR_FAILURE;
+    }
+
+    Shmem& mem = static_cast<gfxSharedImageSurface*>(mBackSurface.get())->GetShmem();
+    if (mem.IsReadable())
+        NS_ERROR("Back surface readable before swap, this must not happen");
+
+    
+    mem = aBack;
+    return Swap(gfxRect(x, y, w, h));
 #endif
+}
+
+NS_IMETHODIMP
+nsCanvasRenderingContext2D::Swap(PRUint32 nativeID,
+                                 PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h)
+{
+    if (mIsBackSurfaceReadable)
+        NS_ERROR("Back surface readable before swap, this must not happen");
+    mIsBackSurfaceReadable = PR_TRUE;
+    return Swap(gfxRect(x, y, w, h));
 }
 
 NS_IMETHODIMP
@@ -1299,6 +1351,17 @@ nsCanvasRenderingContext2D::GetInputStream(const char *aMimeType,
     NS_ENSURE_SUCCESS(rv, rv);
 
     return CallQueryInterface(encoder, aStream);
+}
+
+gfxASurface::gfxImageFormat
+nsCanvasRenderingContext2D::GetImageFormat() const
+{
+    gfxASurface::gfxImageFormat format = gfxASurface::ImageFormatARGB32;
+
+    if (mOpaque)
+        format = gfxASurface::ImageFormatRGB24;
+
+    return format;
 }
 
 
@@ -3620,7 +3683,7 @@ nsCanvasRenderingContext2D::AsyncDrawXULElement(nsIDOMXULElement* aElem, float a
         return NS_ERROR_FAILURE;
 
 #ifdef MOZ_IPC
-    mozilla::dom::PIFrameEmbeddingParent *child = frameloader->GetChildProcess();
+    PIFrameEmbeddingParent *child = frameloader->GetChildProcess();
     if (!child) {
         nsCOMPtr<nsIDOMWindow> window =
             do_GetInterface(frameloader->GetExistingDocShell());
@@ -3651,34 +3714,62 @@ nsCanvasRenderingContext2D::AsyncDrawXULElement(nsIDOMXULElement* aElem, float a
             w = nsPresContext::CSSPixelsToAppUnits(aW),
             h = nsPresContext::CSSPixelsToAppUnits(aH);
 
-    if (mShmem) {
-        if (!mBackBuffer.IsWritable())
+    if (mAsync) {
+#ifdef MOZ_X11
+        if (mBackSurface &&
+				    mBackSurface->GetType() == gfxASurface::SurfaceTypeXlib) {
+
+            if (!mIsBackSurfaceReadable)
+                return NS_ERROR_FAILURE;
+
+            PRInt32 nativeID = static_cast<gfxXlibSurface*>(mBackSurface.get())->XDrawable();
+            mIsBackSurfaceReadable = PR_FALSE;
+            PDocumentRendererNativeIDParent* pdocrender =
+                child->SendPDocumentRendererNativeIDConstructor(x, y, w, h,
+                                                                nsString(aBGColor),
+                                                                renderDocFlags, flush,
+                                                                mThebes->CurrentMatrix(),
+                                                                nativeID);
+            if (!pdocrender)
+                return NS_ERROR_FAILURE;
+
+            DocumentRendererNativeIDParent* docrender =
+                static_cast<DocumentRendererNativeIDParent *>(pdocrender);
+
+            docrender->SetCanvas(this);
+        }
+        else
+#endif
+        if (gfxSharedImageSurface::IsSharedImage(mBackSurface)) {
+            Shmem& backmem = static_cast<gfxSharedImageSurface*>(mBackSurface.get())->GetShmem();
+            if (!backmem.IsWritable())
+                return NS_ERROR_FAILURE;
+            PDocumentRendererShmemParent* pdocrender =
+                child->SendPDocumentRendererShmemConstructor(x, y, w, h,
+                                                             nsString(aBGColor),
+                                                             renderDocFlags, flush,
+                                                             mThebes->CurrentMatrix(),
+                                                             backmem);
+
+            if (!pdocrender)
+                return NS_ERROR_FAILURE;
+
+            DocumentRendererShmemParent* docrender =
+                static_cast<DocumentRendererShmemParent*>(pdocrender);
+
+            docrender->SetCanvas(this);
+        } else
             return NS_ERROR_FAILURE;
-
-        mozilla::ipc::PDocumentRendererShmemParent *pdocrender =
-            child->SendPDocumentRendererShmemConstructor(x, y, w, h,
-                                                         nsString(aBGColor),
-                                                         renderDocFlags, flush,
-                                                         mThebes->CurrentMatrix(),
-                                                         mWidth, mHeight,
-                                                         mBackBuffer);
-        if (!pdocrender)
-            return NS_ERROR_FAILURE;
-
-        mozilla::ipc::DocumentRendererShmemParent *docrender = 
-            static_cast<mozilla::ipc::DocumentRendererShmemParent *>(pdocrender);
-
-        docrender->SetCanvas(this);
     } else {
-        mozilla::ipc::PDocumentRendererParent *pdocrender =
+        PDocumentRendererParent *pdocrender =
             child->SendPDocumentRendererConstructor(x, y, w, h,
                                                     nsString(aBGColor),
                                                     renderDocFlags, flush);
         if (!pdocrender)
             return NS_ERROR_FAILURE;
 
-        mozilla::ipc::DocumentRendererParent *docrender =
-            static_cast<mozilla::ipc::DocumentRendererParent *>(pdocrender);
+        DocumentRendererParent *docrender =
+            static_cast<DocumentRendererParent *>(pdocrender);
 
         docrender->SetCanvasContext(this, mThebes);
     }

@@ -121,6 +121,11 @@ public:
   
   NS_IMETHOD Swap(mozilla::ipc::Shmem& back,
                   PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h) = 0;
+
+  
+  NS_IMETHOD Swap(PRUint32 nativeID,
+                  PRInt32 x, PRInt32 y, PRInt32 w, PRInt32 h) = 0;
+
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsICanvasRenderingContextInternal,
