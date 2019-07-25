@@ -4,46 +4,7 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+"use strict";
 
 
 
@@ -55,598 +16,10 @@
 
 var EXPORTED_SYMBOLS = [ "gcli" ];
 
+Components.utils.import("resource:///modules/devtools/Require.jsm");
+Components.utils.import("resource:///modules/devtools/Console.jsm");
+Components.utils.import("resource:///modules/devtools/Browser.jsm");
 
-
-
-
-
-var Node = Components.interfaces.nsIDOMNode;
-var HTMLElement = Components.interfaces.nsIDOMHTMLElement;
-
-
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
-
-
-
-
-var setTimeout;
-var clearTimeout;
-
-(function() {
-  
-
-
-  var nextID = 1;
-
-  
-
-
-  var timers = {};
-
-  
-
-
-  function TimerCallback(callback) {
-    this._callback = callback;
-    var interfaces = [ Components.interfaces.nsITimerCallback ];
-    this.QueryInterface = XPCOMUtils.generateQI(interfaces);
-  }
-
-  TimerCallback.prototype.notify = function(timer) {
-    try {
-      for (var timerID in timers) {
-        if (timers[timerID] === timer) {
-          delete timers[timerID];
-          break;
-        }
-      }
-      this._callback.apply(null, []);
-    }
-    catch (ex) {
-      console.error(ex);
-    }
-  };
-
-  
-
-
-
-
-
-
-
-
-
-  setTimeout = function setTimeout(callback, delay) {
-    var timer = Components.classes["@mozilla.org/timer;1"]
-                          .createInstance(Components.interfaces.nsITimer);
-
-    var timerID = nextID++;
-    timers[timerID] = timer;
-
-    timer.initWithCallback(new TimerCallback(callback), delay, timer.TYPE_ONE_SHOT);
-    return timerID;
-  };
-
-  
-
-
-
-
-
-  clearTimeout = function clearTimeout(timerID) {
-    var timer = timers[timerID];
-    if (timer) {
-      timer.cancel();
-      delete timers[timerID];
-    }
-  };
-})();
-
-
-
-
-
-
-
-var console = {};
-(function() {
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  function fmt(aStr, aMaxLen, aMinLen, aOptions) {
-    if (aMinLen == null) {
-      aMinLen = aMaxLen;
-    }
-    if (aStr == null) {
-      aStr = "";
-    }
-    if (aStr.length > aMaxLen) {
-      if (aOptions && aOptions.truncate == "start") {
-        return "_" + aStr.substring(aStr.length - aMaxLen + 1);
-      }
-      else {
-        return aStr.substring(0, aMaxLen - 1) + "_";
-      }
-    }
-    if (aStr.length < aMinLen) {
-      return Array(aMinLen - aStr.length + 1).join(" ") + aStr;
-    }
-    return aStr;
-  }
-
-  
-
-
-
-
-
-
-
-
-  function getCtorName(aObj) {
-    if (aObj.constructor && aObj.constructor.name) {
-      return aObj.constructor.name;
-    }
-    
-    
-    return Object.prototype.toString.call(aObj).slice(8, -1);
-  }
-
-  
-
-
-
-
-
-
-
-
-  function stringify(aThing) {
-    if (aThing === undefined) {
-      return "undefined";
-    }
-
-    if (aThing === null) {
-      return "null";
-    }
-
-    if (typeof aThing == "object") {
-      var type = getCtorName(aThing);
-      if (aThing instanceof Node && aThing.tagName) {
-        return debugElement(aThing);
-      }
-      type = (type == "Object" ? "" : type + " ");
-      var json;
-      try {
-        json = JSON.stringify(aThing);
-      }
-      catch (ex) {
-        
-        json = "{" + Object.keys(aThing).join(":..,") + ":.., " + "}";
-      }
-      return type + fmt(json, 50, 0);
-    }
-
-    if (typeof aThing == "function") {
-      return fmt(aThing.toString().replace(/\s+/g, " "), 80, 0);
-    }
-
-    var str = aThing.toString().replace(/\n/g, "|");
-    return fmt(str, 80, 0);
-  }
-
-  
-
-
-
-
-
-
-
-  function debugElement(aElement) {
-    return "<" + aElement.tagName +
-        (aElement.id ? "#" + aElement.id : "") +
-        (aElement.className ?
-            "." + aElement.className.split(" ").join(" .") :
-            "") +
-        ">";
-  }
-
-  
-
-
-
-
-
-
-
-  function log(aThing) {
-    if (aThing === null) {
-      return "null\n";
-    }
-
-    if (aThing === undefined) {
-      return "undefined\n";
-    }
-
-    if (typeof aThing == "object") {
-      var reply = "";
-      var type = getCtorName(aThing);
-      if (type == "Error") {
-        reply += "  " + aThing.message + "\n";
-        reply += logProperty("stack", aThing.stack);
-      }
-      else if (aThing instanceof Node && aThing.tagName) {
-        reply += "  " + debugElement(aThing) + "\n";
-      }
-      else {
-        var keys = Object.getOwnPropertyNames(aThing);
-        if (keys.length > 0) {
-          reply += type + "\n";
-          keys.forEach(function(aProp) {
-            reply += logProperty(aProp, aThing[aProp]);
-          }, this);
-        }
-        else {
-          reply += type + "\n";
-          var root = aThing;
-          var logged = [];
-          while (root != null) {
-            var properties = Object.keys(root);
-            properties.sort();
-            properties.forEach(function(property) {
-              if (!(property in logged)) {
-                logged[property] = property;
-                reply += logProperty(property, aThing[property]);
-              }
-            });
-
-            root = Object.getPrototypeOf(root);
-            if (root != null) {
-              reply += '  - prototype ' + getCtorName(root) + '\n';
-            }
-          }
-        }
-      }
-
-      return reply;
-    }
-
-    return "  " + aThing.toString() + "\n";
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-  function logProperty(aProp, aValue) {
-    var reply = "";
-    if (aProp == "stack" && typeof value == "string") {
-      var trace = parseStack(aValue);
-      reply += formatTrace(trace);
-    }
-    else {
-      reply += "    - " + aProp + " = " + stringify(aValue) + "\n";
-    }
-    return reply;
-  }
-
-  
-
-
-
-
-
-
-
-
-  function parseStack(aStack) {
-    var trace = [];
-    aStack.split("\n").forEach(function(line) {
-      if (!line) {
-        return;
-      }
-      var at = line.lastIndexOf("@");
-      var posn = line.substring(at + 1);
-      trace.push({
-        file: posn.split(":")[0],
-        line: posn.split(":")[1],
-        call: line.substring(0, at)
-      });
-    }, this);
-    return trace;
-  }
-
-  
-
-
-
-
-
-
-
-
-
-  function getStack(aFrame) {
-    if (!aFrame) {
-      aFrame = Components.stack.caller;
-    }
-    var trace = [];
-    while (aFrame) {
-      trace.push({
-        file: aFrame.filename,
-        line: aFrame.lineNumber,
-        call: aFrame.name
-      });
-      aFrame = aFrame.caller;
-    }
-    return trace;
-  }
-
-  
-
-
-
-
-
-
-
-  function formatTrace(aTrace) {
-    var reply = "";
-    aTrace.forEach(function(frame) {
-      reply += fmt(frame.file, 20, 20, { truncate: "start" }) + " " +
-               fmt(frame.line, 5, 5) + " " +
-               fmt(frame.call, 75, 75) + "\n";
-    });
-    return reply;
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-  function createDumper(aLevel) {
-    return function() {
-      var args = Array.prototype.slice.call(arguments, 0);
-      var data = args.map(function(arg) {
-        return stringify(arg);
-      });
-      dump(aLevel + ": " + data.join(", ") + "\n");
-    };
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-  function createMultiLineDumper(aLevel) {
-    return function() {
-      dump(aLevel + "\n");
-      var args = Array.prototype.slice.call(arguments, 0);
-      args.forEach(function(arg) {
-        dump(log(arg));
-      });
-    };
-  }
-
-  
-
-
-  console.debug = createMultiLineDumper("debug");
-  console.log = createDumper("log");
-  console.info = createDumper("info");
-  console.warn = createDumper("warn");
-  console.error = createMultiLineDumper("error");
-  console.trace = function Console_trace() {
-    var trace = getStack(Components.stack.caller);
-    dump(formatTrace(trace) + "\n");
-  },
-  console.clear = function Console_clear() {};
-
-  console.dir = createMultiLineDumper("dir");
-  console.dirxml = createMultiLineDumper("dirxml");
-  console.group = createDumper("group");
-  console.groupEnd = createDumper("groupEnd");
-
-})();
-
-
-
-
-
-
-
-
-
-
-
-
-
-function define(moduleName, deps, payload) {
-  if (typeof moduleName != "string") {
-    console.error(this.depth + " Error: Module name is not a string.");
-    console.trace();
-    return;
-  }
-
-  if (arguments.length == 2) {
-    payload = deps;
-  }
-
-  if (define.debugDependencies) {
-    console.log("define: " + moduleName + " -> " + payload.toString()
-        .slice(0, 40).replace(/\n/, '\\n').replace(/\r/, '\\r') + "...");
-  }
-
-  if (moduleName in define.modules) {
-    console.error(this.depth + " Error: Redefining module: " + moduleName);
-  }
-  define.modules[moduleName] = payload;
-}
-
-
-
-
-define.modules = {};
-
-
-
-
-define.debugDependencies = false;
-
-
-
-
-
-(function() {
-  
-
-
-
-
-
-
-
-  function Domain() {
-    this.modules = {};
-
-    if (define.debugDependencies) {
-      this.depth = "";
-    }
-  }
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  Domain.prototype.require = function(deps, callback) {
-    if (Array.isArray(deps)) {
-      var params = deps.map(function(dep) {
-        return this.lookup(dep);
-      }, this);
-      if (callback) {
-        callback.apply(null, params);
-      }
-      return undefined;
-    }
-    else {
-      return this.lookup(deps);
-    }
-  };
-
-  
-
-
-
-
-
-  Domain.prototype.lookup = function(moduleName) {
-    if (moduleName in this.modules) {
-      var module = this.modules[moduleName];
-      if (define.debugDependencies) {
-        console.log(this.depth + " Using module: " + moduleName);
-      }
-      return module;
-    }
-
-    if (!(moduleName in define.modules)) {
-      console.error(this.depth + " Missing module: " + moduleName);
-      return null;
-    }
-
-    var module = define.modules[moduleName];
-
-    if (define.debugDependencies) {
-      console.log(this.depth + " Compiling module: " + moduleName);
-    }
-
-    if (typeof module == "function") {
-      if (define.debugDependencies) {
-        this.depth += ".";
-      }
-
-      var exports = {};
-      try {
-        module(this.require.bind(this), exports, { id: moduleName, uri: "" });
-      }
-      catch (ex) {
-        console.error("Error using module: " + moduleName, ex);
-        throw ex;
-      }
-      module = exports;
-
-      if (define.debugDependencies) {
-        this.depth = this.depth.slice(0, -1);
-      }
-    }
-
-    
-    this.modules[moduleName] = module;
-
-    return module;
-  };
-
-  
-
-
-
-
-  define.Domain = Domain;
-  define.globalDomain = new Domain();
-})();
-
-
-
-
-
-var require = define.globalDomain.require.bind(define.globalDomain);
 
 
 
@@ -692,13 +65,7 @@ var mozl10n = {};
 
 })(mozl10n);
 
-define('gcli/index', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/types/basic', 'gcli/types/command', 'gcli/types/javascript', 'gcli/types/node', 'gcli/types/resource', 'gcli/types/setting', 'gcli/types/selection', 'gcli/settings', 'gcli/ui/intro', 'gcli/ui/focus', 'gcli/ui/fields/basic', 'gcli/ui/fields/javascript', 'gcli/ui/fields/selection', 'gcli/commands/help', 'gcli/ui/ffdisplay'], function(require, exports, module) {
-
-  
-  exports.addCommand = require('gcli/canon').addCommand;
-  exports.removeCommand = require('gcli/canon').removeCommand;
-  exports.lookup = mozl10n.lookup;
-  exports.lookupFormat = mozl10n.lookupFormat;
+define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli/types/command', 'gcli/types/javascript', 'gcli/types/node', 'gcli/types/resource', 'gcli/types/setting', 'gcli/types/selection', 'gcli/settings', 'gcli/ui/intro', 'gcli/ui/focus', 'gcli/ui/fields/basic', 'gcli/ui/fields/javascript', 'gcli/ui/fields/selection', 'gcli/commands/help', 'gcli/canon', 'gcli/ui/ffdisplay'], function(require, exports, module) {
 
   
   require('gcli/types/basic').startup();
@@ -719,21 +86,12 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/types
   require('gcli/commands/help').startup();
 
   
+  exports.addCommand = require('gcli/canon').addCommand;
+  exports.removeCommand = require('gcli/canon').removeCommand;
+  exports.lookup = mozl10n.lookup;
+  exports.lookupFormat = mozl10n.lookupFormat;
+
   
-  
-
-  var FFDisplay = require('gcli/ui/ffdisplay').FFDisplay;
-
-  
-
-
-
-  exports._internal = {
-    require: require,
-    define: define,
-    console: console,
-
-    
 
 
 
@@ -746,10 +104,12 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/types
 
 
 
-    createDisplay: function(opts) {
-      return new FFDisplay(opts);
-    }
+
+  exports.createDisplay = function(opts) {
+    var FFDisplay = require('gcli/ui/ffdisplay').FFDisplay;
+    return new FFDisplay(opts);
   };
+
 });
 
 
@@ -757,1033 +117,360 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/types
 
 
 
-define('gcli/canon', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10n', 'gcli/types', 'gcli/types/basic'], function(require, exports, module) {
-var canon = exports;
+define('gcli/types/basic', ['require', 'exports', 'module' , 'gcli/l10n', 'gcli/types', 'gcli/types/spell', 'gcli/types/selection', 'gcli/argument'], function(require, exports, module) {
 
 
-var util = require('gcli/util');
 var l10n = require('gcli/l10n');
-
 var types = require('gcli/types');
+var Type = require('gcli/types').Type;
 var Status = require('gcli/types').Status;
-var BooleanType = require('gcli/types/basic').BooleanType;
+var Conversion = require('gcli/types').Conversion;
+var ArrayConversion = require('gcli/types').ArrayConversion;
+var Speller = require('gcli/types/spell').Speller;
+var SelectionType = require('gcli/types/selection').SelectionType;
+
+var Argument = require('gcli/argument').Argument;
+var TrueNamedArgument = require('gcli/argument').TrueNamedArgument;
+var FalseNamedArgument = require('gcli/argument').FalseNamedArgument;
+var ArrayArgument = require('gcli/argument').ArrayArgument;
 
 
 
 
 
+exports.startup = function() {
+  types.registerType(StringType);
+  types.registerType(NumberType);
+  types.registerType(BooleanType);
+  types.registerType(BlankType);
+  types.registerType(DeferredType);
+  types.registerType(ArrayType);
+};
 
-
-
-function lookup(data, onUndefined) {
-  if (data == null) {
-    if (onUndefined) {
-      return l10n.lookup(onUndefined);
-    }
-
-    return data;
-  }
-
-  if (typeof data === 'string') {
-    return data;
-  }
-
-  if (typeof data === 'object') {
-    if (data.key) {
-      return l10n.lookup(data.key);
-    }
-
-    var locales = l10n.getPreferredLocales();
-    var translated;
-    locales.some(function(locale) {
-      translated = data[locale];
-      return translated != null;
-    });
-    if (translated != null) {
-      return translated;
-    }
-
-    console.error('Can\'t find locale in descriptions: ' +
-            'locales=' + JSON.stringify(locales) + ', ' +
-            'description=' + JSON.stringify(data));
-    return '(No description)';
-  }
-
-  return l10n.lookup(onUndefined);
-}
+exports.shutdown = function() {
+  types.unregisterType(StringType);
+  types.unregisterType(NumberType);
+  types.unregisterType(BooleanType);
+  types.unregisterType(BlankType);
+  types.unregisterType(DeferredType);
+  types.unregisterType(ArrayType);
+};
 
 
 
 
 
-function Command(commandSpec) {
-  Object.keys(commandSpec).forEach(function(key) {
-    this[key] = commandSpec[key];
-  }, this);
-
-  if (!this.name) {
-    throw new Error('All registered commands must have a name');
-  }
-
-  if (this.params == null) {
-    this.params = [];
-  }
-  if (!Array.isArray(this.params)) {
-    throw new Error('command.params must be an array in ' + this.name);
-  }
-
-  this.description = 'description' in this ? this.description : undefined;
-  this.description = lookup(this.description, 'canonDescNone');
-  this.manual = 'manual' in this ? this.manual : undefined;
-  this.manual = lookup(this.manual);
-
-  
-  
-  var paramSpecs = this.params;
-  this.params = [];
-
-  
-  
-  
-  
-  
-  var usingGroups = false;
-
-  if (this.returnType == null) {
-    this.returnType = 'string';
-  }
-
-  
-  
-  
-  
-  paramSpecs.forEach(function(spec) {
-    if (!spec.group) {
-      if (usingGroups) {
-        console.error('Parameters can\'t come after param groups.' +
-            ' Ignoring ' + this.name + '/' + spec.name);
-      }
-      else {
-        var param = new Parameter(spec, this, null);
-        this.params.push(param);
-      }
-    }
-    else {
-      spec.params.forEach(function(ispec) {
-        var param = new Parameter(ispec, this, spec.group);
-        this.params.push(param);
-      }, this);
-
-      usingGroups = true;
-    }
-  }, this);
-}
-
-canon.Command = Command;
-
-
-
-
-
-
-function Parameter(paramSpec, command, groupName) {
-  this.command = command || { name: 'unnamed' };
-  this.paramSpec = paramSpec;
-  this.name = this.paramSpec.name;
-  this.type = this.paramSpec.type;
-  this.groupName = groupName;
-  this.defaultValue = this.paramSpec.defaultValue;
-
-  if (!this.name) {
-    throw new Error('In ' + this.command.name +
-      ': all params must have a name');
-  }
-
-  var typeSpec = this.type;
-  this.type = types.getType(typeSpec);
-  if (this.type == null) {
-    console.error('Known types: ' + types.getTypeNames().join(', '));
-    throw new Error('In ' + this.command.name + '/' + this.name +
-      ': can\'t find type for: ' + JSON.stringify(typeSpec));
-  }
-
-  
-  
-  if (this.type instanceof BooleanType) {
-    if (this.defaultValue !== undefined) {
-      console.error('In ' + this.command.name + '/' + this.name +
-          ': boolean parameters can not have a defaultValue.' +
-          ' Ignoring');
-    }
-    this.defaultValue = false;
-  }
-
-  
-  
-  
-  
-  if (this.defaultValue != null) {
-    try {
-      var defaultText = this.type.stringify(this.defaultValue);
-      var defaultConversion = this.type.parseString(defaultText);
-      if (defaultConversion.getStatus() !== Status.VALID) {
-        console.error('In ' + this.command.name + '/' + this.name +
-            ': Error round tripping defaultValue. status = ' +
-            defaultConversion.getStatus());
-      }
-    }
-    catch (ex) {
-      console.error('In ' + this.command.name + '/' + this.name +
-        ': ' + ex);
-    }
-  }
-
-  
-  
-  if (this.defaultValue === undefined) {
-    this.defaultValue = this.type.getBlank().value;
+function StringType(typeSpec) {
+  if (Object.keys(typeSpec).length > 0) {
+    throw new Error('StringType can not be customized');
   }
 }
 
+StringType.prototype = Object.create(Type.prototype);
 
-
-
-
-
-Parameter.prototype.isKnownAs = function(name) {
-  if (name === '--' + this.name) {
-    return true;
+StringType.prototype.stringify = function(value) {
+  if (value == null) {
+    return '';
   }
-  return false;
+  return value.toString();
 };
 
-
-
-
-
-
-Parameter.prototype.getBlank = function() {
-  var conversion;
-
-  if (this.type.getBlank) {
-    return this.type.getBlank();
+StringType.prototype.parse = function(arg) {
+  if (arg.text == null || arg.text === '') {
+    return new Conversion(undefined, arg, Status.INCOMPLETE, '');
   }
-
-  return this.type.parseString('');
+  return new Conversion(arg.text, arg);
 };
 
+StringType.prototype.name = 'string';
 
+exports.StringType = StringType;
 
 
 
-Object.defineProperty(Parameter.prototype, 'manual', {
-  get: function() {
-    return lookup(this.paramSpec.manual || undefined);
-  },
-  enumerable: true
-});
 
 
-
-
-
-Object.defineProperty(Parameter.prototype, 'description', {
-  get: function() {
-    return lookup(this.paramSpec.description || undefined, 'canonDescNone');
-  },
-  enumerable: true
-});
-
-
-
-
-
-Object.defineProperty(Parameter.prototype, 'isDataRequired', {
-  get: function() {
-    return this.defaultValue === undefined;
-  },
-  enumerable: true
-});
-
-
-
-
-
-Object.defineProperty(Parameter.prototype, 'isPositionalAllowed', {
-  get: function() {
-    return this.groupName == null;
-  },
-  enumerable: true
-});
-
-canon.Parameter = Parameter;
-
-
-
-
-
-var commands = {};
-
-
-
-
-var commandNames = [];
-
-
-
-
-var commandSpecs = {};
-
-
-
-
-
-
-
-
-canon.addCommand = function addCommand(commandSpec) {
-  if (commands[commandSpec.name] != null) {
-    
-    delete commands[commandSpec.name];
-    commandNames = commandNames.filter(function(test) {
-      return test !== commandSpec.name;
-    });
-  }
-
-  var command = new Command(commandSpec);
-  commands[commandSpec.name] = command;
-  commandNames.push(commandSpec.name);
-  commandNames.sort();
-
-  commandSpecs[commandSpec.name] = commandSpec;
-
-  canon.onCanonChange();
-  return command;
-};
-
-
-
-
-
-canon.removeCommand = function removeCommand(commandOrName) {
-  var name = typeof commandOrName === 'string' ?
-          commandOrName :
-          commandOrName.name;
-
-  
-  delete commands[name];
-  delete commandSpecs[name];
-  commandNames = commandNames.filter(function(test) {
-    return test !== name;
-  });
-
-  canon.onCanonChange();
-};
-
-
-
-
-
-canon.getCommand = function getCommand(name) {
-  
-  return commands[name] || undefined;
-};
-
-
-
-
-canon.getCommands = function getCommands() {
-  
-  return Object.keys(commands).map(function(name) {
-    return commands[name];
-  }, this);
-};
-
-
-
-
-canon.getCommandNames = function getCommandNames() {
-  return commandNames.slice(0);
-};
-
-
-
-
-
-canon.getCommandSpecs = function getCommandSpecs() {
-  return commandSpecs;
-};
-
-
-
-
-canon.onCanonChange = util.createEvent('canon.onCanonChange');
-
-
-
-
-
-
-
-
-
-
-
-function CommandOutputManager() {
-  this.onOutput = util.createEvent('CommandOutputManager.onOutput');
-}
-
-canon.CommandOutputManager = CommandOutputManager;
-
-
-
-
-
-canon.commandOutputManager = new CommandOutputManager();
-
-
-});
-
-
-
-
-
-
-define('gcli/util', ['require', 'exports', 'module' ], function(require, exports, module) {
-
-
-
-
-
-
-
-
-var eventDebug = false;
-
-
-
-
-function nameFunction(handler) {
-  var scope = handler.scope ? handler.scope.constructor.name + '.' : '';
-  var name = handler.func.name;
-  if (name) {
-    return scope + name;
-  }
-  for (var prop in handler.scope) {
-    if (handler.scope[prop] === handler.func) {
-      return scope + prop;
-    }
-  }
-  return scope + handler.func;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-exports.createEvent = function(name) {
-  var handlers = [];
-  var holdFire = false;
-  var heldEvents = [];
-  var eventCombiner = undefined;
-
-  
-
-
-
-  var event = function(ev) {
-    if (holdFire) {
-      heldEvents.push(ev);
-      if (eventDebug) {
-        console.log('Held fire: ' + name, ev);
-      }
-      return;
-    }
-
-    if (eventDebug) {
-      console.group('Fire: ' + name + ' to ' + handlers.length + ' listeners', ev);
-    }
-
-    
-    
-    for (var i = 0; i < handlers.length; i++) {
-      var handler = handlers[i];
-      if (eventDebug) {
-        console.log(nameFunction(handler));
-      }
-      handler.func.call(handler.scope, ev);
-    }
-
-    if (eventDebug) {
-      console.groupEnd();
-    }
-  };
-
-  
-
-
-
-
-  event.add = function(func, scope) {
-    handlers.push({ func: func, scope: scope });
-  };
-
-  
-
-
-
-
-
-  event.remove = function(func, scope) {
-    var found = false;
-    handlers = handlers.filter(function(test) {
-      var noMatch = (test.func !== func && test.scope !== scope);
-      if (!noMatch) {
-        found = true;
-      }
-      return noMatch;
-    });
-    if (!found) {
-      console.warn('Failed to remove handler from ' + name);
-    }
-  };
-
-  
-
-
-
-  event.removeAll = function() {
-    handlers = [];
-  };
-
-  
-
-
-
-  event.holdFire = function() {
-    if (eventDebug) {
-      console.group('Holding fire: ' + name);
-    }
-
-    holdFire = true;
-  };
-
-  
-
-
-
-
-
-
-  event.resumeFire = function() {
-    if (eventDebug) {
-      console.groupEnd('Resume fire: ' + name);
-    }
-
-    if (holdFire !== true) {
-      throw new Error('Event not held: ' + name);
-    }
-
-    holdFire = false;
-    if (heldEvents.length === 0) {
-      return;
-    }
-
-    if (heldEvents.length === 1) {
-      event(heldEvents[0]);
-    }
-    else {
-      var first = heldEvents[0];
-      var last = heldEvents[heldEvents.length - 1];
-      if (eventCombiner) {
-        event(eventCombiner(first, last, heldEvents));
-      }
-      else {
-        event(last);
-      }
-    }
-
-    heldEvents = [];
-  };
-
-  
-
-
-
-
-
-
-
-
-
-  Object.defineProperty(event, 'eventCombiner', {
-    set: function(newEventCombiner) {
-      if (typeof newEventCombiner !== 'function') {
-        throw new Error('eventCombiner is not a function');
-      }
-      eventCombiner = newEventCombiner;
-    },
-
-    enumerable: true
-  });
-
-  return event;
-};
-
-
-
-
-
-
-
-exports.NS_XHTML = 'http://www.w3.org/1999/xhtml';
-
-
-
-
-exports.NS_XUL = 'http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul';
-
-
-
-
-
-
-
-
-
-
-
-
-exports.createElement = function(doc, tag) {
-  if (exports.isXmlDocument(doc)) {
-    return doc.createElementNS(exports.NS_XHTML, tag);
+function NumberType(typeSpec) {
+  if (typeSpec) {
+    this._min = typeSpec.min;
+    this._max = typeSpec.max;
+    this._step = typeSpec.step || 1;
   }
   else {
-    return doc.createElement(tag);
+    this._step = 1;
   }
-};
-
-
-
-
-
-exports.clearElement = function(elem) {
-  while (elem.hasChildNodes()) {
-    elem.removeChild(elem.firstChild);
-  }
-};
-
-var isAllWhitespace = /^\s*$/;
-
-
-
-
-
-
-
-
-
-
-exports.removeWhitespace = function(elem, deep) {
-  var i = 0;
-  while (i < elem.childNodes.length) {
-    var child = elem.childNodes.item(i);
-    if (child.nodeType === 3  &&
-        isAllWhitespace.test(child.textContent)) {
-      elem.removeChild(child);
-    }
-    else {
-      if (deep && child.nodeType === 1 ) {
-        exports.removeWhitespace(child, deep);
-      }
-      i++;
-    }
-  }
-};
-
-
-
-
-
-
-
-
-
-exports.importCss = function(cssText, doc, id) {
-  if (!cssText) {
-    return undefined;
-  }
-
-  doc = doc || document;
-
-  if (!id) {
-    id = 'hash-' + hash(cssText);
-  }
-
-  var found = doc.getElementById(id);
-  if (found) {
-    if (found.tagName.toLowerCase() !== 'style') {
-      console.error('Warning: importCss passed id=' + id +
-              ', but that pre-exists (and isn\'t a style tag)');
-    }
-    return found;
-  }
-
-  var style = exports.createElement(doc, 'style');
-  style.id = id;
-  style.appendChild(doc.createTextNode(cssText));
-
-  var head = doc.getElementsByTagName('head')[0] || doc.documentElement;
-  head.appendChild(style);
-
-  return style;
-};
-
-
-
-
-
-
-
-function hash(str) {
-  var hash = 0;
-  if (str.length == 0) {
-    return hash;
-  }
-  for (var i = 0; i < str.length; i++) {
-    var char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; 
-  }
-  return hash;
 }
 
+NumberType.prototype = Object.create(Type.prototype);
 
+NumberType.prototype.stringify = function(value) {
+  if (value == null) {
+    return '';
+  }
+  return '' + value;
+};
 
+NumberType.prototype.getMin = function() {
+  if (this._min) {
+    if (typeof this._min === 'function') {
+      return this._min();
+    }
+    if (typeof this._min === 'number') {
+      return this._min;
+    }
+  }
+  return undefined;
+};
 
+NumberType.prototype.getMax = function() {
+  if (this._max) {
+    if (typeof this._max === 'function') {
+      return this._max();
+    }
+    if (typeof this._max === 'number') {
+      return this._max;
+    }
+  }
+  return undefined;
+};
 
-exports.setContents = function(elem, contents) {
-  if (typeof HTMLElement !== 'undefined' && contents instanceof HTMLElement) {
-    exports.clearElement(elem);
-    elem.appendChild(contents);
-    return;
+NumberType.prototype.parse = function(arg) {
+  if (arg.text.replace(/\s/g, '').length === 0) {
+    return new Conversion(undefined, arg, Status.INCOMPLETE, '');
   }
 
-  if (exports.isXmlDocument(elem.ownerDocument)) {
-    try {
-      var ns = elem.ownerDocument.documentElement.namespaceURI;
-      if (!ns) {
-        ns = exports.NS_XHTML;
-      }
-      exports.clearElement(elem);
-      contents = '<div xmlns="' + ns + '">' + contents + '</div>';
-      var range = elem.ownerDocument.createRange();
-      var child = range.createContextualFragment(contents).firstChild;
-      while (child.hasChildNodes()) {
-        elem.appendChild(child.firstChild);
-      }
-    }
-    catch (ex) {
-      console.error('Bad XHTML', ex);
-      console.trace();
-      throw ex;
-    }
+  var value = parseInt(arg.text, 10);
+  if (isNaN(value)) {
+    return new Conversion(undefined, arg, Status.ERROR,
+        l10n.lookupFormat('typesNumberNan', [ arg.text ]));
+  }
+
+  var max = this.getMax();
+  if (max != null && value > max) {
+    return new Conversion(undefined, arg, Status.ERROR,
+        l10n.lookupFormat('typesNumberMax', [ value, max ]));
+  }
+
+  var min = this.getMin();
+  if (min != null && value < min) {
+    return new Conversion(undefined, arg, Status.ERROR,
+        l10n.lookupFormat('typesNumberMin', [ value, min ]));
+  }
+
+  return new Conversion(value, arg);
+};
+
+NumberType.prototype.decrement = function(value) {
+  if (typeof value !== 'number' || isNaN(value)) {
+    return this.getMax() || 1;
+  }
+  var newValue = value - this._step;
+  
+  newValue = Math.ceil(newValue / this._step) * this._step;
+  return this._boundsCheck(newValue);
+};
+
+NumberType.prototype.increment = function(value) {
+  if (typeof value !== 'number' || isNaN(value)) {
+    var min = this.getMin();
+    return min != null ? min : 0;
+  }
+  var newValue = value + this._step;
+  
+  newValue = Math.floor(newValue / this._step) * this._step;
+  if (this.getMax() == null) {
+    return newValue;
+  }
+  return this._boundsCheck(newValue);
+};
+
+
+
+
+
+
+NumberType.prototype._boundsCheck = function(value) {
+  var min = this.getMin();
+  if (min != null && value < min) {
+    return min;
+  }
+  var max = this.getMax();
+  if (max != null && value > max) {
+    return max;
+  }
+  return value;
+};
+
+NumberType.prototype.name = 'number';
+
+exports.NumberType = NumberType;
+
+
+
+
+
+function BooleanType(typeSpec) {
+  if (Object.keys(typeSpec).length > 0) {
+    throw new Error('BooleanType can not be customized');
+  }
+}
+
+BooleanType.prototype = Object.create(SelectionType.prototype);
+
+BooleanType.prototype.lookup = [
+  { name: 'false', value: false },
+  { name: 'true', value: true }
+];
+
+BooleanType.prototype.parse = function(arg) {
+  if (arg instanceof TrueNamedArgument) {
+    return new Conversion(true, arg);
+  }
+  if (arg instanceof FalseNamedArgument) {
+    return new Conversion(false, arg);
+  }
+  return SelectionType.prototype.parse.call(this, arg);
+};
+
+BooleanType.prototype.stringify = function(value) {
+  return '' + value;
+};
+
+BooleanType.prototype.getBlank = function() {
+  return new Conversion(false, new Argument(), Status.VALID, '', this.lookup);
+};
+
+BooleanType.prototype.name = 'boolean';
+
+exports.BooleanType = BooleanType;
+
+
+
+
+
+function DeferredType(typeSpec) {
+  if (typeof typeSpec.defer !== 'function') {
+    throw new Error('Instances of DeferredType need typeSpec.defer to be a function that returns a type');
+  }
+  Object.keys(typeSpec).forEach(function(key) {
+    this[key] = typeSpec[key];
+  }, this);
+}
+
+DeferredType.prototype = Object.create(Type.prototype);
+
+DeferredType.prototype.stringify = function(value) {
+  return this.defer().stringify(value);
+};
+
+DeferredType.prototype.parse = function(arg) {
+  return this.defer().parse(arg);
+};
+
+DeferredType.prototype.decrement = function(value) {
+  var deferred = this.defer();
+  return (deferred.decrement ? deferred.decrement(value) : undefined);
+};
+
+DeferredType.prototype.increment = function(value) {
+  var deferred = this.defer();
+  return (deferred.increment ? deferred.increment(value) : undefined);
+};
+
+DeferredType.prototype.increment = function(value) {
+  var deferred = this.defer();
+  return (deferred.increment ? deferred.increment(value) : undefined);
+};
+
+DeferredType.prototype.getType = function() {
+  return this.defer();
+};
+
+Object.defineProperty(DeferredType.prototype, 'isImportant', {
+  get: function() {
+    return this.defer().isImportant;
+  },
+  enumerable: true
+});
+
+DeferredType.prototype.name = 'deferred';
+
+exports.DeferredType = DeferredType;
+
+
+
+
+
+
+function BlankType(typeSpec) {
+  if (Object.keys(typeSpec).length > 0) {
+    throw new Error('BlankType can not be customized');
+  }
+}
+
+BlankType.prototype = Object.create(Type.prototype);
+
+BlankType.prototype.stringify = function(value) {
+  return '';
+};
+
+BlankType.prototype.parse = function(arg) {
+  return new Conversion(undefined, arg);
+};
+
+BlankType.prototype.name = 'blank';
+
+exports.BlankType = BlankType;
+
+
+
+
+
+function ArrayType(typeSpec) {
+  if (!typeSpec.subtype) {
+    console.error('Array.typeSpec is missing subtype. Assuming string.' +
+        JSON.stringify(typeSpec));
+    typeSpec.subtype = 'string';
+  }
+
+  Object.keys(typeSpec).forEach(function(key) {
+    this[key] = typeSpec[key];
+  }, this);
+  this.subtype = types.getType(this.subtype);
+}
+
+ArrayType.prototype = Object.create(Type.prototype);
+
+ArrayType.prototype.stringify = function(values) {
+  
+  return values.join(' ');
+};
+
+ArrayType.prototype.parse = function(arg) {
+  if (arg instanceof ArrayArgument) {
+    var conversions = arg.getArguments().map(function(subArg) {
+      var conversion = this.subtype.parse(subArg);
+      
+      
+      
+      subArg.conversion = conversion;
+      return conversion;
+    }, this);
+    return new ArrayConversion(conversions, arg);
   }
   else {
-    elem.innerHTML = contents;
+    console.error('non ArrayArgument to ArrayType.parse', arg);
+    throw new Error('non ArrayArgument to ArrayType.parse');
   }
 };
 
-
-
-
-
-exports.toDom = function(document, html) {
-  var div = exports.createElement(document, 'div');
-  exports.setContents(div, html);
-  return div.children[0];
+ArrayType.prototype.getBlank = function(values) {
+  return new ArrayConversion([], new ArrayArgument());
 };
 
+ArrayType.prototype.name = 'array';
 
-
-
-
-
-
-
-exports.isXmlDocument = function(doc) {
-  doc = doc || document;
-  
-  if (doc.contentType && doc.contentType != 'text/html') {
-    return true;
-  }
-  
-  if (doc.xmlVersion != null) {
-    return true;
-  }
-  return false;
-};
-
-
-
-
-
-function positionInNodeList(element, nodeList) {
-  for (var i = 0; i < nodeList.length; i++) {
-    if (element === nodeList[i]) {
-      return i;
-    }
-  }
-  return -1;
-}
-
-
-
-
-
-
-exports.findCssSelector = function(ele) {
-  var document = ele.ownerDocument;
-  if (ele.id && document.getElementById(ele.id) === ele) {
-    return '#' + ele.id;
-  }
-
-  
-  var tagName = ele.tagName.toLowerCase();
-  if (tagName === 'html') {
-    return 'html';
-  }
-  if (tagName === 'head') {
-    return 'head';
-  }
-  if (tagName === 'body') {
-    return 'body';
-  }
-
-  if (ele.parentNode == null) {
-    console.log('danger: ' + tagName);
-  }
-
-  
-  var selector, index, matches;
-  if (ele.classList.length > 0) {
-    for (var i = 0; i < ele.classList.length; i++) {
-      
-      selector = '.' + ele.classList.item(i);
-      matches = document.querySelectorAll(selector);
-      if (matches.length === 1) {
-        return selector;
-      }
-      
-      selector = tagName + selector;
-      matches = document.querySelectorAll(selector);
-      if (matches.length === 1) {
-        return selector;
-      }
-      
-      index = positionInNodeList(ele, ele.parentNode.children) + 1;
-      selector = selector + ':nth-child(' + index + ')';
-      matches = document.querySelectorAll(selector);
-      if (matches.length === 1) {
-        return selector;
-      }
-    }
-  }
-
-  
-  index = positionInNodeList(ele, ele.parentNode.children) + 1;
-  selector = exports.findCssSelector(ele.parentNode) + ' > ' +
-          tagName + ':nth-child(' + index + ')';
-
-  return selector;
-};
-
-
-
-
-exports.createUrlLookup = function(callingModule) {
-  return function imageUrl(path) {
-    try {
-      return require('text!gcli/ui/' + path);
-    }
-    catch (ex) {
-      
-      
-      
-      if (callingModule.filename) {
-        return callingModule.filename + path;
-      }
-
-      var filename = callingModule.id.split('/').pop() + '.js';
-
-      if (callingModule.uri.substr(-filename.length) !== filename) {
-        console.error('Can\'t work out path from module.uri/module.id');
-        return path;
-      }
-
-      if (callingModule.uri) {
-        var end = callingModule.uri.length - filename.length - 1;
-        return callingModule.uri.substr(0, end) + '/' + path;
-      }
-
-      return filename + '/' + path;
-    }
-  };
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-if ('KeyEvent' in this) {
-  exports.KeyEvent = this.KeyEvent;
-}
-else {
-  exports.KeyEvent = {
-    DOM_VK_CANCEL: 3,
-    DOM_VK_HELP: 6,
-    DOM_VK_BACK_SPACE: 8,
-    DOM_VK_TAB: 9,
-    DOM_VK_CLEAR: 12,
-    DOM_VK_RETURN: 13,
-    DOM_VK_ENTER: 14,
-    DOM_VK_SHIFT: 16,
-    DOM_VK_CONTROL: 17,
-    DOM_VK_ALT: 18,
-    DOM_VK_PAUSE: 19,
-    DOM_VK_CAPS_LOCK: 20,
-    DOM_VK_ESCAPE: 27,
-    DOM_VK_SPACE: 32,
-    DOM_VK_PAGE_UP: 33,
-    DOM_VK_PAGE_DOWN: 34,
-    DOM_VK_END: 35,
-    DOM_VK_HOME: 36,
-    DOM_VK_LEFT: 37,
-    DOM_VK_UP: 38,
-    DOM_VK_RIGHT: 39,
-    DOM_VK_DOWN: 40,
-    DOM_VK_PRINTSCREEN: 44,
-    DOM_VK_INSERT: 45,
-    DOM_VK_DELETE: 46,
-    DOM_VK_0: 48,
-    DOM_VK_1: 49,
-    DOM_VK_2: 50,
-    DOM_VK_3: 51,
-    DOM_VK_4: 52,
-    DOM_VK_5: 53,
-    DOM_VK_6: 54,
-    DOM_VK_7: 55,
-    DOM_VK_8: 56,
-    DOM_VK_9: 57,
-    DOM_VK_SEMICOLON: 59,
-    DOM_VK_EQUALS: 61,
-    DOM_VK_A: 65,
-    DOM_VK_B: 66,
-    DOM_VK_C: 67,
-    DOM_VK_D: 68,
-    DOM_VK_E: 69,
-    DOM_VK_F: 70,
-    DOM_VK_G: 71,
-    DOM_VK_H: 72,
-    DOM_VK_I: 73,
-    DOM_VK_J: 74,
-    DOM_VK_K: 75,
-    DOM_VK_L: 76,
-    DOM_VK_M: 77,
-    DOM_VK_N: 78,
-    DOM_VK_O: 79,
-    DOM_VK_P: 80,
-    DOM_VK_Q: 81,
-    DOM_VK_R: 82,
-    DOM_VK_S: 83,
-    DOM_VK_T: 84,
-    DOM_VK_U: 85,
-    DOM_VK_V: 86,
-    DOM_VK_W: 87,
-    DOM_VK_X: 88,
-    DOM_VK_Y: 89,
-    DOM_VK_Z: 90,
-    DOM_VK_CONTEXT_MENU: 93,
-    DOM_VK_NUMPAD0: 96,
-    DOM_VK_NUMPAD1: 97,
-    DOM_VK_NUMPAD2: 98,
-    DOM_VK_NUMPAD3: 99,
-    DOM_VK_NUMPAD4: 100,
-    DOM_VK_NUMPAD5: 101,
-    DOM_VK_NUMPAD6: 102,
-    DOM_VK_NUMPAD7: 103,
-    DOM_VK_NUMPAD8: 104,
-    DOM_VK_NUMPAD9: 105,
-    DOM_VK_MULTIPLY: 106,
-    DOM_VK_ADD: 107,
-    DOM_VK_SEPARATOR: 108,
-    DOM_VK_SUBTRACT: 109,
-    DOM_VK_DECIMAL: 110,
-    DOM_VK_DIVIDE: 111,
-    DOM_VK_F1: 112,
-    DOM_VK_F2: 113,
-    DOM_VK_F3: 114,
-    DOM_VK_F4: 115,
-    DOM_VK_F5: 116,
-    DOM_VK_F6: 117,
-    DOM_VK_F7: 118,
-    DOM_VK_F8: 119,
-    DOM_VK_F9: 120,
-    DOM_VK_F10: 121,
-    DOM_VK_F11: 122,
-    DOM_VK_F12: 123,
-    DOM_VK_F13: 124,
-    DOM_VK_F14: 125,
-    DOM_VK_F15: 126,
-    DOM_VK_F16: 127,
-    DOM_VK_F17: 128,
-    DOM_VK_F18: 129,
-    DOM_VK_F19: 130,
-    DOM_VK_F20: 131,
-    DOM_VK_F21: 132,
-    DOM_VK_F22: 133,
-    DOM_VK_F23: 134,
-    DOM_VK_F24: 135,
-    DOM_VK_NUM_LOCK: 144,
-    DOM_VK_SCROLL_LOCK: 145,
-    DOM_VK_COMMA: 188,
-    DOM_VK_PERIOD: 190,
-    DOM_VK_SLASH: 191,
-    DOM_VK_BACK_QUOTE: 192,
-    DOM_VK_OPEN_BRACKET: 219,
-    DOM_VK_BACK_SLASH: 220,
-    DOM_VK_CLOSE_BRACKET: 221,
-    DOM_VK_QUOTE: 222,
-    DOM_VK_META: 224
-  };
-}
+exports.ArrayType = ArrayType;
 
 
 });
@@ -1798,7 +485,8 @@ define('gcli/l10n', ['require', 'exports', 'module' ], function(require, exports
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
 Components.utils.import('resource://gre/modules/Services.jsm');
 
-XPCOMUtils.defineLazyGetter(this, 'stringBundle', function () {
+var imports = {};
+XPCOMUtils.defineLazyGetter(imports, 'stringBundle', function () {
   return Services.strings.createBundle('chrome://browser/locale/devtools/gcli.properties');
 });
 
@@ -1838,7 +526,7 @@ exports.lookup = function(key) {
 
 
 
-    return stringBundle.GetStringFromName(key);
+    return imports.stringBundle.GetStringFromName(key);
   }
   catch (ex) {
     console.error('Failed to lookup ', key, ex);
@@ -1856,7 +544,7 @@ exports.propertyLookup = Proxy.create({
 
 exports.lookupFormat = function(key, swaps) {
   try {
-    return stringBundle.formatStringFromName(key, swaps, swaps.length);
+    return imports.stringBundle.formatStringFromName(key, swaps, swaps.length);
   }
   catch (ex) {
     console.error('Failed to format ', key, ex);
@@ -2835,369 +1523,6 @@ argument.ArrayArgument = ArrayArgument;
 
 
 
-define('gcli/types/basic', ['require', 'exports', 'module' , 'gcli/l10n', 'gcli/types', 'gcli/types/spell', 'gcli/types/selection', 'gcli/argument'], function(require, exports, module) {
-
-
-var l10n = require('gcli/l10n');
-var types = require('gcli/types');
-var Type = require('gcli/types').Type;
-var Status = require('gcli/types').Status;
-var Conversion = require('gcli/types').Conversion;
-var ArrayConversion = require('gcli/types').ArrayConversion;
-var Speller = require('gcli/types/spell').Speller;
-var SelectionType = require('gcli/types/selection').SelectionType;
-
-var Argument = require('gcli/argument').Argument;
-var TrueNamedArgument = require('gcli/argument').TrueNamedArgument;
-var FalseNamedArgument = require('gcli/argument').FalseNamedArgument;
-var ArrayArgument = require('gcli/argument').ArrayArgument;
-
-
-
-
-
-exports.startup = function() {
-  types.registerType(StringType);
-  types.registerType(NumberType);
-  types.registerType(BooleanType);
-  types.registerType(BlankType);
-  types.registerType(DeferredType);
-  types.registerType(ArrayType);
-};
-
-exports.shutdown = function() {
-  types.unregisterType(StringType);
-  types.unregisterType(NumberType);
-  types.unregisterType(BooleanType);
-  types.unregisterType(BlankType);
-  types.unregisterType(DeferredType);
-  types.unregisterType(ArrayType);
-};
-
-
-
-
-
-function StringType(typeSpec) {
-  if (Object.keys(typeSpec).length > 0) {
-    throw new Error('StringType can not be customized');
-  }
-}
-
-StringType.prototype = Object.create(Type.prototype);
-
-StringType.prototype.stringify = function(value) {
-  if (value == null) {
-    return '';
-  }
-  return value.toString();
-};
-
-StringType.prototype.parse = function(arg) {
-  if (arg.text == null || arg.text === '') {
-    return new Conversion(undefined, arg, Status.INCOMPLETE, '');
-  }
-  return new Conversion(arg.text, arg);
-};
-
-StringType.prototype.name = 'string';
-
-exports.StringType = StringType;
-
-
-
-
-
-function NumberType(typeSpec) {
-  if (typeSpec) {
-    this._min = typeSpec.min;
-    this._max = typeSpec.max;
-    this._step = typeSpec.step || 1;
-  }
-  else {
-    this._step = 1;
-  }
-}
-
-NumberType.prototype = Object.create(Type.prototype);
-
-NumberType.prototype.stringify = function(value) {
-  if (value == null) {
-    return '';
-  }
-  return '' + value;
-};
-
-NumberType.prototype.getMin = function() {
-  if (this._min) {
-    if (typeof this._min === 'function') {
-      return this._min();
-    }
-    if (typeof this._min === 'number') {
-      return this._min;
-    }
-  }
-  return undefined;
-};
-
-NumberType.prototype.getMax = function() {
-  if (this._max) {
-    if (typeof this._max === 'function') {
-      return this._max();
-    }
-    if (typeof this._max === 'number') {
-      return this._max;
-    }
-  }
-  return undefined;
-};
-
-NumberType.prototype.parse = function(arg) {
-  if (arg.text.replace(/\s/g, '').length === 0) {
-    return new Conversion(undefined, arg, Status.INCOMPLETE, '');
-  }
-
-  var value = parseInt(arg.text, 10);
-  if (isNaN(value)) {
-    return new Conversion(undefined, arg, Status.ERROR,
-        l10n.lookupFormat('typesNumberNan', [ arg.text ]));
-  }
-
-  var max = this.getMax();
-  if (max != null && value > max) {
-    return new Conversion(undefined, arg, Status.ERROR,
-        l10n.lookupFormat('typesNumberMax', [ value, max ]));
-  }
-
-  var min = this.getMin();
-  if (min != null && value < min) {
-    return new Conversion(undefined, arg, Status.ERROR,
-        l10n.lookupFormat('typesNumberMin', [ value, min ]));
-  }
-
-  return new Conversion(value, arg);
-};
-
-NumberType.prototype.decrement = function(value) {
-  if (typeof value !== 'number' || isNaN(value)) {
-    return this.getMax() || 1;
-  }
-  var newValue = value - this._step;
-  
-  newValue = Math.ceil(newValue / this._step) * this._step;
-  return this._boundsCheck(newValue);
-};
-
-NumberType.prototype.increment = function(value) {
-  if (typeof value !== 'number' || isNaN(value)) {
-    var min = this.getMin();
-    return min != null ? min : 0;
-  }
-  var newValue = value + this._step;
-  
-  newValue = Math.floor(newValue / this._step) * this._step;
-  if (this.getMax() == null) {
-    return newValue;
-  }
-  return this._boundsCheck(newValue);
-};
-
-
-
-
-
-
-NumberType.prototype._boundsCheck = function(value) {
-  var min = this.getMin();
-  if (min != null && value < min) {
-    return min;
-  }
-  var max = this.getMax();
-  if (max != null && value > max) {
-    return max;
-  }
-  return value;
-};
-
-NumberType.prototype.name = 'number';
-
-exports.NumberType = NumberType;
-
-
-
-
-
-function BooleanType(typeSpec) {
-  if (Object.keys(typeSpec).length > 0) {
-    throw new Error('BooleanType can not be customized');
-  }
-}
-
-BooleanType.prototype = Object.create(SelectionType.prototype);
-
-BooleanType.prototype.lookup = [
-  { name: 'false', value: false },
-  { name: 'true', value: true }
-];
-
-BooleanType.prototype.parse = function(arg) {
-  if (arg instanceof TrueNamedArgument) {
-    return new Conversion(true, arg);
-  }
-  if (arg instanceof FalseNamedArgument) {
-    return new Conversion(false, arg);
-  }
-  return SelectionType.prototype.parse.call(this, arg);
-};
-
-BooleanType.prototype.stringify = function(value) {
-  return '' + value;
-};
-
-BooleanType.prototype.getBlank = function() {
-  return new Conversion(false, new Argument(), Status.VALID, '', this.lookup);
-};
-
-BooleanType.prototype.name = 'boolean';
-
-exports.BooleanType = BooleanType;
-
-
-
-
-
-function DeferredType(typeSpec) {
-  if (typeof typeSpec.defer !== 'function') {
-    throw new Error('Instances of DeferredType need typeSpec.defer to be a function that returns a type');
-  }
-  Object.keys(typeSpec).forEach(function(key) {
-    this[key] = typeSpec[key];
-  }, this);
-}
-
-DeferredType.prototype = Object.create(Type.prototype);
-
-DeferredType.prototype.stringify = function(value) {
-  return this.defer().stringify(value);
-};
-
-DeferredType.prototype.parse = function(arg) {
-  return this.defer().parse(arg);
-};
-
-DeferredType.prototype.decrement = function(value) {
-  var deferred = this.defer();
-  return (deferred.decrement ? deferred.decrement(value) : undefined);
-};
-
-DeferredType.prototype.increment = function(value) {
-  var deferred = this.defer();
-  return (deferred.increment ? deferred.increment(value) : undefined);
-};
-
-DeferredType.prototype.increment = function(value) {
-  var deferred = this.defer();
-  return (deferred.increment ? deferred.increment(value) : undefined);
-};
-
-DeferredType.prototype.getType = function() {
-  return this.defer();
-};
-
-Object.defineProperty(DeferredType.prototype, 'isImportant', {
-  get: function() {
-    return this.defer().isImportant;
-  },
-  enumerable: true
-});
-
-DeferredType.prototype.name = 'deferred';
-
-exports.DeferredType = DeferredType;
-
-
-
-
-
-
-function BlankType(typeSpec) {
-  if (Object.keys(typeSpec).length > 0) {
-    throw new Error('BlankType can not be customized');
-  }
-}
-
-BlankType.prototype = Object.create(Type.prototype);
-
-BlankType.prototype.stringify = function(value) {
-  return '';
-};
-
-BlankType.prototype.parse = function(arg) {
-  return new Conversion(undefined, arg);
-};
-
-BlankType.prototype.name = 'blank';
-
-exports.BlankType = BlankType;
-
-
-
-
-
-function ArrayType(typeSpec) {
-  if (!typeSpec.subtype) {
-    console.error('Array.typeSpec is missing subtype. Assuming string.' +
-        JSON.stringify(typeSpec));
-    typeSpec.subtype = 'string';
-  }
-
-  Object.keys(typeSpec).forEach(function(key) {
-    this[key] = typeSpec[key];
-  }, this);
-  this.subtype = types.getType(this.subtype);
-}
-
-ArrayType.prototype = Object.create(Type.prototype);
-
-ArrayType.prototype.stringify = function(values) {
-  
-  return values.join(' ');
-};
-
-ArrayType.prototype.parse = function(arg) {
-  if (arg instanceof ArrayArgument) {
-    var conversions = arg.getArguments().map(function(subArg) {
-      var conversion = this.subtype.parse(subArg);
-      
-      
-      
-      subArg.conversion = conversion;
-      return conversion;
-    }, this);
-    return new ArrayConversion(conversions, arg);
-  }
-  else {
-    console.error('non ArrayArgument to ArrayType.parse', arg);
-    throw new Error('non ArrayArgument to ArrayType.parse');
-  }
-};
-
-ArrayType.prototype.getBlank = function(values) {
-  return new ArrayConversion([], new ArrayArgument());
-};
-
-ArrayType.prototype.name = 'array';
-
-exports.ArrayType = ArrayType;
-
-
-});
-
-
-
-
-
-
 
 
 
@@ -3717,6 +2042,1042 @@ CommandType.prototype.parse = function(arg) {
 
   return new Conversion(undefined, arg, Status.INCOMPLETE, '', predictFunc);
 };
+
+
+});
+
+
+
+
+
+
+define('gcli/canon', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10n', 'gcli/types', 'gcli/types/basic'], function(require, exports, module) {
+var canon = exports;
+
+
+var util = require('gcli/util');
+var l10n = require('gcli/l10n');
+
+var types = require('gcli/types');
+var Status = require('gcli/types').Status;
+var BooleanType = require('gcli/types/basic').BooleanType;
+
+
+
+
+
+
+
+
+function lookup(data, onUndefined) {
+  if (data == null) {
+    if (onUndefined) {
+      return l10n.lookup(onUndefined);
+    }
+
+    return data;
+  }
+
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  if (typeof data === 'object') {
+    if (data.key) {
+      return l10n.lookup(data.key);
+    }
+
+    var locales = l10n.getPreferredLocales();
+    var translated;
+    locales.some(function(locale) {
+      translated = data[locale];
+      return translated != null;
+    });
+    if (translated != null) {
+      return translated;
+    }
+
+    console.error('Can\'t find locale in descriptions: ' +
+            'locales=' + JSON.stringify(locales) + ', ' +
+            'description=' + JSON.stringify(data));
+    return '(No description)';
+  }
+
+  return l10n.lookup(onUndefined);
+}
+
+
+
+
+
+function Command(commandSpec) {
+  Object.keys(commandSpec).forEach(function(key) {
+    this[key] = commandSpec[key];
+  }, this);
+
+  if (!this.name) {
+    throw new Error('All registered commands must have a name');
+  }
+
+  if (this.params == null) {
+    this.params = [];
+  }
+  if (!Array.isArray(this.params)) {
+    throw new Error('command.params must be an array in ' + this.name);
+  }
+
+  this.description = 'description' in this ? this.description : undefined;
+  this.description = lookup(this.description, 'canonDescNone');
+  this.manual = 'manual' in this ? this.manual : undefined;
+  this.manual = lookup(this.manual);
+
+  
+  
+  var paramSpecs = this.params;
+  this.params = [];
+
+  
+  
+  
+  
+  
+  var usingGroups = false;
+
+  if (this.returnType == null) {
+    this.returnType = 'string';
+  }
+
+  
+  
+  
+  
+  paramSpecs.forEach(function(spec) {
+    if (!spec.group) {
+      if (usingGroups) {
+        console.error('Parameters can\'t come after param groups.' +
+            ' Ignoring ' + this.name + '/' + spec.name);
+      }
+      else {
+        var param = new Parameter(spec, this, null);
+        this.params.push(param);
+      }
+    }
+    else {
+      spec.params.forEach(function(ispec) {
+        var param = new Parameter(ispec, this, spec.group);
+        this.params.push(param);
+      }, this);
+
+      usingGroups = true;
+    }
+  }, this);
+}
+
+canon.Command = Command;
+
+
+
+
+
+
+function Parameter(paramSpec, command, groupName) {
+  this.command = command || { name: 'unnamed' };
+  this.paramSpec = paramSpec;
+  this.name = this.paramSpec.name;
+  this.type = this.paramSpec.type;
+  this.groupName = groupName;
+  this.defaultValue = this.paramSpec.defaultValue;
+
+  if (!this.name) {
+    throw new Error('In ' + this.command.name +
+      ': all params must have a name');
+  }
+
+  var typeSpec = this.type;
+  this.type = types.getType(typeSpec);
+  if (this.type == null) {
+    console.error('Known types: ' + types.getTypeNames().join(', '));
+    throw new Error('In ' + this.command.name + '/' + this.name +
+      ': can\'t find type for: ' + JSON.stringify(typeSpec));
+  }
+
+  
+  
+  if (this.type instanceof BooleanType) {
+    if (this.defaultValue !== undefined) {
+      console.error('In ' + this.command.name + '/' + this.name +
+          ': boolean parameters can not have a defaultValue.' +
+          ' Ignoring');
+    }
+    this.defaultValue = false;
+  }
+
+  
+  
+  
+  
+  if (this.defaultValue != null) {
+    try {
+      var defaultText = this.type.stringify(this.defaultValue);
+      var defaultConversion = this.type.parseString(defaultText);
+      if (defaultConversion.getStatus() !== Status.VALID) {
+        console.error('In ' + this.command.name + '/' + this.name +
+            ': Error round tripping defaultValue. status = ' +
+            defaultConversion.getStatus());
+      }
+    }
+    catch (ex) {
+      console.error('In ' + this.command.name + '/' + this.name +
+        ': ' + ex);
+    }
+  }
+
+  
+  
+  if (this.defaultValue === undefined) {
+    this.defaultValue = this.type.getBlank().value;
+  }
+}
+
+
+
+
+
+
+Parameter.prototype.isKnownAs = function(name) {
+  if (name === '--' + this.name) {
+    return true;
+  }
+  return false;
+};
+
+
+
+
+
+
+Parameter.prototype.getBlank = function() {
+  var conversion;
+
+  if (this.type.getBlank) {
+    return this.type.getBlank();
+  }
+
+  return this.type.parseString('');
+};
+
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'manual', {
+  get: function() {
+    return lookup(this.paramSpec.manual || undefined);
+  },
+  enumerable: true
+});
+
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'description', {
+  get: function() {
+    return lookup(this.paramSpec.description || undefined, 'canonDescNone');
+  },
+  enumerable: true
+});
+
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'isDataRequired', {
+  get: function() {
+    return this.defaultValue === undefined;
+  },
+  enumerable: true
+});
+
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'isPositionalAllowed', {
+  get: function() {
+    return this.groupName == null;
+  },
+  enumerable: true
+});
+
+canon.Parameter = Parameter;
+
+
+
+
+
+var commands = {};
+
+
+
+
+var commandNames = [];
+
+
+
+
+var commandSpecs = {};
+
+
+
+
+
+
+
+
+canon.addCommand = function addCommand(commandSpec) {
+  if (commands[commandSpec.name] != null) {
+    
+    delete commands[commandSpec.name];
+    commandNames = commandNames.filter(function(test) {
+      return test !== commandSpec.name;
+    });
+  }
+
+  var command = new Command(commandSpec);
+  commands[commandSpec.name] = command;
+  commandNames.push(commandSpec.name);
+  commandNames.sort();
+
+  commandSpecs[commandSpec.name] = commandSpec;
+
+  canon.onCanonChange();
+  return command;
+};
+
+
+
+
+
+canon.removeCommand = function removeCommand(commandOrName) {
+  var name = typeof commandOrName === 'string' ?
+          commandOrName :
+          commandOrName.name;
+
+  
+  delete commands[name];
+  delete commandSpecs[name];
+  commandNames = commandNames.filter(function(test) {
+    return test !== name;
+  });
+
+  canon.onCanonChange();
+};
+
+
+
+
+
+canon.getCommand = function getCommand(name) {
+  
+  return commands[name] || undefined;
+};
+
+
+
+
+canon.getCommands = function getCommands() {
+  
+  return Object.keys(commands).map(function(name) {
+    return commands[name];
+  }, this);
+};
+
+
+
+
+canon.getCommandNames = function getCommandNames() {
+  return commandNames.slice(0);
+};
+
+
+
+
+
+canon.getCommandSpecs = function getCommandSpecs() {
+  return commandSpecs;
+};
+
+
+
+
+canon.onCanonChange = util.createEvent('canon.onCanonChange');
+
+
+
+
+
+
+
+
+
+
+
+function CommandOutputManager() {
+  this.onOutput = util.createEvent('CommandOutputManager.onOutput');
+}
+
+canon.CommandOutputManager = CommandOutputManager;
+
+
+
+
+
+canon.commandOutputManager = new CommandOutputManager();
+
+
+});
+
+
+
+
+
+
+define('gcli/util', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
+
+
+
+
+
+
+var eventDebug = false;
+
+
+
+
+function nameFunction(handler) {
+  var scope = handler.scope ? handler.scope.constructor.name + '.' : '';
+  var name = handler.func.name;
+  if (name) {
+    return scope + name;
+  }
+  for (var prop in handler.scope) {
+    if (handler.scope[prop] === handler.func) {
+      return scope + prop;
+    }
+  }
+  return scope + handler.func;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exports.createEvent = function(name) {
+  var handlers = [];
+  var holdFire = false;
+  var heldEvents = [];
+  var eventCombiner = undefined;
+
+  
+
+
+
+  var event = function(ev) {
+    if (holdFire) {
+      heldEvents.push(ev);
+      if (eventDebug) {
+        console.log('Held fire: ' + name, ev);
+      }
+      return;
+    }
+
+    if (eventDebug) {
+      console.group('Fire: ' + name + ' to ' + handlers.length + ' listeners', ev);
+    }
+
+    
+    
+    for (var i = 0; i < handlers.length; i++) {
+      var handler = handlers[i];
+      if (eventDebug) {
+        console.log(nameFunction(handler));
+      }
+      handler.func.call(handler.scope, ev);
+    }
+
+    if (eventDebug) {
+      console.groupEnd();
+    }
+  };
+
+  
+
+
+
+
+  event.add = function(func, scope) {
+    handlers.push({ func: func, scope: scope });
+  };
+
+  
+
+
+
+
+
+  event.remove = function(func, scope) {
+    var found = false;
+    handlers = handlers.filter(function(test) {
+      var noMatch = (test.func !== func && test.scope !== scope);
+      if (!noMatch) {
+        found = true;
+      }
+      return noMatch;
+    });
+    if (!found) {
+      console.warn('Failed to remove handler from ' + name);
+    }
+  };
+
+  
+
+
+
+  event.removeAll = function() {
+    handlers = [];
+  };
+
+  
+
+
+
+  event.holdFire = function() {
+    if (eventDebug) {
+      console.group('Holding fire: ' + name);
+    }
+
+    holdFire = true;
+  };
+
+  
+
+
+
+
+
+
+  event.resumeFire = function() {
+    if (eventDebug) {
+      console.groupEnd('Resume fire: ' + name);
+    }
+
+    if (holdFire !== true) {
+      throw new Error('Event not held: ' + name);
+    }
+
+    holdFire = false;
+    if (heldEvents.length === 0) {
+      return;
+    }
+
+    if (heldEvents.length === 1) {
+      event(heldEvents[0]);
+    }
+    else {
+      var first = heldEvents[0];
+      var last = heldEvents[heldEvents.length - 1];
+      if (eventCombiner) {
+        event(eventCombiner(first, last, heldEvents));
+      }
+      else {
+        event(last);
+      }
+    }
+
+    heldEvents = [];
+  };
+
+  
+
+
+
+
+
+
+
+
+
+  Object.defineProperty(event, 'eventCombiner', {
+    set: function(newEventCombiner) {
+      if (typeof newEventCombiner !== 'function') {
+        throw new Error('eventCombiner is not a function');
+      }
+      eventCombiner = newEventCombiner;
+    },
+
+    enumerable: true
+  });
+
+  return event;
+};
+
+
+
+
+
+
+
+exports.NS_XHTML = 'http://www.w3.org/1999/xhtml';
+
+
+
+
+exports.NS_XUL = 'http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul';
+
+
+
+
+
+
+
+
+
+
+
+
+exports.createElement = function(doc, tag) {
+  if (exports.isXmlDocument(doc)) {
+    return doc.createElementNS(exports.NS_XHTML, tag);
+  }
+  else {
+    return doc.createElement(tag);
+  }
+};
+
+
+
+
+
+exports.clearElement = function(elem) {
+  while (elem.hasChildNodes()) {
+    elem.removeChild(elem.firstChild);
+  }
+};
+
+var isAllWhitespace = /^\s*$/;
+
+
+
+
+
+
+
+
+
+
+exports.removeWhitespace = function(elem, deep) {
+  var i = 0;
+  while (i < elem.childNodes.length) {
+    var child = elem.childNodes.item(i);
+    if (child.nodeType === 3  &&
+        isAllWhitespace.test(child.textContent)) {
+      elem.removeChild(child);
+    }
+    else {
+      if (deep && child.nodeType === 1 ) {
+        exports.removeWhitespace(child, deep);
+      }
+      i++;
+    }
+  }
+};
+
+
+
+
+
+
+
+
+
+exports.importCss = function(cssText, doc, id) {
+  if (!cssText) {
+    return undefined;
+  }
+
+  doc = doc || document;
+
+  if (!id) {
+    id = 'hash-' + hash(cssText);
+  }
+
+  var found = doc.getElementById(id);
+  if (found) {
+    if (found.tagName.toLowerCase() !== 'style') {
+      console.error('Warning: importCss passed id=' + id +
+              ', but that pre-exists (and isn\'t a style tag)');
+    }
+    return found;
+  }
+
+  var style = exports.createElement(doc, 'style');
+  style.id = id;
+  style.appendChild(doc.createTextNode(cssText));
+
+  var head = doc.getElementsByTagName('head')[0] || doc.documentElement;
+  head.appendChild(style);
+
+  return style;
+};
+
+
+
+
+
+
+
+function hash(str) {
+  var hash = 0;
+  if (str.length == 0) {
+    return hash;
+  }
+  for (var i = 0; i < str.length; i++) {
+    var char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; 
+  }
+  return hash;
+}
+
+
+
+
+
+exports.setContents = function(elem, contents) {
+  if (typeof HTMLElement !== 'undefined' && contents instanceof HTMLElement) {
+    exports.clearElement(elem);
+    elem.appendChild(contents);
+    return;
+  }
+
+  if (exports.isXmlDocument(elem.ownerDocument)) {
+    try {
+      var ns = elem.ownerDocument.documentElement.namespaceURI;
+      if (!ns) {
+        ns = exports.NS_XHTML;
+      }
+      exports.clearElement(elem);
+      contents = '<div xmlns="' + ns + '">' + contents + '</div>';
+      var range = elem.ownerDocument.createRange();
+      var child = range.createContextualFragment(contents).firstChild;
+      while (child.hasChildNodes()) {
+        elem.appendChild(child.firstChild);
+      }
+    }
+    catch (ex) {
+      console.error('Bad XHTML', ex);
+      console.trace();
+      throw ex;
+    }
+  }
+  else {
+    elem.innerHTML = contents;
+  }
+};
+
+
+
+
+
+exports.toDom = function(document, html) {
+  var div = exports.createElement(document, 'div');
+  exports.setContents(div, html);
+  return div.children[0];
+};
+
+
+
+
+
+
+
+
+exports.isXmlDocument = function(doc) {
+  doc = doc || document;
+  
+  if (doc.contentType && doc.contentType != 'text/html') {
+    return true;
+  }
+  
+  if (doc.xmlVersion != null) {
+    return true;
+  }
+  return false;
+};
+
+
+
+
+
+function positionInNodeList(element, nodeList) {
+  for (var i = 0; i < nodeList.length; i++) {
+    if (element === nodeList[i]) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+
+
+
+
+
+exports.findCssSelector = function(ele) {
+  var document = ele.ownerDocument;
+  if (ele.id && document.getElementById(ele.id) === ele) {
+    return '#' + ele.id;
+  }
+
+  
+  var tagName = ele.tagName.toLowerCase();
+  if (tagName === 'html') {
+    return 'html';
+  }
+  if (tagName === 'head') {
+    return 'head';
+  }
+  if (tagName === 'body') {
+    return 'body';
+  }
+
+  if (ele.parentNode == null) {
+    console.log('danger: ' + tagName);
+  }
+
+  
+  var selector, index, matches;
+  if (ele.classList.length > 0) {
+    for (var i = 0; i < ele.classList.length; i++) {
+      
+      selector = '.' + ele.classList.item(i);
+      matches = document.querySelectorAll(selector);
+      if (matches.length === 1) {
+        return selector;
+      }
+      
+      selector = tagName + selector;
+      matches = document.querySelectorAll(selector);
+      if (matches.length === 1) {
+        return selector;
+      }
+      
+      index = positionInNodeList(ele, ele.parentNode.children) + 1;
+      selector = selector + ':nth-child(' + index + ')';
+      matches = document.querySelectorAll(selector);
+      if (matches.length === 1) {
+        return selector;
+      }
+    }
+  }
+
+  
+  index = positionInNodeList(ele, ele.parentNode.children) + 1;
+  selector = exports.findCssSelector(ele.parentNode) + ' > ' +
+          tagName + ':nth-child(' + index + ')';
+
+  return selector;
+};
+
+
+
+
+exports.createUrlLookup = function(callingModule) {
+  return function imageUrl(path) {
+    try {
+      return require('text!gcli/ui/' + path);
+    }
+    catch (ex) {
+      
+      
+      
+      if (callingModule.filename) {
+        return callingModule.filename + path;
+      }
+
+      var filename = callingModule.id.split('/').pop() + '.js';
+
+      if (callingModule.uri.substr(-filename.length) !== filename) {
+        console.error('Can\'t work out path from module.uri/module.id');
+        return path;
+      }
+
+      if (callingModule.uri) {
+        var end = callingModule.uri.length - filename.length - 1;
+        return callingModule.uri.substr(0, end) + '/' + path;
+      }
+
+      return filename + '/' + path;
+    }
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+if (typeof 'KeyEvent' === 'undefined') {
+  exports.KeyEvent = this.KeyEvent;
+}
+else {
+  exports.KeyEvent = {
+    DOM_VK_CANCEL: 3,
+    DOM_VK_HELP: 6,
+    DOM_VK_BACK_SPACE: 8,
+    DOM_VK_TAB: 9,
+    DOM_VK_CLEAR: 12,
+    DOM_VK_RETURN: 13,
+    DOM_VK_ENTER: 14,
+    DOM_VK_SHIFT: 16,
+    DOM_VK_CONTROL: 17,
+    DOM_VK_ALT: 18,
+    DOM_VK_PAUSE: 19,
+    DOM_VK_CAPS_LOCK: 20,
+    DOM_VK_ESCAPE: 27,
+    DOM_VK_SPACE: 32,
+    DOM_VK_PAGE_UP: 33,
+    DOM_VK_PAGE_DOWN: 34,
+    DOM_VK_END: 35,
+    DOM_VK_HOME: 36,
+    DOM_VK_LEFT: 37,
+    DOM_VK_UP: 38,
+    DOM_VK_RIGHT: 39,
+    DOM_VK_DOWN: 40,
+    DOM_VK_PRINTSCREEN: 44,
+    DOM_VK_INSERT: 45,
+    DOM_VK_DELETE: 46,
+    DOM_VK_0: 48,
+    DOM_VK_1: 49,
+    DOM_VK_2: 50,
+    DOM_VK_3: 51,
+    DOM_VK_4: 52,
+    DOM_VK_5: 53,
+    DOM_VK_6: 54,
+    DOM_VK_7: 55,
+    DOM_VK_8: 56,
+    DOM_VK_9: 57,
+    DOM_VK_SEMICOLON: 59,
+    DOM_VK_EQUALS: 61,
+    DOM_VK_A: 65,
+    DOM_VK_B: 66,
+    DOM_VK_C: 67,
+    DOM_VK_D: 68,
+    DOM_VK_E: 69,
+    DOM_VK_F: 70,
+    DOM_VK_G: 71,
+    DOM_VK_H: 72,
+    DOM_VK_I: 73,
+    DOM_VK_J: 74,
+    DOM_VK_K: 75,
+    DOM_VK_L: 76,
+    DOM_VK_M: 77,
+    DOM_VK_N: 78,
+    DOM_VK_O: 79,
+    DOM_VK_P: 80,
+    DOM_VK_Q: 81,
+    DOM_VK_R: 82,
+    DOM_VK_S: 83,
+    DOM_VK_T: 84,
+    DOM_VK_U: 85,
+    DOM_VK_V: 86,
+    DOM_VK_W: 87,
+    DOM_VK_X: 88,
+    DOM_VK_Y: 89,
+    DOM_VK_Z: 90,
+    DOM_VK_CONTEXT_MENU: 93,
+    DOM_VK_NUMPAD0: 96,
+    DOM_VK_NUMPAD1: 97,
+    DOM_VK_NUMPAD2: 98,
+    DOM_VK_NUMPAD3: 99,
+    DOM_VK_NUMPAD4: 100,
+    DOM_VK_NUMPAD5: 101,
+    DOM_VK_NUMPAD6: 102,
+    DOM_VK_NUMPAD7: 103,
+    DOM_VK_NUMPAD8: 104,
+    DOM_VK_NUMPAD9: 105,
+    DOM_VK_MULTIPLY: 106,
+    DOM_VK_ADD: 107,
+    DOM_VK_SEPARATOR: 108,
+    DOM_VK_SUBTRACT: 109,
+    DOM_VK_DECIMAL: 110,
+    DOM_VK_DIVIDE: 111,
+    DOM_VK_F1: 112,
+    DOM_VK_F2: 113,
+    DOM_VK_F3: 114,
+    DOM_VK_F4: 115,
+    DOM_VK_F5: 116,
+    DOM_VK_F6: 117,
+    DOM_VK_F7: 118,
+    DOM_VK_F8: 119,
+    DOM_VK_F9: 120,
+    DOM_VK_F10: 121,
+    DOM_VK_F11: 122,
+    DOM_VK_F12: 123,
+    DOM_VK_F13: 124,
+    DOM_VK_F14: 125,
+    DOM_VK_F15: 126,
+    DOM_VK_F16: 127,
+    DOM_VK_F17: 128,
+    DOM_VK_F18: 129,
+    DOM_VK_F19: 130,
+    DOM_VK_F20: 131,
+    DOM_VK_F21: 132,
+    DOM_VK_F22: 133,
+    DOM_VK_F23: 134,
+    DOM_VK_F24: 135,
+    DOM_VK_NUM_LOCK: 144,
+    DOM_VK_SCROLL_LOCK: 145,
+    DOM_VK_COMMA: 188,
+    DOM_VK_PERIOD: 190,
+    DOM_VK_SLASH: 191,
+    DOM_VK_BACK_QUOTE: 192,
+    DOM_VK_OPEN_BRACKET: 219,
+    DOM_VK_BACK_SLASH: 220,
+    DOM_VK_CLOSE_BRACKET: 221,
+    DOM_VK_QUOTE: 222,
+    DOM_VK_META: 224
+  };
+}
 
 
 });
@@ -4395,11 +3756,6 @@ NodeType.prototype.name = 'node';
 
 define('gcli/host', ['require', 'exports', 'module' ], function(require, exports, module) {
 
-  XPCOMUtils.defineLazyGetter(this, "Highlighter", function() {
-    var tmp = {};
-    Components.utils.import("resource:///modules/highlighter.jsm", tmp);
-    return tmp.Highlighter;
-  });
 
   
 
@@ -4414,6 +3770,11 @@ define('gcli/host', ['require', 'exports', 'module' ], function(require, exports
   exports.flashNodes = function(nodes, match) {
     
     
+
+
+
+
+
 
 
 
@@ -10059,7 +9420,4 @@ define("text!gcli/ui/tooltip.html", [], "\n" +
 
 
 
-
-
-
-var gcli = require("gcli/index");
+const gcli = require('gcli/index');
