@@ -35,7 +35,11 @@ var PromptHelper = {
     
     closeDialog : function(confirm, id) {
       let dialog = document.getElementById(id);
-      dialog.arguments.result = confirm;
+      if (typeof confirm == "boolean" && dialog.arguments && "defaultButton" in dialog.arguments)
+        
+        dialog.arguments.result = confirm ? dialog.arguments.defaultButton : 1;
+      else
+        dialog.arguments.result = confirm;
       dialog.close();
     },
     
