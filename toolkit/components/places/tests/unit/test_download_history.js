@@ -7,38 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
               getService(Ci.nsINavHistoryService);
 let bh = histsvc.QueryInterface(Ci.nsIBrowserHistory);
@@ -159,4 +127,93 @@ function run_test() {
   }
 
   os.removeObserver(observer, NS_LINK_VISITED_EVENT_TOPIC);
+
+  
+  test_dh_details();
+}
+
+
+
+
+
+
+function test_dh_details()
+{
+  do_test_pending();
+
+  const SOURCE_URI = uri("http://example.com/test_download_history_details");
+  const DEST_FILE_NAME = "dest.txt";
+
+  
+  let destFileUri = NetUtil.newURI(FileUtils.getFile("TmpD", [DEST_FILE_NAME]));
+
+  let titleSet = false;
+  let destinationFileUriSet = false;
+  let destinationFileNameSet = false;
+
+  function checkFinished()
+  {
+    if (titleSet && destinationFileUriSet && destinationFileNameSet) {
+      PlacesUtils.annotations.removeObserver(annoObserver);
+      PlacesUtils.history.removeObserver(historyObserver);
+
+      
+      bh.removeAllPages();
+      do_test_finished();
+    }
+  };
+
+  let annoObserver = {
+    onPageAnnotationSet: function AO_onPageAnnotationSet(aPage, aName)
+    {
+      if (aPage.equals(SOURCE_URI)) {
+        let value = PlacesUtils.annotations.getPageAnnotation(aPage, aName);
+        switch (aName)
+        {
+          case "downloads/destinationFileURI":
+            destinationFileUriSet = true;
+            do_check_eq(value, destFileUri.spec);
+            break;
+          case "downloads/destinationFileName":
+            destinationFileNameSet = true;
+            do_check_eq(value, DEST_FILE_NAME);
+            break;
+        }
+        checkFinished();
+      }
+    },
+    onItemAnnotationSet: function() {},
+    onPageAnnotationRemoved: function() {},
+    onItemAnnotationRemoved: function() {}
+  }
+
+  let historyObserver = {
+    onBeginUpdateBatch: function() {},
+    onEndUpdateBatch: function() {},
+    onVisit: function() {},
+    onTitleChanged: function HO_onTitleChanged(aURI, aPageTitle)
+    {
+      if (aURI.equals(SOURCE_URI)) {
+        titleSet = true;
+        do_check_eq(aPageTitle, DEST_FILE_NAME);
+        checkFinished();
+      }
+    },
+    onBeforeDeleteURI: function() {},
+    onDeleteURI: function() {},
+    onClearHistory: function() {},
+    onPageChanged: function() {},
+    onDeleteVisits: function() {}   
+  };
+
+  PlacesUtils.annotations.addObserver(annoObserver, false);
+  PlacesUtils.history.addObserver(historyObserver, false);
+
+  
+  dh.addDownload(SOURCE_URI, null, Date.now() * 1000);
+  dh.addDownload(SOURCE_URI, null, Date.now() * 1000, null);
+  dh.addDownload(SOURCE_URI, null, Date.now() * 1000, uri("http://localhost/"));
+
+  
+  dh.addDownload(SOURCE_URI, null, Date.now() * 1000, destFileUri);
 }
