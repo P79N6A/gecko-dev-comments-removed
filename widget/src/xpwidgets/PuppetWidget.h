@@ -140,6 +140,8 @@ public:
   
   virtual void* GetNativeData(PRUint32 aDataType)
   { return nsnull; }
+  NS_IMETHOD ReparentNativeWidget(nsIWidget* aNewParent)
+  { return NS_ERROR_UNEXPECTED; }
 
   
   NS_IMETHOD SetTitle(const nsAString& aTitle)
