@@ -6787,8 +6787,12 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             callop = false;             
             break;
         }
-        if (!callop && js_Emit1(cx, cg, JSOP_PUSH) < 0)
-            return JS_FALSE;
+        if (!callop) {
+            if (js_Emit1(cx, cg, JSOP_PUSH) < 0)
+                return JS_FALSE;
+            if (js_Emit1(cx, cg, JSOP_NOTEARG) < 0)
+                return JS_FALSE;
+        }
 
         
         off = top;
@@ -6802,6 +6806,8 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         cg->flags &= ~TCF_IN_FOR_INIT;
         for (pn3 = pn2->pn_next; pn3; pn3 = pn3->pn_next) {
             if (!js_EmitTree(cx, cg, pn3))
+                return JS_FALSE;
+            if (js_Emit1(cx, cg, JSOP_NOTEARG) < 0)
                 return JS_FALSE;
         }
         cg->flags |= oldflags & TCF_IN_FOR_INIT;
