@@ -78,7 +78,8 @@ pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/%
 
 
 
-pref("app.update.timerMinimumDelay", 120);
+
+pref("app.update.timer", 600000);
 
 
 
@@ -345,10 +346,6 @@ pref("browser.search.update.log", false);
 
 
 pref("browser.search.update.interval", 21600);
-
-
-pref("browser.microsummary.enabled", true);
-pref("browser.microsummary.updateGenerators", true);
 
 
 pref("browser.search.suggest.enabled", true);
