@@ -470,7 +470,7 @@ nsWaveStateMachine::Seek(float aTime)
   } else if (mState != STATE_SEEKING) {
     if (mState == STATE_ENDED) {
       mNextState = mPaused ? STATE_PAUSED : STATE_PLAYING;
-    } else {
+    } else if (mState != STATE_BUFFERING) {
       mNextState = mState;
     }
     ChangeState(STATE_SEEKING);
