@@ -3369,9 +3369,6 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
         innerMostWidget = this;
 
     
-    dragSessionGTK->TargetSetLastContext(aWidget, aDragContext, aTime);
-
-    
     
     if (mDragLeaveTimer) {
         mDragLeaveTimer->Cancel();
@@ -3380,6 +3377,8 @@ nsWindow::OnDragMotionEvent(GtkWidget *aWidget,
 
     CheckNeedDragLeave(innerMostWidget, dragService, aDragContext, retx, rety);
 
+    
+    dragSessionGTK->TargetSetLastContext(aWidget, aDragContext, aTime);
     
     dragSessionGTK->TargetStartDragMotion();
 
@@ -3458,9 +3457,6 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
         innerMostWidget = this;
 
     
-    dragServiceGTK->TargetSetLastContext(aWidget, aDragContext, aTime);
-
-    
     
     if (mDragLeaveTimer) {
         mDragLeaveTimer->Cancel();
@@ -3492,6 +3488,7 @@ nsWindow::OnDragDropEvent(GtkWidget *aWidget,
     
     
 
+    dragServiceGTK->TargetSetLastContext(aWidget, aDragContext, aTime);
     dragServiceGTK->SetCanDrop(false);
 
     nsDragEvent event(true, NS_DRAGDROP_OVER, innerMostWidget);
