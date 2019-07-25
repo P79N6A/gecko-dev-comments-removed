@@ -2156,7 +2156,8 @@ static PRUint32 sInterruptChecksToSkip = 200;
 
 
 
-static TimeDuration sInterruptTimeout = TimeDuration::FromMilliseconds(100);
+
+static TimeDuration sInterruptTimeout;
 
 static void GetInterruptEnv()
 {
@@ -2187,9 +2188,8 @@ static void GetInterruptEnv()
   }
 
   ev = PR_GetEnv("GECKO_REFLOW_MIN_NOINTERRUPT_DURATION");
-  if (ev) {
-    sInterruptTimeout = TimeDuration::FromMilliseconds(atoi(ev));
-  }
+  int duration_ms = ev ? atoi(ev) : 100;
+  sInterruptTimeout = TimeDuration::FromMilliseconds(duration_ms);
 }
 
 bool
