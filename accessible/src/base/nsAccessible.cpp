@@ -590,75 +590,63 @@ nsresult nsAccessible::GetTranslatedString(const nsAString& aKey, nsAString& aSt
   return NS_OK;
 }
 
-bool
-nsAccessible::IsVisible(bool* aIsOffscreen)
+PRUint64
+nsAccessible::VisibilityState()
 {
-  
-  
-  
+  PRUint64 vstates = states::INVISIBLE | states::OFFSCREEN;
 
-  *aIsOffscreen = true;
-  if (IsDefunct())
-    return false;
+  
+  nsAccessible* accessible = this;
+  do {
+    
+    
+	  PRUint32 role = accessible->Role();
+    if (role == nsIAccessibleRole::ROLE_PROPERTYPAGE ||
+        role == nsIAccessibleRole::ROLE_PANE) {
+      break;
+    }
 
+    nsIFrame* frame = accessible->GetFrame();
+    if (!frame)
+      return vstates;
+
+    const nsIView* view = frame->GetView();
+    if (view && view->GetVisibility() == nsViewVisibility_kHide)
+      return vstates;
+    
+  } while (accessible = accessible->Parent());
+
+  nsIFrame* frame = GetFrame();
+  const nsCOMPtr<nsIPresShell> shell(GetPresShell());
+
+  
+  
   const PRUint16 kMinPixels  = 12;
-   
-  nsCOMPtr<nsIPresShell> shell(GetPresShell());
-  if (!shell) 
-    return false;
-
-  nsIFrame *frame = GetFrame();
-  if (!frame) {
-    return false;
-  }
-
-  
-  if (!frame->GetStyleVisibility()->IsVisible())
-  {
-      return false;
-  }
-
-  
-  
-  
-  nsSize frameSize = frame->GetSize();
-  nsRectVisibility rectVisibility =
+  const nsSize frameSize = frame->GetSize();
+  const nsRectVisibility rectVisibility =
     shell->GetRectVisibility(frame, nsRect(nsPoint(0,0), frameSize),
                              nsPresContext::CSSPixelsToAppUnits(kMinPixels));
 
-  if (frame->GetRect().IsEmpty()) {
-    bool isEmpty = true;
+  if (rectVisibility == nsRectVisibility_kVisible)
+    vstates &= ~states::OFFSCREEN;
 
-    nsIAtom *frameType = frame->GetType();
-    if (frameType == nsGkAtoms::textFrame) {
-      
-      
-      nsAutoString renderedText;
-      frame->GetRenderedText (&renderedText, nsnull, nsnull, 0, 1);
-      isEmpty = renderedText.IsEmpty();
-    }
-    else if (frameType == nsGkAtoms::inlineFrame) {
-      
-      
-      
-      PRInt32 x, y, width, height;
-      GetBounds(&x, &y, &width, &height);
-      isEmpty = width == 0 || height == 0;
-    }
+  
+  
+  
+  
+  
+  if (frame->GetType() == nsGkAtoms::textFrame &&
+      !(frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
+      frame->GetRect().IsEmpty()) {
+    nsAutoString renderedText;
+    frame->GetRenderedText(&renderedText, nsnull, nsnull, 0, 1);
+    if (renderedText.IsEmpty())
+      return vstates;
 
-    if (isEmpty && !(frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
-      
-      
-      return false;
-    }
   }
 
   
-  bool isVisible = frame->IsVisibleConsideringAncestors(nsIFrame::VISIBILITY_CROSS_CHROME_CONTENT_BOUNDARY);
-  if (isVisible && rectVisibility == nsRectVisibility_kVisible) {
-    *aIsOffscreen = false;
-  }
-  return isVisible;
+  return vstates &= ~states::INVISIBLE;
 }
 
 PRUint64
@@ -702,14 +690,7 @@ nsAccessible::NativeState()
   }
 
   
-  
-  bool isOffscreen;
-  if (!IsVisible(&isOffscreen)) {
-    state |= states::INVISIBLE;
-  }
-  if (isOffscreen) {
-    state |= states::OFFSCREEN;
-  }
+  state |= VisibilityState();
 
   nsIFrame *frame = GetFrame();
   if (frame && (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW))
