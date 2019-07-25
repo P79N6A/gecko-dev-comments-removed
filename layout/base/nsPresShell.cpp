@@ -4928,12 +4928,12 @@ PresShell::DocumentStatesChanged(nsIDocument* aDocument,
 
 void
 PresShell::AttributeWillChange(nsIDocument* aDocument,
-                               nsIContent*  aContent,
+                               Element*     aElement,
                                PRInt32      aNameSpaceID,
                                nsIAtom*     aAttribute,
                                PRInt32      aModType)
 {
-  NS_PRECONDITION(!mIsDocumentGone, "Unexpected AttributeChanged");
+  NS_PRECONDITION(!mIsDocumentGone, "Unexpected AttributeWillChange");
   NS_PRECONDITION(aDocument == mDocument, "Unexpected aDocument");
 
   
@@ -4941,7 +4941,7 @@ PresShell::AttributeWillChange(nsIDocument* aDocument,
   
   if (mDidInitialReflow) {
     nsAutoCauseReflowNotifier crNotifier(this);
-    mFrameConstructor->AttributeWillChange(aContent, aNameSpaceID,
+    mFrameConstructor->AttributeWillChange(aElement, aNameSpaceID,
                                            aAttribute, aModType);
     VERIFY_STYLE_TREE;
   }
