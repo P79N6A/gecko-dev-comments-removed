@@ -46,6 +46,7 @@
 
 
 
+
 #include "base/basictypes.h"
 
 
@@ -7483,6 +7484,15 @@ nsGlobalWindow::SetActive(PRBool aActive)
   NotifyDocumentTree(mDoc, nsnull);
 }
 
+void nsGlobalWindow::SetIsBackground(PRBool aIsBackground)
+{
+  PRBool resetTimers = (!aIsBackground && IsBackground());
+  nsPIDOMWindow::SetIsBackground(aIsBackground);
+  if (resetTimers) {
+    ResetTimersForNonBackgroundWindow();
+  }
+}
+
 void nsGlobalWindow::MaybeUpdateTouchState()
 {
   FORWARD_TO_INNER_VOID(MaybeUpdateTouchState, ());
@@ -8848,10 +8858,8 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
   }
 
   nsRefPtr<nsTimeout> timeout = new nsTimeout();
-
-  if (aIsInterval) {
-    timeout->mInterval = interval;
-  }
+  timeout->mIsInterval = aIsInterval;
+  timeout->mInterval = interval;
   timeout->mScriptHandler = aHandler;
 
   
@@ -9152,7 +9160,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     ++gRunningTimeoutDepth;
     ++mTimeoutFiringDepth;
 
-    PRBool trackNestingLevel = !timeout->mInterval;
+    PRBool trackNestingLevel = !timeout->mIsInterval;
     PRUint32 nestingLevel;
     if (trackNestingLevel) {
       nestingLevel = sNestingLevel;
@@ -9238,7 +9246,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
 
     
     
-    if (timeout->mInterval) {
+    if (timeout->mIsInterval) {
       
       
       TimeDuration nextInterval =
@@ -9309,7 +9317,7 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     }
 
     if (timeout->mTimer) {
-      if (timeout->mInterval) {
+      if (timeout->mIsInterval) {
         isInterval = PR_TRUE;
       } else {
         
@@ -9387,7 +9395,7 @@ nsGlobalWindow::ClearTimeoutOrInterval(PRInt32 aTimerID)
         
 
 
-        timeout->mInterval = 0;
+        timeout->mIsInterval = PR_FALSE;
       }
       else {
         
@@ -9401,6 +9409,94 @@ nsGlobalWindow::ClearTimeoutOrInterval(PRInt32 aTimerID)
         timeout->Release();
       }
       break;
+    }
+  }
+
+  return NS_OK;
+}
+
+nsresult nsGlobalWindow::ResetTimersForNonBackgroundWindow()
+{
+  FORWARD_TO_INNER(ResetTimersForNonBackgroundWindow, (),
+                   NS_ERROR_NOT_INITIALIZED);
+
+  if (IsFrozen() || mTimeoutsSuspendDepth) {
+    return NS_OK;
+  }
+
+  TimeStamp now = TimeStamp::Now();
+
+  for (nsTimeout *timeout = FirstTimeout(); IsTimeout(timeout); ) {
+    
+    
+    
+    if (timeout->mWhen <= now) {
+      timeout = timeout->Next();
+      continue;
+    }
+
+    if (timeout->mWhen - now >
+        TimeDuration::FromMilliseconds(gMinBackgroundTimeoutValue)) {
+      
+      
+      
+      break;
+    }
+
+    
+    
+    
+    TimeDuration interval =
+      TimeDuration::FromMilliseconds(NS_MAX(timeout->mInterval,
+                                            PRUint32(DOMMinTimeoutValue())));
+    PRUint32 oldIntervalMillisecs = 0;
+    timeout->mTimer->GetDelay(&oldIntervalMillisecs);
+    TimeDuration oldInterval = TimeDuration::FromMilliseconds(oldIntervalMillisecs);
+    if (oldInterval > interval) {
+      
+      TimeStamp firingTime =
+        NS_MAX(timeout->mWhen - oldInterval + interval, now);
+
+      NS_ASSERTION(firingTime < timeout->mWhen,
+                   "Our firing time should strictly decrease!");
+
+      TimeDuration delay = firingTime - now;
+      timeout->mWhen = firingTime;
+
+      
+      
+      
+      
+      
+      nsTimeout* nextTimeout = timeout->Next();
+
+      
+      
+      
+      NS_ASSERTION(!IsTimeout(nextTimeout) ||
+                   timeout->mWhen < nextTimeout->mWhen, "How did that happen?");
+      PR_REMOVE_LINK(timeout);
+      
+      
+      PRUint32 firingDepth = timeout->mFiringDepth;
+      InsertTimeoutIntoList(timeout);
+      timeout->mFiringDepth = firingDepth;
+      timeout->Release();
+
+      nsresult rv =
+        timeout->mTimer->InitWithFuncCallback(TimerCallback,
+                                              timeout,
+                                              delay.ToMilliseconds(),
+                                              nsITimer::TYPE_ONE_SHOT);
+
+      if (NS_FAILED(rv)) {
+        NS_WARNING("Error resetting non background timer for DOM timeout!");
+        return rv;
+      }
+
+      timeout = nextTimeout;
+    } else {
+      timeout = timeout->Next();
     }
   }
 

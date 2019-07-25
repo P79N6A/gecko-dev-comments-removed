@@ -196,6 +196,9 @@ struct nsTimeout : PRCList
   PRPackedBool mRunning;
 
   
+  PRPackedBool mIsInterval;
+
+  
   PRUint32 mPublicId;
 
   
@@ -342,6 +345,7 @@ public:
   virtual NS_HIDDEN_(nsPIDOMWindow*) GetPrivateRoot();
   virtual NS_HIDDEN_(void) ActivateOrDeactivate(PRBool aActivate);
   virtual NS_HIDDEN_(void) SetActive(PRBool aActive);
+  virtual NS_HIDDEN_(void) SetIsBackground(PRBool aIsBackground);
   virtual NS_HIDDEN_(void) SetChromeEventHandler(nsIDOMEventTarget* aChromeEventHandler);
 
   virtual NS_HIDDEN_(void) SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal);
@@ -664,6 +668,7 @@ protected:
   
   nsresult SetTimeoutOrInterval(PRBool aIsInterval, PRInt32* aReturn);
   nsresult ClearTimeoutOrInterval();
+  nsresult ResetTimersForNonBackgroundWindow();
 
   
   void RunTimeout(nsTimeout *aTimeout);
