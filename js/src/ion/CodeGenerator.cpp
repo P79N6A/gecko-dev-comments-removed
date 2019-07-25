@@ -531,7 +531,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     
     if (!call->hasSingleTarget()) {
         Address flags(calleereg, offsetof(JSFunction, flags));
-        masm.load16_mask(flags, Imm32(JSFUN_KINDMASK), nargsreg);
+        masm.load16ZeroExtend_mask(flags, Imm32(JSFUN_KINDMASK), nargsreg);
         masm.branch32(Assembler::LessThan, nargsreg, Imm32(JSFUN_INTERPRETED), &invoke);
     } else {
         
@@ -561,7 +561,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
         JS_ASSERT(call->getSingleTarget()->nargs <= call->nargs());
     } else {
         
-        masm.load16(Address(calleereg, offsetof(JSFunction, nargs)), nargsreg);
+        masm.load16ZeroExtend(Address(calleereg, offsetof(JSFunction, nargs)), nargsreg);
         masm.cmp32(nargsreg, Imm32(call->nargs()));
         masm.j(Assembler::Above, &thunk);
     }
@@ -1316,7 +1316,7 @@ CodeGenerator::visitCharCodeAt(LCharCodeAt *lir)
     
     Address charsAddr(str, JSString::offsetOfChars());
     masm.loadPtr(charsAddr, output);
-    masm.load16(BaseIndex(output, index, TimesTwo, 0), output);
+    masm.load16ZeroExtend(BaseIndex(output, index, TimesTwo, 0), output);
 
     return true;
 }
