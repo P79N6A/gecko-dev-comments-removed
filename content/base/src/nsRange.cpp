@@ -336,7 +336,6 @@ DOMCI_DATA(Range, nsRange)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsRange)
   NS_INTERFACE_MAP_ENTRY(nsIDOMRange)
   NS_INTERFACE_MAP_ENTRY(nsIRange)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMNSRange)
   NS_INTERFACE_MAP_ENTRY(nsIMutationObserver)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIRange)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(Range)
@@ -2376,7 +2375,6 @@ nsRange::Detach()
   
   return NS_OK;
 }
-
 
 NS_IMETHODIMP    
 nsRange::CreateContextualFragment(const nsAString& aFragment,

@@ -47,7 +47,6 @@
 #include "nsIDOMMouseEvent.h"
 #include "nsISelection.h"
 #include "nsIDOMRange.h"
-#include "nsIDOMNSRange.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMHTMLTableElement.h"
 #include "nsIDOMHTMLTableCellElement.h"
@@ -178,11 +177,7 @@ nsHTMLEditorEventListener::MouseDown(nsIDOMEvent* aMouseEvent)
           if (NS_FAILED(res) || !range) 
             continue;
 
-          nsCOMPtr<nsIDOMNSRange> nsrange(do_QueryInterface(range));
-          if (NS_FAILED(res) || !nsrange) 
-            continue;
-
-          res = nsrange->IsPointInRange(parent, offset, &nodeIsInSelection);
+          res = range->IsPointInRange(parent, offset, &nodeIsInSelection);
 
           
           if (nodeIsInSelection)

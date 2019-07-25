@@ -508,7 +508,6 @@ function run_miscellaneous_tests() {
 
 
 
-
   
   doc = parser.parseFromString("<!-- foo --><foo/>", "application/xml");
   do_check_true(doc instanceof C_i.nsIDOMDocument);

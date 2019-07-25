@@ -78,7 +78,6 @@
 #include "nsIDOMKeyEvent.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMNodeList.h"
-#include "nsIDOMNSRange.h"
 #include "nsIDOMRange.h"
 #include "nsIPlaintextEditor.h"
 #include "nsIPrefBranch.h"
@@ -169,10 +168,8 @@ mozInlineSpellStatus::InitForEditorChange(
   mRange = new nsRange();
 
   
-  nsCOMPtr<nsIDOMNSRange> nsrange = do_QueryInterface(mAnchorRange, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
   PRInt16 cmpResult;
-  rv = nsrange->ComparePoint(aPreviousNode, aPreviousOffset, &cmpResult);
+  rv = mAnchorRange->ComparePoint(aPreviousNode, aPreviousOffset, &cmpResult);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cmpResult < 0) {
     
@@ -194,17 +191,14 @@ mozInlineSpellStatus::InitForEditorChange(
 
   
   if (aStartNode && aEndNode) {
-    nsrange = do_QueryInterface(mRange, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = nsrange->ComparePoint(aStartNode, aStartOffset, &cmpResult);
+    rv = mRange->ComparePoint(aStartNode, aStartOffset, &cmpResult);
     NS_ENSURE_SUCCESS(rv, rv);
     if (cmpResult < 0) { 
       rv = mRange->SetStart(aStartNode, aStartOffset);
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    rv = nsrange->ComparePoint(aEndNode, aEndOffset, &cmpResult);
+    rv = mRange->ComparePoint(aEndNode, aEndOffset, &cmpResult);
     NS_ENSURE_SUCCESS(rv, rv);
     if (cmpResult > 0) { 
       rv = mRange->SetEnd(aEndNode, aEndOffset);
@@ -385,9 +379,6 @@ mozInlineSpellStatus::FinishNavigationEvent(mozInlineSpellWordUtil& aWordUtil)
   if (! editor)
     return NS_ERROR_FAILURE; 
 
-  nsCOMPtr<nsIDOMNSRange> oldWordNS = do_QueryInterface(oldWord, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   
   rv = mAnchorRange->GetStartContainer(getter_AddRefs(newAnchorNode));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -397,9 +388,9 @@ mozInlineSpellStatus::FinishNavigationEvent(mozInlineSpellWordUtil& aWordUtil)
   
   bool isInRange = false;
   if (! mForceNavigationWordCheck) {
-    rv = oldWordNS->IsPointInRange(newAnchorNode,
-                                   newAnchorOffset + mNewNavigationPositionOffset,
-                                   &isInRange);
+    rv = oldWord->IsPointInRange(newAnchorNode,
+                                 newAnchorOffset + mNewNavigationPositionOffset,
+                                 &isInRange);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1351,13 +1342,6 @@ nsresult mozInlineSpellChecker::DoSpellCheck(mozInlineSpellWordUtil& aWordUtil,
   editor = do_QueryReferent(mEditor);
   if (! editor)
     return NS_ERROR_FAILURE;
-  
-  
-  nsCOMPtr<nsIDOMNSRange> noCheckRange, createdRange;
-  if (aStatus->mNoCheckRange)
-    noCheckRange = do_QueryInterface(aStatus->mNoCheckRange);
-  if (aStatus->mCreatedRange)
-    createdRange = do_QueryInterface(aStatus->mCreatedRange);
 
   PRInt32 wordsSinceTimeCheck = 0;
   PRTime beginTime = PR_Now();
@@ -1394,8 +1378,8 @@ nsresult mozInlineSpellChecker::DoSpellCheck(mozInlineSpellWordUtil& aWordUtil,
     if (originalRangeCount > 0) {
       
       bool inCreatedRange = false;
-      if (createdRange)
-        createdRange->IsPointInRange(beginNode, beginOffset, &inCreatedRange);
+      if (aStatus->mCreatedRange)
+        aStatus->mCreatedRange->IsPointInRange(beginNode, beginOffset, &inCreatedRange);
       if (! inCreatedRange) {
         nsCOMArray<nsIDOMRange> ranges;
         rv = privSel->GetRangesForIntervalCOMArray(beginNode, beginOffset,
@@ -1425,9 +1409,10 @@ nsresult mozInlineSpellChecker::DoSpellCheck(mozInlineSpellWordUtil& aWordUtil,
     
     
     
-    if (noCheckRange) {
+    if (aStatus->mNoCheckRange) {
       bool inExclusion = false;
-      noCheckRange->IsPointInRange(beginNode, beginOffset, &inExclusion);
+      aStatus->mNoCheckRange->IsPointInRange(beginNode, beginOffset,
+                                             &inExclusion);
       if (inExclusion)
         continue;
     }
