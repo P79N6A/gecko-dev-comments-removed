@@ -303,7 +303,6 @@ EngineManagerSvc.prototype = {
       name = name.name || "";
 
       let out = "Could not initialize engine '" + name + "': " + mesg;
-      dump(out);
       this._log.error(out);
 
       return engineObject;
@@ -468,6 +467,7 @@ Engine.prototype = {
 
 function SyncEngine(name) {
   Engine.call(this, name || "SyncEngine");
+  this.loadToFetch();
 }
 SyncEngine.prototype = {
   __proto__: Engine.prototype,
@@ -509,6 +509,22 @@ SyncEngine.prototype = {
     Svc.Prefs.reset(this.name + ".lastSync");
     Svc.Prefs.set(this.name + ".lastSync", "0");
     this.lastSyncLocal = 0;
+  },
+
+  get toFetch() this._toFetch,
+  set toFetch(val) {
+    this._toFetch = val;
+    Utils.delay(function () {
+      Utils.jsonSave("toFetch/" + this.name, this, val);
+    }, 0, this, "_toFetchDelay");
+  },
+
+  loadToFetch: function loadToFetch() {
+    
+    this._toFetch = [];
+    Utils.jsonLoad("toFetch/" + this.name, this, function(toFetch) {
+      this._toFetch = toFetch;
+    });
   },
 
   
@@ -683,14 +699,13 @@ SyncEngine.prototype = {
     }
 
     
-    let toFetch = [];
     if (handled.length == newitems.limit) {
       let guidColl = new Collection(this.engineURL);
       
       
       guidColl.limit = this.downloadLimit;
       guidColl.newer = this.lastSync;
-      
+
       
       guidColl.sort  = "index";
 
@@ -702,18 +717,22 @@ SyncEngine.prototype = {
       
       let extra = Utils.arraySub(guids.obj, handled);
       if (extra.length > 0)
-        toFetch = extra.concat(Utils.arraySub(toFetch, extra));
+        this.toFetch = extra.concat(Utils.arraySub(this.toFetch, extra));
     }
 
     
-    while (toFetch.length) {
+    
+    if (this.lastSync < this.lastModified) {
+      this.lastSync = this.lastModified;
+    }
+
+    
+    while (this.toFetch.length) {
+      
       
       newitems.limit = 0;
       newitems.newer = 0;
-
-      
-      newitems.ids = toFetch.slice(0, batchSize);
-      toFetch = toFetch.slice(batchSize);
+      newitems.ids = this.toFetch.slice(0, batchSize);
 
       
       let resp = newitems.get();
@@ -721,10 +740,13 @@ SyncEngine.prototype = {
         resp.failureCode = ENGINE_DOWNLOAD_FAIL;
         throw resp;
       }
-    }
 
-    if (this.lastSync < this.lastModified)
-      this.lastSync = this.lastModified;
+      
+      this.toFetch = this.toFetch.slice(batchSize);
+      if (this.lastSync < this.lastModified) {
+        this.lastSync = this.lastModified;
+      }
+    }
 
     this._log.info(["Records:", count.applied, "applied,", count.reconciled,
       "reconciled."].join(" "));
@@ -969,6 +991,7 @@ SyncEngine.prototype = {
 
   _resetClient: function SyncEngine__resetClient() {
     this.resetLastSync();
+    this.toFetch = [];
   },
 
   wipeServer: function wipeServer() {
