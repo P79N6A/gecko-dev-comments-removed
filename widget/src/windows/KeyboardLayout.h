@@ -35,17 +35,18 @@
 
 
 
-#ifndef nsKeyboardLayout_h__
-#define nsKeyboardLayout_h__
+#ifndef KeyboardLayout_h__
+#define KeyboardLayout_h__
 
 #include "nscore.h"
 #include <windows.h>
-
 
 #define VK_OEM_1                0xBA   // ';:' for US
 #define VK_OEM_PLUS             0xBB   // '+' any country
 #define VK_OEM_MINUS            0xBD   // '-' any country
 
+namespace mozilla {
+namespace widget {
 
 
 
@@ -177,5 +178,8 @@ public:
 
   HKL GetLayout() { return mKeyboardLayout; }
 };
+
+} 
+} 
 
 #endif
