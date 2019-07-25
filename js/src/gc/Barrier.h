@@ -146,8 +146,6 @@
 
 
 
-
-
 struct JSXML;
 
 namespace js {
