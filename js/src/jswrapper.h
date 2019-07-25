@@ -165,11 +165,6 @@ class AutoCompartment
     bool enter();
     void leave();
 
-    js::Value *getvp() {
-        JS_ASSERT(entered);
-        return frame.ref().getvp();
-    }
-
   private:
     
     AutoCompartment(const AutoCompartment &);
