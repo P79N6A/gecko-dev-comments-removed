@@ -39,27 +39,6 @@ static double FlushToZero(double aVal)
     return aVal;
 }
 
-
-static nscoord CalcLength(const nsCSSValue &aValue,
-                          nsStyleContext* aContext,
-                          nsPresContext* aPresContext,
-                          bool &aCanStoreInRuleTree)
-{
-  if (aValue.GetUnit() == eCSSUnit_Pixel ||
-      aValue.GetUnit() == eCSSUnit_Number) {
-    
-    
-    
-    
-    
-    
-    
-    return nsPresContext::CSSPixelsToAppUnits(aValue.GetFloatValue());
-  }
-  return nsRuleNode::CalcLength(aValue, aContext, aPresContext,
-                                aCanStoreInRuleTree);
-}
-
 static float
 ProcessTranslatePart(const nsCSSValue& aValue,
                      nsStyleContext* aContext,
@@ -72,6 +51,19 @@ ProcessTranslatePart(const nsCSSValue& aValue,
 
   if (aValue.GetUnit() == eCSSUnit_Percent) {
     percent = aValue.GetPercentValue();
+  } else if (aValue.GetUnit() == eCSSUnit_Pixel ||
+             aValue.GetUnit() == eCSSUnit_Number) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    return aValue.GetFloatValue() *
+           (float(nsPresContext::AppUnitsPerCSSPixel()) / aAppUnitsPerMatrixUnit);
   } else if (aValue.IsCalcUnit()) {
     nsRuleNode::ComputedCalc result =
       nsRuleNode::SpecifiedCalcToComputedCalc(aValue, aContext, aPresContext,
@@ -79,8 +71,8 @@ ProcessTranslatePart(const nsCSSValue& aValue,
     percent = result.mPercent;
     offset = result.mLength;
   } else {
-    offset = CalcLength(aValue, aContext, aPresContext,
-                         aCanStoreInRuleTree);
+    offset = nsRuleNode::CalcLength(aValue, aContext, aPresContext,
+                                    aCanStoreInRuleTree);
   }
 
   return (percent * NSAppUnitsToFloatPixels(aSize, aAppUnitsPerMatrixUnit)) + 
