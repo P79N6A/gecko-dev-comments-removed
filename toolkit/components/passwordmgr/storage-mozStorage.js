@@ -223,7 +223,7 @@ LoginManagerStorage_mozStorage.prototype = {
 
 
     init : function () {
-        this._dbStmts = [];
+        this._dbStmts = {};
 
         
         this._prefBranch = Services.prefs.getBranch("signon.");
@@ -1636,7 +1636,7 @@ LoginManagerStorage_mozStorage.prototype = {
         
         for each (let stmt in this._dbStmts)
             stmt.finalize();
-        this._dbStmts = [];
+        this._dbStmts = {};
 
         
         try { this._dbConnection.close() } catch(e) {}
