@@ -1777,10 +1777,6 @@ panel[dimmed="true"] {
   -moz-appearance: none;
 }
 
-browser[tabmodalPromptShowing] {
-  filter: url("chrome://browser/skin/effects.svg#blurAndDesaturate");
-}
-
 
 #addonbar-closebutton {
   list-style-image: url("moz-icon://stock/gtk-close?size=menu");
