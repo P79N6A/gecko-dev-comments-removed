@@ -345,10 +345,15 @@ void XPCJSRuntime::TraceJS(JSTracer* trc, void* data)
         }
     }
 
-    
-    
-    for(XPCRootSetElem *e = self->mObjectHolderRoots; e ; e = e->GetNextRoot())
-        static_cast<XPCJSObjectHolder*>(e)->TraceJS(trc);
+    {
+        XPCAutoLock lock(self->mMapLock);
+
+        
+        
+        XPCRootSetElem *e;
+        for(e = self->mObjectHolderRoots; e; e = e->GetNextRoot())
+            static_cast<XPCJSObjectHolder*>(e)->TraceJS(trc);
+    }
 
     
     js::GCMarker *gcmarker = NULL;
@@ -398,6 +403,8 @@ void XPCJSRuntime::TraceXPConnectRoots(JSTracer *trc)
         if (acx->globalObject)
             JS_CALL_OBJECT_TRACER(trc, acx->globalObject, "global object");
     }
+
+    XPCAutoLock lock(mMapLock);
 
     XPCWrappedNativeScope::TraceJS(trc, this);
 
@@ -1437,11 +1444,12 @@ XPCJSRuntime::DebugDump(PRInt16 depth)
 
 
 void
-XPCRootSetElem::AddToRootSet(JSRuntime* rt, XPCRootSetElem** listHead)
+XPCRootSetElem::AddToRootSet(XPCLock *lock, XPCRootSetElem **listHead)
 {
     NS_ASSERTION(!mSelfp, "Must be not linked");
 
-    AutoLockJSGC lock(rt);
+    XPCAutoLock autoLock(lock);
+
     mSelfp = listHead;
     mNext = *listHead;
     if(mNext)
@@ -1453,11 +1461,12 @@ XPCRootSetElem::AddToRootSet(JSRuntime* rt, XPCRootSetElem** listHead)
 }
 
 void
-XPCRootSetElem::RemoveFromRootSet(JSRuntime* rt)
+XPCRootSetElem::RemoveFromRootSet(XPCLock *lock)
 {
     NS_ASSERTION(mSelfp, "Must be linked");
 
-    AutoLockJSGC lock(rt);
+    XPCAutoLock autoLock(lock);
+
     NS_ASSERTION(*mSelfp == this, "Link invariant");
     *mSelfp = mNext;
     if(mNext)

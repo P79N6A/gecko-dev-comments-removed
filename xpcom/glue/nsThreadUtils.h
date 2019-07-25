@@ -47,6 +47,7 @@
 #include "nsStringGlue.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
+#include "mozilla/threads/nsThreadIDs.h"
 
 
 
@@ -100,18 +101,15 @@ extern NS_COM_GLUE NS_METHOD
 NS_GetMainThread(nsIThread **result);
 
 #if defined(MOZILLA_INTERNAL_API) && defined(XP_WIN)
-
 NS_COM bool NS_IsMainThread();
-
 #elif defined(MOZILLA_INTERNAL_API) && defined(NS_TLS)
 
 
-extern NS_TLS bool gTLSIsMainThread;
-
+extern NS_TLS mozilla::threads::ID gTLSThreadID;
 #ifdef MOZ_ENABLE_LIBXUL
 inline bool NS_IsMainThread()
 {
-  return gTLSIsMainThread;
+  return gTLSThreadID == mozilla::threads::Main;
 }
 #else
 NS_COM bool NS_IsMainThread();

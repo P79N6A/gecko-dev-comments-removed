@@ -137,6 +137,7 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(XPCCallContext& ccx,
         mWrappedNativeMap(Native2WrappedNativeMap::newMap(XPC_NATIVE_MAP_SIZE)),
         mWrappedNativeProtoMap(ClassInfo2WrappedNativeProtoMap::newMap(XPC_NATIVE_PROTO_MAP_SIZE)),
         mMainThreadWrappedNativeProtoMap(ClassInfo2WrappedNativeProtoMap::newMap(XPC_NATIVE_PROTO_MAP_SIZE)),
+        mWrapperMap(WrappedNative2WrapperMap::newMap(XPC_WRAPPER_MAP_SIZE)),
         mComponents(nsnull),
         mNext(nsnull),
         mGlobalJSObject(nsnull),
@@ -325,6 +326,12 @@ XPCWrappedNativeScope::~XPCWrappedNativeScope()
         delete mMainThreadWrappedNativeProtoMap;
     }
 
+    if(mWrapperMap)
+    {
+        NS_ASSERTION(0 == mWrapperMap->Count(), "scope has non-empty map");
+        delete mWrapperMap;
+    }
+
     if(mContext)
         mContext->RemoveScope(this);
 
@@ -362,7 +369,7 @@ WrappedNativeJSGCThingTracer(JSDHashTable *table, JSDHashEntryHdr *hdr,
     if(wrapper->HasExternalReference() && !wrapper->IsWrapperExpired())
     {
         JSTracer* trc = (JSTracer *)arg;
-        JS_CALL_OBJECT_TRACER(trc, wrapper->GetFlatJSObject(),
+        JS_CALL_OBJECT_TRACER(trc, wrapper->GetFlatJSObjectNoMark(),
                               "XPCWrappedNative::mFlatJSObject");
     }
 
@@ -406,12 +413,12 @@ WrappedNativeSuspecter(JSDHashTable *table, JSDHashEntryHdr *hdr,
        wrapper->HasExternalReference() &&
        !wrapper->IsWrapperExpired())
     {
-        NS_ASSERTION(NS_IsMainThread(), 
-                     "Suspecting wrapped natives from non-main thread");
+        NS_ASSERTION(NS_IsMainThread() || NS_IsCycleCollectorThread(), 
+                     "Suspecting wrapped natives from non-CC thread");
 
         
         
-        JSObject* obj = wrapper->GetFlatJSObject();
+        JSObject* obj = wrapper->GetFlatJSObjectAndMark();
         if(!xpc::ParticipatesInCycleCollection(closure->cx, obj))
             return JS_DHASH_NEXT;
 

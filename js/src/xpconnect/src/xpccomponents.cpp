@@ -2825,12 +2825,13 @@ nsXPCComponents_Utils::LookupMethod()
     {
         JSAutoEnterCompartment ac;
 
-        if (!ac.enter(inner_cc, wrapper->GetFlatJSObject())) {
+        if (!ac.enter(inner_cc, wrapper->GetFlatJSObjectAndMark())) {
             return NS_ERROR_UNEXPECTED;
         }
 
         
-        if(!member->NewFunctionObject(inner_cc, iface, wrapper->GetFlatJSObject(),
+        if(!member->NewFunctionObject(inner_cc, iface,
+                                      wrapper->GetFlatJSObjectAndMark(),
                                       &funval))
             return NS_ERROR_XPC_BAD_CONVERT_JS;
 

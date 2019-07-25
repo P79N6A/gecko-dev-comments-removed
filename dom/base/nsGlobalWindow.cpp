@@ -188,7 +188,7 @@
 #include "nsIFrame.h"
 #endif
 
-#include "xpcprivate.h"
+#include "plbase64.h"
 
 #ifdef NS_PRINTING
 #include "nsIPrintSettings.h"
@@ -942,9 +942,9 @@ nsGlobalWindow::CleanupCachedXBLHandlers(nsGlobalWindow* aWindow)
       aWindow->mCachedXBLPrototypeHandlers.Count() > 0) {
     aWindow->mCachedXBLPrototypeHandlers.Clear();
 
-    nsCOMPtr<nsISupports> supports;
+    nsISupports* supports;
     aWindow->QueryInterface(NS_GET_IID(nsCycleCollectionISupports),
-                            getter_AddRefs(supports));
+                            reinterpret_cast<void**>(&supports));
     NS_ASSERTION(supports, "Failed to QI to nsCycleCollectionISupports?!");
 
     nsContentUtils::DropJSObjects(supports);
@@ -6133,8 +6133,11 @@ nsGlobalWindow::EnterModalState()
   }
   topWin->mModalStateDepth++;
 
-  if (mContext) {
-    mContext->EnterModalState();
+  JSContext *cx = nsContentUtils::GetCurrentJSContext();
+
+  nsIScriptContext *scx;
+  if (cx && (scx = GetScriptContextFromJSContext(cx))) {
+    scx->EnterModalState();
   }
 }
 
@@ -6233,8 +6236,11 @@ nsGlobalWindow::LeaveModalState()
     }
   }
 
-  if (mContext) {
-    mContext->LeaveModalState();
+  JSContext *cx = nsContentUtils::GetCurrentJSContext();
+
+  nsIScriptContext *scx;
+  if (cx && (scx = GetScriptContextFromJSContext(cx))) {
+    scx->LeaveModalState();
   }
 
   
@@ -6386,9 +6392,9 @@ nsGlobalWindow::CacheXBLPrototypeHandler(nsXBLPrototypeHandler* aKey,
     NS_ASSERTION(participant,
                  "Failed to QI to nsXPCOMCycleCollectionParticipant!");
 
-    nsCOMPtr<nsISupports> thisSupports;
+    nsISupports* thisSupports;
     QueryInterface(NS_GET_IID(nsCycleCollectionISupports),
-                   getter_AddRefs(thisSupports));
+                   reinterpret_cast<void**>(&thisSupports));
     NS_ASSERTION(thisSupports, "Failed to QI to nsCycleCollectionISupports!");
 
     nsresult rv = nsContentUtils::HoldJSObjects(thisSupports, participant);
@@ -6812,15 +6818,51 @@ NS_IMETHODIMP
 nsGlobalWindow::Atob(const nsAString& aAsciiBase64String,
                      nsAString& aBinaryData)
 {
+  aBinaryData.Truncate();
+
   if (!Is8bit(aAsciiBase64String)) {
-    aBinaryData.Truncate();
     return NS_ERROR_DOM_INVALID_CHARACTER_ERR;
   }
 
-  nsresult rv = nsXPConnect::Base64Decode(aAsciiBase64String, aBinaryData);
-  if (NS_FAILED(rv) && rv == NS_ERROR_INVALID_ARG) {
-    return NS_ERROR_DOM_INVALID_CHARACTER_ERR;
+  PRUint32 dataLen = aAsciiBase64String.Length();
+
+  NS_LossyConvertUTF16toASCII base64(aAsciiBase64String);
+  if (base64.Length() != dataLen) {
+    return NS_ERROR_OUT_OF_MEMORY;
   }
+
+  PRInt32 resultLen = dataLen;
+  if (!base64.IsEmpty() && base64[dataLen - 1] == '=') {
+    if (base64.Length() > 1 && base64[dataLen - 2] == '=') {
+      resultLen = dataLen - 2;
+    } else {
+      resultLen = dataLen - 1;
+    }
+  }
+
+  resultLen = ((resultLen * 3) / 4);
+  
+  
+  
+  
+  
+  char *dest = static_cast<char *>(nsMemory::Alloc(resultLen + 4));
+  if (!dest) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  char *bin_data = PL_Base64Decode(base64.get(), dataLen, dest);
+
+  nsresult rv = NS_OK;
+
+  if (bin_data) {
+    CopyASCIItoUTF16(Substring(bin_data, bin_data + resultLen), aBinaryData);
+  } else {
+    rv = NS_ERROR_DOM_INVALID_CHARACTER_ERR;
+  }
+
+  nsMemory::Free(dest);
+
   return rv;
 }
 
@@ -6828,12 +6870,32 @@ NS_IMETHODIMP
 nsGlobalWindow::Btoa(const nsAString& aBinaryData,
                      nsAString& aAsciiBase64String)
 {
+  aAsciiBase64String.Truncate();
+
   if (!Is8bit(aBinaryData)) {
-    aAsciiBase64String.Truncate();
     return NS_ERROR_DOM_INVALID_CHARACTER_ERR;
   }
 
-  return nsXPConnect::Base64Encode(aBinaryData, aAsciiBase64String);
+  char *bin_data = ToNewCString(aBinaryData);
+  if (!bin_data) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  PRInt32 resultLen = ((aBinaryData.Length() + 2) / 3) * 4;
+
+  char *base64 = PL_Base64Encode(bin_data, aBinaryData.Length(), nsnull);
+  if (!base64) {
+    nsMemory::Free(bin_data);
+
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  CopyASCIItoUTF16(nsDependentCString(base64, resultLen), aAsciiBase64String);
+
+  PR_Free(base64);
+  nsMemory::Free(bin_data);
+
+  return NS_OK;
 }
 
 
