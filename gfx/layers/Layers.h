@@ -486,7 +486,9 @@ public:
 
 
 
-    CONTENT_NO_TEXT_OVER_TRANSPARENT = 0x02
+
+
+    CONTENT_COMPONENT_ALPHA = 0x02
   };
   
 
@@ -496,6 +498,9 @@ public:
 
   void SetContentFlags(PRUint32 aFlags)
   {
+    NS_ASSERTION((aFlags & (CONTENT_OPAQUE | CONTENT_COMPONENT_ALPHA)) !=
+                 (CONTENT_OPAQUE | CONTENT_COMPONENT_ALPHA),
+                 "Can't be opaque and require component alpha");
     mContentFlags = aFlags;
     Mutated();
   }
@@ -737,7 +742,7 @@ protected:
     mPrevSibling(nsnull),
     mImplData(aImplData),
     mOpacity(1.0),
-    mContentFlags(CONTENT_NO_TEXT_OVER_TRANSPARENT),
+    mContentFlags(0),
     mUseClipRect(PR_FALSE)
     {}
 

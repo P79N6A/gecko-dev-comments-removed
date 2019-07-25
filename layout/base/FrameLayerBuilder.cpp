@@ -151,7 +151,6 @@ public:
 
 
 
-
   void Finish(PRUint32 *aTextContentFlags);
 
 protected:
@@ -169,7 +168,7 @@ protected:
     ThebesLayerData() :
       mActiveScrolledRoot(nsnull), mLayer(nsnull),
       mIsSolidColorInVisibleRegion(PR_FALSE),
-      mHasTextOverTransparent(PR_FALSE),
+      mNeedComponentAlpha(PR_FALSE),
       mForceTransparentSurface(PR_FALSE) {}
     
 
@@ -243,7 +242,7 @@ protected:
 
 
 
-    PRPackedBool mHasTextOverTransparent;
+    PRPackedBool mNeedComponentAlpha;
     
 
 
@@ -868,9 +867,14 @@ ContainerState::PopThebesLayerData()
     }
     userData->mForcedBackgroundColor = backgroundColor;
   }
-  PRUint32 flags =
-    ((isOpaque && !data->mForceTransparentSurface) ? Layer::CONTENT_OPAQUE : 0) |
-    (data->mHasTextOverTransparent ? 0 : Layer::CONTENT_NO_TEXT_OVER_TRANSPARENT);
+  PRUint32 flags;
+  if (isOpaque && !data->mForceTransparentSurface) {
+    flags = Layer::CONTENT_OPAQUE;
+  } else if (data->mNeedComponentAlpha) {
+    flags = Layer::CONTENT_COMPONENT_ALPHA;
+  } else {
+    flags = 0;
+  }
   layer->SetContentFlags(flags);
 
   if (lastIndex > 0) {
@@ -933,7 +937,7 @@ ContainerState::ThebesLayerData::Accumulate(nsDisplayListBuilder* aBuilder,
     }
   } else if (aItem->HasText()) {
     if (!mOpaqueRegion.Contains(aVisibleRect)) {
-      mHasTextOverTransparent = PR_TRUE;
+      mNeedComponentAlpha = PR_TRUE;
     }
   }
   mForceTransparentSurface = mForceTransparentSurface || forceTransparentSurface;
@@ -1276,7 +1280,7 @@ ContainerState::Finish(PRUint32* aTextContentFlags)
     PopThebesLayerData();
   }
 
-  PRUint32 textContentFlags = Layer::CONTENT_NO_TEXT_OVER_TRANSPARENT;
+  PRUint32 textContentFlags = 0;
 
   for (PRUint32 i = 0; i <= mNewChildLayers.Length(); ++i) {
     
@@ -1285,7 +1289,7 @@ ContainerState::Finish(PRUint32* aTextContentFlags)
     if (i < mNewChildLayers.Length()) {
       layer = mNewChildLayers[i];
       if (!layer->GetVisibleRegion().IsEmpty()) {
-        textContentFlags &= layer->GetContentFlags();
+        textContentFlags |= layer->GetContentFlags() & Layer::CONTENT_COMPONENT_ALPHA;
       }
       if (!layer->GetParent()) {
         
@@ -1413,7 +1417,8 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
   state.Finish(&flags);
 
   if (aChildren.IsOpaque() && !aChildren.NeedsTransparentSurface()) {
-    flags |= Layer::CONTENT_OPAQUE;
+    
+    flags = Layer::CONTENT_OPAQUE;
   }
   containerLayer->SetContentFlags(flags);
 
