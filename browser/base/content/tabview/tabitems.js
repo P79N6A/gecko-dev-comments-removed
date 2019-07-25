@@ -719,11 +719,6 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
     $tab.addClass("front");
 
-    
-    
-    if (this.parent && this.parent.isStacked())
-      this.parent.setTopChild(this);
-
     let animateZoom = gPrefBranch.getBoolPref("animate_zoom");
     if (animateZoom) {
       
