@@ -27,11 +27,11 @@ try
 }
 catch (e)
 {
-  assertEq(e instanceof TypeError, true,
-           "xmlValue.[[Extensible]] cannot be changed");
+  
+  
 }
 
-assertEq(Object.isExtensible(x), true);
+
 
 
 
