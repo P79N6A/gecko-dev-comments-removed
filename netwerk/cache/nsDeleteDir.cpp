@@ -47,6 +47,7 @@
 #include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
 #include "nsISupportsPriority.h"
+#include <time.h>
 
 using namespace mozilla;
 
@@ -252,6 +253,7 @@ nsDeleteDir::DeleteDir(nsIFile *dirIn, bool moveToTrash, PRUint32 delay)
     
     
     
+    srand(PR_Now());
     nsCAutoString leaf;
     for (PRInt32 i = 0; i < 10; i++) {
       leaf = origLeaf;
