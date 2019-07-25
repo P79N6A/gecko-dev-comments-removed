@@ -74,8 +74,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
                               NS_ISCRIPTCONTEXTPRINCIPAL_IID)
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0xb36103bd, 0x304e, 0x4ef2, \
-  { 0x81, 0x12, 0x83, 0x42, 0xe5, 0xbd, 0xf3, 0xd4 } }
+{ 0xf3840057, 0x4fe5, 0x4f92, \
+ { 0xa3, 0xb8, 0x27, 0xd7, 0x44, 0x6f, 0x72, 0x4d } }
 
 
 
@@ -112,9 +112,12 @@ public:
 
 
 
+
+
   virtual nsresult EvaluateString(const nsAString& aScript,
                                   JSObject* aScopeObject,
                                   nsIPrincipal *aPrincipal,
+                                  nsIPrincipal *aOriginPrincipal,
                                   const char *aURL,
                                   PRUint32 aLineNo,
                                   PRUint32 aVersion,
