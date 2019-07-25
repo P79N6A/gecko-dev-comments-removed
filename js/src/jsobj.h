@@ -262,6 +262,7 @@ namespace js {
 struct NativeIterator;
 class RegExp;
 class GlobalObject;
+class StringObject;
 
 }
 
@@ -329,6 +330,9 @@ struct JSObject : js::gc::Cell {
   private:
     inline void setLastProperty(const js::Shape *shape);
     inline void removeLastProperty();
+
+    
+    friend class js::StringObject;
 
 #ifdef DEBUG
     void checkShapeConsistency();
@@ -755,23 +759,8 @@ struct JSObject : js::gc::Cell {
     inline const js::Value &getPrimitiveThis() const;
     inline void setPrimitiveThis(const js::Value &pthis);
 
-  private:
-    
-    static const uint32 JSSLOT_STRING_LENGTH = 1;
-
-    
-
-
-
-
-    const js::Shape *assignInitialStringShape(JSContext *cx);
-
   public:
-    static const uint32 STRING_RESERVED_SLOTS = 2;
-
-    inline size_t getStringLength() const;
-
-    inline bool initString(JSContext *cx, JSString *str);
+    inline js::StringObject *asString();
 
     
 
