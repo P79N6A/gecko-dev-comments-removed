@@ -49,7 +49,7 @@ const DEBUG = true;
 const WIFIWORKER_CONTRACTID = "@mozilla.org/wifi/worker;1";
 const WIFIWORKER_CID        = Components.ID("{a14e8977-d259-433a-a88d-58dd44657e5b}");
 
-const WIFIWORKER_WORKER     = "resource://gre/modules/network_worker.js";
+const WIFIWORKER_WORKER     = "resource://gre/modules/wifi_worker.js";
 
 
 
