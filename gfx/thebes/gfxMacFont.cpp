@@ -270,6 +270,16 @@ gfxMacFont::InitMetrics()
 
     
     
+    
+    gfxFloat cgConvFactor;
+    if (static_cast<MacOSFontEntry*>(mFontEntry.get())->IsCFF()) {
+        cgConvFactor = mAdjustedSize / ::CGFontGetUnitsPerEm(mCGFont);
+    } else {
+        cgConvFactor = mFUnitsConvFactor;
+    }
+
+    
+    
     if (!InitMetricsFromSfntTables(mMetrics) &&
         (!mFontEntry->IsUserFont() || mFontEntry->IsLocalUserFont())) {
         InitMetricsFromATSMetrics();
@@ -279,7 +289,7 @@ gfxMacFont::InitMetrics()
     }
 
     if (mMetrics.xHeight == 0.0) {
-        mMetrics.xHeight = ::CGFontGetXHeight(mCGFont) * mFUnitsConvFactor;
+        mMetrics.xHeight = ::CGFontGetXHeight(mCGFont) * cgConvFactor;
     }
 
     if (mStyle.sizeAdjust != 0.0 && mStyle.size > 0.0 &&
@@ -288,6 +298,11 @@ gfxMacFont::InitMetrics()
         gfxFloat aspect = mMetrics.xHeight / mStyle.size;
         mAdjustedSize = mStyle.GetAdjustedSize(aspect);
         mFUnitsConvFactor = mAdjustedSize / upem;
+        if (static_cast<MacOSFontEntry*>(mFontEntry.get())->IsCFF()) {
+            cgConvFactor = mAdjustedSize / ::CGFontGetUnitsPerEm(mCGFont);
+        } else {
+            cgConvFactor = mFUnitsConvFactor;
+        }
         mMetrics.xHeight = 0.0;
         if (!InitMetricsFromSfntTables(mMetrics) &&
             (!mFontEntry->IsUserFont() || mFontEntry->IsLocalUserFont())) {
@@ -299,7 +314,7 @@ gfxMacFont::InitMetrics()
             return;
         }
         if (mMetrics.xHeight == 0.0) {
-            mMetrics.xHeight = ::CGFontGetXHeight(mCGFont) * mFUnitsConvFactor;
+            mMetrics.xHeight = ::CGFontGetXHeight(mCGFont) * cgConvFactor;
         }
     }
 
@@ -317,7 +332,8 @@ gfxMacFont::InitMetrics()
 
     PRUint32 glyphID;
     if (mMetrics.aveCharWidth <= 0) {
-        mMetrics.aveCharWidth = GetCharWidth(cmap, 'x', &glyphID);
+        mMetrics.aveCharWidth = GetCharWidth(cmap, 'x', &glyphID,
+                                             cgConvFactor);
         if (glyphID == 0) {
             
             mMetrics.aveCharWidth = mMetrics.maxAdvance;
@@ -326,14 +342,15 @@ gfxMacFont::InitMetrics()
     mMetrics.aveCharWidth += mSyntheticBoldOffset;
     mMetrics.maxAdvance += mSyntheticBoldOffset;
 
-    mMetrics.spaceWidth = GetCharWidth(cmap, ' ', &glyphID);
+    mMetrics.spaceWidth = GetCharWidth(cmap, ' ', &glyphID, cgConvFactor);
     if (glyphID == 0) {
         
         mMetrics.spaceWidth = mMetrics.aveCharWidth;
     }
     mSpaceGlyph = glyphID;
 
-    mMetrics.zeroOrAveCharWidth = GetCharWidth(cmap, '0', &glyphID);
+    mMetrics.zeroOrAveCharWidth = GetCharWidth(cmap, '0', &glyphID,
+                                               cgConvFactor);
     if (glyphID == 0) {
         mMetrics.zeroOrAveCharWidth = mMetrics.aveCharWidth;
     }
@@ -360,7 +377,7 @@ gfxMacFont::InitMetrics()
 
 gfxFloat
 gfxMacFont::GetCharWidth(CFDataRef aCmap, PRUnichar aUniChar,
-                         PRUint32 *aGlyphID)
+                         PRUint32 *aGlyphID, gfxFloat aConvFactor)
 {
     CGGlyph glyph = 0;
     
@@ -377,7 +394,7 @@ gfxMacFont::GetCharWidth(CFDataRef aCmap, PRUnichar aUniChar,
     if (glyph) {
         int advance;
         if (::CGFontGetGlyphAdvances(mCGFont, &glyph, 1, &advance)) {
-            return advance * mFUnitsConvFactor;
+            return advance * aConvFactor;
         }
     }
 

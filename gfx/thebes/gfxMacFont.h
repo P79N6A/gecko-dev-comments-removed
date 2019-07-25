@@ -88,7 +88,7 @@ protected:
     
     
     gfxFloat GetCharWidth(CFDataRef aCmap, PRUnichar aUniChar,
-                          PRUint32 *aGlyphID);
+                          PRUint32 *aGlyphID, gfxFloat aConvFactor);
 
     static void DestroyBlobFunc(void* aUserData);
 
