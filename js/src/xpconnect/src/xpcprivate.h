@@ -2523,28 +2523,6 @@ public:
 
     void SystemIsBeingShutDown(JSContext* cx);
 
-#ifdef XPC_DETECT_LEADING_UPPERCASE_ACCESS_ERRORS
-    
-    
-    
-    
-    static void
-    HandlePossibleNameCaseError(XPCCallContext& ccx,
-                                XPCNativeSet* set,
-                                XPCNativeInterface* iface,
-                                jsid name);
-    static void
-    HandlePossibleNameCaseError(JSContext* cx,
-                                XPCNativeSet* set,
-                                XPCNativeInterface* iface,
-                                jsid name);
-
-#define  HANDLE_POSSIBLE_NAME_CASE_ERROR(context, set, iface, name) \
-    XPCWrappedNative::HandlePossibleNameCaseError(context, set, iface, name)
-#else
-#define  HANDLE_POSSIBLE_NAME_CASE_ERROR(context, set, iface, name) ((void)0)
-#endif
-
     enum CallMode {CALL_METHOD, CALL_GETTER, CALL_SETTER};
 
     static JSBool CallMethod(XPCCallContext& ccx,
