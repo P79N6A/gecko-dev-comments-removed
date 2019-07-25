@@ -49,5 +49,14 @@
 # error "Neither JS_NUNBOX32 nor JS_PUNBOX32 is defined."
 #endif
 
+
+#ifdef DEBUG
+# define DBGLABEL(name) Label name = masm.label();
+# define DBGLABEL_ASSIGN(name) name = masm.label();
+#else
+# define DBGLABEL(name)
+# define DBGLABEL_ASSIGN(name)
 #endif
+
+#endif 
 
