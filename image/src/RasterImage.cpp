@@ -1453,8 +1453,14 @@ RasterImage::AddSourceData(const char *aBuffer, PRUint32 aCount)
 
   
   
+  if (mDecoded) {
+    return NS_OK;
+  }
+
   
-  if (mBytesDecoded == 0) {
+  
+  
+  if (mMultipart && mBytesDecoded == 0) {
     
     if (mAnimating) {
       StopAnimation();
