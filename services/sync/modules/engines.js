@@ -329,20 +329,21 @@ NewEngine.prototype = {
   _sync: function NewEngine__sync() {
     let self = yield;
 
+    
+
     yield this._remoteSetup.async(this, self.cb);
 
     
-    
-    
+
     if (!this.lastSync) {
+      
       let all = this._store.wrap();
       for (let key in all) {
         let record = yield this._createRecord.async(this, self.cb, key, all[key]);
         this.outgoing.push(record);
       }
-      this._snapshot.data = all;
-
     } else {
+      
       this._snapshot.load();
       let newsnap = this._store.wrap();
       let updates = yield this._core.detectUpdates(self.cb,
@@ -354,10 +355,10 @@ NewEngine.prototype = {
         let record = yield this._createRecord.async(this, self.cb, cmd.GUID, data);
         this.outgoing.push(record);
       }
-      this._snapshot.data = newsnap;
     }
 
     
+
     let newitems = new Collection(this.engineURL);
     newitems.modified = this.lastSync;
     newitems.full = true;
@@ -365,11 +366,15 @@ NewEngine.prototype = {
 
     let item;
     while ((item = newitems.iter.next())) {
-      
-      if (item.modified > this.lastSync)
-        this.incoming.push(item);
+      this.incoming.push(item);
     }
 
+    
+
+    
+
+    
+    
     
     let conflicts = [];
     for (let i = 0; i < this.incoming.length; i++) {
@@ -385,7 +390,7 @@ NewEngine.prototype = {
       this._log.warn("Conflicts found.  Conflicting server changes discarded");
 
     
-    
+
     let inc;
     while ((inc = this.incoming.pop())) {
       yield this._store.applyIncoming(self.cb, inc);
@@ -394,21 +399,25 @@ NewEngine.prototype = {
     }
 
     
-    let up = new Collection(this.engineURL);
-    let out;
-    while ((out = this.outgoing.pop())) {
-      yield up.pushRecord(self.cb, out);
+
+    if (this.outgoing.length) {
+      let up = new Collection(this.engineURL);
+      let out;
+      while ((out = this.outgoing.pop())) {
+        yield up.pushRecord(self.cb, out);
+      }
+      yield up.post(self.cb);
+
+      
+      for each (let ts in up.data.success) {
+        if (ts > this.lastSync)
+          this.lastSync = ts;
+      }
     }
-    yield up.post(self.cb);
 
     
-    yield newitems.get(self.cb);
-    newitems.iter.reset();
-    while ((item = newitems.iter.next())) {
-      if (item.modified > this.lastSync)
-        this.lastSync = item.modified;
-    }
 
+    this._snapshot.data = this._store.wrap();
     this._snapshot.save();
 
     self.done();
