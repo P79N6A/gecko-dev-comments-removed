@@ -311,6 +311,12 @@ public:
   
   void CanAdjustEdges(PRInt8 aHorizontalSide, PRInt8 aVerticalSide, nsIntPoint& aChange);
 
+  
+  PRBool IsAnchored() const { return mScreenXPos == -1 && mScreenYPos == -1; }
+
+  
+  nsIntPoint ScreenPosition() const { return nsIntPoint(mScreenXPos, mScreenYPos); }
+
 protected:
 
   

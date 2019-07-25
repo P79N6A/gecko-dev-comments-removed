@@ -76,6 +76,7 @@ class nsMenuBarFrame;
 class nsMenuParent;
 class nsIDOMKeyEvent;
 class nsIDocShellTreeItem;
+class nsIView;
 
 
 
@@ -518,6 +519,18 @@ public:
 
 
   PRBool MayShowPopup(nsMenuPopupFrame* aFrame);
+
+  
+
+
+
+  void PopupMoved(nsIView* aView, nsIntPoint aPoint);
+
+  
+
+
+
+  void PopupResized(nsIView* aView, nsIntSize ASize);
 
   
 

@@ -290,6 +290,67 @@ nsXULPopupManager::AdjustPopupsOnWindowChange(nsPIDOMWindow* aWindow)
   }
 }
 
+static
+nsMenuPopupFrame* GetPopupToMoveOrResize(nsIView* aView)
+{
+  nsIFrame *frame = static_cast<nsIFrame *>(aView->GetClientData());
+  if (!frame || frame->GetType() != nsGkAtoms::menuPopupFrame)
+    return nsnull;
+
+  
+  nsMenuPopupFrame* menuPopupFrame = static_cast<nsMenuPopupFrame *>(frame);
+  if (menuPopupFrame->PopupState() != ePopupOpenAndVisible)
+    return nsnull;
+
+  return menuPopupFrame;
+}
+
+void
+nsXULPopupManager::PopupMoved(nsIView* aView, nsIntPoint aPnt)
+{
+  nsMenuPopupFrame* menuPopupFrame = GetPopupToMoveOrResize(aView);
+  if (!menuPopupFrame)
+    return;
+
+  
+  
+  nsIntPoint currentPnt = menuPopupFrame->ScreenPosition();
+  if (aPnt.x != currentPnt.x || aPnt.y != currentPnt.y) {
+    
+    
+    
+    
+    if (menuPopupFrame->IsAnchored()) {
+      menuPopupFrame->SetPopupPosition(nsnull, PR_TRUE);
+    }
+    else {
+      menuPopupFrame->MoveTo(aPnt.x, aPnt.y, PR_FALSE);
+    }
+  }
+}
+
+void
+nsXULPopupManager::PopupResized(nsIView* aView, nsIntSize aSize)
+{
+  nsMenuPopupFrame* menuPopupFrame = GetPopupToMoveOrResize(aView);
+  if (!menuPopupFrame)
+    return;
+
+  nsPresContext* presContext = menuPopupFrame->PresContext();
+
+  nsSize currentSize = menuPopupFrame->GetSize();
+  if (aSize.width != presContext->AppUnitsToDevPixels(currentSize.width) ||
+      aSize.height != presContext->AppUnitsToDevPixels(currentSize.height)) {
+    
+    nsIContent* popup = menuPopupFrame->GetContent();
+    nsAutoString width, height;
+    width.AppendInt(aSize.width);
+    height.AppendInt(aSize.height);
+    popup->SetAttr(kNameSpaceID_None, nsGkAtoms::width, width, PR_FALSE);
+    popup->SetAttr(kNameSpaceID_None, nsGkAtoms::height, height, PR_TRUE);
+  }
+}
+
 nsIFrame*
 nsXULPopupManager::GetFrameOfTypeForContent(nsIContent* aContent,
                                             nsIAtom* aFrameType,
