@@ -302,6 +302,10 @@ SVGDocumentWrapper::Observe(nsISupports* aSubject,
       mListener = nsnull;
     if (mLoadGroup)
       mLoadGroup = nsnull;
+
+    
+    
+    mRegisteredForXPCOMShutdown = PR_FALSE;
   } else {
     NS_ERROR("Unexpected observer topic.");
   }
