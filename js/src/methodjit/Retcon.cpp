@@ -123,7 +123,7 @@ Recompiler::recompile()
     
     JSStackFrame *firstFrame = NULL;
     for (AllFramesIter i(cx); !i.done(); ++i) {
-        if (!firstFrame && i.fp()->script == script)
+        if (!firstFrame && i.fp()->maybeScript() == script)
             firstFrame = i.fp();
         if (script->isValidJitCode(i.fp()->ncode)) {
             if (!toPatch.append(findPatch(&i.fp()->ncode)))
@@ -157,7 +157,7 @@ Recompiler::recompile()
     
     JS_ASSERT(cx->compartment->debugMode);
 
-    Compiler c(cx, script, firstFrame->fun, firstFrame->getScopeChain());
+    Compiler c(cx, script, firstFrame->getFunction(), firstFrame->getScopeChain());
     if (c.Compile() != Compile_Okay)
         return false;
 

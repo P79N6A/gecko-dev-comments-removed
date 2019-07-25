@@ -89,8 +89,6 @@ struct JSStackFrame
     JSObject            *callobj;       
     JSObject            *argsobj;       
     jsbytecode          *imacpc;        
-
-  public:
     JSScript            *script;        
 	
     
@@ -108,11 +106,13 @@ struct JSStackFrame
 
     js::Value           thisv;          
     JSFunction          *fun;           
+
+  public:
     uintN               argc;           
     js::Value           *argv;          
-    js::Value           rval;           
 
   private:
+    js::Value           rval;           
     void                *annotation;    
 
   public:
@@ -129,8 +129,8 @@ struct JSStackFrame
   private:
     JSObject        *scopeChain;
     JSObject        *blockChain;
-  public:
 
+  public:
     uint32          flags;          
 
   private:
@@ -424,6 +424,10 @@ struct JSStackFrame
 
     void setThisValue(const js::Value &v) {
         thisv = v;
+    }
+
+    static size_t offsetThisValue() {
+        return offsetof(JSStackFrame, thisv);
     }
 
     
