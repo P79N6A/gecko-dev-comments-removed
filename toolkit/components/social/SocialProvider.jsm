@@ -27,8 +27,10 @@ function SocialProvider(input, enabled) {
     throw new Error("SocialProvider must be passed an origin");
 
   this.name = input.name;
+  this.iconURL = input.iconURL;
   this.workerURL = input.workerURL;
   this.origin = input.origin;
+  this.ambientNotificationIcons = {};
 
   
   this._enabled = !(enabled == false);
@@ -66,12 +68,45 @@ SocialProvider.prototype = {
   workerAPI: null,
 
   
+  
+  
+  
+  
+  profile: null,
+
+  
+  
+  
+  
+  ambientNotificationIcons: null,
+
+  
+  updateUserProfile: function(profile) {
+    this.profile = profile;
+
+    if (profile.iconURL)
+      this.iconURL = profile.iconURL;
+
+    if (!profile.displayName)
+      profile.displayName = profile.userName;
+
+    Services.obs.notifyObservers(null, "social:profile-changed", this.origin);
+  },
+
+  
+  setAmbientNotification: function(notification) {
+    this.ambientNotificationIcons[notification.name] = notification;
+
+    Services.obs.notifyObservers(null, "social:ambient-notification-changed", this.origin);
+  },
+
+  
   _activate: function _activate() {
     
     
     let workerAPIPort = this._getWorkerPort();
     if (workerAPIPort)
-      this.workerAPI = new WorkerAPI(workerAPIPort);
+      this.workerAPI = new WorkerAPI(this, workerAPIPort);
 
     this.port = this._getWorkerPort();
   },
