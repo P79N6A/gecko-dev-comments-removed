@@ -70,7 +70,7 @@ BEGIN_TEST(testSetProperty_InheritedGlobalSetter)
     
     
     
-    JS_ASSERT(JS_GET_CLASS(cx, global)->resolve == &JS_ResolveStub);
+    JS_ASSERT(JS_GetClass(global)->resolve == &JS_ResolveStub);
 
     CHECK(JS_DefineProperty(cx, global, "HOTLOOP", INT_TO_JSVAL(8), NULL, NULL, 0));
     EXEC("var n = 0;\n"
