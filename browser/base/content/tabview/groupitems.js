@@ -130,8 +130,7 @@ function GroupItem(listOfEls, options) {
     .click(function() {
       self.newTab();
     })
-    .attr('title',
-          "New tab")
+    .attr('title', tabviewString('groupItem.newTabButton'))
     .appendTo($container);
 
   
@@ -296,7 +295,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  defaultName: "Name this tab groupâ€¦",
+  defaultName: tabviewString('groupItem.defaultName'),
 
   
   
@@ -1744,6 +1743,8 @@ let GroupItems = {
   
   
   killNewTabGroup: function GroupItems_killNewTabGroup() {
+    
+    
     let newTabGroupTitle = "New Tabs";
     this.groupItems.forEach(function(groupItem) {
       if (groupItem.getTitle() == newTabGroupTitle && groupItem.locked.title) {
