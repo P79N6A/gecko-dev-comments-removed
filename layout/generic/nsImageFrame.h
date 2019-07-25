@@ -386,12 +386,13 @@ public:
   }
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      nsRenderingContext* aCtx);
+  nsCOMPtr<imgIContainer> GetImage();
  
   
 
 
 
-  already_AddRefed<ImageContainer> GetContainer(LayerManager* aManager);
+  nsRefPtr<ImageContainer> GetContainer(LayerManager* aManager);
   
   
 
