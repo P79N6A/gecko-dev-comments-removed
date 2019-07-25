@@ -63,8 +63,8 @@ enum nsViewVisibility {
 
 
 #define NS_IVIEW_IID    \
-  { 0xdb512cfa, 0xe00c, 0x4eff, \
-    { 0xa2, 0x9c, 0x18, 0x74, 0x96, 0x63, 0x17, 0x69 } }
+  { 0xfb9900df, 0x5956, 0x4175, \
+    { 0x83, 0xba, 0x05, 0x74, 0x31, 0x96, 0x61, 0xee } }
 
 
 #define NS_VIEW_FLAGS_PUBLIC              0x00FF
@@ -149,6 +149,7 @@ public:
 
 
 
+
   nsPoint GetPosition() const {
     
     
@@ -170,6 +171,7 @@ public:
 
 
 
+
   nsRect GetBounds() const { return mDimBounds; }
 
   
@@ -185,7 +187,21 @@ public:
 
 
 
+
+
+
+
+
   nsPoint GetOffsetTo(const nsIView* aOther) const;
+
+  
+
+
+
+
+
+
+  nsPoint GetOffsetToWidget(nsIWidget* aWidget) const;
 
   
 
@@ -355,6 +371,7 @@ public:
   
   
   
+  
   nsPoint ViewToWidgetOffset() const { return mViewToWidgetOffset; }
 
 protected:
@@ -367,8 +384,11 @@ protected:
   void              *mClientData;
   PRInt32           mZIndex;
   nsViewVisibility  mVis;
+  
   nscoord           mPosX, mPosY;
-  nsRect            mDimBounds; 
+  
+  nsRect            mDimBounds;
+  
   nsPoint           mViewToWidgetOffset;
   float             mOpacity;
   PRUint32          mVFlags;

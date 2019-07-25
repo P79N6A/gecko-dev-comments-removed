@@ -73,6 +73,7 @@ public:
 
 
 
+
   virtual void SetDimensions(const nsRect &aRect, PRBool aPaint = PR_TRUE,
                              PRBool aResizeWidget = PR_TRUE);
   void GetDimensions(nsRect &aRect) const { aRect = mDimBounds; aRect.x -= mPosX; aRect.y -= mPosY; }
@@ -129,6 +130,8 @@ public:
   
   nsRect GetDimensions() const { nsRect r = mDimBounds; r.MoveBy(-mPosX, -mPosY); return r; }
   
+  nsRect GetBoundsInParentUnits() const;
+  
   
 
   PRBool HasNonEmptyDirtyRegion() {
@@ -156,14 +159,7 @@ public:
   void SetTopMost(PRBool aTopMost) { aTopMost ? mVFlags |= NS_VIEW_FLAG_TOPMOST : mVFlags &= ~NS_VIEW_FLAG_TOPMOST; }
   PRBool IsTopMost() { return((mVFlags & NS_VIEW_FLAG_TOPMOST) != 0); }
 
-  
-  
-  
-  void ConvertToParentCoords(nscoord* aX, nscoord* aY) const { *aX += mPosX; *aY += mPosY; }
-  
-  
-  
-  void ConvertFromParentCoords(nscoord* aX, nscoord* aY) const { *aX -= mPosX; *aY -= mPosY; }
+  nsPoint ConvertFromParentCoords(nsPoint aPt) const;
   void ResetWidgetBounds(PRBool aRecurse, PRBool aMoveOnly, PRBool aInvalidateChangedSize);
   void SetPositionIgnoringChildWidgets(nscoord aX, nscoord aY);
   nsresult LoadWidget(const nsCID &aClassIID);
@@ -177,6 +173,11 @@ public:
   void InvalidateHierarchy(nsViewManager *aViewManagerParent);
 
   virtual ~nsView();
+
+  nsPoint GetOffsetTo(const nsView* aOther) const;
+  nsIWidget* GetNearestWidget(nsPoint* aOffset) const;
+  nsPoint GetOffsetTo(const nsView* aOther, const PRInt32 aAPD) const;
+  nsIWidget* GetNearestWidget(nsPoint* aOffset, const PRInt32 aAPD) const;
 
 protected:
   

@@ -390,16 +390,14 @@ PRBool nsIView::IsEffectivelyVisible()
 
 nsIntRect nsIView::CalcWidgetBounds(nsWindowType aType)
 {
-  nsCOMPtr<nsIDeviceContext> dx;
-  mViewManager->GetDeviceContext(*getter_AddRefs(dx));
-  NS_ASSERTION(dx, "View manager can't be created without a device context");
-  PRInt32 p2a = dx->AppUnitsPerDevPixel();
+  PRInt32 p2a = mViewManager->AppUnitsPerDevPixel();
 
   nsRect viewBounds(mDimBounds);
 
-  if (GetParent()) {
+  nsView* parent = static_cast<nsView*>(GetParent());
+  if (parent) {
     nsPoint offset;
-    nsIWidget* parentWidget = GetParent()->GetNearestWidget(&offset);
+    nsIWidget* parentWidget = parent->GetNearestWidget(&offset, p2a);
     
     viewBounds += offset;
 
@@ -879,10 +877,7 @@ void nsIView::List(FILE* out, PRInt32 aIndent) const
   for (i = aIndent; --i >= 0; ) fputs("  ", out);
   fprintf(out, "%p ", (void*)this);
   if (nsnull != mWindow) {
-    nsIDeviceContext *dx;
-    mViewManager->GetDeviceContext(dx);
-    nscoord p2a = dx->AppUnitsPerDevPixel();
-    NS_RELEASE(dx);
+    nscoord p2a = mViewManager->AppUnitsPerDevPixel();
     nsIntRect rect;
     mWindow->GetClientBounds(rect);
     nsRect windowBounds = rect.ToAppUnits(p2a);
@@ -913,38 +908,119 @@ void nsIView::List(FILE* out, PRInt32 aIndent) const
 
 nsPoint nsIView::GetOffsetTo(const nsIView* aOther) const
 {
+  const nsView* view = static_cast<const nsView*>(this);
+  return view->GetOffsetTo(static_cast<const nsView*>(aOther),
+                           view->GetViewManager()->AppUnitsPerDevPixel());
+}
+
+nsPoint nsView::GetOffsetTo(const nsView* aOther) const
+{
+  return GetOffsetTo(aOther, GetViewManager()->AppUnitsPerDevPixel());
+}
+
+nsPoint nsView::GetOffsetTo(const nsView* aOther, const PRInt32 aAPD) const
+{
+  
   nsPoint offset(0, 0);
-  const nsIView* v;
-  for (v = this; v != aOther && v; v = v->GetParent()) {
-    offset += v->GetPosition();
+  
+  nsPoint docOffset(0, 0);
+  const nsView* v = this;
+  nsViewManager* currVM = v->GetViewManager();
+  PRInt32 currAPD = currVM->AppUnitsPerDevPixel();
+  const nsView* root = nsnull;
+  for ( ; v != aOther && v; root = v, v = v->GetParent()) {
+    nsViewManager* newVM = v->GetViewManager();
+    if (newVM != currVM) {
+      PRInt32 newAPD = newVM->AppUnitsPerDevPixel();
+      if (newAPD != currAPD) {
+        offset += docOffset.ConvertAppUnits(currAPD, aAPD);
+        docOffset.x = docOffset.y = 0;
+        currAPD = newAPD;
+      }
+      currVM = newVM;
+    }
+    docOffset += v->GetPosition();
   }
+  offset += docOffset.ConvertAppUnits(currAPD, aAPD);
 
   if (v != aOther) {
     
     
     
-    while (aOther) {
-      offset -= aOther->GetPosition();
-      aOther = aOther->GetParent();
-    }
+    nsPoint negOffset = aOther->GetOffsetTo(root, aAPD);
+    offset -= negOffset;
   }
 
   return offset;
 }
 
+nsPoint nsIView::GetOffsetToWidget(nsIWidget* aWidget) const
+{
+  nsPoint pt;
+  
+  nsView* widgetView = static_cast<nsView*>(GetViewFor(aWidget));
+  if (!widgetView) {
+    return pt;
+  }
+  
+  
+  
+  
+  
+  
+  
+  pt = -widgetView->GetOffsetTo(static_cast<const nsView*>(this));
+  
+  pt += widgetView->ViewToWidgetOffset();
+
+  
+  PRInt32 widgetAPD = widgetView->GetViewManager()->AppUnitsPerDevPixel();
+  PRInt32 ourAPD = static_cast<const nsView*>(this)->
+                    GetViewManager()->AppUnitsPerDevPixel();
+  pt = pt.ConvertAppUnits(widgetAPD, ourAPD);
+  return pt;
+}
+
 nsIWidget* nsIView::GetNearestWidget(nsPoint* aOffset) const
+{
+  const nsView* view = static_cast<const nsView*>(this);
+  return view->GetNearestWidget(aOffset,
+                                view->GetViewManager()->AppUnitsPerDevPixel());
+}
+
+nsIWidget* nsView::GetNearestWidget(nsPoint* aOffset) const
+{
+  return GetNearestWidget(aOffset, GetViewManager()->AppUnitsPerDevPixel());
+}
+
+nsIWidget* nsView::GetNearestWidget(nsPoint* aOffset, const PRInt32 aAPD) const
 {
   
   
 
+  
   nsPoint pt(0, 0);
-  const nsView* v;
-  for (v = static_cast<const nsView*>(this);
-       v && !v->HasWidget(); v = v->GetParent()) {
-    pt += v->GetPosition();
+  
+  nsPoint docPt(0,0);
+  const nsView* v = this;
+  nsViewManager* currVM = v->GetViewManager();
+  PRInt32 currAPD = currVM->AppUnitsPerDevPixel();
+  for ( ; v && !v->HasWidget(); v = v->GetParent()) {
+    nsViewManager* newVM = v->GetViewManager();
+    if (newVM != currVM) {
+      PRInt32 newAPD = newVM->AppUnitsPerDevPixel();
+      if (newAPD != currAPD) {
+        pt += docPt.ConvertAppUnits(currAPD, aAPD);
+        docPt.x = docPt.y = 0;
+        currAPD = newAPD;
+      }
+      currVM = newVM;
+    }
+    docPt += v->GetPosition();
   }
   if (!v) {
     if (aOffset) {
+      pt += docPt.ConvertAppUnits(currAPD, aAPD);
       *aOffset = pt;
     }
     return nsnull;
@@ -952,11 +1028,10 @@ nsIWidget* nsIView::GetNearestWidget(nsPoint* aOffset) const
 
   
   
-  
   if (aOffset) {
-    nsRect vBounds = v->GetBounds();
-    *aOffset = pt + v->GetPosition() -  nsPoint(vBounds.x, vBounds.y) +
-               v->ViewToWidgetOffset();
+    docPt += v->ViewToWidgetOffset();
+    pt += docPt.ConvertAppUnits(currAPD, aAPD);
+    *aOffset = pt;
   }
   return v->GetWidget();
 }
@@ -979,4 +1054,29 @@ nsIView::SetDeletionObserver(nsWeakView* aDeletionObserver)
     aDeletionObserver->SetPrevious(mDeletionObserver);
   }
   mDeletionObserver = aDeletionObserver;
+}
+
+nsRect
+nsView::GetBoundsInParentUnits() const
+{
+  nsView* parent = GetParent();
+  nsViewManager* VM = GetViewManager();
+  if (this != VM->GetRootView() || !parent) {
+    return mDimBounds;
+  }
+  PRInt32 ourAPD = VM->AppUnitsPerDevPixel();
+  PRInt32 parentAPD = parent->GetViewManager()->AppUnitsPerDevPixel();
+  return mDimBounds.ConvertAppUnitsRoundOut(ourAPD, parentAPD);
+}
+
+nsPoint
+nsView::ConvertFromParentCoords(nsPoint aPt) const
+{
+  nsView* parent = GetParent();
+  if (parent) {
+    aPt = aPt.ConvertAppUnits(parent->GetViewManager()->AppUnitsPerDevPixel(),
+                              GetViewManager()->AppUnitsPerDevPixel());
+  }
+  aPt -= GetPosition();
+  return aPt;
 }
