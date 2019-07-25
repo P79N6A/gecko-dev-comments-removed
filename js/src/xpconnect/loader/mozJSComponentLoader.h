@@ -39,11 +39,12 @@
 
 #include "plhash.h"
 #include "jsapi.h"
-#include "mozilla/ModuleLoader.h"
+#include "nsIModuleLoader.h"
 #include "nsIJSRuntimeService.h"
 #include "nsIJSContextStack.h"
 #include "nsISupports.h"
 #include "nsIXPConnect.h"
+#include "nsIModule.h"
 #include "nsIFile.h"
 #include "nsAutoPtr.h"
 #include "nsIFastLoadService.h"
@@ -57,7 +58,6 @@
 #ifndef XPCONNECT_STANDALONE
 #include "nsIPrincipal.h"
 #endif
-#include "xpcIJSGetFactory.h"
 
 
 
@@ -65,6 +65,7 @@
   {0x6bd13476, 0x1dd2, 0x11b2, \
     { 0xbb, 0xef, 0xf0, 0xcc, 0xb5, 0xfa, 0x64, 0xb6 }}
 #define MOZJSCOMPONENTLOADER_CONTRACTID "@mozilla.org/moz/jsloader;1"
+#define MOZJSCOMPONENTLOADER_TYPE_NAME "text/javascript"
 
 
 class nsXPCFastLoadIO : public nsIFastLoadFileIO
@@ -88,23 +89,19 @@ class nsXPCFastLoadIO : public nsIFastLoadFileIO
 };
 
 
-class mozJSComponentLoader : public mozilla::ModuleLoader,
+class mozJSComponentLoader : public nsIModuleLoader,
                              public xpcIJSModuleLoader,
                              public nsIObserver
 {
     friend class JSCLContextHelper;
  public:
     NS_DECL_ISUPPORTS
+    NS_DECL_NSIMODULELOADER
     NS_DECL_XPCIJSMODULELOADER
     NS_DECL_NSIOBSERVER
 
     mozJSComponentLoader();
     virtual ~mozJSComponentLoader();
-
-    
-    const mozilla::Module* LoadModule(nsILocalFile* aFile);
-    const mozilla::Module* LoadModuleFromJAR(nsILocalFile* aJARFile,
-                                             const nsACString& aPath);
 
  protected:
     static mozJSComponentLoader* sSelf;
@@ -112,17 +109,7 @@ class mozJSComponentLoader : public mozilla::ModuleLoader,
     nsresult ReallyInit();
     void UnloadModules();
 
-    nsresult FileKey(nsILocalFile* aFile, nsAString &aResult);
-    nsresult JarKey(nsILocalFile* aFile,
-                    const nsACString& aComponentPath,
-                    nsAString &aResult);
-
-    const mozilla::Module* LoadModuleImpl(nsILocalFile* aSourceFile,
-                                          nsAString &aKey,
-                                          nsIURI* aComponentURI);
-
-    nsresult GlobalForLocation(nsILocalFile* aComponentFile,
-                               nsIURI *aComponent,
+    nsresult GlobalForLocation(nsILocalFile *aComponent,
                                JSObject **aGlobal,
                                char **location,
                                jsval *exception);
@@ -150,58 +137,37 @@ class mozJSComponentLoader : public mozilla::ModuleLoader,
     JSRuntime *mRuntime;
     JSContext *mContext;
 
-    class ModuleEntry : public mozilla::Module
+    class ModuleEntry
     {
     public:
-        ModuleEntry() : mozilla::Module() {
-            mVersion = mozilla::Module::kVersion;
-            mCIDs = NULL;
-            mContractIDs = NULL;
-            mCategoryEntries = NULL;
-            getFactoryProc = GetFactory;
-            loadProc = NULL;
-            unloadProc = NULL;
-
+        ModuleEntry() {
             global = nsnull;
             location = nsnull;
         }
 
         ~ModuleEntry() {
-            Clear();
-        }
-
-        void Clear() {
-            getfactoryobj = NULL;
+            module = nsnull;
 
             if (global) {
                 JSAutoRequest ar(sSelf->mContext);
                 JS_ClearScope(sSelf->mContext, global);
-                JS_RemoveRoot(sSelf->mContext, &global);
+                JS_RemoveObjectRoot(sSelf->mContext, &global);
             }
 
             if (location)
                 NS_Free(location);
-
-            global = NULL;
-            location = NULL;
         }
 
-        static already_AddRefed<nsIFactory> GetFactory(const mozilla::Module& module,
-                                                       const mozilla::Module::CIDEntry& entry);
-
-        nsCOMPtr<xpcIJSGetFactory> getfactoryobj;
+        nsCOMPtr<nsIModule>  module;
         JSObject            *global;
         char                *location;
     };
 
     friend class ModuleEntry;
 
-    
-    static PLDHashOperator ClearModules(const nsAString& key, ModuleEntry*& entry, void* cx);
-    nsDataHashtable<nsStringHashKey, ModuleEntry*> mModules;
-
-    nsClassHashtable<nsStringHashKey, ModuleEntry> mImports;
-    nsDataHashtable<nsStringHashKey, ModuleEntry*> mInProgressImports;
+    nsClassHashtable<nsHashableHashKey, ModuleEntry> mModules;
+    nsClassHashtable<nsHashableHashKey, ModuleEntry> mImports;
+    nsDataHashtable<nsHashableHashKey, ModuleEntry*> mInProgressImports;
 
     PRBool mInitialized;
 };

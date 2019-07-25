@@ -337,7 +337,7 @@ JO(JSContext *cx, jsval *vp, StringifyContext *scx)
         s->getCharsAndLength(chars, length);
         if (!write_string(cx, scx->cb, chars, length) ||
             !scx->cb.append(':') ||
-            !Str(cx, id, obj, scx, &outputValue, true)) {
+            !Str(cx, id, obj, scx, &outputValue, false)) {
             return JS_FALSE;
         }
     }
@@ -638,7 +638,7 @@ js_BeginJSONParse(JSContext *cx, jsval *rootVal)
         return NULL;
 
     jp->objectStack = arr;
-    if (!js_AddRoot(cx, &jp->objectStack, "JSON parse stack"))
+    if (!JS_AddNamedObjectRoot(cx, &jp->objectStack, "JSON parse stack"))
         goto bad;
 
     jp->statep = jp->stateStack;

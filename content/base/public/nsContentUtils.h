@@ -129,8 +129,6 @@ class nsIBidiKeyboard;
 class nsIMIMEHeaderParam;
 class nsIObserver;
 class nsPresContext;
-class nsIChannel;
-struct nsIntMargin;
 
 #ifndef have_PrefChangedFunc_typedef
 typedef int (*PR_CALLBACK PrefChangedFunc)(const char *, void *);
@@ -163,12 +161,9 @@ enum EventNameType {
   EventNameType_All = 0xFFFF
 };
 
-struct EventNameMapping
-{
-  nsIAtom* mAtom;
-  PRUint32 mId;
-  PRInt32  mType;
-  PRUint32 mStructType;
+struct EventNameMapping {
+  PRUint32  mId;
+  PRInt32 mType;
 };
 
 struct nsShortcutCandidate {
@@ -402,16 +397,6 @@ public:
 
   static PRBool IsHTMLWhitespace(PRUnichar aChar);
 
-  
-
-
-
-
-
-
-
-  static PRBool ParseIntMarginValue(const nsAString& aString, nsIntMargin& aResult);
-
   static void Shutdown();
 
   
@@ -486,8 +471,6 @@ public:
 
   static imgILoader* GetImgLoader()
   {
-    if (!sImgLoaderInitialized)
-      InitImgLoader();
     return sImgLoader;
   }
 
@@ -970,19 +953,6 @@ public:
 
 
   static PRUint32 GetEventId(nsIAtom* aName);
-
-  
-
-
-
-
-
-
-
-
-  static nsIAtom* GetEventIdAndAtom(const nsAString& aName,
-                                    PRUint32 aEventStruct,
-                                    PRUint32* aEventID);
 
   
 
@@ -1554,8 +1524,6 @@ public:
   static already_AddRefed<nsIDocument>
   GetDocumentFromScriptContext(nsIScriptContext *aScriptContext);
 
-  static PRBool CheckMayLoad(nsIPrincipal* aPrincipal, nsIChannel* aChannel);
-
   
 
 
@@ -1691,10 +1659,6 @@ private:
   
   static nsCOMArray<nsPrefOldCallback> *sPrefCallbackList;
 
-  static bool sImgLoaderInitialized;
-  static void InitImgLoader();
-
-  
   static imgILoader* sImgLoader;
   static imgICache* sImgCache;
 
@@ -1702,9 +1666,7 @@ private:
 
   static nsIConsoleService* sConsoleService;
 
-  static nsDataHashtable<nsISupportsHashKey, EventNameMapping>* sAtomEventTable;
-  static nsDataHashtable<nsStringHashKey, EventNameMapping>* sStringEventTable;
-  static nsCOMArray<nsIAtom>* sUserDefinedEvents;
+  static nsDataHashtable<nsISupportsHashKey, EventNameMapping>* sEventTable;
 
   static nsIStringBundleService* sStringBundleService;
   static nsIStringBundle* sStringBundles[PropertiesFile_COUNT];
@@ -1786,46 +1748,39 @@ public:
   
   nsAutoGCRoot(jsval* aPtr, nsresult* aResult
                MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) :
-    mPtr(aPtr)
+    mPtr(aPtr), mRootType(RootType_JSVal)
   {
     MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
-    mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
+    mResult = *aResult = AddJSGCRoot(aPtr, RootType_JSVal, "nsAutoGCRoot");
   }
 
   
   nsAutoGCRoot(JSObject** aPtr, nsresult* aResult
                MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) :
-    mPtr(aPtr)
+    mPtr(aPtr), mRootType(RootType_Object)
   {
     MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
-    mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
-  }
-
-  
-  nsAutoGCRoot(void* aPtr, nsresult* aResult
-               MOZILLA_GUARD_OBJECT_NOTIFIER_PARAM) :
-    mPtr(aPtr)
-  {
-    MOZILLA_GUARD_OBJECT_NOTIFIER_INIT;
-    mResult = *aResult = AddJSGCRoot(aPtr, "nsAutoGCRoot");
+    mResult = *aResult = AddJSGCRoot(aPtr, RootType_Object, "nsAutoGCRoot");
   }
 
   ~nsAutoGCRoot() {
     if (NS_SUCCEEDED(mResult)) {
-      RemoveJSGCRoot(mPtr);
+      RemoveJSGCRoot(mPtr, mRootType);
     }
   }
 
   static void Shutdown();
 
 private:
-  static nsresult AddJSGCRoot(void *aPtr, const char* aName);
-  static nsresult RemoveJSGCRoot(void *aPtr);
+  enum RootType { RootType_JSVal, RootType_Object };
+  static nsresult AddJSGCRoot(void *aPtr, RootType aRootType, const char* aName);
+  static nsresult RemoveJSGCRoot(void *aPtr, RootType aRootType);
 
   static nsIJSRuntimeService* sJSRuntimeService;
   static JSRuntime* sJSScriptRuntime;
 
   void* mPtr;
+  RootType mRootType;
   nsresult mResult;
   MOZILLA_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
