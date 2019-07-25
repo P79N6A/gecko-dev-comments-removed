@@ -764,6 +764,25 @@ let UI = {
   
   
   
+  getClosestTab: function UI_getClosestTab(tabCenter) {
+    let cl = null;
+    let clDist;
+    for each(item in TabItems.getItems()) {
+      if (item.parent && item.parent.hidden) {
+        continue;
+      }
+      let testDist = tabCenter.distance(item.bounds.center());
+      if (cl==null || testDist < clDist) {
+        cl = item;
+        clDist = testDist;
+      }
+    }
+    return cl;
+  },
+
+  
+  
+  
   _setTabViewFrameKeyHandlers: function UI__setTabViewFrameKeyHandlers() {
     var self = this;
 
