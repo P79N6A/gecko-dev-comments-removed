@@ -116,7 +116,9 @@ __attribute__((visibility("default"))) int print_status() {
 
 
 
-__thread int foo;
+
+
+__thread int foo[1024];
 
 __attribute__((constructor)) void end_test() {
     static int count = 0;

@@ -448,6 +448,9 @@ public:
         
         if ((p_type == PT_DYNAMIC) && (section->getType() != SHT_DYNAMIC))
             return false;
+        
+        if ((p_type == PT_TLS) && !(section->getFlags() & SHF_TLS))
+            return false;
         return (addr >= p_vaddr) &&
                (addr + size <= p_vaddr + p_memsz);
 
