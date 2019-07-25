@@ -758,7 +758,7 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
 
-    uint32_t            propertyRemovals;
+    int32_t             propertyRemovals;
 
     
     const char          *thousandsSeparator;

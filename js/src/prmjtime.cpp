@@ -346,9 +346,15 @@ PRMJ_Now(void)
 
 
 
+
+
+
+int CALIBRATION_DELAY_COUNT = 10;
+
 int64_t
 PRMJ_Now(void)
 {
+    static int nCalls = 0;
     long double lowresTime, highresTimerValue;
     FILETIME ft;
     LARGE_INTEGER now;
@@ -356,6 +362,16 @@ PRMJ_Now(void)
     JSBool needsCalibration = JS_FALSE;
     int64_t returnedTime;
     long double cachedOffset = 0.0;
+
+    
+
+
+
+    int thiscall = JS_ATOMIC_INCREMENT(&nCalls);
+    if (thiscall <= CALIBRATION_DELAY_COUNT) {
+        LowResTime(&ft);
+        return (FILETIME2INT64(ft)-win2un)/10L;
+    }
 
     
 #ifdef JS_THREADSAFE
