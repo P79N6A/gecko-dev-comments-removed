@@ -132,6 +132,12 @@ class Bytecode
     bool safePoint : 1;
 
     
+
+
+
+    bool monitoredTypes : 1;
+
+    
     uint32 stackDepth;
 
   private:
@@ -181,11 +187,10 @@ class Bytecode
     
 
     
-
-
-
-
     types::TypeSet *pushedTypes;
+
+    
+    types::TypeBarrier *typeBarriers;
 
     
 
@@ -957,18 +962,16 @@ class ScriptAnalysis
         return pushedTypes(pc - script->code, which);
     }
 
+    types::TypeBarrier *typeBarriers(uint32 offset) {
+        if (getCode(offset).typeBarriers)
+            pruneTypeBarriers(offset);
+        return getCode(offset).typeBarriers;
+    }
+    types::TypeBarrier *typeBarriers(const jsbytecode *pc) {
+        return typeBarriers(pc - script->code);
+    }
+
     inline void addPushedType(JSContext *cx, uint32 offset, uint32 which, types::jstype type);
-
-    bool monitoredTypes(uint32 offset) {
-        JS_ASSERT(offset < script->length);
-        return 0x1 & (size_t) getCode(offset).pushedTypes;
-    }
-
-    void setMonitoredTypes(uint32 offset) {
-        JS_ASSERT(offset < script->length);
-        types::TypeSet *&array = getCode(offset).pushedTypes;
-        array = (types::TypeSet *) (0x1 | (size_t) array);
-    }
 
     types::TypeSet *getValueTypes(const SSAValue &v) {
         switch (v.kind()) {
@@ -1127,6 +1130,7 @@ class ScriptAnalysis
     
     bool analyzeTypesBytecode(JSContext *cx, unsigned offset, TypeInferenceState &state);
     inline void setForTypes(JSContext *cx, jsbytecode *pc, types::TypeSet *types);
+    void pruneTypeBarriers(uint32 offset);
 };
 
 

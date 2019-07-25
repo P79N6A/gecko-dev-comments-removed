@@ -4,17 +4,18 @@ x = "notset";
 
 function doNothing() { }
 
+dis(myparent);
 function myparent(nested) {
   if (nested) {
     
-    trap(myparent, 24, "success()");
+    trap(myparent, 30, "success()");
     doNothing();
   } else {
     doNothing();
   }
 }
 
-trap(myparent, 35, "myparent(true)");
+trap(myparent, 43, "myparent(true)");
 
 function success() {
   x = "success";

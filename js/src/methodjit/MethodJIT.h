@@ -496,6 +496,7 @@ struct JITScript {
     void            *invokeEntry;       
     void            *fastEntry;         
     void            *arityCheckEntry;   
+    void            *argsCheckEntry;    
 
     
 

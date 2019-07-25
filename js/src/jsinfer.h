@@ -471,6 +471,28 @@ class TypeIntermediate
 };
 
 
+
+
+
+
+
+
+struct TypeBarrier
+{
+    
+    TypeBarrier *next;
+
+    
+    TypeSet *target;
+
+    
+
+
+
+    jstype type;
+};
+
+
 struct Property
 {
     

@@ -272,12 +272,6 @@ struct CallICInfo {
     bool hasJsFunCheck : 1;
     bool typeMonitored : 1;
 
-    
-
-
-
-    types::ClonedTypeSet *argTypes;
-
     inline void reset() {
         fastGuardedObject = NULL;
         fastGuardedNative = NULL;
@@ -290,10 +284,6 @@ struct CallICInfo {
         releasePool(Pool_ScriptStub);
         releasePool(Pool_ClosureStub);
         releasePool(Pool_NativeStub);
-        if (argTypes) {
-            UnwantedForeground::free_(argTypes);
-            argTypes = NULL;
-        }
     }
 
     inline void releasePool(PoolIndex index) {

@@ -411,7 +411,8 @@ struct JSScript {
     static JSScript *NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
                                uint32 nobjects, uint32 nupvars, uint32 nregexps,
                                uint32 ntrynotes, uint32 nconsts, uint32 nglobals,
-                               uint16 nClosedArgs, uint16 nClosedVars, JSVersion version);
+                               uint16 nClosedArgs, uint16 nClosedVars, uint32 nTypeSets,
+                               JSVersion version);
 
     static JSScript *NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
 
@@ -429,6 +430,8 @@ struct JSScript {
 
   public:
     uint16          nfixed;     
+
+    uint16          nTypeSets;  
 
 
     
@@ -525,7 +528,7 @@ struct JSScript {
     js::GlobalObject *global;
 
     
-    js::types::TypeSet *varTypes;
+    js::types::TypeSet *typeArray;
 
     
     js::types::TypeObject *typeObjects;
@@ -555,11 +558,9 @@ struct JSScript {
     inline js::types::TypeObject *getGlobalType();
 
     
+    inline bool ensureTypeArray(JSContext *cx);
 
-
-
-    inline bool ensureVarTypes(JSContext *cx);
-
+    inline js::types::TypeSet *bytecodeTypes(const jsbytecode *pc);
     inline js::types::TypeSet *returnTypes();
     inline js::types::TypeSet *thisTypes();
     inline js::types::TypeSet *argTypes(unsigned i);
@@ -570,7 +571,7 @@ struct JSScript {
     inline js::types::TypeSet *slotTypes(unsigned slot);
 
   private:
-    bool makeVarTypes(JSContext *cx);
+    bool makeTypeArray(JSContext *cx);
   public:
 
 #ifdef DEBUG
@@ -589,12 +590,12 @@ struct JSScript {
     getTypeInitObject(JSContext *cx, const jsbytecode *pc, bool isArray);
 
     
-    inline void typeMonitorResult(JSContext *cx, const jsbytecode *pc, js::types::jstype type);
-    inline void typeMonitorResult(JSContext *cx, const jsbytecode *pc, const js::Value &val);
-    inline void typeMonitorUndefined(JSContext *cx, const jsbytecode *pc);
     inline void typeMonitorOverflow(JSContext *cx, const jsbytecode *pc);
     inline void typeMonitorString(JSContext *cx, const jsbytecode *pc);
     inline void typeMonitorUnknown(JSContext *cx, const jsbytecode *pc);
+
+    
+    inline void typeMonitor(JSContext *cx, const jsbytecode *pc, const js::Value &val);
 
     
     inline void typeSetThis(JSContext *cx, js::types::jstype type);

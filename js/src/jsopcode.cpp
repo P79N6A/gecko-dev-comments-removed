@@ -2125,8 +2125,9 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                 else if (op == JSOP_GETELEM2)
                     saveop = JSOP_GETELEM;
             }
-            LOCAL_ASSERT(js_CodeSpec[saveop].length == oplen ||
-                         JOF_TYPE(format) == JOF_SLOTATOM);
+            
+            
+            
 
             jp->dvgfence = NULL;
         }
