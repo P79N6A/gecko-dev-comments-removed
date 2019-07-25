@@ -301,6 +301,11 @@ struct JSTreeContext {
     uint32          flags;          
     uint32          bodyid;         
     uint32          blockidGen;     
+    uint32          parenDepth;     
+    uint32          yieldCount;     
+
+    uint32          argumentsCount; 
+
     JSStmtInfo      *topStmt;       
     JSStmtInfo      *topScopeStmt;  
     JSObjectBox     *blockChainBox; 
@@ -310,6 +315,12 @@ struct JSTreeContext {
 
     JSAtomList      decls;          
     js::Parser      *parser;        
+    JSParseNode     *yieldNode;     
+
+
+    JSParseNode     *argumentsNode; 
+
+
 
   private:
     union {
@@ -358,9 +369,11 @@ struct JSTreeContext {
     void trace(JSTracer *trc);
 
     JSTreeContext(js::Parser *prs)
-      : flags(0), bodyid(0), blockidGen(0), topStmt(NULL), topScopeStmt(NULL),
-        blockChainBox(NULL), blockNode(NULL), parser(prs), scopeChain_(NULL),
-        parent(prs->tc), staticLevel(0), funbox(NULL), functionList(NULL),
+      : flags(0), bodyid(0), blockidGen(0), parenDepth(0), yieldCount(0), argumentsCount(0),
+        topStmt(NULL), topScopeStmt(NULL),
+        blockChainBox(NULL), blockNode(NULL), parser(prs),
+        yieldNode(NULL), argumentsNode(NULL),
+        scopeChain_(NULL), parent(prs->tc), staticLevel(0), funbox(NULL), functionList(NULL),
         innermostWith(NULL), bindings(prs->context, prs->emptyCallShape),
         sharpSlotBase(-1)
     {
@@ -458,11 +471,18 @@ struct JSTreeContext {
         return flags & TCF_FUN_MUTATES_PARAMETER;
     }
 
-    void noteArgumentsUse() {
+    void noteArgumentsUse(JSParseNode *pn) {
         JS_ASSERT(inFunction());
+        countArgumentsUse(pn);
         flags |= TCF_FUN_USES_ARGUMENTS;
         if (funbox)
             funbox->node->pn_dflags |= PND_FUNARG;
+    }
+
+    void countArgumentsUse(JSParseNode *pn) {
+        JS_ASSERT(pn->pn_atom == parser->context->runtime->atomState.argumentsAtom);
+        argumentsCount++;
+        argumentsNode = pn;
     }
 
     bool needsEagerArguments() const {

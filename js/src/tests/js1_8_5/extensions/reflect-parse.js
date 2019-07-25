@@ -401,6 +401,17 @@ assertStmt("try { } catch (e if foo) { } catch (e if bar) { } catch (e) { } fina
                    blockStmt([])));
 
 
+(function() {
+    var threw = false;
+    try {
+        Reflect.parse("yield 0");
+    } catch (expected) {
+        threw = true;
+    }
+    assertEq(threw, true);
+})();
+
+
 
 assertStmt("function f() { function g() { } function g() { } }",
            funDecl(ident("f"), [], blockStmt([funDecl(ident("g"), [], blockStmt([])),
