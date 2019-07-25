@@ -2700,7 +2700,7 @@ nsXPCComponents_Utils::LookupMethod(const JS::Value& object,
     
     if (!object.isObject())
         return NS_ERROR_XPC_BAD_CONVERT_JS;
-    JSObject *obj = &object.toObject();
+    JS::RootedObject obj(cx, &object.toObject());
 
     
     if (!JSVAL_IS_STRING(name))
