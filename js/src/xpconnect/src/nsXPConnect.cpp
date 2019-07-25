@@ -424,7 +424,11 @@ nsXPConnect::GarbageCollect()
 
 
 
-#define ADD_TO_CC(_kind)    ((_kind) == JSTRACE_OBJECT || (_kind) == JSTRACE_XML)
+inline bool
+AddToCCKind(uint32 kind)
+{
+    return kind == JSTRACE_OBJECT || kind == JSTRACE_XML;
+}
 
 #ifdef DEBUG_CC
 struct NoteJSRootTracer : public JSTracer
@@ -442,7 +446,7 @@ struct NoteJSRootTracer : public JSTracer
 static void
 NoteJSRoot(JSTracer *trc, void *thing, uint32 kind)
 {
-    if(ADD_TO_CC(kind))
+    if(AddToCCKind(kind))
     {
         NoteJSRootTracer *tracer = static_cast<NoteJSRootTracer*>(trc);
         PLDHashEntryHdr *entry = PL_DHashTableOperate(tracer->mObjects, thing,
@@ -540,7 +544,7 @@ nsXPConnect::FinishCycleCollection()
 nsCycleCollectionParticipant *
 nsXPConnect::ToParticipant(void *p)
 {
-    if (!ADD_TO_CC(js_GetGCThingTraceKind(p)))
+    if (!AddToCCKind(js_GetGCThingTraceKind(p)))
         return NULL;
     return this;
 }
@@ -579,8 +583,8 @@ nsXPConnect::Unroot(void *p)
 JSBool
 xpc_GCThingIsGrayCCThing(void *thing)
 {
-    uint32 kind = js_GetGCThingTraceKind(thing);
-    return ADD_TO_CC(kind) && xpc_IsGrayGCThing(thing);
+    return AddToCCKind(js_GetGCThingTraceKind(thing)) &&
+           xpc_IsGrayGCThing(thing);
 }
 
 
@@ -613,7 +617,7 @@ UnmarkGrayChildren(JSTracer *trc, void *thing, uint32 kind)
     }
 
     
-    if(!ADD_TO_CC(kind) || !xpc_IsGrayGCThing(thing))
+    if(!AddToCCKind(kind) || !xpc_IsGrayGCThing(thing))
         return;
 
     
@@ -657,7 +661,7 @@ struct TraversalTracer : public JSTracer
 static void
 NoteJSChild(JSTracer *trc, void *thing, uint32 kind)
 {
-    if(ADD_TO_CC(kind))
+    if(AddToCCKind(kind))
     {
         TraversalTracer *tracer = static_cast<TraversalTracer*>(trc);
 
