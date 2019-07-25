@@ -2235,19 +2235,17 @@ gfxFontGroup::InitTextRun(gfxContext *aContext,
         PRUint32 matchedLength = range.Length();
         gfxFont *matchedFont = (range.font ? range.font.get() : nsnull);
 
-        
-        aTextRun->AddGlyphRun(matchedFont ? matchedFont : mainFont,
-                              runStart, (matchedLength > 0));
         if (matchedFont) {
             
-            if (!matchedFont->InitTextRun(aContext, aTextRun, aString,
-                                          runStart, matchedLength,
-                                          aRunScript)) {
-                
-                matchedFont = nsnull;
-            }
-        }
-        if (!matchedFont) {
+            aTextRun->AddGlyphRun(matchedFont, runStart, (matchedLength > 0));
+
+            
+            matchedFont->InitTextRun(aContext, aTextRun, aString,
+                                     runStart, matchedLength, aRunScript);
+        } else {
+            
+            aTextRun->AddGlyphRun(mainFont, runStart, matchedLength);
+
             for (PRUint32 index = runStart; index < runStart + matchedLength; index++) {
                 
                 if (NS_IS_HIGH_SURROGATE(aString[index]) &&
@@ -3629,6 +3627,7 @@ PRUint32
 gfxTextRun::FindFirstGlyphRunContaining(PRUint32 aOffset)
 {
     NS_ASSERTION(aOffset <= mCharacterCount, "Bad offset looking for glyphrun");
+    NS_ASSERTION(mGlyphRuns.Length() > 0, "no glyph runs present!");
     if (aOffset == mCharacterCount)
         return mGlyphRuns.Length();
     PRUint32 start = 0;
