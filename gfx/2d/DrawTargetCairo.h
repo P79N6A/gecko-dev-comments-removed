@@ -135,6 +135,9 @@ public:
   void PrepareForDrawing(cairo_t* aContext, const Path* aPath = nullptr);
 
 private: 
+  
+  bool InitAlreadyReferenced(cairo_surface_t* aSurface, const IntSize& aSize);
+
   enum DrawPatternType { DRAW_FILL, DRAW_STROKE };
   void DrawPattern(const Pattern& aPattern,
                    const StrokeOptions& aStrokeOptions,
@@ -169,4 +172,4 @@ private:
 }
 }
 
-#endif
+#endif 
