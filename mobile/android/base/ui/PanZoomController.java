@@ -242,6 +242,7 @@ public class PanZoomController
     }
 
     
+    @SuppressWarnings("fallthrough")
     public void abortAnimation() {
         
         
@@ -301,6 +302,7 @@ public class PanZoomController
         return false;
     }
 
+    @SuppressWarnings("fallthrough")
     private boolean onTouchMove(MotionEvent event) {
         Log.d(LOGTAG, "onTouchMove in state " + mState);
 
