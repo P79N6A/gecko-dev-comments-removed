@@ -101,6 +101,9 @@ typedef void (*yuv2rgb565_row_scale_nearest_func)(
 
 # if defined(MOZILLA_MAY_SUPPORT_NEON)
 
+extern "C" void ScaleYCbCr42xToRGB565_BilinearY_Row_NEON(
+ const yuv2rgb565_row_scale_bilinear_ctx *ctx, int dither);
+
 void __attribute((noinline)) yuv42x_to_rgb565_row_neon(uint16 *dst,
                                                        const uint8 *y,
                                                        const uint8 *u,
@@ -373,6 +376,15 @@ NS_GFX_(void) ScaleYCbCrToRGB565(const PRUint8 *y_buf,
 
 
 
+  NS_ASSERTION((y_pitch&15) == 0 && (uv_pitch&15) == 0 &&
+   ((y_buf-NULL)&15) == 0 && ((u_buf-NULL)&15) == 0 && ((v_buf-NULL)&15) == 0,
+   "ScaleYCbCrToRGB565 source image unaligned");
+  
+
+
+
+
+
 
 
 
@@ -493,8 +505,13 @@ NS_GFX_(void) ScaleYCbCrToRGB565(const PRUint8 *y_buf,
       
       source_uv_xoffs_q16 += 1<<(15+x_shift);
       source_uv_yoffs_q16 += 1<<(15+y_shift);
-      if (yuv_type != YV24)
-        scale_row = ScaleYCbCr42xToRGB565_BilinearY_Row_C;
+      if (yuv_type != YV24) {
+        scale_row =
+#  if defined(MOZILLA_MAY_SUPPORT_NEON)
+         supports_neon() ? ScaleYCbCr42xToRGB565_BilinearY_Row_NEON :
+#  endif
+         ScaleYCbCr42xToRGB565_BilinearY_Row_C;
+      }
       else
         scale_row = ScaleYCbCr444ToRGB565_BilinearY_Row_C;
     }
@@ -559,6 +576,36 @@ NS_GFX_(bool) IsScaleYCbCrToRGB565Fast(int source_x0,
                                        YUVType yuv_type,
                                        ScaleFilter filter)
 {
+  
+  if (width <= 0 || height <= 0)
+    return true;
+#  if defined(MOZILLA_MAY_SUPPORT_NEON)
+  if (filter != FILTER_NONE) {
+    int source_dx_q16;
+    int source_dy_q16;
+    int uvxscale_min;
+    int uvxscale_max;
+    int uvyscale_min;
+    int uvyscale_max;
+    source_dx_q16 = (source_width<<16) / width;
+    source_dy_q16 = (source_height<<16) / height;
+    uvxscale_min = yuv_type != YV24 ?
+     CHROMA_NEAREST_SUBSAMP_STEP_MIN : CHROMA_NEAREST_NORMAL_STEP_MIN;
+    uvxscale_max = yuv_type != YV24 ?
+     CHROMA_NEAREST_SUBSAMP_STEP_MAX : CHROMA_NEAREST_NORMAL_STEP_MAX;
+    uvyscale_min = yuv_type == YV12 ?
+     CHROMA_NEAREST_SUBSAMP_STEP_MIN : CHROMA_NEAREST_NORMAL_STEP_MIN;
+    uvyscale_max = yuv_type == YV12 ?
+     CHROMA_NEAREST_SUBSAMP_STEP_MAX : CHROMA_NEAREST_NORMAL_STEP_MAX;
+    if (uvxscale_min <= abs(source_dx_q16)
+     && abs(source_dx_q16) <= uvxscale_max
+     && uvyscale_min <= abs(source_dy_q16)
+     && abs(source_dy_q16) <= uvyscale_max) {
+      if (yuv_type != YV24)
+        return supports_neon();
+    }
+  }
+#  endif
   return false;
 }
 
