@@ -203,7 +203,7 @@ public:
                                 
     
     
-    virtual nsresult StartLoad(gfxFontEntry *aFontToLoad, 
+    virtual nsresult StartLoad(gfxProxyFontEntry *aProxy, 
                                const gfxFontFaceSrc *aFontFaceSrc) = 0;
 
     
@@ -212,7 +212,7 @@ public:
     
     
     
-    PRBool OnLoadComplete(gfxFontEntry *aFontToLoad,
+    PRBool OnLoadComplete(gfxProxyFontEntry *aProxy,
                           const PRUint8 *aFontData, PRUint32 aLength,
                           nsresult aDownloadStatus);
 

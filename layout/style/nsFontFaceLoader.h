@@ -72,7 +72,7 @@ public:
 
   
   
-  nsresult StartLoad(gfxFontEntry *aFontToLoad, 
+  nsresult StartLoad(gfxProxyFontEntry *aFontToLoad, 
                      const gfxFontFaceSrc *aFontFaceSrc);
 
   
@@ -114,7 +114,7 @@ class nsFontFaceLoader : public nsIStreamLoaderObserver
 {
 public:
 
-  nsFontFaceLoader(gfxFontEntry *aFontToLoad, nsIURI *aFontURI, 
+  nsFontFaceLoader(gfxProxyFontEntry *aFontToLoad, nsIURI *aFontURI, 
                    nsUserFontSet *aFontSet, nsIChannel *aChannel);
   virtual ~nsFontFaceLoader();
 
@@ -137,7 +137,7 @@ public:
                                    nsISupports* aContext);
 
 private:
-  nsRefPtr<gfxFontEntry>  mFontEntry;
+  nsRefPtr<gfxProxyFontEntry>  mFontEntry;
   nsCOMPtr<nsIURI>        mFontURI;
   nsRefPtr<nsUserFontSet> mFontSet;
   nsCOMPtr<nsIChannel>    mChannel;
