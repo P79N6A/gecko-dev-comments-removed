@@ -439,7 +439,7 @@ nsSVGPathElement::GetPathLengthScale(PathLengthScaleForType aFor)
         
         
         
-        matrix = PrependLocalTransformTo(gfxMatrix());
+        matrix = PrependLocalTransformTo(matrix);
       }
       nsRefPtr<gfxFlattenedPath> path = GetFlattenedPath(matrix);
       if (path) {

@@ -359,7 +359,7 @@ SessionStoreService.prototype = {
               
               let pageData = {
                 url: "about:sessionrestore",
-                formdata: { "#sessionData": JSON.stringify(this._initialState) }
+                formdata: { "#sessionData": this._initialState }
               };
               this._initialState = { windows: [{ tabs: [{ entries: [pageData] }] }] };
             }
@@ -1646,25 +1646,13 @@ SessionStoreService.prototype = {
     
     
     
-    let data = this.getWindowValue(aWindow, "tabview-group");
-    if (data) {
-      data = JSON.parse(data);
+    let groupsData = this.getWindowValue(aWindow, "tabview-groups");
+    if (groupsData) {
+      groupsData = JSON.parse(groupsData);
 
       
-      if (Object.keys(data).length > 1) {
+      if (groupsData.totalNumber > 1)
         return [false, false];
-      }
-      else {
-        
-        
-        
-        let groupKey = Object.keys(data)[0];
-        if (groupKey !== "0") {
-          data["0"] = data[groupKey];
-          delete data[groupKey];
-          this.setWindowValue(aWindow, "tabview-groups", JSON.stringify(data));
-        }
-      }
     }
 
     
@@ -2140,10 +2128,17 @@ SessionStoreService.prototype = {
     }
     var isHTTPS = this._getURIFromString((aContent.parent || aContent).
                                          document.location.href).schemeIs("https");
-    if (aFullData || this._checkPrivacyLevel(isHTTPS, aIsPinned) ||
-        aContent.top.document.location.href == "about:sessionrestore") {
+    let isAboutSR = aContent.top.document.location.href == "about:sessionrestore";
+    if (aFullData || this._checkPrivacyLevel(isHTTPS, aIsPinned) || isAboutSR) {
       if (aFullData || aUpdateFormData) {
         let formData = this._collectFormDataForFrame(aContent.document);
+
+        
+        
+        
+        if (formData && isAboutSR)
+          formData["#sessionData"] = JSON.parse(formData["#sessionData"]);
+
         if (formData)
           aData.formdata = formData;
         else if (aData.formdata)
@@ -2981,8 +2976,9 @@ SessionStoreService.prototype = {
   restoreHistory:
     function sss_restoreHistory(aWindow, aTabs, aTabData, aIdMap, aDocIdentMap) {
     var _this = this;
-    while (aTabs.length > 0 && (!aTabs[0].linkedBrowser.__SS_tabStillLoading || !aTabs[0].parentNode)) {
-      aTabs.shift(); 
+    
+    while (aTabs.length > 0 && !(this._canRestoreTabHistory(aTabs[0]))) {
+      aTabs.shift();
       aTabData.shift();
     }
     if (aTabs.length == 0) {
@@ -3379,6 +3375,13 @@ SessionStoreService.prototype = {
 
         let eventType;
         let value = aData[key];
+
+        
+        
+        if (aURL == "about:sessionrestore" && typeof value == "object") {
+          value = JSON.stringify(value);
+        }
+
         if (typeof value == "string" && node.type != "file") {
           if (node.value == value)
             continue; 
@@ -3994,6 +3997,20 @@ SessionStoreService.prototype = {
            !(aTabState.entries.length == 1 &&
              aTabState.entries[0].url == "about:blank" &&
              !aTabState.userTypedValue);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _canRestoreTabHistory: function sss__canRestoreTabHistory(aTab) {
+    return aTab.parentNode && aTab.linkedBrowser &&
+           aTab.linkedBrowser.__SS_tabStillLoading;
   },
 
   

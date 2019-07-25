@@ -6822,6 +6822,8 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                       &v, getter_AddRefs(holder));
       NS_ENSURE_SUCCESS(rv, rv);
 
+      
+      
       if (!::JS_DefinePropertyById(cx, obj, id, v, nsnull, nsnull,
                                    JSPROP_READONLY | JSPROP_PERMANENT |
                                    JSPROP_ENUMERATE)) {
@@ -7157,8 +7159,6 @@ nsNavigatorSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
   
   
   
-  
-  
   *parentObj = globalObj;
 
   nsCOMPtr<nsIDOMNavigator> safeNav(do_QueryInterface(nativeObj));
@@ -7170,20 +7170,17 @@ nsNavigatorSH::PreCreate(nsISupports *nativeObj, JSContext *cx,
   }
 
   Navigator *nav = static_cast<Navigator*>(safeNav.get());
-  nsIDocShell *ds = nav->GetDocShell();
-  if (!ds) {
+  nsGlobalWindow *win = static_cast<nsGlobalWindow*>(nav->GetWindow());
+  if (!win) {
     NS_WARNING("Refusing to create a navigator in the wrong scope");
+
     return NS_ERROR_UNEXPECTED;
   }
 
-  nsCOMPtr<nsIScriptGlobalObject> sgo = do_GetInterface(ds);
+  JSObject *global = win->GetGlobalJSObject();
 
-  if (sgo) {
-    JSObject *global = sgo->GetGlobalJSObject();
-
-    if (global) {
-      *parentObj = global;
-    }
+  if (global) {
+    *parentObj = global;
   }
 
   return NS_OK;

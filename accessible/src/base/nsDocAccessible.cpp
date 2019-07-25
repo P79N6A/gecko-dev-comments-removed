@@ -1851,11 +1851,7 @@ nsDocAccessible::UpdateTree(nsAccessible* aContainer, nsIContent* aChildNode,
     }
   }
 
-  
-  if (aContainer->Role() == nsIAccessibleRole::ROLE_ENTRY) {
-    FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE,
-                               aContainer->GetNode());
-  }
+  MaybeNotifyOfValueChange(aContainer);
 
   
   

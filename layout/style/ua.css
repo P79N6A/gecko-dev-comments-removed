@@ -260,23 +260,6 @@
   overflow: hidden !important;
 }
 
-*|*:-moz-full-screen-ancestor {
-  
-
-  z-index:auto !important;
-  
-
-
-
-  opacity:1 !important;
-  
-
-
-  mask:none !important;
-  clip:none !important;
-  filter:none !important;
-}
-
 
 
 parsererror|parsererror {

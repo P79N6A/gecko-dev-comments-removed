@@ -236,6 +236,9 @@ public:
   
   
   void MoveLoadsToBackground();
+  
+  
+  virtual void EnsureCacheUpToDate() {}
 
   
   
@@ -262,6 +265,8 @@ public:
   
   
   virtual bool IsDataCachedToEndOfStream(PRInt64 aOffset) = 0;
+  
+  
   
   
   
@@ -382,6 +387,7 @@ public:
   bool IsClosed() const { return mCacheStream.IsClosed(); }
   virtual nsMediaStream* CloneData(nsMediaDecoder* aDecoder);
   virtual nsresult ReadFromCache(char* aBuffer, PRInt64 aOffset, PRUint32 aCount);
+  virtual void     EnsureCacheUpToDate();
 
   
   virtual void     SetReadMode(nsMediaCacheStream::ReadMode aMode);
@@ -478,7 +484,6 @@ protected:
   
   Mutex               mLock;
   nsChannelStatistics mChannelStatistics;
-  PRUint32            mCacheSuspendCount;
 
   
   

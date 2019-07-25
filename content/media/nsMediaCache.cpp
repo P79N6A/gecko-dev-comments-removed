@@ -1351,6 +1351,7 @@ nsMediaCache::Update()
       rv = stream->mClient->CacheClientSeek(stream->mChannelOffset,
                                             stream->mCacheSuspended);
       stream->mCacheSuspended = false;
+      stream->mChannelEnded = false;
       break;
 
     case RESUME:
@@ -1368,6 +1369,8 @@ nsMediaCache::Update()
     default:
       break;
     }
+
+    stream->mHasHadUpdate = true;
 
     if (NS_FAILED(rv)) {
       
@@ -1852,6 +1855,8 @@ nsMediaCacheStream::NotifyDataEnded(nsresult aStatus)
       stream->mClient->CacheClientNotifyDataEnded(aStatus);
     }
   }
+
+  mChannelEnded = true;
 }
 
 nsMediaCacheStream::~nsMediaCacheStream()
@@ -1885,6 +1890,18 @@ nsMediaCacheStream::IsSeekable()
   return mIsSeekable;
 }
 
+bool
+nsMediaCacheStream::AreAllStreamsForResourceSuspended()
+{
+  ReentrantMonitorAutoEnter mon(gMediaCache->GetReentrantMonitor());
+  nsMediaCache::ResourceStreamIterator iter(mResourceID);
+  while (nsMediaCacheStream* stream = iter.Next()) {
+    if (!stream->mCacheSuspended && !stream->mChannelEnded)
+      return false;
+  }
+  return true;
+}
+
 void
 nsMediaCacheStream::Close()
 {
@@ -1896,6 +1913,14 @@ nsMediaCacheStream::Close()
   
   
   gMediaCache->QueueUpdate();
+}
+
+void
+nsMediaCacheStream::EnsureCacheUpdate()
+{
+  if (mHasHadUpdate)
+    return;
+  gMediaCache->Update();
 }
 
 void
@@ -2290,6 +2315,7 @@ nsMediaCacheStream::InitAsClone(nsMediaCacheStream* aOriginal)
   
   
   mCacheSuspended = true;
+  mChannelEnded = true;
 
   if (aOriginal->mDidNotifyDataEnded) {
     mNotifyDataEndedStatus = aOriginal->mNotifyDataEndedStatus;

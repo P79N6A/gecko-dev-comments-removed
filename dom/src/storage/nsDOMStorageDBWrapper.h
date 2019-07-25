@@ -89,6 +89,11 @@ public:
   nsDOMStorageDBWrapper();
   ~nsDOMStorageDBWrapper();
 
+  
+
+
+  void Close();
+
   nsresult
   Init();
 

@@ -101,6 +101,9 @@ nsHttpPipeline::nsHttpPipeline()
     , mPushBackBuf(nsnull)
     , mPushBackLen(0)
     , mPushBackMax(0)
+    , mReceivingFromProgress(0)
+    , mSendingToProgress(0)
+    , mSuppressSendEvents(true)
 {
 }
 
@@ -325,6 +328,14 @@ nsHttpPipeline::TakeHttpConnection()
     return nsnull;
 }
 
+nsISocketTransport *
+nsHttpPipeline::Transport()
+{
+    if (!mConnection)
+        return nsnull;
+    return mConnection->Transport();
+}
+
 void
 nsHttpPipeline::SetSSLConnectFailed()
 {
@@ -390,21 +401,80 @@ nsHttpPipeline::OnTransportStatus(nsITransport* transport,
     NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
 
     nsAHttpTransaction *trans;
+    PRInt32 i, count;
+
     switch (status) {
-    case NS_NET_STATUS_RECEIVING_FROM:
+
+    case NS_NET_STATUS_RESOLVING_HOST:
+    case NS_NET_STATUS_RESOLVED_HOST:
+    case NS_NET_STATUS_CONNECTING_TO:
+    case NS_NET_STATUS_CONNECTED_TO:
         
-        trans = Response(0);
+        
+
+        trans = Request(0);
+        if (!trans)
+            trans = Response(0);
         if (trans)
             trans->OnTransportStatus(transport, status, progress);
+
         break;
+
+    case NS_NET_STATUS_SENDING_TO:
+        
+        
+        
+        
+        
+        
+        
+
+        if (mSuppressSendEvents) {
+            mSuppressSendEvents = false;
+            
+            
+            
+            
+            count = mResponseQ.Length();
+            for (i = 0; i < count; ++i) {
+                Response(i)->OnTransportStatus(transport,
+                                               NS_NET_STATUS_SENDING_TO,
+                                               progress);
+                Response(i)->OnTransportStatus(transport, 
+                                               NS_NET_STATUS_WAITING_FOR,
+                                               progress);
+            }
+            if (mRequestIsPartial && Request(0))
+                Request(0)->OnTransportStatus(transport,
+                                              NS_NET_STATUS_SENDING_TO,
+                                              progress);
+            mSendingToProgress = progress;
+        }
+        
+        break;
+        
+    case NS_NET_STATUS_WAITING_FOR: 
+        
+        
+        
+        
+        
+        break;
+
+    case NS_NET_STATUS_RECEIVING_FROM:
+        
+        
+        
+        mReceivingFromProgress = progress;
+        if (Response(0))
+            Response(0)->OnTransportStatus(transport, status, progress);
+        break;
+
     default:
         
-        PRInt32 i, count = mRequestQ.Length();
-        for (i=0; i<count; ++i) {
-            trans = Request(i);
-            if (trans)
-                trans->OnTransportStatus(transport, status, progress);
-        }
+        count = mRequestQ.Length();
+        for (i = 0; i < count; ++i)
+            Request(i)->OnTransportStatus(transport, status, progress);
         break;
     }
 }
@@ -548,6 +618,16 @@ nsHttpPipeline::WriteSegments(nsAHttpSegmentWriter *writer,
         nsHttpPushBackWriter writer(mPushBackBuf, mPushBackLen);
         PRUint32 len = mPushBackLen, n;
         mPushBackLen = 0;
+
+        
+        
+        
+        nsITransport *transport = Transport();
+        if (transport)
+            OnTransportStatus(transport,
+                              nsISocketTransport::STATUS_RECEIVING_FROM,
+                              mReceivingFromProgress);
+
         
         
         
@@ -638,6 +718,8 @@ nsHttpPipeline::FillSendBuf()
 
     PRUint32 n, avail;
     nsAHttpTransaction *trans;
+    nsITransport *transport = Transport();
+
     while ((trans = Request(0)) != nsnull) {
         avail = trans->Available();
         if (avail) {
@@ -648,13 +730,29 @@ nsHttpPipeline::FillSendBuf()
                 LOG(("send pipe is full"));
                 break;
             }
+
+            mSendingToProgress += n;
+            if (!mSuppressSendEvents && transport) {
+                
+                trans->OnTransportStatus(transport,
+                                         NS_NET_STATUS_SENDING_TO,
+                                         mSendingToProgress);
+            }
         }
+
         avail = trans->Available();
         if (avail == 0) {
             
             mRequestQ.RemoveElementAt(0);
             mResponseQ.AppendElement(trans);
             mRequestIsPartial = false;
+
+            if (!mSuppressSendEvents && transport) {
+                
+                trans->OnTransportStatus(transport,
+                                         NS_NET_STATUS_WAITING_FOR,
+                                         mSendingToProgress);
+            }
         }
         else
             mRequestIsPartial = true;

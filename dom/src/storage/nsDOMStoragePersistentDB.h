@@ -65,6 +65,12 @@ public:
   
 
 
+  void
+  Close();
+
+  
+
+
   nsresult
   GetAllKeys(DOMStorageImpl* aStorage,
              nsTHashtable<nsSessionStorageEntry>* aKeys);
@@ -199,6 +205,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mRemoveAllStatement;
   nsCOMPtr<mozIStorageStatement> mGetOfflineExcludedUsageStatement;
   nsCOMPtr<mozIStorageStatement> mGetFullUsageStatement;
+  
 
   nsCString mCachedOwner;
   PRInt32 mCachedUsage;

@@ -84,12 +84,12 @@ nsMathMLmactionFrame::~nsMathMLmactionFrame()
   
   
   if (mListener) {
-    mContent->RemoveEventListener(NS_LITERAL_STRING("click"), mListener,
-                                  false);
-    mContent->RemoveEventListener(NS_LITERAL_STRING("mouseover"), mListener,
-                                  false);
-    mContent->RemoveEventListener(NS_LITERAL_STRING("mouseout"), mListener,
-                                  false);
+    mContent->RemoveSystemEventListener(NS_LITERAL_STRING("click"), mListener,
+                                        false);
+    mContent->RemoveSystemEventListener(NS_LITERAL_STRING("mouseover"), mListener,
+                                        false);
+    mContent->RemoveSystemEventListener(NS_LITERAL_STRING("mouseout"), mListener,
+                                        false);
   }
 }
 
@@ -228,12 +228,12 @@ nsMathMLmactionFrame::SetInitialChildList(ChildListID     aListID,
     
     mListener = new nsMathMLmactionFrame::MouseListener(this);
     
-    mContent->AddEventListener(NS_LITERAL_STRING("click"), mListener,
-                               false, false);
-    mContent->AddEventListener(NS_LITERAL_STRING("mouseover"), mListener,
-                               false, false);
-    mContent->AddEventListener(NS_LITERAL_STRING("mouseout"), mListener,
-                               false, false);
+    mContent->AddSystemEventListener(NS_LITERAL_STRING("click"), mListener,
+                                     false, false);
+    mContent->AddSystemEventListener(NS_LITERAL_STRING("mouseover"), mListener,
+                                     false, false);
+    mContent->AddSystemEventListener(NS_LITERAL_STRING("mouseout"), mListener,
+                                     false, false);
   }
   return rv;
 }

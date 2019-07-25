@@ -124,6 +124,10 @@ public:
     
     
     virtual nsHttpConnection *TakeHttpConnection() = 0;
+
+    
+    
+    virtual nsISocketTransport *Transport() = 0;
 };
 
 #define NS_DECL_NSAHTTPCONNECTION \
@@ -141,6 +145,7 @@ public:
     nsresult PushBack(const char *, PRUint32); \
     bool LastTransactionExpectedNoContent(); \
     void   SetLastTransactionExpectedNoContent(bool); \
-    nsHttpConnection *TakeHttpConnection();
+    nsHttpConnection *TakeHttpConnection(); \
+    nsISocketTransport *Transport();
 
 #endif 

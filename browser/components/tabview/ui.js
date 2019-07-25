@@ -784,7 +784,7 @@ let UI = {
               return;
           }
 
-          var groupItem = GroupItems.getActiveGroupItem();
+          let groupItem = GroupItems.getActiveGroupItem();
 
           
           

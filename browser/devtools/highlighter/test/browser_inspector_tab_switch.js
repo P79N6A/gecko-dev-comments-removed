@@ -188,9 +188,17 @@ function inspectorFocusTab2()
   isnot(InspectorUI.selection, div, "selection does not match the div element");
 
   
-  Services.obs.addObserver(inspectorSecondFocusTab1,
-    InspectorUI.INSPECTOR_NOTIFICATIONS.TREEPANELREADY, false);
-  gBrowser.selectedTab = tab1;
+  EventUtils.synthesizeKey("VK_RETURN", { });
+
+  executeSoon(function() {
+    ok(InspectorUI.inspecting, "Inspector is highlighting");
+    InspectorUI.toggleInspection();
+
+    
+    Services.obs.addObserver(inspectorSecondFocusTab1,
+      InspectorUI.INSPECTOR_NOTIFICATIONS.TREEPANELREADY, false);
+    gBrowser.selectedTab = tab1;
+  });
 }
 
 function inspectorSecondFocusTab1()
