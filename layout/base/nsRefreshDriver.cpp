@@ -75,6 +75,13 @@ nsRefreshDriver::InitializeStatics()
                                false);
 }
 
+ PRInt32
+nsRefreshDriver::DefaultInterval()
+{
+  return NSToIntRound(1000.0 / DEFAULT_FRAME_RATE);
+}
+
+
 
 PRInt32
 nsRefreshDriver::GetRefreshTimerInterval() const

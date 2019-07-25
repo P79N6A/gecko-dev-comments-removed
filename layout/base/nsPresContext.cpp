@@ -1056,6 +1056,12 @@ nsPresContext::SetShell(nsIPresShell* aShell)
       mAnimationManager->Disconnect();
       mAnimationManager = nsnull;
     }
+
+    if (IsRoot()) {
+      
+      
+      static_cast<nsRootPresContext*>(this)->CancelUpdatePluginGeometryTimer();
+    }
   }
 }
 
@@ -2322,6 +2328,7 @@ nsRootPresContext::~nsRootPresContext()
   NS_ASSERTION(mRegisteredPlugins.Count() == 0,
                "All plugins should have been unregistered");
   CancelDidPaintTimer();
+  CancelUpdatePluginGeometryTimer();
 }
 
 void
@@ -2562,6 +2569,9 @@ nsRootPresContext::UpdatePluginGeometry()
   if (!mNeedsToUpdatePluginGeometry)
     return;
   mNeedsToUpdatePluginGeometry = false;
+  
+  
+  CancelUpdatePluginGeometryTimer();
 
   nsIFrame* f = mUpdatePluginGeometryForFrame;
   if (f) {
@@ -2583,6 +2593,12 @@ nsRootPresContext::UpdatePluginGeometry()
   DidApplyPluginGeometryUpdates();
 }
 
+static void
+UpdatePluginGeometryCallback(nsITimer *aTimer, void *aClosure)
+{
+  static_cast<nsRootPresContext*>(aClosure)->UpdatePluginGeometry();
+}
+
 void
 nsRootPresContext::RequestUpdatePluginGeometry(nsIFrame* aFrame)
 {
@@ -2594,6 +2610,18 @@ nsRootPresContext::RequestUpdatePluginGeometry(nsIFrame* aFrame)
     
     
     
+    
+    
+    
+    
+    
+    mUpdatePluginGeometryTimer = do_CreateInstance("@mozilla.org/timer;1");
+    if (mUpdatePluginGeometryTimer) {
+      mUpdatePluginGeometryTimer->
+        InitWithFuncCallback(UpdatePluginGeometryCallback, this,
+                             nsRefreshDriver::DefaultInterval() * 2,
+                             nsITimer::TYPE_ONE_SHOT);
+    }
     mNeedsToUpdatePluginGeometry = true;
     mUpdatePluginGeometryForFrame = aFrame;
     mUpdatePluginGeometryForFrame->PresContext()->
