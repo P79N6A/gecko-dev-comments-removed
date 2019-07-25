@@ -395,6 +395,17 @@ class HeapSlot : public EncapsulatedValue
     inline void post(JSCompartment *comp, JSObject *owner, uint32_t slot);
 };
 
+
+
+
+
+
+
+static inline void
+SlotRangeWriteBarrierPost(JSCompartment *comp, JSObject *obj, uint32_t start, uint32_t count)
+{
+}
+
 static inline const Value *
 Valueify(const EncapsulatedValue *array)
 {
