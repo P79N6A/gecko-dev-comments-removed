@@ -76,6 +76,7 @@ nsHttpConnection::nsHttpConnection()
     , mKeepAliveMask(PR_TRUE)
     , mSupportsPipelining(PR_FALSE) 
     , mIsReused(PR_FALSE)
+    , mIsActivated(PR_FALSE)
     , mCompletedProxyConnect(PR_FALSE)
     , mLastTransactionExpectedNoContent(PR_FALSE)
 {
@@ -164,6 +165,7 @@ nsHttpConnection::Activate(nsAHttpTransaction *trans, PRUint8 caps)
 
     
     mTransaction = trans;
+    mIsActivated = PR_TRUE;
 
     
     mKeepAliveMask = mKeepAlive = (caps & NS_HTTP_ALLOW_KEEPALIVE);
@@ -265,8 +267,15 @@ nsHttpConnection::IsAlive()
     if (!mSocketTransport)
         return PR_FALSE;
 
+    
+    
+    
+    
+    
+
     PRBool alive;
-    nsresult rv = mSocketTransport->IsAlive(&alive);
+    PRBool passiveRead = mConnInfo->UsingSSL() && !mIsActivated;
+    nsresult rv = mSocketTransport->IsAlive(passiveRead, &alive);
     if (NS_FAILED(rv))
         alive = PR_FALSE;
 
