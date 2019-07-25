@@ -215,25 +215,25 @@ TiltVisualizer.Presenter = function TV_Presenter(
   
 
 
-  this.renderer = new TiltGL.Renderer(aCanvas, onError, onLoad);
+  this._renderer = new TiltGL.Renderer(aCanvas, onError, onLoad);
 
   
 
 
-  this.visualizationProgram = null;
+  this._visualizationProgram = null;
 
   
 
 
-  this.texture = null;
-  this.meshStacks = null;
-  this.meshWireframe = null;
-  this.traverseData = null;
+  this._texture = null;
+  this._meshStacks = null;
+  this._meshWireframe = null;
+  this._traverseData = null;
 
   
 
 
-  this.highlight = {
+  this._highlight = {
     disabled: true,
     v0: vec3.create(),
     v1: vec3.create(),
@@ -263,24 +263,25 @@ TiltVisualizer.Presenter = function TV_Presenter(
 
 
 
-  this.redraw = true;
+  this._redraw = true;
 
   
 
 
 
-  this.time = 0;
+  this._time = 0;
 
   
 
 
 
-  this.delta = 0;
-  this.prevFrameTime = 0;
-  this.currFrameTime = 0;
+  this._delta = 0;
+  this._prevFrameTime = 0;
+  this._currFrameTime = 0;
 
-  this.setup();
-  this.loop();
+
+  this._setup();
+  this._loop();
 };
 
 TiltVisualizer.Presenter.prototype = {
@@ -288,9 +289,9 @@ TiltVisualizer.Presenter.prototype = {
   
 
 
-  setup: function TVP_setup()
+  _setup: function TVP__setup()
   {
-    let renderer = this.renderer;
+    let renderer = this._renderer;
     let inspector = this.chromeWindow.InspectorUI;
 
     
@@ -299,7 +300,7 @@ TiltVisualizer.Presenter.prototype = {
     }
 
     
-    this.visualizationProgram = new renderer.Program({
+    this._visualizationProgram = new renderer.Program({
       vs: TiltVisualizer.MeshShader.vs,
       fs: TiltVisualizer.MeshShader.fs,
       attributes: ["vertexPosition", "vertexTexCoord", "vertexColor"],
@@ -312,21 +313,21 @@ TiltVisualizer.Presenter.prototype = {
     }
 
     
-    TiltUtils.bindObjectFunc(this, "^on");
-    TiltUtils.bindObjectFunc(this, "loop");
+    TiltUtils.bindObjectFunc(this, "^_on");
+    TiltUtils.bindObjectFunc(this, "_loop");
 
-    this.setupTexture();
-    this.setupMeshData();
-    this.setupEventListeners();
+    this._setupTexture();
+    this._setupMeshData();
+    this._setupEventListeners();
     this.canvas.focus();
   },
 
   
 
 
-  loop: function TVP_loop()
+  _loop: function TVP__loop()
   {
-    let renderer = this.renderer;
+    let renderer = this._renderer;
 
     
     if (!renderer || !renderer.context) {
@@ -334,46 +335,46 @@ TiltVisualizer.Presenter.prototype = {
     }
 
     
-    this.chromeWindow.mozRequestAnimationFrame(this.loop);
+    this.chromeWindow.mozRequestAnimationFrame(this._loop);
 
     
-    if (this.redraw) {
-      this.redraw = false;
-      this.drawVisualization();
+    if (this._redraw) {
+      this._redraw = false;
+      this._drawVisualization();
     }
 
     
-    if ("function" === typeof this.ondraw) {
-      this.ondraw(this.time, this.delta);
+    if ("function" === typeof this._controllerUpdate) {
+      this._controllerUpdate(this._time, this._delta);
     }
 
-    this.handleFrameDelta();
-    this.handleKeyframeNotifications();
+    this._handleFrameDelta();
+    this._handleKeyframeNotifications();
   },
 
   
 
 
-  handleFrameDelta: function TVP_handleFrameDelta()
+  _handleFrameDelta: function TVP__handleFrameDelta()
   {
-    this.prevFrameTime = this.currFrameTime;
-    this.currFrameTime = this.chromeWindow.mozAnimationStartTime;
-    this.delta = this.currFrameTime - this.prevFrameTime;
+    this._prevFrameTime = this._currFrameTime;
+    this._currFrameTime = this.chromeWindow.mozAnimationStartTime;
+    this._delta = this._currFrameTime - this._prevFrameTime;
   },
 
   
 
 
-  drawVisualization: function TVP_drawVisualization()
+  _drawVisualization: function TVP__drawVisualization()
   {
-    let renderer = this.renderer;
+    let renderer = this._renderer;
     let transforms = this.transforms;
     let w = renderer.width;
     let h = renderer.height;
     let ih = renderer.initialHeight;
 
     
-    if (!this.meshStacks || !this.meshWireframe) {
+    if (!this._meshStacks || !this._meshWireframe) {
       return;
     }
 
@@ -384,11 +385,11 @@ TiltVisualizer.Presenter.prototype = {
     
     let ortho = mat4.ortho(0, w, h, 0, -1000, 1000);
 
-    if (!this.isExecutingDestruction) {
-      let f = this.time / INTRO_TRANSITION_DURATION;
+    if (!this._isExecutingDestruction) {
+      let f = this._time / INTRO_TRANSITION_DURATION;
       renderer.lerp(renderer.projMatrix, ortho, f, 8);
     } else {
-      let f = this.time / OUTRO_TRANSITION_DURATION;
+      let f = this._time / OUTRO_TRANSITION_DURATION;
       renderer.lerp(renderer.projMatrix, ortho, 1 - f, 8);
     }
 
@@ -410,28 +411,28 @@ TiltVisualizer.Presenter.prototype = {
     
     renderer.strokeWeight(2);
     renderer.depthTest(true);
-    this.drawMeshStacks();
-    this.drawMeshWireframe();
-    this.drawHighlight();
+    this._drawMeshStacks();
+    this._drawMeshWireframe();
+    this._drawHighlight();
 
     
-    if (this.time < INTRO_TRANSITION_DURATION ||
-        this.time < OUTRO_TRANSITION_DURATION) {
-      this.redraw = true;
+    if (this._time < INTRO_TRANSITION_DURATION ||
+        this._time < OUTRO_TRANSITION_DURATION) {
+      this._redraw = true;
     }
-    this.time += this.delta;
+    this._time += this._delta;
   },
 
   
 
 
-  drawMeshStacks: function TVP_drawMeshStacks()
+  _drawMeshStacks: function TVP__drawMeshStacks()
   {
-    let renderer = this.renderer;
-    let mesh = this.meshStacks;
+    let renderer = this._renderer;
+    let mesh = this._meshStacks;
 
-    let visualizationProgram = this.visualizationProgram;
-    let texture = this.texture;
+    let visualizationProgram = this._visualizationProgram;
+    let texture = this._texture;
     let mvMatrix = renderer.mvMatrix;
     let projMatrix = renderer.projMatrix;
 
@@ -458,10 +459,10 @@ TiltVisualizer.Presenter.prototype = {
   
 
 
-  drawMeshWireframe: function TVP_drawMeshWireframe()
+  _drawMeshWireframe: function TVP__drawMeshWireframe()
   {
-    let renderer = this.renderer;
-    let mesh = this.meshWireframe;
+    let renderer = this._renderer;
+    let mesh = this._meshWireframe;
 
     
     renderer.useColorShader(mesh.vertices, WIREFRAME_COLOR);
@@ -473,14 +474,14 @@ TiltVisualizer.Presenter.prototype = {
   
 
 
-  drawHighlight: function TVP_drawHighlight()
+  _drawHighlight: function TVP__drawHighlight()
   {
     
-    if (!this.highlight.disabled) {
+    if (!this._highlight.disabled) {
 
       
-      let renderer = this.renderer;
-      let highlight = this.highlight;
+      let renderer = this._renderer;
+      let highlight = this._highlight;
 
       renderer.depthTest(false);
       renderer.fill(highlight.fill, 0.5);
@@ -493,12 +494,12 @@ TiltVisualizer.Presenter.prototype = {
   
 
 
-  setupTexture: function TVP_setupTexture()
+  _setupTexture: function TVP__setupTexture()
   {
-    let renderer = this.renderer;
+    let renderer = this._renderer;
 
     
-    TiltUtils.destroyObject(this.texture);
+    TiltUtils.destroyObject(this._texture); this._texture = null;
 
     
     if (!renderer || !renderer.context) {
@@ -506,22 +507,22 @@ TiltVisualizer.Presenter.prototype = {
     }
 
     
-    this.maxTextureSize =
+    this._maxTextureSize =
       renderer.context.getParameter(renderer.context.MAX_TEXTURE_SIZE);
 
     
     
     
     
-    this.texture = new renderer.Texture({
+    this._texture = new renderer.Texture({
       source: TiltGL.TextureUtils.createContentImage(this.contentWindow,
-                                                     this.maxTextureSize),
+                                                     this._maxTextureSize),
       format: "RGB"
     });
 
-    if ("function" === typeof this.onSetupTexture) {
-      this.onSetupTexture();
-      this.onSetupTexture = null;
+    if ("function" === typeof this._onSetupTexture) {
+      this._onSetupTexture();
+      this._onSetupTexture = null;
     }
   },
 
@@ -532,13 +533,13 @@ TiltVisualizer.Presenter.prototype = {
 
 
 
-  setupMesh: function TVP_setupMesh(aData)
+  _setupMesh: function TVP__setupMesh(aMeshData)
   {
-    let renderer = this.renderer;
+    let renderer = this._renderer;
 
     
-    TiltUtils.destroyObject(this.meshStacks);
-    TiltUtils.destroyObject(this.meshWireframe);
+    TiltUtils.destroyObject(this._meshStacks); this._meshStacks = null;
+    TiltUtils.destroyObject(this._meshWireframe); this._meshWireframe = null;
 
     
     if (!renderer || !renderer.context) {
@@ -546,22 +547,22 @@ TiltVisualizer.Presenter.prototype = {
     }
 
     
-    this.meshData = aData;
+    this._meshData = aMeshData;
 
     
     
-    this.meshStacks = {
-      vertices: new renderer.VertexBuffer(aData.vertices, 3),
-      texCoord: new renderer.VertexBuffer(aData.texCoord, 2),
-      color: new renderer.VertexBuffer(aData.color, 3),
-      indices: new renderer.IndexBuffer(aData.stacksIndices)
+    this._meshStacks = {
+      vertices: new renderer.VertexBuffer(aMeshData.vertices, 3),
+      texCoord: new renderer.VertexBuffer(aMeshData.texCoord, 2),
+      color: new renderer.VertexBuffer(aMeshData.color, 3),
+      indices: new renderer.IndexBuffer(aMeshData.stacksIndices)
     };
 
     
     
-    this.meshWireframe = {
-      vertices: this.meshStacks.vertices,
-      indices: new renderer.IndexBuffer(aData.wireframeIndices)
+    this._meshWireframe = {
+      vertices: this._meshStacks.vertices,
+      indices: new renderer.IndexBuffer(aMeshData.wireframeIndices)
     };
 
     
@@ -583,22 +584,22 @@ TiltVisualizer.Presenter.prototype = {
       
       this.canvas.style.background = TiltVisualizerStyle.canvas.background;
 
-      this.drawVisualization();
-      this.redraw = true;
+      this._drawVisualization();
+      this._redraw = true;
     }
 
-    if ("function" === typeof this.onSetupMesh) {
-      this.onSetupMesh();
-      this.onSetupMesh = null;
+    if ("function" === typeof this._onSetupMesh) {
+      this._onSetupMesh();
+      this._onSetupMesh = null;
     }
   },
 
   
 
 
-  setupMeshData: function TVP_setupMeshData()
+  _setupMeshData: function TVP__setupMeshData()
   {
-    let renderer = this.renderer;
+    let renderer = this._renderer;
 
     
     if (!renderer || !renderer.context) {
@@ -606,17 +607,17 @@ TiltVisualizer.Presenter.prototype = {
     }
 
     
-    this.traverseData = TiltUtils.DOM.traverse(this.contentWindow, {
+    this._traverseData = TiltUtils.DOM.traverse(this.contentWindow, {
       invisibleElements: INVISIBLE_ELEMENTS,
       minSize: ELEMENT_MIN_SIZE,
-      maxX: this.texture.width,
-      maxY: this.texture.height
+      maxX: this._texture.width,
+      maxY: this._texture.height
     });
 
     let worker = new ChromeWorker(TILT_CRAFTER);
 
     worker.addEventListener("message", function TVP_onMessage(event) {
-      this.setupMesh(event.data);
+      this._setupMesh(event.data);
     }.bind(this), false);
 
     
@@ -624,34 +625,34 @@ TiltVisualizer.Presenter.prototype = {
     worker.postMessage({
       thickness: STACK_THICKNESS,
       style: TiltVisualizerStyle.nodes,
-      texWidth: this.texture.width,
-      texHeight: this.texture.height,
-      nodesInfo: this.traverseData.info
+      texWidth: this._texture.width,
+      texHeight: this._texture.height,
+      nodesInfo: this._traverseData.info
     });
   },
 
   
 
 
-  setupEventListeners: function TVP_setupEventListeners()
+  _setupEventListeners: function TVP__setupEventListeners()
   {
-    this.contentWindow.addEventListener("resize", this.onResize, false);
+    this.contentWindow.addEventListener("resize", this._onResize, false);
   },
 
   
 
 
-  onResize: function TVP_onResize(e)
+  _onResize: function TVP_onResize(e)
   {
     let zoom = this.chromeWindow.InspectorUI.highlighter.zoom;
     let width = e.target.innerWidth * zoom;
     let height = e.target.innerHeight * zoom;
 
     
-    this.renderer.width = width;
-    this.renderer.height = height;
+    this._renderer.width = width;
+    this._renderer.height = height;
 
-    this.redraw = true;
+    this._redraw = true;
   },
 
   
@@ -664,7 +665,7 @@ TiltVisualizer.Presenter.prototype = {
 
   highlightNode: function TVP_highlightNode(aNode, aFlags)
   {
-    this.highlightNodeFor(this.traverseData.nodes.indexOf(aNode), aFlags);
+    this.highlightNodeFor(this._traverseData.nodes.indexOf(aNode), aFlags);
   },
 
   
@@ -728,7 +729,7 @@ TiltVisualizer.Presenter.prototype = {
 
   highlightNodeFor: function TVP_highlightNodeFor(aNodeIndex, aFlags)
   {
-    this.redraw = true;
+    this._redraw = true;
 
     
     if (this._currentSelection === aNodeIndex) {
@@ -738,15 +739,15 @@ TiltVisualizer.Presenter.prototype = {
     
     if (aNodeIndex < 0) {
       this._currentSelection = -1;
-      this.highlight.disabled = true;
+      this._highlight.disabled = true;
 
       Services.obs.notifyObservers(null, this.NOTIFICATIONS.UNHIGHLIGHTING, null);
       return;
     }
 
-    let highlight = this.highlight;
-    let info = this.traverseData.info[aNodeIndex];
-    let node = this.traverseData.nodes[aNodeIndex];
+    let highlight = this._highlight;
+    let info = this._traverseData.info[aNodeIndex];
+    let node = this._traverseData.nodes[aNodeIndex];
     let style = TiltVisualizerStyle.nodes;
 
     highlight.disabled = false;
@@ -778,8 +779,8 @@ TiltVisualizer.Presenter.prototype = {
     if (aFlags && aFlags.indexOf("moveIntoView") !== -1)
     {
       this.controller.arcball.moveIntoView(vec3.lerp(
-        vec3.scale(this.highlight.v0, this.transforms.zoom, []),
-        vec3.scale(this.highlight.v1, this.transforms.zoom, []), 0.5));
+        vec3.scale(this._highlight.v0, this.transforms.zoom, []),
+        vec3.scale(this._highlight.v1, this.transforms.zoom, []), 0.5));
     }
 
     Services.obs.notifyObservers(null, this.NOTIFICATIONS.HIGHLIGHTING, null);
@@ -799,16 +800,16 @@ TiltVisualizer.Presenter.prototype = {
       return;
     }
 
-    let renderer = this.renderer;
-    let meshData = this.meshData;
+    let renderer = this._renderer;
+    let vertices = this._meshData.vertices;
 
     for (let i = 0, k = 36 * aNodeIndex; i < 36; i++) {
-      meshData.vertices[i + k] = 0;
+      vertices[i + k] = 0;
     }
 
-    this.meshStacks.vertices = new renderer.VertexBuffer(meshData.vertices, 3);
-    this.highlight.disabled = true;
-    this.redraw = true;
+    this._meshStacks.vertices = new renderer.VertexBuffer(vertices, 3);
+    this._highlight.disabled = true;
+    this._redraw = true;
 
     Services.obs.notifyObservers(null, this.NOTIFICATIONS.NODE_REMOVED, null);
   },
@@ -832,7 +833,7 @@ TiltVisualizer.Presenter.prototype = {
     aProperties = aProperties || {};
 
     
-    if (!this.meshStacks || !this.meshWireframe) {
+    if (!this._meshStacks || !this._meshWireframe) {
       return;
     }
 
@@ -851,9 +852,9 @@ TiltVisualizer.Presenter.prototype = {
     }, false);
 
     let zoom = this.chromeWindow.InspectorUI.highlighter.zoom;
-    let width = this.renderer.width * zoom;
-    let height = this.renderer.height * zoom;
-    let mesh = this.meshStacks;
+    let width = this._renderer.width * zoom;
+    let height = this._renderer.height * zoom;
+    let mesh = this._meshStacks;
     x *= zoom;
     y *= zoom;
 
@@ -890,7 +891,7 @@ TiltVisualizer.Presenter.prototype = {
         transforms.translation[2] !== z) {
 
       vec3.set(aTranslation, transforms.translation);
-      this.redraw = true;
+      this._redraw = true;
     }
   },
 
@@ -915,43 +916,43 @@ TiltVisualizer.Presenter.prototype = {
         transforms.rotation[3] !== w) {
 
       quat4.set(aQuaternion, transforms.rotation);
-      this.redraw = true;
+      this._redraw = true;
     }
   },
 
   
 
 
-  handleKeyframeNotifications: function TV_handleKeyframeNotifications()
+  _handleKeyframeNotifications: function TV__handleKeyframeNotifications()
   {
-    if (!TiltVisualizer.Prefs.introTransition && !this.isExecutingDestruction) {
-      this.time = INTRO_TRANSITION_DURATION;
+    if (!TiltVisualizer.Prefs.introTransition && !this._isExecutingDestruction) {
+      this._time = INTRO_TRANSITION_DURATION;
     }
-    if (!TiltVisualizer.Prefs.outroTransition && this.isExecutingDestruction) {
-      this.time = OUTRO_TRANSITION_DURATION;
+    if (!TiltVisualizer.Prefs.outroTransition && this._isExecutingDestruction) {
+      this._time = OUTRO_TRANSITION_DURATION;
     }
 
-    if (this.time >= INTRO_TRANSITION_DURATION &&
-       !this.initializationFinished &&
-       !this.isExecutingDestruction) {
+    if (this._time >= INTRO_TRANSITION_DURATION &&
+       !this._isInitializationFinished &&
+       !this._isExecutingDestruction) {
 
-      this.initializationFinished = true;
+      this._isInitializationFinished = true;
       Services.obs.notifyObservers(null, this.NOTIFICATIONS.INITIALIZED, null);
 
-      if ("function" === typeof this.onInitializationFinished) {
-        this.onInitializationFinished();
+      if ("function" === typeof this._onInitializationFinished) {
+        this._onInitializationFinished();
       }
     }
 
-    if (this.time >= OUTRO_TRANSITION_DURATION &&
-       !this.destructionFinished &&
-        this.isExecutingDestruction) {
+    if (this._time >= OUTRO_TRANSITION_DURATION &&
+       !this._isDestructionFinished &&
+        this._isExecutingDestruction) {
 
-      this.destructionFinished = true;
+      this._isDestructionFinished = true;
       Services.obs.notifyObservers(null, this.NOTIFICATIONS.BEFORE_DESTROYED, null);
 
-      if ("function" === typeof this.onDestructionFinished) {
-        this.onDestructionFinished();
+      if ("function" === typeof this._onDestructionFinished) {
+        this._onDestructionFinished();
       }
     }
   },
@@ -965,17 +966,17 @@ TiltVisualizer.Presenter.prototype = {
 
   executeDestruction: function TV_executeDestruction(aCallback)
   {
-    if (!this.isExecutingDestruction) {
-      this.isExecutingDestruction = true;
-      this.onDestructionFinished = aCallback;
+    if (!this._isExecutingDestruction) {
+      this._isExecutingDestruction = true;
+      this._onDestructionFinished = aCallback;
 
       
       
       
 
-      if (this.time > OUTRO_TRANSITION_DURATION) {
-        this.time = 0;
-        this.redraw = true;
+      if (this._time > OUTRO_TRANSITION_DURATION) {
+        this._time = 0;
+        this._redraw = true;
       } else {
         aCallback();
       }
@@ -989,33 +990,33 @@ TiltVisualizer.Presenter.prototype = {
 
   isInitialized: function TVP_isInitialized()
   {
-    return this.renderer && this.renderer.context;
+    return this._renderer && this._renderer.context;
   },
 
   
 
 
-  finalize: function TVP_finalize()
+  _finalize: function TVP__finalize()
   {
-    TiltUtils.destroyObject(this.visualizationProgram);
-    TiltUtils.destroyObject(this.texture);
+    TiltUtils.destroyObject(this._visualizationProgram);
+    TiltUtils.destroyObject(this._texture);
 
-    if (this.meshStacks) {
-      TiltUtils.destroyObject(this.meshStacks.vertices);
-      TiltUtils.destroyObject(this.meshStacks.texCoord);
-      TiltUtils.destroyObject(this.meshStacks.color);
-      TiltUtils.destroyObject(this.meshStacks.indices);
+    if (this._meshStacks) {
+      TiltUtils.destroyObject(this._meshStacks.vertices);
+      TiltUtils.destroyObject(this._meshStacks.texCoord);
+      TiltUtils.destroyObject(this._meshStacks.color);
+      TiltUtils.destroyObject(this._meshStacks.indices);
     }
 
-    if (this.meshWireframe) {
-      TiltUtils.destroyObject(this.meshWireframe.indices);
+    if (this._meshWireframe) {
+      TiltUtils.destroyObject(this._meshWireframe.indices);
     }
 
-    TiltUtils.destroyObject(this.highlight);
+    TiltUtils.destroyObject(this._renderer);
+    TiltUtils.destroyObject(this._highlight);
     TiltUtils.destroyObject(this.transforms);
-    TiltUtils.destroyObject(this.renderer);
 
-    this.contentWindow.removeEventListener("resize", this.onResize, false);
+    this.contentWindow.removeEventListener("resize", this._onResize, false);
   }
 };
 
@@ -1043,36 +1044,36 @@ TiltVisualizer.Controller = function TV_Controller(aCanvas, aPresenter)
   
 
 
-  this.zoom = aPresenter.transforms.zoom;
-  this.left = (aPresenter.contentWindow.pageXOffset || 0) * this.zoom;
-  this.top = (aPresenter.contentWindow.pageYOffset || 0) * this.zoom;
-  this.width = aCanvas.width;
-  this.height = aCanvas.height;
+  this._zoom = aPresenter.transforms.zoom;
+  this._left = (aPresenter.contentWindow.pageXOffset || 0) * this._zoom;
+  this._top = (aPresenter.contentWindow.pageYOffset || 0) * this._zoom;
+  this._width = aCanvas.width;
+  this._height = aCanvas.height;
 
   
 
 
   this.arcball = new TiltVisualizer.Arcball(
-    this.presenter.chromeWindow, this.width, this.height, 0,
+    this.presenter.chromeWindow, this._width, this._height, 0,
     [
-      this.width + this.left < aPresenter.maxTextureSize ? -this.left : 0,
-      this.height + this.top < aPresenter.maxTextureSize ? -this.top : 0
+      this._width + this._left < aPresenter._maxTextureSize ? -this._left : 0,
+      this._height + this._top < aPresenter._maxTextureSize ? -this._top : 0
     ]);
 
   
 
 
-  this.coordinates = null;
+  this._coordinates = null;
 
   
-  TiltUtils.bindObjectFunc(this, "update");
-  TiltUtils.bindObjectFunc(this, "^on");
+  TiltUtils.bindObjectFunc(this, "_update");
+  TiltUtils.bindObjectFunc(this, "^_on");
 
   
   this.addEventListeners();
 
   
-  this.presenter.ondraw = this.update;
+  this.presenter._controllerUpdate = this._update;
 };
 
 TiltVisualizer.Controller.prototype = {
@@ -1086,19 +1087,19 @@ TiltVisualizer.Controller.prototype = {
     let presenter = this.presenter;
 
     
-    canvas.addEventListener("mousedown", this.onMouseDown, false);
-    canvas.addEventListener("mouseup", this.onMouseUp, false);
-    canvas.addEventListener("mousemove", this.onMouseMove, false);
-    canvas.addEventListener("mouseover", this.onMouseOver, false);
-    canvas.addEventListener("mouseout", this.onMouseOut, false);
-    canvas.addEventListener("MozMousePixelScroll", this.onMozScroll, false);
-    canvas.addEventListener("keydown", this.onKeyDown, false);
-    canvas.addEventListener("keyup", this.onKeyUp, false);
-    canvas.addEventListener("keypress", this.onKeyPress, true);
-    canvas.addEventListener("blur", this.onBlur, false);
+    canvas.addEventListener("mousedown", this._onMouseDown, false);
+    canvas.addEventListener("mouseup", this._onMouseUp, false);
+    canvas.addEventListener("mousemove", this._onMouseMove, false);
+    canvas.addEventListener("mouseover", this._onMouseOver, false);
+    canvas.addEventListener("mouseout", this._onMouseOut, false);
+    canvas.addEventListener("MozMousePixelScroll", this._onMozScroll, false);
+    canvas.addEventListener("keydown", this._onKeyDown, false);
+    canvas.addEventListener("keyup", this._onKeyUp, false);
+    canvas.addEventListener("keypress", this._onKeyPress, true);
+    canvas.addEventListener("blur", this._onBlur, false);
 
     
-    presenter.contentWindow.addEventListener("resize", this.onResize, false);
+    presenter.contentWindow.addEventListener("resize", this._onResize, false);
   },
 
   
@@ -1109,18 +1110,18 @@ TiltVisualizer.Controller.prototype = {
     let canvas = this.canvas;
     let presenter = this.presenter;
 
-    canvas.removeEventListener("mousedown", this.onMouseDown, false);
-    canvas.removeEventListener("mouseup", this.onMouseUp, false);
-    canvas.removeEventListener("mousemove", this.onMouseMove, false);
-    canvas.removeEventListener("mouseover", this.onMouseOver, false);
-    canvas.removeEventListener("mouseout", this.onMouseOut, false);
-    canvas.removeEventListener("MozMousePixelScroll", this.onMozScroll, false);
-    canvas.removeEventListener("keydown", this.onKeyDown, false);
-    canvas.removeEventListener("keyup", this.onKeyUp, false);
-    canvas.removeEventListener("keypress", this.onKeyPress, true);
-    canvas.removeEventListener("blur", this.onBlur, false);
+    canvas.removeEventListener("mousedown", this._onMouseDown, false);
+    canvas.removeEventListener("mouseup", this._onMouseUp, false);
+    canvas.removeEventListener("mousemove", this._onMouseMove, false);
+    canvas.removeEventListener("mouseover", this._onMouseOver, false);
+    canvas.removeEventListener("mouseout", this._onMouseOut, false);
+    canvas.removeEventListener("MozMousePixelScroll", this._onMozScroll, false);
+    canvas.removeEventListener("keydown", this._onKeyDown, false);
+    canvas.removeEventListener("keyup", this._onKeyUp, false);
+    canvas.removeEventListener("keypress", this._onKeyPress, true);
+    canvas.removeEventListener("blur", this._onBlur, false);
 
-    presenter.contentWindow.removeEventListener("resize", this.onResize,false);
+    presenter.contentWindow.removeEventListener("resize", this._onResize, false);
   },
 
   
@@ -1131,25 +1132,25 @@ TiltVisualizer.Controller.prototype = {
 
 
 
-  update: function TVC_update(aTime, aDelta)
+  _update: function TVC__update(aTime, aDelta)
   {
-    this.time = aTime;
-    this.coordinates = this.arcball.update(aDelta);
+    this._time = aTime;
+    this._coordinates = this.arcball.update(aDelta);
 
-    this.presenter.setRotation(this.coordinates.rotation);
-    this.presenter.setTranslation(this.coordinates.translation);
+    this.presenter.setRotation(this._coordinates.rotation);
+    this.presenter.setTranslation(this._coordinates.translation);
   },
 
   
 
 
-  onMouseDown: function TVC_onMouseDown(e)
+  _onMouseDown: function TVC__onMouseDown(e)
   {
     e.target.focus();
     e.preventDefault();
     e.stopPropagation();
 
-    if (this.time < MOUSE_INTRO_DELAY) {
+    if (this._time < MOUSE_INTRO_DELAY) {
       return;
     }
 
@@ -1164,12 +1165,12 @@ TiltVisualizer.Controller.prototype = {
   
 
 
-  onMouseUp: function TVC_onMouseUp(e)
+  _onMouseUp: function TVC__onMouseUp(e)
   {
     e.preventDefault();
     e.stopPropagation();
 
-    if (this.time < MOUSE_INTRO_DELAY) {
+    if (this._time < MOUSE_INTRO_DELAY) {
       return;
     }
 
@@ -1192,12 +1193,12 @@ TiltVisualizer.Controller.prototype = {
   
 
 
-  onMouseMove: function TVC_onMouseMove(e)
+  _onMouseMove: function TVC__onMouseMove(e)
   {
     e.preventDefault();
     e.stopPropagation();
 
-    if (this.time < MOUSE_INTRO_DELAY) {
+    if (this._time < MOUSE_INTRO_DELAY) {
       return;
     }
 
@@ -1211,7 +1212,7 @@ TiltVisualizer.Controller.prototype = {
   
 
 
-  onMouseOver: function TVC_onMouseOver(e)
+  _onMouseOver: function TVC__onMouseOver(e)
   {
     e.preventDefault();
     e.stopPropagation();
@@ -1222,7 +1223,7 @@ TiltVisualizer.Controller.prototype = {
   
 
 
-  onMouseOut: function TVC_onMouseOut(e)
+  _onMouseOut: function TVC__onMouseOut(e)
   {
     e.preventDefault();
     e.stopPropagation();
@@ -1233,7 +1234,7 @@ TiltVisualizer.Controller.prototype = {
   
 
 
-  onMozScroll: function TVC_onMozScroll(e)
+  _onMozScroll: function TVC__onMozScroll(e)
   {
     e.preventDefault();
     e.stopPropagation();
@@ -1244,7 +1245,7 @@ TiltVisualizer.Controller.prototype = {
   
 
 
-  onKeyDown: function TVC_onKeyDown(e)
+  _onKeyDown: function TVC__onKeyDown(e)
   {
     let code = e.keyCode || e.which;
 
@@ -1260,7 +1261,7 @@ TiltVisualizer.Controller.prototype = {
   
 
 
-  onKeyUp: function TVC_onKeyUp(e)
+  _onKeyUp: function TVC__onKeyUp(e)
   {
     let code = e.keyCode || e.which;
 
@@ -1277,7 +1278,7 @@ TiltVisualizer.Controller.prototype = {
   
 
 
-  onKeyPress: function TVC_onKeyPress(e)
+  _onKeyPress: function TVC__onKeyPress(e)
   {
     let tilt = this.presenter.chromeWindow.Tilt;
 
@@ -1291,14 +1292,14 @@ TiltVisualizer.Controller.prototype = {
   
 
 
-  onBlur: function TVC_onBlur(e) {
+  _onBlur: function TVC__onBlur(e) {
     this.arcball.cancelKeyEvents();
   },
 
   
 
 
-  onResize: function TVC_onResize(e)
+  _onResize: function TVC__onResize(e)
   {
     let zoom = this.presenter.chromeWindow.InspectorUI.highlighter.zoom;
     let width = e.target.innerWidth * zoom;
@@ -1320,14 +1321,14 @@ TiltVisualizer.Controller.prototype = {
   
 
 
-  finalize: function TVC_finalize()
+  _finalize: function TVC__finalize()
   {
     TiltUtils.destroyObject(this.arcball);
-    TiltUtils.destroyObject(this.coordinates);
+    TiltUtils.destroyObject(this._coordinates);
 
     this.removeEventListeners();
     this.presenter.controller = null;
-    this.presenter.ondraw = null;
+    this.presenter._controllerUpdate = null;
   }
 };
 
@@ -1460,7 +1461,7 @@ TiltVisualizer.Arcball.prototype = {
       this._rotating = true;
 
       
-      this.pointToSphere(x, y, this.width, this.height, this.radius, endVec);
+      this._pointToSphere(x, y, this.width, this.height, this.radius, endVec);
 
       
       vec3.cross(startVec, endVec, pVec);
@@ -1618,7 +1619,7 @@ TiltVisualizer.Arcball.prototype = {
     this._save();
 
     
-    this.pointToSphere(
+    this._pointToSphere(
       x, y, this.width, this.height, this.radius, this._startVec);
 
     quat4.set(this._currentRot, this._lastRot);
@@ -1736,7 +1737,7 @@ TiltVisualizer.Arcball.prototype = {
 
 
 
-  pointToSphere: function TVA_pointToSphere(
+  _pointToSphere: function TVA__pointToSphere(
     x, y, aWidth, aHeight, aRadius, aSphereVec)
   {
     
@@ -1834,9 +1835,9 @@ TiltVisualizer.Arcball.prototype = {
 
   reset: function TVA_reset(aFinalTranslation, aFinalRotation)
   {
-    if ("function" === typeof this.onResetStart) {
-      this.onResetStart();
-      this.onResetStart = null;
+    if ("function" === typeof this._onResetStart) {
+      this._onResetStart();
+      this._onResetStart = null;
     }
 
     this.cancelMouseEvents();
@@ -1858,10 +1859,10 @@ TiltVisualizer.Arcball.prototype = {
       this._resetInProgress = false;
       this._save();
 
-      if ("function" === typeof this.onResetFinish) {
-        this.onResetFinish();
-        this.onResetFinish = null;
-        this.onResetStep = null;
+      if ("function" === typeof this._onResetFinish) {
+        this._onResetFinish();
+        this._onResetFinish = null;
+        this._onResetStep = null;
       }
     }
   },
@@ -1909,8 +1910,8 @@ TiltVisualizer.Arcball.prototype = {
       this._cancelReset();
     }
 
-    if ("function" === typeof this.onResetStep) {
-      this.onResetStep();
+    if ("function" === typeof this._onResetStep) {
+      this._onResetStep();
     }
   },
 
@@ -1967,7 +1968,7 @@ TiltVisualizer.Arcball.prototype = {
   
 
 
-  finalize: function TVA_finalize()
+  _finalize: function TVA__finalize()
   {
     this._cancelReset();
   }

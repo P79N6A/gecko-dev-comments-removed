@@ -518,8 +518,8 @@ TiltUtils.destroyObject = function TU_destroyObject(aScope)
   }
 
   
-  if ("function" === typeof aScope.finalize) {
-    aScope.finalize();
+  if ("function" === typeof aScope._finalize) {
+    aScope._finalize();
   }
   for (let i in aScope) {
     if (aScope.hasOwnProperty(i)) {
