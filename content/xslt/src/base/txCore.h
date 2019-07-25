@@ -39,11 +39,11 @@
 #ifndef __txCore_h__
 #define __txCore_h__
 
+#include "nsContentUtils.h"
 #include "nscore.h"
 #include "nsDebug.h"
 #include "nsTraceRefcnt.h"
 #include "prtypes.h"
-#include "txDouble.h"
 
 class nsAString;
 
@@ -73,9 +73,9 @@ public:
     
 
 
-    static const txdpun NaN;
-    static const txdpun POSITIVE_INFINITY;
-    static const txdpun NEGATIVE_INFINITY;
+    static const dpun NaN;
+    static const dpun POSITIVE_INFINITY;
+    static const dpun NEGATIVE_INFINITY;
 
     
 
