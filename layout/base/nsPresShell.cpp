@@ -56,7 +56,6 @@
 
 
 
-#include "nsAlgorithm.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
 #include "nsIContent.h"
@@ -130,6 +129,7 @@
 #include "nsCSSRendering.h"
   
 #include "prenv.h"
+#include "nsAlgorithm.h"
 #include "nsIAttribute.h"
 #include "nsIGlobalHistory2.h"
 #include "nsDisplayList.h"
