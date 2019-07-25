@@ -1180,6 +1180,18 @@ nsPresContext::GetParentPresContext()
         return f->PresContext();
     }
   }
+  
+  
+  nsIDocument *doc = Document();
+  if (doc) {
+    doc = doc->GetParentDocument();
+    if (doc) {
+      shell = doc->GetShell();
+      if (shell) {
+        return shell->GetPresContext();
+      }
+    }
+  }
   return nsnull;
 }
 
@@ -1204,7 +1216,7 @@ nsPresContext::GetRootPresContext()
   nsPresContext* pc = this;
   for (;;) {
     nsPresContext* parent = pc->GetParentPresContext();
-    if (!parent)
+    if (!parent || parent == pc)
       break;
     pc = parent;
   }
@@ -1407,12 +1419,15 @@ nsPresContext::ScreenWidthInchesForFontInflation(bool* aChanged)
   float deviceWidthInches =
     float(clientRect.width) / float(dx->AppUnitsPerPhysicalInch());
 
-  if (mLastFontInflationScreenWidth == -1.0) {
-    mLastFontInflationScreenWidth = deviceWidthInches;
-  }
-
-  if (deviceWidthInches != mLastFontInflationScreenWidth && aChanged) {
-    *aChanged = true;
+  if (deviceWidthInches != mLastFontInflationScreenWidth) {
+    if (mLastFontInflationScreenWidth != -1.0) {
+      if (aChanged) {
+        *aChanged = true;
+      } else {
+        NS_NOTREACHED("somebody should have checked for screen width change "
+                      "and triggered a reflow");
+      }
+    }
     mLastFontInflationScreenWidth = deviceWidthInches;
   }
 
