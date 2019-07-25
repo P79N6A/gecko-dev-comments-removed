@@ -1821,8 +1821,9 @@ class TypedArrayTemplate
 
 
         if (v.isPrimitive() && !v.isMagic() && !v.isUndefined()) {
+            RootedValue primitive(cx, v);
             double dval;
-            JS_ALWAYS_TRUE(ToNumber(cx, v, &dval));
+            JS_ALWAYS_TRUE(ToNumber(cx, primitive, &dval));
             return nativeFromDouble(dval);
         }
 
@@ -1845,6 +1846,7 @@ class TypedArrayTemplate
             JS_ASSERT(ar->getArrayLength() == len);
 
             const Value *src = ar->getDenseArrayElements();
+            SkipRoot skipSrc(cx, &src);
 
             
 
@@ -2429,6 +2431,7 @@ DataViewObject::write(JSContext *cx, Handle<DataViewObject*> obj,
     }
 
     uint8_t *data;
+    SkipRoot skipData(cx, &data);
     if (!getDataPointer(cx, obj, args, sizeof(NativeType), &data))
         return false;
 

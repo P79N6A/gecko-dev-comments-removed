@@ -383,7 +383,7 @@ js::num_parseInt(JSContext *cx, unsigned argc, Value *vp)
     }
 
     
-    JSString *inputString = ToString(cx, args[0]);
+    RootedString inputString(cx, ToString(cx, args[0]));
     if (!inputString)
         return false;
     args[0].setString(inputString);
