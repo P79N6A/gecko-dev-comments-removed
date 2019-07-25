@@ -40,10 +40,12 @@ let gDropTargetShim = {
 
 
   _start: function DropTargetShim_start(aEvent) {
-    gGrid.lock();
+    if (aEvent.target.classList.contains("site")) {
+      gGrid.lock();
 
-    
-    document.documentElement.addEventListener("dragover", this._dragover, false);
+      
+      document.documentElement.addEventListener("dragover", this._dragover, false);
+    }
   },
 
   
