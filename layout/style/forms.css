@@ -156,11 +156,10 @@ input > .anonymous-div {
   
   padding: 0px 1px;
   margin: 0px;
-  
-
   text-decoration: inherit;
   -moz-text-decoration-color: inherit;
   -moz-text-decoration-style: inherit;
+  display: inline-block;
   ime-mode: inherit;
   resize: inherit;
 }
