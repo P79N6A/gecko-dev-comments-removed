@@ -112,6 +112,13 @@ public:
                      float aOpacity) {}
 
   virtual ShadowableLayer* AsShadowableLayer() { return nsnull; }
+
+  
+
+
+
+
+  virtual void ClearCachedResources() {}
 };
 
 static BasicImplData*
@@ -290,6 +297,8 @@ public:
                      LayerManager::DrawThebesLayerCallback aCallback,
                      void* aCallbackData,
                      float aOpacity);
+
+  virtual void ClearCachedResources() { mBuffer.Clear(); mValidRegion.SetEmpty(); }
   
   virtual already_AddRefed<gfxASurface>
   CreateBuffer(Buffer::ContentType aType, const nsIntSize& aSize)
@@ -348,6 +357,16 @@ ClipToContain(gfxContext* aContext, const nsIntRect& aRect)
   aContext->SetMatrix(currentMatrix);
 }
 
+static void
+InheritContextFlags(gfxContext* aSource, gfxContext* aDest)
+{
+  if (aSource->GetFlags() & gfxContext::FLAG_DESTINED_FOR_SCREEN) {
+    aDest->SetFlag(gfxContext::FLAG_DESTINED_FOR_SCREEN);
+  } else {
+    aDest->ClearFlag(gfxContext::FLAG_DESTINED_FOR_SCREEN);
+  }
+}
+
 void
 BasicThebesLayer::Paint(gfxContext* aContext,
                         LayerManager::DrawThebesLayerCallback aCallback,
@@ -394,6 +413,7 @@ BasicThebesLayer::Paint(gfxContext* aContext,
       
       
       state.mRegionToInvalidate.And(state.mRegionToInvalidate, mVisibleRegion);
+      InheritContextFlags(target, state.mContext);
       PaintBuffer(state.mContext,
                   state.mRegionToDraw, state.mRegionToInvalidate,
                   aCallback, aCallbackData);
@@ -690,15 +710,9 @@ BasicCanvasLayer::Updated(const nsIntRect& aRect)
     
     
     
-#ifndef USE_GLES2
-    mGLContext->fReadPixels(0, 0, mBounds.width, mBounds.height,
-                            LOCAL_GL_BGRA, LOCAL_GL_UNSIGNED_INT_8_8_8_8_REV,
-                            isurf->Data());
-#else
-    mGLContext->fReadPixels(0, 0, mBounds.width, mBounds.height,
-                            LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE,
-                            isurf->Data());
-#endif
+    mGLContext->ReadPixelsIntoImageSurface(0, 0,
+                                           mBounds.width, mBounds.height,
+                                           isurf);
 
     
     if (currentFramebuffer != mCanvasFramebuffer)
@@ -851,6 +865,8 @@ BasicLayerManager::~BasicLayerManager()
 {
   NS_ASSERTION(!InTransaction(), "Died during transaction?");
 
+  ClearCachedResources();
+
   mRoot = nsnull;
 
   MOZ_COUNT_DTOR(BasicLayerManager);
@@ -889,6 +905,7 @@ BasicLayerManager::PushGroupWithCachedSurface(gfxContext *aTarget,
     mCachedSurface.Get(aContent,
                        gfxIntSize(clip.size.width, clip.size.height),
                        currentSurf);
+  InheritContextFlags(aTarget, ctx);
   
   ctx->Translate(-clip.pos);
   *aSavedOffset = clip.pos;
@@ -1069,6 +1086,25 @@ BasicLayerManager::PaintLayer(Layer* aLayer,
     }
 
     mTarget->Restore();
+  }
+}
+
+void
+BasicLayerManager::ClearCachedResources()
+{
+  if (mRoot) {
+    ClearLayer(mRoot);
+  }
+
+  mCachedSurface.Expire();
+}
+void
+BasicLayerManager::ClearLayer(Layer* aLayer)
+{
+  ToData(aLayer)->ClearResources();
+  for (Layer* child = aLayer->GetFirstChild(); child;
+       child = child->GetNextSibling()) {
+    ClearLayer(child);
   }
 }
 
