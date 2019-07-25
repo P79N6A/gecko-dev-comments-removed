@@ -34,8 +34,12 @@ function consoleOpened(aHud) {
 
     ok(popup.isOpen, "popup is open");
 
+    
+    
+    
+    
     let props = WCU.namesAndValuesOf(content.wrappedJSObject.document.body);
-    is(popup.itemCount, props.length, "popup.itemCount is correct");
+    is(popup.itemCount, 14 + props.length, "popup.itemCount is correct");
 
     popup._panel.addEventListener("popuphidden", autocompletePopupHidden, false);
 

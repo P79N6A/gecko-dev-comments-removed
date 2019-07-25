@@ -538,7 +538,7 @@ var WebConsoleUtils = {
           value = aObject[propName];
           presentable = this.presentableValueFor(value);
         }
-	      catch (ex) {
+        catch (ex) {
           continue;
         }
       }
@@ -735,6 +735,8 @@ const OPEN_CLOSE_BODY = {
   "(": ")",
 };
 
+const MAX_COMPLETIONS = 256;
+
 
 
 
@@ -897,7 +899,7 @@ function JSPropertyProvider(aScope, aInputValue)
 
       
       
-      if (typeof obj === "undefined" || obj === null) {
+      if (obj == null) {
         return null;
       }
 
@@ -920,7 +922,7 @@ function JSPropertyProvider(aScope, aInputValue)
 
   
   
-  if (typeof obj === "undefined" || obj === null) {
+  if (obj == null) {
     return null;
   }
 
@@ -929,18 +931,63 @@ function JSPropertyProvider(aScope, aInputValue)
     return null;
   }
 
-  let matches = [];
-  for (let prop in obj) {
-    if (prop.indexOf(matchProp) == 0) {
-      matches.push(prop);
-    }
-  }
+  let matches = Object.keys(getMatchedProps(obj, matchProp));
 
   return {
     matchProp: matchProp,
     matches: matches.sort(),
   };
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function getMatchedProps(aObj, aMatchProp = "")
+{
+  let c = MAX_COMPLETIONS;
+  let names = {};   
+  let ownNames = Object.getOwnPropertyNames(aObj);
+  for (let i = 0; i < ownNames.length; i++) {
+    if (ownNames[i].indexOf(aMatchProp) == 0) {
+      if (names[ownNames[i]] != true) {
+        c--;
+        if (c < 0) {
+          return names;
+        }
+        names[ownNames[i]] = true;
+      }
+    }
+  }
+
+  
+  aObj = Object.getPrototypeOf(aObj);
+  if (aObj !== null) {
+    let parentScope = getMatchedProps(aObj, aMatchProp);
+    for (let name in parentScope) {
+      if (names[name] != true) {
+        c--;
+        if (c < 0) {
+          return names;
+        }
+        names[name] = true;
+      }
+    }
+  }
+  return names;
+}
+
 
 return JSPropertyProvider;
 })(WebConsoleUtils);
