@@ -38,10 +38,6 @@
 #ifndef GFX_COLOR_H
 #define GFX_COLOR_H
 
-#ifdef MOZILLA_INTERNAL_API
-#include "nsPrintfCString.h"
-#endif
-
 #include "gfxTypes.h"
 
 #include "prbit.h" 
@@ -173,7 +169,6 @@ struct THEBES_API gfxRGBA {
         PACKED_ARGB,
         PACKED_ARGB_PREMULTIPLIED,
 
-        PACKED_XBGR,
         PACKED_XRGB
     };
 
@@ -193,7 +188,6 @@ struct THEBES_API gfxRGBA {
 
     gfxRGBA(PRUint32 c, PackedColorType colorType = PACKED_ABGR) {
         if (colorType == PACKED_ABGR ||
-            colorType == PACKED_XBGR ||
             colorType == PACKED_ABGR_PREMULTIPLIED)
         {
             r = ((c >> 0) & 0xff) * (1.0 / 255.0);
@@ -218,25 +212,10 @@ struct THEBES_API gfxRGBA {
                 g /= a;
                 b /= a;
             }
-        } else if (colorType == PACKED_XBGR ||
-                   colorType == PACKED_XRGB)
-        {
+        } else if (colorType == PACKED_XRGB) {
             a = 1.0;
         }
     }
-
-    
-
-
-
-#if 0
-    gfxRGBA(const char* str) {
-        a = 1.0;
-        
-        
-        
-    }
-#endif
 
     bool operator==(const gfxRGBA& other) const
     {
@@ -261,28 +240,30 @@ struct THEBES_API gfxRGBA {
         gfxFloat bb = (b * 255.0);
         gfxFloat ab = (a * 255.0);
 
-        if (colorType == PACKED_ABGR || colorType == PACKED_XBGR) {
+        if (colorType == PACKED_ABGR) {
             return (PRUint8(ab) << 24) |
                    (PRUint8(bb) << 16) |
                    (PRUint8(gb) << 8) |
                    (PRUint8(rb) << 0);
-        } else if (colorType == PACKED_ARGB || colorType == PACKED_XRGB) {
+        }
+        if (colorType == PACKED_ARGB || colorType == PACKED_XRGB) {
             return (PRUint8(ab) << 24) |
                    (PRUint8(rb) << 16) |
                    (PRUint8(gb) << 8) |
                    (PRUint8(bb) << 0);
         }
 
-        rb = (r*a) * 255.0;
-        gb = (g*a) * 255.0;
-        bb = (b*a) * 255.0;
+        rb *= a;
+        gb *= a;
+        bb *= a;
 
         if (colorType == PACKED_ABGR_PREMULTIPLIED) {
             return (((PRUint8)(ab) << 24) |
                     ((PRUint8)(bb) << 16) |
                     ((PRUint8)(gb) << 8) |
                     ((PRUint8)(rb) << 0));
-        } else if (colorType == PACKED_ARGB_PREMULTIPLIED) {
+        }
+        if (colorType == PACKED_ARGB_PREMULTIPLIED) {
             return (((PRUint8)(ab) << 24) |
                     ((PRUint8)(rb) << 16) |
                     ((PRUint8)(gb) << 8) |
@@ -291,20 +272,6 @@ struct THEBES_API gfxRGBA {
 
         return 0;
     }
-
-#ifdef MOZILLA_INTERNAL_API
-    
-
-
-
-    
-    
-    void Hex(nsACString& result) const {
-        nsPrintfCString hex(8, "%02x%02x%02x", PRUint8(r*255.0), PRUint8(g*255.0), PRUint8(b*255.0));
-        result.Assign(hex);
-    }
-#endif
-
 };
 
 #endif 
