@@ -3805,7 +3805,9 @@ ShouldCleanUpEverything(JSRuntime *rt, gcreason::Reason reason)
     
     
     
-    return !rt->hasContexts() || reason == gcreason::CC_FORCED || reason == gcreason::DEBUG_MODE_GC;
+    return !rt->hasContexts() ||
+           reason == gcreason::SHUTDOWN_CC ||
+           reason == gcreason::DEBUG_MODE_GC;
 }
 
 static void
@@ -3824,7 +3826,7 @@ Collect(JSRuntime *rt, bool incremental, int64_t budget,
 #ifdef JS_GC_ZEAL
     bool restartVerify = rt->gcVerifyData &&
                          rt->gcZeal() == ZealVerifierValue &&
-                         reason != gcreason::CC_FORCED &&
+                         reason != gcreason::SHUTDOWN_CC &&
                          rt->hasContexts();
 
     struct AutoVerifyBarriers {
