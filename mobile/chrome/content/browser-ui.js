@@ -468,6 +468,9 @@ var BrowserUI = {
     if (!aURI)
       return;
 
+    
+    Browser.hideSidebars();
+
     this._edit.popup.close();
     this._edit.value = aURI;
 
@@ -499,6 +502,9 @@ var BrowserUI = {
 
     
     button.parentNode.selectedItem = null;
+
+    
+    Browser.hideSidebars();
     
     this._edit.popup.closePopup();
 
@@ -523,6 +529,11 @@ var BrowserUI = {
       this.showToolbar(true);
       this.showAutoComplete();
     }
+    else {
+      
+      Browser.hideSidebars();
+    }
+
     return tab;
   },
 
