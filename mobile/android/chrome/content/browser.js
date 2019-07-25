@@ -1683,13 +1683,14 @@ var SelectionHandler = {
       selectionController.wordMove(!this._isRTL, true);
     } catch(e) {
       
-      Cu.reportError("Error selecting word: " + e);
+      this._cleanUp();
       return;
     }
 
     
     if (!selection.rangeCount || !selection.getRangeAt(0) || !selection.toString().trim().length) {
       selection.collapseToStart();
+      this._cleanUp();
       return;
     }
 
@@ -1838,13 +1839,17 @@ var SelectionHandler = {
       }
     }
 
+    this._cleanUp();
+
+    return selectedText;
+  },
+
+  _cleanUp: function sh_cleanUp() {
     this._view.removeEventListener("pagehide", this, false);
     this._view = null;
     this._target = null;
     this._isRTL = false;
     this.cache = null;
-
-    return selectedText;
   },
 
   _getViewOffset: function sh_getViewOffset() {
