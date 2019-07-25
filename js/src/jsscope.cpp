@@ -86,7 +86,7 @@ js_GenerateShape(JSContext *cx, bool gcLocked)
 
         rt->shapeGen = SHAPE_OVERFLOW_BIT;
         shape = SHAPE_OVERFLOW_BIT;
-        
+
 #ifdef JS_THREADSAFE
         Conditionally<AutoLockGC> lockIf(!gcLocked, rt);
 #endif
@@ -851,8 +851,10 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
 
 
-    if (!(attrs & JSPROP_SHARED) && slot == SHAPE_INVALID_SLOT && containsSlot(shape->slot))
-        slot = shape->slot;
+    bool hadSlot = !shape->isAlias() && containsSlot(shape->slot);
+    uint32 oldSlot = shape->slot;
+    if (!(attrs & JSPROP_SHARED) && slot == SHAPE_INVALID_SLOT && hadSlot)
+        slot = oldSlot;
     if (shape->matchesParamsAfterId(getter, setter, slot, attrs, flags, shortid)) {
         METER(redundantPuts);
         return shape;
@@ -927,6 +929,17 @@ JSObject::putProperty(JSContext *cx, jsid id,
         if (!lastProp->table) {
             
             lastProp->maybeHash(cx);
+        }
+
+        
+
+
+
+
+
+        if (hadSlot && !shape->hasSlot() && oldSlot < shape->slotSpan) {
+            freeSlot(cx, oldSlot);
+            JS_ATOMIC_INCREMENT(&cx->runtime->propertyRemovals);
         }
 
         CHECK_SHAPE_CONSISTENCY(this);
