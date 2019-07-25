@@ -1,42 +1,42 @@
-/* -*- Mode: C; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=79 ft=cpp:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is SpiderMonkey JavaScript engine.
- *
- * The Initial Developer of the Original Code is
- * Mozilla Corporation.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Luke Wagner <luke@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef Stack_inl_h__
 #define Stack_inl_h__
@@ -51,41 +51,41 @@
 
 namespace js {
 
-/*****************************************************************************/
 
-/* See VM stack layout comment in Stack.h. */
+
+
 class StackSegment
 {
-    /* The context to which this segment belongs. */
+    
     ContextStack        *stack_;
 
-    /* Link for JSContext segment stack mentioned in big comment above. */
+    
     StackSegment        *previousInContext_;
 
-    /* Link for StackSpace segment stack mentioned in StackSpace comment. */
+    
     StackSegment        *previousInMemory_;
 
-    /* The first frame executed in this segment. null iff cx is null */
+    
     StackFrame          *initialFrame_;
 
-    /* If this segment is suspended, |cx->regs| when it was suspended. */
+    
     FrameRegs           *suspendedRegs_;
 
-    /* The varobj on entry to initialFrame. */
+    
     JSObject            *initialVarObj_;
 
-    /* Whether this segment was suspended by JS_SaveFrameChain. */
+    
     bool                saved_;
 
-    /* Align at 8 bytes on all platforms. */
+    
 #if JS_BITS_PER_WORD == 32
     void                *padding;
 #endif
 
-    /*
-     * To make isActive a single null-ness check, this non-null constant is
-     * assigned to suspendedRegs when empty.
-     */
+    
+
+
+
 #define NON_NULL_SUSPENDED_REGS ((FrameRegs *)0x1)
 
   public:
@@ -97,32 +97,32 @@ class StackSegment
         JS_ASSERT(empty());
     }
 
-    /* Safe casts guaranteed by the contiguous-stack layout. */
+    
 
     Value *valueRangeBegin() const {
         return (Value *)(this + 1);
     }
 
-    /*
-     * The set of fields provided by a segment depend on its state. In addition
-     * to the "active" and "suspended" states described in Stack.h, segments
-     * have a third state: empty. An empty segment contains no frames and is
-     * pushed for the purpose of preparing the args to Invoke. Invoke args
-     * requires special handling because anything can happen between pushing
-     * Invoke args and calling Invoke. Since an empty segment contains no
-     * frames, it cannot become the "current segment" of a ContextStack (for
-     * various arcane and hopefully temporary reasons). Thus, an empty segment
-     * is pushed onto the StackSpace but only pushed onto a ContextStack when it
-     * gets its first frame pushed from js::Invoke.
-     *
-     * Finally, (to support JS_SaveFrameChain/JS_RestoreFrameChain) a suspended
-     * segment may or may not be "saved". Normally, when the active segment is
-     * popped, the previous segment (which is necessarily suspended) becomes
-     * active. If the previous segment was saved, however, then it stays
-     * suspended until it is made active by a call to JS_RestoreFrameChain. This
-     * is why a context may have a current segment, but not an active segment.
-     * Hopefully, this feature will be removed.
-     */
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     bool empty() const {
         JS_ASSERT(!!stack_ == !!initialFrame_);
@@ -142,14 +142,14 @@ class StackSegment
         return stack_ && suspendedRegs_;
     }
 
-    /* Substate of suspended, queryable in any state. */
+    
 
     bool isSaved() const {
         JS_ASSERT_IF(saved_, isSuspended());
         return saved_;
     }
 
-    /* Transitioning between empty <--> isActive */
+    
 
     void joinContext(ContextStack &stack, StackFrame &frame) {
         JS_ASSERT(empty());
@@ -178,7 +178,7 @@ class StackSegment
 
 #undef NON_NULL_SUSPENDED_REGS
 
-    /* Transitioning between isActive <--> isSuspended */
+    
 
     void suspend(FrameRegs &regs) {
         JS_ASSERT(isActive());
@@ -193,7 +193,7 @@ class StackSegment
         JS_ASSERT(isActive());
     }
 
-    /* When isSuspended, transitioning isSaved <--> !isSaved */
+    
 
     void save(FrameRegs &regs) {
         JS_ASSERT(!isSuspended());
@@ -209,7 +209,7 @@ class StackSegment
         JS_ASSERT(!isSuspended());
     }
 
-    /* Data available when !empty */
+    
 
     StackFrame *initialFrame() const {
         JS_ASSERT(!empty());
@@ -229,7 +229,7 @@ class StackSegment
         return empty() ? NULL : currentFrame();
     }
 
-    /* Data available when isSuspended. */
+    
 
     FrameRegs &suspendedRegs() const {
         JS_ASSERT(isSuspended());
@@ -240,7 +240,7 @@ class StackSegment
         return suspendedRegs_->fp();
     }
 
-    /* JSContext / js::StackSpace bookkeeping. */
+    
 
     void setPreviousInContext(StackSegment *seg) {
         previousInContext_ = seg;
@@ -281,7 +281,7 @@ class StackSegment
 static const size_t VALUES_PER_STACK_SEGMENT = sizeof(StackSegment) / sizeof(Value);
 JS_STATIC_ASSERT(sizeof(StackSegment) % sizeof(Value) == 0);
 
-/*****************************************************************************/
+
 
 inline void
 StackFrame::initPrev(JSContext *cx)
@@ -336,10 +336,10 @@ StackFrame::initCallFrame(JSContext *cx, JSObject &callee, JSFunction *fun,
                             UNDERFLOW_ARGS)) == 0);
     JS_ASSERT(fun == callee.getFunctionPrivate());
 
-    /* Initialize stack frame members. */
+    
     flags_ = FUNCTION | HAS_PREVPC | HAS_SCOPECHAIN | flagsArg;
     exec.fun = fun;
-    args.nactual = nactual;  /* only need to write if over/under-flow */
+    args.nactual = nactual;  
     scopeChain_ = callee.getParent();
     ncode_ = NULL;
     initPrev(cx);
@@ -352,7 +352,7 @@ StackFrame::initCallFrame(JSContext *cx, JSObject &callee, JSFunction *fun,
 inline void
 StackFrame::resetInvokeCallFrame()
 {
-    /* Undo changes to frame made during execution; see initCallFrame */
+    
 
     putActivationObjects();
 
@@ -367,13 +367,14 @@ StackFrame::resetInvokeCallFrame()
                            HAS_HOOK_DATA |
                            HAS_CALL_OBJ |
                            HAS_ARGS_OBJ |
-                           FINISHED_IN_INTERP)));
+                           FINISHED_IN_INTERP |
+                           DOWN_FRAMES_EXPANDED)));
 
-    /*
-     * Since the stack frame is usually popped after PutActivationObjects,
-     * these bits aren't cleared. The activation objects must have actually
-     * been put, though.
-     */
+    
+
+
+
+
     JS_ASSERT_IF(flags_ & HAS_CALL_OBJ, callObj().getPrivate() == NULL);
     JS_ASSERT_IF(flags_ & HAS_ARGS_OBJ, argsObj().getPrivate() == NULL);
 
@@ -400,10 +401,10 @@ StackFrame::initCallFrameCallerHalf(JSContext *cx, uint32 flagsArg,
     ncode_ = ncode;
 }
 
-/*
- * The "early prologue" refers to the members that are stored for the benefit
- * of slow paths before initializing the rest of the members.
- */
+
+
+
+
 inline void
 StackFrame::initCallFrameEarlyPrologue(JSFunction *fun, uint32 nactual)
 {
@@ -412,10 +413,10 @@ StackFrame::initCallFrameEarlyPrologue(JSFunction *fun, uint32 nactual)
         args.nactual = nactual;
 }
 
-/*
- * The "late prologue" refers to the members that are stored after having
- * checked for stack overflow and formal/actual arg mismatch.
- */
+
+
+
+
 inline void
 StackFrame::initCallFrameLatePrologue()
 {
@@ -429,7 +430,7 @@ StackFrame::initEvalFrame(JSContext *cx, JSScript *script, StackFrame *prev, uin
     JS_ASSERT((flagsArg & ~(EVAL | DEBUGGER)) == 0);
     JS_ASSERT(prev->isScriptFrame());
 
-    /* Copy (callee, thisv). */
+    
     Value *dstvp = (Value *)this - 2;
     Value *srcvp = prev->hasArgs()
                    ? prev->formalArgs() - 2
@@ -439,7 +440,7 @@ StackFrame::initEvalFrame(JSContext *cx, JSScript *script, StackFrame *prev, uin
     JS_ASSERT_IF(prev->isFunctionFrame(),
                  dstvp[0].toObject().isFunction());
 
-    /* Initialize stack frame members. */
+    
     flags_ = flagsArg | HAS_PREVPC | HAS_SCOPECHAIN |
              (prev->flags_ & (FUNCTION | GLOBAL));
     if (isFunctionFrame()) {
@@ -462,12 +463,12 @@ StackFrame::initGlobalFrame(JSScript *script, JSObject &chain, StackFrame *prev,
 {
     JS_ASSERT((flagsArg & ~(EVAL | DEBUGGER)) == 0);
 
-    /* Initialize (callee, thisv). */
+    
     Value *vp = (Value *)this - 2;
     vp[0].setUndefined();
-    vp[1].setUndefined();  /* Set after frame pushed using thisObject */
+    vp[1].setUndefined();  
 
-    /* Initialize stack frame members. */
+    
     flags_ = flagsArg | GLOBAL | HAS_PREVPC | HAS_SCOPECHAIN;
     exec.script = script;
     args.script = (JSScript *)0xbad;
@@ -500,12 +501,12 @@ StackFrame::stealFrameAndSlots(Value *vp, StackFrame *otherfp,
     PodCopy(vp, othervp, othersp - othervp);
     JS_ASSERT(vp == this->actualArgs() - 2);
 
-    /*
-     * Repoint Call, Arguments, Block and With objects to the new live frame.
-     * Call and Arguments are done directly because we have pointers to them.
-     * Block and With objects are done indirectly through 'liveFrame'. See
-     * js_LiveFrameToFloating comment in jsiter.h.
-     */
+    
+
+
+
+
+
     if (hasCallObj()) {
         JSObject &obj = callObj();
         obj.setPrivate(this);
@@ -537,7 +538,7 @@ StackFrame::canonicalActualArg(uintN i) const
 
 template <class Op>
 inline bool
-StackFrame::forEachCanonicalActualArg(Op op, uintN start /* = 0 */, uintN count /* = uintN(-1) */)
+StackFrame::forEachCanonicalActualArg(Op op, uintN start , uintN count )
 {
     uintN nformal = fun()->nargs;
     JS_ASSERT(start <= nformal);
@@ -696,7 +697,7 @@ inline void
 StackFrame::putActivationObjects()
 {
     if (flags_ & (HAS_ARGS_OBJ | HAS_CALL_OBJ)) {
-        /* NB: there is an ordering dependency here. */
+        
         if (hasCallObj())
             js_PutCallObject(this);
         else if (hasArgsObj())
@@ -713,13 +714,13 @@ StackFrame::markActivationObjectsAsPut()
             flags_ &= ~HAS_ARGS_OBJ;
         }
         if (hasCallObj() && !callObj().getPrivate()) {
-            /*
-             * For function frames, the call object may or may not have have an
-             * enclosing DeclEnv object, so we use the callee's parent, since
-             * it was the initial scope chain. For global (strict) eval frames,
-             * there is no calle, but the call object's parent is the initial
-             * scope chain.
-             */
+            
+
+
+
+
+
+
             scopeChain_ = isFunctionFrame()
                           ? callee().getParent()
                           : scopeChain_->getParent();
@@ -728,7 +729,7 @@ StackFrame::markActivationObjectsAsPut()
     }
 }
 
-/*****************************************************************************/
+
 
 JS_ALWAYS_INLINE void
 StackSpace::pushOverride(Value *top, StackOverride *prev)
@@ -810,7 +811,7 @@ StackSpace::getStackLimit(JSContext *cx)
     limit = end_;
 #endif
 
-    /* See getStackLimit comment in Stack.h. */
+    
     FrameRegs &regs = cx->regs();
     uintN minSpace = regs.fp()->numSlots() + STACK_JIT_EXTRA;
     if (regs.sp + minSpace > limit) {
@@ -821,7 +822,7 @@ StackSpace::getStackLimit(JSContext *cx)
     return limit;
 }
 
-/*****************************************************************************/
+
 
 JS_ALWAYS_INLINE bool
 ContextStack::isCurrentAndActive() const
@@ -858,10 +859,10 @@ struct LimitCheck
             return true;
 
         if (topncode) {
-            /*
-             * The current regs.pc may not be intact, set it in case bumping
-             * the limit fails. See FixupArity.
-             */
+            
+
+
+
             cx->regs().updateForNcode(cx->fp()->jit(), topncode);
         }
 
@@ -869,7 +870,7 @@ struct LimitCheck
     }
 };
 
-}  /* namespace detail */
+}  
 
 template <class Check>
 JS_ALWAYS_INLINE StackFrame *
@@ -880,11 +881,11 @@ ContextStack::getCallFrame(JSContext *cx, Value *firstUnused, uintN nactual,
     JS_ASSERT(fun->script() == script);
     JS_ASSERT(space().firstUnused() == firstUnused);
 
-    /* Include extra space for inlining by the method-jit. */
+    
     uintN nvals = VALUES_PER_STACK_FRAME + script->nslots + StackSpace::STACK_JIT_EXTRA;
     uintN nformal = fun->nargs;
 
-    /* Maintain layout invariant: &formalArgs[0] == ((Value *)fp) - nformal. */
+    
 
     if (nactual == nformal) {
         if (JS_UNLIKELY(!check(cx, space(), firstUnused, nvals)))
@@ -971,10 +972,10 @@ ContextStack::pushInvokeArgs(JSContext *cx, uintN argc, InvokeArgsGuard *argsGua
     Value *vp = start;
     ImplicitCast<CallArgs>(*argsGuard) = CallArgsFromVp(argc, vp);
 
-    /*
-     * Use stack override to root vp until the frame is pushed. Don't need to
-     * MakeRangeGCSafe: the VM stack is conservatively marked.
-     */
+    
+
+
+
     space().pushOverride(vp + vplen, &argsGuard->prevOverride_);
 
     argsGuard->stack_ = this;
@@ -1088,14 +1089,14 @@ ContextStack::findFrameAtLevel(uintN targetLevel) const
 inline JSScript *
 ContextStack::currentScript(jsbytecode **ppc) const
 {
-    StackFrame *fp = regs_->fp();
+    StackFrame *fp = regs_ ? regs_->fp() : NULL;
+    while (fp && fp->isDummyFrame())
+        fp = fp->prev();
     if (!fp) {
         if (ppc)
             *ppc = NULL;
         return NULL;
     }
-    while (fp->isDummyFrame())
-        fp = fp->prev();
 
 #ifdef JS_METHODJIT
     mjit::CallSite *inlined = regs_->inlined();
@@ -1119,7 +1120,7 @@ ContextStack::currentScriptedScopeChain() const
     return &regs_->fp()->scopeChain();
 }
 
-/*****************************************************************************/
+
 
 namespace detail {
 
@@ -1136,7 +1137,7 @@ struct STATIC_SKIP_INFERENCE CopyNonHoleArgsTo
     }
 };
 
-} /* namespace detail */
+} 
 
 inline bool
 ArgumentsObject::getElement(uint32 i, Value *vp)
@@ -1146,26 +1147,26 @@ ArgumentsObject::getElement(uint32 i, Value *vp)
 
     *vp = element(i);
 
-    /*
-     * If the argument was overwritten, it could be in any object slot, so we
-     * can't optimize.
-     */
+    
+
+
+
     if (vp->isMagic(JS_ARGS_HOLE))
         return false;
 
-    /*
-     * If this arguments object was created on trace the actual argument value
-     * could be in a register or something, so we can't optimize.
-     */
+    
+
+
+
     StackFrame *fp = reinterpret_cast<StackFrame *>(getPrivate());
     if (fp == JS_ARGUMENTS_OBJECT_ON_TRACE)
         return false;
 
-    /*
-     * If this arguments object has an associated stack frame, that contains
-     * the canonical argument value.  Note that strict arguments objects do not
-     * alias named arguments and never have a stack frame.
-     */
+    
+
+
+
+
     JS_ASSERT_IF(isStrictArguments(), !fp);
     if (fp)
         *vp = fp->canonicalActualArg(i);
@@ -1183,7 +1184,7 @@ ArgumentsObject::getElements(uint32 start, uint32 count, Value *vp)
 
     StackFrame *fp = reinterpret_cast<StackFrame *>(getPrivate());
 
-    /* If there's no stack frame for this, argument values are in elements(). */
+    
     if (!fp) {
         Value *srcbeg = elements() + start;
         Value *srcend = srcbeg + count;
@@ -1195,15 +1196,15 @@ ArgumentsObject::getElements(uint32 start, uint32 count, Value *vp)
         return true;
     }
 
-    /* If we're on trace, there's no canonical location for elements: fail. */
+    
     if (fp == JS_ARGUMENTS_OBJECT_ON_TRACE)
         return false;
 
-    /* Otherwise, element values are on the stack. */
+    
     JS_ASSERT(fp->numActualArgs() <= JS_ARGS_LENGTH_MAX);
     return fp->forEachCanonicalActualArg(detail::CopyNonHoleArgsTo(this, vp), start, count);
 }
 
-} /* namespace js */
+} 
 
-#endif /* Stack_inl_h__ */
+#endif 
