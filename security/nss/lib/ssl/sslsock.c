@@ -1955,7 +1955,21 @@ ssl_Poll(PRFileDesc *fd, PRInt16 how_flags, PRInt16 *p_out_flags)
     } else if ((ss->lastWriteBlocked) && (how_flags & PR_POLL_READ) &&
 	       (ss->pendingBuf.len != 0)) { 
 	new_flags |=  PR_POLL_WRITE;   
-    } 
+    }
+
+    if (ss->version >= SSL_LIBRARY_VERSION_3_0 &&
+	ss->ssl3.hs.restartTarget != NULL) {
+	
+
+
+
+	if (ss->lastWriteBlocked && ss->pendingBuf.len != 0) {
+	    new_flags &= (PR_POLL_WRITE | PR_POLL_EXCEPT);
+	} else {
+	    new_flags = 0;
+	}
+    }
+
     if (new_flags && (fd->lower->methods->poll != NULL)) {
 	PRInt16    lower_out_flags = 0;
 	PRInt16    lower_new_flags;
