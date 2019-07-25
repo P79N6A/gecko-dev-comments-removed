@@ -83,11 +83,6 @@ js_DateGetMinutes(JSContext *cx, JSObject* obj);
 extern JS_FRIEND_API(int)
 js_DateGetSeconds(JSContext *cx, JSObject* obj);
 
-typedef uint32_t JSIntervalTime;
-
-extern JS_FRIEND_API(JSIntervalTime)
-js_IntervalNow();
-
 
 JSBool
 js_Date(JSContext *cx, unsigned argc, js::Value *vp);
