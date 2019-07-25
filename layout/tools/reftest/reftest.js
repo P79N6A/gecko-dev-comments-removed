@@ -95,19 +95,6 @@ var gTestResults = {
 };
 var gTotalTests = 0;
 var gState;
-
-
-
-
-
-
-
-
-
-var gExplicitPendingPaintCounter = 0;
-var gTestContainsAsyncPaintObjects = false;
-var gRunningReftestWaitTest = false;
-var gAttrListenerFunc = null;
 var gCurrentURL;
 var gFailureTimeout = null;
 var gFailureReason;
@@ -174,32 +161,6 @@ function ReleaseCanvas(canvas)
     if (!gNoCanvasCache || gRecycledCanvases.length < 2)
         gRecycledCanvases.push(canvas);
 }
-
-function PaintWaitListener()
-{
-    
-    
-    gExplicitPendingPaintCounter++;
-}
-
-function PaintWaitFinishedListener()
-{
-    gExplicitPendingPaintCounter--;
-    if (gExplicitPendingPaintCounter == 0) {
-        if (gRunningReftestWaitTest) {
-            
-            
-            gAttrListenerFunc();
-        } else if (gTestContainsAsyncPaintObjects) {
-            gTestContainsAsyncPaintObjects = false;
-            
-            
-            
-            setTimeout(setTimeout, 0, DocumentLoaded, 0);
-        }
-    }
-}
-
 
 function OnRefTestLoad()
 {
@@ -272,10 +233,6 @@ function OnRefTestLoad()
 
     
     gBrowser.focus();
-
-    
-    gBrowser.addEventListener("MozPaintWait", PaintWaitListener, true);
-    gBrowser.addEventListener("MozPaintWaitFinished", PaintWaitFinishedListener, true);
 
     StartTests();
 }
@@ -896,7 +853,6 @@ function OnDocumentLoad(event)
     setupZoom(contentRootElement);
 
     if (shouldWait()) {
-        gRunningReftestWaitTest = true;
         
         
         
@@ -947,8 +903,7 @@ function OnDocumentLoad(event)
             
             
             
-            if (stopAfterPaintReceived && !utils.isMozAfterPaintPending &&
-                !gExplicitPendingPaintCounter) {
+            if (stopAfterPaintReceived && !gWindowUtils.isMozAfterPaintPending) {
                 FinishWaitingForTestEnd();
             }
         }
@@ -970,14 +925,8 @@ function OnDocumentLoad(event)
             
             setTimeout(AttrModifiedListenerContinuation, 0);
         }
-        
-        gAttrListenerFunc = AttrModifiedListener;
 
         function AttrModifiedListenerContinuation() {
-            if (gExplicitPendingPaintCounter) {
-                return;
-            }
-
             if (doPrintMode())
                 setupPrintMode();
             FlushRendering();
@@ -1024,7 +973,6 @@ function OnDocumentLoad(event)
         
         setTimeout(StartWaitingForTestEnd, 0);
     } else {
-        gRunningReftestWaitTest = false;
         if (doPrintMode())
             setupPrintMode();
 
@@ -1241,14 +1189,6 @@ function DocumentLoaded()
         gCurrentCanvas = gURICanvases[gCurrentURL];
     } else if (gCurrentCanvas == null) {
         InitCurrentCanvasWithSnapshot();
-        if (gExplicitPendingPaintCounter) {
-            
-            
-            
-            gTestContainsAsyncPaintObjects = true;
-            gCurrentCanvas = null;
-            return;
-        }
     }
     if (gState == 1) {
         gCanvas1 = gCurrentCanvas;
