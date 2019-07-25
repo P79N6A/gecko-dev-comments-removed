@@ -1539,8 +1539,6 @@ JS_WrapValue(JSContext *cx, jsval *vp)
 
 
 
-static bool RemapWrappers(JSContext *cx, JSObject *orig, JSObject *target);
-
 JS_PUBLIC_API(JSObject *)
 JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
 {
@@ -1582,7 +1580,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
 
     
     
-    if (!RemapWrappers(cx, origobj, newIdentity))
+    if (!RemapAllWrappersForObject(cx, origobj, newIdentity))
         return NULL;
 
     
@@ -1599,39 +1597,6 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
     
     
     return newIdentity;
-}
-
-
-
-
-
-static bool
-RemapWrappers(JSContext *cx, JSObject *orig, JSObject *target)
-{
-    Value origv = ObjectValue(*orig);
-    Value targetv = ObjectValue(*target);
-
-    CompartmentVector &vector = cx->runtime->compartments;
-    AutoValueVector toTransplant(cx);
-    if (!toTransplant.reserve(vector.length()))
-        return false;
-
-    for (JSCompartment **p = vector.begin(), **end = vector.end(); p != end; ++p) {
-        WrapperMap &pmap = (*p)->crossCompartmentWrappers;
-        if (WrapperMap::Ptr wp = pmap.lookup(origv)) {
-            
-            toTransplant.infallibleAppend(wp->value);
-        }
-    }
-
-    for (Value *begin = toTransplant.begin(), *end = toTransplant.end();
-         begin != end; ++begin)
-    {
-        if (!RemapWrapper(cx, &begin->toObject(), target))
-            return false;
-    }
-
-    return true;
 }
 
 
@@ -1685,7 +1650,7 @@ js_TransplantObjectWithWrapper(JSContext *cx,
     
     
     
-    if (!RemapWrappers(cx, origobj, targetobj))
+    if (!RemapAllWrappersForObject(cx, origobj, targetobj))
         return NULL;
 
     
@@ -1715,7 +1680,7 @@ js_TransplantObjectWithWrapper(JSContext *cx,
 JS_PUBLIC_API(JSBool)
 JS_RefreshCrossCompartmentWrappers(JSContext *cx, JSObject *obj)
 {
-    return RemapWrappers(cx, obj, obj);
+    return RemapAllWrappersForObject(cx, obj, obj);
 }
 
 JS_PUBLIC_API(JSObject *)
