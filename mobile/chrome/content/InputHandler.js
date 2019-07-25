@@ -52,6 +52,7 @@
 
 
 
+
 function InputHandler() {
   let stack = document.getElementById("browser-container");
   stack.addEventListener("DOMMouseScroll", this, true);
@@ -105,8 +106,12 @@ InputHandler.prototype = {
     if (this._grabbed) {
       this._grabbed.handleEvent(aEvent);
     } else {
-      for each(mod in this._modules)
+      for each(mod in this._modules) {
         mod.handleEvent(aEvent);
+        
+        if (this._grabbed)
+          break;
+      }
     }
   }
 };
