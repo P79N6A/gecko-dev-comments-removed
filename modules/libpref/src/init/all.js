@@ -1220,6 +1220,12 @@ pref("bidi.support", 1);
 
 
 
+
+
+pref("bidi.characterset", 1);
+
+
+
 pref("bidi.edit.delete_immediately", false);
 
 
