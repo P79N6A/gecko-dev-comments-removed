@@ -1802,15 +1802,22 @@ BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom,
         return JS_FALSE;
     }
 
+    JSParseNode *pn = data->pn;
+
     
 
 
 
 
 
-    data->pn->pn_op = JSOP_SETLOCAL;
 
-    return Define(data->pn, atom, tc);
+
+
+
+    pn->pn_op = JSOP_SETLOCAL;
+    pn->pn_dflags |= PND_BOUND;
+
+    return Define(pn, atom, tc);
 }
 #endif 
 
@@ -3012,7 +3019,6 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
             if (!BindLocalVariable(context, fun, apn->pn_atom, JSLOCAL_VAR, true))
                 return NULL;
             apn->pn_cookie.set(funtc.staticLevel, index);
-            apn->pn_dflags |= PND_BOUND;
         }
     }
 #endif
