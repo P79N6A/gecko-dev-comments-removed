@@ -408,9 +408,6 @@ struct JSScript : public js::gc::Cell
     JSPrincipals    *originPrincipals; 
 
     
-    js::HeapPtrScript evalHashLink;
-
-    
     js::types::TypeScript *types;
 
   private:
@@ -436,6 +433,10 @@ struct JSScript : public js::gc::Cell
     uint32_t        useCount;   
 
 
+
+#if JS_BITS_PER_WORD == 32
+    uint32_t        pad32;
+#endif
 
 #ifdef DEBUG
     
