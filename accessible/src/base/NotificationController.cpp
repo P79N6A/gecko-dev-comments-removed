@@ -284,6 +284,10 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
 
   
   
+  mDocument->ProcessInvalidationList();
+
+  
+  
   mObservingState = eRefreshObserving;
 
   

@@ -3110,16 +3110,7 @@ nsAccessible::EnsureChildren()
   
   SetChildrenFlag(eEmbeddedChildren); 
 
-  
-  nsDocAccessible* document = GetDocAccessible();
-  if (document)
-    document->NotifyOfCachingStart(this);
-
   CacheChildren();
-
-  if (document)
-    document->NotifyOfCachingEnd(this);
-
   return false;
 }
 

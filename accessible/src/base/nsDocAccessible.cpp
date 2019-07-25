@@ -104,8 +104,7 @@ nsDocAccessible::
   nsDocAccessible(nsIDocument *aDocument, nsIContent *aRootContent,
                   nsIWeakReference *aShell) :
   nsHyperTextAccessibleWrap(aRootContent, aShell),
-  mDocument(aDocument), mScrollPositionChangedTicks(0), mIsLoaded(PR_FALSE),
-  mCacheRoot(nsnull), mIsPostCacheProcessing(PR_FALSE)
+  mDocument(aDocument), mScrollPositionChangedTicks(0), mIsLoaded(PR_FALSE)
 {
   mFlags |= eDocAccessible;
 
@@ -1425,43 +1424,30 @@ nsDocAccessible::RecreateAccessible(nsIContent* aContent)
 }
 
 void
-nsDocAccessible::NotifyOfCachingStart(nsAccessible* aAccessible)
+nsDocAccessible::ProcessInvalidationList()
 {
-  if (!mCacheRoot)
-    mCacheRoot = aAccessible;
-}
-
-void
-nsDocAccessible::NotifyOfCachingEnd(nsAccessible* aAccessible)
-{
-  if (mCacheRoot == aAccessible && !mIsPostCacheProcessing) {
-    
-    mIsPostCacheProcessing = PR_TRUE;
-
-    
-    
-    for (PRUint32 idx = 0; idx < mInvalidationList.Length(); idx++) {
-      nsIContent* content = mInvalidationList[idx];
-      nsAccessible* accessible = GetAccessible(content);
-      if (!accessible) {
-        nsAccessible* container = GetContainerAccessible(content);
-        NS_ASSERTION(container,
-                     "Got a referenced element that is not in document!");
-        if (container) {
-          container->UpdateChildren();
-          accessible = GetAccessible(content);
-        }
+  
+  
+  
+  for (PRUint32 idx = 0; idx < mInvalidationList.Length(); idx++) {
+    nsIContent* content = mInvalidationList[idx];
+    nsAccessible* accessible = GetAccessible(content);
+    if (!accessible) {
+      nsAccessible* container = GetContainerAccessible(content);
+      NS_ASSERTION(container,
+                   "Got a referenced element that is not in document!");
+      if (container) {
+        container->UpdateChildren();
+        accessible = GetAccessible(content);
       }
-
-      
-      if (accessible)
-        CacheChildrenInSubtree(accessible);
     }
-    mInvalidationList.Clear();
 
-    mCacheRoot = nsnull;
-    mIsPostCacheProcessing = PR_FALSE;
+    
+    if (accessible)
+      CacheChildrenInSubtree(accessible);
   }
+
+  mInvalidationList.Clear();
 }
 
 

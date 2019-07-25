@@ -325,17 +325,6 @@ public:
 
   void RecreateAccessible(nsIContent* aContent);
 
-  
-
-
-
-
-
-
-
-  void NotifyOfCachingStart(nsAccessible* aAccessible);
-  void NotifyOfCachingEnd(nsAccessible* aAccessible);
-
 protected:
 
   
@@ -442,6 +431,15 @@ protected:
   
 
 
+
+
+
+
+  void ProcessInvalidationList();
+
+  
+
+
   void UpdateTree(nsAccessible* aContainer, nsIContent* aChildNode,
                   bool aIsInsert);
 
@@ -537,10 +535,7 @@ protected:
 
 
 
-
-  nsAccessible* mCacheRoot;
   nsTArray<nsIContent*> mInvalidationList;
-  PRBool mIsPostCacheProcessing;
 
   
 
