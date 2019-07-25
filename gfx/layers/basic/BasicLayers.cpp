@@ -1314,6 +1314,22 @@ BasicLayerManager::PaintLayer(Layer* aLayer,
   effectiveTransform.Is2D(&transform);
   mTarget->SetMatrix(transform);
 
+  PRBool pushedTargetOpaqueRect = PR_FALSE;
+  const nsIntRegion& visibleRegion = aLayer->GetEffectiveVisibleRegion();
+  nsRefPtr<gfxASurface> currentSurface = mTarget->CurrentSurface();
+  const gfxRect& targetOpaqueRect = currentSurface->GetOpaqueRect();
+
+  
+  
+  if (targetOpaqueRect.IsEmpty() && visibleRegion.GetNumRects() == 1 &&
+      (aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE) &&
+      !transform.HasNonAxisAlignedTransform()) {
+    const nsIntRect& bounds = visibleRegion.GetBounds();
+    currentSurface->SetOpaqueRect(
+        mTarget->UserToDevice(gfxRect(bounds.x, bounds.y, bounds.width, bounds.height)));
+    pushedTargetOpaqueRect = PR_TRUE;
+  }
+
   if (needsGroup) {
     
     
@@ -1350,6 +1366,10 @@ BasicLayerManager::PaintLayer(Layer* aLayer,
     
     gfxUtils::ClipToRegionSnapped(mTarget, aLayer->GetEffectiveVisibleRegion());
     mTarget->Paint(aLayer->GetEffectiveOpacity());
+  }
+
+  if (pushedTargetOpaqueRect) {
+    currentSurface->SetOpaqueRect(gfxRect(0, 0, 0, 0));
   }
 
   if (needsSaveRestore) {
