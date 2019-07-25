@@ -3312,10 +3312,6 @@ nsHTMLDocument::EditingStateChanged()
       NS_ENSURE_SUCCESS(rv, rv);
 
       
-      
-      FlushPendingNotifications(Flush_Style);
-
-      
       rv = editSession->DisableJSAndPlugins(window);
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -3340,6 +3336,12 @@ nsHTMLDocument::EditingStateChanged()
     NS_ENSURE_SUCCESS(rv, rv);
 
     presShell->ReconstructStyleData();
+
+    if (designMode) {
+      
+      
+      FlushPendingNotifications(Flush_Style);
+    }
   }
 
   mEditingState = newState;
