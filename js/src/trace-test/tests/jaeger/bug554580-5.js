@@ -1,4 +1,3 @@
-
 (function() {
   (function g(m, n) {
     if (m = n) {

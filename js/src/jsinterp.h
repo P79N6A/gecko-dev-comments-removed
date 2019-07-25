@@ -57,8 +57,7 @@ typedef struct JSFrameRegs {
 
 enum JSFrameFlags {
     JSFRAME_CONSTRUCTING       =  0x01, 
-    JSFRAME_COMPUTED_THIS      =  0x02, 
-
+    JSFRAME_OVERRIDE_ARGS      =  0x02, 
     JSFRAME_ASSIGNING          =  0x04, 
 
     JSFRAME_DEBUGGER           =  0x08, 
@@ -66,7 +65,6 @@ enum JSFrameFlags {
     JSFRAME_FLOATING_GENERATOR =  0x20, 
     JSFRAME_YIELDING           =  0x40, 
     JSFRAME_GENERATOR          =  0x80, 
-    JSFRAME_OVERRIDE_ARGS      = 0x100, 
 
     JSFRAME_SPECIAL            = JSFRAME_DEBUGGER | JSFRAME_EVAL
 };
@@ -82,7 +80,21 @@ enum JSFrameFlags {
 struct JSStackFrame
 {
     
-    js::Value           thisv;          
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    js::Value           thisv;
     js::Value           rval;           
 
     jsbytecode          *imacpc;        
@@ -228,6 +240,9 @@ struct JSStackFrame
         JS_ASSERT_IF(flags & JSFRAME_FLOATING_GENERATOR, isGenerator());
         return !!(flags & JSFRAME_FLOATING_GENERATOR);
     }
+
+  private:
+    JSObject *computeThisObject(JSContext *cx);
 };
 
 namespace js {
@@ -267,7 +282,6 @@ js_GetPrimitiveThis(JSContext *cx, js::Value *vp, js::Class *clasp,
                     const js::Value **vpp);
 
 namespace js {
-
 
 
 
@@ -490,13 +504,7 @@ js_OnUnknownMethod(JSContext *cx, js::Value *vp);
 inline JSObject *
 JSStackFrame::getThisObject(JSContext *cx)
 {
-    if (flags & JSFRAME_COMPUTED_THIS)
-        return &thisv.asObject();
-    if (!js::ComputeThisFromArgv(cx, argv))
-        return NULL;
-    thisv = argv[-1];
-    flags |= JSFRAME_COMPUTED_THIS;
-    return &thisv.asObject();
+    return thisv.isPrimitive() ? computeThisObject(cx) : &thisv.asObject();
 }
 
 #endif 
