@@ -1926,12 +1926,18 @@ public:
     
     
     const CompressedGlyph *GetCharacterGlyphs() { return mCharacterGlyphs; }
+
+    
+    
+    
     DetailedGlyph *GetDetailedGlyphs(PRUint32 aCharIndex) {
-        if (!mDetailedGlyphs) {
-            return nsnull;
-        }
+        NS_ASSERTION(mDetailedGlyphs != nsnull &&
+                     !mCharacterGlyphs[aCharIndex].IsSimpleGlyph() &&
+                     mCharacterGlyphs[aCharIndex].GetGlyphCount() > 0,
+                     "invalid use of GetDetailedGlyphs; check the caller!");
         return mDetailedGlyphs->Get(aCharIndex);
     }
+
     PRBool HasDetailedGlyphs() { return mDetailedGlyphs != nsnull; }
     PRUint32 CountMissingGlyphs();
     const GlyphRun *GetGlyphRuns(PRUint32 *aNumGlyphRuns) {
@@ -2075,6 +2081,11 @@ private:
             : mLastUsed(0)
         { }
 
+        
+        
+        
+        
+        
         
         
         
