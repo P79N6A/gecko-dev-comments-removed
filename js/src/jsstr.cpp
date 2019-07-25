@@ -1820,7 +1820,7 @@ FindReplaceLength(JSContext *cx, ReplaceData &rdata, size_t *sizep)
         
         jsval *sp = rdata.args.getvp();
         *sp++ = OBJECT_TO_JSVAL(lambda);
-        *sp++ = OBJECT_TO_JSVAL(lambda->getParent());
+        *sp++ = JSVAL_NULL;
 
         
         if (!PushRegExpSubstr(cx, cx->regExpStatics.lastMatch, sp))
