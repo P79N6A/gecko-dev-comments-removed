@@ -259,6 +259,16 @@ HttpChannelParent::RecvRedirect2Result(const nsresult& result,
   return true;
 }
 
+bool
+HttpChannelParent::RecvDocumentChannelCleanup()
+{
+  
+  
+  mCacheDescriptor = 0;
+
+  return true;
+}
+
 
 
 

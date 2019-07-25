@@ -428,6 +428,7 @@ HttpChannelChild::OnStopRequest(const nsresult& statusCode)
     
     
     mKeptAlive = true;
+    SendDocumentChannelCleanup();
   }
 }
 
