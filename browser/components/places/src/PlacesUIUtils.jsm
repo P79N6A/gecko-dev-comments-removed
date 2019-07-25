@@ -320,8 +320,8 @@ var PlacesUIUtils = {
   function PUIU__reportDeprecatedAddBookmarkMethod() {
     
     let oldFuncName = arguments.callee.caller.name.slice(5);
-    Cu.reportError(oldFuncName + " is deprecated and will be removed in a \
-                   future release.  Use showBookmarkDialog instead");
+    Cu.reportError(oldFuncName + " is deprecated and will be removed in a " +
+                   "future release. Use showBookmarkDialog instead.");
   },
 
   
@@ -810,16 +810,16 @@ var PlacesUIUtils = {
 
     
     if (aView === null) {
-      Components.utils.reportError("The api has changed. A window should be \
-                                    passed to " + caller.name + ".  Not \
-                                    passing a window will throw in a future \
-                                    release.");
+      Components.utils.reportError("The api has changed. A window should be " +
+                                   "passed to " + caller.name + ".  Not " +
+                                   "passing a window will throw in a future " +
+                                   "release.");
     }
     else {
-      Components.utils.reportError("The api has changed. A places view \
-                                    should be passed to " + caller.name + ".  \
-                                    Not passing a view will throw in a future \
-                                    release.");
+      Components.utils.reportError("The api has changed. A places view " +
+                                   "should be passed to " + caller.name + ". " +
+                                   "Not passing a view will throw in a future " +
+                                   "release.");
     }
 
     
