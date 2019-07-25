@@ -529,6 +529,7 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     
 
 "   cmp     r0, #0"                         "\n"
+"   it      ne"                             "\n"
 "   bxne    r0"                             "\n"
 
     
