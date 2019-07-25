@@ -16997,7 +16997,7 @@ LoopProfile::decide(JSContext *cx)
         
     } else if (count(OP_EVAL)) {
         
-    } else if (numInnerLoops > 3) {
+    } else if (numInnerLoops > 7) {
         
     } else if (shortLoop) {
         
