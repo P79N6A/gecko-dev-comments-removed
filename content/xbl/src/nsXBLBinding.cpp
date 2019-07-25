@@ -972,7 +972,9 @@ nsXBLBinding::ExecuteAttachedHandler()
   if (mNextBinding)
     mNextBinding->ExecuteAttachedHandler();
 
-  if (AllowScripts())
+  
+  
+  if (mBoundElement && AllowScripts())
     mPrototypeBinding->BindingAttached(mBoundElement);
 }
 
