@@ -1180,7 +1180,7 @@ nsHTMLParanoidFragmentSink::CloseContainer(const nsHTMLTag aTag)
             
             PRInt32 ruleCount = sheet->StyleRuleCount();
             for (PRInt32 i = 0; i < ruleCount; ++i) {
-              nsRefPtr<nsICSSRule> rule;
+              nsRefPtr<css::Rule> rule;
               rv = sheet->GetStyleRuleAt(i, *getter_AddRefs(rule));
               if (NS_FAILED(rv))
                 continue;
@@ -1190,8 +1190,8 @@ nsHTMLParanoidFragmentSink::CloseContainer(const nsHTMLTag aTag)
                   didSanitize = PR_TRUE;
                   
                   break;
-                case nsICSSRule::NAMESPACE_RULE:
-                case nsICSSRule::FONT_FACE_RULE: {
+                case css::Rule::NAMESPACE_RULE:
+                case css::Rule::FONT_FACE_RULE: {
                   
                   nsAutoString cssText;
                   nsCOMPtr<nsIDOMCSSRule> styleRule = do_QueryInterface(rule);
@@ -1203,7 +1203,7 @@ nsHTMLParanoidFragmentSink::CloseContainer(const nsHTMLTag aTag)
                   }
                   break;
                 }
-                case nsICSSRule::STYLE_RULE: {
+                case css::Rule::STYLE_RULE: {
                   
                   
                   nsRefPtr<css::StyleRule> styleRule = do_QueryObject(rule);

@@ -40,7 +40,7 @@
 #ifndef mozilla_css_NameSpaceRule_h__
 #define mozilla_css_NameSpaceRule_h__
 
-#include "Rule.h"
+#include "mozilla/css/Rule.h"
 #include "nsIDOMCSSRule.h"
 
 class nsIAtom;
@@ -76,7 +76,7 @@ public:
 
   
   virtual PRInt32 GetType() const;
-  virtual already_AddRefed<nsICSSRule> Clone() const;
+  virtual already_AddRefed<Rule> Clone() const;
 
   nsIAtom* GetPrefix() const { return mPrefix; }
 

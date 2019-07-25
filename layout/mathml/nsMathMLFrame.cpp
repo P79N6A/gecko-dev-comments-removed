@@ -42,21 +42,9 @@
 #include "nsCSSPseudoElements.h"
 
 
-#include "nsIDocument.h"
 #include "nsStyleSet.h"
-#include "nsIStyleSheet.h"
-#include "nsIDOMCSSStyleSheet.h"
-#include "nsICSSRule.h"
-#include "nsStyleChangeList.h"
-#include "nsFrameManager.h"
-#include "nsNetUtil.h"
-#include "nsIURI.h"
-#include "nsContentCID.h"
 #include "nsAutoPtr.h"
-#include "nsStyleSet.h"
-#include "nsStyleUtil.h"
 #include "nsDisplayList.h"
-#include "nsAttrName.h"
 #include "nsRenderingContext.h"
 
 eMathMLFrameType
