@@ -187,8 +187,8 @@ int main(int argc, char **argv) {
   case 'T': {
     int rv;
     struct ProductInformationBlock infoBlock;
-    int hasSignatureBlock, numSignatures, 
-      hasAdditionalBlock, numAdditionalBlocks;
+    PRUint32 numSignatures, numAdditionalBlocks;
+    int hasSignatureBlock, hasAdditionalBlock;
     if (!get_mar_file_info(argv[2], 
                            &hasSignatureBlock,
                            &numSignatures,

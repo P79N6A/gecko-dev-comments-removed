@@ -225,9 +225,9 @@ refresh_product_info_block(const char *path,
 {
   FILE *fp ;
   int rv;
-  PRUint32 hasSignatureBlock, numSignatures, additionalBlocks, 
-    additionalBlockSize, additionalBlockID, offsetAdditionalBlocks, 
-    numAdditionalBlocks, i;
+  PRUint32 numSignatures, additionalBlockSize, additionalBlockID,
+    offsetAdditionalBlocks, numAdditionalBlocks, i;
+  int additionalBlocks, hasSignatureBlock;
   PRInt64 oldPos;
 
   rv = get_mar_file_info(path, 

@@ -50,6 +50,7 @@
 #endif
 
 
+
 static PRUint32 mar_hash_name(const char *name) {
   PRUint32 val = 0;
   unsigned char* c;
@@ -243,6 +244,153 @@ void mar_close(MarFile *mar) {
 
 
 
+
+
+
+
+
+
+
+
+
+
+int get_mar_file_info_fp(FILE *fp, 
+                         int *hasSignatureBlock,
+                         int *numSignatures,
+                         int *hasAdditionalBlocks,
+                         int *offsetAdditionalBlocks,
+                         int *numAdditionalBlocks)
+{
+  PRUint32 offsetToIndex, offsetToContent, signatureCount, signatureLen, i;
+  
+  
+  if (!hasSignatureBlock && !hasAdditionalBlocks) {
+    return -1;
+  }
+
+
+  
+  if (fseek(fp, MAR_ID_SIZE, SEEK_SET)) {
+    return -1;
+  }
+
+  
+  if (fread(&offsetToIndex, sizeof(offsetToIndex), 1, fp) != 1) {
+    return -1;
+  }
+  offsetToIndex = ntohl(offsetToIndex);
+
+  if (numSignatures) {
+     
+    if (fseek(fp, sizeof(PRUint64), SEEK_CUR)) {
+      return -1;
+    }
+
+    
+    if (fread(numSignatures, sizeof(*numSignatures), 1, fp) != 1) {
+      return -1;
+    }
+    *numSignatures = ntohl(*numSignatures);
+  }
+
+  
+
+
+  if (fseek(fp, offsetToIndex, SEEK_SET)) {
+    return -1;
+  }
+
+  if (fseek(fp, sizeof(PRUint32), SEEK_CUR)) {
+    return -1;
+  }
+
+  
+  if (fread(&offsetToContent, sizeof(offsetToContent), 1, fp) != 1) {
+    return -1;
+  }
+  offsetToContent = ntohl(offsetToContent);
+
+  
+  if (hasSignatureBlock) {
+    if (offsetToContent == MAR_ID_SIZE + sizeof(PRUint32)) {
+      *hasSignatureBlock = 0;
+    } else {
+      *hasSignatureBlock = 1;
+    }
+  }
+
+  
+
+  if (!hasAdditionalBlocks) {
+    return 0;
+  }
+
+   
+  if (fseeko(fp, SIGNATURE_BLOCK_OFFSET, SEEK_SET)) {
+    return -1;
+  }
+
+  
+  if (fread(&signatureCount, sizeof(signatureCount), 1, fp) != 1) {
+    return -1;
+  }
+  signatureCount = ntohl(signatureCount);
+
+  
+
+  if (signatureCount > MAX_SIGNATURES) {
+    return -1;
+  }
+
+  
+  for (i = 0; i < signatureCount; i++) {
+    
+    if (fseek(fp, sizeof(PRUint32), SEEK_CUR)) {
+      return -1;
+    }
+
+    
+    if (fread(&signatureLen, sizeof(PRUint32), 1, fp) != 1) {
+      return -1;
+    }
+    signatureLen = ntohl(signatureLen);
+    if (fseek(fp, signatureLen, SEEK_CUR)) {
+      return -1;
+    }
+  }
+
+  if (ftell(fp) == offsetToContent) {
+    *hasAdditionalBlocks = 0;
+  } else {
+    if (numAdditionalBlocks) {
+      
+
+      *hasAdditionalBlocks = 1;
+      if (fread(numAdditionalBlocks, sizeof(PRUint32), 1, fp) != 1) {
+        return -1;
+      }
+      *numAdditionalBlocks = ntohl(*numAdditionalBlocks);
+      if (offsetAdditionalBlocks) {
+        *offsetAdditionalBlocks = ftell(fp);
+      }
+    } else if (offsetAdditionalBlocks) {
+      
+
+      *offsetAdditionalBlocks = ftell(fp) + sizeof(PRUint32);
+    }
+  }
+
+  return 0;
+}
+
+
+
+
+
+
+
+
+
 int
 read_product_info_block(char *path, 
                         struct ProductInformationBlock *infoBlock)
@@ -421,8 +569,6 @@ int mar_read(MarFile *mar, const MarItem *item, int offset, char *buf,
 
 
 
-
-
 int get_mar_file_info(const char *path, 
                       int *hasSignatureBlock,
                       int *numSignatures,
@@ -442,153 +588,4 @@ int get_mar_file_info(const char *path,
 
   fclose(fp);
   return rv;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-int get_mar_file_info_fp(FILE *fp, 
-                         int *hasSignatureBlock,
-                         int *numSignatures,
-                         int *hasAdditionalBlocks,
-                         int *offsetAdditionalBlocks,
-                         int *numAdditionalBlocks)
-{
-  PRUint32 offsetToIndex, offsetToContent, signatureCount, signatureLen;
-  int i;
-  
-  
-  if (!hasSignatureBlock && !hasAdditionalBlocks) {
-    return -1;
-  }
-
-
-  
-  if (fseek(fp, MAR_ID_SIZE, SEEK_SET)) {
-    return -1;
-  }
-
-  
-  if (fread(&offsetToIndex, sizeof(offsetToIndex), 1, fp) != 1) {
-    return -1;
-  }
-  offsetToIndex = ntohl(offsetToIndex);
-
-  if (numSignatures) {
-     
-    if (fseek(fp, sizeof(PRUint64), SEEK_CUR)) {
-      return -1;
-    }
-
-    
-    if (fread(numSignatures, sizeof(*numSignatures), 1, fp) != 1) {
-      return -1;
-    }
-    *numSignatures = ntohl(*numSignatures);
-  }
-
-  
-
-
-  if (fseek(fp, offsetToIndex, SEEK_SET)) {
-    return -1;
-  }
-
-  if (fseek(fp, sizeof(PRUint32), SEEK_CUR)) {
-    return -1;
-  }
-
-  
-  if (fread(&offsetToContent, sizeof(offsetToContent), 1, fp) != 1) {
-    return -1;
-  }
-  offsetToContent = ntohl(offsetToContent);
-
-  
-  if (hasSignatureBlock) {
-    if (offsetToContent == MAR_ID_SIZE + sizeof(PRUint32)) {
-      *hasSignatureBlock = 0;
-    } else {
-      *hasSignatureBlock = 1;
-    }
-  }
-
-  
-
-  if (!hasAdditionalBlocks) {
-    return 0;
-  }
-
-   
-  if (fseeko(fp, SIGNATURE_BLOCK_OFFSET, SEEK_SET)) {
-    return -1;
-  }
-
-  
-  if (fread(&signatureCount, sizeof(signatureCount), 1, fp) != 1) {
-    return -1;
-  }
-  signatureCount = ntohl(signatureCount);
-
-  
-
-  if (signatureCount > MAX_SIGNATURES) {
-    return -1;
-  }
-
-  
-  for (i = 0; i < signatureCount; i++) {
-    
-    if (fseek(fp, sizeof(PRUint32), SEEK_CUR)) {
-      return -1;
-    }
-
-    
-    if (fread(&signatureLen, sizeof(PRUint32), 1, fp) != 1) {
-      return -1;
-    }
-    signatureLen = ntohl(signatureLen);
-    if (fseek(fp, signatureLen, SEEK_CUR)) {
-      return -1;
-    }
-  }
-
-  if (ftell(fp) == offsetToContent) {
-    *hasAdditionalBlocks = 0;
-  } else {
-    if (numAdditionalBlocks) {
-      
-
-      *hasAdditionalBlocks = 1;
-      if (fread(numAdditionalBlocks, sizeof(PRUint32), 1, fp) != 1) {
-        return -1;
-      }
-      *numAdditionalBlocks = ntohl(*numAdditionalBlocks);
-      if (offsetAdditionalBlocks) {
-        *offsetAdditionalBlocks = ftell(fp);
-      }
-    } else if (offsetAdditionalBlocks) {
-      
-
-      *offsetAdditionalBlocks = ftell(fp) + sizeof(PRUint32);
-    }
-  }
-
-  return 0;
 }

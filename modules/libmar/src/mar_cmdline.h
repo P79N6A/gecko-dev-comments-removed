@@ -45,6 +45,7 @@
 extern "C" {
 #endif
 
+struct ProductInformationBlock;
 
 
 
@@ -66,10 +67,10 @@ extern "C" {
 
 int get_mar_file_info(const char *path, 
                       int *hasSignatureBlock,
-                      int *numSignatures,
+                      PRUint32 *numSignatures,
                       int *hasAdditionalBlocks,
-                      int *offsetAdditionalBlocks,
-                      int *numAdditionalBlocks);
+                      PRUint32 *offsetAdditionalBlocks,
+                      PRUint32 *numAdditionalBlocks);
 
 
 
@@ -102,6 +103,19 @@ int mar_verify_signature(const char *pathToMAR,
 int
 read_product_info_block(char *path, 
                         struct ProductInformationBlock *infoBlock);
+
+
+
+
+
+
+
+
+
+
+int
+refresh_product_info_block(const char *path,
+                           struct ProductInformationBlock *infoBlock);
 
 
 
