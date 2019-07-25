@@ -96,7 +96,7 @@ table {
 
 
 
-table, td, th {
+table, td, th, tr, thead, tbody, tfoot, colgroup, col {
   border-color: gray;
 }
 
