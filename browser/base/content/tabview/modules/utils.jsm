@@ -19,9 +19,21 @@ var extensionManager = Cc["@mozilla.org/extensions/manager;1"]
     .getService(Ci.nsIExtensionManager);  
 
 
-window.Point = function(x, y) {
-  this.x = (typeof(x) == 'undefined' ? 0 : x);
-  this.y = (typeof(y) == 'undefined' ? 0 : y);
+
+
+
+
+
+
+
+window.Point = function(a, y) {
+  if(a && typeof(a.x) != 'undefined' && typeof(a.y) != 'undefined') {
+    this.x = a.x;
+    this.y = a.y;
+  } else {
+    this.x = (typeof(a) == 'undefined' ? 0 : a);
+    this.y = (typeof(y) == 'undefined' ? 0 : y);
+  }
 }
 
 window.Point.prototype = { 
