@@ -389,12 +389,23 @@ ion::ReflowTypeInfo(uint32 bailoutResult)
 
     JSScript *script = cx->fp()->script();
     jsbytecode *pc = cx->regs().pc;
+
+    JS_ASSERT(script->hasAnalysis());
+    JS_ASSERT(script->analysis()->ranInference());
+
+    
+    
+    do {
+        pc--;
+    } while (!script->analysis()->maybeCode(pc));
+
+    JS_ASSERT(js_CodeSpec[*pc].format & JOF_TYPESET);
+
     IonSpew(IonSpew_Bailouts, "reflowing type info at %s:%d pcoff %d", script->filename,
             script->lineno, pc - script->code);
-    if (script->hasAnalysis() && script->analysis()->ranInference()) {
-        types::AutoEnterTypeInference enter(cx);
-        script->analysis()->breakTypeBarriers(cx, pc - script->code, false);
-    }
+
+    types::AutoEnterTypeInference enter(cx);
+    script->analysis()->breakTypeBarriers(cx, pc - script->code, false);
 
     
     Value &result = cx->regs().sp[-1];
