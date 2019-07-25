@@ -433,7 +433,7 @@ protected:
   
 
 
-  void BindToParent(nsAccessible* aParent, PRUint32 aIndexInParent);
+  virtual void BindToParent(nsAccessible* aParent, PRUint32 aIndexInParent);
   void UnbindFromParent();
 
   

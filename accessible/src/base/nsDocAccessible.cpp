@@ -1336,6 +1336,7 @@ nsDocAccessible::BindToDocument(nsAccessible* aAccessible,
   if (!mAccessibleCache.Put(aAccessible->UniqueID(), aAccessible)) {
     if (aAccessible->IsPrimaryForNode())
       mNodeToAccessibleMap.Remove(aAccessible->GetNode());
+
     return false;
   }
 
@@ -1361,7 +1362,7 @@ nsDocAccessible::UnbindFromDocument(nsAccessible* aAccessible)
 
 #ifdef DEBUG
   NS_ASSERTION(mAccessibleCache.GetWeak(aAccessible->UniqueID()),
-               "Illegitimate illegitimated accessible!");
+               "Unbinding the unbound accessible!");
 #endif
 
   void* uniqueID = aAccessible->UniqueID();

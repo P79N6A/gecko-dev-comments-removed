@@ -97,7 +97,6 @@ public:
   NS_IMETHOD GetKeyboardShortcut(nsAString& _retval);
 
   
-  virtual PRBool Init();
   virtual void Shutdown();
 
   
@@ -108,14 +107,14 @@ public:
 
 protected:
   
+  virtual void BindToParent(nsAccessible* aParent, PRUint32 aIndexInParent);
 
-
-  nsAccessible *GetActionAccessible() const;
+  
 
   
 
 
-  virtual void CacheActionContent();
+  nsAccessible *GetActionAccessible() const;
 
   nsCOMPtr<nsIContent> mActionContent;
   PRPackedBool mIsLink;
