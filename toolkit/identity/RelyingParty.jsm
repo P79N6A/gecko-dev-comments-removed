@@ -210,13 +210,13 @@ IdentityRelyingParty.prototype = {
 
   request: function request(aRPId, aOptions) {
     log("request: rpId:", aRPId);
-
-    
-    
-    let options = {rpId: aRPId};
-
-    
     let rp = this._rpFlows[aRPId];
+
+    
+    
+    let options = {rpId: aRPId, origin: rp.origin};
+
+    
     let baseURI = Services.io.newURI(rp.origin, null, null);
     for (let optionName of ["privacyPolicy", "termsOfService"]) {
       if (aOptions[optionName]) {

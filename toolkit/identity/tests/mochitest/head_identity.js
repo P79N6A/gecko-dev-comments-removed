@@ -29,6 +29,17 @@ const Services = Cu.import("resource://gre/modules/Services.jsm").Services;
 SpecialPowers.setBoolPref("toolkit.identity.debug", true);
 SpecialPowers.setBoolPref("dom.identity.enabled", true);
 
+
+
+try {
+  const SignInToWebsiteUX = Cu.import("resource:///modules/SignInToWebsite.jsm").SignInToWebsiteUX;
+  if (SignInToWebsiteUX) {
+    SignInToWebsiteUX.uninit();
+  }
+} catch (ex) {
+  
+}
+
 const jwcrypto = Cu.import("resource://gre/modules/identity/jwcrypto.jsm").jwcrypto;
 const IdentityStore = Cu.import("resource://gre/modules/identity/IdentityStore.jsm").IdentityStore;
 const RelyingParty = Cu.import("resource://gre/modules/identity/RelyingParty.jsm").RelyingParty;
@@ -175,6 +186,15 @@ function cleanup() {
   resetState();
   SpecialPowers.clearUserPref("toolkit.identity.debug");
   SpecialPowers.clearUserPref("dom.identity.enabled");
+  
+  try {
+    const SignInToWebsiteUX = Cu.import("resource:///modules/SignInToWebsite.jsm").SignInToWebsiteUX;
+    if (SignInToWebsiteUX) {
+      SignInToWebsiteUX.init();
+    }
+  } catch (ex) {
+    
+  }
 }
 
 var TESTS = [];
