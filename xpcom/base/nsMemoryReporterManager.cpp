@@ -683,15 +683,15 @@ struct MemoryReport {
 #ifdef DEBUG
 
 
-class MemoryReportsWrapper : public nsISupports {
+class PRInt64Wrapper : public nsISupports {
 public:
     NS_DECL_ISUPPORTS
-    MemoryReportsWrapper(InfallibleTArray<MemoryReport> *r) : mReports(r) { }
-    InfallibleTArray<MemoryReport> *mReports;
+    PRInt64Wrapper() : mValue(0) { }
+    PRInt64 mValue;
 };
-NS_IMPL_ISUPPORTS0(MemoryReportsWrapper)
+NS_IMPL_ISUPPORTS0(PRInt64Wrapper)
 
-class MemoryReportCallback : public nsIMemoryMultiReporterCallback
+class ExplicitNonHeapCountingCallback : public nsIMemoryMultiReporterCallback
 {
 public:
     NS_DECL_ISUPPORTS
@@ -699,50 +699,40 @@ public:
     NS_IMETHOD Callback(const nsACString &aProcess, const nsACString &aPath,
                         PRInt32 aKind, PRInt32 aUnits, PRInt64 aAmount,
                         const nsACString &aDescription,
-                        nsISupports *aWrappedMRs)
+                        nsISupports *aWrappedExplicitNonHeap)
     {
         if (aKind == nsIMemoryReporter::KIND_NONHEAP &&
             PromiseFlatCString(aPath).Find("explicit") == 0 &&
             aAmount != PRInt64(-1))
         {
-            MemoryReportsWrapper *wrappedMRs =
-                static_cast<MemoryReportsWrapper *>(aWrappedMRs);
-            MemoryReport mr(aPath, aAmount);
-            wrappedMRs->mReports->AppendElement(mr);
+            PRInt64Wrapper *wrappedPRInt64 =
+                static_cast<PRInt64Wrapper *>(aWrappedExplicitNonHeap);
+            wrappedPRInt64->mValue += aAmount;
         }
         return NS_OK;
     }
 };
 NS_IMPL_ISUPPORTS1(
-  MemoryReportCallback
+  ExplicitNonHeapCountingCallback
 , nsIMemoryMultiReporterCallback
 )
 #endif
 
-
-
-static bool
-isParent(const nsACString &path1, const nsACString &path2)
-{
-    if (path1.Length() >= path2.Length())
-        return false;
-
-    const nsACString& subStr = Substring(path2, 0, path1.Length());
-    return subStr.Equals(path1) && path2[path1.Length()] == '/';
-}
-
 NS_IMETHODIMP
 nsMemoryReporterManager::GetExplicit(PRInt64 *aExplicit)
 {
+    NS_ENSURE_ARG_POINTER(aExplicit);
+    *aExplicit = 0;
+
     nsresult rv;
+    bool more;
 
     
     
     PRInt64 heapAllocated = PRInt64(-1);
-    InfallibleTArray<MemoryReport> explicitNonHeapNormalReports;
+    PRInt64 explicitNonHeapNormalSize = 0;
     nsCOMPtr<nsISimpleEnumerator> e;
     EnumerateReporters(getter_AddRefs(e));
-    bool more;
     while (NS_SUCCEEDED(e->HasMoreElements(&more)) && more) {
         nsCOMPtr<nsIMemoryReporter> r;
         e->GetNext(getter_AddRefs(r));
@@ -758,8 +748,8 @@ nsMemoryReporterManager::GetExplicit(PRInt64 *aExplicit)
         
         
         if (kind == nsIMemoryReporter::KIND_NONHEAP &&
-            path.Find("explicit") == 0) {
-
+            path.Find("explicit") == 0)
+        {
             PRInt64 amount;
             rv = r->GetAmount(&amount);
             NS_ENSURE_SUCCESS(rv, rv);
@@ -767,45 +757,20 @@ nsMemoryReporterManager::GetExplicit(PRInt64 *aExplicit)
             
             
             if (amount != PRInt64(-1)) {
-                MemoryReport mr(path, amount);
-                explicitNonHeapNormalReports.AppendElement(mr);
+                explicitNonHeapNormalSize += amount;
             }
         } else if (path.Equals("heap-allocated")) {
             rv = r->GetAmount(&heapAllocated);
             NS_ENSURE_SUCCESS(rv, rv);
-        }
-    }
 
-    
-    
-    if (heapAllocated == PRInt64(-1)) {
-        *aExplicit = PRInt64(-1);
-        return NS_OK;
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    for (PRUint32 i = 0; i < explicitNonHeapNormalReports.Length(); i++) {
-        const nsCString &iPath = explicitNonHeapNormalReports[i].path;
-        for (PRUint32 j = i + 1; j < explicitNonHeapNormalReports.Length(); j++) {
-            const nsCString &jPath = explicitNonHeapNormalReports[j].path;
-            if (isParent(iPath, jPath)) {
-                explicitNonHeapNormalReports[j].amount = 0;
-            } else if (isParent(jPath, iPath)) {
-                explicitNonHeapNormalReports[i].amount = 0;
+            
+            
+            if (heapAllocated == PRInt64(-1)) {
+                *aExplicit = PRInt64(-1);
+                return NS_OK;
             }
         }
     }
-    PRInt64 explicitNonHeapNormalSize = 0;
-    for (PRUint32 i = 0; i < explicitNonHeapNormalReports.Length(); i++) {
-        explicitNonHeapNormalSize += explicitNonHeapNormalReports[i].amount;
-    }
 
     
     
@@ -817,9 +782,9 @@ nsMemoryReporterManager::GetExplicit(PRInt64 *aExplicit)
     
     
 
+    PRInt64 explicitNonHeapMultiSize = 0;
     nsCOMPtr<nsISimpleEnumerator> e2;
     EnumerateMultiReporters(getter_AddRefs(e2));
-    PRInt64 explicitNonHeapMultiSize = 0;
     while (NS_SUCCEEDED(e2->HasMoreElements(&more)) && more) {
       nsCOMPtr<nsIMemoryMultiReporter> r;
       e2->GetNext(getter_AddRefs(r));
@@ -830,36 +795,18 @@ nsMemoryReporterManager::GetExplicit(PRInt64 *aExplicit)
     }
 
 #ifdef DEBUG
-    InfallibleTArray<MemoryReport> explicitNonHeapMultiReports;
-    nsRefPtr<MemoryReportCallback> cb = new MemoryReportCallback();
-    nsRefPtr<MemoryReportsWrapper> wrappedMRs =
-        new MemoryReportsWrapper(&explicitNonHeapMultiReports);
+    nsRefPtr<ExplicitNonHeapCountingCallback> cb =
+      new ExplicitNonHeapCountingCallback();
+    nsRefPtr<PRInt64Wrapper> wrappedExplicitNonHeapMultiSize2 =
+      new PRInt64Wrapper();
     nsCOMPtr<nsISimpleEnumerator> e3;
     EnumerateMultiReporters(getter_AddRefs(e3));
     while (NS_SUCCEEDED(e3->HasMoreElements(&more)) && more) {
       nsCOMPtr<nsIMemoryMultiReporter> r;
       e3->GetNext(getter_AddRefs(r));
-      r->CollectReports(cb, wrappedMRs);
+      r->CollectReports(cb, wrappedExplicitNonHeapMultiSize2);
     }
-
-    
-    
-    
-    for (PRUint32 i = 0; i < explicitNonHeapMultiReports.Length(); i++) {
-        const nsCString &iPath = explicitNonHeapMultiReports[i].path;
-        for (PRUint32 j = i + 1; j < explicitNonHeapMultiReports.Length(); j++) {
-            const nsCString &jPath = explicitNonHeapMultiReports[j].path;
-            if (isParent(iPath, jPath)) {
-                explicitNonHeapMultiReports[j].amount = 0;
-            } else if (isParent(jPath, iPath)) {
-                explicitNonHeapMultiReports[i].amount = 0;
-            }
-        }
-    }
-    PRInt64 explicitNonHeapMultiSize2 = 0;
-    for (PRUint32 i = 0; i < explicitNonHeapMultiReports.Length(); i++) {
-        explicitNonHeapMultiSize2 += explicitNonHeapMultiReports[i].amount;
-    }
+    PRInt64 explicitNonHeapMultiSize2 = wrappedExplicitNonHeapMultiSize2->mValue;
 
     
     NS_ASSERTION(explicitNonHeapMultiSize == explicitNonHeapMultiSize2,
@@ -867,7 +814,6 @@ nsMemoryReporterManager::GetExplicit(PRInt64 *aExplicit)
 #endif
 
     *aExplicit = heapAllocated + explicitNonHeapNormalSize + explicitNonHeapMultiSize;
-
     return NS_OK;
 }
 
