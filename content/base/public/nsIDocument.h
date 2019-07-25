@@ -1626,6 +1626,9 @@ protected:
   PRPackedBool mIsRegularHTML;
   PRPackedBool mIsXUL;
 
+  
+  PRPackedBool mForceOldParserForHotmail;
+
   enum {
     eTriUnset = 0,
     eTriFalse,
