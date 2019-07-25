@@ -323,7 +323,7 @@ class FrameState
     
 
 
-    void storeLocal(uint32 n);
+    void storeLocal(uint32 n, bool popGuaranteed = false);
 
     
 
@@ -460,6 +460,13 @@ class FrameState
 
 
     void shimmy(uint32 n);
+
+    
+
+
+
+
+    void shift(int32 n);
 
     inline void addEscaping(uint32 local);
 
