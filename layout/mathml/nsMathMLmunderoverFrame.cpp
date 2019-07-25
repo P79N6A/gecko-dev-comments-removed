@@ -50,6 +50,10 @@
 
 #include "nsMathMLmunderoverFrame.h"
 #include "nsMathMLmsubsupFrame.h"
+#include "nsMathMLmsupFrame.h"
+#include "nsMathMLmsubFrame.h"
+
+
 
 
 
@@ -170,13 +174,41 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   nsIFrame* overscriptFrame = nsnull;
   nsIFrame* underscriptFrame = nsnull;
   nsIFrame* baseFrame = mFrames.FirstChild();
-  if (baseFrame)
-    underscriptFrame = baseFrame->GetNextSibling();
-  if (underscriptFrame)
+  nsIAtom* tag = mContent->Tag();
+
+  if (baseFrame) {
+    if (tag == nsGkAtoms::munder_ ||
+        tag == nsGkAtoms::munderover_) {
+      underscriptFrame = baseFrame->GetNextSibling();
+    } else {
+      NS_ASSERTION(tag == nsGkAtoms::mover_, "mContent->Tag() not recognized");
+      overscriptFrame = baseFrame->GetNextSibling();
+    }
+  }
+  if (underscriptFrame &&
+      tag == nsGkAtoms::munderover_) {
     overscriptFrame = underscriptFrame->GetNextSibling();
+
+  }
 
   
   
@@ -187,38 +219,46 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
   
   
   nsEmbellishData embellishData;
-  GetEmbellishDataFrom(underscriptFrame, embellishData);
-  if (NS_MATHML_EMBELLISH_IS_ACCENT(embellishData.flags))
-    mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENTUNDER;
-  else
-    mEmbellishData.flags &= ~NS_MATHML_EMBELLISH_ACCENTUNDER;
-
-  
   nsAutoString value;
-  if (GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::accentunder_,
-                   value)) {
-    if (value.EqualsLiteral("true")) {
+  if (tag == nsGkAtoms::munder_ ||
+      tag == nsGkAtoms::munderover_) {
+    GetEmbellishDataFrom(underscriptFrame, embellishData);
+    if (NS_MATHML_EMBELLISH_IS_ACCENT(embellishData.flags)) {
       mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENTUNDER;
-    } else if (value.EqualsLiteral("false")) {
+    } else {
       mEmbellishData.flags &= ~NS_MATHML_EMBELLISH_ACCENTUNDER;
+    }    
+
+    
+    if (GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::accentunder_,
+                     value)) {
+      if (value.EqualsLiteral("true")) {
+        mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENTUNDER;
+      } else if (value.EqualsLiteral("false")) {
+        mEmbellishData.flags &= ~NS_MATHML_EMBELLISH_ACCENTUNDER;
+      }
     }
   }
 
   
   
-  GetEmbellishDataFrom(overscriptFrame, embellishData);
-  if (NS_MATHML_EMBELLISH_IS_ACCENT(embellishData.flags))
-    mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENTOVER;
-  else
-    mEmbellishData.flags &= ~NS_MATHML_EMBELLISH_ACCENTOVER;
-
-  
-  if (GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::accent_,
-                   value)) {
-    if (value.EqualsLiteral("true")) {
+  if (tag == nsGkAtoms::mover_ ||
+      tag == nsGkAtoms::munderover_) {
+    GetEmbellishDataFrom(overscriptFrame, embellishData);
+    if (NS_MATHML_EMBELLISH_IS_ACCENT(embellishData.flags)) {
       mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENTOVER;
-    } else if (value.EqualsLiteral("false")) {
+    } else {
       mEmbellishData.flags &= ~NS_MATHML_EMBELLISH_ACCENTOVER;
+    }
+
+    
+    if (GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::accent_,
+                     value)) {
+      if (value.EqualsLiteral("true")) {
+        mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENTOVER;
+      } else if (value.EqualsLiteral("false")) {
+        mEmbellishData.flags &= ~NS_MATHML_EMBELLISH_ACCENTOVER;
+      }
     }
   }
 
@@ -243,22 +283,27 @@ nsMathMLmunderoverFrame::TransmitAutomaticData()
 
 
 
-  PRUint32 compress = NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags)
-    ? NS_MATHML_COMPRESSED : 0;
-  SetIncrementScriptLevel(2, !NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags));
-  PropagatePresentationDataFor(overscriptFrame,
-    ~NS_MATHML_DISPLAYSTYLE | compress,
-     NS_MATHML_DISPLAYSTYLE | compress);
-
+  if (tag == nsGkAtoms::mover_ ||
+      tag == nsGkAtoms::munderover_) {
+    PRUint32 compress = NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags)
+      ? NS_MATHML_COMPRESSED : 0;
+    SetIncrementScriptLevel(tag == nsGkAtoms::mover_ ? 1 : 2,
+                            !NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags));
+    PropagatePresentationDataFor(overscriptFrame,
+                                 ~NS_MATHML_DISPLAYSTYLE | compress,
+                                 NS_MATHML_DISPLAYSTYLE | compress);
+  }
   
 
 
 
-  SetIncrementScriptLevel(1, !NS_MATHML_EMBELLISH_IS_ACCENTUNDER(mEmbellishData.flags));
-  PropagatePresentationDataFor(underscriptFrame,
-    ~NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED,
-     NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED);
-
+  if (tag == nsGkAtoms::munder_ ||
+      tag == nsGkAtoms::munderover_) {
+    SetIncrementScriptLevel(1, !NS_MATHML_EMBELLISH_IS_ACCENTUNDER(mEmbellishData.flags));
+    PropagatePresentationDataFor(underscriptFrame,
+                                 ~NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED,
+                                 NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED);
+  }
   return NS_OK;
 }
 
@@ -286,15 +331,35 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
                                PRBool               aPlaceOrigin,
                                nsHTMLReflowMetrics& aDesiredSize)
 {
+  nsIAtom* tag = mContent->Tag();
   if ( NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
-      !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags)) {
+       !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags)) {
     
-    return nsMathMLmsubsupFrame::PlaceSubSupScript(PresContext(),
-                                                   aRenderingContext,
-                                                   aPlaceOrigin,
-                                                   aDesiredSize,
-                                                   this, 0, 0,
-                                                   nsPresContext::CSSPointsToAppUnits(0.5f));
+    nscoord scriptSpace = nsPresContext::CSSPointsToAppUnits(0.5f);
+    if (tag == nsGkAtoms::munderover_) {
+      return nsMathMLmsubsupFrame::PlaceSubSupScript(PresContext(),
+                                                     aRenderingContext,
+                                                     aPlaceOrigin,
+                                                     aDesiredSize,
+                                                     this, 0, 0,
+                                                     scriptSpace);
+    } else if (tag == nsGkAtoms::munder_) {
+      return nsMathMLmsubFrame::PlaceSubScript(PresContext(),
+                                               aRenderingContext,
+                                               aPlaceOrigin,
+                                               aDesiredSize,
+                                               this, 0,
+                                               scriptSpace);
+    } else {
+      NS_ASSERTION(tag == nsGkAtoms::mover_, "mContent->Tag() not recognized");
+      return nsMathMLmsupFrame::PlaceSuperScript(PresContext(),
+                                                 aRenderingContext,
+                                                 aPlaceOrigin,
+                                                 aDesiredSize,
+                                                 this, 0,
+                                                 scriptSpace);
+    }
+    
   }
 
   
@@ -307,17 +372,45 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
   nsIFrame* overFrame = nsnull;
   nsIFrame* underFrame = nsnull;
   nsIFrame* baseFrame = mFrames.FirstChild();
-  if (baseFrame)
-    underFrame = baseFrame->GetNextSibling();
-  if (underFrame)
+  underSize.ascent = 0; 
+  overSize.ascent = 0;
+  if (baseFrame) {
+    if (tag == nsGkAtoms::munder_ ||
+        tag == nsGkAtoms::munderover_) {
+      underFrame = baseFrame->GetNextSibling();
+    } else if (tag == nsGkAtoms::mover_) {
+      overFrame = baseFrame->GetNextSibling();
+    }
+  }
+  if (underFrame && tag == nsGkAtoms::munderover_) {
     overFrame = underFrame->GetNextSibling();
-  if (!baseFrame || !underFrame || !overFrame || overFrame->GetNextSibling()) {
-    
-    return ReflowError(aRenderingContext, aDesiredSize);
+  }
+  
+  if (tag == nsGkAtoms::munder_) {
+    if (!baseFrame || !underFrame || underFrame->GetNextSibling()) {
+      
+      return ReflowError(aRenderingContext, aDesiredSize);
+    }
+  }
+  if (tag == nsGkAtoms::mover_) {
+    if (!baseFrame || !overFrame || overFrame->GetNextSibling()) {
+      
+      return ReflowError(aRenderingContext, aDesiredSize);
+    }
+  }
+  if (tag == nsGkAtoms::munderover_) {
+    if (!baseFrame || !underFrame || !overFrame || overFrame->GetNextSibling()) {
+      
+      return ReflowError(aRenderingContext, aDesiredSize);
+    }
   }
   GetReflowAndBoundingMetricsFor(baseFrame, baseSize, bmBase);
-  GetReflowAndBoundingMetricsFor(underFrame, underSize, bmUnder);
-  GetReflowAndBoundingMetricsFor(overFrame, overSize, bmOver);
+  if (underFrame) {
+    GetReflowAndBoundingMetricsFor(underFrame, underSize, bmUnder);
+  }
+  if (overFrame) {
+    GetReflowAndBoundingMetricsFor(overFrame, overSize, bmOver);
+  }
 
   nscoord onePixel = nsPresContext::CSSPixelsToAppUnits(1);
 
@@ -387,8 +480,37 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
   }
   else {
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     overDelta1 = ruleThickness + onePixel/2;
-    if (bmBase.ascent < xHeight) { 
+    if (bmBase.ascent < xHeight) {
+      
       overDelta1 += xHeight - bmBase.ascent;
     }
     overDelta2 = ruleThickness;
@@ -494,14 +616,21 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
   if (aPlaceOrigin) {
     nscoord dy;
     
-    dy = aDesiredSize.ascent - mBoundingMetrics.ascent + bmOver.ascent - overSize.ascent;
-    FinishReflowChild (overFrame, PresContext(), nsnull, overSize, dxOver, dy, 0);
+    if (overFrame) {
+      dy = aDesiredSize.ascent - mBoundingMetrics.ascent + bmOver.ascent 
+        - overSize.ascent;
+      FinishReflowChild (overFrame, PresContext(), nsnull, overSize, dxOver, dy, 0);
+    }
     
     dy = aDesiredSize.ascent - baseSize.ascent;
     FinishReflowChild (baseFrame, PresContext(), nsnull, baseSize, dxBase, dy, 0);
     
-    dy = aDesiredSize.ascent + mBoundingMetrics.descent - bmUnder.descent - underSize.ascent;
-    FinishReflowChild (underFrame, PresContext(), nsnull, underSize, dxUnder, dy, 0);
+    if (underFrame) {
+      dy = aDesiredSize.ascent + mBoundingMetrics.descent - bmUnder.descent 
+        - underSize.ascent;
+      FinishReflowChild (underFrame, PresContext(), nsnull, underSize,
+                         dxUnder, dy, 0);
+    }
   }
   return NS_OK;
 }
