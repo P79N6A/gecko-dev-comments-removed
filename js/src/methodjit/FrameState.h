@@ -228,6 +228,11 @@ class FrameState
     
 
 
+    inline bool haveSameBacking(FrameEntry *lhs, FrameEntry *rhs);
+
+    
+
+
     inline void enterBlock(uint32 n);
     inline void leaveBlock(uint32 n);
 
