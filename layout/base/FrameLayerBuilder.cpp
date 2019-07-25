@@ -102,10 +102,10 @@ public:
                  ContainerLayer* aContainerLayer) :
     mBuilder(aBuilder), mManager(aManager),
     mContainerFrame(aContainerFrame), mContainerLayer(aContainerLayer),
-    mNextFreeRecycledThebesLayer(0),
+    mNextFreeRecycledThebesLayer(0), mNextFreeRecycledColorLayer(0),
     mInvalidateAllThebesContent(PR_FALSE)
   {
-    CollectOldThebesLayers();
+    CollectOldLayers();
   }
 
   void SetInvalidThebesContent(const nsIntRegion& aRegion)
@@ -144,12 +144,15 @@ protected:
 
   class ThebesLayerData {
   public:
-    ThebesLayerData() : mActiveScrolledRoot(nsnull), mLayer(nsnull) {}
+    ThebesLayerData() :
+      mActiveScrolledRoot(nsnull), mLayer(nsnull),
+      mIsSolidColorInVisibleRegion(PR_FALSE) {}
     
 
 
 
-    void Accumulate(const nsIntRect& aVisibleRect, PRBool aIsOpaque);
+    void Accumulate(const nsIntRect& aVisibleRect, PRBool aIsOpaque,
+                    nscolor* aSolidColor);
     nsIFrame* GetActiveScrolledRoot() { return mActiveScrolledRoot; }
 
     
@@ -177,6 +180,15 @@ protected:
 
     nsIFrame*    mActiveScrolledRoot;
     ThebesLayer* mLayer;
+    
+
+
+
+    nscolor      mSolidColor;
+    
+
+
+    PRPackedBool mIsSolidColorInVisibleRegion;
   };
 
   
@@ -190,7 +202,12 @@ protected:
 
 
 
-  void CollectOldThebesLayers();
+  already_AddRefed<ColorLayer> CreateOrRecycleColorLayer();
+  
+
+
+
+  void CollectOldLayers();
   
 
 
@@ -209,9 +226,12 @@ protected:
 
 
 
+
+
   already_AddRefed<ThebesLayer> FindThebesLayerFor(const nsIntRect& aVisibleRect,
                                                    nsIFrame* aActiveScrolledRoot,
-                                                   PRBool aIsOpaque);
+                                                   PRBool aIsOpaque,
+                                                   nscolor* aSolidColor);
   ThebesLayerData* GetTopThebesLayerData()
   {
     return mThebesLayerDataStack.IsEmpty() ? nsnull
@@ -235,7 +255,9 @@ protected:
 
   nsAutoTArray<nsRefPtr<Layer>,1>  mNewChildLayers;
   nsTArray<nsRefPtr<ThebesLayer> > mRecycledThebesLayers;
+  nsTArray<nsRefPtr<ColorLayer> >  mRecycledColorLayers;
   PRUint32                         mNextFreeRecycledThebesLayer;
+  PRUint32                         mNextFreeRecycledColorLayer;
   PRPackedBool                     mInvalidateAllThebesContent;
 };
 
@@ -248,6 +270,11 @@ protected:
 
 
 static PRUint8 gThebesDisplayItemLayerUserData;
+
+
+
+
+static PRUint8 gColorLayerUserData;
 
 } 
 
@@ -495,16 +522,40 @@ InvalidatePostTransformRegion(ThebesLayer* aLayer, const nsIntRegion& aRegion)
   }
 }
 
+already_AddRefed<ColorLayer>
+ContainerState::CreateOrRecycleColorLayer()
+{
+  nsRefPtr<ColorLayer> layer;
+  if (mNextFreeRecycledColorLayer < mRecycledColorLayers.Length()) {
+    
+    layer = mRecycledColorLayers[mNextFreeRecycledColorLayer];
+    ++mNextFreeRecycledColorLayer;
+    
+    
+    layer->SetClipRect(nsnull);
+  } else {
+    
+    layer = mManager->CreateColorLayer();
+    if (!layer)
+      return nsnull;
+    
+    layer->SetUserData(&gColorLayerUserData);
+  }
+  return layer.forget();
+}
+
 already_AddRefed<ThebesLayer>
 ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
 {
   
   nsRefPtr<ThebesLayer> layer;
-  if (mNextFreeRecycledThebesLayer <
-      mRecycledThebesLayers.Length()) {
+  if (mNextFreeRecycledThebesLayer < mRecycledThebesLayers.Length()) {
     
     layer = mRecycledThebesLayers[mNextFreeRecycledThebesLayer];
     ++mNextFreeRecycledThebesLayer;
+    
+    
+    layer->SetClipRect(nsnull);
 
     
     
@@ -542,8 +593,6 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
   matrix.Translate(gfxPoint(pixOffset.x, pixOffset.y));
   layer->SetTransform(gfx3DMatrix::From2D(matrix));
 
-  NS_ASSERTION(!mNewChildLayers.Contains(layer), "Layer already in list???");
-  mNewChildLayers.AppendElement(layer);
   return layer.forget();
 }
 
@@ -603,30 +652,78 @@ ContainerState::PopThebesLayerData()
                                      data->mVisibleRegion);
   }
 
+  Layer* layer;
+  if (data->mIsSolidColorInVisibleRegion) {
+    nsRefPtr<ColorLayer> colorLayer = CreateOrRecycleColorLayer();
+    colorLayer->SetColor(data->mSolidColor);
+
+    NS_ASSERTION(!mNewChildLayers.Contains(colorLayer), "Layer already in list???");
+    nsTArray_base::index_type index = mNewChildLayers.IndexOf(data->mLayer);
+    NS_ASSERTION(index != nsTArray_base::NoIndex, "Thebes layer not found?");
+    mNewChildLayers.InsertElementAt(index + 1, colorLayer);
+
+    
+    colorLayer->SetTransform(data->mLayer->GetTransform());
+    
+    
+    
+    
+    
+    
+    nsIntRect visibleRect = data->mVisibleRegion.GetBounds();
+    colorLayer->SetClipRect(&visibleRect);
+
+    
+    
+    data->mLayer->IntersectClipRect(nsIntRect());
+    data->mLayer->SetVisibleRegion(nsIntRegion());
+
+    layer = colorLayer;
+  } else {
+    layer = data->mLayer;
+  }
+
   gfxMatrix transform;
-  if (data->mLayer->GetTransform().Is2D(&transform)) {
+  if (layer->GetTransform().Is2D(&transform)) {
     NS_ASSERTION(!transform.HasNonIntegerTranslation(),
                  "Matrix not just an integer translation?");
     
     
     nsIntRegion rgn = data->mVisibleRegion;
     rgn.MoveBy(-nsIntPoint(PRInt32(transform.x0), PRInt32(transform.y0)));
-    data->mLayer->SetVisibleRegion(rgn);
+    layer->SetVisibleRegion(rgn);
   } else {
     NS_ERROR("Only 2D transformations currently supported");
   }
 
   nsIntRegion transparentRegion;
   transparentRegion.Sub(data->mVisibleRegion, data->mOpaqueRegion);
-  data->mLayer->SetIsOpaqueContent(transparentRegion.IsEmpty());
+  layer->SetIsOpaqueContent(transparentRegion.IsEmpty());
 
   mThebesLayerDataStack.RemoveElementAt(lastIndex);
 }
 
 void
 ContainerState::ThebesLayerData::Accumulate(const nsIntRect& aRect,
-                                            PRBool aIsOpaque)
+                                            PRBool aIsOpaque,
+                                            nscolor* aSolidColor)
 {
+  if (aSolidColor) {
+    if (mVisibleRegion.IsEmpty()) {
+      
+      mSolidColor = *aSolidColor;
+      mIsSolidColorInVisibleRegion = PR_TRUE;
+    } else if (mIsSolidColorInVisibleRegion &&
+               mVisibleRegion.IsEqual(nsIntRegion(aRect))) {
+      
+      mSolidColor = NS_ComposeColors(mSolidColor, *aSolidColor);
+    } else {
+      mIsSolidColorInVisibleRegion = PR_FALSE;
+    }
+  } else {
+    mIsSolidColorInVisibleRegion = PR_FALSE;
+  }
+
   mVisibleRegion.Or(mVisibleRegion, aRect);
   mVisibleRegion.SimplifyOutward(4);
   if (aIsOpaque) {
@@ -638,7 +735,8 @@ ContainerState::ThebesLayerData::Accumulate(const nsIntRect& aRect,
 already_AddRefed<ThebesLayer>
 ContainerState::FindThebesLayerFor(const nsIntRect& aVisibleRect,
                                    nsIFrame* aActiveScrolledRoot,
-                                   PRBool aIsOpaque)
+                                   PRBool aIsOpaque,
+                                   nscolor* aSolidColor)
 {
   PRInt32 i;
   PRInt32 lowestUsableLayerWithScrolledRoot = -1;
@@ -679,6 +777,10 @@ ContainerState::FindThebesLayerFor(const nsIntRect& aVisibleRect,
   ThebesLayerData* thebesLayerData = nsnull;
   if (lowestUsableLayerWithScrolledRoot < 0) {
     layer = CreateOrRecycleThebesLayer(aActiveScrolledRoot);
+
+    NS_ASSERTION(!mNewChildLayers.Contains(layer), "Layer already in list???");
+    mNewChildLayers.AppendElement(layer);
+
     thebesLayerData = new ThebesLayerData();
     mThebesLayerDataStack.AppendElement(thebesLayerData);
     thebesLayerData->mLayer = layer;
@@ -688,7 +790,7 @@ ContainerState::FindThebesLayerFor(const nsIntRect& aVisibleRect,
     layer = thebesLayerData->mLayer;
   }
 
-  thebesLayerData->Accumulate(aVisibleRect, aIsOpaque);
+  thebesLayerData->Accumulate(aVisibleRect, aIsOpaque, aSolidColor);
   return layer.forget();
 }
 
@@ -756,9 +858,12 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       NS_ASSERTION(offsetToActiveScrolledRoot == f->GetOffsetTo(activeScrolledRoot),
                    "Wrong offset");
 
+      nscolor uniformColor;
+      PRBool isUniform = item->IsUniform(mBuilder, &uniformColor);
       nsRefPtr<ThebesLayer> thebesLayer =
         FindThebesLayerFor(itemVisibleRect, activeScrolledRoot,
-                           item->IsOpaque(mBuilder));
+                           item->IsOpaque(mBuilder),
+                           isUniform ? &uniformColor : nsnull);
       
       NS_ASSERTION(f, "Display items that render using Thebes must have a frame");
       PRUint32 key = item->GetPerFrameKey();
@@ -821,17 +926,17 @@ FrameLayerBuilder::AddLayerDisplayItem(Layer* aLayer,
 }
 
 void
-ContainerState::CollectOldThebesLayers()
+ContainerState::CollectOldLayers()
 {
   for (Layer* layer = mContainerLayer->GetFirstChild(); layer;
        layer = layer->GetNextSibling()) {
-    if (layer->GetUserData() != &gThebesDisplayItemLayerUserData) {
-      
-      continue;
+    void* data = layer->GetUserData();
+    if (data == &gColorLayerUserData) {
+      mRecycledColorLayers.AppendElement(static_cast<ColorLayer*>(layer));
+    } else if (data == &gThebesDisplayItemLayerUserData) {
+      NS_ASSERTION(layer->AsThebesLayer(), "Wrong layer type");
+      mRecycledThebesLayers.AppendElement(static_cast<ThebesLayer*>(layer));
     }
-    ThebesLayer* thebes = layer->AsThebesLayer();
-    NS_ASSERTION(thebes, "Wrong layer type");
-    mRecycledThebesLayers.AppendElement(thebes);
   }
 }
 
