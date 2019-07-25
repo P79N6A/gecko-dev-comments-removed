@@ -646,15 +646,15 @@ GreedyAllocator::allocateInstruction(LBlock *block, LInstruction *ins)
         return false;
 
     
+    if (ins->snapshot() && !informSnapshot(ins->snapshot()))
+        return false;
+
+    
     if (!allocateDefinitions(ins))
         return false;
 
     
     if (!allocateInputs(ins))
-        return false;
-
-    
-    if (ins->snapshot() && !informSnapshot(ins->snapshot()))
         return false;
 
     if (aligns)
