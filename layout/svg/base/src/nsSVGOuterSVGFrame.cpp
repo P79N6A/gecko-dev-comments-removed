@@ -403,11 +403,6 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
 
   
   
-  aDesiredSize.SetOverflowAreasToDesiredBounds();
-  FinishAndStoreOverflow(&aDesiredSize);
-
-  
-  
 
   svgFloatSize newViewportSize(
     nsPresContext::AppUnitsToFloatCSSPixels(aReflowState.ComputedWidth()),
@@ -429,28 +424,8 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
     NotifyViewportOrTransformChanged(changeBits);
   }
 
-  NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
-                  ("exit nsSVGOuterSVGFrame::Reflow: size=%d,%d",
-                  aDesiredSize.width, aDesiredSize.height));
-  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsSVGOuterSVGFrame::DidReflow(nsPresContext*   aPresContext,
-                              const nsHTMLReflowState*  aReflowState,
-                              nsDidReflowStatus aStatus)
-{
-  bool firstReflow = (GetStateBits() & NS_FRAME_FIRST_REFLOW) != 0;
-
-  nsresult rv = nsSVGOuterSVGFrameBase::DidReflow(aPresContext,aReflowState,aStatus);
-
-  if (firstReflow) {
-    
-    
-    
-    AddStateBits(NS_FRAME_FIRST_REFLOW);
-  }
+  
+  
 
 #ifdef DEBUG
   mCallingUpdateBounds = true;
@@ -471,10 +446,24 @@ nsSVGOuterSVGFrame::DidReflow(nsPresContext*   aPresContext,
   mCallingUpdateBounds = false;
 #endif
 
-  if (firstReflow) {
-    
-    RemoveStateBits(NS_FRAME_FIRST_REFLOW);
-  }
+  
+  
+  aDesiredSize.SetOverflowAreasToDesiredBounds();
+  FinishAndStoreOverflow(&aDesiredSize);
+
+  NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
+                  ("exit nsSVGOuterSVGFrame::Reflow: size=%d,%d",
+                  aDesiredSize.width, aDesiredSize.height));
+  NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSVGOuterSVGFrame::DidReflow(nsPresContext*   aPresContext,
+                              const nsHTMLReflowState*  aReflowState,
+                              nsDidReflowStatus aStatus)
+{
+  nsresult rv = nsSVGOuterSVGFrameBase::DidReflow(aPresContext,aReflowState,aStatus);
 
   
   
