@@ -96,6 +96,10 @@
 #define kWindowPositionSlop               20
 
 
+#define MOZ_SYSCONTEXT_X_POS              20
+#define MOZ_SYSCONTEXT_Y_POS              20
+
+
 #define CS_XP_DROPSHADOW                  0x00020000
 
 

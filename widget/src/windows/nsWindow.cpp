@@ -4244,6 +4244,43 @@ static int ReportException(EXCEPTION_POINTERS *aExceptionInfo)
 }
 #endif
 
+static PRBool
+DisplaySystemMenu(HWND hWnd, nsSizeMode sizeMode, PRBool isRtl, PRInt32 x, PRInt32 y)
+{
+  GetSystemMenu(hWnd, TRUE); 
+  HMENU hMenu = GetSystemMenu(hWnd, FALSE);
+  if (hMenu) {
+    
+    switch(sizeMode) {
+      case nsSizeMode_Fullscreen:
+        EnableMenuItem(hMenu, SC_RESTORE, MF_BYCOMMAND | MF_GRAYED);
+        
+      case nsSizeMode_Maximized:
+        EnableMenuItem(hMenu, SC_SIZE, MF_BYCOMMAND | MF_GRAYED);
+        EnableMenuItem(hMenu, SC_MOVE, MF_BYCOMMAND | MF_GRAYED);
+        EnableMenuItem(hMenu, SC_MAXIMIZE, MF_BYCOMMAND | MF_GRAYED);
+        break;
+      case nsSizeMode_Minimized:
+        EnableMenuItem(hMenu, SC_MINIMIZE, MF_BYCOMMAND | MF_GRAYED);
+        break;
+      case nsSizeMode_Normal:
+        EnableMenuItem(hMenu, SC_RESTORE, MF_BYCOMMAND | MF_GRAYED);
+        break;
+    }
+    LPARAM cmd =
+      TrackPopupMenu(hMenu,
+                     (TPM_LEFTBUTTON|TPM_RIGHTBUTTON|
+                      TPM_RETURNCMD|TPM_TOPALIGN|
+                      (isRtl ? TPM_RIGHTALIGN : TPM_LEFTALIGN)),
+                     x, y, 0, hWnd, NULL);
+    if (cmd) {
+      PostMessage(hWnd, WM_SYSCOMMAND, cmd, 0);
+      return PR_TRUE;
+    }
+  }
+  return PR_FALSE;
+}
+
 
 
 
@@ -4860,36 +4897,8 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
                              PR_FALSE, nsMouseEvent::eLeftButton,
                              MOUSE_INPUT_SOURCE())) {
         
-        GetSystemMenu(mWnd, TRUE); 
-        HMENU hMenu = GetSystemMenu(mWnd, FALSE);
-        if (hMenu) {
-          
-          switch(mSizeMode) {
-            case nsSizeMode_Fullscreen:
-            case nsSizeMode_Maximized:
-              EnableMenuItem(hMenu, SC_SIZE, MF_BYCOMMAND | MF_GRAYED);
-              EnableMenuItem(hMenu, SC_MOVE, MF_BYCOMMAND | MF_GRAYED);
-              EnableMenuItem(hMenu, SC_MAXIMIZE, MF_BYCOMMAND | MF_GRAYED);
-              break;
-            case nsSizeMode_Minimized:
-              EnableMenuItem(hMenu, SC_MINIMIZE, MF_BYCOMMAND | MF_GRAYED);
-              break;
-            case nsSizeMode_Normal:
-              EnableMenuItem(hMenu, SC_RESTORE, MF_BYCOMMAND | MF_GRAYED);
-              break;
-          }
-          LPARAM cmd =
-            TrackPopupMenu(hMenu,
-                           (TPM_LEFTBUTTON|TPM_RIGHTBUTTON|
-                            TPM_RETURNCMD|TPM_TOPALIGN|
-                            (mIsRTL ? TPM_RIGHTALIGN : TPM_LEFTALIGN)),
-                           GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam),
-                           0, mWnd, NULL);
-          if (cmd) {
-            PostMessage(mWnd, WM_SYSCOMMAND, cmd, 0);
-          }
-          result = PR_TRUE;
-        }
+        DisplaySystemMenu(mWnd, mSizeMode, mIsRTL, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        result = PR_TRUE;
       }
     }
     break;
@@ -5218,6 +5227,16 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       
       if (!sTrimOnMinimize && wParam == SC_MINIMIZE) {
         ::ShowWindow(mWnd, SW_SHOWMINIMIZED);
+        result = PR_TRUE;
+      }
+
+      
+      
+      if (wParam == SC_KEYMENU && lParam == VK_SPACE &&
+          mSizeMode == nsSizeMode_Fullscreen) {
+        DisplaySystemMenu(mWnd, mSizeMode, mIsRTL,
+                          MOZ_SYSCONTEXT_X_POS,
+                          MOZ_SYSCONTEXT_Y_POS);
         result = PR_TRUE;
       }
       break;
