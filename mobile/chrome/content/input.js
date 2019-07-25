@@ -837,6 +837,8 @@ function KineticController(aPanBy, aEndCallback) {
   
   this._decelerationRate = Services.prefs.getIntPref("browser.ui.kinetic.decelerationRate") / 10000;
   
+  this._speedSensitivity = Services.prefs.getIntPref("browser.ui.kinetic.speedSensitivity") / 100;
+  
   this._swipeLength = Services.prefs.getIntPref("browser.ui.kinetic.swipeLength");
 
   this._reset();
@@ -981,9 +983,8 @@ KineticController.prototype = {
     if (currentVelocityY * this._velocity.y <= 0)
       currentVelocityY = 0;
 
-    let swipeTime = Math.min(swipeLength, lastTime - mb[0].t);
-    this._velocity.x = clampFromZero((distanceX / swipeTime) + currentVelocityX, Math.abs(currentVelocityX), 6);
-    this._velocity.y = clampFromZero((distanceY / swipeTime) + currentVelocityY, Math.abs(currentVelocityY), 6);
+    this._velocity.x = clampFromZero((distanceX / swipeLength) + currentVelocityX, Math.abs(currentVelocityX), kMaxVelocity);
+    this._velocity.y = clampFromZero((distanceY / swipeLength) + currentVelocityY, Math.abs(currentVelocityY), kMaxVelocity);
 
     
     this._acceleration.set(this._velocity.clone().map(sign).scale(-this._decelerationRate));
