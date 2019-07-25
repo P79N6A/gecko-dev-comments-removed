@@ -424,6 +424,8 @@ def main(args):
     if (dm.processExist(procName)):
         dm.killProcess(procName)
 
+    print dm.getInfo()
+
 
 
     logcat = []
@@ -441,6 +443,7 @@ def main(args):
 
     reftest.stopWebServer(options)
     print ''.join(logcat[-500:-1])
+    print dm.getInfo()
     return 0
 
 if __name__ == "__main__":
