@@ -101,8 +101,8 @@ PR_STATIC_ASSERT((PRUint32)eButtonElementTypesMax < (PRUint32)NS_FORM_INPUT_ELEM
 PR_STATIC_ASSERT((PRUint32)eInputElementTypesMax  < 1<<8);
 
 #define NS_IFORMCONTROL_IID   \
-{ 0x218eb090, 0x32eb, 0x4e2a, \
- { 0x96, 0x42, 0xcd, 0xcd, 0x33, 0xae, 0xdb, 0x95 } }
+{ 0x58865437, 0xd468, 0x4189, \
+ { 0x9a, 0x3f, 0xde, 0x6e, 0x1c, 0xff, 0x79, 0x09 } }
 
 
 
@@ -185,34 +185,109 @@ public:
 
 
 
-  virtual PRBool IsSubmitControl() const = 0;
+  inline PRBool IsSubmitControl() const;
 
   
 
 
 
 
-  virtual PRBool IsTextControl(PRBool aExcludePassword) const = 0;
+  inline PRBool IsTextControl(PRBool aExcludePassword) const ;
 
   
 
 
 
 
-  virtual PRBool IsSingleLineTextControl(PRBool aExcludePassword) const = 0;
+  inline PRBool IsSingleLineTextControl(PRBool aExcludePassword) const;
 
   
 
 
 
-  virtual PRBool IsLabelableControl() const = 0;
+  inline PRBool IsLabelableControl() const;
 
   
 
 
 
-  virtual PRBool IsSubmittableControl() const = 0;
+  inline PRBool IsSubmittableControl() const;
+
+protected:
+
+  
+
+
+
+
+
+  inline static bool IsSingleLineTextControl(bool aExcludePassword, PRUint32 aType);
 };
+
+PRBool
+nsIFormControl::IsSubmitControl() const
+{
+  PRUint32 type = GetType();
+  return type == NS_FORM_INPUT_SUBMIT ||
+         type == NS_FORM_INPUT_IMAGE ||
+         type == NS_FORM_BUTTON_SUBMIT;
+}
+
+PRBool
+nsIFormControl::IsTextControl(PRBool aExcludePassword) const
+{
+  PRUint32 type = GetType();
+  return type == NS_FORM_TEXTAREA ||
+         IsSingleLineTextControl(aExcludePassword, type);
+}
+
+PRBool
+nsIFormControl::IsSingleLineTextControl(PRBool aExcludePassword) const
+{
+  return IsSingleLineTextControl(aExcludePassword, GetType());
+}
+
+
+bool
+nsIFormControl::IsSingleLineTextControl(bool aExcludePassword, PRUint32 aType)
+{
+  return aType == NS_FORM_INPUT_TEXT ||
+         aType == NS_FORM_INPUT_EMAIL ||
+         aType == NS_FORM_INPUT_SEARCH ||
+         aType == NS_FORM_INPUT_TEL ||
+         aType == NS_FORM_INPUT_URL ||
+         (!aExcludePassword && aType == NS_FORM_INPUT_PASSWORD);
+}
+
+PRBool
+nsIFormControl::IsLabelableControl() const
+{
+  
+  
+  
+  PRUint32 type = GetType();
+  return type & NS_FORM_INPUT_ELEMENT ||
+         type & NS_FORM_BUTTON_ELEMENT ||
+         
+         
+         type == NS_FORM_OUTPUT ||
+         
+         type == NS_FORM_SELECT ||
+         type == NS_FORM_TEXTAREA;
+}
+
+PRBool
+nsIFormControl::IsSubmittableControl() const
+{
+  
+  PRUint32 type = GetType();
+  return type == NS_FORM_OBJECT ||
+         type == NS_FORM_TEXTAREA ||
+         type == NS_FORM_SELECT ||
+         
+         type & NS_FORM_BUTTON_ELEMENT ||
+         type & NS_FORM_INPUT_ELEMENT;
+}
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIFormControl, NS_IFORMCONTROL_IID)
 

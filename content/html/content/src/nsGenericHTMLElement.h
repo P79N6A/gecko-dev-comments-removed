@@ -860,16 +860,6 @@ public:
   {
     return PR_TRUE;
   }
-  
-  virtual PRBool IsSubmitControl() const;
-
-          PRBool IsTextControl(PRBool aExcludePassword) const;
-
-          PRBool IsSingleLineTextControl(PRBool aExcludePassword) const;
-
-          PRBool IsLabelableControl() const;
-
-          PRBool IsSubmittableControl() const;
 
   
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -943,8 +933,6 @@ protected:
   }
 
   void UpdateEditableFormControlState();
-
-  PRBool IsSingleLineTextControlInternal(PRBool aExcludePassword, PRInt32 mType) const;
 
   
 

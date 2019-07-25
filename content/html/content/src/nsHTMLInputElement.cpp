@@ -2604,10 +2604,9 @@ nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
   }
 
   
-  PRBool isNewTypeSingleLine =
-    IsSingleLineTextControlInternal(PR_FALSE, aNewType);
-  PRBool isCurrentTypeSingleLine =
-    IsSingleLineTextControl(PR_FALSE);
+  bool isNewTypeSingleLine = IsSingleLineTextControl(PR_FALSE, aNewType);
+  bool isCurrentTypeSingleLine = IsSingleLineTextControl(PR_FALSE, mType);
+
   if (isNewTypeSingleLine && !isCurrentTypeSingleLine) {
     FreeData();
     mInputData.mState = new nsTextEditorState(this);

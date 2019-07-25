@@ -531,7 +531,7 @@ protected:
   
 
 
-  bool MaxLengthApplies() const { return IsSingleLineTextControlInternal(PR_FALSE, mType); }
+  bool MaxLengthApplies() const { return IsSingleLineTextControl(false, mType); }
 
   void FreeData();
   nsTextEditorState *GetEditorState() const;
@@ -550,7 +550,7 @@ protected:
   
 
 
-  bool PlaceholderApplies() const { return IsSingleLineTextControlInternal(PR_FALSE, mType); }
+  bool PlaceholderApplies() const { return IsSingleLineTextControl(false, mType); }
 
   
 
