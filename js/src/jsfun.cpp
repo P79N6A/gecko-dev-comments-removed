@@ -241,7 +241,7 @@ js_GetArgsObject(JSContext *cx, StackFrame *fp)
 
     JS_ASSERT_IF(fp->fun()->isHeavyweight(), fp->hasCallObj());
 
-    while (fp->isEvalOrDebuggerFrame())
+    while (fp->isDirectEvalOrDebuggerFrame())
         fp = fp->prev();
 
     
@@ -1586,7 +1586,7 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
     
     StackFrame *fp;
     for (fp = js_GetTopStackFrame(cx);
-         fp && (fp->maybeFun() != fun || fp->isEvalOrDebuggerFrame());
+         fp && (fp->maybeFun() != fun || fp->isDirectEvalOrDebuggerFrame());
          fp = fp->prev()) {
         continue;
     }
