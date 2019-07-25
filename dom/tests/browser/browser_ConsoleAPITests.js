@@ -224,6 +224,11 @@ function observeConsoleTest() {
   expect("log", "null, undefined");
   win.console.log("%s, %s", null, undefined);
 
+  
+  let obj = { a: 1 };
+  expect("log", obj, "a");
+  win.console.log(obj, "a");
+
   expect("dir", win.toString());
   win.console.dir(win);
 
