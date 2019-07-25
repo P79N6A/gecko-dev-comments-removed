@@ -6247,7 +6247,16 @@ END_CASE(JSOP_ARRAYPUSH)
 # endif
 #endif
 
-    JS_ASSERT_IF(!regs.fp()->isGeneratorFrame(), !js_IsActiveWithOrBlock(cx, &regs.fp()->scopeChain(), 0));
+    JS_ASSERT_IF(!regs.fp()->isGeneratorFrame(),
+                 !js_IsActiveWithOrBlock(cx, &regs.fp()->scopeChain(), 0));
+
+#ifdef JS_METHODJIT
+    
+
+
+
+  leave_on_safe_point:
+#endif
 
     return interpReturnOK;
 
@@ -6258,15 +6267,6 @@ END_CASE(JSOP_ARRAYPUSH)
             js_ReportIsNotDefined(cx, printable.ptr());
     }
     goto error;
-
-    
-
-
-
-#if defined(JS_METHODJIT)
-  leave_on_safe_point:
-#endif
-    return interpReturnOK;
 }
 
 } 
