@@ -134,15 +134,12 @@ static PRUint32 gMouseOrKeyboardEventCounter = 0;
 static nsITimer* gUserInteractionTimer = nullptr;
 static nsITimerCallback* gUserInteractionTimerCallback = nullptr;
 
-
-static nscoord gPixelScrollDeltaX = 0;
-static nscoord gPixelScrollDeltaY = 0;
-static PRUint32 gPixelScrollDeltaTimeout = 0;
-
 TimeStamp nsEventStateManager::sHandlingInputStart;
 
 nsEventStateManager::WheelPrefs*
   nsEventStateManager::WheelPrefs::sInstance = nullptr;
+nsEventStateManager::PixelDeltaAccumulator*
+  nsEventStateManager::PixelDeltaAccumulator::sInstance = nullptr;
 
 static inline bool
 IsMouseEventReal(nsEvent* aEvent)
@@ -844,6 +841,7 @@ nsEventStateManager::~nsEventStateManager()
 nsresult
 nsEventStateManager::Shutdown()
 {
+  PixelDeltaAccumulator::Shutdown();
   Preferences::RemoveObservers(this, kObservedPrefs);
   m_haveShutdown = true;
   return NS_OK;
@@ -1137,6 +1135,8 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       if (content)
         mCurrentTargetContent = content;
 
+      PixelDeltaAccumulator::GetInstance()->Reset();
+
       nsMouseScrollEvent* msEvent = static_cast<nsMouseScrollEvent*>(aEvent);
       WheelPrefs::GetInstance()->ApplyUserPrefsToDelta(msEvent);
 
@@ -1156,52 +1156,11 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       nsMouseScrollEvent *msEvent = static_cast<nsMouseScrollEvent*>(aEvent);
       WheelPrefs::GetInstance()->ApplyUserPrefsToDelta(msEvent);
 
-      
-      if (OutOfTime(gPixelScrollDeltaTimeout, nsMouseWheelTransaction::GetTimeoutTime())) {
-        gPixelScrollDeltaX = gPixelScrollDeltaY = 0;
-      }
-      gPixelScrollDeltaTimeout = PR_IntervalToMilliseconds(PR_IntervalNow());
-
-      
-      if (msEvent->scrollFlags & nsMouseScrollEvent::kNoLines) {
-        nsIScrollableFrame* scrollableFrame =
-          ComputeScrollTarget(aTargetFrame, msEvent, false);
-        PRInt32 pixelsPerUnit =
-          nsPresContext::AppUnitsToIntCSSPixels(
-            GetScrollAmount(aPresContext, msEvent, aTargetFrame,
-                            scrollableFrame));
-        if (msEvent->scrollFlags & nsMouseScrollEvent::kIsVertical) {
-          gPixelScrollDeltaX += msEvent->delta;
-          if (!gPixelScrollDeltaX || !pixelsPerUnit)
-            break;
-
-          if (NS_ABS(gPixelScrollDeltaX) >= pixelsPerUnit) {
-            PRInt32 numLines = (PRInt32)ceil((float)gPixelScrollDeltaX/(float)pixelsPerUnit);
-
-            gPixelScrollDeltaX -= numLines*pixelsPerUnit;
-
-            nsWeakFrame weakFrame(aTargetFrame);
-            SendLineScrollEvent(aTargetFrame, msEvent, aPresContext,
-              aStatus, numLines);
-            NS_ENSURE_STATE(weakFrame.IsAlive());
-          }
-        } else if (msEvent->scrollFlags & nsMouseScrollEvent::kIsHorizontal) {
-          gPixelScrollDeltaY += msEvent->delta;
-          if (!gPixelScrollDeltaY || !pixelsPerUnit)
-            break;
-
-          if (NS_ABS(gPixelScrollDeltaY) >= pixelsPerUnit) {
-            PRInt32 numLines = (PRInt32)ceil((float)gPixelScrollDeltaY/(float)pixelsPerUnit);
-
-            gPixelScrollDeltaY -= numLines*pixelsPerUnit;
-
-            nsWeakFrame weakFrame(aTargetFrame);
-            SendLineScrollEvent(aTargetFrame, msEvent, aPresContext,
-              aStatus, numLines);
-            NS_ENSURE_STATE(weakFrame.IsAlive());
-          }
-        }
-      }
+      nsWeakFrame weakFrame(aTargetFrame);
+      PixelDeltaAccumulator::GetInstance()->
+        OnMousePixelScrollEvent(aPresContext, aTargetFrame,
+                                this, msEvent, aStatus);
+      NS_ENSURE_STATE(weakFrame.IsAlive());
 
       
       if ((msEvent->scrollFlags & nsMouseScrollEvent::kIsHorizontal) ?
@@ -5160,6 +5119,91 @@ nsEventStateManager::ClearGlobalActiveContent(nsEventStateManager* aClearer)
     sActiveESM->SetContentState(nullptr, NS_EVENT_STATE_ACTIVE);
   }
   sActiveESM = nullptr;
+}
+
+
+
+
+
+void
+nsEventStateManager::PixelDeltaAccumulator::OnMousePixelScrollEvent(
+                                                nsPresContext* aPresContext,
+                                                nsIFrame* aTargetFrame,
+                                                nsEventStateManager* aESM,
+                                                nsMouseScrollEvent* aEvent,
+                                                nsEventStatus* aStatus)
+{
+  MOZ_ASSERT(aPresContext);
+  MOZ_ASSERT(aESM);
+  MOZ_ASSERT(aEvent);
+  MOZ_ASSERT(aEvent->message == NS_MOUSE_PIXEL_SCROLL);
+  MOZ_ASSERT(NS_IS_TRUSTED_EVENT(aEvent));
+  MOZ_ASSERT(aStatus);
+
+  if (!(aEvent->scrollFlags & nsMouseScrollEvent::kNoLines)) {
+    Reset();
+    return;
+  }
+
+  nsIScrollableFrame* scrollTarget =
+    aESM->ComputeScrollTarget(aTargetFrame, aEvent, false);
+  PRInt32 pixelsPerLine = nsPresContext::AppUnitsToIntCSSPixels(
+                            aESM->GetScrollAmount(aPresContext, aEvent,
+                                                  aTargetFrame, scrollTarget));
+
+  if (!mLastTime.IsNull()) {
+    TimeDuration duration = TimeStamp::Now() - mLastTime;
+    if (duration.ToMilliseconds() > nsMouseWheelTransaction::GetTimeoutTime()) {
+      Reset();
+    }
+  }
+
+  mLastTime = TimeStamp::Now();
+
+  bool isHorizontal =
+    (aEvent->scrollFlags & nsMouseScrollEvent::kIsHorizontal) != 0;
+
+  
+  if (mX && isHorizontal && aEvent->delta &&
+      ((aEvent->delta > 0) != (mX > 0))) {
+    mX = 0;
+  }
+  if (mY && !isHorizontal && aEvent->delta &&
+      ((aEvent->delta > 0) != (mY > 0))) {
+    mY = 0;
+  }
+
+  PRInt32 numLines;
+  if (isHorizontal) {
+    
+    mX += aEvent->delta;
+    
+    numLines =
+      static_cast<PRInt32>(NS_round(static_cast<double>(mX) / pixelsPerLine));
+    
+    mX -= numLines * pixelsPerLine;
+  } else {
+    
+    mY += aEvent->delta;
+    
+    numLines =
+      static_cast<PRInt32>(NS_round(static_cast<double>(mY) / pixelsPerLine));
+    
+    mY -= numLines * pixelsPerLine;
+  }
+
+  if (!numLines) {
+    return;
+  }
+
+  aESM->SendLineScrollEvent(aTargetFrame, aEvent, aPresContext,
+                            aStatus, numLines);
+}
+
+void
+nsEventStateManager::PixelDeltaAccumulator::Reset()
+{
+  mX = mY = 0;
 }
 
 

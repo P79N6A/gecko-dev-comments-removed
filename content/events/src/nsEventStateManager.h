@@ -466,6 +466,55 @@ protected:
 
   
 
+
+
+  class PixelDeltaAccumulator
+  {
+  public:
+    static PixelDeltaAccumulator* GetInstance()
+    {
+      if (!sInstance) {
+        sInstance = new PixelDeltaAccumulator;
+      }
+      return sInstance;
+    }
+
+    static void Shutdown()
+    {
+      delete sInstance;
+      sInstance = nullptr;
+    }
+
+    
+
+
+
+
+    void OnMousePixelScrollEvent(nsPresContext* aPresContext,
+                                 nsIFrame* aTargetFrame,
+                                 nsEventStateManager* aESM,
+                                 nsMouseScrollEvent* aEvent,
+                                 nsEventStatus* aStatus);
+    
+
+
+    void Reset();
+
+  private:
+    PixelDeltaAccumulator() :
+      mX(0), mY(0)
+    {
+    }
+
+    PRInt32 mX;
+    PRInt32 mY;
+    TimeStamp mLastTime;
+
+    static PixelDeltaAccumulator* sInstance;
+  };
+
+  
+
   
 
 
