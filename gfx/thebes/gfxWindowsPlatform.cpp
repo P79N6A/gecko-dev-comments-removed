@@ -518,6 +518,11 @@ gfxWindowsPlatform::GetThebesSurfaceForDrawTarget(DrawTarget *aTarget)
       nsRefPtr<gfxASurface> surf = static_cast<gfxASurface*>(surface);
       return surf.forget();
     } else {
+      if (!GetD2DDevice()) {
+        
+        return NULL;
+      }
+
       RefPtr<ID3D10Texture2D> texture =
         static_cast<ID3D10Texture2D*>(aTarget->GetNativeSurface(NATIVE_SURFACE_D3D10_TEXTURE));
 
