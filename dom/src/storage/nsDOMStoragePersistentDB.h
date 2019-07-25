@@ -219,6 +219,11 @@ protected:
   friend class nsDOMStorageMemoryDB;
   nsresult
   GetUsageInternal(const nsACString& aQuotaDomainDBKey, bool aExcludeOfflineFromUsage, PRInt32 *aUsage);
+
+  
+  
+  bool DomainMaybeCached(const nsACString& aDomain);
+
 };
 
 #endif 
