@@ -144,14 +144,23 @@ struct ArgumentsData
 
 
 
+
+
+
+
+
+
+
+
+
 class ArgumentsObject : public ::JSObject
 {
     static const uint32 INITIAL_LENGTH_SLOT = 0;
     static const uint32 DATA_SLOT = 1;
+    static const uint32 STACK_FRAME_SLOT = 2;
 
   public:
-    static const uint32 RESERVED_SLOTS = 2;
-    static const uint32 NFIXED_SLOTS = 3;
+    static const uint32 RESERVED_SLOTS = 3;
 
   private:
     
@@ -190,7 +199,8 @@ class ArgumentsObject : public ::JSObject
 
   public:
     
-    static ArgumentsObject *create(JSContext *cx, uint32 argc, JSObject &callee);
+    static ArgumentsObject *create(JSContext *cx, uint32 argc, JSObject &callee,
+                                   StackFrame *fp);
 
     
 
@@ -238,19 +248,12 @@ class ArgumentsObject : public ::JSObject
     inline void clearOnTrace();
 };
 
-
-
-
-
-
-
-
 class NormalArgumentsObject : public ArgumentsObject
 {
     friend bool JSObject::isNormalArguments() const;
     friend struct EmptyShape; 
     friend ArgumentsObject *
-    ArgumentsObject::create(JSContext *cx, uint32 argc, JSObject &callee);
+    ArgumentsObject::create(JSContext *cx, uint32 argc, JSObject &callee, StackFrame *fp);
 
   public:
     
@@ -263,17 +266,11 @@ class NormalArgumentsObject : public ArgumentsObject
     inline void clearCallee();
 };
 
-
-
-
-
-
-
 class StrictArgumentsObject : public ArgumentsObject
 {
     friend bool JSObject::isStrictArguments() const;
     friend ArgumentsObject *
-    ArgumentsObject::create(JSContext *cx, uint32 argc, JSObject &callee);
+    ArgumentsObject::create(JSContext *cx, uint32 argc, JSObject &callee, StackFrame *fp);
 };
 
 } 
