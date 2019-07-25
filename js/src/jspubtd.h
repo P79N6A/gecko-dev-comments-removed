@@ -427,6 +427,16 @@ typedef JSBool
 
 
 
+
+
+typedef JSObject *
+(* JSThisObjectOp)(JSContext *cx, JSObject *obj, JSObject *scope);
+
+
+
+
+
+
 typedef JSObject *
 (* JSObjectOp)(JSContext *cx, JSObject *obj);
 

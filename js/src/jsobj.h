@@ -161,7 +161,7 @@ struct JSObjectOps {
     JSTraceOp           trace;
 
     
-    JSObjectOp          thisObject;
+    JSThisObjectOp      thisObject;
     JSPropertyRefOp     dropProperty;
     JSNative            call;
     JSNative            construct;
@@ -634,8 +634,8 @@ struct JSObject {
     }
 
     
-    JSObject *thisObject(JSContext *cx) {
-        return map->ops->thisObject ? map->ops->thisObject(cx, this) : this;
+    JSObject *thisObject(JSContext *cx, JSObject *scope) {
+        return map->ops->thisObject ? map->ops->thisObject(cx, this, scope) : this;
     }
 
     void dropProperty(JSContext *cx, JSProperty *prop) {

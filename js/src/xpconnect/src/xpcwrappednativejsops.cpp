@@ -1477,7 +1477,7 @@ private:
 } 
 
 static JSObject*
-XPC_WN_JSOp_ThisObject(JSContext *cx, JSObject *obj)
+XPC_WN_JSOp_ThisObject(JSContext *cx, JSObject *obj, JSObject *scope)
 {
     
     
@@ -1487,15 +1487,6 @@ XPC_WN_JSOp_ThisObject(JSContext *cx, JSObject *obj)
     OBJ_TO_OUTER_OBJECT(cx, obj);
     if(!obj)
         return nsnull;
-
-    JSObject *scope = JS_GetScopeChain(cx);
-    if(!scope)
-    {
-        XPCThrower::Throw(NS_ERROR_FAILURE, cx);
-        return nsnull;
-    }
-
-    scope = JS_GetGlobalForObject(cx, scope);
 
     XPCPerThreadData *threadData = XPCPerThreadData::GetData(cx);
     if(!threadData)
