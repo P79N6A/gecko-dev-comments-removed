@@ -341,6 +341,7 @@ function MediaTestManager() {
     this.startTest = startTest;
     this.tokens = [];
     this.isShutdown = false;
+    this.numTestsRunning = 0;
     
     SimpleTest.waitForExplicitFinish();
     this.nextTest();
@@ -350,6 +351,8 @@ function MediaTestManager() {
   
   this.started = function(token) {
     this.tokens.push(token);
+    this.numTestsRunning++;
+    is(this.numTestsRunning, this.tokens.length, "[started] Length of array should match number of running tests");
   }
   
   
@@ -362,11 +365,13 @@ function MediaTestManager() {
       
       this.tokens.splice(i, 1);
     }
+    this.numTestsRunning--;
+    is(this.numTestsRunning, this.tokens.length, "[finished] Length of array should match number of running tests");
     if (this.tokens.length < PARALLEL_TESTS) {
       this.nextTest();
     }
   }
-  
+
   
   
   this.nextTest = function() {
