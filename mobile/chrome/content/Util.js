@@ -208,7 +208,7 @@ let Util = {
   
   
   forceOnline: function forceOnline() {
-#ifdef MOZ_ENABLE_LIBCONIC
+#ifdef MOZ_PLATFORM_MAEMO
     Services.io.offline = false;
 #endif
   },
