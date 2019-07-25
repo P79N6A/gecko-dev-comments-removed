@@ -6218,6 +6218,7 @@ malloc_shutdown()
 
 
 
+#ifndef MOZ_MEMORY_GONK
 #if defined(MOZ_MEMORY_DARWIN) || defined(MOZ_MEMORY_WINDOWS) || \
     defined(MOZ_MEMORY_ANDROID)
 
@@ -6240,6 +6241,7 @@ malloc_shutdown()
 #define realloc(a, b)           wrap(realloc)(a, b)
 #define free(a)                 wrap(free)(a)
 #define malloc_usable_size(a)   wrap(malloc_usable_size)(a)
+#endif
 #endif
 
 
