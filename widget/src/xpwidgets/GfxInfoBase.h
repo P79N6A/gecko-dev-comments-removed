@@ -88,24 +88,30 @@ public:
   virtual nsresult Init();
   
   
-  
-  virtual const GfxDriverInfo* GetGfxDriverInfo() = 0;
-
-  
   NS_IMETHOD_(void) GetData() { }
 
   static void AddCollector(GfxInfoCollectorBase* collector);
   static void RemoveCollector(GfxInfoCollectorBase* collector);
 
+  static nsTArray<GfxDriverInfo>* mDriverInfo;
+  static bool mDriverInfoObserverInitialized;
 
 protected:
 
   virtual nsresult GetFeatureStatusImpl(PRInt32 aFeature, PRInt32* aStatus,
                                         nsAString& aSuggestedDriverVersion,
-                                        GfxDriverInfo* aDriverInfo = nsnull,
+                                        const nsTArray<GfxDriverInfo>& aDriverInfo,
                                         OperatingSystem* aOS = nsnull);
 
+  
+  
+  virtual const nsTArray<GfxDriverInfo>& GetGfxDriverInfo() = 0;
+
 private:
+  virtual PRInt32 FindBlocklistedDeviceInList(const nsTArray<GfxDriverInfo>& aDriverInfo,
+                                              nsAString& aSuggestedVersion,
+                                              PRInt32 aFeature,
+                                              OperatingSystem os);
 
   void EvaluateDownloadedBlacklist(nsTArray<GfxDriverInfo>& aDriverInfo);
 
