@@ -168,11 +168,11 @@ function test() {
     var same = {};
     b = {one: same, two: same};
     a = check(b);
-    assertEq(a.one === a.two, false);
+    assertEq(a.one === a.two, true);
 
     b = [same, same];
     a = check(b);
-    assertEq(a[0] === a[1], false);
+    assertEq(a[0] === a[1], true);
 
     
     b = {};

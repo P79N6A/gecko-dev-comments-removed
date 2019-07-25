@@ -113,7 +113,8 @@ struct JSStructuredCloneReader {
   public:
     explicit JSStructuredCloneReader(js::SCInput &in, const JSStructuredCloneCallbacks *cb,
                                      void *cbClosure)
-        : in(in), objs(in.context()), callbacks(cb), closure(cbClosure) { }
+        : in(in), objs(in.context()), allObjs(in.context()),
+          callbacks(cb), closure(cbClosure) { }
 
     js::SCInput &input() { return in; }
     bool read(js::Value *vp);
@@ -132,6 +133,9 @@ struct JSStructuredCloneReader {
 
     
     js::AutoValueVector objs;
+
+    
+    js::AutoValueVector allObjs;
 
     
     const JSStructuredCloneCallbacks *callbacks;
@@ -179,8 +183,9 @@ struct JSStructuredCloneWriter {
 
     
     
-    typedef js::HashSet<JSObject *> MemorySet;
-    MemorySet memory;
+    
+    typedef js::HashMap<JSObject *, uint32> CloneMemory;
+    CloneMemory memory;
 
     
     const JSStructuredCloneCallbacks *callbacks;
