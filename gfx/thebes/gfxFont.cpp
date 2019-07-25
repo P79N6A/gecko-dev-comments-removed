@@ -2653,11 +2653,11 @@ gfxFontGroup::WhichPrefFontSupportsChar(PRUint32 aCh)
         }
 
         
-        PRUint32  i, numPrefs;
+        PRUint32  j, numPrefs;
         numPrefs = families.Length();
-        for (i = 0; i < numPrefs; i++) {
+        for (j = 0; j < numPrefs; j++) {
             
-            gfxFontFamily *family = families[i];
+            gfxFontFamily *family = families[j];
             if (!family) continue;
 
             
@@ -2679,7 +2679,7 @@ gfxFontGroup::WhichPrefFontSupportsChar(PRUint32 aCh)
                 mLastPrefFamily = family;
                 mLastPrefFont = prefFont;
                 mLastPrefLang = charLang;
-                mLastPrefFirstFont = (i == 0);
+                mLastPrefFirstFont = (i == 0 && j == 0);
                 return prefFont.forget();
             }
 
