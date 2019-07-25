@@ -1200,6 +1200,45 @@ MarionetteDriverActor.prototype = {
 
 
 
+  closeWindow: function MDA_closeWindow() {
+    if (appName == "B2G") {
+      
+      this.sendOk();
+    }
+    else {
+      
+      let numOpenWindows = 0;
+      let winEnum = this.getWinEnumerator();
+      while (winEnum.hasMoreElements()) {
+        numOpenWindows += 1;
+        winEnum.getNext(); 
+      }
+
+      
+      if (numOpenWindows === 1){
+        this.deleteSession();
+        return;
+      }
+
+      try{
+        this.messageManager.removeDelayedFrameScript("chrome://marionette/content/marionette-listener.js"); 
+        this.getCurrentWindow().close();
+        this.sendOk();
+      }
+      catch (e) {
+        this.sendError("Could not close window: " + e.message, 13, e.stack);
+      }
+    }
+  }, 
+
+  
+
+
+
+
+
+
+
 
   deleteSession: function MDA_deleteSession() {
     if (this.curBrowser != null) {
@@ -1393,7 +1432,8 @@ MarionetteDriverActor.prototype.requestTypes = {
   "switchToWindow": MarionetteDriverActor.prototype.switchToWindow,
   "deleteSession": MarionetteDriverActor.prototype.deleteSession,
   "emulatorCmdResult": MarionetteDriverActor.prototype.emulatorCmdResult,
-  "importScript": MarionetteDriverActor.prototype.importScript
+  "importScript": MarionetteDriverActor.prototype.importScript,
+  "closeWindow": MarionetteDriverActor.prototype.closeWindow
 };
 
 
