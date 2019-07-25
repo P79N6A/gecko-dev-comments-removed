@@ -107,11 +107,13 @@ TileManager.prototype = {
                                                         boundsSizeChanged,
                                                         dirtyAll) {
     
-    dump("***vphandler***\n");
-    dump(viewportRect.toString() + "\n");
-    dump((criticalRect ? criticalRect.toString() : "null") + "\n");
-    dump(boundsSizeChanged + "\n");
-    dump(dirtyAll + "\n***************\n");
+    
+
+
+
+
+
+
     
 
     let tc = this._tileCache;
@@ -178,9 +180,9 @@ TileManager.prototype = {
       let visited = {};
       let evictGuard = null;
       if (create) {
-	      evictGuard = function evictGuard(tile) {
-	        return !visited[tile.toString()];
-	      };
+	evictGuard = function evictGuard(tile) {
+	  return !visited[tile.toString()];
+	};
       }
 
       let starti = rect.left  >> kTileExponentWidth;
@@ -193,44 +195,44 @@ TileManager.prototype = {
       let tc = this._tileCache;
 
       for (var j = startj; j <= endj; ++j) {
-	      for (var i = starti; i <= endi; ++i) {
-	        
-	        
-	        
-	        if (0 <= i && 0 <= j && i <= tc.iBound && j <= tc.jBound) {
-	          
-	          break;
-	        }
+	for (var i = starti; i <= endi; ++i) {
+	  
+	  
+	  
+	  if (0 <= i && 0 <= j && i <= tc.iBound && j <= tc.jBound) {
+	    
+	    break;
+	  }
 
-	        tile = null;
+	  tile = null;
 
-	        
-	        if (!!(tc._tiles[i] && tc._tiles[i][j])) {
-	          tile = tc._tiles[i][j];
-	        } else if (create) {
-	          
-	          tile = tc._createTile(i, j, evictionGuard);
-	          if (tile) tile.markDirty();
-	        }
+	  
+	  if (!!(tc._tiles[i] && tc._tiles[i][j])) {
+	    tile = tc._tiles[i][j];
+	  } else if (create) {
+	    
+	    tile = tc._createTile(i, j, evictionGuard);
+	    if (tile) tile.markDirty();
+	  }
 
-	        if (tile) {
-	          visited[tile.toString()] = true;
-	          
-	          
-	          
-	          if (!tile._dirtyTileCanvas) {
-	            
-	            if (!tile._appended) {
-		            let astart = Date.now();
-		            this._appendTile(tile);
-		            tile._appended = true;
-		            let aend = Date.now();
-		            dump("append: " + (aend - astart) + "\n");
-	            }
-	          }
-	          
-	        }
+	  if (tile) {
+	    visited[tile.toString()] = true;
+	    
+	    
+	    
+	    if (!tile._dirtyTileCanvas) {
+	      
+	      if (!tile._appended) {
+		let astart = Date.now();
+		this._appendTile(tile);
+		tile._appended = true;
+		let aend = Date.now();
+		dump("append: " + (aend - astart) + "\n");
 	      }
+	    }
+	    
+	  }
+	}
       }
     }
 
@@ -821,7 +823,7 @@ TileManager.Tile.prototype = {
     ctx.drawWindow(sourceContent,
                    rect.left, rect.top,
                    rect.right - rect.left, rect.bottom - rect.top,
-                   "grey",
+                   "white",
                    (ctx.DRAWWINDOW_DO_NOT_FLUSH | ctx.DRAWWINDOW_DRAW_CARET));
 
     ctx.restore();

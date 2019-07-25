@@ -260,6 +260,23 @@ var Browser = {
     let container = document.getElementById("tile_container");
     let bv = this._browserView = new BrowserView(container, scrollboxToViewportRect(getVisibleRect()));
 
+    let scrollbox = document.getElementById("scrollbox");
+    let scrollBoxObject = scrollbox.boxObject.QueryInterface(Components.interfaces.nsIScrollBoxObject);
+
+    scrollbox.scrollByFunc = function(dx, dy) {
+      let start = Date.now();
+      bv.onBeforeVisibleMove(dx, dy);
+      dump("before: " + (Date.now() - start) + "\n");
+
+      scrollBoxObject.scrollBy(dx, dy);
+
+      
+
+      start = Date.now();
+      bv.onAfterVisibleMove(dx, dy);
+      dump("after: " + (Date.now() - start) + "\n");
+    }
+
     
     bv.beginBatchOperation();
 
@@ -450,16 +467,12 @@ var Browser = {
   },
 
   startLoading: function() {
-    debugger;
-
     if (this._pageLoading)
       throw "!@@!#!";
 
     this._pageLoading = true;
 
     function resizeAndPaint(self) {
-      debugger;
-
       
       self._browserView.simulateMozAfterSizeChange();
       
@@ -1424,7 +1437,6 @@ ProgressController.prototype = {
   },
 
   _networkStart: function() {
-    debugger;
     this._tab.setLoading(true);
     if (Browser.selectedBrowser == this.browser) {
       Browser.startLoading();

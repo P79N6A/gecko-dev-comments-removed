@@ -634,9 +634,9 @@ BrowserView.prototype = {
   _appendTile: function _appendTile(tile) {
     let canvas = tile.getContentImage();
 
-    canvas.style.position = "absolute";
-    canvas.style.left = tile.x + "px";
-    canvas.style.top  = tile.y + "px";
+    
+    
+    
 
     
     
@@ -646,7 +646,7 @@ BrowserView.prototype = {
     
     
     
-    
+    canvas.setAttribute("style", "position: absolute; left: " + tile.boundRect.left + "px; " + "top: " + tile.boundRect.top + "px;");
 
     this._container.appendChild(canvas);
 
