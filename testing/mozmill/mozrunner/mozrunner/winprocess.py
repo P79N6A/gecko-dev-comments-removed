@@ -236,18 +236,23 @@ GetCurrentProcess = GetCurrentProcessProto(
 GetCurrentProcess.errcheck = ErrCheckHandle
 
 
-IsProcessInJobProto = WINFUNCTYPE(BOOL,     
-                                  HANDLE,   
-                                  HANDLE,   
-                                  LPBOOL      
-                                 )
-IsProcessInJobFlags = ((1, "ProcessHandle"),
-                       (1, "JobHandle", HANDLE(0)),
-                       (2, "Result"))
-IsProcessInJob = IsProcessInJobProto(
-    ("IsProcessInJob", windll.kernel32),
-    IsProcessInJobFlags)
-IsProcessInJob.errcheck = ErrCheckBool 
+try:
+    IsProcessInJobProto = WINFUNCTYPE(BOOL,     
+                                      HANDLE,   
+                                      HANDLE,   
+                                      LPBOOL      
+                                      )
+    IsProcessInJobFlags = ((1, "ProcessHandle"),
+                           (1, "JobHandle", HANDLE(0)),
+                           (2, "Result"))
+    IsProcessInJob = IsProcessInJobProto(
+        ("IsProcessInJob", windll.kernel32),
+        IsProcessInJobFlags)
+    IsProcessInJob.errcheck = ErrCheckBool 
+except AttributeError:
+    
+    def IsProcessInJob(process):
+        return False
 
 
 

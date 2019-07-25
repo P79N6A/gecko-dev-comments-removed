@@ -369,14 +369,20 @@ function setPreference(aName, aValue) {
 
 
 
-function sleep(milliseconds) {
-  var self = {init: false};
 
-  waitFor(function() {
-    var init = self.init;
-    self.init = !init;
-    return init;
-  }, "The sleep call should never fail", (milliseconds + 1000), milliseconds);
+
+
+function sleep(milliseconds) {
+  
+  var timeup = false;
+  function wait() { timeup = true; }
+  hwindow.setTimeout(wait, milliseconds);
+
+  var thread = Components.classes["@mozilla.org/thread-manager;1"].
+               getService().currentThread;
+  while(!timeup) {
+    thread.processNextEvent(true);
+  }
 }
 
 

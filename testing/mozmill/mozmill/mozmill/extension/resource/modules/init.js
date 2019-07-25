@@ -94,14 +94,20 @@ function initialize() {
   var observerService = Cc["@mozilla.org/observer-service;1"].
                         getService(Ci.nsIObserverService);
   observerService.addObserver(windowObserver, "toplevel-window-ready", false);
-  
+
   
   var enumerator = Cc["@mozilla.org/appshell/window-mediator;1"].
                    getService(Ci.nsIWindowMediator).getEnumerator("");
   while (enumerator.hasMoreElements()) {
-    attachEventListeners(enumerator.getNext());
+    var win = enumerator.getNext();
+    attachEventListeners(win);
+
+    
+    
+    
+    win.documentLoaded = true;
   };
 }
-  
+
 initialize();
 

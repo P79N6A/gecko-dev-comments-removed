@@ -770,10 +770,11 @@ class CLI(jsbridge.CLI):
                     print 'TEST-UNEXPECTED-FAIL | Disconnect Error: Application unexpectedly closed'
 
             
+            self.mozmill.stop(fatal=disconnected)
+
+            
             self.mozmill.report(self.options.report)
             
-            
-            self.mozmill.stop(fatal=disconnected)
             if self.mozmill.fails or disconnected:
                 sys.exit(1)
         else:
