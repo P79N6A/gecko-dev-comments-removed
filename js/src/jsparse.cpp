@@ -6910,33 +6910,42 @@ CompExprTransplanter::transplant(JSParseNode *pn)
             if (genexp && PN_OP(dn) != JSOP_CALLEE) {
                 JS_ASSERT(!tc->decls.lookupFirst(atom));
 
-                if (dn->pn_pos < root->pn_pos || dn->isPlaceholder()) {
-                    if (dn->pn_pos >= root->pn_pos) {
-                        tc->parent->lexdeps->remove(atom);
-                    } else {
-                        JSDefinition *dn2 = (JSDefinition *)NameNode::create(atom, tc);
-                        if (!dn2)
-                            return false;
+                if (dn->pn_pos < root->pn_pos) {
+                    
 
-                        dn2->pn_type = TOK_NAME;
-                        dn2->pn_op = JSOP_NOP;
-                        dn2->pn_defn = true;
-                        dn2->pn_dflags |= PND_PLACEHOLDER;
-                        dn2->pn_pos = root->pn_pos;
 
-                        JSParseNode **pnup = &dn->dn_uses;
-                        JSParseNode *pnu;
-                        while ((pnu = *pnup) != NULL && pnu->pn_pos >= root->pn_pos) {
-                            pnu->pn_lexdef = dn2;
-                            dn2->pn_dflags |= pnu->pn_dflags & PND_USE2DEF_FLAGS;
-                            pnup = &pnu->pn_link;
-                        }
-                        dn2->dn_uses = dn->dn_uses;
-                        dn->dn_uses = *pnup;
-                        *pnup = NULL;
 
-                        dn = dn2;
+
+
+
+
+                    AtomDefnAddPtr p = tc->lexdeps->lookupForAdd(atom);
+                    JSDefinition *dn2 = MakePlaceholder(p, pn, tc);
+                    if (!dn2)
+                        return false;
+                    dn2->pn_pos = root->pn_pos;
+
+                    
+
+
+
+                    JSParseNode **pnup = &dn->dn_uses;
+                    JSParseNode *pnu;
+                    while ((pnu = *pnup) != NULL && pnu->pn_pos >= root->pn_pos) {
+                        pnu->pn_lexdef = dn2;
+                        dn2->pn_dflags |= pnu->pn_dflags & PND_USE2DEF_FLAGS;
+                        pnup = &pnu->pn_link;
                     }
+                    dn2->dn_uses = dn->dn_uses;
+                    dn->dn_uses = *pnup;
+                    *pnup = NULL;
+                } else if (dn->isPlaceholder()) {
+                    
+
+
+
+
+                    tc->parent->lexdeps->remove(atom);
                     if (!tc->lexdeps->put(atom, dn))
                         return false;
                 }
