@@ -1396,6 +1396,7 @@ function prepareForStartup() {
 
   
   
+  gBrowser.init();
   XULBrowserWindow.init();
   window.QueryInterface(Ci.nsIInterfaceRequestor)
         .getInterface(nsIWebNavigation)
@@ -4256,14 +4257,10 @@ var XULBrowserWindow = {
       }
     }
     else if (aStateFlags & nsIWebProgressListener.STATE_STOP) {
-      if (aStateFlags & nsIWebProgressListener.STATE_IS_NETWORK) {
-        if (aWebProgress.DOMWindow == content) {
-          if (aRequest)
-            this.endDocumentLoad(aRequest, aStatus);
-          if (!gBrowser.mTabbedMode && !gBrowser.getIcon())
-            gBrowser.useDefaultIcon(gBrowser.selectedTab);
-        }
-      }
+      if (aStateFlags & nsIWebProgressListener.STATE_IS_NETWORK &&
+          aWebProgress.DOMWindow == content &&
+          aRequest)
+        this.endDocumentLoad(aRequest, aStatus);
 
       
       
@@ -4398,9 +4395,6 @@ var XULBrowserWindow = {
       } else {
         this.reloadCommand.removeAttribute("disabled");
       }
-
-      if (!gBrowser.mTabbedMode && aWebProgress.isLoadingDocument)
-        gBrowser.setIcon(gBrowser.selectedTab, null);
 
       if (gURLBar) {
         
