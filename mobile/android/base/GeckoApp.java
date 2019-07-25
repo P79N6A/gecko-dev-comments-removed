@@ -553,7 +553,7 @@ abstract public class GeckoApp
                 GeckoAppShell.sendEventToGecko(new GeckoEvent("Permissions:Get", null));
                 return true;
             case R.id.addons:
-                loadUrlInNewTab("about:addons");
+                loadUrlInTab("about:addons");
                 return true;
             case R.id.agent_mode:
                 Tab selectedTab = Tabs.getInstance().getSelectedTab();
@@ -2199,7 +2199,20 @@ abstract public class GeckoApp
 
 
 
-    public void loadUrlInNewTab(String url) {
+
+    public void loadUrlInTab(String url) {
+        ArrayList<Tab> tabs = Tabs.getInstance().getTabsInOrder();
+        if (tabs != null) {
+            Iterator<Tab> tabsIter = tabs.iterator();
+            while (tabsIter.hasNext()) {
+                Tab tab = tabsIter.next();
+                if (url.equals(tab.getURL())) {
+                    GeckoAppShell.sendEventToGecko(new GeckoEvent("Tab:Select", String.valueOf(tab.getId())));
+                    return;
+                }
+            }
+        }
+
         JSONObject args = new JSONObject();
         try {
             args.put("url", url);
