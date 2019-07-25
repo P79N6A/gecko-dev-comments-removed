@@ -233,6 +233,11 @@ public:
 
   virtual void RenderLayer() = 0;
 
+  
+
+
+  virtual void CleanResources() {}
+
   IDirect3DDevice9 *device() const { return mD3DManager->device(); }
 protected:
   LayerManagerD3D9 *mD3DManager;

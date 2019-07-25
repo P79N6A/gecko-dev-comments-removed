@@ -48,7 +48,7 @@ namespace mozilla {
 namespace layers {
 
 class DeviceManagerD3D9;
-class ThebesLayerD3D9;
+class LayerD3D9;
 class Nv3DVUtils;
 
 
@@ -149,7 +149,7 @@ public:
 
 
 
-  nsTArray<ThebesLayerD3D9*> mThebesLayers;
+  nsTArray<LayerD3D9*> mLayersWithResources;
 private:
   friend class SwapChainD3D9;
 
