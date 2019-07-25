@@ -2997,7 +2997,7 @@ js_CreateThisForFunctionWithProto(JSContext *cx, JSObject *callee, JSObject *pro
             gc::FinalizeKind kind = gc::FinalizeKind(type->newScriptFinalizeKind);
             JSObject *res = NewObjectWithType(cx, type, callee->getParent(), kind);
             if (res)
-                res->setMap(type->newScriptShape);
+                res->setMap((Shape *) type->newScriptShape);
             return res;
         }
     }
@@ -3037,7 +3037,7 @@ js_CreateThisForFunction(JSContext *cx, JSObject *callee, bool newType)
         types::AutoTypeRooter root(cx, type);
 
         obj = NewReshapedObject(cx, type, obj->getParent(), gc::FinalizeKind(obj->finalizeKind()),
-                                (const Shape *) obj->lastProperty());
+                                obj->lastProperty());
         if (!obj)
             return NULL;
         if (!callee->getFunctionPrivate()->script()->typeSetThis(cx, (types::jstype) type))
@@ -4370,6 +4370,31 @@ JSObject::allocSlots(JSContext *cx, size_t newcap)
     uint32 oldcap = numSlots();
 
     JS_ASSERT(newcap >= oldcap && !hasSlotsArray());
+
+    
+
+
+
+
+    if (type->newScript) {
+        unsigned newScriptSlots = gc::GetGCKindSlots(gc::FinalizeKind(type->newScriptFinalizeKind));
+        if (newScriptSlots == numFixedSlots()) {
+            
+
+
+
+            unsigned newKind = type->newScriptFinalizeKind + 2;
+            if (newKind <= gc::FINALIZE_OBJECT_LAST) {
+                JSObject *obj = NewReshapedObject(cx, type, getParent(),
+                                                  gc::FinalizeKind(newKind), type->newScriptShape);
+                if (!obj)
+                    return false;
+
+                type->newScriptFinalizeKind = newKind;
+                type->newScriptShape = obj->lastProperty();
+            }
+        }
+    }
 
     if (newcap > NSLOTS_LIMIT) {
         if (!JS_ON_TRACE(cx))

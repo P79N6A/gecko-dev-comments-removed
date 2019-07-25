@@ -504,7 +504,7 @@ struct TypeObject
 
     JSScript *newScript;
      unsigned newScriptFinalizeKind;
-    Shape *newScriptShape;
+    const Shape *newScriptShape;
 
     
 
