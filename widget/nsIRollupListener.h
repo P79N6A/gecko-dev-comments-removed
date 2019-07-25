@@ -45,6 +45,11 @@ class nsIRollupListener {
 
 
   virtual PRUint32 GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain) = 0;
+
+  
+
+
+  virtual void NotifyGeometryChange() = 0;
 };
 
 #endif 

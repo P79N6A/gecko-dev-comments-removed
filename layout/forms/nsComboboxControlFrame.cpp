@@ -448,24 +448,39 @@ nsComboboxControlFrame::ShowList(bool aShowList)
   return weakFrame.IsAlive();
 }
 
-class nsResizeDropdownAtFinalPosition : public nsIReflowCallback
+class nsResizeDropdownAtFinalPosition
+  : public nsIReflowCallback, public nsRunnable
 {
 public:
   nsResizeDropdownAtFinalPosition(nsComboboxControlFrame* aFrame)
-    : mFrame(aFrame) {}
+    : mFrame(aFrame)
+  {
+    MOZ_COUNT_CTOR(nsResizeDropdownAtFinalPosition);
+  }
+  ~nsResizeDropdownAtFinalPosition()
+  {
+    MOZ_COUNT_DTOR(nsResizeDropdownAtFinalPosition);
+  }
 
   virtual bool ReflowFinished()
   {
-    if (mFrame.IsAlive()) {
-      static_cast<nsComboboxControlFrame*>(mFrame.GetFrame())->
-        AbsolutelyPositionDropDown();
-    }
+    Run();
+    NS_RELEASE_THIS();
     return false;
   }
 
   virtual void ReflowCallbackCanceled()
   {
-    delete this;
+    NS_RELEASE_THIS();
+  }
+
+  NS_IMETHODIMP Run()
+  {
+    if (mFrame.IsAlive()) {
+      static_cast<nsComboboxControlFrame*>(mFrame.GetFrame())->
+        AbsolutelyPositionDropDown();
+    }
+    return NS_OK;
   }
 
   nsWeakFrame mFrame;
@@ -709,6 +724,23 @@ nsComboboxControlFrame::AbsolutelyPositionDropDown()
   return eDropDownPositionFinal;
 }
 
+void
+nsComboboxControlFrame::NotifyGeometryChange()
+{
+  
+  
+  
+  if (IsDroppedDown() &&
+      !(GetStateBits() & NS_FRAME_IS_DIRTY) &&
+      !mDelayedShowDropDown) {
+    
+    
+    nsRefPtr<nsResizeDropdownAtFinalPosition> resize =
+      new nsResizeDropdownAtFinalPosition(this);
+    NS_DispatchToCurrentThread(resize);
+  }
+}
+
 
 
 
@@ -834,8 +866,13 @@ nsComboboxControlFrame::Reflow(nsPresContext*          aPresContext,
 
   
   ReflowDropdown(aPresContext, aReflowState);
-  nsIReflowCallback* cb = new nsResizeDropdownAtFinalPosition(this);
-  aPresContext->PresShell()->PostReflowCallback(cb);
+  nsRefPtr<nsResizeDropdownAtFinalPosition> resize =
+    new nsResizeDropdownAtFinalPosition(this);
+  if (NS_SUCCEEDED(aPresContext->PresShell()->PostReflowCallback(resize))) {
+    
+    
+    resize.forget();
+  }
 
   
   
