@@ -598,10 +598,11 @@ void nsTableFrame::InsertCol(nsTableColFrame& aColFrame,
             nsTableColGroupFrame* lastColGroup = (nsTableColGroupFrame *)mColGroups.LastChild();
             if (lastColGroup) {
               lastColGroup->RemoveChild(*lastCol, PR_FALSE);
-            }
-            
-            if (lastColGroup->GetColCount() <= 0) {
-              mColGroups.DestroyFrame((nsIFrame*)lastColGroup);
+
+              
+              if (lastColGroup->GetColCount() <= 0) {
+                mColGroups.DestroyFrame((nsIFrame*)lastColGroup);
+              }
             }
             removedFromCache = PR_TRUE;
           }
