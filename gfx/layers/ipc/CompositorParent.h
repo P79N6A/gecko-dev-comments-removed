@@ -107,6 +107,12 @@ private:
 
   Layer* GetPrimaryScrollableLayer();
 
+  
+
+
+
+  void TranslateFixedLayers(Layer* aLayer, const gfxPoint& aTranslation);
+
   nsRefPtr<LayerManager> mLayerManager;
   nsIWidget* mWidget;
   CancelableTask *mCurrentCompositeTask;
@@ -120,6 +126,7 @@ private:
   float mYScale;
   nsIntPoint mScrollOffset;
   nsIntSize mContentSize;
+  nsIntSize mWidgetSize;
 
   
   
