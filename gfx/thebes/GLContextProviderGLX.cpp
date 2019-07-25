@@ -102,7 +102,11 @@ GLXLibrary::EnsureInitialized()
         
         
         
+#ifdef __OpenBSD__
+        const char *libGLfilename = "libGL.so";
+#else
         const char *libGLfilename = "libGL.so.1";
+#endif
         ScopedGfxFeatureReporter reporter(libGLfilename);
         mOGLLibrary = PR_LoadLibrary(libGLfilename);
         if (!mOGLLibrary) {
