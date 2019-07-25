@@ -416,8 +416,22 @@ public:
 
 
 
+  nscoord ApplyMinMaxWidth(nscoord aWidth) const {
+    if (NS_UNCONSTRAINEDSIZE != mComputedMaxWidth) {
+      aWidth = NS_MIN(aWidth, mComputedMaxWidth);
+    }
+    return NS_MAX(aWidth, mComputedMinWidth);
+  }
+  
 
-  void ApplyMinMaxConstraints(nscoord* aContentWidth, nscoord* aContentHeight) const;
+
+
+  nscoord ApplyMinMaxHeight(nscoord aHeight) const {
+    if (NS_UNCONSTRAINEDSIZE != mComputedMaxHeight) {
+      aHeight = NS_MIN(aHeight, mComputedMaxHeight);
+    }
+    return NS_MAX(aHeight, mComputedMinHeight);
+  }
 
   bool ShouldReflowAllKids() const {
     
