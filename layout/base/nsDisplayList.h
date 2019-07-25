@@ -332,6 +332,11 @@ public:
   
 
 
+  FrameLayerBuilder* LayerBuilder() { return &mLayerBuilder; }
+
+  
+
+
   const nsRegion* GetFinalTransparentRegion() { return mFinalTransparentRegion; }
   
 
@@ -498,6 +503,7 @@ private:
     return &mPresShellStates[mPresShellStates.Length() - 1];
   }
 
+  FrameLayerBuilder              mLayerBuilder;
   nsIFrame*                      mReferenceFrame;
   nsIFrame*                      mIgnoreScrollFrame;
   PLArenaPool                    mPool;

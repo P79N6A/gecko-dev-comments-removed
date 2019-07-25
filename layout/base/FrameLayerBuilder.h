@@ -21,8 +21,6 @@ class nsRootPresContext;
 
 namespace mozilla {
 
-class FrameLayerBuilder;
-
 enum LayerState {
   LAYER_NONE,
   LAYER_INACTIVE,
@@ -35,35 +33,6 @@ enum LayerState {
   
   LAYER_SVG_EFFECTS
 };
-
-class LayerManagerLayerBuilder : public layers::LayerUserData {
-public:
-  LayerManagerLayerBuilder(FrameLayerBuilder* aBuilder, bool aDelete = true)
-    : mLayerBuilder(aBuilder)
-    , mDelete(aDelete)
-  {
-    MOZ_COUNT_CTOR(LayerManagerLayerBuilder);
-  }
-  ~LayerManagerLayerBuilder();
-
-  FrameLayerBuilder* mLayerBuilder;
-  bool mDelete;
-};
-
-extern PRUint8 gLayerManagerLayerBuilder;
-
-class ContainerLayerPresContext : public layers::LayerUserData {
-public:
-  nsPresContext* mPresContext;
-};
-
-extern PRUint8 gContainerLayerPresContext;
-
-static inline FrameLayerBuilder *GetLayerBuilderForManager(layers::LayerManager* aManager)
-{
-  LayerManagerLayerBuilder *data = static_cast<LayerManagerLayerBuilder*>(aManager->GetUserData(&gLayerManagerLayerBuilder));
-  return data ? data->mLayerBuilder : nsnull;
-}
 
 
 
@@ -116,13 +85,8 @@ public:
     mDetectedDOMModification(false),
     mInvalidateAllLayers(false)
   {
-    MOZ_COUNT_CTOR(FrameLayerBuilder);
     mNewDisplayItemData.Init();
     mThebesLayerItems.Init();
-  }
-  ~FrameLayerBuilder()
-  {
-    MOZ_COUNT_DTOR(FrameLayerBuilder);
   }
 
   static void Shutdown();
@@ -268,7 +232,7 @@ public:
 
 
 
-  static void DumpRetainedLayerTree(LayerManager* aManager, FILE* aFile = stdout);
+  void DumpRetainedLayerTree(FILE* aFile = stdout);
 #endif
 
   
@@ -305,7 +269,6 @@ public:
 
   Layer* GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
 
-  static Layer* GetDebugOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
   
 
 
