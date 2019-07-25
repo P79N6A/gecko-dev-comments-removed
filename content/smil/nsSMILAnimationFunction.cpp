@@ -246,6 +246,14 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
       mSimpleDuration.IsIndefinite() || mLastValue,
       "Unresolved simple duration for active or frozen animation");
 
+  
+  
+  
+  
+  PRBool isAdditive = IsAdditive();
+  if (isAdditive && aResult.IsNull())
+    return;
+
   nsSMILValue result;
 
   if (mSimpleDuration.IsIndefinite() ||
@@ -286,7 +294,7 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
   }
 
   
-  if (!IsAdditive() || NS_FAILED(aResult.SandwichAdd(result))) {
+  if (!isAdditive || NS_FAILED(aResult.SandwichAdd(result))) {
     aResult.Swap(result);
     
     
