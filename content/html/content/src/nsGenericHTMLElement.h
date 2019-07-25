@@ -840,6 +840,11 @@ public:
 
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 
+  
+
+
+  PRBool CanBeDisabled() const;
+
 protected:
   virtual nsresult BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                  const nsAString* aValue, PRBool aNotify);
@@ -854,11 +859,6 @@ protected:
   {
     return PR_FALSE;
   }
-
-  
-
-
-  PRBool CanBeDisabled() const;
 
   void UpdateEditableFormControlState();
 
