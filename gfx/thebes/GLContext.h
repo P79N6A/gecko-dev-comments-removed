@@ -75,8 +75,12 @@ typedef char realGLboolean;
 #include "GLContextSymbols.h"
 
 namespace mozilla {
-namespace gl {
+  namespace layers {
+    class LayerManagerOGL;
+    class ColorTextureLayerProgram;
+  };
 
+namespace gl {
 class GLContext;
 
 class LibrarySymbolLoader
@@ -156,6 +160,13 @@ class TextureImage
 {
     NS_INLINE_DECL_REFCOUNTING(TextureImage)
 public:
+    enum TextureState
+    {
+      Created, 
+      Allocated,  
+      Valid  
+    };
+
     typedef gfxASurface::gfxContentType ContentType;
 
     virtual ~TextureImage() {}
@@ -195,6 +206,22 @@ public:
 
 
 
+    virtual void BeginTileIteration() {
+    };
+
+    virtual PRBool NextTile() {
+        return PR_FALSE;
+    };
+
+    virtual nsIntRect GetTileRect() {
+        return nsIntRect(nsIntPoint(0,0), mSize);
+    };
+
+    virtual GLuint GetTextureID() = 0;
+    
+
+
+
 
 
 
@@ -206,7 +233,12 @@ public:
         EndUpdate();
     }
 
-    virtual bool DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion) =0;
+    
+
+
+
+
+    virtual bool DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0)) = 0;
 
     virtual void BindTexture(GLenum aTextureUnit) = 0;
     virtual void ReleaseTexture() {};
@@ -233,16 +265,6 @@ public:
         TextureImage *mTexture;
     };
 
-    
-
-
-
-
-
-
-
-
-    GLuint Texture() { return mTexture; }
 
     
 
@@ -279,17 +301,15 @@ protected:
 
 
 
-    TextureImage(GLuint aTexture, const nsIntSize& aSize,
+    TextureImage(const nsIntSize& aSize,
                  GLenum aWrapMode, ContentType aContentType,
                  PRBool aIsRGB = PR_FALSE)
-        : mTexture(aTexture)
-        , mSize(aSize)
+        : mSize(aSize)
         , mWrapMode(aWrapMode)
         , mContentType(aContentType)
         , mIsRGBFormat(aIsRGB)
     {}
 
-    GLuint mTexture;
     nsIntSize mSize;
     GLenum mWrapMode;
     ContentType mContentType;
@@ -318,25 +338,19 @@ public:
                       GLenum aWrapMode,
                       ContentType aContentType,
                       GLContext* aContext)
-        : TextureImage(aTexture, aSize, aWrapMode, aContentType)
+        : TextureImage(aSize, aWrapMode, aContentType)
+        , mTexture(aTexture)
         , mTextureState(Created)
         , mGLContext(aContext)
         , mUpdateOffset(0, 0)
     {}
 
-    enum TextureState
-    {
-      Created, 
-      Allocated,  
-      Valid  
-    };
-    
     virtual void BindTexture(GLenum aTextureUnit);
 
     virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion);
     virtual void EndUpdate();
-    virtual bool DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion);
-
+    virtual bool DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0));
+    virtual GLuint GetTextureID() { return mTexture; };
     
     virtual already_AddRefed<gfxASurface>
       GetSurfaceForUpdate(const gfxIntSize& aSize, ImageFormat aFmt);
@@ -354,6 +368,7 @@ public:
     virtual void Resize(const nsIntSize& aSize);
 protected:
 
+    GLuint mTexture;
     TextureState mTextureState;
     GLContext* mGLContext;
     nsRefPtr<gfxASurface> mUpdateSurface;
@@ -361,6 +376,47 @@ protected:
 
     
     nsIntPoint mUpdateOffset;
+};
+
+
+
+
+
+
+class TiledTextureImage
+    : public TextureImage
+{
+public:
+    TiledTextureImage(GLContext* aGL, nsIntSize aSize,
+        TextureImage::ContentType aContentType, PRBool aUseNearestFilter = PR_FALSE);
+    ~TiledTextureImage();
+    void DumpDiv();
+    virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion);
+    virtual void EndUpdate();
+    virtual void Resize(const nsIntSize& aSize);
+    virtual void BeginTileIteration();
+    virtual PRBool NextTile();
+    virtual nsIntRect GetTileRect();
+    virtual GLuint GetTextureID() {
+        return mImages[mCurrentImage]->GetTextureID();
+    };
+    virtual bool DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom = nsIntPoint(0,0));
+    virtual PRBool InUpdate() const { return mInUpdate; };
+    virtual void BindTexture(GLenum);
+protected:
+    unsigned int mCurrentImage;
+    nsTArray< nsRefPtr<TextureImage> > mImages;
+    bool mInUpdate;
+    nsIntSize mSize;
+    unsigned int mTileSize;
+    unsigned int mRows, mColumns;
+    GLContext* mGL;
+    PRBool mUseNearestFilter;
+    
+    nsRefPtr<gfxASurface> mUpdateSurface;
+    
+    nsIntRegion mUpdateRegion;
+    TextureState mTextureState;
 };
 
 struct THEBES_API ContextFormat
@@ -705,6 +761,21 @@ public:
                        TextureImage::ContentType aContentType,
                        GLenum aWrapMode,
                        PRBool aUseNearestFilter=PR_FALSE);
+
+    
+
+
+
+
+
+
+    virtual already_AddRefed<TextureImage>
+    TileGenFunc(const nsIntSize& aSize,
+                TextureImage::ContentType aContentType,
+                PRBool aUseNearestFilter = PR_FALSE)
+    {
+        return nsnull;
+    };
 
     
 

@@ -52,6 +52,7 @@
 #include "GLContextProvider.h"
 
 #include "gfxCrashReporterUtils.h"
+#include "gfxUtils.h"
 
 #include "mozilla/Util.h" 
 
@@ -636,7 +637,7 @@ void
 BasicTextureImage::BindTexture(GLenum aTextureUnit)
 {
     mGLContext->fActiveTexture(aTextureUnit);
-    mGLContext->fBindTexture(LOCAL_GL_TEXTURE_2D, Texture());
+    mGLContext->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
     mGLContext->fActiveTexture(LOCAL_GL_TEXTURE0);
 }
 
@@ -659,7 +660,7 @@ BasicTextureImage::FinishedSurfaceUpload()
 }
 
 bool 
-BasicTextureImage::DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion)
+BasicTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom )
 {
     nsIntRect bounds = aRegion.GetBounds();
     nsIntRegion region;
@@ -675,7 +676,7 @@ BasicTextureImage::DirectUpdate(gfxASurface *aSurf, const nsIntRegion& aRegion)
                                            region,
                                            mTexture,
                                            mTextureState == Created,
-                                           bounds.TopLeft(),
+                                           bounds.TopLeft() + aFrom,
                                            PR_FALSE);
     mTextureState = Valid;
     return true;
@@ -700,6 +701,202 @@ BasicTextureImage::Resize(const nsIntSize& aSize)
 
     mTextureState = Allocated;
     mSize = aSize;
+}
+
+TiledTextureImage::TiledTextureImage(GLContext* aGL,
+                                     nsIntSize aSize,
+                                     TextureImage::ContentType aContentType,
+                                     PRBool aUseNearestFilter)
+    : TextureImage(aSize, LOCAL_GL_CLAMP_TO_EDGE, aContentType, aUseNearestFilter)
+    , mCurrentImage(0)
+    , mInUpdate(PR_FALSE)
+    , mGL(aGL)
+    , mUseNearestFilter(aUseNearestFilter)
+    , mTextureState(Created)
+{
+    mTileSize = mGL->GetMaxTextureSize();
+    if (aSize != nsIntSize(0,0)) {
+        Resize(aSize);
+    }
+}
+
+TiledTextureImage::~TiledTextureImage()
+{
+}
+
+bool 
+TiledTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom )
+{
+    nsIntRect bounds = aRegion.GetBounds();
+    nsIntRegion region;
+    if (mTextureState != Valid) {
+        bounds = nsIntRect(0, 0, mSize.width, mSize.height);
+        region = nsIntRegion(bounds);
+    } else {
+        region = aRegion;
+    }
+
+    PRBool result = PR_TRUE;
+    for (unsigned i = 0; i < mImages.Length(); i++) {
+        unsigned int xPos = (i % mColumns) * mTileSize;
+        unsigned int yPos = (i / mColumns) * mTileSize;
+        nsIntRegion tileRegion;
+        tileRegion.And(region, nsIntRect(nsIntPoint(xPos,yPos), mImages[i]->GetSize())); 
+        if (tileRegion.IsEmpty())
+            continue;
+        tileRegion.MoveBy(-xPos, -yPos); 
+        result &= mImages[i]->DirectUpdate(aSurf,
+                                           tileRegion,
+                                           aFrom + nsIntPoint(xPos, yPos));
+    }
+    mShaderType = mImages[0]->GetShaderProgramType();
+    mIsRGBFormat = mImages[0]->IsRGB();
+    mTextureState = Valid;
+    return result;
+}
+
+gfxASurface*
+TiledTextureImage::BeginUpdate(nsIntRegion& aRegion)
+{
+    NS_ASSERTION(!mInUpdate, "nested update");
+    mInUpdate = PR_TRUE;
+
+    if (mTextureState != Valid)
+    {
+        
+        
+        
+        mUpdateRegion = nsIntRect(nsIntPoint(0, 0), mSize);
+    } else {
+        mUpdateRegion = aRegion;
+    }
+
+    for (unsigned i = 0; i < mImages.Length(); i++) {
+        unsigned int xPos = (i % mColumns) * mTileSize;
+        unsigned int yPos = (i / mColumns) * mTileSize;
+        nsIntRegion imageRegion = nsIntRegion(nsIntRect(nsIntPoint(xPos,yPos), mImages[i]->GetSize()));
+
+        
+        if (imageRegion.Contains(aRegion)) {
+            
+            aRegion.MoveBy(-xPos, -yPos);
+            
+            nsRefPtr<gfxASurface> surface = mImages[i]->BeginUpdate(aRegion);
+            
+            aRegion.MoveBy(xPos, yPos);
+            
+            mUpdateSurface = nsnull;
+            
+            mCurrentImage = i;
+            return surface.get();
+        }
+    }
+    
+    gfxASurface::gfxImageFormat format =
+        (GetContentType() == gfxASurface::CONTENT_COLOR) ?
+        gfxASurface::ImageFormatRGB24 : gfxASurface::ImageFormatARGB32;
+
+    nsIntRect bounds = aRegion.GetBounds();
+    mUpdateSurface = gfxPlatform::GetPlatform()->
+        CreateOffscreenSurface(gfxIntSize(bounds.width, bounds.height), gfxASurface::ContentFromFormat(format));
+    mUpdateSurface->SetDeviceOffset(gfxPoint(-bounds.x, -bounds.y));
+    return mUpdateSurface;
+}
+
+void
+TiledTextureImage::EndUpdate()
+{
+    NS_ASSERTION(mInUpdate, "EndUpdate not in update");
+    if (!mUpdateSurface) { 
+        mImages[mCurrentImage]->EndUpdate();
+        mInUpdate = PR_FALSE;
+        mTextureState = Valid;
+        mShaderType = mImages[mCurrentImage]->GetShaderProgramType();
+        mIsRGBFormat = mImages[mCurrentImage]->IsRGB();
+        return;
+    }
+
+    
+    for (unsigned i = 0; i < mImages.Length(); i++) {
+        unsigned int xPos = (i % mColumns) * mTileSize;
+        unsigned int yPos = (i / mColumns) * mTileSize;
+        nsIntRect imageRect = nsIntRect(nsIntPoint(xPos,yPos), mImages[i]->GetSize());
+        nsIntRegion subregion;
+        subregion.And(mUpdateRegion, imageRect);
+        if (subregion.IsEmpty())
+            continue;
+        subregion.MoveBy(-xPos, -yPos); 
+        
+        gfxASurface* surf = mImages[i]->BeginUpdate(subregion);
+        nsRefPtr<gfxContext> ctx = new gfxContext(surf);
+        gfxUtils::ClipToRegion(ctx, subregion);
+        ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
+        ctx->SetSource(mUpdateSurface, gfxPoint(-xPos, -yPos));
+        ctx->Paint();
+        mImages[i]->EndUpdate();
+    }
+
+    mUpdateSurface = nsnull;
+    mInUpdate = PR_FALSE;
+    mShaderType = mImages[0]->GetShaderProgramType();
+    mIsRGBFormat = mImages[0]->IsRGB();
+}
+
+void TiledTextureImage::BeginTileIteration()
+{
+    mCurrentImage = 0;
+}
+
+PRBool TiledTextureImage::NextTile()
+{
+    if (mCurrentImage + 1 < mImages.Length()) {
+        mCurrentImage++;
+        return PR_TRUE;
+    }
+    return PR_FALSE;
+}
+
+nsIntRect TiledTextureImage::GetTileRect()
+{
+    nsIntRect rect = mImages[mCurrentImage]->GetTileRect();
+    unsigned int xPos = (mCurrentImage % mColumns) * mTileSize;
+    unsigned int yPos = (mCurrentImage / mColumns) * mTileSize;
+    rect.MoveTo(xPos, yPos);
+    return rect;
+}
+
+void
+TiledTextureImage::BindTexture(GLenum aTextureUnit)
+{
+    mImages[mCurrentImage]->BindTexture(aTextureUnit);
+}
+
+
+
+
+
+void TiledTextureImage::Resize(const nsIntSize& aSize)
+{
+    if (mSize == aSize && mTextureState != Created) {
+        return;
+    }
+    mSize = aSize;
+    mImages.Clear();
+    
+    mColumns = (aSize.width  + mTileSize - 1) / mTileSize;
+    mRows    = (aSize.height + mTileSize - 1) / mTileSize;
+
+    for (unsigned int row = 0; row < mRows; row++) {
+      for (unsigned int col = 0; col < mColumns; col++) {
+          nsIntSize size( 
+                  (col+1) * mTileSize > (unsigned int)aSize.width  ? aSize.width  % mTileSize : mTileSize,
+                  (row+1) * mTileSize > (unsigned int)aSize.height ? aSize.height % mTileSize : mTileSize);
+          nsRefPtr<TextureImage> teximg =
+                  mGL->TileGenFunc(size, mContentType, mUseNearestFilter);
+          mImages.AppendElement(teximg.forget());
+      }
+    }
+    mTextureState = Allocated;
 }
 
 PRBool
@@ -1245,6 +1442,9 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
     NS_ASSERTION(!aSrc->InUpdate(), "Source texture is in update!");
     NS_ASSERTION(!aDst->InUpdate(), "Destination texture is in update!");
 
+    if (aSrcRect.IsEmpty() || aDstRect.IsEmpty())
+        return;
+
     
     
     int savedFb = 0;
@@ -1255,57 +1455,114 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
     fDisable(LOCAL_GL_SCISSOR_TEST);
     fDisable(LOCAL_GL_BLEND);
 
-    SetBlitFramebufferForDestTexture(aDst->Texture());
+    
+    float blitScaleX = float(aDstRect.width) / float(aSrcRect.width);
+    float blitScaleY = float(aDstRect.height) / float(aSrcRect.height);
 
-    UseBlitProgram();
-
-    nsIntSize srcSize = aSrc->GetSize();
-    nsIntSize dstSize = aDst->GetSize();
-
-    PushViewportRect(nsIntRect(0, 0, dstSize.width, dstSize.height));
-
-    float dx0 = 2.0 * float(aDstRect.x) / float(dstSize.width) - 1.0;
-    float dy0 = 2.0 * float(aDstRect.y) / float(dstSize.height) - 1.0;
-    float dx1 = 2.0 * float(aDstRect.x + aDstRect.width) / float(dstSize.width) - 1.0;
-    float dy1 = 2.0 * float(aDstRect.y + aDstRect.height) / float(dstSize.height) - 1.0;
-
-    RectTriangles rects;
-    if (aSrc->GetWrapMode() == LOCAL_GL_REPEAT) {
-        rects.addRect(
-                      dx0, dy0, dx1, dy1,
-                      
-                      aSrcRect.x / float(srcSize.width),
-                      aSrcRect.y / float(srcSize.height),
-                      aSrcRect.XMost() / float(srcSize.width),
-                      aSrcRect.YMost() / float(srcSize.height));
-    } else {
-        DecomposeIntoNoRepeatTriangles(aSrcRect, srcSize, rects);
+    
+    aDst->BeginTileIteration();
+    do {
+        
+        nsIntRect dstSubRect;
+        nsIntRect dstTextureRect = aDst->GetTileRect();
+        dstSubRect.IntersectRect(aDstRect, dstTextureRect);
 
         
+        if (dstSubRect.IsEmpty())
+            continue;
+
         
-        RectTriangles::vert_coord* v = (RectTriangles::vert_coord*)rects.vertexPointer();
-        for (int i = 0; i < rects.elements(); ++i) {
-            v[i].x = (v[i].x * (dx1 - dx0)) + dx0;
-            v[i].y = (v[i].y * (dy1 - dy0)) + dy0;
-        }
-    }
+        nsIntRect dstInSrcRect(dstSubRect);
+        dstInSrcRect.MoveBy(-aDstRect.TopLeft());
+        
+        dstInSrcRect.ScaleRoundOut(1.0f / blitScaleX, 1.0f / blitScaleY);
+        dstInSrcRect.MoveBy(aSrcRect.TopLeft());
 
+        SetBlitFramebufferForDestTexture(aDst->GetTextureID());
+        UseBlitProgram();
 
-    fActiveTexture(LOCAL_GL_TEXTURE0);
-    fBindTexture(LOCAL_GL_TEXTURE_2D, aSrc->Texture());
+        aSrc->BeginTileIteration();
+        
+        do {
+            
+            nsIntRect srcSubRect;
+            nsIntRect srcTextureRect = aSrc->GetTileRect();
+            srcSubRect.IntersectRect(aSrcRect, srcTextureRect);
 
-    fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
+            
+            if (srcSubRect.IsEmpty()) {
+                continue;
+            }
+            
+            srcSubRect.IntersectRect(srcSubRect, dstInSrcRect);
+            
+            if (srcSubRect.IsEmpty()) {
+                continue;
+            }
+            
+            
+            
+            
+            
+            
+            
+            nsIntRect srcSubInDstRect(srcSubRect);
+            srcSubInDstRect.MoveBy(-aSrcRect.TopLeft());
+            srcSubInDstRect.ScaleRoundOut(blitScaleX, blitScaleY);
+            srcSubInDstRect.MoveBy(aDstRect.TopLeft());
 
-    fVertexAttribPointer(0, 2, LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0, rects.vertexPointer());
-    fVertexAttribPointer(1, 2, LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0, rects.texCoordPointer());
+            
+            nsIntSize srcSize = srcTextureRect.Size();
+            nsIntSize dstSize = dstTextureRect.Size();
+            srcSubRect.MoveBy(-srcTextureRect.x, -srcTextureRect.y);
+            srcSubInDstRect.MoveBy(-dstTextureRect.x, -dstTextureRect.y);
 
-    fEnableVertexAttribArray(0);
-    fEnableVertexAttribArray(1);
+            float dx0 = 2.0 * float(srcSubInDstRect.x) / float(dstSize.width) - 1.0;
+            float dy0 = 2.0 * float(srcSubInDstRect.y) / float(dstSize.height) - 1.0;
+            float dx1 = 2.0 * float(srcSubInDstRect.x + srcSubInDstRect.width) / float(dstSize.width) - 1.0;
+            float dy1 = 2.0 * float(srcSubInDstRect.y + srcSubInDstRect.height) / float(dstSize.height) - 1.0;
+            PushViewportRect(nsIntRect(0, 0, dstSize.width, dstSize.height));
 
-    fDrawArrays(LOCAL_GL_TRIANGLES, 0, rects.elements());
+            RectTriangles rects;
+            if (aSrc->GetWrapMode() == LOCAL_GL_REPEAT) {
+                rects.addRect(
+                        dx0, dy0, dx1, dy1,
+                        
+                        srcSubRect.x / float(srcSize.width),
+                        srcSubRect.y / float(srcSize.height),
+                        srcSubRect.XMost() / float(srcSize.width),
+                        srcSubRect.YMost() / float(srcSize.height));
+            } else {
+                DecomposeIntoNoRepeatTriangles(srcSubRect, srcSize, rects);
 
-    fDisableVertexAttribArray(0);
-    fDisableVertexAttribArray(1);
+                
+                
+                RectTriangles::vert_coord* v = (RectTriangles::vert_coord*)rects.vertexPointer();
+
+                for (unsigned int i = 0; i < rects.elements(); ++i) {
+                    v[i].x = (v[i].x * (dx1 - dx0)) + dx0;
+                    v[i].y = (v[i].y * (dy1 - dy0)) + dy0;
+                }
+            }
+
+            TextureImage::ScopedBindTexture texBind(aSrc, LOCAL_GL_TEXTURE0);
+
+            fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
+
+            fVertexAttribPointer(0, 2, LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0, rects.vertexPointer());
+            fVertexAttribPointer(1, 2, LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0, rects.texCoordPointer());
+
+            fEnableVertexAttribArray(0);
+            fEnableVertexAttribArray(1);
+
+            fDrawArrays(LOCAL_GL_TRIANGLES, 0, rects.elements());
+
+            fDisableVertexAttribArray(0);
+            fDisableVertexAttribArray(1);
+
+            PopViewportRect();
+        } while (aSrc->NextTile());
+    } while (aDst->NextTile());
 
     fVertexAttribPointer(0, 2, LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0, NULL);
     fVertexAttribPointer(1, 2, LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0, NULL);
@@ -1325,8 +1582,6 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
 
     fEnable(LOCAL_GL_SCISSOR_TEST);
     fEnable(LOCAL_GL_BLEND);
-
-    PopViewportRect();
 }
 
 static unsigned int 
