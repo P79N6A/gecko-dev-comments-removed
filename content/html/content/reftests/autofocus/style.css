@@ -1,0 +1,7 @@
+:focus { background-color: green; }
+
+
+
+
+
+::-moz-focus-inner { border: none; }
