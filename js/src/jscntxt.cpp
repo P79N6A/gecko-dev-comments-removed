@@ -38,8 +38,6 @@
 
 
 
-#define __STDC_LIMIT_MACROS
-
 
 
 
@@ -48,6 +46,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define __STDC_LIMIT_MACROS
 #include "jsstdint.h"
 
 #include "jstypes.h"
@@ -907,8 +906,19 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
             ok = js_InitRuntimeScriptState(rt);
         if (ok)
             ok = js_InitRuntimeNumberState(cx);
-        if (ok)
+        if (ok) {
+            
+
+
+
+
+
+            uint32 shapeGen = rt->shapeGen;
+            rt->shapeGen = 0;
             ok = JSScope::initRuntimeState(cx);
+            if (rt->shapeGen < shapeGen)
+                rt->shapeGen = shapeGen;
+        }
 
 #ifdef JS_THREADSAFE
         JS_EndRequest(cx);
