@@ -508,6 +508,28 @@ nsWindow::ReparentNativeWidget(nsIWidget* aNewParent)
     return NS_OK;
 }
 
+NS_IMETHODIMP
+nsWindow::MakeFullScreen(bool aFullScreen)
+{
+    if (mWindowType != eWindowType_toplevel) {
+        
+        NS_WARNING("MakeFullScreen() on a dialog or child widget?");
+        return nsBaseWidget::MakeFullScreen(aFullScreen);
+    }
+
+    if (aFullScreen) {
+        
+        
+        
+        
+        
+        Resize(sVirtualBounds.x, sVirtualBounds.y,
+               sVirtualBounds.width, sVirtualBounds.height,
+               true);
+    }
+    return NS_OK;
+}
+
 float
 nsWindow::GetDPI()
 {
