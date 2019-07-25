@@ -240,6 +240,11 @@ typedef PRUint64 nsFrameState;
 #define NS_FRAME_DRAWING_AS_PAINTSERVER             NS_FRAME_STATE_BIT(33)
 
 
+
+
+#define NS_FRAME_NO_COMPONENT_ALPHA                 NS_FRAME_STATE_BIT(34)
+
+
 #define NS_FRAME_HAS_CLIP                           NS_FRAME_STATE_BIT(35)
 
 

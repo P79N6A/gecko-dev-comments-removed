@@ -319,6 +319,13 @@ public:
 
 
 
+  virtual bool AreComponentAlphaLayersEnabled() { return true; }
+
+  
+
+
+
+
   virtual void SetRoot(Layer* aLayer) = 0;
   
 
