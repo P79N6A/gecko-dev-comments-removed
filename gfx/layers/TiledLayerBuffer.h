@@ -8,11 +8,7 @@
 #define TILEDLAYERBUFFER_TILE_SIZE 256
 
 
-#ifdef ANDROID
-  
-  
-  #define FORCE_BASICTILEDTHEBESLAYER
-#endif
+
 
 
 
@@ -120,6 +116,8 @@ protected:
   int             mRetainedHeight; 
 
 private:
+  TiledLayerBuffer(const TiledLayerBuffer&) MOZ_DELETE;
+
   const Derived& AsDerived() const { return *static_cast<const Derived*>(this); }
   Derived& AsDerived() { return *static_cast<Derived*>(this); }
 
