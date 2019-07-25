@@ -189,6 +189,14 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   nsRefPtr<ImageContainer> container = element->GetImageContainer();
   
   
+  if (container && container->Manager() != aManager) {
+    
+    
+    container->SetLayerManager(aManager);
+  }
+
+  
+  
   
   
   if (!container || container->Manager() != aManager) {
@@ -203,6 +211,10 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
       
       
       imageSurface = container->GetCurrentAsSurface(&cairoData.mSize);
+      if (!imageSurface) {
+        
+        return nsnull;
+      }
       cairoData.mSurface = imageSurface;
     } else {
       
