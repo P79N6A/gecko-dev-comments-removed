@@ -1365,6 +1365,20 @@ nsHttpConnection::OnSocketReadable()
     bool again = true;
 
     do {
+        if (!mProxyConnectInProgress && !mNPNComplete) {
+            
+            
+            
+            
+            
+            
+
+            LOG(("nsHttpConnection::OnSocketReadable %p return due to inactive "
+                 "tunnel setup but incomplete NPN state\n", this));
+            rv = NS_OK;
+            break;
+        }
+
         rv = mTransaction->WriteSegments(this, nsIOService::gDefaultSegmentSize, &n);
         if (NS_FAILED(rv)) {
             
