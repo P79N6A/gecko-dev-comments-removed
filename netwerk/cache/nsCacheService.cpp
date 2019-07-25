@@ -997,6 +997,30 @@ private:
 
 
 
+class nsNotifyDoomListener : public nsRunnable {
+public:
+    nsNotifyDoomListener(nsICacheListener *listener,
+                         nsresult status)
+        : mListener(listener)      
+        , mStatus(status)
+    {}
+
+    NS_IMETHOD Run()
+    {
+        mListener->OnCacheEntryDoomed(mStatus);
+        NS_RELEASE(mListener);
+        return NS_OK;
+    }
+
+private:
+    nsICacheListener *mListener;
+    nsresult          mStatus;
+};
+
+
+
+
+
 class nsDoomEvent : public nsRunnable {
 public:
     nsDoomEvent(nsCacheSession *session,

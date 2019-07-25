@@ -604,7 +604,7 @@ nsHttpChannel::ContinueHandleAsyncRedirect(nsresult rv)
     
     if (mCacheEntry) {
         if (NS_FAILED(rv))
-            mCacheEntry->AsyncDoom(nullptr);
+            mCacheEntry->Doom();
     }
     CloseCacheEntry(false);
 
@@ -979,7 +979,7 @@ nsHttpChannel::CallOnStartRequest()
 
     
     if (mCacheEntry && mChannelIsForDownload) {
-        mCacheEntry->AsyncDoom(nullptr);
+        mCacheEntry->Doom();
         CloseCacheEntry(false);
     }
 
@@ -1266,7 +1266,7 @@ nsHttpChannel::ProcessResponse()
             LOG(("AsyncProcessRedirection failed [rv=%x]\n", rv));
             
             if (mCacheEntry)
-                mCacheEntry->AsyncDoom(nullptr);
+                mCacheEntry->Doom();
             if (DoNotRender3xxBody(rv)) {
                 mStatus = rv;
                 DoNotifyListener();
@@ -2185,7 +2185,7 @@ nsHttpChannel::ProcessNotModified()
              "[%s] and [%s]\n",
              lastModifiedCached.get(), lastModified304.get()));
 
-        mCacheEntry->AsyncDoom(nullptr);
+        mCacheEntry->Doom();
         if (mConnectionInfo)
             gHttpHandler->ConnMgr()->
                 PipelineFeedbackInfo(mConnectionInfo,
@@ -2263,7 +2263,7 @@ nsHttpChannel::ProcessFallback(bool *waitingForRedirectCallback)
     
     
     if (mOfflineCacheEntry) {
-        mOfflineCacheEntry->AsyncDoom(nullptr);
+        mOfflineCacheEntry->Doom();
         mOfflineCacheEntry = 0;
         mOfflineCacheAccess = 0;
     }
@@ -3574,7 +3574,7 @@ nsHttpChannel::CloseCacheEntry(bool doomOnFailure)
 
     if (doom) {
         LOG(("  dooming cache entry!!"));
-        mCacheEntry->AsyncDoom(nullptr);
+        mCacheEntry->Doom();
     }
 
     mCachedResponseHead = nullptr;
@@ -3595,12 +3595,12 @@ nsHttpChannel::CloseOfflineCacheEntry()
     LOG(("nsHttpChannel::CloseOfflineCacheEntry [this=%p]", this));
 
     if (NS_FAILED(mStatus)) {
-        mOfflineCacheEntry->AsyncDoom(nullptr);
+        mOfflineCacheEntry->Doom();
     }
     else {
         bool succeeded;
         if (NS_SUCCEEDED(GetRequestSucceeded(&succeeded)) && !succeeded)
-            mOfflineCacheEntry->AsyncDoom(nullptr);
+            mOfflineCacheEntry->Doom();
     }
 
     mOfflineCacheEntry = 0;
@@ -4072,7 +4072,7 @@ nsHttpChannel::ContinueProcessRedirectionAfterFallback(nsresult rv)
     if (mCacheEntry && (mCacheAccess & nsICache::ACCESS_WRITE) &&
         NS_SUCCEEDED(mURI->Equals(mRedirectURI, &redirectingBackToSameURI)) &&
         redirectingBackToSameURI)
-            mCacheEntry->AsyncDoom(nullptr);
+            mCacheEntry->Doom();
 
     
     

@@ -1118,7 +1118,7 @@ nsFtpState::S_list() {
 
         
         if (NS_FAILED(InstallCacheListener())) {
-            mCacheEntry->AsyncDoom(nullptr);
+            mCacheEntry->Doom();
             mCacheEntry = nullptr;
         }
     }
@@ -1181,7 +1181,7 @@ nsFtpState::R_retr() {
         
         
         if (mCacheEntry) {
-            (void)mCacheEntry->AsyncDoom(nullptr);
+            (void)mCacheEntry->Doom();
             mCacheEntry = nullptr;
         }
         if (HasPendingCallback())
@@ -2149,7 +2149,7 @@ nsFtpState::CloseWithStatus(nsresult status)
 
     mDataStream = nullptr;
     if (mDoomCache && mCacheEntry)
-        mCacheEntry->AsyncDoom(nullptr);
+        mCacheEntry->Doom();
     mCacheEntry = nullptr;
 
     return nsBaseContentStream::CloseWithStatus(status);
