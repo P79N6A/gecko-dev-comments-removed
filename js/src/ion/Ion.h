@@ -79,18 +79,30 @@ struct IonOptions
     
     bool lsra;
 
+    
+    
+    
+    
+    uint32 invokesBeforeCompile;
+
+    void setEagerCompilation() {
+        invokesBeforeCompile = 0;
+    }
+
     IonOptions()
       : enabled(false),
         gvn(true),
         gvnIsOptimistic(true),
         licm(true),
-        lsra(true)
+        lsra(true),
+        invokesBeforeCompile(40)
     { }
 };
 
 enum MethodStatus
 {
     Method_CantCompile,
+    Method_Skipped,
     Method_Compiled
 };
 
