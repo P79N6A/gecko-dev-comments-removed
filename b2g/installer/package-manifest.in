@@ -407,10 +407,10 @@
 @BINPATH@/components/RadioInterfaceLayer.js
 @BINPATH@/components/SmsDatabaseService.manifest
 @BINPATH@/components/SmsDatabaseService.js
-@BINPATH@/components/WifiWorker.js
-@BINPATH@/components/WifiWorker.manifest
-@BINPATH@/components/DOMWifiManager.js
-@BINPATH@/components/DOMWifiManager.manifest
+@BINPATH@/components/nsWifiWorker.js
+@BINPATH@/components/nsWifiWorker.manifest
+@BINPATH@/components/nsDOMWifiManager.js
+@BINPATH@/components/nsDOMWifiManager.manifest
 #endif
 #ifdef XP_MACOSX
 @BINPATH@/components/libalerts.dylib
@@ -619,3 +619,4 @@ bin/components/@DLL_PREFIX@nkgnomevfs@DLL_SUFFIX@
 @BINPATH@/components/CameraContent.js
 @BINPATH@/components/AlertsService.js
 @BINPATH@/components/ContentPermissionPrompt.js
+@BINPATH@/components/MozKeyboard.js
