@@ -573,6 +573,13 @@ struct TypeResult
 
 
 
+
+
+
+
+
+
+
 struct TypeBarrier
 {
     
@@ -734,7 +741,6 @@ struct TypeObject : gc::Cell
     static const uint32 CONTRIBUTION_LIMIT = 2000;
 
     
-
 
 
 
