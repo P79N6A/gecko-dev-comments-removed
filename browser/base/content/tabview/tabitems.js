@@ -628,8 +628,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       GroupItems.setActiveOrphanTab(this);
     }
 
-    this.shouldHideCachedData = true;
-    TabItems._update(this.tab);
+    TabItems._update(this.tab, {force: true});
 
     
     let tab = this.tab;
@@ -697,8 +696,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         complete();
     };
 
-    this.shouldHideCachedData = true;
-    TabItems._update(this.tab);
+    TabItems._update(this.tab, {force: true});
 
     $tab.addClass("front");
 
@@ -943,7 +941,14 @@ let TabItems = {
   
   
   
-  _update: function TabItems__update(tab) {
+  
+  
+  
+  
+  
+  
+  
+  _update: function TabItems__update(tab, options) {
     try {
       if (this._pauseUpdateForTest)
         return;
@@ -991,7 +996,7 @@ let TabItems = {
       }
 
       
-      if (!this.isComplete(tab)) {
+      if (!this.isComplete(tab) && (!options || !options.force)) {
         
         this._tabsWaitingForUpdate.push(tab);
         return;
