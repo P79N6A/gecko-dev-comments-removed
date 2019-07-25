@@ -228,7 +228,7 @@ public class PanZoomController
     public void pageSizeUpdated() {
         if (mState == PanZoomState.NOTHING) {
             ViewportMetrics validated = getValidViewportMetrics();
-            if (! mController.getViewportMetrics().fuzzyEquals(validated)) {
+            if (! (new ViewportMetrics(mController.getViewportMetrics())).fuzzyEquals(validated)) {
                 
                 
                 mController.setViewportMetrics(validated);
