@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef jscntxtinlines_h___
 #define jscntxtinlines_h___
 
@@ -105,6 +106,55 @@ StackSpace::isCurrentAndActive(JSContext *cx) const
     return currentSegment &&
            currentSegment->isActive() &&
            currentSegment == cx->getCurrentSegment();
+}
+
+
+
+
+
+
+
+
+
+
+
+static const uint32 MAX_STACK_USAGE = (VALUES_PER_STACK_FRAME + 18) * JS_MAX_INLINE_CALL_COUNT;
+
+JS_ALWAYS_INLINE Value *
+StackSpace::makeStackLimit(Value *start) const
+{
+    Value *limit = JS_MIN(start + MAX_STACK_USAGE, end);
+#ifdef XP_WIN
+    limit = JS_MIN(limit, commitEnd);
+#endif
+    return limit;
+}
+
+JS_ALWAYS_INLINE bool
+StackSpace::ensureSpace(JSContext *maybecx, Value *start, Value *from,
+                        Value *& limit, uint32 nslots) const
+{
+    JS_ASSERT(from == firstUnused());
+#ifdef XP_WIN
+    
+
+
+
+
+
+    ptrdiff_t nvals = VALUES_PER_STACK_FRAME + nslots;
+    if (commitEnd < limit && from + nvals < limit) {
+        if (!ensureSpace(maybecx, from, nvals))
+            return false;
+
+        
+        limit = makeStackLimit(start);
+
+        return true;
+    }
+#endif
+    js_ReportOverRecursed(maybecx);
+    return false;
 }
 
 JS_ALWAYS_INLINE bool
@@ -276,19 +326,26 @@ InvokeFrameGuard::~InvokeFrameGuard()
 }
 
 JS_REQUIRES_STACK JS_ALWAYS_INLINE JSStackFrame *
-StackSpace::getInlineFrame(JSContext *cx, Value *sp,
-                           uintN nmissing, uintN nfixed) const
+StackSpace::getInlineFrameUnchecked(JSContext *cx, Value *sp,
+                                    uintN nmissing) const
 {
     JS_ASSERT(isCurrentAndActive(cx));
     JS_ASSERT(cx->hasActiveSegment());
     JS_ASSERT(cx->regs->sp == sp);
 
+    JSStackFrame *fp = reinterpret_cast<JSStackFrame *>(sp + nmissing);
+    return fp;
+}
+
+JS_REQUIRES_STACK JS_ALWAYS_INLINE JSStackFrame *
+StackSpace::getInlineFrame(JSContext *cx, Value *sp,
+                           uintN nmissing, uintN nfixed) const
+{
     ptrdiff_t nvals = nmissing + VALUES_PER_STACK_FRAME + nfixed;
     if (!ensureSpace(cx, sp, nvals))
         return NULL;
 
-    JSStackFrame *fp = reinterpret_cast<JSStackFrame *>(sp + nmissing);
-    return fp;
+    return getInlineFrameUnchecked(cx, sp, nmissing);
 }
 
 JS_REQUIRES_STACK JS_ALWAYS_INLINE void

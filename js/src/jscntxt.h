@@ -795,6 +795,10 @@ class StackSpace
                                         uintN nmissing, uintN nfixed) const;
 
     JS_REQUIRES_STACK
+    inline JSStackFrame *getInlineFrameUnchecked(JSContext *cx, Value *sp,
+                                                 uintN nmissing) const;
+
+    JS_REQUIRES_STACK
     inline void pushInlineFrame(JSContext *cx, JSStackFrame *fp, jsbytecode *pc,
                                 JSStackFrame *newfp);
 
@@ -814,6 +818,19 @@ class StackSpace
 
     JS_REQUIRES_STACK
     void popSynthesizedSlowNativeFrame(JSContext *cx);
+
+    
+
+
+    inline bool ensureSpace(JSContext *maybecx, Value *start, Value *from,
+                            Value *& limit, uint32 nslots) const;
+
+    
+
+
+
+    inline Value *makeStackLimit(Value *start) const;
+
 };
 
 JS_STATIC_ASSERT(StackSpace::CAPACITY_VALS % StackSpace::COMMIT_VALS == 0);
