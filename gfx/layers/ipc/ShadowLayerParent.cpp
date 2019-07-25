@@ -99,6 +99,10 @@ ShadowLayerParent::ActorDestroy(ActorDestroyReason why)
     
     
     break;
+
+  case FailedConstructor:
+    NS_RUNTIMEABORT("FailedConstructor isn't possible in PLayers");
+    return;                     
   }
 
   mLayer = NULL;
