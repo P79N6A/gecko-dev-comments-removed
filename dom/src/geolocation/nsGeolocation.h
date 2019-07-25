@@ -182,7 +182,7 @@ public:
   void Shutdown();
 
   
-  nsIURI* GetURI() { return mURI; }
+  nsIPrincipal* GetPrincipal() { return mPrincipal; }
 
   
   nsIWeakReference* GetOwner() { return mOwner; }
@@ -208,7 +208,7 @@ private:
   nsWeakPtr mOwner;
 
   
-  nsCOMPtr<nsIURI> mURI;
+  nsCOMPtr<nsIPrincipal> mPrincipal;
 
   
   nsRefPtr<nsGeolocationService> mService;
