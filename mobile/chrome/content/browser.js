@@ -67,8 +67,7 @@ function debug() {
   let bv = Browser._browserView;
   let tc = bv._tileManager._tileCache;
   let scrollbox = document.getElementById("tile-container-container")
-		.boxObject
-		.QueryInterface(Components.interfaces.nsIScrollBoxObject);
+                .boxObject.QueryInterface(Ci.nsIScrollBoxObject);
 
   let x = {};
   let y = {};
@@ -404,10 +403,13 @@ var Browser = {
       
       let browsers = Browser.browsers;
       if (browsers) {
-        let scaledH = (kDefaultBrowserWidth * (h / w));
+        let scaledDefaultH = (kDefaultBrowserWidth * (h / w));
+        let scaledScreenH = (window.screen.width * (h / w));
         for (let i=0; i<browsers.length; i++) {
           let browserStyle = browsers[i].style;
-          browserStyle.height = scaledH + 'px';
+          browserStyle.height = ((browsers[i].hasOwnProperty("handheld") && 
+                                  browsers[i].handheld) ? 
+                                 scaledScreenH : scaledDefaultH) + "px";
         }
       }
 
