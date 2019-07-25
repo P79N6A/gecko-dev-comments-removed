@@ -266,16 +266,7 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-    PRInt8 UseHarfBuzzLevel();
+    PRBool UseHarfBuzzForScript(PRInt32 aScriptCode);
 
     
     virtual PRBool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags) { return PR_FALSE; }
@@ -393,7 +384,7 @@ protected:
     PRBool  mSanitizePreserveOTLTables;
 
     
-    PRInt8  mUseHarfBuzzLevel;
+    PRInt32 mUseHarfBuzzScripts;
 
 private:
     virtual qcms_profile* GetPlatformCMSOutputProfile();

@@ -164,24 +164,29 @@ gfxUnicodeProperties::GetHangulSyllableType(PRUint32 aCh)
 
 
 
-
-
-
 PRInt32
-gfxUnicodeProperties::ScriptShapingLevel(PRInt32 aScriptCode)
+gfxUnicodeProperties::ScriptShapingType(PRInt32 aScriptCode)
 {
     switch (aScriptCode) {
     default:
-        return 1; 
-                  
+        return SHAPING_DEFAULT; 
+                                
 
     case HB_SCRIPT_ARABIC:
     case HB_SCRIPT_SYRIAC:
     case HB_SCRIPT_NKO:
-        return 2; 
+    case HB_SCRIPT_MANDAIC:
+        return SHAPING_ARABIC; 
 
     case HB_SCRIPT_HEBREW:
+        return SHAPING_HEBREW;
+
     case HB_SCRIPT_HANGUL:
+        return SHAPING_HANGUL;
+
+    case HB_SCRIPT_MONGOLIAN: 
+        return SHAPING_MONGOLIAN;
+
     case HB_SCRIPT_BENGALI:
     case HB_SCRIPT_DEVANAGARI:
     case HB_SCRIPT_GUJARATI:
@@ -198,11 +203,10 @@ gfxUnicodeProperties::ScriptShapingLevel(PRInt32 aScriptCode)
     case HB_SCRIPT_TIBETAN:
     case HB_SCRIPT_NEW_TAI_LUE:
     case HB_SCRIPT_TAI_LE:
-    case HB_SCRIPT_MONGOLIAN:
     case HB_SCRIPT_MYANMAR:
     case HB_SCRIPT_PHAGS_PA:
     case HB_SCRIPT_BATAK:
     case HB_SCRIPT_BRAHMI:
-        return 3; 
+        return SHAPING_INDIC; 
     }
 }
