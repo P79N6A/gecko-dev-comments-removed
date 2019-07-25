@@ -177,13 +177,6 @@ nsNotifyAddrListener::Observe(nsISupports *subject,
 nsresult
 nsNotifyAddrListener::Init(void)
 {
-    
-    
-    
-    
-    
-    
-
     nsCOMPtr<nsIObserverService> observerService =
         mozilla::services::GetObserverService();
     if (!observerService)
@@ -413,9 +406,19 @@ nsNotifyAddrListener::CheckLinkStatus(void)
     DWORD ret;
     const char *event;
 
-    ret = CheckAdaptersAddresses();
-    if (ret != ERROR_SUCCESS)
-        mLinkUp = true; 
+    
+    
+    
+    if (NS_IsMainThread()) {
+        NS_WARNING("CheckLinkStatus called on main thread! No check "
+                   "performed. Assuming link is up, status is unknown.");
+        mLinkUp = true;
+    } else {
+        ret = CheckAdaptersAddresses();
+        if (ret != ERROR_SUCCESS) {
+            mLinkUp = true;
+        }
+    }
 
     if (mStatusKnown)
         event = mLinkUp ? NS_NETWORK_LINK_DATA_UP : NS_NETWORK_LINK_DATA_DOWN;
