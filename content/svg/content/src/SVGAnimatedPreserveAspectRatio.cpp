@@ -36,7 +36,7 @@
 
 
 
-#include "nsSVGPreserveAspectRatio.h"
+#include "SVGAnimatedPreserveAspectRatio.h"
 #include "nsWhitespaceTokenizer.h"
 #ifdef MOZ_SMIL
 #include "nsSMILValue.h"
