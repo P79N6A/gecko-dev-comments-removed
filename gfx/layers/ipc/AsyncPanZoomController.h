@@ -297,6 +297,8 @@ protected:
 
 
 
+
+
   void CancelAnimation();
 
   
@@ -398,6 +400,13 @@ private:
    CONTENT_PAINTING_AND_PAINT_PENDING
   };
 
+  
+
+
+
+
+  void SetState(PanZoomState aState);
+
   nsRefPtr<CompositorParent> mCompositorParent;
   nsRefPtr<GeckoContentController> mGeckoContentController;
   nsRefPtr<GestureEventListener> mGestureEventListener;
@@ -428,6 +437,10 @@ private:
   AxisX mX;
   AxisY mY;
 
+  
+  
+  
+  
   Monitor mMonitor;
 
   
@@ -443,7 +456,11 @@ private:
   
   
   nsIntPoint mLastZoomFocus;
+
+  
+  
   PanZoomState mState;
+
   int mDPI;
 
   
