@@ -60,6 +60,10 @@ window.Item = function() {
   
   
   this.userSize = null;
+  
+  
+  
+  this.locked = false;
 };
 
 window.Item.prototype = { 
@@ -447,6 +451,7 @@ window.Items = {
   
   
   
+  
   arrange: function(items, bounds, options) {
     var animate;
     if(!options || typeof(options.animate) == 'undefined') 
@@ -502,8 +507,13 @@ window.Items = {
 
         immediately = !animate;
         
-      item.setBounds(box, immediately);
-      item.setRotation(0);
+      if(!item.locked) {
+        item.setBounds(box, immediately);
+        item.setRotation(0);
+        if(options.z)
+          item.setZ(options.z);
+      }
+      
 
 
 
