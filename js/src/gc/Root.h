@@ -383,6 +383,11 @@ public:
     }
 };
 
+#if defined(DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
+extern void
+CheckStackRoots(JSContext *cx);
+#endif
+
 
 
 
@@ -392,7 +397,6 @@ inline void MaybeCheckStackRoots(JSContext *cx)
 #ifdef DEBUG
     JS_ASSERT(!IsRootingUnnecessaryForContext(cx));
 # if defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
-    void CheckStackRoots(JSContext *cx);
     CheckStackRoots(cx);
 # endif
 #endif
