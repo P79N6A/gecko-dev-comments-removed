@@ -39,7 +39,6 @@
 
 #include "nscore.h"  
 #include "nsGTKToolkit.h"
-#include "nsWidgetAtoms.h"
 
 
 
@@ -105,9 +104,6 @@ GdkGC *nsGTKToolkit::GetSharedGC(void)
 NS_IMETHODIMP nsGTKToolkit::Init(PRThread *aThread)
 {
     CreateSharedGC();
-
-    nsWidgetAtoms::RegisterAtoms();
-
     return NS_OK;
 }
 
