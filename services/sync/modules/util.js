@@ -198,7 +198,23 @@ let Utils = {
         throw batchEx;
     };
   },
-  
+
+  runInTransaction: function(db, callback, thisObj) {
+    let hasTransaction = false;
+    try {
+      db.beginTransaction();
+      hasTransaction = true;
+    } catch(e) {  }
+
+    try {
+      return callback.call(thisObj);
+    } finally {
+      if (hasTransaction) {
+        db.commitTransaction();
+      }
+    }
+  },
+
   createStatement: function createStatement(db, query) {
     
     if (db.createAsyncStatement)
