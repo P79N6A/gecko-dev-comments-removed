@@ -34,6 +34,7 @@
 
 
 
+
 #filter substitution
 
 
@@ -374,6 +375,7 @@ pref("browser.ui.kinetic.swipeLength", 160);
 
 pref("browser.ui.zoom.pageFitGranularity", 5); 
 pref("browser.ui.zoom.animationDuration", 200); 
+pref("browser.ui.zoom.reflow", true); 
 
 
 pref("browser.ui.pinch.maxGrowth", 150);     
