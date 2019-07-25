@@ -627,6 +627,12 @@ class CallCompiler : public BaseCompiler
     bool generateFullCallStub(JITScript *from, JSScript *script, uint32 flags)
     {
         
+        if (f.regs.inlined()) {
+            disable(from);
+            return true;
+        }
+
+        
 
 
 
@@ -654,6 +660,16 @@ class CallCompiler : public BaseCompiler
                         : offsetof(JSScript, jitArityCheckNormal);
         masm.loadPtr(Address(t0, offset), t0);
         Jump hasCode = masm.branchPtr(Assembler::Above, t0, ImmPtr(JS_UNJITTABLE_SCRIPT));
+
+        if (cx->typeInferenceEnabled()) {
+            
+
+
+
+
+            masm.storePtr(ImmPtr((void *) ic.frameSize.rejoinState(f.regs.pc, false)),
+                          FrameAddress(offsetof(VMFrame, stubRejoin)));
+        }
 
         
         void *compilePtr = JS_FUNC_TO_DATA_PTR(void *, stubs::CompileFunction);
@@ -841,6 +857,17 @@ class CallCompiler : public BaseCompiler
         
         Jump funGuard = masm.branchPtr(Assembler::NotEqual, ic.funObjReg, ImmPtr(obj));
 
+        if (cx->typeInferenceEnabled()) {
+            
+
+
+
+
+
+            masm.storePtr(ImmPtr((void *) ic.frameSize.rejoinState(f.regs.pc, true)),
+                          FrameAddress(offsetof(VMFrame, stubRejoin)));
+        }
+
         
         if (ic.frameSize.isDynamic()) {
             masm.fallibleVMCall(cx->typeInferenceEnabled(),
@@ -915,18 +942,6 @@ class CallCompiler : public BaseCompiler
             masm.storeValue(v, Address(vpReg, sizeof(Value)));
         }
 
-        if (cx->typeInferenceEnabled()) {
-            
-
-
-
-
-
-
-            masm.storePtr(ImmPtr(NATIVE_CALL_SCRATCH_VALUE),
-                          FrameAddress(offsetof(VMFrame, scratch)));
-        }
-
         masm.restoreStackBase();
         masm.setupABICall(Registers::NormalCall, 3);
         masm.storeArg(2, vpReg);
@@ -950,7 +965,7 @@ class CallCompiler : public BaseCompiler
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, native), false);
 
         if (cx->typeInferenceEnabled())
-            masm.storePtr(ImmPtr(NULL), FrameAddress(offsetof(VMFrame, scratch)));
+            masm.storePtr(ImmPtr(NULL), FrameAddress(offsetof(VMFrame, stubRejoin)));
 
         
         masm.loadPtr(FrameAddress(VMFrame::offsetOfFp), JSFrameReg);

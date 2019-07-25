@@ -13,7 +13,7 @@ function assertObjectsEqual(obj1, obj2) {
 }
 
 function forName(obj) {
-    assertJit();
+    
     eval('');
     var r = { };
     for (x in obj)

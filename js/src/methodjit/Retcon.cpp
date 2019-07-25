@@ -76,8 +76,30 @@ AutoScriptRetrapper::untrap(jsbytecode *pc)
     return true;
 }
 
-Recompiler::PatchableAddress
-Recompiler::findPatch(JITScript *jit, void **location)
+static inline JSRejoinState ScriptedRejoin(uint32 pcOffset)
+{
+    return REJOIN_SCRIPTED | (pcOffset << 1);
+}
+
+static inline JSRejoinState StubRejoin(RejoinState rejoin)
+{
+    return rejoin << 1;
+}
+
+static inline void
+SetRejoinState(StackFrame *fp, const CallSite &site, void **location)
+{
+    if (site.rejoin == REJOIN_SCRIPTED) {
+        fp->setRejoin(ScriptedRejoin(site.pcOffset));
+        *location = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpolineScripted);
+    } else {
+        fp->setRejoin(StubRejoin(site.rejoin));
+        *location = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
+    }
+}
+
+void
+Recompiler::patchCall(JITScript *jit, StackFrame *fp, void **location)
 {
     uint8* codeStart = (uint8 *)jit->code.m_code.executableAddress();
 
@@ -85,64 +107,17 @@ Recompiler::findPatch(JITScript *jit, void **location)
     for (uint32 i = 0; i < jit->nCallSites; i++) {
         if (callSites_[i].codeOffset + codeStart == *location) {
             JS_ASSERT(callSites_[i].inlineIndex == analyze::CrossScriptSSA::OUTER_FRAME);
-            PatchableAddress result;
-            result.location = location;
-            result.callSite = callSites_[i];
-            return result;
-        }
-    }
-
-    RejoinSite *rejoinSites_ = jit->rejoinSites();
-    for (uint32 i = 0; i < jit->nRejoinSites; i++) {
-        const RejoinSite &rs = rejoinSites_[i];
-        if (rs.codeOffset + codeStart == *location) {
-            PatchableAddress result;
-            result.location = location;
-            result.callSite.initialize(rs.codeOffset, uint32(-1), rs.pcOffset, rs.id);
-            return result;
+            SetRejoinState(fp, callSites_[i], location);
+            return;
         }
     }
 
     JS_NOT_REACHED("failed to find call site");
-    return PatchableAddress();
-}
-
-void *
-Recompiler::findRejoin(JITScript *jit, const CallSite &callSite)
-{
-    JS_ASSERT(callSite.inlineIndex == uint32(-1));
-
-    RejoinSite *rejoinSites_ = jit->rejoinSites();
-    for (uint32 i = 0; i < jit->nRejoinSites; i++) {
-        RejoinSite &rs = rejoinSites_[i];
-        if (rs.pcOffset == callSite.pcOffset &&
-            (rs.id == callSite.id || rs.id == RejoinSite::VARIADIC_ID)) {
-            
-
-
-
-            JS_ASSERT_IF(rs.id == RejoinSite::VARIADIC_ID,
-                         callSite.id != CallSite::NCODE_RETURN_ID);
-            uint8* codeStart = (uint8 *)jit->code.m_code.executableAddress();
-            return codeStart + rs.codeOffset;
-        }
-    }
-
-    
-    JS_NOT_REACHED("Call site vanished.");
-    return NULL;
 }
 
 void
-Recompiler::applyPatch(JITScript *jit, PatchableAddress& toPatch)
-{
-    void *result = findRejoin(jit, toPatch.callSite);
-    JS_ASSERT(result);
-    *toPatch.location = result;
-}
-
-Recompiler::PatchableNative
-Recompiler::stealNative(JITScript *jit, jsbytecode *pc)
+Recompiler::patchNative(JSContext *cx, JITScript *jit, StackFrame *fp, jsbytecode *pc,
+                        RejoinState rejoin)
 {
     
 
@@ -151,6 +126,8 @@ Recompiler::stealNative(JITScript *jit, jsbytecode *pc)
 
 
 
+    fp->setRejoin(StubRejoin(rejoin));
+    cx->compartment->jaegerCompartment->orphanedNativeCount++;
 
     unsigned i;
     ic::CallICInfo *callICs = jit->callICs();
@@ -167,73 +144,21 @@ Recompiler::stealNative(JITScript *jit, jsbytecode *pc)
 
     if (!pool) {
         
-        PatchableNative native;
-        native.pc = NULL;
-        native.guardedNative = NULL;
-        native.pool = NULL;
-        return native;
-    }
-
-    PatchableNative native;
-    native.pc = pc;
-    native.guardedNative = ic.fastGuardedNative;
-    native.pool = pool;
-    native.nativeStart = ic.nativeStart;
-    native.nativeFunGuard = ic.nativeFunGuard;
-    native.nativeJump = ic.nativeJump;
-
-    
-
-
-
-    pool = NULL;
-
-    return native;
-}
-
-void
-Recompiler::patchNative(JITScript *jit, PatchableNative &native)
-{
-    if (!native.pc)
         return;
-
-    unsigned i;
-    ic::CallICInfo *callICs = jit->callICs();
-    for (i = 0; i < jit->nCallICs; i++) {
-        CallSite *call = callICs[i].call;
-        if (call->inlineIndex == uint32(-1) && call->pcOffset == uint32(native.pc - jit->script->code))
-            break;
-    }
-    JS_ASSERT(i < jit->nCallICs);
-    ic::CallICInfo &ic = callICs[i];
-
-    ic.fastGuardedNative = native.guardedNative;
-    ic.pools[ic::CallICInfo::Pool_NativeStub] = native.pool;
-    ic.nativeStart = native.nativeStart;
-    ic.nativeFunGuard = native.nativeFunGuard;
-    ic.nativeJump = native.nativeJump;
-
-    
-    {
-        uint8 *start = (uint8 *)ic.funJump.executableAddress();
-        JSC::RepatchBuffer repatch(JSC::JITCode(start - 32, 64));
-        repatch.relink(ic.funJump, ic.nativeStart);
     }
 
     
     {
-        uint8 *start = (uint8 *)native.nativeFunGuard.executableAddress();
+        uint8 *start = (uint8 *)ic.nativeJump.executableAddress();
         JSC::RepatchBuffer repatch(JSC::JITCode(start - 32, 64));
-        repatch.relink(native.nativeFunGuard, ic.slowPathStart);
+        repatch.relink(ic.nativeJump, JSC::CodeLocationLabel(JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline)));
     }
 
     
-    {
-        JSC::CodeLocationLabel joinPoint = ic.slowPathStart.labelAtOffset(ic.slowJoinOffset);
-        uint8 *start = (uint8 *)native.nativeJump.executableAddress();
-        JSC::RepatchBuffer repatch(JSC::JITCode(start - 32, 64));
-        repatch.relink(native.nativeJump, joinPoint);
-    }
+    cx->compartment->jaegerCompartment->orphanedNativePools.append(pool);
+
+    
+    pool = NULL;
 }
 
 StackFrame *
@@ -251,22 +176,24 @@ Recompiler::expandInlineFrameChain(JSContext *cx, StackFrame *outer, InlineFrame
     fp->initInlineFrame(inner->fun, parent, inner->parentpc);
     uint32 pcOffset = inner->parentpc - parent->script()->code;
 
-    
-
-
-
-
-
-
-
-    JS_ASSERT(fp->jit() && fp->jit()->rejoinPoints);
-
-    PatchableAddress patch;
-    patch.location = fp->addressOfNativeReturnAddress();
-    patch.callSite.initialize(0, uint32(-1), pcOffset, CallSite::NCODE_RETURN_ID);
-    applyPatch(parent->jit(), patch);
+    void **location = fp->addressOfNativeReturnAddress();
+    *location = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpolineScripted);
+    parent->setRejoin(ScriptedRejoin(pcOffset));
 
     return fp;
+}
+
+
+
+
+
+static inline bool
+JITCodeReturnAddress(void *data)
+{
+    return data != NULL  
+        && data != JS_FUNC_TO_DATA_PTR(void *, JaegerTrampolineReturn)
+        && data != JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline)
+        && data != JS_FUNC_TO_DATA_PTR(void *, JaegerInterpolineScripted);
 }
 
 
@@ -286,38 +213,42 @@ Recompiler::expandInlineFrames(JSContext *cx, StackFrame *fp, mjit::CallSite *in
     cx->compartment->types.frameExpansions++;
 
     
+
+
+
+
     void **frameAddr = f->returnAddressLocation();
     uint8* codeStart = (uint8 *)fp->jit()->code.m_code.executableAddress();
     bool patchFrameReturn =
-        (f->scratch != NATIVE_CALL_SCRATCH_VALUE) &&
-        (*frameAddr == codeStart + inlined->codeOffset);
+        (f->stubRejoin == 0) && (*frameAddr == codeStart + inlined->codeOffset);
 
     InlineFrame *inner = &fp->jit()->inlineFrames()[inlined->inlineIndex];
     jsbytecode *innerpc = inner->fun->script()->code + inlined->pcOffset;
 
     StackFrame *innerfp = expandInlineFrameChain(cx, fp, inner);
-    JITScript *jit = innerfp->jit();
 
     if (f->regs.fp() == fp) {
         JS_ASSERT(f->regs.inlined() == inlined);
         f->regs.expandInline(innerfp, innerpc);
     }
 
-    if (patchFrameReturn) {
-        PatchableAddress patch;
-        patch.location = frameAddr;
-        patch.callSite.initialize(0, uint32(-1), inlined->pcOffset, inlined->id);
-        applyPatch(jit, patch);
-    }
+    if (patchFrameReturn)
+        SetRejoinState(f->regs.fp(), *inlined, frameAddr);
+
+    
+
+
+
+
+
+
 
     if (next) {
         next->resetInlinePrev(innerfp, innerpc);
         void **addr = next->addressOfNativeReturnAddress();
-        if (*addr != NULL && *addr != JS_FUNC_TO_DATA_PTR(void *, JaegerTrampolineReturn)) {
-            PatchableAddress patch;
-            patch.location = addr;
-            patch.callSite.initialize(0, uint32(-1), inlined->pcOffset, CallSite::NCODE_RETURN_ID);
-            applyPatch(jit, patch);
+        if (JITCodeReturnAddress(*addr)) {
+            innerfp->setRejoin(ScriptedRejoin(inlined->pcOffset));
+            *addr = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpolineScripted);
         }
     }
 }
@@ -388,17 +319,7 @@ Recompiler::Recompiler(JSContext *cx, JSScript *script)
 
 
 
-
-
-
-
-
-
-
-
-
-
-bool
+void
 Recompiler::recompile()
 {
     JS_ASSERT(script->hasJITCode());
@@ -418,19 +339,9 @@ Recompiler::recompile()
 
 
 
-
-
-    Vector<PatchableAddress> normalPatches(cx);
-    Vector<PatchableAddress> ctorPatches(cx);
-    Vector<PatchableNative> normalNatives(cx);
-    Vector<PatchableNative> ctorNatives(cx);
-
-    
-    Vector<PatchableFrame> normalFrames(cx);
-    Vector<PatchableFrame> ctorFrames(cx);
-
     
     
+    VMFrame *nextf = NULL;
     for (VMFrame *f = script->compartment->jaegerCompartment->activeFrame();
          f != NULL;
          f = f->previous) {
@@ -444,119 +355,69 @@ Recompiler::recompile()
                 continue;
             }
 
-            
-            PatchableFrame frame;
-            frame.fp = fp;
-            frame.pc = fp->pc(cx, next);
-            frame.scriptedCall = false;
-
             if (next) {
                 
                 
                 
                 void **addr = next->addressOfNativeReturnAddress();
 
-                if (!*addr) {
-                    
-                } else if (*addr == JS_FUNC_TO_DATA_PTR(void *, JaegerTrampolineReturn)) {
-                    
-                } else if (fp->isConstructing()) {
-                    JS_ASSERT(script->jitCtor && script->jitCtor->isValidCode(*addr));
-                    frame.scriptedCall = true;
-                    if (!ctorPatches.append(findPatch(script->jitCtor, addr)))
-                        return false;
-                } else {
-                    JS_ASSERT(script->jitNormal && script->jitNormal->isValidCode(*addr));
-                    frame.scriptedCall = true;
-                    if (!normalPatches.append(findPatch(script->jitNormal, addr)))
-                        return false;
+                if (JITCodeReturnAddress(*addr)) {
+                    JS_ASSERT(fp->jit()->isValidCode(*addr));
+                    patchCall(fp->jit(), fp, addr);
+                } else if (nextf && nextf->entryfp == next &&
+                           JITCodeReturnAddress(nextf->entryncode)) {
+                    JS_ASSERT(fp->jit()->isValidCode(nextf->entryncode));
+                    patchCall(fp->jit(), fp, &nextf->entryncode);
                 }
             }
-
-            if (fp->isConstructing() && !ctorFrames.append(frame))
-                return false;
-            if (!fp->isConstructing() && !normalFrames.append(frame))
-                return false;
 
             next = fp;
         }
 
         
+
+
+
+
+
         StackFrame *fp = f->fp();
         void **addr = f->returnAddressLocation();
-        if (f->scratch == NATIVE_CALL_SCRATCH_VALUE) {
+        RejoinState rejoin = (RejoinState) f->stubRejoin;
+        if (rejoin == REJOIN_NATIVE || rejoin == REJOIN_NATIVE_LOWERED) {
             
-            if (fp->script() == script && fp->isConstructing()) {
-                if (!ctorNatives.append(stealNative(script->jitCtor, fp->pc(cx, NULL))))
-                    return false;
-            } else if (fp->script() == script) {
-                if (!normalNatives.append(stealNative(script->jitNormal, fp->pc(cx, NULL))))
-                    return false;
-            }
-        } else if (f->scratch == COMPILE_FUNCTION_SCRATCH_VALUE) {
+            if (fp->script() == script && fp->isConstructing())
+                patchNative(cx, script->jitCtor, fp, fp->pc(cx, NULL), rejoin);
+            else if (fp->script() == script)
+                patchNative(cx, script->jitNormal, fp, fp->pc(cx, NULL), rejoin);
+        } else if (rejoin) {
+            
             if (fp->prev()->script() == script) {
-                PatchableAddress patch;
-                patch.location = addr;
-                patch.callSite.initialize(0, uint32(-1), fp->prev()->pc(cx, NULL) - script->code,
-                                          (size_t) JS_FUNC_TO_DATA_PTR(void *, stubs::UncachedCall));
-                if (fp->prev()->isConstructing()) {
-                    if (!ctorPatches.append(patch))
-                        return false;
-                } else {
-                    if (!normalPatches.append(patch))
-                        return false;
-                }
+                fp->prev()->setRejoin(StubRejoin(rejoin));
+                *addr = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
             }
         } else if (script->jitCtor && script->jitCtor->isValidCode(*addr)) {
-            if (!ctorPatches.append(findPatch(script->jitCtor, addr)))
-                return false;
+            patchCall(script->jitCtor, fp, addr);
         } else if (script->jitNormal && script->jitNormal->isValidCode(*addr)) {
-            if (!normalPatches.append(findPatch(script->jitNormal, addr)))
-                return false;
+            patchCall(script->jitNormal, fp, addr);
         }
+
+        nextf = f;
     }
 
-    Vector<CallSite> normalSites(cx);
-    Vector<CallSite> ctorSites(cx);
-
-    if (script->jitNormal && !cleanup(script->jitNormal, &normalSites))
-        return false;
-    if (script->jitCtor && !cleanup(script->jitCtor, &ctorSites))
-        return false;
-
-    ReleaseScriptCode(cx, script, true);
-    ReleaseScriptCode(cx, script, false);
-
-    
-
-
-
-
-
-    StackFrame *top = (cx->running() && cx->fp()->isScriptFrame()) ? cx->fp() : NULL;
-    bool keepNormal = !normalFrames.empty() || script->inlineParents ||
-        (top && top->script() == script && !top->isConstructing());
-    bool keepCtor = !ctorFrames.empty() ||
-        (top && top->script() == script && top->isConstructing());
-
-    if (keepNormal && !recompile(script, false,
-                                 normalFrames, normalPatches, normalSites, normalNatives)) {
-        return false;
+    if (script->jitNormal) {
+        cleanup(script->jitNormal);
+        ReleaseScriptCode(cx, script, true);
     }
-    if (keepCtor && !recompile(script, true,
-                               ctorFrames, ctorPatches, ctorSites, ctorNatives)) {
-        return false;
+    if (script->jitCtor) {
+        cleanup(script->jitCtor);
+        ReleaseScriptCode(cx, script, false);
     }
-
-    JS_ASSERT_IF(keepNormal, script->jitNormal);
-    JS_ASSERT_IF(keepCtor, script->jitCtor);
 
     cx->compartment->types.recompilations++;
-    return true;
 }
 
-bool
-Recompiler::cleanup(JITScript *jit, Vector<CallSite> *sites)
+void
+Recompiler::cleanup(JITScript *jit)
 {
     while (!JS_CLIST_IS_EMPTY(&jit->callers)) {
         JaegerSpew(JSpew_Recompile, "Purging IC caller\n");
@@ -571,45 +432,6 @@ Recompiler::cleanup(JITScript *jit, Vector<CallSite> *sites)
         repatch.relink(ic->funJump, ic->slowPathStart);
         ic->purgeGuardedObject();
     }
-
-    CallSite *callSites_ = jit->callSites();
-    for (uint32 i = 0; i < jit->nCallSites; i++) {
-        CallSite &site = callSites_[i];
-        if (site.isTrap() && !sites->append(site))
-            return false;
-    }
-
-    return true;
-}
-
-bool
-Recompiler::recompile(JSScript *script, bool isConstructing,
-                      Vector<PatchableFrame> &frames,
-                      Vector<PatchableAddress> &patches, Vector<CallSite> &sites,
-                      Vector<PatchableNative> &natives)
-{
-    JaegerSpew(JSpew_Recompile, "On stack recompilation, %u frames, %u patches, %u natives\n",
-               frames.length(), patches.length(), natives.length());
-
-    CompileStatus status = Compile_Retry;
-    while (status == Compile_Retry) {
-        Compiler cc(cx, script, isConstructing, &frames);
-        if (!cc.loadOldTraps(sites))
-            return false;
-        status = cc.compile();
-    }
-    if (status != Compile_Okay)
-        return false;
-
-    JITScript *jit = script->getJIT(isConstructing);
-
-    
-    for (uint32 i = 0; i < patches.length(); i++)
-        applyPatch(jit, patches[i]);
-    for (uint32 i = 0; i < natives.length(); i++)
-        patchNative(jit, natives[i]);
-
-    return true;
 }
 
 } 

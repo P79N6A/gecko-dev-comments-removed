@@ -654,6 +654,11 @@ class Value
         return data.asBits;
     }
 
+    JS_ALWAYS_INLINE
+    void setRawBits(uint64 bits) {
+        data.asBits = bits;
+    }
+
     
 
 

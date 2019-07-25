@@ -382,8 +382,8 @@ GetCustomIterator(JSContext *cx, JSObject *obj, uintN flags, Value *vp)
 
 
 
-    if (!(flags & JSITER_OWNONLY) && !cx->markTypeCallerUnexpected(types::TYPE_UNKNOWN))
-        return false;
+    if (!(flags & JSITER_OWNONLY))
+        cx->markTypeCallerUnexpected(types::TYPE_UNKNOWN);
 
     
     LeaveTrace(cx);
@@ -1248,8 +1248,7 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
             jsbytecode *yieldpc = gen->regs.pc - JSOP_YIELD_LENGTH;
             JS_ASSERT(JSOp(*yieldpc) == JSOP_YIELD);
 
-            if (!script->typeMonitorUnknown(cx, yieldpc))
-                return JS_FALSE;
+            script->typeMonitorUnknown(cx, yieldpc);
 
             
 
@@ -1495,8 +1494,7 @@ js_InitIteratorClasses(JSContext *cx, JSObject *obj)
     if (!proto)
         return NULL;
 
-    if (!cx->addTypeProperty(obj->getType(), js_StopIteration_str, ObjectValue(*proto)))
-        return NULL;
+    cx->addTypeProperty(obj->getType(), js_StopIteration_str, ObjectValue(*proto));
 
     return proto;
 }

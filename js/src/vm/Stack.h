@@ -58,7 +58,11 @@ class ExecuteFrameGuard;
 class DummyFrameGuard;
 class GeneratorFrameGuard;
 
-namespace mjit { struct JITScript; struct CallSite; }
+namespace mjit {
+    struct JITScript;
+    struct CallSite;
+    jsbytecode *NativeToPC(JITScript *jit, void *ncode);
+}
 namespace detail { struct OOMCheck; }
 
 #ifdef JS_METHODJIT
@@ -66,6 +70,8 @@ typedef js::mjit::CallSite JSInlinedSite;
 #else
 struct JSInlinedSite {};
 #endif
+
+typedef  size_t JSRejoinState;
 
 
 
@@ -280,10 +286,8 @@ class StackFrame
     jsbytecode          *imacropc_;     
     void                *hookData_;     
     void                *annotation_;   
+    JSRejoinState       rejoin_;        
 
-#if JS_BITS_PER_WORD == 32
-    void *padding;
-#endif
 
     static void staticAsserts() {
         JS_STATIC_ASSERT(offsetof(StackFrame, rval_) % sizeof(js::Value) == 0);
@@ -772,6 +776,16 @@ class StackFrame
 
     
 
+    JSRejoinState rejoin() const {
+        return rejoin_;
+    }
+
+    void setRejoin(JSRejoinState state) {
+        rejoin_ = state;
+    }
+
+    
+
     bool hasHookData() const {
         return !!(flags_ & HAS_HOOK_DATA);
     }
@@ -1037,6 +1051,11 @@ class FrameRegs
         sp = newsp;
         fp_ = fp_->prev();
         inlined_ = NULL;
+    }
+
+    
+    void restorePartialFrame(Value *newfp) {
+        fp_ = (StackFrame *) newfp;
     }
 
     
@@ -1371,7 +1390,7 @@ class ContextStack
     inline StackFrame *
     getInlineFrameWithinLimit(JSContext *cx, Value *sp, uintN nactual,
                               JSFunction *fun, JSScript *script, uint32 *flags,
-                              StackFrame *base, Value **limit) const;
+                              StackFrame *base, Value **limit, void *topncode) const;
     inline void pushInlineFrame(JSScript *script, StackFrame *fp, FrameRegs &regs);
     inline void popInlineFrame();
 

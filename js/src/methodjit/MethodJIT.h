@@ -112,17 +112,12 @@ struct VMFrame
     JSContext    *cx;
     Value        *stackLimit;
     StackFrame   *entryfp;
+    void         *entryncode;
+    JSRejoinState stubRejoin;  
 
-
-
-
-
-
-
-#define NATIVE_CALL_SCRATCH_VALUE (void *) 0x1
-
-
-#define COMPILE_FUNCTION_SCRATCH_VALUE (void *) 0x2
+#if JS_BITS_PER_WORD == 32
+    void         *unused0, *unused1;  
+#endif
 
 #if defined(JS_CPU_X86)
     void *savedEBX;
@@ -223,11 +218,95 @@ extern "C" void JaegerStubVeneer(void);
 namespace mjit {
 
 
+
+
+
+
+enum RejoinState {
+    
+
+
+
+
+
+
+
+
+    REJOIN_SCRIPTED = 1,
+
+    
+    REJOIN_NONE,
+
+    
+    REJOIN_RESUME,
+
+    
+
+
+
+    REJOIN_TRAP,
+
+    
+    REJOIN_FALLTHROUGH,
+
+    
+
+
+
+
+    REJOIN_NATIVE,
+    REJOIN_NATIVE_LOWERED,
+
+    
+    REJOIN_PUSH_BOOLEAN,
+    REJOIN_PUSH_OBJECT,
+
+    
+    REJOIN_DEFLOCALFUN,
+
+    
+
+
+
+    REJOIN_THIS_PROTOTYPE,
+
+    
+
+
+
+    REJOIN_CHECK_ARGUMENTS,
+
+    
+
+
+
+    REJOIN_CALL_PROLOGUE,
+    REJOIN_CALL_PROLOGUE_LOWERED_CALL,
+    REJOIN_CALL_PROLOGUE_LOWERED_APPLY,
+
+    
+    REJOIN_CALL_SPLAT,
+
+    
+    REJOIN_BINDNAME,
+    REJOIN_GETTER,
+    REJOIN_POS,
+    REJOIN_BINARY,
+
+    
+
+
+
+    REJOIN_BRANCH
+};
+
+
 struct RecompilationMonitor
 {
     JSContext *cx;
 
     
+
 
 
 
@@ -278,6 +357,7 @@ class JaegerCompartment {
   public:
     bool Initialize();
 
+    JaegerCompartment();
     ~JaegerCompartment() { Finish(); }
 
     JSC::ExecutableAllocator *execAlloc() {
@@ -310,6 +390,14 @@ class JaegerCompartment {
         return JS_FUNC_TO_DATA_PTR(void *, trampolines.forceReturn);
 #endif
     }
+
+    
+
+
+
+
+    size_t orphanedNativeCount;
+    Vector<JSC::ExecutablePool *, 8, SystemAllocPolicy> orphanedNativePools;
 };
 
 
@@ -393,7 +481,6 @@ namespace mjit {
 
 struct InlineFrame;
 struct CallSite;
-struct RejoinSite;
 
 struct NativeMapEntry {
     size_t          bcOff;  
@@ -418,14 +505,11 @@ struct JITScript {
 
 
 
-    uint32          nNmapPairs:30;      
+    uint32          nNmapPairs:31;      
 
     bool            singleStepMode:1;   
-    bool            rejoinPoints:1;     
-
     uint32          nInlineFrames;
     uint32          nCallSites;
-    uint32          nRejoinSites;
 #ifdef JS_MONOIC
     uint32          nGetGlobalNames;
     uint32          nSetGlobalNames;
@@ -460,7 +544,6 @@ struct JITScript {
     NativeMapEntry *nmap() const;
     js::mjit::InlineFrame *inlineFrames() const;
     js::mjit::CallSite *callSites() const;
-    js::mjit::RejoinSite *rejoinSites() const;
 #ifdef JS_MONOIC
     ic::GetGlobalNameIC *getGlobalNames() const;
     ic::SetGlobalNameIC *setGlobalNames() const;
@@ -554,55 +637,17 @@ struct CallSite
     uint32 codeOffset;
     uint32 inlineIndex;
     uint32 pcOffset;
-    size_t id;
+    RejoinState rejoin;
 
-    
-    
-    
-
-    
-    
-    
-    static const size_t MAGIC_TRAP_ID = 0;
-
-    
-    static const size_t NCODE_RETURN_ID = 1;
-
-    void initialize(uint32 codeOffset, uint32 inlineIndex, uint32 pcOffset, size_t id) {
+    void initialize(uint32 codeOffset, uint32 inlineIndex, uint32 pcOffset, RejoinState rejoin) {
         this->codeOffset = codeOffset;
         this->inlineIndex = inlineIndex;
         this->pcOffset = pcOffset;
-        this->id = id;
+        this->rejoin = rejoin;
     }
 
     bool isTrap() const {
-        return id == MAGIC_TRAP_ID;
-    }
-};
-
-struct RejoinSite
-{
-    
-    
-    
-    
-    
-    
-
-    
-    
-    uint32 codeOffset;
-    uint32 pcOffset;
-    size_t id;
-
-    
-    
-    static const size_t VARIADIC_ID = 2;
-
-    void initialize(uint32 codeOffset, uint32 pcOffset, size_t id) {
-        this->codeOffset = codeOffset;
-        this->pcOffset = pcOffset;
-        this->id = id;
+        return rejoin == REJOIN_TRAP;
     }
 };
 
@@ -678,6 +723,8 @@ JSScript::nativeCodeForPC(bool constructing, jsbytecode *pc)
 }
 
 extern "C" void JaegerTrampolineReturn();
+extern "C" void JaegerInterpoline();
+extern "C" void JaegerInterpolineScripted();
 
 #if defined(_MSC_VER) || defined(_WIN64)
 extern "C" void *JaegerThrowpoline(js::VMFrame *vmFrame);

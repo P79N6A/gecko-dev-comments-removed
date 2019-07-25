@@ -88,6 +88,20 @@ class FrameSize
     uint32 getArgc(VMFrame &f) const {
         return isStatic() ? staticArgc() : f.u.call.dynamicArgc;
     }
+
+    bool lowered(jsbytecode *pc) const {
+        return isDynamic() || staticArgc() != GET_ARGC(pc);
+    }
+
+    RejoinState rejoinState(jsbytecode *pc, bool native) {
+        if (isStatic()) {
+            if (staticArgc() == GET_ARGC(pc))
+                return native ? REJOIN_NATIVE : REJOIN_CALL_PROLOGUE;
+            JS_ASSERT(staticArgc() == GET_ARGC(pc) - 1);
+            return native ? REJOIN_NATIVE_LOWERED : REJOIN_CALL_PROLOGUE_LOWERED_CALL;
+        }
+        return native ? REJOIN_NATIVE_LOWERED : REJOIN_CALL_PROLOGUE_LOWERED_APPLY;
+    }
 };
 
 namespace ic {
@@ -271,7 +285,7 @@ struct CallICInfo {
         releasePool(Pool_ClosureStub);
         releasePool(Pool_NativeStub);
         if (argTypes) {
-            UnwantedForeground::free_(argTypes);
+            js_free(argTypes);
             argTypes = NULL;
         }
     }
@@ -294,8 +308,8 @@ struct CallICInfo {
 
 void * JS_FASTCALL New(VMFrame &f, ic::CallICInfo *ic);
 void * JS_FASTCALL Call(VMFrame &f, ic::CallICInfo *ic);
-void * JS_FASTCALL NativeNew(VMFrame &f, ic::CallICInfo *ic);
-void * JS_FASTCALL NativeCall(VMFrame &f, ic::CallICInfo *ic);
+void JS_FASTCALL NativeNew(VMFrame &f, ic::CallICInfo *ic);
+void JS_FASTCALL NativeCall(VMFrame &f, ic::CallICInfo *ic);
 JSBool JS_FASTCALL SplatApplyArgs(VMFrame &f);
 
 void GenerateArgumentCheckStub(VMFrame &f);

@@ -744,8 +744,8 @@ struct TypeCompartment
     ArrayTypeTable *arrayTypeTable;
     ObjectTypeTable *objectTypeTable;
 
-    bool fixArrayType(JSContext *cx, JSObject *obj);
-    bool fixObjectType(JSContext *cx, JSObject *obj);
+    void fixArrayType(JSContext *cx, JSObject *obj);
+    void fixObjectType(JSContext *cx, JSObject *obj);
 
     
 
@@ -798,12 +798,12 @@ struct TypeCompartment
 
 
 
-    bool dynamicPush(JSContext *cx, JSScript *script, uint32 offset, jstype type);
-    bool dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Value &rval);
-    bool dynamicCall(JSContext *cx, JSObject *callee, const CallArgs &args, bool constructing);
+    void dynamicPush(JSContext *cx, JSScript *script, uint32 offset, jstype type);
+    void dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Value &rval);
+    void dynamicCall(JSContext *cx, JSObject *callee, const CallArgs &args, bool constructing);
 
-    bool nukeTypes(JSContext *cx);
-    bool processPendingRecompiles(JSContext *cx);
+    void nukeTypes(JSContext *cx);
+    void processPendingRecompiles(JSContext *cx);
 
     
     void setPendingNukeTypes(JSContext *cx);

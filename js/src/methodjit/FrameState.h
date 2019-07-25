@@ -616,7 +616,7 @@ class FrameState
     
     void storeLocal(uint32 n, bool popGuaranteed = false, bool fixedType = false);
     void storeArg(uint32 n, bool popGuaranteed = false);
-    void storeTop(FrameEntry *target, bool popGuaranteed);
+    void storeTop(FrameEntry *target);
 
     
 
@@ -875,6 +875,9 @@ class FrameState
 
     void shift(int32 n);
 
+    
+    void swap();
+
     inline void setInTryBlock(bool inTryBlock) {
         this->inTryBlock = inTryBlock;
     }
@@ -972,9 +975,6 @@ class FrameState
 
     
     bool hasOnlyCopy(FrameEntry *backing, FrameEntry *fe);
-
-    
-    bool isEntryCopied(FrameEntry *fe) const;
 
     
 
