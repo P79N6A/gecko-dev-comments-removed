@@ -2385,6 +2385,9 @@ private:
 
 
     JS_FRIEND_API(void) checkMallocGCPressure(void *p);
+
+    
+    JSContext *thisInInitializer() { return this; }
 };
 
 #ifdef JS_THREADSAFE
