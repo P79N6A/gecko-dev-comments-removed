@@ -400,6 +400,50 @@ nsHttpConnectionMgr::ProcessPendingQ(nsHttpConnectionInfo *ci)
     return rv;
 }
 
+
+
+
+
+
+nsHttpConnectionMgr::nsConnectionEntry *
+nsHttpConnectionMgr::LookupConnectionEntry(nsHttpConnectionInfo *ci,
+                                           nsHttpConnection *conn,
+                                           nsHttpTransaction *trans)
+{
+    if (!ci)
+        return nsnull;
+
+    nsConnectionEntry *ent = mCT.Get(ci->HashKey());
+    
+    
+    
+    if (!gHttpHandler->IsSpdyEnabled() || !gHttpHandler->CoalesceSpdy() ||
+        !ent || !ent->mUsingSpdy || ent->mCoalescingKey.IsEmpty())
+        return ent;
+
+    
+    
+    
+    nsConnectionEntry *preferred = mSpdyPreferredHash.Get(ent->mCoalescingKey);
+    if (!preferred || (preferred == ent))
+        return ent;
+
+    if (conn) {
+        
+        
+        if (preferred->mActiveConns.Contains(conn))
+            return preferred;
+        if (preferred->mIdleConns.Contains(conn))
+            return preferred;
+    }
+    
+    if (trans && preferred->mPendingQ.Contains(trans))
+        return preferred;
+    
+    
+    return ent;
+}
+
 nsresult
 nsHttpConnectionMgr::CloseIdleConnection(nsHttpConnection *conn)
 {
@@ -407,11 +451,11 @@ nsHttpConnectionMgr::CloseIdleConnection(nsHttpConnection *conn)
     LOG(("nsHttpConnectionMgr::CloseIdleConnection %p conn=%p",
          this, conn));
 
-    nsHttpConnectionInfo *ci = conn->ConnectionInfo();
-    if (!ci)
+    if (!conn->ConnectionInfo())
         return NS_ERROR_UNEXPECTED;
 
-    nsConnectionEntry *ent = mCT.Get(ci->HashKey());
+    nsConnectionEntry *ent = LookupConnectionEntry(conn->ConnectionInfo(),
+                                                   conn, nsnull);
 
     if (!ent || !ent->mIdleConns.RemoveElement(conn))
         return NS_ERROR_UNEXPECTED;
@@ -429,7 +473,9 @@ nsHttpConnectionMgr::ReportSpdyConnection(nsHttpConnection *conn,
 {
     NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
     
-    nsConnectionEntry *ent = mCT.Get(conn->ConnectionInfo()->HashKey());
+    nsConnectionEntry *ent = LookupConnectionEntry(conn->ConnectionInfo(),
+                                                   conn, nsnull);
+
     NS_ABORT_IF_FALSE(ent, "no connection entry");
     if (!ent)
         return;
@@ -464,13 +510,14 @@ nsHttpConnectionMgr::ReportSpdyConnection(nsHttpConnection *conn,
     if (!preferred) {
         ent->mSpdyPreferred = true;
         SetSpdyPreferred(ent);
-        ent->mSpdyRedir = false;
+        preferred = ent;
     }
     else if (preferred != ent) {
         
         
-        ent->mSpdyRedir = true;
+        ent->mUsingSpdy = true;
         conn->DontReuse();
+        ent->mCert = nsnull;
     }
 
     
@@ -478,30 +525,31 @@ nsHttpConnectionMgr::ReportSpdyConnection(nsHttpConnection *conn,
     
     
     
+    if (preferred == ent) {
+        
+        
+        ent->mCert = nsnull;
 
+        nsCOMPtr<nsISupports> securityInfo;
+        nsCOMPtr<nsISSLStatusProvider> sslStatusProvider;
+        nsCOMPtr<nsISSLStatus> sslStatus;
+        nsCOMPtr<nsIX509Cert> cert;
+
+        conn->GetSecurityInfo(getter_AddRefs(securityInfo));
+        if (securityInfo)
+            sslStatusProvider = do_QueryInterface(securityInfo);
+
+        if (sslStatusProvider)
+            sslStatusProvider->
+                GetSSLStatus(getter_AddRefs(sslStatus));
+
+        if (sslStatus)
+            sslStatus->GetServerCert(getter_AddRefs(cert));
+
+        if (cert)
+            ent->mCert = do_QueryInterface(cert);
+    }
     
-    
-    ent->mCert = nsnull;
-
-    nsCOMPtr<nsISupports> securityInfo;
-    nsCOMPtr<nsISSLStatusProvider> sslStatusProvider;
-    nsCOMPtr<nsISSLStatus> sslStatus;
-    nsCOMPtr<nsIX509Cert> cert;
-
-    conn->GetSecurityInfo(getter_AddRefs(securityInfo));
-    if (securityInfo)
-        sslStatusProvider = do_QueryInterface(securityInfo);
-
-    if (sslStatusProvider)
-        sslStatusProvider->
-            GetSSLStatus(getter_AddRefs(sslStatus));
-
-    if (sslStatus)
-        sslStatus->GetServerCert(getter_AddRefs(cert));
-
-    if (cert)
-        ent->mCert = do_QueryInterface(cert);
-
     ProcessSpdyPendingQ();
 }
 
@@ -582,12 +630,42 @@ nsHttpConnectionMgr::GetSpdyPreferred(nsConnectionEntry *aOriginalEntry)
     nsConnectionEntry *preferred =
         mSpdyPreferredHash.Get(aOriginalEntry->mCoalescingKey);
 
+    
     if (preferred == aOriginalEntry)
-        return aOriginalEntry;   
+        return aOriginalEntry;
 
-    if (!preferred || !preferred->mCert)
+    
+    
+    if (!preferred || !preferred->mCert || !preferred->mUsingSpdy)
         return nsnull;                         
 
+    
+    
+    
+    
+
+    bool activeSpdy = false;
+
+    for (PRUint32 index = 0; index < preferred->mActiveConns.Length(); ++index)
+        if (preferred->mActiveConns[index]->CanDirectlyActivate()) {
+            activeSpdy = true;
+            break;
+        }
+    
+    if (!activeSpdy) {
+        
+        
+        preferred->mSpdyPreferred = false;
+        RemoveSpdyPreferred(preferred->mCoalescingKey);
+        LOG(("nsHttpConnectionMgr::GetSpdyPreferredConnection "
+             "preferred host mapping %s to %s removed due to inactivity.\n",
+             aOriginalEntry->mConnInfo->Host(),
+             preferred->mConnInfo->Host()));
+
+        return nsnull;
+    }
+
+    
     nsresult rv;
     bool validCert = false;
 
@@ -599,9 +677,10 @@ nsHttpConnectionMgr::GetSpdyPreferred(nsConnectionEntry *aOriginalEntry)
              "Host %s has cert which cannot be confirmed to use "
              "with %s connections",
              preferred->mConnInfo->Host(), aOriginalEntry->mConnInfo->Host()));
-        return nsnull;                            
+        return nsnull;
     }
 
+    
     LOG(("nsHttpConnectionMgr::GetSpdyPreferredConnection "
          "Host %s has cert valid for %s connections",
          preferred->mConnInfo->Host(), aOriginalEntry->mConnInfo->Host()));
@@ -1000,10 +1079,14 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent,
 
     if (trans->Caps() & NS_HTTP_ALLOW_KEEPALIVE) {
 
-        conn = GetSpdyPreferredConn(ent);
-        if (conn)
-            addConnToActiveList = false;
-
+        
+        
+        if (gHttpHandler->IsSpdyEnabled()) {
+            conn = GetSpdyPreferredConn(ent);
+            if (conn)
+                addConnToActiveList = false;
+        }
+        
         
         
         
@@ -1037,21 +1120,16 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent,
         if (onlyReusedConnection)
             return;
         
-        
-        
-        
-    
         if (gHttpHandler->IsSpdyEnabled() &&
             ent->mConnInfo->UsingSSL() &&
             !ent->mConnInfo->UsingHttpProxy())
         {
-            nsConnectionEntry *preferred = GetSpdyPreferred(ent);
-            if (preferred)
-                ent = preferred;
-
+            
+            
+            
+    
             if ((!ent->mTestedSpdy || ent->mUsingSpdy) &&
-                (ent->mSpdyRedir || ent->mHalfOpens.Length() ||
-                 ent->mActiveConns.Length()))
+                (ent->mHalfOpens.Length() || ent->mActiveConns.Length()))
                 return;
         }
         
@@ -1143,6 +1221,10 @@ nsHttpConnectionMgr::DispatchTransaction(nsConnectionEntry *ent,
     PRInt32 priority = aTrans->Priority();
 
     if (conn->UsingSpdy()) {
+        LOG(("Spdy Dispatch Transaction via Activate(). Transaction host = %s,"
+             "Connection host = %s\n",
+             aTrans->ConnectionInfo()->Host(),
+             conn->ConnectionInfo()->Host()));
         rv = conn->Activate(aTrans, caps, priority);
         NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv), "SPDY Cannot Fail Dispatch");
         return rv;
@@ -1263,10 +1345,11 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
     
     
     nsConnectionEntry *preferredEntry = GetSpdyPreferred(ent);
-    if (preferredEntry) {
+    if (preferredEntry && (preferredEntry != ent)) {
         LOG(("nsHttpConnectionMgr::ProcessNewTransaction trans=%p "
              "redirected via coalescing from %s to %s\n", trans,
              ent->mConnInfo->Host(), preferredEntry->mConnInfo->Host()));
+
         ent = preferredEntry;
     }
 
@@ -1308,6 +1391,12 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
 
     return rv;
 }
+
+
+
+
+
+
 
 void
 nsHttpConnectionMgr::ProcessSpdyPendingQ(nsConnectionEntry *ent)
@@ -1358,17 +1447,9 @@ nsHttpConnectionMgr::GetSpdyPreferredConn(nsConnectionEntry *ent)
     nsConnectionEntry *preferred = GetSpdyPreferred(ent);
 
     
-    if (preferred && preferred != ent) {
+    if (preferred)
         ent->mUsingSpdy = true;
-        ent->mSpdyRedir = true;
-    }
-    else {
-        ent->mSpdyRedir = false;
-        
-        
-    }
-
-    if (!preferred)
+    else
         preferred = ent;
     
     nsHttpConnection *conn = nsnull;
@@ -1422,8 +1503,9 @@ nsHttpConnectionMgr::OnMsgReschedTransaction(PRInt32 priority, void *param)
     nsHttpTransaction *trans = (nsHttpTransaction *) param;
     trans->SetPriority(priority);
 
-    nsHttpConnectionInfo *ci = trans->ConnectionInfo();
-    nsConnectionEntry *ent = mCT.Get(ci->HashKey());
+    nsConnectionEntry *ent = LookupConnectionEntry(trans->ConnectionInfo(),
+                                                   nsnull, trans);
+
     if (ent) {
         PRInt32 index = ent->mPendingQ.IndexOf(trans);
         if (index >= 0) {
@@ -1450,8 +1532,9 @@ nsHttpConnectionMgr::OnMsgCancelTransaction(PRInt32 reason, void *param)
     if (conn && !trans->IsDone())
         conn->CloseTransaction(trans, reason);
     else {
-        nsHttpConnectionInfo *ci = trans->ConnectionInfo();
-        nsConnectionEntry *ent = mCT.Get(ci->HashKey());
+        nsConnectionEntry *ent = LookupConnectionEntry(trans->ConnectionInfo(),
+                                                       nsnull, trans);
+
         if (ent) {
             PRInt32 index = ent->mPendingQ.IndexOf(trans);
             if (index >= 0) {
@@ -1518,13 +1601,18 @@ nsHttpConnectionMgr::OnMsgReclaimConnection(PRInt32, void *param)
     
     
 
-    nsHttpConnectionInfo *ci = conn->ConnectionInfo();
-    NS_ADDREF(ci);
+    nsConnectionEntry *ent = LookupConnectionEntry(conn->ConnectionInfo(),
+                                                   conn, nsnull);
+    nsHttpConnectionInfo *ci = nsnull;
 
-    nsConnectionEntry *ent = mCT.Get(ci->HashKey());
+    if (!ent) {
+        
+        NS_ASSERTION(ent, "no connection entry");
+        NS_ADDREF(ci = conn->ConnectionInfo());
+    }
+    else {
+        NS_ADDREF(ci = ent->mConnInfo);
 
-    NS_ASSERTION(ent, "no connection entry");
-    if (ent) {
         
         
         

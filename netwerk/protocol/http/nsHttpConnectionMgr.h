@@ -177,7 +177,6 @@ private:
           : mConnInfo(ci),
             mUsingSpdy(false),
             mTestedSpdy(false),
-            mSpdyRedir(false),
             mSpdyPreferred(false)
         {
             NS_ADDREF(mConnInfo);
@@ -201,9 +200,12 @@ private:
         
         nsCString mCoalescingKey;
 
+        
+        
+        
         bool mUsingSpdy;
+
         bool mTestedSpdy;
-        bool mSpdyRedir;
         bool mSpdyPreferred;
         nsCOMPtr<nsIX509Cert3> mCert;
     };
@@ -325,6 +327,9 @@ private:
     void               RemoveSpdyPreferred(nsACString &aDottedDecimal);
     nsHttpConnection  *GetSpdyPreferredConn(nsConnectionEntry *ent);
     nsDataHashtable<nsCStringHashKey, nsConnectionEntry *>   mSpdyPreferredHash;
+    nsConnectionEntry *LookupConnectionEntry(nsHttpConnectionInfo *ci,
+                                             nsHttpConnection *conn,
+                                             nsHttpTransaction *trans);
 
     void               ProcessSpdyPendingQ(nsConnectionEntry *ent);
     void               ProcessSpdyPendingQ();
