@@ -1218,8 +1218,9 @@ public:
   virtual void SynthesizeMouseMove(bool aFromScroll) = 0;
 
   enum PaintType {
-    PaintType_Composite,
-    PaintType_NoComposite
+    PaintType_Composite, 
+    PaintType_NoComposite, 
+    PaintType_Full 
   };
   virtual void Paint(nsIView* aViewToPaint, const nsRegion& aDirtyRegion,
                      PaintType aType, bool aWillSendDidPaint) = 0;
