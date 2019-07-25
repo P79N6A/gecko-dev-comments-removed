@@ -459,30 +459,14 @@ WeaveSvc.prototype = {
 
     let res = new Resource(this.baseURL + "1/" + username + "/node/weave");
     try {
-<<<<<<< local
-      res.get();
-    } catch(ex) {}
-
-    try {
-      switch (res.lastChannel.responseStatus) {
-=======
       let node = res.get();
       switch (node.status) {
->>>>>>> other
         case 404:
           this._log.debug("Using serverURL as data cluster (multi-cluster support disabled)");
-<<<<<<< local
           return this.baseURL;
-=======
-          return Svc.Prefs.get("serverURL");
         case 0:
->>>>>>> other
         case 200:
-<<<<<<< local
-          return res.data;
-=======
-          return "https://" + node + "/";
->>>>>>> other
+          return node;
         default:
           this._log.debug("Unexpected response code: " + node.status);
           break;
@@ -494,7 +478,7 @@ WeaveSvc.prototype = {
     }
   },
 
-
+  
   setCluster: function WeaveSvc_setCluster(username) {
     let cluster = this.findCluster(username);
 
@@ -511,7 +495,7 @@ WeaveSvc.prototype = {
     return false;
   },
 
-
+  
   updateCluster: function WeaveSvc_updateCluster(username) {
     let cTime = Date.now();
     let lastUp = parseFloat(Svc.Prefs.get("lastClusterUpdate"));
@@ -616,13 +600,8 @@ WeaveSvc.prototype = {
       let res = new Weave.Resource(url);
       res.authenticator = new Weave.NoOpAuthenticator();
 
-<<<<<<< local
       let resp = res.post(newpass);
-      if (res.lastChannel.responseStatus != 200) {
-=======
-      let resp = res.post(message);
       if (resp.status != 200) {
->>>>>>> other
         this._log.info("Password change failed: " + resp);
         throw "Could not change password";
       }
@@ -684,7 +663,7 @@ WeaveSvc.prototype = {
       }));
     this._autoConnectTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
 
-    // back off slowly, with some random fuzz to avoid repeated collisions
+    
     let interval = Math.floor(Math.random() * SCHEDULED_SYNC_INTERVAL +
                               SCHEDULED_SYNC_INTERVAL * this._autoConnectAttempts);
     this._autoConnectAttempts++;
@@ -724,7 +703,7 @@ WeaveSvc.prototype = {
         throw "Login failed: " + this.detailedStatus.sync;
       }
 
-
+      
       this._loggedIn = true;
       this._checkSyncStatus();
       if (this._autoConnectTimer) {
@@ -794,7 +773,7 @@ WeaveSvc.prototype = {
     }
     catch(ex) {}
 
-
+    
     return this._errorStr(data);
   },
 
@@ -813,23 +792,12 @@ WeaveSvc.prototype = {
 
     let error = "generic-server-error";
     try {
-<<<<<<< local
-      ret.response = res.put(payload);
-      ret.status = res.lastChannel.responseStatus;
-=======
-      let register = res.post(message);
+      let register = res.put(payload);
       if (register.success) {
         this._log.info("Account created: " + register);
         return;
       }
->>>>>>> other
 
-<<<<<<< local
-      
-      this._log.info("Account created: " + ret.response);
-      return ret;
-    } catch(ex) {
-=======
       
       switch (register.status) {
         case 400:
@@ -841,15 +809,14 @@ WeaveSvc.prototype = {
       }
     }
     catch(ex) {
->>>>>>> other
       this._log.warn("Failed to create account: " + ex);
     }
 
     return error;
   },
 
-
-
+  
+  
   _remoteSetup: function WeaveSvc__remoteSetup() {
     let reset = false;
 
