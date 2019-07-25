@@ -451,9 +451,6 @@ class nsBuiltinDecoder : public nsMediaDecoder
 
  public:
   
-  nsHTMLMediaElement::PreloadAction GetPreloadAction();
-
-  
   
   PlayState GetState() {
     return mPlayState;

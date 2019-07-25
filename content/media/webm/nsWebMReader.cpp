@@ -335,7 +335,7 @@ nsresult nsWebMReader::ReadMetadata()
       
       
       
-      mInfo.mDataOffset = 0;
+      mInfo.mDataOffset = -1;
     }
     else if (!mHasAudio && type == NESTEGG_TRACK_AUDIO) {
       nestegg_audio_params params;
