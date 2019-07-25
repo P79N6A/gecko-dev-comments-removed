@@ -215,6 +215,10 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, gfxContext* aTarget,
       return result;
   }
 
+  
+  
+  PRBool isClear = mBuffer == nsnull;
+
   if (destBuffer) {
     if (mBuffer) {
       
@@ -246,7 +250,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, gfxContext* aTarget,
   result.mContext->Translate(-gfxPoint(quadrantRect.x, quadrantRect.y));
 
   ClipToRegion(result.mContext, result.mRegionToDraw);
-  if (desiredContentType == gfxASurface::CONTENT_COLOR_ALPHA) {
+  if (desiredContentType == gfxASurface::CONTENT_COLOR_ALPHA && !isClear) {
     result.mContext->SetOperator(gfxContext::OPERATOR_CLEAR);
     result.mContext->Paint();
     result.mContext->SetOperator(gfxContext::OPERATOR_OVER);
