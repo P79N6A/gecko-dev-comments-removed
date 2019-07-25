@@ -2705,10 +2705,15 @@ nsresult nsHTMLEditor::ParseFragment(const nsAString & aFragStr,
   nsCOMPtr<nsIFragmentContentSink> fragSink(do_QueryInterface(sink));
   NS_ENSURE_TRUE(fragSink, NS_ERROR_FAILURE);
 
-  
   nsCOMPtr<nsIParanoidFragmentContentSink> paranoidSink(do_QueryInterface(sink));
   NS_ASSERTION(paranoidSink, "Our content sink is paranoid");
-  paranoidSink->AllowStyles();
+  if (bContext) {
+    
+    paranoidSink->AllowComments();
+  } else {
+    
+    paranoidSink->AllowStyles();
+  }
 
   fragSink->SetTargetDocument(aTargetDocument);
 

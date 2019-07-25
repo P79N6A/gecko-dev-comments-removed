@@ -801,6 +801,7 @@ public:
 
   
   virtual void AllowStyles();
+  virtual void AllowComments();
 
 protected:
   nsresult NameFromType(const nsHTMLTag aTag,
@@ -814,6 +815,7 @@ protected:
   PRPackedBool mSkip; 
   PRPackedBool mProcessStyle; 
   PRPackedBool mInStyle; 
+  PRPackedBool mProcessComments; 
 
   
   static nsTHashtable<nsISupportsHashKey>* sAllowedTags;
@@ -825,7 +827,7 @@ nsTHashtable<nsISupportsHashKey>* nsHTMLParanoidFragmentSink::sAllowedAttributes
 
 nsHTMLParanoidFragmentSink::nsHTMLParanoidFragmentSink(PRBool aAllContent):
   nsHTMLFragmentContentSink(aAllContent), mSkip(PR_FALSE),
-  mProcessStyle(PR_FALSE), mInStyle(PR_FALSE)
+  mProcessStyle(PR_FALSE), mInStyle(PR_FALSE), mProcessComments(PR_FALSE)
 {
 }
 
@@ -957,6 +959,12 @@ void
 nsHTMLParanoidFragmentSink::AllowStyles()
 {
   mProcessStyle = PR_TRUE;
+}
+
+void
+nsHTMLParanoidFragmentSink::AllowComments()
+{
+  mProcessComments = PR_TRUE;
 }
 
 
@@ -1251,6 +1259,8 @@ nsHTMLParanoidFragmentSink::AddLeaf(const nsIParserNode& aNode)
 NS_IMETHODIMP
 nsHTMLParanoidFragmentSink::AddComment(const nsIParserNode& aNode)
 {
+  if (mProcessComments)
+    return nsHTMLFragmentContentSink::AddComment(aNode);
   
   return NS_OK;
 }
