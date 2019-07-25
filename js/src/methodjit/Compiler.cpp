@@ -2711,8 +2711,6 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew)
         rejoin2 = stubcc.masm.jump();
     }
 
-    RESERVE_IC_SPACE(masm);
-
     
 
 
