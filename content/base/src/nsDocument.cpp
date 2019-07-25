@@ -1720,6 +1720,13 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMARRAY(mPreloadingImages)
 
   
+  if (tmp->mBoxObjectTable) {
+   tmp->mBoxObjectTable->EnumerateRead(ClearAllBoxObjects, nsnull);
+   delete tmp->mBoxObjectTable;
+   tmp->mBoxObjectTable = nsnull;
+ }
+
+  
   
   
   
