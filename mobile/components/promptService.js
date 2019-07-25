@@ -65,11 +65,16 @@ promptService.prototype = {
   
   
   sizeScrollableMsg: function(id, percent) {
-    let screenH = this.getDocument().getElementById("main-window").getBoundingClientRect().height;
+    let doc = this.getDocument();
+    let screenH = doc.getElementById("main-window").getBoundingClientRect().height;
     let maxHeight = screenH * percent / 100;
     
-    let elem = this.getDocument().getElementById(id);
-    let height = elem.getBoundingClientRect().height;
+    let elem = doc.getElementById(id);
+    let style = doc.defaultView.getComputedStyle(elem, null);
+    let height = Math.ceil(elem.getBoundingClientRect().height) +
+                 parseInt(style.marginTop) +
+                 parseInt(style.marginBottom);
+
     if (height > maxHeight)
       height = maxHeight;
     elem.parentNode.style.height = height + "px";
