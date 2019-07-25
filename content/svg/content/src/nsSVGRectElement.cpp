@@ -54,8 +54,8 @@ class nsSVGRectElement : public nsSVGRectElementBase,
 {
 protected:
   friend nsresult NS_NewSVGRectElement(nsIContent **aResult,
-                                       already_AddRefed<nsNodeInfo> aNodeInfo);
-  nsSVGRectElement(already_AddRefed<nsNodeInfo> aNodeInfo);
+                                       already_AddRefed<nsINodeInfo> aNodeInfo);
+  nsSVGRectElement(already_AddRefed<nsINodeInfo> aNodeInfo);
 
 public:
   
@@ -73,7 +73,7 @@ public:
   
   virtual void ConstructPath(gfxContext *aCtx);
 
-  virtual nsresult Clone(nsNodeInfo *aNodeInfo, nsINode **aResult) const;
+  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   virtual nsXPCClassInfo* GetClassInfo();
 protected:
@@ -115,7 +115,7 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGRectElementBase)
 
 
 
-nsSVGRectElement::nsSVGRectElement(already_AddRefed<nsNodeInfo> aNodeInfo)
+nsSVGRectElement::nsSVGRectElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsSVGRectElementBase(aNodeInfo)
 {
 }

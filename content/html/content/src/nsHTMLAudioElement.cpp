@@ -69,7 +69,7 @@
 using namespace mozilla::dom;
 
 nsGenericHTMLElement*
-NS_NewHTMLAudioElement(already_AddRefed<nsNodeInfo> aNodeInfo,
+NS_NewHTMLAudioElement(already_AddRefed<nsINodeInfo> aNodeInfo,
                        FromParser aFromParser)
 {
   
@@ -77,7 +77,7 @@ NS_NewHTMLAudioElement(already_AddRefed<nsNodeInfo> aNodeInfo,
 
 
 
-  nsRefPtr<nsNodeInfo> nodeInfo(aNodeInfo);
+  nsCOMPtr<nsINodeInfo> nodeInfo(aNodeInfo);
   if (!nodeInfo) {
     nsCOMPtr<nsIDocument> doc =
       do_QueryInterface(nsContentUtils::GetDocumentFromCaller());
@@ -107,7 +107,7 @@ NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLAudioElement)
 NS_IMPL_ELEMENT_CLONE(nsHTMLAudioElement)
 
 
-nsHTMLAudioElement::nsHTMLAudioElement(already_AddRefed<nsNodeInfo> aNodeInfo)
+nsHTMLAudioElement::nsHTMLAudioElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsHTMLMediaElement(aNodeInfo)
 {
 }

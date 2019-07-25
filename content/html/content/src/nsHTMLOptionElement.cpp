@@ -70,7 +70,7 @@ using namespace mozilla::dom;
 
 
 nsGenericHTMLElement*
-NS_NewHTMLOptionElement(already_AddRefed<nsNodeInfo> aNodeInfo,
+NS_NewHTMLOptionElement(already_AddRefed<nsINodeInfo> aNodeInfo,
                         FromParser aFromParser)
 {
   
@@ -78,7 +78,7 @@ NS_NewHTMLOptionElement(already_AddRefed<nsNodeInfo> aNodeInfo,
 
 
 
-  nsRefPtr<nsNodeInfo> nodeInfo(aNodeInfo);
+  nsCOMPtr<nsINodeInfo> nodeInfo(aNodeInfo);
   if (!nodeInfo) {
     nsCOMPtr<nsIDocument> doc =
       do_QueryInterface(nsContentUtils::GetDocumentFromCaller());
@@ -93,7 +93,7 @@ NS_NewHTMLOptionElement(already_AddRefed<nsNodeInfo> aNodeInfo,
   return new nsHTMLOptionElement(nodeInfo.forget());
 }
 
-nsHTMLOptionElement::nsHTMLOptionElement(already_AddRefed<nsNodeInfo> aNodeInfo)
+nsHTMLOptionElement::nsHTMLOptionElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo),
     mSelectedChanged(false),
     mIsSelected(false),

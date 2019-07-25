@@ -138,7 +138,7 @@ nsSafeOptionListMutation::~nsSafeOptionListMutation()
 
 NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(Select)
 
-nsHTMLSelectElement::nsHTMLSelectElement(already_AddRefed<nsNodeInfo> aNodeInfo,
+nsHTMLSelectElement::nsHTMLSelectElement(already_AddRefed<nsINodeInfo> aNodeInfo,
                                          FromParser aFromParser)
   : nsGenericHTMLFormElement(aNodeInfo),
     mOptions(new nsHTMLOptionCollection(this)),
@@ -779,7 +779,7 @@ nsHTMLSelectElement::SetLength(PRUint32 aLength)
     }
     
     
-    nsRefPtr<nsNodeInfo> nodeInfo;
+    nsCOMPtr<nsINodeInfo> nodeInfo;
 
     nsContentUtils::NameChanged(mNodeInfo, nsGkAtoms::option,
                                 getter_AddRefs(nodeInfo));

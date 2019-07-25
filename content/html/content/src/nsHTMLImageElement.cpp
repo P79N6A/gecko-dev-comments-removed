@@ -88,7 +88,7 @@ class nsHTMLImageElement : public nsGenericHTMLElement,
                            public nsIJSNativeInitializer
 {
 public:
-  nsHTMLImageElement(already_AddRefed<nsNodeInfo> aNodeInfo);
+  nsHTMLImageElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLImageElement();
 
   
@@ -164,7 +164,7 @@ public:
                               bool aCompileEventHandlers);
 
   virtual nsEventStates IntrinsicState() const;
-  virtual nsresult Clone(nsNodeInfo *aNodeInfo, nsINode **aResult) const;
+  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   nsresult CopyInnerTo(nsGenericElement* aDest) const;
 
@@ -175,7 +175,7 @@ protected:
 };
 
 nsGenericHTMLElement*
-NS_NewHTMLImageElement(already_AddRefed<nsNodeInfo> aNodeInfo,
+NS_NewHTMLImageElement(already_AddRefed<nsINodeInfo> aNodeInfo,
                        FromParser aFromParser)
 {
   
@@ -183,7 +183,7 @@ NS_NewHTMLImageElement(already_AddRefed<nsNodeInfo> aNodeInfo,
 
 
 
-  nsRefPtr<nsNodeInfo> nodeInfo(aNodeInfo);
+  nsCOMPtr<nsINodeInfo> nodeInfo(aNodeInfo);
   if (!nodeInfo) {
     nsCOMPtr<nsIDocument> doc =
       do_QueryInterface(nsContentUtils::GetDocumentFromCaller());
@@ -198,7 +198,7 @@ NS_NewHTMLImageElement(already_AddRefed<nsNodeInfo> aNodeInfo,
   return new nsHTMLImageElement(nodeInfo.forget());
 }
 
-nsHTMLImageElement::nsHTMLImageElement(already_AddRefed<nsNodeInfo> aNodeInfo)
+nsHTMLImageElement::nsHTMLImageElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
   

@@ -43,7 +43,7 @@
 
 
 nsresult
-NS_NewMathMLElement(nsIContent** aResult, already_AddRefed<nsNodeInfo> aNodeInfo)
+NS_NewMathMLElement(nsIContent** aResult, already_AddRefed<nsINodeInfo> aNodeInfo)
 {
   aNodeInfo.get()->SetIDAttributeAtom(nsGkAtoms::id);
 

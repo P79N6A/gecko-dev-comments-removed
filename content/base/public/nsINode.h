@@ -42,9 +42,8 @@
 #include "nsEvent.h"
 #include "nsPropertyTable.h"
 #include "nsTObserverArray.h"
-#include "nsNodeInfo.h"
+#include "nsINodeInfo.h"
 #include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
 #include "nsWrapperCache.h"
 #include "nsIProgrammingLanguage.h" 
 #include "nsDOMError.h"
@@ -351,7 +350,7 @@ public:
 
 #pragma warning(disable:4355)
 #endif
-  nsINode(already_AddRefed<nsNodeInfo> aNodeInfo)
+  nsINode(already_AddRefed<nsINodeInfo> aNodeInfo)
   : mNodeInfo(aNodeInfo),
     mParent(nsnull),
     mFlags(0),
@@ -866,7 +865,7 @@ public:
 
 
 
-  virtual nsresult Clone(nsNodeInfo *aNodeInfo, nsINode **aResult) const = 0;
+  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const = 0;
 
   
 
@@ -1548,7 +1547,7 @@ protected:
   static bool Traverse(nsINode *tmp, nsCycleCollectionTraversalCallback &cb);
   static void Unlink(nsINode *tmp);
 
-  nsRefPtr<nsNodeInfo> mNodeInfo;
+  nsCOMPtr<nsINodeInfo> mNodeInfo;
 
   nsINode* mParent;
 

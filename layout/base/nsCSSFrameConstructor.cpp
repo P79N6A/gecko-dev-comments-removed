@@ -221,7 +221,7 @@ nsIFrame*
 NS_NewSVGFEUnstyledLeafFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
 #include "nsIScrollable.h"
-#include "nsNodeInfo.h"
+#include "nsINodeInfo.h"
 #include "prenv.h"
 #include "nsWidgetsCID.h"
 #include "nsNodeInfoManager.h"
@@ -1548,7 +1548,7 @@ nsCSSFrameConstructor::CreateGeneratedContent(nsFrameConstructorState& aState,
     
     
 
-    nsRefPtr<nsNodeInfo> nodeInfo;
+    nsCOMPtr<nsINodeInfo> nodeInfo;
     nodeInfo = mDocument->NodeInfoManager()->
       GetNodeInfo(nsGkAtoms::mozgeneratedcontentimage, nsnull,
                   kNameSpaceID_XHTML, nsIDOMNode::ELEMENT_NODE);
@@ -1719,7 +1719,7 @@ nsCSSFrameConstructor::CreateGeneratedContentItem(nsFrameConstructorState& aStat
     return;
   
   
-  nsRefPtr<nsNodeInfo> nodeInfo;
+  nsCOMPtr<nsINodeInfo> nodeInfo;
   nsIAtom* elemName = aPseudoElement == nsCSSPseudoElements::ePseudo_before ?
     nsGkAtoms::mozgeneratedcontentbefore : nsGkAtoms::mozgeneratedcontentafter;
   nodeInfo = mDocument->NodeInfoManager()->GetNodeInfo(elemName, nsnull,

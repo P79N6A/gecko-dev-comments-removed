@@ -71,7 +71,7 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGForeignObjectElementBase)
 
 
 
-nsSVGForeignObjectElement::nsSVGForeignObjectElement(already_AddRefed<nsNodeInfo> aNodeInfo)
+nsSVGForeignObjectElement::nsSVGForeignObjectElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsSVGForeignObjectElementBase(aNodeInfo)
 {
 }

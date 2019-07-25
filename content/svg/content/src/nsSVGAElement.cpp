@@ -83,7 +83,7 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGAElementBase)
 
 
 
-nsSVGAElement::nsSVGAElement(already_AddRefed<nsNodeInfo> aNodeInfo)
+nsSVGAElement::nsSVGAElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsSVGAElementBase(aNodeInfo),
     Link(this)
 {

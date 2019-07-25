@@ -56,7 +56,7 @@ class nsSVGPathGeometryElement : public nsSVGPathGeometryElementBase,
                                  public DOMSVGTests
 {
 public:
-  nsSVGPathGeometryElement(already_AddRefed<nsNodeInfo> aNodeInfo);
+  nsSVGPathGeometryElement(already_AddRefed<nsINodeInfo> aNodeInfo);
 
   
   NS_DECL_ISUPPORTS_INHERITED

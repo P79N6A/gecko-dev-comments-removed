@@ -50,7 +50,7 @@ class nsHTMLSourceElement : public nsGenericHTMLElement,
                             public nsIDOMHTMLSourceElement
 {
 public:
-  nsHTMLSourceElement(already_AddRefed<nsNodeInfo> aNodeInfo);
+  nsHTMLSourceElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLSourceElement();
 
   
@@ -68,7 +68,7 @@ public:
   
   NS_DECL_NSIDOMHTMLSOURCEELEMENT
 
-  virtual nsresult Clone(nsNodeInfo *aNodeInfo, nsINode **aResult) const;
+  virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
   
   
@@ -83,7 +83,7 @@ public:
 NS_IMPL_NS_NEW_HTML_ELEMENT(Source)
 
 
-nsHTMLSourceElement::nsHTMLSourceElement(already_AddRefed<nsNodeInfo> aNodeInfo)
+nsHTMLSourceElement::nsHTMLSourceElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
 }

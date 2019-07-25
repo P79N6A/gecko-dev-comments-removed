@@ -99,12 +99,12 @@ protected:
 
     nsresult OpenRoot(const PRUnichar** aAttributes,
                       const PRUint32 aAttrLen,
-                      nsNodeInfo *aNodeInfo);
+                      nsINodeInfo *aNodeInfo);
 
     nsresult OpenTag(const PRUnichar** aAttributes,
                      const PRUint32 aAttrLen,
                      const PRUint32 aLineNumber,
-                     nsNodeInfo *aNodeInfo);
+                     nsINodeInfo *aNodeInfo);
 
     
     
@@ -130,7 +130,7 @@ protected:
 
     nsresult NormalizeAttributeString(const PRUnichar *aExpatName,
                                       nsAttrName &aName);
-    nsresult CreateElement(nsNodeInfo *aNodeInfo,
+    nsresult CreateElement(nsINodeInfo *aNodeInfo,
                            nsXULPrototypeElement** aResult);
 
 

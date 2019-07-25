@@ -311,7 +311,7 @@ nsXULPrototypeDocument::Read(nsIObjectInputStream* aStream)
        return NS_ERROR_OUT_OF_MEMORY;
 
     
-    nsTArray<nsRefPtr<nsNodeInfo> > nodeInfos;
+    nsCOMArray<nsINodeInfo> nodeInfos;
 
     rv |= aStream->Read32(&count);
     nsAutoString namespaceURI, prefixStr, localName;
@@ -328,14 +328,14 @@ nsXULPrototypeDocument::Read(nsIObjectInputStream* aStream)
         }
         rv |= aStream->ReadString(localName);
 
-        nsRefPtr<nsNodeInfo> nodeInfo;
+        nsCOMPtr<nsINodeInfo> nodeInfo;
         
         
         
         rv |= mNodeInfoManager->GetNodeInfo(localName, prefix, namespaceURI,
                                             PR_UINT16_MAX,
                                             getter_AddRefs(nodeInfo));
-        if (!nodeInfos.AppendElement(nodeInfo.forget()))
+        if (!nodeInfos.AppendObject(nodeInfo))
             rv |= NS_ERROR_OUT_OF_MEMORY;
     }
 
@@ -369,11 +369,11 @@ nsXULPrototypeDocument::Read(nsIObjectInputStream* aStream)
 
 static nsresult
 GetNodeInfos(nsXULPrototypeElement* aPrototype,
-             nsTArray<nsRefPtr<nsNodeInfo> >& aArray)
+             nsCOMArray<nsINodeInfo>& aArray)
 {
     nsresult rv;
-    if (aArray.IndexOf(aPrototype->mNodeInfo) == -1) {
-        if (!aArray.AppendElement(aPrototype->mNodeInfo)) {
+    if (aArray.IndexOf(aPrototype->mNodeInfo) < 0) {
+        if (!aArray.AppendObject(aPrototype->mNodeInfo)) {
             return NS_ERROR_OUT_OF_MEMORY;
         }
     }
@@ -381,7 +381,7 @@ GetNodeInfos(nsXULPrototypeElement* aPrototype,
     
     PRUint32 i;
     for (i = 0; i < aPrototype->mNumAttributes; ++i) {
-        nsRefPtr<nsNodeInfo> ni;
+        nsCOMPtr<nsINodeInfo> ni;
         nsAttrName* name = &aPrototype->mAttributes[i].mName;
         if (name->IsAtom()) {
             ni = aPrototype->mNodeInfo->NodeInfoManager()->
@@ -393,8 +393,8 @@ GetNodeInfos(nsXULPrototypeElement* aPrototype,
             ni = name->NodeInfo();
         }
 
-        if (aArray.IndexOf(ni) == -1) {
-            if (!aArray.AppendElement(ni.forget())) {
+        if (aArray.IndexOf(ni) < 0) {
+            if (!aArray.AppendObject(ni)) {
                 return NS_ERROR_OUT_OF_MEMORY;
             }
         }
@@ -443,14 +443,14 @@ nsXULPrototypeDocument::Write(nsIObjectOutputStream* aStream)
 #endif
 
     
-    nsTArray<nsRefPtr<nsNodeInfo> > nodeInfos;
+    nsCOMArray<nsINodeInfo> nodeInfos;
     if (mRoot)
         rv |= GetNodeInfos(mRoot, nodeInfos);
 
-    PRUint32 nodeInfoCount = nodeInfos.Length();
+    PRUint32 nodeInfoCount = nodeInfos.Count();
     rv |= aStream->Write32(nodeInfoCount);
     for (i = 0; i < nodeInfoCount; ++i) {
-        nsNodeInfo *nodeInfo = nodeInfos[i];
+        nsINodeInfo *nodeInfo = nodeInfos[i];
         NS_ENSURE_TRUE(nodeInfo, NS_ERROR_FAILURE);
 
         nsAutoString namespaceURI;

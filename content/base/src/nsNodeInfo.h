@@ -44,23 +44,27 @@
 #ifndef nsNodeInfo_h___
 #define nsNodeInfo_h___
 
+#include "nsINodeInfo.h"
 #include "nsNodeInfoManager.h"
 #include "plhash.h"
 #include "nsIAtom.h"
-#include "nsINameSpaceManager.h"
 #include "nsCOMPtr.h"
-#include "nsDOMString.h"
 
 class nsFixedSizeAllocator;
 
-class nsNodeInfo
+class nsNodeInfo : public nsINodeInfo
 {
 public:
-  NS_INLINE_DECL_REFCOUNTING_WITH_DESTROY(nsNodeInfo, LastRelease())
-  NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(nsNodeInfo)
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS(nsNodeInfo)
+
+  
+  virtual nsresult GetNamespaceURI(nsAString& aNameSpaceURI) const;
+  virtual bool NamespaceEquals(const nsAString& aNamespaceURI) const;
 
   
   
+public:
   
 
 
@@ -68,300 +72,6 @@ public:
                             PRInt32 aNamespaceID, PRUint16 aNodeType,
                             nsIAtom *aExtraName,
                             nsNodeInfoManager *aOwnerManager);
-
-  
-
-
-
-
-
-  void GetName(nsAString& aName) const
-  {
-    mInner.mName->ToString(aName);
-  }
-
-  
-
-
-
-
-
-
-  nsIAtom* NameAtom() const
-  {
-    return mInner.mName;
-  }
-
-  
-
-
-
-
-
-
-  const nsString& QualifiedName() const {
-    return mQualifiedName;
-  }
-
-  
-
-
-  const nsString& NodeName() const {
-    return mNodeName;
-  }
-
-  
-
-
-  const nsString& LocalName() const {
-    return mLocalName;
-  }
-
-  
-
-
-
-
-
-  void GetPrefix(nsAString& aPrefix) const
-  {
-    if (mInner.mPrefix) {
-      mInner.mPrefix->ToString(aPrefix);
-    } else {
-      SetDOMStringToNull(aPrefix);
-    }
-  }
-
-  
-
-
-
-
-
-  nsIAtom* GetPrefixAtom() const
-  {
-    return mInner.mPrefix;
-  }
-
-  
-
-
-  nsresult GetNamespaceURI(nsAString& aNameSpaceURI) const;
-
-  
-
-
-
-  PRInt32 NamespaceID() const
-  {
-    return mInner.mNamespaceID;
-  }
-
-  
-
-
-
-  PRUint16 NodeType() const
-  {
-    return mInner.mNodeType;
-  }
-
-  
-
-
-  nsIAtom* GetExtraName() const
-  {
-    return mInner.mExtraName;
-  }
-
-  
-
-
-
-
-
-  nsIAtom* GetIDAttributeAtom() const
-  {
-    return mIDAttributeAtom;
-  }
-
-  void SetIDAttributeAtom(nsIAtom* aID)
-  {
-    mIDAttributeAtom = aID;
-  }
-
-  
-
-
-
-  nsNodeInfoManager *NodeInfoManager() const
-  {
-    return mOwnerManager;
-  }
-
-  
-
-
-
-
-  bool Equals(nsNodeInfo *aNodeInfo) const
-  {
-    return aNodeInfo == this || aNodeInfo->Equals(mInner.mName, mInner.mPrefix,
-                                                  mInner.mNamespaceID);
-  }
-
-  bool NameAndNamespaceEquals(nsNodeInfo *aNodeInfo) const
-  {
-    return aNodeInfo == this || aNodeInfo->Equals(mInner.mName,
-                                                  mInner.mNamespaceID);
-  }
-
-  bool Equals(nsIAtom *aNameAtom) const
-  {
-    return mInner.mName == aNameAtom;
-  }
-
-  bool Equals(nsIAtom *aNameAtom, nsIAtom *aPrefixAtom) const
-  {
-    return (mInner.mName == aNameAtom) && (mInner.mPrefix == aPrefixAtom);
-  }
-
-  bool Equals(nsIAtom *aNameAtom, PRInt32 aNamespaceID) const
-  {
-    return ((mInner.mName == aNameAtom) &&
-            (mInner.mNamespaceID == aNamespaceID));
-  }
-
-  bool Equals(nsIAtom *aNameAtom, nsIAtom *aPrefixAtom,
-              PRInt32 aNamespaceID) const
-  {
-    return ((mInner.mName == aNameAtom) &&
-            (mInner.mPrefix == aPrefixAtom) &&
-            (mInner.mNamespaceID == aNamespaceID));
-  }
-
-  bool NamespaceEquals(PRInt32 aNamespaceID) const
-  {
-    return mInner.mNamespaceID == aNamespaceID;
-  }
-
-  bool Equals(const nsAString& aName) const
-  {
-    return mInner.mName->Equals(aName);
-  }
-
-  bool Equals(const nsAString& aName, const nsAString& aPrefix) const
-  {
-    return mInner.mName->Equals(aName) &&
-      (mInner.mPrefix ? mInner.mPrefix->Equals(aPrefix) : aPrefix.IsEmpty());
-  }
-
-  bool Equals(const nsAString& aName, PRInt32 aNamespaceID) const
-  {
-    return mInner.mNamespaceID == aNamespaceID &&
-      mInner.mName->Equals(aName);
-  }
-
-  bool Equals(const nsAString& aName, const nsAString& aPrefix,
-                PRInt32 aNamespaceID) const
-  {
-    return mInner.mName->Equals(aName) && mInner.mNamespaceID == aNamespaceID &&
-      (mInner.mPrefix ? mInner.mPrefix->Equals(aPrefix) : aPrefix.IsEmpty());
-  }
-
-  bool NamespaceEquals(const nsAString& aNamespaceURI) const;
-
-  bool QualifiedNameEquals(nsIAtom* aNameAtom) const
-  {
-    NS_PRECONDITION(aNameAtom, "Must have name atom");
-    if (!GetPrefixAtom())
-      return Equals(aNameAtom);
-
-    return aNameAtom->Equals(mQualifiedName);
-  }
-
-  bool QualifiedNameEquals(const nsAString& aQualifiedName) const
-  {
-    return mQualifiedName == aQualifiedName;
-  }
-
-  
-
-
-  nsIDocument* GetDocument() const
-  {
-    return mDocument;
-  }
-
-protected:
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  class nsNodeInfoInner
-  {
-  public:
-    nsNodeInfoInner()
-      : mName(nsnull), mPrefix(nsnull), mNamespaceID(kNameSpaceID_Unknown),
-        mNodeType(0), mNameString(nsnull), mExtraName(nsnull)
-    {
-    }
-    nsNodeInfoInner(nsIAtom *aName, nsIAtom *aPrefix, PRInt32 aNamespaceID,
-                    PRUint16 aNodeType, nsIAtom* aExtraName)
-      : mName(aName), mPrefix(aPrefix), mNamespaceID(aNamespaceID),
-        mNodeType(aNodeType), mNameString(nsnull), mExtraName(aExtraName)
-    {
-    }
-    nsNodeInfoInner(const nsAString& aTmpName, nsIAtom *aPrefix,
-                    PRInt32 aNamespaceID, PRUint16 aNodeType)
-      : mName(nsnull), mPrefix(aPrefix), mNamespaceID(aNamespaceID),
-        mNodeType(aNodeType), mNameString(&aTmpName), mExtraName(nsnull)
-    {
-    }
-
-    nsIAtom*            mName;
-    nsIAtom*            mPrefix;
-    PRInt32             mNamespaceID;
-    PRUint16            mNodeType; 
-    const nsAString*    mNameString;
-    nsIAtom*            mExtraName; 
-  };
-
-  
-  friend class nsNodeInfoManager;
-
-  nsIDocument* mDocument; 
-
-  nsNodeInfoInner mInner;
-
-  nsCOMPtr<nsIAtom> mIDAttributeAtom;
-  nsNodeInfoManager* mOwnerManager; 
-
-  
-
-
-
-
-  
-  nsString mQualifiedName;
-
-  
-  nsString mNodeName;
-
-  
-  
-  nsString mLocalName;
-
 private:
   nsNodeInfo(); 
   nsNodeInfo(const nsNodeInfo& aOther); 
@@ -369,7 +79,7 @@ private:
              PRUint16 aNodeType, nsIAtom *aExtraName,
              nsNodeInfoManager *aOwnerManager);
 protected:
-  ~nsNodeInfo();
+  virtual ~nsNodeInfo();
 
 public:
   

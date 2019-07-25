@@ -59,6 +59,7 @@
 #include "nsEditProperty.h"
 #include "nsIDOMHTMLTextAreaElement.h"
 #include "nsINameSpaceManager.h"
+#include "nsINodeInfo.h"
 #include "nsFormControlFrame.h" 
 
 #include "nsIContent.h"

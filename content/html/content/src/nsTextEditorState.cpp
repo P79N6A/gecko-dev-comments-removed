@@ -1538,7 +1538,7 @@ nsTextEditorState::CreateRootNode()
   NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
 
   
-  nsRefPtr<nsNodeInfo> nodeInfo;
+  nsCOMPtr<nsINodeInfo> nodeInfo;
   nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::div, nsnull,
                                                  kNameSpaceID_XHTML,
                                                  nsIDOMNode::ELEMENT_NODE);
@@ -1620,7 +1620,7 @@ be called if @placeholder is the empty string when trimmed from line breaks");
 
   
   
-  nsRefPtr<nsNodeInfo> nodeInfo;
+  nsCOMPtr<nsINodeInfo> nodeInfo;
   nodeInfo = pNodeInfoManager->GetNodeInfo(nsGkAtoms::div, nsnull,
                                            kNameSpaceID_XHTML,
                                            nsIDOMNode::ELEMENT_NODE);

@@ -37,7 +37,7 @@
 
 
 #include "nsCOMPtr.h"
-#include "nsNodeInfo.h"
+#include "nsINodeInfo.h"
 #include "nsIServiceManager.h"
 #include "nsIXTFElement.h"
 #include "nsIXTFElementFactory.h"
@@ -62,7 +62,7 @@ public:
 
   
   nsresult CreateElement(nsIContent** aResult,
-                         already_AddRefed<nsNodeInfo> aNodeInfo);
+                         already_AddRefed<nsINodeInfo> aNodeInfo);
 
 private:
   nsInterfaceHashtable<nsUint32HashKey, nsIXTFElementFactory> mFactoryHash;
@@ -102,7 +102,7 @@ NS_IMPL_ISUPPORTS1(nsXTFService, nsIXTFService)
 
 nsresult
 nsXTFService::CreateElement(nsIContent** aResult,
-                            already_AddRefed<nsNodeInfo> aNodeInfo)
+                            already_AddRefed<nsINodeInfo> aNodeInfo)
 {
   nsCOMPtr<nsIXTFElementFactory> factory;
 

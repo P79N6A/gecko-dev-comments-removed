@@ -456,8 +456,8 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
   nsNodeInfoManager *nodeInfoManager = aNewNodeInfoManager;
 
   
-  nsNodeInfo *nodeInfo = aNode->mNodeInfo;
-  nsRefPtr<nsNodeInfo> newNodeInfo;
+  nsINodeInfo *nodeInfo = aNode->mNodeInfo;
+  nsCOMPtr<nsINodeInfo> newNodeInfo;
   if (nodeInfoManager) {
 
     
