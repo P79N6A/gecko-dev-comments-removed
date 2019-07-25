@@ -2878,7 +2878,7 @@ nsDocument::NodesFromRectHelper(float aX, float aY,
   if (!rootFrame)
     return NS_OK; 
 
-  nsTArray<nsIFrame*> outFrames;
+  nsAutoTArray<nsIFrame*,8> outFrames;
   nsLayoutUtils::GetFramesForArea(rootFrame, rect, outFrames,
                                   PR_TRUE, aIgnoreRootScrollFrame);
 
