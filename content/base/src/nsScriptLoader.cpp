@@ -546,10 +546,13 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
 
   
 
-  nsCOMPtr<nsIURI> scriptURI = aElement->GetScriptURI();
   nsRefPtr<nsScriptLoadRequest> request;
-  if (scriptURI) {
+  if (aElement->GetScriptExternal()) {
     
+    nsCOMPtr<nsIURI> scriptURI = aElement->GetScriptURI();
+    if (!scriptURI) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
     nsTArray<PreloadInfo>::index_type i =
       mPreloads.IndexOf(scriptURI.get(), 0, PreloadURIComparator());
     if (i != nsTArray<PreloadInfo>::NoIndex) {

@@ -231,6 +231,8 @@ nsSVGScriptElement::FreezeUriAsyncDefer()
   if (!src.IsEmpty()) {
     nsCOMPtr<nsIURI> baseURI = GetBaseURI();
     NS_NewURI(getter_AddRefs(mUri), src, nsnull, baseURI);
+    
+    mExternal = PR_TRUE;
   }
   
   mFrozen = PR_TRUE;
@@ -245,7 +247,7 @@ nsSVGScriptElement::HasScriptContent()
   nsAutoString src;
   mStringAttributes[HREF].GetAnimValue(src, this);
   
-  return (mFrozen ? !!mUri : !src.IsEmpty()) ||
+  return (mFrozen ? mExternal : !src.IsEmpty()) ||
          nsContentUtils::HasNonEmptyTextContent(this);
 }
 

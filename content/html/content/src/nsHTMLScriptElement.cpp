@@ -556,6 +556,8 @@ nsHTMLScriptElement::FreezeUriAsyncDefer()
     nsAutoString src;
     GetSrc(src);
     NS_NewURI(getter_AddRefs(mUri), src);
+    
+    mExternal = PR_TRUE;
 
     PRBool defer, async;
     GetAsync(&async);
@@ -571,7 +573,7 @@ nsHTMLScriptElement::FreezeUriAsyncDefer()
 PRBool
 nsHTMLScriptElement::HasScriptContent()
 {
-  return (mFrozen ? !!mUri : HasAttr(kNameSpaceID_None, nsGkAtoms::src)) ||
+  return (mFrozen ? mExternal : HasAttr(kNameSpaceID_None, nsGkAtoms::src)) ||
          nsContentUtils::HasNonEmptyTextContent(this);
 }
 
