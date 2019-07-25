@@ -437,7 +437,8 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   
   
   nsChangeHint maxHint = nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
-      nsChangeHint_UpdateTransformLayer | nsChangeHint_UpdateOpacityLayer);
+      nsChangeHint_UpdateTransformLayer | nsChangeHint_UpdateOpacityLayer |
+      nsChangeHint_UpdateOverflow);
   DO_STRUCT_DIFFERENCE(Display);
 
   maxHint = nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
@@ -447,7 +448,6 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   DO_STRUCT_DIFFERENCE(Content);
   DO_STRUCT_DIFFERENCE(UserInterface);
   DO_STRUCT_DIFFERENCE(Visibility);
-  DO_STRUCT_DIFFERENCE(Outline);
   DO_STRUCT_DIFFERENCE(TableBorder);
   DO_STRUCT_DIFFERENCE(Table);
   DO_STRUCT_DIFFERENCE(UIReset);
@@ -474,6 +474,10 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   DO_STRUCT_DIFFERENCE(Border);
   DO_STRUCT_DIFFERENCE(Position);
   DO_STRUCT_DIFFERENCE(TextReset);
+
+  
+  maxHint = nsChangeHint(NS_STYLE_HINT_VISUAL | nsChangeHint_UpdateOverflow);
+  DO_STRUCT_DIFFERENCE(Outline);
 
   
   

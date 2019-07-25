@@ -432,6 +432,20 @@ public:
 
 
 
+
+
+
+  static nsPoint GetEventCoordinatesRelativeTo(const nsEvent* aEvent,
+                                               const nsIntPoint aPoint,
+                                               nsIFrame* aFrame);
+
+  
+
+
+
+
+
+
   static nsIFrame* GetPopupFrameForEventCoordinates(nsPresContext* aPresContext,
                                                     const nsEvent* aEvent);
 
@@ -523,6 +537,13 @@ public:
   static nsRect TransformFrameRectToAncestor(nsIFrame* aFrame,
                                              const nsRect& aRect,
                                              nsIFrame* aAncestor);
+
+
+  
+
+
+
+  static gfx3DMatrix GetTransformToAncestor(nsIFrame *aFrame, nsIFrame *aAncestor);
 
   
 
@@ -1474,6 +1495,13 @@ public:
 
 
   static bool Are3DTransformsEnabled();
+
+  
+
+
+
+  static void UnionChildOverflow(nsIFrame* aFrame,
+                                 nsOverflowAreas& aOverflowAreas);
 
   
 

@@ -243,11 +243,8 @@ Reporter.prototype = {
   }
 };
 
-function getReportersByProcess()
+function getReportersByProcess(aMgr)
 {
-  var mgr = Cc["@mozilla.org/memory-reporter-manager;1"].
-      getService(Ci.nsIMemoryReporterManager);
-
   
   
   
@@ -279,7 +276,7 @@ function getReportersByProcess()
   }
 
   
-  var e = mgr.enumerateReporters();
+  var e = aMgr.enumerateReporters();
   while (e.hasMoreElements()) {
     var rOrig = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
     try {
@@ -291,7 +288,7 @@ function getReportersByProcess()
             rOrig.path + ": " + e);
     }
   }
-  var e = mgr.enumerateMultiReporters();
+  var e = aMgr.enumerateMultiReporters();
   while (e.hasMoreElements()) {
     var mrOrig = e.getNext().QueryInterface(Ci.nsIMemoryMultiReporter);
     try {
@@ -321,13 +318,21 @@ function update()
   else
     content.parentNode.classList.add('non-verbose');
 
+  var mgr = Cc["@mozilla.org/memory-reporter-manager;1"].
+      getService(Ci.nsIMemoryReporterManager);
+
+  var text = "";
+
   
   
-  var reportersByProcess = getReportersByProcess();
-  var text = genProcessText("Main", reportersByProcess["Main"]);
+  var reportersByProcess = getReportersByProcess(mgr);
+  var hasMozMallocUsableSize = mgr.hasMozMallocUsableSize;
+  text += genProcessText("Main", reportersByProcess["Main"],
+                         hasMozMallocUsableSize);
   for (var process in reportersByProcess) {
     if (process !== "Main") {
-      text += genProcessText(process, reportersByProcess[process]);
+      text += genProcessText(process, reportersByProcess[process],
+                             hasMozMallocUsableSize);
     }
   }
 
@@ -522,7 +527,14 @@ function buildTree(aReporters, aTreeName)
 
 
 
-function fixUpExplicitTree(aT, aReporters) {
+
+
+
+
+
+
+function fixUpExplicitTree(aT, aReporters)
+{
   
   var s = "";
   function getKnownHeapUsedBytes(aT)
@@ -545,7 +557,8 @@ function fixUpExplicitTree(aT, aReporters) {
   
   var heapAllocatedBytes = getBytes(aReporters, "heap-allocated", true);
   var heapUnclassifiedT = new TreeNode("heap-unclassified");
-  if (heapAllocatedBytes !== kUnknown) {
+  var hasKnownHeapAllocated = heapAllocatedBytes !== kUnknown;
+  if (hasKnownHeapAllocated) {
     heapUnclassifiedT._amount =
       heapAllocatedBytes - getKnownHeapUsedBytes(aT);
   } else {
@@ -563,6 +576,8 @@ function fixUpExplicitTree(aT, aReporters) {
 
   aT._kids.push(heapUnclassifiedT);
   aT._amount += heapUnclassifiedT._amount;
+
+  return hasKnownHeapAllocated;
 }
 
 
@@ -617,6 +632,35 @@ function filterTree(aTotalBytes, aT)
   }
 }
 
+function genWarningText(aHasKnownHeapAllocated, aHasMozMallocUsableSize) 
+{
+  var warningText = "";
+
+  if (!aHasKnownHeapAllocated && !aHasMozMallocUsableSize) {
+    warningText =
+      "<p class='accuracyWarning'>WARNING: the 'heap-allocated' memory " +
+      "reporter and the moz_malloc_usable_size() function do not work for " +
+      "this platform and/or configuration.  This means that " +
+      "'heap-unclassified' is zero and the 'explicit' tree shows " +
+      "much less memory than it should.</p>\n\n";
+
+  } else if (!aHasKnownHeapAllocated) {
+    warningText =
+      "<p class='accuracyWarning'>WARNING: the 'heap-allocated' memory " +
+      "reporter does not work for this platform and/or configuration. " +
+      "This means that 'heap-unclassified' is zero and the 'explicit' tree " +
+      "shows less memory than it should.</p>\n\n";
+
+  } else if (!aHasMozMallocUsableSize) {
+    warningText =
+      "<p class='accuracyWarning'>WARNING: the moz_malloc_usable_size() " +
+      "function does not work for this platform and/or configuration. " +
+      "This means that much of the heap-allocated memory is not measured " +
+      "by individual memory reporters and so will fall under " +
+      "'heap-unclassified'.</p>\n\n";
+  }
+  return warningText;
+}
 
 
 
@@ -626,12 +670,22 @@ function filterTree(aTotalBytes, aT)
 
 
 
-function genProcessText(aProcess, aReporters)
+
+
+
+function genProcessText(aProcess, aReporters, aHasMozMallocUsableSize)
 {
   var explicitTree = buildTree(aReporters, 'explicit');
-  fixUpExplicitTree(explicitTree, aReporters);
+  var hasKnownHeapAllocated = fixUpExplicitTree(explicitTree, aReporters);
   filterTree(explicitTree._amount, explicitTree);
   var explicitText = genTreeText(explicitTree, aProcess);
+
+  
+  
+  var warningText = "";
+  var accuracyTagText = "<p class='accuracyWarning'>";
+  var warningText =
+        genWarningText(hasKnownHeapAllocated, aHasMozMallocUsableSize);
 
   var mapTreeText = '';
   kMapTreePaths.forEach(function(t) {
@@ -650,7 +704,7 @@ function genProcessText(aProcess, aReporters)
 
   
   return "<h1>" + aProcess + " Process</h1>\n\n" +
-         explicitText + mapTreeText + otherText +
+         warningText + explicitText + mapTreeText + otherText +
          "<hr></hr>";
 }
 
@@ -830,9 +884,7 @@ function genMrNameText(aKind, aDesc, aName, aHasProblem, aNMerged)
              "'>" + prepName(aName) + "</span>";
   if (aHasProblem) {
     const problemDesc =
-      "Warning: this memory reporter was unable to compute a useful value. " +
-      "The reported value is the sum of all entries below '" + aName + "', " +
-      "which is probably less than the true value.";
+      "Warning: this memory reporter was unable to compute a useful value. ";
     text += " <span class='mrStar' title=\"" + problemDesc + "\">[*]</span>";
   }
   if (aNMerged) {

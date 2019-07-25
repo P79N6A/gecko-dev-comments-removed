@@ -8019,6 +8019,38 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
         ApplyRenderingChangeToTree(presContext, frame, hint);
         didInvalidate = true;
       }
+      if (hint & nsChangeHint_UpdateOverflow) {
+        while (frame) {
+          nsOverflowAreas overflowAreas;
+          nsOverflowAreas* pre = static_cast<nsOverflowAreas*>
+            (frame->Properties().Get(frame->PreTransformOverflowAreasProperty()));
+          if (pre) {
+            
+            
+            overflowAreas = *pre;
+          } else {
+            
+            
+            overflowAreas = frame->GetOverflowAreas();
+          }
+
+          frame->FinishAndStoreOverflow(overflowAreas, frame->GetSize());
+
+          nsIFrame* next =
+            nsLayoutUtils::GetNextContinuationOrSpecialSibling(frame);
+          
+          
+          if (!next || frame->GetParent() != next->GetParent()) {
+            for (nsIFrame* ancestor = frame->GetParent(); ancestor;
+                 ancestor = ancestor->GetParent()) {
+              if (!ancestor->UpdateOverflow()) {
+                break;
+              }
+            }
+          }
+          frame = next;
+        }
+      }
       if (hint & nsChangeHint_UpdateCursor) {
         mPresShell->SynthesizeMouseMove(false);
       }

@@ -267,6 +267,29 @@ ExtendedDef(jsbytecode *pc)
 }
 
 
+static inline bool
+BytecodeNoFallThrough(JSOp op)
+{
+    switch (op) {
+      case JSOP_GOTO:
+      case JSOP_DEFAULT:
+      case JSOP_RETURN:
+      case JSOP_STOP:
+      case JSOP_RETRVAL:
+      case JSOP_THROW:
+      case JSOP_TABLESWITCH:
+      case JSOP_LOOKUPSWITCH:
+      case JSOP_FILTER:
+        return true;
+      case JSOP_GOSUB:
+        
+        return false;
+      default:
+        return false;
+    }
+}
+
+
 
 
 
@@ -378,6 +401,30 @@ static inline uint32_t GetBytecodeSlot(JSScript *script, jsbytecode *pc)
       default:
         JS_NOT_REACHED("Bad slot opcode");
         return 0;
+    }
+}
+
+
+static inline bool
+BytecodeUpdatesSlot(JSOp op)
+{
+    switch (op) {
+      case JSOP_SETARG:
+      case JSOP_SETLOCAL:
+      case JSOP_SETLOCALPOP:
+      case JSOP_DEFLOCALFUN:
+      case JSOP_DEFLOCALFUN_FC:
+      case JSOP_INCARG:
+      case JSOP_DECARG:
+      case JSOP_ARGINC:
+      case JSOP_ARGDEC:
+      case JSOP_INCLOCAL:
+      case JSOP_DECLOCAL:
+      case JSOP_LOCALINC:
+      case JSOP_LOCALDEC:
+        return true;
+      default:
+        return false;
     }
 }
 

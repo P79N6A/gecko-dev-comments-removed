@@ -1340,8 +1340,8 @@ nsGlobalWindow::FreeInnerObjects(bool aClearScope)
     
 
     mDummyJavaPluginOwner->Destroy();
-
     mDummyJavaPluginOwner = nsnull;
+    mDidInitJavaProperties = false;
   }
 
   CleanupCachedXBLHandlers(this);
@@ -1481,6 +1481,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindow)
   if (tmp->mDummyJavaPluginOwner) {
     tmp->mDummyJavaPluginOwner->Destroy();
     NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mDummyJavaPluginOwner)
+    tmp->mDidInitJavaProperties = false;
   }
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mFocusedNode)
@@ -2234,6 +2235,16 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
         
         ::JS_DeleteProperty(cx, currentInner->mJSObject, "document");
+
+        if (mDummyJavaPluginOwner) {
+          
+          
+          
+          mDummyJavaPluginOwner->Destroy();
+          mDummyJavaPluginOwner = nsnull;
+
+          mDidInitJavaProperties = false;
+        }
       }
     } else {
       rv = newInnerWindow->InnerSetNewDocument(aDocument);

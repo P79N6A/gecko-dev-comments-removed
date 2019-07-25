@@ -171,6 +171,8 @@ public:
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
 
+  virtual bool UpdateOverflow();
+
   
   
   

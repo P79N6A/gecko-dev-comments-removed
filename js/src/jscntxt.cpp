@@ -469,30 +469,7 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
 
 
 
-    bool first;
-    for (;;) {
-        if (rt->state == JSRTS_UP) {
-            JS_ASSERT(!JS_CLIST_IS_EMPTY(&rt->contextList));
-            first = false;
-            break;
-        }
-        if (rt->state == JSRTS_DOWN) {
-            JS_ASSERT(JS_CLIST_IS_EMPTY(&rt->contextList));
-            first = true;
-            rt->state = JSRTS_LAUNCHING;
-            break;
-        }
-        JS_WAIT_CONDVAR(rt->stateChange, JS_NO_TIMEOUT);
-
-        
-
-
-
-
-
-
-        js_WaitForGC(rt);
-    }
+    bool first = JS_CLIST_IS_EMPTY(&rt->contextList);
     JS_APPEND_LINK(&cx->link, &rt->contextList);
     JS_UNLOCK_GC(rt);
 
@@ -521,10 +498,6 @@ js_NewContext(JSRuntime *rt, size_t stackChunkSize)
             js_DestroyContext(cx, JSDCM_NEW_FAILED);
             return NULL;
         }
-
-        AutoLockGC lock(rt);
-        rt->state = JSRTS_UP;
-        JS_NOTIFY_ALL_CONDVAR(rt->stateChange);
     }
 
     JSContextCallback cxCallback = rt->cxCallback;
@@ -543,7 +516,6 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
     JS_AbortIfWrongThread(rt);
 
     JSContextCallback cxCallback;
-    JSBool last;
 
     JS_ASSERT(!cx->enumerators);
 
@@ -579,7 +551,6 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
     }
 
     JS_LOCK_GC(rt);
-    JS_ASSERT(rt->state == JSRTS_UP || rt->state == JSRTS_LAUNCHING);
 #ifdef JS_THREADSAFE
     
 
@@ -589,9 +560,7 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
         js_WaitForGC(rt);
 #endif
     JS_REMOVE_LINK(&cx->link);
-    last = (rt->contextList.next == &rt->contextList);
-    if (last)
-        rt->state = JSRTS_LANDING;
+    bool last = !rt->hasContexts();
     if (last || mode == JSDCM_FORCE_GC || mode == JSDCM_MAYBE_GC
 #ifdef JS_THREADSAFE
         || cx->outstandingRequests != 0
@@ -607,11 +576,6 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
         if (last) {
 #ifdef JS_THREADSAFE
             
-
-
-
-
-
 
 
 
@@ -641,23 +605,15 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 
 #ifdef JS_THREADSAFE
         
-
-
-
-
-
-
         while (cx->outstandingRequests != 0)
             JS_EndRequest(cx);
 #endif
 
         if (last) {
-            js_GC(cx, NULL, GC_LAST_CONTEXT, gcstats::LASTCONTEXT);
+            js_GC(cx, NULL, GC_NORMAL, gcstats::LASTCONTEXT);
 
             
             JS_LOCK_GC(rt);
-            rt->state = JSRTS_DOWN;
-            JS_NOTIFY_ALL_CONDVAR(rt->stateChange);
         } else {
             if (mode == JSDCM_FORCE_GC)
                 js_GC(cx, NULL, GC_NORMAL, gcstats::DESTROYCONTEXT);

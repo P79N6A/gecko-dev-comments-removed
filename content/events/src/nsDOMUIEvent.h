@@ -68,8 +68,8 @@ public:
                                 JSContext* aCx, jsval* aVal);
 protected:
   
-  nsIntPoint GetClientPoint();
   nsIntPoint GetScreenPoint();
+  nsIntPoint GetClientPoint();
   nsIntPoint GetLayerPoint();
   nsIntPoint GetPagePoint();
 

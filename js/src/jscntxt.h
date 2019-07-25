@@ -336,13 +336,6 @@ typedef enum JSDestroyContextMode {
     JSDCM_NEW_FAILED
 } JSDestroyContextMode;
 
-typedef enum JSRuntimeState {
-    JSRTS_DOWN,
-    JSRTS_LAUNCHING,
-    JSRTS_UP,
-    JSRTS_LANDING
-} JSRuntimeState;
-
 typedef struct JSPropertyTreeEntry {
     JSDHashEntryHdr     hdr;
     js::Shape           *child;
@@ -361,9 +354,6 @@ struct JSRuntime
 
     
     js::CompartmentVector compartments;
-
-    
-    JSRuntimeState      state;
 
     
 #ifdef JS_THREADSAFE
@@ -543,6 +533,10 @@ struct JSRuntime
     
     JSCList             contextList;
 
+    bool hasContexts() const {
+        return !JS_CLIST_IS_EMPTY(&contextList);
+    }
+    
     
     JSDebugHooks        globalDebugHooks;
 
@@ -573,15 +567,6 @@ struct JSRuntime
     JSThread            *gcThread;
 
     js::GCHelperThread  gcHelperThread;
-
-    
-    PRLock              *rtLock;
-#ifdef DEBUG
-    void *              rtLockOwner;
-#endif
-
-    
-    PRCondVar           *stateChange;
 
     
 

@@ -1,37 +1,37 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=80:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * Copyright (C) 2007  Sun Microsystems, Inc. All Rights Reserved.
- *
- * Contributor(s):
- *      Brendan Eich <brendan@mozilla.org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifdef MOZ_ETW
 
@@ -39,7 +39,7 @@
 #include <evntprov.h>
 #include <sys/types.h>
 
-/* Generated from ETWProvider.man */
+
 #include "ETWProvider.h"
 #endif
 
@@ -117,18 +117,18 @@ Probes::JITGranularityRequested()
 }
 
 #ifdef JS_METHODJIT
-/*
- * Flatten the tree of inlined frames into a series of native code regions, one
- * for each contiguous section of native code that belongs to a single
- * ActiveFrame. (Note that some of these regions may be zero-length, for
- * example if two ActiveFrames end at the same place.)
- */
+
+
+
+
+
+
 typedef mjit::Compiler::ActiveFrame ActiveFrame;
 
 bool
 Probes::JITWatcher::CollectNativeRegions(RegionVector &regions,
                                          JSRuntime *rt,
-                                         mjit::JITScript *jit,
+                                         mjit::JITChunk *jit,
                                          mjit::JSActiveFrame *outerFrame,
                                          mjit::JSActiveFrame **inlineFrames)
 {
@@ -152,14 +152,14 @@ Probes::JITWatcher::CollectNativeRegions(RegionVector &regions,
     for (uint32_t i = 0; i <= jit->nInlineFrames; i++) {
         mjit::JSActiveFrame *frame = (i < jit->nInlineFrames) ? inlineFrames[i] : outerFrame;
 
-        // Not a down frame; pop the current frame, then pop until we reach
-        // this frame's parent, recording subframe ends as we go
+        
+        
         while (stack[depth-1] != frame->parent) {
             depth--;
             JS_ASSERT(depth > 0);
-            // Pop up from regions[ip-1].frame to top of the stack: start a
-            // region in the destination frame and close off the source
-            // (origin) frame at the end of its script
+            
+            
+            
             mjit::JSActiveFrame *src = regions[ip-1].frame;
             mjit::JSActiveFrame *dst = stack[depth-1];
             JS_ASSERT_IF(!dst, i == jit->nInlineFrames);
@@ -172,9 +172,9 @@ Probes::JITWatcher::CollectNativeRegions(RegionVector &regions,
         }
 
         if (i < jit->nInlineFrames) {
-            // Push a frame (enter an inlined function). Start a region at the
-            // beginning of the new frame's script, and end the previous region
-            // at parentPC.
+            
+            
+            
             stack[depth++] = frame;
 
             regions[ip].frame = frame;
@@ -186,7 +186,7 @@ Probes::JITWatcher::CollectNativeRegions(RegionVector &regions,
         }
     }
 
-    // Final region is always zero-length and not particularly useful
+    
     ip--;
     regions.popBack();
 
@@ -194,12 +194,12 @@ Probes::JITWatcher::CollectNativeRegions(RegionVector &regions,
     for (NativeRegion *iter = regions.begin(); iter != regions.end(); ++iter) {
         mjit::JSActiveFrame *frame = iter->frame;
         if (iter->enter) {
-            // Pushing down a frame, so region starts at the beginning of the
-            // (destination) frame
+            
+            
             iter->mainOffset = frame->mainCodeStart;
             iter->stubOffset = frame->stubCodeStart;
         } else {
-            // Popping up a level, so region starts at the end of the (source) frame
+            
             iter->mainOffset = prev->mainCodeEnd;
             iter->stubOffset = prev->stubCodeEnd;
         }
@@ -209,7 +209,7 @@ Probes::JITWatcher::CollectNativeRegions(RegionVector &regions,
     JS_ASSERT(ip == 2 * jit->nInlineFrames + 1);
     rt->array_delete(stack);
 
-    // All of the stub code comes immediately after the main code
+    
     for (NativeRegion *iter = regions.begin(); iter != regions.end(); ++iter)
         iter->stubOffset += outerFrame->mainCodeEnd;
 
@@ -247,7 +247,7 @@ Probes::registerICCode(JSContext *cx,
 }
 #endif
 
-/* ICs are unregistered in a batch */
+
 void
 Probes::discardExecutableRegion(void *start, size_t size)
 {
@@ -341,13 +341,13 @@ FunctionClassname(const JSFunction *fun)
     return Probes::nullName;
 }
 
-/*
- * These functions call the DTrace macros for the JavaScript USDT probes.
- * Originally this code was inlined in the JavaScript code; however since
- * a number of operations are called, these have been placed into functions
- * to reduce any negative compiler optimization effect that the addition of
- * a number of usually unused lines of code would cause.
- */
+
+
+
+
+
+
+
 void
 Probes::DTraceEnterJSFun(JSContext *cx, JSFunction *fun, JSScript *script)
 {
@@ -379,12 +379,12 @@ current_location(JSContext *cx, int* lineno, char const **filename)
     *filename = ScriptFilename(script);
 }
 
-/*
- * ETW (Event Tracing for Windows)
- *
- * These are here rather than in the .h file to avoid having to include
- * windows.h in a header.
- */
+
+
+
+
+
+
 bool
 Probes::ETWCallTrackingActive(JSContext *cx)
 {

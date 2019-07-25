@@ -138,8 +138,8 @@ JS_ENUM_HEADER(JSValueType, uint8_t)
     JSVAL_TYPE_OBJECT              = 0x07,
 
     
-    JSVAL_TYPE_UNKNOWN             = 0x20
-
+    JSVAL_TYPE_UNKNOWN             = 0x20,
+    JSVAL_TYPE_MISSING             = 0x21
 } JS_ENUM_FOOTER(JSValueType);
 
 JS_STATIC_ASSERT(sizeof(JSValueType) == 1);

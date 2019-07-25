@@ -240,6 +240,8 @@ public:
   void DecorateForSelection(nsRenderingContext& aRenderingContext,
                             nsPoint              aPt);
 
+  virtual bool UpdateOverflow();
+
 protected:
   
   virtual PRIntn GetSkipSides() const;

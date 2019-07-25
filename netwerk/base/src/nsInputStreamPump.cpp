@@ -383,7 +383,7 @@ nsInputStreamPump::OnInputStreamReady(nsIAsyncInputStream *stream)
 {
     LOG(("nsInputStreamPump::OnInputStreamReady [this=%x]\n", this));
 
-    SAMPLE_LABEL("Input", "OnInputStreamReady");
+    SAMPLE_LABEL("Input", "nsInputStreamPump::OnInputStreamReady");
     
     
 
@@ -426,6 +426,7 @@ nsInputStreamPump::OnInputStreamReady(nsIAsyncInputStream *stream)
 PRUint32
 nsInputStreamPump::OnStateStart()
 {
+    SAMPLE_LABEL("nsInputStreamPump", "OnStateStart");
     LOG(("  OnStateStart [this=%x]\n", this));
 
     nsresult rv;
@@ -453,6 +454,7 @@ nsInputStreamPump::OnStateStart()
 PRUint32
 nsInputStreamPump::OnStateTransfer()
 {
+    SAMPLE_LABEL("Input", "nsInputStreamPump::OnStateTransfer");
     LOG(("  OnStateTransfer [this=%x]\n", this));
 
     
@@ -562,6 +564,7 @@ nsInputStreamPump::OnStateTransfer()
 PRUint32
 nsInputStreamPump::OnStateStop()
 {
+    SAMPLE_LABEL("Input", "nsInputStreamPump::OnStateTransfer");
     LOG(("  OnStateStop [this=%x status=%x]\n", this, mStatus));
 
     

@@ -471,10 +471,10 @@ public:
 
 
 
-  static nsresult GetLayoutHistoryAndKey(nsGenericHTMLElement* aContent,
-                                         bool aRead,
-                                         nsILayoutHistoryState** aState,
-                                         nsACString& aKey);
+  static already_AddRefed<nsILayoutHistoryState>
+  GetLayoutHistoryAndKey(nsGenericHTMLElement* aContent,
+                         bool aRead,
+                         nsACString& aKey);
   
 
 
@@ -869,7 +869,7 @@ public:
   {
     return NS_OK;
   }
-  
+
   virtual bool RestoreState(nsPresState* aState)
   {
     return false;

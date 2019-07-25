@@ -346,6 +346,8 @@ public:
   void DestroyAbsoluteFrames(nsIFrame* aDestructRoot);
   virtual bool CanContinueTextRun() const;
 
+  virtual bool UpdateOverflow();
+
   
   
   
@@ -581,14 +583,34 @@ public:
                                nsIFrame** aContainingBlock = nsnull);
 
   
-  static bool ApplyPaginatedOverflowClipping(const nsIFrame* aFrame)
+
+
+  static bool ApplyOverflowClipping(const nsIFrame* aFrame,
+                                    const nsStyleDisplay* aDisp)
   {
+    
+    if (NS_UNLIKELY(aDisp->mOverflowX == NS_STYLE_OVERFLOW_CLIP)) {
+      return true;
+    }
+
+    
+    if (aDisp->mOverflowX == NS_STYLE_OVERFLOW_HIDDEN &&
+        aDisp->mOverflowY == NS_STYLE_OVERFLOW_HIDDEN) {
+      
+      nsIAtom* type = aFrame->GetType();
+      if (type == nsGkAtoms::tableFrame ||
+          type == nsGkAtoms::tableCellFrame ||
+          type == nsGkAtoms::bcTableCellFrame) {
+        return true;
+      }
+    }
+    
     
     
     return
       aFrame->PresContext()->IsPaginated() &&
-      aFrame->GetType() == nsGkAtoms::blockFrame &&
-      (aFrame->GetStateBits() & NS_BLOCK_CLIP_PAGINATED_OVERFLOW) != 0;
+      (aFrame->GetStateBits() & NS_BLOCK_CLIP_PAGINATED_OVERFLOW) != 0 &&
+      aFrame->GetType() == nsGkAtoms::blockFrame;
   }
 
 protected:

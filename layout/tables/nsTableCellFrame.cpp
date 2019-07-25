@@ -618,6 +618,18 @@ void nsTableCellFrame::VerticallyAlignChild(nscoord aMaxAscent)
   }
 }
 
+bool
+nsTableCellFrame::UpdateOverflow()
+{
+  nsRect bounds(nsPoint(0,0), GetSize());
+  bounds.Inflate(GetBorderOverflow());
+  nsOverflowAreas overflowAreas(bounds, bounds);
+
+  nsLayoutUtils::UnionChildOverflow(this, overflowAreas);
+
+  return FinishAndStoreOverflow(overflowAreas, GetSize());
+}
+
 
 
 PRUint8

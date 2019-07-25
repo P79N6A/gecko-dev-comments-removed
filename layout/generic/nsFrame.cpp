@@ -1382,31 +1382,9 @@ static bool ApplyAbsPosClipping(nsDisplayListBuilder* aBuilder,
   return true;
 }
 
-
-
-
-
-static inline bool ApplyOverflowHiddenClipping(const nsIFrame* aFrame,
-                                                 const nsStyleDisplay* aDisp)
-{
-  if (aDisp->mOverflowX != NS_STYLE_OVERFLOW_HIDDEN)
-    return false;
-    
-  nsIAtom* type = aFrame->GetType();
-  
-  
-  
-  
-  
-  
-  return type == nsGkAtoms::tableFrame ||
-       type == nsGkAtoms::tableCellFrame ||
-       type == nsGkAtoms::bcTableCellFrame;
-}
-
 static bool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
-                                    const nsIFrame* aFrame,
-                                    const nsStyleDisplay* aDisp, nsRect* aRect) {
+                                  const nsIFrame* aFrame,
+                                  const nsStyleDisplay* aDisp, nsRect* aRect) {
   
   
   
@@ -1415,16 +1393,12 @@ static bool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
   
   
   
-  if (!ApplyOverflowHiddenClipping(aFrame, aDisp) &&
-      !nsFrame::ApplyPaginatedOverflowClipping(aFrame)) {
-    bool clip = aDisp->mOverflowX == NS_STYLE_OVERFLOW_CLIP;
-    if (!clip)
-      return false;
-    
-    
-    
-  }
   
+  
+  
+  if (!nsFrame::ApplyOverflowClipping(aFrame, aDisp)) {
+    return false;
+  }
   *aRect = aFrame->GetPaddingRect() - aFrame->GetPosition();
   if (aBuilder) {
     *aRect += aBuilder->ToReferenceFrame(aFrame);
@@ -4849,12 +4823,42 @@ nsRect
 nsIFrame::GetVisualOverflowRectRelativeToSelf() const
 {
   if (IsTransformed()) {
-    nsRect* preTransformBBox = static_cast<nsRect*>
-      (Properties().Get(PreTransformBBoxProperty()));
-    if (preTransformBBox)
-      return *preTransformBBox;
+    nsOverflowAreas* preTransformOverflows = static_cast<nsOverflowAreas*>
+      (Properties().Get(PreTransformOverflowAreasProperty()));
+    if (preTransformOverflows)
+      return preTransformOverflows->VisualOverflow();
   }
   return GetVisualOverflowRect();
+}
+
+ bool
+nsFrame::UpdateOverflow()
+{
+  nsRect rect(nsPoint(0, 0), GetSize());
+  nsOverflowAreas overflowAreas(rect, rect);
+
+  bool isBox = IsBoxFrame() || IsBoxWrapped();
+  if (!isBox || (!IsCollapsed() && !DoesClipChildren())) {
+    nsLayoutUtils::UnionChildOverflow(this, overflowAreas);
+  }
+
+  if (FinishAndStoreOverflow(overflowAreas, GetSize())) {
+    nsIView* view = GetView();
+    if (view) {
+      PRUint32 flags = 0;
+      GetLayoutFlags(flags);
+
+      if ((flags & NS_FRAME_NO_SIZE_VIEW) == 0) {
+        
+        nsIViewManager* vm = view->GetViewManager();
+        vm->ResizeView(view, overflowAreas.VisualOverflow(), true);
+      }
+    }
+
+    return true;
+  }
+
+  return false;
 }
 
 void
@@ -6579,12 +6583,11 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
   
   
   
-  const nsStyleDisplay *disp = GetStyleDisplay();
+  const nsStyleDisplay* disp = GetStyleDisplay();
   NS_ASSERTION((disp->mOverflowY == NS_STYLE_OVERFLOW_CLIP) ==
                (disp->mOverflowX == NS_STYLE_OVERFLOW_CLIP),
                "If one overflow is clip, the other should be too");
-  if (disp->mOverflowX == NS_STYLE_OVERFLOW_CLIP ||
-      nsFrame::ApplyPaginatedOverflowClipping(this)) {
+  if (nsFrame::ApplyOverflowClipping(this, disp)) {
     
     aOverflowAreas.SetAllTo(bounds);
   }
@@ -6648,8 +6651,8 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
   
   bool hasTransform = IsTransformed();
   if (hasTransform) {
-    Properties().Set(nsIFrame::PreTransformBBoxProperty(),
-                     new nsRect(aOverflowAreas.VisualOverflow()));
+    Properties().Set(nsIFrame::PreTransformOverflowAreasProperty(),
+                     new nsOverflowAreas(aOverflowAreas));
     
 
 
@@ -6663,6 +6666,8 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
     if (Preserves3DChildren()) {
       ComputePreserve3DChildrenOverflow(aOverflowAreas, newBounds);
     }
+  } else {
+    Properties().Delete(nsIFrame::PreTransformOverflowAreasProperty());
   }
 
   bool visualOverflowChanged =
@@ -6823,15 +6828,8 @@ void
 nsFrame::ConsiderChildOverflow(nsOverflowAreas& aOverflowAreas,
                                nsIFrame* aChildFrame)
 {
-  const nsStyleDisplay* disp = GetStyleDisplay();
-  
-  
-  
-  
-  if (!disp->IsTableClip()) {
-    aOverflowAreas.UnionWith(aChildFrame->GetOverflowAreas() +
-                             aChildFrame->GetPosition());
-  }
+  aOverflowAreas.UnionWith(aChildFrame->GetOverflowAreas() +
+                           aChildFrame->GetPosition());
 }
 
 
@@ -7254,7 +7252,7 @@ nsFrame::GetPrefSize(nsBoxLayoutState& aState)
     return metrics->mPrefSize;
   }
 
-  if (IsCollapsed(aState))
+  if (IsCollapsed())
     return size;
 
   
@@ -7290,7 +7288,7 @@ nsFrame::GetMinSize(nsBoxLayoutState& aState)
     return size;
   }
 
-  if (IsCollapsed(aState))
+  if (IsCollapsed())
     return size;
 
   
@@ -7325,7 +7323,7 @@ nsFrame::GetMaxSize(nsBoxLayoutState& aState)
     return size;
   }
 
-  if (IsCollapsed(aState))
+  if (IsCollapsed())
     return size;
 
   size = nsBox::GetMaxSize(aState);
@@ -7353,7 +7351,7 @@ nsFrame::GetBoxAscent(nsBoxLayoutState& aState)
   if (!DoesNeedRecalc(metrics->mAscent))
     return metrics->mAscent;
 
-  if (IsCollapsed(aState)) {
+  if (IsCollapsed()) {
     metrics->mAscent = 0;
   } else {
     
@@ -7379,7 +7377,7 @@ nsFrame::DoLayout(nsBoxLayoutState& aState)
     rv = BoxReflow(aState, presContext, desiredSize, rendContext,
                    ourRect.x, ourRect.y, ourRect.width, ourRect.height);
 
-    if (IsCollapsed(aState)) {
+    if (IsCollapsed()) {
       SetSize(nsSize(0, 0));
     } else {
 
@@ -7640,7 +7638,7 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
                                         aDesiredSize, aX, aY, layoutFlags | NS_FRAME_NO_MOVE_FRAME);
 
     
-    if (IsCollapsed(aState)) {
+    if (IsCollapsed()) {
       metrics->mAscent = 0;
     } else {
       if (aDesiredSize.ascent == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {

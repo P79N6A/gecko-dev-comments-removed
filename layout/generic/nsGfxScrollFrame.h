@@ -245,6 +245,9 @@ public:
   bool IsLTR() const;
   bool IsScrollbarOnRight() const;
   bool IsScrollingActive() const { return mScrollingActive || ShouldBuildLayer(); }
+
+  bool UpdateOverflow();
+
   
   
   
@@ -262,6 +265,9 @@ public:
   void MarkActive();
   void MarkInactive();
   nsExpirationState* GetExpirationState() { return &mActivityExpirationState; }
+
+  void ScheduleSyntheticMouseMove();
+  static void ScrollActivityCallback(nsITimer *aTimer, void* anInstance);
 
   
   nsCOMPtr<nsIContent> mHScrollbarContent;
@@ -292,6 +298,8 @@ public:
   nsPoint mLastPos;
 
   nsExpirationState mActivityExpirationState;
+
+  nsCOMPtr<nsITimer> mScrollActivityTimer;
 
   bool mNeverHasVerticalScrollbar:1;
   bool mNeverHasHorizontalScrollbar:1;
@@ -385,7 +393,7 @@ public:
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);
   NS_IMETHOD GetPadding(nsMargin& aPadding);
-  virtual bool IsCollapsed(nsBoxLayoutState& aBoxLayoutState);
+  virtual bool IsCollapsed();
   
   NS_IMETHOD Reflow(nsPresContext*          aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
@@ -496,6 +504,9 @@ public:
   }
   virtual bool IsScrollingActive() {
     return mInner.IsScrollingActive();
+  }
+  virtual bool UpdateOverflow() {
+    return mInner.UpdateOverflow();
   }
 
   
@@ -731,6 +742,9 @@ public:
   }
   virtual bool IsScrollingActive() {
     return mInner.IsScrollingActive();
+  }
+  virtual bool UpdateOverflow() {
+    return mInner.UpdateOverflow();
   }
 
   

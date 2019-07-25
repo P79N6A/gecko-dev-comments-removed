@@ -215,11 +215,9 @@ Execute(JSContext *cx, JSScript *script, JSObject &scopeChain, Value *rval);
 enum InterpMode
 {
     JSINTERP_NORMAL    = 0, 
-    JSINTERP_RECORD    = 1, 
-    JSINTERP_PROFILE   = 2, 
-    JSINTERP_REJOIN    = 3, 
-    JSINTERP_SKIP_TRAP = 4, 
-    JSINTERP_BAILOUT   = 5  
+    JSINTERP_REJOIN    = 1, 
+    JSINTERP_SKIP_TRAP = 2, 
+    JSINTERP_BAILOUT   = 3  
 };
 
 

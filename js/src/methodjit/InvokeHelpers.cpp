@@ -64,7 +64,6 @@
 #include "jscntxtinlines.h"
 #include "jsatominlines.h"
 #include "StubCalls-inl.h"
-#include "MethodJIT-inl.h"
 
 #include "jsautooplen.h"
 
@@ -321,15 +320,13 @@ UncachedInlineCall(VMFrame &f, InitialFrameFlags initial,
     types::TypeMonitorCall(cx, args, construct);
 
     
-    if (newscript->getJITStatus(construct) == JITScript_None) {
-        CompileStatus status = CanMethodJIT(cx, newscript, construct, CompileRequest_Interpreter);
-        if (status == Compile_Error) {
-            
-            return false;
-        }
-        if (status == Compile_Abort)
-            *unjittable = true;
+    CompileStatus status = CanMethodJIT(cx, newscript, newscript->code, construct, CompileRequest_Interpreter);
+    if (status == Compile_Error) {
+        
+        return false;
     }
+    if (status == Compile_Abort)
+        *unjittable = true;
 
     
 
@@ -367,11 +364,13 @@ UncachedInlineCall(VMFrame &f, InitialFrameFlags initial,
 
     if (!newType) {
         if (JITScript *jit = newscript->getJIT(regs.fp()->isConstructing())) {
-            *pret = jit->invokeEntry;
+            if (jit->invokeEntry) {
+                *pret = jit->invokeEntry;
 
-            
-            regs.popFrame((Value *) regs.fp());
-            return true;
+                
+                regs.popFrame((Value *) regs.fp());
+                return true;
+            }
         }
     }
 
@@ -592,11 +591,11 @@ js_InternalThrow(VMFrame &f)
         if (f.entryfp == f.fp())
             break;
 
-        JS_ASSERT(f.regs.sp == cx->regs().sp);
+        JS_ASSERT(&cx->regs() == &f.regs);
         InlineReturn(f);
     }
 
-    JS_ASSERT(f.regs.sp == cx->regs().sp);
+    JS_ASSERT(&cx->regs() == &f.regs);
 
     if (!pc)
         return NULL;
@@ -619,9 +618,6 @@ js_InternalThrow(VMFrame &f)
     }
 
     analyze::AutoEnterAnalysis enter(cx);
-
-    cx->regs().pc = pc;
-    cx->regs().sp = fp->base() + script->analysis()->getCode(pc).stackDepth;
 
     
 
@@ -696,6 +692,28 @@ void JS_FASTCALL
 stubs::ScriptProbeOnlyEpilogue(VMFrame &f)
 {
     Probes::exitJSFun(f.cx, f.fp()->fun(), f.fp()->script());
+}
+
+void JS_FASTCALL
+stubs::CrossChunkShim(VMFrame &f, void *edge_)
+{
+    DebugOnly<CrossChunkEdge*> edge = (CrossChunkEdge *) edge_;
+
+    mjit::ExpandInlineFrames(f.cx->compartment);
+
+    JSScript *script = f.script();
+    JS_ASSERT(edge->target < script->length);
+    JS_ASSERT(script->code + edge->target == f.pc());
+
+    CompileStatus status = CanMethodJIT(f.cx, script, f.pc(), f.fp()->isConstructing(),
+                                        CompileRequest_Interpreter);
+    if (status == Compile_Error)
+        THROW();
+
+    void **addr = f.returnAddressLocation();
+    *addr = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
+
+    f.fp()->setRejoin(StubRejoin(REJOIN_RESUME));
 }
 
 JS_STATIC_ASSERT(JSOP_NOP == 0);
@@ -852,6 +870,11 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
 
       case REJOIN_FALLTHROUGH:
         f.regs.pc = nextpc;
+        break;
+
+      case REJOIN_JUMP:
+        f.regs.pc = (jsbytecode *) returnReg;
+        JS_ASSERT(unsigned(f.regs.pc - script->code) < script->length);
         break;
 
       case REJOIN_NATIVE:

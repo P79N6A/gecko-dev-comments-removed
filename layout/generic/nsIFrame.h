@@ -910,7 +910,8 @@ public:
 
   NS_DECLARE_FRAME_PROPERTY(OutlineInnerRectProperty, DestroyRect)
   NS_DECLARE_FRAME_PROPERTY(PreEffectsBBoxProperty, DestroyRect)
-  NS_DECLARE_FRAME_PROPERTY(PreTransformBBoxProperty, DestroyRect)
+  NS_DECLARE_FRAME_PROPERTY(PreTransformOverflowAreasProperty,
+                            DestroyOverflowAreas)
 
   
   
@@ -1787,6 +1788,13 @@ public:
 
 
 
+  virtual bool UpdateOverflow() = 0;
+
+  
+
+
+
+
 
 
 
@@ -2604,7 +2612,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
 
   virtual nscoord GetFlex(nsBoxLayoutState& aBoxLayoutState) = 0;
   virtual nscoord GetBoxAscent(nsBoxLayoutState& aBoxLayoutState) = 0;
-  virtual bool IsCollapsed(nsBoxLayoutState& aBoxLayoutState) = 0;
+  virtual bool IsCollapsed() = 0;
   
   
   

@@ -67,7 +67,7 @@ public:
     nsSize      GetPrefSize(nsBoxLayoutState& aBoxLayoutState);
     nsSize      GetMinSize(nsBoxLayoutState& aBoxLayoutState);
     nsSize      GetMaxSize(nsBoxLayoutState& aBoxLayoutState);
-    bool        IsCollapsed(nsBoxLayoutState& aBoxLayoutState);
+    bool        IsCollapsed();
 
 
     nsIBox*     GetBoxInColumn()             { return mBoxInColumn; }
