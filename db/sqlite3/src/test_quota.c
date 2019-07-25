@@ -1243,7 +1243,7 @@ sqlite3_int64 sqlite3_quota_file_truesize(quota_FILE *p){
 sqlite3_int64 sqlite3_quota_file_size(quota_FILE *p){
   return p->pFile ? p->pFile->iSize : -1;
 }
-
+ 
 
 
 
@@ -1926,6 +1926,53 @@ static int test_quota_glob(
 
 
 
+
+static int test_quota_file_available(
+  void * clientData,
+  Tcl_Interp *interp,
+  int objc,
+  Tcl_Obj *CONST objv[]
+){
+  quota_FILE *p;
+  sqlite3_int64 x;
+  if( objc!=2 ){
+    Tcl_WrongNumArgs(interp, 1, objv, "HANDLE");
+    return TCL_ERROR;
+  }
+  p = sqlite3TestTextToPtr(Tcl_GetString(objv[1]));
+  x = sqlite3_quota_file_available(p);
+  Tcl_SetObjResult(interp, Tcl_NewWideIntObj(x));
+  return TCL_OK;
+}
+
+
+
+
+
+
+static int test_quota_ferror(
+  void * clientData,
+  Tcl_Interp *interp,
+  int objc,
+  Tcl_Obj *CONST objv[]
+){
+  quota_FILE *p;
+  int x;
+  if( objc!=2 ){
+    Tcl_WrongNumArgs(interp, 1, objv, "HANDLE");
+    return TCL_ERROR;
+  }
+  p = sqlite3TestTextToPtr(Tcl_GetString(objv[1]));
+  x = sqlite3_quota_ferror(p);
+  Tcl_SetObjResult(interp, Tcl_NewIntObj(x));
+  return TCL_OK;
+}
+
+
+
+
+
+
 int Sqlitequota_Init(Tcl_Interp *interp){
   static struct {
      char *zName;
@@ -1950,6 +1997,8 @@ int Sqlitequota_Init(Tcl_Interp *interp){
     { "sqlite3_quota_file_mtime",    test_quota_file_mtime },
     { "sqlite3_quota_remove",        test_quota_remove },
     { "sqlite3_quota_glob",          test_quota_glob },
+    { "sqlite3_quota_file_available",test_quota_file_available },
+    { "sqlite3_quota_ferror",        test_quota_ferror },
   };
   int i;
 

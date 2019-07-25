@@ -107,9 +107,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.7.12.1"
-#define SQLITE_VERSION_NUMBER 3007012
-#define SQLITE_SOURCE_ID      "2012-05-22 02:45:53 6d326d44fd1d626aae0e8456e5fa2049f1ce0789"
+#define SQLITE_VERSION        "3.7.13"
+#define SQLITE_VERSION_NUMBER 3007013
+#define SQLITE_SOURCE_ID      "2012-06-11 02:05:22 f5b5a13f7394dc143aa136f1d4faba6839eaa6dc"
 
 
 
@@ -478,6 +478,7 @@ SQLITE_API int sqlite3_exec(
 #define SQLITE_OPEN_EXCLUSIVE        0x00000010  /* VFS only */
 #define SQLITE_OPEN_AUTOPROXY        0x00000020  /* VFS only */
 #define SQLITE_OPEN_URI              0x00000040  /* Ok for sqlite3_open_v2() */
+#define SQLITE_OPEN_MEMORY           0x00000080  /* Ok for sqlite3_open_v2() */
 #define SQLITE_OPEN_MAIN_DB          0x00000100  /* VFS only */
 #define SQLITE_OPEN_TEMP_DB          0x00000200  /* VFS only */
 #define SQLITE_OPEN_TRANSIENT_DB     0x00000400  /* VFS only */
@@ -2646,6 +2647,8 @@ SQLITE_API void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
 
 
 
+
+
 SQLITE_API int sqlite3_open(
   const char *filename,   
   sqlite3 **ppDb          
@@ -4470,6 +4473,43 @@ SQLITE_API SQLITE_EXTERN char *sqlite3_temp_directory;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SQLITE_API SQLITE_EXTERN char *sqlite3_data_directory;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 SQLITE_API int sqlite3_get_autocommit(sqlite3*);
 
 
@@ -4624,7 +4664,6 @@ SQLITE_API void *sqlite3_update_hook(
   void(*)(void *,int ,char const *,char const *,sqlite3_int64),
   void*
 );
-
 
 
 
