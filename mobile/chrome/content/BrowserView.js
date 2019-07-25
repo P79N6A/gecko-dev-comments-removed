@@ -174,11 +174,6 @@ BrowserView.Util = {
     container.style.overflow = '-moz-hidden-unscrollable';
   },
 
-  resizeContainerToViewport: function resizeContainerToViewport(container, viewportRect) {
-    container.style.width = viewportRect.width  + 'px';
-    container.style.height = viewportRect.height + 'px';
-  },
-
   ensureMozScrolledAreaEvent: function ensureMozScrolledAreaEvent(aBrowser, aWidth, aHeight) {
     let message = {};
     message.target = aBrowser;
@@ -230,7 +225,6 @@ BrowserView.prototype = {
     this._visibleRectFactory = visibleRectFactory;
 
     messageManager.addMessageListener("Browser:MozScrolledAreaChanged", this);
-    messageManager.addMessageListener("Browser:PageScroll", this);
   },
 
   uninit: function uninit() {
@@ -258,6 +252,8 @@ BrowserView.prototype = {
   },
 
   setZoomLevel: function setZoomLevel(zoomLevel) {
+    getBrowser().style.MozTransformOrigin = "left top";
+    getBrowser().style.MozTransform = "scale(" + zoomLevel + ")";
     return;
 
     let bvs = this._browserViewportState;
@@ -271,7 +267,6 @@ BrowserView.prototype = {
       bvs.zoomLevel = newZoomLevel; 
       bvs.viewportRect.right  = this.browserToViewport(browserW);
       bvs.viewportRect.bottom = this.browserToViewport(browserH);
-      this._viewportChanged(true, true);
 
       if (this._browser) {
         let event = document.createEvent("Events");
@@ -307,36 +302,6 @@ BrowserView.prototype = {
     return rounded || 1.0;
   },
 
-  beginOffscreenOperation: function beginOffscreenOperation(rect) {
-    return;
-
-    if (this._offscreenDepth == 0) {
-      let vis = this.getVisibleRect();
-      rect = rect || vis;
-      let zoomRatio = vis.width / rect.width;
-      let viewBuffer = Elements.viewBuffer;
-      viewBuffer.width = vis.width;
-      viewBuffer.height = vis.height;
-
-      this._tileManager.renderRectToCanvas(rect, viewBuffer, zoomRatio, zoomRatio, false);
-      viewBuffer.style.display = "block";
-      window.QueryInterface(Ci.nsIInterfaceRequestor)
-        .getInterface(Ci.nsIDOMWindowUtils).processUpdates();
-      this.pauseRendering();
-    }
-    this._offscreenDepth++;
-  },
-
-  commitOffscreenOperation: function commitOffscreenOperation() {
-    return;
-
-    this._offscreenDepth--;
-    if (this._offscreenDepth == 0) {
-      this.resumeRendering();
-      Elements.viewBuffer.style.display = "none";
-    }
-  },
-
   
 
 
@@ -361,9 +326,6 @@ BrowserView.prototype = {
       browser.setAttribute("type", "content-primary");
       browser.setAttribute("style", "display: block;");
       browser.messageManager.sendAsyncMessage("Browser:Focus", {});
-
-      if (browserChanged)
-        this._viewportChanged(true, true);
     }
   },
 
@@ -373,24 +335,10 @@ BrowserView.prototype = {
 
   receiveMessage: function receiveMessage(aMessage) {
     switch (aMessage.name) {
-      case "Browser:PageScroll":
-        this.updatePageScroll(aMessage);
-        break;
       case "Browser:MozScrolledAreaChanged":
         this.updateScrolledArea(aMessage);
         break;
     }
-  },
-
-  
-  updatePageScroll: function updatePageScroll(aMessage) {
-    if (aMessage.target != this._browser || this._ignorePageScroll)
-      return;
-  },
-
-  _ignorePageScroll: false,
-  ignorePageScroll: function ignorePageScroll(aIgnoreScroll) {
-    this._ignorePageScroll = aIgnoreScroll;
   },
 
   updateScrolledArea: function updateScrolledArea(aMessage) {
@@ -412,12 +360,11 @@ BrowserView.prototype = {
     if (browser == this._browser) {
       
       let sizeChanged = oldRight != viewport.right || oldBottom != viewport.bottom;
-      this._viewportChanged(sizeChanged, false);
       this.updateDefaultZoom();
       if (vis.right > viewport.right || vis.bottom > viewport.bottom) {
         
         
-
+        Browser.contentScrollboxScroller.scrollBy(0, 0);
       }
     }
   },
@@ -493,45 +440,6 @@ BrowserView.prototype = {
   },
 
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-
-
-
-
-
-
-  invalidateEntireView: function invalidateEntireView() {
-    if (this._browserViewportState) {
-      this._viewportChanged(false, true);
-    }
-  },
-
-  
 
 
 
@@ -592,21 +500,6 @@ BrowserView.prototype = {
   browserToViewportCanvasContext: function browserToViewportCanvasContext(ctx) {
     let f = this.browserToViewport(1.0);
     ctx.scale(f, f);
-  },
-
-  
-  
-  
-
-  _viewportChanged: function _viewportChanged(viewportSizeChanged, dirtyAll) {
-    this._applyViewportChanges(viewportSizeChanged, dirtyAll);
-  },
-
-  _applyViewportChanges: function _applyViewportChanges(viewportSizeChanged, dirtyAll) {
-    let bvs = this._browserViewportState;
-    if (bvs) {
-      BrowserView.Util.resizeContainerToViewport(this._container, bvs.viewportRect);
-    }
   },
 };
 
