@@ -150,7 +150,7 @@ protected:
   gfxMatrix GetCanvasTMForChildren();
   void InvalidateDirtyRect(nsSVGOuterSVGFrame* aOuter,
                            const nsRect& aRect, PRUint32 aFlags);
-  void FlushDirtyRegion();
+  void FlushDirtyRegion(PRUint32 aFlags);
 
   
   PRBool IsDisabled() const { return mRect.width <= 0 || mRect.height <= 0; }
