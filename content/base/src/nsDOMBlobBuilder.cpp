@@ -372,7 +372,10 @@ nsDOMBlobBuilder::Append(const jsval& aData, JSContext* aCx)
   
   if (JSVAL_IS_OBJECT(aData)) {
     JSObject* obj = JSVAL_TO_OBJECT(aData);
-    NS_ASSERTION(obj, "Er, what?");
+    if (!obj) {
+      
+      return NS_OK;
+    }
 
     
     nsCOMPtr<nsIDOMBlob> blob = do_QueryInterface(
