@@ -47,9 +47,6 @@
 
 #include "nsINetworkLinkService.h"
 
-#include "nsIWindowMediator.h"
-#include "nsISimpleEnumerator.h"
-
 #include "nsIOService.h"
 #include "nsIObserverService.h"
 #include "nsIOService.h"
@@ -67,29 +64,6 @@ nsQtNetworkManager::OpenConnectionSync()
     
     if (sNetworkConfig->isOnline())
         return PR_FALSE;
-
-    
-    
-    nsresult rv;
-    nsCOMPtr <nsIWindowMediator> windowMediator =
-            do_GetService(NS_WINDOWMEDIATOR_CONTRACTID, &rv);
-
-    NS_ENSURE_SUCCESS (rv,PR_FALSE);
-
-    nsCOMPtr <nsISimpleEnumerator> windowEnumerator;
-
-    rv = windowMediator->GetXULWindowEnumerator(nsnull,
-                                                getter_AddRefs(windowEnumerator));
-
-    NS_ENSURE_SUCCESS (rv,PR_FALSE);
-
-    PRBool moreElements = PR_FALSE;
-    windowEnumerator->HasMoreElements(&moreElements);
-    if (!moreElements) {
-        return PR_FALSE;
-    }
-
-    
 
     if (!(sNetworkConfig->capabilities() & QNetworkConfigurationManager::CanStartAndStopInterfaces))
         return PR_FALSE;
