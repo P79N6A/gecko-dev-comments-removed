@@ -36,7 +36,7 @@
 
 
 #include "nsCRT.h"
-#include "Endian.h"
+#include "EndianMacros.h"
 #include "nsBMPEncoder.h"
 #include "prmem.h"
 #include "prprf.h"
