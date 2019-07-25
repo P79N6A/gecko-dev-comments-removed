@@ -1171,6 +1171,8 @@ RasterImage::ResetAnimation()
       !mAnim || mAnim->currentAnimationFrameIndex == 0)
     return NS_OK;
 
+  mAnimationFinished = PR_FALSE;
+
   if (mAnimating)
     StopAnimation();
 
@@ -1185,8 +1187,13 @@ RasterImage::ResetAnimation()
   if (mAnimating && observer)
     observer->FrameChanged(this, &(mAnim->firstFrameRefreshArea));
 
-  if (ShouldAnimate())
+  if (ShouldAnimate()) {
     StartAnimation();
+    
+    
+    
+    mAnimating = PR_TRUE;
+  }
 
   return NS_OK;
 }
