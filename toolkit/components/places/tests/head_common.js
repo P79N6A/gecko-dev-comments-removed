@@ -114,23 +114,30 @@ function uri(aSpec) NetUtil.newURI(aSpec);
 
 
 
+
+
+
+
+
 let gDBConn;
-function DBConn() {
-  let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
-                              .DBConnection;
-  if (db.connectionReady)
-    return db;
+function DBConn(aForceNewConnection) {
+  if (!aForceNewConnection) {
+    let db = PlacesUtils.history.QueryInterface(Ci.nsPIPlacesDatabase)
+                                .DBConnection;
+    if (db.connectionReady)
+      return db;
+  }
 
   
-  if (!gDBConn) {
+  if (!gDBConn || aForceNewConnection) {
     let file = Services.dirsvc.get('ProfD', Ci.nsIFile);
     file.append("places.sqlite");
-    gDBConn = Services.storage.openDatabase(file);
+    let dbConn = gDBConn = Services.storage.openDatabase(file);
 
     
-    Services.obs.addObserver(function (aSubject, aTopic, aData) {
-      Services.obs.removeObserver(arguments.callee, aTopic);
-      gDBConn.asyncClose();
+    Services.obs.addObserver(function DBCloseCallback(aSubject, aTopic, aData) {
+      Services.obs.removeObserver(DBCloseCallback, aTopic);
+      dbConn.asyncClose();
     }, "profile-before-change", false);
   }
 
