@@ -467,7 +467,7 @@ PlacesViewBase.prototype = {
   nodeAnnotationChanged:
   function PVB_nodeAnnotationChanged(aPlacesNode, aAnno) {
     
-    if (aAnno == "livemark/feedURI") {
+    if (aAnno == PlacesUtils.LMANNO_FEEDURI) {
       let elt = aPlacesNode._DOMElement;
       if (!elt)
         throw "aPlacesNode must have _DOMElement set";
@@ -1160,7 +1160,7 @@ PlacesToolbar.prototype = {
       
 
       
-      if (aAnno == "livemark/feedURI") {
+      if (aAnno == PlacesUtils.LMANNO_FEEDURI) {
         elt.setAttribute("livemark", true);
       }
       return;
