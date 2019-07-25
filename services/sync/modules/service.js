@@ -682,11 +682,11 @@ WeaveSvc.prototype = {
     let remoteVersion = (meta && meta.payload.storageVersion)?
       meta.payload.storageVersion : "";
 
-    this._log.debug("Local storage version is " + STORAGE_VERSION);
-    this._log.debug("Remote storage version is " + remoteVersion);
+    this._log.debug(["Weave Version:", WEAVE_VERSION, "Compatible:", 
+      COMPATIBLE_VERSION, "Remote:", remoteVersion].join(" "));
 
     if (!meta || !meta.payload.storageVersion || !meta.payload.syncID ||
-        Svc.Version.compare(STORAGE_VERSION, remoteVersion) > 0) {
+        Svc.Version.compare(COMPATIBLE_VERSION, remoteVersion) > 0) {
 
       
       let status = Records.lastResource.lastChannel.responseStatus;
@@ -701,8 +701,8 @@ WeaveSvc.prototype = {
         this._log.info("No metadata record, server wipe needed");
       if (meta && !meta.payload.syncID)
         this._log.warn("No sync id, server wipe needed");
-      if (Svc.Version.compare(STORAGE_VERSION, remoteVersion) > 0)
-        this._log.info("Server storage version no longer supported, server wipe needed");
+      if (Svc.Version.compare(COMPATIBLE_VERSION, remoteVersion) > 0)
+        this._log.info("Server data is older than what Weave supports, server wipe needed");
 
       if (!this._keyGenEnabled) {
         this._log.info("...and key generation is disabled.  Not wiping. " +
@@ -719,9 +719,9 @@ WeaveSvc.prototype = {
                        "consistency.");
       else 
         this._log.info("Server data wiped to ensure consistency after client " +
-                       "upgrade (" + remoteVersion + " -> " + STORAGE_VERSION + ")");
+                       "upgrade (" + remoteVersion + " -> " + WEAVE_VERSION + ")");
 
-    } else if (Svc.Version.compare(remoteVersion, STORAGE_VERSION) > 0) {
+    } else if (Svc.Version.compare(remoteVersion, WEAVE_VERSION) > 0) {
       this._setSyncFailure(VERSION_OUT_OF_DATE);
       this._log.warn("Server data is of a newer Weave version, this client " +
                      "needs to be upgraded.  Aborting sync.");
@@ -734,7 +734,11 @@ WeaveSvc.prototype = {
       this._log.info("Reset client because of syncID mismatch.");
       Clients.syncID = meta.payload.syncID;
       this._log.info("Reset the client after a server/client sync ID mismatch");
+      this._updateRemoteVersion(meta);
     }
+    
+    else
+      this._updateRemoteVersion(meta);
 
     let needKeys = true;
     let pubkey = PubKeys.getDefaultKey();
@@ -1001,9 +1005,17 @@ WeaveSvc.prototype = {
 
     this._log.debug("Uploading new metadata record");
     meta = new WBORecord(this.clusterURL + this.username + "/meta/global");
-    this._log.debug("Setting meta payload storage version to " + STORAGE_VERSION);
-    meta.payload.storageVersion = STORAGE_VERSION;
     meta.payload.syncID = Clients.syncID;
+    this._updateRemoteVersion(meta);
+  },
+
+  _updateRemoteVersion: function WeaveSvc__updateRemoteVersion(meta) {
+    
+    if (Svc.Version.compare(meta.payload.storageVersion, WEAVE_VERSION) >= 0)
+      return;
+
+    this._log.debug("Setting meta payload storage version to " + WEAVE_VERSION);
+    meta.payload.storageVersion = WEAVE_VERSION;
     let res = new Resource(meta.uri);
     res.put(meta.serialize());
   },

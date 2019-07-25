@@ -34,7 +34,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ["WEAVE_VERSION", "STORAGE_VERSION",
+const EXPORTED_SYMBOLS = ["WEAVE_VERSION", "COMPATIBLE_VERSION",
 			  'PREFS_BRANCH',
 			  'MODE_RDONLY', 'MODE_WRONLY',
 			  'MODE_CREATE', 'MODE_APPEND', 'MODE_TRUNCATE',
@@ -59,7 +59,7 @@ const WEAVE_VERSION = "@weave_version@";
 
 
 
-const STORAGE_VERSION = "@storage_version@";
+const COMPATIBLE_VERSION = "@compatible_version@";
 
 const PREFS_BRANCH = "extensions.weave.";
 
