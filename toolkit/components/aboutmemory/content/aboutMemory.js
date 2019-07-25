@@ -48,11 +48,12 @@ var gVerbose = (location.href.split(/[\?,]/).indexOf("verbose") !== -1);
 
 var gAddedObserver = false;
 
-const KIND_NONHEAP = Ci.nsIMemoryReporter.KIND_NONHEAP;
-const KIND_HEAP    = Ci.nsIMemoryReporter.KIND_HEAP;
-const KIND_OTHER   = Ci.nsIMemoryReporter.KIND_OTHER;
-const UNITS_BYTES  = Ci.nsIMemoryReporter.UNITS_BYTES;
-const UNITS_COUNT  = Ci.nsIMemoryReporter.UNITS_COUNT;
+const KIND_NONHEAP     = Ci.nsIMemoryReporter.KIND_NONHEAP;
+const KIND_HEAP        = Ci.nsIMemoryReporter.KIND_HEAP;
+const KIND_OTHER       = Ci.nsIMemoryReporter.KIND_OTHER;
+const UNITS_BYTES      = Ci.nsIMemoryReporter.UNITS_BYTES;
+const UNITS_COUNT      = Ci.nsIMemoryReporter.UNITS_COUNT;
+const UNITS_PERCENTAGE = Ci.nsIMemoryReporter.UNITS_PERCENTAGE;
 
 const kUnknown = -1;    
 
@@ -259,21 +260,19 @@ function update()
 }
 
 
-
-
-function cmpAmount(a, b)
+function cmpExplicitReporters(a, b)
 {
-  if (a._units != b._units) {
-    return a._units - b._units;   
-  }
-  if (a._units == UNITS_COUNT) {
-    if (a._path < b._path)
-      return -1;
-    if (a._path > b._path)
-      return 1;
-    return 0;
-  }
+  assert(a._units === undefined && b._units === undefined,
+         "'explicit' tree nodes must not have _units defined");
   return b._amount - a._amount;
+};
+
+
+function cmpOtherReporters(a, b)
+{
+  return a._path < b._path ? -1 :
+         a._path > b._path ?  1 :
+         0;
 };
 
 
@@ -288,6 +287,8 @@ function cmpAmount(a, b)
 function genProcessText(aProcess, aReporters)
 {
   
+
+
 
 
 
@@ -330,6 +331,9 @@ function genProcessText(aProcess, aReporters)
     for (var path in aReporters) {
       var r = aReporters[path];
       if (r._path.slice(0, treeName.length) === treeName) {
+        assert(r._kind === KIND_HEAP || r._kind === KIND_NONHEAP,
+               "reporters in the tree must have KIND_HEAP or KIND_NONHEAP");
+        assert(r._units === UNITS_BYTES);
         var names = r._path.split('/');
         var u = t;
         for (var i = 0; i < names.length; i++) {
@@ -471,7 +475,7 @@ function genProcessText(aProcess, aReporters)
 
     function filterTree(aT)
     {
-      aT._kids.sort(cmpAmount);
+      aT._kids.sort(cmpExplicitReporters);
 
       for (var i = 0; i < aT._kids.length; i++) {
         if (shouldOmit(aT._kids[i]._amount)) {
@@ -499,7 +503,7 @@ function genProcessText(aProcess, aReporters)
           
           
           aT._kids[i0] = rSub;
-          aT._kids.sort(cmpAmount);
+          aT._kids.sort(cmpExplicitReporters);
           break;
         }
         filterTree(aT._kids[i]);
@@ -530,9 +534,10 @@ function genProcessText(aProcess, aReporters)
 function formatReporterAmount(aReporter)
 {
   switch(aReporter._units) {
-    case UNITS_BYTES: return formatBytes(aReporter._amount);
-    case UNITS_COUNT: return formatInt(aReporter._amount);
-    default:          return "(???)"
+    case UNITS_BYTES:      return formatBytes(aReporter._amount);
+    case UNITS_COUNT:      return formatInt(aReporter._amount);
+    case UNITS_PERCENTAGE: return formatPercentage(aReporter._amount);
+    default:               return "(???)"
   }
 }
 
@@ -590,6 +595,18 @@ function formatBytes(aBytes)
     s = formatInt(a[0]) + "." + a[1] + " " + unit;
   }
   return s;
+}
+
+
+
+
+
+
+
+
+function formatPercentage(aPerc100x)
+{
+  return (aPerc100x / 100).toFixed(2) + "%";
 }
 
 
@@ -879,12 +896,14 @@ function genOtherText(aReporters)
       }
     }
   }
-  rArray.sort(cmpAmount);
+  rArray.sort(cmpOtherReporters);
 
   
   var text = "";
   for (var i = 0; i < rArray.length; i++) {
     var elem = rArray[i];
+    assert(elem._kind === KIND_OTHER,
+           "elem._kind is not KIND_OTHER for " + elem._path);
     text += genMrValueText(
               pad(formatReporterAmount(elem), maxAmountLength, ' ')) + " ";
     text += genMrNameText(elem._kind, elem._description, elem._path,
@@ -896,6 +915,13 @@ function genOtherText(aReporters)
                "the requested memory measurements above."
   return "<h2 class='hasDesc' title='" + desc + "'>Other Measurements</h2>\n" +
          "<pre>" + text + "</pre>\n";
+}
+
+function assert(aCond, aMsg)
+{
+  if (!aCond) {
+    throw("assertion failed: " + aMsg);
+  }
 }
 
 function debug(x)
