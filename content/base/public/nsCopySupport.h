@@ -39,6 +39,7 @@
 #define nsCopySupport_h__
 
 #include "nscore.h"
+#include "nsINode.h"
 
 class nsISelection;
 class nsIDocument;
@@ -47,7 +48,6 @@ class nsIContent;
 class nsITransferable;
 class nsACString;
 class nsAString;
-class nsIDOMNode;
 class nsIPresShell;
 
 class nsCopySupport
@@ -69,10 +69,14 @@ class nsCopySupport
 
     
     
-    static nsresult GetTransferableForSelection(nsISelection * aSelection,
-                                                nsIDocument * aDocument,
-                                                nsITransferable ** aTransferable);
+    static nsresult GetTransferableForSelection(nsISelection* aSelection,
+                                                nsIDocument* aDocument,
+                                                nsITransferable** aTransferable);
 
+    
+    static nsresult GetTransferableForNode(nsINode* aNode,
+                                           nsIDocument* aDoc,
+                                           nsITransferable** aTransferable);
     
 
 

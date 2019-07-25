@@ -79,7 +79,6 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsIPrincipal.h"
 #include "nsIDocShellTreeItem.h"
-#include "nsRange.h"
 #include "nsIWebBrowserPersist.h"
 #include "nsEscape.h"
 #include "nsContentUtils.h"
@@ -91,8 +90,6 @@
 
 #define kHTMLContext   "text/_moz_htmlcontext"
 #define kHTMLInfo      "text/_moz_htmlinfo"
-
-nsresult NS_NewDomSelection(nsISelection **aDomSelection);
 
 
 static nsresult
@@ -108,25 +105,15 @@ GetTransferableForNodeOrSelection(nsIDOMWindow*     aWindow,
   nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
 
   nsresult rv;
-  nsCOMPtr<nsISelection> selection;
-  nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aNode);
-  if (node) {
-    
-    rv = NS_NewDomSelection(getter_AddRefs(selection));
-    NS_ENSURE_SUCCESS(rv, rv);
-    nsCOMPtr<nsIDOMRange> range;
-    rv = NS_NewRange(getter_AddRefs(range));
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = range->SelectNode(node);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = selection->AddRange(range);
-    NS_ENSURE_SUCCESS(rv, rv);
+  if (aNode) {
+    rv = nsCopySupport::GetTransferableForNode(aNode, doc, aTransferable);
   } else {
+    nsCOMPtr<nsISelection> selection;
     aWindow->GetSelection(getter_AddRefs(selection));
+    rv = nsCopySupport::GetTransferableForSelection(selection, doc,
+                                                    aTransferable);
   }
 
-  rv = nsCopySupport::GetTransferableForSelection(selection, doc,
-                                                  aTransferable);
   NS_ENSURE_SUCCESS(rv, rv);
   return rv;
 }
@@ -423,7 +410,6 @@ DragDataProducer::GetNodeString(nsIContent* inNode,
     }
   }
 }
-
 
 nsresult
 DragDataProducer::Produce(nsDOMDataTransfer* aDataTransfer,
