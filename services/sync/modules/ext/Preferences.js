@@ -42,26 +42,25 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+
+
+
+
+const MAX_INT = Math.pow(2, 31) - 1;
+const MIN_INT = -MAX_INT;
+
 function Preferences(prefBranch) {
   if (prefBranch)
     this._prefBranch = prefBranch;
 }
 
 Preferences.prototype = {
-  _prefBranch: "",
-
   
 
-  get _prefSvc() {
-    let prefSvc = Cc["@mozilla.org/preferences-service;1"].
-                  getService(Ci.nsIPrefService).
-                  getBranch(this._prefBranch).
-                  QueryInterface(Ci.nsIPrefBranch2);
-    this.__defineGetter__("_prefSvc", function() prefSvc);
-    return this._prefSvc;
-  },
 
-  
+
 
 
 
@@ -71,7 +70,7 @@ Preferences.prototype = {
 
   get: function(prefName, defaultValue) {
     if (isArray(prefName))
-      return prefName.map(function(v) this.get(v), this);
+      return prefName.map(function(v) this.get(v, defaultValue), this);
 
     switch (this._prefSvc.getPrefType(prefName)) {
       case Ci.nsIPrefBranch.PREF_STRING:
@@ -84,10 +83,37 @@ Preferences.prototype = {
         return this._prefSvc.getBoolPref(prefName);
 
       case Ci.nsIPrefBranch.PREF_INVALID:
-      default:
         return defaultValue;
+
+      default:
+        
+        throw "Error getting pref " + prefName + "; its value's type is " +
+              this._prefSvc.getPrefType(prefName) + ", which I don't know " +
+              "how to handle.";
     }
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   set: function(prefName, prefValue) {
     if (isObject(prefName)) {
@@ -96,29 +122,97 @@ Preferences.prototype = {
       return;
     }
 
-    switch (typeof prefValue) {
-      case "number":
-        this._prefSvc.setIntPref(prefName, prefValue);
-        if (prefValue % 1 != 0)
-          Cu.reportError("WARNING: setting " + prefName + " pref to non-integer number " +
-                         prefValue + " converts it to integer number " + this.get(prefName) +
-                         "; to retain precision, store non-integer numbers as strings");
+    let prefType;
+    if (typeof prefValue != "undefined" && prefValue != null)
+      prefType = prefValue.constructor.name;
+
+    switch (prefType) {
+      case "String":
+        {
+          let string = Cc["@mozilla.org/supports-string;1"].
+                       createInstance(Ci.nsISupportsString);
+          string.data = prefValue;
+          this._prefSvc.setComplexValue(prefName, Ci.nsISupportsString, string);
+        }
         break;
 
-      case "boolean":
+      case "Number":
+        
+        
+        
+        
+        if (prefValue > MAX_INT || prefValue < MIN_INT)
+          throw("you cannot set the " + prefName + " pref to the number " +
+                prefValue + ", as number pref values must be in the signed " +
+                "32-bit integer range -(2^31-1) to 2^31-1.  To store numbers " +
+                "outside that range, store them as strings.");
+        this._prefSvc.setIntPref(prefName, prefValue);
+        if (prefValue % 1 != 0)
+          Cu.reportError("Warning: setting the " + prefName + " pref to the " +
+                         "non-integer number " + prefValue + " converted it " +
+                         "to the integer number " + this.get(prefName) +
+                         "; to retain fractional precision, store non-integer " +
+                         "numbers as strings.");
+        break;
+
+      case "Boolean":
         this._prefSvc.setBoolPref(prefName, prefValue);
         break;
 
-      case "string":
-      default: {
-        let string = Cc["@mozilla.org/supports-string;1"].
-                     createInstance(Ci.nsISupportsString);
-        string.data = prefValue;
-        this._prefSvc.setComplexValue(prefName, Ci.nsISupportsString, string);
-        break;
-      }
+      default:
+        throw "can't set pref " + prefName + " to value '" + prefValue +
+              "'; it isn't a String, Number, or Boolean";
     }
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  has: function(prefName) {
+    if (isArray(prefName))
+      return prefName.map(this.has, this);
+
+    return (this._prefSvc.getPrefType(prefName) != Ci.nsIPrefBranch.PREF_INVALID);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  isSet: function(prefName) {
+    if (isArray(prefName))
+      return prefName.map(this.isSet, this);
+
+    return (this.has(prefName) && this._prefSvc.prefHasUserValue(prefName));
+  },
+
+  
+
+
+
+
+  modified: function(prefName) { return this.isSet(prefName) },
 
   reset: function(prefName) {
     if (isArray(prefName)) {
@@ -144,24 +238,113 @@ Preferences.prototype = {
 
   
 
-  has: function(prefName) {
-    return (this._prefSvc.getPrefType(prefName) != Ci.nsIPrefBranch.PREF_INVALID);
-  },
 
-  modified: function(prefName) {
-    return (this.has(prefName) && this._prefSvc.prefHasUserValue(prefName));
-  },
 
-  locked: function(prefName) {
-    return this._prefSvc.isLocked(prefName);
-  },
+
 
   lock: function(prefName) {
+    if (isArray(prefName))
+      prefName.map(this.lock, this);
+
     this._prefSvc.lockPref(prefName);
   },
 
+  
+
+
+
+
+
   unlock: function(prefName) {
+    if (isArray(prefName))
+      prefName.map(this.unlock, this);
+
     this._prefSvc.unlockPref(prefName);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  locked: function(prefName) {
+    if (isArray(prefName))
+      return prefName.map(this.locked, this);
+
+    return this._prefSvc.prefIsLocked(prefName);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  observe: function(prefName, callback, thisObject) {
+    let fullPrefName = this._prefBranch + (prefName || "");
+
+    let observer = new PrefObserver(fullPrefName, callback, thisObject);
+    Preferences._prefSvc.addObserver(fullPrefName, observer, true);
+    observers.push(observer);
+
+    return observer;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  ignore: function(prefName, callback, thisObject) {
+    let fullPrefName = this._prefBranch + (prefName || "");
+
+    
+    
+    
+    
+    let [observer] = observers.filter(function(v) v.prefName   == fullPrefName &&
+                                                  v.callback   == callback &&
+                                                  v.thisObject == thisObject);
+
+    if (observer) {
+      Preferences._prefSvc.removeObserver(fullPrefName, observer);
+      observers.splice(observers.indexOf(observer), 1);
+    }
   },
 
   resetBranch: function(prefBranch) {
@@ -176,6 +359,25 @@ Preferences.prototype = {
       else
         throw ex;
     }
+  },
+
+  
+
+
+
+  _prefBranch: "",
+
+  
+
+
+
+  get _prefSvc() {
+    let prefSvc = Cc["@mozilla.org/preferences-service;1"].
+                  getService(Ci.nsIPrefService).
+                  getBranch(this._prefBranch).
+                  QueryInterface(Ci.nsIPrefBranch2);
+    this.__defineGetter__("_prefSvc", function() prefSvc);
+    return this._prefSvc;
   }
 
 };
@@ -185,14 +387,60 @@ Preferences.prototype = {
 
 Preferences.__proto__ = Preferences.prototype;
 
+
+
+
+
+
+
+
+
+
+
+
+let observers = [];
+
+function PrefObserver(prefName, callback, thisObject) {
+  this.prefName = prefName;
+  this.callback = callback;
+  this.thisObject = thisObject;
+}
+
+PrefObserver.prototype = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver, Ci.nsISupportsWeakReference]),
+
+  observe: function(subject, topic, data) {
+    
+    
+    
+    if (data != this.prefName)
+      return;
+
+    if (typeof this.callback == "function") {
+      let prefValue = Preferences.get(this.prefName);
+
+      if (this.thisObject)
+        this.callback.call(this.thisObject, prefValue);
+      else
+        this.callback(prefValue);
+    }
+    else 
+      this.callback.observe(subject, topic, data);
+  }
+};
+
 function isArray(val) {
   
   
-  return (typeof val == "object" && val.constructor.name == Array.name);
+  
+  return (typeof val != "undefined" && val != null && typeof val == "object" &&
+          val.constructor.name == "Array");
 }
 
 function isObject(val) {
   
   
-  return (typeof val == "object" && val.constructor.name == Object.name);
+  
+  return (typeof val != "undefined" && val != null && typeof val == "object" &&
+          val.constructor.name == "Object");
 }
