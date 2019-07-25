@@ -363,36 +363,89 @@ gfxWindowsPlatform::VerifyD2DDevice(bool aAttemptForce)
 
         
         
-        HRESULT hr = createD3DDevice(
-            adapter1, 
-            D3D10_DRIVER_TYPE_HARDWARE,
-            NULL,
-            D3D10_CREATE_DEVICE_BGRA_SUPPORT |
-            D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
-            D3D10_FEATURE_LEVEL_10_0,
-            D3D10_1_SDK_VERSION,
-            getter_AddRefs(device));
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        HRESULT hr = E_FAIL;
+        bool preferD3D10_1 = 
+          Preferences::GetBool("gfx.direct3d.prefer_10_1", false);
+        if (preferD3D10_1) {
+            hr = createD3DDevice(
+                  adapter1, 
+                  D3D10_DRIVER_TYPE_HARDWARE,
+                  NULL,
+                  D3D10_CREATE_DEVICE_BGRA_SUPPORT |
+                  D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
+                  D3D10_FEATURE_LEVEL_10_1,
+                  D3D10_1_SDK_VERSION,
+                  getter_AddRefs(device));
 
-        if (SUCCEEDED(hr)) {
+            
+            
+            
+            
+            if (FAILED(hr)) {
+                Preferences::SetBool("gfx.direct3d.prefer_10_1", false);
+            } else {
+                mD2DDevice = cairo_d2d_create_device_from_d3d10device(device);
+            }
+        }
+
+        if (!preferD3D10_1 || FAILED(hr)) {
+            
+            
+            
+            nsRefPtr<ID3D10Device1> device1;
+            hr = createD3DDevice(
+                  adapter1, 
+                  D3D10_DRIVER_TYPE_HARDWARE,
+                  NULL,
+                  D3D10_CREATE_DEVICE_BGRA_SUPPORT |
+                  D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
+                  D3D10_FEATURE_LEVEL_10_0,
+                  D3D10_1_SDK_VERSION,
+                  getter_AddRefs(device1));
+
+            if (SUCCEEDED(hr)) {
+                device = device1;
+                if (preferD3D10_1) {
+                  mD2DDevice = 
+                    cairo_d2d_create_device_from_d3d10device(device);
+                }
+            }
+        }
+
+        
+        if (!preferD3D10_1 && SUCCEEDED(hr)) {
+            
+            
             
             
             
             
             nsRefPtr<ID3D10Device1> device1;
             hr = createD3DDevice(
-                adapter1, 
-                D3D10_DRIVER_TYPE_HARDWARE,
-                NULL,
-                D3D10_CREATE_DEVICE_BGRA_SUPPORT |
-                D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
-                D3D10_FEATURE_LEVEL_10_1,
-                D3D10_1_SDK_VERSION,
-                getter_AddRefs(device1));
+                  adapter1, 
+                  D3D10_DRIVER_TYPE_HARDWARE,
+                  NULL,
+                  D3D10_CREATE_DEVICE_BGRA_SUPPORT |
+                  D3D10_CREATE_DEVICE_PREVENT_INTERNAL_THREADING_OPTIMIZATIONS,
+                  D3D10_FEATURE_LEVEL_10_1,
+                  D3D10_1_SDK_VERSION,
+                  getter_AddRefs(device1));
 
             if (SUCCEEDED(hr)) {
                 device = device1;
+                Preferences::SetBool("gfx.direct3d.prefer_10_1", true);
             }
-
             mD2DDevice = cairo_d2d_create_device_from_d3d10device(device);
         }
     }
