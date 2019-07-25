@@ -185,8 +185,14 @@ IDBFactory::GetConnection(const nsAString& aDatabaseFilePath)
   NS_ENSURE_SUCCESS(rv, nsnull);
 
   
+  
+  
+  
+  
+  
   rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
-    "PRAGMA foreign_keys = ON;"
+    "PRAGMA foreign_keys = ON; "
+    "PRAGMA recursive_triggers = ON;"
   ));
   NS_ENSURE_SUCCESS(rv, nsnull);
 
