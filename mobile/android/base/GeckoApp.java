@@ -724,7 +724,7 @@ abstract public class GeckoApp
         });
     }
 
-    void handleClearHistory() {
+    void updateAboutHomeTopSites() {
         if (mAboutHomeContent == null)
             return;
 
@@ -734,6 +734,10 @@ abstract public class GeckoApp
                         EnumSet.of(AboutHomeContent.UpdateFlags.TOP_SITES));
             }
         });
+    }
+
+    void handleClearHistory() {
+        updateAboutHomeTopSites();
     }
 
     public StartupMode getStartupMode() {
@@ -2285,13 +2289,18 @@ abstract public class GeckoApp
             final GeckoApp app = GeckoApp.mAppContext;
             ProfileMigrator profileMigrator =
                 new ProfileMigrator(app.getContentResolver(), profileDir);
+
             
             if (!profileMigrator.hasMigrationRun()) {
                 final SetupScreen setupScreen = new SetupScreen(app);
+
                 
                 setupScreen.showDelayed(mMainHandler);
                 profileMigrator.launch();
                 setupScreen.dismiss();
+
+                
+                updateAboutHomeTopSites();
             }
         }
         long timeDiff = SystemClock.uptimeMillis() - currentTime;
