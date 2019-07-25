@@ -515,11 +515,13 @@ pref("hal.processPriorityManager.gonk.masterNice", -1);
 pref("hal.processPriorityManager.gonk.foregroundNice", 0);
 pref("hal.processPriorityManager.gonk.backgroundNice", 10);
 
+#ifndef DEBUG
 
 
 pref("dom.ipc.processPrelauch.enabled", true);
 
 pref("dom.ipc.processPrelauch.delayMs", 1000);
+#endif
 
 
 pref("dom.disable_window_open_dialog_feature", true);
