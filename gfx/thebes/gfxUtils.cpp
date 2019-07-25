@@ -212,6 +212,27 @@ IsSafeImageTransformComponent(gfxFloat aValue)
 
 
 
+
+
+
+static gfxContext::GraphicsOperator
+OptimalFillOperator()
+{
+#ifdef XP_WIN
+    if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
+        gfxWindowsPlatform::RENDER_DIRECT2D) {
+        
+        return gfxContext::OPERATOR_OVER;
+    } else {
+#endif
+        return gfxContext::OPERATOR_SOURCE;
+#ifdef XP_WIN
+    }
+#endif
+}
+
+
+
 static already_AddRefed<gfxDrawable>
 CreateSamplingRestrictedDrawable(gfxDrawable* aDrawable,
                                  gfxContext* aContext,
@@ -250,7 +271,7 @@ CreateSamplingRestrictedDrawable(gfxDrawable* aDrawable,
         return nsnull;
 
     gfxContext tmpCtx(temp);
-    tmpCtx.SetOperator(gfxContext::OPERATOR_SOURCE);
+    tmpCtx.SetOperator(OptimalFillOperator());
     aDrawable->Draw(&tmpCtx, needed - needed.pos, PR_TRUE,
                     gfxPattern::FILTER_FAST, gfxMatrix().Translate(needed.pos));
 
@@ -326,27 +347,6 @@ private:
     PRPackedBool mSucceeded;
     PRPackedBool mPushedGroup;
 };
-
-
-
-
-
-
-static gfxContext::GraphicsOperator
-OptimalFillOperator()
-{
-#ifdef XP_WIN
-    if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
-        gfxWindowsPlatform::RENDER_DIRECT2D) {
-        
-        return gfxContext::OPERATOR_OVER;
-    } else {
-#endif
-        return gfxContext::OPERATOR_SOURCE;
-#ifdef XP_WIN
-    }
-#endif
-}
 
 static gfxMatrix
 DeviceToImageTransform(gfxContext* aContext,
