@@ -22,6 +22,22 @@ var gAccRetrieval = Cc['@mozilla.org/accessibleRetrieval;1'].
 
 var EXPORTED_SYMBOLS = ['UtteranceGenerator'];
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var UtteranceGenerator = {
   gActionMap: {
     jump: 'jumpAction',
@@ -39,6 +55,19 @@ var UtteranceGenerator = {
     cycle: 'cycleAction'
   },
 
+
+  
+
+
+
+
+
+
+
+
+
+
+
   genForObject: function(aAccessible, aForceName) {
     let roleString = gAccRetrieval.getStringRole(aAccessible.role);
 
@@ -53,9 +82,26 @@ var UtteranceGenerator = {
     return func.apply(this, [aAccessible, roleString, flags]);
   },
 
+  
+
+
+
+
+
+
+
+
   genForAction: function(aObject, aActionName) {
     return [gStringBundle.GetStringFromName(this.gActionMap[aActionName])];
   },
+
+  
+
+
+
+
+
+
 
   genForTabStateChange: function (aObject, aTabState) {
     switch (aTabState) {

@@ -56,7 +56,6 @@ var AccessFu = {
 
 
 
-
   enable: function enable() {
     dump('AccessFu enable');
     this.addPresenter(new VisualPresenter());
