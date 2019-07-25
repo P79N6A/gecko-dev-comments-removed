@@ -35,6 +35,7 @@
 
 
 
+
 let newTabs = [];
 
 function test() {
@@ -117,6 +118,11 @@ function searchTest(contentWindow) {
       searchBox.getAttribute("value")).matched().length == 2,
      "Match something when a part of title exists");
 
+  cleanup(contentWindow);
+}
+
+function cleanup(contentWindow) {       
+  contentWindow.hideSearch(null);     
   let onTabViewHidden = function() {
     window.removeEventListener("tabviewhidden", onTabViewHidden, false);
     ok(!TabView.isVisible(), "Tab View is hidden");

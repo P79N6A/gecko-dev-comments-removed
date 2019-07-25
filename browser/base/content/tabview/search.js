@@ -115,50 +115,154 @@ function scorePatternMatch(pattern, matched, offset) {
 
 
 
+var TabUtils = {
+  
+  
+  
+  nameOf: function TabUtils_nameOfTab(tab) {
+    
+    
+    
+    
+    
+    return tab.label != undefined ? tab.label : tab.nameEl.innerHTML;
+  },
+  
+  
+  
+  
+  faviconURLOf: function TabUtils_faviconURLOf(tab) {
+    return tab.image != undefined ? tab.image : tab.favEl.src;
+  },
+  
+  
+  
+  
+  focus: function TabUtils_focus(tab) {
+    
+    if (tab.tab != undefined) tab = tab.tab;
+    tab.ownerDocument.defaultView.gBrowser.selectedTab = tab;
+    tab.ownerDocument.defaultView.focus();    
+  }
+};
+
+
+
+
+
+
+
 function TabMatcher(term) { 
   this.term = term; 
 }
 
-TabMatcher.prototype = {
+TabMatcher.prototype = {  
   
   
   
   
   
-  matched: function matched() {
+  _filterAndSortForMatches: function TabMatcher__filterAndSortForMatches(tabs) {
     var self = this;
+    tabs = tabs.filter(function(tab){
+      var name = TabUtils.nameOf(tab);
+      return name.match(self.term, "i");
+    });
+
+    tabs.sort(function sorter(x, y){
+      var yScore = scorePatternMatch(self.term, TabUtils.nameOf(y));
+      var xScore = scorePatternMatch(self.term, TabUtils.nameOf(x));
+      return yScore - xScore; 
+    });
+    
+    return tabs;
+  },
+  
+  
+  
+  
+  
+  _filterForUnmatches: function TabMatcher__filterForUnmatches(tabs) {
+    var self = this;
+    return tabs.filter(function(tab) {
+      var name = tab.nameEl.innerHTML;
+      return !name.match(self.term, "i");
+    });
+  },
+  
+  
+  
+  
+  
+  
+  
+  
+  _getTabsForOtherWindows: function TabMatcher__getTabsForOtherWindows(){
+    var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+                       .getService(Components.interfaces.nsIWindowMediator);
+    var enumerator = wm.getEnumerator("navigator:browser");    
+    var currentWindow = wm.getMostRecentWindow("navigator:browser");
+    
+    var allTabs = [];    
+    while (enumerator.hasMoreElements()) {
+      var win = enumerator.getNext();
+      
+      
+      if (win != currentWindow) {
+        
+        
+        
+        tvWindow = win.TabView.getContentWindow();
+        if (tvWindow)
+          allTabs = allTabs.concat( tvWindow.TabItems.getItems() );
+        else
+          
+          for (var i=0; i<win.gBrowser.tabs.length; i++) allTabs.push( win.gBrowser.tabs[i] );
+      } 
+    }
+    return allTabs;    
+  },
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  matchedTabsFromOtherWindows: function TabMatcher_matchedTabsFromOtherWindows(){
     if (this.term.length < 2)
       return [];
     
+    var tabs = this._getTabsForOtherWindows();
+    tabs = this._filterAndSortForMatches(tabs);
+    return tabs;
+  },
+  
+  
+  
+  
+  
+  
+  matched: function TabMatcher_matched() {
+    if (this.term.length < 2)
+      return [];
+      
     var tabs = TabItems.getItems();
-    tabs = tabs.filter(function(tab){
-      var name = tab.nameEl.innerHTML;      
-      return name.match(self.term, "i");
-    });
-    
-    tabs.sort(function sorter(x, y){
-      var yScore = scorePatternMatch(self.term, y.nameEl.innerHTML);
-      var xScore = scorePatternMatch(self.term, x.nameEl.innerHTML);
-      return yScore - xScore; 
-    });
-     
+    tabs = this._filterAndSortForMatches(tabs);
     return tabs;    
   },
   
   
   
   
-  unmatched: function unmatched() {
-    var self = this;    
+  unmatched: function TabMatcher_unmatched() {
     var tabs = TabItems.getItems();
-    
     if ( this.term.length < 2 )
       return tabs;
-    
-    return tabs.filter(function(tab) {
-      var name = tab.nameEl.innerHTML;
-      return !name.match(self.term, "i");
-    });
+      
+    return this._filterForUnmatches(tabs);
   },
 
   
@@ -168,17 +272,25 @@ TabMatcher.prototype = {
   
   
   
-  doSearch: function(matchFunc, unmatchFunc) {
+  
+  
+  
+  doSearch: function TabMatcher_doSearch(matchFunc, unmatchFunc, otherFunc) {
     var matches = this.matched();
     var unmatched = this.unmatched();
+    var otherMatches = this.matchedTabsFromOtherWindows();
     
     matches.forEach(function(tab, i) {
       matchFunc(tab, i);
     });
+
+    otherMatches.forEach(function(tab,i){
+      otherFunc(tab, i+matches.length);      
+    });
     
     unmatched.forEach(function(tab, i) {
       unmatchFunc(tab, i);
-    });
+    });    
   }
 };
 
@@ -247,9 +359,14 @@ SearchEventHandlerClass.prototype = {
     if (event.which == event.DOM_VK_BACK_SPACE && term.length <= 1) 
       hideSearch(event);
 
-    var matches = (new TabMatcher(term)).matched();
-    if (event.which == event.DOM_VK_RETURN && matches.length > 0) {
-      matches[0].zoomIn();
+    var matcher = new TabMatcher(term);
+    var matches = matcher.matched();
+    var others =  matcher.matchedTabsFromOtherWindows();
+    if (event.which == event.DOM_VK_RETURN && (matches.length > 0 || others.length > 0)) {
+      if (matches.length > 0)
+        matches[0].zoomIn();
+      else
+        TabUtils.focus(others[0]);
       hideSearch(event);    
     }
   },
@@ -281,29 +398,52 @@ SearchEventHandlerClass.prototype = {
 
 var TabHandlers = {
   onMatch: function(tab, index){
-   tab.setZ(1010);   
-   index != 0 ? tab.addClass("notMainMatch") : tab.removeClass("notMainMatch");
-   
-   
-   
-   
-   iQ(tab.canvasEl)
+    tab.addClass("onTop");
+    index != 0 ? tab.addClass("notMainMatch") : tab.removeClass("notMainMatch");
+
+    
+    
+    
+    iQ(tab.canvasEl)
     .unbind("mousedown", TabHandlers._hideHandler)
     .unbind("mouseup", TabHandlers._showHandler);
-   
-   iQ(tab.canvasEl)
+
+    iQ(tab.canvasEl)
     .mousedown(TabHandlers._hideHandler)
     .mouseup(TabHandlers._showHandler);
   },
   
   onUnmatch: function(tab, index){
-    
-    tab.setZ(500);
+    iQ(tab.container).removeClass("onTop");
     tab.removeClass("notMainMatch");
 
     iQ(tab.canvasEl)
      .unbind("mousedown", TabHandlers._hideHandler)
      .unbind("mouseup", TabHandlers._showHandler);
+  },
+  
+  onOther: function(tab, index){
+    
+    
+    
+    
+    var item = iQ("<div/>")
+      .addClass("inlineMatch")
+      .click(function(){
+        TabUtils.focus(tab);
+      });
+    
+    iQ("<img/>")
+      .attr("src", TabUtils.faviconURLOf(tab) )
+      .appendTo(item);
+    
+    iQ("<span/>")
+      .text( TabUtils.nameOf(tab) )
+      .appendTo(item);
+      
+    index != 0 ? item.addClass("notMainMatch") : item.removeClass("notMainMatch");      
+    item.appendTo("#results");
+    iQ("#otherresults").show();    
   },
   
   _hideHandler: function(event){
@@ -358,7 +498,14 @@ function hideSearch(event){
 
 function performSearch() {
   var matcher = new TabMatcher(iQ("#searchbox").val());
-  matcher.doSearch(TabHandlers.onMatch, TabHandlers.onUnmatch);
+
+  
+  
+  iQ("#results").empty();
+  iQ("#otherresults").hide();
+  iQ("#otherresults>.label").text(tabviewString("search.otherWindowTabs"));
+
+  matcher.doSearch(TabHandlers.onMatch, TabHandlers.onUnmatch, TabHandlers.onOther);
 }
 
 function ensureSearchShown(event){
