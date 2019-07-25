@@ -910,6 +910,10 @@ bool
 UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 
+bool
+UseNewTypeForInitializer(JSContext *cx, JSScript *script, jsbytecode *pc);
+
+
 
 
 
@@ -1080,7 +1084,7 @@ class TypeScript
     static inline TypeObject *StandardType(JSContext *cx, JSScript *script, JSProtoKey kind);
 
     
-    static inline TypeObject *InitObject(JSContext *cx, JSScript *script, const jsbytecode *pc, JSProtoKey kind);
+    static inline TypeObject *InitObject(JSContext *cx, JSScript *script, jsbytecode *pc, JSProtoKey kind);
 
     
 
