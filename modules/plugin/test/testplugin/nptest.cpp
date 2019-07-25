@@ -169,7 +169,6 @@ static bool getClipboardText(NPObject* npobj, const NPVariant* args, uint32_t ar
 static bool callOnDestroy(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool reinitWidget(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool crashPluginInNestedLoop(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
-static bool destroySharedGfxStuff(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool propertyAndMethod(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool getTopLevelWindowActivationState(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool getTopLevelWindowActivationEventCount(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
@@ -177,6 +176,7 @@ static bool getFocusState(NPObject* npobj, const NPVariant* args, uint32_t argCo
 static bool getFocusEventCount(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool getEventModel(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool getReflector(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
+static bool isVisible(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 
 static const NPUTF8* sPluginMethodIdentifierNames[] = {
   "npnEvaluateTest",
@@ -221,14 +221,14 @@ static const NPUTF8* sPluginMethodIdentifierNames[] = {
   "callOnDestroy",
   "reinitWidget",
   "crashInNestedLoop",
-  "destroySharedGfxStuff",
   "propertyAndMethod",
   "getTopLevelWindowActivationState",
   "getTopLevelWindowActivationEventCount",
   "getFocusState",
   "getFocusEventCount",
   "getEventModel",
-  "getReflector"
+  "getReflector",
+  "isVisible"
 };
 static NPIdentifier sPluginMethodIdentifiers[ARRAY_LENGTH(sPluginMethodIdentifierNames)];
 static const ScriptableFunction sPluginMethodFunctions[] = {
@@ -274,14 +274,14 @@ static const ScriptableFunction sPluginMethodFunctions[] = {
   callOnDestroy,
   reinitWidget,
   crashPluginInNestedLoop,
-  destroySharedGfxStuff,
   propertyAndMethod,
   getTopLevelWindowActivationState,
   getTopLevelWindowActivationEventCount,
   getFocusState,
   getFocusEventCount,
   getEventModel,
-  getReflector
+  getReflector,
+  isVisible
 };
 
 STATIC_ASSERT(ARRAY_LENGTH(sPluginMethodIdentifierNames) ==
@@ -2873,15 +2873,6 @@ crashPluginInNestedLoop(NPObject* npobj, const NPVariant* args,
   return pluginCrashInNestedLoop(id);
 }
 
-bool
-destroySharedGfxStuff(NPObject* npobj, const NPVariant* args,
-                        uint32_t argCount, NPVariant* result)
-{
-  NPP npp = static_cast<TestNPObject*>(npobj)->npp;
-  InstanceData* id = static_cast<InstanceData*>(npp->pdata);
-  return pluginDestroySharedGfxStuff(id);
-}
-
 #else
 bool
 getClipboardText(NPObject* npobj, const NPVariant* args, uint32_t argCount,
@@ -2893,14 +2884,6 @@ getClipboardText(NPObject* npobj, const NPVariant* args, uint32_t argCount,
 
 bool
 crashPluginInNestedLoop(NPObject* npobj, const NPVariant* args,
-                        uint32_t argCount, NPVariant* result)
-{
-  
-  return false;
-}
-
-bool
-destroySharedGfxStuff(NPObject* npobj, const NPVariant* args,
                         uint32_t argCount, NPVariant* result)
 {
   
@@ -3107,5 +3090,17 @@ getReflector(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVarian
     NPN_CreateObject(npp,
 		     const_cast<NPClass*>(&kReflectorNPClass)); 
   OBJECT_TO_NPVARIANT(reflector, *result);
+  return true;
+}
+
+bool isVisible(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result)
+{
+  NPP npp = static_cast<TestNPObject*>(npobj)->npp;
+  InstanceData* id = static_cast<InstanceData*>(npp->pdata);
+
+  BOOLEAN_TO_NPVARIANT(id->window.clipRect.top != 0 ||
+		       id->window.clipRect.left != 0 ||
+		       id->window.clipRect.bottom != 0 ||
+		       id->window.clipRect.right != 0, *result);
   return true;
 }
