@@ -332,7 +332,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
 
     
     
-    JS_ASSERT(ArgumentsRectifierReg == r8);
+    JS_STATIC_ASSERT(ArgumentsRectifierReg == r8);
 
     
     masm.movq(Operand(rsp, IonJSFrameLayout::offsetOfCalleeToken()), rax);
