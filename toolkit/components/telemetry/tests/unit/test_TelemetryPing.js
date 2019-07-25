@@ -101,6 +101,9 @@ function checkHistograms(request, response) {
     do_check_eq(payload.info[f], expected_info[f]);
   }
 
+  do_check_true("appUpdateChannel" in payload.info);
+  do_check_true("locale" in payload.info);
+
   try {
     
     
