@@ -1666,15 +1666,17 @@ nsXMLHttpRequest::CheckChannelForCrossSiteRequest(nsIChannel* aChannel)
   return NS_OK;
 }
 
-
 NS_IMETHODIMP
-nsXMLHttpRequest::OpenRequest(const nsACString& method,
-                              const nsACString& url,
-                              PRBool async,
-                              const nsAString& user,
-                              const nsAString& password)
+nsXMLHttpRequest::Open(const nsACString& method, const nsACString& url,
+                       PRBool async, const nsAString& user,
+                       const nsAString& password, PRUint8 optional_argc)
 {
   NS_ENSURE_ARG(!method.IsEmpty());
+
+  if (!optional_argc) {
+    
+    async = PR_TRUE;
+  }
 
   NS_ENSURE_TRUE(mPrincipal, NS_ERROR_NOT_INITIALIZED);
 
@@ -1803,20 +1805,6 @@ nsXMLHttpRequest::OpenRequest(const nsACString& method,
   ChangeState(XML_HTTP_REQUEST_OPENED);
 
   return rv;
-}
-
-
-NS_IMETHODIMP
-nsXMLHttpRequest::Open(const nsACString& method, const nsACString& url,
-                       PRBool async, const nsAString& user,
-                       const nsAString& password, PRUint8 optional_argc)
-{
-  if (!optional_argc) {
-    
-    async = PR_TRUE;
-  }
-
-  return OpenRequest(method, url, async, user, password);
 }
 
 

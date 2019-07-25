@@ -683,7 +683,7 @@ nsDOMWorkerXHRProxy::DispatchPrematureAbortEvents(PRUint32 aType,
 }
 
 nsresult
-nsDOMWorkerXHRProxy::MaybeDispatchPrematureAbortEvents(PRBool aFromOpenRequest)
+nsDOMWorkerXHRProxy::MaybeDispatchPrematureAbortEvents(PRBool aFromOpen)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
@@ -698,7 +698,7 @@ nsDOMWorkerXHRProxy::MaybeDispatchPrematureAbortEvents(PRBool aFromOpenRequest)
                                       nsnull);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (aFromOpenRequest) {
+    if (aFromOpen) {
       rv = DispatchPrematureAbortEvents(LISTENER_TYPE_ABORT, target,
                                         mDownloadProgressInfo);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -866,17 +866,17 @@ nsDOMWorkerXHRProxy::HandleEventRunnable(nsIRunnable* aRunnable)
 }
 
 nsresult
-nsDOMWorkerXHRProxy::OpenRequest(const nsACString& aMethod,
-                                 const nsACString& aUrl,
-                                 PRBool aAsync,
-                                 const nsAString& aUser,
-                                 const nsAString& aPassword)
+nsDOMWorkerXHRProxy::Open(const nsACString& aMethod,
+                          const nsACString& aUrl,
+                          PRBool aAsync,
+                          const nsAString& aUser,
+                          const nsAString& aPassword)
 {
   if (!NS_IsMainThread()) {
     mSyncRequest = !aAsync;
 
     
-    RUN_PROXIED_FUNCTION(OpenRequest,
+    RUN_PROXIED_FUNCTION(Open,
                          (aMethod, aUrl, PR_TRUE, aUser, aPassword));
     return NS_OK;
   }
@@ -888,7 +888,7 @@ nsDOMWorkerXHRProxy::OpenRequest(const nsACString& aMethod,
   nsresult rv = MaybeDispatchPrematureAbortEvents(PR_TRUE);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = mXHR->OpenRequest(aMethod, aUrl, aAsync, aUser, aPassword);
+  rv = mXHR->Open(aMethod, aUrl, aAsync, aUser, aPassword);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
