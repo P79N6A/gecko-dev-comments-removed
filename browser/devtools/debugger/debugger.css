@@ -43,16 +43,8 @@
 
 
 
-#dbg-content > * > .vbox {
+#dbg-content > * > div {
   cursor: default;
-}
-
-
-
-
-
-#dbg-statusbar {
-  -moz-appearance: statusbar;
 }
 
 
@@ -171,12 +163,6 @@
 
 
 
-
-
-.hbox {
-  display: -moz-box;
-  -moz-box-orient: horizontal;
-}
 
 .vbox {
   display: -moz-box;

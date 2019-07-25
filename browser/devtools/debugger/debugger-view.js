@@ -511,27 +511,22 @@ StackFramesView.prototype = {
 
 
 
-  updateState: function DVF_updateState(aState) {
-    let resume = document.getElementById("resume");
-    let status = document.getElementById("status");
+   updateState: function DVF_updateState(aState) {
+     let resume = document.getElementById("resume");
 
-    
-    if (aState == "paused") {
-      status.textContent = L10N.getStr("pausedState");
-      resume.label = L10N.getStr("resumeLabel");
-    }
-    
-    else if (aState == "attached") {
-      status.textContent = L10N.getStr("runningState");
-      resume.label = L10N.getStr("pauseLabel");
-    }
-    
-    else {
-      status.textContent = "";
-    }
+     
+     if (aState == "paused") {
+       resume.label = L10N.getStr("resumeLabel");
+       resume.setAttribute("checked", true);
+     }
+     
+     else if (aState == "attached") {
+       resume.label = L10N.getStr("pauseLabel");
+       resume.removeAttribute("checked");
+     }
 
-    DebuggerView.Scripts.clearSearch();
-  },
+     DebuggerView.Scripts.clearSearch();
+   },
 
   
 
