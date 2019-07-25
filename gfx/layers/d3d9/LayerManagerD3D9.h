@@ -189,6 +189,8 @@ public:
   virtual const char* Name() const { return "D3D9"; }
 #endif 
 
+  void ReportFailure(const nsACString &aMsg, HRESULT aCode);
+
 private:
   
   static DeviceManagerD3D9 *mDefaultDeviceManager;
@@ -260,6 +262,10 @@ public:
 
   
   virtual void LayerManagerDestroyed() {}
+
+  void ReportFailure(const nsACString &aMsg, HRESULT aCode) {
+    return mD3DManager->ReportFailure(aMsg, aCode);
+  }
 protected:
   LayerManagerD3D9 *mD3DManager;
 };
