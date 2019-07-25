@@ -851,14 +851,14 @@ nsContentTreeOwner::ProvideWindow(nsIDOMWindow* aParent,
       !(aChromeFlags & (nsIWebBrowserChrome::CHROME_MODAL |
                         nsIWebBrowserChrome::CHROME_OPENAS_DIALOG |
                         nsIWebBrowserChrome::CHROME_OPENAS_CHROME))) {
-    bool openSucceeded =
+    *aWindowIsNew =
       BrowserElementParent::OpenWindowInProcess(aParent, aURI, aName,
                                                 aFeatures, aReturn);
 
     
     
     
-    return openSucceeded ? NS_OK : NS_ERROR_ABORT;
+    return *aWindowIsNew ? NS_OK : NS_ERROR_ABORT;
   }
 
   
