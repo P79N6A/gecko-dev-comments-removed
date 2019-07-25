@@ -840,6 +840,36 @@ CheckFrame(StackFrame *fp)
     return true;
 }
 
+static MethodStatus
+Compile(JSContext *cx, JSScript *script, js::StackFrame *fp, jsbytecode *osrPc)
+{
+    JS_ASSERT(ion::IsEnabled());
+    JS_ASSERT_IF(osrPc != NULL, (JSOp)*osrPc == JSOP_LOOPENTRY);
+
+    if (cx->compartment->debugMode()) {
+        IonSpew(IonSpew_Abort, "debugging");
+        return Method_CantCompile;
+    }
+
+    if (!CheckFrame(fp))
+        return Method_CantCompile;
+
+    if (script->ion) {
+        if (!script->ion->method())
+            return Method_CantCompile;
+        return Method_Compiled;
+    }
+
+    if (script->incUseCount() <= js_IonOptions.usesBeforeCompile)
+        return Method_Skipped;
+
+    if (!IonCompile(cx, script, fp, osrPc))
+        return Method_CantCompile;
+
+    
+    return script->hasIonScript() ? Method_Compiled : Method_Skipped;
+}
+
 
 
 MethodStatus
@@ -862,52 +892,50 @@ ion::CanEnterAtBranch(JSContext *cx, JSScript *script, StackFrame *fp, jsbytecod
 
     
     MethodStatus status = Compile(cx, script, fp, pc);
-    if (status != Method_Compiled)
+    if (status != Method_Compiled) {
+        if (status == Method_CantCompile)
+            script->ion = ION_DISABLED_SCRIPT;
         return status;
+    }
 
     if (script->ion->osrPc() != pc)
+        return Method_Skipped;
+
+    
+    if (!cx->compartment->ionCompartment()->osrPrologue(cx))
+        return Method_Error;
+
+    if (!script->ion)
         return Method_Skipped;
 
     return Method_Compiled;
 }
 
 MethodStatus
-ion::Compile(JSContext *cx, JSScript *script, js::StackFrame *fp, jsbytecode *osrPc)
+ion::CanEnter(JSContext *cx, JSScript *script, StackFrame *fp)
 {
     JS_ASSERT(ion::IsEnabled());
-    JS_ASSERT_IF(osrPc != NULL, (JSOp)*osrPc == JSOP_LOOPENTRY);
 
+    
     if (script->ion == ION_DISABLED_SCRIPT)
-        return Method_CantCompile;
-
-    if (cx->compartment->debugMode()) {
-        IonSpew(IonSpew_Abort, "debugging");
-        return Method_CantCompile;
-    }
-
-    if (!CheckFrame(fp)) {
-        JS_ASSERT(script->ion != ION_DISABLED_SCRIPT);
-        script->ion = ION_DISABLED_SCRIPT;
-        return Method_CantCompile;
-    }
-
-    if (script->ion) {
-        if (!script->ion->method())
-            return Method_CantCompile;
-        return Method_Compiled;
-    }
-
-    if (script->incUseCount() <= js_IonOptions.usesBeforeCompile)
         return Method_Skipped;
 
-    if (!IonCompile(cx, script, fp, osrPc)) {
-        JS_ASSERT(script->ion != ION_DISABLED_SCRIPT);
-        script->ion = ION_DISABLED_SCRIPT;
-        return Method_CantCompile;
+    
+    MethodStatus status = Compile(cx, script, fp, NULL);
+    if (status != Method_Compiled) {
+        if (status == Method_CantCompile)
+            script->ion = ION_DISABLED_SCRIPT;
+        return status;
     }
 
     
-    return script->hasIonScript() ? Method_Compiled : Method_Skipped;
+    if (!cx->compartment->ionCompartment()->enterJIT(cx))
+        return Method_Error;
+
+    if (!script->ion)
+        return Method_Skipped;
+
+    return Method_Compiled;
 }
 
 
@@ -965,9 +993,7 @@ bool
 ion::Cannon(JSContext *cx, StackFrame *fp)
 {
     CallTarget target;
-    target.enterJIT = cx->compartment->ionCompartment()->enterJIT(cx);
-    if (!target.enterJIT)
-        return false;
+    target.enterJIT = cx->compartment->ionCompartment()->enterJITInfallible();
 
     JSScript *script = fp->script();
     IonScript *ion = script->ion;
@@ -981,9 +1007,7 @@ bool
 ion::SideCannon(JSContext *cx, StackFrame *fp, jsbytecode *pc)
 {
     CallTarget target;
-    target.osrPrologue = cx->compartment->ionCompartment()->osrPrologue(cx);
-    if (!target.osrPrologue)
-        return false;
+    target.osrPrologue = cx->compartment->ionCompartment()->osrPrologueInfallible();
 
     JSScript *script = fp->script();
     IonScript *ion = script->ion;
