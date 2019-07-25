@@ -2352,7 +2352,7 @@ nsresult nsExternalAppHandler::OpenWithApplication()
     if (deleteTempFileOnExit || gExtProtSvc->InPrivateBrowsing())
       mFinalFileDestination->SetPermissions(0400);
 
-    rv = mMimeInfo->LaunchWithFile(mFinalFileDestination);        
+    rv = mMimeInfo->LaunchWithFile(mFinalFileDestination);
     if (NS_FAILED(rv))
     {
       
@@ -2481,6 +2481,13 @@ NS_IMETHODIMP nsExternalAppHandler::Cancel(nsresult aReason)
   {
     mTempFile->Remove(PR_FALSE);
     mTempFile = nsnull;
+  }
+
+  
+  if (mFinalFileDestination)
+  {
+    mFinalFileDestination->Remove(PR_FALSE);
+    mFinalFileDestination = nsnull;
   }
 
   
