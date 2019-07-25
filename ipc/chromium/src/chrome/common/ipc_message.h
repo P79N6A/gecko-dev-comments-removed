@@ -54,6 +54,11 @@ class Message : public Pickle {
     PRIORITY_HIGH
   };
 
+  enum MessageCompression {
+    COMPRESSION_NONE,
+    COMPRESSION_ENABLED
+  };
+
   virtual ~Message();
 
   Message();
@@ -61,6 +66,7 @@ class Message : public Pickle {
   
   
   Message(int32 routing_id, msgid_t type, PriorityValue priority,
+          MessageCompression compression = COMPRESSION_NONE,
           const char* const name="???");
 
   
@@ -83,6 +89,11 @@ class Message : public Pickle {
   
   bool is_rpc() const {
     return (header()->flags & RPC_BIT) != 0;
+  }
+
+  
+  bool compress() const {
+    return (header()->flags & COMPRESS_BIT) != 0;
   }
 
   
@@ -263,7 +274,8 @@ class Message : public Pickle {
     UNBLOCK_BIT     = 0x0020,
     PUMPING_MSGS_BIT= 0x0040,
     HAS_SENT_TIME_BIT = 0x0080,
-    RPC_BIT        = 0x0100
+    RPC_BIT         = 0x0100,
+    COMPRESS_BIT    = 0x0200
   };
 
 #pragma pack(push, 2)
