@@ -309,9 +309,16 @@ protected:
                                 const nsSMILValue*& aTo);
   double   ComputePacedTotalDistance(const nsSMILValueArray& aValues) const;
 
-  void     ScaleSimpleProgress(double& aProgress);
-  void     ScaleIntervalProgress(double& aProgress, PRUint32 aIntervalIndex,
-                                 PRUint32 aNumIntervals);
+  
+
+
+
+  double   ScaleSimpleProgress(double aProgress, nsSMILCalcMode aCalcMode);
+  
+
+
+
+  double   ScaleIntervalProgress(double aProgress, PRUint32 aIntervalIndex);
 
   
   

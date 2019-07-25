@@ -390,50 +390,30 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
   }
   
 
-  double fTime = double(mSampleTime);
-  double fDur = double(dur);
-
   
-  double simpleProgress = (fDur > 0.0) ? fTime / fDur : 0.0;
+  const double simpleProgress = dur > 0.0 ? (double)mSampleTime / dur : 0.0;
 
-  
-  
-  if (HasAttr(nsGkAtoms::keyTimes) &&
-      GetCalcMode() != CALC_PACED) {
-    double first = mKeyTimes[0];
-    if (first > 0.0 && simpleProgress < first) {
-      if (!IsToAnimation())
-        aResult = aValues[0];
-      return rv;
-    }
-    double last = mKeyTimes[mKeyTimes.Length() - 1];
-    if (last < 1.0 && simpleProgress >= last) {
-      if (IsToAnimation())
-        aResult = aValues[0];
-      else
-        aResult = aValues[aValues.Length() - 1];
-      return rv;
-    }
-  }
-
-  if (GetCalcMode() != CALC_DISCRETE) {
+  nsSMILCalcMode calcMode = GetCalcMode();
+  if (calcMode != CALC_DISCRETE) {
     
     const nsSMILValue* from = nsnull;
     const nsSMILValue* to = nsnull;
-    double intervalProgress;
+    
+    
+    double intervalProgress = -1.f;
     if (IsToAnimation()) {
       from = &aBaseValue;
       to = &aValues[0];
-      if (GetCalcMode() == CALC_PACED) {
+      if (calcMode == CALC_PACED) {
         
         intervalProgress = simpleProgress;
       } else {
-        ScaleSimpleProgress(simpleProgress);
-        intervalProgress = simpleProgress;
-        ScaleIntervalProgress(intervalProgress, 0, 1);
+        double scaledSimpleProgress =
+          ScaleSimpleProgress(simpleProgress, calcMode);
+        intervalProgress = ScaleIntervalProgress(scaledSimpleProgress, 0);
       }
     } else {
-      if (GetCalcMode() == CALC_PACED) {
+      if (calcMode == CALC_PACED) {
         rv = ComputePacedPosition(aValues, simpleProgress,
                                   intervalProgress, from, to);
         
@@ -441,13 +421,15 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
         
         
       } else { 
-        ScaleSimpleProgress(simpleProgress);
-        PRUint32 index = (PRUint32)floor(simpleProgress *
+        double scaledSimpleProgress =
+          ScaleSimpleProgress(simpleProgress, calcMode);
+        PRUint32 index = (PRUint32)floor(scaledSimpleProgress *
                                          (aValues.Length() - 1));
         from = &aValues[index];
         to = &aValues[index + 1];
-        intervalProgress = simpleProgress * (aValues.Length() - 1) - index;
-        ScaleIntervalProgress(intervalProgress, index, aValues.Length() - 1);
+        intervalProgress =
+          scaledSimpleProgress * (aValues.Length() - 1) - index;
+        intervalProgress = ScaleIntervalProgress(intervalProgress, index);
       }
     }
     if (NS_SUCCEEDED(rv)) {
@@ -462,13 +444,15 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
   
   
   
-  if (GetCalcMode() == CALC_DISCRETE || NS_FAILED(rv)) {
+  if (calcMode == CALC_DISCRETE || NS_FAILED(rv)) {
     if (IsToAnimation()) {
       
       
       aResult = aValues[0];
     } else {
-      PRUint32 index = (PRUint32) floor(simpleProgress * (aValues.Length()));
+      double scaledSimpleProgress =
+        ScaleSimpleProgress(simpleProgress, CALC_DISCRETE);
+      PRUint32 index = (PRUint32)floor(scaledSimpleProgress * aValues.Length());
       aResult = aValues[index];
     }
     rv = NS_OK;
@@ -613,61 +597,61 @@ nsSMILAnimationFunction::ComputePacedTotalDistance(
   return totalDistance;
 }
 
-
-
-
-void
-nsSMILAnimationFunction::ScaleSimpleProgress(double& aProgress)
+double
+nsSMILAnimationFunction::ScaleSimpleProgress(double aProgress,
+                                             nsSMILCalcMode aCalcMode)
 {
   if (!HasAttr(nsGkAtoms::keyTimes))
-    return;
+    return aProgress;
 
   PRUint32 numTimes = mKeyTimes.Length();
 
   if (numTimes < 2)
-    return;
+    return aProgress;
 
   PRUint32 i = 0;
   for (; i < numTimes - 2 && aProgress >= mKeyTimes[i+1]; ++i);
+
+  if (aCalcMode == CALC_DISCRETE) {
+    
+    
+    
+    
+    if (aProgress >= mKeyTimes[i+1]) {
+      NS_ABORT_IF_FALSE(i == numTimes - 2,
+          "aProgress is not in range of the current interval, yet the current"
+          " interval is not the last bounded interval either.");
+      ++i;
+    }
+    return (double)i / numTimes;
+  }
 
   double& intervalStart = mKeyTimes[i];
   double& intervalEnd   = mKeyTimes[i+1];
 
   double intervalLength = intervalEnd - intervalStart;
-  if (intervalLength <= 0.0) {
-    aProgress = intervalStart;
-    return;
-  }
+  if (intervalLength <= 0.0)
+    return intervalStart;
 
-  aProgress = (i + (aProgress - intervalStart) / intervalLength) *
-         1.0 / double(numTimes - 1);
+  return (i + (aProgress - intervalStart) / intervalLength) /
+         double(numTimes - 1);
 }
 
-
-
-
-
-void
-nsSMILAnimationFunction::ScaleIntervalProgress(double& aProgress,
-                                               PRUint32   aIntervalIndex,
-                                               PRUint32   aNumIntervals)
+double
+nsSMILAnimationFunction::ScaleIntervalProgress(double aProgress,
+                                               PRUint32 aIntervalIndex)
 {
   if (GetCalcMode() != CALC_SPLINE)
-    return;
+    return aProgress;
 
   if (!HasAttr(nsGkAtoms::keySplines))
-    return;
+    return aProgress;
 
-  NS_ASSERTION(aIntervalIndex < (PRUint32)mKeySplines.Length(),
-               "Invalid interval index");
-  NS_ASSERTION(aNumIntervals >= 1, "Invalid number of intervals");
-
-  if (aIntervalIndex >= (PRUint32)mKeySplines.Length() ||
-      aNumIntervals < 1)
-    return;
+  NS_ABORT_IF_FALSE(aIntervalIndex < mKeySplines.Length(),
+                    "Invalid interval index");
 
   nsSMILKeySpline const &spline = mKeySplines[aIntervalIndex];
-  aProgress = spline.GetSplineValue(aProgress);
+  return spline.GetSplineValue(aProgress);
 }
 
 PRBool
@@ -832,37 +816,44 @@ nsSMILAnimationFunction::CheckKeyTimes(PRUint32 aNumValues)
   if (!HasAttr(nsGkAtoms::keyTimes))
     return;
 
+  nsSMILCalcMode calcMode = GetCalcMode();
+
   
-  if (GetCalcMode() == CALC_PACED) {
+  if (calcMode == CALC_PACED) {
     SetKeyTimesErrorFlag(PR_FALSE);
     return;
   }
 
-  if (mKeyTimes.Length() < 1) {
+  PRUint32 numKeyTimes = mKeyTimes.Length();
+  if (numKeyTimes < 1) {
     
     SetKeyTimesErrorFlag(PR_TRUE);
     return;
   }
 
   
-  if ((mKeyTimes.Length() != aNumValues && !IsToAnimation()) ||
-      (IsToAnimation() && mKeyTimes.Length() != 2)) {
+  
+  
+  PRBool matchingNumOfValues = IsToAnimation() ?
+      calcMode == CALC_DISCRETE ? numKeyTimes <= 2 : numKeyTimes == 2 :
+      numKeyTimes == aNumValues;
+  if (!matchingNumOfValues) {
     SetKeyTimesErrorFlag(PR_TRUE);
     return;
   }
 
   
-  
-  if (mKeyTimes.Length() == 1) {
-    double time = mKeyTimes[0];
-    SetKeyTimesErrorFlag(!(time == 0.0 || time == 1.0));
+  if (mKeyTimes[0] != 0.0) {
+    SetKeyTimesErrorFlag(PR_TRUE);
     return;
   }
 
   
-  
-  
-  
+  if (calcMode != CALC_DISCRETE && numKeyTimes > 1 &&
+      mKeyTimes[numKeyTimes - 1] != 1.0) {
+    SetKeyTimesErrorFlag(PR_TRUE);
+    return;
+  }
 
   SetKeyTimesErrorFlag(PR_FALSE);
 }
