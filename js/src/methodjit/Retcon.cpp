@@ -164,7 +164,12 @@ Recompiler::patchNative(JSContext *cx, JITScript *jit, StackFrame *fp,
 
     
     {
+#ifdef _WIN64
+        
+        void *interpoline = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpolinePatched);
+#else
         void *interpoline = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
+#endif
         uint8 *start = (uint8 *)ic.nativeJump.executableAddress();
         JSC::RepatchBuffer repatch(JSC::JITCode(start - 32, 64));
 #ifdef JS_CPU_X64
@@ -213,6 +218,9 @@ JITCodeReturnAddress(void *data)
     return data != NULL  
         && data != JS_FUNC_TO_DATA_PTR(void *, JaegerTrampolineReturn)
         && data != JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline)
+#ifdef _WIN64
+        && data != JS_FUNC_TO_DATA_PTR(void *, JaegerInterpolinePatched)
+#endif
         && data != JS_FUNC_TO_DATA_PTR(void *, JaegerInterpolineScripted);
 }
 
@@ -471,5 +479,5 @@ Recompiler::cleanup(JITScript *jit)
 } 
 } 
 
-#endif 
+#endif
 
