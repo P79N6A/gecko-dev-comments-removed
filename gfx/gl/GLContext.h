@@ -1507,12 +1507,13 @@ public:
         return mAvailableExtensions[aKnownExtension];
     }
 
-    
-    bool IsExtensionSupported(const char *extension);
+    void MarkExtensionUnsupported(GLExtensions aKnownExtension) {
+        mAvailableExtensions[aKnownExtension] = 0;
+    }
 
     
     static bool ListHasExtension(const GLubyte *extensions,
-                                   const char *extension);
+                                 const char *extension);
 
     GLint GetMaxTextureSize() { return mMaxTextureSize; }
     GLint GetMaxTextureImageSize() { return mMaxTextureImageSize; }
