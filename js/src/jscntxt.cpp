@@ -617,7 +617,7 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 
             
             for (CompartmentsIter c(rt); !c.done(); c.next())
-                c->clearTraps(cx, NULL);
+                c->clearTraps(cx);
             JS_ClearAllWatchPoints(cx);
         }
 
@@ -774,6 +774,9 @@ js_ReportOutOfMemory(JSContext *cx)
 {
     cx->runtime->hadOutOfMemory = true;
 
+    
+    AutoUnlockAtomsCompartmentWhenLocked unlockAtomsCompartment(cx);
+    
     JSErrorReport report;
     JSErrorReporter onError = cx->errorReporter;
 
@@ -1432,6 +1435,7 @@ JSContext::JSContext(JSRuntime *rt)
     data(NULL),
     data2(NULL),
 #ifdef JS_THREADSAFE
+    atomsCompartmentIsLocked(false),
     outstandingRequests(0),
 #endif
     autoGCRooters(NULL),

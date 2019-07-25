@@ -371,6 +371,29 @@ class ScriptOpcodeCounts
     }
 };
 
+class DebugScript
+{
+    friend struct ::JSScript;
+
+    
+
+
+
+
+
+
+    uint32          stepMode;
+
+    
+    uint32          numSites;
+
+    
+
+
+
+    BreakpointSite  *breakpoints[1];
+};
+
 } 
 
 static const uint32 JS_SCRIPT_COOKIE = 0xc00cee;
@@ -429,15 +452,6 @@ struct JSScript : public js::gc::Cell {
 
     uint16          nTypeSets;      
 
-
-    
-
-
-
-
-
-
-    uint32          stepMode;
 
     uint32          lineno;     
 
@@ -532,6 +546,7 @@ struct JSScript : public js::gc::Cell {
 #endif
 
   private:
+    js::DebugScript *debug;
     JSFunction      *function_;
   public:
 
@@ -651,7 +666,7 @@ struct JSScript : public js::gc::Cell {
 
     
     js::OpcodeCounts getCounts(jsbytecode *pc) {
-        JS_ASSERT(unsigned(pc - code) < length);
+        JS_ASSERT(size_t(pc - code) < length);
         return pcCounters.counts[pc - code];
     }
 
@@ -765,7 +780,28 @@ struct JSScript : public js::gc::Cell {
     
     bool tryNewStepMode(JSContext *cx, uint32 newValue);
 
+    bool ensureHasDebug(JSContext *cx);
+
   public:
+    bool hasBreakpointsAt(jsbytecode *pc) { return !!getBreakpointSite(pc); }
+    bool hasAnyBreakpointsOrStepMode() { return !!debug; }
+
+    js::BreakpointSite *getBreakpointSite(jsbytecode *pc)
+    {
+        JS_ASSERT(size_t(pc - code) < length);
+        return debug ? debug->breakpoints[pc - code] : NULL;
+    }
+
+    js::BreakpointSite *getOrCreateBreakpointSite(JSContext *cx, jsbytecode *pc,
+                                                  js::GlobalObject *scriptGlobal);
+
+    void destroyBreakpointSite(JSRuntime *rt, jsbytecode *pc);
+
+    void clearBreakpointsIn(JSContext *cx, js::Debugger *dbg, JSObject *handler);
+    void clearTraps(JSContext *cx);
+
+    void markTrapClosures(JSTracer *trc);
+
     
 
 
@@ -782,10 +818,10 @@ struct JSScript : public js::gc::Cell {
 
     bool changeStepModeCount(JSContext *cx, int delta);
 
-    bool stepModeEnabled() { return !!stepMode; }
+    bool stepModeEnabled() { return debug && !!debug->stepMode; }
 
 #ifdef DEBUG
-    uint32 stepModeCount() { return stepMode & stepCountMask; }
+    uint32 stepModeCount() { return debug ? (debug->stepMode & stepCountMask) : 0; }
 #endif
 
     void finalize(JSContext *cx, bool background);
@@ -906,15 +942,6 @@ enum LineOption {
 inline const char *
 CurrentScriptFileAndLine(JSContext *cx, uintN *linenop, LineOption = NOT_CALLED_FROM_JSOP_EVAL);
 
-}
-
-static JS_INLINE JSOp
-js_GetOpcode(JSContext *cx, JSScript *script, jsbytecode *pc)
-{
-    JSOp op = (JSOp) *pc;
-    if (op == JSOP_TRAP)
-        op = JS_GetTrapOpcode(cx, script, pc);
-    return op;
 }
 
 extern JSScript *

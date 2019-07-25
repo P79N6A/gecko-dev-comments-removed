@@ -214,6 +214,13 @@ MarkChildren(JSTracer *trc, JSXML *xml);
 
 
 
+const Shape *
+MarkShapeChildrenAcyclic(JSTracer *trc, const Shape *shape);
+
+
+
+
+
 
 inline void
 Mark(JSTracer *trc, const js::HeapValue &v, const char *name)

@@ -365,7 +365,7 @@ AsyncExecuteStatements::executeStatement(sqlite3_stmt *aStatement)
     
     SQLiteMutexAutoLock lockedScope(mDBMutex);
 
-    int rc = stepStmt(aStatement);
+    int rc = mConnection->stepStatement(aStatement);
     
     if (rc == SQLITE_DONE)
     {

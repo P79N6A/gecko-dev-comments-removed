@@ -83,8 +83,6 @@ class nsAccessibleWrap : public nsAccessible
     
     bool IsIgnored();
     
-    PRInt32 GetUnignoredChildCount(bool aDeepCount);
-    
     bool HasPopup () {
       return (NativeState() & mozilla::a11y::states::HASPOPUP);
     }

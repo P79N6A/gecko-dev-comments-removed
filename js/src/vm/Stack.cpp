@@ -1083,7 +1083,7 @@ StackIter::settleOnNewState()
 
 
 
-            JSOp op = js_GetOpcode(cx_, fp_->script(), pc_);
+            JSOp op = JSOp(*pc_);
             if (op == JSOP_CALL || op == JSOP_FUNCALL) {
                 uintN argc = GET_ARGC(pc_);
                 DebugOnly<uintN> spoff = sp_ - fp_->base();

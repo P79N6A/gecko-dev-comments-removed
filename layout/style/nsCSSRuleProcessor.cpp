@@ -51,7 +51,8 @@
 #include "nsRuleProcessorData.h"
 
 #define PL_ARENA_CONST_ALIGN_MASK 7
-#define NS_RULEHASH_ARENA_BLOCK_SIZE (256)
+
+#define NS_CASCADEENUMDATA_ARENA_BLOCK_SIZE (4096)
 #include "plarena.h"
 
 #include "nsCRT.h"
@@ -117,6 +118,8 @@ PRUint8 nsCSSRuleProcessor::sWinThemeId = LookAndFeel::eWindowsTheme_Generic;
 struct RuleSelectorPair {
   RuleSelectorPair(css::StyleRule* aRule, nsCSSSelector* aSelector)
     : mRule(aRule), mSelector(aSelector) {}
+  
+  
 
   css::StyleRule*   mRule;
   nsCSSSelector*    mSelector; 
@@ -421,7 +424,6 @@ public:
   void AppendRule(const RuleSelectorPair &aRuleInfo);
   void EnumerateAllRules(Element* aElement, RuleProcessorData* aData,
                          NodeMatchContext& aNodeMatchContext);
-  PLArenaPool& Arena() { return mArena; }
 
   PRInt64 SizeOf() const;
 
@@ -449,8 +451,6 @@ protected:
     EnumData data = { arr.Elements(), arr.Elements() + arr.Length() };
     return data;
   }
-
-  PLArenaPool mArena;
 
 #ifdef RULE_HASH_STATS
   PRUint32    mUniversalSelectors;
@@ -489,8 +489,6 @@ RuleHash::RuleHash(bool aQuirksMode)
 #endif
 {
   MOZ_COUNT_CTOR(RuleHash);
-  
-  PL_INIT_ARENA_POOL(&mArena, "RuleHashArena", NS_RULEHASH_ARENA_BLOCK_SIZE);
 
   PL_DHashTableInit(&mTagTable, &RuleHash_TagTable_Ops, nsnull,
                     sizeof(RuleHashTagTableEntry), 64);
@@ -552,7 +550,6 @@ RuleHash::~RuleHash()
   PL_DHashTableFinish(&mClassTable);
   PL_DHashTableFinish(&mTagTable);
   PL_DHashTableFinish(&mNameSpaceTable);
-  PL_FinishArenaPool(&mArena);
 }
 
 void RuleHash::AppendRuleToTable(PLDHashTable* aTable, const void* aKey,
@@ -766,12 +763,6 @@ RuleHash::SizeOf() const
 
   n += mUniversalRules.SizeOf();
 
-  const PLArena* current = &mArena.first;
-  while (current) {
-    n += current->limit - current->base;
-    current = current->next;
-  }
-
   return n;
 }
 
@@ -899,7 +890,7 @@ struct RuleCascadeData {
   RuleHash                 mRuleHash;
   RuleHash*
     mPseudoElementRuleHashes[nsCSSPseudoElements::ePseudo_PseudoElementCount];
-  nsTArray<nsCSSSelector*> mStateSelectors;
+  nsTArray<nsCSSRuleProcessor::StateSelector>  mStateSelectors;
   nsEventStates            mSelectorDocumentStates;
   PLDHashTable             mClassSelectors;
   PLDHashTable             mIdSelectors;
@@ -2371,18 +2362,22 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
   
   nsRestyleHint hint = nsRestyleHint(0);
   if (cascade) {
-    nsCSSSelector **iter = cascade->mStateSelectors.Elements(),
-                  **end = iter + cascade->mStateSelectors.Length();
+    StateSelector *iter = cascade->mStateSelectors.Elements(),
+                  *end = iter + cascade->mStateSelectors.Length();
     NodeMatchContext nodeContext(aData->mStateMask, false);
     for(; iter != end; ++iter) {
-      nsCSSSelector* selector = *iter;
+      nsCSSSelector* selector = iter->mSelector;
+      nsEventStates states = iter->mStates;
 
       nsRestyleHint possibleChange = RestyleHintForOp(selector->mOperator);
 
       
       
       
+      
+      
       if ((possibleChange & ~hint) &&
+          states.HasAtLeastOneOfStates(aData->mStateMask) &&
           SelectorMatches(aData->mElement, selector, nodeContext,
                           aData->mTreeMatchContext) &&
           SelectorMatchesTree(aData->mElement, selector->mNext,
@@ -2622,9 +2617,11 @@ nsCSSRuleProcessor::ClearRuleCascades()
 
 
 
+
 inline
-bool IsStateSelector(nsCSSSelector& aSelector)
+nsEventStates ComputeSelectorStateDependence(nsCSSSelector& aSelector)
 {
+  nsEventStates states;
   for (nsPseudoClassList* pseudoClass = aSelector.mPseudoClassList;
        pseudoClass; pseudoClass = pseudoClass->mNext) {
     
@@ -2632,11 +2629,9 @@ bool IsStateSelector(nsCSSSelector& aSelector)
     if (pseudoClass->mType >= nsCSSPseudoClasses::ePseudoClass_Count) {
       continue;
     }
-    if (!sPseudoClassStates[pseudoClass->mType].IsEmpty()) {
-      return true;
-    }
+    states |= sPseudoClassStates[pseudoClass->mType];
   }
-  return false;
+  return states;
 }
 
 static bool
@@ -2684,8 +2679,12 @@ AddSelector(RuleCascadeData* aCascade,
     }
 
     
-    if (IsStateSelector(*negation))
-      aCascade->mStateSelectors.AppendElement(aSelectorInTopLevel);
+    nsEventStates dependentStates = ComputeSelectorStateDependence(*negation);
+    if (!dependentStates.IsEmpty()) {
+      aCascade->mStateSelectors.AppendElement(
+        nsCSSRuleProcessor::StateSelector(dependentStates,
+                                          aSelectorInTopLevel));
+    }
 
     
     if (negation == aSelectorInTopLevel) {
@@ -2825,9 +2824,33 @@ AddRule(RuleSelectorPair* aRuleInfo, RuleCascadeData* aCascade)
   return true;
 }
 
+struct PerWeightDataListItem : public RuleSelectorPair {
+  PerWeightDataListItem(css::StyleRule* aRule, nsCSSSelector* aSelector)
+    : RuleSelectorPair(aRule, aSelector)
+    , mNext(nsnull)
+  {}
+  
+
+
+  
+  void *operator new(size_t aSize, PLArenaPool &aArena) CPP_THROW_NEW {
+    void *mem;
+    PL_ARENA_ALLOCATE(mem, &aArena, aSize);
+    return mem;
+  }
+
+  PerWeightDataListItem *mNext;
+};
+
 struct PerWeightData {
+  PerWeightData()
+    : mRuleSelectorPairs(nsnull)
+    , mTail(&mRuleSelectorPairs)
+  {}
+
   PRInt32 mWeight;
-  nsTArray<RuleSelectorPair> mRules; 
+  PerWeightDataListItem *mRuleSelectorPairs;
+  PerWeightDataListItem **mTail;
 };
 
 struct RuleByWeightEntry : public PLDHashEntryHdr {
@@ -2857,20 +2880,13 @@ InitWeightEntry(PLDHashTable *table, PLDHashEntryHdr *hdr,
   return true;
 }
 
-static void
-ClearWeightEntry(PLDHashTable *table, PLDHashEntryHdr *hdr)
-{
-  RuleByWeightEntry* entry = static_cast<RuleByWeightEntry*>(hdr);
-  entry->~RuleByWeightEntry();
-}
-
 static PLDHashTableOps gRulesByWeightOps = {
     PL_DHashAllocTable,
     PL_DHashFreeTable,
     HashIntKey,
     MatchWeightEntry,
     PL_DHashMoveEntryStub,
-    ClearWeightEntry,
+    PL_DHashClearEntryStub,
     PL_DHashFinalizeStub,
     InitWeightEntry
 };
@@ -2880,31 +2896,34 @@ struct CascadeEnumData {
                   nsTArray<nsFontFaceRuleContainer>& aFontFaceRules,
                   nsTArray<nsCSSKeyframesRule*>& aKeyframesRules,
                   nsMediaQueryResultCacheKey& aKey,
-                  PLArenaPool& aArena,
                   PRUint8 aSheetType)
     : mPresContext(aPresContext),
       mFontFaceRules(aFontFaceRules),
       mKeyframesRules(aKeyframesRules),
       mCacheKey(aKey),
-      mArena(aArena),
       mSheetType(aSheetType)
   {
     if (!PL_DHashTableInit(&mRulesByWeight, &gRulesByWeightOps, nsnull,
                           sizeof(RuleByWeightEntry), 64))
       mRulesByWeight.ops = nsnull;
+
+    
+    PL_INIT_ARENA_POOL(&mArena, "CascadeEnumDataArena",
+                       NS_CASCADEENUMDATA_ARENA_BLOCK_SIZE);
   }
 
   ~CascadeEnumData()
   {
     if (mRulesByWeight.ops)
       PL_DHashTableFinish(&mRulesByWeight);
+    PL_FinishArenaPool(&mArena);
   }
 
   nsPresContext* mPresContext;
   nsTArray<nsFontFaceRuleContainer>& mFontFaceRules;
   nsTArray<nsCSSKeyframesRule*>& mKeyframesRules;
   nsMediaQueryResultCacheKey& mCacheKey;
-  PLArenaPool& mArena;
+  PLArenaPool mArena;
   
   
   PLDHashTable mRulesByWeight; 
@@ -2939,8 +2958,13 @@ CascadeRuleEnumFunc(css::Rule* aRule, void* aData)
         return false;
       entry->data.mWeight = weight;
       
-      entry->data.mRules.AppendElement(RuleSelectorPair(styleRule,
-                                                        sel->mSelectors));
+      
+      PerWeightDataListItem *newItem =
+        new (data->mArena) PerWeightDataListItem(styleRule, sel->mSelectors);
+      if (newItem) {
+        *(entry->data.mTail) = newItem;
+        entry->data.mTail = &newItem->mNext;
+      }
     }
   }
   else if (css::Rule::MEDIA_RULE == type ||
@@ -3067,7 +3091,6 @@ nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
       CascadeEnumData data(aPresContext, newCascade->mFontFaceRules,
                            newCascade->mKeyframesRules,
                            newCascade->mCacheKey,
-                           newCascade->mRuleHash.Arena(),
                            mSheetType);
       if (!data.mRulesByWeight.ops)
         return; 
@@ -3090,10 +3113,9 @@ nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
       for (PRUint32 i = 0; i < weightCount; ++i) {
         
         
-        nsTArray<RuleSelectorPair>& arr = weightArray[i].mRules;
-        for (RuleSelectorPair *cur = arr.Elements(),
-                              *end = cur + arr.Length();
-             cur != end; ++cur) {
+        for (PerWeightDataListItem *cur = weightArray[i].mRuleSelectorPairs;
+             cur;
+             cur = cur->mNext) {
           if (!AddRule(cur, newCascade))
             return; 
         }

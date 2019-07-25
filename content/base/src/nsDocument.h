@@ -958,8 +958,9 @@ public:
 
   virtual Element* GetFullScreenElement();
   virtual void AsyncRequestFullScreen(Element* aElement);
-  virtual void CancelFullScreen();
+  virtual void RestorePreviousFullScreenState();
   virtual bool IsFullScreenDoc();
+  static void ExitFullScreen();
 
   
   
@@ -969,8 +970,21 @@ public:
 
   
   
-  bool SetFullScreenState(Element* aElement, bool aIsFullScreen);
- 
+  void ClearFullScreenStack();
+
+  
+  
+  
+  bool FullScreenStackPush(Element* aElement);
+
+  
+  
+  
+  void FullScreenStackPop();
+
+  
+  Element* FullScreenStackTop();
+
   
   
   void UpdateVisibilityState();
@@ -1110,6 +1124,11 @@ protected:
   
   static nsWeakPtr sFullScreenRootDoc;
 
+  
+  
+  
+  nsTArray<nsWeakPtr> mFullScreenStack;
+
   nsRefPtr<nsEventListenerManager> mListenerManager;
   nsCOMPtr<nsIDOMStyleSheetList> mDOMStyleSheets;
   nsRefPtr<nsDOMStyleSheetSetList> mStyleSheetSetList;
@@ -1128,9 +1147,6 @@ protected:
 
   
   mozilla::TimeStamp mLoadingTimeStamp;
-
-  
-  nsCOMPtr<Element> mFullScreenElement;
 
   
   bool mIsGoingAway:1;

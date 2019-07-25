@@ -165,6 +165,7 @@ protected:
   PRInt32      mPrintRangeType;
   PRInt32      mFromPageNum;
   PRInt32      mToPageNum;
+  nsTArray<PRInt32> mPageRanges;
 
   
   nscoord      mSelectionHeight;

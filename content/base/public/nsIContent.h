@@ -324,8 +324,7 @@ public:
   }
 
   inline bool IsSVG() const {
-    
-    return IsNodeOfType(eSVG);
+    return IsInNamespace(kNameSpaceID_SVG);
   }
 
   inline bool IsXUL() const {

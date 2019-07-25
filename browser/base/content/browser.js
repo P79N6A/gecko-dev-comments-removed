@@ -3969,6 +3969,10 @@ var FullScreen = {
       return;
     }
 
+    
+    if (!document.getElementById("sidebar-box").hidden)
+      toggleSidebar();
+
     if (gFindBarInitialized)
       gFindBar.close();
 
@@ -5761,7 +5765,7 @@ function hrefAndLinkNodeForClickEvent(event)
 
 function contentAreaClick(event, isPanelClick)
 {
-  if (!event.isTrusted || event.getPreventDefault() || event.button == 2)
+  if (!event.isTrusted || event.defaultPrevented || event.button == 2)
     return true;
 
   let [href, linkNode] = hrefAndLinkNodeForClickEvent(event);

@@ -297,8 +297,7 @@ nsHTMLSharedObjectElement::BindToTree(nsIDocument *aDocument,
     
     
     
-    NS_DispatchToCurrentThread(
-      NS_NewRunnableMethod(aDocument, &nsIDocument::CancelFullScreen));
+    nsIDocument::ExitFullScreen(true);
     nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
                                     "AddedWindowedPluginWhileFullScreen",
                                     nsnull, 0, nsnull,

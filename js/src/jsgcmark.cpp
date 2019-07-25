@@ -743,16 +743,6 @@ PrintPropertyGetterOrSetter(JSTracer *trc, char *buf, size_t bufsize)
                     trc->debugPrintIndex ? js_setter_str : js_getter_str); 
 }
 
-#ifdef DEBUG
-static void
-PrintPropertyMethod(JSTracer *trc, char *buf, size_t bufsize)
-{
-    JS_ASSERT(trc->debugPrinter == PrintPropertyMethod);
-    Shape *shape = (Shape *)trc->debugPrintArg;
-    PrintPropertyId(buf, bufsize, shape->propid(), " method");
-}
-#endif 
-
 static inline void
 ScanValue(GCMarker *gcmarker, const Value &v)
 {
@@ -1017,18 +1007,41 @@ MarkChildren(JSTracer *trc, JSScript *script)
 
     if (script->types)
         script->types->trace(trc);
+
+    if (script->hasAnyBreakpointsOrStepMode())
+        script->markTrapClosures(trc);
+}
+
+const Shape *
+MarkShapeChildrenAcyclic(JSTracer *trc, const Shape *shape)
+{
+    
+
+
+
+
+
+
+
+
+
+
+
+    MarkBaseShapeUnbarriered(trc, shape->base(), "base");
+    MarkIdUnbarriered(trc, shape->maybePropid(), "propid");
+    return shape->previous();
 }
 
 void
 MarkChildren(JSTracer *trc, const Shape *shape)
 {
-restart:
-    MarkBaseShapeUnbarriered(trc, shape->base(), "base");
-    MarkIdUnbarriered(trc, shape->maybePropid(), "propid");
+    
 
-    shape = shape->previous();
-    if (shape)
-        goto restart;
+
+
+    MarkShapeChildrenAcyclic(trc, shape);
+    if (shape->previous())
+        MarkShape(trc, shape->previous(), "parent");
 }
 
 void

@@ -3323,6 +3323,8 @@ pref("layers.acceleration.force-enabled", false);
 
 pref("layers.acceleration.draw-fps", false);
 
+pref("layers.offmainthreadcomposition.enabled", false);
+
 #ifdef XP_WIN
 
 #ifdef MOZ_E10S_COMPAT
@@ -3399,3 +3401,9 @@ pref("dom.sms.whitelist", "");
 
 
 pref("browser.dom.window.dump.enabled", false);
+
+
+pref("profiler.enabled", false);
+pref("profiler.interval", 10);
+pref("profiler.entries", 100000);
+

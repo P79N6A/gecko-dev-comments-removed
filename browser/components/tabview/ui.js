@@ -154,6 +154,10 @@ let UI = {
 
   
   
+  _originalSmoothScroll: null,
+
+  
+  
   
   toString: function UI_toString() {
     return "[UI]";
@@ -515,6 +519,11 @@ let UI = {
     this._isChangingVisibility = true;
 
     
+    let tabStrip = gBrowser.tabContainer.mTabstrip;
+    this._originalSmoothScroll = tabStrip.smoothScroll;
+    tabStrip.smoothScroll = false;
+
+    
     this._initPageDirection();
 
     var self = this;
@@ -609,6 +618,7 @@ let UI = {
     gBrowser.selectedBrowser.focus();
 
     gBrowser.updateTitlebar();
+    gBrowser.tabContainer.mTabstrip.smoothScroll = this._originalSmoothScroll;
 #ifdef XP_MACOSX
     this.setTitlebarColors(false);
 #endif

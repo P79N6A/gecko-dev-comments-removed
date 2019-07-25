@@ -68,9 +68,12 @@ nsNoDataProtocolContentPolicy::ShouldLoad(PRUint32 aContentType,
 
   
   
+  
+  
   if (aContentType != TYPE_DOCUMENT &&
       aContentType != TYPE_SUBDOCUMENT &&
-      aContentType != TYPE_OBJECT) {
+      aContentType != TYPE_OBJECT &&
+      aContentType != TYPE_WEBSOCKET) {
 
     
     

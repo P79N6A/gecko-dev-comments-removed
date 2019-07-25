@@ -102,10 +102,15 @@ public:
     inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
 
+    size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
+
     ~JSObject2WrappedJSMap();
 private:
     JSObject2WrappedJSMap();    
     JSObject2WrappedJSMap(int size);
+
+    static size_t SizeOfEntry(JSDHashEntryHdr *hdr, JSMallocSizeOfFun mallocSizeOf);
+
 private:
     JSDHashTable *mTable;
 };
@@ -165,10 +170,15 @@ public:
     inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
 
+    size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
+
     ~Native2WrappedNativeMap();
 private:
     Native2WrappedNativeMap();    
     Native2WrappedNativeMap(int size);
+
+    static size_t SizeOfEntry(JSDHashEntryHdr *hdr, JSMallocSizeOfFun mallocSizeOf);
+
 private:
     JSDHashTable *mTable;
 };
@@ -279,10 +289,15 @@ public:
     inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
 
+    size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
+
     ~IID2NativeInterfaceMap();
 private:
     IID2NativeInterfaceMap();    
     IID2NativeInterfaceMap(int size);
+
+    static size_t SizeOfEntry(JSDHashEntryHdr *hdr, JSMallocSizeOfFun mallocSizeOf);
+
 private:
     JSDHashTable *mTable;
 };
@@ -332,6 +347,12 @@ public:
     inline uint32 Count() {return mTable->entryCount;}
     inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
+
+    
+    
+    
+    
+    size_t ShallowSizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
 
     ~ClassInfo2NativeSetMap();
 private:
@@ -387,10 +408,15 @@ public:
     inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
 
+    size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
+
     ~ClassInfo2WrappedNativeProtoMap();
 private:
     ClassInfo2WrappedNativeProtoMap();    
     ClassInfo2WrappedNativeProtoMap(int size);
+
+    static size_t SizeOfEntry(JSDHashEntryHdr *hdr, JSMallocSizeOfFun mallocSizeOf);
+
 private:
     JSDHashTable *mTable;
 };
@@ -455,10 +481,15 @@ public:
     inline uint32 Enumerate(JSDHashEnumerator f, void *arg)
         {return JS_DHashTableEnumerate(mTable, f, arg);}
 
+    size_t SizeOfIncludingThis(nsMallocSizeOfFun mallocSizeOf);
+
     ~NativeSetMap();
 private:
     NativeSetMap();    
     NativeSetMap(int size);
+
+    static size_t SizeOfEntry(JSDHashEntryHdr *hdr, JSMallocSizeOfFun mallocSizeOf);
+
 private:
     JSDHashTable *mTable;
 };

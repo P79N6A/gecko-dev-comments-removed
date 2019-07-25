@@ -3,18 +3,49 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 package org.mozilla.gecko;
 
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.util.Log;
 
-public class GeckoConnectivityReceiver extends BroadcastReceiver {
+public class GeckoConnectivityReceiver
+    extends BroadcastReceiver
+{
     
 
 
@@ -22,17 +53,6 @@ public class GeckoConnectivityReceiver extends BroadcastReceiver {
     private static final String LINK_DATA_UP = "up";
     private static final String LINK_DATA_DOWN = "down";
     private static final String LINK_DATA_UNKNOWN = "unknown";
-
-    private static final String LOGTAG = "GeckoConnectivityReceiver";
-
-    private IntentFilter mFilter;
-
-    private static boolean isRegistered = false;
-
-    public GeckoConnectivityReceiver() {
-        mFilter = new IntentFilter();
-        mFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-    }
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -49,25 +69,5 @@ public class GeckoConnectivityReceiver extends BroadcastReceiver {
 
         if (GeckoApp.checkLaunchState(GeckoApp.LaunchState.GeckoRunning))
             GeckoAppShell.onChangeNetworkLinkStatus(status);
-    }
-
-    public void registerFor(Activity activity) {
-        if (!isRegistered) {
-            
-            isRegistered = activity.registerReceiver(this, mFilter) != null;
-            if (!isRegistered)
-                Log.e(LOGTAG, "Registering receiver failed");
-        }
-    }
-
-    public void unregisterFor(Activity activity) {
-        if (isRegistered) {
-            try {
-                activity.unregisterReceiver(this);
-            } catch (IllegalArgumentException iae) {
-                Log.e(LOGTAG, "Unregistering receiver failed", iae);
-            }
-            isRegistered = false;
-        }
     }
 }

@@ -41,6 +41,7 @@
 #include "AccessibleApplication.h"
 #include "ISimpleDOMNode_i.c"
 
+#include "Compatibility.h"
 #include "nsAccessibilityService.h"
 #include "nsApplicationAccessibleWrap.h"
 #include "nsCoreUtils.h"
@@ -70,19 +71,7 @@ LPFNLRESULTFROMOBJECT nsAccessNodeWrap::gmLresultFromObject = NULL;
 LPFNNOTIFYWINEVENT nsAccessNodeWrap::gmNotifyWinEvent = nsnull;
 LPFNGETGUITHREADINFO nsAccessNodeWrap::gmGetGUIThreadInfo = nsnull;
 
-
-bool nsAccessNodeWrap::gIsIA2Disabled = false;
-
 AccTextChangeEvent* nsAccessNodeWrap::gTextEvent = nsnull;
-
-
-
-#define CTRLTAB_DISALLOW_FOR_SCREEN_READERS_PREF "browser.ctrlTab.disallowForScreenReaders"
-
-
-
-
-
 
 
 
@@ -613,7 +602,7 @@ void nsAccessNodeWrap::InitAccessibility()
       gmGetGUIThreadInfo = (LPFNGETGUITHREADINFO)GetProcAddress(gmUserLib,"GetGUIThreadInfo");
   }
 
-  DoATSpecificProcessing();
+  Compatibility::Init();
 
   nsWinUtils::MaybeStartWindowEmulation();
 
@@ -669,73 +658,6 @@ GetHRESULT(nsresult aResult)
     default:
       return E_FAIL;
   }
-}
-
-bool nsAccessNodeWrap::IsOnlyMsaaCompatibleJawsPresent()
-{
-  HMODULE jhookhandle = ::GetModuleHandleW(kJAWSModuleHandle);
-  if (!jhookhandle)
-    return false;  
-
-  PRUnichar fileName[MAX_PATH];
-  ::GetModuleFileNameW(jhookhandle, fileName, MAX_PATH);
-
-  DWORD dummy;
-  DWORD length = ::GetFileVersionInfoSizeW(fileName, &dummy);
-
-  LPBYTE versionInfo = new BYTE[length];
-  ::GetFileVersionInfoW(fileName, 0, length, versionInfo);
-
-  UINT uLen;
-  VS_FIXEDFILEINFO *fixedFileInfo;
-  ::VerQueryValueW(versionInfo, L"\\", (LPVOID*)&fixedFileInfo, &uLen);
-  DWORD dwFileVersionMS = fixedFileInfo->dwFileVersionMS;
-  DWORD dwFileVersionLS = fixedFileInfo->dwFileVersionLS;
-  delete [] versionInfo;
-
-  DWORD dwLeftMost = HIWORD(dwFileVersionMS);
-
-  DWORD dwSecondRight = HIWORD(dwFileVersionLS);
-
-
-  return (dwLeftMost < 8
-          || (dwLeftMost == 8 && dwSecondRight < 2173));
-}
-
-void nsAccessNodeWrap::TurnOffNewTabSwitchingForJawsAndWE()
-{
-  HMODULE srHandle = ::GetModuleHandleW(kJAWSModuleHandle);
-  if (!srHandle) {
-    
-    srHandle = ::GetModuleHandleW(kWEModuleHandle);
-    if (!srHandle) {
-      
-      return;
-    }
-  }
-
-  
-  
-  
-  if (Preferences::HasUserValue(CTRLTAB_DISALLOW_FOR_SCREEN_READERS_PREF)) {
-    
-    
-    
-    
-    return;
-  }
-  
-  
-  Preferences::SetBool(CTRLTAB_DISALLOW_FOR_SCREEN_READERS_PREF, true);
-}
-
-void nsAccessNodeWrap::DoATSpecificProcessing()
-{
-  if (IsOnlyMsaaCompatibleJawsPresent())
-    
-    gIsIA2Disabled  = true;
-
-  TurnOffNewTabSwitchingForJawsAndWE();
 }
 
 nsRefPtrHashtable<nsVoidPtrHashKey, nsDocAccessible> nsAccessNodeWrap::sHWNDCache;

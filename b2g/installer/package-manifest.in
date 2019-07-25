@@ -1,7 +1,3 @@
-; This Source Code Form is subject to the terms of the Mozilla Public
-; License, v. 2.0. If a copy of the MPL was not distributed with this
-; file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
 ; Package file for the B2G build. 
 ;
 ; File format:
@@ -43,9 +39,6 @@
 
 [xpcom]
 @BINPATH@/dependentlibs.list
-#ifdef XP_WIN32
-@BINPATH@/@DLL_PREFIX@gkmedias@DLL_SUFFIX@
-#endif
 #ifndef MOZ_STATIC_JS
 @BINPATH@/@DLL_PREFIX@mozjs@DLL_SUFFIX@
 #endif
@@ -85,13 +78,11 @@
 @BINPATH@/mozcpp19.dll
 #endif
 #endif
-#ifdef MOZ_SHARED_MOZGLUE
-@BINPATH@/@DLL_PREFIX@mozglue@DLL_SUFFIX@
-#endif
 #ifdef ANDROID
 @BINPATH@/AndroidManifest.xml
 @BINPATH@/resources.arsc
 @BINPATH@/classes.dex
+@BINPATH@/@DLL_PREFIX@mozutils@DLL_SUFFIX@
 @BINPATH@/res/drawable
 @BINPATH@/res/drawable-hdpi
 @BINPATH@/res/layout
@@ -114,8 +105,8 @@
 #endif
 @BINPATH@/blocklist.xml
 #ifdef XP_UNIX
-#ifndef XP_MACOSX
 @BINPATH@/run-mozilla.sh
+#ifndef XP_MACOSX
 @BINPATH@/mozilla-xremote-client
 #endif
 #endif
@@ -153,47 +144,24 @@
 @BINPATH@/components/directory.xpt
 @BINPATH@/components/docshell.xpt
 @BINPATH@/components/dom.xpt
-@BINPATH@/components/dom_activities.xpt
-@BINPATH@/components/dom_apps.xpt
 @BINPATH@/components/dom_base.xpt
 #ifdef MOZ_B2G_RIL
 @BINPATH@/components/dom_telephony.xpt
-@BINPATH@/components/dom_wifi.xpt
-@BINPATH@/components/dom_system_gonk.xpt
-@BINPATH@/components/dom_icc.xpt
+@BINPATH@/components/dom_system_b2g.xpt
 #endif
 @BINPATH@/components/dom_battery.xpt
-#ifdef MOZ_B2G_BT
-@BINPATH@/components/dom_bluetooth.xpt
-#endif
-@BINPATH@/components/dom_camera.xpt
 @BINPATH@/components/dom_canvas.xpt
-@BINPATH@/components/dom_contacts.xpt
-@BINPATH@/components/dom_alarm.xpt
 @BINPATH@/components/dom_core.xpt
 @BINPATH@/components/dom_css.xpt
-@BINPATH@/components/dom_devicestorage.xpt
 @BINPATH@/components/dom_events.xpt
-@BINPATH@/components/dom_file.xpt
 @BINPATH@/components/dom_geolocation.xpt
-@BINPATH@/components/dom_media.xpt
-@BINPATH@/components/dom_network.xpt
 @BINPATH@/components/dom_notification.xpt
 @BINPATH@/components/dom_html.xpt
 @BINPATH@/components/dom_indexeddb.xpt
 @BINPATH@/components/dom_offline.xpt
-@BINPATH@/components/dom_payment.xpt
 @BINPATH@/components/dom_json.xpt
-#ifdef MOZ_B2G_RIL
-@BINPATH@/components/dom_mms.xpt
-#endif
-@BINPATH@/components/dom_browserelement.xpt
-@BINPATH@/components/dom_messages.xpt
-@BINPATH@/components/dom_power.xpt
 @BINPATH@/components/dom_range.xpt
-@BINPATH@/components/dom_settings.xpt
 @BINPATH@/components/dom_sidebar.xpt
-@BINPATH@/components/dom_sms.xpt
 @BINPATH@/components/dom_storage.xpt
 @BINPATH@/components/dom_stylesheets.xpt
 @BINPATH@/components/dom_threads.xpt
@@ -217,7 +185,6 @@
 @BINPATH@/components/find.xpt
 @BINPATH@/components/fuel.xpt
 @BINPATH@/components/gfx.xpt
-@BINPATH@/components/html5.xpt
 @BINPATH@/components/htmlparser.xpt
 @BINPATH@/components/imglib2.xpt
 @BINPATH@/components/imgicon.xpt
@@ -225,9 +192,7 @@
 @BINPATH@/components/intl.xpt
 @BINPATH@/components/jar.xpt
 @BINPATH@/components/jetpack.xpt
-@BINPATH@/components/jsdebugger.xpt
 @BINPATH@/components/jsdservice.xpt
-@BINPATH@/components/jsinspector.xpt
 @BINPATH@/components/layout_base.xpt
 @BINPATH@/components/layout_forms.xpt
 #ifdef NS_PRINTING
@@ -261,9 +226,6 @@
 @BINPATH@/components/pref.xpt
 @BINPATH@/components/prefetch.xpt
 @BINPATH@/components/profile.xpt
-#ifdef MOZ_ENABLE_PROFILER_SPS
-@BINPATH@/components/profiler.xpt
-#endif
 @BINPATH@/components/proxyObject.xpt
 @BINPATH@/components/rdf.xpt
 @BINPATH@/components/satchel.xpt
@@ -319,16 +281,11 @@
 @BINPATH@/components/xuldoc.xpt
 @BINPATH@/components/xultmpl.xpt
 @BINPATH@/components/zipwriter.xpt
+@BINPATH@/components/webapps.xpt
 
 ; JavaScript components
 @BINPATH@/components/ConsoleAPI.manifest
 @BINPATH@/components/ConsoleAPI.js
-@BINPATH@/components/BrowserElementParent.manifest
-@BINPATH@/components/BrowserElementParent.js
-@BINPATH@/components/ContactManager.js
-@BINPATH@/components/ContactManager.manifest
-@BINPATH@/components/AlarmsManager.js
-@BINPATH@/components/AlarmsManager.manifest
 @BINPATH@/components/FeedProcessor.manifest
 @BINPATH@/components/FeedProcessor.js
 @BINPATH@/components/BrowserFeeds.manifest
@@ -346,6 +303,8 @@
 @BINPATH@/components/nsPrivateBrowsingService.manifest
 @BINPATH@/components/nsPrivateBrowsingService.js
 @BINPATH@/components/toolkitsearch.manifest
+@BINPATH@/components/nsSearchService.js
+@BINPATH@/components/nsSearchSuggestions.js
 @BINPATH@/components/nsTryToClose.manifest
 @BINPATH@/components/nsTryToClose.js
 @BINPATH@/components/passwordmgr.manifest
@@ -430,29 +389,10 @@
 @BINPATH@/components/contentAreaDropListener.js
 @BINPATH@/components/messageWakeupService.js
 @BINPATH@/components/messageWakeupService.manifest
-@BINPATH@/components/SettingsManager.js
-@BINPATH@/components/SettingsManager.manifest
-@BINPATH@/components/SettingsService.js
-@BINPATH@/components/SettingsService.manifest
 @BINPATH@/components/nsFilePicker.js
 @BINPATH@/components/nsFilePicker.manifest
-#ifdef MOZ_B2G_RIL
-@BINPATH@/components/NetworkManager.manifest
-@BINPATH@/components/NetworkManager.js
-@BINPATH@/components/RadioInterfaceLayer.manifest
-@BINPATH@/components/RadioInterfaceLayer.js
-@BINPATH@/components/MmsService.manifest
-@BINPATH@/components/MmsService.js
-@BINPATH@/components/RILContentHelper.js
-@BINPATH@/components/SmsDatabaseService.manifest
-@BINPATH@/components/SmsDatabaseService.js
-@BINPATH@/components/WifiWorker.js
-@BINPATH@/components/WifiWorker.manifest
-@BINPATH@/components/DOMWifiManager.js
-@BINPATH@/components/DOMWifiManager.manifest
-#endif
 #ifdef XP_MACOSX
-@BINPATH@/components/libalerts.dylib
+@BINPATH@/components/libalerts_s.dylib
 #endif
 #ifdef MOZ_ENABLE_DBUS
 @BINPATH@/components/@DLL_PREFIX@dbusservice@DLL_SUFFIX@
@@ -469,31 +409,6 @@
 #endif
 @BINPATH@/components/TelemetryPing.js
 @BINPATH@/components/TelemetryPing.manifest
-@BINPATH@/components/Webapps.js
-@BINPATH@/components/Webapps.manifest
-@BINPATH@/components/AppsService.js
-@BINPATH@/components/AppsService.manifest
-
-@BINPATH@/components/SystemMessageInternal.js
-@BINPATH@/components/SystemMessageManager.js
-@BINPATH@/components/SystemMessageManager.manifest
-
-@BINPATH@/components/Activities.manifest
-@BINPATH@/components/ActivityOptions.js
-@BINPATH@/components/ActivityProxy.js
-@BINPATH@/components/ActivityRequestHandler.js
-@BINPATH@/components/ActivityWrapper.js
-
-@BINPATH@/components/TCPSocket.js
-@BINPATH@/components/TCPSocket.manifest
-
-@BINPATH@/components/AppProtocolHandler.js
-@BINPATH@/components/AppProtocolHandler.manifest
-
-@BINPATH@/components/Payment.js
-@BINPATH@/components/PaymentFlowInfo.js
-@BINPATH@/components/PaymentRequestInfo.js
-@BINPATH@/components/Payment.manifest
 
 ; Modules
 @BINPATH@/modules/*
@@ -598,7 +513,9 @@
 ; svg
 @BINPATH@/res/svg.css
 @BINPATH@/components/dom_svg.xpt
+#ifdef MOZ_SMIL
 @BINPATH@/components/dom_smil.xpt
+#endif
 
 ; [Personal Security Manager]
 ;
@@ -676,34 +593,3 @@ bin/components/@DLL_PREFIX@nkgnomevfs@DLL_SUFFIX@
 @BINPATH@/chrome/icons/
 @BINPATH@/chrome/chrome@JAREXT@
 @BINPATH@/chrome/chrome.manifest
-@BINPATH@/components/B2GComponents.manifest
-@BINPATH@/components/B2GComponents.xpt
-@BINPATH@/components/CameraContent.js
-@BINPATH@/@DLL_PREFIX@omxplugin@DLL_SUFFIX@
-#ifdef ENABLE_MARIONETTE
-@BINPATH@/chrome/marionette@JAREXT@
-@BINPATH@/chrome/marionette.manifest
-@BINPATH@/components/MarionetteComponents.manifest
-@BINPATH@/components/marionettecomponent.js
-#endif
-@BINPATH@/components/AlertsService.js
-@BINPATH@/components/ContentPermissionPrompt.js
-#ifdef MOZ_UPDATER
-@BINPATH@/components/UpdatePrompt.js
-#endif
-@BINPATH@/components/MozKeyboard.js
-@BINPATH@/components/DirectoryProvider.js
-@BINPATH@/components/ActivitiesGlue.js
-@BINPATH@/components/ProcessGlobal.js
-@BINPATH@/components/ContentHandler.js
-@BINPATH@/components/PaymentGlue.js
-
-#ifdef XP_MACOSX
-@BINPATH@/@DLL_PREFIX@plugin_child_interpose@DLL_SUFFIX@
-#endif
-
-#ifdef PACKAGE_GAIA
-[gaia]
-@BINPATH@/gaia/*
-@BINPATH@/b2g-bin@BIN_SUFFIX@
-#endif

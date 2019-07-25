@@ -100,7 +100,24 @@ ScriptEpilogueOrGeneratorYield(JSContext *cx, StackFrame *fp, bool ok);
 
 
 
-extern void
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JSTrapStatus
 ScriptDebugPrologue(JSContext *cx, StackFrame *fp);
 
 extern bool

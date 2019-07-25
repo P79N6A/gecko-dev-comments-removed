@@ -1623,11 +1623,10 @@ static void
 RunLastDitchGC(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
-#ifdef JS_THREADSAFE
-    Maybe<AutoUnlockAtomsCompartment> maybeUnlockAtomsCompartment;
-    if (cx->compartment == rt->atomsCompartment && rt->atomsCompartmentIsLocked)
-        maybeUnlockAtomsCompartment.construct(cx);
-#endif
+
+    
+    AutoUnlockAtomsCompartmentWhenLocked unlockAtomsCompartment(cx);
+
     
     AutoKeepAtoms keep(rt);
     js_GC(cx, rt->gcTriggerCompartment, GC_NORMAL, gcstats::LASTDITCH);

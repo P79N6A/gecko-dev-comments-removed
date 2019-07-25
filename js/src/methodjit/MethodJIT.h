@@ -462,9 +462,20 @@ class JaegerCompartment {
         return result;
     }
 
+    
+
+
+
+
+
     void *forceReturnFromExternC() const {
         return JS_FUNC_TO_DATA_PTR(void *, trampolines.forceReturn);
     }
+
+    
+
+
+
 
     void *forceReturnFromFastCall() const {
 #if (defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)) || defined(_WIN64)

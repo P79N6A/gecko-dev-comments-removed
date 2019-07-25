@@ -129,8 +129,8 @@
 using mozilla::dom::indexedDB::IndexedDatabaseManager;
 
 #ifdef MOZ_B2G_RIL
-#include "Radio.h"
-using mozilla::dom::telephony::Radio;
+#include "RadioManager.h"
+using mozilla::dom::telephony::RadioManager;
 #endif
 
 
@@ -321,7 +321,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsChannelPolicy)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(IndexedDatabaseManager,
                                          IndexedDatabaseManager::FactoryCreate)
 #ifdef MOZ_B2G_RIL
-NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(Radio, Radio::FactoryCreate)
+NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(RadioManager, RadioManager::FactoryCreate)
 
 
 
@@ -334,7 +334,7 @@ RadioInterfaceConstructor(nsISupports *aOuter, REFNSIID aIID, void **aResult)
     return NS_ERROR_NO_AGGREGATION;
   }
 
-  nsCOMPtr<nsIRadioInterface> inst = Radio::GetRadioInterface();
+  nsCOMPtr<nsITelephone> inst = RadioManager::GetTelephone();
   if (NULL == inst) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -990,7 +990,7 @@ static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
   { &kNS_TEXTEDITOR_CID, false, NULL, nsPlaintextEditorConstructor },
   { &kINDEXEDDB_MANAGER_CID, false, NULL, IndexedDatabaseManagerConstructor },
 #ifdef MOZ_B2G_RIL
-  { &kTELEPHONYRADIO_CID, true, NULL, RadioConstructor },
+  { &kTELEPHONYRADIO_CID, true, NULL, RadioManagerConstructor },
   { &kTELEPHONYRADIOINTERFACE_CID, true, NULL, RadioInterfaceConstructor },
 #endif
 #ifdef ENABLE_EDITOR_API_LOG

@@ -85,6 +85,13 @@ JS_GetCustomIteratorCount(JSContext *cx);
 extern JS_FRIEND_API(JSBool)
 JS_NondeterministicGetWeakMapKeys(JSContext *cx, JSObject *obj, JSObject **ret);
 
+
+
+
+
+extern JS_FRIEND_API(void *)
+JS_TraceShapeChildrenAcyclic(JSTracer *trc, void *shape);
+
 enum {
     JS_TELEMETRY_GC_REASON,
     JS_TELEMETRY_GC_IS_COMPARTMENTAL,

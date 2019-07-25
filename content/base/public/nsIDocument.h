@@ -124,8 +124,9 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x3b78f6, 0x6dc5, 0x44c6, \
-  { 0xbc, 0x28, 0x60, 0x2a, 0xb2, 0x4f, 0xfb, 0x7b } }
+{ 0x283ec27d, 0x5b23, 0x49b2, \
+  { 0x94, 0xd9, 0x9, 0xb5, 0xdb, 0x45, 0x30, 0x73 } }
+
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -754,18 +755,28 @@ public:
 
 
 
+
+
   virtual void AsyncRequestFullScreen(Element* aElement) = 0;
 
   
 
 
 
-  virtual void CancelFullScreen() = 0;
+
+  virtual void RestorePreviousFullScreenState() = 0;
 
   
 
 
   virtual bool IsFullScreenDoc() = 0;
+
+  
+
+
+
+
+  static void ExitFullScreen(bool aRunAsync);
 
   
 
@@ -1518,7 +1529,9 @@ public:
 
   virtual Element* LookupImageElement(const nsAString& aElementId) = 0;
 
-  void ScheduleFrameRequestCallback(nsIFrameRequestCallback* aCallback);
+  nsresult ScheduleFrameRequestCallback(nsIFrameRequestCallback* aCallback,
+                                        PRInt32 *aHandle);
+  void CancelFrameRequestCallback(PRInt32 aHandle);
 
   typedef nsTArray< nsCOMPtr<nsIFrameRequestCallback> > FrameRequestCallbackList;
   
@@ -1800,12 +1813,41 @@ protected:
   PRUint32 mExternalScriptsBeingEvaluated;
 
   
+
+
+  PRInt32 mFrameRequestCallbackCounter;
+
+  
   
   nsPIDOMWindow *mWindow;
 
   nsCOMPtr<nsIDocumentEncoder> mCachedEncoder;
 
-  FrameRequestCallbackList mFrameRequestCallbacks;
+  struct FrameRequest {
+    FrameRequest(nsIFrameRequestCallback* aCallback,
+                 PRInt32 aHandle) :
+      mCallback(aCallback),
+      mHandle(aHandle)
+    {}
+
+    
+    
+    operator nsIFrameRequestCallback* const () const { return mCallback; }
+
+    
+    
+    bool operator==(PRInt32 aHandle) const {
+      return mHandle == aHandle;
+    }
+    bool operator<(PRInt32 aHandle) const {
+      return mHandle < aHandle;
+    }
+    
+    nsCOMPtr<nsIFrameRequestCallback> mCallback;
+    PRInt32 mHandle;
+  };
+
+  nsTArray<FrameRequest> mFrameRequestCallbacks;
 
   
   

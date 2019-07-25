@@ -56,6 +56,7 @@
 #include "nsAutoPtr.h"
 #include "nsILocalFile.h"
 #include "mozilla/FileUtils.h"
+#include "mozilla/FileLocation.h"
 
 #if defined(XP_WIN) && defined(_MSC_VER)
 #define MOZ_WIN_MEM_TRY_BEGIN __try {
@@ -227,8 +228,15 @@ public:
 
   PRInt64 SizeOfMapping();
 
+  
+
+
+  NS_METHOD_(nsrefcnt) AddRef(void);
+  NS_METHOD_(nsrefcnt) Release(void);
+
 private:
   
+  nsrefcnt      mRefCnt; 
 
   nsZipItem*    mFiles[ZIP_TABSIZE];
   PLArenaPool   mArena;
@@ -266,7 +274,7 @@ public:
   nsresult      FindNext(const char** aResult, PRUint16* aNameLen);
 
 private:
-  nsZipArchive* mArchive;
+  nsRefPtr<nsZipArchive> mArchive;
   char*         mPattern;
   nsZipItem*    mItem;
   PRUint16      mSlot;
@@ -303,9 +311,24 @@ public:
 
 
 
-  PRUint8* Read(PRUint32 *aBytesRead);
+  PRUint8* Read(PRUint32 *aBytesRead) {
+    return ReadOrCopy(aBytesRead, false);
+  }
+
+  
+
+
+
+
+
+  PRUint8* Copy(PRUint32 *aBytesRead) {
+    return ReadOrCopy(aBytesRead, true);
+  }
 
 private:
+  
+  PRUint8* ReadOrCopy(PRUint32 *aBytesRead, bool aCopy);
+
   nsZipItem *mItem; 
   PRUint8  *mBuf; 
   PRUint32  mBufSize; 
@@ -380,6 +403,7 @@ public:
 
 class nsZipHandle {
 friend class nsZipArchive;
+friend class mozilla::FileLocation;
 public:
   static nsresult Init(nsILocalFile *file, nsZipHandle **ret NS_OUTPARAM);
   static nsresult Init(nsZipArchive *zip, const char *entry,
@@ -393,7 +417,7 @@ public:
 protected:
   const PRUint8 * mFileData; 
   PRUint32        mLen;      
-  nsCOMPtr<nsILocalFile> mFile; 
+  mozilla::FileLocation mFile; 
 
 private:
   nsZipHandle();

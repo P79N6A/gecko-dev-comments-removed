@@ -1699,8 +1699,19 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
     if (aContainerFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer) &&
         aTransform &&
         (!aTransform->Is2D(&frameTransform) || frameTransform.HasNonTranslationOrFlip())) {
-      scale.width = gfxUtils::ClampToScaleFactor(scale.width);
-      scale.height = gfxUtils::ClampToScaleFactor(scale.height);
+      
+      
+      bool clamp = true;
+      gfxMatrix oldFrameTransform2d;
+      if (aLayer->GetTransform().Is2D(&oldFrameTransform2d)) {
+        gfxSize oldScale = oldFrameTransform2d.ScaleFactors(true);
+        if (oldScale == scale || oldScale == gfxSize(1.0, 1.0))
+          clamp = false;
+      }
+      if (clamp) {
+        scale.width = gfxUtils::ClampToScaleFactor(scale.width);
+        scale.height = gfxUtils::ClampToScaleFactor(scale.height);
+      }
     } else {
       
     }

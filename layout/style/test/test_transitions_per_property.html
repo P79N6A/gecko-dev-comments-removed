@@ -1,8 +1,8 @@
 <!DOCTYPE HTML>
 <html>
-<!--
-https://bugzilla.mozilla.org/show_bug.cgi?id=435441
--->
+
+
+
 <head>
   <title>Test for Bug 435441</title>
   <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
@@ -17,16 +17,16 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=435441
 <body>
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=435441">Mozilla Bug 435441</a>
 
-<!--
-  fixed-height container so percentage heights compute to different
-  (i.e., nonzero) values
-  fixed-width container so that percentages for margin-top and
-  margin-bottom are all relative to the same size container (rather than
-  one that depends on whether we're tall enough to need a scrollbar)
 
-  Use a 20px font size and line-height so that percentage line-height
-  and vertical-align doesn't accumulate rounding error.
-  -->
+
+
+
+
+
+
+
+
+
 <div style="height: 50px; width: 300px; font-size: 20px; line-height: 20px">
 
 <div id="display">
@@ -857,7 +857,7 @@ function test_zindex_transition(prop) {
   div.style.setProperty("-moz-transition-property", prop, "");
   div.style.setProperty(prop, "-14", "");
   is(cs.getPropertyValue(prop), "-1",
-     "integer-valued property " + prop + ": interpolation of lengths");
+     "integer-valued property " + prop + ": interpolation of integers");
   check_distance(prop, "6", "1", "-14");
   div.style.setProperty(prop, "auto", "");
   is(cs.getPropertyValue(prop), "auto",
@@ -867,7 +867,7 @@ function test_zindex_transition(prop) {
      "integer-valued property " + prop + ": computed value before transition");
   div.style.setProperty(prop, "8", "");
   is(cs.getPropertyValue(prop), "-1",
-     "integer-valued property " + prop + ": interpolation of lengths");
+     "integer-valued property " + prop + ": interpolation of integers");
   check_distance(prop, "-4", "-1", "8");
 
   div.style.setProperty("-moz-transition-timing-function", FUNC_NEGATIVE, "");
@@ -975,7 +975,7 @@ function test_pos_integer_or_auto_transition(prop) {
   div.style.setProperty("-moz-transition-property", prop, "");
   div.style.setProperty(prop, "11", "");
   is(cs.getPropertyValue(prop), "5",
-     "integer-valued property " + prop + ": interpolation of lengths");
+     "integer-valued property " + prop + ": interpolation of integers");
   check_distance(prop, "4", "6", "12");
   div.style.setProperty(prop, "auto", "");
   is(cs.getPropertyValue(prop), "auto",
@@ -985,7 +985,7 @@ function test_pos_integer_or_auto_transition(prop) {
      "integer-valued property " + prop + ": computed value before transition");
   div.style.setProperty(prop, "4", "");
   is(cs.getPropertyValue(prop), "7",
-     "integer-valued property " + prop + ": interpolation of lengths");
+     "integer-valued property " + prop + ": interpolation of integers");
   check_distance(prop, "8", "7", "4");
 }
 

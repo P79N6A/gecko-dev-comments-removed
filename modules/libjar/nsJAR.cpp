@@ -179,7 +179,7 @@ nsJAR::Open(nsIFile* zipFile)
   
   
   
-  nsZipArchive *zip = mozilla::Omnijar::GetReader(zipFile);
+  nsRefPtr<nsZipArchive> zip = mozilla::Omnijar::GetReader(zipFile);
   if (zip) {
     mZip = zip;
     return NS_OK;
@@ -231,9 +231,10 @@ nsJAR::Close()
   mGlobalStatus = JAR_MANIFEST_NOT_PARSED;
   mTotalItemsInManifest = 0;
 
-  if ((mZip == mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE)) ||
-      (mZip == mozilla::Omnijar::GetReader(mozilla::Omnijar::APP))) {
-    mZip.forget();
+  nsRefPtr<nsZipArchive> greOmni = mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE);
+  nsRefPtr<nsZipArchive> appOmni = mozilla::Omnijar::GetReader(mozilla::Omnijar::APP);
+
+  if (mZip == greOmni || mZip == appOmni) {
     mZip = new nsZipArchive();
     return NS_OK;
   }
@@ -389,8 +390,10 @@ nsJAR::GetCertificatePrincipal(const nsACString &aFilename, nsIPrincipal** aPrin
 
   
   
-  if ((mZip == mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE)) ||
-      (mZip == mozilla::Omnijar::GetReader(mozilla::Omnijar::APP)))
+  nsRefPtr<nsZipArchive> greOmni = mozilla::Omnijar::GetReader(mozilla::Omnijar::GRE);
+  nsRefPtr<nsZipArchive> appOmni = mozilla::Omnijar::GetReader(mozilla::Omnijar::APP);
+
+  if (mZip == greOmni || mZip == appOmni)
     return NS_OK;
 
   

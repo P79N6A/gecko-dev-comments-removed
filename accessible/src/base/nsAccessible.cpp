@@ -1542,30 +1542,18 @@ nsAccessible::State()
 
   if (!(state & states::UNAVAILABLE)) {
     state |= states::ENABLED | states::SENSITIVE;
+
+    
+    
+    
+    
+    nsAccessible* widget = ContainerWidget();
+    if (widget && widget->CurrentItem() == this)
+      state |= states::ACTIVE;
   }
 
   if ((state & states::COLLAPSED) || (state & states::EXPANDED))
     state |= states::EXPANDABLE;
-
-  if (mRoleMapEntry) {
-    
-    
-    
-    
-    nsAutoString id;
-    if (nsCoreUtils::GetID(mContent, id)) {
-      nsIContent *ancestorContent = mContent;
-      nsAutoString activeID;
-      while ((ancestorContent = ancestorContent->GetParent()) != nsnull) {
-        if (ancestorContent->GetAttr(kNameSpaceID_None, nsGkAtoms::aria_activedescendant, activeID)) {
-          if (id == activeID) {
-            state |= states::ACTIVE;
-          }
-          break;
-        }
-      }
-    }
-  }
 
   
   
@@ -2955,15 +2943,18 @@ nsAccessible::ContainerWidget() const
   nsIAtom* idAttribute = mContent->GetIDAttributeName();
   if (idAttribute) {
     if (mContent->HasAttr(kNameSpaceID_None, idAttribute)) {
-      nsAccessible* parent = Parent();
-      do {
+      for (nsAccessible* parent = Parent(); parent; parent = parent->Parent()) {
         nsIContent* parentContent = parent->GetContent();
         if (parentContent &&
             parentContent->HasAttr(kNameSpaceID_None,
                                    nsGkAtoms::aria_activedescendant)) {
           return parent;
         }
-      } while ((parent = parent->Parent()));
+
+        
+        if (parent->IsDocumentNode())
+          break;
+      }
     }
   }
   return nsnull;

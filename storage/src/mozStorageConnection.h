@@ -60,12 +60,9 @@ struct PRLock;
 class nsIFile;
 class nsIEventTarget;
 class nsIThread;
-class nsIMemoryReporter;
 
 namespace mozilla {
 namespace storage {
-
-class StorageMemoryReporter;
 
 class Connection : public mozIStorageConnection
                  , public nsIInterfaceRequestor
@@ -157,6 +154,27 @@ public:
 
   nsCString getFilename();
 
+  
+
+
+
+
+
+
+
+
+  int prepareStatement(const nsCString &aSQL, sqlite3_stmt **_stmt);
+
+  
+
+
+
+
+
+
+
+  int stepStatement(sqlite3_stmt* aStatement);
+
 private:
   ~Connection();
 
@@ -203,8 +221,6 @@ private:
 
   sqlite3 *mDBConn;
   nsCOMPtr<nsIFile> mDatabaseFile;
-
-  nsTArray<nsRefPtr<StorageMemoryReporter> > mMemoryReporters;
 
   
 

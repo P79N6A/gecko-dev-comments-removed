@@ -345,16 +345,14 @@ public:
     
     eHTML_FORM_CONTROL   = 1 << 6,
     
-    eSVG                 = 1 << 7,
-    
-    eDOCUMENT_FRAGMENT   = 1 << 8,
+    eDOCUMENT_FRAGMENT   = 1 << 7,
     
 
-    eDATA_NODE           = 1 << 19,
+    eDATA_NODE           = 1 << 8,
     
-    eMEDIA               = 1 << 10,
+    eMEDIA               = 1 << 9,
     
-    eANIMATION           = 1 << 11
+    eANIMATION           = 1 << 10
   };
 
   
