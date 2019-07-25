@@ -139,7 +139,7 @@ abstract class Axis {
     private float mTouchPos;                
     private float mLastTouchPos;            
     private float mVelocity;                
-    public boolean mScrollingDisabled;      
+    private boolean mScrollingDisabled;     
     private boolean mDisableSnap;           
     private float mDisplacement;
 
