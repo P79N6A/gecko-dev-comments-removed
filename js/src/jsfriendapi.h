@@ -196,6 +196,9 @@ JS_FRIEND_API(JSBool) obj_defineSetter(JSContext *cx, uintN argc, js::Value *vp)
 extern JS_FRIEND_API(bool)
 IsSystemCompartment(const JSCompartment *compartment);
 
+extern JS_FRIEND_API(bool)
+IsAtomsCompartmentFor(const JSContext *cx, const JSCompartment *c);
+
 
 
 
