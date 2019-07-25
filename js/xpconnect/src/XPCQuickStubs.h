@@ -378,8 +378,7 @@ protected:
             {
                 
                 
-                (new(mBuf) implementation_type(
-                    traits::sEmptyBuffer, PRUint32(0)))->
+                (new(mBuf) implementation_type(traits::sEmptyBuffer, PRUint32(0)))->
                     SetIsVoid(behavior != eEmpty);
                 mValid = JS_TRUE;
                 return nsnull;

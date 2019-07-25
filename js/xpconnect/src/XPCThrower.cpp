@@ -217,10 +217,9 @@ XPCThrower::BuildAndThrowException(JSContext* cx, nsresult rv, const char* sz)
         {
            
            
-            exceptionManager->GetExceptionFromProvider(
-               rv,
-               defaultException,
-               getter_AddRefs(finalException));
+            exceptionManager->GetExceptionFromProvider(rv,
+                                                       defaultException,
+                                                       getter_AddRefs(finalException));
             
             
             if(finalException == nsnull)
