@@ -4336,7 +4336,7 @@ public:
   nsChangeHint mChangeHint;
 };
 
-class LayerActivityTracker : public nsExpirationTracker<LayerActivity,4> {
+class LayerActivityTracker MOZ_FINAL : public nsExpirationTracker<LayerActivity,4> {
 public:
   
   enum { GENERATION_MS = 100 };
