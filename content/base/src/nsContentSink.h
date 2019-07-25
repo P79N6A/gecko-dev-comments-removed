@@ -260,10 +260,10 @@ public:
   
   void ProcessOfflineManifest(nsIContent *aElement);
 
-  void ScrollToRefImpl();
-
 protected:
-  void SetScrollToRef();
+  
+  
+  void ScrollToRef();
 
   
   
@@ -318,8 +318,6 @@ protected:
 
   nsCOMArray<nsIScriptElement> mScriptElements;
 
-  nsCString mScrollToRef; 
-
   
   PRInt32 mBackoffCount;
 
@@ -347,10 +345,7 @@ protected:
   PRUint8 mIsDocumentObserver : 1;
   
   PRUint8 mFragmentMode : 1;
-
-  PRUint8 mScrolledToRefAlready : 1;
-  PRUint8 mChangeScrollPosWhenScrollingToRef : 1;
-
+  
   
   
   
