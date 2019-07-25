@@ -2813,6 +2813,12 @@ pref("mozilla.widget.render-mode", -1);
 
 pref("mozilla.widget.accelerated-layers", true);
 
+#ifdef XP_WIN
+#ifndef WINCE
+pref("mozilla.layers.prefer-opengl", false);
+#endif
+#endif
+
 
 pref("geo.enabled", true);
 
