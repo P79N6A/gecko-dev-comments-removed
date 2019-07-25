@@ -2214,8 +2214,8 @@ ComputeIsJITBroken()
                 "SPH-D700",     
                 NULL
             };
-            for (const char* hw = blacklist[0]; hw; ++hw) {
-                if (line.npos != line.find(hw)) {
+            for (const char** hw = &blacklist[0]; *hw; ++hw) {
+                if (line.npos != line.find(*hw)) {
                     broken = true;
                     break;
                 }
