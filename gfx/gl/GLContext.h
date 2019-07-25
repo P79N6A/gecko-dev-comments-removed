@@ -602,9 +602,15 @@ public:
 
     virtual bool MakeCurrentImpl(bool aForce = false) = 0;
 
+#ifdef DEBUG
+    static void StaticInit() {
+        PR_NewThreadPrivateIndex(&sCurrentGLContextTLS, NULL);
+    }
+#endif
+
     bool MakeCurrent(bool aForce = false) {
 #ifdef DEBUG
-        sCurrentGLContext = this;
+        PR_SetThreadPrivate(sCurrentGLContextTLS, this);
 #endif
         return MakeCurrentImpl(aForce);
     }
@@ -1508,7 +1514,9 @@ protected:
     
     
     
-    static THEBES_API GLContext* sCurrentGLContext;
+    
+    
+    static PRUintn sCurrentGLContextTLS;
 #endif
 
     void UpdateActualFormat();
@@ -1632,21 +1640,16 @@ public:
 
     void BeforeGLCall(const char* glFunction) {
         if (DebugMode()) {
-            
-            
-            
-            if (!NS_IsMainThread()) {
-                NS_ERROR("OpenGL call from non-main thread. While this is fine in itself, "
-                         "the OpenGL debug mode, which is currently enabled, doesn't support this. "
-                         "It needs to be patched by making GLContext::sCurrentGLContext be thread-local.\n");
-                NS_ABORT();
-            }
+            GLContext *currentGLContext = NULL;
+
+            currentGLContext = (GLContext*)PR_GetThreadPrivate(sCurrentGLContextTLS);
+
             if (DebugMode() & DebugTrace)
                 printf_stderr("[gl:%p] > %s\n", this, glFunction);
-            if (this != sCurrentGLContext) {
+            if (this != currentGLContext) {
                 printf_stderr("Fatal: %s called on non-current context %p. "
                               "The current context for this thread is %p.\n",
-                               glFunction, this, sCurrentGLContext);
+                               glFunction, this, currentGLContext);
                 NS_ABORT();
             }
         }
