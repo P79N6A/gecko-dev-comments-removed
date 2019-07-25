@@ -1875,17 +1875,13 @@ History::UpdatePlaces(const jsval& aPlaceInfos,
         NS_ENSURE_ARG(JS_IsArrayObject(aCtx, visits));
       }
     }
+    NS_ENSURE_ARG(visits);
 
     jsuint visitsLength = 0;
     if (visits) {
       (void)JS_GetArrayLength(aCtx, visits, &visitsLength);
     }
-
-    
-    if (!(placeId > 0 || isValidGUID)) {
-      NS_ENSURE_ARG(visits);
-      NS_ENSURE_ARG(visitsLength > 0);
-    }
+    NS_ENSURE_ARG(visitsLength > 0);
 
     
     visitData.SetCapacity(visitData.Length() + visitsLength);
