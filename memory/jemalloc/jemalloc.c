@@ -6068,8 +6068,9 @@ MALLOC_OUT:
 
 
 
-	osx_use_jemalloc = (default_zone->version == LEOPARD_MALLOC_ZONE_T_VERSION ||
-			    default_zone->version == SNOW_LEOPARD_MALLOC_ZONE_T_VERSION ||
+
+
+	osx_use_jemalloc = (default_zone->version == SNOW_LEOPARD_MALLOC_ZONE_T_VERSION ||
 			    default_zone->version == LION_MALLOC_ZONE_T_VERSION);
 
 	
