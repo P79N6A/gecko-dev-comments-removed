@@ -805,7 +805,7 @@ BrowserGlue.prototype = {
     Services.prefs.setBoolPref(PREF_TELEMETRY_PROMPTED, true);
 
     var notification = notifyBox.appendNotification(telemetryText, "telemetry", null, notifyBox.PRIORITY_INFO_LOW, buttons);
-    notification.persistence = 3; 
+    notification.persistence = 6; 
 
     let XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
     let link = notification.ownerDocument.createElementNS(XULNS, "label");
