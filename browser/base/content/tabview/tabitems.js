@@ -609,7 +609,6 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  
   zoomOut: function(complete) {
     var $tab = iQ(this.container);
 
@@ -706,11 +705,10 @@ window.TabItems = {
     var self = this;
 
     
-    AllTabs.onOpen(function() {
-      if (this.ownerDocument.defaultView != gWindow)
+    AllTabs.register("open", function(tab) {
+      if (tab.ownerDocument.defaultView != gWindow)
         return;
 
-      var tab = this;
       Utils.timeout(function() { 
         self.link(tab);
       }, 1);
@@ -718,22 +716,20 @@ window.TabItems = {
 
     
     
-    AllTabs.onChange(function() {
-      if (this.ownerDocument.defaultView != gWindow)
+    AllTabs.register("attrModified", function(tab) {
+      if (tab.ownerDocument.defaultView != gWindow)
         return;
 
-      let tab = this;
       Utils.timeout(function() { 
         self.update(tab);
       }, 1);
     });
 
     
-    AllTabs.onClose(function() {
-      if (this.ownerDocument.defaultView != gWindow)
+    AllTabs.register("close", function(tab) {
+      if (tab.ownerDocument.defaultView != gWindow)
         return;
 
-      var tab = this;
       Utils.timeout(function() { 
         self.unlink(tab);
       }, 1);
