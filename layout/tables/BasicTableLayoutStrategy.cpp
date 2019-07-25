@@ -9,38 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "BasicTableLayoutStrategy.h"
 #include "nsTableFrame.h"
 #include "nsTableCellFrame.h"
