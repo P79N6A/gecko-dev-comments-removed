@@ -3936,8 +3936,7 @@ xpc_InstallJSDebuggerKeywordHandler(JSRuntime* rt);
 
 
 
-class nsScriptError : public nsIScriptError,
-                      public nsIScriptError2 {
+class nsScriptError : public nsIScriptError {
 public:
     nsScriptError();
 
@@ -3948,7 +3947,6 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSICONSOLEMESSAGE
     NS_DECL_NSISCRIPTERROR
-    NS_DECL_NSISCRIPTERROR2
 
 private:
     nsString mMessage;
