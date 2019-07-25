@@ -39,12 +39,115 @@
 
 
 #endif
-EXPORTED_SYMBOLS = [ "BadCertHandler", "checkCert" ];
+EXPORTED_SYMBOLS = [ "BadCertHandler", "checkCert", "readCertPrefs", "validateCert" ];
 
 const Ce = Components.Exception;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
+
+Components.utils.import("resource://gre/modules/Services.jsm");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function readCertPrefs(aPrefBranch) {
+  if (Services.prefs.getBranch(aPrefBranch).getChildList("").length == 0)
+    return null;
+
+  let certs = [];
+  let counter = 1;
+  while (true) {
+    let prefBranchCert = Services.prefs.getBranch(aPrefBranch + counter + ".");
+    let prefCertAttrs = prefBranchCert.getChildList("");
+    if (prefCertAttrs.length == 0)
+      break;
+
+    let certAttrs = {};
+    for each (let prefCertAttr in prefCertAttrs)
+      certAttrs[prefCertAttr] = prefBranchCert.getCharPref(prefCertAttr);
+
+    certs.push(certAttrs);
+    counter++;
+  }
+
+  return certs;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function validateCert(aCertificate, aCerts) {
+  
+  if (!aCerts || aCerts.length == 0)
+    return;
+
+  if (!aCertificate) {
+    const missingCertErr = "A required certificate was not present.";
+    Cu.reportError(missingCertErr);
+    throw new Ce(missingCertErr, Cr.NS_ERROR_ILLEGAL_VALUE);
+  }
+
+  var errors = [];
+  for (var i = 0; i < aCerts.length; ++i) {
+    var error = false;
+    var certAttrs = aCerts[i];
+    for (var name in certAttrs) {
+      if (!(name in aCertificate)) {
+        error = true;
+        errors.push("Expected attribute '" + name + "' not present in " +
+                    "certificate.");
+        break;
+      }
+      if (aCertificate[name] != certAttrs[name]) {
+        error = true;
+        errors.push("Expected certificate attribute '" + name + "' " +
+                    "value incorrect, expected: '" + certAttrs[name] +
+                    "', got: '" + aCertificate[name] + "'.");
+        break;
+      }
+    }
+
+    if (!error)
+      break;
+  }
+
+  if (error) {
+    errors.forEach(Cu.reportError);
+    const certCheckErr = "Certificate checks failed. See previous errors " +
+                         "for details.";
+    Cu.reportError(certCheckErr);
+    throw new Ce(certCheckErr, Cr.NS_ERROR_ILLEGAL_VALUE);
+  }
+}
 
 
 
@@ -83,37 +186,7 @@ function checkCert(aChannel, aAllowNonBuiltInCerts, aCerts) {
       aChannel.securityInfo.QueryInterface(Ci.nsISSLStatusProvider).
       SSLStatus.QueryInterface(Ci.nsISSLStatus).serverCert;
 
-  if (aCerts) {
-    for (var i = 0; i < aCerts.length; ++i) {
-      var error = false;
-      var certAttrs = aCerts[i];
-      for (var name in certAttrs) {
-        if (!(name in cert)) {
-          error = true;
-          Cu.reportError("Expected attribute '" + name + "' not present in " +
-                         "certificate.");
-          break;
-        }
-        if (cert[name] != certAttrs[name]) {
-          error = true;
-          Cu.reportError("Expected certificate attribute '" + name + "' " +
-                         "value incorrect, expected: '" + certAttrs[name] +
-                         "', got: '" + cert[name] + "'.");
-          break;
-        }
-      }
-
-      if (!error)
-        break;
-    }
-
-    if (error) {
-      const certCheckErr = "Certificate checks failed. See previous errors " +
-                           "for details.";
-      Cu.reportError(certCheckErr);
-      throw new Ce(certCheckErr, Cr.NS_ERROR_ILLEGAL_VALUE);
-    }
-  }
+  validateCert(cert, aCerts);
 
   if (aAllowNonBuiltInCerts ===  true)
     return;

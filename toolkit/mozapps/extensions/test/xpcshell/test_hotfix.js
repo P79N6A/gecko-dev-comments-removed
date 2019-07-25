@@ -7,6 +7,8 @@
 
 Services.prefs.setBoolPref("extensions.checkUpdateSecurity", false);
 
+Services.prefs.setBoolPref("extensions.hotfix.cert.checkAttributes", false);
+
 do_load_httpd_js();
 var testserver;
 const profileDir = gProfD.clone();
