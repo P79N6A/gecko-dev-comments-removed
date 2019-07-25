@@ -77,8 +77,7 @@ gfxProxyFontEntry::gfxProxyFontEntry(const nsTArray<gfxFontFaceSrc>& aFontFaceSr
              gfxSparseBitSet *aUnicodeRanges)
     : gfxFontEntry(NS_LITERAL_STRING("Proxy"), aFamily),
       mLoadingState(NOT_LOADING),
-      mUnsupportedFormat(false),
-      mLoader(nsnull)
+      mUnsupportedFormat(false)
 {
     mIsProxy = true;
     mSrcList = aFontFaceSrcList;
@@ -458,10 +457,6 @@ gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
                                nsresult aDownloadStatus)
 {
     
-    
-    aProxy->mLoader = nsnull;
-
-    
     if (NS_SUCCEEDED(aDownloadStatus)) {
         gfxFontEntry *fe = LoadFont(aProxy, aFontData, aLength);
         aFontData = nsnull;
@@ -627,14 +622,6 @@ gfxFontEntry*
 gfxUserFontSet::LoadFont(gfxProxyFontEntry *aProxy,
                          const PRUint8 *aFontData, PRUint32 &aLength)
 {
-    
-    
-    
-    if (!aProxy->Family()) {
-        NS_Free(aFontData);
-        return nsnull;
-    }
-
     gfxFontEntry *fe = nsnull;
 
     gfxUserFontType fontType =

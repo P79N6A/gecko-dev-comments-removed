@@ -51,7 +51,6 @@
 
 class nsIURI;
 class gfxMixedFontFamily;
-class nsFontFaceLoader;
 
 
 
@@ -341,7 +340,6 @@ public:
 
     nsTArray<gfxFontFaceSrc> mSrcList;
     PRUint32                 mSrcIndex; 
-    nsFontFaceLoader        *mLoader; 
 };
 
 
