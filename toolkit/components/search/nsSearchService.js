@@ -2455,8 +2455,14 @@ SearchService.prototype = {
       return;
     }
 
-    let warning = "Search service falling back to synchronous initialization at " + new Error().stack;
-    Components.utils.reportError(warning);
+    let warning =
+      "Search service falling back to synchronous initialization at " +
+      new Error().stack +
+      "\n" +
+      "This is generally the consequence of an add-on using a deprecated " +
+      "search service API.";
+    
+    
     LOG(warning);
 
     this._syncInit();
