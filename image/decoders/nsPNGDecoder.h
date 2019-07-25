@@ -43,6 +43,15 @@ public:
   
   bool IsValidICO() const
   {
+    
+    
+    
+    
+    if (setjmp(png_jmpbuf(mPNG))) {
+      
+      return false;
+    }
+
     png_uint_32
         png_width,  
         png_height; 
