@@ -3543,31 +3543,44 @@ nsEditor::IsBlockNode(nsINode *aNode)
 bool
 nsEditor::CanContain(nsIDOMNode* aParent, nsIDOMNode* aChild)
 {
-  nsCOMPtr<dom::Element> parentElement = do_QueryInterface(aParent);
-  NS_ENSURE_TRUE(parentElement, false);
+  nsCOMPtr<nsIContent> parent = do_QueryInterface(aParent);
+  NS_ENSURE_TRUE(parent, false);
 
-  return TagCanContain(parentElement->Tag(), aChild);
+  switch (parent->NodeType()) {
+  case nsIDOMNode::ELEMENT_NODE:
+  case nsIDOMNode::DOCUMENT_FRAGMENT_NODE:
+    return TagCanContain(parent->Tag(), aChild);
+  }
+  return false;
 }
 
 bool
 nsEditor::CanContainTag(nsIDOMNode* aParent, nsIAtom* aChildTag)
 {
-  nsCOMPtr<dom::Element> parentElement = do_QueryInterface(aParent);
-  NS_ENSURE_TRUE(parentElement, false);
+  nsCOMPtr<nsIContent> parent = do_QueryInterface(aParent);
+  NS_ENSURE_TRUE(parent, false);
 
-  return TagCanContainTag(parentElement->Tag(), aChildTag);
+  switch (parent->NodeType()) {
+  case nsIDOMNode::ELEMENT_NODE:
+  case nsIDOMNode::DOCUMENT_FRAGMENT_NODE:
+    return TagCanContainTag(parent->Tag(), aChildTag);
+  }
+  return false;
 }
 
 bool 
 nsEditor::TagCanContain(nsIAtom* aParentTag, nsIDOMNode* aChild)
 {
-  if (IsTextNode(aChild)) {
-    return TagCanContainTag(aParentTag, nsGkAtoms::textTagName);
-  }
+  nsCOMPtr<nsIContent> child = do_QueryInterface(aChild);
+  NS_ENSURE_TRUE(child, false);
 
-  nsCOMPtr<dom::Element> element = do_QueryInterface(aChild);
-  NS_ENSURE_TRUE(element, false);
-  return TagCanContainTag(aParentTag, element->Tag());
+  switch (child->NodeType()) {
+  case nsIDOMNode::TEXT_NODE:
+  case nsIDOMNode::ELEMENT_NODE:
+  case nsIDOMNode::DOCUMENT_FRAGMENT_NODE:
+    return TagCanContainTag(aParentTag, child->Tag());
+  }
+  return false;
 }
 
 bool 
@@ -3879,13 +3892,27 @@ nsEditor::GetTagString(nsIDOMNode *aNode, nsAString& outString)
 bool 
 nsEditor::NodesSameType(nsIDOMNode *aNode1, nsIDOMNode *aNode2)
 {
-  if (!aNode1 || !aNode2) 
-  {
+  if (!aNode1 || !aNode2) {
     NS_NOTREACHED("null node passed to nsEditor::NodesSameType()");
     return false;
   }
-  
-  return GetTag(aNode1) == GetTag(aNode2);
+
+  nsCOMPtr<nsIContent> content1 = do_QueryInterface(aNode1);
+  NS_ENSURE_TRUE(content1, false);
+
+  nsCOMPtr<nsIContent> content2 = do_QueryInterface(aNode2);
+  NS_ENSURE_TRUE(content2, false);
+
+  return AreNodesSameType(content1, content2);
+}
+
+
+bool
+nsEditor::AreNodesSameType(nsIContent* aNode1, nsIContent* aNode2)
+{
+  MOZ_ASSERT(aNode1);
+  MOZ_ASSERT(aNode2);
+  return aNode1->Tag() == aNode2->Tag();
 }
 
 
@@ -3929,25 +3956,6 @@ nsEditor::IsTextNode(nsINode *aNode)
 {
   return aNode->NodeType() == nsIDOMNode::TEXT_NODE;
 }
-
-
-
-
-PRInt32 
-nsEditor::GetIndexOf(nsIDOMNode *parent, nsIDOMNode *child)
-{
-  nsCOMPtr<nsINode> parentNode = do_QueryInterface(parent);
-  NS_PRECONDITION(parentNode, "null parentNode in nsEditor::GetIndexOf");
-  NS_PRECONDITION(parentNode->IsNodeOfType(nsINode::eCONTENT) ||
-                    parentNode->IsNodeOfType(nsINode::eDOCUMENT),
-                  "The parent node must be an element node or a document node");
-
-  nsCOMPtr<nsIContent> cChild = do_QueryInterface(child);
-  NS_PRECONDITION(cChild, "null content in nsEditor::GetIndexOf");
-
-  return parentNode->IndexOf(cChild);
-}
-  
 
 
 
@@ -4113,17 +4121,15 @@ nsEditor::SplitNodeDeep(nsIDOMNode *aNode,
                         nsCOMPtr<nsIDOMNode> *outLeftNode,
                         nsCOMPtr<nsIDOMNode> *outRightNode)
 {
-  NS_ENSURE_TRUE(aNode && aSplitPointParent && outOffset, NS_ERROR_NULL_POINTER);
-  nsCOMPtr<nsIDOMNode> tempNode, parentNode;  
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  NS_ENSURE_TRUE(node && aSplitPointParent && outOffset, NS_ERROR_NULL_POINTER);
   PRInt32 offset = aSplitPointOffset;
-  nsresult res;
-  
+
   if (outLeftNode)  *outLeftNode  = nsnull;
   if (outRightNode) *outRightNode = nsnull;
-  
-  nsCOMPtr<nsIDOMNode> nodeToSplit = do_QueryInterface(aSplitPointParent);
-  while (nodeToSplit)
-  {
+
+  nsCOMPtr<nsINode> nodeToSplit = do_QueryInterface(aSplitPointParent);
+  while (nodeToSplit) {
     
     
     
@@ -4131,49 +4137,55 @@ nsEditor::SplitNodeDeep(nsIDOMNode *aNode,
     
     
     nsCOMPtr<nsIDOMCharacterData> nodeAsText = do_QueryInterface(nodeToSplit);
-    PRUint32 len;
+    PRUint32 len = nodeToSplit->Length();
     bool bDoSplit = false;
-    res = GetLengthOfDOMNode(nodeToSplit, len);
-    NS_ENSURE_SUCCESS(res, res);
     
     if (!(aNoEmptyContainers || nodeAsText) || (offset && (offset != (PRInt32)len)))
     {
       bDoSplit = true;
-      res = SplitNode(nodeToSplit, offset, getter_AddRefs(tempNode));
-      NS_ENSURE_SUCCESS(res, res);
-      if (outRightNode) *outRightNode = nodeToSplit;
-      if (outLeftNode)  *outLeftNode  = tempNode;
+      nsCOMPtr<nsIDOMNode> tempNode;
+      nsresult rv = SplitNode(nodeToSplit->AsDOMNode(), offset,
+                              getter_AddRefs(tempNode));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (outRightNode) {
+        *outRightNode = nodeToSplit->AsDOMNode();
+      }
+      if (outLeftNode) {
+        *outLeftNode = tempNode;
+      }
     }
 
-    res = nodeToSplit->GetParentNode(getter_AddRefs(parentNode));
-    NS_ENSURE_SUCCESS(res, res);
+    nsINode* parentNode = nodeToSplit->GetNodeParent();
     NS_ENSURE_TRUE(parentNode, NS_ERROR_FAILURE);
 
-    if (!bDoSplit && offset)  
-    {
-      offset = GetIndexOf(parentNode, nodeToSplit) +1;
-      if (outLeftNode)  *outLeftNode  = nodeToSplit;
-    }
-    else
-    {
-      offset = GetIndexOf(parentNode, nodeToSplit);
-      if (outRightNode) *outRightNode = nodeToSplit;
-    }
-    
-    if (nodeToSplit.get() == aNode)  
-      break;
+    if (!bDoSplit && offset) {
       
+      offset = parentNode->IndexOf(nodeToSplit) + 1;
+      if (outLeftNode) {
+        *outLeftNode = nodeToSplit->AsDOMNode();
+      }
+    } else {
+      offset = parentNode->IndexOf(nodeToSplit);
+      if (outRightNode) {
+        *outRightNode = nodeToSplit->AsDOMNode();
+      }
+    }
+
+    if (nodeToSplit == node) {
+      
+      break;
+    }
+
     nodeToSplit = parentNode;
   }
-  
-  if (!nodeToSplit)
-  {
+
+  if (!nodeToSplit) {
     NS_NOTREACHED("null node obtained in nsEditor::SplitNodeDeep()");
     return NS_ERROR_FAILURE;
   }
-  
+
   *outOffset = offset;
-  
   return NS_OK;
 }
 
@@ -4448,10 +4460,7 @@ nsEditor::DeleteSelectionAndPrepareToCreateNode(nsCOMPtr<nsIDOMNode> &parentSele
   NS_ENSURE_SUCCESS(result, result);
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
-  bool collapsed;
-  result = selection->GetIsCollapsed(&collapsed);
-  if (NS_SUCCEEDED(result) && !collapsed) 
-  {
+  if (!selection->Collapsed()) {
     result = DeleteSelection(nsIEditor::eNone, nsIEditor::eStrip);
     if (NS_FAILED(result)) {
       return result;
@@ -4466,14 +4475,9 @@ nsEditor::DeleteSelectionAndPrepareToCreateNode(nsCOMPtr<nsIDOMNode> &parentSele
     selection->GetAnchorNode(getter_AddRefs(selectedNode));
     
     
-    if (selectedNode)
-    {
-      bool testCollapsed = false;
-      selection->GetIsCollapsed(&testCollapsed);
-      if (!testCollapsed) {
-        result = selection->CollapseToEnd();
-        NS_ENSURE_SUCCESS(result, result);
-      }
+    if (selectedNode && !selection->Collapsed()) {
+      result = selection->CollapseToEnd();
+      NS_ENSURE_SUCCESS(result, result);
     }
   }
   
@@ -4736,9 +4740,7 @@ nsEditor::CreateTxnForDeleteSelection(nsIEditor::EDirection aAction,
   if ((NS_SUCCEEDED(result)) && selection)
   {
     
-    bool isCollapsed;
-    result = (selection->GetIsCollapsed(&isCollapsed));
-    if (NS_SUCCEEDED(result) && isCollapsed && aAction == eNone)
+    if (selection->Collapsed() && aAction == eNone)
       return NS_OK;
 
     
@@ -4756,6 +4758,7 @@ nsEditor::CreateTxnForDeleteSelection(nsIEditor::EDirection aAction,
         if ((NS_SUCCEEDED(result)) && (currentItem))
         {
           nsCOMPtr<nsIDOMRange> range( do_QueryInterface(currentItem) );
+          bool isCollapsed;
           range->GetCollapsed(&isCollapsed);
           if (!isCollapsed)
           {
@@ -4843,19 +4846,10 @@ nsEditor::CreateTxnForDeleteInsertionPoint(nsIDOMRange          *aRange,
 
   
   nsCOMPtr<nsIDOMCharacterData> nodeAsText = do_QueryInterface(node);
+  nsCOMPtr<nsINode> inode = do_QueryInterface(node);
+  MOZ_ASSERT(inode);
 
-  PRUint32 count=0;
-
-  if (nodeAsText)
-    nodeAsText->GetLength(&count);
-  else
-  { 
-    
-    nsCOMPtr<nsIDOMNodeList>childList;
-    result = node->GetChildNodes(getter_AddRefs(childList));
-    if ((NS_SUCCEEDED(result)) && childList)
-      childList->GetLength(&count);
-  }
+  PRUint32 count = inode->Length();
 
   bool isFirst = (0 == offset);
   bool isLast  = (count == (PRUint32)offset);
