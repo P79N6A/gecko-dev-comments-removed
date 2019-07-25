@@ -308,10 +308,6 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         NS_ENSURE_SUCCESS(rv, rv);
 
         jsval rval = JSVAL_VOID;
-        nsAutoGCRoot root(&rval, &rv);
-        if (NS_FAILED(rv)) {
-            return rv;
-        }
 
         
         

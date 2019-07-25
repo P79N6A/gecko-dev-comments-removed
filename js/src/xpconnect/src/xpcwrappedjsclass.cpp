@@ -1349,8 +1349,6 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
 
     
     
-    
-    
 
     js::LeaveTrace(cx);
 

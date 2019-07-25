@@ -120,8 +120,6 @@ public:
   virtual void Trace(TraceCallback aCallback, void *aClosure) const = 0;
 
 protected:
-  friend class nsAutoGCRoot;
-  
   nsXBLProtoImplMember* mNext;  
   PRUnichar* mName;               
 };

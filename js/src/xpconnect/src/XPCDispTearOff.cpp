@@ -354,7 +354,6 @@ STDMETHODIMP XPCDispatchTearOff::Invoke(DISPID dispIdMember, REFIID riid,
         
         
         
-        
 
         js::LeaveTrace(cx);
 

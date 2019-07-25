@@ -7585,13 +7585,13 @@ nsGlobalWindow::DispatchSyncPopState()
     JSContext *cx = (JSContext*) scx->GetNativeContext();
 
     
+    JSAutoRequest ar(cx);
+
+    
     
     nsCxPusher cxPusher;
 
     jsval jsStateObj = JSVAL_NULL;
-    
-    nsAutoGCRoot root(&jsStateObj, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
 
     
     nsCOMPtr<nsIJSON> json = do_GetService("@mozilla.org/dom/json;1");
