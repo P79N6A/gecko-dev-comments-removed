@@ -39,23 +39,25 @@ var Page = {
             
             var [w,h] = [$(this).width(), $(this).height()];
             var origPos = $(this).position();
+            var zIndex = $(this).css("zIndex");
             var scale = window.innerWidth/w;
-            
+                        
             $(this).addClass("scale-animate").css({
               top: 0, left: 0,
-              width:w*scale, height:h*scale
+              width:w*scale, height:h*scale,
+              zIndex: 999999
             }).bind("transitionend", function(e){
               
               
               if( e.originalEvent.propertyName != "width" ) return;
-
               
               
               $(this).find("canvas").data("link").tab.focus();
               $(this)
                 .removeClass("scale-animate")
-                .css({top: origPos.top, left: origPos.left, width:w, height:h});
-              Navbar.show();
+                .css({top: origPos.top, left: origPos.left, width:w, height:h, zIndex:zIndex})
+                .unbind("transitionend");
+              Navbar.show();           
             })
             
             
@@ -101,17 +103,34 @@ var Page = {
         
         var $tab = $(lastTab.mirror.el);
         
-        var [w,h, pos] = [$tab.width(), $tab.height(), $tab.position()];
+        var [w,h, pos, zIndex] = [$tab.width(), $tab.height(), $tab.position(), $tab.css("zIndex")];
         $tab.css({
             top: 0, left: 0,
             width: window.innerWidth,
             height: h * (window.innerWidth/w),
             zIndex: 999999,
-          })          
-          .animate({
-            top: pos.top, left: pos.left,
-            width: w, height: h
-          },250);
+            });
+        
+        
+        
+        
+        setTimeout(function(){
+          $tab.addClass("scale-down-animate")
+          $tab.css({
+                top: pos.top, left: pos.left,
+                width: w, height: h
+                })
+              .bind("transitionend", function(e){
+                
+                
+                if( e.originalEvent.propertyName != "width" ) return;
+                $tab
+                  .css("zIndex", zIndex)
+                  .removeClass("scale-down-animate")
+                  .unbind("transitionend");
+              });
+        }, 0);
+          
       }
       lastTab = this;
     });
