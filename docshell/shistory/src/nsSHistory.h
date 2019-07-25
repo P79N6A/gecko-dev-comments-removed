@@ -117,7 +117,9 @@ protected:
   nsresult LoadNextPossibleEntry(PRInt32 aNewIndex, long aLoadType, PRUint32 aHistCmd);
 protected:
   
-  PRBool RemoveDuplicate(PRInt32 aIndex);
+  
+  
+  PRBool RemoveDuplicate(PRInt32 aIndex, PRBool aKeepNext);
 
   nsCOMPtr<nsISHTransaction> mListRoot;
   PRInt32 mIndex;
