@@ -76,6 +76,7 @@ nsContentPolicy::CheckPolicy(CPMethod          policyMethod,
                              nsISupports      *requestingContext,
                              const nsACString &mimeType,
                              nsISupports      *extra,
+                             nsIPrincipal     *requestPrincipal,
                              PRInt16           *decision)
 {
     
@@ -122,7 +123,8 @@ nsContentPolicy::CheckPolicy(CPMethod          policyMethod,
         
         rv = (entries[i]->*policyMethod)(contentType, contentLocation,
                                          requestingLocation, requestingContext,
-                                         mimeType, extra, decision);
+                                         mimeType, extra, requestPrincipal,
+                                         decision);
 
         if (NS_SUCCEEDED(rv) && NS_CP_REJECTED(*decision)) {
             
@@ -177,13 +179,15 @@ nsContentPolicy::ShouldLoad(PRUint32          contentType,
                             nsISupports      *requestingContext,
                             const nsACString &mimeType,
                             nsISupports      *extra,
+                            nsIPrincipal     *requestPrincipal,
                             PRInt16          *decision)
 {
     
     NS_PRECONDITION(contentLocation, "Must provide request location");
     nsresult rv = CheckPolicy(&nsIContentPolicy::ShouldLoad, contentType,
                               contentLocation, requestingLocation,
-                              requestingContext, mimeType, extra, decision);
+                              requestingContext, mimeType, extra,
+                              requestPrincipal, decision);
     LOG_CHECK("ShouldLoad");
 
     return rv;
@@ -196,11 +200,13 @@ nsContentPolicy::ShouldProcess(PRUint32          contentType,
                                nsISupports      *requestingContext,
                                const nsACString &mimeType,
                                nsISupports      *extra,
+                               nsIPrincipal     *requestPrincipal,
                                PRInt16          *decision)
 {
     nsresult rv = CheckPolicy(&nsIContentPolicy::ShouldProcess, contentType,
                               contentLocation, requestingLocation,
-                              requestingContext, mimeType, extra, decision);
+                              requestingContext, mimeType, extra,
+                              requestPrincipal, decision);
     LOG_CHECK("ShouldProcess");
 
     return rv;
