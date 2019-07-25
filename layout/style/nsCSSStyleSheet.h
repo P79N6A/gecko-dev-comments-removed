@@ -137,18 +137,18 @@ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_CSS_STYLE_SHEET_IMPL_CID)
 
   
-  NS_IMETHOD GetSheetURI(nsIURI** aSheetURI) const;
-  NS_IMETHOD GetBaseURI(nsIURI** aBaseURI) const;
-  NS_IMETHOD GetTitle(nsString& aTitle) const;
-  NS_IMETHOD GetType(nsString& aType) const;
-  NS_IMETHOD_(PRBool) HasRules() const;
-  NS_IMETHOD GetApplicable(PRBool& aApplicable) const;
-  NS_IMETHOD SetEnabled(PRBool aEnabled);
-  NS_IMETHOD GetComplete(PRBool& aComplete) const;
-  NS_IMETHOD SetComplete();
-  NS_IMETHOD GetParentSheet(nsIStyleSheet*& aParent) const;  
-  NS_IMETHOD GetOwningDocument(nsIDocument*& aDocument) const;  
-  NS_IMETHOD SetOwningDocument(nsIDocument* aDocument);
+  virtual already_AddRefed<nsIURI> GetSheetURI() const;
+  virtual already_AddRefed<nsIURI> GetBaseURI() const;
+  virtual void GetTitle(nsString& aTitle) const;
+  virtual void GetType(nsString& aType) const;
+  virtual PRBool HasRules() const;
+  virtual PRBool GetApplicable() const;
+  virtual void SetEnabled(PRBool aEnabled);
+  virtual PRBool GetComplete() const;
+  virtual void SetComplete();
+  virtual already_AddRefed<nsIStyleSheet> GetParentSheet() const;  
+  virtual already_AddRefed<nsIDocument> GetOwningDocument() const;  
+  virtual void SetOwningDocument(nsIDocument* aDocument);
 #ifdef DEBUG
   virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
