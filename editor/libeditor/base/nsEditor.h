@@ -536,14 +536,6 @@ public:
   }
 
   
-  static inline bool NodeIsTypeString(nsIDOMNode *aNode, const nsAString &aTag)
-  {
-    nsIAtom *nodeAtom = GetTag(aNode);
-    return nodeAtom && nodeAtom->Equals(aTag);
-  }
-
-
-  
   bool CanContain(nsIDOMNode* aParent, nsIDOMNode* aChild);
   bool CanContainTag(nsIDOMNode* aParent, nsIAtom* aTag);
   bool TagCanContain(nsIAtom* aParentTag, nsIDOMNode* aChild);
