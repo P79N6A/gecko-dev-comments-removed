@@ -3438,6 +3438,14 @@ DefineGlobal(JSParseNode *pn, JSCodeGenerator *cg, JSAtom *atom)
 
 
 
+
+
+
+
+
+
+
+
     uint32 slot = SHAPE_INVALID_SLOT;
     JSFunctionBox *funbox = NULL;
     if (pn->pn_type == TOK_FUNCTION) {
@@ -3447,7 +3455,6 @@ DefineGlobal(JSParseNode *pn, JSCodeGenerator *cg, JSAtom *atom)
             uint32 index = ALE_INDEX(ale);
             slot = cg->globalUses[index].slot;
             uint32 defSlot = slot - globalScope->globalFreeSlot;
-            JS_ASSERT(globalScope->defs[defSlot].funbox);
             globalScope->defs[defSlot].funbox = funbox;
         }
     }
