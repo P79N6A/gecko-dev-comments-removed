@@ -2601,7 +2601,6 @@ void nsHTMLMediaElement::SetupSrcMediaStreamPlayback()
   
   
   mSrcStreamListener = new StreamListener(this);
-  NS_ADDREF(mSrcStreamListener);
   GetSrcMediaStream()->AddListener(mSrcStreamListener);
   if (mPaused) {
     GetSrcMediaStream()->ChangeExplicitBlockerCount(1);
@@ -2627,7 +2626,7 @@ void nsHTMLMediaElement::EndSrcMediaStreamPlayback()
   GetSrcMediaStream()->RemoveListener(mSrcStreamListener);
   
   mSrcStreamListener->Forget();
-  NS_RELEASE(mSrcStreamListener); 
+  mSrcStreamListener = nullptr;
   GetSrcMediaStream()->RemoveAudioOutput(this);
   VideoFrameContainer* container = GetVideoFrameContainer();
   if (container) {

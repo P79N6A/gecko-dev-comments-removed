@@ -648,7 +648,7 @@ protected:
   nsTArray<OutputMediaStream> mOutputStreams;
 
   
-  StreamListener* mSrcStreamListener;
+  nsRefPtr<StreamListener> mSrcStreamListener;
 
   
   
