@@ -89,6 +89,17 @@ namespace nanojit
         reset();
     }
 
+    
+    
+    
+    RegisterMask hints[LIR_sentinel+1] = {
+#define OP___(op, number, repKind, retType, isCse) \
+        0,
+#include "LIRopcode.tbl"
+#undef OP___
+        0
+    };
+
 #ifdef _DEBUG
 
      LIns* const AR::BAD_ENTRY = (LIns*)0xdeadbeef;
@@ -443,6 +454,12 @@ namespace nanojit
         (void) d;
     #endif
         findRegFor2(allowValue, value, rv, allowBase, base, rb);
+    }
+
+    RegisterMask Assembler::hint(LIns* ins)
+    {
+        RegisterMask prefer = nHints[ins->opcode()];
+        return (prefer == PREFER_SPECIAL) ? nHint(ins) : prefer;
     }
 
     
