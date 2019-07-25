@@ -528,7 +528,7 @@ let Utils = {
     var text = this.expandArgumentsForLog(arguments);
 
     
-    let stack = Error().stack.split("\n").splice(1);
+    let stack = Error().stack.split("\n").slice(1);
 
     
     if (stack[0].indexOf("Utils_assert(") == 0)
@@ -564,7 +564,7 @@ let Utils = {
         text = "tabview assert: " + label;
 
       
-      let stack = Error().stack.split("\n").splice(1);
+      let stack = Error().stack.split("\n").slice(1);
 
       throw text + "\n" + stack.join("\n");
     }
