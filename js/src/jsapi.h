@@ -4977,6 +4977,16 @@ JS_GetFunctionId(JSFunction *fun);
 
 
 
+
+
+
+
+extern JS_PUBLIC_API(JSString *)
+JS_GetFunctionDisplayId(JSFunction *fun);
+
+
+
+
 extern JS_PUBLIC_API(unsigned)
 JS_GetFunctionFlags(JSFunction *fun);
 
