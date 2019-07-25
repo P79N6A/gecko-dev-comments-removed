@@ -214,18 +214,20 @@ public:
 
 
 
+
   nsresult RenderText(const PRUnichar*       aText,
                       PRInt32                aLength,
                       nsBidiDirection        aBaseDirection,
                       nsPresContext*         aPresContext,
                       nsIRenderingContext&   aRenderingContext,
+                      nsIRenderingContext&   aTextRunConstructionContext,
                       nscoord                aX,
                       nscoord                aY,
                       nsBidiPositionResolve* aPosResolve = nsnull,
                       PRInt32                aPosResolveCount = 0)
   {
     return ProcessTextForRenderingContext(aText, aLength, aBaseDirection, aPresContext, aRenderingContext,
-                                          MODE_DRAW, aX, aY, aPosResolve, aPosResolveCount, nsnull);
+                                          aTextRunConstructionContext, MODE_DRAW, aX, aY, aPosResolve, aPosResolveCount, nsnull);
   }
   
   nscoord MeasureTextWidth(const PRUnichar*     aText,
@@ -235,7 +237,8 @@ public:
                            nsIRenderingContext& aRenderingContext)
   {
     nscoord length;
-    nsresult rv = ProcessTextForRenderingContext(aText, aLength, aBaseDirection, aPresContext, aRenderingContext,
+    nsresult rv = ProcessTextForRenderingContext(aText, aLength, aBaseDirection, aPresContext,
+                                                 aRenderingContext, aRenderingContext,
                                                  MODE_MEASURE, 0, 0, nsnull, 0, &length);
     return NS_SUCCEEDED(rv) ? length : 0;
   }
@@ -350,6 +353,7 @@ private:
                                           nsBidiDirection        aBaseDirection,
                                           nsPresContext*         aPresContext,
                                           nsIRenderingContext&   aRenderingContext,
+                                          nsIRenderingContext&   aTextRunConstructionContext,
                                           Mode                   aMode,
                                           nscoord                aX, 
                                           nscoord                aY, 
