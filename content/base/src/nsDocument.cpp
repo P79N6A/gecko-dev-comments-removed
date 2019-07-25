@@ -2401,6 +2401,44 @@ nsresult nsDocument::CheckFrameOptions()
 
     
     
+    
+    
+    nsIPrincipal* thisPrincipal = NodePrincipal();
+    nsCOMPtr<nsIDocShellTreeItem> thisDocShellItem(do_QueryInterface(docShell));
+    nsCOMPtr<nsIDocShellTreeItem> parentDocShellItem,
+                                  curDocShellItem = thisDocShellItem;
+    nsCOMPtr<nsIDocument> topDoc;
+    nsIScriptSecurityManager *ssm = nsContentUtils::GetSecurityManager();
+    if (!ssm)
+      return NS_ERROR_CONTENT_BLOCKED;
+
+    
+    
+    curDocShellItem->GetParent(getter_AddRefs(parentDocShellItem));
+    while (parentDocShellItem) {
+      PRBool system = PR_FALSE;
+      topDoc = do_GetInterface(parentDocShellItem);
+      if (topDoc) {
+        if (NS_SUCCEEDED(ssm->IsSystemPrincipal(topDoc->NodePrincipal(),
+                                                &system)) && system) {
+          break;
+        }
+      }
+      else {
+        return NS_ERROR_CONTENT_BLOCKED;
+      }
+      curDocShellItem = parentDocShellItem;
+      curDocShellItem->GetParent(getter_AddRefs(parentDocShellItem));
+    }
+
+    
+    
+    nsCOMPtr<nsIDocShellTreeItem> item(do_QueryInterface(docShell));
+    if (curDocShellItem == thisDocShellItem)
+      return NS_OK;
+
+    
+    
     if (xfoHeaderValue.LowerCaseEqualsLiteral("deny")) {
       framingAllowed = false;
     }
@@ -2411,11 +2449,10 @@ nsresult nsDocument::CheckFrameOptions()
       nsCOMPtr<nsIURI> uri = static_cast<nsIDocument*>(this)->GetDocumentURI();
       nsCOMPtr<nsIDOMDocument> topDOMDoc;
       topWindow->GetDocument(getter_AddRefs(topDOMDoc));
-      nsCOMPtr<nsIDocument> topDoc = do_QueryInterface(topDOMDoc);
+      topDoc = do_QueryInterface(topDOMDoc);
       if (topDoc) {
         nsCOMPtr<nsIURI> topUri = topDoc->GetDocumentURI();
-        nsresult rv = nsContentUtils::GetSecurityManager()->
-          CheckSameOriginURI(uri, topUri, PR_TRUE);
+        nsresult rv = ssm->CheckSameOriginURI(uri, topUri, PR_TRUE);
 
         if (NS_FAILED(rv)) {
           framingAllowed = false;
