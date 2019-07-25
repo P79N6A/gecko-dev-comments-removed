@@ -37,15 +37,18 @@
 
 
 
+#ifdef MOZ_IPC
+#include "mozilla/dom/ContentProcessChild.h"
+#include "mozilla/dom/ContentProcessParent.h"
+#endif
+
 #include "History.h"
 #include "nsNavHistory.h"
-#include "Helpers.h"
 
 #include "mozilla/storage.h"
 #include "mozilla/dom/Link.h"
 #include "nsDocShellCID.h"
 #include "nsIEventStateManager.h"
-#include "mozilla/Services.h"
 
 using namespace mozilla::dom;
 
@@ -75,11 +78,16 @@ public:
 
     nsNavHistory* navHist = nsNavHistory::GetHistoryService();
     NS_ENSURE_TRUE(navHist, NS_ERROR_FAILURE);
-    mozIStorageStatement* stmt = navHist->GetStatementById(DB_IS_PAGE_VISITED);
+    mozIStorageStatement* stmt = navHist->DBGetIsVisited();
     NS_ENSURE_STATE(stmt);
 
     
-    nsresult rv = URIBinder::Bind(stmt, 0, aURI);
+    mozStorageStatementScoper scoper(stmt);
+    nsCString spec;
+    nsresult rv = aURI->GetSpec(spec);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = stmt->BindUTF8StringParameter(0, spec);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsRefPtr<VisitedQuery> callback = new VisitedQuery(aURI);
@@ -106,27 +114,7 @@ public:
 
   NS_IMETHOD HandleCompletion(PRUint16 aReason)
   {
-    if (mIsVisited) {
-      History::GetService()->NotifyVisited(mURI);
-    }
-
-    
-    
-    nsCOMPtr<nsIObserverService> observerService =
-      mozilla::services::GetObserverService();
-    if (observerService) {
-      nsAutoString status;
-      if (mIsVisited) {
-        status.AssignLiteral(URI_VISITED);
-      }
-      else {
-        status.AssignLiteral(URI_NOT_VISITED);
-      }
-      (void)observerService->NotifyObservers(mURI,
-                                             URI_VISITED_RESOLUTION_TOPIC,
-                                             status.get());
-    }
-
+    History::GetService()->NotifyVisited(mURI, mIsVisited);
     return NS_OK;
   }
 private:
@@ -169,35 +157,67 @@ History::~History()
 }
 
 void
-History::NotifyVisited(nsIURI* aURI)
+History::NotifyVisited(nsIURI* aURI, bool aIsVisited)
 {
   NS_ASSERTION(aURI, "Ruh-roh!  A NULL URI was passed to us!");
 
-  
-  
-  if (!mObservers.IsInitialized()) {
-    return;
-  }
+#ifdef MOZ_IPC
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+    mozilla::dom::ContentProcessParent * cpp = 
+        mozilla::dom::ContentProcessParent::GetSingleton();
+    NS_ASSERTION(cpp, "Content Protocol is NULL!");
 
-  
-  
-  KeyClass* key = mObservers.GetEntry(aURI);
-  if (!key) {
-    return;
+    nsCString aURISpec;
+    aURI->GetSpec(aURISpec);
+    cpp->SendNotifyVisited(aURISpec, aIsVisited);
   }
+#endif
 
-  
-  const ObserverArray& observers = key->array;
-  ObserverArray::index_type len = observers.Length();
-  for (ObserverArray::index_type i = 0; i < len; i++) {
-    Link* link = observers[i];
-    link->SetLinkState(eLinkState_Visited);
-    NS_ASSERTION(len == observers.Length(),
-                 "Calling SetLinkState added or removed an observer!");
-  }
+  if (aIsVisited) {
+    
+    
+    if (!mObservers.IsInitialized()) {
+      return;
+    }
+
+    
+    
+    KeyClass* key = mObservers.GetEntry(aURI);
+    if (!key) {
+      return;
+    }
+
+    
+    const ObserverArray& observers = key->array;
+    ObserverArray::index_type len = observers.Length();
+    for (ObserverArray::index_type i = 0; i < len; i++) {
+      Link* link = observers[i];
+      link->SetLinkState(eLinkState_Visited);
+      NS_ASSERTION(len == observers.Length(),
+                   "Calling SetLinkState added or removed an observer!");
+    }
 
   
   mObservers.RemoveEntry(aURI);
+  }
+
+  
+  
+  nsCOMPtr<nsIObserverService> observerService =
+    do_GetService(NS_OBSERVERSERVICE_CONTRACTID);
+  if (observerService) {
+    nsAutoString status;
+    if (aIsVisited) {
+      status.AssignLiteral(URI_VISITED);
+    }
+    else {
+      status.AssignLiteral(URI_NOT_VISITED);
+    }
+    (void)observerService->NotifyObservers(aURI,
+      URI_VISITED_RESOLUTION_TOPIC,
+      status.get());
+  }
+
 }
 
 
@@ -235,6 +255,15 @@ NS_IMETHODIMP
 History::RegisterVisitedCallback(nsIURI* aURI,
                                  Link* aLink)
 {
+  nsresult   rv;
+
+#ifdef MOZ_IPC
+  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+      rv = VisitedQuery::Start(aURI);
+      return rv;
+  }
+#endif
+
   NS_ASSERTION(aURI, "Must pass a non-null URI!");
   NS_ASSERTION(aLink, "Must pass a non-null Link object!");
 
@@ -258,7 +287,19 @@ History::RegisterVisitedCallback(nsIURI* aURI,
     
     
     
-    nsresult rv = VisitedQuery::Start(aURI);
+#ifdef MOZ_IPC
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    mozilla::dom::ContentProcessChild * cpc = 
+        mozilla::dom::ContentProcessChild::GetSingleton();
+    NS_ASSERTION(cpc, "Content Protocol is NULL!");
+
+    nsCString aURISpec;
+    aURI->GetSpec(aURISpec);
+    cpc->SendStartVisitedQuery(aURISpec, &rv);
+  }
+#else
+    rv = VisitedQuery::Start(aURI);
+#endif
     if (NS_FAILED(rv)) {
       
       mObservers.RemoveEntry(aURI);

@@ -67,7 +67,7 @@ public:
 
 
 
-  void NotifyVisited(nsIURI *aURI);
+  void NotifyVisited(nsIURI *aURI, bool mIsVisited = true);
 
   
 
