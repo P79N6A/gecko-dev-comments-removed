@@ -225,9 +225,9 @@ var BrowserApp = {
     
     Cc["@mozilla.org/satchel/form-history;1"].getService(Ci.nsIFormHistory2);
 
-    let uri = "about:home";
+    let url = "about:home";
     if ("arguments" in window && window.arguments[0])
-      uri = window.arguments[0];
+      url = window.arguments[0];
 
     
     Services.io.offline = false;
@@ -239,10 +239,33 @@ var BrowserApp = {
 
     
     let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
-    if (ss.shouldRestore())
-      ss.restoreLastSession(true);
-    else
-      this.addTab(uri);
+    if (ss.shouldRestore()) {
+      
+      let restoreToFront = false;
+
+      
+      if (url && url != "about:home") {
+        this.addTab(url);
+      } else {
+        
+        restoreToFront = true;
+
+        
+        let restoreCleanup = {
+          observe: function(aSubject, aTopic, aData) {
+            Services.obs.removeObserver(restoreCleanup, "sessionstore-windows-restored");
+            if (aData == "fail")
+              BrowserApp.addTab("about:home");
+          }
+        };
+        Services.obs.addObserver(restoreCleanup, "sessionstore-windows-restored", false);
+      }
+
+      
+      ss.restoreLastSession(restoreToFront);
+    } else {
+      this.addTab(url);
+    }
 
     
     sendMessageToJava({
