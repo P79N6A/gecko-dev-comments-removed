@@ -1,0 +1,173 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#hud-ui, #hudmenu {
+  -moz-appearance: none;
+  padding: 8px !important;
+  background-color: rgba(68,68,68,0.9);
+  border: 1px solid rgba(255,255,255,0.25);
+  -moz-border-radius: 14px;
+  color: #ffffff;
+}
+
+#hudbar-container toolbarbutton {
+  -moz-appearance: none !important;
+  -moz-box-orient: vertical;
+  min-width: 0px;
+  padding: 5px !important;
+  margin: 0px !important;
+  -moz-margin-end: 0px;
+  list-style-image: url("chrome://browser/skin/images/mono-toolbar.png");
+}
+
+
+
+
+
+
+
+
+
+
+
+#hudbar-reload {
+  -moz-image-region: rect(0px 108px 36px 72px);
+}
+
+#hudbar-stop {
+  -moz-image-region: rect(0px 216px 36px 180px);
+}
+
+#hudbar-star {
+  -moz-image-region: rect(0px 144px 36px 108px);
+}
+
+#hudbar-star[starred="true"] {
+  -moz-image-region: rect(0px 180px 36px 144px);
+}
+
+#hudbar-search {
+  -moz-image-region: rect(0px 36px 36px 0px);
+}
+
+#hudbar-go {
+  -moz-image-region: rect(0px 72px 36px 36px);
+}
+
+#hudbar-container[mode="loading"] > #hudbar-icons > #hudbar-go,
+#hudbar-container[mode="loading"] > #hudbar-icons > #hudbar-search,
+#hudbar-container[mode="loading"] > #hudbar-icons > #hudbar-reload,
+#hudbar-container[mode="loading"] > #hudbar-icons > #hudbar-star {
+  visibility: collapse;
+}
+
+#hudbar-container[mode="view"] > #hudbar-icons > #hudbar-go,
+#hudbar-container[mode="view"] > #hudbar-icons > #hudbar-search,
+#hudbar-container[mode="view"] > #hudbar-icons > #hudbar-stop {
+  visibility: collapse;
+}
+
+#hudbar-container[mode="edit"] > #hudbar-icons > #hudbar-reload,
+#hudbar-container[mode="edit"] > #hudbar-icons > #hudbar-star,
+#hudbar-container[mode="edit"] > #hudbar-icons > #hudbar-stop {
+  visibility: collapse;
+}
+
+#hudbar-container {
+  -moz-box-align: center;
+  border: 1px solid transparent;
+  -moz-border-radius: 14px;
+}
+
+#hudbar-container[mode="edit"] {
+  -moz-box-orient: horizontal;
+  -moz-box-align: center;
+  background-color: #fff;
+  border-color: #000;
+}
+
+#hudbar-caption {
+  margin: 2px 8px 2px 8px;
+}
+
+#hudbar-edit {
+  -moz-appearance: none !important;
+  padding: 0px !important;
+  border: none !important;
+}
+
+#hudlist-items {
+  -moz-appearance: none !important;
+  background-color: transparent;
+  border: 2px solid #fff !important;
+  -moz-border-radius: 14px;
+  margin-top: 12px
+}
+
+.hudlist-item {
+  -moz-appearance: none !important;
+  margin: 8px;
+  color: #fff;
+}
+
+.hudlist-image {
+  width: 24px;
+  height: 24px;
+}
+
+
+
+#hudbar-image-stack {
+  width: 36px;
+  height: 36px;
+  margin: 2px 2px 2px 12px;
+}
+
+
+#hudbar-icons {
+  height: 36px;
+  -moz-box-align: center;
+  -moz-padding-end: 2px;
+}
+
+#hudbuttons-close {
+  list-style-image: url(chrome://browser/skin/images/close-small.png);
+}
+
+#hudbookmark-grid row {
+  -moz-box-align: center;
+}
