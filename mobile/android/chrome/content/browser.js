@@ -45,24 +45,14 @@ let Cr = Components.results;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm")
 Cu.import("resource://gre/modules/AddonManager.jsm");
-Cu.import("resource://gre/modules/FileUtils.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "PluralForm", function() {
   Cu.import("resource://gre/modules/PluralForm.jsm");
   return PluralForm;
 });
 
-
-[
-  ["SelectHelper", "chrome://browser/content/SelectHelper.js"],
-].forEach(function (aScript) {
-  let [name, script] = aScript;
-  XPCOMUtils.defineLazyGetter(window, name, function() {
-    let sandbox = {};
-    Services.scriptloader.loadSubScript(script, sandbox);
-    return sandbox[name];
-  });
-});
+XPCOMUtils.defineLazyServiceGetter(this, "URIFixup",
+  "@mozilla.org/docshell/urifixup;1", "nsIURIFixup");
 
 XPCOMUtils.defineLazyServiceGetter(this, "Haptic",
   "@mozilla.org/widget/hapticfeedback;1", "nsIHapticFeedback");
@@ -137,11 +127,6 @@ XPCOMUtils.defineLazyGetter(this, "ContentAreaUtils", function() {
   let ContentAreaUtils = {};
   Services.scriptloader.loadSubScript("chrome://global/content/contentAreaUtils.js", ContentAreaUtils);
   return ContentAreaUtils;
-});
-
-XPCOMUtils.defineLazyGetter(this, "Rect", function() {
-  Cu.import("resource://gre/modules/Geometry.jsm");
-  return Rect;
 });
 
 function resolveGeckoURI(aURI) {
@@ -220,12 +205,11 @@ var BrowserApp = {
 
     getBridge().setDrawMetadataProvider(MetadataProvider);
 
-    getBridge().browserApp = this;
-
     Services.obs.addObserver(this, "Tab:Add", false);
     Services.obs.addObserver(this, "Tab:Load", false);
     Services.obs.addObserver(this, "Tab:Selected", false);
     Services.obs.addObserver(this, "Tab:Closed", false);
+    Services.obs.addObserver(this, "Tab:Screenshot", false);
     Services.obs.addObserver(this, "Session:Back", false);
     Services.obs.addObserver(this, "Session:Forward", false);
     Services.obs.addObserver(this, "Session:Reload", false);
@@ -239,10 +223,7 @@ var BrowserApp = {
     Services.obs.addObserver(this, "PanZoom:PanZoom", false);
     Services.obs.addObserver(this, "FullScreen:Exit", false);
     Services.obs.addObserver(this, "Viewport:Change", false);
-    Services.obs.addObserver(this, "Passwords:Init", false);
-    Services.obs.addObserver(this, "FormHistory:Init", false);
-
-    Services.obs.addObserver(this, "sessionstore-state-purge-complete", false);
+    Services.obs.addObserver(this, "SearchEngines:Get", false);
 
     function showFullScreenWarning() {
       NativeWindow.toast.show(Strings.browser.GetStringFromName("alertFullScreenToast"), "short");
@@ -281,7 +262,6 @@ var BrowserApp = {
     ClipboardHelper.init();
     PermissionsHelper.init();
     CharacterEncoding.init();
-    SearchEngines.init();
 
     
     Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
@@ -315,12 +295,6 @@ var BrowserApp = {
       
       let restoreToFront = false;
 
-      sendMessageToJava({
-        gecko: {
-          type: "Session:RestoreBegin"
-        }
-      });
-
       
       if (url && url != "about:home") {
         this.addTab(url);
@@ -334,17 +308,9 @@ var BrowserApp = {
         observe: function(aSubject, aTopic, aData) {
           Services.obs.removeObserver(restoreCleanup, "sessionstore-windows-restored");
           if (aData == "fail") {
-            BrowserApp.addTab("about:home", {
-              showProgress: false,
-              selected: restoreToFront
-            });
+            let params = { selected: restoreToFront };
+            BrowserApp.addTab("about:home", { showProgress: false });
           }
-
-          sendMessageToJava({
-            gecko: {
-              type: "Session:RestoreEnd"
-            }
-          });
         }
       };
       Services.obs.addObserver(restoreCleanup, "sessionstore-windows-restored", false);
@@ -364,68 +330,35 @@ var BrowserApp = {
         type: "Gecko:Ready"
       }
     });
-
-    
-    sendMessageToJava({
-      gecko: {
-        "type": "Checkerboard:Toggle",
-        "value": Services.prefs.getBoolPref("gfx.show_checkerboard_pattern")
-      }
-    });
   },
 
   _showTelemetryPrompt: function _showTelemetryPrompt() {
-    const PREF_TELEMETRY_PROMPTED = "toolkit.telemetry.prompted";
-    const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabled";
-    const PREF_TELEMETRY_REJECTED = "toolkit.telemetry.rejected";
-    const PREF_TELEMETRY_SERVER_OWNER = "toolkit.telemetry.server_owner";
-
-    
-    const TELEMETRY_PROMPT_REV = 2;
-
-    let serverOwner = Services.prefs.getCharPref(PREF_TELEMETRY_SERVER_OWNER);
-    let telemetryPrompted = null;
+    let telemetryPrompted = false;
     try {
-      telemetryPrompted = Services.prefs.getIntPref(PREF_TELEMETRY_PROMPTED);
+      telemetryPrompted = Services.prefs.getBoolPref("toolkit.telemetry.prompted");
     } catch (e) {  }
-
-    
-    
-    if (telemetryPrompted === TELEMETRY_PROMPT_REV)
+    if (telemetryPrompted)
       return;
 
-    Services.prefs.clearUserPref(PREF_TELEMETRY_PROMPTED);
-    Services.prefs.clearUserPref(PREF_TELEMETRY_ENABLED);
-  
     let buttons = [
       {
         label: Strings.browser.GetStringFromName("telemetry.optin.yes"),
         callback: function () {
-          Services.prefs.setIntPref(PREF_TELEMETRY_PROMPTED, TELEMETRY_PROMPT_REV);
-          Services.prefs.setBoolPref(PREF_TELEMETRY_ENABLED, true);
+          Services.prefs.setBoolPref("toolkit.telemetry.prompted", true);
+          Services.prefs.setBoolPref("toolkit.telemetry.enabled", true);
         }
       },
       {
         label: Strings.browser.GetStringFromName("telemetry.optin.no"),
         callback: function () {
-          Services.prefs.setIntPref(PREF_TELEMETRY_PROMPTED, TELEMETRY_PROMPT_REV);
-          Services.prefs.setBoolPref(PREF_TELEMETRY_REJECTED, true);
+          Services.prefs.setBoolPref("toolkit.telemetry.prompted", true);
+          Services.prefs.setBoolPref("toolkit.telemetry.enabled", false);
         }
       }
     ];
-
     let brandShortName = Strings.brand.GetStringFromName("brandShortName");
-    let message = Strings.browser.formatStringFromName("telemetry.optin.message", [serverOwner, brandShortName], 2);
-    let learnMoreLabel = Strings.browser.GetStringFromName("telemetry.optin.learnMore");
-    let learnMoreUrl = Services.urlFormatter.formatURLPref("app.support.baseURL");
-    learnMoreUrl += "how-can-i-help-submitting-performance-data";
-    let options = {
-      link: {
-        label: learnMoreLabel,
-        url: learnMoreUrl
-      }
-    };
-    NativeWindow.doorhanger.show(message, "telemetry-optin", buttons, this.selectedTab.id, options);
+    let message = Strings.browser.formatStringFromName("telemetry.optin.message", [brandShortName], 1);
+    NativeWindow.doorhanger.show(message, "telemetry-optin", buttons);
   },
 
   shutdown: function shutdown() {
@@ -437,7 +370,6 @@ var BrowserApp = {
     XPInstallObserver.uninit();
     ConsoleAPI.uninit();
     CharacterEncoding.uninit();
-    SearchEngines.uninit();
   },
 
   get tabs() {
@@ -449,14 +381,10 @@ var BrowserApp = {
   },
 
   set selectedTab(aTab) {
-    if (this._selectedTab)
-      this._selectedTab.setActive(false);
-
     this._selectedTab = aTab;
     if (!aTab)
       return;
 
-    aTab.setActive(true);
     aTab.updateViewport(false);
     this.deck.selectedPanel = aTab.vbox;
   },
@@ -485,15 +413,6 @@ var BrowserApp = {
     return null;
   },
 
-  getTabForWindow: function getTabForWindow(aWindow) {
-    let tabs = this._tabs;
-    for (let i = 0; i < tabs.length; i++) {
-      if (tabs[i].browser.contentWindow == aWindow)
-        return tabs[i];
-    }
-    return null; 
-  },
-
   getBrowserForWindow: function getBrowserForWindow(aWindow) {
     let tabs = this._tabs;
     for (let i = 0; i < tabs.length; i++) {
@@ -520,7 +439,7 @@ var BrowserApp = {
     aParams = aParams || {};
 
     let flags = "flags" in aParams ? aParams.flags : Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
-    let postData = ("postData" in aParams && aParams.postData) ? aParams.postData : null;
+    let postData = ("postData" in aParams && aParams.postData) ? aParams.postData.value : null;
     let referrerURI = "referrerURI" in aParams ? aParams.referrerURI : null;
     let charset = "charset" in aParams ? aParams.charset : null;
 
@@ -555,9 +474,7 @@ var BrowserApp = {
     let newTab = new Tab(aURI, aParams);
     this._tabs.push(newTab);
 
-    let selected = "selected" in aParams ? aParams.selected : true;
-    if (selected)
-      this.selectedTab = newTab;
+    newTab.active = "selected" in aParams ? aParams.selected : true;
 
     let evt = document.createEvent("UIEvents");
     evt.initUIEvent("TabOpen", true, false, window, null);
@@ -598,6 +515,36 @@ var BrowserApp = {
     this._tabs.splice(this._tabs.indexOf(aTab), 1);
   },
 
+  screenshotQueue: null,
+
+  screenshotTab: function screenshotTab(aData) {
+      if (this.screenshotQueue == null) {
+          this.screenShotQueue = [];
+          this.doScreenshotTab(aData);
+      } else {
+          this.screenshotQueue.push(aData);
+      }
+  },
+
+  doNextScreenshot: function() {
+      if (this.screenshotQueue == null || this.screenshotQueue.length == 0) {
+          this.screenshotQueue = null;
+          return;
+      }
+      let data = this.screenshotQueue.pop();
+      if (data == null) {
+          this.screenshotQueue = null;
+          return;
+      }
+      this.doScreenshotTab(data);
+  },
+
+  doScreenshotTab: function doScreenshotTab(aData) {
+      let json = JSON.parse(aData);
+      let tab = this.getTabForId(parseInt(json.tabID));
+      tab.screenshot(json.source, json.destination);
+  },
+
   
   
   
@@ -606,10 +553,6 @@ var BrowserApp = {
       Cu.reportError("Error trying to select tab (tab doesn't exist)");
       return;
     }
-
-    
-    if (aTab == this.selectedTab)
-      return;
 
     let message = {
       gecko: {
@@ -623,11 +566,12 @@ var BrowserApp = {
   
   
   _handleTabSelected: function _handleTabSelected(aTab) {
-    this.selectedTab = aTab;
+      this.selectedTab = aTab;
+      aTab.active = true;
 
-    let evt = document.createEvent("UIEvents");
-    evt.initUIEvent("TabSelect", true, false, window, null);
-    aTab.browser.dispatchEvent(evt);
+      let evt = document.createEvent("UIEvents");
+      evt.initUIEvent("TabSelect", true, false, window, null);
+      aTab.browser.dispatchEvent(evt);
 
     let message = {
       gecko: {
@@ -826,6 +770,40 @@ var BrowserApp = {
     }
   },
 
+  getSearchEngines: function() {
+    let engineData = Services.search.getVisibleEngines({});
+    let searchEngines = engineData.map(function (engine) {
+      return {
+        name: engine.name,
+        iconURI: engine.iconURI.spec
+      };
+    });
+
+    sendMessageToJava({
+      gecko: {
+        type: "SearchEngines:Data",
+        searchEngines: searchEngines
+      }
+    });
+  },
+
+  getSearchOrFixupURI: function(aParams) {
+    let uri;
+    if (aParams.engine) {
+      let engine;
+      
+      
+      if (aParams.engine != "__default__")
+        engine = Services.search.getEngineByName(aParams.engine);
+
+      if (engine)
+        uri = engine.getSubmission(aParams.url).uri;
+    } else {
+      uri = URIFixup.createFixupURI(aParams.url, Ci.nsIURIFixup.FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP);
+    }
+    return uri ? uri.spec : aParams.url;
+  },
+
   scrollToFocusedInput: function(aBrowser) {
     let doc = aBrowser.contentDocument;
     if (!doc)
@@ -931,25 +909,14 @@ var BrowserApp = {
 
       
       
-      let flags = Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP;
-      if (data.userEntered)
-        flags |= Ci.nsIWebNavigation.LOAD_FLAGS_DISALLOW_INHERIT_OWNER;
-
       let params = {
         selected: true,
         parentId: ("parentId" in data) ? data.parentId : -1,
-        flags: flags
+        flags: Ci.nsIWebNavigation.LOAD_FLAGS_DISALLOW_INHERIT_OWNER
+             | Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP
       };
 
-      let url = data.url;
-      if (data.engine) {
-        let engine = Services.search.getEngineByName(data.engine);
-        if (engine) {
-          let submission = engine.getSubmission(url);
-          url = submission.uri.spec;
-          params.postData = submission.postData;
-        }
-      }
+      let url = this.getSearchOrFixupURI(data);
 
       
       if (url == "about:home")
@@ -963,6 +930,10 @@ var BrowserApp = {
       this._handleTabSelected(this.getTabForId(parseInt(aData)));
     } else if (aTopic == "Tab:Closed") {
       this._handleTabClosed(this.getTabForId(parseInt(aData)));
+    } else if (aTopic == "Tab:Screenshot") {
+      this.screenshotTab(aData);
+    } else if (aTopic == "Tab:Screenshot:Cancel") {
+      this.screenshotQueue = null;
     } else if (aTopic == "Browser:Quit") {
       this.quit();
     } else if (aTopic == "SaveAs:PDF") {
@@ -980,21 +951,8 @@ var BrowserApp = {
     } else if (aTopic == "Viewport:Change") {
       this.selectedTab.viewport = JSON.parse(aData);
       ViewportHandler.onResize();
-    } else if (aTopic == "Passwords:Init") {
-      var storage = Components.classes["@mozilla.org/login-manager/storage/mozStorage;1"].  
-        getService(Components.interfaces.nsILoginManagerStorage);
-      storage.init();
-
-      sendMessageToJava({gecko: { type: "Passwords:Init:Return" }});
-      Services.obs.removeObserver(this, "Passwords:Init", false);
-    } else if (aTopic == "FormHistory:Init") {
-      var fh = Components.classes["@mozilla.org/satchel/form-history;1"].  
-        getService(Components.interfaces.nsIFormHistory2);
-      var db = fh.DBConnection;
-      sendMessageToJava({gecko: { type: "FormHistory:Init:Return" }});
-      Services.obs.removeObserver(this, "FormHistory:Init", false);
-    } else if (aTopic == "sessionstore-state-purge-complete") {
-      sendMessageToJava({ gecko: { type: "Session:StatePurged" }});
+    } else if (aTopic == "SearchEngines:Get") {
+      this.getSearchEngines();
     }
   },
 
@@ -1002,11 +960,6 @@ var BrowserApp = {
     delete this.defaultBrowserWidth;
     let width = Services.prefs.getIntPref("browser.viewport.desktopWidth");
     return this.defaultBrowserWidth = width;
-  },
-
-  
-  getBrowserTab: function(tabId) {
-    return this.getTabForId(tabId);
   }
 };
 
@@ -1141,29 +1094,6 @@ var NativeWindow = {
                  NativeWindow.toast.show(label, "short");
                });
 
-      this.add(Strings.browser.GetStringFromName("contextmenu.shareLink"),
-               this.linkShareableContext,
-               function(aTarget) {
-                 let url = NativeWindow.contextmenus._getLinkURL(aTarget);
-                 let title = aTarget.textContent || aTarget.title;
-                 let sharing = Cc["@mozilla.org/uriloader/external-sharing-app-service;1"].getService(Ci.nsIExternalSharingAppService);
-                 sharing.shareWithDefault(url, "text/plain", title);
-               });
-
-      this.add(Strings.browser.GetStringFromName("contextmenu.bookmarkLink"),
-               this.linkBookmarkableContext,
-               function(aTarget) {
-                 let url = NativeWindow.contextmenus._getLinkURL(aTarget);
-                 let title = aTarget.textContent || aTarget.title || url;
-                 sendMessageToJava({
-                   gecko: {
-                     type: "Bookmark:Insert",
-                     url: url,
-                     title: title
-                   }
-                 });
-               });
-
       this.add(Strings.browser.GetStringFromName("contextmenu.fullScreen"),
                this.SelectorContext("video:not(:-moz-full-screen)"),
                function(aTarget) {
@@ -1214,7 +1144,7 @@ var NativeWindow = {
     },
 
     remove: function(aId) {
-      delete this.items[aId];
+      this.items[aId] = null;
     },
 
     SelectorContext: function(aSelector) {
@@ -1229,35 +1159,25 @@ var NativeWindow = {
 
     linkOpenableContext: {
       matches: function linkOpenableContextMatches(aElement) {
-        let uri = NativeWindow.contextmenus._getLink(aElement);
-        if (uri) {
+        if (aElement.nodeType == Ci.nsIDOMNode.ELEMENT_NODE &&
+            ((aElement instanceof Ci.nsIDOMHTMLAnchorElement && aElement.href) ||
+            (aElement instanceof Ci.nsIDOMHTMLAreaElement && aElement.href) ||
+            aElement instanceof Ci.nsIDOMHTMLLinkElement ||
+            aElement.getAttributeNS(kXLinkNamespace, "type") == "simple")) {
+          let uri;
+          try {
+            let url = NativeWindow.contextmenus._getLinkURL(aElement);
+            uri = Services.io.newURI(url, null, null);
+          } catch (e) {
+            return false;
+          }
+
           let scheme = uri.scheme;
+          if (!scheme)
+            return false;
+
           let dontOpen = /^(mailto|javascript|news|snews)$/;
           return (scheme && !dontOpen.test(scheme));
-        }
-        return false;
-      }
-    },
-
-    linkShareableContext: {
-      matches: function linkShareableContextMatches(aElement) {
-        let uri = NativeWindow.contextmenus._getLink(aElement);
-        if (uri) {
-          let scheme = uri.scheme;
-          let dontShare = /^(chrome|about|file|javascript|resource)$/;
-          return (scheme && !dontShare.test(scheme));
-        }
-        return false;
-      }
-    },
-
-    linkBookmarkableContext: {
-      matches: function linkBookmarkableContextMatches(aElement) {
-        let uri = NativeWindow.contextmenus._getLink(aElement);
-        if (uri) {
-          let scheme = uri.scheme;
-          let dontBookmark = /^(mailto)$/;
-          return (scheme && !dontBookmark.test(scheme));
         }
         return false;
       }
@@ -1375,20 +1295,6 @@ var NativeWindow = {
       return Services.io.newURI(aURL, aOriginCharset, aBaseURI);
     },
 
-    _getLink: function(aElement) {
-      if (aElement.nodeType == Ci.nsIDOMNode.ELEMENT_NODE &&
-          ((aElement instanceof Ci.nsIDOMHTMLAnchorElement && aElement.href) ||
-          (aElement instanceof Ci.nsIDOMHTMLAreaElement && aElement.href) ||
-          aElement instanceof Ci.nsIDOMHTMLLinkElement ||
-          aElement.getAttributeNS(kXLinkNamespace, "type") == "simple")) {
-        try {
-          let url = NativeWindow.contextmenus._getLinkURL(aElement);
-          return Services.io.newURI(url, null, null);
-        } catch (e) {}
-      }
-      return null;
-    },
-
     _getLinkURL: function ch_getLinkURL(aLink) {
       let href = aLink.href;
       if (href)
@@ -1431,39 +1337,34 @@ nsBrowserAccess.prototype = {
       }
     }
 
-    Services.io.offline = false;
-
-    let referrer;
-    if (aOpener) {
-      try {
-        let location = aOpener.location;
-        referrer = Services.io.newURI(location, null, null);
-      } catch(e) { }
-    }
-
     let newTab = (aWhere == Ci.nsIBrowserDOMWindow.OPEN_NEWWINDOW || aWhere == Ci.nsIBrowserDOMWindow.OPEN_NEWTAB);
 
-    if (newTab) {
-      let parentId = -1;
-      if (!isExternal) {
-        let parent = BrowserApp.getTabForWindow(aOpener.top);
-        if (parent)
-          parentId = parent.id;
-      }
-
-      
-      let tab = BrowserApp.addTab(aURI ? aURI.spec : "about:blank", { flags: loadflags,
-                                                                      referrerURI: referrer,
-                                                                      external: isExternal,
-                                                                      parentId: parentId,
-                                                                      selected: true });
-      return tab.browser;
+    let parentId = -1;
+    if (newTab && !isExternal) {
+      let parent = BrowserApp.getTabForBrowser(BrowserApp.getBrowserForWindow(aOpener));
+      if (parent)
+        parentId = parent.id;
     }
 
-    
-    let browser = BrowserApp.selectedBrowser;
-    if (aURI && browser)
-      browser.loadURIWithFlags(aURI.spec, loadflags, referrer, null, null);
+    let browser;
+    if (newTab) {
+      let tab = BrowserApp.addTab("about:blank", { external: isExternal, parentId: parentId, selected: true });
+      browser = tab.browser;
+    } else { 
+      browser = BrowserApp.selectedBrowser;
+    }
+
+    Services.io.offline = false;
+    try {
+      let referrer;
+      if (aURI && browser) {
+        if (aOpener) {
+          let location = aOpener.location;
+          referrer = Services.io.newURI(location, null, null);
+        }
+        browser.loadURIWithFlags(aURI.spec, loadflags, referrer, null, null);
+      }
+    } catch(e) { }
 
     return browser;
   },
@@ -1502,7 +1403,7 @@ function Tab(aURL, aParams) {
   this.viewportExcess = { x: 0, y: 0 };
   this.documentIdForCurrentViewport = null;
   this.userScrollPos = { x: 0, y: 0 };
-  this._pluginCount = 0;
+  this._pluginsToPlay = [];
   this._pluginOverlayShowing = false;
 }
 
@@ -1518,7 +1419,7 @@ Tab.prototype = {
     BrowserApp.deck.appendChild(this.vbox);
 
     this.browser = document.createElement("browser");
-    this.browser.setAttribute("type", "content-targetable");
+    this.browser.setAttribute("type", "content");
     this.setBrowserSize(980, 480);
     this.browser.style.MozTransformOrigin = "0 0";
     this.vbox.appendChild(this.browser);
@@ -1529,31 +1430,20 @@ Tab.prototype = {
     let frameLoader = this.browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
     frameLoader.clipSubdocument = false;
 
-    
-    let uri = null;
-    try {
-      uri = Services.io.newURI(aURL, null, null).spec;
-    } catch (e) {}
-
     this.id = ++gTabIDFactory;
 
     let message = {
       gecko: {
         type: "Tab:Added",
         tabID: this.id,
-        uri: uri,
+        uri: aURL,
         parentId: ("parentId" in aParams) ? aParams.parentId : -1,
         external: ("external" in aParams) ? aParams.external : false,
         selected: ("selected" in aParams) ? aParams.selected : true,
-        title: aParams.title || aURL,
-        delayLoad: aParams.delayLoad || false
+        title: aParams.title || ""
       }
     };
     sendMessageToJava(message);
-
-    this.overscrollController = new OverscrollController(this);
-    this.browser.contentWindow.controllers
-      .insertControllerAt(0, this.overscrollController);
 
     let flags = Ci.nsIWebProgress.NOTIFY_STATE_ALL |
                 Ci.nsIWebProgress.NOTIFY_LOCATION |
@@ -1565,7 +1455,6 @@ Tab.prototype = {
     this.browser.addEventListener("DOMLinkAdded", this, true);
     this.browser.addEventListener("DOMTitleChanged", this, true);
     this.browser.addEventListener("DOMWindowClose", this, true);
-    this.browser.addEventListener("DOMWillOpenModalDialog", this, true);
     this.browser.addEventListener("scroll", this, true);
     this.browser.addEventListener("PluginClickToPlay", this, true);
     this.browser.addEventListener("pagehide", this, true);
@@ -1603,21 +1492,15 @@ Tab.prototype = {
     if (!this.browser)
       return;
 
-    this.browser.controllers.contentWindow
-      .removeController(this.overscrollController);
-
     this.browser.removeProgressListener(this);
     this.browser.removeEventListener("DOMContentLoaded", this, true);
     this.browser.removeEventListener("DOMLinkAdded", this, true);
     this.browser.removeEventListener("DOMTitleChanged", this, true);
     this.browser.removeEventListener("DOMWindowClose", this, true);
-    this.browser.removeEventListener("DOMWillOpenModalDialog", this, true);
     this.browser.removeEventListener("scroll", this, true);
     this.browser.removeEventListener("PluginClickToPlay", this, true);
     this.browser.removeEventListener("pagehide", this, true);
     this.browser.removeEventListener("pageshow", this, true);
-
-    Services.obs.removeObserver(this, "document-shown");
 
     
     
@@ -1630,19 +1513,23 @@ Tab.prototype = {
     this.documentIdForCurrentViewport = null;
   },
 
-  
-  setActive: function setActive(aActive) {
+  set active(aActive) {
     if (!this.browser)
       return;
 
     if (aActive) {
       this.browser.setAttribute("type", "content-primary");
       this.browser.focus();
-      this.browser.docShellIsActive = true;
+      BrowserApp.selectedTab = this;
     } else {
-      this.browser.setAttribute("type", "content-targetable");
-      this.browser.docShellIsActive = false;
+      this.browser.setAttribute("type", "content");
     }
+  },
+
+  get active() {
+    if (!this.browser)
+      return false;
+    return this.browser.getAttribute("type") == "content-primary";
   },
 
   set viewport(aViewport) {
@@ -1685,6 +1572,34 @@ Tab.prototype = {
 
     if (transformChanged)
       this.updateTransform();
+  },
+
+  screenshot: function(aSrc, aDst) {
+      
+      
+        return;
+
+      let canvas = document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
+      canvas.setAttribute("width", aDst.width);  
+      canvas.setAttribute("height", aDst.height);
+      canvas.setAttribute("moz-opaque", "true");
+
+      let ctx = canvas.getContext("2d");
+      let flags = ctx.DRAWWINDOW_DO_NOT_FLUSH;
+      ctx.drawWindow(this.browser.contentWindow, 0, 0, aSrc.width, aSrc.height, "#fff", flags);
+      let message = {
+        gecko: {
+          type: "Tab:ScreenshotData",
+          tabID: this.id,
+          width: aDst.width,
+          height: aDst.height,
+          data: canvas.toDataURL()
+        }
+      };
+      sendMessageToJava(message);
+      Services.tm.mainThread.dispatch(function() {
+	  BrowserApp.doNextScreenshot()
+      }, Ci.nsIThread.DISPATCH_NORMAL);
   },
 
   updateTransform: function() {
@@ -1733,8 +1648,6 @@ Tab.prototype = {
       
       pageWidth *= this._viewport.zoom;
       pageHeight *= this._viewport.zoom;
-
-      this._viewport.allowZoom  = this.metadata.allowZoom;
 
       
 
@@ -1810,9 +1723,7 @@ Tab.prototype = {
         }
 
         
-        
-        
-        if (this._pluginCount && !this._pluginOverlayShowing)
+        if (this._pluginsToPlay.length && !this._pluginOverlayShowing)
           PluginHelper.showDoorHanger(this);
 
         break;
@@ -1867,7 +1778,7 @@ Tab.prototype = {
           gecko: {
             type: "DOMTitleChanged",
             tabID: this.id,
-            title: aEvent.target.title.substring(0, 255)
+            title: aEvent.target.title
           }
         });
         break;
@@ -1891,17 +1802,6 @@ Tab.prototype = {
         break;
       }
 
-      case "DOMWillOpenModalDialog": {
-        if (!aEvent.isTrusted)
-          return;
-
-        
-        
-        let tab = BrowserApp.getTabForWindow(aEvent.target.top);
-        BrowserApp.selectTab(tab);
-        break;
-      }
-
       case "scroll": {
         let win = this.browser.contentWindow;
         if (this.userScrollPos.x != win.scrollX || this.userScrollPos.y != win.scrollY) {
@@ -1915,11 +1815,10 @@ Tab.prototype = {
       }
 
       case "PluginClickToPlay": {
-        
-        
-        this._pluginCount++;
-
         let plugin = aEvent.target;
+        
+        this._pluginsToPlay.push(plugin);
+
         let overlay = plugin.ownerDocument.getAnonymousElementByAttribute(plugin, "class", "mainBox");
         if (!overlay)
           return;
@@ -1932,7 +1831,7 @@ Tab.prototype = {
         }
 
         
-        overlay.addEventListener("click", (function(event) {
+        plugin.addEventListener("click", (function(event) {
           
           PluginHelper.playAllPlugins(this, event);
         }).bind(this), true);
@@ -1945,7 +1844,7 @@ Tab.prototype = {
         
         if (aEvent.target.defaultView == this.browser.contentWindow) {
           
-          this._pluginCount = 0;
+          this._pluginsToPlay = [];
           this._pluginOverlayShowing = false;
         }
         break;
@@ -1954,10 +1853,6 @@ Tab.prototype = {
   },
 
   onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
-    let contentWin = aWebProgress.DOMWindow;
-    if (contentWin != contentWin.top)
-        return;
-
     if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
       
       let browser = BrowserApp.getBrowserForWindow(aWebProgress.DOMWindow);
@@ -1965,25 +1860,13 @@ Tab.prototype = {
       if (browser)
         uri = browser.currentURI.spec;
 
-      
-      
-      let restoring = aStateFlags & Ci.nsIWebProgressListener.STATE_RESTORING;
-      let showProgress = restoring ? false : this.showProgress;
-
-      
-      let success = false; 
-      try {
-        success = aRequest.QueryInterface(Components.interfaces.nsIHttpChannel).requestSucceeded;
-      } catch (e) { }
-
       let message = {
         gecko: {
           type: "Content:StateChange",
           tabID: this.id,
           uri: uri,
           state: aStateFlags,
-          showProgress: showProgress,
-          success: success
+          showProgress: this.showProgress
         }
       };
       sendMessageToJava(message);
@@ -2163,7 +2046,7 @@ Tab.prototype = {
     let minScale = this.getPageZoomLevel(screenW);
     viewportH = Math.max(viewportH, screenH / minScale);
 
-    let oldBrowserWidth = parseInt(this.browser.style.minWidth);
+    let oldBrowserWidth = parseInt(this.browser.style.width);
     this.setBrowserSize(viewportW, viewportH);
 
     
@@ -2187,7 +2070,7 @@ Tab.prototype = {
     if ("defaultZoom" in md && md.defaultZoom)
       return md.defaultZoom;
 
-    let browserWidth = parseInt(this.browser.style.minWidth);
+    let browserWidth = parseInt(this.browser.style.width);
     return gScreenWidth / browserWidth;
   },
 
@@ -2201,10 +2084,8 @@ Tab.prototype = {
   },
 
   setBrowserSize: function(aWidth, aHeight) {
-    
-    
-    this.browser.style.minWidth = aWidth + "px";
-    this.browser.style.minHeight = aHeight + "px";
+    this.browser.style.width = aWidth + "px";
+    this.browser.style.height = aHeight + "px";
   },
 
   getRequestLoadContext: function(aRequest) {
@@ -2236,6 +2117,7 @@ Tab.prototype = {
         
         let contentDocument = aSubject;
         if (contentDocument == this.browser.contentDocument) {
+          sendMessageToJava({ gecko: { type: "Document:Shown" } });
           ViewportHandler.updateMetadata(this);
           this.documentIdForCurrentViewport = ViewportHandler.getIdForDocument(contentDocument);
         }
@@ -2243,23 +2125,11 @@ Tab.prototype = {
     }
   },
 
-  
-  get window() {
-    if (!this.browser)
-      return null;
-    return this.browser.contentWindow;
-  },
-
-  get scale() {
-    return this.viewport.zoom;
-  },
-
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIWebProgressListener,
     Ci.nsISHistoryListener,
     Ci.nsIObserver,
-    Ci.nsISupportsWeakReference,
-    Ci.nsIBrowserTab
+    Ci.nsISupportsWeakReference
   ])
 };
 
@@ -2331,7 +2201,7 @@ var BrowserEventHandler = {
       }
     } else if (aTopic == "Gesture:SingleTap") {
       let element = this._highlightElement;
-      if (element && !SelectHelper.handleClick(element)) {
+      if (element && !FormAssistant.handleClick(element)) {
         try {
           let data = JSON.parse(aData);
           [data.x, data.y] = ElementTouchHelper.toScreenCoords(element.ownerDocument.defaultView, data.x, data.y);
@@ -2351,7 +2221,11 @@ var BrowserEventHandler = {
       this._cancelTapHighlight();
       this.onDoubleTap(aData);
     } else if (aTopic == "dom-touch-listener-added") {
-      let tab = BrowserApp.getTabForWindow(aSubject);
+      let browser = BrowserApp.getBrowserForWindow(aSubject);
+      if (!browser)
+        return;
+
+      let tab = BrowserApp.getTabForBrowser(browser);
       if (!tab)
         return;
 
@@ -2365,12 +2239,17 @@ var BrowserEventHandler = {
   },
  
   _zoomOut: function() {
-    sendMessageToJava({ gecko: { type: "Browser:ZoomToPageWidth"} });
+    this._zoomedToElement = null;
+    
+    setTimeout(function() {
+      sendMessageToJava({ gecko: { type: "Browser:ZoomToPageWidth"} });
+    }, 0);    
   },
 
   onDoubleTap: function(aData) {
     let data = JSON.parse(aData);
 
+    let rect = {};
     let win = BrowserApp.selectedBrowser.contentWindow;
     
     let zoom = BrowserApp.selectedTab._viewport.zoom;
@@ -2383,47 +2262,25 @@ var BrowserEventHandler = {
     win = element.ownerDocument.defaultView;
     while (element && win.getComputedStyle(element,null).display == "inline")
       element = element.parentNode;
-
-    if (!element) {
+    if (!element || element == this._zoomedToElement) {
       this._zoomOut();
-    } else {
+    } else if (element) {
       const margin = 15;
-      const minDifference = -20;
-      const maxDifference = 20;
-      let rect = ElementTouchHelper.getBoundingContentRect(element);
+      this._zoomedToElement = element;
+      rect = ElementTouchHelper.getBoundingContentRect(element);
 
-      let viewport = BrowserApp.selectedTab.viewport;
-      let vRect = new Rect(viewport.x, viewport.y, viewport.width, viewport.height);
+      let zoom = BrowserApp.selectedTab.viewport.zoom;
+      rect.x *= zoom;
+      rect.y *= zoom;
+      rect.w *= zoom;
+      rect.h *= zoom;
 
-      let zoom = viewport.zoom;
-      let bRect = new Rect(Math.max(0,rect.x - margin),
-                           rect.y,
-                           rect.w + 2*margin,
-                           rect.h);
-      
-      bRect.width = Math.min(bRect.width, viewport.pageWidth/zoom - bRect.x);
-      bRect.scale(zoom, zoom);
-
-      let overlap = vRect.intersect(bRect);
-      let overlapArea = overlap.width*overlap.height;
-      
-      
-      let availHeight = Math.min(bRect.width*vRect.height/vRect.width, bRect.height);
-      let showing = overlapArea/(bRect.width*availHeight);
-      let dw = (bRect.width - vRect.width)/zoom;
-      let dx = (bRect.x - vRect.x)/zoom;
-
-      if (showing > 0.9 &&
-          dx > minDifference && dx < maxDifference &&
-          dw > minDifference && dw < maxDifference) {
-            this._zoomOut();
-            return;
-      }
-
-      rect.type = "Browser:ZoomToRect";
-      rect.x = bRect.x; rect.y = bRect.y;
-      rect.w = bRect.width; rect.h = availHeight;
-      sendMessageToJava({ gecko: rect });
+      setTimeout(function() {
+        rect.type = "Browser:ZoomToRect";
+        rect.x -= margin;
+        rect.w += 2*margin;
+        sendMessageToJava({ gecko: rect });
+      }, 0);
     }
   },
 
@@ -2594,7 +2451,11 @@ const ElementTouchHelper = {
     if (!aWindow)
       throw "Must provide a window";
   
-    let tab = BrowserApp.getTabForWindow(aWindow.top);
+    let browser = BrowserApp.getBrowserForWindow(aWindow.top);
+    if (!browser)
+      throw "Unable to find a browser";
+
+    let tab = BrowserApp.getTabForBrowser(browser);
     if (!tab)
       throw "Unable to find a tab";
 
@@ -2608,8 +2469,12 @@ const ElementTouchHelper = {
   toScreenCoords: function(aWindow, aX, aY) {
     if (!aWindow)
       throw "Must provide a window";
+  
+    let browser = BrowserApp.getBrowserForWindow(aWindow.top);
+    if (!browser)
+      throw "Unable to find a browser";
 
-    let tab = BrowserApp.getTabForWindow(aWindow.top);
+    let tab = BrowserApp.getTabForBrowser(browser);
     if (!tab)
       throw "Unable to find a tab";
 
@@ -2788,21 +2653,20 @@ const ElementTouchHelper = {
     }
     return result;
   },
-
   getBoundingContentRect: function(aElement) {
     if (!aElement)
       return {x: 0, y: 0, w: 0, h: 0};
-
+  
     let document = aElement.ownerDocument;
     while (document.defaultView.frameElement)
       document = document.defaultView.frameElement.ownerDocument;
-
+  
     let cwu = document.defaultView.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
     let scrollX = {}, scrollY = {};
     cwu.getScrollXY(false, scrollX, scrollY);
-
+  
     let r = aElement.getBoundingClientRect();
-
+ 
     
     for (let frame = aElement.ownerDocument.defaultView; frame.frameElement && frame != content; frame = frame.parent) {
       
@@ -2813,10 +2677,14 @@ const ElementTouchHelper = {
       scrollY.value += rect.top + parseInt(top);
     }
 
-    return {x: r.left + scrollX.value,
-            y: r.top + scrollY.value,
-            w: r.width,
-            h: r.height };
+    var x = r.left + scrollX.value;
+    var y = r.top + scrollY.value;
+    var x2 = x + r.width;
+    var y2 = y + r.height;
+    return {x: x,
+            y: y,
+            w: x2 - x,
+            h: y2 - y};
   }
 };
 
@@ -2862,34 +2730,21 @@ var ErrorPageEventHandler = {
 };
 
 var FormAssistant = {
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIFormSubmitObserver]),
-
   
   
   _currentInputElement: null,
-
-  
-  _invalidSubmit: false,
+  _uiBusy: false,
 
   init: function() {
     Services.obs.addObserver(this, "FormAssist:AutoComplete", false);
-    Services.obs.addObserver(this, "FormAssist:Hidden", false);
-    Services.obs.addObserver(this, "invalidformsubmit", false);
+    Services.obs.addObserver(this, "FormAssist:Closed", false);
 
-    
-    BrowserApp.deck.addEventListener("focus", this, true);
     BrowserApp.deck.addEventListener("input", this, false);
-    BrowserApp.deck.addEventListener("pageshow", this, false);
   },
 
   uninit: function() {
     Services.obs.removeObserver(this, "FormAssist:AutoComplete");
-    Services.obs.removeObserver(this, "FormAssist:Hidden");
-    Services.obs.removeObserver(this, "invalidformsubmit");
-
-    BrowserApp.deck.removeEventListener("focus", this);
-    BrowserApp.deck.removeEventListener("input", this);
-    BrowserApp.deck.removeEventListener("pageshow", this);
+    Services.obs.removeObserver(this, "FormAssist:Closed");
   },
 
   observe: function(aSubject, aTopic, aData) {
@@ -2903,65 +2758,39 @@ var FormAssistant = {
         this._currentInputElement.value = aData;
         break;
 
-      case "FormAssist:Hidden":
+      case "FormAssist:Closed":
         this._currentInputElement = null;
         break;
     }
   },
 
-  notifyInvalidSubmit: function notifyInvalidSubmit(aFormElement, aInvalidElements) {
-    if (!aInvalidElements.length)
-      return;
-
-    
-    if (BrowserApp.selectedBrowser.contentDocument !=
-        aFormElement.ownerDocument.defaultView.top.document)
-      return;
-
-    this._invalidSubmit = true;
-
-    
-    let currentElement = aInvalidElements.queryElementAt(0, Ci.nsISupports);
-    currentElement.focus();
-  },
-
   handleEvent: function(aEvent) {
     switch (aEvent.type) {
-      case "focus":
-        let currentElement = aEvent.target;
-
-        
-        
-        
-        if (this._showValidationMessage(currentElement))
-          break;
-        this._showAutoCompleteSuggestions(currentElement)
-        break;
-
       case "input":
-        currentElement = aEvent.target;
-
-        
-        
-        if (this._showAutoCompleteSuggestions(currentElement))
-          break;
-        if (this._showValidationMessage(currentElement))
+        let currentElement = aEvent.target;
+        if (!this._isAutocomplete(currentElement))
           break;
 
         
-        this._hideFormAssistPopup();
-        break;
+        
+        this._currentInputElement = currentElement;
+        let suggestions = this._getAutocompleteSuggestions(currentElement.value, currentElement);
 
-      
-      case "pageshow":
-        let target = aEvent.originalTarget;
-        if (target == content.document || target.ownerDocument == content.document)
-          this._invalidSubmit = false;
+        let rect = currentElement.getBoundingClientRect();
+        let zoom = BrowserApp.selectedTab.viewport.zoom;
+
+        sendMessageToJava({
+          gecko: {
+            type:  "FormAssist:AutoComplete",
+            suggestions: suggestions,
+            rect: [rect.left, rect.top, rect.width, rect.height], 
+            zoom: zoom
+          }
+        });
     }
   },
 
-  
-  _isAutoComplete: function _isAutoComplete(aElement) {
+  _isAutocomplete: function (aElement) {
     if (!(aElement instanceof HTMLInputElement) ||
         (aElement.getAttribute("type") == "password") ||
         (aElement.hasAttribute("autocomplete") &&
@@ -2972,148 +2801,148 @@ var FormAssistant = {
   },
 
   
-  _getAutoCompleteSuggestions: function _getAutoCompleteSuggestions(aSearchString, aElement) {
-    
-    if (!this._formAutoCompleteService)
-      this._formAutoCompleteService = Cc["@mozilla.org/satchel/form-autocomplete;1"].
-                                      getService(Ci.nsIFormAutoComplete);
+  _getAutocompleteSuggestions: function(aSearchString, aElement) {
+    let results = Cc["@mozilla.org/satchel/form-autocomplete;1"].
+                  getService(Ci.nsIFormAutoComplete).
+                  autoCompleteSearch(aElement.name || aElement.id, aSearchString, aElement, null);
 
-    let results = this._formAutoCompleteService.autoCompleteSearch(aElement.name || aElement.id,
-                                                                   aSearchString, aElement, null);
     let suggestions = [];
-    for (let i = 0; i < results.matchCount; i++) {
-      let value = results.getValueAt(i);
+    if (results.matchCount > 0) {
+      for (let i = 0; i < results.matchCount; i++) {
+        let value = results.getValueAt(i);
+        
+        if (value == aSearchString)
+          continue;
 
-      
-      if (value == aSearchString)
-        continue;
-
-      
-      suggestions.push({ label: value, value: value });
+        suggestions.push(value);
+      }
     }
 
     return suggestions;
   },
 
-  
+  show: function(aList, aElement) {
+    let data = JSON.parse(sendMessageToJava({ gecko: aList }));
+    let selected = data.button;
+    if (selected == -1)
+        return;
 
+    if (!(selected instanceof Array)) {
+      let temp = [];
+      for (let i = 0; i < aList.listitems.length; i++) {
+        temp[i] = (i == selected);
+      }
+      selected = temp;
+    }
+    this.forOptions(aElement, function(aNode, aIndex) {
+      aNode.selected = selected[aIndex];
+    });
+    this.fireOnChange(aElement);
+  },
 
+  handleClick: function(aTarget) {
+    
+    
+    if (this._uiBusy)
+        return true;
 
+    let target = aTarget;
+    while (target) {
+      if (this._isSelectElement(target) && !target.disabled) {
+        this._uiBusy = true;
+        target.focus();
+        let list = this.getListForElement(target);
+        this.show(list, target);
+        target = null;
+        this._uiBusy = false;
+        return true;
+      }
+      if (target)
+        target = target.parentNode;
+    }
+    return false;
+  },
 
+  fireOnChange: function(aElement) {
+    let evt = aElement.ownerDocument.createEvent("Events");
+    evt.initEvent("change", true, true, aElement.defaultView, 0,
+                  false, false,
+                  false, false, null);
+    setTimeout(function() {
+      aElement.dispatchEvent(evt);
+    }, 0);
+  },
 
-  _getListSuggestions: function _getListSuggestions(aElement) {
-    if (!(aElement instanceof HTMLInputElement) || !aElement.list)
-      return [];
+  _isSelectElement: function(aElement) {
+    return (aElement instanceof HTMLSelectElement);
+  },
 
-    let suggestions = [];
-    let filter = !aElement.hasAttribute("mozNoFilter");
-    let lowerFieldValue = aElement.value.toLowerCase();
+  _isOptionElement: function(aElement) {
+    return aElement instanceof HTMLOptionElement;
+  },
 
-    let options = aElement.list.options;
-    let length = options.length;
-    for (let i = 0; i < length; i++) {
-      let item = options.item(i);
+  _isOptionGroupElement: function(aElement) {
+    return aElement instanceof HTMLOptGroupElement;
+  },
 
-      let label = item.value;
-      if (item.label)
-        label = item.label;
-      else if (item.text)
-        label = item.text;
+  getListForElement: function(aElement) {
+    let result = {
+      type: "Prompt:Show",
+      multiple: aElement.multiple,
+      selected: [],
+      listitems: []
+    };
 
-      if (filter && label.toLowerCase().indexOf(lowerFieldValue) == -1)
-        continue;
-      suggestions.push({ label: label, value: item.value });
+    if (aElement.multiple) {
+      result.buttons = [
+        { label: Strings.browser.GetStringFromName("selectHelper.closeMultipleSelectDialog") },
+      ];
     }
 
-    return suggestions;
-  },
-
-  
-  
-  _getElementPositionData: function _getElementPositionData(aElement) {
-    let rect = ElementTouchHelper.getBoundingContentRect(aElement);
-    let viewport = BrowserApp.selectedTab.viewport;
-    
-    return { rect: [rect.x - (viewport.x / viewport.zoom),
-                    rect.y - (viewport.y / viewport.zoom),
-                    rect.w, rect.h],
-             zoom: viewport.zoom }
-  },
-
-  
-  
-  
-  _showAutoCompleteSuggestions: function _showAutoCompleteSuggestions(aElement) {
-    if (!this._isAutoComplete(aElement))
-      return false;
-
-    let autoCompleteSuggestions = this._getAutoCompleteSuggestions(aElement.value, aElement);
-    let listSuggestions = this._getListSuggestions(aElement);
-
-    
-    
-    let suggestions = autoCompleteSuggestions.concat(listSuggestions);
-
-    
-    if (!suggestions.length)
-      return false;
-
-    let positionData = this._getElementPositionData(aElement);
-    sendMessageToJava({
-      gecko: {
-        type:  "FormAssist:AutoComplete",
-        suggestions: suggestions,
-        rect: positionData.rect,
-        zoom: positionData.zoom
+    this.forOptions(aElement, function(aNode, aIndex) {
+      let item = {
+        label: aNode.text || aNode.label,
+        isGroup: this._isOptionGroupElement(aNode),
+        inGroup: this._isOptionGroupElement(aNode.parentNode),
+        disabled: aNode.disabled,
+        id: aIndex
       }
+      if (item.inGroup)
+        item.disabled = item.disabled || aNode.parentNode.disabled;
+
+      result.listitems[aIndex] = item;
+      result.selected[aIndex] = aNode.selected;
     });
-
-    
-    
-    this._currentInputElement = aElement;
-
-    return true;
+    return result;
   },
 
-  
-  
-  _isValidateable: function _isValidateable(aElement) {
-    if (!this._invalidSubmit ||
-        !aElement.validationMessage ||
-        !(aElement instanceof HTMLInputElement ||
-          aElement instanceof HTMLTextAreaElement ||
-          aElement instanceof HTMLSelectElement ||
-          aElement instanceof HTMLButtonElement))
-      return false;
+  forOptions: function(aElement, aFunction) {
+    let optionIndex = 0;
+    let children = aElement.children;
+    
+    if (children.length == 0)
+      aFunction.call(this, {label:""}, optionIndex);
+    for (let i = 0; i < children.length; i++) {
+      let child = children[i];
+      if (this._isOptionGroupElement(child)) {
+        aFunction.call(this, child, optionIndex);
+        optionIndex++;
 
-    return true;
-  },
+        let subchildren = child.children;
+        for (let j = 0; j < subchildren.length; j++) {
+          let subchild = subchildren[j];
+          aFunction.call(this, subchild, optionIndex);
+          optionIndex++;
+        }
 
-  
-  
-  _showValidationMessage: function _sendValidationMessage(aElement) {
-    if (!this._isValidateable(aElement))
-      return false;
-
-    let positionData = this._getElementPositionData(aElement);
-    sendMessageToJava({
-      gecko: {
-        type: "FormAssist:ValidationMessage",
-        validationMessage: aElement.validationMessage,
-        rect: positionData.rect,
-        zoom: positionData.zoom
+      } else if (this._isOptionElement(child)) {
+        
+        aFunction.call(this, child, optionIndex);
+        optionIndex++;
       }
-    });
-
-    return true;
-  },
-
-  _hideFormAssistPopup: function _hideFormAssistPopup() {
-    sendMessageToJava({
-      gecko: { type:  "FormAssist:Hide" }
-    });
+    }
   }
-};
+}
 
 var XPInstallObserver = {
   init: function xpi_init() {
@@ -3222,31 +3051,7 @@ var XPInstallObserver = {
     this.onInstallFailed(aInstall);
   },
 
-  onDownloadCancelled: function(aInstall) {
-    let host = (aInstall.originatingURI instanceof Ci.nsIStandardURL) && aInstall.originatingURI.host;
-    if (!host)
-      host = (aInstall.sourceURI instanceof Ci.nsIStandardURL) && aInstall.sourceURI.host;
-
-    let error = (host || aInstall.error == 0) ? "addonError" : "addonLocalError";
-    if (aInstall.error != 0)
-      error += aInstall.error;
-    else if (aInstall.addon && aInstall.addon.blocklistState == Ci.nsIBlocklistService.STATE_BLOCKED)
-      error += "Blocklisted";
-    else if (aInstall.addon && (!aInstall.addon.isCompatible || !aInstall.addon.isPlatformCompatible))
-      error += "Incompatible";
-    else
-      return; 
-
-    let msg = Strings.browser.GetStringFromName(error);
-    
-    msg = msg.replace("#1", aInstall.name);
-    if (host)
-      msg = msg.replace("#2", host);
-    msg = msg.replace("#3", Strings.brand.GetStringFromName("brandShortName"));
-    msg = msg.replace("#4", Services.appinfo.version);
-
-    NativeWindow.toast.show(msg, "short");
-  }
+  onDownloadCancelled: function(aInstall) {}
 };
 
 
@@ -3522,8 +3327,7 @@ var PopupBlockerObserver = {
         let popupFeatures = pageReport[i].popupWindowFeatures;
         let popupName = pageReport[i].popupWindowName;
 
-        let parent = BrowserApp.selectedTab;
-        BrowserApp.addTab(popupURIspec, { parentId: parent.id });
+        BrowserApp.addTab(popupURIspec);
       }
     }
   }
@@ -3548,7 +3352,8 @@ var OfflineApps = {
     if (!Services.prefs.getBoolPref("browser.offline-apps.notify"))
       return;
 
-    let tab = BrowserApp.getTabForWindow(aContentWindow);
+    let browser = BrowserApp.getBrowserForWindow(aContentWindow);
+    let tab = BrowserApp.getTabForBrowser(browser);
     let currentURI = aContentWindow.document.documentURIObject;
 
     
@@ -3647,8 +3452,8 @@ var IndexedDB = {
 
     let contentWindow = requestor.getInterface(Ci.nsIDOMWindow);
     let contentDocument = contentWindow.document;
-    let tab = BrowserApp.getTabForWindow(contentWindow);
-    if (!tab)
+    let browser = BrowserApp.getBrowserForWindow(contentWindow);
+    if (!browser)
       return;
 
     let host = contentDocument.documentURIObject.asciiHost;
@@ -3667,6 +3472,7 @@ var IndexedDB = {
     }
 
     let notificationID = responseTopic + host;
+    let tab = BrowserApp.getTabForBrowser(browser);
     let observer = requestor.getInterface(Ci.nsIObserver);
 
     if (topic == this._quotaCancel) {
@@ -3897,7 +3703,7 @@ var ClipboardHelper = {
       return false;
     }
   }
-};
+}
 
 var PluginHelper = {
   showDoorHanger: function(aTab) {
@@ -3920,40 +3726,22 @@ var PluginHelper = {
   },
 
   playAllPlugins: function(aTab, aEvent) {
+    let plugins = aTab._pluginsToPlay;
+    if (!plugins.length)
+      return;
+
     if (aEvent) {
       if (!aEvent.isTrusted)
         return;
       aEvent.preventDefault();
     }
 
-    this._findAndPlayAllPlugins(aTab.browser.contentWindow);
-  },
-
-  
-  _findAndPlayAllPlugins: function _findAndPlayAllPlugins(aWindow) {
-    let embeds = aWindow.document.getElementsByTagName("embed");
-    for (let i = 0; i < embeds.length; i++) {
-      if (!embeds[i].hasAttribute("played"))
-        this._playPlugin(embeds[i]);
+    for (let i = 0; i < plugins.length; i++) {
+      let objLoadingContent = plugins[i].QueryInterface(Ci.nsIObjectLoadingContent);
+      objLoadingContent.playPlugin();
     }
-
-    let objects = aWindow.document.getElementsByTagName("object");
-    for (let i = 0; i < objects.length; i++) {
-      if (!objects[i].hasAttribute("played"))
-        this._playPlugin(objects[i]);
-    }
-
-    for (let i = 0; i < aWindow.frames.length; i++) {
-      this._findAndPlayAllPlugins(aWindow.frames[i]);
-    }
-  },
-
-  _playPlugin: function _playPlugin(aPlugin) {
-    let objLoadingContent = aPlugin.QueryInterface(Ci.nsIObjectLoadingContent);
-    objLoadingContent.playPlugin();
-
     
-    aPlugin.setAttribute("played", true);
+    aTab._pluginsToPlay = [];
   },
 
   getPluginPreference: function getPluginPreference() {
@@ -4329,146 +4117,7 @@ var CharacterEncoding = {
     let docCharset = browser.docShell.QueryInterface(Ci.nsIDocCharset);
     docCharset.charset = aEncoding;
     browser.reload(Ci.nsIWebNavigation.LOAD_FLAGS_CHARSET_CHANGE);
-  }
+  },
+
 };
 
-function OverscrollController(aTab) {
-  this.tab = aTab;
-}
-
-OverscrollController.prototype = {
-  supportsCommand : function supportsCommand(aCommand) {
-    if (aCommand != "cmd_linePrevious" && aCommand != "cmd_scrollPageUp")
-      return false;
-
-    return (this.tab.viewport.y == 0);
-  },
-
-  isCommandEnabled : function isCommandEnabled(aCommand) {
-    return this.supportsCommand(aCommand);
-  },
-
-  doCommand : function doCommand(aCommand){
-    sendMessageToJava({ gecko: { type: "ToggleChrome:Focus" } });
-  },
-
-  onEvent : function onEvent(aEvent) { }
-};
-
-var SearchEngines = {
-  _contextMenuId: null,
-
-  init: function init() {
-    Services.obs.addObserver(this, "SearchEngines:Get", false);
-    let contextName = Strings.browser.GetStringFromName("contextmenu.addSearchEngine");
-    let filter = {
-      matches: function (aElement) {
-        return (aElement.form && NativeWindow.contextmenus.textContext.matches(aElement));
-      }
-    };
-    this._contextMenuId = NativeWindow.contextmenus.add(contextName, filter, this.addEngine);
-  },
-
-  uninit: function uninit() {
-    Services.obs.removeObserver(this, "SearchEngines:Get", false);
-    if (this._contextMenuId != null)
-      NativeWindow.contextmenus.remove(this._contextMenuId);
-  },
-
-  observe: function observe(aSubject, aTopic, aData) {
-    if (aTopic == "SearchEngines:Get") {
-      let engineData = Services.search.getVisibleEngines({});
-      let searchEngines = engineData.map(function (engine) {
-        return {
-          name: engine.name,
-          iconURI: (engine.iconURI ? engine.iconURI.spec : null)
-        };
-      });
-
-      sendMessageToJava({
-        gecko: {
-          type: "SearchEngines:Data",
-          searchEngines: searchEngines
-        }
-      });
-    }
-  },
-
-  addEngine: function addEngine(aElement) {
-    let form = aElement.form;
-    let charset = aElement.ownerDocument.characterSet;
-    let docURI = Services.io.newURI(aElement.ownerDocument.URL, charset, null);
-    let formURL = Services.io.newURI(form.getAttribute("action"), charset, docURI).spec;
-    let method = form.method.toUpperCase();
-    let formData = [];
-
-    for each (let el in form.elements) {
-      if (!el.type)
-        continue;
-
-      
-      if (aElement == el) {
-        formData.push({ name: el.name, value: "{searchTerms}" });
-        continue;
-      }
-
-      let type = el.type.toLowerCase();
-      let escapedName = escape(el.name);
-      let escapedValue = escape(el.value);
-
-      
-      switch (el.type) {
-        case "checkbox":
-        case "radio":
-          if (!el.checked) break;
-        case "text":
-        case "hidden":
-        case "textarea":
-          formData.push({ name: escapedName, value: escapedValue });
-          break;
-        case "select-one":
-          for each (let option in el.options) {
-            if (option.selected) {
-              formData.push({ name: escapedName, value: escapedValue });
-              break;
-            }
-          }
-      }
-    }
-
-    
-    let promptTitle = Strings.browser.GetStringFromName("contextmenu.addSearchEngine");
-    let title = { value: (aElement.ownerDocument.title || docURI.host) };
-    if (!Services.prompt.prompt(null, promptTitle, null, title, null, {}))
-      return;
-
-    
-    let dbFile = FileUtils.getFile("ProfD", ["browser.db"]);
-    let mDBConn = Services.storage.openDatabase(dbFile);
-    let stmts = [];
-    stmts[0] = mDBConn.createStatement("SELECT favicon FROM images WHERE url_key = ?");
-    stmts[0].bindStringParameter(0, docURI.spec);
-    let favicon = null;
-    mDBConn.executeAsync(stmts, stmts.length, {
-      handleResult: function (results) {
-        let bytes = results.getNextRow().getResultByName("favicon");
-        favicon = "data:image/png;base64," + btoa(String.fromCharCode.apply(null, bytes));
-      },
-      handleCompletion: function (reason) {
-        
-        
-        let name = title.value;
-        for (let i = 2; Services.search.getEngineByName(name); i++)
-          name = title.value + " " + i;
-
-        Services.search.addEngineWithDetails(name, favicon, null, null, method, formURL);
-        let engine = Services.search.getEngineByName(name);
-        engine.wrappedJSObject._queryCharset = charset;
-        for each (let param in formData) {
-          if (param.name && param.value)
-            engine.addParam(param.name, param.value, null);
-        }
-      }
-    });
-  }
-};

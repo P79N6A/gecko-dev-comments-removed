@@ -310,6 +310,8 @@ public:
 
     
     EGLSurface RegisterCompositor();
+    void PerformPreRenderHook();
+    void PerformPostRenderHook();
 
     bool GetStaticStringField(const char *classID, const char *field, nsAString &result);
 
@@ -488,6 +490,10 @@ protected:
     jclass jEGL10Class;
 
     jclass jFlexSurfaceView;
+
+    jmethodID jRegisterCompositorMethod;
+    jmethodID jPerformPreRenderHookMethod;
+    jmethodID jPerformPostRenderHookMethod;
 
     
     int (* AndroidBitmap_getInfo)(JNIEnv *env, jobject bitmap, void *info);

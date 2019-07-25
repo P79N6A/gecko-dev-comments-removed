@@ -106,11 +106,11 @@ public:
 
 
 
-  bool Initialize(bool force = false) {
-    return Initialize(CreateContext(), force);
+  bool Initialize() {
+    return Initialize(CreateContext());
   }
 
-  bool Initialize(nsRefPtr<GLContext> aContext, bool force = false);
+  bool Initialize(nsRefPtr<GLContext> aContext);
 
   
 
@@ -162,6 +162,8 @@ public:
 
   virtual already_AddRefed<CanvasLayer> CreateCanvasLayer();
 
+  virtual already_AddRefed<ImageContainer> CreateImageContainer();
+
   virtual already_AddRefed<ShadowThebesLayer> CreateShadowThebesLayer();
   virtual already_AddRefed<ShadowContainerLayer> CreateShadowContainerLayer();
   virtual already_AddRefed<ShadowImageLayer> CreateShadowImageLayer();
@@ -170,6 +172,16 @@ public:
 
   virtual LayersBackend GetBackendType() { return LAYERS_OPENGL; }
   virtual void GetBackendName(nsAString& name) { name.AssignLiteral("OpenGL"); }
+
+  
+
+
+
+  
+
+
+  void ForgetImageContainer(ImageContainer* aContainer);
+  void RememberImageContainer(ImageContainer* aContainer);
 
   
 
@@ -236,13 +248,9 @@ public:
   }
 
   ColorTextureLayerProgram *GetFBOLayerProgram() {
-    return static_cast<ColorTextureLayerProgram*>(mPrograms[GetFBOLayerProgramType()]);
-  }
-
-  gl::ShaderProgramType GetFBOLayerProgramType() {
     if (mFBOTextureTarget == LOCAL_GL_TEXTURE_RECTANGLE_ARB)
-      return gl::RGBARectLayerProgramType;
-    return gl::RGBALayerProgramType;
+      return static_cast<ColorTextureLayerProgram*>(mPrograms[gl::RGBARectLayerProgramType]);
+    return static_cast<ColorTextureLayerProgram*>(mPrograms[gl::RGBALayerProgramType]);
   }
 
   GLContext *gl() const { return mGLContext; }
@@ -391,7 +399,10 @@ public:
 
 
   void SetupPipeline(int aWidth, int aHeight, WorldTransforPolicy aTransformPolicy);
-  
+ 
+  void PerformPreRenderHook();
+  void PerformPostRenderHook();
+
   
 
 
@@ -414,6 +425,11 @@ private:
   nsRefPtr<GLContext> mGLContext;
 
   already_AddRefed<mozilla::gl::GLContext> CreateContext();
+
+  
+  
+  
+  nsTArray<ImageContainer*> mImageContainers;
 
   static ProgramType sLayerProgramTypes[];
 
@@ -455,7 +471,7 @@ private:
   
 
 
-  void CopyToTarget(gfxContext *aTarget);
+  void CopyToTarget();
 
   
 
