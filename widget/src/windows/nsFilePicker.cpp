@@ -55,6 +55,7 @@
 #include "nsCRT.h"
 #include <windows.h>
 #include <shlobj.h>
+#include <shlwapi.h>
 
 
 #include <commdlg.h>
@@ -143,8 +144,7 @@ static UINT_PTR CALLBACK FilePickerHook(HWND hwnd, UINT msg,
             newBufLength += MAX_PATH;
 
           
-          if (newBufLength > lpofn->lpOFN->nMaxFile)
-          {
+          if (newBufLength > lpofn->lpOFN->nMaxFile) {
             if (lpofn->lpOFN->lpstrFile)
               delete[] lpofn->lpOFN->lpstrFile;
 
@@ -207,15 +207,12 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
     browserInfo.pszDisplayName = (LPWSTR)dirBuffer;
     browserInfo.lpszTitle      = mTitle.get();
     browserInfo.ulFlags        = BIF_USENEWUI | BIF_RETURNONLYFSDIRS;
-    if (initialDir.Length())
-    {
+    if (initialDir.Length()) {
       
       
       browserInfo.lParam       = (LPARAM) initialDir.get();
       browserInfo.lpfn         = &BrowseCallbackProc;
-    }
-    else
-    {
+    } else {
     browserInfo.lParam         = nsnull;
       browserInfo.lpfn         = nsnull;
     }
@@ -231,9 +228,7 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
       
       CoTaskMemFree(list);
     }
-  }
-  else 
-  {
+  } else {
 
     OPENFILENAMEW ofn;
     memset(&ofn, 0, sizeof(ofn));
@@ -250,9 +245,7 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
     ofn.hwndOwner    = (HWND) (mParentWidget.get() ? mParentWidget->GetNativeData(NS_NATIVE_TMP_WINDOW) : 0); 
     ofn.lpstrFile    = fileBuffer;
     ofn.nMaxFile     = FILE_BUFFER_SIZE;
-
-    ofn.Flags = OFN_NOCHANGEDIR | OFN_SHAREAWARE |
-                OFN_LONGNAMES | OFN_OVERWRITEPROMPT |
+    ofn.Flags = OFN_SHAREAWARE | OFN_LONGNAMES | OFN_OVERWRITEPROMPT |
                 OFN_HIDEREADONLY | OFN_PATHMUSTEXIST;
 
     
@@ -292,6 +285,19 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
       }
     }
 
+    
+    
+    
+    
+    
+    
+    AutoRestoreWorkingPath restoreWorkingPath;
+    
+    
+    if (!restoreWorkingPath.HasWorkingPath()) {
+      ofn.Flags |= OFN_NOCHANGEDIR;
+    }
+    
     MOZ_SEH_TRY {
       if (mMode == modeOpen) {
         
@@ -378,8 +384,19 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
           
           nsCOMPtr<nsILocalFile> file = do_CreateInstance("@mozilla.org/file/local;1", &rv);
           NS_ENSURE_SUCCESS(rv,rv);
+
           
-          rv = file->InitWithPath(dirName + nsDependentString(current));
+          nsAutoString path;
+          if (PathIsRelativeW(current)) {
+            path = dirName + nsDependentString(current);
+          } else {
+            path = current;
+          }
+
+          nsAutoString canonicalizedPath;
+          GetQualifiedPath(path.get(), canonicalizedPath);
+          
+          rv = file->InitWithPath(canonicalizedPath);
           NS_ENSURE_SUCCESS(rv,rv);
           
           rv = mFiles.AppendObject(file);
@@ -395,17 +412,16 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
           nsCOMPtr<nsILocalFile> file = do_CreateInstance("@mozilla.org/file/local;1", &rv);
           NS_ENSURE_SUCCESS(rv,rv);
           
-          rv = file->InitWithPath(nsDependentString(current));
+          nsAutoString canonicalizedPath;
+          GetQualifiedPath(current, canonicalizedPath);
+          rv = file->InitWithPath(canonicalizedPath);
           NS_ENSURE_SUCCESS(rv,rv);
           
           rv = mFiles.AppendObject(file);
           NS_ENSURE_SUCCESS(rv,rv);
         }
-      }
-      else {
-        
-        
-        mUnicodeFile.Assign(fileBuffer);
+      } else {
+        GetQualifiedPath(fileBuffer, mUnicodeFile);
       }
     }
     if (ofn.hwndOwner) {
@@ -577,6 +593,19 @@ void nsFilePicker::InitNative(nsIWidget *aParent,
   mMode = aMode;
 }
 
+void 
+nsFilePicker::GetQualifiedPath(const PRUnichar *aInPath, nsString &aOutPath)
+{
+  
+  
+  
+  PRUnichar qualifiedFileBuffer[MAX_PATH];
+  if (PathSearchAndQualifyW(aInPath, qualifiedFileBuffer, MAX_PATH)) {
+    aOutPath.Assign(qualifiedFileBuffer);
+  } else {
+    aOutPath.Assign(aInPath);
+  }
+}
 
 NS_IMETHODIMP
 nsFilePicker::AppendFilter(const nsAString& aTitle, const nsAString& aFilter)
@@ -599,3 +628,20 @@ nsFilePicker::AppendFilter(const nsAString& aTitle, const nsAString& aFilter)
 
   return NS_OK;
 }
+
+AutoRestoreWorkingPath::AutoRestoreWorkingPath() 
+{
+  DWORD bufferLength = GetCurrentDirectoryW(0, NULL);
+  mWorkingPath = new PRUnichar[bufferLength];
+  if (GetCurrentDirectoryW(bufferLength, mWorkingPath) == 0) {
+    mWorkingPath = NULL;
+  }
+}
+
+AutoRestoreWorkingPath::~AutoRestoreWorkingPath()
+{
+  if (HasWorkingPath()) {
+    ::SetCurrentDirectoryW(mWorkingPath);
+  }
+}
+
