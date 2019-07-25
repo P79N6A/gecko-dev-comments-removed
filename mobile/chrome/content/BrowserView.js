@@ -123,15 +123,6 @@ const kBrowserViewZoomLevelPrecision = 10000;
 
 
 
-
-
-
-
-
-
-
-
-
 function BrowserView(container, visibleRectFactory) {
   Util.bindAll(this);
   this.init(container, visibleRectFactory);
@@ -485,5 +476,4 @@ BrowserView.BrowserViewportState.prototype = {
 
     return "[BrowserViewportState] {\n" + props.join(",\n") + "\n}";
   }
-
 };
