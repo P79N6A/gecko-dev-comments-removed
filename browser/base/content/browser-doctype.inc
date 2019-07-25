@@ -19,5 +19,7 @@
 <!ENTITY % safebrowsingDTD SYSTEM "chrome:
 %safebrowsingDTD;
 #endif
+<!ENTITY % aboutHomeDTD SYSTEM "chrome:
+%aboutHomeDTD;
 ]>
 
