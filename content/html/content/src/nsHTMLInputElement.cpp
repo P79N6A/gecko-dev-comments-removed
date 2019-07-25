@@ -1712,10 +1712,7 @@ nsHTMLInputElement::SetCheckedInternal(PRBool aChecked, PRBool aNotify)
   }
 
   if (mType == NS_FORM_INPUT_RADIO) {
-    
-    nsCOMPtr<nsIRadioVisitor> visitor =
-      NS_GetRadioUpdateValueMissingVisitor();
-    VisitGroup(visitor, aNotify);
+    UpdateValueMissingValidityState();
   }
 }
 
@@ -4255,34 +4252,6 @@ protected:
   nsIFormControl* mExcludeElement;
 };
 
-class nsRadioUpdateValueMissingVisitor : public nsRadioVisitor {
-public:
-  nsRadioUpdateValueMissingVisitor()
-    : nsRadioVisitor()
-    { }
-
-  virtual ~nsRadioUpdateValueMissingVisitor() { };
-
-  NS_IMETHOD Visit(nsIFormControl* aRadio, PRBool* aStop)
-  {
-    
-
-
-
-
-
-
-
-
-
-
-    nsCOMPtr<nsITextControlElement> textCtl(do_QueryInterface(aRadio));
-    NS_ASSERTION(textCtl, "Visit() passed a null or non-radio pointer");
-    textCtl->OnValueChanged(PR_TRUE);
-    return NS_OK;
-  }
-};
-
 class nsRadioGroupRequiredVisitor : public nsRadioVisitor {
 public:
   nsRadioGroupRequiredVisitor(nsIFormControl* aExcludeElement, bool* aRequired)
@@ -4430,12 +4399,6 @@ NS_GetRadioGetCheckedChangedVisitor(PRBool* aCheckedChanged,
 
 
 
-
-nsIRadioVisitor*
-NS_GetRadioUpdateValueMissingVisitor()
-{
-  return new nsRadioUpdateValueMissingVisitor();
-}
 
 nsIRadioVisitor*
 NS_GetRadioGroupRequiredVisitor(nsIFormControl* aExcludeElement,
