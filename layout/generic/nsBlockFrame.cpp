@@ -5858,6 +5858,45 @@ nsBlockFrame::ReflowPushedFloats(nsBlockReflowState& aState,
     
     next = f->GetNextSibling();
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsIFrame *prevContinuation = f->GetPrevContinuation();
+    if (prevContinuation && prevContinuation->GetParent() == f->GetParent()) {
+      mFloats.RemoveFrame(f);
+      aState.AppendPushedFloat(f);
+      continue;
+    }
+
     if (NS_SUBTREE_DIRTY(f) || aState.mReflowState.ShouldReflowAllKids()) {
       
       nsRect oldRect = f->GetRect();
