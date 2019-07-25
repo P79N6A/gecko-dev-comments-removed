@@ -1375,24 +1375,6 @@ static void
 call_trace(JSTracer *trc, JSObject *obj)
 {
     JS_ASSERT(obj->isCall());
-    JSStackFrame *fp = (JSStackFrame *) obj->getPrivate();
-    if (fp) {
-        
-
-
-
-
-
-
-        uintN first = JSSLOT_PRIVATE + JSObject::CALL_RESERVED_SLOTS + 1;
-        JS_ASSERT(first <= JS_INITIAL_NSLOTS);
-
-        uintN count = fp->fun()->countArgsAndVars();
-        uintN fixed = JS_MIN(count, JS_INITIAL_NSLOTS - first);
-
-        SetValueRangeToUndefined(&obj->fslots[first], fixed);
-        SetValueRangeToUndefined(obj->dslots, count - fixed);
-    }
 
     MaybeMarkGenerator(trc, obj);
 }
