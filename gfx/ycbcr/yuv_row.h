@@ -37,31 +37,34 @@ void FastConvertYUVToRGB32Row(const uint8* y_buf,
 
 
 
-void ConvertYUVToRGB32Row(const uint8* y_buf,
-                          const uint8* u_buf,
-                          const uint8* v_buf,
-                          uint8* rgb_buf,
-                          int width,
-                          int step);
+
+void ConvertYUVToRGB32Row_SSE(const uint8* y_buf,
+                              const uint8* u_buf,
+                              const uint8* v_buf,
+                              uint8* rgb_buf,
+                              int width,
+                              int step);
 
 
 
 
-void RotateConvertYUVToRGB32Row(const uint8* y_buf,
-                                const uint8* u_buf,
-                                const uint8* v_buf,
-                                uint8* rgb_buf,
-                                int width,
-                                int ystep,
-                                int uvstep);
+
+void RotateConvertYUVToRGB32Row_SSE(const uint8* y_buf,
+                                    const uint8* u_buf,
+                                    const uint8* v_buf,
+                                    uint8* rgb_buf,
+                                    int width,
+                                    int ystep,
+                                    int uvstep);
 
 
 
-void DoubleYUVToRGB32Row(const uint8* y_buf,
-                         const uint8* u_buf,
-                         const uint8* v_buf,
-                         uint8* rgb_buf,
-                         int width);
+
+void DoubleYUVToRGB32Row_SSE(const uint8* y_buf,
+                             const uint8* u_buf,
+                             const uint8* v_buf,
+                             uint8* rgb_buf,
+                             int width);
 
 
 
