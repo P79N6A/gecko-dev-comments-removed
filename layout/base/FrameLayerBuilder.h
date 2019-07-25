@@ -225,11 +225,11 @@ public:
 
 
   void AddThebesDisplayItem(ThebesLayer* aLayer,
-                            nsDisplayListBuilder* aBuilder,
                             nsDisplayItem* aItem,
                             const nsRect* aClipRect,
                             nsIFrame* aContainerLayerFrame,
-                            LayerState aLayerState);
+                            LayerState aLayerState,
+                            LayerManager* aTempManager);
 
   
 

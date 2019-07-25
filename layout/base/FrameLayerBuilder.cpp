@@ -858,6 +858,33 @@ ContainerState::FindThebesLayerFor(const nsIntRect& aVisibleRect,
   return layer.forget();
 }
 
+static already_AddRefed<BasicLayerManager>
+BuildTempManagerForInactiveLayer(nsDisplayListBuilder* aBuilder,
+                                 nsDisplayItem* aItem)
+{
+  
+  
+  
+  
+  
+  nsRefPtr<BasicLayerManager> tempManager = new BasicLayerManager();
+  tempManager->BeginTransaction();
+  nsRefPtr<Layer> layer = aItem->BuildLayer(aBuilder, tempManager);
+  if (!layer) {
+    tempManager->EndTransaction(nsnull, nsnull);
+    return nsnull;
+  }
+  PRInt32 appUnitsPerDevPixel = AppUnitsPerDevPixel(aItem);
+  nsIntRect itemVisibleRect =
+    aItem->GetVisibleRect().ToNearestPixels(appUnitsPerDevPixel);
+  SetVisibleRectForLayer(layer, itemVisibleRect);
+
+  tempManager->SetRoot(layer);
+  
+  tempManager->EndTransaction(nsnull, nsnull);
+  return tempManager.forget();
+}
+
 
 
 
@@ -946,6 +973,13 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       mNewChildLayers.AppendElement(ownLayer);
       mBuilder->LayerBuilder()->AddLayerDisplayItem(ownLayer, item);
     } else {
+      nsRefPtr<BasicLayerManager> tempLayerManager;
+      if (layerState == LAYER_INACTIVE) {
+        tempLayerManager = BuildTempManagerForInactiveLayer(mBuilder, item);
+        if (!tempLayerManager)
+          continue;
+      }
+
       nsIFrame* f = item->GetUnderlyingFrame();
       nsPoint offsetToActiveScrolledRoot;
       nsIFrame* activeScrolledRoot =
@@ -981,9 +1015,8 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       InvalidateForLayerChange(item, thebesLayer);
 
       mBuilder->LayerBuilder()->
-        AddThebesDisplayItem(thebesLayer, mBuilder,
-                             item, aClipRect, mContainerFrame,
-                             layerState);
+        AddThebesDisplayItem(thebesLayer, item, aClipRect, mContainerFrame,
+                             layerState, tempLayerManager);
     }
   }
 }
@@ -1030,36 +1063,12 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem, Layer* aNewLayer)
 
 void
 FrameLayerBuilder::AddThebesDisplayItem(ThebesLayer* aLayer,
-                                        nsDisplayListBuilder* aBuilder,
                                         nsDisplayItem* aItem,
                                         const nsRect* aClipRect,
                                         nsIFrame* aContainerLayerFrame,
-                                        LayerState aLayerState)
+                                        LayerState aLayerState,
+                                        LayerManager* aTempManager)
 {
-  nsRefPtr<BasicLayerManager> tempManager;
-  if (aLayerState == LAYER_INACTIVE) {
-    
-    
-    
-    
-    
-    tempManager = new BasicLayerManager();
-    tempManager->BeginTransaction();
-    nsRefPtr<Layer> layer = aItem->BuildLayer(aBuilder, tempManager);
-    if (!layer) {
-      tempManager->EndTransaction(nsnull, nsnull);
-      return;
-    }
-    PRInt32 appUnitsPerDevPixel = AppUnitsPerDevPixel(aItem);
-    nsIntRect itemVisibleRect =
-      aItem->GetVisibleRect().ToNearestPixels(appUnitsPerDevPixel);
-    SetVisibleRectForLayer(layer, itemVisibleRect);
-
-    tempManager->SetRoot(layer);
-    
-    tempManager->EndTransaction(nsnull, nsnull);
-  }
-
   AddLayerDisplayItem(aLayer, aItem);
 
   ThebesLayerItemsEntry* entry = mThebesLayerItems.PutEntry(aLayer);
@@ -1068,7 +1077,7 @@ FrameLayerBuilder::AddThebesDisplayItem(ThebesLayer* aLayer,
     NS_ASSERTION(aItem->GetUnderlyingFrame(), "Must have frame");
     ClippedDisplayItem* cdi =
       entry->mItems.AppendElement(ClippedDisplayItem(aItem, aClipRect));
-    cdi->mTempLayerManager = tempManager.forget();
+    cdi->mTempLayerManager = aTempManager;
   }
 }
 
