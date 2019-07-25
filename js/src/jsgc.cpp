@@ -90,6 +90,13 @@
 #include "jsobjinlines.h"
 #include "jshashtable.h"
 
+#ifdef MOZ_VALGRIND
+# define JS_VALGRIND
+#endif
+#ifdef JS_VALGRIND
+# include <valgrind/memcheck.h>
+#endif
+
 using namespace js;
 
 
@@ -1106,6 +1113,16 @@ ConservativeGCStackMarker::dumpConservativeRoots()
 void
 ConservativeGCStackMarker::markWord(jsuword w)
 {
+    
+
+
+
+
+
+#ifdef JS_VALGRIND
+    VALGRIND_MAKE_MEM_DEFINED(&w, sizeof(w));
+#endif
+
 #define RETURN(x) do { CONSERVATIVE_METER(stats.x++); return; } while (0)
     
 
