@@ -1136,6 +1136,50 @@ CodeGeneratorARM::visitCompareDAndBranch(LCompareDAndBranch *comp)
     return true;
 }
 
+bool
+CodeGeneratorARM::visitNotI(LNotI *ins)
+{
+    
+    masm.ma_cmp(ToRegister(ins->input()), Imm32(0));
+    emitSet(Assembler::Equal, ToRegister(ins->output()));
+    return true;
+}
+
+bool
+CodeGeneratorARM::visitNotD(LNotD *ins)
+{
+    
+    
+    
+    
+    FloatRegister opd = ToFloatRegister(ins->input());
+    Register dest = ToRegister(ins->output());
+
+    
+    masm.ma_vcmpz(opd);
+    bool nocond = true;
+    if (nocond) {
+        
+        masm.as_vmrs(dest);
+        masm.ma_lsr(Imm32(28), dest, dest);
+        masm.ma_alu(dest, lsr(dest, 2), dest, op_orr); 
+        masm.ma_and(Imm32(1), dest);
+    } else {
+        masm.as_vmrs(pc);
+        masm.ma_mov(Imm32(0), dest);
+        masm.ma_mov(Imm32(1), dest, NoSetCond, Assembler::Equal);
+        masm.ma_mov(Imm32(1), dest, NoSetCond, Assembler::Overflow);
+#if 0
+        masm.as_vmrs(ToRegister(dest));
+        
+        
+        masm.ma_and(Imm32(0x50000000), dest, dest, Assembler::SetCond);
+        
+        masm.ma_mov(Imm32(1), dest, NoSetCond, Assembler::NotEqual);
+#endif
+    }
+    return true;
+}
 
 bool
 CodeGeneratorARM::visitLoadSlotV(LLoadSlotV *load)
