@@ -450,7 +450,14 @@ RPCChannel::Incall(const Message& call, size_t stackDepth)
     
     
     
-    if (call.rpc_remote_stack_depth_guess() != stackDepth) {
+    
+    
+    
+    
+    
+    
+    size_t remoteViewOfStackDepth = (stackDepth - mOutOfTurnReplies.size());
+    if (call.rpc_remote_stack_depth_guess() != remoteViewOfStackDepth) {
         
         
         
