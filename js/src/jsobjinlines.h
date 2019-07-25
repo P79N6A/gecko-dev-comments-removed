@@ -1120,7 +1120,7 @@ NewBuiltinClassInstance(JSContext *cx, Class *clasp, gc::FinalizeKind kind)
 
     
     JSObject *global;
-    if (!cx->running()) {
+    if (!cx->hasfp()) {
         global = cx->globalObject;
         OBJ_TO_INNER_OBJECT(cx, global);
         if (!global)
@@ -1374,28 +1374,6 @@ CopyInitializerObject(JSContext *cx, JSObject *baseobj)
     obj->objShape = baseobj->objShape;
 
     return obj;
-}
-
-
-
-
-
-
-
-
-
-static JS_ALWAYS_INLINE bool
-ClassMethodIsNative(JSContext *cx, JSObject *obj, Class *clasp, jsid methodid,
-                    Native native)
-{
-    JS_ASSERT(obj->getClass() == clasp);
-
-    if (HasNativeMethod(obj, methodid, native))
-        return true;
-
-    JSObject *pobj = obj->getProto();
-    return pobj && pobj->getClass() == clasp &&
-           HasNativeMethod(pobj, methodid, native);
 }
 
 inline bool

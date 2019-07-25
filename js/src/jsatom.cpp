@@ -203,6 +203,8 @@ const char *const js_common_atom_names[] = {
 
     "WeakMap",                  
 
+    "byteLength",               
+
     "return",                   
     "throw"                     
 };

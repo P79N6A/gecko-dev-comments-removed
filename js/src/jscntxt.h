@@ -117,6 +117,8 @@ namespace mjit {
 class JaegerCompartment;
 }
 
+class WeakMapBase;
+
 
 
 
@@ -423,7 +425,7 @@ struct JSRuntime {
     int64               gcJitReleaseTime;
     JSGCMode            gcMode;
     volatile bool       gcIsNeeded;
-    JSObject           *gcWeakMapList;
+    js::WeakMapBase     *gcWeakMapList;
 
     
     void                *gcMarkStackObjs[js::OBJECT_MARK_STACK_SIZE / sizeof(void *)];
@@ -1097,7 +1099,7 @@ struct JSContext
     js::ContextStack    stack;
 
     
-    bool running() const              { return stack.running(); }
+    bool hasfp() const                { return stack.hasfp(); }
     js::StackFrame* fp() const        { return stack.fp(); }
     js::StackFrame* maybefp() const   { return stack.maybefp(); }
     js::FrameRegs& regs() const       { return stack.regs(); }
@@ -1150,7 +1152,7 @@ struct JSContext
 
 
     bool canSetDefaultVersion() const {
-        return !stack.running() && !hasVersionOverride;
+        return !stack.hasfp() && !hasVersionOverride;
     }
 
     
@@ -1192,10 +1194,11 @@ struct JSContext
 
 
     void maybeMigrateVersionOverride() {
-        if (JS_LIKELY(!isVersionOverridden() && stack.empty()))
-            return;
-        defaultVersion = versionOverride;
-        clearVersionOverride();
+        JS_ASSERT(stack.empty());
+        if (JS_UNLIKELY(isVersionOverridden())) {
+            defaultVersion = versionOverride;
+            clearVersionOverride();
+        }
     }
 
     
@@ -1210,7 +1213,7 @@ struct JSContext
         if (hasVersionOverride)
             return versionOverride;
 
-        if (stack.running()) {
+        if (stack.hasfp()) {
             
             js::StackFrame *f = fp();
             while (f && !f->isScriptFrame())
@@ -1434,6 +1437,28 @@ struct JSContext
 }; 
 
 namespace js {
+
+
+
+
+
+
+
+
+
+
+class RuntimeAllocPolicy
+{
+    JSRuntime *const runtime;
+
+  public:
+    RuntimeAllocPolicy(JSRuntime *rt) : runtime(rt) {}
+    RuntimeAllocPolicy(JSContext *cx) : runtime(cx->runtime) {}
+    void *malloc_(size_t bytes) { return runtime->malloc_(bytes); }
+    void *realloc_(void *p, size_t bytes) { return runtime->realloc_(p, bytes); }
+    void free_(void *p) { runtime->free_(p); }
+    void reportAllocOverflow() const {}
+};
 
 #ifdef JS_THREADSAFE
 # define JS_THREAD_ID(cx)       ((cx)->thread() ? (cx)->thread()->id : 0)
