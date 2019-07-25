@@ -1,8 +1,8 @@
 <!DOCTYPE HTML>
 <html>
-<!--
-https://bugzilla.mozilla.org/show_bug.cgi?id=589696
--->
+
+
+
 <head>
   <title>Test for Bug 589696</title>
   <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
@@ -14,8 +14,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=589696
 <p id="display"></p>
 <iframe style='width:50px; height: 50px;' name='t'></iframe>
 <div id="content">
-  <!-- Next forms should not submit because formnovalidate isn't set on the
-       element used for the submission. -->
+  
+
   <form target='t' action='data:text/html,'>
     <input id='av' required>
     <input type='submit' formnovalidate>
@@ -26,12 +26,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=589696
     <button type='submit' formnovalidate></button>
     <button id='b' type='submit'></button>
   </form>
-  <!-- Next form should not submit because formnovalidate only applies for
-       submit controls. -->
+  
+
   <form target='t' action='data:text/html,'>
     <input id='c' required formnovalidate>
   </form>
-  <!--- Next forms should submit without any validation check. -->
+  
   <form target='t' action='data:text/html,'>
     <input id='dv' required>
     <input id='d' type='submit' formnovalidate>
@@ -45,36 +45,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=589696
 <script type="application/javascript">
 
 /** Test for Bug 589696 **/
-
-function checkFormNoValidateAttribute(aElementName)
-{
-  var element = document.createElement(aElementName);
-
-  ok("formNoValidate" in element, "formNoValidate should be a " + aElementName +
-                              " element IDL attribute");
-
-  ok(!element.formNoValidate, "formnovalidate attribute should be disabled");
-  is(element.getAttribute('formnovalidate'), null,
-    "formnovalidate attribute should be disabled");
-
-  element.formNoValidate = true;
-  ok(element.formNoValidate, "formnovalidate attribute should be enabled");
-  isnot(element.getAttribute('formnovalidate'), null,
-    "formnovalidate attribute should be enabled");
-
-  element.removeAttribute('formnovalidate');
-  element.setAttribute('formnovalidate', '');
-  ok(element.formNoValidate, "formnovalidate attribute should be enabled");
-  isnot(element.getAttribute('formnovalidate'), null,
-    "formnovalidate attribute should be enabled");
-
-  element.removeAttribute('formnovalidate');
-  ok(!element.formNoValidate, "formnovalidate attribute should be disabled");
-  is(element.getAttribute('formnovalidate'), null,
-    "formnovalidate attribute should be disabled");
-}
-
-checkFormNoValidateAttribute('button');
 
 netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
 var os = Components.classes['@mozilla.org/observer-service;1']
