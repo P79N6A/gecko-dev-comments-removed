@@ -500,7 +500,8 @@ class nsDocument : public nsIDocument,
                    public nsIApplicationCacheContainer,
                    public nsStubMutationObserver,
                    public nsIDOMDocumentTouch,
-                   public nsIInlineEventHandlers
+                   public nsIInlineEventHandlers,
+                   public nsIObserver
 {
 public:
   typedef mozilla::dom::Element Element;
@@ -787,6 +788,9 @@ public:
 
   
   NS_DECL_NSIINLINEEVENTHANDLERS
+
+  
+  NS_DECL_NSIOBSERVER
 
   virtual nsresult Init();
   
@@ -1136,6 +1140,15 @@ protected:
 
   
   
+  static nsWeakPtr sPendingPointerLockDoc;
+
+  
+  
+  
+  static nsWeakPtr sPendingPointerLockElement;
+
+  
+  
   
   nsTArray<nsWeakPtr> mFullScreenStack;
 
@@ -1195,9 +1208,6 @@ protected:
   bool mHasAudioAvailableListener:1;
 
   
-  bool mIsFullScreen:1;
-
-  
   
   bool mInFlush:1;
 
@@ -1243,6 +1253,16 @@ private:
 
   nsresult CheckFrameOptions();
   nsresult InitCSP();
+
+  
+  
+  
+  
+  
+  static nsresult SetPendingPointerLockRequest(Element* aElement);
+
+  
+  static void ClearPendingPointerLockRequest(bool aDispatchErrorEvents);
 
   
 
