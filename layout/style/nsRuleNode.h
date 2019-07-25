@@ -759,6 +759,12 @@ public:
   
   
   
+  static nscoord ComputeComputedCalc(const nsStyleCoord& aCoord,
+                                     nscoord aPercentageBasis);
+
+  
+  
+  
   
   PRBool TreeHasCachedData() const {
     NS_ASSERTION(IsRoot(), "should only be called on root of rule tree");
