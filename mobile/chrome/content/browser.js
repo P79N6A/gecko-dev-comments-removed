@@ -492,11 +492,15 @@ var Browser = {
     window.controllers.removeController(BrowserUI);
   },
 
-  getHomePage: function () {
+  getHomePage: function (aOptions) {
+    aOptions = aOptions || { useDefault: false };
+
     let url = "about:home";
     try {
-      url = Services.prefs.getComplexValue("browser.startup.homepage", Ci.nsIPrefLocalizedString).data;
-    } catch (e) { }
+      let prefs = aOptions.useDefault ? Services.prefs.getDefaultBranch(null) : Services.prefs;
+      url = prefs.getComplexValue("browser.startup.homepage", Ci.nsIPrefLocalizedString).data;
+    }
+    catch(e) { }
 
     return url;
   },
@@ -839,15 +843,7 @@ var Browser = {
     let json = aMessage.json;
     if (json.action == "leave") {
       
-      let defaultPrefs = Services.prefs.getDefaultBranch(null);
-      let url = "about:blank";
-      try {
-        url = defaultPrefs.getComplexValue("browser.startup.homepage", Ci.nsIPrefLocalizedString).data;
-        
-        if (url.indexOf("|") != -1)
-          url = url.split("|")[0];
-      } catch (e) {  }
-
+      let url = Browser.getHomePage({ useDefault: true });
       this.loadURI(url);
     } else {
       
@@ -2093,8 +2089,7 @@ var PopupBlockerObserver = {
         
         
         
-        if (popupURIspec == "" || popupURIspec == "about:blank" ||
-            popupURIspec == uri.spec)
+        if (popupURIspec == "" || popupURIspec == "about:blank" || popupURIspec == uri.spec)
           continue;
 
         let popupFeatures = pageReport[i].popupWindowFeatures;
@@ -2258,8 +2253,11 @@ var ContentCrashObserver = {
       } else {
         
         
-        if (Browser.tabs.length == 1)
-          Browser.addTab(Browser.getHomePage(), false, null, { getAttention: false });
+        if (Browser.tabs.length == 1) {
+          
+          let fallbackURL = Browser.getHomePage({ useDefault: true });
+          Browser.addTab(fallbackURL, false, null, { getAttention: false });
+        }
 
         
         
@@ -2807,12 +2805,12 @@ Tab.prototype = {
     let session = { data: dead.__SS_data, extra: dead.__SS_extdata };
 
     
-    let currentURI = dead.currentURI.spec;
+    let currentURL = dead.currentURI.spec;
     let sibling = dead.nextSibling;
 
     
     this._destroyBrowser();
-    let browser = this._createBrowser(currentURI, sibling);
+    let browser = this._createBrowser(currentURL, sibling);
 
     
     browser.__SS_data = session.data;
