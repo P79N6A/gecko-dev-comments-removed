@@ -42,7 +42,6 @@
 #include "nsDeque.h"
 #include "nsBuiltinDecoderReader.h"
 #include "nsWebMBufferedParser.h"
-#include "nsAutoRef.h"
 #include "nestegg/nestegg.h"
 #include "vpx/vpx_decoder.h"
 #include "vpx/vp8dx.h"
@@ -140,7 +139,7 @@ private:
   
   
   
-  nsReturnRef<nestegg_packet> NextPacket(TrackType aTrackType);
+  nestegg_packet* NextPacket(TrackType aTrackType);
 
   
   ogg_packet InitOggPacket(unsigned char* aData,
