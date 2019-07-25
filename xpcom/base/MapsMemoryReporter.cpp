@@ -94,16 +94,16 @@ void GetBasename(const nsCString &aPath, nsACString &aOut)
 
 struct CategoriesSeen {
   CategoriesSeen() :
-    mSeenResident(false),
+    mSeenRss(false),
     mSeenPss(false),
-    mSeenVsize(false),
+    mSeenSize(false),
     mSeenSwap(false)
   {
   }
 
-  bool mSeenResident;
+  bool mSeenRss;
   bool mSeenPss;
-  bool mSeenVsize;
+  bool mSeenSize;
   bool mSeenSwap;
 };
 
@@ -201,8 +201,9 @@ MapsReporter::CollectReports(nsIMemoryMultiReporterCallback *aCb,
   
   
 
-  NS_ASSERTION(categoriesSeen.mSeenVsize, "Didn't create a vsize node?");
-  NS_ASSERTION(categoriesSeen.mSeenVsize, "Didn't create a resident node?");
+  NS_ASSERTION(categoriesSeen.mSeenSize, "Didn't create a size node?");
+  NS_ASSERTION(categoriesSeen.mSeenRss, "Didn't create a rss node?");
+  NS_ASSERTION(categoriesSeen.mSeenPss, "Didn't create a pss node?");
   if (!categoriesSeen.mSeenSwap) {
     nsresult rv;
     rv = aCb->Callback(NS_LITERAL_CSTRING(""),
@@ -474,12 +475,12 @@ MapsReporter::ParseMapBody(
 
   const char* category;
   if (strcmp(desc, "Size") == 0) {
-    category = "vsize";
-    aCategoriesSeen->mSeenVsize = true;
+    category = "size";
+    aCategoriesSeen->mSeenSize = true;
   }
   else if (strcmp(desc, "Rss") == 0) {
-    category = "resident";
-    aCategoriesSeen->mSeenResident = true;
+    category = "rss";
+    aCategoriesSeen->mSeenRss = true;
   }
   else if (strcmp(desc, "Pss") == 0) {
     category = "pss";
