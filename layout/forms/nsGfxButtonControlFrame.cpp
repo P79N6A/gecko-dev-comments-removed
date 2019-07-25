@@ -157,7 +157,8 @@ nsGfxButtonControlFrame::CreateFrameFor(nsIContent*      aContent)
       if (newFrame) {
         
         newFrame->Init(mTextContent, parentFrame, nsnull);
-        mTextContent->SetPrimaryFrame(newFrame);
+
+
       }
     }
   }
