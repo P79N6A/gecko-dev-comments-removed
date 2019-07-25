@@ -73,7 +73,7 @@ LIRGeneratorX64::visitUnbox(MUnbox *unbox)
 {
     MInstruction *box = unbox->getInput(0);
 
-    switch (box->type()) {
+    switch (unbox->type()) {
       
       
       case MIRType_Boolean:
