@@ -3265,6 +3265,17 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
         mThebes->Paint(CurrentState().globalAlpha);
     }
 
+#if 1
+    
+    
+    
+    
+    
+    
+    
+    mThebes->UpdateSurfaceClip();
+#endif
+
 FINISH:
     if (NS_SUCCEEDED(rv))
         rv = Redraw(dirty);
