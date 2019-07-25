@@ -47,7 +47,6 @@
 #include "nsITokenizer.h"
 #include "nsThreadUtils.h"
 #include "nsIContentSink.h"
-#include "nsIParserFilter.h"
 #include "nsIRequest.h"
 #include "nsIChannel.h"
 #include "nsCOMArray.h"
@@ -116,11 +115,6 @@ class nsHtml5Parser : public nsIParser,
     {
       NS_NOTREACHED("No one should call this.");
     }
-
-    
-
-
-    NS_IMETHOD_(void) SetParserFilter(nsIParserFilter* aFilter);
 
     
 
