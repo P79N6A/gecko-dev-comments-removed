@@ -1526,7 +1526,7 @@ WeaveSvc.prototype = {
 
 
   wipeServer: function WeaveSvc_wipeServer(collections)
-    this._catch(this._notify("wipe-server", "", function() {
+    this._notify("wipe-server", "", function() {
       if (!collections) {
         collections = [];
         let info = new Resource(this.infoURL).get();
@@ -1534,19 +1534,23 @@ WeaveSvc.prototype = {
           collections.push(name);
       }
       for each (let name in collections) {
-        try {
-          new Resource(this.storageURL + name).delete();
-
-          
-          let crypto = this.storageURL + "crypto/" + name;
-          new Resource(crypto).delete();
-          CryptoMetas.del(crypto);
+        let url = this.storageURL + name;
+        let response = new Resource(url).delete();
+        if (response.status != 200 && response.status != 404) {
+          throw "Aborting wipeServer. Server responded with "
+                + response.status + " response for " + url;
         }
-        catch(ex) {
-          this._log.debug("Exception on wipe of '" + name + "': " + Utils.exceptionStr(ex));
+
+        
+        let crypto = this.storageURL + "crypto/" + name;
+        response = new Resource(crypto).delete();
+        CryptoMetas.del(crypto);
+        if (response.status != 200 && response.status != 404) {
+          throw "Aborting wipeServer. Server responded with "
+                + response.status + " response for " + crypto;
         }
       }
-    }))(),
+    })(),
 
   
 
