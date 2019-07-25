@@ -11627,6 +11627,8 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
     return;
   }
 
+  nsPresContext *presContext = mPresShell->GetPresContext();
+  presContext->SetProcessingRestyles(PR_TRUE);
   
   
   
@@ -11642,6 +11644,14 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
                                                     mPendingRestyles, PR_TRUE);
   
   ProcessRestyledFrames(changeList);
+  presContext->SetProcessingRestyles(PR_FALSE);
+
+  
+  
+  
+  
+  ProcessPendingRestyles();
+
   
   
   
