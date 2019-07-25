@@ -1820,6 +1820,17 @@ MarkContext(JSTracer *trc, JSContext *acx)
     MarkValue(trc, acx->iterValue, "iterValue");
 }
 
+#define PER_COMPARTMENT_OP(rt, op)                                      \
+    if ((rt)->gcCurrentCompartment) {                                   \
+        JSCompartment *c = (rt)->gcCurrentCompartment;                  \
+        op;                                                             \
+    } else {                                                            \
+        for (JSCompartment **i = rt->compartments.begin(); i != rt->compartments.end(); ++i) { \
+            JSCompartment *c = *i;                                      \
+            op;                                                         \
+        }                                                               \
+    }
+
 JS_REQUIRES_STACK void
 MarkRuntime(JSTracer *trc)
 {
@@ -1842,9 +1853,7 @@ MarkRuntime(JSTracer *trc)
         MarkContext(trc, acx);
 
 #ifdef JS_TRACER
-    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
-        if ((*c)->hasTraceMonitor())
-            (*c)->traceMonitor()->mark(trc);
+    PER_COMPARTMENT_OP(rt, if (c->hasTraceMonitor()) c->traceMonitor()->mark(trc));
 #endif
 
     for (ThreadDataIter i(rt); !i.empty(); i.popFront())
@@ -2250,12 +2259,7 @@ MarkAndSweep(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIM
         rt->protoHazardShape = 0;
     }
 
-    if (rt->gcCurrentCompartment) {
-        rt->gcCurrentCompartment->purge(cx);
-    } else {
-        for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
-            (*c)->purge(cx);
-    }
+    PER_COMPARTMENT_OP(rt, c->purge(cx));
 
     js_PurgeThreads(cx);
     {
@@ -2284,8 +2288,6 @@ MarkAndSweep(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIM
     if (comp) {
         for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c)
             (*c)->markCrossCompartmentWrappers(&gcmarker);
-    } else {
-        js_MarkScriptFilenames(rt);
     }
 
     MarkRuntime(&gcmarker);
@@ -2385,16 +2387,16 @@ MarkAndSweep(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIM
      PropertyTree::dumpShapes(cx);
 #endif
 
+    
+
+
+
+
+
+    PER_COMPARTMENT_OP(rt, js_SweepScriptFilenames(c));
+
     if (!comp) {
         SweepCompartments(cx, gckind);
-
-        
-
-
-
-
-
-        js_SweepScriptFilenames(rt);
 
         
         Probes::GCEndSweepPhase(NULL);
