@@ -165,6 +165,14 @@ public:
 
     virtual PRBool SwapBuffers() { return PR_FALSE; }
 
+    
+
+
+    virtual PRBool BindTexImage() { return PR_FALSE; }
+    
+
+
+    virtual PRBool ReleaseTexImage() { return PR_FALSE; }
 protected:
 
     PRBool mInitialized;

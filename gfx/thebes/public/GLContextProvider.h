@@ -43,6 +43,7 @@
 #include "nsAutoPtr.h"
 
 class nsIWidget;
+class gfxASurface;
 
 namespace mozilla {
 namespace gl {
@@ -119,6 +120,15 @@ public:
 
 
     already_AddRefed<GLContext> CreateForWindow(nsIWidget *aWidget);
+
+    
+
+
+
+
+
+
+    already_AddRefed<GLContext> CreateForNativePixmapSurface(gfxASurface *aSurface);
 };
 
 
@@ -146,6 +156,15 @@ public:
 
 
     static already_AddRefed<GLContext> CreateForWindow(nsIWidget *aWidget);
+
+    
+
+
+
+
+
+
+    static already_AddRefed<GLContext> CreateForNativePixmapSurface(gfxASurface *aSurface);
 };
 
 extern GLContextProvider THEBES_API sGLContextProvider;
