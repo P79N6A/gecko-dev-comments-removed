@@ -763,15 +763,21 @@ BrowserGlue.prototype = {
     const PREF_TELEMETRY_ENABLED  = "toolkit.telemetry.enabled";
     const PREF_TELEMETRY_INFOURL  = "toolkit.telemetry.infoURL";
     const PREF_TELEMETRY_SERVER_OWNER = "toolkit.telemetry.server_owner";
+    
+    const TELEMETRY_PROMPT_REV = 2;
 
+    var telemetryPrompted = null;
     try {
-      
-      
-      if (Services.prefs.getBoolPref(PREF_TELEMETRY_ENABLED) ||
-          Services.prefs.getBoolPref(PREF_TELEMETRY_PROMPTED))
-         return;
+      telemetryPrompted = Services.prefs.getIntPref(PREF_TELEMETRY_PROMPTED);
     } catch(e) {}
-
+    
+    
+    if (telemetryPrompted === TELEMETRY_PROMPT_REV)
+      return;
+    
+    Services.prefs.clearUserPref(PREF_TELEMETRY_PROMPTED);
+    Services.prefs.clearUserPref(PREF_TELEMETRY_ENABLED);
+    
     
     var win = this.getMostRecentBrowserWindow();
     var browser = win.gBrowser; 
@@ -802,7 +808,7 @@ BrowserGlue.prototype = {
                   ];
 
     
-    Services.prefs.setBoolPref(PREF_TELEMETRY_PROMPTED, true);
+    Services.prefs.setIntPref(PREF_TELEMETRY_PROMPTED, TELEMETRY_PROMPT_REV);
 
     var notification = notifyBox.appendNotification(telemetryPrompt, "telemetry", null, notifyBox.PRIORITY_INFO_LOW, buttons);
     notification.persistence = 6; 
