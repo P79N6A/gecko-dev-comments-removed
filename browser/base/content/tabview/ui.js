@@ -302,6 +302,10 @@ var UIManager = {
     });
     this._reorderTabItemsOnShow = [];
 
+#ifdef XP_WIN
+    
+    gTabViewFrame.style.marginTop = 0;
+#endif
     gTabViewDeck.selectedIndex = 1;
     gTabViewFrame.contentWindow.focus();
 
@@ -354,6 +358,12 @@ var UIManager = {
     });
     this._reorderTabsOnHide = [];
 
+#ifdef XP_WIN
+    
+    
+    
+    gTabViewFrame.style.marginTop = gBrowser.boxObject.y + "px";
+#endif
     gTabViewDeck.selectedIndex = 0;
     gBrowser.contentWindow.focus();
 
