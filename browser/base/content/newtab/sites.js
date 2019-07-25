@@ -85,9 +85,14 @@ Site.prototype = {
 
 
   block: function Site_block(aCallback) {
-    gBlockedLinks.block(this._link);
-    gUpdater.updateGrid(aCallback);
-    gPage.updateModifiedFlag();
+    if (gBlockedLinks.isBlocked(this._link)) {
+      if (aCallback)
+        aCallback();
+    } else {
+      gBlockedLinks.block(this._link);
+      gUpdater.updateGrid(aCallback);
+      gPage.updateModifiedFlag();
+    }
   },
 
   

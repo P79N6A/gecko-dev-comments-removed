@@ -265,3 +265,15 @@ function simulateDrop(aDropTarget, aDragSource) {
   if (aDragSource)
     cw.gDrag.end(aDragSource.site);
 }
+
+
+
+
+function whenPagesUpdated() {
+  NewTabUtils.allPages.register({
+    update: function () {
+      NewTabUtils.allPages.unregister(this);
+      executeSoon(TestRunner.next);
+    }
+  });
+}
