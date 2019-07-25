@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsAppShell.h"
 #include "nsToolkit.h"
 #include "nsThreadUtils.h"
@@ -47,6 +48,9 @@
 
 #include <windows.h> 
 #include <tlhelp32.h> 
+
+const PRUnichar* kAppShellEventId = L"nsAppShell:EventID";
+const PRUnichar* kTaskbarButtonEventId = L"TaskbarButtonCreated";
 
 #ifdef WINCE
 BOOL WaitMessage(VOID)
@@ -140,10 +144,10 @@ nsAppShell::Init()
 #endif
 
   if (!sMsgId)
-    sMsgId = RegisterWindowMessageW(L"nsAppShell:EventID");
+    sMsgId = RegisterWindowMessageW(kAppShellEventId);
 
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
-  sTaskbarButtonCreatedMsg = ::RegisterWindowMessageW(L"TaskbarButtonCreated");
+  sTaskbarButtonCreatedMsg = ::RegisterWindowMessageW(kTaskbarButtonEventId);
   NS_ASSERTION(sTaskbarButtonCreatedMsg, "Could not register taskbar button creation message");
 
   
@@ -175,7 +179,6 @@ nsAppShell::Init()
 
   return nsBaseAppShell::Init();
 }
-
 
 
 
@@ -263,10 +266,44 @@ nsAppShell::Run(void)
 #endif
 
 void
+nsAppShell::DoProcessMoreGeckoEvents()
+{
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mEventloopNestingLevel < 2) {
+    OnDispatchedEvent(nsnull);
+    mNativeCallbackPending = PR_FALSE;
+  } else {
+    mNativeCallbackPending = PR_TRUE;
+  }
+}
+
+void
 nsAppShell::ScheduleNativeEventCallback()
 {
   
-  NS_ADDREF_THIS();
+  NS_ADDREF_THIS(); 
   ::PostMessage(mEventWnd, sMsgId, 0, reinterpret_cast<LPARAM>(this));
 }
 
@@ -302,6 +339,11 @@ nsAppShell::ProcessNextNativeEvent(PRBool mayWait)
       ::WaitMessage();
     }
   } while (!gotMessage && mayWait);
+
+  
+  
+  if (mNativeCallbackPending && mEventloopNestingLevel == 1)
+    DoProcessMoreGeckoEvents();
 
   return gotMessage;
 }

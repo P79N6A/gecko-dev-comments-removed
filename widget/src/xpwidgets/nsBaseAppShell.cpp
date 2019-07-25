@@ -93,6 +93,7 @@ nsBaseAppShell::Init()
   return NS_OK;
 }
 
+
 void
 nsBaseAppShell::NativeEventCallback()
 {
@@ -136,10 +137,20 @@ nsBaseAppShell::NativeEventCallback()
   
   
   if (NS_HasPendingEvents(thread))
-    OnDispatchedEvent(nsnull);
+    DoProcessMoreGeckoEvents();
 
   --mEventloopNestingLevel;
 }
+
+
+
+void
+nsBaseAppShell::DoProcessMoreGeckoEvents()
+{
+  OnDispatchedEvent(nsnull);
+}
+
+
 
 PRBool
 nsBaseAppShell::DoProcessNextNativeEvent(PRBool mayWait)
@@ -255,6 +266,7 @@ nsBaseAppShell::OnDispatchedEvent(nsIThreadInternal *thr)
   if (lastVal == 1)
     return NS_OK;
 
+  
   ScheduleNativeEventCallback();
   return NS_OK;
 }

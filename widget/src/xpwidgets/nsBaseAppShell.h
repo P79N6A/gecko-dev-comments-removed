@@ -79,6 +79,13 @@ protected:
 
 
 
+
+  virtual void DoProcessMoreGeckoEvents();
+
+  
+
+
+
   virtual void ScheduleNativeEventCallback() = 0;
 
   
@@ -96,6 +103,7 @@ protected:
   virtual PRBool ProcessNextNativeEvent(PRBool mayWait) = 0;
 
   PRInt32 mSuspendNativeCount;
+  PRUint32 mEventloopNestingLevel;
 
 private:
   PRBool DoProcessNextNativeEvent(PRBool mayWait);
@@ -115,7 +123,6 @@ private:
   PRBool *mBlockedWait;
   PRInt32 mFavorPerf;
   PRInt32 mNativeEventPending;
-  PRUint32 mEventloopNestingLevel;
   PRIntervalTime mStarvationDelay;
   PRIntervalTime mSwitchTime;
   PRIntervalTime mLastNativeEventTime;
