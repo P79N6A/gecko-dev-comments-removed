@@ -1310,9 +1310,6 @@ nsSVGGlyphFrame::IsAbsolutelyPositioned()
        frame != nsnull;
        frame = frame->GetParent()) {
 
-    if (!frame)
-      break;
-
     
     
     if (frame->GetType() == nsGkAtoms::svgTextPathFrame) {
