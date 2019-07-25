@@ -225,12 +225,14 @@ struct TypeSet
     void addMonitorRead(JSContext *cx, JSArenaPool &pool, analyze::Bytecode *code, TypeSet *target);
 
     
-    void addFreeze(JSContext *cx, JSArenaPool &pool, analyze::Bytecode *code);
-    void addFreezeProp(JSContext *cx, JSArenaPool &pool, analyze::Bytecode *code, jsid id);
-    void addFreezeElem(JSContext *cx, JSArenaPool &pool, analyze::Bytecode *code, TypeSet *object);
+    void addFreezeTypeTag(JSContext *cx, JSScript *script, bool isConstructing);
 
     
-    inline JSValueType getKnownTypeTag();
+
+
+
+
+    inline JSValueType getKnownTypeTag(JSContext *cx, JSScript *script, bool isConstructing);
 
     
 
@@ -720,9 +722,6 @@ struct TypeCompartment
     uint64_t analysisTime;
 
     
-    unsigned recompilations;
-
-    
     static const unsigned TYPE_COUNT_LIMIT = 4;
     unsigned typeCounts[TYPE_COUNT_LIMIT];
     unsigned typeCountOver;
@@ -766,9 +765,6 @@ struct TypeCompartment
 
     
     inline void monitorBytecode(analyze::Bytecode *code);
-
-    
-    inline void recompileScript(analyze::Bytecode *code);
 };
 
 } 

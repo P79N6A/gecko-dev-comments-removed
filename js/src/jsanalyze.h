@@ -309,12 +309,6 @@ class Script
     
     jsuword *localNames;
 
-    
-    bool compiled;
-
-    
-    bool recompileNeeded;
-
     void setFunction(JSContext *cx, JSFunction *fun);
 
     inline bool isEval() { return parent && !function; }
@@ -334,14 +328,6 @@ class Script
 
     
     void analyzeTypes(JSContext *cx, Bytecode *codeType);
-
-    
-
-
-
-
-    void freezeTypes(JSContext *cx, Bytecode *codeType);
-    void freezeAllTypes(JSContext *cx);
 
     
 
