@@ -1360,9 +1360,13 @@ PluginInstanceChild::SetWindowLongAHook(HWND hWnd,
         GetProp(hWnd, kPluginInstanceChildProperty));
 
     
-    self->mPluginWndProc =
-        reinterpret_cast<WNDPROC>(sUser32SetWindowLongAHookStub(hWnd, nIndex,
-            reinterpret_cast<LONG_PTR>(PluginWindowProc)));
+    WNDPROC currentProc =
+        reinterpret_cast<WNDPROC>(GetWindowLongPtr(hWnd, GWLP_WNDPROC));
+    if (currentProc != PluginWindowProc) {
+        self->mPluginWndProc =
+            reinterpret_cast<WNDPROC>(sUser32SetWindowLongAHookStub(hWnd, nIndex,
+                reinterpret_cast<LONG_PTR>(PluginWindowProc)));
+    }
     return proc;
 }
 
@@ -1389,9 +1393,13 @@ PluginInstanceChild::SetWindowLongWHook(HWND hWnd,
         GetProp(hWnd, kPluginInstanceChildProperty));
 
     
-    self->mPluginWndProc =
-        reinterpret_cast<WNDPROC>(sUser32SetWindowLongWHookStub(hWnd, nIndex,
-            reinterpret_cast<LONG_PTR>(PluginWindowProc)));
+    WNDPROC currentProc =
+        reinterpret_cast<WNDPROC>(GetWindowLongPtr(hWnd, GWLP_WNDPROC));
+    if (currentProc != PluginWindowProc) {
+        self->mPluginWndProc =
+            reinterpret_cast<WNDPROC>(sUser32SetWindowLongAHookStub(hWnd, nIndex,
+                reinterpret_cast<LONG_PTR>(PluginWindowProc)));
+    }
     return proc;
 }
 
