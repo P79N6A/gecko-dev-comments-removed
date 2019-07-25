@@ -235,6 +235,8 @@ struct nsHTMLReflowMetrics {
   nscoord width, height;    
   nscoord ascent;           
 
+  PRUint32 mFlags;
+
   enum { ASK_FOR_BASELINE = nscoord_MAX };
 
 #ifdef MOZ_MATHML
@@ -276,39 +278,15 @@ struct nsHTMLReflowMetrics {
   
   void UnionOverflowAreasWithDesiredBounds();
 
-  PRUint32 mFlags;
-
   
   
   
-  nsHTMLReflowMetrics(PRUint32 aFlags = 0) {
-    mFlags = aFlags;
-#ifdef MOZ_MATHML
-    mBoundingMetrics.Clear();
-#endif
-
-    
-    
-    
-    width = height = 0;
-    ascent = ASK_FOR_BASELINE;
-  }
-
-  nsHTMLReflowMetrics& operator=(const nsHTMLReflowMetrics& aOther)
-  {
-    mFlags = aOther.mFlags;
-    mCarriedOutBottomMargin = aOther.mCarriedOutBottomMargin;
-    mOverflowAreas = aOther.mOverflowAreas;
-#ifdef MOZ_MATHML
-    mBoundingMetrics = aOther.mBoundingMetrics;
-#endif
-
-    width = aOther.width;
-    height = aOther.height;
-    ascent = aOther.ascent;
-    return *this;
-  }
-
+  
+  
+  
+  nsHTMLReflowMetrics(PRUint32 aFlags = 0)
+    : width(0), height(0), ascent(ASK_FOR_BASELINE), mFlags(aFlags)
+  {}
 };
 
 #endif 

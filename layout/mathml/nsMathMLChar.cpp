@@ -864,7 +864,7 @@ nsMathMLChar::SetData(nsPresContext* aPresContext,
   
   
   mDirection = NS_STRETCH_DIRECTION_UNSUPPORTED;
-  mBoundingMetrics.Clear();
+  mBoundingMetrics = nsBoundingMetrics();
   mGlyphTable = nsnull;
   
   if (gGlyphTableList && (1 == mData.Length())) {
