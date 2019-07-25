@@ -1,8 +1,8 @@
+/* vim: set ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
-
-
-
-
+// Tests that the style inspector works properly
 
 let doc;
 let stylePanel;
@@ -14,7 +14,6 @@ Cu.import("resource:///modules/devtools/CssHtmlTree.jsm");
 function test()
 {
   waitForExplicitFinish();
-  ignoreAllUncaughtExceptions();
   addTab(TEST_URI);
   browser.addEventListener("load", tabLoaded, true);
 }
@@ -24,7 +23,7 @@ function tabLoaded()
   browser.removeEventListener("load", tabLoaded, true);
   doc = content.document;
   ok(window.StyleInspector, "StyleInspector exists");
-  
+  // ok(StyleInspector.isEnabled, "style inspector preference is enabled");
   stylePanel = new StyleInspector(window);
   Services.obs.addObserver(runTests, "StyleInspector-opened", false);
   stylePanel.createPanel(false, function() {
@@ -39,7 +38,7 @@ function runTests()
   ok(stylePanel.isOpen(), "style inspector is open");
 
   testMatchedSelectors();
-  
+  //testUnmatchedSelectors();
 
   info("finishing up");
   Services.obs.addObserver(finishUp, "StyleInspector-closed", false);

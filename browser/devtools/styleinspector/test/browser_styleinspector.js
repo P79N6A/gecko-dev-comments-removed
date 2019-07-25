@@ -1,8 +1,8 @@
+/* vim: set ts=2 et sw=2 tw=80: */
+/* Any copyright is dedicated to the Public Domain.
+   http://creativecommons.org/publicdomain/zero/1.0/ */
 
-
-
-
-
+// Tests that the style inspector works properly
 
 let doc;
 let stylePanel;
@@ -64,7 +64,7 @@ function SI_CheckProperty()
   let cssLogic = stylePanel.cssLogic;
   let propertyInfo = cssLogic.getPropertyInfo("color");
   ok(propertyInfo.matchedRuleCount > 0, "color property has matching rules");
-  
+  //ok(propertyInfo.unmatchedRuleCount > 0, "color property has unmatched rules");
 }
 
 function finishUp()
@@ -79,7 +79,6 @@ function finishUp()
 function test()
 {
   waitForExplicitFinish();
-  ignoreAllUncaughtExceptions();
   gBrowser.selectedTab = gBrowser.addTab();
   gBrowser.selectedBrowser.addEventListener("load", function(evt) {
     gBrowser.selectedBrowser.removeEventListener(evt.type, arguments.callee, true);
