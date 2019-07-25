@@ -50,9 +50,13 @@ html {
 #logo {
   float: right;
   margin-top: -24px;
-  margin-right: -34px;
+  -moz-margin-end: -34px;
   
   -moz-transform: translate(0,0);
+}
+
+body[dir="rtl"] #logo {
+  float: left;
 }
 
 #header {
