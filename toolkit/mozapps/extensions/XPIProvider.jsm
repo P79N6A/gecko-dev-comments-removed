@@ -892,6 +892,34 @@ function resultRows(aStatement) {
 
 
 
+
+
+
+
+function recursiveLastModifiedTime(aFile) {
+  if (aFile.isFile())
+    return aFile.lastModifiedTime;
+
+  if (aFile.isDirectory()) {
+    let entries = aFile.directoryEntries.QueryInterface(Ci.nsIDirectoryEnumerator);
+    let entry, time;
+    let maxTime = aFile.lastModifiedTime;
+    while (entry = entries.nextFile) {
+      time = recursiveLastModifiedTime(entry);
+      maxTime = Math.max(time, maxTime);
+    }
+    entries.close();
+    return maxTime;
+  }
+  
+  
+  return 0;
+}
+
+
+
+
+
 var Prefs = {
   
 
@@ -1296,8 +1324,9 @@ var XPIProvider = {
     }
     catch (e) { }
   },
-
   
+  
+
 
 
 
@@ -1313,7 +1342,7 @@ var XPIProvider = {
       let id = aLocation.getIDForLocation(file);
       addonStates[id] = {
         descriptor: file.persistentDescriptor,
-        mtime: file.lastModifiedTime
+        mtime: recursiveLastModifiedTime(file)
       };
     });
 
@@ -1459,6 +1488,7 @@ var XPIProvider = {
   },
 
   
+
 
 
 
@@ -1869,6 +1899,12 @@ var XPIProvider = {
     
     cache = JSON.stringify(this.getInstallLocationStates());
     Services.prefs.setCharPref(PREF_INSTALL_CACHE, cache);
+    
+    if (changed) {
+      
+      let xulPrototypeCache = Cc["@mozilla.org/xul/xul-prototype-cache;1"].getService(Ci.nsISupports);
+      Services.obs.notifyObservers(null, "startupcache-invalidate", null);
+    }
     return changed;
   },
 
@@ -4975,7 +5011,7 @@ AddonInstall.prototype = {
 
         
         this.addon._installLocation = this.installLocation;
-        this.addon.updateDate = file.lastModifiedTime;
+        this.addon.updateDate = recursiveLastModifiedTime(file);
         this.addon.visible = true;
         if (isUpgrade) {
           XPIDatabase.updateAddonMetadata(this.existingAddon, this.addon,

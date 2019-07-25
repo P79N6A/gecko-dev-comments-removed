@@ -24,7 +24,7 @@ function run_test() {
   }, profileDir);
   
   
-  dest.lastModifiedTime -= 5000;
+  setExtensionModifiedTime(dest, dest.lastModifiedTime - 5000);
 
   startupManager();
 

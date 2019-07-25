@@ -220,7 +220,7 @@ function run_test_5() {
 
     var dest = writeInstallRDFForExtension(addon2, sourceDir, addon1.id);
     
-    dest.lastModifiedTime -= 5000;
+    setExtensionModifiedTime(dest, dest.lastModifiedTime - 5000);
 
     restartManager();
 
@@ -310,7 +310,7 @@ function run_test_8() {
 
     var dest = writeInstallRDFForExtension(addon1_2, sourceDir);
     
-    dest.lastModifiedTime -= 5000;
+    setExtensionModifiedTime(dest, dest.lastModifiedTime - 5000);
 
     restartManager();
 

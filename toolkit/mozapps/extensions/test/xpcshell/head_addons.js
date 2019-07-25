@@ -572,6 +572,23 @@ function writeInstallRDFForExtension(aData, aDir, aId, aExtraFile) {
   return dir;
 }
 
+
+
+
+
+
+
+
+
+function setExtensionModifiedTime(aExt, aTime) {
+  aExt.lastModifiedTime = aTime;
+  if (aExt.isDirectory()) {
+    aExt = aExt.clone();
+    aExt.append("install.rdf");
+    aExt.lastModifiedTime = aTime;
+  }
+}
+
 function registerDirectory(aKey, aDir) {
   var dirProvider = {
     getFile: function(aProp, aPersistent) {
