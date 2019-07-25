@@ -1857,6 +1857,10 @@ void nsBuiltinDecoderStateMachine::DecodeSeek()
   PRInt64 mediaTime = GetMediaTime();
   if (mediaTime != seekTime) {
     currentTimeChanged = true;
+    
+    
+    
+    StopPlayback();
     UpdatePlaybackPositionInternal(seekTime);
   }
 
@@ -1874,7 +1878,6 @@ void nsBuiltinDecoderStateMachine::DecodeSeek()
     
     
     
-    StopPlayback();
     StopAudioThread();
     ResetPlayback();
     nsresult res;
