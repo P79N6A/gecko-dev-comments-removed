@@ -351,6 +351,12 @@ protected:
     };
     Action GetActionFor(nsMouseScrollEvent* aEvent);
 
+    
+
+
+
+    bool NeedToComputeLineOrPageDelta(mozilla::widget::WheelEvent* aEvent);
+
   private:
     WheelPrefs();
     ~WheelPrefs();
@@ -502,13 +508,15 @@ protected:
 
 
 
-  class PixelDeltaAccumulator
+
+
+  class DeltaAccumulator
   {
   public:
-    static PixelDeltaAccumulator* GetInstance()
+    static DeltaAccumulator* GetInstance()
     {
       if (!sInstance) {
-        sInstance = new PixelDeltaAccumulator;
+        sInstance = new DeltaAccumulator;
       }
       return sInstance;
     }
@@ -524,27 +532,30 @@ protected:
 
 
 
-    void OnMousePixelScrollEvent(nsPresContext* aPresContext,
-                                 nsIFrame* aTargetFrame,
-                                 nsEventStateManager* aESM,
-                                 nsMouseScrollEvent* aEvent,
-                                 nsEventStatus* aStatus);
+    void InitLineOrPageDelta(nsIFrame* aTargetFrame,
+                             nsEventStateManager* aESM,
+                             mozilla::widget::WheelEvent* aEvent);
+
     
 
 
     void Reset();
 
   private:
-    PixelDeltaAccumulator() :
-      mX(0), mY(0)
+    DeltaAccumulator() :
+      mX(0.0), mY(0.0), mHandlingDeltaMode(PR_UINT32_MAX),
+      mHandlingPixelOnlyDevice(false)
     {
     }
 
-    PRInt32 mX;
-    PRInt32 mY;
+    double mX;
+    double mY;
     TimeStamp mLastTime;
 
-    static PixelDeltaAccumulator* sInstance;
+    PRUint32 mHandlingDeltaMode;
+    bool mHandlingPixelOnlyDevice;
+
+    static DeltaAccumulator* sInstance;
   };
 
   
