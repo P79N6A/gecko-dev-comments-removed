@@ -640,7 +640,8 @@ nsChangeHint nsStyleOutline::CalcDifference(const nsStyleOutline& aOther) const
       (outlineIsVisible && (mOutlineOffset != aOther.mOutlineOffset ||
                             mOutlineWidth != aOther.mOutlineWidth ||
                             mTwipsPerPixel != aOther.mTwipsPerPixel))) {
-    return NS_CombineHint(nsChangeHint_ReflowFrame, nsChangeHint_RepaintFrame);
+    return NS_CombineHint(nsChangeHint_AllReflowHints,
+                          nsChangeHint_RepaintFrame);
   }
   if ((mOutlineStyle != aOther.mOutlineStyle) ||
       (mOutlineColor != aOther.mOutlineColor) ||
@@ -893,7 +894,7 @@ nsChangeHint nsStyleSVG::CalcDifference(const nsStyleSVG& aOther) const
   if (mTextRendering != aOther.mTextRendering) {
     NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
     
-    NS_UpdateHint(hint, nsChangeHint_ReflowFrame);
+    NS_UpdateHint(hint, nsChangeHint_AllReflowHints);
   }
 
   if (!EqualURIs(mMarkerEnd, aOther.mMarkerEnd) ||
@@ -997,7 +998,7 @@ nsChangeHint nsStyleSVGReset::CalcDifference(const nsStyleSVGReset& aOther) cons
       !EqualURIs(mFilter, aOther.mFilter)     ||
       !EqualURIs(mMask, aOther.mMask)) {
     NS_UpdateHint(hint, nsChangeHint_UpdateEffects);
-    NS_UpdateHint(hint, nsChangeHint_ReflowFrame);
+    NS_UpdateHint(hint, nsChangeHint_AllReflowHints);
     NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
   } else if (mDominantBaseline != aOther.mDominantBaseline) {
     NS_UpdateHint(hint, nsChangeHint_NeedReflow);
@@ -1113,7 +1114,7 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
 
   if (mBoxSizing != aOther.mBoxSizing) {
     
-    return NS_CombineHint(hint, nsChangeHint_ReflowFrame);
+    return NS_CombineHint(hint, nsChangeHint_AllReflowHints);
   }
 
 #ifdef MOZ_FLEXBOX
@@ -1126,7 +1127,7 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
       mFlexGrow != aOther.mFlexGrow ||
       mFlexShrink != aOther.mFlexShrink ||
       mOrder != aOther.mOrder) {
-    return NS_CombineHint(hint, nsChangeHint_ReflowFrame);
+    return NS_CombineHint(hint, nsChangeHint_AllReflowHints);
   }
 
   
@@ -1136,7 +1137,7 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
   
   if (mAlignItems != aOther.mAlignItems ||
       mFlexDirection != aOther.mFlexDirection) {
-    return NS_CombineHint(hint, nsChangeHint_ReflowFrame);
+    return NS_CombineHint(hint, nsChangeHint_AllReflowHints);
   }
 
   
@@ -1155,7 +1156,7 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
     
     
     
-    return NS_CombineHint(hint, nsChangeHint_ReflowFrame);
+    return NS_CombineHint(hint, nsChangeHint_AllReflowHints);
   }
 
   if (mWidth != aOther.mWidth ||
@@ -1165,7 +1166,7 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
     
     return
       NS_CombineHint(hint,
-                     NS_SubtractHint(nsChangeHint_ReflowFrame,
+                     NS_SubtractHint(nsChangeHint_AllReflowHints,
                                      NS_CombineHint(nsChangeHint_ClearDescendantIntrinsics,
                                                     nsChangeHint_NeedDirtyReflow)));
   }
@@ -2188,7 +2189,7 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
   if (mFloats != aOther.mFloats) {
     
     NS_UpdateHint(hint,
-       NS_SubtractHint(nsChangeHint_ReflowFrame,
+       NS_SubtractHint(nsChangeHint_AllReflowHints,
                        NS_CombineHint(nsChangeHint_ClearDescendantIntrinsics,
                                       nsChangeHint_NeedDirtyReflow)));
   }
@@ -2201,7 +2202,8 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
       || mAppearance != aOther.mAppearance
       || mOrient != aOther.mOrient
       || mClipFlags != aOther.mClipFlags || !mClip.IsEqualInterior(aOther.mClip))
-    NS_UpdateHint(hint, NS_CombineHint(nsChangeHint_ReflowFrame, nsChangeHint_RepaintFrame));
+    NS_UpdateHint(hint, NS_CombineHint(nsChangeHint_AllReflowHints,
+                                       nsChangeHint_RepaintFrame));
 
   if (mOpacity != aOther.mOpacity) {
     NS_UpdateHint(hint, nsChangeHint_UpdateOpacityLayer);

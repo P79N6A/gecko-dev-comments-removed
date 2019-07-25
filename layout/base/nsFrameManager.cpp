@@ -984,7 +984,7 @@ CaptureChange(nsStyleContext* aOldContext, nsStyleContext* aNewContext,
 {
   nsChangeHint ourChange = aOldContext->CalcStyleDifference(aNewContext,
                              aParentHintsNotHandledForDescendants);
-  NS_ASSERTION(!(ourChange & nsChangeHint_ReflowFrame) ||
+  NS_ASSERTION(!(ourChange & nsChangeHint_AllReflowHints) ||
                (ourChange & nsChangeHint_NeedReflow),
                "Reflow hint bits set without actually asking for a reflow");
 
@@ -1564,7 +1564,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                 ReResolveStyleContext(aPresContext, outOfFlowFrame,
                                       content, aChangeList,
                                       NS_SubtractHint(aMinChange,
-                                                      nsChangeHint_ReflowFrame),
+                                                      nsChangeHint_AllReflowHints),
                                       nonInheritedHints,
                                       childRestyleHint,
                                       aRestyleTracker,
