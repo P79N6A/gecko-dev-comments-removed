@@ -102,8 +102,21 @@ void Thread::Stop() {
   DCHECK_NE(thread_id_, PlatformThread::CurrentId());
 
   
-  if (message_loop_)
+  if (message_loop_) {
+
+
+
+
+#ifdef OS_LINUX
+      printf("TEST-UNEXPECTED-FAIL | process %d | posted quit task to other thread\n", getpid());
+#endif
+
+
+
+
+
     message_loop_->PostTask(FROM_HERE, new ThreadQuitTask());
+  }
 
   
   
@@ -111,7 +124,28 @@ void Thread::Stop() {
   
   
   
+
+
+
+
+#ifdef OS_LINUX
+  printf("TEST-UNEXPECTED-FAIL | process %d | joining other thread\n", getpid());
+#endif
+
+
+
+
   PlatformThread::Join(thread_);
+
+
+
+
+#ifdef OS_LINUX
+  printf("TEST-UNEXPECTED-FAIL | process %d | other thread joined\n", getpid());
+#endif
+
+
+
 
   
   message_loop_ = NULL;
@@ -145,10 +179,19 @@ void Thread::ThreadMain() {
   message_loop.set_thread_name(name_);
   message_loop_ = &message_loop;
 
+#if defined(CHROMIUM_MOZILLA_BUILD)
+  bool wait_for_init = startup_data_->options.wait_for_init;
+  if (!wait_for_init)
+    startup_data_->event.Signal();
+#endif
+
   
   
   Init();
 
+#if defined(CHROMIUM_MOZILLA_BUILD)
+  if (wait_for_init)
+#endif
   startup_data_->event.Signal();
   
   
