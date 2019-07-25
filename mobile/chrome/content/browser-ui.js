@@ -205,29 +205,31 @@ var BrowserUI = {
 
   _editURI: function _editURI(aEdit) {
     if (aEdit) {
+      
+      
+      
       let isOpened = this._edit.hasAttribute("open");
       if (!isOpened) {
         Elements.urlbarState.setAttribute("mode", "edit");
         this._edit.defaultValue = this._edit.value;
+
+        
+        let urlString = this.getDisplayURI(Browser.selectedBrowser);
+        if (Util.isURLEmpty(urlString))
+          urlString = "";
+        this._edit.value = urlString;
       }
 
       
-      let urlString = this.getDisplayURI(Browser.selectedBrowser);
-      if (Util.isURLEmpty(urlString))
-        urlString = "";
-      this._edit.value = urlString;
-
+      
       if (!this._edit.readOnly || Util.isPortrait()) {
-        this._edit.readOnly = false;
-
         
         
         this._edit.blur();
         gFocusManager.setFocus(this._edit, Ci.nsIFocusManager.FLAG_NOSCROLL);
       }
-      else {
-        this._edit.readOnly = !isOpened;
-      }
+
+      this._edit.readOnly = false;
     }
     else if (!aEdit) {
       this._updateToolbar();
