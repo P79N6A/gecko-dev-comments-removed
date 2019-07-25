@@ -760,11 +760,15 @@ nodePrincipal_getter(JSContext *cx, JSHandleObject wrapper, JSHandleId id, jsval
 }
 
 static bool
-IsPrivilegedScript()
+ContentScriptHasUniversalXPConnect()
 {
-    
     nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
     if (ssm) {
+        
+        
+        
+        MOZ_ASSERT(!AccessCheck::callerIsChrome());
+
         bool privileged;
         if (NS_SUCCEEDED(ssm->IsCapabilityEnabled("UniversalXPConnect", &privileged)) && privileged)
             return true;
@@ -795,6 +799,9 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWra
                                                JSObject *wrapper, JSObject *holder, jsid id,
                                                bool set, PropertyDescriptor *desc)
 {
+    
+    
+    MOZ_ASSERT(js::IsObjectInContextCompartment(wrapper, cx));
     XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
     if (!WrapperFactory::IsPartiallyTransparent(wrapper) &&
         (((id == rt->GetStringID(XPCJSRuntime::IDX_BASEURIOBJECT) ||
@@ -802,7 +809,7 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWra
           Is<nsINode>(wrapper)) ||
           (id == rt->GetStringID(XPCJSRuntime::IDX_DOCUMENTURIOBJECT) &&
           Is<nsIDocument>(wrapper))) &&
-        IsPrivilegedScript()) {
+        (AccessCheck::callerIsChrome() || ContentScriptHasUniversalXPConnect())) {
         bool status;
         Wrapper::Action action = set ? Wrapper::SET : Wrapper::GET;
         desc->obj = NULL; 
@@ -1166,7 +1173,9 @@ IsTransparent(JSContext *cx, JSObject *wrapper)
         return false;
 
     
-    if (IsPrivilegedScript())
+    
+    
+    if (ContentScriptHasUniversalXPConnect())
         return true;
 
     return AccessCheck::documentDomainMakesSameOrigin(cx, UnwrapObject(wrapper));
