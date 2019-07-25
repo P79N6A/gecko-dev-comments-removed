@@ -4123,7 +4123,7 @@ nsHTMLEditRules::WillOutdent(nsISelection *aSelection, PRBool *aCancel, PRBool *
           float f;
           nsCOMPtr<nsIAtom> unit;
           mHTMLEditor->mHTMLCSSUtils->ParseLength(value, &f, getter_AddRefs(unit));
-          if (f > 0)
+          if (f > 0 && !(nsHTMLEditUtils::IsList(curParent) && nsHTMLEditUtils::IsList(curNode)))
           {
             curBlockQuote = n;
             firstBQChild  = curNode;
