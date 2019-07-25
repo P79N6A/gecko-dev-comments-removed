@@ -260,7 +260,7 @@ nsXBLProtoImplProperty::CompileMember(nsIScriptContext* aContext, const nsCStrin
                                      mGetterText->GetLineNumber(),
                                      JSVERSION_LATEST,
                                      true,
-                                     (void **) &getterObject);
+                                     &getterObject);
 
       
       
@@ -310,7 +310,7 @@ nsXBLProtoImplProperty::CompileMember(nsIScriptContext* aContext, const nsCStrin
                                      mSetterText->GetLineNumber(),
                                      JSVERSION_LATEST,
                                      true,
-                                     (void **) &setterObject);
+                                     &setterObject);
 
       
       

@@ -239,13 +239,13 @@ nsXBLProtoImplMethod::CompileMember(nsIScriptContext* aContext, const nsCString&
   nsresult rv = aContext->CompileFunction(aClassObject,
                                           cname,
                                           paramCount,
-                                          (const char**)args,
+                                          const_cast<const char**>(args),
                                           body, 
                                           functionUri.get(),
                                           uncompiledMethod->mBodyText.GetLineNumber(),
                                           JSVERSION_LATEST,
                                           true,
-                                          (void **) &methodObject);
+                                          &methodObject);
 
   
   delete uncompiledMethod;
