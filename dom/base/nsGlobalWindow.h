@@ -110,6 +110,10 @@
 #include "nsFrameMessageManager.h"
 #include "mozilla/TimeStamp.h"
 
+
+#include "jsapi.h"
+#include "jswrapper.h"
+
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
 #define PREF_BROWSER_STARTUP_HOMEPAGE "browser.startup.homepage"
 
@@ -143,6 +147,7 @@ class nsRunnable;
 
 class nsDOMOfflineResourceList;
 class nsGeolocation;
+class nsDesktopNotificationCenter;
 
 #ifdef MOZ_DISABLE_DOMCRYPTO
 class nsIDOMCrypto;
@@ -230,6 +235,25 @@ private:
 
 
 
+class nsOuterWindowProxy : public JSWrapper
+{
+public:
+  nsOuterWindowProxy() : JSWrapper((uintN)0) {}
+
+  virtual bool isOuterWindow() {
+    return true;
+  }
+  JSString *obj_toString(JSContext *cx, JSObject *wrapper);
+
+  static nsOuterWindowProxy singleton;
+};
+
+JSObject *NS_NewOuterWindowProxy(JSContext *cx, JSObject *parent);
+
+
+
+
+
 
 
 
@@ -257,6 +281,7 @@ class nsGlobalWindow : public nsPIDOMWindow,
                        public nsIDOMStorageWindow,
                        public nsSupportsWeakReference,
                        public nsIInterfaceRequestor,
+                       public nsWrapperCache,
                        public PRCListStr
 {
 public:
@@ -349,7 +374,8 @@ public:
   }
   virtual NS_HIDDEN_(nsPIDOMEventTarget*) GetTargetForEventTargetChain()
   {
-    return static_cast<nsPIDOMEventTarget*>(GetCurrentInnerWindowInternal());
+    return IsInnerWindow() ?
+      this : static_cast<nsPIDOMEventTarget*>(GetCurrentInnerWindowInternal());
   }
   virtual NS_HIDDEN_(nsresult) PreHandleEvent(nsEventChainPreVisitor& aVisitor);
   virtual NS_HIDDEN_(nsresult) PostHandleEvent(nsEventChainPostVisitor& aVisitor);
@@ -1018,6 +1044,7 @@ protected:
   nsRefPtr<nsMimeTypeArray> mMimeTypes;
   nsRefPtr<nsPluginArray> mPlugins;
   nsRefPtr<nsGeolocation> mGeolocation;
+  nsRefPtr<nsDesktopNotificationCenter> mNotification;
   nsIDocShell* mDocShell; 
 };
 
