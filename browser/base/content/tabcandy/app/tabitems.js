@@ -129,19 +129,10 @@ window.TabItems = {
         $div.css({left: p.x, top: p.y});
       }
       
-
-
-
-
-        $div.each(function() {
-          var tab = Tabs.tab(this);
-
-          $(this).data('tabItem', new TabItem(this, tab));
-        });
-
-
-
-
+      $div.each(function() {
+        var tab = Tabs.tab(this);
+        $(this).data('tabItem', new TabItem(this, tab));
+      });
       
       
       
