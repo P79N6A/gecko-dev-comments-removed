@@ -924,15 +924,15 @@ js::Class XPC_WN_NoHelper_JSClass = {
     JSCLASS_MARK_IS_TRACE, 
 
     
-    js::Valueify(XPC_WN_OnlyIWrite_PropertyStub), 
-    js::Valueify(XPC_WN_CannotModifyPropertyStub),
-    js::PropertyStub,                             
-    js::Valueify(XPC_WN_OnlyIWrite_PropertyStub), 
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_PropertyStub), 
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_CannotModifyPropertyStub),
+    js::PropertyStub,                                            
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_PropertyStub), 
    
-    XPC_WN_Shared_Enumerate,                      
-    XPC_WN_NoHelper_Resolve,                      
-    js::Valueify(XPC_WN_Shared_Convert),          
-    XPC_WN_NoHelper_Finalize,                     
+    XPC_WN_Shared_Enumerate,                                     
+    XPC_WN_NoHelper_Resolve,                                     
+    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Convert),           
+    XPC_WN_NoHelper_Finalize,                                    
    
     
     nsnull,                         
@@ -945,7 +945,7 @@ js::Class XPC_WN_NoHelper_JSClass = {
 
     
     {
-        js::Valueify(XPC_WN_Equality),
+        JS_VALUEIFY(js::EqualityOp, XPC_WN_Equality),
         XPC_WN_OuterObject,
         XPC_WN_InnerObject,
         nsnull, 
@@ -961,7 +961,7 @@ js::Class XPC_WN_NoHelper_JSClass = {
         nsnull, 
         nsnull, 
         nsnull, 
-        js::Valueify(XPC_WN_JSOp_Enumerate),
+        JS_VALUEIFY(js::NewEnumerateOp, XPC_WN_JSOp_Enumerate),
         XPC_WN_JSOp_TypeOf_Object,
         nsnull, 
         nsnull, 
@@ -1911,7 +1911,7 @@ js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
     js::PropertyStub,               
     XPC_WN_Shared_Proto_Enumerate,  
     XPC_WN_ModsAllowed_Proto_Resolve, 
-    js::Valueify(XPC_WN_Shared_Proto_Convert), 
+    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Proto_Convert), 
     XPC_WN_Shared_Proto_Finalize,   
 
     
@@ -1938,7 +1938,7 @@ js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
     js::PropertyStub,               
     XPC_WN_Shared_Proto_Enumerate,  
     XPC_WN_ModsAllowed_Proto_Resolve,
-    js::Valueify(XPC_WN_Shared_Proto_Convert), 
+    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Proto_Convert), 
     XPC_WN_Shared_Proto_Finalize,    
 
     
@@ -2013,14 +2013,14 @@ js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
     WRAPPER_SLOTS | JSCLASS_MARK_IS_TRACE, 
 
     
-    js::Valueify(XPC_WN_OnlyIWrite_Proto_PropertyStub), 
-    js::Valueify(XPC_WN_CannotModifyPropertyStub),      
-    js::PropertyStub,                                   
-    js::Valueify(XPC_WN_OnlyIWrite_Proto_PropertyStub), 
-    XPC_WN_Shared_Proto_Enumerate,                      
-    XPC_WN_NoMods_Proto_Resolve,                        
-    js::Valueify(XPC_WN_Shared_Proto_Convert),          
-    XPC_WN_Shared_Proto_Finalize,                       
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_Proto_PropertyStub), 
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_CannotModifyPropertyStub),      
+    js::PropertyStub,                                                  
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_Proto_PropertyStub), 
+    XPC_WN_Shared_Proto_Enumerate,                                     
+    XPC_WN_NoMods_Proto_Resolve,                                       
+    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Proto_Convert),           
+    XPC_WN_Shared_Proto_Finalize,                                      
 
     
     nsnull,                         
@@ -2040,14 +2040,14 @@ js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
     WRAPPER_SLOTS | JSCLASS_MARK_IS_TRACE,              
 
     
-    js::Valueify(XPC_WN_OnlyIWrite_Proto_PropertyStub), 
-    js::Valueify(XPC_WN_CannotModifyPropertyStub),      
-    js::PropertyStub,                                   
-    js::Valueify(XPC_WN_OnlyIWrite_Proto_PropertyStub), 
-    XPC_WN_Shared_Proto_Enumerate,                      
-    XPC_WN_NoMods_Proto_Resolve,                        
-    js::Valueify(XPC_WN_Shared_Proto_Convert),          
-    XPC_WN_Shared_Proto_Finalize,                       
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_Proto_PropertyStub), 
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_CannotModifyPropertyStub),      
+    js::PropertyStub,                                                  
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_Proto_PropertyStub), 
+    XPC_WN_Shared_Proto_Enumerate,                                     
+    XPC_WN_NoMods_Proto_Resolve,                                       
+    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Proto_Convert),           
+    XPC_WN_Shared_Proto_Finalize,                                      
 
     
     nsnull,                         
@@ -2124,12 +2124,12 @@ js::Class XPC_WN_Tearoff_JSClass = {
     "WrappedNative_TearOff",                        
     WRAPPER_SLOTS | JSCLASS_MARK_IS_TRACE,          
 
-    js::Valueify(XPC_WN_OnlyIWrite_PropertyStub),   
-    js::Valueify(XPC_WN_CannotModifyPropertyStub),  
-    js::PropertyStub,                               
-    js::Valueify(XPC_WN_OnlyIWrite_PropertyStub),   
-    XPC_WN_TearOff_Enumerate,                       
-    XPC_WN_TearOff_Resolve,                         
-    js::Valueify(XPC_WN_Shared_Convert),            
-    XPC_WN_TearOff_Finalize                        
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_PropertyStub),   
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_CannotModifyPropertyStub),  
+    js::PropertyStub,                                              
+    JS_VALUEIFY(js::PropertyOp, XPC_WN_OnlyIWrite_PropertyStub),   
+    XPC_WN_TearOff_Enumerate,                                      
+    XPC_WN_TearOff_Resolve,                                        
+    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Convert),             
+    XPC_WN_TearOff_Finalize                                        
 };
