@@ -153,15 +153,9 @@ const DEFAULT_KEYBINDINGS = [
     alt: true,
   },
   {
-    action: "Comment",
+    action: "Comment/Uncomment",
     code: Ci.nsIDOMKeyEvent.DOM_VK_SLASH,
     accel: true,
-  },
-  {
-    action: "Uncomment",
-    code: Ci.nsIDOMKeyEvent.DOM_VK_SLASH,
-    accel: true,
-    shift: true,
   },
 ];
 
@@ -403,8 +397,7 @@ SourceEditor.prototype = {
       "Find Previous Occurrence": [this.ui.findPrevious, this.ui],
       "Goto Line...": [this.ui.gotoLine, this.ui],
       "Move Lines Down": [this._moveLines, this],
-      "Comment": [this._doComment, this],
-      "Uncomment": [this._doUncomment, this],
+      "Comment/Uncomment": [this._doCommentUncomment, this],
     };
 
     for (let name in actions) {
@@ -1055,6 +1048,63 @@ SourceEditor.prototype = {
 
 
 
+  _doCommentUncomment: function SE__doCommentUncomment()
+  {
+    if (this.readOnly) {
+      return false;
+    }
+
+    let commentObject = this._getCommentStrings();
+    if (!commentObject) {
+      return false;
+    }
+
+    let selection = this.getSelection();
+    let model = this._model;
+    let firstLine = model.getLineAtOffset(selection.start);
+    let lastLine = model.getLineAtOffset(selection.end);
+
+    
+    let firstLineText = model.getLine(firstLine);
+    let lastLineText = model.getLine(lastLine);
+    let openIndex = firstLineText.indexOf(commentObject.blockStart);
+    let closeIndex = lastLineText.lastIndexOf(commentObject.blockEnd);
+    if (openIndex != -1 && closeIndex != -1 &&
+        (firstLine != lastLine ||
+        (closeIndex - openIndex) >= commentObject.blockStart.length)) {
+      return this._doUncomment();
+    }
+
+    if (!commentObject.line) {
+      return this._doComment();
+    }
+
+    
+    
+    let firstLastCommented = [firstLineText,
+                              lastLineText].every(function(aLineText) {
+      let openIndex = aLineText.indexOf(commentObject.line);
+      if (openIndex != -1) {
+        let textUntilComment = aLineText.slice(0, openIndex);
+        if (!textUntilComment || /^\s+$/.test(textUntilComment)) {
+          return true;
+        }
+      }
+      return false;
+    });
+    if (firstLastCommented) {
+      return this._doUncomment();
+    }
+
+    
+    return this._doComment();
+  },
+
+  
+
+
+
+
 
 
   _doComment: function SE__doComment()
@@ -1123,7 +1173,9 @@ SourceEditor.prototype = {
     let lastLineText = this._model.getLine(lastLine);
     let openIndex = firstLineText.indexOf(commentObject.blockStart);
     let closeIndex = lastLineText.lastIndexOf(commentObject.blockEnd);
-    if (openIndex != -1 && closeIndex != -1) {
+    if (openIndex != -1 && closeIndex != -1 &&
+        (firstLine != lastLine ||
+        (closeIndex - openIndex) >= commentObject.blockStart.length)) {
       let firstLineStartOffset = this.getLineStart(firstLine);
       let lastLineStartOffset = this.getLineStart(lastLine);
       let openOffset = firstLineStartOffset + openIndex;
