@@ -570,6 +570,7 @@ STDMETHODIMP nsDataObj::GetData(LPFORMATETC aFormat, LPSTGMEDIUM pSTM)
         if ( format == PreferredDropEffect )
           return GetPreferredDropEffect( *aFormat, *pSTM );
         
+        
         return GetText(df, *aFormat, *pSTM);
       } 
     } 
