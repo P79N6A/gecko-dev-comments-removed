@@ -261,7 +261,6 @@ var tests = [
 
       
       gBrowser.selectedTab = this.oldSelectedTab;
-
     },
     onHidden: function (popup) {
       
@@ -601,14 +600,10 @@ var tests = [
   
   { 
     run: function () {
-      this.oldSelectedTab = gBrowser.selectedTab;
-      gBrowser.selectedTab = gBrowser.addTab("about:blank");
-
-      let self = this;
-      loadURI("about:addons", function() {
-        self.notifyObj = new basicNotification();
-        self.notification = showNotification(self.notifyObj);
-      });
+      window.locationbar.visible = false;
+      this.notifyObj = new basicNotification();
+      this.notification = showNotification(this.notifyObj);
+      window.locationbar.visible = true;
     },
     onShown: function (popup) {
       checkPopup(popup, this.notifyObj);
@@ -619,9 +614,6 @@ var tests = [
       ok(this.notifyObj.dismissalCallbackTriggered, "dismissal callback triggered");
       this.notification.remove();
       ok(this.notifyObj.removedCallbackTriggered, "removed callback triggered");
-
-      gBrowser.removeTab(gBrowser.selectedTab);
-      gBrowser.selectedTab = this.oldSelectedTab;
     }
   },
   
