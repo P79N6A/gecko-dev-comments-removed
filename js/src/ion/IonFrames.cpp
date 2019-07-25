@@ -327,22 +327,20 @@ MarkIonJSFrame(JSTracer *trc, const IonFrameIterator &frame)
     
     MarkCalleeToken(trc, layout->calleeToken());
 
-    if (!CalleeTokenIsFunction(layout->calleeToken())) {
+    IonScript *ionScript;
+    if (CalleeTokenIsFunction(layout->calleeToken())) {
+        JSFunction *fun = CalleeTokenToFunction(layout->calleeToken());
+
         
-        
-        
-        JS_NOT_REACHED("NYI");
-        return;
+        Value *argv = layout->argv();
+        for (size_t i = 0; i < fun->nargs; i++)
+            gc::MarkRoot(trc, argv[i], "ion-argv");
+
+        ionScript = fun->script()->ion;
+    } else {
+        ionScript = CalleeTokenToScript(layout->calleeToken())->ion;
     }
 
-    JSFunction *fun = CalleeTokenToFunction(layout->calleeToken());
-
-    
-    Value *argv = layout->argv();
-    for (size_t i = 0; i < fun->nargs; i++)
-        gc::MarkRoot(trc, argv[i], "ion-argv");
-
-    IonScript *ionScript = fun->script()->ion;
     const IonFrameInfo *fi = ionScript->getFrameInfo(frame.returnAddressToFp());
 
     SafepointReader safepoint(ionScript, fi);
