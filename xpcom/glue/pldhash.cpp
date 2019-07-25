@@ -42,6 +42,7 @@
 
 
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -792,6 +793,24 @@ PL_DHashTableEnumerate(PLDHashTable *table, PLDHashEnumerator etor, void *arg)
     DECREMENT_RECURSION_LEVEL(table);
 
     return i;
+}
+
+PRUint64
+PL_DHashTableSizeOf(PLDHashTable *table)
+{
+  PRUint64 size = 0;
+
+#ifdef MOZALLOC_HAVE_MALLOC_USABLE_SIZE
+  
+  
+  size = moz_malloc_usable_size(table->entryStore);
+#endif
+
+  if (size == 0) {
+    size = PL_DHASH_TABLE_SIZE(table) * table->entrySize;
+  }
+
+  return size;
 }
 
 #ifdef DEBUG

@@ -245,6 +245,12 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
 
     
     
+    PRUint64 SizeOf() {
+      return mArray.SizeOf();
+    }
+
+    
+    
     
 
     

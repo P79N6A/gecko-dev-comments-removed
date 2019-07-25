@@ -113,6 +113,12 @@ public:
   
 
 
+
+  PRInt64 SizeOf();
+
+  
+
+
   static History* GetService();
 
   
@@ -183,6 +189,11 @@ private:
     }
     ObserverArray array;
   };
+
+  
+
+
+  static PLDHashOperator SizeOfEnumerator(KeyClass* aEntry, void* aArg);
 
   nsTHashtable<KeyClass> mObservers;
 };
