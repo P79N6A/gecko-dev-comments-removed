@@ -45,7 +45,6 @@
 #include "prinrval.h"
 #include "nsVoidArray.h"
 #include "nsThreadUtils.h"
-#include "nsIRegion.h"
 #include "nsView.h"
 #include "nsIViewObserver.h"
 #include "nsDeviceContext.h"
@@ -248,8 +247,6 @@ public:
 
   nsEventStatus HandleEvent(nsView* aView, nsGUIEvent* aEvent);
 
-  nsresult CreateRegion(nsIRegion* *result);
-
   PRBool IsRefreshEnabled() { return RootViewManager()->mUpdateBatchCnt == 0; }
 
   
@@ -269,7 +266,6 @@ private:
   
   nsSize            mDelayedResize;
 
-  nsCOMPtr<nsIFactory> mRegionFactory;
   nsView            *mRootView;
   
   

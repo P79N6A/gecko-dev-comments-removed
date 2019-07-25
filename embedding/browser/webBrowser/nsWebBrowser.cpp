@@ -75,7 +75,6 @@
 #include "gfxContext.h"
 
 
-#include "nsIRegion.h"
 #include "nsILookAndFeel.h"
 
 
