@@ -149,6 +149,7 @@ LayerManagerD3D9::EndTransaction(DrawThebesLayerCallback aCallback,
     
     mRoot->ComputeEffectiveTransforms(gfx3DMatrix());
 
+    SetCompositingDisabled(aFlags & END_NO_COMPOSITE);
     Render();
     
     mCurrentCallbackInfo.Callback = NULL;
@@ -284,6 +285,12 @@ LayerManagerD3D9::Render()
   deviceManager()->SetupRenderState();
 
   SetupPipeline();
+
+  if (CompositingDisabled()) {
+    static_cast<LayerD3D9*>(mRoot->ImplData())->RenderLayer();
+    return;
+  }
+
   nsIntRect rect;
   mWidget->GetClientBounds(rect);
 

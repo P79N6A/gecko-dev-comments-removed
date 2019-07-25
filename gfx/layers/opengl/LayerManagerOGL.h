@@ -350,6 +350,9 @@ public:
 
   void SetSurfaceSize(int width, int height);
 
+  bool CompositingDisabled() { return mCompositingDisabled; }
+  void SetCompositingDisabled(bool aCompositingDisabled) { mCompositingDisabled = aCompositingDisabled; }
+
 private:
   
   nsIWidget *mWidget;
@@ -391,6 +394,7 @@ private:
 
   
   bool mHasBGRA;
+  bool mCompositingDisabled;
 
   
 
