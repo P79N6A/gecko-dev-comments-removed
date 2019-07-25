@@ -910,9 +910,16 @@ Connection::stepStatement(sqlite3_stmt *aStatement)
   
   TimeDuration duration = TimeStamp::Now() - startTime;
   if (duration.ToMilliseconds() >= Telemetry::kSlowStatementThreshold) {
-    nsDependentCString statementString(::sqlite3_sql(aStatement));
-    Telemetry::RecordSlowSQLStatement(statementString, getFilename(),
-                                      duration.ToMilliseconds(), false);
+    const char *sql = ::sqlite3_sql(aStatement);
+    
+    
+    
+    
+    if (sql) {
+      nsDependentCString statementString(sql);
+      Telemetry::RecordSlowSQLStatement(statementString, getFilename(),
+                                        duration.ToMilliseconds(), false);
+    }
   }
 
   (void)::sqlite3_extended_result_codes(mDBConn, 0);
