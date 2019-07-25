@@ -71,7 +71,7 @@
 
 
 
-nsresult nsEditorController::RegisterEditorCommands(nsIControllerCommandTable *inCommandTable)
+nsresult nsEditorController::RegisterEditingCommands(nsIControllerCommandTable *inCommandTable)
 {
   
   
@@ -98,6 +98,21 @@ nsresult nsEditorController::RegisterEditorCommands(nsIControllerCommandTable *i
   NS_REGISTER_NEXT_COMMAND(nsDeleteCommand, "cmd_deleteWordForward");
   NS_REGISTER_NEXT_COMMAND(nsDeleteCommand, "cmd_deleteToBeginningOfLine");
   NS_REGISTER_LAST_COMMAND(nsDeleteCommand, "cmd_deleteToEndOfLine");
+
+  
+  NS_REGISTER_ONE_COMMAND(nsInsertPlaintextCommand, "cmd_insertText");
+  NS_REGISTER_ONE_COMMAND(nsPasteQuotationCommand,  "cmd_pasteQuote");
+
+  return NS_OK;
+}
+
+
+
+nsresult nsEditorController::RegisterEditorCommands(nsIControllerCommandTable *inCommandTable)
+{
+  nsresult rv;
+
+  
 
   NS_REGISTER_FIRST_COMMAND(nsSelectionMoveCommands, "cmd_scrollTop");
   NS_REGISTER_NEXT_COMMAND(nsSelectionMoveCommands, "cmd_scrollBottom");
@@ -129,11 +144,6 @@ nsresult nsEditorController::RegisterEditorCommands(nsIControllerCommandTable *i
   NS_REGISTER_NEXT_COMMAND(nsSelectionMoveCommands, "cmd_movePageDown");
   NS_REGISTER_NEXT_COMMAND(nsSelectionMoveCommands, "cmd_selectPageUp");
   NS_REGISTER_LAST_COMMAND(nsSelectionMoveCommands, "cmd_selectPageDown");
-    
-  
-  NS_REGISTER_ONE_COMMAND(nsInsertPlaintextCommand, "cmd_insertText");
-  NS_REGISTER_ONE_COMMAND(nsPasteQuotationCommand,  "cmd_pasteQuote");
-
 
   return NS_OK;
 }
