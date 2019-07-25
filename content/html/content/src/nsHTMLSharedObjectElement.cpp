@@ -465,6 +465,12 @@ nsHTMLSharedObjectElement::GetAttributeMappingFunction() const
 void
 nsHTMLSharedObjectElement::StartObjectLoad(bool aNotify)
 {
+  
+  
+  if (!IsInDoc() || !OwnerDoc()->IsActive()) {
+    return;
+  }
+
   LoadObject(aNotify);
   SetIsNetworkCreated(false);
 }

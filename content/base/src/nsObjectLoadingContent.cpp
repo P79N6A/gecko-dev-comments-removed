@@ -81,6 +81,16 @@ static PRLogModuleInfo* gObjectLog = PR_NewLogModule("objlc");
 #define LOG(args) PR_LOG(gObjectLog, PR_LOG_DEBUG, args)
 #define LOG_ENABLED() PR_LOG_TEST(gObjectLog, PR_LOG_DEBUG)
 
+static bool
+InActiveDocument(nsIContent *aContent)
+{
+  if (!aContent->IsInDoc()) {
+    return false;
+  }
+  nsIDocument *doc = aContent->OwnerDoc();
+  return (doc && doc->IsActive());
+}
+
 
 
 
@@ -137,7 +147,7 @@ InDocCheckEvent::Run()
   nsCOMPtr<nsIContent> content =
     do_QueryInterface(static_cast<nsIImageLoadingContent *>(objLC));
 
-  if (!content->IsInDoc()) {
+  if (!InActiveDocument(content)) {
     nsObjectLoadingContent *objLC =
       static_cast<nsObjectLoadingContent *>(mContent.get());
     objLC->UnloadObject();
@@ -612,7 +622,7 @@ nsObjectLoadingContent::UnbindFromTree(bool , bool )
   nsIDocument* ownerDoc = thisContent->OwnerDoc();
   ownerDoc->RemovePlugin(this);
 
-  if (mType == eType_Plugin) {
+  if (mType == eType_Plugin && mInstanceOwner) {
     
     
     
@@ -624,6 +634,7 @@ nsObjectLoadingContent::UnbindFromTree(bool , bool )
       appShell->RunInStableState(event);
     }
   } else {
+    
     
     
     UnloadObject();
@@ -694,7 +705,7 @@ nsObjectLoadingContent::InstantiatePluginInstance()
   if (!doc) {
     return NS_ERROR_FAILURE;
   }
-  if (!doc->IsActive()) {
+  if (!InActiveDocument(thisContent)) {
     NS_ERROR("Shouldn't be calling "
              "InstantiatePluginInstance in an inactive document");
     return NS_ERROR_FAILURE;
@@ -1472,16 +1483,16 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   nsresult rv = NS_OK;
 
   
+  if (!InActiveDocument(thisContent)) {
+    NS_NOTREACHED("LoadObject called while not bound to an active document");
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  
   
   
   if (doc->IsBeingUsedAsImage() || doc->IsLoadedAsData()) {
     return NS_OK;
-  }
-
-  
-  if (!thisContent->IsInDoc()) {
-    NS_NOTREACHED("LoadObject called while not bound to a document");
-    return NS_ERROR_UNEXPECTED;
   }
 
   LOG(("OBJLC [%p]: LoadObject called, notify %u, forceload %u, channel %p",
@@ -1970,7 +1981,7 @@ nsObjectLoadingContent::NotifyStateChanged(ObjectType aOldType,
 
   if (newState != aOldState) {
     
-    NS_ASSERTION(thisContent->IsInDoc(), "Something is confused");
+    NS_ASSERTION(InActiveDocument(thisContent), "Something is confused");
     nsEventStates changedBits = aOldState ^ newState;
 
     {
@@ -2154,7 +2165,7 @@ nsObjectLoadingContent::SyncStartPluginInstance()
   
   nsCOMPtr<nsIContent> thisContent =
     do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-  if (!thisContent->IsInDoc()) {
+  if (!InActiveDocument(thisContent)) {
     return NS_ERROR_FAILURE;
   }
 
