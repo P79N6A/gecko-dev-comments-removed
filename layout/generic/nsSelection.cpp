@@ -2085,18 +2085,28 @@ nsFrameSelection::GetFrameForNodeOffset(nsIContent *aNode,
 
       if (textNode)
       {
-        if (aOffset > childIndex)
+        if (theNode->GetPrimaryFrame())
         {
-          PRUint32 textLength = 0;
+          if (aOffset > childIndex)
+          {
+            PRUint32 textLength = 0;
 
-          nsresult rv = textNode->GetLength(&textLength);
-          if (NS_FAILED(rv))
-            return nsnull;
+            nsresult rv = textNode->GetLength(&textLength);
+            if (NS_FAILED(rv))
+              return nsnull;
 
-          *aReturnOffset = (PRInt32)textLength;
+            *aReturnOffset = (PRInt32)textLength;
+          }
+          else
+            *aReturnOffset = 0;
         }
         else
-          *aReturnOffset = 0;
+        {
+          
+          
+          
+          theNode = aNode;
+        }
       }
     }
   }
