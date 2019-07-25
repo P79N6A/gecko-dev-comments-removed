@@ -1954,8 +1954,9 @@ ScriptAnalysis::needsArgsObj(JSContext *cx)
 
 
 
+
     if (script->bindingsAccessedDynamically || script->numClosedArgs() > 0 ||
-        localsAliasStack() || cx->compartment->debugMode())
+        localsAliasStack() || cx->compartment->debugMode() || script->isGenerator)
     {
         return true;
     }
