@@ -55,6 +55,9 @@ using namespace mozilla::layers;
 namespace mozilla {
 namespace layout {
 
+typedef FrameMetrics::ViewID ViewID;
+typedef RenderFrameParent::ViewMap ViewMap;
+
 static void
 AssertInTopLevelChromeDoc(ContainerLayer* aContainer,
                           nsIFrame* aContainedFrame)
@@ -64,6 +67,14 @@ AssertInTopLevelChromeDoc(ContainerLayer* aContainer,
     (aContainedFrame->GetNearestWidget() ==
      static_cast<BasicLayerManager*>(aContainer->Manager())->GetRetainerWidget()),
     "Expected frame to be in top-level chrome document");
+}
+
+
+static nsContentView*
+FindViewForId(const ViewMap& aMap, ViewID aId)
+{
+  ViewMap::const_iterator iter = aMap.find(aId);
+  return iter != aMap.end() ? iter->second : NULL;
 }
 
 static void
@@ -179,10 +190,65 @@ IsTempLayerManager(LayerManager* aManager)
           !static_cast<BasicLayerManager*>(aManager)->IsRetained());
 }
 
+
+
+
+
+
+
+static void
+BuildViewMap(ViewMap& oldContentViews, ViewMap& newContentViews,
+                   nsFrameLoader* aFrameLoader, Layer* aLayer,
+                   float aXScale = 1, float aYScale = 1)
+{
+  if (!aLayer->GetFirstChild())
+    return;
+
+  ContainerLayer* container = static_cast<ContainerLayer*>(aLayer);
+  const FrameMetrics& metrics = container->GetFrameMetrics();
+  const ViewID scrollId = metrics.mScrollId;
+
+  nscoord auPerDevPixel = aFrameLoader->GetPrimaryFrameOfOwningContent()
+                                      ->PresContext()->AppUnitsPerDevPixel();
+  nsContentView* view = FindViewForId(oldContentViews, scrollId);
+  if (view) {
+    
+    
+    ViewConfig config = view->GetViewConfig();
+    aXScale *= config.mXScale;
+    aYScale *= config.mYScale;
+    view->mOwnerContent = aFrameLoader->GetOwnerContent();
+  } else {
+    
+    
+    
+    ViewConfig config;
+    config.mScrollOffset = nsPoint(
+      NSIntPixelsToAppUnits(metrics.mViewportScrollOffset.x, auPerDevPixel) * aXScale,
+      NSIntPixelsToAppUnits(metrics.mViewportScrollOffset.y, auPerDevPixel) * aYScale);
+    view = new nsContentView(aFrameLoader->GetOwnerContent(), scrollId, config);
+  }
+
+  newContentViews.insert(ViewMap::value_type(scrollId, view));
+
+  for (Layer* child = aLayer->GetFirstChild();
+       child; child = child->GetNextSibling()) {
+    const gfx3DMatrix transform = aLayer->GetTransform();
+    aXScale *= transform._11;
+    aYScale *= transform._22;
+    BuildViewMap(oldContentViews, newContentViews, aFrameLoader, child,
+                       aXScale, aYScale);
+  }
+}
+
 RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader)
   : mFrameLoader(aFrameLoader)
 {
   NS_ABORT_IF_FALSE(aFrameLoader, "Need a frameloader here");
+  mContentViews.insert(ViewMap::value_type(
+    FrameMetrics::ROOT_SCROLL_ID,
+    new nsContentView(aFrameLoader->GetOwnerContent(), FrameMetrics::ROOT_SCROLL_ID)
+  ));
 }
 
 RenderFrameParent::~RenderFrameParent()
@@ -202,10 +268,21 @@ RenderFrameParent::Destroy()
   }
 }
 
+nsContentView*
+RenderFrameParent::GetContentView(ViewID aId)
+{
+  return FindViewForId(mContentViews, aId);
+}
+
 void
 RenderFrameParent::ShadowLayersUpdated()
 {
   mFrameLoader->SetCurrentRemoteFrame(this);
+
+  
+  
+  
+  BuildViewMap();
 
   nsIFrame* docFrame = mFrameLoader->GetPrimaryFrameOfOwningContent();
   if (!docFrame) {
@@ -286,7 +363,7 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
     float shadowXScale, shadowYScale;
     ComputeShadowTreeTransform(aFrame,
                                shadowRoot->GetFrameMetrics(),
-                               mFrameLoader->GetContentView()->GetViewConfig(),
+                               GetContentView()->GetViewConfig(),
                                aBuilder,
                                &shadowTranslation,
                                &shadowXScale, &shadowYScale);
@@ -297,6 +374,14 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
 
   AssertValidContainerOfShadowTree(mContainer, shadowRoot);
   return nsRefPtr<Layer>(mContainer).forget();
+}
+
+void
+RenderFrameParent::OwnerContentChanged(nsIContent* aContent)
+{
+  NS_ABORT_IF_FALSE(mFrameLoader->GetOwnerContent() == aContent,
+                    "Don't build new map if owner is same!");
+  BuildViewMap();
 }
 
 void
@@ -339,6 +424,34 @@ RenderFrameParent::DeallocPLayers(PLayersParent* aLayers)
 {
   delete aLayers;
   return true;
+}
+
+void
+RenderFrameParent::BuildViewMap()
+{
+  ViewMap newContentViews;
+  if (GetRootLayer()) {
+    
+    
+    
+    
+    
+    
+
+    for (ViewMap::const_iterator iter = mContentViews.begin();
+         iter != mContentViews.end();
+         ++iter) {
+      iter->second->mOwnerContent = NULL;
+    }
+
+    mozilla::layout::BuildViewMap(mContentViews, newContentViews, mFrameLoader, GetRootLayer());
+  }
+
+  
+  
+  if (!newContentViews.empty()) {
+    mContentViews = newContentViews;
+  }
 }
 
 LayerManager*
