@@ -158,6 +158,11 @@ public final class GeckoProfile {
             return true;
         }
         
+        File externalDir = mContext.getExternalFilesDir(null);
+        if (externalDir == null) {
+            return true;
+        }
+        
         String resourcePath = mContext.getPackageResourcePath();
         if (resourcePath.startsWith("/data") || resourcePath.startsWith("/system")) {
             return true;
