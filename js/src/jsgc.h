@@ -1679,11 +1679,9 @@ struct GCMarker : public JSTracer {
 
 
 
-
-
-    void setMarkColor(uint32 newColor) {
-        
-        color = newColor;
+    void setMarkColorGray() {
+        JS_ASSERT(color == gc::BLACK);
+        color = gc::GRAY;
     }
 
     void delayMarkingChildren(const void *thing);
