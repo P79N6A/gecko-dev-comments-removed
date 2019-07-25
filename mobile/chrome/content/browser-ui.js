@@ -185,6 +185,21 @@ var BrowserUI = {
     this._editToolbar(aFlags & URLBAR_EDIT);
   },
 
+  _toolbarLocked: 0,
+  lockToolbar: function lockToolbar() {
+    this._toolbarLocked++;
+    document.getElementById("toolbar-moveable-container").top = "0";
+  },
+  
+  unlockToolbar: function unlockToolbar() {
+    if (!this._toolbarLocked)
+      return;
+    
+    this._toolbarLocked--;
+    if(!this._toolbarLocked)
+      document.getElementById("toolbar-moveable-container").top = "";
+  },
+
   _editToolbar : function _editToolbar(aEdit) {
     var icons = document.getElementById("urlbar-icons");
     if (aEdit && icons.getAttribute("mode") != "edit") {
@@ -230,6 +245,7 @@ var BrowserUI = {
   pushDialog : function pushDialog(aDialog) {
     
     if (aDialog) {
+      this.lockToolbar();
       this._dialogs.push(aDialog);
       document.getElementById("toolbar-main").setAttribute("dialog", "true");
     }
@@ -243,6 +259,8 @@ var BrowserUI = {
     
     if (!this._dialogs.length)
       document.getElementById("toolbar-main").removeAttribute("dialog");
+
+    this.unlockToolbar();
   },
 
   pushPopup: function pushPopup(aPanel, aElements) {
