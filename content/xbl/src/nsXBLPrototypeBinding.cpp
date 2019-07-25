@@ -641,9 +641,9 @@ nsXBLPrototypeBinding::AttributeChanged(nsIAtom* aAttribute,
       
 
       if ((dstAttr == nsGkAtoms::text && dstNs == kNameSpaceID_XBL) ||
-          realElement->NodeInfo()->Equals(nsGkAtoms::html,
-                                          kNameSpaceID_XUL) &&
-          dstAttr == nsGkAtoms::value) {
+          (realElement->NodeInfo()->Equals(nsGkAtoms::html,
+                                           kNameSpaceID_XUL) &&
+           dstAttr == nsGkAtoms::value)) {
         
         PRUint32 childCount = realElement->GetChildCount();
         for (PRUint32 i = 0; i < childCount; i++)

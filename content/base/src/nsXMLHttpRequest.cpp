@@ -2691,8 +2691,8 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
     
     
     ChangeState(XML_HTTP_REQUEST_SENT);
-    if (!mUploadComplete &&
-        HasListenersFor(NS_LITERAL_STRING(UPLOADPROGRESS_STR)) ||
+    if ((!mUploadComplete &&
+         HasListenersFor(NS_LITERAL_STRING(UPLOADPROGRESS_STR))) ||
         (mUpload && mUpload->HasListenersFor(NS_LITERAL_STRING(PROGRESS_STR)))) {
       StartProgressEventTimer();
     }

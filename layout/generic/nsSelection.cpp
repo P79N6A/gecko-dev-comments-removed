@@ -1626,7 +1626,7 @@ nsFrameSelection::AdjustForMaintainedSelection(nsIContent *aContent,
 
   
   
-  if (relToStart < 0 && relToEnd > 0 ||
+  if ((relToStart < 0 && relToEnd > 0) ||
       (relToStart > 0 &&
        mDomSelections[index]->GetDirection() == eDirNext) ||
       (relToEnd < 0 &&

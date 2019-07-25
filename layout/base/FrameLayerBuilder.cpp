@@ -1377,10 +1377,11 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
     
     if (layerState == LAYER_ACTIVE_FORCE ||
         layerState == LAYER_ACTIVE_EMPTY ||
-        layerState == LAYER_ACTIVE && (aClip.mRoundedClipRects.IsEmpty() ||
-        
-        
-        !aClip.IsRectClippedByRoundedCorner(item->GetVisibleRect()))) {
+        (layerState == LAYER_ACTIVE &&
+         (aClip.mRoundedClipRects.IsEmpty() ||
+          
+          
+          !aClip.IsRectClippedByRoundedCorner(item->GetVisibleRect())))) {
 
       
       
