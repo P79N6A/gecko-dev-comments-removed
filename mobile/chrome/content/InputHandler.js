@@ -291,9 +291,7 @@ InputHandler.prototype = {
       return;
 
     
-    if (aEvent.target != window
-        && aEvent.target != document
-        && (!aEvent.target.ownerDocument || aEvent.target.ownerDocument != document))
+    if (aEvent.view != window)
       return;
 
     
