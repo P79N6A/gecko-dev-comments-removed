@@ -690,17 +690,9 @@ var Browser = {
     document.getElementById("tabs").selectedTab = tab.chromeTab;
 
     if (!firstTab) {
-      let webProgress = this.selectedBrowser.webProgress;
-      let securityUI = this.selectedBrowser.securityUI;
-
-      try {
-        tab._listener.onLocationChange(webProgress, null, tab.browser.currentURI);
-        if (securityUI)
-          tab._listener.onSecurityChange(webProgress, null, securityUI.state);
-      } catch (e) {
-        
-        Components.utils.reportError(e);
-      }
+      
+      BrowserUI.setURI();
+      getIdentityHandler().checkIdentity();
 
       let event = document.createEvent("Events");
       event.initEvent("TabSelect", true, false);
@@ -1355,8 +1347,7 @@ nsBrowserAccess.prototype = {
       var url = aURI ? aURI.spec : "about:blank";
       newWindow = openDialog("chrome://browser/content/browser.xul", "_blank",
                              "all,dialog=no", url, null, null, null);
-    }
-    else {
+    } else {
       if (aWhere == Ci.nsIBrowserDOMWindow.OPEN_NEWTAB)
         newWindow = Browser.addTab("about:blank", true).browser.contentWindow;
       else
@@ -1600,17 +1591,24 @@ IdentityHandler.prototype = {
 
 
 
+  checkIdentity: function() {
+    
+    function makeLocationObject() {
+      try {
+        return { host: location.host, hostname: location.hostname, port: location.port };
+      } catch (ex) { }
+      return {};
+    }
 
-
-
-
-
-  checkIdentity: function(state, location) {
-    var currentStatus = getBrowser().securityUI
-                                .QueryInterface(Ci.nsISSLStatusProvider)
-                                .SSLStatus;
+    let state = Browser.selectedTab.getIdentityState();
+    let location = getBrowser().contentWindow.location;
+    let currentStatus = getBrowser().securityUI.QueryInterface(Ci.nsISSLStatusProvider).SSLStatus;
+    
     this._lastStatus = currentStatus;
-    this._lastLocation = location;
+    this._lastLocation = {};
+    try {
+      this._lastLocation = { host: location.host, hostname: location.hostname, port: location.port };
+    } catch (ex) { }
 
     if (state & Ci.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
       this.setMode(this.IDENTITY_MODE_IDENTIFIED);
@@ -2154,6 +2152,10 @@ var HelperAppDialog = {
 
 function ProgressController(tab) {
   this._tab = tab;
+
+  
+  this.state = null;
+  this._hostChanged = false; 
 }
 
 ProgressController.prototype = {
@@ -2162,10 +2164,6 @@ ProgressController.prototype = {
   },
 
   onStateChange: function onStateChange(aWebProgress, aRequest, aStateFlags, aStatus) {
-    
-    if (aWebProgress.DOMWindow != this._tab.browser.contentWindow)
-      return;
-
     if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
       if (aStateFlags & Ci.nsIWebProgressListener.STATE_START)
         this._networkStart();
@@ -2178,52 +2176,17 @@ ProgressController.prototype = {
   },
 
   
-  
   onProgressChange: function(aWebProgress, aRequest, aCurSelf, aMaxSelf, aCurTotal, aMaxTotal) {
   },
 
   
   onLocationChange: function(aWebProgress, aRequest, aLocationURI) {
-    
-    var location = aLocationURI ? aLocationURI.spec : "";
+    let location = aLocationURI ? aLocationURI.spec : "";
     let selectedBrowser = Browser.selectedBrowser;
-    let lastURI = selectedBrowser.lastURI;
-
-    
-    if (!lastURI && (location == "about:blank" || location == "about:firstrun" ))
-      return;
 
     this._hostChanged = true;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    selectedBrowser.lastURI = aLocationURI;
-    if (lastURI) {
-      var oldSpec = lastURI.spec;
-      var oldIndexOfHash = oldSpec.indexOf("#");
-      if (oldIndexOfHash != -1)
-        oldSpec = oldSpec.substr(0, oldIndexOfHash);
-      var newSpec = location;
-      var newIndexOfHash = newSpec.indexOf("#");
-      if (newIndexOfHash != -1)
-        newSpec = newSpec.substr(0, newSpec.indexOf("#"));
-      if (newSpec != oldSpec) {
-        
-        
-
-        
-        
-        
-      }
-    }
-
-    if (aWebProgress.DOMWindow == selectedBrowser.contentWindow) {
+    if (this._tab == Browser.selectedTab) {
       BrowserUI.setURI();
 
       
@@ -2233,14 +2196,39 @@ ProgressController.prototype = {
   },
 
   
-  
+
+
+
   onStatusChange: function(aWebProgress, aRequest, aStatus, aMessage) {
+  },
+
+  
+  onSecurityChange: function(aWebProgress, aRequest, aState) {
+    
+    if (this.state == aState && !this._hostChanged)
+      return;
+
+    this._hostChanged = false;
+    this.state = aState;
+
+    if (this._tab == Browser.selectedTab) {
+      getIdentityHandler().checkIdentity();
+    }
+  },
+
+  QueryInterface: function(aIID) {
+    if (aIID.equals(Ci.nsIWebProgressListener) ||
+        aIID.equals(Ci.nsISupportsWeakReference) ||
+        aIID.equals(Ci.nsISupports))
+      return this;
+
+    throw Components.results.NS_ERROR_NO_INTERFACE;
   },
 
   _networkStart: function _networkStart() {
     this._tab.startLoading();
 
-    if (Browser.selectedBrowser == this.browser)
+    if (this._tab == Browser.selectedTab)
       BrowserUI.update(TOOLBARSTATE_LOADING);
 
     
@@ -2252,7 +2240,7 @@ ProgressController.prototype = {
   _networkStop: function _networkStop() {
     this._tab.endLoading();
 
-    if (Browser.selectedBrowser == this.browser) {
+    if (this._tab == Browser.selectedTab) {
       BrowserUI.update(TOOLBARSTATE_LOADED);
       this.browser.docShell.isOffScreenBrowser = true;
     }
@@ -2264,61 +2252,11 @@ ProgressController.prototype = {
     
     Browser.translatePhoneNumbers();
 
-    if (Browser.selectedBrowser == this.browser) {
+    if (this._tab == Browser.selectedTab) {
       
       if (this.browser.currentURI.spec != "about:blank")
         this.browser.contentWindow.focus();
     }
-  },
-
- 
-  _state: null,
-  _host: undefined,
-  _hostChanged: false, 
-
-  
-  onSecurityChange: function(aWebProgress, aRequest, aState) {
-    
-    
-    if (this._state == aState && !this._hostChanged) {
-      return;
-    }
-    this._state = aState;
-
-    try {
-      this._host = getBrowser().contentWindow.location.host;
-    }
-    catch(ex) {
-      this._host = null;
-    }
-
-    this._hostChanged = false;
-
-    
-    
-    
-    var location = getBrowser().contentWindow.location;
-    var locationObj = {};
-    try {
-      locationObj.host = location.host;
-      locationObj.hostname = location.hostname;
-      locationObj.port = location.port;
-    }
-    catch (ex) {
-      
-      
-      
-    }
-    getIdentityHandler().checkIdentity(this._state, locationObj);
-  },
-
-  QueryInterface: function(aIID) {
-    if (aIID.equals(Ci.nsIWebProgressListener) ||
-        aIID.equals(Ci.nsISupportsWeakReference) ||
-        aIID.equals(Ci.nsISupports))
-      return this;
-
-    throw Components.results.NS_ERROR_NO_INTERFACE;
   }
 };
 
@@ -2382,6 +2320,11 @@ Tab.prototype = {
     } else {
       delete this._loadingTimeout;
     }
+  },
+
+  
+  getIdentityState: function() {
+    return this._listener.state;
   },
 
   startLoading: function() {
