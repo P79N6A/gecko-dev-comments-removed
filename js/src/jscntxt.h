@@ -1086,7 +1086,6 @@ struct JSRuntime {
     int64               gcJitReleaseTime;
     JSGCMode            gcMode;
     volatile bool       gcIsNeeded;
-    JSObject           *gcWeakMapList;
 
     
 
