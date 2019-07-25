@@ -1073,6 +1073,7 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
 
 #ifdef DEBUG
   
+  
   PRBool strictDebug = nsContentUtils::GetBoolPref(js_strict_debug_option_str);
   
   
@@ -1094,15 +1095,10 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
   else
     newDefaultJSOptions &= ~JSOPTION_RELIMIT;
 
-  if (newDefaultJSOptions != oldDefaultJSOptions) {
-    
-    
-    if (::JS_GetOptions(context->mContext) == oldDefaultJSOptions)
-      ::JS_SetOptions(context->mContext, newDefaultJSOptions);
+  ::JS_SetOptions(context->mContext, newDefaultJSOptions & JSRUNOPTION_MASK);
 
-    
-    context->mDefaultJSOptions = newDefaultJSOptions;
-  }
+  
+  context->mDefaultJSOptions = newDefaultJSOptions;
 
 #ifdef JS_GC_ZEAL
   PRInt32 zeal = nsContentUtils::GetIntPref(js_zeal_option_str, -1);
@@ -1984,7 +1980,7 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, void *aScope, void *aHandler
 
     jsval funval = OBJECT_TO_JSVAL(funobj);
     JSAutoEnterCompartment ac;
-    if (!ac.enter(mContext, target)) {
+    if (!ac.enter(mContext, funobj) || !JS_WrapObject(mContext, &target)) {
       sSecurityManager->PopContextPrincipal(mContext);
       return NS_ERROR_FAILURE;
     }
@@ -2843,57 +2839,6 @@ nsJSContext::AddSupportsPrimitiveTojsvals(nsISupports *aArg, jsval *aArgv)
   return NS_OK;
 }
 
-static JSPropertySpec OptionsProperties[] = {
-  {"strict",    (int8)JSOPTION_STRICT,   JSPROP_ENUMERATE | JSPROP_PERMANENT},
-  {"werror",    (int8)JSOPTION_WERROR,   JSPROP_ENUMERATE | JSPROP_PERMANENT},
-  {"relimit",   (int8)JSOPTION_RELIMIT,  JSPROP_ENUMERATE | JSPROP_PERMANENT},
-  {0}
-};
-
-static JSBool
-GetOptionsProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
-{
-  if (JSID_IS_INT(id)) {
-    uint32 optbit = (uint32) JSID_TO_INT(id);
-    if (((optbit & (optbit - 1)) == 0 && optbit <= JSOPTION_WERROR) ||
-          optbit == JSOPTION_RELIMIT)
-      *vp = (JS_GetOptions(cx) & optbit) ? JSVAL_TRUE : JSVAL_FALSE;
-  }
-  return JS_TRUE;
-}
-
-static JSBool
-SetOptionsProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
-{
-  if (JSID_IS_INT(id)) {
-    uint32 optbit = (uint32) JSID_TO_INT(id);
-
-    
-    
-    
-    if (((optbit & (optbit - 1)) == 0 && optbit <= JSOPTION_WERROR) ||
-        optbit == JSOPTION_RELIMIT) {
-      JSBool optval;
-      JS_ValueToBoolean(cx, *vp, &optval);
-
-      uint32 optset = ::JS_GetOptions(cx);
-      if (optval)
-        optset |= optbit;
-      else
-        optset &= ~optbit;
-      ::JS_SetOptions(cx, optset);
-    }
-  }
-  return JS_TRUE;
-}
-
-static JSClass OptionsClass = {
-  "JSOptions",
-  0,
-  JS_PropertyStub, JS_PropertyStub, GetOptionsProperty, SetOptionsProperty,
-  JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, nsnull
-};
-
 #ifdef NS_TRACE_MALLOC
 
 #include <errno.h>              
@@ -3171,15 +3116,7 @@ nsJSContext::InitClasses(void *aGlobalObj)
 
   JSAutoRequest ar(mContext);
 
-  
-  JSObject *optionsObj = ::JS_DefineObject(mContext, globalObj, "_options",
-                                           &OptionsClass, nsnull, 0);
-  if (optionsObj &&
-      ::JS_DefineProperties(mContext, optionsObj, OptionsProperties)) {
-    ::JS_SetOptions(mContext, mDefaultJSOptions);
-  } else {
-    rv = NS_ERROR_FAILURE;
-  }
+  ::JS_SetOptions(mContext, mDefaultJSOptions);
 
   
   ::JS_DefineProfilingFunctions(mContext, globalObj);

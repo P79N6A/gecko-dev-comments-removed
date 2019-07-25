@@ -42,6 +42,14 @@
 #define jsobj_h___
 
 
+#ifdef mozilla_mozalloc_macro_wrappers_h
+#  define JS_OBJ_UNDEFD_MOZALLOC_WRAPPERS
+
+#  include "mozilla/mozalloc_undef_macro_wrappers.h"
+#endif
+
+
+
 
 
 
@@ -303,6 +311,10 @@ struct JSObject : js::gc::Cell {
     friend class GetPropCompiler;
 
     
+
+
+
+
 
 
 
@@ -1864,8 +1876,13 @@ extern bool
 EvalKernel(JSContext *cx, uintN argc, js::Value *vp, EvalType evalType, JSStackFrame *caller,
            JSObject *scopeobj);
 
-extern bool
+extern JS_FRIEND_API(bool)
 IsBuiltinEvalFunction(JSFunction *fun);
 
 }
+
+#ifdef JS_OBJ_UNDEFD_MOZALLOC_WRAPPERS
+#  include "mozilla/mozalloc_macro_wrappers.h"
+#endif
+
 #endif 
