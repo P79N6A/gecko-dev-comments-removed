@@ -1092,8 +1092,18 @@ nsTextControlFrame::OffsetToDOMPoint(PRInt32 aOffset,
     NS_IF_ADDREF(*aResult = rootNode);
     *aPosition = 0;
   } else if (textNode) {
-    NS_IF_ADDREF(*aResult = firstNode);
-    *aPosition = aOffset;
+    PRUint32 textLength = 0;
+    textNode->GetLength(&textLength);
+    if (length == 2 && PRUint32(aOffset) == textLength) {
+      
+      
+      NS_IF_ADDREF(*aResult = rootNode);
+      *aPosition = 1;
+    } else {
+      
+      NS_IF_ADDREF(*aResult = firstNode);
+      *aPosition = aOffset;
+    }
   } else {
     NS_IF_ADDREF(*aResult = rootNode);
     *aPosition = 0;
