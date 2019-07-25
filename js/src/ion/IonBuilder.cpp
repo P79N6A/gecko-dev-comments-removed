@@ -2603,7 +2603,7 @@ IonBuilder::jsop_getgname(JSAtom *atom)
     
     
     if (!propertyTypes && shape->configurable()) {
-        MGuardShape *guard = MGuardShape::New(global, shape);
+        MGuardShape *guard = MGuardShape::New(global, globalObj->lastProperty());
         current->add(guard);
     }
 
@@ -2661,7 +2661,7 @@ IonBuilder::jsop_setgname(JSAtom *atom)
     
     
     if (!propertyTypes) {
-        MGuardShape *guard = MGuardShape::New(global, shape);
+        MGuardShape *guard = MGuardShape::New(global, globalObj->lastProperty());
         current->add(guard);
     }
 
