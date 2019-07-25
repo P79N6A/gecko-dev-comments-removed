@@ -70,6 +70,7 @@
 #include "nsRuleData.h"
 #include "nsContentErrors.h"
 #include "nsRuleProcessorData.h"
+#include "nsCSSRuleProcessor.h"
 #include "mozilla/dom/Element.h"
 #include "nsCSSFrameConstructor.h"
 
@@ -221,11 +222,12 @@ nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
     
     if (tag == nsGkAtoms::a) {
       if (mLinkRule || mVisitedRule || mActiveRule) {
-        nsEventStates state = aData->GetContentStateForVisitedHandling(
+        nsEventStates state = nsCSSRuleProcessor::GetContentStateForVisitedHandling(
+                                  aData->mElement,
                                   ruleWalker->VisitedHandling(),
                                   
                                   
-                                  aData->IsLink());
+                                  nsCSSRuleProcessor::IsLink(aData->mElement));
         if (mLinkRule && state.HasState(NS_EVENT_STATE_UNVISITED)) {
           ruleWalker->Forward(mLinkRule);
           ruleWalker->SetHaveRelevantLink();
@@ -236,7 +238,7 @@ nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
         }
 
         
-        if (mActiveRule && aData->IsLink() &&
+        if (mActiveRule && nsCSSRuleProcessor::IsLink(aData->mElement) &&
             state.HasState(NS_EVENT_STATE_ACTIVE)) {
           ruleWalker->Forward(mActiveRule);
         }
@@ -275,7 +277,7 @@ nsHTMLStyleSheet::HasStateDependentStyle(StateRuleProcessorData* aData)
 {
   if (aData->mElement->IsHTML() &&
       aData->mContentTag == nsGkAtoms::a &&
-      aData->IsLink() &&
+      nsCSSRuleProcessor::IsLink(aData->mElement) &&
       ((mActiveRule && aData->mStateMask.HasState(NS_EVENT_STATE_ACTIVE)) ||
        (mLinkRule && aData->mStateMask.HasState(NS_EVENT_STATE_VISITED)) ||
        (mVisitedRule && aData->mStateMask.HasState(NS_EVENT_STATE_VISITED)))) {

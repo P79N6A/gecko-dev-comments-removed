@@ -172,13 +172,7 @@ public:
     mVisitedHandling = mRuleWalker->VisitedHandling();
   }
   
-  nsEventStates ContentState();
   nsEventStates DocumentState();
-  PRBool IsLink();
-
-  nsEventStates GetContentStateForVisitedHandling(
-                  nsRuleWalker::VisitedHandlingType aVisitedHandling,
-                  PRBool aIsRelevantLink);
 
   nsPresContext*    mPresContext;
   mozilla::dom::Element* mElement;       
@@ -195,15 +189,6 @@ public:
   
   RuleProcessorData* mPreviousSiblingData;
   RuleProcessorData* mParentData;
-
-private:
-  
-  nsEventStates mContentState;  
-                                
-                                
-                                
-                                
-  PRPackedBool mGotContentState;
 };
 
 struct ElementRuleProcessorData : public RuleProcessorData {

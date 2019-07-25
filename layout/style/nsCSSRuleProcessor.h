@@ -50,6 +50,7 @@
 #include "nsTArray.h"
 #include "nsAutoPtr.h"
 #include "nsCSSRules.h"
+#include "nsRuleWalker.h"
 
 struct RuleCascadeData;
 struct nsCSSSelectorList;
@@ -93,6 +94,25 @@ public:
   static PRBool SelectorListMatches(mozilla::dom::Element* aElement,
                                     RuleProcessorData& aData,
                                     nsCSSSelectorList* aSelectorList);
+
+  
+
+
+
+  static nsEventStates GetContentState(mozilla::dom::Element* aElement);
+
+  
+
+
+  static nsEventStates GetContentStateForVisitedHandling(
+             mozilla::dom::Element* aElement,
+             nsRuleWalker::VisitedHandlingType aVisitedHandling,
+             PRBool aIsRelevantLink);
+
+  
+
+
+  static PRBool IsLink(mozilla::dom::Element* aElement);
 
   
   virtual void RulesMatching(ElementRuleProcessorData* aData);

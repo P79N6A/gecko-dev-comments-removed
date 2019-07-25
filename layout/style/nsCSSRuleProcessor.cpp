@@ -1121,8 +1121,7 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
     mElement(aElement),
     mRuleWalker(aRuleWalker),
     mPreviousSiblingData(nsnull),
-    mParentData(nsnull),
-    mGotContentState(PR_FALSE)
+    mParentData(nsnull)
 {
   MOZ_COUNT_CTOR(RuleProcessorData);
 
@@ -1147,9 +1146,6 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
 
   
   mNameSpaceID = aElement->GetNameSpaceID();
-
-  
-  
 }
 
 RuleProcessorData::~RuleProcessorData()
@@ -1205,27 +1201,30 @@ static void GetLang(nsIContent* aContent, nsString& aLang)
   }
 }
 
-nsEventStates
-RuleProcessorData::ContentState()
-{
-  if (!mGotContentState) {
-    mGotContentState = PR_TRUE;
-    mContentState = mPresContext ?
-      mPresContext->EventStateManager()->GetContentState(mElement) :
-      mElement->IntrinsicState();
 
-    
-    
-    
-    
-    if ((!gSupportVisitedPseudo ||
-        gPrivateBrowsingObserver->InPrivateBrowsing()) &&
-        mContentState.HasState(NS_EVENT_STATE_VISITED)) {
-      mContentState &= ~NS_EVENT_STATE_VISITED;
-      mContentState |= NS_EVENT_STATE_UNVISITED;
-    }
+nsEventStates
+nsCSSRuleProcessor::GetContentState(Element* aElement)
+{
+  nsIPresShell* shell = aElement->GetOwnerDoc()->GetShell();
+  nsPresContext* presContext;
+  nsEventStates state;
+  if (shell && (presContext = shell->GetPresContext())) {
+    state = presContext->EventStateManager()->GetContentState(aElement);
+  } else {
+    state = aElement->IntrinsicState();
   }
-  return mContentState;
+
+  
+  
+  
+  
+  if ((!gSupportVisitedPseudo ||
+      gPrivateBrowsingObserver->InPrivateBrowsing()) &&
+      state.HasState(NS_EVENT_STATE_VISITED)) {
+    state &= ~NS_EVENT_STATE_VISITED;
+    state |= NS_EVENT_STATE_UNVISITED;
+  }
+  return state;
 }
 
 nsEventStates
@@ -1234,21 +1233,24 @@ RuleProcessorData::DocumentState()
   return mElement->GetOwnerDoc()->GetDocumentState();
 }
 
+
 PRBool
-RuleProcessorData::IsLink()
+nsCSSRuleProcessor::IsLink(Element* aElement)
 {
-  nsEventStates state = ContentState();
+  nsEventStates state = aElement->IntrinsicState();
   return state.HasAtLeastOneOfStates(NS_EVENT_STATE_VISITED | NS_EVENT_STATE_UNVISITED);
 }
 
+
 nsEventStates
-RuleProcessorData::GetContentStateForVisitedHandling(
+nsCSSRuleProcessor::GetContentStateForVisitedHandling(
+                     Element* aElement,
                      nsRuleWalker::VisitedHandlingType aVisitedHandling,
                      PRBool aIsRelevantLink)
 {
-  nsEventStates contentState = ContentState();
+  nsEventStates contentState = GetContentState(aElement);
   if (contentState.HasAtLeastOneOfStates(NS_EVENT_STATE_VISITED | NS_EVENT_STATE_UNVISITED)) {
-    NS_ABORT_IF_FALSE(IsLink(), "IsLink() should match state");
+    NS_ABORT_IF_FALSE(IsLink(aElement), "IsLink() should match state");
     contentState &= ~(NS_EVENT_STATE_VISITED | NS_EVENT_STATE_UNVISITED);
     if (aIsRelevantLink) {
       switch (aVisitedHandling) {
@@ -1992,7 +1994,7 @@ static PRBool SelectorMatches(Element* aElement,
           
           !isNegated &&
           
-          aElement->IsHTML() && !data.IsLink() &&
+          aElement->IsHTML() && !nsCSSRuleProcessor::IsLink(aElement) &&
           !IsQuirkEventSensitive(data.mContentTag)) {
         
         
@@ -2002,7 +2004,9 @@ static PRBool SelectorMatches(Element* aElement,
           if (aDependence)
             *aDependence = PR_TRUE;
         } else {
-          nsEventStates contentState = data.GetContentStateForVisitedHandling(
+          nsEventStates contentState =
+            nsCSSRuleProcessor::GetContentStateForVisitedHandling(
+                                         aElement,
                                          aTreeMatchContext.mVisitedHandling,
                                          aNodeMatchContext.mIsRelevantLink);
           if (!contentState.HasAtLeastOneOfStates(statesToCheck)) {
@@ -2183,8 +2187,9 @@ static PRBool SelectorMatchesTree(Element* aPrevElement,
     if (! data) {
       return PR_FALSE;
     }
-    NodeMatchContext nodeContext(nsEventStates(), aLookForRelevantLink &&
-                                                  data->IsLink());
+    NodeMatchContext nodeContext(nsEventStates(),
+                                 aLookForRelevantLink &&
+                                   nsCSSRuleProcessor::IsLink(data->mElement));
     if (nodeContext.mIsRelevantLink) {
       
       
@@ -2240,7 +2245,8 @@ static inline
 void ContentEnumFunc(css::StyleRule* aRule, nsCSSSelector* aSelector,
                      RuleProcessorData* data)
 {
-  NodeMatchContext nodeContext(nsEventStates(), data->IsLink());
+  NodeMatchContext nodeContext(nsEventStates(),
+                               nsCSSRuleProcessor::IsLink(data->mElement));
   if (nodeContext.mIsRelevantLink) {
     data->mHaveRelevantLink = PR_TRUE;
   }
