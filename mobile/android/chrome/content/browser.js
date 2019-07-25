@@ -1334,8 +1334,11 @@ Tab.prototype = {
   },
 
   getPageZoomLevel: function getPageZoomLevel() {
-    if (!this.browser.contentDocument)
+    
+    
+    if (!this.browser.contentDocument || !this.browser.contentDocument.body)
       return 1.0;
+
     return screen.width / this.browser.contentDocument.body.clientWidth;
   },
 
