@@ -90,7 +90,6 @@
 #include "nsEventDispatcher.h"
 #include "nsISHistory.h"
 #include "nsISHistoryInternal.h"
-#include "nsIDocShellHistory.h"
 #include "nsIDOMNSHTMLDocument.h"
 #include "nsIXULWindow.h"
 
@@ -191,7 +190,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsFrameLoader)
 NS_INTERFACE_MAP_END
 
 nsFrameLoader*
-nsFrameLoader::Create(nsIContent* aOwner, PRBool aNetworkCreated)
+nsFrameLoader::Create(nsIContent* aOwner)
 {
   NS_ENSURE_TRUE(aOwner, nsnull);
   nsIDocument* doc = aOwner->GetOwnerDoc();
@@ -200,7 +199,7 @@ nsFrameLoader::Create(nsIContent* aOwner, PRBool aNetworkCreated)
                    doc->IsStaticDocument()),
                  nsnull);
 
-  return new nsFrameLoader(aOwner, aNetworkCreated);
+  return new nsFrameLoader(aOwner);
 }
 
 NS_IMETHODIMP
@@ -1200,27 +1199,17 @@ nsFrameLoader::Destroy()
   }
 
   nsCOMPtr<nsIDocument> doc;
-  PRBool dynamicSubframeRemoval = PR_FALSE;
   if (mOwnerContent) {
     doc = mOwnerContent->GetOwnerDoc();
 
     if (doc) {
-      dynamicSubframeRemoval = !mIsTopLevelContent && !doc->InUnlinkOrDeletion();
       doc->SetSubDocumentFor(mOwnerContent, nsnull);
     }
 
     mOwnerContent = nsnull;
   }
   DestroyChild();
-
   
-  if (dynamicSubframeRemoval) {
-    nsCOMPtr<nsIDocShellHistory> dhistory = do_QueryInterface(mDocShell);
-    if (dhistory) {
-      dhistory->RemoveFromSessionHistory();
-    }
-  }
-
   
   if (mIsTopLevelContent) {
     nsCOMPtr<nsIDocShellTreeItem> ourItem = do_QueryInterface(mDocShell);
@@ -1342,13 +1331,6 @@ nsFrameLoader::MaybeCreateDocShell()
   
   mDocShell = do_CreateInstance("@mozilla.org/docshell;1");
   NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
-
-  if (!mNetworkCreated) {
-    nsCOMPtr<nsIDocShellHistory> history = do_QueryInterface(mDocShell);
-    if (history) {
-      history->SetCreatedDynamically(PR_TRUE);
-    }
-  }
 
   
   nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(do_QueryInterface(mDocShell));
