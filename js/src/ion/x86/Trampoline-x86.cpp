@@ -330,7 +330,7 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
 
     
     masm.movl(Operand(esp, IonJSFrameLayout::offsetOfCalleeToken()), eax);
-    masm.load16(Operand(eax, offsetof(JSFunction, nargs)), ecx);
+    masm.movzxh(Operand(eax, offsetof(JSFunction, nargs)), ecx);
     masm.subl(esi, ecx);
 
     masm.moveValue(UndefinedValue(), ebx, edi);

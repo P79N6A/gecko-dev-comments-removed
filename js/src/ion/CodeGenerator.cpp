@@ -581,8 +581,9 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     
     
     if (!call->hasSingleTarget()) {
-        masm.branchTest32(Assembler::Zero, Address(calleereg, offsetof(JSFunction, flags)),
-                          Imm32(JSFUN_INTERPRETED), &invoke);
+        Address flags(calleereg, offsetof(JSFunction, flags));
+        masm.load16_mask(flags, Imm32(JSFUN_KINDMASK), nargsreg);
+        masm.branch32(Assembler::LessThan, nargsreg, Imm32(JSFUN_INTERPRETED), &invoke);
     } else {
         
         JS_ASSERT(!call->getSingleTarget()->isNative());
