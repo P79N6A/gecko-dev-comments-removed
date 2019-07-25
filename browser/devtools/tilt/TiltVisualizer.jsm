@@ -590,6 +590,10 @@ TiltVisualizer.Presenter.prototype = {
     if (!this._initialSelection) {
       this._initialSelection = true;
       this.highlightNode(this.chromeWindow.InspectorUI.selection);
+
+      if (this._currentSelection === 0) { 
+        this._highlight.disabled = true;
+      }
     }
 
     
@@ -1605,7 +1609,10 @@ TiltVisualizer.Arcball.prototype = {
       (additionalTrans[1] - deltaAdditionalTrans[1]) * ARCBALL_SENSITIVITY;
 
     
-    quat4.fromEuler(deltaAdditionalRot[0], deltaAdditionalRot[1], 0, deltaRot);
+    quat4.fromEuler(
+      deltaAdditionalRot[0],
+      deltaAdditionalRot[1],
+      deltaAdditionalRot[2], deltaRot);
 
     
     vec3.set([deltaAdditionalTrans[0], deltaAdditionalTrans[1], 0], deltaTrans);
@@ -1804,6 +1811,32 @@ TiltVisualizer.Arcball.prototype = {
   {
     this._rotating = false;
     this._mouseButton = -1;
+  },
+
+  
+
+
+
+
+
+  translate: function TVP_translate(aTranslation)
+  {
+    this._additionalTrans[0] += aTranslation[0];
+    this._additionalTrans[1] += aTranslation[1];
+  },
+
+  
+
+
+
+
+
+  rotate: function TVP_rotate(aRotation)
+  {
+    
+    this._additionalRot[0] += TiltMath.radians(aRotation[1]);
+    this._additionalRot[1] += TiltMath.radians(aRotation[0]);
+    this._additionalRot[2] += TiltMath.radians(aRotation[2]);
   },
 
   
