@@ -129,6 +129,9 @@ public:
   gfxContext* GetTarget() { return mTarget; }
   PRBool IsRetained() { return mWidget != nsnull; }
 
+#ifdef MOZ_LAYERS_HAVE_LOG
+  virtual const char* Name() const { return "Basic"; }
+#endif 
 private:
   
   void PaintLayer(Layer* aLayer,
