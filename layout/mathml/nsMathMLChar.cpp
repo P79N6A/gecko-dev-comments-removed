@@ -306,26 +306,6 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar,
         
         j = -1;
       }
-#if 0 
-      
-      
-      
-      else if (code == PRUnichar(0xF8FF) && gGlyphTableList &&
-               this != &gGlyphTableList->mUnicodeTable) {
-        code = gGlyphTableList->mUnicodeTable.
-          ElementAt(aPresContext, aChar, aPosition).code;
-      }
-      
-      
-      else if ((i+1 < length) && (value[i] == PRUnichar('.'))) {
-        ++i;
-        
-        
-        if (1)
-          return kNullGlyph;
-        ++i;
-      }
-#endif
       
       if (i < length && NS_IS_HIGH_SURROGATE(code)) {
         code = value[i];
