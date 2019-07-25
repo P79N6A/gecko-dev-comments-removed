@@ -65,7 +65,7 @@ public:
     
     static void ShutDown();
 
-    static ContentParent* GetNewOrUsed(bool aForBrowserElement = false);
+    static ContentParent* GetNewOrUsed();
 
     
 
@@ -129,7 +129,7 @@ private:
     using PContentParent::SendPBrowserConstructor;
     using PContentParent::SendPTestShellConstructor;
 
-    ContentParent(const nsAString& aAppManifestURL, bool aIsForBrowser);
+    ContentParent(const nsAString& aAppManifestURL);
     virtual ~ContentParent();
 
     void Init();
