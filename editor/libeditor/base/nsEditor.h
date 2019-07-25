@@ -360,6 +360,13 @@ protected:
 
   nsKeyEvent* GetNativeKeyEvent(nsIDOMKeyEvent* aDOMKeyEvent);
 
+  PRBool CanEnableSpellCheck()
+  {
+    
+    
+    return !IsPasswordEditor() && !IsReadonly() && !IsDisabled();
+  }
+
 public:
 
   
