@@ -276,6 +276,8 @@ public:
   NS_IMETHOD SaveState();
   virtual PRBool RestoreState(nsPresState* aState);
 
+  PRInt32 IntrinsicState() const;
+
   
   NS_DECL_NSISELECTELEMENT
 

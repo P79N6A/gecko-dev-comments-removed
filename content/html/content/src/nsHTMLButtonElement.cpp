@@ -107,6 +107,8 @@ public:
   NS_IMETHOD SaveState();
   PRBool RestoreState(nsPresState* aState);
 
+  PRInt32 IntrinsicState() const;
+
   
 
 
@@ -630,6 +632,12 @@ nsHTMLButtonElement::RestoreState(nsPresState* aState)
   }
 
   return PR_FALSE;
+}
+
+PRInt32
+nsHTMLButtonElement::IntrinsicState() const
+{
+  return NS_EVENT_STATE_OPTIONAL | nsGenericHTMLFormElement::IntrinsicState();
 }
 
 
