@@ -2203,17 +2203,32 @@ nsGlobalWindow::SetDocShell(nsIDocShell* aDocShell)
   if (mScreen)
     mScreen->SetDocShell(aDocShell);
 
+  
+  nsCOMPtr<nsIWebBrowserChrome> browserChrome;
+  GetWebBrowserChrome(getter_AddRefs(browserChrome));
+  if (mMenubar) {
+    mMenubar->SetWebBrowserChrome(browserChrome);
+  }
+  if (mToolbar) {
+    mToolbar->SetWebBrowserChrome(browserChrome);
+  }
+  if (mLocationbar) {
+    mLocationbar->SetWebBrowserChrome(browserChrome);
+  }
+  if (mPersonalbar) {
+    mPersonalbar->SetWebBrowserChrome(browserChrome);
+  }
+  if (mStatusbar) {
+    mStatusbar->SetWebBrowserChrome(browserChrome);
+  }
+  if (mScrollbars) {
+    mScrollbars->SetWebBrowserChrome(browserChrome);
+  }
+
   if (!mDocShell) {
     MaybeForgiveSpamCount();
     CleanUp(PR_FALSE);
   } else {
-    
-    if (mMenubar) {
-      nsCOMPtr<nsIWebBrowserChrome> browserChrome;
-      GetWebBrowserChrome(getter_AddRefs(browserChrome));
-      mMenubar->SetWebBrowserChrome(browserChrome);
-    }
-
     
     
     nsCOMPtr<nsIDOMEventTarget> chromeEventHandler;
