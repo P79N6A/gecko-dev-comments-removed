@@ -1066,6 +1066,7 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
           aScreenPoint = aScreenEnd - aSize;
         }
         else {
+          aScreenPoint = endpos + aMarginBegin;
           popupSize = aScreenEnd - aScreenPoint;
         }
       }
@@ -1090,7 +1091,22 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
     }
   }
 
-  return popupSize;
+  
+  
+  
+  if (aScreenPoint < aScreenBegin) {
+    aScreenPoint = aScreenBegin;
+  }
+  if (aScreenPoint > aScreenEnd) {
+    aScreenPoint = aScreenEnd - aSize;
+  }
+
+  
+  
+  if (popupSize <= 0 || aSize < popupSize) {
+    popupSize = aSize;
+  }
+  return NS_MIN(popupSize, aScreenEnd - aScreenPoint);
 }
 
 nsresult
