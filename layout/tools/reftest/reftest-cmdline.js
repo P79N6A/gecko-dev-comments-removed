@@ -86,6 +86,8 @@ RefTestCmdLineHandler.prototype =
     branch.setIntPref("hangmonitor.timeout", 0);
     
     branch.setBoolPref("media.autoplay.enabled", true);
+    
+    branch.setBoolPref("app.update.enabled", false);
 
     var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                            .getService(nsIWindowWatcher);
