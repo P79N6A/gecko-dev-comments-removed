@@ -5814,7 +5814,7 @@ nsDOMConstructor::Create(const PRUnichar* aName,
   nsPIDOMWindow* outerWindow = aOwner->GetOuterWindow();
   nsPIDOMWindow* currentInner =
     outerWindow ? outerWindow->GetCurrentInnerWindow() : aOwner;
-  if (!currentInner ||
+  if (!outerWindow ||
       (aOwner != currentInner &&
        !nsContentUtils::CanCallerAccess(currentInner) &&
        !(currentInner = aOwner)->IsInnerWindow())) {
@@ -9754,14 +9754,6 @@ nsHTMLPluginObjElementSH::GetPluginJSObject(JSContext *cx, JSObject *obj,
   *plugin_proto = nsnull;
 
   JSAutoRequest ar(cx);
-
-  
-  
-  
-  JSAutoEnterCompartment ac;
-  if (!ac.enter(cx, obj)) {
-    return NS_ERROR_UNEXPECTED;
-  }
 
   if (plugin_inst) {
     plugin_inst->GetJSObject(cx, plugin_obj);
