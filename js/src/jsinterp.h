@@ -201,14 +201,6 @@ InvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv, Val
 
 
 
-extern bool
-InvokeConstructorWithGivenThis(JSContext *cx, JSObject *thisobj, const Value &fval,
-                               uintN argc, Value *argv, Value *rval);
-
-
-
-
-
 
 
 extern bool
