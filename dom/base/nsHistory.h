@@ -34,6 +34,7 @@
 
 
 
+
 #ifndef nsHistory_h___
 #define nsHistory_h___
 
@@ -42,6 +43,8 @@
 #include "nscore.h"
 #include "nsIScriptContext.h"
 #include "nsISHistory.h"
+#include "nsIWeakReference.h"
+#include "nsPIDOMWindow.h"
 
 class nsIDocShell;
 
@@ -49,7 +52,7 @@ class nsIDocShell;
 class nsHistory : public nsIDOMHistory
 {
 public:
-  nsHistory(nsIDocShell* aDocShell);
+  nsHistory(nsPIDOMWindow* aInnerWindow);
   virtual ~nsHistory();
 
   
@@ -58,14 +61,23 @@ public:
   
   NS_DECL_NSIDOMHISTORY
 
-  nsIDocShell *GetDocShell() { return mDocShell; }
-  void SetDocShell(nsIDocShell *aDocShell);
+  nsIDocShell *GetDocShell() {
+    nsCOMPtr<nsPIDOMWindow> win(do_QueryReferent(mInnerWindow));
+    if (!win)
+      return nsnull;
+    return win->GetDocShell();
+  }
+
+  void GetWindow(nsPIDOMWindow **aWindow) {
+    nsCOMPtr<nsPIDOMWindow> win(do_QueryReferent(mInnerWindow));
+    *aWindow = win.forget().get();
+  }
 
 protected:
   nsresult GetSessionHistoryFromDocShell(nsIDocShell * aDocShell,
                                          nsISHistory ** aReturn);
 
-  nsIDocShell* mDocShell;
+  nsCOMPtr<nsIWeakReference> mInnerWindow;
 };
 
 #endif 
