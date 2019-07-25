@@ -87,3 +87,34 @@ function waitForCondition(condition, nextTest, errorMsg) {
   }, 100);
   var moveOn = function() { clearInterval(interval); nextTest(); };
 }
+
+function runSocialTestWithProvider(manifest, callback) {
+  let oldProvider;
+  function saveOldProviderAndStartTestWith(provider) {
+    oldProvider = Social.provider;
+    Social.provider = provider;
+
+    
+    Services.prefs.setBoolPref("social.enabled", true);
+
+    registerCleanupFunction(function () {
+      Social.provider = oldProvider;
+      Services.prefs.clearUserPref("social.enabled");
+    });
+
+    callback();
+  }
+
+  SocialService.addProvider(manifest, function(provider) {
+    
+    
+    if (Social.provider) {
+      saveOldProviderAndStartTestWith(provider);
+    } else {
+      Services.obs.addObserver(function obs() {
+        Services.obs.removeObserver(obs, "test-social-ui-ready");
+        saveOldProviderAndStartTestWith(provider);
+      }, "test-social-ui-ready", false);
+    }
+  });
+}
