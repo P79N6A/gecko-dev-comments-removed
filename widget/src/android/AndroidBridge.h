@@ -245,6 +245,15 @@ public:
 
     void ScanMedia(const nsAString& aFile, const nsACString& aMimeType);
 
+    
+    bool HasNativeBitmapAccess();
+
+    bool ValidateBitmap(jobject bitmap, int width, int height);
+
+    void *LockBitmap(jobject bitmap);
+
+    void UnlockBitmap(jobject bitmap);
+
 protected:
     static AndroidBridge *sBridge;
 
@@ -265,6 +274,9 @@ protected:
     PRBool Init(JNIEnv *jEnv, jclass jGeckoApp);
 
     void EnsureJNIThread();
+
+    bool mOpenedBitmapLibrary;
+    bool mHasNativeBitmapAccess;
 
     
     jmethodID jNotifyIME;
@@ -309,6 +321,11 @@ protected:
     jclass jEGLDisplayImplClass;
     jclass jEGLContextClass;
     jclass jEGL10Class;
+
+    
+    int (* AndroidBitmap_getInfo)(JNIEnv *env, jobject bitmap, void *info);
+    int (* AndroidBitmap_lockPixels)(JNIEnv *env, jobject bitmap, void **buffer);
+    int (* AndroidBitmap_unlockPixels)(JNIEnv *env, jobject bitmap);
 };
 
 }
