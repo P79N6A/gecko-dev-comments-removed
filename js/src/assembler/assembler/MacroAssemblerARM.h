@@ -853,7 +853,7 @@ public:
 
     bool supportsFloatingPointTruncate() const
     {
-        return false;
+        return true;
     }
 
     bool supportsFloatingPointSqrt() const
@@ -975,10 +975,14 @@ public:
     
     Jump branchTruncateDoubleToInt32(FPRegisterID src, RegisterID dest)
     {
-        (void)(src);
-        (void)(dest);
-        ASSERT_NOT_REACHED();
-        return jump();
+        m_assembler.ftosizd_r(ARMRegisters::SD0, src);
+        
+        
+        
+        m_assembler.fmrs_r(dest, ARMRegisters::SD0);
+        m_assembler.cmn_r(dest, ARMAssembler::getOp2(1));
+        m_assembler.cmp_r(dest, ARMAssembler::getOp2(0x80000000), ARMCondition(NonZero));
+        return Jump(m_assembler.jmp(ARMCondition(Zero)));
     }
 
     
