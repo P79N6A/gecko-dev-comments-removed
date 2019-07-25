@@ -351,10 +351,16 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint
     JSFunction *newfun = callee.getFunctionPrivate();
     JSScript *newscript = newfun->script();
 
-    if (argTypes) {
+    if (argTypes && argc == newfun->nargs) {
+        
+
+
+
+
+
         if (!(flags & JSFRAME_CONSTRUCTING) && !newscript->typeSetThis(cx, argTypes[0]))
             return false;
-        for (unsigned i = 0; i < newfun->nargs; i++) {
+        for (unsigned i = 0; i < argc; i++) {
             if (!newscript->typeSetArgument(cx, i, argTypes[1 + i]))
                 return false;
         }

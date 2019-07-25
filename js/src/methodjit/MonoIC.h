@@ -253,6 +253,9 @@ struct CallICInfo {
     bool typeMonitored : 1;
 
     
+
+
+
     types::jstype *argTypes;
 
     inline void reset() {
