@@ -51,7 +51,7 @@ int	posix_memalign(void **memptr, size_t alignment, size_t size);
 #endif 
 
 #if defined(MOZ_MEMORY_DARWIN) || defined(MOZ_MEMORY_ANDROID) || \
-    defined(WRAP_MALLOC) || defined(WIN32_NEW_STYLE_JEMALLOC)
+    defined(WRAP_MALLOC) || defined(MOZ_MEMORY_WINDOWS)
 void	*je_malloc(size_t size);
 void	*je_valloc(size_t size);
 void	*je_calloc(size_t num, size_t size);
