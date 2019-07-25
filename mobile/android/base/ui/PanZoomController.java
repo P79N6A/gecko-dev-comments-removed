@@ -311,12 +311,14 @@ public class PanZoomController
             cancelTouch();
             
         case PANNING_HOLD_LOCKED:
+            GeckoApp.mAppContext.mAutoCompletePopup.hide();
             mState = PanZoomState.PANNING_LOCKED;
             
         case PANNING_LOCKED:
             track(event);
             return true;
         case PANNING_HOLD:
+            GeckoApp.mAppContext.mAutoCompletePopup.hide();
             mState = PanZoomState.PANNING;
             
         case PANNING:
@@ -989,6 +991,8 @@ public class PanZoomController
         } catch(Exception ex) {
             throw new RuntimeException(ex);
         }
+
+        GeckoApp.mAppContext.mAutoCompletePopup.hide();
 
         GeckoEvent e = new GeckoEvent("Gesture:SingleTap", ret.toString());
         GeckoAppShell.sendEventToGecko(e);
