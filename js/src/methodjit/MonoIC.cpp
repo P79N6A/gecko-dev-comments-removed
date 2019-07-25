@@ -1268,6 +1268,20 @@ JITScript::sweepCallICs(JSContext *cx, bool purgeAll)
         bool nativeDead = ic.fastGuardedNative &&
             (purgeAll || IsAboutToBeFinalized(cx, ic.fastGuardedNative));
 
+        
+
+
+
+
+
+
+
+
+        if (purgeAll || nativeDead || (fastFunDead && ic.hasJsFunCheck)) {
+            repatcher.relink(ic.funJump, ic.slowPathStart);
+            ic.hit = false;
+        }
+
         if (fastFunDead) {
             repatcher.repatch(ic.funGuard, NULL);
             ic.releasePool(CallICInfo::Pool_ClosureStub);
@@ -1285,16 +1299,6 @@ JITScript::sweepCallICs(JSContext *cx, bool purgeAll)
             JSC::CodeLocationJump oolJump = ic.slowPathStart.jumpAtOffset(ic.oolJumpOffset);
             JSC::CodeLocationLabel icCall = ic.slowPathStart.labelAtOffset(ic.icCallOffset);
             repatcher.relink(oolJump, icCall);
-        }
-
-        
-
-
-
-
-        if (purgeAll || !(ic.fastGuardedObject || ic.fastGuardedNative)) {
-            repatcher.relink(ic.funJump, ic.slowPathStart);
-            ic.hit = false;
         }
     }
 
