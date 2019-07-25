@@ -22,6 +22,7 @@
 #include "nsMathUtils.h"
 #include "nsPoint.h"
 #include "nsRect.h"
+#include "mozilla/Constants.h"
 
 class gfxASurface;
 class gfxContext;
@@ -55,10 +56,6 @@ namespace dom {
 class Element;
 } 
 } 
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 
 
 #define NS_STATE_IS_OUTER_SVG                    NS_FRAME_STATE_BIT(20)
