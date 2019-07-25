@@ -126,6 +126,7 @@ int allocateBlocks(int size, int count, WAVEHDR** blocks);
 int freeBlocks(WAVEHDR* blocks);
 int openAudio(sa_stream_t *s);
 int closeAudio(sa_stream_t * s);
+int writeBlock(sa_stream_t *s, WAVEHDR* current);
 int writeAudio(sa_stream_t *s, LPSTR data, int bytes);
 int getSAErrorCode(int waveErrorCode);
 
@@ -326,9 +327,21 @@ int sa_stream_pause(sa_stream_t *s) {
   return SA_SUCCESS;
 }
 
+
 int sa_stream_drain(sa_stream_t *s) {
+  int status;
+  WAVEHDR* current;
+
   ERROR_IF_NO_INIT(s);
-  
+
+  current = &(s->waveBlocks[s->waveCurrentBlock]);
+  if (current->dwUser) {
+    
+
+    status = writeBlock(s, current);
+    HANDLE_WAVE_ERROR(status, "writing audio to audio device");
+  }
+
   if (!s->playing) {
     return SA_ERROR_INVALID;
   }
@@ -514,6 +527,38 @@ int closeAudio(sa_stream_t * s) {
 
 
 
+int writeBlock(sa_stream_t *s, WAVEHDR* current) {
+  int status;
+  ERROR_IF_NO_INIT(s);
+
+  current->dwBufferLength = current->dwUser;
+  
+  waveOutPrepareHeader(s->hWaveOut, current, sizeof(WAVEHDR));
+  status = waveOutWrite(s->hWaveOut, current, sizeof(WAVEHDR));      
+  HANDLE_WAVE_ERROR(status, "writing audio to audio device");
+    
+  EnterCriticalSection(&(s->waveCriticalSection));
+  s->waveFreeBlockCount--;
+  LeaveCriticalSection(&(s->waveCriticalSection));
+
+  
+
+
+  (s->waveCurrentBlock)++;
+  (s->waveCurrentBlock) %= BLOCK_COUNT;		
+
+  s->playing = 1;
+
+  return SA_SUCCESS;
+}
+
+
+
+
+
+
+
+
 int writeAudio(sa_stream_t *s, LPSTR data, int bytes) {    
   UINT status;
   WAVEHDR* current;	  
@@ -541,30 +586,17 @@ int writeAudio(sa_stream_t *s, LPSTR data, int bytes) {
     }
 
     
-    remain = BLOCK_SIZE - current->dwUser;      
+    remain = BLOCK_SIZE - current->dwUser;
   	memcpy(current->lpData + current->dwUser, data, remain);
+    current->dwUser += remain;
     bytes -= remain;
     data += remain;
-	  current->dwBufferLength = BLOCK_SIZE;
-	  
-    waveOutPrepareHeader(s->hWaveOut, current, sizeof(WAVEHDR));
-	  status = waveOutWrite(s->hWaveOut, current, sizeof(WAVEHDR));      
+
+    status = writeBlock(s, current);
     HANDLE_WAVE_ERROR(status, "writing audio to audio device");
-      
-    EnterCriticalSection(&(s->waveCriticalSection));
-    s->waveFreeBlockCount--;
-    LeaveCriticalSection(&(s->waveCriticalSection));
-
-    
-
-
-    (s->waveCurrentBlock)++;
-    (s->waveCurrentBlock) %= BLOCK_COUNT;		
 
     current = &(s->waveBlocks[s->waveCurrentBlock]);
     current->dwUser = 0;
-
-    s->playing = 1;
   }
   return SA_SUCCESS;
 }
