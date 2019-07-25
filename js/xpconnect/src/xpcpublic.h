@@ -241,8 +241,16 @@ bool Base64Decode(JSContext *cx, JS::Value val, JS::Value *out);
 
 
 
-bool StringToJsval(JSContext *cx, nsAString &str, JS::Value *rval);
 bool NonVoidStringToJsval(JSContext *cx, nsAString &str, JS::Value *rval);
+inline bool StringToJsval(JSContext *cx, nsAString &str, JS::Value *rval)
+{
+    
+    if (str.IsVoid()) {
+        *rval = JSVAL_NULL;
+        return true;
+    }
+    return NonVoidStringToJsval(cx, str, rval);
+}
 
 nsIPrincipal *GetCompartmentPrincipal(JSCompartment *compartment);
 

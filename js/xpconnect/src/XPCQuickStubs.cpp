@@ -939,17 +939,6 @@ xpc_qsJsvalToWcharStr(JSContext *cx, jsval v, jsval *pval, const PRUnichar **pst
 namespace xpc {
 
 bool
-StringToJsval(JSContext *cx, nsAString &str, JS::Value *rval)
-{
-    
-    if (str.IsVoid()) {
-        *rval = JSVAL_NULL;
-        return true;
-    }
-    return NonVoidStringToJsval(cx, str, rval);
-}
-
-bool
 NonVoidStringToJsval(JSContext *cx, nsAString &str, JS::Value *rval)
 {
     nsStringBuffer* sharedBuffer;

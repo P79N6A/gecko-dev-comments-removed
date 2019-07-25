@@ -1198,7 +1198,17 @@ MaybeVerifyBarriers(JSContext *cx, bool always = false)
 } 
 
 static inline JSCompartment *
-GetObjectCompartment(JSObject *obj) { return reinterpret_cast<js::gc::Cell *>(obj)->compartment(); }
+GetGCThingCompartment(void *thing)
+{
+    JS_ASSERT(thing);
+    return reinterpret_cast<gc::Cell *>(thing)->compartment();
+}
+
+static inline JSCompartment *
+GetObjectCompartment(JSObject *obj)
+{
+    return GetGCThingCompartment(obj);
+}
 
 } 
 

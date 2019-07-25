@@ -21,10 +21,23 @@
 #include "xpcprivate.h"
 #include "nsStringBuffer.h"
 
+
+
+
+
+
+static nsStringBuffer* sCachedBuffer = nullptr;
+static JSString* sCachedString = nullptr;
+
 static void
 FinalizeDOMString(const JSStringFinalizer *fin, jschar *chars)
 {
-    nsStringBuffer::FromData(chars)->Release();
+    nsStringBuffer* buf = nsStringBuffer::FromData(chars);
+    if (buf == sCachedBuffer) {
+        sCachedBuffer = nullptr;
+        
+    }
+    buf->Release();
 }
 
 static const JSStringFinalizer sDOMStringFinalizer = { FinalizeDOMString };
@@ -47,6 +60,12 @@ XPCStringConvert::ReadableToJSVal(JSContext *cx,
 
     nsStringBuffer *buf = nsStringBuffer::FromString(readable);
     if (buf) {
+        if (buf == sCachedBuffer &&
+            js::GetGCThingCompartment(sCachedString) == js::GetContextCompartment(cx)) {
+            
+            return JS::StringValue(sCachedString);
+        }
+
         
 
         str = JS_NewExternalString(cx,
@@ -55,6 +74,8 @@ XPCStringConvert::ReadableToJSVal(JSContext *cx,
 
         if (str) {
             *sharedBuffer = buf;
+            sCachedString = str;
+            sCachedBuffer = buf;
         }
     } else {
         
