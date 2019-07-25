@@ -175,7 +175,16 @@ private:
   
   void SetInt(PRInt32 aInt)
   {
-    mValOrHash = (void*)((aInt << 1) | 0x1);
+    
+
+
+
+
+    mValOrHash = (void*)
+#if (defined(__GNUC__) && defined(__x86_64__))
+                 (intptr_t)
+#endif
+                 ((aInt << 1) | 0x1);
   }
   
   nsresult InitHash(nsInt32HashSet** aSet);
