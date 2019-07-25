@@ -176,17 +176,6 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
     
     public void endDrawing() {
-        updateViewport(!mUpdateViewportOnEndDraw);
-        mUpdateViewportOnEndDraw = false;
-        Log.i(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - endDrawing");
-
-        
-        if (mDrawListener != null) {
-            mDrawListener.drawFinished();
-        }
-    }
-
-    private void updateViewport(boolean onlyUpdatePageSize) {
         synchronized (mLayerController) {
             
             
@@ -199,19 +188,26 @@ public class GeckoLayerClient implements GeckoEventResponder,
             RectF position = mGeckoViewport.getViewport();
             mRootLayer.setPositionAndResolution(RectUtils.round(position), mGeckoViewport.getZoomFactor());
 
-            Log.e(LOGTAG, "### updateViewport onlyUpdatePageSize=" + onlyUpdatePageSize +
+            Log.e(LOGTAG, "### updateViewport onlyUpdatePageSize=" + !mUpdateViewportOnEndDraw +
                   " getTileViewport " + mGeckoViewport);
 
-            if (onlyUpdatePageSize) {
+            if (mUpdateViewportOnEndDraw) {
+                mLayerController.setViewportMetrics(mGeckoViewport);
+                mLayerController.abortPanZoomAnimation();
+                mUpdateViewportOnEndDraw = false;
+            } else {
                 
                 
                 if (FloatUtils.fuzzyEquals(mLayerController.getZoomFactor(),
                         mGeckoViewport.getZoomFactor()))
                     mLayerController.setPageSize(mGeckoViewport.getPageSize());
-            } else {
-                mLayerController.setViewportMetrics(mGeckoViewport);
-                mLayerController.abortPanZoomAnimation();
             }
+        }
+
+        Log.i(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - endDrawing");
+        
+        if (mDrawListener != null) {
+            mDrawListener.drawFinished();
         }
     }
 
