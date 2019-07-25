@@ -809,8 +809,7 @@ public:
 
 
 
-  static nsIFrame* GetParentOrPlaceholderFor(nsFrameManager* aFrameManager,
-                                             nsIFrame* aFrame);
+  static nsIFrame* GetParentOrPlaceholderFor(nsIFrame* aFrame);
 
   
 
