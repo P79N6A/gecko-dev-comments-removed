@@ -357,6 +357,9 @@ BrowserGlue.prototype = {
 
     
     
+    
+    
+    
     if (this._isPlacesDatabaseLocked) {
       this._showPlacesLockedNotificationBox();
     }

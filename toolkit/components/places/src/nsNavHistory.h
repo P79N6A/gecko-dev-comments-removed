@@ -100,8 +100,6 @@
 
 #define TOPIC_PLACES_TEARDOWN "places-teardown"
 
-#define TOPIC_PLACES_DATABASE_CLOSED "places-database-closed"
-
 #define TOPIC_DATABASE_LOCKED "places-database-locked"
 
 #define TOPIC_PLACES_INIT_COMPLETE "places-init-complete"
@@ -552,6 +550,7 @@ protected:
 
   nsresult InitAdditionalDBItems();
   nsresult InitTempTables();
+  nsresult InitViews();
   nsresult InitFunctions();
   nsresult InitStatements();
   nsresult ForceMigrateBookmarksDB(mozIStorageConnection *aDBConn);
@@ -561,7 +560,6 @@ protected:
   nsresult MigrateV8Up(mozIStorageConnection *aDBConn);
   nsresult MigrateV9Up(mozIStorageConnection *aDBConn);
   nsresult MigrateV10Up(mozIStorageConnection *aDBConn);
-  nsresult MigrateV11Up(mozIStorageConnection *aDBConn);
 
   nsresult RemovePagesInternal(const nsCString& aPlaceIdsQueryString);
   nsresult PreparePlacesForVisitsDelete(const nsCString& aPlaceIdsQueryString);
