@@ -3033,14 +3033,14 @@ nsNavHistory::ExecuteQueries(nsINavHistoryQuery** aQueries, PRUint32 aQueryCount
     queries.AppendObject(query);
   }
 
+  nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
+  NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
   
   nsRefPtr<nsNavHistoryContainerResultNode> rootNode;
   PRInt64 folderId = GetSimpleBookmarksQueryFolder(queries, options);
   if (folderId) {
     
     
-    nsNavBookmarks *bookmarks = nsNavBookmarks::GetBookmarksService();
-    NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
     nsRefPtr<nsNavHistoryResultNode> tempRootNode;
     rv = bookmarks->ResultNodeForContainer(folderId, options,
                                            getter_AddRefs(tempRootNode));
@@ -3054,8 +3054,10 @@ nsNavHistory::ExecuteQueries(nsINavHistoryQuery** aQueries, PRUint32 aQueryCount
   }
 
   
+  bool batchInProgress = isBatching() || bookmarks->isBatching();
   nsRefPtr<nsNavHistoryResult> result;
-  rv = nsNavHistoryResult::NewHistoryResult(aQueries, aQueryCount, options, rootNode,
+  rv = nsNavHistoryResult::NewHistoryResult(aQueries, aQueryCount, options,
+                                            rootNode, batchInProgress,
                                             getter_AddRefs(result));
   NS_ENSURE_SUCCESS(rv, rv);
 
