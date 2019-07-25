@@ -6060,10 +6060,8 @@ CSSParserImpl::ParseFontDescriptorValue(nsCSSFontDesc aDescID,
 
   case eCSSFontDesc_Stretch:
     
-    return (ParseVariant(aValue, VARIANT_KEYWORD,
-                         nsCSSProps::kFontStretchKTable) &&
-            (aValue.GetIntValue() != NS_STYLE_FONT_STRETCH_WIDER &&
-             aValue.GetIntValue() != NS_STYLE_FONT_STRETCH_NARROWER));
+    return ParseVariant(aValue, VARIANT_KEYWORD,
+                        nsCSSProps::kFontStretchKTable);
 
     
   case eCSSFontDesc_Src:
