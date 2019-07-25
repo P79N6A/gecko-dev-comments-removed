@@ -60,6 +60,7 @@
 #include "jsdbgapi.h"
 #include "jsgc.h"
 #include "jscompartment.h"
+#include "xpcpublic.h"
 #include "nscore.h"
 #include "nsXPCOM.h"
 #include "nsAutoPtr.h"
@@ -486,6 +487,9 @@ private:
 
 
 
+
+static const uint32 XPC_GC_COLOR_BLACK = 0;
+static const uint32 XPC_GC_COLOR_GRAY = 1;
 
 
 
@@ -2525,26 +2529,14 @@ public:
     nsISupports*
     GetIdentityObject() const {return mIdentity;}
 
-    
-
-
-
     JSObject*
-    GetFlatJSObject() const
+    GetFlatJSObjectAndMark() const
         {if(mFlatJSObject && mFlatJSObject != INVALID_OBJECT)
-             mFlatJSObject->unmark(XPC_GC_COLOR_GRAY);
+             mFlatJSObject->markIfUnmarked();
          return mFlatJSObject;}
 
-    
-
-
-
-
-
-
-
     JSObject*
-    GetFlatJSObjectPreserveColor() const {return mFlatJSObject;}
+    GetFlatJSObjectNoMark() const {return mFlatJSObject;}
 
     XPCLock*
     GetLock() const {return IsValid() && HasProto() ?
@@ -2992,24 +2984,7 @@ public:
                  nsXPCWrappedJS** wrapper);
 
     nsISomeInterface* GetXPTCStub() { return mXPTCStub; }
-
-    
-
-
-
-    JSObject* GetJSObject() const {if(mJSObj) mJSObj->unmark(XPC_GC_COLOR_GRAY);
-                                   return mJSObj;}
-
-    
-
-
-
-
-
-
-
-    JSObject* GetJSObjectPreserveColor() const {return mJSObj;}
-
+    JSObject* GetJSObject() const {return mJSObj;}
     nsXPCWrappedJSClass*  GetClass() const {return mClass;}
     REFNSIID GetIID() const {return GetClass()->GetIID();}
     nsXPCWrappedJS* GetRootWrapper() const {return mRoot;}
@@ -4334,22 +4309,7 @@ public:
 
 
 
-
-    jsval GetJSVal() const
-        {if(!JSVAL_IS_PRIMITIVE(mJSVal))
-             JSVAL_TO_OBJECT(mJSVal)->unmark(XPC_GC_COLOR_GRAY);
-         return mJSVal;}
-
-    
-
-
-
-
-
-
-
-
-    jsval GetJSValPreserveColor() const {return mJSVal;}
+    jsval GetJSVal() const {return mJSVal;}
 
     XPCVariant(XPCCallContext& ccx, jsval aJSVal);
 
