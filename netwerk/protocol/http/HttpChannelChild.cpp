@@ -663,8 +663,7 @@ HttpChannelChild::Redirect1Begin(PHttpChannelChild* newChannel,
                                                mConnectionInfo->ProxyInfo());
   if (NS_FAILED(rv)) {
     
-    Cancel(rv);
-    SendRedirect2Result(rv, mRedirectChannelChild->mRequestHeaders);
+    SendRedirect2Result(rv, newHttpChannelChild->mRequestHeaders);
     return;
   }
 
@@ -676,8 +675,7 @@ HttpChannelChild::Redirect1Begin(PHttpChannelChild* newChannel,
   rv = SetupReplacementChannel(uri, newHttpChannelChild, preserveMethod);
   if (NS_FAILED(rv)) {
     
-    Cancel(rv);
-    SendRedirect2Result(rv, mRedirectChannelChild->mRequestHeaders);
+    SendRedirect2Result(rv, newHttpChannelChild->mRequestHeaders);
     return;
   }
 
@@ -723,7 +721,10 @@ HttpChannelChild::Redirect3Complete()
   rv = mRedirectChannelChild->CompleteRedirectSetup(mListener, 
                                                     mListenerContext);
   if (NS_FAILED(rv))
-    Cancel(rv);
+    NS_WARNING("CompleteRedirectSetup failed, HttpChannelChild already open?");
+
+  
+  mRedirectChannelChild = nsnull;
 }
 
 nsresult
@@ -734,6 +735,13 @@ HttpChannelChild::CompleteRedirectSetup(nsIStreamListener *listener,
 
   NS_ENSURE_TRUE(!mIsPending, NS_ERROR_IN_PROGRESS);
   NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_ALREADY_OPENED);
+
+  
+
+
+
+
+
 
   
   gHttpHandler->OnModifyRequest(this);
