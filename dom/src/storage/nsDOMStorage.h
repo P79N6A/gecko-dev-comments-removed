@@ -59,6 +59,11 @@
 #include "nsIDOMStorageManager.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIObserver.h"
+#include "nsITimer.h"
+#include "nsWeakReference.h"
+#include "mozilla/TimeStamp.h"
+
+#define NS_DOMSTORAGE_FLUSH_TIMER_OBSERVER "domstorage-flush-timer"
 
 #ifdef MOZ_STORAGE
 #include "nsDOMStorageDBWrapper.h"
@@ -71,6 +76,9 @@
 class nsDOMStorage;
 class nsIDOMStorage;
 class nsDOMStorageItem;
+
+using mozilla::TimeStamp;
+using mozilla::TimeDuration;
 
 class nsDOMStorageEntry : public nsVoidPtrHashKey
 {
@@ -128,19 +136,20 @@ protected:
 };
 
 class nsDOMStorage : public nsIDOMStorageObsolete,
-                     public nsPIDOMStorage
+                     public nsPIDOMStorage,
+                     public nsIObserver,
+                     public nsSupportsWeakReference
 {
 public:
   nsDOMStorage();
   nsDOMStorage(nsDOMStorage& aThat);
   virtual ~nsDOMStorage();
 
-  
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsDOMStorage, nsIDOMStorageObsolete)
 
-  
   NS_DECL_NSIDOMSTORAGEOBSOLETE
+  NS_DECL_NSIOBSERVER
 
   
   nsresult GetItem(const nsAString& key, nsAString& aData);
@@ -196,6 +205,13 @@ public:
   CacheStoragePermissions();
 
   
+  
+  nsresult
+  GetCachedValue(const nsAString& aKey,
+                 nsAString& aValue,
+                 PRBool* aSecure);
+
+  
   nsresult
   GetDBValue(const nsAString& aKey,
              nsAString& aValue,
@@ -226,10 +242,17 @@ public:
     return static_cast<nsDOMStorage*>(static_cast<nsIDOMStorageObsolete*>(aSupports));
   }
 
+  nsresult RegisterObservers();
+  nsresult MaybeCommitTemporaryTable(bool force);
+
+  bool WasTemporaryTableLoaded();
+  void SetTemporaryTableLoaded(bool loaded);
+
 protected:
 
   friend class nsDOMStorageManager;
   friend class nsDOMStorage2;
+  friend class nsDOMStoragePersistentDB;
 
   static nsresult InitDB();
 
@@ -277,6 +300,10 @@ protected:
   nsPIDOMStorage* mEventBroadcaster;
 
   bool mCanUseChromePersist;
+
+  bool mLoadedTemporaryTable;
+  TimeStamp mLastTemporaryTableAccessTime;
+  TimeStamp mTemporaryTableAge;
 
 public:
   

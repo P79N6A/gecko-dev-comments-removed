@@ -86,11 +86,16 @@ class nsSessionStorageEntry;
 class nsDOMStorageDBWrapper
 {
 public:
-  nsDOMStorageDBWrapper() {}
-  ~nsDOMStorageDBWrapper() {}
+  nsDOMStorageDBWrapper();
+  ~nsDOMStorageDBWrapper();
 
   nsresult
   Init();
+
+  nsresult
+  EnsureLoadTemporaryTableForStorage(nsDOMStorage* aStorage);
+  nsresult
+  FlushAndDeleteTemporaryTableForStorage(nsDOMStorage* aStorage);
 
   
 
@@ -221,6 +226,8 @@ protected:
   nsDOMStoragePersistentDB mPersistentDB;
   nsDOMStorageMemoryDB mSessionOnlyDB;
   nsDOMStorageMemoryDB mPrivateBrowsingDB;
+
+  nsCOMPtr<nsITimer> mFlushTimer;
 };
 
 #endif 
