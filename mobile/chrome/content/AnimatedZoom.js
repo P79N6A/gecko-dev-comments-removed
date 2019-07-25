@@ -66,8 +66,7 @@ const AnimatedZoom = {
       this.zoomFrom = this.getStartRect();
       this.updateTo(this.zoomFrom);
 
-      window.addEventListener("MozBeforePaint", this, false);
-      mozRequestAnimationFrame();
+      mozRequestAnimationFrame(this);
 
       let event = document.createEvent("Events");
       event.initEvent("AnimatedZoomBegin", true, true);
@@ -101,7 +100,6 @@ const AnimatedZoom = {
 
   
   finish: function() {
-    window.removeEventListener("MozBeforePaint", this, false);
     Browser.setVisibleRect(this.zoomTo || this.zoomRect);
     this.beginTime = null;
     this.zoomTo = null;
@@ -117,15 +115,15 @@ const AnimatedZoom = {
     return this.beginTime != null;
   },
 
-  handleEvent: function(aEvent) {
+  onBeforePaint: function(aTimeStamp) {
     try {
-      let tdiff = aEvent.timeStamp - this.beginTime;
+      let tdiff = aTimeStamp - this.beginTime;
       let counter = tdiff / this.animationDuration;
       if (counter < 1) {
         
         let rect = this.zoomFrom.blend(this.zoomTo, counter);
         this.updateTo(rect);
-        mozRequestAnimationFrame();
+        mozRequestAnimationFrame(this);
       } else {
         
         this.finish();
