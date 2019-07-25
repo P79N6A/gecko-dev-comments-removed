@@ -25,7 +25,7 @@ function run_test() {
 
   
   var pbi = Components.classes["@mozilla.org/preferences-service;1"]
-                      .getService(Components.interfaces.nsIPrefBranch2);
+                      .getService(Components.interfaces.nsIPrefBranch);
   pbi.setBoolPref("network.IDN.whitelist.es", true);
 
   
