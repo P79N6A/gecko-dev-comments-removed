@@ -1,0 +1,23 @@
+setDebug(true);
+x = "notset";
+
+function doNothing() { }
+
+function myparent(nested) {
+  if (nested) {
+    
+    trap(myparent, 24, "success()");
+    doNothing();
+  } else {
+    doNothing();
+  }
+}
+
+trap(myparent, 35, "myparent(true)");
+
+function success() {
+  x = "success";
+}
+
+myparent(false);
+assertEq(x, "success");
