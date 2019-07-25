@@ -855,18 +855,23 @@ nsTextControlFrame::SetSelectionInternal(nsIDOMNode *aStartNode,
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = selection->AddRange(range);  
-  NS_ENSURE_SUCCESS(rv, rv);
+  return rv;
+}
 
-  
-  selCon = txtCtrl->GetSelectionController();
-  if (!selCon) {
-    return NS_OK;  
+nsresult
+nsTextControlFrame::ScrollSelectionIntoView()
+{
+  nsCOMPtr<nsITextControlElement> txtCtrl = do_QueryInterface(GetContent());
+  NS_ASSERTION(txtCtrl, "Content not a text control element");
+  nsISelectionController* selCon = txtCtrl->GetSelectionController();
+  if (selCon) {
+    
+    return selCon->ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL,
+                                           nsISelectionController::SELECTION_FOCUS_REGION,
+                                           nsISelectionController::SCROLL_FIRST_ANCESTOR_ONLY);
   }
 
-  
-  return selCon->ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL,
-                                         nsISelectionController::SELECTION_FOCUS_REGION,
-                                         nsISelectionController::SCROLL_FIRST_ANCESTOR_ONLY);
+  return NS_ERROR_FAILURE;
 }
 
 nsresult
@@ -914,8 +919,11 @@ nsTextControlFrame::SelectAllOrCollapseToEndOfText(PRBool aSelect)
     }
   }
 
-  return SetSelectionInternal(rootNode, aSelect ? 0 : numChildren,
-                              rootNode, numChildren);
+  rv = SetSelectionInternal(rootNode, aSelect ? 0 : numChildren,
+                            rootNode, numChildren);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return ScrollSelectionIntoView();
 }
 
 nsresult
