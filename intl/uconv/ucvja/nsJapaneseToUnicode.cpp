@@ -169,7 +169,14 @@ NS_IMETHODIMP nsShiftJISToUnicode::Convert(
           case 1: 
           {
             PRUint8 off = sbIdx[*src];
+
+            
+            
+            
+            
+            
             if(0xFF == off) {
+               src--;
                if (mErrBehavior == kOnError_Signal)
                  goto error_invalidchar;
                *dest++ = SJIS_UNMAPPED;
@@ -191,7 +198,10 @@ NS_IMETHODIMP nsShiftJISToUnicode::Convert(
           case 2: 
           {
             PRUint8 off = sbIdx[*src];
+
+            
             if(0xFF == off) {
+               src--;
                if (mErrBehavior == kOnError_Signal)
                  goto error_invalidchar;
 
