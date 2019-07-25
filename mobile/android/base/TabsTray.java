@@ -72,6 +72,13 @@ public class TabsTray extends Activity implements Tabs.OnTabsChangedListener {
             }
         });
 
+        RelativeLayout toolbar = (RelativeLayout) findViewById(R.id.toolbar);
+        toolbar.setOnClickListener(new Button.OnClickListener() {
+            public void onClick(View v) {
+                
+            }
+        });
+
         LinearLayout container = (LinearLayout) findViewById(R.id.container);
         container.setOnClickListener(new Button.OnClickListener() {
             public void onClick(View v) {
