@@ -88,11 +88,11 @@ nsContentEventHandler::InitCommon()
   
   mPresShell->FlushPendingNotifications(Flush_Layout);
 
+  
+  NS_ENSURE_TRUE(!mPresShell->IsDestroying(), NS_ERROR_FAILURE);
+
   nsCopySupport::GetSelectionForCopy(mPresShell->GetDocument(),
                                      getter_AddRefs(mSelection));
-  NS_ASSERTION(mSelection,
-               "GetSelectionForCopy succeeded, but the result is null");
-
 
   nsCOMPtr<nsIDOMRange> firstRange;
   nsresult rv = mSelection->GetRangeAt(0, getter_AddRefs(firstRange));
