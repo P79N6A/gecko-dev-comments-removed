@@ -858,6 +858,26 @@ PutOwnedActivationObjects(JSContext *cx, JSStackFrame *fp);
 
 
 
+inline bool
+ScriptPrologue(JSContext *cx, JSStackFrame *fp, JSScript *script);
+
+inline bool
+ScriptEpilogue(JSContext *cx, JSStackFrame *fp, JSScript *script, bool ok);
+
+
+
+extern void
+ScriptDebugPrologue(JSContext *cx, JSStackFrame *fp);
+
+extern bool
+ScriptDebugEpilogue(JSContext *cx, JSStackFrame *fp, bool ok);
+
+
+
+
+
+
+
 extern bool
 BoxThisForVp(JSContext *cx, js::Value *vp);
 
