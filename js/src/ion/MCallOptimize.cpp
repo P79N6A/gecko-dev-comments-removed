@@ -80,9 +80,13 @@ IonBuilder::discardCall(uint32 argc, MDefinitionVector &argv, MBasicBlock *bb)
 }
 
 bool
-IonBuilder::inlineNativeCall(JSFunction *target, uint32 argc)
+IonBuilder::inlineNativeCall(JSFunction *target, uint32 argc, bool constructing)
 {
     JSNative native = target->native();
+
+    
+    if (constructing && native != js_Array)
+        return false;
 
     
 
