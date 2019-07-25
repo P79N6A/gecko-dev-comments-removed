@@ -1656,12 +1656,19 @@ RasterImage::DoComposite(imgFrame** aFrameToUse,
   } else if (aNextFrameIndex != mAnim->lastCompositedFrameIndex+1) {
 
     
+    
     needToBlankComposite = PR_TRUE;
   }
 
   
+  
+  
+  
+  
+  
   PRBool doDisposal = PR_TRUE;
-  if (!aNextFrame->GetHasAlpha()) {
+  if (!aNextFrame->GetHasAlpha() &&
+      nextFrameDisposalMethod != kDisposeRestorePrevious) {
     if (isFullNextFrame) {
       
       
@@ -1751,7 +1758,7 @@ RasterImage::DoComposite(imgFrame** aFrameToUse,
     if (!mAnim->compositingPrevFrame) {
       mAnim->compositingPrevFrame = new imgFrame();
       if (!mAnim->compositingPrevFrame) {
-        NS_WARNING("Failed to init compositingFrame!\n");
+        NS_WARNING("Failed to init compositingPrevFrame!\n");
         return NS_ERROR_OUT_OF_MEMORY;
       }
       nsresult rv = mAnim->compositingPrevFrame->Init(0, 0, mSize.width, mSize.height,
@@ -1780,7 +1787,12 @@ RasterImage::DoComposite(imgFrame** aFrameToUse,
   }
 
   
+  
+  
+  
+  
   if (isFullNextFrame && mAnimationMode == kNormalAnimMode && mLoopCount != 0 &&
+      nextFrameDisposalMethod != kDisposeRestorePrevious &&
       !aNextFrame->GetIsPaletted()) {
     
     
