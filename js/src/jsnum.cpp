@@ -374,12 +374,7 @@ ParseIntStringHelper(JSContext *cx, const jschar *ws, const jschar *end, int may
 
 
 
-
-
-
-
-            JSStackFrame *fp = js_GetScriptedCaller(cx, NULL);
-            radix = (fp && !fp->script->strictModeCode) ? 8 : 10;
+            radix = 8;
         } else {
             radix = 10;
         }
