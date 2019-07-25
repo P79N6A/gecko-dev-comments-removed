@@ -118,6 +118,9 @@ public:
     nsIntRegion mRegionToInvalidate;
   };
 
+  enum {
+    PAINT_WILL_RESAMPLE = 0x01
+  };
   
 
 
@@ -126,8 +129,17 @@ public:
 
 
 
+
+
+
+
+
+
+
+
   PaintState BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
-                        float aXResolution, float aYResolution);
+                        float aXResolution, float aYResolution,
+                        PRUint32 aFlags);
 
   
 

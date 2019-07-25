@@ -180,55 +180,96 @@ WrapRotationAxis(PRInt32* aRotationPoint, PRInt32 aSize)
 
 ThebesLayerBuffer::PaintState
 ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
-                              float aXResolution, float aYResolution)
+                              float aXResolution, float aYResolution,
+                              PRUint32 aFlags)
 {
   PaintState result;
-
-  result.mRegionToDraw.Sub(aLayer->GetVisibleRegion(), aLayer->GetValidRegion());
-
   float curXRes = aLayer->GetXResolution();
   float curYRes = aLayer->GetYResolution();
-  if (mBuffer &&
-      (aContentType != mBuffer->GetContentType() ||
-       aXResolution != curXRes || aYResolution != curYRes)) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    result.mRegionToDraw = aLayer->GetVisibleRegion();
-    result.mRegionToInvalidate = aLayer->GetValidRegion();
-    Clear();
+
+  nsIntRegion validRegion = aLayer->GetValidRegion();
+
+  ContentType contentType;
+  nsIntRegion neededRegion;
+  nsIntSize destBufferDims;
+  PRBool canReuseBuffer;
+  nsIntRect destBufferRect;
+
+  while (PR_TRUE) {
+    contentType = aContentType;
+    neededRegion = aLayer->GetVisibleRegion();
+    destBufferDims = ScaledSize(neededRegion.GetBounds().Size(),
+                                aXResolution, aYResolution);
+    canReuseBuffer = BufferSizeOkFor(destBufferDims);
+
+    if (canReuseBuffer) {
+      if (mBufferRect.Contains(neededRegion.GetBounds())) {
+        
+        destBufferRect = mBufferRect;
+      } else {
+        
+        
+        destBufferRect = nsIntRect(neededRegion.GetBounds().TopLeft(), mBufferRect.Size());
+      }
+    } else {
+      destBufferRect = neededRegion.GetBounds();
+    }
+
+    if ((aFlags & PAINT_WILL_RESAMPLE) &&
+        (neededRegion.GetBounds() != destBufferRect ||
+         neededRegion.GetNumRects() > 1)) {
+      
+      contentType = gfxASurface::CONTENT_COLOR_ALPHA;
+
+      
+      
+      neededRegion = destBufferRect;
+      destBufferDims = ScaledSize(neededRegion.GetBounds().Size(),
+                                  aXResolution, aYResolution);
+    }
+
+    if (mBuffer &&
+        (contentType != mBuffer->GetContentType() ||
+         aXResolution != curXRes || aYResolution != curYRes)) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      result.mRegionToInvalidate = aLayer->GetValidRegion();
+      validRegion.SetEmpty();
+      Clear();
+      
+      
+      continue;
+    }
+
+    break;
   }
 
+  result.mRegionToDraw.Sub(neededRegion, validRegion);
   if (result.mRegionToDraw.IsEmpty())
     return result;
+
+  
+  
+  
+  
+  
+  
+  PRBool canHaveRotation =
+    !(aFlags & PAINT_WILL_RESAMPLE) && aXResolution == 1.0 && aYResolution == 1.0;
   nsIntRect drawBounds = result.mRegionToDraw.GetBounds();
-
-  nsIntRect visibleBounds = aLayer->GetVisibleRegion().GetBounds();
-  nsIntSize destBufferDims = ScaledSize(visibleBounds.Size(),
-                                        aXResolution, aYResolution);
   nsRefPtr<gfxASurface> destBuffer;
-  nsIntRect destBufferRect;
   PRBool bufferDimsChanged = PR_FALSE;
-
-  if (BufferSizeOkFor(destBufferDims)) {
+  if (canReuseBuffer) {
     NS_ASSERTION(curXRes == aXResolution && curYRes == aYResolution,
                  "resolution changes must Clear()!");
 
-    
-    if (mBufferRect.Contains(visibleBounds)) {
-      
-      destBufferRect = mBufferRect;
-    } else {
-      
-      
-      destBufferRect = nsIntRect(visibleBounds.TopLeft(), mBufferRect.Size());
-    }
     nsIntRect keepArea;
     if (keepArea.IntersectRect(destBufferRect, mBufferRect)) {
       
@@ -243,7 +284,8 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
       PRInt32 xBoundary = destBufferRect.XMost() - newRotation.x;
       PRInt32 yBoundary = destBufferRect.YMost() - newRotation.y;
       if ((drawBounds.x < xBoundary && xBoundary < drawBounds.XMost()) ||
-          (drawBounds.y < yBoundary && yBoundary < drawBounds.YMost())) {
+          (drawBounds.y < yBoundary && yBoundary < drawBounds.YMost()) ||
+          (newRotation != nsIntPoint(0,0) && !canHaveRotation)) {
         
         
         if (mBuffer->SupportsSelfCopy() && mBufferRotation == nsIntPoint(0,0)) {
@@ -251,11 +293,9 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
         } else {
           
           
-          destBufferRect = visibleBounds;
-          destBufferDims = ScaledSize(destBufferRect.Size(),
-                                      aXResolution, aYResolution);
+          destBufferRect = neededRegion.GetBounds();
           bufferDimsChanged = PR_TRUE;
-          destBuffer = CreateBuffer(aContentType, destBufferDims);
+          destBuffer = CreateBuffer(contentType, destBufferDims);
           if (!destBuffer)
             return result;
         }
@@ -272,14 +312,14 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
     }
   } else {
     
-    destBufferRect = visibleBounds;
-    destBufferDims = ScaledSize(destBufferRect.Size(),
-                                aXResolution, aYResolution);
+    destBufferRect = neededRegion.GetBounds();
     bufferDimsChanged = PR_TRUE;
-    destBuffer = CreateBuffer(aContentType, destBufferDims);
+    destBuffer = CreateBuffer(contentType, destBufferDims);
     if (!destBuffer)
       return result;
   }
+  NS_ASSERTION(!(aFlags & PAINT_WILL_RESAMPLE) || destBufferRect == neededRegion.GetBounds(),
+               "If we're resampling, we need to validate the entire buffer");
 
   
   
@@ -305,6 +345,8 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
   if (bufferDimsChanged) {
     mBufferDims = destBufferDims;
   }
+  NS_ASSERTION(canHaveRotation || mBufferRotation == nsIntPoint(0,0),
+               "Rotation disabled, but we have nonzero rotation?");
 
   nsIntRegion invalidate;
   invalidate.Sub(aLayer->GetValidRegion(), destBufferRect);
@@ -314,7 +356,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
                                                 aXResolution, aYResolution);
 
   gfxUtils::ClipToRegionSnapped(result.mContext, result.mRegionToDraw);
-  if (aContentType == gfxASurface::CONTENT_COLOR_ALPHA && !isClear) {
+  if (contentType == gfxASurface::CONTENT_COLOR_ALPHA && !isClear) {
     result.mContext->SetOperator(gfxContext::OPERATOR_CLEAR);
     result.mContext->Paint();
     result.mContext->SetOperator(gfxContext::OPERATOR_OVER);

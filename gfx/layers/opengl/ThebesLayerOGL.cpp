@@ -304,7 +304,8 @@ public:
     return ThebesLayerBuffer::BeginPaint(mLayer, 
                                          aContentType, 
                                          aXResolution, 
-                                         aYResolution);
+                                         aYResolution,
+                                         0);
   }
 
   
@@ -751,7 +752,9 @@ ThebesLayerOGL::RenderLayer(int aPreviousFrameBuffer,
       
       
       
-      mValidRegion.Or(mValidRegion, mVisibleRegion);
+      nsIntRegion tmp;
+      tmp.Or(mVisibleRegion, state.mRegionToDraw);
+      mValidRegion.Or(mValidRegion, tmp);
     }
   }
 

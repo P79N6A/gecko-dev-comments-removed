@@ -308,7 +308,8 @@ public:
   BasicThebesLayerBuffer(BasicThebesLayer* aLayer)
     : Base(ContainsVisibleBounds)
     , mLayer(aLayer)
-  {}
+  {
+  }
 
   virtual ~BasicThebesLayerBuffer()
   {}
@@ -439,7 +440,9 @@ protected:
     
     
     
-    mValidRegion.Or(mValidRegion, mVisibleRegion);
+    nsIntRegion tmp;
+    tmp.Or(mVisibleRegion, aRegionToDraw);
+    mValidRegion.Or(mValidRegion, tmp);
   }
 
   Buffer mBuffer;
@@ -577,8 +580,14 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
     gfxSize scale = aContext->CurrentMatrix().ScaleFactors(PR_TRUE);
     float paintXRes = BasicManager()->XResolution() * gfxUtils::ClampToScaleFactor(scale.width);
     float paintYRes = BasicManager()->YResolution() * gfxUtils::ClampToScaleFactor(scale.height);
+    PRUint32 flags = 0;
+    gfxMatrix transform;
+    if (!GetEffectiveTransform().Is2D(&transform) ||
+        transform.HasNonIntegerTranslation()) {
+      flags |= ThebesLayerBuffer::PAINT_WILL_RESAMPLE;
+    }
     Buffer::PaintState state =
-      mBuffer.BeginPaint(this, contentType, paintXRes, paintYRes);
+      mBuffer.BeginPaint(this, contentType, paintXRes, paintYRes, flags);
     mValidRegion.Sub(mValidRegion, state.mRegionToInvalidate);
 
     if (state.mContext) {
