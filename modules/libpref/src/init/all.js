@@ -1037,6 +1037,9 @@ pref("network.negotiate-auth.trusted-uris", "");
 pref("network.negotiate-auth.delegation-uris", "");
 
 
+pref("network.negotiate-auth.allow-non-fqdn", false);
+
+
 pref("network.negotiate-auth.allow-proxies", true);
 
 
@@ -1066,6 +1069,7 @@ pref("network.auth.force-generic-ntlm", false);
 
 
 pref("network.automatic-ntlm-auth.allow-proxies", true);
+pref("network.automatic-ntlm-auth.allow-non-fqdn", false);
 pref("network.automatic-ntlm-auth.trusted-uris", "");
 
 

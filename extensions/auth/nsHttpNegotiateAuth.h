@@ -59,6 +59,9 @@ private:
     bool TestBoolPref(const char *pref);
 
     
+    bool TestNonFqdn(nsIURI *uri);
+
+    
     bool TestPref(nsIURI *, const char *pref);
 
     bool MatchesBaseURI(const nsCSubstring &scheme,
