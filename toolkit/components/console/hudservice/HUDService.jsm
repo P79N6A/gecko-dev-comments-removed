@@ -4074,7 +4074,6 @@ JSTerm.prototype = {
     
     
     
-    
     let buttons = [];
 
     
@@ -4102,22 +4101,14 @@ JSTerm.prototype = {
       });
     }
 
-    buttons.push({
-      label: HUDService.getStr("close.button"),
-      accesskey: HUDService.getStr("close.accesskey"),
-      class: "jsPropertyPanelCloseButton",
-      oncommand: function () {
-        propPanel.destroy();
-        aAnchor._panelOpen = false;
-      }
-    });
-
     let doc = self.parentNode.ownerDocument;
     let parent = doc.getElementById("mainPopupSet");
     let title = (aEvalString
         ? HUDService.getFormatStr("jsPropertyInspectTitle", [aEvalString])
         : HUDService.getStr("jsPropertyTitle"));
+
     propPanel = new PropertyPanel(parent, doc, title, aOutputObject, buttons);
+    propPanel.linkNode = aAnchor;
 
     let panel = propPanel.panel;
     panel.openPopup(aAnchor, "after_pointer", 0, 0, false, false);
