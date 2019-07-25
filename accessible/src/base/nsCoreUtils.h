@@ -243,7 +243,12 @@ public:
   
 
 
-  static already_AddRefed<nsIPresShell> GetPresShellFor(nsIDOMNode *aNode);
+  static nsIPresShell *GetPresShellFor(nsIDOMNode *aNode)
+  {
+    nsCOMPtr<nsINode> node(do_QueryInterface(aNode));
+    nsIDocument *document = node->GetOwnerDoc();
+    return document ? document->GetPrimaryShell() : nsnull;
+  }
 
   
 
