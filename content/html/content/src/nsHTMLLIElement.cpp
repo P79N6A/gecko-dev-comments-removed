@@ -117,11 +117,12 @@ static const nsAttrValue::EnumTable kUnorderedListItemTypeTable[] = {
   { 0 }
 };
 
+
 static const nsAttrValue::EnumTable kOrderedListItemTypeTable[] = {
-  { "A", NS_STYLE_LIST_STYLE_OLD_UPPER_ALPHA },
-  { "a", NS_STYLE_LIST_STYLE_OLD_LOWER_ALPHA },
-  { "I", NS_STYLE_LIST_STYLE_OLD_UPPER_ROMAN },
-  { "i", NS_STYLE_LIST_STYLE_OLD_LOWER_ROMAN },
+  { "A", NS_STYLE_LIST_STYLE_UPPER_ALPHA },
+  { "a", NS_STYLE_LIST_STYLE_LOWER_ALPHA },
+  { "I", NS_STYLE_LIST_STYLE_UPPER_ROMAN },
+  { "i", NS_STYLE_LIST_STYLE_LOWER_ROMAN },
   { "1", NS_STYLE_LIST_STYLE_DECIMAL },
   { 0 }
 };
