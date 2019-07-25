@@ -1138,20 +1138,6 @@ RuleProcessorData::RuleProcessorData(nsPresContext* aPresContext,
     
   
   mParentContent = aElement->GetParent();
-
-  
-  mHasAttributes = aElement->GetAttrCount() > 0;
-  if (mHasAttributes) {
-    
-    mContentID = aElement->GetID();
-    mClasses = aElement->GetClasses();
-  } else {
-    mContentID = nsnull;
-    mClasses = nsnull;
-  }
-
-  
-  mNameSpaceID = aElement->GetNameSpaceID();
 }
 
 RuleProcessorData::~RuleProcessorData()
@@ -1560,7 +1546,7 @@ static PRBool SelectorMatches(Element* aElement,
   
   
   if ((kNameSpaceID_Unknown != aSelector->mNameSpace &&
-       data.mNameSpaceID != aSelector->mNameSpace))
+       aElement->GetNameSpaceID() != aSelector->mNameSpace))
     return PR_FALSE;
 
   if (aSelector->mLowercaseTag) {
@@ -1574,14 +1560,15 @@ static PRBool SelectorMatches(Element* aElement,
 
   nsAtomList* IDList = aSelector->mIDList;
   if (IDList) {
-    if (data.mContentID) {
+    nsIAtom* id = aElement->GetID();
+    if (id) {
       
       const PRBool isCaseSensitive =
         aTreeMatchContext.mCompatMode != eCompatibility_NavQuirks;
 
       if (isCaseSensitive) {
         do {
-          if (IDList->mAtom != data.mContentID) {
+          if (IDList->mAtom != id) {
             return PR_FALSE;
           }
           IDList = IDList->mNext;
@@ -1590,7 +1577,7 @@ static PRBool SelectorMatches(Element* aElement,
         
         
         
-        nsDependentAtomString id1Str(data.mContentID);
+        nsDependentAtomString id1Str(id);
         do {
           if (!nsContentUtils::EqualsIgnoreASCIICase(id1Str,
                  nsDependentAtomString(IDList->mAtom))) {
@@ -1608,7 +1595,7 @@ static PRBool SelectorMatches(Element* aElement,
   nsAtomList* classList = aSelector->mClassList;
   if (classList) {
     
-    const nsAttrValue *elementClasses = data.mClasses;
+    const nsAttrValue *elementClasses = aElement->GetClasses();
     if (!elementClasses) {
       
       return PR_FALSE;
@@ -2026,7 +2013,8 @@ static PRBool SelectorMatches(Element* aElement,
   PRBool result = PR_TRUE;
   if (aSelector->mAttrList) {
     
-    if (!data.mHasAttributes) {
+    PRUint32 attrCount = aElement->GetAttrCount();
+    if (attrCount == 0) {
       
       return PR_FALSE;
     } else {
@@ -2046,7 +2034,6 @@ static PRBool SelectorMatches(Element* aElement,
           
           
           
-          PRUint32 attrCount = data.mElement->GetAttrCount();
           result = PR_FALSE;
           for (PRUint32 i = 0; i < attrCount; ++i) {
             const nsAttrName* attrName =
@@ -2443,7 +2430,7 @@ nsCSSRuleProcessor::HasAttributeDependentStyle(AttributeRuleProcessorData* aData
     
     if ((aData->mAttribute == nsGkAtoms::lwtheme ||
          aData->mAttribute == nsGkAtoms::lwthemetextcolor) &&
-        aData->mNameSpaceID == kNameSpaceID_XUL &&
+        aData->mElement->GetNameSpaceID() == kNameSpaceID_XUL &&
         aData->mElement == aData->mElement->GetOwnerDoc()->GetRootElement())
       {
         data.change = nsRestyleHint(data.change | eRestyle_Subtree);
@@ -2476,7 +2463,7 @@ nsCSSRuleProcessor::HasAttributeDependentStyle(AttributeRuleProcessorData* aData
     }
     
     if (aData->mAttribute == aData->mElement->GetClassAttributeName()) {
-      const nsAttrValue* elementClasses = aData->mClasses;
+      const nsAttrValue* elementClasses = aData->mElement->GetClasses();
       if (elementClasses) {
         PRInt32 atomCount = elementClasses->GetAtomCount();
         for (PRInt32 i = 0; i < atomCount; ++i) {

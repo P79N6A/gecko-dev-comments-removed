@@ -179,10 +179,6 @@ public:
   nsIContent*       mParentContent; 
   nsRuleWalker*     mRuleWalker; 
   
-  nsIAtom*          mContentID;     
-  PRPackedBool      mHasAttributes; 
-  PRInt32           mNameSpaceID;   
-  const nsAttrValue* mClasses;      
   
   
   
