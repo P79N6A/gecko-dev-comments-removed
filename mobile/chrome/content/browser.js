@@ -2194,6 +2194,10 @@ IdentityHandler.prototype = {
 
 
   handleIdentityButtonEvent: function(aEvent) {
+    let broadcaster = document.getElementById("bcast_uidiscovery");
+    if (broadcaster && broadcaster.getAttribute("mode") == "discovery")
+      return;
+
     aEvent.stopPropagation();
 
     if ((aEvent.type == "click" && aEvent.button != 0) ||
