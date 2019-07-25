@@ -95,6 +95,7 @@ public:
         virtual void OnChannelError() = 0;
         virtual Result OnMessageReceived(const Message& aMessage) = 0;
         virtual void OnProcessingError(Result aError) = 0;
+        virtual void OnChannelConnected(int32 peer_pid) {};
     };
 
 public:
@@ -116,6 +117,9 @@ public:
 
     
     virtual bool Send(Message* msg);
+
+    
+    void DispatchOnChannelConnected(int32 peer_pid);
 
     
     

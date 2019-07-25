@@ -2817,6 +2817,13 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         self.cls.addstmts([ onerror, Whitespace.NL ])
 
         
+        onconnected = MethodDefn(MethodDecl('OnChannelConnected'))
+        if not ptype.isToplevel():
+            onconnected.addstmt(
+                _runtimeAbort("'OnConnected' called on non-toplevel actor"))
+
+        self.cls.addstmts([ onconnected, Whitespace.NL ])
+        
         
         
         if 1 or ptype.isManager():
@@ -2844,6 +2851,16 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             self.cls.addstmts([ processnative, Whitespace.NL ])
 
         if ptype.isToplevel() and self.side is 'parent':
+            
+            otherprocessvar = ExprVar('aOtherProcess')
+            setotherprocess = MethodDefn(MethodDecl(
+                    'SetOtherProcess',
+                    params=[ Decl(Type('ProcessHandle'), otherprocessvar.name)]))
+            setotherprocess.addstmt(StmtExpr(ExprAssn(p.otherProcessVar(), otherprocessvar)))
+            self.cls.addstmts([
+                    setotherprocess,
+                    Whitespace.NL])
+
             
             self.cls.addstmt(Label.PROTECTED)
 
