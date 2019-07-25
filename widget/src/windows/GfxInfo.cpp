@@ -721,7 +721,6 @@ static const PRUint32 deviceFamilyNvidiaBlockD3D9Layers[] = {
     0x0222, 
     0x0240, 
     0x0241, 
-    0x0242, 
     0x0244, 
     0x0245, 
     0x0247, 
