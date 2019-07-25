@@ -150,15 +150,20 @@ bool GetThreadRegisters(ThreadInfo* info) {
   return true;
 }
 
+
+#define AT_MAX AT_SYSINFO_EHDR
+
 LinuxDumper::LinuxDumper(int pid)
     : pid_(pid),
       threads_suspended_(false),
       threads_(&allocator_, 8),
-      mappings_(&allocator_) {
+      mappings_(&allocator_),
+      auxv_(&allocator_, AT_MAX + 1) {
 }
 
 bool LinuxDumper::Init() {
-  return EnumerateThreads(&threads_) &&
+  return ReadAuxv() &&
+         EnumerateThreads(&threads_) &&
          EnumerateMappings(&mappings_);
 }
 
@@ -271,34 +276,32 @@ LinuxDumper::ElfFileIdentifierForMapping(const MappingInfo& mapping,
   return success;
 }
 
-void*
-LinuxDumper::FindBeginningOfLinuxGateSharedLibrary(const pid_t pid) const {
+bool
+LinuxDumper::ReadAuxv() {
   char auxv_path[80];
-  BuildProcPath(auxv_path, pid, "auxv");
+  BuildProcPath(auxv_path, pid_, "auxv");
 
   
   
 
-  
-  
-  
   int fd = sys_open(auxv_path, O_RDONLY, 0);
   if (fd < 0) {
-    return NULL;
+    return false;
   }
 
   elf_aux_entry one_aux_entry;
+  bool res = false;
   while (sys_read(fd,
                   &one_aux_entry,
                   sizeof(elf_aux_entry)) == sizeof(elf_aux_entry) &&
          one_aux_entry.a_type != AT_NULL) {
-    if (one_aux_entry.a_type == AT_SYSINFO_EHDR) {
-      close(fd);
-      return reinterpret_cast<void*>(one_aux_entry.a_un.a_val);
+    if (one_aux_entry.a_type <= AT_MAX) {
+      auxv_[one_aux_entry.a_type] = one_aux_entry.a_un.a_val;
+      res = true;
     }
   }
   close(fd);
-  return NULL;
+  return res;
 }
 
 bool
@@ -311,8 +314,10 @@ LinuxDumper::EnumerateMappings(wasteful_vector<MappingInfo*>* result) const {
   
   
   
+  
+  
   const void* linux_gate_loc;
-  linux_gate_loc = FindBeginningOfLinuxGateSharedLibrary(pid_);
+  linux_gate_loc = reinterpret_cast<void *>(auxv_[AT_SYSINFO_EHDR]);
 
   const int fd = sys_open(maps_path, O_RDONLY, 0);
   if (fd < 0)

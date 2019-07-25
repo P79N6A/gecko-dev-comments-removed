@@ -71,6 +71,9 @@ typedef struct
 typedef Elf64_auxv_t elf_aux_entry;
 #endif
 
+typedef typeof(((elf_aux_entry*) 0)->a_un.a_val) elf_aux_val_t;
+
+
 
 
 const char kLinuxGateLibraryName[] = "linux-gate.so";
@@ -145,6 +148,7 @@ class LinuxDumper {
   const wasteful_vector<pid_t> &threads() { return threads_; }
   const wasteful_vector<MappingInfo*> &mappings() { return mappings_; }
   const MappingInfo* FindMapping(const void* address) const;
+  const wasteful_vector<elf_aux_val_t> &auxv() { return auxv_; }
 
   
   
@@ -167,13 +171,8 @@ class LinuxDumper {
   bool ElfFileIdentifierForMapping(const MappingInfo& mapping,
                                    uint8_t identifier[sizeof(MDGUID)]);
 
-  
-  
-  
-  
-  
-  void* FindBeginningOfLinuxGateSharedLibrary(const pid_t pid) const;
  private:
+  bool ReadAuxv();
   bool EnumerateMappings(wasteful_vector<MappingInfo*>* result) const;
   bool EnumerateThreads(wasteful_vector<pid_t>* result) const;
 
@@ -184,6 +183,7 @@ class LinuxDumper {
   bool threads_suspended_;
   wasteful_vector<pid_t> threads_;  
   wasteful_vector<MappingInfo*> mappings_;  
+  wasteful_vector<elf_aux_val_t> auxv_;  
 };
 
 }  
