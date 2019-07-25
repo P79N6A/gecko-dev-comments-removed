@@ -340,7 +340,7 @@ public:
   
 
 
-  static Element* MatchElementId(nsIContent *aContent, nsIAtom* aId);
+  static Element* MatchElementId(nsIContent *aContent, const nsIAtom* aId);
 
   
 
@@ -530,7 +530,7 @@ public:
   }
 
   static nsresult GenerateStateKey(nsIContent* aContent,
-                                   nsIDocument* aDocument,
+                                   const nsIDocument* aDocument,
                                    nsIStatefulFrame::SpecialStateID aID,
                                    nsACString& aKey);
 
@@ -580,13 +580,9 @@ public:
   static nsresult CheckQName(const nsAString& aQualifiedName,
                              PRBool aNamespaceAware = PR_TRUE);
 
-  static nsresult SplitQName(nsIContent* aNamespaceResolver,
+  static nsresult SplitQName(const nsIContent* aNamespaceResolver,
                              const nsAFlatString& aQName,
                              PRInt32 *aNamespace, nsIAtom **aLocalName);
-
-  static nsresult LookupNamespaceURI(nsIContent* aNamespaceResolver,
-                                     const nsAString& aNamespacePrefix,
-                                     nsAString& aNamespaceURI);
 
   static nsresult GetNodeInfoFromQName(const nsAString& aNamespaceURI,
                                        const nsAString& aQualifiedName,
@@ -648,7 +644,7 @@ public:
 
 
 
-  static PRBool HasNonEmptyAttr(nsIContent* aContent, PRInt32 aNameSpaceID,
+  static PRBool HasNonEmptyAttr(const nsIContent* aContent, PRInt32 aNameSpaceID,
                                 nsIAtom* aName);
 
   
@@ -658,7 +654,7 @@ public:
 
 
 
-  static nsPresContext* GetContextForContent(nsIContent* aContent);
+  static nsPresContext* GetContextForContent(const nsIContent* aContent);
 
   
 
@@ -743,7 +739,7 @@ public:
 
 
 
-  static PRBool IsDraggableLink(nsIContent* aContent);
+  static PRBool IsDraggableLink(const nsIContent* aContent);
 
   
 
@@ -796,7 +792,7 @@ public:
 
 
 
-  static PRBool IsInSameAnonymousTree(nsINode* aNode, nsIContent* aContent);
+  static PRBool IsInSameAnonymousTree(const nsINode* aNode, const nsIContent* aContent);
 
   
 
@@ -1692,7 +1688,7 @@ public:
 
 
 
-  static PRBool IsFocusedContent(nsIContent *aContent);
+  static PRBool IsFocusedContent(const nsIContent *aContent);
 
 private:
 
