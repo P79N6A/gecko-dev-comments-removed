@@ -56,8 +56,7 @@ catch(ex) {
   do_throw("Could not get database connection\n");
 }
 
-
-function run_test() {
+add_test(function test_keywordRemovedOnUniqueItemRemoval() {
   var bookmarkedURI = uri("http://foo.bar");
   var keyword = "testkeyword";
 
@@ -74,12 +73,22 @@ function run_test() {
   
   bmsvc.removeItem(bookmarkId);
 
-  
-  var sql = "SELECT id FROM moz_keywords WHERE keyword = ?1";
-  var stmt = mDBConn.createStatement(sql);
-  stmt.bindByIndex(0, keyword);
-  do_check_false(stmt.executeStep());
-  stmt.finalize();
+  waitForAsyncUpdates(function() {
+    
+    
+    var sql = "SELECT id FROM moz_keywords WHERE keyword = ?1";
+    var stmt = mDBConn.createStatement(sql);
+    stmt.bindByIndex(0, keyword);
+    do_check_false(stmt.executeStep());
+    stmt.finalize();
+
+    run_next_test();
+  });
+});
+
+add_test(function test_keywordNotRemovedOnNonUniqueItemRemoval() {
+  var bookmarkedURI = uri("http://foo.bar");
+  var keyword = "testkeyword";
 
   
   
@@ -101,10 +110,18 @@ function run_test() {
   
   bmsvc.removeItem(bookmarkId1);
 
-  
-  var sql = "SELECT id FROM moz_keywords WHERE keyword = ?1";
-  var stmt = mDBConn.createStatement(sql);
-  stmt.bindByIndex(0, keyword);
-  do_check_true(stmt.executeStep());
-  stmt.finalize();
+  waitForAsyncUpdates(function() {
+    
+    var sql = "SELECT id FROM moz_keywords WHERE keyword = ?1";
+    var stmt = mDBConn.createStatement(sql);
+    stmt.bindByIndex(0, keyword);
+    do_check_true(stmt.executeStep());
+    stmt.finalize();
+
+    run_next_test();
+  });
+});
+
+function run_test() {
+  run_next_test();
 }
