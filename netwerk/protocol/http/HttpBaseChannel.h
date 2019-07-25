@@ -216,6 +216,9 @@ public:
 
 public: 
 
+  bool ShouldRewriteRedirectToGET(PRUint32 httpStatus, nsHttpAtom method);
+  bool IsSafeMethod(nsHttpAtom method);
+  
 protected:
 
   
