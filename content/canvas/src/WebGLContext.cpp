@@ -75,6 +75,7 @@ WebGLContext::WebGLContext()
     : mCanvasElement(nsnull),
       gl(nsnull),
       mWidth(0), mHeight(0),
+      mGeneration(0),
       mInvalidated(PR_FALSE),
       mActiveTexture(0),
       mSynthesizedGLError(LOCAL_GL_NO_ERROR)
@@ -129,6 +130,12 @@ WebGLContext::SetCanvasElement(nsHTMLCanvasElement* aParentCanvas)
 NS_IMETHODIMP
 WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
 {
+    
+    
+    
+    if (mGeneration + 1 == 0)
+        return NS_ERROR_FAILURE;
+
     if (mWidth == width && mHeight == height)
         return NS_OK;
 
@@ -149,6 +156,37 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
         }
     }
 
+    
+    
+
+    mActiveTexture = 0;
+    mSynthesizedGLError = LOCAL_GL_NO_ERROR;
+
+    mAttribBuffers.Clear();
+
+    mUniformTextures.Clear();
+    mBound2DTextures.Clear();
+    mBoundCubeMapTextures.Clear();
+
+    mBoundArrayBuffer = nsnull;
+    mBoundElementArrayBuffer = nsnull;
+    mCurrentProgram = nsnull;
+
+    mFramebufferColorAttachments.Clear();
+    mFramebufferDepthAttachment = nsnull;
+    mFramebufferStencilAttachment = nsnull;
+
+    mBoundFramebuffer = nsnull;
+    mBoundRenderbuffer = nsnull;
+
+    mMapTextures.Clear();
+    mMapBuffers.Clear();
+    mMapPrograms.Clear();
+    mMapShaders.Clear();
+    mMapFramebuffers.Clear();
+    mMapRenderbuffers.Clear();
+
+    
     if (!ValidateGL()) {
         LogMessage("Canvas 3D: Couldn't validate OpenGL implementation; is everything needed present?");
         return NS_ERROR_FAILURE;
@@ -160,25 +198,15 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     mHeight = height;
 
     
-    
-#if 0
-    int err = glGetError();
-    if (err) {
-        printf ("error before MakeContextCurrent! 0x%04x\n", err);
-    }
-#endif
+    mGeneration++;
 
     MakeContextCurrent();
+
+    
+    
     gl->fViewport(0, 0, mWidth, mHeight);
     gl->fClearColor(0, 0, 0, 0);
     gl->fClear(LOCAL_GL_COLOR_BUFFER_BIT | LOCAL_GL_DEPTH_BUFFER_BIT | LOCAL_GL_STENCIL_BUFFER_BIT);
-
-#if 0
-    err = glGetError();
-    if (err) {
-        printf ("error after MakeContextCurrent! 0x%04x\n", err);
-    }
-#endif
 
     return NS_OK;
 }
