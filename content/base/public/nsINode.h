@@ -476,7 +476,7 @@ public:
 
 
 
-  inline nsINode *OwnerDocAsNode() const;
+  nsINode *OwnerDocAsNode() const;
 
   
 
