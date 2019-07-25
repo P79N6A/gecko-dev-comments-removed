@@ -132,10 +132,8 @@ public:
 
 
 
-  virtual nsresult AddNativeRootAccessible(void *aAtkAccessible,
-                                           nsIAccessible **aAccessible) = 0;
-  virtual nsresult
-    RemoveNativeRootAccessible(nsIAccessible *aRootAccessible) = 0;
+  virtual nsAccessible* AddNativeRootAccessible(void* aAtkAccessible) = 0;
+  virtual void RemoveNativeRootAccessible(nsAccessible* aRootAccessible) = 0;
 
   
 

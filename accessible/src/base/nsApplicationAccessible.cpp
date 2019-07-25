@@ -481,30 +481,22 @@ nsApplicationAccessible::GetSiblingAtOffset(PRInt32 aOffset, nsresult* aError)
 
 
 
-nsresult
-nsApplicationAccessible::AddRootAccessible(nsIAccessible *aRootAccessible)
+PRBool
+nsApplicationAccessible::AppendChild(nsAccessible* aChild)
 {
-  NS_ENSURE_ARG_POINTER(aRootAccessible);
+  if (!mChildren.AppendElement(aChild))
+    return PR_FALSE;
 
-  nsRefPtr<nsAccessible> rootAcc = do_QueryObject(aRootAccessible);
-
-  if (!mChildren.AppendElement(rootAcc))
-    return NS_ERROR_FAILURE;
-
-  rootAcc->SetParent(this);
-
-  return NS_OK;
+  aChild->SetParent(this);
+  return PR_TRUE;
 }
 
-nsresult
-nsApplicationAccessible::RemoveRootAccessible(nsIAccessible *aRootAccessible)
+PRBool
+nsApplicationAccessible::RemoveChild(nsAccessible* aChild)
 {
-  NS_ENSURE_ARG_POINTER(aRootAccessible);
-
   
   
-  
-  return mChildren.RemoveElement(aRootAccessible) ? NS_OK : NS_ERROR_FAILURE;
+  return mChildren.RemoveElement(aChild);
 }
 
 

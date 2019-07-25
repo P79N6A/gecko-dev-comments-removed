@@ -54,19 +54,19 @@ gint RunDialog(GtkDialog* aDialog)
 
   nsCOMPtr<nsIAccessibilityService> accService =
     do_GetService ("@mozilla.org/accessibilityService;1");
-  nsCOMPtr<nsIAccessible> accessible;
 
   
+  nsAccessible* windowAcc = nsnull;
   if (accService) {
     AtkObject* gailWindow = gtk_widget_get_accessible(GTK_WIDGET(aDialog));
-    accService->AddNativeRootAccessible(gailWindow, getter_AddRefs(accessible));
+    windowAcc = accService->AddNativeRootAccessible(gailWindow);
   }
 
   gint result = gtk_dialog_run (aDialog);
 
   
-  if (accService && accessible) {
-    accService->RemoveNativeRootAccessible(accessible);
+  if (accService && windowAcc) {
+    accService->RemoveNativeRootAccessible(windowAcc);
   }
 
   return result;

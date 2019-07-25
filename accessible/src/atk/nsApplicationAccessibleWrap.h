@@ -58,11 +58,11 @@ public:
     virtual PRBool Init();
 
     
-    NS_IMETHOD GetNativeInterface(void **aOutAccessible);
+    virtual PRBool AppendChild(nsAccessible* aChild);
+    virtual PRBool RemoveChild(nsAccessible* aChild);
 
     
-    virtual nsresult AddRootAccessible(nsIAccessible *aRootAccWrap);
-    virtual nsresult RemoveRootAccessible(nsIAccessible *aRootAccWrap);
+    NS_IMETHOD GetNativeInterface(void **aOutAccessible);
 };
 
 #endif   
