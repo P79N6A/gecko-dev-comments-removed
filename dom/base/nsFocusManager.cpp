@@ -83,7 +83,6 @@
 #include "mozAutoDocUpdate.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
-#include "nsIScriptError.h"
 
 #ifdef MOZ_XUL
 #include "nsIDOMXULTextboxElement.h"
@@ -1182,25 +1181,6 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
          aFlags, mFocusedWindow.get(), newWindow.get(), mFocusedContent.get());
   printf(" In Active Window: %d In Focused Window: %d\n",
          isElementInActiveWindow, isElementInFocusedWindow);
-#endif
-
-  
-  
-  
-  
-  
-#ifndef XP_MACOSX
-  if (contentToFocus &&
-      nsContentUtils::GetRootDocument(contentToFocus->OwnerDoc())->IsFullScreenDoc() &&
-      nsContentUtils::HasPluginWithUncontrolledEventDispatch(contentToFocus)) {
-    nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
-                                    "FocusedWindowedPluginWhileFullScreen",
-                                    nsnull, 0, nsnull,
-                                    EmptyString(), 0, 0,
-                                    nsIScriptError::warningFlag,
-                                    "DOM", contentToFocus->OwnerDoc());
-    nsIDocument::ExitFullScreen(true);
-  }
 #endif
 
   
