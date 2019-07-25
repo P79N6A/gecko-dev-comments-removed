@@ -98,6 +98,11 @@ private:
   
 
 
+  void SetSuccess(bool aResult);
+
+  
+
+
   void SetError(ErrorType aError);
 
   jsval     mResult;
