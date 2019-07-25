@@ -59,22 +59,33 @@ const WIFIWORKER_WORKER     = "resource://gre/modules/wifi_worker.js";
 
 
 var WifiManager = (function() {
-  Cu.import("resource://gre/modules/ctypes.jsm");
-  let cutils = ctypes.open("libcutils.so");
-  let cbuf = ctypes.char.array(4096)();
-  let c_property_get = cutils.declare("property_get", ctypes.default_abi,
-                                      ctypes.int,       
-                                      ctypes.char.ptr,  
-                                      ctypes.char.ptr,  
-                                      ctypes.char.ptr); 
-  let property_get = function (key, defaultValue) {
-    if (defaultValue === undefined) {
-      defaultValue = null;
+  function getSdkVersion() {
+    Cu.import("resource://gre/modules/ctypes.jsm");
+    try {
+      let cutils = ctypes.open("libcutils.so");
+      let cbuf = ctypes.char.array(4096)();
+      let c_property_get = cutils.declare("property_get", ctypes.default_abi,
+                                          ctypes.int,       
+                                          ctypes.char.ptr,  
+                                          ctypes.char.ptr,  
+                                          ctypes.char.ptr); 
+      let property_get = function (key, defaultValue) {
+        if (defaultValue === undefined) {
+          defaultValue = null;
+        }
+        c_property_get(key, cbuf, defaultValue);
+        return cbuf.readString();
+      }
+      return parseInt(property_get("ro.build.version.sdk"));
+    } catch(e) {
+      
+      
+      
+      return 0;
     }
-    c_property_get(key, cbuf, defaultValue);
-    return cbuf.readString();
   }
-  let sdkVersion = parseInt(property_get("ro.build.version.sdk"));
+
+  let sdkVersion = getSdkVersion();
 
   var controlWorker = new ChromeWorker(WIFIWORKER_WORKER);
   var eventWorker = new ChromeWorker(WIFIWORKER_WORKER);
