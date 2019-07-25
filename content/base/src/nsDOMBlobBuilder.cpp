@@ -52,11 +52,20 @@
 
 using namespace mozilla;
 
-class nsDOMMultipartBlob : public nsDOMFileBase
+class nsDOMMultipartFile : public nsDOMFileBase
 {
 public:
   
-  nsDOMMultipartBlob(nsTArray<nsCOMPtr<nsIDOMBlob> > aBlobs,
+  nsDOMMultipartFile(nsTArray<nsCOMPtr<nsIDOMBlob> > aBlobs,
+                     const nsAString& aName,
+                     const nsAString& aContentType)
+    : nsDOMFileBase(aName, aContentType, PR_UINT64_MAX),
+      mBlobs(aBlobs)
+  {
+  }
+
+  
+  nsDOMMultipartFile(nsTArray<nsCOMPtr<nsIDOMBlob> > aBlobs,
                      const nsAString& aContentType)
     : nsDOMFileBase(aContentType, PR_UINT64_MAX),
       mBlobs(aBlobs)
@@ -74,7 +83,7 @@ protected:
 };
 
 NS_IMETHODIMP
-nsDOMMultipartBlob::GetSize(PRUint64* aLength)
+nsDOMMultipartFile::GetSize(PRUint64* aLength)
 {
   if (mLength == PR_UINT64_MAX) {
     CheckedUint64 length = 0;
@@ -101,7 +110,7 @@ nsDOMMultipartBlob::GetSize(PRUint64* aLength)
 }
 
 NS_IMETHODIMP
-nsDOMMultipartBlob::GetInternalStream(nsIInputStream** aStream)
+nsDOMMultipartFile::GetInternalStream(nsIInputStream** aStream)
 {
   nsresult rv;
   *aStream = nsnull;
@@ -126,7 +135,7 @@ nsDOMMultipartBlob::GetInternalStream(nsIInputStream** aStream)
 }
 
 already_AddRefed<nsIDOMBlob>
-nsDOMMultipartBlob::CreateSlice(PRUint64 aStart, PRUint64 aLength,
+nsDOMMultipartFile::CreateSlice(PRUint64 aStart, PRUint64 aLength,
                                 const nsAString& aContentType)
 {
   
@@ -188,7 +197,7 @@ nsDOMMultipartBlob::CreateSlice(PRUint64 aStart, PRUint64 aLength,
   }
 
   
-  nsCOMPtr<nsIDOMBlob> blob = new nsDOMMultipartBlob(blobs, aContentType);
+  nsCOMPtr<nsIDOMBlob> blob = new nsDOMMultipartFile(blobs, aContentType);
   return blob.forget();
 }
 
@@ -317,9 +326,33 @@ nsDOMBlobBuilder::GetBlob(const nsAString& aContentType,
 
   Flush();
 
-  nsCOMPtr<nsIDOMBlob> blob = new nsDOMMultipartBlob(mBlobs,
+  nsCOMPtr<nsIDOMBlob> blob = new nsDOMMultipartFile(mBlobs,
                                                      aContentType);
   blob.forget(aBlob);
+
+  
+  
+  
+  
+  mBlobs.Clear();
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsDOMBlobBuilder::GetFile(const nsAString& aName,
+                          const nsAString& aContentType,
+                          nsIDOMFile** aFile)
+{
+  NS_ENSURE_ARG(aFile);
+
+  Flush();
+
+  nsCOMPtr<nsIDOMFile> file = new nsDOMMultipartFile(mBlobs,
+                                                     aName,
+                                                     aContentType);
+  file.forget(aFile);
 
   
   
