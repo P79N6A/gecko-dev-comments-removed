@@ -2493,12 +2493,12 @@ Tab.prototype = {
       } else if (!validW && !validH) {
         viewportW = this.useFallbackWidth ? kFallbackBrowserWidth : kDefaultBrowserWidth;
         viewportH = kDefaultBrowserWidth * (screenH / screenW);
-
-        
-        
-        viewportH = Math.max(viewportH, screenH * (browser.contentDocumentWidth / screenW));
       }
     }
+
+    
+    
+    viewportH = Math.max(viewportH, screenH * (browser.contentDocumentWidth / screenW));
 
     if (browser.contentWindowWidth != viewportW || browser.contentWindowHeight != viewportH)
       browser.setWindowSize(viewportW, viewportH);
