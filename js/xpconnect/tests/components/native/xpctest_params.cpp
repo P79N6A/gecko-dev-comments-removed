@@ -305,3 +305,39 @@ NS_IMETHODIMP nsXPCTestParams::TestSizedWstring(PRUint32 aLength, const PRUnicha
 {
     BUFFER_METHOD_IMPL(PRUnichar, 1, TAKE_OWNERSHIP_NOOP);
 }
+
+
+
+
+NS_IMETHODIMP nsXPCTestParams::TestInterfaceIs(const nsIID *aIID, void *a,
+                                               nsIID **bIID NS_INOUTPARAM, void **b NS_INOUTPARAM,
+                                               nsIID **rvIID NS_OUTPARAM, void **rv NS_OUTPARAM)
+{
+    
+    
+    
+
+    
+    
+    
+    
+    
+    *rv = *b;
+
+    
+    
+    *rvIID = static_cast<nsIID*>(NS_Alloc(sizeof(nsID)));
+    if (!*rvIID)
+        return NS_ERROR_OUT_OF_MEMORY;
+    **rvIID = **bIID;
+
+    
+    
+    *b = a;
+    static_cast<nsISupports*>(*b)->AddRef();
+
+    
+    **bIID = *aIID;
+
+    return NS_OK;
+}
