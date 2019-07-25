@@ -216,7 +216,7 @@ JSContext::getTypeCallerInitObject(bool isArray)
 {
     if (typeInferenceEnabled()) {
         JSStackFrame *caller = js_GetScriptedCaller(this, NULL);
-        if (caller)
+        if (caller && caller->script()->compartment == compartment)
             return caller->script()->getTypeInitObject(this, caller->pc(this), isArray);
     }
     return getTypeNewObject(isArray ? JSProto_Array : JSProto_Object);
@@ -239,6 +239,13 @@ JSContext::markTypeCallerUnexpected(js::types::jstype type)
 
     JSStackFrame *caller = js_GetScriptedCaller(this, NULL);
     if (!caller)
+        return true;
+
+    
+
+
+
+    if (caller->script()->compartment != compartment)
         return true;
 
     switch ((JSOp)*caller->pc(this)) {
@@ -1057,6 +1064,8 @@ TypeSet::addType(JSContext *cx, jstype type)
     
     TypeConstraint *constraint = constraintList;
     while (constraint) {
+        JS_ASSERT_IF(!constraint->baseSubset(),
+                     constraint->script->compartment == cx->compartment);
         cx->compartment->types.addPending(cx, constraint, this, type);
         constraint = constraint->next;
     }
