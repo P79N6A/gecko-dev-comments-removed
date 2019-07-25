@@ -4634,7 +4634,8 @@ JS_TriggerOperationCallback(JSContext *cx)
 
 
 
-    JS_ATOMIC_SET(&cx->operationCallbackFlag, 1);
+    JS_ATOMIC_SET_MASK(const_cast<jsword*>(&cx->interruptFlags),
+                       JSContext::INTERRUPT_OPERATION_CALLBACK);
 }
 
 JS_PUBLIC_API(void)

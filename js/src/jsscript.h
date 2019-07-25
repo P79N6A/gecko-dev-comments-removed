@@ -91,6 +91,19 @@ typedef struct JSConstArray {
     uint32          length;
 } JSConstArray;
 
+namespace js {
+
+struct GlobalSlotArray {
+    struct Entry {
+        uint32      atomIndex;  
+        uint32      slot;       
+    };
+    Entry           *vector;
+    uint32          length;
+};
+
+} 
+
 #define CALLEE_UPVAR_SLOT               0xffff
 #define FREE_STATIC_LEVEL               0x3fff
 #define FREE_UPVAR_COOKIE               0xffffffff
@@ -103,6 +116,17 @@ typedef struct JSConstArray {
 
 #if defined DEBUG && defined JS_THREADSAFE
 # define CHECK_SCRIPT_OWNER 1
+#endif
+
+#ifdef JS_METHODJIT
+namespace JSC {
+    class ExecutablePool;
+}
+namespace js {
+    namespace mjit {
+        struct PICInfo;
+    }
+}
 #endif
 
 struct JSScript {
@@ -119,6 +143,8 @@ struct JSScript {
     uint8           regexpsOffset;  
 
     uint8           trynotesOffset; 
+
+    uint8           globalsOffset;  
 
     uint8           constOffset;    
 
@@ -142,6 +168,28 @@ struct JSScript {
 #ifdef CHECK_SCRIPT_OWNER
     JSThread        *owner;     
 #endif
+#ifdef JS_METHODJIT
+    
+    
+    void            *ncode;     
+    void            **nmap;     
+    JSC::ExecutablePool *execPool;  
+    unsigned        npics;      
+    js::mjit::PICInfo *pics;      
+# ifdef DEBUG
+    size_t          jitLength;  
+
+    inline bool isValidJitCode(void *jcode) {
+        return (char*)jcode >= (char*)ncode &&
+               (char*)jcode < (char*)ncode + jitLength;
+    }
+# endif
+#endif
+#ifdef JS_TRACER
+    js::TraceTreeCache  *trees; 
+    uint32          tmGen;      
+#endif
+    uint32          tracePoints; 
 
     
     jssrcnote *notes() { return (jssrcnote *)(code + length); }
@@ -166,6 +214,11 @@ struct JSScript {
         return (JSTryNoteArray *) ((uint8 *) this + trynotesOffset);
     }
 
+    js::GlobalSlotArray *globals() {
+        JS_ASSERT(globalsOffset != 0);
+        return (js::GlobalSlotArray *) ((uint8 *)this + globalsOffset);
+    }
+
     JSConstArray *consts() {
         JS_ASSERT(constOffset != 0);
         return (JSConstArray *) ((uint8 *) this + constOffset);
@@ -180,6 +233,18 @@ struct JSScript {
         JSObjectArray *arr = objects();
         JS_ASSERT(index < arr->length);
         return arr->vector[index];
+    }
+
+    uint32 getGlobalSlot(size_t index) {
+        js::GlobalSlotArray *arr = globals();
+        JS_ASSERT(index < arr->length);
+        return arr->vector[index].slot;
+    }
+
+    JSAtom *getGlobalAtom(size_t index) {
+        js::GlobalSlotArray *arr = globals();
+        JS_ASSERT(index < arr->length);
+        return getAtom(arr->vector[index].atomIndex);
     }
 
     inline JSFunction *getFunction(size_t index);
@@ -208,6 +273,17 @@ struct JSScript {
     static JSScript *emptyScript() {
         return const_cast<JSScript *>(&emptyScriptConst);
     }
+
+#ifdef JS_METHODJIT
+    
+
+
+    void *pcToNative(jsbytecode *pc) {
+        JS_ASSERT(nmap);
+        JS_ASSERT(nmap[pc - code]);
+        return nmap[pc - code];
+    }
+#endif
 
   private:
     
@@ -304,7 +380,7 @@ js_SweepScriptFilenames(JSRuntime *rt);
 extern JSScript *
 js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
              uint32 nobjects, uint32 nupvars, uint32 nregexps,
-             uint32 ntrynotes, uint32 nconsts);
+             uint32 ntrynotes, uint32 nconsts, uint32 nglobals);
 
 extern JSScript *
 js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);

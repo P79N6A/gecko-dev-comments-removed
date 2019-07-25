@@ -243,6 +243,16 @@ struct JSStmtInfo {
 
 
 
+#define TCF_FUN_USES_EVAL       0x800000
+
+
+
+
+#define TCF_COMPILE_FOR_EVAL   0x1000000
+
+
+
+
 #define TCF_RETURN_FLAGS        (TCF_RETURN_EXPR | TCF_RETURN_VOID)
 
 
@@ -254,6 +264,7 @@ struct JSStmtInfo {
                                  TCF_FUN_HEAVYWEIGHT     |                    \
                                  TCF_FUN_IS_GENERATOR    |                    \
                                  TCF_FUN_USES_OWN_NAME   |                    \
+                                 TCF_FUN_USES_EVAL       |                    \
                                  TCF_HAS_SHARPS          |                    \
                                  TCF_STRICT_MODE_CODE)
 
@@ -287,6 +298,8 @@ struct JSTreeContext {
 
     JSFunctionBox   *functionList;
 
+    JSParseNode     *innermostWith; 
+
 #ifdef JS_SCOPE_DEPTH_METER
     uint16          scopeDepth;     
     uint16          maxScopeDepth;  
@@ -296,7 +309,7 @@ struct JSTreeContext {
       : flags(0), ngvars(0), bodyid(0), blockidGen(0),
         topStmt(NULL), topScopeStmt(NULL), blockChain(NULL), blockNode(NULL),
         parser(prs), scopeChain(NULL), parent(prs->tc), staticLevel(0),
-        funbox(NULL), functionList(NULL), sharpSlotBase(-1)
+        funbox(NULL), functionList(NULL), innermostWith(NULL), sharpSlotBase(-1)
     {
         prs->tc = this;
         JS_SCOPE_DEPTH_METERING(scopeDepth = maxScopeDepth = 0);
@@ -332,6 +345,8 @@ struct JSTreeContext {
 
     int sharpSlotBase;
     bool ensureSharpSlots();
+
+    js::Compiler *compiler() { return (js::Compiler *)parser; }
 
     
     
@@ -491,6 +506,11 @@ struct JSCodeGenerator : public JSTreeContext
     JSAtomList      upvarList;      
     JSUpvarArray    upvarMap;       
 
+    typedef js::Vector<js::GlobalSlotArray::Entry, 16, js::ContextAllocPolicy> GlobalUseVector;
+
+    GlobalUseVector globalUses;     
+    JSAtomList      globalMap;      
+
     
 
 
@@ -510,6 +530,8 @@ struct JSCodeGenerator : public JSTreeContext
 
     ~JSCodeGenerator();
 
+    bool addGlobalUse(JSAtom *atom, uint32 slot, uint32 *indexp);
+
     bool hasSharps() {
         bool rv = !!(flags & TCF_HAS_SHARPS);
         JS_ASSERT((sharpSlotBase >= 0) == rv);
@@ -519,6 +541,8 @@ struct JSCodeGenerator : public JSTreeContext
     uintN sharpSlots() {
         return hasSharps() ? SHARP_NSLOTS : 0;
     }
+
+    bool compilingForEval() { return !!(flags & TCF_COMPILE_FOR_EVAL); }
 };
 
 #define CG_TS(cg)               TS((cg)->parser)
