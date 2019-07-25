@@ -86,6 +86,9 @@ using namespace JSC;
         return v;       \
     } while (0)
 
+static bool
+InlineReturn(VMFrame &f, JSBool ok);
+
 static jsbytecode *
 FindExceptionHandler(JSContext *cx)
 {
@@ -639,40 +642,30 @@ AdvanceReturnPC(JSContext *cx)
 #ifdef JS_TRACER
 
 static inline bool
-HandleErrorInExcessFrames(VMFrame &f, JSStackFrame *stopFp)
+SwallowErrors(VMFrame &f, JSStackFrame *stopFp)
 {
     JSContext *cx = f.cx;
 
     
-
-
-
-
-    JSStackFrame *fp = cx->fp();
-    if (fp == stopFp)
-        return false;
-
-    bool returnOK = InlineReturn(f, false);
-
-    
+    bool ok = false;
     for (;;) {
-        fp = cx->fp();
+        JSStackFrame *fp = cx->fp();
 
         
-        if (fp->hasImacropc()) {
+        if (fp->hasImacropc() && cx->throwing) {
             cx->regs->pc = fp->imacropc();
             fp->clearImacropc();
+            if (ok)
+                break;
         }
         JS_ASSERT(!fp->hasImacropc());
 
         
-        if (cx->throwing) {
-            jsbytecode *pc = FindExceptionHandler(cx);
-            if (pc) {
-                cx->regs->pc = pc;
-                returnOK = true;
-                break;
-            }
+        jsbytecode *pc = FindExceptionHandler(cx);
+        if (pc) {
+            cx->regs->pc = pc;
+            ok = true;
+            break;
         }
 
         
@@ -680,14 +673,15 @@ HandleErrorInExcessFrames(VMFrame &f, JSStackFrame *stopFp)
             break;
 
         
-        returnOK = bool(js_UnwindScope(cx, 0, returnOK || cx->throwing));
-        returnOK = InlineReturn(f, returnOK);
+        ok &= bool(js_UnwindScope(cx, 0, cx->throwing));
+        InlineReturn(f, ok);
     }
 
+    
     JS_ASSERT(&f.regs == cx->regs);
-    JS_ASSERT_IF(returnOK, cx->fp() == stopFp);
 
-    return returnOK;
+    JS_ASSERT_IF(!ok, cx->fp() == stopFp);
+    return ok;
 }
 
 static inline bool
@@ -734,7 +728,7 @@ FrameIsFinished(JSContext *cx)
 }
 
 static bool
-FinishExcessFrames(VMFrame &f, JSStackFrame *entryFrame)
+RemoveExcessFrames(VMFrame &f, JSStackFrame *entryFrame)
 {
     JSContext *cx = f.cx;
     while (cx->fp() != entryFrame || entryFrame->hasImacropc()) {
@@ -743,7 +737,7 @@ FinishExcessFrames(VMFrame &f, JSStackFrame *entryFrame)
         if (AtSafePoint(cx)) {
             JSScript *script = fp->script();
             if (!JaegerShotAtSafePoint(cx, script->nmap[cx->regs->pc - script->code])) {
-                if (!HandleErrorInExcessFrames(f, entryFrame))
+                if (!SwallowErrors(f, entryFrame))
                     return false;
 
                 
@@ -753,7 +747,7 @@ FinishExcessFrames(VMFrame &f, JSStackFrame *entryFrame)
             AdvanceReturnPC(cx);
         } else {
             if (!PartialInterpret(f)) {
-                if (!HandleErrorInExcessFrames(f, entryFrame))
+                if (!SwallowErrors(f, entryFrame))
                     return false;
             } else if (cx->fp() != entryFrame) {
                 
@@ -844,7 +838,7 @@ RunTracer(VMFrame &f)
         return NULL;
 
       case TPA_Error:
-        if (!HandleErrorInExcessFrames(f, entryFrame))
+        if (!SwallowErrors(f, entryFrame))
             THROWV(NULL);
         JS_ASSERT(!cx->fp()->hasImacropc());
         break;
@@ -878,7 +872,7 @@ RunTracer(VMFrame &f)
 
   restart:
     
-    if (!FinishExcessFrames(f, entryFrame))
+    if (!RemoveExcessFrames(f, entryFrame))
         THROWV(NULL);
 
     
@@ -909,7 +903,7 @@ RunTracer(VMFrame &f)
 
     
     if (!PartialInterpret(f)) {
-        if (!HandleErrorInExcessFrames(f, entryFrame))
+        if (!SwallowErrors(f, entryFrame))
             THROWV(NULL);
     }
 
