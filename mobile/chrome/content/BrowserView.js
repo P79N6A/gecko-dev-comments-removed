@@ -171,6 +171,10 @@ BrowserView.Util = {
     return browser.__BrowserView__vps;
   },
 
+  
+
+
+
   getBrowserDimensions: function getBrowserDimensions(browser) {
     let cdoc = browser.contentDocument;
     if (cdoc instanceof SVGDocument) {
@@ -235,7 +239,7 @@ BrowserView.prototype = {
     this._contentWindow = null;
     this._renderMode = 0;
     this._offscreenDepth = 0;
-    
+
     let cacheSize = kBrowserViewCacheSize;
     try {
       cacheSize = gPrefService.getIntPref("tile.cache.size");
@@ -262,6 +266,7 @@ BrowserView.prototype = {
     
     this._tileManager = new TileManager(this._appendTile, this._removeTile, this, cacheSize);
     this._visibleRectFactory = visibleRectFactory;
+    this._suppressZoomToPage = false;
 
     this._idleServiceObserver = new BrowserView.IdleServiceObserver(this);
     this._idleService = Cc["@mozilla.org/widget/idleservice;1"].getService(Ci.nsIIdleService);
@@ -282,9 +287,16 @@ BrowserView.prototype = {
     if (!bvs)
       return;
 
+    if (!causedByZoom)
+      this._suppressZoomToPage = false;
+
+    let oldwidth  = bvs.viewportRect.right;
+    let oldheight = bvs.viewportRect.bottom;
     bvs.viewportRect.right  = width;
     bvs.viewportRect.bottom = height;
 
+    let sizeChanged = (oldwidth != width || oldheight != height);
+
     
     
     
@@ -292,19 +304,33 @@ BrowserView.prototype = {
     
     
 
-    this._viewportChanged(true, !!causedByZoom);
+    this._viewportChanged(sizeChanged, sizeChanged && !!causedByZoom);
   },
 
-  setZoomLevel: function setZoomLevel(zl) {
+  
+
+
+  getViewportDimensions: function getViewportDimensions() {
     let bvs = this._browserViewportState;
+
+    if (!bvs)
+      throw "Cannot get viewport dimensions when no browser is set";
+
+    return [bvs.viewportRect.right, bvs.viewportRect.bottom];
+  },
+
+  setZoomLevel: function setZoomLevel(zoomLevel) {
+    let bvs = this._browserViewportState;
+
     if (!bvs)
       return;
 
-    let newZL = BrowserView.Util.clampZoomLevel(zl);
-    if (newZL != bvs.zoomLevel) {
+    let newZoomLevel = BrowserView.Util.clampZoomLevel(zoomLevel);
+
+    if (newZoomLevel != bvs.zoomLevel) {
       let browserW = this.viewportToBrowser(bvs.viewportRect.right);
       let browserH = this.viewportToBrowser(bvs.viewportRect.bottom);
-      bvs.zoomLevel = newZL; 
+      bvs.zoomLevel = newZoomLevel; 
       this.setViewportDimensions(this.browserToViewport(browserW),
                                  this.browserToViewport(browserH),
                                  true);
@@ -439,19 +465,17 @@ BrowserView.prototype = {
       throw "Cannot set non-null browser with null BrowserViewportState";
     }
 
-    let browserChanged = (this._browser !== browser);
+    let oldBrowser = this._browser;
 
-    if (this._browser) {
-      this._browser.removeEventListener("MozAfterPaint", this.handleMozAfterPaint, false);
-      this._browser.removeEventListener("scroll", this.handlePageScroll, false);
+    let browserChanged = (oldBrowser !== browser);
 
-      
-      
-      this._browser.removeEventListener("FakeMozAfterSizeChange", this.handleMozAfterSizeChange, false);
-      
+    if (oldBrowser) {
+      oldBrowser.removeEventListener("MozAfterPaint", this.handleMozAfterPaint, false);
+      oldBrowser.removeEventListener("scroll", this.handlePageScroll, false);
+      oldBrowser.removeEventListener("MozScrolledAreaChanged", this.handleMozScrolledAreaChanged, false);
 
-      this._browser.setAttribute("type", "content");
-      this._browser.docShell.isOffScreenBrowser = false;
+      oldBrowser.setAttribute("type", "content");
+      oldBrowser.docShell.isOffScreenBrowser = false;
     }
 
     this._browser = browser;
@@ -465,11 +489,7 @@ BrowserView.prototype = {
 
       browser.addEventListener("MozAfterPaint", this.handleMozAfterPaint, false);
       browser.addEventListener("scroll", this.handlePageScroll, false);
-
-      
-      
-      browser.addEventListener("FakeMozAfterSizeChange", this.handleMozAfterSizeChange, false);
-      
+      browser.addEventListener("MozScrolledAreaChanged", this.handleMozScrolledAreaChanged, false);
 
       if (doZoom) {
         browser.docShell.isOffScreenBrowser = true;
@@ -527,28 +547,31 @@ BrowserView.prototype = {
     this.onAfterVisibleMove();
   },
 
-  
-  simulateMozAfterSizeChange: function simulateMozAfterSizeChange() {
-    let [w, h] = BrowserView.Util.getBrowserDimensions(this._browser);
-    let ev = document.createEvent("MouseEvents");
-    ev.initMouseEvent("FakeMozAfterSizeChange", false, false, window, 0, w, h, 0, 0, false, false, false, false, 0, null);
-    this._browser.dispatchEvent(ev);
-  },
-  
+  handleMozScrolledAreaChanged: function handleMozScrolledAreaChanged(ev) {
+    if (ev.target != this._browser.contentDocument)
+      return;
 
-  handleMozAfterSizeChange: function handleMozAfterSizeChange(ev) {
+    let { x: scrollX, y: scrollY } = BrowserView.Util.getContentScrollOffset(this._browser);
+
+    let x = ev.x + scrollX;
+    let y = ev.y + scrollY;
+    let w = ev.width;
+    let h = ev.height;
+
     
     
     
-    
-    let w = ev.screenX;
-    let h = ev.screenY;
-    
-    this.setViewportDimensions(this.browserToViewport(w), this.browserToViewport(h));
+    if (x < 0) w += x;
+    if (y < 0) h += y;
+
+    this.setViewportDimensions(this.browserToViewport(w),
+                               this.browserToViewport(h));
   },
 
   zoomToPage: function zoomToPage() {
-    this.setZoomLevel(this.getZoomForPage());
+    
+    if (!this._suppressZoomToPage)
+      this.setZoomLevel(this.getZoomForPage());
   },
 
   getZoomForPage: function getZoomForPage() {
@@ -559,7 +582,9 @@ BrowserView.prototype = {
     if (Util.contentIsHandheld(browser))
       return 1;
 
-    let [w, h] = BrowserView.Util.getBrowserDimensions(browser);
+    let bvs = this._browserViewportState;  
+    let w = this.viewportToBrowser(bvs.viewportRect.right);
+    let h = this.viewportToBrowser(bvs.viewportRect.bottom);
     return BrowserView.Util.pageZoomLevel(this.getVisibleRect(), w, h);
   },
 
@@ -576,6 +601,55 @@ BrowserView.prototype = {
       zoomDelta *= -1;
 
     this.setZoomLevel(bvs.zoomLevel + zoomDelta);
+  },
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+
+
+
+
+
+  invalidateEntireView: function invalidateEntireView() {
+    if (this._browserViewportState) {
+      this._viewportChanged(false, true, true);
+      this._suppressZoomToPage = true;
+    }
   },
 
   
