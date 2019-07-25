@@ -97,6 +97,8 @@ class MSnapshot;
 
 class MNode : public TempObject
 {
+    friend class MDefinition;
+
   protected:
     MBasicBlock *block_;    
 
@@ -131,7 +133,6 @@ class MNode : public TempObject
     
     
     void replaceOperand(MUse *prev, MUse *use, MDefinition *ins);
-    void replaceOperand(MUseIterator &use, MDefinition *ins);
     void replaceOperand(size_t index, MDefinition *ins);
 
     inline MDefinition *toDefinition();
@@ -176,39 +177,6 @@ class MUse : public TempObject
     MUse *next() const {
         return next_;
     }
-};
-
-class MUseIterator
-{
-    MDefinition *def;
-    MUse *use;
-    MUse *prev_;
-
-  public:
-    inline MUseIterator(MDefinition *def);
-
-    bool more() const {
-        return !!use;
-    }
-    void next() {
-        if (use) {
-            prev_ = use;
-            use = use->next();
-        }
-    }
-    MUse * operator ->() const {
-        return use;
-    }
-    MUse * operator *() const {
-        return use;
-    }
-    MUse *prev() const {
-        return prev_;
-    }
-
-    
-    
-    inline MUse *unlink();
 };
 
 
@@ -358,6 +326,7 @@ class MDefinition : public MNode
     void addUse(MNode *node, size_t index) {
         uses_ = MUse::New(uses_, node, index);
     }
+    void replaceAllUsesWith(MDefinition *dom);
 
     
     
@@ -421,6 +390,79 @@ class MDefinition : public MNode
 
     void setResultType(MIRType type) {
         resultType_ = type;
+    }
+};
+
+
+
+class MUseIterator
+{
+    MUse *current_;
+
+  public:
+    MUseIterator(MDefinition *def)
+      : current_(def->uses())
+    { }
+
+    operator bool() const {
+        return !!current_;
+    }
+    MUseIterator operator ++(int) {
+        MUseIterator old(*this);
+        if (current_)
+            current_ = current_->next();
+        return old;
+    }
+    MUse * operator *() const {
+        return current_;
+    }
+    MUse * operator ->() const {
+        return current_;
+    }
+};
+
+
+
+
+class MUseDefIterator
+{
+    MUse *current_;
+    MUse *next_;
+
+    MUse *search(MUse *start) {
+        while (start && !start->node()->isDefinition())
+            start = start->next();
+        return start;
+    }
+    void next() {
+        current_ = next_;
+        next_ = search(next_->next());
+    }
+
+  public:
+    MUseDefIterator(MDefinition *def)
+      : next_(search(def->uses()))
+    {
+        next();
+    }
+
+    operator bool() const {
+        return !!current_;
+    }
+    MUseDefIterator operator ++(int) {
+        MUseDefIterator old(*this);
+        if (current_)
+            next();
+        return old;
+    }
+    MUse *use() const {
+        return current_;
+    }
+    MDefinition *def() const {
+        return current_->node()->toDefinition();
+    }
+    size_t index() const {
+        return current_->index();
     }
 };
 
@@ -872,22 +914,6 @@ class MSnapshot : public MNode
 };
 
 #undef INSTRUCTION_HEADER
-
-inline
-MUseIterator::MUseIterator(MDefinition *def)
-  : def(def),
-    use(def->uses()),
-    prev_(NULL)
-{
-}
-
-inline MUse *
-MUseIterator::unlink()
-{
-    MUse *old = use;
-    use = def->removeUse(prev(), use);
-    return old;
-}
 
 
 #define OPCODE_CASTS(opcode)                                                \
