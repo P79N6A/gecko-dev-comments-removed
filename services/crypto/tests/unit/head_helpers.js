@@ -51,8 +51,15 @@ registrar.registerFactory(Components.ID("{fbfae60b-64a4-44ef-a911-08ceb70b9f31}"
 }
 
 
-let weaveService = Cc["@mozilla.org/weave/service;1"].getService();
-weaveService.wrappedJSObject.addResourceAlias();
+function addResourceAlias() {
+  Cu.import("resource://gre/modules/Services.jsm");
+  const resProt = Services.io.getProtocolHandler("resource")
+                          .QueryInterface(Ci.nsIResProtocolHandler);
+  let uri = Services.io.newURI("resource:///modules/services-crypto/",
+                               null, null);
+  resProt.setSubstitution("services-crypto", uri);
+}
+addResourceAlias();
 
 
 
