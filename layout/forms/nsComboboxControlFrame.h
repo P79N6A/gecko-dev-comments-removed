@@ -137,16 +137,7 @@ public:
 
 
   virtual void RollupFromList();
-
-  
-
-
-
-
-
-  void GetAvailableDropdownSpace(nscoord* aAbove,
-                                 nscoord* aBelow,
-                                 nsPoint* aTranslation);
+  virtual void AbsolutelyPositionDropDown();
   virtual PRInt32 GetIndexOfDisplayArea();
   
 
@@ -168,7 +159,6 @@ public:
 
 
   virtual nsIContent* Rollup(PRUint32 aCount, bool aGetLastRolledUp = false);
-  virtual void NotifyGeometryChange();
 
   
 
@@ -194,27 +184,17 @@ public:
   static bool ToolkitHasNativePopup();
 
 protected:
-  friend class RedisplayTextEvent;
-  friend class nsAsyncResize;
-  friend class nsResizeDropdownAtFinalPosition;
 
   
   nsresult ReflowDropdown(nsPresContext*          aPresContext, 
                           const nsHTMLReflowState& aReflowState);
 
-  enum DropDownPositionState {
-    
-    eDropDownPositionSuppressed,
-    
-    eDropDownPositionPendingResize,
-    
-    eDropDownPositionFinal
-  };
-  DropDownPositionState AbsolutelyPositionDropDown();
-
   
   nscoord GetIntrinsicWidth(nsRenderingContext* aRenderingContext,
                             nsLayoutUtils::IntrinsicWidthType aType);
+protected:
+  class RedisplayTextEvent;
+  friend class RedisplayTextEvent;
 
   class RedisplayTextEvent : public nsRunnable {
   public:
@@ -262,6 +242,9 @@ protected:
   
   nscoord mDisplayWidth;
   
+  bool                  mDroppedDown;             
+  bool                  mInRedisplayText;
+
   nsRevocableEventPtr<RedisplayTextEvent> mRedisplayTextEvent;
 
   PRInt32               mRecentSelectedIndex;
@@ -273,15 +256,8 @@ protected:
   nsCOMPtr<nsIDOMEventListener> mButtonListener;
 
   
-  bool                  mDroppedDown;
   
-  bool                  mInRedisplayText;
-  
-  bool                  mDelayedShowDropDown;
-
-  
-  
-  static nsComboboxControlFrame* sFocused;
+  static nsComboboxControlFrame * mFocused;
 
 #ifdef DO_REFLOW_COUNTER
   PRInt32 mReflowId;
