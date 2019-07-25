@@ -1213,37 +1213,31 @@ nsresult nsPluginHost::SetUpPluginInstance(const char *aMimeType,
 {
   NS_ENSURE_ARG_POINTER(aOwner);
 
-  nsresult rv = NS_OK;
-
-  rv = TrySetUpPluginInstance(aMimeType, aURL, aOwner);
-
-  
-  
-  if (NS_FAILED(rv)) {
-    
-    
-    
-    
-    nsCOMPtr<nsIDocument> document;
-    aOwner->GetDocument(getter_AddRefs(document));
-
-    nsCOMPtr<nsIDocument> currentdocument = do_QueryReferent(mCurrentDocument);
-    if (document == currentdocument)
-      return rv;
-
-    mCurrentDocument = do_GetWeakReference(document);
-
-    
-    
-    if (NS_ERROR_PLUGINS_PLUGINSNOTCHANGED == ReloadPlugins(false))
-      return rv;
-
-    
-    aOwner->SetInstance(nsnull); 
-    rv = TrySetUpPluginInstance(aMimeType, aURL, aOwner);
+  nsresult rv = TrySetUpPluginInstance(aMimeType, aURL, aOwner);
+  if (NS_SUCCEEDED(rv)) {
+    return rv;
   }
 
-  return rv;
+  
+  
+  
+  
+  nsCOMPtr<nsIDocument> document;
+  aOwner->GetDocument(getter_AddRefs(document));
+
+  nsCOMPtr<nsIDocument> currentdocument = do_QueryReferent(mCurrentDocument);
+  if (document == currentdocument) {
+    return rv;
+  }
+
+  mCurrentDocument = do_GetWeakReference(document);
+
+  
+  if (ReloadPlugins(false) == NS_ERROR_PLUGINS_PLUGINSNOTCHANGED) {
+    return rv;
+  }
+
+  return TrySetUpPluginInstance(aMimeType, aURL, aOwner);
 }
 
 nsresult
