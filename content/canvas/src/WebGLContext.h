@@ -1355,6 +1355,8 @@ protected:
     ContextStatus mContextStatus;
     bool mContextLostErrorSet;
 
+    int mAlreadyReportedMessages;
+
 #ifdef XP_MACOSX
     
     
@@ -1368,8 +1370,8 @@ protected:
 
 public:
     
-    static void LogMessage(const char *fmt, ...);
-    static void LogMessage(const char *fmt, va_list ap);
+    void LogMessage(const char *fmt, ...);
+    void LogMessage(const char *fmt, va_list ap);
     void LogMessageIfVerbose(const char *fmt, ...);
     void LogMessageIfVerbose(const char *fmt, va_list ap);
 
