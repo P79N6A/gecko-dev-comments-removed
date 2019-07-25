@@ -4,8 +4,14 @@
 
 
 
+
+
+
+
+
+
 #ifndef mozilla_Hal_h
-#define mozilla_Hal_h
+#define mozilla_Hal_h 1
 
 #include "mozilla/hal_sandbox/PHal.h"
 #include "base/basictypes.h"
@@ -15,6 +21,7 @@
 #include "mozilla/dom/battery/Types.h"
 #include "mozilla/dom/network/Types.h"
 #include "mozilla/hal_sandbox/PHal.h"
+#include "mozilla/dom/ScreenOrientation.h"
 
 
 
@@ -35,7 +42,16 @@ class nsIDOMWindow;
 
 namespace mozilla {
 
+template <class T>
+class Observer;
+
+namespace dom {
+class ScreenOrientationWrapper;
+}
+
 namespace hal {
+
+typedef Observer<dom::ScreenOrientationWrapper> ScreenOrientationObserver;
 
 class WindowIdentifier;
 
@@ -226,6 +242,29 @@ void Reboot();
 
 
 void PowerOff();
+
+
+
+
+
+void RegisterScreenOrientationObserver(hal::ScreenOrientationObserver* aScreenOrientationObserver);
+
+
+
+
+
+void UnregisterScreenOrientationObserver(hal::ScreenOrientationObserver* aScreenOrientationObserver);
+
+
+
+
+void GetCurrentScreenOrientation(dom::ScreenOrientation* aScreenOrientation);
+
+
+
+
+
+void NotifyScreenOrientationChange(const dom::ScreenOrientation& aScreenOrientation);
 
 } 
 } 
