@@ -176,7 +176,7 @@ js_IsIdentifier(JSString *str)
 
 
 TokenStream::TokenStream(JSContext *cx)
-  : cx(cx), tokens(), cursor(), lookahead(), ungetpos(), ungetbuf(), flags(),
+  : cx(cx), tokens(), cursor(), lookahead(), flags(),
     linepos(), lineposNext(), file(), listenerTSData(), tokenbuf(cx)
 {}
 
@@ -192,8 +192,8 @@ TokenStream::init(const jschar *base, size_t length, FILE *fp, const char *fn, u
     JS_ASSERT_IF(fp, !base);
     JS_ASSERT_IF(!base, length == 0);
     size_t nb = fp
-         ? 2 * LINE_LIMIT * sizeof(jschar)
-         : LINE_LIMIT * sizeof(jschar);
+         ? (UNGET_LIMIT + 2 * LINE_LIMIT) * sizeof(jschar)    
+         : (UNGET_LIMIT + 1 * LINE_LIMIT) * sizeof(jschar);
     JS_ARENA_ALLOCATE_CAST(buf, jschar *, &cx->tempPool, nb);
     if (!buf) {
         js_ReportOutOfScriptQuota(cx);
@@ -204,18 +204,38 @@ TokenStream::init(const jschar *base, size_t length, FILE *fp, const char *fn, u
     
     filename = fn;
     lineno = ln;
-    linebuf.base = linebuf.limit = linebuf.ptr = buf;
+    
+
+
+
+    ungetbuf.base = buf;
+    ungetbuf.limit = ungetbuf.ptr = buf + UNGET_LIMIT;
+    linebuf.base = linebuf.limit = linebuf.ptr = buf + UNGET_LIMIT;
     if (fp) {
         file = fp;
-        userbuf.base = buf + LINE_LIMIT;
+        userbuf.base = buf + UNGET_LIMIT + LINE_LIMIT;
         userbuf.ptr = userbuf.limit = userbuf.base + LINE_LIMIT;
     } else {
         userbuf.base = (jschar *)base;
         userbuf.limit = (jschar *)base + length;
         userbuf.ptr = (jschar *)base;
     }
+    currbuf = &linebuf;
     listener = cx->debugHooks->sourceHandler;
     listenerData = cx->debugHooks->sourceHandlerData;
+    
+    memset(maybeEOL, 0, sizeof(maybeEOL));
+    maybeEOL['\n'] = true;
+    maybeEOL['\r'] = true;
+    maybeEOL[LINE_SEPARATOR & 0xff] = true;
+    maybeEOL[PARA_SEPARATOR & 0xff] = true;
+    
+    memset(maybeStrSpecial, 0, sizeof(maybeStrSpecial));
+    maybeStrSpecial['"'] = true;
+    maybeStrSpecial['\''] = true;
+    maybeStrSpecial['\n'] = true;
+    maybeStrSpecial['\\'] = true;
+    maybeStrSpecial[EOF & 0xff] = true;
     return true;
 }
 
@@ -356,7 +376,17 @@ TokenStream::getCharFillLinebuf()
 
 
 
-        if ((d & 0xDFD0) == 0) {
+
+
+
+
+
+
+
+
+
+
+        if (maybeEOL[d & 0xff]) {
             if (d == '\n') {
                 break;
             }
@@ -399,15 +429,20 @@ TokenStream::getCharFillLinebuf()
 
 
 int32
-TokenStream::getChar()
+TokenStream::getCharSlowCase()
 {
     int32 c;
-    if (ungetpos != 0) {
-        c = ungetbuf[--ungetpos];
-    } else if (linebuf.ptr == linebuf.limit) {
-        c = getCharFillLinebuf();
+    if (currbuf->ptr == currbuf->limit - 1) {
+        
+        c = *currbuf->ptr++;
+        if (currbuf == &ungetbuf)
+            currbuf = &linebuf;
+
     } else {
-        c = *linebuf.ptr++;
+        
+        JS_ASSERT(currbuf->ptr == currbuf->limit);
+        JS_ASSERT(currbuf == &linebuf);
+        c = getCharFillLinebuf();
     }
     if (c == '\n')
         lineno++;
@@ -419,10 +454,14 @@ TokenStream::ungetChar(int32 c)
 {
     if (c == EOF)
         return;
-    JS_ASSERT(ungetpos < JS_ARRAY_LENGTH(ungetbuf));
-    if (c == '\n')
+    JS_ASSERT(ungetbuf.ptr >= ungetbuf.base);
+    if (c == '\n') {
+        
+        JS_ASSERT(ungetbuf.ptr == ungetbuf.limit);
         lineno--;
-    ungetbuf[ungetpos++] = (jschar)c;
+    }
+    *(--ungetbuf.ptr) = (jschar)c;
+    currbuf = &ungetbuf;
 }
 
 
@@ -816,7 +855,7 @@ TokenStream::newToken(ptrdiff_t adjust)
     cursor = (cursor + 1) & ntokensMask;
     Token *tp = &tokens[cursor];
     tp->ptr = linebuf.ptr + adjust;
-    tp->pos.begin.index = linepos + (tp->ptr - linebuf.base) - ungetpos;
+    tp->pos.begin.index = linepos + (tp->ptr - linebuf.base) - (ungetbuf.limit - ungetbuf.ptr);
     tp->pos.begin.lineno = tp->pos.end.lineno = lineno;
     return tp;
 }
@@ -1184,72 +1223,81 @@ TokenStream::getTokenInternal()
     if (c == '"' || c == '\'') {
         qc = c;
         tokenbuf.clear();
-        while ((c = getChar()) != qc) {
-            if (c == '\n' || c == EOF) {
-                ungetChar(c);
-                ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR,
-                                         JSMSG_UNTERMINATED_STRING);
-                goto error;
-            }
-            if (c == '\\') {
-                switch (c = getChar()) {
-                  case 'b': c = '\b'; break;
-                  case 'f': c = '\f'; break;
-                  case 'n': c = '\n'; break;
-                  case 'r': c = '\r'; break;
-                  case 't': c = '\t'; break;
-                  case 'v': c = '\v'; break;
+        while (true) {
+            c = getChar();
+            
 
-                  default:
-                    if ('0' <= c && c < '8') {
-                        int32 val = JS7_UNDEC(c);
 
-                        c = peekChar();
-                        
-                        if (val != 0 || JS7_ISDEC(c)) {
-                            if (!ReportStrictModeError(cx, this, NULL, NULL,
-                                                       JSMSG_DEPRECATED_OCTAL)) {
-                                goto error;
-                            }
-                        }
-                        if ('0' <= c && c < '8') {
-                            val = 8 * val + JS7_UNDEC(c);
-                            getChar();
-                            c = peekChar();
-                            if ('0' <= c && c < '8') {
-                                int32 save = val;
-                                val = 8 * val + JS7_UNDEC(c);
-                                if (val <= 0377)
-                                    getChar();
-                                else
-                                    val = save;
-                            }
-                        }
 
-                        c = (jschar)val;
-                    } else if (c == 'u') {
-                        jschar cp[4];
-                        if (peekChars(4, cp) &&
-                            JS7_ISHEX(cp[0]) && JS7_ISHEX(cp[1]) &&
-                            JS7_ISHEX(cp[2]) && JS7_ISHEX(cp[3])) {
-                            c = (((((JS7_UNHEX(cp[0]) << 4)
-                                    + JS7_UNHEX(cp[1])) << 4)
-                                  + JS7_UNHEX(cp[2])) << 4)
-                                + JS7_UNHEX(cp[3]);
-                            skipChars(4);
-                        }
-                    } else if (c == 'x') {
-                        jschar cp[2];
-                        if (peekChars(2, cp) &&
-                            JS7_ISHEX(cp[0]) && JS7_ISHEX(cp[1])) {
-                            c = (JS7_UNHEX(cp[0]) << 4) + JS7_UNHEX(cp[1]);
-                            skipChars(2);
-                        }
-                    } else if (c == '\n') {
-                        
-                        continue;
-                    }
+
+            if (maybeStrSpecial[c & 0xff]) {
+                if (c == qc) {
                     break;
+                } else if (c == '\\') {
+                    switch (c = getChar()) {
+                      case 'b': c = '\b'; break;
+                      case 'f': c = '\f'; break;
+                      case 'n': c = '\n'; break;
+                      case 'r': c = '\r'; break;
+                      case 't': c = '\t'; break;
+                      case 'v': c = '\v'; break;
+
+                      default:
+                        if ('0' <= c && c < '8') {
+                            int32 val = JS7_UNDEC(c);
+
+                            c = peekChar();
+                            
+                            if (val != 0 || JS7_ISDEC(c)) {
+                                if (!ReportStrictModeError(cx, this, NULL, NULL,
+                                                           JSMSG_DEPRECATED_OCTAL)) {
+                                    goto error;
+                                }
+                            }
+                            if ('0' <= c && c < '8') {
+                                val = 8 * val + JS7_UNDEC(c);
+                                getChar();
+                                c = peekChar();
+                                if ('0' <= c && c < '8') {
+                                    int32 save = val;
+                                    val = 8 * val + JS7_UNDEC(c);
+                                    if (val <= 0377)
+                                        getChar();
+                                    else
+                                        val = save;
+                                }
+                            }
+
+                            c = (jschar)val;
+                        } else if (c == 'u') {
+                            jschar cp[4];
+                            if (peekChars(4, cp) &&
+                                JS7_ISHEX(cp[0]) && JS7_ISHEX(cp[1]) &&
+                                JS7_ISHEX(cp[2]) && JS7_ISHEX(cp[3])) {
+                                c = (((((JS7_UNHEX(cp[0]) << 4)
+                                        + JS7_UNHEX(cp[1])) << 4)
+                                      + JS7_UNHEX(cp[2])) << 4)
+                                    + JS7_UNHEX(cp[3]);
+                                skipChars(4);
+                            }
+                        } else if (c == 'x') {
+                            jschar cp[2];
+                            if (peekChars(2, cp) &&
+                                JS7_ISHEX(cp[0]) && JS7_ISHEX(cp[1])) {
+                                c = (JS7_UNHEX(cp[0]) << 4) + JS7_UNHEX(cp[1]);
+                                skipChars(2);
+                            }
+                        } else if (c == '\n') {
+                            
+                            continue;
+                        }
+                        break;
+                    }
+                } else if (c == '\n' || c == EOF) {
+                    ungetChar(c);
+                    ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR,
+                                             JSMSG_UNTERMINATED_STRING);
+                    goto error;
                 }
             }
             if (!tokenbuf.append(c))
@@ -1800,7 +1848,7 @@ TokenStream::getTokenInternal()
 
   eol_out:
     JS_ASSERT(tt < TOK_LIMIT);
-    tp->pos.end.index = linepos + (linebuf.ptr - linebuf.base) - ungetpos;
+    tp->pos.end.index = linepos + (linebuf.ptr - linebuf.base) - (ungetbuf.limit - ungetbuf.ptr);
     tp->type = tt;
     return tt;
 
