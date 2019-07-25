@@ -987,8 +987,8 @@ public:
         
         
         if (ctx && !ctx->IsDestroyed()) {
-            mGLContext->MakeCurrent();
-            mGLContext->fDeleteTextures(1, &mTexture);
+            ctx->MakeCurrent();
+            ctx->fDeleteTextures(1, &mTexture);
             ReleaseTexImage();
             DestroyEGLSurface();
         }
