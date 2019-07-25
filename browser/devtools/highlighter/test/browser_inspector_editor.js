@@ -34,13 +34,14 @@ function setupHTMLPanel()
 {
   Services.obs.removeObserver(setupHTMLPanel, InspectorUI.INSPECTOR_NOTIFICATIONS.OPENED);
   Services.obs.addObserver(runEditorTests, InspectorUI.INSPECTOR_NOTIFICATIONS.TREEPANELREADY, false);
-  InspectorUI.treePanel.open();
+  InspectorUI.toolShow(InspectorUI.treePanel.registrationObject);
 }
 
 function runEditorTests()
 {
   Services.obs.removeObserver(runEditorTests, InspectorUI.INSPECTOR_NOTIFICATIONS.TREEPANELREADY);
   InspectorUI.stopInspecting();
+  InspectorUI.inspectNode(doc.body, true);
 
   
   editorTestSteps = doEditorTestSteps();
@@ -52,6 +53,14 @@ function runEditorTests()
 
   
   doNextStep();
+}
+
+function highlighterTrap()
+{
+  
+  Services.obs.removeObserver(highlighterTrap, InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING);
+  ok(false, "Highlighter moved. Shouldn't be here!");
+  finishUp();
 }
 
 function doEditorTestSteps()
@@ -78,6 +87,9 @@ function doEditorTestSteps()
 
   
   ok(InspectorUI.treePanel.editingContext, "Step 2: editor session started");
+  let selection = InspectorUI.selection;
+
+  ok(selection, "Selection is: " + selection);
 
   let editorVisible = editor.classList.contains("editing");
   ok(editorVisible, "editor popup visible");
@@ -103,8 +115,13 @@ function doEditorTestSteps()
   editorInput.value = "Hello World";
   editorInput.focus();
 
+  Services.obs.addObserver(highlighterTrap,
+      InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING, false);
+
   
   executeSoon(function() {
+    
+    EventUtils.synthesizeKey("VK_LEFT", {}, attrValNode_id.ownerDocument.defaultView);
     EventUtils.synthesizeKey("VK_RETURN", {}, attrValNode_id.ownerDocument.defaultView);
   });
 
@@ -112,6 +129,8 @@ function doEditorTestSteps()
   yield;
   yield; 
 
+  
+  Services.obs.removeObserver(highlighterTrap, InspectorUI.INSPECTOR_NOTIFICATIONS.HIGHLIGHTING);
 
   
   ok(!treePanel.editingContext, "Step 3: editor session ended");
@@ -210,16 +229,14 @@ function doEditorTestSteps()
   is(attrValNode_id.innerHTML, "Hello World", "attribute-value node in HTML panel *not* updated");
 
   
-
-  
-  Services.obs.removeObserver(doNextStep, InspectorUI.INSPECTOR_NOTIFICATIONS.EDITOR_OPENED, false);
-  Services.obs.removeObserver(doNextStep, InspectorUI.INSPECTOR_NOTIFICATIONS.EDITOR_CLOSED, false);
-  Services.obs.removeObserver(doNextStep, InspectorUI.INSPECTOR_NOTIFICATIONS.EDITOR_SAVED, false);
-
   executeSoon(finishUp);
 }
 
 function finishUp() {
+  
+  Services.obs.removeObserver(doNextStep, InspectorUI.INSPECTOR_NOTIFICATIONS.EDITOR_OPENED, false);
+  Services.obs.removeObserver(doNextStep, InspectorUI.INSPECTOR_NOTIFICATIONS.EDITOR_CLOSED, false);
+  Services.obs.removeObserver(doNextStep, InspectorUI.INSPECTOR_NOTIFICATIONS.EDITOR_SAVED, false);
   doc = div = null;
   InspectorUI.closeInspectorUI();
   gBrowser.removeCurrentTab();
