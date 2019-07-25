@@ -51,6 +51,11 @@ PREFS_BRANCH:                          "extensions.weave.",
 PWDMGR_HOST:                           "chrome://weave",
 
 
+SINGLE_USER_SYNC:                      24 * 60 * 60 * 1000, 
+MULTI_DESKTOP_SYNC:                    60 * 60 * 1000, 
+MULTI_MOBILE_SYNC:                     5 * 60 * 1000, 
+
+
 MODE_RDONLY:                           0x01,
 MODE_WRONLY:                           0x02,
 MODE_CREATE:                           0x08,

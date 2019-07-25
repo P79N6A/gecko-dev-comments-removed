@@ -44,19 +44,6 @@ const Cr = Components.results;
 const Cu = Components.utils;
 
 
-
-
-
-
-
-
-
-
-
-
-const SCHEDULED_SYNC_INTERVAL = 60 * 1000 * 5; 
-
-
 const IDLE_TIME = 5; 
 
 
@@ -69,7 +56,7 @@ const INITIAL_THRESHOLD = 75;
 const THRESHOLD_DECREMENT_STEP = 25;
 
 
-const CLUSTER_BACKOFF = SCHEDULED_SYNC_INTERVAL;
+const CLUSTER_BACKOFF = 5 * 60 * 1000; 
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://weave/ext/Sync.js");
@@ -181,6 +168,7 @@ WeaveSvc.prototype = {
   _loggedIn: false,
   _syncInProgress: false,
   _keyGenEnabled: true,
+  _syncInterval: SINGLE_USER_SYNC,
 
   
   _status: null,
@@ -258,6 +246,9 @@ WeaveSvc.prototype = {
   
   get nextSync() Svc.Prefs.get("nextSync", 0) * 1000,
   set nextSync(value) Svc.Prefs.set("nextSync", Math.floor(value / 1000)),
+
+  get numClients() Svc.Prefs.get("numClients", 0),
+  set numClients(value) Svc.Prefs.set("numClients", value),
 
   get status() { return this._status; },
 
@@ -1042,7 +1033,7 @@ WeaveSvc.prototype = {
         interval = this.nextSync - Date.now();
       
       else 
-        interval = SCHEDULED_SYNC_INTERVAL;
+        interval = this._syncInterval;
     }
 
     
@@ -1145,6 +1136,9 @@ WeaveSvc.prototype = {
       }
     }
 
+    
+    this._updateClientMode();
+
     try {
       for each (let engine in Engines.getAll()) {
         let name = engine.name;
@@ -1202,6 +1196,43 @@ WeaveSvc.prototype = {
       this._syncError = false;
     }
   })))(),
+
+  
+
+
+  _updateClientMode: function _updateClientMode() {
+    let numClients = 0;
+    let hasMobile = false;
+
+    
+    for each (let {type} in Clients.getClients()) {
+      numClients++;
+      hasMobile = hasMobile || type == "mobile";
+    }
+
+    
+    if (this.numClients == numClients)
+      return;
+
+    this._log.debug("Client count: " + this.numClients + " -> " + numClients);
+    this.numClients = numClients;
+
+    let tabEngine = Engines.get("tabs");
+    if (numClients == 1) {
+      this._syncInterval = SINGLE_USER_SYNC;
+
+      
+      Svc.Prefs.set("engine.tabs.backup", tabEngine.enabled);
+      tabEngine.enabled = false;
+    }
+    else {
+      this._syncInterval = hasMobile ? MULTI_MOBILE_SYNC : MULTI_DESKTOP_SYNC;
+
+      
+      tabEngine.enabled = Svc.Prefs.get("engine.tabs.backup", true);
+      Svc.Prefs.reset("engine.tabs.backup");
+    }
+  },
 
   
   
