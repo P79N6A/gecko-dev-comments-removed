@@ -61,5 +61,15 @@ protected:
 };
 
 
+
+
+
+inline nsTextAccessible*
+nsAccessible::AsTextLeaf()
+{
+  return mFlags & eTextLeafAccessible ?
+    static_cast<nsTextAccessible*>(this) : nsnull;
+}
+
 #endif
 
