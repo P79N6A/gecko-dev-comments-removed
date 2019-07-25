@@ -186,37 +186,28 @@ gfxXlibSurface::CreateSimilarSurface(gfxContentType aContent,
         
         
         
-        
-        
-        XRenderPictFormat* format =
-            cairo_xlib_surface_get_xrender_format(CairoSurface());
-        if (format) {
-            
-            
-            
-            
-            
-            
-            static PRBool force24bpp = GetForce24bppPref();
-
-            if (force24bpp || (format->type == PictTypeDirect
-                               && format->direct.alphaMask != 0)) {
-                format = XRenderFindStandardFormat(mDisplay,
-                                                   PictStandardRGB24);
-            }
-
+        static PRBool force24bpp = GetForce24bppPref();
+        if (force24bpp
+            && cairo_xlib_surface_get_depth(CairoSurface()) != 24) {
+            XRenderPictFormat* format =
+                XRenderFindStandardFormat(mDisplay, PictStandardRGB24);
             if (format) {
+                
+                
+                
+                
+                
                 Screen* screen = cairo_xlib_surface_get_screen(CairoSurface());
-                nsRefPtr<gfxASurface> result =
-                    gfxXlibSurface::Create(screen, format, aSize, mDrawable);
-            
-                if (result)
-                    return result.forget();
+                nsRefPtr<gfxXlibSurface> depth24reference =
+                    gfxXlibSurface::Create(screen, format,
+                                           gfxIntSize(1, 1), mDrawable);
+                if (depth24reference)
+                    return depth24reference->
+                        gfxASurface::CreateSimilarSurface(aContent, aSize);
             }
         }
     }
 
-    
     return gfxASurface::CreateSimilarSurface(aContent, aSize);
 }
 
