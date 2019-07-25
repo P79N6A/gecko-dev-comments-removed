@@ -977,7 +977,9 @@ MakeDefIntoUse(Definition *dn, ParseNode *pn, JSAtom *atom, Parser *parser)
 
 
 
-    if (dn->getKind() == PNK_FUNCTION) {
+
+    JS_ASSERT(!dn->isKind(PNK_FUNCTIONEXPR));
+    if (dn->getKind() == PNK_FUNCTIONDECL) {
         JS_ASSERT(dn->functionIsHoisted());
         pn->dn_uses = dn->pn_link;
         parser->prepareNodeForMutation(dn);
@@ -1504,7 +1506,8 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
     JS_ASSERT_IF(kind == Statement, funName);
 
     
-    ParseNode *pn = FunctionNode::create(PNK_FUNCTION, this);
+    ParseNode *pn =
+        FunctionNode::create(kind == Statement ? PNK_FUNCTIONDECL : PNK_FUNCTIONEXPR, this);
     if (!pn)
         return NULL;
     pn->pn_body = NULL;
@@ -1553,7 +1556,7 @@ Parser::functionDef(HandlePropertyName funName, FunctionType type, FunctionSynta
 
             if (Definition *fn = pc->lexdeps.lookupDefn(funName)) {
                 JS_ASSERT(fn->isDefn());
-                fn->setKind(PNK_FUNCTION);
+                fn->setKind(PNK_FUNCTIONDECL);
                 fn->setArity(PN_FUNC);
                 fn->pn_pos.begin = pn->pn_pos.begin;
                 fn->pn_pos.end = pn->pn_pos.end;
@@ -1963,7 +1966,8 @@ Parser::statements(bool *hasFunctionStmt)
             return NULL;
         }
 
-        if (next->isKind(PNK_FUNCTION)) {
+        JS_ASSERT(!next->isKind(PNK_FUNCTIONEXPR));
+        if (next->isKind(PNK_FUNCTIONDECL)) {
             
 
 
@@ -2246,8 +2250,7 @@ MakeSetCall(JSContext *cx, ParseNode *pn, Parser *parser, unsigned msg)
     if (!parser->reportStrictModeError(pn, msg))
         return false;
 
-    ParseNode *pn2 = pn->pn_head;
-    if (pn2->isKind(PNK_FUNCTION) && (pn2->pn_funbox->inGenexpLambda)) {
+    if (pn->isGeneratorExpr()) {
         parser->reportError(pn, msg);
         return false;
     }
@@ -5335,7 +5338,7 @@ Parser::generatorExpr(ParseNode *kid)
     pn->pn_hidden = true;
 
     
-    ParseNode *genfn = FunctionNode::create(PNK_FUNCTION, this);
+    ParseNode *genfn = FunctionNode::create(PNK_FUNCTIONEXPR, this);
     if (!genfn)
         return NULL;
     genfn->setOp(JSOP_LAMBDA);

@@ -117,7 +117,10 @@ class NameResolver
 
             switch (cur->getKind()) {
                 case PNK_NAME:     return cur;  
-                case PNK_FUNCTION: return NULL; 
+
+                case PNK_FUNCTIONDECL:
+                case PNK_FUNCTIONEXPR:
+                    return NULL; 
 
                 case PNK_RETURN:
                     
@@ -174,7 +177,7 @@ class NameResolver
 
 
     JSAtom *resolveFun(ParseNode *pn, JSAtom *prefix) {
-        JS_ASSERT(pn != NULL && pn->isKind(PNK_FUNCTION));
+        JS_ASSERT(pn->isKind(PNK_FUNCTIONDECL) || pn->isKind(PNK_FUNCTIONEXPR));
         JSFunction *fun = pn->pn_funbox->fun();
         if (nparents == 0)
             return NULL;
@@ -272,7 +275,9 @@ class NameResolver
         if (cur == NULL)
             return;
 
-        if (cur->isKind(PNK_FUNCTION) && cur->isArity(PN_FUNC)) {
+        if ((cur->isKind(PNK_FUNCTIONEXPR) || cur->isKind(PNK_FUNCTIONDECL)) &&
+            cur->isArity(PN_FUNC))
+        {
             JSAtom *prefix2 = resolveFun(cur, prefix);
             
 
@@ -313,7 +318,7 @@ class NameResolver
                 resolve(cur->pn_kid3, prefix);
                 break;
             case PN_FUNC:
-                JS_ASSERT(cur->isKind(PNK_FUNCTION));
+                JS_ASSERT(cur->isKind(PNK_FUNCTIONDECL) || cur->isKind(PNK_FUNCTIONEXPR));
                 resolve(cur->pn_body, prefix);
                 break;
             case PN_LIST:
