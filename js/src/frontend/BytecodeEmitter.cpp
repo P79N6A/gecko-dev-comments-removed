@@ -674,11 +674,30 @@ PushStatementBCE(BytecodeEmitter *bce, StmtInfoBCE *stmt, StmtType type, ptrdiff
 }
 
 
+
+
+
+static JSObject *
+EnclosingStaticScope(BytecodeEmitter *bce)
+{
+    if (bce->blockChain)
+        return bce->blockChain;
+
+    if (!bce->sc->inFunction()) {
+        JS_ASSERT(!bce->parent);
+        return NULL;
+    }
+
+    return bce->sc->fun();
+}
+
+
 static void
 PushBlockScopeBCE(BytecodeEmitter *bce, StmtInfoBCE *stmt, StaticBlockObject &blockObj,
                   ptrdiff_t top)
 {
     PushStatementBCE(bce, stmt, STMT_BLOCK, top);
+    blockObj.initEnclosingStaticScope(EnclosingStaticScope(bce));
     FinishPushBlockScope(bce, stmt, blockObj);
 }
 
@@ -4245,7 +4264,6 @@ EmitIf(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-
 MOZ_NEVER_INLINE static bool
 EmitLet(JSContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
 {
@@ -4827,7 +4845,9 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
         
         Rooted<JSScript*> parent(cx, bce->script);
+        Rooted<JSObject*> enclosingScope(cx, EnclosingStaticScope(bce));
         Rooted<JSScript*> script(cx, JSScript::Create(cx,
+                                                      enclosingScope,
                                                        false,
                                                       parent->principals,
                                                       parent->originPrincipals,

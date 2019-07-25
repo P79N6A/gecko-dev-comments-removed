@@ -4645,6 +4645,10 @@ extern JS_PUBLIC_API(JSFunction *)
 JS_DefineFunctionById(JSContext *cx, JSObject *obj, jsid id, JSNative call,
                       unsigned nargs, unsigned attrs);
 
+
+
+
+
 extern JS_PUBLIC_API(JSObject *)
 JS_CloneFunctionObject(JSContext *cx, JSObject *funobj, JSObject *parent);
 
