@@ -4074,7 +4074,8 @@ nsIFrame::GetOffsetToCrossDoc(const nsIFrame* aOther, const PRInt32 aAPD) const
   if (PresContext()->GetRootPresContext() !=
         aOther->PresContext()->GetRootPresContext()) {
     
-    *(static_cast<PRInt32*>(nsnull)) = 3;
+    NS_RUNTIMEABORT("trying to get the offset between frames in different "
+                    "document hierarchies?");
   }
 
   const nsIFrame* root = nsnull;
