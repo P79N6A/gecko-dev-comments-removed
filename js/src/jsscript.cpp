@@ -1032,11 +1032,23 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
 
 
 
+
             JSScript *empty = JSScript::emptyScript();
 
             if (cg->flags & TCF_IN_FUNCTION) {
                 fun = cg->fun;
-                JS_ASSERT(FUN_INTERPRETED(fun) && !FUN_SCRIPT(fun));
+                JS_ASSERT(fun->isInterpreted() && !FUN_SCRIPT(fun));
+                if (cg->flags & TCF_STRICT_MODE_CODE) {
+                    
+
+
+
+
+
+
+
+                    goto skip_empty;
+                }
                 if (fun->u.i.nupvars != 0) {
                     
 
@@ -1118,7 +1130,7 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
         script->strictModeCode = true;
     if (cg->flags & TCF_COMPILE_N_GO)
         script->compileAndGo = true;
-    if (cg->flags & TCF_FUN_USES_EVAL)
+    if (cg->flags & TCF_FUN_CALLS_EVAL)
         script->usesEval = true;
 
     if (cg->upvarList.count != 0) {

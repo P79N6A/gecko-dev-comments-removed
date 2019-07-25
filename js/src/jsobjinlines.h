@@ -1,42 +1,42 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sw=4 et tw=99:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code, released
+ * March 31, 1998.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef jsobjinlines_h___
 #define jsobjinlines_h___
@@ -66,15 +66,15 @@ inline js::Value
 JSObject::getSlotMT(JSContext *cx, uintN slot)
 {
 #ifdef JS_THREADSAFE
-    
-
-
-
-
-
-
-
-
+    /*
+     * If thread-safe, define a getSlotMT() that bypasses, for a native
+     * object, the lock-free "fast path" test of
+     * (obj->scope()->ownercx == cx), to avoid needlessly switching from
+     * lock-free to lock-full scope when doing GC on a different context
+     * from the last one to own the scope.  The caller in this case is
+     * probably a Class.mark function, e.g., fun_mark, or maybe a
+     * finalizer.
+     */
     OBJ_CHECK_SLOT(this, slot);
     return (scope()->title.ownercx == cx)
          ? this->lockedGetSlot(slot)
@@ -88,7 +88,7 @@ inline void
 JSObject::setSlotMT(JSContext *cx, uintN slot, const js::Value &value)
 {
 #ifdef JS_THREADSAFE
-    
+    /* Thread-safe way to set a slot. */
     OBJ_CHECK_SLOT(this, slot);
     if (scope()->title.ownercx == cx)
         this->lockedSetSlot(slot, value);
@@ -220,15 +220,16 @@ JSObject::setArgsLength(uint32 argc)
 {
     JS_ASSERT(isArguments());
     JS_ASSERT(argc <= JS_ARGS_LENGTH_MAX);
-    fslots[JSSLOT_ARGS_LENGTH].setInt32(argc << 1);
+    JS_ASSERT(UINT32_MAX > (uint64(argc) << ARGS_PACKED_BITS_COUNT));
+    fslots[JSSLOT_ARGS_LENGTH].setInt32(argc << ARGS_PACKED_BITS_COUNT);
     JS_ASSERT(!isArgsLengthOverridden());
 }
 
 inline uint32
-JSObject::getArgsLength() const
+JSObject::getArgsInitialLength() const
 {
     JS_ASSERT(isArguments());
-    uint32 argc = uint32(fslots[JSSLOT_ARGS_LENGTH].toInt32()) >> 1;
+    uint32 argc = uint32(fslots[JSSLOT_ARGS_LENGTH].toInt32()) >> ARGS_PACKED_BITS_COUNT;
     JS_ASSERT(argc <= JS_ARGS_LENGTH_MAX);
     return argc;
 }
@@ -237,7 +238,7 @@ inline void
 JSObject::setArgsLengthOverridden()
 {
     JS_ASSERT(isArguments());
-    fslots[JSSLOT_ARGS_LENGTH].getInt32Ref() |= 1;
+    fslots[JSSLOT_ARGS_LENGTH].getInt32Ref() |= ARGS_LENGTH_OVERRIDDEN_BIT;
 }
 
 inline bool
@@ -245,7 +246,7 @@ JSObject::isArgsLengthOverridden() const
 {
     JS_ASSERT(isArguments());
     const js::Value &v = fslots[JSSLOT_ARGS_LENGTH];
-    return (v.toInt32() & 1) != 0;
+    return v.toInt32() & ARGS_LENGTH_OVERRIDDEN_BIT;
 }
 
 inline const js::Value & 
@@ -287,20 +288,6 @@ JSObject::setArgsElement(uint32 i, const js::Value &v)
 }
 
 inline const js::Value &
-JSObject::getDateLocalTime() const
-{
-    JS_ASSERT(isDate());
-    return fslots[JSSLOT_DATE_LOCAL_TIME];
-}
-
-inline void 
-JSObject::setDateLocalTime(const js::Value &time)
-{
-    JS_ASSERT(isDate());
-    fslots[JSSLOT_DATE_LOCAL_TIME] = time;
-}
-
-inline const js::Value &
 JSObject::getDateUTCTime() const
 {
     JS_ASSERT(isDate());
@@ -325,6 +312,13 @@ inline void
 JSObject::setMethodObj(JSObject& obj)
 {
     fslots[JSSLOT_FUN_METHOD_OBJ].setObject(obj);
+}
+
+inline JSFunction *
+JSObject::getFunctionPrivate() const
+{
+    JS_ASSERT(isFunction());
+    return reinterpret_cast<JSFunction *>(getPrivate());
 }
 
 inline NativeIterator *
@@ -498,7 +492,7 @@ InitScopeForObject(JSContext* cx, JSObject* obj, js::Class *clasp, JSObject* pro
     JS_ASSERT(clasp->isNative());
     JS_ASSERT(proto == obj->getProto());
 
-    
+    /* Share proto's emptyScope only if obj is similar to proto. */
     JSScope *scope = NULL;
 
     if (proto && proto->isNative()) {
@@ -535,17 +529,17 @@ InitScopeForObject(JSContext* cx, JSObject* obj, js::Class *clasp, JSObject* pro
     return true;
 
   bad:
-    
+    /* The GC nulls map initially. It should still be null on error. */
     JS_ASSERT(!obj->map);
     return false;
 }
 
-
-
-
-
-
-
+/*
+ * Helper optimized for creating a native instance of the given class (not the
+ * class's prototype object). Use this in preference to NewObject, but use
+ * NewBuiltinClassInstance if you need the default class prototype as proto,
+ * and its parent global as parent.
+ */
 static inline JSObject *
 NewNativeClassInstance(JSContext *cx, Class *clasp, JSObject *proto, JSObject *parent)
 {
@@ -555,17 +549,17 @@ NewNativeClassInstance(JSContext *cx, Class *clasp, JSObject *proto, JSObject *p
 
     DTrace::ObjectCreationScope objectCreationScope(cx, cx->fp, clasp);
 
-    
-
-
-
+    /*
+     * Allocate an object from the GC heap and initialize all its fields before
+     * doing any operation that can potentially trigger GC.
+     */
     JSObject* obj = js_NewGCObject(cx);
 
     if (obj) {
-        
-
-
-
+        /*
+         * Default parent to the parent of the prototype, which was set from
+         * the parent of the prototype's constructor.
+         */
         obj->init(clasp, proto, parent, JSObject::defaultPrivate(clasp));
 
         JS_LOCK_OBJ(cx, proto);
@@ -589,12 +583,12 @@ bool
 FindClassPrototype(JSContext *cx, JSObject *scope, JSProtoKey protoKey, JSObject **protop,
                    Class *clasp);
 
-
-
-
-
-
-
+/*
+ * Helper used to create Boolean, Date, RegExp, etc. instances of built-in
+ * classes with class prototypes of the same Class. See, e.g., jsdate.cpp,
+ * jsregexp.cpp, and js_PrimitiveToObject in jsobj.cpp. Use this to get the
+ * right default proto and parent for clasp in cx.
+ */
 static inline JSObject *
 NewBuiltinClassInstance(JSContext *cx, Class *clasp)
 {
@@ -603,7 +597,7 @@ NewBuiltinClassInstance(JSContext *cx, Class *clasp)
     JSProtoKey protoKey = JSCLASS_CACHED_PROTO_KEY(clasp);
     JS_ASSERT(protoKey != JSProto_Null);
 
-    
+    /* NB: inline-expanded and specialized version of js_GetClassPrototype. */
     JSObject *global;
     if (!cx->fp) {
         global = cx->globalObject;
@@ -646,39 +640,39 @@ namespace WithProto {
     };
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * Create an instance of any class, native or not, JSFunction-sized or not.
+ *
+ * If withProto is 'Class':
+ *    If proto is null:
+ *      for a built-in class:
+ *        use the memoized original value of the class constructor .prototype
+ *        property object
+ *      else if available
+ *        the current value of .prototype
+ *      else
+ *        Object.prototype.
+ *
+ *    If parent is null, default it to proto->getParent() if proto is non
+ *    null, else to null.
+ *
+ * If withProto is 'Given':
+ *    We allocate an object with exactly the given proto.  A null parent
+ *    defaults to proto->getParent() if proto is non-null (else to null).
+ *
+ * If isFunction is true, return a JSFunction-sized object. If isFunction is
+ * false, return a normal object.
+ *
+ * Note that as a template, there will be lots of instantiations, which means
+ * the internals will be specialized based on the template parameters.
+ */
 namespace detail
 {
 template <bool withProto, bool isFunction>
 static JS_ALWAYS_INLINE JSObject *
 NewObject(JSContext *cx, js::Class *clasp, JSObject *proto, JSObject *parent)
 {
-    
+    /* Bootstrap the ur-object, and make it the default prototype object. */
     if (withProto == WithProto::Class && !proto) {
         JSProtoKey protoKey = GetClassProtoKey(clasp);
         if (!js_GetClassPrototype(cx, parent, protoKey, &proto, clasp))
@@ -690,13 +684,13 @@ NewObject(JSContext *cx, js::Class *clasp, JSObject *proto, JSObject *parent)
 
     DTrace::ObjectCreationScope objectCreationScope(cx, cx->fp, clasp);
 
-    
-
-
-
-
-
-
+    /*
+     * Allocate an object from the GC heap and initialize all its fields before
+     * doing any operation that can potentially trigger GC. Functions have a
+     * larger non-standard allocation size.
+     *
+     * The should be specialized by the template.
+     */
     JSObject* obj = isFunction
                     ? (JSObject *)js_NewGCFunction(cx)
                     : js_NewGCObject(cx);
@@ -704,10 +698,10 @@ NewObject(JSContext *cx, js::Class *clasp, JSObject *proto, JSObject *parent)
     if (!obj)
         goto out;
 
-    
-
-
-
+    /*
+     * Default parent to the parent of the prototype, which was set from
+     * the parent of the prototype's constructor.
+     */
     obj->init(clasp,
               proto,
               (!parent && proto) ? proto->getParent() : parent,
@@ -750,6 +744,6 @@ NewObject(JSContext *cx, js::Class *clasp, JSObject *proto, JSObject *parent)
            : detail::NewObject<withProto, false>(cx, clasp, proto, parent);
 }
 
-} 
+} /* namespace js */
 
-#endif 
+#endif /* jsobjinlines_h___ */
