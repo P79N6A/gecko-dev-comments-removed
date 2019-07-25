@@ -888,9 +888,7 @@ UnwrapNW(JSContext *cx, uintN argc, jsval *vp)
     return JS_TRUE;
   }
 
-  
-  
-  if (!obj->getProxyExtra().isUndefined()) {
+  if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
     return JS_GetProperty(cx, obj, "wrappedJSObject", vp);
   }
 
