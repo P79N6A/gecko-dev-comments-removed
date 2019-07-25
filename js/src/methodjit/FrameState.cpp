@@ -575,10 +575,8 @@ FrameState::computeAllocation(jsbytecode *target)
 {
     JS_ASSERT(cx->typeInferenceEnabled());
     RegisterAllocation *alloc = cx->typeLifoAlloc().new_<RegisterAllocation>(false);
-    if (!alloc) {
-        js_ReportOutOfMemory(cx);
+    if (!alloc)
         return NULL;
-    }
 
     
 
@@ -858,10 +856,8 @@ FrameState::discardForJoin(RegisterAllocation *&alloc, uint32_t stackDepth)
 
 
         alloc = cx->typeLifoAlloc().new_<RegisterAllocation>(false);
-        if (!alloc) {
-            js_ReportOutOfMemory(cx);
+        if (!alloc)
             return false;
-        }
     }
 
     resetInternalState();
