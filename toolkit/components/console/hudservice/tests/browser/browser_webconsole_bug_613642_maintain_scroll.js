@@ -25,7 +25,7 @@ function tabLoad(aEvent) {
   ok(oldScrollTop > 0, "scroll location is not at the top");
 
   
-  outputNode.firstChild.focus();
+  outputNode.focus();
 
   EventUtils.synthesizeKey("VK_HOME", {});
 
