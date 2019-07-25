@@ -150,6 +150,9 @@ private:
 
   nsCOMPtr<nsICryptoHash> mCryptoHash;
 
+  nsAutoPtr<Classifier> mClassifier;
+  nsAutoPtr<ProtocolParser> mProtocolParser;
+
   
   nsCOMPtr<nsIFile> mCacheDir;
 
