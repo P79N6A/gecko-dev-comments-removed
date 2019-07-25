@@ -1118,6 +1118,9 @@ nsTreeContentView::ContentRemoved(nsIDocument *aDocument,
       return; 
   }
 
+  
+  nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
+
   if (tag == nsGkAtoms::treechildren) {
     PRInt32 index = FindContent(aContainer);
     if (index >= 0) {

@@ -928,6 +928,8 @@ inDOMView::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer, nsICon
   if (NS_FAILED(rv = RowToNode(row, &oldNode)))
     return;
 
+  nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
+  
   
   
   inDOMViewNode* parentNode = oldNode->parent;

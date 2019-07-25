@@ -260,6 +260,12 @@ public:
 
 
 
+
+
+
+
+
+
   virtual void ContentRemoved(nsIDocument *aDocument,
                               nsIContent* aContainer,
                               nsIContent* aChild,

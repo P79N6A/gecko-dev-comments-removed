@@ -407,6 +407,8 @@ nsXMLEventsManager::ContentRemoved(nsIDocument* aDocument,
   
   
 
+  nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
+
   
   mListeners.Enumerate(EnumAndSetIncomplete, aChild);
 
