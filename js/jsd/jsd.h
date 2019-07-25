@@ -187,7 +187,6 @@ struct JSDScript
     JSCList     links;      
     JSDContext* jsdc;       
     JSScript*   script;     
-    JSFunction* function;   
     uintN       lineBase;   
     uintN       lineExtent; 
     JSCList     hooks;      
