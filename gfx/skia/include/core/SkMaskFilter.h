@@ -62,7 +62,7 @@ public:
         kNormal_BlurType,  
         kSolid_BlurType,   
         kOuter_BlurType,   
-        kInner_BlurType,   
+        kInner_BlurType    
     };
 
     struct BlurInfo {

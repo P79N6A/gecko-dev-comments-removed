@@ -221,7 +221,7 @@ public:
 
 
 
-        kInlineFactoryNames_Flag = 0x02,
+        kInlineFactoryNames_Flag = 0x02
     };
     Flags getFlags() const { return (Flags)fFlags; }
     void setFlags(Flags flags) { fFlags = flags; }

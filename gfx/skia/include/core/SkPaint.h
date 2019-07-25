@@ -75,7 +75,7 @@ public:
         kNo_Hinting            = 0,
         kSlight_Hinting        = 1,
         kNormal_Hinting        = 2,     
-        kFull_Hinting          = 3,
+        kFull_Hinting          = 3
     };
 
     Hinting getHinting() const {
@@ -287,7 +287,7 @@ public:
         kStroke_Style,          
         kStrokeAndFill_Style,   
 
-        kStyleCount,
+        kStyleCount
     };
 
     

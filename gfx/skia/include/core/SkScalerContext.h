@@ -177,14 +177,14 @@ public:
 
         
         kLuminance_Shift          = 11, 
-        kLuminance_Bits           = 3,  
+        kLuminance_Bits           = 3  
     };
     
     
     enum {
         kHinting_Mask   = kHintingBit1_Flag | kHintingBit2_Flag,
         kLuminance_Max  = (1 << kLuminance_Bits) - 1,
-        kLuminance_Mask = kLuminance_Max << kLuminance_Shift,
+        kLuminance_Mask = kLuminance_Max << kLuminance_Shift
     };
 
     struct Rec {

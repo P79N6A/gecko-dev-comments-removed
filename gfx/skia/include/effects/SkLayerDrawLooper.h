@@ -41,7 +41,7 @@ public:
 
 
 
-        kEntirePaint_Bits = -1,
+        kEntirePaint_Bits = -1
         
     };
     typedef int32_t BitFlags;

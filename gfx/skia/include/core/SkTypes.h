@@ -438,7 +438,7 @@ public:
 
 
 
-        kReuse_OnShrink,
+        kReuse_OnShrink
     };
 
     
