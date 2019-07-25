@@ -27,7 +27,7 @@
 
 
 
-#import <GTMSenTestCase.h>
+#import "GTMSenTestCase.h"
 #import "SimpleStringDictionary.h"
 
 @interface SimpleStringDictionaryTest : GTMTestCase {

@@ -117,7 +117,7 @@ bool DwarfCFIToModule::Entry(size_t offset, uint64 address, uint64 length,
   
   
   if (return_address_ < register_names_.size())
-    entry_->initial_rules[".ra"] = register_names_[return_address_];
+    entry_->initial_rules[ra_name_] = register_names_[return_address_];
 
   return true;
 }
@@ -126,11 +126,11 @@ string DwarfCFIToModule::RegisterName(int i) {
   assert(entry_);
   if (i < 0) {
     assert(i == kCFARegister);
-    return ".cfa";
+    return cfa_name_;
   }
   unsigned reg = i;
   if (reg == return_address_)
-    return ".ra";
+    return ra_name_;
 
   if (0 <= reg && reg < register_names_.size())
     return register_names_[reg];
@@ -144,12 +144,21 @@ string DwarfCFIToModule::RegisterName(int i) {
 void DwarfCFIToModule::Record(Module::Address address, int reg,
                               const string &rule) {
   assert(entry_);
+
+  
+  
+  
+  
+  
+  
+  string shared_rule = *common_strings_.insert(rule).first;
+
   
   if (address == entry_->address)
-    entry_->initial_rules[RegisterName(reg)] = rule;
+    entry_->initial_rules[RegisterName(reg)] = shared_rule;
   
   else
-    entry_->rule_changes[address][RegisterName(reg)] = rule;
+    entry_->rule_changes[address][RegisterName(reg)] = shared_rule;
 }
 
 bool DwarfCFIToModule::UndefinedRule(uint64 address, int reg) {

@@ -251,6 +251,9 @@ typedef bool (*BreakpadFilterCallback)(int exception_type,
 
 
 
+
+
+
 BreakpadRef BreakpadCreate(NSDictionary *parameters);
 
 

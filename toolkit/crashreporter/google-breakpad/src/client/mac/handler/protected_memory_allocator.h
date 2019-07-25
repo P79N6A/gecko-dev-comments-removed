@@ -53,7 +53,7 @@ class ProtectedMemoryAllocator {
   
   
   
-  char *         Allocate(size_t n);
+  char *         Allocate(vm_size_t n);
   
   
   char *         GetBaseAddress() { return (char*)base_address_; }
@@ -78,7 +78,7 @@ class ProtectedMemoryAllocator {
  private:
   vm_size_t      pool_size_;
   vm_address_t   base_address_;
-  int            next_alloc_offset_;
+  vm_size_t      next_alloc_offset_;
   bool           valid_;
 };
 

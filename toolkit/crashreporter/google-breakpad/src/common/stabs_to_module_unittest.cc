@@ -74,6 +74,38 @@ TEST(StabsToModule, SimpleCU) {
   EXPECT_EQ(174823314, line->number);
 }
 
+TEST(StabsToModule, DuplicateFunctionNames) {
+  Module m("name", "os", "arch", "id");
+  StabsToModule h(&m);
+
+  
+  EXPECT_TRUE(h.StartCompilationUnit("compilation-unit", 0xf2cfda36ecf7f46cLL,
+                                     "build-directory"));
+  EXPECT_TRUE(h.StartFunction("funcfoo",
+                              0xf2cfda36ecf7f46dLL));
+  EXPECT_TRUE(h.EndFunction(0));
+  EXPECT_TRUE(h.StartFunction("funcfoo",
+                              0xf2cfda36ecf7f46dLL));
+  EXPECT_TRUE(h.EndFunction(0));
+  EXPECT_TRUE(h.EndCompilationUnit(0));
+
+  h.Finalize();
+
+  
+  Module::File *file = m.FindExistingFile("compilation-unit");
+  ASSERT_TRUE(file != NULL);
+
+  vector<Module::Function *> functions;
+  m.GetFunctions(&functions, functions.end());
+  ASSERT_EQ(1U, functions.size());
+
+  Module::Function *function = functions[0];
+  EXPECT_EQ(0xf2cfda36ecf7f46dLL, function->address);
+  EXPECT_LT(0U, function->size);  
+  EXPECT_EQ(0U, function->parameter_size);
+  ASSERT_EQ(0U, function->lines.size());
+}
+
 TEST(InferSizes, LineSize) {
   Module m("name", "os", "arch", "id");
   StabsToModule h(&m);

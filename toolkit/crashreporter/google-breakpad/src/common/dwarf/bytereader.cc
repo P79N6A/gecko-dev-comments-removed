@@ -125,7 +125,7 @@ uint64 ByteReader::ReadEncodedPointer(const char *buffer,
     
     size_t skew = section_base_ & (AddressSize() - 1);
     
-    size_t offset = skew + (buffer - buffer_base_);
+    off_t offset = skew + (buffer - buffer_base_);
     
     size_t aligned = (offset + AddressSize() - 1) & -AddressSize();
     

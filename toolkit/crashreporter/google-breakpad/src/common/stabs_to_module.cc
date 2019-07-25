@@ -58,7 +58,7 @@ static string Demangle(const string &mangled) {
 
 StabsToModule::~StabsToModule() {
   
-  for (vector<Module::Function *>::iterator func_it = functions_.begin();
+  for (vector<Module::Function *>::const_iterator func_it = functions_.begin();
        func_it != functions_.end(); func_it++)
     delete *func_it;
   
@@ -106,14 +106,6 @@ bool StabsToModule::EndFunction(uint64_t address) {
   
   
   
-  
-  
-  
-  
-  
-  
-  
-  
   if (current_function_->address >= comp_unit_base_address_)
     functions_.push_back(current_function_);
   else
@@ -153,12 +145,13 @@ void StabsToModule::Finalize() {
   
   sort(functions_.begin(), functions_.end(),
        Module::Function::CompareByAddress);
-  for (vector<Module::Function *>::iterator func_it = functions_.begin();
+
+  for (vector<Module::Function *>::const_iterator func_it = functions_.begin();
        func_it != functions_.end();
        func_it++) {
     Module::Function *f = *func_it;
     
-    vector<Module::Address>::iterator boundary
+    vector<Module::Address>::const_iterator boundary
         = std::upper_bound(boundaries_.begin(), boundaries_.end(), f->address);
     if (boundary != boundaries_.end())
       f->size = *boundary - f->address;

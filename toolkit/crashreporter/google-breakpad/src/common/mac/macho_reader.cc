@@ -130,7 +130,7 @@ bool FatReader::Read(const uint8_t *buffer, size_t size) {
       }
 
       object_files_[0].offset = 0;
-      object_files_[0].size = buffer_.Size();
+      object_files_[0].size = static_cast<uint32_t>(buffer_.Size());
       
       
       

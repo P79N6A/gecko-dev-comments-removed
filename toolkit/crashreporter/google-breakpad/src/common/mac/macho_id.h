@@ -86,7 +86,7 @@ class MachoID {
   void UpdateSHA1(unsigned char *bytes, size_t size);
 
   
-  void Update(MachoWalker *walker, unsigned long offset, size_t size);
+  void Update(MachoWalker *walker, off_t offset, size_t size);
 
   
   static bool WalkerCB(MachoWalker *walker, load_command *cmd, off_t offset,

@@ -93,7 +93,7 @@ StackFrame* StackwalkerSPARC::GetCallerFrame(const CallStack *stack) {
   
   
   
-  u_int32_t stack_pointer = last_frame->context.g_r[30];
+  u_int64_t stack_pointer = last_frame->context.g_r[30];
   if (stack_pointer <= last_frame->context.g_r[14]) {
     return NULL;
   }

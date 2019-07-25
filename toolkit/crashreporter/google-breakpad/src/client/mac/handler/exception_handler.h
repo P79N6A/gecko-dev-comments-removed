@@ -40,6 +40,9 @@
 
 #include <string>
 
+#include "client/mac/crash_generation/crash_generation_client.h"
+#include "processor/scoped_ptr.h"
+
 namespace google_breakpad {
 
 using std::string;
@@ -86,9 +89,12 @@ class ExceptionHandler {
   
   
   
+  
+  
   ExceptionHandler(const string &dump_path,
                    FilterCallback filter, MinidumpCallback callback,
-                   void *callback_context, bool install_handler);
+                   void *callback_context, bool install_handler,
+		   const char *port_name);
 
   
   
@@ -114,6 +120,19 @@ class ExceptionHandler {
   
   static bool WriteMinidump(const string &dump_path, MinidumpCallback callback,
                             void *callback_context);
+
+  
+  
+  static bool WriteMinidumpForChild(mach_port_t child,
+				    mach_port_t child_blamed_thread,
+				    const std::string &dump_path,
+				    MinidumpCallback callback,
+				    void *callback_context);
+
+  
+  bool IsOutOfProcess() const {
+    return crash_generation_client_.get() != NULL;
+  }
 
  private:
   
@@ -206,6 +225,9 @@ class ExceptionHandler {
 
   
   bool use_minidump_write_mutex_;
+
+  
+  scoped_ptr<CrashGenerationClient> crash_generation_client_;
 };
 
 }  

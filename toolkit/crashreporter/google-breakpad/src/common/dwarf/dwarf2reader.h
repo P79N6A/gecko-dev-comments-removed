@@ -242,7 +242,7 @@ class CompilationUnit {
   
   
   struct Abbrev {
-    uint32 number;
+    uint64 number;
     enum DwarfTag tag;
     bool has_children;
     AttributeList attributes;

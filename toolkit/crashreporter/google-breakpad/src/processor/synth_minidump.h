@@ -122,18 +122,18 @@ namespace google_breakpad {
 namespace SynthMinidump {
 
 using std::string;
-using TestAssembler::Endianness;
-using TestAssembler::kBigEndian;
-using TestAssembler::kLittleEndian;
-using TestAssembler::kUnsetEndian;
-using TestAssembler::Label;
+using test_assembler::Endianness;
+using test_assembler::kBigEndian;
+using test_assembler::kLittleEndian;
+using test_assembler::kUnsetEndian;
+using test_assembler::Label;
 
 class Dump;
 class Memory;
 class String;
 
 
-class Section: public TestAssembler::Section {
+class Section: public test_assembler::Section {
  public:
   explicit Section(const Dump &dump);
 
@@ -145,7 +145,7 @@ class Section: public TestAssembler::Section {
   
   
   
-  void CiteLocationIn(TestAssembler::Section *section) const;
+  void CiteLocationIn(test_assembler::Section *section) const;
 
   
   
@@ -169,7 +169,7 @@ class Stream: public Section {
   Stream(const Dump &dump, u_int32_t type) : Section(dump), type_(type) { }
 
   
-  void CiteStreamIn(TestAssembler::Section *section) const;
+  void CiteStreamIn(test_assembler::Section *section) const;
 
  private:
   
@@ -202,7 +202,7 @@ class String: public Section {
   String(const Dump &dump, const string &value);
 
   
-  void CiteStringIn(TestAssembler::Section *section) const;
+  void CiteStringIn(test_assembler::Section *section) const;
 };
 
 
@@ -215,7 +215,7 @@ class Memory: public Section {
       : Section(dump), address_(address) { start() = address; }
 
   
-  void CiteMemoryIn(TestAssembler::Section *section) const;
+  void CiteMemoryIn(test_assembler::Section *section) const;
 
  private:
   
@@ -297,7 +297,7 @@ class List: public Stream {
   Label count_label_;
 };
 
-class Dump: public TestAssembler::Section {
+class Dump: public test_assembler::Section {
  public:
 
   

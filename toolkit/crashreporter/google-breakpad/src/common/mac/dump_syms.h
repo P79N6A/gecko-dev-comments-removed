@@ -83,7 +83,17 @@ class DumpSymbols {
   
   
   bool SetArchitecture(cpu_type_t cpu_type, cpu_subtype_t cpu_subtype);
-
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool SetArchitecture(const std::string &arch_name);
+  
   
   
   

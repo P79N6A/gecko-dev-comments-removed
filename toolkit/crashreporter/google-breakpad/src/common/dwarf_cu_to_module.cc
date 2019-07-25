@@ -36,12 +36,16 @@
 #include <assert.h>
 
 #include <algorithm>
+#include <set>
+#include <utility>
 
 #include "common/dwarf_line_to_module.h"
 
 namespace google_breakpad {
 
 using std::map;
+using std::pair;
+using std::set;
 using std::vector;
 
 
@@ -83,6 +87,17 @@ typedef map<uint64, AbstractOrigin> AbstractOriginByOffset;
 
 
 struct DwarfCUToModule::FilePrivate {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  set<string> common_strings;
+
   
   
   
@@ -256,7 +271,17 @@ void DwarfCUToModule::GenericDIEHandler::ProcessAttributeString(
     enum DwarfForm form,
     const string &data) {
   switch (attr) {
-    case dwarf2reader::DW_AT_name: name_attribute_ = data; break;
+    case dwarf2reader::DW_AT_name: {
+      
+      
+      
+      
+      
+      pair<set<string>::iterator, bool> result =
+          cu_context_->file_context->file_private->common_strings.insert(data);
+      name_attribute_ = *result.first; 
+      break;
+    }
     default: break;
   }
 }

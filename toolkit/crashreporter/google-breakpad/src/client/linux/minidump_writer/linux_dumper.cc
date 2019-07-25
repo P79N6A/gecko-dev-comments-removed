@@ -76,6 +76,26 @@ bool AttachThread(pid_t pid) {
       return false;
     }
   }
+#if defined(__i386) || defined(__x86_64)
+  
+  
+  
+  
+  
+  
+  
+  user_regs_struct regs;
+  if (sys_ptrace(PTRACE_GETREGS, pid, NULL, &regs) == -1 ||
+#if defined(__i386)
+      !regs.esp
+#elif defined(__x86_64)
+      !regs.rsp
+#endif
+      ) {
+    sys_ptrace(PTRACE_DETACH, pid, NULL, NULL);
+    return false;
+  }
+#endif
   return true;
 }
 
@@ -138,11 +158,19 @@ bool LinuxDumper::Init() {
 bool LinuxDumper::ThreadsAttach() {
   if (threads_suspended_)
     return true;
-  bool good = true;
-  for (size_t i = 0; i < threads_.size(); ++i)
-    good &= AttachThread(threads_[i]);
+  for (size_t i = 0; i < threads_.size(); ++i) {
+    if (!AttachThread(threads_[i])) {
+      
+      
+      
+      memmove(&threads_[i], &threads_[i+1],
+              (threads_.size() - i - 1) * sizeof(threads_[i]));
+      threads_.resize(threads_.size() - 1);
+      --i;
+    }
+  }
   threads_suspended_ = true;
-  return good;
+  return threads_.size() > 0;
 }
 
 bool LinuxDumper::ThreadsDetach() {

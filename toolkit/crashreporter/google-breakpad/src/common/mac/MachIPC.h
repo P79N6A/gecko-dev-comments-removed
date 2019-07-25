@@ -94,6 +94,7 @@
 
 
 
+namespace google_breakpad {
 #define PRINT_MACH_RESULT(result_, message_) \
   printf(message_" %s (%d)\n", mach_error_string(result_), result_ );
 
@@ -224,7 +225,7 @@ class MachMessage {
   void SetDescriptor(int n, const MachMsgPortDescriptor &desc);
 
   
-  int CalculateSize();
+  mach_msg_size_t CalculateSize();
 
   mach_msg_header_t  head;
   mach_msg_body_t    body;
@@ -255,11 +256,11 @@ class MachSendMessage : public MachMessage {
 class ReceivePort {
  public:
   
-  ReceivePort(const char *receive_port_name);
+  explicit ReceivePort(const char *receive_port_name);
 
   
   
-  ReceivePort(mach_port_t receive_port);
+  explicit ReceivePort(mach_port_t receive_port);
 
   
   ReceivePort();
@@ -285,11 +286,11 @@ class ReceivePort {
 class MachPortSender {
  public:
   
-  MachPortSender(const char *receive_port_name);
+  explicit MachPortSender(const char *receive_port_name);
 
 
   
-  MachPortSender(mach_port_t send_port);
+  explicit MachPortSender(mach_port_t send_port);
 
   kern_return_t SendMessage(MachSendMessage &message,
                             mach_msg_timeout_t timeout);
@@ -300,5 +301,7 @@ class MachPortSender {
   mach_port_t   send_port_;
   kern_return_t init_result_;
 };
+
+}  
 
 #endif 

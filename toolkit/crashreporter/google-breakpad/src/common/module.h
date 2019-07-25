@@ -41,6 +41,7 @@
 #include <stdio.h>
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -48,6 +49,7 @@
 
 namespace google_breakpad {
 
+using std::set;
 using std::string;
 using std::vector;
 using std::map;
@@ -90,7 +92,7 @@ class Module {
 
     
     string name;
-    
+
     
     Address address, size;
 
@@ -124,7 +126,7 @@ class Module {
   
   
   typedef map<Address, RuleMap> RuleChangeMap;
-  
+
   
   
   
@@ -143,10 +145,19 @@ class Module {
     
     RuleChangeMap rule_changes;
   };
-    
+
+  struct FunctionCompare {
+    bool operator() (const Function *lhs,
+                     const Function *rhs) const {
+      if (lhs->address == rhs->address)
+        return lhs->name < rhs->name;
+      return lhs->address < rhs->address;
+    }
+  };
+
   
   
-  Module(const string &name, const string &os, const string &architecture, 
+  Module(const string &name, const string &os, const string &architecture,
          const string &id);
   ~Module();
 
@@ -258,12 +269,13 @@ class Module {
   
   
   typedef map<const string *, File *, CompareStringPtrs> FileByNameMap;
+  typedef set<Function *, FunctionCompare> FunctionSet;
 
   
   
   
-  FileByNameMap files_;                 
-  vector<Function *> functions_;        
+  FileByNameMap files_;    
+  FunctionSet functions_;  
 
   
   
