@@ -272,7 +272,7 @@ static MessageLoop* sIOMessageLoop;
 
 
 PRBool
-XRE_TakeMinidumpForChild(PRUint32 aChildPid, nsIFile** aDump)
+XRE_TakeMinidumpForChild(PRUint32 aChildPid, nsILocalFile** aDump)
 {
   return CrashReporter::TakeMinidumpForChild(aChildPid, aDump);
 }

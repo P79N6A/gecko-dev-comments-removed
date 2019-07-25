@@ -57,7 +57,11 @@ UINT gOOPPSpinNativeLoopEvent =
     RegisterWindowMessage(L"SyncChannel Spin Inner Loop Message");
 UINT gOOPPStopNativeLoopEvent =
     RegisterWindowMessage(L"SyncChannel Stop Inner Loop Message");
-#endif
+#elif defined(MOZ_WIDGET_GTK2)
+#include <gdk/gdk.h>
+#elif defined(XP_MACOSX)
+#include <ApplicationServices/ApplicationServices.h>
+#endif 
 
 using namespace mozilla::plugins;
 
@@ -71,7 +75,12 @@ PluginInstanceParent::PluginInstanceParent(PluginModuleParent* parent,
 #if defined(OS_WIN)
     , mPluginHWND(NULL)
     , mPluginWndProc(NULL)
+    , mNestedEventState(false)
 #endif 
+#if defined(XP_MACOSX)
+    , mShWidth(0)
+    , mShHeight(0)
+#endif
 {
 }
 
@@ -185,6 +194,16 @@ PluginInstanceParent::DeallocPPluginStream(PPluginStreamParent* stream)
     return true;
 }
 
+#ifdef MOZ_X11
+static Display* GetXDisplay() {
+#  ifdef MOZ_WIDGET_GTK2
+        return GDK_DISPLAY();
+#  elif defined(MOZ_WIDGET_QT)
+        return QX11Info::display();
+#  endif
+}
+#endif
+
 bool
 PluginInstanceParent::AnswerNPN_GetValue_NPNVjavascriptEnabledBool(
                                                        bool* value,
@@ -280,7 +299,6 @@ PluginInstanceParent::AnswerNPN_GetValue_NPNVprivateModeBool(bool* value,
     return true;
 }
 
-
 bool
 PluginInstanceParent::AnswerNPN_SetValue_NPPVpluginWindow(
     const bool& windowed, NPError* result)
@@ -301,6 +319,33 @@ PluginInstanceParent::AnswerNPN_SetValue_NPPVpluginTransparent(
     return true;
 }
 
+bool
+PluginInstanceParent::AnswerNPN_SetValue_NPPVpluginDrawingModel(
+    const int& drawingModel, NPError* result)
+{
+#ifdef XP_MACOSX
+    *result = mNPNIface->setvalue(mNPP, NPPVpluginDrawingModel,
+                                  (void*)drawingModel);
+    return true;
+#else
+    *result = NPERR_GENERIC_ERROR;
+    return true;
+#endif
+}
+
+bool
+PluginInstanceParent::AnswerNPN_SetValue_NPPVpluginEventModel(
+    const int& eventModel, NPError* result)
+{
+#ifdef XP_MACOSX
+    *result = mNPNIface->setvalue(mNPP, NPPVpluginEventModel,
+                                  (void*)eventModel);
+    return true;
+#else
+    *result = NPERR_GENERIC_ERROR;
+    return true;
+#endif
+}
 
 bool
 PluginInstanceParent::AnswerNPN_GetURL(const nsCString& url,
@@ -423,6 +468,20 @@ PluginInstanceParent::NPP_SetWindow(const NPWindow* aWindow)
     window.height = aWindow->height;
     window.clipRect = aWindow->clipRect; 
     window.type = aWindow->type;
+#endif
+
+#if defined(XP_MACOSX)
+    if (mShWidth * mShHeight != window.width * window.height) {
+        
+        
+        
+        if (!AllocShmem(window.width * window.height * 4, &mShSurface)) {
+            PLUGIN_LOG_DEBUG(("Shared memory could not be allocated."));
+            return NPERR_GENERIC_ERROR;
+        }
+        mShWidth = window.width;
+        mShHeight = window.height;
+    }
 #endif
 
 #if defined(MOZ_X11) && defined(XP_UNIX) && !defined(XP_MACOSX)
@@ -581,7 +640,8 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
 #endif
 
 #if defined(MOZ_X11)
-    if (GraphicsExpose == npevent->type) {
+    switch (npevent->type) {
+    case GraphicsExpose:
         PLUGIN_LOG_DEBUG(("  schlepping drawable 0x%lx across the pipe\n",
                           npevent->xgraphicsexpose.drawable));
         
@@ -591,13 +651,70 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
         
         
         
+        XSync(GetXDisplay(), False);
+        break;
+    case ButtonPress:
+        
+        
+        Display *dpy = GetXDisplay();
 #  ifdef MOZ_WIDGET_GTK2
-        XSync(GDK_DISPLAY(), False);
-#  elif defined(MOZ_WIDGET_QT)
-        XSync(QX11Info::display(), False);
+        
+        
+        gdk_pointer_ungrab(npevent->xbutton.time);
+#  else
+        XUngrabPointer(dpy, npevent->xbutton.time);
 #  endif
+        
+        XSync(dpy, False);
+        break;
 
         return CallPaint(npremoteevent, &handled) ? handled : 0;
+    }
+#endif
+
+#ifdef XP_MACOSX
+    if (npevent->type == NPCocoaEventDrawRect) {
+        if (mShWidth == 0 && mShHeight == 0) {
+            PLUGIN_LOG_DEBUG(("NPCocoaEventDrawRect on window of size 0."));
+            return false;
+        }
+        if (!mShSurface.IsReadable()) {
+            PLUGIN_LOG_DEBUG(("Shmem is not readable."));
+            return false;
+        }
+
+        if (!CallNPP_HandleEvent_Shmem(npremoteevent, mShSurface, &handled, &mShSurface)) 
+            return false; 
+
+        if (!mShSurface.IsReadable()) {
+            PLUGIN_LOG_DEBUG(("Shmem not returned. Either the plugin crashed or we have a bug."));
+            return false;
+        }
+
+        char* shContextByte = mShSurface.get<char>();
+
+        CGColorSpaceRef cSpace = ::CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
+        if (!cSpace) {
+            PLUGIN_LOG_DEBUG(("Could not allocate ColorSpace."));
+            return true;
+        } 
+        CGContextRef shContext = ::CGBitmapContextCreate(shContextByte, 
+                                mShWidth, mShHeight, 8, mShWidth*4, cSpace, 
+                                kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Host);
+        ::CGColorSpaceRelease(cSpace);
+        if (!shContext) {
+            PLUGIN_LOG_DEBUG(("Could not allocate CGBitmapContext."));
+            return true;
+        }
+
+        CGImageRef shImage = ::CGBitmapContextCreateImage(shContext);
+        if (shImage) {
+            CGContextRef cgContext = npevent->data.draw.context;
+            ::CGContextDrawImage(cgContext, CGRectMake(0,0,mShWidth,mShHeight), shImage);
+            ::CGImageRelease(shImage);
+        }
+        ::CGContextRelease(shContext);
+        return handled;
     }
 #endif
 
@@ -805,17 +922,16 @@ PluginInstanceParent::GetActorForNPObject(NPObject* aObject)
 }
 
 bool
-PluginInstanceParent::AnswerNPN_PushPopupsEnabledState(const bool& aState,
-                                                       bool* aSuccess)
+PluginInstanceParent::AnswerNPN_PushPopupsEnabledState(const bool& aState)
 {
-    *aSuccess = mNPNIface->pushpopupsenabledstate(mNPP, aState ? 1 : 0);
+    mNPNIface->pushpopupsenabledstate(mNPP, aState ? 1 : 0);
     return true;
 }
 
 bool
-PluginInstanceParent::AnswerNPN_PopPopupsEnabledState(bool* aSuccess)
+PluginInstanceParent::AnswerNPN_PopPopupsEnabledState()
 {
-    *aSuccess = mNPNIface->poppopupsenabledstate(mNPP);
+    mNPNIface->poppopupsenabledstate(mNPP);
     return true;
 }
 
@@ -871,6 +987,25 @@ PluginInstanceParent::AnswerNPN_GetAuthenticationInfo(const nsCString& protocol,
         username->Adopt(u, ulen);
         password->Adopt(p, plen);
     }
+    return true;
+}
+
+bool
+PluginInstanceParent::AnswerNPN_ConvertPoint(const double& sourceX,
+                                             const double& sourceY,
+                                             const NPCoordinateSpace& sourceSpace,
+                                             const NPCoordinateSpace& destSpace,
+                                             double *destX,
+                                             bool *ignoreDestX,
+                                             double *destY,
+                                             bool *ignoreDestY,
+                                             bool *result)
+{
+    *result = mNPNIface->convertpoint(mNPP, sourceX, sourceY, sourceSpace,
+                                      ignoreDestX ? nsnull : destX,
+                                      ignoreDestY ? nsnull : destY,
+                                      destSpace);
+
     return true;
 }
 
