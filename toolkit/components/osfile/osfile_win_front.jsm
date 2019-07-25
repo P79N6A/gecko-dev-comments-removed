@@ -339,6 +339,45 @@
 
 
 
+     File.removeEmptyDir = function removeEmptyDir(path, options) {
+       options = options || noOptions;
+       let result = WinFile.RemoveDirectory(path);
+       if (!result) {
+         if (options.ignoreAbsent &&
+             ctypes.winLastError == Const.ERROR_FILE_NOT_FOUND) {
+           return;
+         }
+         throw new File.Error("removeEmptyDir");
+       }
+     };
+
+     
+
+
+
+
+
+
+
+
+
+
+
+     File.makeDir = function makeDir(path, options) {
+       options = options || noOptions;
+       let security = options.winSecurity || null;
+       throw_on_zero("makeDir",
+         WinFile.CreateDirectory(path, security));
+     };
+
+     
+
+
+
+
+
+
+
 
 
 
