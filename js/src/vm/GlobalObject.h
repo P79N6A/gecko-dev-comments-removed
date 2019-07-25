@@ -42,13 +42,14 @@
 #define GlobalObject_h___
 
 #include "jsfun.h"
-#include "jsprvtd.h"
 #include "jsvector.h"
 
 extern JSObject *
 js_InitFunctionAndObjectClasses(JSContext *cx, JSObject *obj);
 
 namespace js {
+
+class Debugger;
 
 
 
@@ -174,11 +175,15 @@ class GlobalObject : public ::JSObject {
     typedef js::Vector<js::Debugger *, 0, js::SystemAllocPolicy> DebuggerVector;
 
     
-    
+
+
+
     DebuggerVector *getDebuggers();
 
     
-    
+
+
+
     DebuggerVector *getOrCreateDebuggers(JSContext *cx);
 
     bool addDebugger(JSContext *cx, Debugger *dbg);
