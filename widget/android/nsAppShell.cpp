@@ -335,7 +335,8 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
             
             
             
-            nsCacheService::GlobalInstance()->Shutdown();
+            if (nsCacheService::GlobalInstance())
+                nsCacheService::GlobalInstance()->Shutdown();
         }
 
         
@@ -467,7 +468,8 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
             
             
             
-            nsCacheService::GlobalInstance()->Init();
+            if (nsCacheService::GlobalInstance())
+                nsCacheService::GlobalInstance()->Init();
 
             
             
