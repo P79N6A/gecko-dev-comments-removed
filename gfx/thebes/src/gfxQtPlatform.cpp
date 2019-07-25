@@ -194,6 +194,11 @@ gfxQtPlatform::CreateOffscreenSurface(const gfxIntSize& size,
 {
     nsRefPtr<gfxASurface> newSurface = nsnull;
 
+    
+    if (gfxASurface::ImageFormatRGB24 == imageFormat
+        && 16 == QX11Info().depth())
+        imageFormat = gfxASurface::ImageFormatRGB16_565;
+
     if (mRenderMode == RENDER_QPAINTER) {
       newSurface = new gfxQPainterSurface(size, gfxASurface::ContentFromFormat(imageFormat));
       return newSurface.forget();
@@ -206,29 +211,8 @@ gfxQtPlatform::CreateOffscreenSurface(const gfxIntSize& size,
     }
 
 #ifdef MOZ_X11
-    int xrenderFormatID = -1;
-    switch (imageFormat) {
-        case gfxASurface::ImageFormatARGB32:
-            xrenderFormatID = PictStandardARGB32;
-            break;
-        case gfxASurface::ImageFormatRGB24:
-            xrenderFormatID = PictStandardRGB24;
-            break;
-        case gfxASurface::ImageFormatA8:
-            xrenderFormatID = PictStandardA8;
-            break;
-        case gfxASurface::ImageFormatA1:
-            xrenderFormatID = PictStandardA1;
-            break;
-        default:
-            return nsnull;
-    }
-
-    
-    
-    
     XRenderPictFormat* xrenderFormat =
-        XRenderFindStandardFormat(QX11Info().display(), xrenderFormatID);
+        gfxXlibSurface::FindRenderFormat(QX11Info().display(), imageFormat);
 
     newSurface = new gfxXlibSurface((Display*)QX11Info().display(),
                                     xrenderFormat,
