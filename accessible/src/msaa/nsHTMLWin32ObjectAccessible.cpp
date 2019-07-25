@@ -48,9 +48,9 @@ using namespace mozilla::a11y;
 
 
 nsHTMLWin32ObjectOwnerAccessible::
-  nsHTMLWin32ObjectOwnerAccessible(nsIContent *aContent,
-                                   nsIWeakReference *aShell, void *aHwnd) :
-  nsAccessibleWrap(aContent, aShell), mHwnd(aHwnd)
+  nsHTMLWin32ObjectOwnerAccessible(nsIContent* aContent,
+                                   nsDocAccessible* aDoc, void* aHwnd) :
+  nsAccessibleWrap(aContent, aDoc), mHwnd(aHwnd)
 {
   
   mNativeAccessible = new nsHTMLWin32ObjectAccessible(mHwnd);
