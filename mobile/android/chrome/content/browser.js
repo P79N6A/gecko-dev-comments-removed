@@ -200,6 +200,7 @@ var BrowserApp = {
     Services.obs.addObserver(this, "Viewport:Change", false);
     Services.obs.addObserver(this, "AgentMode:Change", false);
     Services.obs.addObserver(this, "SearchEngines:Get", false);
+    Services.obs.addObserver(this, "document-shown", false);
 
     function showFullScreenWarning() {
       NativeWindow.toast.show(Strings.browser.GetStringFromName("alertFullScreenToast"), "short");
@@ -715,6 +716,20 @@ var BrowserApp = {
       ViewportHandler.onResize();
     } else if (aTopic == "SearchEngines:Get") {
       this.getSearchEngines();
+    } else if (aTopic == "document-shown") {
+      let tab = this.selectedTab;
+      if (tab.browser.contentDocument != aSubject) {
+        return;
+      }
+
+      ViewportHandler.updateMetadata(tab);
+
+      
+      
+      if (tab.suppressDrawing) {
+        tab.sendExposeEvent();
+        tab.suppressDrawing = false;
+      }
     }
   },
 
@@ -722,7 +737,7 @@ var BrowserApp = {
     delete this.defaultBrowserWidth;
     let width = Services.prefs.getIntPref("browser.viewport.desktopWidth");
     return this.defaultBrowserWidth = width;
-   }
+  }
 };
 
 var NativeWindow = {
@@ -1194,6 +1209,12 @@ Tab.prototype = {
     this.browser.addEventListener("PluginClickToPlay", this, true);
     this.browser.addEventListener("pagehide", this, true);
 
+    let chromeEventHandler = this.browser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                                                       .getInterface(Ci.nsIWebNavigation)
+                                                       .QueryInterface(Ci.nsIDocShell)
+                                                       .chromeEventHandler;
+    chromeEventHandler.addEventListener("DOMWindowCreated", this, false);
+
     Services.obs.addObserver(this, "http-on-modify-request", false);
 
     if (!aParams.delayLoad) {
@@ -1403,8 +1424,7 @@ Tab.prototype = {
       return;
     sendMessageToJava({
       gecko: {
-        type: "Viewport:Update",
-        viewport: JSON.stringify(this.viewport)
+        type: "Viewport:UpdateAndDraw"
       }
     });
   },
@@ -1545,6 +1565,18 @@ Tab.prototype = {
           this._pluginsToPlay = [];
           this._pluginOverlayShowing = false;
         }
+        break;
+      }
+
+      case "DOMWindowCreated": {
+        
+        
+        let browser = BrowserApp.getBrowserForDocument(aEvent.originalTarget);
+        if (!browser)
+          break;
+
+        let tab = BrowserApp.getTabForBrowser(browser);
+        tab.suppressDrawing = true;
         break;
       }
     }
@@ -1804,6 +1836,16 @@ Tab.prototype = {
       if (this.agentMode == UA_MODE_DESKTOP)
         channel.setRequestHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:7.0.1) Gecko/20100101 Firefox/7.0.1", false);
     }
+  },
+
+  sendExposeEvent: function() {
+    
+    this._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    sendMessageToJava({
+      gecko: {
+        type: "Viewport:Expose"
+      }
+    });
   },
 
   QueryInterface: XPCOMUtils.generateQI([
