@@ -112,9 +112,9 @@ ClockResolutionNs()
     
     
     struct timespec ts;
-    clock_getres(CLOCK_MONOTONIC, &ts);
-
-    minres = TimespecToNs(ts);
+    if (0 == clock_getres(CLOCK_MONOTONIC, &ts)) {
+      minres = TimespecToNs(ts);
+    }
   }
 
   if (0 == minres) {
