@@ -1,0 +1,227 @@
+
+
+
+
+#ifndef ElfLoader_h
+#define ElfLoader_h
+
+#include <vector>
+
+#undef DEBUG
+#include "mozilla/RefPtr.h"
+
+
+
+
+extern "C" {
+  void *__wrap_dlopen(const char *path, int flags);
+  const char *__wrap_dlerror(void);
+  void *__wrap_dlsym(void *handle, const char *symbol);
+  int __wrap_dlclose(void *handle);
+
+#ifndef HAVE_DLADDR
+  typedef struct {
+    const char *dli_fname;
+    void *dli_fbase;
+    const char *dli_sname;
+    void *dli_saddr;
+  } Dl_info;
+#endif
+  int __wrap_dladdr(void *addr, Dl_info *info);
+}
+
+
+
+
+
+class LibHandle: public mozilla::RefCounted<LibHandle>
+{
+public:
+  
+
+
+
+  LibHandle(const char *path)
+  : directRefCnt(0), path(path ? strdup(path) : NULL) { }
+
+  
+
+
+  virtual ~LibHandle();
+
+  
+
+
+
+
+  virtual void *GetSymbolPtr(const char *symbol) const = 0;
+
+  
+
+
+
+  virtual bool Contains(void *addr) const = 0;
+
+  
+
+
+  const char *GetName() const;
+
+  
+
+
+
+  const char *GetPath() const
+  {
+    return path;
+  }
+
+  
+
+
+
+
+
+  void AddDirectRef()
+  {
+    ++directRefCnt;
+    mozilla::RefCounted<LibHandle>::AddRef();
+  }
+
+  
+
+
+
+  bool ReleaseDirectRef()
+  {
+    bool ret = false;
+    if (directRefCnt) {
+      
+      if (--directRefCnt)
+        ret = true;
+      mozilla::RefCounted<LibHandle>::Release();
+    }
+    return ret;
+  }
+
+  
+
+
+  int DirectRefCount()
+  {
+    return directRefCnt;
+  }
+
+protected:
+  
+
+
+
+  friend class ElfLoader;
+  virtual bool IsSystemElf() const { return false; }
+
+private:
+  int directRefCnt;
+  char *path;
+};
+
+
+
+
+class SystemElf: public LibHandle
+{
+public:
+  
+
+
+
+  static mozilla::TemporaryRef<LibHandle> Load(const char *path, int flags);
+
+  
+
+
+  virtual ~SystemElf();
+  virtual void *GetSymbolPtr(const char *symbol) const;
+  virtual bool Contains(void *addr) const { return false;  }
+
+protected:
+  
+
+
+
+  friend class ElfLoader;
+  virtual bool IsSystemElf() const { return true; }
+
+  
+
+
+
+  void Forget()
+  {
+    dlhandle = NULL;
+  }
+
+private:
+  
+
+
+  SystemElf(const char *path, void *handle)
+  : LibHandle(path), dlhandle(handle) { }
+
+  
+  void *dlhandle;
+};
+
+
+
+
+class ElfLoader
+{
+public:
+  
+
+
+  static ElfLoader Singleton;
+
+  
+
+
+
+
+
+  mozilla::TemporaryRef<LibHandle> Load(const char *path, int flags,
+                                        LibHandle *parent = NULL);
+
+  
+
+
+
+
+
+  mozilla::TemporaryRef<LibHandle> GetHandleByPtr(void *addr);
+
+protected:
+  
+
+
+
+  friend LibHandle::~LibHandle();
+  void Forget(LibHandle *handle);
+
+  
+  friend class SystemElf;
+  friend const char *__wrap_dlerror(void);
+  friend void *__wrap_dlsym(void *handle, const char *symbol);
+  friend int __wrap_dlclose(void *handle);
+  const char *lastError;
+
+private:
+  ElfLoader() { }
+  ~ElfLoader();
+
+  
+  typedef std::vector<LibHandle *> LibHandleList;
+  LibHandleList handles;
+};
+
+#endif 
