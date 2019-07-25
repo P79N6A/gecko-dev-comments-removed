@@ -6067,6 +6067,45 @@ EmitContinue(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     return EmitGoto(cx, bce, stmt, &stmt->continues, labelIndex, noteType) >= 0;
 }
 
+static bool
+EmitReturn(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
+{
+    
+    ParseNode *pn2 = pn->pn_kid;
+    if (pn2) {
+        if (!EmitTree(cx, bce, pn2))
+            return JS_FALSE;
+    } else {
+        if (Emit1(cx, bce, JSOP_PUSH) < 0)
+            return JS_FALSE;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+    ptrdiff_t top = bce->offset();
+    if (Emit1(cx, bce, JSOP_RETURN) < 0)
+        return JS_FALSE;
+    if (!EmitNonLocalJumpFixup(cx, bce, NULL))
+        return JS_FALSE;
+    if (top + JSOP_RETURN_LENGTH != bce->offset()) {
+        bce->base()[top] = JSOP_SETRVAL;
+        if (Emit1(cx, bce, JSOP_RETRVAL) < 0)
+            return JS_FALSE;
+        if (EmitBlockChain(cx, bce) < 0)
+            return JS_FALSE;
+    }
+    return true;
+}
+
 JSBool
 frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
@@ -6171,39 +6210,7 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         break;
 
       case PNK_RETURN:
-        
-        pn2 = pn->pn_kid;
-        if (pn2) {
-            if (!EmitTree(cx, bce, pn2))
-                return JS_FALSE;
-        } else {
-            if (Emit1(cx, bce, JSOP_PUSH) < 0)
-                return JS_FALSE;
-        }
-
-        
-
-
-
-
-
-
-
-
-
-
-        top = bce->offset();
-        if (Emit1(cx, bce, JSOP_RETURN) < 0)
-            return JS_FALSE;
-        if (!EmitNonLocalJumpFixup(cx, bce, NULL))
-            return JS_FALSE;
-        if (top + JSOP_RETURN_LENGTH != bce->offset()) {
-            bce->base()[top] = JSOP_SETRVAL;
-            if (Emit1(cx, bce, JSOP_RETRVAL) < 0)
-                return JS_FALSE;
-            if (EmitBlockChain(cx, bce) < 0)
-                return JS_FALSE;
-        }
+        ok = EmitReturn(cx, bce, pn);
         break;
 
 #if JS_HAS_GENERATORS
