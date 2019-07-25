@@ -928,32 +928,31 @@ nsHTMLEditor::SetDocumentTitle(const nsAString &aTitle)
 
 
 
-nsCOMPtr<nsIDOMNode>
+already_AddRefed<nsIDOMNode>
 nsHTMLEditor::GetBlockNodeParent(nsIDOMNode *aNode)
 {
-  nsCOMPtr<nsIDOMNode> tmp;
-  nsCOMPtr<nsIDOMNode> p;
-
   if (!aNode)
   {
     NS_NOTREACHED("null node passed to GetBlockNodeParent()");
     return PR_FALSE;
   }
 
+  nsCOMPtr<nsIDOMNode> p;
   if (NS_FAILED(aNode->GetParentNode(getter_AddRefs(p))))  
-    return tmp;
+    return nsnull;
 
+  nsCOMPtr<nsIDOMNode> tmp;
   while (p)
   {
     PRBool isBlock;
     if (NS_FAILED(NodeIsBlockStatic(p, &isBlock)) || isBlock)
       break;
-    if ( NS_FAILED(p->GetParentNode(getter_AddRefs(tmp))) || !tmp) 
-      return p;
+    if (NS_FAILED(p->GetParentNode(getter_AddRefs(tmp))) || !tmp) 
+      break;
 
     p = tmp;
   }
-  return p;
+  return p.forget();
 }
 
 
@@ -1021,85 +1020,85 @@ nsHTMLEditor::GetBlockSectionsForRange(nsIDOMRange *aRange,
   nsresult result;
   nsCOMPtr<nsIContentIterator>iter =
     do_CreateInstance("@mozilla.org/content/post-content-iterator;1", &result);
-  if ((NS_SUCCEEDED(result)) && iter)
+  if (NS_FAILED(result) || !iter) {
+    return result;
+  }
+  nsCOMPtr<nsIDOMRange> lastRange;
+  iter->Init(aRange);
+  while (iter->IsDone())
   {
-    nsCOMPtr<nsIDOMRange> lastRange;
-    iter->Init(aRange);
-    while (iter->IsDone())
-    {
-      nsCOMPtr<nsIContent> currentContent =
-        do_QueryInterface(iter->GetCurrentNode());
+    nsCOMPtr<nsIContent> currentContent =
+      do_QueryInterface(iter->GetCurrentNode());
 
-      nsCOMPtr<nsIDOMNode>currentNode = do_QueryInterface(currentContent);
-      if (currentNode)
+    nsCOMPtr<nsIDOMNode> currentNode = do_QueryInterface(currentContent);
+    if (currentNode)
+    {
+      
+      if (currentContent->Tag() == nsEditProperty::br)
       {
-        
-        if (currentContent->Tag() == nsEditProperty::br)
+        lastRange = nsnull;
+      }
+      else
+      {
+        PRBool isNotInlineOrText;
+        result = NodeIsBlockStatic(currentNode, &isNotInlineOrText);
+        if (isNotInlineOrText)
         {
-          lastRange = nsnull;
-        }
-        else
-        {
-          PRBool isNotInlineOrText;
-          result = NodeIsBlockStatic(currentNode, &isNotInlineOrText);
-          if (isNotInlineOrText)
-          {
-            PRUint16 nodeType;
-            currentNode->GetNodeType(&nodeType);
-            if (nsIDOMNode::TEXT_NODE == nodeType) {
-              isNotInlineOrText = PR_TRUE;
-            }
+          PRUint16 nodeType;
+          currentNode->GetNodeType(&nodeType);
+          if (nsIDOMNode::TEXT_NODE == nodeType) {
+            isNotInlineOrText = PR_TRUE;
           }
-          if (PR_FALSE==isNotInlineOrText)
-          {
-            nsCOMPtr<nsIDOMNode>leftNode;
-            nsCOMPtr<nsIDOMNode>rightNode;
-            result = GetBlockSection(currentNode,
-                                     getter_AddRefs(leftNode),
-                                     getter_AddRefs(rightNode));
-            if ((NS_SUCCEEDED(result)) && leftNode && rightNode)
+        }
+        if (!isNotInlineOrText) {
+          nsCOMPtr<nsIDOMNode> leftNode;
+          nsCOMPtr<nsIDOMNode> rightNode;
+          result = GetBlockSection(currentNode,
+                                   getter_AddRefs(leftNode),
+                                   getter_AddRefs(rightNode));
+          if ((NS_SUCCEEDED(result)) && leftNode && rightNode) {
+            
+            
+            bool addRange = true;
+            if (lastRange)
             {
-              
-              PRBool addRange=PR_TRUE;
-              if (lastRange)
+              nsCOMPtr<nsIDOMNode> lastStartNode;
+              lastRange->GetStartContainer(getter_AddRefs(lastStartNode));
+              nsCOMPtr<nsIDOMNode> blockParentNodeOfLastStartNode =
+                GetBlockNodeParent(lastStartNode);
+              nsCOMPtr<nsIDOMElement> blockParentOfLastStartNode =
+                do_QueryInterface(blockParentNodeOfLastStartNode);
+              if (blockParentOfLastStartNode)
               {
-                nsCOMPtr<nsIDOMNode> lastStartNode;
-                nsCOMPtr<nsIDOMElement> blockParentOfLastStartNode;
-                lastRange->GetStartContainer(getter_AddRefs(lastStartNode));
-                blockParentOfLastStartNode = do_QueryInterface(GetBlockNodeParent(lastStartNode));
-                if (blockParentOfLastStartNode)
-                {
-                  nsCOMPtr<nsIDOMElement> blockParentOfLeftNode;
-                  blockParentOfLeftNode = do_QueryInterface(GetBlockNodeParent(leftNode));
-                  if (blockParentOfLeftNode)
-                  {
-                    if (blockParentOfLastStartNode==blockParentOfLeftNode) {
-                      addRange = PR_FALSE;
-                    }
-                  }
+                nsCOMPtr<nsIDOMNode> blockParentNodeOfLeftNode =
+                  GetBlockNodeParent(leftNode);
+                nsCOMPtr<nsIDOMElement> blockParentOfLeftNode =
+                  do_QueryInterface(blockParentNodeOfLeftNode);
+                if (blockParentOfLeftNode &&
+                    blockParentOfLastStartNode == blockParentOfLeftNode) {
+                  addRange = false;
                 }
               }
-              if (PR_TRUE==addRange) 
-              {
-                nsCOMPtr<nsIDOMRange> range =
-                     do_CreateInstance("@mozilla.org/content/range;1", &result);
-                if ((NS_SUCCEEDED(result)) && range)
-                { 
-                  range->SetStart(leftNode, 0);
-                  range->SetEnd(rightNode, 0);
-                  aSections.AppendObject(range);
-                  lastRange = do_QueryInterface(range);
-                }
-              }        
             }
+            if (addRange) {
+              nsCOMPtr<nsIDOMRange> range =
+                   do_CreateInstance("@mozilla.org/content/range;1", &result);
+              if ((NS_SUCCEEDED(result)) && range) {
+                
+                range->SetStart(leftNode, 0);
+                range->SetEnd(rightNode, 0);
+                aSections.AppendObject(range);
+                lastRange = do_QueryInterface(range);
+              }
+            }        
           }
         }
       }
-      
-
-
-      iter->Next();
     }
+    
+
+
+    iter->Next();
   }
   return result;
 }
@@ -1108,48 +1107,43 @@ nsHTMLEditor::GetBlockSectionsForRange(nsIDOMRange *aRange,
 
 
 
-nsCOMPtr<nsIDOMNode>
+already_AddRefed<nsIDOMNode>
 nsHTMLEditor::NextNodeInBlock(nsIDOMNode *aNode, IterDirection aDir)
 {
-  nsCOMPtr<nsIDOMNode> nullNode;
-  nsCOMPtr<nsIContent> content;
-  nsCOMPtr<nsIContent> blockContent;
-  nsCOMPtr<nsIDOMNode> node;
-  nsCOMPtr<nsIDOMNode> blockParent;
-  
-  NS_ENSURE_TRUE(aNode, nullNode);
+  NS_ENSURE_TRUE(aNode, nsnull);
 
   nsresult rv;
   nsCOMPtr<nsIContentIterator> iter =
        do_CreateInstance("@mozilla.org/content/post-content-iterator;1", &rv);
-  NS_ENSURE_SUCCESS(rv, nullNode);
+  NS_ENSURE_SUCCESS(rv, nsnull);
 
   
-  content = do_QueryInterface(aNode);
+  nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
+  nsCOMPtr<nsIDOMNode> blockParent;
   PRBool isBlock;
-  if (NS_SUCCEEDED(NodeIsBlockStatic(aNode, &isBlock)) && isBlock)
-  {
+  if (NS_SUCCEEDED(NodeIsBlockStatic(aNode, &isBlock)) && isBlock) {
     blockParent = aNode;
-  }
-  else
-  {
+  } else {
     blockParent = GetBlockNodeParent(aNode);
   }
-  NS_ENSURE_TRUE(blockParent, nullNode);
-  blockContent = do_QueryInterface(blockParent);
-  NS_ENSURE_TRUE(blockContent, nullNode);
+  NS_ENSURE_TRUE(blockParent, nsnull);
+  nsCOMPtr<nsIContent> blockContent = do_QueryInterface(blockParent);
+  NS_ENSURE_TRUE(blockContent, nsnull);
   
-  if (NS_FAILED(iter->Init(blockContent)))  return nullNode;
-  if (NS_FAILED(iter->PositionAt(content)))  return nullNode;
+  if (NS_FAILED(iter->Init(blockContent))) {
+    return nsnull;
+  }
+  if (NS_FAILED(iter->PositionAt(content))) {
+    return nsnull;
+  }
   
-  while (!iter->IsDone())
-  {
+  while (!iter->IsDone()) {
     
     
-    node = do_QueryInterface(iter->GetCurrentNode());
+    nsCOMPtr<nsIDOMNode> node = do_QueryInterface(iter->GetCurrentNode());
     if (node && IsTextOrElementNode(node) && node != blockParent &&
         node != aNode)
-      return node;
+      return node.forget();
 
     if (aDir == kIterForward)
       iter->Next();
@@ -1157,7 +1151,7 @@ nsHTMLEditor::NextNodeInBlock(nsIDOMNode *aNode, IterDirection aDir)
       iter->Prev();
   }
   
-  return nullNode;
+  return nsnull;
 }
 
 static const PRUnichar nbsp = 160;
@@ -3881,18 +3875,19 @@ nsHTMLEditor::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
 
 
 
-nsCOMPtr<nsIDOMNode> nsHTMLEditor::FindUserSelectAllNode(nsIDOMNode *aNode)
+already_AddRefed<nsIDOMNode>
+nsHTMLEditor::FindUserSelectAllNode(nsIDOMNode* aNode)
 {
-  nsCOMPtr<nsIDOMNode> resultNode;  
   nsCOMPtr<nsIDOMNode> node = aNode;
   nsIDOMElement *root = GetRoot();
   if (!nsEditorUtils::IsDescendantOf(aNode, root))
     return nsnull;
 
-  
+  nsCOMPtr<nsIDOMNode> resultNode;  
   nsAutoString mozUserSelectValue;
   while (node)
   {
+    
     mHTMLCSSUtils->GetComputedProperty(node, nsEditProperty::cssMozUserSelect, mozUserSelectValue);
     if (mozUserSelectValue.EqualsLiteral("all"))
     {
@@ -3910,7 +3905,7 @@ nsCOMPtr<nsIDOMNode> nsHTMLEditor::FindUserSelectAllNode(nsIDOMNode *aNode)
     }
   } 
 
-  return resultNode;
+  return resultNode.forget();
 }
 
 NS_IMETHODIMP_(PRBool)
@@ -4905,7 +4900,7 @@ nsHTMLEditor::GetFirstEditableLeaf( nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *aOu
 
 
 nsresult 
-nsHTMLEditor::GetLastEditableLeaf( nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *aOutLastLeaf)
+nsHTMLEditor::GetLastEditableLeaf(nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *aOutLastLeaf)
 {
   
   NS_ENSURE_TRUE(aOutLastLeaf && aNode, NS_ERROR_NULL_POINTER);
@@ -4914,9 +4909,8 @@ nsHTMLEditor::GetLastEditableLeaf( nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *aOut
   *aOutLastLeaf = nsnull;
   
   
-  nsCOMPtr<nsIDOMNode> child;
+  nsCOMPtr<nsIDOMNode> child = GetRightmostChild(aNode, PR_FALSE);
   nsresult res = NS_OK;
-  child = GetRightmostChild(aNode, PR_FALSE);  
   while (child && (!IsEditable(child) || !nsEditorUtils::IsLeafNode(child)))
   {
     nsCOMPtr<nsIDOMNode> tmp;

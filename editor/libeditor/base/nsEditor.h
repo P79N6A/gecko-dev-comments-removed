@@ -499,14 +499,16 @@ public:
   
 
 
-  nsCOMPtr<nsIDOMNode> GetRightmostChild(nsIDOMNode *aCurrentNode, 
-                                         PRBool      bNoBlockCrossing = PR_FALSE);
+
+  already_AddRefed<nsIDOMNode> GetRightmostChild(nsIDOMNode *aCurrentNode, 
+                                                 PRBool      bNoBlockCrossing = PR_FALSE);
 
   
 
 
-  nsCOMPtr<nsIDOMNode> GetLeftmostChild(nsIDOMNode  *aCurrentNode, 
-                                         PRBool      bNoBlockCrossing = PR_FALSE);
+
+  already_AddRefed<nsIDOMNode> GetLeftmostChild(nsIDOMNode  *aCurrentNode, 
+                                                PRBool      bNoBlockCrossing = PR_FALSE);
 
   
   static inline PRBool NodeIsType(nsIDOMNode *aNode, nsIAtom *aTag)
