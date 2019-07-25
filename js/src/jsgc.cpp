@@ -3482,6 +3482,141 @@ ValidateIncrementalMarking(JSRuntime *rt)
 }
 #endif
 
+
+
+
+
+
+
+
+
+
+
+
+class PartitionCompartments
+{
+    typedef unsigned Node;
+    typedef Vector<Node, 0, SystemAllocPolicy> NodeVector;
+    typedef Vector<bool, 0, SystemAllocPolicy> BoolVector;
+
+    static const Node Undefined = Node(-1);
+
+    JSRuntime *runtime;
+
+    
+
+
+
+
+    Node clock, nextSCC;
+
+    
+
+
+
+
+
+
+
+
+
+
+    NodeVector discoveryTime, lowLink, stack, scc;
+    BoolVector onStack;
+
+    bool fail_;
+
+    void processNode(Node v);
+    void fail() { fail_ = true; }
+    bool failed() { return fail_; }
+
+  public:
+    PartitionCompartments(JSRuntime *rt);
+    void partition();
+    unsigned getSCC(JSCompartment *comp) { return failed() ? 0 : scc[comp->index]; }
+};
+
+const PartitionCompartments::Node PartitionCompartments::Undefined;
+
+PartitionCompartments::PartitionCompartments(JSRuntime *rt)
+  : runtime(rt), clock(0), nextSCC(0), fail_(false)
+{
+    size_t n = runtime->compartments.length();
+    if (!discoveryTime.reserve(n) ||
+        !lowLink.reserve(n) ||
+        !scc.reserve(n) ||
+        !onStack.reserve(n) ||
+        !stack.reserve(n))
+    {
+        fail();
+        return;
+    }
+
+    for (Node v = 0; v < runtime->compartments.length(); v++) {
+        runtime->compartments[v]->index = v;
+        discoveryTime.infallibleAppend(Undefined);
+        lowLink.infallibleAppend(Undefined);
+        scc.infallibleAppend(Undefined);
+        onStack.infallibleAppend(false);
+    }
+}
+
+
+void
+PartitionCompartments::processNode(Node v)
+{
+    int stackDummy;
+    if (failed() || !JS_CHECK_STACK_SIZE(js::GetNativeStackLimit(runtime), &stackDummy)) {
+        fail();
+        return;
+    }
+
+    discoveryTime[v] = clock;
+    lowLink[v] = clock;
+    clock++;
+    stack.infallibleAppend(v);
+    onStack[v] = true;
+
+    JSCompartment *comp = runtime->compartments[v];
+
+    for (WrapperMap::Enum e(comp->crossCompartmentWrappers); !e.empty(); e.popFront()) {
+        if (e.front().key.kind == CrossCompartmentKey::StringWrapper)
+            continue;
+
+        Cell *other = e.front().key.wrapped;
+        if (other->isMarked(BLACK) && !other->isMarked(GRAY))
+            continue;
+
+        Node w = other->compartment()->index;
+
+        if (discoveryTime[w] == Undefined) {
+            processNode(w);
+            lowLink[v] = Min(lowLink[v], lowLink[w]);
+        } else if (onStack[w]) {
+            lowLink[v] = Min(lowLink[v], discoveryTime[w]);
+        }
+    }
+
+    if (lowLink[v] == discoveryTime[v]) {
+        Node w;
+        do {
+            w = stack.popCopy();
+            onStack[w] = false;
+            scc[w] = nextSCC;
+        } while (w != v);
+        nextSCC++;
+    }
+}
+
+void
+PartitionCompartments::partition()
+{
+    for (Node n = 0; n < runtime->compartments.length(); n++) {
+        if (discoveryTime[n] == Undefined)
+            processNode(n);
+    }
+}
+
 static void
 BeginSweepPhase(JSRuntime *rt)
 {
@@ -3542,6 +3677,9 @@ BeginSweepPhase(JSRuntime *rt)
     
     Debugger::sweepAll(&fop);
 
+    PartitionCompartments partition(rt);
+    partition.partition();
+
     {
         gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP_COMPARTMENTS);
 
@@ -3554,6 +3692,7 @@ BeginSweepPhase(JSRuntime *rt)
 
         bool releaseTypes = ReleaseObservedTypes(rt);
         for (CompartmentsIter c(rt); !c.done(); c.next()) {
+            gcstats::AutoSCC scc(rt->gcStats, partition.getSCC(c));
             if (c->isCollecting())
                 c->sweep(&fop, releaseTypes);
             else
@@ -3569,14 +3708,22 @@ BeginSweepPhase(JSRuntime *rt)
 
 
 
-    for (GCCompartmentsIter c(rt); !c.done(); c.next())
+    for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
+        gcstats::AutoSCC scc(rt->gcStats, partition.getSCC(c));
         c->arenas.queueObjectsForSweep(&fop);
-    for (GCCompartmentsIter c(rt); !c.done(); c.next())
+    }
+    for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
+        gcstats::AutoSCC scc(rt->gcStats, partition.getSCC(c));
         c->arenas.queueStringsForSweep(&fop);
-    for (GCCompartmentsIter c(rt); !c.done(); c.next())
+    }
+    for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
+        gcstats::AutoSCC scc(rt->gcStats, partition.getSCC(c));
         c->arenas.queueScriptsForSweep(&fop);
-    for (GCCompartmentsIter c(rt); !c.done(); c.next())
+    }
+    for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
+        gcstats::AutoSCC scc(rt->gcStats, partition.getSCC(c));
         c->arenas.queueShapesForSweep(&fop);
+    }
 
     rt->gcSweepPhase = 0;
     rt->gcSweepCompartmentIndex = 0;
