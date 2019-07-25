@@ -428,22 +428,19 @@ nsXULTreeAccessible::SelectAll()
 nsAccessible*
 nsXULTreeAccessible::GetChildAt(PRUint32 aIndex)
 {
-  PRInt32 childCount = nsAccessible::GetChildCount();
-  if (childCount == -1)
-    return nsnull;
-
-  if (static_cast<PRInt32>(aIndex) < childCount)
+  PRUint32 childCount = nsAccessible::ChildCount();
+  if (aIndex < childCount)
     return nsAccessible::GetChildAt(aIndex);
 
   return GetTreeItemAccessible(aIndex - childCount);
 }
 
-PRInt32
-nsXULTreeAccessible::GetChildCount()
+PRUint32
+nsXULTreeAccessible::ChildCount() const
 {
   
-  PRInt32 childCount = nsAccessible::GetChildCount();
-  if (childCount == -1 || !mTreeView)
+  PRUint32 childCount = nsAccessible::ChildCount();
+  if (!mTreeView)
     return childCount;
 
   PRInt32 rowCount = 0;

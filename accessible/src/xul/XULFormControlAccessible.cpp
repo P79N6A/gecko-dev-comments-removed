@@ -446,8 +446,8 @@ XULGroupboxAccessible::RelationByType(PRUint32 aType)
   
   
   
-  PRInt32 childCount = GetChildCount();
-  for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
+  PRUint32 childCount = ChildCount();
+  for (PRUint32 childIdx = 0; childIdx < childCount; childIdx++) {
     nsAccessible *childAcc = GetChildAt(childIdx);
     if (childAcc->Role() == roles::LABEL) {
       
@@ -601,8 +601,8 @@ XULToolbarButtonAccessible::GetPositionAndSizeInternal(PRInt32* aPosInSet,
   if (!parent)
     return;
 
-  PRInt32 childCount = parent->GetChildCount();
-  for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
+  PRUint32 childCount = parent->ChildCount();
+  for (PRUint32 childIdx = 0; childIdx < childCount; childIdx++) {
     nsAccessible* child = parent->GetChildAt(childIdx);
     if (IsSeparator(child)) { 
       if (posInSet)

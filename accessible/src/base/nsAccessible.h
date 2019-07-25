@@ -328,7 +328,7 @@ public:
   
 
 
-  virtual PRInt32 GetChildCount();
+  virtual PRUint32 ChildCount() const;
 
   
 
@@ -353,10 +353,10 @@ public:
   inline nsAccessible* PrevSibling() const
     { return GetSiblingAtOffset(-1); }
   inline nsAccessible* FirstChild()
-    { return GetChildCount() != 0 ? GetChildAt(0) : nsnull; }
+    { return GetChildAt(0); }
   inline nsAccessible* LastChild()
   {
-    PRUint32 childCount = GetChildCount();
+    PRUint32 childCount = ChildCount();
     return childCount != 0 ? GetChildAt(childCount - 1) : nsnull;
   }
 
@@ -364,7 +364,7 @@ public:
   
 
 
-  PRInt32 GetEmbeddedChildCount();
+  PRUint32 EmbeddedChildCount();
 
   
 
