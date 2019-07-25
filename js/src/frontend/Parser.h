@@ -61,7 +61,6 @@ struct Parser : private AutoGCRooter
     ~Parser();
 
     friend void AutoGCRooter::trace(JSTracer *trc);
-    friend struct TreeContext;
 
     
 
