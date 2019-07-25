@@ -3,6 +3,7 @@
 
 
 #include "tests.h"
+#include "jsxdrapi.h"
 
 
 
