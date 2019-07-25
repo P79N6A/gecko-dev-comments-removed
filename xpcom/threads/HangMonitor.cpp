@@ -366,7 +366,7 @@ NotifyActivity(ActivityType activityType)
     
     static const PRUint32 kUIResponsivenessThresholdMS = 50;
     if (cumulativeUILagMS > kUIResponsivenessThresholdMS) {
-      mozilla::Telemetry::Accumulate(mozilla::Telemetry::EVENTLOOP_UI_LAG,
+      mozilla::Telemetry::Accumulate(mozilla::Telemetry::EVENTLOOP_UI_LAG_EXP_MS,
                                      cumulativeUILagMS);
     }
     cumulativeUILagMS = 0;
