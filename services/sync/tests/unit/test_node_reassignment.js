@@ -49,8 +49,6 @@ const reassignBody = "\"server request: node reassignment\"";
 
 
 
-
-
 function handleReassign(handler, req, resp) {
   resp.setStatusLine(req.httpVersion, 401, "Node reassignment");
   resp.setHeader("Content-Type", "application/json");
@@ -70,27 +68,8 @@ function installNodeHandler(server, next) {
     Utils.nextTick(next);
   }
   let nodePath = "/user/1.0/johndoe/node/weave";
-  server.registerPathHandler(nodePath, handleNodeRequest);
+  server.server.registerPathHandler(nodePath, handleNodeRequest);
   _("Registered node handler at " + nodePath);
-}
-
-
-
-
-
-let reassignments = {
-  "crypto": false,
-  "info": false,
-  "meta": false,
-  "rotary": false
-};
-function maybeReassign(handler, name) {
-  return function (request, response) {
-    if (reassignments[name]) {
-      return handleReassign(null, request, response);
-    }
-    return handler(request, response);
-  };
 }
 
 function prepareServer() {
@@ -101,33 +80,21 @@ function prepareServer() {
   Service.clusterURL = "http://localhost:8080/";
 
   do_check_eq(Service.userAPI, "http://localhost:8080/user/1.0/");
+  let server = new SyncServer();
+  server.registerUser("johndoe");
+  server.start();
+  return server;
+}
 
-  let collectionsHelper = track_collections_helper();
-  let upd = collectionsHelper.with_updated_collection;
-  let collections = collectionsHelper.collections;
-
-  let engine  = Engines.get("rotary");
-  let engines = {rotary: {version: engine.version,
-                          syncID:  engine.syncID}};
-  let global  = new ServerWBO("global", {engines: engines});
-  let rotary  = new ServerCollection({}, true);
-  let clients = new ServerCollection({}, true);
-  let keys    = new ServerWBO("keys");
-
-  let rotaryHandler = maybeReassign(upd("rotary", rotary.handler()), "rotary");
-  let cryptoHandler = maybeReassign(upd("crypto", keys.handler()), "crypto");
-  let metaHandler   = maybeReassign(upd("meta", global.handler()), "meta");
-  let infoHandler   = maybeReassign(collectionsHelper.handler, "info");
-
-  let server = httpd_setup({
-    "/1.1/johndoe/storage/clients":     upd("clients", clients.handler()),
-    "/1.1/johndoe/storage/crypto/keys": cryptoHandler,
-    "/1.1/johndoe/storage/meta/global": metaHandler,
-    "/1.1/johndoe/storage/rotary":      rotaryHandler,
-    "/1.1/johndoe/info/collections":    infoHandler
-  });
-
-  return [server, global, rotary, collectionsHelper];
+function getReassigned() {
+  try {
+    return Services.prefs.getBoolPref("services.sync.lastSyncReassigned");
+  } catch (ex if (ex.result == Cr.NS_ERROR_UNEXPECTED)) {
+    return false;
+  } catch (ex) {
+    do_throw("Got exception retrieving lastSyncReassigned: " +
+             Utils.exceptionStr(ex));
+  }
 }
 
 
@@ -135,7 +102,8 @@ function prepareServer() {
 
 
 
-function syncAndExpectNodeReassignment(server, firstNotification, undo,
+
+function syncAndExpectNodeReassignment(server, firstNotification, between,
                                        secondNotification, url) {
   function onwards() {
     let nodeFetched = false;
@@ -158,8 +126,7 @@ function syncAndExpectNodeReassignment(server, firstNotification, undo,
       });
 
       
-      _("Undoing test changes.");
-      undo();
+      between();
     }
     function onSecondSync() {
       _("Second sync completed.");
@@ -190,7 +157,8 @@ function syncAndExpectNodeReassignment(server, firstNotification, undo,
 
 add_test(function test_momentary_401_engine() {
   _("Test a failure for engine URLs that's resolved by reassignment.");
-  let [server, global, rotary, collectionsHelper] = prepareServer();
+  let server = prepareServer();
+  let john   = server.user("johndoe");
 
   _("Enabling the Rotary engine.");
   let engine = Engines.get("rotary");
@@ -198,33 +166,42 @@ add_test(function test_momentary_401_engine() {
 
   
   
-  let g = {syncID: Service.syncID,
-           storageVersion: STORAGE_VERSION,
-           rotary: {version: engine.version,
-                    syncID:  engine.syncID}}
-
-  global.payload = JSON.stringify(g);
-  global.modified = new_timestamp();
-  collectionsHelper.update_collection("meta", global.modified);
+  let global = {syncID: Service.syncID,
+                storageVersion: STORAGE_VERSION,
+                rotary: {version: engine.version,
+                         syncID:  engine.syncID}}
+  john.createCollection("meta").insert("global", global);
 
   _("First sync to prepare server contents.");
   Service.sync();
 
   _("Setting up Rotary collection to 401.");
-  reassignments["rotary"] = true;
+  let rotary = john.createCollection("rotary");
+  let oldHandler = rotary.collectionHandler;
+  rotary.collectionHandler = handleReassign.bind(this, undefined);
 
   
   
-  rotary.modified = new_timestamp() + 10;
-  collectionsHelper.update_collection("rotary", rotary.modified);
+  john.collection("rotary").timestamp += 1000;
 
-  function undo() {
-    reassignments["rotary"] = false;
+  function between() {
+    _("Undoing test changes.");
+    rotary.collectionHandler = oldHandler;
+
+    function onLoginStart() {
+      
+      _("Ensuring that lastSyncReassigned is still set at next sync start.");
+      Svc.Obs.remove("weave:service:login:start", onLoginStart);
+      do_check_true(getReassigned());
+    }
+
+    _("Adding observer that lastSyncReassigned is still set on login.");
+    Svc.Obs.add("weave:service:login:start", onLoginStart);
   }
 
   syncAndExpectNodeReassignment(server,
                                 "weave:service:sync:finish",
-                                undo,
+                                between,
                                 "weave:service:sync:finish",
                                 Service.storageURL + "rotary");
 });
@@ -232,16 +209,18 @@ add_test(function test_momentary_401_engine() {
 
 add_test(function test_momentary_401_info_collections() {
   _("Test a failure for info/collections that's resolved by reassignment.");
-  let [server, global, rotary] = prepareServer();
+  let server = prepareServer();
 
   _("First sync to prepare server contents.");
   Service.sync();
 
   
-  reassignments["info"] = true;
+  let oldHandler = server.toplevelHandlers.info;
+  server.toplevelHandlers.info = handleReassign;
 
   function undo() {
-    reassignments["info"] = false;
+    _("Undoing test changes.");
+    server.toplevelHandlers.info = oldHandler;
   }
 
   syncAndExpectNodeReassignment(server,
@@ -254,17 +233,15 @@ add_test(function test_momentary_401_info_collections() {
 add_test(function test_momentary_401_storage() {
   _("Test a failure for any storage URL, not just engine parts. " +
     "Resolved by reassignment.");
-  let [server, global, rotary] = prepareServer();
+  let server = prepareServer();
 
   
-  reassignments["crypto"] = true;
-  reassignments["meta"]   = true;
-  reassignments["rotary"] = true;
+  let oldHandler = server.toplevelHandlers.storage;
+  server.toplevelHandlers.storage = handleReassign;
 
   function undo() {
-    reassignments["crypto"] = false;
-    reassignments["meta"]   = false;
-    reassignments["rotary"] = false;
+    _("Undoing test changes.");
+    server.toplevelHandlers.storage = oldHandler;
   }
 
   syncAndExpectNodeReassignment(server,
@@ -274,16 +251,15 @@ add_test(function test_momentary_401_storage() {
                                 Service.storageURL + "meta/global");
 });
 
-add_test(function test_loop_avoidance() {
+add_test(function test_loop_avoidance_storage() {
   _("Test that a repeated failure doesn't result in a sync loop " +
     "if node reassignment cannot resolve the failure.");
 
-  let [server, global, rotary] = prepareServer();
+  let server = prepareServer();
 
   
-  reassignments["crypto"] = true;
-  reassignments["meta"]   = true;
-  reassignments["rotary"] = true;
+  let oldHandler = server.toplevelHandlers.storage;
+  server.toplevelHandlers.storage = handleReassign;
 
   let firstNotification  = "weave:service:login:error";
   let secondNotification = "weave:service:login:error";
@@ -295,10 +271,6 @@ add_test(function test_loop_avoidance() {
   
   
   let now;
-
-  function getReassigned() {
-    return Services.prefs.getBoolPref("services.sync.lastSyncReassigned");
-  }
 
   function onFirstSync() {
     _("First sync completed.");
@@ -348,9 +320,7 @@ add_test(function test_loop_avoidance() {
     do_check_true(!!SyncScheduler.syncTimer);
 
     
-    reassignments["crypto"] = false;
-    reassignments["meta"]   = false;
-    reassignments["rotary"] = false;
+    server.toplevelHandlers.storage = oldHandler;
 
     
     
@@ -366,12 +336,147 @@ add_test(function test_loop_avoidance() {
     
     waitForZeroTimer(function () {
       _("Third sync nextTick.");
-
-      
-      do_check_throws(getReassigned, Cr.NS_ERROR_UNEXPECTED);
+      do_check_false(getReassigned());
       do_check_true(nodeFetched);
       Service.startOver();
       server.stop(run_next_test);
+    });
+  }
+
+  Svc.Obs.add(firstNotification, onFirstSync);
+
+  now = Date.now();
+  Service.sync();
+});
+
+add_test(function test_loop_avoidance_engine() {
+  _("Test that a repeated 401 in an engine doesn't result in a sync loop " +
+    "if node reassignment cannot resolve the failure.");
+  let server = prepareServer();
+  let john   = server.user("johndoe");
+
+  _("Enabling the Rotary engine.");
+  let engine = Engines.get("rotary");
+  engine.enabled = true;
+
+  
+  
+  let global = {syncID: Service.syncID,
+                storageVersion: STORAGE_VERSION,
+                rotary: {version: engine.version,
+                         syncID:  engine.syncID}}
+  john.createCollection("meta").insert("global", global);
+
+  _("First sync to prepare server contents.");
+  Service.sync();
+
+  _("Setting up Rotary collection to 401.");
+  let rotary = john.createCollection("rotary");
+  let oldHandler = rotary.collectionHandler;
+  rotary.collectionHandler = handleReassign.bind(this, undefined);
+
+  
+  john.collection("rotary").timestamp += 1000;
+
+  function onLoginStart() {
+    
+    _("Ensuring that lastSyncReassigned is still set at next sync start.");
+    do_check_true(getReassigned());
+  }
+
+  function beforeSuccessfulSync() {
+    _("Undoing test changes.");
+    rotary.collectionHandler = oldHandler;
+  }
+
+  function afterSuccessfulSync() {
+    Svc.Obs.remove("weave:service:login:start", onLoginStart);
+    Service.startOver();
+    server.stop(run_next_test);
+  }
+
+  let firstNotification  = "weave:service:sync:finish";
+  let secondNotification = "weave:service:sync:finish";
+  let thirdNotification  = "weave:service:sync:finish";
+
+  let nodeFetched = false;
+
+  
+  
+  
+  let now;
+
+  function onFirstSync() {
+    _("First sync completed.");
+    Svc.Obs.remove(firstNotification, onFirstSync);
+    Svc.Obs.add(secondNotification, onSecondSync);
+
+    do_check_eq(Service.clusterURL, "");
+
+    _("Adding observer that lastSyncReassigned is still set on login.");
+    Svc.Obs.add("weave:service:login:start", onLoginStart);
+
+    
+    do_check_true(Services.prefs.getBoolPref("services.sync.lastSyncReassigned"));
+
+    
+    
+    
+    nodeFetched = false;
+
+    
+    
+    installNodeHandler(server, function () {
+      nodeFetched = true;
+    });
+
+    
+    now = Date.now();
+  }
+
+  function onSecondSync() {
+    _("Second sync completed.");
+    Svc.Obs.remove(secondNotification, onSecondSync);
+    Svc.Obs.add(thirdNotification, onThirdSync);
+
+    
+    let elapsedTime = Date.now() - now;
+    do_check_true(elapsedTime < MINIMUM_BACKOFF_INTERVAL);
+
+    
+    do_check_true(getReassigned());
+
+    
+    
+    
+    let expectedNextSync = 1000 * Math.floor((now + MINIMUM_BACKOFF_INTERVAL) / 1000);
+    _("Next sync scheduled for " + SyncScheduler.nextSync);
+    _("Expected to be slightly greater than " + expectedNextSync);
+
+    do_check_true(SyncScheduler.nextSync >= expectedNextSync);
+    do_check_true(!!SyncScheduler.syncTimer);
+
+    
+    beforeSuccessfulSync();
+
+    
+    
+    SyncScheduler.scheduleNextSync(0);
+  }
+
+  function onThirdSync() {
+    Svc.Obs.remove(thirdNotification, onThirdSync);
+
+    
+    SyncScheduler.clearSyncTriggers();
+
+    
+    
+    waitForZeroTimer(function () {
+      _("Third sync nextTick.");
+      do_check_false(getReassigned());
+      do_check_true(nodeFetched);
+      afterSuccessfulSync();
     });
   }
 
