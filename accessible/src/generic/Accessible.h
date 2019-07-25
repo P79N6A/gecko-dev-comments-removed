@@ -38,6 +38,7 @@ class HTMLLIAccessible;
 class ImageAccessible;
 class TableAccessible;
 class TextLeafAccessible;
+class XULTreeAccessible;
 
 
 
@@ -67,8 +68,6 @@ struct GroupPos
 
 } 
 } 
-
-class nsXULTreeAccessible;
 
 struct nsRect;
 class nsIContent;
@@ -100,8 +99,8 @@ NS_ERROR_GENERATE_SUCCESS(NS_ERROR_MODULE_GENERAL, 0x25)
   { 0xbd, 0x50, 0x42, 0x6b, 0xd1, 0xd6, 0xe1, 0xad }    \
 }
 
-class Accessible : public nsAccessNodeWrap, 
-                   public nsIAccessible, 
+class Accessible : public nsAccessNodeWrap,
+                   public nsIAccessible,
                    public nsIAccessibleHyperLink,
                    public nsIAccessibleSelectable,
                    public nsIAccessibleValue
@@ -507,7 +506,7 @@ public:
   mozilla::a11y::HTMLImageMapAccessible* AsImageMap();
 
   inline bool IsXULTree() const { return mFlags & eXULTreeAccessible; }
-  nsXULTreeAccessible* AsXULTree();
+  mozilla::a11y::XULTreeAccessible* AsXULTree();
 
   inline bool IsListControl() const { return mFlags & eListControlAccessible; }
 

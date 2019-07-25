@@ -18,6 +18,9 @@
 #include "Relation.h"
 #include "Role.h"
 #include "States.h"
+#ifdef MOZ_XUL
+#include "XULTreeAccessible.h"
+#endif
 
 #include "mozilla/dom/Element.h"
 
@@ -51,7 +54,6 @@
 #include "nsFocusManager.h"
 
 #ifdef MOZ_XUL
-#include "nsXULTreeAccessible.h"
 #include "nsIXULDocument.h"
 #include "nsIXULWindow.h"
 #endif
@@ -324,7 +326,7 @@ RootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
   nsINode* targetNode = accessible->GetNode();
 
 #ifdef MOZ_XUL
-  nsXULTreeAccessible* treeAcc = accessible->AsXULTree();
+  XULTreeAccessible* treeAcc = accessible->AsXULTree();
   if (treeAcc) {
     if (eventType.EqualsLiteral("TreeRowCountChanged")) {
       HandleTreeRowCountChangedEvent(aDOMEvent, treeAcc);
@@ -672,7 +674,7 @@ RootAccessible::HandlePopupHidingEvent(nsINode* aPopupNode)
 #ifdef MOZ_XUL
 void
 RootAccessible::HandleTreeRowCountChangedEvent(nsIDOMEvent* aEvent,
-                                               nsXULTreeAccessible* aAccessible)
+                                               XULTreeAccessible* aAccessible)
 {
   nsCOMPtr<nsIDOMDataContainerEvent> dataEvent(do_QueryInterface(aEvent));
   if (!dataEvent)
@@ -699,7 +701,7 @@ RootAccessible::HandleTreeRowCountChangedEvent(nsIDOMEvent* aEvent,
 
 void
 RootAccessible::HandleTreeInvalidatedEvent(nsIDOMEvent* aEvent,
-                                           nsXULTreeAccessible* aAccessible)
+                                           XULTreeAccessible* aAccessible)
 {
   nsCOMPtr<nsIDOMDataContainerEvent> dataEvent(do_QueryInterface(aEvent));
   if (!dataEvent)

@@ -2,13 +2,17 @@
 
 
 
-#ifndef __nsXULTreeAccessible_h__
-#define __nsXULTreeAccessible_h__
+
+#ifndef mozilla_a11y_XULTreeAccessible_h__
+#define mozilla_a11y_XULTreeAccessible_h__
 
 #include "nsITreeBoxObject.h"
 #include "nsITreeView.h"
 #include "nsITreeColumns.h"
 #include "nsXULListboxAccessible.h"
+
+namespace mozilla {
+namespace a11y {
 
 
 
@@ -20,24 +24,23 @@ const PRUint32 kDefaultTreeCacheSize = 256;
 
 
 
-class nsXULTreeAccessible : public AccessibleWrap
+class XULTreeAccessible : public AccessibleWrap
 {
 public:
   using Accessible::GetChildAt;
 
-  nsXULTreeAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  XULTreeAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsXULTreeAccessible,
-                                           Accessible)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(XULTreeAccessible, Accessible)
 
   
   virtual void Shutdown();
 
   
   virtual void Value(nsString& aValue);
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeState();
   virtual Accessible* ChildAtPoint(PRInt32 aX, PRInt32 aY,
                                    EWhichChildAtPoint aWhichChild);
@@ -117,7 +120,7 @@ protected:
 
 
 
-#define NS_XULTREEITEMBASEACCESSIBLE_IMPL_CID         \
+#define XULTREEITEMBASEACCESSIBLE_IMPL_CID            \
 {  /* 1ab79ae7-766a-443c-940b-b1e6b0831dfc */         \
   0x1ab79ae7,                                         \
   0x766a,                                             \
@@ -125,25 +128,25 @@ protected:
   { 0x94, 0x0b, 0xb1, 0xe6, 0xb0, 0x83, 0x1d, 0xfc }  \
 }
 
-class nsXULTreeItemAccessibleBase : public AccessibleWrap
+class XULTreeItemAccessibleBase : public AccessibleWrap
 {
 public:
   using Accessible::GetParent;
 
-  nsXULTreeItemAccessibleBase(nsIContent* aContent, DocAccessible* aDoc,
-                              Accessible* aParent, nsITreeBoxObject* aTree,
-                              nsITreeView* aTreeView, PRInt32 aRow);
+  XULTreeItemAccessibleBase(nsIContent* aContent, DocAccessible* aDoc,
+                            Accessible* aParent, nsITreeBoxObject* aTree,
+                            nsITreeView* aTreeView, PRInt32 aRow);
 
   
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsXULTreeItemAccessibleBase,
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(XULTreeItemAccessibleBase,
                                            AccessibleWrap)
 
   
   NS_IMETHOD GetBounds(PRInt32 *aX, PRInt32 *aY,
                        PRInt32 *aWidth, PRInt32 *aHeight);
 
-  NS_IMETHOD SetSelected(bool aSelect); 
+  NS_IMETHOD SetSelected(bool aSelect);
   NS_IMETHOD TakeFocus();
 
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
@@ -154,7 +157,7 @@ public:
   virtual bool IsPrimaryForNode() const;
 
   
-  virtual mozilla::a11y::GroupPos GroupPosition();
+  virtual GroupPos GroupPosition();
   virtual PRUint64 NativeState();
   virtual PRUint64 NativeInteractiveState() const;
   virtual PRInt32 IndexInParent() const;
@@ -168,7 +171,7 @@ public:
   virtual Accessible* ContainerWidget() const;
 
   
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_XULTREEITEMBASEACCESSIBLE_IMPL_CID)
+  NS_DECLARE_STATIC_IID_ACCESSOR(XULTREEITEMBASEACCESSIBLE_IMPL_CID)
 
   
 
@@ -212,32 +215,32 @@ protected:
   PRInt32 mRow;
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsXULTreeItemAccessibleBase,
-                              NS_XULTREEITEMBASEACCESSIBLE_IMPL_CID)
+NS_DEFINE_STATIC_IID_ACCESSOR(XULTreeItemAccessibleBase,
+                              XULTREEITEMBASEACCESSIBLE_IMPL_CID)
 
 
 
 
 
-class nsXULTreeItemAccessible : public nsXULTreeItemAccessibleBase
+class XULTreeItemAccessible : public XULTreeItemAccessibleBase
 {
 public:
-  nsXULTreeItemAccessible(nsIContent* aContent, DocAccessible* aDoc,
-                          Accessible* aParent, nsITreeBoxObject* aTree,
-                          nsITreeView* aTreeView, PRInt32 aRow);
+  XULTreeItemAccessible(nsIContent* aContent, DocAccessible* aDoc,
+                        Accessible* aParent, nsITreeBoxObject* aTree,
+                        nsITreeView* aTreeView, PRInt32 aRow);
 
   
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsXULTreeItemAccessible,
-                                           nsXULTreeItemAccessibleBase)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(XULTreeItemAccessible,
+                                           XULTreeItemAccessibleBase)
 
   
   virtual bool Init();
   virtual void Shutdown();
 
   
-  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
-  virtual mozilla::a11y::role NativeRole();
+  virtual ENameValueFlag Name(nsString& aName);
+  virtual a11y::role NativeRole();
 
   
   virtual void RowInvalidated(PRInt32 aStartColIdx, PRInt32 aEndColIdx);
@@ -256,10 +259,10 @@ protected:
 
 
 
-class nsXULTreeColumAccessible : public nsXULColumAccessible
+class XULTreeColumAccessible : public nsXULColumAccessible
 {
 public:
-  nsXULTreeColumAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  XULTreeColumAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
 protected:
 
@@ -268,14 +271,17 @@ protected:
                                          nsresult *aError = nsnull) const;
 };
 
+} 
+} 
 
 
 
-inline nsXULTreeAccessible*
+
+inline mozilla::a11y::XULTreeAccessible*
 Accessible::AsXULTree()
 {
   return IsXULTree() ?
-    static_cast<nsXULTreeAccessible*>(this) : nsnull;
+    static_cast<mozilla::a11y::XULTreeAccessible*>(this) : nsnull;
 }
 
 #endif
