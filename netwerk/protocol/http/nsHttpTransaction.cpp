@@ -725,7 +725,15 @@ nsHttpTransaction::Close(nsresult reason)
     
     
     if (reason == NS_ERROR_NET_RESET || reason == NS_OK) {
-        if (!mReceivedData && (!mSentData || connReused || mPipelinePosition)) {
+
+        
+        
+        
+        bool reallySentData =
+            mSentData && (!mConnection || mConnection->BytesWritten());
+        
+        if (!mReceivedData &&
+            (!reallySentData || connReused || mPipelinePosition)) {
             
             
             
