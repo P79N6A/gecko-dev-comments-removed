@@ -58,7 +58,7 @@ struct nsCSSValuePair;
 struct nsCSSValueTriplet;
 struct nsCSSValuePairList;
 struct nsCSSRect;
-struct gfxMatrix;
+class gfx3DMatrix;
 
 namespace mozilla {
 namespace dom {
@@ -236,9 +236,9 @@ public:
 
 
 
-
-   static gfxMatrix InterpolateTransformMatrix(const gfxMatrix &aMatrix1, double aCoeff1,
-                                               const gfxMatrix &aMatrix2, double aCoeff2);
+   static gfx3DMatrix InterpolateTransformMatrix(const gfx3DMatrix &aMatrix1,
+                                                 const gfx3DMatrix &aMatrix2, 
+                                                 double aProgress);
 
   
 

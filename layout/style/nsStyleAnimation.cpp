@@ -53,6 +53,7 @@
 #include "prlog.h"
 #include <math.h>
 #include "gfxMatrix.h"
+#include "gfxQuaternion.h"
 
 namespace css = mozilla::css;
 namespace dom = mozilla::dom;
@@ -908,24 +909,43 @@ AppendTransformFunction(nsCSSKeyword aTransformFunction,
                         nsCSSValueList**& aListTail)
 {
   PRUint32 nargs;
-  if (aTransformFunction == eCSSKeyword_matrix) {
-    nargs = 6;
-  } else if (aTransformFunction == eCSSKeyword_translate ||
-             aTransformFunction == eCSSKeyword_skew ||
-             aTransformFunction == eCSSKeyword_scale) {
-    nargs = 2;
-  } else if (aTransformFunction == eCSSKeyword_interpolatematrix) {
-    nargs = 4;
-  } else {
-    NS_ABORT_IF_FALSE(aTransformFunction == eCSSKeyword_translatex ||
-                      aTransformFunction == eCSSKeyword_translatey ||
-                      aTransformFunction == eCSSKeyword_scalex ||
-                      aTransformFunction == eCSSKeyword_scaley ||
-                      aTransformFunction == eCSSKeyword_skewx ||
-                      aTransformFunction == eCSSKeyword_skewy ||
-                      aTransformFunction == eCSSKeyword_rotate,
-                      "must be a transform function");
-    nargs = 1;
+  switch (aTransformFunction) {
+    case eCSSKeyword_matrix3d:
+      nargs = 16;
+      break;
+    case eCSSKeyword_matrix:
+      nargs = 6;
+      break;
+    case eCSSKeyword_rotate3d:
+      nargs = 4;
+      break;
+    case eCSSKeyword_interpolatematrix:
+    case eCSSKeyword_translate3d:
+    case eCSSKeyword_scale3d:
+      nargs = 3;
+      break;
+    case eCSSKeyword_translate:
+    case eCSSKeyword_skew:
+    case eCSSKeyword_scale:
+      nargs = 2;
+      break;
+    default:
+      NS_ERROR("must be a transform function");
+    case eCSSKeyword_translatex:
+    case eCSSKeyword_translatey:
+    case eCSSKeyword_translatez:
+    case eCSSKeyword_scalex:
+    case eCSSKeyword_scaley:
+    case eCSSKeyword_scalez:
+    case eCSSKeyword_skewx:
+    case eCSSKeyword_skewy:
+    case eCSSKeyword_rotate:
+    case eCSSKeyword_rotatex:
+    case eCSSKeyword_rotatey:
+    case eCSSKeyword_rotatez:
+    case eCSSKeyword_perspective:
+      nargs = 1;
+      break;
   }
 
   nsRefPtr<nsCSSValue::Array> arr = nsCSSValue::Array::Create(nargs + 1);
@@ -1067,9 +1087,14 @@ AppendTransformFunction(nsCSSKeyword aTransformFunction,
 
 
 
+#define XYSHEAR 0
+#define XZSHEAR 1
+#define YZSHEAR 2
+
 static PRBool
-DecomposeMatrix(const gfxMatrix &aMatrix,
-                float &aRotate, float &aXYShear, float &aScaleX, float &aScaleY)
+Decompose2DMatrix(const gfxMatrix &aMatrix, gfxPoint3D &aScale,
+                  float aShear[3], gfxQuaternion &aRotate,
+                  gfxPoint3D &aTranslate)
 {
   float A = aMatrix.xx,
         B = aMatrix.yx,
@@ -1093,7 +1118,7 @@ DecomposeMatrix(const gfxMatrix &aMatrix,
   D /= scaleY;
   XYshear /= scaleY;
 
- 
+  
   NS_ASSERTION(0.99 < NS_ABS(A*D - B*C) && NS_ABS(A*D - B*C) < 1.01,
                "determinant should now be 1 or -1");
   if (A * D < B * C) {
@@ -1105,84 +1130,200 @@ DecomposeMatrix(const gfxMatrix &aMatrix,
     scaleX = -scaleX;
   }
 
-  float rotation = atan2f(B, A);
-
-  aRotate = rotation;
-  aXYShear = XYshear;
-  aScaleX = scaleX;
-  aScaleY = scaleY;
-
+  float rotate = atan2f(B, A);
+  aRotate = gfxQuaternion(0, 0, sin(rotate/2), cos(rotate/2));
+  aShear[XYSHEAR] = XYshear;
+  aScale.x = scaleX;
+  aScale.y = scaleY;
+  aTranslate.x = aMatrix.x0;
+  aTranslate.y = aMatrix.y0;
   return PR_TRUE;
 }
 
 
 
 
-static double FlushToZero(double aVal)
+
+
+
+
+
+
+
+static PRBool
+Decompose3DMatrix(const gfx3DMatrix &aMatrix, gfxPoint3D &aScale,
+                  float aShear[3], gfxQuaternion &aRotate,
+                  gfxPoint3D &aTranslate, gfxPointH3D &aPerspective)
 {
-  if (-FLT_EPSILON < aVal && aVal < FLT_EPSILON)
-    return 0.0f;
-  else
-    return aVal;
+  gfx3DMatrix local = aMatrix;
+
+  if (local[3][3] == 0) {
+    return PR_FALSE;
+  }
+  
+  local.Normalize();
+
+  
+
+
+
+  gfx3DMatrix perspective = local;
+  gfxPointH3D empty(0, 0, 0, 1);
+  perspective.SetTransposedVector(3, empty);
+
+  if (perspective.Determinant() == 0.0) {
+    return PR_FALSE;
+  }
+
+  
+  if (local[0][3] != 0 || local[1][3] != 0 ||
+      local[2][3] != 0) {
+    
+    aPerspective = local.TransposedVector(3);
+
+    
+
+
+
+    perspective.Invert();
+    aPerspective = perspective.TransposeTransform4D(aPerspective);
+    
+    
+    local.SetTransposedVector(3, empty);
+  } else {
+    aPerspective = gfxPointH3D(0, 0, 0, 1);
+  }
+
+  
+  for (int i = 0; i < 3; i++) {
+    aTranslate[i] = local[3][i];
+    local[3][i] = 0;
+  }
+
+  
+
+  
+  aScale.x = local[0].Length();
+  local[0] /= aScale.x;
+    
+  
+  aShear[XYSHEAR] = local[0].DotProduct(local[1]);
+  local[1] -= local[0] * aShear[XYSHEAR];
+  
+  
+  aScale.y = local[1].Length();
+  local[1] /= aScale.y;
+  aShear[XYSHEAR] /= aScale.y;
+
+  
+  aShear[XZSHEAR] = local[0].DotProduct(local[2]);
+  local[2] -= local[0] * aShear[XZSHEAR];
+  aShear[YZSHEAR] = local[1].DotProduct(local[2]);
+  local[2] -= local[1] * aShear[YZSHEAR];
+
+  
+  aScale.z = local[2].Length();
+  local[2] /= aScale.z;
+
+  aShear[XZSHEAR] /= aScale.z;
+  aShear[YZSHEAR] /= aScale.z;
+
+  
+
+
+
+
+  if (local[0].DotProduct(local[1].CrossProduct(local[2])) < 0) {
+    aScale *= -1;
+    for (int i = 0; i < 3; i++) {
+      local[i] *= -1;
+    }
+  }
+
+  
+  aRotate = gfxQuaternion(local);
+
+  return PR_TRUE;
+}
+
+template<typename T>
+T InterpolateNumerically(const T& aOne, const T& aTwo, double aCoeff)
+{
+  return aOne + (aTwo - aOne) * aCoeff;
 }
 
 
-
-
-
-static double SafeTangent(double aTheta)
+ gfx3DMatrix
+nsStyleAnimation::InterpolateTransformMatrix(const gfx3DMatrix &aMatrix1,
+                                             const gfx3DMatrix &aMatrix2,
+                                             double aProgress)
 {
-  const double kEpsilon = 0.0001;
+  
 
   
 
+  gfxPoint3D scale1(1, 1, 1), translate1;
+  gfxPointH3D perspective1(0, 0, 0, 1);
+  gfxQuaternion rotate1;
+  float shear1[3] = { 0.0f, 0.0f, 0.0f};
 
+  gfxPoint3D scale2(1, 1, 1), translate2;
+  gfxPointH3D perspective2(0, 0, 0, 1);
+  gfxQuaternion rotate2;
+  float shear2[3] = { 0.0f, 0.0f, 0.0f};
 
-  double sinTheta = sin(aTheta);
-  double cosTheta = cos(aTheta);
-
-  if (cosTheta >= 0 && cosTheta < kEpsilon)
-    cosTheta = kEpsilon;
-  else if (cosTheta < 0 && cosTheta >= -kEpsilon)
-    cosTheta = -kEpsilon;
-
-  return FlushToZero(sinTheta / cosTheta);
-}
-
-
- gfxMatrix
-nsStyleAnimation::InterpolateTransformMatrix(const gfxMatrix &aMatrix1,
-                                             double aCoeff1,
-                                             const gfxMatrix &aMatrix2,
-                                             double aCoeff2)
-{
-  float rotate1, XYshear1, scaleX1, scaleY1;
-  DecomposeMatrix(aMatrix1, rotate1, XYshear1, scaleX1, scaleY1);
-  float rotate2, XYshear2, scaleX2, scaleY2;
-  DecomposeMatrix(aMatrix2, rotate2, XYshear2, scaleX2, scaleY2);
-
-  float rotate = rotate1 * aCoeff1 + rotate2 * aCoeff2;
-
-  float skewX = atanf(XYshear1) * aCoeff1 + atanf(XYshear2) * aCoeff2;
+  gfxMatrix matrix2d1, matrix2d2;
+  if (aMatrix1.Is2D(&matrix2d1) && aMatrix2.Is2D(&matrix2d2)) {
+    Decompose2DMatrix(matrix2d1, scale1, shear1, rotate1, translate1);
+    Decompose2DMatrix(matrix2d2, scale2, shear2, rotate2, translate2);
+  } else {
+    Decompose3DMatrix(aMatrix1, scale1, shear1,
+                      rotate1, translate1, perspective1);
+    Decompose3DMatrix(aMatrix2, scale2, shear2,
+                      rotate2, translate2, perspective2);
+  }
 
   
-  
-  
-  
-  float scaleX =
-    ((scaleX1 - 1.0f) * aCoeff1 + (scaleX2 - 1.0f) * aCoeff2) + 1.0f;
-  float scaleY =
-    ((scaleY1 - 1.0f) * aCoeff1 + (scaleY2 - 1.0f) * aCoeff2) + 1.0f;
+  gfx3DMatrix result;
 
-  gfxMatrix result;
+  gfxPointH3D perspective = 
+    InterpolateNumerically(perspective1, perspective2, aProgress);
+  result.SetTransposedVector(3, perspective);
+ 
+  gfxPoint3D translate = 
+    InterpolateNumerically(translate1, translate2, aProgress);
+  result.Translate(translate);
 
-  gfxMatrix skew;
-  skew.xy = SafeTangent(skewX);
-  result.Translate(gfxPoint(aMatrix1.x0 * aCoeff1 + aMatrix2.x0 * aCoeff2,
-                   aMatrix1.y0 * aCoeff1 + aMatrix2.y0 * aCoeff2));
-  result.Rotate(rotate);
-  result.PreMultiply(skew);
-  result.Scale(scaleX, scaleY);
+  gfxQuaternion q3 = rotate1.Slerp(rotate2, aProgress);
+  gfx3DMatrix rotate = q3.ToMatrix();
+  if (!rotate.IsIdentity()) {
+      result = rotate * result;
+  }
+
+  
+  float yzshear =
+    InterpolateNumerically(shear1[YZSHEAR], shear2[YZSHEAR], aProgress);
+  if (yzshear != 0.0) {
+    result.SkewYZ(yzshear);
+  }
+
+  float xzshear =
+    InterpolateNumerically(shear1[XZSHEAR], shear2[XZSHEAR], aProgress);
+  if (xzshear != 0.0) {
+    result.SkewXZ(xzshear);
+  }
+
+  float xyshear =
+    InterpolateNumerically(shear1[XYSHEAR], shear2[XYSHEAR], aProgress);
+  if (xyshear != 0.0) {
+    result.SkewXY(xyshear);
+  }
+
+  gfxPoint3D scale = 
+    InterpolateNumerically(scale1, scale2, aProgress);
+  if (scale != gfxPoint3D(1.0, 1.0, 1.0)) {
+    result.Scale(scale.x, scale.y, scale.z);
+  }
 
   return result;
 }
@@ -1196,13 +1337,34 @@ AddDifferentTransformLists(const nsCSSValueList* aList1, double aCoeff1,
 
   nsRefPtr<nsCSSValue::Array> arr;
   arr = AppendTransformFunction(eCSSKeyword_interpolatematrix, resultTail);
+  
+  
+  
+  
+  if (aList1 == aList2) {
+    arr->Item(1).Reset();
+  } else {
+    aList1->CloneInto(arr->Item(1).SetListValue());
+  }
 
-  arr->Item(1).SetPercentValue(aCoeff1);
-  aList1->CloneInto(arr->Item(2).SetListValue());
+  aList2->CloneInto(arr->Item(2).SetListValue());
   arr->Item(3).SetPercentValue(aCoeff2);
-  aList2->CloneInto(arr->Item(4).SetListValue());
 
   return result.forget();
+}
+
+static PRBool
+TransformFunctionsMatch(nsCSSKeyword func1, nsCSSKeyword func2)
+{
+  if (func1 == func2) {
+    return PR_TRUE;
+  }
+
+  if (func1 == eCSSKeyword_rotatez && func2 == eCSSKeyword_rotate ||
+      func1 == eCSSKeyword_rotate && func2 == eCSSKeyword_rotatez) {
+    return PR_TRUE;
+  }
+  return PR_FALSE;
 }
 
 static nsCSSValueList*
@@ -1215,13 +1377,17 @@ AddTransformLists(const nsCSSValueList* aList1, double aCoeff1,
   do {
     const nsCSSValue::Array *a1 = aList1->mValue.GetArrayValue(),
                             *a2 = aList2->mValue.GetArrayValue();
-    NS_ABORT_IF_FALSE(nsStyleTransformMatrix::TransformFunctionOf(a1) ==
-                      nsStyleTransformMatrix::TransformFunctionOf(a2),
+    NS_ABORT_IF_FALSE(TransformFunctionsMatch(nsStyleTransformMatrix::TransformFunctionOf(a1),
+                                              nsStyleTransformMatrix::TransformFunctionOf(a2)),
                       "transform function mismatch");
 
     nsCSSKeyword tfunc = nsStyleTransformMatrix::TransformFunctionOf(a1);
     nsRefPtr<nsCSSValue::Array> arr;
-    if (tfunc != eCSSKeyword_matrix && tfunc != eCSSKeyword_interpolatematrix) {
+    if (tfunc != eCSSKeyword_matrix &&
+        tfunc != eCSSKeyword_matrix3d &&
+        tfunc != eCSSKeyword_interpolatematrix &&
+        tfunc != eCSSKeyword_rotate3d &&
+        tfunc != eCSSKeyword_perspective) {
       arr = AppendTransformFunction(tfunc, resultTail);
     }
 
@@ -1250,12 +1416,24 @@ AddTransformLists(const nsCSSValueList* aList1, double aCoeff1,
         break;
       }
       case eCSSKeyword_translatex:
-      case eCSSKeyword_translatey: {
+      case eCSSKeyword_translatey:
+      case eCSSKeyword_translatez: {
         NS_ABORT_IF_FALSE(a1->Count() == 2, "unexpected count");
         NS_ABORT_IF_FALSE(a2->Count() == 2, "unexpected count");
         AddTransformTranslate(a1->Item(1), aCoeff1, a2->Item(1), aCoeff2,
                               arr->Item(1));
         break;
+      }
+      case eCSSKeyword_translate3d: {
+          NS_ABORT_IF_FALSE(a1->Count() == 4, "unexpected count");
+          NS_ABORT_IF_FALSE(a2->Count() == 4, "unexpected count");
+          AddTransformTranslate(a1->Item(1), aCoeff1, a2->Item(1), aCoeff2,
+                                arr->Item(1));
+          AddTransformTranslate(a1->Item(2), aCoeff1, a2->Item(2), aCoeff2,
+                                arr->Item(2));
+          AddTransformTranslate(a1->Item(3), aCoeff1, a2->Item(3), aCoeff2,
+                                arr->Item(3));
+          break;
       }
       case eCSSKeyword_scale: {
         NS_ABORT_IF_FALSE(a1->Count() == 2 || a1->Count() == 3,
@@ -1281,7 +1459,8 @@ AddTransformLists(const nsCSSValueList* aList1, double aCoeff1,
         break;
       }
       case eCSSKeyword_scalex:
-      case eCSSKeyword_scaley: {
+      case eCSSKeyword_scaley: 
+      case eCSSKeyword_scalez: {
         NS_ABORT_IF_FALSE(a1->Count() == 2, "unexpected count");
         NS_ABORT_IF_FALSE(a2->Count() == 2, "unexpected count");
 
@@ -1289,6 +1468,19 @@ AddTransformLists(const nsCSSValueList* aList1, double aCoeff1,
                           arr->Item(1));
 
         break;
+      }
+      case eCSSKeyword_scale3d: {
+          NS_ABORT_IF_FALSE(a1->Count() == 4, "unexpected count");
+          NS_ABORT_IF_FALSE(a2->Count() == 4, "unexpected count");
+
+          AddTransformScale(a1->Item(1), aCoeff1, a2->Item(1), aCoeff2,
+                            arr->Item(1));
+          AddTransformScale(a1->Item(2), aCoeff1, a2->Item(2), aCoeff2,
+                            arr->Item(2));
+          AddTransformScale(a1->Item(3), aCoeff1, a2->Item(3), aCoeff2,
+                            arr->Item(3));
+
+          break;
       }
       
       
@@ -1318,7 +1510,10 @@ AddTransformLists(const nsCSSValueList* aList1, double aCoeff1,
       }
       case eCSSKeyword_skewx:
       case eCSSKeyword_skewy:
-      case eCSSKeyword_rotate: {
+      case eCSSKeyword_rotate:
+      case eCSSKeyword_rotatex:
+      case eCSSKeyword_rotatey:
+      case eCSSKeyword_rotatez: {
         NS_ABORT_IF_FALSE(a1->Count() == 2, "unexpected count");
         NS_ABORT_IF_FALSE(a2->Count() == 2, "unexpected count");
 
@@ -1328,8 +1523,10 @@ AddTransformLists(const nsCSSValueList* aList1, double aCoeff1,
         break;
       }
       case eCSSKeyword_matrix:
-      case eCSSKeyword_interpolatematrix: {
-        
+      case eCSSKeyword_matrix3d:
+      case eCSSKeyword_interpolatematrix:
+      case eCSSKeyword_rotate3d:
+      case eCSSKeyword_perspective: {
         
         
 
@@ -1338,8 +1535,13 @@ AddTransformLists(const nsCSSValueList* aList1, double aCoeff1,
         tempList1.mValue = aList1->mValue;
         tempList2.mValue = aList2->mValue;
 
-        *resultTail =
-          AddDifferentTransformLists(&tempList1, aCoeff1, &tempList2, aCoeff2);
+        if (aList1 == aList2) {
+          *resultTail =
+            AddDifferentTransformLists(&tempList1, aCoeff1, &tempList1, aCoeff2);
+        } else {
+          *resultTail =
+            AddDifferentTransformLists(&tempList1, aCoeff1, &tempList2, aCoeff2);
+        }
 
         while ((*resultTail)->mNext) {
           resultTail = &(*resultTail)->mNext;
@@ -1774,11 +1976,11 @@ nsStyleAnimation::AddWeighted(nsCSSProperty aProperty,
             result->mValue.SetNoneValue();
           }
         } else {
-          result = AddTransformLists(list2, aCoeff2, list2, 0);
+          result = AddTransformLists(list2, 0, list2, aCoeff2);
         }
       } else {
         if (list2->mValue.GetUnit() == eCSSUnit_None) {
-          result = AddTransformLists(list1, aCoeff1, list1, 0);
+          result = AddTransformLists(list1, 0, list1, aCoeff1);
         } else {
           PRBool match = PR_TRUE;
 
@@ -1789,7 +1991,8 @@ nsStyleAnimation::AddWeighted(nsCSSProperty aProperty,
                                      item1->mValue.GetArrayValue());
               nsCSSKeyword func2 = nsStyleTransformMatrix::TransformFunctionOf(
                                      item2->mValue.GetArrayValue());
-              if (func1 != func2) {
+
+              if (!TransformFunctionsMatch(func1, func2)) {
                 break;
               }
 
