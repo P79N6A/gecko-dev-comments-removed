@@ -680,10 +680,6 @@ SimpleTest.executeSoon = function(aFunc) {
 
 
 SimpleTest.finish = function () {
-    
-    if (document && document.mozFullScreenElement) {
-        document.mozCancelFullScreen();
-    }
     if (SimpleTest._expectingUncaughtException) {
         SimpleTest.ok(false, "expectUncaughtException was called but no uncaught exception was detected!");
     }
