@@ -43,7 +43,7 @@
 #include "MIRGraph.h"
 #include "Ion.h"
 #include "IonSpew.h"
-#include "IonAnalysis.h"
+#include "IonLowering.h"
 
 using namespace js;
 using namespace js::ion;
@@ -70,19 +70,12 @@ class LoweringPhase : public MInstructionVisitor
 #undef VISITOR
 };
 
-static inline bool
-IsConversionPure(MIRType from, MIRType to)
-{
-    return from != MIRType_Object;
-}
-
 bool
 LoweringPhase::lowerInstruction(MInstruction *ins)
 {
     MInstruction *narrowed = NULL;
     MIRType usedAs = ins->usedAsType();
-    if (usedAs != MIRType_Value && usedAs != ins->type() &&
-        IsConversionPure(ins->type(), usedAs)) {
+    if (usedAs != MIRType_Value && usedAs != ins->type()) {
         
         
         
