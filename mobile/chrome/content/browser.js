@@ -2451,6 +2451,7 @@ Tab.prototype = {
 
     
     document.getElementById("browsers").appendChild(browser);
+    browser.style.display = "none";
 
     
     browser.stop();
