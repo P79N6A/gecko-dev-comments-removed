@@ -12,17 +12,14 @@ const kMemoryDevice = "memory";
 const kOfflineDevice = "offline";
 const kPrivate = "private";
 
+const kCacheA = "cache-A";
+const kCacheA2 = "cache-A2";
+const kCacheB = "cache-B";
+const kCacheC = "cache-C";
+const kTestContent = "test content";
+
 
 const kPrivateBrowsing = "PrivateBrowsing";
-
-var _CSvc;
-function get_cache_service() {
-  if (_CSvc)
-    return _CSvc;
-
-  return _CSvc = Cc["@mozilla.org/network/cache-service;1"].
-                 getService(Ci.nsICacheService);
-}
 
 function check_devices_available(devices) {
   var cs = get_cache_service();
@@ -77,32 +74,6 @@ function get_device_entry_count(device) {
   return entry_count;
 }
 
-function store_in_cache(aKey, aContent, aWhere) {
-  var storageFlag, streaming = true;
-  if (aWhere == kDiskDevice)
-    storageFlag = Ci.nsICache.STORE_ON_DISK;
-  else if (aWhere == kOfflineDevice)
-    storageFlag = Ci.nsICache.STORE_OFFLINE;
-  else if (aWhere == kMemoryDevice || aWhere == kPrivate)
-    storageFlag = Ci.nsICache.STORE_IN_MEMORY;
-  
-  var cache = get_cache_service();
-  var session = cache.createSession(kPrivateBrowsing, storageFlag, streaming);
-  session.isPrivate = aWhere == kPrivate;
-  var cacheEntry = session.openCacheEntry(aKey, Ci.nsICache.ACCESS_WRITE, true);
-
-  var oStream = cacheEntry.openOutputStream(0);
-
-  var written = oStream.write(aContent, aContent.length);
-  if (written != aContent.length) {
-    do_throw("oStream.write has not written all data!\n" +
-             "  Expected: " + aContent.length  + "\n" +
-             "  Actual: " + written + "\n");
-  }
-  oStream.close();
-  cacheEntry.close();
-}
-
 function make_input_stream_scriptable(input) {
   var wrapper = Cc["@mozilla.org/scriptableinputstream;1"].
                 createInstance(Ci.nsIScriptableInputStream);
@@ -110,76 +81,147 @@ function make_input_stream_scriptable(input) {
   return wrapper;
 }
 
-function retrieve_from_cache(aKey, aWhere) {
-  var storageFlag, streaming = true;
-  if (aWhere == kDiskDevice)
-    storageFlag = Ci.nsICache.STORE_ANYWHERE;
-  else if (aWhere == kOfflineDevice)
-    storageFlag = Ci.nsICache.STORE_OFFLINE;
-  else if (aWhere == kMemoryDevice || aWhere == kPrivate)
-    storageFlag = Ci.nsICache.STORE_ANYWHERE;
-  
-  var cache = get_cache_service();
-  var session = cache.createSession(kPrivateBrowsing, storageFlag, streaming);
-  session.isPrivate = aWhere == kPrivate;
-  try {
-    var cacheEntry = session.openCacheEntry(aKey, Ci.nsICache.ACCESS_READ, true);
-  } catch (e) {
-    if (e.result == Cr.NS_ERROR_CACHE_KEY_NOT_FOUND ||
-        e.result == Cr.NS_ERROR_FAILURE)
-      
-      
-      
-      return null;
+const entries = [
 
-    
-    do_throw(e);
+  [kCacheA,  kTestContent, kMemoryDevice,  true],
+  [kCacheA2, kTestContent, kPrivate,       false],
+  [kCacheB,  kTestContent, kDiskDevice,    true],
+  [kCacheC,  kTestContent, kOfflineDevice, true]
+]
+
+function get_storage_policy(device)
+{
+  switch (device) {
+    case kDiskDevice:
+      return Ci.nsICache.STORE_ON_DISK;
+    case kOfflineDevice:
+      return Ci.nsICache.STORE_OFFLINE;
+    case kMemoryDevice:
+    case kPrivate:
+      return Ci.nsICache.STORE_IN_MEMORY;
   }
-
-  var iStream = make_input_stream_scriptable(cacheEntry.openInputStream(0));
-
-  var read = iStream.read(iStream.available());
-  iStream.close();
-  cacheEntry.close();
-
-  return read;
+  do_throw("unknown device");
 }
 
-function run_test() {
-  const kCacheA = "cache-A",
-  kCacheA2 = "cache-A2",
-  kCacheB = "cache-B",
-  kCacheC = "cache-C",
-  kTestContent = "test content";
+var store_idx;
+var store_cb = null;
+function store_entries(cb)
+{
+  if (cb) {
+    store_cb = cb;
+    store_idx = 0;
+  }
 
+  if (store_idx == entries.length) {
+    do_execute_soon(store_cb);
+    return;
+  }
+
+  var cache = get_cache_service();
+  var session = cache.createSession(kPrivateBrowsing,
+                                    get_storage_policy(entries[store_idx][2]),
+                                    Ci.nsICache.STREAM_BASED);
+  if (entries[store_idx][2] == kPrivate) {
+    session.isPrivate = true;
+  }
+
+  var cacheEntry = session.asyncOpenCacheEntry(entries[store_idx][0],
+                                               Ci.nsICache.ACCESS_WRITE,
+                                               store_data);
+}
+
+var store_data = {
+  onCacheEntryAvailable: function oCEA(entry, access, status) {
+    do_check_eq(status, Cr.NS_OK);
+    var os = entry.openOutputStream(0);
+
+    var written = os.write(entries[store_idx][1], entries[store_idx][1].length);
+    if (written != entries[store_idx][1].length) {
+      do_throw("os.write has not written all data!\n" +
+               "  Expected: " + entries[store_idx][1].length  + "\n" +
+               "  Actual: " + written + "\n");
+    }
+    os.close();
+    entry.close();
+    store_idx++;
+    do_execute_soon(store_entries);
+  }
+};
+
+var check_idx;
+var check_cb = null;
+var check_pb_exited;
+function check_entries(cb, pbExited)
+{
+  if (cb) {
+    check_cb = cb;
+    check_idx = 0;
+    check_pb_exited = pbExited;
+  }
+
+  if (check_idx == entries.length) {
+    do_execute_soon(check_cb);
+    return;
+  }
+
+  var cache = get_cache_service();
+  var session = cache.createSession(kPrivateBrowsing,
+                                    get_storage_policy(entries[check_idx][2]),
+                                    Ci.nsICache.STREAM_BASED);
+  if (entries[check_idx][2] == kPrivate) {
+    session.isPrivate = true;
+  }
+
+  var cacheEntry = session.asyncOpenCacheEntry(entries[check_idx][0],
+                                               Ci.nsICache.ACCESS_READ,
+                                               check_data);
+}
+
+var check_data = {
+  onCacheEntryAvailable: function oCEA(entry, access, status) {
+    if (!check_pb_exited || entries[check_idx][3]) {
+      do_check_eq(status, Cr.NS_OK);
+      var is = make_input_stream_scriptable(entry.openInputStream(0));
+      var read = is.read(is.available());
+      is.close();
+      entry.close();
+      do_check_eq(read, entries[check_idx][1]);
+    } else {
+      do_check_eq(status, Cr.NS_ERROR_CACHE_KEY_NOT_FOUND);
+    }
+
+    check_idx++;
+    do_execute_soon(check_entries);
+  }
+};
+
+function run_test() {
   
   do_get_profile();
 
-  var cs = get_cache_service();
+  
+  evict_cache_entries();
 
   
-  cs.evictEntries(Ci.nsICache.STORE_ANYWHERE);
+  store_entries(run_test2);
 
-  
-  store_in_cache(kCacheA, kTestContent, kMemoryDevice);
-  store_in_cache(kCacheA2, kTestContent, kPrivate);
-  store_in_cache(kCacheB, kTestContent, kDiskDevice);
-  store_in_cache(kCacheC, kTestContent, kOfflineDevice);
+  do_test_pending();
+}
 
+function run_test2() {
   
   check_devices_available([kMemoryDevice, kDiskDevice, kOfflineDevice]);
 
   
-  do_check_eq(retrieve_from_cache(kCacheA, kMemoryDevice), kTestContent);
-  do_check_eq(retrieve_from_cache(kCacheA2, kPrivate), kTestContent);
-  do_check_eq(retrieve_from_cache(kCacheB, kDiskDevice), kTestContent);
-  do_check_eq(retrieve_from_cache(kCacheC, kOfflineDevice), kTestContent);
+  check_entries(run_test3, false);
+}
 
+function run_test3() {
   
   var obsvc = Cc["@mozilla.org/observer-service;1"].
     getService(Ci.nsIObserverService);
   obsvc.notifyObservers(null, "last-pb-context-exited", null);
-  
+
   
   check_devices_available([kMemoryDevice, kDiskDevice, kOfflineDevice]);
 
@@ -187,8 +229,5 @@ function run_test() {
   do_check_eq(get_device_entry_count(kMemoryDevice), 1);
 
   
-  do_check_eq(retrieve_from_cache(kCacheA, kMemoryDevice), kTestContent);
-  do_check_eq(retrieve_from_cache(kCacheA2, kPrivate), null);
-  do_check_eq(retrieve_from_cache(kCacheB, kDiskDevice), kTestContent);
-  do_check_eq(retrieve_from_cache(kCacheC, kOfflineDevice), kTestContent);
+  check_entries(do_test_finished, true);
 }
