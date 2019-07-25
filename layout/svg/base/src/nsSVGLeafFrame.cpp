@@ -34,9 +34,9 @@
 
 
 
+
 #include "nsFrame.h"
 #include "nsSVGEffects.h"
-#include "nsImageLoadingContent.h"
 
 class nsSVGLeafFrame : public nsFrame
 {

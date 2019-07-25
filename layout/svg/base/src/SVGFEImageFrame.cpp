@@ -34,11 +34,13 @@
 
 
 
+
+#include "nsContentUtils.h"
 #include "nsFrame.h"
+#include "nsGkAtoms.h"
+#include "nsLiteralString.h"
 #include "nsSVGEffects.h"
 #include "nsSVGFilters.h"
-#include "nsContentUtils.h"
-#include "nsImageLoadingContent.h"
 
 using namespace mozilla;
 

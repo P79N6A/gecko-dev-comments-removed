@@ -34,16 +34,17 @@
 
 
 
+
 #include "nsSVGFilterInstance.h"
 
-#include "nsRenderingContext.h"
-#include "nsSVGUtils.h"
-#include "nsIDOMSVGUnitTypes.h"
+
 #include "gfxPlatform.h"
-#include "nsSVGFilterPaintCallback.h"
-#include "nsSVGFilterElement.h"
-#include "nsLayoutUtils.h"
 #include "gfxUtils.h"
+#include "nsIDOMSVGUnitTypes.h"
+#include "nsRenderingContext.h"
+#include "nsSVGFilterElement.h"
+#include "nsSVGFilterPaintCallback.h"
+#include "nsSVGUtils.h"
 
 float
 nsSVGFilterInstance::GetPrimitiveNumber(PRUint8 aCtxType, float aValue) const

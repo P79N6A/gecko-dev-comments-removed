@@ -34,15 +34,15 @@
 
 
 
+
 #include "nsSVGMaskFrame.h"
 
-#include "nsIDocument.h"
-#include "nsRenderingContext.h"
-#include "nsSVGContainerFrame.h"
-#include "nsSVGMaskElement.h"
-#include "nsSVGEffects.h"
+
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
+#include "nsRenderingContext.h"
+#include "nsSVGEffects.h"
+#include "nsSVGMaskElement.h"
 
 
 

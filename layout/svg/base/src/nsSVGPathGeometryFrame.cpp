@@ -36,19 +36,19 @@
 
 
 
+
 #include "nsSVGPathGeometryFrame.h"
 
-#include "nsGkAtoms.h"
-#include "nsRenderingContext.h"
-#include "nsSVGMarkerFrame.h"
-#include "nsSVGUtils.h"
-#include "nsSVGEffects.h"
-#include "nsSVGGraphicElement.h"
-#include "nsSVGOuterSVGFrame.h"
-#include "nsSVGRect.h"
-#include "nsSVGPathGeometryElement.h"
+
 #include "gfxContext.h"
 #include "gfxPlatform.h"
+#include "nsGkAtoms.h"
+#include "nsRenderingContext.h"
+#include "nsSVGEffects.h"
+#include "nsSVGGraphicElement.h"
+#include "nsSVGMarkerFrame.h"
+#include "nsSVGPathGeometryElement.h"
+#include "nsSVGUtils.h"
 
 
 

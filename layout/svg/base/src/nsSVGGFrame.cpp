@@ -36,12 +36,15 @@
 
 
 
-#include "nsIDOMSVGTransformable.h"
+
 #include "nsSVGGFrame.h"
-#include "nsIFrame.h"
+
+
 #include "nsGkAtoms.h"
-#include "nsSVGUtils.h"
+#include "nsIDOMSVGTransformable.h"
+#include "nsIFrame.h"
 #include "nsSVGGraphicElement.h"
+#include "nsSVGUtils.h"
 
 
 

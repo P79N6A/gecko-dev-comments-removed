@@ -34,14 +34,16 @@
 
 
 
+
+#include "nsSVGGeometryFrame.h"
+
+
+#include "gfxContext.h"
 #include "nsPresContext.h"
+#include "nsSVGEffects.h"
+#include "nsSVGPaintServerFrame.h"
 #include "nsSVGPathElement.h"
 #include "nsSVGUtils.h"
-#include "nsSVGGeometryFrame.h"
-#include "nsSVGPaintServerFrame.h"
-#include "nsContentUtils.h"
-#include "gfxContext.h"
-#include "nsSVGEffects.h"
 
 NS_IMPL_FRAMEARENA_HELPERS(nsSVGGeometryFrame)
 

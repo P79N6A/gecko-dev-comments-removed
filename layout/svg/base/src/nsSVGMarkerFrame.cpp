@@ -34,17 +34,16 @@
 
 
 
+
 #include "nsSVGMarkerFrame.h"
 
-#include "nsIDOMSVGAnimatedRect.h"
-#include "nsIDOMSVGRect.h"
-#include "nsIDocument.h"
+
+#include "gfxContext.h"
 #include "nsRenderingContext.h"
-#include "nsSVGPathGeometryFrame.h"
 #include "nsSVGEffects.h"
 #include "nsSVGMarkerElement.h"
 #include "nsSVGPathGeometryElement.h"
-#include "gfxContext.h"
+#include "nsSVGPathGeometryFrame.h"
 
 nsIFrame*
 NS_NewSVGMarkerFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)

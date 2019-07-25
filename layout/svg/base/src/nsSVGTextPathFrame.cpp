@@ -34,13 +34,14 @@
 
 
 
+
 #include "nsSVGTextPathFrame.h"
 
-#include "nsIDOMSVGTextPathElement.h"
-#include "nsSVGLength2.h"
-#include "nsIDOMSVGURIReference.h"
-#include "nsSVGEffects.h"
+
 #include "nsContentUtils.h"
+#include "nsIDOMSVGTextPathElement.h"
+#include "nsSVGEffects.h"
+#include "nsSVGLength2.h"
 #include "nsSVGPathElement.h"
 #include "nsSVGTextPathElement.h"
 #include "SVGLengthList.h"

@@ -36,12 +36,11 @@
 
 
 
-#include "nsSVGTSpanFrame.h"
-#include "nsISVGGlyphFragmentNode.h"
-#include "nsSVGGraphicElement.h"
-#include "nsSVGAElement.h"
-#include "nsSVGUtils.h"
+
 #include "gfxMatrix.h"
+#include "nsSVGAElement.h"
+#include "nsSVGTSpanFrame.h"
+#include "nsSVGUtils.h"
 #include "SVGLengthList.h"
 
 
