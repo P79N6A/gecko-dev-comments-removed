@@ -49,10 +49,7 @@
 
 namespace js {
     struct CallArgs;
-namespace analyze {
-    struct Bytecode;
-    class Script;
-} }
+}
 
 namespace js {
 namespace types {
@@ -330,7 +327,7 @@ class TypeSet
     inline unsigned getObjectCount();
     inline TypeObject *getObject(unsigned i);
 
-    void setIntermediate() { typeFlags |= TYPE_FLAG_INTERMEDIATE_SET; }
+    void setIntermediate() { JS_ASSERT(!typeFlags); typeFlags = TYPE_FLAG_INTERMEDIATE_SET; }
     void setOwnProperty(bool configurable) {
         typeFlags |= TYPE_FLAG_OWN_PROPERTY;
         if (configurable)
@@ -689,37 +686,6 @@ struct TypeResult
     TypeResult *next;
 };
 
-
-struct TypeScript
-{
-#ifdef DEBUG
-    JSScript *script;
-#endif
-
-    
-
-
-
-    TypeSet **pushedArray;
-
-    
-    void print(JSContext *cx, JSScript *script);
-
-    inline bool monitored(uint32 offset);
-    inline void setMonitored(uint32 offset);
-
-    inline TypeSet *pushed(uint32 offset);
-    inline TypeSet *pushed(uint32 offset, uint32 index);
-
-    inline void addType(JSContext *cx, uint32 offset, uint32 index, jstype type);
-};
-
-
-void AnalyzeScriptTypes(JSContext *cx, JSScript *script);
-
-
-void AnalyzeScriptNew(JSContext *cx, JSScript *script);
-
 struct ArrayTableKey;
 typedef HashMap<ArrayTableKey,TypeObject*,ArrayTableKey,SystemAllocPolicy> ArrayTypeTable;
 
@@ -735,12 +701,6 @@ struct TypeCompartment
 
     
     bool inferenceEnabled;
-
-    
-    unsigned inferenceDepth;
-
-    
-    JSArenaPool pool;
 
     
     unsigned scriptCount;
@@ -841,8 +801,6 @@ struct TypeCompartment
     bool dynamicPush(JSContext *cx, JSScript *script, uint32 offset, jstype type);
     bool dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Value &rval);
     bool dynamicCall(JSContext *cx, JSObject *callee, const CallArgs &args, bool constructing);
-
-    inline bool checkPendingRecompiles(JSContext *cx);
 
     bool nukeTypes(JSContext *cx);
     bool processPendingRecompiles(JSContext *cx);

@@ -388,6 +388,15 @@ struct JS_FRIEND_API(JSCompartment) {
 #endif
 
     
+
+
+
+
+    JSArenaPool                  pool;
+    bool                         activeAnalysis;
+    bool                         activeInference;
+
+    
     js::types::TypeCompartment   types;
 
 #ifdef JS_TRACER

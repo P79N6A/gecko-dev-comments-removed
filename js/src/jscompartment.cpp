@@ -41,6 +41,7 @@
 #include "jscntxt.h"
 #include "jscompartment.h"
 #include "jsgc.h"
+#include "jsgcmark.h"
 #include "jsiter.h"
 #include "jsproxy.h"
 #include "jsscope.h"
@@ -130,7 +131,11 @@ JSCompartment::init(JSContext *cx)
 #ifdef JS_GCMETER
     memset(&compartmentStats, 0, sizeof(JSGCArenaStats) * FINALIZE_LIMIT);
 #endif
+
+    activeAnalysis = activeInference = false;
     types.init(cx);
+
+    JS_InitArenaPool(&pool, "analysis", 4096, 8, NULL);
 
     if (!crossCompartmentWrappers.init())
         return false;
@@ -494,7 +499,7 @@ void
 JSCompartment::markTypes(JSTracer *trc)
 {
      
-    JS_ASSERT(types.inferenceDepth);
+    JS_ASSERT(activeAnalysis);
 
     for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
         JSScript *script = reinterpret_cast<JSScript *>(cursor);
@@ -584,7 +589,7 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
 
 #endif
 
-    if (!types.inferenceDepth && types.inferenceEnabled) {
+    if (!activeAnalysis && types.inferenceEnabled) {
         for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
             JSScript *script = reinterpret_cast<JSScript *>(cursor);
             script->condenseTypes(cx);
@@ -597,12 +602,12 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
 
     for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
         JSScript *script = reinterpret_cast<JSScript *>(cursor);
-        script->sweepTypes(cx);
+        script->sweepAnalysis(cx);
     }
 
-    if (!types.inferenceDepth) {
+    if (!activeAnalysis) {
         
-        JS_FinishArenaPool(&types.pool);
+        JS_FinishArenaPool(&pool);
 
         
 

@@ -55,15 +55,53 @@ namespace js { namespace mjit { struct RegisterAllocation; } }
 namespace js {
 namespace analyze {
 
-class Script;
 
 
-struct Bytecode
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class SSAValue;
+struct LoopAnalysis;
+struct SlotValue;
+
+
+class Bytecode
 {
-    friend class Script;
+    friend class ScriptAnalysis;
+
+  public:
+    Bytecode() { PodZero(this); }
 
     
-    bool jumpTarget : 1;    
+
+    
+    bool jumpTarget : 1;
+
+    
+    bool loopHead : 1;
 
     
     bool fallthrough : 1;
@@ -89,6 +127,7 @@ struct Bytecode
     
     uint32 stackDepth;
 
+  private:
     
 
 
@@ -96,13 +135,51 @@ struct Bytecode
     uint32 defineCount;
     uint32 *defineArray;
 
-    Bytecode()
-    {
-        PodZero(this);
-    }
+    
 
-  private:
-    bool mergeDefines(JSContext *cx, Script *script, bool initial,
+    
+    LoopAnalysis *loop;
+
+    
+    mjit::RegisterAllocation *allocation;
+
+    
+
+    
+    SSAValue *poppedValues;
+
+    union {
+        
+
+
+
+
+
+        SlotValue *newValues;
+
+        
+
+
+
+
+
+
+
+        Vector<SlotValue> *pendingValues;
+    };
+
+    
+
+    
+
+
+
+
+    types::TypeSet *pushedTypes;
+
+    
+
+    bool mergeDefines(JSContext *cx, ScriptAnalysis *script, bool initial,
                       uint32 newDepth, uint32 *newArray, uint32 newCount);
 
     
@@ -115,130 +192,6 @@ struct Bytecode
         }
         return false;
     }
-};
-
-
-class Script
-{
-    friend struct Bytecode;
-
-    JSScript *script;
-
-    Bytecode **codeArray;
-
-    
-    static const unsigned LOCAL_LIMIT = 50;
-
-    
-    uint32 *locals;
-
-    static const uint32 LOCAL_USE_BEFORE_DEF = uint32(-1);
-    static const uint32 LOCAL_CONDITIONALLY_DEFINED = uint32(-2);
-
-    bool outOfMemory;
-    bool hadFailure;
-    bool usesRval;
-    bool usesScope;
-    bool usesThis;
-    bool hasCalls;
-
-    bool isInlineable;
-
-    JSPackedBool *closedVars;
-    JSPackedBool *closedArgs;
-
-  public:
-    
-    JSArenaPool pool;
-
-    Script();
-    ~Script();
-
-    void analyze(JSContext *cx, JSScript *script);
-
-    bool OOM() { return outOfMemory; }
-    bool failed() { return hadFailure; }
-    bool inlineable(uint32 argc) { return isInlineable && argc == script->fun->nargs; }
-
-    
-    bool usesReturnValue() const { return usesRval; }
-
-    
-    bool usesScopeChain() const { return usesScope; }
-
-    bool usesThisValue() const { return usesThis; }
-    bool hasFunctionCalls() const { return hasCalls; }
-
-    bool hasAnalyzed() const { return !!codeArray; }
-    JSScript *getScript() const { return script; }
-
-    
-
-    Bytecode& getCode(uint32 offset) {
-        JS_ASSERT(offset < script->length);
-        JS_ASSERT(codeArray[offset]);
-        return *codeArray[offset];
-    }
-    Bytecode& getCode(const jsbytecode *pc) { return getCode(pc - script->code); }
-
-    Bytecode* maybeCode(uint32 offset) {
-        JS_ASSERT(offset < script->length);
-        return codeArray[offset];
-    }
-    Bytecode* maybeCode(const jsbytecode *pc) { return maybeCode(pc - script->code); }
-
-    bool jumpTarget(uint32 offset) {
-        JS_ASSERT(offset < script->length);
-        return codeArray[offset] && codeArray[offset]->jumpTarget;
-    }
-    bool jumpTarget(const jsbytecode *pc) { return jumpTarget(pc - script->code); }
-
-    
-
-    unsigned localCount() {
-        return (script->nfixed >= LOCAL_LIMIT) ? LOCAL_LIMIT : script->nfixed;
-    }
-
-    bool localHasUseBeforeDef(uint32 local) {
-        JS_ASSERT(!failed());
-        return local >= localCount() || locals[local] == LOCAL_USE_BEFORE_DEF;
-    }
-
-    
-    bool localDefined(uint32 local, uint32 offset) {
-        return localHasUseBeforeDef(local) || (locals[local] <= offset) ||
-            getCode(offset).isDefined(local);
-    }
-    bool localDefined(uint32 local, jsbytecode *pc) {
-        return localDefined(local, pc - script->code);
-    }
-
-    bool argEscapes(unsigned arg)
-    {
-        JS_ASSERT(script->fun && arg < script->fun->nargs);
-        return script->usesEval || script->usesArguments || script->compartment->debugMode ||
-            closedArgs[arg];
-    }
-
-    bool localEscapes(unsigned local)
-    {
-        return script->usesEval || script->compartment->debugMode || local >= localCount() ||
-            closedVars[local];
-    }
-
-  private:
-    void setOOM(JSContext *cx) {
-        if (!outOfMemory)
-            js_ReportOutOfMemory(cx);
-        outOfMemory = true;
-        hadFailure = true;
-    }
-
-    inline bool addJump(JSContext *cx, unsigned offset,
-                        unsigned *currentOffset, unsigned *forwardJump,
-                        unsigned stackDepth, uint32 *defineArray, unsigned defineCount);
-
-    inline void setLocal(uint32 local, uint32 offset);
 };
 
 static inline unsigned
@@ -261,6 +214,57 @@ GetUseCount(JSScript *script, unsigned offset)
     if (js_CodeSpec[*pc].nuses == -1)
         return js_GetVariableStackUses(JSOp(*pc), pc);
     return js_CodeSpec[*pc].nuses;
+}
+
+
+
+
+
+static inline bool
+ExtendedUse(jsbytecode *pc)
+{
+    switch ((JSOp)*pc) {
+      case JSOP_SETARG:
+      case JSOP_GETARG:
+      case JSOP_CALLARG:
+      case JSOP_INCARG:
+      case JSOP_DECARG:
+      case JSOP_ARGINC:
+      case JSOP_ARGDEC:
+      case JSOP_SETLOCAL:
+      case JSOP_SETLOCALPOP:
+      case JSOP_GETLOCAL:
+      case JSOP_CALLLOCAL:
+      case JSOP_DEFLOCALFUN:
+      case JSOP_DEFLOCALFUN_FC:
+      case JSOP_INCLOCAL:
+      case JSOP_DECLOCAL:
+      case JSOP_LOCALINC:
+      case JSOP_LOCALDEC:
+        return true;
+      default:
+        return false;
+    }
+}
+
+
+
+
+
+
+static inline bool
+ExtendedDef(jsbytecode *pc)
+{
+    switch ((JSOp)*pc) {
+      case JSOP_DEFLOCALFUN:
+      case JSOP_DEFLOCALFUN_FC:
+      case JSOP_SETLOCALPOP:
+      case JSOP_FORARG:
+      case JSOP_FORLOCAL:
+        return true;
+      default:
+        return false;
+    }
 }
 
 static inline unsigned
@@ -286,6 +290,35 @@ GetDefCount(JSScript *script, unsigned offset)
       default:
         return js_CodeSpec[*pc].ndefs;
     }
+}
+
+static inline ptrdiff_t
+GetJumpOffset(jsbytecode *pc, jsbytecode *pc2)
+{
+    uint32 type = JOF_OPTYPE(*pc);
+    if (JOF_TYPE_IS_EXTENDED_JUMP(type))
+        return GET_JUMPX_OFFSET(pc2);
+    return GET_JUMP_OFFSET(pc2);
+}
+
+static inline unsigned
+FollowBranch(JSScript *script, unsigned offset)
+{
+    
+
+
+
+
+    jsbytecode *pc = script->code + offset;
+    unsigned targetOffset = offset + GetJumpOffset(pc, pc);
+    if (targetOffset < offset) {
+        JSOp nop = JSOp(script->code[targetOffset]);
+        if (nop == JSOP_GOTO || nop == JSOP_GOTOX) {
+            jsbytecode *target = script->code + targetOffset;
+            return targetOffset + GetJumpOffset(target, target);
+        }
+    }
+    return targetOffset;
 }
 
 static inline JSOp
@@ -327,47 +360,77 @@ struct UntrapOpcode
 };
 
 
+static inline uint32 CalleeSlot() {
+    return 0;
+}
+static inline uint32 ThisSlot() {
+    return 1;
+}
+static inline uint32 ArgSlot(uint32 arg) {
+    return 2 + arg;
+}
+static inline uint32 LocalSlot(JSScript *script, uint32 local) {
+    return 2 + (script->fun ? script->fun->nargs : 0) + local;
+}
+static inline uint32 TotalSlots(JSScript *script) {
+    return 2 + (script->fun ? script->fun->nargs : 0) + script->nfixed;
+}
 
+static inline uint32 StackSlot(JSScript *script, uint32 index) {
+    return TotalSlots(script) + index;
+}
 
-
-struct StackAnalysis
+static inline uint32 GetBytecodeSlot(JSScript *script, jsbytecode *pc)
 {
-    
-    static const uint32 UNKNOWN_PUSHED = uint32(-1);
+    switch (JSOp(*pc)) {
 
-    struct PoppedValue {
-        uint32 offset;
-        uint32 which;
-        void reset() { offset = UNKNOWN_PUSHED; which = 0; }
-    };
+      case JSOP_GETARG:
+      case JSOP_CALLARG:
+      case JSOP_SETARG:
+      case JSOP_INCARG:
+      case JSOP_DECARG:
+      case JSOP_ARGINC:
+      case JSOP_ARGDEC:
+      case JSOP_FORARG:
+        return ArgSlot(GET_SLOTNO(pc));
 
-    PoppedValue **poppedArray;
-    uint32 start;
-    uint32 length;
+      case JSOP_GETLOCAL:
+      case JSOP_CALLLOCAL:
+      case JSOP_SETLOCAL:
+      case JSOP_SETLOCALPOP:
+      case JSOP_DEFLOCALFUN:
+      case JSOP_DEFLOCALFUN_FC:
+      case JSOP_INCLOCAL:
+      case JSOP_DECLOCAL:
+      case JSOP_LOCALINC:
+      case JSOP_LOCALDEC:
+      case JSOP_FORLOCAL:
+        return LocalSlot(script, GET_SLOTNO(pc));
 
-    JSScript *script;
+      case JSOP_THIS:
+        return ThisSlot();
 
-    bool analyze(JSArenaPool &pool, JSScript *script, uint32 start, uint32 length,
-                 Script *analysis);
-
-    const PoppedValue &popped(uint32 offset, uint32 which) {
-        return poppedArray[offset - start][which];
+      default:
+        JS_NOT_REACHED("Bad slot opcode");
+        return 0;
     }
-    const PoppedValue &popped(jsbytecode *pc, uint32 which) {
-        return popped(pc - script->code, which);
+}
+
+static inline int32
+GetBytecodeInteger(jsbytecode *pc)
+{
+    switch (JSOp(*pc)) {
+      case JSOP_ZERO:   return 0;
+      case JSOP_ONE:    return 1;
+      case JSOP_UINT16: return GET_UINT16(pc);
+      case JSOP_UINT24: return GET_UINT24(pc);
+      case JSOP_INT8:   return GET_INT8(pc);
+      case JSOP_INT32:  return GET_INT32(pc);
+      default:
+        JS_NOT_REACHED("Bad op");
+        return 0;
     }
-};
-
-
-
-
-
-
-
-
-
-
-
+}
 
 
 
@@ -414,10 +477,10 @@ struct Lifetime
 };
 
 
-struct LifetimeLoop
+struct LoopAnalysis
 {
     
-    LifetimeLoop *parent;
+    LoopAnalysis *parent;
 
     
     uint32 head;
@@ -450,16 +513,6 @@ struct LifetimeLoop
 };
 
 
-struct LifetimeBytecode
-{
-    
-    LifetimeLoop *loop;
-
-    
-    mjit::RegisterAllocation *allocation;
-};
-
-
 struct LifetimeVariable
 {
     
@@ -472,7 +525,7 @@ struct LifetimeVariable
     uint32 savedEnd;
 
     
-    Lifetime * live(uint32 offset) {
+    Lifetime * live(uint32 offset) const {
         if (lifetime && lifetime->end >= offset)
             return lifetime;
         Lifetime *segment = lifetime ? lifetime : saved;
@@ -488,7 +541,7 @@ struct LifetimeVariable
 
 
 
-    uint32 firstWrite(LifetimeLoop *loop) {
+    uint32 firstWrite(LoopAnalysis *loop) const {
         Lifetime *segment = lifetime ? lifetime : saved;
         while (segment && segment->start <= loop->backedge) {
             if (segment->start >= loop->head && segment->write)
@@ -499,7 +552,7 @@ struct LifetimeVariable
     }
 
     
-    bool nonDecreasing(JSScript *script, LifetimeLoop *loop) {
+    bool nonDecreasing(JSScript *script, LoopAnalysis *loop) const {
         Lifetime *segment = lifetime ? lifetime : saved;
         while (segment && segment->start <= loop->backedge) {
             if (segment->start >= loop->head && segment->write) {
@@ -522,7 +575,7 @@ struct LifetimeVariable
 
 
 
-    uint32 onlyWrite(LifetimeLoop *loop) {
+    uint32 onlyWrite(LoopAnalysis *loop) const {
         uint32 offset = uint32(-1);
         Lifetime *segment = lifetime ? lifetime : saved;
         while (segment && segment->start <= loop->backedge) {
@@ -535,73 +588,497 @@ struct LifetimeVariable
         }
         return offset;
     }
-};
-
-
-
-
-
-
-class LifetimeScript
-{
-    analyze::Script *analysis;
-    JSScript *script;
-
-    LifetimeBytecode *codeArray;
-    LifetimeVariable *lifetimes;
-    uint32 nLifetimes;
-
-    LifetimeVariable **saved;
-    unsigned savedCount;
-
-  public:
-    JSArenaPool pool;
-
-    LifetimeScript();
-    ~LifetimeScript();
-
-    bool analyze(JSContext *cx, analyze::Script *analysis, JSScript *script);
-
-    LifetimeBytecode &getCode(uint32 offset) {
-        JS_ASSERT(analysis->maybeCode(offset));
-        return codeArray[offset];
-    }
-    LifetimeBytecode &getCode(jsbytecode *pc) { return getCode(pc - script->code); }
 
 #ifdef DEBUG
-    void dumpVariable(LifetimeVariable &var);
-    void dumpSlot(unsigned slot) {
-        JS_ASSERT(slot < nLifetimes);
-        dumpVariable(lifetimes[slot]);
+    void print() const;
+#endif
+};
+
+struct SSAPhiNode;
+
+
+
+
+
+
+
+class SSAValue
+{
+    friend class ScriptAnalysis;
+
+  public:
+    enum Kind {
+        EMPTY = 0, 
+        PUSHED,    
+        VAR,       
+        PHI        
+    };
+
+    Kind kind() const {
+        JS_ASSERT(u.pushed.kind == u.var.kind && u.pushed.kind == u.phi.kind);
+        return u.pushed.kind;
     }
+
+    bool equals(const SSAValue &o) const {
+        return !memcmp(this, &o, sizeof(SSAValue));
+    }
+
+    
+
+    uint32 pushedOffset() const {
+        JS_ASSERT(kind() == PUSHED);
+        return u.pushed.offset;
+    }
+
+    uint32 pushedIndex() const {
+        JS_ASSERT(kind() == PUSHED);
+        return u.pushed.index;
+    }
+
+    
+
+    bool varInitial() const {
+        JS_ASSERT(kind() == VAR);
+        return u.var.initial;
+    }
+
+    uint32 varSlot() const {
+        JS_ASSERT(kind() == VAR);
+        return u.var.slot;
+    }
+
+    uint32 varOffset() const {
+        JS_ASSERT(!varInitial());
+        return u.var.offset;
+    }
+
+    
+
+    uint32 phiSlot() const;
+    uint32 phiLength() const;
+    const SSAValue &phiValue(uint32 i) const;
+    types::TypeSet *phiTypes() const;
+
+    
+    uint32 phiOffset() const {
+        JS_ASSERT(kind() == PHI);
+        return u.phi.offset;
+    }
+
+#ifdef DEBUG
+    void print() const;
 #endif
 
-    Lifetime * live(uint32 slot, uint32 offset) {
-        JS_ASSERT(slot < nLifetimes);
-        return lifetimes[slot].live(offset);
+  private:
+    union {
+        struct {
+            Kind kind : 2;
+            uint32 offset : 30;
+            uint32 index;
+        } pushed;
+        struct {
+            Kind kind : 2;
+            bool initial : 1;
+            uint32 slot : 29;
+            uint32 offset;
+        } var;
+        struct {
+            Kind kind : 2;
+            uint32 offset : 30;
+            SSAPhiNode *node;
+        } phi;
+    } u;
+
+    void clear() {
+        PodZero(this);
+        JS_ASSERT(kind() == EMPTY);
     }
 
-    uint32 firstWrite(uint32 slot, LifetimeLoop *loop) {
-        JS_ASSERT(slot < nLifetimes);
-        return lifetimes[slot].firstWrite(loop);
+    void initPushed(uint32 offset, uint32 index) {
+        clear();
+        u.pushed.kind = PUSHED;
+        u.pushed.offset = offset;
+        u.pushed.index = index;
     }
 
-    bool nonDecreasing(uint32 slot, LifetimeLoop *loop) {
-        JS_ASSERT(slot < nLifetimes);
-        return lifetimes[slot].nonDecreasing(script, loop);
+    void initInitial(uint32 slot) {
+        clear();
+        u.var.kind = VAR;
+        u.var.initial = true;
+        u.var.slot = slot;
     }
 
-    uint32 onlyWrite(uint32 slot, LifetimeLoop *loop) {
-        JS_ASSERT(slot < nLifetimes);
-        return lifetimes[slot].onlyWrite(loop);
+    void initWritten(uint32 slot, uint32 offset) {
+        clear();
+        u.var.kind = VAR;
+        u.var.initial = false;
+        u.var.slot = slot;
+        u.var.offset = offset;
     }
+
+    void initPhi(uint32 offset, SSAPhiNode *node) {
+        clear();
+        u.phi.kind = PHI;
+        u.phi.offset = offset;
+        u.phi.node = node;
+    }
+
+    SSAPhiNode *phiNode() const {
+        JS_ASSERT(kind() == PHI);
+        return u.phi.node;
+    }
+};
+
+
+
+
+
+
+
+struct SSAPhiNode
+{
+    types::TypeSet types;
+    uint32 slot;
+    uint32 length;
+    SSAValue *options;
+    SSAPhiNode() { PodZero(this); }
+};
+
+inline uint32
+SSAValue::phiSlot() const
+{
+    return u.phi.node->slot;
+}
+
+inline uint32
+SSAValue::phiLength() const
+{
+    JS_ASSERT(kind() == PHI);
+    return u.phi.node->length;
+}
+
+inline const SSAValue &
+SSAValue::phiValue(uint32 i) const
+{
+    JS_ASSERT(kind() == PHI && i < phiLength());
+    return u.phi.node->options[i];
+}
+
+inline types::TypeSet *
+SSAValue::phiTypes() const
+{
+    JS_ASSERT(kind() == PHI);
+    return &u.phi.node->types;
+}
+
+struct SlotValue
+{
+    uint32 slot;
+    SSAValue value;
+    SlotValue(uint32 slot, const SSAValue &value) : slot(slot), value(value) {}
+};
+
+
+class ScriptAnalysis
+{
+    friend struct Bytecode;
+
+    JSScript *script;
+
+    Bytecode **codeArray;
+
+    uint32 numSlots;
+
+    bool outOfMemory;
+    bool hadFailure;
+
+    JSPackedBool *escapedSlots;
+
+    
+    bool ranBytecode_;
+    bool ranSSA_;
+    bool ranLifetimes_;
+    bool ranInference_;
+
+    
+
+    bool usesRval;
+    bool usesScope;
+    bool usesThis;
+    bool hasCalls;
+    bool canTrackVars;
+    bool isInlineable;
+
+    
+    uint32 *definedLocals;
+
+    static const uint32 LOCAL_USE_BEFORE_DEF = uint32(-1);
+    static const uint32 LOCAL_CONDITIONALLY_DEFINED = uint32(-2);
+
+    
+
+    LifetimeVariable *lifetimes;
+
+  public:
+
+    ScriptAnalysis(JSScript *script) { PodZero(this); this->script = script; }
+
+    bool ranBytecode() { return ranBytecode_; }
+    bool ranSSA() { return ranSSA_; }
+    bool ranLifetimes() { return ranLifetimes_; }
+    bool ranInference() { return ranInference_; }
+
+    void analyzeBytecode(JSContext *cx);
+    void analyzeSSA(JSContext *cx);
+    void analyzeLifetimes(JSContext *cx);
+    void analyzeTypes(JSContext *cx);
+
+    
+    void analyzeTypesNew(JSContext *cx);
+
+    bool OOM() { return outOfMemory; }
+    bool failed() { return hadFailure; }
+    bool inlineable(uint32 argc) { return isInlineable && argc == script->fun->nargs; }
+
+    
+    bool usesReturnValue() const { return usesRval; }
+
+    
+    bool usesScopeChain() const { return usesScope; }
+
+    bool usesThisValue() const { return usesThis; }
+    bool hasFunctionCalls() const { return hasCalls; }
+
+    
+
+    Bytecode& getCode(uint32 offset) {
+        JS_ASSERT(script->compartment->activeAnalysis);
+        JS_ASSERT(offset < script->length);
+        JS_ASSERT(codeArray[offset]);
+        return *codeArray[offset];
+    }
+    Bytecode& getCode(const jsbytecode *pc) { return getCode(pc - script->code); }
+
+    Bytecode* maybeCode(uint32 offset) {
+        JS_ASSERT(script->compartment->activeAnalysis);
+        JS_ASSERT(offset < script->length);
+        return codeArray[offset];
+    }
+    Bytecode* maybeCode(const jsbytecode *pc) { return maybeCode(pc - script->code); }
+
+    bool jumpTarget(uint32 offset) {
+        JS_ASSERT(offset < script->length);
+        return codeArray[offset] && codeArray[offset]->jumpTarget;
+    }
+    bool jumpTarget(const jsbytecode *pc) { return jumpTarget(pc - script->code); }
+
+    const SSAValue &poppedValue(uint32 offset, uint32 which) {
+        JS_ASSERT(offset < script->length);
+        JS_ASSERT_IF(script->code[offset] != JSOP_TRAP,
+                     which < GetUseCount(script, offset) +
+                     (ExtendedUse(script->code + offset) ? 1 : 0));
+        return getCode(offset).poppedValues[which];
+    }
+    const SSAValue &poppedValue(const jsbytecode *pc, uint32 which) {
+        return poppedValue(pc - script->code, which);
+    }
+
+    const SlotValue *newValues(uint32 offset) {
+        JS_ASSERT(offset < script->length);
+        return getCode(offset).newValues;
+    }
+    const SlotValue *newValues(const jsbytecode *pc) { return newValues(pc - script->code); }
+
+    types::TypeSet *pushedTypes(uint32 offset, uint32 which = 0) {
+        JS_ASSERT(offset < script->length);
+        JS_ASSERT_IF(script->code[offset] != JSOP_TRAP,
+                     which < GetDefCount(script, offset) +
+                     (ExtendedDef(script->code + offset) ? 1 : 0));
+        types::TypeSet *array = (types::TypeSet *) (~0x1 & (size_t) getCode(offset).pushedTypes);
+        JS_ASSERT(array);
+        return array + which;
+    }
+    types::TypeSet *pushedTypes(const jsbytecode *pc, uint32 which) {
+        return pushedTypes(pc - script->code, which);
+    }
+
+    inline void addPushedType(JSContext *cx, uint32 offset, uint32 which, types::jstype type);
+
+    bool monitoredTypes(uint32 offset) {
+        JS_ASSERT(offset < script->length);
+        return 0x1 & (size_t) getCode(offset).pushedTypes;
+    }
+
+    void setMonitoredTypes(uint32 offset) {
+        JS_ASSERT(offset < script->length);
+        types::TypeSet *&array = getCode(offset).pushedTypes;
+        array = (types::TypeSet *) (0x1 | (size_t) array);
+    }
+
+    types::TypeSet *getValueTypes(const SSAValue &v) {
+        switch (v.kind()) {
+          case SSAValue::PUSHED:
+            return pushedTypes(v.pushedOffset(), v.pushedIndex());
+          case SSAValue::VAR:
+            JS_ASSERT(!slotEscapes(v.varSlot()));
+            if (v.varInitial()) {
+                return script->slotTypes(v.varSlot());
+            } else {
+                
+
+
+
+
+
+                switch (script->code[v.varOffset()]) {
+                  case JSOP_FORARG:
+                  case JSOP_FORLOCAL:
+                    return pushedTypes(v.varOffset(), 1);
+                  default:
+                    return pushedTypes(v.varOffset(), 0);
+                }
+            }
+          case SSAValue::PHI:
+            return &v.phiNode()->types;
+          default:
+            
+            JS_NOT_REACHED("Bad SSA value");
+            return NULL;
+        }
+    }
+
+    types::TypeSet *poppedTypes(uint32 offset, uint32 which) {
+        return getValueTypes(poppedValue(offset, which));
+    }
+    types::TypeSet *poppedTypes(const jsbytecode *pc, uint32 which) {
+        return getValueTypes(poppedValue(pc, which));
+    }
+
+    mjit::RegisterAllocation *&getAllocation(uint32 offset) {
+        JS_ASSERT(offset < script->length);
+        return getCode(offset).allocation;
+    }
+    mjit::RegisterAllocation *&getAllocation(const jsbytecode *pc) {
+        return getAllocation(pc - script->code);
+    }
+
+    LoopAnalysis *getLoop(uint32 offset) {
+        JS_ASSERT(offset < script->length);
+        JS_ASSERT(getCode(offset).loop);
+        return getCode(offset).loop;
+    }
+    LoopAnalysis *getLoop(const jsbytecode *pc) { return getLoop(pc - script->code); }
+
+    
+
+    bool localHasUseBeforeDef(uint32 local) {
+        JS_ASSERT(!failed());
+        return slotEscapes(LocalSlot(script, local)) ||
+            definedLocals[local] == LOCAL_USE_BEFORE_DEF;
+    }
+
+    
+    bool localDefined(uint32 local, uint32 offset) {
+        return localHasUseBeforeDef(local) || (definedLocals[local] <= offset) ||
+            getCode(offset).isDefined(local);
+    }
+    bool localDefined(uint32 local, jsbytecode *pc) {
+        return localDefined(local, pc - script->code);
+    }
+
+    bool slotEscapes(uint32 slot) {
+        JS_ASSERT(script->compartment->activeAnalysis);
+        if (slot >= numSlots)
+            return true;
+        return escapedSlots[slot];
+    }
+
+    
+
+
+
+
+
+    bool trackSlot(uint32 slot) { return !slotEscapes(slot) && canTrackVars; }
+
+    const LifetimeVariable & liveness(uint32 slot) {
+        JS_ASSERT(script->compartment->activeAnalysis);
+        JS_ASSERT(!slotEscapes(slot));
+        return lifetimes[slot];
+    }
+
+    void printSSA(JSContext *cx);
+    void printTypes(JSContext *cx);
+
+    void clearAllocations();
 
   private:
+    void setOOM(JSContext *cx) {
+        if (!outOfMemory)
+            js_ReportOutOfMemory(cx);
+        outOfMemory = true;
+        hadFailure = true;
+    }
 
-    inline bool addVariable(JSContext *cx, LifetimeVariable &var, unsigned offset);
-    inline bool killVariable(JSContext *cx, LifetimeVariable &var, unsigned offset);
-    inline bool extendVariable(JSContext *cx, LifetimeVariable &var, unsigned start, unsigned end);
+    
+    inline bool addJump(JSContext *cx, unsigned offset,
+                        unsigned *currentOffset, unsigned *forwardJump,
+                        unsigned stackDepth, uint32 *defineArray, unsigned defineCount);
+    inline void setLocal(uint32 local, uint32 offset);
+
+    
+    inline void addVariable(JSContext *cx, LifetimeVariable &var, unsigned offset,
+                            LifetimeVariable **&saved, unsigned &savedCount);
+    inline void killVariable(JSContext *cx, LifetimeVariable &var, unsigned offset,
+                             LifetimeVariable **&saved, unsigned &savedCount);
+    inline void extendVariable(JSContext *cx, LifetimeVariable &var, unsigned start, unsigned end);
+
+    
+    bool makePhi(JSContext *cx, uint32 slot, uint32 offset, SSAValue *pv);
+    void insertPhi(JSContext *cx, SSAValue &phi, const SSAValue &v);
+    void mergeValue(JSContext *cx, uint32 offset, const SSAValue &v, SlotValue *pv);
+    void checkPendingValue(JSContext *cx, const SSAValue &v, uint32 slot,
+                           Vector<SlotValue> *pending);
+    void mergeBranchTarget(JSContext *cx, const SSAValue &value, uint32 slot,
+                           const Vector<uint32> &branchTargets);
+    void removeBranchTarget(Vector<uint32> &branchTargets, uint32 offset);
+    void freezeNewValues(JSContext *cx, uint32 offset);
+
+    struct TypeInferenceState {
+        Vector<SSAPhiNode *> phiNodes;
+        bool hasGetSet;
+        bool hasHole;
+        TypeInferenceState(JSContext *cx)
+            : phiNodes(cx), hasGetSet(false), hasHole(false)
+        {}
+    };
+
+    
+    bool analyzeTypesBytecode(JSContext *cx, unsigned offset, TypeInferenceState &state);
+    inline void setForTypes(JSContext *cx, jsbytecode *pc, types::TypeSet *types);
 };
+
+
+struct AutoEnterAnalysis
+{
+    JSContext *cx;
+    bool oldActiveAnalysis;
+
+    AutoEnterAnalysis(JSContext *cx)
+        : cx(cx), oldActiveAnalysis(cx->compartment->activeAnalysis)
+    {
+        cx->compartment->activeAnalysis = true;
+    }
+
+    ~AutoEnterAnalysis()
+    {
+        cx->compartment->activeAnalysis = oldActiveAnalysis;
+    }
+};
+
+#ifdef DEBUG
+void PrintBytecode(JSContext *cx, JSScript *script, jsbytecode *pc);
+#endif
 
 } 
 } 

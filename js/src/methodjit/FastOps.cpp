@@ -430,7 +430,7 @@ mjit::Compiler::jsop_equality(JSOp op, BoolStub stub, AutoRejoinSite &autoRejoin
 
 
         if (target) {
-            fixDoubleTypes();
+            fixDoubleTypes(target);
             frame.syncAndKillEverything();
             frame.freeReg(reg);
 
@@ -498,7 +498,7 @@ mjit::Compiler::jsop_equality(JSOp op, BoolStub stub, AutoRejoinSite &autoRejoin
             frame.forgetMismatchedObject(rhs);
             Assembler::Condition cond = GetCompareCondition(op, fused);
             if (target) {
-                fixDoubleTypes();
+                fixDoubleTypes(target);
                 autoRejoin.oolRejoin(stubcc.masm.label());
                 Jump sj = stubcc.masm.branchTest32(GetStubCompareCondition(fused),
                                                    Registers::ReturnReg, Registers::ReturnReg);
@@ -873,6 +873,7 @@ mjit::Compiler::booleanJumpScript(JSOp op, jsbytecode *target)
 bool
 mjit::Compiler::jsop_ifneq(JSOp op, jsbytecode *target)
 {
+    fixDoubleTypes(target);
     FrameEntry *fe = frame.peek(-1);
 
     if (fe->isConstant()) {
@@ -900,6 +901,7 @@ mjit::Compiler::jsop_ifneq(JSOp op, jsbytecode *target)
 bool
 mjit::Compiler::jsop_andor(JSOp op, jsbytecode *target)
 {
+    fixDoubleTypes(target);
     FrameEntry *fe = frame.peek(-1);
 
     if (fe->isConstant()) {
@@ -908,7 +910,6 @@ mjit::Compiler::jsop_andor(JSOp op, jsbytecode *target)
         
         if ((op == JSOP_OR && b == JS_TRUE) ||
             (op == JSOP_AND && b == JS_FALSE)) {
-            fixDoubleTypes();
             if (!frame.syncForBranch(target, Uses(0)))
                 return false;
             if (!jumpAndTrace(masm.jump(), target))
@@ -925,14 +926,17 @@ mjit::Compiler::jsop_andor(JSOp op, jsbytecode *target)
 bool
 mjit::Compiler::jsop_localinc(JSOp op, uint32 slot, bool popped)
 {
-    JSValueType type = knownLocalType(slot);
+    updateVarType();
+
+    types::TypeSet *types = pushedTypeSet(0);
+    JSValueType type = types ? types->getKnownTypeTag(cx) : JSVAL_TYPE_UNKNOWN;
 
     if (popped || (op == JSOP_INCLOCAL || op == JSOP_DECLOCAL)) {
         int amt = (op == JSOP_LOCALINC || op == JSOP_INCLOCAL) ? -1 : 1;
 
         
         
-        frame.pushLocal(slot, type);
+        frame.pushLocal(slot);
 
         
         
@@ -941,12 +945,12 @@ mjit::Compiler::jsop_localinc(JSOp op, uint32 slot, bool popped)
         
         
         
-        if (!jsop_binary(JSOP_SUB, stubs::Sub, type, localTypeSet(slot)))
+        if (!jsop_binary(JSOP_SUB, stubs::Sub, type, types))
             return false;
 
         
         
-        frame.storeLocal(slot, type, popped, true);
+        frame.storeLocal(slot, popped, true);
 
         if (popped)
             frame.pop();
@@ -955,7 +959,7 @@ mjit::Compiler::jsop_localinc(JSOp op, uint32 slot, bool popped)
 
         
         
-        frame.pushLocal(slot, type);
+        frame.pushLocal(slot);
 
         
         
@@ -971,12 +975,12 @@ mjit::Compiler::jsop_localinc(JSOp op, uint32 slot, bool popped)
 
         
         
-        if (!jsop_binary(JSOP_ADD, stubs::Add, type, localTypeSet(slot)))
+        if (!jsop_binary(JSOP_ADD, stubs::Add, type, types))
             return false;
 
         
         
-        frame.storeLocal(slot, type, true, true);
+        frame.storeLocal(slot, true, true);
 
         
         
@@ -989,14 +993,17 @@ mjit::Compiler::jsop_localinc(JSOp op, uint32 slot, bool popped)
 bool
 mjit::Compiler::jsop_arginc(JSOp op, uint32 slot, bool popped)
 {
-    JSValueType type = knownArgumentType(slot);
+    updateVarType();
+
+    types::TypeSet *types = pushedTypeSet(0);
+    JSValueType type = types ? types->getKnownTypeTag(cx) : JSVAL_TYPE_UNKNOWN;
 
     if (popped || (op == JSOP_INCARG || op == JSOP_DECARG)) {
         int amt = (op == JSOP_ARGINC || op == JSOP_INCARG) ? -1 : 1;
 
         
         
-        frame.pushArg(slot, type);
+        frame.pushArg(slot);
 
         
         
@@ -1005,12 +1012,12 @@ mjit::Compiler::jsop_arginc(JSOp op, uint32 slot, bool popped)
         
         
         
-        if (!jsop_binary(JSOP_SUB, stubs::Sub, type, argTypeSet(slot)))
+        if (!jsop_binary(JSOP_SUB, stubs::Sub, type, types))
             return false;
 
         
         
-        frame.storeArg(slot, type, popped);
+        frame.storeArg(slot, popped);
 
         if (popped)
             frame.pop();
@@ -1019,7 +1026,7 @@ mjit::Compiler::jsop_arginc(JSOp op, uint32 slot, bool popped)
 
         
         
-        frame.pushArg(slot, type);
+        frame.pushArg(slot);
 
         
         
@@ -1035,12 +1042,12 @@ mjit::Compiler::jsop_arginc(JSOp op, uint32 slot, bool popped)
 
         
         
-        if (!jsop_binary(JSOP_ADD, stubs::Add, type, argTypeSet(slot)))
+        if (!jsop_binary(JSOP_ADD, stubs::Add, type, types))
             return false;
 
         
         
-        frame.storeArg(slot, type, true);
+        frame.storeArg(slot, true);
 
         
         
@@ -1109,7 +1116,8 @@ mjit::Compiler::jsop_setelem_dense()
     
     
     RegisterID slotsReg;
-    bool hoisted = loop && !a->parent && loop->hoistArrayLengthCheck(obj, 1);
+    bool hoisted = loop && !a->parent &&
+        loop->hoistArrayLengthCheck(obj, frame.extra(obj).types, 1);
 
     if (hoisted) {
         FrameEntry *slotsFe = loop->invariantSlots(obj);
@@ -1433,7 +1441,8 @@ mjit::Compiler::jsop_getelem_dense(bool isPacked)
     
     bool allowUndefined = mayPushUndefined(0);
 
-    bool hoisted = loop && !a->parent && loop->hoistArrayLengthCheck(obj, 0);
+    bool hoisted = loop && !a->parent &&
+        loop->hoistArrayLengthCheck(obj, frame.extra(obj).types, 0);
 
     
     
