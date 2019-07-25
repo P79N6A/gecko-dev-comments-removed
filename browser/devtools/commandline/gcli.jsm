@@ -1707,7 +1707,7 @@ var types = require('gcli/types');
 var Type = require('gcli/types').Type;
 var Status = require('gcli/types').Status;
 var Conversion = require('gcli/types').Conversion;
-var Speller = require('gcli/types/spell').Speller;
+var spell = require('gcli/types/spell');
 
 
 
@@ -1888,13 +1888,14 @@ SelectionType.prototype._findPredictions = function(arg) {
   }
 
   
-  if (false && predictions.length === 0) {
-    var speller = new Speller();
-    var names = lookup.map(function(opt) {
-      return opt.name;
+  if (predictions.length === 0) {
+    var names = [];
+    lookup.forEach(function(opt) {
+      if (!opt.value.hidden) {
+        names.push(opt.name);
+      }
     });
-    speller.train(names);
-    var corrected = speller.correct(match);
+    var corrected = spell.correct(match, names);
     if (corrected) {
       lookup.forEach(function(opt) {
         if (opt.name === corrected) {
@@ -2019,139 +2020,102 @@ exports.SelectionType = SelectionType;
 
 
 
+
 define('gcli/types/spell', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 
 
 
 
+var INSERTION_COST = 1;
+var DELETION_COST = 1;
+var SWAP_COST = 1;
+var SUBSTITUTION_COST = 2;
+var MAX_EDIT_DISTANCE = 4;
 
 
 
 
 
+function damerauLevenshteinDistance(wordi, wordj) {
+  var N = wordi.length;
+  var M = wordj.length;
 
-
-
-function Speller() {
   
-  this._nWords = {};
-}
+  
+  var row0 = new Array(N+1);
+  var row1 = new Array(N+1);
+  var row2 = new Array(N+1);
+  var tmp;
 
-Speller.letters = "abcdefghijklmnopqrstuvwxyz".split("");
+  var i, j;
 
-
-
-
-
-
-Speller.prototype.train = function(words) {
-  words.forEach(function(word) {
-    word = word.toLowerCase();
-    this._nWords[word] = this._nWords.hasOwnProperty(word) ?
-            this._nWords[word] + 1 :
-            1;
-  }, this);
-};
-
-
-
-
-Speller.prototype.correct = function(word) {
-  if (this._nWords.hasOwnProperty(word)) {
-    return word;
+  
+  
+  for (i = 0; i <= N; i++) {
+    row1[i] = i * INSERTION_COST;
   }
 
-  var candidates = {};
-  var list = this._edits(word);
-  list.forEach(function(edit) {
-    if (this._nWords.hasOwnProperty(edit)) {
-      candidates[this._nWords[edit]] = edit;
-    }
-  }, this);
+  
+  
+  for (j = 1; j <= M; j++)
+  {
+    
+    
+    row0[0] = j * INSERTION_COST;
 
-  if (this._countKeys(candidates) > 0) {
-    return candidates[this._max(candidates)];
-  }
-
-  list.forEach(function(edit) {
-    this._edits(edit).forEach(function(w) {
-      if (this._nWords.hasOwnProperty(w)) {
-        candidates[this._nWords[w]] = w;
+    for (i = 1; i <= N; i++)
+    {
+      
+      
+      
+      row0[i] = Math.min(
+          row0[i-1] + DELETION_COST,
+          row1[i] + INSERTION_COST,
+          row1[i-1] + (wordi[i-1] === wordj[j-1] ? 0 : SUBSTITUTION_COST));
+      
+      
+      if (i > 1 && j > 1 && wordi[i-1] === wordj[j-2] && wordj[j-1] === wordi[i-2]) {
+        row0[i] = Math.min(row0[i], row2[i-2] + SWAP_COST);
       }
-    }, this);
-  }, this);
-
-  return this._countKeys(candidates) > 0 ?
-      candidates[this._max(candidates)] :
-      null;
-};
-
-
-
-
-Speller.prototype._countKeys = function(object) {
-  
-  var count = 0;
-  for (var attr in object) {
-    if (object.hasOwnProperty(attr)) {
-      count++;
     }
+
+    tmp = row2;
+    row2 = row1;
+    row1 = row0;
+    row0 = tmp;
   }
-  return count;
+
+  return row1[N];
 };
 
 
 
 
+exports.correct = function(word, names) {
+  var distance = {};
+  var sorted_candidates;
 
+  names.forEach(function(candidate) {
+    distance[candidate] = damerauLevenshteinDistance(word, candidate);
+  });
 
-Speller.prototype._max = function(candidates) {
-  var arr = [];
-  for (var candidate in candidates) {
-    if (candidates.hasOwnProperty(candidate)) {
-      arr.push(candidate);
+  sorted_candidates = names.sort(function(worda, wordb) {
+    if (distance[worda] !== distance[wordb]) {
+      return distance[worda] - distance[wordb];
+    } else {
+      
+      
+      return worda < wordb;
     }
+  });
+
+  if (distance[sorted_candidates[0]] <= MAX_EDIT_DISTANCE) {
+    return sorted_candidates[0];
+  } else {
+    return undefined;
   }
-  return Math.max.apply(null, arr);
 };
-
-
-
-
-
-Speller.prototype._edits = function(word) {
-  var results = [];
-
-  
-  for (var i = 0; i < word.length; i++) {
-    results.push(word.slice(0, i) + word.slice(i + 1));
-  }
-
-  
-  for (i = 0; i < word.length - 1; i++) {
-    results.push(word.slice(0, i) + word.slice(i + 1, i + 2)
-            + word.slice(i, i + 1) + word.slice(i + 2));
-  }
-
-  
-  for (i = 0; i < word.length; i++) {
-    Speller.letters.forEach(function(l) {
-      results.push(word.slice(0, i) + l + word.slice(i + 1));
-    }, this);
-  }
-
-  
-  for (i = 0; i <= word.length; i++) {
-    Speller.letters.forEach(function(l) {
-      results.push(word.slice(0, i) + l + word.slice(i));
-    }, this);
-  }
-
-  return results;
-};
-
-exports.Speller = Speller;
 
 
 });
