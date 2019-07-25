@@ -3476,7 +3476,9 @@ PlacesSQLQueryBuilder::SelectAsDay()
         
         
         
-        tm.tm_mday = 1;
+        
+        
+        tm.tm_mday = 2;
         tm.tm_month -= MonthIndex;
         
         
