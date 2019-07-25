@@ -56,22 +56,28 @@ public:
     mCurrent = aNode;
   }
 
+protected:
   void DoForward(nsIStyleRule* aRule) {
     mCurrent = mCurrent->Transition(aRule, mLevel, mImportance);
     NS_POSTCONDITION(mCurrent, "Transition messed up");
   }
 
+public:
   void Forward(nsIStyleRule* aRule) {
-    
-    
-    
-    
+    NS_PRECONDITION(!nsRefPtr<mozilla::css::StyleRule>(do_QueryObject(aRule)),
+                    "Calling the wrong Forward() overload");
     DoForward(aRule);
   }
   void Forward(mozilla::css::StyleRule* aRule) {
     DoForward(aRule);
     mCheckForImportantRules =
       mCheckForImportantRules && !aRule->GetImportantRule();
+  }
+  
+  
+  
+  void ForwardOnPossiblyCSSRule(nsIStyleRule* aRule) {
+    DoForward(aRule);
   }
 
   void Reset() { mCurrent = mRoot; }
