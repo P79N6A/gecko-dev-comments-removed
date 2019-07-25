@@ -1093,6 +1093,8 @@ public:
   static void ReleaseStatics();
 
 protected:
+  friend class nsRefreshDriver;
+
   
   
   
@@ -1139,6 +1141,13 @@ protected:
   PRPackedBool              mIsAccessibilityActive;
 
   PRPackedBool              mObservesMutationsForPrint;
+
+  PRPackedBool              mReflowScheduled; 
+                                              
+                                              
+                                              
+
+  PRPackedBool              mSuppressInterruptibleReflows;
 
   
   nsWeakFrame*              mWeakFrames;

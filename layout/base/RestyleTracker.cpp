@@ -171,6 +171,8 @@ RestyleTracker::ProcessRestyles()
   
   mFrameConstructor->BeginUpdate();
 
+  mFrameConstructor->mInStyleRefresh = PR_TRUE;
+
   
   while (mPendingRestyles.Count()) {
     if (mHaveLaterSiblingRestyles) {
