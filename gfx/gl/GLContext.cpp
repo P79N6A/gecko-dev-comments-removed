@@ -39,7 +39,6 @@
 
 
 
-
 #include <string.h>
 #include <stdio.h>
 
@@ -61,10 +60,9 @@ namespace mozilla {
 namespace gl {
 
 #ifdef DEBUG
-PRUintn GLContext::sCurrentGLContextTLS = -1;
-#endif
 
-PRUint32 GLContext::sDebugMode = 0;
+GLContext* GLContext::sCurrentGLContext = nsnull;
+#endif
 
 
 
@@ -96,7 +94,6 @@ static const char *sExtensionNames[] = {
     "GL_ARB_texture_float",
     "GL_EXT_unpack_subimage",
     "GL_OES_standard_derivatives",
-    "GL_EXT_texture_filter_anisotropic",
     "GL_EXT_framebuffer_blit",
     "GL_ANGLE_framebuffer_blit",
     "GL_EXT_framebuffer_multisample",
@@ -495,14 +492,6 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
                 mInitialized = false;
             }
         }
-       
-        
-        SymLoadStruct auxSymbols[] = {
-                { (PRFuncPtr*) &mSymbols.fGetTexImage, { "GetTexImage", NULL } },
-                { (PRFuncPtr*) &mSymbols.fGetTexLevelParameteriv, { "GetTexLevelParameteriv", NULL } },
-                { NULL, { NULL } },
-        };
-        LoadSymbols(&auxSymbols[0], trygl, prefix);
     }
 
     if (mInitialized) {
@@ -518,21 +507,38 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
         fGetIntegerv(LOCAL_GL_MAX_RENDERBUFFER_SIZE, &mMaxRenderbufferSize);
         mMaxTextureImageSize = mMaxTextureSize;
 
+        mSupport_ES_ReadPixels_BGRA_UByte = false;
+        if (mIsGLES2) {
+            if (IsExtensionSupported(gl::GLContext::EXT_bgra)) {
+                mSupport_ES_ReadPixels_BGRA_UByte = true;
+            } else if (IsExtensionSupported(gl::GLContext::EXT_read_format_bgra) ||
+                       IsExtensionSupported(gl::GLContext::IMG_read_format)) {
+                GLint auxFormat = 0;
+                GLint auxType = 0;
+
+                fGetIntegerv(LOCAL_GL_IMPLEMENTATION_COLOR_READ_FORMAT, &auxFormat);
+                fGetIntegerv(LOCAL_GL_IMPLEMENTATION_COLOR_READ_TYPE, &auxType);
+
+                if (auxFormat == LOCAL_GL_BGRA && auxType == LOCAL_GL_UNSIGNED_BYTE)
+                    mSupport_ES_ReadPixels_BGRA_UByte = true;
+            }
+        }
+
         UpdateActualFormat();
     }
 
 #ifdef DEBUG
     if (PR_GetEnv("MOZ_GL_DEBUG"))
-        sDebugMode |= DebugEnabled;
+        mDebugMode |= DebugEnabled;
 
     
     
     if (PR_GetEnv("MOZ_GL_DEBUG_VERBOSE"))
-        sDebugMode |= DebugTrace;
+        mDebugMode |= DebugTrace;
 
     
     if (PR_GetEnv("MOZ_GL_DEBUG_ABORT_ON_ERROR"))
-        sDebugMode |= DebugAbortOnError;
+        mDebugMode |= DebugAbortOnError;
 #endif
 
     if (mInitialized)
@@ -540,7 +546,6 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
     else {
         
         mSymbols.Zero();
-        NS_WARNING("InitWithPrefix failed!");
     }
 
     return mInitialized;
@@ -551,9 +556,6 @@ GLContext::InitExtensions()
 {
     MakeCurrent();
     const GLubyte *extensions = fGetString(LOCAL_GL_EXTENSIONS);
-    if (!extensions)
-        return;
-
     char *exts = strdup((char *)extensions);
 
 #ifdef DEBUG
@@ -877,7 +879,7 @@ TiledTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, 
 {
     nsIntRegion region;
 
-    if (mTextureState != Valid) {
+    if (mTextureState != Valid || !mGL->CanUploadSubTextures()) {
         nsIntRect bounds = nsIntRect(0, 0, mSize.width, mSize.height);
         region = nsIntRegion(bounds);
     } else {
@@ -889,17 +891,10 @@ TiledTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, 
         int xPos = (i % mColumns) * mTileSize;
         int yPos = (i / mColumns) * mTileSize;
         nsIntRegion tileRegion;
-        nsIntRect tileRect = nsIntRect(nsIntPoint(xPos, yPos), mImages[i]->GetSize());
-        tileRegion.And(region, tileRect); 
+        tileRegion.And(region, nsIntRect(nsIntPoint(xPos,yPos), mImages[i]->GetSize())); 
         if (tileRegion.IsEmpty())
             continue;
-        if (mGL->CanUploadSubTextures()) {
-          tileRegion.MoveBy(-xPos, -yPos); 
-        } else {
-          
-          tileRect.x = tileRect.y = 0;
-          tileRegion = nsIntRegion(tileRect);
-        }
+        tileRegion.MoveBy(-xPos, -yPos); 
         result &= mImages[i]->DirectUpdate(aSurf,
                                            tileRegion,
                                            aFrom + nsIntPoint(xPos, yPos));
@@ -1141,6 +1136,8 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
         return true;
     }
 
+    const bool firstTime = (mOffscreenDrawFBO == 0 && mOffscreenReadFBO == 0);
+
     GLuint curBoundFramebufferDraw = 0;
     GLuint curBoundFramebufferRead = 0;
     GLuint curBoundRenderbuffer = 0;
@@ -1152,8 +1149,8 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
             !mIsGLES2 || IsExtensionSupported(OES_packed_depth_stencil);
 
     
-    curBoundFramebufferDraw = GetUserBoundDrawFBO();
-    curBoundFramebufferRead = GetUserBoundReadFBO();
+    curBoundFramebufferDraw = GetBoundDrawFBO();
+    curBoundFramebufferRead = GetBoundReadFBO();
     fGetIntegerv(LOCAL_GL_RENDERBUFFER_BINDING, (GLint*) &curBoundRenderbuffer);
     fGetIntegerv(LOCAL_GL_TEXTURE_BINDING_2D, (GLint*) &curBoundTexture);
     fGetIntegerv(LOCAL_GL_VIEWPORT, viewport);
@@ -1201,8 +1198,6 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
         fBindTexture(LOCAL_GL_TEXTURE_2D, newOffscreenTexture);
         fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_LINEAR);
         fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER, LOCAL_GL_LINEAR);
-        fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_S, LOCAL_GL_CLAMP_TO_EDGE);
-        fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
 
         if (alpha) {
             fTexImage2D(LOCAL_GL_TEXTURE_2D,
@@ -1321,7 +1316,7 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
     }
 
     
-    BindInternalFBO(newOffscreenDrawFBO);    
+    fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, newOffscreenDrawFBO);    
     if (useDrawMSFBO) {
         fFramebufferRenderbuffer(LOCAL_GL_FRAMEBUFFER,
                                  LOCAL_GL_COLOR_ATTACHMENT0,
@@ -1355,7 +1350,7 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
     }
 
     if (aUseReadFBO) {
-        BindInternalFBO(newOffscreenReadFBO);
+        fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, newOffscreenReadFBO);
         fFramebufferTexture2D(LOCAL_GL_FRAMEBUFFER,
                               LOCAL_GL_COLOR_ATTACHMENT0,
                               LOCAL_GL_TEXTURE_2D,
@@ -1367,7 +1362,7 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
     GLenum status;
     bool framebuffersComplete = true;
 
-    BindInternalFBO(newOffscreenDrawFBO);
+    fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, newOffscreenDrawFBO);
     status = fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
     if (status != LOCAL_GL_FRAMEBUFFER_COMPLETE) {
         NS_WARNING("DrawFBO: Incomplete");
@@ -1377,7 +1372,7 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
         framebuffersComplete = false;
     }
 
-    BindInternalFBO(newOffscreenReadFBO);
+    fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, newOffscreenReadFBO);
     status = fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
     if (status != LOCAL_GL_FRAMEBUFFER_COMPLETE) {
         NS_WARNING("ReadFBO: Incomplete");
@@ -1398,8 +1393,8 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
         fDeleteRenderbuffers(1, &newOffscreenDepthRB);
         fDeleteRenderbuffers(1, &newOffscreenStencilRB);
 
-        BindUserDrawFBO(curBoundFramebufferDraw);
-        BindUserReadFBO(curBoundFramebufferRead);
+        BindReadFBO(curBoundFramebufferRead);
+        BindDrawFBO(curBoundFramebufferDraw);
         fBindTexture(LOCAL_GL_TEXTURE_2D, curBoundTexture);
         fBindRenderbuffer(LOCAL_GL_RENDERBUFFER, curBoundRenderbuffer);
         fViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
@@ -1445,7 +1440,8 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
 
 #ifdef DEBUG
     if (DebugMode()) {
-        printf_stderr("Resized %dx%d offscreen FBO: r: %d g: %d b: %d a: %d depth: %d stencil: %d samples: %d\n",
+        printf_stderr("%s %dx%d offscreen FBO: r: %d g: %d b: %d a: %d depth: %d stencil: %d samples: %d\n",
+                      firstTime ? "Created" : "Resized",
                       mOffscreenActualSize.width, mOffscreenActualSize.height,
                       mActualFormat.red, mActualFormat.green, mActualFormat.blue, mActualFormat.alpha,
                       mActualFormat.depth, mActualFormat.stencil, mActualFormat.samples);
@@ -1453,17 +1449,21 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
 #endif
 
     
-    
-    
-    
-    BindUserDrawFBO(curBoundFramebufferDraw);
-    BindUserReadFBO(curBoundFramebufferRead);
-    fBindTexture(LOCAL_GL_TEXTURE_2D, curBoundTexture);
-    fBindRenderbuffer(LOCAL_GL_RENDERBUFFER, curBoundRenderbuffer);
-    fViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+    ForceDirtyFBOs();
 
     
-    ForceDirtyFBOs();
+    
+    BindDrawFBO(curBoundFramebufferDraw);
+    BindReadFBO(curBoundFramebufferRead);
+    fBindTexture(LOCAL_GL_TEXTURE_2D, curBoundTexture);
+    fBindRenderbuffer(LOCAL_GL_RENDERBUFFER, curBoundRenderbuffer);
+
+    
+    
+    if (firstTime)
+        fViewport(0, 0, aSize.width, aSize.height); 
+    else
+        fViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 
     return true;
 }
@@ -1600,73 +1600,10 @@ GLContext::MarkDestroyed()
     mSymbols.Zero();
 }
 
-static void SwapRAndBComponents(gfxImageSurface* aSurf)
-{
-  gfxIntSize size = aSurf->GetSize();
-  for (int j = 0; j < size.height; ++j) {
-    PRUint32 *row = (PRUint32*) (aSurf->Data() + aSurf->Stride() * j);
-    for (int i = 0; i < size.width; ++i) {
-      *row = (*row & 0xff00ff00) | ((*row & 0xff) << 16) | ((*row & 0xff0000) >> 16);
-      row++;
-    }
-  }
-}
-
-static already_AddRefed<gfxImageSurface> YInvertImageSurface(gfxImageSurface* aSurf)
-{
-  gfxIntSize size = aSurf->GetSize();
-  nsRefPtr<gfxImageSurface> temp = new gfxImageSurface(size, aSurf->Format());
-  nsRefPtr<gfxContext> ctx = new gfxContext(temp);
-  ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-  ctx->Scale(1.0, -1.0);
-  ctx->Translate(-gfxPoint(0.0, size.height));
-  ctx->SetSource(aSurf);
-  ctx->Paint();
-  return temp.forget();
-}
-
-already_AddRefed<gfxImageSurface>
-GLContext::GetTexImage(GLuint aTexture, bool aYInvert, ShaderProgramType aShader)
-{
-    MakeCurrent();
-    fFinish();
-    fActiveTexture(LOCAL_GL_TEXTURE0);
-    fBindTexture(LOCAL_GL_TEXTURE_2D, aTexture);
-
-    gfxIntSize size;
-    fGetTexLevelParameteriv(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_TEXTURE_WIDTH, &size.width);
-    fGetTexLevelParameteriv(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_TEXTURE_HEIGHT, &size.height);
-    
-    nsRefPtr<gfxImageSurface> surf = new gfxImageSurface(size, gfxASurface::ImageFormatARGB32);
-    if (!surf || surf->CairoStatus()) {
-        return NULL;
-    }
-
-    PRUint32 currentPackAlignment = 0;
-    fGetIntegerv(LOCAL_GL_PACK_ALIGNMENT, (GLint*)&currentPackAlignment);
-    if (currentPackAlignment != 4) {
-        fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, 4);
-    }
-    fGetTexImage(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE, surf->Data());
-    if (currentPackAlignment != 4) {
-        fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, currentPackAlignment);
-    }
-   
-    if (aShader == RGBALayerProgramType || aShader == RGBXLayerProgramType) {
-      SwapRAndBComponents(surf);
-    }
-
-    if (aYInvert) {
-      surf = YInvertImageSurface(surf);
-    }
-    return surf.forget();
-}
-
 already_AddRefed<gfxImageSurface>
 GLContext::ReadTextureImage(GLuint aTexture,
                             const gfxIntSize& aSize,
-                            GLenum aTextureFormat,
-                            bool aYInvert)
+                            GLenum aTextureFormat)
 {
     MakeCurrent();
 
@@ -1729,8 +1666,6 @@ GLContext::ReadTextureImage(GLuint aTexture,
     fs = fCreateShader(LOCAL_GL_FRAGMENT_SHADER);
     fShaderSource(vs, 1, (const GLchar**) &vShader, NULL);
     fShaderSource(fs, 1, (const GLchar**) &fShader, NULL);
-    fCompileShader(vs);
-    fCompileShader(fs);
     prog = fCreateProgram();
     fAttachShader(prog, vs);
     fAttachShader(prog, fs);
@@ -1774,14 +1709,8 @@ GLContext::ReadTextureImage(GLuint aTexture,
                 LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE,
                 isurf->Data());
 
-    SwapRAndBComponents(isurf);
-
     if (oldPackAlignment != 4)
         fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, oldPackAlignment);
-
-    if (aYInvert) {
-      isurf = YInvertImageSurface(isurf);
-    }
 
  cleanup:
     
@@ -1798,35 +1727,6 @@ GLContext::ReadTextureImage(GLuint aTexture,
     PopViewportRect();
 
     return isurf.forget();
-}
-
-static void
-GetOptimalReadFormats(GLContext* gl, GLenum& format, GLenum& type) {
-    if (gl->IsGLES2()) {
-        bool has_BGRA_UByte = false;
-        if (gl->IsExtensionSupported(gl::GLContext::EXT_bgra)) {
-          has_BGRA_UByte = true;
-        } else if (gl->IsExtensionSupported(gl::GLContext::EXT_read_format_bgra) ||
-                   gl->IsExtensionSupported(gl::GLContext::IMG_read_format)) {
-            
-            
-            GLint auxFormat = 0;
-            GLint auxType = 0;
-
-            gl->fGetIntegerv(LOCAL_GL_IMPLEMENTATION_COLOR_READ_FORMAT, &auxFormat);
-            gl->fGetIntegerv(LOCAL_GL_IMPLEMENTATION_COLOR_READ_TYPE, &auxType);
-
-            if (auxFormat == LOCAL_GL_BGRA && auxType == LOCAL_GL_UNSIGNED_BYTE)
-              has_BGRA_UByte = true;
-        }
-
-        format = has_BGRA_UByte ? LOCAL_GL_BGRA : LOCAL_GL_RGBA;
-        type = LOCAL_GL_UNSIGNED_BYTE;
-    } else {
-        
-        format = LOCAL_GL_BGRA;
-        type = LOCAL_GL_UNSIGNED_INT_8_8_8_8_REV;
-    }
 }
 
 void
@@ -1853,21 +1753,29 @@ GLContext::ReadPixelsIntoImageSurface(GLint aX, GLint aY,
 
     GLint currentPackAlignment = 0;
     fGetIntegerv(LOCAL_GL_PACK_ALIGNMENT, &currentPackAlignment);
+    fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, 4);
 
-    if (currentPackAlignment != 4)
-        fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, 4);
+    
+    GLenum format = LOCAL_GL_BGRA;
+    GLenum datatype = LOCAL_GL_UNSIGNED_INT_8_8_8_8_REV;
+    bool swap = false;
 
-    GLenum format;
-    GLenum datatype;
+    if (IsGLES2()) {
+        datatype = LOCAL_GL_UNSIGNED_BYTE;
 
-    GetOptimalReadFormats(this, format, datatype);
+        if (mSupport_ES_ReadPixels_BGRA_UByte) {
+            format = LOCAL_GL_BGRA;
+        } else {
+            format = LOCAL_GL_RGBA;
+            swap = true;
+        }
+    }
 
     fReadPixels(0, 0, aWidth, aHeight,
                 format, datatype,
                 aDest->Data());
 
-    
-    if (format == LOCAL_GL_RGBA) {
+    if (swap) {
         
         for (int j = 0; j < aHeight; ++j) {
             PRUint32 *row = (PRUint32*) (aDest->Data() + aDest->Stride() * j);
@@ -1878,8 +1786,7 @@ GLContext::ReadPixelsIntoImageSurface(GLint aX, GLint aY,
         }
     }
 
-    if (currentPackAlignment != 4)
-        fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, currentPackAlignment);
+    fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, currentPackAlignment);
 }
 
 void
@@ -2215,9 +2122,9 @@ static GLint GetAddressAlignment(ptrdiff_t aAddress)
 }
 
 void
-GLContext::TexImage2D(GLenum target, GLint level, GLint internalformat,
+GLContext::TexImage2D(GLenum target, GLint level, GLint internalformat, 
                       GLsizei width, GLsizei height, GLsizei stride,
-                      GLint pixelsize, GLint border, GLenum format,
+                      GLint pixelsize, GLint border, GLenum format, 
                       GLenum type, const GLvoid *pixels)
 {
 #ifdef USE_GLES2
@@ -2225,46 +2132,30 @@ GLContext::TexImage2D(GLenum target, GLint level, GLint internalformat,
     NS_ASSERTION(format == internalformat,
                  "format and internalformat not the same for glTexImage2D on GLES2");
 
-    if (stride == width * pixelsize) {
-        fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT,
-                 NS_MIN(GetAddressAlignment((ptrdiff_t)pixels),
-                        GetAddressAlignment((ptrdiff_t)stride)));
-        fTexImage2D(target,
-                    border,
-                    internalformat,
-                    width,
-                    height,
-                    border,
-                    format,
-                    type,
-                    pixels);
-        fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 4);
-    } else {
-        
-        
-        fTexImage2D(target,
-                    border,
-                    internalformat,
-                    width,
-                    height,
-                    border,
-                    format,
-                    type,
-                    NULL);
-        TexSubImage2D(target,
-                      level,
-                      0,
-                      0,
-                      width,
-                      height,
-                      stride,
-                      pixelsize,
-                      format,
-                      type,
-                      pixels);
-    }
+    
+    
+    fTexImage2D(target,
+                border,
+                internalformat,
+                width,
+                height,
+                border,
+                format,
+                type,
+                NULL);
+    TexSubImage2D(target,
+                  level,
+                  0,
+                  0,
+                  width,
+                  height,
+                  stride,
+                  pixelsize,
+                  format,
+                  type,
+                  pixels);
 #else
-    fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT,
+    fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 
                  NS_MIN(GetAddressAlignment((ptrdiff_t)pixels),
                         GetAddressAlignment((ptrdiff_t)stride)));
     int rowLength = stride/pixelsize;
@@ -2284,32 +2175,17 @@ GLContext::TexImage2D(GLenum target, GLint level, GLint internalformat,
 }
 
 void
-GLContext::TexSubImage2D(GLenum target, GLint level,
-                         GLint xoffset, GLint yoffset,
+GLContext::TexSubImage2D(GLenum target, GLint level, 
+                         GLint xoffset, GLint yoffset, 
                          GLsizei width, GLsizei height, GLsizei stride,
-                         GLint pixelsize, GLenum format,
+                         GLint pixelsize, GLenum format, 
                          GLenum type, const GLvoid* pixels)
 {
 #ifdef USE_GLES2
-    if (stride == width * pixelsize) {
-        fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT,
-                 NS_MIN(GetAddressAlignment((ptrdiff_t)pixels),
-                        GetAddressAlignment((ptrdiff_t)stride)));
-        fTexSubImage2D(target,
-                       level,
-                       xoffset,
-                       yoffset,
-                       width,
-                       height,
-                       format,
-                       type,
-                       pixels);
-        fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 4);
-    } else if (IsExtensionSupported(EXT_unpack_subimage)) {
+  if (IsExtensionSupported(EXT_unpack_subimage)) {
         TexSubImage2DWithUnpackSubimageGLES(target, level, xoffset, yoffset,
                                             width, height, stride,
                                             pixelsize, format, type, pixels);
-
     } else {
         TexSubImage2DWithoutUnpackSubimage(target, level, xoffset, yoffset,
                                            width, height, stride,
@@ -2346,32 +2222,45 @@ GLContext::TexSubImage2DWithUnpackSubimageGLES(GLenum target, GLint level,
     fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT,
                  NS_MIN(GetAddressAlignment((ptrdiff_t)pixels),
                         GetAddressAlignment((ptrdiff_t)stride)));
-    
-    
-    
-    
-    
-    int rowLength = stride/pixelsize;
-    fPixelStorei(LOCAL_GL_UNPACK_ROW_LENGTH, rowLength);
-    fTexSubImage2D(target,
-                    level,
-                    xoffset,
-                    yoffset,
-                    width,
-                    height-1,
-                    format,
-                    type,
-                    pixels);
-    fPixelStorei(LOCAL_GL_UNPACK_ROW_LENGTH, 0);
-    fTexSubImage2D(target,
-                    level,
-                    xoffset,
-                    yoffset+height-1,
-                    width,
-                    1,
-                    format,
-                    type,
-                    (const unsigned char *)pixels+(height-1)*stride);
+    if (stride == width * pixelsize) {
+        
+        fTexSubImage2D(target,
+                       level,
+                       xoffset,
+                       yoffset,
+                       width,
+                       height,
+                       format,
+                       type,
+                       pixels);
+    } else {
+        
+        
+        
+        
+        
+        int rowLength = stride/pixelsize;
+        fPixelStorei(LOCAL_GL_UNPACK_ROW_LENGTH, rowLength);
+        fTexSubImage2D(target,
+                       level,
+                       xoffset,
+                       yoffset,
+                       width,
+                       height-1,
+                       format,
+                       type,
+                       pixels);
+        fPixelStorei(LOCAL_GL_UNPACK_ROW_LENGTH, 0);
+        fTexSubImage2D(target,
+                       level,
+                       xoffset,
+                       yoffset+height-1,
+                       width,
+                       1,
+                       format,
+                       type,
+                       (const unsigned char *)pixels+(height-1)*stride);
+    }
     fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 4);
 }
 
@@ -2383,33 +2272,48 @@ GLContext::TexSubImage2DWithoutUnpackSubimage(GLenum target, GLint level,
                                               GLenum format, GLenum type,
                                               const GLvoid* pixels)
 {
-    
-    
-    
-    
-    unsigned char *newPixels = new unsigned char[width*height*pixelsize];
-    unsigned char *rowDest = newPixels;
-    const unsigned char *rowSource = (const unsigned char *)pixels;
-    for (int h = 0; h < height; h++) {
+    if (stride == width * pixelsize) {
+        fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT,
+                     NS_MIN(GetAddressAlignment((ptrdiff_t)pixels),
+                            GetAddressAlignment((ptrdiff_t)stride)));
+        fTexSubImage2D(target,
+                       level,
+                       xoffset,
+                       yoffset,
+                       width,
+                       height,
+                       format,
+                       type,
+                       pixels);
+    } else {
+        
+        
+        
+        
+        unsigned char *newPixels = new unsigned char[width*height*pixelsize];
+        unsigned char *rowDest = newPixels;
+        const unsigned char *rowSource = (const unsigned char *)pixels;
+        for (int h = 0; h < height; h++) {
             memcpy(rowDest, rowSource, width*pixelsize);
             rowDest += width*pixelsize;
             rowSource += stride;
-    }
+        }
 
-    stride = width*pixelsize;
-    fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT,
-                    NS_MIN(GetAddressAlignment((ptrdiff_t)newPixels),
+        stride = width*pixelsize;
+        fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT,
+                     NS_MIN(GetAddressAlignment((ptrdiff_t)newPixels),
                             GetAddressAlignment((ptrdiff_t)stride)));
-    fTexSubImage2D(target,
-                    level,
-                    xoffset,
-                    yoffset,
-                    width,
-                    height,
-                    format,
-                    type,
-                    newPixels);
-    delete [] newPixels;
+        fTexSubImage2D(target,
+                       level,
+                       xoffset,
+                       yoffset,
+                       width,
+                       height,
+                       format,
+                       type,
+                       newPixels);
+        delete [] newPixels;
+    }
     fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 4);
 }
 
