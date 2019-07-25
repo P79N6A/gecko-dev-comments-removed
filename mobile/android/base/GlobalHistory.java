@@ -45,6 +45,7 @@ import java.lang.ref.SoftReference;
 
 import android.content.ContentResolver;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Handler;
 import android.util.Log;
 
@@ -115,12 +116,49 @@ class GlobalHistory {
         GeckoAppShell.notifyUriVisited(uri);
     }
 
+    
+    
+    private boolean canAddURI(String uri) {
+        if (uri == null || uri.length() == 0)
+            return false;
+
+        
+        if (uri.startsWith("http:") || uri.startsWith("https:"))
+            return true;
+
+        String scheme = Uri.parse(uri).getScheme();
+        if (scheme == null)
+            return false;
+
+        
+        if (scheme.equals("about") ||
+            scheme.equals("imap") ||
+            scheme.equals("news") ||
+            scheme.equals("mailbox") ||
+            scheme.equals("moz-anno") ||
+            scheme.equals("view-source") ||
+            scheme.equals("chrome") ||
+            scheme.equals("resource") ||
+            scheme.equals("data") ||
+            scheme.equals("wyciwyg") ||
+            scheme.equals("javascript"))
+            return false;
+
+        return true;
+    }
+
     public void add(String uri) {
+        if (!canAddURI(uri))
+            return;
+
         BrowserDB.updateVisitedHistory(GeckoApp.mAppContext.getContentResolver(), uri);
         addToGeckoOnly(uri);
     }
 
     public void update(String uri, String title) {
+        if (!canAddURI(uri))
+            return;
+
         ContentResolver resolver = GeckoApp.mAppContext.getContentResolver();
         BrowserDB.updateHistoryTitle(resolver, uri, title);
     }
