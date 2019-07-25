@@ -1419,21 +1419,6 @@ window.GroupItems = {
   
   
   
-  
-  
-  getGroupItemWithTitle: function(title) {
-    var result = null;
-    this.groupItems.forEach(function(groupItem) {
-      if (groupItem.getTitle() == title)
-        result = groupItem;
-    });
-
-    return result;
-  },
-
-  
-  
-  
   register: function(groupItem) {
     Utils.assert(groupItem, 'groupItem');
     Utils.assert(this.groupItems.indexOf(groupItem) == -1, 'only register once per groupItem');
