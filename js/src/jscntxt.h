@@ -475,7 +475,7 @@ struct JSRuntime : js::RuntimeFriendFields
     }
 
     
-    JSDebugHooks        globalDebugHooks;
+    JSDebugHooks        debugHooks;
 
     
     bool                debugMode;
@@ -713,8 +713,6 @@ struct JSArgumentFormatMap {
     JSArgumentFormatMap *next;
 };
 #endif
-
-extern const JSDebugHooks js_NullDebugHooks;  
 
 namespace js {
 
@@ -1014,9 +1012,6 @@ struct JSContext : js::ContextFriendFields
 #endif
 
 #endif 
-
-    
-    const JSDebugHooks  *debugHooks;
 
     
     JSSecurityCallbacks *securityCallbacks;
