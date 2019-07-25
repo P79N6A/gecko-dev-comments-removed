@@ -257,6 +257,39 @@ void GetCurrentBatteryInformation(hal::BatteryInformation* aBatteryInfo);
 
 void NotifyBatteryChange(const hal::BatteryInformation& aBatteryInfo);
 
+
+
+
+bool GetScreenEnabled();
+
+
+
+
+
+
+void SetScreenEnabled(bool enabled);
+
+
+
+
+
+
+
+
+double GetScreenBrightness();
+
+
+
+
+
+
+
+
+
+
+
+void SetScreenBrightness(double brightness);
+
 } 
 } 
 
