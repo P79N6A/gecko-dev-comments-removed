@@ -2502,13 +2502,8 @@ MarkRuntime(JSTracer *trc, bool useSavedRoots = false)
             MarkScriptRoot(trc, &vec[i].script, "scriptAndCountsVector");
     }
 
-    
-
-
-
-
-
-    MarkAtomState(trc, rt->gcKeepAtoms || (IS_GC_MARKING_TRACER(trc) && !rt->gcIsFull));
+    if (!IS_GC_MARKING_TRACER(trc) || rt->atomsCompartment->isCollecting())
+        MarkAtomState(trc);
     rt->staticStrings.trace(trc);
 
     for (ContextIter acx(rt); !acx.done(); acx.next())
@@ -3216,6 +3211,17 @@ BeginMarkPhase(JSRuntime *rt, bool isIncremental)
         c->setPreservingCode(ShouldPreserveJITCode(c, currentTime));
     }
 
+    
+
+
+
+
+
+    if (rt->atomsCompartment->isCollecting() && (rt->gcKeepAtoms || !rt->gcIsFull)) {
+        rt->atomsCompartment->setCollecting(false);
+        rt->atomsCompartment->setGCStarted(false);
+    }
+
     rt->gcMarker.start(rt);
     JS_ASSERT(!rt->gcMarker.callback);
     JS_ASSERT(IS_GC_MARKING_TRACER(&rt->gcMarker));
@@ -3488,6 +3494,7 @@ BeginSweepPhase(JSRuntime *rt)
         if (!c->isCollecting())
             isFull = false;
     }
+    JS_ASSERT_IF(isFull, rt->gcIsFull);
 
     rt->gcSweepOnBackgroundThread =
         (rt->hasContexts() && rt->gcHelperThread.prepareForBackgroundSweep());
@@ -3507,11 +3514,6 @@ BeginSweepPhase(JSRuntime *rt)
     
     WeakMapBase::sweepAll(&rt->gcMarker);
     rt->debugScopes->sweep();
-
-    {
-        gcstats::AutoPhase ap2(rt->gcStats, gcstats::PHASE_SWEEP_ATOMS);
-        SweepAtomState(rt);
-    }
 
     
     WatchpointMap::sweepAll(rt);
@@ -3756,7 +3758,7 @@ ResetIncrementalGC(JSRuntime *rt, const char *reason)
     if (rt->gcIncrementalState == NO_INCREMENTAL)
         return;
 
-    if (rt->gcIncrementalState == SWEEP) {
+    if (rt->gcIncrementalState == SWEEP || rt->gcIncrementalState == SWEEP_ATOMS) {
         
         IncrementalCollectSlice(rt, SliceBudget::Unlimited, gcreason::RESET, GC_NORMAL);
         gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_WAIT_BACKGROUND_THREAD);
@@ -3816,13 +3818,15 @@ AutoGCSlice::AutoGCSlice(JSRuntime *rt)
 
 AutoGCSlice::~AutoGCSlice()
 {
+    JS_ASSERT(runtime->gcIncrementalState == NO_INCREMENTAL ||
+              runtime->gcIncrementalState == MARK ||
+              runtime->gcIncrementalState == SWEEP_ATOMS ||
+              runtime->gcIncrementalState == SWEEP);
     for (GCCompartmentsIter c(runtime); !c.done(); c.next()) {
         if (runtime->gcIncrementalState == MARK) {
             c->setNeedsBarrier(true);
             c->arenas.prepareForIncrementalGC(runtime);
         } else {
-            JS_ASSERT(runtime->gcIncrementalState == NO_INCREMENTAL ||
-                      runtime->gcIncrementalState == SWEEP);
             c->setNeedsBarrier(false);
         }
     }
@@ -3944,26 +3948,48 @@ IncrementalCollectSlice(JSRuntime *rt,
         }
 
         EndMarkPhase(rt, isIncremental);
-
-        rt->gcIncrementalState = SWEEP;
-
-        
-
-
-
         BeginSweepPhase(rt);
-        if (sliceBudget.isOverBudget())
-            break;
+
+        rt->gcIncrementalState = SWEEP_ATOMS;
 
         
 
 
 
-        if (budget != SliceBudget::Unlimited && zeal == ZealIncrementalMultipleSlices)
+
+
+
+
+
+
+
+
+        if (budget != SliceBudget::Unlimited &&
+            (sliceBudget.isOverBudget() ||
+             rt->atomsCompartment->isCollecting() ||
+             zeal == ZealIncrementalMultipleSlices))
+        {
             break;
+        }
 
         
       }
+
+      case SWEEP_ATOMS:
+
+        rt->gcIncrementalState = SWEEP;
+
+        if (rt->atomsCompartment->isCollecting()) {
+            gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_SWEEP_ATOMS);
+            uint32_t initialCount = rt->atomState.atoms.count();
+            SweepAtomState(rt);
+            sliceBudget.step(initialCount);
+
+            if (sliceBudget.isOverBudget())
+                break;
+        }
+
+        
 
       case SWEEP: {
 #ifdef DEBUG
@@ -4519,7 +4545,7 @@ RunDebugGC(JSContext *cx)
 
 
         if (type == ZealIncrementalMultipleSlices &&
-            initialState == MARK && rt->gcIncrementalState == SWEEP)
+            initialState == MARK && rt->gcIncrementalState == SWEEP_ATOMS)
         {
             rt->gcIncrementalLimit = rt->gcZealFrequency / 2;
         }
