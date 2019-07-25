@@ -4465,20 +4465,18 @@ nsHTMLEditor::IsEmptyNodeImpl(nsINode* aNode,
   
   
   if (!IsContainer(aNode->AsDOMNode())                      ||
-      (aNode->IsElement() &&
-       (nsHTMLEditUtils::IsNamedAnchor(aNode->AsElement())  ||
-        nsHTMLEditUtils::IsFormWidget(aNode->AsElement())   ||
-        (aListOrCellNotEmpty &&
-         (nsHTMLEditUtils::IsListItem(aNode->AsElement())   ||
-          nsHTMLEditUtils::IsTableCell(aNode->AsElement()))))))  {
+      (nsHTMLEditUtils::IsNamedAnchor(aNode) ||
+       nsHTMLEditUtils::IsFormWidget(aNode) ||
+       (aListOrCellNotEmpty &&
+        (nsHTMLEditUtils::IsListItem(aNode) ||
+         nsHTMLEditUtils::IsTableCell(aNode))))) {
     *outIsEmptyNode = false;
     return NS_OK;
   }
     
   
-  bool isListItemOrCell = aNode->IsElement() &&
-       (nsHTMLEditUtils::IsListItem(aNode->AsElement()) ||
-        nsHTMLEditUtils::IsTableCell(aNode->AsElement()));
+  bool isListItemOrCell = nsHTMLEditUtils::IsListItem(aNode) ||
+                          nsHTMLEditUtils::IsTableCell(aNode);
        
   
   
@@ -4510,12 +4508,13 @@ nsHTMLEditor::IsEmptyNodeImpl(nsINode* aNode,
           
           if (child->IsElement()) {
             if (isListItemOrCell) {
-              if (nsHTMLEditUtils::IsList(child->AsElement()) || child->IsHTML(nsGkAtoms::table)) {
+              if (nsHTMLEditUtils::IsList(child) ||
+                  child->IsHTML(nsGkAtoms::table)) {
                 
                 *outIsEmptyNode = false;
                 return NS_OK;
               }
-            } else if (nsHTMLEditUtils::IsFormWidget(child->AsElement())) {
+            } else if (nsHTMLEditUtils::IsFormWidget(child)) {
               
               
               *outIsEmptyNode = false;
