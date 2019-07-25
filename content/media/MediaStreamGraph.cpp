@@ -1325,21 +1325,27 @@ MediaStreamGraphImpl::RunThread()
     }
 
     {
-      MonitorAutoLock lock(mMonitor);
+      
+      
+      mMonitor.Lock();
       PrepareUpdatesToMainThreadState();
       if (mForceShutDown || (IsEmpty() && mMessageQueue.IsEmpty())) {
         
         
         LOG(PR_LOG_DEBUG, ("MediaStreamGraph %p waiting for main thread cleanup", this));
+        
         mLifecycleState = LIFECYCLE_WAITING_FOR_MAIN_THREAD_CLEANUP;
-        {
-          MonitorAutoUnlock unlock(mMonitor);
-          
-          
-          
-          for (PRUint32 i = 0; i < mStreams.Length(); ++i) {
-            mStreams[i]->DestroyImpl();
-          }
+        
+        
+        nsTArray<nsRefPtr<MediaStream> > streams;
+        mStreams.SwapElements(streams);
+
+        mMonitor.Unlock();
+        
+        
+        
+        for (PRUint32 i = 0; i < streams.Length(); ++i) {
+          streams[i]->DestroyImpl();
         }
         return;
       }
@@ -1360,7 +1366,7 @@ MediaStreamGraphImpl::RunThread()
         mWaitState = WAITSTATE_WAITING_INDEFINITELY;
       }
       if (timeout > 0) {
-        lock.Wait(timeout);
+        mMonitor.Wait(timeout);
         LOG(PR_LOG_DEBUG, ("Resuming after timeout; at %f, elapsed=%f",
                            (TimeStamp::Now() - mInitialTimeStamp).ToSeconds(),
                            (TimeStamp::Now() - now).ToSeconds()));
@@ -1368,6 +1374,8 @@ MediaStreamGraphImpl::RunThread()
       mWaitState = WAITSTATE_RUNNING;
       mNeedAnotherIteration = false;
       messageQueue.SwapElements(mMessageQueue);
+
+      mMonitor.Unlock();
     }
   }
 }
