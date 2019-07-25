@@ -1385,23 +1385,23 @@ const BrowserSearch = {
     switch (aData) {
       case "engine-added":
       case "engine-removed":
-	
-	
-	if (ExtensionsView._list)
-	  ExtensionsView.getAddonsFromLocal();
+        
+        
+        if (ExtensionsView._list)
+          ExtensionsView.getAddonsFromLocal();
 
-	
+        
       case "engine-changed":
-	
-	
-	
+        
+        
+        
 
-	
-	this._engines = null;
-	break;
+        
+        this._engines = null;
+        break;
       case "engine-current":
-	
-	break;
+        
+        break;
     }
   },
 
