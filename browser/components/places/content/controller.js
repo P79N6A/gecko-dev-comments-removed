@@ -1403,10 +1403,6 @@ let PlacesControllerDragHelper = {
       
       
       
-      
-      if (flavor == TAB_DROP_TYPE)
-        continue;
-
       let data = dt.mozGetDataAt(flavor, i);
       let dragged;
       try {
@@ -1520,21 +1516,8 @@ let PlacesControllerDragHelper = {
 
       let data = dt.mozGetDataAt(flavor, i);
       let unwrapped;
-      if (flavor != TAB_DROP_TYPE) {
-        
-        unwrapped = PlacesUtils.unwrapNodes(data, flavor)[0];
-      }
-      else if (data instanceof XULElement && data.localName == "tab" &&
-               data.ownerDocument.defaultView instanceof ChromeWindow) {
-        let uri = data.linkedBrowser.currentURI;
-        let spec = uri ? uri.spec : "about:blank";
-        let title = data.label;
-        unwrapped = { uri: spec,
-                      title: data.label,
-                      type: PlacesUtils.TYPE_X_MOZ_URL};
-      }
-      else
-        throw("bogus data was passed as a tab")
+      
+      unwrapped = PlacesUtils.unwrapNodes(data, flavor)[0];
 
       let index = insertionPoint.index;
 
@@ -1588,7 +1571,6 @@ let PlacesControllerDragHelper = {
                             PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR,
                             PlacesUtils.TYPE_X_MOZ_PLACE,
                             PlacesUtils.TYPE_X_MOZ_URL,
-                            TAB_DROP_TYPE,
                             PlacesUtils.TYPE_UNICODE],
 };
 
