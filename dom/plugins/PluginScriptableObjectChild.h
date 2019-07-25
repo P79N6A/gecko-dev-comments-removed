@@ -168,6 +168,13 @@ public:
   
   void DropNPObject();
 
+  
+
+
+
+
+  void NPObjectDestroyed();
+
   bool
   Evaluate(NPString* aScript,
            NPVariant* aResult);
