@@ -1867,7 +1867,7 @@ Engine.prototype = {
           
           valueStart = quoteStart + "\"".length;
           
-          valueEnd = lLine.indexOf("\"", valueStart);
+          let valueEnd = lLine.indexOf("\"", valueStart);
           
           if (valueEnd == -1)
             valueEnd = aLine.length;
@@ -1879,7 +1879,7 @@ Engine.prototype = {
 
       LOG("_parseAsSherlock::getInputs: Lines:\n" + aLines);
       
-      lines = aLines.filter(function (line) {
+      let lines = aLines.filter(function (line) {
         return /^\s*<input/i.test(line);
       });
       LOG("_parseAsSherlock::getInputs: Filtered lines:\n" + lines);
