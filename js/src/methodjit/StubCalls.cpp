@@ -2356,7 +2356,11 @@ stubs::AnyFrameEpilogue(VMFrame &f)
 
 
 
-    if (!ScriptEpilogue(f.cx, f.fp(), true))
+    bool ok = true;
+    if (f.cx->compartment->debugMode())
+        ok = js::ScriptDebugEpilogue(f.cx, f.fp(), ok);
+    ok = ScriptEpilogue(f.cx, f.fp(), ok);
+    if (!ok)
         THROW();
     if (f.fp()->isNonEvalFunctionFrame())
         f.fp()->functionEpilogue();

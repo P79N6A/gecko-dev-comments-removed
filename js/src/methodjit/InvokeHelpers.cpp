@@ -576,6 +576,10 @@ js_InternalThrow(VMFrame &f)
         
         JS_ASSERT(!f.fp()->finishedInInterpreter());
         UnwindScope(cx, 0, cx->isExceptionPending());
+
+        if (cx->compartment->debugMode())
+            js::ScriptDebugEpilogue(cx, f.fp(), false);
+
         ScriptEpilogue(f.cx, f.fp(), false);
 
         
@@ -915,6 +919,10 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
         
         if (!ScriptPrologueOrGeneratorResume(cx, fp, types::UseNewTypeAtEntry(cx, fp)))
             return js_InternalThrow(f);
+
+        if (cx->compartment->debugMode())
+            js::ScriptDebugPrologue(cx, fp);
+
         break;
 
       case REJOIN_CALL_PROLOGUE:
