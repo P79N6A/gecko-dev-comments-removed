@@ -133,7 +133,7 @@ class HeapReverser : public JSTracer {
     struct Edge {
       public:
         Edge(char *name, void *origin) : name(name), origin(origin) { }
-        ~Edge() { free(name); }
+        ~Edge() { js_free(name); }
 
         
 
@@ -166,12 +166,12 @@ class HeapReverser : public JSTracer {
 
 
 
-    typedef HashMap<void *, Node> Map;
+    typedef HashMap<void *, Node, DefaultHasher<void *>, SystemAllocPolicy> Map;
     Map map;
 
     
-    HeapReverser(JSContext *cx) : map(cx), roots(cx), rooter(cx, 0, NULL), work(cx), parent(NULL) {
-        JS_TracerInit(this, cx, traverseEdgeWithThis);
+    HeapReverser(JSContext *cx) : rooter(cx, 0, NULL), parent(NULL) {
+        JS_TracerInit(this, JS_GetRuntime(cx), traverseEdgeWithThis);
     }
 
     bool init() { return map.init(); }
@@ -193,7 +193,7 @@ class HeapReverser : public JSTracer {
 
 
 
-    Vector<jsval> roots;
+    Vector<jsval, 0, SystemAllocPolicy> roots;
     AutoArrayRooter rooter;
 
     
@@ -232,7 +232,7 @@ class HeapReverser : public JSTracer {
 
 
 
-    Vector<Child> work;
+    Vector<Child, 0, SystemAllocPolicy> work;
 
     
     void *parent;
@@ -323,7 +323,7 @@ HeapReverser::getEdgeDescription()
 {
     if (!debugPrinter && debugPrintIndex == (size_t) -1) {
         const char *arg = static_cast<const char *>(debugPrintArg);
-        char *name = static_cast<char *>(context->malloc_(strlen(arg) + 1));
+        char *name = static_cast<char *>(js_malloc(strlen(arg) + 1));
         if (!name)
             return NULL;
         strcpy(name, arg);
@@ -332,7 +332,7 @@ HeapReverser::getEdgeDescription()
 
     
     static const int nameSize = 200;
-    char *name = static_cast<char *>(context->malloc_(nameSize));
+    char *name = static_cast<char *>(js_malloc(nameSize));
     if (!name)
         return NULL;
     if (debugPrinter)
@@ -342,7 +342,7 @@ HeapReverser::getEdgeDescription()
                     static_cast<const char *>(debugPrintArg), debugPrintIndex);
 
     
-    return static_cast<char *>(context->realloc_(name, strlen(name) + 1));
+    return static_cast<char *>(js_realloc(name, strlen(name) + 1));
 }
 
 
