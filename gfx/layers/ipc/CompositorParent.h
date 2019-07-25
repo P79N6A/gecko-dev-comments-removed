@@ -52,7 +52,6 @@
 #include "mozilla/layers/PCompositorParent.h"
 #include "mozilla/layers/PLayersParent.h"
 #include "base/thread.h"
-#include "mozilla/Monitor.h"
 #include "ShadowLayersManager.h"
 
 class nsIWidget;
@@ -170,8 +169,6 @@ private:
   PlatformThreadId mThreadID;
   bool mRenderToEGLSurface;
   nsIntSize mEGLSurfaceSize;
-
-  mozilla::Monitor mPauseCompositionMonitor;
 
   DISALLOW_EVIL_CONSTRUCTORS(CompositorParent);
 };

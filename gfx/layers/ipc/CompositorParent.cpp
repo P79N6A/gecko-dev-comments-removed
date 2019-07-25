@@ -71,7 +71,6 @@ CompositorParent::CompositorParent(nsIWidget* aWidget, MessageLoop* aMsgLoop,
   , mThreadID(aThreadID)
   , mRenderToEGLSurface(aRenderToEGLSurface)
   , mEGLSurfaceSize(aSurfaceWidth, aSurfaceHeight)
-  , mPauseCompositionMonitor("PauseCompositionMonitor")
 {
   MOZ_COUNT_CTOR(CompositorParent);
 }
@@ -147,9 +146,6 @@ CompositorParent::PauseComposition()
 {
   NS_ABORT_IF_FALSE(CompositorThreadID() == PlatformThread::CurrentId(),
                     "PauseComposition() can only be called on the compositor thread");
-
-  mozilla::MonitorAutoLock lock(mPauseCompositionMonitor);
-
   if (!mPaused) {
     mPaused = true;
 
@@ -157,9 +153,6 @@ CompositorParent::PauseComposition()
     static_cast<LayerManagerOGL*>(mLayerManager.get())->gl()->ReleaseSurface();
 #endif
   }
-
-  
-  lock.NotifyAll();
 }
 
 void
@@ -191,21 +184,12 @@ CompositorParent::ResumeCompositionAndResize(int width, int height)
   ResumeComposition();
 }
 
-
-
-
-
 void
 CompositorParent::SchedulePauseOnCompositorThread()
 {
-  mozilla::MonitorAutoLock lock(mPauseCompositionMonitor);
-
   CancelableTask *pauseTask = NewRunnableMethod(this,
                                                 &CompositorParent::PauseComposition);
   CompositorLoop()->PostTask(FROM_HERE, pauseTask);
-
-  
-  lock.Wait();
 }
 
 void

@@ -466,13 +466,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
     public void compositionPauseRequested() {
         
         
-        
-        
-        
-        
-        
-        
-        GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createCompositorPauseEvent());
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createCompositorPauseEvent());
     }
 
     
