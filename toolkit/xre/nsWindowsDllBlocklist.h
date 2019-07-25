@@ -106,6 +106,10 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
 
   
   {"rlxf.dll", MAKE_VERSION(1,2,323,1)},
+
+  
+  
+  {"psicon.dll", ALL_VERSIONS},
   
   
   { "mozdllblockingtest.dll", ALL_VERSIONS },
