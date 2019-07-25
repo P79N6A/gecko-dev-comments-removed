@@ -1062,7 +1062,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
 
         
     Groups.setActiveGroup(self);
-    return { shouldZoom: true };    
+    return { shouldZoom: true };
     
     
 
@@ -1352,7 +1352,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     var groupTabs = [];
     for ( var i=0; i<UI.tabBar.el.children.length; i++ ){
       var tab = UI.tabBar.el.children[i];
-      if ( tab.collapsed == false )
+      if (!tab.collapsed)
         groupTabs.push(tab);
     }
      

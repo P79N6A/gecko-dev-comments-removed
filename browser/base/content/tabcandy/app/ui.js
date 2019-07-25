@@ -215,13 +215,13 @@ window.Page = {
   setupKeyHandlers: function(){
     var self = this;
     iQ(window).keyup(function(e){
-      if ( e.metaKey == false ) window.Keys.meta = false;
+      if (!e.metaKey) window.Keys.meta = false;
     });
     
     iQ(window).keydown(function(e){
-      if ( e.metaKey == true ) window.Keys.meta = true;
+      if (e.metaKey) window.Keys.meta = true;
       
-      if ( !self.getActiveTab() ) return;
+      if (!self.getActiveTab()) return;
       
       var centers = [[item.bounds.center(), item] for each(item in TabItems.getItems())];
       myCenter = self.getActiveTab().bounds.center();
@@ -845,13 +845,11 @@ UIClass.prototype = {
     
     
     var isAnimating = iQ.isAnimating();
-    if ( force == false){
-      if ( isAnimating || !Page.isTabCandyVisible() ) {
-        
-        
-        
-        return;   
-      }
+    if ( !force && ( isAnimating || !Page.isTabCandyVisible() ) ) {
+      
+      
+      
+      return;
     }   
 
     var oldPageBounds = new Rect(this.pageBounds);
