@@ -53,7 +53,7 @@ let WeaveGlue = {
     this.setupData = { account: "", password: "" , synckey: "", serverURL: "" };
 
     
-    if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
+    if (Services.prefs.prefHasUserValue("services.sync.username")) {
       
       this._elements.connect.firstChild.disabled = true;
       this._elements.connect.setAttribute("title", this._bundle.GetStringFromName("connecting.label"));
@@ -259,7 +259,7 @@ let WeaveGlue = {
 
   tryConnect: function login() {
     
-    if (Weave.Status.checkSetup() == Weave.CLIENT_NOT_CONFIGURED) {
+    if (!Services.prefs.prefHasUserValue("services.sync.username")) {
       this.open();
       return;
     }
