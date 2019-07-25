@@ -2261,7 +2261,8 @@ mjit::Compiler::generateMethod()
 
 
 
-            if (PC[JSOP_GETLOCAL_LENGTH] != JSOP_POP)
+            jsbytecode *next = &PC[JSOP_GETLOCAL_LENGTH];
+            if (JSOp(*next) != JSOP_POP || analysis->jumpTarget(next))
                 restoreVarType();
             uint32 slot = GET_SLOTNO(PC);
             frame.pushLocal(slot);
