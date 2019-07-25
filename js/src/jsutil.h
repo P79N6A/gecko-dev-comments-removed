@@ -91,14 +91,15 @@ JS_Assert(const char *s, const char *file, JSIntn ln);
 
 
 
-
-
-
-
-
-
 #ifdef __SUNPRO_CC
-#define JS_STATIC_ASSERT(cond)
+
+
+
+
+
+
+
+#define JS_STATIC_ASSERT(cond) extern char js_static_assert[(cond) ? 1 : -1]
 #else
 #ifdef __COUNTER__
     #define JS_STATIC_ASSERT_GLUE1(x,y) x##y
