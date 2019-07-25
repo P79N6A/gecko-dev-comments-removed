@@ -36,6 +36,7 @@
 
 
 
+
 package org.mozilla.gecko.gfx;
 
 import android.graphics.Point;
@@ -43,8 +44,8 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 import android.graphics.Region;
 import android.util.Log;
+import java.nio.FloatBuffer;
 import java.util.concurrent.locks.ReentrantLock;
-import javax.microedition.khronos.opengles.GL10;
 import org.mozilla.gecko.FloatUtils;
 
 public abstract class Layer {
@@ -67,7 +68,7 @@ public abstract class Layer {
 
 
 
-    public final boolean update(GL10 gl, RenderContext context) {
+    public final boolean update(RenderContext context) {
         if (mTransactionLock.isHeldByCurrentThread()) {
             throw new RuntimeException("draw() called while transaction lock held by this " +
                                        "thread?!");
@@ -75,7 +76,7 @@ public abstract class Layer {
 
         if (mTransactionLock.tryLock()) {
             try {
-                return performUpdates(gl, context);
+                return performUpdates(context);
             } finally {
                 mTransactionLock.unlock();
             }
@@ -177,7 +178,7 @@ public abstract class Layer {
 
 
 
-    protected boolean performUpdates(GL10 gl, RenderContext context) {
+    protected boolean performUpdates(RenderContext context) {
         if (mNewOrigin != null) {
             mOrigin = mNewOrigin;
             mNewOrigin = null;
@@ -198,11 +199,18 @@ public abstract class Layer {
         public final RectF viewport;
         public final FloatSize pageSize;
         public final float zoomFactor;
+        public final int positionHandle;
+        public final int textureHandle;
+        public final FloatBuffer coordBuffer;
 
-        public RenderContext(RectF aViewport, FloatSize aPageSize, float aZoomFactor) {
+        public RenderContext(RectF aViewport, FloatSize aPageSize, float aZoomFactor,
+                             int aPositionHandle, int aTextureHandle, FloatBuffer aCoordBuffer) {
             viewport = aViewport;
             pageSize = aPageSize;
             zoomFactor = aZoomFactor;
+            positionHandle = aPositionHandle;
+            textureHandle = aTextureHandle;
+            coordBuffer = aCoordBuffer;
         }
 
         public boolean fuzzyEquals(RenderContext other) {

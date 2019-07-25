@@ -35,6 +35,7 @@
 
 
 
+
 package org.mozilla.gecko.gfx;
 
 import android.graphics.Bitmap;
@@ -45,11 +46,10 @@ import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.opengl.GLES11;
-import android.opengl.GLES11Ext;
+import android.opengl.GLES20;
 import android.util.Log;
 import java.nio.ByteBuffer;
-import javax.microedition.khronos.opengles.GL10;
+import java.nio.FloatBuffer;
 import org.mozilla.gecko.FloatUtils;
 import org.mozilla.gecko.GeckoAppShell;
 
@@ -64,18 +64,62 @@ public class ScrollbarLayer extends TileLayer {
     private static final int BAR_SIZE = 6;
     private static final int CAP_RADIUS = (BAR_SIZE / 2);
 
-    private static final int[] CROPRECT_MIDPIXEL = new int[] { CAP_RADIUS, CAP_RADIUS, 1, 1 };
-    private static final int[] CROPRECT_TOPCAP = new int[] { 0, CAP_RADIUS, BAR_SIZE, -CAP_RADIUS };
-    private static final int[] CROPRECT_BOTTOMCAP = new int[] { 0, BAR_SIZE, BAR_SIZE, -CAP_RADIUS };
-    private static final int[] CROPRECT_LEFTCAP = new int[] { 0, BAR_SIZE, CAP_RADIUS, -BAR_SIZE };
-    private static final int[] CROPRECT_RIGHTCAP = new int[] { CAP_RADIUS, BAR_SIZE, CAP_RADIUS, -BAR_SIZE };
-
     private final boolean mVertical;
     private final ByteBuffer mBuffer;
     private final Bitmap mBitmap;
     private final Canvas mCanvas;
     private float mOpacity;
     private boolean mFinalized = false;
+
+    
+    private static final float TEX_HEIGHT = 8.0f;
+    private static final float TEX_WIDTH = 8.0f;
+
+    
+    
+    private static final float[] BODY_TEX_COORDS = {
+        
+        CAP_RADIUS/TEX_WIDTH, CAP_RADIUS/TEX_HEIGHT,
+        CAP_RADIUS/TEX_WIDTH, (CAP_RADIUS+1)/TEX_HEIGHT,
+        (CAP_RADIUS+1)/TEX_WIDTH, CAP_RADIUS/TEX_HEIGHT,
+        (CAP_RADIUS+1)/TEX_WIDTH, (CAP_RADIUS+1)/TEX_HEIGHT
+    };
+
+    
+    private static final float[] TOP_CAP_TEX_COORDS = {
+        
+        0                 , 1.0f - CAP_RADIUS/TEX_HEIGHT,
+        0                 , 1.0f,
+        BAR_SIZE/TEX_WIDTH, 1.0f - CAP_RADIUS/TEX_HEIGHT,
+        BAR_SIZE/TEX_WIDTH, 1.0f
+    };
+
+    
+    private static final float[] BOT_CAP_TEX_COORDS = {
+        
+        0                 , 1.0f - BAR_SIZE/TEX_HEIGHT,
+        0                 , 1.0f - CAP_RADIUS/TEX_HEIGHT,
+        BAR_SIZE/TEX_WIDTH, 1.0f - BAR_SIZE/TEX_HEIGHT,
+        BAR_SIZE/TEX_WIDTH, 1.0f - CAP_RADIUS/TEX_HEIGHT
+    };
+
+    
+    private static final float[] LEFT_CAP_TEX_COORDS = {
+        
+        0                   , 1.0f - BAR_SIZE/TEX_HEIGHT,
+        0                   , 1.0f,
+        CAP_RADIUS/TEX_WIDTH, 1.0f - BAR_SIZE/TEX_HEIGHT,
+        CAP_RADIUS/TEX_WIDTH, 1.0f
+    };
+
+    
+    private static final float[] RIGHT_CAP_TEX_COORDS = {
+        
+        CAP_RADIUS/TEX_WIDTH, 1.0f - BAR_SIZE/TEX_HEIGHT,
+        CAP_RADIUS/TEX_WIDTH, 1.0f,
+        BAR_SIZE/TEX_WIDTH  , 1.0f - BAR_SIZE/TEX_HEIGHT,
+        BAR_SIZE/TEX_WIDTH  , 1.0f
+    };
 
     private ScrollbarLayer(CairoImage image, boolean vertical, ByteBuffer buffer) {
         super(false, image);
@@ -97,13 +141,13 @@ public class ScrollbarLayer extends TileLayer {
         }
     }
 
-
     public static ScrollbarLayer create(boolean vertical) {
         
         
         int imageSize = IntSize.nextPowerOfTwo(BAR_SIZE);
         ByteBuffer buffer = GeckoAppShell.allocateDirectBuffer(imageSize * imageSize * 4);
-        CairoImage image = new BufferedCairoImage(buffer, imageSize, imageSize, CairoImage.FORMAT_ARGB32);
+        CairoImage image = new BufferedCairoImage(buffer, imageSize, imageSize,
+                                                  CairoImage.FORMAT_ARGB32);
         return new ScrollbarLayer(image, vertical, buffer);
     }
 
@@ -166,36 +210,197 @@ public class ScrollbarLayer extends TileLayer {
             return;
 
         try {
-            GLES11.glEnable(GL10.GL_BLEND);
-            GLES11.glBlendFunc(GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA);
+            GLES20.glEnable(GLES20.GL_BLEND);
+            GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
 
-            Rect rect = RectUtils.round(mVertical ? getVerticalRect(context) : getHorizontalRect(context));
-            GLES11.glBindTexture(GL10.GL_TEXTURE_2D, getTextureID());
+            Rect rect = RectUtils.round(mVertical
+                                        ? getVerticalRect(context)
+                                        : getHorizontalRect(context));
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, getTextureID());
 
+            float viewWidth = context.viewport.width();
             float viewHeight = context.viewport.height();
 
+            float top = viewHeight - rect.top;
+            float bot = viewHeight - rect.bottom;
+
+            
+            float[] bodyCoords = {
+                
+                rect.left/viewWidth, bot/viewHeight, 0,
+                BODY_TEX_COORDS[0], BODY_TEX_COORDS[1],
+
+                rect.left/viewWidth, (bot+rect.height())/viewHeight, 0,
+                BODY_TEX_COORDS[2], BODY_TEX_COORDS[3],
+
+                (rect.left+rect.width())/viewWidth, bot/viewHeight, 0,
+                BODY_TEX_COORDS[4], BODY_TEX_COORDS[5],
+
+                (rect.left+rect.width())/viewWidth, (bot+rect.height())/viewHeight, 0,
+                BODY_TEX_COORDS[6], BODY_TEX_COORDS[7]
+            };
+
+            
+            FloatBuffer coordBuffer = context.coordBuffer;
+            int positionHandle = context.positionHandle;
+            int textureHandle = context.textureHandle;
+
             
             
-            GLES11.glTexParameteriv(GL10.GL_TEXTURE_2D, GLES11Ext.GL_TEXTURE_CROP_RECT_OES, CROPRECT_MIDPIXEL, 0);
-            GLES11Ext.glDrawTexfOES(rect.left, viewHeight - rect.bottom, 0.0f, rect.width(), rect.height());
+            coordBuffer.position(0);
+            coordBuffer.put(bodyCoords);
+
+            
+            coordBuffer.position(0);
+            GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20,
+                                         coordBuffer);
+
+            
+            coordBuffer.position(3);
+            GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20,
+                                         coordBuffer);
+
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+
+            
+            coordBuffer.position(0);
 
             if (mVertical) {
                 
-                GLES11.glTexParameteriv(GL10.GL_TEXTURE_2D, GLES11Ext.GL_TEXTURE_CROP_RECT_OES, CROPRECT_TOPCAP, 0);
-                GLES11Ext.glDrawTexfOES(rect.left, viewHeight - rect.top, 0.0f, BAR_SIZE, CAP_RADIUS);
+                float[] topCap = {
+                    
+                    rect.left/viewWidth, top/viewHeight, 0,
+                    TOP_CAP_TEX_COORDS[0], TOP_CAP_TEX_COORDS[1],
+
+                    rect.left/viewWidth, (top+CAP_RADIUS)/viewHeight, 0,
+                    TOP_CAP_TEX_COORDS[2], TOP_CAP_TEX_COORDS[3],
+
+                    (rect.left+BAR_SIZE)/viewWidth, top/viewHeight, 0,
+                    TOP_CAP_TEX_COORDS[4], TOP_CAP_TEX_COORDS[5],
+
+                    (rect.left+BAR_SIZE)/viewWidth, (top+CAP_RADIUS)/viewHeight, 0,
+                    TOP_CAP_TEX_COORDS[6], TOP_CAP_TEX_COORDS[7]
+                };
+
+                coordBuffer.put(topCap);
+
                 
-                GLES11.glTexParameteriv(GL10.GL_TEXTURE_2D, GLES11Ext.GL_TEXTURE_CROP_RECT_OES, CROPRECT_BOTTOMCAP, 0);
-                GLES11Ext.glDrawTexfOES(rect.left, viewHeight - (rect.bottom + CAP_RADIUS), 0.0f, BAR_SIZE, CAP_RADIUS);
+                coordBuffer.position(0);
+                GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20,
+                                             coordBuffer);
+
+                
+                
+                coordBuffer.position(3);
+                GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20,
+                                             coordBuffer);
+
+                GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+
+                
+                
+                coordBuffer.position(0);
+
+                
+                float[] botCap = {
+                    
+                    rect.left/viewWidth, (bot-CAP_RADIUS)/viewHeight, 0,
+                    BOT_CAP_TEX_COORDS[0], BOT_CAP_TEX_COORDS[1],
+
+                    rect.left/viewWidth, (bot)/viewHeight, 0,
+                    BOT_CAP_TEX_COORDS[2], BOT_CAP_TEX_COORDS[3],
+
+                    (rect.left+BAR_SIZE)/viewWidth, (bot-CAP_RADIUS)/viewHeight, 0,
+                    BOT_CAP_TEX_COORDS[4], BOT_CAP_TEX_COORDS[5],
+
+                    (rect.left+BAR_SIZE)/viewWidth, (bot)/viewHeight, 0,
+                    BOT_CAP_TEX_COORDS[6], BOT_CAP_TEX_COORDS[7]
+                };
+
+                coordBuffer.put(botCap);
+
+                
+                coordBuffer.position(0);
+                GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20,
+                                             coordBuffer);
+
+                
+                
+                coordBuffer.position(3);
+                GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20,
+                                             coordBuffer);
+
+                GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+
+                
+                
+                coordBuffer.position(0);
             } else {
                 
-                GLES11.glTexParameteriv(GL10.GL_TEXTURE_2D, GLES11Ext.GL_TEXTURE_CROP_RECT_OES, CROPRECT_LEFTCAP, 0);
-                GLES11Ext.glDrawTexfOES(rect.left - CAP_RADIUS, viewHeight - rect.bottom, 0.0f, CAP_RADIUS, BAR_SIZE);
+                float[] leftCap = {
+                    
+                    (rect.left-CAP_RADIUS)/viewWidth, bot/viewHeight, 0,
+                        LEFT_CAP_TEX_COORDS[0], LEFT_CAP_TEX_COORDS[1],
+                    (rect.left-CAP_RADIUS)/viewWidth, (bot+BAR_SIZE)/viewHeight, 0,
+                        LEFT_CAP_TEX_COORDS[2], LEFT_CAP_TEX_COORDS[3],
+                    (rect.left)/viewWidth, bot/viewHeight, 0, LEFT_CAP_TEX_COORDS[4],
+                        LEFT_CAP_TEX_COORDS[5],
+                    (rect.left)/viewWidth, (bot+BAR_SIZE)/viewHeight, 0,
+                        LEFT_CAP_TEX_COORDS[6], LEFT_CAP_TEX_COORDS[7]
+                };
+
+                coordBuffer.put(leftCap);
+
                 
-                GLES11.glTexParameteriv(GL10.GL_TEXTURE_2D, GLES11Ext.GL_TEXTURE_CROP_RECT_OES, CROPRECT_RIGHTCAP, 0);
-                GLES11Ext.glDrawTexfOES(rect.right, viewHeight - rect.bottom, 0.0f, CAP_RADIUS, BAR_SIZE);
+                coordBuffer.position(0);
+                GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20,
+                                             coordBuffer);
+
+                
+                
+                coordBuffer.position(3);
+                GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20,
+                                             coordBuffer);
+
+                GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+
+                
+                
+                coordBuffer.position(0);
+
+                
+                float[] rightCap = {
+                    
+                    rect.right/viewWidth, (bot)/viewHeight, 0,
+                    RIGHT_CAP_TEX_COORDS[0], RIGHT_CAP_TEX_COORDS[1],
+
+                    rect.right/viewWidth, (bot+BAR_SIZE)/viewHeight, 0,
+                    RIGHT_CAP_TEX_COORDS[2], RIGHT_CAP_TEX_COORDS[3],
+
+                    (rect.right+CAP_RADIUS)/viewWidth, (bot)/viewHeight, 0,
+                    RIGHT_CAP_TEX_COORDS[4], RIGHT_CAP_TEX_COORDS[5],
+
+                    (rect.right+CAP_RADIUS)/viewWidth, (bot+BAR_SIZE)/viewHeight, 0,
+                    RIGHT_CAP_TEX_COORDS[6], RIGHT_CAP_TEX_COORDS[7]
+                };
+
+                coordBuffer.put(rightCap);
+
+                
+                coordBuffer.position(0);
+                GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20,
+                                             coordBuffer);
+
+                
+                
+                coordBuffer.position(3);
+                GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20,
+                                             coordBuffer);
+
+                GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
             }
         } finally {
-            GLES11.glDisable(GL10.GL_BLEND);
+            GLES20.glDisable(GLES20.GL_BLEND);
         }
     }
 

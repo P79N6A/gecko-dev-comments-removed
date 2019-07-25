@@ -35,16 +35,16 @@
 
 
 
+
 package org.mozilla.gecko.gfx;
 
 import org.mozilla.gecko.gfx.LayerController;
 import org.mozilla.gecko.gfx.SingleTileLayer;
 import org.mozilla.gecko.GeckoAppShell;
-import android.opengl.GLES11;
-import android.opengl.GLES11Ext;
 import android.graphics.RectF;
 import android.util.Log;
-import javax.microedition.khronos.opengles.GL10;
+import android.opengl.GLES20;
+import java.nio.FloatBuffer;
 
 
 
@@ -65,9 +65,9 @@ public class WidgetTileLayer extends Layer {
     public IntSize getSize() { return mImage.getSize(); }
 
     protected void bindAndSetGLParameters() {
-        GLES11.glBindTexture(GL10.GL_TEXTURE_2D, mTextureIDs[0]);
-        GLES11.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MIN_FILTER, GL10.GL_NEAREST);
-        GLES11.glTexParameterf(GL10.GL_TEXTURE_2D, GL10.GL_TEXTURE_MAG_FILTER, GL10.GL_LINEAR);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureIDs[0]);
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+        GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
     }
 
     @Override
@@ -77,12 +77,12 @@ public class WidgetTileLayer extends Layer {
     }
 
     @Override
-    protected boolean performUpdates(GL10 gl, RenderContext context) {
-        super.performUpdates(gl, context);
+    protected boolean performUpdates(RenderContext context) {
+        super.performUpdates(context);
 
         if (mTextureIDs == null) {
             mTextureIDs = new int[1];
-            GLES11.glGenTextures(1, mTextureIDs, 0);
+            GLES20.glGenTextures(1, mTextureIDs, 0);
         }
 
         bindAndSetGLParameters();
@@ -98,7 +98,7 @@ public class WidgetTileLayer extends Layer {
         if (!initialized())
             return;
 
-        GLES11.glBindTexture(GL10.GL_TEXTURE_2D, mTextureIDs[0]);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureIDs[0]);
 
         RectF bounds;
         int[] cropRect;
@@ -106,21 +106,52 @@ public class WidgetTileLayer extends Layer {
         RectF viewport = context.viewport;
 
         bounds = getBounds(context, new FloatSize(size));
-        cropRect = new int[] { 0, size.height, size.width, -size.height };
+        cropRect = new int[] { 0, 0, size.width, size.height };
         bounds.offset(-viewport.left, -viewport.top);
-
-        GLES11.glTexParameteriv(GL10.GL_TEXTURE_2D, GLES11Ext.GL_TEXTURE_CROP_RECT_OES, cropRect,
-                                0);
 
         float top = viewport.height() - (bounds.top + bounds.height());
 
         
         
-        while (GLES11.glGetError() != GLES11.GL_NO_ERROR);
+        while (GLES20.glGetError() != GLES20.GL_NO_ERROR);
 
-        GLES11Ext.glDrawTexfOES(bounds.left, top, 0.0f, bounds.width(), bounds.height());
-        int error = GLES11.glGetError();
-        if (error != GLES11.GL_NO_ERROR) {
+        float[] coords = {
+            
+            bounds.left/viewport.width(), top/viewport.height(), 0,
+            cropRect[0]/size.width, cropRect[1]/size.height,
+
+            bounds.left/viewport.width(), (top+bounds.height())/viewport.height(), 0,
+            cropRect[0]/size.width, cropRect[3]/size.height,
+
+            (bounds.left+bounds.width())/viewport.width(), top/viewport.height(), 0,
+            cropRect[2]/size.width, cropRect[1]/size.height,
+
+            (bounds.left+bounds.width())/viewport.width(), (top+bounds.height())/viewport.height(),
+                0,
+            cropRect[2]/size.width, cropRect[3]/size.height
+        };
+
+        
+        FloatBuffer coordBuffer = context.coordBuffer;
+        int positionHandle = context.positionHandle;
+        int textureHandle = context.textureHandle;
+
+        
+        
+        coordBuffer.position(0);
+        coordBuffer.put(coords);
+
+        
+        coordBuffer.position(0);
+        GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 20, coordBuffer);
+
+        
+        coordBuffer.position(3);
+        GLES20.glVertexAttribPointer(textureHandle, 2, GLES20.GL_FLOAT, false, 20, coordBuffer);
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+
+        int error = GLES20.glGetError();
+        if (error != GLES20.GL_NO_ERROR) {
             Log.i(LOGTAG, "Failed to draw texture: " + error);
         }
     }

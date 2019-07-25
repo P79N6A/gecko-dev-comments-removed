@@ -128,7 +128,7 @@ public class GeckoGLLayerClient extends GeckoLayerClient
     @Override
     protected void tileLayerUpdated() {
         
-        mTileLayer.performUpdates(null, null);
+        mTileLayer.performUpdates(null);
     }
 
     @Override

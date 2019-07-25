@@ -1,3 +1,4 @@
+ 
 
 
 
@@ -46,8 +47,8 @@ import android.graphics.RectF;
 import android.graphics.Region;
 import android.util.Log;
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
-import javax.microedition.khronos.opengles.GL10;
 
 
 
@@ -157,8 +158,8 @@ public class MultiTileLayer extends Layer {
     }
 
     @Override
-    protected boolean performUpdates(GL10 gl, RenderContext context) {
-        super.performUpdates(gl, context);
+    protected boolean performUpdates(RenderContext context) {
+        super.performUpdates(context);
 
         validateTiles();
 
@@ -171,7 +172,7 @@ public class MultiTileLayer extends Layer {
             
             boolean invalid = layer.getSkipTextureUpdate();
             layer.setSkipTextureUpdate(true);
-            layer.performUpdates(gl, context);
+            layer.performUpdates(context);
 
             RectF layerBounds = layer.getBounds(context, new FloatSize(layer.getSize()));
             boolean isDirty = layer.isDirty();
@@ -187,7 +188,7 @@ public class MultiTileLayer extends Layer {
                     
                     layer.setSkipTextureUpdate(false);
                     screenUpdateDone = true;
-                    layer.performUpdates(gl, context);
+                    layer.performUpdates(context);
                     invalid = false;
                 }
             }
@@ -205,7 +206,7 @@ public class MultiTileLayer extends Layer {
         
         if (!screenUpdateDone && firstDirtyTile != null) {
             firstDirtyTile.setSkipTextureUpdate(false);
-            firstDirtyTile.performUpdates(gl, context);
+            firstDirtyTile.performUpdates(context);
             dirtyTiles --;
         }
 

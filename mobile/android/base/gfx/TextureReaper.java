@@ -35,9 +35,10 @@
 
 
 
+
 package org.mozilla.gecko.gfx;
 
-import javax.microedition.khronos.opengles.GL10;
+import android.opengl.GLES20;
 import java.util.ArrayList;
 
 
@@ -62,13 +63,13 @@ public class TextureReaper {
         mDeadTextureIDs.add(textureID);
     }
 
-    public void reap(GL10 gl) {
+    public void reap() {
         int[] deadTextureIDs = new int[mDeadTextureIDs.size()];
         for (int i = 0; i < deadTextureIDs.length; i++)
             deadTextureIDs[i] = mDeadTextureIDs.get(i);
         mDeadTextureIDs.clear();
 
-        gl.glDeleteTextures(deadTextureIDs.length, deadTextureIDs, 0);
+        GLES20.glDeleteTextures(deadTextureIDs.length, deadTextureIDs, 0);
     }
 }
 
