@@ -436,19 +436,8 @@ nsMemoryReporterManager::Init()
     REGISTER(Private);
 #endif
 
-#if defined(HAVE_JEMALLOC_STATS) && defined(XP_WIN)
-    
-    
-    
-    
-    
-    
-    
-
-    REGISTER(HeapCommitted);
-#endif
-
 #if defined(HAVE_JEMALLOC_STATS)
+    REGISTER(HeapCommitted);
     REGISTER(HeapDirty);
 #elif defined(XP_MACOSX) && !defined(MOZ_MEMORY)
     REGISTER(HeapZone0Committed);
