@@ -485,10 +485,15 @@ StackSpace::markFrameSlots(JSTracer *trc, StackFrame *fp, Value *slotsEnd, jsbyt
         uint32_t slot = analyze::LocalSlot(script, vp - slotsBegin);
 
         
+
+
+
         if (!analysis->trackSlot(slot) || analysis->liveness(slot).live(offset))
             gc::MarkValueRoot(trc, vp, "vm_stack");
-        else
-            *vp = UndefinedValue();
+        else if (vp->isObject())
+            *vp = ObjectValue(fp->scopeChain()->global());
+        else if (vp->isString())
+            *vp = StringValue(trc->runtime->atomState.nullAtom);
     }
 
     gc::MarkValueRootRange(trc, fixedEnd, slotsEnd, "vm_stack");
