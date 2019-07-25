@@ -601,7 +601,7 @@ pref("dom.min_background_timeout_value", 1000);
 
 
 
-pref("dom.new_bindings", false);
+pref("dom.new_bindings", true);
 
 
 #ifndef XP_WIN
