@@ -213,6 +213,8 @@ public:
 
     bool GetShowPasswordSetting();
 
+    void FireAndWaitForTracerEvent();
+
     struct AutoLocalJNIFrame {
         AutoLocalJNIFrame(int nEntries = 128) : mEntries(nEntries) {
             
@@ -350,6 +352,7 @@ protected:
     jmethodID jScanMedia;
     jmethodID jGetSystemColors;
     jmethodID jGetIconForExtension;
+    jmethodID jFireAndWaitForTracerEvent;
     jmethodID jCreateShortcut;
     jmethodID jGetShowPasswordSetting;
     jmethodID jPostToJavaThread;
