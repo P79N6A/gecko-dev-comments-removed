@@ -69,5 +69,14 @@ public class FloatSize {
     public FloatSize scale(float factor) {
         return new FloatSize(width * factor, height * factor);
     }
+
+    
+
+
+
+    public FloatSize interpolate(FloatSize to, float t) {
+        return new FloatSize(FloatUtils.interpolate(width, to.width, t),
+                             FloatUtils.interpolate(height, to.height, t));
+    }
 }
 
