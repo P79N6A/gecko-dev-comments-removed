@@ -196,7 +196,7 @@ struct JSStackFrame
                               uint32 nactual, uint32 flags);
 
     
-    inline void resetInvokeCallFrame();
+    inline void resetInvokeCallFrame(JSContext *cx);
 
     
     inline void initCallFrameCallerHalf(JSContext *cx, uint32 flags, void *ncode);
