@@ -118,7 +118,7 @@ struct Registers {
 
 #if defined(JS_CPU_X86) || defined(JS_CPU_X64)
     static const RegisterID ReturnReg = JSC::X86Registers::eax;
-# if defined(JS_CPU_X86) || defined(_MSC_VER)
+# if defined(JS_CPU_X86) || defined(_WIN64)
     static const RegisterID ArgReg0 = JSC::X86Registers::ecx;
     static const RegisterID ArgReg1 = JSC::X86Registers::edx;
 #  if defined(JS_CPU_X64)
@@ -158,7 +158,7 @@ struct Registers {
 # if defined(JS_CPU_X64)
         | (1 << JSC::X86Registers::r8)
         | (1 << JSC::X86Registers::r9)
-#  if !defined(_MSC_VER)
+#  if !defined(_WIN64)
         | (1 << JSC::X86Registers::esi)
         | (1 << JSC::X86Registers::edi)
 #  endif
@@ -172,7 +172,7 @@ struct Registers {
     
     
         | (1 << JSC::X86Registers::r15)
-#  if defined(_MSC_VER)
+#  if defined(_WIN64)
         | (1 << JSC::X86Registers::esi)
         | (1 << JSC::X86Registers::edi)
 #  endif
@@ -183,11 +183,15 @@ struct Registers {
 # endif
         ;
 
+# if defined(JS_CPU_X86)
     static const uint32 SingleByteRegs = (TempRegs | SavedRegs) &
         ~((1 << JSC::X86Registers::esi) |
           (1 << JSC::X86Registers::edi) |
           (1 << JSC::X86Registers::ebp) |
           (1 << JSC::X86Registers::esp));
+# elif defined(JS_CPU_X64)
+    static const uint32 SingleByteRegs = TempRegs | SavedRegs;
+# endif
 
 #elif defined(JS_CPU_ARM)
     static const uint32 TempRegs =
@@ -400,6 +404,10 @@ struct Registers {
 
     void takeReg(AnyRegisterID reg) {
         JS_ASSERT(hasReg(reg));
+        takeRegUnchecked(reg);
+    }
+
+    void takeRegUnchecked(AnyRegisterID reg) {
         freeMask &= ~(1 << reg.reg_);
     }
 
