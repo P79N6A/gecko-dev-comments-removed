@@ -591,6 +591,26 @@ let RIL = {
 
   networkSelectionMode: null,
 
+  
+
+
+  currentCalls: {},
+
+  
+
+
+  _muted: true,
+  get muted() {
+    return this._muted;
+  },
+  set muted(val) {
+    val = Boolean(val);
+    if (this._muted != val) {
+      this.setMute(val);
+      this._muted = val;
+    }
+  },
+
 
   
 
@@ -841,6 +861,8 @@ let RIL = {
 
 
   hangUp: function hangUp(options) {
+    
+    
     Buf.newParcel(REQUEST_HANGUP);
     Buf.writeUint32(1);
     Buf.writeUint32(options.callIndex);
@@ -863,15 +885,35 @@ let RIL = {
   
 
 
+
+
+
   answerCall: function answerCall() {
-    Buf.simpleRequest(REQUEST_ANSWER);
+    
+    
+    
+    
+    let call = this.currentCalls[options.callIndex];
+    if (call && call.state == CALL_STATE_INCOMING) {
+      Buf.simpleRequest(REQUEST_ANSWER);
+    }
   },
 
   
 
 
+
+
+
   rejectCall: function rejectCall() {
-    Buf.simpleRequest(REQUEST_UDUB);
+    
+    
+    
+    
+    let call = this.currentCalls[options.callIndex];
+    if (call && call.state == CALL_STATE_INCOMING) {
+      Buf.simpleRequest(REQUEST_UDUB);
+    }
   },
 
   
@@ -1189,7 +1231,68 @@ let RIL = {
     }
   },
 
- 
+  _processCalls: function _processCalls(newCalls) {
+    
+    
+    
+    for each (let currentCall in this.currentCalls) {
+      let newCall;
+      if (newCalls) {
+        newCall = newCalls[currentCall.callIndex];
+        delete newCalls[currentCall.callIndex];
+      }
+
+      if (newCall) {
+        
+        if (newCall.state != currentCall.state) {
+          
+          currentCall.state = newCall.state;
+          this._handleChangedCallState(currentCall);
+        }
+      } else {
+        
+        
+        delete this.currentCalls[currentCall.callIndex];
+        this._handleDisconnectedCall(currentCall);
+      }
+    }
+
+    
+    for each (let newCall in newCalls) {
+      if (newCall.isVoice) {
+        
+        if (newCall.number &&
+            newCall.toa == TOA_INTERNATIONAL &&
+            newCall.number[0] != "+") {
+          newCall.number = "+" + newCall.number;
+        }
+        
+        this.currentCalls[newCall.callIndex] = newCall;
+        this._handleChangedCallState(newCall);
+      }
+    }
+
+    
+    
+    this.muted = Object.getOwnPropertyNames(this.currentCalls).length == 0;
+  },
+
+  _handleChangedCallState: function _handleChangedCallState(changedCall) {
+    let message = {type: "callStateChange",
+                   call: {callIndex: changedCall.callIndex,
+                          state: changedCall.state,
+                          number: changedCall.number,
+                          name: changedCall.name}};
+    Phone.sendDOMMessage(message);
+  },
+
+  _handleDisconnectedCall: function _handleDisconnectedCall(disconnectedCall) {
+    let message = {type: "callDisconnected",
+                   call: {callIndex: disconnectedCall.callIndex}};
+    Phone.sendDOMMessage(message);
+  },
+
+
   
 
  
@@ -1265,7 +1368,7 @@ RIL[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CALLS(length) {
     calls_length = Buf.readUint32();
   }
   if (!calls_length) {
-    Phone.onCurrentCalls(null);
+    this._processCalls(null);
     return;
   }
 
@@ -1300,7 +1403,7 @@ RIL[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CALLS(length) {
 
     calls[call.callIndex] = call;
   }
-  Phone.onCurrentCalls(calls);
+  this._processCalls(calls);
 };
 RIL[REQUEST_DIAL] = null;
 RIL[REQUEST_GET_IMSI] = function REQUEST_GET_IMSI(length) {
@@ -1590,7 +1693,7 @@ RIL[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLICITED_RESPONSE_RA
   this.radioState = newState;
 };
 RIL[UNSOLICITED_RESPONSE_CALL_STATE_CHANGED] = function UNSOLICITED_RESPONSE_CALL_STATE_CHANGED() {
-  Phone.onCallStateChanged();
+  this.getCurrentCalls();
 };
 RIL[UNSOLICITED_RESPONSE_NETWORK_STATE_CHANGED] = function UNSOLICITED_RESPONSE_NETWORK_STATE_CHANGED() {
   if (DEBUG) debug("Network state changed, re-requesting phone state.");
@@ -1700,99 +1803,12 @@ let Phone = {
   
 
 
-  currentCalls: {},
-
-  
-
-
-  _muted: true,
-
-  
-
-
   currentDataCalls: {},
 
-  get muted() {
-    return this._muted;
-  },
-
-  set muted(val) {
-    val = Boolean(val);
-    if (this._muted != val) {
-      RIL.setMute(val);
-      this._muted = val;
-    }
-  },
-
-  _handleChangedCallState: function _handleChangedCallState(changedCall) {
-    let message = {type: "callStateChange",
-                   call: {callIndex: changedCall.callIndex,
-                          state: changedCall.state,
-                          number: changedCall.number,
-                          name: changedCall.name}};
-    this.sendDOMMessage(message);
-  },
-
-  _handleDisconnectedCall: function _handleDisconnectedCall(disconnectedCall) {
-    let message = {type: "callDisconnected",
-                   call: {callIndex: disconnectedCall.callIndex}};
-    this.sendDOMMessage(message);
-  },
-
   
 
 
 
-
-  onCurrentCalls: function onCurrentCalls(newCalls) {
-    
-    
-    
-    for each (let currentCall in this.currentCalls) {
-      let newCall;
-      if (newCalls) {
-        newCall = newCalls[currentCall.callIndex];
-        delete newCalls[currentCall.callIndex];
-      }
-
-      if (newCall) {
-        
-        if (newCall.state != currentCall.state) {
-          
-          currentCall.state = newCall.state;
-          this._handleChangedCallState(currentCall);
-        }
-      } else {
-        
-        
-        delete this.currentCalls[currentCall.callIndex];
-        this._handleDisconnectedCall(currentCall);
-      }
-    }
-
-    
-    for each (let newCall in newCalls) {
-      if (newCall.isVoice) {
-        
-        if (newCall.number &&
-            newCall.toa == TOA_INTERNATIONAL &&
-            newCall.number[0] != "+") {
-          newCall.number = "+" + newCall.number;
-        }
-        
-        this.currentCalls[newCall.callIndex] = newCall;
-        this._handleChangedCallState(newCall);
-      }
-    }
-
-    
-    
-    this.muted = Object.getOwnPropertyNames(this.currentCalls).length == 0;
-  },
-
-  onCallStateChanged: function onCallStateChanged() {
-    RIL.getCurrentCalls();
-  },
 
   onICCIO: function onICCIO(options) {
     switch (options.fileid) {
@@ -1985,7 +2001,7 @@ let Phone = {
   enumerateCalls: function enumerateCalls() {
     if (DEBUG) debug("Sending all current calls");
     let calls = [];
-    for each (let call in this.currentCalls) {
+    for each (let call in RIL.currentCalls) {
       calls.push(call);
     }
     this.sendDOMMessage({type: "enumerateCalls", calls: calls});
@@ -2044,8 +2060,6 @@ let Phone = {
 
 
   hangUp: function hangUp(options) {
-    
-    
     RIL.hangUp(options);
   },
 
@@ -2056,14 +2070,7 @@ let Phone = {
 
 
   answerCall: function answerCall(options) {
-    
-    
-    
-    
-    let call = this.currentCalls[options.callIndex];
-    if (call && call.state == CALL_STATE_INCOMING) {
-      RIL.answerCall();
-    }
+    RIL.answerCall(options);
   },
 
   
@@ -2073,14 +2080,7 @@ let Phone = {
 
 
   rejectCall: function rejectCall(options) {
-    
-    
-    
-    
-    let call = this.currentCalls[options.callIndex];
-    if (call && call.state == CALL_STATE_INCOMING) {
-      RIL.rejectCall();
-    }
+    RIL.rejectCall(options);
   },
 
   
