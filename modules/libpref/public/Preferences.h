@@ -193,6 +193,17 @@ public:
   static nsresult AddWeakObserver(nsIObserver* aObserver, const char* aPref);
   static nsresult RemoveObserver(nsIObserver* aObserver, const char* aPref);
 
+  
+
+
+
+  static nsresult AddStrongObservers(nsIObserver* aObserver,
+                                     const char** aPrefs);
+  static nsresult AddWeakObservers(nsIObserver* aObserver,
+                                   const char** aPrefs);
+  static nsresult RemoveObservers(nsIObserver* aObserver,
+                                  const char** aPrefs);
+
 protected:
   nsresult NotifyServiceObservers(const char *aSubject);
   nsresult UseDefaultPrefFile();
