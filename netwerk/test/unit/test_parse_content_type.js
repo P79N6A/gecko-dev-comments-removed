@@ -136,6 +136,10 @@ function run_test() {
   check("text/html", "", false);
 
   
+  type = netutil.parseContentType('text/plain; charset="UTF\\-8"', charset, hadCharset);
+  check("text/plain", "UTF-8", true);
+
+  
 
   
   type = netutil.parseContentType("text/plain; x='; charset=\"UTF-8\"", charset, hadCharset);
