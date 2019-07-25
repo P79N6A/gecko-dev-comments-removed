@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+<head><title>Browser Debugger Test Tab</title>
+
+
+<script type="text/javascript">
+
+var a = function() {
+  return function() {
+    debugger;
+  }
+}
+
+var anon = a();
+anon.displayName = "anonFunc";
+
+function evalCall() {
+  eval("anon();");
+}
+
+</script>
+</head>
+
+<body></body>
+
+</html>
