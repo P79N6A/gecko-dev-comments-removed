@@ -241,7 +241,7 @@ nsListControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     
     aLists.BorderBackground()->AppendNewToBottom(
-      new (aBuilder) nsDisplaySolidColor(
+      new (aBuilder) nsDisplaySolidColor(aBuilder,
         this, nsRect(aBuilder->ToReferenceFrame(this), GetSize()),
         mLastDropdownBackstopColor));
   }

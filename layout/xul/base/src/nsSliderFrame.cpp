@@ -328,7 +328,7 @@ nsSliderFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     
     return aLists.Outlines()->AppendNewToTop(new (aBuilder)
-        nsDisplayEventReceiver(this));
+        nsDisplayEventReceiver(aBuilder, this));
   }
   
   return nsBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
