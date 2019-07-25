@@ -358,7 +358,9 @@ nsXULPopupManager::PopupMoved(nsIFrame* aFrame, nsIntPoint aPnt)
   
   
   nsIntPoint currentPnt = menuPopupFrame->ScreenPosition();
-  if (aPnt.x != currentPnt.x || aPnt.y != currentPnt.y) {
+  nsIWidget* widget = menuPopupFrame->GetWidget();
+  if ((aPnt.x != currentPnt.x || aPnt.y != currentPnt.y) || (widget &&
+      widget->GetClientOffset() != menuPopupFrame->GetLastClientOffset())) {
     
     
     
