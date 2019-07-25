@@ -174,6 +174,9 @@ class ObjectImpl : public gc::Cell
     friend class NewObjectCache;
 
     
+    static const uint32_t SLOT_CAPACITY_MIN = 8;
+
+    
 
 
 
@@ -225,6 +228,17 @@ class ObjectImpl : public gc::Cell
 
 
     inline bool inDictionaryMode() const;
+
+    
+
+
+
+
+
+    static inline size_t dynamicSlotsCount(size_t nfixed, size_t span);
+
+    
+    inline size_t sizeOfThis() const;
 
     
     static inline size_t offsetOfShape() { return offsetof(ObjectImpl, shape_); }
