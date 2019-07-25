@@ -60,8 +60,10 @@ nsresult xpcJSWeakReference::Init(JSContext* cx, const JS::Value& object)
     
     nsISupports* supports =
         nsXPConnect::GetXPConnect()->GetNativeOfWrapper(cx, &obj);
-    if (supports) {
-        mReferent = do_GetWeakReference(supports);
+    nsCOMPtr<nsISupportsWeakReference> supportsWeakRef =
+        do_QueryInterface(supports);
+    if (supportsWeakRef) {
+        supportsWeakRef->GetWeakReference(getter_AddRefs(mReferent));
         if (mReferent) {
             return NS_OK;
         }
