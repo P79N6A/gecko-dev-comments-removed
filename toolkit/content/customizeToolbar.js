@@ -111,6 +111,10 @@ function finishToolbarCustomization()
 
 function initDialog()
 {
+  if (!gToolbox.toolbarset) {
+    document.getElementById("newtoolbar").hidden = true;
+  }
+
   var mode = gToolbox.getAttribute("mode");
   document.getElementById("modelist").value = mode;
   var smallIconsCheckbox = document.getElementById("smallicons");
@@ -202,7 +206,7 @@ function persistCurrentSets()
       if (!toolbar.hasChildNodes()) {
         
         gToolbox.removeChild(toolbar);
-      } else {
+      } else if (gToolbox.toolbarset) {
         
         gToolbox.toolbarset.setAttribute("toolbar"+(++customCount),
                                          toolbar.toolbarName + ":" + currentSet);
@@ -217,7 +221,7 @@ function persistCurrentSets()
   });
 
   
-  while (gToolbox.toolbarset.hasAttribute("toolbar"+(++customCount))) {
+  while (gToolbox.toolbarset && gToolbox.toolbarset.hasAttribute("toolbar"+(++customCount))) {
     gToolbox.toolbarset.removeAttribute("toolbar"+customCount);
     gToolboxDocument.persist(gToolbox.toolbarset.id, "toolbar"+customCount);
   }
