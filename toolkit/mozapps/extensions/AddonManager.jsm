@@ -640,9 +640,6 @@ var AddonManagerInternal = {
         gStrictCompatibility = STRICT_COMPATIBILITY_DEFAULT;
       }
 
-      
-      
-      
       if (gStrictCompatibility != oldValue)
         this.updateAddonAppDisabledStates();
 

@@ -828,8 +828,8 @@ function loadManifestFromRDF(aUri, aStream) {
   let byte_string = [String.fromCharCode(byte) for each (byte in bytes)]
                     .join("");
   
-  addon.syncGUID = btoa(byte_string).replace(/\+/g, '-')
-                                    .replace(/\//g, '_');
+  addon.syncGUID = btoa(byte_string).replace('+', '-', 'g')
+                                    .replace('/', '_', 'g');
 
   return addon;
 }
@@ -3759,11 +3759,21 @@ var XPIProvider = {
     let isDisabled = aUserDisabled || aSoftDisabled || appDisabled;
 
     
+    
+    let appDisabledChanged = aAddon.appDisabled != appDisabled;
+
+    
     XPIDatabase.setAddonProperties(aAddon, {
       userDisabled: aUserDisabled,
       appDisabled: appDisabled,
       softDisabled: aSoftDisabled
     });
+
+    if (appDisabledChanged) {
+      AddonManagerPrivate.callAddonListeners("onPropertyChanged",
+                                            aAddon,
+                                            ["appDisabled"]);
+    }
 
     
     
