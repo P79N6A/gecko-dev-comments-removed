@@ -3307,7 +3307,16 @@ JS_ClearContextThread(JSContext *cx);
 typedef void (*JSFunctionCallback)(const JSFunction *fun,
                                    const JSScript *scr,
                                    const JSContext *cx,
-                                   JSBool entering);
+                                   int entering);
+
+
+
+
+
+
+
+
+
 
 extern JS_PUBLIC_API(void)
 JS_SetFunctionCallback(JSContext *cx, JSFunctionCallback fcb);
