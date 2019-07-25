@@ -1185,6 +1185,11 @@ public:
     return mLoadedAsData;
   }
 
+  bool IsLoadedAsInteractiveData()
+  {
+    return mLoadedAsInteractiveData;
+  }
+
   bool MayStartLayout()
   {
     return mMayStartLayout;
@@ -1769,6 +1774,11 @@ protected:
   
   
   bool mLoadedAsData;
+
+  
+  
+  
+  bool mLoadedAsInteractiveData;
 
   
   
