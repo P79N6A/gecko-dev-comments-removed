@@ -717,10 +717,13 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
   }
 #endif
 
-#ifdef XP_WIN
-  
-  
+#ifdef XP_WIN32
   MINIDUMP_TYPE minidump_type = MiniDumpNormal;
+
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
+  
+  
+
   DWORD version_size = GetFileVersionInfoSizeW(L"dbghelp.dll", NULL);
   if (version_size > 0) {
     std::vector<BYTE> buffer(version_size);
@@ -740,7 +743,8 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
       }
     }
   }
-#endif
+#endif 
+#endif 
 
   
   gExceptionHandler = new google_breakpad::
