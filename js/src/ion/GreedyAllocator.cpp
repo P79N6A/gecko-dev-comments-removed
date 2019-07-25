@@ -741,6 +741,20 @@ GreedyAllocator::allocateInstruction(LBlock *block, LInstruction *ins)
     return true;
 }
 
+void
+GreedyAllocator::findLoopCarriedUses(LInstruction *ins, uint32 lowerBound, uint32 upperBound)
+{
+    for (size_t i = 0; i < ins->numOperands(); i++) {
+        LAllocation *a = ins->getOperand(i);
+        if (!a->isUse())
+            continue;
+        LUse *use = a->toUse();
+        VirtualRegister *vr = getVirtualRegister(use);
+        if (vr->def->virtualRegister() < lowerBound || vr->def->virtualRegister() > upperBound)
+            allocateStack(vr);
+    }
+}
+
 
 
 
@@ -758,20 +772,10 @@ GreedyAllocator::findLoopCarriedUses(LBlock *backedge)
     for (size_t i = 0; i < mheader->numContainedInLoop(); i++) {
         LBlock *block = mheader->getContainedInLoop(i)->lir();
 
-        for (LInstructionIterator i = block->begin(); i != block->end(); i++) {
-            LInstruction *ins = *i;
-            for (size_t i = 0; i < ins->numOperands(); i++) {
-                LAllocation *a = ins->getOperand(i);
-                if (!a->isUse())
-                    continue;
-                LUse *use = a->toUse();
-                VirtualRegister *vr = getVirtualRegister(use);
-                if (vr->def->virtualRegister() < lowerBound ||
-                    vr->def->virtualRegister() > upperBound) {
-                    allocateStack(vr);
-                }
-            }
-        }
+        for (LInstructionIterator i = block->begin(); i != block->end(); i++)
+            findLoopCarriedUses(*i, lowerBound, upperBound);
+        for (size_t i = 0; i < block->numPhis(); i++)
+            findLoopCarriedUses(block->getPhi(i), lowerBound, upperBound);
     }
 
     IonSpew(IonSpew_RegAlloc, "  Done finding loop-carried uses.");
@@ -927,6 +931,18 @@ GreedyAllocator::allocateRegisters()
 
             killReg(vreg);
             vreg->unsetRegister();
+        }
+
+        
+        
+        
+        
+        for (size_t i = 0; i < block->numPhis(); i++) {
+            LPhi *phi = block->getPhi(i);
+            for (size_t j = 0; j < phi->numOperands(); j++) {
+                VirtualRegister *in = getVirtualRegister(phi->getOperand(j)->toUse());
+                allocateStack(in);
+            }
         }
 
         
