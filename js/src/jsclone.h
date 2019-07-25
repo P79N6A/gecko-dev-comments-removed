@@ -143,6 +143,8 @@ struct JSStructuredCloneReader {
 
     
     void *closure;
+
+    friend JSBool JS_ReadTypedArray(JSStructuredCloneReader *r, jsval *vp);
 };
 
 struct JSStructuredCloneWriter {
@@ -196,6 +198,8 @@ struct JSStructuredCloneWriter {
 
     
     void *closure;
+
+    friend JSBool JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v);
 };
 
 #endif 
