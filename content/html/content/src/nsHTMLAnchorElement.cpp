@@ -50,16 +50,10 @@
 #include "nsPresContext.h"
 #include "nsIEventStateManager.h"
 
-
-#include "nsIContentIterator.h"
-#include "nsIDOMText.h"
-
 #include "nsHTMLDNSPrefetch.h"
 
 #include "Link.h"
 using namespace mozilla::dom;
-
-nsresult NS_NewPreContentIterator(nsIContentIterator** aInstancePtrResult);
 
 class nsHTMLAnchorElement : public nsGenericHTMLElement,
                             public nsIDOMHTMLAnchorElement,
@@ -68,6 +62,9 @@ class nsHTMLAnchorElement : public nsGenericHTMLElement,
                             public Link
 {
 public:
+  using nsGenericElement::GetText;
+  using nsGenericElement::SetText;
+
   nsHTMLAnchorElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   virtual ~nsHTMLAnchorElement();
 
@@ -369,36 +366,14 @@ IMPL_URI_PART(Hash)
 NS_IMETHODIMP    
 nsHTMLAnchorElement::GetText(nsAString& aText)
 {
-  aText.Truncate();
-
-  
-  
-  
-  
-  
-  nsCOMPtr<nsIContentIterator> iter;
-  nsresult rv = NS_NewPreContentIterator(getter_AddRefs(iter));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  iter->Init(this);
-
-  
-  
-  iter->Last();
-
-  while (!iter->IsDone()) {
-    nsCOMPtr<nsIDOMText> textNode(do_QueryInterface(iter->GetCurrentNode()));
-    if(textNode) {
-      
-      textNode->GetData(aText);
-      break;
-    }
-
-    iter->Prev();
-  }
-
+  nsContentUtils::GetNodeTextContent(this, PR_TRUE, aText);
   return NS_OK;
+}
+
+NS_IMETHODIMP    
+nsHTMLAnchorElement::SetText(const nsAString& aText)
+{
+  return nsContentUtils::SetNodeTextContent(this, aText, PR_FALSE);
 }
 
 NS_IMETHODIMP
