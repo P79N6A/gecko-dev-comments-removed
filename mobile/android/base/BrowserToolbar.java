@@ -292,10 +292,17 @@ public class BrowserToolbar extends LinearLayout {
 
     public void setTitle(CharSequence title) {
         Tab tab = Tabs.getInstance().getSelectedTab();
+
+        
+        
+        if (tab != null && "about:empty".equals(tab.getURL()))
+            return;
+
         
         
         if (tab != null && "about:home".equals(tab.getURL()))
             title = null;
+
         mAwesomeBar.setText(title);
     }
 

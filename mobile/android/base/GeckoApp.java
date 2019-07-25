@@ -1700,7 +1700,7 @@ abstract public class GeckoApp
             
             intent.setAction(Intent.ACTION_MAIN);
             intent.setData(null);
-            passedUri = null;
+            passedUri = "about:empty";
         }
 
         sGeckoThread = new GeckoThread(intent, passedUri, mRestoreSession);
