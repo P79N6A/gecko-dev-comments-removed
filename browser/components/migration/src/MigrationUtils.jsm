@@ -139,8 +139,14 @@ let MigratorPrototype = {
 
   migrate: function MP_migrate(aItems, aStartup, aProfile) {
     
-    if (MigrationUtils.isStartupMigration && !this.startupOnlyMigrator)
+    if (MigrationUtils.isStartupMigration && !this.startupOnlyMigrator) {
       MigrationUtils.profileStartup.doStartup();
+
+      
+      
+      Cc["@mozilla.org/browser/browserglue;1"].getService(Ci.nsIObserver)
+        .observe(null, "initial-migration", null);
+    }
 
     let resources = this._getMaybeCachedResources(aProfile);
     if (resources.length == 0)
