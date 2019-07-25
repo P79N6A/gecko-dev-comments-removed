@@ -111,6 +111,8 @@
 #include "mozAutoDocUpdate.h"
 #include "nsHtml5Module.h"
 
+#include "nsThreadUtils.h"
+
 class nsINodeInfo;
 class nsIDOMNodeList;
 class nsRuleWalker;
@@ -169,6 +171,47 @@ nsGenericHTMLElement::Init(nsINodeInfo *aNodeInfo)
 
 #endif
 
+
+
+
+
+
+class nsAutoFocusEvent : public nsRunnable
+{
+public:
+  nsAutoFocusEvent(nsGenericHTMLFormElement* aElement) : mElement(aElement) {}
+
+  NS_IMETHOD Run() {
+    nsFocusManager* fm = nsFocusManager::GetFocusManager();
+    if (!fm) {
+      return NS_ERROR_NULL_POINTER;
+    }
+
+    nsIDocument* document = mElement->GetOwnerDoc();
+    if (!document) {
+      return NS_OK;
+    }
+
+    
+    nsPIDOMWindow* window = document->GetWindow();
+    if (window && window->GetFocusedNode()) {
+      return NS_OK;
+    }
+
+    
+    if (!fm->GetFocusedContent() ||
+        fm->GetFocusedContent()->GetOwnerDoc() != document) {
+      return mElement->Focus();
+    }
+
+    return NS_OK;
+  }
+private:
+  
+  
+  
+  nsRefPtr<nsGenericHTMLElement> mElement;
+};
 
 class nsGenericHTMLElementTearoff : public nsIDOMNSHTMLElement,
                                     public nsIDOMElementCSSInlineStyle
@@ -2400,6 +2443,20 @@ nsGenericHTMLFormElement::BindToTree(nsIDocument* aDocument,
                                                  aBindingParent,
                                                  aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  
+  if (AcceptAutofocus() && HasAttr(kNameSpaceID_None, nsGkAtoms::autofocus) &&
+      aDocument &&
+      aDocument->GetReadyStateEnum() != nsIDocument::READYSTATE_COMPLETE &&
+      nsContentUtils::GetBoolPref("browser.autofocus", PR_TRUE)) {
+    nsCOMPtr<nsIRunnable> event = new nsAutoFocusEvent(this);
+    rv = NS_DispatchToCurrentThread(event);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   if (!aParent) {
     return NS_OK;
   }

@@ -118,6 +118,9 @@ pref("browser.enable_automatic_image_resizing", false);
 pref("browser.enable_click_image_resizing", true);
 
 
+pref("browser.autofocus", true);
+
+
 pref("browser.send_pings", false);
 pref("browser.send_pings.max_per_link", 1);           
 pref("browser.send_pings.require_same_host", false);  

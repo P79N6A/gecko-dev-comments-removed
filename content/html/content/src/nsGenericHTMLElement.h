@@ -814,6 +814,14 @@ protected:
   
 
 
+  virtual PRBool AcceptAutofocus() const
+  {
+    return PR_FALSE;
+  }
+
+  
+
+
   PRBool CanBeDisabled() const;
 
   void UpdateEditableFormControlState();
