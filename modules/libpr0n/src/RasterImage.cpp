@@ -2108,9 +2108,8 @@ RasterImage::CanDiscard() {
 
 PRBool
 RasterImage::CanForciblyDiscard() {
-  return (mDiscardable &&        
-          mHasSourceData &&      
-          mDecoded);             
+  return mDiscardable &&         
+         mHasSourceData;         
 }
 
 
@@ -2223,6 +2222,7 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
 
   
   mWorker = nsnull;
+  mWorkerPending = PR_FALSE;
 
   
   
@@ -2544,6 +2544,21 @@ RasterImage::UnlockImage()
   
   mLockCount--;
 
+  
+  
+  
+  
+  if (mHasBeenDecoded && mDecoder &&
+      mLockCount == 0 && CanForciblyDiscard()) {
+    PR_LOG(gCompressedImageAccountingLog, PR_LOG_DEBUG,
+           ("RasterImage[0x%p] canceling decode because image "
+            "is now unlocked.", this));
+    ShutdownDecoder(eShutdownIntent_Interrupted);
+    ForceDiscard();
+    return NS_OK;
+  }
+
+  
   
   if (CanDiscard()) {
     nsresult rv = DiscardTracker::Reset(&mDiscardTrackerNode);
