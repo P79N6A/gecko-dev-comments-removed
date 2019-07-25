@@ -3985,6 +3985,27 @@ var XULBrowserWindow = {
                         encodeURIComponent);
     gURLBar.setOverLink(link);
   },
+  
+  
+  onBeforeLinkTraversal: function(originalTarget, linkURI, linkNode, isAppTab) {
+    
+    
+    if (originalTarget != "" || !isAppTab)
+      return originalTarget;
+
+    let docURI = linkNode.ownerDocument.documentURIObject;
+    try {
+      let docURIDomain = Services.eTLD.getBaseDomain(docURI, 0);
+      let linkURIDomain = Services.eTLD.getBaseDomain(linkURI, 0);
+      
+      
+      if (docURIDomain != linkURIDomain)
+        return "_blank";
+    } catch(e) {
+      
+    }
+    return originalTarget;
+  },
 
   onLinkIconAvailable: function (aIconURL) {
     if (gProxyFavIcon && gBrowser.userTypedValue === null)
