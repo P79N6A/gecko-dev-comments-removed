@@ -378,11 +378,6 @@ private:
   bool mUserDisabled : 1;
   bool mSuppressed : 1;
 
-  
-
-
-  bool mBlockingOnload : 1;
-
 protected:
   
 
