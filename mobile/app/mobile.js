@@ -373,7 +373,6 @@ pref("browser.ui.kinetic.swipeLength", 160);
 
 
 pref("browser.ui.zoom.pageFitGranularity", 9); 
-pref("browser.ui.zoom.animationFps", 60);
 pref("browser.ui.zoom.animationDuration", 350); 
 
 
