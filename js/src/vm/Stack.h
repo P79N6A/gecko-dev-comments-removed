@@ -411,8 +411,6 @@ class StackFrame
     friend class CallObject;
     friend class ClonedBlockObject;
     friend class ArgumentsObject;
-    friend void ::js_DumpStackFrame(JSContext *, StackFrame *);
-    friend void ::js_ReportIsNotFunction(JSContext *, const js::Value *, unsigned);
 #ifdef JS_METHODJIT
     friend class mjit::CallCompiler;
     friend class mjit::GetPropCompiler;
@@ -1140,12 +1138,6 @@ class StackFrame
 
 static const size_t VALUES_PER_STACK_FRAME = sizeof(StackFrame) / sizeof(Value);
 
-static inline unsigned
-ToReportFlags(InitialFrameFlags initial)
-{
-    return unsigned(initial & StackFrame::CONSTRUCTING);
-}
-
 static inline StackFrame::Flags
 ToFrameFlags(InitialFrameFlags initial)
 {
@@ -1591,6 +1583,14 @@ class ContextStack
 
 
 
+
+
+    ptrdiff_t spIndexOf(const Value *vp);
+
+    
+
+
+
     inline FrameRegs *maybeRegs() const { return seg_ ? seg_->maybeRegs() : NULL; }
     inline StackFrame *maybefp() const { return seg_ ? seg_->maybefp() : NULL; }
 
@@ -1783,7 +1783,6 @@ class StackIter
     CallArgsList *calls_;
 
     StackSegment *seg_;
-    Value        *sp_;
     jsbytecode   *pc_;
     JSScript     *script_;
     CallArgs     args_;
@@ -1822,14 +1821,6 @@ class StackIter
     JSFunction *callee() const;
     Value       calleev() const;
     Value       thisv() const;
-
-    
-
-
-
-
-
-    Value      *spFuzzy() const { JS_ASSERT(isScript()); return sp_; }
 
     CallArgs nativeArgs() const { JS_ASSERT(isNativeCall()); return args_; }
 };

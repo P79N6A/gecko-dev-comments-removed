@@ -81,6 +81,25 @@ enum MaybeConstruct {
     CONSTRUCT = INITIAL_CONSTRUCT
 };
 
+extern bool
+ReportIsNotFunction(JSContext *cx, const Value &v, MaybeConstruct construct = NO_CONSTRUCT);
+
+extern bool
+ReportIsNotFunction(JSContext *cx, const Value *vp, MaybeConstruct construct = NO_CONSTRUCT);
+
+extern JSObject *
+ValueToCallable(JSContext *cx, const Value *vp, MaybeConstruct construct = NO_CONSTRUCT);
+
+inline JSFunction *
+ReportIfNotFunction(JSContext *cx, const Value &v, MaybeConstruct construct = NO_CONSTRUCT)
+{
+    if (v.isObject() && v.toObject().isFunction())
+        return v.toObject().toFunction();
+
+    ReportIsNotFunction(cx, v, construct);
+    return NULL;
+}
+
 
 
 
@@ -124,7 +143,7 @@ InvokeGetterOrSetter(JSContext *cx, JSObject *obj, const Value &fval, unsigned a
 
 
 extern bool
-InvokeConstructorKernel(JSContext *cx, const CallArgs &args);
+InvokeConstructorKernel(JSContext *cx, CallArgs args);
 
 
 inline bool

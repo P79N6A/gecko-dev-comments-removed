@@ -798,6 +798,20 @@ ContextStack::~ContextStack()
     JS_ASSERT(!seg_);
 }
 
+ptrdiff_t
+ContextStack::spIndexOf(const Value *vp)
+{
+    if (!hasfp() || !fp()->isScriptFrame())
+        return JSDVG_SEARCH_STACK;
+
+    Value *base = fp()->base();
+    Value *sp = regs().sp;
+    if (vp < base || vp >= sp)
+        return JSDVG_SEARCH_STACK;
+
+    return vp - sp;
+}
+
 bool
 ContextStack::onTop() const
 {
@@ -1154,7 +1168,6 @@ ContextStack::restoreFrameChain()
 void
 StackIter::poisonRegs()
 {
-    sp_ = (Value *)0xbad;
     pc_ = (jsbytecode *)0xbad;
     script_ = (JSScript *)0xbad;
 }
@@ -1169,36 +1182,6 @@ StackIter::popFrame()
         InlinedSite *inline_;
         pc_ = oldfp->prevpc(&inline_);
         JS_ASSERT(!inline_);
-
-        
-
-
-
-
-
-
-        if (oldfp->isGeneratorFrame()) {
-            
-            sp_ = oldfp->generatorArgsSnapshotBegin();
-        } else if (oldfp->isNonEvalFunctionFrame()) {
-            
-
-
-
-
-
-
-
-            sp_ = oldfp->actuals() + oldfp->numActualArgs();
-        } else if (oldfp->isFramePushedByExecute()) {
-            
-            sp_ = (Value *)oldfp - 2;
-        } else {
-            
-            JS_ASSERT(oldfp->isDummyFrame());
-            sp_ = (Value *)oldfp;
-        }
-
         script_ = fp_->maybeScript();
     } else {
         poisonRegs();
@@ -1211,19 +1194,14 @@ StackIter::popCall()
     CallArgsList *oldCall = calls_;
     JS_ASSERT(seg_->contains(oldCall));
     calls_ = calls_->prev();
-    if (seg_->contains(fp_)) {
-        
-        sp_ = oldCall->base();
-    } else {
+    if (!seg_->contains(fp_))
         poisonRegs();
-    }
 }
 
 void
 StackIter::settleOnNewSegment()
 {
     if (FrameRegs *regs = seg_->maybeRegs()) {
-        sp_ = regs->sp;
         pc_ = regs->pc;
         if (fp_)
             script_ = fp_->maybeScript();
@@ -1317,17 +1295,6 @@ StackIter::settleOnNewState()
 
             state_ = SCRIPTED;
             script_ = fp_->script();
-
-            
-
-
-
-
-            if (*pc_ == JSOP_GETPROP || *pc_ == JSOP_CALLPROP)
-                JS_ASSERT(sp_ >= fp_->base() && sp_ <= fp_->slots() + script_->nslots + 2);
-            else if (*pc_ != JSOP_FUNAPPLY)
-                JS_ASSERT(sp_ >= fp_->base() && sp_ <= fp_->slots() + script_->nslots);
-            JS_ASSERT(pc_ >= script_->code && pc_ < script_->code + script_->length);
             return;
         }
 
