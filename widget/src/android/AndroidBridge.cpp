@@ -141,6 +141,9 @@ AndroidBridge::Init(JNIEnv *jEnv,
     jShowInputMethodPicker = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "showInputMethodPicker", "()V");
     jHideProgressDialog = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "hideProgressDialog", "()V");
     jPerformHapticFeedback = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "performHapticFeedback", "(Z)V");
+    jVibrate1 = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "vibrate", "(J)V");
+    jVibrateA = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "vibrate", "([JI)V");
+    jCancelVibrate = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "cancelVibrate", "()V");
     jSetKeepScreenOn = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "setKeepScreenOn", "(Z)V");
     jIsNetworkLinkUp = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "isNetworkLinkUp", "()Z");
     jIsNetworkLinkKnown = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "isNetworkLinkKnown", "()Z");
@@ -436,9 +439,9 @@ AndroidBridge::GetHandlersForMimeType(const char *aMimeType,
 
 bool
 AndroidBridge::GetHandlersForURL(const char *aURL,
-                                      nsIMutableArray* aHandlersArray,
-                                      nsIHandlerApp **aDefaultApp,
-                                      const nsAString& aAction)
+                                 nsIMutableArray* aHandlersArray,
+                                 nsIHandlerApp **aDefaultApp,
+                                 const nsAString& aAction)
 {
     ALOG_BRIDGE("AndroidBridge::GetHandlersForURL");
 
@@ -674,6 +677,62 @@ AndroidBridge::PerformHapticFeedback(bool aIsLongPress)
     ALOG_BRIDGE("AndroidBridge::PerformHapticFeedback");
     mJNIEnv->CallStaticVoidMethod(mGeckoAppShellClass,
                                     jPerformHapticFeedback, aIsLongPress);
+}
+
+void
+AndroidBridge::Vibrate(const nsTArray<PRUint32>& aPattern)
+{
+    ALOG_BRIDGE("AndroidBridge::Vibrate");
+
+    PRUint32 len = aPattern.Length();
+    if (!len) {
+        ALOG_BRIDGE("  invalid 0-length array");
+        return;
+    }
+
+    
+    
+    if (len == 1) {
+        jlong d = aPattern[0];
+        if (d < 0) {
+            ALOG_BRIDGE("  invalid vibration duration < 0");
+            return;
+        }
+        mJNIEnv->CallStaticVoidMethod(mGeckoAppShellClass, jVibrate1, d);
+       return;
+    }
+
+    
+    
+
+    jlongArray array = mJNIEnv->NewLongArray(len + 1);
+    if (!array) {
+        ALOG_BRIDGE("  failed to allocate array");
+        return;
+    }
+
+    jlong* elts = mJNIEnv->GetLongArrayElements(array, nsnull);
+    elts[0] = 0;
+    for (PRUint32 i = 0; i < aPattern.Length(); ++i) {
+        jlong d = aPattern[i];
+        if (d < 0) {
+            ALOG_BRIDGE("  invalid vibration duration < 0");
+            mJNIEnv->ReleaseLongArrayElements(array, elts, JNI_ABORT);
+            return;
+        }
+        elts[i + 1] = d;
+    }
+    mJNIEnv->ReleaseLongArrayElements(array, elts, 0);
+
+    mJNIEnv->CallStaticVoidMethod(mGeckoAppShellClass, jVibrateA,
+                                  array, -1);
+    
+}
+
+void
+AndroidBridge::CancelVibrate()
+{
+    mJNIEnv->CallStaticVoidMethod(mGeckoAppShellClass, jCancelVibrate);
 }
 
 bool

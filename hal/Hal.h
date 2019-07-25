@@ -43,9 +43,120 @@
 #include "base/basictypes.h"
 #include "mozilla/Types.h"
 #include "nsTArray.h"
+#include "nsCOMPtr.h"
+#include "nsIDOMWindow.h"
+#include "prlog.h"
 #include "mozilla/dom/battery/Types.h"
 
 #ifndef MOZ_HAL_NAMESPACE
+
+namespace mozilla {
+namespace dom {
+class TabChild;
+class PBrowserChild;
+}
+}
+
+
+
+namespace mozilla {
+namespace hal {
+
+extern PRLogModuleInfo *sHalLog;
+#define HAL_LOG(msg) PR_LOG(sHalLog, PR_LOG_DEBUG, msg)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class WindowIdentifier
+{
+public:
+  
+
+
+
+
+
+  WindowIdentifier();
+
+  
+
+
+  WindowIdentifier(const WindowIdentifier& other);
+
+  
+
+
+
+
+
+
+
+  WindowIdentifier(nsIDOMWindow* window);
+  WindowIdentifier(nsCOMPtr<nsIDOMWindow> &window);
+
+  
+
+
+
+
+  WindowIdentifier(const nsTArray<uint64>& id, nsIDOMWindow* window);
+
+  
+
+
+  typedef InfallibleTArray<uint64> IDArrayType;
+  const IDArrayType& AsArray() const;
+
+  
+
+
+
+  void AppendProcessID();
+
+  
+
+
+
+
+  bool HasTraveledThroughIPC() const;
+
+  
+
+
+  nsIDOMWindow* GetWindow() const;
+
+private:
+  
+
+
+  uint64 GetWindowID() const;
+
+  AutoInfallibleTArray<uint64, 3> mID;
+  nsCOMPtr<nsIDOMWindow> mWindow;
+  bool mIsEmpty;
+};
+
+} 
+} 
+
 
 
 
@@ -79,7 +190,31 @@ namespace MOZ_HAL_NAMESPACE  {
 
 
 
-void Vibrate(const nsTArray<uint32>& pattern);
+
+
+
+
+
+
+
+
+void Vibrate(const nsTArray<uint32>& pattern,
+             const hal::WindowIdentifier &id);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void CancelVibrate(const hal::WindowIdentifier &id);
 
 
 
@@ -122,8 +257,8 @@ void GetCurrentBatteryInformation(hal::BatteryInformation* aBatteryInfo);
 
 void NotifyBatteryChange(const hal::BatteryInformation& aBatteryInfo);
 
-}
-}
+} 
+} 
 
 #ifdef MOZ_DEFINED_HAL_NAMESPACE
 # undef MOZ_DEFINED_HAL_NAMESPACE
