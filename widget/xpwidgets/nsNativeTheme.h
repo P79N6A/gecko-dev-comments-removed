@@ -137,6 +137,9 @@ class nsNativeTheme : public nsITimerCallback
   bool IsVerticalProgress(nsIFrame* aFrame);
 
   
+  bool IsVerticalMeter(nsIFrame* aFrame);
+
+  
   bool IsReadOnly(nsIFrame* aFrame) {
       return CheckBooleanAttr(aFrame, nsGkAtoms::readonly);
   }
