@@ -47,6 +47,16 @@ const ContentPanning = {
     
     
     
+    
+    if (this.target != null && ContentPanning._asyncPanZoomForViewportFrame) {
+      var os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
+      os.notifyObservers(docShell, 'cancel-default-pan-zoom', null);
+    }
+
+    
+    
+    
+    
     this.preventNextClick = false;
     if (KineticPanning.active) {
       KineticPanning.stop();

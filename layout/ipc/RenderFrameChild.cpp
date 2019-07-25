@@ -32,6 +32,12 @@ RenderFrameChild::Destroy()
   
 }
 
+void
+RenderFrameChild::CancelDefaultPanZoom()
+{
+  SendCancelDefaultPanZoom();
+}
+
 PLayersChild*
 RenderFrameChild::AllocPLayers()
 {
