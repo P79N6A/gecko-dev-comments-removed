@@ -39,7 +39,6 @@
 
 #include "nsWindow.h"
 #include "nsQtKeyUtils.h"
-#include "keysym2ucs.h"
 
 #include "nsGUIEvent.h"
 
@@ -271,70 +270,5 @@ DOMKeyCodeToQtKeyCode(int aKeysym)
     if (aKeysym >= NS_VK_F1 && aKeysym <= NS_VK_F9)
       return aKeysym - NS_VK_F1 + Qt::Key_F1;
 
-    return 0;
-}
-
-
-PRUint32 nsConvertCharCodeToUnicode(QKeyEvent* aEvent)
-{
-    
-    
-    if (aEvent->key() > 0xf000 && (aEvent->key() & 0xff000000) != 0x01000000) {
-
-        
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    }
-
-
-    
-    long ucs = keysym2ucs(aEvent->key());
-    if ((ucs != -1) && (ucs < 0x10000))
-        return ucs;
-
-    
     return 0;
 }
