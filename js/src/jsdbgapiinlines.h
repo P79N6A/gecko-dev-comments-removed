@@ -46,7 +46,7 @@
 
 #if defined(JS_HAS_OBJ_WATCHPOINT) && defined(__cplusplus)
 
-extern bool
+extern const js::Shape *
 js_SlowPathUpdateWatchpointsForShape(JSContext *cx, JSObject *obj, const js::Shape *newShape);
 
 
@@ -54,11 +54,11 @@ js_SlowPathUpdateWatchpointsForShape(JSContext *cx, JSObject *obj, const js::Sha
 
 
 
-static inline bool
+static inline const js::Shape *
 js_UpdateWatchpointsForShape(JSContext *cx, JSObject *obj, const js::Shape *newShape)
 {
     if (JS_CLIST_IS_EMPTY(&cx->runtime->watchPointList))
-        return true;
+        return newShape;
 
     return js_SlowPathUpdateWatchpointsForShape(cx, obj, newShape);
 }
