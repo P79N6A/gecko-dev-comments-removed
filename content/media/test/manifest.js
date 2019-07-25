@@ -24,6 +24,14 @@ var gProgressTests = [
 ];
 
 
+var gPlayedTests = [
+  { name:"big.wav", type:"audio/x-wav", duration:9.0 },
+  { name:"sound.ogg", type:"audio/ogg", duration:4.0 },
+  { name:"seek.ogv", type:"video/ogg", duration:3.966 },
+  { name:"seek.webm", type:"video/webm", duration:3.966 },
+];
+
+
 
 var cloneKey = Math.floor(Math.random()*100000000);
 var gCloneTests = gSmallTests.concat([
