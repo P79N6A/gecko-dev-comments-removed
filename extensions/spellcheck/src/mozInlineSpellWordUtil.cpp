@@ -462,6 +462,8 @@ FindPrevNode(nsIDOMNode* aNode, nsIDOMNode* aRoot)
 
 
 
+
+
 static PRBool
 ContainsDOMWordSeparator(nsIDOMNode* aNode, PRInt32 aBeforeOffset,
                          PRInt32* aSeparatorOffset)
@@ -480,6 +482,14 @@ ContainsDOMWordSeparator(nsIDOMNode* aNode, PRInt32 aBeforeOffset,
   NS_ASSERTION(textFragment, "Where is our text?");
   for (PRInt32 i = NS_MIN(aBeforeOffset, PRInt32(textFragment->GetLength())) - 1; i >= 0; --i) {
     if (IsDOMWordSeparator(textFragment->CharAt(i))) {
+      
+      for (PRInt32 j = i - 1; j >= 0; --j) {
+        if (IsDOMWordSeparator(textFragment->CharAt(j))) {
+          i = j;
+        } else {
+          break;
+        }
+      }
       *aSeparatorOffset = i;
       return PR_TRUE;
     }
