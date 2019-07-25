@@ -199,6 +199,22 @@ toolbarbutton.page-button {
 }
 
 
+#dl-empty-message {
+  margin-top: 12mm; 
+  font-style: italic;
+  border-bottom: none;
+}
+
+#dl-empty-message:active {
+  background-color: white;
+}
+
+#dl-empty-message > label {
+  text-align: center;
+  color: grey;
+}
+
+
 @media (orientation: landscape) {
   #console-filter-warnings,
   #console-filter-messages {

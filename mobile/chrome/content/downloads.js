@@ -108,6 +108,14 @@ var DownloadsView = {
     this._list.parentNode.replaceChild(empty, this._list);
     this._list = empty;
   },
+  
+  _ifEmptyShowMessage: function dv__ifEmptyShowMessage() {
+    if (this._list.itemCount == 0) {
+      let strings = document.getElementById("bundle_browser");
+      let emptyItem = this._list.appendItem(strings.getString("downloadsEmpty"));
+      emptyItem.id = "dl-empty-message";
+    }
+  },
 
   get visible() {
     let panel = document.getElementById("panel-container");
@@ -186,6 +194,9 @@ var DownloadsView = {
       
       if (!this._stmt.executeStep()) {
         
+        this._ifEmptyShowMessage();
+        
+        
         setTimeout(function() {
           let os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
           os.notifyObservers(window, "download-manager-ui-done", null);
@@ -253,6 +264,11 @@ var DownloadsView = {
       maxBytes: aDownload.size
     };
 
+    
+    let emptyItem = document.getElementById("dl-empty-message");
+    if (emptyItem)
+      this._list.removeChild(emptyItem);
+      
     
     let item = this._createItem(attrs);
     this._list.insertBefore(item, this._list.firstChild);
@@ -397,6 +413,9 @@ var DownloadsView = {
       let id = aSubject.QueryInterface(Ci.nsISupportsPRUint32);
       let element = this.getElementForDownload(id.data);
       this._removeItem(element);
+
+      
+      this._ifEmptyShowMessage();
     }
     else {
       
