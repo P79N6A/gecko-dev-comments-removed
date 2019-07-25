@@ -62,9 +62,9 @@ FTService.prototype = {
     
   },
 
-  onException: function FTS_onException(exception) {
-    this._lastException = exception;
-    this._log.debug(Utils.stackTrace(exception));
+  onException: function FTS_onException(ex) {
+    this._lastException = ex;
+    this._log.debug(Utils.exceptionStr(ex) + " " + Utils.stackTrace(ex));
     return true; 
   }
 };
