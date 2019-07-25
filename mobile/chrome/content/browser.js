@@ -335,6 +335,19 @@ var Browser = {
     
     let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
     if (ss.shouldRestore()) {
+      
+      
+      
+      let dummy = this.addTab("about:blank");
+      let dummyCleanup = {
+        observe: function() {
+          Services.obs.removeObserver(dummyCleanup, "sessionstore-windows-restored");
+          dummy.chromeTab.ignoreUndo = true;
+          Browser.closeTab(dummy, { forceClose: true });
+        }
+      };
+      Services.obs.addObserver(dummyCleanup, "sessionstore-windows-restored", false);
+
       ss.restoreLastSession();
 
       
@@ -679,7 +692,7 @@ var Browser = {
     tab.browser.messageManager.sendAsyncMessage("Browser:CanUnload", {});
   },
 
-  _doCloseTab: function _docloseTab(aTab) {
+  _doCloseTab: function _doCloseTab(aTab) {
     let nextTab = this._getNextTab(aTab);
     if (!nextTab)
        return;
