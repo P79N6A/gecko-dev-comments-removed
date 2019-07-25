@@ -1703,7 +1703,7 @@ class JSCompartmentsMultiReporter : public nsIMemoryMultiReporter
         for (size_t i = 0; i < paths.length(); i++)
             
             REPORT(nsCString(paths[i]),
-                   nsIMemoryReporter::KIND_SUMMARY,
+                   nsIMemoryReporter::KIND_OTHER,
                    nsIMemoryReporter::UNITS_COUNT,
                    1, "");
 
