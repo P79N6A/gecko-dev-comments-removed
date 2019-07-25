@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_dom_sms_SmsChild_h
 #define mozilla_dom_sms_SmsChild_h
 
@@ -60,6 +28,8 @@ public:
   NS_OVERRIDE virtual bool RecvNotifyRequestCreateMessageList(const PRInt32& aListId, const SmsMessageData& aMessage, const PRInt32& aRequestId, const PRUint64& aProcessId);
   NS_OVERRIDE virtual bool RecvNotifyRequestGotNextMessage(const SmsMessageData& aMessage, const PRInt32& aRequestId, const PRUint64& aProcessId);
   NS_OVERRIDE virtual bool RecvNotifyRequestReadListFailed(const PRInt32& aError, const PRInt32& aRequestId, const PRUint64& aProcessId);
+  NS_OVERRIDE virtual bool RecvNotifyRequestMarkedMessageRead(const bool& aRead, const PRInt32& aRequestId, const PRUint64& aProcessId);
+  NS_OVERRIDE virtual bool RecvNotifyRequestMarkMessageReadFailed(const PRInt32& aError, const PRInt32& aRequestId, const PRUint64& aProcessId);
 };
 
 } 

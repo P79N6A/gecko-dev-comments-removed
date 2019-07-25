@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_dom_sms_SmsParent_h
 #define mozilla_dom_sms_SmsParent_h
 
@@ -66,6 +34,7 @@ public:
   NS_OVERRIDE virtual bool RecvCreateMessageList(const SmsFilterData& aFilter, const bool& aReverse, const PRInt32& aRequestId, const PRUint64& aProcessId);
   NS_OVERRIDE virtual bool RecvGetNextMessageInList(const PRInt32& aListId, const PRInt32& aRequestId, const PRUint64& aProcessId);
   NS_OVERRIDE virtual bool RecvClearMessageList(const PRInt32& aListId);
+  NS_OVERRIDE virtual bool RecvMarkMessageRead(const PRInt32& aMessageId, const bool& aValue, const PRInt32& aRequestId, const PRUint64& aProcessId);
 
 protected:
   virtual void ActorDestroy(ActorDestroyReason why);

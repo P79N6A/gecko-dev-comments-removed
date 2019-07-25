@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/dom/ContentChild.h"
 #include "SmsIPCService.h"
 #include "nsXULAppAPI.h"
@@ -97,11 +65,12 @@ SmsIPCService::CreateSmsMessage(PRInt32 aId,
                                 const nsAString& aReceiver,
                                 const nsAString& aBody,
                                 const jsval& aTimestamp,
+                                const bool aRead,
                                 JSContext* aCx,
                                 nsIDOMMozSmsMessage** aMessage)
 {
-  return SmsMessage::Create(
-    aId, aDelivery, aSender, aReceiver, aBody, aTimestamp, aCx, aMessage);
+  return SmsMessage::Create(aId, aDelivery, aSender, aReceiver, aBody,
+                            aTimestamp, aRead, aCx, aMessage);
 }
 
 
@@ -171,6 +140,15 @@ NS_IMETHODIMP
 SmsIPCService::ClearMessageList(PRInt32 aListId)
 {
   GetSmsChild()->SendClearMessageList(aListId);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+SmsIPCService::MarkMessageRead(PRInt32 aMessageId, bool aValue,
+                               PRInt32 aRequestId, PRUint64 aProcessId)
+{
+  GetSmsChild()->SendMarkMessageRead(aMessageId, aValue, aRequestId,
+                                     ContentChild::GetSingleton()->GetID());
   return NS_OK;
 }
 

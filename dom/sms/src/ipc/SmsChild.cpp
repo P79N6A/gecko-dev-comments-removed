@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SmsChild.h"
 #include "SmsMessage.h"
 #include "Constants.h"
@@ -237,6 +205,37 @@ SmsChild::RecvNotifyRequestReadListFailed(const PRInt32& aError,
 
   nsCOMPtr<nsISmsRequestManager> requestManager = do_GetService(SMS_REQUEST_MANAGER_CONTRACTID);
   requestManager->NotifyReadMessageListFailed(aRequestId, aError);
+  return true;
+}
+
+bool
+SmsChild::RecvNotifyRequestMarkedMessageRead(const bool& aRead,
+                                             const PRInt32& aRequestId,
+                                             const PRUint64& aProcessId)
+{
+  if (ContentChild::GetSingleton()->GetID() != aProcessId) {
+    return true;
+  }
+
+  nsCOMPtr<nsISmsRequestManager> requestManager =
+    do_GetService(SMS_REQUEST_MANAGER_CONTRACTID);
+  requestManager->NotifyMarkedMessageRead(aRequestId, aRead);
+  return true;
+}
+
+bool
+SmsChild::RecvNotifyRequestMarkMessageReadFailed(const PRInt32& aError,
+                                                 const PRInt32& aRequestId,
+                                                 const PRUint64& aProcessId)
+{
+  if (ContentChild::GetSingleton()->GetID() != aProcessId) {
+    return true;
+  }
+
+  nsCOMPtr<nsISmsRequestManager> requestManager =
+    do_GetService(SMS_REQUEST_MANAGER_CONTRACTID);
+  requestManager->NotifyMarkMessageReadFailed(aRequestId, aError);
+
   return true;
 }
 

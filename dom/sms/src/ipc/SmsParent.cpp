@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SmsParent.h"
 #include "nsISmsService.h"
 #include "nsIObserverService.h"
@@ -271,6 +239,20 @@ SmsParent::RecvClearMessageList(const PRInt32& aListId)
 
   smsDBService->ClearMessageList(aListId);
 
+  return true;
+}
+
+bool
+SmsParent::RecvMarkMessageRead(const PRInt32& aMessageId,
+                               const bool& aValue,
+                               const PRInt32& aRequestId,
+                               const PRUint64& aProcessId)
+{
+  nsCOMPtr<nsISmsDatabaseService> smsDBService =
+    do_GetService(SMS_DATABASE_SERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(smsDBService, true);
+
+  smsDBService->MarkMessageRead(aMessageId, aValue, aRequestId, aProcessId);
   return true;
 }
 
