@@ -419,8 +419,9 @@ function ShowPrefs()
 
   
   var textbox = document.getElementById("textbox");
-  var uri = document.documentURIObject;
-  var matches = /[?&]filter\=([^&]+)/i.exec(uri.path);
+  
+  var loc = document.location.href;
+  var matches = /[?&]filter\=([^&]+)/i.exec(loc);
   if (matches)
     textbox.value = decodeURIComponent(matches[1]);
 

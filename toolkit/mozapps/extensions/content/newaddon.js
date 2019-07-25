@@ -56,7 +56,7 @@ AddonManager.addAddonListener(EnableListener);
 function initialize() {
   
   
-  let spec = document.documentURIObject.spec;
+  let spec = document.location.href;
   let pos = spec.indexOf("?");
   let query = "";
   if (pos >= 0)
