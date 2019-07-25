@@ -65,7 +65,18 @@ struct HasResultCodes
     };
 };
 
-class AsyncChannel : public Transport::Listener, protected HasResultCodes
+
+class RefCountedMonitor : public Monitor
+{
+public:
+    RefCountedMonitor() 
+        : Monitor("mozilla.ipc.AsyncChannel.mMonitor")
+    {}
+
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RefCountedMonitor)
+};
+
+class AsyncChannel : protected HasResultCodes
 {
 protected:
     typedef mozilla::Monitor Monitor;
@@ -127,13 +138,72 @@ public:
     
     
     
-
     
-    NS_OVERRIDE virtual void OnMessageReceived(const Message& msg);
-    NS_OVERRIDE virtual void OnChannelConnected(int32 peer_pid);
-    NS_OVERRIDE virtual void OnChannelError();
+    
+    
+    
+    
+    
+
+    class Link {
+    protected:
+        AsyncChannel *mChan;
+
+    public:
+        Link(AsyncChannel *aChan);
+        virtual ~Link();
+
+        
+        
+        virtual void EchoMessage(Message *msg) = 0;
+        virtual void SendMessage(Message *msg) = 0;
+        virtual void SendClose() = 0;
+    };
+
+    class ProcessLink : public Link, public Transport::Listener {
+    protected:
+        Transport* mTransport;
+        MessageLoop* mIOLoop;       
+        Transport::Listener* mExistingListener; 
+    
+        void OnCloseChannel();
+        void OnChannelOpened();
+        void OnEchoMessage(Message* msg);
+
+        void AssertIOThread() const
+        {
+            NS_ABORT_IF_FALSE(mIOLoop == MessageLoop::current(),
+                              "not on I/O thread!");
+        }
+
+    public:
+        ProcessLink(AsyncChannel *chan);
+        virtual ~ProcessLink();
+        void Open(Transport* aTransport, MessageLoop *aIOLoop, Side aSide);
+        
+        
+        
+        
+        
+        NS_OVERRIDE virtual void OnMessageReceived(const Message& msg);
+        NS_OVERRIDE virtual void OnChannelConnected(int32 peer_pid);
+        NS_OVERRIDE virtual void OnChannelError();
+
+        virtual void EchoMessage(Message *msg);
+        virtual void SendMessage(Message *msg);
+        virtual void SendClose();
+    };
 
 protected:
+    
+    
+    
+    void AssertLinkThread() const
+    {
+        NS_ABORT_IF_FALSE(mWorkerLoop != MessageLoop::current(),
+                          "on worker thread but should not be!");
+    }
+
     
     void AssertWorkerThread() const
     {
@@ -141,16 +211,26 @@ protected:
                           "not on worker thread!");
     }
 
-    void AssertIOThread() const
-    {
-        NS_ABORT_IF_FALSE(mIOLoop == MessageLoop::current(),
-                          "not on IO thread!");
-    }
-
     bool Connected() const {
-        mMonitor.AssertCurrentThreadOwns();
+        mMonitor->AssertCurrentThreadOwns();
         return ChannelConnected == mChannelState;
     }
+
+    
+    
+    virtual bool MaybeInterceptSpecialIOMessage(const Message& msg);
+    void ProcessGoodbyeMessage();
+
+    
+    
+    
+    
+    
+    
+    
+    virtual void OnMessageReceivedFromLink(const Message& msg);
+    virtual void OnChannelErrorFromLink();
+    void PostErrorNotifyTask();
 
     
     void OnDispatchMessage(const Message& aMsg);
@@ -165,8 +245,6 @@ protected:
 
     
 
-    void SendThroughTransport(Message* msg) const;
-
     void OnNotifyMaybeChannelError();
     virtual bool ShouldDeferNotifyMaybeError() const {
         return false;
@@ -176,30 +254,15 @@ protected:
 
     virtual void Clear();
 
-    
-
-    void OnChannelOpened();
-    void OnCloseChannel();
-    void PostErrorNotifyTask();
-    void OnEchoMessage(Message* msg);
-
-    
-    
-    bool MaybeInterceptSpecialIOMessage(const Message& msg);
-    void ProcessGoodbyeMessage();
-
-    Transport* mTransport;
     AsyncListener* mListener;
     ChannelState mChannelState;
-    Monitor mMonitor;
-    MessageLoop* mIOLoop;       
+    nsRefPtr<RefCountedMonitor> mMonitor;
     MessageLoop* mWorkerLoop;   
     bool mChild;                
     CancelableTask* mChannelErrorTask; 
-    Transport::Listener* mExistingListener; 
+    Link *mLink;                
 };
 
-
 } 
 } 
-#endif  
+#endif

@@ -162,12 +162,6 @@ public:
     NS_OVERRIDE
     virtual bool OnSpecialMessage(uint16 id, const Message& msg);
 
-    
-    
-    NS_OVERRIDE
-    virtual void OnMessageReceived(const Message& msg);
-    NS_OVERRIDE
-    virtual void OnChannelError();
 
     
 
@@ -186,7 +180,11 @@ protected:
     void SpinInternalEventLoop();
 #endif
 
-  private:
+protected:
+    NS_OVERRIDE virtual void OnMessageReceivedFromLink(const Message& msg);
+    NS_OVERRIDE virtual void OnChannelErrorFromLink();
+
+private:
     
 
     RPCListener* Listener() const {
@@ -325,7 +323,7 @@ protected:
 
     
     size_t StackDepth() const {
-        mMonitor.AssertCurrentThreadOwns();
+        mMonitor->AssertCurrentThreadOwns();
         return mStack.size();
     }
 

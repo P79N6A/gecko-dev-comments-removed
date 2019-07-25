@@ -86,10 +86,6 @@ public:
         mTimeoutMs = (aTimeoutMs <= 0) ? kNoTimeout : aTimeoutMs;
     }
 
-    
-    NS_OVERRIDE virtual void OnMessageReceived(const Message& msg);
-    NS_OVERRIDE virtual void OnChannelError();
-
     static bool IsPumpingMessages() {
         return sIsPumpingMessages;
     }
@@ -98,6 +94,7 @@ public:
     }
 
 #ifdef OS_WIN
+public:
     struct NS_STACK_CLASS SyncStackFrame
     {
         SyncStackFrame(SyncChannel* channel, bool rpc);
@@ -136,18 +133,16 @@ protected:
 
 protected:
     
+    
+    NS_OVERRIDE virtual void OnMessageReceivedFromLink(const Message& msg);
+    NS_OVERRIDE virtual void OnChannelErrorFromLink();
+
+    
     bool ProcessingSyncMessage() const {
         return mProcessingSyncMessage;
     }
 
     void OnDispatchMessage(const Message& aMsg);
-
-    NS_OVERRIDE
-    bool OnSpecialMessage(uint16 id, const Message& msg)
-    {
-        
-        return AsyncChannel::OnSpecialMessage(id, msg);
-    }
 
     
     
@@ -172,7 +167,7 @@ protected:
 
     
     bool AwaitingSyncReply() const {
-        mMonitor.AssertCurrentThreadOwns();
+        mMonitor->AssertCurrentThreadOwns();
         return mPendingReply != 0;
     }
 
