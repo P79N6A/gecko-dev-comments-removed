@@ -2336,7 +2336,7 @@ nsXPConnect::AfterProcessNextEvent(nsIThreadInternal *aThread,
 {
     
     if (NS_IsMainThread()) {
-        nsJSContext::MaybeCCIfUserInactive();
+        nsJSContext::MaybePokeCC();
     }
 
     return Pop(nsnull);
