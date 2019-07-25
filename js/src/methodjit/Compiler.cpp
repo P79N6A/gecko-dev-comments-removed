@@ -177,6 +177,16 @@ CompileStatus
 mjit::Compiler::generatePrologue()
 {
     invokeLabel = masm.label();
+#ifdef JS_CPU_ARM
+    
+
+
+
+
+
+
+    masm.push(JSC::ARMRegisters::lr);
+#endif
     restoreFrameRegs(masm);
 
     
@@ -186,6 +196,9 @@ mjit::Compiler::generatePrologue()
     if (fun) {
         Jump j = masm.jump();
         invokeLabel = masm.label();
+#ifdef JS_CPU_ARM
+        masm.push(JSC::ARMRegisters::lr);
+#endif
         restoreFrameRegs(masm);
 
         
@@ -202,20 +215,6 @@ mjit::Compiler::generatePrologue()
 
         j.linkTo(masm.label(), &masm);
     }
-
-#ifdef JS_CPU_ARM
-    
-
-
-
-
-
-
-
-
-
-    masm.storePtr(JSC::ARMRegisters::lr, FrameAddress(offsetof(VMFrame, scriptedReturn)));
-#endif
 
     return Compile_Okay;
 }
@@ -1565,9 +1564,6 @@ mjit::Compiler::emitReturn()
                                         FrameAddress(offsetof(VMFrame, inlineCallCount)),
                                         ImmPtr(0));
     stubcc.linkExit(noInlineCalls, Uses(frame.frameDepth()));
-#if defined(JS_CPU_ARM)
-    stubcc.masm.loadPtr(FrameAddress(offsetof(VMFrame, scriptedReturn)), JSC::ARMRegisters::lr);
-#endif
     stubcc.masm.ret();
 
     JS_ASSERT_IF(!fun, JSOp(*PC) == JSOP_STOP);
@@ -1634,10 +1630,6 @@ mjit::Compiler::emitReturn()
 #ifdef DEBUG
     masm.storePtr(ImmPtr(JSStackFrame::sInvalidPC),
                   Address(JSFrameReg, offsetof(JSStackFrame, savedPC)));
-#endif
-
-#if defined(JS_CPU_ARM)
-    masm.loadPtr(FrameAddress(offsetof(VMFrame, scriptedReturn)), JSC::ARMRegisters::lr);
 #endif
 
     masm.ret();
@@ -1827,14 +1819,7 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
 
     
 
-#ifndef JS_CPU_ARM
-    
-
-
-
-
     masm.addPtr(Imm32(sizeof(void*)), Registers::StackPointer);
-#endif
     masm.call(Registers::ReturnReg);
 #if defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)
     masm.callLabel = masm.label();
@@ -1845,11 +1830,7 @@ mjit::Compiler::inlineCallHelper(uint32 argc, bool callingNew)
 
 
 
-#ifdef JS_CPU_ARM
-    masm.storePtr(Registers::ReturnReg, FrameAddress(offsetof(VMFrame, scriptedReturn)));
-#else
     masm.push(Registers::ReturnReg);
-#endif
 
     
 

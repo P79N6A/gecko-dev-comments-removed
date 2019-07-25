@@ -622,6 +622,13 @@ public:
         return Jump(m_assembler.jmp(ARMCondition(cond)));
     }
 
+    
+    
+    void nop(int tag)
+    {
+        m_assembler.mov_r(tag, tag);
+    }
+
     void breakpoint()
     {
         m_assembler.bkpt(0);

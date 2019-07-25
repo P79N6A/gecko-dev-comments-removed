@@ -307,6 +307,18 @@ static const JSC::MacroAssembler::RegisterID JSReturnReg_Data = JSC::ARMRegister
         return MacroAssembler::call(reg);
     }
 
+#if defined(JS_CPU_ARM)
+    void ret() {
+        
+
+
+
+
+        MacroAssembler::pop(JSC::ARMRegisters::pc);
+    }
+    
+#endif
+
     void finalize(uint8 *ncode) {
         JSC::JITCode jc(ncode, size());
         JSC::CodeBlock cb(jc);

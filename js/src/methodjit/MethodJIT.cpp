@@ -308,8 +308,8 @@ SYMBOL_STRING(JaegerFromTracer) ":"         "\n"
 
 # elif defined(JS_CPU_ARM)
 
-JS_STATIC_ASSERT(offsetof(VMFrame, savedLR) == 76);
-JS_STATIC_ASSERT(offsetof(VMFrame, fp) == 32);
+JS_STATIC_ASSERT(offsetof(VMFrame, savedLR) == (sizeof(VMFrame)-4));
+JS_STATIC_ASSERT(sizeof(VMFrame) == 80);
 
 asm volatile (
 ".text\n"
@@ -344,50 +344,49 @@ SYMBOL_STRING(JaegerTrampoline) ":"         "\n"
 
 
 
+
+
+
+
+
+
+
+
     
     
 
-"   push    {r10,r11,lr}"                   "\n"
-"   push    {r7-r9}"                        "\n"
-"   push    {r4-r6}"                        "\n"
-"   mov     r11, #0"                        "\n"   
-"   push    {r11}"                          "\n"   
-"   push    {r0}"                           "\n"   
-"   push    {r1}"                           "\n"   
-"   mov     r11, r1"                        "\n"   
+
+"   push    {r4-r11,lr}"                        "\n"
+    
+"   push    {r0,r3}"                            "\n"    
+"   push    {r1}"                               "\n"    
+    
+"   sub     sp, sp, #(4*8)"                     "\n"
+
+"   mov     r0, sp"                             "\n"
+"   mov     r4, r2"                             "\n"    
+"   bl  " SYMBOL_STRING_RELOC(SetVMFrameRegs)   "\n"
+"   mov     r0, sp"                             "\n"
+"   bl  " SYMBOL_STRING_RELOC(PushActiveVMFrame)"\n"
 
     
 
-
-
-"   sub     sp, sp, #(8*4)"                 "\n"
-
-"   mov     r0, sp"                         "\n"
-"   push    {r2}"                           "\n"
-"   blx " SYMBOL_STRING_RELOC(SetVMFrameRegs) "\n"
-"   pop     {r2}"                           "\n"
+"   add     sp, sp, #(4*1)"                     "\n"
+"   blx     r4"                                 "\n"
+"   sub     sp, sp, #(4*1)"                     "\n"
 
     
-"   bl  " SYMBOL_STRING_RELOC(JaegerTrampVeneer) "\n"
+"   mov     r0, sp"                             "\n"
+"   bl  " SYMBOL_STRING_RELOC(PopActiveVMFrame) "\n"
+"   mov     r0, sp"                             "\n"
+"   bl  " SYMBOL_STRING_RELOC(UnsetVMFrameRegs) "\n"
 
     
-
-
-
-"   mov     r0, sp"                         "\n"
-"   blx " SYMBOL_STRING_RELOC(UnsetVMFrameRegs) "\n"
-
-    
-"   add     sp, sp, #(11*4)"           "\n"
+"   add     sp, sp, #(4*8 + 4*3)"               "\n"
 
     
 "   mov     r0, #1"                         "\n"
-
-    
-
-"   pop     {r4-r6}"                        "\n"
-"   pop     {r7-r9}"                        "\n"
-"   pop     {r10,r11,pc}"                   "\n"    
+"   pop     {r4-r11,pc}"                    "\n"
 );
 
 asm volatile (
@@ -398,7 +397,7 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
 "   mov     r0, sp"                         "\n"
 
     
-"   blx " SYMBOL_STRING_RELOC(js_InternalThrow) "\n"
+"   bl  " SYMBOL_STRING_RELOC(js_InternalThrow) "\n"
     
     
 
@@ -406,13 +405,9 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
 "   bxne    r0"                             "\n"
 
     
-"   add     sp, sp, #(11*4)"           "\n"
+"   add     sp, sp, #(4*8 + 4*3)"               "\n"
 
-    
-
-"   pop     {r4-r6}"                        "\n"
-"   pop     {r7-r9}"                        "\n"
-"   pop     {r10,r11,pc}"                   "\n"    
+"   pop     {r4-r11,pc}"                    "\n"
 );
 
 asm volatile (
@@ -424,21 +419,9 @@ SYMBOL_STRING(JaegerStubVeneer) ":"         "\n"
 
 
 
-
-"   str     lr, [sp]"                       "\n"    
+"   push    {ip,lr}"                        "\n"
 "   blx     ip"                             "\n"
-"   ldr     pc, [sp]"                       "\n"    
-);
-
-asm volatile (
-".text\n"
-".globl " SYMBOL_STRING(JaegerTrampVeneer)   "\n"
-SYMBOL_STRING(JaegerTrampVeneer) ":"         "\n"
-    
-
-
-"   str     lr, [sp, #4]"                   "\n"    
-"   bx      r2"                             "\n"
+"   pop     {ip,pc}"                        "\n"
 );
 
 # else
