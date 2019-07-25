@@ -95,6 +95,10 @@ class nsGeolocationRequest
   nsresult Init();
   void Shutdown();
 
+  
+  
+  void Update(nsIDOMGeoPosition* aPosition, PRBool isBetter);
+
   void SendLocation(nsIDOMGeoPosition* location);
   void MarkCleared();
   PRBool IsActive() {return !mCleared;}
@@ -113,6 +117,7 @@ class nsGeolocationRequest
   void NotifyError(PRInt16 errorCode);
   PRPackedBool mAllowed;
   PRPackedBool mCleared;
+  PRPackedBool mIsFirstUpdate;
 
   nsCOMPtr<nsITimer> mTimeoutTimer;
   nsCOMPtr<nsIDOMGeoPositionCallback> mCallback;
@@ -201,7 +206,8 @@ public:
   nsresult Init(nsIDOMWindow* contentDom=nsnull);
 
   
-  void Update(nsIDOMGeoPosition* aPosition);
+  
+  void Update(nsIDOMGeoPosition* aPosition, PRBool isBetter);
 
   
   PRBool HasActiveCallbacks();
