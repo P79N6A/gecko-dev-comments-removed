@@ -988,6 +988,37 @@ var AddonManagerInternal = {
 
 
 
+  getAddonBySyncGUID: function AMI_getAddonBySyncGUID(aGUID, aCallback) {
+    if (!aGUID || !aCallback) {
+      throw Cr.NS_ERROR_INVALID_ARG;
+    }
+
+    new AsyncObjectCaller(this.providers, "getAddonBySyncGUID", {
+      nextObject: function(aCaller, aProvider) {
+        callProvider(aProvider, "getAddonBySyncGUID", null, aGUID, function(aAddon) {
+          if (aAddon) {
+            safeCall(aCallback, aAddon);
+          } else {
+            aCaller.callNext();
+          }
+        });
+      },
+
+      noMoreObjects: function(aCaller) {
+        safeCall(aCallback, null);
+      }
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
   getAddonsByIDs: function AMI_getAddonsByIDs(aIds, aCallback) {
     if (!aIds || !aCallback)
       throw Cr.NS_ERROR_INVALID_ARG;
@@ -1375,6 +1406,10 @@ var AddonManager = {
 
   getAddonByID: function AM_getAddonByID(aId, aCallback) {
     AddonManagerInternal.getAddonByID(aId, aCallback);
+  },
+
+  getAddonBySyncGUID: function AM_getAddonBySyncGUID(aId, aCallback) {
+    AddonManagerInternal.getAddonBySyncGUID(aId, aCallback);
   },
 
   getAddonsByIDs: function AM_getAddonsByIDs(aIds, aCallback) {
