@@ -58,7 +58,6 @@ wizardpage {
 }
 
 .wizard-buttons button:-moz-window-inactive {
-  color: @toolbarbuttonInactiveFontColor@ !important; 
   border-color: @toolbarbuttonInactiveBorderColor@;
   background-image: @toolbarbuttonInactiveBackgroundImage@;
 }
