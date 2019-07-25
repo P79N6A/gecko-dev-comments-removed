@@ -85,25 +85,6 @@ static NS_DEFINE_CID(kMultiplexInputStream, NS_MULTIPLEXINPUTSTREAM_CID);
 
 
 
-static char *
-LocateHttpStart(char *buf, PRUint32 len)
-{
-    
-    
-    if (len < 4)
-        return (PL_strncasecmp(buf, "HTTP", len) == 0) ? buf : 0;
-
-    
-    
-    while (len >= 4) {
-        if (PL_strncasecmp(buf, "HTTP", 4) == 0)
-            return buf;
-        buf++;
-        len--;
-    }
-    return 0;
-}
-
 #if defined(PR_LOGGING)
 static void
 LogHeaders(const char *lines)
@@ -152,6 +133,7 @@ nsHttpTransaction::nsHttpTransaction()
     , mStatusEventPending(PR_FALSE)
     , mHasRequestBody(PR_FALSE)
     , mSSLConnectFailed(PR_FALSE)
+    , mHttpResponseMatched(PR_FALSE)
 {
     LOG(("Creating nsHttpTransaction @%x\n", this));
 }
@@ -692,6 +674,60 @@ nsHttpTransaction::Restart()
     return gHttpHandler->InitiateTransaction(this, mPriority);
 }
 
+char *
+nsHttpTransaction::LocateHttpStart(char *buf, PRUint32 len,
+                                   PRBool aAllowPartialMatch)
+{
+    NS_ASSERTION(!aAllowPartialMatch || mLineBuf.IsEmpty(), "ouch");
+
+    static const char HTTPHeader[] = "HTTP/1.";
+    static const PRInt32 HTTPHeaderLen = sizeof(HTTPHeader) - 1;
+
+    
+    if (!mLineBuf.IsEmpty()) {
+        NS_ASSERTION(mLineBuf.Length() < HTTPHeaderLen, "ouch");
+        PRInt32 checkChars = PR_MIN(len, HTTPHeaderLen - mLineBuf.Length());
+        if (PL_strncasecmp(buf, HTTPHeader + mLineBuf.Length(),
+                           checkChars) == 0) {
+            mLineBuf.Append(buf, checkChars);
+            if (mLineBuf.Length() == HTTPHeaderLen) {
+                
+                
+                return (buf + checkChars);
+            }
+            else {
+                
+                return 0;
+            }
+        }
+        
+        
+        mLineBuf.Truncate();
+    }
+
+    while (len > 0) {
+        if (PL_strncasecmp(buf, HTTPHeader, PR_MIN(len, HTTPHeaderLen)) == 0) {
+            if (len < HTTPHeaderLen) {
+                
+                if (aAllowPartialMatch) {
+                    return buf;
+                } else {
+                    
+                    mLineBuf.Assign(buf, len);
+                    return 0;
+                }
+            }
+
+            
+            return buf;
+        }
+        buf++;
+        len--;
+    }
+    return 0;
+}
+
+
 void
 nsHttpTransaction::ParseLine(char *line)
 {
@@ -739,6 +775,7 @@ nsHttpTransaction::ParseLineSegment(char *segment, PRUint32 len)
         if (mResponseHead->Status() / 100 == 1) {
             LOG(("ignoring 1xx response\n"));
             mHaveStatusLine = PR_FALSE;
+            mHttpResponseMatched = PR_FALSE;
             mResponseHead->Reset();
             return NS_OK;
         }
@@ -777,25 +814,48 @@ nsHttpTransaction::ParseHead(char *buf,
                 PR_Now(), LL_ZERO, EmptyCString());
     }
 
-    
-    
-    if (!mHaveStatusLine && mLineBuf.IsEmpty()) {
+    if (!mHttpResponseMatched) {
         
-        char *p = LocateHttpStart(buf, PR_MIN(count, 8));
-        if (!p) {
-            
-            if (mRequestHead->Method() == nsHttp::Put)
-                return NS_ERROR_ABORT;
+        
+        
 
-            mResponseHead->ParseStatusLine("");
-            mHaveStatusLine = PR_TRUE;
-            mHaveAllHeaders = PR_TRUE;
-            return NS_OK;
-        }
-        if (p > buf) {
+        
+        
+        
+        
+        nsRefPtr<nsHttpConnectionInfo> ci;
+        mConnection->GetConnectionInfo(getter_AddRefs(ci));
+
+        if (ci->IsHttp09Allowed()) {
             
-            *countRead = p - buf;
-            buf = p;
+            mHttpResponseMatched = PR_TRUE;
+            char *p = LocateHttpStart(buf, PR_MIN(count, 8), PR_TRUE);
+            if (!p) {
+                
+                if (mRequestHead->Method() == nsHttp::Put)
+                    return NS_ERROR_ABORT;
+
+                mResponseHead->ParseStatusLine("");
+                mHaveStatusLine = PR_TRUE;
+                mHaveAllHeaders = PR_TRUE;
+                return NS_OK;
+            }
+            if (p > buf) {
+                
+                *countRead = p - buf;
+                buf = p;
+            }
+        }
+        else {
+            char *p = LocateHttpStart(buf, count, PR_FALSE);
+            if (p) {
+                *countRead = p - buf;
+                buf = p;
+                mHttpResponseMatched = PR_TRUE;
+            } else {
+                *countRead = count;
+                return NS_OK;
+            }
         }
     }
     
@@ -863,6 +923,7 @@ nsHttpTransaction::HandleContentStart()
             mHaveStatusLine = PR_FALSE;
             mReceivedData = PR_FALSE;
             mSentData = PR_FALSE;
+            mHttpResponseMatched = PR_FALSE;
             mResponseHead->Reset();
             
             return NS_OK;

@@ -397,6 +397,16 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
     
     mSupportsPipelining = PR_FALSE;
 
+    
+    
+    if (!mSSLProxyConnectStream) {
+        if ((responseHead->Version() > NS_HTTP_VERSION_0_9) &&
+            (requestHead->Version() > NS_HTTP_VERSION_0_9))
+        {
+            mConnInfo->DisallowHttp09();
+        }
+    }
+
     if ((responseHead->Version() < NS_HTTP_VERSION_1_1) ||
         (requestHead->Version() < NS_HTTP_VERSION_1_1)) {
         
