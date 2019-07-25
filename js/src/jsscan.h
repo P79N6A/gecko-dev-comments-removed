@@ -537,7 +537,7 @@ typedef void (*JSMapKeywordFun)(const char *);
 
 
 extern JSBool
-js_IsIdentifier(JSString *str);
+js_IsIdentifier(JSLinearString *str);
 
 
 

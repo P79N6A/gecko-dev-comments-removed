@@ -884,6 +884,147 @@ private:
     JSStackFrame *curfp;
 };
 
+
+typedef HashMap<jsbytecode*,
+                size_t,
+                DefaultHasher<jsbytecode*>,
+                SystemAllocPolicy> RecordAttemptMap;
+
+
+typedef HashMap<jsbytecode*,
+                LoopProfile*,
+                DefaultHasher<jsbytecode*>,
+                SystemAllocPolicy> LoopProfileMap;
+
+class Oracle;
+
+typedef HashSet<JSScript *,
+                DefaultHasher<JSScript *>,
+                SystemAllocPolicy> TracedScriptSet;
+
+
+
+
+
+
+struct TraceMonitor {
+    
+
+
+
+
+
+
+
+
+
+    JSContext               *tracecx;
+
+    
+
+
+
+
+    TraceNativeStorage      *storage;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    VMAllocator*            dataAlloc;
+    VMAllocator*            traceAlloc;
+    VMAllocator*            tempAlloc;
+    nanojit::CodeAlloc*     codeAlloc;
+    nanojit::Assembler*     assembler;
+    FrameInfoCache*         frameCache;
+
+    
+    uintN                   flushEpoch;
+
+    Oracle*                 oracle;
+    TraceRecorder*          recorder;
+
+    
+    LoopProfile*            profile;
+
+    GlobalState             globalStates[MONITOR_N_GLOBAL_STATES];
+    TreeFragment*           vmfragments[FRAGMENT_TABLE_SIZE];
+    RecordAttemptMap*       recordAttempts;
+
+    
+    LoopProfileMap*         loopProfiles;
+
+    
+
+
+
+    uint32                  maxCodeCacheBytes;
+
+    
+
+
+
+
+    JSBool                  needFlush;
+
+    
+
+
+    REHashMap*              reFragments;
+
+    
+    
+    
+    TypeMap*                cachedTempTypeMap;
+
+    
+    TracedScriptSet         tracedScripts;
+
+#ifdef DEBUG
+    
+    nanojit::Seq<nanojit::Fragment*>* branches;
+    uint32                  lastFragID;
+    
+
+
+
+    VMAllocator*            profAlloc;
+    FragStatsMap*           profTab;
+#endif
+
+    bool ontrace() const {
+        return !!tracecx;
+    }
+
+    
+    void flush();
+
+    
+    void sweep();
+
+    bool outOfMemory() const;
+};
+
 } 
 
 
@@ -895,6 +1036,23 @@ private:
 # define JS_ON_TRACE(cx)            (JS_TRACE_MONITOR(cx).ontrace())
 #else
 # define JS_ON_TRACE(cx)            false
+#endif
+
+
+#ifndef JS_EVAL_CACHE_SHIFT
+# define JS_EVAL_CACHE_SHIFT        6
+#endif
+#define JS_EVAL_CACHE_SIZE          JS_BIT(JS_EVAL_CACHE_SHIFT)
+
+#ifdef DEBUG
+# define EVAL_CACHE_METER_LIST(_)   _(probe), _(hit), _(step), _(noscope)
+# define identity(x)                x
+
+struct JSEvalCacheMeter {
+    uint64 EVAL_CACHE_METER_LIST(identity);
+};
+
+# undef identity
 #endif
 
 #ifdef DEBUG
@@ -961,7 +1119,17 @@ struct JSThreadData {
 
 #ifdef JS_TRACER
     
-    uint32              maxCodeCacheBytes;
+    js::TraceMonitor    traceMonitor;
+
+    
+    unsigned            iterationCounter;
+#endif
+
+    
+    JSScript            *scriptsToGC[JS_EVAL_CACHE_SIZE];
+
+#ifdef DEBUG
+    JSEvalCacheMeter    evalCacheMeter;
 #endif
 
     
@@ -994,6 +1162,16 @@ struct JSThreadData {
     JSPendingProxyOperation *pendingProxyOperation;
 
     js::ConservativeGCThreadData conservativeGC;
+
+  private:
+    js::MathCache       *mathCache;
+
+    js::MathCache *allocMathCache(JSContext *cx);
+  public:
+
+    js::MathCache *getMathCache(JSContext *cx) {
+        return mathCache ? mathCache : allocMathCache(cx);
+    }
 
     bool init();
     void finish();
@@ -1191,7 +1369,7 @@ struct JSRuntime {
     js::Value           negativeInfinityValue;
     js::Value           positiveInfinityValue;
 
-    JSString            *emptyString;
+    JSFlatString        *emptyString;
 
     
     JSCList             contextList;
@@ -1547,6 +1725,14 @@ struct JSRuntime {
 
 #define JS_GSN_CACHE(cx)        (JS_THREAD_DATA(cx)->gsnCache)
 #define JS_PROPERTY_CACHE(cx)   (JS_THREAD_DATA(cx)->propertyCache)
+#define JS_TRACE_MONITOR(cx)    (JS_THREAD_DATA(cx)->traceMonitor)
+#define JS_SCRIPTS_TO_GC(cx)    (JS_THREAD_DATA(cx)->scriptsToGC)
+
+#ifdef DEBUG
+# define EVAL_CACHE_METER(x)    (JS_THREAD_DATA(cx)->evalCacheMeter.x++)
+#else
+# define EVAL_CACHE_METER(x)    ((void) 0)
+#endif
 
 #ifdef DEBUG
 # define JS_RUNTIME_METER(rt, which)    JS_ATOMIC_INCREMENT(&(rt)->which)
@@ -2181,6 +2367,30 @@ struct JSContext
     }
 #else
     void assertValidStackDepth(uintN ) {}
+#endif
+
+    enum DollarPath {
+        DOLLAR_LITERAL = 1,
+        DOLLAR_AMP,
+        DOLLAR_PLUS,
+        DOLLAR_TICK,
+        DOLLAR_QUOT,
+        DOLLAR_EMPTY,
+        DOLLAR_1,
+        DOLLAR_2,
+        DOLLAR_3,
+        DOLLAR_4,
+        DOLLAR_5,
+        DOLLAR_OTHER
+    };
+#ifdef XP_WIN
+    volatile DollarPath *dollarPath;
+    volatile JSSubString *sub;
+    volatile const jschar *blackBox;
+    volatile const jschar **repstrChars;
+    volatile const jschar **repstrDollar;
+    volatile const jschar **repstrDollarEnd;
+    volatile size_t *peekLen;
 #endif
 
 private:
@@ -3052,13 +3262,49 @@ js_CurrentPCIsInImacro(JSContext *cx);
 
 namespace js {
 
+#ifdef JS_TRACER
+
+
+
+
+
+
+
+JS_FORCES_STACK JS_FRIEND_API(void)
+DeepBail(JSContext *cx);
+#endif
+
+static JS_FORCES_STACK JS_INLINE void
+LeaveTrace(JSContext *cx)
+{
+#ifdef JS_TRACER
+    if (JS_ON_TRACE(cx))
+        DeepBail(cx);
+#endif
+}
+
+static JS_INLINE void
+LeaveTraceIfGlobalObject(JSContext *cx, JSObject *obj)
+{
+    if (!obj->parent)
+        LeaveTrace(cx);
+}
+
+static JS_INLINE JSBool
+CanLeaveTrace(JSContext *cx)
+{
+    JS_ASSERT(JS_ON_TRACE(cx));
+#ifdef JS_TRACER
+    return cx->bailExit != NULL;
+#else
+    return JS_FALSE;
+#endif
+}
+
 extern void
 SetPendingException(JSContext *cx, const Value &v);
 
 class RegExpStatics;
-
-extern JS_FORCES_STACK JS_FRIEND_API(void)
-LeaveTrace(JSContext *cx);
 
 } 
 

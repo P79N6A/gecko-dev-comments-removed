@@ -61,7 +61,7 @@ class RegExpStatics
     typedef Vector<int, 20, SystemAllocPolicy> MatchPairs;
     MatchPairs      matchPairs;
     
-    JSString        *matchPairsInput;
+    JSLinearString  *matchPairsInput;
     
     JSString        *pendingInput;
     uintN           flags;
@@ -180,7 +180,7 @@ class RegExpStatics
 
     
 
-    bool updateFromMatch(JSContext *cx, JSString *input, int *buf, size_t matchItemCount) {
+    bool updateFromMatch(JSContext *cx, JSLinearString *input, int *buf, size_t matchItemCount) {
         aboutToWrite();
         pendingInput = input;
 

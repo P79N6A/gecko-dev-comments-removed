@@ -484,7 +484,8 @@ obj_toSource(JSContext *cx, uintN argc, Value *vp)
     JSProperty *prop;
     Value *val;
     JSString *gsop[2];
-    JSString *idstr, *valstr, *str;
+    JSString *valstr, *str;
+    JSLinearString *idstr;
 
     JS_CHECK_RECURSION(cx, return JS_FALSE);
 
@@ -570,8 +571,8 @@ obj_toSource(JSContext *cx, uintN argc, Value *vp)
 
 
 
-        idstr = js_ValueToString(cx, IdToValue(id));
-        if (!idstr) {
+        JSString *s = js_ValueToString(cx, IdToValue(id));
+        if (!s || !(idstr = s->ensureLinear(cx))) {
             ok = JS_FALSE;
             goto error;
         }
@@ -609,18 +610,23 @@ obj_toSource(JSContext *cx, uintN argc, Value *vp)
 
 
 
-        bool idIsLexicalIdentifier = !!js_IsIdentifier(idstr);
+        bool idIsLexicalIdentifier = js_IsIdentifier(idstr);
         if (JSID_IS_ATOM(id)
             ? !idIsLexicalIdentifier
             : (!JSID_IS_INT(id) || JSID_TO_INT(id) < 0)) {
-            idstr = js_QuoteString(cx, idstr, jschar('\''));
-            if (!idstr) {
+            s = js_QuoteString(cx, idstr, jschar('\''));
+            if (!s || !(idstr = s->ensureLinear(cx))) {
                 ok = JS_FALSE;
                 goto error;
             }
             vp->setString(idstr);                       
         }
-        idstr->getCharsAndLength(idstrchars, idstrlength);
+        idstrlength = idstr->length();
+        idstrchars = idstr->getChars(cx);
+        if (!idstrchars) {
+            ok = JS_FALSE;
+            goto error;
+        }
 
         for (jsint j = 0; j < valcnt; j++) {
             
@@ -637,7 +643,12 @@ obj_toSource(JSContext *cx, uintN argc, Value *vp)
                 goto error;
             }
             localroot[j].setString(valstr);             
-            valstr->getCharsAndLength(vchars, vlength);
+            vchars = valstr->getChars(cx);
+            if (!vchars) {
+                ok = JS_FALSE;
+                goto error;
+            }
+            vlength = valstr->length();
 
             
 
@@ -727,10 +738,8 @@ obj_toSource(JSContext *cx, uintN argc, Value *vp)
             
             chars = (jschar *) js_realloc((ochars = chars), curlen * sizeof(jschar));
             if (!chars) {
-                
-                cx->free(vsharp);
-                js_free(ochars);
-                goto error;
+                chars = ochars;
+                goto overflow;
             }
 
             if (comma) {
@@ -741,8 +750,10 @@ obj_toSource(JSContext *cx, uintN argc, Value *vp)
 
             if (gsop[j]) {
                 gsoplength = gsop[j]->length();
-                js_strncpy(&chars[nchars], gsop[j]->chars(),
-                            gsoplength);
+                const jschar *gsopchars = gsop[j]->getChars(cx);
+                if (!gsopchars)
+                    goto overflow;
+                js_strncpy(&chars[nchars], gsopchars, gsoplength);
                 nchars += gsoplength;
                 chars[nchars++] = ' ';
             }
@@ -987,15 +998,14 @@ js_ComputeFilename(JSContext *cx, JSStackFrame *caller,
 #endif
 
 static inline JSScript **
-EvalCacheHash(JSContext *cx, JSString *str)
+EvalCacheHash(JSContext *cx, JSLinearString *str)
 {
-    const jschar *s;
-    size_t n;
-    uint32 h;
+    const jschar *s = str->chars();
+    size_t n = str->length();
 
-    str->getCharsAndLength(s, n);
     if (n > 100)
         n = 100;
+    uint32 h;
     for (h = 0; n; s++, n--)
         h = JS_ROTATE_LEFT32(h, 4) ^ *s;
 
@@ -1005,7 +1015,7 @@ EvalCacheHash(JSContext *cx, JSString *str)
 }
 
 static JS_ALWAYS_INLINE JSScript *
-EvalCacheLookup(JSContext *cx, JSString *str, JSStackFrame *caller, uintN staticLevel,
+EvalCacheLookup(JSContext *cx, JSLinearString *str, JSStackFrame *caller, uintN staticLevel,
                 JSPrincipals *principals, JSObject *scopeobj, JSScript **bucket)
 {
     
@@ -1041,9 +1051,9 @@ EvalCacheLookup(JSContext *cx, JSString *str, JSStackFrame *caller, uintN static
 
 
 
-                JSString *src = ATOM_TO_STRING(script->atomMap.vector[0]);
+                JSAtom *src = script->atomMap.vector[0];
 
-                if (src == str || js_EqualStrings(src, str)) {
+                if (src == str || EqualStrings(src, str)) {
                     
 
 
@@ -1184,9 +1194,11 @@ EvalKernel(JSContext *cx, uintN argc, Value *vp, EvalType evalType, JSStackFrame
     if (!CheckScopeChainValidity(cx, scopeobj))
         return false;
 
-    const jschar *chars;
-    size_t length;
-    str->getCharsAndLength(chars, length);
+    JSLinearString *linearStr = str->ensureLinear(cx);
+    if (!linearStr)
+        return false;
+    const jschar *chars = linearStr->chars();
+    size_t length = linearStr->length();
 
     
 
@@ -1214,9 +1226,9 @@ EvalKernel(JSContext *cx, uintN argc, Value *vp, EvalType evalType, JSStackFrame
         return false;
 
     JSScript *script = NULL;
-    JSScript **bucket = EvalCacheHash(cx, str);
+    JSScript **bucket = EvalCacheHash(cx, linearStr);
     if (evalType == DIRECT_EVAL && caller->isFunctionFrame())
-        script = EvalCacheLookup(cx, str, caller, staticLevel, principals, scopeobj, bucket);
+        script = EvalCacheLookup(cx, linearStr, caller, staticLevel, principals, scopeobj, bucket);
 
     
 
@@ -1229,9 +1241,8 @@ EvalKernel(JSContext *cx, uintN argc, Value *vp, EvalType evalType, JSStackFrame
 
         uint32 tcflags = TCF_COMPILE_N_GO | TCF_NEED_MUTABLE_SCRIPT | TCF_COMPILE_FOR_EVAL;
         script = Compiler::compileScript(cx, scopeobj, callerFrame,
-                                         principals, tcflags,
-                                         chars, length,
-                                         filename, lineno, str, staticLevel);
+                                         principals, tcflags, chars, length,
+                                         filename, lineno, linearStr, staticLevel);
         if (!script)
             return false;
     }
@@ -2040,14 +2051,20 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const PropDesc &desc,
             if (!shape->isAccessorDescriptor())
                 break;
 
-            if (desc.hasGet &&
-                !SameValue(desc.getterValue(), shape->getterOrUndefined(), cx)) {
-                break;
+            if (desc.hasGet) {
+                JSBool same;
+                if (!SameValue(cx, desc.getterValue(), shape->getterOrUndefined(), &same))
+                    return JS_FALSE;
+                if (!same)
+                    break;
             }
 
-            if (desc.hasSet &&
-                !SameValue(desc.setterValue(), shape->setterOrUndefined(), cx)) {
-                break;
+            if (desc.hasSet) {
+                JSBool same;
+                if (!SameValue(cx, desc.setterValue(), shape->setterOrUndefined(), &same))
+                    return JS_FALSE;
+                if (!same)
+                    break;
             }
         } else {
             
@@ -2096,8 +2113,13 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const PropDesc &desc,
                 if (!shape->isDataDescriptor())
                     break;
 
-                if (desc.hasValue && !SameValue(desc.value, v, cx))
-                    break;
+                JSBool same;
+                if (desc.hasValue) {
+                    if (!SameValue(cx, desc.value, v, &same))
+                        return JS_FALSE;
+                    if (!same)
+                        break;
+                }
                 if (desc.hasWritable && desc.writable() != shape->writable())
                     break;
             } else {
@@ -2144,9 +2166,14 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const PropDesc &desc,
         
         JS_ASSERT(shape->isDataDescriptor());
         if (!shape->configurable() && !shape->writable()) {
-            if ((desc.hasWritable && desc.writable()) ||
-                (desc.hasValue && !SameValue(desc.value, v, cx))) {
+            if (desc.hasWritable && desc.writable())
                 return Reject(cx, JSMSG_CANT_REDEFINE_PROP, throwError, desc.id, rval);
+            if (desc.hasValue) {
+                JSBool same;
+                if (!SameValue(cx, desc.value, v, &same))
+                    return JS_FALSE;
+                if (!same)
+                    return Reject(cx, JSMSG_CANT_REDEFINE_PROP, throwError, desc.id, rval);
             }
         }
 
@@ -2155,11 +2182,20 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const PropDesc &desc,
         
         JS_ASSERT(desc.isAccessorDescriptor() && shape->isAccessorDescriptor());
         if (!shape->configurable()) {
-            if ((desc.hasSet &&
-                 !SameValue(desc.setterValue(), shape->setterOrUndefined(), cx)) ||
-                (desc.hasGet &&
-                 !SameValue(desc.getterValue(), shape->getterOrUndefined(), cx))) {
-                return Reject(cx, JSMSG_CANT_REDEFINE_PROP, throwError, desc.id, rval);
+            if (desc.hasSet) {
+                JSBool same;
+                if (!SameValue(cx, desc.setterValue(), shape->setterOrUndefined(), &same))
+                    return JS_FALSE;
+                if (!same)
+                    return Reject(cx, JSMSG_CANT_REDEFINE_PROP, throwError, desc.id, rval);
+            }
+
+            if (desc.hasGet) {
+                JSBool same;
+                if (!SameValue(cx, desc.getterValue(), shape->getterOrUndefined(), &same))
+                    return JS_FALSE;
+                if (!same)
+                    return Reject(cx, JSMSG_CANT_REDEFINE_PROP, throwError, desc.id, rval);
             }
         }
     }
@@ -6312,7 +6348,7 @@ js_PrintObjectSlotName(JSTracer *trc, char *buf, size_t bufsize)
         if (JSID_IS_INT(id)) {
             JS_snprintf(buf, bufsize, "%ld", (long)JSID_TO_INT(id));
         } else if (JSID_IS_ATOM(id)) {
-            PutEscapedString(buf, bufsize, JSID_TO_STRING(id), 0);
+            PutEscapedString(buf, bufsize, JSID_TO_ATOM(id), 0);
         } else {
             JS_snprintf(buf, bufsize, "**FINALIZED ATOM KEY**");
         }
@@ -6505,15 +6541,22 @@ js_DumpChars(const jschar *s, size_t n)
 void
 dumpString(JSString *str)
 {
-    dumpChars(str->chars(), str->length());
+    if (const jschar *chars = str->getChars(NULL))
+        dumpChars(chars, str->length());
+    else
+        fprintf(stderr, "(oom in dumpString)");
 }
 
 JS_FRIEND_API(void)
 js_DumpString(JSString *str)
 {
-    fprintf(stderr, "JSString* (%p) = jschar * (%p) = ",
-            (void *) str, (void *) str->chars());
-    dumpString(str);
+    if (const jschar *chars = str->getChars(NULL)) {
+        fprintf(stderr, "JSString* (%p) = jschar * (%p) = ",
+                (void *) str, (void *) chars);
+        dumpString(str);
+    } else {
+        fprintf(stderr, "(oom in JS_DumpString)");
+    }
     fputc('\n', stderr);
 }
 

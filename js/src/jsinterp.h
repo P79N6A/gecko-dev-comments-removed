@@ -1030,11 +1030,11 @@ CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs,
                    JSObject **objp, JSProperty **propp);
 
 extern bool
-StrictlyEqual(JSContext *cx, const Value &lval, const Value &rval);
+StrictlyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *equal);
 
 
 extern bool
-SameValue(const Value &v1, const Value &v2, JSContext *cx);
+SameValue(JSContext *cx, const Value &v1, const Value &v2, JSBool *same);
 
 extern JSType
 TypeOfValue(JSContext *cx, const Value &v);

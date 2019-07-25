@@ -92,6 +92,7 @@ typedef struct JSTreeContext        JSTreeContext;
 typedef struct JSTryNote            JSTryNote;
 
 
+typedef struct JSLinearString       JSLinearString;
 typedef struct JSAtom               JSAtom;
 typedef struct JSAtomList           JSAtomList;
 typedef struct JSAtomListElement    JSAtomListElement;

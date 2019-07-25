@@ -44,7 +44,6 @@
 #include "jsiter.h"
 #include "jsproxy.h"
 #include "jsscope.h"
-#include "jstracer.h"
 #include "methodjit/MethodJIT.h"
 #include "methodjit/PolyIC.h"
 #include "methodjit/MonoIC.h"
@@ -55,34 +54,16 @@ using namespace js;
 using namespace js::gc;
 
 JSCompartment::JSCompartment(JSRuntime *rt)
-  : rt(rt),
-    principals(NULL),
-    data(NULL),
-    marked(false),
-    debugMode(rt->debugMode),
-    anynameObject(NULL),
-    functionNamespaceObject(NULL),
-    mathCache(NULL)
+  : rt(rt), principals(NULL), data(NULL), marked(false), debugMode(rt->debugMode),
+    anynameObject(NULL), functionNamespaceObject(NULL)
 {
     JS_INIT_CLIST(&scripts);
-
-    PodArrayZero(scriptsToGC);
 }
 
 JSCompartment::~JSCompartment()
 {
-#if defined JS_TRACER
-    FinishJIT(&traceMonitor);
-#endif
 #ifdef JS_METHODJIT
     delete jaegerCompartment;
-#endif
-
-    delete mathCache;
-
-#ifdef DEBUG
-    for (size_t i = 0; i != JS_ARRAY_LENGTH(scriptsToGC); ++i)
-        JS_ASSERT(!scriptsToGC[i]);
 #endif
 }
 
@@ -100,19 +81,9 @@ JSCompartment::init()
     if (!crossCompartmentWrappers.init())
         return false;
 
-#ifdef JS_TRACER
-    if (!InitJIT(&traceMonitor)) {
-        return false;
-    }
-#endif
-
 #ifdef JS_METHODJIT
-    if (!(jaegerCompartment = new mjit::JaegerCompartment)) {
-#ifdef JS_TRACER
-        FinishJIT(&traceMonitor);
-#endif
+    if (!(jaegerCompartment = new mjit::JaegerCompartment))
         return false;
-    }
     return jaegerCompartment->Initialize();
 #else
     return true;
@@ -233,7 +204,10 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
     if (vp->isString()) {
         Value orig = *vp;
         JSString *str = vp->toString();
-        JSString *wrapped = js_NewStringCopyN(cx, str->chars(), str->length());
+        const jschar *chars = str->getChars(cx);
+        if (!chars)
+            return false;
+        JSString *wrapped = js_NewStringCopyN(cx, chars, str->length());
         if (!wrapped)
             return false;
         vp->setString(wrapped);
@@ -372,10 +346,6 @@ JSCompartment::sweep(JSContext *cx)
         }
     }
 
-#ifdef JS_TRACER
-    traceMonitor.sweep();
-#endif
-
 #if defined JS_METHODJIT && defined JS_MONOIC
     for (JSCList *cursor = scripts.next; cursor != &scripts; cursor = cursor->next) {
         JSScript *script = reinterpret_cast<JSScript *>(cursor);
@@ -389,18 +359,6 @@ void
 JSCompartment::purge(JSContext *cx)
 {
     freeLists.purge();
-
-    
-    js_DestroyScriptsToGC(cx, this);
-
-#ifdef JS_TRACER
-    
-
-
-
-    if (cx->runtime->gcRegenShapes)
-        traceMonitor.needFlush = JS_TRUE;
-#endif
 
 #ifdef JS_METHODJIT
     for (JSScript *script = (JSScript *)scripts.next;
@@ -421,14 +379,4 @@ JSCompartment::purge(JSContext *cx)
         }
     }
 #endif
-}
-
-MathCache *
-JSCompartment::allocMathCache(JSContext *cx)
-{
-    JS_ASSERT(!mathCache);
-    mathCache = new MathCache;
-    if (!mathCache)
-        js_ReportOutOfMemory(cx);
-    return mathCache;
 }

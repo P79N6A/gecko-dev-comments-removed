@@ -1732,16 +1732,16 @@ TriggerGC(JSRuntime *rt)
 } 
 
 void
-js_DestroyScriptsToGC(JSContext *cx, JSCompartment *comp)
+js_DestroyScriptsToGC(JSContext *cx, JSThreadData *data)
 {
     JSScript **listp, *script;
 
-    for (size_t i = 0; i != JS_ARRAY_LENGTH(comp->scriptsToGC); ++i) {
-        listp = &comp->scriptsToGC[i];
+    for (size_t i = 0; i != JS_ARRAY_LENGTH(data->scriptsToGC); ++i) {
+        listp = &data->scriptsToGC[i];
         while ((script = *listp) != NULL) {
             *listp = script->u.nextToGC;
             script->u.nextToGC = NULL;
-            js_DestroyScriptFromGC(cx, script);
+            js_DestroyScriptFromGC(cx, script, data);
         }
     }
 }
@@ -1767,7 +1767,7 @@ js_FinalizeStringRT(JSRuntime *rt, JSString *str)
         JS_ASSERT(IsFinalizableStringKind(thingKind));
 
         
-        jschar *chars = str->flatChars();
+        jschar *chars = const_cast<jschar *>(str->flatChars());
         if (!chars)
             return;
         if (thingKind == FINALIZE_STRING) {
@@ -2175,6 +2175,11 @@ MarkAndSweep(JSContext *cx, JSGCInvocationKind gckind GCTIMER_PARAM)
 #ifdef DEBUG
     
     rt->liveObjectPropsPreSweep = rt->liveObjectProps;
+#endif
+
+#ifdef JS_TRACER
+    for (ThreadDataIter i(rt); !i.empty(); i.popFront())
+        i.threadData()->traceMonitor.sweep();
 #endif
 
     

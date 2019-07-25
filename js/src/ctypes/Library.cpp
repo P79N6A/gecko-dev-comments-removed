@@ -133,12 +133,13 @@ Library::Create(JSContext* cx, jsval path, JSCTypesCallbacks* callbacks)
   }
 
   PRLibSpec libSpec;
-  JSString* pathStr = JSVAL_TO_STRING(path);
+  JSFlatString* pathStr = JS_FlattenString(cx, JSVAL_TO_STRING(path));
+  if (!pathStr)
+    return NULL;
 #ifdef XP_WIN
   
   
-  const PRUnichar* pathChars = reinterpret_cast<const PRUnichar*>(
-    JS_GetStringCharsZ(cx, pathStr));
+  const PRUnichar* pathChars = JS_GetFlatStringChars(pathStr);
   if (!pathChars)
     return NULL;
 

@@ -8003,11 +8003,9 @@ Parser::xmlElementOrList(JSBool allowList)
                 return NULL;
             }
             if (endAtom && startAtom && endAtom != startAtom) {
-                JSString *str = ATOM_TO_STRING(startAtom);
-
                 
                 reportErrorNumber(pn2, JSREPORT_UC | JSREPORT_ERROR, JSMSG_XML_TAG_NAME_MISMATCH,
-                                  str->chars());
+                                  startAtom->chars());
                 return NULL;
             }
 
@@ -8676,15 +8674,12 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
 #if JS_HAS_XML_SUPPORT
         if (tokenStream.matchToken(TOK_DBLCOLON)) {
             if (afterDot) {
-                JSString *str;
-
                 
 
 
 
 
-                str = ATOM_TO_STRING(pn->pn_atom);
-                tt = js_CheckKeyword(str->chars(), str->length());
+                tt = js_CheckKeyword(pn->pn_atom->chars(), pn->pn_atom->length());
                 if (tt == TOK_FUNCTION) {
                     pn->pn_arity = PN_NULLARY;
                     pn->pn_type = TOK_FUNCTION;
