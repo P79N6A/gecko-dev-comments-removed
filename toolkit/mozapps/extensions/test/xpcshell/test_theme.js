@@ -275,6 +275,12 @@ function run_test_3() {
     do_check_eq(p1.scope, AddonManager.SCOPE_PROFILE);
     do_check_true("isCompatibleWith" in p1);
     do_check_true("findUpdates" in p1);
+    do_check_eq(p1.installDate.getTime(), p1.updateDate.getTime());
+
+    
+    
+    
+    do_check_true((Date.now() - p1.installDate.getTime()) < 5000);
 
     AddonManager.getAddonsByTypes(["theme"], function(addons) {
       let seen = false;
@@ -338,6 +344,12 @@ function run_test_4() {
     do_check_true(p2.isActive);
     do_check_eq(p2.pendingOperations, 0);
     do_check_eq(p2.permissions, AddonManager.PERM_CAN_UNINSTALL);
+    do_check_eq(p2.installDate.getTime(), p2.updateDate.getTime());
+
+    
+    
+    
+    do_check_true((Date.now() - p2.installDate.getTime()) < 5000);
 
     do_check_neq(null, p1);
     do_check_false(p1.appDisabled);
