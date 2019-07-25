@@ -100,7 +100,6 @@
 
 #include "nsFrameManager.h"
 #include "nsFrameLoader.h"
-#include "nsBidi.h"
 #include "nsBidiPresUtils.h"
 #include "Layers.h"
 #include "CanvasUtils.h"
@@ -828,11 +827,16 @@ protected:
 
 
 
+
+
+
+
+
   class AdjustedTarget
   {
   public:
     AdjustedTarget(nsCanvasRenderingContext2DAzure *ctx,
-                   const mgfx::Rect *aBounds = nsnull)
+                   mgfx::Rect *aBounds = nsnull)
       : mCtx(nsnull)
     {
       if (!ctx->NeedToDrawShadow()) {
@@ -850,48 +854,43 @@ protected:
       }
         
       Matrix transform = mCtx->mTarget->GetTransform();
-      if (!aBounds) {
-        mTempSize = IntSize(ctx->mWidth, ctx->mHeight);
 
+      mTempRect = mgfx::Rect(0, 0, ctx->mWidth, ctx->mHeight);
+
+      Float blurRadius = mSigma * 3;
+
+      
+      
+      mTempRect.Inflate(Margin(blurRadius + NS_MAX<Float>(state.shadowOffset.x, 0),
+                               blurRadius + NS_MAX<Float>(state.shadowOffset.y, 0),
+                               blurRadius + NS_MAX<Float>(-state.shadowOffset.x, 0),
+                               blurRadius + NS_MAX<Float>(-state.shadowOffset.y, 0)));
+
+      if (aBounds) {
         
         
-        if (state.shadowOffset.x > 0) {
-          mTempSize.width += state.shadowOffset.x;
-          mSurfOffset.x = -state.shadowOffset.x;
-          transform._31 += state.shadowOffset.x;
-        } else {
-          mTempSize.width -= state.shadowOffset.x;
-        }
-        if (state.shadowOffset.y > 0) {
-          mTempSize.height += state.shadowOffset.y;
-          mSurfOffset.y = -state.shadowOffset.y;
-          transform._32 += state.shadowOffset.y;
-        } else {
-          mTempSize.height -= state.shadowOffset.y;
-        }
+        
+        aBounds->Inflate(Margin(blurRadius, blurRadius,
+                                blurRadius, blurRadius));
+        mTempRect = mTempRect.Intersect(*aBounds);
+      }
 
-        if (mSigma > 0) {
-          float blurRadius = mSigma * 3;
-          mSurfOffset.x -= blurRadius;
-          mSurfOffset.y -= blurRadius;
-          mTempSize.width += blurRadius;
-          mTempSize.height += blurRadius;
-          transform._31 += blurRadius;
-          transform._32 += blurRadius;
-        }
-      } 
+      mTempRect.ScaleRoundOut(1.0f);
+
+      transform._31 -= mTempRect.x;
+      transform._32 -= mTempRect.y;
         
       mTarget =
-        mCtx->mTarget->CreateSimilarDrawTarget(mTempSize,
-                                                FORMAT_B8G8R8A8);
-
-      mTarget->SetTransform(transform);
+        mCtx->mTarget->CreateSimilarDrawTarget(IntSize(int32_t(mTempRect.width), int32_t(mTempRect.height)),
+                                               FORMAT_B8G8R8A8);
 
       if (!mTarget) {
         
         
         mTarget = ctx->mTarget;
         mCtx = nsnull;
+      } else {
+        mTarget->SetTransform(transform);
       }
     }
 
@@ -903,7 +902,7 @@ protected:
 
       RefPtr<SourceSurface> snapshot = mTarget->Snapshot();
       
-      mCtx->mTarget->DrawSurfaceWithShadow(snapshot, mSurfOffset,
+      mCtx->mTarget->DrawSurfaceWithShadow(snapshot, mTempRect.TopLeft(),
                                            Color::FromABGR(mCtx->CurrentState().shadowColor),
                                            mCtx->CurrentState().shadowOffset, mSigma,
                                            mCtx->CurrentState().op);
@@ -918,8 +917,7 @@ protected:
     RefPtr<DrawTarget> mTarget;
     nsCanvasRenderingContext2DAzure *mCtx;
     Float mSigma;
-    IntSize mTempSize;
-    Point mSurfOffset;
+    mgfx::Rect mTempRect;
   };
 
   nsAutoTArray<ContextState, 3> mStyleStack;
@@ -2114,9 +2112,17 @@ nsCanvasRenderingContext2DAzure::FillRect(float x, float y, float w, float h)
     }
   }
 
-  AdjustedTarget(this)->FillRect(mgfx::Rect(x, y, w, h),
-                                  GeneralPattern().ForStyle(this, STYLE_FILL, mTarget),
-                                  DrawOptions(state.globalAlpha, UsedOperation()));
+  mgfx::Rect bounds;
+  
+  if (NeedToDrawShadow()) {
+    bounds = mgfx::Rect(x, y, w, h);
+    bounds = mTarget->GetTransform().TransformBounds(bounds);
+  }
+
+  AdjustedTarget(this, bounds.IsEmpty() ? nsnull : &bounds)->
+    FillRect(mgfx::Rect(x, y, w, h),
+             GeneralPattern().ForStyle(this, STYLE_FILL, mTarget),
+             DrawOptions(state.globalAlpha, UsedOperation()));
 
   return RedrawUser(gfxRect(x, y, w, h));
 }
@@ -2130,6 +2136,14 @@ nsCanvasRenderingContext2DAzure::StrokeRect(float x, float y, float w, float h)
 
   const ContextState &state = CurrentState();
 
+  mgfx::Rect bounds;
+  
+  if (NeedToDrawShadow()) {
+    bounds = mgfx::Rect(x - state.lineWidth / 2.0f, y - state.lineWidth / 2.0f,
+                        w + state.lineWidth, h + state.lineWidth);
+    bounds = mTarget->GetTransform().TransformBounds(bounds);
+  }
+
   if (!w && !h) {
     return NS_OK;
   } else if (!h) {
@@ -2137,7 +2151,7 @@ nsCanvasRenderingContext2DAzure::StrokeRect(float x, float y, float w, float h)
     if (state.lineJoin == JOIN_ROUND) {
       cap = CAP_ROUND;
     }
-    AdjustedTarget(this)->
+    AdjustedTarget(this, bounds.IsEmpty() ? nsnull : &bounds)->
       StrokeLine(Point(x, y), Point(x + w, y),
                   GeneralPattern().ForStyle(this, STYLE_STROKE, mTarget),
                   StrokeOptions(state.lineWidth, state.lineJoin,
@@ -2152,7 +2166,7 @@ nsCanvasRenderingContext2DAzure::StrokeRect(float x, float y, float w, float h)
     if (state.lineJoin == JOIN_ROUND) {
       cap = CAP_ROUND;
     }
-    AdjustedTarget(this)->
+    AdjustedTarget(this, bounds.IsEmpty() ? nsnull : &bounds)->
       StrokeLine(Point(x, y), Point(x, y + h),
                   GeneralPattern().ForStyle(this, STYLE_STROKE, mTarget),
                   StrokeOptions(state.lineWidth, state.lineJoin,
@@ -2164,7 +2178,7 @@ nsCanvasRenderingContext2DAzure::StrokeRect(float x, float y, float w, float h)
     return NS_OK;
   }
 
-  AdjustedTarget(this)->
+  AdjustedTarget(this, bounds.IsEmpty() ? nsnull : &bounds)->
     StrokeRect(mgfx::Rect(x, y, w, h),
                 GeneralPattern().ForStyle(this, STYLE_STROKE, mTarget),
                 StrokeOptions(state.lineWidth, state.lineJoin,
@@ -2214,7 +2228,13 @@ nsCanvasRenderingContext2DAzure::Fill()
     return NS_OK;
   }
 
-  AdjustedTarget(this)->
+  mgfx::Rect bounds;
+
+  if (NeedToDrawShadow()) {
+    bounds = mPath->GetBounds(mTarget->GetTransform());
+  }
+
+  AdjustedTarget(this, bounds.IsEmpty() ? nsnull : &bounds)->
     Fill(mPath, GeneralPattern().ForStyle(this, STYLE_FILL, mTarget),
          DrawOptions(CurrentState().globalAlpha, UsedOperation()));
 
@@ -2232,14 +2252,20 @@ nsCanvasRenderingContext2DAzure::Stroke()
 
   const ContextState &state = CurrentState();
 
-  AdjustedTarget(this)->
+  StrokeOptions strokeOptions(state.lineWidth, state.lineJoin,
+                              state.lineCap, state.miterLimit,
+                              state.dash.Length(), state.dash.Elements(),
+                              state.dashOffset);
+
+  mgfx::Rect bounds;
+  if (NeedToDrawShadow()) {
+    bounds =
+      mPath->GetStrokedBounds(strokeOptions, mTarget->GetTransform());
+  }
+
+  AdjustedTarget(this, bounds.IsEmpty() ? nsnull : &bounds)->
     Stroke(mPath, GeneralPattern().ForStyle(this, STYLE_STROKE, mTarget),
-            StrokeOptions(state.lineWidth, state.lineJoin,
-                          state.lineCap, state.miterLimit,
-                          state.dash.Length(),
-                          state.dash.Elements(),
-                          state.dashOffset),
-            DrawOptions(state.globalAlpha, UsedOperation()));
+           strokeOptions, DrawOptions(state.globalAlpha, UsedOperation()));
 
   return Redraw();
 }
@@ -3197,6 +3223,11 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
 
   nsIDocument* document = presShell->GetDocument();
 
+  nsBidiPresUtils* bidiUtils = presShell->GetPresContext()->GetBidiUtils();
+  if (!bidiUtils) {
+    return NS_ERROR_FAILURE;
+  }
+
   
   nsAutoString textToDraw(aRawText);
   TextReplaceWhitespaceCharacters(textToDraw);
@@ -3247,17 +3278,15 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
 
   
   
-  nsBidi bidiEngine;
-  rv = nsBidiPresUtils::ProcessText(textToDraw.get(),
-                                textToDraw.Length(),
-                                isRTL ? NSBIDI_RTL : NSBIDI_LTR,
-                                presShell->GetPresContext(),
-                                processor,
-                                nsBidiPresUtils::MODE_MEASURE,
-                                nsnull,
-                                0,
-                                &totalWidthCoord,
-                                &bidiEngine);
+  rv = bidiUtils->ProcessText(textToDraw.get(),
+                              textToDraw.Length(),
+                              isRTL ? NSBIDI_RTL : NSBIDI_LTR,
+                              presShell->GetPresContext(),
+                              processor,
+                              nsBidiPresUtils::MODE_MEASURE,
+                              nsnull,
+                              0,
+                              &totalWidthCoord);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -3348,16 +3377,15 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
   
   processor.mDoMeasureBoundingBox = PR_FALSE;
 
-  rv = nsBidiPresUtils::ProcessText(textToDraw.get(),
-                                    textToDraw.Length(),
-                                    isRTL ? NSBIDI_RTL : NSBIDI_LTR,
-                                    presShell->GetPresContext(),
-                                    processor,
-                                    nsBidiPresUtils::MODE_DRAW,
-                                    nsnull,
-                                    0,
-                                    nsnull,
-                                    &bidiEngine);
+  rv = bidiUtils->ProcessText(textToDraw.get(),
+                              textToDraw.Length(),
+                              isRTL ? NSBIDI_RTL : NSBIDI_LTR,
+                              presShell->GetPresContext(),
+                              processor,
+                              nsBidiPresUtils::MODE_DRAW,
+                              nsnull,
+                              0,
+                              nsnull);
 
 
   mTarget->SetTransform(oldTransform);
@@ -3757,7 +3785,14 @@ nsCanvasRenderingContext2DAzure::DrawImage(nsIDOMElement *imgElt, float a1,
   else
     filter = mgfx::FILTER_POINT;
 
-  AdjustedTarget(this)->
+  mgfx::Rect bounds;
+  
+  if (NeedToDrawShadow()) {
+    bounds = mgfx::Rect(dx, dy, dw, dh);
+    bounds = mTarget->GetTransform().TransformBounds(bounds);
+  }
+
+  AdjustedTarget(this, bounds.IsEmpty() ? nsnull : &bounds)->
     DrawSurface(srcSurf,
                 mgfx::Rect(dx, dy, dw, dh),
                 mgfx::Rect(sx, sy, sw, sh),

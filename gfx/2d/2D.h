@@ -502,6 +502,8 @@ public:
 
 
 
+
+
   virtual void DrawSurfaceWithShadow(SourceSurface *aSurface,
                                      const Point &aDest,
                                      const Color &aColor,
