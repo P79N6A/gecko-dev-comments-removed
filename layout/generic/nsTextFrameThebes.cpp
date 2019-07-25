@@ -106,7 +106,6 @@
 #include "nsAutoPtr.h"
 
 #include "nsBidiUtils.h"
-#include "nsPrintfCString.h"
 
 #include "gfxFont.h"
 #include "gfxContext.h"
@@ -229,6 +228,11 @@ NS_DECLARE_FRAME_PROPERTY(OffsetToFrameProperty, nsnull)
 
 
 
+
+
+
+
+#define TEXT_STYLE_MATCHES_PREV_CONTINUATION NS_FRAME_STATE_BIT(62)
 
 
 #define TEXT_IN_OFFSET_CACHE       NS_FRAME_STATE_BIT(63)
@@ -3828,8 +3832,10 @@ nsContinuingTextFrame::DestroyFrom(nsIFrame* aDestructRoot)
   
   
   if ((GetStateBits() & TEXT_IN_TEXTRUN_USER_DATA) ||
-      !mPrevContinuation ||
-      mPrevContinuation->GetStyleContext() != GetStyleContext()) {
+      (!mPrevContinuation &&
+       !(GetStateBits() & TEXT_STYLE_MATCHES_PREV_CONTINUATION)) ||
+      (mPrevContinuation &&
+       mPrevContinuation->GetStyleContext() != GetStyleContext())) {
     ClearTextRun(nsnull);
     
     
@@ -6675,6 +6681,53 @@ HasSoftHyphenBefore(const nsTextFragment* aFrag, gfxTextRun* aTextRun,
   return PR_FALSE;
 }
 
+static void
+RemoveInFlows(nsIFrame* aFrame, nsIFrame* aFirstToNotRemove)
+{
+  NS_PRECONDITION(aFrame != aFirstToNotRemove, "This will go very badly");
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  NS_ASSERTION(aFirstToNotRemove->GetPrevContinuation() ==
+               aFirstToNotRemove->GetPrevInFlow() &&
+               aFirstToNotRemove->GetPrevInFlow() != nsnull,
+               "aFirstToNotRemove should have a fluid prev continuation");
+  NS_ASSERTION(aFrame->GetPrevContinuation() ==
+               aFrame->GetPrevInFlow() &&
+               aFrame->GetPrevInFlow() != nsnull,
+               "aFrame should have a fluid prev continuation");
+  
+  nsIFrame* prevContinuation = aFrame->GetPrevContinuation();
+  nsIFrame* lastRemoved = aFirstToNotRemove->GetPrevContinuation();
+
+  prevContinuation->SetNextInFlow(aFirstToNotRemove);
+  aFirstToNotRemove->SetPrevInFlow(prevContinuation);
+
+  aFrame->SetPrevInFlow(nsnull);
+  lastRemoved->SetNextInFlow(nsnull);
+
+  nsIFrame *parent = aFrame->GetParent();
+  nsBlockFrame *parentBlock = nsLayoutUtils::GetAsBlock(parent);
+  if (parentBlock) {
+    
+    
+    
+    parentBlock->DoRemoveFrame(aFrame, nsBlockFrame::FRAMES_ARE_EMPTY);
+  } else {
+    
+    
+    parent->RemoveFrame(nsIFrame::kNoReflowPrincipalList, aFrame);
+  }
+}
+
 void
 nsTextFrame::SetLength(PRInt32 aLength, nsLineLayout* aLineLayout,
                        PRUint32 aSetLengthFlags)
@@ -6738,6 +6791,10 @@ nsTextFrame::SetLength(PRInt32 aLength, nsLineLayout* aLineLayout,
   
   
   
+
+  
+  
+  nsIFrame *framesToRemove = nsnull;
   while (f && f->mContentOffset < end) {
     f->mContentOffset = end;
     if (f->GetTextRun() != mTextRun) {
@@ -6757,15 +6814,30 @@ nsTextFrame::SetLength(PRInt32 aLength, nsLineLayout* aLineLayout,
       
       
       
+      if (!framesToRemove) {
+        
+        framesToRemove = f;
+      }
+
       
       
       
-      
-      
-      nsSplittableFrame::RemoveFromFlow(f);
-      f->GetParent()->RemoveFrame(kNoReflowPrincipalList, f);
+      if (f->GetStyleContext() == f->GetPrevContinuation()->GetStyleContext()) {
+        f->AddStateBits(TEXT_STYLE_MATCHES_PREV_CONTINUATION);
+      }
+    } else if (framesToRemove) {
+      RemoveInFlows(framesToRemove, f);
+      framesToRemove = nsnull;
     }
     f = next;
+  }
+  NS_POSTCONDITION(!framesToRemove || (f && f->mContentOffset == end),
+                   "How did we exit the loop if we null out framesToRemove if "
+                   "!next || next->mContentOffset > end ?");
+  if (framesToRemove) {
+    
+    
+    RemoveInFlows(framesToRemove, f);
   }
 
 #ifdef DEBUG
