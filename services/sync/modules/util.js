@@ -1249,12 +1249,6 @@ let Utils = {
     return Utils.encodeKeyBase32(Utils.generateRandomBytes(16));
   },
 
-  trim: function trim(s) {
-    if (s)
-      return s.replace(/^\s+/, "").replace(/\s+$/, "");
-    return s;
-  },
-  
   
 
 
@@ -1318,7 +1312,7 @@ let Utils = {
   normalizePassphrase: function normalizePassphrase(pp) {
     
     
-    pp = Utils.trim(pp.toLowerCase());
+    pp = pp.trim().toLowerCase();
 
     
     if (pp.length == 23 &&
@@ -1342,7 +1336,7 @@ let Utils = {
   },
   
   normalizeAccount: function normalizeAccount(acc) {
-    return Utils.trim(acc);
+    return acc.trim();
   },
 
   
