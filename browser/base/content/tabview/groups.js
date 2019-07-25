@@ -41,26 +41,6 @@
 
 
 
-(function() {
-
-
-
-
-
-var numCmp = function(a,b) { return a-b; }
-
-
-
-
-
-function min(list) { return list.slice().sort(numCmp)[0]; }
-
-
-
-
-
-function max(list) { return list.slice().sort(numCmp).reverse()[0]; }
-
 
 
 
@@ -1468,10 +1448,10 @@ window.Groups = {
   getBoundingBox: function Groups_getBoundingBox(els) {
     var el, b;
     var bounds = [iQ(el).bounds() for each (el in els)];
-    var left   = min([ b.left   for each (b in bounds) ]);
-    var top    = min([ b.top    for each (b in bounds) ]);
-    var right  = max([ b.right  for each (b in bounds) ]);
-    var bottom = max([ b.bottom for each (b in bounds) ]);
+    var left   = Math.min.apply({},[ b.left   for each (b in bounds) ]);
+    var top    = Math.min.apply({},[ b.top    for each (b in bounds) ]);
+    var right  = Math.max.apply({},[ b.right  for each (b in bounds) ]);
+    var bottom = Math.max.apply({},[ b.bottom for each (b in bounds) ]);
 
     return new Rect(left, top, right-left, bottom-top);
   },
@@ -1794,5 +1774,3 @@ window.Groups = {
     return tabItem;
   }
 };
-
-})();
