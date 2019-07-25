@@ -132,8 +132,8 @@ public:
 
   NS_IMETHOD  GetDeviceContext(nsDeviceContext *&aContext);
 
-  virtual nsIViewManager* BeginUpdateViewBatch(void);
-  NS_IMETHOD  EndUpdateViewBatch();
+  virtual nsIViewManager* IncrementDisableRefreshCount();
+  virtual void DecrementDisableRefreshCount();
 
   NS_IMETHOD GetRootWidget(nsIWidget **aWidget);
  
@@ -205,7 +205,10 @@ public:
   nsViewManager* RootViewManager() const { return mRootViewManager; }
   bool IsRootVM() const { return this == RootViewManager(); }
 
-  bool IsPaintingAllowed() { return RootViewManager()->mUpdateBatchCnt == 0; }
+  
+  
+  
+  bool IsPaintingAllowed() { return RootViewManager()->mRefreshDisableCount == 0; }
 
   
   
@@ -233,7 +236,7 @@ private:
   
   
   
-  PRInt32           mUpdateBatchCnt;
+  PRInt32           mRefreshDisableCount;
   
   bool              mPainting;
   bool              mRecursiveRefreshPending;
