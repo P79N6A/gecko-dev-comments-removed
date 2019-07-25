@@ -367,6 +367,7 @@ public class PanZoomController
 
     private boolean onTouchCancel(MotionEvent event) {
         mState = PanZoomState.NOTHING;
+        cancelTouch();
         
         bounce();
         return false;
@@ -901,7 +902,7 @@ public class PanZoomController
         return true;
     }
 
-    public void cancelTouch() {
+    private void cancelTouch() {
         GeckoEvent e = GeckoEvent.createBroadcastEvent("Gesture:CancelTouch", "");
         GeckoAppShell.sendEventToGecko(e);
     }
