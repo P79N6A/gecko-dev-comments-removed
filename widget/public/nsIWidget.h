@@ -640,6 +640,8 @@ class nsIWidget : public nsISupports {
 
 
 
+
+
     NS_IMETHOD GetBounds(nsIntRect &aRect) = 0;
 
     
