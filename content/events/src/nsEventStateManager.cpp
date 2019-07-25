@@ -770,7 +770,8 @@ nsEventStateManager::nsEventStateManager()
     mNormalLMouseEventInProcess(PR_FALSE),
     m_haveShutdown(PR_FALSE),
     mLastLineScrollConsumedX(PR_FALSE),
-    mLastLineScrollConsumedY(PR_FALSE)
+    mLastLineScrollConsumedY(PR_FALSE),
+    mClickHoldContextMenu(PR_FALSE)
 {
   if (sESMInstanceCount == 0) {
     gUserInteractionTimerCallback = new nsUITimerCallback();
@@ -804,7 +805,6 @@ nsEventStateManager::Init()
       sLeftClickOnly =
         nsContentUtils::GetBoolPref("nglayout.events.dispatchLeftClickOnly",
                                     sLeftClickOnly);
-
       sChromeAccessModifier =
         GetAccessModifierMaskFromPref(nsIDocShellTreeItem::typeChrome);
       sContentAccessModifier =
@@ -815,6 +815,7 @@ nsEventStateManager::Init()
     prefBranch->AddObserver("ui.key.generalAccessKey", this, PR_TRUE);
     prefBranch->AddObserver("ui.key.chromeAccess", this, PR_TRUE);
     prefBranch->AddObserver("ui.key.contentAccess", this, PR_TRUE);
+    prefBranch->AddObserver("ui.click_hold_context_menus", this, PR_TRUE);
 #if 0
     prefBranch->AddObserver("mousewheel.withaltkey.action", this, PR_TRUE);
     prefBranch->AddObserver("mousewheel.withaltkey.numlines", this, PR_TRUE);
@@ -833,14 +834,16 @@ nsEventStateManager::Init()
     prefBranch->AddObserver("dom.popup_allowed_events", this, PR_TRUE);
   }
 
+  mClickHoldContextMenu =
+    nsContentUtils::GetBoolPref("ui.click_hold_context_menus", PR_FALSE);
+
   return NS_OK;
 }
 
 nsEventStateManager::~nsEventStateManager()
 {
-#if CLICK_HOLD_CONTEXT_MENUS
-  KillClickHoldTimer();
-#endif
+  if (mClickHoldContextMenu)
+    KillClickHoldTimer();
 
   --sESMInstanceCount;
   if(sESMInstanceCount == 0) {
@@ -882,6 +885,7 @@ nsEventStateManager::Shutdown()
     prefBranch->RemoveObserver("ui.key.generalAccessKey", this);
     prefBranch->RemoveObserver("ui.key.chromeAccess", this);
     prefBranch->RemoveObserver("ui.key.contentAccess", this);
+    prefBranch->RemoveObserver("ui.click_hold_context_menus", this);
 #if 0
     prefBranch->RemoveObserver("mousewheel.withshiftkey.action", this);
     prefBranch->RemoveObserver("mousewheel.withshiftkey.numlines", this);
@@ -935,6 +939,9 @@ nsEventStateManager::Observe(nsISupports *aSubject,
     } else if (data.EqualsLiteral("ui.key.contentAccess")) {
       sContentAccessModifier =
         GetAccessModifierMaskFromPref(nsIDocShellTreeItem::typeContent);
+    } else if (data.EqualsLiteral("ui.click_hold_context_menus")) {
+      mClickHoldContextMenu =
+        nsContentUtils::GetBoolPref("ui.click_hold_context_menus", PR_FALSE);
 #if 0
     } else if (data.EqualsLiteral("mousewheel.withaltkey.action")) {
     } else if (data.EqualsLiteral("mousewheel.withaltkey.numlines")) {
@@ -1063,7 +1070,7 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     switch (static_cast<nsMouseEvent*>(aEvent)->button) {
     case nsMouseEvent::eLeftButton:
 #ifndef XP_OS2
-      BeginTrackingDragGesture ( aPresContext, (nsMouseEvent*)aEvent, aTargetFrame );
+      BeginTrackingDragGesture(aPresContext, (nsMouseEvent*)aEvent, aTargetFrame);
 #endif
       mLClickCount = ((nsMouseEvent*)aEvent)->clickCount;
       SetClickCount(aPresContext, (nsMouseEvent*)aEvent, aStatus);
@@ -1075,7 +1082,7 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       break;
     case nsMouseEvent::eRightButton:
 #ifdef XP_OS2
-      BeginTrackingDragGesture ( aPresContext, (nsMouseEvent*)aEvent, aTargetFrame );
+      BeginTrackingDragGesture(aPresContext, (nsMouseEvent*)aEvent, aTargetFrame);
 #endif
       mRClickCount = ((nsMouseEvent*)aEvent)->clickCount;
       SetClickCount(aPresContext, (nsMouseEvent*)aEvent, aStatus);
@@ -1085,20 +1092,20 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
   case NS_MOUSE_BUTTON_UP:
     switch (static_cast<nsMouseEvent*>(aEvent)->button) {
       case nsMouseEvent::eLeftButton:
-#ifdef CLICK_HOLD_CONTEXT_MENUS
-      KillClickHoldTimer();
-#endif
+        if (mClickHoldContextMenu) {
+          KillClickHoldTimer();
+        }
 #ifndef XP_OS2
-      StopTrackingDragGesture();
+        StopTrackingDragGesture();
 #endif
-      mNormalLMouseEventInProcess = PR_FALSE;
-    case nsMouseEvent::eRightButton:
+        mNormalLMouseEventInProcess = PR_FALSE;
+      case nsMouseEvent::eRightButton:
 #ifdef XP_OS2
-      StopTrackingDragGesture();
+        StopTrackingDragGesture();
 #endif
-    case nsMouseEvent::eMiddleButton:
-      SetClickCount(aPresContext, (nsMouseEvent*)aEvent, aStatus);
-      break;
+      case nsMouseEvent::eMiddleButton:
+        SetClickCount(aPresContext, (nsMouseEvent*)aEvent, aStatus);
+        break;
     }
     break;
   case NS_MOUSE_EXIT:
@@ -1132,13 +1139,13 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     UpdateCursor(aPresContext, aEvent, mCurrentTarget, aStatus);
     GenerateMouseEnterExit((nsGUIEvent*)aEvent);
     break;
-#ifdef CLICK_HOLD_CONTEXT_MENUS
   case NS_DRAGDROP_GESTURE:
-    
-    
-    KillClickHoldTimer();
+    if (mClickHoldContextMenu) {
+      
+      
+      KillClickHoldTimer();
+    }
     break;
-#endif
   case NS_DRAGDROP_OVER:
     
     
@@ -1585,9 +1592,6 @@ nsEventStateManager::HandleAccessKey(nsPresContext* aPresContext,
 }
 
 
-#ifdef CLICK_HOLD_CONTEXT_MENUS
-
-
 
 
 
@@ -1623,10 +1627,13 @@ nsEventStateManager::CreateClickHoldTimer(nsPresContext* inPresContext,
   }
 
   mClickHoldTimer = do_CreateInstance("@mozilla.org/timer;1");
-  if ( mClickHoldTimer )
+  if (mClickHoldTimer) {
+    PRInt32 clickHoldDelay =
+      nsContentUtils::GetIntPref("ui.click_hold_context_menus.delay", 500);
     mClickHoldTimer->InitWithFuncCallback(sClickHoldCallback, this,
-                                          kClickHoldDelay,
+                                          clickHoldDelay,
                                           nsITimer::TYPE_ONE_SHOT);
+  }
 } 
 
 
@@ -1654,7 +1661,7 @@ void
 nsEventStateManager::sClickHoldCallback(nsITimer *aTimer, void* aESM)
 {
   nsEventStateManager* self = static_cast<nsEventStateManager*>(aESM);
-  if ( self )
+  if (self)
     self->FireContextClick();
 
   
@@ -1679,7 +1686,7 @@ nsEventStateManager::sClickHoldCallback(nsITimer *aTimer, void* aESM)
 void
 nsEventStateManager::FireContextClick()
 {
-  if ( !mGestureDownContent )
+  if (!mGestureDownContent)
     return;
 
 #ifdef XP_MACOSX
@@ -1786,15 +1793,13 @@ nsEventStateManager::FireContextClick()
   }
 
   
-  if ( status == nsEventStatus_eConsumeNoDefault ) {
+  if (status == nsEventStatus_eConsumeNoDefault) {
     StopTrackingDragGesture();
   }
 
   KillClickHoldTimer();
 
 } 
-
-#endif
 
 
 
@@ -1814,9 +1819,12 @@ nsEventStateManager::BeginTrackingDragGesture(nsPresContext* aPresContext,
                                               nsMouseEvent* inDownEvent,
                                               nsIFrame* inDownFrame)
 {
+  if (!inDownEvent->widget)
+    return;
+
   
   
-  mGestureDownPoint = inDownEvent->refPoint + 
+  mGestureDownPoint = inDownEvent->refPoint +
     inDownEvent->widget->WidgetToScreenOffset();
 
   inDownFrame->GetContentForEvent(aPresContext, inDownEvent,
@@ -1828,11 +1836,10 @@ nsEventStateManager::BeginTrackingDragGesture(nsPresContext* aPresContext,
   mGestureDownAlt = inDownEvent->isAlt;
   mGestureDownMeta = inDownEvent->isMeta;
 
-#ifdef CLICK_HOLD_CONTEXT_MENUS
-  
-  if (nsContentUtils::GetBoolPref("ui.click_hold_context_menus", PR_TRUE))
-    CreateClickHoldTimer ( aPresContext, inDownFrame, inDownEvent );
-#endif
+  if (mClickHoldContextMenu) {
+    
+    CreateClickHoldTimer(aPresContext, inDownFrame, inDownEvent);
+  }
 }
 
 
@@ -1885,7 +1892,7 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
                                          nsMouseEvent *aEvent)
 {
   NS_ASSERTION(aPresContext, "This shouldn't happen.");
-  if ( IsTrackingDragGesture() ) {
+  if (IsTrackingDragGesture()) {
     mCurrentTarget = mGestureDownFrameOwner->GetPrimaryFrame();
 
     if (!mCurrentTarget) {
@@ -1927,11 +1934,11 @@ nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
     nsIntPoint pt = aEvent->refPoint + aEvent->widget->WidgetToScreenOffset();
     if (PR_ABS(pt.x - mGestureDownPoint.x) > pixelThresholdX ||
         PR_ABS(pt.y - mGestureDownPoint.y) > pixelThresholdY) {
-#ifdef CLICK_HOLD_CONTEXT_MENUS
-      
-      
-      KillClickHoldTimer();
-#endif
+      if (mClickHoldContextMenu) {
+        
+        
+        KillClickHoldTimer();
+      }
 
       nsRefPtr<nsDOMDataTransfer> dataTransfer = new nsDOMDataTransfer();
       if (!dataTransfer)
@@ -3663,7 +3670,7 @@ nsEventStateManager::GenerateDragDropEnterExit(nsPresContext* aPresContext,
         nsCOMPtr<nsIContent> targetContent;
         mCurrentTarget->GetContentForEvent(aPresContext, aEvent, getter_AddRefs(targetContent));
 
-        if ( mLastDragOverFrame ) {
+        if (mLastDragOverFrame) {
           
           mLastDragOverFrame->GetContentForEvent(aPresContext, aEvent, getter_AddRefs(lastContent));
 
@@ -3684,7 +3691,7 @@ nsEventStateManager::GenerateDragDropEnterExit(nsPresContext* aPresContext,
   case NS_DRAGDROP_EXIT:
     {
       
-      if ( mLastDragOverFrame ) {
+      if (mLastDragOverFrame) {
         nsCOMPtr<nsIContent> lastContent;
         mLastDragOverFrame->GetContentForEvent(aPresContext, aEvent, getter_AddRefs(lastContent));
 

@@ -96,6 +96,7 @@ pref("browser.sessionhistory.max_total_viewers", -1);
 
 pref("ui.use_native_colors", true);
 pref("ui.use_native_popup_windows", false);
+pref("ui.click_hold_context_menus", false);
 pref("browser.display.use_document_fonts",  1);  
 pref("browser.display.use_document_colors", true);
 pref("browser.display.use_system_colors",   false);
@@ -1726,7 +1727,6 @@ pref("ui.trackpoint_hack.enabled", -1);
 
 pref("browser.drag_out_of_frame_style", 1);
 pref("ui.key.saveLink.shift", false); 
-pref("ui.click_hold_context_menus", false);
 
 
 

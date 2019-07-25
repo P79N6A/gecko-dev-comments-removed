@@ -65,14 +65,6 @@ class nsDOMDataTransfer;
 
 
 
-#if defined(XP_MACOSX) || defined(MOZ_PLATFORM_MAEMO)
-#define CLICK_HOLD_CONTEXT_MENUS 1
-#endif
-
-
-
-
-
 
 class nsEventStateManager : public nsSupportsWeakReference,
                             public nsIEventStateManager,
@@ -399,19 +391,16 @@ protected:
   PRPackedBool mLastLineScrollConsumedX;
   PRPackedBool mLastLineScrollConsumedY;
 
-#ifdef CLICK_HOLD_CONTEXT_MENUS
-  enum { kClickHoldDelay = 500 } ;        
+  static PRInt32 sUserInputEventDepth;
 
+  
+  PRBool mClickHoldContextMenu;
+  nsCOMPtr<nsITimer> mClickHoldTimer;
   void CreateClickHoldTimer ( nsPresContext* aPresContext, nsIFrame* inDownFrame,
                               nsGUIEvent* inMouseDownEvent ) ;
   void KillClickHoldTimer ( ) ;
   void FireContextClick ( ) ;
   static void sClickHoldCallback ( nsITimer* aTimer, void* aESM ) ;
-  
-  nsCOMPtr<nsITimer> mClickHoldTimer;
-#endif
-
-  static PRInt32 sUserInputEventDepth;
 };
 
 
