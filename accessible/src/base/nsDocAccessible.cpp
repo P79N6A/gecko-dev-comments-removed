@@ -114,6 +114,10 @@ nsDocAccessible::
   mNodeToAccessibleMap.Init(kDefaultCacheSize);
 
   
+  if (mDocument && mDocument->IsXUL())
+    mFlags &= ~eHyperTextAccessible;
+
+  
   if (!mDocument)
     return;
 
@@ -170,11 +174,10 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsDocAccessible)
     
     
 
-    if (mDocument && mDocument->IsXUL())
-      status = nsAccessible::QueryInterface(aIID, (void**)&foundInterface);
-    else
-      status = nsHyperTextAccessible::QueryInterface(aIID,
-                                                     (void**)&foundInterface);
+    status = IsHyperText() ? 
+      nsHyperTextAccessible::QueryInterface(aIID,
+                                            (void**)&foundInterface) :
+      nsAccessible::QueryInterface(aIID, (void**)&foundInterface);
   } else {
     NS_ADDREF(foundInterface);
     status = NS_OK;
