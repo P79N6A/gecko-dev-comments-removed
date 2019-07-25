@@ -244,7 +244,11 @@ nsFileInputStream::Open(nsIFile* aFile, PRInt32 aIOFlags, PRInt32 aPerm)
         
         
         
-        aFile->Remove(PR_FALSE);
+        rv = aFile->Remove(PR_FALSE);
+        if (NS_SUCCEEDED(rv)) {
+          
+          mBehaviorFlags &= ~DELETE_ON_CLOSE;
+        }
     }
 
     return NS_OK;
@@ -273,14 +277,12 @@ nsFileInputStream::Close()
     PR_FREEIF(mLineBuffer);
     nsresult rv = nsFileStream::Close();
     if (NS_FAILED(rv)) return rv;
-    if (mFile && (mBehaviorFlags & DELETE_ON_CLOSE)) {
+
+    if (mBehaviorFlags & DELETE_ON_CLOSE) {
         rv = mFile->Remove(PR_FALSE);
         NS_ASSERTION(NS_SUCCEEDED(rv), "failed to delete file");
-        
-        if (!(mBehaviorFlags & REOPEN_ON_REWIND)) {
-          mFile = nsnull;
-        }
     }
+
     return rv;
 }
 
