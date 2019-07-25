@@ -15,6 +15,10 @@
 
 #include "mozilla/RefPtr.h"
 
+#ifdef MOZ_ENABLE_FREETYPE
+#include <string>
+#endif
+
 struct _cairo_surface;
 typedef _cairo_surface cairo_surface_t;
 
@@ -463,6 +467,20 @@ public:
 protected:
   ScaledFont() {}
 };
+
+#ifdef MOZ_ENABLE_FREETYPE
+
+
+
+
+
+struct FontOptions
+{
+  std::string mName;
+  FontStyle mStyle;
+};
+#endif
+
 
 
 
