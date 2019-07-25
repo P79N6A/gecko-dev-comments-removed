@@ -259,7 +259,7 @@ nsPluginFile::~nsPluginFile()
 
 
 
-nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
+nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
 {
   nsCOMPtr<nsILocalFile> plugin = do_QueryInterface(mPlugin);
 
@@ -287,9 +287,9 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
   }
 #endif
 
-  nsresult rv = plugin->Load(&outLibrary);
+  nsresult rv = plugin->Load(outLibrary);
   if (NS_FAILED(rv))
-      outLibrary = NULL;
+      *outLibrary = NULL;
 
 #ifndef WINCE    
   if (restoreOrigDir) {
@@ -304,8 +304,10 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary* &outLibrary)
 
 
 
-nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info)
+nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
 {
+  *outLibrary = nsnull;
+
   nsresult rv = NS_OK;
   DWORD zerome, versionsize;
   WCHAR* verbuf = nsnull;
