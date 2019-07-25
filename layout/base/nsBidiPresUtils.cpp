@@ -1107,11 +1107,21 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
           
           
           BidiParagraphData* subParagraph = aBpd->GetSubParagraph();
+
+          
+
+
+
+
+
+
+
+          bool isLastContinuation = !frame->GetNextContinuation();
           if (!frame->GetPrevContinuation()) {
             subParagraph->Reset(kid, aBpd);
           }
           TraverseFrames(aBlockFrame, aLineIter, kid, subParagraph);
-          if (!frame->GetNextContinuation()) {
+          if (isLastContinuation) {
             ResolveParagraph(aBlockFrame, subParagraph);
           }
 
