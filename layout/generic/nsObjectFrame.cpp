@@ -750,6 +750,12 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
     
     if (parentWidget == GetWindow()) {
       mWidget->Show(PR_TRUE);
+#ifdef XP_MACOSX
+      
+      
+      
+      Invalidate(GetContentRect() - GetPosition());
+#endif
     }
   }
 
