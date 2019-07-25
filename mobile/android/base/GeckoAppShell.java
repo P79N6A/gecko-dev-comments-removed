@@ -137,8 +137,6 @@ public class GeckoAppShell
 
     private static boolean mLocationHighAccuracy = false;
 
-    private static Handler sGeckoHandler;
-
     
 
     
@@ -242,10 +240,6 @@ public class GeckoAppShell
     
     public static Handler getMainHandler() {
         return GeckoApp.mAppContext.mMainHandler;
-    }
-
-    public static Handler getGeckoHandler() {
-        return sGeckoHandler;
     }
 
     public static Handler getHandler() {
@@ -437,9 +431,6 @@ public class GeckoAppShell
     }
 
     public static void runGecko(String apkPath, String args, String url, boolean restoreSession) {
-        Looper.prepare();
-        sGeckoHandler = new Handler();
-
         
         GeckoAppShell.nativeInit();
 
@@ -2058,23 +2049,6 @@ public class GeckoAppShell
 
     public static void unlockScreenOrientation() {
         GeckoScreenOrientationListener.getInstance().unlockScreenOrientation();
-    }
-
-    public static void pumpMessageLoop() {
-        
-        
-        
-        
-        sGeckoHandler.post(new Runnable() {
-            public void run() {
-                int zero = 0;
-                int foo = 0xdeadbeef / zero;
-            }
-        });
-        
-        try {
-            Looper.loop();
-        } catch(Exception ex) {}
     }
 
     static class AsyncResultHandler extends GeckoApp.FilePickerResultHandler {
