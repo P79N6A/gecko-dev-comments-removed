@@ -3770,13 +3770,6 @@ nsHTMLEditor::TagCanContainTag(nsIAtom* aParentTag, nsIAtom* aChildTag)
 }
 
 bool
-nsHTMLEditor::IsContainer(nsINode* aNode)
-{
-  nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aNode);
-  return IsContainer(node);
-}
-
-bool
 nsHTMLEditor::IsContainer(nsIDOMNode *aNode)
 {
   if (!aNode) {
@@ -4691,7 +4684,7 @@ nsHTMLEditor::IsEmptyNodeImpl(nsINode* aNode,
   
   
   
-  if (!IsContainer(aNode)                                   ||
+  if (!IsContainer(aNode->AsDOMNode())                      ||
       (aNode->IsElement() &&
        (nsHTMLEditUtils::IsNamedAnchor(aNode->AsElement())  ||
         nsHTMLEditUtils::IsFormWidget(aNode->AsElement())   ||
