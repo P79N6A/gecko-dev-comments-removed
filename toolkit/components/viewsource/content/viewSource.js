@@ -467,13 +467,15 @@ function goToLine(line)
   
   
   
+  
+  
 
   var pre;
   for (var lbound = 0, ubound = viewsource.childNodes.length; ; ) {
     var middle = (lbound + ubound) >> 1;
     pre = viewsource.childNodes[middle];
 
-    var firstLine = parseInt(pre.id.substring(4));
+    var firstLine = pre.id ? parseInt(pre.id.substring(4)) : 1;
 
     if (lbound == ubound - 1) {
       break;
@@ -592,7 +594,9 @@ function findLocation(pre, line, node, offset, interlinePosition, result)
   
   
   
-  var curLine = parseInt(pre.id.substring(4));
+  
+  
+  var curLine = pre.id ? parseInt(pre.id.substring(4)) : 1;
 
   
   var treewalker = window.content.document
