@@ -80,6 +80,7 @@ function startTest() {
   var bs = PlacesUtils.bookmarks;
   
   bs.addObserver(bookmarksObserver, false);
+  PlacesUtils.annotations.addObserver(bookmarksObserver, false);
   var addedBookmarks = [];
 
   
@@ -108,6 +109,11 @@ function startTest() {
                          "bmf1");
   addedBookmarks.push(id);
   bs.moveItem(id, bs.bookmarksMenuFolder, 0);
+  id = PlacesUtils.livemarks.createLivemarkFolderOnly(
+    bs.bookmarksMenuFolder, "bml",
+    PlacesUtils._uri("http://bml.siteuri.mozilla.org/"),
+    PlacesUtils._uri("http://bml.feeduri.mozilla.org/"), bs.DEFAULT_INDEX);
+  addedBookmarks.push(id);
 
   
   ok(true, "*** Acting on toolbar bookmarks");
@@ -136,6 +142,10 @@ function startTest() {
                          "bmf1");
   addedBookmarks.push(id);
   bs.moveItem(id, bs.toolbarFolder, 0);
+  id = PlacesUtils.livemarks.createLivemarkFolderOnly(
+    bs.toolbarFolder, "tbl", PlacesUtils._uri("http://tbl.siteuri.mozilla.org/"),
+    PlacesUtils._uri("http://tbl.feeduri.mozilla.org/"), bs.DEFAULT_INDEX);
+  addedBookmarks.push(id);
 
   
   ok(true, "*** Acting on unsorted bookmarks");
@@ -164,6 +174,11 @@ function startTest() {
                          "ubf1");
   addedBookmarks.push(id);
   bs.moveItem(id, bs.unfiledBookmarksFolder, 0);
+  id = PlacesUtils.livemarks.createLivemarkFolderOnly(
+    bs.unfiledBookmarksFolder, "bubl",
+    PlacesUtils._uri("http://bubl.siteuri.mozilla.org/"),
+    PlacesUtils._uri("http://bubl.feeduri.mozilla.org/"), bs.DEFAULT_INDEX);
+  addedBookmarks.push(id);
 
   
   addedBookmarks.forEach(function (aItem) {
@@ -176,6 +191,7 @@ function startTest() {
 
   
   bs.removeObserver(bookmarksObserver);
+  PlacesUtils.annotations.removeObserver(bookmarksObserver);
   finishTest();
 }
 
@@ -193,12 +209,36 @@ function finishTest() {
 
 
 var bookmarksObserver = {
-  QueryInterface: function PSB_QueryInterface(aIID) {
-    if (aIID.equals(Ci.nsINavBookmarkObserver) ||
-        aIID.equals(Ci.nsISupports))
-      return this;
-    throw Cr.NS_NOINTERFACE;
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsINavBookmarkObserver
+  , Ci.nsIAnnotationObserver
+  ]),
+
+  
+  onItemAnnotationSet: function(aItemId, aAnnotationName) {
+    if (aAnnotationName == PlacesUtils.LMANNO_FEEDURI) {
+      
+      let validator = function(aTreeRowIndex) {
+        let tree = gLibrary.PlacesOrganizer._places;
+        let livemarkAtom = Cc["@mozilla.org/atom-service;1"].
+                           getService(Ci.nsIAtomService).
+                           getAtom("livemark");
+        let properties = Cc["@mozilla.org/supports-array;1"].
+                         createInstance(Ci.nsISupportsArray);
+        tree.view.getCellProperties(aTreeRowIndex,
+                                    tree.columns.getColumnAt(0),
+                                    properties);
+        return properties.GetIndexOf(livemarkAtom) != -1;
+      };
+
+      var [node, index, valid] = getNodeForTreeItem(aItemId, gLibrary.PlacesOrganizer._places, validator);
+      isnot(node, null, "Found new Places node in left pane at " + index);
+      ok(valid, "Node is recognized as a livemark");
+    }
   },
+  onItemAnnotationRemoved: function() {},
+  onPageAnnotationSet: function() {},
+  onPageAnnotationRemoved: function() {},
 
   
   onItemAdded: function PSB_onItemAdded(aItemId, aFolderId, aIndex, aItemType,
