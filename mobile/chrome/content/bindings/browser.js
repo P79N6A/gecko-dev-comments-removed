@@ -58,7 +58,9 @@ let WebProgressListener = {
     
     addEventListener("MozAfterPaint", function(aEvent) {
       removeEventListener("MozAfterPaint", arguments.callee, true);
-      sendAsyncMessage("Browser:FirstPaint", {});
+
+      let scrollOffset = ContentScroll.getScrollOffset(content);
+      sendAsyncMessage("Browser:FirstPaint", scrollOffset);
     }, true);
   },
 
@@ -200,8 +202,6 @@ let DOMEvents =  {
         break;
 
       case "pageshow":
-        if (aEvent.persisted)
-          ContentScroll.sendScroll();
       case "pagehide": {
         if (aEvent.target.defaultView != content)
           break;

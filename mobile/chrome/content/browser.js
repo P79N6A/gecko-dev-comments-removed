@@ -1431,14 +1431,16 @@ Browser.WebProgress.prototype = {
     let browser = aTab.browser;
     browser.messageManager.removeMessageListener("MozScrolledAreaChanged", aTab.scrolledAreaChanged);
 
-    browser.messageManager.addMessageListener("Browser:FirstPaint", function(aMessage) {
+    browser.messageManager.addMessageListener("Browser:FirstPaint", function firstPaintListener(aMessage) {
       browser.messageManager.removeMessageListener(aMessage.name, arguments.callee);
 
       
       
       
       if (getBrowser() == browser) {
-        browser.getRootView().scrollTo(0, 0);
+        let json = aMessage.json;
+        browser.getRootView().scrollTo(Math.floor(json.x * browser.scale),
+                                       Math.floor(json.y * browser.scale));
         Browser.pageScrollboxScroller.scrollTo(0, 0);
       }
 
