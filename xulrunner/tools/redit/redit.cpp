@@ -5,41 +5,17 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#include <windows.h>
+#include <fcntl.h>
+#include <io.h>
+#include <share.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <io.h>
-#include <fcntl.h>
+#include <sys/stat.h>
+#include <windows.h>
+
+
+#include "mozilla/FileUtils.h"  
+#include "nsAutoPtr.h"          
 
 
 
@@ -98,80 +74,108 @@ typedef struct
 } IconResEntry;
 #pragma pack(pop)
 
+namespace {
+  
+
+
+
+
+
+
+  struct ScopedResourceUpdateTraits
+  {
+    typedef HANDLE type;
+    static type empty() { return NULL; }
+    static void release(type handle) {
+      if(NULL != handle) {
+        EndUpdateResourceW(handle, TRUE); 
+      }
+    }
+  };
+
+  typedef Scoped<ScopedResourceUpdateTraits> ScopedResourceUpdate;
+};
+
 int
-main(int argc, char **argv)
+wmain(int argc, wchar_t** argv)
 {
   if (argc != 3) {
     printf("Usage: redit <exe file> <icon file>\n");
     return 1;
   }
 
-  int file = _open(argv[2], _O_BINARY | _O_RDONLY);
-  if (file == -1) {
+  mozilla::ScopedClose file;
+  if (0 != _wsopen_s(&file.rwget(),
+                     argv[2],
+                     _O_BINARY | _O_RDONLY,
+                     _SH_DENYWR,
+                     _S_IREAD)
+  || (-1 == file)) {
     fprintf(stderr, "Unable to open icon file.\n");
     return 1;
   }
 
   
   long filesize = _filelength(file);
-  char* data = (char*)malloc(filesize);
+  nsAutoArrayPtr<BYTE> data(new BYTE[filesize]);
+  if(!data) {
+    fprintf(stderr, "Failed to allocate memory for icon file.\n");
+    return 1;
+  }
   _read(file, data, filesize);
-  _close(file);
-  IconHeader* header = (IconHeader*)data;
+
+  IconHeader* header = reinterpret_cast<IconHeader*>(data.get());
 
   
-  HANDLE updateRes = BeginUpdateResource(argv[1], FALSE);
-  if (updateRes == NULL) {
+  ScopedResourceUpdate updateRes(BeginUpdateResourceW(argv[1], FALSE));
+  if (NULL == updateRes) {
     fprintf(stderr, "Unable to open library for modification.\n");
-    free(data);
     return 1;
   }
 
   
-  long groupsize = sizeof(IconHeader) + header->ImageCount * sizeof(IconResEntry);
-  char* group = (char*)malloc(groupsize);
-  if (!group) {
+  long groupSize = sizeof(IconHeader)
+                 + header->ImageCount * sizeof(IconResEntry);
+  nsAutoArrayPtr<BYTE> group(new BYTE[groupSize]);
+  if(!group) {
     fprintf(stderr, "Failed to allocate memory for new images.\n");
-    free(data);
     return 1;
   }
   memcpy(group, data, sizeof(IconHeader));
 
-  IconDirEntry* sourceIcon = (IconDirEntry*)(data + sizeof(IconHeader));
-  IconResEntry* targetIcon = (IconResEntry*)(group + sizeof(IconHeader));
+  IconDirEntry* sourceIcon =
+                    reinterpret_cast<IconDirEntry*>(data
+                                                  + sizeof(IconHeader));
+  IconResEntry* targetIcon =
+                    reinterpret_cast<IconResEntry*>(group
+                                                  + sizeof(IconHeader));
 
   for (int id = 1; id <= header->ImageCount; id++) {
     
-    if (!UpdateResource(updateRes, RT_ICON, MAKEINTRESOURCE(id),
-                        MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
-                        data + sourceIcon->ImageOffset, sourceIcon->ImageSize)) {
-      fprintf(stderr, "Unable to update resource.\n");
-      EndUpdateResource(updateRes, TRUE);  
-      free(data);
-      free(group);
+    if (!UpdateResourceW(updateRes, RT_ICON, MAKEINTRESOURCE(id),
+                         MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
+                         data + sourceIcon->ImageOffset,
+                         sourceIcon->ImageSize)) {
+      fprintf(stderr, "Unable to update resource (RT_ICON).\n");
       return 1;
     }
+    
     
     memcpy(targetIcon, sourceIcon, sizeof(IconResEntry));
     targetIcon->ResourceID = id;
     sourceIcon++;
     targetIcon++;
   }
-  free(data);
 
-  if (!UpdateResource(updateRes, RT_GROUP_ICON, "MAINICON",
-                      MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
-                      group, groupsize)) {
-    fprintf(stderr, "Unable to update resource.\n");
-    EndUpdateResource(updateRes, TRUE);  
-    free(group);
+  if (!UpdateResourceW(updateRes, RT_GROUP_ICON, L"MAINICON",
+                       MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
+                       group, groupSize)) {
+    fprintf(stderr, "Unable to update resource (RT_GROUP_ICON).\n");
     return 1;
   }
 
-  free(group);
-
   
-  if (!EndUpdateResource(updateRes, FALSE)) {
+  if(!EndUpdateResourceW(updateRes.forget(), FALSE)) {
     fprintf(stderr, "Unable to write changes to library.\n");
     return 1;
   }
