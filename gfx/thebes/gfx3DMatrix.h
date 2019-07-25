@@ -40,6 +40,7 @@
 #define GFX_3DMATRIX_H
 
 #include <gfxTypes.h>
+#include <gfxPoint3D.h>
 #include <gfxMatrix.h>
 
 
@@ -114,8 +115,24 @@ public:
   
 
 
+  gfxPoint3D Transform3D(const gfxPoint3D& point) const;
+
+  gfxPoint ProjectPoint(const gfxPoint& aPoint) const;
+  gfxRect ProjectRectBounds(const gfxRect& aRect) const;
+
+
+  
+
+
 
   gfx3DMatrix& Invert();
+
+  inline gfx3DMatrix Inverse() const
+  {
+    gfx3DMatrix temp = *this;
+    temp.Invert();
+    return temp;
+  }
 
   
 
