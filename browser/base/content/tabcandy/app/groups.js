@@ -563,8 +563,17 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
     if(typeof(item.setResizable) == 'function')
       item.setResizable(true);
 
-    if(this._children.length == 0 && !this.locked.close && !this.getTitle()){  
-      this.close();
+    if(this._children.length == 0 && !this.locked.close && !this.getTitle()){
+      
+      
+      
+      var self = this;
+      a.one('mouseup', function(){
+        setTimeout(function(){
+          if( self._children.length == 0 ) self.close();
+        }, 50);
+      });
+
     } else if(!options.dontArrange) {
       this.arrange();
     }
