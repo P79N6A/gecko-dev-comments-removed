@@ -53,7 +53,6 @@
 #include "nsStyleStructInlines.h"
 #include "nsIAppShell.h"
 #include "prenv.h"
-#include "nsIPrivateDOMEvent.h"
 #include "nsIDOMEventTarget.h"
 #include "nsObjectFrame.h"
 #include "nsTransitionManager.h"
@@ -2082,14 +2081,15 @@ nsPresContext::FireDOMPaintEvent()
   NS_NewDOMNotifyPaintEvent(getter_AddRefs(event), this, nsnull,
                             NS_AFTERPAINT,
                             &mInvalidateRequests);
-  nsCOMPtr<nsIPrivateDOMEvent> pEvent = do_QueryInterface(event);
-  if (!pEvent) return;
+  if (!event) {
+    return;
+  }
 
   
   
   
-  pEvent->SetTarget(eventTarget);
-  pEvent->SetTrusted(true);
+  event->SetTarget(eventTarget);
+  event->SetTrusted(true);
   nsEventDispatcher::DispatchDOMEvent(dispatchTarget, nsnull, event, this, nsnull);
 }
 
