@@ -48,6 +48,8 @@
 #include "prlog.h"
 #include "nsXREAppData.h"
 
+#include "mozilla/Assertions.h"
+
 
 
 
@@ -363,10 +365,12 @@ static const char* const kGeckoProcessTypeString[] = {
   "ipdlunittest"
 };
 
-PR_STATIC_ASSERT(sizeof(kGeckoProcessTypeString) /
-                 sizeof(kGeckoProcessTypeString[0]) ==
-                 GeckoProcessType_End);
 
+
+MOZ_STATIC_ASSERT(sizeof(kGeckoProcessTypeString) /
+                  sizeof(kGeckoProcessTypeString[0]) ==
+                  GeckoProcessType_End,
+                  "Array length mismatch");
 
 XRE_API(const char*,
         XRE_ChildProcessTypeToString, (GeckoProcessType aProcessType))

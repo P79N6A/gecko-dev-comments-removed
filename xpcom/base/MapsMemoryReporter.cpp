@@ -301,8 +301,10 @@ MapsReporter::ParseMapping(
 {
   
   
-  PR_STATIC_ASSERT(sizeof(long long) == sizeof(PRInt64));
-  PR_STATIC_ASSERT(sizeof(int) == sizeof(PRInt32));
+  MOZ_STATIC_ASSERT(sizeof(long long) == sizeof(PRInt64),
+                    "size of (long long) is expected to match (PRInt64)");
+  MOZ_STATIC_ASSERT(sizeof(int) == sizeof(PRInt32),
+                    "size of (int) is expected to match (PRInt32)");
 
   
   
@@ -482,7 +484,8 @@ MapsReporter::ParseMapBody(
   nsISupports *aClosure,
   CategoriesSeen *aCategoriesSeen)
 {
-  PR_STATIC_ASSERT(sizeof(long long) == sizeof(PRInt64));
+  MOZ_STATIC_ASSERT(sizeof(long long) == sizeof(PRInt64),
+                    "size of (long long) is expected to match (PRInt64)");
 
   const int argCount = 2;
 
