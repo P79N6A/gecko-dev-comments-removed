@@ -852,28 +852,17 @@ private:
   
   
   nsPoint mMouseLocation;
-  class nsSynthMouseMoveEvent : public nsARefreshObserver {
+  class nsSynthMouseMoveEvent : public nsRunnable {
   public:
     nsSynthMouseMoveEvent(PresShell* aPresShell, bool aFromScroll)
       : mPresShell(aPresShell), mFromScroll(aFromScroll) {
       NS_ASSERTION(mPresShell, "null parameter");
     }
-    ~nsSynthMouseMoveEvent() {
-      Revoke();
-    }
-
-    NS_INLINE_DECL_REFCOUNTING(nsSynthMouseMoveEvent)
-    
-    void Revoke() {
-      if (mPresShell) {
-        mPresShell->GetPresContext()->RefreshDriver()->
-          RemoveRefreshObserver(this, Flush_Display);
-        mPresShell = nsnull;
-      }
-    }
-    virtual void WillRefresh(mozilla::TimeStamp aTime) {
+    void Revoke() { mPresShell = nsnull; }
+    NS_IMETHOD Run() {
       if (mPresShell)
         mPresShell->ProcessSynthMouseMoveEvent(mFromScroll);
+      return NS_OK;
     }
   private:
     PresShell* mPresShell;
