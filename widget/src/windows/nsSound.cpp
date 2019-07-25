@@ -313,6 +313,9 @@ NS_IMETHODIMP nsSound::PlayEventSound(PRUint32 aEventId)
     case EVENT_MENU_POPUP:
       sound = L"MenuPopup";
       break;
+    case EVENT_EDITOR_MAX_LEN:
+      sound = L".Default";
+      break;
     default:
       
       
