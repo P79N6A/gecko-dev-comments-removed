@@ -269,6 +269,7 @@ ContentParent::OnChannelConnected(int32 pid)
 }
 
 namespace {
+
 void
 DelayedDeleteSubprocess(GeckoChildProcessHost* aSubprocess)
 {
@@ -276,6 +277,20 @@ DelayedDeleteSubprocess(GeckoChildProcessHost* aSubprocess)
         ->PostTask(FROM_HERE,
                    new DeleteTask<GeckoChildProcessHost>(aSubprocess));
 }
+
+
+
+
+struct DelayedDeleteContentParentTask : public nsRunnable
+{
+    DelayedDeleteContentParentTask(ContentParent* aObj) : mObj(aObj) { }
+
+    
+    NS_IMETHODIMP Run() { return NS_OK; }
+
+    nsRefPtr<ContentParent> mObj;
+};
+
 }
 
 void
@@ -366,6 +381,15 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
         PostTask(FROM_HERE,
                  NewRunnableFunction(DelayedDeleteSubprocess, mSubprocess));
     mSubprocess = NULL;
+
+    
+    
+    
+    
+    
+    
+    
+    NS_DispatchToCurrentThread(new DelayedDeleteContentParentTask(this));
 }
 
 TabParent*
