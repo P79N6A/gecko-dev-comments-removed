@@ -276,12 +276,13 @@ var TestRequests = [
   
   new AbortedRequest(false),
   new AbortedRequest(true, -1),
-  new AbortedRequest(true, 0),
-  new AbortedRequest(true, 1000),
   new AbortedRequest(true, 5000),
 ];
 
 var MainThreadTestRequests = [
+  new AbortedRequest(true, 0),
+  new AbortedRequest(true, 1000),
+
   
   SyncRequestSettingTimeoutAfterOpen,
   SyncRequestSettingTimeoutBeforeOpen
