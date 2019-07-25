@@ -79,11 +79,6 @@ enum eParserMode {
   
 
 
-  VIEW_SOURCE_PLAIN,
-
-  
-
-
   PLAIN_TEXT,
 
   
@@ -224,13 +219,6 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
     void SetEncodingFromExpat(const PRUnichar* aEncoding);
-
-    
-
-
-
-
-    void SetViewSourceTitle(nsIURI* aURL);
 
   private:
 
@@ -396,11 +384,6 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
     nsCOMPtr<nsIRequest>          mRequest;
     nsCOMPtr<nsIRequestObserver>  mObserver;
-
-    
-
-
-    nsCString                     mViewSourceTitle;
 
     
 

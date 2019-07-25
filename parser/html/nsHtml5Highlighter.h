@@ -68,7 +68,7 @@ class nsHtml5Highlighter
     
 
 
-    void Start(const nsAutoString& aTitle);
+    void Start();
 
     
 
@@ -325,6 +325,12 @@ class nsHtml5Highlighter
 
 
 
+    PRInt32 mUnicharsInThisPre;
+
+    
+
+
+
     PRInt32 mInlinesOpen;
 
     
@@ -341,7 +347,22 @@ class nsHtml5Highlighter
     
 
 
+    nsString mURL;
+
+    
+
+
     bool mSyntaxHighlight;
+
+    
+
+
+    bool mWrapLongLines;
+
+    
+
+
+    PRInt32 mTabSize;
 
     
 
