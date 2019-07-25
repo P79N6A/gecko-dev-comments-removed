@@ -40,6 +40,7 @@
 package org.mozilla.gecko.db;
 
 import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
 
 import org.mozilla.gecko.db.BrowserContract.Bookmarks;
 import org.mozilla.gecko.db.BrowserContract.History;
@@ -77,6 +78,9 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
     private long mMobileFolderId;
 
     
+    private HashMap<String, Long> mFolderIdMap;
+
+    
     private Boolean mDesktopBookmarksExist;
 
     private final Uri mBookmarksUriWithProfile;
@@ -100,6 +104,7 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
     public LocalBrowserDB(String profile) {
         mProfile = profile;
         mMobileFolderId = -1;
+        mFolderIdMap = new HashMap<String, Long>();
         mDesktopBookmarksExist = null;
 
         mBookmarksUriWithProfile = appendProfile(Bookmarks.CONTENT_URI);
@@ -346,12 +351,16 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
         Cursor c = null;
         int count = 0;
         try {
+            
+            
             c = cr.query(bookmarksUriWithLimit(1),
                          new String[] { Bookmarks._ID },
-                         Bookmarks.PARENT + " != ? AND " +
-                         Bookmarks.PARENT + " != ?",
-                         new String[] { String.valueOf(getMobileBookmarksFolderId(cr)),
-                                        String.valueOf(Bookmarks.FIXED_ROOT_ID) },
+                         Bookmarks.PARENT + " = ? OR " +
+                         Bookmarks.PARENT + " = ? OR " +
+                         Bookmarks.PARENT + " = ?",
+                         new String[] { String.valueOf(getFolderIdFromGuid(cr, Bookmarks.TOOLBAR_FOLDER_GUID)),
+                                        String.valueOf(getFolderIdFromGuid(cr, Bookmarks.MENU_FOLDER_GUID)),
+                                        String.valueOf(getFolderIdFromGuid(cr, Bookmarks.UNFILED_FOLDER_GUID)) },
                          null);
             count = c.getCount();
         } finally {
@@ -402,7 +411,10 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
         return mMobileFolderId;
     }
 
-    private long getFolderIdFromGuid(ContentResolver cr, String guid) {
+    private synchronized long getFolderIdFromGuid(ContentResolver cr, String guid) {
+        if (mFolderIdMap.containsKey(guid))
+          return mFolderIdMap.get(guid);
+
         long folderId = -1;
         Cursor c = null;
 
@@ -420,6 +432,7 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
                 c.close();
         }
 
+        mFolderIdMap.put(guid, folderId);
         return folderId;
     }
 
