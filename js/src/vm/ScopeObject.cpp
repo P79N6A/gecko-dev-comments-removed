@@ -1523,15 +1523,9 @@ DebugScopes::sweep()
 
 
 
-
-
         if (JSGenerator *gen = fp->maybeSuspendedGenerator(rt)) {
             JS_ASSERT(gen->state == JSGEN_NEWBORN || gen->state == JSGEN_OPEN);
             if (!IsObjectMarked(&gen->obj)) {
-                if (scope->isCall())
-                    scope->asCall().copyUnaliasedValues(fp);
-                else if (scope->isBlock())
-                    scope->asClonedBlock().copyUnaliasedValues(fp);
                 e.removeFront();
                 continue;
             }
