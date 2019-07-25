@@ -562,6 +562,7 @@ GfxInfoBase::Observe(nsISupports* aSubject, const char* aTopic,
 }
 
 GfxInfoBase::GfxInfoBase()
+    : mFailureCount(0)
 {
 }
 
@@ -665,4 +666,45 @@ GfxInfoBase::EvaluateDownloadedBlacklist(nsTArray<GfxDriverInfo>& aDriverInfo)
 
     ++i;
   }
+}
+
+NS_IMETHODIMP_(void)
+GfxInfoBase::LogFailure(const nsACString &failure)
+{
+  
+  if (mFailureCount < NS_ARRAY_LENGTH(mFailures)) {
+    mFailures[mFailureCount++] = failure;
+  }
+}
+
+
+
+NS_IMETHODIMP GfxInfoBase::GetFailures(PRUint32 *failureCount NS_OUTPARAM, char ***failures NS_OUTPARAM)
+{
+
+  NS_ENSURE_ARG_POINTER(failureCount);
+  NS_ENSURE_ARG_POINTER(failures);
+
+  *failures = nsnull;
+  *failureCount = mFailureCount;
+
+  if (*failureCount != 0) {
+    *failures = (char**)nsMemory::Alloc(*failureCount * sizeof(char*));
+    if (!failures)
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    
+    for (PRUint32 i = 0; i < *failureCount; i++) {
+      nsPromiseFlatCString flattenedFailureMessage(mFailures[i]);
+      (*failures)[i] = (char*)nsMemory::Clone(flattenedFailureMessage.get(), flattenedFailureMessage.Length() + 1);
+
+      if (!(*failures)[i]) {
+        
+        NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(i, (*failures));
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+    }
+  }
+
+  return NS_OK;
 }

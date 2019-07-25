@@ -46,6 +46,7 @@
 #include "nsWeakReference.h"
 #include "GfxDriverInfo.h"
 #include "nsTArray.h"
+#include "nsString.h"
 
 namespace mozilla {
 namespace widget {  
@@ -72,6 +73,9 @@ public:
   NS_SCRIPTABLE NS_IMETHOD GetFeatureSuggestedDriverVersion(PRInt32 aFeature, nsAString & _retval NS_OUTPARAM);
   NS_SCRIPTABLE NS_IMETHOD GetWebGLParameter(const nsAString & aParam, nsAString & _retval NS_OUTPARAM);
 
+  NS_SCRIPTABLE NS_IMETHOD GetFailures(PRUint32 *failureCount NS_OUTPARAM, char ***failures NS_OUTPARAM);
+  NS_IMETHOD_(void) LogFailure(const nsACString &failure);
+
   
   
   
@@ -90,6 +94,9 @@ protected:
 private:
 
   void EvaluateDownloadedBlacklist(nsTArray<GfxDriverInfo>& aDriverInfo);
+
+  nsCString mFailures[9]; 
+  PRUint32 mFailureCount;
 
 };
 
