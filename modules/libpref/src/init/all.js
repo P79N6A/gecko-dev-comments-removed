@@ -1538,6 +1538,29 @@ pref("font.minimum-size.x-western", 0);
 pref("font.minimum-size.x-unicode", 0);
 pref("font.minimum-size.x-user-def", 0);
 
+
+
+
+
+
+
+
+
+
+
+pref("font.size.inflation.emPerLine", 0);
+
+
+
+
+
+
+
+
+
+
+pref("font.size.inflation.minTwips", 0);
+
 #ifdef XP_WIN
 
 pref("font.name.serif.ar", "Times New Roman");
