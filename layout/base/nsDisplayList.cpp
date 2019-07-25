@@ -170,6 +170,17 @@ nsDisplayListBuilder::GetBackgroundPaintFlags() {
   return flags;
 }
 
+static PRUint64 RegionArea(const nsRegion& aRegion)
+{
+  PRUint64 area = 0;
+  nsRegionRectIterator iter(aRegion);
+  const nsRect* r;
+  while ((r = iter.Next()) != nsnull) {
+    area += PRUint64(r->width)*r->height;
+  }
+  return area;
+}
+
 void
 nsDisplayListBuilder::SubtractFromVisibleRegion(nsRegion* aVisibleRegion,
                                                 const nsRegion& aRegion)
@@ -181,7 +192,10 @@ nsDisplayListBuilder::SubtractFromVisibleRegion(nsRegion* aVisibleRegion,
   tmp.Sub(*aVisibleRegion, aRegion);
   
   
-  if (GetAccurateVisibleRegions() || tmp.GetNumRects() <= 15) {
+  
+  
+  if (GetAccurateVisibleRegions() || tmp.GetNumRects() <= 15 ||
+      RegionArea(tmp) <= RegionArea(*aVisibleRegion)/2) {
     *aVisibleRegion = tmp;
   }
 }
