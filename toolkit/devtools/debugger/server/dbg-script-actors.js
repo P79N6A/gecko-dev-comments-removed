@@ -205,17 +205,20 @@ ThreadActor.prototype = {
 
   onClientEvaluate: function TA_onClientEvaluate(aRequest) {
     if (this.state !== "paused") {
-      return { type: "wrongState",
+      return { error: "wrongState",
                message: "Debuggee must be paused to evaluate code." };
     };
 
     let frame = this._requestFrame(aRequest.frame);
     if (!frame) {
-      
-      return { type: "unknownFrame",
+      return { error: "unknownFrame",
                message: "Evaluation frame not found" };
     }
 
+    if (!frame.environment) {
+      return { error: "notDebuggee",
+               message: "cannot access the environment of this frame." };
+    };
 
     
     
@@ -233,18 +236,10 @@ ThreadActor.prototype = {
 
     
     let packet = this._paused(youngest);
-    packet.why = { type: "clientEvaluated" };
-    if ("return" in completion) {
-      packet.why.value = this.createValueGrip(completion["return"]);
-    } else if ("throw" in completion) {
-      packet.why.exception = this.createValueGrip(completion["throw"]);
-    } else {
-      
-      packet.why.terminated = true;
-    }
+    packet.why = { type: "clientEvaluated",
+                   frameFinished: this.createProtocolCompletionValue(completion) };
 
     
-
     return packet;
   },
 
@@ -269,9 +264,9 @@ ThreadActor.prototype = {
     
     let frames = [];
     for (; frame && (!count || i < (start + count)); i++) {
-      let grip = this._createFrameActor(frame).grip();
-      grip.depth = i;
-      frames.push(grip);
+      let form = this._createFrameActor(frame).form();
+      form.depth = i;
+      frames.push(form);
       frame = frame.older;
     }
 
@@ -279,6 +274,11 @@ ThreadActor.prototype = {
   },
 
   onReleaseMany: function TA_onReleaseMany(aRequest) {
+    if (!aRequest.actors) {
+      return { error: "missingParameter",
+               message: "no actors were specified" };
+    }
+
     for each (let actorID in aRequest.actors) {
       let actor = this.threadLifetimePool.get(actorID);
       this.threadLifetimePool.objectActors.delete(actor.obj);
@@ -449,8 +449,6 @@ ThreadActor.prototype = {
 
 
   _requestFrame: function TA_requestFrame(aFrameID) {
-    
-    
     if (!aFrameID) {
       return this._youngestFrame;
     }
@@ -465,7 +463,6 @@ ThreadActor.prototype = {
   _paused: function TA_paused(aFrame) {
     
     
-
     
     
     
@@ -504,7 +501,7 @@ ThreadActor.prototype = {
                    type: "paused",
                    actor: this._pauseActor.actorID };
     if (aFrame) {
-      packet.frame = this._createFrameActor(aFrame).grip();
+      packet.frame = this._createFrameActor(aFrame).form();
     }
 
     if (poppedFrames) {
@@ -600,11 +597,9 @@ ThreadActor.prototype = {
 
 
 
+
   createEnvironmentActor: function TA_createEnvironmentActor(aObject, aPool) {
     let environment = aObject.environment;
-    
-    
-    
     if (!environment) {
       return undefined;
     }
@@ -645,6 +640,25 @@ ThreadActor.prototype = {
 
     dbg_assert(false, "Failed to provide a grip for: " + aValue);
     return null;
+  },
+
+  
+
+
+
+  createProtocolCompletionValue:
+  function TA_createProtocolCompletionValue(aCompletion) {
+    let protoValue = {};
+    if ("return" in aCompletion) {
+      protoValue.return = this.createValueGrip(aCompletion.return);
+    } else if ("yield" in aCompletion) {
+      protoValue.return = this.createValueGrip(aCompletion.yield);
+    } else if ("throw" in aCompletion) {
+      protoValue.throw = this.createValueGrip(aCompletion.throw);
+    } else {
+      protoValue.terminated = true;
+    }
+    return protoValue;
   },
 
   
@@ -747,8 +761,6 @@ ThreadActor.prototype = {
   onNewScript: function TA_onNewScript(aScript, aFunction) {
     
     
-    
-    
     if (!this._scripts[aScript.url]) {
       this._scripts[aScript.url] = [];
     }
@@ -819,7 +831,7 @@ ObjectActor.prototype = {
 
   grip: function OA_grip() {
     return { "type": "object",
-             "class": this.obj["class"],
+             "class": this.obj.class,
              "actor": this.actorID };
   },
 
@@ -902,9 +914,8 @@ ObjectActor.prototype = {
     if (this.threadActor.state !== "paused") {
       return this.WRONG_STATE_RESPONSE;
     }
-    
     if (!aRequest.name) {
-      return { error: "noPropertyName",
+      return { error: "missingParameter",
                message: "no property name was specified" };
     }
 
@@ -945,9 +956,8 @@ ObjectActor.prototype = {
       return this.WRONG_STATE_RESPONSE;
     }
 
-    if (this.obj["class"] !== "Function") {
-      
-      return { error: "unrecognizedPacketType",
+    if (this.obj.class !== "Function") {
+      return { error: "objectNotFunction",
                message: "decompile request is only valid for object grips " +
                         "with a 'Function' class." };
     }
@@ -967,18 +977,21 @@ ObjectActor.prototype = {
       return this.WRONG_STATE_RESPONSE;
     }
 
-    if (this.obj["class"] !== "Function") {
-      
-      return { error: "unrecognizedPacketType",
+    if (this.obj.class !== "Function") {
+      return { error: "objectNotFunction",
                message: "scope request is only valid for object grips with a" +
                         " 'Function' class." };
     }
 
-    let packet = { name: this.obj.name || null };
-    let envActor = this.threadActor.createEnvironmentActor(this.obj, this.registeredPool);
-    packet.scope = envActor ? envActor.grip() : envActor;
+    let envActor = this.threadActor.createEnvironmentActor(this.obj,
+                                                           this.registeredPool);
+    if (!envActor) {
+      return { error: "notDebuggee",
+               message: "cannot access the environment of this function." };
+    }
 
-    return packet;
+    return { name: this.obj.name || null,
+             scope: envActor.form() };
   },
 
   
@@ -992,10 +1005,10 @@ ObjectActor.prototype = {
       return this.WRONG_STATE_RESPONSE;
     }
 
-    if (this.obj["class"] !== "Function") {
-      
-      return { error: "unrecognizedPacketType",
-               message: "nameAndParameters request is only valid for object grips with a 'Function' class." };
+    if (this.obj.class !== "Function") {
+      return { error: "objectNotFunction",
+               message: "nameAndParameters request is only valid for object " +
+                        "grips with a 'Function' class." };
     }
 
     return { name: this.obj.name || null,
@@ -1028,9 +1041,8 @@ ObjectActor.prototype = {
       return this.WRONG_STATE_RESPONSE;
     }
     if (this.registeredPool !== this.threadActor.threadLifetimePool) {
-      
-      return { error: "unrecognizedPacketType",
-               message: "release is only recognized on thread-lifetime actors." };
+      return { error: "notReleasable",
+               message: "only thread-lifetime actors can be released." };
     }
 
     this.release();
@@ -1092,17 +1104,17 @@ FrameActor.prototype = {
   
 
 
-  grip: function FA_grip() {
-    let grip = { actor: this.actorID,
+  form: function FA_form() {
+    let form = { actor: this.actorID,
                  type: this.frame.type };
     if (this.frame.type === "call") {
-      grip.callee = this.threadActor.createValueGrip(this.frame.callee);
+      form.callee = this.threadActor.createValueGrip(this.frame.callee);
       if (this.frame.callee.name) {
-        grip.calleeName = this.frame.callee.name;
+        form.calleeName = this.frame.callee.name;
       } else {
         let desc = this.frame.callee.getOwnPropertyDescriptor("displayName");
         if (desc && desc.value && typeof desc.value == "string") {
-          grip.calleeName = desc.value;
+          form.calleeName = desc.value;
         }
       }
     }
@@ -1110,28 +1122,28 @@ FrameActor.prototype = {
     let envActor = this.threadActor
                        .createEnvironmentActor(this.frame,
                                                this.frameLifetimePool);
-    grip.environment = envActor ? envActor.grip() : envActor;
-    grip["this"] = this.threadActor.createValueGrip(this.frame["this"]);
-    grip.arguments = this._args();
+    form.environment = envActor ? envActor.form() : envActor;
+    form.this = this.threadActor.createValueGrip(this.frame.this);
+    form.arguments = this._args();
     if (this.frame.script) {
-      grip.where = { url: this.frame.script.url,
+      form.where = { url: this.frame.script.url,
                      line: this.frame.script.getOffsetLine(this.frame.offset) };
     }
 
     if (!this.frame.older) {
-      grip.oldest = true;
+      form.oldest = true;
     }
 
-    return grip;
+    return form;
   },
 
   _args: function FA__args() {
-    if (!this.frame["arguments"]) {
+    if (!this.frame.arguments) {
       return [];
     }
 
     return [this.threadActor.createValueGrip(arg)
-            for each (arg in this.frame["arguments"])];
+            for each (arg in this.frame.arguments)];
   },
 
   
@@ -1234,7 +1246,7 @@ EnvironmentActor.prototype = {
   
 
 
-  grip: function EA_grip() {
+  form: function EA_form() {
     
     
     if (!this.obj.live) {
@@ -1247,25 +1259,29 @@ EnvironmentActor.prototype = {
                    .createEnvironmentActor(this.obj.environment.parent,
                                            this.registeredPool);
     }
-    let grip = { actor: this.actorID,
-                 parent: parent ? parent.grip() : parent };
+    let form = { actor: this.actorID,
+                 parent: parent ? parent.form() : parent };
 
     if (this.obj.environment.type == "object") {
-      grip.type = "object"; 
-      grip.object = this.threadActor.createValueGrip(this.obj.environment.object);
-    } else {
-      if (this.obj["class"] == "Function") {
-        grip.type = "function";
-        grip["function"] = this.threadActor.createValueGrip(this.obj);
-        grip.functionName = this.obj.name;
+      if (this.obj.environment.parent) {
+        form.type = "with";
       } else {
-        grip.type = "block";
+        form.type = "object";
+      }
+      form.object = this.threadActor.createValueGrip(this.obj.environment.object);
+    } else {
+      if (this.obj.class == "Function") {
+        form.type = "function";
+        form.function = this.threadActor.createValueGrip(this.obj);
+        form.functionName = this.obj.name;
+      } else {
+        form.type = "block";
       }
 
-      grip.bindings = this._bindings();
+      form.bindings = this._bindings();
     }
 
-    return grip;
+    return form;
   },
 
   
@@ -1273,21 +1289,51 @@ EnvironmentActor.prototype = {
 
 
   _bindings: function EA_bindings() {
-    let bindings = { mutable: {}, immutable: {} };
+    let bindings = { arguments: [], variables: {} };
 
     
     if (typeof this.obj.environment.getVariableDescriptor != "function") {
       return bindings;
     }
 
-    for (let name in this.obj.environment.names()) {
+    for (let name in this.obj.parameterNames) {
+      let arg = {};
       let desc = this.obj.environment.getVariableDescriptor(name);
-      
-      if (desc.writable) {
-        grip.bindings.mutable[name] = desc.value;
+      let descForm = {
+        enumerable: true,
+        configurable: desc.configurable
+      };
+      if ("value" in desc) {
+        descForm.value = this.threadActor.createValueGrip(desc.value);
+        descForm.writable = desc.writable;
       } else {
-        grip.bindings.immutable[name] = desc.value;
+        descForm.get = this.threadActor.createValueGrip(desc.get);
+        descForm.set = this.threadActor.createValueGrip(desc.set);
       }
+      arg[name] = descForm;
+      bindings.arguments.push(arg);
+    }
+
+    for (let name in this.obj.environment.names()) {
+      if (bindings.arguments.some(function exists(element) {
+                                    return !!element[name];
+                                  })) {
+        continue;
+      }
+
+      let desc = this.obj.environment.getVariableDescriptor(name);
+      let descForm = {
+        enumerable: true,
+        configurable: desc.configurable
+      };
+      if ("value" in desc) {
+        descForm.value = this.threadActor.createValueGrip(desc.value);
+        descForm.writable = desc.writable;
+      } else {
+        descForm.get = this.threadActor.createValueGrip(desc.get);
+        descForm.set = this.threadActor.createValueGrip(desc.set);
+      }
+      bindings.variables[name] = descForm;
     }
 
     return bindings;
@@ -1313,9 +1359,9 @@ EnvironmentActor.prototype = {
       this.obj.environment.setVariable(aRequest.name, aRequest.value);
     } catch (e) {
       if (e instanceof Debugger.DebuggeeWouldRun) {
-        
-        return { error: "debuggeeWouldRun",
-                 message: "Assigning this value would cause the debuggee to run." };
+        return { error: "threadWouldRun",
+                 cause: e.cause ? e.cause : "setter",
+                 message: "Assigning a value would cause the debuggee to run" };
       }
       
       throw e;

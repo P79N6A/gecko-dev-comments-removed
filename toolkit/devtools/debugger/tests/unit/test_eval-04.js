@@ -38,14 +38,14 @@ function test_syntax_error_eval()
           
           do_check_eq(aPacket.type, "paused");
           do_check_eq(aPacket.why.type, "clientEvaluated");
-          do_check_eq(aPacket.why.value, "arg0");
+          do_check_eq(aPacket.why.frameFinished.return, "arg0");
 
           
           gThreadClient.eval(frame1.actor, "arg", function(aResponse) {
             gThreadClient.addOneTimeListener("paused", function(aEvent, aPacket) {
               
               do_check_eq(aPacket.type, "paused");
-              do_check_eq(aPacket.why.value, "arg1");
+              do_check_eq(aPacket.why.frameFinished.return, "arg1");
 
               gThreadClient.resume(function() {
                 finishClient(gClient);
