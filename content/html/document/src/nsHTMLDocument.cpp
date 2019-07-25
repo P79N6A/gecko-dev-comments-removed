@@ -2877,8 +2877,8 @@ static const char* const gBlocks[] = {
 };
 
 static bool
-ConvertToMidasInternalCommandInner(const nsAString & inCommandID,
-                                   const nsAString & inParam,
+ConvertToMidasInternalCommandInner(const nsAString& inCommandID,
+                                   const nsAString& inParam,
                                    nsACString& outCommandID,
                                    nsACString& outParam,
                                    bool& outIsBoolean,
@@ -2892,8 +2892,7 @@ ConvertToMidasInternalCommandInner(const nsAString & inCommandID,
   if (convertedCommandID.LowerCaseEqualsLiteral("usecss")) {
     convertedCommandID.Assign("styleWithCSS");
     invertBool = true;
-  }
-  else if (convertedCommandID.LowerCaseEqualsLiteral("readonly")) {
+  } else if (convertedCommandID.LowerCaseEqualsLiteral("readonly")) {
     convertedCommandID.Assign("contentReadOnly");
     invertBool = true;
   }
@@ -2908,70 +2907,74 @@ ConvertToMidasInternalCommandInner(const nsAString & inCommandID,
     }
   }
 
-  if (found) {
-    
-    outCommandID.Assign(gMidasCommandTable[i].internalCommandString);
-
-    
-    outIsBoolean = gMidasCommandTable[i].convertToBoolean;
-
-    if (!aIgnoreParams) {
-      if (gMidasCommandTable[i].useNewParam) {
-        outParam.Assign(gMidasCommandTable[i].internalParamString);
-      }
-      else {
-        
-        if (outIsBoolean) {
-          
-          
-          
-          if (invertBool) {
-            outBooleanValue = inParam.LowerCaseEqualsLiteral("false");
-          }
-          else {
-            outBooleanValue = !inParam.LowerCaseEqualsLiteral("false");
-          }
-          outParam.Truncate();
-        }
-        else {
-          
-          if (outCommandID.EqualsLiteral("cmd_paragraphState")) {
-            const PRUnichar *start = inParam.BeginReading();
-            const PRUnichar *end = inParam.EndReading();
-            if (start != end && *start == '<' && *(end - 1) == '>') {
-              ++start;
-              --end;
-            }
-
-            NS_ConvertUTF16toUTF8 convertedParam(Substring(start, end));
-            PRUint32 j;
-            for (j = 0; j < ArrayLength(gBlocks); ++j) {
-              if (convertedParam.Equals(gBlocks[j],
-                                        nsCaseInsensitiveCStringComparator())) {
-                outParam.Assign(gBlocks[j]);
-                break;
-              }
-            }
-
-            if (j == ArrayLength(gBlocks)) {
-              outParam.Truncate();
-            }
-          }
-          else {
-            CopyUTF16toUTF8(inParam, outParam);
-          }
-        }
-      }
-    }
-  } 
-  else {
+  if (!found) {
     
     outCommandID.SetLength(0);
     outParam.SetLength(0);
     outIsBoolean = false;
+    return false;
   }
 
-  return found;
+  
+  outCommandID.Assign(gMidasCommandTable[i].internalCommandString);
+
+  
+  outIsBoolean = gMidasCommandTable[i].convertToBoolean;
+
+  if (aIgnoreParams) {
+    
+    return true;
+  }
+
+  if (gMidasCommandTable[i].useNewParam) {
+    
+    outParam.Assign(gMidasCommandTable[i].internalParamString);
+    return true;
+  }
+
+  
+  if (outIsBoolean) {
+    
+    
+    
+    if (invertBool) {
+      outBooleanValue = inParam.LowerCaseEqualsLiteral("false");
+    } else {
+      outBooleanValue = !inParam.LowerCaseEqualsLiteral("false");
+    }
+    outParam.Truncate();
+
+    return true;
+  }
+
+  
+  
+  if (outCommandID.EqualsLiteral("cmd_paragraphState")) {
+    const PRUnichar* start = inParam.BeginReading();
+    const PRUnichar* end = inParam.EndReading();
+    if (start != end && *start == '<' && *(end - 1) == '>') {
+      ++start;
+      --end;
+    }
+
+    NS_ConvertUTF16toUTF8 convertedParam(Substring(start, end));
+    PRUint32 j;
+    for (j = 0; j < ArrayLength(gBlocks); ++j) {
+      if (convertedParam.Equals(gBlocks[j],
+                                nsCaseInsensitiveCStringComparator())) {
+        outParam.Assign(gBlocks[j]);
+        break;
+      }
+    }
+
+    if (j == ArrayLength(gBlocks)) {
+      outParam.Truncate();
+    }
+  } else {
+    CopyUTF16toUTF8(inParam, outParam);
+  }
+
+  return true;
 }
 
 static bool
