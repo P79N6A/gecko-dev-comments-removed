@@ -153,25 +153,35 @@ class Assembler : public BaseAssembler
 
 
 
-    Label storeValue(const Value &v, Address address) {
+    void storeValue(const Value &v, Address address) {
         jsval_layout jv;
         jv.asBits = JSVAL_BITS(Jsvalify(v));
 
         store32(ImmTag(jv.s.tag), tagOf(address));
-        Label l = label();
         if (!v.isUndefined())
             store32(Imm32(jv.s.payload.u32), payloadOf(address));
-        return l;
     }
 
-    Label storeValue(const Value &v, BaseIndex address) {
+    void storeValue(const Value &v, BaseIndex address) {
+        jsval_layout jv;
+        jv.asBits = JSVAL_BITS(Jsvalify(v));
+
+        store32(ImmTag(jv.s.tag), tagOf(address));
+        if (!v.isUndefined())
+            store32(Imm32(jv.s.payload.u32), payloadOf(address));
+    }
+
+    
+
+
+
+    Label storeValueForIC(const Value &v, Address address) {
         jsval_layout jv;
         jv.asBits = JSVAL_BITS(Jsvalify(v));
 
         store32(ImmTag(jv.s.tag), tagOf(address));
         Label l = label();
-        if (!v.isUndefined())
-            store32(Imm32(jv.s.payload.u32), payloadOf(address));
+        store32(Imm32(jv.s.payload.u32), payloadOf(address));
         return l;
     }
 
