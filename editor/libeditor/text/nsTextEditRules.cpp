@@ -943,7 +943,7 @@ nsTextEditRules::WillUndo(nsISelection *aSelection, PRBool *aCancel, PRBool *aHa
 
 
 nsresult
-nsTextEditRules:: DidUndo(nsISelection *aSelection, nsresult aResult)
+nsTextEditRules::DidUndo(nsISelection *aSelection, nsresult aResult)
 {
   nsresult res = aResult;  
   if (!aSelection) { return NS_ERROR_NULL_POINTER; }
