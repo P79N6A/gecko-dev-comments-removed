@@ -196,7 +196,7 @@ CryptoMeta.prototype = {
 
     
     if (typeof new_pubkey == 'string')
-      new_pubkey = PubKeys.get(self.cb, new_pubkey);
+      new_pubkey = yield PubKeys.get(self.cb, new_pubkey);
 
     
     
