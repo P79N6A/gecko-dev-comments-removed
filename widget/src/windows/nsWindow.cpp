@@ -176,6 +176,7 @@
 #endif
 #include "LayerManagerOGL.h"
 #endif
+#include "BasicLayers.h"
 
 #if !defined(WINCE)
 #include "nsUXThemeConstants.h"
@@ -1141,6 +1142,12 @@ NS_METHOD nsWindow::Show(PRBool bState)
   
   
   mIsVisible = bState;
+
+#ifdef CAIRO_HAS_D2D_SURFACE
+  if (!mIsVisible && wasVisible) {
+      ClearD2DSurface();
+  }
+#endif
 
   if (mWnd) {
     if (bState) {
@@ -2706,265 +2713,6 @@ NS_IMETHODIMP nsWindow::Update()
     VERIFY(::UpdateWindow(mWnd));
 
   return rv;
-}
-
-
-
-
-
-
-
-
-
-static PRBool
-ClipRegionContainedInRect(const nsTArray<nsIntRect>& aClipRects,
-                          const nsIntRect& aRect)
-{
-  for (PRUint32 i = 0; i < aClipRects.Length(); ++i) {
-    if (!aRect.Contains(aClipRects[i]))
-      return PR_FALSE;
-  }
-  return PR_TRUE;
-}
-
-
-
-
-
-static PRBool
-HasDescendantWindowOutsideRect(DWORD aThisThreadID, HWND aWnd,
-                               const RECT& aScreenRect)
-{
-  
-  
-  
-  if (GetWindowThreadProcessId(aWnd, NULL) != aThisThreadID) {
-    return PR_TRUE;
-  }
-  for (HWND child = ::GetWindow(aWnd, GW_CHILD); child;
-       child = ::GetWindow(child, GW_HWNDNEXT)) {
-    RECT childScreenRect;
-    ::GetWindowRect(child, &childScreenRect);
-    RECT result;
-    if (!::IntersectRect(&result, &childScreenRect, &aScreenRect)) {
-      return PR_TRUE;
-    }
-
-    if (HasDescendantWindowOutsideRect(aThisThreadID, child, aScreenRect)) {
-      return PR_TRUE;
-    }
-  }
-
-  return PR_FALSE;
-}
-
-static void
-InvalidateRgnInWindowSubtree(HWND aWnd, HRGN aRgn, HRGN aTmpRgn)
-{
-  RECT clientRect;
-  ::GetClientRect(aWnd, &clientRect);
-  ::SetRectRgn(aTmpRgn, clientRect.left, clientRect.top,
-               clientRect.right, clientRect.bottom);
-  if (::CombineRgn(aTmpRgn, aTmpRgn, aRgn, RGN_AND) == NULLREGION) {
-    return;
-  }
-
-  ::InvalidateRgn(aWnd, aTmpRgn, FALSE);
-
-  for (HWND child = ::GetWindow(aWnd, GW_CHILD); child;
-       child = ::GetWindow(child, GW_HWNDNEXT)) {
-    POINT pt = { 0, 0 };
-    ::MapWindowPoints(child, aWnd, &pt, 1);
-    ::OffsetRgn(aRgn, -pt.x, -pt.y);
-    InvalidateRgnInWindowSubtree(child, aRgn, aTmpRgn);
-    ::OffsetRgn(aRgn, pt.x, pt.y);
-  }
-}
-
-void
-nsWindow::Scroll(const nsIntPoint& aDelta,
-                 const nsTArray<nsIntRect>& aDestRects,
-                 const nsTArray<Configuration>& aConfigurations)
-{
-  
-  
-  
-  
-  
-  
-  nsTHashtable<nsPtrHashKey<nsWindow> > scrolledWidgets;
-  scrolledWidgets.Init();
-  for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
-    const Configuration& configuration = aConfigurations[i];
-    nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
-    NS_ASSERTION(w->GetParent() == this,
-                 "Configured widget is not a child");
-    if (configuration.mBounds == w->mBounds + aDelta) {
-      scrolledWidgets.PutEntry(w);
-    }
-    w->SetWindowClipRegion(configuration.mClipRegion, PR_TRUE);
-  }
-
-  
-  HRGN updateRgn = ::CreateRectRgn(0, 0, 0, 0);
-  if (!updateRgn) {
-    
-    return;
-  }
-  HRGN destRgn = ::CreateRectRgn(0, 0, 0, 0);
-  if (!destRgn) {
-    
-    ::DeleteObject((HGDIOBJ)updateRgn);
-    return;
-  }
-
-  DWORD ourThreadID = GetWindowThreadProcessId(mWnd, NULL);
-
-  for (BlitRectIter iter(aDelta, aDestRects); !iter.IsDone(); ++iter) {
-    const nsIntRect& destRect = iter.Rect();
-    nsIntRect affectedRect;
-    affectedRect.UnionRect(destRect, destRect - aDelta);
-    UINT flags = SW_SCROLLCHILDREN;
-    
-    
-    for (nsWindow* w = static_cast<nsWindow*>(GetFirstChild()); w;
-         w = static_cast<nsWindow*>(w->GetNextSibling())) {
-      if (w->mBounds.Intersects(affectedRect)) {
-        
-        nsPtrHashKey<nsWindow>* entry = scrolledWidgets.GetEntry(w);
-        if (entry) {
-          
-          
-          
-          
-          scrolledWidgets.RawRemoveEntry(entry);
-
-          nsIntPoint screenOffset = WidgetToScreenOffset();
-          RECT screenAffectedRect = {
-            screenOffset.x + affectedRect.x,
-            screenOffset.y + affectedRect.y,
-            screenOffset.x + affectedRect.XMost(),
-            screenOffset.y + affectedRect.YMost()
-          };
-          if (HasDescendantWindowOutsideRect(ourThreadID, w->mWnd,
-                                             screenAffectedRect)) {
-            
-            
-            
-            
-            
-            
-            flags &= ~SW_SCROLLCHILDREN;
-          }
-        } else {
-          flags &= ~SW_SCROLLCHILDREN;
-          
-          
-          
-          
-          break;
-        }
-      }
-    }
-
-    if (flags & SW_SCROLLCHILDREN 
-#ifdef CAIRO_HAS_D2D_SURFACE
-        && !mD2DWindowSurface
-#endif
-        ) {
-      
-      
-      
-      
-      
-      for (nsWindow* w = static_cast<nsWindow*>(GetFirstChild()); w;
-           w = static_cast<nsWindow*>(w->GetNextSibling())) {
-        if (w->mBounds.Intersects(affectedRect)) {
-          w->mBounds += aDelta;
-        }
-      }
-    }
-
-    RECT clip = { affectedRect.x, affectedRect.y, affectedRect.XMost(), affectedRect.YMost() };
-#ifdef CAIRO_HAS_D2D_SURFACE
-    if (mD2DWindowSurface) {
-      mD2DWindowSurface->Scroll(aDelta, affectedRect);
-
-      for (PRUint32 i = 0; i < aConfigurations.Length(); ++i) {
-        const Configuration& configuration = aConfigurations[i];
-        nsWindow* w = static_cast<nsWindow*>(configuration.mChild);
-        w->Invalidate(PR_FALSE);
-      }
-
-      
-      
-      
-      HRGN systemClip = ::CreateRectRgn(0, 0, 0, 0);
-      HRGN movedSystemClip = ::CreateRectRgn(0, 0, 0, 0);
-      HDC dc = ::GetDC(mWnd);
-      ::GetRandomRgn(dc, systemClip, SYSRGN);
-      ::GetRandomRgn(dc, movedSystemClip, SYSRGN);
-      ::OffsetRgn(movedSystemClip, aDelta.x, aDelta.y);
-
-      
-      
-      
-      ::CombineRgn(systemClip, systemClip, movedSystemClip, RGN_DIFF);
-
-      
-      POINT p = { 0, 0 };
-      ::ClientToScreen(mWnd, &p);
-      ::OffsetRgn(systemClip, -p.x, -p.y);
-
-      ::GetUpdateRgn(mWnd, updateRgn, FALSE);
-      ::OffsetRgn(updateRgn, aDelta.x, aDelta.y);
-      ::CombineRgn(updateRgn, updateRgn, systemClip, RGN_OR);
-
-      ::DeleteObject((HGDIOBJ)systemClip);
-      ::DeleteObject((HGDIOBJ)movedSystemClip);
-      ::ReleaseDC(mWnd, dc);
-    } else {
-#endif
-      ::ScrollWindowEx(mWnd, aDelta.x, aDelta.y, &clip, &clip, updateRgn, NULL, flags);
-#ifdef CAIRO_HAS_D2D_SURFACE
-    }
-#endif
-    ::SetRectRgn(destRgn, destRect.x, destRect.y, destRect.XMost(), destRect.YMost());
-    ::CombineRgn(updateRgn, updateRgn, destRgn, RGN_AND);
-    if (flags & SW_SCROLLCHILDREN) {
-      for (nsWindow* w = static_cast<nsWindow*>(GetFirstChild()); w;
-           w = static_cast<nsWindow*>(w->GetNextSibling())) {
-        if ((w->mBounds - aDelta).Intersects(affectedRect)) {
-          
-          
-          
-          
-          nsAutoTArray<nsIntRect,1> clipRegion;
-          w->GetWindowClipRegion(&clipRegion);
-          if (!ClipRegionContainedInRect(clipRegion,
-                                         destRect - w->mBounds.TopLeft()) ||
-              !ClipRegionContainedInRect(clipRegion,
-                                         destRect - (w->mBounds.TopLeft() - aDelta))) {
-            ::SetRectRgn(destRgn, w->mBounds.x, w->mBounds.y, w->mBounds.XMost(), w->mBounds.YMost());
-            ::CombineRgn(updateRgn, updateRgn, destRgn, RGN_OR);
-          }
-        }
-      }
-
-      InvalidateRgnInWindowSubtree(mWnd, updateRgn, destRgn);
-    } else {
-      ::InvalidateRgn(mWnd, updateRgn, FALSE);
-    }
-  }
-
-  ::DeleteObject((HGDIOBJ)updateRgn);
-  ::DeleteObject((HGDIOBJ)destRgn);
-
-  
-  
-  
-  
-  ConfigureChildren(aConfigurations);
 }
 
 
@@ -4768,7 +4516,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 
 
 
-      if (mNonClientMargins.top == -1)
+      if (!mCustomNonClient || mNonClientMargins.top == -1)
         break;
 
       {
@@ -8128,6 +7876,31 @@ VOID CALLBACK nsWindow::HookTimerForPopups(HWND hwnd, UINT uMsg, UINT idEvent, D
   }
 }
 #endif 
+
+#ifdef CAIRO_HAS_D2D_SURFACE
+BOOL CALLBACK nsWindow::ClearD2DSurfaceCallback(HWND aWnd, LPARAM aMsg)
+{
+    nsWindow *window = nsWindow::GetNSWindowPtr(aWnd);
+    if (window) {
+        window->ClearD2DSurface();
+    }  
+    return TRUE;
+}
+
+void
+nsWindow::ClearD2DSurface()
+{
+    mD2DWindowSurface = nsnull;
+    if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
+        gfxWindowsPlatform::RENDER_DIRECT2D) {
+        
+        
+        
+        mLayerManager = nsnull;
+    }
+    ::EnumChildWindows(mWnd, nsWindow::ClearD2DSurfaceCallback, NULL);
+}
+#endif
 
 static PRBool IsDifferentThreadWindow(HWND aWnd)
 {
