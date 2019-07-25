@@ -302,32 +302,21 @@ IDRefsIterator::GetElem(const nsDependentSubstring& aID)
 
   
   
-  nsCOMPtr<nsIDOMElement> refDOMElm;
-  nsCOMPtr<nsIDOMDocumentXBL> xblDocument =
-    do_QueryInterface(mContent->OwnerDoc());
 
   
   nsIContent* bindingParent = mContent->GetBindingParent();
   if (bindingParent) {
-    nsCOMPtr<nsIDOMElement> bindingParentElm = do_QueryInterface(bindingParent);
-    xblDocument->GetAnonymousElementByAttribute(bindingParentElm,
-                                                NS_LITERAL_STRING("anonid"),
-                                                aID,
-                                                getter_AddRefs(refDOMElm));
-    nsCOMPtr<dom::Element> refElm = do_QueryInterface(refDOMElm);
+    nsIContent* refElm = bindingParent->OwnerDoc()->
+      GetAnonymousElementByAttribute(bindingParent, nsGkAtoms::anonid, aID);
+
     if (refElm)
       return refElm;
   }
 
   
   if (mContent->OwnerDoc()->BindingManager()->GetBinding(mContent)) {
-    nsCOMPtr<nsIDOMElement> elm = do_QueryInterface(mContent);
-    xblDocument->GetAnonymousElementByAttribute(elm,
-                                                NS_LITERAL_STRING("anonid"),
-                                                aID,
-                                                getter_AddRefs(refDOMElm));
-    nsCOMPtr<dom::Element> refElm = do_QueryInterface(refDOMElm);
-    return refElm;
+    return mContent->OwnerDoc()->
+      GetAnonymousElementByAttribute(mContent, nsGkAtoms::anonid, aID);
   }
 
   return nsnull;
