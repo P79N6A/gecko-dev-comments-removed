@@ -1778,33 +1778,24 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
         nsDisplayTransform::ShouldPrerenderTransformedContent(aBuilder, this)) {
       dirtyRect = GetVisualOverflowRectRelativeToSelf();
     } else {
-      if (Preserves3D()) {
+      
+      
+      
         
-        
-        
-        
-        
-        
-        nsRect overflow = GetVisualOverflowRectRelativeToSelf();
-        nsPoint offset = aBuilder->ToReferenceFrame(this);
-        overflow += offset;
-        overflow = nsDisplayTransform::TransformRect(overflow, this, offset);
+      
+      nsRect overflow = GetVisualOverflowRectRelativeToSelf();
+      nsPoint offset = aBuilder->ToReferenceFrame(this);
+      overflow += offset;
+      overflow = nsDisplayTransform::TransformRect(overflow, this, offset);
 
-        dirtyRect += offset;
+      dirtyRect += offset;
 
-        if (dirtyRect.Intersects(overflow)) {
-          dirtyRect = GetVisualOverflowRectRelativeToSelf();
-        } else {
-          dirtyRect.SetEmpty();
-        }
+      if (dirtyRect.Intersects(overflow)) {
+        
+        
+        dirtyRect = GetVisualOverflowRectRelativeToSelf();
       } else {
-        
-        
-        
-        if (!nsDisplayTransform::UntransformRect(dirtyRect, this, nsPoint(0, 0), &dirtyRect)) {
-          
-          dirtyRect.SetEmpty();
-        }
+        dirtyRect.SetEmpty();
       }
       if (!Preserves3DChildren() && !dirtyRect.Intersects(GetVisualOverflowRectRelativeToSelf())) {
         return NS_OK;
