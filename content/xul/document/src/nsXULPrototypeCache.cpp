@@ -57,8 +57,6 @@
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
 #include "nsIObserverService.h"
-#include "nsIStringStream.h"
-#include "nsIStorageStream.h"
 
 #include "nsNetUtil.h"
 #include "nsAppDirectoryServiceDefs.h"
@@ -66,17 +64,13 @@
 #include "jsxdrapi.h"
 
 #include "mozilla/Preferences.h"
-#include "mozilla/scache/StartupCache.h"
-#include "mozilla/scache/StartupCacheUtils.h"
 
 using namespace mozilla;
-using namespace mozilla::scache;
 
 static NS_DEFINE_CID(kXULPrototypeCacheCID, NS_XULPROTOTYPECACHE_CID);
 
 static PRBool gDisableXULCache = PR_FALSE; 
 static const char kDisableXULCachePref[] = "nglayout.debug.disable_xul_cache";
-static const char kXULCacheInfoKey[] = "nsXULPrototypeCache.startupCache";
 
 
 
@@ -96,7 +90,9 @@ DisableXULCacheChangedCallback(const char* aPref, void* aClosure)
 
 
 
-StartupCache*   nsXULPrototypeCache::gStartupCache = nsnull;
+
+nsIFastLoadService*   nsXULPrototypeCache::gFastLoadService = nsnull;
+nsIFile*              nsXULPrototypeCache::gFastLoadFile = nsnull;
 nsXULPrototypeCache*  nsXULPrototypeCache::sInstance = nsnull;
 
 
@@ -108,6 +104,9 @@ nsXULPrototypeCache::nsXULPrototypeCache()
 nsXULPrototypeCache::~nsXULPrototypeCache()
 {
     FlushScripts();
+
+    NS_IF_RELEASE(gFastLoadService); 
+    NS_IF_RELEASE(gFastLoadFile);
 }
 
 
@@ -130,13 +129,8 @@ NS_NewXULPrototypeCache(nsISupports* aOuter, REFNSIID aIID, void** aResult)
     if (!(result->mPrototypeTable.Init() &&
           result->mStyleSheetTable.Init() &&
           result->mScriptTable.Init() &&
-          result->mXBLDocTable.Init())) {
-        return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    if (!(result->mCacheURITable.Init() &&
-          result->mInputStreamTable.Init() &&
-          result->mOutputStreamTable.Init())) {
+          result->mXBLDocTable.Init() &&
+          result->mFastLoadURITable.Init())) {
         return NS_ERROR_OUT_OF_MEMORY;
     }
 
@@ -175,10 +169,10 @@ nsXULPrototypeCache::GetInstance()
     return sInstance;
 }
 
- StartupCache*
-nsXULPrototypeCache::GetStartupCache()
+ nsIFastLoadService*
+nsXULPrototypeCache::GetFastLoadService()
 {
-    return gStartupCache;
+    return gFastLoadService;
 }
 
 
@@ -195,7 +189,7 @@ nsXULPrototypeCache::Observe(nsISupports* aSubject,
         Flush();
     }
     else if (!strcmp(aTopic, "startupcache-invalidate")) {
-        AbortCaching();
+        AbortFastLoads();
     }
     else {
         NS_WARNING("Unexpected observer topic.");
@@ -207,34 +201,42 @@ nsXULPrototypeDocument*
 nsXULPrototypeCache::GetPrototype(nsIURI* aURI)
 {
     nsXULPrototypeDocument* protoDoc = mPrototypeTable.GetWeak(aURI);
-    if (protoDoc)
-        return protoDoc;
 
-    nsresult rv = BeginCaching(aURI);
-    if (NS_FAILED(rv))
-        return nsnull;
+    if (!protoDoc) {
+        
+        
+        nsresult rv = StartFastLoad(aURI);
+        if (NS_SUCCEEDED(rv)) {
+            nsCOMPtr<nsIObjectInputStream> objectInput;
+            gFastLoadService->GetInputStream(getter_AddRefs(objectInput));
 
-    
-    nsCOMPtr<nsIObjectInputStream> ois;
-    rv = GetInputStream(aURI, getter_AddRefs(ois));
-    if (NS_FAILED(rv))
-        return nsnull;
-    
-    nsRefPtr<nsXULPrototypeDocument> newProto;
-    rv = NS_NewXULPrototypeDocument(getter_AddRefs(newProto));
-    if (NS_FAILED(rv))
-        return nsnull;
-    
-    rv = newProto->Read(ois);
-    if (NS_SUCCEEDED(rv)) {
-        rv = PutPrototype(newProto);
-    } else {
-        newProto = nsnull;
+            rv = StartFastLoadingURI(aURI, nsIFastLoadService::NS_FASTLOAD_READ);
+            if (NS_SUCCEEDED(rv)) {
+                nsCOMPtr<nsIURI> oldURI;
+                gFastLoadService->SelectMuxedDocument(aURI, getter_AddRefs(oldURI));
+
+                
+                nsRefPtr<nsXULPrototypeDocument> newProto;
+                rv = NS_NewXULPrototypeDocument(getter_AddRefs(newProto));
+                if (NS_FAILED(rv)) return nsnull;
+
+                rv = newProto->Read(objectInput);
+                if (NS_SUCCEEDED(rv)) {
+                    rv = PutPrototype(newProto);
+                    if (NS_FAILED(rv))
+                        newProto = nsnull;
+
+                    gFastLoadService->EndMuxedDocument(aURI);
+                } else {
+                    newProto = nsnull;
+                }
+
+                RemoveFromFastLoadSet(aURI);
+                protoDoc = newProto;
+            }
+        }
     }
-    
-    mInputStreamTable.Remove(aURI);
-    RemoveFromCacheSet(aURI);
-    return newProto;
+    return protoDoc;
 }
 
 nsresult
@@ -403,10 +405,11 @@ nsXULPrototypeCache::IsEnabled()
     return !gDisableXULCache;
 }
 
-static PRBool gDisableXULDiskCache = PR_FALSE;           
+static PRBool gDisableXULFastLoad = PR_FALSE;           
+static PRBool gChecksumXULFastLoadFile = PR_TRUE;       
 
 void
-nsXULPrototypeCache::AbortCaching()
+nsXULPrototypeCache::AbortFastLoads()
 {
 #ifdef DEBUG_brendan
     NS_BREAK();
@@ -417,17 +420,82 @@ nsXULPrototypeCache::AbortCaching()
     Flush();
 
     
-    mCacheURITable.Clear();
+    mFastLoadURITable.Clear();
+
+    nsCOMPtr<nsIFastLoadService> fastLoadService = gFastLoadService;
+    nsCOMPtr<nsIFile> file = gFastLoadFile;
+
+    nsresult rv;
+
+    if (! fastLoadService) {
+        fastLoadService = do_GetFastLoadService();
+        if (! fastLoadService)
+            return;
+
+        rv = fastLoadService->NewFastLoadFile(XUL_FASTLOAD_FILE_BASENAME,
+                                              getter_AddRefs(file));
+        if (NS_FAILED(rv))
+            return;
+    }
+
+    
+    
+    nsCOMPtr<nsIObjectInputStream> objectInput;
+    nsCOMPtr<nsIObjectOutputStream> objectOutput;
+    fastLoadService->GetInputStream(getter_AddRefs(objectInput));
+    fastLoadService->GetOutputStream(getter_AddRefs(objectOutput));
+
+    if (objectOutput) {
+        fastLoadService->SetOutputStream(nsnull);
+
+        if (NS_SUCCEEDED(objectOutput->Close()) && gChecksumXULFastLoadFile)
+            fastLoadService->CacheChecksum(file,
+                                           objectOutput);
+    }
+
+    if (objectInput) {
+        
+        
+        
+        fastLoadService->SetInputStream(nsnull);
+        objectInput->Close();
+    }
+
+    
+    if (file) {
+#ifdef DEBUG
+        
+        nsCOMPtr<nsIFile> existingAbortedFile;
+        file->Clone(getter_AddRefs(existingAbortedFile));
+        if (existingAbortedFile) {
+            existingAbortedFile->SetLeafName(NS_LITERAL_STRING("Aborted.mfasl"));
+            PRBool fileExists = PR_FALSE;
+            existingAbortedFile->Exists(&fileExists);
+            if (fileExists)
+                existingAbortedFile->Remove(PR_FALSE);
+        }
+        file->MoveToNative(nsnull, NS_LITERAL_CSTRING("Aborted.mfasl"));
+#else
+        rv = file->Remove(PR_FALSE);
+        if (NS_FAILED(rv))
+            NS_WARNING("Failed to remove fastload file, fastload data may be outdated");
+#endif
+    }
+
+    
+    NS_IF_RELEASE(gFastLoadService);
+    NS_IF_RELEASE(gFastLoadFile);
 }
 
-
-static const char kDisableXULDiskCachePref[] = "nglayout.debug.disable_xul_fastload";
 
 void
-nsXULPrototypeCache::RemoveFromCacheSet(nsIURI* aURI)
+nsXULPrototypeCache::RemoveFromFastLoadSet(nsIURI* aURI)
 {
-    mCacheURITable.Remove(aURI);
+    mFastLoadURITable.Remove(aURI);
 }
+
+static const char kDisableXULFastLoadPref[] = "nglayout.debug.disable_xul_fastload";
+static const char kChecksumXULFastLoadFilePref[] = "nglayout.debug.checksum_xul_fastload_file";
 
 nsresult
 nsXULPrototypeCache::WritePrototype(nsXULPrototypeDocument* aPrototypeDocument)
@@ -436,167 +504,197 @@ nsXULPrototypeCache::WritePrototype(nsXULPrototypeDocument* aPrototypeDocument)
 
     
     
-    if (!gStartupCache)
+    if (! gFastLoadService)
         return NS_OK;
+
+    
+    
+    nsCOMPtr<nsIObjectInputStream> objectInput;
+    nsCOMPtr<nsIObjectOutputStream> objectOutput;
+    gFastLoadService->GetInputStream(getter_AddRefs(objectInput));
+    gFastLoadService->GetOutputStream(getter_AddRefs(objectOutput));
 
     nsCOMPtr<nsIURI> protoURI = aPrototypeDocument->GetURI();
 
     
     
     
-    RemoveFromCacheSet(protoURI);
+    
+    RemoveFromFastLoadSet(protoURI);
 
-    PRInt32 count = mCacheURITable.Count();
-    nsCOMPtr<nsIObjectOutputStream> oos;
-    rv = GetOutputStream(protoURI, getter_AddRefs(oos));
-    NS_ENSURE_SUCCESS(rv, rv);
+    PRInt32 count = mFastLoadURITable.Count();
 
-    rv = aPrototypeDocument->Write(oos);
-    NS_ENSURE_SUCCESS(rv, rv);
-    FinishOutputStream(protoURI);
+    if (objectOutput) {
+        rv = StartFastLoadingURI(protoURI, nsIFastLoadService::NS_FASTLOAD_WRITE);
+        if (NS_SUCCEEDED(rv)) {
+            
+            
+            nsCOMPtr<nsIURI> oldURI;
+            gFastLoadService->SelectMuxedDocument(protoURI, getter_AddRefs(oldURI));
+
+            aPrototypeDocument->Write(objectOutput);
+
+            gFastLoadService->EndMuxedDocument(protoURI);
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (count == 0) {
+            gFastLoadService->SetOutputStream(nsnull);
+            rv = objectOutput->Close();
+
+            if (NS_SUCCEEDED(rv) && gChecksumXULFastLoadFile) {
+                rv = gFastLoadService->CacheChecksum(gFastLoadFile,
+                                                     objectOutput);
+            }
+        }
+    }
+
+    if (objectInput) {
+        
+        
+        
+        if (count == 0) {
+            gFastLoadService->SetInputStream(nsnull);
+            rv2 = objectInput->Close();
+        }
+    }
+
+    
+    if (count == 0) {
+        NS_RELEASE(gFastLoadService);
+        NS_RELEASE(gFastLoadFile);
+    }
+
     return NS_FAILED(rv) ? rv : rv2;
 }
 
-nsresult
-nsXULPrototypeCache::GetInputStream(nsIURI* uri, nsIObjectInputStream** stream) 
-{
-    nsCAutoString spec;
-    uri->GetPath(spec);
-    
-    nsAutoArrayPtr<char> buf;
-    PRUint32 len;
-    nsCOMPtr<nsIObjectInputStream> ois;
-    if (!gStartupCache)
-        return NS_ERROR_NOT_AVAILABLE;
-    
-    nsresult rv = gStartupCache->GetBuffer(spec.get(), getter_Transfers(buf), 
-                                           &len);
-    if (NS_FAILED(rv)) 
-        return NS_ERROR_NOT_AVAILABLE;
-
-    rv = NS_NewObjectInputStreamFromBuffer(buf, len, getter_AddRefs(ois));
-    NS_ENSURE_SUCCESS(rv, rv);
-    buf.forget();
-
-    mInputStreamTable.Put(uri, ois);
-    
-    NS_ADDREF(*stream = ois);
-    return NS_OK;
-}
 
 nsresult
-nsXULPrototypeCache::FinishInputStream(nsIURI* uri) {
-    mInputStreamTable.Remove(uri);
-    return NS_OK;
-}
-
-nsresult
-nsXULPrototypeCache::GetOutputStream(nsIURI* uri, nsIObjectOutputStream** stream)
+nsXULPrototypeCache::StartFastLoadingURI(nsIURI* aURI, PRInt32 aDirectionFlags)
 {
     nsresult rv;
-    nsCOMPtr<nsIObjectOutputStream> objectOutput;
-    nsCOMPtr<nsIStorageStream> storageStream;
-    PRBool found = mOutputStreamTable.Get(uri, getter_AddRefs(storageStream));
-    if (found) {
-        objectOutput = do_CreateInstance("mozilla.org/binaryoutputstream;1");
-        if (!objectOutput) return NS_ERROR_OUT_OF_MEMORY;
-        nsCOMPtr<nsIOutputStream> outputStream
-            = do_QueryInterface(storageStream);
-        objectOutput->SetOutputStream(outputStream);
-    } else {
-        rv = NS_NewObjectOutputWrappedStorageStream(getter_AddRefs(objectOutput), 
-                                                    getter_AddRefs(storageStream),
-                                                    false);
-        NS_ENSURE_SUCCESS(rv, rv);
-        mOutputStreamTable.Put(uri, storageStream);
-    }
-    NS_ADDREF(*stream = objectOutput);
-    return NS_OK;
-}
 
-nsresult
-nsXULPrototypeCache::FinishOutputStream(nsIURI* uri) 
-{
-    nsresult rv;
-    if (!gStartupCache)
-        return NS_ERROR_NOT_AVAILABLE;
+    nsCAutoString urlspec;
+    rv = aURI->GetAsciiSpec(urlspec);
+    if (NS_FAILED(rv)) return rv;
+
     
-    nsCOMPtr<nsIStorageStream> storageStream;
-    PRBool found = mOutputStreamTable.Get(uri, getter_AddRefs(storageStream));
-    if (!found)
-        return NS_ERROR_UNEXPECTED;
-    nsCOMPtr<nsIOutputStream> outputStream
-        = do_QueryInterface(storageStream);
-    outputStream->Close();
     
-    nsAutoArrayPtr<char> buf;
-    PRUint32 len;
-    rv = NS_NewBufferFromStorageStream(storageStream, getter_Transfers(buf), 
-                                       &len);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsCAutoString spec;
-    uri->GetPath(spec);
-    rv = gStartupCache->PutBuffer(spec.get(), buf, len);
-    if (NS_SUCCEEDED(rv))
-        mOutputStreamTable.Remove(uri);
     
-    return rv;
-}
-
-
-
-nsresult
-nsXULPrototypeCache::HasData(nsIURI* uri, PRBool* exists)
-{
-    if (mOutputStreamTable.Get(uri, nsnull)) {
-        *exists = PR_TRUE;
-        return NS_OK;
-    }
-    nsCAutoString spec;
-    uri->GetPath(spec);
-    nsAutoArrayPtr<char> buf;
-    PRUint32 len;
-    nsresult rv;
-    if (gStartupCache)
-        rv = gStartupCache->GetBuffer(spec.get(), getter_Transfers(buf), 
-                                      &len);
-    else {
-        
-        
-        
-        StartupCache* sc = StartupCache::GetSingleton();
-        if (!sc) {
-            *exists = PR_FALSE;
-            return NS_OK;
-        }
-        rv = sc->GetBuffer(spec.get(), getter_Transfers(buf), &len);
-    }
-    *exists = NS_SUCCEEDED(rv);
-    return NS_OK;
+    
+    
+    
+    return gFastLoadService->StartMuxedDocument(aURI, urlspec.get(), aDirectionFlags);
 }
 
 static int
-CachePrefChangedCallback(const char* aPref, void* aClosure)
+FastLoadPrefChangedCallback(const char* aPref, void* aClosure)
 {
-    PRBool wasEnabled = !gDisableXULDiskCache;
-    gDisableXULDiskCache =
-        Preferences::GetBool(kDisableXULCachePref,
-                             gDisableXULDiskCache);
+    PRBool wasEnabled = !gDisableXULFastLoad;
+    gDisableXULFastLoad =
+        Preferences::GetBool(kDisableXULFastLoadPref, gDisableXULFastLoad);
 
-    if (wasEnabled && gDisableXULDiskCache) {
+    if (wasEnabled && gDisableXULFastLoad) {
         static NS_DEFINE_CID(kXULPrototypeCacheCID, NS_XULPROTOTYPECACHE_CID);
         nsCOMPtr<nsIXULPrototypeCache> cache =
             do_GetService(kXULPrototypeCacheCID);
 
         if (cache)
-            cache->AbortCaching();
+            cache->AbortFastLoads();
     }
+
+    gChecksumXULFastLoadFile =
+        Preferences::GetBool(kChecksumXULFastLoadFilePref,
+                             gChecksumXULFastLoadFile);
+
     return 0;
 }
 
+
+class nsXULFastLoadFileIO : public nsIFastLoadFileIO
+{
+  public:
+    nsXULFastLoadFileIO(nsIFile* aFile)
+      : mFile(aFile), mTruncateOutputFile(true) {
+    }
+
+    virtual ~nsXULFastLoadFileIO() {
+    }
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIFASTLOADFILEIO
+
+    nsCOMPtr<nsIFile>         mFile;
+    nsCOMPtr<nsIInputStream>  mInputStream;
+    nsCOMPtr<nsIOutputStream> mOutputStream;
+    bool mTruncateOutputFile;
+};
+
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(nsXULFastLoadFileIO, nsIFastLoadFileIO)
+
+
+NS_IMETHODIMP
+nsXULFastLoadFileIO::GetInputStream(nsIInputStream** aResult)
+{
+    if (! mInputStream) {
+        nsresult rv;
+        nsCOMPtr<nsIInputStream> fileInput;
+        rv = NS_NewLocalFileInputStream(getter_AddRefs(fileInput), mFile);
+        if (NS_FAILED(rv)) return rv;
+
+        rv = NS_NewBufferedInputStream(getter_AddRefs(mInputStream),
+                                       fileInput,
+                                       XUL_DESERIALIZATION_BUFFER_SIZE);
+        if (NS_FAILED(rv)) return rv;
+    }
+
+    NS_ADDREF(*aResult = mInputStream);
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsXULFastLoadFileIO::GetOutputStream(nsIOutputStream** aResult)
+{
+    if (! mOutputStream) {
+        PRInt32 ioFlags = PR_WRONLY;
+        if (mTruncateOutputFile)
+            ioFlags |= PR_CREATE_FILE | PR_TRUNCATE;
+
+        nsresult rv;
+        nsCOMPtr<nsIOutputStream> fileOutput;
+        rv = NS_NewLocalFileOutputStream(getter_AddRefs(fileOutput), mFile,
+                                         ioFlags, 0644);
+        if (NS_FAILED(rv)) return rv;
+
+        rv = NS_NewBufferedOutputStream(getter_AddRefs(mOutputStream),
+                                        fileOutput,
+                                        XUL_SERIALIZATION_BUFFER_SIZE);
+        if (NS_FAILED(rv)) return rv;
+    }
+
+    NS_ADDREF(*aResult = mOutputStream);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULFastLoadFileIO::DisableTruncate()
+{
+    mTruncateOutputFile = false;
+    return NS_OK;
+}
+
 nsresult
-nsXULPrototypeCache::BeginCaching(nsIURI* aURI)
+nsXULPrototypeCache::StartFastLoad(nsIURI* aURI)
 {
     nsresult rv;
 
@@ -612,26 +710,36 @@ nsXULPrototypeCache::BeginCaching(nsIURI* aURI)
     
     
     
-    if (gStartupCache) {
-        mCacheURITable.Put(aURI, 1);
+    
+    
+    
+    
+    if (gFastLoadService && gFastLoadFile) {
+        mFastLoadURITable.Put(aURI, 1);
 
         return NS_OK;
     }
 
     
     
-    StartupCache* startupCache = StartupCache::GetSingleton();
-    if (!startupCache)
+    
+    nsCOMPtr<nsIFastLoadService> fastLoadService(do_GetFastLoadService());
+    if (! fastLoadService)
         return NS_ERROR_FAILURE;
 
-    gDisableXULDiskCache =
-        Preferences::GetBool(kDisableXULCachePref, gDisableXULDiskCache);
-
-    nsContentUtils::RegisterPrefCallback(kDisableXULCachePref,
-                                         CachePrefChangedCallback,
+    gDisableXULFastLoad =
+        Preferences::GetBool(kDisableXULFastLoadPref, gDisableXULFastLoad);
+    gChecksumXULFastLoadFile =
+        Preferences::GetBool(kChecksumXULFastLoadFilePref,
+                             gChecksumXULFastLoadFile);
+    nsContentUtils::RegisterPrefCallback(kDisableXULFastLoadPref,
+                                         FastLoadPrefChangedCallback,
+                                         nsnull);
+    nsContentUtils::RegisterPrefCallback(kChecksumXULFastLoadFilePref,
+                                         FastLoadPrefChangedCallback,
                                          nsnull);
 
-    if (gDisableXULDiskCache)
+    if (gDisableXULFastLoad)
         return NS_ERROR_NOT_AVAILABLE;
 
     
@@ -645,85 +753,134 @@ nsXULPrototypeCache::BeginCaching(nsIURI* aURI)
     if (NS_FAILED(rv))
         return rv;
 
+    nsCOMPtr<nsIFile> file;
+    rv = fastLoadService->NewFastLoadFile(XUL_FASTLOAD_FILE_BASENAME,
+                                          getter_AddRefs(file));
+    if (NS_FAILED(rv))
+        return rv;
+
+    
+    
+    nsXULFastLoadFileIO* xio = new nsXULFastLoadFileIO(file);
+    nsCOMPtr<nsIFastLoadFileIO> io = static_cast<nsIFastLoadFileIO*>(xio);
+    if (! io)
+        return NS_ERROR_OUT_OF_MEMORY;
+    fastLoadService->SetFileIO(io);
+
+    nsCOMPtr<nsIXULChromeRegistry> chromeReg =
+        mozilla::services::GetXULChromeRegistryService();
+    if (!chromeReg)
+        return NS_ERROR_FAILURE;
+
     
     
     nsCAutoString package;
     rv = aURI->GetHost(package);
     if (NS_FAILED(rv))
         return rv;
-    nsCOMPtr<nsIXULChromeRegistry> chromeReg
-        = do_GetService(NS_CHROMEREGISTRY_CONTRACTID, &rv);
+
     nsCAutoString locale;
     rv = chromeReg->GetSelectedLocale(package, locale);
     if (NS_FAILED(rv))
         return rv;
 
-    nsCAutoString fileChromePath, fileLocale;
     
-    nsAutoArrayPtr<char> buf;
-    PRUint32 len, amtRead;
-    nsCOMPtr<nsIObjectInputStream> objectInput;
+    PRBool exists = PR_FALSE;
+    if (NS_SUCCEEDED(file->Exists(&exists)) && exists) {
+        nsCOMPtr<nsIObjectInputStream> objectInput;
+        rv = fastLoadService->NewInputStream(file, getter_AddRefs(objectInput));
 
-    rv = startupCache->GetBuffer(kXULCacheInfoKey, getter_Transfers(buf), 
-                                 &len);
-    if (NS_SUCCEEDED(rv))
-        rv = NS_NewObjectInputStreamFromBuffer(buf, len, getter_AddRefs(objectInput));
-    
-    if (NS_SUCCEEDED(rv)) {
-        buf.forget();
-        rv = objectInput->ReadCString(fileLocale);
-        rv |= objectInput->ReadCString(fileChromePath);
-        if (NS_FAILED(rv) ||
-            (!fileChromePath.Equals(chromePath) ||
-             !fileLocale.Equals(locale))) {
-            
-            
-            
-            startupCache->InvalidateCache();
-            rv = NS_ERROR_UNEXPECTED;
-        }
-    } else if (rv != NS_ERROR_NOT_AVAILABLE)
-        
-        return rv;
+        if (NS_SUCCEEDED(rv)) {
+            if (NS_SUCCEEDED(rv)) {
+                
+                
+                
+                PRUint32 xulFastLoadVersion, jsByteCodeVersion;
+                rv = objectInput->Read32(&xulFastLoadVersion);
+                rv |= objectInput->Read32(&jsByteCodeVersion);
+                if (NS_SUCCEEDED(rv)) {
+                    if (xulFastLoadVersion != XUL_FASTLOAD_FILE_VERSION ||
+                        jsByteCodeVersion != JSXDR_BYTECODE_VERSION) {
+#ifdef DEBUG
+                        printf((xulFastLoadVersion != XUL_FASTLOAD_FILE_VERSION)
+                               ? "bad FastLoad file version\n"
+                               : "bad JS bytecode version\n");
+#endif
+                        rv = NS_ERROR_UNEXPECTED;
+                    } else {
+                        nsCAutoString fileChromePath, fileLocale;
 
-    if (NS_FAILED(rv)) {
-        
-        nsCOMPtr<nsIObjectOutputStream> objectOutput;
-        nsCOMPtr<nsIInputStream> inputStream;
-        nsCOMPtr<nsIStorageStream> storageStream;
-        rv = NS_NewObjectOutputWrappedStorageStream(getter_AddRefs(objectOutput),
-                                                    getter_AddRefs(storageStream),
-                                                    false);
-        if (NS_SUCCEEDED(rv)) {
-            rv = objectOutput->WriteStringZ(locale.get());
-            rv |= objectOutput->WriteStringZ(chromePath.get());
-            rv |= objectOutput->Close();
-            rv |= storageStream->NewInputStream(0, getter_AddRefs(inputStream));
-        }
-        if (NS_SUCCEEDED(rv))
-            rv = inputStream->Available(&len);
-        
-        if (NS_SUCCEEDED(rv)) {
-            buf = new char[len];
-            rv = inputStream->Read(buf, len, &amtRead);
-            if (NS_SUCCEEDED(rv) && len == amtRead)
-                rv = startupCache->PutBuffer(kXULCacheInfoKey, buf, len);
-            else {
-                rv = NS_ERROR_UNEXPECTED;
+                        rv = objectInput->ReadCString(fileChromePath);
+                        rv |= objectInput->ReadCString(fileLocale);
+                        if (NS_SUCCEEDED(rv) &&
+                            (!fileChromePath.Equals(chromePath) ||
+                             !fileLocale.Equals(locale))) {
+                            rv = NS_ERROR_UNEXPECTED;
+                        }
+                    }
+                }
             }
         }
 
-        
-        if (NS_FAILED(rv)) {
-            startupCache->InvalidateCache();
-            return NS_ERROR_FAILURE;
+        if (NS_SUCCEEDED(rv)) {
+            fastLoadService->SetInputStream(objectInput);
+        } else {
+            
+            
+            if (objectInput)
+                objectInput->Close();
+            xio->mInputStream = nsnull;
+
+#ifdef DEBUG
+            file->MoveToNative(nsnull, NS_LITERAL_CSTRING("Invalid.mfasl"));
+#else
+            file->Remove(PR_FALSE);
+#endif
+            exists = PR_FALSE;
         }
     }
 
     
-    
-    mCacheURITable.Put(aURI, 1);
+    if (! exists) {
+        nsCOMPtr<nsIOutputStream> output;
+        rv = io->GetOutputStream(getter_AddRefs(output));
+        if (NS_FAILED(rv))
+            return rv;
 
-    gStartupCache = startupCache;
+        nsCOMPtr<nsIObjectOutputStream> objectOutput;
+        rv = fastLoadService->NewOutputStream(output,
+                                              getter_AddRefs(objectOutput));
+        if (NS_SUCCEEDED(rv)) {
+            rv = objectOutput->Write32(XUL_FASTLOAD_FILE_VERSION);
+            rv |= objectOutput->Write32(JSXDR_BYTECODE_VERSION);
+            rv |= objectOutput->WriteStringZ(chromePath.get());
+            rv |= objectOutput->WriteStringZ(locale.get());
+        }
+
+        
+        
+        
+        
+        if (NS_FAILED(rv)) {
+            if (objectOutput)
+                objectOutput->Close();
+            else
+                output->Close();
+            xio->mOutputStream = nsnull;
+
+            file->Remove(PR_FALSE);
+            return NS_ERROR_FAILURE;
+        }
+
+        fastLoadService->SetOutputStream(objectOutput);
+    }
+
+    
+    
+    mFastLoadURITable.Put(aURI, 1);
+
+    NS_ADDREF(gFastLoadService = fastLoadService);
+    NS_ADDREF(gFastLoadFile = file);
     return NS_OK;
 }
+

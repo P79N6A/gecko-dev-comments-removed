@@ -67,7 +67,7 @@ public:
     
 
 
-    virtual void AbortCaching() = 0;
+    virtual void AbortFastLoads() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIXULPrototypeCache, NS_IXULPROTOTYPECACHE_IID)

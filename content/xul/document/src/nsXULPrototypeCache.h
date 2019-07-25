@@ -52,12 +52,8 @@
 #include "nsRefPtrHashtable.h"
 #include "nsURIHashKey.h"
 #include "nsXULPrototypeDocument.h"
-#include "nsIInputStream.h"
-#include "nsIStorageStream.h"
-#include "mozilla/scache/StartupCache.h"
 
-using namespace mozilla::scache;
-
+class nsIFastLoadService;
 class nsCSSStyleSheet;
 
 struct CacheScriptEntry
@@ -86,7 +82,7 @@ public:
     virtual PRBool IsCached(nsIURI* aURI) {
         return GetPrototype(aURI) != nsnull;
     }
-    virtual void AbortCaching();
+    virtual void AbortFastLoads();
 
 
     
@@ -100,6 +96,16 @@ public:
 
     void Flush();
 
+    
+
+
+    void RemoveFromFastLoadSet(nsIURI* aDocumentURI);
+
+    
+
+
+
+    nsresult WritePrototype(nsXULPrototypeDocument* aPrototypeDocument);
 
     
     
@@ -129,30 +135,9 @@ public:
 
     nsresult PutStyleSheet(nsCSSStyleSheet* aStyleSheet);
 
-    
-
-
-    void RemoveFromCacheSet(nsIURI* aDocumentURI);
-
-    
-
-
-
-    nsresult WritePrototype(nsXULPrototypeDocument* aPrototypeDocument);
-
-    
-
-
-
-    nsresult GetInputStream(nsIURI* aURI, nsIObjectInputStream** objectInput);
-    nsresult FinishInputStream(nsIURI* aURI);
-    nsresult GetOutputStream(nsIURI* aURI, nsIObjectOutputStream** objectOutput);
-    nsresult FinishOutputStream(nsIURI* aURI);
-    nsresult HasData(nsIURI* aURI, PRBool* exists);
-
-    static StartupCache* GetStartupCache();
 
     static nsXULPrototypeCache* GetInstance();
+    static nsIFastLoadService* GetFastLoadService();
 
     static void ReleaseGlobals()
     {
@@ -179,14 +164,14 @@ protected:
     
     
     
-    nsDataHashtable<nsURIHashKey,PRUint32> mCacheURITable;
+    nsDataHashtable<nsURIHashKey,PRUint32> mFastLoadURITable;
 
-    static StartupCache* gStartupCache;
-    nsInterfaceHashtable<nsURIHashKey, nsIStorageStream> mOutputStreamTable;
-    nsInterfaceHashtable<nsURIHashKey, nsIObjectInputStream> mInputStreamTable;
- 
+    static nsIFastLoadService*    gFastLoadService;
+    static nsIFile*               gFastLoadFile;
+
     
-    nsresult BeginCaching(nsIURI* aDocumentURI);
+    nsresult StartFastLoad(nsIURI* aDocumentURI);
+    nsresult StartFastLoadingURI(nsIURI* aURI, PRInt32 aDirectionFlags);
 };
 
 #endif 
