@@ -48,6 +48,7 @@
 #include "nsNavHistory.h"
 #include "nsToolkitCompsCID.h"
 #include "nsCategoryCache.h"
+#include "nsTHashtable.h"
 
 namespace mozilla {
 namespace places {
@@ -90,6 +91,24 @@ namespace places {
   typedef void (nsNavBookmarks::*ItemVisitMethod)(const ItemVisitData&);
   typedef void (nsNavBookmarks::*ItemChangeMethod)(const ItemChangeData&);
 
+  class BookmarkKeyClass : public nsTrimInt64HashKey
+  {
+    public:
+    BookmarkKeyClass(const PRInt64* aItemId)
+    : nsTrimInt64HashKey(aItemId)
+    , creationTime(PR_Now())
+    {
+    }
+    BookmarkKeyClass(const BookmarkKeyClass& aOther)
+    : nsTrimInt64HashKey(aOther)
+    , creationTime(PR_Now())
+    {
+      NS_NOTREACHED("Do not call me!");
+    }
+    BookmarkData bookmark;
+    PRTime creationTime;
+  };
+
 } 
 } 
 
@@ -97,13 +116,15 @@ class nsIOutputStream;
 
 class nsNavBookmarks : public nsINavBookmarksService,
                        public nsINavHistoryObserver,
-                       public nsIAnnotationObserver
+                       public nsIAnnotationObserver,
+                       public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSINAVBOOKMARKSSERVICE
   NS_DECL_NSINAVHISTORYOBSERVER
   NS_DECL_NSIANNOTATIONOBSERVER
+  NS_DECL_NSIOBSERVER
 
   nsNavBookmarks();
 
@@ -130,6 +151,12 @@ public:
     }
     return gBookmarksService;
   }
+
+  typedef mozilla::places::BookmarkData BookmarkData;
+  typedef mozilla::places::BookmarkKeyClass BookmarkKeyClass;
+  typedef mozilla::places::ItemVisitData ItemVisitData;
+  typedef mozilla::places::ItemChangeData ItemChangeData;
+  typedef mozilla::places::BookmarkStatementId BookmarkStatementId;
 
   nsresult ResultNodeForContainer(PRInt64 aID,
                                   nsNavHistoryQueryOptions* aOptions,
@@ -202,17 +229,18 @@ public:
 
 
 
+
+
   nsresult FetchItemInfo(PRInt64 aItemId,
-                         mozilla::places::BookmarkData& _bookmark);
+                         BookmarkData& _bookmark,
+                         bool aInvalidateCache);
 
   
 
 
   nsresult FinalizeStatements();
 
-  mozIStorageStatement* GetStatementById(
-    enum mozilla::places::BookmarkStatementId aStatementId
-  )
+  mozIStorageStatement* GetStatementById(BookmarkStatementId aStatementId)
   {
     using namespace mozilla::places;
     switch(aStatementId) {
@@ -232,7 +260,7 @@ public:
 
 
 
-  void NotifyItemVisited(const mozilla::places::ItemVisitData& aData);
+  void NotifyItemVisited(const ItemVisitData& aData);
 
   
 
@@ -242,7 +270,7 @@ public:
 
 
 
-  void NotifyItemChanged(const mozilla::places::ItemChangeData& aData);
+  void NotifyItemChanged(const ItemChangeData& aData);
 
 private:
   static nsNavBookmarks* gBookmarksService;
@@ -343,7 +371,7 @@ private:
   nsresult GetDescendantChildren(PRInt64 aFolderId,
                                  const nsACString& aFolderGuid,
                                  PRInt64 aGrandParentId,
-                                 nsTArray<mozilla::places::BookmarkData>& aFolderChildrenArray);
+                                 nsTArray<BookmarkData>& aFolderChildrenArray);
 
   enum ItemType {
     BOOKMARK = TYPE_BOOKMARK,
@@ -410,7 +438,7 @@ private:
                                       bool aSkipTags);
 
   nsresult GetBookmarksForURI(nsIURI* aURI,
-                              nsTArray<mozilla::places::BookmarkData>& _bookmarks);
+                              nsTArray<BookmarkData>& _bookmarks);
 
   PRInt64 RecursiveFindRedirectedBookmark(PRInt64 aPlaceId);
 
@@ -492,8 +520,8 @@ private:
     NS_IMETHOD DoTransaction() {
       nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
       NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
-      mozilla::places::BookmarkData folder;
-      nsresult rv = bookmarks->FetchItemInfo(mID, folder);
+      BookmarkData folder;
+      nsresult rv = bookmarks->FetchItemInfo(mID, folder, true);
       
       mParent = folder.parentId;
       mIndex = folder.position;
@@ -563,6 +591,12 @@ private:
 
 
   nsresult UpdateKeywordsHashForRemovedBookmark(PRInt64 aItemId);
+
+  
+
+
+
+  nsTHashtable<BookmarkKeyClass> mRecentBookmarksCache;
 };
 
 #endif 
