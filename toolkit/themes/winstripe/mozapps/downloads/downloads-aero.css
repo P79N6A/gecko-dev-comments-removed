@@ -7,6 +7,8 @@
   }
 
   #downloadView {
+    
+    -moz-appearance: -moz-win-exclude-glass;
     border: none;
   }
 
