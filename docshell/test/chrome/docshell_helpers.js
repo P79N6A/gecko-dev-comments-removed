@@ -26,6 +26,8 @@ var gNavType = NAV_NONE;
 var gOrigMaxTotalViewers =    
   undefined;                  
 
+var gExtractedPath = null;    
+
 
 
 
@@ -410,8 +412,32 @@ function enableBFCache(enable) {
 
 
 
+
+function getHttpRoot() {
+  var location = window.location.href;
+  location = getRootDirectory(location);
+  var jar = getJar(location);
+  if (jar != null) {
+    if (gExtractedPath == null) {
+      var resolved = extractJarToTmp(jar);
+      gExtractedPath = resolved.path;
+    }
+  } else {
+    return null;
+  }
+  return "file://" + gExtractedPath + '/';
+}
+
+
+
+
+
 function getHttpUrl(filename) {
-  return "http://mochi.test:8888/chrome/docshell/test/chrome/" + filename;
+  var root = getHttpRoot();
+  if (root == null) {
+    root = "http://mochi.test:8888/chrome/docshell/test/chrome/";
+  }
+  return root + filename;
 }
 
 
