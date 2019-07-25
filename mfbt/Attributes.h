@@ -70,6 +70,9 @@
 #    define MOZ_HAVE_CXX11_OVERRIDE
 #    define MOZ_HAVE_CXX11_FINAL         final
 #  endif
+#  if __has_extension(cxx_strong_enums)
+#    define MOZ_HAVE_CXX11_ENUM_TYPE
+#  endif
 #  if __has_attribute(noinline)
 #    define MOZ_HAVE_NEVER_INLINE        __attribute__((noinline))
 #  endif
@@ -89,6 +92,7 @@
 #      endif
 #      if __GNUC_MINOR__ >= 4
 #        define MOZ_HAVE_CXX11_DELETE
+#        define MOZ_HAVE_CXX11_ENUM_TYPE
 #      endif
 #    endif
 #  else
@@ -108,6 +112,7 @@
 #    define MOZ_HAVE_CXX11_OVERRIDE
 
 #    define MOZ_HAVE_CXX11_FINAL         sealed
+#    define MOZ_HAVE_CXX11_ENUM_TYPE
 #  endif
 #  define MOZ_HAVE_NEVER_INLINE          __declspec(noinline)
 #  define MOZ_HAVE_NORETURN              __declspec(noreturn)
@@ -296,6 +301,31 @@
 #  define MOZ_FINAL             MOZ_HAVE_CXX11_FINAL
 #else
 #  define MOZ_FINAL
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef MOZ_HAVE_CXX11_ENUM_TYPE
+#  define MOZ_ENUM_TYPE(type)   : type
+#else
+#  define MOZ_ENUM_TYPE(type)
 #endif
 
 
