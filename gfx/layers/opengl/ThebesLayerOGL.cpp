@@ -163,9 +163,11 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
     gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexImage->Texture());
   }
 
+  float xres = mLayer->GetXResolution();
+  float yres = mLayer->GetYResolution();
+
   nsIntRegionRectIterator iter(mLayer->GetVisibleRegion());
-  const nsIntRect *iterRect;
-  while (iterRect = iter.Next()) {
+  while (const nsIntRect *iterRect = iter.Next()) {
     nsIntRect quadRect = *iterRect;
     program->Activate();
     program->SetLayerQuadRect(quadRect);
@@ -176,7 +178,17 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
     DEBUG_GL_ERROR_CHECK(gl());
 
     quadRect.MoveBy(-GetOriginOffset());
-    BindAndDrawQuadWithTextureRect(program, quadRect, mTexImage->GetSize(), gl());
+
+    
+    
+    
+    
+    gfxRect sqr(quadRect.x, quadRect.y, quadRect.width, quadRect.height);
+    sqr.Scale(xres, yres);
+    sqr.RoundOut();
+    nsIntRect scaledQuadRect(sqr.pos.x, sqr.pos.y, sqr.size.width, sqr.size.height);
+
+    BindAndDrawQuadWithTextureRect(program, scaledQuadRect, mTexImage->GetSize(), gl());
     DEBUG_GL_ERROR_CHECK(gl());
   }
 }
