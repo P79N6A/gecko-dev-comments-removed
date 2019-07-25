@@ -1815,6 +1815,23 @@ ProcessReplaceRequest()
   LOG(("Begin moving sourceDir (" LOG_S ") to tmpDir (" LOG_S ")\n",
        sourceDir, tmpDir));
   int rv = rename_file(sourceDir, tmpDir, true);
+#ifdef XP_WIN
+  
+  
+  
+  
+  const int max_retries = 10;
+  int retries = 0;
+  while (rv == WRITE_ERROR && (retries++ < max_retries)) {
+    LOG(("PerformReplaceRequest: sourceDir rename attempt %d failed. " \
+         "File: " LOG_S ". Last error: %d, err: %d\n", retries,
+         sourceDir, GetLastError(), rv));
+
+    Sleep(100);
+
+    rv = rename_file(sourceDir, tmpDir, true);
+  }
+#endif
   if (rv) {
     LOG(("Moving sourceDir to tmpDir failed, err: %d\n", rv));
     return rv;
