@@ -539,7 +539,7 @@ nsHTMLTextAreaElement::SetValueInternal(const nsAString& aValue,
   
   
   SetValueChanged(true);
-  mState.SetValue(aValue, aUserInput);
+  mState.SetValue(aValue, aUserInput, true);
 
   return NS_OK;
 }

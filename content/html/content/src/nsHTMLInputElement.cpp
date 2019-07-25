@@ -1350,7 +1350,7 @@ nsHTMLInputElement::SetValueInternal(const nsAString& aValue,
         SetValueChanged(true);
       }
 
-      mInputData.mState->SetValue(value, aUserInput);
+      mInputData.mState->SetValue(value, aUserInput, aSetValueChanged);
 
       
       
