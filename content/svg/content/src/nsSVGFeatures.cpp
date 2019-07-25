@@ -56,6 +56,9 @@
 #include "nsSVGUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIPrefService.h"
+#include "mozilla/Preferences.h"
+
+using namespace mozilla;
 
  PRBool
 nsSVGFeatures::HaveFeature(nsISupports* aObject, const nsAString& aFeature)
@@ -239,7 +242,7 @@ nsSVGFeatures::PassesConditionalProcessingTests(nsIContent *aContent,
                         value)) {
 
     const nsAutoString acceptLangs(aAcceptLangs ? *aAcceptLangs :
-      nsContentUtils::GetLocalizedStringPref("intl.accept_languages"));
+      Preferences::GetLocalizedString("intl.accept_languages"));
 
     
     if (!acceptLangs.IsEmpty()) {
