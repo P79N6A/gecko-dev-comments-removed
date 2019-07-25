@@ -112,6 +112,13 @@ public:
 
     BlobParent* GetOrCreateActorForBlob(nsIDOMBlob* aBlob);
 
+    
+
+
+
+
+    void KillHard();
+
 protected:
     void OnChannelConnected(int32 pid);
     virtual void ActorDestroy(ActorDestroyReason why);

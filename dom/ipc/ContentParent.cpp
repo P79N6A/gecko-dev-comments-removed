@@ -524,16 +524,7 @@ ContentParent::ProcessingError(Result what)
         return;
     }
     
-    
-    
-    
-    if (!KillProcess(OtherProcess(), 1, false)) {
-        NS_WARNING("failed to kill subprocess!");
-    }
-    XRE_GetIOMessageLoop()->PostTask(
-        FROM_HERE,
-        NewRunnableFunction(&ProcessWatcher::EnsureProcessTerminated,
-                            OtherProcess(), true));
+    KillHard();
 }
 
 namespace {
@@ -1229,6 +1220,22 @@ ContentParent::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
   }
 
   return actor;
+}
+
+void
+ContentParent::KillHard()
+{
+    
+    
+    
+    
+    if (!KillProcess(OtherProcess(), 1, false)) {
+        NS_WARNING("failed to kill subprocess!");
+    }
+    XRE_GetIOMessageLoop()->PostTask(
+        FROM_HERE,
+        NewRunnableFunction(&ProcessWatcher::EnsureProcessTerminated,
+                            OtherProcess(), true));
 }
 
 PCrashReporterParent*
