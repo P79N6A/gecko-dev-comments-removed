@@ -302,11 +302,11 @@ nsUXThemeData::UpdateTitlebarInfo(HWND aWnd)
   
   
   
-  HWND hWnd = CreateWindowEx(WS_EX_NOACTIVATE|WS_EX_LAYERED,
-                             kClassNameTemp, L"",
-                             WS_OVERLAPPEDWINDOW,
-                             0, 0, 0, 0, aWnd, NULL,
-                             nsToolkit::mDllInstance, NULL);
+  HWND hWnd = CreateWindowExW(WS_EX_NOACTIVATE|WS_EX_LAYERED,
+                              kClassNameTemp, L"",
+                              WS_OVERLAPPEDWINDOW,
+                              0, 0, 0, 0, aWnd, NULL,
+                              nsToolkit::mDllInstance, NULL);
   NS_ASSERTION(hWnd, "UpdateTitlebarInfo window creation failed.");
 
   ShowWindow(hWnd, SW_SHOW);
