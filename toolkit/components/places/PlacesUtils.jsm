@@ -315,9 +315,22 @@ var PlacesUtils = {
   
   observe: function PU_observe(aSubject, aTopic, aData)
   {
-    if (aTopic == this.TOPIC_SHUTDOWN) {
-      Services.obs.removeObserver(this, this.TOPIC_SHUTDOWN);
-      this._shutdownFunctions.forEach(function (aFunc) aFunc.apply(this), this);
+    switch (aTopic) {
+      case this.TOPIC_SHUTDOWN:
+        Services.obs.removeObserver(this, this.TOPIC_SHUTDOWN);
+        this._shutdownFunctions.forEach(function (aFunc) aFunc.apply(this), this);
+        if (this._bookmarksServiceObserversQueue.length > 0) {
+          Services.obs.removeObserver(this, "bookmarks-service-ready", false);
+          this._bookmarksServiceObserversQueue.length = 0;
+        }
+        break;
+      case "bookmarks-service-ready":
+        Services.obs.removeObserver(this, "bookmarks-service-ready", false);
+        while (this._bookmarksServiceObserversQueue.length > 0) {
+          let observer = this._bookmarksServiceObserversQueue.shift();
+          this.bookmarks.addObserver(observer, false);
+        }
+        break;
     }
   },
 
@@ -2116,7 +2129,56 @@ var PlacesUtils = {
         }
       }
     });
-  }
+  },
+
+  _isServiceInstantiated: function PU__isServiceInstantiated(aContractID) {
+    try {
+      return Components.manager
+                       .QueryInterface(Ci.nsIServiceManager)
+                       .isServiceInstantiatedByContractID(aContractID,
+                                                          Ci.nsISupports);
+    } catch (ex) {}
+    return false;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _bookmarksServiceObserversQueue: [],
+  addLazyBookmarkObserver:
+  function PU_addLazyBookmarkObserver(aObserver) {
+    if (this._isServiceInstantiated("@mozilla.org/browser/nav-bookmarks-service;1")) {
+      this.bookmarks.addObserver(aObserver, false);
+      return;
+    }
+    Services.obs.addObserver(this, "bookmarks-service-ready", false);
+    this._bookmarksServiceObserversQueue.push(aObserver);
+  },
+  
+
+
+
+
+
+  removeLazyBookmarkObserver:
+  function PU_removeLazyBookmarkObserver(aObserver) {
+    if (this._bookmarksServiceObserversQueue.length == 0) {
+      this.bookmarks.removeObserver(aObserver, false);
+      return;
+    }
+    let index = this._bookmarksServiceObserversQueue.indexOf(aObserver);
+    if (index != -1) {
+      this._bookmarksServiceObserversQueue.splice(index, 1);
+    }
+  },
 };
 
 
