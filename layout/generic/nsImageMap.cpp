@@ -124,24 +124,21 @@ static void logMessage(nsIContent*      aContent,
                        const nsAString& aCoordsSpec,
                        PRInt32          aFlags,
                        const char* aMessageName) {
-  nsIURI* documentURI = nsnull;
   nsIDocument* doc = aContent->GetOwnerDoc();
-  if (doc) {
-    documentURI = doc->GetDocumentURI();
-  }
+
   nsContentUtils::ReportToConsole(
      nsContentUtils::eLAYOUT_PROPERTIES,
      aMessageName,
      nsnull,  
      0, 
-     documentURI,
+     nsnull,
      PromiseFlatString(NS_LITERAL_STRING("coords=\"") +
                        aCoordsSpec +
                        NS_LITERAL_STRING("\"")), 
      0, 
      0, 
      aFlags,
-     "ImageMap");
+     "ImageMap", doc);
 }
 
 void Area::ParseCoords(const nsAString& aSpec)

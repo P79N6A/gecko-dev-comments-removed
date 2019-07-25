@@ -992,7 +992,7 @@ protected:
 
 
 
-  static inline PRBool CheckGetElementByIdArg(const nsAString& aId)
+  inline PRBool CheckGetElementByIdArg(const nsAString& aId)
   {
     if (aId.IsEmpty()) {
       ReportEmptyGetElementByIdArg();
@@ -1001,7 +1001,7 @@ protected:
     return PR_TRUE;
   }
 
-  static void ReportEmptyGetElementByIdArg();
+  void ReportEmptyGetElementByIdArg();
 
   void DispatchContentLoadedEvents();
 

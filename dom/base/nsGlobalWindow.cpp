@@ -5350,10 +5350,10 @@ ReportUseOfDeprecatedMethod(nsGlobalWindow* aWindow, const char* aWarning)
   nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
                                   aWarning,
                                   nsnull, 0,
-                                  doc ? doc->GetDocumentURI() : nsnull,
+                                  nsnull,
                                   EmptyString(), 0, 0,
                                   nsIScriptError::warningFlag,
-                                  "DOM Events");
+                                  "DOM Events", doc);
 }
 
 NS_IMETHODIMP
@@ -6048,11 +6048,10 @@ nsGlobalWindow::Close()
           nsContentUtils::eDOM_PROPERTIES,
           "WindowCloseBlockedWarning",
           nsnull, 0, 
-          nsnull, 
-                  
+          nsnull,
           EmptyString(), 0, 0, 
           nsIScriptError::warningFlag,
-          "DOM Window");  
+          "DOM Window", mDoc);  
 
       return NS_OK;
     }

@@ -808,6 +808,8 @@ public:
 
 
 
+
+
   enum PropertiesFile {
     eCSS_PROPERTIES,
     eXBL_PROPERTIES,
@@ -832,7 +834,36 @@ public:
                                   PRUint32 aLineNumber,
                                   PRUint32 aColumnNumber,
                                   PRUint32 aErrorFlags,
-                                  const char *aCategory);
+                                  const char *aCategory,
+                                  PRUint64 aWindowId = 0);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsresult ReportToConsole(PropertiesFile aFile,
+                                  const char *aMessageName,
+                                  const PRUnichar **aParams,
+                                  PRUint32 aParamsLength,
+                                  nsIURI* aURI,
+                                  const nsAFlatString& aSourceLine,
+                                  PRUint32 aLineNumber,
+                                  PRUint32 aColumnNumber,
+                                  PRUint32 aErrorFlags,
+                                  const char *aCategory,
+                                  nsIDocument* aDocument);
 
   
 

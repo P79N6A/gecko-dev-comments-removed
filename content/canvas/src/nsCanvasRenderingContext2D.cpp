@@ -37,6 +37,7 @@
 
 
 
+
 #ifdef MOZ_IPC
 #  include "base/basictypes.h"
 #endif
@@ -903,7 +904,8 @@ nsCanvasRenderingContext2D::SetStyleFromStringOrInterface(const nsAString& aStr,
         nsnull,
         EmptyString(), 0, 0,
         nsIScriptError::warningFlag,
-        "Canvas");
+        "Canvas",
+        mCanvasElement ? HTMLCanvasElement()->GetOwnerDoc() : nsnull);
 
     return NS_OK;
 }
