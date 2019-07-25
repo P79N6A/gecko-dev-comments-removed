@@ -128,28 +128,20 @@ namespace nanojit
     }
 
     void CodeAlloc::alloc(NIns* &start, NIns* &end) {
-        
-        if (availblocks) {
-            markBlockWrite(availblocks);
-            CodeList* b = removeBlock(availblocks);
-            b->isFree = false;
-            start = b->start();
-            end = b->end;
-            if (verbose)
-                avmplus::AvmLog("alloc %p-%p %d\n", start, end, int(end-start));
-            return;
+        if (!availblocks) {
+            
+            addMem();
         }
+
         
-        void *mem = allocCodeChunk(bytesPerAlloc); 
-        totalAllocated += bytesPerAlloc;
-        NanoAssert(mem != NULL); 
-        _nvprof("alloc page", uintptr_t(mem)>>12);
-        CodeList* b = addMem(mem, bytesPerAlloc);
+        markBlockWrite(availblocks);
+        CodeList* b = removeBlock(availblocks);
         b->isFree = false;
         start = b->start();
         end = b->end;
         if (verbose)
-            avmplus::AvmLog("alloc %p-%p %d\n", start, end, int(end-start));
+            avmplus::AvmLog("CodeAlloc(%p).alloc %p-%p %d\n", this, start, end, int(end-start));
+        debug_only(sanity_check();)
     }
 
     void CodeAlloc::free(NIns* start, NIns *end) {
@@ -349,11 +341,16 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
         blocks = b;
     }
 
-    CodeList* CodeAlloc::addMem(void *mem, size_t bytes) {
+    void CodeAlloc::addMem() {
+        void *mem = allocCodeChunk(bytesPerAlloc); 
+        totalAllocated += bytesPerAlloc;
+        NanoAssert(mem != NULL); 
+        _nvprof("alloc page", uintptr_t(mem)>>12);
+
         CodeList* b = (CodeList*)mem;
         b->lower = 0;
-        b->end = (NIns*) (uintptr_t(mem) + bytes - sizeofMinBlock);
         b->next = 0;
+        b->end = (NIns*) (uintptr_t(mem) + bytesPerAlloc - sizeofMinBlock);
         b->isFree = true;
 
         
@@ -370,7 +367,8 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
         
         terminator->next = heapblocks;
         heapblocks = terminator;
-        return b;
+
+        addBlock(availblocks, b); 
     }
 
     CodeList* CodeAlloc::getBlock(NIns* start, NIns* end) {
