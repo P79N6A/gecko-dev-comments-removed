@@ -537,15 +537,14 @@ WeaveSvc.prototype = {
         try {
           let pubkey = PubKeys.getDefaultKey();
           let privkey = PrivKeys.get(pubkey.privateKeyUri);
+          return Svc.Crypto.verifyPassphrase(
+            privkey.payload.keyData, passphrase,
+            privkey.payload.salt, privkey.payload.iv
+          );
         } catch (e) {
           
           return true;
         }
-
-        return Svc.Crypto.verifyPassphrase(
-          privkey.payload.keyData, passphrase,
-          privkey.payload.salt, privkey.payload.iv
-        );
       }
       return true;
     }))(),
