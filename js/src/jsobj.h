@@ -868,11 +868,6 @@ struct JSObject : public js::ObjectImpl
     
 
 
-    inline js::Wrapper *getWrapperHandler() const;
-
-    
-
-
     inline bool isCallable();
 
     inline void finish(JSContext *cx);

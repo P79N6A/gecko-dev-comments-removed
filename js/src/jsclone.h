@@ -173,6 +173,9 @@ struct JSStructuredCloneWriter {
     js::SCOutput &out;
 
     
+    
+    
+    
     js::AutoValueVector objs;
 
     

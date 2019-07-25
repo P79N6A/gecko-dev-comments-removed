@@ -513,6 +513,8 @@ JSStructuredCloneWriter::startObject(JSObject *obj)
 bool
 JSStructuredCloneWriter::startWrite(const js::Value &v)
 {
+    assertSameCompartment(context(), v);
+
     if (v.isString()) {
         return writeString(SCTAG_STRING, v.toString());
     } else if (v.isNumber()) {
@@ -525,6 +527,19 @@ JSStructuredCloneWriter::startWrite(const js::Value &v)
         return out.writePair(SCTAG_UNDEFINED, 0);
     } else if (v.isObject()) {
         JSObject *obj = &v.toObject();
+
+        
+        
+        obj = UnwrapObjectChecked(context(), obj);
+        if (!obj)
+            return false;
+
+        
+        
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(context(), obj))
+            return false;
+
         if (obj->isRegExp()) {
             RegExpObject &reobj = obj->asRegExp();
             return out.writePair(SCTAG_REGEXP_OBJECT, reobj.getFlags()) &&
@@ -564,6 +579,12 @@ JSStructuredCloneWriter::write(const Value &v)
 
     while (!counts.empty()) {
         JSObject *obj = &objs.back().toObject();
+
+        
+        JSAutoEnterCompartment ac;
+        if (!ac.enter(context(), obj))
+            return false;
+
         if (counts.back()) {
             counts.back()--;
             jsid id = ids.back();
