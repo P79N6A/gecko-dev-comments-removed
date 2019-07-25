@@ -1964,16 +1964,17 @@ PresShell::InitialReflow(nscoord aWidth, nscoord aHeight)
 
   
   
-  NS_ASSERTION(!mDirtyRoots.Contains(rootFrame),
-               "Why is the root in mDirtyRoots already?");
-
-  rootFrame->RemoveStateBits(NS_FRAME_IS_DIRTY |
-                             NS_FRAME_HAS_DIRTY_CHILDREN);
-  FrameNeedsReflow(rootFrame, eResize, NS_FRAME_IS_DIRTY);
-
-  NS_ASSERTION(mDirtyRoots.Contains(rootFrame),
-               "Should be in mDirtyRoots now");
-  NS_ASSERTION(mReflowScheduled, "Why no reflow scheduled?");
+  if (NS_LIKELY(rootFrame->GetStateBits() & NS_FRAME_IS_DIRTY)) {
+    
+    rootFrame->RemoveStateBits(NS_FRAME_IS_DIRTY |
+                               NS_FRAME_HAS_DIRTY_CHILDREN);
+    NS_ASSERTION(!mDirtyRoots.Contains(rootFrame),
+                 "Why is the root in mDirtyRoots already?");
+    FrameNeedsReflow(rootFrame, eResize, NS_FRAME_IS_DIRTY);
+    NS_ASSERTION(mDirtyRoots.Contains(rootFrame),
+                 "Should be in mDirtyRoots now");
+    NS_ASSERTION(mReflowScheduled, "Why no reflow scheduled?");
+  }
 
   
   
