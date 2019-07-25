@@ -56,10 +56,13 @@ using namespace js;
 using namespace js::ion;
 
 IonBuilder::IonBuilder(JSContext *cx, TempAllocator &temp, MIRGraph &graph, TypeOracle *oracle,
-                       CompileInfo &info)
+                       CompileInfo &info, size_t inliningDepth)
   : MIRGenerator(cx, temp, graph, info),
     script(info.script()),
-    oracle(oracle)
+    lastResumePoint_(NULL),
+    callerResumePoint_(NULL),
+    oracle(oracle),
+    inliningDepth(inliningDepth)
 {
     pc = info.startPC();
 }
@@ -119,6 +122,63 @@ IonBuilder::CFGState::AndOr(jsbytecode *join, MBasicBlock *joinStart)
     return state;
 }
 
+bool
+IonBuilder::getInliningTarget(uint32 argc, jsbytecode *pc, JSFunction **out)
+{
+    *out = NULL;
+
+    types::TypeSet *calleeTypes = oracle->getCallTarget(script, argc, pc);
+    if (!calleeTypes) {
+        IonSpew(IonSpew_Inlining, "Cannot inline; no types for callee");
+        return true;
+    }
+
+    if (calleeTypes->getKnownTypeTag(cx) != JSVAL_TYPE_OBJECT) {
+        IonSpew(IonSpew_Inlining, "Cannot inline due to non-object");
+        return true;
+    }
+
+    if (calleeTypes->getObjectCount() > 1) {
+        IonSpew(IonSpew_Inlining, "Cannot inline due to multiple objects");
+        return true;
+    }
+
+    JSObject *obj = calleeTypes->getSingleObject(0);
+    if (!obj) {
+        IonSpew(IonSpew_Inlining, "Cannot inline due to non-single object");
+        return true;
+    }
+
+    if (!obj->isFunction()) {
+        IonSpew(IonSpew_Inlining, "Cannot inline due to non-function");
+        return true;
+    }
+
+    JSFunction *fun = obj->getFunctionPrivate();
+    if (!fun->isInterpreted()) {
+        IonSpew(IonSpew_Inlining, "Cannot inline due to non-interpreted");
+        return true;
+    }
+
+    if (fun->getParent() != script->global()) {
+        IonSpew(IonSpew_Inlining, "Cannot inline due to scope mismatch");
+        return true;
+    }
+
+    JSScript *inlineScript = fun->script();
+
+    bool canInline = oracle->canEnterInlinedScript(inlineScript);
+
+    if (!canInline) {
+        IonSpew(IonSpew_Inlining, "Cannot inline due to oracle veto");
+        return true;
+    }
+
+    IonSpew(IonSpew_Inlining, "Inlining good to go!");
+    *out = fun;
+    return true;
+}
+
 void
 IonBuilder::popCfgStack()
 {
@@ -159,7 +219,8 @@ IonBuilder::build()
     if (!current)
         return false;
 
-    IonSpew(IonSpew_MIR, "Analying script %s:%d", info().filename(), info().lineno());
+    IonSpew(IonSpew_MIR, "Analyzing script %s:%d (%p)",
+            script->filename, script->lineno, (void *) script);
 
     initParameters();
 
@@ -193,10 +254,58 @@ IonBuilder::build()
             ins->setResumePoint(current->entryResumePoint());
     }
 
-    if (!traverseBytecode())
+    return traverseBytecode();
+}
+
+bool
+IonBuilder::buildInline(MResumePoint *callerResumePoint, MDefinition *thisDefn,
+                        MDefinitionVector &args)
+{
+    current = newBlock(pc);
+    if (!current)
         return false;
 
-    return true;
+    IonSpew(IonSpew_MIR, "Inlining script %s:%d (%p)",
+            script->filename, script->lineno, (void *) script);
+
+    callerResumePoint_ = callerResumePoint;
+    MBasicBlock *predecessor = callerResumePoint->block();
+    predecessor->end(MGoto::New(current));
+    if (!current->addPredecessorWithoutPhis(predecessor))
+        return false;
+    JS_ASSERT(predecessor->numSuccessors() == 1);
+    JS_ASSERT(current->numPredecessors() == 1);
+    current->setCallerResumePoint(callerResumePoint);
+
+    JS_ASSERT(args.length() == info().nargs());
+
+    current->initSlot(info().thisSlot(), thisDefn);
+
+    IonSpew(IonSpew_Inlining, "Initializing %u arg slots", args.length());
+
+    
+    for (MDefinition **it = args.begin(), **end = args.end(); it != end; ++it) {
+        MDefinition *arg = *it;
+        size_t i = it - args.begin();
+        current->initSlot(info().argSlot(i), arg);
+    }
+
+    IonSpew(IonSpew_Inlining, "Initializing %u local slots", info().nlocals());
+
+    
+    for (uint32 i = 0; i < info().nlocals(); i++) {
+        MConstant *undef = MConstant::New(UndefinedValue());
+        current->add(undef);
+        current->initSlot(info().localSlot(i), undef);
+    }
+
+    IonSpew(IonSpew_Inlining, "Inline entry block MResumePoint %p, %u operands",
+            (void *) current->entryResumePoint(), current->entryResumePoint()->numOperands());
+
+    
+    JS_ASSERT(current->entryResumePoint()->numOperands() == args.length() + info().nlocals() + 1);
+
+    return traverseBytecode();
 }
 
 
@@ -500,10 +609,12 @@ IonBuilder::inspectOpcode(JSOp op)
         return jsop_notearg();
 
       case JSOP_CALLARG:
+      {
         current->pushArg(GET_SLOTNO(pc));
         if (!pushConstant(UndefinedValue())) 
             return false;
         return jsop_notearg();
+      }
 
       case JSOP_GETARG:
         current->pushArg(GET_SLOTNO(pc));
@@ -1664,6 +1775,9 @@ IonBuilder::processReturn(JSOp op)
     MReturn *ret = MReturn::New(def);
     current->end(ret);
 
+    if (!graph().addExit(current))
+        return ControlStatus_Error;
+
     
     current = NULL;
     return processControlEnd();
@@ -1806,8 +1920,183 @@ IonBuilder::jsop_notearg()
 }
 
 bool
+IonBuilder::jsop_call_inline(uint32 argc, IonBuilder &inlineBuilder, InliningData *data)
+{
+#ifdef DEBUG
+    uint32 origStackDepth = current->stackDepth();
+#endif
+
+    
+    MBasicBlock *top = current;
+
+    MResumePoint *inlineResumePoint = MResumePoint::NewUnwrapArgs(top, argc, pc, callerResumePoint_);
+    if (!inlineResumePoint)
+        return false;
+
+    
+    
+    
+    MDefinitionVector args;
+    if (!args.reserve(argc + 2))
+        return false;
+    for (uintN i = 0; i < argc; ++i) {
+        MPassArg *passArg = top->pop()->toPassArg();
+        JS_ASSERT(passArg->useCount() == 0);
+        passArg->block()->discard(passArg);
+        MDefinition *wrapped = passArg->getArgument();
+        args.infallibleAppend(wrapped);
+    }
+
+    MPassArg *thisArg = top->pop()->toPassArg();
+    MDefinition *thisDefn = thisArg->getArgument();
+    thisArg->block()->discard(thisArg);
+
+    
+    if (!inlineBuilder.buildInline(inlineResumePoint, thisDefn, args))
+        return false;
+
+    MIRGraphExits &exits = inlineBuilder.graph().getExitAccumulator();
+
+    
+    JS_ASSERT(*pc == JSOP_CALL);
+    jsbytecode *postCall = GetNextPc(pc);
+    MBasicBlock *bottom = newBlock(NULL, postCall);
+
+    
+    Vector<MDefinition *, 8, IonAllocPolicy> retvalDefns;
+    for (MBasicBlock **it = exits.begin(), **end = exits.end(); it != end; ++it) {
+        MBasicBlock *exitBlock = *it;
+        JS_ASSERT(exitBlock->lastIns()->op() == MDefinition::Op_Return);
+
+        if (!retvalDefns.append(exitBlock->lastIns()->toReturn()->getOperand(0)))
+            return false;
+
+        exitBlock->discardLastIns();
+        MGoto *replacement = MGoto::New(bottom);
+        exitBlock->end(replacement);
+        if (!bottom->addPredecessorWithoutPhis(exitBlock))
+            return false;
+    }
+    JS_ASSERT(!retvalDefns.empty());
+
+    if (!bottom->inheritNonPredecessor(top))
+        return false;
+
+    
+    (void) bottom->pop();
+
+    MDefinition *retvalDefn;
+    if (retvalDefns.length() > 1) {
+        
+        MPhi *phi = MPhi::New(bottom->stackDepth());
+        for (MDefinition **it = retvalDefns.begin(), **end = retvalDefns.end(); it != end; ++it) {
+            if (!phi->addInput(*it))
+                return false;
+        }
+        retvalDefn = phi;
+    } else {
+        retvalDefn = retvalDefns.back();
+    }
+
+    bottom->push(retvalDefn);
+
+    
+    
+    
+    
+    JS_ASSERT(bottom->stackDepth() == origStackDepth - argc - 1);
+
+    current = bottom;
+    return true;
+}
+
+class AutoAccumulateExits
+{
+    MIRGraph &graph;
+
+  public:
+    AutoAccumulateExits(MIRGraph &graph, MIRGraphExits &exits) : graph(graph) {
+        graph.setExitAccumulator(&exits);
+    }
+    ~AutoAccumulateExits() {
+        graph.setExitAccumulator(NULL);
+    }
+};
+
+bool
+IonBuilder::makeInliningDecision(uint32 argc, InliningData *data)
+{
+    JS_ASSERT(data->shouldInline == false);
+
+    JSFunction *inlineFunc = NULL;
+    if (!getInliningTarget(argc, pc, &inlineFunc))
+        return false;
+
+    if (!inlineFunc) {
+        IonSpew(IonSpew_Inlining, "Decided not to inline");
+        return true;
+    }
+
+    data->shouldInline = true;
+    data->callee = inlineFunc;
+    return true;
+}
+
+IonBuilder::InliningStatus
+IonBuilder::maybeInline(uint32 argc)
+{
+    InliningData data;
+    if (!makeInliningDecision(argc, &data))
+        return InliningStatus_Error;
+
+    if (!data.shouldInline || inliningDepth >= 1)
+        return InliningStatus_NotInlined;
+
+    IonSpew(IonSpew_Inlining, "Recursively building");
+    
+    
+    CompileInfo *info = cx->tempLifoAlloc().new_<CompileInfo>(data.callee->script().get(),
+                                                              data.callee);
+    if (!info)
+        return InliningStatus_Error;
+
+    MIRGraphExits exits;
+    AutoAccumulateExits aae(graph(), exits);
+
+    if (cx->typeInferenceEnabled()) {
+        TypeInferenceOracle oracle;
+        if (!oracle.init(cx, data.callee->script()))
+            return InliningStatus_Error;
+        IonBuilder inlineBuilder(cx, temp(), graph(), &oracle, *info, inliningDepth + 1);
+        return jsop_call_inline(argc, inlineBuilder, &data)
+             ? InliningStatus_Inlined
+             : InliningStatus_Error;
+    }
+
+    DummyOracle oracle;
+    IonBuilder inlineBuilder(cx, temp(), graph(), &oracle, *info, inliningDepth + 1);
+    return jsop_call_inline(argc, inlineBuilder, &data)
+         ? InliningStatus_Inlined
+         : InliningStatus_Error;
+}
+
+bool
 IonBuilder::jsop_call(uint32 argc)
 {
+    if (inliningEnabled()) {
+        InliningStatus status = maybeInline(argc);
+        switch (status) {
+          case InliningStatus_Error:
+            return false;
+          case InliningStatus_Inlined:
+            return true;
+          case InliningStatus_NotInlined:
+            IonSpew(IonSpew_Inlining, "Building out-of-line call");
+            break;
+        }
+
+    }
+
     MCall *ins = MCall::New(argc + 1); 
     if (!ins)
         return false;
@@ -1954,9 +2243,10 @@ IonBuilder::resumeAt(MInstruction *ins, jsbytecode *pc)
 {
     JS_ASSERT(!ins->isIdempotent());
 
-    MResumePoint *resumePoint = MResumePoint::New(current, pc);
+    MResumePoint *resumePoint = MResumePoint::New(current, pc, callerResumePoint_);
     if (!resumePoint)
         return false;
+    lastResumePoint_ = resumePoint;
     ins->setResumePoint(resumePoint);
     return true;
 }

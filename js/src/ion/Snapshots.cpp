@@ -109,11 +109,34 @@ using namespace js::ion;
 
 
 
+
+
+
+
+
+
 SnapshotReader::SnapshotReader(const uint8 *buffer, const uint8 *end)
   : reader_(buffer, end)
-#ifdef DEBUG
-    , slotsRead_(0)
-#endif
+{
+    IonSpew(IonSpew_Snapshots, "Creating snapshot reader");
+    readSnapshotHeader();
+    readSnapshotBody();
+}
+
+void
+SnapshotReader::readSnapshotHeader()
+{
+    uint32 bits = reader_.readUnsigned();
+    frameCount_ = bits >> BAILOUT_KIND_BITS;
+    JS_ASSERT(frameCount_ > 0);
+    bailoutKind_ = (BailoutKind)(bits & ((1 << BAILOUT_KIND_BITS) - 1));
+
+    IonSpew(IonSpew_Snapshots, "Read snapshot header with frameCount %u, bailout kind %u",
+            frameCount_, bailoutKind_);
+}
+
+void
+SnapshotReader::readSnapshotBody()
 {
 #ifdef DEBUG
     union {
@@ -123,13 +146,12 @@ SnapshotReader::SnapshotReader(const uint8 *buffer, const uint8 *end)
     for (size_t i = 0; i < sizeof(JSScript *); i++)
         u.bytes[i] = reader_.readByte();
     script_ = u.script;
+    slotsRead_ = 0;
 #endif
 
     pcOffset_ = reader_.readUnsigned();
-
-    uint32 bits = reader_.readUnsigned();
-    slotCount_ = bits >> BAILOUT_KIND_BITS;
-    bailoutKind_ = (BailoutKind)(bits & ((1 << BAILOUT_KIND_BITS) - 1));
+    slotCount_ = reader_.readUnsigned();
+    IonSpew(IonSpew_Snapshots, "Read pc offset %u, nslots %u", pcOffset_, slotCount_);
 }
 
 #ifdef JS_NUNBOX32
@@ -150,6 +172,7 @@ SnapshotReader::readSlot()
 {
     JS_ASSERT(slotsRead_ < slotCount_);
 #ifdef DEBUG
+    IonSpew(IonSpew_Snapshots, "Reading slot %u", slotsRead_);
     slotsRead_++;
 #endif
 
@@ -225,21 +248,42 @@ SnapshotReader::readSlot()
 }
 
 void
-SnapshotReader::finishReading()
+SnapshotReader::finishReadingFrame()
 {
     JS_ASSERT(slotsRead_ == slotCount_);
-    JS_ASSERT(reader_.readSigned() == -1);
-}
+    JS_ASSERT_IF(!remainingFrameCount(), reader_.readSigned() == -1);
 
-SnapshotWriter::SnapshotWriter()
-  : nslots_(0),
-    slotsWritten_(0)
-{
+    JS_ASSERT(frameCount_ > 0);
+    frameCount_ -= 1;
+
+    JS_ASSERT_IF(!frameCount_, reader_.readSigned() == -1);
+
+    IonSpew(IonSpew_Snapshots, "Finished reading frame, %u remaining", frameCount_);
+
+    if (frameCount_)
+        readSnapshotBody();
 }
 
 SnapshotOffset
-SnapshotWriter::start(JSFunction *fun, JSScript *script, jsbytecode *pc,
-                      uint32 frameSize, uint32 exprStack, BailoutKind kind)
+SnapshotWriter::startSnapshot(uint32 frameCount, BailoutKind kind)
+{
+    nframes_ = frameCount;
+    framesWritten_ = 0;
+
+    lastStart_ = writer_.length();
+
+    IonSpew(IonSpew_Snapshots, "starting snapshot with frameCount %u, bailout kind %u",
+            frameCount, kind);
+    JS_ASSERT(frameCount > 0);
+    JS_ASSERT(((frameCount << BAILOUT_KIND_BITS) >> BAILOUT_KIND_BITS) == frameCount);
+    JS_ASSERT((1 << BAILOUT_KIND_BITS) > uint32(kind));
+    writer_.writeUnsigned((frameCount << BAILOUT_KIND_BITS) | uint32(kind));
+
+    return lastStart_;
+}
+
+void
+SnapshotWriter::startFrame(JSFunction *fun, JSScript *script, jsbytecode *pc, uint32 exprStack)
 {
     JS_ASSERT(CountArgSlots(fun) < SNAPSHOT_MAX_NARGS);
     JS_ASSERT(exprStack < SNAPSHOT_MAX_STACK);
@@ -249,7 +293,8 @@ SnapshotWriter::start(JSFunction *fun, JSScript *script, jsbytecode *pc,
     nslots_ = formalArgs + script->nfixed + exprStack;
     slotsWritten_ = 0;
 
-    lastStart_ = writer_.length();
+    IonSpew(IonSpew_Snapshots, "Starting frame; formals %u, fixed %u, exprs %u",
+            formalArgs, script->nfixed, exprStack);
 
 #ifdef DEBUG
     union {
@@ -261,13 +306,21 @@ SnapshotWriter::start(JSFunction *fun, JSScript *script, jsbytecode *pc,
         writer_.writeByte(u.bytes[i]);
 #endif
 
-    JS_ASSERT(((nslots_ << BAILOUT_KIND_BITS) >> BAILOUT_KIND_BITS) == nslots_);
-    JS_ASSERT((1 << BAILOUT_KIND_BITS) > uint32(kind));
+    JS_ASSERT(script->code <= pc && pc <= script->code + script->length);
 
-    writer_.writeUnsigned(uint32(pc - script->code));
-    writer_.writeUnsigned((nslots_ << BAILOUT_KIND_BITS) | uint32(kind));
+    uint32 pcoff = uint32(pc - script->code);
+    IonSpew(IonSpew_Snapshots, "Writing pc offset %u, nslots %u", pcoff, nslots_);
+    writer_.writeUnsigned(pcoff);
+    writer_.writeUnsigned(nslots_);
+}
 
-    return lastStart_;
+void
+SnapshotWriter::endFrame()
+{
+    
+    JS_ASSERT(nslots_ == slotsWritten_);
+    nslots_ = slotsWritten_ = 0;
+    framesWritten_++;
 }
 
 void
@@ -417,15 +470,14 @@ SnapshotWriter::addNullSlot()
 void
 SnapshotWriter::endSnapshot()
 {
-    
-    JS_ASSERT(nslots_ == slotsWritten_);
+    JS_ASSERT(nframes_ == framesWritten_);
 
     
 #ifdef DEBUG
     writer_.writeSigned(-1);
 #endif
     
-    IonSpew(IonSpew_Snapshots, "    total size: %d bytes (start %d)",
+    IonSpew(IonSpew_Snapshots, "ending snapshot total size: %d bytes (start %d)",
             uint32(writer_.length() - lastStart_), lastStart_);
 }
 

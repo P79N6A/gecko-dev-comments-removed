@@ -82,6 +82,11 @@ struct IonOptions
     
     
     
+    bool inlining;
+
+    
+    
+    
     
     uint32 invokesBeforeCompile;
 
@@ -95,6 +100,7 @@ struct IonOptions
         gvnIsOptimistic(true),
         licm(true),
         lsra(true),
+        inlining(true),
         invokesBeforeCompile(40)
     { }
 };

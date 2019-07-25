@@ -129,6 +129,7 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     
     bool encode(LSnapshot *snapshot);
+    bool encodeSlots(LSnapshot *snapshot, MResumePoint *resumePoint, uint32 *startIndex);
 
     
     
