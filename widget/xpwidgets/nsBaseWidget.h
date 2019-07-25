@@ -179,6 +179,9 @@ public:
 
   virtual PRUint32 GetGLFrameBufferFormat() MOZ_OVERRIDE;
 
+  virtual const SizeConstraints& GetSizeConstraints() const;
+  virtual void SetSizeConstraints(const SizeConstraints& aConstraints);
+
   
 
 
@@ -283,6 +286,20 @@ protected:
     }
   }
 
+  
+
+
+
+
+
+  void ConstrainSize(PRInt32* aWidth, PRInt32* aHeight) const
+  {
+    *aWidth = NS_MAX(mSizeConstraints.mMinSize.width,
+                     NS_MIN(mSizeConstraints.mMaxSize.width, *aWidth));
+    *aHeight = NS_MAX(mSizeConstraints.mMinSize.height,
+                      NS_MIN(mSizeConstraints.mMaxSize.height, *aHeight));
+  }
+
 protected:
   
 
@@ -322,6 +339,7 @@ protected:
   nsSizeMode        mSizeMode;
   nsPopupLevel      mPopupLevel;
   nsPopupType       mPopupType;
+  SizeConstraints   mSizeConstraints;
 
   
   

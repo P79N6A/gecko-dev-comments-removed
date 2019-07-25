@@ -141,7 +141,8 @@ public:
   
   static void SyncWindowProperties(nsPresContext*       aPresContext,
                                    nsIFrame*            aFrame,
-                                   nsIView*             aView);
+                                   nsIView*             aView,
+                                   nsRenderingContext*  aRC = nullptr);
 
   
   
@@ -154,6 +155,20 @@ public:
                                       nsStyleContext*  aStyleContext,
                                       nsIView*         aView,
                                       PRUint32         aFlags = 0);
+
+  
+
+
+
+
+
+
+
+
+  static void SetSizeConstraints(nsPresContext* aPresContext,
+                                 nsIWidget* aWidget,
+                                 const nsSize& aMinSize,
+                                 const nsSize& aMaxSize);
 
   
   void DoInlineIntrinsicWidth(nsRenderingContext *aRenderingContext,

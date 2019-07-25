@@ -450,6 +450,14 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, b
     nsRect rect = GetRect();
     rect.x = rect.y = 0;
 
+    if (sizeChanged) {
+      
+      nsIWidget* widget = view->GetWidget();
+      if (widget) {
+        SetSizeConstraints(pc, widget, minSize, maxSize);
+      }
+    }
+
     viewManager->ResizeView(view, rect);
 
     viewManager->SetViewVisibility(view, nsViewVisibility_kShow);
