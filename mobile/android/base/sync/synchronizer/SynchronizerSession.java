@@ -2,44 +2,12 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.synchronizer;
 
 
 import java.util.concurrent.ExecutorService;
 
+import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.repositories.InactiveSessionException;
 import org.mozilla.gecko.sync.repositories.InvalidSessionTransitionException;
 import org.mozilla.gecko.sync.repositories.RepositorySession;
@@ -49,7 +17,33 @@ import org.mozilla.gecko.sync.repositories.delegates.DeferredRepositorySessionFi
 import org.mozilla.gecko.sync.repositories.delegates.RepositorySessionFinishDelegate;
 
 import android.content.Context;
-import android.util.Log;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 public class SynchronizerSession
 extends DeferrableRepositorySessionCreationDelegate
@@ -79,20 +73,6 @@ implements RecordsChannelDelegate,
   private long storeEndBTimestamp = -1;
   private boolean flowAToBCompleted = false;
   private boolean flowBToACompleted = false;
-
-  private static void warn(String msg, Exception e) {
-    System.out.println("WARN: " + msg);
-    e.printStackTrace(System.err);
-    Log.w(LOG_TAG, msg, e);
-  }
-  private static void warn(String msg) {
-    System.out.println("WARN: " + msg);
-    Log.w(LOG_TAG, msg);
-  }
-  private static void info(String msg) {
-    System.out.println("INFO: " + msg);
-    Log.i(LOG_TAG, msg);
-  }
 
   
 
@@ -130,7 +110,7 @@ implements RecordsChannelDelegate,
     
     if (!sessionA.dataAvailable() &&
         !sessionB.dataAvailable()) {
-      info("Neither session reports data available. Short-circuiting sync.");
+      Logger.info(LOG_TAG, "Neither session reports data available. Short-circuiting sync.");
       sessionA.abort();
       sessionB.abort();
       this.delegate.onSynchronizeSkipped(this);
@@ -140,10 +120,15 @@ implements RecordsChannelDelegate,
     final SynchronizerSession session = this;
 
     
+
+    
+    
     final RecordsChannel channelBToA = new RecordsChannel(this.sessionB, this.sessionA, this);
-    RecordsChannelDelegate channelDelegate = new RecordsChannelDelegate() {
+
+    
+    RecordsChannelDelegate channelAToBDelegate = new RecordsChannelDelegate() {
       public void onFlowCompleted(RecordsChannel recordsChannel, long fetchEnd, long storeEnd) {
-        info("First RecordsChannel flow completed. Fetch end is " + fetchEnd +
+        Logger.info(LOG_TAG, "First RecordsChannel onFlowCompleted. Fetch end is " + fetchEnd +
              ". Store end is " + storeEnd + ". Starting next.");
         pendingATimestamp = fetchEnd;
         storeEndBTimestamp = storeEnd;
@@ -153,25 +138,35 @@ implements RecordsChannelDelegate,
 
       @Override
       public void onFlowBeginFailed(RecordsChannel recordsChannel, Exception ex) {
-        warn("First RecordsChannel flow failed to begin.");
+        Logger.warn(LOG_TAG, "First RecordsChannel onFlowBeginFailed. Reporting session error.", ex);
         session.delegate.onSessionError(ex);
+      }
+
+      @Override
+      public void onFlowFetchFailed(RecordsChannel recordsChannel, Exception ex) {
+        
+        Logger.warn(LOG_TAG, "First RecordsChannel onFlowFetchFailed. Reporting fetch error.", ex);
+        session.delegate.onFetchError(ex);
       }
 
       @Override
       public void onFlowStoreFailed(RecordsChannel recordsChannel, Exception ex) {
         
-        warn("First RecordsChannel flow failed.");
+        Logger.warn(LOG_TAG, "First RecordsChannel onFlowStoreFailed. Reporting store error.", ex);
         session.delegate.onStoreError(ex);
       }
 
       @Override
       public void onFlowFinishFailed(RecordsChannel recordsChannel, Exception ex) {
-        warn("onFlowFinishedFailed. Reporting store error.", ex);
-        session.delegate.onStoreError(ex);
+        Logger.warn(LOG_TAG, "First RecordsChannel onFlowFinishedFailed. Reporting session error.", ex);
+        session.delegate.onSessionError(ex);
       }
     };
-    final RecordsChannel channelAToB = new RecordsChannel(this.sessionA, this.sessionB, channelDelegate);
-    info("Starting A to B flow. Channel is " + channelAToB);
+
+    
+    final RecordsChannel channelAToB = new RecordsChannel(this.sessionA, this.sessionB, channelAToBDelegate);
+
+    Logger.info(LOG_TAG, "Starting A to B flow. Channel is " + channelAToB);
     try {
       channelAToB.beginAndFlow();
     } catch (InvalidSessionTransitionException e) {
@@ -181,7 +176,7 @@ implements RecordsChannelDelegate,
 
   @Override
   public void onFlowCompleted(RecordsChannel channel, long fetchEnd, long storeEnd) {
-    info("Second RecordsChannel flow completed. Fetch end is " + fetchEnd +
+    Logger.info(LOG_TAG, "Second RecordsChannel onFlowCompleted. Fetch end is " + fetchEnd +
          ". Store end is " + storeEnd + ". Finishing.");
 
     pendingBTimestamp = fetchEnd;
@@ -198,23 +193,44 @@ implements RecordsChannelDelegate,
 
   @Override
   public void onFlowBeginFailed(RecordsChannel recordsChannel, Exception ex) {
-    warn("Second RecordsChannel flow failed to begin.", ex);
+    Logger.warn(LOG_TAG, "Second RecordsChannel onFlowBeginFailed. Reporting session error.", ex);
+    this.delegate.onSessionError(ex);
   }
+
+  @Override
+  public void onFlowFetchFailed(RecordsChannel recordsChannel, Exception ex) {
+    
+    Logger.warn(LOG_TAG, "Second RecordsChannel onFlowFetchFailed. Reporting fetch error.", ex);
+    this.delegate.onFetchError(ex);
+  }
+
+  
+
+
+
+
+
 
   @Override
   public void onFlowStoreFailed(RecordsChannel recordsChannel, Exception ex) {
     
-    warn("Second RecordsChannel flow failed.");
+    Logger.warn(LOG_TAG, "Second RecordsChannel onFlowStoreFailed. Ignoring store error.", ex);
   }
 
   @Override
   public void onFlowFinishFailed(RecordsChannel recordsChannel, Exception ex) {
-    
-    warn("First RecordsChannel flow failed to finish.");
+    Logger.warn(LOG_TAG, "Second RecordsChannel onFlowFinishedFailed. Reporting session error.", ex);
+    this.delegate.onSessionError(ex);
   }
+
+  
+
 
 
   
+
+
+
 
 
   @Override
@@ -233,6 +249,12 @@ implements RecordsChannelDelegate,
     this.context = null;
     this.delegate.onSessionError(ex);
   }
+
+  
+
+
+
+
 
   
   @Override
@@ -281,31 +303,47 @@ implements RecordsChannelDelegate,
   
 
 
+
+  
+
+
+
+
   @Override
   public void onFinishFailed(Exception ex) {
     if (this.sessionB == null) {
       
-      warn("Got exception cleaning up first after second session creation failed.", ex);
+      Logger.warn(LOG_TAG, "Got exception cleaning up first after second session creation failed.", ex);
       return;
     }
     String session = (this.sessionA == null) ? "B" : "A";
     this.delegate.onSynchronizeFailed(this, ex, "Finish of session " + session + " failed.");
   }
 
+  
+
+
+
+
+
+
+
   @Override
   public void onFinishSucceeded(RepositorySession session,
                                 RepositorySessionBundle bundle) {
-    info("onFinishSucceeded. Flows? " +
-         flowAToBCompleted + ", " + flowBToACompleted);
+    Logger.info(LOG_TAG, "onFinishSucceeded. Flows? " + flowAToBCompleted + ", " + flowBToACompleted);
 
     if (session == sessionA) {
       if (flowAToBCompleted) {
-        info("onFinishSucceeded: bumping session A's timestamp to " + pendingATimestamp + " or " + storeEndATimestamp);
+        Logger.info(LOG_TAG, "onFinishSucceeded: bumping session A's timestamp to " + pendingATimestamp + " or " + storeEndATimestamp);
         bundle.bumpTimestamp(Math.max(pendingATimestamp, storeEndATimestamp));
         this.synchronizer.bundleA = bundle;
+      } else {
+        
+        this.delegate.onSessionError(new UnexpectedSessionException(sessionA));
       }
       if (this.sessionB != null) {
-        info("Finishing session B.");
+        Logger.info(LOG_TAG, "Finishing session B.");
         
         try {
           this.sessionB.finish(this);
@@ -315,11 +353,14 @@ implements RecordsChannelDelegate,
       }
     } else if (session == sessionB) {
       if (flowBToACompleted) {
-        info("onFinishSucceeded: bumping session B's timestamp to " + pendingBTimestamp + " or " + storeEndBTimestamp);
+        Logger.info(LOG_TAG, "onFinishSucceeded: bumping session B's timestamp to " + pendingBTimestamp + " or " + storeEndBTimestamp);
         bundle.bumpTimestamp(Math.max(pendingBTimestamp, storeEndBTimestamp));
         this.synchronizer.bundleB = bundle;
-        info("Notifying delegate.onSynchronized.");
+        Logger.info(LOG_TAG, "Notifying delegate.onSynchronized.");
         this.delegate.onSynchronized(this);
+      } else {
+        
+        this.delegate.onSessionError(new UnexpectedSessionException(sessionB));
       }
     } else {
       

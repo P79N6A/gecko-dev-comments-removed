@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync;
 
 import java.io.IOException;
@@ -93,7 +59,7 @@ public class GlobalSession implements CredentialsSource, PrefsSource {
   protected Map<Stage, GlobalSyncStage> stages;
   public Stage currentState = Stage.idle;
 
-  private GlobalSessionCallback callback;
+  public final GlobalSessionCallback callback;
   private Context context;
   private ClientsDataDelegate clientsDelegate;
 
@@ -343,8 +309,16 @@ public class GlobalSession implements CredentialsSource, PrefsSource {
     if (backoff > 0) {
       callback.requestBackoff(backoff);
     }
-  }
 
+    if (response.getStatusLine() != null && response.getStatusLine().getStatusCode() == 401) {
+      
+
+
+
+
+      callback.informUnauthorizedResponse(this, config.getClusterURL());
+    }
+  }
 
   public void fetchMetaGlobal(MetaGlobalDelegate callback) throws URISyntaxException {
     if (this.config.metaGlobal == null) {

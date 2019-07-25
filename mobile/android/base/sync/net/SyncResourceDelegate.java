@@ -2,45 +2,13 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.net;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 
 import ch.boye.httpclientandroidlib.HttpEntity;
+import ch.boye.httpclientandroidlib.HttpResponse;
 import ch.boye.httpclientandroidlib.client.methods.HttpRequestBase;
 import ch.boye.httpclientandroidlib.impl.client.DefaultHttpClient;
 import ch.boye.httpclientandroidlib.util.EntityUtils;
@@ -80,6 +48,11 @@ public abstract class SyncResourceDelegate implements ResourceDelegate {
   
 
 
+
+
+
+
+
   public static void consumeEntity(HttpEntity entity) {
     try {
       EntityUtils.consume(entity);
@@ -87,6 +60,24 @@ public abstract class SyncResourceDelegate implements ResourceDelegate {
       
     }
   }
+
+  public static void consumeEntity(HttpResponse response) {
+    consumeEntity(response.getEntity());
+  }
+
+  public static void consumeEntity(SyncStorageResponse response) {
+    if (response.httpResponse() != null) {
+      consumeEntity(response.httpResponse());
+    }
+  }
+
+  
+
+
+
+
+
+
 
   public static void consumeReader(BufferedReader reader) {
     try {

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.stage;
 
 import java.io.BufferedReader;
@@ -46,6 +13,8 @@ import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 
 import org.mozilla.gecko.sync.GlobalSession;
+import org.mozilla.gecko.sync.NodeAuthenticationException;
+import org.mozilla.gecko.sync.NullClusterURLException;
 import org.mozilla.gecko.sync.ThreadPool;
 import org.mozilla.gecko.sync.net.BaseResource;
 import org.mozilla.gecko.sync.net.SyncResourceDelegate;
@@ -57,8 +26,28 @@ import ch.boye.httpclientandroidlib.client.ClientProtocolException;
 
 public class EnsureClusterURLStage implements GlobalSyncStage {
   public interface ClusterURLFetchDelegate {
-    public void handleSuccess(String url);
+    
+
+
+
+    public void handleSuccess(URI url);
+
+    
+
+
+
+    public void handleThrottled();
+
+    
+
+
+
+
     public void handleFailure(HttpResponse response);
+
+    
+
+
     public void handleError(Exception e);
   }
 
@@ -66,25 +55,53 @@ public class EnsureClusterURLStage implements GlobalSyncStage {
 
   
   
-  public static void fetchClusterURL(final GlobalSession session,
+  
+
+
+
+
+
+
+
+  public static void fetchClusterURL(final String nodeWeaveURL,
                                      final ClusterURLFetchDelegate delegate) throws URISyntaxException {
-    Log.i(LOG_TAG, "In fetchClusterURL. Server URL is " + session.config.serverURL);
-    String nodeWeaveURL = session.config.nodeWeaveURL();
-    Log.d(LOG_TAG, "node/weave is " + nodeWeaveURL);
+    Log.d(LOG_TAG, "In fetchClusterURL: node/weave is " + nodeWeaveURL);
 
     BaseResource resource = new BaseResource(nodeWeaveURL);
     resource.delegate = new SyncResourceDelegate(resource) {
 
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       @Override
       public void handleHttpResponse(HttpResponse response) {
+
         int status = response.getStatusLine().getStatusCode();
         switch (status) {
         case 200:
-          Log.i(LOG_TAG, "Got 200 for node/weave fetch.");
-          
+          Log.i(LOG_TAG, "Got 200 for node/weave cluster URL request (user found; succeeding).");
           HttpEntity entity = response.getEntity();
           if (entity == null) {
-            delegate.handleSuccess(null);
+            delegate.handleThrottled();
+            SyncResourceDelegate.consumeEntity(response);
             return;
           }
           String output = null;
@@ -96,26 +113,41 @@ public class EnsureClusterURLStage implements GlobalSyncStage {
             reader.close();
           } catch (IllegalStateException e) {
             delegate.handleError(e);
+            SyncResourceDelegate.consumeEntity(response);
+            return;
           } catch (IOException e) {
             delegate.handleError(e);
+            SyncResourceDelegate.consumeEntity(response);
+            return;
           }
 
           if (output == null || output.equals("null")) {
-            delegate.handleSuccess(null);
+            delegate.handleThrottled();
+            return;
           }
-          delegate.handleSuccess(output);
+
+          try {
+            URI uri = new URI(output);
+            delegate.handleSuccess(uri);
+          } catch (URISyntaxException e) {
+            delegate.handleError(e);
+          }
           break;
         case 400:
         case 404:
-          Log.i(LOG_TAG, "Got " + status + " for cluster URL request.");
+          Log.i(LOG_TAG, "Got " + status + " for node/weave cluster URL request (user not found; failing).");
           delegate.handleFailure(response);
-          SyncResourceDelegate.consumeEntity(response.getEntity());
+          break;
+        case 503:
+          Log.i(LOG_TAG, "Got 503 for node/weave cluster URL request (error fetching node; failing).");
+          delegate.handleFailure(response);
           break;
         default:
-          Log.w(LOG_TAG, "Got " + status + " fetching node/weave. Returning failure.");
+          Log.w(LOG_TAG, "Got " + status + " for node/weave cluster URL request (unexpected HTTP status; failing).");
           delegate.handleFailure(response);
-          SyncResourceDelegate.consumeEntity(response.getEntity());
         }
+
+        SyncResourceDelegate.consumeEntity(response);
       }
 
       @Override
@@ -138,9 +170,11 @@ public class EnsureClusterURLStage implements GlobalSyncStage {
   }
 
   public void execute(final GlobalSession session) throws NoSuchStageException {
+    final URI oldClusterURL = session.config.getClusterURL();
+    final boolean wantNodeAssignment = session.callback.wantNodeAssignment();
 
-    if (session.config.getClusterURL() != null) {
-      Log.i(LOG_TAG, "Cluster URL already set. Continuing with sync.");
+    if (!wantNodeAssignment && oldClusterURL != null) {
+      Log.i(LOG_TAG, "Cluster URL is already set and not stale. Continuing with sync.");
       session.advance();
       return;
     }
@@ -149,27 +183,30 @@ public class EnsureClusterURLStage implements GlobalSyncStage {
     final ClusterURLFetchDelegate delegate = new ClusterURLFetchDelegate() {
 
       @Override
-      public void handleSuccess(final String url) {
+      public void handleSuccess(final URI url) {
         Log.i(LOG_TAG, "Node assignment pointed us to " + url);
 
-        try {
-          session.config.setClusterURL(url);
-          ThreadPool.run(new Runnable() {
-            @Override
-            public void run() {
-              session.advance();
-            }
-          });
+        if (oldClusterURL != null && oldClusterURL.equals(url)) {
+          
+          session.callback.informNodeAuthenticationFailed(session, url);
+          session.abort(new NodeAuthenticationException(), "User password has changed.");
           return;
-        } catch (URISyntaxException e) {
-          final URISyntaxException uriException = e;
-          ThreadPool.run(new Runnable() {
-            @Override
-            public void run() {
-              session.abort(uriException, "Invalid cluster URL.");
-            }
-          });
         }
+
+        session.callback.informNodeAssigned(session, oldClusterURL, url); 
+        session.config.setClusterURL(url);
+
+        ThreadPool.run(new Runnable() {
+          @Override
+          public void run() {
+            session.advance();
+          }
+        });
+      }
+
+      @Override
+      public void handleThrottled() {
+        session.abort(new NullClusterURLException(), "Got 'null' cluster URL. Aborting.");
       }
 
       @Override
@@ -202,7 +239,7 @@ public class EnsureClusterURLStage implements GlobalSyncStage {
       @Override
       public void run() {
         try {
-          fetchClusterURL(session, delegate);
+          fetchClusterURL(session.config.nodeWeaveURL(), delegate);
         } catch (URISyntaxException e) {
           session.abort(e, "Invalid URL for node/weave.");
         }

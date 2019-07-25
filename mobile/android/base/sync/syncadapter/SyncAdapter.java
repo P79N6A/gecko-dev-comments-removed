@@ -2,43 +2,10 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.syncadapter;
 
 import java.io.IOException;
+import java.net.URI;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.TimeUnit;
 
@@ -80,6 +47,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
 
   private static final String  PREFS_EARLIEST_NEXT_SYNC = "earliestnextsync";
   private static final String  PREFS_INVALIDATE_AUTH_TOKEN = "invalidateauthtoken";
+  private static final String  PREFS_CLUSTER_URL_IS_STALE = "clusterurlisstale";
 
   private static final int     SHARED_PREFERENCES_MODE = 0;
   private static final int     BACKOFF_PAD_SECONDS = 5;
@@ -95,21 +63,25 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
     mAccountManager = AccountManager.get(context);
   }
 
+  private SharedPreferences getGlobalPrefs() {
+    return mContext.getSharedPreferences("sync.prefs.global", SHARED_PREFERENCES_MODE);
+  }
+
   
 
 
   public synchronized long getEarliestNextSync() {
-    SharedPreferences sharedPreferences = mContext.getSharedPreferences("sync.prefs.global", SHARED_PREFERENCES_MODE);
+    SharedPreferences sharedPreferences = getGlobalPrefs();
     return sharedPreferences.getLong(PREFS_EARLIEST_NEXT_SYNC, 0);
   }
   public synchronized void setEarliestNextSync(long next) {
-    SharedPreferences sharedPreferences = mContext.getSharedPreferences("sync.prefs.global", SHARED_PREFERENCES_MODE);
+    SharedPreferences sharedPreferences = getGlobalPrefs();
     Editor edit = sharedPreferences.edit();
     edit.putLong(PREFS_EARLIEST_NEXT_SYNC, next);
     edit.commit();
   }
   public synchronized void extendEarliestNextSync(long next) {
-    SharedPreferences sharedPreferences = mContext.getSharedPreferences("sync.prefs.global", SHARED_PREFERENCES_MODE);
+    SharedPreferences sharedPreferences = getGlobalPrefs();
     if (sharedPreferences.getLong(PREFS_EARLIEST_NEXT_SYNC, 0) >= next) {
       return;
     }
@@ -119,17 +91,17 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
   }
 
   public synchronized boolean getShouldInvalidateAuthToken() {
-    SharedPreferences sharedPreferences = mContext.getSharedPreferences("sync.prefs.global", SHARED_PREFERENCES_MODE);
+    SharedPreferences sharedPreferences = getGlobalPrefs();
     return sharedPreferences.getBoolean(PREFS_INVALIDATE_AUTH_TOKEN, false);
   }
   public synchronized void clearShouldInvalidateAuthToken() {
-    SharedPreferences sharedPreferences = mContext.getSharedPreferences("sync.prefs.global", SHARED_PREFERENCES_MODE);
+    SharedPreferences sharedPreferences = getGlobalPrefs();
     Editor edit = sharedPreferences.edit();
     edit.remove(PREFS_INVALIDATE_AUTH_TOKEN);
     edit.commit();
   }
   public synchronized void setShouldInvalidateAuthToken() {
-    SharedPreferences sharedPreferences = mContext.getSharedPreferences("sync.prefs.global", SHARED_PREFERENCES_MODE);
+    SharedPreferences sharedPreferences = getGlobalPrefs();
     Editor edit = sharedPreferences.edit();
     edit.putBoolean(PREFS_INVALIDATE_AUTH_TOKEN, true);
     edit.commit();
@@ -216,6 +188,17 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
 
   @Override
   public boolean shouldBackOff() {
+    if (wantNodeAssignment()) {
+      
+
+
+
+
+
+
+      return false;
+    }
+
     return delayMilliseconds() > 0;
   }
 
@@ -447,5 +430,39 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
       mAccountManager.setUserData(localAccount, Constants.NUM_CLIENTS, clientsCount);
     }
     return Integer.parseInt(clientsCount);
+  }
+
+  public synchronized boolean getClusterURLIsStale() {
+    SharedPreferences sharedPreferences = getGlobalPrefs();
+    return sharedPreferences.getBoolean(PREFS_CLUSTER_URL_IS_STALE, false);
+  }
+
+  public synchronized void setClusterURLIsStale(boolean clusterURLIsStale) {
+    SharedPreferences sharedPreferences = getGlobalPrefs();
+    Editor edit = sharedPreferences.edit();
+    edit.putBoolean(PREFS_CLUSTER_URL_IS_STALE, clusterURLIsStale);
+    edit.commit();
+  }
+
+  @Override
+  public boolean wantNodeAssignment() {
+    return getClusterURLIsStale();
+  }
+
+  @Override
+  public void informNodeAuthenticationFailed(GlobalSession session, URI failedClusterURL) {
+    
+    
+    setClusterURLIsStale(false);
+  }
+
+  @Override
+  public void informNodeAssigned(GlobalSession session, URI oldClusterURL, URI newClusterURL) {
+    setClusterURLIsStale(false);
+  }
+
+  @Override
+  public void informUnauthorizedResponse(GlobalSession session, URI oldClusterURL) {
+    setClusterURLIsStale(true);
   }
 }

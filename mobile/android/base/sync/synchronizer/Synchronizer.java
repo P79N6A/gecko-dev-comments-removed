@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.synchronizer;
 
 import org.mozilla.gecko.sync.SynchronizerConfiguration;
@@ -52,11 +19,17 @@ import android.util.Log;
 
 
 
+
+
+
+
+
+
+
+
 public class Synchronizer {
 
   
-
-
 
 
 
@@ -126,6 +99,9 @@ public class Synchronizer {
   public RepositorySessionBundle bundleA;
   public RepositorySessionBundle bundleB;
 
+  
+
+
   public void synchronize(Context context, SynchronizerDelegate delegate) {
     SynchronizerDelegateSessionDelegate sessionDelegate = new SynchronizerDelegateSessionDelegate(delegate);
     SynchronizerSession session = new SynchronizerSession(this, sessionDelegate);
@@ -138,6 +114,12 @@ public class Synchronizer {
   }
 
   
+
+
+
+
+
+
   public void load(SynchronizerConfiguration config) {
     bundleA = config.remoteBundle;
     bundleB = config.localBundle;
