@@ -276,6 +276,29 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 (function ()
 {
     var debug = false;
@@ -369,14 +392,16 @@
         tests.end_wait();
     }
 
-    function generate_tests(func, args) {
-        forEach(args, function(x)
+    function generate_tests(func, args, properties) {
+        forEach(args, function(x, i)
                 {
                     var name = x[0];
                     test(function()
                          {
                              func.apply(this, x.slice(1));
-                         }, name);
+                         }, 
+                         name, 
+                         Array.isArray(properties) ? properties[i] : properties);
                 });
     }
 
@@ -751,6 +776,10 @@
             if (e instanceof AssertionError) {
                 throw(e);
             }
+            if (code === null)
+            {
+                return;
+            }
             if (typeof code === "object")
             {
                 assert(typeof e == "object" && "name" in e && e.name == code.name,
@@ -761,40 +790,78 @@
                                      expected_name:code.name});
                 return;
             }
-            var required_props = {};
-            required_props.code = {
-                INDEX_SIZE_ERR: 1,
-                HIERARCHY_REQUEST_ERR: 3,
-                WRONG_DOCUMENT_ERR: 4,
-                INVALID_CHARACTER_ERR: 5,
-                NO_MODIFICATION_ALLOWED_ERR: 7,
-                NOT_FOUND_ERR: 8,
-                NOT_SUPPORTED_ERR: 9,
-                INVALID_STATE_ERR: 11,
-                SYNTAX_ERR: 12,
-                INVALID_MODIFICATION_ERR: 13,
-                NAMESPACE_ERR: 14,
-                INVALID_ACCESS_ERR: 15,
-                TYPE_MISMATCH_ERR: 17,
-                SECURITY_ERR: 18,
-                NETWORK_ERR: 19,
-                ABORT_ERR: 20,
-                URL_MISMATCH_ERR: 21,
-                QUOTA_EXCEEDED_ERR: 22,
-                TIMEOUT_ERR: 23,
-                INVALID_NODE_TYPE_ERR: 24,
-                DATA_CLONE_ERR: 25,
-            }[code];
-            if (required_props.code === undefined)
+
+            var code_name_map = {
+                INDEX_SIZE_ERR: 'IndexSizeError',
+                HIERARCHY_REQUEST_ERR: 'HierarchyRequestError',
+                WRONG_DOCUMENT_ERR: 'WrongDocumentError',
+                INVALID_CHARACTER_ERR: 'InvalidCharacterError',
+                NO_MODIFICATION_ALLOWED_ERR: 'NoModificationAllowedError',
+                NOT_FOUND_ERR: 'NotFoundError',
+                NOT_SUPPORTED_ERR: 'NotSupportedError',
+                INVALID_STATE_ERR: 'InvalidStateError',
+                SYNTAX_ERR: 'SyntaxError',
+                INVALID_MODIFICATION_ERR: 'InvalidModificationError',
+                NAMESPACE_ERR: 'NamespaceError',
+                INVALID_ACCESS_ERR: 'InvalidAccessError',
+                TYPE_MISMATCH_ERR: 'TypeMismatchError',
+                SECURITY_ERR: 'SecurityError',
+                NETWORK_ERR: 'NetworkError',
+                ABORT_ERR: 'AbortError',
+                URL_MISMATCH_ERR: 'URLMismatchError',
+                QUOTA_EXCEEDED_ERR: 'QuotaExceededError',
+                TIMEOUT_ERR: 'TimeoutError',
+                INVALID_NODE_TYPE_ERR: 'InvalidNodeTypeError',
+                DATA_CLONE_ERR: 'DataCloneError',
+            };
+
+            var name = code in code_name_map ? code_name_map[code] : code;
+
+            var name_code_map = {
+                IndexSizeError: 1,
+                HierarchyRequestError: 3,
+                WrongDocumentError: 4,
+                InvalidCharacterError: 5,
+                NoModificationAllowedError: 7,
+                NotFoundError: 8,
+                NotSupportedError: 9,
+                InvalidStateError: 11,
+                SyntaxError: 12,
+                InvalidModificationError: 13,
+                NamespaceError: 14,
+                InvalidAccessError: 15,
+                TypeMismatchError: 17,
+                SecurityError: 18,
+                NetworkError: 19,
+                AbortError: 20,
+                URLMismatchError: 21,
+                QuotaExceededError: 22,
+                TimeoutError: 23,
+                InvalidNodeTypeError: 24,
+                DataCloneError: 25,
+
+                UnknownError: 0,
+                ConstraintError: 0,
+                DataError: 0,
+                TransactionInactiveError: 0,
+                ReadOnlyError: 0,
+                VersionError: 0,
+            };
+
+            if (!(name in name_code_map))
             {
                 throw new AssertionError('Test bug: unrecognized DOMException code "' + code + '" passed to assert_throws()');
             }
-            required_props[code] = required_props.code;
-            
-            
-            
-            
-            
+
+            var required_props = { code: name_code_map[name] };
+
+            if (required_props.code === 0
+            || ("name" in e && e.name !== e.name.toUpperCase() && e.name !== "DOMException"))
+            {
+                
+                required_props.name = name;
+            }
+
             
             
             
@@ -829,6 +896,7 @@
         this.timeout_id = null;
         this.is_done = false;
 
+        this.properties = properties;
         this.timeout_length = properties.timeout ? properties.timeout : settings.test_timeout;
 
         this.message = null;
@@ -881,7 +949,7 @@
                 return;
             }
             this.status = this.FAIL;
-            this.message = e.message;
+            this.message = (typeof e === "object" && e !== null) ? e.message : e;
             if (typeof e.stack != "undefined" && typeof e.message == "string") {
                 
                 
@@ -973,6 +1041,8 @@
         };
         this.phase = this.phases.INITIAL;
 
+        this.properties = {};
+
         
         this.all_loaded = false;
         this.wait_for_finish = false;
@@ -980,7 +1050,6 @@
 
         this.timeout_length = settings.timeout;
         this.timeout_id = null;
-        this.set_timeout();
 
         this.start_callbacks = [];
         this.test_done_callbacks = [];
@@ -999,7 +1068,8 @@
                          this_obj.complete();
                      }
                  });
-        this.properties = {};
+
+        this.set_timeout();
     }
 
     Tests.prototype.setup = function(func, properties)
@@ -1024,11 +1094,13 @@
         if (properties.timeout)
         {
             this.timeout_length = properties.timeout;
-            this.set_timeout();
         }
         if (properties.explicit_done)
         {
             this.wait_for_finish = true;
+        }
+        if (properties.explicit_timeout) {
+            this.timeout_length = null;
         }
 
         if (func)
@@ -1042,15 +1114,19 @@
                 this.status.message = e;
             };
         }
+        this.set_timeout();
     };
 
     Tests.prototype.set_timeout = function()
     {
         var this_obj = this;
         clearTimeout(this.timeout_id);
-        this.timeout_id = setTimeout(function() {
-                                         this_obj.timeout();
-                                     }, this.timeout_length);
+        if (this.timeout_length !== null)
+        {
+            this.timeout_id = setTimeout(function() {
+                                             this_obj.timeout();
+                                         }, this.timeout_length);
+        }
     };
 
     Tests.prototype.timeout = function() {
@@ -1069,7 +1145,7 @@
     Tests.prototype.push = function(test)
     {
         if (this.phase < this.phases.HAVE_TESTS) {
-            this.notify_start();
+            this.start();
         }
         this.num_pending++;
         this.tests.push(test);
@@ -1200,6 +1276,14 @@
     };
 
     var tests = new Tests();
+
+    function timeout() {
+        if (tests.timeout_length === null)
+        {
+            tests.timeout();
+        }
+    }
+    expose(timeout, 'timeout');
 
     function add_start_callback(callback) {
         tests.start_callbacks.push(callback);
@@ -1415,9 +1499,33 @@
                 .replace(/'/g, "&#39;");
         }
 
+        function has_assertions()
+        {
+            for (var i = 0; i < tests.length; i++) {
+                if (tests[i].properties.hasOwnProperty("assert")) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        function get_assertion(test)
+        {
+            if (test.properties.hasOwnProperty("assert")) {
+                if (Array.isArray(test.properties.assert)) {
+                    return test.properties.assert.join(' ');
+                }
+                return test.properties.assert;
+            }
+            return '';
+        }
+        
         log.appendChild(document.createElement("section"));
-        var html = "<h2>Details</h2><table id='results'>"
-            + "<thead><tr><th>Result</th><th>Test Name</th><th>Message</th></tr></thead>"
+        var assertions = has_assertions();
+        var html = "<h2>Details</h2><table id='results' " + (assertions ? "class='assertions'" : "" ) + ">"
+            + "<thead><tr><th>Result</th><th>Test Name</th>"
+            + (assertions ? "<th>Assertion</th>" : "")
+            + "<th>Message</th></tr></thead>"
             + "<tbody>";
         for (var i = 0; i < tests.length; i++) {
             html += '<tr class="'
@@ -1427,6 +1535,7 @@
                 + "</td><td>"
                 + escape_html(tests[i].name)
                 + "</td><td>"
+                + (assertions ? escape_html(get_assertion(tests[i])) + "</td><td>" : "")
                 + escape_html(tests[i].message ? tests[i].message : " ")
                 + "</td></tr>";
         }
@@ -1755,4 +1864,3 @@
  }
 
 })();
-
