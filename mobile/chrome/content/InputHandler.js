@@ -291,6 +291,12 @@ InputHandler.prototype = {
       return;
 
     
+    if (aEvent.target != window
+        && aEvent.target != document
+        && (!aEvent.target.ownerDocument || aEvent.target.ownerDocument != document))
+      return;
+
+    
     if (aEvent.type == "URLChanged" || aEvent.type == "TabSelect") {
       this.grab(null);
       return;
@@ -771,6 +777,7 @@ MouseModule.prototype = {
   getScrollboxFromElement: function getScrollboxFromElement(elem) {
     let scrollbox = null;
     let qinterface = null;
+    let prev = null;
 
     for (; elem; elem = elem.parentNode) { dump(elem + '\n');
       try {
@@ -786,15 +793,16 @@ MouseModule.prototype = {
                                      : elem.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
           if (qi) {
             scrollbox = elem;
-            elem._cachedSBO = qinterface = qi;
+            scrollbox._cachedSBO = qinterface = qi;
             break;
           }
         }
       } catch (e) { 
 
  }
+      prev = elem;
     }
-    return [scrollbox, qinterface];
+    return [scrollbox, qinterface, prev];
   },
 
   
