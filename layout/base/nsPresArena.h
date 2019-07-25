@@ -43,6 +43,8 @@ public:
 
   enum ObjectID {
     nsLineBox_id = nsQueryFrame::NON_FRAME_MARKER,
+    nsRuleNode_id,
+    nsStyleContext_id,
 
     
     
