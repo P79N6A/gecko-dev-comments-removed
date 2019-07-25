@@ -1269,23 +1269,4 @@ void nsBuiltinDecoderStateMachine::LoadMetadata()
   }
 
   LOG(PR_LOG_DEBUG, ("%p Callback Period: %u", mDecoder, info.mCallbackPeriod));
-
-  
-
-  
-  
-  
-  
-  
-  mGotDurationFromHeader = (GetDuration() != -1);
-  if (mState != DECODER_STATE_SHUTDOWN &&
-      stream->GetLength() >= 0 &&
-      mSeekable &&
-      mEndTime == -1)
-  {
-    mDecoder->StopProgressUpdates();
-    FindEndTime();
-    mDecoder->StartProgressUpdates();
-    mDecoder->UpdatePlaybackRate();
-  }
 }
