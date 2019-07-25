@@ -315,6 +315,14 @@ RasterImage::Init(imgIDecoderObserver *aObserver,
 
 
 
+NS_IMETHODIMP_(void)
+RasterImage::RequestRefresh(const mozilla::TimeStamp& aTime)
+{
+  
+}
+
+
+
 
 
 NS_IMETHODIMP
