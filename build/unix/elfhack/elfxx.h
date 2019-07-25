@@ -428,6 +428,10 @@ public:
         
         if ((section->getFlags() & SHF_ALLOC) == 0)
             return false;
+        
+        
+        if ((p_type == PT_DYNAMIC) && (section->getType() != SHT_DYNAMIC))
+            return false;
         return (addr >= p_vaddr) &&
                (addr + size <= p_vaddr + p_memsz);
 
