@@ -139,12 +139,13 @@ nsIMEStateManager::OnChangeFocus(nsPresContext* aPresContext,
       
       return NS_OK;
     }
-    PRUint32 enabled;
-    if (NS_FAILED(widget->GetIMEEnabled(&enabled))) {
+    nsIWidget_MOZILLA_2_0_BRANCH* widget2 = static_cast<nsIWidget_MOZILLA_2_0_BRANCH*>(widget.get());
+    IMEContext context;
+    if (!widget2 || NS_FAILED(widget2->GetInputMode(context))) {
       
       return NS_OK;
     }
-    if (enabled ==
+    if (context.mStatus ==
         nsContentUtils::GetWidgetStatusFromIMEStatus(newEnabledState)) {
       
       return NS_OK;
@@ -195,13 +196,14 @@ nsIMEStateManager::UpdateIMEState(PRUint32 aNewIMEState, nsIContent* aContent)
   }
 
   
-  PRUint32 currentEnabledState;
-  nsresult rv = widget->GetIMEEnabled(&currentEnabledState);
+  nsIWidget_MOZILLA_2_0_BRANCH* widget2 = static_cast<nsIWidget_MOZILLA_2_0_BRANCH*>(widget.get());
+  IMEContext context;
+  nsresult rv = widget2->GetInputMode(context);
   if (NS_FAILED(rv)) {
     return; 
   }
   PRUint32 newEnabledState = aNewIMEState & nsIContent::IME_STATUS_MASK_ENABLED;
-  if (currentEnabledState ==
+  if (context.mStatus ==
         nsContentUtils::GetWidgetStatusFromIMEStatus(newEnabledState)) {
     return;
   }
@@ -265,8 +267,6 @@ nsIMEStateManager::SetIMEState(PRUint32 aState,
                                nsIWidget* aWidget)
 {
   if (aState & nsIContent::IME_STATUS_MASK_ENABLED) {
-    nsresult rv;
-
     nsIWidget_MOZILLA_2_0_BRANCH* widget2 = static_cast<nsIWidget_MOZILLA_2_0_BRANCH*>(aWidget);
     if (!widget2)
       return;

@@ -108,7 +108,7 @@ public:
     
     nsresult ResetInputState(nsWindow* aCaller);
     nsresult SetInputMode(nsWindow* aCaller, const IMEContext* aContext);
-    nsresult GetIMEEnabled(PRUint32* aState);
+    nsresult GetInputMode(IMEContext* aContext);
     nsresult CancelIMEComposition(nsWindow* aCaller);
 
     
@@ -145,7 +145,7 @@ protected:
 
     
     
-    PRUint32           mEnabled;
+    IMEContext mIMEContext;
 
     
     

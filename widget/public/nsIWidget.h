@@ -1373,6 +1373,11 @@ class nsIWidget_MOZILLA_2_0_BRANCH : public nsIWidget {
 
 
     NS_IMETHOD SetInputMode(const IMEContext& aContext) = 0;
+
+    
+
+
+    NS_IMETHOD GetInputMode(IMEContext& aContext) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIWidget_MOZILLA_2_0_BRANCH, NS_IWIDGET_MOZILLA_2_0_BRANCH_IID)
