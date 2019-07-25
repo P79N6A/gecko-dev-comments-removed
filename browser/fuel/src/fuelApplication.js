@@ -668,9 +668,7 @@ function Application() {
 
 Application.prototype = {
   
-  classDescription: "Application",
   classID:          Components.ID("fe74cf80-aa2d-11db-abbd-0800200c9a66"),
-  contractID:       "@mozilla.org/fuel/application;1",
 
   
   _xpcom_factory: ApplicationFactory,
@@ -718,11 +716,10 @@ Application.prototype = {
   }
 };
 
-
-function NSGetModule(aCompMgr, aFileSpec) {
-  
-  Application.prototype.__proto__ = extApplication.prototype;
-  return XPCOMUtils.generateModule([Application]);
-}
-
 #include ../../../toolkit/components/exthelper/extApplication.js
+
+
+Application.prototype.__proto__ = extApplication.prototype;
+
+var NSGetFactory = XPCOMUtils.generateNSGetFactory([Application]);
+

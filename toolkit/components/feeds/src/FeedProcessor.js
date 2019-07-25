@@ -251,9 +251,7 @@ FeedResult.prototype = {
   },
 
   
-  classDescription: FR_CLASSNAME,
   classID: FR_CLASSID,
-  contractID: FR_CONTRACTID,
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIFeedResult])
 }  
 
@@ -427,9 +425,7 @@ Feed.prototype = {
   },
   
   
-  classDescription: FEED_CLASSNAME,
   classID: FEED_CLASSID,
-  contractID: FEED_CONTRACTID,
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIFeed, Ci.nsIFeedContainer])
 }
 
@@ -640,9 +636,7 @@ Entry.prototype = {
   },
 
   
-  classDescription: ENTRY_CLASSNAME,
   classID: ENTRY_CLASSID,
-  contractID: ENTRY_CONTRACTID,
   QueryInterface: XPCOMUtils.generateQI(
     [Ci.nsIFeedEntry, Ci.nsIFeedContainer]
   )
@@ -692,9 +686,7 @@ TextConstruct.prototype = {
   },
  
   
-  classDescription: TEXTCONSTRUCT_CLASSNAME,
   classID: TEXTCONSTRUCT_CLASSID,
-  contractID: TEXTCONSTRUCT_CONTRACTID,
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIFeedTextConstruct])
 }
 
@@ -732,9 +724,7 @@ Generator.prototype = {
   },
 
   
-  classDescription: GENERATOR_CLASSNAME,
   classID: GENERATOR_CLASSID,
-  contractID: GENERATOR_CONTRACTID,
   QueryInterface: XPCOMUtils.generateQI(
     [Ci.nsIFeedGenerator, Ci.nsIFeedElementBase]
   )
@@ -752,9 +742,7 @@ function Person() {
 
 Person.prototype = {
   
-  classDescription: PERSON_CLASSNAME,
   classID: PERSON_CLASSID,
-  contractID: PERSON_CONTRACTID,
   QueryInterface: XPCOMUtils.generateQI(
     [Ci.nsIFeedPerson, Ci.nsIFeedElementBase]
   )
@@ -1923,9 +1911,7 @@ FeedProcessor.prototype = {
   },
 
   
-  classDescription: FP_CLASSNAME,
   classID: FP_CLASSID,
-  contractID: FP_CONTRACTID,
   QueryInterface: XPCOMUtils.generateQI(
     [Ci.nsIFeedProcessor, Ci.nsISAXContentHandler, Ci.nsISAXErrorHandler,
      Ci.nsIStreamListener, Ci.nsIRequestObserver]
@@ -1934,7 +1920,5 @@ FeedProcessor.prototype = {
 
 var components = [FeedProcessor, FeedResult, Feed, Entry,
                   TextConstruct, Generator, Person];
-function NSGetModule(compMgr, fileSpec) {
-  return XPCOMUtils.generateModule(components);
-  
-}
+
+var NSGetFactory = XPCOMUtils.generateNSGetFactory(components);

@@ -1,60 +1,59 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 2000
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Stuart Parmenter <pavlov@netscape.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-/*
- * No magic constructor behaviour, as is de rigeur for XPCOM.
- * If you must perform some initialization, and it could possibly fail (even
- * due to an out-of-memory condition), you should use an Init method, which
- * can convey failure appropriately (thrown exception in JS,
- * NS_FAILED(nsresult) return in C++).
- *
- * In JS, you can actually cheat, because a thrown exception will cause the
- * CreateInstance call to fail in turn, but not all languages are so lucky.
- * (Though ANSI C++ provides exceptions, they are verboten in Mozilla code
- * for portability reasons -- and even when you're building completely
- * platform-specific code, you can't throw across an XPCOM method boundary.)
- */
 
 
-const DEBUG = false; /* set to true to enable debug messages */
 
-const FILEPICKER_CONTRACTID     = "@mozilla.org/filepicker;1";
-const FILEPICKER_CID        = Components.ID("{54ae32f8-1dd2-11b2-a209-df7c505370f8}");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+const DEBUG = false; 
+
 const LOCAL_FILE_CONTRACTID = "@mozilla.org/file/local;1";
 const APPSHELL_SERV_CONTRACTID  = "@mozilla.org/appshell/appShellService;1";
 const STRBUNDLE_SERV_CONTRACTID = "@mozilla.org/intl/stringbundle;1";
@@ -83,7 +82,7 @@ function nsFilePicker()
   if (!filterBundle)
     filterBundle = srGetStrBundle("chrome://global/content/filepicker.properties");
 
-  /* attributes */
+  
   this.mDefaultString = "";
   this.mFilterIndex = 0;
   this.mFilterTitles = new Array();
@@ -99,8 +98,18 @@ function nsFilePicker()
 }
 
 nsFilePicker.prototype = {
+  classID: Components.ID("{54ae32f8-1dd2-11b2-a209-df7c505370f8}");
 
-  /* attribute nsILocalFile displayDirectory; */
+  QueryInterface: function(iid) {
+    if (iid.equals(nsIFilePicker) ||
+        iid.equals(nsISupports))
+      return this;
+
+    throw Components.results.NS_ERROR_NO_INTERFACE;
+  },
+
+
+  
   set displayDirectory(a) {
     this.mDisplayDirectory = a &&
       a.clone().QueryInterface(nsILocalFile);
@@ -111,15 +120,15 @@ nsFilePicker.prototype = {
                .QueryInterface(nsILocalFile);
   },
 
-  /* readonly attribute nsILocalFile file; */
+  
   set file(a) { throw "readonly property"; },
   get file()  { return this.mFilesEnumerator.mFiles[0]; },
 
-  /* readonly attribute nsISimpleEnumerator files; */
+  
   set files(a) { throw "readonly property"; },
   get files()  { return this.mFilesEnumerator; },
 
-  /* readonly attribute nsIURI fileURL; */
+  
   set fileURL(a) { throw "readonly property"; },
   get fileURL()  {
     if (this.mFileURL)
@@ -134,23 +143,23 @@ nsFilePicker.prototype = {
     return this.mFileURL = ioService.newFileURI(this.file);
   },
 
-  /* attribute wstring defaultString; */
+  
   set defaultString(a) { this.mDefaultString = a; },
   get defaultString()  { return this.mDefaultString; },
 
-  /* attribute wstring defaultExtension */
+  
   set defaultExtension(ext) { },
   get defaultExtension() { return ""; },
 
-  /* attribute long filterIndex; */
+  
   set filterIndex(a) { this.mFilterIndex = a; },
   get filterIndex() { return this.mFilterIndex; },
 
-  /* members */
+  
   mFilesEnumerator: undefined,
   mParentWindow: null,
 
-  /* methods */
+  
   init: function(parent, title, mode) {
     this.mParentWindow = parent;
     this.mTitle = title;
@@ -180,7 +189,7 @@ nsFilePicker.prototype = {
     }
     this.mAllowURLs = !!(filterMask & nsIFilePicker.filterAllowURLs);
     if (filterMask & nsIFilePicker.filterApps) {
-      // We use "..apps" as a special filter for executable files
+      
       this.appendFilter(titleBundle.GetStringFromName("appsTitle"),
                         "..apps");
     }
@@ -193,14 +202,6 @@ nsFilePicker.prototype = {
   appendFilter: function(title, extensions) {
     this.mFilterTitles.push(title);
     this.mFilters.push(extensions);
-  },
-
-  QueryInterface: function(iid) {
-    if (iid.equals(nsIFilePicker) ||
-        iid.equals(nsISupports))
-      return this;
-
-    throw Components.results.NS_ERROR_NO_INTERFACE;
   },
 
   show: function() {
@@ -264,71 +265,13 @@ nsFilePicker.prototype = {
 }
 
 if (DEBUG)
-    debug = function (s) { dump("-*- filepicker: " + s + "\n"); }
+  debug = function (s) { dump("-*- filepicker: " + s + "\n"); };
 else
-    debug = function (s) {}
+  debug = function (s) {};
 
-/* module foo */
-
-var filePickerModule = new Object();
-
-filePickerModule.registerSelf =
-function (compMgr, fileSpec, location, type)
-{
-    debug("registering (all right -- a JavaScript module!)");
-    compMgr = compMgr.QueryInterface(Components.interfaces.nsIComponentRegistrar);
-
-    compMgr.registerFactoryLocation(FILEPICKER_CID,
-                                    "FilePicker JS Component",
-#ifndef MOZ_WIDGET_GTK2
-                                    FILEPICKER_CONTRACTID,
-#else
-                                    "",
-#endif
-                                    fileSpec,
-                                    location,
-                                    type);
-}
-
-filePickerModule.getClassObject =
-function (compMgr, cid, iid) {
-    if (!cid.equals(FILEPICKER_CID))
-        throw Components.results.NS_ERROR_NO_INTERFACE;
-
-    if (!iid.equals(Components.interfaces.nsIFactory))
-        throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
-
-    return filePickerFactory;
-}
-
-filePickerModule.canUnload =
-function(compMgr)
-{
-    debug("Unloading component.");
-    return true;
-}
-
-/* factory object */
-var filePickerFactory = new Object();
-
-filePickerFactory.createInstance =
-function (outer, iid) {
-    debug("CI: " + iid);
-    debug("IID:" + nsIFilePicker);
-    if (outer != null)
-        throw Components.results.NS_ERROR_NO_AGGREGATION;
-
-    return (new nsFilePicker()).QueryInterface(iid);
-}
-
-/* entrypoint */
-function NSGetModule(compMgr, fileSpec) {
-    return filePickerModule;
-}
+var NSGetFactory = XPCOMUtils.generateNSGetFactory([nsFilePicker]);
 
 
-
-/* crap from strres.js that I want to use for string bundles since I can't include another .js file.... */
 
 var strBundleService = null;
 

@@ -41,26 +41,12 @@
 #
 # ***** END LICENSE BLOCK *****
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 const DEBUG = false; 
 
-const SIDEBAR_CONTRACTID        = "@mozilla.org/sidebar;1";
 const SIDEBAR_CID               = Components.ID("{22117140-9c6e-11d3-aaf1-00805f8a4905}");
 const nsISupports               = Components.interfaces.nsISupports;
-const nsIFactory                = Components.interfaces.nsIFactory;
 const nsISidebar                = Components.interfaces.nsISidebar;
 const nsISidebarExternal        = Components.interfaces.nsISidebarExternal;
 const nsIClassInfo              = Components.interfaces.nsIClassInfo;
@@ -80,6 +66,8 @@ function nsSidebar()
     this.searchService =
       Components.classes[SEARCHSERVICE_CONTRACTID].getService(nsIBrowserSearchService);
 }
+
+nsSidebar.prototype.classID = SIDEBAR_CID;
 
 nsSidebar.prototype.nc = "http://home.netscape.com/NC-rdf#";
 
@@ -282,76 +270,9 @@ function (iid) {
         return this;
 
     throw Components.results.NS_ERROR_NO_INTERFACE;
-}
+};
 
-var sidebarModule = new Object();
-
-sidebarModule.registerSelf =
-function (compMgr, fileSpec, location, type)
-{
-    debug("registering (all right -- a JavaScript module!)");
-    compMgr = compMgr.QueryInterface(Components.interfaces.nsIComponentRegistrar);
-
-    compMgr.registerFactoryLocation(SIDEBAR_CID,
-                                    "Sidebar JS Component",
-                                    SIDEBAR_CONTRACTID,
-                                    fileSpec,
-                                    location,
-                                    type);
-
-    const CATMAN_CONTRACTID = "@mozilla.org/categorymanager;1";
-    const nsICategoryManager = Components.interfaces.nsICategoryManager;
-    var catman = Components.classes[CATMAN_CONTRACTID].
-                            getService(nsICategoryManager);
-
-    const JAVASCRIPT_GLOBAL_PROPERTY_CATEGORY = "JavaScript-global-property";
-    catman.addCategoryEntry(JAVASCRIPT_GLOBAL_PROPERTY_CATEGORY,
-                            "sidebar",
-                            SIDEBAR_CONTRACTID,
-                            true,
-                            true);
-
-    catman.addCategoryEntry(JAVASCRIPT_GLOBAL_PROPERTY_CATEGORY,
-                            "external",
-                            SIDEBAR_CONTRACTID,
-                            true,
-                            true);
-}
-
-sidebarModule.getClassObject =
-function (compMgr, cid, iid) {
-    if (!cid.equals(SIDEBAR_CID))
-        throw Components.results.NS_ERROR_NO_INTERFACE;
-
-    if (!iid.equals(Components.interfaces.nsIFactory))
-        throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
-
-    return sidebarFactory;
-}
-
-sidebarModule.canUnload =
-function(compMgr)
-{
-    debug("Unloading component.");
-    return true;
-}
-
-
-var sidebarFactory = new Object();
-
-sidebarFactory.createInstance =
-function (outer, iid) {
-    debug("CI: " + iid);
-    if (outer != null)
-        throw Components.results.NS_ERROR_NO_AGGREGATION;
-
-    return (new nsSidebar()).QueryInterface(iid);
-}
-
-
-function NSGetModule(compMgr, fileSpec) {
-    return sidebarModule;
-}
+var NSGetFactory = XPCOMUtils.generateNSGetFactory([nsSidebar]);
 
 
 if (DEBUG)

@@ -51,9 +51,7 @@ const PREF_FLASH_COUNT = "browser.download.manager.flashCount";
 function nsDownloadManagerUI() {}
 
 nsDownloadManagerUI.prototype = {
-  classDescription: "Used to show the Download Manager's UI to the user",
   classID: Components.ID("7dfdf0d1-aff6-4a34-bad1-d0fe74601642"),
-  contractID: "@mozilla.org/download-manager-ui;1",
 
   
   
@@ -151,9 +149,5 @@ nsDownloadManagerUI.prototype = {
 
 
 let components = [nsDownloadManagerUI];
-
-function NSGetModule(compMgr, fileSpec)
-{
-  return XPCOMUtils.generateModule(components);
-}
+var NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
 

@@ -381,16 +381,7 @@ nsPlacesDBFlush.prototype = {
   
   
 
-  classDescription: "Used to synchronize the temporary and permanent tables of Places",
   classID: Components.ID("c1751cfc-e8f1-4ade-b0bb-f74edfb8ef6a"),
-  contractID: "@mozilla.org/places/sync;1",
-
-  
-  
-  _xpcom_categories: [
-    { category: "bookmark-observers" },
-    { category: "history-observers" },
-  ],
 
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIObserver,
@@ -405,7 +396,4 @@ nsPlacesDBFlush.prototype = {
 
 
 let components = [nsPlacesDBFlush];
-function NSGetModule(compMgr, fileSpec)
-{
-  return XPCOMUtils.generateModule(components);
-}
+var NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
