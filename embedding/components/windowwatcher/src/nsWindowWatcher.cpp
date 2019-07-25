@@ -586,7 +586,17 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
 
   JSContext *cx = GetJSContextFromWindow(aParent);
 
-  if (isCallerChrome && !hasChromeParent && cx) {
+  bool windowTypeIsChrome = chromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
+  if (isCallerChrome && !hasChromeParent && !windowTypeIsChrome && cx) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
