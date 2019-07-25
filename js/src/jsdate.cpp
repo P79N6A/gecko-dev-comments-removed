@@ -2513,32 +2513,32 @@ date_toString(JSContext *cx, uintN argc, Value *vp)
 static JSBool
 date_valueOf(JSContext *cx, uintN argc, Value *vp)
 {
-    
+    CallArgs args = CallArgsFromVp(argc, vp);
 
-
-
-
-
-    
-    if (argc == 0)
-        return date_getTime(cx, argc, vp);
-
-    
-    JSObject *obj = ToObject(cx, &vp[1]);
+    bool ok;
+    JSObject *obj = NonGenericMethodGuard(cx, args, date_valueOf, &DateClass, &ok);
     if (!obj)
-        return false;
+        return ok;
 
     
-    JSString *str = js_ValueToString(cx, vp[2]);
+    if (argc == 0) {
+        args.rval() = obj->getDateUTCTime();
+        return true;
+    }
+
+    
+    JSString *str = js_ValueToString(cx, args[0]);
     if (!str)
         return false;
     JSLinearString *linear_str = str->ensureLinear(cx);
     if (!linear_str)
         return false;
     JSAtom *number_str = cx->runtime->atomState.typeAtoms[JSTYPE_NUMBER];
-    if (EqualStrings(linear_str, number_str))
-        return date_getTime(cx, argc, vp);
-    return date_toString(cx, argc, vp);
+    if (EqualStrings(linear_str, number_str)) {
+        args.rval() = obj->getDateUTCTime();
+        return true;
+    }
+    return date_format(cx, obj->getDateUTCTime().toNumber(), FORMATSPEC_FULL, args);
 }
 
 
