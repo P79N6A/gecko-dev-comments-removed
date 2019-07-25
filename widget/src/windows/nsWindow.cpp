@@ -3271,6 +3271,45 @@ nsWindow::HasPendingInputEvent()
 
 
 
+struct LayerManagerPrefs {
+  LayerManagerPrefs()
+    : mAccelerateByDefault(PR_TRUE)
+    , mDisableAcceleration(PR_FALSE)
+    , mPreferOpenGL(PR_FALSE)
+    , mPreferD3D9(PR_FALSE)
+  {}
+  PRBool mAccelerateByDefault;
+  PRBool mDisableAcceleration;
+  PRBool mPreferOpenGL;
+  PRBool mPreferD3D9;
+};
+
+static void
+GetLayerManagerPrefs(LayerManagerPrefs* aManagerPrefs)
+{
+  nsCOMPtr<nsIPrefBranch2> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
+  if (prefs) {
+    prefs->GetBoolPref("layers.acceleration.disabled",
+                       &aManagerPrefs->mDisableAcceleration);
+    prefs->GetBoolPref("layers.prefer-opengl",
+                       &aManagerPrefs->mPreferOpenGL);
+    prefs->GetBoolPref("layers.prefer-d3d9",
+                       &aManagerPrefs->mPreferD3D9);
+  }
+
+  const char *acceleratedEnv = PR_GetEnv("MOZ_ACCELERATED");
+  aManagerPrefs->mAccelerateByDefault =
+    aManagerPrefs->mAccelerateByDefault ||
+    (acceleratedEnv && (*acceleratedEnv != '0'));
+
+  PRBool safeMode = PR_FALSE;
+  nsCOMPtr<nsIXULRuntime> xr = do_GetService("@mozilla.org/xre/runtime;1");
+  if (xr)
+    xr->GetInSafeMode(&safeMode);
+  aManagerPrefs->mDisableAcceleration =
+    aManagerPrefs->mDisableAcceleration || safeMode;
+}
+
 mozilla::layers::LayerManager*
 nsWindow::GetLayerManager(LayerManagerPersistence aPersistence, bool* aAllowRetaining)
 {
@@ -3302,39 +3341,16 @@ nsWindow::GetLayerManager(LayerManagerPersistence aPersistence, bool* aAllowReta
         mozilla::layers::LayerManager::LAYERS_BASIC)) {
     
     
-    nsCOMPtr<nsIPrefBranch2> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-
-    PRBool accelerateByDefault = PR_TRUE;
-    PRBool disableAcceleration = PR_FALSE;
-    PRBool preferOpenGL = PR_FALSE;
-    PRBool preferD3D9 = PR_FALSE;
-    if (prefs) {
-      prefs->GetBoolPref("layers.acceleration.disabled",
-                         &disableAcceleration);
-      prefs->GetBoolPref("layers.prefer-opengl",
-                         &preferOpenGL);
-      prefs->GetBoolPref("layers.prefer-d3d9",
-                         &preferD3D9);
-    }
-
-    const char *acceleratedEnv = PR_GetEnv("MOZ_ACCELERATED");
-    accelerateByDefault = accelerateByDefault ||
-                          (acceleratedEnv && (*acceleratedEnv != '0'));
+    LayerManagerPrefs prefs;
+    GetLayerManagerPrefs(&prefs);
 
     
 
 
-    disableAcceleration = disableAcceleration ||
-                          eTransparencyTransparent == mTransparencyMode;
-
-    nsCOMPtr<nsIXULRuntime> xr = do_GetService("@mozilla.org/xre/runtime;1");
-    PRBool safeMode = PR_FALSE;
-    if (xr)
-      xr->GetInSafeMode(&safeMode);
-
-    if (disableAcceleration || safeMode)
+    if (eTransparencyTransparent == mTransparencyMode ||
+        prefs.mDisableAcceleration)
       mUseAcceleratedRendering = PR_FALSE;
-    else if (accelerateByDefault)
+    else if (prefs.mAccelerateByDefault)
       mUseAcceleratedRendering = PR_TRUE;
 
     if (mUseAcceleratedRendering) {
@@ -3345,7 +3361,7 @@ nsWindow::GetLayerManager(LayerManagerPersistence aPersistence, bool* aAllowReta
       }
 
 #ifdef MOZ_ENABLE_D3D10_LAYER
-      if (!preferD3D9) {
+      if (!prefs.mPreferD3D9) {
         nsRefPtr<mozilla::layers::LayerManagerD3D10> layerManager =
           new mozilla::layers::LayerManagerD3D10(this);
         if (layerManager->Initialize()) {
@@ -3354,7 +3370,7 @@ nsWindow::GetLayerManager(LayerManagerPersistence aPersistence, bool* aAllowReta
       }
 #endif
 #ifdef MOZ_ENABLE_D3D9_LAYER
-      if (!preferOpenGL && !mLayerManager && sAllowD3D9) {
+      if (!prefs.mPreferOpenGL && !mLayerManager && sAllowD3D9) {
         nsRefPtr<mozilla::layers::LayerManagerD3D9> layerManager =
           new mozilla::layers::LayerManagerD3D9(this);
         if (layerManager->Initialize()) {
@@ -3362,7 +3378,7 @@ nsWindow::GetLayerManager(LayerManagerPersistence aPersistence, bool* aAllowReta
         }
       }
 #endif
-      if (!mLayerManager && preferOpenGL) {
+      if (!mLayerManager && prefs.mPreferOpenGL) {
         nsRefPtr<mozilla::layers::LayerManagerOGL> layerManager =
           new mozilla::layers::LayerManagerOGL(this);
         if (layerManager->Initialize()) {
@@ -7681,6 +7697,23 @@ void
 nsWindow::StartAllowingD3D9(bool aReinitialize)
 {
   sAllowD3D9 = true;
+
+  LayerManagerPrefs prefs;
+  GetLayerManagerPrefs(&prefs);
+  if (prefs.mDisableAcceleration) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    return;
+  }
 
   if (aReinitialize) {
     EnumAllWindows(AllowD3D9WithReinitializeCallback);
