@@ -426,14 +426,14 @@ Trench.prototype = {
     if (this.type != 'guide')
       return;
 
-    var groups = Groups.groups;
+    var groupItems = GroupItems.groupItems;
     var trench = this;
-    groups.forEach(function(group) {
-      if (group.isDragging) 
+    groupItems.forEach(function(groupItem) {
+      if (groupItem.isDragging) 
         return;
-      if (trench.el == group.container) 
+      if (trench.el == groupItem.container) 
         return;
-      var bounds = group.getBounds();
+      var bounds = groupItem.getBounds();
       var activeRange = new Range();
       if (trench.xory == 'y') { 
         activeRange = trench.adjustRangeIfIntercept(bounds.left, bounds.yRange);

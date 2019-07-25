@@ -191,9 +191,9 @@ window.Item.prototype = {
     this.dropOptions = {
       over: function() {},
       out: function() {
-        var group = drag.info.item.parent;
-        if (group)
-          group.remove(drag.info.$el, {dontClose: true});
+        var groupItem = drag.info.item.parent;
+        if (groupItem)
+          groupItem.remove(drag.info.$el, {dontClose: true});
 
         iQ(this.container).removeClass("acceptsDrop");
       },
@@ -424,7 +424,7 @@ window.Item.prototype = {
         bounds.left += posStep.x;
         bounds.top += posStep.y;
 
-        if (!item.isAGroup) {
+        if (!item.isAGroupItem) {
           if (sizeStep.y > sizeStep.x) {
             var newWidth = bounds.height * (TabItems.tabWidth / TabItems.tabHeight);
             bounds.left += (bounds.width - newWidth) / 2;
@@ -839,7 +839,7 @@ window.Items = {
   getTopLevelItems: function() {
     var items = [];
 
-    iQ('.tab, .group, .info-item').each(function(elem) {
+    iQ('.tab, .groupItem, .info-item').each(function(elem) {
       var $this = iQ(elem);
       var item = $this.data('item');
       if (item && !item.parent && !$this.hasClass('phantom'))
@@ -1020,7 +1020,7 @@ window.Items = {
       else
         newSize = new Point(TabItems.tabWidth, TabItems.tabHeight);
 
-      if (item.isAGroup) {
+      if (item.isAGroupItem) {
           newBounds.width = Math.max(newBounds.width, newSize.x);
           newBounds.height = Math.max(newBounds.height, newSize.y);
       } else {

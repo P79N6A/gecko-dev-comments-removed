@@ -176,13 +176,13 @@ body {
 
 
 
-.tabInGroup {
+.tabInGroupItem {
   border: none;
   -moz-box-shadow: none !important;
 }
 
 
-.group {
+.groupItem {
   position: absolute;
 
   cursor: move;

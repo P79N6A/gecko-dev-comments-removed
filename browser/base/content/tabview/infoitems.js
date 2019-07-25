@@ -163,7 +163,7 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   setBounds: function(rect, immediately) {
     try {
-      Utils.assertThrow('Group.setBounds: rect must be a real rectangle!', Utils.isRect(rect));
+      Utils.assertThrow('InfoItem.setBounds: rect must be a real rectangle!', Utils.isRect(rect));
 
       
       var css = {};
@@ -184,7 +184,7 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         return;
 
       this.bounds = new Rect(rect);
-      Utils.assertThrow('Group.setBounds: this.bounds must be a real rectangle!',
+      Utils.assertThrow('InfoItem.setBounds: this.bounds must be a real rectangle!',
                         Utils.isRect(this.bounds));
 
       

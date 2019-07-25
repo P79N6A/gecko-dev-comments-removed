@@ -62,7 +62,7 @@
 
 
 
-window.Group = function Group(listOfEls, options) {
+window.GroupItem = function GroupItem(listOfEls, options) {
   try {
   if (typeof(options) == 'undefined')
     options = {};
@@ -70,8 +70,8 @@ window.Group = function Group(listOfEls, options) {
   this._inited = false;
   this._children = []; 
   this.defaultSize = new Point(TabItems.tabWidth * 1.5, TabItems.tabHeight * 1.5);
-  this.isAGroup = true;
-  this.id = options.id || Groups.getNextID();
+  this.isAGroupItem = true;
+  this.id = options.id || GroupItems.getNextID();
   this._isStacked = false;
   this._stackAngles = [0];
   this.expanded = null;
@@ -104,14 +104,14 @@ window.Group = function Group(listOfEls, options) {
   }
 
   if (!rectToBe) {
-    rectToBe = Groups.getBoundingBox(listOfEls);
+    rectToBe = GroupItems.getBoundingBox(listOfEls);
     rectToBe.inset(-30, -30);
   }
 
   var $container = options.container;
   if (!$container) {
     $container = iQ('<div>')
-      .addClass('group')
+      .addClass('groupItem')
       .css({position: 'absolute'})
       .css(rectToBe);
   }
@@ -277,7 +277,7 @@ window.Group = function Group(listOfEls, options) {
   if (!this.locked.bounds)
     this.setResizable(true);
 
-  Groups.register(this);
+  GroupItems.register(this);
 
   
   var immediately = $container ? true : false;
@@ -293,17 +293,17 @@ window.Group = function Group(listOfEls, options) {
   this._inited = true;
   this.save();
   } catch(e) {
-    Utils.log("Error in Group()");
+    Utils.log("Error in GroupItem()");
     Utils.log(e.stack);
   }
 };
 
 
-window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
+window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  defaultName: "name this group...",
+  defaultName: "name this groupItem...",
 
   
   
@@ -353,8 +353,8 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
       return;
 
     var data = this.getStorageData();
-    if (Groups.groupStorageSanity(data))
-      Storage.saveGroup(gWindow, data);
+    if (GroupItems.groupItemStorageSanity(data))
+      Storage.saveGroupItem(gWindow, data);
   },
 
   
@@ -412,7 +412,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   setBounds: function(rect, immediately, options) {
     if (!Utils.isRect(rect)) {
-      Utils.trace('Group.setBounds: rect is not a real rectangle!', rect);
+      Utils.trace('GroupItem.setBounds: rect is not a real rectangle!', rect);
       return;
     }
 
@@ -522,14 +522,14 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
   close: function() {
     this.removeAll();
     this._sendToSubscribers("close");
-    Groups.unregister(this);
+    GroupItems.unregister(this);
     this.removeTrenches();
     iQ(this.container).fadeOut(function() {
       iQ(this).remove();
       Items.unsquish();
     });
 
-    Storage.deleteGroup(gWindow, this.id);
+    Storage.deleteGroupItem(gWindow, this.id);
   },
 
   
@@ -569,7 +569,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
         $el = iQ(a);
         item = Items.item($el);
       }
-      Utils.assertThrow("shouldn't already be in another group", !item.parent || item.parent == this);
+      Utils.assertThrow("shouldn't already be in another groupItem", !item.parent || item.parent == this);
 
       item.removeTrenches();
 
@@ -581,11 +581,11 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
 
       var self = this;
 
-      var wasAlreadyInThisGroup = false;
+      var wasAlreadyInThisGroupItem = false;
       var oldIndex = this._children.indexOf(item);
       if (oldIndex != -1) {
         this._children.splice(oldIndex, 1);
-        wasAlreadyInThisGroup = true;
+        wasAlreadyInThisGroupItem = true;
       }
 
       
@@ -631,11 +631,11 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
       this._children.splice(index, 0, item);
 
       item.setZ(this.getZ() + 1);
-      $el.addClass("tabInGroup");
+      $el.addClass("tabInGroupItem");
 
-      if (!wasAlreadyInThisGroup) {
+      if (!wasAlreadyInThisGroupItem) {
         item.droppable(false);
-        item.groupData = {};
+        item.groupItemData = {};
 
         item.addSubscriber(this, "close", function() {
           self.remove($el);
@@ -647,7 +647,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
           item.setResizable(false);
 
         if (item.tab == gBrowser.selectedTab)
-          Groups.setActiveGroup(this);
+          GroupItems.setActiveGroupItem(this);
       }
 
       if (!options.dontArrange) {
@@ -660,7 +660,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
         this._nextNewTabCallback = null;
       }
     } catch(e) {
-      Utils.log('Group.add error', e);
+      Utils.log('GroupItem.add error', e);
     }
   },
 
@@ -693,7 +693,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
         this._children.splice(index, 1);
 
       item.setParent(null);
-      item.removeClass("tabInGroup");
+      item.removeClass("tabInGroupItem");
       item.removeClass("stacked");
       item.removeClass("stack-trayed");
       item.setRotation(0);
@@ -985,7 +985,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
 
 
 
-    Groups.setActiveGroup(self);
+    GroupItems.setActiveGroupItem(self);
     return { shouldZoom: true };
 
     
@@ -995,7 +995,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
   expand: function() {
     var self = this;
     
-    Groups.setActiveGroup(self);
+    GroupItems.setActiveGroupItem(self);
     var startBounds = this.getChild(0).getBounds();
     var $tray = iQ("<div>").css({
       top: startBounds.top,
@@ -1194,7 +1194,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   newTab: function(url) {
-    Groups.setActiveGroup(this);
+    GroupItems.setActiveGroupItem(this);
     let newTab = gBrowser.loadOneTab(url || "about:blank", {inBackground: true});
 
     
@@ -1210,7 +1210,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
 
     var self = this;
     var doNextTab = function(tab) {
-      var group = Groups.getActiveGroup();
+      var groupItem = GroupItems.getActiveGroupItem();
 
       iQ(tab.container).css({opacity: 0});
       var $anim = iQ("<div>")
@@ -1251,8 +1251,8 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
                 
                 
                 Utils.timeout(function() {
-                  self._sendToSubscribers("tabAdded", { groupId: self.id });
-                  Groups.updateTabBarForActiveGroup();
+                  self._sendToSubscribers("tabAdded", { groupItemId: self.id });
+                  GroupItems.updateTabBarForActiveGroupItem();
                 }, 1);
               }
             });
@@ -1360,8 +1360,8 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
 
 
 
-window.Groups = {
-  groups: [],
+window.GroupItems = {
+  groupItems: [],
   nextID: 1,
   _inited: false,
 
@@ -1379,9 +1379,9 @@ window.Groups = {
   
   
   getStorageData: function() {
-    var data = {nextID: this.nextID, groups: []};
-    this.groups.forEach(function(group) {
-      data.groups.push(group.getStorageData());
+    var data = {nextID: this.nextID, groupItems: []};
+    this.groupItems.forEach(function(groupItem) {
+      data.groupItems.push(groupItem.getStorageData());
     });
 
     return data;
@@ -1392,8 +1392,8 @@ window.Groups = {
   
   saveAll: function() {
     this.save();
-    this.groups.forEach(function(group) {
-      group.save();
+    this.groupItems.forEach(function(groupItem) {
+      groupItem.save();
     });
   },
 
@@ -1404,13 +1404,13 @@ window.Groups = {
     if (!this._inited) 
       return;
 
-    Storage.saveGroupsData(gWindow, {nextID:this.nextID});
+    Storage.saveGroupItemsData(gWindow, {nextID:this.nextID});
   },
 
   
   
   
-  getBoundingBox: function Groups_getBoundingBox(els) {
+  getBoundingBox: function GroupItems_getBoundingBox(els) {
     var el, b;
     var bounds = [iQ(el).bounds() for each (el in els)];
     var left   = Math.min.apply({},[ b.left   for each (b in bounds) ]);
@@ -1425,20 +1425,20 @@ window.Groups = {
   
   
   
-  reconstitute: function(groupsData, groupData) {
+  reconstitute: function(groupItemsData, groupItemData) {
     try {
-      if (groupsData && groupsData.nextID)
-        this.nextID = groupsData.nextID;
+      if (groupItemsData && groupItemsData.nextID)
+        this.nextID = groupItemsData.nextID;
 
-      if (groupData) {
-        for (var id in groupData) {
-          var group = groupData[id];
-          if (this.groupStorageSanity(group)) {
+      if (groupItemData) {
+        for (var id in groupItemData) {
+          var groupItem = groupItemData[id];
+          if (this.groupItemStorageSanity(groupItem)) {
             var options = {
               dontPush: true
             };
 
-            new Group([], Utils.extend({}, group, options));
+            new GroupItem([], Utils.extend({}, groupItem, options));
           }
         }
       }
@@ -1453,11 +1453,11 @@ window.Groups = {
   
   
   
-  groupStorageSanity: function(groupData) {
+  groupItemStorageSanity: function(groupItemData) {
     
     var sane = true;
-    if (!Utils.isRect(groupData.bounds)) {
-      Utils.log('Groups.groupStorageSanity: bad bounds', groupData.bounds);
+    if (!Utils.isRect(groupItemData.bounds)) {
+      Utils.log('GroupItems.groupItemStorageSanity: bad bounds', groupItemData.bounds);
       sane = false;
     }
 
@@ -1469,11 +1469,11 @@ window.Groups = {
   
   
   
-  getGroupWithTitle: function(title) {
+  getGroupItemWithTitle: function(title) {
     var result = null;
-    this.groups.forEach(function(group) {
-      if (group.getTitle() == title) {
-        result = group;
+    this.groupItems.forEach(function(groupItem) {
+      if (groupItem.getTitle() == title) {
+        result = groupItem;
         return false;
       }
     });
@@ -1484,31 +1484,31 @@ window.Groups = {
   
   
   
-  register: function(group) {
-    Utils.assert('group', group);
-    Utils.assert('only register once per group', this.groups.indexOf(group) == -1);
-    this.groups.push(group);
+  register: function(groupItem) {
+    Utils.assert('groupItem', groupItem);
+    Utils.assert('only register once per groupItem', this.groupItems.indexOf(groupItem) == -1);
+    this.groupItems.push(groupItem);
   },
 
   
   
   
-  unregister: function(group) {
-    var index = this.groups.indexOf(group);
+  unregister: function(groupItem) {
+    var index = this.groupItems.indexOf(groupItem);
     if (index != -1)
-      this.groups.splice(index, 1);
+      this.groupItems.splice(index, 1);
 
-    if (group == this._activeGroup)
-      this._activeGroup = null;
+    if (groupItem == this._activeGroupItem)
+      this._activeGroupItem = null;
   },
 
   
   
   
   
-  group: function(a) {
+  groupItem: function(a) {
     var result = null;
-    this.groups.forEach(function(candidate) {
+    this.groupItems.forEach(function(candidate) {
       if (candidate.id == a) {
         result = candidate;
         return false;
@@ -1523,7 +1523,9 @@ window.Groups = {
   
   arrange: function() {
     var bounds = Items.getPageBounds();
-    var count = this.groups.length - 1;
+    bounds.bottom -= 20; 
+    
+    var count = this.groupItems.length - 1;
     var columns = Math.ceil(Math.sqrt(count));
     var rows = ((columns * columns) - count >= columns ? columns - 1 : columns);
     var padding = 12;
@@ -1534,13 +1536,13 @@ window.Groups = {
     var box = new Rect(startX, startY,
         (totalWidth / columns) - padding,
         (totalHeight / rows) - padding);
-
+        
     var i = 0;
-    this.groups.forEach(function(group) {
-      if (group.locked.bounds)
+    this.groupItems.forEach(function(groupItem) {
+      if (groupItem.locked.bounds)
         return;
 
-      group.setBounds(box, true);
+      groupItem.setBounds(box, true);
 
       box.left += box.width + padding;
       i++;
@@ -1555,9 +1557,9 @@ window.Groups = {
   
   
   removeAll: function() {
-    var toRemove = this.groups.concat();
-    toRemove.forEach(function(group) {
-      group.removeAll();
+    var toRemove = this.groupItems.concat();
+    toRemove.forEach(function(groupItem) {
+      groupItem.removeAll();
     });
   },
 
@@ -1565,19 +1567,19 @@ window.Groups = {
   
   
   newTab: function(tabItem) {
-    let group = this.getActiveGroup();
+    let groupItem = this.getActiveGroupItem();
     let orphanTab = this.getActiveOrphanTab();
 
-    if (group) {
-    	group.add(tabItem);
+    if (groupItem) {
+    	groupItem.add(tabItem);
     } else if ( orphanTab ) {
-			let newGroupBounds = orphanTab.getBoundsWithTitle();
-			newGroupBounds.inset(-40,-40);
+			let newGroupItemBounds = orphanTab.getBoundsWithTitle();
+			newGroupItemBounds.inset(-40,-40);
 
-			let newGroup = new Group([orphanTab, tabItem], {bounds: newGroupBounds});
-			newGroup.snap();
+			let newGroupItem = new GroupItem([orphanTab, tabItem], {bounds: newGroupItemBounds});
+			newGroupItem.snap();
 
-			this.setActiveGroup(newGroup);
+			this.setActiveGroupItem(newGroupItem);
 
     } else {
       this.positionNewTabAtBottom(tabItem);
@@ -1607,8 +1609,8 @@ window.Groups = {
   
   
   
-  getActiveGroup: function() {
-    return this._activeGroup;
+  getActiveGroupItem: function() {
+    return this._activeGroupItem;
   },
 
   
@@ -1620,9 +1622,9 @@ window.Groups = {
   
   
   
-  setActiveGroup: function(group) {
-    this._activeGroup = group;
-    this.updateTabBarForActiveGroup();
+  setActiveGroupItem: function(groupItem) {
+    this._activeGroupItem = groupItem;
+    this.updateTabBarForActiveGroupItem();
 		
     this.setActiveOrphanTab(null);
   },
@@ -1648,12 +1650,12 @@ window.Groups = {
   
   
   
-  updateTabBarForActiveGroup: function() {
+  updateTabBarForActiveGroupItem: function() {
     if (!window.UI)
       return; 
 
-    let tabItems = this._activeGroup == null ? this.getOrphanedTabs() :
-      this._activeGroup._children;
+    let tabItems = this._activeGroupItem == null ? this.getOrphanedTabs() :
+      this._activeGroupItem._children;
     gBrowser.showOnlyTheseTabs(tabItems.map(function(item) item.tab));
   },
 
@@ -1673,18 +1675,18 @@ window.Groups = {
   
   
   
-  getNextGroupTab: function(reverse) {
-    var groups = Groups.groups.map(function(group) group);
-    var activeGroup = Groups.getActiveGroup();
+  getNextGroupItemTab: function(reverse) {
+    var groupItems = GroupItems.groupItems.map(function(groupItem) groupItem);
+    var activeGroupItem = GroupItems.getActiveGroupItem();
     var tabItem = null;
 
-    if (!activeGroup) {
-      if (groups.length > 0) {
+    if (!activeGroupItem) {
+      if (groupItems.length > 0) {
         if (reverse)
-          groups = groups.reverse();
+          groupItems = groupItems.reverse();
 
-        groups.some(function(group) {
-          var child = group.getChild(0);
+        groupItems.some(function(groupItem) {
+          var child = groupItem.getChild(0);
           if (child) {
             tabItem = child;
             return true;
@@ -1693,32 +1695,32 @@ window.Groups = {
       }
     } else {
       if (reverse)
-        groups = groups.reverse();
+        groupItems = groupItems.reverse();
 
       var currentIndex;
-      groups.some(function(group, index) {
-        if (group == activeGroup) {
+      groupItems.some(function(groupItem, index) {
+        if (groupItem == activeGroupItem) {
           currentIndex = index;
           return true;
         }
       });
-      var firstGroups = groups.slice(currentIndex + 1);
-      firstGroups.some(function(group) {
-        var child = group.getChild(0);
+      var firstGroupItems = groupItems.slice(currentIndex + 1);
+      firstGroupItems.some(function(groupItem) {
+        var child = groupItem.getChild(0);
         if (child) {
           tabItem = child;
           return true;
         }
       });
       if (!tabItem) {
-        var orphanedTabs = Groups.getOrphanedTabs();
+        var orphanedTabs = GroupItems.getOrphanedTabs();
         if (orphanedTabs.length > 0)
           tabItem = orphanedTabs[0];
       }
       if (!tabItem) {
-        var secondGroups = groups.slice(0, currentIndex);
-        secondGroups.some(function(group) {
-          var child = group.getChild(0);
+        var secondGroupItems = groupItems.slice(0, currentIndex);
+        secondGroupItems.some(function(groupItem) {
+          var child = groupItem.getChild(0);
           if (child) {
             tabItem = child;
             return true;
@@ -1734,10 +1736,10 @@ window.Groups = {
   
   
   
-  moveTabToGroup : function(tab, groupId) {
+  moveTabToGroupItem : function(tab, groupItemId) {
     Utils.log("move to tab")
     let shouldUpdateTabBar = false;
-    let group;
+    let groupItem;
 
     
     if (gBrowser.selectedTab == tab) {
@@ -1760,10 +1762,10 @@ window.Groups = {
       tab.tabItem.parent.remove(tab.tabItem);
 
     
-    if (groupId) {
-      group = Groups.group(groupId);
-      group.add(tab.tabItem);
-      UI.setReorderTabItemsOnShow(group);
+    if (groupItemId) {
+      groupItem = GroupItems.groupItem(groupItemId);
+      groupItem.add(tab.tabItem);
+      UI.setReorderTabItemsOnShow(groupItem);
     } else {
       let pageBounds = Items.getPageBounds();
       pageBounds.inset(20, 20);
@@ -1772,11 +1774,11 @@ window.Groups = {
       box.width = 250;
       box.height = 200;
 
-      new Group([ tab.tabItem ], { bounds: box });
+      new GroupItem([ tab.tabItem ], { bounds: box });
     }
 
     if (shouldUpdateTabBar)
-      this.updateTabBarForActiveGroup();
+      this.updateTabBarForActiveGroupItem();
     else {
       tab.tabItem.setZoomPrep(false);
       UI.showTabView();

@@ -125,8 +125,8 @@ var UIManager = {
         
         
         
-        Groups.groups.forEach(function(group) {
-          self._reorderTabsOnHide.push(group);
+        GroupItems.groupItems.forEach(function(groupItem) {
+          self._reorderTabsOnHide.push(groupItem);
         });
       }
     } catch(e) {
@@ -157,7 +157,7 @@ var UIManager = {
           });
         }
         if (e.originalTarget.id == "content")
-          self._createGroupOnDrag(e)
+          self._createGroupItemOnDrag(e)
       });
 
       iQ(window).bind("beforeunload", function() {
@@ -180,10 +180,10 @@ var UIManager = {
 
       
 
-      var groupsData = Storage.readGroupsData(gWindow);
-      var firstTime = !groupsData || Utils.isEmptyObject(groupsData);
-      var groupData = Storage.readGroupData(gWindow);
-      Groups.reconstitute(groupsData, groupData);
+      var groupItemsData = Storage.readGroupItemsData(gWindow);
+      var firstTime = !groupItemsData || Utils.isEmptyObject(groupItemsData);
+      var groupItemData = Storage.readGroupItemData(gWindow);
+      GroupItems.reconstitute(groupItemsData, groupItemData);
 
       if (firstTime) {
         var padding = 10;
@@ -201,14 +201,14 @@ var UIManager = {
           bounds: box
         };
 
-        var group = new Group([], options);
+        var groupItem = new GroupItem([], options);
 
         var items = TabItems.getItems();
         items.forEach(function(item) {
           if (item.parent)
             item.parent.remove(item);
 
-          group.add(item);
+          groupItem.add(item);
         });
 
         
@@ -322,8 +322,8 @@ var UIManager = {
     var currentTab = this._currentTab;
     var item = null;
 
-    this._reorderTabItemsOnShow.forEach(function(group) {
-      group.reorderTabItemsBasedOnTabOrder();
+    this._reorderTabItemsOnShow.forEach(function(groupItem) {
+      groupItem.reorderTabItemsBasedOnTabOrder();
     });
     this._reorderTabItemsOnShow = [];
 
@@ -350,11 +350,11 @@ var UIManager = {
 
         self.setActiveTab(item);
 
-        var activeGroup = Groups.getActiveGroup();
-        if (activeGroup)
-          activeGroup.setTopChild(item);
+        var activeGroupItem = GroupItems.getActiveGroupItem();
+        if (activeGroupItem)
+          activeGroupItem.setTopChild(item);
 
-        window.Groups.setActiveGroup(null);
+        window.GroupItems.setActiveGroupItem(null);
         self._resize(true);
         dispatchEvent(event);
       });
@@ -373,8 +373,8 @@ var UIManager = {
 
     TabItems.pausePainting();
 
-    this._reorderTabsOnHide.forEach(function(group) {
-      group.reorderTabsBasedOnTabItemOrder();
+    this._reorderTabsOnHide.forEach(function(groupItem) {
+      groupItem.reorderTabsBasedOnTabItemOrder();
     });
     this._reorderTabsOnHide = [];
 
@@ -430,7 +430,7 @@ var UIManager = {
       } else {
         
         if (gBrowser.tabs.length > 1) {
-          var group = Groups.getActiveGroup();
+          var groupItem = GroupItems.getActiveGroupItem();
 
           
           
@@ -439,8 +439,8 @@ var UIManager = {
           
           
           
-          if ((group && group._children.length == 1) ||
-              (group == null && gBrowser.visibleTabs.length == 1)) {
+          if ((groupItem && groupItem._children.length == 1) ||
+              (groupItem == null && gBrowser.visibleTabs.length == 1)) {
             
             self._closedLastVisibleTab = true;
             
@@ -452,8 +452,8 @@ var UIManager = {
           
           
           Utils.timeout(function() { 
-            if ((group && group._children.length > 0) ||
-              (group == null && gBrowser.visibleTabs.length > 0))
+            if ((groupItem && groupItem._children.length > 0) ||
+              (groupItem == null && gBrowser.visibleTabs.length > 0))
               self.hideTabView();
           }, 1);
         }
@@ -466,9 +466,9 @@ var UIManager = {
         return;
 
       Utils.timeout(function() { 
-        var activeGroup = Groups.getActiveGroup();
-        if (activeGroup)
-          self.setReorderTabItemsOnShow(activeGroup);
+        var activeGroupItem = GroupItems.getActiveGroupItem();
+        if (activeGroupItem)
+          self.setReorderTabItemsOnShow(activeGroupItem);
       }, 1);
     });
 
@@ -525,7 +525,7 @@ var UIManager = {
       var newItem = null;
       if (focusTab && focusTab.tabItem) {
         newItem = focusTab.tabItem;
-        Groups.setActiveGroup(newItem.parent);
+        GroupItems.setActiveGroupItem(newItem.parent);
       }
 
       
@@ -556,11 +556,11 @@ var UIManager = {
   
   
   
-  setReorderTabsOnHide: function(group) {
+  setReorderTabsOnHide: function(groupItem) {
     if (this._isTabViewVisible()) {
-      var index = this._reorderTabsOnHide.indexOf(group);
+      var index = this._reorderTabsOnHide.indexOf(groupItem);
       if (index == -1)
-        this._reorderTabsOnHide.push(group);
+        this._reorderTabsOnHide.push(groupItem);
     }
   },
 
@@ -570,11 +570,11 @@ var UIManager = {
   
   
   
-  setReorderTabItemsOnShow: function(group) {
+  setReorderTabItemsOnShow: function(groupItem) {
     if (!this._isTabViewVisible()) {
-      var index = this._reorderTabItemsOnShow.indexOf(group);
+      var index = this._reorderTabItemsOnShow.indexOf(groupItem);
       if (index == -1)
-        this._reorderTabItemsOnShow.push(group);
+        this._reorderTabItemsOnShow.push(groupItem);
     }
   },
 
@@ -610,7 +610,7 @@ var UIManager = {
           (charCode == 96 || charCode == 126)) {
         event.stopPropagation();
         event.preventDefault();
-        var tabItem = Groups.getNextGroupTab(event.shiftKey);
+        var tabItem = GroupItems.getNextGroupItemTab(event.shiftKey);
         if (tabItem)
           gBrowser.selectedTab = tabItem.tab;
       }
@@ -706,7 +706,7 @@ var UIManager = {
         var activeTab = self.getActiveTab();
         if (activeTab) {
           var tabItems = (activeTab.parent ? activeTab.parent.getChildren() :
-                          Groups.getOrphanedTabs());
+                          GroupItems.getOrphanedTabs());
           var length = tabItems.length;
           var currentIndex = tabItems.indexOf(activeTab);
 
@@ -735,13 +735,13 @@ var UIManager = {
   
   
   
-  _createGroupOnDrag: function(e) {
+  _createGroupItemOnDrag: function(e) {
     const minSize = 60;
     const minMinSize = 15;
 
     var startPos = { x: e.clientX, y: e.clientY };
     var phantom = iQ("<div>")
-      .addClass("group phantom")
+      .addClass("groupItem phantom")
       .css({
         position: "absolute",
         opacity: .7,
@@ -831,14 +831,14 @@ var UIManager = {
 
         
         
-        var tabs = Groups.getOrphanedTabs();
+        var tabs = GroupItems.getOrphanedTabs();
         var insideTabs = [];
         for each(tab in tabs) {
           if (bounds.contains(tab.bounds))
             insideTabs.push(tab);
         }
 
-        var group = new Group(insideTabs,{bounds:bounds});
+        var groupItem = new GroupItem(insideTabs,{bounds:bounds});
         phantom.remove();
         dragOutInfo = null;
       }
@@ -1056,7 +1056,7 @@ var UIManager = {
   
   _saveAll: function() {
     this._save();
-    Groups.saveAll();
+    GroupItems.saveAll();
     TabItems.saveAll();
   },
 
@@ -1065,50 +1065,49 @@ var UIManager = {
   
   
   _arrangeBySite: function() {
-    function putInGroup(set, key) {
-      var group = Groups.getGroupWithTitle(key);
-      if (group) {
+    function putInGroupItem(set, key) {
+      var groupItem = GroupItems.getGroupItemWithTitle(key);
+      if (groupItem) {
         set.forEach(function(el) {
-          group.add(el);
+          groupItem.add(el);
         });
       } else
-        new Group(set, { dontPush: true, dontArrange: true, title: key });
+        new GroupItem(set, { dontPush: true, dontArrange: true, title: key });
     }
 
-    Groups.removeAll();
+    GroupItems.removeAll();
 
-    var newTabsGroup = Groups.getNewTabGroup();
-    var groups = [];
+    var groupItems = [];
+    var leftovers = [];
     var items = TabItems.getItems();
     items.forEach(function(item) {
       var url = item.tab.linkedBrowser.currentURI.spec;
       var domain = url.split('/')[2];
 
       if (!domain)
-        newTabsGroup.add(item);
+        leftovers.push(item.container);
       else {
         var domainParts = domain.split(".");
         var mainDomain = domainParts[domainParts.length - 2];
-        if (groups[mainDomain])
-          groups[mainDomain].push(item.container);
+        if (groupItems[mainDomain])
+          groupItems[mainDomain].push(item.container);
         else
-          groups[mainDomain] = [item.container];
+          groupItems[mainDomain] = [item.container];
       }
     });
 
-    var leftovers = [];
-    for (key in groups) {
-      var set = groups[key];
+    for (key in groupItems) {
+      var set = groupItems[key];
       if (set.length > 1) {
-        putInGroup(set, key);
+        putInGroupItem(set, key);
       } else
         leftovers.push(set[0]);
     }
 
     if (leftovers.length)
-      putInGroup(leftovers, "mixed");
+      putInGroupItem(leftovers, "mixed");
 
-    Groups.arrange();
+    GroupItems.arrange();
   },
 };
 
@@ -1118,7 +1117,7 @@ Profile.wrap(UIManager, "UIManager");
 Profile.wrap(Storage, "Storage");
 Profile.wrap(Items, "Items");
 Profile.wrap(TabItems, "TabItems");
-Profile.wrap(Groups, "Groups");
+Profile.wrap(GroupItems, "GroupItems");
 
 window.UI = UIManager;
 window.UI.init();
