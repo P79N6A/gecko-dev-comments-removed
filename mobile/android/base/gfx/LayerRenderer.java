@@ -539,7 +539,7 @@ public class LayerRenderer {
             
             RectF untransformedPageRect = new RectF(0.0f, 0.0f, mPageRect.width(),
                                                     mPageRect.height());
-            if (!untransformedPageRect.contains(mView.getController().getViewport()))
+            if (!untransformedPageRect.contains(mFrameMetrics.getViewport()))
                 mShadowLayer.draw(mPageContext);
 
             
