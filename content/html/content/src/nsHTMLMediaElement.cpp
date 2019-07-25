@@ -39,6 +39,7 @@
 #include "nsIDOMHTMLMediaElement.h"
 #include "nsIDOMHTMLSourceElement.h"
 #include "nsHTMLMediaElement.h"
+#include "nsTimeRanges.h"
 #include "nsGenericHTMLElement.h"
 #include "nsPresContext.h"
 #include "nsIPresShell.h"
@@ -1091,16 +1092,6 @@ NS_IMETHODIMP nsHTMLMediaElement::SetCurrentTime(double aCurrentTime)
 {
   StopSuspendingAfterFirstFrame();
 
-  if (mCurrentPlayRangeStart != -1) {
-    double oldCurrentTime = 0;
-    GetCurrentTime(&oldCurrentTime);
-    LOG(PR_LOG_DEBUG, ("Adding a range: [%f, %f]", mCurrentPlayRangeStart, oldCurrentTime));
-    
-    if (mCurrentPlayRangeStart != oldCurrentTime) {
-      mPlayed.Add(mCurrentPlayRangeStart, oldCurrentTime);
-    }
-  }
-
   if (!mDecoder) {
     LOG(PR_LOG_DEBUG, ("%p SetCurrentTime(%f) failed: no decoder", this, aCurrentTime));
     return NS_ERROR_DOM_INVALID_STATE_ERR;
@@ -1131,9 +1122,6 @@ NS_IMETHODIMP nsHTMLMediaElement::SetCurrentTime(double aCurrentTime)
   nsresult rv = mDecoder->Seek(clampedTime);
 
   
-  mCurrentPlayRangeStart = clampedTime;
-
-  
   AddRemoveSelfReference();
 
   return rv;
@@ -1151,35 +1139,6 @@ NS_IMETHODIMP nsHTMLMediaElement::GetPaused(PRBool *aPaused)
 {
   *aPaused = mPaused;
 
-  return NS_OK;
-}
-
-
-NS_IMETHODIMP nsHTMLMediaElement::GetPlayed(nsIDOMTimeRanges** aPlayed)
-{
-  nsRefPtr<nsTimeRanges> ranges = new nsTimeRanges();
-
-  PRUint32 timeRangeCount = 0;
-  mPlayed.GetLength(&timeRangeCount);
-  for (PRUint32 i = 0; i < timeRangeCount; i++) {
-    double begin;
-    double end;
-    mPlayed.Start(i, &begin);
-    mPlayed.End(i, &end);
-    ranges->Add(begin, end);
-  }
-
-  if (mCurrentPlayRangeStart != -1.0) {
-    double now = 0.0;
-    GetCurrentTime(&now);
-    if (mCurrentPlayRangeStart != now) {
-      ranges->Add(mCurrentPlayRangeStart, now);
-    }
-  }
-
-  ranges->Normalize();
-
-  ranges.forget(aPlayed);
   return NS_OK;
 }
 
@@ -1321,7 +1280,6 @@ nsHTMLMediaElement::nsHTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo,
     mMediaSize(-1,-1),
     mLastCurrentTime(0.0),
     mAllowAudioData(PR_FALSE),
-    mCurrentPlayRangeStart(-1.0),
     mBegun(PR_FALSE),
     mLoadedFirstFrame(PR_FALSE),
     mAutoplaying(PR_TRUE),
@@ -1420,10 +1378,6 @@ NS_IMETHODIMP nsHTMLMediaElement::Play()
       nsresult rv = mDecoder->Play();
       NS_ENSURE_SUCCESS(rv, rv);
     }
-  }
-
-  if (mCurrentPlayRangeStart == -1.0) {
-    GetCurrentTime(&mCurrentPlayRangeStart);
   }
 
   
@@ -2079,13 +2033,6 @@ void nsHTMLMediaElement::PlaybackEnded()
   NS_ASSERTION(mDecoder->IsEnded(), "Decoder fired ended, but not in ended state");
   
   AddRemoveSelfReference();
-
-  double end = 0.0;
-  GetCurrentTime(&end);
-  if (mCurrentPlayRangeStart != end) {
-    mPlayed.Add(mCurrentPlayRangeStart, end);
-  }
-  mCurrentPlayRangeStart = -1.0;
 
   if (mDecoder && mDecoder->IsInfinite()) {
     LOG(PR_LOG_DEBUG, ("%p, got duration by reaching the end of the stream", this));
