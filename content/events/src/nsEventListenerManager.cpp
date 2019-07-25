@@ -405,7 +405,7 @@ nsEventListenerManager::SetJSEventListener(nsIScriptContext *aContext,
   if (!ls) {
     
     
-    nsCOMPtr<nsIDOMEventListener> scriptListener;
+    nsCOMPtr<nsIJSEventListener> scriptListener;
     rv = NS_NewJSEventListener(aContext, aScopeObject, mTarget, aName,
                                aHandler, getter_AddRefs(scriptListener));
     if (NS_SUCCEEDED(rv)) {
