@@ -49,6 +49,9 @@ const kDoubleClickInterval = 400;
 const kDoubleClickRadius = 0.4;
 
 
+const kOverTapWait = 150;
+
+
 const kLongTapWait = 500;
 
 
@@ -102,6 +105,7 @@ function MouseModule() {
                                         this._kineticStop.bind(this));
 
   this._singleClickTimeout = new Util.Timeout(this._doSingleClick.bind(this));
+  this._mouseOverTimeout = new Util.Timeout(this._doMouseOver.bind(this));
   this._longClickTimeout = new Util.Timeout(this._doLongClick.bind(this));
 
   this._doubleClickRadius = Util.getWindowUtils(window).displayDPI * kDoubleClickRadius;
@@ -207,6 +211,7 @@ MouseModule.prototype = {
     if (success) {
       this._recordEvent(aEvent);
       this._target = aEvent.target;
+      this._mouseOverTimeout.once(kOverTapWait);
       this._longClickTimeout.once(kLongTapWait);
     } else {
       
@@ -266,6 +271,7 @@ MouseModule.prototype = {
       }
     }
 
+    this._mouseOverTimeout.clear();
     this._longClickTimeout.clear();
     this._target = null;
 
@@ -303,6 +309,7 @@ MouseModule.prototype = {
 
         
         if (!oldIsPan && dragData.isPan()) {
+          this._mouseOverTimeout.clear();
           this._longClickTimeout.clear();
 
           let event = document.createEvent("Events");
@@ -402,6 +409,12 @@ MouseModule.prototype = {
   },
 
   
+  _doMouseOver: function _doMouseOver() {
+    let ev = this._downUpEvents[0];
+    this._dispatchTap("TapOver", ev);
+  },
+
+  
   _doLongClick: function _doLongClick() {
     let ev = this._downUpEvents[0];
     this._suppressNextMouseUp = true;
@@ -480,6 +493,7 @@ MouseModule.prototype = {
 
   _cleanClickBuffer: function _cleanClickBuffer() {
     this._singleClickTimeout.clear();
+    this._mouseOverTimeout.clear();
     this._longClickTimeout.clear();
     this._downUpEvents.splice(0);
   },
