@@ -46,9 +46,6 @@
 
 JS_BEGIN_EXTERN_C
 
-extern JS_FRIEND_API(void)
-JS_SetGrayGCRootsTracer(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
-
 extern JS_FRIEND_API(JSString *)
 JS_GetAnonymousString(JSRuntime *rt);
 
@@ -59,7 +56,7 @@ extern JS_FRIEND_API(JSFunction *)
 JS_GetObjectFunction(JSObject *obj);
 
 extern JS_FRIEND_API(JSObject *)
-JS_GetGlobalForFrame(JSStackFrame *fp);
+JS_GetFrameScopeChainRaw(JSStackFrame *fp);
 
 extern JS_FRIEND_API(JSBool)
 JS_SplicePrototype(JSContext *cx, JSObject *obj, JSObject *proto);
@@ -70,9 +67,6 @@ JS_NewObjectWithUniqueType(JSContext *cx, JSClass *clasp, JSObject *proto, JSObj
 extern JS_FRIEND_API(uint32)
 JS_ObjectCountDynamicSlots(JSObject *obj);
 
-extern JS_FRIEND_API(void)
-JS_ShrinkingGC(JSContext *cx);
-
 extern JS_FRIEND_API(size_t)
 JS_GetE4XObjectsCreated(JSContext *cx);
 
@@ -81,30 +75,6 @@ JS_SetProtoCalled(JSContext *cx);
 
 extern JS_FRIEND_API(size_t)
 JS_GetCustomIteratorCount(JSContext *cx);
-
-extern JS_FRIEND_API(JSBool)
-JS_NondeterministicGetWeakMapKeys(JSContext *cx, JSObject *obj, JSObject **ret);
-
-enum {
-    JS_TELEMETRY_GC_REASON,
-    JS_TELEMETRY_GC_IS_COMPARTMENTAL,
-    JS_TELEMETRY_GC_IS_SHAPE_REGEN,
-    JS_TELEMETRY_GC_MS,
-    JS_TELEMETRY_GC_MARK_MS,
-    JS_TELEMETRY_GC_SWEEP_MS
-};
-
-typedef void
-(* JSAccumulateTelemetryDataCallback)(int id, JSUint32 sample);
-
-extern JS_FRIEND_API(void)
-JS_SetAccumulateTelemetryCallback(JSRuntime *rt, JSAccumulateTelemetryDataCallback callback);
-
-typedef void
-(* JSGCFinishedCallback)(JSRuntime *rt, JSCompartment *comp, const char *description);
-
-extern JS_FRIEND_API(void)
-JS_SetGCFinishedCallback(JSRuntime *rt, JSGCFinishedCallback callback);
 
 
 typedef struct TypeInferenceMemoryStats
@@ -118,13 +88,11 @@ typedef struct TypeInferenceMemoryStats
 
 extern JS_FRIEND_API(void)
 JS_GetTypeInferenceMemoryStats(JSContext *cx, JSCompartment *compartment,
-                               TypeInferenceMemoryStats *stats,
-                               JSMallocSizeOfFun mallocSizeOf);
+                               TypeInferenceMemoryStats *stats);
 
 extern JS_FRIEND_API(void)
 JS_GetTypeInferenceObjectStats( void *object,
-                               TypeInferenceMemoryStats *stats,
-                               JSMallocSizeOfFun mallocSizeOf);
+                               TypeInferenceMemoryStats *stats);
 
 extern JS_FRIEND_API(JSPrincipals *)
 JS_GetCompartmentPrincipals(JSCompartment *compartment);
@@ -162,16 +130,6 @@ JS_END_EXTERN_C
 
 namespace js {
 
-#ifdef DEBUG
- 
-
-
-
-extern JS_FRIEND_API(void)
-DumpHeapComplete(JSContext *cx, FILE *fp);
-
-#endif
-
 class JS_FRIEND_API(AutoPreserveCompartment) {
   private:
     JSContext *cx;
@@ -208,30 +166,6 @@ JS_FRIEND_API(JSBool) obj_defineSetter(JSContext *cx, uintN argc, js::Value *vp)
 extern JS_FRIEND_API(bool)
 CheckUndeclaredVarAssignment(JSContext *cx, JSString *propname);
 
-struct WeakMapTracer;
-
-
-
-
-
-
-
-typedef void
-(* WeakMapTraceCallback)(WeakMapTracer *trc, JSObject *m,
-                         void *k, JSGCTraceKind kkind,
-                         void *v, JSGCTraceKind vkind);
-
-struct WeakMapTracer {
-    JSContext            *context;
-    WeakMapTraceCallback callback;
-
-    WeakMapTracer(JSContext *cx, WeakMapTraceCallback cb) 
-        : context(cx), callback(cb) {}
-};
-
-extern JS_FRIEND_API(void)
-TraceWeakMaps(WeakMapTracer *trc);
-
 
 
 
@@ -244,15 +178,21 @@ struct TypeObject {
     JSObject    *proto;
 };
 
-struct Object {
-    void        *_1;
+struct BaseShape {
     js::Class   *clasp;
+};
+
+struct Shape {
+    BaseShape   *base;
+};
+
+struct Object {
+    Shape       *lastProp;
     uint32      flags;
-    uint32      objShape;
     void        *_2;
     JSObject    *parent;
     void        *privateData;
-    jsuword     capacity;
+    jsuword     _3;
     js::Value   *slots;
     TypeObject  *type;
 
@@ -284,7 +224,7 @@ extern JS_FRIEND_DATA(js::Class) XMLClass;
 inline js::Class *
 GetObjectClass(const JSObject *obj)
 {
-    return reinterpret_cast<const shadow::Object*>(obj)->clasp;
+    return reinterpret_cast<const shadow::Object*>(obj)->lastProp->base->clasp;
 }
 
 inline JSClass *
@@ -311,20 +251,10 @@ GetObjectPrivate(const JSObject *obj)
     return reinterpret_cast<const shadow::Object*>(obj)->privateData;
 }
 
-inline JSObject *
-GetObjectGlobal(JSObject *obj)
-{
-    while (JSObject *parent = GetObjectParent(obj))
-        obj = parent;
-    return obj;
-}
-
 #ifdef DEBUG
 extern JS_FRIEND_API(void) CheckReservedSlot(const JSObject *obj, size_t slot);
-extern JS_FRIEND_API(void) CheckSlot(const JSObject *obj, size_t slot);
 #else
 inline void CheckReservedSlot(const JSObject *obj, size_t slot) {}
-inline void CheckSlot(const JSObject *obj, size_t slot) {}
 #endif
 
 
@@ -345,25 +275,6 @@ SetReservedSlot(JSObject *obj, size_t slot, const Value &value)
     reinterpret_cast<shadow::Object *>(obj)->slotRef(slot) = value;
 }
 
-inline uint32
-GetNumSlots(const JSObject *obj)
-{
-    return uint32(reinterpret_cast<const shadow::Object *>(obj)->capacity);
-}
-
-inline const Value &
-GetSlot(const JSObject *obj, size_t slot)
-{
-    CheckSlot(obj, slot);
-    return reinterpret_cast<const shadow::Object *>(obj)->slotRef(slot);
-}
-
-inline uint32
-GetObjectShape(const JSObject *obj)
-{
-    return reinterpret_cast<const shadow::Object*>(obj)->objShape;
-}
-
 static inline js::PropertyOp
 CastAsJSPropertyOp(JSObject *object)
 {
@@ -379,9 +290,6 @@ CastAsJSStrictPropertyOp(JSObject *object)
 JS_FRIEND_API(bool)
 GetPropertyNames(JSContext *cx, JSObject *obj, uintN flags, js::AutoIdVector *props);
 
-JS_FRIEND_API(bool)
-StringIsArrayIndex(JSLinearString *str, jsuint *indexp);
-
 
 
 
@@ -392,6 +300,9 @@ StringIsArrayIndex(JSLinearString *str, jsuint *indexp);
 #define JSITER_KEYVALUE   0x4   /* destructuring for-in wants [key, value] */
 #define JSITER_OWNONLY    0x8   /* iterate over obj's own properties only */
 #define JSITER_HIDDEN     0x10  /* also enumerate non-enumerable properties */
+
+
+#define JSFUN_TRCINFO     0x2000
 
 } 
 #endif
