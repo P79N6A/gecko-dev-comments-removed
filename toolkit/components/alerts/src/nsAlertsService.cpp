@@ -37,7 +37,13 @@
 
 
 
+
 #include "nsAlertsService.h"
+
+#ifdef ANDROID
+#include "AndroidBridge.h"
+#else
+
 #include "nsISupportsArray.h"
 #include "nsXPCOM.h"
 #include "nsISupportsPrimitives.h"
@@ -52,6 +58,8 @@
 static NS_DEFINE_CID(kLookAndFeelCID, NS_LOOKANDFEEL_CID);
 
 #define ALERT_CHROME_URL "chrome://global/content/alerts/alert.xul"
+
+#endif 
 
 NS_IMPL_THREADSAFE_ADDREF(nsAlertsService)
 NS_IMPL_THREADSAFE_RELEASE(nsAlertsService)
@@ -74,6 +82,11 @@ NS_IMETHODIMP nsAlertsService::ShowAlertNotification(const nsAString & aImageUrl
                                                      nsIObserver * aAlertListener,
                                                      const nsAString & aAlertName)
 {
+#ifdef ANDROID
+  mozilla::AndroidBridge::Bridge()->ShowAlertNotification(aImageUrl, aAlertTitle, aAlertText, aAlertCookie,
+                                                          aAlertListener, aAlertName);
+  return NS_OK;
+#else
   
   nsCOMPtr<nsIAlertsService> sysAlerts(do_GetService(NS_SYSTEMALERTSERVICE_CONTRACTID));
   nsresult rv;
@@ -156,4 +169,5 @@ NS_IMETHODIMP nsAlertsService::ShowAlertNotification(const nsAString & aImageUrl
                  "chrome,dialog=yes,titlebar=no,popup=yes", argsArray,
                  getter_AddRefs(newWindow));
   return rv;
+#endif 
 }
