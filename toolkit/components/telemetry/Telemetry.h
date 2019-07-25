@@ -69,6 +69,15 @@ void Accumulate(ID id, PRUint32 sample);
 
 
 
+
+
+
+
+void AccumulateTimeDelta(ID id, TimeStamp start, TimeStamp end = TimeStamp::Now());
+
+
+
+
 base::Histogram* GetHistogramById(ID id);
 
 template<ID id>
