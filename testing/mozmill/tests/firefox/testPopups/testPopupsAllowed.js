@@ -83,6 +83,11 @@ var testPopUpAllowed = function()
   controller.assertNodeNotExist(button);
 
   
+  var cssInfo = controller.window.getComputedStyle(controller.window.document.getElementById("page-report-button"), "");
+  controller.assertJS("subject.isReportButtonVisible == false",
+                      {isReportButtonVisible: cssInfo.getPropertyValue('display') != 'none'});
+
+  
   controller.assertJS("subject.preWindowCount != subject.postWindowCount",
                       {preWindowCount: windowCount, postWindowCount: mozmill.utils.getWindows().length});
 }

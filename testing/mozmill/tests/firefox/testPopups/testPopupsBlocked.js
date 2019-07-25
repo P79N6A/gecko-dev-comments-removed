@@ -85,6 +85,11 @@ var testPopUpBlocked = function()
   controller.waitForElement(button, gTimeout);
 
   
+  var cssInfo = controller.window.getComputedStyle(controller.window.document.getElementById("page-report-button"), "");
+  controller.assertJS("subject.isReportButtonVisible == true",
+                      {isReportButtonVisible: cssInfo.getPropertyValue('display') == '-moz-box'});
+
+  
   controller.assertJS("subject.preWindowCount == subject.postWindowCount",
                       {preWindowCount: windowCount, postWindowCount: mozmill.utils.getWindows().length});
 }
