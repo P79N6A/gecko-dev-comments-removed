@@ -58,6 +58,7 @@
 #include "nsContentUtils.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
+#include "nsSandboxFlags.h"
 
 #ifdef USEWEAKREFS
 #include "nsIWeakReference.h"
@@ -599,6 +600,18 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     
     
     windowNeedsName = true;
+
+    
+    
+    if (aParent) {
+      nsCOMPtr<nsIDOMDocument> domdoc;
+      aParent->GetDocument(getter_AddRefs(domdoc));
+      nsCOMPtr<nsIDocument> doc = do_QueryInterface(domdoc);
+
+      if (doc && (doc->GetSandboxFlags() & SANDBOXED_NAVIGATION)) {
+        return NS_ERROR_FAILURE;
+      }
+    }
 
     
     

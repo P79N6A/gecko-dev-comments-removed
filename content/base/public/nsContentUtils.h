@@ -820,6 +820,16 @@ public:
 
 
 
+
+
+
+  static PRUint32 ParseSandboxAttributeToFlags(const nsAString& aSandboxAttr);
+
+
+  
+
+
+
 private:
   static nsresult FormatLocalizedString(PropertiesFile aFile,
                                         const char* aKey,
@@ -1955,10 +1965,12 @@ public:
 
 
 
+
   static bool SetUpChannelOwner(nsIPrincipal* aLoadingPrincipal,
                                 nsIChannel* aChannel,
                                 nsIURI* aURI,
-                                bool aSetUpForAboutBlank);
+                                bool aSetUpForAboutBlank,
+                                bool aForceOwner = false);
 
   static nsresult Btoa(const nsAString& aBinaryData,
                        nsAString& aAsciiBase64String);

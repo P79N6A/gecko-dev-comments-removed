@@ -86,6 +86,9 @@
 #include "nsIAppsService.h"
 
 #include "jsapi.h"
+#include "nsHTMLIFrameElement.h"
+#include "nsSandboxFlags.h"
+
 #include "mozilla/dom/StructuredCloneUtils.h"
 
 using namespace mozilla;
@@ -451,6 +454,30 @@ nsFrameLoader::ReallyStartLoadingInternal()
   mDocShell->CreateLoadInfo(getter_AddRefs(loadInfo));
   NS_ENSURE_TRUE(loadInfo, NS_ERROR_FAILURE);
 
+  
+  
+  nsHTMLIFrameElement* iframe =
+    nsHTMLIFrameElement::FromContent(mOwnerContent);
+
+  PRUint32 sandboxFlags = 0;
+
+  if (iframe) {
+    sandboxFlags = iframe->GetSandboxFlags();
+
+    PRUint32 parentSandboxFlags = iframe->OwnerDoc()->GetSandboxFlags();
+
+    if (sandboxFlags || parentSandboxFlags) {
+      
+      sandboxFlags |= parentSandboxFlags;
+
+      mDocShell->SetSandboxFlags(sandboxFlags);
+    }
+  }
+
+  
+  
+  
+  
   
   
   

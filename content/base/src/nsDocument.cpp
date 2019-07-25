@@ -168,6 +168,7 @@
 
 #include "imgILoader.h"
 #include "nsWrapperCacheInlines.h"
+#include "nsSandboxFlags.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -2412,6 +2413,15 @@ nsDocument::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
 
   mChannel = aChannel;
 
+  
+  
+  nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(aContainer);
+
+  if (docShell) {
+    nsresult rv = docShell->GetSandboxFlags(&mSandboxFlags);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
   nsresult rv = InitCSP();
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2718,6 +2728,24 @@ nsDocument::SetContentType(const nsAString& aContentType)
                "Do you really want to change the content-type?");
 
   SetContentTypeInternal(NS_ConvertUTF16toUTF8(aContentType));
+}
+
+nsresult
+nsDocument::GetAllowPlugins(bool * aAllowPlugins)
+{
+  
+  nsCOMPtr<nsIDocShell> docShell = do_QueryReferent(mDocumentContainer);
+
+  if (docShell) {
+    docShell->GetAllowPlugins(aAllowPlugins);
+      
+    
+    
+    if (*aAllowPlugins)
+      *aAllowPlugins = !(mSandboxFlags & SANDBOXED_PLUGINS);
+  }
+
+  return NS_OK;
 }
 
 
@@ -6415,6 +6443,12 @@ nsDocument::GetXMLDeclaration(nsAString& aVersion, nsAString& aEncoding,
 bool
 nsDocument::IsScriptEnabled()
 {
+  
+  
+  if (mSandboxFlags & SANDBOXED_SCRIPTS) {
+    return false;
+  }
+
   nsCOMPtr<nsIScriptSecurityManager> sm(do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID));
   NS_ENSURE_TRUE(sm, false);
 

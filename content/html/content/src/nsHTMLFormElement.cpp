@@ -52,6 +52,7 @@
 
 #include "nsIDOMHTMLButtonElement.h"
 #include "dombindings.h"
+#include "nsSandboxFlags.h"
 
 using namespace mozilla::dom;
 
@@ -650,7 +651,8 @@ nsHTMLFormElement::DoSubmitOrReset(nsEvent* aEvent,
 
   if (NS_FORM_SUBMIT == aMessage) {
     
-    if (!doc) {
+    
+    if (!doc || (doc->GetSandboxFlags() & SANDBOXED_FORMS)) {
       return NS_OK;
     }
     return DoSubmit(aEvent);
@@ -1665,6 +1667,14 @@ nsHTMLFormElement::CheckValidFormSubmission()
 
   NS_ASSERTION(!HasAttr(kNameSpaceID_None, nsGkAtoms::novalidate),
                "We shouldn't be there if novalidate is set!");
+
+  
+  
+  
+  nsIDocument* doc = GetCurrentDoc();
+  if (doc && (doc->GetSandboxFlags() & SANDBOXED_FORMS)) {
+    return true;
+  }
 
   
   

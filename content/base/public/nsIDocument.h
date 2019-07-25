@@ -79,8 +79,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0xdb888523, 0x541f, 0x49e3, \
-  { 0xa9, 0x71, 0xb5, 0xea, 0xd1, 0xf0, 0xc3, 0xcf } }
+{ 0x57fe44ae, 0x6656, 0x44b8, \
+  { 0x8d, 0xc0, 0xfc, 0xa7, 0x43, 0x28, 0xbe, 0x86 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -400,6 +400,25 @@ public:
     mBidiOptions = aBidiOptions;
   }
 
+
+  
+
+
+
+  PRUint32 GetSandboxFlags() const
+  {
+    return mSandboxFlags;
+  }
+
+  
+
+
+
+  void SetSandboxFlags(PRUint32 sandboxFlags)
+  {
+    mSandboxFlags = sandboxFlags;
+  }
+
   inline mozilla::directionality::Directionality GetDocumentDirectionality() {
     return mDirectionality;
   }
@@ -456,6 +475,11 @@ public:
   {
     mParentDocument = aParent;
   }
+  
+  
+
+
+  virtual nsresult GetAllowPlugins (bool* aAllowPlugins) = 0;
 
   
 
@@ -1866,6 +1890,11 @@ protected:
   
   
   PRUint32 mBidiOptions;
+
+  
+  
+  
+  PRUint32 mSandboxFlags;
 
   
   mozilla::directionality::Directionality mDirectionality;
