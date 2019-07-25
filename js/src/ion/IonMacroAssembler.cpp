@@ -160,10 +160,7 @@ MacroAssembler::callWithABI(void *fun)
     checkCallAlignment();
 #endif
 
-    
-    
-    movePtr(ImmWord(fun), CallReg);
-    call(CallReg);
+    call(fun);
 }
 
 void
