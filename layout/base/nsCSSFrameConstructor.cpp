@@ -6238,34 +6238,46 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
   
   
   PRBool bogusPrimaryFrame = PR_FALSE;
+
+  
+  
+  
+  
+  
+  PRBool noPrimaryFrame = PR_FALSE;
+  PRBool needsFrameBitSet = PR_FALSE;
 #endif
   while (content &&
          !content->HasFlag(NODE_DESCENDANTS_NEED_FRAMES)) {
-    NS_ASSERTION(content->GetPrimaryFrame() || bogusPrimaryFrame ||
-      (content->GetFlattenedTreeParent() &&
-       content->GetFlattenedTreeParent()->GetPrimaryFrame() &&
-       content->GetFlattenedTreeParent()->GetPrimaryFrame()->IsLeaf()),
-      
-      
-      "Ancestors of nodes with frames to be constructed lazily should have "
-      "frames");
-    NS_ASSERTION(!content->HasFlag(NODE_NEEDS_FRAME) || bogusPrimaryFrame ||
-                 (content->GetPrimaryFrame() &&
-                  content->GetPrimaryFrame()->GetContent() != content),
-                 
-                 
-                 
-                 "Ancestors of nodes with frames to be constructed lazily "
-                 "should not have NEEDS_FRAME bit set");
 #ifdef DEBUG
+    if (content->GetPrimaryFrame() && content->GetPrimaryFrame()->IsLeaf()) {
+      noPrimaryFrame = needsFrameBitSet = PR_FALSE;
+    }
     if (!bogusPrimaryFrame && content->GetPrimaryFrame() &&
         content->GetPrimaryFrame()->GetContent() != content) {
       bogusPrimaryFrame = PR_TRUE;
+    }
+    if (!noPrimaryFrame && !content->GetPrimaryFrame() && !bogusPrimaryFrame) {
+      noPrimaryFrame = PR_TRUE;
+    }
+    if (!needsFrameBitSet && content->HasFlag(NODE_NEEDS_FRAME) &&
+        !bogusPrimaryFrame) {
+      needsFrameBitSet = PR_TRUE;
     }
 #endif
     content->SetFlags(NODE_DESCENDANTS_NEED_FRAMES);
     content = content->GetFlattenedTreeParent();
   }
+#ifdef DEBUG
+  if (content && content->GetPrimaryFrame() &&
+      content->GetPrimaryFrame()->IsLeaf()) {
+    noPrimaryFrame = needsFrameBitSet = PR_FALSE;
+  }
+  NS_ASSERTION(!noPrimaryFrame, "Ancestors of nodes with frames to be "
+    "constructed lazily should have frames");
+  NS_ASSERTION(!needsFrameBitSet, "Ancestors of nodes with frames to be "
+    "constructed lazily should not have NEEDS_FRAME bit set");
+#endif
 
   
   if (aOperation == CONTENTINSERT) {
