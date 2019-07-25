@@ -29,12 +29,27 @@
 static bool
 HasStableTSC()
 {
+  union {
+    int regs[4];
+    struct {
+      int nIds;
+      char cpuString[12];
+    };
+  } cpuInfo;
+
+  __cpuid(cpuInfo.regs, 0);
+  
+  
+  
+  if (_strnicmp(cpuInfo.cpuString, "GenuntelineI", sizeof(cpuInfo.cpuString)))
+    return false;
+
   int regs[4];
 
   
   __cpuid(regs, 0x80000000);
   if (regs[0] < 0x80000007)
-          return false;
+    return false;
 
   __cpuid(regs, 0x80000007);
   
@@ -200,6 +215,18 @@ namespace mozilla {
 static ULONGLONG
 CalibratedPerformanceCounter();
 
+
+static inline ULONGLONG
+InterlockedRead64(volatile ULONGLONG* destination)
+{
+#ifdef _WIN64
+  
+  return *destination;
+#else
+  
+  return _InterlockedCompareExchange64(reinterpret_cast<volatile __int64*> (destination), 0, 0);
+#endif
+}
 
 
 
@@ -496,6 +523,36 @@ CheckCalibration(LONGLONG overflow, ULONGLONG qpc, ULONGLONG gtc)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ULONGLONG
+AtomicStoreIfGreaterThan(ULONGLONG* destination, ULONGLONG newValue)
+{
+  ULONGLONG readValue;
+  do {
+    readValue = InterlockedRead64(destination);
+    if (readValue > newValue)
+      return readValue;
+  } while (readValue != _InterlockedCompareExchange64(reinterpret_cast<volatile __int64*> (destination),
+                                                      newValue, readValue));
+
+  return newValue;
+}
+
+
+
 static ULONGLONG
 CalibratedPerformanceCounter()
 {
@@ -510,6 +567,8 @@ CalibratedPerformanceCounter()
   ULONGLONG qpc = PerformanceCounter();
   DWORD gtcw = GetTickCount();
 
+  ULONGLONG result;
+  {
   AutoCriticalSection lock(&sTimeStampLock);
 
   
@@ -525,7 +584,7 @@ CalibratedPerformanceCounter()
     overflow = diff - sOverrunThreshold;
   }
 
-  ULONGLONG result = qpc;
+  result = qpc;
   if (!CheckCalibration(overflow, qpc, gtc)) {
     
     result = ms2mt(gtc) + sSkew;
@@ -535,11 +594,9 @@ CalibratedPerformanceCounter()
   LOG(("TimeStamp: result = %1.2fms, diff = %1.4fms",
       mt2ms_d(result), mt2ms_d(diff)));
 #endif
+  }
 
-  if (result > sLastResult)
-    sLastResult = result;
-
-  return sLastResult;
+  return AtomicStoreIfGreaterThan(&sLastResult, result);
 }
 
 
