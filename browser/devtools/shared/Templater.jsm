@@ -53,19 +53,6 @@ const Node = Components.interfaces.nsIDOMNode;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 function template(node, data, options) {
   var template = new Templater(options || {});
   template.processNode(node, data);
@@ -81,15 +68,7 @@ function Templater(options) {
     options = { allowEval: true };
   }
   this.options = options;
-  if (options.stack && Array.isArray(options.stack)) {
-    this.stack = options.stack;
-  }
-  else if (typeof options.stack === 'string') {
-    this.stack = [ options.stack ];
-  }
-  else {
-    this.stack = [];
-  }
+  this.stack = [];
 }
 
 
@@ -111,7 +90,7 @@ Templater.prototype._splitSpecial = /\uF001|\uF002/;
 
 
 
-Templater.prototype._isPropertyScript = /^[_a-zA-Z0-9.]*$/;
+Templater.prototype._isPropertyScript = /^[a-zA-Z0-9.]*$/;
 
 
 
@@ -174,11 +153,7 @@ Templater.prototype.processNode = function(node, data) {
           } else {
             
             var newValue = value.replace(this._templateRegion, function(path) {
-              var insert = this._envEval(path.slice(2, -1), data, value);
-              if (this.options.blankNullUndefined && insert == null) {
-                insert = '';
-              }
-              return insert;
+              return this._envEval(path.slice(2, -1), data, value);
             }.bind(this));
             
             
@@ -202,7 +177,7 @@ Templater.prototype.processNode = function(node, data) {
       this.processNode(childNodes[j], data);
     }
 
-    if (node.nodeType === 3 ) {
+    if (node.nodeType === Node.TEXT_NODE) {
       this._processTextNode(node, data);
     }
   } finally {
@@ -372,27 +347,8 @@ Templater.prototype._processTextNode = function(node, data) {
         part = this._envEval(part.slice(1), data, node.data);
       }
       this._handleAsync(part, node, function(reply, siblingNode) {
-        var doc = siblingNode.ownerDocument;
-        if (reply == null) {
-          reply = this.options.blankNullUndefined ? '' : '' + reply;
-        }
-        if (typeof reply.cloneNode === 'function') {
-          
-          reply = this._maybeImportNode(reply, doc);
-          siblingNode.parentNode.insertBefore(reply, siblingNode);
-        } else if (typeof reply.item === 'function' && reply.length) {
-          
-          for (var i = 0; i < reply.length; i++) {
-            var child = this._maybeImportNode(reply.item(i), doc);
-            siblingNode.parentNode.insertBefore(child, siblingNode);
-          }
-        }
-        else {
-          
-          reply = doc.createTextNode(reply.toString());
-          siblingNode.parentNode.insertBefore(reply, siblingNode);
-        }
-
+        reply = this._toNode(reply, siblingNode.ownerDocument);
+        siblingNode.parentNode.insertBefore(reply, siblingNode);
       }.bind(this));
     }, this);
     node.parentNode.removeChild(node);
@@ -405,8 +361,16 @@ Templater.prototype._processTextNode = function(node, data) {
 
 
 
-Templater.prototype._maybeImportNode = function(node, doc) {
-  return node.ownerDocument === doc ? node : doc.importNode(node, true);
+
+Templater.prototype._toNode = function(thing, document) {
+  if (thing == null) {
+    thing = '' + thing;
+  }
+  
+  if (typeof thing.cloneNode !== 'function') {
+    thing = document.createTextNode(thing.toString());
+  }
+  return thing;
 };
 
 
@@ -465,6 +429,7 @@ Templater.prototype._stripBraces = function(str) {
 
 
 Templater.prototype._property = function(path, data, newValue) {
+  this.stack.push(path);
   try {
     if (typeof path === 'string') {
       path = path.split('.');
@@ -480,13 +445,12 @@ Templater.prototype._property = function(path, data, newValue) {
       return value;
     }
     if (!value) {
-      this._handleError('"' + path[0] + '" is undefined');
+      this._handleError('Can\'t find path=' + path);
       return null;
     }
     return this._property(path.slice(1), value, newValue);
-  } catch (ex) {
-    this._handleError('Path error with \'' + path + '\'', ex);
-    return '${' + path + '}';
+  } finally {
+    this.stack.pop();
   }
 };
 
@@ -505,7 +469,7 @@ Templater.prototype._property = function(path, data, newValue) {
 
 Templater.prototype._envEval = function(script, data, frame) {
   try {
-    this.stack.push(frame.replace(/\s+/g, ' '));
+    this.stack.push(frame);
     if (this._isPropertyScript.test(script)) {
       return this._property(script, data);
     } else {
@@ -519,7 +483,8 @@ Templater.prototype._envEval = function(script, data, frame) {
       }
     }
   } catch (ex) {
-    this._handleError('Template error evaluating \'' + script + '\'', ex);
+    this._handleError('Template error evaluating \'' + script + '\'' +
+        ' environment=' + Object.keys(data).join(', '), ex);
     return '${' + script + '}';
   } finally {
     this.stack.pop();
@@ -533,7 +498,8 @@ Templater.prototype._envEval = function(script, data, frame) {
 
 
 Templater.prototype._handleError = function(message, ex) {
-  this._logError(message + ' (In: ' + this.stack.join(' > ') + ')');
+  this._logError(message);
+  this._logError('In: ' + this.stack.join(' > '));
   if (ex) {
     this._logError(ex);
   }

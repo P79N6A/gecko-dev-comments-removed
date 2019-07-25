@@ -723,20 +723,20 @@ ThreadActor.prototype = {
 
 
 
-  createEnvironmentActor:
-  function TA_createEnvironmentActor(aEnvironment, aPool) {
-    if (!aEnvironment) {
+  createEnvironmentActor: function TA_createEnvironmentActor(aObject, aPool) {
+    let environment = aObject.environment;
+    if (!environment) {
       return undefined;
     }
 
-    if (aEnvironment.actor) {
-      return aEnvironment.actor;
+    if (environment.actor) {
+      return environment.actor;
     }
 
-    let actor = new EnvironmentActor(aEnvironment, this);
+    let actor = new EnvironmentActor(aObject, this);
     this._environmentActors.push(actor);
     aPool.addActor(actor);
-    aEnvironment.actor = actor;
+    environment.actor = actor;
 
     return actor;
   },
@@ -1054,7 +1054,7 @@ ObjectActor.prototype = {
     let descriptor = {};
     descriptor.configurable = aObject.configurable;
     descriptor.enumerable = aObject.enumerable;
-    if (aObject.value !== undefined) {
+    if (aObject.value) {
       descriptor.writable = aObject.writable;
       descriptor.value = this.threadActor.createValueGrip(aObject.value);
     } else {
@@ -1102,7 +1102,7 @@ ObjectActor.prototype = {
                         " 'Function' class." };
     }
 
-    let envActor = this.threadActor.createEnvironmentActor(this.obj.environment,
+    let envActor = this.threadActor.createEnvironmentActor(this.obj,
                                                            this.registeredPool);
     if (!envActor) {
       return { error: "notDebuggee",
@@ -1110,7 +1110,7 @@ ObjectActor.prototype = {
     }
 
     return { name: this.obj.name || null,
-             scope: envActor.form(this.obj) };
+             scope: envActor.form() };
   },
 
   
@@ -1239,9 +1239,9 @@ FrameActor.prototype = {
     }
 
     let envActor = this.threadActor
-                       .createEnvironmentActor(this.frame.environment,
+                       .createEnvironmentActor(this.frame,
                                                this.frameLifetimePool);
-    form.environment = envActor ? envActor.form(this.frame) : envActor;
+    form.environment = envActor ? envActor.form() : envActor;
     form.this = this.threadActor.createValueGrip(this.frame.this);
     form.arguments = this._args();
     if (this.frame.script) {
@@ -1355,9 +1355,9 @@ BreakpointActor.prototype.requestTypes = {
 
 
 
-function EnvironmentActor(aEnvironment, aThreadActor)
+function EnvironmentActor(aObject, aThreadActor)
 {
-  this.obj = aEnvironment;
+  this.obj = aObject;
   this.threadActor = aThreadActor;
 }
 
@@ -1367,45 +1367,39 @@ EnvironmentActor.prototype = {
   
 
 
-
-
-
-
-
-
-
-  form: function EA_form(aObject) {
+  form: function EA_form() {
     
     
-    if (!aObject.live) {
+    if (!this.obj.live) {
       return undefined;
     }
 
     let parent;
-    if (this.obj.parent) {
-      let thread = this.threadActor;
-      parent = thread.createEnvironmentActor(this.obj.parent.environment,
-                                             this.registeredPool);
+    if (this.obj.environment.parent) {
+      parent = this.threadActor
+                   .createEnvironmentActor(this.obj.environment.parent,
+                                           this.registeredPool);
     }
     let form = { actor: this.actorID,
-                 parent: parent ? parent.form(this.obj.parent) : parent };
+                 parent: parent ? parent.form() : parent };
 
-    if (aObject.type == "object") {
-      if (this.obj.parent) {
+    if (this.obj.environment.type == "object") {
+      if (this.obj.environment.parent) {
         form.type = "with";
       } else {
         form.type = "object";
       }
-      form.object = this.threadActor.createValueGrip(aObject.object);
+      form.object = this.threadActor.createValueGrip(this.obj.environment.object);
     } else {
-      if (aObject.class == "Function") {
+      if (this.obj.class == "Function") {
         form.type = "function";
-        form.function = this.threadActor.createValueGrip(aObject);
-        form.functionName = aObject.name;
+        form.function = this.threadActor.createValueGrip(this.obj);
+        form.functionName = this.obj.name;
       } else {
         form.type = "block";
       }
-      form.bindings = this._bindings(aObject);
+
+      form.bindings = this._bindings();
     }
 
     return form;
@@ -1415,39 +1409,17 @@ EnvironmentActor.prototype = {
 
 
 
-
-
-
-
-
-
-
-  _bindings: function EA_bindings(aObject) {
+  _bindings: function EA_bindings() {
     let bindings = { arguments: [], variables: {} };
 
     
-    
-    if (typeof this.obj.getVariable != "function") {
-    
+    if (typeof this.obj.environment.getVariableDescriptor != "function") {
       return bindings;
     }
 
-    let parameterNames;
-    if (aObject && aObject.callee) {
-      parameterNames = aObject.callee.parameterNames;
-    }
-    for each (let name in parameterNames) {
+    for (let name in this.obj.parameterNames) {
       let arg = {};
-      
-      
-      let desc = {
-        value: this.obj.getVariable(name),
-        configurable: false,
-        writable: true,
-        enumerable: true
-      };
-
-      
+      let desc = this.obj.environment.getVariableDescriptor(name);
       let descForm = {
         enumerable: true,
         configurable: desc.configurable
@@ -1463,22 +1435,14 @@ EnvironmentActor.prototype = {
       bindings.arguments.push(arg);
     }
 
-    for each (let name in this.obj.names()) {
+    for (let name in this.obj.environment.names()) {
       if (bindings.arguments.some(function exists(element) {
                                     return !!element[name];
                                   })) {
         continue;
       }
 
-      
-      
-      let desc = {
-        value: this.obj.getVariable(name),
-        configurable: false,
-        writable: true,
-        enumerable: true
-      };
-      
+      let desc = this.obj.environment.getVariableDescriptor(name);
       let descForm = {
         enumerable: true,
         configurable: desc.configurable
@@ -1504,7 +1468,7 @@ EnvironmentActor.prototype = {
 
 
   onAssign: function EA_onAssign(aRequest) {
-    let desc = this.obj.getVariableDescriptor(aRequest.name);
+    let desc = this.obj.environment.getVariableDescriptor(aRequest.name);
 
     if (!desc.writable) {
       return { error: "immutableBinding",
@@ -1513,7 +1477,7 @@ EnvironmentActor.prototype = {
     }
 
     try {
-      this.obj.setVariable(aRequest.name, aRequest.value);
+      this.obj.environment.setVariable(aRequest.name, aRequest.value);
     } catch (e) {
       if (e instanceof Debugger.DebuggeeWouldRun) {
         return { error: "threadWouldRun",

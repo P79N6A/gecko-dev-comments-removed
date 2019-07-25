@@ -114,7 +114,6 @@ let DebuggerController = {
 
     this.dispatchEvent("Debugger:Unloaded");
     this._disconnect();
-    this._isRemote && this._quitApp();
   },
 
   
@@ -122,10 +121,12 @@ let DebuggerController = {
 
 
   _connect: function DC__connect() {
-    let transport =
-      this._isRemote ? debuggerSocketConnect(Prefs.remoteHost, Prefs.remotePort)
-                     : DebuggerServer.connectPipe();
+    if (!DebuggerServer.initialized) {
+      DebuggerServer.init();
+      DebuggerServer.addBrowserActors();
+    }
 
+    let transport = DebuggerServer.connectPipe();
     let client = this.client = new DebuggerClient(transport);
 
     client.addListener("tabNavigated", this._onTabNavigated);
@@ -217,31 +218,6 @@ let DebuggerController = {
 
       }.bind(this));
     }.bind(this));
-  },
-
-  
-
-
-
-  get _isRemote() {
-    return !window.parent.content;
-  },
-
-  
-
-
-  _quitApp: function DC__quitApp() {
-    let canceled = Cc["@mozilla.org/supports-PRBool;1"]
-      .createInstance(Ci.nsISupportsPRBool);
-
-    Services.obs.notifyObservers(canceled, "quit-application-requested", null);
-
-    
-    if (canceled.data) {
-      return;
-    }
-
-    Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
   },
 
   
@@ -494,38 +470,6 @@ StackFrames.prototype = {
       this._addExpander(thisVar, frame.this);
     }
 
-    if (frame.environment) {
-      
-      let variables = frame.environment.bindings.arguments;
-      for each (let variable in variables) {
-        let name = Object.getOwnPropertyNames(variable)[0];
-        let paramVar = localScope.addVar(name);
-        let paramVal = variable[name].value;
-        paramVar.setGrip(paramVal);
-        this._addExpander(paramVar, paramVal);
-      }
-
-      
-      variables = frame.environment.bindings.variables;
-      for (let variable in variables) {
-        let paramVar = localScope.addVar(variable);
-        let paramVal = variables[variable].value;
-        paramVar.setGrip(paramVal);
-        this._addExpander(paramVar, paramVal);
-      }
-
-      
-      if ("arguments" in frame.environment.bindings.variables) {
-        
-        DebuggerController.dispatchEvent("Debugger:FetchedVariables");
-        return;
-      }
-    }
-
-    
-    
-    
-    
     if (frame.arguments && frame.arguments.length > 0) {
       
       let argsVar = localScope.addVar("arguments");
@@ -536,9 +480,22 @@ StackFrames.prototype = {
       this._addExpander(argsVar, frame.arguments);
 
       
-      DebuggerController.dispatchEvent("Debugger:FetchedVariables");
-    }
+      let objClient = this.activeThread.pauseGrip(frame.callee);
+      objClient.getSignature(function SF_getSignature(aResponse) {
+        for (let i = 0, l = aResponse.parameters.length; i < l; i++) {
+          let param = aResponse.parameters[i];
+          let paramVar = localScope.addVar(param);
+          let paramVal = frame.arguments[i];
 
+          paramVar.setGrip(paramVal);
+          this._addExpander(paramVar, paramVal);
+        }
+
+        
+        DebuggerController.dispatchEvent("Debugger:FetchedParameters");
+
+      }.bind(this));
+    }
   },
 
   
@@ -548,7 +505,7 @@ StackFrames.prototype = {
   _addExpander: function SF__addExpander(aVar, aObject) {
     
     
-    if (!aVar || !aObject || typeof aObject !== "object" ||
+    if (!aObject || typeof aObject !== "object" ||
         (aObject.type !== "object" && !Array.isArray(aObject))) {
       return;
     }
@@ -729,7 +686,7 @@ SourceScripts.prototype = {
 
 
   _onNewScript: function SS__onNewScript(aNotification, aPacket) {
-    this._addScript({ url: aPacket.url, startLine: aPacket.startLine }, true);
+    this._addScript({ url: aPacket.url, startLine: aPacket.startLine });
   },
 
   
@@ -737,9 +694,8 @@ SourceScripts.prototype = {
 
   _onScriptsAdded: function SS__onScriptsAdded() {
     for each (let script in this.activeThread.cachedScripts) {
-      this._addScript(script, false);
+      this._addScript(script);
     }
-    DebuggerView.Scripts.commitScripts();
   },
 
   
@@ -799,22 +755,6 @@ SourceScripts.prototype = {
 
 
 
-  _getScriptPrePath: function SS__getScriptDomain(aUrl) {
-    try {
-      return Services.io.newURI(aUrl, null, null).prePath + "/";
-    } catch (e) {
-    }
-    return null;
-  },
-
-  
-
-
-
-
-
-
-
 
 
 
@@ -834,10 +774,7 @@ SourceScripts.prototype = {
       return this._labelsCache[url];
     }
 
-    let content = window.parent.content;
-    let domain = content ? content.location.href : this._getScriptPrePath(aUrl);
-
-    let href = aHref || domain;
+    let href = aHref || window.parent.content.location.href;
     let pathElements = url.split("/");
     let label = pathElements.pop() || (pathElements.pop() + "/");
 
@@ -866,13 +803,12 @@ SourceScripts.prototype = {
 
 
 
+  _addScript: function SS__addScript(aScript) {
+    DebuggerView.Scripts.addScript(this._getScriptLabel(aScript.url), aScript);
 
-
-
-
-  _addScript: function SS__addScript(aScript, aForceFlag) {
-    DebuggerView.Scripts.addScript(
-      this._getScriptLabel(aScript.url), aScript, aForceFlag);
+    if (DebuggerView.editor.getCharCount() == 0) {
+      this.showScript(aScript);
+    }
   },
 
   
@@ -1031,7 +967,7 @@ SourceScripts.prototype = {
 
 
   _logError: function SS__logError(aUrl, aStatus) {
-    Cu.reportError(L10N.getFormatStr("loadingError", [aUrl, aStatus]));
+    Components.utils.reportError(L10N.getFormatStr("loadingError", [aUrl, aStatus]));
   },
 };
 
@@ -1320,27 +1256,6 @@ let L10N = {
 
 XPCOMUtils.defineLazyGetter(L10N, "stringBundle", function() {
   return Services.strings.createBundle(DBG_STRINGS_URI);
-});
-
-
-
-
-let Prefs = {};
-
-
-
-
-
-XPCOMUtils.defineLazyGetter(Prefs, "remoteHost", function() {
-  return Services.prefs.getCharPref("devtools.debugger.remote-host");
-});
-
-
-
-
-
-XPCOMUtils.defineLazyGetter(Prefs, "remotePort", function() {
-  return Services.prefs.getIntPref("devtools.debugger.remote-port");
 });
 
 
