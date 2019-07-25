@@ -55,32 +55,6 @@ using namespace mozilla::a11y;
 
 
 
-
-
-struct nsCSSTextAttrMapItem
-{
-  const char* mCSSName;
-  const char* mCSSValue;
-  nsIAtom** mAttrName;
-  const char* mAttrValue;
-};
-
-
-
-
-const char* const kAnyValue = nsnull;
-const char* const kCopyValue = nsnull;
-
-static nsCSSTextAttrMapItem gCSSTextAttrsMap[] =
-{
-  
-  { "vertical-align",    kAnyValue,       &nsGkAtoms::textPosition,          kCopyValue }
-};
-
-
-
-
-
 void
 TextAttrsMgr::GetAttributes(nsIPersistentProperties* aAttributes,
                             PRInt32* aStartHTOffset,
@@ -143,9 +117,6 @@ TextAttrsMgr::GetAttributes(nsIPersistentProperties* aAttributes,
   LangTextAttr langTextAttr(mHyperTextAcc, hyperTextElm, offsetNode);
 
   
-  CSSTextAttr posTextAttr(0, hyperTextElm, offsetElm);
-
-  
   BGColorTextAttr bgColorTextAttr(rootFrame, frame);
 
   
@@ -166,17 +137,20 @@ TextAttrsMgr::GetAttributes(nsIPersistentProperties* aAttributes,
   
   TextDecorTextAttr textDecorTextAttr(rootFrame, frame);
 
+  
+  TextPosTextAttr textPosTextAttr(rootFrame, frame);
+
   TextAttr* attrArray[] =
   {
     &langTextAttr,
-    &posTextAttr,
     &bgColorTextAttr,
     &colorTextAttr,
     &fontFamilyTextAttr,
     &fontSizeTextAttr,
     &fontStyleTextAttr,
     &fontWeightTextAttr,
-    &textDecorTextAttr
+    &textDecorTextAttr,
+    &textPosTextAttr
   };
 
   
@@ -291,60 +265,6 @@ TextAttrsMgr::LangTextAttr::
 {
   nsCoreUtils::GetLanguageFor(aElm, mRootContent, aLang);
   return !aLang.IsEmpty();
-}
-
-
-
-
-
-
-TextAttrsMgr::CSSTextAttr::
-  CSSTextAttr(PRUint32 aIndex, nsIContent* aRootElm, nsIContent* aElm) :
-  TTextAttr<nsString>(!aElm), mIndex(aIndex)
-{
-  mIsRootDefined = GetValueFor(aRootElm, &mRootNativeValue);
-
-  if (aElm)
-    mIsDefined = GetValueFor(aElm, &mNativeValue);
-}
-
-bool
-TextAttrsMgr::CSSTextAttr::
-  GetValueFor(nsIContent* aElm, nsString* aValue)
-{
-  nsCOMPtr<nsIDOMCSSStyleDeclaration> currStyleDecl =
-    nsCoreUtils::GetComputedStyleDeclaration(EmptyString(), aElm);
-  if (!currStyleDecl)
-    return false;
-
-  NS_ConvertASCIItoUTF16 cssName(gCSSTextAttrsMap[mIndex].mCSSName);
-
-  nsresult rv = currStyleDecl->GetPropertyValue(cssName, *aValue);
-  if (NS_FAILED(rv))
-    return true;
-
-  const char *cssValue = gCSSTextAttrsMap[mIndex].mCSSValue;
-  if (cssValue != kAnyValue && !aValue->EqualsASCII(cssValue))
-    return false;
-
-  return true;
-}
-
-void
-TextAttrsMgr::CSSTextAttr::
-  ExposeValue(nsIPersistentProperties* aAttributes, const nsString& aValue)
-{
-  const char* attrValue = gCSSTextAttrsMap[mIndex].mAttrValue;
-  if (attrValue != kCopyValue) {
-    nsAutoString formattedValue;
-    AppendASCIItoUTF16(attrValue, formattedValue);
-    nsAccUtils::SetAccAttr(aAttributes, *gCSSTextAttrsMap[mIndex].mAttrName,
-                           formattedValue);
-    return;
-  }
-
-  nsAccUtils::SetAccAttr(aAttributes, *gCSSTextAttrsMap[mIndex].mAttrName,
-                         aValue);
 }
 
 
@@ -742,4 +662,105 @@ TextAttrsMgr::TextDecorTextAttr::
     nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::textLineThroughColor,
                            formattedColor);
   }
+}
+
+
+
+
+
+TextAttrsMgr::TextPosTextAttr::
+  TextPosTextAttr(nsIFrame* aRootFrame, nsIFrame* aFrame) :
+  TTextAttr<TextPosValue>(!aFrame)
+{
+  mRootNativeValue = GetTextPosValue(aRootFrame);
+  mIsRootDefined = mRootNativeValue != eTextPosNone;
+
+  if (aFrame) {
+    mNativeValue = GetTextPosValue(aFrame);
+    mIsDefined = mNativeValue != eTextPosNone;
+  }
+}
+
+bool
+TextAttrsMgr::TextPosTextAttr::
+  GetValueFor(nsIContent* aContent, TextPosValue* aValue)
+{
+  nsIFrame* frame = aContent->GetPrimaryFrame();
+  if (frame) {
+    *aValue = GetTextPosValue(frame);
+    return *aValue != eTextPosNone;
+  }
+
+  return false;
+}
+
+void
+TextAttrsMgr::TextPosTextAttr::
+  ExposeValue(nsIPersistentProperties* aAttributes, const TextPosValue& aValue)
+{
+  switch (aValue) {
+    case eTextPosBaseline:
+      nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::textPosition,
+                             NS_LITERAL_STRING("baseline"));
+      break;
+
+    case eTextPosSub:
+      nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::textPosition,
+                             NS_LITERAL_STRING("sub"));
+      break;
+
+    case eTextPosSuper:
+      nsAccUtils::SetAccAttr(aAttributes, nsGkAtoms::textPosition,
+                             NS_LITERAL_STRING("super"));
+      break;
+  }
+}
+
+TextAttrsMgr::TextPosValue
+TextAttrsMgr::TextPosTextAttr::
+  GetTextPosValue(nsIFrame* aFrame) const
+{
+  const nsStyleCoord& styleCoord = aFrame->GetStyleTextReset()->mVerticalAlign;
+  switch (styleCoord.GetUnit()) {
+    case eStyleUnit_Enumerated:
+      switch (styleCoord.GetIntValue()) {
+        case NS_STYLE_VERTICAL_ALIGN_BASELINE:
+          return eTextPosBaseline;
+        case NS_STYLE_VERTICAL_ALIGN_SUB:
+          return eTextPosSub;
+        case NS_STYLE_VERTICAL_ALIGN_SUPER:
+          return eTextPosSuper;
+
+        
+        
+        
+        
+        
+        
+        
+        
+
+        default:
+          break;
+      }
+      return eTextPosNone;
+
+    case eStyleUnit_Percent:
+    {
+      float percentValue = styleCoord.GetPercentValue();
+      return percentValue > 0 ?
+        eTextPosSuper :
+        (percentValue < 0 ? eTextPosSub : eTextPosBaseline);
+    }
+
+    case eStyleUnit_Coord:
+    {
+       nscoord coordValue = styleCoord.GetCoordValue();
+       return coordValue > 0 ?
+         eTextPosSuper :
+         (coordValue < 0 ? eTextPosSub : eTextPosBaseline);
+    }
+  }
+
+  return eTextPosNone;
 }
