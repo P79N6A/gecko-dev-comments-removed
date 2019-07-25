@@ -157,7 +157,7 @@ Recompiler::recompile()
     
     JS_ASSERT(cx->compartment->debugMode);
 
-    Compiler c(cx, script, firstFrame->fun, firstFrame->scopeChain);
+    Compiler c(cx, script, firstFrame->fun, firstFrame->getScopeChain());
     if (c.Compile() != Compile_Okay)
         return false;
 

@@ -122,7 +122,7 @@ struct JSStackFrame
 
     void                *ncode;         
 
-  public:
+  private:
     JSObject        *scopeChain;
     JSObject        *blockChain;
   public:
