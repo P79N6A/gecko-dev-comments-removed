@@ -144,8 +144,26 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         GeckoAppShell.registerGeckoEventListener("Viewport:UpdateLater", this);
     }
 
-    public void beginDrawing() {
+    public void beginDrawing(int width, int height) {
         beginTransaction(mTileLayer);
+
+        if (mBufferSize.width != width || mBufferSize.height != height) {
+            mBufferSize = new IntSize(width, height);
+
+            
+
+            
+            int size = mBufferSize.getArea() * 2;
+            if (mBuffer == null || mBuffer.capacity() != size) {
+                
+                if (mBuffer != null) {
+                    GeckoAppShell.freeDirectBuffer(mBuffer);
+                    mBuffer = null;
+                }
+
+                mBuffer = GeckoAppShell.allocateDirectBuffer(size);
+            }
+        }
     }
 
     private void updateViewport(String viewportDescription, final boolean onlyUpdatePageSize) {
@@ -209,16 +227,23 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
     }
 
     public Bitmap getBitmap() {
-        if (mBufferSize.width <= 0 || mBufferSize.height <= 0)
-            return null;
+        
+        
+        beginTransaction(mTileLayer);
         try {
-            Bitmap b = Bitmap.createBitmap(mBufferSize.width, mBufferSize.height,
-                                           CairoUtils.cairoFormatTobitmapConfig(mFormat));
-            b.copyPixelsFromBuffer(mBuffer.asIntBuffer());
-            return b;
-        } catch (OutOfMemoryError oom) {
-            Log.w(LOGTAG, "Unable to create bitmap", oom);
-            return null;
+            if (mBuffer == null || mBufferSize.width <= 0 || mBufferSize.height <= 0)
+                return null;
+            try {
+                Bitmap b = Bitmap.createBitmap(mBufferSize.width, mBufferSize.height,
+                                               CairoUtils.cairoFormatTobitmapConfig(mFormat));
+                b.copyPixelsFromBuffer(mBuffer.asIntBuffer());
+                return b;
+            } catch (OutOfMemoryError oom) {
+                Log.w(LOGTAG, "Unable to create bitmap", oom);
+                return null;
+            }
+        } finally {
+            endTransaction(mTileLayer);
         }
     }
 
@@ -251,21 +276,12 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
                 throw new RuntimeException("Screen size of " + mScreenSize + " larger than maximum texture size of " + maxSize);
 
             
-            mBufferSize = new IntSize(Math.min(maxSize, IntSize.nextPowerOfTwo(mScreenSize.width + LayerController.MIN_BUFFER.width)),
-                                      Math.min(maxSize, IntSize.nextPowerOfTwo(mScreenSize.height + LayerController.MIN_BUFFER.height)));
-
-            
-            if (mBuffer != null) {
-                GeckoAppShell.freeDirectBuffer(mBuffer);
-                mBuffer = null;
-            }
-
-            
-            mBuffer = GeckoAppShell.allocateDirectBuffer(mBufferSize.getArea() * 2);
+            IntSize bufferSize = new IntSize(Math.min(maxSize, IntSize.nextPowerOfTwo(mScreenSize.width + LayerController.MIN_BUFFER.width)),
+                                             Math.min(maxSize, IntSize.nextPowerOfTwo(mScreenSize.height + LayerController.MIN_BUFFER.height)));
 
             Log.i(LOGTAG, "Screen-size changed to " + mScreenSize);
             GeckoEvent event = new GeckoEvent(GeckoEvent.SIZE_CHANGED,
-                                              mBufferSize.width, mBufferSize.height,
+                                              bufferSize.width, bufferSize.height,
                                               metrics.widthPixels, metrics.heightPixels);
             GeckoAppShell.sendEventToGecko(event);
         }

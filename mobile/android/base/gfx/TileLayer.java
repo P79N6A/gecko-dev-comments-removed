@@ -98,7 +98,7 @@ public abstract class TileLayer extends Layer {
         invalidate(new Rect(0, 0, bufferSize.width, bufferSize.height));
     }
 
-    private void validateTexture() {
+    private void validateTexture(GL10 gl) {
         
 
 
@@ -121,7 +121,7 @@ public abstract class TileLayer extends Layer {
 
                 
                 
-                
+                TextureReaper.get().reap(gl);
             }
         }
     }
@@ -131,7 +131,7 @@ public abstract class TileLayer extends Layer {
         super.performUpdates(gl);
 
         
-        validateTexture();
+        validateTexture(gl);
 
         
         if (!mImage.getSize().isPositive())
@@ -152,7 +152,13 @@ public abstract class TileLayer extends Layer {
     }
 
     private void uploadDirtyRect(GL10 gl, Rect dirtyRect) {
+        
         if (dirtyRect.isEmpty())
+            return;
+
+        
+        ByteBuffer imageBuffer = mImage.getBuffer();
+        if (imageBuffer == null)
             return;
 
         boolean newlyCreated = false;
@@ -174,16 +180,21 @@ public abstract class TileLayer extends Layer {
         if (newlyCreated || dirtyRect.contains(bufferRect)) {
             if (mSize.equals(bufferSize)) {
                 gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, glInfo.internalFormat, mSize.width, mSize.height,
-                                0, glInfo.format, glInfo.type, mImage.getBuffer());
+                                0, glInfo.format, glInfo.type, imageBuffer);
                 return;
             } else {
                 gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, glInfo.internalFormat, mSize.width, mSize.height,
                                 0, glInfo.format, glInfo.type, null);
                 gl.glTexSubImage2D(gl.GL_TEXTURE_2D, 0, 0, 0, bufferSize.width, bufferSize.height,
-                                   glInfo.format, glInfo.type, mImage.getBuffer());
+                                   glInfo.format, glInfo.type, imageBuffer);
                 return;
             }
         }
+
+        
+        
+        if (!Rect.intersects(dirtyRect, bufferRect))
+            return;
 
         
 
@@ -192,7 +203,7 @@ public abstract class TileLayer extends Layer {
 
 
 
-        Buffer viewBuffer = mImage.getBuffer().slice();
+        Buffer viewBuffer = imageBuffer.slice();
         int bpp = CairoUtils.bitsPerPixelForCairoFormat(cairoFormat) / 8;
         int position = dirtyRect.top * bufferSize.width * bpp;
         if (position > viewBuffer.limit()) {
