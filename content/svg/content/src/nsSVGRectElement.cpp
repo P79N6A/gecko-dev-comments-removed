@@ -192,8 +192,8 @@ nsSVGRectElement::ConstructPath(gfxContext *aCtx)
 
   
 
-  PRBool hasRx = HasAttr(kNameSpaceID_None, nsGkAtoms::rx);
-  PRBool hasRy = HasAttr(kNameSpaceID_None, nsGkAtoms::ry);
+  PRBool hasRx = mLengthAttributes[RX].IsAnimValSet();
+  PRBool hasRy = mLengthAttributes[RY].IsAnimValSet();
   if (hasRx && !hasRy)
     ry = rx;
   else if (hasRy && !hasRx)

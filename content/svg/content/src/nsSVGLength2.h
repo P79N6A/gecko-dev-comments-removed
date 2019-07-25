@@ -64,6 +64,7 @@ public:
     mAttrEnum = aAttrEnum;
     mCtxType = aCtxType;
     mIsAnimated = PR_FALSE;
+    mIsBaseSet = PR_FALSE;
   }
 
   nsresult SetBaseValueString(const nsAString& aValue,
@@ -90,6 +91,14 @@ public:
     { return mBaseVal / GetUnitScaleFactor(aCtx, mSpecifiedUnitType); }
   float GetAnimValue(nsSVGSVGElement* aCtx) const
     { return mAnimVal / GetUnitScaleFactor(aCtx, mSpecifiedUnitType); }
+
+  
+  
+  
+  
+  
+  PRBool IsAnimValSet() const
+    { return mIsAnimated || mIsBaseSet; }
   
   nsresult ToDOMAnimatedLength(nsIDOMSVGAnimatedLength **aResult,
                                nsSVGElement* aSVGElement);
@@ -105,7 +114,8 @@ private:
   PRUint8 mSpecifiedUnitType;
   PRUint8 mAttrEnum; 
   PRUint8 mCtxType; 
-  PRPackedBool mIsAnimated;
+  PRPackedBool mIsAnimated:1;
+  PRPackedBool mIsBaseSet:1;
   
   static float GetMMPerPixel() { return MM_PER_INCH_FLOAT / 96; }
   float GetAxisLength(nsIFrame *aNonSVGFrame) const;
