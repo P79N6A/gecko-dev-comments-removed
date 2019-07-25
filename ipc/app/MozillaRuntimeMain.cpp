@@ -59,7 +59,7 @@ main(int argc, char* argv[])
         return 1;
     const char* const crashReporterArg = argv[--argc];
 
-#  if defined(XP_WIN)
+#  if defined(XP_WIN) || defined(XP_MACOSX)
     
     
     

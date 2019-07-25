@@ -258,11 +258,10 @@ XRE_TakeMinidumpForChild(PRUint32 aChildPid, nsILocalFile** aDump)
   return CrashReporter::TakeMinidumpForChild(aChildPid, aDump);
 }
 
-#if !defined(XP_MACOSX)
 PRBool
 XRE_SetRemoteExceptionHandler(const char* aPipe)
 {
-#if defined(XP_WIN)
+#if defined(XP_WIN) || defined(XP_MACOSX)
   return CrashReporter::SetRemoteExceptionHandler(nsDependentCString(aPipe));
 #elif defined(OS_LINUX)
   return CrashReporter::SetRemoteExceptionHandler();
@@ -270,7 +269,6 @@ XRE_SetRemoteExceptionHandler(const char* aPipe)
 #  error "OOP crash reporter unsupported on this platform"
 #endif
 }
-#endif 
 #endif 
 
 #if defined(XP_WIN)

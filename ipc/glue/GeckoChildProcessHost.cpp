@@ -318,9 +318,7 @@ GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts)
     childArgv.push_back("false");
   }
 #  elif defined(XP_MACOSX)
-  
-  
-  CrashReporter::CreateNotificationPipeForChild();
+  childArgv.push_back(CrashReporter::GetChildNotificationPipe());
 #  endif  
 #endif
 
