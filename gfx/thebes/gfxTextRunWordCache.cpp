@@ -526,9 +526,15 @@ TextRunWordCache::FinishTextRun(gfxTextRun *aTextRun, gfxTextRun *aNewRun,
                     
                     
                     
-                    tmpTextRun = aNewRun->GetFontGroup()->MakeTextRun(
-                        source->GetTextUnicode() + sourceOffset, length, aParams,
-                        aNewRun->GetFlags());
+                    if (source->GetFlags() & gfxFontGroup::TEXT_IS_8BIT) {
+                        tmpTextRun = fontGroup->
+                            MakeTextRun(source->GetText8Bit() + sourceOffset,
+                                        length, aParams, source->GetFlags());
+                    } else {
+                        tmpTextRun = fontGroup->
+                            MakeTextRun(source->GetTextUnicode() + sourceOffset,
+                                        length, aParams, source->GetFlags());
+                    }
                     if (tmpTextRun) {
                         source = tmpTextRun;
                         sourceOffset = 0;
