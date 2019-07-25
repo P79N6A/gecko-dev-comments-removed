@@ -47,7 +47,6 @@
 #include "gfxFont.h"
 #include "gfxPlatform.h"
 
-#include "nsIMemoryReporter.h"
 #include "mozilla/FunctionTimer.h"
 
 
@@ -57,18 +56,6 @@
 
 
 
-
-struct FontListSizes {
-    FontListSizes()
-        : mFontListSize(0), mFontTableCacheSize(0), mCharMapsSize(0)
-    { }
-
-    size_t mFontListSize; 
-                          
-                          
-    size_t mFontTableCacheSize; 
-    size_t mCharMapsSize; 
-};
 
 class gfxPlatformFontList : protected gfxFontInfoLoader
 {
@@ -154,20 +141,7 @@ public:
     
     virtual bool GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName);
 
-    virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
-    virtual void SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
-                                     FontListSizes*    aSizes) const;
-
 protected:
-    class MemoryReporter
-        : public nsIMemoryMultiReporter
-    {
-    public:
-        NS_DECL_ISUPPORTS
-        NS_DECL_NSIMEMORYMULTIREPORTER
-    };
-
     gfxPlatformFontList(bool aNeedFullnamePostscriptNames = true);
 
     static gfxPlatformFontList *sPlatformFontList;
@@ -227,13 +201,6 @@ protected:
     virtual void FinishLoader();
 
     
-    static size_t
-    SizeOfFamilyNameEntryExcludingThis(const nsAString&               aKey,
-                                       const nsRefPtr<gfxFontFamily>& aFamily,
-                                       nsMallocSizeOfFun              aMallocSizeOf,
-                                       void*                          aUserArg);
-
-    
     nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> mFontFamilies;
 
     
@@ -275,4 +242,4 @@ protected:
     PRUint32 mNumFamilies;
 };
 
-#endif
+#endif 
