@@ -1332,9 +1332,11 @@ typedef void
 
 
 
+typedef struct JSStringFinalizer JSStringFinalizer;
 
-typedef void
-(* JSStringFinalizeOp)(JSContext *cx, JSString *str);
+struct JSStringFinalizer {
+    void (*finalize)(const JSStringFinalizer *fin, jschar *chars);
+};
 
 
 
@@ -3309,66 +3311,23 @@ JS_FlushCaches(JSContext *cx);
 
 
 
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(intN)
-JS_AddExternalStringFinalizer(JSStringFinalizeOp finalizer);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(intN)
-JS_RemoveExternalStringFinalizer(JSStringFinalizeOp finalizer);
-
-
-
-
-
-
 extern JS_PUBLIC_API(JSString *)
-JS_NewExternalString(JSContext *cx, const jschar *chars, size_t length, intN type);
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSString *)
-JS_NewExternalStringWithClosure(JSContext *cx, const jschar *chars, size_t length,
-                                intN type, void *closure);
+JS_NewExternalString(JSContext *cx, const jschar *chars, size_t length,
+                     const JSStringFinalizer *fin);
 
 
 
 
 
 extern JS_PUBLIC_API(JSBool)
-JS_IsExternalString(JSContext *cx, JSString *str);
+JS_IsExternalString(JSString *str);
 
 
 
 
 
-extern JS_PUBLIC_API(void *)
-JS_GetExternalStringClosure(JSContext *cx, JSString *str);
+extern JS_PUBLIC_API(const JSStringFinalizer *)
+JS_GetExternalStringFinalizer(JSString *str);
 
 
 

@@ -1179,11 +1179,6 @@ XPCJSRuntime::~XPCJSRuntime()
         delete mExplicitNativeWrapperMap;
     }
 
-    
-    XPCStringConvert::ShutdownDOMStringFinalizer();
-
-    XPCConvert::RemoveXPCOMUCStringFinalizer();
-
     if (mJSHolders.ops) {
         JS_DHashTableFinish(&mJSHolders);
         mJSHolders.ops = nsnull;
