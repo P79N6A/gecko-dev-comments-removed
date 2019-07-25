@@ -516,6 +516,7 @@ IonCompartment::generateBailoutHandler(JSContext *cx)
 IonCode *
 IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 {
+    using Register::Codes;
     typedef MoveResolver::MoveOperand MoveOperand;
 
     JS_ASSERT(!StackKeptAligned);
@@ -530,8 +531,10 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     
-    GeneralRegisterSet regs = GeneralRegisterSet(Register::Codes::WrapperMask);
-    JS_ASSERT(Register::Codes::WrapperMask > Register::Codes::ArgRegMask);
+    GeneralRegisterSet regs = GeneralRegisterSet(WrapperMask);
+
+    
+    JS_STATIC_ASSERT((VolatileMask & ~WrapperMask) == 0);
 
     
     
