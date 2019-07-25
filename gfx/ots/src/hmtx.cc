@@ -2,6 +2,7 @@
 
 
 
+#include <new>
 #include "hmtx.h"
 
 #include "hhea.h"

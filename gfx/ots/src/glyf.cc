@@ -2,6 +2,7 @@
 
 
 
+#include <new>
 #include "glyf.h"
 
 #include <algorithm>
