@@ -84,12 +84,14 @@ class TypeAnalyzer
     bool addToWorklist(MInstruction *ins);
     MInstruction *popFromWorklist();
     bool canSpecializeAtDef(MInstruction *ins);
+    bool reflow(MInstruction *ins);
 
     bool populate();
     bool propagate();
     bool insertConversions();
 
     
+    bool inspectUses(MInstruction *ins);
     bool inspectOperands(MInstruction *ins);
     bool propagateUsedTypes(MInstruction *ins);
 
@@ -157,6 +159,7 @@ TypeAnalyzer::populate()
     return true;
 }
 
+
 bool
 TypeAnalyzer::inspectOperands(MInstruction *ins)
 {
@@ -165,6 +168,33 @@ TypeAnalyzer::inspectOperands(MInstruction *ins)
         if (required >= MIRType_Value)
             continue;
         ins->getInput(i)->useAsType(required);
+    }
+
+    return true;
+}
+
+
+
+bool
+TypeAnalyzer::inspectUses(MInstruction *ins)
+{
+    if (!ins->uses() || ins->type() == MIRType_None)
+        return true;
+
+    MIRType usedAs = ins->usedAsType();
+    if (usedAs == MIRType_Value || ins->type() == usedAs)
+        return true;
+
+    
+    
+    
+    MUseIterator uses(ins);
+    while (uses.more()) {
+        if (uses->ins()->adjustForInputs()) {
+            if (!addToWorklist(uses->ins()))
+                return false;
+        }
+        uses.next();
     }
 
     return true;
@@ -198,24 +228,16 @@ TypeAnalyzer::propagate()
         MInstruction *ins = popFromWorklist();
 
         
-        
-        
-        if (ins->adjustForInputs()) {
-            for (MUseIterator uses(ins); uses.more(); uses.next()) {
-                if (!addToWorklist(uses->ins()))
-                    return false;
-            }
-        }
-
-        
         JS_ASSERT(!ins->isCopy());
 
         if (ins->isPhi()) {
             if (!propagateUsedTypes(ins))
                 return false;
+            if (!inspectUses(ins))
+                return false;
         } else {
-            
-            
+            if (!inspectUses(ins))
+                return false;
             if (!inspectOperands(ins))
                 return false;
         }
