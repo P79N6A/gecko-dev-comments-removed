@@ -455,21 +455,25 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
   
   
 
-  gfxPoint pathStart, segStart, segEnd;
-  gfxPoint cp1, cp2; 
-  gfxPoint prevCP; 
-
-  PRUint16 segType, prevSegType = nsIDOMSVGPathSeg::PATHSEG_UNKNOWN;
+  
+  gfxPoint pathStart(0.0, 0.0);
+  float pathStartAngle = 0.0f;
 
   
-  gfxPoint pathStartPoint(0, 0);
-  float pathStartAngle = 0;
-
-  float prevSegEndAngle = 0, segStartAngle = 0, segEndAngle = 0;
+  PRUint16 prevSegType = nsIDOMSVGPathSeg::PATHSEG_UNKNOWN;
+  gfxPoint prevSegEnd(0.0, 0.0);
+  float prevSegEndAngle = 0.0f;
+  gfxPoint prevCP; 
 
   PRUint32 i = 0;
   while (i < mData.Length()) {
-    segType = SVGPathSegUtils::DecodeType(mData[i++]); 
+
+    
+    PRUint16 segType =
+      SVGPathSegUtils::DecodeType(mData[i++]); 
+    gfxPoint &segStart = prevSegEnd;
+    gfxPoint segEnd;
+    float segStartAngle, segEndAngle;
 
     switch (segType) 
     {
@@ -505,6 +509,8 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_ABS:
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_REL:
+    {
+      gfxPoint cp1, cp2; 
       if (segType == nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_ABS) {
         cp1 = gfxPoint(mData[i],   mData[i+1]);
         cp2 = gfxPoint(mData[i+2], mData[i+3]);
@@ -525,9 +531,12 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
       segEndAngle = AngleOfVector(segEnd - cp2);
       i += 6;
       break;
+    }
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_ABS:
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_REL:
+    {
+      gfxPoint cp1, cp2; 
       if (segType == nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_ABS) {
         cp1 = gfxPoint(mData[i],   mData[i+1]);
         segEnd = gfxPoint(mData[i+2], mData[i+3]);
@@ -540,6 +549,7 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
       segEndAngle = AngleOfVector(segEnd - cp1);
       i += 4;
       break;
+    }
 
     case nsIDOMSVGPathSeg::PATHSEG_ARC_ABS:
     case nsIDOMSVGPathSeg::PATHSEG_ARC_REL:
@@ -665,7 +675,10 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_ABS:
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_REL:
-      cp1 = SVGPathSegUtils::IsCubicType(prevSegType) ? segStart * 2 - prevCP : segStart;
+    {
+      gfxPoint cp1 = SVGPathSegUtils::IsCubicType(prevSegType) ?
+                       segStart * 2 - prevCP : segStart;
+      gfxPoint cp2;
       if (segType == nsIDOMSVGPathSeg::PATHSEG_CURVETO_CUBIC_SMOOTH_ABS) {
         cp2 = gfxPoint(mData[i], mData[i+1]);
         segEnd = gfxPoint(mData[i+2], mData[i+3]);
@@ -684,10 +697,14 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
       segEndAngle = AngleOfVector(segEnd - cp2);
       i += 4;
       break;
+    }
 
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_ABS:
     case nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_REL:
-      cp1 = SVGPathSegUtils::IsQuadraticType(prevSegType) ? segStart * 2 - prevCP : segStart;
+    {
+      gfxPoint cp1 = SVGPathSegUtils::IsQuadraticType(prevSegType) ?
+                       segStart * 2 - prevCP : segStart;
+      gfxPoint cp2;
       if (segType == nsIDOMSVGPathSeg::PATHSEG_CURVETO_QUADRATIC_SMOOTH_ABS) {
         segEnd = gfxPoint(mData[i], mData[i+1]);
       } else {
@@ -698,6 +715,7 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
       segEndAngle = AngleOfVector(segEnd - cp1);
       i += 2;
       break;
+    }
 
     default:
       
@@ -737,8 +755,8 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
     }
 
     prevSegType = segType;
+    prevSegEnd = segEnd;
     prevSegEndAngle = segEndAngle;
-    segStart = segEnd;
   }
 
   NS_ABORT_IF_FALSE(i == mData.Length(), "Very, very bad - mData corrupt");
