@@ -1591,10 +1591,6 @@ int NS_main(int argc, NS_tchar **argv)
   gSourcePath = argv[1];
 
 #ifdef XP_WIN
-  
-  
-  UACHelper::DisablePrivileges(NULL);
-
   bool useService = false;
   bool testOnlyFallbackKeyExists = false;
   bool noServiceFallback = getenv("MOZ_NO_SERVICE_FALLBACK") != NULL;
@@ -1713,6 +1709,23 @@ int NS_main(int argc, NS_tchar **argv)
     NS_tsnprintf(elevatedLockFilePath,
                  sizeof(elevatedLockFilePath)/sizeof(elevatedLockFilePath[0]),
                  NS_T("%s/update_elevated.lock"), argv[1]);
+
+
+    
+    bool startedFromUnelevatedUpdater =
+      GetFileAttributesW(elevatedLockFilePath) != INVALID_FILE_ATTRIBUTES;
+    
+    
+    
+    
+    
+    
+    
+    if(startedFromUnelevatedUpdater) {
+      
+      
+      UACHelper::DisablePrivileges(NULL);
+    }
 
     if (updateLockFileHandle == INVALID_HANDLE_VALUE || 
         (useService && testOnlyFallbackKeyExists && noServiceFallback)) {
