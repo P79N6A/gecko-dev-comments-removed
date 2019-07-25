@@ -35,6 +35,7 @@
 
 
 
+
 const TEST_URI = "http://example.com/browser/dom/tests/browser/test-console-api.html";
 
 var gWindow;

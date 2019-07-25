@@ -34,6 +34,8 @@
 
 
 
+
+
 let Cu = Components.utils;
 let Ci = Components.interfaces;
 let Cc = Components.classes;
@@ -73,7 +75,10 @@ ConsoleAPI.prototype = {
       },
       error: function CA_error() {
         self.notifyObservers(id, "error", arguments);
-      }
+      },
+      
+      
+      __noSuchMethod__: function CA_nsm() {}
     };
   },
 
