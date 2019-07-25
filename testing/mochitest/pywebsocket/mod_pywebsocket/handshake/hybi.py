@@ -28,7 +28,12 @@
 
 
 
-"""WebSocket HyBi latest opening handshake processor."""
+"""This file provides the opening handshake processor for the WebSocket
+protocol (RFC 6455).
+
+Specification:
+http://tools.ietf.org/html/rfc6455
+"""
 
 
 
@@ -59,7 +64,10 @@ from mod_pywebsocket.stream import StreamOptions
 from mod_pywebsocket import util
 
 
-_BASE64_REGEX = re.compile('^[+/0-9A-Za-z]*=*$')
+
+
+
+_SEC_WEBSOCKET_KEY_REGEX = re.compile('^[+/0-9A-Za-z]{21}[AQgw]==$')
 
 
 _VERSION_HYBI08 = common.VERSION_HYBI08
@@ -85,7 +93,7 @@ def compute_accept(key):
 
 
 class Handshaker(object):
-    """This class performs WebSocket handshake."""
+    """Opening handshake processor for the WebSocket protocol (RFC 6455)."""
 
     def __init__(self, request, dispatcher):
         """Construct an instance.
@@ -161,7 +169,7 @@ class Handshaker(object):
                 accept,
                 util.hexify(accept_binary))
 
-            self._logger.debug('IETF HyBi protocol')
+            self._logger.debug('Protocol version is RFC 6455')
 
             
 
@@ -259,10 +267,6 @@ class Handshaker(object):
     def _set_protocol(self):
         self._request.ws_protocol = None
 
-        
-        self._request.sts = None
-        
-
         protocol_header = self._request.headers_in.get(
             common.SEC_WEBSOCKET_PROTOCOL_HEADER)
 
@@ -307,7 +311,7 @@ class Handshaker(object):
             
             
             
-            if _BASE64_REGEX.match(key):
+            if _SEC_WEBSOCKET_KEY_REGEX.match(key):
                 decoded_key = base64.b64decode(key)
                 if len(decoded_key) == 16:
                     key_is_valid = True
@@ -355,11 +359,6 @@ class Handshaker(object):
             response.append(format_header(
                 common.SEC_WEBSOCKET_EXTENSIONS_HEADER,
                 format_extensions(self._request.ws_extensions)))
-        
-        if self._request.sts is not None:
-            response.append(format_header("Strict-Transport-Security",
-                                          self._request.sts))
-        
         response.append('\r\n')
 
         raw_response = ''.join(response)
