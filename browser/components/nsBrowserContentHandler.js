@@ -853,8 +853,7 @@ nsDefaultCommandLineHandler.prototype = {
     }
   },
 
-  
-  helpInfo : "Usage: firefox [-flags] [<url>]\n",
+  helpInfo : "",
 };
 
 var components = [nsBrowserContentHandler, nsDefaultCommandLineHandler];
