@@ -3280,12 +3280,6 @@ JS_SetWrapObjectCallbacks(JSRuntime *rt,
                           JSSameCompartmentWrapObjectCallback sccallback,
                           JSPreWrapCallback precallback);
 
-extern JS_PUBLIC_API(JSCrossCompartmentCall *)
-JS_EnterCrossCompartmentCall(JSContext *cx, JSRawObject target);
-
-extern JS_PUBLIC_API(void)
-JS_LeaveCrossCompartmentCall(JSCrossCompartmentCall *call);
-
 extern JS_PUBLIC_API(void)
 JS_SetCompartmentPrivate(JSCompartment *compartment, void *data);
 
@@ -3311,12 +3305,43 @@ js_TransplantObjectWithWrapper(JSContext *cx,
 extern JS_PUBLIC_API(JSBool)
 JS_RefreshCrossCompartmentWrappers(JSContext *cx, JSObject *ob);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef __cplusplus
 JS_END_EXTERN_C
-
-namespace js {
-class AutoCompartment;
-}
 
 class JS_PUBLIC_API(JSAutoCompartment)
 {
@@ -3324,11 +3349,20 @@ class JS_PUBLIC_API(JSAutoCompartment)
     JSCompartment *oldCompartment_;
   public:
     JSAutoCompartment(JSContext *cx, JSRawObject target);
+    JSAutoCompartment(JSContext *cx, JSScript *target);
+    JSAutoCompartment(JSContext *cx, JSStackFrame *target);
     ~JSAutoCompartment();
 };
 
 JS_BEGIN_EXTERN_C
 #endif
+
+
+extern JS_PUBLIC_API(JSCompartment *)
+JS_EnterCompartment(JSContext *cx, JSRawObject target);
+
+extern JS_PUBLIC_API(void)
+JS_LeaveCompartment(JSContext *cx, JSCompartment *oldCompartment);
 
 typedef void (*JSIterateCompartmentCallback)(JSRuntime *rt, void *data, JSCompartment *compartment);
 

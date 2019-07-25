@@ -246,13 +246,6 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
     JS_ASSERT(isNative());
 
-    
-
-
-
-
-    
-
     cx->setDefaultCompartmentObjectIfUnset(self);
 
     RootedObject objectProto(cx);
