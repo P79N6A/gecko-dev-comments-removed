@@ -248,7 +248,6 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
 
     
     
-    int audioQueueSize = mReader->mAudioQueue.GetSize();
     PRInt64 initialDownloadPosition = 0;
     PRInt64 currentTime = 0;
     PRInt64 audioDecoded = 0;
@@ -299,14 +298,7 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
     {
       MonitorAutoEnter mon(mDecoder->GetMonitor());
 
-      if (!IsPlaying() &&
-          (!audioWait || !videoWait) &&
-          (videoQueueSize < 2 || audioQueueSize < 2))
-      {
-        
-        
-        
-        
+      if (!IsPlaying()) {
         
         
         
@@ -317,8 +309,8 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
         break;
       }
 
-      if ((!HasAudio() || (audioWait && audioPlaying)) &&
-          (!HasVideo() || (videoWait && videoPlaying)))
+      if ((!HasAudio() || audioWait) &&
+          (!HasVideo() || videoWait))
       {
         
         
@@ -1000,7 +992,8 @@ nsresult nsBuiltinDecoderStateMachine::Run()
         mDecoder->StopProgressUpdates();
 
         PRBool currentTimeChanged = false;
-        if (mCurrentFrameTime != seekTime - mStartTime) {
+        PRInt64 mediaTime = GetMediaTime();
+        if (mediaTime != seekTime) {
           currentTimeChanged = true;
           
           
@@ -1024,7 +1017,6 @@ nsresult nsBuiltinDecoderStateMachine::Run()
           StopPlayback(AUDIO_SHUTDOWN);
           StopDecodeThreads();
           ResetPlayback();
-          PRInt64 currentTime = GetMediaTime();
           nsresult res;
           {
             MonitorAutoExit exitMon(mDecoder->GetMonitor());
@@ -1033,7 +1025,7 @@ nsresult nsBuiltinDecoderStateMachine::Run()
             res = mReader->Seek(seekTime,
                                 mStartTime,
                                 mEndTime,
-                                currentTime);
+                                mediaTime);
           }
           if (NS_SUCCEEDED(res)){
             PRInt64 audioTime = seekTime;
