@@ -59,150 +59,25 @@ JSObject::asRegExp()
 
 namespace js {
 
-inline bool
-IsRegExpMetaChar(jschar c)
+inline RegExpShared &
+RegExpObject::shared() const
 {
-    switch (c) {
-      
-      case '^': case '$': case '\\': case '.': case '*': case '+':
-      case '?': case '(': case ')': case '[': case ']': case '{':
-      case '}': case '|':
-        return true;
-      default:
-        return false;
-    }
+    JS_ASSERT(JSObject::getPrivate() != NULL);
+    return *static_cast<RegExpShared *>(JSObject::getPrivate());
 }
 
-inline bool
-HasRegExpMetaChars(const jschar *chars, size_t length)
+inline RegExpShared *
+RegExpObject::maybeShared()
 {
-    for (size_t i = 0; i < length; ++i) {
-        if (IsRegExpMetaChar(chars[i]))
-            return true;
-    }
-    return false;
+    return static_cast<RegExpShared *>(JSObject::getPrivate());
 }
 
-inline bool
-RegExpObject::startsWithAtomizedGreedyStar() const
+inline RegExpShared *
+RegExpObject::getShared(JSContext *cx)
 {
-    JSLinearString *source = getSource();
-
-    if (!source->isAtom())
-        return false;
-
-    if (source->length() < 3)
-        return false;
-
-    const jschar *chars = source->chars();
-    return chars[0] == detail::GreedyStarChars[0] &&
-           chars[1] == detail::GreedyStarChars[1] &&
-           chars[2] != '?';
-}
-
-inline size_t *
-RegExpObject::addressOfPrivateRefCount() const
-{
-    return shared().addressOfRefCount();
-}
-
-inline RegExpObject *
-RegExpObject::create(JSContext *cx, RegExpStatics *res, const jschar *chars, size_t length,
-                     RegExpFlag flags, TokenStream *tokenStream)
-{
-    RegExpFlag staticsFlags = res->getFlags();
-    return createNoStatics(cx, chars, length, RegExpFlag(flags | staticsFlags), tokenStream);
-}
-
-inline RegExpObject *
-RegExpObject::createNoStatics(JSContext *cx, const jschar *chars, size_t length,
-                              RegExpFlag flags, TokenStream *tokenStream)
-{
-    JSAtom *source = js_AtomizeChars(cx, chars, length);
-    if (!source)
-        return NULL;
-
-    return createNoStatics(cx, source, flags, tokenStream);
-}
-
-inline RegExpObject *
-RegExpObject::createNoStatics(JSContext *cx, JSAtom *source, RegExpFlag flags,
-                              TokenStream *tokenStream)
-{
-    if (!RegExpCode::checkSyntax(cx, tokenStream, source))
-        return NULL;
-
-    RegExpObjectBuilder builder(cx);
-    return builder.build(source, flags);
-}
-
-inline void
-RegExpObject::purge(JSContext *cx)
-{
-    if (RegExpShared *shared = maybeShared()) {
-        shared->decref(cx);
-        JSObject::setPrivate(NULL);
-    }
-}
-
-inline void
-RegExpObject::finalize(JSContext *cx)
-{
-    purge(cx);
-#ifdef DEBUG
-    JSObject::setPrivate((void *) 0x1); 
-#endif
-}
-
-inline bool
-RegExpObject::init(JSContext *cx, JSLinearString *source, RegExpFlag flags)
-{
-    if (nativeEmpty()) {
-        if (isDelegate()) {
-            if (!assignInitialShape(cx))
-                return false;
-        } else {
-            Shape *shape = assignInitialShape(cx);
-            if (!shape)
-                return false;
-            EmptyShape::insertInitialShape(cx, shape, getProto());
-        }
-        JS_ASSERT(!nativeEmpty());
-    }
-
-    DebugOnly<JSAtomState *> atomState = &cx->runtime->atomState;
-    JS_ASSERT(nativeLookup(cx, ATOM_TO_JSID(atomState->lastIndexAtom))->slot() == LAST_INDEX_SLOT);
-    JS_ASSERT(nativeLookup(cx, ATOM_TO_JSID(atomState->sourceAtom))->slot() == SOURCE_SLOT);
-    JS_ASSERT(nativeLookup(cx, ATOM_TO_JSID(atomState->globalAtom))->slot() == GLOBAL_FLAG_SLOT);
-    JS_ASSERT(nativeLookup(cx, ATOM_TO_JSID(atomState->ignoreCaseAtom))->slot() ==
-                                 IGNORE_CASE_FLAG_SLOT);
-    JS_ASSERT(nativeLookup(cx, ATOM_TO_JSID(atomState->multilineAtom))->slot() ==
-                                 MULTILINE_FLAG_SLOT);
-    JS_ASSERT(nativeLookup(cx, ATOM_TO_JSID(atomState->stickyAtom))->slot() == STICKY_FLAG_SLOT);
-
-    JS_ASSERT(!maybeShared());
-    zeroLastIndex();
-    setSource(source);
-    setGlobal(flags & GlobalFlag);
-    setIgnoreCase(flags & IgnoreCaseFlag);
-    setMultiline(flags & MultilineFlag);
-    setSticky(flags & StickyFlag);
-    return true;
-}
-
-inline void
-RegExpMatcher::init(NeedsIncRef<RegExpShared> shared)
-{
-    JS_ASSERT(!shared_);
-    shared_.reset(shared);
-}
-
-inline bool
-RegExpMatcher::init(JSLinearString *patstr, JSString *opt)
-{
-    JS_ASSERT(!shared_);
-    shared_.reset(RegExpShared::create(cx_, patstr, opt, NULL));
-    return !!shared_;
+    if (RegExpShared *shared = maybeShared())
+        return shared;
+    return createShared(cx);
 }
 
 inline void
@@ -224,7 +99,7 @@ RegExpObject::zeroLastIndex()
 }
 
 inline void
-RegExpObject::setSource(JSLinearString *source)
+RegExpObject::setSource(JSAtom *source)
 {
     setSlot(SOURCE_SLOT, StringValue(source));
 }
@@ -254,97 +129,6 @@ RegExpObject::setSticky(bool enabled)
 }
 
 
-
-inline bool
-RegExpShared::cacheLookup(JSContext *cx, JSAtom *atom, RegExpFlag flags,
-                          RegExpCacheKind targetKind,
-                          AlreadyIncRefed<RegExpShared> *result)
-{
-    RegExpCache *cache = cx->runtime->getRegExpCache(cx);
-    if (!cache)
-        return false;
-
-    if (RegExpCache::Ptr p = cache->lookup(atom)) {
-        RegExpCacheValue &cacheValue = p->value;
-        if (cacheValue.kind() == targetKind && cacheValue.shared().getFlags() == flags) {
-            cacheValue.shared().incref(cx);
-            *result = AlreadyIncRefed<RegExpShared>(&cacheValue.shared());
-            return true;
-        }
-    }
-
-    JS_ASSERT(result->null());
-    return true;
-}
-
-inline bool
-RegExpShared::cacheInsert(JSContext *cx, JSAtom *atom, RegExpCacheKind kind,
-                          RegExpShared &shared)
-{
-    
-
-
-
-
-    RegExpCache *cache = cx->runtime->getRegExpCache(cx);
-    if (!cache)
-        return false;
-
-    if (RegExpCache::AddPtr addPtr = cache->lookupForAdd(atom)) {
-        
-        JS_ASSERT(addPtr->value.shared().getFlags() != shared.getFlags() ||
-                  addPtr->value.kind() != kind);
-        addPtr->value.reset(shared, kind);
-    } else {
-        if (!cache->add(addPtr, atom, RegExpCacheValue(shared, kind))) {
-            js_ReportOutOfMemory(cx);
-            return false;
-        }
-    }
-
-    return true;
-}
-
-inline AlreadyIncRefed<RegExpShared>
-RegExpShared::create(JSContext *cx, JSLinearString *source, RegExpFlag flags, TokenStream *ts)
-{
-    typedef AlreadyIncRefed<RegExpShared> RetType;
-
-    
-
-
-
-
-    bool cacheable = source->isAtom();
-    if (!cacheable)
-        return RetType(RegExpShared::createUncached(cx, source, flags, ts));
-
-    
-
-
-
-
-
-    JSAtom *sourceAtom = &source->asAtom();
-
-    AlreadyIncRefed<RegExpShared> cached;
-    if (!cacheLookup(cx, sourceAtom, flags, detail::RegExpCache_ExecCapable, &cached))
-        return RetType(NULL);
-
-    if (cached)
-        return cached;
-
-    RegExpShared *shared = RegExpShared::createUncached(cx, source, flags, ts);
-    if (!shared)
-        return RetType(NULL);
-
-    if (!cacheInsert(cx, sourceAtom, detail::RegExpCache_ExecCapable, *shared))
-        return RetType(NULL);
-
-    return RetType(shared);
-}
-
-
 inline bool
 detail::RegExpCode::isJITRuntimeEnabled(JSContext *cx)
 {
@@ -352,151 +136,6 @@ detail::RegExpCode::isJITRuntimeEnabled(JSContext *cx)
     return cx->methodJitEnabled;
 #else
     return true;
-#endif
-}
-
-inline bool
-detail::RegExpCode::compile(JSContext *cx, JSLinearString &pattern, TokenStream *ts,
-                            uintN *parenCount, RegExpFlag flags)
-{
-#if ENABLE_YARR_JIT
-    
-    ErrorCode yarrError;
-    YarrPattern yarrPattern(pattern, bool(flags & IgnoreCaseFlag), bool(flags & MultilineFlag),
-                            &yarrError);
-    if (yarrError) {
-        reportYarrError(cx, ts, yarrError);
-        return false;
-    }
-    *parenCount = yarrPattern.m_numSubpatterns;
-
-    
-
-
-
-
-
-#ifdef JS_METHODJIT
-    if (isJITRuntimeEnabled(cx) && !yarrPattern.m_containsBackreferences) {
-        JSC::ExecutableAllocator *execAlloc = cx->runtime->getExecutableAllocator(cx);
-        if (!execAlloc) {
-            js_ReportOutOfMemory(cx);
-            return false;
-        }
-
-        JSGlobalData globalData(execAlloc);
-        jitCompile(yarrPattern, &globalData, codeBlock);
-        if (!codeBlock.isFallBack())
-            return true;
-    }
-#endif
-
-    WTF::BumpPointerAllocator *bumpAlloc = cx->runtime->getBumpPointerAllocator(cx);
-    if (!bumpAlloc) {
-        js_ReportOutOfMemory(cx);
-        return false;
-    }
-
-    codeBlock.setFallBack(true);
-    byteCode = byteCompile(yarrPattern, bumpAlloc).get();
-    return true;
-#else 
-    int error = 0;
-    compiled = jsRegExpCompile(pattern.chars(), pattern.length(),
-                  ignoreCase() ? JSRegExpIgnoreCase : JSRegExpDoNotIgnoreCase,
-                  multiline() ? JSRegExpMultiline : JSRegExpSingleLine,
-                  parenCount, &error);
-    if (error) {
-        reportPCREError(cx, error);
-        return false;
-    }
-    return true;
-#endif
-}
-
-inline bool
-RegExpShared::compile(JSContext *cx, TokenStream *ts)
-{
-    if (!sticky())
-        return code.compile(cx, *source, ts, &parenCount, getFlags());
-
-    
-
-
-
-    static const jschar prefix[] = {'^', '(', '?', ':'};
-    static const jschar postfix[] = {')'};
-
-    using mozilla::ArrayLength;
-    StringBuffer sb(cx);
-    if (!sb.reserve(ArrayLength(prefix) + source->length() + ArrayLength(postfix)))
-        return false;
-    sb.infallibleAppend(prefix, ArrayLength(prefix));
-    sb.infallibleAppend(source->chars(), source->length());
-    sb.infallibleAppend(postfix, ArrayLength(postfix));
-
-    JSLinearString *fakeySource = sb.finishString();
-    if (!fakeySource)
-        return false;
-    return code.compile(cx, *fakeySource, ts, &parenCount, getFlags());
-}
-
-inline RegExpRunStatus
-detail::RegExpCode::execute(JSContext *cx, const jschar *chars, size_t length, size_t start,
-                            int *output, size_t outputCount)
-{
-    int result;
-#if ENABLE_YARR_JIT
-    (void) cx; 
-    if (codeBlock.isFallBack())
-        result = JSC::Yarr::interpret(byteCode, chars, start, length, output);
-    else
-        result = JSC::Yarr::execute(codeBlock, chars, start, length, output);
-#else
-    result = jsRegExpExecute(cx, compiled, chars, length, start, output, outputCount);
-#endif
-
-    if (result == -1)
-        return RegExpRunStatus_Success_NotFound;
-
-#if !ENABLE_YARR_JIT
-    if (result < 0) {
-        reportPCREError(cx, result);
-        return RegExpRunStatus_Error;
-    }
-#endif
-
-    JS_ASSERT(result >= 0);
-    return RegExpRunStatus_Success;
-}
-
-inline void
-RegExpShared::incref(JSContext *cx)
-{
-    ++refCount;
-}
-
-inline void
-RegExpShared::decref(JSContext *cx)
-{
-    if (--refCount != 0)
-        return;
-
-    if (RegExpCache *cache = cx->runtime->maybeRegExpCache()) {
-        if (source->isAtom()) {
-            if (RegExpCache::Ptr p = cache->lookup(&source->asAtom())) {
-                if (&p->value.shared() == this)
-                    cache->remove(p);
-            }
-        }
-    }
-
-#ifdef DEBUG
-    this->~RegExpShared();
-    memset(this, 0xcd, sizeof(*this));
-    cx->free_(this);
-#else
-    cx->delete_(this);
 #endif
 }
 

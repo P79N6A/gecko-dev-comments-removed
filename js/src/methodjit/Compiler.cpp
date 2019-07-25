@@ -6956,10 +6956,6 @@ mjit::Compiler::jsop_regexp()
     stubcc.masm.move(ImmPtr(obj), Registers::ArgReg1);
     OOL_STUBCALL(stubs::RegExp, REJOIN_FALLTHROUGH);
 
-    
-    size_t *refcount = reobj->addressOfPrivateRefCount();
-    masm.add32(Imm32(1), AbsoluteAddress(refcount));
-
     frame.pushTypedPayload(JSVAL_TYPE_OBJECT, result);
 
     stubcc.rejoin(Changes(1));
