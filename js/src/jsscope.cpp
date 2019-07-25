@@ -1312,6 +1312,7 @@ Shape::setExtensibleParents(JSContext *cx, HeapPtrShape *listp)
     BaseShape base(*shape->base()->unowned());
     base.flags |= BaseShape::EXTENSIBLE_PARENTS;
 
+    
     return replaceLastProperty(cx, base, NULL, listp);
 }
 
@@ -1328,6 +1329,8 @@ Bindings::setParent(JSContext *cx, JSObject *obj)
 {
     if (!ensureShape(cx))
         return false;
+
+    
     return Shape::setObjectParent(cx, obj, NULL, &lastBinding);
 }
 
