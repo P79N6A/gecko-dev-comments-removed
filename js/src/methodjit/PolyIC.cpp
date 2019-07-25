@@ -576,12 +576,18 @@ class SetPropCompiler : public PICStubCompiler
                 getter = CastAsPropertyOp(funobj);
             }
 
+            
+
+
+
+
             const Shape *shape =
                 obj->putProperty(cx, id, getter, clasp->setProperty,
                                  SHAPE_INVALID_SLOT, JSPROP_ENUMERATE, flags, 0);
-
             if (!shape)
                 return error();
+            if (flags & Shape::METHOD)
+                obj->nativeSetSlot(shape->slot, f.regs.sp[-1]);
 
             
 
