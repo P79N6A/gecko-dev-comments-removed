@@ -674,6 +674,7 @@ function run_test_12() {
 
 function run_test_13() {
   check_database_exists(true);
+  Services.prefs.setCharPref(PREF_GETADDONS_BYIDS_PERF, GETADDONS_EMPTY);
 
   trigger_background_update(function() {
     
@@ -690,7 +691,6 @@ function run_test_13() {
 
 function run_test_14() {
   Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
-  Services.prefs.setCharPref(PREF_GETADDONS_BYIDS, GETADDONS_EMPTY);
 
   trigger_background_update(function() {
     check_database_exists(true);
