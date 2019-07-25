@@ -6197,29 +6197,32 @@ nsGenericElement::MozMatchesSelector(const nsAString& aSelector, bool* aReturn)
   return rv;
 }
 
-PRInt64
-nsINode::SizeOf() const
+size_t
+nsINode::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 {
-  PRInt64 size = sizeof(*this);
-
+  size_t n = 0;
   nsEventListenerManager* elm =
     const_cast<nsINode*>(this)->GetListenerManager(false);
   if (elm) {
-    size += elm->SizeOf();
+    n += elm->SizeOfIncludingThis(aMallocSizeOf);
   }
 
-  return size;
+  
+  
+  
+  
+  
+  
+  
+  
+  return n;
 }
 
-PRInt64
-nsGenericElement::SizeOf() const
+size_t
+nsGenericElement::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 {
-  PRInt64 size = MemoryReporter::GetBasicSize<nsGenericElement, Element>(this);
-
-  size -= sizeof(mAttrsAndChildren);
-  size += mAttrsAndChildren.SizeOf();
-
-  return size;
+  return Element::SizeOfExcludingThis(aMallocSizeOf) +
+         mAttrsAndChildren.SizeOfExcludingThis(aMallocSizeOf);
 }
 
 #define EVENT(name_, id_, type_, struct_)                                    \

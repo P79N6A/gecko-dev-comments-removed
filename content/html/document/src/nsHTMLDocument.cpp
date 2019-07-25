@@ -3449,3 +3449,22 @@ nsHTMLDocument::RemovedFromDocShell()
   mEditingState = eOff;
   nsDocument::RemovedFromDocShell();
 }
+
+ void
+nsHTMLDocument::DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
+{
+  nsDocument::DocSizeOfExcludingThis(aWindowSizes);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+}

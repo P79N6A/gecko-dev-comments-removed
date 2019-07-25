@@ -1767,52 +1767,43 @@ nsAttrValue::StringToInteger(const nsAString& aValue, bool* aStrict,
   return value;
 }
 
-PRInt64
-nsAttrValue::SizeOf() const
+size_t
+nsAttrValue::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 {
-  PRInt64 size = sizeof(*this);
+  size_t n = 0;
 
   switch (BaseType()) {
     case eStringBase:
     {
-      
-      
       nsStringBuffer* str = static_cast<nsStringBuffer*>(GetPtr());
-      size += str ? str->StorageSize() : 0;
+      n += str ? str->SizeOfIncludingThisIfUnshared(aMallocSizeOf) : 0;
       break;
     }
     case eOtherBase:
     {
       MiscContainer* container = GetMiscContainer();
-
       if (!container) {
         break;
       }
-
-      size += sizeof(*container);
+      n += aMallocSizeOf(container);
 
       void* otherPtr = MISC_STR_PTR(container);
       
       
       if (otherPtr &&
           static_cast<ValueBaseType>(container->mStringBits & NS_ATTRVALUE_BASETYPE_MASK) == eStringBase) {
-        
-        
         nsStringBuffer* str = static_cast<nsStringBuffer*>(otherPtr);
-        size += str ? str->StorageSize() : 0;
+        n += str ? str->SizeOfIncludingThisIfUnshared(aMallocSizeOf) : 0;
       }
 
-      
-      
       if (Type() == eCSSStyleRule && container->mCSSStyleRule) {
         
-        size += sizeof(*container->mCSSStyleRule);
-      } else if (Type() == eAtomArray && container->mAtomArray) {
-        size += sizeof(container->mAtomArray) + sizeof(nsTArrayHeader);
-        size += container->mAtomArray->Capacity() * sizeof(nsCOMPtr<nsIAtom>);
         
+        
+      } else if (Type() == eAtomArray && container->mAtomArray) {
+        
+        n += container->mAtomArray->SizeOfIncludingThis(aMallocSizeOf);
       }
-
       break;
     }
     case eAtomBase:    
@@ -1820,6 +1811,6 @@ nsAttrValue::SizeOf() const
       break;
   }
 
-  return size;
+  return n;
 }
 

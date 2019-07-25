@@ -166,13 +166,9 @@ static const char sPrintOptionsContractID[]         = "@mozilla.org/gfx/printset
 #include "nsIWindowWatcher.h"
 
 
-#include "nsPrintEngine.h"
 #include "nsPagePrintTimer.h"
 
 #endif 
-
-
-#include "nsIDocument.h"
 
 
 #include "nsIDOMEventTarget.h"
@@ -190,9 +186,6 @@ static const char sPrintOptionsContractID[]         = "@mozilla.org/gfx/printset
 
 #include "prenv.h"
 #include <stdio.h>
-
-
-#include "nsGfxCIID.h"
 
 #include "nsObserverService.h"
 

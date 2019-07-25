@@ -85,6 +85,9 @@ public:
   NS_DECL_NSIDOMHTMLLINKELEMENT
 
   
+  
+
+  
   NS_IMETHOD    LinkAdded();
   NS_IMETHOD    LinkRemoved();
 

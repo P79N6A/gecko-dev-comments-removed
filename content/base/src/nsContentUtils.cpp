@@ -123,6 +123,7 @@ static NS_DEFINE_CID(kXTFServiceCID, NS_XTFSERVICE_CID);
 #include "nsILineBreaker.h"
 #include "nsIWordBreaker.h"
 #include "nsUnicodeProperties.h"
+#include "harfbuzz/hb-common.h"
 #include "jsdbgapi.h"
 #include "nsIJSRuntimeService.h"
 #include "nsIDOMDocumentXBL.h"
@@ -1123,28 +1124,32 @@ nsContentUtils::CopyNewlineNormalizedUnicodeTo(nsReadingIterator<PRUnichar>& aSr
 
 
 
-#include "punct_marks.x-ccmap"
-DEFINE_X_CCMAP(gPuncCharsCCMapExt, const);
 
 
 bool
-nsContentUtils::IsPunctuationMark(PRUint32 aChar)
+nsContentUtils::IsFirstLetterPunctuation(PRUint32 aChar)
 {
-  return CCMAP_HAS_CHAR_EXT(gPuncCharsCCMapExt, aChar);
+  PRUint8 cat = mozilla::unicode::GetGeneralCategory(aChar);
+
+  return (cat == HB_UNICODE_GENERAL_CATEGORY_OPEN_PUNCTUATION ||     
+          cat == HB_UNICODE_GENERAL_CATEGORY_CLOSE_PUNCTUATION ||    
+          cat == HB_UNICODE_GENERAL_CATEGORY_INITIAL_PUNCTUATION ||  
+          cat == HB_UNICODE_GENERAL_CATEGORY_FINAL_PUNCTUATION ||    
+          cat == HB_UNICODE_GENERAL_CATEGORY_OTHER_PUNCTUATION);     
 }
 
 
 bool
-nsContentUtils::IsPunctuationMarkAt(const nsTextFragment* aFrag, PRUint32 aOffset)
+nsContentUtils::IsFirstLetterPunctuationAt(const nsTextFragment* aFrag, PRUint32 aOffset)
 {
   PRUnichar h = aFrag->CharAt(aOffset);
   if (!IS_SURROGATE(h)) {
-    return IsPunctuationMark(h);
+    return IsFirstLetterPunctuation(h);
   }
   if (NS_IS_HIGH_SURROGATE(h) && aOffset + 1 < aFrag->GetLength()) {
     PRUnichar l = aFrag->CharAt(aOffset + 1);
     if (NS_IS_LOW_SURROGATE(l)) {
-      return IsPunctuationMark(SURROGATE_TO_UCS4(h, l));
+      return IsFirstLetterPunctuation(SURROGATE_TO_UCS4(h, l));
     }
   }
   return false;

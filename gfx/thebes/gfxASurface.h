@@ -260,7 +260,12 @@ public:
     
 
 
-    void DumpAsDataURL();
+    void DumpAsDataURL(FILE* aOutput = stdout);
+
+    
+
+
+    void PrintAsDataURL();
 
     
 

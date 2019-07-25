@@ -422,8 +422,8 @@ public:
   
 
 
-  static bool IsPunctuationMark(PRUint32 aChar);
-  static bool IsPunctuationMarkAt(const nsTextFragment* aFrag, PRUint32 aOffset);
+  static bool IsFirstLetterPunctuation(PRUint32 aChar);
+  static bool IsFirstLetterPunctuationAt(const nsTextFragment* aFrag, PRUint32 aOffset);
  
   
 

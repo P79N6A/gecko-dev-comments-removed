@@ -224,6 +224,71 @@ js_IteratorNext(JSContext *cx, JSObject *iterobj, js::Value *rval);
 extern JSBool
 js_ThrowStopIteration(JSContext *cx);
 
+namespace js {
+
+
+
+
+
+
+
+inline bool
+Next(JSContext *cx, JSObject *iter, Value *vp)
+{
+    if (!js_IteratorMore(cx, iter, vp))
+        return false;
+    if (vp->toBoolean())
+        return js_IteratorNext(cx, iter, vp);
+    vp->setMagic(JS_NO_ITER_VALUE);
+    return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <class Op>
+bool
+ForOf(JSContext *cx, const Value &iterable, Op op)
+{
+    Value iterv(iterable);
+    if (!ValueToIterator(cx, JSITER_FOR_OF, &iterv))
+        return false;
+    JSObject *iter = &iterv.toObject();
+
+    bool ok = true;
+    while (ok) {
+        Value v;
+        ok = Next(cx, iter, &v);
+        if (ok) {
+            if (v.isMagic(JS_NO_ITER_VALUE))
+                break;
+            ok = op(cx, v);
+        }
+    }
+
+    bool throwing = !ok && cx->isExceptionPending();
+    Value exc;
+    if (throwing) {
+        exc = cx->getPendingException();
+        cx->clearPendingException();
+    }
+    bool closedOK = CloseIterator(cx, iter);
+    if (throwing && closedOK)
+        cx->setPendingException(exc);
+    return ok && closedOK;
+}
+
+} 
+
 #if JS_HAS_GENERATORS
 
 

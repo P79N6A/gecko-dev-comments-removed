@@ -64,10 +64,6 @@ public:
   NS_FORWARD_NSIDOMCHARACTERDATA(nsGenericDOMDataNode::)
 
   
-  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsCommentNode,
-                                              nsGenericDOMDataNode)
-
-  
   
 
   

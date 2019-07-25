@@ -718,15 +718,8 @@ nsEncodingFormSubmission::nsEncodingFormSubmission(const nsACString& aCharset,
     charset.AssignLiteral("windows-1252");
   }
 
-  
-  
-  if (StringBeginsWith(charset, NS_LITERAL_CSTRING("UTF-16"))) {
-    charset.AssignLiteral("UTF-8");
-  }
-
   if (!(charset.EqualsLiteral("UTF-8") || charset.EqualsLiteral("gb18030"))) {
-    nsAutoString charsetUtf16;
-    CopyUTF8toUTF16(charset, charsetUtf16);
+    NS_ConvertUTF8toUTF16 charsetUtf16(charset);
     const PRUnichar* charsetPtr = charsetUtf16.get();
     SendJSWarning(aOriginatingElement ? aOriginatingElement->GetOwnerDocument()
                                       : nsnull,
@@ -868,6 +861,15 @@ GetSubmissionFromForm(nsGenericHTMLElement* aForm,
   
   nsCAutoString charset;
   GetSubmitCharset(aForm, charset);
+
+  
+  
+
+  
+  
+  if (StringBeginsWith(charset, NS_LITERAL_CSTRING("UTF-16"))) {
+    charset.AssignLiteral("UTF-8");
+  }
 
   
   if (method == NS_FORM_METHOD_POST &&

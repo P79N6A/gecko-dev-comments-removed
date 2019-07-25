@@ -123,6 +123,7 @@ class nsXMLEventsManager;
 class nsHTMLStyleSheet;
 class nsHTMLCSSStyleSheet;
 class nsDOMNavigationTiming;
+class nsWindowSizes;
 
 
 
@@ -505,7 +506,8 @@ public:
   typedef mozilla::dom::Element Element;
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_DOM_MEMORY_REPORTER_SIZEOF
+
+  NS_DECL_SIZEOF_EXCLUDING_THIS
 
   using nsINode::GetScriptTypeID;
 
@@ -990,7 +992,8 @@ public:
   
   virtual void PostVisibilityUpdateEvent();
 
-  virtual size_t SizeOfStyleSheets(nsMallocSizeOfFun aMallocSizeOf) const;
+  virtual void DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const;
+  
 
 protected:
   friend class nsNodeUtils;

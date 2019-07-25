@@ -2021,6 +2021,9 @@ pref("plugin.scan.WindowsMediaPlayer", "7.0");
 pref("plugin.scan.plid.all", true);
 
 
+pref("plugin.allow.asyncdrawing", false);
+
+
 
 pref("network.autodial-helper.enabled", true);
 
