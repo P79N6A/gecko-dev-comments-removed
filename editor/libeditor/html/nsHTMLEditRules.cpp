@@ -3730,7 +3730,11 @@ nsHTMLEditRules::WillCSSIndent(nsISelection *aSelection, PRBool *aCancel, PRBool
       else {
         if (!curQuote)
         {
+          
           NS_NAMED_LITERAL_STRING(divquoteType, "div");
+          if (!mEditor->CanContainTag(curParent, divquoteType))
+            return NS_OK; 
+
           res = SplitAsNeeded(&divquoteType, address_of(curParent), &offset);
           NS_ENSURE_SUCCESS(res, res);
           res = mHTMLEditor->CreateNode(divquoteType, curParent, offset, getter_AddRefs(curQuote));
@@ -3957,6 +3961,10 @@ nsHTMLEditRules::WillHTMLIndent(nsISelection *aSelection, PRBool *aCancel, PRBoo
         
         if (!curQuote) 
         {
+          
+          if (!mEditor->CanContainTag(curParent, quoteType))
+            return NS_OK; 
+
           res = SplitAsNeeded(&quoteType, address_of(curParent), &offset);
           NS_ENSURE_SUCCESS(res, res);
           res = mHTMLEditor->CreateNode(quoteType, curParent, offset, getter_AddRefs(curQuote));
@@ -4091,8 +4099,8 @@ nsHTMLEditRules::WillOutdent(nsISelection *aSelection, PRBool *aCancel, PRBool *
       curBlockQuoteIsIndentedWithCSS = PR_FALSE;
       
       
-      while (!nsTextEditUtils::IsBody(n) &&   
-             (nsHTMLEditUtils::IsTable(n) || !nsHTMLEditUtils::IsTableElement(n)))
+      while (!nsTextEditUtils::IsBody(n) && mHTMLEditor->IsNodeInActiveEditor(n)
+          && (nsHTMLEditUtils::IsTable(n) || !nsHTMLEditUtils::IsTableElement(n)))
       {
         n->GetParentNode(getter_AddRefs(tmp));
         if (!tmp) {
@@ -4785,7 +4793,11 @@ nsHTMLEditRules::WillAlign(nsISelection *aSelection,
     
     if (!curDiv || transitionList[i])
     {
+      
       NS_NAMED_LITERAL_STRING(divType, "div");
+      if (!mEditor->CanContainTag(curParent, divType))
+        return NS_OK; 
+
       res = SplitAsNeeded(&divType, address_of(curParent), &offset);
       NS_ENSURE_SUCCESS(res, res);
       res = mHTMLEditor->CreateNode(divType, curParent, offset, getter_AddRefs(curDiv));
@@ -4795,9 +4807,9 @@ nsHTMLEditRules::WillAlign(nsISelection *aSelection,
       
       nsCOMPtr<nsIDOMElement> divElem = do_QueryInterface(curDiv);
       res = AlignBlock(divElem, alignType, PR_TRUE);
-
-
-
+      
+      
+      
       
     }
 
@@ -5599,8 +5611,12 @@ nsHTMLEditRules::GetPromotedPoint(RulesEndpoint aWhere, nsIDOMNode *aNode, PRInt
       
       
       
-      if (!mHTMLEditor->IsNodeInActiveEditor(node) &&
-          !mHTMLEditor->IsNodeInActiveEditor(parent)) {
+      PRBool blockLevelAction = (actionID == nsHTMLEditor::kOpIndent)
+                             || (actionID == nsHTMLEditor::kOpOutdent)
+                             || (actionID == nsHTMLEditor::kOpAlign)
+                             || (actionID == nsHTMLEditor::kOpMakeBasicBlock);
+      if (!mHTMLEditor->IsNodeInActiveEditor(parent) &&
+          (blockLevelAction || !mHTMLEditor->IsNodeInActiveEditor(node))) {
         break;
       }
 
@@ -8935,7 +8951,16 @@ nsHTMLEditRules::RelativeChangeIndentationOfElementNode(nsIDOMNode *aNode, PRInt
     }
     else {
       mHTMLEditor->mHTMLCSSUtils->RemoveCSSProperty(element, marginProperty, value, PR_FALSE);
-      if (nsHTMLEditUtils::IsDiv(aNode)) {
+      
+      
+      
+      
+      
+      nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+      if (nsHTMLEditUtils::IsDiv(aNode)
+          && (node != mHTMLEditor->GetActiveEditingHost())
+          && mHTMLEditor->IsNodeInActiveEditor(aNode)) {
+        
         
         nsCOMPtr<nsIDOMNamedNodeMap> attributeList;
         res = element->GetAttributes(getter_AddRefs(attributeList));
