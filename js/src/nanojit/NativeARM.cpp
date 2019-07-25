@@ -2404,7 +2404,7 @@ NIns* Assembler::asm_branch_ov(LOpcode op, NIns* target)
     
     
     
-    ConditionCode cc = ( op == LIR_mulxovi ? NE : VS );
+    ConditionCode cc = ( (op == LIR_mulxovi) || (op == LIR_muljovi) ? NE : VS );
 
     
     B_cond(cc, target);
@@ -2532,7 +2532,7 @@ Assembler::asm_arith(LIns* ins)
     
     
     
-    if (rhs->isImmI() && op != LIR_muli && op != LIR_mulxovi)
+    if (rhs->isImmI() && (op != LIR_muli) && (op != LIR_mulxovi) && (op != LIR_muljovi))
     {
         if ((op == LIR_addi || op == LIR_addxovi) && lhs->isop(LIR_allocp)) {
             
@@ -2549,8 +2549,10 @@ Assembler::asm_arith(LIns* ins)
         switch (op)
         {
             case LIR_addi:       asm_add_imm(rr, ra, immI);     break;
+            case LIR_addjovi:
             case LIR_addxovi:    asm_add_imm(rr, ra, immI, 1);  break;
             case LIR_subi:       asm_sub_imm(rr, ra, immI);     break;
+            case LIR_subjovi:
             case LIR_subxovi:    asm_sub_imm(rr, ra, immI, 1);  break;
             case LIR_andi:       asm_and_imm(rr, ra, immI);     break;
             case LIR_ori:        asm_orr_imm(rr, ra, immI);     break;
@@ -2585,8 +2587,10 @@ Assembler::asm_arith(LIns* ins)
     switch (op)
     {
         case LIR_addi:       ADDs(rr, ra, rb, 0);    break;
+        case LIR_addjovi:
         case LIR_addxovi:    ADDs(rr, ra, rb, 1);    break;
         case LIR_subi:       SUBs(rr, ra, rb, 0);    break;
+        case LIR_subjovi:
         case LIR_subxovi:    SUBs(rr, ra, rb, 1);    break;
         case LIR_andi:       ANDs(rr, ra, rb, 0);    break;
         case LIR_ori:        ORRs(rr, ra, rb, 0);    break;
@@ -2594,6 +2598,7 @@ Assembler::asm_arith(LIns* ins)
 
         
         case LIR_muli:
+        case LIR_muljovi:
         case LIR_mulxovi:
             
             
