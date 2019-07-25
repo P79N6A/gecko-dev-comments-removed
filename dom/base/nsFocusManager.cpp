@@ -85,6 +85,7 @@
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIPrincipal.h"
 #include "mozilla/dom/Element.h"
+#include "mozAutoDocUpdate.h"
 
 #ifdef MOZ_XUL
 #include "nsIDOMXULTextboxElement.h"
@@ -869,6 +870,18 @@ nsFocusManager::WindowShown(nsIDOMWindow* aWindow, PRBool aNeedsFocus)
   return NS_OK;
 }
 
+static void
+NotifyFocusStateChange(nsIContent* aContent, nsPIDOMWindow* aWindow)
+{
+  nsIDocument *doc = aContent->GetCurrentDoc();
+  MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
+  nsEventStates eventState = NS_EVENT_STATE_FOCUS;
+  if (aWindow->ShouldShowFocusRing()) {
+    eventState |= NS_EVENT_STATE_FOCUSRING;
+  }
+  doc->ContentStateChanged(aContent, eventState);
+}
+
 NS_IMETHODIMP
 nsFocusManager::WindowHidden(nsIDOMWindow* aWindow)
 {
@@ -915,15 +928,16 @@ nsFocusManager::WindowHidden(nsIDOMWindow* aWindow)
   
   
 
+  nsIContent* oldFocusedContent = mFocusedContent;
+  mFocusedContent = nsnull;
+
+  if (oldFocusedContent && oldFocusedContent->IsInDoc()) {
+    NotifyFocusStateChange(oldFocusedContent, mFocusedWindow);
+  }
+
   nsCOMPtr<nsIDocShell> focusedDocShell = mFocusedWindow->GetDocShell();
   nsCOMPtr<nsIPresShell> presShell;
   focusedDocShell->GetPresShell(getter_AddRefs(presShell));
-  if (presShell) {
-    presShell->GetPresContext()->EventStateManager()->
-      SetContentState(mFocusedContent, NS_EVENT_STATE_FOCUS);
-  }
-
-  mFocusedContent = nsnull;
 
   nsIMEStateManager::OnTextStateBlur(nsnull, nsnull);
   if (presShell) {
@@ -1485,10 +1499,7 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
     content && content->IsInDoc() && !IsNonFocusableRoot(content);
   if (content) {
     if (sendBlurEvent) {
-      
-      
-      presShell->GetPresContext()->EventStateManager()->
-        SetContentState(content, NS_EVENT_STATE_FOCUS);
+      NotifyFocusStateChange(content, window);
     }
 
     
@@ -1698,16 +1709,13 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
 
     PRBool sendFocusEvent =
       aContent && aContent->IsInDoc() && !IsNonFocusableRoot(aContent);
+    nsPresContext* presContext = presShell->GetPresContext();
     if (sendFocusEvent) {
       
       if (aFocusChanged)
         ScrollIntoView(presShell, aContent, aFlags);
 
-      
-      
-      nsPresContext* presContext = presShell->GetPresContext();
-      presContext->EventStateManager()->
-        SetContentState(aContent, NS_EVENT_STATE_FOCUS);
+      NotifyFocusStateChange(aContent, aWindow);
 
       
       
@@ -1732,7 +1740,6 @@ nsFocusManager::Focus(nsPIDOMWindow* aWindow,
 
       nsIMEStateManager::OnTextStateFocus(presContext, aContent);
     } else {
-      nsPresContext* presContext = presShell->GetPresContext();
       nsIMEStateManager::OnTextStateBlur(presContext, nsnull);
       nsIMEStateManager::OnChangeFocus(presContext, nsnull);
       if (!aWindowRaised) {
