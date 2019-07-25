@@ -76,11 +76,6 @@ enum JSFrameFlags {
     JSFRAME_SPECIAL            = JSFRAME_DEBUGGER | JSFRAME_EVAL
 };
 
-namespace js { namespace mjit {
-    class Compiler;
-    class InlineFrameAssembler;
-} }
-
 
 
 
@@ -294,10 +289,6 @@ struct JSStackFrame
         blockChain = obj;
     }
 
-    static size_t offsetBlockChain() {
-        return offsetof(JSStackFrame, blockChain);
-    }
-
     
 
     bool hasIMacroPC() const { return flags & JSFRAME_IN_IMACRO; }
@@ -344,10 +335,6 @@ struct JSStackFrame
         annotation = annot;
     }
 
-    static size_t offsetAnnotation() {
-        return offsetof(JSStackFrame, annotation);
-    }
-
     
 
     bool hasHookData() const {
@@ -367,10 +354,6 @@ struct JSStackFrame
         hookData = data;
     }
 
-    static size_t offsetHookData() {
-        return offsetof(JSStackFrame, hookData);
-    }
-
     
 
     JSVersion getCallerVersion() const {
@@ -379,10 +362,6 @@ struct JSStackFrame
 
     void setCallerVersion(JSVersion version) {
         callerVersion = version;
-    }
-
-    static size_t offsetCallerVersion() {
-        return offsetof(JSStackFrame, callerVersion);
     }
 
     
@@ -429,10 +408,6 @@ struct JSStackFrame
 
     JSFunction* maybeFunction() const {
         return fun;
-    }
-
-    static size_t offsetFunction() {
-        return offsetof(JSStackFrame, fun);
     }
 
     size_t numFormalArgs() const {
