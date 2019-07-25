@@ -266,7 +266,7 @@ nsImageLoadingContent::OnStopDecode(imgIRequest* aRequest,
   nsIDocument* doc = GetOurOwnerDoc();
   nsIPresShell* shell = doc ? doc->GetShell() : nullptr;
   if (shell && shell->IsVisible() &&
-      (!shell->DidInitialReflow() || shell->IsPaintingSuppressed())) {
+      (!shell->DidInitialize() || shell->IsPaintingSuppressed())) {
 
     mCurrentRequest->RequestDecode();
   }
