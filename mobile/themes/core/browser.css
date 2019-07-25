@@ -922,7 +922,8 @@ documenttab[selected="true"] {
   opacity: 0.5;
 
   
-  outline: 0px solid transparent;
+  border: 1px solid white;
+  margin: -1px;
 }
 
 documenttab:hover:active > stack > .documenttab-thumbnail,
