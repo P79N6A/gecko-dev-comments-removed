@@ -1905,37 +1905,28 @@ nsJSContext::CallEventHandler(nsISupports* aTarget, void *aScope, void *aHandler
 
     if (!ok) {
       
-      
-      
-
-      ReportPendingException();
-
-      
       rval = JSVAL_VOID;
 
       
       rv = NS_ERROR_FAILURE;
+    } else if (rval == JSVAL_NULL) {
+      *arv = nsnull;
+    } else if (!JS_WrapValue(mContext, &rval)) {
+      rv = NS_ERROR_FAILURE;
+    } else {
+      rv = nsContentUtils::XPConnect()->JSToVariant(mContext, rval, arv);
     }
+
+    
+    
+    
+    if (NS_FAILED(rv))
+      ReportPendingException();
 
     sSecurityManager->PopContextPrincipal(mContext);
   }
 
   pusher.Pop();
-
-  
-  
-  if (NS_SUCCEEDED(rv)) {
-    if (rval == JSVAL_NULL) {
-      *arv = nsnull;
-    } else {
-      if (!JS_WrapValue(mContext, &rval)) {
-        ReportPendingException();
-        rv = NS_ERROR_FAILURE;
-      } else {
-        rv = nsContentUtils::XPConnect()->JSToVariant(mContext, rval, arv);
-      }
-    }
-  }
 
   
   ScriptEvaluated(PR_TRUE);
