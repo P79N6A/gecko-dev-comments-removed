@@ -110,6 +110,13 @@ class FrameEntry
         return !isNotType(type_);
     }
 
+    
+    
+    
+    types::TypeSet *getTypeSet() const {
+        return isTypeKnown() ? typeSet : NULL;
+    }
+
 #if defined JS_NUNBOX32
     uint32 getPayload() const {
         
@@ -144,7 +151,7 @@ class FrameEntry
     }
 
   private:
-    void setType(JSValueType type_) {
+    void setType(JSValueType type_, types::TypeSet *typeSet_) {
         type.setConstant();
 #if defined JS_NUNBOX32
         v_.s.tag = JSVAL_TYPE_TO_TAG(type_);
@@ -153,6 +160,7 @@ class FrameEntry
         v_.asBits |= JSVAL_TYPE_TO_SHIFTED_TAG(type_);
 #endif
         knownType = type_;
+        typeSet = typeSet_;
     }
 
     void track(uint32 index) {
@@ -260,6 +268,7 @@ class FrameEntry
     }
 
   private:
+    types::TypeSet *typeSet;
     JSValueType knownType;
     jsval_layout v_;
     RematInfo  type;
@@ -271,6 +280,9 @@ class FrameEntry
     bool       initArray;
     JSObject   *initObject;
     jsbytecode *lastLoop;
+#if JS_BITS_PER_WORD == 32
+    void       *padding;
+#endif
 };
 
 } 

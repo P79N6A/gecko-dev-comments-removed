@@ -1151,6 +1151,59 @@ DefaultValue(VMFrame &f, JSType hint, Value &v, int n)
     return true;
 }
 
+static inline void
+MonitorArithmeticOverflow(VMFrame &f, const Value &v)
+{
+    JSContext *cx = f.cx;
+
+    JS_ASSERT(v.isDouble());
+    f.script()->typeMonitorOverflow(cx, f.regs.pc, 0);
+
+    
+
+
+
+
+
+
+
+
+    Value ov;
+
+    switch (JSOp(*f.regs.pc)) {
+      case JSOP_INCPROP:
+      case JSOP_DECPROP:
+      case JSOP_PROPINC:
+      case JSOP_PROPDEC:
+        ov = f.regs.sp[-4];
+        break;
+
+      case JSOP_INCNAME:
+      case JSOP_DECNAME:
+      case JSOP_NAMEINC:
+      case JSOP_NAMEDEC:
+        ov = f.regs.sp[-3];
+        break;
+
+      default:
+        return;
+    }
+
+    JSObject *obj = ValueToObject(cx, &ov);
+    if (!obj)
+        return;
+    JSAtom *atom;
+    GET_ATOM_FROM_BYTECODE(f.script(), f.regs.pc, 0, atom);
+    cx->addTypePropertyId(obj->getType(), ATOM_TO_JSID(atom), TYPE_DOUBLE);
+
+    
+
+
+
+    Value nv = v;
+    obj->setProperty(cx, ATOM_TO_JSID(atom), &nv, f.script()->strictModeCode);
+}
+
 void JS_FASTCALL
 stubs::Add(VMFrame &f)
 {
@@ -1208,9 +1261,8 @@ stubs::Add(VMFrame &f)
             if (!ValueToNumber(cx, lval, &l) || !ValueToNumber(cx, rval, &r))
                 THROW();
             l += r;
-            regs.sp--;
-            if (!regs.sp[-1].setNumber(l))
-                f.script()->typeMonitorOverflow(cx, f.regs.pc, 0);
+            if (!regs.sp[-2].setNumber(l))
+                MonitorArithmeticOverflow(f, regs.sp[-2]);
         }
     }
     return;
@@ -1236,7 +1288,7 @@ stubs::Sub(VMFrame &f)
     }
     double d = d1 - d2;
     if (!regs.sp[-2].setNumber(d))
-        f.script()->typeMonitorOverflow(cx, f.regs.pc, 0);
+        MonitorArithmeticOverflow(f, regs.sp[-2]);
 }
 
 void JS_FASTCALL

@@ -238,6 +238,8 @@ struct JSScript {
     bool            warnedAboutTwoArgumentEval:1; 
 
 
+    bool            dynamicScoping:1; 
+
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
     bool            singleStepMode:1; 
@@ -282,17 +284,42 @@ struct JSScript {
 
   public:
 
+#ifdef JS_TYPE_INFERENCE
+#ifdef DEBUG
     
-    js::analyze::Script *analysis;
+    unsigned id_;
+    unsigned id() { return id_; }
+#else
+    unsigned id() { return 0; }
+#endif
 
     
-    js::analyze::Script *analyze(JSContext *cx);
+    JSFunction *fun;
 
     
-    js::analyze::Script *makeAnalysis(JSContext *cx);
+    JSObject *global;
+
+    
+
+
+
+    JSScript *parent;
+
+    
+    js::types::TypeScript *types;
+
+    inline JSObject *getGlobal();
+    inline js::types::TypeObject *getGlobalType();
+
+    
+    bool isGlobal() { return !parent || (!fun && !parent->parent); }
 
     
     void typeCheckBytecode(JSContext *cx, const jsbytecode *pc, const js::Value *sp);
+
+    
+    inline js::types::TypeObject *getTypeNewObject(JSContext *cx, JSProtoKey key);
+#endif
 
     
     inline void setTypeNesting(JSScript *parent, const jsbytecode *pc);

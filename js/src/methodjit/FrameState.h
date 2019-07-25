@@ -250,12 +250,12 @@ class FrameState
     
 
 
-    inline void pushSynced(JSValueType knownType);
+    inline void pushSynced(JSValueType knownType, types::TypeSet *typeSet = NULL);
 
     
 
 
-    inline void pushSynced(JSValueType knownType, RegisterID reg);
+    inline void pushSynced(JSValueType knownType, RegisterID reg, types::TypeSet *typeSet = NULL);
 
     
 
@@ -265,19 +265,19 @@ class FrameState
     
 
 
-    inline void push(Address address, JSValueType knownType);
+    inline void push(Address address, JSValueType knownType, types::TypeSet *typeSet = NULL);
 
     
 
 
-    inline void pushTypedPayload(JSValueType type, RegisterID payload);
+    inline void pushTypedPayload(JSValueType type, RegisterID payload, types::TypeSet *typeSet = NULL);
 
     
 
 
 
 
-    inline FPRegisterID pushRegs(RegisterID type, RegisterID data, JSValueType knownType);
+    inline FPRegisterID pushRegs(RegisterID type, RegisterID data, JSValueType knownType, types::TypeSet *typeSet);
 
     
     void pushDouble(FPRegisterID fpreg);
@@ -351,8 +351,8 @@ class FrameState
 
     
     
-    void pushLocal(uint32 n, JSValueType knownType);
-    void pushArg(uint32 n, JSValueType knownType);
+    void pushLocal(uint32 n, JSValueType knownType, types::TypeSet *typeSet);
+    void pushArg(uint32 n, JSValueType knownType, types::TypeSet *typeSet);
     void pushCallee();
     void pushThis();
     inline void learnThisIsObject();
@@ -579,12 +579,12 @@ class FrameState
 
 
 
-    void storeLocal(uint32 n, bool popGuaranteed = false,
-                    JSValueType type = JSVAL_TYPE_UNKNOWN);
-    void storeArg(uint32 n, bool popGuaranteed = false,
-                  JSValueType type = JSVAL_TYPE_UNKNOWN);
-    void storeTop(FrameEntry *target, bool popGuaranteed = false,
-                  JSValueType type = JSVAL_TYPE_UNKNOWN);
+    void storeLocal(uint32 n, JSValueType type, types::TypeSet *typeSet,
+                    bool popGuaranteed = false, bool fixedType = false);
+    void storeArg(uint32 n, JSValueType type, types::TypeSet *typeSet,
+                  bool popGuaranteed = false);
+    void storeTop(FrameEntry *target, JSValueType type, types::TypeSet *typeSet,
+                  bool popGuaranteed);
 
     
 
@@ -748,6 +748,11 @@ class FrameState
 
 
     inline void dupAt(int32 n);
+
+    
+
+
+    inline void syncAt(int32 n);
 
     
 

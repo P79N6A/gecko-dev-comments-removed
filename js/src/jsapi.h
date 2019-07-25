@@ -2682,15 +2682,6 @@ JS_TypeHandlerDynamic(JSContext*, JSTypeFunction*, JSTypeCallsite*);
 
 
 
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_TypeHandlerMissing(JSContext*, JSTypeFunction*, JSTypeCallsite*);
-
-
-
 extern JS_PUBLIC_API(void)
 JS_TypeHandlerVoid(JSContext*, JSTypeFunction*, JSTypeCallsite*);
 

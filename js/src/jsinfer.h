@@ -245,17 +245,22 @@ struct TypeSet
     
     inline void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
     void addSubset(JSContext *cx, JSArenaPool &pool, TypeSet *target);
-    void addGetProperty(JSContext *cx, analyze::Bytecode *code, TypeSet *target, jsid id);
-    void addSetProperty(JSContext *cx, analyze::Bytecode *code, TypeSet *target, jsid id);
-    void addGetElem(JSContext *cx, analyze::Bytecode *code, TypeSet *object, TypeSet *target);
-    void addSetElem(JSContext *cx, analyze::Bytecode *code, TypeSet *object, TypeSet *target);
+    void addGetProperty(JSContext *cx, JSScript *script, const jsbytecode *pc,
+                        TypeSet *target, jsid id);
+    void addSetProperty(JSContext *cx, JSScript *script, const jsbytecode *pc,
+                        TypeSet *target, jsid id);
+    void addGetElem(JSContext *cx, JSScript *script, const jsbytecode *pc,
+                    TypeSet *object, TypeSet *target);
+    void addSetElem(JSContext *cx, JSScript *script, const jsbytecode *pc,
+                    TypeSet *object, TypeSet *target);
     void addNewObject(JSContext *cx, TypeFunction *fun, TypeSet *target);
     void addCall(JSContext *cx, TypeCallsite *site);
-    void addArith(JSContext *cx, JSArenaPool &pool, analyze::Bytecode *code,
+    void addArith(JSContext *cx, JSArenaPool &pool,
                   TypeSet *target, TypeSet *other = NULL);
-    void addTransformThis(JSContext *cx, analyze::Bytecode *code, TypeSet *target);
-    void addFilterPrimitives(JSContext *cx, JSArenaPool &pool, TypeSet *target, bool onlyNullVoid);
-    void addMonitorRead(JSContext *cx, JSArenaPool &pool, analyze::Bytecode *code, TypeSet *target);
+    void addTransformThis(JSContext *cx, JSScript *script, TypeSet *target);
+    void addFilterPrimitives(JSContext *cx, JSArenaPool &pool,
+                             TypeSet *target, bool onlyNullVoid);
+    void addMonitorRead(JSContext *cx, JSArenaPool &pool, TypeSet *target);
 
     
 
@@ -277,117 +282,6 @@ struct TypeSet
 
     
     bool knownNonEmpty(JSContext *cx, JSScript *script);
-};
-
-
-
-
-
-
-struct TypeStack
-{
-    
-
-
-
-
-    TypeStack *mergedGroup;
-
-    
-    TypeStack *innerStack;
-
-    
-    TypeSet types;
-
-    
-
-
-
-
-    jsid letVariable;
-    bool boundWith;
-
-    
-
-
-
-    bool ignoreTypeTag;
-
-#ifdef DEBUG
-    
-    int id;
-#endif
-
-    
-    inline TypeStack* group();
-
-    
-    inline void setInnerStack(TypeStack *inner);
-
-    
-    static void merge(JSContext *cx, TypeStack *one, TypeStack *two);
-};
-
-
-
-
-
-
-struct TypeCallsite
-{
-    
-    analyze::Bytecode *code;
-
-    
-    bool isNew;
-
-    
-    TypeSet **argumentTypes;
-    unsigned argumentCount;
-
-    
-    TypeSet *thisTypes;
-
-    
-    jstype thisType;
-
-    
-    TypeSet *returnTypes;
-
-    inline TypeCallsite(analyze::Bytecode *code, bool isNew, unsigned argumentCount);
-
-    
-    inline void forceThisTypes(JSContext *cx);
-    inline void forceReturnTypes(JSContext *cx);
-
-    
-    inline TypeObject* getInitObject(JSContext *cx, bool isArray);
-
-    
-    inline JSArenaPool & pool();
-
-    inline bool compileAndGo();
-};
-
-
-struct Variable
-{
-    
-    jsid id;
-
-    
-
-
-
-
-    TypeSet types;
-
-    Variable(JSArenaPool *pool, jsid id)
-        : id(id), types(pool)
-    {}
-
-    static uint32 keyBits(jsid id) { return (uint32) JSID_BITS(id); }
-    static jsid getKey(Variable *v) { return v->id; }
 };
 
 
@@ -429,6 +323,14 @@ struct TypeObject
 
     
     bool marked;
+
+    
+
+
+
+    bool initializerObject;
+    bool initializerArray;
+    uint32 initializerOffset;
 
     
 
@@ -538,6 +440,96 @@ struct TypeFunction : public TypeObject
 };
 
 
+
+
+
+
+struct TypeCallsite
+{
+    JSScript *script;
+    const jsbytecode *pc;
+
+    
+    bool isNew;
+
+    
+    TypeSet **argumentTypes;
+    unsigned argumentCount;
+
+    
+    TypeSet *thisTypes;
+
+    
+    jstype thisType;
+
+    
+    TypeSet *returnTypes;
+
+    inline TypeCallsite(JSScript *script, const jsbytecode *pc,
+                        bool isNew, unsigned argumentCount);
+
+    
+    inline void forceThisTypes(JSContext *cx);
+    inline void forceReturnTypes(JSContext *cx);
+
+    
+    inline TypeObject* getInitObject(JSContext *cx, bool isArray);
+
+    
+    inline JSArenaPool & pool();
+
+    inline bool compileAndGo();
+};
+
+
+struct TypeScript
+{
+#ifdef DEBUG
+    JSScript *script;
+#endif
+
+    
+
+
+
+    JSArenaPool pool;
+    TypeObject *objects;
+
+    
+
+
+
+    TypeSet **pushedArray;
+
+    
+    TypeSet thisTypes;
+    TypeSet *argTypes_;
+    TypeSet *localTypes_;
+
+    void nukeUpvarTypes(JSContext *cx, JSScript *script);
+
+    
+    void finish(JSContext *cx, JSScript *script);
+
+    inline bool monitored(uint32 offset);
+    inline void setMonitored(uint32 offset);
+
+    inline TypeSet *pushed(uint32 offset);
+    inline TypeSet *pushed(uint32 offset, uint32 index);
+
+    inline void addType(JSContext *cx, uint32 offset, uint32 index, jstype type);
+
+    inline TypeSet *argTypes(uint32 arg);
+    inline TypeSet *localTypes(uint32 local);
+
+    void trace(JSTracer *trc);
+    void sweep(JSContext *cx);
+};
+
+
+void AnalyzeTypes(JSContext *cx, JSScript *script);
+
+
 struct TypeCompartment
 {
     
@@ -625,15 +617,22 @@ struct TypeCompartment
     void finish(JSContext *cx, JSCompartment *compartment);
 
     
-    TypeObject *newTypeObject(JSContext *cx, analyze::Script *script,
+    TypeObject *newTypeObject(JSContext *cx, TypeScript *script,
                               const char *name, bool isFunction, JSObject *proto);
+
+#ifdef JS_TYPE_INFERENCE
+    
+    TypeObject *newInitializerTypeObject(JSContext *cx, JSScript *script,
+                                         uint32 offset, bool isArray);
+#endif
 
     
 
 
 
     void addDynamicType(JSContext *cx, TypeSet *types, jstype type);
-    void addDynamicPush(JSContext *cx, analyze::Bytecode &code, unsigned index, jstype type);
+    void addDynamicPush(JSContext *cx, JSScript *script, uint32 offset,
+                        unsigned index, jstype type);
     void dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Value &rval);
 
     inline bool hasPendingRecompiles() { return pendingRecompiles != NULL; }
@@ -641,7 +640,7 @@ struct TypeCompartment
     void addPendingRecompile(JSContext *cx, JSScript *script);
 
     
-    void monitorBytecode(JSContext *cx, analyze::Bytecode *code);
+    void monitorBytecode(JSContext *cx, JSScript *script, uint32 offset);
 
     void sweep(JSContext *cx);
 };

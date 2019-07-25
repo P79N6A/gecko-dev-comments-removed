@@ -250,11 +250,8 @@ Recompiler::recompile()
     Vector<PatchableNative> ctorNatives(cx);
 
     
-    Vector<Value*> normalDoubles(cx);
-    Vector<Value*> ctorDoubles(cx);
-
-    JSStackFrame *firstCtorFrame = NULL;
-    JSStackFrame *firstNormalFrame = NULL;
+    Vector<JSStackFrame*> normalFrames(cx);
+    Vector<JSStackFrame*> ctorFrames(cx);
 
     
     
@@ -268,57 +265,11 @@ Recompiler::recompile()
         for (JSStackFrame *fp = f->fp(); fp != end; fp = fp->prev()) {
             if (fp->script() == script) {
                 
-                
-                if (!firstCtorFrame && fp->isConstructing())
-                    firstCtorFrame = fp;
-                else if (!firstNormalFrame && !fp->isConstructing())
-                    firstNormalFrame = fp;
-
-#ifdef JS_TYPE_INFERENCE
-                
-                
-                
-                Vector<Value*> &doublePatches =
-                    fp->isConstructing() ? ctorDoubles : normalDoubles;
-
-                
-                
-                Value *vp = fp->hasArgs() ? fp->formalArgs() : NULL;
-                for (unsigned i = 0; i < script->analysis->argCount(); i++, vp++) {
-                    JSValueType type = script->analysis->knownArgumentTypeTag(cx, NULL, i);
-                    if (type == JSVAL_TYPE_DOUBLE && vp->isInt32()) {
-                        if (!doublePatches.append(vp))
-                            return false;
-                    }
-                }
-
-                vp = fp->slots();
-                for (unsigned i = 0; i < script->nfixed; i++, vp++) {
-                    JSValueType type = script->analysis->knownLocalTypeTag(cx, NULL, i);
-                    if (type == JSVAL_TYPE_DOUBLE && vp->isInt32()) {
-                        if (!doublePatches.append(vp))
-                            return false;
-                    }
-                }
-
-                
-                
-                
-                
-
-                jsbytecode *pc = fp->pc(cx, next);
-                analyze::Bytecode &code = script->analysis->getCode(pc);
-                types::TypeStack *stack = code.inStack;
-                vp = fp->base() + code.stackDepth - 1;
-                for (unsigned depth = code.stackDepth - 1; depth < code.stackDepth; depth--, vp--) {
-                    JSValueType type = stack->group()->types.getKnownTypeTag(cx, NULL);
-                    if (type == JSVAL_TYPE_DOUBLE && vp->isInt32()) {
-                        if (!doublePatches.append(vp))
-                            return false;
-                    }
-                    stack = stack->group()->innerStack;
-                }
-#endif
+                fp->pc(cx, next);
+                if (fp->isConstructing() && !ctorFrames.append(fp))
+                    return false;
+                if (!fp->isConstructing() && !normalFrames.append(fp))
+                    return false;
             }
 
             
@@ -371,14 +322,14 @@ Recompiler::recompile()
 
     ReleaseScriptCode(cx, script);
 
-    if ((normalPatches.length() || normalNatives.length()) &&
-        !recompile(firstNormalFrame, normalPatches, normalSites, normalNatives, normalDoubles,
+    if (normalFrames.length() &&
+        !recompile(normalFrames, normalPatches, normalSites, normalNatives,
                    normalRecompilations)) {
         return false;
     }
 
-    if ((ctorPatches.length() || ctorNatives.length()) &&
-        !recompile(firstCtorFrame, ctorPatches, ctorSites, ctorNatives, ctorDoubles,
+    if (ctorFrames.length() &&
+        !recompile(ctorFrames, ctorPatches, ctorSites, ctorNatives,
                    ctorRecompilations)) {
         return false;
     }
@@ -415,19 +366,19 @@ Recompiler::cleanup(JITScript *jit, Vector<CallSite> *sites, uint32 *recompilati
 }
 
 bool
-Recompiler::recompile(JSStackFrame *fp, Vector<PatchableAddress> &patches, Vector<CallSite> &sites,
-                      Vector<PatchableNative> &natives, Vector<Value*> &doublePatches,
+Recompiler::recompile(Vector<JSStackFrame*> &frames, Vector<PatchableAddress> &patches, Vector<CallSite> &sites,
+                      Vector<PatchableNative> &natives,
                       uint32 recompilations)
 {
-    JS_ASSERT(fp);
+    JSStackFrame *fp = frames[0];
 
-    JaegerSpew(JSpew_Recompile, "On stack recompilation, %u patches, %u natives, %u doubles\n",
-               patches.length(), natives.length(), doublePatches.length());
+    JaegerSpew(JSpew_Recompile, "On stack recompilation, %u patches, %u natives\n",
+               patches.length(), natives.length());
 
     Compiler c(cx, fp);
     if (!c.loadOldTraps(sites))
         return false;
-    if (c.compile() != Compile_Okay)
+    if (c.compile(&frames) != Compile_Okay)
         return false;
 
     script->getJIT(fp->isConstructing())->recompilations = recompilations + 1;
@@ -437,10 +388,6 @@ Recompiler::recompile(JSStackFrame *fp, Vector<PatchableAddress> &patches, Vecto
         applyPatch(c, patches[i]);
     for (uint32 i = 0; i < natives.length(); i++)
         patchNative(script->getJIT(fp->isConstructing()), natives[i]);
-    for (uint32 i = 0; i < doublePatches.length(); i++) {
-        double v = doublePatches[i]->toInt32();
-        doublePatches[i]->setDouble(v);
-    }
 
     return true;
 }
