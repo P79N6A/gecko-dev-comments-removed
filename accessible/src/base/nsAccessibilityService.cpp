@@ -1610,10 +1610,7 @@ nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame* aFrame,
     return accessible;
   }
 
-  if (tag == nsGkAtoms::dt ||
-      (tag == nsGkAtoms::li &&
-       aFrame->GetType() != nsGkAtoms::blockFrame)) {
-    
+  if (tag == nsGkAtoms::dt || tag == nsGkAtoms::li) {
     
     
     Accessible* accessible = new HTMLLIAccessible(aContent, aDoc);
