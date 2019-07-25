@@ -313,7 +313,7 @@ class LCallGeneric : public LCallInstructionHelper<BOX_PIECES, 1, 2>
 };
 
 
-class LCallNative : public LCallInstructionHelper<BOX_PIECES, 0, 4>
+class LCallNative : public LCallInstructionHelper<BOX_PIECES, 0, 4> 
 {
     JSFunction *function_;
     uint32 argslot_;
