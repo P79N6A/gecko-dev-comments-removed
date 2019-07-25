@@ -158,7 +158,7 @@ nsWebHandlerApp.prototype = {
     
     browserDOMWin.openURI(uriToSend,
                           null, 
-                          Ci.nsIBrowserDOMWindow.OPEN_DEFAULT_WINDOW,
+                          Ci.nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW,
                           Ci.nsIBrowserDOMWindow.OPEN_NEW);
       
     return;
