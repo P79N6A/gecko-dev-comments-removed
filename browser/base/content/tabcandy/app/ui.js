@@ -919,40 +919,6 @@ var UIManager = {
   
   
   
-  
-  
-  
-  
-  showOnlyTheseTabs: function(tabs, options) {
-    try {
-      if (!options)
-        options = {};
-
-      let tabBarTabs = Array.slice(gBrowser.tabs);
-      let visibleTabs = tabs.map(function(tab) tab.tab);
-
-      
-      tabBarTabs.forEach(function(tab){
-        let hidden = true;
-        visibleTabs.some(function(visibleTab, i) {
-          if (visibleTab == tab) {
-            hidden = false;
-            
-            if (options.dontReorg)
-              visibleTabs.splice(i, 1);
-            return true;
-          }
-        });
-        tab.hidden = hidden && !tab.pinned;
-      });
-    } catch(e) {
-      Utils.log(e);
-    }
-  },
-
-  
-  
-  
   _addDevMenu: function() {
     try {
       var self = this;

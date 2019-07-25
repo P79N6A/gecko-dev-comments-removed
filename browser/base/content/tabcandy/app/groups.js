@@ -1320,9 +1320,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
                 
                 
                 
-                Utils.timeout(function(){
-                  UI.showOnlyTheseTabs(Groups.getActiveGroup()._children);
-                }, 400);
+                Utils.timeout(Groups.updateTabBarForActiveGroup, 400);
               }
             });
           }
@@ -1740,10 +1738,9 @@ window.Groups = {
     if (!window.UI)
       return; 
 
-    if (this._activeGroup)
-      UI.showOnlyTheseTabs( this._activeGroup._children );
-    else if ( this._activeGroup == null)
-      UI.showOnlyTheseTabs( this.getOrphanedTabs(), {dontReorg: true});
+    let tabItems = this._activeGroup == null ? this.getOrphanedTabs() :
+      this._activeGroup._children;
+    gBrowser.showOnlyTheseTabs(tabItems.map(function(item) item.tab));
   },
 
   
