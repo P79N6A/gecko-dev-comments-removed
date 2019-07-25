@@ -172,6 +172,19 @@ PluginInstanceParent::ActorDestroy(ActorDestroyReason why)
         UnsubclassPluginWindow();
     }
 #endif
+    
+    
+    
+    
+    
+    if (mFrontSurface) {
+        mFrontSurface = NULL;
+        const NPRect rect = {0, 0, 0, 0};
+        RecvNPN_InvalidateRect(rect);
+#ifdef MOZ_X11
+        XSync(DefaultXDisplay(), False);
+#endif
+    }
 }
 
 NPError
