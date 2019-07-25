@@ -649,8 +649,65 @@ var BrowserApp = {
       return;
     let focused = doc.activeElement;
     if ((focused instanceof HTMLInputElement && focused.mozIsTextField(false)) || (focused instanceof HTMLTextAreaElement)) {
-      focused.scrollIntoView(false);
-      BrowserApp.getTabForBrowser(aBrowser).sendViewportUpdate();
+      let tab = BrowserApp.getTabForBrowser(aBrowser);
+      let win = aBrowser.contentWindow;
+
+      
+      
+      focused.scrollIntoView(true);
+
+      
+      
+      tab.userScrollPos.x = win.scrollX;
+      tab.userScrollPos.y = win.scrollY;
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+
+      let visibleContentWidth = tab._viewport.width / tab._viewport.zoom;
+      let visibleContentHeight = tab._viewport.height / tab._viewport.zoom;
+      
+      
+      let focusedRect = focused.getBoundingClientRect();
+      focusedRect = {
+        left: focusedRect.left - tab.viewportExcess.x,
+        right: focusedRect.right - tab.viewportExcess.x,
+        top: focusedRect.top - tab.viewportExcess.y,
+        bottom: focusedRect.bottom - tab.viewportExcess.y
+      };
+      let transformChanged = false;
+      if (focusedRect.right >= visibleContentWidth && focusedRect.left > 0) {
+        
+        tab.viewportExcess.x += Math.min(focusedRect.left, focusedRect.right - visibleContentWidth);
+        transformChanged = true;
+      } else if (focusedRect.left < 0) {
+        
+        tab.viewportExcess.x += focusedRect.left;
+        transformChanged = true;
+      }
+      if (focusedRect.bottom >= visibleContentHeight && focusedRect.top > 0) {
+        
+        tab.viewportExcess.y += Math.min(focusedRect.top, focusedRect.bottom - visibleContentHeight);
+        transformChanged = true;
+      } else if (focusedRect.top < 0) {
+        
+        tab.viewportExcess.y += focusedRect.top;
+        transformChanged = true;
+      }
+      if (transformChanged)
+        tab.updateTransform();
+      
+      tab.sendViewportUpdate();
     }
   },
 
@@ -1350,20 +1407,22 @@ Tab.prototype = {
       transformChanged = true;
     }
 
+    if (transformChanged)
+      this.updateTransform();
+  },
+
+  updateTransform: function() {
     let hasZoom = (Math.abs(this._viewport.zoom - 1.0) >= 1e-6);
+    let x = this._viewport.offsetX + Math.round(-this.viewportExcess.x * this._viewport.zoom);
+    let y = this._viewport.offsetY + Math.round(-this.viewportExcess.y * this._viewport.zoom);
 
-    if (transformChanged) {
-      let x = this._viewport.offsetX + Math.round(-excessX * this._viewport.zoom);
-      let y = this._viewport.offsetY + Math.round(-excessY * this._viewport.zoom);
+    let transform =
+      "translate(" + x + "px, " +
+                     y + "px)";
+    if (hasZoom)
+      transform += " scale(" + this._viewport.zoom + ")";
 
-      let transform =
-        "translate(" + x + "px, " +
-                       y + "px)";
-      if (hasZoom)
-        transform += " scale(" + this._viewport.zoom + ")";
-
-      this.browser.style.MozTransform = transform;
-    }
+    this.browser.style.MozTransform = transform;
   },
 
   get viewport() {
