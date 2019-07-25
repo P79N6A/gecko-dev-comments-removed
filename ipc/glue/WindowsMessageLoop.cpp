@@ -240,12 +240,6 @@ ProcessOrDeferMessage(HWND hwnd,
       deferred = new DeferredRedrawMessage(hwnd, flags);
       break;
     }
-    case WM_NCPAINT: {
-      UINT flags = RDW_INVALIDATE | RDW_FRAME | RDW_NOINTERNALPAINT |
-                   RDW_NOERASE | RDW_NOCHILDREN | RDW_ERASENOW;
-      deferred = new DeferredRedrawMessage(hwnd, flags);
-      break;
-    }
 
     
     
@@ -289,6 +283,7 @@ ProcessOrDeferMessage(HWND hwnd,
     
     case WM_ENTERIDLE:
     case WM_GETICON:
+    case WM_NCPAINT: 
     case WM_GETMINMAXINFO:
     case WM_GETTEXT:
     case WM_NCHITTEST:
