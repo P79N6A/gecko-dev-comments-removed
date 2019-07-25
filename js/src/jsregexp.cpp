@@ -841,13 +841,8 @@ js_InitRegExpClass(JSContext *cx, JSObject *obj)
     if (!proto->initRegExp(cx, re.get()))
         return NULL;
 
-    
-
-
-
-    if (!JS_DefineFunctions(cx, proto, regexp_methods))
+    if (!DefinePropertiesAndBrand(cx, proto, NULL, regexp_methods))
         return NULL;
-    proto->brand(cx);
 
     JSFunction *ctor = global->createConstructor(cx, regexp_construct, &js_RegExpClass,
                                                  CLASS_ATOM(cx, RegExp), 2);

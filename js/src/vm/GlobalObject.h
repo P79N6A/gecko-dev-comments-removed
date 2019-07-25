@@ -177,6 +177,13 @@ class GlobalObject : public ::JSObject {
 extern bool
 LinkConstructorAndPrototype(JSContext *cx, JSObject *ctor, JSObject *proto);
 
+
+
+
+
+extern bool
+DefinePropertiesAndBrand(JSContext *cx, JSObject *obj, JSPropertySpec *ps, JSFunctionSpec *fs);
+
 } 
 
 js::GlobalObject *
