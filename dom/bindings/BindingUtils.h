@@ -857,6 +857,7 @@ enum StringificationBehavior {
   eNull
 };
 
+
 static inline bool
 ConvertJSValueToString(JSContext* cx, const JS::Value& v, JS::Value* pval,
                        StringificationBehavior nullBehavior,
@@ -876,12 +877,7 @@ ConvertJSValueToString(JSContext* cx, const JS::Value& v, JS::Value* pval,
       behavior = eStringify;
     }
 
-    
-    
-    
-    if (behavior != eStringify || !pval) {
-      
-      
+    if (behavior != eStringify) {
       if (behavior == eEmpty) {
         result.Truncate();
       } else {
