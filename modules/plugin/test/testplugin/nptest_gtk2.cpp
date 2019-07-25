@@ -45,6 +45,8 @@
 #include <gtk/gtk.h>
 #include <unistd.h>
 
+#include "mozilla/IntentionalCrash.h"
+
  using namespace std;
 
 struct _PlatformData {
@@ -699,7 +701,7 @@ pluginCrashInNestedLoop(InstanceData* instanceData)
 
   
   
-  NoteIntentionalCrash();
+  mozilla::NoteIntentionalCrash("plugin");
 
   
   pthread_t crasherThread;
@@ -728,7 +730,7 @@ pluginCrashInNestedLoop(InstanceData* instanceData)
 static int
 SleepThenDie(Display* display)
 {
-  NoteIntentionalCrash();
+  mozilla::NoteIntentionalCrash("plugin");
   fprintf(stderr, "[testplugin:%d] SleepThenDie: sleeping\n", getpid());
   sleep(1);
 
