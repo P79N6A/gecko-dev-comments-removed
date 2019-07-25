@@ -133,18 +133,6 @@ struct GSNCache {
 
     jsbytecode      *code;
     Map             map;
-#ifdef JS_GSNMETER
-    struct Stats {
-        uint32          hits;
-        uint32          misses;
-        uint32          fills;
-        uint32          purges;
-
-        Stats() : hits(0), misses(0), fills(0), purges(0) { }
-    };
-
-    Stats           stats;
-#endif
 
     GSNCache() : code(NULL) { }
 
@@ -310,27 +298,6 @@ extern void
 js_ClearContextThread(JSContext *cx);
 
 #endif 
-
-#ifdef DEBUG
-# define FUNCTION_KIND_METER_LIST(_)                                          \
-                        _(allfun), _(heavy), _(nofreeupvar), _(onlyfreevar),  \
-                        _(flat), _(badfunarg),                                \
-                        _(joinedsetmethod), _(joinedinitmethod),              \
-                        _(joinedreplace), _(joinedsort), _(joinedmodulepat),  \
-                        _(mreadbarrier), _(mwritebarrier), _(mwslotbarrier),  \
-                        _(unjoined), _(indynamicscope)
-# define identity(x)    x
-
-struct JSFunctionMeter {
-    int32 FUNCTION_KIND_METER_LIST(identity);
-};
-
-# undef identity
-
-# define JS_FUNCTION_METER(cx,x) JS_RUNTIME_METER((cx)->runtime, functionMeter.x)
-#else
-# define JS_FUNCTION_METER(cx,x) ((void)0)
-#endif
 
 typedef enum JSDestroyContextMode {
     JSDCM_NO_GC,
@@ -647,90 +614,6 @@ struct JSRuntime {
     
     JSAtomState         atomState;
 
-    
-
-
-
-
-#ifdef JS_DUMP_ENUM_CACHE_STATS
-    int32               nativeEnumProbes;
-    int32               nativeEnumMisses;
-# define ENUM_CACHE_METER(name)     JS_ATOMIC_INCREMENT(&cx->runtime->name)
-#else
-# define ENUM_CACHE_METER(name)     ((void) 0)
-#endif
-
-#ifdef DEBUG
-    
-
-
-
-
-
-
-    const char          *propTreeStatFilename;
-    const char          *propTreeDumpFilename;
-
-    bool meterEmptyShapes() const { return propTreeStatFilename || propTreeDumpFilename; }
-
-    
-    jsrefcount          liveStrings;
-    jsrefcount          totalStrings;
-    jsrefcount          liveDependentStrings;
-    jsrefcount          totalDependentStrings;
-    jsrefcount          badUndependStrings;
-    double              lengthSum;
-    double              lengthSquaredSum;
-    double              strdepLengthSum;
-    double              strdepLengthSquaredSum;
-
-    
-    jsrefcount          liveScripts;
-    jsrefcount          totalScripts;
-    jsrefcount          liveEmptyScripts;
-    jsrefcount          totalEmptyScripts;
-    jsrefcount          highWaterLiveScripts;
-#endif 
-
-#ifdef JS_SCOPE_DEPTH_METER
-    
-
-
-
-    JSBasicStats        protoLookupDepthStats;
-    JSBasicStats        scopeSearchDepthStats;
-
-    
-
-
-
-    JSBasicStats        hostenvScopeDepthStats;
-    JSBasicStats        lexicalScopeDepthStats;
-#endif
-
-#ifdef JS_GCMETER
-    js::gc::JSGCStats           gcStats;
-    js::gc::JSGCArenaStats      globalArenaStats[js::gc::FINALIZE_LIMIT];
-#endif
-
-#ifdef DEBUG
-    
-
-
-
-    const char          *functionMeterFilename;
-    JSFunctionMeter     functionMeter;
-    char                lastScriptFilename[1024];
-
-    typedef js::HashMap<JSFunction *,
-                        int32,
-                        js::DefaultHasher<JSFunction *>,
-                        js::SystemAllocPolicy> FunctionCountMap;
-
-    FunctionCountMap    methodReadBarrierCountMap;
-    FunctionCountMap    unjoinedFunctionCountMap;
-#endif
-
     JSWrapObjectCallback wrapObjectCallback;
     JSPreWrapCallback    preWrapObjectCallback;
 
@@ -885,14 +768,6 @@ struct JSRuntime {
 
 
 #define JS_PROPERTY_CACHE(cx)   (JS_THREAD_DATA(cx)->propertyCache)
-
-#ifdef DEBUG
-# define JS_RUNTIME_METER(rt, which)    JS_ATOMIC_INCREMENT(&(rt)->which)
-# define JS_RUNTIME_UNMETER(rt, which)  JS_ATOMIC_DECREMENT(&(rt)->which)
-#else
-# define JS_RUNTIME_METER(rt, which)
-# define JS_RUNTIME_UNMETER(rt, which)
-#endif
 
 #define JS_KEEP_ATOMS(rt)   JS_ATOMIC_INCREMENT(&(rt)->gcKeepAtoms);
 #define JS_UNKEEP_ATOMS(rt) JS_ATOMIC_DECREMENT(&(rt)->gcKeepAtoms);
@@ -1119,10 +994,6 @@ struct JSContext
 
     
     char                *lastMessage;
-#ifdef DEBUG
-    void                *logfp;
-    jsbytecode          *logPrevPc;
-#endif
 
     
     JSErrorReporter     errorReporter;

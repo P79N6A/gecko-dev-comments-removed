@@ -338,22 +338,6 @@ js_LeaveWith(JSContext *cx);
 extern JSBool
 js_DoIncDec(JSContext *cx, const JSCodeSpec *cs, js::Value *vp, js::Value *vp2);
 
-
-
-
-
-extern JS_REQUIRES_STACK void
-js_LogOpcode(JSContext *cx);
-
-
-
-
-extern void
-js_MeterOpcodePair(JSOp op1, JSOp op2);
-
-extern void
-js_MeterSlotOpcode(JSOp op, uint32 slot);
-
 #endif 
 
 

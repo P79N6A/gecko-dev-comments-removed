@@ -43,18 +43,6 @@
 # define JS_DUMP_CONSERVATIVE_GC_ROOTS 1
 #endif
 
-
-#if defined JS_GCMETER
-const bool JS_WANT_GC_METER_PRINT = true;
-const bool JS_WANT_GC_PER_COMPARTMENT_PRINT = true;
-const bool JS_WANT_CONSERVATIVE_GC_PRINT = true;
-#elif defined DEBUG
-# define JS_GCMETER 1
-const bool JS_WANT_GC_METER_PRINT = false;
-const bool JS_WANT_GC_PER_COMPARTMENT_PRINT = false;
-const bool JS_WANT_CONSERVATIVE_GC_PRINT = false;
-#endif
-
 #ifdef JSGC_TESTPILOT
 JS_BEGIN_EXTERN_C
 
@@ -129,53 +117,6 @@ struct ConservativeGCStats
 
     void dump(FILE *fp);
 };
-
-#ifdef JS_GCMETER
-struct JSGCArenaStats
-{
-    uint32  alloc;          
-    uint32  localalloc;     
-    uint32  nthings;        
-    uint32  maxthings;      
-    double  totalthings;    
-    uint32  narenas;        
-    uint32  newarenas;      
-    uint32  livearenas;     
-    uint32  maxarenas;      
-    uint32  totalarenas;    
-
-};
-#endif
-
-#ifdef JS_GCMETER
-
-struct JSGCStats
-{
-    uint32  lock;       
-    uint32  unlock;     
-    uint32  unmarked;   
-
-    uint32  lastditch;  
-    uint32  fail;       
-#ifdef DEBUG
-    uint32  maxunmarked;
-
-#endif
-    uint32  afree;          
-    uint32  nallarenas;     
-    uint32  maxnallarenas;  
-    uint32  nchunks;        
-    uint32  maxnchunks;     
-
-    ConservativeGCStats conservative;
-};
-
-extern void
-UpdateCompartmentGCStats(JSCompartment *comp, unsigned thingKind);
-
-extern void
-UpdateAllCompartmentGCStats(JSCompartment *comp);
-#endif 
 
 } 
 
