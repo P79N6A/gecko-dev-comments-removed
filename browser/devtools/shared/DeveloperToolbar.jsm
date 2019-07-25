@@ -106,7 +106,7 @@ DeveloperToolbar.prototype.toggle = function DT_toggle()
   if (this.visible) {
     this.hide();
   } else {
-    this.show();
+    this.show(true);
   }
 };
 
@@ -123,7 +123,7 @@ DeveloperToolbar.introShownThisSession = false;
 
 
 
-DeveloperToolbar.prototype.show = function DT_show(aCallback)
+DeveloperToolbar.prototype.show = function DT_show(aFocus, aCallback)
 {
   if (this._lastState != NOTIFICATIONS.HIDE) {
     return;
@@ -138,7 +138,7 @@ DeveloperToolbar.prototype.show = function DT_show(aCallback)
   let checkLoad = function() {
     if (this.tooltipPanel && this.tooltipPanel.loaded &&
         this.outputPanel && this.outputPanel.loaded) {
-      this._onload();
+      this._onload(aFocus);
     }
   }.bind(this);
 
@@ -151,7 +151,7 @@ DeveloperToolbar.prototype.show = function DT_show(aCallback)
 
 
 
-DeveloperToolbar.prototype._onload = function DT_onload()
+DeveloperToolbar.prototype._onload = function DT_onload(aFocus)
 {
   this._doc.getElementById("Tools:DevToolbar").setAttribute("checked", "true");
 
@@ -193,7 +193,10 @@ DeveloperToolbar.prototype._onload = function DT_onload()
   this._initErrorsCount(this._chromeWindow.getBrowser().selectedTab);
 
   this._element.hidden = false;
-  this._input.focus();
+
+  if (aFocus) {
+    this._input.focus();
+  }
 
   this._notify(NOTIFICATIONS.SHOW);
   if (this._pendingShowCallback) {
