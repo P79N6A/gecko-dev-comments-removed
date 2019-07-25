@@ -104,6 +104,9 @@ public:
     nsISupports *Data()                           { return mData; }
     void         SetData( nsISupports * data);
 
+    PRInt64  PredictedDataSize()                  { return mPredictedDataSize; }
+    void     SetPredictedDataSize(PRInt64 size)   { mPredictedDataSize = size; }
+
     PRUint32 DataSize()                           { return mDataSize; }
     void     SetDataSize( PRUint32  size)         { mDataSize = size; }
 
@@ -239,6 +242,7 @@ private:
     PRUint32                mLastValidated;  
     PRUint32                mExpirationTime; 
     PRUint32                mFlags;          
+    PRInt64                 mPredictedDataSize;  
     PRUint32                mDataSize;       
     nsCacheDevice *         mCacheDevice;    
     nsCOMPtr<nsISupports>   mSecurityInfo;   

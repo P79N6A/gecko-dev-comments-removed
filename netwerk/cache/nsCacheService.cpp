@@ -1481,6 +1481,7 @@ nsCacheService::EnsureEntryHasDevice(nsCacheEntry * entry)
     nsCacheDevice * device = entry->CacheDevice();
     if (device)  return device;
 
+    PRInt64 predictedDataSize = entry->PredictedDataSize();
 #ifdef NECKO_DISK_CACHE
     if (entry->IsStreamData() && entry->IsAllowedOnDisk() && mEnableDiskDevice) {
         
@@ -1489,6 +1490,14 @@ nsCacheService::EnsureEntryHasDevice(nsCacheEntry * entry)
         }
 
         if (mDiskDevice) {
+            
+            if (predictedDataSize != -1 &&
+                mDiskDevice->EntryIsTooBig(predictedDataSize)) {
+                nsresult rv = nsCacheService::DoomEntry(entry);
+                NS_ASSERTION(NS_SUCCEEDED(rv),"DoomEntry() failed.");
+                return nsnull;
+            }
+
             entry->MarkBinding();  
             nsresult rv = mDiskDevice->BindEntry(entry);
             entry->ClearBinding(); 
@@ -1497,13 +1506,21 @@ nsCacheService::EnsureEntryHasDevice(nsCacheEntry * entry)
         }
     }
 #endif 
-     
+
     
     if (!device && mEnableMemoryDevice && entry->IsAllowedInMemory()) {        
         if (!mMemoryDevice) {
             (void)CreateMemoryDevice();  
         }
         if (mMemoryDevice) {
+            
+            if (predictedDataSize != -1 &&
+                mMemoryDevice->EntryIsTooBig(predictedDataSize)) {
+                nsresult rv = nsCacheService::DoomEntry(entry);
+                NS_ASSERTION(NS_SUCCEEDED(rv),"DoomEntry() failed.");
+                return nsnull;
+            }
+
             entry->MarkBinding();  
             nsresult rv = mMemoryDevice->BindEntry(entry);
             entry->ClearBinding(); 

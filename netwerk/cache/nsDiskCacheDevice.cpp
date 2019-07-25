@@ -776,7 +776,7 @@ nsDiskCacheDevice::OnDataSizeChange(nsCacheEntry * entry, PRInt32 deltaSize)
 
     
     
-    if ((newSize > kMaxDataFileSize) || (newSizeK > mCacheCapacity/8)) {
+    if (EntryIsTooBig(newSize)) {
 #ifdef DEBUG
         nsresult rv =
 #endif
@@ -859,6 +859,13 @@ nsDiskCacheDevice::Visit(nsICacheVisitor * visitor)
     return NS_OK;
 }
 
+
+bool
+nsDiskCacheDevice::EntryIsTooBig(PRInt64 entrySize)
+{
+    return entrySize > kMaxDataFileSize
+           || entrySize > (static_cast<PRInt64>(mCacheCapacity) * 1024 / 8);
+}
 
 nsresult
 nsDiskCacheDevice::EvictEntries(const char * clientID)
