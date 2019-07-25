@@ -46,6 +46,9 @@
 const kDoubleClickInterval = 400;
 
 
+const kDoubleClickThreshold = 200;
+
+
 const kTapRadius = 25;
 
 
@@ -326,9 +329,9 @@ InputHandler.prototype = {
 
 
 
-InputHandler.EventInfo = function EventInfo(aEvent, timestamp) {
+InputHandler.EventInfo = function EventInfo(aEvent) {
   this.event = aEvent;
-  this.time = timestamp || Date.now();
+  this.time = Date.now();
 };
 
 InputHandler.EventInfo.prototype = {
@@ -679,8 +682,12 @@ MouseModule.prototype = {
       window.clearTimeout(this._clickTimeout);
       this._doDoubleClick();
     } else {
-      this._clickTimeout = window.setTimeout(function _clickTimeout(self) { self._doSingleClick(); },
-                                             kDoubleClickInterval, this);
+      let time = this._downUpEvents[1].time - this._downUpEvents[0].time;
+      if (time >= kDoubleClickThreshold)
+        this._doSingleClick();
+      else
+        this._clickTimeout = window.setTimeout(function _clickTimeout(self) { self._doSingleClick(); },
+                                               kDoubleClickInterval, this);
     }
   },
 
