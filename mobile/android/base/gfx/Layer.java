@@ -67,29 +67,21 @@ public abstract class Layer {
 
 
 
-
-
     public final boolean update(GL10 gl, RenderContext context) {
-        boolean startTransaction = true;
         if (mTransactionLock.isHeldByCurrentThread()) {
-            startTransaction = false;
+            throw new RuntimeException("draw() called while transaction lock held by this " +
+                                       "thread?!");
         }
 
-        
-        
-        if (startTransaction && !mTransactionLock.tryLock()) {
-            return false;
-        }
-
-        mInTransaction = true;
-        try {
-            return performUpdates(gl, context);
-        } finally {
-            if (startTransaction) {
-                mInTransaction = false;
+        if (mTransactionLock.tryLock()) {
+            try {
+                return performUpdates(gl, context);
+            } finally {
                 mTransactionLock.unlock();
             }
         }
+
+        return false;
     }
 
     
@@ -128,6 +120,7 @@ public abstract class Layer {
         mTransactionLock.lock();
         mView = aView;
         mInTransaction = true;
+        mNewResolution = mResolution;
     }
 
     public void beginTransaction() {
