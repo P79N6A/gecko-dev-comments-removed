@@ -290,7 +290,8 @@ nsHTMLEditor::SetInlinePropertyOnTextNode( nsIDOMCharacterData *aTextNode,
   
   bool bHasProp;
   if (IsCSSEnabled() &&
-      mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty, aAttribute)) {
+      mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty,
+                                           aAttribute, aValue)) {
     
     
     nsAutoString value;
@@ -402,9 +403,10 @@ nsHTMLEditor::SetInlinePropertyOnNodeImpl(nsIDOMNode *aNode,
   }
 
   bool useCSS = (IsCSSEnabled() &&
-    mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty, aAttribute)) ||
-    
-    aAttribute->EqualsLiteral("bgcolor");
+                 mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty,
+                                                      aAttribute, aValue)) ||
+                
+                aAttribute->EqualsLiteral("bgcolor");
 
   if (useCSS) {
     tmp = aNode;
@@ -1111,7 +1113,11 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
         bool isSet = false;
         nsCOMPtr<nsIDOMNode> resultNode;
         if (first) {
-          if (mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty, aAttribute)) {
+          if (mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty,
+                                                   aAttribute) &&
+              
+              (aProperty != nsEditProperty::font ||
+               !aAttribute->EqualsLiteral("size"))) {
             
             
             
@@ -1131,7 +1137,11 @@ nsHTMLEditor::GetInlinePropertyBase(nsIAtom *aProperty,
             *outValue = firstValue;
           }
         } else {
-          if (mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty, aAttribute)) {
+          if (mHTMLCSSUtils->IsCSSEditableProperty(node, aProperty,
+                                                   aAttribute) &&
+              
+              (aProperty != nsEditProperty::font ||
+               !aAttribute->EqualsLiteral("size"))) {
             
             
             if (aValue) {
