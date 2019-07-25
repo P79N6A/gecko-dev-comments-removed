@@ -117,6 +117,19 @@ protected:
     PlatformLookupFunction mLookupFunc;
 };
 
+enum ShaderProgramType {
+    RGBALayerProgramType,
+    BGRALayerProgramType,
+    RGBXLayerProgramType,
+    BGRXLayerProgramType,
+    RGBARectLayerProgramType,
+    ColorLayerProgramType,
+    YCbCrLayerProgramType,
+    Copy2DProgramType,
+    Copy2DRectProgramType,
+    NumProgramTypes
+};
+
 
 
 
@@ -202,6 +215,16 @@ public:
 
     
 
+
+
+
+    virtual ShaderProgramType GetShaderProgramType()
+    {
+         return mShaderType;
+    }
+
+    
+
     
 
 
@@ -240,6 +263,7 @@ protected:
     GLenum mWrapMode;
     ContentType mContentType;
     PRPackedBool mIsRGBFormat;
+    ShaderProgramType mShaderType;
 };
 
 
@@ -280,12 +304,8 @@ protected:
     virtual already_AddRefed<gfxASurface>
     CreateUpdateSurface(const gfxIntSize& aSize, ImageFormat aFmt) = 0;
 
-    virtual already_AddRefed<gfxImageSurface>
-    GetImageForUpload(gfxASurface* aUpdateSurface) = 0;
-
     PRBool mTextureInited;
     GLContext* mGLContext;
-    nsRefPtr<gfxImageSurface> mBackingSurface;
     nsRefPtr<gfxContext> mUpdateContext;
     nsIntRect mUpdateRect;
 
@@ -353,19 +373,6 @@ struct THEBES_API ContextFormat
     int alpha, minAlpha;
 
     int colorBits() const { return red + green + blue; }
-};
-
-enum ShaderProgramType {
-    RGBALayerProgramType,
-    BGRALayerProgramType,
-    RGBXLayerProgramType,
-    BGRXLayerProgramType,
-    RGBARectLayerProgramType,
-    ColorLayerProgramType,
-    YCbCrLayerProgramType,
-    Copy2DProgramType,
-    Copy2DRectProgramType,
-    NumProgramTypes
 };
 
 class GLContext

@@ -970,6 +970,9 @@ public:
         if (gUseBackingSurface) {
             CreateBackingSurface(gfxIntSize(aSize.width, aSize.height));
         }
+
+        
+        mShaderType = BGRALayerProgramType;
     }
 
     virtual ~TextureImageEGL()
