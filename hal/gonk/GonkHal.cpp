@@ -322,6 +322,8 @@ namespace {
 
 
 const char *screenEnabledFilename = "/sys/power/state";
+const char *wakeLockFilename = "/sys/power/wake_lock";
+const char *wakeUnlockFilename = "/sys/power/wake_unlock";
 
 template<ssize_t n>
 bool ReadFromFile(const char *filename, char (&buf)[n])
@@ -362,6 +364,12 @@ void WriteToFile(const char *filename, const char *toWrite)
 
 
 bool sScreenEnabled = true;
+
+
+
+
+
+bool sCpuSleepAllowed = true;
 
 } 
 
@@ -413,6 +421,19 @@ SetScreenBrightness(double brightness)
   aConfig.color() = color;
   hal::SetLight(hal::eHalLightID_Backlight, aConfig);
   hal::SetLight(hal::eHalLightID_Buttons, aConfig);
+}
+
+bool
+GetCpuSleepAllowed()
+{
+  return sCpuSleepAllowed;
+}
+
+void
+SetCpuSleepAllowed(bool aAllowed)
+{
+  WriteToFile(aAllowed ? wakeUnlockFilename : wakeLockFilename, "gecko");
+  sCpuSleepAllowed = aAllowed;
 }
 
 static light_device_t* sLights[hal::eHalLightID_Count];	
