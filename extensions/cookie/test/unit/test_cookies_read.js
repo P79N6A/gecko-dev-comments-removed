@@ -30,6 +30,22 @@ function do_run_test() {
   do_check_eq(do_count_cookies(), 3000);
 
   
+  let db = new CookieDatabaseConnection(profile, 4);
+  while (do_count_cookies_in_db(profile) < 3000) {
+    do_execute_soon(function() {
+      do_run_generator(test_generator);
+    });
+    yield;
+  }
+
+  
+  
+  let file = db.db.databaseFile;
+  do_check_true(file.exists());
+  do_check_true(file.fileSize < 1e6);
+  db.close();
+
+  
   do_close_profile(test_generator);
   yield;
   do_load_profile();

@@ -478,18 +478,25 @@ CookieDatabaseConnection.prototype =
 }
 
 
+
 function do_count_cookies_in_db(profile, host)
 {
   let file = profile.clone();
   file.append("cookies.sqlite");
   let connection = Services.storage.openDatabase(file);
 
-  let select = connection.createStatement(
-    "SELECT COUNT(1) FROM moz_cookies WHERE host = :host");
-  select.bindByName("host", host);
+  let select = null;
+  if (host) {
+    select = connection.createStatement(
+      "SELECT COUNT(1) FROM moz_cookies WHERE host = :host");
+    select.bindByName("host", host);
+  } else {
+    select = connection.createStatement(
+      "SELECT COUNT(1) FROM moz_cookies");
+  }
+
   select.executeStep();
   let result = select.getInt32(0);
-
   select.reset();
   select.finalize();
   connection.close();
