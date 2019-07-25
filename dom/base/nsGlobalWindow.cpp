@@ -478,6 +478,12 @@ nsDummyJavaPluginOwner::Destroy()
 NS_IMETHODIMP
 nsDummyJavaPluginOwner::SetInstance(nsIPluginInstance *aInstance)
 {
+  
+  
+  
+  if (mInstance && !aInstance)
+    mInstance->InvalidateOwner();
+
   mInstance = aInstance;
 
   return NS_OK;
