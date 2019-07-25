@@ -50,6 +50,36 @@ Cu.import("resource://weave/log4moz.js");
 
 
 let Utils = {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  getProfileFile: function getProfileFile(arg) {
+    if (typeof arg == "string")
+      arg = {path: arg};
+
+    let pathParts = arg.path.split("/");
+    let dirSvc = Cc["@mozilla.org/file/directory_service;1"].
+                 getService(Ci.nsIProperties);
+    let file = dirSvc.get("ProfD", Ci.nsIFile);
+    file.QueryInterface(Ci.nsILocalFile);
+    for (let i = 0; i < pathParts.length; i++)
+      file.append(pathParts[i]);
+    if (arg.autoCreate && !file.exists())
+      file.create(file.NORMAL_FILE_TYPE, PERMS_FILE);
+    return file;
+  },
+
   getLoginManager: function getLoginManager() {
     return Cc["@mozilla.org/login-manager;1"].
            getService(Ci.nsILoginManager);
