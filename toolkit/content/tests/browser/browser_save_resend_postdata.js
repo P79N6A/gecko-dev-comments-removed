@@ -39,6 +39,10 @@
 
 
 
+
+
+
+
 function test() {
 
   
@@ -122,9 +126,12 @@ function test() {
         var fileContents = readShortFile(mockFilePickerResults.selectedFile);
 
         
-        const searchPattern = "inputfield=outer";
-        ok(fileContents.indexOf(searchPattern) === -1,
+        ok(fileContents.indexOf("inputfield=outer") === -1,
            "The saved inner frame does not contain outer POST data");
+
+        
+        ok(fileContents.indexOf("inputfield=inner") > -1,
+           "The saved inner frame was generated using the correct POST data");
       }
       finally {
         
