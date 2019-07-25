@@ -874,6 +874,14 @@ nsLocalFile::InitWithPath(const nsAString &filePath)
     if (secondChar != L':' && (secondChar != L'\\' || firstChar != L'\\'))
         return NS_ERROR_FILE_UNRECOGNIZED_PATH;
 
+    if (secondChar == L':') {
+        
+        
+        if (PathGetDriveNumberW(filePath.Data()) == -1) {
+            return NS_ERROR_FILE_UNRECOGNIZED_PATH;
+        }
+    }
+
     mWorkingPath = filePath;
     
     if (mWorkingPath.Last() == L'\\')
@@ -2467,7 +2475,7 @@ nsLocalFile::IsExecutable(bool *_retval)
             "wsf",
             "wsh"};
         nsDependentSubstring ext = Substring(path, dotIdx + 1);
-        for ( int i = 0; i < ArrayLength(executableExts); i++ ) {
+        for ( size_t i = 0; i < ArrayLength(executableExts); i++ ) {
             if ( ext.EqualsASCII(executableExts[i])) {
                 
                 *_retval = true;
