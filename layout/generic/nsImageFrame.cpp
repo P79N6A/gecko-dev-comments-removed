@@ -205,15 +205,21 @@ nsImageFrame::CreateAccessible()
 #endif
 
 void
+nsImageFrame::DisconnectMap()
+{
+  if (mImageMap) {
+    mImageMap->Destroy();
+    NS_RELEASE(mImageMap);
+  }
+}
+
+void
 nsImageFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   
   
   
-  if (mImageMap) {
-    mImageMap->Destroy();
-    NS_RELEASE(mImageMap);
-  }
+  DisconnectMap();
 
   
   if (mListener) {
