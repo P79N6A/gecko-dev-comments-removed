@@ -593,12 +593,7 @@ class HashTable : AllocPolicy
 #endif
     }
 
-    
-
-
-
-
-    bool add(AddPtr &p, T **pentry)
+    bool add(AddPtr &p)
     {
         ReentrancyGuard g(*this);
         JS_ASSERT(mutationCount == p.mutationCount);
@@ -635,12 +630,32 @@ class HashTable : AllocPolicy
             }
         }
 
-        *pentry = &p.entry->t;
         p.entry->setLive(p.keyHash);
         entryCount++;
 #ifdef DEBUG
         mutationCount++;
 #endif
+        return true;
+    }
+
+    
+
+
+
+
+    bool add(AddPtr &p, T** pentry)
+    {
+        if (!add(p))
+            return false;
+        *pentry = &p.entry->t;
+        return true;
+    }
+
+    bool add(AddPtr &p, const T &t)
+    {
+        if (!add(p))
+            return false;
+        p.entry->t = t;
         return true;
     }
 
@@ -1017,13 +1032,7 @@ class HashSet
         return impl.lookupForAdd(l);
     }
 
-    bool add(AddPtr &p, const T &t) {
-        const T *pentry;
-        if (!impl.add(p, &pentry))
-            return false;
-        const_cast<T &>(*pentry) = t;
-        return true;
-    }
+    bool add(AddPtr &p, const T &t) { return impl.add(p, t); }
 
     
 
