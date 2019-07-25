@@ -2,6 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 package org.mozilla.gecko.sync.net;
 
 import java.io.IOException;
@@ -9,8 +42,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
-
-import org.mozilla.gecko.sync.GlobalConstants;
 
 import android.util.Log;
 
@@ -132,7 +163,7 @@ public class SyncStorageRequest implements Resource {
 
     @Override
     public void addHeaders(HttpRequestBase request, DefaultHttpClient client) {
-      client.getParams().setParameter(CoreProtocolPNames.USER_AGENT, GlobalConstants.USER_AGENT);
+      client.getParams().setParameter(CoreProtocolPNames.USER_AGENT, USER_AGENT);
 
       
       String ifUnmodifiedSince = this.request.delegate.ifUnmodifiedSince();
@@ -145,6 +176,7 @@ public class SyncStorageRequest implements Resource {
     }
   }
 
+  public static String USER_AGENT = "Firefox AndroidSync 0.5";
   protected SyncResourceDelegate resourceDelegate;
   public SyncStorageRequestDelegate delegate;
   protected BaseResource resource;
