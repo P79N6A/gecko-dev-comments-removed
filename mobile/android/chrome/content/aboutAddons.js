@@ -276,17 +276,15 @@ var Addons = {
             setting.setAttribute("desc", desc);
           box.appendChild(setting);
         }
+        
+        
+        let event = document.createEvent("Events");
+        event.initEvent("AddonOptionsLoad", true, false);
+        window.dispatchEvent(event);
 
-
-
-
-
-
-
-
-
-
-
+        
+        let id = aListItem.getAttribute("addonID");
+        Services.obs.notifyObservers(document, "addon-options-displayed", id);
       }
     } catch (e) {
       Cu.reportError(e)
