@@ -278,10 +278,19 @@ GfxInfo::AddOpenGLCrashReportAnnotations()
 const nsTArray<GfxDriverInfo>&
 GfxInfo::GetGfxDriverInfo()
 {
-  
-  
-  
-  
+  if (!mDriverInfo->Length()) {
+    
+
+
+ 
+ 
+ 
+ 
+    APPEND_TO_DRIVER_BLOCKLIST2( DRIVER_OS_ALL,
+      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorAll), GfxDriverInfo::allDevices,
+      nsIGfxInfo::FEATURE_OPENGL_LAYERS, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
+      DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions );
+  }
   return *mDriverInfo;
 }
 
@@ -305,15 +314,18 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
     }
 
     
-    
-    
-    
-    
-    
-    
-    
 
-    status = FEATURE_BLOCKED_DEVICE;
+
+
+
+
+    
+    
+    
+    
+    
+    
+    
   }
 
   *aStatus = status;

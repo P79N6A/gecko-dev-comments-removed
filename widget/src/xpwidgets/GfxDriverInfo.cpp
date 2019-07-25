@@ -215,6 +215,23 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id)
       APPEND_DEVICE(0x03d2); 
       APPEND_DEVICE(0x03d5); 
       break;
+    case RadeonX1000:
+      
+      APPEND_DEVICE(0x7187);
+      APPEND_DEVICE(0x7210);
+      APPEND_DEVICE(0x71de);
+      APPEND_DEVICE(0x7146);
+      APPEND_DEVICE(0x7142);
+      APPEND_DEVICE(0x7109);
+      APPEND_DEVICE(0x71c5);
+      APPEND_DEVICE(0x71c0);
+      APPEND_DEVICE(0x7240);
+      APPEND_DEVICE(0x7249);
+      APPEND_DEVICE(0x7291);
+      break;
+    case Geforce7300GT:
+      APPEND_DEVICE(0x0393);
+      break;
     
     case DeviceFamilyMax:
       NS_WARNING("Invalid DeviceFamily id");
