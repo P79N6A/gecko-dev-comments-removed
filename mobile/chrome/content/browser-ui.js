@@ -436,6 +436,7 @@ var BrowserUI = {
     let tabs = document.getElementById("tabs");
     tabs.addEventListener("TabSelect", this, true);
     tabs.addEventListener("TabOpen", this, true);
+    window.addEventListener("PanBegin", this, true);
     window.addEventListener("PanFinished", this, true);
 
     
@@ -817,6 +818,12 @@ var BrowserUI = {
 
         break;
       }
+      case "PanBegin":
+        if (this.activePanel && !this._edit.readOnly) {
+          this._edit.readOnly = true;
+          this._edit.blur();
+        }
+        break;
       case "PanFinished":
         let [tabsVisibility,,,] = Browser.computeSidebarVisibility();
         if (tabsVisibility == 0.0)
