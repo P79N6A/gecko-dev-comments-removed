@@ -310,18 +310,24 @@ function SetClickAndHoldHandlers() {
   
   var unifiedButton = document.getElementById("unified-back-forward-button");
   if (unifiedButton && !unifiedButton._clickHandlersAttached) {
-    var popup = document.getElementById("backForwardMenu").cloneNode(true);
+    unifiedButton._clickHandlersAttached = true;
+
+    let popup = document.getElementById("backForwardMenu").cloneNode(true);
     popup.removeAttribute("id");
-    var backButton = document.getElementById("back-button");
+    
+    
+    popup.setAttribute("context", "");
+
+    let backButton = document.getElementById("back-button");
     backButton.setAttribute("type", "menu");
     backButton.appendChild(popup);
     _addClickAndHoldListenersOnElement(backButton);
-    var forwardButton = document.getElementById("forward-button");
+
+    let forwardButton = document.getElementById("forward-button");
     popup = popup.cloneNode(true);
     forwardButton.setAttribute("type", "menu");
     forwardButton.appendChild(popup);
     _addClickAndHoldListenersOnElement(forwardButton);
-    unifiedButton._clickHandlersAttached = true;
   }
 }
 
