@@ -8685,7 +8685,9 @@ nsDocument::RestorePreviousFullScreenState()
         
         
         
-        if (!nsContentUtils::IsSitePermAllow(doc->NodePrincipal(), "fullscreen")) {
+        if (!nsContentUtils::HaveEqualPrincipals(fullScreenDoc, doc) ||
+            (!nsContentUtils::IsSitePermAllow(doc->NodePrincipal(), "fullscreen") &&
+             !static_cast<nsDocument*>(doc)->mIsApprovedForFullscreen)) {
           nsRefPtr<nsAsyncDOMEvent> e =
             new nsAsyncDOMEvent(doc,
                                 NS_LITERAL_STRING("MozEnteredDomFullscreen"),
@@ -9039,19 +9041,29 @@ nsDocument::RequestFullScreen(Element* aElement, bool aWasCallerChrome)
     DispatchFullScreenChange(changed[changed.Length() - i - 1]);
   }
 
-  nsRefPtr<nsAsyncDOMEvent> e =
-    new nsAsyncDOMEvent(this,
-                        NS_LITERAL_STRING("MozEnteredDomFullscreen"),
-                        true,
-                        true);
-  e->PostDOMEvent();
-
   
   
   
   if (!mIsApprovedForFullscreen) {
     mIsApprovedForFullscreen =
       nsContentUtils::IsSitePermAllow(NodePrincipal(), "fullscreen");
+  }
+
+  
+  
+  
+  nsCOMPtr<nsIDocument> previousFullscreenDoc(do_QueryReferent(sFullScreenDoc));
+  
+  
+  
+  if (!mIsApprovedForFullscreen ||
+      !nsContentUtils::HaveEqualPrincipals(previousFullscreenDoc, this)) {
+    nsRefPtr<nsAsyncDOMEvent> e =
+      new nsAsyncDOMEvent(this,
+                          NS_LITERAL_STRING("MozEnteredDomFullscreen"),
+                          true,
+                          true);
+    e->PostDOMEvent();
   }
 
   
