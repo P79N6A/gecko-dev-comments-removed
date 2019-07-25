@@ -65,19 +65,18 @@ struct nsRuleData
   nsPostResolveFunc mPostResolveCallback;
 
   
-  nsRuleDataFont* mFontData;
-  nsRuleDataDisplay* mDisplayData;
-  nsRuleDataMargin* mMarginData;
-  nsRuleDataList* mListData;
-  nsRuleDataPosition* mPositionData;
-  nsRuleDataTable* mTableData;
-  nsRuleDataColor* mColorData;
-  nsRuleDataContent* mContentData;
-  nsRuleDataText* mTextData;
-  nsRuleDataUserInterface* mUserInterfaceData;
-  nsRuleDataXUL* mXULData;
-  nsRuleDataSVG* mSVGData;
-  nsRuleDataColumn* mColumnData;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsCSSValue* mValueStorage; 
+  size_t mValueOffsets[nsStyleStructID_Length];
 
   nsRuleData(PRUint32 aSIDs,
              nsPresContext* aContext,
@@ -86,22 +85,15 @@ struct nsRuleData
       mCanStoreInRuleTree(PR_TRUE),
       mPresContext(aContext),
       mStyleContext(aStyleContext),
-      mPostResolveCallback(nsnull),
-      mFontData(nsnull),
-      mDisplayData(nsnull),
-      mMarginData(nsnull),
-      mListData(nsnull),
-      mPositionData(nsnull),
-      mTableData(nsnull),
-      mColorData(nsnull),
-      mContentData(nsnull),
-      mTextData(nsnull),
-      mUserInterfaceData(nsnull),
-      mXULData(nsnull),
-      mSVGData(nsnull),
-      mColumnData(nsnull)
-  {}
-  ~nsRuleData() {}
+      mPostResolveCallback(nsnull)
+  {
+    
+  }
+  ~nsRuleData() {
+  #ifdef DEBUG
+    
+  #endif
+  }
 
   
 
@@ -110,7 +102,24 @@ struct nsRuleData
 
 
 
-  nsCSSValue* ValueFor(nsCSSProperty aProperty);
+  nsCSSValue* ValueFor(nsCSSProperty aProperty)
+  {
+    NS_ABORT_IF_FALSE(aProperty < eCSSProperty_COUNT_no_shorthands,
+                      "invalid or shorthand property");
+
+    nsStyleStructID sid = nsCSSProps::kSIDTable[aProperty];
+    size_t indexInStruct = nsCSSProps::PropertyIndexInStruct(aProperty);
+
+    
+    
+    NS_ABORT_IF_FALSE(mSIDs & (1 << sid),
+                      "calling nsRuleData::ValueFor on property not in mSIDs");
+    NS_ABORT_IF_FALSE(sid != eStyleStruct_BackendOnly &&
+                      indexInStruct != size_t(-1),
+                      "backend-only property");
+
+    return mValueStorage + mValueOffsets[sid] + indexInStruct;
+  }
 
   const nsCSSValue* ValueFor(nsCSSProperty aProperty) const {
     return const_cast<nsRuleData*>(this)->ValueFor(aProperty);
@@ -133,19 +142,16 @@ struct nsRuleData
       NS_ABORT_IF_FALSE(mSIDs & NS_STYLE_INHERIT_BIT(stylestruct_),          \
                         "Calling nsRuleData::ValueFor" #method_ " without "  \
                         "NS_STYLE_INHERIT_BIT(" #stylestruct_ " in mSIDs."); \
-      nsRuleData##datastruct_ *cssstruct = m##datastruct_##Data;             \
-      NS_ABORT_IF_FALSE(cssstruct, "nsRuleNode::Get" #stylestruct_ "Data "   \
-                                   "set up nsRuleData incorrectly");         \
-      return &cssstruct->member_;                                            \
+      nsStyleStructID sid = eStyleStruct_##stylestruct_;                     \
+      size_t indexInStruct =                                                 \
+        nsCSSProps::PropertyIndexInStruct(eCSSProperty_##id_);               \
+      NS_ABORT_IF_FALSE(sid != eStyleStruct_BackendOnly &&                   \
+                        indexInStruct != size_t(-1),                         \
+                        "backend-only property");                            \
+      return mValueStorage + mValueOffsets[sid] + indexInStruct;             \
     }                                                                        \
     const nsCSSValue* ValueFor##method_() const {                            \
-      NS_ABORT_IF_FALSE(mSIDs & NS_STYLE_INHERIT_BIT(stylestruct_),          \
-                        "Calling nsRuleData::ValueFor" #method_ " without "  \
-                        "NS_STYLE_INHERIT_BIT(" #stylestruct_ " in mSIDs."); \
-      const nsRuleData##datastruct_ *cssstruct = m##datastruct_##Data;       \
-      NS_ABORT_IF_FALSE(cssstruct, "nsRuleNode::Get" #stylestruct_ "Data "   \
-                                   "set up nsRuleData incorrectly");         \
-      return &cssstruct->member_;                                            \
+      return const_cast<nsRuleData*>(this)->ValueFor##method_();             \
     }
   #define CSS_PROP_BACKENDONLY(name_, id_, method_, flags_, datastruct_,     \
                                member_, parsevariant_, kwtable_)             \
