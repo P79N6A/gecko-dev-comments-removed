@@ -4032,7 +4032,8 @@ mjit::Compiler::iter(uintN flags)
     
     Address flagsAddr(nireg, offsetof(NativeIterator, flags));
     masm.load32(flagsAddr, T1);
-    Jump activeIterator = masm.branchTest32(Assembler::NonZero, T1, Imm32(JSITER_ACTIVE));
+    Jump activeIterator = masm.branchTest32(Assembler::NonZero, T1,
+                                            Imm32(JSITER_ACTIVE|JSITER_UNREUSABLE));
     stubcc.linkExit(activeIterator, Uses(1));
 
     
@@ -4225,8 +4226,7 @@ mjit::Compiler::iterEnd()
     masm.loadPtr(flagAddr, T2);
 
     
-    Jump notEnumerate = masm.branch32(Assembler::NotEqual, T2,
-                                      Imm32(JSITER_ENUMERATE | JSITER_ACTIVE));
+    Jump notEnumerate = masm.branchTest32(Assembler::Zero, T2, Imm32(JSITER_ENUMERATE));
     stubcc.linkExit(notEnumerate, Uses(1));
 
     
