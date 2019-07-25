@@ -115,12 +115,11 @@ SessionStartup.prototype = {
     
     let doResumeSession = prefBranch.getBoolPref("sessionstore.resume_session_once") ||
                           prefBranch.getIntPref("startup.page") == 3;
+
     
-    
-    var resumeFromCrash = prefBranch.getBoolPref("sessionstore.resume_from_crash");
-    if (!resumeFromCrash && !doResumeSession || !sessionFile.exists())
+    if (!sessionFile.exists())
       return;
-    
+
     
     this._iniString = this._readStateFile(sessionFile);
     if (!this._iniString)
@@ -143,10 +142,11 @@ SessionStartup.prototype = {
     }
     catch (ex) { debug("The session file is invalid: " + ex); }
 
+    let resumeFromCrash = prefBranch.getBoolPref("sessionstore.resume_from_crash");
     let lastSessionCrashed =
       initialState && initialState.session && initialState.session.state &&
       initialState.session.state == STATE_RUNNING_STR;
-    
+
     
     if (lastSessionCrashed && resumeFromCrash)
       this._sessionType = Ci.nsISessionStartup.RECOVER_SESSION;
