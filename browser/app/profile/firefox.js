@@ -993,7 +993,7 @@ pref("devtools.errorconsole.enabled", false);
 pref("devtools.inspector.enabled", false);
 
 
-pref("devtools.workspace.enabled", true);
+pref("devtools.scratchpad.enabled", true);
 
 
 pref("devtools.chrome.enabled", false);

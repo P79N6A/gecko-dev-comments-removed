@@ -3,7 +3,7 @@
 
 
 
-let gWorkspaceWindow;
+let gScratchpadWindow;
 
 function test()
 {
@@ -13,26 +13,26 @@ function test()
   gBrowser.selectedBrowser.addEventListener("load", function() {
     gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
 
-    gWorkspaceWindow = Workspace.openWorkspace();
-    gWorkspaceWindow.addEventListener("load", runTests, false);
+    gScratchpadWindow = Scratchpad.openScratchpad();
+    gScratchpadWindow.addEventListener("load", runTests, false);
   }, true);
 
   content.location = "data:text/html,<title>foobarBug636725</title>" +
-    "<p>test inspect() in Workspace";
+    "<p>test inspect() in Scratchpad";
 }
 
 function runTests()
 {
-  gWorkspaceWindow.removeEventListener("load", arguments.callee, false);
+  gScratchpadWindow.removeEventListener("load", arguments.callee, false);
 
-  let ws = gWorkspaceWindow.Workspace;
+  let sp = gScratchpadWindow.Scratchpad;
 
-  ok(ws.textbox, "textbox exists");
-  ws.textbox.value = "document";
+  ok(sp.textbox, "textbox exists");
+  sp.textbox.value = "document";
 
-  ws.inspect();
+  sp.inspect();
 
-  let propPanel = document.querySelector(".workspace_propertyPanel");
+  let propPanel = document.querySelector(".scratchpad_propertyPanel");
   ok(propPanel, "property panel is open");
 
   propPanel.addEventListener("popupshown", function() {
@@ -56,8 +56,8 @@ function runTests()
     executeSoon(function() {
       propPanel.hidePopup();
 
-      gWorkspaceWindow.close();
-      gWorkspaceWindow = null;
+      gScratchpadWindow.close();
+      gScratchpadWindow = null;
       gBrowser.removeCurrentTab();
       finish();
     });

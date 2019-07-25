@@ -48,17 +48,17 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource:///modules/PropertyPanel.jsm");
 
-const WORKSPACE_CONTEXT_CONTENT = 1;
-const WORKSPACE_CONTEXT_CHROME = 2;
-const WORKSPACE_WINDOW_URL = "chrome://browser/content/workspace.xul";
-const WORKSPACE_L10N = "chrome://browser/locale/workspace.properties";
-const WORKSPACE_WINDOW_FEATURES = "chrome,titlebar,toolbar,centerscreen,resizable,dialog=no";
+const SCRATCHPAD_CONTEXT_CONTENT = 1;
+const SCRATCHPAD_CONTEXT_CHROME = 2;
+const SCRATCHPAD_WINDOW_URL = "chrome://browser/content/scratchpad.xul";
+const SCRATCHPAD_L10N = "chrome://browser/locale/scratchpad.properties";
+const SCRATCHPAD_WINDOW_FEATURES = "chrome,titlebar,toolbar,centerscreen,resizable,dialog=no";
 const DEVTOOLS_CHROME_ENABLED = "devtools.chrome.enabled";
 
 
 
 
-var Workspace = {
+var Scratchpad = {
   
 
 
@@ -69,19 +69,19 @@ var Workspace = {
 
 
 
-  executionContext: WORKSPACE_CONTEXT_CONTENT,
+  executionContext: SCRATCHPAD_CONTEXT_CONTENT,
 
   
 
 
 
-  get textbox() document.getElementById("workspace-textbox"),
+  get textbox() document.getElementById("scratchpad-textbox"),
 
   
 
 
 
-  get statusbarStatus() document.getElementById("workspace-status"),
+  get statusbarStatus() document.getElementById("scratchpad-status"),
 
   
 
@@ -177,7 +177,7 @@ var Workspace = {
   
 
 
-  deselect: function WS_deselect()
+  deselect: function SP_deselect()
   {
     this.textbox.selectionEnd = this.textbox.selectionStart;
   },
@@ -190,7 +190,7 @@ var Workspace = {
 
 
 
-  selectRange: function WS_selectRange(aStart, aEnd)
+  selectRange: function SP_selectRange(aStart, aEnd)
   {
     this.textbox.selectionStart = aStart;
     this.textbox.selectionEnd = aEnd;
@@ -204,12 +204,12 @@ var Workspace = {
 
 
 
-  evalInContentSandbox: function WS_evalInContentSandbox(aString)
+  evalInContentSandbox: function SP_evalInContentSandbox(aString)
   {
     let result;
     try {
       result = Cu.evalInSandbox(aString, this.contentSandbox, "1.8",
-                                "Workspace", 1);
+                                "Scratchpad", 1);
     }
     catch (ex) {
       this.openWebConsole();
@@ -238,12 +238,12 @@ var Workspace = {
 
 
 
-  evalInChromeSandbox: function WS_evalInChromeSandbox(aString)
+  evalInChromeSandbox: function SP_evalInChromeSandbox(aString)
   {
     let result;
     try {
       result = Cu.evalInSandbox(aString, this.chromeSandbox, "1.8",
-                                "Workspace", 1);
+                                "Scratchpad", 1);
     }
     catch (ex) {
       Cu.reportError(ex);
@@ -263,9 +263,9 @@ var Workspace = {
 
 
 
-  evalForContext: function WS_evaluateForContext(aString)
+  evalForContext: function SP_evaluateForContext(aString)
   {
-    return this.executionContext == WORKSPACE_CONTEXT_CONTENT ?
+    return this.executionContext == SCRATCHPAD_CONTEXT_CONTENT ?
            this.evalInContentSandbox(aString) :
            this.evalInChromeSandbox(aString);
   },
@@ -274,7 +274,7 @@ var Workspace = {
 
 
 
-  execute: function WS_execute()
+  execute: function SP_execute()
   {
     let selection = this.selectedText || this.textbox.value;
     let result = this.evalForContext(selection);
@@ -287,7 +287,7 @@ var Workspace = {
 
 
 
-  inspect: function WS_inspect()
+  inspect: function SP_inspect()
   {
     let [selection, result] = this.execute();
 
@@ -302,7 +302,7 @@ var Workspace = {
 
 
 
-  print: function WS_print()
+  print: function SP_print()
   {
     let selectionStart = this.textbox.selectionStart;
     let selectionEnd = this.textbox.selectionEnd;
@@ -338,7 +338,7 @@ var Workspace = {
 
 
 
-  openPropertyPanel: function WS_openPropertyPanel(aEvalString, aOutputObject)
+  openPropertyPanel: function SP_openPropertyPanel(aEvalString, aOutputObject)
   {
     let self = this;
     let propPanel;
@@ -375,7 +375,7 @@ var Workspace = {
     propPanel = new PropertyPanel(parent, doc, title, aOutputObject, buttons);
 
     let panel = propPanel.panel;
-    panel.setAttribute("class", "workspace_propertyPanel");
+    panel.setAttribute("class", "scratchpad_propertyPanel");
     panel.openPopup(null, "after_pointer", 0, 0, false, false);
     panel.sizeTo(200, 400);
 
@@ -387,10 +387,10 @@ var Workspace = {
   
 
 
-  openWorkspace: function WS_openWorkspace()
+  openScratchpad: function SP_openScratchpad()
   {
-    Services.ww.openWindow(null, WORKSPACE_WINDOW_URL, "_blank",
-                           WORKSPACE_WINDOW_FEATURES, null);
+    Services.ww.openWindow(null, SCRATCHPAD_WINDOW_URL, "_blank",
+                           SCRATCHPAD_WINDOW_FEATURES, null);
   },
 
   
@@ -408,7 +408,7 @@ var Workspace = {
 
 
 
-  exportToFile: function WS_exportToFile(aFile, aNoConfirmation, aSilentError,
+  exportToFile: function SP_exportToFile(aFile, aNoConfirmation, aSilentError,
                                          aCallback)
   {
     if (!aNoConfirmation && aFile.exists() &&
@@ -453,7 +453,7 @@ var Workspace = {
 
 
 
-  importFromFile: function WS_importFromFile(aFile, aSilentError, aCallback)
+  importFromFile: function SP_importFromFile(aFile, aSilentError, aCallback)
   {
     
     let channel = NetUtil.newChannel(aFile);
@@ -481,7 +481,7 @@ var Workspace = {
   
 
 
-  openFile: function WS_openFile()
+  openFile: function SP_openFile()
   {
     let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
     fp.init(window, this.strings.GetStringFromName("openFile.title"),
@@ -496,7 +496,7 @@ var Workspace = {
   
 
 
-  saveFile: function WS_saveFile()
+  saveFile: function SP_saveFile()
   {
     if (!this.filename) {
       return this.saveFileAs();
@@ -510,12 +510,12 @@ var Workspace = {
   
 
 
-  saveFileAs: function WS_saveFileAs()
+  saveFileAs: function SP_saveFileAs()
   {
     let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
     fp.init(window, this.strings.GetStringFromName("saveFileAs"),
             Ci.nsIFilePicker.modeSave);
-    fp.defaultString = "workspace.js";
+    fp.defaultString = "scratchpad.js";
     if (fp.show() != Ci.nsIFilePicker.returnCancel) {
       document.title = this.filename = fp.file.path;
       this.exportToFile(fp.file);
@@ -525,7 +525,7 @@ var Workspace = {
   
 
 
-  openErrorConsole: function WS_openErrorConsole()
+  openErrorConsole: function SP_openErrorConsole()
   {
     this.browserWindow.toJavaScriptConsole();
   },
@@ -533,7 +533,7 @@ var Workspace = {
   
 
 
-  openWebConsole: function WS_openWebConsole()
+  openWebConsole: function SP_openWebConsole()
   {
     if (!this.browserWindow.HUDConsoleUI.getOpenHUD()) {
       this.browserWindow.HUDConsoleUI.toggleHUD();
@@ -544,33 +544,33 @@ var Workspace = {
   
 
 
-  setContentContext: function WS_setContentContext()
+  setContentContext: function SP_setContentContext()
   {
-    let content = document.getElementById("ws-menu-content");
-    document.getElementById("ws-menu-chrome").removeAttribute("checked");
+    let content = document.getElementById("sp-menu-content");
+    document.getElementById("sp-menu-chrome").removeAttribute("checked");
     content.setAttribute("checked", true);
     this.statusbarStatus.label = content.getAttribute("label");
-    this.executionContext = WORKSPACE_CONTEXT_CONTENT;
+    this.executionContext = SCRATCHPAD_CONTEXT_CONTENT;
     this.resetContext();
   },
 
   
 
 
-  setChromeContext: function WS_setChromeContext()
+  setChromeContext: function SP_setChromeContext()
   {
-    let chrome = document.getElementById("ws-menu-chrome");
-    document.getElementById("ws-menu-content").removeAttribute("checked");
+    let chrome = document.getElementById("sp-menu-chrome");
+    document.getElementById("sp-menu-content").removeAttribute("checked");
     chrome.setAttribute("checked", true);
     this.statusbarStatus.label = chrome.getAttribute("label");
-    this.executionContext = WORKSPACE_CONTEXT_CHROME;
+    this.executionContext = SCRATCHPAD_CONTEXT_CHROME;
     this.resetContext();
   },
 
   
 
 
-  resetContext: function WS_resetContext()
+  resetContext: function SP_resetContext()
   {
     this._chromeSandbox = null;
     this._contentSandbox = null;
@@ -584,7 +584,7 @@ var Workspace = {
 
 
 
-  getWindowId: function HS_getWindowId(aWindow)
+  getWindowId: function SP_getWindowId(aWindow)
   {
     return aWindow.QueryInterface(Ci.nsIInterfaceRequestor).
            getInterface(Ci.nsIDOMWindowUtils).outerWindowID;
@@ -593,12 +593,12 @@ var Workspace = {
   
 
 
-  onLoad: function HS_onLoad()
+  onLoad: function SP_onLoad()
   {
-    let chromeContextMenu = document.getElementById("ws-menu-chrome");
-    let errorConsoleMenu = document.getElementById("ws-menu-errorConsole");
-    let errorConsoleCommand = document.getElementById("ws-cmd-errorConsole");
-    let chromeContextCommand = document.getElementById("ws-cmd-chromeContext");
+    let chromeContextMenu = document.getElementById("sp-menu-chrome");
+    let errorConsoleMenu = document.getElementById("sp-menu-errorConsole");
+    let errorConsoleCommand = document.getElementById("sp-cmd-errorConsole");
+    let chromeContextCommand = document.getElementById("sp-cmd-chromeContext");
 
     let chrome = Services.prefs.getBoolPref(DEVTOOLS_CHROME_ENABLED);
     if (chrome) {
@@ -610,9 +610,9 @@ var Workspace = {
   },
 };
 
-XPCOMUtils.defineLazyGetter(Workspace, "strings", function () {
-  return Services.strings.createBundle(WORKSPACE_L10N);
+XPCOMUtils.defineLazyGetter(Scratchpad, "strings", function () {
+  return Services.strings.createBundle(SCRATCHPAD_L10N);
 });
 
-addEventListener("DOMContentLoaded", Workspace.onLoad.bind(Workspace), false);
+addEventListener("DOMContentLoaded", Scratchpad.onLoad.bind(Scratchpad), false);
 
