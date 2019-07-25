@@ -830,7 +830,7 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
     JSObject *initialVarObj;
     if (prev) {
         JS_ASSERT(chain == &prev->scopeChain());
-        frame.fp()->initEvalFrame(script, prev, prev->pc(cx), flags);
+        frame.fp()->initEvalFrame(cx, script, prev, flags);
 
         
 
