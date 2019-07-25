@@ -82,6 +82,11 @@ setupChild: function()
 
 
 
+
+
+
+
+
 setup: function()
 {
   netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
@@ -100,7 +105,7 @@ setup: function()
       .getService(Ci.nsIIOService)
       .newURI(window.location.href, null, null);
     if (pm.testPermission(uri, "offline-app") != 0) {
-      dump("Previous test failed to clear offline-app permission!  Expect failures.\n");
+      ok(false, "Previous test failed to clear offline-app permission!  Expect failures.");
     }
     pm.add(uri, "offline-app", Ci.nsIPermissionManager.ALLOW_ACTION);
 
@@ -143,7 +148,7 @@ finish: function()
 {
   if (this._masterWindow) {
     
-    SimpleTest.executeSoon(this._masterWindow.OfflineTest.finish);
+    this._masterWindow.SimpleTest.executeSoon(this._masterWindow.OfflineTest.finish);
     window.close();
   } else {
     
@@ -197,7 +202,7 @@ waitForAdd: function(url, onFinished) {
     var cacheSession = OfflineTest.getActiveSession();
     var entry;
     try {
-      var entry = cacheSession.openCacheEntry(url, Ci.nsICache.ACCESS_READ, false);
+      entry = cacheSession.openCacheEntry(url, Ci.nsICache.ACCESS_READ, false);
     } catch (e) {
     }
 
@@ -235,7 +240,8 @@ getActiveCache: function()
 getActiveSession: function()
 {
   var cache = this.getActiveCache();
-  if (!cache) return null;
+  if (!cache)
+    return null;
 
   var cacheService = Cc["@mozilla.org/network/cache-service;1"]
                      .getService(Ci.nsICacheService);
