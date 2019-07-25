@@ -6683,6 +6683,14 @@ class CompExprTransplanter {
 
 
 
+
+
+
+
+
+
+
+
 class GenexpGuard {
     JSTreeContext   *tc;
     uint32          startYieldCount;
@@ -6703,6 +6711,7 @@ class GenexpGuard {
 
     void endBody();
     bool checkValidBody(JSParseNode *pn);
+    bool maybeNoteGenerator();
 };
 
 void
@@ -6710,6 +6719,13 @@ GenexpGuard::endBody()
 {
     tc->parenDepth--;
 }
+
+
+
+
+
+
+
 
 bool
 GenexpGuard::checkValidBody(JSParseNode *pn)
@@ -6730,6 +6746,27 @@ GenexpGuard::checkValidBody(JSParseNode *pn)
         return false;
     }
 
+    return true;
+}
+
+
+
+
+
+
+
+
+bool
+GenexpGuard::maybeNoteGenerator()
+{
+    if (tc->yieldCount > 0) {
+        tc->flags |= TCF_FUN_IS_GENERATOR;
+        if (!tc->inFunction()) {
+            tc->parser->reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_RETURN_OR_YIELD,
+                                          js_yield_str);
+            return false;
+        }
+    }
     return true;
 }
 
@@ -7055,8 +7092,12 @@ Parser::comprehensionTail(JSParseNode *kid, uintN blockid, bool isGenexp,
 
         guard.endBody();
 
-        if (isGenexp && !guard.checkValidBody(pn2))
+        if (isGenexp) {
+            if (!guard.checkValidBody(pn2))
+                return NULL;
+        } else if (!guard.maybeNoteGenerator()) {
             return NULL;
+        }
 
         switch (tt) {
 #if JS_HAS_DESTRUCTURING
@@ -7106,9 +7147,6 @@ Parser::comprehensionTail(JSParseNode *kid, uintN blockid, bool isGenexp,
         *pnp = pn2;
         pnp = &pn2->pn_kid2;
     }
-
-    if (!maybeNoteGenerator())
-        return NULL;
 
     pn2 = UnaryNode::create(tc);
     if (!pn2)
@@ -7229,27 +7267,6 @@ static const char js_generator_str[] = "generator";
 #endif 
 #endif 
 
-
-
-
-
-
-
-
-
-bool
-Parser::maybeNoteGenerator()
-{
-    if (tc->yieldCount > 0) {
-        tc->flags |= TCF_FUN_IS_GENERATOR;
-        if (!tc->inFunction()) {
-            reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_BAD_RETURN_OR_YIELD, js_yield_str);
-            return false;
-        }
-    }
-    return true;
-}
-
 JSBool
 Parser::argumentList(JSParseNode *listNode)
 {
@@ -7263,10 +7280,8 @@ Parser::argumentList(JSParseNode *listNode)
         JSParseNode *argNode = assignExpr();
         if (!argNode)
             return JS_FALSE;
-        if (arg0) {
+        if (arg0)
             guard.endBody();
-            arg0 = false;
-        }
 
 #if JS_HAS_GENERATORS
         if (argNode->pn_type == TOK_YIELD &&
@@ -7289,13 +7304,15 @@ Parser::argumentList(JSParseNode *listNode)
                                   js_generator_str);
                 return JS_FALSE;
             }
-        }
+        } else
 #endif
+        if (arg0 && !guard.maybeNoteGenerator())
+            return JS_FALSE;
+
+        arg0 = false;
+
         listNode->append(argNode);
     } while (tokenStream.matchToken(TOK_COMMA));
-
-    if (!maybeNoteGenerator())
-        return JS_FALSE;
 
     if (tokenStream.getToken() != TOK_RP) {
         reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_PAREN_AFTER_ARGS);
@@ -8898,10 +8915,10 @@ Parser::parenExpr(JSBool *genexp)
             pn->pn_pos.end = tokenStream.currentToken().pos.end;
             *genexp = JS_TRUE;
         }
-    }
+    } else
 #endif 
 
-    if (!maybeNoteGenerator())
+    if (!guard.maybeNoteGenerator())
         return NULL;
 
     return pn;
