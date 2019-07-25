@@ -497,17 +497,19 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   makeActive: function() {
-   iQ(this.container).find("canvas").addClass("focus");
-   iQ(this.container).find("img.cached-thumb").addClass("focus");
+    iQ(this.container).find("canvas").addClass("focus");
+    iQ(this.container).find("img.cached-thumb").addClass("focus");
 
+    if (this.parent)
+      this.parent.setActiveTab(this);
   },
 
   
   
   
   makeDeactive: function() {
-   iQ(this.container).find("canvas").removeClass("focus");
-   iQ(this.container).find("img.cached-thumb").removeClass("focus");
+    iQ(this.container).find("canvas").removeClass("focus");
+    iQ(this.container).find("img.cached-thumb").removeClass("focus");
   },
 
   
