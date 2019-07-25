@@ -6077,7 +6077,27 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
         SetDocPendingStateObj(mLSHE);
 
         mIsExecutingOnLoadHandler = PR_TRUE;
-        mContentViewer->LoadComplete(aStatus);
+        rv = mContentViewer->LoadComplete(aStatus);
+
+        
+        
+        if (NS_SUCCEEDED(rv) && rv != NS_SUCCESS_LOAD_STOPPED &&
+            !mSuppressPopstate) {
+
+            
+            
+            
+            nsCOMPtr<nsIDocument> document = mContentViewer->GetDocument();
+            if (document) {
+                nsCOMPtr<nsPIDOMWindow> window = document->GetWindow();
+                if (window) {
+                    
+                    
+                    window->DispatchSyncPopState(PR_TRUE);
+                }
+            }
+        }
+
         mIsExecutingOnLoadHandler = PR_FALSE;
 
         mEODForCurrentDocument = PR_TRUE;
@@ -8213,7 +8233,11 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     mAllowKeywordFixup =
       (aFlags & INTERNAL_LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP) != 0;
     mURIResultedInDocument = PR_FALSE;  
-   
+
+    
+    
+    mSuppressPopstate = PR_FALSE;
+
     
     
     
@@ -8413,7 +8437,12 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             
             nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(mScriptGlobal);
             if (window) {
-                window->DispatchSyncPopState();
+                NS_ASSERTION(!mSuppressPopstate,
+                             "Popstate shouldn't be suppressed here.");
+
+                
+                
+                window->DispatchSyncPopState(PR_FALSE);
 
                 if (doHashchange)
                   window->DispatchAsyncHashchange();
@@ -9789,6 +9818,10 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     else {
         FireDummyOnLocationChange();
     }
+
+    
+    
+    mSuppressPopstate = PR_TRUE;
 
     return NS_OK;
 }
