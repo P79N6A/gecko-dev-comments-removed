@@ -182,12 +182,14 @@ LInstruction::printName(FILE *fp)
 static const char *TypeChars[] =
 {
     "i",            
-    "p",            
     "o",            
     "f",            
+#ifdef JS_NUNBOX32
     "t",            
-    "d",            
+    "d"             
+#elif JS_PUNBOX64
     "x"             
+#endif
 };
 
 static void
