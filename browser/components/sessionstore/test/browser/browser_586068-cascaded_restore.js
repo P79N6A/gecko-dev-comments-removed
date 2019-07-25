@@ -69,10 +69,20 @@ function runNextTest() {
 
   
   if (tests.length) {
+    
+    
+    var windowsEnum = Services.wm.getEnumerator("navigator:browser");
+    while (windowsEnum.hasMoreElements()) {
+      var currentWindow = windowsEnum.getNext();
+      if (currentWindow != window) {
+        currentWindow.close();
+      }
+    }
+
     ss.setBrowserState(JSON.stringify({ windows: [{ tabs: [{ url: 'about:blank' }] }] }));
-    let test = tests.shift();
-    info("running " + test.name);
-    executeSoon(test);
+    let currentTest = tests.shift();
+    info("running " + currentTest.name);
+    executeSoon(currentTest);
   }
   else {
     ss.setBrowserState(stateBackup);
