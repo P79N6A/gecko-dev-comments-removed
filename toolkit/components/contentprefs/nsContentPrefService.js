@@ -76,8 +76,7 @@ function electrolify(service) {
       
       
       
-      
-      const NAME_WHITELIST = ["browser.upload.lastDir", "spellcheck.lang"];
+      const NAME_WHITELIST = ["browser.upload.lastDir"];
       if (NAME_WHITELIST.indexOf(json.name) == -1)
         return { succeeded: false };
 
