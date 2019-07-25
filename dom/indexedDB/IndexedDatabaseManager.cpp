@@ -254,13 +254,6 @@ IndexedDatabaseManager::GetOrCreate()
 
     
     
-    
-    rv = obs->AddObserver(instance, NS_XPCOM_SHUTDOWN_THREADS_OBSERVER_ID,
-                          false);
-    NS_ENSURE_SUCCESS(rv, nsnull);
-
-    
-    
     instance->mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS,
                                              LazyIdleThread::ManualShutdown);
 
@@ -1224,7 +1217,7 @@ IndexedDatabaseManager::Observe(nsISupports* aSubject,
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  if (!strcmp(aTopic, NS_XPCOM_SHUTDOWN_THREADS_OBSERVER_ID)) {
+  if (!strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
     
     
     if (PR_ATOMIC_SET(&gShutdown, 1)) {
@@ -1276,11 +1269,6 @@ IndexedDatabaseManager::Observe(nsISupports* aSubject,
       }
     }
 
-    return NS_OK;
-  }
-
-  if (!strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
-    
     return NS_OK;
   }
 
