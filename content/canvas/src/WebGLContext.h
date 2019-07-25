@@ -589,17 +589,6 @@ protected:
     }
     
     
-    
-    
-    bool WorkAroundCubeMapBug684882() const {
-        #ifdef XP_MACOSX
-            return gl->Vendor() == gl::GLContext::VendorIntel;
-        #else
-            return false;
-        #endif
-    }
-    
-    
 
     GLenum CheckedBufferData(GLenum target,
                              GLsizeiptr size,
