@@ -166,7 +166,6 @@ public:
     static void DoATSpecificProcessing();
 
 protected:
-    void GetAccessibleFor(nsIDOMNode *node, nsIAccessible **newAcc);
 
   
 
