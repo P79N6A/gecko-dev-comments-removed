@@ -792,7 +792,7 @@ struct nsStyleBorder {
   
   
   
-  nscoord GetActualBorderWidth(mozilla::css::Side aSide) const
+  nscoord GetComputedBorderWidth(mozilla::css::Side aSide) const
   {
     return GetComputedBorder().Side(aSide);
   }
