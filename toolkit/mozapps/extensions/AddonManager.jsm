@@ -632,6 +632,7 @@ var AddonManagerInternal = {
     Components.utils.import("resource://gre/modules/LightweightThemeManager.jsm", scope);
     scope.LightweightThemeManager.updateCurrentTheme();
 
+    pendingUpdates++;
     this.getAllAddons(function getAddonsCallback(aAddons) {
       
       
