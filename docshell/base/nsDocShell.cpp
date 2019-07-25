@@ -6565,6 +6565,13 @@ nsDocShell::CanSavePresentation(PRUint32 aLoadType,
     if (!mOSHE)
         return PR_FALSE; 
 
+    nsCOMPtr<nsIContentViewer> viewer;
+    mOSHE->GetContentViewer(getter_AddRefs(viewer));
+    if (viewer) {
+        NS_WARNING("mOSHE already has a content viewer!");
+        return PR_FALSE;
+    }
+
     
     
     
