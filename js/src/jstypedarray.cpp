@@ -925,17 +925,13 @@ class TypedArrayTemplate
 
         do {
             obj->setSlot(FIELD_BUFFER, ObjectValue(*bufobj));
+
             
 
 
 
 
-
-
-
-
-
-            obj->setSlot(FIELD_DATA, PrivateValue(ArrayBuffer::getDataOffset(bufobj)));
+            obj->setPrivate(ArrayBuffer::getDataOffset(bufobj) + byteOffset);
         } while(0);
 
         obj->setSlot(FIELD_LENGTH, Int32Value(len));
@@ -1742,6 +1738,7 @@ JSFunctionSpec _typedArray::jsfuncs[] = {                                      \
 {                                                                              \
     #_typedArray,                                                              \
     JSCLASS_HAS_RESERVED_SLOTS(TypedArray::FIELD_MAX) |                        \
+    JSCLASS_HAS_PRIVATE |                                                      \
     JSCLASS_HAS_CACHED_PROTO(JSProto_##_typedArray),                           \
     PropertyStub,         /* addProperty */                                    \
     PropertyStub,         /* delProperty */                                    \
@@ -1757,6 +1754,7 @@ JSFunctionSpec _typedArray::jsfuncs[] = {                                      \
 {                                                                              \
     #_typedArray,                                                              \
     JSCLASS_HAS_RESERVED_SLOTS(TypedArray::FIELD_MAX) |                        \
+    JSCLASS_HAS_PRIVATE |                                                      \
     Class::NON_NATIVE,                                                         \
     PropertyStub,         /* addProperty */                                    \
     PropertyStub,         /* delProperty */                                    \
