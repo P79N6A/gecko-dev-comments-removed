@@ -171,6 +171,9 @@ var StarUI = {
       _anchorElement: aAnchorElement,
       _position: aPosition,
       observe: function (aSubject, aTopic, aData) {
+        
+        retrieveToolbarIconsizesFromTheme();
+
         this._self._overlayLoading = false;
         this._self._overlayLoaded = true;
         this._self._doShowEditBookmarkPanel(this._itemId, this._anchorElement,
