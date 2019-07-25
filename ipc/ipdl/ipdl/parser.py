@@ -48,7 +48,7 @@ class Parser:
         self.loc = None         
         self.lexer = None
         self.parser = None
-        self.tu = TranslationUnit()
+        self.tu = TranslationUnit('(none)')
         self.direction = None
         self.errout = None
 
@@ -203,6 +203,11 @@ def p_TranslationUnit(p):
             tu.protocol = thing
         else:
             assert(0)
+
+    
+    
+    tu.namespaces = tu.protocol.namespaces
+    tu.name = tu.protocol.name
 
     p[0] = tu
 
