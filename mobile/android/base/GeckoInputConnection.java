@@ -295,6 +295,15 @@ public class GeckoInputConnection
     @Override
     public boolean setComposingText(CharSequence text, int newCursorPosition) {
         
+        
+        
+
+        
+        
+        
+        if (text.length() == 0 && !hasCompositionString())
+            return true;
+
         clampSelection();
         return super.setComposingText(text, newCursorPosition);
     }
