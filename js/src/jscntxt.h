@@ -1633,6 +1633,10 @@ VersionIsKnown(JSVersion version)
     return VersionNumber(version) != JSVERSION_UNKNOWN;
 }
 
+typedef js::HashSet<JSObject *,
+                    js::DefaultHasher<JSObject *>,
+                    js::SystemAllocPolicy> BusyArraysMap;
+
 } 
 
 struct JSContext
@@ -1732,7 +1736,7 @@ struct JSContext
 
     
     JSSharpObjectMap    sharpObjectMap;
-    js::HashSet<JSObject *> busyArrays;
+    js::BusyArraysMap   busyArrays;
 
     
     JSArgumentFormatMap *argumentFormatMap;
@@ -2133,9 +2137,6 @@ struct JSContext
 
 
     JS_FRIEND_API(void) checkMallocGCPressure(void *p);
-
-    
-    JSContext *thisInInitializer() { return this; }
 }; 
 
 #ifdef JS_THREADSAFE

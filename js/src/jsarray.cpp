@@ -1221,8 +1221,7 @@ array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
 
 
 
-    typedef js::HashSet<JSObject *> ObjSet;
-    ObjSet::AddPtr hashp = cx->busyArrays.lookupForAdd(obj);
+    BusyArraysMap::AddPtr hashp = cx->busyArrays.lookupForAdd(obj);
     uint32 genBefore;
     if (!hashp) {
         
