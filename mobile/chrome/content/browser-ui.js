@@ -1212,7 +1212,10 @@ var PageActions = {
     });
 
     if (!this._loginManager.getLoginSavingEnabled(host.prePath)) {
-      permissions.push("pageactions.password");
+      
+      
+      if (Services.prefs.getBoolPref("signon.rememberSignons"))
+        permissions.push("pageactions.password");
     }
 
     let descriptions = permissions.map(function(s) Elements.browserBundle.getString(s));
