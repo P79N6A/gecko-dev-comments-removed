@@ -1004,37 +1004,37 @@ Debugger::markAllIteratively(GCMarker *trc, JSGCInvocationKind gckind)
 
 
 
-        if (comp ? dc != comp : !dc->isAboutToBeCollected(gckind)) {
-            const GlobalObjectSet &debuggees = dc->getDebuggees();
-            for (GlobalObjectSet::Range r = debuggees.all(); !r.empty(); r.popFront()) {
-                GlobalObject *global = r.front();
+        if (comp && dc == comp)
+            continue;
+
+        const GlobalObjectSet &debuggees = dc->getDebuggees();
+        for (GlobalObjectSet::Range r = debuggees.all(); !r.empty(); r.popFront()) {
+            GlobalObject *global = r.front();
+
+            
+
+
+
+            const GlobalObject::DebuggerVector *debuggers = global->getDebuggers();
+            JS_ASSERT(debuggers);
+            for (Debugger **p = debuggers->begin(); p != debuggers->end(); p++) {
+                Debugger *dbg = *p;
+                JSObject *obj = dbg->toJSObject();
 
                 
 
 
 
-                const GlobalObject::DebuggerVector *debuggers = global->getDebuggers();
-                JS_ASSERT(debuggers);
-                for (Debugger **p = debuggers->begin(); p != debuggers->end(); p++) {
-                    Debugger *dbg = *p;
-                    JSObject *obj = dbg->toJSObject();
 
+
+
+                if (IsAboutToBeFinalized(trc->context, obj) && dbg->hasAnyLiveHooks()) {
                     
 
 
 
-
-
-                    if ((!comp || obj->compartment() == comp) && !obj->isMarked()) {
-                        if (dbg->hasAnyLiveHooks()) {
-                            
-
-
-
-                            MarkObject(trc, *obj, "enabled Debugger");
-                            markedAny = true;
-                        }
-                    }
+                    MarkObject(trc, *obj, "enabled Debugger");
+                    markedAny = true;
                 }
             }
         }
@@ -1091,11 +1091,14 @@ void
 Debugger::sweepAll(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
+    JS_ASSERT(!rt->gcCurrentCompartment);
+
     for (JSCList *p = &rt->debuggerList; (p = JS_NEXT_LINK(p)) != &rt->debuggerList;) {
         Debugger *dbg = Debugger::fromLinks(p);
 
-        if (!dbg->object->isMarked()) {
+        if (IsAboutToBeFinalized(cx, dbg->object)) {
             
+
 
 
 
@@ -1114,7 +1117,7 @@ Debugger::sweepAll(JSContext *cx)
         GlobalObjectSet &debuggees = (*c)->getDebuggees();
         for (GlobalObjectSet::Enum e(debuggees); !e.empty(); e.popFront()) {
             GlobalObject *global = e.front();
-            if (!global->isMarked())
+            if (IsAboutToBeFinalized(cx, global))
                 detachAllDebuggersFromGlobal(cx, global, &e);
         }
     }
@@ -1133,7 +1136,7 @@ Debugger::detachAllDebuggersFromGlobal(JSContext *cx, GlobalObject *global,
 void
 Debugger::finalize(JSContext *cx, JSObject *obj)
 {
-    Debugger *dbg = (Debugger *) obj->getPrivate();
+    Debugger *dbg = fromJSObject(obj);
     if (!dbg)
         return;
     if (!dbg->debuggees.empty()) {
