@@ -445,13 +445,11 @@ var NewTabPopup = {
       let boxRect = this.box.getBoundingClientRect();
       this.box.top = tabRect.top + (tabRect.height / 2) - (boxRect.height / 2);
 
-      let tabs = document.getElementById("tabs");
-
       
       
       
       
-      if (tabs.getBoundingClientRect().left < 0)
+      if (Elements.tabList.getBoundingClientRect().left < 0)
         this.box.pointLeftAt(aTab);
       else
         this.box.pointRightAt(aTab);
@@ -523,7 +521,7 @@ var FindHelperUI = {
     Elements.browsers.addEventListener("PanFinished", this, false);
 
     
-    document.getElementById("tabs").addEventListener("TabSelect", this, true);
+    Elements.tabList.addEventListener("TabSelect", this, true);
     Elements.browsers.addEventListener("URLChanged", this, true);
   },
 
@@ -675,7 +673,7 @@ var FormHelperUI = {
     messageManager.addMessageListener("FormAssist:AutoComplete", this);
 
     
-    let tabs = document.getElementById("tabs");
+    let tabs = Elements.tabList;
     tabs.addEventListener("TabSelect", this, true);
     tabs.addEventListener("TabClose", this, true);
     Elements.browsers.addEventListener("URLChanged", this, true);
