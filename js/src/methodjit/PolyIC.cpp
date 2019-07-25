@@ -1300,32 +1300,8 @@ class ScopeNameCompiler : public PICStubCompiler
 
 
 
-        MaybeJump calleeNotObject;
-        MaybeJump calleeNotFunction;
-        MaybeJump calleeParent;
+
         if (pic.kind == ic::PICInfo::CALLNAME) {
-            
-            if (!f.fp()->script()->compileAndGo)
-                return disable("callname global stub without compile-and-go");
-
-            
-            Value funval = getprop.holder->nativeGetSlot(getprop.shape->slot);
-            if (!funval.isObject() || !funval.toObject().isFunction())
-                return disable("unsupported value");
-
-            
-            JSObject *funobj = &funval.toObject();
-            if (funobj->getParent() != getprop.holder)
-                return disable("not scoped to global object");
-
-            
-            calleeNotObject = masm.testObject(Assembler::NotEqual, pic.shapeReg);
-            calleeNotFunction = masm.testFunction(Assembler::NotEqual, pic.objReg);
-
-            
-            Address parent(pic.objReg, offsetof(JSObject, parent));
-            calleeParent = masm.branchPtr(Assembler::NotEqual, parent, ImmPtr(getprop.holder));
-
             
             Value *thisVp = &cx->regs().sp[1];
             Address thisSlot(JSFrameReg, StackFrame::offsetOfFixed(thisVp - cx->fp()->slots()));
@@ -1340,12 +1316,6 @@ class ScopeNameCompiler : public PICStubCompiler
         if (finalNull.isSet())
             finalNull.get().linkTo(masm.label(), &masm);
         finalShape.linkTo(masm.label(), &masm);
-        if (calleeNotObject.isSet())
-            calleeNotObject.get().linkTo(masm.label(), &masm);
-        if (calleeNotFunction.isSet())
-            calleeNotFunction.get().linkTo(masm.label(), &masm);
-        if (calleeParent.isSet())
-            calleeParent.get().linkTo(masm.label(), &masm);
         Label failLabel = masm.label();
         Jump failJump = masm.jump();
 
