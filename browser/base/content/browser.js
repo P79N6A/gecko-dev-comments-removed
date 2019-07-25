@@ -3477,10 +3477,7 @@ function OpenBrowserWindow()
 }
 
 var gCustomizeSheet = false;
-
-
-function BrowserCustomizeToolbar()
-{
+function BrowserCustomizeToolbar() {
   
   var menubar = document.getElementById("main-menubar");
   for (var i = 0; i < menubar.childNodes.length; ++i)
@@ -3524,12 +3521,11 @@ function BrowserCustomizeToolbar()
     sheetFrame.setAttribute("src", customizeURL);
 
     panel.openPopup(gNavToolbox, "after_start", 0, 0);
-    return sheetFrame.contentWindow;
   } else {
-    return window.openDialog(customizeURL,
-                             "CustomizeToolbar",
-                             "chrome,titlebar,toolbar,location,resizable,dependent",
-                             gNavToolbox);
+    window.openDialog(customizeURL,
+                      "CustomizeToolbar",
+                      "chrome,titlebar,toolbar,location,resizable,dependent",
+                      gNavToolbox);
   }
 }
 
