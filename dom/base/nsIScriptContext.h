@@ -74,8 +74,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
                               NS_ISCRIPTCONTEXTPRINCIPAL_IID)
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0x0ffcb42a, 0xd2cf, 0x4e16, \
-  { 0xac, 0x24, 0x5e, 0x7d, 0xd0, 0x71, 0x72, 0x12 } }
+{ 0xace7960f, 0x263b, 0x4a9a, \
+  { 0xaa, 0x1f, 0x87, 0x86, 0x5c, 0x67, 0x03, 0x7f } }
 
 
 
@@ -122,9 +122,8 @@ public:
                                   bool* aIsUndefined) = 0;
 
   
-  
   virtual nsresult EvaluateStringWithValue(const nsAString& aScript,
-                                           void *aScopeObject,
+                                           JSObject* aScopeObject,
                                            nsIPrincipal *aPrincipal,
                                            const char *aURL,
                                            PRUint32 aLineNo,
