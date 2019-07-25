@@ -288,6 +288,19 @@ protected:
 
   
   
+  
+  
+  
+  
+  
+  PRUint32 PlaySilence(PRUint32 aSamples, PRUint32 aChannels);
+
+  
+  
+  PRUint32 PlayFromAudioQueue();
+
+  
+  
   void StopDecodeThreads();
 
   

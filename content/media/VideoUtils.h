@@ -126,4 +126,16 @@ PRBool AddOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult);
 
 PRBool MulOverflow(PRInt64 a, PRInt64 b, PRInt64& aResult);
 
+
+
+
+
+PRBool SamplesToMs(PRInt64 aSamples, PRUint32 aRate, PRInt64& aOutMs);
+
+
+
+
+
+PRBool MsToSamples(PRInt64 aMs, PRUint32 aRate, PRInt64& aOutSamples);
+
 #endif
