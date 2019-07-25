@@ -436,7 +436,9 @@ nsHTMLLinkElement::GetStyleSheetInfo(nsAString& aTitle,
   }
 
   GetAttr(kNameSpaceID_None, nsGkAtoms::media, aMedia);
-  ToLowerCase(aMedia); 
+  
+  
+  nsContentUtils::ASCIIToLower(aMedia);
 
   nsAutoString mimeType;
   nsAutoString notUsed;
