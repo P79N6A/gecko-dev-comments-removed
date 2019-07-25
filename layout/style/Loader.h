@@ -332,6 +332,11 @@ public:
   
 
 
+  nsIDocument* GetDocument() const { return mDocument; }
+
+  
+
+
 
 
 

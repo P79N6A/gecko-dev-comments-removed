@@ -149,6 +149,9 @@ public:
   virtual nsIStyleSheet* GetParentSheet() const;  
   virtual nsIDocument* GetOwningDocument() const;  
   virtual void SetOwningDocument(nsIDocument* aDocument);
+
+  
+  virtual PRUint64 FindOwningWindowID() const;
 #ifdef DEBUG
   virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
