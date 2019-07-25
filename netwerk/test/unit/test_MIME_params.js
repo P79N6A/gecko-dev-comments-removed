@@ -391,6 +391,35 @@ var tests = [
    "attachment", "foo"], 
 ];
 
+var rfc5987paramtests = [
+  [ 
+    "UTF-8'language'value", "value", "language", Cr.NS_OK ],
+  [ 
+    "UTF-8''1%202", "1 2", "", Cr.NS_OK ],
+  [ 
+    "UTF-8''%c2%a3%20and%20%e2%82%ac%20rates", "\u00a3 and \u20ac rates", "", Cr.NS_OK ],
+  [ 
+    "''abc", "", "", Cr.NS_ERROR_INVALID_ARG ],
+  [ 
+    "ISO-8859-1''%A3%20rates", "", "", Cr.NS_ERROR_INVALID_ARG ],
+  [ 
+    "foo''abc", "", "", Cr.NS_ERROR_INVALID_ARG ],
+  [ 
+    "abc", "", "", Cr.NS_ERROR_INVALID_ARG ],
+  [ 
+    "'abc", "", "", Cr.NS_ERROR_INVALID_ARG ],
+  [ 
+    "UTF-8''a b", "", "", Cr.NS_ERROR_INVALID_ARG ],
+  [ 
+    "UTF-8''a%zz", "", "", Cr.NS_ERROR_INVALID_ARG ],
+  [ 
+    "UTF-8''a%b", "", "", Cr.NS_ERROR_INVALID_ARG ],
+  [ 
+    "UTF-8''a%", "", "", Cr.NS_ERROR_INVALID_ARG ],
+  [ 
+    "UTF-8''%A3%20rates", "", "", 0x8050000E   ],
+];
+
 function do_tests(whichRFC)
 {
   var mhp = Components.classes["@mozilla.org/network/mime-hdrparam;1"]
@@ -451,6 +480,30 @@ function do_tests(whichRFC)
   }
 }
 
+function test_decode5987Param() {
+  var mhp = Components.classes["@mozilla.org/network/mime-hdrparam;1"]
+                      .getService(Components.interfaces.nsIMIMEHeaderParam);
+
+  for (var i = 0; i < rfc5987paramtests.length; ++i) {
+    dump("Testing #" + i + ": " + rfc5987paramtests[i] + "\n");
+
+    var lang = {};
+    try {
+      var decoded = mhp.decodeRFC5987Param(rfc5987paramtests[i][0], lang);
+      if (rfc5987paramtests[i][3] == Cr.NS_OK) {
+        do_check_eq(rfc5987paramtests[i][1], decoded);
+        do_check_eq(rfc5987paramtests[i][2], lang.value);
+      }
+      else {
+        do_check_eq(rfc5987paramtests[i][3], "instead got: " + decoded);
+      }
+    }
+    catch (e) {
+      do_check_eq(rfc5987paramtests[i][3], e.result);
+    }
+  }
+}
+
 function run_test() {
 
   
@@ -458,5 +511,7 @@ function run_test() {
 
   
   do_tests(1);
-}
 
+  
+  test_decode5987Param();
+}
