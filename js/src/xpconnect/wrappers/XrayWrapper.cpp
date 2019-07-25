@@ -570,12 +570,12 @@ XrayWrapper<Base>::resolveOwnProperty(JSContext *cx, JSObject *wrapper, jsid id,
          
          
          
-         (((id == rt->GetStringID(XPCJSRuntime::IDX_BASEURIOBJECT) ||
-            id == rt->GetStringID(XPCJSRuntime::IDX_NODEPRINCIPAL)) &&
-           Is<nsINode>(wrapper)) ||
-          (id == rt->GetStringID(XPCJSRuntime::IDX_DOCUMENTURIOBJECT) &&
-           Is<nsIDocument>(wrapper))) &&
-         IsPrivilegedScript())) {
+         ((((id == rt->GetStringID(XPCJSRuntime::IDX_BASEURIOBJECT) ||
+             id == rt->GetStringID(XPCJSRuntime::IDX_NODEPRINCIPAL)) &&
+            Is<nsINode>(wrapper)) ||
+           (id == rt->GetStringID(XPCJSRuntime::IDX_DOCUMENTURIOBJECT) &&
+            Is<nsIDocument>(wrapper))) &&
+          IsPrivilegedScript()))) {
         bool status;
         Wrapper::Action action = set ? Wrapper::SET : Wrapper::GET;
         desc->obj = NULL; 
