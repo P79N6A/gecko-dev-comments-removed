@@ -184,6 +184,13 @@ public:
   
 
 
+  float GetXScale() const { return _11; }
+  float GetYScale() const { return _22; }
+  float GetZScale() const { return _33; }
+
+  
+
+
 
 
 

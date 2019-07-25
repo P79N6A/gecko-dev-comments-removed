@@ -56,6 +56,10 @@
 
 class nsIWidget;
 
+namespace base {
+class Thread;
+}
+
 namespace mozilla {
 namespace layers {
 
@@ -86,7 +90,7 @@ class CompositorParent : public PCompositorParent,
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CompositorParent)
 public:
-  CompositorParent(nsIWidget* aWidget);
+  CompositorParent(nsIWidget* aWidget, base::Thread* aCompositorThread);
   virtual ~CompositorParent();
 
   virtual bool RecvStop() MOZ_OVERRIDE;
@@ -100,9 +104,9 @@ public:
   void AsyncRender();
 
   
-  void ScheduleRenderOnCompositorThread(::base::Thread &aCompositorThread);
-  void SchedulePauseOnCompositorThread(::base::Thread &aCompositorThread);
-  void ScheduleResumeOnCompositorThread(::base::Thread &aCompositorThread);
+  void ScheduleRenderOnCompositorThread();
+  void SchedulePauseOnCompositorThread();
+  void ScheduleResumeOnCompositorThread();
 
 protected:
   virtual PLayersParent* AllocPLayers(const LayersBackend &backendType);
@@ -132,6 +136,7 @@ private:
 #endif
 
   nsRefPtr<LayerManager> mLayerManager;
+  base::Thread* mCompositorThread;
   nsIWidget* mWidget;
   CancelableTask *mCurrentCompositeTask;
   TimeStamp mLastCompose;
