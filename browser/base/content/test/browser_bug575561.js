@@ -6,7 +6,7 @@ function test() {
   testLink(0, true, false, function() {
     
     
-    testLink(1, true, false, function() {
+    testLink(1, true, true, function() {
       
       
       testLink(2, true, true, function() {
@@ -18,7 +18,19 @@ function test() {
           testLink(3, true, true, function() {
             
             
-            testLink(0, true, false, finish, true);
+            testLink(0, true, false, function() {
+              
+              
+              testLink(4, true, false, function() {
+                
+                
+                testLink(5, true, false, function() {
+                  
+                  
+                  testLink(6, true, false, finish);
+                });
+              });
+            }, true);
           });
         });
       });
