@@ -38,26 +38,19 @@
 
 package org.mozilla.gecko.gfx;
 
-import android.graphics.Point;
+import android.graphics.Rect;
 
 public class VirtualLayer extends Layer {
-    private IntSize mSize;
+    public VirtualLayer(IntSize size) {
+        super(size);
+    }
 
     @Override
     public void draw(RenderContext context) {
         
     }
 
-    @Override
-    public IntSize getSize() {
-        return mSize;
-    }
-
-    public void setSize(IntSize size) {
-        mSize = size;
-    }
-
-    void setOriginAndResolution(Point newOrigin, float newResolution) {
+    void setPositionAndResolution(Rect newPosition, float newResolution) {
         
         
         
@@ -72,9 +65,7 @@ public class VirtualLayer extends Layer {
         
         
         
-
-        mOrigin = newOrigin;
+        mPosition = newPosition;
         mResolution = newResolution;
     }
 }
-
