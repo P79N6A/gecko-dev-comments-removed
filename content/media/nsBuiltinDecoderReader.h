@@ -376,7 +376,7 @@ public:
       mTimeEnd(aTimeEnd)
   {}
 
-  PRBool IsNull() {
+  PRBool IsNull() const {
     return mOffsetStart == 0 &&
            mOffsetEnd == 0 &&
            mTimeStart == 0 &&
@@ -439,7 +439,11 @@ public:
 
   
   
-  virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime) = 0;
+  
+  virtual nsresult Seek(PRInt64 aTime,
+                        PRInt64 aStartTime,
+                        PRInt64 aEndTime,
+                        PRInt64 aCurrentTime) = 0;
 
   
   const nsVideoInfo& GetInfo() {
