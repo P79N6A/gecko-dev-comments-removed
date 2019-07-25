@@ -348,7 +348,7 @@ public:
     NS_ABORT_IF_FALSE(mUnit == eCSSUnit_URL || mUnit == eCSSUnit_Image,
                  "not a URL value");
     return mUnit == eCSSUnit_URL ?
-      mValue.mURL->mURI : mValue.mImage->mURI;
+      mValue.mURL->GetURI() : mValue.mImage->GetURI();
   }
 
   nsCSSValueGradient* GetGradientValue() const
@@ -452,6 +452,11 @@ public:
 
     
     
+    
+    
+    URL(nsStringBuffer* aString, nsIURI* aBaseURI, nsIURI* aReferrer,
+        nsIPrincipal* aOriginPrincipal);
+    
     URL(nsIURI* aURI, nsStringBuffer* aString, nsIURI* aReferrer,
         nsIPrincipal* aOriginPrincipal);
 
@@ -465,7 +470,14 @@ public:
     
     PRBool URIEquals(const URL& aOther) const;
 
-    nsCOMPtr<nsIURI> mURI; 
+    nsIURI* GetURI() const;
+
+  private:
+    
+    
+    
+    mutable nsCOMPtr<nsIURI> mURI;
+  public:
     nsStringBuffer* mString; 
                              
     nsCOMPtr<nsIURI> mReferrer;
@@ -473,7 +485,8 @@ public:
 
     NS_INLINE_DECL_REFCOUNTING(nsCSSValue::URL)
 
-  protected:
+  private:
+    mutable PRBool mURIResolved;
 
     
     URL(const URL& aOther);
