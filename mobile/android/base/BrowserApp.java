@@ -413,6 +413,17 @@ abstract public class BrowserApp extends GeckoApp
                 resetFeedbackLaunchCount();
             } else if (event.equals("Feedback:LastUrl")) {
                 getLastUrl();
+            } else if (event.equals("Gecko:Ready")) {
+                
+                
+                super.handleMessage(event, message);
+                final Menu menu = mMenu;
+                mMainHandler.post(new Runnable() {
+                    public void run() {
+                        if (menu != null)
+                            menu.findItem(R.id.settings).setEnabled(true);
+                    }
+                });
             } else {
                 super.handleMessage(event, message);
             }
