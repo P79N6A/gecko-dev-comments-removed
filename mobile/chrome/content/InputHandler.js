@@ -516,7 +516,7 @@ MouseModule.prototype = {
       this._owner.suppressNextClick();
     }
 
-    let [sX, sY] = [evInfo.event.screenX, evInfo.event.screenY];
+    let [sX, sY] = dragData.lockAxis(evInfo.event.screenX, evInfo.event.screenY);
 
     let movedOutOfRadius = dragData.isPointOutsideRadius(sX, sY);
 
@@ -537,9 +537,10 @@ MouseModule.prototype = {
     let dragData = this._dragData;
 
     if (dragData.dragging) {
+      let [sX, sY] = dragData.lockAxis(evInfo.event.screenX, evInfo.event.screenY);
       evInfo.event.stopPropagation();
       evInfo.event.preventDefault();
-      this._doDragMove(evInfo.event.screenX, evInfo.event.screenY);
+      this._doDragMove(sX, sY);
     }
   },
 
@@ -872,6 +873,9 @@ function DragData(owner, dragRadius, dragStartTimeoutLength) {
   this.reset();
 };
 
+
+const kMsUntilLock = 50;
+
 DragData.prototype = {
   reset: function reset() {
     this.dragging = false;
@@ -890,43 +894,58 @@ DragData.prototype = {
   },
 
   setDragStart: function setDragStart(screenX, screenY) {
-    this.setDragPosition(screenX, screenY);
-    this._originX = screenX;
-    this._originY = screenY;
+    this.sX = this._originX = screenX;
+    this.sY = this._originY = screenY;
     this.dragging = true;
+    this._dragStartTime = Date.now();
+    this.alreadyLocked = false;
   },
 
   endDrag: function endDrag() {
     this.dragging = false;
   },
 
-  lockMouseMove: function lockMouseMove(sX, sY) {
-    if (this.lockedX !== null)
-      sX = this.lockedX;
-    else if (this.lockedY !== null)
-      sY = this.lockedY;
-    return [sX, sY];
-  },
-
   lockAxis: function lockAxis(sX, sY) {
-    if (this.alreadyLocked)
-      return this.lockMouseMove(sX, sY);
+    if (this.alreadyLocked) {
+      if (this.lockedX !== null) {
+        sX = this.lockedX;
+      }
+      else if (this.lockedY !== null) {
+        sY = this.lockedY;
+      }
+      return [sX, sY];
+    }
+    
+    let now = Date.now();
+    if (now - this._dragStartTime < kMsUntilLock) {
+      
+      return [this.sX, this.sY];      
+    }
+     
+    
 
     
     
     let absX = Math.abs(this.sX - sX);
     let absY = Math.abs(this.sY - sY);
+    
+    
 
     
     
-    if ((absX > (this._dragRadius / 2)) && ((absX * absX) > (2 * absY * absY))) {
+    
+    
+    
+    if (absX > 2 * absY) {
       this.lockedY = this.sY;
       sY = this.sY;
     }
-    else if ((absY > (this._dragRadius / 2)) && ((absY * absY) > (2 * absX * absX))) {
+    else if (absY > 2 * absX) {
       this.lockedX = this.sX;
       sX = this.sX;
     }
+
+    
     this.alreadyLocked = true;
 
     return [sX, sY];
@@ -1086,7 +1105,7 @@ KineticController.prototype = {
     let mbLength = this.momentumBuffer.length;
     
     let now = Date.now();
-
+ 
     if (mbLength > 0) {
       let mbLast = this.momentumBuffer[mbLength - 1];
       if ((mbLast.sx == sx && mbLast.sy == sy) || mbLast.t == now)
