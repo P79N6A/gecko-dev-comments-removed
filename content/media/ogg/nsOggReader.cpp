@@ -1028,40 +1028,32 @@ nsresult nsOggReader::GetSeekRanges(nsTArray<SeekRange>& aRanges)
   NS_ASSERTION(mDecoder->OnStateMachineThread(),
                "Should be on state machine thread.");
   mMonitor.AssertCurrentThreadIn();
-  PRInt64 startOffset = mDataOffset;
-  nsMediaStream* stream = mDecoder->GetCurrentStream();
-  while (PR_TRUE) {
-    PRInt64 endOffset = stream->GetCachedDataEnd(startOffset);
-    if (endOffset == startOffset) {
-      
-      endOffset = stream->GetNextCachedData(startOffset);
-      if (endOffset == -1) {
-        
-        
-        break;
-      }
-    } else {
-      
-      PRInt64 startTime = -1;
-      PRInt64 endTime = -1;
-      if (NS_FAILED(ResetDecode())) {
-        return NS_ERROR_FAILURE;
-      }
-      FindStartTime(startOffset, startTime);
-      if (startTime != -1 &&
-          ((endTime = FindEndTime(endOffset)) != -1))
-      {
-        NS_ASSERTION(startOffset < endOffset,
-                     "Start offset must be before end offset");
-        NS_ASSERTION(startTime < endTime,
-                     "Start time must be before end time");
-        aRanges.AppendElement(SeekRange(startOffset,
-                                        endOffset,
-                                        startTime,
-                                        endTime));
-      }
+  nsTArray<nsByteRange> cached;
+  nsresult res = mDecoder->GetCurrentStream()->GetCachedRanges(cached);
+  NS_ENSURE_SUCCESS(res, res);
+
+  for (PRUint32 index = 0; index < aRanges.Length(); index++) {
+    nsByteRange& range = cached[index];
+    PRInt64 startTime = -1;
+    PRInt64 endTime = -1;
+    if (NS_FAILED(ResetDecode())) {
+      return NS_ERROR_FAILURE;
     }
-    startOffset = endOffset;
+    
+    PRInt64 startOffset = NS_MAX(cached[index].mStart, mDataOffset);
+    PRInt64 endOffset = NS_MAX(cached[index].mEnd, mDataOffset);
+
+    FindStartTime(startOffset, startTime);
+    if (startTime != -1 &&
+        ((endTime = FindEndTime(endOffset)) != -1))
+    {
+      NS_ASSERTION(startTime < endTime,
+                   "Start time must be before end time");
+      aRanges.AppendElement(SeekRange(startOffset,
+                                      endOffset,
+                                      startTime,
+                                      endTime));
+     }
   }
   if (NS_FAILED(ResetDecode())) {
     return NS_ERROR_FAILURE;
@@ -1686,6 +1678,9 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
   }
 
   nsMediaStream* stream = mDecoder->GetCurrentStream();
+  nsTArray<nsByteRange> ranges;
+  nsresult res = stream->GetCachedRanges(ranges);
+  NS_ENSURE_SUCCESS(res, res);
 
   
   
@@ -1694,21 +1689,18 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
   
   ogg_sync_state state;
   ogg_sync_init(&state);
-  PRInt64 startOffset = stream->GetNextCachedData(mDataOffset);
-  while (startOffset >= 0) {
-    PRInt64 endOffset = stream->GetCachedDataEnd(startOffset);
-    NS_ASSERTION(startOffset < endOffset, "Buffered range must end after its start");
+  for (PRUint32 index = 0; index < ranges.Length(); index++) {
     
+    PRInt64 startOffset = NS_MAX(ranges[index].mStart, mDataOffset);
+    PRInt64 endOffset = NS_MAX(ranges[index].mEnd, mDataOffset);
 
     
-    PRInt64 startTime = -1;
-    if (startOffset == mDataOffset) {
-      
-      
-      
-      
-      startTime = aStartTime;
-    }
+    
+    
+    
+    PRInt64 startTime = (startOffset == mDataOffset) ? aStartTime : -1;
+
+    
     
     
     ogg_sync_reset(&state);
@@ -1758,6 +1750,7 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
       else {
         
         
+        ogg_sync_clear(&state);
         return PAGE_SYNC_ERROR;
       }
     }
@@ -1772,9 +1765,6 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
                        static_cast<double>(endTime) / 1000.0);
       }
     }
-    startOffset = stream->GetNextCachedData(endOffset);
-    NS_ASSERTION(startOffset == -1 || startOffset > endOffset,
-      "Must have advanced to start of next range, or hit end of stream");
   }
 
   
