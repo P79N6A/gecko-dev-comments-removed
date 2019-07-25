@@ -2003,7 +2003,9 @@ PluginInstanceChild::AnswerSetPluginFocus()
     
     
     
-    if (::GetFocus() == mPluginWindowHWND || ::GetFocus() != mPluginParentHWND)
+    if (::GetFocus() == mPluginWindowHWND ||
+        ((GetQuirks() & PluginModuleChild::QUIRK_SILVERLIGHT_FOCUS_CHECK_PARENT) &&
+         (::GetFocus() != mPluginParentHWND)))
         return true;
     ::SetFocus(mPluginWindowHWND);
     return true;

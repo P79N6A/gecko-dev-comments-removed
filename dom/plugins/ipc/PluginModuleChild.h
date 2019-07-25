@@ -294,6 +294,10 @@ public:
         
         
         QUIRK_QUICKTIME_AVOID_SETWINDOW                 = 1 << 7,
+        
+        
+        
+        QUIRK_SILVERLIGHT_FOCUS_CHECK_PARENT            = 1 << 8,
     };
 
     int GetQuirks() { return mQuirks; }
