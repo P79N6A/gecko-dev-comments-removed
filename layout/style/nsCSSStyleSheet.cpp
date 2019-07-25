@@ -1751,6 +1751,17 @@ nsCSSStyleSheet::InsertRule(const nsAString& aRule,
   return InsertRuleInternal(aRule, aIndex, aReturn);
 }
 
+static bool
+RuleHasPendingChildSheet(css::Rule *cssRule)
+{
+  nsCOMPtr<nsIDOMCSSImportRule> importRule(do_QueryInterface(cssRule));
+  NS_ASSERTION(importRule, "Rule which has type IMPORT_RULE and does not implement nsIDOMCSSImportRule!");
+  nsCOMPtr<nsIDOMCSSStyleSheet> childSheet;
+  importRule->GetStyleSheet(getter_AddRefs(childSheet));
+  nsRefPtr<nsCSSStyleSheet> cssSheet = do_QueryObject(childSheet);
+  return cssSheet != nsnull && !cssSheet->IsComplete();
+}
+
 nsresult
 nsCSSStyleSheet::InsertRuleInternal(const nsAString& aRule, 
                                     PRUint32 aIndex, 
@@ -1871,23 +1882,16 @@ nsCSSStyleSheet::InsertRuleInternal(const nsAString& aRule,
       NS_ENSURE_SUCCESS(result, result);
     }
 
-    
-    
-    bool notify = true;
-    if (type == css::Rule::IMPORT_RULE) {
-      nsCOMPtr<nsIDOMCSSImportRule> importRule(do_QueryInterface(cssRule));
-      NS_ASSERTION(importRule, "Rule which has type IMPORT_RULE and does not implement nsIDOMCSSImportRule!");
-      nsCOMPtr<nsIDOMCSSStyleSheet> childSheet;
-      importRule->GetStyleSheet(getter_AddRefs(childSheet));
-      if (!childSheet) {
-        notify = false;
-      }
+    if (type == css::Rule::IMPORT_RULE && RuleHasPendingChildSheet(cssRule)) {
+      
+      
+      continue;
     }
-    if (mDocument && notify) {
+    if (mDocument) {
       mDocument->StyleRuleAdded(this, cssRule);
     }
   }
-  
+
   *aReturn = aIndex;
   return NS_OK;
 }
@@ -2058,6 +2062,9 @@ nsCSSStyleSheet::StyleSheetLoaded(nsCSSStyleSheet* aSheet,
                                   bool aWasAlternate,
                                   nsresult aStatus)
 {
+  if (aSheet->GetParentSheet() == nsnull) {
+    return NS_OK; 
+  }
   NS_ASSERTION(this == aSheet->GetParentSheet(),
                "We are being notified of a sheet load for a sheet that is not our child!");
 
@@ -2069,6 +2076,72 @@ nsCSSStyleSheet::StyleSheetLoaded(nsCSSStyleSheet* aSheet,
     mDocument->StyleRuleAdded(this, aSheet->GetOwnerRule());
   }
 
+  return NS_OK;
+}
+
+nsresult
+nsCSSStyleSheet::ParseSheet(const nsAString& aInput)
+{
+  
+  if (!mInner->mComplete) {
+    return NS_ERROR_DOM_INVALID_ACCESS_ERR;
+  }
+
+  
+  
+  nsRefPtr<css::Loader> loader;
+  if (mDocument) {
+    loader = mDocument->CSSLoader();
+    NS_ASSERTION(loader, "Document with no CSS loader!");
+  } else {
+    loader = new css::Loader();
+  }
+
+  nsCSSParser parser(loader, this);
+
+  mozAutoDocUpdate updateBatch(mDocument, UPDATE_STYLE, true);
+
+  nsresult rv = WillDirty();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  int ruleCount;
+  while ((ruleCount = mInner->mOrderedRules.Count()) != 0) {
+    nsRefPtr<css::Rule> rule = mInner->mOrderedRules.ObjectAt(ruleCount - 1);
+    mInner->mOrderedRules.RemoveObjectAt(ruleCount - 1);
+    rule->SetStyleSheet(nsnull);
+    if (mDocument) {
+      mDocument->StyleRuleRemoved(this, rule);
+    }
+  }
+
+  
+  for (nsCSSStyleSheet* child = mInner->mFirstChild; child; child = child->mNext) {
+    NS_ASSERTION(child->mParent == this, "Child sheet is not parented to this!");
+    child->mParent = nsnull;
+    child->mDocument = nsnull;
+  }
+  mInner->mFirstChild = nsnull;
+  mInner->mNameSpaceMap = nsnull;
+
+  
+  bool allowUnsafeRules = nsContentUtils::IsSystemPrincipal(mInner->mPrincipal);
+  rv = parser.ParseSheet(aInput, mInner->mSheetURI, mInner->mBaseURI,
+                         mInner->mPrincipal, 1, allowUnsafeRules);
+  DidDirty(); 
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  if (mDocument) {
+    for (PRInt32 index = 0; index < mInner->mOrderedRules.Count(); ++index) {
+      nsRefPtr<css::Rule> rule = mInner->mOrderedRules.ObjectAt(index);
+      if (rule->GetType() == css::Rule::IMPORT_RULE &&
+          RuleHasPendingChildSheet(rule)) {
+        continue; 
+      }
+      mDocument->StyleRuleAdded(this, rule);
+    }
+  }
   return NS_OK;
 }
 
