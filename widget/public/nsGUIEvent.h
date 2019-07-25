@@ -534,6 +534,11 @@ class nsHashKey;
 #define NS_CLOSE                     (NS_OPENCLOSE_EVENT_START+1)
 
 
+#define NS_DEVICE_ORIENTATION_START  4900
+#define NS_DEVICE_ORIENTATION        (NS_DEVICE_ORIENTATION_START)
+#define NS_DEVICE_MOTION             (NS_DEVICE_ORIENTATION_START+1)
+
+
 
 
 
