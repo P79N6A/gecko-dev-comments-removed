@@ -1153,6 +1153,8 @@ protected:
 
   PRPackedBool mViewportOverridden;
 
+  PRPackedBool mLastRootReflowHadUnconstrainedHeight;
+
   
   
   
@@ -7715,6 +7717,23 @@ PresShell::DoReflow(nsIFrame* target, PRBool aInterruptible)
   
   nsSize reflowSize(size.width, NS_UNCONSTRAINEDSIZE);
   nsHTMLReflowState reflowState(mPresContext, target, rcx, reflowSize);
+
+  if (rootFrame == target) {
+    
+    
+    
+    
+    
+    
+    
+    PRBool hasUnconstrainedHeight = size.height == NS_UNCONSTRAINEDSIZE;
+
+    if (hasUnconstrainedHeight || mLastRootReflowHadUnconstrainedHeight) {
+      reflowState.mFlags.mVResize = PR_TRUE;
+    }
+
+    mLastRootReflowHadUnconstrainedHeight = hasUnconstrainedHeight;
+  }
 
   
   NS_ASSERTION(reflowState.mComputedMargin == nsMargin(0, 0, 0, 0),
