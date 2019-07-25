@@ -329,7 +329,6 @@ var Browser = {
 
     window.QueryInterface(Ci.nsIDOMChromeWindow).browserDOMWindow = new nsBrowserAccess();
 
-    Elements.browsers.addEventListener("command", this._handleContentCommand, true);
     Elements.browsers.addEventListener("DOMUpdatePageReport", PopupBlockerObserver.onUpdatePageReport, false);
 
     
@@ -373,6 +372,7 @@ var Browser = {
     messageManager.addMessageListener("Browser:ZoomToPoint:Return", this);
     messageManager.addMessageListener("scroll", this);
     messageManager.addMessageListener("Browser:MozApplicationManifest", OfflineApps);
+    messageManager.addMessageListener("Browser:CertException", this);
 
     
     let event = document.createEvent("Events");
@@ -448,7 +448,9 @@ var Browser = {
     messageManager.removeMessageListener("Browser:FormSubmit", this);
     messageManager.removeMessageListener("Browser:KeyPress", this);
     messageManager.removeMessageListener("Browser:ZoomToPoint:Return", this);
+    messageManager.removeMessageListener("scroll", this);
     messageManager.removeMessageListener("Browser:MozApplicationManifest", OfflineApps);
+    messageManager.removeMessageListener("Browser:CertException", this);
 
     var os = Services.obs;
     os.removeObserver(XPInstallObserver, "addon-install-blocked");
@@ -729,58 +731,37 @@ var Browser = {
   
 
 
-
-
-
-  _handleContentCommand: function _handleContentCommand(aEvent) {
-    
-    if (!aEvent.isTrusted)
-      return;
-
-    var ot = aEvent.originalTarget;
-    var errorDoc = ot.ownerDocument;
-
-    
-    
-    if (/^about:certerror\?e=nssBadCert/.test(errorDoc.documentURI)) {
-      if (ot == errorDoc.getElementById("temporaryExceptionButton") ||
-          ot == errorDoc.getElementById("permanentExceptionButton")) {
-        try {
-          
-          let uri = Services.io.newURI(errorDoc.location.href, null, null);
-          let sslExceptions = new SSLExceptions();
-
-          if (ot == errorDoc.getElementById("permanentExceptionButton")) {
-            sslExceptions.addPermanentException(uri);
-          } else {
-            sslExceptions.addTemporaryException(uri);
-          }
-        } catch (e) {
-          dump("EXCEPTION handle content command: " + e + "\n" );
-        }
-
+  _handleCertException: function _handleCertException(aMessage) {
+    let json = aMessage.json;
+    if (json.action == "leave") {
+      
+      let defaultPrefs = Services.prefs.getDefaultBranch(null);
+      let url = "about:blank";
+      try {
+        url = defaultPrefs.getComplexValue("browser.startup.homepage", Ci.nsIPrefLocalizedString).data;
         
-        errorDoc.location.reload();
-      }
-      else if (ot == errorDoc.getElementById('getMeOutOfHereButton')) {
-        
-        var defaultPrefs = Services.prefs.getDefaultBranch(null);
-        var url = "about:blank";
-        try {
-          url = defaultPrefs.getCharPref("browser.startup.homepage");
-          
-          if (url.indexOf("|") != -1)
-            url = url.split("|")[0];
-        } catch (e) {  }
+        if (url.indexOf("|") != -1)
+          url = url.split("|")[0];
+      } catch (e) {  }
 
-        Browser.selectedBrowser.loadURI(url, null, null, false);
-      }
-    }
-    else if (/^about:neterror\?e=netOffline/.test(errorDoc.documentURI)) {
-      if (ot == errorDoc.getElementById("errorTryAgain")) {
+      this.loadURI(url);
+    } else {
+      
+      try {
         
-        Util.forceOnline();
+        let uri = Services.io.newURI(json.url, null, null);
+        let sslExceptions = new SSLExceptions();
+  
+        if (json.action == "permanent")
+          sslExceptions.addPermanentException(uri);
+        else
+          sslExceptions.addTemporaryException(uri);
+      } catch (e) {
+        dump("EXCEPTION handle content command: " + e + "\n" );
       }
+  
+      
+      aMessage.target.reload();
     }
   },
 
@@ -1021,7 +1002,7 @@ var Browser = {
 
     switch (aMessage.name) {
       case "Browser:ViewportMetadata":
-        let tab = Browser.getTabForBrowser(browser);
+        let tab = this.getTabForBrowser(browser);
         
         
         if (tab)
@@ -1043,15 +1024,18 @@ var Browser = {
       case "Browser:ZoomToPoint:Return":
         
         let rect = Rect.fromRect(json.rect);
-        if (!Browser.zoomToPoint(json.x, json.y, rect))
-          Browser.zoomFromPoint(json.x, json.y);
+        if (!this.zoomToPoint(json.x, json.y, rect))
+          this.zoomFromPoint(json.x, json.y);
         break;
 
       case "scroll":
         if (browser == this.selectedBrowser) {
-          Browser.hideTitlebar();
-          Browser.hideSidebars();
+          this.hideTitlebar();
+          this.hideSidebars();
         }
+        break;
+      case "Browser:CertException":
+        this._handleCertException(aMessage);
         break;
     }
   }
