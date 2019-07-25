@@ -17,6 +17,14 @@
   -moz-user-focus: ignore;
 }
 
+.autocomplete-history-dropmarker {
+  display: none;
+}
+
+.autocomplete-history-dropmarker[enablehistory="true"] {
+  display: -moz-box;
+}
+
 
 
 
