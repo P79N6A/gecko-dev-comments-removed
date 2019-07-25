@@ -140,6 +140,10 @@ function run_test()
 
   
   
+  Services.obs.removeObserver(PlacesUtils.history, "idle-daily");
+
+  
+  
   prefs.setIntPref(PREF_SYNC_INTERVAL, SYNC_INTERVAL);
 
   
