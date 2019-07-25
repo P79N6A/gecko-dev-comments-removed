@@ -341,16 +341,10 @@ pref("geo.enabled", true);
 
 
 
-
-pref("content.sink.enable_perf_mode", 1); 
-pref("content.sink.pending_event_mode", 2);
-pref("content.sink.event_probe_rate", 5);
-pref("content.sink.interactive_deflect_count", 1000);
-pref("content.sink.perf_deflect_count", 10);
-pref("content.sink.interactive_parse_time",5000);
-pref("content.sink.perf_parse_time", 5000);
-pref("content.sink.interactive_time", 0);
-pref("content.sink.initial_perf_time", 0);
+pref("content.sink.enable_perf_mode",  2); 
+pref("content.sink.pending_event_mode", 0);
+pref("content.sink.perf_deflect_count", 1000000);
+pref("content.sink.perf_parse_time", 50000000);
 
 pref("javascript.options.mem.gc_frequency", 300);
 
