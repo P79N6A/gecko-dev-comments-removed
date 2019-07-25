@@ -694,6 +694,8 @@ iQ.fn = iQ.prototype = {
     
   
   
+  
+  
   bind: function(type, func) {
     Utils.assert('does not support eventData argument', iQ.isFunction(func));
 
