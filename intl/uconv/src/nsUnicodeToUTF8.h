@@ -6,6 +6,8 @@
 #ifndef nsUnicodeToUTF8_h___
 #define nsUnicodeToUTF8_h___
 
+#include "mozilla/Attributes.h"
+
 
 
 #define NS_UNICODETOUTF8_CID \
@@ -25,7 +27,7 @@
 
 
 
-class nsUnicodeToUTF8 : public nsIUnicodeEncoder
+class nsUnicodeToUTF8 MOZ_FINAL : public nsIUnicodeEncoder
 {
   NS_DECL_ISUPPORTS
 
