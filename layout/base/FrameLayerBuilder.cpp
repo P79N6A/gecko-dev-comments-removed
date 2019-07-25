@@ -934,6 +934,10 @@ GetTranslationForThebesLayer(ThebesLayer* aLayer)
   return nsIntPoint(PRInt32(transform.x0), PRInt32(transform.y0));
 }
 
+static PRBool FuzzyEqual(gfxPoint aV1, gfxPoint aV2) {
+  return fabs(aV2.x - aV1.x) < 0.02 && fabs(aV2.y - aV1.y) < 0.02;
+}
+
 already_AddRefed<ThebesLayer>
 ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
 {
@@ -1008,7 +1012,7 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
   
   
   
-  if (activeScrolledRootTopLeft != data->mActiveScrolledRootPosition) {
+  if (!FuzzyEqual(activeScrolledRootTopLeft, data->mActiveScrolledRootPosition)) {
     data->mActiveScrolledRootPosition = activeScrolledRootTopLeft;
     nsIntRect invalidate = layer->GetValidRegion().GetBounds();
     layer->InvalidateRegion(invalidate);
