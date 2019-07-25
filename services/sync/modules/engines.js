@@ -249,18 +249,18 @@ SyncEngine.prototype = {
   },
 
   get lastSync() {
-    return Svc.Prefs.get(this.name + ".lastSync", 0);
+    return parseFloat(Svc.Prefs.get(this.name + ".lastSync", "0"));
   },
   set lastSync(value) {
+    
     Svc.Prefs.reset(this.name + ".lastSync");
-    if (typeof(value) == "string")
-      value = parseInt(value);
-    Svc.Prefs.set(this.name + ".lastSync", value);
+    
+    Svc.Prefs.set(this.name + ".lastSync", value.toString());
   },
   resetLastSync: function SyncEngine_resetLastSync() {
     this._log.debug("Resetting " + this.name + " last sync time");
     Svc.Prefs.reset(this.name + ".lastSync");
-    Svc.Prefs.set(this.name + ".lastSync", 0);
+    Svc.Prefs.set(this.name + ".lastSync", "0");
   },
 
   
