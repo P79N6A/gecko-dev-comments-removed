@@ -5846,6 +5846,7 @@ nsGlobalWindow::Open(const nsAString& aUrl, const nsAString& aName,
                       false,          
                       true,           
                       false,          
+                      true,           
                       nsnull, nsnull,    
                       GetPrincipal(),    
                       nsnull,            
@@ -5860,6 +5861,7 @@ nsGlobalWindow::OpenJS(const nsAString& aUrl, const nsAString& aName,
                       false,          
                       false,          
                       false,          
+                      true,           
                       true,           
                       nsnull, nsnull,    
                       GetPrincipal(),    
@@ -5879,10 +5881,31 @@ nsGlobalWindow::OpenDialog(const nsAString& aUrl, const nsAString& aName,
                       false,                   
                       true,                    
                       false,                   
+                      true,                    
                       nsnull, aExtraArgument,     
                       GetPrincipal(),             
                       nsnull,                     
                       _retval);
+}
+
+
+ nsresult
+nsGlobalWindow::OpenNoNavigate(const nsAString& aUrl,
+                               const nsAString& aName,
+                               const nsAString& aOptions,
+                               nsIDOMWindow **_retval)
+{
+  return OpenInternal(aUrl, aName, aOptions,
+                      false,          
+                      false,          
+                      true,           
+                      false,          
+                      false,          
+                      nsnull, nsnull,    
+                      GetPrincipal(),    
+                      nsnull,            
+                      _retval);
+
 }
 
 NS_IMETHODIMP
@@ -5925,6 +5948,7 @@ nsGlobalWindow::OpenDialog(const nsAString& aUrl, const nsAString& aName,
                       false,            
                       false,            
                       false,            
+                      true,             
                       argvArray, nsnull,   
                       GetPrincipal(),      
                       cx,                  
@@ -7165,6 +7189,7 @@ nsGlobalWindow::ShowModalDialog(const nsAString& aURI, nsIVariant *aArgs,
   nsContentUtils::SetMicroTaskLevel(0);
   nsresult rv = OpenInternal(aURI, EmptyString(), options,
                              false,          
+                             true,           
                              true,           
                              true,           
                              true,           
@@ -9089,7 +9114,8 @@ nsresult
 nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
                              const nsAString& aOptions, bool aDialog,
                              bool aContentModal, bool aCalledNoScript,
-                             bool aDoJSFixups, nsIArray *argv,
+                             bool aDoJSFixups, bool aNavigate,
+                             nsIArray *argv,
                              nsISupports *aExtraArgument,
                              nsIPrincipal *aCalleePrincipal,
                              JSContext *aJSCallerContext,
@@ -9097,8 +9123,8 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
 {
   FORWARD_TO_OUTER(OpenInternal, (aUrl, aName, aOptions, aDialog,
                                   aContentModal, aCalledNoScript, aDoJSFixups,
-                                  argv, aExtraArgument, aCalleePrincipal,
-                                  aJSCallerContext, aReturn),
+                                  aNavigate, argv, aExtraArgument,
+                                  aCalleePrincipal, aJSCallerContext, aReturn),
                    NS_ERROR_NOT_INITIALIZED);
 
 #ifdef DEBUG
@@ -9112,6 +9138,9 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
                   "Can't pass JS args when called via the noscript methods");
   NS_PRECONDITION(!aJSCallerContext || !aCalledNoScript,
                   "Shouldn't have caller context when called noscript");
+
+  
+  MOZ_ASSERT(aCalledNoScript || aNavigate);
 
   *aReturn = nsnull;
 
@@ -9141,9 +9170,12 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
     AppendUTF16toUTF8(aUrl, url);
 
     
-
-
-    if (url.get() && !aDialog)
+    
+    
+    
+    
+    
+    if (url.get() && !aDialog && aNavigate)
       rv = SecurityCheckURL(url.get());
   }
 
@@ -9184,6 +9216,9 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
   const char *options_ptr = aOptions.IsEmpty() ? nsnull : options.get();
   const char *name_ptr = aName.IsEmpty() ? nsnull : name.get();
 
+  nsCOMPtr<nsPIWindowWatcher> pwwatch(do_QueryInterface(wwatch));
+  NS_ENSURE_STATE(pwwatch);
+
   {
     
     
@@ -9191,15 +9226,12 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
     nsAutoPopupStatePusher popupStatePusher(openAbused, true);
 
     if (!aCalledNoScript) {
-      nsCOMPtr<nsPIWindowWatcher> pwwatch(do_QueryInterface(wwatch));
-      NS_ASSERTION(pwwatch,
-                   "Unable to open windows from JS because window watcher "
-                   "is broken");
-      NS_ENSURE_TRUE(pwwatch, NS_ERROR_UNEXPECTED);
-        
-      rv = pwwatch->OpenWindowJS(this, url.get(), name_ptr, options_ptr,
-                                 aDialog, argv,
-                                 getter_AddRefs(domReturn));
+      
+      
+      rv = pwwatch->OpenWindow2(this, url.get(), name_ptr, options_ptr,
+                                 true,
+                                aDialog, aNavigate, argv,
+                                getter_AddRefs(domReturn));
     } else {
       
       
@@ -9215,9 +9247,11 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
         rv = stack->Push(nsnull);
         NS_ENSURE_SUCCESS(rv, rv);
       }
-        
-      rv = wwatch->OpenWindow(this, url.get(), name_ptr, options_ptr,
-                              aExtraArgument, getter_AddRefs(domReturn));
+
+      rv = pwwatch->OpenWindow2(this, url.get(), name_ptr, options_ptr,
+                                 false,
+                                aDialog, aNavigate, aExtraArgument,
+                                getter_AddRefs(domReturn));
 
       if (stack) {
         JSContext* cx;
