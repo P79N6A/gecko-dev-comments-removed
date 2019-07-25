@@ -1,9 +1,7 @@
 
 
 
-const WHITELIST_PREF = "dom.voicemail.whitelist";
-let uriPrePath = window.location.protocol + "//" + window.location.host;
-SpecialPowers.setCharPref(WHITELIST_PREF, uriPrePath);
+SpecialPowers.addPermission("voicemail", true, document);
 
 let voicemail = window.navigator.mozVoicemail;
 ok(voicemail instanceof MozVoicemail);
@@ -222,7 +220,7 @@ function testLevel3DiscardInactive() {
 }
 
 function cleanUp() {
-  SpecialPowers.clearUserPref(WHITELIST_PREF);
+  SpecialPowers.removePermission("voicemail", document);
   finish();
 }
 
