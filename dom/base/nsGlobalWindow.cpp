@@ -6860,7 +6860,8 @@ public:
       NS_ENSURE_TRUE(currentInner, NS_OK);
 
       JSObject* obj = currentInner->FastGetGlobalJSObject();
-      if (obj) {
+      
+      if (obj && !js::IsSystemCompartment(js::GetObjectCompartment(obj))) {
         JSContext* cx =
           nsContentUtils::ThreadJSContextStack()->GetSafeJSContext();
 
