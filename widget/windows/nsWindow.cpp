@@ -133,6 +133,7 @@
 #include "nsIServiceManager.h"
 #include "nsIClipboard.h"
 #include "nsIMM32Handler.h"
+#include "WinMouseScrollHandler.h"
 #include "nsILocalFile.h"
 #include "nsFontMetrics.h"
 #include "nsIFontEnumerator.h"
@@ -271,13 +272,7 @@ BYTE            nsWindow::sLastMouseButton        = 0;
 int             nsWindow::sTrimOnMinimize         = 2;
 
 
-bool            nsWindow::sDefaultTrackPointHack  = false;
-
 const char*     nsWindow::sDefaultMainWindowClass = kClassNameGeneral;
-
-bool            nsWindow::sUseElantechSwipeHack  = false;
-
-bool            nsWindow::sUseElantechPinchHack  = false;
 
 
 bool            nsWindow::sAllowD3D9              = false;
@@ -290,19 +285,6 @@ PRUint32        nsWindow::sOOPPPluginFocusEvent   =
                   RegisterWindowMessageW(kOOPPPluginFocusEventId);
 
 MSG             nsWindow::sRedirectedKeyDown;
-
-bool            nsWindow::sEnablePixelScrolling = true;
-bool            nsWindow::sNeedsToInitMouseWheelSettings = true;
-ULONG           nsWindow::sMouseWheelScrollLines  = 0;
-ULONG           nsWindow::sMouseWheelScrollChars  = 0;
-
-HWND            nsWindow::sLastMouseWheelWnd = NULL;
-PRInt32         nsWindow::sRemainingDeltaForScroll = 0;
-PRInt32         nsWindow::sRemainingDeltaForPixel = 0;
-bool            nsWindow::sLastMouseWheelDeltaIsPositive = false;
-bool            nsWindow::sLastMouseWheelOrientationIsVertical = false;
-bool            nsWindow::sLastMouseWheelUnitIsPage = false;
-PRUint32        nsWindow::sLastMouseWheelTime = 0;
 
 
 
@@ -406,7 +388,6 @@ nsWindow::nsWindow() : nsBaseWidget()
   mOldExStyle           = 0;
   mPainting             = 0;
   mLastKeyboardLayout   = 0;
-  mAssumeWheelIsZoomUntil = 0;
   mBlurSuppressLevel    = 0;
   mLastPaintEndTime     = TimeStamp::Now();
 #ifdef MOZ_XUL
@@ -427,27 +408,21 @@ nsWindow::nsWindow() : nsBaseWidget()
     
     
     mozilla::widget::WinTaskbar::RegisterAppUserModelID();
-
     gKbdLayout.LoadLayout(::GetKeyboardLayout(0));
-
     
     nsIMM32Handler::Initialize();
-
 #ifdef NS_ENABLE_TSF
     nsTextStore::Initialize();
 #endif
-
-    if (SUCCEEDED(::OleInitialize(NULL)))
+    if (SUCCEEDED(::OleInitialize(NULL))) {
       sIsOleInitialized = TRUE;
+    }
     NS_ASSERTION(sIsOleInitialized, "***** OLE is not initialized!\n");
-
-    InitInputWorkaroundPrefDefaults();
-
+    MouseScrollHandler::Initialize();
     
     nsUXThemeData::InitTitlebarInfo();
     
     nsUXThemeData::UpdateNativeThemeInfo();
-
     ForgetRedirectedKeyDownMessage();
   } 
 
@@ -608,7 +583,7 @@ nsWindow::Create(nsIWidget *aParent,
 
   if (mWindowType != eWindowType_plugin &&
       mWindowType != eWindowType_invisible &&
-      UseTrackPointHack()) {
+      MouseScrollHandler::Device::IsFakeScrollableWindowNeeded()) {
     
     
     
@@ -4495,24 +4470,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
                                 LRESULT *aRetValue)
 {
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (mAssumeWheelIsZoomUntil) {
-    LONG msgTime = ::GetMessageTime();
-    if ((mAssumeWheelIsZoomUntil >= 0x3fffffffu && DWORD(msgTime) < 0x40000000u) ||
-        (mAssumeWheelIsZoomUntil < DWORD(msgTime))) {
-      mAssumeWheelIsZoomUntil = 0;
-    }
-  }
-
-  
   if (mWindowHook.Notify(mWnd, msg, wParam, lParam, aRetValue))
     return true;
 
@@ -4525,6 +4482,11 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
   bool eatMessage;
   if (nsIMM32Handler::ProcessMessage(this, msg, wParam, lParam, aRetValue,
                                      eatMessage)) {
+    return mWnd ? eatMessage : true;
+  }
+
+  if (MouseScrollHandler::ProcessMessage(this, msg, wParam, lParam, aRetValue,
+                                         eatMessage)) {
     return mWnd ? eatMessage : true;
   }
 
@@ -5094,19 +5056,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     }
     break;
 
-    case WM_HSCROLL:
-    case WM_VSCROLL:
-      *aRetValue = 0;
-      result = OnScroll(msg, wParam, lParam);
-      break;
-
-    case MOZ_WM_HSCROLL:
-    case MOZ_WM_VSCROLL:
-      *aRetValue = 0;
-      OnScrollInternal(WinUtils::GetNativeMessage(msg), wParam, lParam);
-      
-      return true;
-
     
     
     
@@ -5188,15 +5137,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     }
     break;
 
-    case WM_SETTINGCHANGE:
-      switch (wParam) {
-        case SPI_SETWHEELSCROLLLINES:
-        case SPI_SETWHEELSCROLLCHARS:
-          sNeedsToInitMouseWheelSettings = true;
-          break;
-      }
-      break;
-
     case WM_INPUTLANGCHANGEREQUEST:
       *aRetValue = TRUE;
       result = false;
@@ -5259,29 +5199,6 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       }
     }
     break;
-
-  case WM_MOUSEWHEEL:
-  case WM_MOUSEHWHEEL:
-    OnMouseWheel(msg, wParam, lParam, aRetValue);
-    
-    
-    
-    return true;
-
-  case MOZ_WM_MOUSEVWHEEL:
-  case MOZ_WM_MOUSEHWHEEL:
-    {
-      UINT nativeMessage = WinUtils::GetNativeMessage(msg);
-      
-      
-      
-      
-      
-      
-      OnMouseWheelInternal(nativeMessage, wParam, lParam, aRetValue);
-      
-      return true;
-    }
 
   case WM_DWMCOMPOSITIONCHANGED:
     
@@ -6305,277 +6222,6 @@ bool nsWindow::OnGesture(WPARAM wParam, LPARAM lParam)
   return true; 
 }
 
- void
-nsWindow::InitMouseWheelScrollData()
-{
-  if (!sNeedsToInitMouseWheelSettings) {
-    return;
-  }
-  sNeedsToInitMouseWheelSettings = false;
-  ResetRemainingWheelDelta();
-
-  if (!::SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0,
-                              &sMouseWheelScrollLines, 0)) {
-    NS_WARNING("Failed to get SPI_GETWHEELSCROLLLINES");
-    sMouseWheelScrollLines = 3;
-  } else if (sMouseWheelScrollLines > WHEEL_DELTA) {
-    
-    
-    
-    
-    
-    
-    sMouseWheelScrollLines = WHEEL_PAGESCROLL;
-  }
-
-  if (!::SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0,
-                              &sMouseWheelScrollChars, 0)) {
-    NS_ASSERTION(WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION,
-                 "Failed to get SPI_GETWHEELSCROLLCHARS");
-    sMouseWheelScrollChars = 1;
-  } else if (sMouseWheelScrollChars > WHEEL_DELTA) {
-    
-    sMouseWheelScrollChars = WHEEL_PAGESCROLL;
-  }
-
-  sEnablePixelScrolling =
-    Preferences::GetBool("mousewheel.enable_pixel_scrolling", true);
-}
-
-
-void
-nsWindow::ResetRemainingWheelDelta()
-{
-  sRemainingDeltaForPixel = 0;
-  sRemainingDeltaForScroll = 0;
-  sLastMouseWheelWnd = NULL;
-}
-
-static PRInt32 RoundDelta(double aDelta)
-{
-  return aDelta >= 0 ? (PRInt32)floor(aDelta) : (PRInt32)ceil(aDelta);
-}
-
-
-
-
-
-
-void
-nsWindow::OnMouseWheelInternal(UINT aMessage, WPARAM aWParam, LPARAM aLParam,
-                               LRESULT *aRetValue)
-{
-  InitMouseWheelScrollData();
-
-  bool isVertical = (aMessage == WM_MOUSEWHEEL);
-  if ((isVertical && sMouseWheelScrollLines == 0) ||
-      (!isVertical && sMouseWheelScrollChars == 0)) {
-    
-    
-    
-    ResetRemainingWheelDelta();
-    *aRetValue = isVertical ? TRUE : FALSE; 
-    return;
-  }
-
-  PRInt32 nativeDelta = (short)HIWORD(aWParam);
-  if (!nativeDelta) {
-    *aRetValue = isVertical ? TRUE : FALSE; 
-    ResetRemainingWheelDelta();
-    return; 
-  }
-
-  bool isPageScroll =
-    ((isVertical && sMouseWheelScrollLines == WHEEL_PAGESCROLL) ||
-     (!isVertical && sMouseWheelScrollChars == WHEEL_PAGESCROLL));
-
-  
-  
-  
-  PRUint32 now = PR_IntervalToMilliseconds(PR_IntervalNow());
-  if (sLastMouseWheelWnd &&
-      (sLastMouseWheelWnd != mWnd ||
-       sLastMouseWheelDeltaIsPositive != (nativeDelta > 0) ||
-       sLastMouseWheelOrientationIsVertical != isVertical ||
-       sLastMouseWheelUnitIsPage != isPageScroll ||
-       now - sLastMouseWheelTime > 1500)) {
-    ResetRemainingWheelDelta();
-  }
-  sLastMouseWheelWnd = mWnd;
-  sLastMouseWheelDeltaIsPositive = (nativeDelta > 0);
-  sLastMouseWheelOrientationIsVertical = isVertical;
-  sLastMouseWheelUnitIsPage = isPageScroll;
-  sLastMouseWheelTime = now;
-
-  *aRetValue = isVertical ? FALSE : TRUE; 
-  nsModifierKeyState modKeyState;
-
-  
-  
-  
-  PRInt32 orienter = isVertical ? -1 : 1;
-
-  
-  
-  
-  bool isControl;
-  if (mAssumeWheelIsZoomUntil &&
-      static_cast<DWORD>(::GetMessageTime()) < mAssumeWheelIsZoomUntil) {
-    isControl = true;
-  } else {
-    isControl = modKeyState.mIsControlDown;
-  }
-
-  
-  nsMouseScrollEvent scrollEvent(true, NS_MOUSE_SCROLL, this);
-
-  
-  
-  InitEvent(scrollEvent);
-  scrollEvent.isShift     = modKeyState.mIsShiftDown;
-  scrollEvent.isControl   = isControl;
-  scrollEvent.isMeta      = false;
-  scrollEvent.isAlt       = modKeyState.mIsAltDown;
-
-  
-  
-  bool dispatchPixelScrollEvent = false;
-  bool reversePixelScrollDirection = false;
-  PRInt32 actualScrollAction = nsQueryContentEvent::SCROLL_ACTION_NONE;
-  PRInt32 pixelsPerUnit = 0;
-  
-  PRInt32 computedScrollAmount = isPageScroll ? 1 :
-    (isVertical ? sMouseWheelScrollLines : sMouseWheelScrollChars);
-
-  if (sEnablePixelScrolling) {
-    nsMouseScrollEvent testEvent(true, NS_MOUSE_SCROLL, this);
-    InitEvent(testEvent);
-    testEvent.scrollFlags = isPageScroll ? nsMouseScrollEvent::kIsFullPage : 0;
-    testEvent.scrollFlags |= isVertical ? nsMouseScrollEvent::kIsVertical :
-                                          nsMouseScrollEvent::kIsHorizontal;
-    testEvent.isShift     = scrollEvent.isShift;
-    testEvent.isControl   = scrollEvent.isControl;
-    testEvent.isMeta      = scrollEvent.isMeta;
-    testEvent.isAlt       = scrollEvent.isAlt;
-
-    testEvent.delta       = computedScrollAmount;
-    if ((isVertical && sLastMouseWheelDeltaIsPositive) ||
-        (!isVertical && !sLastMouseWheelDeltaIsPositive)) {
-      testEvent.delta *= -1;
-    }
-    nsQueryContentEvent queryEvent(true, NS_QUERY_SCROLL_TARGET_INFO, this);
-    InitEvent(queryEvent);
-    queryEvent.InitForQueryScrollTargetInfo(&testEvent);
-    DispatchWindowEvent(&queryEvent);
-    
-    
-    if (queryEvent.mSucceeded) {
-      actualScrollAction = queryEvent.mReply.mComputedScrollAction;
-      if (actualScrollAction == nsQueryContentEvent::SCROLL_ACTION_PAGE) {
-        if (isVertical) {
-          pixelsPerUnit = queryEvent.mReply.mPageHeight;
-        } else {
-          pixelsPerUnit = queryEvent.mReply.mPageWidth;
-        }
-      } else {
-        pixelsPerUnit = queryEvent.mReply.mLineHeight;
-      }
-      computedScrollAmount = queryEvent.mReply.mComputedScrollAmount;
-      if (pixelsPerUnit > 0 && computedScrollAmount != 0 &&
-          actualScrollAction != nsQueryContentEvent::SCROLL_ACTION_NONE) {
-        dispatchPixelScrollEvent = true;
-        
-        
-        reversePixelScrollDirection =
-          (testEvent.delta > 0 && computedScrollAmount < 0) ||
-          (testEvent.delta < 0 && computedScrollAmount > 0);
-        
-        computedScrollAmount = NS_ABS(computedScrollAmount);
-      }
-    }
-  }
-
-  
-  
-  scrollEvent.scrollFlags =
-    dispatchPixelScrollEvent ? nsMouseScrollEvent::kHasPixels : 0;
-
-  PRInt32 nativeDeltaForScroll = nativeDelta + sRemainingDeltaForScroll;
-
-  
-  
-  if (isPageScroll) {
-    scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
-    if (isVertical) {
-      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsVertical;
-    } else {
-      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsHorizontal;
-    }
-    scrollEvent.delta = nativeDeltaForScroll * orienter / WHEEL_DELTA;
-    PRInt32 recomputedNativeDelta = scrollEvent.delta * orienter / WHEEL_DELTA;
-    sRemainingDeltaForScroll = nativeDeltaForScroll - recomputedNativeDelta;
-  } else {
-    double deltaPerUnit;
-    if (isVertical) {
-      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsVertical;
-      deltaPerUnit = (double)WHEEL_DELTA / sMouseWheelScrollLines;
-    } else {
-      scrollEvent.scrollFlags |= nsMouseScrollEvent::kIsHorizontal;
-      deltaPerUnit = (double)WHEEL_DELTA / sMouseWheelScrollChars;
-    }
-    scrollEvent.delta =
-      RoundDelta((double)nativeDeltaForScroll * orienter / deltaPerUnit);
-    PRInt32 recomputedNativeDelta =
-      (PRInt32)(scrollEvent.delta * orienter * deltaPerUnit);
-    sRemainingDeltaForScroll = nativeDeltaForScroll - recomputedNativeDelta;
-  }
-
-  if (scrollEvent.delta) {
-    DispatchWindowEvent(&scrollEvent);
-    if (mOnDestroyCalled) {
-      ResetRemainingWheelDelta();
-      return;
-    }
-  }
-
-  
-  if (!dispatchPixelScrollEvent) {
-    sRemainingDeltaForPixel = 0;
-    return;
-  }
-
-  nsMouseScrollEvent pixelEvent(true, NS_MOUSE_PIXEL_SCROLL, this);
-  InitEvent(pixelEvent);
-  pixelEvent.scrollFlags = nsMouseScrollEvent::kAllowSmoothScroll;
-  pixelEvent.scrollFlags |= isVertical ?
-    nsMouseScrollEvent::kIsVertical : nsMouseScrollEvent::kIsHorizontal;
-  if (actualScrollAction == nsQueryContentEvent::SCROLL_ACTION_PAGE) {
-    pixelEvent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
-  }
-  
-  pixelEvent.isShift     = scrollEvent.isShift;
-  pixelEvent.isControl   = scrollEvent.isControl;
-  pixelEvent.isMeta      = scrollEvent.isMeta;
-  pixelEvent.isAlt       = scrollEvent.isAlt;
-
-  PRInt32 nativeDeltaForPixel = nativeDelta + sRemainingDeltaForPixel;
-  
-  
-  PRInt32 orienterForPixel = reversePixelScrollDirection ? -orienter : orienter;
-
-  double deltaPerPixel =
-    (double)WHEEL_DELTA / computedScrollAmount / pixelsPerUnit;
-  pixelEvent.delta =
-    RoundDelta((double)nativeDeltaForPixel * orienterForPixel / deltaPerPixel);
-  PRInt32 recomputedNativeDelta =
-    (PRInt32)(pixelEvent.delta * orienterForPixel * deltaPerPixel);
-  sRemainingDeltaForPixel = nativeDeltaForPixel - recomputedNativeDelta;
-  if (pixelEvent.delta != 0) {
-    DispatchWindowEvent(&pixelEvent);
-  }
-  return;
-}
-
 static bool
 StringCaseInsensitiveEquals(const PRUnichar* aChars1, const PRUint32 aNumChars1,
                             const PRUnichar* aChars2, const PRUint32 aNumChars2)
@@ -6606,37 +6252,6 @@ bool nsWindow::IsRedirectedKeyDownMessage(const MSG &aMsg)
             WinUtils::GetScanCode(aMsg.lParam));
 }
 
-void
-nsWindow::PerformElantechSwipeGestureHack(UINT& aVirtualKeyCode,
-                                          nsModifierKeyState& aModKeyState)
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if ((aVirtualKeyCode == VK_NEXT || aVirtualKeyCode == VK_PRIOR) &&
-      (IS_VK_DOWN(0xFF) || IS_VK_DOWN(0xCC))) {
-    aModKeyState.mIsAltDown = true;
-    aVirtualKeyCode = aVirtualKeyCode == VK_NEXT ? VK_RIGHT : VK_LEFT;
-  }
-}
-
 
 
 
@@ -6653,10 +6268,6 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
   UINT virtualKeyCode =
     aMsg.wParam != VK_PROCESSKEY ? aMsg.wParam : ::ImmGetVirtualKey(mWnd);
   gKbdLayout.OnKeyDown(virtualKeyCode);
-
-  if (sUseElantechSwipeHack) {
-    PerformElantechSwipeGestureHack(virtualKeyCode, aModKeyState);
-  }
 
   
   
@@ -6998,34 +6609,6 @@ LRESULT nsWindow::OnKeyUp(const MSG &aMsg,
                           bool *aEventDispatched)
 {
   UINT virtualKeyCode = aMsg.wParam;
-
-  if (sUseElantechSwipeHack) {
-    PerformElantechSwipeGestureHack(virtualKeyCode, aModKeyState);
-  }
-
-  if (sUseElantechPinchHack) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (virtualKeyCode == VK_CONTROL && aMsg.time == 10) {
-      
-      
-      
-      mAssumeWheelIsZoomUntil = ::GetTickCount() & 0x7FFFFFFF;
-    }
-  }
 
   PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
          ("nsWindow::OnKeyUp VK=%d\n", virtualKeyCode));
@@ -7431,259 +7014,6 @@ bool nsWindow::OnResize(nsIntRect &aWindowRect)
 bool nsWindow::OnHotKey(WPARAM wParam, LPARAM lParam)
 {
   return true;
-}
-
-
-
-
-
-static bool IsElantechHelperWindow(HWND aHWND)
-{
-  const PRUnichar* filenameSuffix = L"\\etdctrl.exe";
-  const int filenameSuffixLength = 12;
-
-  DWORD pid;
-  ::GetWindowThreadProcessId(aHWND, &pid);
-
-  bool result = false;
-
-  HANDLE hProcess = ::OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
-  if (hProcess) {
-    PRUnichar path[256] = {L'\0'};
-    if (GetProcessImageFileName(hProcess, path, ArrayLength(path))) {
-      int pathLength = lstrlenW(path);
-      if (pathLength >= filenameSuffixLength) {
-        if (lstrcmpiW(path + pathLength - filenameSuffixLength, filenameSuffix) == 0) {
-          result = true;
-        }
-      }
-    }
-    ::CloseHandle(hProcess);
-  }
-
-  return result;
-}
-
-
-
-
-
-
-
-void
-nsWindow::OnMouseWheel(UINT aMsg, WPARAM aWParam, LPARAM aLParam,
-                       LRESULT *aRetValue)
-{
-  *aRetValue = (aMsg != WM_MOUSEHWHEEL) ? TRUE : FALSE;
-
-  POINT point;
-  DWORD dwPoints = ::GetMessagePos();
-  point.x = GET_X_LPARAM(dwPoints);
-  point.y = GET_Y_LPARAM(dwPoints);
-
-  static bool sMayBeUsingLogitechMouse = false;
-  if (aMsg == WM_MOUSEHWHEEL) {
-    
-    
-    
-    
-    
-    
-    
-    
-    if (!sMayBeUsingLogitechMouse && aLParam == 0 && (DWORD)aLParam != dwPoints &&
-        ::InSendMessage()) {
-      sMayBeUsingLogitechMouse = true;
-    } else if (sMayBeUsingLogitechMouse && aLParam != 0 && ::InSendMessage()) {
-      
-      
-      sMayBeUsingLogitechMouse = false;
-    }
-    
-    
-    
-    if (sMayBeUsingLogitechMouse && aLParam == 0 && dwPoints == 0) {
-      ::GetCursorPos(&point);
-    }
-  }
-
-  HWND underCursorWnd = ::WindowFromPoint(point);
-  if (!underCursorWnd) {
-    return;
-  }
-
-  if (sUseElantechPinchHack && IsElantechHelperWindow(underCursorWnd)) {
-    
-    
-    
-    
-    underCursorWnd = WinUtils::FindOurWindowAtPoint(point);
-    if (!underCursorWnd) {
-      return;
-    }
-  }
-
-  
-  
-  
-  if (WinUtils::IsOurProcessWindow(underCursorWnd)) {
-    nsWindow* destWindow = WinUtils::GetNSWindowPtr(underCursorWnd);
-    if (!destWindow) {
-      NS_WARNING("We're not sure what cause this is.");
-      HWND wnd = ::GetParent(underCursorWnd);
-      for (; wnd; wnd = ::GetParent(wnd)) {
-        destWindow = WinUtils::GetNSWindowPtr(wnd);
-        if (destWindow) {
-          break;
-        }
-      }
-      if (!wnd) {
-        return;
-      }
-    }
-
-    NS_ASSERTION(destWindow, "destWindow must not be NULL");
-    
-    
-    
-    
-    
-    if (destWindow->mWindowType == eWindowType_plugin) {
-      destWindow = destWindow->GetParentWindow(false);
-      NS_ENSURE_TRUE(destWindow, );
-    }
-    UINT internalMessage = WinUtils::GetInternalMessage(aMsg);
-    ::PostMessage(destWindow->mWnd, internalMessage, aWParam, aLParam);
-    return;
-  }
-
-  
-  
-  
-  HWND pluginWnd = WinUtils::FindOurProcessWindow(underCursorWnd);
-  if (!pluginWnd) {
-    
-    
-    
-    return;
-  }
-
-  
-  
-  
-  
-  
-  if (mWindowType == eWindowType_plugin && pluginWnd == mWnd) {
-    nsWindow* destWindow = GetParentWindow(false);
-    NS_ENSURE_TRUE(destWindow, );
-    UINT internalMessage = WinUtils::GetInternalMessage(aMsg);
-    ::PostMessage(destWindow->mWnd, internalMessage, aWParam, aLParam);
-    return;
-  }
-
-  
-  ::PostMessage(underCursorWnd, aMsg, aWParam, aLParam);
-}
-
-
-
-
-
-bool
-nsWindow::OnScroll(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
-{
-  static PRInt8 sMouseWheelEmulation = -1;
-  if (sMouseWheelEmulation < 0) {
-    bool emulate =
-      Preferences::GetBool("mousewheel.emulate_at_wm_scroll", false);
-    sMouseWheelEmulation = PRInt8(emulate);
-  }
-
-  if (aLParam || sMouseWheelEmulation) {
-    
-    
-    LRESULT retVal;
-    OnMouseWheel(aMsg, aWParam, aLParam, &retVal);
-    
-    
-    return true;
-  }
-
-  
-  nsContentCommandEvent command(true, NS_CONTENT_COMMAND_SCROLL, this);
-
-  command.mScroll.mIsHorizontal = (aMsg == WM_HSCROLL);
-
-  switch (LOWORD(aWParam))
-  {
-    case SB_LINEUP:   
-      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Line;
-      command.mScroll.mAmount = -1;
-      break;
-    case SB_LINEDOWN: 
-      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Line;
-      command.mScroll.mAmount = 1;
-      break;
-    case SB_PAGEUP:   
-      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Page;
-      command.mScroll.mAmount = -1;
-      break;
-    case SB_PAGEDOWN: 
-      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Page;
-      command.mScroll.mAmount = 1;
-      break;
-    case SB_TOP:      
-      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Whole;
-      command.mScroll.mAmount = -1;
-      break;
-    case SB_BOTTOM:   
-      command.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Whole;
-      command.mScroll.mAmount = 1;
-      break;
-    default:
-      return false;
-  }
-  
-  
-  DispatchWindowEvent(&command);
-  return true;
-}
-
-
-
-
-
-
-
-void
-nsWindow::OnScrollInternal(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
-{
-  nsMouseScrollEvent scrollevent(true, NS_MOUSE_SCROLL, this);
-  scrollevent.scrollFlags = (aMsg == WM_VSCROLL) 
-                            ? nsMouseScrollEvent::kIsVertical
-                            : nsMouseScrollEvent::kIsHorizontal;
-  switch (LOWORD(aWParam)) {
-    case SB_PAGEDOWN:
-      scrollevent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
-    case SB_LINEDOWN:
-      scrollevent.delta = 1;
-      break;
-    case SB_PAGEUP:
-      scrollevent.scrollFlags |= nsMouseScrollEvent::kIsFullPage;
-    case SB_LINEUP:
-      scrollevent.delta = -1;
-      break;
-    default:
-      return;
-  }
-  scrollevent.isShift   = IS_VK_DOWN(NS_VK_SHIFT);
-  scrollevent.isControl = IS_VK_DOWN(NS_VK_CONTROL);
-  scrollevent.isMeta    = false;
-  scrollevent.isAlt     = IS_VK_DOWN(NS_VK_ALT);
-  InitEvent(scrollevent);
-  if (mEventCallback) {
-    DispatchWindowEvent(&scrollevent);
-  }
 }
 
 
@@ -8587,6 +7917,14 @@ nsModifierKeyState::nsModifierKeyState()
   mIsAltDown     = IS_VK_DOWN(NS_VK_ALT);
 }
 
+void
+nsModifierKeyState::InitInputEvent(nsInputEvent& aInputEvent) const
+{
+  aInputEvent.isShift   = mIsShiftDown;
+  aInputEvent.isControl = mIsControlDown;
+  aInputEvent.isMeta    = false;
+  aInputEvent.isAlt     = mIsAltDown;
+}
 
 
 
@@ -8656,132 +7994,6 @@ void nsWindow::GetMainWindowClass(nsAString& aClass)
   if (NS_FAILED(rv) || aClass.IsEmpty()) {
     aClass.AssignASCII(sDefaultMainWindowClass);
   }
-}
-
-
-
-
-
-
-
-
-
-
-
-bool nsWindow::GetInputWorkaroundPref(const char* aPrefName,
-                                        bool aValueIfAutomatic)
-{
-  if (!aPrefName) {
-    return aValueIfAutomatic;
-  }
-
-  PRInt32 lHackValue = 0;
-  if (NS_SUCCEEDED(Preferences::GetInt(aPrefName, &lHackValue))) {
-    switch (lHackValue) {
-      case 0: 
-        return false;
-      case 1: 
-        return true;
-      default: 
-        break;
-    }
-  }
-  return aValueIfAutomatic;
-}
-
-bool nsWindow::UseTrackPointHack()
-{
-  return GetInputWorkaroundPref("ui.trackpoint_hack.enabled",
-                                sDefaultTrackPointHack);
-}
-
-static bool
-HasRegistryKey(HKEY aRoot, PRUnichar* aName)
-{
-  HKEY key;
-  LONG result = ::RegOpenKeyExW(aRoot, aName, 0, KEY_READ | KEY_WOW64_32KEY, &key);
-  if (result != ERROR_SUCCESS) {
-    result = ::RegOpenKeyExW(aRoot, aName, 0, KEY_READ | KEY_WOW64_64KEY, &key);
-    if (result != ERROR_SUCCESS)
-      return false;
-  }
-  ::RegCloseKey(key);
-  return true;
-}
-
-static bool
-IsObsoleteSynapticsDriver()
-{
-  PRUnichar buf[40];
-  bool foundKey = WinUtils::GetRegistryKey(HKEY_LOCAL_MACHINE,
-                                           L"Software\\Synaptics\\SynTP\\Install",
-                                           L"DriverVersion",
-                                           buf,
-                                           sizeof buf);
-  if (!foundKey)
-    return false;
-
-  int majorVersion = wcstol(buf, NULL, 10);
-  int minorVersion = 0;
-  PRUnichar* p = wcschr(buf, L'.');
-  if (p) {
-    minorVersion = wcstol(p + 1, NULL, 10);
-  }
-  return majorVersion < 15 || majorVersion == 15 && minorVersion == 0;
-}
-
-static PRInt32
-GetElantechDriverMajorVersion()
-{
-  PRUnichar buf[40];
-  
-  bool foundKey = WinUtils::GetRegistryKey(HKEY_CURRENT_USER,
-                                           L"Software\\Elantech\\MainOption",
-                                           L"DriverVersion",
-                                           buf,
-                                           sizeof buf);
-  if (!foundKey)
-    foundKey = WinUtils::GetRegistryKey(HKEY_CURRENT_USER,
-                                        L"Software\\Elantech",
-                                        L"DriverVersion",
-                                        buf,
-                                        sizeof buf);
-
-  if (!foundKey)
-    return false;
-
-  
-  
-  for (PRUnichar* p = buf; *p; p++) {
-    if (*p >= L'0' && *p <= L'9' && (p == buf || *(p - 1) == L' ')) {
-      return wcstol(p, NULL, 10);
-    }
-  }
-
-  return 0;
-}
-
-void nsWindow::InitInputWorkaroundPrefDefaults()
-{
-  PRUint32 elantechDriverVersion = GetElantechDriverMajorVersion();
-
-  if (HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Lenovo\\TrackPoint")) {
-    sDefaultTrackPointHack = true;
-  } else if (HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Lenovo\\UltraNav")) {
-    sDefaultTrackPointHack = true;
-  } else if (HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Alps\\Apoint\\TrackPoint")) {
-    sDefaultTrackPointHack = true;
-  } else if ((HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Synaptics\\SynTPEnh\\UltraNavUSB") ||
-              HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Synaptics\\SynTPEnh\\UltraNavPS2")) &&
-              IsObsoleteSynapticsDriver()) {
-    sDefaultTrackPointHack = true;
-  }
-
-  bool useElantechGestureHacks =
-    GetInputWorkaroundPref("ui.elantech_gesture_hacks.enabled",
-                           elantechDriverVersion != 0);
-  sUseElantechSwipeHack = useElantechGestureHacks && elantechDriverVersion <= 7;
-  sUseElantechPinchHack = useElantechGestureHacks && elantechDriverVersion <= 8;
 }
 
 LPARAM nsWindow::lParamToScreen(LPARAM lParam)

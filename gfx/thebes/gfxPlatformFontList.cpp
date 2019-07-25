@@ -64,6 +64,7 @@
 
 
 
+
 #ifdef MOZ_LOGGING
 #define FORCE_PR_LOG
 #endif
@@ -376,9 +377,13 @@ gfxPlatformFontList::GetFontFamilyList(nsTArray<nsRefPtr<gfxFontFamily> >& aFami
     mFontFamilies.Enumerate(FontFamilyListData::AppendFamily, &data);
 }
 
-gfxFontEntry*  
-gfxPlatformFontList::FindFontForChar(const PRUint32 aCh, gfxFont *aPrevFont)
-{
+gfxFontEntry*
+gfxPlatformFontList::SystemFindFontForChar(const PRUint32 aCh,
+                                           PRInt32 aRunScript,
+                                           const gfxFontStyle* aStyle)
+ {
+    gfxFontEntry* fontEntry = nsnull;
+
     
     if (mCodepointsWithNoFonts.test(aCh)) {
         return nsnull;
@@ -386,34 +391,31 @@ gfxPlatformFontList::FindFontForChar(const PRUint32 aCh, gfxFont *aPrevFont)
 
     
     
-
-    
     
     
     
     if (aCh == 0xFFFD && mReplacementCharFallbackFamily.Length() > 0) {
-        gfxFontEntry* fontEntry = nsnull;
         bool needsBold;  
 
-        if (aPrevFont) {
-            fontEntry = FindFontForFamily(mReplacementCharFallbackFamily, aPrevFont->GetStyle(), needsBold);
-        } else {
-            gfxFontStyle normalStyle;
-            fontEntry = FindFontForFamily(mReplacementCharFallbackFamily, &normalStyle, needsBold);
-        }
+        fontEntry = FindFontForFamily(mReplacementCharFallbackFamily,
+                                      aStyle, needsBold);
 
         if (fontEntry && fontEntry->TestCharacterMap(aCh))
             return fontEntry;
     }
 
-    static bool first = true;
     TimeStamp start = TimeStamp::Now();
 
-    FontSearch data(aCh, aPrevFont);
-
     
-    mFontFamilies.Enumerate(gfxPlatformFontList::FindFontForCharProc, &data);
-
+    bool common = true;
+    fontEntry = CommonFontFallback(aCh, aRunScript, aStyle);
+ 
+    
+    PRUint32 cmapCount = 0;
+    if (!fontEntry) {
+        common = false;
+        fontEntry = GlobalFontFallback(aCh, aRunScript, aStyle, cmapCount);
+    }
     TimeDuration elapsed = TimeStamp::Now() - start;
 
 #ifdef PR_LOGGING
@@ -423,27 +425,28 @@ gfxPlatformFontList::FindFontForChar(const PRUint32 aCh, gfxFont *aPrevFont)
         PRUint32 charRange = gfxFontUtils::CharRangeBit(aCh);
         PRUint32 unicodeRange = FindCharUnicodeRange(aCh);
         PRInt32 script = mozilla::unicode::GetScriptCode(aCh);
-        PR_LOG(log, PR_LOG_DEBUG,\
-               ("(textrun-systemfallback) char: u+%6.6x "
-                "char-range: %d unicode-range: %d script: %d match: [%s]"
-                " count: %d time: %dus\n",
-                aCh,
-                charRange, unicodeRange, script,
-                (data.mBestMatch ?
-                 NS_ConvertUTF16toUTF8(data.mBestMatch->Name()).get() :
-                 "<none>"),
-                data.mCount,
-                PRInt32(elapsed.ToMicroseconds())));
+        PR_LOG(log, PR_LOG_WARNING,\
+               ("(textrun-systemfallback-%s) char: u+%6.6x "
+                 "char-range: %d unicode-range: %d script: %d match: [%s]"
+                " time: %dus cmaps: %d\n",
+                (common ? "common" : "global"), aCh,
+                 charRange, unicodeRange, script,
+                (fontEntry ? NS_ConvertUTF16toUTF8(fontEntry->Name()).get() :
+                    "<none>"),
+                PRInt32(elapsed.ToMicroseconds()),
+                cmapCount));
     }
 #endif
 
     
-    if (!data.mBestMatch) {
-        mCodepointsWithNoFonts.set(aCh);
-    } else if (aCh == 0xFFFD) {
-        mReplacementCharFallbackFamily = data.mBestMatch->FamilyName();
-    }
-
+    if (!fontEntry) {
+         mCodepointsWithNoFonts.set(aCh);
+    } else if (aCh == 0xFFFD && fontEntry) {
+        mReplacementCharFallbackFamily = fontEntry->FamilyName();
+     }
+ 
+    
+    static bool first = true;
     PRInt32 intElapsed = PRInt32(first ? elapsed.ToMilliseconds() :
                                          elapsed.ToMicroseconds());
     Telemetry::Accumulate((first ? Telemetry::SYSTEM_FONT_FALLBACK_FIRST :
@@ -451,18 +454,76 @@ gfxPlatformFontList::FindFontForChar(const PRUint32 aCh, gfxFont *aPrevFont)
                           intElapsed);
     first = false;
 
-    return data.mBestMatch;
+    
+    
+    Telemetry::Accumulate(Telemetry::SYSTEM_FONT_FALLBACK_SCRIPT, aRunScript + 1);
+
+    return fontEntry;
 }
 
 PLDHashOperator PR_CALLBACK 
 gfxPlatformFontList::FindFontForCharProc(nsStringHashKey::KeyType aKey, nsRefPtr<gfxFontFamily>& aFamilyEntry,
      void *userArg)
 {
-    FontSearch *data = static_cast<FontSearch*>(userArg);
+    GlobalFontMatch *data = static_cast<GlobalFontMatch*>(userArg);
+ 
+     
+     aFamilyEntry->FindFontForChar(data);
+
+     return PL_DHASH_NEXT;
+}
+
+#define NUM_FALLBACK_FONTS        8
+
+gfxFontEntry*
+gfxPlatformFontList::CommonFontFallback(const PRUint32 aCh,
+                                        PRInt32 aRunScript,
+                                        const gfxFontStyle* aMatchStyle)
+{
+    nsAutoTArray<const char*,NUM_FALLBACK_FONTS> defaultFallbacks;
+    PRUint32 i, numFallbacks;
+
+    gfxPlatform::GetPlatform()->GetCommonFallbackFonts(aCh, aRunScript,
+                                                       defaultFallbacks);
+    numFallbacks = defaultFallbacks.Length();
+    for (i = 0; i < numFallbacks; i++) {
+        nsAutoString familyName;
+        const char *fallbackFamily = defaultFallbacks[i];
+
+        familyName.AppendASCII(fallbackFamily);
+        gfxFontFamily *fallback =
+                gfxPlatformFontList::PlatformFontList()->FindFamily(familyName);
+        if (!fallback)
+            continue;
+
+        gfxFontEntry *fontEntry;
+        bool needsBold;  
+
+        
+        fontEntry = fallback->FindFontForStyle(*aMatchStyle, needsBold);
+        if (fontEntry && fontEntry->TestCharacterMap(aCh)) {
+            return fontEntry;
+        }
+    }
+
+    return nsnull;
+}
+
+gfxFontEntry*
+gfxPlatformFontList::GlobalFontFallback(const PRUint32 aCh,
+                                        PRInt32 aRunScript,
+                                        const gfxFontStyle* aMatchStyle,
+                                        PRUint32& aCmapCount)
+{
+    
+    GlobalFontMatch data(aCh, aRunScript, aMatchStyle);
 
     
-    aFamilyEntry->FindFontForChar(data);
-    return PL_DHASH_NEXT;
+    mFontFamilies.Enumerate(gfxPlatformFontList::FindFontForCharProc, &data);
+
+    aCmapCount = data.mCmapsTested;
+
+    return data.mBestMatch;
 }
 
 #ifdef XP_WIN
@@ -609,10 +670,12 @@ gfxPlatformFontList::InitLoader()
     mNumFamilies = mFontFamiliesToLoad.Length();
 }
 
-bool 
+bool
 gfxPlatformFontList::RunLoader()
 {
     PRUint32 i, endIndex = (mStartIndex + mIncrement < mNumFamilies ? mStartIndex + mIncrement : mNumFamilies);
+    bool loadCmaps = !UsesSystemFallback() ||
+        gfxPlatform::GetPlatform()->UseCmapsDuringSystemFallback();
 
     
     for (i = mStartIndex; i < endIndex; i++) {
@@ -629,7 +692,9 @@ gfxPlatformFontList::RunLoader()
         }
 
         
-        familyEntry->ReadCMAP();
+        if (loadCmaps) {
+            familyEntry->ReadAllCMAPs();
+        }
 
         
         familyEntry->ReadFaceNames(this, mNeedFullnamePostscriptNames);

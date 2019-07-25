@@ -136,7 +136,9 @@ enum eGfxLog {
     
     eGfxLog_textrun          = 2,
     
-    eGfxLog_textrunui        = 3
+    eGfxLog_textrunui        = 3,
+    
+    eGfxLog_cmapdata         = 4
 };
 
 
@@ -317,6 +319,11 @@ public:
 
     virtual bool FontHintingEnabled() { return true; }
 
+    
+
+
+    bool UseCmapsDuringSystemFallback();
+
 #ifdef MOZ_GRAPHITE
     
 
@@ -368,6 +375,15 @@ public:
     
     
     static void AppendPrefLang(eFontPrefLang aPrefLangs[], PRUint32& aLen, eFontPrefLang aAddLang);
+
+    
+    
+    virtual void GetCommonFallbackFonts(const PRUint32 ,
+                                        PRInt32 ,
+                                        nsTArray<const char*>& )
+    {
+        
+    }
 
     
     static bool UseAzureContentDrawing();
@@ -453,6 +469,10 @@ protected:
 #endif
 
     PRInt8  mBidiNumeralOption;
+
+    
+    
+    PRInt8  mFallbackUsesCmaps;
 
     
     PRInt32 mUseHarfBuzzScripts;

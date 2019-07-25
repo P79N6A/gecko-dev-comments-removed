@@ -134,7 +134,7 @@ public:
 #endif
 
   
-  NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
+  virtual already_AddRefed<nsIEditor> GetEditor() const;
 
   
 

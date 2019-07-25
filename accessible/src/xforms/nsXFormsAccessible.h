@@ -145,7 +145,7 @@ public:
   nsXFormsEditableAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
-  NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
+  virtual already_AddRefed<nsIEditor> GetEditor() const;
 
   
   virtual PRUint64 NativeState();

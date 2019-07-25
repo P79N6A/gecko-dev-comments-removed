@@ -61,6 +61,7 @@
 #include "jsapi.h"
 #include "jsdbgapi.h"
 #include "jsfriendapi.h"
+#include "nsJSPrincipals.h"
 
 #include "mozilla/FunctionTimer.h"
 #include "mozilla/scache/StartupCache.h"
@@ -111,7 +112,6 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *target_ob
 {
     nsCOMPtr<nsIChannel>     chan;
     nsCOMPtr<nsIInputStream> instream;
-    JSPrincipals    *jsPrincipals;
     JSErrorReporter  er;
 
     nsresult rv;
@@ -142,14 +142,6 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *target_ob
 
     
 
-
-    rv = principal->GetJSPrincipals(cx, &jsPrincipals);
-    if (NS_FAILED(rv) || !jsPrincipals) {
-        return ReportError(cx, LOAD_ERROR_NOPRINCIPALS);
-    }
-
-    
-
     er = JS_SetErrorReporter(cx, mozJSLoaderErrorReporter);
 
     if (!charset.IsVoid()) {
@@ -158,20 +150,17 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *target_ob
                                             charset, nsnull, script);
 
         if (NS_FAILED(rv)) {
-            JSPRINCIPALS_DROP(cx, jsPrincipals);
             return ReportError(cx, LOAD_ERROR_BADCHARSET);
         }
 
         *scriptp =
-            JS_CompileUCScriptForPrincipals(cx, target_obj, jsPrincipals,
+            JS_CompileUCScriptForPrincipals(cx, target_obj, nsJSPrincipals::get(principal),
                                             reinterpret_cast<const jschar*>(script.get()),
                                             script.Length(), uriStr, 1);
     } else {
-        *scriptp = JS_CompileScriptForPrincipals(cx, target_obj, jsPrincipals, buf.get(),
-                                                 len, uriStr, 1);
+        *scriptp = JS_CompileScriptForPrincipals(cx, target_obj, nsJSPrincipals::get(principal),
+                                                 buf.get(), len, uriStr, 1);
     }
-
-    JSPRINCIPALS_DROP(cx, jsPrincipals);
 
     
     JS_SetErrorReporter(cx, er);

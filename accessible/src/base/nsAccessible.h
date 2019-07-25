@@ -217,6 +217,11 @@ public:
   
 
 
+  PRUint64 VisibilityState();
+
+  
+
+
 
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
 
@@ -701,8 +706,6 @@ protected:
 
   virtual nsIFrame* GetBoundsFrame();
   virtual void GetBoundsRect(nsRect& aRect, nsIFrame** aRelativeFrame);
-
-  PRUint64 VisibilityState(); 
 
   
   

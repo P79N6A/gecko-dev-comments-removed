@@ -130,7 +130,7 @@ public:
   
   
   
-  virtual nsFrameList GetChildList(ChildListID aList) const;
+  virtual const nsFrameList& GetChildList(ChildListID aList) const;
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const;
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
@@ -185,7 +185,16 @@ public:
   virtual nsMenuParent *GetMenuParent() { return mMenuParent; }
   const nsAString& GetRadioGroupName() { return mGroupName; }
   nsMenuType GetMenuType() { return mType; }
-  nsMenuPopupFrame* GetPopup() { return mPopupFrame; }
+  nsMenuPopupFrame* GetPopup();
+
+  
+
+
+  bool HasPopup() const
+  {
+    return (GetStateBits() & NS_STATE_MENU_HAS_POPUP_LIST) != 0;
+  }
+
 
   
 
@@ -227,8 +236,21 @@ protected:
   friend class nsMenuAttributeChangedEvent;
 
   
-  
+
+
+
   void SetPopupFrame(nsFrameList& aChildList);
+
+  
+
+
+
+  nsFrameList* GetPopupList() const;
+
+  
+
+
+  void DestroyPopupList();
 
   
   
@@ -274,9 +296,6 @@ protected:
   nsMenuType mType;
 
   nsMenuParent* mMenuParent; 
-
-  
-  nsMenuPopupFrame* mPopupFrame;
 
   
   nsRefPtr<nsMenuTimerMediator> mTimerMediator;

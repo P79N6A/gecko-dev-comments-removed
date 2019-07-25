@@ -87,44 +87,47 @@ private:
   nsSVGGradientFrame* GetReferencedGradient();
 
   
-  
-  
-  nsSVGGradientElement* GetGradientWithAttr(nsIAtom *aAttrName, nsIContent *aDefault);
-
-  
-  
-  
-  nsSVGGradientElement* GetGradientWithAttr(nsIAtom *aAttrName, nsIAtom *aGradType,
-                                            nsIContent *aDefault);
-
-  
   PRInt32 GetStopFrame(PRInt32 aIndex, nsIFrame * *aStopFrame);
 
-  PRUint16 GetSpreadMethod();
   PRUint32 GetStopCount();
   void GetStopInformation(PRInt32 aIndex,
                           float *aOffset, nscolor *aColor, float *aStopOpacity);
 
+  const mozilla::SVGAnimatedTransformList* GetGradientTransformList(
+    nsIContent* aDefault);
   
-  gfxMatrix GetGradientTransform(nsIFrame *aSource, const gfxRect *aOverrideBounds);
+  gfxMatrix GetGradientTransform(nsIFrame *aSource,
+                                 const gfxRect *aOverrideBounds);
 
 protected:
   virtual already_AddRefed<gfxPattern> CreateGradient() = 0;
 
   
-  nsSVGLinearGradientElement* GetLinearGradientWithAttr(nsIAtom *aAttrName, nsIContent *aDefault)
+  class AutoGradientReferencer;
+  nsSVGGradientFrame* GetReferencedGradientIfNotInUse();
+
+  
+  PRUint16 GetEnumValue(PRUint32 aIndex, nsIContent *aDefault);
+  PRUint16 GetEnumValue(PRUint32 aIndex)
   {
-    return static_cast<nsSVGLinearGradientElement*>(
-            GetGradientWithAttr(aAttrName, nsGkAtoms::svgLinearGradientFrame, aDefault));
+    return GetEnumValue(aIndex, mContent);
   }
-  nsSVGRadialGradientElement* GetRadialGradientWithAttr(nsIAtom *aAttrName, nsIContent *aDefault)
+  PRUint16 GetGradientUnits()
   {
-    return static_cast<nsSVGRadialGradientElement*>(
-            GetGradientWithAttr(aAttrName, nsGkAtoms::svgRadialGradientFrame, aDefault));
+    
+    return GetEnumValue(nsSVGGradientElement::GRADIENTUNITS);
+  }
+  PRUint16 GetSpreadMethod()
+  {
+    return GetEnumValue(nsSVGGradientElement::SPREADMETHOD);
   }
 
   
-  PRUint16 GetGradientUnits();
+  
+  virtual nsSVGLinearGradientElement * GetLinearGradientWithLength(
+    PRUint32 aIndex, nsSVGLinearGradientElement* aDefault);
+  virtual nsSVGRadialGradientElement * GetRadialGradientWithLength(
+    PRUint32 aIndex, nsSVGRadialGradientElement* aDefault);
 
   
   nsIFrame*                              mSource;
@@ -178,7 +181,9 @@ public:
 #endif 
 
 protected:
-  float GradientLookupAttribute(nsIAtom *aAtomName, PRUint16 aEnumName);
+  float GetLengthValue(PRUint32 aIndex);
+  virtual nsSVGLinearGradientElement * GetLinearGradientWithLength(
+    PRUint32 aIndex, nsSVGLinearGradientElement* aDefault);
   virtual already_AddRefed<gfxPattern> CreateGradient();
 };
 
@@ -220,8 +225,12 @@ public:
 #endif 
 
 protected:
-  float GradientLookupAttribute(nsIAtom *aAtomName, PRUint16 aEnumName,
-                                nsSVGRadialGradientElement *aElement = nsnull);
+  float GetLengthValue(PRUint32 aIndex);
+  float GetLengthValue(PRUint32 aIndex, float aDefaultValue);
+  float GetLengthValueFromElement(PRUint32 aIndex,
+                                  nsSVGRadialGradientElement& aElement);
+  virtual nsSVGRadialGradientElement * GetRadialGradientWithLength(
+    PRUint32 aIndex, nsSVGRadialGradientElement* aDefault);
   virtual already_AddRefed<gfxPattern> CreateGradient();
 };
 

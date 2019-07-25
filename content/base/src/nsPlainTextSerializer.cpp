@@ -53,7 +53,6 @@
 #include "nsReadableUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsCRT.h"
-#include "nsIParserService.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/Preferences.h"
 
@@ -79,7 +78,7 @@ static const  PRInt32 kIndentSizeDD = kTabSize;
 static const  PRUnichar  kNBSP = 160;
 static const  PRUnichar kSPACE = ' ';
 
-static PRInt32 HeaderLevel(eHTMLTags aTag);
+static PRInt32 HeaderLevel(nsIAtom* aTag);
 static PRInt32 GetUnicharWidth(PRUnichar ucs);
 static PRInt32 GetUnicharStringWidth(const PRUnichar* pwcs, PRInt32 n);
 
@@ -126,7 +125,9 @@ nsPlainTextSerializer::nsPlainTextSerializer()
   mStartedOutput = false;
 
   
-  mTagStack = new nsHTMLTag[TagStackSize];
+  
+  
+  mTagStack = new nsIAtom*[TagStackSize];
   mTagStackIndex = 0;
   mIgnoreAboveIndex = (PRUint32)kNotFound;
 
@@ -144,11 +145,8 @@ nsPlainTextSerializer::~nsPlainTextSerializer()
   NS_WARN_IF_FALSE(mHeadLevel == 0, "Wrong head level!");
 }
 
-NS_IMPL_ISUPPORTS4(nsPlainTextSerializer, 
-                   nsIContentSerializer,
-                   nsIContentSink,
-                   nsIHTMLContentSink,
-                   nsIHTMLToTextSink)
+NS_IMPL_ISUPPORTS1(nsPlainTextSerializer,
+                   nsIContentSerializer)
 
 
 NS_IMETHODIMP 
@@ -158,19 +156,17 @@ nsPlainTextSerializer::Init(PRUint32 aFlags, PRUint32 aWrapColumn,
 {
 #ifdef DEBUG
   
-  if(aFlags & nsIDocumentEncoder::OutputFormatFlowed) {
+  if (aFlags & nsIDocumentEncoder::OutputFormatFlowed) {
     NS_ASSERTION(aFlags & nsIDocumentEncoder::OutputFormatted,
                  "If you want format=flowed, you must combine it with "
                  "nsIDocumentEncoder::OutputFormatted");
   }
 
-  if(aFlags & nsIDocumentEncoder::OutputFormatted) {
+  if (aFlags & nsIDocumentEncoder::OutputFormatted) {
     NS_ASSERTION(!(aFlags & nsIDocumentEncoder::OutputPreformatted),
                  "Can't do formatted and preformatted output at the same time!");
   }
 #endif
-
-  NS_ENSURE_TRUE(nsContentUtils::GetParserService(), NS_ERROR_UNEXPECTED);
 
   mFlags = aFlags;
   mWrapColumn = aWrapColumn;
@@ -270,21 +266,6 @@ nsPlainTextSerializer::PopBool(nsTArray<bool>& aStack)
   return returnValue;
 }
 
-NS_IMETHODIMP
-nsPlainTextSerializer::Initialize(nsAString* aOutString,
-                                  PRUint32 aFlags, PRUint32 aWrapCol)
-{
-  nsresult rv = Init(aFlags, aWrapCol, nsnull, false, false);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  
-  mOutputString = aOutString;
-
-  return NS_OK;
-}
-
 NS_IMETHODIMP 
 nsPlainTextSerializer::AppendText(nsIContent* aText,
                                   PRInt32 aStartOffset,
@@ -335,31 +316,26 @@ nsPlainTextSerializer::AppendText(nsIContent* aText,
   PRInt32 offset = textstr.FindCharInSet("\n\r");
   while (offset != kNotFound) {
 
-    if(offset>start) {
+    if (offset>start) {
       
-      rv = DoAddLeaf(nsnull,
-                     eHTMLTag_text,
-                     Substring(textstr, start, offset-start));
-      if (NS_FAILED(rv)) break;
+      DoAddText(false,
+                Substring(textstr, start, offset-start));
     }
 
     
-    rv = DoAddLeaf(nsnull, eHTMLTag_newline, mLineBreak);
-    if (NS_FAILED(rv)) break;
+    DoAddText(true, mLineBreak);
     
     start = offset+1;
     offset = textstr.FindCharInSet("\n\r", start);
   }
 
   
-  if (NS_SUCCEEDED(rv) && start < length) {
+  if (start < length) {
     if (start) {
-      rv = DoAddLeaf(nsnull,
-                     eHTMLTag_text,
-                     Substring(textstr, start, length-start));
+      DoAddText(false, Substring(textstr, start, length - start));
     }
     else {
-      rv = DoAddLeaf(nsnull, eHTMLTag_text, textstr);
+      DoAddText(false, textstr);
     }
   }
   
@@ -387,23 +363,23 @@ nsPlainTextSerializer::AppendElementStart(Element* aElement,
   mElement = aElement;
 
   nsresult rv;
-  PRInt32 id = GetIdForContent(mElement);
+  nsIAtom* id = GetIdForContent(mElement);
 
-  bool isContainer = IsContainer(id);
+  bool isContainer = !nsContentUtils::IsHTMLVoid(id);
 
   mOutputString = &aStr;
 
   if (isContainer) {
-    rv = DoOpenContainer(nsnull, id);
+    rv = DoOpenContainer(id);
   }
   else {
-    rv = DoAddLeaf(nsnull, id, EmptyString());
+    rv = DoAddLeaf(id);
   }
 
   mElement = nsnull;
   mOutputString = nsnull;
 
-  if (id == eHTMLTag_head) {
+  if (id == nsGkAtoms::head) {
     ++mHeadLevel;
   }
 
@@ -419,9 +395,9 @@ nsPlainTextSerializer::AppendElementEnd(Element* aElement,
   mElement = aElement;
 
   nsresult rv;
-  PRInt32 id = GetIdForContent(mElement);
+  nsIAtom* id = GetIdForContent(mElement);
 
-  bool isContainer = IsContainer(id);
+  bool isContainer = !nsContentUtils::IsHTMLVoid(id);
 
   mOutputString = &aStr;
 
@@ -433,7 +409,7 @@ nsPlainTextSerializer::AppendElementEnd(Element* aElement,
   mElement = nsnull;
   mOutputString = nsnull;
 
-  if (id == eHTMLTag_head) {
+  if (id == nsGkAtoms::head) {
     --mHeadLevel;
     NS_ASSERTION(mHeadLevel >= 0, "mHeadLevel < 0");
   }
@@ -457,89 +433,8 @@ nsPlainTextSerializer::AppendDocumentStart(nsIDocument *aDocument,
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsPlainTextSerializer::OpenContainer(const nsIParserNode& aNode)
-{
-  PRInt32 type = aNode.GetNodeType();
-
-  if (type == eHTMLTag_head) {
-    ++mHeadLevel;
-    return NS_OK;
-  }
-
-  return DoOpenContainer(&aNode, type);
-}
-
-NS_IMETHODIMP 
-nsPlainTextSerializer::CloseContainer(const nsHTMLTag aTag)
-{
-  if (aTag == eHTMLTag_head) {
-    --mHeadLevel;
-    NS_ASSERTION(mHeadLevel >= 0, "mHeadLevel < 0");
-    return NS_OK;
-  }
-
-  return DoCloseContainer(aTag);
-}
-
-NS_IMETHODIMP 
-nsPlainTextSerializer::AddLeaf(const nsIParserNode& aNode)
-{
-  if (mIgnoreAboveIndex != (PRUint32)kNotFound) {
-    return NS_OK;
-  }
-
-  eHTMLTags type = (eHTMLTags)aNode.GetNodeType();
-  const nsAString& text = aNode.GetText();
-
-  if ((type == eHTMLTag_text) ||
-      (type == eHTMLTag_whitespace) ||
-      (type == eHTMLTag_newline)) {
-    
-    nsAutoString str;
-    PRUint32 length;
-    str.SetCapacity(text.Length());
-    nsReadingIterator<PRUnichar> srcStart, srcEnd;
-    length = nsContentUtils::CopyNewlineNormalizedUnicodeTo(text.BeginReading(srcStart), text.EndReading(srcEnd), str);
-    str.SetLength(length);
-    return DoAddLeaf(&aNode, type, str);
-  }
-  else {
-    return DoAddLeaf(&aNode, type, text);
-  }
-}
-
-NS_IMETHODIMP 
-nsPlainTextSerializer::OpenHead()
-{
-  ++mHeadLevel;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsPlainTextSerializer::IsEnabled(PRInt32 aTag, bool* aReturn)
-{
-  nsHTMLTag theHTMLTag = nsHTMLTag(aTag);
-
-  if (theHTMLTag == eHTMLTag_script) {
-    *aReturn = !(mFlags & nsIDocumentEncoder::OutputNoScriptContent);
-  }
-  else if (theHTMLTag == eHTMLTag_frameset) {
-    *aReturn = !(mFlags & nsIDocumentEncoder::OutputNoFramesContent);
-  }
-  else {
-    *aReturn = false;
-  }
-
-  return NS_OK;
-}
-
-
-
-
-
 nsresult
-nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
+nsPlainTextSerializer::DoOpenContainer(nsIAtom* aTag)
 {
   if (mFlags & nsIDocumentEncoder::OutputRaw) {
     
@@ -550,10 +445,8 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
     return NS_OK;
   }
 
-  eHTMLTags type = (eHTMLTags)aTag;
-
   if (mTagStackIndex < TagStackSize) {
-    mTagStack[mTagStackIndex++] = type;
+    mTagStack[mTagStackIndex++] = aTag;
   }
 
   if (mIgnoreAboveIndex != (PRUint32)kNotFound) {
@@ -562,15 +455,16 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
 
   
   
-  mHasWrittenCiteBlockquote = mHasWrittenCiteBlockquote && aTag == eHTMLTag_pre;
+  mHasWrittenCiteBlockquote = mHasWrittenCiteBlockquote &&
+                              aTag == nsGkAtoms::pre;
 
   bool isInCiteBlockquote = false;
 
   
   
-  if (aTag == eHTMLTag_blockquote) {
+  if (aTag == nsGkAtoms::blockquote) {
     nsAutoString value;
-    nsresult rv = GetAttributeValue(aNode, nsGkAtoms::type, value);
+    nsresult rv = GetAttributeValue(nsGkAtoms::type, value);
     isInCiteBlockquote = NS_SUCCEEDED(rv) && value.EqualsIgnoreCase("cite");
   }
 
@@ -578,9 +472,9 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
     EnsureVerticalSpace(mFloatingLines);
 
   
-  if ((type == eHTMLTag_noscript &&
+  if ((aTag == nsGkAtoms::noscript &&
        !(mFlags & nsIDocumentEncoder::OutputNoScriptContent)) ||
-      ((type == eHTMLTag_iframe || type == eHTMLTag_noframes) &&
+      ((aTag == nsGkAtoms::iframe || aTag == nsGkAtoms::noframes) &&
        !(mFlags & nsIDocumentEncoder::OutputNoFramesContent))) {
     
     
@@ -588,7 +482,7 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
     return NS_OK;
   }
 
-  if (type == eHTMLTag_body) {
+  if (aTag == nsGkAtoms::body) {
     
     
     
@@ -599,7 +493,7 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
     
     nsAutoString style;
     PRInt32 whitespace;
-    if(NS_SUCCEEDED(GetAttributeValue(aNode, nsGkAtoms::style, style)) &&
+    if (NS_SUCCEEDED(GetAttributeValue(nsGkAtoms::style, style)) &&
        (kNotFound != (whitespace = style.Find("white-space:")))) {
 
       if (kNotFound != style.Find("pre-wrap", true, whitespace)) {
@@ -652,9 +546,9 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
     return NS_OK;
   }
 
-  if (type == eHTMLTag_p)
+  if (aTag == nsGkAtoms::p)
     EnsureVerticalSpace(1);
-  else if (type == eHTMLTag_pre) {
+  else if (aTag == nsGkAtoms::pre) {
     if (GetLastBool(mIsInCiteBlockquote))
       EnsureVerticalSpace(0);
     else if (mHasWrittenCiteBlockquote) {
@@ -664,10 +558,10 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
     else
       EnsureVerticalSpace(1);
   }
-  else if (type == eHTMLTag_tr) {
+  else if (aTag == nsGkAtoms::tr) {
     PushBool(mHasWrittenCellsForRow, false);
   }
-  else if (type == eHTMLTag_td || type == eHTMLTag_th) {
+  else if (aTag == nsGkAtoms::td || aTag == nsGkAtoms::th) {
     
     
 
@@ -687,21 +581,21 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
       SetLastBool(mHasWrittenCellsForRow, true);
     }
   }
-  else if (type == eHTMLTag_ul) {
+  else if (aTag == nsGkAtoms::ul) {
     
     EnsureVerticalSpace(mULCount + mOLStackIndex == 0 ? 1 : 0);
          
     mIndent += kIndentSizeList;
     mULCount++;
   }
-  else if (type == eHTMLTag_ol) {
+  else if (aTag == nsGkAtoms::ol) {
     EnsureVerticalSpace(mULCount + mOLStackIndex == 0 ? 1 : 0);
     if (mFlags & nsIDocumentEncoder::OutputFormatted) {
       
       if (mOLStackIndex < OLStackSize) {
         nsAutoString startAttr;
         PRInt32 startVal = 1;
-        if(NS_SUCCEEDED(GetAttributeValue(aNode, nsGkAtoms::start, startAttr))){
+        if (NS_SUCCEEDED(GetAttributeValue(nsGkAtoms::start, startAttr))) {
           PRInt32 rv = 0;
           startVal = startAttr.ToInteger(&rv);
           if (NS_FAILED(rv))
@@ -714,12 +608,12 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
     }
     mIndent += kIndentSizeList;  
   }
-  else if (type == eHTMLTag_li &&
+  else if (aTag == nsGkAtoms::li &&
            (mFlags & nsIDocumentEncoder::OutputFormatted)) {
     if (mTagStackIndex > 1 && IsInOL()) {
       if (mOLStackIndex > 0) {
         nsAutoString valueAttr;
-        if(NS_SUCCEEDED(GetAttributeValue(aNode, nsGkAtoms::value, valueAttr))){
+        if (NS_SUCCEEDED(GetAttributeValue(nsGkAtoms::value, valueAttr))) {
           PRInt32 rv = 0;
           PRInt32 valueAttrVal = valueAttr.ToInteger(&rv);
           if (NS_SUCCEEDED(rv))
@@ -744,20 +638,20 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
 
     mInIndentString.Append(PRUnichar(' '));
   }
-  else if (type == eHTMLTag_dl) {
+  else if (aTag == nsGkAtoms::dl) {
     EnsureVerticalSpace(1);
   }
-  else if (type == eHTMLTag_dt) {
+  else if (aTag == nsGkAtoms::dt) {
     EnsureVerticalSpace(0);
   }
-  else if (type == eHTMLTag_dd) {
+  else if (aTag == nsGkAtoms::dd) {
     EnsureVerticalSpace(0);
     mIndent += kIndentSizeDD;
   }
-  else if (type == eHTMLTag_span) {
+  else if (aTag == nsGkAtoms::span) {
     ++mSpanLevel;
   }
-  else if (type == eHTMLTag_blockquote) {
+  else if (aTag == nsGkAtoms::blockquote) {
     
     PushBool(mIsInCiteBlockquote, isInCiteBlockquote);
     if (isInCiteBlockquote) {
@@ -769,13 +663,13 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
       mIndent += kTabSize; 
     }
   }
-  else if (type == eHTMLTag_q) {
+  else if (aTag == nsGkAtoms::q) {
     Write(NS_LITERAL_STRING("\""));
   }
 
   
   
-  else if (IsBlockLevel(aTag)) {
+  else if (nsContentUtils::IsHTMLBlock(aTag)) {
     EnsureVerticalSpace(0);
   }
 
@@ -789,18 +683,17 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
   
 
   
-  bool currentNodeIsConverted = IsCurrentNodeConverted(aNode);
-  PushBool(mCurrentNodeIsConverted, currentNodeIsConverted);
+  bool currentNodeIsConverted = IsCurrentNodeConverted();
 
-  if (type == eHTMLTag_h1 || type == eHTMLTag_h2 ||
-      type == eHTMLTag_h3 || type == eHTMLTag_h4 ||
-      type == eHTMLTag_h5 || type == eHTMLTag_h6)
+  if (aTag == nsGkAtoms::h1 || aTag == nsGkAtoms::h2 ||
+      aTag == nsGkAtoms::h3 || aTag == nsGkAtoms::h4 ||
+      aTag == nsGkAtoms::h5 || aTag == nsGkAtoms::h6)
   {
     EnsureVerticalSpace(2);
     if (mHeaderStrategy == 2) {  
       mIndent += kIndentSizeHeaders;
       
-      PRInt32 level = HeaderLevel(type);
+      PRInt32 level = HeaderLevel(aTag);
       
       mHeaderCounter[level]++;
       
@@ -821,37 +714,37 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
     }
     else if (mHeaderStrategy == 1) { 
       mIndent += kIndentSizeHeaders;
-      for (PRInt32 i = HeaderLevel(type); i > 1; i--) {
+      for (PRInt32 i = HeaderLevel(aTag); i > 1; i--) {
            
         mIndent += kIndentIncrementHeaders;
       }
     }
   }
-  else if (type == eHTMLTag_a && !currentNodeIsConverted) {
+  else if (aTag == nsGkAtoms::a && !currentNodeIsConverted) {
     nsAutoString url;
-    if (NS_SUCCEEDED(GetAttributeValue(aNode, nsGkAtoms::href, url))
+    if (NS_SUCCEEDED(GetAttributeValue(nsGkAtoms::href, url))
         && !url.IsEmpty()) {
       mURL = url;
     }
   }
-  else if (type == eHTMLTag_sup && mStructs && !currentNodeIsConverted) {
+  else if (aTag == nsGkAtoms::sup && mStructs && !currentNodeIsConverted) {
     Write(NS_LITERAL_STRING("^"));
   }
-  else if (type == eHTMLTag_sub && mStructs && !currentNodeIsConverted) { 
+  else if (aTag == nsGkAtoms::sub && mStructs && !currentNodeIsConverted) {
     Write(NS_LITERAL_STRING("_"));
   }
-  else if (type == eHTMLTag_code && mStructs && !currentNodeIsConverted) {
+  else if (aTag == nsGkAtoms::code && mStructs && !currentNodeIsConverted) {
     Write(NS_LITERAL_STRING("|"));
   }
-  else if ((type == eHTMLTag_strong || type == eHTMLTag_b)
+  else if ((aTag == nsGkAtoms::strong || aTag == nsGkAtoms::b)
            && mStructs && !currentNodeIsConverted) {
     Write(NS_LITERAL_STRING("*"));
   }
-  else if ((type == eHTMLTag_em || type == eHTMLTag_i)
+  else if ((aTag == nsGkAtoms::em || aTag == nsGkAtoms::i)
            && mStructs && !currentNodeIsConverted) {
     Write(NS_LITERAL_STRING("/"));
   }
-  else if (type == eHTMLTag_u && mStructs && !currentNodeIsConverted) {
+  else if (aTag == nsGkAtoms::u && mStructs && !currentNodeIsConverted) {
     Write(NS_LITERAL_STRING("_"));
   }
 
@@ -866,7 +759,7 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
 }
 
 nsresult
-nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
+nsPlainTextSerializer::DoCloseContainer(nsIAtom* aTag)
 {
   if (mFlags & nsIDocumentEncoder::OutputRaw) {
     
@@ -891,9 +784,8 @@ nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
     return NS_OK;
   }
 
-  eHTMLTags type = (eHTMLTags)aTag;
   
-  if((type == eHTMLTag_body) || (type == eHTMLTag_html)) {
+  if ((aTag == nsGkAtoms::body) || (aTag == nsGkAtoms::html)) {
     
     
     
@@ -914,26 +806,26 @@ nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
     return NS_OK;
   }
 
-  if (type == eHTMLTag_tr) {
+  if (aTag == nsGkAtoms::tr) {
     PopBool(mHasWrittenCellsForRow);
     
     if (mFloatingLines < 0)
       mFloatingLines = 0;
     mLineBreakDue = true;
   }
-  else if (((type == eHTMLTag_li) ||
-            (type == eHTMLTag_dt)) &&
+  else if (((aTag == nsGkAtoms::li) ||
+            (aTag == nsGkAtoms::dt)) &&
            (mFlags & nsIDocumentEncoder::OutputFormatted)) {
     
     if (mFloatingLines < 0)
       mFloatingLines = 0;
     mLineBreakDue = true;
   }
-  else if (type == eHTMLTag_pre) {
+  else if (aTag == nsGkAtoms::pre) {
     mFloatingLines = GetLastBool(mIsInCiteBlockquote) ? 0 : 1;
     mLineBreakDue = true;
   }
-  else if (type == eHTMLTag_ul) {
+  else if (aTag == nsGkAtoms::ul) {
     FlushLine();
     mIndent -= kIndentSizeList;
     if (--mULCount + mOLStackIndex == 0) {
@@ -941,7 +833,7 @@ nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
       mLineBreakDue = true;
     }
   }
-  else if (type == eHTMLTag_ol) {
+  else if (aTag == nsGkAtoms::ol) {
     FlushLine(); 
     mIndent -= kIndentSizeList;
     NS_ASSERTION(mOLStackIndex, "Wrong OLStack level!");
@@ -951,24 +843,24 @@ nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
       mLineBreakDue = true;
     }
   }  
-  else if (type == eHTMLTag_dl) {
+  else if (aTag == nsGkAtoms::dl) {
     mFloatingLines = 1;
     mLineBreakDue = true;
   }
-  else if (type == eHTMLTag_dd) {
+  else if (aTag == nsGkAtoms::dd) {
     FlushLine();
     mIndent -= kIndentSizeDD;
   }
-  else if (type == eHTMLTag_span) {
+  else if (aTag == nsGkAtoms::span) {
     NS_ASSERTION(mSpanLevel, "Span level will be negative!");
     --mSpanLevel;
   }
-  else if (type == eHTMLTag_div) {
+  else if (aTag == nsGkAtoms::div) {
     if (mFloatingLines < 0)
       mFloatingLines = 0;
     mLineBreakDue = true;
   }
-  else if (type == eHTMLTag_blockquote) {
+  else if (aTag == nsGkAtoms::blockquote) {
     FlushLine();    
 
     
@@ -986,13 +878,11 @@ nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
     }
     mLineBreakDue = true;
   }
-  else if (type == eHTMLTag_q) {
+  else if (aTag == nsGkAtoms::q) {
     Write(NS_LITERAL_STRING("\""));
   }
-  else if (IsBlockLevel(aTag)
-           && type != eHTMLTag_script
-           && type != eHTMLTag_doctypeDecl
-           && type != eHTMLTag_markupDecl) {
+  else if (nsContentUtils::IsHTMLBlock(aTag)
+           && aTag != nsGkAtoms::script) {
     
     
     
@@ -1016,24 +906,24 @@ nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
   
 
   
-  bool currentNodeIsConverted = PopBool(mCurrentNodeIsConverted);
+  bool currentNodeIsConverted = IsCurrentNodeConverted();
   
-  if (type == eHTMLTag_h1 || type == eHTMLTag_h2 ||
-      type == eHTMLTag_h3 || type == eHTMLTag_h4 ||
-      type == eHTMLTag_h5 || type == eHTMLTag_h6) {
+  if (aTag == nsGkAtoms::h1 || aTag == nsGkAtoms::h2 ||
+      aTag == nsGkAtoms::h3 || aTag == nsGkAtoms::h4 ||
+      aTag == nsGkAtoms::h5 || aTag == nsGkAtoms::h6) {
     
     if (mHeaderStrategy) {   
       mIndent -= kIndentSizeHeaders;
     }
     if (mHeaderStrategy == 1  ) {
-      for (PRInt32 i = HeaderLevel(type); i > 1; i--) {
+      for (PRInt32 i = HeaderLevel(aTag); i > 1; i--) {
            
         mIndent -= kIndentIncrementHeaders;
       }
     }
     EnsureVerticalSpace(1);
   }
-  else if (type == eHTMLTag_a && !currentNodeIsConverted && !mURL.IsEmpty()) {
+  else if (aTag == nsGkAtoms::a && !currentNodeIsConverted && !mURL.IsEmpty()) {
     nsAutoString temp; 
     temp.AssignLiteral(" <");
     temp += mURL;
@@ -1041,122 +931,124 @@ nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
     Write(temp);
     mURL.Truncate();
   }
-  else if ((type == eHTMLTag_sup || type == eHTMLTag_sub) 
+  else if ((aTag == nsGkAtoms::sup || aTag == nsGkAtoms::sub)
            && mStructs && !currentNodeIsConverted) {
     Write(kSpace);
   }
-  else if (type == eHTMLTag_code && mStructs && !currentNodeIsConverted) {
+  else if (aTag == nsGkAtoms::code && mStructs && !currentNodeIsConverted) {
     Write(NS_LITERAL_STRING("|"));
   }
-  else if ((type == eHTMLTag_strong || type == eHTMLTag_b)
+  else if ((aTag == nsGkAtoms::strong || aTag == nsGkAtoms::b)
            && mStructs && !currentNodeIsConverted) {
     Write(NS_LITERAL_STRING("*"));
   }
-  else if ((type == eHTMLTag_em || type == eHTMLTag_i)
+  else if ((aTag == nsGkAtoms::em || aTag == nsGkAtoms::i)
            && mStructs && !currentNodeIsConverted) {
     Write(NS_LITERAL_STRING("/"));
   }
-  else if (type == eHTMLTag_u && mStructs && !currentNodeIsConverted) {
+  else if (aTag == nsGkAtoms::u && mStructs && !currentNodeIsConverted) {
     Write(NS_LITERAL_STRING("_"));
   }
 
   return NS_OK;
 }
 
+bool
+nsPlainTextSerializer::MustSuppressLeaf()
+{
+  if ((mTagStackIndex > 1 &&
+       mTagStack[mTagStackIndex-2] == nsGkAtoms::select) ||
+      (mTagStackIndex > 0 &&
+        mTagStack[mTagStackIndex-1] == nsGkAtoms::select)) {
+    
+    
+    
+    return true;
+  }
+
+  if (mTagStackIndex > 0 &&
+      (mTagStack[mTagStackIndex-1] == nsGkAtoms::script ||
+       mTagStack[mTagStackIndex-1] == nsGkAtoms::style)) {
+    
+    return true;
+  }
+
+  return false;
+}
+
+void
+nsPlainTextSerializer::DoAddText(bool aIsLineBreak, const nsAString& aText)
+{
+  
+  if (!DoOutput()) {
+    return;
+  }
+
+  if (!aIsLineBreak) {
+    
+    mHasWrittenCiteBlockquote = false;
+  }
+
+  if (mLineBreakDue)
+    EnsureVerticalSpace(mFloatingLines);
+
+  if (MustSuppressLeaf()) {
+    return;
+  }
+
+  if (aIsLineBreak) {
+    
+    
+    
+    
+    
+    
+    if ((mFlags & nsIDocumentEncoder::OutputPreformatted) ||
+        (mPreFormatted && !mWrapColumn) ||
+        IsInPre()) {
+      EnsureVerticalSpace(mEmptyLines+1);
+    }
+    else if (!mInWhitespace) {
+      Write(kSpace);
+      mInWhitespace = true;
+    }
+    return;
+  }
+
+  
 
 
-
+  if (!mURL.IsEmpty() && mURL.Equals(aText)) {
+    mURL.Truncate();
+  }
+  Write(aText);
+}
 
 nsresult
-nsPlainTextSerializer::DoAddLeaf(const nsIParserNode *aNode, PRInt32 aTag, 
-                                 const nsAString& aText)
+nsPlainTextSerializer::DoAddLeaf(nsIAtom* aTag)
 {
   
   if (!DoOutput()) {
     return NS_OK;
   }
 
-  if (aTag != eHTMLTag_whitespace && aTag != eHTMLTag_newline) {
-    
-    mHasWrittenCiteBlockquote = false;
-  }
-  
   if (mLineBreakDue)
     EnsureVerticalSpace(mFloatingLines);
 
-  eHTMLTags type = (eHTMLTags)aTag;
-  
-  if ((mTagStackIndex > 1 &&
-       mTagStack[mTagStackIndex-2] == eHTMLTag_select) ||
-      (mTagStackIndex > 0 &&
-        mTagStack[mTagStackIndex-1] == eHTMLTag_select)) {
-    
-    
-    
+  if (MustSuppressLeaf()) {
     return NS_OK;
   }
-  else if (mTagStackIndex > 0 &&
-           (mTagStack[mTagStackIndex-1] == eHTMLTag_script ||
-            mTagStack[mTagStackIndex-1] == eHTMLTag_style)) {
-    
-    return NS_OK;
-  }
-  else if (type == eHTMLTag_text) {
-    
 
-
-    if (!mURL.IsEmpty() && mURL.Equals(aText)) {
-      mURL.Truncate();
-    }
-    Write(aText);
-  }
-  else if (type == eHTMLTag_entity) {
-    nsIParserService* parserService = nsContentUtils::GetParserService();
-    if (parserService) {
-      nsAutoString str(aText);
-      PRInt32 entity;
-      parserService->HTMLConvertEntityToUnicode(str, &entity);
-      if (entity == -1 && 
-          !str.IsEmpty() &&
-          str.First() == (PRUnichar) '#') {
-        PRInt32 err = 0;
-        entity = str.ToInteger(&err, kAutoDetect);  
-      }
-      nsAutoString temp;
-      temp.Append(PRUnichar(entity));
-      Write(temp);
-    }
-  }
-  else if (type == eHTMLTag_br) {
+  if (aTag == nsGkAtoms::br) {
     
     
-    nsAutoString typeAttr;
-    if (NS_FAILED(GetAttributeValue(aNode, nsGkAtoms::type, typeAttr))
-        || !typeAttr.EqualsLiteral("_moz")) {
+    nsAutoString tagAttr;
+    if (NS_FAILED(GetAttributeValue(nsGkAtoms::type, tagAttr))
+        || !tagAttr.EqualsLiteral("_moz")) {
       EnsureVerticalSpace(mEmptyLines+1);
     }
   }
-  else if (type == eHTMLTag_whitespace || type == eHTMLTag_newline) {
-    
-    
-    
-    
-    
-    
-    if (mFlags & nsIDocumentEncoder::OutputPreformatted ||
-        (mPreFormatted && !mWrapColumn) ||
-        IsInPre()) {
-      if (type == eHTMLTag_newline)
-        EnsureVerticalSpace(mEmptyLines+1);
-      else  
-        Write(aText);
-    }
-    else if(!mInWhitespace) {
-      Write(kSpace);
-      mInWhitespace = true;
-    }
-  }
-  else if (type == eHTMLTag_hr &&
+  else if (aTag == nsGkAtoms::hr &&
            (mFlags & nsIDocumentEncoder::OutputFormatted)) {
     EnsureVerticalSpace(0);
 
@@ -1171,18 +1063,16 @@ nsPlainTextSerializer::DoAddLeaf(const nsIParserNode *aNode, PRInt32 aTag,
 
     EnsureVerticalSpace(0);
   }
-  else if (type == eHTMLTag_img) {
+  else if (aTag == nsGkAtoms::img) {
     
 
     
     nsAutoString imageDescription;
-    if (NS_SUCCEEDED(GetAttributeValue(aNode,
-                                       nsGkAtoms::alt,
+    if (NS_SUCCEEDED(GetAttributeValue(nsGkAtoms::alt,
                                        imageDescription))) {
       
     }
-    else if (NS_SUCCEEDED(GetAttributeValue(aNode,
-                                            nsGkAtoms::title,
+    else if (NS_SUCCEEDED(GetAttributeValue(nsGkAtoms::title,
                                             imageDescription))
              && !imageDescription.IsEmpty()) {
       imageDescription = NS_LITERAL_STRING(" [") +
@@ -1192,7 +1082,6 @@ nsPlainTextSerializer::DoAddLeaf(const nsIParserNode *aNode, PRInt32 aTag,
    
     Write(imageDescription);
   }
-
 
   return NS_OK;
 }
@@ -1210,7 +1099,7 @@ nsPlainTextSerializer::EnsureVerticalSpace(PRInt32 noOfRows)
   
   
   
-  if(noOfRows >= 0 && !mInIndentString.IsEmpty()) {
+  if (noOfRows >= 0 && !mInIndentString.IsEmpty()) {
     EndLine(false);
     mInWhitespace = true;
   }
@@ -1234,8 +1123,8 @@ nsPlainTextSerializer::EnsureVerticalSpace(PRInt32 noOfRows)
 void
 nsPlainTextSerializer::FlushLine()
 {
-  if(!mCurrentLine.IsEmpty()) {
-    if(mAtFirstColumn) {
+  if (!mCurrentLine.IsEmpty()) {
+    if (mAtFirstColumn) {
       OutputQuotesAndIndent(); 
     }
 
@@ -1293,21 +1182,21 @@ nsPlainTextSerializer::AddToLine(const PRUnichar * aLineFragment,
     EnsureVerticalSpace(mFloatingLines);
 
   PRInt32 linelength = mCurrentLine.Length();
-  if(0 == linelength) {
-    if(0 == aLineFragmentLength) {
+  if (0 == linelength) {
+    if (0 == aLineFragmentLength) {
       
       return;
     }
 
-    if(mFlags & nsIDocumentEncoder::OutputFormatFlowed) {
-      if(IsSpaceStuffable(aLineFragment)
+    if (mFlags & nsIDocumentEncoder::OutputFormatFlowed) {
+      if (IsSpaceStuffable(aLineFragment)
          && mCiteQuoteLevel == 0  
          )
         {
           
           mCurrentLine.Append(PRUnichar(' '));
           
-          if(MayWrap()) {
+          if (MayWrap()) {
             mCurrentLineWidth += GetUnicharWidth(' ');
 #ifdef DEBUG_wrapping
             NS_ASSERTION(GetUnicharStringWidth(mCurrentLine.get(),
@@ -1322,7 +1211,7 @@ nsPlainTextSerializer::AddToLine(const PRUnichar * aLineFragment,
   }
     
   mCurrentLine.Append(aLineFragment, aLineFragmentLength);
-  if(MayWrap()) {
+  if (MayWrap()) {
     mCurrentLineWidth += GetUnicharStringWidth(aLineFragment,
                                                aLineFragmentLength);
 #ifdef DEBUG_wrapping
@@ -1336,7 +1225,7 @@ nsPlainTextSerializer::AddToLine(const PRUnichar * aLineFragment,
   linelength = mCurrentLine.Length();
 
   
-  if(MayWrap())
+  if (MayWrap())
   {
 #ifdef DEBUG_wrapping
     NS_ASSERTION(GetUnicharstringWidth(mCurrentLine.get(),
@@ -1402,7 +1291,7 @@ nsPlainTextSerializer::AddToLine(const PRUnichar * aLineFragment,
         }
       }
       
-      if((goodSpace < linelength) && (goodSpace > 0)) {
+      if ((goodSpace < linelength) && (goodSpace > 0)) {
         
 
         
@@ -1419,8 +1308,8 @@ nsPlainTextSerializer::AddToLine(const PRUnichar * aLineFragment,
         EndLine(true, breakBySpace);
         mCurrentLine.Truncate();
         
-        if(mFlags & nsIDocumentEncoder::OutputFormatFlowed) {
-          if(!restOfLine.IsEmpty() && IsSpaceStuffable(restOfLine.get())
+        if (mFlags & nsIDocumentEncoder::OutputFormatFlowed) {
+          if (!restOfLine.IsEmpty() && IsSpaceStuffable(restOfLine.get())
               && mCiteQuoteLevel == 0  
             )
           {
@@ -1458,7 +1347,7 @@ nsPlainTextSerializer::EndLine(bool aSoftlinebreak, bool aBreakBySpace)
 {
   PRUint32 currentlinelength = mCurrentLine.Length();
 
-  if(aSoftlinebreak && 0 == currentlinelength) {
+  if (aSoftlinebreak && 0 == currentlinelength) {
     
     return;
   }
@@ -1469,7 +1358,7 @@ nsPlainTextSerializer::EndLine(bool aSoftlinebreak, bool aBreakBySpace)
 
 
   
-  if(!(mFlags & nsIDocumentEncoder::OutputPreformatted) &&
+  if (!(mFlags & nsIDocumentEncoder::OutputPreformatted) &&
      (aSoftlinebreak || 
      !(mCurrentLine.EqualsLiteral("-- ") || mCurrentLine.EqualsLiteral("- -- ")))) {
     
@@ -1480,7 +1369,7 @@ nsPlainTextSerializer::EndLine(bool aSoftlinebreak, bool aBreakBySpace)
     mCurrentLine.SetLength(currentlinelength);
   }
   
-  if(aSoftlinebreak &&
+  if (aSoftlinebreak &&
      (mFlags & nsIDocumentEncoder::OutputFormatFlowed) &&
      (mIndent == 0)) {
     
@@ -1489,25 +1378,25 @@ nsPlainTextSerializer::EndLine(bool aSoftlinebreak, bool aBreakBySpace)
 
     
     
-    if (mFlags & nsIDocumentEncoder::OutputFormatDelSp && aBreakBySpace)
+    if ((mFlags & nsIDocumentEncoder::OutputFormatDelSp) && aBreakBySpace)
       mCurrentLine.Append(NS_LITERAL_STRING("  "));
     else
       mCurrentLine.Append(PRUnichar(' '));
   }
 
-  if(aSoftlinebreak) {
+  if (aSoftlinebreak) {
     mEmptyLines=0;
   } 
   else {
     
-    if(!mCurrentLine.IsEmpty() || !mInIndentString.IsEmpty()) {
+    if (!mCurrentLine.IsEmpty() || !mInIndentString.IsEmpty()) {
       mEmptyLines=-1;
     }
 
     mEmptyLines++;
   }
 
-  if(mAtFirstColumn) {
+  if (mAtFirstColumn) {
     
     
     
@@ -1567,13 +1456,13 @@ nsPlainTextSerializer::OutputQuotesAndIndent(bool stripTrailingSpaces )
     mAtFirstColumn = false;
   }
   
-  if(!mInIndentString.IsEmpty()) {
+  if (!mInIndentString.IsEmpty()) {
     stringToOutput += mInIndentString;
     mAtFirstColumn = false;
     mInIndentString.Truncate();
   }
 
-  if(stripTrailingSpaces) {
+  if (stripTrailingSpaces) {
     PRInt32 lineLength = stringToOutput.Length();
     while(lineLength > 0 &&
           ' ' == stringToOutput[lineLength-1]) {
@@ -1582,7 +1471,7 @@ nsPlainTextSerializer::OutputQuotesAndIndent(bool stripTrailingSpaces )
     stringToOutput.SetLength(lineLength);
   }
 
-  if(!stringToOutput.IsEmpty()) {
+  if (!stringToOutput.IsEmpty()) {
     Output(stringToOutput);
   }
     
@@ -1659,11 +1548,11 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
       PRInt32 new_newline = bol;
       newline = kNotFound;
       while(iter != done_searching) {
-        if('\n' == *iter || '\r' == *iter) {
+        if ('\n' == *iter || '\r' == *iter) {
           newline = new_newline;
           break;
         }
-        if(' ' != *iter)
+        if (' ' != *iter)
           spacesOnly = false;
         ++new_newline;
         ++iter;
@@ -1671,12 +1560,12 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
 
       
       nsAutoString stringpart;
-      if(newline == kNotFound) {
+      if (newline == kNotFound) {
         
         stringpart.Assign(Substring(str, bol, totLen - bol));
-        if(!stringpart.IsEmpty()) {
+        if (!stringpart.IsEmpty()) {
           PRUnichar lastchar = stringpart[stringpart.Length()-1];
-          if((lastchar == '\t') || (lastchar == ' ') ||
+          if ((lastchar == '\t') || (lastchar == ' ') ||
              (lastchar == '\r') ||(lastchar == '\n')) {
             mInWhitespace = true;
           } 
@@ -1696,7 +1585,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
         mEmptyLines=0;
         atFirstColumn = true;
         bol = newline+1;
-        if('\r' == *iter && bol < totLen && '\n' == *++iter) {
+        if ('\r' == *iter && bol < totLen && '\n' == *++iter) {
           
           
           
@@ -1715,7 +1604,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
       }
       mCurrentLine.Append(stringpart);
 
-      if(outputQuotes) {
+      if (outputQuotes) {
         
         OutputQuotesAndIndent();
       }
@@ -1755,7 +1644,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
     nsMemory::Free(foo);
 #endif
 
-    if(nextpos == kNotFound) {
+    if (nextpos == kNotFound) {
       
       offsetIntoBuffer = str.get() + bol;
       AddToLine(offsetIntoBuffer, totLen-bol);
@@ -1782,7 +1671,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
         continue;
       }
 
-      if(nextpos == bol) {
+      if (nextpos == bol) {
         
         mInWhitespace = true;
         offsetIntoBuffer = str.get() + nextpos;
@@ -1794,7 +1683,7 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
       mInWhitespace = true;
       
       offsetIntoBuffer = str.get() + bol;
-      if(mPreFormatted || (mFlags & nsIDocumentEncoder::OutputPreformatted)) {
+      if (mPreFormatted || (mFlags & nsIDocumentEncoder::OutputPreformatted)) {
         
         nextpos++;
         AddToLine(offsetIntoBuffer, nextpos-bol);
@@ -1816,25 +1705,12 @@ nsPlainTextSerializer::Write(const nsAString& aStr)
 
 
 nsresult
-nsPlainTextSerializer::GetAttributeValue(const nsIParserNode* aNode,
-                                         nsIAtom* aName,
+nsPlainTextSerializer::GetAttributeValue(nsIAtom* aName,
                                          nsString& aValueRet)
 {
   if (mElement) {
     if (mElement->GetAttr(kNameSpaceID_None, aName, aValueRet)) {
       return NS_OK;
-    }
-  }
-  else if (aNode) {
-    nsDependentAtomString name(aName); 
-
-    PRInt32 count = aNode->GetAttributeCount();
-    for (PRInt32 i=0;i<count;i++) {
-      const nsAString& key = aNode->GetKeyAt(i);
-      if (key.Equals(name, nsCaseInsensitiveStringComparator())) {
-        aValueRet = aNode->GetValueAt(i);
-        return NS_OK;
-      }
     }
   }
 
@@ -1846,10 +1722,10 @@ nsPlainTextSerializer::GetAttributeValue(const nsIParserNode* aNode,
 
 
 bool 
-nsPlainTextSerializer::IsCurrentNodeConverted(const nsIParserNode* aNode)
+nsPlainTextSerializer::IsCurrentNodeConverted()
 {
   nsAutoString value;
-  nsresult rv = GetAttributeValue(aNode, nsGkAtoms::_class, value);
+  nsresult rv = GetAttributeValue(nsGkAtoms::_class, value);
   return (NS_SUCCEEDED(rv) &&
           (value.EqualsIgnoreCase("moz-txt", 7) ||
            value.EqualsIgnoreCase("\"moz-txt", 8)));
@@ -1857,50 +1733,15 @@ nsPlainTextSerializer::IsCurrentNodeConverted(const nsIParserNode* aNode)
 
 
 
-PRInt32
+nsIAtom*
 nsPlainTextSerializer::GetIdForContent(nsIContent* aContent)
 {
   if (!aContent->IsHTML()) {
-    return eHTMLTag_unknown;
+    return nsnull;
   }
 
-  nsIParserService* parserService = nsContentUtils::GetParserService();
-
-  return parserService ? parserService->HTMLAtomTagToId(aContent->Tag()) :
-                         eHTMLTag_unknown;
-}
-
-
-
-
-
-bool 
-nsPlainTextSerializer::IsBlockLevel(PRInt32 aId)
-{
-  bool isBlock = false;
-
-  nsIParserService* parserService = nsContentUtils::GetParserService();
-  if (parserService) {
-    parserService->IsBlock(aId, isBlock);
-  }
-
-  return isBlock;
-}
-
-
-
-
-bool 
-nsPlainTextSerializer::IsContainer(PRInt32 aId)
-{
-  bool isContainer = false;
-
-  nsIParserService* parserService = nsContentUtils::GetParserService();
-  if (parserService) {
-    parserService->IsContainer(aId, isContainer);
-  }
-
-  return isContainer;
+  nsIAtom* localName = aContent->Tag();
+  return localName->IsStaticAtom() ? localName : nsnull;
 }
 
 
@@ -1915,9 +1756,9 @@ nsPlainTextSerializer::IsInPre()
 {
   PRInt32 i = mTagStackIndex;
   while(i > 0) {
-    if(mTagStack[i-1] == eHTMLTag_pre)
+    if (mTagStack[i - 1] == nsGkAtoms::pre)
       return true;
-    if(IsBlockLevel(mTagStack[i-1])) {
+    if (nsContentUtils::IsHTMLBlock(mTagStack[i - 1])) {
       
       return false;
     }
@@ -1937,9 +1778,9 @@ nsPlainTextSerializer::IsInOL()
 {
   PRInt32 i = mTagStackIndex;
   while(--i >= 0) {
-    if(mTagStack[i] == eHTMLTag_ol)
+    if (mTagStack[i] == nsGkAtoms::ol)
       return true;
-    if (mTagStack[i] == eHTMLTag_ul) {
+    if (mTagStack[i] == nsGkAtoms::ul) {
       
       return false;
     }
@@ -1951,27 +1792,27 @@ nsPlainTextSerializer::IsInOL()
 
 
 
-PRInt32 HeaderLevel(eHTMLTags aTag)
+PRInt32 HeaderLevel(nsIAtom* aTag)
 {
-  PRInt32 result;
-  switch (aTag)
-  {
-    case eHTMLTag_h1:
-      result = 1; break;
-    case eHTMLTag_h2:
-      result = 2; break;
-    case eHTMLTag_h3:
-      result = 3; break;
-    case eHTMLTag_h4:
-      result = 4; break;
-    case eHTMLTag_h5:
-      result = 5; break;
-    case eHTMLTag_h6:
-      result = 6; break;
-    default:
-      result = 0; break;
+  if (aTag == nsGkAtoms::h1) {
+    return 1;
   }
-  return result;
+  if (aTag == nsGkAtoms::h2) {
+    return 2;
+  }
+  if (aTag == nsGkAtoms::h3) {
+    return 3;
+  }
+  if (aTag == nsGkAtoms::h4) {
+    return 4;
+  }
+  if (aTag == nsGkAtoms::h5) {
+    return 5;
+  }
+  if (aTag == nsGkAtoms::h6) {
+    return 6;
+  }
+  return 0;
 }
 
 

@@ -547,7 +547,7 @@ nsCSSScanner::ReportUnexpectedToken(nsCSSToken& tok,
     tokenString.get()
   };
 
-  ReportUnexpectedParams(aMessage, params, ArrayLength(params));
+  ReportUnexpectedParams(aMessage, params);
 }
 
 

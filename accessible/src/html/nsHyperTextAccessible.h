@@ -264,6 +264,14 @@ public:
     return GetChildAt(GetChildIndexAtOffset(aOffset));
   }
 
+  
+  
+
+  
+
+
+  virtual already_AddRefed<nsIEditor> GetEditor() const;
+
 protected:
   
 
@@ -409,7 +417,7 @@ protected:
 
 
 
-  nsresult GetSpellTextAttribute(nsIDOMNode *aNode, PRInt32 aNodeOffset,
+  nsresult GetSpellTextAttribute(nsINode* aNode, PRInt32 aNodeOffset,
                                  PRInt32 *aStartOffset,
                                  PRInt32 *aEndOffset,
                                  nsIPersistentProperties *aAttributes);

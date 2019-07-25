@@ -691,36 +691,59 @@ void gfxFontFamily::LocalizedName(nsAString& aLocalizedName)
 }
 
 
-void
-gfxFontFamily::FindFontForChar(FontSearch *aMatchData)
+static PRInt32
+CalcStyleMatch(gfxFontEntry *aFontEntry, const gfxFontStyle *aStyle)
 {
-    if (!mHasStyles) {
-        FindStyleVariations();
+    PRInt32 rank = 0;
+    if (aStyle) {
+         
+         bool wantItalic =
+             ((aStyle->style & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE)) != 0);
+         if (aFontEntry->IsItalic() == wantItalic) {
+             rank += 10;
+         }
+
+        
+        rank += 9 - abs(aFontEntry->Weight() / 100 - aStyle->ComputeWeight());
+    } else {
+        
+        if (!aFontEntry->IsItalic()) {
+            rank += 3;
+        }
+        if (!aFontEntry->IsBold()) {
+            rank += 2;
+        }
     }
 
-    if (!TestCharacterMap(aMatchData->mCh)) {
+    return rank;
+}
+
+#define RANK_MATCHED_CMAP   20
+
+void
+gfxFontFamily::FindFontForChar(GlobalFontMatch *aMatchData)
+{
+    if (mCharacterMapInitialized && !TestCharacterMap(aMatchData->mCh)) {
         
         
         return;
     }
 
-    
-    PRUint32 numFonts = mAvailableFonts.Length();
-    for (PRUint32 i = 0; i < numFonts; i++) {
-        gfxFontEntry *fe = mAvailableFonts[i];
+    bool needsBold;
+    gfxFontStyle normal;
+    gfxFontEntry *fe = FindFontForStyle(
+                  (aMatchData->mStyle == nsnull) ? *aMatchData->mStyle : normal,
+                  needsBold);
 
-        
-        if (!fe || fe->SkipDuringSystemFallback())
-            continue;
-
+    if (fe && !fe->SkipDuringSystemFallback()) {
         PRInt32 rank = 0;
 
         if (fe->TestCharacterMap(aMatchData->mCh)) {
-            rank += 20;
+            rank += RANK_MATCHED_CMAP;
             aMatchData->mCount++;
 #ifdef PR_LOGGING
             PRLogModuleInfo *log = gfxPlatform::GetLog(eGfxLog_textrun);
-        
+
             if (NS_UNLIKELY(log)) {
                 PRUint32 charRange = gfxFontUtils::CharRangeBit(aMatchData->mCh);
                 PRUint32 unicodeRange = FindCharUnicodeRange(aMatchData->mCh);
@@ -735,43 +758,43 @@ gfxFontFamily::FindFontForChar(FontSearch *aMatchData)
 #endif
         }
 
-        
-        if (rank == 0)
-            continue;
-            
-        
-        
-
-        if (aMatchData->mFontToMatch) { 
-            const gfxFontStyle *style = aMatchData->mFontToMatch->GetStyle();
-
-            
-            bool wantItalic =
-                ((style->style & (FONT_STYLE_ITALIC | FONT_STYLE_OBLIQUE)) != 0);
-            if (fe->IsItalic() == wantItalic) {
-                rank += 10;
-            }
-
-            
-            rank += 9 - abs(fe->Weight() / 100 - style->ComputeWeight());
-        } else {
-            
-            if (!fe->IsItalic()) {
-                rank += 3;
-            }
-            if (!fe->IsBold()) {
-                rank += 2;
-            }
+        aMatchData->mCmapsTested++;
+        if (rank == 0) {
+            return;
         }
+
+         
+         
+        rank += CalcStyleMatch(fe, aMatchData->mStyle);
+
         
-        
-        
+
         if (rank > aMatchData->mMatchRank
             || (rank == aMatchData->mMatchRank &&
-                Compare(fe->Name(), aMatchData->mBestMatch->Name()) > 0)) 
+                Compare(fe->Name(), aMatchData->mBestMatch->Name()) > 0))
         {
             aMatchData->mBestMatch = fe;
             aMatchData->mMatchRank = rank;
+        }
+    }
+}
+
+void
+gfxFontFamily::SearchAllFontsForChar(GlobalFontMatch *aMatchData)
+{
+    PRUint32 i, numFonts = mAvailableFonts.Length();
+    for (i = 0; i < numFonts; i++) {
+        gfxFontEntry *fe = mAvailableFonts[i];
+        if (fe && fe->TestCharacterMap(aMatchData->mCh)) {
+            PRInt32 rank = RANK_MATCHED_CMAP;
+            rank += CalcStyleMatch(fe, aMatchData->mStyle);
+            if (rank > aMatchData->mMatchRank
+                || (rank == aMatchData->mMatchRank &&
+                    Compare(fe->Name(), aMatchData->mBestMatch->Name()) > 0))
+            {
+                aMatchData->mBestMatch = fe;
+                aMatchData->mMatchRank = rank;
+            }
         }
     }
 }
@@ -3153,7 +3176,7 @@ gfxFontGroup::InitTextRun(gfxContext *aContext,
                 nsCAutoString lang;
                 mStyle.language->ToUTF8String(lang);
                 PRUint32 runLen = runLimit - runStart;
-                PR_LOG(log, PR_LOG_DEBUG,\
+                PR_LOG(log, PR_LOG_WARNING,\
                        ("(%s) fontgroup: [%s] lang: %s script: %d len %d "
                         "weight: %d width: %d style: %s "
                         "TEXTRUN [%s] ENDTEXTRUN\n",
@@ -3359,11 +3382,12 @@ gfxFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
             *aMatchType = gfxTextRange::kFontGroup;
             return font.forget();
         }
+
         
         gfxFontFamily *family = font->GetFontEntry()->Family();
         if (family && family->TestCharacterMap(aCh)) {
-            FontSearch matchData(aCh, font);
-            family->FindFontForChar(&matchData);
+            GlobalFontMatch matchData(aCh, aRunScript, &mStyle);
+            family->SearchAllFontsForChar(&matchData);
             gfxFontEntry *fe = matchData.mBestMatch;
             if (fe) {
                 bool needsBold =
@@ -3396,6 +3420,11 @@ gfxFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
     }
 
     
+    if (aRunScript == HB_SCRIPT_UNKNOWN) {
+        return nsnull;
+    }
+
+    
     
     if (GetGeneralCategory(aCh) ==
             HB_UNICODE_GENERAL_CATEGORY_SPACE_SEPARATOR &&
@@ -3407,7 +3436,7 @@ gfxFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
     
     if (!selectedFont) {
         *aMatchType = gfxTextRange::kSystemFallback;
-        selectedFont = WhichSystemFontSupportsChar(aCh);
+        selectedFont = WhichSystemFontSupportsChar(aCh, aRunScript);
         return selectedFont.forget();
     }
 
@@ -3553,10 +3582,6 @@ gfxFontGroup::WhichPrefFontSupportsChar(PRUint32 aCh)
     gfxFont *font;
 
     
-    if (aCh > 0xFFFF)
-        return nsnull;
-
-    
     PRUint32 unicodeRange = FindCharUnicodeRange(aCh);
     eFontPrefLang charLang = gfxPlatform::GetPlatform()->GetFontPrefLangFor(unicodeRange);
 
@@ -3627,12 +3652,14 @@ gfxFontGroup::WhichPrefFontSupportsChar(PRUint32 aCh)
 }
 
 already_AddRefed<gfxFont>
-gfxFontGroup::WhichSystemFontSupportsChar(PRUint32 aCh)
+gfxFontGroup::WhichSystemFontSupportsChar(PRUint32 aCh, PRInt32 aRunScript)
 {
     gfxFontEntry *fe = 
-        gfxPlatformFontList::PlatformFontList()->FindFontForChar(aCh, GetFontAt(0));
+        gfxPlatformFontList::PlatformFontList()->
+            SystemFindFontForChar(aCh, aRunScript, &mStyle);
     if (fe) {
-        nsRefPtr<gfxFont> font = fe->FindOrMakeFont(&mStyle, false); 
+        
+        nsRefPtr<gfxFont> font = fe->FindOrMakeFont(&mStyle, false);
         return font.forget();
     }
 

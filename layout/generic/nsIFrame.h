@@ -1057,12 +1057,8 @@ public:
 
 
 
-  
-  
-  
-  
-  virtual nsFrameList GetChildList(ChildListID aListID) const = 0;
-  nsFrameList PrincipalChildList() { return GetChildList(kPrincipalList); }
+  virtual const nsFrameList& GetChildList(ChildListID aListID) const = 0;
+  const nsFrameList& PrincipalChildList() { return GetChildList(kPrincipalList); }
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const = 0;
   
   nsIFrame* GetFirstChild(ChildListID aListID) const {

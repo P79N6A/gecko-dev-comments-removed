@@ -812,7 +812,7 @@ struct Chunk {
     inline void init();
 
     
-    jsuint findDecommittedArenaOffset();
+    unsigned findDecommittedArenaOffset();
     ArenaHeader* fetchNextDecommittedArena();
 
   public:
@@ -1978,6 +1978,9 @@ NewCompartment(JSContext *cx, JSPrincipals *principals);
 
 void
 RunDebugGC(JSContext *cx);
+
+void
+SetDeterministicGC(JSContext *cx, bool enabled);
 
 #if defined(JSGC_ROOT_ANALYSIS) && defined(DEBUG) && !defined(JS_THREADSAFE)
 

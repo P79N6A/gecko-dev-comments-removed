@@ -56,6 +56,10 @@
 #include "nsStringStream.h"
 #include "nsNetUtil.h"
 #include "nsThreadUtils.h"
+#include "mozilla/LazyIdleThread.h"
+
+
+#define DEFAULT_THREAD_TIMEOUT_MS 30000
 
 namespace mozilla {
 namespace widget {
@@ -85,7 +89,8 @@ JumpListBuilder::JumpListBuilder() :
   CoCreateInstance(CLSID_DestinationList, NULL, CLSCTX_INPROC_SERVER,
                    IID_ICustomDestinationList, getter_AddRefs(mJumpListMgr));
 
-  NS_NewThread(getter_AddRefs(mIOThread));
+  
+  mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS, LazyIdleThread::ManualShutdown);
   Preferences::AddStrongObserver(this, kPrefTaskbarEnabled);
 }
 

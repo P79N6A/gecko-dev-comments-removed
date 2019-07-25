@@ -699,6 +699,18 @@ xpc_GCThingIsGrayCCThing(void *thing)
            xpc_IsGrayGCThing(thing);
 }
 
+struct UnmarkGrayTracer : public JSTracer
+{
+    UnmarkGrayTracer() : mTracingShape(false), mPreviousShape(nsnull) {}
+    UnmarkGrayTracer(JSTracer *trc, bool aTracingShape)
+        : mTracingShape(aTracingShape), mPreviousShape(nsnull)
+    {
+        JS_TracerInit(this, trc->runtime, trc->callback);
+    }
+    bool mTracingShape; 
+    void *mPreviousShape; 
+};
+
 
 
 
@@ -729,15 +741,38 @@ UnmarkGrayChildren(JSTracer *trc, void **thingp, JSGCTraceKind kind)
         return;
     }
 
-    
-    if (!AddToCCKind(kind) || !xpc_IsGrayGCThing(thing))
+    if (!xpc_IsGrayGCThing(thing))
         return;
 
-    
     static_cast<js::gc::Cell *>(thing)->unmark(js::gc::GRAY);
 
     
-    JS_TraceChildren(trc, thing, kind);
+
+
+
+
+
+    UnmarkGrayTracer *tracer = static_cast<UnmarkGrayTracer*>(trc);
+    UnmarkGrayTracer childTracer(tracer, kind == JSTRACE_SHAPE);
+
+    if (kind != JSTRACE_SHAPE) {
+        JS_TraceChildren(&childTracer, thing, kind);
+        MOZ_ASSERT(!childTracer.mPreviousShape);
+        return;
+    }
+
+    if (tracer->mTracingShape) {
+        MOZ_ASSERT(!tracer->mPreviousShape);
+        tracer->mPreviousShape = thing;
+        return;
+    }
+
+    do {
+        MOZ_ASSERT(!xpc_IsGrayGCThing(thing));
+        JS_TraceChildren(&childTracer, thing, JSTRACE_SHAPE);
+        thing = childTracer.mPreviousShape;
+        childTracer.mPreviousShape = nsnull;
+    } while (thing);
 }
 
 void
@@ -749,7 +784,7 @@ xpc_UnmarkGrayObjectRecursive(JSObject *obj)
     js::gc::AsCell(obj)->unmark(js::gc::GRAY);
 
     
-    JSTracer trc;
+    UnmarkGrayTracer trc;
     JS_TracerInit(&trc, JS_GetObjectRuntime(obj), UnmarkGrayChildren);
     JS_TraceChildren(&trc, obj, JSTRACE_OBJECT);
 }
@@ -1111,12 +1146,8 @@ CreateNewCompartment(JSContext *cx, JSClass *clasp, nsIPrincipal *principal,
     
     
     nsAutoPtr<xpc::CompartmentPrivate> priv_holder(priv);
-    JSPrincipals *principals = nsnull;
-    if (principal)
-        principal->GetJSPrincipals(cx, &principals);
-    JSObject *tempGlobal = JS_NewCompartmentAndGlobalObject(cx, clasp, principals);
-    if (principals)
-        JSPRINCIPALS_DROP(cx, principals);
+    JSObject *tempGlobal =
+        JS_NewCompartmentAndGlobalObject(cx, clasp, nsJSPrincipals::get(principal));
 
     if (!tempGlobal)
         return false;

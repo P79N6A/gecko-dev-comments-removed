@@ -273,7 +273,7 @@ nsContainerFrame::DestroyFrom(nsIFrame* aDestructRoot)
 
 
 
-nsFrameList
+const nsFrameList&
 nsContainerFrame::GetChildList(ChildListID aListID) const
 {
   

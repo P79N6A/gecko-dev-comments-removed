@@ -35,6 +35,7 @@
 
 
 
+
 #ifndef GFXPLATFORMFONTLIST_H_
 #define GFXPLATFORMFONTLIST_H_
 
@@ -97,7 +98,10 @@ public:
 
     virtual void GetFontFamilyList(nsTArray<nsRefPtr<gfxFontFamily> >& aFamilyArray);
 
-    gfxFontEntry* FindFontForChar(const PRUint32 aCh, gfxFont *aPrevFont);
+    virtual gfxFontEntry*
+    SystemFindFontForChar(const PRUint32 aCh,
+                          PRInt32 aRunScript,
+                          const gfxFontStyle* aStyle);
 
     
     virtual gfxFontFamily* FindFamily(const nsAString& aFamily);
@@ -145,6 +149,21 @@ protected:
     static PLDHashOperator FindFontForCharProc(nsStringHashKey::KeyType aKey,
                                                nsRefPtr<gfxFontFamily>& aFamilyEntry,
                                                void* userArg);
+
+    
+    virtual gfxFontEntry* CommonFontFallback(const PRUint32 aCh,
+                                             PRInt32 aRunScript,
+                                             const gfxFontStyle* aMatchStyle);
+
+    
+    virtual gfxFontEntry* GlobalFontFallback(const PRUint32 aCh,
+                                             PRInt32 aRunScript,
+                                             const gfxFontStyle* aMatchStyle,
+                                             PRUint32& aCmapCount);
+
+    
+    
+    virtual bool UsesSystemFallback() { return false; }
 
     
     void InitOtherFamilyNames();

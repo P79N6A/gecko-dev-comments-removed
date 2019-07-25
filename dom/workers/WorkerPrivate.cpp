@@ -157,6 +157,22 @@ SwapToISupportsArray(SmartPtr<T>& aSrc,
 
 NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(JsWorkerMallocSizeOf, "js-worker")
 
+struct WorkerJSRuntimeStats : public JS::RuntimeStats
+{
+  WorkerJSRuntimeStats()
+   : JS::RuntimeStats(JsWorkerMallocSizeOf) { }
+
+  virtual void initExtraCompartmentStats(JSCompartment *c,
+                                         JS::CompartmentStats *cstats) MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(!cstats->extra);
+    
+    
+    const char *name = js::IsAtomsCompartment(c) ? "Web Worker Atoms" : "Web Worker";
+    cstats->extra = const_cast<char *>(name);
+  }
+};
+  
 class WorkerMemoryReporter : public nsIMemoryMultiReporter
 {
   WorkerPrivate* mWorkerPrivate;
@@ -240,8 +256,7 @@ public:
   {
     AssertIsOnMainThread();
 
-    JS::RuntimeStats rtStats(JsWorkerMallocSizeOf, xpc::GetCompartmentName,
-                             xpc::DestroyCompartmentName);
+    WorkerJSRuntimeStats rtStats;
     nsresult rv = CollectForRuntime(false, &rtStats);
     if (NS_FAILED(rv)) {
       return rv;
@@ -249,7 +264,10 @@ public:
 
     
     
-    ReportJSRuntimeExplicitTreeStats(rtStats, mPathPrefix, aCallback, aClosure);
+    rv = ReportJSRuntimeExplicitTreeStats(rtStats, mPathPrefix, aCallback, aClosure);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
 
     return NS_OK;
   }
@@ -2925,7 +2943,7 @@ WorkerPrivate::Dispatch(WorkerRunnable* aEvent, EventQueue* aQueue)
     }
 
     if (aQueue == &mControlQueue && mJSContext) {
-      JS_TriggerOperationCallback(mJSContext);
+      JS_TriggerOperationCallback(JS_GetRuntime(mJSContext));
     }
 
     mCondVar.Notify();

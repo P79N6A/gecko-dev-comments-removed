@@ -55,7 +55,8 @@
 
 #include "txList.h"
 #include "nsIAtom.h"
-#include "nsDoubleHashtable.h"
+#include "nsTHashtable.h"
+#include "nsBaseHashtable.h"
 #include "nsString.h"
 #include "txCore.h"
 #include "nsAutoPtr.h"
@@ -229,24 +230,7 @@ class NodeDefinition : public Node
 
 
 
-
-
-
-
-
-
-
-
-
-class txIDEntry : public PLDHashStringEntry
-{
-public:
-    txIDEntry(const void* aKey) : PLDHashStringEntry(aKey), mElement(nsnull)
-    {
-    }
-    Element* mElement;
-};
-DECL_DHASH_WRAPPER(txIDMap, txIDEntry, nsAString&)
+typedef nsTHashtable<nsBaseHashtableET<nsStringHashKey, Element*> > txIDMap;
 
 class Document : public NodeDefinition
 {

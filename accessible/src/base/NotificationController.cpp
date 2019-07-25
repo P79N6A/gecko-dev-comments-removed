@@ -680,8 +680,7 @@ NotificationController::CreateTextChangeEventFor(AccMutationEvent* aEvent)
 
   
   if (aEvent->mAccessible->Role() == roles::WHITESPACE) {
-    nsCOMPtr<nsIEditor> editor;
-    textAccessible->GetAssociatedEditor(getter_AddRefs(editor));
+    nsCOMPtr<nsIEditor> editor = textAccessible->GetEditor();
     if (editor) {
       bool isEmpty = false;
       editor->GetDocumentIsEmpty(&isEmpty);

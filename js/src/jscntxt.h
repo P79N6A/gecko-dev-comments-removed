@@ -423,6 +423,7 @@ struct JSRuntime : js::RuntimeFriendFields
     int                 gcZealFrequency;
     int                 gcNextScheduled;
     bool                gcDebugCompartmentGC;
+    bool                gcDeterministicOnly;
 
     int gcZeal() { return gcZeal_; }
 
@@ -512,11 +513,8 @@ struct JSRuntime : js::RuntimeFriendFields
 
     uint32_t            debuggerMutations;
 
-    
-
-
-
-    JSSecurityCallbacks *securityCallbacks;
+    const JSSecurityCallbacks *securityCallbacks;
+    JSDestroyPrincipalsOp destroyPrincipals;
 
     
     const JSStructuredCloneCallbacks *structuredCloneCallbacks;
@@ -727,7 +725,7 @@ struct JSRuntime : js::RuntimeFriendFields
 
     JS_FRIEND_API(void *) onOutOfMemory(void *p, size_t nbytes, JSContext *cx);
 
-    JS_FRIEND_API(void) triggerOperationCallback();
+    void triggerOperationCallback();
 
     void setJitHardening(bool enabled);
     bool getJitHardening() const {
@@ -1055,9 +1053,6 @@ struct JSContext : js::ContextFriendFields
 #endif 
 
     
-    JSSecurityCallbacks *securityCallbacks;
-
-    
     unsigned               resolveFlags;
 
     
@@ -1291,6 +1286,40 @@ class AutoXMLRooter : private AutoGCRooter {
 # define JS_UNLOCK_GC(rt)
 #endif
 
+class AutoLockGC
+{
+  public:
+    explicit AutoLockGC(JSRuntime *rt = NULL
+                        MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : runtime(rt)
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        if (rt)
+            JS_LOCK_GC(rt);
+    }
+
+    ~AutoLockGC()
+    {
+        if (runtime)
+            JS_UNLOCK_GC(runtime);
+    }
+
+    bool locked() const {
+        return !!runtime;
+    }
+
+    void lock(JSRuntime *rt) {
+        JS_ASSERT(rt);
+        JS_ASSERT(!runtime);
+        runtime = rt;
+        JS_LOCK_GC(rt);
+    }
+
+  private:
+    JSRuntime *runtime;
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
 class AutoUnlockGC {
   private:
     JSRuntime *rt;
@@ -1459,6 +1488,14 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
                         char **message, JSErrorReport *reportp,
                         bool charArgs, va_list ap);
 #endif
+
+namespace js {
+
+
+extern void
+ReportUsageError(JSContext *cx, JSObject *callee, const char *msg);
+
+} 
 
 extern void
 js_ReportOutOfMemory(JSContext *cx);

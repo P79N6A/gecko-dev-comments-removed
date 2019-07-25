@@ -2184,17 +2184,6 @@ TypeCompartment::nukeTypes(JSContext *cx)
         pendingRecompiles = NULL;
     }
 
-    
-
-
-
-
-#ifdef JS_THREADSAFE
-    AutoLockGC maybeLock;
-    if (!cx->runtime->gcRunning)
-        maybeLock.lock(cx->runtime);
-#endif
-
     inferenceEnabled = false;
 
     

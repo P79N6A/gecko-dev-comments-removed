@@ -166,6 +166,7 @@ private:
     friend class gfxPlatformMac;
 
     gfxMacPlatformFontList();
+    virtual ~gfxMacPlatformFontList();
 
     
     virtual nsresult InitFontList();
@@ -182,11 +183,22 @@ private:
     static void ATSNotification(ATSFontNotificationInfoRef aInfo, void* aUserArg);
 
     
+    virtual gfxFontEntry* GlobalFontFallback(const PRUint32 aCh,
+                                             PRInt32 aRunScript,
+                                             const gfxFontStyle* aMatchStyle,
+                                             PRUint32& aCmapCount);
+
+    virtual bool UsesSystemFallback() { return true; }
+
+    
     PRUint32 mATSGeneration;
 
     enum {
         kATSGenerationInitial = -1
     };
+
+    
+    CTFontRef mDefaultFont;
 };
 
 #endif 

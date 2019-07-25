@@ -428,9 +428,7 @@ nsSVGUseElement::SyncWidthOrHeight(nsIAtom* aName)
       
       
       
-      nsSVGSVGElement* svgElement =
-        static_cast<nsSVGSVGElement*>(mSource.get());
-      svgElement->SyncWidthOrHeight(aName, target);
+      TriggerReclone();
       return;
     }
     

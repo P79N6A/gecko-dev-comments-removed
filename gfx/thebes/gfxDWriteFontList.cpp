@@ -68,6 +68,10 @@ using namespace mozilla;
                                    gfxPlatform::GetLog(eGfxLog_fontinit), \
                                    PR_LOG_DEBUG)
 
+#define LOG_CMAPDATA_ENABLED() PR_LOG_TEST( \
+                                   gfxPlatform::GetLog(eGfxLog_cmapdata), \
+                                   PR_LOG_DEBUG)
+
 
 
 
@@ -371,6 +375,16 @@ gfxDWriteFontEntry::ReadCMAP()
         rv = gfxFontUtils::ReadCMAP(cmap, buffer.Length(),
                                     mCharacterMap, mUVSOffset,
                                     unicodeFont, symbolFont);
+#ifdef PR_LOGGING
+        LOG_FONTLIST(("(fontlist-cmap) name: %s, size: %d\n",
+                      NS_ConvertUTF16toUTF8(mName).get(), mCharacterMap.GetSize()));
+        if (LOG_CMAPDATA_ENABLED()) {
+            char prefix[256];
+            sprintf(prefix, "(cmapdata) name: %.220s",
+                    NS_ConvertUTF16toUTF8(mName).get());
+            mCharacterMap.Dump(prefix, eGfxLog_cmapdata);
+        }
+#endif
         mHasCmapTable = NS_SUCCEEDED(rv);
         return rv;
     }
@@ -411,6 +425,12 @@ gfxDWriteFontEntry::ReadCMAP()
 #ifdef PR_LOGGING
     LOG_FONTLIST(("(fontlist-cmap) name: %s, size: %d\n",
                   NS_ConvertUTF16toUTF8(mName).get(), mCharacterMap.GetSize()));
+    if (LOG_CMAPDATA_ENABLED()) {
+        char prefix[256];
+        sprintf(prefix, "(cmapdata) name: %.220s",
+                NS_ConvertUTF16toUTF8(mName).get());
+        mCharacterMap.Dump(prefix, eGfxLog_cmapdata);
+    }
 #endif
 
     mHasCmapTable = NS_SUCCEEDED(rv);
@@ -1173,4 +1193,183 @@ gfxDWriteFontList::ResolveFontName(const nsAString& aFontName,
     }
 
     return gfxPlatformFontList::ResolveFontName(aFontName, aResolvedFontName);
+}
+
+static nsresult GetFamilyName(IDWriteFont *aFont, nsString& aFamilyName)
+{
+    HRESULT hr;
+    nsRefPtr<IDWriteFontFamily> family;
+
+    
+    aFamilyName.Truncate();
+
+    hr = aFont->GetFontFamily(getter_AddRefs(family));
+    if (FAILED(hr)) {
+        return hr;
+    }
+
+    nsRefPtr<IDWriteLocalizedStrings> familyNames;
+
+    hr = family->GetFamilyNames(getter_AddRefs(familyNames));
+    if (FAILED(hr)) {
+        return hr;
+    }
+
+    UINT32 index = 0;
+    BOOL exists = false;
+
+    hr = familyNames->FindLocaleName(L"en-us", &index, &exists);
+    if (FAILED(hr)) {
+        return hr;
+    }
+
+    
+    if (!exists) {
+        index = 0;
+    }
+
+    nsAutoTArray<WCHAR, 32> name;
+    UINT32 length;
+
+    hr = familyNames->GetStringLength(index, &length);
+    if (FAILED(hr)) {
+        return hr;
+    }
+
+    if (!name.SetLength(length + 1)) {
+        return NS_ERROR_FAILURE;
+    }
+    hr = familyNames->GetString(index, name.Elements(), length + 1);
+    if (FAILED(hr)) {
+        return hr;
+    }
+
+    aFamilyName.Assign(name.Elements());
+    return NS_OK;
+}
+
+
+
+
+
+IFACEMETHODIMP FontFallbackRenderer::DrawGlyphRun(
+    __maybenull void* clientDrawingContext,
+    FLOAT baselineOriginX,
+    FLOAT baselineOriginY,
+    DWRITE_MEASURING_MODE measuringMode,
+    __in DWRITE_GLYPH_RUN const* glyphRun,
+    __in DWRITE_GLYPH_RUN_DESCRIPTION const* glyphRunDescription,
+    __maybenull IUnknown* clientDrawingEffect
+    )
+{
+    if (!mSystemFonts) {
+        return E_FAIL;
+    }
+
+    HRESULT hr = S_OK;
+
+    nsRefPtr<IDWriteFont> font;
+    hr = mSystemFonts->GetFontFromFontFace(glyphRun->fontFace,
+                                           getter_AddRefs(font));
+    if (FAILED(hr)) {
+        return hr;
+    }
+
+    
+    hr = GetFamilyName(font, mFamilyName);
+    if (FAILED(hr)) {
+        return hr;
+    }
+
+    
+    
+    if (mFamilyName.EqualsLiteral("Arial")) {
+        mFamilyName.Truncate();
+        return E_FAIL;
+    }
+    return hr;
+}
+
+gfxFontEntry*
+gfxDWriteFontList::GlobalFontFallback(const PRUint32 aCh,
+                                      PRInt32 aRunScript,
+                                      const gfxFontStyle* aMatchStyle,
+                                      PRUint32& aCmapCount)
+{
+    bool useCmaps = gfxPlatform::GetPlatform()->UseCmapsDuringSystemFallback();
+
+    if (useCmaps) {
+        return gfxPlatformFontList::GlobalFontFallback(aCh,
+                                                       aRunScript,
+                                                       aMatchStyle,
+                                                       aCmapCount);
+    }
+
+    HRESULT hr;
+
+    nsRefPtr<IDWriteFactory> dwFactory =
+        gfxWindowsPlatform::GetPlatform()->GetDWriteFactory();
+    if (!dwFactory) {
+        return nsnull;
+    }
+
+    
+    if (!mFallbackRenderer) {
+        mFallbackRenderer = new FontFallbackRenderer(dwFactory);
+    }
+
+    
+    if (!mFallbackFormat) {
+        hr = dwFactory->CreateTextFormat(L"Arial", NULL,
+                                         DWRITE_FONT_WEIGHT_REGULAR,
+                                         DWRITE_FONT_STYLE_NORMAL,
+                                         DWRITE_FONT_STRETCH_NORMAL,
+                                         72.0f, L"en-us",
+                                         getter_AddRefs(mFallbackFormat));
+        if (FAILED(hr)) {
+            return nsnull;
+        }
+    }
+
+    
+    wchar_t str[16];
+    PRUint32 strLen;
+
+    if (IS_IN_BMP(aCh)) {
+        str[0] = static_cast<wchar_t> (aCh);
+        str[1] = 0;
+        strLen = 1;
+    } else {
+        str[0] = static_cast<wchar_t> (H_SURROGATE(aCh));
+        str[1] = static_cast<wchar_t> (L_SURROGATE(aCh));
+        str[2] = 0;
+        strLen = 2;
+    }
+
+    
+    nsRefPtr<IDWriteTextLayout> fallbackLayout;
+
+    hr = dwFactory->CreateTextLayout(str, strLen, mFallbackFormat,
+                                     200.0f, 200.0f,
+                                     getter_AddRefs(fallbackLayout));
+    if (FAILED(hr)) {
+        return nsnull;
+    }
+
+    
+    
+    hr = fallbackLayout->Draw(NULL, mFallbackRenderer, 50.0f, 50.0f);
+    if (FAILED(hr)) {
+        return nsnull;
+    }
+
+    gfxFontEntry *fontEntry = nsnull;
+    bool needsBold;  
+    fontEntry = FindFontForFamily(mFallbackRenderer->FallbackFamilyName(),
+                                  aMatchStyle, needsBold);
+    if (fontEntry && !fontEntry->TestCharacterMap(aCh)) {
+        fontEntry = nsnull;
+        Telemetry::Accumulate(Telemetry::BAD_FALLBACK_FONT, true);
+    }
+    return fontEntry;
 }

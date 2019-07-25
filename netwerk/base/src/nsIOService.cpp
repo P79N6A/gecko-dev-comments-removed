@@ -176,7 +176,7 @@ PRUint32   nsIOService::gDefaultSegmentCount = 24;
 nsIOService::nsIOService()
     : mOffline(true)
     , mOfflineForProfileChange(false)
-    , mManageOfflineStatus(true)
+    , mManageOfflineStatus(false)
     , mSettingOffline(false)
     , mSetOfflineValue(false)
     , mShutdown(false)
@@ -1119,9 +1119,18 @@ NS_IMETHODIMP
 nsIOService::SetManageOfflineStatus(bool aManage) {
     nsresult rv = NS_OK;
 
-    InitializeNetworkLinkService();
+    
+    
+    
+    
+    
+    
+    
+    
     bool wasManaged = mManageOfflineStatus;
     mManageOfflineStatus = aManage;
+
+    InitializeNetworkLinkService();
 
     if (mManageOfflineStatus && !wasManaged) {
         rv = TrackNetworkLinkStatusForOffline();

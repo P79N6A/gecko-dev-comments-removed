@@ -141,7 +141,8 @@ protected:
     already_AddRefed<gfxFT2Font> WhichFontSupportsChar(const nsTArray<nsRefPtr<gfxFontEntry> >& aFontEntryList,
                                                        PRUint32 aCh);
     already_AddRefed<gfxFont> WhichPrefFontSupportsChar(PRUint32 aCh);
-    already_AddRefed<gfxFont> WhichSystemFontSupportsChar(PRUint32 aCh);
+    already_AddRefed<gfxFont>
+        WhichSystemFontSupportsChar(PRUint32 aCh, PRInt32 aRunScript);
 
     nsTArray<gfxTextRange> mRanges;
     nsString mString;

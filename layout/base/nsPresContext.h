@@ -968,22 +968,8 @@ public:
   bool MayHaveFixedBackgroundFrames() { return mMayHaveFixedBackgroundFrames; }
   void SetHasFixedBackgroundFrame() { mMayHaveFixedBackgroundFrames = true; }
 
-  virtual NS_MUST_OVERRIDE size_t
-        SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
-    size_t n = 0;
-    LangGroupFontPrefs *langGroupfontPrefs = mLangGroupFontPrefs.mNext;
-    while (langGroupfontPrefs) {
-      
-      n += sizeof(LangGroupFontPrefs);
-      langGroupfontPrefs = langGroupfontPrefs->mNext;
-    }
-    return n;
-
-    
-    
-  }
-  virtual NS_MUST_OVERRIDE size_t
-        SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
+  virtual size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
 
@@ -1036,6 +1022,22 @@ protected:
                             NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
                             NS_FONT_STRETCH_NORMAL, 0, 0)
     {}
+
+    size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
+      size_t n = 0;
+      LangGroupFontPrefs *curr = mNext;
+      while (curr) {
+        n += aMallocSizeOf(curr);
+
+        
+        
+        
+        
+
+        curr = curr->mNext;
+      }
+      return n;
+    }
 
     nsCOMPtr<nsIAtom> mLangGroup;
     nscoord mMinimumFontSize;
@@ -1375,24 +1377,7 @@ public:
 
   void FlushWillPaintObservers();
 
-  virtual NS_MUST_OVERRIDE size_t
-        SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE {
-    return nsPresContext::SizeOfExcludingThis(aMallocSizeOf);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-  }
-  virtual NS_MUST_OVERRIDE size_t
-        SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE {
-    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
-  }
+  virtual size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE;
 
 protected:
   class RunWillPaintObservers : public nsRunnable {

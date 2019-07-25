@@ -402,9 +402,27 @@ StoreUserFontData(gfxFontEntry* aFontEntry, gfxProxyFontEntry* aProxy,
     }
 }
 
-static void
-CopyWOFFMetadata(const PRUint8* aFontData, PRUint32 aLength,
-                 nsTArray<PRUint8>* aMetadata, PRUint32* aMetaOrigLen)
+struct WOFFHeader {
+    AutoSwap_PRUint32 signature;
+    AutoSwap_PRUint32 flavor;
+    AutoSwap_PRUint32 length;
+    AutoSwap_PRUint16 numTables;
+    AutoSwap_PRUint16 reserved;
+    AutoSwap_PRUint32 totalSfntSize;
+    AutoSwap_PRUint16 majorVersion;
+    AutoSwap_PRUint16 minorVersion;
+    AutoSwap_PRUint32 metaOffset;
+    AutoSwap_PRUint32 metaCompLen;
+    AutoSwap_PRUint32 metaOrigLen;
+    AutoSwap_PRUint32 privOffset;
+    AutoSwap_PRUint32 privLen;
+};
+
+void
+gfxUserFontSet::CopyWOFFMetadata(const PRUint8* aFontData,
+                                 PRUint32 aLength,
+                                 nsTArray<PRUint8>* aMetadata,
+                                 PRUint32* aMetaOrigLen)
 {
     
     
@@ -412,21 +430,6 @@ CopyWOFFMetadata(const PRUint8* aFontData, PRUint32 aLength,
     
     
     
-    struct WOFFHeader {
-        AutoSwap_PRUint32 signature;
-        AutoSwap_PRUint32 flavor;
-        AutoSwap_PRUint32 length;
-        AutoSwap_PRUint16 numTables;
-        AutoSwap_PRUint16 reserved;
-        AutoSwap_PRUint32 totalSfntSize;
-        AutoSwap_PRUint16 majorVersion;
-        AutoSwap_PRUint16 minorVersion;
-        AutoSwap_PRUint32 metaOffset;
-        AutoSwap_PRUint32 metaCompLen;
-        AutoSwap_PRUint32 metaOrigLen;
-        AutoSwap_PRUint32 privOffset;
-        AutoSwap_PRUint32 privLen;
-    };
     if (aLength < sizeof(WOFFHeader)) {
         return;
     }

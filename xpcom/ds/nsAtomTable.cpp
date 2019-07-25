@@ -547,7 +547,7 @@ class CheckStaticAtomSizes
 };
 
 nsresult
-NS_RegisterStaticAtoms(const nsStaticAtom* aAtoms, PRUint32 aAtomCount)
+RegisterStaticAtoms(const nsStaticAtom* aAtoms, PRUint32 aAtomCount)
 {
   
   

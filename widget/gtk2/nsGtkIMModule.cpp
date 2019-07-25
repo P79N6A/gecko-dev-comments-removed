@@ -114,8 +114,8 @@ nsGtkIMModule::nsGtkIMModule(nsWindow* aOwnerWindow) :
 #endif
     mDummyContext(nsnull),
     mCompositionStart(PR_UINT32_MAX), mProcessingKeyEvent(nsnull),
-    mIsComposing(false), mIsIMFocused(false),
-    mIgnoreNativeCompositionEvent(false)
+    mCompositionState(eCompositionState_NotComposing),
+    mIsIMFocused(false), mIgnoreNativeCompositionEvent(false)
 {
 #ifdef PR_LOGGING
     if (!gGtkIMLog) {
@@ -412,7 +412,7 @@ nsGtkIMModule::OnKeyEvent(nsWindow* aCaller, GdkEventKey* aEvent,
     
     bool filterThisEvent = isFiltered && mFilterKeyEvent;
 
-    if (mIsComposing && !isFiltered) {
+    if (IsComposing() && !isFiltered) {
         if (aEvent->type == GDK_KEY_PRESS) {
             if (!mDispatchedCompositionString.IsEmpty()) {
                 
@@ -448,10 +448,16 @@ void
 nsGtkIMModule::OnFocusChangeInGecko(bool aFocus)
 {
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): OnFocusChangeInGecko, aFocus=%s mIsComposing=%s, mIsIMFocused=%s, mIgnoreNativeCompositionEvent=%s",
-         this, aFocus ? "YES" : "NO", mIsComposing ? "YES" : "NO",
+        ("GtkIMModule(%p): OnFocusChangeInGecko, aFocus=%s, "
+         "mCompositionState=%s, mIsIMFocused=%s, "
+         "mIgnoreNativeCompositionEvent=%s",
+         this, aFocus ? "YES" : "NO", GetCompositionStateName(),
          mIsIMFocused ? "YES" : "NO",
          mIgnoreNativeCompositionEvent ? "YES" : "NO"));
+
+    
+    mSelectedString.Truncate();
+
     if (aFocus) {
         
         
@@ -463,8 +469,8 @@ void
 nsGtkIMModule::ResetIME()
 {
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): ResetIME, mIsComposing=%s, mIsIMFocused=%s",
-         this, mIsComposing ? "YES" : "NO", mIsIMFocused ? "YES" : "NO"));
+        ("GtkIMModule(%p): ResetIME, mCompositionState=%s, mIsIMFocused=%s",
+         this, GetCompositionStateName(), mIsIMFocused ? "YES" : "NO"));
 
     GtkIMContext *im = GetContext();
     if (NS_UNLIKELY(!im)) {
@@ -485,8 +491,8 @@ nsGtkIMModule::ResetInputState(nsWindow* aCaller)
     }
 
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): ResetInputState, aCaller=%p, mIsComposing=%s",
-         this, aCaller, mIsComposing ? "YES" : "NO"));
+        ("GtkIMModule(%p): ResetInputState, aCaller=%p, mCompositionState=%s",
+         this, aCaller, GetCompositionStateName()));
 
     if (aCaller != mLastFocusedWindow) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
@@ -495,7 +501,7 @@ nsGtkIMModule::ResetInputState(nsWindow* aCaller)
         return NS_OK;
     }
 
-    if (!mIsComposing) {
+    if (!IsComposing()) {
         return NS_OK;
     }
 
@@ -524,7 +530,7 @@ nsGtkIMModule::CancelIMEComposition(nsWindow* aCaller)
         return NS_OK;
     }
 
-    if (!mIsComposing) {
+    if (!IsComposing()) {
         return NS_OK;
     }
 
@@ -830,7 +836,7 @@ nsGtkIMModule::OnEndCompositionNative(GtkIMContext *aContext)
     
     mIgnoreNativeCompositionEvent = false;
 
-    if (!mIsComposing || shouldIgnoreThisEvent) {
+    if (!IsComposing() || shouldIgnoreThisEvent) {
         
         return;
     }
@@ -868,13 +874,13 @@ nsGtkIMModule::OnChangeCompositionNative(GtkIMContext *aContext)
 
     nsAutoString compositionString;
     GetCompositionString(compositionString);
-    if (!mIsComposing && compositionString.IsEmpty()) {
+    if (!IsComposing() && compositionString.IsEmpty()) {
         mDispatchedCompositionString.Truncate();
         return; 
     }
 
     
-    DispatchTextEvent(compositionString, true);
+    DispatchTextEvent(compositionString, false);
 }
 
 
@@ -989,7 +995,7 @@ nsGtkIMModule::OnCommitCompositionNative(GtkIMContext *aContext,
     
     
     
-    if (!mIsComposing && !commitString[0]) {
+    if (!IsComposing() && !commitString[0]) {
         return;
     }
 
@@ -1000,7 +1006,7 @@ nsGtkIMModule::OnCommitCompositionNative(GtkIMContext *aContext,
     
     
     
-    if (!mIsComposing && mProcessingKeyEvent) {
+    if (!IsComposing() && mProcessingKeyEvent) {
         char keyval_utf8[8]; 
         gint keyval_utf8_len;
         guint32 keyval_unicode;
@@ -1031,7 +1037,7 @@ nsGtkIMModule::CommitCompositionBy(const nsAString& aString)
          this, NS_ConvertUTF16toUTF8(aString).get(),
          NS_ConvertUTF16toUTF8(mDispatchedCompositionString).get()));
 
-    if (!DispatchTextEvent(aString, false)) {
+    if (!DispatchTextEvent(aString, true)) {
         return false;
     }
     
@@ -1067,7 +1073,7 @@ nsGtkIMModule::DispatchCompositionStart()
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
         ("GtkIMModule(%p): DispatchCompositionStart", this));
 
-    if (mIsComposing) {
+    if (IsComposing()) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
             ("    WARNING, we're already in composition"));
         return true;
@@ -1091,6 +1097,10 @@ nsGtkIMModule::DispatchCompositionStart()
         return false;
     }
 
+    
+    
+    
+    
     mCompositionStart = selection.mReply.mOffset;
     mDispatchedCompositionString.Truncate();
 
@@ -1120,7 +1130,7 @@ nsGtkIMModule::DispatchCompositionStart()
 
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
         ("    mCompositionStart=%u", mCompositionStart));
-    mIsComposing = true;
+    mCompositionState = eCompositionState_CompositionStartDispatched;
     nsCompositionEvent compEvent(true, NS_COMPOSITION_START,
                                  mLastFocusedWindow);
     InitEvent(compEvent);
@@ -1144,7 +1154,7 @@ nsGtkIMModule::DispatchCompositionEnd()
          "mDispatchedCompositionString=\"%s\"",
          this, NS_ConvertUTF16toUTF8(mDispatchedCompositionString).get()));
 
-    if (!mIsComposing) {
+    if (!IsComposing()) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
             ("    WARNING, we have alrady finished the composition"));
         return false;
@@ -1164,7 +1174,7 @@ nsGtkIMModule::DispatchCompositionEnd()
     nsEventStatus status;
     nsCOMPtr<nsIWidget> kungFuDeathGrip = mLastFocusedWindow;
     mLastFocusedWindow->DispatchEvent(&compEvent, status);
-    mIsComposing = false;
+    mCompositionState = eCompositionState_NotComposing;
     mCompositionStart = PR_UINT32_MAX;
     mDispatchedCompositionString.Truncate();
     if (static_cast<nsWindow*>(kungFuDeathGrip.get())->IsDestroyed() ||
@@ -1179,11 +1189,11 @@ nsGtkIMModule::DispatchCompositionEnd()
 
 bool
 nsGtkIMModule::DispatchTextEvent(const nsAString &aCompositionString,
-                                 bool aCheckAttr)
+                                 bool aIsCommit)
 {
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): DispatchTextEvent, aCheckAttr=%s",
-         this, aCheckAttr ? "TRUE" : "FALSE"));
+        ("GtkIMModule(%p): DispatchTextEvent, aIsCommit=%s",
+         this, aIsCommit ? "TRUE" : "FALSE"));
 
     if (!mLastFocusedWindow) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
@@ -1191,7 +1201,7 @@ nsGtkIMModule::DispatchTextEvent(const nsAString &aCompositionString,
         return false;
     }
 
-    if (!mIsComposing) {
+    if (!IsComposing()) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
             ("    The composition wasn't started, force starting..."));
         nsCOMPtr<nsIWidget> kungFuDeathGrip = mLastFocusedWindow;
@@ -1218,13 +1228,27 @@ nsGtkIMModule::DispatchTextEvent(const nsAString &aCompositionString,
       }
     }
 
+    
+    if (mCompositionState == eCompositionState_CompositionStartDispatched) {
+        
+        
+        nsQueryContentEvent querySelectedTextEvent(true,
+                                                   NS_QUERY_SELECTED_TEXT,
+                                                   mLastFocusedWindow);
+        mLastFocusedWindow->DispatchEvent(&querySelectedTextEvent, status);
+        if (querySelectedTextEvent.mSucceeded) {
+            mSelectedString = querySelectedTextEvent.mReply.mString;
+            mCompositionStart = querySelectedTextEvent.mReply.mOffset;
+        }
+    }
+
     nsTextEvent textEvent(true, NS_TEXT_TEXT, mLastFocusedWindow);
     InitEvent(textEvent);
 
     PRUint32 targetOffset = mCompositionStart;
 
     nsAutoTArray<nsTextRange, 4> textRanges;
-    if (aCheckAttr) {
+    if (!aIsCommit) {
         
         
         SetTextRangeList(textRanges);
@@ -1241,6 +1265,10 @@ nsGtkIMModule::DispatchTextEvent(const nsAString &aCompositionString,
     textEvent.rangeCount = textRanges.Length();
     textEvent.rangeArray = textRanges.Elements();
     textEvent.theText = mDispatchedCompositionString.get();
+
+    mCompositionState = aIsCommit ?
+        eCompositionState_CommitTextEventDispatched :
+        eCompositionState_TextEventDispatched;
 
     mLastFocusedWindow->DispatchEvent(&textEvent, status);
     if (lastFocusedWindow->IsDestroyed() ||
@@ -1441,7 +1469,8 @@ nsresult
 nsGtkIMModule::GetCurrentParagraph(nsAString& aText, PRUint32& aCursorPos)
 {
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): GetCurrentParagraph", this));
+        ("GtkIMModule(%p): GetCurrentParagraph, mCompositionState=%s",
+         this, GetCompositionStateName()));
 
     if (!mLastFocusedWindow) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
@@ -1451,15 +1480,26 @@ nsGtkIMModule::GetCurrentParagraph(nsAString& aText, PRUint32& aCursorPos)
 
     nsEventStatus status;
 
-    
-    nsQueryContentEvent querySelectedTextEvent(true,
-                                               NS_QUERY_SELECTED_TEXT,
-                                               mLastFocusedWindow);
-    mLastFocusedWindow->DispatchEvent(&querySelectedTextEvent, status);
-    NS_ENSURE_TRUE(querySelectedTextEvent.mSucceeded, NS_ERROR_FAILURE);
+    PRUint32 selOffset = mCompositionStart;
+    PRUint32 selLength = mSelectedString.Length();
 
-    PRUint32 selOffset = querySelectedTextEvent.mReply.mOffset;
-    PRUint32 selLength = querySelectedTextEvent.mReply.mString.Length();
+    
+    
+    if (!EditorHasCompositionString()) {
+        
+        nsQueryContentEvent querySelectedTextEvent(true,
+                                                   NS_QUERY_SELECTED_TEXT,
+                                                   mLastFocusedWindow);
+        mLastFocusedWindow->DispatchEvent(&querySelectedTextEvent, status);
+        NS_ENSURE_TRUE(querySelectedTextEvent.mSucceeded, NS_ERROR_FAILURE);
+
+        selOffset = querySelectedTextEvent.mReply.mOffset;
+        selLength = querySelectedTextEvent.mReply.mString.Length();
+    }
+
+    PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
+        ("        selOffset=%u, selLength=%u",
+         selOffset, selLength));
 
     
     
@@ -1468,9 +1508,6 @@ nsGtkIMModule::GetCurrentParagraph(nsAString& aText, PRUint32& aCursorPos)
         selOffset + selLength > PR_INT32_MAX) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
             ("    FAILED, The selection is out of range"));
-        PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-            ("        selOffset=%u, selLength=%u",
-             selOffset, selLength));
         return NS_ERROR_FAILURE;
     }
 
@@ -1485,11 +1522,18 @@ nsGtkIMModule::GetCurrentParagraph(nsAString& aText, PRUint32& aCursorPos)
     nsAutoString textContent(queryTextContentEvent.mReply.mString);
     if (selOffset + selLength > textContent.Length()) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-            ("    FAILED, The selection is invalid"));
-        PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-            ("        selOffset=%u, selLength=%u, textContent.Length()=%u",
-             selOffset, selLength, textContent.Length()));
+            ("    FAILED, The selection is invalid, textContent.Length()=%u",
+             textContent.Length()));
         return NS_ERROR_FAILURE;
+    }
+
+    
+    
+    
+    if (EditorHasCompositionString() &&
+        mDispatchedCompositionString != mSelectedString) {
+        textContent.Replace(mCompositionStart,
+            mDispatchedCompositionString.Length(), mSelectedString);
     }
 
     
@@ -1503,7 +1547,9 @@ nsGtkIMModule::GetCurrentParagraph(nsAString& aText, PRUint32& aCursorPos)
     aCursorPos = selOffset - PRUint32(parStart);
 
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("    aText.Length()=%u, aCursorPos=%u", aText.Length(), aCursorPos));
+        ("    aText=%s, aText.Length()=%u, aCursorPos=%u",
+         NS_ConvertUTF16toUTF8(aText).get(),
+         aText.Length(), aCursorPos));
 
     return NS_OK;
 }
@@ -1512,8 +1558,9 @@ nsresult
 nsGtkIMModule::DeleteText(const PRInt32 aOffset, const PRUint32 aNChars)
 {
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): DeleteText, aOffset=%d, aNChars=%d",
-         this, aOffset, aNChars));
+        ("GtkIMModule(%p): DeleteText, aOffset=%d, aNChars=%d, "
+         "mCompositionState=%s",
+         this, aOffset, aNChars, GetCompositionStateName()));
 
     if (!mLastFocusedWindow) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
@@ -1521,31 +1568,93 @@ nsGtkIMModule::DeleteText(const PRInt32 aOffset, const PRUint32 aNChars)
         return NS_ERROR_NULL_POINTER;
     }
 
+    nsRefPtr<nsWindow> lastFocusedWindow(mLastFocusedWindow);
     nsEventStatus status;
 
     
-    nsQueryContentEvent querySelectedTextEvent(true,
-                                               NS_QUERY_SELECTED_TEXT,
-                                               mLastFocusedWindow);
-    mLastFocusedWindow->DispatchEvent(&querySelectedTextEvent, status);
-    NS_ENSURE_TRUE(querySelectedTextEvent.mSucceeded, NS_ERROR_FAILURE);
+    
+    PRUint32 selOffset;
+    bool wasComposing = IsComposing();
+    bool editorHadCompositionString = EditorHasCompositionString();
+    if (wasComposing) {
+        selOffset = mCompositionStart;
+        if (editorHadCompositionString &&
+            !DispatchTextEvent(mSelectedString, false)) {
+            PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
+                ("    FAILED, quitting from DeletText"));
+            return NS_ERROR_FAILURE;
+        }
+        if (!DispatchCompositionEnd()) {
+            PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
+                ("    FAILED, quitting from DeletText"));
+            return NS_ERROR_FAILURE;
+        }
+    } else {
+        
+        nsQueryContentEvent querySelectedTextEvent(true,
+                                                   NS_QUERY_SELECTED_TEXT,
+                                                   mLastFocusedWindow);
+        lastFocusedWindow->DispatchEvent(&querySelectedTextEvent, status);
+        NS_ENSURE_TRUE(querySelectedTextEvent.mSucceeded, NS_ERROR_FAILURE);
+
+        selOffset = querySelectedTextEvent.mReply.mOffset;
+    }
 
     
     nsSelectionEvent selectionEvent(true, NS_SELECTION_SET,
                                     mLastFocusedWindow);
-    selectionEvent.mOffset = querySelectedTextEvent.mReply.mOffset + aOffset;
+    selectionEvent.mOffset = selOffset + aOffset;
     selectionEvent.mLength = aNChars;
     selectionEvent.mReversed = false;
     selectionEvent.mExpandToClusterBoundary = false;
-    mLastFocusedWindow->DispatchEvent(&selectionEvent, status);
-    NS_ENSURE_TRUE(selectionEvent.mSucceeded, NS_ERROR_FAILURE);
+    lastFocusedWindow->DispatchEvent(&selectionEvent, status);
+
+    if (!selectionEvent.mSucceeded ||
+        lastFocusedWindow != mLastFocusedWindow ||
+        lastFocusedWindow->Destroyed()) {
+        PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
+            ("    FAILED, setting selection caused focus change "
+             "or window destroyed"));
+        return NS_ERROR_FAILURE;
+    }
 
     
     nsContentCommandEvent contentCommandEvent(true,
                                               NS_CONTENT_COMMAND_DELETE,
                                               mLastFocusedWindow);
     mLastFocusedWindow->DispatchEvent(&contentCommandEvent, status);
-    NS_ENSURE_TRUE(contentCommandEvent.mSucceeded, NS_ERROR_FAILURE);
+
+    if (!contentCommandEvent.mSucceeded ||
+        lastFocusedWindow != mLastFocusedWindow ||
+        lastFocusedWindow->Destroyed()) {
+        PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
+            ("    FAILED, deleting the selection caused focus change "
+             "or window destroyed"));
+        return NS_ERROR_FAILURE;
+    }
+
+    if (!wasComposing) {
+        return NS_OK;
+    }
+
+    
+    if (!DispatchCompositionStart()) {
+        PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
+            ("    FAILED, resterting composition start"));
+        return NS_ERROR_FAILURE;
+    }
+
+    if (!editorHadCompositionString) {
+        return NS_OK;
+    }
+
+    nsAutoString compositionString;
+    GetCompositionString(compositionString);
+    if (!DispatchTextEvent(compositionString, true)) {
+        PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
+            ("    FAILED, restoring composition string"));
+        return NS_ERROR_FAILURE;
+    }
 
     return NS_OK;
 }

@@ -488,15 +488,23 @@ private:
 
 
 
-struct FontSearch {
-    FontSearch(const PRUint32 aCharacter, gfxFont *aFont) :
-        mCh(aCharacter), mFontToMatch(aFont), mMatchRank(0), mCount(0) {
-    }
-    const PRUint32         mCh;
-    gfxFont*               mFontToMatch;
-    PRInt32                mMatchRank;
-    nsRefPtr<gfxFontEntry> mBestMatch;
-    PRUint32               mCount;
+struct GlobalFontMatch {
+    GlobalFontMatch(const PRUint32 aCharacter,
+                    PRInt32 aRunScript,
+                    const gfxFontStyle *aStyle) :
+        mCh(aCharacter), mRunScript(aRunScript), mStyle(aStyle),
+        mMatchRank(0), mCount(0), mCmapsTested(0)
+        {
+
+        }
+
+    const PRUint32         mCh;          
+    PRInt32                mRunScript;   
+    const gfxFontStyle*    mStyle;       
+    PRInt32                mMatchRank;   
+    nsRefPtr<gfxFontEntry> mBestMatch;   
+    PRUint32               mCount;       
+    PRUint32               mCmapsTested; 
 };
 
 class gfxFontFamily {
@@ -559,7 +567,10 @@ public:
 
     
     
-    void FindFontForChar(FontSearch *aMatchData);
+    void FindFontForChar(GlobalFontMatch *aMatchData);
+
+    
+    void SearchAllFontsForChar(GlobalFontMatch *aMatchData);
 
     
     virtual void ReadOtherFamilyNames(gfxPlatformFontList *aPlatformFontList);
@@ -582,7 +593,7 @@ public:
     gfxFontEntry* FindFont(const nsAString& aPostscriptName);
 
     
-    void ReadCMAP() {
+    void ReadAllCMAPs() {
         PRUint32 i, numFonts = mAvailableFonts.Length();
         for (i = 0; i < numFonts; i++) {
             gfxFontEntry *fe = mAvailableFonts[i];
@@ -598,7 +609,7 @@ public:
 
     bool TestCharacterMap(PRUint32 aCh) {
         if (!mCharacterMapInitialized) {
-            ReadCMAP();
+            ReadAllCMAPs();
         }
         return mCharacterMap.test(aCh);
     }
@@ -2975,7 +2986,8 @@ public:
     
     virtual already_AddRefed<gfxFont> WhichPrefFontSupportsChar(PRUint32 aCh);
 
-    virtual already_AddRefed<gfxFont> WhichSystemFontSupportsChar(PRUint32 aCh);
+    virtual already_AddRefed<gfxFont>
+        WhichSystemFontSupportsChar(PRUint32 aCh, PRInt32 aRunScript);
 
     template<typename T>
     void ComputeRanges(nsTArray<gfxTextRange>& mRanges,
