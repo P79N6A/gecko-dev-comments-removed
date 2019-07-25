@@ -820,11 +820,8 @@ protected:
 
 
 
-
-
     if (!mInner.IsLTR()) {
-      aRect.x = PresContext()->RoundAppUnitsToNearestDevPixels(
-         mInner.mScrollPort.XMost() - aScrollPosition.x - aRect.width);
+      aRect.x = mInner.mScrollPort.XMost() - aScrollPosition.x - aRect.width;
     }
     mInner.mScrolledFrame->SetBounds(aState, aRect, aRemoveOverflowAreas);
   }

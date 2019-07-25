@@ -2386,12 +2386,6 @@ nsGfxScrollFrameInner::GetScrollbarStylesFromFrame() const
   return result;
 }
 
-static nscoord
-AlignToDevPixelRoundingToZero(nscoord aVal, PRInt32 aAppUnitsPerDevPixel)
-{
-  return (aVal/aAppUnitsPerDevPixel)*aAppUnitsPerDevPixel;
-}
-
 nsRect
 nsGfxScrollFrameInner::GetScrollRange() const
 {
@@ -2927,11 +2921,14 @@ void nsGfxScrollFrameInner::CurPosAttributeChanged(nsIContent* aContent)
                              &allowedRange.x, &allowedRange.width);
   dest.y = GetCoordAttribute(mVScrollbarBox, nsGkAtoms::curpos, current.y,
                              &allowedRange.y, &allowedRange.height);
+  current += scrolledRect.TopLeft();
   dest += scrolledRect.TopLeft();
   allowedRange += scrolledRect.TopLeft();
 
   
-  if (mAsyncScroll && allowedRange.Contains(GetScrollPosition())) {
+  
+  
+  if (allowedRange.ClampPoint(current) == current) {
     return;
   }
 
@@ -3494,6 +3491,12 @@ nsGfxScrollFrameInner::ReflowFinished()
   
   nsPoint currentScrollPos = GetScrollPosition();
   ScrollToImpl(currentScrollPos, nsRect(currentScrollPos, nsSize(0, 0)));
+  if (!mAsyncScroll) {
+    
+    
+    
+    mDestination = GetScrollPosition();
+  }
 
   if (NS_SUBTREE_DIRTY(mOuter) || !mUpdateScrollbarAttributes)
     return false;
