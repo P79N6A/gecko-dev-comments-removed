@@ -2043,8 +2043,12 @@ DocAccessible::IsLoadEventTarget() const
 
   
   
-  if (parentTreeItem)
-    return ParentDocument()->HasLoadState(eCompletelyLoaded);
+  
+  
+  if (parentTreeItem) {
+    DocAccessible* parentDoc = ParentDocument();
+    return parentDoc && parentDoc->HasLoadState(eCompletelyLoaded);
+  }
 
   
   PRInt32 contentType;

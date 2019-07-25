@@ -152,7 +152,8 @@ public:
   
 
 
-  DocAccessible* ParentDocument() const;
+  DocAccessible* ParentDocument() const
+    { return mParent ? mParent->Document() : nsnull; }
 
   
 
