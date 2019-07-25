@@ -128,7 +128,6 @@
 #include "nsIPresShell.h"
 #include "nsIPrivateDOMEvent.h"
 #include "nsIProgrammingLanguage.h"
-#include "nsIAuthPrompt.h"
 #include "nsIServiceManager.h"
 #include "nsIScriptGlobalObjectOwner.h"
 #include "nsIScriptSecurityManager.h"
@@ -138,6 +137,7 @@
 #include "nsISelectionController.h"
 #include "nsISelection.h"
 #include "nsIPrompt.h"
+#include "nsIPromptService.h"
 #include "nsIWebNavigation.h"
 #include "nsIWebBrowser.h"
 #include "nsIWebBrowserChrome.h"
@@ -4245,9 +4245,6 @@ nsGlobalWindow::Alert(const nsAString& aString)
 {
   FORWARD_TO_OUTER(Alert, (aString), NS_ERROR_NOT_INITIALIZED);
 
-  nsCOMPtr<nsIPrompt> prompter(do_GetInterface(mDocShell));
-  NS_ENSURE_TRUE(prompter, NS_ERROR_FAILURE);
-
   
   
   
@@ -4272,16 +4269,17 @@ nsGlobalWindow::Alert(const nsAString& aString)
   nsAutoString final;
   nsContentUtils::StripNullChars(*str, final);
 
-  return prompter->Alert(title.get(), final.get());
+  nsresult rv;
+  nsCOMPtr<nsIPromptService> promptSvc = do_GetService("@mozilla.org/embedcomp/prompt-service;1", &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return promptSvc->Alert(this, title.get(), final.get());
 }
 
 NS_IMETHODIMP
 nsGlobalWindow::Confirm(const nsAString& aString, PRBool* aReturn)
 {
   FORWARD_TO_OUTER(Confirm, (aString, aReturn), NS_ERROR_NOT_INITIALIZED);
-
-  nsCOMPtr<nsIPrompt> prompter(do_GetInterface(mDocShell));
-  NS_ENSURE_TRUE(prompter, NS_ERROR_FAILURE);
 
   
   
@@ -4302,41 +4300,23 @@ nsGlobalWindow::Confirm(const nsAString& aString, PRBool* aReturn)
   nsAutoString final;
   nsContentUtils::StripNullChars(aString, final);
 
-  return prompter->Confirm(title.get(), final.get(),
-                           aReturn);
+  nsresult rv;
+  nsCOMPtr<nsIPromptService> promptSvc = do_GetService("@mozilla.org/embedcomp/prompt-service;1", &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return promptSvc->Confirm(this, title.get(), final.get(), aReturn);
 }
 
 NS_IMETHODIMP
 nsGlobalWindow::Prompt(const nsAString& aMessage, const nsAString& aInitial,
-                       const nsAString& aTitle, PRUint32 aSavePassword,
                        nsAString& aReturn)
 {
-  
-  
   SetDOMStringToNull(aReturn);
 
   
   
   
-
-  PR_STATIC_ASSERT(nsIAuthPrompt::SAVE_PASSWORD_NEVER == 0);
-
-  nsresult rv;
-  nsCOMPtr<nsIWindowWatcher> wwatch =
-    do_GetService(NS_WINDOWWATCHER_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIAuthPrompt> prompter;
-  wwatch->GetNewAuthPrompter(this, getter_AddRefs(prompter));
-  NS_ENSURE_TRUE(prompter, NS_ERROR_FAILURE);
-
-  
-  
-  
   nsAutoPopupStatePusher popupStatePusher(openAbused, PR_TRUE);
-
-  PRBool b;
-  nsXPIDLString uniResult;
 
   
   
@@ -4351,13 +4331,22 @@ nsGlobalWindow::Prompt(const nsAString& aMessage, const nsAString& aInitial,
   nsContentUtils::StripNullChars(aMessage, fixedMessage);
   nsContentUtils::StripNullChars(aInitial, fixedInitial);
 
-  rv = prompter->Prompt(title.get(), fixedMessage.get(), nsnull,
-                        aSavePassword, fixedInitial.get(),
-                        getter_Copies(uniResult), &b);
+  nsresult rv;
+  nsCOMPtr<nsIPromptService> promptSvc = do_GetService("@mozilla.org/embedcomp/prompt-service;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (uniResult && b) {
-    aReturn.Assign(uniResult);
+  
+  PRUnichar *inoutValue = ToNewUnicode(fixedInitial);
+
+  PRBool ok, dummy;
+  rv = promptSvc->Prompt(this, title.get(), fixedMessage.get(),
+                         &inoutValue, nsnull, &dummy, &ok);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAdoptingString outValue(inoutValue);
+
+  if (ok && outValue) {
+    aReturn.Assign(outValue);
   }
 
   return rv;
