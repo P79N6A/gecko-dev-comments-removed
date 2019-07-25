@@ -169,6 +169,10 @@ nsScriptLoader::~nsScriptLoader()
     mAsyncRequests[i]->FireScriptAvailable(NS_ERROR_ABORT);
   }
 
+  for (PRUint32 i = 0; i < mNonAsyncExternalScriptInsertedRequests.Length(); i++) {
+    mNonAsyncExternalScriptInsertedRequests[i]->FireScriptAvailable(NS_ERROR_ABORT);
+  }
+
   
   
   for (PRUint32 j = 0; j < mPendingChildLoaders.Length(); ++j) {
@@ -571,10 +575,30 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
 
     request->mJSVersion = version;
 
-    PRBool async = !aElement->GetParserCreated() || aElement->GetScriptAsync();
-
+    if (aElement->GetScriptAsync()) {
+      mAsyncRequests.AppendElement(request);
+      if (!request->mLoading) {
+        
+        
+        ProcessPendingRequestsAsync();
+      }
+      return NS_OK;
+    }
+    if (!aElement->GetParserCreated()) {
+      
+      
+      
+      mNonAsyncExternalScriptInsertedRequests.AppendElement(request);
+      if (!request->mLoading) {
+        
+        
+        ProcessPendingRequestsAsync();
+      }
+      return NS_OK;
+    }
     
-    if (!async && aElement->GetScriptDeferred()) {
+    
+    if (aElement->GetScriptDeferred()) {
       
       
       
@@ -585,15 +609,6 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
                    aElement->GetParserCreated() == FROM_PARSER_XSLT,
           "Non-XSLT Defer script on a document without an active parser; bug 592366.");
       mDeferRequests.AppendElement(request);
-      return NS_OK;
-    }
-    if (async) {
-      mAsyncRequests.AppendElement(request);
-      if (!request->mLoading) {
-        
-        
-        ProcessPendingRequestsAsync();
-      }
       return NS_OK;
     }
 
@@ -907,6 +922,17 @@ nsScriptLoader::ProcessPendingRequests()
     ++i;
   }
 
+  while (mEnabled && !mNonAsyncExternalScriptInsertedRequests.IsEmpty() &&
+         !mNonAsyncExternalScriptInsertedRequests[0]->mLoading) {
+    
+    
+    
+    
+    request.swap(mNonAsyncExternalScriptInsertedRequests[0]);
+    mNonAsyncExternalScriptInsertedRequests.RemoveElementAt(0);
+    ProcessRequest(request);
+  }
+
   if (mDocumentParsingDone && mXSLTRequests.IsEmpty()) {
     while (!mDeferRequests.IsEmpty() && !mDeferRequests[0]->mLoading) {
       request.swap(mDeferRequests[0]);
@@ -923,6 +949,7 @@ nsScriptLoader::ProcessPendingRequests()
 
   if (mDocumentParsingDone && mDocument &&
       !mParserBlockingRequest && mAsyncRequests.IsEmpty() &&
+      mNonAsyncExternalScriptInsertedRequests.IsEmpty() &&
       mXSLTRequests.IsEmpty() && mDeferRequests.IsEmpty()) {
     
     
@@ -1094,6 +1121,7 @@ nsScriptLoader::OnStreamComplete(nsIStreamLoader* aLoader,
   if (NS_FAILED(rv)) {
     if (mDeferRequests.RemoveElement(request) ||
         mAsyncRequests.RemoveElement(request) ||
+        mNonAsyncExternalScriptInsertedRequests.RemoveElement(request) ||
         mXSLTRequests.RemoveElement(request)) {
       FireScriptAvailable(rv, request);
     } else if (mParserBlockingRequest == request) {
@@ -1172,6 +1200,7 @@ nsScriptLoader::PrepareLoadedRequest(nsScriptLoadRequest* aRequest,
   
   NS_ASSERTION(mDeferRequests.IndexOf(aRequest) >= 0 ||
                mAsyncRequests.IndexOf(aRequest) >= 0 ||
+               mNonAsyncExternalScriptInsertedRequests.IndexOf(aRequest) >= 0 ||
                mXSLTRequests.IndexOf(aRequest) >= 0 ||
                mPreloads.Contains(aRequest, PreloadRequestComparator()) ||
                mParserBlockingRequest,
@@ -1225,6 +1254,7 @@ nsScriptLoader::ParsingComplete(PRBool aTerminated)
   if (aTerminated) {
     mDeferRequests.Clear();
     mAsyncRequests.Clear();
+    mNonAsyncExternalScriptInsertedRequests.Clear();
     mXSLTRequests.Clear();
     mParserBlockingRequest = nsnull;
   }
