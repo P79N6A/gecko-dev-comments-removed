@@ -992,6 +992,11 @@ struct Parser : private js::AutoGCRooter
 
     void trace(JSTracer *trc);
 
+    
+
+
+    inline bool reportErrorNumber(JSParseNode *pn, uintN flags, uintN errorNumber, ...);
+
 private:
     
 
@@ -1056,6 +1061,16 @@ private:
     JSParseNode *xmlElementOrListRoot(JSBool allowList);
 #endif 
 };
+
+inline bool
+Parser::reportErrorNumber(JSParseNode *pn, uintN flags, uintN errorNumber, ...)
+{
+    va_list args;
+    va_start(args, errorNumber);
+    bool result = tokenStream.reportCompileErrorNumberVA(pn, flags, errorNumber, args);
+    va_end(args);
+    return result;
+}
 
 struct Compiler
 {
