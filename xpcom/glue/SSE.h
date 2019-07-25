@@ -173,10 +173,10 @@
 
 #if defined(_M_AMD64)
   
-  #define MOZILLA_PRESUME_MMX
 
-  #define MOZILLA_PRESUME_SSE
   
+  #define MOZILLA_PRESUME_SSE
+
   #define MOZILLA_PRESUME_SSE2
 #endif
 
@@ -231,7 +231,11 @@ namespace mozilla {
 #define MOZILLA_MAY_SUPPORT_MMX 1
   inline bool supports_mmx() { return true; }
 #elif defined(MOZILLA_SSE_HAVE_CPUID_DETECTION)
+#if !(defined(_MSC_VER) && defined(_M_AMD64))
+  
+  
 #define MOZILLA_MAY_SUPPORT_MMX 1
+#endif
   inline bool supports_mmx() { return sse_private::mmx_enabled; }
 #else
   inline bool supports_mmx() { return false; }
