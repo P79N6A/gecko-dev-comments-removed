@@ -946,6 +946,7 @@ class TypedArrayTemplate
                 return false;
         } else if (js_IsTypedArray(other)) {
             TypedArray *tarray = TypedArray::fromJSObject(other);
+            JS_ASSERT(tarray);
 
             
 
@@ -956,7 +957,13 @@ class TypedArrayTemplate
         } else if (other->getClass() == &ArrayBuffer::jsclass) {
             ArrayBuffer *abuf = ArrayBuffer::fromJSObject(other);
 
-            
+            if (!abuf) {
+                
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
+                                     JSMSG_TYPED_ARRAY_BAD_ARGS);
+                return false;
+            }
+
             uint32 boffset = (byteOffsetInt < 0) ? 0 : uint32(byteOffsetInt);
 
             if (boffset > abuf->byteLength || boffset % sizeof(NativeType) != 0) {
