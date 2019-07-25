@@ -560,13 +560,21 @@ var FindHelperUI = {
   },
 
   _zoom: function _findHelperZoom(aElementRect) {
-    
-    if (aElementRect && Browser.selectedTab.allowZoom && Services.prefs.getBoolPref("findhelper.autozoom")) {
+    let autozoomEnabled = Services.prefs.getBoolPref("findhelper.autozoom");
+    if (!aElementRect || !autozoomEnabled)
+      return;
+
+    if (Browser.selectedTab.allowZoom) {
       let zoomLevel = Browser._getZoomLevelForRect(aElementRect);
       zoomLevel = Math.min(Math.max(kBrowserFormZoomLevelMin, zoomLevel), kBrowserFormZoomLevelMax);
       zoomLevel = Browser.selectedTab.clampZoomLevel(zoomLevel);
 
       let zoomRect = Browser._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, zoomLevel);
+      AnimatedZoom.animateTo(zoomRect);
+    } else {
+      
+      
+      let zoomRect = Browser._getZoomRectForPoint(aElementRect.center().x, aElementRect.y, getBrowser().scale);
       AnimatedZoom.animateTo(zoomRect);
     }
   }
