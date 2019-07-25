@@ -99,16 +99,9 @@ public final class RectUtils {
                          y + (rect.height() * scale));
     }
 
-    
     public static Rect round(RectF rect) {
         return new Rect(Math.round(rect.left), Math.round(rect.top),
                         Math.round(rect.right), Math.round(rect.bottom));
-    }
-
-    
-    public static Rect roundOut(RectF rect) {
-        return new Rect((int)Math.floor(rect.left), (int)Math.floor(rect.top),
-                        (int)Math.ceil(rect.right), (int)Math.ceil(rect.bottom));
     }
 
     public static IntSize getSize(Rect rect) {
