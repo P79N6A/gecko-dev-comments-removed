@@ -511,7 +511,7 @@ class FrameState
                         bool resultNeeded = true);
 
     
-    void ensureFullRegs(FrameEntry *fe);
+    void ensureFullRegs(FrameEntry *fe, MaybeRegisterID *typeReg, MaybeRegisterID *dataReg);
 
     
 
