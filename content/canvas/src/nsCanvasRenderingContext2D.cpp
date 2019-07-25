@@ -1960,13 +1960,25 @@ nsCanvasRenderingContext2D::ShadowFinalize(gfxAlphaBoxBlur& blur)
 nsresult
 nsCanvasRenderingContext2D::DrawPath(Style style, gfxRect *dirtyRect)
 {
+    PRBool doUseIntermediateSurface = PR_FALSE;
     
+    if (mSurface->GetType() == gfxASurface::SurfaceTypeD2D) {
+      if (style == STYLE_FILL) {
+        
+        
+        
+        
+        doUseIntermediateSurface = NeedIntermediateSurfaceToHandleGlobalAlpha(style);
+      }
+    } else {
+      
 
 
 
 
-    PRBool doUseIntermediateSurface = NeedToUseIntermediateSurface() ||
-                                      NeedIntermediateSurfaceToHandleGlobalAlpha(style);
+      doUseIntermediateSurface = NeedToUseIntermediateSurface() ||
+                                 NeedIntermediateSurfaceToHandleGlobalAlpha(style);
+    }
 
     PRBool doDrawShadow = NeedToDrawShadow();
 
@@ -2019,13 +2031,30 @@ nsCanvasRenderingContext2D::DrawPath(Style style, gfxRect *dirtyRect)
         mThebes->AppendPath(path);
 
         
-        mThebes->SetOperator(gfxContext::OPERATOR_SOURCE);
+        if (mSurface->GetType() != gfxASurface::SurfaceTypeD2D) {
+            mThebes->SetOperator(gfxContext::OPERATOR_SOURCE);
+        } else {
+            
+            
+            
+            
+            mThebes->SetOperator(gfxContext::OPERATOR_OVER);
+        }
     }
 
     ApplyStyle(style);
-    if (style == STYLE_FILL)
-        mThebes->Fill();
-    else
+
+    if (style == STYLE_FILL) {
+        if (!doUseIntermediateSurface &&
+            CurrentState().globalAlpha != 1.0 &&
+            !CurrentState().StyleIsColor(style))
+        {
+            mThebes->Clip();
+            mThebes->Paint(CurrentState().globalAlpha);
+        } else {
+            mThebes->Fill();
+        }
+    } else
         mThebes->Stroke();
 
     
