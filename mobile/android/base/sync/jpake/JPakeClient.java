@@ -72,7 +72,7 @@ public class JPakeClient {
   public int                 jpakePollInterval;
   public int                 jpakeMaxTries;
   public String              channel;
-  public String              channelUrl;
+  public volatile String     channelUrl;
 
   
   public KeyBundle           myKeyBundle;
@@ -219,13 +219,13 @@ public class JPakeClient {
       Logger.debug(LOG_TAG, "All stages complete.");
       return;
     }
-    JPakeStage nextStage = null; 
+    JPakeStage currentStage = null;
     try{
-      nextStage = stages.remove();
-      Logger.debug(LOG_TAG, "starting stage " + nextStage.toString());
-      nextStage.execute(this);
+      currentStage = stages.remove();
+      Logger.debug(LOG_TAG, "starting stage " + currentStage.toString());
+      currentStage.execute(this);
     } catch (Exception e) {
-      Logger.error(LOG_TAG, "Exception in stage " + nextStage, e);
+      Logger.error(LOG_TAG, "Exception in stage " + currentStage, e);
       abort("Stage exception.");
     }
   }
@@ -236,11 +236,16 @@ public class JPakeClient {
 
 
 
+
   public void abort(String reason) {
     finished = true;
+    
     if (Constants.JPAKE_ERROR_CHANNEL.equals(reason) ||
         Constants.JPAKE_ERROR_NETWORK.equals(reason) ||
-        Constants.JPAKE_ERROR_NODATA.equals(reason)) {
+        Constants.JPAKE_ERROR_NODATA.equals(reason) ||
+        channelUrl == null) {
+      
+      
       displayAbort(reason);
     } else {
       
