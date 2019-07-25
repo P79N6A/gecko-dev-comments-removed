@@ -513,17 +513,18 @@ FrameState::tempRegForData(FrameEntry *fe)
 }
 
 inline void
-FrameState::forgetConstantData(FrameEntry *fe)
+FrameState::forgetMismatchedObject(FrameEntry *fe)
 {
-    if (!fe->isConstant())
-        return;
-    JS_ASSERT(fe->isType(JSVAL_TYPE_OBJECT));
+    if (fe->isNotType(JSVAL_TYPE_OBJECT))
+        syncAndForgetFe(fe);
 
-    RegisterID reg = allocReg();
-    regstate(reg).associate(fe, RematInfo::DATA);
+    if (fe->isConstant()) {
+        RegisterID reg = allocReg();
+        regstate(reg).associate(fe, RematInfo::DATA);
 
-    masm.move(JSC::MacroAssembler::ImmPtr(&fe->getValue().toObject()), reg);
-    fe->data.setRegister(reg);
+        masm.move(JSC::MacroAssembler::ImmPtr(&fe->getValue().toObject()), reg);
+        fe->data.setRegister(reg);
+    }
 }
 
 inline JSC::MacroAssembler::FPRegisterID
@@ -862,9 +863,10 @@ FrameState::forgetType(FrameEntry *fe)
 
 
 
-
     if (fe->isCopy()) {
-        fe->type.invalidate();
+        syncFe(fe);
+        fe->clear();
+        fe->resetSynced();
         return;
     }
 

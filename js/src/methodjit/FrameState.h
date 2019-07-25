@@ -410,7 +410,7 @@ class FrameState
 
 
 
-    inline void forgetConstantData(FrameEntry *fe);
+    inline void forgetMismatchedObject(FrameEntry *fe);
 
     
 
