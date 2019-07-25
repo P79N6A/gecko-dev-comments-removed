@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsSmartCardEvent.h"
 #include "nsIDOMSmartCardEvent.h"
 #include "nsIDOMClassInfo.h"

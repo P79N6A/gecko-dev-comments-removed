@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsNSSCertificateFakeTransport.h"
 #include "nsCOMPtr.h"
 #include "nsNSSCertificate.h"

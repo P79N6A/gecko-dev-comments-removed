@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const nsIDialogParamBlock = Components.interfaces.nsIDialogParamBlock;
 const nsIPKIParamBlock = Components.interfaces.nsIPKIParamBlock;
 const nsIX509Cert = Components.interfaces.nsIX509Cert;

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _NSCERTVERIFICATIONTHREAD_H_
 #define _NSCERTVERIFICATIONTHREAD_H_
 

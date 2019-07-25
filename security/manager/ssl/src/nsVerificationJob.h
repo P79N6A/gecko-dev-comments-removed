@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _INC_NSVERIFICATIONJOB_H
 #define _INC_NSVERIFICATIONJOB_H
 

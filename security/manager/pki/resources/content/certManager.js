@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const nsIFilePicker = Components.interfaces.nsIFilePicker;
 const nsFilePicker = "@mozilla.org/filepicker;1";
 const nsIX509CertDB = Components.interfaces.nsIX509CertDB;

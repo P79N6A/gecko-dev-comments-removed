@@ -2,38 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function onLoad()
 {
     protectedAuthThread = window.arguments[0].QueryInterface(Components.interfaces.nsIProtectedAuthThread);

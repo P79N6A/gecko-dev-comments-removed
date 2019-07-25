@@ -9,40 +9,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 function setText(id, value) {
   var element = document.getElementById(id);
   if (!element) return;

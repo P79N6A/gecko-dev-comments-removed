@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsNSSVersion.h"
 #include "nsString.h"
 #include "prinit.h"
@@ -86,5 +53,40 @@ NS_IMETHODIMP
 nsNSSVersion::GetNSSSMIME_Version(nsAString & v)
 {
     CopyUTF8toUTF16(NSSSMIME_GetVersion(), v);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNSSVersion::GetNSPR_MinVersion(nsAString & v)
+{
+    CopyUTF8toUTF16(PR_VERSION, v);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNSSVersion::GetNSS_MinVersion(nsAString & v)
+{
+    CopyUTF8toUTF16(NSS_VERSION, v);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNSSVersion::GetNSSUTIL_MinVersion(nsAString & v)
+{
+    CopyUTF8toUTF16(NSSUTIL_VERSION, v);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNSSVersion::GetNSSSSL_MinVersion(nsAString & v)
+{
+    CopyUTF8toUTF16(NSS_VERSION, v);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNSSVersion::GetNSSSMIME_MinVersion(nsAString & v)
+{
+    CopyUTF8toUTF16(NSS_VERSION, v);
     return NS_OK;
 }

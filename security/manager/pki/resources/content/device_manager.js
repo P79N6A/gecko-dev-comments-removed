@@ -2,41 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const nsIFilePicker = Components.interfaces.nsIFilePicker;
 const nsFilePicker = "@mozilla.org/filepicker;1";
 const nsIPKCS11Slot = Components.interfaces.nsIPKCS11Slot;

@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const nsPKIParamBlock    = "@mozilla.org/security/pkiparamblock;1";
 const nsIPKIParamBlock    = Components.interfaces.nsIPKIParamBlock;
 const nsIX509Cert         = Components.interfaces.nsIX509Cert;

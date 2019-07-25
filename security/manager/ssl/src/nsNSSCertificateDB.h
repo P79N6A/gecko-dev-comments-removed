@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef __NSNSSCERTIFICATEDB_H__
 #define __NSNSSCERTIFICATEDB_H__
 

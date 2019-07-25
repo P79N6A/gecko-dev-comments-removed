@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const nsICRLManager = Components.interfaces.nsICRLManager;
 const nsCRLManager  = "@mozilla.org/security/crlmanager;1";
 const nsICRLInfo = Components.interfaces.nsICRLInfo;

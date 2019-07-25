@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsNSSCertValidity.h"
 #include "nsNSSCertHeader.h"
 #include "nsCOMPtr.h"

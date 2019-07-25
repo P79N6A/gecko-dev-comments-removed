@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _SSLSERVERCERTVERIFICATION_H
 #define _SSLSERVERCERTVERIFICATION_H
 

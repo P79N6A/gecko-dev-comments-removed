@@ -2,43 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const nsIX509Cert = Components.interfaces.nsIX509Cert;
 const nsIX509Cert3 = Components.interfaces.nsIX509Cert3;
 const nsX509CertDB = "@mozilla.org/security/x509certdb;1";

@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _MOZILLA_PSM_TRANSPORTSECURITYINFO_H
 #define _MOZILLA_PSM_TRANSPORTSECURITYINFO_H
 

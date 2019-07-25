@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nsRecentBadCerts.h"
 #include "nsIX509Cert.h"
 #include "nsSSLStatus.h"
