@@ -15,11 +15,9 @@ import android.util.AttributeSet;
 import android.util.Log;
 
 import org.mozilla.gecko.sync.setup.activities.SetupSyncActivity;
+import org.mozilla.gecko.sync.setup.SyncAccounts;
 
 class SyncPreference extends Preference {
-    private static final String FENNEC_ACCOUNT_TYPE = "org.mozilla.firefox_sync";
-    private static final String SYNC_SETTINGS = "android.settings.SYNC_SETTINGS";
-
     private Context mContext;
 
     public SyncPreference(Context context, AttributeSet attrs) {
@@ -30,12 +28,15 @@ class SyncPreference extends Preference {
     @Override
     protected void onClick() {
         
-        Account[] accounts = AccountManager.get(mContext).getAccountsByType(FENNEC_ACCOUNT_TYPE);
-        Intent intent;
-        if (accounts.length > 0)
-            intent = new Intent(SYNC_SETTINGS);
-        else
-            intent = new Intent(mContext, SetupSyncActivity.class);
-        mContext.startActivity(intent);
+        final String accountType = org.mozilla.gecko.sync.setup.Constants.ACCOUNTTYPE_SYNC;
+
+        
+        Account[] accounts = AccountManager.get(mContext).getAccountsByType(accountType);
+        if (accounts.length > 0) {
+            SyncAccounts.openSyncSettings(mContext);
+        } else {
+            Intent intent = new Intent(mContext, SetupSyncActivity.class);
+            mContext.startActivity(intent);
+        }
     }
 }
