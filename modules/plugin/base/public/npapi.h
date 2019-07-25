@@ -45,37 +45,34 @@
 #include "nptypes.h"
 
 #if defined (__OS2__) || defined (OS2)
-#ifndef XP_OS2
-#define XP_OS2 1
-#endif
-#endif
+# ifndef XP_OS2
+#  define XP_OS2 1
+# endif 
+#endif 
 
 #ifdef _WINDOWS
-#include <windef.h>
-#ifndef XP_WIN
-#define XP_WIN 1
-#endif
-#endif
-
-#if defined(XP_MACOSX) && defined(__LP64__)
-#define NP_NO_QUICKDRAW
-#define NP_NO_CARBON
-#endif
+# include <windef.h>
+# ifndef XP_WIN
+#  define XP_WIN 1
+# endif 
+#endif 
 
 #ifdef XP_MACOSX
+#ifdef __LP64__
+#define NP_NO_QUICKDRAW
+#define NP_NO_CARBON
 #include <ApplicationServices/ApplicationServices.h>
-#include <OpenGL/OpenGL.h>
-#ifndef NP_NO_CARBON
+#else
 #include <Carbon/Carbon.h>
 #endif
 #endif
 
 #if defined(XP_UNIX) 
-#include <stdio.h>
-#if defined(MOZ_X11)
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#endif
+# include <stdio.h>
+# if defined(MOZ_X11)
+#  include <X11/Xlib.h>
+#  include <X11/Xutil.h>
+# endif
 #endif
 
 
@@ -142,7 +139,7 @@ typedef char*         NPMIMEType;
 
 
 #if !defined(__LP64__)
-#if defined(XP_MACOSX)
+#if defined(XP_MAC) || defined(XP_MACOSX)
 #pragma options align=mac68k
 #endif
 #endif 
@@ -205,12 +202,6 @@ typedef struct _NPSize
   int32_t height; 
 } NPSize; 
 
-
-#define kNPEventNotHandled 0
-#define kNPEventHandled 1
-
-#define kNPEventStartIME 2
-
 #ifdef XP_UNIX
 
 
@@ -255,9 +246,7 @@ typedef enum {
 #ifndef NP_NO_QUICKDRAW
   NPDrawingModelQuickDraw = 0,
 #endif
-  NPDrawingModelCoreGraphics = 1,
-  NPDrawingModelOpenGL = 2,
-  NPDrawingModelCoreAnimation = 3
+  NPDrawingModelCoreGraphics = 1
 } NPDrawingModel;
 
 typedef enum {
@@ -309,16 +298,22 @@ typedef enum {
   NPPVpluginDescriptionString,
   NPPVpluginWindowBool,
   NPPVpluginTransparentBool,
-  NPPVjavaClass,
+  NPPVjavaClass,                
   NPPVpluginWindowSize,
   NPPVpluginTimerInterval,
+
   NPPVpluginScriptableInstance = (10 | NP_ABI_MASK),
   NPPVpluginScriptableIID = 11,
+
+  
   NPPVjavascriptPushCallerBool = 12,
+
+  
   NPPVpluginKeepLibraryInMemory = 13,
   NPPVpluginNeedsXEmbed         = 14,
 
   
+
 
   NPPVpluginScriptableNPObject  = 15,
 
@@ -334,25 +329,13 @@ typedef enum {
   
 
 
-  NPPVpluginWantsAllNetworkStreams = 18,
-
-  
-  NPPVpluginNativeAccessibleAtkPlugId = 19,
-
-  
-  NPPVpluginCancelSrcStream = 20
+  NPPVpluginWantsAllNetworkStreams = 18
 
 #ifdef XP_MACOSX
   
   , NPPVpluginDrawingModel = 1000
   
   , NPPVpluginEventModel = 1001
-  
-  , NPPVpluginCoreAnimationLayer = 1003
-#endif
-
-#if (MOZ_PLATFORM_MAEMO == 5)
-  , NPPVpluginWindowlessLocalBool = 2002
 #endif
 } NPPVariable;
 
@@ -367,8 +350,9 @@ typedef enum {
   NPNVasdEnabledBool,
   NPNVisOfflineBool,
 
+  
   NPNVserviceManager = (10 | NP_ABI_MASK),
-  NPNVDOMElement     = (11 | NP_ABI_MASK),
+  NPNVDOMElement     = (11 | NP_ABI_MASK),   
   NPNVDOMWindow      = (12 | NP_ABI_MASK),
   NPNVToolkit        = (13 | NP_ABI_MASK),
   NPNVSupportsXEmbedBool = 14,
@@ -390,15 +374,10 @@ typedef enum {
   , NPNVsupportsQuickDrawBool = 2000
 #endif
   , NPNVsupportsCoreGraphicsBool = 2001
-  , NPNVsupportsOpenGLBool = 2002
-  , NPNVsupportsCoreAnimationBool = 2003
 #ifndef NP_NO_CARBON
   , NPNVsupportsCarbonBool = 3000 
 #endif
   , NPNVsupportsCocoaBool = 3001 
-#endif
-#if (MOZ_PLATFORM_MAEMO == 5)
-  , NPNVSupportsWindowlessLocal = 2002
 #endif
 } NPNVariable;
 
@@ -434,27 +413,13 @@ typedef struct _NPWindow
   uint32_t width;  
   uint32_t height;
   NPRect   clipRect; 
+                     
 #if defined(XP_UNIX) && !defined(XP_MACOSX)
   void * ws_info; 
 #endif 
   NPWindowType type; 
 } NPWindow;
 
-typedef struct _NPImageExpose
-{
-  char*    data;       
-  int32_t  stride;     
-  int32_t  depth;      
-  int32_t  x;          
-  int32_t  y;          
-  uint32_t width;      
-  uint32_t height;     
-  NPSize   dataSize;   
-  float    translateX; 
-  float    translateY; 
-  float    scaleX;     
-  float    scaleY;     
-} NPImageExpose;
 
 typedef struct _NPFullPrint
 {
@@ -488,8 +453,8 @@ typedef EventRecord NPEvent;
 typedef struct _NPEvent
 {
   uint16_t event;
-  uintptr_t wParam;
-  uintptr_t lParam;
+  uint32_t wParam;
+  uint32_t lParam;
 } NPEvent;
 #elif defined(XP_OS2)
 typedef struct _NPEvent
@@ -554,21 +519,6 @@ typedef struct NP_CGContext
   void *window; 
 #endif
 } NP_CGContext;
-
-
-
-
-
-
-typedef struct NP_GLContext
-{
-  CGLContextObj context;
-#ifdef NP_NO_CARBON
-  NPNSWindow *window;
-#else
-  void *window; 
-#endif
-} NP_GLContext;
 
 typedef enum {
   NPCocoaEventDrawRect = 1,
@@ -635,6 +585,11 @@ enum NPEventType {
   NPEventType_ScrollingBeginsEvent = 1000,
   NPEventType_ScrollingEndsEvent
 };
+#ifdef OBSOLETE
+#define getFocusEvent     (osEvt + 16)
+#define loseFocusEvent    (osEvt + 17)
+#define adjustCursorEvent (osEvt + 18)
+#endif 
 #endif 
 
 #endif 
@@ -656,7 +611,7 @@ enum NPEventType {
 #define NP_MAXREADY (((unsigned)(~0)<<1)>>1)
 
 #if !defined(__LP64__)
-#if defined(XP_MACOSX)
+#if defined(XP_MAC) || defined(XP_MACOSX)
 #pragma options align=reset
 #endif
 #endif 
