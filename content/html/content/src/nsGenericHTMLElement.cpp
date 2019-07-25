@@ -785,6 +785,11 @@ nsGenericHTMLElement::SetInnerHTML(const nsAString& aInnerHTML)
                                                   getter_AddRefs(df));
     nsCOMPtr<nsINode> fragment = do_QueryInterface(df);
     if (NS_SUCCEEDED(rv)) {
+      
+      
+      
+      nsAutoScriptBlockerSuppressNodeRemoved scriptBlocker;
+
       static_cast<nsINode*>(this)->AppendChild(fragment, &rv);
     }
   }
