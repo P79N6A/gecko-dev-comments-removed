@@ -409,20 +409,31 @@ var UIManager = {
         
         if (gBrowser.tabs.length > 1) {
           var group = Groups.getActiveGroup();
+
+          
+          
           
           
           
           
           
           if ((group && group._children.length == 1) ||
-              (group == null &&
-               gBrowser.visibleTabs.length == 1)) {
+              (group == null && gBrowser.visibleTabs.length == 1)) {
+            
             self._closedLastVisibleTab = true;
             
             if (this && this.tabItem)
               this.tabItem.setZoomPrep(false);
             self.showTabCandy();
           }
+          
+          
+          
+          Utils.timeout(function() { 
+            if ((group && group._children.length > 0) ||
+              (group == null && gBrowser.visibleTabs.length > 0))
+              self.hideTabCandy();
+          }, 1);
         }
       }
       return false;
@@ -511,13 +522,13 @@ var UIManager = {
 
         
         
-        if (visibleTabCount > 0 && newItem)
+        if (visibleTabCount > 0 && newItem && !self._isTabCandyVisible())
           newItem.setZoomPrep(true);
       } else {
         
         
         if (oldItem)
-          oldItem.setZoomPrep(true);
+          oldItem.setZoomPrep(!self._isTabCandyVisible());
       }
     }, 1);
   },
