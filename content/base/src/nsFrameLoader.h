@@ -190,6 +190,7 @@ private:
   PRPackedBool mRemoteWidgetCreated : 1;
   bool mRemoteFrame;
   
+  nsCOMPtr<nsIObserver> mChildHost;
   mozilla::dom::TabParent* mChildProcess;
 
 #ifdef MOZ_WIDGET_GTK2
