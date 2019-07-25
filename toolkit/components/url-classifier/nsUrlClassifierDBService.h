@@ -53,8 +53,6 @@
 #include "nsICryptoHash.h"
 #include "nsICryptoHMAC.h"
 
-#include "LookupCache.h"
-
 
 #define DOMAIN_LENGTH 4
 
@@ -90,8 +88,7 @@ public:
 
   bool GetCompleter(const nsACString& tableName,
                       nsIUrlClassifierHashCompleter** completer);
-  nsresult CacheCompletions(mozilla::safebrowsing::CacheResultArray *results);
-  nsresult CacheMisses(mozilla::safebrowsing::PrefixArray *results);
+  nsresult CacheCompletions(nsTArray<nsUrlClassifierLookupResult> *results);
 
   static nsIThread* BackgroundThread();
 
@@ -133,6 +130,10 @@ private:
 
   
   nsTArray<nsCString> mGethashWhitelist;
+
+  
+  nsRefPtr<nsUrlClassifierPrefixSet> mPrefixSet;
+  nsCOMPtr<nsICryptoHash> mHash;
 
   
   static nsIThread* gDbBackgroundThread;

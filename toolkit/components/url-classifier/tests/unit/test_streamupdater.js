@@ -80,6 +80,8 @@ function testSimpleForward() {
 
 
 function testNestedForward() {
+  testFillDb(); 
+
   var add1Urls = [ "foo.com/a", "bar.com/c" ];
   var add2Urls = [ "foo.com/b" ];
 
@@ -201,6 +203,8 @@ function testValidMAC() {
 
 
 function testInvalidMAC() {
+  testFillDb(); 
+
   var addUrls = [ "foo.com/a", "foo.com/b", "bar.com/c" ];
   var update = buildPhishingUpdate(
         [
@@ -220,6 +224,8 @@ function testInvalidMAC() {
 
 
 function testNoMAC() {
+  testFillDb(); 
+
   var addUrls = [ "foo.com/a", "foo.com/b", "bar.com/c" ];
   var update = buildPhishingUpdate(
         [
@@ -276,6 +282,8 @@ function testValidForwardMAC() {
 
 
 function testInvalidForwardMAC() {
+  testFillDb(); 
+
   var add1Urls = [ "foo.com/a", "bar.com/c" ];
   var add2Urls = [ "foo.com/b" ];
   var add3Urls = [ "bar.com/d" ];
@@ -315,6 +323,8 @@ function testInvalidForwardMAC() {
 
 
 function testNoForwardMAC() {
+  testFillDb(); 
+
   var add1Urls = [ "foo.com/a", "bar.com/c" ];
   var add2Urls = [ "foo.com/b" ];
   var add3Urls = [ "bar.com/d" ];
@@ -381,6 +391,8 @@ gAssertions.gotRekey = function(data, cb)
 
 
 function testRekey() {
+  testFillDb();
+
   var addUrls = [ "foo.com/a", "foo.com/b", "bar.com/c" ];
   var update = buildPhishingUpdate(
         [
@@ -445,9 +457,6 @@ function run_test()
     testInvalidUrlForward,
     testErrorUrlForward,
     testMultipleTables,
-    testReset,
-    
-    
     testValidMAC,
     testInvalidMAC,
     testNoMAC,
@@ -455,6 +464,7 @@ function run_test()
     testInvalidForwardMAC,
     testNoForwardMAC,
     testRekey,
+    testReset,
   ]);
 }
 
