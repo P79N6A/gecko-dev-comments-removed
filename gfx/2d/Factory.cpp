@@ -75,85 +75,6 @@
 PRLogModuleInfo *sGFX2DLog = PR_NewLogModule("gfx2d");
 #endif
 
-
-
-enum CPUIDRegister { eax = 0, ebx = 1, ecx = 2, edx = 3 };
-
-#ifdef HAVE_CPUID_H
-
-
-#include <cpuid.h>
-
-static bool
-HasCPUIDBit(unsigned int level, CPUIDRegister reg, unsigned int bit)
-{
-  unsigned int regs[4];
-  return __get_cpuid(level, &regs[0], &regs[1], &regs[2], &regs[3]) &&
-         (regs[reg] & bit);
-}
-
-#else
-
-#if defined(_MSC_VER) && _MSC_VER >= 1400 && (defined(_M_IX86) || defined(_M_AMD64))
-
-#include <intrin.h>
-#elif defined(__SUNPRO_CC) && (defined(__i386) || defined(__x86_64__))
-
-
-#ifdef __i386
-static void
-__cpuid(int CPUInfo[4], int InfoType)
-{
-  asm (
-    "xchg %esi, %ebx\n"
-    "cpuid\n"
-    "movl %eax, (%edi)\n"
-    "movl %ebx, 4(%edi)\n"
-    "movl %ecx, 8(%edi)\n"
-    "movl %edx, 12(%edi)\n"
-    "xchg %esi, %ebx\n"
-    :
-    : "a"(InfoType), 
-      "D"(CPUInfo) 
-    : "%ecx", "%edx", "%esi"
-  );
-}
-#else
-static void
-__cpuid(int CPUInfo[4], int InfoType)
-{
-  asm (
-    "xchg %rsi, %rbx\n"
-    "cpuid\n"
-    "movl %eax, (%rdi)\n"
-    "movl %ebx, 4(%rdi)\n"
-    "movl %ecx, 8(%rdi)\n"
-    "movl %edx, 12(%rdi)\n"
-    "xchg %rsi, %rbx\n"
-    :
-    : "a"(InfoType), 
-      "D"(CPUInfo) 
-    : "%ecx", "%edx", "%rsi"
-  );
-}
-#endif
-#endif
-
-#ifdef USE_SSE2
-static bool
-HasCPUIDBit(unsigned int level, CPUIDRegister reg, unsigned int bit)
-{
-  
-  volatile int regs[4];
-  __cpuid((int *)regs, level & 0x80000000u);
-  if (unsigned(regs[0]) < level)
-    return false;
-  __cpuid((int *)regs, level);
-  return !!(unsigned(regs[reg]) & bit);
-}
-#endif
-#endif
-
 namespace mozilla {
 namespace gfx {
 
@@ -163,16 +84,6 @@ int sGfxLogLevel = LOG_DEBUG;
 #ifdef WIN32
 ID3D10Device1 *Factory::mD3D10Device;
 #endif
-
-bool
-Factory::HasSSE2()
-{
-#ifdef USE_SSE2
-  return HasCPUIDBit(1u, edx, (1u<<26));
-#else
-  return false;
-#endif
-}
 
 TemporaryRef<DrawTarget>
 Factory::CreateDrawTarget(BackendType aBackend, const IntSize &aSize, SurfaceFormat aFormat)

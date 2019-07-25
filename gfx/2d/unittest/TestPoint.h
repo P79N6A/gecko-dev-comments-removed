@@ -35,8 +35,6 @@
 
 
 
-#pragma once
-
 #include "TestBase.h"
 
 class TestPoint : public TestBase
