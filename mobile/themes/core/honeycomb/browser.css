@@ -1957,8 +1957,8 @@ setting {
 }
 
 .documenttab-popup-checkmark {
-  min-width: -moz-calc(26px + 2 * @padding_normal@); 
-  padding: 0px @padding_normal@;
+  min-width: -moz-calc(26px + @padding_normal@) !important; 
+  -moz-padding-end: @padding_normal@;
 }
 
 .tab-popup-item.selected .documenttab-popup-checkmark {
