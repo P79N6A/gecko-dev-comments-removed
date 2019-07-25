@@ -161,20 +161,6 @@ public:
       return nsnull;
     }
 
-    
-
-
-
-
-
-
-
-
-    virtual PRBool AreSimilarSurfacesSensitiveToContentType()
-    {
-        return PR_TRUE;
-    }
-
     enum TextQuality {
         
 
