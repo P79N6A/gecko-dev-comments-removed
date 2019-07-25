@@ -272,8 +272,12 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
     
     
     
-    nscoord leftSpace = NS_MAX(onePixel, coreData.leftSpace);
-    nscoord rightSpace = NS_MAX(onePixel, coreData.rightSpace);
+    nscoord leftSpace = NS_MAX(onePixel,
+                               NS_MATHML_IS_RTL(mPresentationData.flags) ?
+                               coreData.trailingSpace : coreData.leadingSpace);
+    nscoord rightSpace = NS_MAX(onePixel,
+                                NS_MATHML_IS_RTL(mPresentationData.flags) ?
+                                coreData.leadingSpace : coreData.trailingSpace);
 
     
     
@@ -422,8 +426,8 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
     nscoord slashMinHeight = slashRatio *
       NS_MIN(2 * mLineThickness, slashMaxWidthConstant);
 
-    nscoord leftSpace = NS_MAX(padding, coreData.leftSpace);
-    nscoord rightSpace = NS_MAX(padding, coreData.rightSpace);
+    nscoord leadingSpace = NS_MAX(padding, coreData.leadingSpace);
+    nscoord trailingSpace = NS_MAX(padding, coreData.trailingSpace);
     nscoord delta;
     
     
@@ -484,11 +488,16 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
     }
 
     
-    mBoundingMetrics.leftBearing = leftSpace + bmNum.leftBearing;
-    mBoundingMetrics.rightBearing =
-      leftSpace + bmNum.width + mLineRect.width + bmDen.rightBearing;
+    if (NS_MATHML_IS_RTL(mPresentationData.flags)) {
+      mBoundingMetrics.leftBearing = trailingSpace + bmDen.leftBearing;
+      mBoundingMetrics.rightBearing = trailingSpace + bmDen.width + mLineRect.width + bmNum.rightBearing;
+    } else {
+      mBoundingMetrics.leftBearing = leadingSpace + bmNum.leftBearing;
+      mBoundingMetrics.rightBearing = leadingSpace + bmNum.width + mLineRect.width + bmDen.rightBearing;
+    }
     mBoundingMetrics.width =
-      leftSpace + bmNum.width + mLineRect.width + bmDen.width + rightSpace;
+      leadingSpace + bmNum.width + mLineRect.width + bmDen.width +
+      trailingSpace;
 
     
     aDesiredSize.ascent = mBoundingMetrics.ascent + padding;
@@ -505,20 +514,20 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
 
       
       dx = MirrorIfRTL(aDesiredSize.width, sizeNum.width,
-                       leftSpace);
+                       leadingSpace);
       dy = aDesiredSize.ascent - numShift - sizeNum.ascent;
       FinishReflowChild(frameNum, presContext, nsnull, sizeNum, dx, dy, 0);
 
       
       dx = MirrorIfRTL(aDesiredSize.width, mLineRect.width,
-                       leftSpace + bmNum.width);
+                       leadingSpace + bmNum.width);
       dy = aDesiredSize.ascent - mBoundingMetrics.ascent;
       mLineRect.SetRect(dx, dy,
                         mLineRect.width, aDesiredSize.height - 2 * padding);
 
       
       dx = MirrorIfRTL(aDesiredSize.width, sizeDen.width,
-                       leftSpace + bmNum.width + mLineRect.width);
+                       leadingSpace + bmNum.width + mLineRect.width);
       dy = aDesiredSize.ascent + denShift - sizeDen.ascent;
       FinishReflowChild(frameDen, presContext, nsnull, sizeDen, dx, dy, 0);
     }

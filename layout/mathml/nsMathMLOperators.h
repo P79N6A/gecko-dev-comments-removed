@@ -85,8 +85,8 @@ enum {
   
   NS_MATHML_OPERATOR_MINSIZE_ABSOLUTE   = 1<<12,
   NS_MATHML_OPERATOR_MAXSIZE_ABSOLUTE   = 1<<13,
-  NS_MATHML_OPERATOR_LEFTSPACE_ATTR     = 1<<14,
-  NS_MATHML_OPERATOR_RIGHTSPACE_ATTR    = 1<<15
+  NS_MATHML_OPERATOR_LSPACE_ATTR     = 1<<14,
+  NS_MATHML_OPERATOR_RSPACE_ATTR    = 1<<15
 };
 
 #define NS_MATHML_OPERATOR_SIZE_INFINITY NS_IEEEPositiveInfinity()
@@ -129,9 +129,10 @@ public:
   LookupOperator(const nsString&       aOperator,
                  const nsOperatorFlags aForm,
                  nsOperatorFlags*      aFlags,
-                 float*                aLeftSpace,
-                 float*                aRightSpace);
+                 float*                aLeadingSpace,
+                 float*                aTrailingSpace);
 
+   
    
    
    
@@ -141,8 +142,8 @@ public:
    static void
    LookupOperators(const nsString&       aOperator,
                    nsOperatorFlags*      aFlags,
-                   float*                aLeftSpace,
-                   float*                aRightSpace);
+                   float*                aLeadingSpace,
+                   float*                aTrailingSpace);
 
   
   
@@ -235,10 +236,10 @@ public:
 #define NS_MATHML_OPERATOR_MAXSIZE_IS_ABSOLUTE(_flags) \
   (NS_MATHML_OPERATOR_MAXSIZE_ABSOLUTE == ((_flags) & NS_MATHML_OPERATOR_MAXSIZE_ABSOLUTE))
 
-#define NS_MATHML_OPERATOR_HAS_LEFTSPACE_ATTR(_flags) \
-  (NS_MATHML_OPERATOR_LEFTSPACE_ATTR == ((_flags) & NS_MATHML_OPERATOR_LEFTSPACE_ATTR))
+#define NS_MATHML_OPERATOR_HAS_LSPACE_ATTR(_flags) \
+  (NS_MATHML_OPERATOR_LSPACE_ATTR == ((_flags) & NS_MATHML_OPERATOR_LSPACE_ATTR))
 
-#define NS_MATHML_OPERATOR_HAS_RIGHTSPACE_ATTR(_flags) \
-  (NS_MATHML_OPERATOR_RIGHTSPACE_ATTR == ((_flags) & NS_MATHML_OPERATOR_RIGHTSPACE_ATTR))
+#define NS_MATHML_OPERATOR_HAS_RSPACE_ATTR(_flags) \
+  (NS_MATHML_OPERATOR_RSPACE_ATTR == ((_flags) & NS_MATHML_OPERATOR_RSPACE_ATTR))
 
 #endif 

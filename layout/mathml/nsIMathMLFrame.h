@@ -255,15 +255,15 @@ struct nsEmbellishData {
   
   
   
-  nscoord leftSpace;
-  nscoord rightSpace;
+  nscoord leadingSpace;
+  nscoord trailingSpace;
 
   nsEmbellishData() {
     flags = 0;
     coreFrame = nsnull;
     direction = NS_STRETCH_DIRECTION_UNSUPPORTED;
-    leftSpace = 0;
-    rightSpace = 0;
+    leadingSpace = 0;
+    trailingSpace = 0;
   }
 };
 
