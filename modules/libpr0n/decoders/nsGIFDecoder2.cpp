@@ -122,6 +122,9 @@ nsGIFDecoder2::nsGIFDecoder2()
   memset(&mGIFStruct, 0, sizeof(mGIFStruct));
 
   
+  mGIFStruct.loop_count = 1;
+
+  
   mGIFStruct.state = gif_type;
   mGIFStruct.bytes_to_consume = 6;
 }
