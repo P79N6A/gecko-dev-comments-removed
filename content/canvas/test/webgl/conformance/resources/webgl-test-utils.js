@@ -32,6 +32,14 @@ var error = function(msg) {
 
 
 
+var loggingOff = function() {
+  log = function() {};
+  error = function() {};
+};
+
+
+
+
 
 
 
@@ -845,6 +853,7 @@ return {
   loadStandardFragmentShader: loadStandardFragmentShader,
   loadTexture: loadTexture,
   log: log,
+  loggingOff: loggingOff,
   error: error,
   setupProgram: setupProgram,
   setupSimpleTextureFragmentShader: setupSimpleTextureFragmentShader,

@@ -845,9 +845,8 @@ ArgGenerators = {
     }
   },
   getParameter : {
-
-
-
+    generate : function() { return [getParameterPname.random()]; },
+    checkArgValidity : function(p) { return getParameterPname.has(p); }
   },
   getBufferParameter : {}, 
   getError : {
@@ -860,7 +859,6 @@ ArgGenerators = {
   getShaderParameter : {}, 
   getShaderInfoLog : {}, 
   getShaderSource : {}, 
-  getString : {}, 
   getTexParameter : {}, 
   getUniform : {}, 
   getUniformLocation : {}, 
