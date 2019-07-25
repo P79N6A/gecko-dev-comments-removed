@@ -1126,7 +1126,6 @@ nsCookieService::CloseDBStates()
     
     if (mDefaultDBState->pendingRead) {
       CancelAsyncRead(PR_TRUE);
-      mDefaultDBState->syncConn = nsnull;
     }
 
     
@@ -1153,6 +1152,7 @@ nsCookieService::CloseDefaultDBConnection()
   
   
   mDefaultDBState->dbConn = NULL;
+  mDefaultDBState->syncConn = NULL;
 
   
   
@@ -1452,7 +1452,6 @@ nsCookieService::RemoveAll()
     
     if (mDefaultDBState->pendingRead) {
       CancelAsyncRead(PR_TRUE);
-      mDefaultDBState->syncConn = nsnull;
     }
 
     
@@ -1620,6 +1619,13 @@ nsCookieService::Read()
   
   
   
+  rv = mStorageService->OpenUnsharedDatabase(mDefaultDBState->cookieFile,
+    getter_AddRefs(mDefaultDBState->syncConn));
+  NS_ENSURE_SUCCESS(rv, RESULT_RETRY);
+
+  
+  
+  
   mDefaultDBState->readSet.Init();
 
   mDefaultDBState->readListener = new ReadCookieDBListener(mDefaultDBState);
@@ -1733,25 +1739,6 @@ nsCookieService::CancelAsyncRead(PRBool aPurgeReadSet)
     mDefaultDBState->readSet.Clear();
 }
 
-mozIStorageConnection*
-nsCookieService::GetSyncDBConn()
-{
-  NS_ASSERTION(!mDefaultDBState->syncConn, "already have sync db connection");
-  NS_ASSERTION(mDefaultDBState->cookieFile, "no cookie file");
-
-  
-  
-  mStorageService->OpenUnsharedDatabase(mDefaultDBState->cookieFile,
-    getter_AddRefs(mDefaultDBState->syncConn));
-  if (!mDefaultDBState->syncConn) {
-    NS_ERROR("can't open sync db connection");
-    COOKIE_LOGSTRING(PR_LOG_DEBUG,
-      ("GetSyncDBConn(): can't open sync db connection"));
-  }
-
-  return mDefaultDBState->syncConn;
-}
-
 void
 nsCookieService::EnsureReadDomain(const nsCString &aBaseDomain)
 {
@@ -1769,9 +1756,6 @@ nsCookieService::EnsureReadDomain(const nsCString &aBaseDomain)
   
   nsresult rv;
   if (!mDefaultDBState->stmtReadDomain) {
-    if (!GetSyncDBConn())
-      return;
-
     
     rv = mDefaultDBState->syncConn->CreateStatement(NS_LITERAL_CSTRING(
       "SELECT "
@@ -1836,9 +1820,6 @@ nsCookieService::EnsureReadComplete()
 
   
   CancelAsyncRead(PR_FALSE);
-
-  if (!mDefaultDBState->syncConn && !GetSyncDBConn())
-    return;
 
   
   nsCOMPtr<mozIStorageStatement> stmt;
