@@ -201,7 +201,7 @@ class Debugger {
 
     static void slowPathOnEnterFrame(JSContext *cx);
     static void slowPathOnLeaveFrame(JSContext *cx);
-    static void slowPathOnNewScript(JSContext *cx, JSScript *script, JSObject *obj,
+    static void slowPathOnNewScript(JSContext *cx, JSScript *script,
                                     GlobalObject *compileAndGoGlobal);
     static JSTrapStatus dispatchHook(JSContext *cx, js::Value *vp, Hook which);
 
@@ -213,15 +213,13 @@ class Debugger {
 
 
 
-
-    JSObject *newDebuggerScript(JSContext *cx, JSScript *script, JSObject *obj);
+    JSObject *newDebuggerScript(JSContext *cx, JSScript *script);
 
     
 
 
 
-
-    void fireNewScript(JSContext *cx, JSScript *script, JSObject *obj);
+    void fireNewScript(JSContext *cx, JSScript *script);
 
     static inline Debugger *fromLinks(JSCList *links);
     inline Breakpoint *firstBreakpoint() const;
@@ -262,7 +260,7 @@ class Debugger {
     static inline void onLeaveFrame(JSContext *cx);
     static inline JSTrapStatus onDebuggerStatement(JSContext *cx, js::Value *vp);
     static inline JSTrapStatus onExceptionUnwind(JSContext *cx, js::Value *vp);
-    static inline void onNewScript(JSContext *cx, JSScript *script, JSObject *obj,
+    static inline void onNewScript(JSContext *cx, JSScript *script,
                                    GlobalObject *compileAndGoGlobal);
     static JSTrapStatus onTrap(JSContext *cx, Value *vp);
     static JSTrapStatus onSingleStep(JSContext *cx, Value *vp);
@@ -271,7 +269,7 @@ class Debugger {
 
     inline bool observesEnterFrame() const;
     inline bool observesNewScript() const;
-    inline bool observesScope(JSObject *obj) const;
+    inline bool observesGlobal(GlobalObject *global) const;
     inline bool observesFrame(StackFrame *fp) const;
 
     
@@ -336,16 +334,7 @@ class Debugger {
 
 
 
-
-    JSObject *wrapFunctionScript(JSContext *cx, JSFunction *fun);
-
-    
-
-
-
-
-
-    JSObject *wrapScript(JSContext *cx, JSScript *script, JSObject *obj);
+    JSObject *wrapScript(JSContext *cx, JSScript *script);
 
   private:
     
@@ -369,7 +358,7 @@ class BreakpointSite {
 
 
 
-    JSObject *scriptObject;
+    GlobalObject *scriptGlobal;
 
     JSCList breakpoints;  
     size_t enabledCount;  
@@ -383,7 +372,7 @@ class BreakpointSite {
     Breakpoint *firstBreakpoint() const;
     bool hasBreakpoint(Breakpoint *bp);
     bool hasTrap() const { return !!trapHandler; }
-    JSObject *getScriptObject() const { return scriptObject; }
+    GlobalObject *getScriptGlobal() const { return scriptGlobal; }
 
     bool inc(JSContext *cx);
     void dec(JSContext *cx);
@@ -475,15 +464,15 @@ Debugger::observesNewScript() const
 }
 
 bool
-Debugger::observesScope(JSObject *obj) const
+Debugger::observesGlobal(GlobalObject *global) const
 {
-    return debuggees.has(obj->getGlobal());
+    return debuggees.has(global);
 }
 
 bool
 Debugger::observesFrame(StackFrame *fp) const
 {
-    return observesScope(&fp->scopeChain());
+    return observesGlobal(fp->scopeChain().getGlobal());
 }
 
 void
@@ -517,13 +506,12 @@ Debugger::onExceptionUnwind(JSContext *cx, js::Value *vp)
 }
 
 void
-Debugger::onNewScript(JSContext *cx, JSScript *script, JSObject *obj,
-                      GlobalObject *compileAndGoGlobal)
+Debugger::onNewScript(JSContext *cx, JSScript *script, GlobalObject *compileAndGoGlobal)
 {
     JS_ASSERT_IF(script->compileAndGo, compileAndGoGlobal);
     JS_ASSERT_IF(!script->compileAndGo, !compileAndGoGlobal);
     if (!script->compartment()->getDebuggees().empty())
-        slowPathOnNewScript(cx, script, obj, compileAndGoGlobal);
+        slowPathOnNewScript(cx, script, compileAndGoGlobal);
 }
 
 extern JSBool

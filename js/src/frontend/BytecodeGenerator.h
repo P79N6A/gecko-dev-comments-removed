@@ -275,7 +275,7 @@ struct StmtInfo {
 
 
 
-#define TCF_NEED_SCRIPT_OBJECT 0x40000000
+#define TCF_NEED_SCRIPT_GLOBAL 0x40000000
 
 
 
