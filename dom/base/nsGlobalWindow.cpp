@@ -3987,6 +3987,10 @@ nsGlobalWindow::SetFullScreen(PRBool aFullScreen)
     return NS_ERROR_FAILURE;
 
   
+  if (mFullScreen == aFullScreen)
+    return NS_OK;
+
+  
   
   if (!DispatchCustomEvent("fullscreen")) {
     return NS_OK;
@@ -4001,11 +4005,13 @@ nsGlobalWindow::SetFullScreen(PRBool aFullScreen)
     xulWin->SetIntrinsicallySized(PR_FALSE);
   }
 
+  
+  
+  mFullScreen = aFullScreen;
+
   nsCOMPtr<nsIWidget> widget = GetMainWidget();
   if (widget)
     widget->MakeFullScreen(aFullScreen);
-
-  mFullScreen = aFullScreen;
 
   return NS_OK;
 }
