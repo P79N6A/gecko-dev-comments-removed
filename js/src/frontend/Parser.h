@@ -35,6 +35,8 @@ enum VarContext { HoistVars, DontHoistVars };
 struct Parser : private AutoGCRooter
 {
     JSContext           *const context; 
+    PartialTokenizingContext partialTokenizingContext; 
+
     TokenStream         tokenStream;
     void                *tempPoolMark;  
     JSPrincipals        *principals;    

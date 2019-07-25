@@ -382,13 +382,12 @@ enum TokenStreamFlags
     TSF_OPERAND = 0x08,         
     TSF_UNEXPECTED_EOF = 0x10,  
     TSF_KEYWORD_IS_NAME = 0x20, 
-    TSF_STRICT_MODE_CODE = 0x40,
-    TSF_DIRTYLINE = 0x80,       
-    TSF_OWNFILENAME = 0x100,    
-    TSF_XMLTAGMODE = 0x200,     
-    TSF_XMLTEXTMODE = 0x400,    
-    TSF_XMLONLYMODE = 0x800,    
-    TSF_OCTAL_CHAR = 0x1000,    
+    TSF_DIRTYLINE = 0x40,       
+    TSF_OWNFILENAME = 0x80,     
+    TSF_XMLTAGMODE = 0x100,     
+    TSF_XMLTEXTMODE = 0x200,    
+    TSF_XMLONLYMODE = 0x400,    
+    TSF_OCTAL_CHAR = 0x800,     
 
     
 
@@ -409,7 +408,28 @@ enum TokenStreamFlags
 
 
 
-    TSF_IN_HTML_COMMENT = 0x2000
+    TSF_IN_HTML_COMMENT = 0x1000
+};
+
+struct Parser;
+
+
+
+
+
+
+
+
+class PartialTokenizingContext {
+    Parser *parser;
+  public:
+    PartialTokenizingContext(Parser *p) : parser(p) { }
+
+    
+    
+    
+    
+    bool inStrictMode() const;
 };
 
 class TokenStream
@@ -427,9 +447,10 @@ class TokenStream
   public:
     typedef Vector<jschar, 32> CharBuffer;
 
-    TokenStream(JSContext *, JSPrincipals *principals, JSPrincipals *originPrincipals,
+    TokenStream(JSContext *cx, JSPrincipals *principals, JSPrincipals *originPrincipals,
                 const jschar *base, size_t length, const char *filename, unsigned lineno,
-                JSVersion version);
+                JSVersion version, PartialTokenizingContext *ptc);
+
     ~TokenStream();
 
     
@@ -469,13 +490,12 @@ class TokenStream
     }
 
     
-    void setStrictMode(bool enabled = true) { setFlag(enabled, TSF_STRICT_MODE_CODE); }
     void setXMLTagMode(bool enabled = true) { setFlag(enabled, TSF_XMLTAGMODE); }
     void setXMLOnlyMode(bool enabled = true) { setFlag(enabled, TSF_XMLONLYMODE); }
     void setUnexpectedEOF(bool enabled = true) { setFlag(enabled, TSF_UNEXPECTED_EOF); }
     void setOctalCharacterEscape(bool enabled = true) { setFlag(enabled, TSF_OCTAL_CHAR); }
 
-    bool isStrictMode() { return !!(flags & TSF_STRICT_MODE_CODE); }
+    bool isStrictMode() { return partialTokenizingContext->inStrictMode(); }
     bool isXMLTagMode() { return !!(flags & TSF_XMLTAGMODE); }
     bool isXMLOnlyMode() { return !!(flags & TSF_XMLONLYMODE); }
     bool isUnexpectedEOF() { return !!(flags & TSF_UNEXPECTED_EOF); }
@@ -782,6 +802,8 @@ class TokenStream
     bool                xml;            
     JSContext           *const cx;
     JSPrincipals        *const originPrincipals;
+    PartialTokenizingContext *partialTokenizingContext; 
+
 };
 
 struct KeywordInfo {
@@ -824,22 +846,8 @@ ReportCompileErrorNumber(JSContext *cx, TokenStream *ts, ParseNode *pn, unsigned
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 bool
-ReportStrictModeError(JSContext *cx, TokenStream *ts, SharedContext *sc, ParseNode *pn,
-                      unsigned errorNumber, ...);
+ReportStrictModeError(JSContext *cx, TokenStream *ts, ParseNode *pn, unsigned errorNumber, ...);
 
 } 
 
