@@ -1,4 +1,4 @@
-var testURL = "chrome://mochikit/content/browser/mobile/chrome/browser_blank_01.html";
+var testURL = chromeRoot + "browser_blank_01.html";
 
 
 var gTests = [];
