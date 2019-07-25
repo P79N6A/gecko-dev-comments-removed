@@ -42,12 +42,14 @@
 #include "nsIDOMSVGSVGElement.h"
 #include "nsSVGOuterSVGFrame.h"
 #include "nsRegion.h"
+#include "nsRenderingContext.h"
 #include "nsGkAtoms.h"
 #include "nsLayoutUtils.h"
 #include "nsSVGUtils.h"
 #include "nsIURI.h"
 #include "nsSVGRect.h"
 #include "nsINameSpaceManager.h"
+#include "nsSVGEffects.h"
 #include "nsSVGForeignObjectElement.h"
 #include "nsSVGContainerFrame.h"
 #include "gfxContext.h"
@@ -91,18 +93,8 @@ nsSVGForeignObjectFrame::Init(nsIContent* aContent,
 
   nsresult rv = nsSVGForeignObjectFrameBase::Init(aContent, aParent, aPrevInFlow);
   AddStateBits(aParent->GetStateBits() &
-               (NS_STATE_SVG_NONDISPLAY_CHILD | NS_STATE_SVG_CLIPPATH_CHILD |
-                NS_STATE_SVG_REDRAW_SUSPENDED));
-  if (NS_SUCCEEDED(rv)) {
-    nsSVGUtils::GetOuterSVGFrame(this)->RegisterForeignObject(this);
-  }
+               (NS_STATE_SVG_NONDISPLAY_CHILD | NS_STATE_SVG_CLIPPATH_CHILD));
   return rv;
-}
-
-void nsSVGForeignObjectFrame::DestroyFrom(nsIFrame* aDestructRoot)
-{
-  nsSVGUtils::GetOuterSVGFrame(this)->UnregisterForeignObject(this);
-  nsSVGForeignObjectFrameBase::DestroyFrom(aDestructRoot);
 }
 
 nsIAtom *
@@ -119,17 +111,18 @@ nsSVGForeignObjectFrame::AttributeChanged(PRInt32  aNameSpaceID,
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::width ||
         aAttribute == nsGkAtoms::height) {
-      UpdateGraphic(); 
+      nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
       
       RequestReflow(nsIPresShell::eStyleChange);
     } else if (aAttribute == nsGkAtoms::x ||
                aAttribute == nsGkAtoms::y ||
-               aAttribute == nsGkAtoms::viewBox ||
-               aAttribute == nsGkAtoms::preserveAspectRatio ||
                aAttribute == nsGkAtoms::transform) {
       
       mCanvasTM = nsnull;
-      UpdateGraphic();
+      nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+    } else if (aAttribute == nsGkAtoms::viewBox ||
+               aAttribute == nsGkAtoms::preserveAspectRatio) {
+      nsSVGUtils::InvalidateBounds(this);
     }
   }
 
@@ -145,7 +138,10 @@ nsSVGForeignObjectFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   
   
   if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
-    UpdateGraphic();
+    
+    
+    
+    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
   }
 }
 
@@ -155,7 +151,17 @@ nsSVGForeignObjectFrame::Reflow(nsPresContext*           aPresContext,
                                 const nsHTMLReflowState& aReflowState,
                                 nsReflowStatus&          aStatus)
 {
+  NS_ABORT_IF_FALSE(!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
+                    "Should not have been called");
+
   
+  
+  
+  
+  
+  NS_ASSERTION(!(GetStateBits() & NS_FRAME_IS_DIRTY),
+               "Reflowing while a resize is pending is wasteful");
+
   
 
   NS_ASSERTION(!aReflowState.parentReflowState,
@@ -183,13 +189,27 @@ nsSVGForeignObjectFrame::InvalidateInternal(const nsRect& aDamageRect,
 {
   
 
-  if (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)
+  if (GetStateBits() & NS_FRAME_IS_DIRTY) {
+    
+    
     return;
+  }
+
+  if (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD) {
+    nsSVGEffects::InvalidateRenderingObservers(this);
+    return;
+  }
+
+  if (!mInReflow) {
+    
+    
+    InvalidateDirtyRect(nsSVGUtils::GetOuterSVGFrame(this), aDamageRect + nsPoint(aX, aY), aFlags);
+    return;
+  }
 
   nsRegion* region = (aFlags & INVALIDATE_CROSS_DOC)
     ? &mSubDocDirtyRegion : &mSameDocDirtyRegion;
   region->Or(*region, aDamageRect + nsPoint(aX, aY));
-  FlushDirtyRegion(aFlags);
 }
 
 
@@ -345,11 +365,21 @@ nsSVGForeignObjectFrame::GetCoveredRegion()
   return mCoveredRegion;
 }
 
-NS_IMETHODIMP
-nsSVGForeignObjectFrame::UpdateCoveredRegion()
+void
+nsSVGForeignObjectFrame::UpdateBounds()
 {
-  if (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)
-    return NS_ERROR_FAILURE;
+  NS_ASSERTION(nsSVGUtils::OuterSVGIsCallingUpdateBounds(this),
+               "This call is probaby a wasteful mistake");
+
+  NS_ABORT_IF_FALSE(!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
+                    "UpdateBounds mechanism not designed for this");
+
+  if (!nsSVGUtils::NeedsUpdatedBounds(this)) {
+    return;
+  }
+
+  
+  
 
   float x, y, w, h;
   static_cast<nsSVGForeignObjectElement*>(mContent)->
@@ -365,30 +395,32 @@ nsSVGForeignObjectFrame::UpdateCoveredRegion()
                            PresContext()->AppUnitsPerCSSPixel());
   mCoveredRegion = ToCanvasBounds(gfxRect(0.0, 0.0, w, h), GetCanvasTM(), PresContext());
 
-  return NS_OK;
-}
+  
+  
+  
+  mSameDocDirtyRegion.SetEmpty();
+  mSubDocDirtyRegion.SetEmpty();
 
-NS_IMETHODIMP
-nsSVGForeignObjectFrame::InitialUpdate()
-{
-  NS_ASSERTION(GetStateBits() & NS_FRAME_FIRST_REFLOW,
-               "Yikes! We've been called already! Hopefully we weren't called "
-               "before our nsSVGOuterSVGFrame's initial Reflow()!!!");
-
-  UpdateCoveredRegion();
+  
+  
+  nsIFrame* kid = GetFirstPrincipalChild();
+  kid->AddStateBits(NS_FRAME_IS_DIRTY);
 
   
   nsPresContext::InterruptPreventer noInterrupts(PresContext());
+
   DoReflow();
 
-  NS_ASSERTION(!(mState & NS_FRAME_IN_REFLOW),
-               "We don't actually participate in reflow");
-  
   
   mState &= ~(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
               NS_FRAME_HAS_DIRTY_CHILDREN);
 
-  return NS_OK;
+  if (!(GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+    
+    
+    
+    nsSVGUtils::InvalidateBounds(this, true);
+  }
 }
 
 void
@@ -401,39 +433,32 @@ nsSVGForeignObjectFrame::NotifySVGChanged(PRUint32 aFlags)
   NS_ABORT_IF_FALSE(aFlags & (TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED),
                     "Invalidation logic may need adjusting");
 
-  bool reflow = false;
+  bool needNewBounds = false; 
+  bool needReflow = false;
+  bool needNewCanvasTM = false;
 
-  if (aFlags & TRANSFORM_CHANGED) {
-    
-    
-    
-    
-    
-    
-    
-    mCanvasTM = nsnull;
-    if (!(aFlags & DO_NOT_NOTIFY_RENDERING_OBSERVERS)) {
-      UpdateGraphic();
-    }
-
-  } else if (aFlags & COORD_CONTEXT_CHANGED) {
+  if (aFlags & COORD_CONTEXT_CHANGED) {
     nsSVGForeignObjectElement *fO =
       static_cast<nsSVGForeignObjectElement*>(mContent);
     
     
     if (fO->mLengthAttributes[nsSVGForeignObjectElement::X].IsPercentage() ||
         fO->mLengthAttributes[nsSVGForeignObjectElement::Y].IsPercentage()) {
-      mCanvasTM = nsnull;
+      needNewBounds = true;
+      needNewCanvasTM = true;
     }
     
     
     if (fO->mLengthAttributes[nsSVGForeignObjectElement::WIDTH].IsPercentage() ||
         fO->mLengthAttributes[nsSVGForeignObjectElement::HEIGHT].IsPercentage()) {
-      reflow = true;
+      needNewBounds = true;
+      needReflow = true;
     }
   }
 
-  if (reflow) {
+  if (aFlags & TRANSFORM_CHANGED) {
+    needNewBounds = true; 
+    needNewCanvasTM = true;
     
     
     
@@ -441,30 +466,28 @@ nsSVGForeignObjectFrame::NotifySVGChanged(PRUint32 aFlags)
     
     
     
-    if (!PresContext()->PresShell()->IsReflowLocked()) {
-      UpdateGraphic(); 
-      RequestReflow(nsIPresShell::eResize);
-    }
   }
-}
 
-void
-nsSVGForeignObjectFrame::NotifyRedrawSuspended()
-{
-  AddStateBits(NS_STATE_SVG_REDRAW_SUSPENDED);
-}
+  if (needNewBounds &&
+      !(aFlags & DO_NOT_NOTIFY_RENDERING_OBSERVERS)) {
+    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+  }
 
-void
-nsSVGForeignObjectFrame::NotifyRedrawUnsuspended()
-{
-  RemoveStateBits(NS_STATE_SVG_REDRAW_SUSPENDED);
+  
+  
+  
+  
+  
+  
+  
+  if (needReflow && !PresContext()->PresShell()->IsReflowLocked()) {
+    RequestReflow(nsIPresShell::eResize);
+  }
 
-  if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
-    if (GetStateBits() & NS_STATE_SVG_DIRTY) {
-      UpdateGraphic(); 
-    } else {
-      FlushDirtyRegion(0); 
-    }
+  if (needNewCanvasTM) {
+    
+    
+    mCanvasTM = nsnull;
   }
 }
 
@@ -532,61 +555,12 @@ void nsSVGForeignObjectFrame::RequestReflow(nsIPresShell::IntrinsicDirty aType)
   PresContext()->PresShell()->FrameNeedsReflow(kid, aType, NS_FRAME_IS_DIRTY);
 }
 
-void nsSVGForeignObjectFrame::UpdateGraphic()
-{
-  nsSVGUtils::UpdateGraphic(this);
-
-  
-  
-  mSameDocDirtyRegion.SetEmpty();
-  mSubDocDirtyRegion.SetEmpty();
-}
-
-void
-nsSVGForeignObjectFrame::MaybeReflowFromOuterSVGFrame()
-{
-  
-  
-  
-  
-  
-  if (IsDisabled()) {
-    return;
-  }
-
-  nsIFrame* kid = GetFirstPrincipalChild();
-
-  
-  
-  
-  
-
-  if (kid->GetStateBits() & NS_FRAME_IS_DIRTY) {
-    return;
-  }
-  kid->AddStateBits(NS_FRAME_IS_DIRTY); 
-  if (kid->GetStateBits() & NS_FRAME_HAS_DIRTY_CHILDREN) {
-    return;
-  }
-
-  
-  nsPresContext::InterruptPreventer noInterrupts(PresContext());
-  DoReflow();
-}
-
 void
 nsSVGForeignObjectFrame::DoReflow()
 {
-  NS_ASSERTION(!(nsSVGUtils::GetOuterSVGFrame(this)->
-                             GetStateBits() & NS_FRAME_FIRST_REFLOW),
-               "Calling InitialUpdate too early - must not call DoReflow!!!");
-
   
   if (IsDisabled() &&
       !(GetStateBits() & NS_FRAME_FIRST_REFLOW))
-    return;
-
-  if (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)
     return;
 
   nsPresContext *presContext = PresContext();
@@ -602,26 +576,11 @@ nsSVGForeignObjectFrame::DoReflow()
   if (!renderingContext)
     return;
 
-  nsSVGForeignObjectElement *fO = static_cast<nsSVGForeignObjectElement*>
-                                             (mContent);
-
-  float width =
-    fO->mLengthAttributes[nsSVGForeignObjectElement::WIDTH].GetAnimValue(fO);
-  float height =
-    fO->mLengthAttributes[nsSVGForeignObjectElement::HEIGHT].GetAnimValue(fO);
-
-  
-  width = NS_MAX(width, 0.0f);
-  height = NS_MAX(height, 0.0f);
-
-  nsSize size(nsPresContext::CSSPixelsToAppUnits(width),
-              nsPresContext::CSSPixelsToAppUnits(height));
-
   mInReflow = true;
 
   nsHTMLReflowState reflowState(presContext, kid,
                                 renderingContext,
-                                nsSize(size.width, NS_UNCONSTRAINEDSIZE));
+                                nsSize(mRect.width, NS_UNCONSTRAINEDSIZE));
   nsHTMLReflowMetrics desiredSize;
   nsReflowStatus status;
 
@@ -631,19 +590,22 @@ nsSVGForeignObjectFrame::DoReflow()
                reflowState.mComputedMargin == nsMargin(0, 0, 0, 0),
                "style system should ensure that :-moz-svg-foreign-content "
                "does not get styled");
-  NS_ASSERTION(reflowState.ComputedWidth() == size.width,
+  NS_ASSERTION(reflowState.ComputedWidth() == mRect.width,
                "reflow state made child wrong size");
-  reflowState.SetComputedHeight(size.height);
-  
+  reflowState.SetComputedHeight(mRect.height);
+
   ReflowChild(kid, presContext, desiredSize, reflowState, 0, 0,
               NS_FRAME_NO_MOVE_FRAME, status);
-  NS_ASSERTION(size.width == desiredSize.width &&
-               size.height == desiredSize.height, "unexpected size");
+  NS_ASSERTION(mRect.width == desiredSize.width &&
+               mRect.height == desiredSize.height, "unexpected size");
   FinishReflowChild(kid, presContext, &reflowState, desiredSize, 0, 0,
                     NS_FRAME_NO_MOVE_FRAME);
   
   mInReflow = false;
-  FlushDirtyRegion(0);
+
+  if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+    FlushDirtyRegion(0);
+  }
 }
 
 void
@@ -672,10 +634,15 @@ nsSVGForeignObjectFrame::InvalidateDirtyRect(nsSVGOuterSVGFrame* aOuter,
 void
 nsSVGForeignObjectFrame::FlushDirtyRegion(PRUint32 aFlags)
 {
-  if ((mSameDocDirtyRegion.IsEmpty() && mSubDocDirtyRegion.IsEmpty()) ||
-      mInReflow ||
-      (GetStateBits() & NS_STATE_SVG_REDRAW_SUSPENDED))
+  NS_ABORT_IF_FALSE(!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
+                    "Should not have been called");
+
+  NS_ASSERTION(!mInReflow,
+               "We shouldn't be flushing while we have a pending flush");
+
+  if (mSameDocDirtyRegion.IsEmpty() && mSubDocDirtyRegion.IsEmpty()) {
     return;
+  }
 
   nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(this);
   if (!outerSVGFrame) {

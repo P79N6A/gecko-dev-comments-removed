@@ -37,10 +37,11 @@
 
 
 #include "nsSVGOuterSVGFrame.h"
+
 #include "nsIDOMSVGSVGElement.h"
+#include "nsRenderingContext.h"
 #include "nsSVGSVGElement.h"
 #include "nsSVGTextFrame.h"
-#include "nsSVGForeignObjectFrame.h"
 #include "DOMSVGTests.h"
 #include "nsDisplayList.h"
 #include "nsStubMutationObserver.h"
@@ -141,7 +142,6 @@ NS_IMPL_FRAMEARENA_HELPERS(nsSVGOuterSVGFrame)
 
 nsSVGOuterSVGFrame::nsSVGOuterSVGFrame(nsStyleContext* aContext)
     : nsSVGOuterSVGFrameBase(aContext)
-    , mRedrawSuspendCount(0)
     , mFullZoom(0)
     , mViewportInitialized(false)
 #ifdef XP_MACOSX
@@ -166,6 +166,11 @@ nsSVGOuterSVGFrame::Init(nsIContent* aContent,
   
   
   
+  
+  
+  
+  
+  
   nsSVGSVGElement *svg = static_cast<nsSVGSVGElement*>(aContent);
   if (!svg->PassesConditionalProcessingTests()) {
     AddStateBits(NS_STATE_SVG_NONDISPLAY_CHILD);
@@ -183,8 +188,6 @@ nsSVGOuterSVGFrame::Init(nsIContent* aContent,
     
     doc->AddMutationObserverUnlessExists(&sSVGMutationObserver);
   }
-
-  SuspendRedraw();  
 
   return rv;
 }
@@ -414,14 +417,6 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
   return NS_OK;
 }
 
-static PLDHashOperator
-ReflowForeignObject(nsVoidPtrHashKey *aEntry, void* aUserArg)
-{
-  static_cast<nsSVGForeignObjectFrame*>
-    (const_cast<void*>(aEntry->GetKey()))->MaybeReflowFromOuterSVGFrame();
-  return PL_DHASH_NEXT;
-}
-
 NS_IMETHODIMP
 nsSVGOuterSVGFrame::DidReflow(nsPresContext*   aPresContext,
                               const nsHTMLReflowState*  aReflowState,
@@ -433,29 +428,39 @@ nsSVGOuterSVGFrame::DidReflow(nsPresContext*   aPresContext,
 
   if (firstReflow) {
     
+    
+    
+    AddStateBits(NS_FRAME_FIRST_REFLOW);
+  }
+
+#ifdef DEBUG
+  mCallingUpdateBounds = true;
+#endif
+
+  if (!(mState & NS_STATE_SVG_NONDISPLAY_CHILD)) {
     nsIFrame* kid = mFrames.FirstChild();
     while (kid) {
       nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
-      if (SVGFrame) {
-        SVGFrame->InitialUpdate(); 
+      if (SVGFrame && !(kid->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+        SVGFrame->UpdateBounds(); 
       }
       kid = kid->GetNextSibling();
     }
-    
-    UnsuspendRedraw(); 
-  } else {
-    
-    
-    if (mForeignObjectHash.IsInitialized()) {
-#ifdef DEBUG
-      PRUint32 count =
-#endif
-        mForeignObjectHash.EnumerateEntries(ReflowForeignObject, nsnull);
-      NS_ASSERTION(count == mForeignObjectHash.Count(),
-                   "We didn't reflow all our nsSVGForeignObjectFrames!");
-    }
   }
+
+#ifdef DEBUG
+  mCallingUpdateBounds = false;
+#endif
+
+  if (firstReflow) {
+    
+    RemoveStateBits(NS_FRAME_FIRST_REFLOW);
+  }
+
   
+  
+  PresContext()->PresShell()->SynthesizeMouseMove(false);
+
   return rv;
 }
 
@@ -687,26 +692,6 @@ nsSVGOuterSVGFrame::GetType() const
 
 
 void
-nsSVGOuterSVGFrame::SuspendRedraw()
-{
-  if (++mRedrawSuspendCount != 1)
-    return;
-
-  nsSVGUtils::NotifyRedrawSuspended(this);
-}
-
-void
-nsSVGOuterSVGFrame::UnsuspendRedraw()
-{
-  NS_ASSERTION(mRedrawSuspendCount >=0, "unbalanced suspend count!");
-
-  if (--mRedrawSuspendCount > 0)
-    return;
-
-  nsSVGUtils::NotifyRedrawUnsuspended(this);
-}
-
-void
 nsSVGOuterSVGFrame::NotifyViewportChange()
 {
   
@@ -763,36 +748,6 @@ nsSVGOuterSVGFrame::GetCanvasTM()
 
 
 
-
-void
-nsSVGOuterSVGFrame::RegisterForeignObject(nsSVGForeignObjectFrame* aFrame)
-{
-  NS_ASSERTION(aFrame, "Who on earth is calling us?!");
-
-  if (!mForeignObjectHash.IsInitialized()) {
-    if (!mForeignObjectHash.Init()) {
-      NS_ERROR("Failed to initialize foreignObject hash.");
-      return;
-    }
-  }
-
-  NS_ASSERTION(!mForeignObjectHash.GetEntry(aFrame),
-               "nsSVGForeignObjectFrame already registered!");
-
-  mForeignObjectHash.PutEntry(aFrame);
-
-  NS_ASSERTION(mForeignObjectHash.GetEntry(aFrame),
-               "Failed to register nsSVGForeignObjectFrame!");
-}
-
-void
-nsSVGOuterSVGFrame::UnregisterForeignObject(nsSVGForeignObjectFrame* aFrame)
-{
-  NS_ASSERTION(aFrame, "Who on earth is calling us?!");
-  NS_ASSERTION(mForeignObjectHash.GetEntry(aFrame),
-               "nsSVGForeignObjectFrame not in registry!");
-  return mForeignObjectHash.RemoveEntry(aFrame);
-}
 
 bool
 nsSVGOuterSVGFrame::IsRootOfReplacedElementSubDoc(nsIFrame **aEmbeddingFrame)

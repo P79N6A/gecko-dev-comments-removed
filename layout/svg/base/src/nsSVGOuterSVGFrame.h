@@ -39,13 +39,9 @@
 #ifndef __NS_SVGOUTERSVGFRAME_H__
 #define __NS_SVGOUTERSVGFRAME_H__
 
-#include "nsSVGContainerFrame.h"
-#include "nsISVGSVGFrame.h"
-#include "nsIDOMSVGPoint.h"
-#include "nsIDOMSVGNumber.h"
 #include "gfxMatrix.h"
-
-class nsSVGForeignObjectFrame;
+#include "nsISVGSVGFrame.h"
+#include "nsSVGContainerFrame.h"
 
 
 
@@ -63,13 +59,6 @@ protected:
 public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
-
-#ifdef DEBUG
-  ~nsSVGOuterSVGFrame() {
-    NS_ASSERTION(mForeignObjectHash.Count() == 0,
-                 "foreignObject(s) still registered!");
-  }
-#endif
 
   
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
@@ -125,20 +114,10 @@ public:
                                PRInt32         aModType);
 
   
-  virtual void SuspendRedraw();
-  virtual void UnsuspendRedraw();
   virtual void NotifyViewportChange();
 
   
   virtual gfxMatrix GetCanvasTM();
-
-  
-
-
-
-
-  void RegisterForeignObject(nsSVGForeignObjectFrame* aFrame);
-  void UnregisterForeignObject(nsSVGForeignObjectFrame* aFrame);
 
 #ifdef XP_MACOSX
   bool BitmapFallbackEnabled() const {
@@ -156,7 +135,17 @@ public:
 
   bool VerticalScrollbarNotNeeded() const;
 
+#ifdef DEBUG
+  bool IsCallingUpdateBounds() const {
+    return mCallingUpdateBounds;
+  }
+#endif
+
 protected:
+
+#ifdef DEBUG
+  bool mCallingUpdateBounds;
+#endif
 
   
 
@@ -169,14 +158,8 @@ protected:
 
   bool IsRootOfImage();
 
-  
-  
-  
-  nsTHashtable<nsVoidPtrHashKey> mForeignObjectHash;
-
   nsAutoPtr<gfxMatrix> mCanvasTM;
 
-  PRInt32 mRedrawSuspendCount;
   float mFullZoom;
 
   bool mViewportInitialized;

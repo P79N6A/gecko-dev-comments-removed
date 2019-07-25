@@ -326,7 +326,10 @@ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
   }
 
   nsAutoString type;
-  nsContentUtils::ASCIIToLower(aMimeType, type);
+  nsresult rv = nsContentUtils::ASCIIToLower(aMimeType, type);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   nsAutoString params;
 
@@ -367,8 +370,7 @@ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
   }
 
   nsCOMPtr<nsIInputStream> stream;
-  nsresult rv = ExtractData(type, params, getter_AddRefs(stream),
-                            fallbackToPNG);
+  rv = ExtractData(type, params, getter_AddRefs(stream), fallbackToPNG);
 
   
   

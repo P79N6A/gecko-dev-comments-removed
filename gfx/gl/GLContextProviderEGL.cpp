@@ -507,7 +507,6 @@ public:
     bool SwapBuffers()
     {
         if (mSurface && !mPlatformContext) {
-            
             return sEGLLibrary.fSwapBuffers(EGL_DISPLAY(), mSurface);
         } else {
             return false;

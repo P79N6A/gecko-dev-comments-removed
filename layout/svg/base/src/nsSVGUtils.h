@@ -41,43 +41,42 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-#include "nscore.h"
-#include "nsCOMPtr.h"
-#include "nsRect.h"
-#include "gfxContext.h"
-#include "nsRenderingContext.h"
-#include "gfxRect.h"
 #include "gfxMatrix.h"
-#include "nsStyleStruct.h"
+#include "gfxPoint.h"
+#include "gfxRect.h"
+#include "nsAlgorithm.h"
+#include "nsColor.h"
+#include "nsCOMPtr.h"
+#include "nsID.h"
+#include "nsISupportsBase.h"
+#include "nsMathUtils.h"
+#include "nsPoint.h"
+#include "nsRect.h"
 
-class nsIDocument;
-class nsPresContext;
+class gfxASurface;
+class gfxContext;
+class gfxImageSurface;
+class gfxPattern;
+class nsFrameList;
 class nsIContent;
+class nsIDocument;
+class nsIDOMSVGElement;
+class nsIFrame;
+class nsPresContext;
+class nsRenderingContext;
 class nsStyleContext;
 class nsStyleCoord;
-class nsFrameList;
-class nsIFrame;
-struct nsStyleSVGPaint;
-class nsIDOMSVGElement;
-class nsIDOMSVGLength;
-class nsIURI;
-class nsSVGOuterSVGFrame;
-class nsIAtom;
-class nsSVGLength2;
-class nsSVGElement;
-class nsSVGSVGElement;
-class nsAttrValue;
-class gfxContext;
-class gfxASurface;
-class gfxPattern;
-class gfxImageSurface;
-struct gfxSize;
-struct nsStyleFont;
-class nsSVGEnum;
-class nsISVGChildFrame;
-class nsSVGGeometryFrame;
-class nsSVGPathGeometryFrame;
 class nsSVGDisplayContainerFrame;
+class nsSVGElement;
+class nsSVGEnum;
+class nsSVGGeometryFrame;
+class nsSVGLength2;
+class nsSVGOuterSVGFrame;
+class nsSVGPathGeometryFrame;
+class nsSVGSVGElement;
+
+struct nsStyleSVG;
+struct nsStyleSVGPaint;
 
 namespace mozilla {
 class SVGAnimatedPreserveAspectRatio;
@@ -94,16 +93,11 @@ class Element;
 
 #define NS_STATE_IS_OUTER_SVG                    NS_FRAME_STATE_BIT(20)
 
-#define NS_STATE_SVG_DIRTY                       NS_FRAME_STATE_BIT(21)
-
 
 #define NS_STATE_SVG_NONDISPLAY_CHILD            NS_FRAME_STATE_BIT(22)
 
 
 #define NS_STATE_SVG_CLIPPATH_CHILD              NS_FRAME_STATE_BIT(23)
-
-
-#define NS_STATE_SVG_REDRAW_SUSPENDED            NS_FRAME_STATE_BIT(24)
 
 
 
@@ -298,13 +292,54 @@ public:
   
 
 
-  static void InvalidateCoveredRegion(nsIFrame *aFrame);
+
+
+
+
+  static void InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate = false);
 
   
 
 
 
-  static void UpdateGraphic(nsIFrame *aFrame);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void ScheduleBoundsUpdate(nsIFrame *aFrame);
+
+  
+
+
+
+
+  static void InvalidateAndScheduleBoundsUpdate(nsIFrame *aFrame);
+
+  
+
+
+
+  static bool NeedsUpdatedBounds(nsIFrame *aFrame);
 
   
 
@@ -398,19 +433,6 @@ public:
 
   static void
   NotifyChildrenOfSVGChange(nsIFrame *aFrame, PRUint32 aFlags);
-
-  
-
-
-  static void
-  NotifyRedrawSuspended(nsIFrame *aFrame);
-
-  
-
-
-
-  static void
-  NotifyRedrawUnsuspended(nsIFrame *aFrame);
 
   
 
@@ -541,6 +563,8 @@ public:
 #ifdef DEBUG
   static void
   WritePPM(const char *fname, gfxImageSurface *aSurface);
+
+  static bool OuterSVGIsCallingUpdateBounds(nsIFrame *aFrame);
 #endif
 
   

@@ -172,6 +172,136 @@ void RemoveQuotedStringEscapes(char *src)
 
 
 
+#define MAX_CONTINUATIONS 999
+
+
+
+class Continuation {
+  public:
+    Continuation(const char *aValue, PRUint32 aLength,
+                 bool aNeedsPercentDecoding) {
+      value = aValue;
+      length = aLength;
+      needsPercentDecoding = aNeedsPercentDecoding;
+    }
+    Continuation() {
+      
+      value = 0L;
+      length = 0;
+      needsPercentDecoding = false;
+    }
+    ~Continuation() {}
+
+    const char *value;
+    PRUint32 length;
+    bool needsPercentDecoding;
+};
+
+
+
+char *combineContinuations(nsTArray<Continuation>& aArray)
+{
+  
+  if (aArray.Length() == 0)
+    return NULL;
+
+  
+  PRUint32 length = 0;
+  for (PRUint32 i = 0; i < aArray.Length(); i++) {
+    length += aArray[i].length;
+  }
+
+  
+  char *result = (char *) nsMemory::Alloc(length + 1);
+
+  
+  if (result) {
+    *result = '\0';
+
+    for (PRUint32 i = 0; i < aArray.Length(); i++) {
+      Continuation cont = aArray[i];
+      if (! cont.value) break;
+
+      char *c = result + strlen(result);
+      strncat(result, cont.value, cont.length);
+      if (cont.needsPercentDecoding) {
+        nsUnescape(c);
+      }
+    }
+
+    
+    if (*result == '\0') {
+      nsMemory::Free(result);
+      result = NULL;
+    }
+  } else {
+    
+    NS_WARNING("Out of memory\n");
+  }
+
+  return result;
+}
+
+
+bool addContinuation(nsTArray<Continuation>& aArray, PRUint32 aIndex,
+                     const char *aValue, PRUint32 aLength,
+                     bool aNeedsPercentDecoding)
+{
+  if (aIndex < aArray.Length() && aArray[aIndex].value) {
+    NS_WARNING("duplicate RC2231 continuation segment #\n");
+    return false;
+  }
+
+  if (aIndex > MAX_CONTINUATIONS) {
+    NS_WARNING("RC2231 continuation segment # exceeds limit\n");
+    return false;
+  }
+
+  Continuation cont (aValue, aLength, aNeedsPercentDecoding);
+
+  if (aArray.Length() <= aIndex) {
+    aArray.SetLength(aIndex + 1);
+  }
+  aArray[aIndex] = cont;
+
+  return true;
+}
+
+
+PRInt32 parseSegmentNumber(const char *aValue, PRInt32 aLen)
+{
+  if (aLen < 1) {
+    NS_WARNING("segment number missing\n");
+    return -1;
+  }
+
+  if (aLen > 1 && aValue[0] == '0') {
+    NS_WARNING("leading '0' not allowed in segment number\n");
+    return -1;
+  }
+
+  PRInt32 segmentNumber = 0;
+
+  for (PRInt32 i = 0; i < aLen; i++) {
+    if (! (aValue[i] >= '0' && aValue[i] <= '9')) {
+      NS_WARNING("invalid characters in segment number\n");
+      return -1;
+    }
+
+    segmentNumber *= 10;
+    segmentNumber += aValue[i] - '0';
+    if (segmentNumber > MAX_CONTINUATIONS) {
+      NS_WARNING("Segment number exceeds sane size\n");
+      return -1;
+    }
+  }
+
+  return segmentNumber;
+}
+
+
+
+
 
 
 
@@ -204,6 +334,10 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
 
   if (aCharset) *aCharset = nsnull;
   if (aLang) *aLang = nsnull;
+
+  nsCAutoString charset;
+
+  bool acceptContinuations = (aDecoding != RFC_5987_DECODING);
 
   const char *str = aHeaderValue;
 
@@ -255,37 +389,55 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
   
   
   
+  
+  
+  
+  char *caseAResult = NULL;
+  char *caseBResult = NULL;
+  char *caseCDResult = NULL;
+
+  
+  nsTArray<Continuation> segments;
+
+
+  
+  
+  nsDependentCSubstring charsetB, charsetCD;
+
+  nsDependentCSubstring lang;
+
   PRInt32 paramLen = strlen(aParamName);
 
-  bool haveCaseAValue = false;
-  PRInt32 nextContinuation = 0; 
-
   while (*str) {
-    const char *tokenStart = str;
-    const char *tokenEnd = 0;
+    
+
+    const char *nameStart = str;
+    const char *nameEnd = NULL;
     const char *valueStart = str;
-    const char *valueEnd = 0;
-    bool seenEquals = false;
+    const char *valueEnd = NULL;
+    bool isQuotedString = false;
 
     NS_ASSERTION(!nsCRT::IsAsciiSpace(*str), "should be after whitespace.");
 
     
     for (; *str && !nsCRT::IsAsciiSpace(*str) && *str != '=' && *str != ';'; str++)
       ;
-    tokenEnd = str;
+    nameEnd = str;
+
+    PRInt32 nameLen = nameEnd - nameStart;
 
     
     while (nsCRT::IsAsciiSpace(*str)) ++str;
-    if (*str == '=') {
-      ++str;
-      seenEquals = true;
+    if (!*str) {
+      break;
+    }
+    if (*str++ != '=') {
+      
+      goto increment_str;
     }
     while (nsCRT::IsAsciiSpace(*str)) ++str;
 
-    bool needUnquote = false;
-    
-    if (*str != '"')
-    {
+    if (*str != '"') {
       
       valueStart = str;
       for (valueEnd = str;
@@ -293,16 +445,12 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
            valueEnd++)
         ;
       str = valueEnd;
-    }
-    else
-    {
-      
-      needUnquote = true;
+    } else {
+      isQuotedString = true;
       
       ++str;
       valueStart = str;
-      for (valueEnd = str; *valueEnd; ++valueEnd)
-      {
+      for (valueEnd = str; *valueEnd; ++valueEnd) {
         if (*valueEnd == '\\')
           ++valueEnd;
         else if (*valueEnd == '"')
@@ -317,16 +465,14 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
     
     
     
-    if (tokenEnd - tokenStart == paramLen &&
-        seenEquals &&
-        !nsCRT::strncasecmp(tokenStart, aParamName, paramLen))
-    {
-      if (*aResult)
-      {
-        
+    if (nameLen == paramLen &&
+        !nsCRT::strncasecmp(nameStart, aParamName, paramLen)) {
+
+      if (caseAResult) {
         
         goto increment_str;
       }
+
       
       
       nsCAutoString tempStr(valueStart, valueEnd - valueStart);
@@ -334,144 +480,131 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
       char *res = ToNewCString(tempStr);
       NS_ENSURE_TRUE(res, NS_ERROR_OUT_OF_MEMORY);
       
-      if (needUnquote)
+      if (isQuotedString)
         RemoveQuotedStringEscapes(res);
-            
-      *aResult = res;
-      
-      haveCaseAValue = true;
+
+      caseAResult = res;
       
     }
     
-    else if (tokenEnd - tokenStart > paramLen &&
-             !nsCRT::strncasecmp(tokenStart, aParamName, paramLen) &&
-             seenEquals &&
-             *(tokenStart + paramLen) == '*')
-    {
-      const char *cp = tokenStart + paramLen + 1; 
-      bool needUnescape = *(tokenEnd - 1) == '*';
+    else if (nameLen > paramLen &&
+             !nsCRT::strncasecmp(nameStart, aParamName, paramLen) &&
+             *(nameStart + paramLen) == '*') {
 
-      bool caseB = (tokenEnd - tokenStart) == paramLen + 1;
-      bool caseCorDStart = (*cp == '0') && needUnescape;
-      bool acceptContinuations = (aDecoding != RFC_5987_DECODING);
- 
       
+      const char *cp = nameStart + paramLen + 1; 
+
       
-      if (caseB || (caseCorDStart && acceptContinuations))
-      {
-        if (caseCorDStart) {
-          if (nextContinuation++ != 0)
-          {
-            
-            
-            nextContinuation = -1;
-            goto increment_str;
-          }
+      bool needExtDecoding = *(nameEnd - 1) == '*';      
+
+      bool caseB = nameLen == paramLen + 1;
+      bool caseCStart = (*cp == '0') && needExtDecoding;
+
+      
+      PRInt32 segmentNumber = -1;
+      if (!caseB) {
+        PRInt32 segLen = (nameEnd - cp) - (needExtDecoding ? 1 : 0);
+        segmentNumber = parseSegmentNumber(cp, segLen);
+
+        if (segmentNumber == -1) {
+          acceptContinuations = false;
+          goto increment_str;
         }
+      }
+
+      
+      
+      if (caseB || (caseCStart && acceptContinuations)) {
         
         const char *sQuote1 = PL_strchr(valueStart, 0x27);
-        const char *sQuote2 = (char *) (sQuote1 ? PL_strchr(sQuote1 + 1, 0x27) : nsnull);
+        const char *sQuote2 = sQuote1 ? PL_strchr(sQuote1 + 1, 0x27) : nsnull;
 
         
         
-        if (!sQuote1 || !sQuote2)
+        if (!sQuote1 || !sQuote2) {
           NS_WARNING("Mandatory two single quotes are missing in header parameter\n");
-        if (aCharset && sQuote1 > valueStart && sQuote1 < valueEnd)
-        {
-          *aCharset = (char *) nsMemory::Clone(valueStart, sQuote1 - valueStart + 1);
-          if (*aCharset) 
-            *(*aCharset + (sQuote1 - valueStart)) = 0;
         }
-        if (aLang && sQuote1 && sQuote2 && sQuote2 > sQuote1 + 1 &&
-            sQuote2 < valueEnd)
-        {
-          *aLang = (char *) nsMemory::Clone(sQuote1 + 1, sQuote2 - (sQuote1 + 1) + 1);
-          if (*aLang) 
-            *(*aLang + (sQuote2 - (sQuote1 + 1))) = 0;
+
+        const char *charsetStart = NULL;
+        PRInt32 charsetLength = 0;
+        const char *langStart = NULL;
+        PRInt32 langLength = 0;
+        const char *rawValStart = NULL;
+        PRInt32 rawValLength = 0;
+
+        if (sQuote2 && sQuote1) {
+          
+          rawValStart = sQuote2 + 1;
+          rawValLength = valueEnd - rawValStart;
+
+          langStart = sQuote1 + 1;
+          langLength = sQuote2 - langStart;
+
+          charsetStart = valueStart;
+          charsetLength = sQuote1 - charsetStart;
+        }
+        else if (sQuote1) {
+          
+          rawValStart = sQuote1 + 1;
+          rawValLength = valueEnd - rawValStart;
+
+          charsetStart = valueStart;
+          charsetLength = sQuote1 - valueStart;
+        }
+        else {
+          
+          rawValStart = valueStart;
+          rawValLength = valueEnd - valueStart;
+        }
+
+        if (langLength != 0) {
+          lang.Assign(langStart, langLength);
         }
 
         
-        
-        if (sQuote1)
-        {
-          if(!sQuote2)
-            sQuote2 = sQuote1;
+        if (caseB) {
+          charsetB.Assign(charsetStart, charsetLength);
+        } else {
+          
+          charsetCD.Assign(charsetStart, charsetLength);
         }
-        else
-          sQuote2 = valueStart - 1;
 
-        if (sQuote2 && sQuote2 + 1 < valueEnd)
-        {
-          if (*aResult)
-          {
+        
+        if (rawValLength > 0) {
+          if (!caseBResult && caseB) {
             
+            char *tmpResult = (char *) nsMemory::Clone(rawValStart, rawValLength + 1);
+            if (!tmpResult) {
+              goto increment_str;
+            }
+            *(tmpResult + rawValLength) = 0;
+
+            nsUnescape(tmpResult);
+            caseBResult = tmpResult;
+          } else {
             
-            nsMemory::Free(*aResult);
-            haveCaseAValue = false;
-          }
-          *aResult = (char *) nsMemory::Alloc(valueEnd - (sQuote2 + 1) + 1);
-          if (*aResult)
-          {
-            memcpy(*aResult, sQuote2 + 1, valueEnd - (sQuote2 + 1));
-            *(*aResult + (valueEnd - (sQuote2 + 1))) = 0;
-            if (needUnescape)
-            {
-              nsUnescape(*aResult);
-              if (caseB)
-                return NS_OK; 
+            bool added = addContinuation(segments, 0, rawValStart,
+                                         rawValLength, needExtDecoding);
+
+            if (!added) {
+              
+              acceptContinuations = false;
             }
           }
         }
       }  
       
       
-      else if (acceptContinuations && nsCRT::IsAsciiDigit(PRUnichar(*cp)))
-      {
-        PRInt32 nextSegment = atoi(cp);
-        
-        bool broken = nextSegment > 0 && *cp == '0';
+      else if (acceptContinuations && segmentNumber != -1) {
+        PRUint32 valueLength = valueEnd - valueStart;
+
+        bool added = addContinuation(segments, segmentNumber, valueStart,
+                                     valueLength, needExtDecoding);
+
+        if (!added) {
           
-        if (broken || nextSegment != nextContinuation++)
-        {
-          
-          
-          
-          nextContinuation = -1;
-          goto increment_str;
+          acceptContinuations = false;
         }
-        if (haveCaseAValue && *aResult) 
-        {
-          
-          nsMemory::Free(*aResult);
-          *aResult = 0;
-          haveCaseAValue = false;
-        }
-        PRInt32 len = 0;
-        if (*aResult) 
-        {
-          len = strlen(*aResult);
-          char *ns = (char *) nsMemory::Realloc(*aResult, len + (valueEnd - valueStart) + 1);
-          if (!ns)
-          {
-            nsMemory::Free(*aResult);
-          }
-          *aResult = ns;
-        }
-        else 
-        {
-          NS_ASSERTION(*cp == '0', "Not first value in continuation"); 
-          *aResult = (char *) nsMemory::Alloc(valueEnd - valueStart + 1);
-        }
-        if (*aResult)
-        {
-          
-          memcpy(*aResult + len, valueStart, valueEnd - valueStart);
-          *(*aResult + len + (valueEnd - valueStart)) = 0;
-          if (needUnescape)
-            nsUnescape(*aResult + len);
-        }
-        else 
-          return NS_ERROR_OUT_OF_MEMORY;
       } 
     }
 
@@ -483,10 +616,50 @@ increment_str:
     while (nsCRT::IsAsciiSpace(*str)) ++str;
   }
 
-  if (*aResult) 
-    return NS_OK;
-  else
-    return NS_ERROR_INVALID_ARG; 
+  caseCDResult = combineContinuations(segments);
+
+  if (caseBResult) {
+    
+    *aResult = caseBResult;
+    caseBResult = NULL;
+    charset.Assign(charsetB);
+  }
+  else if (caseCDResult) {
+    
+    *aResult = caseCDResult;
+    caseCDResult = NULL;
+    charset.Assign(charsetCD);
+  }
+  else if (caseAResult) {
+    *aResult = caseAResult;
+    caseAResult = NULL;
+  }
+
+  
+  nsMemory::Free(caseAResult);
+  nsMemory::Free(caseBResult);
+  nsMemory::Free(caseCDResult);
+
+  
+  if (*aResult) {
+    
+    if (aLang && !lang.IsEmpty()) {
+      PRUint32 len = lang.Length();
+      *aLang = (char *) nsMemory::Clone(lang.BeginReading(), len + 1);
+      if (*aLang) {
+        *(*aLang + len) = 0;
+      }
+   }
+    if (aCharset && !charset.IsEmpty()) {
+      PRUint32 len = charset.Length();
+      *aCharset = (char *) nsMemory::Clone(charset.BeginReading(), len + 1);
+      if (*aCharset) {
+        *(*aCharset + len) = 0;
+      }
+    }
+  }
+
+  return *aResult ? NS_OK : NS_ERROR_INVALID_ARG;
 }
 
 

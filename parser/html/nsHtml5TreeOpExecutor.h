@@ -136,7 +136,10 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
 
 
-    bool                          mBroken;
+
+
+
+    nsresult                      mBroken;
 
   public:
   
@@ -153,14 +156,7 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
     
 
 
-    NS_IMETHOD WillBuildModel(nsDTDMode aDTDMode) {
-      NS_ASSERTION(!mDocShell || GetDocument()->GetScriptGlobalObject(),
-                   "Script global object not ready");
-      mDocument->AddObserver(this);
-      WillBuildModelImpl();
-      GetDocument()->BeginLoad();
-      return NS_OK;
-    }
+    NS_IMETHOD WillBuildModel(nsDTDMode aDTDMode);
 
     
 
@@ -264,12 +260,15 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
 
 
-    void MarkAsBroken();
+
+
+    nsresult MarkAsBroken(nsresult aReason);
 
     
 
 
-    inline bool IsBroken() {
+
+    inline nsresult IsBroken() {
       NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
       return mBroken;
     }

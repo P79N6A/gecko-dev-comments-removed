@@ -101,8 +101,7 @@ nsSVGDisplayContainerFrame::Init(nsIContent* aContent,
 {
   if (!(GetStateBits() & NS_STATE_IS_OUTER_SVG)) {
     AddStateBits(aParent->GetStateBits() &
-      (NS_STATE_SVG_NONDISPLAY_CHILD | NS_STATE_SVG_CLIPPATH_CHILD |
-       NS_STATE_SVG_REDRAW_SUSPENDED));
+      (NS_STATE_SVG_NONDISPLAY_CHILD | NS_STATE_SVG_CLIPPATH_CHILD));
   }
   nsresult rv = nsSVGContainerFrame::Init(aContent, aParent, aPrevInFlow);
   return rv;
@@ -125,12 +124,21 @@ nsSVGDisplayContainerFrame::InsertFrames(ChildListID aListID,
 
   
   
-  if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+  if (!(GetStateBits() &
+        (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN |
+         NS_STATE_SVG_NONDISPLAY_CHILD))) {
     for (nsIFrame* kid = firstNewFrame; kid != firstOldFrame;
          kid = kid->GetNextSibling()) {
       nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
       if (SVGFrame) {
-        SVGFrame->InitialUpdate(); 
+        NS_ABORT_IF_FALSE(!(kid->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
+                          "Check for this explicitly in the |if|, then");
+        
+        kid->RemoveStateBits(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
+                             NS_FRAME_HAS_DIRTY_CHILDREN);
+        
+        
+        nsSVGUtils::ScheduleBoundsUpdate(kid);
       }
     }
   }
@@ -142,10 +150,7 @@ NS_IMETHODIMP
 nsSVGDisplayContainerFrame::RemoveFrame(ChildListID aListID,
                                         nsIFrame* aOldFrame)
 {
-  
-  RemoveStateBits(NS_STATE_SVG_REDRAW_SUSPENDED);
-
-  nsSVGUtils::InvalidateCoveredRegion(aOldFrame);
+  nsSVGUtils::InvalidateBounds(aOldFrame);
 
   nsresult rv = nsSVGContainerFrame::RemoveFrame(aListID, aOldFrame);
 
@@ -187,42 +192,48 @@ nsSVGDisplayContainerFrame::GetCoveredRegion()
   return nsSVGUtils::GetCoveredRegion(mFrames);
 }
 
-NS_IMETHODIMP
-nsSVGDisplayContainerFrame::UpdateCoveredRegion()
+void
+nsSVGDisplayContainerFrame::UpdateBounds()
 {
+  NS_ASSERTION(nsSVGUtils::OuterSVGIsCallingUpdateBounds(this),
+               "This call is probaby a wasteful mistake");
+
+  NS_ABORT_IF_FALSE(!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
+                    "UpdateBounds mechanism not designed for this");
+
+  if (!nsSVGUtils::NeedsUpdatedBounds(this)) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+
+  bool outerSVGHasHadFirstReflow =
+    (GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW) == 0;
+
+  if (outerSVGHasHadFirstReflow) {
+    mState &= ~NS_FRAME_FIRST_REFLOW; 
+  }
+
   for (nsIFrame* kid = mFrames.FirstChild(); kid;
        kid = kid->GetNextSibling()) {
     nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
     if (SVGFrame) {
-      SVGFrame->UpdateCoveredRegion();
-    }
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsSVGDisplayContainerFrame::InitialUpdate()
-{
-  NS_ASSERTION(GetStateBits() & NS_FRAME_FIRST_REFLOW,
-               "Yikes! We've been called already! Hopefully we weren't called "
-               "before our nsSVGOuterSVGFrame's initial Reflow()!!!");
-
-  for (nsIFrame* kid = mFrames.FirstChild(); kid;
-       kid = kid->GetNextSibling()) {
-    nsISVGChildFrame* SVGFrame = do_QueryFrame(kid);
-    if (SVGFrame) {
-      SVGFrame->InitialUpdate();
+      NS_ABORT_IF_FALSE(!(kid->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
+                        "Check for this explicitly in the |if|, then");
+      SVGFrame->UpdateBounds();
     }
   }
 
-  NS_ASSERTION(!(mState & NS_FRAME_IN_REFLOW),
-               "We don't actually participate in reflow");
-  
-  
   mState &= ~(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
               NS_FRAME_HAS_DIRTY_CHILDREN);
+
   
-  return NS_OK;
+  
 }  
 
 void
@@ -236,18 +247,6 @@ nsSVGDisplayContainerFrame::NotifySVGChanged(PRUint32 aFlags)
                     "Invalidation logic may need adjusting");
 
   nsSVGUtils::NotifyChildrenOfSVGChange(this, aFlags);
-}
-
-void
-nsSVGDisplayContainerFrame::NotifyRedrawSuspended()
-{
-  nsSVGUtils::NotifyRedrawSuspended(this);
-}
-
-void
-nsSVGDisplayContainerFrame::NotifyRedrawUnsuspended()
-{
-  nsSVGUtils::NotifyRedrawUnsuspended(this);
 }
 
 gfxRect

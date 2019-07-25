@@ -36,6 +36,9 @@
 
 
 
+#include "nsSVGGlyphFrame.h"
+
+#include "nsRenderingContext.h"
 #include "nsSVGTextFrame.h"
 #include "mozilla/LookAndFeel.h"
 #include "nsTextFragment.h"
@@ -45,7 +48,6 @@
 #include "nsIDOMSVGLength.h"
 #include "nsIDOMSVGRect.h"
 #include "DOMSVGPoint.h"
-#include "nsSVGGlyphFrame.h"
 #include "nsSVGTextPathFrame.h"
 #include "nsSVGPathElement.h"
 #include "nsSVGRect.h"
@@ -254,11 +256,18 @@ NS_QUERYFRAME_TAIL_INHERITING(nsSVGGlyphFrameBase)
 NS_IMETHODIMP
 nsSVGGlyphFrame::CharacterDataChanged(CharacterDataChangeInfo* aInfo)
 {
-  ClearTextRun();
+  
+  
+
   NotifyGlyphMetricsChange();
+
+  ClearTextRun();
   if (IsTextEmpty()) {
     
-    nsSVGUtils::UpdateGraphic(this);
+    
+    
+    
+    nsSVGUtils::InvalidateBounds(this);
   }
 
   return NS_OK;
@@ -445,9 +454,15 @@ nsSVGGlyphFrame::GetCoveredRegion()
   return mCoveredRegion;
 }
 
-NS_IMETHODIMP
-nsSVGGlyphFrame::UpdateCoveredRegion()
+void
+nsSVGGlyphFrame::UpdateBounds()
 {
+  NS_ASSERTION(nsSVGUtils::OuterSVGIsCallingUpdateBounds(this),
+               "This call is probaby a wasteful mistake");
+
+  NS_ABORT_IF_FALSE(!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
+                    "UpdateBounds mechanism not designed for this");
+
   mRect.SetEmpty();
 
   
@@ -458,7 +473,7 @@ nsSVGGlyphFrame::UpdateCoveredRegion()
   if (hasStroke) {
     SetupCairoStrokeGeometry(tmpCtx);
   } else if (GetStyleSVG()->mFill.mType == eStyleSVGPaintType_None) {
-    return NS_OK;
+    return;
   }
 
   CharacterIterator iter(this, true);
@@ -498,24 +513,15 @@ nsSVGGlyphFrame::UpdateCoveredRegion()
   mCoveredRegion = nsSVGUtils::TransformFrameRectToOuterSVG(
     mRect, GetCanvasTM(), PresContext());
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsSVGGlyphFrame::InitialUpdate()
-{
-  NS_ASSERTION(GetStateBits() & NS_FRAME_FIRST_REFLOW,
-               "Yikes! We've been called already! Hopefully we weren't called "
-               "before our nsSVGOuterSVGFrame's initial Reflow()!!!");
-
-  NS_ASSERTION(!(mState & NS_FRAME_IN_REFLOW),
-               "We don't actually participate in reflow");
-
-  
   mState &= ~(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
               NS_FRAME_HAS_DIRTY_CHILDREN);
-  
-  return NS_OK;
+
+  if (!(GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+    
+    
+    
+    nsSVGUtils::InvalidateBounds(this, true);
+  }
 }  
 
 void
@@ -528,27 +534,15 @@ nsSVGGlyphFrame::NotifySVGChanged(PRUint32 aFlags)
   NS_ABORT_IF_FALSE(aFlags & (TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED),
                     "Invalidation logic may need adjusting");
 
+  
+  
+  if (!(aFlags & DO_NOT_NOTIFY_RENDERING_OBSERVERS)) {
+    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+  }
+
   if (aFlags & TRANSFORM_CHANGED) {
     ClearTextRun();
   }
-  if (!(aFlags & DO_NOT_NOTIFY_RENDERING_OBSERVERS)) {
-    nsSVGUtils::UpdateGraphic(this);
-  }
-}
-
-void
-nsSVGGlyphFrame::NotifyRedrawSuspended()
-{
-  AddStateBits(NS_STATE_SVG_REDRAW_SUSPENDED);
-}
-
-void
-nsSVGGlyphFrame::NotifyRedrawUnsuspended()
-{
-  RemoveStateBits(NS_STATE_SVG_REDRAW_SUSPENDED);
-
-  if (GetStateBits() & NS_STATE_SVG_DIRTY)
-    nsSVGUtils::UpdateGraphic(this);
 }
 
 void

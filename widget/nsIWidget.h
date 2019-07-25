@@ -118,8 +118,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0x3fa36ce2, 0x472d, 0x4bff, \
-    { 0xb1, 0xe4, 0xc3, 0xe3, 0x19, 0x24, 0xa1, 0xe4 } }
+  { 0xf60ba9a0, 0x3013, 0x4381, \
+    { 0xb7, 0xd4, 0x34, 0xeb, 0x0c, 0xe7, 0x79, 0x0e } }
 
 
 
@@ -1016,6 +1016,14 @@ class nsIWidget : public nsISupports {
 
 
     virtual void SetShowsToolbarButton(bool aShow) = 0;
+
+    
+
+
+
+
+
+    virtual void SetShowsFullScreenButton(bool aShow) = 0;
 
     enum WindowAnimationType {
       eGenericWindowAnimation,

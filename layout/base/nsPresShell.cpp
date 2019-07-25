@@ -3965,9 +3965,12 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
         mDocument->GetAnimationController()->FlushResampleRequests();
       }
 
-      nsAutoScriptBlocker scriptBlocker;
-      mFrameConstructor->CreateNeededFrames();
-      mFrameConstructor->ProcessPendingRestyles();
+      
+      if (!mIsDestroying) {
+        nsAutoScriptBlocker scriptBlocker;
+        mFrameConstructor->CreateNeededFrames();
+        mFrameConstructor->ProcessPendingRestyles();
+      }
     }
 
     

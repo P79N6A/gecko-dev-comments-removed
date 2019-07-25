@@ -37,7 +37,9 @@
 
 
 #include "nsSVGPathGeometryFrame.h"
+
 #include "nsGkAtoms.h"
+#include "nsRenderingContext.h"
 #include "nsSVGMarkerFrame.h"
 #include "nsSVGUtils.h"
 #include "nsSVGEffects.h"
@@ -79,7 +81,7 @@ nsSVGPathGeometryFrame::AttributeChanged(PRInt32         aNameSpaceID,
       (static_cast<nsSVGPathGeometryElement*>
                   (mContent)->AttributeDefinesGeometry(aAttribute) ||
        aAttribute == nsGkAtoms::transform))
-    nsSVGUtils::UpdateGraphic(this);
+    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
 
   return NS_OK;
 }
@@ -95,7 +97,7 @@ nsSVGPathGeometryFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   
   
 
-  nsSVGUtils::UpdateGraphic(this);
+  nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
 }
 
 nsIAtom *
@@ -209,9 +211,19 @@ nsSVGPathGeometryFrame::GetCoveredRegion()
   return mCoveredRegion;
 }
 
-NS_IMETHODIMP
-nsSVGPathGeometryFrame::UpdateCoveredRegion()
+void
+nsSVGPathGeometryFrame::UpdateBounds()
 {
+  NS_ASSERTION(nsSVGUtils::OuterSVGIsCallingUpdateBounds(this),
+               "This call is probaby a wasteful mistake");
+
+  NS_ABORT_IF_FALSE(!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
+                    "UpdateBounds mechanism not designed for this");
+
+  if (!nsSVGUtils::NeedsUpdatedBounds(this)) {
+    return;
+  }
+
   gfxRect extent = GetBBoxContribution(gfxMatrix(),
     nsSVGUtils::eBBoxIncludeFill | nsSVGUtils::eBBoxIgnoreFillIfNone |
     nsSVGUtils::eBBoxIncludeStroke | nsSVGUtils::eBBoxIgnoreStrokeIfNone |
@@ -223,25 +235,15 @@ nsSVGPathGeometryFrame::UpdateCoveredRegion()
   mCoveredRegion = nsSVGUtils::TransformFrameRectToOuterSVG(
     mRect, GetCanvasTM(), PresContext());
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsSVGPathGeometryFrame::InitialUpdate()
-{
-  NS_ASSERTION(GetStateBits() & NS_FRAME_FIRST_REFLOW,
-               "Yikes! We've been called already! Hopefully we weren't called "
-               "before our nsSVGOuterSVGFrame's initial Reflow()!!!");
-
-  nsSVGUtils::UpdateGraphic(this);
-
-  NS_ASSERTION(!(mState & NS_FRAME_IN_REFLOW),
-               "We don't actually participate in reflow");
-  
-  
   mState &= ~(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_DIRTY |
               NS_FRAME_HAS_DIRTY_CHILDREN);
-  return NS_OK;
+
+  if (!(GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+    
+    
+    
+    nsSVGUtils::InvalidateBounds(this, true);
+  }
 }
 
 void
@@ -255,23 +257,8 @@ nsSVGPathGeometryFrame::NotifySVGChanged(PRUint32 aFlags)
                     "Invalidation logic may need adjusting");
 
   if (!(aFlags & DO_NOT_NOTIFY_RENDERING_OBSERVERS)) {
-    nsSVGUtils::UpdateGraphic(this);
+    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
   }
-}
-
-void
-nsSVGPathGeometryFrame::NotifyRedrawSuspended()
-{
-  AddStateBits(NS_STATE_SVG_REDRAW_SUSPENDED);
-}
-
-void
-nsSVGPathGeometryFrame::NotifyRedrawUnsuspended()
-{
-  RemoveStateBits(NS_STATE_SVG_REDRAW_SUSPENDED);
-
-  if (GetStateBits() & NS_STATE_SVG_DIRTY)
-    nsSVGUtils::UpdateGraphic(this);
 }
 
 gfxRect

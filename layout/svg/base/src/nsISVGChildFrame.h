@@ -39,21 +39,21 @@
 #ifndef __NS_ISVGCHILDFRAME_H__
 #define __NS_ISVGCHILDFRAME_H__
 
-
-#include "nsQueryFrame.h"
-#include "nsCOMPtr.h"
-#include "nsRect.h"
 #include "gfxRect.h"
-#include "gfxMatrix.h"
+#include "nsQueryFrame.h"
+#include "nsRect.h"
 
-class gfxContext;
+class nsIFrame;
 class nsRenderingContext;
 
+struct gfxMatrix;
+struct nsPoint;
+
 namespace mozilla {
-class SVGAnimatedNumberList;
-class SVGNumberList;
 class SVGAnimatedLengthList;
+class SVGAnimatedNumberList;
 class SVGLengthList;
+class SVGNumberList;
 class SVGUserUnitList;
 }
 
@@ -88,13 +88,13 @@ public:
 
   
   NS_IMETHOD_(nsRect) GetCoveredRegion()=0;
-  NS_IMETHOD UpdateCoveredRegion()=0;
 
   
   
   
   
-  NS_IMETHOD InitialUpdate()=0;
+  
+  virtual void UpdateBounds()=0;
 
   
   
@@ -112,8 +112,6 @@ public:
     COORD_CONTEXT_CHANGED = 0x04
   };
   virtual void NotifySVGChanged(PRUint32 aFlags)=0;
-  virtual void NotifyRedrawSuspended()=0;
-  virtual void NotifyRedrawUnsuspended()=0;
 
   
 

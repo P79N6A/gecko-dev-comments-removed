@@ -1518,6 +1518,13 @@ public:
   
 
 
+
+  static bool CheckForSubFrameDrop(nsIDragSession* aDragSession,
+                                   nsDragEvent* aDropEvent);
+
+  
+
+
   static bool URIIsLocalFile(nsIURI *aURI);
 
   
@@ -1660,14 +1667,18 @@ public:
   
 
 
-  static void ASCIIToLower(nsAString& aStr);
-  static void ASCIIToLower(const nsAString& aSource, nsAString& aDest);
+
+
+  static nsresult ASCIIToLower(nsAString& aStr);
+  static nsresult ASCIIToLower(const nsAString& aSource, nsAString& aDest);
 
   
 
 
-  static void ASCIIToUpper(nsAString& aStr);
-  static void ASCIIToUpper(const nsAString& aSource, nsAString& aDest);
+
+
+  static nsresult ASCIIToUpper(nsAString& aStr);
+  static nsresult ASCIIToUpper(const nsAString& aSource, nsAString& aDest);
 
   
   static nsresult CheckSameOrigin(nsIChannel *aOldChannel, nsIChannel *aNewChannel);

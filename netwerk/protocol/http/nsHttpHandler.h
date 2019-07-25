@@ -1,40 +1,40 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications.
- * Portions created by the Initial Developer are Copyright (C) 2001
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Darin Fisher <darin@netscape.com> (original author)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef nsHttpHandler_h__
 #define nsHttpHandler_h__
@@ -69,9 +69,9 @@ class nsAHttpTransaction;
 class nsIHttpChannel;
 class nsIPrefBranch;
 
-//-----------------------------------------------------------------------------
-// nsHttpHandler - protocol handler for HTTP and HTTPS
-//-----------------------------------------------------------------------------
+
+
+
 
 class nsHttpHandler : public nsIHttpProtocolHandler
                     , public nsIObserver
@@ -103,7 +103,7 @@ public:
     PRIntervalTime IdleTimeout()             { return mIdleTimeout; }
     PRIntervalTime SpdyTimeout()             { return mSpdyTimeout; }
     PRUint16       MaxRequestAttempts()      { return mMaxRequestAttempts; }
-    const char    *DefaultSocketType()       { return mDefaultSocketType.get(); /* ok to return null */ }
+    const char    *DefaultSocketType()       { return mDefaultSocketType.get();  }
     nsIIDNService *IDNConverter()            { return mIDNConverter; }
     PRUint32       PhishyUserPassLength()    { return mPhishyUserPassLength; }
     PRUint8        GetQoSBits()              { return mQoSBits; }
@@ -127,45 +127,45 @@ public:
     nsHttpAuthCache     *AuthCache() { return &mAuthCache; }
     nsHttpConnectionMgr *ConnMgr()   { return mConnMgr; }
 
-    // cache support
+    
     nsresult GetCacheSession(nsCacheStoragePolicy, nsICacheSession **);
     PRUint32 GenerateUniqueID() { return ++mLastUniqueID; }
     PRUint32 SessionStartTime() { return mSessionStartTime; }
 
-    //
-    // Connection management methods:
-    //
-    // - the handler only owns idle connections; it does not own active
-    //   connections.
-    //
-    // - the handler keeps a count of active connections to enforce the
-    //   steady-state max-connections pref.
-    // 
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
-    // Called to kick-off a new transaction, by default the transaction
-    // will be put on the pending transaction queue if it cannot be 
-    // initiated at this time.  Callable from any thread.
+    
+    
+    
     nsresult InitiateTransaction(nsHttpTransaction *trans, PRInt32 priority)
     {
         return mConnMgr->AddTransaction(trans, priority);
     }
 
-    // Called to change the priority of an existing transaction that has
-    // already been initiated.
+    
+    
     nsresult RescheduleTransaction(nsHttpTransaction *trans, PRInt32 priority)
     {
         return mConnMgr->RescheduleTransaction(trans, priority);
     }
 
-    // Called to cancel a transaction, which may or may not be assigned to
-    // a connection.  Callable from any thread.
+    
+    
     nsresult CancelTransaction(nsHttpTransaction *trans, nsresult reason)
     {
         return mConnMgr->CancelTransaction(trans, reason);
     }
 
-    // Called when a connection is done processing a transaction.  Callable
-    // from any thread.
+    
+    
     nsresult ReclaimConnection(nsHttpConnection *conn)
     {
         return mConnMgr->ReclaimConnection(conn);
@@ -181,61 +181,61 @@ public:
         return mConnMgr->GetSocketThreadTarget(target);
     }
 
-    // for anything that wants to know if we're in private browsing mode.
+    
     bool InPrivateBrowsingMode();
 
-    //
-    // The HTTP handler caches pointers to specific XPCOM services, and
-    // provides the following helper routines for accessing those services:
-    //
+    
+    
+    
+    
     nsresult GetStreamConverterService(nsIStreamConverterService **);
     nsresult GetIOService(nsIIOService** service);
-    nsICookieService * GetCookieService(); // not addrefed
+    nsICookieService * GetCookieService(); 
     nsIStrictTransportSecurityService * GetSTSService();
 
-    // callable from socket thread only
+    
     PRUint32 Get32BitsOfPseudoRandom();
 
-    // Called by the channel before writing a request
+    
     void OnModifyRequest(nsIHttpChannel *chan)
     {
         NotifyObservers(chan, NS_HTTP_ON_MODIFY_REQUEST_TOPIC);
     }
 
-    // Called by the channel once headers are available
+    
     void OnExamineResponse(nsIHttpChannel *chan)
     {
         NotifyObservers(chan, NS_HTTP_ON_EXAMINE_RESPONSE_TOPIC);
     }
 
-    // Called by the channel once headers have been merged with cached headers
+    
     void OnExamineMergedResponse(nsIHttpChannel *chan)
     {
         NotifyObservers(chan, NS_HTTP_ON_EXAMINE_MERGED_RESPONSE_TOPIC);
     }
 
-    // Called by channels before a redirect happens. This notifies both the
-    // channel's and the global redirect observers.
+    
+    
     nsresult AsyncOnChannelRedirect(nsIChannel* oldChan, nsIChannel* newChan,
                                PRUint32 flags);
 
-    // Called by the channel when the response is read from the cache without
-    // communicating with the server.
+    
+    
     void OnExamineCachedResponse(nsIHttpChannel *chan)
     {
         NotifyObservers(chan, NS_HTTP_ON_EXAMINE_CACHED_RESPONSE_TOPIC);
     }
 
-    // Generates the host:port string for use in the Host: header as well as the
-    // CONNECT line for proxies. This handles IPv6 literals correctly.
+    
+    
     static nsresult GenerateHostPort(const nsCString& host, PRInt32 port,
                                      nsCString& hostLine);
 
 private:
 
-    //
-    // Useragent/prefs helper methods
-    //
+    
+    
+    
     void     BuildUserAgent();
     void     InitUserAgentComponents();
     void     PrefsChanged(nsIPrefBranch *prefs, const char *pref);
@@ -250,7 +250,7 @@ private:
 
 private:
 
-    // cached services
+    
     nsCOMPtr<nsIIOService>              mIOService;
     nsCOMPtr<nsIStreamConverterService> mStreamConvSvc;
     nsCOMPtr<nsIObserverService>        mObserverService;
@@ -258,15 +258,15 @@ private:
     nsCOMPtr<nsIIDNService>             mIDNConverter;
     nsCOMPtr<nsIStrictTransportSecurityService> mSTSService;
 
-    // the authentication credentials cache
+    
     nsHttpAuthCache mAuthCache;
 
-    // the connection manager
+    
     nsHttpConnectionMgr *mConnMgr;
 
-    //
-    // prefs
-    //
+    
+    
+    
 
     PRUint8  mHttpVersion;
     PRUint8  mProxyHttpVersion;
@@ -291,17 +291,17 @@ private:
 
     PRUint8  mRedirectionLimit;
 
-    // we'll warn the user if we load an URL containing a userpass field
-    // unless its length is less than this threshold.  this warning is
-    // intended to protect the user against spoofing attempts that use
-    // the userpass field of the URL to obscure the actual origin server.
+    
+    
+    
+    
     PRUint8  mPhishyUserPassLength;
 
     PRUint8  mQoSBits;
 
     bool mPipeliningOverSSL;
 
-    // cached value of whether or not the browser is in private browsing mode.
+    
     enum {
         PRIVATE_BROWSING_OFF = false,
         PRIVATE_BROWSING_ON = true,
@@ -314,11 +314,11 @@ private:
 
     nsXPIDLCString mDefaultSocketType;
 
-    // cache support
+    
     PRUint32                  mLastUniqueID;
     PRUint32                  mSessionStartTime;
 
-    // useragent components
+    
     nsCString      mLegacyAppName;
     nsCString      mLegacyAppVersion;
     nsCString      mPlatform;
@@ -333,28 +333,28 @@ private:
 
     nsCString      mUserAgent;
     nsXPIDLCString mUserAgentOverride;
-    bool           mUserAgentIsDirty; // true if mUserAgent should be rebuilt
+    bool           mUserAgentIsDirty; 
 
     bool           mUseCache;
 
     bool           mPromptTempRedirect;
-    // mSendSecureXSiteReferrer: default is false, 
-    // if true allow referrer headers between secure non-matching hosts
+    
+    
     bool           mSendSecureXSiteReferrer;
 
-    // Persistent HTTPS caching flag
+    
     bool           mEnablePersistentHttpsCaching;
 
-    // For broadcasting the preference to not be tracked
+    
     bool           mDoNotTrackEnabled;
     
-    // Whether telemetry is reported or not
+    
     bool           mTelemetryEnabled;
 
-    // The value of network.allow-experiments
+    
     bool           mAllowExperiments;
 
-    // Try to use SPDY features instead of HTTP/1.1 over SSL
+    
     bool           mEnableSpdy;
     bool           mCoalesceSpdy;
     bool           mUseAlternateProtocol;
@@ -363,21 +363,21 @@ private:
     PRIntervalTime mSpdyPingTimeout;
 };
 
-//-----------------------------------------------------------------------------
+
 
 extern nsHttpHandler *gHttpHandler;
 
-//-----------------------------------------------------------------------------
-// nsHttpsHandler - thin wrapper to distinguish the HTTP handler from the
-//                  HTTPS handler (even though they share the same impl).
-//-----------------------------------------------------------------------------
+
+
+
+
 
 class nsHttpsHandler : public nsIHttpProtocolHandler
                      , public nsSupportsWeakReference
 {
 public:
-    // we basically just want to override GetScheme and GetDefaultPort...
-    // all other methods should be forwarded to the nsHttpHandler instance.
+    
+    
     
     NS_DECL_ISUPPORTS
     NS_DECL_NSIPROTOCOLHANDLER
@@ -390,4 +390,4 @@ public:
     nsresult Init();
 };
 
-#endif // nsHttpHandler_h__
+#endif 

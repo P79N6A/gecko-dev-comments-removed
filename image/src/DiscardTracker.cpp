@@ -154,10 +154,10 @@ DiscardTracker::Initialize()
   sTimer = do_CreateInstance("@mozilla.org/timer;1");
 
   
-  ReloadTimeout();
+  sInitialized = true;
 
   
-  sInitialized = true;
+  ReloadTimeout();
 
   return NS_OK;
 }
@@ -195,8 +195,11 @@ nsresult
 DiscardTracker::EnableTimer()
 {
   
-  if (sTimerOn)
+  
+  
+  if (sTimerOn || !sInitialized || !sTimer)
     return NS_OK;
+
   sTimerOn = true;
 
   
@@ -215,7 +218,7 @@ void
 DiscardTracker::DisableTimer()
 {
   
-  if (!sTimerOn)
+  if (!sTimerOn || !sTimer)
     return;
   sTimerOn = false;
 
