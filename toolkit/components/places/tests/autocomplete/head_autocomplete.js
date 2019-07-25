@@ -187,76 +187,11 @@ var iosvc = Cc["@mozilla.org/network/io-service;1"].
             getService(Ci.nsIIOService);
 var prefs = Cc["@mozilla.org/preferences-service;1"].
             getService(Ci.nsIPrefBranch);
-var lmsvc = Cc["@mozilla.org/browser/livemark-service;2"].
-            getService(Ci.nsILivemarkService);
 
 
 let gDate = new Date(Date.now() - 1000 * 60 * 60) * 1000;
 
 let gPages = [];
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function addLivemark(aContainerSiteURI, aContainerFeedURI, aContainerTitle,
-                     aChildURI, aChildTitle, aTransitionType, aNoChildVisit)
-{
-  
-  gPages[aChildURI] = [aChildURI, aChildTitle, null];
-
-  let out = [aChildURI, aChildTitle];
-  out.push("\nchild uri=" + kURIs[aChildURI]);
-  out.push("\nchild title=" + kTitles[aChildTitle]);
-
-  
-  let containerSiteURI = toURI(kURIs[aContainerSiteURI]);
-  let containerFeedURI = toURI(kURIs[aContainerFeedURI]);
-  let containerTitle = kTitles[aContainerTitle];
-  let containerId = lmsvc.createLivemarkFolderOnly(bmsvc.unfiledBookmarksFolder,
-                                                   containerTitle,
-                                                   containerSiteURI,
-                                                   containerFeedURI,
-                                                   bmsvc.DEFAULT_INDEX);
-  
-  let childURI = toURI(kURIs[aChildURI]);
-  let childTitle = kTitles[aChildTitle];
-  bmsvc.insertBookmark(containerId, childURI, bmsvc.DEFAULT_INDEX, childTitle);
-
-  
-  if (!aNoChildVisit) {
-    let tt = aTransitionType || TRANSITION_LINK;
-    let isRedirect = tt == TRANSITION_REDIRECT_PERMANENT ||
-                     tt == TRANSITION_REDIRECT_TEMPORARY;
-    histsvc.addVisit(childURI, gDate, null, tt, isRedirect, 0);
-    out.push("\nwith visit");
-  }
-
-  print("\nAdding livemark: " + out.join(", "));
-}
 
 
 

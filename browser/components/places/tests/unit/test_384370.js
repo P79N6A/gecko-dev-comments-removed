@@ -36,11 +36,6 @@
 
 
 
-
-
-Cc["@mozilla.org/browser/livemark-service;2"].getService(Ci.nsILivemarkService);
-Cc["@mozilla.org/feed-processor;1"].createInstance(Ci.nsIFeedProcessor);
-
 const LOAD_IN_SIDEBAR_ANNO = "bookmarkProperties/loadInSidebar";
 const DESCRIPTION_ANNO = "bookmarkProperties/description";
 const POST_DATA_ANNO = "bookmarkProperties/POSTData";
@@ -49,6 +44,7 @@ do_check_eq(typeof PlacesUtils, "object");
 
 
 function run_test() {
+  do_test_pending();
   
 
 
@@ -92,21 +88,25 @@ function run_test() {
   populate();
   validate();
 
-  
-  
-  
-  
-  
-  try {
-    PlacesUtils.backups.saveBookmarksToJSONFile(jsonFile);
-  } catch(ex) { do_throw("couldn't export to file: " + ex); }
-  LOG("exported json"); 
-  try {
-    PlacesUtils.restoreBookmarksFromJSONFile(jsonFile);
-  } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
-  LOG("imported json"); 
-  validate();
-  LOG("validated import"); 
+  waitForAsyncUpdates(function () {
+    
+    
+    
+    
+    
+    try {
+      PlacesUtils.backups.saveBookmarksToJSONFile(jsonFile);
+    } catch(ex) { do_throw("couldn't export to file: " + ex); }
+    LOG("exported json");
+    try {
+      PlacesUtils.restoreBookmarksFromJSONFile(jsonFile);
+    } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
+    LOG("imported json");
+    validate();
+    LOG("validated import");
+
+    waitForAsyncUpdates(do_test_finished);
+  });
 }
 
 var tagData = [
@@ -243,14 +243,17 @@ function testToolbarFolder() {
   var livemark = toolbar.getChild(1);
   
   do_check_eq("Latest Headlines", livemark.title);
-  
-  do_check_true(PlacesUtils.livemarks.isLivemark(livemark.itemId));
-  
-  do_check_eq("http://en-us.fxfeeds.mozilla.com/en-US/firefox/livebookmarks/",
-              PlacesUtils.livemarks.getSiteURI(livemark.itemId).spec);
-  
-  do_check_eq("http://en-us.fxfeeds.mozilla.com/en-US/firefox/headlines.xml",
-              PlacesUtils.livemarks.getFeedURI(livemark.itemId).spec);
+
+  PlacesUtils.livemarks.getLivemark(
+    { id: livemark.itemId },
+    function (aStatus, aLivemark) {
+      do_check_true(Components.isSuccessCode(aStatus));
+      do_check_eq("http://en-us.fxfeeds.mozilla.com/en-US/firefox/livebookmarks/",
+                  aLivemark.siteURI.spec);
+      do_check_eq("http://en-us.fxfeeds.mozilla.com/en-US/firefox/headlines.xml",
+                  aLivemark.feedURI.spec);
+    }
+  );
 
   
   var child = toolbar.getChild(2);

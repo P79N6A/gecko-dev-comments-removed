@@ -729,49 +729,6 @@ tests.push({
 
 
 tests.push({
-  name: "D.11",
-  desc: "Remove old livemarks status items",
-
-  _bookmarkId: null,
-  _livemarkLoadingStatusId: null,
-  _livemarkFailedStatusId: null,
-  _placeId: null,
-  _lmLoadingPlaceId: null,
-  _lmFailedPlaceId: null,
-
-  setup: function() {
-    
-    this._placeId = addPlace();
-
-    
-    this._bookmarkId = addBookmark(this._placeId);
-    
-    this._lmLoadingPlaceId = addPlace("about:livemark-loading");
-    this._lmFailedPlaceId = addPlace("about:livemark-failed");
-    
-    this._livemarkLoadingStatusId = addBookmark(this._lmLoadingPlaceId);
-    this._livemarkFailedStatusId = addBookmark(this._lmFailedPlaceId);
-  },
-
-  check: function() {
-    
-    let stmt = mDBConn.createStatement("SELECT id FROM moz_bookmarks WHERE id = :item_id");
-    stmt.params["item_id"] = this._bookmarkId;
-    do_check_true(stmt.executeStep());
-    stmt.reset();
-    
-    stmt.params["item_id"] = this._livemarkLoadingStatusId;
-    do_check_false(stmt.executeStep());
-    stmt.reset();
-    stmt.params["item_id"] = this._livemarkFailedStatusId;
-    do_check_false(stmt.executeStep());
-    stmt.finalize();
-  }
-});
-
-
-
-tests.push({
   name: "D.12",
   desc: "Fix empty-named tags",
 
