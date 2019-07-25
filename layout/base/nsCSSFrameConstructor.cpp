@@ -4354,6 +4354,14 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
       PropagateScrollToViewport() == aContent;
   }
 
+  NS_ASSERTION(!propagatedScrollToViewport ||
+               !mPresShell->GetPresContext()->IsPaginated(),
+               "Shouldn't propagate scroll in paginated contexts");
+
+  
+  
+  
+  
   
   
   
@@ -4361,7 +4369,9 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
   
   if (aDisplay->IsBlockInside() &&
       aDisplay->IsScrollableOverflow() &&
-      !propagatedScrollToViewport) {
+      !propagatedScrollToViewport &&
+      (!mPresShell->GetPresContext()->IsPaginated() ||
+       !aDisplay->IsBlockOutside())) {
     static const FrameConstructionData sScrollableBlockData =
       FULL_CTOR_FCDATA(0, &nsCSSFrameConstructor::ConstructScrollableBlock);
     return &sScrollableBlockData;
@@ -4489,7 +4499,18 @@ nsCSSFrameConstructor::ConstructNonScrollableBlock(nsFrameConstructorState& aSta
 
   if (aDisplay->IsAbsolutelyPositioned() ||
       aDisplay->IsFloating() ||
-      NS_STYLE_DISPLAY_INLINE_BLOCK == aDisplay->mDisplay) {
+      NS_STYLE_DISPLAY_INLINE_BLOCK == aDisplay->mDisplay ||
+      
+      
+      
+      
+      
+      
+      
+      (mPresShell->GetPresContext()->IsPaginated() &&
+       aDisplay->IsBlockInside() &&
+       aDisplay->IsScrollableOverflow() &&
+       aDisplay->IsBlockOutside())) {
     *aNewFrame = NS_NewBlockFormattingContext(mPresShell, styleContext);
   } else {
     *aNewFrame = NS_NewBlockFrame(mPresShell, styleContext);

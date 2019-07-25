@@ -1197,8 +1197,8 @@ static PRBool ApplyAbsPosClipping(nsDisplayListBuilder* aBuilder,
 
 
 
-static PRBool ApplyOverflowHiddenClipping(nsIFrame* aFrame,
-                                          const nsStyleDisplay* aDisp)
+static inline PRBool ApplyOverflowHiddenClipping(nsIFrame* aFrame,
+                                                 const nsStyleDisplay* aDisp)
 {
   if (aDisp->mOverflowX != NS_STYLE_OVERFLOW_HIDDEN)
     return PR_FALSE;
@@ -1215,6 +1215,24 @@ static PRBool ApplyOverflowHiddenClipping(nsIFrame* aFrame,
        type == nsGkAtoms::bcTableCellFrame;
 }
 
+static inline PRBool ApplyPaginatedOverflowClipping(nsIFrame* aFrame,
+                                                    const nsStyleDisplay* aDisp)
+{
+  
+  
+  
+  
+  
+  
+  
+  return
+    aFrame->PresContext()->IsPaginated() &&
+    aDisp->IsBlockInside() &&
+    aDisp->IsScrollableOverflow() &&
+    aDisp->IsBlockOutside() &&
+    aFrame->GetType() == nsGkAtoms::blockFrame;
+}
+
 static PRBool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
                                     nsIFrame* aFrame,
                                     const nsStyleDisplay* aDisp, nsRect* aRect) {
@@ -1225,7 +1243,9 @@ static PRBool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
 
   
   
-  if (!ApplyOverflowHiddenClipping(aFrame, aDisp)) {
+  
+  if (!ApplyOverflowHiddenClipping(aFrame, aDisp) &&
+      !ApplyPaginatedOverflowClipping(aFrame, aDisp)) {
     PRBool clip = aDisp->mOverflowX == NS_STYLE_OVERFLOW_CLIP;
     if (!clip)
       return PR_FALSE;
