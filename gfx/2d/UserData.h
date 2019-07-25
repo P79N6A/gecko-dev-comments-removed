@@ -39,7 +39,7 @@
 #define MOZILLA_GFX_USERDATA_H_
 
 #include <stdlib.h>
-#include "mozilla/mozalloc.h"
+#include "mozilla/Assertions.h"
 
 namespace mozilla {
 namespace gfx {
@@ -65,7 +65,11 @@ public:
     
     
     
-    entries = static_cast<Entry*>(moz_xrealloc(entries, sizeof(Entry)*(count+1)));
+    entries = static_cast<Entry*>(realloc(entries, sizeof(Entry)*(count+1)));
+
+    if (!entries) {
+      MOZ_CRASH();
+    }
 
     entries[count].key      = key;
     entries[count].userData = userData;
