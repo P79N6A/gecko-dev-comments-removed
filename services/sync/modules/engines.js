@@ -717,7 +717,7 @@ SyncEngine.prototype = {
         try {
           item.decrypt();
         } catch (ex if (Utils.isHMACMismatch(ex) &&
-                        this.handleHMACMismatch())) {
+                        this.handleHMACMismatch(item))) {
           
           
           
@@ -1083,7 +1083,7 @@ SyncEngine.prototype = {
     this._resetClient();
   },
   
-  handleHMACMismatch: function handleHMACMismatch() {
+  handleHMACMismatch: function handleHMACMismatch(item) {
     return Weave.Service.handleHMACEvent();
   }
 };
