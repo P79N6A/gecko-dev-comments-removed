@@ -574,7 +574,7 @@ pref("dom.storage.default_quota",      5120);
 pref("dom.send_after_paint_to_content", false);
 
 
-pref("dom.min_timeout_value", 4);
+pref("dom.min_timeout_value", 10);
 
 pref("dom.min_background_timeout_value", 1000);
 
@@ -752,6 +752,11 @@ pref("network.http.prompt-temp-redirect", true);
 
 
 pref("network.http.qos", 0);
+
+
+
+
+pref("network.http.connection-retry-timeout", 250);
 
 
 
@@ -1769,6 +1774,12 @@ pref("plugin.scan.WindowsMediaPlayer", "7.0");
 
 
 pref("plugin.scan.plid.all", true);
+
+
+
+
+
+
 
 
 
