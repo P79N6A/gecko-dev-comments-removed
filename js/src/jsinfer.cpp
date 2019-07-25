@@ -1873,18 +1873,21 @@ Script::addVariable(JSContext *cx, jsid id, types::Variable *&var, bool localNam
     var = ArenaNew<types::Variable>(pool, &pool, id);
 
     
-    if (!localName) {
-        
-        if (fun && id == id_arguments(cx)) {
-            if (script->compileAndGo)
-                var->types.addType(cx, (jstype) getTypeNewObject(cx, JSProto_Object));
-            else
-                var->types.addType(cx, TYPE_UNKNOWN);
-        }
 
-        
-        if (fun && id == ATOM_TO_JSID(fun->atom))
-            var->types.addType(cx, (jstype) function());
+
+
+    if (!localName && fun && id == ATOM_TO_JSID(fun->atom))
+        var->types.addType(cx, (jstype) function());
+
+    
+
+
+
+    if (fun && id == id_arguments(cx)) {
+        if (script->compileAndGo)
+            var->types.addType(cx, (jstype) getTypeNewObject(cx, JSProto_Object));
+        else
+            var->types.addType(cx, TYPE_UNKNOWN);
     }
 
     InferSpew(ISpewOps, "addVariable: #%lu %s T%u",
