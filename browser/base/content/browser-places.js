@@ -44,15 +44,6 @@ var StarUI = {
   uri: null,
   _batching: false,
 
-  
-  QueryInterface: function SU_QueryInterface(aIID) {
-    if (aIID.equals(Ci.nsIDOMEventListener) ||
-        aIID.equals(Ci.nsISupports))
-      return this;
-
-    throw Cr.NS_NOINTERFACE;
-  },
-
   _element: function(aID) {
     return document.getElementById(aID);
   },
@@ -70,29 +61,32 @@ var StarUI = {
   },
 
   
-  _blockedCommands: ["cmd_close", "cmd_closeWindow"],
+  get _blockedCommands() {
+    delete this._blockedCommands;
+    return this._blockedCommands =
+      ["cmd_close", "cmd_closeWindow"].map(function (id) this._element(id), this);
+  },
+
   _blockCommands: function SU__blockCommands() {
-    for each(var key in this._blockedCommands) {
-      var elt = this._element(key);
+    this._blockedCommands.forEach(function (elt) {
       
       if (elt.hasAttribute("wasDisabled"))
-        continue;
-      if (elt.getAttribute("disabled") == "true")
+        return;
+      if (elt.getAttribute("disabled") == "true") {
         elt.setAttribute("wasDisabled", "true");
-      else {
+      } else {
         elt.setAttribute("wasDisabled", "false");
         elt.setAttribute("disabled", "true");
       }
-    }
+    });
   },
 
   _restoreCommandsState: function SU__restoreCommandsState() {
-    for each(var key in this._blockedCommands) {
-      var elt = this._element(key);
+    this._blockedCommands.forEach(function (elt) {
       if (elt.getAttribute("wasDisabled") != "true")
         elt.removeAttribute("disabled");
       elt.removeAttribute("wasDisabled");
-    }
+    });
   },
 
   
