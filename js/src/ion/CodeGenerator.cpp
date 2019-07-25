@@ -634,7 +634,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     {
         masm.bind(&invoke);
 
-        typedef bool (*pf)(JSContext *, types::TypeSet *, JSFunction *, uint32, Value *, Value *);
+        typedef bool (*pf)(JSContext *, JSFunction *, uint32, Value *, Value *);
         static const VMFunction InvokeFunctionInfo = FunctionInfo<pf>(InvokeFunction);
 
         
@@ -644,7 +644,6 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
         pushArg(StackPointer);          
         pushArg(Imm32(call->nargs()));  
         pushArg(calleereg);             
-        pushArg(ImmWord(call->mir()->types()));  
 
         if (!callVM(InvokeFunctionInfo, call))
             return false;
@@ -681,7 +680,7 @@ CodeGenerator::visitCallConstructor(LCallConstructor *call)
     uint32 callargslot = call->argslot();
     uint32 unusedStack = StackOffsetOfPassedArg(callargslot);
 
-    typedef bool (*pf)(JSContext *, types::TypeSet *, JSFunction *, uint32, Value *, Value *);
+    typedef bool (*pf)(JSContext *, JSFunction *, uint32, Value *, Value *);
     static const VMFunction InvokeConstructorFunctionInfo =
         FunctionInfo<pf>(InvokeConstructorFunction);
 
@@ -691,7 +690,6 @@ CodeGenerator::visitCallConstructor(LCallConstructor *call)
     pushArg(StackPointer);          
     pushArg(Imm32(call->nargs()));  
     pushArg(calleereg);             
-    pushArg(ImmWord(call->mir()->types()));  
 
     if (!callVM(InvokeConstructorFunctionInfo, call))
         return false;

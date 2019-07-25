@@ -4996,21 +4996,6 @@ TypeMonitorResult(JSContext *cx, JSScript *script, jsbytecode *pc, const js::Val
     types->addType(cx, type);
 }
 
-void
-TypeMonitorResult(JSContext *cx, TypeSet *types, const js::Value &rval)
-{
-    
-    AutoEnterTypeInference enter(cx);
-
-    Type type = GetValueType(cx, rval);
-    if (types->hasType(type))
-        return;
-
-    InferSpew(ISpewOps, "bytecodeType: #0:00000: %s",
-              TypeString(type));
-    types->addType(cx, type);
-}
-
 bool
 TypeScript::SetScope(JSContext *cx, JSScript *script, JSObject *scope)
 {

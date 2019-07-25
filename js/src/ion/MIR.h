@@ -1062,20 +1062,17 @@ class MCall
     bool construct_;
     
     JSFunction *target_;
-    
-    types::TypeSet *types_;
 
-    MCall(types::TypeSet *types, bool construct)
+    MCall(bool construct)
       : construct_(construct),
-        target_(NULL),
-        types_(types)
+        target_(NULL)
     {
         setResultType(MIRType_Value);
     }
 
   public:
     INSTRUCTION_HEADER(Call);
-    static MCall *New(size_t argc, types::TypeSet *types, bool construct);
+    static MCall *New(size_t argc, bool construct);
 
     void initPrepareCall(MDefinition *start) {
         JS_ASSERT(start->isPrepareCall());
@@ -1114,10 +1111,6 @@ class MCall
     
     uint32 argc() const {
         return numOperands() - NumNonArgumentOperands;
-    }
-
-    types::TypeSet *types() const {
-        return types_;
     }
 
     TypePolicy *typePolicy() {
