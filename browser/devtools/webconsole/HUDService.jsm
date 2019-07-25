@@ -125,6 +125,12 @@ XPCOMUtils.defineLazyGetter(this, "namesAndValuesOf", function () {
   return obj.namesAndValuesOf;
 });
 
+XPCOMUtils.defineLazyGetter(this, "gConsoleStorage", function () {
+  let obj = {};
+  Cu.import("resource://gre/modules/ConsoleAPIStorage.jsm", obj);
+  return obj.ConsoleAPIStorage;
+});
+
 function LogFactory(aMessagePrefix)
 {
   function log(aMessage) {
@@ -1420,6 +1426,18 @@ HUD_SERVICE.prototype =
 
 
 
+  getInnerWindowId: function HS_getInnerWindowId(aWindow)
+  {
+    return aWindow.QueryInterface(Ci.nsIInterfaceRequestor).
+           getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
+  },
+
+  
+
+
+
+
+
 
   getWindowByWindowId: function HS_getWindowByWindowId(aId)
   {
@@ -1511,8 +1529,8 @@ HUD_SERVICE.prototype =
     this.wakeup();
 
     let window = aContext.linkedBrowser.contentWindow;
-    let chromeDocument = aContext.ownerDocument;
-    let nBox = chromeDocument.defaultView.getNotificationBox(window);
+    let nBox = aContext.ownerDocument.defaultView.
+      getNotificationBox(window);
     this.registerActiveContext(nBox.id);
     this.windowInitializer(window);
 
@@ -1522,8 +1540,6 @@ HUD_SERVICE.prototype =
     if (!aAnimated || hudRef.consolePanel) {
       this.disableAnimation(hudId);
     }
-
-    chromeDocument.getElementById("Tools:WebConsole").setAttribute("checked", "true");
 
     
     
@@ -1573,8 +1589,6 @@ HUD_SERVICE.prototype =
 
       window.focus();
     }
-
-    chromeDocument.getElementById("Tools:WebConsole").setAttribute("checked", "false");
 
     
     
@@ -2895,7 +2909,7 @@ HUD_SERVICE.prototype =
     if (!hudNode) {
       
       let config = { parentNode: nBox,
-                     contentWindow: aContentWindow
+                     contentWindow: aContentWindow.top
                    };
 
       hud = new HeadsUpDisplay(config);
@@ -2908,6 +2922,8 @@ HUD_SERVICE.prototype =
 
       _browser.webProgress.addProgressListener(hud.progressListener,
         Ci.nsIWebProgress.NOTIFY_STATE_ALL);
+
+      hud.displayCachedConsoleMessages();
     }
     else {
       hud = this.hudReferences[hudId];
@@ -3573,6 +3589,35 @@ HeadsUpDisplay.prototype = {
     }
     else {
       throw new Error("Unsupported Gecko Application");
+    }
+  },
+
+  
+
+
+
+
+
+  displayCachedConsoleMessages: function HUD_displayCachedConsoleMessages()
+  {
+    
+    let windowId = HUDService.getInnerWindowId(this.contentWindow);
+
+    let messages = gConsoleStorage.getEvents(windowId);
+
+    
+    ConsoleUtils.scroll = false;
+
+    messages.forEach(function(aMessage) {
+      HUDService.logConsoleAPIMessage(this.hudId, aMessage);
+    }, this);
+
+    ConsoleUtils.scroll = true;
+
+    
+    let numChildren = this.outputNode.childNodes.length;
+    if (numChildren) {
+      this.outputNode.ensureIndexIsVisible(numChildren - 1);
     }
   },
 
@@ -5666,6 +5711,11 @@ FirefoxApplicationHooks.prototype = {
 
 
 ConsoleUtils = {
+  
+
+
+  scroll: true,
+
   supString: function ConsoleUtils_supString(aString)
   {
     let str = Cc["@mozilla.org/supports-string;1"].
@@ -5709,6 +5759,10 @@ ConsoleUtils = {
 
 
   scrollToVisible: function ConsoleUtils_scrollToVisible(aNode) {
+    if (!this.scroll) {
+      return;
+    }
+
     
     let richListBoxNode = aNode.parentNode;
     while (richListBoxNode.tagName != "richlistbox") {
