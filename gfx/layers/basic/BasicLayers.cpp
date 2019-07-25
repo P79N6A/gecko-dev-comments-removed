@@ -474,12 +474,11 @@ BasicThebesLayer::Paint(gfxContext* aContext,
       
       state.mRegionToInvalidate.And(state.mRegionToInvalidate, mVisibleRegion);
       InheritContextFlags(target, state.mContext);
+      mXResolution = paintXRes;
+      mYResolution = paintYRes;
       PaintBuffer(state.mContext,
                   state.mRegionToDraw, state.mRegionToInvalidate,
                   aCallback, aCallbackData);
-
-      mXResolution = paintXRes;
-      mYResolution = paintYRes;
       Mutated();
     } else {
       
@@ -1842,8 +1841,13 @@ BasicShadowThebesLayer::Swap(const ThebesBuffer& aNewFront,
   
   
   if (mOldXResolution == mXResolution && mOldYResolution == mYResolution) {
-    aNewBackValidRegion->Sub(mValidRegion, aUpdatedRegion);
+    aNewBackValidRegion->Sub(mOldValidRegion, aUpdatedRegion);
   } else {
+    
+    
+    
+    
+    
     
     
     
@@ -1851,6 +1855,8 @@ BasicShadowThebesLayer::Swap(const ThebesBuffer& aNewFront,
     mOldXResolution = mXResolution;
     mOldYResolution = mYResolution;
   }
+  NS_ASSERTION(mXResolution == mOldXResolution && mYResolution == mOldYResolution,
+               "Uh-oh, buffer allocation thrash forthcoming!");
   *aNewXResolution = mXResolution;
   *aNewYResolution = mYResolution;
 
