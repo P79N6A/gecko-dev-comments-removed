@@ -55,7 +55,7 @@ TryToStartImageLoadOnValue(const nsCSSValue& aValue, nsIDocument* aDocument)
   }
   else if (aValue.GetUnit() == eCSSUnit_Image) {
     
-    imgIRequest* request = aValue.GetImageValue(nsnull);
+    imgIRequest* request = aValue.GetImageValue(nullptr);
 
     if (request) {
       aDocument->StyleImageLoader()->MaybeRegisterCSSImage(aValue.GetImageStructValue());
