@@ -317,16 +317,11 @@ function localesMatch(aLocale1, aLocale2) {
 function start() {
   let mouseModule = new MouseModule();
 
+  
+  
   let chrome = Cc["@mozilla.org/chrome/chrome-registry;1"].getService(Ci.nsIXULChromeRegistry);
   chrome.QueryInterface(Ci.nsIToolkitChromeRegistry);
   let availableLocales = chrome.getLocalesForPackage("browser");
-
-  let localeService = Cc["@mozilla.org/intl/nslocaleservice;1"].getService(Ci.nsILocaleService);
-  let systemLocale = localeService.getSystemLocale().getCategory("NSILOCALE_CTYPE");
-  let matchingLocale = "";
-
-  let bestMatch = NO_MATCH;
-
   let strings = Services.strings.createBundle("chrome://browser/content/languages.properties");
   LocaleUI.availableLocales = [];
   while (availableLocales.hasMore()) {
@@ -336,24 +331,10 @@ function start() {
     try { label = strings.GetStringFromName(locale); }
     catch (e) { }
     LocaleUI.availableLocales.push({addon: { id: locale, name: label, targetLocale: locale }});
-
-    
-    
-    let match = localesMatch(systemLocale, locale);
-    if (match > bestMatch) {
-      bestMatch = match;
-      matchingLocale = locale;
-    }
   }
 
-  if (matchingLocale) {
-    if (matchingLocale != chrome.getSelectedLocale("browser"))
-      LocaleUI.language = matchingLocale;
-    LocaleUI.closeWindow();
-  } else {
-    LocaleUI._language = chrome.getSelectedLocale("browser");
-    LocaleUI.updateStrings();
-  }
+  LocaleUI._language = chrome.getSelectedLocale("browser");
+  LocaleUI.updateStrings();
 
   
   LocaleUI.defaultLanguage = LocaleUI._language;
