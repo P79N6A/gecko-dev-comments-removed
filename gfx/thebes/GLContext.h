@@ -652,6 +652,12 @@ public:
     
 
 
+
+    virtual void WaitForDrawing() {}
+
+    
+
+
     virtual PRBool BindTexImage() { return PR_FALSE; }
     
 
