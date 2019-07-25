@@ -188,7 +188,7 @@ IonBuilder::build()
 
     
     
-    for (uint32 i = 0; i < nargs(); i++) {
+    for (uint32 i = 0; i < CountArgSlots(fun()); i++) {
         MParameter *param = current->getEntrySlot(i)->toInstruction()->toParameter();
         param->setSnapshot(start->snapshot());
     }
