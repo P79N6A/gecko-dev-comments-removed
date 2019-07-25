@@ -183,7 +183,6 @@ const char *const js_common_atom_names[] = {
     "line",                     
     "Infinity",                 
     "NaN",                      
-    "builder",                  
 
 #if JS_HAS_XML_SUPPORT
     js_etago_str,               
