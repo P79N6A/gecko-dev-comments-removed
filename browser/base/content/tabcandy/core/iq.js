@@ -49,6 +49,7 @@
 
 
 
+
 (function( window, undefined ) {
 
 var iQ = function(selector, context) {
@@ -527,7 +528,12 @@ iQ.fn = iQ.prototype = {
           if(typeof(value) != 'string') 
             value += 'px';
         }
-          
+        
+        
+        
+        
+        
+        if( key == "-moz-transform" ) key = "MozTransform";
         elem.style[key] = value;
       });
     } 
