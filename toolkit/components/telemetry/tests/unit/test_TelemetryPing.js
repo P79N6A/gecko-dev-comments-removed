@@ -186,6 +186,19 @@ function checkHistograms(request, response) {
   do_check_eq(uneval(tc), 
               uneval(expected_tc));
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  do_check_true('MEMORY_JS_GC_HEAP' in payload.histograms); 
+  do_check_true('MEMORY_JS_COMPARTMENTS_SYSTEM' in payload.histograms); 
+
   do_check_true(("mainThread" in payload.slowSQL) &&
                 ("otherThreads" in payload.slowSQL));
   gFinished = true;
