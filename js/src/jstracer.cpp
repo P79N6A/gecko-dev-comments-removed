@@ -10108,7 +10108,8 @@ TraceRecorder::putActivationObjects()
     JSStackFrame *fp = cx->fp();
 
     bool have_args = fp->hasArgsObj() && !fp->getArgsObj()->isStrictArguments();
-    bool have_call = fp->hasFunction() && fp->getFunction()->isHeavyweight();
+    bool have_call = fp->hasCallObj();
+    JS_ASSERT(have_call == (fp->hasFunction() && fp->getFunction()->isHeavyweight()));
 
     if (!have_args && !have_call)
         return;
@@ -11158,6 +11159,7 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
 
 
 
+
                 if (pc[0] == JSOP_CALL) {
                     if ((pc[JSOP_CALL_LENGTH] == JSOP_POP) ||
                         (pc[JSOP_CALL_LENGTH] == JSOP_TRACE &&
@@ -11171,21 +11173,23 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
                          pc[JSOP_CALL_LENGTH + JSOP_TRACE_LENGTH] == JSOP_NOT &&
                          pc[JSOP_CALL_LENGTH + JSOP_TRACE_LENGTH + JSOP_NOT_LENGTH] == JSOP_IFEQ))
                     {
-                        
-
-
-
                         JSObject* proto;
                         Value test;
                         jsid testId = ATOM_TO_JSID(cx->runtime->atomState.testAtom);
+                        
                         if (js_GetClassPrototype(cx, funobj->getParent(), JSProto_RegExp, &proto) &&
-                            js_GetProperty(cx, proto, testId, &test))
+                            js_GetProperty(cx, proto, testId, &test) &&
+                            IsFunctionObject(test))
                         {
-                            vp[0] = test;
-                            
-                            funobj = &vp[0].toObject();
-                            fun = GET_FUNCTION_PRIVATE(cx, funobj);
-                            native = fun->u.n.native;
+                            JSObject* tmpfunobj = &test.toObject();
+                            JSFunction* tmpfun = GET_FUNCTION_PRIVATE(cx, tmpfunobj);
+                            Native tmpnative = tmpfun->maybeNative();
+                            if (tmpnative == js_regexp_test) {
+                                vp[0] = test;
+                                funobj = tmpfunobj;
+                                fun = tmpfun;
+                                native = tmpnative;
+                            }
                         }
                     }
                 }
