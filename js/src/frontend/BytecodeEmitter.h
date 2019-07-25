@@ -857,7 +857,7 @@ PopStatementTC(TreeContext *tc);
 
 
 JSBool
-PopStatementCG(JSContext *cx, BytecodeEmitter *bce);
+PopStatementBCE(JSContext *cx, BytecodeEmitter *bce);
 
 
 
