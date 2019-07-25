@@ -1205,13 +1205,16 @@ GetCompartmentName(JSCompartment *c, nsCString &name)
         nsJSPrincipals::get(principals)->GetScriptLocation(name);
 
         
-        if (js::IsSystemCompartment(c)) {
-            xpc::CompartmentPrivate *compartmentPrivate =
-                static_cast<xpc::CompartmentPrivate*>(JS_GetCompartmentPrivate(c));
-            if (compartmentPrivate && !compartmentPrivate->location.IsEmpty()) {
-                name.AppendLiteral(", ");
-                name.Append(compartmentPrivate->location);
-            }
+        
+        
+        
+        xpc::CompartmentPrivate *compartmentPrivate =
+            static_cast<xpc::CompartmentPrivate*>(JS_GetCompartmentPrivate(c));
+        if (compartmentPrivate &&
+            !compartmentPrivate->location.IsEmpty() &&
+            !compartmentPrivate->location.Equals(name)) {
+            name.AppendLiteral(", ");
+            name.Append(compartmentPrivate->location);
         }
         
         
