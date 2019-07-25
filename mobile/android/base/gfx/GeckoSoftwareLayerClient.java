@@ -54,6 +54,7 @@ import org.mozilla.gecko.GeckoEventListener;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
@@ -63,6 +64,8 @@ import android.util.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.nio.ByteBuffer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 
@@ -107,6 +110,8 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
     
     
     private boolean mUpdateViewportOnEndDraw;
+
+    private static Pattern sColorPattern;
 
     public GeckoSoftwareLayerClient(Context context) {
         mContext = context;
@@ -209,6 +214,13 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         try {
             JSONObject viewportObject = new JSONObject(metadata);
             mNewGeckoViewport = new ViewportMetrics(viewportObject);
+
+            
+            String backgroundColorString = viewportObject.optString("backgroundColor");
+            if (backgroundColorString != null) {
+                LayerController controller = getLayerController();
+                controller.setCheckerboardColor(parseColorFromGecko(backgroundColorString));
+            }
         } catch (JSONException e) {
             Log.e(LOGTAG, "Aborting draw, bad viewport description: " + metadata);
             return false;
@@ -517,6 +529,24 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
                 endTransaction(mTileLayer);
             }
         }
+    }
+
+    
+    
+    private static int parseColorFromGecko(String string) {
+        if (sColorPattern == null) {
+            sColorPattern = Pattern.compile("rgb\\((\\d+),\\s*(\\d+),\\s*(\\d+)\\)");
+        }
+
+        Matcher matcher = sColorPattern.matcher(string);
+        if (!matcher.matches()) {
+            return Color.WHITE;
+        }
+
+        int r = Integer.parseInt(matcher.group(1));
+        int g = Integer.parseInt(matcher.group(2));
+        int b = Integer.parseInt(matcher.group(3));
+        return Color.rgb(r, g, b);
     }
 }
 

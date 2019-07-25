@@ -832,7 +832,22 @@ var BrowserApp = {
   },
 
   getDrawMetadata: function getDrawMetadata() {
-    return JSON.stringify(this.selectedTab.viewport);
+    let viewport = this.selectedTab.viewport;
+
+    
+    
+    try {
+      let browser = this.selectedBrowser;
+      if (browser) {
+        let { contentDocument, contentWindow } = browser;
+        let computedStyle = contentWindow.getComputedStyle(contentDocument.body);
+        viewport.backgroundColor = computedStyle.backgroundColor;
+      }
+    } catch (e) {
+      
+    }
+
+    return JSON.stringify(viewport);
   },
 
   observe: function(aSubject, aTopic, aData) {
