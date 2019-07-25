@@ -362,6 +362,9 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
       mSelectedType = (PRInt16)ofn.nFilterIndex;
 
       
+      mFiles.Clear();
+
+      
       if (mMode == modeOpenMultiple) {
         
         
