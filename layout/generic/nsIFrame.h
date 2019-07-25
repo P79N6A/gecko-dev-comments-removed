@@ -2838,6 +2838,16 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
   };
   bool IsVisibleConsideringAncestors(PRUint32 aFlags = 0) const;
 
+  
+
+
+
+
+
+
+  PRUint8 VerticalAlignEnum() const;
+  enum { eInvalidVerticalAlign = 0xFF };
+
   bool IsSVGText() const { return mState & NS_FRAME_IS_SVG_TEXT; }
 
 protected:

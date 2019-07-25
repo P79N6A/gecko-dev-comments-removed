@@ -4566,11 +4566,7 @@ nsTextFrame::GetTextDecorations(nsPresContext* aPresContext,
     
     if (firstBlock) {
       
-      const nsStyleCoord& vAlign =
-        fChild->GetStyleContext()->GetStyleTextReset()->mVerticalAlign;
-      if (vAlign.GetUnit() != eStyleUnit_Enumerated ||
-          vAlign.GetIntValue() != NS_STYLE_VERTICAL_ALIGN_BASELINE)
-      {
+      if (fChild->VerticalAlignEnum() != NS_STYLE_VERTICAL_ALIGN_BASELINE) {
         
         
         
