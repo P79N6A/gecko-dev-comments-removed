@@ -3223,6 +3223,13 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
 #endif
 
   
+  {
+    nsCAutoString program(gAppData->name);
+    ToLowerCase(program);
+    g_set_prgname(program.get());
+  }
+
+  
 
   
   
