@@ -2639,7 +2639,7 @@ nsScriptSecurityManager::IsCapabilityEnabled(const char *capability,
         
         if (JS_IsGlobalFrame(cx, fp))
             break;
-    } while ((fp = JS_FrameIterator(cx, &fp)) != nsnull);
+    } while (fp != target && (fp = JS_FrameIterator(cx, &fp)) != nsnull);
 
     if (!previousPrincipal)
     {

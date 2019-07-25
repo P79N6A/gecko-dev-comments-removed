@@ -115,6 +115,10 @@ NoWaiverWrapper::enter(JSContext *cx, JSObject *wrapper, jsid id, Action act, bo
     if (!ssm) {
         return true;
     }
+
+    
+    
+    
     JSStackFrame *fp = NULL;
     nsIPrincipal *principal = GetCompartmentPrincipal(wrappedObject(wrapper)->compartment());
     nsresult rv = ssm->PushContextPrincipal(cx, JS_FrameIterator(cx, &fp), principal);
