@@ -66,6 +66,7 @@
 #include "jsdbgapi.h"           
 #include "nsReadableUtils.h"
 #include "nsDOMClassInfo.h"
+#include "nsJSEnvironment.h"
 
 
 #include "nsIEventListenerManager.h"
