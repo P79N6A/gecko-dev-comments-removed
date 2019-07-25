@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef LIBRARY_H
 #define LIBRARY_H
 
@@ -20,14 +54,14 @@ enum LibrarySlot {
 
 namespace Library
 {
-  JSBool Name(JSContext* cx, unsigned argc, jsval *vp);
+  JSBool Name(JSContext* cx, uintN argc, jsval *vp);
 
   JSObject* Create(JSContext* cx, jsval path, JSCTypesCallbacks* callbacks);
 
   bool IsLibrary(JSObject* obj);
-  PRLibrary* GetLibrary(JSObject* obj);
+  PRLibrary* GetLibrary(JSContext* cx, JSObject* obj);
 
-  JSBool Open(JSContext* cx, unsigned argc, jsval* vp);
+  JSBool Open(JSContext* cx, uintN argc, jsval* vp);
 }
 
 }
