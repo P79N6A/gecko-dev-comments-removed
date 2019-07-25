@@ -134,13 +134,6 @@ public:
 
 
 
-
-  static void AttributeChildRemoved(nsINode* aAttribute, nsIContent* aChild);
-  
-
-
-
-
   static inline void ParentChainChanged(nsIContent *aContent)
   {
     nsINode::nsSlots* slots = aContent->GetExistingSlots();
