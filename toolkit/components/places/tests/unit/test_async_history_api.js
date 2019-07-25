@@ -44,29 +44,6 @@ function VisitInfo(aTransitionType,
 
 
 
-function NavHistoryObserver()
-{
-}
-NavHistoryObserver.prototype =
-{
-  onBeginUpdateBatch: function() { },
-  onEndUpdateBatch: function() { },
-  onVisit: function() { },
-  onTitleChanged: function() { },
-  onBeforeDeleteURI: function() { },
-  onDeleteURI: function() { },
-  onClearHistory: function() { },
-  onPageChanged: function() { },
-  onDeleteVisits: function() { },
-  QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsINavHistoryObserver,
-  ]),
-};
-
-
-
-
-
 
 
 

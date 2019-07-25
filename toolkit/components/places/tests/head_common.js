@@ -736,3 +736,24 @@ function do_compare_arrays(a1, a2, sorted)
            a2.filter(function (e) a1.indexOf(e) == -1).length == 0;
   }
 }
+
+
+
+
+
+function NavHistoryObserver() {}
+
+NavHistoryObserver.prototype = {
+  onBeginUpdateBatch: function () {},
+  onEndUpdateBatch: function () {},
+  onVisit: function () {},
+  onTitleChanged: function () {},
+  onBeforeDeleteURI: function () {},
+  onDeleteURI: function () {},
+  onClearHistory: function () {},
+  onPageChanged: function () {},
+  onDeleteVisits: function () {},
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsINavHistoryObserver,
+  ])
+};

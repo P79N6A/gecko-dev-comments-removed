@@ -45,6 +45,7 @@
 #include "History.h"
 #include "nsNavHistory.h"
 #include "nsNavBookmarks.h"
+#include "nsAnnotationService.h"
 #include "Helpers.h"
 #include "PlaceInfo.h"
 #include "VisitInfo.h"
@@ -78,6 +79,11 @@ namespace places {
 #define URI_VISITED_RESOLUTION_TOPIC "visited-status-resolution"
 
 #define URI_VISIT_SAVED "uri-visit-saved"
+
+#define DESTINATIONFILEURI_ANNO \
+        NS_LITERAL_CSTRING("downloads/destinationFileURI")
+#define DESTINATIONFILENAME_ANNO \
+        NS_LITERAL_CSTRING("downloads/destinationFileName")
 
 
 
@@ -1258,6 +1264,109 @@ private:
 
 
 
+class SetDownloadAnnotations : public mozIVisitInfoCallback
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  SetDownloadAnnotations(nsIURI* aDestination)
+  : mDestination(aDestination)
+  , mHistory(History::GetService())
+  {
+    MOZ_ASSERT(mDestination);
+    MOZ_ASSERT(NS_IsMainThread());
+  }
+
+  NS_IMETHOD HandleError(nsresult aResultCode, mozIPlaceInfo *aPlaceInfo)
+  {
+    
+    return NS_OK;
+  }
+
+  NS_IMETHOD HandleResult(mozIPlaceInfo *aPlaceInfo)
+  {
+    
+    nsCOMPtr<nsIFileURL> destinationFileURL = do_QueryInterface(mDestination);
+    if (!destinationFileURL) {
+      return NS_OK;
+    }
+
+    nsCOMPtr<nsIURI> source;
+    nsresult rv = aPlaceInfo->GetUri(getter_AddRefs(source));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIFile> destinationFile;
+    rv = destinationFileURL->GetFile(getter_AddRefs(destinationFile));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsAutoString destinationFileName;
+    rv = destinationFile->GetLeafName(destinationFileName);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCAutoString destinationURISpec;
+    rv = destinationFileURL->GetSpec(destinationURISpec);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    nsAnnotationService* annosvc = nsAnnotationService::GetAnnotationService();
+    NS_ENSURE_TRUE(annosvc, NS_ERROR_OUT_OF_MEMORY);
+
+    rv = annosvc->SetPageAnnotationString(
+      source,
+      DESTINATIONFILEURI_ANNO,
+      NS_ConvertUTF8toUTF16(destinationURISpec),
+      0,
+      nsIAnnotationService::EXPIRE_WITH_HISTORY
+    );
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = annosvc->SetPageAnnotationString(
+      source,
+      DESTINATIONFILENAME_ANNO,
+      destinationFileName,
+      0,
+      nsIAnnotationService::EXPIRE_WITH_HISTORY
+    );
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsAutoString title;
+    rv = aPlaceInfo->GetTitle(title);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    
+    if (title.IsEmpty()) {
+      rv = mHistory->SetURITitle(source, destinationFileName);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    return NS_OK;
+  }
+
+  NS_IMETHOD HandleCompletion()
+  {
+    return NS_OK;
+  }
+
+private:
+  nsCOMPtr<nsIURI> mDestination;
+
+  
+
+
+
+  nsRefPtr<History> mHistory;
+};
+NS_IMPL_ISUPPORTS1(
+  SetDownloadAnnotations,
+  mozIVisitInfoCallback
+)
+
+
+
+
 
 
 
@@ -1909,6 +2018,65 @@ History::SetURITitle(nsIURI* aURI, const nsAString& aTitle)
 
 
 NS_IMETHODIMP
+History::AddDownload(nsIURI* aSource, nsIURI* aReferrer,
+                     PRTime aStartTime, nsIURI* aDestination)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  NS_ENSURE_ARG(aSource);
+
+  if (mShuttingDown) {
+    return NS_OK;
+  }
+
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    NS_ERROR("Cannot add downloads to history from content process!");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
+  NS_ENSURE_TRUE(navHistory, NS_ERROR_OUT_OF_MEMORY);
+
+  
+  bool canAdd;
+  nsresult rv = navHistory->CanAddURI(aSource, &canAdd);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!canAdd) {
+    return NS_OK;
+  }
+
+  nsTArray<VisitData> placeArray(1);
+  NS_ENSURE_TRUE(placeArray.AppendElement(VisitData(aSource, aReferrer)),
+                 NS_ERROR_OUT_OF_MEMORY);
+  VisitData& place = placeArray.ElementAt(0);
+  NS_ENSURE_FALSE(place.spec.IsEmpty(), NS_ERROR_INVALID_ARG);
+
+  place.visitTime = aStartTime;
+  place.SetTransitionType(nsINavHistoryService::TRANSITION_DOWNLOAD);
+
+  mozIStorageConnection* dbConn = GetDBConn();
+  NS_ENSURE_STATE(dbConn);
+
+  nsCOMPtr<mozIVisitInfoCallback> callback = aDestination
+                                  ? new SetDownloadAnnotations(aDestination)
+                                  : nsnull;
+
+  rv = InsertVisitedURIs::Start(dbConn, placeArray, callback);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<nsIObserverService> obsService =
+    mozilla::services::GetObserverService();
+  if (obsService) {
+    obsService->NotifyObservers(aSource, NS_LINK_VISITED_EVENT_TOPIC, nsnull);
+  }
+
+  return NS_OK;
+}
+
+
+
+
+NS_IMETHODIMP
 History::UpdatePlaces(const jsval& aPlaceInfos,
                       mozIVisitInfoCallback* aCallback,
                       JSContext* aCtx)
@@ -2101,9 +2269,10 @@ History::Observe(nsISupports* aSubject, const char* aTopic,
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS3(
+NS_IMPL_THREADSAFE_ISUPPORTS4(
   History
 , IHistory
+, nsIDownloadHistory
 , mozIAsyncHistory
 , nsIObserver
 )

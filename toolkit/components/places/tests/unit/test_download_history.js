@@ -8,30 +8,34 @@
 
 
 
-const downloadHistory = Cc["@mozilla.org/browser/download-history;1"]
-                        .getService(Ci.nsIDownloadHistory);
+XPCOMUtils.defineLazyServiceGetter(this, "gDownloadHistory",
+                                   "@mozilla.org/browser/download-history;1",
+                                   "nsIDownloadHistory");
 
-const TEST_URI = NetUtil.newURI("http://google.com/");
-const REFERRER_URI = NetUtil.newURI("http://yahoo.com");
+XPCOMUtils.defineLazyServiceGetter(this, "gHistory",
+                                   "@mozilla.org/browser/history;1",
+                                   "mozIAsyncHistory");
 
-const NS_LINK_VISITED_EVENT_TOPIC = "link-visited";
-const ENABLE_HISTORY_PREF = "places.history.enabled";
-const PB_KEEP_SESSION_PREF = "browser.privatebrowsing.keep_current_session";
+const DOWNLOAD_URI = NetUtil.newURI("http://www.example.com/");
+const REFERRER_URI = NetUtil.newURI("http://www.example.org/");
+const PRIVATE_URI = NetUtil.newURI("http://www.example.net/");
 
 
 
 
-const visitedObserver = {
-  topicReceived: false,
-  observe: function VO_observe(aSubject, aTopic, aData)
-  {
-    this.topicReceived = true;
-  }
-};
-Services.obs.addObserver(visitedObserver, NS_LINK_VISITED_EVENT_TOPIC, false);
-do_register_cleanup(function() {
-  Services.obs.removeObserver(visitedObserver, NS_LINK_VISITED_EVENT_TOPIC);
-});
+
+
+
+function waitForOnVisit(aCallback) {
+  let historyObserver = {
+    __proto__: NavHistoryObserver.prototype,
+    onVisit: function HO_onVisit() {
+      PlacesUtils.history.removeObserver(this);
+      aCallback.apply(null, arguments);
+    }
+  };
+  PlacesUtils.history.addObserver(historyObserver, false);
+}
 
 
 
@@ -62,15 +66,6 @@ function uri_in_db(aURI, aExpected)
 
 
 
-function cleanup_and_run_next_test()
-{
-  visitedObserver.topicReceived = false;
-  waitForClearHistory(run_next_test);
-}
-
-
-
-
 function run_test()
 {
   run_next_test();
@@ -79,72 +74,113 @@ function run_test()
 add_test(function test_dh_is_from_places()
 {
   
-  do_check_true(downloadHistory instanceof Ci.nsINavHistoryService);
+  do_check_true(gDownloadHistory instanceof Ci.mozIAsyncHistory);
 
-  run_next_test();
+  waitForClearHistory(run_next_test);
 });
 
 add_test(function test_dh_addDownload()
 {
-  
-  uri_in_db(TEST_URI, false);
-  uri_in_db(REFERRER_URI, false);
+  waitForOnVisit(function DHAD_onVisit(aURI) {
+    do_check_true(aURI.equals(DOWNLOAD_URI));
 
-  downloadHistory.addDownload(TEST_URI, REFERRER_URI, Date.now() * 1000);
+    
+    uri_in_db(DOWNLOAD_URI, true);
 
-  do_check_true(visitedObserver.topicReceived);
-  uri_in_db(TEST_URI, true);
-  uri_in_db(REFERRER_URI, true);
+    waitForClearHistory(run_next_test);
+  });
 
-  cleanup_and_run_next_test();
+  gDownloadHistory.addDownload(DOWNLOAD_URI, null, Date.now() * 1000);
 });
 
-add_test(function test_dh_privateBrowsing()
+add_test(function test_dh_addDownload_referrer()
 {
-  
-  uri_in_db(TEST_URI, false);
-  uri_in_db(REFERRER_URI, false);
+  waitForOnVisit(function DHAD_prepareReferrer(aURI, aVisitID) {
+    do_check_true(aURI.equals(REFERRER_URI));
+    let referrerVisitId = aVisitID;
 
-  var pb = null;
-  try {
-    
-     pb = Cc["@mozilla.org/privatebrowsing;1"].
-          getService(Ci.nsIPrivateBrowsingService);
-  } catch (ex) {
-    
+    waitForOnVisit(function DHAD_onVisit(aURI, aVisitID, aTime, aSessionID,
+                                              aReferringID) {
+      do_check_true(aURI.equals(DOWNLOAD_URI));
+      do_check_eq(aReferringID, referrerVisitId);
+
+      
+      uri_in_db(DOWNLOAD_URI, true);
+
+      waitForClearHistory(run_next_test);
+    });
+
+    gDownloadHistory.addDownload(DOWNLOAD_URI, REFERRER_URI, Date.now() * 1000);
+  });
+
+  
+  
+  gHistory.updatePlaces({
+    uri: REFERRER_URI,
+    visits: [{
+      transitionType: Ci.nsINavHistoryService.TRANSITION_TYPED,
+      visitDate: Date.now() * 1000
+    }]
+  });
+});
+
+add_test(function test_dh_addDownload_privateBrowsing()
+{
+  if (!("@mozilla.org/privatebrowsing;1" in Cc)) {
+    todo(false, "PB service is not available, bail out");
     run_next_test();
     return;
   }
-  Services.prefs.setBoolPref(PB_KEEP_SESSION_PREF, true);
+
+  waitForOnVisit(function DHAD_onVisit(aURI) {
+    
+    
+    
+    
+    do_check_true(aURI.equals(DOWNLOAD_URI));
+
+    uri_in_db(DOWNLOAD_URI, true);
+    uri_in_db(PRIVATE_URI, false);
+
+    waitForClearHistory(run_next_test);
+  });
+
+  let pb = Cc["@mozilla.org/privatebrowsing;1"]
+           .getService(Ci.nsIPrivateBrowsingService);
+  Services.prefs.setBoolPref("browser.privatebrowsing.keep_current_session",
+                             true);
   pb.privateBrowsingEnabled = true;
+  gDownloadHistory.addDownload(PRIVATE_URI, REFERRER_URI, Date.now() * 1000);
 
-  downloadHistory.addDownload(TEST_URI, REFERRER_URI, Date.now() * 1000);
-
-  do_check_false(visitedObserver.topicReceived);
-  uri_in_db(TEST_URI, false);
-  uri_in_db(REFERRER_URI, false);
-
+  
+  
   pb.privateBrowsingEnabled = false;
-  cleanup_and_run_next_test();
+  Services.prefs.clearUserPref("browser.privatebrowsing.keep_current_session");
+  gDownloadHistory.addDownload(DOWNLOAD_URI, REFERRER_URI, Date.now() * 1000);
 });
 
-add_test(function test_dh_disabledHistory()
+add_test(function test_dh_addDownload_disabledHistory()
 {
-  
-  uri_in_db(TEST_URI, false);
-  uri_in_db(REFERRER_URI, false);
+  waitForOnVisit(function DHAD_onVisit(aURI) {
+    
+    
+    
+    
+    do_check_true(aURI.equals(DOWNLOAD_URI));
+
+    uri_in_db(DOWNLOAD_URI, true);
+    uri_in_db(PRIVATE_URI, false);
+
+    waitForClearHistory(run_next_test);
+  });
+
+  Services.prefs.setBoolPref("places.history.enabled", false);
+  gDownloadHistory.addDownload(PRIVATE_URI, REFERRER_URI, Date.now() * 1000);
 
   
-  Services.prefs.setBoolPref(ENABLE_HISTORY_PREF, false);
-
-  downloadHistory.addDownload(TEST_URI, REFERRER_URI, Date.now() * 1000);
-
-  do_check_false(visitedObserver.topicReceived);
-  uri_in_db(TEST_URI, false);
-  uri_in_db(REFERRER_URI, false);
-
-  Services.prefs.setBoolPref(ENABLE_HISTORY_PREF, true);
-  cleanup_and_run_next_test();
+  
+  Services.prefs.clearUserPref("places.history.enabled");
+  gDownloadHistory.addDownload(DOWNLOAD_URI, REFERRER_URI, Date.now() * 1000);
 });
 
 
@@ -170,7 +206,7 @@ add_test(function test_dh_details()
       PlacesUtils.annotations.removeObserver(annoObserver);
       PlacesUtils.history.removeObserver(historyObserver);
 
-      cleanup_and_run_next_test();
+      waitForClearHistory(run_next_test);
     }
   };
 
@@ -214,17 +250,18 @@ add_test(function test_dh_details()
     onDeleteURI: function() {},
     onClearHistory: function() {},
     onPageChanged: function() {},
-    onDeleteVisits: function() {}   
+    onDeleteVisits: function() {}
   };
 
   PlacesUtils.annotations.addObserver(annoObserver, false);
   PlacesUtils.history.addObserver(historyObserver, false);
 
   
-  downloadHistory.addDownload(SOURCE_URI, null, Date.now() * 1000);
-  downloadHistory.addDownload(SOURCE_URI, null, Date.now() * 1000, null);
-  downloadHistory.addDownload(SOURCE_URI, null, Date.now() * 1000, REMOTE_URI);
+  gDownloadHistory.addDownload(SOURCE_URI, null, Date.now() * 1000);
+  gDownloadHistory.addDownload(SOURCE_URI, null, Date.now() * 1000, null);
+  gDownloadHistory.addDownload(SOURCE_URI, null, Date.now() * 1000, REMOTE_URI);
 
   
-  downloadHistory.addDownload(SOURCE_URI, null, Date.now() * 1000, destFileUri);
+  gDownloadHistory.addDownload(SOURCE_URI, null, Date.now() * 1000,
+                               destFileUri);
 });
