@@ -504,6 +504,9 @@ window.Item.prototype = {
     }
   },
   
+  
+  
+  
   setTrenches: function(rect) {
 
 		if (this.parent !== null)
@@ -538,6 +541,10 @@ window.Item.prototype = {
 		Trenches.getById(gT.bottom).setWithRect(rect);
 
   },
+  
+  
+  
+  
   removeTrenches: function() {
 		for (let edge in this.borderTrenches) {
 			Trenches.unregister(this.borderTrenches[edge]); 
@@ -844,11 +851,12 @@ window.Items = {
   
   
   
-  getPageBounds: function( dontCountNewTabGroup ) {
-    var bottom = dontCountNewTabGroup ? 0 : TabItems.tabHeight + Items.defaultGutter;
+  getPageBounds: function() {
+    var top = 0;
+    var bottom = TabItems.tabHeight + 10; 
     var width = Math.max(100, window.innerWidth);
-    var height = Math.max(100, window.innerHeight - bottom);
-    return new Rect(0, 0, width, height);
+    var height = Math.max(100, window.innerHeight - (top + bottom));
+    return new Rect(0, top, width, height);
   },
   
   
