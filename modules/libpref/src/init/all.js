@@ -3153,7 +3153,7 @@ pref("image.mem.discardable", true);
 
 
 
-pref("image.mem.decodeondraw", true);
+pref("image.mem.decodeondraw", false);
 
 
 
