@@ -476,8 +476,10 @@ void nsViewManager::ProcessPendingUpdates(nsView* aView, PRBool aDoInvalidate)
       }
       nsRegion r = *dirtyRegion;
       r.MoveBy(aView->GetOffsetTo(nearestViewWithWidget));
-      UpdateWidgetArea(nearestViewWithWidget,
-                       nearestViewWithWidget->GetWidget(), r, nsnull);
+      nsViewManager* widgetVM = nearestViewWithWidget->GetViewManager();
+      widgetVM->
+        UpdateWidgetArea(nearestViewWithWidget,
+                         nearestViewWithWidget->GetWidget(), r, nsnull);
       dirtyRegion->SetEmpty();
     }
   }
@@ -556,8 +558,9 @@ nsViewManager::UpdateViewAfterScroll(nsIView *aView,
   nsRegion update(aUpdateRegion);
   update.MoveBy(offset);
 
-  UpdateWidgetArea(displayRoot, displayRoot->GetWidget(),
-                   update, nsnull);
+  nsViewManager* displayRootVM = displayRoot->GetViewManager();
+  displayRootVM->UpdateWidgetArea(displayRoot, displayRoot->GetWidget(),
+                                  update, nsnull);
   
 
   Composite();
@@ -659,7 +662,8 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
       if (view && visible && !IsWidgetDrawnByPlugin(childWidget, view)) {
         
         
-        if (view->GetViewManager()->RootViewManager() == RootViewManager()) {
+        nsViewManager* viewManager = view->GetViewManager();
+        if (viewManager->RootViewManager() == RootViewManager()) {
           
           nsRegion damage = intersection;
 
@@ -667,7 +671,8 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
           damage.MoveBy(-offset);
 
           
-          UpdateWidgetArea(view, childWidget, damage, aIgnoreWidgetView);
+          viewManager->
+            UpdateWidgetArea(view, childWidget, damage, aIgnoreWidgetView);
 
           
           nsIntRect bounds;
@@ -694,7 +699,7 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
 
     const nsRect* r;
     for (nsRegionRectIterator iter(leftOver); (r = iter.Next());) {
-      nsIntRect bounds = ViewToWidget(aWidgetView, aWidgetView, *r);
+      nsIntRect bounds = ViewToWidget(aWidgetView, *r);
       aWidget->Invalidate(bounds, PR_FALSE);
     }
   }
@@ -712,12 +717,13 @@ NS_IMETHODIMP nsViewManager::UpdateView(nsIView *aView, const nsRect &aRect, PRU
   }
 
   nsView* displayRoot = GetDisplayRootFor(view);
+  nsViewManager* displayRootVM = displayRoot->GetViewManager();
   
   
   
   damagedRect.MoveBy(view->GetOffsetTo(displayRoot));
-  UpdateWidgetArea(displayRoot, displayRoot->GetWidget(),
-                   nsRegion(damagedRect), nsnull);
+  displayRootVM->UpdateWidgetArea(displayRoot, displayRoot->GetWidget(),
+                                  nsRegion(damagedRect), nsnull);
 
   RootViewManager()->IncrementUpdateCount();
 
@@ -1546,22 +1552,16 @@ NS_IMETHODIMP nsViewManager::ForceUpdate()
   return NS_OK;
 }
 
-nsIntRect nsViewManager::ViewToWidget(nsView *aView, nsView* aWidgetView, const nsRect &aRect) const
+nsIntRect nsViewManager::ViewToWidget(nsView *aView, const nsRect &aRect) const
 {
-  nsRect rect = aRect;
-  while (aView != aWidgetView) {
-    aView->ConvertToParentCoords(&rect.x, &rect.y);
-    aView = aView->GetParent();
-  }
-  
-  
-  nsRect bounds;
-  aWidgetView->GetDimensions(bounds);
-  rect.IntersectRect(rect, bounds);
-  
-  rect.x -= bounds.x;
-  rect.y -= bounds.y;
+  NS_ASSERTION(aView->GetViewManager() == this, "wrong view manager");
 
+  
+  nsRect bounds = aView->GetDimensions();
+  nsRect rect;
+  rect.IntersectRect(aRect, bounds);
+
+  
   rect += aView->ViewToWidgetOffset();
 
   

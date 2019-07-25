@@ -207,7 +207,7 @@ private:
 
 
 
-  nsIntRect ViewToWidget(nsView *aView, nsView* aWidgetView, const nsRect &aRect) const;
+  nsIntRect ViewToWidget(nsView *aView, const nsRect &aRect) const;
 
   void DoSetWindowDimensions(nscoord aWidth, nscoord aHeight);
 
