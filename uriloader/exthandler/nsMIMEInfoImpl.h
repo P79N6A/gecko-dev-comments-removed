@@ -105,7 +105,7 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
     nsMIMEInfoBase(const nsACString& aType, HandlerClass aClass) NS_HIDDEN;
     virtual ~nsMIMEInfoBase();        
 
-    void SetMIMEType(const nsACString & aMIMEType) { mType = aMIMEType; }
+    void SetMIMEType(const nsACString & aMIMEType) { mSchemeOrType = aMIMEType; }
 
     void SetDefaultDescription(const nsString& aDesc) { mDefaultAppDescription = aDesc; }
 
@@ -170,7 +170,7 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
     
     nsTArray<nsCString>    mExtensions; 
     nsString               mDescription; 
-    nsCString              mType;
+    nsCString              mSchemeOrType;
     HandlerClass           mClass;
     nsCOMPtr<nsIHandlerApp> mPreferredApplication;
     nsCOMPtr<nsIMutableArray> mPossibleApplications;
