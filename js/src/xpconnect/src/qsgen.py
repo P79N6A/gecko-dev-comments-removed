@@ -202,7 +202,7 @@ def removeStubMember(memberId, member):
 
 def addStubMember(memberId, member, traceable):
     mayTrace = False
-    if member.kind == 'method' and not member.implicit_jscontext:
+    if member.kind == 'method':
         
         haveCallee = memberNeedsCallee(member)
         
@@ -255,8 +255,7 @@ def checkStubMember(member, isCustom):
 
     
     for attrname, value in vars(member).items():
-        if value is True and attrname not in ('readonly','optional_argc',
-                                              'traceable','implicit_jscontext'):
+        if value is True and attrname not in ('readonly','optional_argc','traceable'):
             raise UserError("%s %s: unrecognized property %r"
                             % (member.kind.capitalize(), memberId,
                                attrname))
@@ -540,10 +539,8 @@ def writeArgumentUnboxing(f, i, name, type, haveCcx, optional, rvdeclared,
             template = (
                 "    nsCOMPtr<nsIVariant> ${name}(already_AddRefed<nsIVariant>("
                 "XPCVariant::newVariant(ccx, ${argVal})));\n"
-                "    if (!${name}) {\n"
-                "        xpc_qsThrowBadArgWithCcx(ccx, NS_ERROR_XPC_BAD_CONVERT_JS, %d);\n"
-                "        return JS_FALSE;\n"
-                "    }") % i
+                "    if (!${name})\n"
+                "        return JS_FALSE;\n")
             f.write(substitute(template, params))
             return rvdeclared
         elif type.name == 'nsIAtom':
@@ -941,8 +938,6 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
         if isMethod:
             comName = header.methodNativeName(member)
             argv = ['arg' + str(i) for i, p in enumerate(member.params)]
-            if member.implicit_jscontext:
-                argv.append('cx')
             if member.optional_argc:
                 argv.append('argc - %d' % requiredArgs)
             if not isVoidType(member.realtype):
@@ -954,8 +949,6 @@ def writeQuickStub(f, customMethodCalls, member, stubName, isSetter=False):
                 args = outParamForm(resultname, member.realtype)
             else:
                 args = "arg0"
-            if member.implicit_jscontext:
-                args = "cx, " + args
 
         f.write("    ")
         if canFail or debugGetter:
@@ -1352,7 +1345,7 @@ def writeAttrStubs(f, customMethodCalls, attr):
     if not custom:
         writeQuickStub(f, customMethodCalls, attr, getterName)
     if attr.readonly:
-        setterName = 'xpc_qsGetterOnlyPropertyStub'
+        setterName = 'js_GetterOnlyPropertyStub'
     else:
         setterName = (attr.iface.name + '_'
                       + header.attributeNativeName(attr, False))
