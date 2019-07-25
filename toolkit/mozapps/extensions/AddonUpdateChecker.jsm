@@ -467,6 +467,13 @@ UpdateParser.prototype = {
       return;
     }
 
+    let channel = request.channel;
+    if (channel instanceof Ci.nsIHttpChannel && !channel.requestSucceeded) {
+      WARN("Request failed: " + channel.responseStatus + ": " + channel.responseStatusText);
+      this.notifyError(AddonUpdateChecker.ERROR_DOWNLOAD_ERROR);
+      return;
+    }
+
     let xml = request.responseXML;
     if (!xml || xml.documentElement.namespaceURI == XMLURI_PARSE_ERROR) {
       WARN("Update manifest was not valid XML");
@@ -502,7 +509,24 @@ UpdateParser.prototype = {
     this.timer.cancel();
     this.timer = null;
 
-    WARN("Request failed: " + this.request.status);
+    if (!Components.isSuccessCode(this.request.status)) {
+      WARN("Request failed: " + request.status);
+    }
+    else if (this.request.channel instanceof Ci.nsIHttpChannel) {
+      try {
+        if (this.request.channel.requestSucceeded) {
+          WARN("Request failed: " + this.request.channel.responseStatus + ": " +
+               this.request.channel.responseStatusText);
+        }
+      }
+      catch (e) {
+        WARN("HTTP Request failed for an unknown reason");
+      }
+    }
+    else {
+      WARN("Request failed for an unknown reason");
+    }
+
     this.request = null;
 
     this.notifyError(AddonUpdateChecker.ERROR_DOWNLOAD_ERROR);
@@ -558,10 +582,16 @@ function matchesVersions(aUpdate, aAppVersion, aPlatformVersion) {
 }
 
 var AddonUpdateChecker = {
+  
+  
   ERROR_TIMEOUT: -1,
+  
   ERROR_DOWNLOAD_ERROR: -2,
+  
   ERROR_PARSE_ERROR: -3,
+  
   ERROR_UNKNOWN_FORMAT: -4,
+  
   ERROR_SECURITY_ERROR: -5,
 
   
