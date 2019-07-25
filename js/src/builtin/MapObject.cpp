@@ -86,7 +86,7 @@ class OrderedHashTable
     uint32_t dataLength;        
     uint32_t dataCapacity;      
     uint32_t liveCount;         
-    uint32_t hashTableMask;     
+    uint32_t hashShift;         
     Range *ranges;              
     AllocPolicy alloc;
 
@@ -116,7 +116,8 @@ class OrderedHashTable
         dataLength = 0;
         dataCapacity = capacity;
         liveCount = 0;
-        hashTableMask = buckets - 1;
+        hashShift = HashNumberSizeBits - initialBucketsLog2();
+        JS_ASSERT(hashBuckets() == buckets);
         return true;
     }
 
@@ -162,14 +163,12 @@ class OrderedHashTable
         if (dataLength == dataCapacity) {
             
             
-            uint32_t newMask = liveCount >= dataCapacity * 0.75
-                             ? (hashTableMask << 1) | 1
-                             : hashTableMask;
-            if (!rehash(newMask))
+            uint32_t newHashShift = liveCount >= dataCapacity * 0.75 ? hashShift - 1 : hashShift;
+            if (!rehash(newHashShift))
                 return false;
         }
 
-        h &= hashTableMask;
+        h >>= hashShift;
         liveCount++;
         Data *e = &data[dataLength++];
         new (e) Data(element, hashTable[h]);
@@ -208,8 +207,8 @@ class OrderedHashTable
             r->onRemove(pos);
 
         
-        if (hashTableMask > initialBuckets() && liveCount < dataLength * minDataFill()) {
-            if (!rehash(hashTableMask >> 1))
+        if (hashBuckets() > initialBuckets() && liveCount < dataLength * minDataFill()) {
+            if (!rehash(hashShift + 1))
                 return false;
         }
         return true;
@@ -370,8 +369,8 @@ class OrderedHashTable
 
         void rekeyFront(const Key &k) {
             Data &entry = ht.data[i];
-            HashNumber oldHash = prepareHash(Ops::getKey(entry.element)) & ht.hashTableMask;
-            HashNumber newHash = prepareHash(k) & ht.hashTableMask;
+            HashNumber oldHash = prepareHash(Ops::getKey(entry.element)) >> ht.hashShift;
+            HashNumber newHash = prepareHash(k) >> ht.hashShift;
             Ops::setKey(entry.element, k);
             if (newHash != oldHash) {
                 
@@ -406,7 +405,7 @@ class OrderedHashTable
         void rekeyFrontWithSameHashCode(const Key &k) {
 #ifdef DEBUG
             
-            HashNumber h = Ops::hash(k) & ht.hashTableMask;
+            HashNumber h = Ops::hash(k) >> ht.hashShift;
             Data *e = ht.hashTable[h];
             while (e && e != &ht.data[i])
                 e = e->chain;
@@ -420,10 +419,8 @@ class OrderedHashTable
 
   private:
     
-
-
-
-    static uint32_t initialBuckets() { return 2; }
+    static uint32_t initialBucketsLog2() { return 1; }
+    static uint32_t initialBuckets() { return 1 << initialBucketsLog2(); }
 
     
 
@@ -447,6 +444,11 @@ class OrderedHashTable
         return ScrambleHashCode(Ops::hash(l));
     }
 
+    
+    uint32_t hashBuckets() const {
+        return 1 << (HashNumberSizeBits - hashShift);
+    }
+
     void freeData(Data *data, uint32_t length) {
         for (Data *p = data + length; p != data; )
             (--p)->~Data();
@@ -454,7 +456,7 @@ class OrderedHashTable
     }
 
     Data *lookup(const Lookup &l, HashNumber h) {
-        for (Data *e = hashTable[h & hashTableMask]; e; e = e->chain) {
+        for (Data *e = hashTable[h >> hashShift]; e; e = e->chain) {
             if (Ops::match(Ops::getKey(e->element), l))
                 return e;
         }
@@ -475,12 +477,12 @@ class OrderedHashTable
 
     
     void rehashInPlace() {
-        for (uint32_t i = 0; i <= hashTableMask; i++)
+        for (uint32_t i = 0, N = hashBuckets(); i < N; i++)
             hashTable[i] = NULL;
         Data *wp = data, *end = data + dataLength;
         for (Data *rp = data; rp != end; rp++) {
             if (!Ops::isEmpty(Ops::getKey(rp->element))) {
-                HashNumber h = prepareHash(Ops::getKey(rp->element)) & hashTableMask;
+                HashNumber h = prepareHash(Ops::getKey(rp->element)) >> hashShift;
                 if (rp != wp)
                     wp->element = Move(rp->element);
                 wp->chain = hashTable[h];
@@ -503,21 +505,22 @@ class OrderedHashTable
 
 
 
-    bool rehash(uint32_t newMask) {
+    bool rehash(uint32_t newHashShift) {
         
         
-        if (newMask == hashTableMask) {
+        if (newHashShift == hashShift) {
             rehashInPlace();
             return true;
         }
 
-        Data **newHashTable = static_cast<Data **>(alloc.malloc_((newMask + 1) * sizeof(Data *)));
+        size_t newHashBuckets = 1 << (HashNumberSizeBits - newHashShift);
+        Data **newHashTable = static_cast<Data **>(alloc.malloc_(newHashBuckets * sizeof(Data *)));
         if (!newHashTable)
             return false;
-        for (uint32_t i = 0; i <= newMask; i++)
+        for (uint32_t i = 0; i < newHashBuckets; i++)
             newHashTable[i] = NULL;
 
-        uint32_t newCapacity = uint32_t((newMask + 1) * fillFactor());
+        uint32_t newCapacity = uint32_t(newHashBuckets * fillFactor());
         Data *newData = static_cast<Data *>(alloc.malloc_(newCapacity * sizeof(Data)));
         if (!newData) {
             alloc.free_(newHashTable);
@@ -527,7 +530,7 @@ class OrderedHashTable
         Data *wp = newData;
         for (Data *p = data, *end = data + dataLength; p != end; p++) {
             if (!Ops::isEmpty(Ops::getKey(p->element))) {
-                HashNumber h = prepareHash(Ops::getKey(p->element)) & newMask;
+                HashNumber h = prepareHash(Ops::getKey(p->element)) >> newHashShift;
                 new (wp) Data(Move(p->element), newHashTable[h]);
                 newHashTable[h] = wp;
                 wp++;
@@ -542,7 +545,8 @@ class OrderedHashTable
         data = newData;
         dataLength = liveCount;
         dataCapacity = newCapacity;
-        hashTableMask = newMask;
+        hashShift = newHashShift;
+        JS_ASSERT(hashBuckets() == newHashBuckets);
 
         compacted();
         return true;
@@ -683,7 +687,9 @@ HashableValue::hash() const
 
     
     uint64_t u = value.asRawBits();
-    return HashNumber((u >> 3) ^ (u >> (32 + 3)) ^ (u << (32 - 3)));
+    return HashNumber((u >> 3) ^
+                      (u >> (HashNumberSizeBits + 3)) ^
+                      (u << (HashNumberSizeBits - 3)));
 }
 
 bool
