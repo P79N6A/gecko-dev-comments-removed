@@ -61,7 +61,8 @@ var drag = {
 
 var Drag = function(item, event, isResizing) {
   try {
-    Utils.assert('item', item && item.isAnItem);
+    Utils.assert('must be an item, or at least a faux item',
+                 item && (item.isAnItem || item.isAFauxItem));
     
     this.isResizing = isResizing || false;
     this.item = item;
@@ -98,7 +99,19 @@ var Drag = function(item, event, isResizing) {
 
 Drag.prototype = {
   
-  snap: function(event, ui, assumeConstantSize, keepProportional){
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  snap: function(stationaryCorner, assumeConstantSize, keepProportional) {
+    var stationaryCorner = stationaryCorner || 'topleft';
     var bounds = this.item.getBounds();
     var update = false; 
     var updateX = false;
@@ -107,10 +120,11 @@ Drag.prototype = {
     var snappedTrenches = {};
 
     
-    if ( !Keys.meta                           
-        && !(this.isATabItem && this.item.overlapsWithOtherItems()) 
-        ) { 
-      newRect = Trenches.snap(bounds,assumeConstantSize,keepProportional);
+    if ( 
+         !Keys.meta
+         
+         && !(this.isATabItem && this.item.overlapsWithOtherItems()) ) { 
+      newRect = Trenches.snap(bounds,stationaryCorner,assumeConstantSize,keepProportional);
       if (newRect) { 
         update = true;
         snappedTrenches = newRect.snappedTrenches || {};
@@ -119,7 +133,7 @@ Drag.prototype = {
     }
 
     
-    newRect = this.snapToEdge(bounds,assumeConstantSize,keepProportional);
+    newRect = this.snapToEdge(bounds,stationaryCorner,assumeConstantSize,keepProportional);
     if (newRect) {
       update = true;
       bounds = newRect;
@@ -152,7 +166,10 @@ Drag.prototype = {
   
   
   
-  snapToEdge: function Drag_snapToEdge(rect, assumeConstantSize, keepProportional) {
+  
+  
+  snapToEdge: function Drag_snapToEdge(rect, stationaryCorner, assumeConstantSize, keepProportional) {
+  
     var swb = this.safeWindowBounds;
     var update = false;
     var updateX = false;
@@ -161,6 +178,8 @@ Drag.prototype = {
 
     var snapRadius = ( Keys.meta ? 0 : Trenches.defaultRadius );
     if (rect.left < swb.left + snapRadius ) {
+      if (stationaryCorner.indexOf('right') > -1)
+        rect.width = rect.right - swb.left;
       rect.left = swb.left;
       update = true;
       updateX = true;
@@ -182,6 +201,8 @@ Drag.prototype = {
       delete snappedTrenches.left;
     }
     if (rect.top < swb.top + snapRadius) {
+      if (stationaryCorner.indexOf('bottom') > -1)
+        rect.height = rect.bottom - swb.top;
       rect.top = swb.top;
       update = true;
       updateY = true;
@@ -213,7 +234,7 @@ Drag.prototype = {
   
   
   drag: function(event, ui) {
-    this.snap(event,ui,true);
+    this.snap('topleft',true);
       
     if (this.parent && this.parent.expanded) {
       var now = Utils.getMilliseconds();

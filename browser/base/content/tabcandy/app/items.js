@@ -214,7 +214,8 @@ window.Item.prototype = {
       	resizeInfo = new Drag(this, e, true); 
       },
       resize: function(e,ui){
-        resizeInfo.snap(e,ui, false, self.keepProportional);
+      	
+        resizeInfo.snap('topleft', false, self.keepProportional);
       },
       stop: function(){
         self.setUserSize();
