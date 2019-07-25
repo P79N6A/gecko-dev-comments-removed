@@ -85,6 +85,35 @@ nsIDOMCSSRule* _class::GetDOMRuleWeak(nsresult *aResult) { *aResult = NS_OK; ret
 
 
 
+ already_AddRefed<nsIStyleSheet>
+nsCSSRule::GetStyleSheet() const
+{
+  NS_IF_ADDREF(mSheet);
+  return mSheet;
+}
+
+ void
+nsCSSRule::SetStyleSheet(nsCSSStyleSheet* aSheet)
+{
+  
+  
+  
+  mSheet = aSheet;
+}
+
+ void
+nsCSSRule::SetParentRule(css::GroupRule* aRule)
+{
+  
+  
+  
+  mParentRule = aRule;
+}
+
+
+
+
+
 
 namespace mozilla {
 namespace css {
@@ -183,7 +212,6 @@ DOMCI_DATA(CSSGroupRuleRuleList, css::GroupRuleRuleList)
 
 
 class NS_FINAL_CLASS CSSCharsetRuleImpl : public nsCSSRule,
-                                          public nsICSSRule,
                                           public nsIDOMCSSCharsetRule
 {
 public:
