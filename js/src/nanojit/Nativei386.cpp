@@ -55,6 +55,9 @@ namespace nanojit
             "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7",
             "f0"
         };
+
+        const char *gpRegNames8lo[] = { "al", "cl", "dl", "bl" };
+        const char *gpRegNames8hi[] = { "ah", "ch", "dh", "bh" };
     #endif
 
     #define TODO(x) do{ verbose_only(outputf(#x);) NanoAssertMsgf(false, "%s", #x); } while(0)
@@ -69,6 +72,9 @@ namespace nanojit
         0, 
         0  
     };
+
+    #define RB(r)       gpRegNames8lo[REGNUM(r)]
+    #define RBhi(r)     gpRegNames8hi[REGNUM(r)]
 
     typedef Register R;
     typedef int32_t  I32;
@@ -214,8 +220,12 @@ namespace nanojit
         *(--_nIns) = uint8_t(c>>8);
     }
 
-    inline void Assembler::LAHF()        { count_alu(); ALU0(0x9F);                   asm_output("lahf"); }
-    inline void Assembler::SAHF()        { count_alu(); ALU0(0x9E);                   asm_output("sahf"); }
+    inline Register Assembler::AL2AHReg(R r) {
+        NanoAssert(REGNUM(r) < 4);          
+        Register r2 = { REGNUM(r) | 4 };    
+        return r2;
+    }
+
     inline void Assembler::OR(R l, R r)  { count_alu(); ALU(0x0b, REGNUM(l), r);      asm_output("or %s,%s", gpn(l), gpn(r)); }
     inline void Assembler::AND(R l, R r) { count_alu(); ALU(0x23, REGNUM(l), r);      asm_output("and %s,%s", gpn(l), gpn(r)); }
     inline void Assembler::XOR(R l, R r) { count_alu(); ALU(0x33, REGNUM(l), r);      asm_output("xor %s,%s", gpn(l), gpn(r)); }
@@ -225,6 +235,7 @@ namespace nanojit
     inline void Assembler::DIV(R r)      { count_alu(); ALU(0xf7, 7, r);              asm_output("idiv  edx:eax, %s", gpn(r)); }
     inline void Assembler::NOT(R r)      { count_alu(); ALU(0xf7, 2, r);              asm_output("not %s", gpn(r)); }
     inline void Assembler::NEG(R r)      { count_alu(); ALU(0xf7, 3, r);              asm_output("neg %s", gpn(r)); }
+    inline void Assembler::AND8R(R r)    { count_alu(); ALU(0x22, REGNUM(r), AL2AHReg(r)); asm_output("andb %s, %s", RB(r), RBhi(r)); }
 
     inline void Assembler::SHR(R r, R s) {
         count_alu();
@@ -295,6 +306,7 @@ namespace nanojit
 
     inline void Assembler::SETE( R r)  { count_alu(); ALU2(0x0f94, r, r);   asm_output("sete %s",  gpn(r)); }
     inline void Assembler::SETNP(R r)  { count_alu(); ALU2(0x0f9B, r, r);   asm_output("setnp %s", gpn(r)); }
+    inline void Assembler::SETNPH(R r) { count_alu(); ALU2(0x0f9B, AL2AHReg(r), AL2AHReg(r)); asm_output("setnp %s", RBhi(r)); }
     inline void Assembler::SETL( R r)  { count_alu(); ALU2(0x0f9C, r, r);   asm_output("setl %s",  gpn(r)); }
     inline void Assembler::SETLE(R r)  { count_alu(); ALU2(0x0f9E, r, r);   asm_output("setle %s", gpn(r)); }
     inline void Assembler::SETG( R r)  { count_alu(); ALU2(0x0f9F, r, r);   asm_output("setg %s",  gpn(r)); }
@@ -1681,7 +1693,16 @@ namespace nanojit
             
             
             switch (opcode) {
-            case LIR_eqd:   SETNP(r);       break;
+            case LIR_eqd:   
+                if (ins->oprnd1() == ins->oprnd2()) {
+                    SETNP(r);
+                } else {
+                    
+                    AND8R(r);       
+                    SETNPH(r);      
+                    SETE(r);        
+                }
+                break;
             case LIR_ltd:
             case LIR_gtd:   SETA(r);        break;
             case LIR_led:
@@ -2602,7 +2623,7 @@ namespace nanojit
 
     NIns* Assembler::asm_branchd(bool branchOnFalse, LIns *cond, NIns *targ)
     {
-        NIns* at;
+        NIns* at = 0;
         LOpcode opcode = cond->opcode();
 
         if (_config.i386_sse2) {
@@ -2612,7 +2633,14 @@ namespace nanojit
             if (branchOnFalse) {
                 
                 switch (opcode) {
-                case LIR_eqd:   JP(targ);       break;
+                case LIR_eqd:
+                    if (cond->oprnd1() == cond->oprnd2()) {
+                        JP(targ);
+                    } else {
+                        JP(targ);
+                        JNE(targ);
+                    }
+                    break;
                 case LIR_ltd:
                 case LIR_gtd:   JNA(targ);      break;
                 case LIR_led:
@@ -2622,7 +2650,20 @@ namespace nanojit
             } else {
                 
                 switch (opcode) {
-                case LIR_eqd:   JNP(targ);      break;
+                case LIR_eqd:
+                    if (cond->oprnd1() == cond->oprnd2()) {
+                        JNP(targ);
+                    } else {
+                        
+                        
+                        
+                        underrunProtect(16); 
+                        NIns *skip = _nIns;
+                        JE(targ);      
+                        at = _nIns;
+                        JP(skip);
+                    }
+                    break;
                 case LIR_ltd:
                 case LIR_gtd:   JA(targ);       break;
                 case LIR_led:
@@ -2637,7 +2678,8 @@ namespace nanojit
                 JNP(targ);
         }
 
-        at = _nIns;
+        if (!at)
+            at = _nIns; 
         asm_cmpd(cond);
 
         return at;
@@ -2664,59 +2706,41 @@ namespace nanojit
                 LIns* t = lhs; lhs = rhs; rhs = t;
             }
 
-            if (condop == LIR_eqd) {
-                if (lhs == rhs) {
-                    
 
-                    
-                    
-                    
-                    
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
 
-                    Register r = findRegFor(lhs, XmmRegs);
-                    SSE_UCOMISD(r, r);
-                } else {
-                    
-                    
-                    
-                    int mask = 0x44;
-
-                    
-                    
-                    
-                    
-                    
-                    
-
-                    evictIfActive(rEAX);
-                    Register ra, rb;
-                    findRegFor2(XmmRegs, lhs, ra, XmmRegs, rhs, rb);
-
-                    TEST_AH(mask);
-                    LAHF();
-                    SSE_UCOMISD(ra, rb);
-                }
-            } else {
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-
-                Register ra, rb;
-                findRegFor2(XmmRegs, lhs, ra, XmmRegs, rhs, rb);
-                SSE_UCOMISD(ra, rb);
-            }
+            Register ra, rb;
+            findRegFor2(XmmRegs, lhs, ra, XmmRegs, rhs, rb);
+            SSE_UCOMISD(ra, rb);
 
         } else {
             
