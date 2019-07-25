@@ -3944,9 +3944,8 @@ StructType::DefineInternal(JSContext* cx, JSObject* typeObj, JSObject* fieldsObj
     return JS_FALSE;
 
   
-  FieldInfoHash* fields(new FieldInfoHash);
+  AutoPtr<FieldInfoHash> fields(new FieldInfoHash);
   if (!fields || !fields->init(len)) {
-    delete fields;
     JS_ReportOutOfMemory(cx);
     return JS_FALSE;
   }
@@ -3954,8 +3953,9 @@ StructType::DefineInternal(JSContext* cx, JSObject* typeObj, JSObject* fieldsObj
   
   
   if (!JS_SetReservedSlot(cx, typeObj, SLOT_FIELDINFO,
-         PRIVATE_TO_JSVAL(fields)))
+         PRIVATE_TO_JSVAL(fields.get())))
     return JS_FALSE;
+  fields.forget();
 
   
   size_t structSize, structAlign;
