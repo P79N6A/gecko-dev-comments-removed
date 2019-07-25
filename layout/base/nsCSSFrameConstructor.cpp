@@ -3551,8 +3551,7 @@ nsCSSFrameConstructor::FindHTMLData(nsIContent* aContent,
   
   
   
-  if (!aContent->IsHTML() &&
-      aNameSpaceID != kNameSpaceID_XHTML) {
+  if (aNameSpaceID != kNameSpaceID_XHTML) {
     return nsnull;
   }
 
@@ -9171,8 +9170,7 @@ nsCSSFrameConstructor::ShouldHaveFirstLineStyle(nsIContent* aContent,
                                                            &namespaceID);
     
     hasFirstLine = tag != nsGkAtoms::fieldset ||
-      (namespaceID != kNameSpaceID_XHTML &&
-       !aContent->IsHTML());
+      namespaceID != kNameSpaceID_XHTML;
   }
 
   return hasFirstLine;
