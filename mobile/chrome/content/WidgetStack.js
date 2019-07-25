@@ -719,6 +719,8 @@ WidgetStack.prototype = {
   
   updateSize: function updateSize() {
     
+    return
+    
     let rect = this._el.getBoundingClientRect();
     this._viewingRect.width = rect.width;
     this._viewingRect.height = rect.height;
@@ -727,31 +729,28 @@ WidgetStack.prototype = {
 
     
     
-    if (this._viewport) {
-      let vws = this._viewport;
+    let vws = this._viewport;
+    if (vws) {
       let vwb = this._viewportBounds;
       let vwib = vws.viewportInnerBounds;
+      let vww = vws.widget
+      let w,h;
 
-      let newViewportRect = this._viewport.widget.getBoundingClientRect();
-
-      let w = newViewportRect.width;
-      let h = newViewportRect.height;
-
-      if (this._viewport.widget.hasAttribute("widgetwidth") &&
-          this._viewport.widget.hasAttribute("widgetheight"))
+      if (vww.hasAttribute("vptargetw") &&
+          vww.hasAttribute("vptargeth")) 
       {
-        w = parseInt(this._viewport.widget.getAttribute("widgetwidth"));
-        h = parseInt(this._viewport.widget.getAttribute("widgetheight"));
-      }
-
-      if (this._viewport.widget.hasAttribute("vptargetw") &&
-          this._viewport.widget.hasAttribute("vptargeth"))
+        w = parseInt(vww.getAttribute("vptargetw"));
+        h = parseInt(vww.getAttribute("vptargeth"));
+      } else if (vww.hasAttribute("widgetwidth") &&
+                 vww.hasAttribute("widgetheight")) 
       {
-        let ww = parseInt(this._viewport.widget.getAttribute("vptargetw"));
-        let wh = parseInt(this._viewport.widget.getAttribute("vptargeth"));
-
-        w = ww;
-        h = wh;
+        w = parseInt(vww.getAttribute("widgetwidth"));
+        h = parseInt(vww.getAttribute("widgetheight"));
+      } else 
+      {
+        let newViewportRect = vww.getBoundingClientRect();
+        w = newViewportRect.width;
+        h = newViewportRect.height;
       }
 
       
