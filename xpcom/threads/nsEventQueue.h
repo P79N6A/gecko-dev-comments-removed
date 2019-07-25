@@ -96,7 +96,6 @@ private:
 
   
 
-  struct Page; friend struct Page; 
   struct Page {
     struct Page *mNext;
     nsIRunnable *mEvents[EVENTS_PER_PAGE];
