@@ -63,6 +63,9 @@ public class GeckoLayerClient implements GeckoEventResponder,
     
     private ViewTransform mCurrentViewTransform;
 
+    
+    private volatile boolean mCompositorCreated;
+
     public GeckoLayerClient(Context context) {
         
         
@@ -72,6 +75,8 @@ public class GeckoLayerClient implements GeckoEventResponder,
         mRecordDrawTimes = true;
         mDrawTimingQueue = new DrawTimingQueue();
         mCurrentViewTransform = new ViewTransform(0, 0, 1);
+
+        mCompositorCreated = false;
     }
 
     
@@ -445,7 +450,9 @@ public class GeckoLayerClient implements GeckoEventResponder,
         
         
         
-        GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createCompositorPauseEvent());
+        if (mCompositorCreated) {
+            GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createCompositorPauseEvent());
+        }
     }
 
     
@@ -454,8 +461,10 @@ public class GeckoLayerClient implements GeckoEventResponder,
         
         
         
-        GeckoAppShell.scheduleResumeComposition(width, height);
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createCompositorResumeEvent());
+        if (mCompositorCreated) {
+            GeckoAppShell.scheduleResumeComposition(width, height);
+            GeckoAppShell.sendEventToGecko(GeckoEvent.createCompositorResumeEvent());
+        }
     }
 
     
@@ -467,6 +476,11 @@ public class GeckoLayerClient implements GeckoEventResponder,
         
         compositionResumeRequested(width, height);
         renderRequested();
+    }
+
+    
+    public void compositorCreated() {
+        mCompositorCreated = true;
     }
 
     
