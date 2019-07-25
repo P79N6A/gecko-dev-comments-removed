@@ -980,6 +980,9 @@ CodeGeneratorX86Shared::generateInvalidateEpilogue()
     
     invalidateEpilogueData_ = masm.pushWithPatch(ImmWord(uintptr_t(-1)));
     IonCode *thunk = gen->cx->compartment->ionCompartment()->getOrCreateInvalidationThunk(gen->cx);
+    if (!thunk)
+        return false;
+
     masm.call(thunk);
 
     

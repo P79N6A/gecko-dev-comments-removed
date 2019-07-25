@@ -39,7 +39,6 @@
 
 
 
-
 #include "CodeGenerator-arm.h"
 #include "ion/shared/CodeGenerator-shared-inl.h"
 #include "ion/MIR.h"
@@ -1337,6 +1336,9 @@ CodeGeneratorARM::generateInvalidateEpilogue()
     
     invalidateEpilogueData_ = masm.pushWithPatch(ImmWord(uintptr_t(-1)));
     IonCode *thunk = gen->cx->compartment->ionCompartment()->getOrCreateInvalidationThunk(gen->cx);
+    if (!thunk)
+        return false;
+
     masm.branch(thunk);
 
     
