@@ -150,11 +150,8 @@ txMozillaTextOutput::startDocument()
 }
 
 nsresult
-txMozillaTextOutput::createResultDocument(nsIDOMDocument* aSourceDocument,
-                                          nsIDOMDocument* aResultDocument)
+txMozillaTextOutput::createResultDocument(nsIDOMDocument* aSourceDocument)
 {
-    nsresult rv = NS_OK;
-
     
 
 
@@ -171,21 +168,16 @@ txMozillaTextOutput::createResultDocument(nsIDOMDocument* aSourceDocument,
 
 
 
-    if (!aResultDocument) {
-        
-        rv = NS_NewXMLDocument(getter_AddRefs(mDocument));
-        NS_ENSURE_SUCCESS(rv, rv);
-        nsCOMPtr<nsIDocument> source = do_QueryInterface(aSourceDocument);
-        NS_ENSURE_STATE(source);
-        PRBool hasHadScriptObject = PR_FALSE;
-        nsIScriptGlobalObject* sgo =
-          source->GetScriptHandlingObject(hasHadScriptObject);
-        NS_ENSURE_STATE(sgo || !hasHadScriptObject);
-        mDocument->SetScriptHandlingObject(sgo);
-    }
-    else {
-        mDocument = do_QueryInterface(aResultDocument);
-    }
+    
+    nsresult rv = NS_NewXMLDocument(getter_AddRefs(mDocument));
+    NS_ENSURE_SUCCESS(rv, rv);
+    nsCOMPtr<nsIDocument> source = do_QueryInterface(aSourceDocument);
+    NS_ENSURE_STATE(source);
+    PRBool hasHadScriptObject = PR_FALSE;
+    nsIScriptGlobalObject* sgo =
+      source->GetScriptHandlingObject(hasHadScriptObject);
+    NS_ENSURE_STATE(sgo || !hasHadScriptObject);
+    mDocument->SetScriptHandlingObject(sgo);
 
     NS_ASSERTION(mDocument, "Need document");
 
@@ -217,9 +209,7 @@ txMozillaTextOutput::createResultDocument(nsIDOMDocument* aSourceDocument,
 
     
     
-    
-    
-    if (!aResultDocument && !observer) {
+    if (!observer) {
         PRInt32 namespaceID;
         rv = nsContentUtils::NameSpaceManager()->
             RegisterNameSpace(NS_LITERAL_STRING(kTXNameSpaceURI), namespaceID);

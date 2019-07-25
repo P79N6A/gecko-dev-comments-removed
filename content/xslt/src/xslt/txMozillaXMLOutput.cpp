@@ -821,36 +821,30 @@ void txMozillaXMLOutput::processHTTPEquiv(nsIAtom* aHeader, const nsString& aVal
 
 nsresult
 txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, PRInt32 aNsID,
-                                         nsIDOMDocument* aSourceDocument,
-                                         nsIDOMDocument* aResultDocument)
+                                         nsIDOMDocument* aSourceDocument)
 {
     nsresult rv;
 
-    if (!aResultDocument) {
-        
-        if (mOutputFormat.mMethod == eHTMLOutput) {
-            rv = NS_NewHTMLDocument(getter_AddRefs(mDocument));
-            NS_ENSURE_SUCCESS(rv, rv);
-        }
-        else {
-            
-            
-            rv = NS_NewXMLDocument(getter_AddRefs(mDocument));
-            NS_ENSURE_SUCCESS(rv, rv);
-        }
-        
-        mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_LOADING);
-        nsCOMPtr<nsIDocument> source = do_QueryInterface(aSourceDocument);
-        NS_ENSURE_STATE(source);
-        PRBool hasHadScriptObject = PR_FALSE;
-        nsIScriptGlobalObject* sgo =
-          source->GetScriptHandlingObject(hasHadScriptObject);
-        NS_ENSURE_STATE(sgo || !hasHadScriptObject);
-        mDocument->SetScriptHandlingObject(sgo);
+    
+    if (mOutputFormat.mMethod == eHTMLOutput) {
+        rv = NS_NewHTMLDocument(getter_AddRefs(mDocument));
+        NS_ENSURE_SUCCESS(rv, rv);
     }
     else {
-        mDocument = do_QueryInterface(aResultDocument);
+        
+        
+        rv = NS_NewXMLDocument(getter_AddRefs(mDocument));
+        NS_ENSURE_SUCCESS(rv, rv);
     }
+    
+    mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_LOADING);
+    nsCOMPtr<nsIDocument> source = do_QueryInterface(aSourceDocument);
+    NS_ENSURE_STATE(source);
+    PRBool hasHadScriptObject = PR_FALSE;
+    nsIScriptGlobalObject* sgo =
+      source->GetScriptHandlingObject(hasHadScriptObject);
+    NS_ENSURE_STATE(sgo || !hasHadScriptObject);
+    mDocument->SetScriptHandlingObject(sgo);
 
     mCurrentNode = mDocument;
     mNodeInfoManager = mDocument->NodeInfoManager();
