@@ -591,23 +591,13 @@ nsresult nsProfileLock::Lock(nsILocalFile* aProfileDir,
     rv = lockFile->GetPath(filePath);
     if (NS_FAILED(rv))
         return rv;
-#ifdef WINCE
-    
-    
-    
-    DeleteFileW(filePath.get());
-#endif
 
     mLockFileHandle = CreateFileW(filePath.get(),
                                   GENERIC_READ | GENERIC_WRITE,
                                   0, 
                                   nsnull,
                                   OPEN_ALWAYS,
-#ifndef WINCE
                                   FILE_FLAG_DELETE_ON_CLOSE,
-#else
-                                  FILE_ATTRIBUTE_NORMAL,
-#endif
                                   nsnull);
     if (mLockFileHandle == INVALID_HANDLE_VALUE) {
         
