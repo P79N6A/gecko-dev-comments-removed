@@ -717,6 +717,11 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFr
     mFrameMetrics.mResolution.width = 1 / mFrameMetrics.mResolution.width;
     mFrameMetrics.mResolution.height = 1 / mFrameMetrics.mResolution.height;
     SetPageRect(mFrameMetrics.mCSSContentRect);
+
+    
+    
+    
+    RequestContentRepaint();
   } else if (!mFrameMetrics.mContentRect.IsEqualEdges(aViewportFrame.mContentRect)) {
     mFrameMetrics.mCSSContentRect = aViewportFrame.mCSSContentRect;
     SetPageRect(mFrameMetrics.mCSSContentRect);
