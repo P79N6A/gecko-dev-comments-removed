@@ -116,7 +116,7 @@ function ElementStyle(aElement, aStore)
   
   this.dummyElement = doc.createElementNS(this.element.namespaceURI,
                                           this.element.tagName);
-  this._populate();
+  this.populate();
 }
 
 var _ElementStyle = ElementStyle;
@@ -147,7 +147,7 @@ ElementStyle.prototype = {
 
 
 
-  _populate: function ElementStyle_populate()
+  populate: function ElementStyle_populate()
   {
     this.rules = [];
 
@@ -713,15 +713,33 @@ CssRuleView.prototype = {
 
     this._createEditors();
   },
+  
+  
+
+
+  nodeChanged: function CssRuleView_nodeChanged()
+  {
+    this._clearRules();
+    this._elementStyle.populate();
+    this._createEditors();
+  },  
+
+  
+
+
+  _clearRules: function CssRuleView_clearRules()
+  {
+    while (this.element.hasChildNodes()) {
+      this.element.removeChild(this.element.lastChild);
+    }
+  },
 
   
 
 
   clear: function CssRuleView_clear()
   {
-    while (this.element.hasChildNodes()) {
-      this.element.removeChild(this.element.lastChild);
-    }
+    this._clearRules();
     this._viewedElement = null;
     this._elementStyle = null;
   },
