@@ -54,14 +54,34 @@ using gl::TextureImage;
 
 
 
+static already_AddRefed<TextureImage>
+CreateClampOrRepeatTextureImage(GLContext *aGl,
+                                const nsIntSize& aSize,
+                                TextureImage::ContentType aContentType)
+{
+  GLenum wrapMode = LOCAL_GL_CLAMP_TO_EDGE;
+  if (aGl->IsExtensionSupported(GLContext::ARB_texture_non_power_of_two) ||
+      aGl->IsExtensionSupported(GLContext::OES_texture_npot))
+  {
+    wrapMode = LOCAL_GL_REPEAT;
+  }
+
+  return aGl->CreateTextureImage(aSize, aContentType, wrapMode);
+}
+
+
+
+
+
 
 
 
 static void
-BindAndDrawQuadWithTextureRect(LayerProgram *aProg,
+BindAndDrawQuadWithTextureRect(GLContext* aGl,
+                               LayerProgram *aProg,
                                const nsIntRect& aTexCoordRect,
                                const nsIntSize& aTexSize,
-                               GLContext* aGl)
+                               GLenum aWrapMode)
 {
   GLuint vertAttribIndex =
     aProg->AttribLocation(LayerProgram::VertexAttrib);
@@ -81,7 +101,18 @@ BindAndDrawQuadWithTextureRect(LayerProgram *aProg,
   
 
   GLContext::RectTriangles rects;
-  GLContext::DecomposeIntoNoRepeatTriangles(aTexCoordRect, aTexSize, rects);
+
+  if (aWrapMode == LOCAL_GL_REPEAT) {
+    rects.addRect(
+                  0.0f, 0.0f, 1.0f, 1.0f,
+                  
+                  aTexCoordRect.x / GLfloat(aTexSize.width),
+                  aTexCoordRect.y / GLfloat(aTexSize.height),
+                  aTexCoordRect.XMost() / GLfloat(aTexSize.width),
+                  aTexCoordRect.YMost() / GLfloat(aTexSize.height));
+  } else {
+    GLContext::DecomposeIntoNoRepeatTriangles(aTexCoordRect, aTexSize, rects);
+  }
 
   aGl->fVertexAttribPointer(vertAttribIndex, 2,
                             LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0,
@@ -187,7 +218,9 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
     sqr.RoundOut();
     nsIntRect scaledQuadRect(sqr.pos.x, sqr.pos.y, sqr.size.width, sqr.size.height);
 
-    BindAndDrawQuadWithTextureRect(program, scaledQuadRect, mTexImage->GetSize(), gl());
+    BindAndDrawQuadWithTextureRect(gl(), program, scaledQuadRect,
+                                   mTexImage->GetSize(),
+                                   mTexImage->GetWrapMode());
     DEBUG_GL_ERROR_CHECK(gl());
   }
 }
@@ -222,7 +255,7 @@ public:
   {
     NS_ASSERTION(gfxASurface::CONTENT_ALPHA != aType,"ThebesBuffer has color");
 
-    mTexImage = gl()->CreateTextureImage(aSize, aType, LOCAL_GL_CLAMP_TO_EDGE);
+    mTexImage = CreateClampOrRepeatTextureImage(gl(), aSize, aType);
     return mTexImage ? mTexImage->GetBackingSurface() : nsnull;
   }
 
@@ -352,8 +385,7 @@ BasicBufferOGL::BeginPaint(ContentType aContentType)
         
         
         destBufferRect = visibleBounds;
-        destBuffer = gl()->CreateTextureImage(visibleBounds.Size(), aContentType,
-                                              LOCAL_GL_CLAMP_TO_EDGE);
+        destBuffer = CreateClampOrRepeatTextureImage(gl(), visibleBounds.Size(), aContentType);
         DEBUG_GL_ERROR_CHECK(gl());
         if (!destBuffer)
           return result;
@@ -371,8 +403,7 @@ BasicBufferOGL::BeginPaint(ContentType aContentType)
   } else {
     
     destBufferRect = visibleBounds;
-    destBuffer = gl()->CreateTextureImage(visibleBounds.Size(), aContentType,
-                                          LOCAL_GL_CLAMP_TO_EDGE);
+    destBuffer = CreateClampOrRepeatTextureImage(gl(), visibleBounds.Size(), aContentType);
     DEBUG_GL_ERROR_CHECK(gl());
     if (!destBuffer)
       return result;
@@ -401,8 +432,7 @@ BasicBufferOGL::BeginPaint(ContentType aContentType)
       } else {
         
         destBufferRect = visibleBounds;
-        destBuffer = gl()->CreateTextureImage(visibleBounds.Size(), aContentType,
-                                              LOCAL_GL_CLAMP_TO_EDGE);
+        destBuffer = CreateClampOrRepeatTextureImage(gl(), visibleBounds.Size(), aContentType);
       }
     }
 
@@ -567,7 +597,7 @@ public:
   {
     NS_ASSERTION(gfxASurface::CONTENT_ALPHA != aType,"ThebesBuffer has color");
 
-    mTexImage = gl()->CreateTextureImage(aSize, aType, LOCAL_GL_CLAMP_TO_EDGE);
+    mTexImage = CreateClampOrRepeatTextureImage(gl(), aSize, aType);
   }
 
   void Upload(gfxASurface* aUpdate, const nsIntRegion& aUpdated,
