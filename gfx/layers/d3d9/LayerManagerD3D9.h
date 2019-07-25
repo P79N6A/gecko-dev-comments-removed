@@ -179,6 +179,9 @@ public:
 
   void ReportFailure(const nsACString &aMsg, HRESULT aCode);
 
+  bool CompositingDisabled() { return mCompositingDisabled; }
+  void SetCompositingDisabled(bool aCompositingDisabled) { mCompositingDisabled = aCompositingDisabled; }
+
 private:
   
   static DeviceManagerD3D9 *mDefaultDeviceManager;
@@ -210,6 +213,12 @@ private:
 
 
   PRUint32 mDeviceResetCount;
+
+  
+
+
+
+  bool mCompositingDisabled;
 
   
 

@@ -179,12 +179,14 @@ ContainerRender(Container* aContainer,
     }
 
     aContainer->gl()->PushViewportRect();
-    framebufferRect -= childOffset; 
-    aManager->CreateFBOWithTexture(framebufferRect,
-                                   mode,
-                                   aPreviousFrameBuffer,
-                                   &frameBuffer,
-                                   &containerSurface);
+    framebufferRect -= childOffset;
+    if (!aManager->CompositingDisabled()) {
+      aManager->CreateFBOWithTexture(framebufferRect,
+                                     mode,
+                                     aPreviousFrameBuffer,
+                                     &frameBuffer,
+                                     &containerSurface);
+    }
     childOffset.x = visibleRect.x;
     childOffset.y = visibleRect.y;
   } else {
@@ -239,45 +241,47 @@ ContainerRender(Container* aContainer,
     aManager->SetupPipeline(viewport.width, viewport.height,
                             LayerManagerOGL::ApplyWorldTransform);
     aContainer->gl()->PopScissorRect();
-
     aContainer->gl()->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, aPreviousFrameBuffer);
-    aContainer->gl()->fDeleteFramebuffers(1, &frameBuffer);
 
-    aContainer->gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
+    if (!aManager->CompositingDisabled()) {
+      aContainer->gl()->fDeleteFramebuffers(1, &frameBuffer);
 
-    aContainer->gl()->fBindTexture(aManager->FBOTextureTarget(), containerSurface);
+      aContainer->gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
 
-    MaskType maskType = MaskNone;
-    if (aContainer->GetMaskLayer()) {
-      if (!aContainer->GetTransform().CanDraw2D()) {
-        maskType = Mask3d;
-      } else {
-        maskType = Mask2d;
+      aContainer->gl()->fBindTexture(aManager->FBOTextureTarget(), containerSurface);
+
+      MaskType maskType = MaskNone;
+      if (aContainer->GetMaskLayer()) {
+        if (!aContainer->GetTransform().CanDraw2D()) {
+          maskType = Mask3d;
+        } else {
+          maskType = Mask2d;
+        }
       }
-    }
-    ShaderProgramOGL *rgb =
-      aManager->GetFBOLayerProgram(maskType);
+      ShaderProgramOGL *rgb =
+        aManager->GetFBOLayerProgram(maskType);
 
-    rgb->Activate();
-    rgb->SetLayerQuadRect(visibleRect);
-    rgb->SetLayerTransform(transform);
-    rgb->SetLayerOpacity(opacity);
-    rgb->SetRenderOffset(aOffset);
-    rgb->SetTextureUnit(0);
-    rgb->LoadMask(aContainer->GetMaskLayer());
+      rgb->Activate();
+      rgb->SetLayerQuadRect(visibleRect);
+      rgb->SetLayerTransform(transform);
+      rgb->SetLayerOpacity(opacity);
+      rgb->SetRenderOffset(aOffset);
+      rgb->SetTextureUnit(0);
+      rgb->LoadMask(aContainer->GetMaskLayer());
 
-    if (rgb->GetTexCoordMultiplierUniformLocation() != -1) {
+      if (rgb->GetTexCoordMultiplierUniformLocation() != -1) {
+        
+        rgb->SetTexCoordMultiplier(visibleRect.width, visibleRect.height);
+      }
+
       
-      rgb->SetTexCoordMultiplier(visibleRect.width, visibleRect.height);
+      
+      
+      aManager->BindAndDrawQuad(rgb, true);
+
+      
+      aContainer->gl()->fDeleteTextures(1, &containerSurface);
     }
-
-    
-    
-    
-    aManager->BindAndDrawQuad(rgb, true);
-
-    
-    aContainer->gl()->fDeleteTextures(1, &containerSurface);
   } else {
     aContainer->gl()->PopScissorRect();
   }
