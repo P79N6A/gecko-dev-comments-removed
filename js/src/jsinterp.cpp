@@ -134,12 +134,13 @@ JSStackFrame::pc(JSContext *cx, JSStackFrame *next)
 
 #if defined(JS_METHODJIT) && defined(JS_MONOIC)
     JSScript *script = this->script();
+    js::mjit::JITScript *jit = script->getJIT(isConstructing());
     size_t low = 0;
-    size_t high = script->jit->nCallICs;
+    size_t high = jit->nCallICs;
     while (high > low + 1) {
         
         size_t mid = (high + low) / 2;
-        void *entry = script->callICs[mid].funGuard.executableAddress();
+        void *entry = jit->callICs[mid].funGuard.executableAddress();
 
         
 
@@ -151,7 +152,7 @@ JSStackFrame::pc(JSContext *cx, JSStackFrame *next)
             low = mid;
     }
 
-    js::mjit::ic::CallICInfo &callIC = script->callICs[low];
+    js::mjit::ic::CallICInfo &callIC = jit->callICs[low];
 
     JS_ASSERT((uint8*)callIC.funGuard.executableAddress() + callIC.joinPointOffset == next->ncode_);
     return callIC.pc;
@@ -616,7 +617,7 @@ struct AutoInterpPreparer  {
 };
 
 JS_REQUIRES_STACK bool
-RunScript(JSContext *cx, JSScript *script, JSFunction *fun, JSObject &scopeChain)
+RunScript(JSContext *cx, JSScript *script, JSStackFrame *fp)
 {
     JS_ASSERT(script);
 
@@ -626,8 +627,11 @@ RunScript(JSContext *cx, JSScript *script, JSFunction *fun, JSObject &scopeChain
 
     AutoInterpPreparer prepareInterp(cx, script);
 
+    JS_ASSERT(fp == cx->fp());
+    JS_ASSERT(fp->script() == script);
+
 #ifdef JS_METHODJIT
-    mjit::CompileStatus status = mjit::CanMethodJIT(cx, script, fun, &scopeChain);
+    mjit::CompileStatus status = mjit::CanMethodJIT(cx, script, fp);
     if (status == mjit::Compile_Error)
         return JS_FALSE;
 
@@ -635,7 +639,7 @@ RunScript(JSContext *cx, JSScript *script, JSFunction *fun, JSObject &scopeChain
         return mjit::JaegerShot(cx);
 #endif
 
-    return Interpret(cx, cx->fp());
+    return Interpret(cx, fp);
 }
 
 
@@ -686,8 +690,10 @@ Invoke(JSContext *cx, const CallArgs &argsRef, uint32 flags)
     
     if (JS_UNLIKELY(script->isEmpty())) {
         if (flags & JSINVOKE_CONSTRUCT) {
-            JS_ASSERT(args.thisv().isObject());
-            args.rval() = args.thisv();
+            JSObject *obj = js_CreateThisForFunction(cx, &callee);
+            if (!obj)
+                return false;
+            args.rval().setObject(*obj);
         } else {
             args.rval().setUndefined();
         }
@@ -718,19 +724,20 @@ Invoke(JSContext *cx, const CallArgs &argsRef, uint32 flags)
 
 
 
-    Value &thisv = fp->functionThis();
-    JS_ASSERT_IF(flags & JSINVOKE_CONSTRUCT, !thisv.isPrimitive());
-    if (thisv.isObject() && !(flags & JSINVOKE_CONSTRUCT)) {
-        
+    if (!(flags & JSINVOKE_CONSTRUCT)) {
+        Value &thisv = fp->functionThis();
+        if (thisv.isObject()) {
+            
 
 
 
 
-        JSObject *thisp = thisv.toObject().thisObject(cx);
-        if (!thisp)
-             return false;
-        JS_ASSERT(IsSaneThisObject(*thisp));
-        thisv.setObject(*thisp);
+            JSObject *thisp = thisv.toObject().thisObject(cx);
+            if (!thisp)
+                 return false;
+            JS_ASSERT(IsSaneThisObject(*thisp));
+            thisv.setObject(*thisp);
+        }
     }
 
     JSInterpreterHook hook = cx->debugHooks->callHook;
@@ -743,7 +750,7 @@ Invoke(JSContext *cx, const CallArgs &argsRef, uint32 flags)
     {
         AutoPreserveEnumerators preserve(cx);
         Probes::enterJSFun(cx, fun);
-        ok = RunScript(cx, script, fun, fp->scopeChain());
+        ok = RunScript(cx, script, fp);
         Probes::exitJSFun(cx, fun);
     }
 
@@ -756,6 +763,8 @@ Invoke(JSContext *cx, const CallArgs &argsRef, uint32 flags)
     PutActivationObjects(cx, fp);
 
     args.rval() = fp->returnValue();
+    JS_ASSERT_IF(flags & JSINVOKE_CONSTRUCT, !args.rval().isPrimitive());
+
     return ok;
 }
 
@@ -900,7 +909,7 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
     
     AutoPreserveEnumerators preserve(cx);
-    JSBool ok = RunScript(cx, script, NULL, frame.fp()->scopeChain());
+    JSBool ok = RunScript(cx, script, frame.fp());
     if (result)
         *result = frame.fp()->returnValue();
 
@@ -1153,8 +1162,9 @@ InvokeConstructor(JSContext *cx, const CallArgs &argsRef)
 
     
     Class *clasp = callee->getClass();
+    JSFunction *fun = NULL;
     if (clasp == &js_FunctionClass) {
-        JSFunction *fun = callee->getFunctionPrivate();
+        fun = callee->getFunctionPrivate();
         if (fun->isConstructor()) {
             args.thisv().setMagicWithObjectOrNullPayload(NULL);
             return CallJSNativeConstructor(cx, fun->u.n.native, args.argc(), args.base());
@@ -1165,24 +1175,29 @@ InvokeConstructor(JSContext *cx, const CallArgs &argsRef)
     }
 
     
-    JSObject *obj = js_NewInstance(cx, callee);
-    if (!obj)
-        return false;
-    args.thisv().setObject(*obj);
+    if (!fun || !fun->isInterpreted()) {
+        JSObject *obj = js_CreateThis(cx, callee);
+        if (!obj)
+            return false;
+        args.thisv().setObject(*obj);
+    }
 
     if (!Invoke(cx, args, JSINVOKE_CONSTRUCT))
         return false;
 
-    
     if (args.rval().isPrimitive()) {
-        if (callee->getClass() != &js_FunctionClass) {
+        if (clasp != &js_FunctionClass) {
             
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                                  JSMSG_BAD_NEW_RESULT,
                                  js_ValueToPrintableString(cx, args.rval()));
             return false;
         }
-        args.rval().setObject(*obj);
+
+        
+        JS_ASSERT(!fun->isInterpreted());
+
+        args.rval() = args.thisv();
     }
 
     JS_RUNTIME_METER(cx->runtime, constructs);
@@ -2290,7 +2305,7 @@ Interpret(JSContext *cx, JSStackFrame *entryFrame, uintN inlineCallCount, uintN 
     do {                                                                      \
         JS_ASSERT_IF(leaveOnSafePoint, !TRACE_RECORDER(cx));                  \
         if (leaveOnSafePoint && !regs.fp->hasImacropc() &&                    \
-            script->nmap && script->nmap[regs.pc - script->code]) {           \
+            script->hasNativeCodeForPC(regs.fp->isConstructing(), regs.pc)) { \
             JS_ASSERT(!TRACE_RECORDER(cx));                                   \
             interpReturnOK = true;                                            \
             goto stop_recording;                                              \
@@ -4477,6 +4492,41 @@ BEGIN_CASE(JSOP_ENUMELEM)
 }
 END_CASE(JSOP_ENUMELEM)
 
+BEGIN_CASE(JSOP_BEGIN)
+{
+    if (regs.fp->isConstructing()) {
+        JSObject *obj2 = js_CreateThisForFunction(cx, &regs.fp->callee());
+        if (!obj2)
+            goto error;
+        regs.fp->functionThis().setObject(*obj2);
+    }
+
+    
+    if (JSInterpreterHook hook = cx->debugHooks->callHook) {
+        regs.fp->setHookData(hook(cx, regs.fp, JS_TRUE, 0,
+                                  cx->debugHooks->callHookData));
+        CHECK_INTERRUPT_HANDLER();
+    }
+
+    JS_RUNTIME_METER(rt, inlineCalls);
+
+    Probes::enterJSFun(cx, regs.fp->fun());
+
+#ifdef JS_METHODJIT
+    
+    mjit::CompileStatus status = mjit::CanMethodJIT(cx, script, regs.fp);
+    if (status == mjit::Compile_Error)
+        goto error;
+    if (!TRACE_RECORDER(cx) && status == mjit::Compile_Okay) {
+        if (!mjit::JaegerShot(cx))
+            goto error;
+        interpReturnOK = true;
+        goto inline_return;
+    }
+#endif
+}
+END_CASE(JSOP_BEGIN)
+
 {
     JSFunction *newfun;
     JSObject *callee;
@@ -4498,24 +4548,15 @@ BEGIN_CASE(JSOP_NEW)
     if (IsFunctionObject(vp[0], &callee)) {
         newfun = callee->getFunctionPrivate();
         if (newfun->isInterpreted()) {
-            
-            if (!callee->getProperty(cx,
-                                     ATOM_TO_JSID(cx->runtime->atomState.classPrototypeAtom),
-                                     &vp[1])) {
-                goto error;
-            }
-            JSObject *proto = vp[1].isObject() ? &vp[1].toObject() : NULL;
-            JSObject *obj2 = NewNonFunction<WithProto::Class>(cx, &js_ObjectClass, proto, callee->getParent());
-            if (!obj2)
-                goto error;
-
             if (newfun->u.i.script->isEmpty()) {
+                JSObject *obj2 = js_CreateThisForFunction(cx, callee);
+                if (!obj2)
+                    goto error;
                 vp[0].setObject(*obj2);
                 regs.sp = vp + 1;
                 goto end_new;
             }
 
-            vp[1].setObject(*obj2);
             flags = JSFRAME_CONSTRUCTING;
             goto inline_call;
         }
@@ -4584,38 +4625,13 @@ BEGIN_CASE(JSOP_APPLY)
             if (newfun->isHeavyweight() && !js_GetCallObject(cx, regs.fp))
                 goto error;
 
-            
-            if (JSInterpreterHook hook = cx->debugHooks->callHook) {
-                regs.fp->setHookData(hook(cx, regs.fp, JS_TRUE, 0,
-                                          cx->debugHooks->callHookData));
-                CHECK_INTERRUPT_HANDLER();
-            }
-
             inlineCallCount++;
-            JS_RUNTIME_METER(rt, inlineCalls);
-
-            Probes::enterJSFun(cx, newfun);
 
             TRACE_0(EnterFrame);
 
-#ifdef JS_METHODJIT
-            
-            {
-                JSObject *scope = &regs.fp->scopeChain();
-                mjit::CompileStatus status = mjit::CanMethodJIT(cx, newscript, newfun, scope);
-                if (status == mjit::Compile_Error)
-                    goto error;
-                if (!TRACE_RECORDER(cx) && status == mjit::Compile_Okay) {
-                    if (!mjit::JaegerShot(cx))
-                        goto error;
-                    interpReturnOK = true;
-                    goto inline_return;
-                }
-            }
-#endif
-
             
             op = (JSOp) *regs.pc;
+            JS_ASSERT(op == JSOP_BEGIN);
             DO_OP();
         }
 
