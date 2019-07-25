@@ -616,6 +616,7 @@ protected:
   
   static MSG            sRedirectedKeyDown;
 
+  static PRBool sEnablePixelScrolling;
   static PRBool sNeedsToInitMouseWheelSettings;
   static ULONG sMouseWheelScrollLines;
   static ULONG sMouseWheelScrollChars;
