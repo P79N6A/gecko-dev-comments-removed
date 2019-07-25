@@ -572,6 +572,10 @@ protected:
   PRPackedBool mPredictManyRedrawCalls;
 
   
+  
+  nsRefPtr<gfxASurface> mThebesSurface;
+
+  
 
 
 
@@ -1061,9 +1065,14 @@ nsCanvasRenderingContext2DAzure::Reset()
   }
 
   mTarget = nsnull;
+
+  
+  
+  mThebesSurface = nsnull;
   mValid = PR_FALSE;
   mIsEntireFrameInvalid = PR_FALSE;
   mPredictManyRedrawCalls = PR_FALSE;
+
   return NS_OK;
 }
 
@@ -4318,11 +4327,22 @@ nsCanvasRenderingContext2DAzure::GetThebesSurface(gfxASurface **surface)
     *surface = tmpSurf.forget().get();
     return NS_OK;
   }
-    
-  nsRefPtr<gfxASurface> newSurf =
-    gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(mTarget);    
 
-  *surface = newSurf.forget().get();
+  if (!mThebesSurface) {
+    mThebesSurface =
+      gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(mTarget);    
+
+    if (!mThebesSurface) {
+      return NS_ERROR_FAILURE;
+    }
+  } else {
+    
+    
+    mTarget->Flush();
+  }
+
+  mThebesSurface->AddRef();
+  *surface = mThebesSurface;
 
   return NS_OK;
 }
