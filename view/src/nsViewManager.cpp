@@ -341,19 +341,17 @@ NS_IMETHODIMP nsViewManager::FlushDelayedResize()
   return NS_OK;
 }
 
-static nsRegion ConvertDeviceRegionToAppRegion(const nsIntRegion& aIn,
-                                               nsIDeviceContext* aContext)
-{
-  PRInt32 p2a = aContext->AppUnitsPerDevPixel();
 
-  nsRegion out;
-  nsIntRegionRectIterator iter(aIn);
-  for (;;) {
-    const nsIntRect* r = iter.Next();
-    if (!r)
-      break;
-    out.Or(out, r->ToAppUnits(p2a));
-  }
+
+static nsRegion ConvertRegionBetweenViews(const nsRegion& aIn,
+                                          nsView* aFromView,
+                                          nsView* aToView)
+{
+  nsRegion out = aIn;
+  out.MoveBy(aFromView->GetOffsetTo(aToView));
+  out = out.ConvertAppUnitsRoundOut(
+    aFromView->GetViewManager()->AppUnitsPerDevPixel(),
+    aToView->GetViewManager()->AppUnitsPerDevPixel());
   return out;
 }
 
@@ -380,20 +378,21 @@ void nsViewManager::Refresh(nsView *aView, nsIWidget *aWidget,
                             const nsIntRegion& aRegion,
                             PRUint32 aUpdateFlags)
 {
+  NS_ASSERTION(aView == nsView::GetViewFor(aWidget), "view widget mismatch");
+  NS_ASSERTION(aView->GetViewManager() == this, "wrong view manager");
+
   if (! IsRefreshEnabled())
     return;
 
-  nsRect viewRect;
-  aView->GetDimensions(viewRect);
-  nsPoint vtowoffset = aView->ViewToWidgetOffset();
-
   
-  nsRegion damageRegion = ConvertDeviceRegionToAppRegion(aRegion, mContext);
+  nsRegion damageRegion = aRegion.ToAppUnits(AppUnitsPerDevPixel());
   
-  damageRegion.MoveBy(viewRect.TopLeft() - vtowoffset);
+  damageRegion.MoveBy(-aView->ViewToWidgetOffset());
 
   if (damageRegion.IsEmpty()) {
 #ifdef DEBUG_roc
+    nsRect viewRect;
+    aView->GetDimensions(viewRect);
     nsRect damageRect = damageRegion.GetBounds();
     printf("XXX Damage rectangle (%d,%d,%d,%d) does not intersect the widget's view (%d,%d,%d,%d)!\n",
            damageRect.x, damageRect.y, damageRect.width, damageRect.height,
@@ -412,7 +411,7 @@ void nsViewManager::Refresh(nsView *aView, nsIWidget *aWidget,
     nsAutoScriptBlocker scriptBlocker;
     SetPainting(PR_TRUE);
 
-    RenderViews(aView, aWidget, damageRegion);
+    RenderViews(aView, aWidget, damageRegion, aRegion, PR_FALSE, PR_FALSE);
 
     SetPainting(PR_FALSE);
   }
@@ -427,19 +426,26 @@ void nsViewManager::Refresh(nsView *aView, nsIWidget *aWidget,
 
 
 void nsViewManager::RenderViews(nsView *aView, nsIWidget *aWidget,
-                                const nsRegion& aRegion)
+                                const nsRegion& aRegion,
+                                const nsIntRegion& aIntRegion,
+                                PRBool aPaintDefaultBackground,
+                                PRBool aWillSendDidPaint)
 {
   nsView* displayRoot = GetDisplayRootFor(aView);
   
   
   nsViewManager* displayRootVM = displayRoot->GetViewManager();
   if (displayRootVM && displayRootVM != this) {
-    displayRootVM->RenderViews(aView, aWidget, aRegion);
+    displayRootVM->
+      RenderViews(aView, aWidget, aRegion, aIntRegion, aPaintDefaultBackground,
+                  aWillSendDidPaint);
     return;
   }
 
   if (mObserver) {
-    mObserver->Paint(displayRoot, aView, aWidget, aRegion, PR_FALSE, PR_FALSE);
+    nsRegion region = ConvertRegionBetweenViews(aRegion, aView, displayRoot);
+    mObserver->Paint(displayRoot, aView, aWidget, region, aIntRegion,
+                     aPaintDefaultBackground, aWillSendDidPaint);
   }
 }
 
@@ -471,11 +477,10 @@ void nsViewManager::ProcessPendingUpdates(nsView* aView, PRBool aDoInvalidate)
       nsView* nearestViewWithWidget = aView;
       while (!nearestViewWithWidget->HasWidget() &&
              nearestViewWithWidget->GetParent()) {
-        nearestViewWithWidget =
-          static_cast<nsView*>(nearestViewWithWidget->GetParent());
+        nearestViewWithWidget = nearestViewWithWidget->GetParent();
       }
-      nsRegion r = *dirtyRegion;
-      r.MoveBy(aView->GetOffsetTo(nearestViewWithWidget));
+      nsRegion r =
+        ConvertRegionBetweenViews(*dirtyRegion, aView, nearestViewWithWidget);
       nsViewManager* widgetVM = nearestViewWithWidget->GetViewManager();
       widgetVM->
         UpdateWidgetArea(nearestViewWithWidget,
@@ -538,6 +543,9 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
                                 const nsRegion &aDamagedRegion,
                                 nsView* aIgnoreWidgetView)
 {
+  NS_ASSERTION(aWidgetView->GetViewManager() == this,
+               "UpdateWidgetArea called on view we don't own");
+
 #if 0
   nsRect dbgBounds = aDamagedRegion.GetBounds();
   printf("UpdateWidgetArea view:%X (%d) widget:%X region: %d, %d, %d, %d\n",
@@ -608,10 +616,8 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
         nsViewManager* viewManager = view->GetViewManager();
         if (viewManager->RootViewManager() == RootViewManager()) {
           
-          nsRegion damage = intersection;
-
-          nsPoint offset = view->GetOffsetTo(aWidgetView);
-          damage.MoveBy(-offset);
+          nsRegion damage =
+            ConvertRegionBetweenViews(intersection, aWidgetView, view);
 
           
           viewManager->
@@ -714,6 +720,9 @@ void nsViewManager::UpdateViews(nsView *aView, PRUint32 aUpdateFlags)
 NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
                                            nsIView* aView, nsEventStatus *aStatus)
 {
+  NS_ASSERTION(!aView || static_cast<nsView*>(aView)->GetViewManager() == this,
+               "wrong view manager");
+
   *aStatus = nsEventStatus_eIgnore;
 
   switch(aEvent->message)
@@ -753,6 +762,10 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
 
         if (aEvent->message == NS_PAINT && event->region.IsEmpty())
           break;
+
+        NS_ASSERTION(static_cast<nsView*>(aView) ==
+                       nsView::GetViewFor(event->widget),
+                     "view/widget mismatch");
 
         
         
@@ -834,10 +847,10 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
           
           
           
-          nsRegion rgn = ConvertDeviceRegionToAppRegion(event->region, mContext);
-          mObserver->Paint(aView, aView, event->widget, rgn, PR_TRUE,
-                           event->willSendDidPaint);
-
+          nsRegion rgn = event->region.ToAppUnits(AppUnitsPerDevPixel());
+          rgn.MoveBy(-aView->ViewToWidgetOffset());
+          RenderViews(static_cast<nsView*>(aView), event->widget, rgn,
+                      event->region, PR_TRUE, event->willSendDidPaint);
           
           
           
