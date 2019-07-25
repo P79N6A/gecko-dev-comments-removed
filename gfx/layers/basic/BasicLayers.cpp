@@ -504,6 +504,10 @@ public:
       
       
       mEffectiveTransform = GetLocalTransform()*aTransformToSurface;
+      if (gfxPoint(0,0) != mResidualTranslation) {
+        mResidualTranslation = gfxPoint(0,0);
+        mValidRegion.SetEmpty();
+      }
       return;
     }
     ThebesLayer::ComputeEffectiveTransforms(aTransformToSurface);

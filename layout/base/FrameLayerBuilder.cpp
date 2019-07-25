@@ -844,6 +844,11 @@ ContainerState::CreateOrRecycleThebesLayer(nsIFrame* aActiveScrolledRoot)
   }
   data->mXScale = mParameters.mXScale;
   data->mYScale = mParameters.mYScale;
+  
+  
+  
+  layer->SetAllowResidualTranslation(
+      mParameters.mInTransformedSubtree && !mParameters.mInActiveTransformedSubtree);
 
   mBuilder->LayerBuilder()->SaveLastPaintOffset(layer);
 
@@ -1693,7 +1698,16 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
   
   transform = gfx3DMatrix::Scale(1.0/scale.width, 1.0/scale.height, 1.0)*transform;
   aLayer->SetTransform(transform);
-  return FrameLayerBuilder::ContainerParameters(scale.width, scale.height);
+
+  FrameLayerBuilder::ContainerParameters
+    result(scale.width, scale.height, aIncomingScale);
+  if (aTransform) {
+    result.mInTransformedSubtree = true;
+    if (aContainerFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer)) {
+      result.mInActiveTransformedSubtree = true;
+    }
+  }
+  return result;
 }
 
 already_AddRefed<ContainerLayer>
@@ -1933,6 +1947,34 @@ FrameLayerBuilder::GetDedicatedLayer(nsIFrame* aFrame, PRUint32 aDisplayItemKey)
   return nsnull;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  void
 FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
                                    gfxContext* aContext,
@@ -1976,7 +2018,10 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
   gfxContextMatrixAutoSaveRestore saveMatrix(aContext);
   nsIntPoint offset = GetTranslationForThebesLayer(aLayer);
   aContext->Scale(userData->mXScale, userData->mYScale);
-  aContext->Translate(-gfxPoint(offset.x, offset.y));
+  
+  
+  
+  aContext->Translate(aLayer->GetResidualTranslation() - gfxPoint(offset.x, offset.y));
 
   nsPresContext* presContext = containerLayerFrame->PresContext();
   PRInt32 appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();

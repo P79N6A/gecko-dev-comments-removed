@@ -943,6 +943,19 @@ public:
 
 
   virtual void InvalidateRegion(const nsIntRegion& aRegion) = 0;
+  
+
+
+
+
+
+
+
+
+
+
+
+  void SetAllowResidualTranslation(bool aAllow) { mAllowResidualTranslation = aAllow; }
 
   
 
@@ -957,29 +970,63 @@ public:
   {
     
     gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
-    mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0), nsnull);
+    gfxMatrix residual;
+    mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0),
+        mAllowResidualTranslation ? &residual : nsnull);
+    
+    
+    
+    NS_ASSERTION(!residual.HasNonTranslation(),
+                 "Residual transform can only be a translation");
+    if (residual.GetTranslation() != mResidualTranslation) {
+      mResidualTranslation = residual.GetTranslation();
+      NS_ASSERTION(-0.5 <= mResidualTranslation.x && mResidualTranslation.x < 0.5 &&
+                   -0.5 <= mResidualTranslation.y && mResidualTranslation.y < 0.5,
+                   "Residual translation out of range");
+      mValidRegion.SetEmpty();
+    }
   }
 
   bool UsedForReadback() { return mUsedForReadback; }
   void SetUsedForReadback(bool aUsed) { mUsedForReadback = aUsed; }
+  
+
+
+
+
+
+
+
+  gfxPoint GetResidualTranslation() const { return mResidualTranslation; }
 
 protected:
   ThebesLayer(LayerManager* aManager, void* aImplData)
     : Layer(aManager, aImplData)
     , mValidRegion()
     , mUsedForReadback(false)
+    , mAllowResidualTranslation(false)
   {
     mContentFlags = 0; 
   }
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
 
+  
+
+
+
+
+  gfxPoint mResidualTranslation;
   nsIntRegion mValidRegion;
   
 
 
 
   bool mUsedForReadback;
+  
+
+
+  bool mAllowResidualTranslation;
 };
 
 
