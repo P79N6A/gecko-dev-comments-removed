@@ -2634,6 +2634,53 @@ nsObjectFrame::GetNextObjectFrame(nsPresContext* aPresContext, nsIFrame* aRoot)
   return nsnull;
 }
 
+ void
+nsObjectFrame::BeginSwapDocShells(nsIContent* aContent, void*)
+{
+  NS_PRECONDITION(aContent, "");
+
+  
+  
+  nsIObjectFrame* obj = do_QueryFrame(aContent->GetPrimaryFrame());
+  if (!obj)
+    return;
+
+  nsObjectFrame* objectFrame = static_cast<nsObjectFrame*>(obj);
+  NS_ASSERTION(!objectFrame->mWidget || objectFrame->mWidget->GetParent(),
+               "Plugin windows must not be toplevel");
+  nsRootPresContext* rootPC = objectFrame->PresContext()->GetRootPresContext();
+  NS_ASSERTION(rootPC, "unable to unregister the plugin frame");
+  rootPC->UnregisterPluginForGeometryUpdates(objectFrame);
+}
+
+ void
+nsObjectFrame::EndSwapDocShells(nsIContent* aContent, void*)
+{
+  NS_PRECONDITION(aContent, "");
+
+  
+  
+  nsIObjectFrame* obj = do_QueryFrame(aContent->GetPrimaryFrame());
+  if (!obj)
+    return;
+
+  nsObjectFrame* objectFrame = static_cast<nsObjectFrame*>(obj);
+  nsRootPresContext* rootPC = objectFrame->PresContext()->GetRootPresContext();
+  NS_ASSERTION(rootPC, "unable to register the plugin frame");
+  nsIWidget* widget = objectFrame->GetWidget();
+  if (widget) {
+    
+    nsIWidget* parent =
+      rootPC->PresShell()->GetRootFrame()->GetNearestWidget();
+    widget->SetParent(parent);
+    objectFrame->CallSetWindow();
+
+    
+    rootPC->RegisterPluginForGeometryUpdates(objectFrame);
+    rootPC->RequestUpdatePluginGeometry(objectFrame);
+  }
+}
+
 nsIFrame*
 NS_NewObjectFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {

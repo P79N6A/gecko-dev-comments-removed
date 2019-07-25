@@ -273,6 +273,14 @@ public:
   
 
 
+  static void DestroyDisplayItemDataFor(nsIFrame* aFrame)
+  {
+    aFrame->Properties().Delete(DisplayItemDataProperty());
+  }
+
+  
+
+
 
   struct Clip {
     struct RoundedRect {
