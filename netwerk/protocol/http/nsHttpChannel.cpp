@@ -999,7 +999,7 @@ nsHttpChannel::ProcessFailedSSLConnect(PRUint32 httpStatus)
     
     
 
-    NS_ABORT_IF_FALSE(mConnectionInfo->UsingSSL(),
+    NS_ABORT_IF_FALSE(mConnectionInfo->UsingConnect(),
                       "SSL connect failed but not using SSL?");
     nsresult rv;
     switch (httpStatus) 
