@@ -194,8 +194,9 @@ class ScopedXPCOM : public nsIDirectoryServiceProvider2
     {
       
       if (mProfD) {
-        if (NS_FAILED(mProfD->Remove(true)))
-          NS_WARNING("Problem removing profile direrctory");
+        if (NS_FAILED(mProfD->Remove(true))) {
+          NS_WARNING("Problem removing profile directory");
+        }
 
         mProfD = nsnull;
       }
