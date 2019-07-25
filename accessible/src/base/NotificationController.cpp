@@ -21,7 +21,9 @@
 #endif
 
 #include "mozilla/dom/Element.h"
+#include "mozilla/Telemetry.h"
 
+using namespace mozilla;
 using namespace mozilla::a11y;
 
 
@@ -174,6 +176,8 @@ NotificationController::IsUpdatePending()
 void
 NotificationController::WillRefresh(mozilla::TimeStamp aTime)
 {
+  Telemetry::AutoTimer<Telemetry::A11Y_UPDATE_TIME> updateTimer();
+
   
   
   NS_ASSERTION(mDocument,
