@@ -331,7 +331,7 @@ ArgSetter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
 
 
     AutoValueRooter tvr(cx);
-    return js_DeleteProperty(cx, &argsobj, id, tvr.addr(), false) &&
+    return js_DeleteGeneric(cx, &argsobj, id, tvr.addr(), false) &&
            js_DefineProperty(cx, &argsobj, id, vp, NULL, NULL, JSPROP_ENUMERATE);
 }
 
@@ -446,7 +446,7 @@ StrictArgSetter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp)
 
 
     AutoValueRooter tvr(cx);
-    return js_DeleteProperty(cx, &argsobj, id, tvr.addr(), strict) &&
+    return js_DeleteGeneric(cx, &argsobj, id, tvr.addr(), strict) &&
            js_SetPropertyHelper(cx, &argsobj, id, 0, vp, strict);
 }
 
