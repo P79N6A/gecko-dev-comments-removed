@@ -1418,6 +1418,42 @@ RENDER_AGAIN:
       nsUXThemeData::drawThemeBG(theme, hdc, gripPart, state, &widgetRect, &clipRect);
     }
   }
+  else if (aWidgetType == NS_THEME_WINDOW_BUTTON_BOX ||
+           aWidgetType == NS_THEME_WINDOW_BUTTON_BOX_MAXIMIZED)
+  {
+    
+    
+    ctx->Save();
+    ctx->ResetClip();
+    ctx->Translate(dr.pos);
+
+    
+    gfxRect buttonbox1(0.0, 0.0, dr.size.width, dr.size.height - 2.0);
+    gfxRect buttonbox2(1.0, dr.size.height - 2.0, dr.size.width - 1.0, 1.0);
+    gfxRect buttonbox3(2.0, dr.size.height - 1.0, dr.size.width - 3.0, 1.0);
+
+    gfxContext::GraphicsOperator currentOp = ctx->CurrentOperator();
+    ctx->SetOperator(gfxContext::OPERATOR_CLEAR);
+
+   
+   
+   
+    ctx->NewPath();
+    ctx->Rectangle(buttonbox1, PR_TRUE);
+    ctx->Fill();
+
+    ctx->NewPath();
+    ctx->Rectangle(buttonbox2, PR_TRUE);
+    ctx->Fill();
+
+    ctx->NewPath();
+    ctx->Rectangle(buttonbox3, PR_TRUE);
+    ctx->Fill();
+
+    ctx->Restore();
+    ctx->SetOperator(currentOp);
+  }
+
 
   nativeDrawing.EndNativeDrawing();
 
