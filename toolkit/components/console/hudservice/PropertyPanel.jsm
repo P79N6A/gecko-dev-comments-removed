@@ -142,48 +142,18 @@ function presentableValueFor(aObject)
 
 
 
-
-function isNativeFunction(aFunction)
-{
-  return typeof aFunction == "function" && !("prototype" in aFunction);
-}
-
-
-
-
-
-
-
-
-
 function namesAndValuesOf(aObject)
 {
   let pairs = [];
-  let value, presentable, getter;
-
-  let isDOMDocument = aObject instanceof Ci.nsIDOMDocument;
+  let value, presentable;
 
   for (var propName in aObject) {
-    
-    if (isDOMDocument && (propName == "width" || propName == "height")) {
+    try {
+      value = aObject[propName];
+      presentable = presentableValueFor(value);
+    }
+    catch (ex) {
       continue;
-    }
-
-    
-    
-    getter = aObject.__lookupGetter__(propName);
-    if (getter && !isNativeFunction(getter)) {
-      value = ""; 
-      presentable = {type: TYPE_OTHER, display: "Getter"};
-    }
-    else {
-      try {
-        value = aObject[propName];
-        presentable = presentableValueFor(value);
-      }
-      catch (ex) {
-        continue;
-      }
     }
 
     let pair = {};
