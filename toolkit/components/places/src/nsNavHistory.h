@@ -61,7 +61,6 @@
 #include "nsICharsetResolver.h"
 #include "nsNetCID.h"
 #include "nsToolkitCompsCID.h"
-#include "nsThreadUtils.h"
 
 #include "nsINavBookmarksService.h"
 #include "nsIPrivateBrowsingService.h"
@@ -228,16 +227,6 @@ public:
   mozIStorageConnection* GetStorageConnection()
   {
     return mDBConn;
-  }
-
-  
-
-
-
-  void SetVacuumInProgress(bool aValue)
-  {
-    NS_PRECONDITION(NS_IsMainThread(), "SetVacuumInProgress() off main thread!");
-    mVacuumInProgress = aValue;
   }
 
   
@@ -739,10 +728,6 @@ protected:
   
   bool mCanNotify;
   nsCategoryCache<nsINavHistoryObserver> mCacheObservers;
-
-  
-  nsCOMPtr<mozIStorageStatementCallback> mVacuumDBListener;
-  bool mVacuumInProgress;
 };
 
 
