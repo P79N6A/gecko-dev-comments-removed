@@ -368,6 +368,7 @@ struct SyncRegs {
 
 
         JS_NOT_REACHED("wat");
+        return RegisterID(worst);
     }
 
     
@@ -410,7 +411,7 @@ FrameState::syncFancy(Assembler &masm, Registers avail, uint32 resumeAt) const
     SyncRegs sr(*this, masm, avail);
 
     FrameEntry *tos = tosFe();
-    for (uint32 i = tracker.nentries - 1; i < tracker.nentries; i--) {
+    for (uint32 i = resumeAt; i < tracker.nentries; i--) {
         FrameEntry *fe = tracker[i];
         if (fe >= tos)
             continue;
