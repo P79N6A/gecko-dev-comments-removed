@@ -1182,23 +1182,6 @@ JSObject::preventExtensions(JSContext *cx, js::AutoIdVector *props)
 }
 
 bool
-JSObject::protoShapeChange(JSContext *cx)
-{
-    
-
-
-
-
-
-
-
-    if (!lastProperty()->hasObjectFlag(BaseShape::CHANGED_PROTO))
-        return setFlag(cx, BaseShape::CHANGED_PROTO, GENERATE_SHAPE);
-
-    return setFlag(cx, BaseShape::UNCACHEABLE_PROTO, GENERATE_SHAPE);
-}
-
-bool
 JSObject::setFlag(JSContext *cx,  uint32 flag_, GenerateShape generateShape)
 {
     BaseShape::Flag flag = (BaseShape::Flag) flag_;
