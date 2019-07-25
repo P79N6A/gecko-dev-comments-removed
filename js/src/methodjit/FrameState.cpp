@@ -341,8 +341,8 @@ FrameState::sync(Assembler &masm, Uses uses) const
 
 
 
-            if ((!fe->type.synced() && !fe->type.inRegister()) ||
-                (!fe->data.synced() && !fe->data.inRegister())) {
+            if ((!fe->type.synced() && !backing->type.inRegister()) ||
+                (!fe->data.synced() && !backing->data.inRegister())) {
                 syncFancy(masm, avail, i, bottom);
                 return;
             }
