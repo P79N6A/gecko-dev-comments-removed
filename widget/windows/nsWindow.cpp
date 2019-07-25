@@ -5195,11 +5195,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       break;
 
     case WM_KILLFOCUS:
-      if (sJustGotDeactivate || !wParam) {
-        
-        
-        
-        
+      if (sJustGotDeactivate) {
         result = DispatchFocusToTopLevelWindow(NS_DEACTIVATE);
       }
       break;
