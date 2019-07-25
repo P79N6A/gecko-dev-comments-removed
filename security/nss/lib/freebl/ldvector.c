@@ -251,12 +251,8 @@ static const struct FREEBLVectorStr vector =
     SEED_Encrypt,
     SEED_Decrypt,
 
-    
-
     BL_Init,
     BL_SetForkState,
-
-    
 
     PRNGTEST_Instantiate,
     PRNGTEST_Reseed,

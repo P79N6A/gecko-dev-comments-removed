@@ -128,6 +128,17 @@ SSL_IMPORT PRFileDesc *SSL_ImportFD(PRFileDesc *model, PRFileDesc *fd);
                                           
 					  
                                           
+#define SSL_ENABLE_FALSE_START         22 /* Enable SSL false start (off by */
+                                          
+                                          
+
+
+
+
+
+
+
+
 
 #ifdef SSL_DEPRECATED_FUNCTION 
 

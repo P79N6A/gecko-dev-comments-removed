@@ -165,6 +165,21 @@ PK11_CheckUserPassword(PK11SlotInfo *slot, const char *pw)
     }
 
     
+
+
+
+
+    if (!slot->needLogin) {
+        if (len == 0) {
+            rv = SECSuccess;
+        } else {
+            PORT_SetError(SEC_ERROR_BAD_PASSWORD);
+            rv = SECFailure;
+        }
+        return rv;
+    }
+
+    
     PK11_EnterSlotMonitor(slot);
     PK11_GETTAB(slot)->C_Logout(slot->session);
 

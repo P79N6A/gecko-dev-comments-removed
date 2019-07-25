@@ -66,10 +66,10 @@
 
 
 
-#define NSS_VERSION  "3.12.7.0" _NSS_ECC_STRING _NSS_CUSTOMIZED " Beta"
+#define NSS_VERSION  "3.12.8.0" _NSS_ECC_STRING _NSS_CUSTOMIZED " Beta"
 #define NSS_VMAJOR   3
 #define NSS_VMINOR   12
-#define NSS_VPATCH   7
+#define NSS_VPATCH   8
 #define NSS_VBUILD   0
 #define NSS_BETA     PR_TRUE
 
