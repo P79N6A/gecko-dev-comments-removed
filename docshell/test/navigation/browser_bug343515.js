@@ -2,8 +2,6 @@
 
 
 var testPath = "http://mochi.test:8888/browser/docshell/test/navigation/";
-var Ci = Components.interfaces;
-var Cc = Components.classes;
 var ctx = {};
 
 
@@ -214,9 +212,8 @@ function step7() {
 function allDone() {
 
   
-  gBrowser.removeCurrentTab();
-  gBrowser.tabContainer.advanceSelectedTab(1, true);
-  gBrowser.removeCurrentTab();
+  gBrowser.removeTab(ctx.tab1);
+  gBrowser.removeTab(ctx.tab2);
 
   
   finish();

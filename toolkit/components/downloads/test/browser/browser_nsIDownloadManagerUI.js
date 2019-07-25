@@ -34,9 +34,6 @@
 
 
 
-
-let Cc = Components.classes;
-let Ci = Components.interfaces;
 let Cr = Components.results;
 
 function test_visibility_open()

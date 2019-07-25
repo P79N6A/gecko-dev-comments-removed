@@ -26,8 +26,6 @@ function extractChromeRoot(path) {
   return chromeRootPath;
 }
 
-Components.utils.import("resource://gre/modules/AddonManager.jsm");
-
 
 
 
@@ -362,12 +360,7 @@ var Harness = {
     }
   },
 
-  QueryInterface: function(iid) {
-    if (iid.equals(Components.interfaces.nsIObserver) ||
-        iid.equals(Components.interfaces.nsIWindowMediatorListener) ||
-        iid.equals(Components.interfaces.nsISupports))
-      return this;
-
-    throw Components.results.NS_ERROR_NO_INTERFACE;
-  }
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
+                                         Ci.nsIWindowMediatorListener,
+                                         Ci.nsISupports])
 }
