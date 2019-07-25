@@ -734,6 +734,24 @@ public:
   static nscoord FindNextLargerFontSize(nscoord aFontSize, PRInt32 aBasePointSize, 
                                         nsPresContext* aPresContext,
                                         nsFontSizeType aFontSizeType = eFontSize_HTML);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  static bool ComputeColor(const nsCSSValue& aValue,
+                           nsPresContext* aPresContext,
+                           nsStyleContext* aStyleContext,
+                           nscolor& aResult);
 };
 
 #endif

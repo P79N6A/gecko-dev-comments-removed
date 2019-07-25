@@ -23,6 +23,7 @@ class nsIURI;
 struct nsCSSSelectorList;
 class nsMediaList;
 class nsCSSKeyframeRule;
+class nsCSSValue;
 
 namespace mozilla {
 namespace css {
@@ -141,13 +142,10 @@ public:
 
 
 
-
-
-
-  nsresult ParseColorString(const nsSubstring& aBuffer,
-                            nsIURI*            aURL,
-                            PRUint32           aLineNumber,
-                            nscolor*           aColor);
+  bool ParseColorString(const nsSubstring& aBuffer,
+                        nsIURI*            aURL,
+                        PRUint32           aLineNumber,
+                        nsCSSValue&        aValue);
 
   
 

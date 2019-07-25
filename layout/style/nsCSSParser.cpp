@@ -209,10 +209,10 @@ public:
                           nsMediaList* aMediaList,
                           bool aHTMLMode);
 
-  nsresult ParseColorString(const nsSubstring& aBuffer,
-                            nsIURI* aURL, 
-                            PRUint32 aLineNumber, 
-                            nscolor* aColor);
+  bool ParseColorString(const nsSubstring& aBuffer,
+                        nsIURI* aURL, 
+                        PRUint32 aLineNumber, 
+                        nsCSSValue& aValue);
 
   nsresult ParseSelectorString(const nsSubstring& aSelectorString,
                                nsIURI* aURL, 
@@ -1167,58 +1167,20 @@ CSSParserImpl::ParseMediaList(const nsSubstring& aBuffer,
   return NS_OK;
 }
 
-nsresult
+bool
 CSSParserImpl::ParseColorString(const nsSubstring& aBuffer,
                                 nsIURI* aURI, 
                                 PRUint32 aLineNumber, 
-                                nscolor* aColor)
+                                nsCSSValue& aValue)
 {
   AssertInitialState();
   InitScanner(aBuffer, aURI, aLineNumber, aURI, nsnull);
 
-  nsCSSValue value;
   
-  bool colorParsed = ParseColor(value) && !GetToken(true);
+  bool colorParsed = ParseColor(aValue) && !GetToken(true);
   OUTPUT_ERROR();
   ReleaseScanner();
-
-  if (!colorParsed) {
-    return NS_ERROR_FAILURE;
-  }
-
-  switch (value.GetUnit()) {
-  case eCSSUnit_Color:
-    *aColor = value.GetColorValue();
-    return NS_OK;
-
-  case eCSSUnit_Ident: {
-    nsDependentString id(value.GetStringBufferValue());
-    if (!NS_ColorNameToRGB(id, aColor)) {
-      return NS_ERROR_FAILURE;
-    }
-    return NS_OK;
-  }
-
-  case eCSSUnit_EnumColor: {
-    PRInt32 val = value.GetIntValue();
-    if (val < 0) {
-      
-      
-      
-      return NS_ERROR_FAILURE;
-    }
-    nscolor rgba;
-    nsresult rv = LookAndFeel::GetColor(LookAndFeel::ColorID(val), &rgba);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-    *aColor = rgba;
-    return NS_OK;
-  }
-
-  default:
-    return NS_ERROR_FAILURE;
-  }
+  return colorParsed;
 }
 
 nsresult
@@ -9526,14 +9488,14 @@ nsCSSParser::ParseMediaList(const nsSubstring& aBuffer,
     ParseMediaList(aBuffer, aURI, aLineNumber, aMediaList, aHTMLMode);
 }
 
-nsresult
+bool
 nsCSSParser::ParseColorString(const nsSubstring& aBuffer,
                               nsIURI*            aURI,
                               PRUint32           aLineNumber,
-                              nscolor*           aColor)
+                              nsCSSValue&        aValue)
 {
   return static_cast<CSSParserImpl*>(mImpl)->
-    ParseColorString(aBuffer, aURI, aLineNumber, aColor);
+    ParseColorString(aBuffer, aURI, aLineNumber, aValue);
 }
 
 nsresult
