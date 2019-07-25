@@ -1348,6 +1348,17 @@ class LCallGetElement : public LCallInstructionHelper<BOX_PIECES, 2 * BOX_PIECES
 };
 
 
+class LCallSetElement : public LCallInstructionHelper<0, 1 + 2 * BOX_PIECES, 0>
+{
+  public:
+    LIR_HEADER(CallSetElement);
+    BOX_OUTPUT_ACCESSORS();
+
+    static const size_t Index = 1;
+    static const size_t Value = 1 + BOX_PIECES;
+};
+
+
 class LCallSetPropertyV : public LCallInstructionHelper<0, 1 + BOX_PIECES, 0>
 {
   public:
