@@ -204,7 +204,7 @@ PRTimeToSeconds(PRTime t_usec)
 #define NowInSeconds() PRTimeToSeconds(PR_Now())
 
 
-#define QVAL_TO_UINT(q) ((unsigned int) ((q + 0.0005) * 1000.0))
+#define QVAL_TO_UINT(q) ((unsigned int) ((q + 0.05) * 10.0))
 
 #define HTTP_LWS " \t"
 #define HTTP_HEADER_VALUE_SEPS HTTP_LWS ","
