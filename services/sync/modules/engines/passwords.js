@@ -198,3 +198,48 @@ PasswordStore.prototype = {
 };
 PasswordStore.prototype.__proto__ = new Store();
 
+function PasswordTracker() {
+  this._init();
+}
+PasswordTracker.prototype = {
+  _logName: "PasswordTracker",
+
+  __loginManager : null,
+  get _loginManager() {
+    if (!this.__loginManager)
+      this.__loginManager = Cc["@mozilla.org/login-manager;1"].
+                            getService(Ci.nsILoginManager);
+    return this.__loginManager;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _loginCount: 0,
+  get score() {
+    var count = this._loginManager.countLogins("", "", "");
+    var score = Math.abs(this._loginCount - count) * 15;
+
+    if (score >= 100)
+      return 100;
+    else
+      return score + 30;
+  }, 
+
+  resetScore: function PasswordTracker_resetScore() {
+    this._loginCount = this._loginManager.countLogins("", "", "");
+  },
+
+  _init: function PasswordTracker__init() {
+    this._log = Log4Moz.Service.getLogger("Service."  this._logName);
+    this._loginCount = this._loginManager.countLogins("", "", "");
+  }
+}
