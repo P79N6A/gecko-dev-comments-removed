@@ -2045,7 +2045,7 @@ var FormHelperUI = {
         aCaretRect.x = aElementRect.x;
       }
 
-      let zoomLevel = browser.scale;
+      let oldZoomLevel = zoomLevel = browser.scale;
       let enableZoom = Browser.selectedTab.allowZoom && Services.prefs.getBoolPref("formhelper.autozoom");
       if (enableZoom) {
         zoomLevel = (viewAreaHeight / caretLines) / harmonizedCaretHeight;
@@ -2064,21 +2064,22 @@ var FormHelperUI = {
                : aCaretRect.x - viewAreaWidth + margin + marginRight;
       
       let y = harmonizedCaretY - margin;
-      x *= browser.scale;
-      y *= browser.scale;
+      x *= oldZoomLevel;
+      y *= oldZoomLevel;
 
       let scroll = browser.getPosition();
 
       
       
-      if (enableZoom && browser.scale != zoomLevel) {
+      if (enableZoom) {
         
-        let zoomRatio = zoomLevel / browser.scale;
+        let zoomRatio = zoomLevel / oldZoomLevel;
 
         let visW = window.innerWidth, visH = window.innerHeight;
         let newVisW = visW / zoomRatio, newVisH = visH / zoomRatio;
         let zoomRect = new Rect(x, y, newVisW, newVisH);
-
+        zoomRect.translateInside(new Rect(0, 0, browser.contentDocumentWidth * oldZoomLevel,
+                                                browser.contentDocumentHeight * oldZoomLevel));
         Browser.animatedZoomTo(zoomRect);
       }
       else { 
