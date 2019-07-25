@@ -33,6 +33,8 @@ var Harness = {
   
   downloadFailedCallback: null,
   
+  downloadCancelledCallback: null,
+  
   downloadEndedCallback: null,
   
   
@@ -96,8 +98,11 @@ var Harness = {
     this.installConfirmCallback = null;
     this.downloadStartedCallback = null;
     this.downloadProgressCallback = null;
+    this.downloadCancelledCallback = null;
+    this.downloadFailedCallback = null;
     this.downloadEndedCallback = null;
     this.installStartedCallback = null;
+    this.installFailedCallback = null;
     this.installEndedCallback = null;
     this.installsCompletedCallback = null;
   },
@@ -201,6 +206,12 @@ var Harness = {
   onDownloadEnded: function(install) {
     if (this.downloadEndedCallback)
       this.downloadEndedCallback(install);
+  },
+
+  onDownloadCancelled: function(install) {
+    if (this.downloadCancelledCallback)
+      this.downloadCancelledCallback(install);
+    this.checkTestEnded();
   },
 
   onDownloadFailed: function(install, status) {
