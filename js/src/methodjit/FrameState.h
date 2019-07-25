@@ -689,7 +689,9 @@ class FrameState
 
 
 
-    void uncopy(FrameEntry *original);
+
+
+    FrameEntry *uncopy(FrameEntry *original);
 
     FrameEntry *entryFor(uint32 index) const {
         JS_ASSERT(base[index]);
