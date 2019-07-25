@@ -253,10 +253,17 @@ function update()
 
 function cmpAmount(a, b)
 {
-  if (a._units != b._units)
+  if (a._units != b._units) {
     return a._units - b._units;   
-  else
-    return b._amount - a._amount;
+  }
+  if (a._units == UNITS_COUNT) {
+    if (a._path < b._path)
+      return -1;
+    if (a._path > b._path)
+      return 1;
+    return 0;
+  }
+  return b._amount - a._amount;
 };
 
 
