@@ -165,16 +165,16 @@ JSObject::allocateArrayBufferSlots(JSContext *cx, uint32 size)
 
 
 
+
     JS_ASSERT(isArrayBuffer() && !hasDynamicSlots() && !hasDynamicElements());
 
-    JS_STATIC_ASSERT(sizeof(ObjectElements) == 2 * sizeof(js::Value));
+    size_t usableSlots = ARRAYBUFFER_RESERVED_SLOTS - ObjectElements::VALUES_PER_HEADER;
 
-    if (size > sizeof(Value) * (ARRAYBUFFER_RESERVED_SLOTS - 2) ) {
-        ObjectElements *tmpheader = (ObjectElements *)cx->calloc_(size + sizeof(ObjectElements));
-        if (!tmpheader)
+    if (size > sizeof(Value) * usableSlots) {
+        ObjectElements *newheader = (ObjectElements *)cx->calloc_(size + sizeof(ObjectElements));
+        if (!newheader)
             return false;
-        elements = tmpheader->elements();
-        tmpheader->length = size;
+        elements = newheader->elements();
     } else {
         elements = fixedElements();
         memset(fixedSlots(), 0, size + sizeof(ObjectElements));

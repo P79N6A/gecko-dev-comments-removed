@@ -357,8 +357,10 @@ class RegExpObject;
 
 
 
-struct ObjectElements
+class ObjectElements
 {
+    friend struct ::JSObject;
+
     
     uint32 capacity;
 
@@ -375,6 +377,12 @@ struct ObjectElements
 
     
     uint32 unused;
+
+    void staticAsserts() {
+        JS_STATIC_ASSERT(sizeof(ObjectElements) == VALUES_PER_HEADER * sizeof(Value));
+    }
+
+  public:
 
     ObjectElements(uint32 capacity, uint32 length)
         : capacity(capacity), initializedLength(0), length(length)
@@ -394,12 +402,15 @@ struct ObjectElements
     static int offsetOfLength() {
         return (int)offsetof(ObjectElements, length) - (int)sizeof(ObjectElements);
     }
+
+    static const size_t VALUES_PER_HEADER = 2;
 };
 
 
 extern Value *emptyObjectElements;
 
 }  
+
 
 
 
@@ -653,7 +664,7 @@ struct JSObject : js::gc::Cell
     bool changeSlots(JSContext *cx, uint32 oldCount, uint32 newCount) {
         if (oldCount < newCount)
             return growSlots(cx, oldCount, newCount);
-        else if (oldCount > newCount)
+        if (oldCount > newCount)
             shrinkSlots(cx, oldCount, newCount);
         return true;
     }
@@ -693,11 +704,16 @@ struct JSObject : js::gc::Cell
     void rollbackProperties(JSContext *cx, uint32 slotSpan);
 
 #ifdef DEBUG
+    enum SentinelAllowed {
+        SENTINEL_NOT_ALLOWED,
+        SENTINEL_ALLOWED
+    };
+
     
 
 
 
-    bool slotInRange(uintN slot, bool sentinelAllowed = false) const;
+    bool slotInRange(uintN slot, SentinelAllowed sentinel = SENTINEL_NOT_ALLOWED) const;
 #endif
 
     js::Value *getSlotAddress(uintN slot) {
@@ -706,7 +722,7 @@ struct JSObject : js::gc::Cell
 
 
 
-        JS_ASSERT(slotInRange(slot,  true));
+        JS_ASSERT(slotInRange(slot, SENTINEL_ALLOWED));
         size_t fixed = numFixedSlots();
         if (slot < fixed)
             return fixedSlots() + slot;
