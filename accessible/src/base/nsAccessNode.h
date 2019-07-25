@@ -105,7 +105,7 @@ public:
   
 
 
-  already_AddRefed<nsRootAccessible> GetRootAccessible();
+  nsRootAccessible* RootAccessible() const;
 
   
 

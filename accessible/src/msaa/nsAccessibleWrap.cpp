@@ -1772,7 +1772,7 @@ void nsAccessibleWrap::UpdateSystemCaret()
   
   ::DestroyCaret();
 
-  nsRefPtr<nsRootAccessible> rootAccessible = GetRootAccessible();
+  nsRootAccessible* rootAccessible = RootAccessible();
   if (!rootAccessible) {
     return;
   }

@@ -258,7 +258,7 @@ nsDocAccessibleWrap::Init()
   if (nsWinUtils::IsWindowEmulationEnabled()) {
     
     if (nsWinUtils::IsTabDocument(mDocument)) {
-      nsRefPtr<nsRootAccessible> root = GetRootAccessible();
+      nsRootAccessible* root = RootAccessible();
       mHWND = nsWinUtils::CreateNativeWindow(kClassNameTabContent,
                                              static_cast<HWND>(root->GetNativeWindow()));
 
