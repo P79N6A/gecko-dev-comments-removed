@@ -1146,6 +1146,10 @@ function WaitForTestEnd() {
     gExplicitPendingPaintsCompleteHook = ExplicitPaintsCompleteListener;
     gTimeoutHook = RemoveListeners;
 
+    
+    
+    
+    InitCurrentCanvasWithSnapshot();
     MakeProgress();
 }
 
@@ -1197,10 +1201,7 @@ function OnDocumentLoad(event)
         
         gFailureReason = "timed out waiting for test to complete (trying to get into WaitForTestEnd)";
         LogInfo("OnDocumentLoad triggering WaitForTestEnd");
-        setTimeout(function() {
-            InitCurrentCanvasWithSnapshot();
-            WaitForTestEnd();
-        }, 0);
+        setTimeout(WaitForTestEnd, 0);
     } else {
         
         
@@ -1276,7 +1277,9 @@ function InitCurrentCanvasWithSnapshot()
         return;
     }
 
-    gCurrentCanvas = AllocateCanvas();
+    if (!gCurrentCanvas) {
+        gCurrentCanvas = AllocateCanvas();
+    }
 
     var ctx = gCurrentCanvas.getContext("2d");
     DoDrawWindow(ctx, 0, 0, gCurrentCanvas.width, gCurrentCanvas.height);
