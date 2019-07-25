@@ -280,8 +280,8 @@ TextOverflow::WillProcessLines(nsDisplayListBuilder*   aBuilder,
   PRUint8 direction = aBlockFrame->GetStyleVisibility()->mDirection;
   textOverflow->mBlockIsRTL = direction == NS_STYLE_DIRECTION_RTL;
   const nsStyleTextReset* style = aBlockFrame->GetStyleTextReset();
-  textOverflow->mLeft.Init(*style->mTextOverflow.GetLeft(direction));
-  textOverflow->mRight.Init(*style->mTextOverflow.GetRight(direction));
+  textOverflow->mLeft.Init(style->mTextOverflow.GetLeft(direction));
+  textOverflow->mRight.Init(style->mTextOverflow.GetRight(direction));
   
   
 
@@ -405,6 +405,19 @@ TextOverflow::ExamineLineFrames(nsLineBox*      aLine,
   
   bool suppressLeft = mLeft.mStyle->mType == NS_STYLE_TEXT_OVERFLOW_CLIP;
   bool suppressRight = mRight.mStyle->mType == NS_STYLE_TEXT_OVERFLOW_CLIP;
+  if (mCanHaveHorizontalScrollbar) {
+    nsIScrollableFrame* scroll = nsLayoutUtils::GetScrollableFrameFor(mBlock);
+    nsPoint pos = scroll->GetScrollPosition();
+    nsRect scrollRange = scroll->GetScrollRange();
+    
+    
+    if (pos.x <= scrollRange.x) {
+      suppressLeft = true;
+    }
+    if (pos.x >= scrollRange.XMost()) {
+      suppressRight = true;
+    }
+  }
 
   
   
