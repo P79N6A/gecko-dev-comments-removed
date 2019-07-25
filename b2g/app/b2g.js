@@ -143,6 +143,10 @@ pref("browser.xul.error_pages.enabled", true);
 pref("gfx.color_management.mode", 0);
 
 
+pref("gfx.canvas.azure.enabled", true);
+pref("gfx.canvas.azure.backends", "cairo");
+
+
 pref("dom.disable_window_move_resize", true);
 
 
