@@ -4,7 +4,6 @@ x = "notset";
 
 function doNothing() { }
 
-dis(myparent);
 function myparent(nested) {
   if (nested) {
     
