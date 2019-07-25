@@ -233,6 +233,12 @@ function SyncEngine() {  }
 SyncEngine.prototype = {
   __proto__: Engine.prototype,
 
+  get _memory() {
+    let mem = Cc["@mozilla.org/xpcom/memory-service;1"].getService(Ci.nsIMemory);
+    this.__defineGetter__("_memory" function() mem);
+    return mem;
+  },
+
   get baseURL() {
     let url = Utils.prefs.getCharPref("serverURL");
     if (url && url[url.length-1] != '/')
@@ -295,6 +301,17 @@ SyncEngine.prototype = {
     }
   },
 
+  _lowMemCheck: function SyncEngine__lowMemCheck() {
+    if (mem.isLowMemory()) {
+      this._log.warn("Low memory, forcing GC");
+      Cu.forceGC();
+      if (mem.isLowMemory()) {
+        this._log.warn("Low memory, aborting sync!");
+        throw "Low memory";
+      }
+    }
+  },
+
   
   
   _syncStartup: function SyncEngine__syncStartup() {
@@ -339,24 +356,23 @@ SyncEngine.prototype = {
 
     this._log.debug("Downloading & applying server changes");
 
+    
+    
+    
+    this._store.cache.enabled = true;
+    this._store.cache.fifo = false; 
+    this._store.cache.clear();
+
     let newitems = new Collection(this.engineURL);
     newitems.modified = this.lastSync;
     newitems.full = true;
     newitems.sort = "depthindex";
     yield newitems.get(self.cb);
 
-    let mem = Cc["@mozilla.org/xpcom/memory-service;1"].getService(Ci.nsIMemory);
-    this._lastSyncTmp = 0;
     let item;
+    this._lastSyncTmp = 0;
     while ((item = yield newitems.iter.next(self.cb))) {
-      if (mem.isLowMemory()) {
-        this._log.warn("Low memory, forcing GC");
-        Cu.forceGC();
-        if (mem.isLowMemory()) {
-          this._log.warn("Low memory, aborting sync!");
-          throw "Low memory";
-        }
-      }
+      this._lowMemCheck();
       yield item.decrypt(self.cb, ID.get('WeaveCryptoID').password);
       if (yield this._reconcile.async(this, self.cb, item))
         yield this._applyIncoming.async(this, self.cb, item);
@@ -368,6 +384,8 @@ SyncEngine.prototype = {
     }
     if (this.lastSync < this._lastSyncTmp)
         this.lastSync = this._lastSyncTmp;
+
+    this._store.cache.clear(); 
   },
 
   
@@ -408,13 +426,7 @@ SyncEngine.prototype = {
 
     
     for (let id in this._tracker.changedIDs) {
-      
-      let out = (id in this.outgoing)?
-        this.outgoing[id] : this._createRecord(id);
-
-      
-      if ([i for (i in this.outgoing)].length <= 100)
-        this.outgoing[id] = out;
+      let out = this._createRecord(id);
 
       if (this._recordLike(item, out)) {
         
@@ -456,25 +468,26 @@ SyncEngine.prototype = {
 
       
       let up = new Collection(this.engineURL);
-
-      
-      
       let depth = {};
 
-      let out;
-      while ((out = this.outgoing.pop())) {
+      
+      this._store.cache.enabled = false;
+
+      for (let id in this._tracker.changedIDs) {
+        let out = this._createRecord(id);
         this._log.trace("Outgoing:\n" + out);
         yield out.encrypt(self.cb, ID.get('WeaveCryptoID').password);
         yield up.pushRecord(self.cb, out);
         this._store.wrapDepth(out.id, depth);
       }
 
+      this._store.cache.enabled = true;
+
       
       this._log.trace(depth.length + "outgoing depth records");
       for (let id in depth) {
         up.pushDepthRecord({id: id, depth: depth[id]});
       }
-      
 
       
       yield up.post(self.cb);
