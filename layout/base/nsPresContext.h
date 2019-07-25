@@ -563,7 +563,18 @@ public:
   nscoord GetAutoQualityMinFontSize() {
     return DevPixelsToAppUnits(mAutoQualityMinFontSizePixelsPref);
   }
+
   
+
+
+
+
+
+
+
+
+  float ScreenWidthInchesForFontInflation(bool* aChanged = nsnull);
+
   static PRInt32 AppUnitsPerCSSPixel() { return nsDeviceContext::AppUnitsPerCSSPixel(); }
   PRUint32 AppUnitsPerDevPixel() const  { return mDeviceContext->AppUnitsPerDevPixel(); }
   static PRInt32 AppUnitsPerCSSInch() { return nsDeviceContext::AppUnitsPerCSSInch(); }
@@ -1142,6 +1153,8 @@ protected:
   PRInt32               mMinFontSize;   
   float                 mTextZoom;      
   float                 mFullZoom;      
+
+  float                 mLastFontInflationScreenWidth;
 
   PRInt32               mCurAppUnitsPerDevPixel;
   PRInt32               mAutoQualityMinFontSizePixelsPref;
