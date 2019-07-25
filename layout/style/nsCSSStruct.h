@@ -106,14 +106,6 @@ struct nsCSSStruct {
 
 
 
-
-
-
-
-
-typedef nsCSSStruct nsRuleDataStruct;
-
-
 struct nsCSSFont : public nsCSSStruct {
   nsCSSFont(void);
   ~nsCSSFont(void);
@@ -139,12 +131,6 @@ private:
   nsCSSFont(const nsCSSFont& aOther); 
 };
 
-struct nsRuleDataFont : public nsCSSFont {
-  nsRuleDataFont() {}
-private:
-  nsRuleDataFont(const nsRuleDataFont& aOther); 
-};
-
 struct nsCSSColor : public nsCSSStruct  {
   nsCSSColor(void);
   ~nsCSSColor(void);
@@ -161,12 +147,6 @@ struct nsCSSColor : public nsCSSStruct  {
   nsCSSValue mBackInlinePolicy;
 private:
   nsCSSColor(const nsCSSColor& aOther); 
-};
-
-struct nsRuleDataColor : public nsCSSColor {
-  nsRuleDataColor() {}
-private:
-  nsRuleDataColor(const nsRuleDataColor& aOther); 
 };
 
 struct nsCSSText : public nsCSSStruct  {
@@ -188,12 +168,6 @@ struct nsCSSText : public nsCSSStruct  {
   nsCSSValue mWordWrap;
 private:
   nsCSSText(const nsCSSText& aOther); 
-};
-
-struct nsRuleDataText : public nsCSSText {
-  nsRuleDataText() {}
-private:
-  nsRuleDataText(const nsRuleDataText& aOther); 
 };
 
 struct nsCSSDisplay : public nsCSSStruct  {
@@ -227,13 +201,6 @@ struct nsCSSDisplay : public nsCSSStruct  {
   
 private:
   nsCSSDisplay(const nsCSSDisplay& aOther); 
-};
-
-struct nsRuleDataDisplay : public nsCSSDisplay {
-  nsCSSValue mLang;
-  nsRuleDataDisplay() {}
-private:
-  nsRuleDataDisplay(const nsRuleDataDisplay& aOther); 
 };
 
 struct nsCSSMargin : public nsCSSStruct  {
@@ -289,12 +256,6 @@ private:
   nsCSSMargin(const nsCSSMargin& aOther); 
 };
 
-struct nsRuleDataMargin : public nsCSSMargin {
-  nsRuleDataMargin() {}
-private:
-  nsRuleDataMargin(const nsRuleDataMargin& aOther); 
-};
-
 struct nsCSSPosition : public nsCSSStruct  {
   nsCSSPosition(void);
   ~nsCSSPosition(void);
@@ -312,12 +273,6 @@ private:
   nsCSSPosition(const nsCSSPosition& aOther); 
 };
 
-struct nsRuleDataPosition : public nsCSSPosition {
-  nsRuleDataPosition() {}
-private:
-  nsRuleDataPosition(const nsRuleDataPosition& aOther); 
-};
-
 struct nsCSSList : public nsCSSStruct  {
   nsCSSList(void);
   ~nsCSSList(void);
@@ -328,12 +283,6 @@ struct nsCSSList : public nsCSSStruct  {
   nsCSSValue mImageRegion;
 private:
   nsCSSList(const nsCSSList& aOther); 
-};
-
-struct nsRuleDataList : public nsCSSList {
-  nsRuleDataList() {}
-private:
-  nsRuleDataList(const nsRuleDataList& aOther); 
 };
 
 struct nsCSSTable : public nsCSSStruct  { 
@@ -348,14 +297,6 @@ struct nsCSSTable : public nsCSSStruct  {
   nsCSSValue mLayout;
 private:
   nsCSSTable(const nsCSSTable& aOther); 
-};
-
-struct nsRuleDataTable : public nsCSSTable {
-  nsRuleDataTable() {}
-  nsCSSValue mSpan; 
-  nsCSSValue mCols; 
-private:
-  nsRuleDataTable(const nsRuleDataTable& aOther); 
 };
 
 struct nsCSSBreaks : public nsCSSStruct  { 
@@ -373,12 +314,6 @@ private:
   nsCSSBreaks(const nsCSSBreaks& aOther); 
 };
 
-struct nsRuleDataBreaks : public nsCSSBreaks {
-  nsRuleDataBreaks() {}
-private:
-  nsRuleDataBreaks(const nsRuleDataBreaks& aOther); 
-};
-
 struct nsCSSPage : public nsCSSStruct  { 
   nsCSSPage(void);
   ~nsCSSPage(void);
@@ -387,12 +322,6 @@ struct nsCSSPage : public nsCSSStruct  {
   nsCSSValue mSize;
 private:
   nsCSSPage(const nsCSSPage& aOther); 
-};
-
-struct nsRuleDataPage : public nsCSSPage {
-  nsRuleDataPage() {}
-private:
-  nsRuleDataPage(const nsRuleDataPage& aOther); 
 };
 
 struct nsCSSContent : public nsCSSStruct  {
@@ -406,12 +335,6 @@ struct nsCSSContent : public nsCSSStruct  {
   nsCSSValue mQuotes;
 private:
   nsCSSContent(const nsCSSContent& aOther); 
-};
-
-struct nsRuleDataContent : public nsCSSContent {
-  nsRuleDataContent() {}
-private:
-  nsRuleDataContent(const nsRuleDataContent& aOther); 
 };
 
 struct nsCSSUserInterface : public nsCSSStruct  { 
@@ -429,12 +352,6 @@ struct nsCSSUserInterface : public nsCSSStruct  {
   nsCSSValue mWindowShadow;
 private:
   nsCSSUserInterface(const nsCSSUserInterface& aOther); 
-};
-
-struct nsRuleDataUserInterface : public nsCSSUserInterface {
-  nsRuleDataUserInterface() {}
-private:
-  nsRuleDataUserInterface(const nsRuleDataUserInterface& aOther); 
 };
 
 struct nsCSSAural : public nsCSSStruct  { 
@@ -462,12 +379,6 @@ private:
   nsCSSAural(const nsCSSAural& aOther); 
 };
 
-struct nsRuleDataAural : public nsCSSAural {
-  nsRuleDataAural() {}
-private:
-  nsRuleDataAural(const nsRuleDataAural& aOther); 
-};
-
 struct nsCSSXUL : public nsCSSStruct  {
   nsCSSXUL(void);
   ~nsCSSXUL(void);
@@ -483,12 +394,6 @@ private:
   nsCSSXUL(const nsCSSXUL& aOther); 
 };
 
-struct nsRuleDataXUL : public nsCSSXUL {
-  nsRuleDataXUL() {}
-private:
-  nsRuleDataXUL(const nsRuleDataXUL& aOther); 
-};
-
 struct nsCSSColumn : public nsCSSStruct  {
   nsCSSColumn(void);
   ~nsCSSColumn(void);
@@ -501,12 +406,6 @@ struct nsCSSColumn : public nsCSSStruct  {
   nsCSSValue  mColumnRuleStyle;
 private:
   nsCSSColumn(const nsCSSColumn& aOther); 
-};
-
-struct nsRuleDataColumn : public nsCSSColumn {
-  nsRuleDataColumn() {}
-private:
-  nsRuleDataColumn(const nsRuleDataColumn& aOther); 
 };
 
 struct nsCSSSVG : public nsCSSStruct {
@@ -545,12 +444,6 @@ struct nsCSSSVG : public nsCSSStruct {
   nsCSSValue mTextRendering;
 private:
   nsCSSSVG(const nsCSSSVG& aOther); 
-};
-
-struct nsRuleDataSVG : public nsCSSSVG {
-  nsRuleDataSVG() {}
-private:
-  nsRuleDataSVG(const nsRuleDataSVG& aOther); 
 };
 
 #endif 
