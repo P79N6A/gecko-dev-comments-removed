@@ -3935,10 +3935,13 @@ var FullScreen = {
     }
     else {
       
-      this._cancelAnimation();
+      window.mozCancelAnimationFrame(this._animationHandle);
+      this._animationHandle = 0;
+      clearTimeout(this._animationTimeout);
       gNavToolbox.style.marginTop = "";
       if (this._isChromeCollapsed)
         this.mouseoverToggle(true);
+      this._isAnimating = false;
       
       this._isPopupOpen = false;
 
@@ -3999,7 +4002,10 @@ var FullScreen = {
 
     
     
-    this._cancelAnimation();
+    clearInterval(this._animationInterval);
+    clearTimeout(this._animationTimeout);
+    this._isAnimating = false;
+    this._shouldAnimate = false;
     this.mouseoverToggle(false);
 
     
@@ -4144,22 +4150,17 @@ var FullScreen = {
 
     if (pos >= 1) {
       
-      this._cancelAnimation();
+      window.mozCancelAnimationFrame(this._animationHandle);
       gNavToolbox.style.marginTop = "";
+      this._animationHandle = 0;
+      this._isAnimating = false;
+      this._shouldAnimate = false; 
       this.mouseoverToggle(false);
       return;
     }
 
     gNavToolbox.style.marginTop = (gNavToolbox.boxObject.height * pos * -1) + "px";
     this._animationHandle = window.mozRequestAnimationFrame(this);
-  },
-
-  _cancelAnimation: function() {
-    window.mozCancelAnimationFrame(this._animationHandle);
-    this._animationHandle = 0;
-    clearTimeout(this._animationTimeout);
-    this._isAnimating = false;
-    this._shouldAnimate = false;
   },
 
   cancelWarning: function(event) {
@@ -5487,7 +5488,7 @@ function updateAppButtonDisplay() {
   document.getElementById("titlebar").hidden = !displayAppButton;
 
   if (displayAppButton)
-    document.documentElement.setAttribute("chromemargin", "0,-1,-1,-1");
+    document.documentElement.setAttribute("chromemargin", "0,2,2,2");
   else
     document.documentElement.removeAttribute("chromemargin");
 
