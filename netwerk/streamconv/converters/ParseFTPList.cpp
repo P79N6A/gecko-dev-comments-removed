@@ -1201,10 +1201,19 @@ int ParseFTPList(const char *line, struct list_state *state,
         
         
         
-        if (!is_old_Hellsoft)
-          result->fe_fname = tokens[tokmarker+3] + toklen[tokmarker+3] + 1;
-        else
-          result->fe_fname = tokens[tokmarker+4];
+        
+        
+        
+        
+        {
+          const char *date_start = tokens[tokmarker+1];
+          const char *date_end = tokens[tokmarker+3] + toklen[tokmarker+3];
+          if (!is_old_Hellsoft && ((date_end - date_start) == 12 ||
+              ((date_end - date_start) == 11 && date_end[1] == ' ')))
+            result->fe_fname = date_start + 13;
+          else
+            result->fe_fname = tokens[tokmarker+4];
+        }
 
         result->fe_fnlen = (&(line[linelen]))
                            - (result->fe_fname);
