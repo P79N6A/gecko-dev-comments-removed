@@ -82,89 +82,61 @@ _convert_coord_to_int (double coord, PRInt32 *v)
     return *v == coord;
 }
 
-static cairo_bool_t
-_intersect_interval (double a_begin, double a_end, double b_begin, double b_end,
-                     double *out_begin, double *out_end)
-{
-    *out_begin = a_begin;
-    if (*out_begin < b_begin) {
-        *out_begin = b_begin;
-    }
-    *out_end = a_end;
-    if (*out_end > b_end) {
-        *out_end = b_end;
-    }
-    return *out_begin < *out_end;
-}
-
-static cairo_bool_t
+static PRBool
 _get_rectangular_clip (cairo_t *cr,
                        const nsIntRect& bounds,
-                       cairo_bool_t *need_clip,
+                       PRBool *need_clip,
                        nsIntRect *rectangles, int max_rectangles,
                        int *num_rectangles)
 {
     cairo_rectangle_list_t *cliplist;
     cairo_rectangle_t *clips;
     int i;
-    double b_x = bounds.x;
-    double b_y = bounds.y;
-    double b_x_most = bounds.XMost();
-    double b_y_most = bounds.YMost();
-    int rect_count = 0;
-    cairo_bool_t retval = True;
+    PRBool retval = PR_TRUE;
 
     cliplist = cairo_copy_clip_rectangle_list (cr);
     if (cliplist->status != CAIRO_STATUS_SUCCESS) {
-        retval = False;
+        retval = PR_FALSE;
+        NATIVE_DRAWING_NOTE("TAKING SLOW PATH: non-rectangular clip\n");
         goto FINISH;
     }
 
-    if (cliplist->num_rectangles == 0) {
-        *num_rectangles = 0;
-        *need_clip = True;
-        goto FINISH;
-    }
-
+    
     clips = cliplist->rectangles;
 
     for (i = 0; i < cliplist->num_rectangles; ++i) {
-        double intersect_x, intersect_y, intersect_x_most, intersect_y_most;
         
-        
-        if (b_x >= clips[i].x && b_x_most <= clips[i].x + clips[i].width &&
-            b_y >= clips[i].y && b_y_most <= clips[i].y + clips[i].height) {
-            
-            *need_clip = False;
+        nsIntRect rect;
+        if (!_convert_coord_to_int (clips[i].x, &rect.x) ||
+            !_convert_coord_to_int (clips[i].y, &rect.y) ||
+            !_convert_coord_to_int (clips[i].width, &rect.width) ||
+            !_convert_coord_to_int (clips[i].height, &rect.height))
+        {
+            retval = PR_FALSE;
+            NATIVE_DRAWING_NOTE("TAKING SLOW PATH: non-integer clip\n");
             goto FINISH;
         }
-        
-        if (_intersect_interval (b_x, b_x_most, clips[i].x, clips[i].x + clips[i].width,
-                                 &intersect_x, &intersect_x_most) &&
-            _intersect_interval (b_y, b_y_most, clips[i].y, clips[i].y + clips[i].height,
-                                 &intersect_y, &intersect_y_most)) {
-            nsIntRect *rect = &rectangles[rect_count];
 
-            if (rect_count >= max_rectangles) {
-                retval = False;
-                goto FINISH;
-            }
+        if (rect == bounds) {
+            
+            *need_clip = PR_FALSE;
+            goto FINISH;
+        }            
 
-            if (!_convert_coord_to_int (intersect_x, &rect->x) ||
-                !_convert_coord_to_int (intersect_y, &rect->y) ||
-                !_convert_coord_to_int (intersect_x_most - intersect_x, &rect->width) ||
-                !_convert_coord_to_int (intersect_y_most - intersect_y, &rect->height))
-            {
-                retval = False;
-                goto FINISH;
-            }
+        NS_ASSERTION(bounds.Contains(rect),
+                     "Was expecting to be clipped to bounds");
 
-            ++rect_count;
+        if (i >= max_rectangles) {
+            retval = PR_FALSE;
+            NATIVE_DRAWING_NOTE("TAKING SLOW PATH: unsupported clip rectangle count\n");
+            goto FINISH;
         }
+
+        rectangles[i] = rect;
     }
   
-    *need_clip = True;
-    *num_rectangles = rect_count;
+    *need_clip = PR_TRUE;
+    *num_rectangles = cliplist->num_rectangles;
 
 FINISH:
     cairo_rectangle_list_destroy (cliplist);
@@ -179,70 +151,12 @@ FINISH:
 
 
 PRBool
-gfxXlibNativeRenderer::DrawDirect(gfxContext *ctx, nsIntSize bounds,
+gfxXlibNativeRenderer::DrawDirect(gfxContext *ctx, nsIntSize size,
                                   PRUint32 flags,
                                   Screen *screen, Visual *visual)
 {
-    cairo_surface_t *target;
-    cairo_matrix_t matrix;
-    cairo_bool_t needs_clip;
-    nsIntRect rectangles[MAX_STATIC_CLIP_RECTANGLES];
-    int rect_count;
-    double device_offset_x, device_offset_y;
-    int max_rectangles;
-    cairo_bool_t have_rectangular_clip;
-
     cairo_t *cr = ctx->GetCairo();
-    target = cairo_get_group_target (cr);
-    cairo_surface_get_device_offset (target, &device_offset_x, &device_offset_y);
-    cairo_get_matrix (cr, &matrix);
-    
-    
-    
-    if (matrix.xx != 1.0 || matrix.yy != 1.0 || matrix.xy != 0.0 || matrix.yx != 0.0) {
-        NATIVE_DRAWING_NOTE("TAKING SLOW PATH: matrix not a pure translation\n");
-        return PR_FALSE;
-    }
-    
 
-    nsIntPoint offset;
-    if (!_convert_coord_to_int (matrix.x0 + device_offset_x, &offset.x) ||
-        !_convert_coord_to_int (matrix.y0 + device_offset_y, &offset.y)) {
-        NATIVE_DRAWING_NOTE("TAKING SLOW PATH: non-integer offset\n");
-        return PR_FALSE;
-    }
-    
-    max_rectangles = 0;
-    if (flags & DRAW_SUPPORTS_CLIP_RECT) {
-      max_rectangles = 1;
-    }
-    if (flags & DRAW_SUPPORTS_CLIP_LIST) {
-      max_rectangles = MAX_STATIC_CLIP_RECTANGLES;
-    }
-    
-    
-    
-
-
-    cairo_identity_matrix (cr);
-    cairo_translate (cr, -device_offset_x, -device_offset_y);
-    have_rectangular_clip =
-        _get_rectangular_clip (cr,
-                               nsIntRect(offset, bounds),
-                               &needs_clip,
-                               rectangles, max_rectangles, &rect_count);
-    cairo_set_matrix (cr, &matrix);
-    if (!have_rectangular_clip) {
-        NATIVE_DRAWING_NOTE("TAKING SLOW PATH: unsupported clip\n");
-        return PR_FALSE;
-    }
-
-    
-    if (needs_clip && rect_count == 0) {
-        NATIVE_DRAWING_NOTE("TAKING FAST PATH: all clipped\n");
-        return PR_TRUE;
-    }
-      
     
     if (cairo_get_operator (cr) != CAIRO_OPERATOR_OVER) {
         NATIVE_DRAWING_NOTE("TAKING SLOW PATH: non-OVER operator\n");
@@ -250,8 +164,7 @@ gfxXlibNativeRenderer::DrawDirect(gfxContext *ctx, nsIntSize bounds,
     }
     
     
-
-
+    cairo_surface_t *target = cairo_get_group_target (cr);
     if (cairo_surface_get_type (target) != CAIRO_SURFACE_TYPE_XLIB) {
         NATIVE_DRAWING_NOTE("TAKING SLOW PATH: non-X surface\n");
         return PR_FALSE;
@@ -290,6 +203,57 @@ gfxXlibNativeRenderer::DrawDirect(gfxContext *ctx, nsIntSize bounds,
         }
     }
   
+    cairo_matrix_t matrix;
+    cairo_get_matrix (cr, &matrix);
+    double device_offset_x, device_offset_y;
+    cairo_surface_get_device_offset (target, &device_offset_x, &device_offset_y);
+
+    
+
+
+    NS_ASSERTION(PRUint32(device_offset_x) == device_offset_x &&
+                 PRUint32(device_offset_y) == device_offset_y,
+                 "Expected integer device offsets");
+    nsIntPoint offset(NS_lroundf(matrix.x0 + device_offset_x),
+                      NS_lroundf(matrix.y0 + device_offset_y));
+    
+    int max_rectangles = 0;
+    if (flags & DRAW_SUPPORTS_CLIP_RECT) {
+      max_rectangles = 1;
+    }
+    if (flags & DRAW_SUPPORTS_CLIP_LIST) {
+      max_rectangles = MAX_STATIC_CLIP_RECTANGLES;
+    }
+
+    
+
+    nsIntRect bounds(offset, size);
+    bounds.IntersectRect(bounds,
+                         nsIntRect(0, 0,
+                                   cairo_xlib_surface_get_width(target),
+                                   cairo_xlib_surface_get_height(target)));
+
+    PRBool needs_clip;
+    nsIntRect rectangles[MAX_STATIC_CLIP_RECTANGLES];
+    int rect_count;
+
+    
+    
+
+
+    cairo_identity_matrix (cr);
+    cairo_translate (cr, -device_offset_x, -device_offset_y);
+    PRBool have_rectangular_clip =
+        _get_rectangular_clip (cr, bounds, &needs_clip,
+                               rectangles, max_rectangles, &rect_count);
+    cairo_set_matrix (cr, &matrix);
+    if (!have_rectangular_clip)
+        return PR_FALSE;
+
+    
+    NS_ASSERTION(!needs_clip || rect_count != 0,
+                 "Where did the clip region go?");
+      
     
     NATIVE_DRAWING_NOTE("TAKING FAST PATH\n");
     cairo_surface_flush (target);
@@ -360,21 +324,13 @@ _create_temp_xlib_surface (cairo_t *cr, nsIntSize size,
 
 PRBool
 gfxXlibNativeRenderer::DrawOntoTempSurface(gfxXlibSurface *tempXlibSurface,
-                                           double background_gray_value)
+                                           nsIntPoint offset)
 {
     cairo_surface_t *temp_xlib_surface = tempXlibSurface->CairoSurface();
-
-    cairo_t *cr = cairo_create (temp_xlib_surface);
-    cairo_set_source_rgb (cr, background_gray_value, background_gray_value,
-                          background_gray_value);
-    cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
-    cairo_paint (cr);
-    cairo_destroy (cr);
-    
     cairo_surface_flush (temp_xlib_surface);
     
 
-    nsresult rv = DrawWithXlib(tempXlibSurface, nsIntPoint(0, 0), NULL, 0);
+    nsresult rv = DrawWithXlib(tempXlibSurface, offset, NULL, 0);
     cairo_surface_mark_dirty (temp_xlib_surface);
     return NS_SUCCEEDED(rv);
 }
@@ -501,29 +457,77 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
         result->mUniformColor = PR_FALSE;
     }
     
+    PRBool matrixIsIntegerTranslation =
+        !ctx->CurrentMatrix().HasNonIntegerTranslation();
+
     
+    
+    const gfxFloat filterRadius = 0.5;
+    gfxRect affectedRect(0.0, 0.0, size.width, size.height);
+    if (!matrixIsIntegerTranslation) {
+        
+        
+        affectedRect.Outset(filterRadius);
 
+        NATIVE_DRAWING_NOTE("TAKING SLOW PATH: matrix not integer translation\n");
+    }
+    
+    
+    gfxRect clipExtents;
+    {
+        gfxContextAutoSaveRestore autoSR(ctx);
+        ctx->Clip(affectedRect);
 
-    if (size.width == 0 || size.height == 0)
-        return;
+        clipExtents = ctx->GetClipExtents();
+        if (clipExtents.IsEmpty())
+            return; 
 
-    if (DrawDirect(ctx, size, flags, screen, visual))
-        return;
+        if (matrixIsIntegerTranslation &&
+            DrawDirect(ctx, size, flags, screen, visual))
+            return;
+    }
+
+    nsIntRect drawingRect(nsIntPoint(0, 0), size);
+    PRBool drawIsOpaque = (flags & DRAW_IS_OPAQUE) != 0;
+    if (drawIsOpaque || !result) {
+        
+        
+        if (!matrixIsIntegerTranslation) {
+            
+            
+            clipExtents.Outset(filterRadius);
+        }
+        clipExtents.RoundOut();
+
+        nsIntRect intExtents(PRInt32(clipExtents.X()),
+                             PRInt32(clipExtents.Y()),
+                             PRInt32(clipExtents.Width()),
+                             PRInt32(clipExtents.Height()));
+        drawingRect.IntersectRect(drawingRect, intExtents);
+    }
+    gfxPoint offset(drawingRect.x, drawingRect.y);
 
     cairo_t *cr = ctx->GetCairo();
     nsRefPtr<gfxXlibSurface> tempXlibSurface = 
-        _create_temp_xlib_surface (cr, size, flags, screen, visual);
+        _create_temp_xlib_surface (cr, drawingRect.Size(),
+                                   flags, screen, visual);
     if (tempXlibSurface == NULL)
         return;
   
-    if (!DrawOntoTempSurface(tempXlibSurface, 0.0)) {
+    nsRefPtr<gfxContext> tmpCtx;
+    if (!drawIsOpaque) {
+        tmpCtx = new gfxContext(tempXlibSurface);
+        tmpCtx->SetOperator(gfxContext::OPERATOR_CLEAR);
+        tmpCtx->Paint();
+    }
+
+    if (!DrawOntoTempSurface(tempXlibSurface, -drawingRect.TopLeft())) {
         return;
     }
   
-    if (flags & DRAW_IS_OPAQUE) {
-        cairo_set_source_surface (cr, tempXlibSurface->CairoSurface(),
-                                  0.0, 0.0);
-        cairo_paint (cr);
+    if (drawIsOpaque) {
+        ctx->SetSource(tempXlibSurface, offset);
+        ctx->Paint();
         if (result) {
             result->mSurface = tempXlibSurface;
             
@@ -534,13 +538,16 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
         return;
     }
     
-    int width = size.width;
-    int height = size.height;
+    int width = drawingRect.width;
+    int height = drawingRect.height;
     black_image_surface =
         _copy_xlib_surface_to_image (tempXlibSurface, CAIRO_FORMAT_ARGB32,
                                      width, height, &black_data);
     
-    DrawOntoTempSurface(tempXlibSurface, 1.0);
+    tmpCtx->SetDeviceColor(gfxRGBA(1.0, 1.0, 1.0));
+    tmpCtx->SetOperator(gfxContext::OPERATOR_SOURCE);
+    tmpCtx->Paint();
+    DrawOntoTempSurface(tempXlibSurface, -drawingRect.TopLeft());
     white_image_surface =
         _copy_xlib_surface_to_image (tempXlibSurface, CAIRO_FORMAT_RGB24,
                                      width, height, &white_data);
@@ -554,7 +561,7 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
         _compute_alpha_values ((uint32_t*)black_data, (uint32_t*)white_data, width, height, result);
         cairo_surface_mark_dirty (black_image_surface);
         
-        cairo_set_source_surface (cr, black_image_surface, 0.0, 0.0);
+        cairo_set_source_surface (cr, black_image_surface, offset.x, offset.y);
         
 
 

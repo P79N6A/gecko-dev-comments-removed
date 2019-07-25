@@ -63,6 +63,12 @@ public:
 
 
 
+
+
+
+
+
+
     virtual nsresult DrawWithXlib(gfxXlibSurface* surface,
                                   nsIntPoint offset,
                                   nsIntRect* clipRects, PRUint32 numClipRects) = 0;
@@ -116,7 +122,7 @@ private:
                       PRUint32 flags, Screen *screen, Visual *visual);
 
     PRBool DrawOntoTempSurface(gfxXlibSurface *tempXlibSurface,
-                               double background_gray_value);
+                               nsIntPoint offset);
 
 };
 
