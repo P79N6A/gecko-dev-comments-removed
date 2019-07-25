@@ -53,21 +53,27 @@ let SyncScheduler = {
   _log: Log4Moz.repository.getLogger("Sync.SyncScheduler"),
 
   
-  
-  idle: true,
 
-  hasIncomingItems: false,
-  
-  numClients: 0,
 
-  nextSync: 0,
-  syncInterval: SINGLE_USER_SYNC,
-  syncThreshold: SINGLE_USER_THRESHOLD,
-	
+  syncTimer: null,
+
+  setDefaults: function setDefaults() {
+    
+    this.idle = false;
+
+    this.hasIncomingItems = false;
+    this.numClients = 0;
+
+    this.nextSync = 0,
+    this.syncInterval = SINGLE_USER_SYNC;
+    this.syncThreshold = SINGLE_USER_THRESHOLD;
+  },
+
   get globalScore() Svc.Prefs.get("globalScore", 0),
   set globalScore(value) Svc.Prefs.set("globalScore", value),
 
   init: function init() {
+    this.setDefaults();
     Svc.Obs.add("weave:engine:score:updated", this);
     Svc.Obs.add("network:offline-status-changed", this);
     Svc.Obs.add("weave:service:sync:start", this);
@@ -150,12 +156,17 @@ let SyncScheduler = {
         break;
       case "idle":
         this.idle = true;
-        adjustSyncInterval();
+        
+        
+        
+        this.adjustSyncInterval();
         break;
       case "back":
-        Utils.nextTick(Weave.Service.sync, Weave.Service);
         this.idle = false;
-        adjustSyncInterval();
+        
+        if (this.numClients > 1) {
+          Utils.nextTick(Weave.Service.sync, Weave.Service);
+        }
         break;
     }
   },
@@ -284,7 +295,7 @@ let SyncScheduler = {
     }
 
     this._log.trace("Next sync in " + Math.ceil(interval / 1000) + " sec.");
-    Utils.namedTimer(this._syncIfMPUnlocked, interval, this, "_syncTimer");
+    Utils.namedTimer(this._syncIfMPUnlocked, interval, this, "syncTimer");
 
     
     this.nextSync = Date.now() + interval;
@@ -334,8 +345,8 @@ let SyncScheduler = {
     this._log.debug("Clearing sync triggers.");
 
     
-    if (this._syncTimer)
-      this._syncTimer.clear();
+    if (this.syncTimer)
+      this.syncTimer.clear();
   }
 
 };
