@@ -585,27 +585,9 @@ const gPopupBlockerObserver = {
 
   dontShowMessage: function ()
   {
-#if 0 
-    
     var showMessage = gPrefService.getBoolPref("privacy.popups.showBrowserMessage");
-    var firstTime = gPrefService.getBoolPref("privacy.popups.firstTime");
-
-    
-    
-    
-    if (showMessage && firstTime)
-      this._displayPageReportFirstTime();
-
     gPrefService.setBoolPref("privacy.popups.showBrowserMessage", !showMessage);
-#endif
-
     gBrowser.getNotificationBox().removeCurrentNotification();
-  },
-
-  _displayPageReportFirstTime: function ()
-  {
-    window.openDialog("chrome://browser/content/pageReportFirstTime.xul", "_blank",
-                      "dependent");
   }
 };
 

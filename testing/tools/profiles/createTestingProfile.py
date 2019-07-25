@@ -5,9 +5,9 @@ import shutil
 from subprocess import Popen,PIPE
 import sys
 
-
-
-
+# If you are adding prefs that require string values (rather than true/false),
+# be sure to wrap the string value in quotes, e.g.:
+# 'browser.active_color': '"#EE0000"',
 userPrefs = {
     'browser.chrome.favicons': 'false',
     'browser.chrome.site_icons': 'false',
@@ -22,7 +22,6 @@ userPrefs = {
     'dom.disable_window_move_resize': 'false',
     'layout.fire_onload_after_image_background_loads': 'true',
     'javascript.options.showInConsole': 'true',
-    'privacy.popups.firstTime': 'false',
     'layout.debug.enable_data_xbl': 'true',
     'shell.checkDefaultClient': 'false',
     'browser.EULA.override': 'true'
@@ -90,8 +89,8 @@ def main(argv):
     if not profileLocation or not os.path.exists(profileLocation):
         print "Couldn't find profile location"
         sys.exit(2)
-    
-    
+    # Delete the existing profile directory if clobber is requested.
+    # -CreateProfile will re-create it in the right place.
     if clobber:
         dirname = os.path.dirname(profileLocation)
         shutil.rmtree(dirname)
