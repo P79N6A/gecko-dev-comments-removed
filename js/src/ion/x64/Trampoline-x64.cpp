@@ -482,8 +482,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     
-    GeneralRegisterSet regs =
-        GeneralRegisterSet::Not(GeneralRegisterSet(Register::Codes::VolatileMask));
+    GeneralRegisterSet regs = GeneralRegisterSet(Register::Codes::WrapperMask);
 
     
     
@@ -501,7 +500,8 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     
     Register argsBase = InvalidReg;
     if (f.explicitArgs) {
-        argsBase = regs.takeAny();
+        argsBase = r10;
+        regs.take(r10);
         masm.lea(Operand(rsp, sizeof(IonExitFrameLayout) + sizeof(uintptr_t)), argsBase);
     }
 

@@ -545,10 +545,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     MacroAssembler masm;
-    GeneralRegisterSet regs =
-        GeneralRegisterSet::Not(GeneralRegisterSet(Register::Codes::VolatileMask));
-
-    regs.take(r4);
+    GeneralRegisterSet regs = GeneralRegisterSet(Register::Codes::WrapperMask);
 
     
     
@@ -559,13 +556,16 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     masm.linkExitFrame();
 
     
-    masm.ma_mov(lr, r4);
+    Register savedRetAddr = r4;
+    regs.take(savedRetAddr);
+    masm.ma_mov(lr, savedRetAddr);
 
     
     Register argsBase = InvalidReg;
     uint32 argumentPadding = (f.explicitStackSlots() * sizeof(void *)) % StackAlignment;
     if (f.explicitArgs) {
-        argsBase = regs.takeAny();
+        argsBase = r5;
+        regs.take(argsBase);
         masm.ma_add(sp, Imm32(sizeof(IonExitFrameLayout) + argumentPadding), argsBase);
     }
 
@@ -580,6 +580,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     
     masm.setupAlignedABICall(f.argc());
 
+    
     
     Register cxreg = r0;
     masm.movePtr(ImmWord(JS_THREAD_DATA(cx)), cxreg);
@@ -637,7 +638,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     
     
     Label invalidated;
-    masm.ma_cmp(r4, Operand(sp, 0));
+    masm.ma_cmp(savedRetAddr, Operand(sp, 0));
     masm.ma_b(&invalidated, Assembler::NotEqual);
 
     masm.retn(Imm32(sizeof(IonExitFrameLayout) + argumentPadding +

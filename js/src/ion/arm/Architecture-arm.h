@@ -141,6 +141,12 @@ class Registers
         (1 << Registers::r12) |
         (1 << Registers::r14);
 
+    static const uint32 WrapperMask =
+        VolatileMask |         
+        (1 << Registers::r4) | 
+        (1 << Registers::r5);  
+    JS_STATIC_ASSERT(WrapperMask > ArgRegMask);
+
     static const uint32 SingleByteRegs =
         VolatileMask | NonVolatileMask;
     
@@ -226,6 +232,8 @@ class FloatRegisters
 
     static const uint32 VolatileMask = AllMask;
     static const uint32 NonVolatileMask = 0;
+
+    static const uint32 WrapperMask = VolatileMask;
 
     static const uint32 NonAllocatableMask =
         
