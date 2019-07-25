@@ -238,6 +238,10 @@ class ExceptionHandler {
   void RegisterAppMemory(void *ptr, size_t length);
   void UnregisterAppMemory(void *ptr);
 
+  
+  
+  static LONG WINAPI HandleException(EXCEPTION_POINTERS* exinfo);
+
  private:
   friend class AutoExceptionHandler;
 
@@ -267,10 +271,6 @@ class ExceptionHandler {
 
   
   static DWORD WINAPI ExceptionHandlerThreadMain(void* lpParameter);
-
-  
-  
-  static LONG WINAPI HandleException(EXCEPTION_POINTERS* exinfo);
 
 #if _MSC_VER >= 1400  
   
