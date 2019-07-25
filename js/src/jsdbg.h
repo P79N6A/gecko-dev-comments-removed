@@ -74,6 +74,7 @@ class Debugger {
     bool hasDebuggerHandler;            
     bool hasThrowHandler;               
     bool hasNewScriptHandler;           
+    bool hasEnterFrameHandler;          
 
     JSCList breakpoints;                
 
@@ -159,7 +160,8 @@ class Debugger {
 
     inline bool hasAnyLiveHooks() const;
 
-    static void slowPathLeaveStackFrame(JSContext *cx);
+    static void slowPathOnEnterFrame(JSContext *cx);
+    static void slowPathOnLeaveFrame(JSContext *cx);
     static void slowPathOnNewScript(JSContext *cx, JSScript *script, JSObject *obj,
                                     NewScriptKind kind);
     static void slowPathOnDestroyScript(JSScript *script);
@@ -176,6 +178,8 @@ class Debugger {
     bool observesThrow() const;
     JSTrapStatus handleThrow(JSContext *cx, Value *vp);
 
+    void handleEnterFrame(JSContext *cx);
+
     
     
     
@@ -184,6 +188,7 @@ class Debugger {
     
     JSObject *wrapHeldScript(JSContext *cx, JSScript *script, JSObject *obj);
 
+    
     
     
     
@@ -227,7 +232,8 @@ class Debugger {
     static void detachAllDebuggersFromGlobal(JSContext *cx, GlobalObject *global,
                                              GlobalObjectSet::Enum *compartmentEnum);
 
-    static inline void leaveStackFrame(JSContext *cx);
+    static inline void onEnterFrame(JSContext *cx);
+    static inline void onLeaveFrame(JSContext *cx);
     static inline JSTrapStatus onDebuggerStatement(JSContext *cx, js::Value *vp);
     static inline JSTrapStatus onThrow(JSContext *cx, js::Value *vp);
     static inline void onNewScript(JSContext *cx, JSScript *script, JSObject *obj,
@@ -237,6 +243,7 @@ class Debugger {
 
     
 
+    inline bool observesEnterFrame() const;
     inline bool observesNewScript() const;
     inline bool observesScope(JSObject *obj) const;
     inline bool observesFrame(StackFrame *fp) const;
@@ -366,6 +373,7 @@ Debugger::hasAnyLiveHooks() const
     return enabled && (hasDebuggerHandler ||
                        hasThrowHandler ||
                        hasNewScriptHandler ||
+                       hasEnterFrameHandler ||
                        !JS_CLIST_IS_EMPTY(&breakpoints));
 }
 
@@ -400,6 +408,12 @@ Debugger::fromJSObject(JSObject *obj)
 }
 
 bool
+Debugger::observesEnterFrame() const
+{
+    return enabled && hasEnterFrameHandler;
+}
+
+bool
 Debugger::observesNewScript() const
 {
     return enabled && hasNewScriptHandler;
@@ -418,10 +432,17 @@ Debugger::observesFrame(StackFrame *fp) const
 }
 
 void
-Debugger::leaveStackFrame(JSContext *cx)
+Debugger::onEnterFrame(JSContext *cx)
+{
+    if (!cx->compartment->getDebuggees().empty())
+        slowPathOnEnterFrame(cx);
+}
+
+void
+Debugger::onLeaveFrame(JSContext *cx)
 {
     if (!cx->compartment->getDebuggees().empty() || !cx->compartment->breakpointSites.empty())
-        slowPathLeaveStackFrame(cx);
+        slowPathOnLeaveFrame(cx);
 }
 
 JSTrapStatus
