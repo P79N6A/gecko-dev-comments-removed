@@ -830,6 +830,38 @@ var BrowserApp = {
 
       
       
+      let focusedRect = focused.getBoundingClientRect();
+      let visibleContentWidth = tab._viewport.width / tab._viewport.zoom;
+      let visibleContentHeight = tab._viewport.height / tab._viewport.zoom;
+
+      let positionChanged = false;
+      let scrollX = win.scrollX;
+      let scrollY = win.scrollY;
+
+      if (focusedRect.right >= visibleContentWidth && focusedRect.left > 0) {
+        
+        scrollX += Math.min(focusedRect.left, focusedRect.right - visibleContentWidth);
+        positionChanged = true;
+      } else if (focusedRect.left < 0) {
+        
+        scrollX += focusedRect.left;
+        positionChanged = true;
+      }
+      if (focusedRect.bottom >= visibleContentHeight && focusedRect.top > 0) {
+        
+        scrollY += Math.min(focusedRect.top, focusedRect.bottom - visibleContentHeight);
+        positionChanged = true;
+      } else if (focusedRect.top < 0) {
+        
+        scrollY += focusedRect.top;
+        positionChanged = true;
+      }
+
+      if (positionChanged)
+        win.scrollTo(scrollX, scrollY);
+
+      
+      
       tab.userScrollPos.x = win.scrollX;
       tab.userScrollPos.y = win.scrollY;
 
