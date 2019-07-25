@@ -219,7 +219,7 @@ struct ParamTraits<unsigned long> {
   }
 };
 
-#if !(defined(OS_MACOSX) || (defined(CHROMIUM_MOZILLA_BUILD) && (defined(OS_LINUX) || defined(OS_WIN)) && defined(ARCH_CPU_64_BITS)))
+#if !(defined(OS_MACOSX) || defined(OS_WIN) || (defined(CHROMIUM_MOZILLA_BUILD) && defined(OS_LINUX) && defined(ARCH_CPU_64_BITS)))
 
 template <>
 struct ParamTraits<size_t> {
