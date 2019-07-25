@@ -57,10 +57,10 @@ pref("extensions.logging.enabled", false);
 
 pref("extensions.getAddons.cache.enabled", true);
 pref("extensions.getAddons.maxResults", 15);
-pref("extensions.getAddons.get.url", "https://services.addons.mozilla.org/%LOCALE%/firefox/api/%API_VERSION%/search/guid:%IDS%?src=firefox&appOS=%OS%&appVersion=%VERSION%&tMain=%TIME_MAIN%&tFirstPaint=%TIME_FIRST_PAINT%&tSessionRestored=%TIME_SESSION_RESTORED%");
-pref("extensions.getAddons.search.browseURL", "https://addons.mozilla.org/%LOCALE%/firefox/search?q=%TERMS%");
-pref("extensions.getAddons.search.url", "https://services.addons.mozilla.org/%LOCALE%/firefox/api/%API_VERSION%/search/%TERMS%/all/%MAX_RESULTS%/%OS%/%VERSION%?src=firefox");
-pref("extensions.webservice.discoverURL", "https://services.addons.mozilla.org/%LOCALE%/firefox/discovery/pane/%VERSION%/%OS%");
+pref("extensions.getAddons.get.url", "https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/search/guid:%IDS%?src=firefox&appOS=%OS%&appVersion=%VERSION%&tMain=%TIME_MAIN%&tFirstPaint=%TIME_FIRST_PAINT%&tSessionRestored=%TIME_SESSION_RESTORED%");
+pref("extensions.getAddons.search.browseURL", "https://addons.mozilla.org/%LOCALE%/%APP%/search?q=%TERMS%");
+pref("extensions.getAddons.search.url", "https://services.addons.mozilla.org/%LOCALE%/%APP%/api/%API_VERSION%/search/%TERMS%/all/%MAX_RESULTS%/%OS%/%VERSION%?src=firefox");
+pref("extensions.webservice.discoverURL", "https://services.addons.mozilla.org/%LOCALE%/%APP%/discovery/pane/%VERSION%/%OS%");
 
 
 pref("extensions.blocklist.enabled", true);
@@ -74,11 +74,12 @@ pref("extensions.blocklist.detailsURL", "https://www.mozilla.com/%LOCALE%/blockl
 pref("extensions.update.autoUpdateDefault", true);
 
 
-pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/firefox/dictionaries/");
+pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/%APP%/dictionaries/");
 
 
 
-pref("app.update.timerMinimumDelay", 120);
+
+pref("app.update.timer", 600000);
 
 
 
@@ -199,7 +200,7 @@ pref("extensions.update.url", "https://versioncheck.addons.mozilla.org/update/Ve
 pref("extensions.update.interval", 86400);  
                                             
 
-pref("extensions.getMoreThemesURL", "https://addons.mozilla.org/%LOCALE%/firefox/getpersonas");
+pref("extensions.getMoreThemesURL", "https://addons.mozilla.org/%LOCALE%/%APP%/getpersonas");
 pref("extensions.dss.enabled", false);          
 pref("extensions.dss.switchPending", false);    
                                                 
@@ -299,8 +300,6 @@ pref("browser.urlbar.match.url", "@");
 
 pref("browser.urlbar.default.behavior", 0);
 
-pref("browser.urlbar.formatting.enabled", true);
-
 
 
 
@@ -309,7 +308,12 @@ pref("browser.download.saveLinkAsFilenameTimeout", 1000);
 
 pref("browser.download.useDownloadDir", true);
 
+#ifdef WINCE
+pref("browser.download.folderList", 2);
+pref("browser.download.dir", "\\Storage Card");
+#else
 pref("browser.download.folderList", 1);
+#endif
 pref("browser.download.manager.showAlertOnComplete", true);
 pref("browser.download.manager.showAlertInterval", 2000);
 pref("browser.download.manager.retention", 2);
@@ -323,7 +327,7 @@ pref("browser.download.manager.scanWhenDone", true);
 pref("browser.download.manager.resumeOnWakeDelay", 10000);
 
 
-pref("browser.search.searchEnginesURL",      "https://addons.mozilla.org/%LOCALE%/firefox/search-engines/");
+pref("browser.search.searchEnginesURL",      "https://addons.mozilla.org/%LOCALE%/%APP%/search-engines/");
 
 
 pref("browser.search.defaultenginename",      "chrome://browser-region/locale/region.properties");
@@ -349,6 +353,10 @@ pref("browser.search.update.log", false);
 pref("browser.search.update.interval", 21600);
 
 
+pref("browser.microsummary.enabled", true);
+pref("browser.microsummary.updateGenerators", true);
+
+
 pref("browser.search.suggest.enabled", true);
 
 pref("browser.sessionhistory.max_entries", 50);
@@ -363,7 +371,11 @@ pref("browser.link.open_newwindow", 3);
 pref("browser.link.open_newwindow.restriction", 2);
 
 
+#ifndef WINCE
 pref("browser.tabs.autoHide", false);
+#else
+pref("browser.tabs.autoHide", true);
+#endif
 pref("browser.tabs.closeWindowWithLastTab", true);
 pref("browser.tabs.insertRelatedAfterCurrent", true);
 pref("browser.tabs.warnOnClose", true);
@@ -411,6 +423,11 @@ pref("dom.disable_open_during_load",              true);
 pref("javascript.options.showInConsole",          true);
 #ifdef DEBUG
 pref("general.warnOnAboutConfig",                 false);
+#endif
+
+#ifdef WINCE
+
+pref("dom.max_script_run_time",                   20);
 #endif
 
 
@@ -712,8 +729,8 @@ pref("browser.safebrowsing.provider.0.reportMalwareURL", "http://{moz:locale}.ma
 pref("browser.safebrowsing.provider.0.reportMalwareErrorURL", "http://{moz:locale}.malware-error.mozilla.com/?hl={moz:locale}");
 
 
-pref("browser.safebrowsing.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/phishing-protection/");
-pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/geolocation/");
+pref("browser.safebrowsing.warning.infoURL", "http://www.mozilla.com/%LOCALE%/%APP%/phishing-protection/");
+pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/%APP%/geolocation/");
 
 
 
@@ -758,7 +775,11 @@ pref("browser.rights.3.shown", false);
 pref("browser.rights.override", true);
 #endif
 
+#ifdef WINCE
+pref("browser.sessionstore.resume_from_crash", false);
+#else
 pref("browser.sessionstore.resume_from_crash", true);
+#endif
 pref("browser.sessionstore.resume_session_once", false);
 
 
@@ -859,7 +880,7 @@ pref("browser.zoom.updateBackgroundTabs", true);
 pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 
 
-pref("app.support.baseURL", "http://support.mozilla.com/1/firefox/%VERSION%/%OS%/%LOCALE%/");
+pref("app.support.baseURL", "http://support.mozilla.com/1/%APP%/%VERSION%/%OS%/%LOCALE%/");
 
 
 pref("security.alternate_certificate_error_page", "certerror");
@@ -878,6 +899,39 @@ pref("browser.bookmarks.editDialog.firstEditField", "namePicker");
 pref("geo.wifi.uri", "https://www.google.com/loc/json");
 pref("geo.wifi.protocol", 0);
 
+#ifdef WINCE
+
+
+pref("browser.urlbar.delay", 250);
+
+
+pref("browser.safebrowsing.enabled", false);
+pref("browser.safebrowsing.malware.enabled", false);
+
+
+pref("browser.shell.checkDefaultBrowser", false);
+
+
+pref("browser.sessionhistory.max_total_viewers", 0);
+
+pref("browser.sessionhistory.optimize_eviction", false);
+
+
+pref("content.sink.interactive_deflect_count", 10); 
+pref("content.sink.perf_deflect_count", 50); 
+pref("content.sink.interactive_parse_time", 5000); 
+pref("content.sink.perf_parse_time", 150000); 
+pref("content.sink.pending_event_mode", 0); 
+pref("content.sink.event_probe_rate", 1); 
+pref("content.sink.interactive_time", 750000); 
+pref("content.sink.initial_perf_time", 500000); 
+pref("content.sink.enable_perf_mode", 0); 
+
+
+pref("browser.sessionstore.interval", 60000);
+
+#endif 
+
 
 #ifdef XP_MACOSX
 pref("toolbar.customization.usesheet", true);
@@ -892,7 +946,6 @@ pref("toolbar.customization.usesheet", false);
 pref("dom.ipc.plugins.enabled.i386", false);
 pref("dom.ipc.plugins.enabled.i386.flash player.plugin", true);
 pref("dom.ipc.plugins.enabled.i386.javaplugin2_npapi.plugin", true);
-pref("dom.ipc.plugins.enabled.i386.javaappletplugin.plugin", true);
 
 pref("dom.ipc.plugins.enabled.x86_64", true);
 #else
@@ -900,6 +953,7 @@ pref("dom.ipc.plugins.enabled", true);
 #endif
 
 #ifdef XP_WIN
+#ifndef WINCE
 pref("browser.taskbar.previews.enable", false);
 pref("browser.taskbar.previews.max", 20);
 pref("browser.taskbar.previews.cachetime", 5);
@@ -909,6 +963,7 @@ pref("browser.taskbar.lists.recent.enabled", false);
 pref("browser.taskbar.lists.maxListItemCount", 7);
 pref("browser.taskbar.lists.tasks.enabled", true);
 pref("browser.taskbar.lists.refreshInSeconds", 120);
+#endif
 #endif
 
 #ifdef MOZ_SERVICES_SYNC
@@ -991,6 +1046,9 @@ pref("services.sync.prefs.sync.xpinstall.whitelist.required", true);
 
 pref("devtools.errorconsole.enabled", false);
 pref("devtools.inspector.enabled", false);
+
+
+pref("devtools.workspace.enabled", true);
 
 
 

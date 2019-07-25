@@ -5518,6 +5518,18 @@ HeadsUpDisplayUICommands = {
 
 
 
+  getOpenHUD: function UIC_getOpenHUD() {
+    let chromeWindow = HUDService.currentContext();
+    let contentWindow = chromeWindow.gBrowser.selectedBrowser.contentWindow;
+    return HUDService.getHudIdByWindow(contentWindow);
+  },
+
+  
+
+
+
+
+
 
 
   toggleFilter: function UIC_toggleFilter(aEvent) {

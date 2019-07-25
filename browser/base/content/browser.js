@@ -54,6 +54,7 @@
 #   Rob Campbell <rcampbell@mozilla.com>
 #   David Dahl <ddahl@mozilla.com>
 #   Patrick Walton <pcwalton@mozilla.com>
+#   Mihai Sucan <mihai.sucan@gmail.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -84,8 +85,6 @@ var gLastValidURLStr = "";
 var gInPrintPreviewMode = false;
 var gDownloadMgr = null;
 var gContextMenu = null; 
-var gDelayedStartupTimeoutId;
-var gStartupRan = false;
 
 #ifndef XP_MACOSX
 var gEditUIVisible = true;
@@ -190,6 +189,7 @@ let gInitialPages = [
 
 XPCOMUtils.defineLazyGetter(this, "Win7Features", function () {
 #ifdef XP_WIN
+#ifndef WINCE
   const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
   if (WINTASKBAR_CONTRACTID in Cc &&
       Cc[WINTASKBAR_CONTRACTID].getService(Ci.nsIWinTaskbar).available) {
@@ -205,6 +205,7 @@ XPCOMUtils.defineLazyGetter(this, "Win7Features", function () {
       }
     };
   }
+#endif
 #endif
   return null;
 });
@@ -1334,8 +1335,7 @@ function BrowserStartup() {
 
   retrieveToolbarIconsizesFromTheme();
 
-  gDelayedStartupTimeoutId = setTimeout(delayedStartup, 0, isLoadingBlank, mustLoadSidebar);
-  gStartupRan = true;
+  setTimeout(delayedStartup, 0, isLoadingBlank, mustLoadSidebar);
 }
 
 function HandleAppCommandEvent(evt) {
@@ -1455,8 +1455,6 @@ function prepareForStartup() {
 }
 
 function delayedStartup(isLoadingBlank, mustLoadSidebar) {
-  gDelayedStartupTimeoutId = null;
-
   Services.obs.addObserver(gSessionHistoryObserver, "browser:purge-session-history", false);
   Services.obs.addObserver(gXPInstallObserver, "addon-install-disabled", false);
   Services.obs.addObserver(gXPInstallObserver, "addon-install-started", false);
@@ -1585,6 +1583,18 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   
   
   
+  setTimeout(function() {
+    try {
+      Cc["@mozilla.org/microsummary/service;1"].getService(Ci.nsIMicrosummaryService);
+    } catch (ex) {
+      Components.utils.reportError("Failed to init microsummary service:\n" + ex);
+    }
+  }, 4000);
+
+  
+  
+  
+  
   
   setTimeout(function() PlacesUtils.livemarks.start(), 5000);
 
@@ -1653,6 +1663,16 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
 #endif
   }
 
+  
+  let workspaceEnabled = gPrefService.getBoolPref(Workspace.prefEnabledName);
+  if (workspaceEnabled) {
+    document.getElementById("menu_workspace").hidden = false;
+    document.getElementById("Tools:Workspace").removeAttribute("disabled");
+#ifdef MENUBAR_CAN_AUTOHIDE
+    document.getElementById("appmenu_workspace").hidden = false;
+#endif
+  }
+
 #ifdef MENUBAR_CAN_AUTOHIDE
   
   
@@ -1665,16 +1685,16 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   Services.obs.notifyObservers(window, "browser-delayed-startup-finished", "");
 }
 
-function BrowserShutdown() {
-  
-  
-  
-  if (!gStartupRan)
-    return;
+function BrowserShutdown()
+{
+  if (Win7Features)
+    Win7Features.onCloseWindow();
 
-  
-  
+  gPrefService.removeObserver(ctrlTab.prefName, ctrlTab);
+  gPrefService.removeObserver(allTabs.prefName, allTabs);
+  ctrlTab.uninit();
   allTabs.uninit();
+  TabView.uninit();
 
   CombinedStopReload.uninit();
 
@@ -1682,7 +1702,21 @@ function BrowserShutdown() {
 
   FullScreen.cleanup();
 
+  try {
+    FullZoom.destroy();
+  }
+  catch(ex) {
+    Components.utils.reportError(ex);
+  }
+
+  Services.obs.removeObserver(gSessionHistoryObserver, "browser:purge-session-history");
+  Services.obs.removeObserver(gXPInstallObserver, "addon-install-disabled");
+  Services.obs.removeObserver(gXPInstallObserver, "addon-install-started");
+  Services.obs.removeObserver(gXPInstallObserver, "addon-install-blocked");
+  Services.obs.removeObserver(gXPInstallObserver, "addon-install-failed");
+  Services.obs.removeObserver(gXPInstallObserver, "addon-install-complete");
   Services.obs.removeObserver(gPluginHandler.pluginCrashed, "plugin-crashed");
+  Services.obs.removeObserver(gFormSubmitObserver, "invalidformsubmit");
 
   try {
     gBrowser.removeProgressListener(window.XULBrowserWindow);
@@ -1692,8 +1726,17 @@ function BrowserShutdown() {
 
   PlacesStarButton.uninit();
 
-  gPrivateBrowsingUI.uninit();
+  try {
+    gPrefService.removeObserver(gHomeButton.prefDomain, gHomeButton);
+  } catch (ex) {
+    Components.utils.reportError(ex);
+  }
 
+  BrowserOffline.uninit();
+  OfflineApps.uninit();
+  gPrivateBrowsingUI.uninit();
+  IndexedDBPromptHelper.uninit();
+  AddonManager.removeAddonListener(AddonsMgrListener);
   TabsInTitlebar.uninit();
 
   var enumerator = Services.wm.getEnumerator(null);
@@ -1705,47 +1748,6 @@ function BrowserShutdown() {
     document.persist("sidebar-title", "value");
   }
 
-  
-  
-  if (gDelayedStartupTimeoutId) {
-    clearTimeout(gDelayedStartupTimeoutId);
-  } else {
-    if (Win7Features)
-      Win7Features.onCloseWindow();
-
-    gPrefService.removeObserver(ctrlTab.prefName, ctrlTab);
-    gPrefService.removeObserver(allTabs.prefName, allTabs);
-    ctrlTab.uninit();
-    TabView.uninit();
-
-    try {
-      FullZoom.destroy();
-    }
-    catch(ex) {
-      Components.utils.reportError(ex);
-    }
-
-    Services.obs.removeObserver(gSessionHistoryObserver, "browser:purge-session-history");
-    Services.obs.removeObserver(gXPInstallObserver, "addon-install-disabled");
-    Services.obs.removeObserver(gXPInstallObserver, "addon-install-started");
-    Services.obs.removeObserver(gXPInstallObserver, "addon-install-blocked");
-    Services.obs.removeObserver(gXPInstallObserver, "addon-install-failed");
-    Services.obs.removeObserver(gXPInstallObserver, "addon-install-complete");
-    Services.obs.removeObserver(gFormSubmitObserver, "invalidformsubmit");
-
-    try {
-      gPrefService.removeObserver(gHomeButton.prefDomain, gHomeButton);
-    } catch (ex) {
-      Components.utils.reportError(ex);
-    }
-
-    BrowserOffline.uninit();
-    OfflineApps.uninit();
-    IndexedDBPromptHelper.uninit();
-    AddonManager.removeAddonListener(AddonsMgrListener);
-  }
-
-  
   window.XULBrowserWindow.destroy();
   window.XULBrowserWindow = null;
   window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
@@ -1761,7 +1763,8 @@ function BrowserShutdown() {
 
 
 
-function nonBrowserWindowStartup() {
+function nonBrowserWindowStartup()
+{
   
   var disabledItems = ['Browser:SavePage',
                        'Browser:SendLink', 'cmd_pageSetup', 'cmd_print', 'cmd_find', 'cmd_findAgain',
@@ -1771,7 +1774,8 @@ function nonBrowserWindowStartup() {
                        'View:PageInfo', 'Tasks:InspectPage', 'Browser:ToggleTabView', ];
   var element;
 
-  for (var id in disabledItems) {
+  for (var id in disabledItems)
+  {
     element = document.getElementById(disabledItems[id]);
     if (element)
       element.setAttribute("disabled", "true");
@@ -1779,9 +1783,11 @@ function nonBrowserWindowStartup() {
 
   
   
-  if (window.location.href == "chrome://browser/content/hiddenWindow.xul") {
+  if (window.location.href == "chrome://browser/content/hiddenWindow.xul")
+  {
     var hiddenWindowDisabledItems = ['cmd_close', 'minimizeWindow', 'zoomWindow'];
-    for (var id in hiddenWindowDisabledItems) {
+    for (var id in hiddenWindowDisabledItems)
+    {
       element = document.getElementById(hiddenWindowDisabledItems[id]);
       if (element)
         element.setAttribute("disabled", "true");
@@ -1809,12 +1815,12 @@ function nonBrowserWindowStartup() {
     }
   }
 
-  gDelayedStartupTimeoutId = setTimeout(nonBrowserWindowDelayedStartup, 0);
+
+  setTimeout(nonBrowserWindowDelayedStartup, 0);
 }
 
-function nonBrowserWindowDelayedStartup() {
-  gDelayedStartupTimeoutId = null;
-
+function nonBrowserWindowDelayedStartup()
+{
   
   BrowserOffline.init();
 
@@ -1828,18 +1834,10 @@ function nonBrowserWindowDelayedStartup() {
   
   gSyncUI.init();
 #endif
-
-  gStartupRan = true;
 }
 
-function nonBrowserWindowShutdown() {
-  
-  
-  if (gDelayedStartupTimeoutId) {
-    clearTimeout(gDelayedStartupTimeoutId);
-    return;
-  }
-
+function nonBrowserWindowShutdown()
+{
   BrowserOffline.uninit();
 
   gPrivateBrowsingUI.uninit();
@@ -2273,15 +2271,9 @@ function getShortcutOrURI(aURL, aPostDataRef) {
       } catch (e) {}
     }
 
-    
-    
-    
-    
-    
     var encodedParam = "";
-    if (charset && charset != "UTF-8")
-      encodedParam = escape(convertFromUnicode(charset, param)).
-                     replace(/[+@\/]+/g, encodeURIComponent);
+    if (charset)
+      encodedParam = escape(convertFromUnicode(charset, param));
     else 
       encodedParam = encodeURIComponent(param);
 
@@ -2688,11 +2680,6 @@ function BrowserOnClick(event) {
         gBrowser.loadURIWithFlags(content.location.href,
                                   nsIWebNavigation.LOAD_FLAGS_BYPASS_CLASSIFIER,
                                   null, null, null);
-
-        Services.perms.add(makeURI(content.location.href), "safe-browsing",
-                           Ci.nsIPermissionManager.ALLOW_ACTION,
-                           Ci.nsIPermissionManager.EXPIRE_SESSION);
-
         let buttons = [{
           label: gNavigatorBundle.getString("safebrowsing.getMeOutOfHereButton.label"),
           accessKey: gNavigatorBundle.getString("safebrowsing.getMeOutOfHereButton.accessKey"),
@@ -8630,6 +8617,19 @@ function toggleAddonBar() {
   let addonBar = document.getElementById("addon-bar");
   setToolbarVisibility(addonBar, addonBar.collapsed);
 }
+
+var Workspace = {
+  prefEnabledName: "devtools.workspace.enabled",
+
+  openWorkspace: function WS_openWorkspace() {
+    const WORKSPACE_WINDOW_URL = "chrome://browser/content/workspace.xul";
+    const WORKSPACE_WINDOW_FEATURES = "chrome,titlebar,toolbar,centerscreen,resizable,dialog=no";
+
+    return Services.ww.openWindow(null, WORKSPACE_WINDOW_URL, "_blank",
+                                  WORKSPACE_WINDOW_FEATURES, null);
+  },
+};
+
 
 XPCOMUtils.defineLazyGetter(window, "gShowPageResizers", function () {
 #ifdef XP_WIN
