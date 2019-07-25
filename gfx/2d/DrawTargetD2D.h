@@ -157,6 +157,12 @@ private:
   
   
   void MarkChanged();
+  void FlushTransformToRT() {
+    if (mTransformDirty) {
+      mRT->SetTransform(D2DMatrix(mTransform));
+      mTransformDirty = false;
+    }
+  }
   void AddDependencyOnSource(SourceSurfaceD2DTarget* aSource);
 
   ID3D10BlendState *GetBlendStateForOperator(CompositionOp aOperator);
