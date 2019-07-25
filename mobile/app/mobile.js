@@ -380,6 +380,9 @@ pref("browser.ui.touch.bottom", 4);
 pref("browser.ui.touch.weight.visited", 120); 
 
 
+pref("browser.sync.enabled", true);
+
+
 pref("plugin.disable", true);
 pref("dom.ipc.plugins.enabled", false);
 
