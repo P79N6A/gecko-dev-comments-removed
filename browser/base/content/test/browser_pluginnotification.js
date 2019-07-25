@@ -299,24 +299,31 @@ function test11b() {
   var popupNotification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
   ok(!popupNotification, "Test 11b, Should not have a click-to-play notification");
 
-  gTestBrowser.addEventListener("pageshow", test11c, false);
+  Services.obs.addObserver(test11d, "PopupNotifications-updateNotShowing", false);
+  
   gTestBrowser.contentWindow.history.back();
 }
 
 
 function test11c() {
   gTestBrowser.removeEventListener("pageshow", test11c, false);
-  
-  executeSoon(function() {
-    todo(false, "The following test that checks for the notification fails intermittently, bug 742619.");
-    
-    
+  Services.obs.addObserver(test11d, "PopupNotifications-updateNotShowing", false);
+}
+
+
+function test11d() {
+  Services.obs.removeObserver(test11d, "PopupNotifications-updateNotShowing", false);
+  setTimeout(function() {
+    var popupNotification = PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser);
+    ok(popupNotification, "Test 11d, Should have a click-to-play notification");
     is(gClickToPlayPluginActualEvents, gClickToPlayPluginExpectedEvents,
        "There should be a PluginClickToPlay event for each plugin that was " +
        "blocked due to the plugins.click_to_play pref");
 
     prepareTest(test12a, gTestRoot + "plugin_clickToPlayAllow.html");
-  });
+  }, 1000);
+
+  
 }
 
 
@@ -327,6 +334,7 @@ function test12a() {
   var objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
   ok(!objLoadingContent.activated, "Test 12a, Plugin should not be activated");
 
+  
   popupNotification.secondaryActions[0].callback();
   setTimeout(test12b, 0);
 }
@@ -363,6 +371,7 @@ function test13a() {
   var objLoadingContent = plugin.QueryInterface(Ci.nsIObjectLoadingContent);
   ok(!objLoadingContent.activated, "Test 13a, Plugin should not be activated");
 
+  
   popupNotification.secondaryActions[1].callback();
   setTimeout(test13b, 0);
 }
