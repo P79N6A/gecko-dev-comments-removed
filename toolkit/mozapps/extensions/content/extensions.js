@@ -2821,6 +2821,22 @@ var gDetailView = {
     if (this._addon.optionsType != AddonManager.OPTIONS_TYPE_INLINE)
       return;
 
+    
+    
+    
+    function stripTextNodes(aNode) {
+      var text = '';
+      for (var i = 0; i < aNode.childNodes.length; i++) {
+        if (aNode.childNodes[i].nodeType != document.ELEMENT_NODE) {
+          text += aNode.childNodes[i].textContent;
+          aNode.removeChild(aNode.childNodes[i--]);
+        } else {
+          text += stripTextNodes(aNode.childNodes[i]);
+        }
+      }
+      return text;
+    }
+
     var rows = document.getElementById("detail-downloads").parentNode;
 
     var xhr = new XMLHttpRequest();
@@ -2830,33 +2846,15 @@ var gDetailView = {
     var xml = xhr.responseXML;
     var settings = xml.querySelectorAll(":root > setting");
 
-    
-    
-    
-    
     for (var i = 0; i < settings.length; i++) {
       var setting = settings[i];
       if (i == 0)
         setting.setAttribute("first-row", true);
 
       
-      var control = setting.firstElementChild;
-      if (setting.getAttribute("type") == "control" && control && control.localName == "menulist") {
-        setting.removeChild(control);
-        var consoleMessage = Cc["@mozilla.org/scripterror;1"].
-                             createInstance(Ci.nsIScriptError);
-        consoleMessage.init("Menulist is not available in the addons-manager yet, due to bug 659163",
-                            this._addon.optionsURL, null, null, 0, Ci.nsIScriptError.warningFlag, null);
-        Services.console.logMessage(consoleMessage);
-        continue;
-      }
-
-      
-      var desc = setting.textContent.trim();
-      if (desc)
-        setting.textContent = "";
+      var desc = stripTextNodes(setting).trim();
       if (setting.hasAttribute("desc")) {
-        desc = setting.getAttribute("desc");
+        desc = setting.getAttribute("desc").trim();
         setting.removeAttribute("desc");
       }
 
@@ -2872,6 +2870,8 @@ var gDetailView = {
         rows.appendChild(row);
       }
     }
+
+    Services.obs.notifyObservers(document, "addon-options-displayed", this._addon.id);
   },
 
   getSelectedAddon: function() {
