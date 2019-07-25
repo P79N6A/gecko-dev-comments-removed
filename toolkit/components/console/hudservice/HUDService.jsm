@@ -1966,45 +1966,6 @@ HUD_SERVICE.prototype =
 
 
 
-
-  getConsoleOutputNode: function HS_getConsoleOutputNode(aId)
-  {
-    let displayNode = this.getHeadsUpDisplay(aHUDId);
-    return displayNode.querySelectorAll(".hud-output-node")[0];
-  },
-
-  
-
-
-
-
-
-
-  logWarningAboutReplacedAPI:
-  function HS_logWarningAboutReplacedAPI(aHUDId)
-  {
-    let domId = "hud-log-node-" + this.sequenceId();
-    let outputNode = this.getConsoleOutputNode(aHUDId);
-
-    let msgFormat = {
-      logLevel: "error",
-      activityObject: {},
-      hudId: aHUDId,
-      origin: "console-listener",
-      domId: domId,
-      message: this.getStr("ConsoleAPIDisabled"),
-    };
-
-    let messageObject =
-    this.messageFactory(msgFormat, "error", outputNode, msgFormat.activityObject);
-    this.logMessage(messageObject.messageObject, outputNode, messageObject.messageNode);
-  },
-
-  
-
-
-
-
   reportConsoleServiceMessage:
   function HS_reportConsoleServiceMessage(aConsoleMessage)
   {
