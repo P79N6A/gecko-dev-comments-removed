@@ -119,7 +119,7 @@ nsPlainTextSerializer::nsPlainTextSerializer()
 
   
   mEmptyLines = 1; 
-  mInWhitespace = PR_TRUE;
+  mInWhitespace = PR_FALSE;
   mPreFormatted = PR_FALSE;
   mStartedOutput = PR_FALSE;
 
@@ -638,6 +638,8 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
       }
     } 
     else {
+      
+      mInWhitespace = PR_TRUE;
       mPreFormatted = PR_FALSE;
     }
 
@@ -806,6 +808,13 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
   else if (type == eHTMLTag_u && mStructs && !currentNodeIsConverted) {
     Write(NS_LITERAL_STRING("_"));
   }
+
+  
+
+
+
+
+  mInWhitespace = PR_TRUE;
 
   return NS_OK;
 }
@@ -1073,9 +1082,7 @@ nsPlainTextSerializer::DoAddLeaf(const nsIParserNode *aNode, PRInt32 aTag,
       EnsureVerticalSpace(mEmptyLines+1);
     }
   }
-  else if (type == eHTMLTag_whitespace) {
-    
-    
+  else if (type == eHTMLTag_whitespace || type == eHTMLTag_newline) {
     
     
     
@@ -1085,24 +1092,14 @@ nsPlainTextSerializer::DoAddLeaf(const nsIParserNode *aNode, PRInt32 aTag,
     if (mFlags & nsIDocumentEncoder::OutputPreformatted ||
         (mPreFormatted && !mWrapColumn) ||
         IsInPre()) {
-      Write(aText);
+      if (type == eHTMLTag_newline)
+        EnsureVerticalSpace(mEmptyLines+1);
+      else  
+        Write(aText);
     }
-    else if(!mInWhitespace ||
-            (!mStartedOutput
-             && mFlags | nsIDocumentEncoder::OutputSelectionOnly)) {
-      mInWhitespace = PR_FALSE;
+    else if(!mInWhitespace) {
       Write(kSpace);
       mInWhitespace = PR_TRUE;
-    }
-  }
-  else if (type == eHTMLTag_newline) {
-    if (mFlags & nsIDocumentEncoder::OutputPreformatted ||
-        (mPreFormatted && !mWrapColumn) ||
-        IsInPre()) {
-      EnsureVerticalSpace(mEmptyLines+1);
-    }
-    else {
-      Write(kSpace);
     }
   }
   else if (type == eHTMLTag_hr &&
@@ -1161,10 +1158,12 @@ nsPlainTextSerializer::EnsureVerticalSpace(PRInt32 noOfRows)
   
   if(noOfRows >= 0 && !mInIndentString.IsEmpty()) {
     EndLine(PR_FALSE);
+    mInWhitespace = PR_TRUE;
   }
 
   while(mEmptyLines < noOfRows) {
     EndLine(PR_FALSE);
+    mInWhitespace = PR_TRUE;
   }
   mLineBreakDue = PR_FALSE;
   mFloatingLines = -1;
