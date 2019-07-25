@@ -544,3 +544,124 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub)
     stubcc.rejoin(1);
 }
 
+static const uint64 DoubleNegMask = 0x8000000000000000LLU;
+void
+mjit::Compiler::jsop_neg()
+{
+    FrameEntry *fe = frame.peek(-1);
+
+    if (fe->isTypeKnown() && fe->getTypeTag() > JSVAL_UPPER_INCL_TAG_OF_NUMBER_SET) {
+        prepareStubCall();
+        stubCall(stubs::Neg, Uses(1), Defs(1));
+        frame.pop();
+        frame.pushSynced();
+        return;
+    }
+
+    JS_ASSERT(!fe->isConstant());
+
+    
+    MaybeRegisterID feTypeReg;
+    
+    if (!frame.shouldAvoidTypeRemat(fe)) {
+        
+        feTypeReg.setReg(frame.tempRegForType(fe));
+        
+        frame.pinReg(feTypeReg.getReg());
+    }
+
+    
+
+
+
+
+
+
+
+
+    RegisterID reg = frame.copyDataIntoReg(masm, fe);
+    Label feSyncTarget = stubcc.syncExitAndJump();
+
+    
+    MaybeJump jmpNotDbl;
+    {
+        maybeJumpIfNotDouble(masm, jmpNotDbl, fe, feTypeReg);
+
+        FPRegisterID fpreg = frame.copyEntryIntoFPReg(fe, FPRegisters::First);
+        masm.loadDouble(&DoubleNegMask, FPRegisters::Second);
+        masm.xorDouble(FPRegisters::Second, fpreg);
+
+        
+        masm.storeDouble(fpreg, frame.addressOf(fe));
+    }
+
+    
+    MaybeJump jmpNotInt;
+    MaybeJump jmpIntZero;
+    MaybeJump jmpIntRejoin;
+    Label lblIntPath = stubcc.masm.label();
+    {
+        maybeJumpIfNotInt32(stubcc.masm, jmpNotInt, fe, feTypeReg);
+
+        
+        jmpIntZero.setJump(stubcc.masm.branch32(Assembler::Equal, reg, Imm32(0)));
+
+        stubcc.masm.neg32(reg);
+
+        
+        stubcc.masm.storeData32(reg, frame.addressOf(fe));
+        stubcc.masm.storeTypeTag(ImmTag(JSVAL_TAG_INT32), frame.addressOf(fe));
+
+        jmpIntRejoin.setJump(stubcc.masm.jump());
+    }
+
+    if (feTypeReg.isSet())
+        frame.unpinReg(feTypeReg.getReg());
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    frame.forgetReg(reg);
+
+    stubcc.leave();
+    stubcc.call(stubs::Neg);
+
+    frame.pop();
+    frame.pushSynced();
+
+    
+    if (jmpNotDbl.isSet())
+        stubcc.linkExitDirect(jmpNotDbl.getJump(), lblIntPath);
+
+    if (jmpNotInt.isSet())
+        jmpNotInt.getJump().linkTo(feSyncTarget, &stubcc.masm);
+    if (jmpIntZero.isSet())
+        jmpIntZero.getJump().linkTo(feSyncTarget, &stubcc.masm);
+    if (jmpIntRejoin.isSet())
+        stubcc.crossJump(jmpIntRejoin.getJump(), masm.label());
+
+    stubcc.rejoin(1);
+}
+
