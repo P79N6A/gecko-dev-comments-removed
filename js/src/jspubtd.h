@@ -767,8 +767,11 @@ typedef uint32
 
 
 
+
+
+
 typedef JSBool
-(* JSEqualityOp)(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
+(* JSEqualityOp)(JSContext *cx, JSObject *obj, const jsval *vp, JSBool *bp);
 
 
 

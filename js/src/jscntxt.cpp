@@ -1499,7 +1499,7 @@ js_EnterLocalRootScope(JSContext *cx)
 }
 
 void
-js_LeaveLocalRootScopeWithResult(JSContext *cx, const Value &rval)
+js_LeaveLocalRootScopeWithResult(JSContext *cx, void *thing)
 {
     JSLocalRootStack *lrs;
     uint32 mark, m, n;
@@ -1531,14 +1531,12 @@ js_LeaveLocalRootScopeWithResult(JSContext *cx, const Value &rval)
 
 
 
-
-
     lrc = lrs->topChunk;
     m = mark & JSLRS_CHUNK_MASK;
     lrs->scopeMark = (uint32) lrc->roots[m];
-    if (rval.isGCThing()) {
+    if (thing) {
         if (mark == 0) {
-            cx->weakRoots.lastInternalResult = rval.asGCThing();
+            cx->weakRoots.lastInternalResult = thing;
         } else {
             
 
@@ -1546,7 +1544,7 @@ js_LeaveLocalRootScopeWithResult(JSContext *cx, const Value &rval)
 
 
 
-            lrc->roots[m++] = rval.asGCThing();
+            lrc->roots[m++] = thing;
             ++mark;
         }
     }

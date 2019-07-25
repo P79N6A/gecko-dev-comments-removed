@@ -156,12 +156,15 @@ INDEX_TOO_BIG(jsuint index)
 
 
 
+
+
+
 JSBool
-js_IdIsIndex(jsid id, jsuint *indexp)
+js_IdIsIndex(jsboxedword idw, jsuint *indexp)
 {
-    if (JSID_IS_INT(id)) {
+    if (JSBOXEDWORD_IS_INT(idw)) {
         jsint i;
-        i = JSID_TO_INT(id);
+        i = JSBOXEDWORD_TO_INT(idw);
         if (i < 0)
             return JS_FALSE;
         *indexp = (jsuint)i;
@@ -169,10 +172,10 @@ js_IdIsIndex(jsid id, jsuint *indexp)
     }
 
     
-    if (!JSID_IS_ATOM(id))
+    if (!JSBOXEDWORD_IS_STRING(idw))
         return JS_FALSE;
 
-    JSString *str = ATOM_TO_STRING(JSID_TO_ATOM(id));
+    JSString *str = JSBOXEDWORD_TO_STRING(idw);
     jschar *cp = str->chars();
     if (JS7_ISDEC(*cp) && str->length() < sizeof(MAXSTR)) {
         jsuint index = JS7_UNDEC(*cp++);
