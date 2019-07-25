@@ -158,6 +158,8 @@ JSString::flatten(JSContext *maybecx)
 
 
 
+
+
     const size_t wholeLength = length();
     size_t wholeCapacity;
     jschar *wholeChars;
