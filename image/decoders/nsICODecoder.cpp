@@ -365,9 +365,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
     if (mIsPNG) {
       mContainedDecoder = new nsPNGDecoder(mImage, mObserver);
       mContainedDecoder->InitSharedDecoder();
-      mContainedDecoder->Write(mSignature, PNGSIGNATURESIZE);
-      mDataError = mContainedDecoder->HasDataError();
-      if (mContainedDecoder->HasDataError()) {
+      if (!WriteToContainedDecoder(mSignature, PNGSIGNATURESIZE)) {
         return;
       }
     }
@@ -375,9 +373,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
 
   
   if (mIsPNG && mContainedDecoder && mPos >= mImageOffset + PNGSIGNATURESIZE) {
-    mContainedDecoder->Write(aBuffer, aCount);
-    mDataError = mContainedDecoder->HasDataError();
-    if (mContainedDecoder->HasDataError()) {
+    if (!WriteToContainedDecoder(aBuffer, aCount)) {
       return;
     }
     mPos += aCount;
@@ -445,9 +441,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
       PostDataError();
       return;
     }
-    mContainedDecoder->Write((const char*)bfhBuffer, sizeof(bfhBuffer));
-    mDataError = mContainedDecoder->HasDataError();
-    if (mContainedDecoder->HasDataError()) {
+    if (!WriteToContainedDecoder((const char*)bfhBuffer, sizeof(bfhBuffer))) {
       return;
     }
 
@@ -468,9 +462,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
     }
 
     
-    mContainedDecoder->Write(mBIHraw, sizeof(mBIHraw));
-    mDataError = mContainedDecoder->HasDataError();
-    if (mContainedDecoder->HasDataError()) {
+    if (!WriteToContainedDecoder(mBIHraw, sizeof(mBIHraw))) {
       return;
     }
 
@@ -515,9 +507,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
         toFeed = aCount;
       }
 
-      mContainedDecoder->Write(aBuffer, toFeed);
-      mDataError = mContainedDecoder->HasDataError();
-      if (mContainedDecoder->HasDataError()) {
+      if (!WriteToContainedDecoder(aBuffer, toFeed)) {
         return;
       }
 
@@ -590,6 +580,19 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
       }
     }
   }
+}
+
+bool
+nsICODecoder::WriteToContainedDecoder(const char* aBuffer, PRUint32 aCount)
+{
+  mContainedDecoder->Write(aBuffer, aCount);
+  if (mContainedDecoder->HasDataError()) {
+    mDataError = mContainedDecoder->HasDataError();
+  }
+  if (mContainedDecoder->HasDecoderError()) {
+    PostDecoderError(mContainedDecoder->GetDecoderError());
+  }
+  return !HasError();
 }
 
 void
