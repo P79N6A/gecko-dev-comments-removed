@@ -7678,12 +7678,14 @@ nsWindow::OnMouseWheel(UINT aMsg, WPARAM aWParam, LPARAM aLParam,
     
     
     
+    
+    
     if (destWindow->mWindowType == eWindowType_plugin) {
       destWindow = destWindow->GetParentWindow(PR_FALSE);
       NS_ENSURE_TRUE(destWindow, );
     }
     UINT internalMessage = GetInternalMessage(aMsg);
-    destWindow->ProcessMessage(internalMessage, aWParam, aLParam, aRetValue);
+    ::PostMessage(destWindow->mWnd, internalMessage, aWParam, aLParam);
     return;
   }
 
@@ -7701,11 +7703,13 @@ nsWindow::OnMouseWheel(UINT aMsg, WPARAM aWParam, LPARAM aLParam,
   
   
   
+  
+  
   if (mWindowType == eWindowType_plugin && pluginWnd == mWnd) {
     nsWindow* destWindow = GetParentWindow(PR_FALSE);
     NS_ENSURE_TRUE(destWindow, );
     UINT internalMessage = GetInternalMessage(aMsg);
-    destWindow->ProcessMessage(internalMessage, aWParam, aLParam, aRetValue);
+    ::PostMessage(destWindow->mWnd, internalMessage, aWParam, aLParam);
     return;
   }
 
