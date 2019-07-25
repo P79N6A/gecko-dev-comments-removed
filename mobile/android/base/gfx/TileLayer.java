@@ -103,10 +103,6 @@ public abstract class TileLayer extends Layer {
         mDirtyRect.set(0, 0, bufferSize.width, bufferSize.height);
     }
 
-    public boolean isDirty() {
-        return mImage.getSize().isPositive() && (mTextureIDs == null || !mDirtyRect.isEmpty());
-    }
-
     private void validateTexture() {
         
 
