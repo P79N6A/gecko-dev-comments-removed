@@ -428,11 +428,6 @@ var Browser = {
       Browser.styles["toolbar-height"].height = toolbarHeight + "px";
 
       
-      let browser = Browser.selectedBrowser;
-      if (browser.contentDocument instanceof XULDocument)
-        BrowserView.Util.ensureMozScrolledAreaEvent(browser, w, h);
-
-      
       BrowserUI.sizeControls(w, h);
 
       
@@ -450,8 +445,8 @@ var Browser = {
         Browser.hideSidebars();
       bv.onAfterVisibleMove();
 
-      for (let i = Browser._tabs.length - 1; i >= 0; i--)
-        Browser._tabs[i].updateViewportSize();
+      for (let i = Browser.tabs.length - 1; i >= 0; i--)
+        Browser.tabs[i].updateViewportSize();
 
       bv.commitBatchOperation();
       
@@ -721,15 +716,6 @@ var Browser = {
 
   get tabs() {
     return this._tabs;
-  },
-
-  getTabForDocument: function(aDocument) {
-    let tabs = this._tabs;
-    for (let i = 0; i < tabs.length; i++) {
-      if (tabs[i].browser.contentDocument == aDocument)
-        return tabs[i];
-    }
-    return null;
   },
 
   getTabForBrowser: function getTabForBrowser(aBrowser) {
@@ -2342,13 +2328,13 @@ ProgressController.prototype = {
       });
     }
     else {
-      let scroll = BrowserView.Util.getContentScrollOffset(this._tab.browser);
-      this._tab.contentScrollOffset = new Point(scroll.x, scroll.y);
+      
+      
+      this._tab.contentScrollOffset = new Point(0, 0);
 
       
       
-      if (scroll.isZero())
-        this._tab.pageScrollOffset = new Point(0, 0);
+      this._tab.pageScrollOffset = new Point(0, 0);
     }
   }
 };
@@ -2532,14 +2518,6 @@ Tab.prototype = {
 
       browser.style.width = viewportW + "px";
       browser.style.height = viewportH + "px";
-    }
-
-    
-    
-    let doc = browser.contentDocument;
-    if (doc instanceof XULDocument || doc.body instanceof HTMLFrameSetElement) {
-       let [width, height] = BrowserView.Util.getBrowserDimensions(browser);
-       BrowserView.Util.ensureMozScrolledAreaEvent(browser, width, height);
     }
   },
 
