@@ -446,7 +446,7 @@ nsXMLContentSink::OnTransformDone(nsresult aResult,
                                  mDocument->IndexOf(rootElement));
     mDocument->EndUpdate(UPDATE_CONTENT_MODEL);
   }
-  
+
   
   StartLayout(PR_FALSE);
 
@@ -1086,6 +1086,10 @@ nsXMLContentSink::HandleStartElement(const PRUnichar *aName,
     
     
     MaybeStartLayout(PR_FALSE);
+  }
+
+  if (content == mDocElement) {
+    NotifyDocElementCreated(mDocument);
   }
 
   return aInterruptable && NS_SUCCEEDED(result) ? DidProcessATokenImpl() :
