@@ -154,7 +154,7 @@ public:
     mDecoder->GetMonitor().AssertCurrentThreadIn();
     return mState; 
   }
-  virtual void SetVolume(float aVolume);
+  virtual void SetVolume(double aVolume);
   virtual void Shutdown();
   virtual PRInt64 GetDuration();
   virtual void SetDuration(PRInt64 aDuration);
@@ -164,8 +164,8 @@ public:
 
   virtual nsHTMLMediaElement::NextFrameStatus GetNextFrameStatus();
   virtual void Decode();
-  virtual void Seek(float aTime);
-  virtual float GetCurrentTime();
+  virtual void Seek(double aTime);
+  virtual double GetCurrentTime();
   virtual void ClearPositionChangeFlag();
   virtual void SetSeekable(PRBool aSeekable);
   virtual void UpdatePlaybackPosition(PRInt64 aTime);
@@ -470,7 +470,7 @@ protected:
   
   
   
-  float mVolume;
+  double mVolume;
 
   
   

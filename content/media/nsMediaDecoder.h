@@ -108,10 +108,10 @@ public:
 
   
   
-  virtual float GetCurrentTime() = 0;
+  virtual double GetCurrentTime() = 0;
 
   
-  virtual nsresult Seek(float time) = 0;
+  virtual nsresult Seek(double aTime) = 0;
 
   
   
@@ -119,13 +119,13 @@ public:
   virtual nsresult PlaybackRateChanged() = 0;
 
   
-  virtual float GetDuration() = 0;
+  virtual double GetDuration() = 0;
 
   
   virtual void Pause() = 0;
 
   
-  virtual void SetVolume(float volume) = 0;
+  virtual void SetVolume(double aVolume) = 0;
 
   
   

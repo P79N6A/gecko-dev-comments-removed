@@ -96,7 +96,7 @@ public:
 
   
   
-  virtual void SetVolume(float aVolume) = 0;
+  virtual void SetVolume(double aVolume) = 0;
 
   
   virtual void Drain() = 0;

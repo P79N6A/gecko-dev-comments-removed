@@ -155,13 +155,13 @@ class nsWaveDecoder : public nsMediaDecoder
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
 
   
-  virtual float GetCurrentTime();
+  virtual double GetCurrentTime();
 
   
-  virtual float GetDuration();
+  virtual double GetDuration();
 
   
-  virtual void SetVolume(float aVolume);
+  virtual void SetVolume(double aVolume);
 
   virtual nsresult Play();
   virtual void Pause();
@@ -169,7 +169,7 @@ class nsWaveDecoder : public nsMediaDecoder
   
   
   
-  virtual nsresult Seek(float aTime);
+  virtual nsresult Seek(double aTime);
 
   
   virtual PRBool IsSeeking() const;
@@ -267,7 +267,7 @@ private:
   nsresult StartStateMachineThread();
 
   
-  float mInitialVolume;
+  double mInitialVolume;
 
   
   nsCOMPtr<nsIThread> mPlaybackThread;
@@ -284,12 +284,12 @@ private:
   
   
   
-  float mCurrentTime;
+  double mCurrentTime;
 
   
   
   
-  float mEndedDuration;
+  double mEndedDuration;
   PRPackedBool mEnded;
 
   

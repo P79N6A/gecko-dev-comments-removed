@@ -245,7 +245,7 @@ public:
 
   
   
-  virtual void SetVolume(float aVolume) = 0;
+  virtual void SetVolume(double aVolume) = 0;
 
   virtual void Shutdown() = 0;
 
@@ -271,12 +271,12 @@ public:
   virtual void Decode() = 0;
 
   
-  virtual void Seek(float aTime) = 0;
+  virtual void Seek(double aTime) = 0;
 
   
   
   
-  virtual float GetCurrentTime() = 0;
+  virtual double GetCurrentTime() = 0;
 
   
   
@@ -338,7 +338,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   virtual void Shutdown();
   
-  virtual float GetCurrentTime();
+  virtual double GetCurrentTime();
 
   virtual nsresult Load(nsMediaStream* aStream,
                         nsIStreamListener** aListener,
@@ -351,13 +351,13 @@ class nsBuiltinDecoder : public nsMediaDecoder
   virtual nsresult Play();
 
   
-  virtual nsresult Seek(float time);
+  virtual nsresult Seek(double aTime);
 
   virtual nsresult PlaybackRateChanged();
 
   virtual void Pause();
-  virtual void SetVolume(float volume);
-  virtual float GetDuration();
+  virtual void SetVolume(double aVolume);
+  virtual double GetDuration();
 
   virtual nsMediaStream* GetCurrentStream();
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
@@ -581,18 +581,18 @@ public:
   
   
   
-  float mCurrentTime;
+  double mCurrentTime;
 
   
   
-  float mInitialVolume;
+  double mInitialVolume;
 
   
   
   
   
   
-  float mRequestedSeekTime;
+  double mRequestedSeekTime;
 
   
   

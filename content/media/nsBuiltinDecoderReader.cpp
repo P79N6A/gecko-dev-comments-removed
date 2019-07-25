@@ -341,7 +341,7 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(PRInt64 aTarget)
       nsAutoPtr<VideoData> video(mVideoQueue.PeekFront());
       
       
-      if (video && video->mEndTime < aTarget) {
+      if (video && video->mEndTime <= aTarget) {
         if (startTime == -1) {
           startTime = video->mTime;
         }

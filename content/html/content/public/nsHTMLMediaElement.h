@@ -578,7 +578,7 @@ protected:
   LoadAlgorithmState mLoadWaitStatus;
 
   
-  float mVolume;
+  double mVolume;
 
   
   PRUint32 mChannels;
@@ -608,7 +608,7 @@ protected:
 
   
   
-  float mLastCurrentTime;
+  double mLastCurrentTime;
 
   nsRefPtr<gfxASurface> mPrintSurface;
 
