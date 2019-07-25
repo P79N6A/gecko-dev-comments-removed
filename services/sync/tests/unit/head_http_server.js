@@ -306,6 +306,9 @@ ServerCollection.prototype = {
       }
       
       result = data.join("\n") + "\n";
+
+      
+      options.recordCount = data.length;
     } else {
       let data = [id for ([id, wbo] in Iterator(this._wbos))
                      if (this._inResultSet(wbo, options))];
@@ -313,6 +316,7 @@ ServerCollection.prototype = {
         data = data.slice(0, options.limit);
       }
       result = JSON.stringify(data);
+      options.recordCount = data.length;
     }
     return result;
   },
@@ -393,6 +397,14 @@ ServerCollection.prototype = {
       switch(request.method) {
         case "GET":
           body = self.get(options);
+          
+          
+          
+          let records = options.recordCount;
+          self._log.info("Records: " + records);
+          if (records != null) {
+            response.setHeader("X-Weave-Records", "" + records);
+          }
           break;
 
         case "POST":
