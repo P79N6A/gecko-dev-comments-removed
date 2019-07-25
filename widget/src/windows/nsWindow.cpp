@@ -4668,17 +4668,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       break;
 
     case WM_SYSCOLORCHANGE:
-      if (mWindowType == eWindowType_invisible) {
-        ::EnumThreadWindows(GetCurrentThreadId(), nsWindow::BroadcastMsg, msg);
-      }
-      else {
-        
-        
-        
-        
-        
-        DispatchStandardEvent(NS_SYSCOLORCHANGED);
-      }
+      OnSysColorChanged();
       break;
 
     case WM_NOTIFY:
@@ -7999,6 +7989,22 @@ nsWindow::HasBogusPopupsDropShadowOnMultiMonitor() {
     }
   }
   return !!sHasBogusPopupsDropShadowOnMultiMonitor;
+}
+
+void
+nsWindow::OnSysColorChanged()
+{
+  if (mWindowType == eWindowType_invisible) {
+    ::EnumThreadWindows(GetCurrentThreadId(), nsWindow::BroadcastMsg, WM_SYSCOLORCHANGE);
+  }
+  else {
+    
+    
+    
+    
+    
+    DispatchStandardEvent(NS_SYSCOLORCHANGED);
+  }
 }
 
 
