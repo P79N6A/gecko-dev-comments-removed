@@ -219,7 +219,8 @@ nsBuiltinDecoderStateMachine::nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDe
   mEventManager(aDecoder),
   mIsRunning(PR_FALSE),
   mRunAgain(PR_FALSE),
-  mDispatchedRunEvent(PR_FALSE)
+  mDispatchedRunEvent(PR_FALSE),
+  mDecodeThreadWaiting(PR_FALSE)
 {
   MOZ_COUNT_CTOR(nsBuiltinDecoderStateMachine);
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
@@ -293,7 +294,10 @@ void nsBuiltinDecoderStateMachine::DecodeThreadRun()
     }
   }
 
-  while (mState != DECODER_STATE_SHUTDOWN && mState != DECODER_STATE_COMPLETED) {
+  while (mState != DECODER_STATE_SHUTDOWN &&
+         mState != DECODER_STATE_COMPLETED &&
+         !mStopDecodeThread)
+  {
     if (mState == DECODER_STATE_DECODING || mState == DECODER_STATE_BUFFERING) {
       DecodeLoop();
     } else if (mState == DECODER_STATE_SEEKING) {
@@ -307,6 +311,8 @@ void nsBuiltinDecoderStateMachine::DecodeThreadRun()
 
 void nsBuiltinDecoderStateMachine::DecodeLoop()
 {
+  LOG(PR_LOG_DEBUG, ("%p Start DecodeLoop()", mDecoder.get()));
+
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
   NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
 
@@ -447,7 +453,16 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
       
       
       
+      mDecodeThreadWaiting = PR_TRUE;
+      if (mDecoder->GetState() != nsBuiltinDecoder::PLAY_STATE_PLAYING) {
+        
+        
+        
+        
+        ScheduleStateMachine();
+      }
       mDecoder->GetReentrantMonitor().Wait();
+      mDecodeThreadWaiting = PR_FALSE;
     }
 
   } 
@@ -738,6 +753,8 @@ nsresult nsBuiltinDecoderStateMachine::Init(nsDecoderStateMachine* aCloneDonor)
 
 void nsBuiltinDecoderStateMachine::StopPlayback()
 {
+  LOG(PR_LOG_DEBUG, ("%p StopPlayback()", mDecoder.get()));
+
   NS_ASSERTION(OnStateMachineThread() || OnDecodeThread(),
                "Should be on state machine thread.");
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
@@ -753,17 +770,26 @@ void nsBuiltinDecoderStateMachine::StopPlayback()
     mPlayDuration += DurationToUsecs(TimeStamp::Now() - mPlayStartTime);
     mPlayStartTime = TimeStamp();
   }
+  
+  
+  mDecoder->GetReentrantMonitor().NotifyAll();
   NS_ASSERTION(!IsPlaying(), "Should report not playing at end of StopPlayback()");
 }
 
 void nsBuiltinDecoderStateMachine::StartPlayback()
 {
+  LOG(PR_LOG_DEBUG, ("%p StartPlayback()", mDecoder.get()));
+
   NS_ASSERTION(!IsPlaying(), "Shouldn't be playing when StartPlayback() is called");
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
   LOG(PR_LOG_DEBUG, ("%p StartPlayback", mDecoder.get()));
   mDecoder->mPlaybackStatistics.Start(TimeStamp::Now());
   mPlayStartTime = TimeStamp::Now();
+
   NS_ASSERTION(IsPlaying(), "Should report playing by end of StartPlayback()");
+  if (NS_FAILED(StartAudioThread())) {
+    NS_WARNING("Failed to create audio thread"); 
+  }
   mDecoder->GetReentrantMonitor().NotifyAll();
 }
 
@@ -1187,7 +1213,6 @@ nsresult nsBuiltinDecoderStateMachine::DecodeMetadata()
       !IsPlaying())
   {
     StartPlayback();
-    StartAudioThread();
   }
 
   return NS_OK;
@@ -1378,8 +1403,31 @@ nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
     }
   
     case DECODER_STATE_DECODING: {
-      nsresult res = StartDecodeThread();
-      if (NS_FAILED(res)) return res;
+      if (mDecoder->GetState() != nsBuiltinDecoder::PLAY_STATE_PLAYING &&
+          IsPlaying())
+      {
+        
+        
+        
+        
+        
+        StopPlayback();
+      }
+
+      if (IsPausedAndDecoderWaiting()) {
+        
+        
+        StopDecodeThread();
+        return NS_OK;
+      }
+
+      
+      
+      if (NS_FAILED(StartDecodeThread())) {
+        NS_WARNING("Failed to start media decode thread!");
+        return NS_ERROR_FAILURE;
+      }
+
       AdvanceFrame();
       NS_ASSERTION(mDecoder->GetState() != nsBuiltinDecoder::PLAY_STATE_PLAYING ||
                    IsStateMachineScheduled(), "Must have timer scheduled");
@@ -1387,9 +1435,11 @@ nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
     }
 
     case DECODER_STATE_BUFFERING: {
-      if (IsPlaying()) {
-        StopPlayback();
-        mDecoder->GetReentrantMonitor().NotifyAll();
+      if (IsPausedAndDecoderWaiting()) {
+        
+        
+        StopDecodeThread();
+        return NS_OK;
       }
 
       TimeStamp now = TimeStamp::Now();
@@ -1431,7 +1481,6 @@ nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
           !IsPlaying())
       {
         StartPlayback();
-        StartAudioThread();
       }
       NS_ASSERTION(IsStateMachineScheduled(), "Must have timer scheduled");
       return NS_OK;
@@ -1453,9 +1502,6 @@ nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
         NS_ASSERTION(IsStateMachineScheduled(), "Must have timer scheduled");
         return NS_OK;
       }
-
-      nsresult res = StartAudioThread();
-      if (NS_FAILED(res)) return res;
 
       
       
@@ -1522,10 +1568,11 @@ nsBuiltinDecoderStateMachine::GetAudioClock()
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
   if (!HasAudio())
     return -1;
-  PRInt64 t = -1;
-  if (!mAudioStream)
-    return -1;
-  t = mAudioStream->GetPosition();
+  if (!mAudioStream) {
+    
+    return mAudioStartTime;
+  }
+  PRInt64 t = mAudioStream->GetPosition();
   return (t == -1) ? -1 : t + mAudioStartTime;
 }
 
@@ -1533,18 +1580,10 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
 {
   NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
+  NS_ASSERTION(!HasAudio() || mAudioStartTime != -1,
+               "Should know audio start time if we have audio.");
 
   if (mDecoder->GetState() != nsBuiltinDecoder::PLAY_STATE_PLAYING) {
-    return;
-  }
-
-  if (HasAudio() && mAudioStartTime == -1 && !mAudioCompleted) {
-    
-    
-    
-    
-    
-    ScheduleStateMachine(AUDIO_DURATION_USECS);
     return;
   }
 
@@ -1622,7 +1661,6 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
   
   if (!IsPlaying()) {
     StartPlayback();
-    StartAudioThread();
   }
 
   if (currentFrame) {
@@ -1747,6 +1785,10 @@ void nsBuiltinDecoderStateMachine::StartBuffering()
 {
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
 
+  if (IsPlaying()) {
+    StopPlayback();
+  }
+
   TimeDuration decodeDuration = TimeStamp::Now() - mDecodeStartTime;
   
   
@@ -1783,6 +1825,16 @@ nsresult nsBuiltinDecoderStateMachine::GetBuffered(nsTimeRanges* aBuffered) {
   nsresult res = mReader->GetBuffered(aBuffered, mStartTime);
   stream->Unpin();
   return res;
+}
+
+PRBool nsBuiltinDecoderStateMachine::IsPausedAndDecoderWaiting() {
+  mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
+  NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
+
+  return
+    mDecodeThreadWaiting &&
+    mDecoder->GetState() != nsBuiltinDecoder::PLAY_STATE_PLAYING &&
+    (mState == DECODER_STATE_DECODING || mState == DECODER_STATE_BUFFERING);
 }
 
 nsresult nsBuiltinDecoderStateMachine::Run()
