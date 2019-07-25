@@ -2105,6 +2105,10 @@ IonBuilder::jsop_call_inline(uint32 argc, IonBuilder &inlineBuilder, InliningDat
     bottom->push(retvalDefn);
 
     
+    uint32 retvalSlot = bottom->stackDepth() - 1;
+    bottom->entryResumePoint()->replaceOperand(retvalSlot, retvalDefn);
+
+    
     
     
     
