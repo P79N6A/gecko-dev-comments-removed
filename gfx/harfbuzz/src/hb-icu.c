@@ -35,6 +35,9 @@
 #include <unicode/uchar.h>
 #include <unicode/uscript.h>
 
+HB_BEGIN_DECLS
+
+
 static hb_codepoint_t hb_icu_get_mirroring (hb_codepoint_t unicode) { return u_charMirror(unicode); }
 static unsigned int hb_icu_get_combining_class (hb_codepoint_t unicode) { return u_getCombiningClass (unicode); }
 
@@ -218,13 +221,19 @@ hb_icu_get_script (hb_codepoint_t unicode)
 #if CHECK_ICU_VERSION (4, 4)
   MATCH_SCRIPT (LISU);                   
 #endif
-  MATCH_SCRIPT (MEITEI_MAYEK);           
+  MATCH_SCRIPT2(MEITEI_MAYEK, MEETEI_MAYEK);
 #if CHECK_ICU_VERSION (4, 4)
   MATCH_SCRIPT (OLD_SOUTH_ARABIAN);      
 #endif
   MATCH_SCRIPT2(ORKHON, OLD_TURKIC);     
   MATCH_SCRIPT (SAMARITAN);              
   MATCH_SCRIPT (TAI_VIET);               
+
+  
+  MATCH_SCRIPT (BATAK);                  
+  MATCH_SCRIPT (BRAHMI);                 
+  MATCH_SCRIPT2(MANDAEAN, MANDAIC);      
+
   }
   return HB_SCRIPT_UNKNOWN;
 }
@@ -246,3 +255,6 @@ hb_icu_get_unicode_funcs (void)
 {
   return &icu_ufuncs;
 }
+
+
+HB_END_DECLS

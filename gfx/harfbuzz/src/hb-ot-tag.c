@@ -29,6 +29,8 @@
 
 #include <string.h>
 
+HB_BEGIN_DECLS
+
 
 
 
@@ -123,21 +125,26 @@ static const hb_tag_t ot_scripts[][3] = {
   {HB_TAG('l','y','d','i')},	
 
   
-  {HB_TAG('D','F','L','T')},	
-  {HB_TAG('D','F','L','T')},	
-  {HB_TAG('D','F','L','T')},	
-  {HB_TAG('D','F','L','T')},	
-  {HB_TAG('D','F','L','T')},	
-  {HB_TAG('D','F','L','T')},	
+  {HB_TAG('a','v','s','t')},	
+  {HB_TAG('b','a','m','u')},	
+  {HB_TAG('e','g','y','p')},	
+  {HB_TAG('a','r','m','i')},	
+  {HB_TAG('p','h','l','i')},	
+  {HB_TAG('p','r','t','i')},	
   {HB_TAG('j','a','v','a')},	
-  {HB_TAG('D','F','L','T')},	
-  {HB_TAG('D','F','L','T')},	
-  {HB_TAG('D','F','L','T')},	
-  {HB_TAG('D','F','L','T')},	
-  {HB_TAG('D','F','L','T')},	
-  {HB_TAG('D','F','L','T')},	
-  {HB_TAG('D','F','L','T')},	
-  {HB_TAG('D','F','L','T')} 	
+  {HB_TAG('k','t','h','i')},	
+  {HB_TAG('l','i','s','u')},	
+  {HB_TAG('m','y','e','i')},	
+  {HB_TAG('s','a','r','b')},	
+  {HB_TAG('o','r','k','h')},	
+  {HB_TAG('s','a','m','r')},	
+  {HB_TAG('l','a','n','a')},	
+  {HB_TAG('t','a','v','t')},	
+
+  
+  {HB_TAG('b','a','t','k')},	
+  {HB_TAG('b','r','a','h')},	
+  {HB_TAG('m','a','n','d')} 	
 };
 
 const hb_tag_t *
@@ -589,10 +596,9 @@ static const LangTag ot_languages[] = {
 };
 
 static int
-lang_compare_first_component (const void *pa,
-			      const void *pb)
+lang_compare_first_component (const char *a,
+			      const char *b)
 {
-  const char *a = pa, *b = pb;
   unsigned int da, db;
   const char *p;
 
@@ -629,13 +635,11 @@ hb_ot_tag_from_language (hb_language_t language)
     char tag[4];
     int i;
     lang_str += 6;
-    i = 0;
 #define IS_LETTER(c) (((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z'))
 #define TO_UPPER(c) (((c) >= 'a' && (c) <= 'z') ? (c) + 'A' - 'a' : (c))
-    while (i < 4 && IS_LETTER (lang_str[i])) {
+    for (i = 0; i < 4 && IS_LETTER (lang_str[i]); i++)
       tag[i] = TO_UPPER (lang_str[i]);
-    }
-    while (i < 4)
+    for (; i < 4; i++)
       tag[i] = ' ';
     return HB_TAG_STR (tag);
   }
@@ -643,7 +647,7 @@ hb_ot_tag_from_language (hb_language_t language)
   
   lang_tag = bsearch (lang_str, ot_languages,
 		      ARRAY_LENGTH (ot_languages), sizeof (LangTag),
-		      lang_compare_first_component);
+		      (hb_compare_func_t) lang_compare_first_component);
 
   
   if (lang_tag)
@@ -652,12 +656,12 @@ hb_ot_tag_from_language (hb_language_t language)
 
     
     while (lang_tag + 1 < ot_languages + ARRAY_LENGTH (ot_languages) &&
-	   lang_compare_first_component (lang_str, lang_tag + 1) == 0)
+	   lang_compare_first_component (lang_str, (lang_tag + 1)->language) == 0)
       lang_tag++;
 
     
     while (lang_tag >= ot_languages &&
-	   lang_compare_first_component (lang_str, lang_tag) == 0)
+	   lang_compare_first_component (lang_str, lang_tag->language) == 0)
     {
       if (lang_matches (lang_str, lang_tag->language)) {
 	found = TRUE;
@@ -694,3 +698,6 @@ hb_ot_tag_to_language (hb_tag_t tag)
   buf[10] = '\0';
   return hb_language_from_string ((char *) buf);
 }
+
+
+HB_END_DECLS

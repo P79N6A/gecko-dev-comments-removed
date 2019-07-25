@@ -32,6 +32,7 @@
 HB_BEGIN_DECLS
 
 
+
 typedef enum
 {
   HB_CATEGORY_CONTROL,
@@ -167,7 +168,7 @@ typedef enum
   HB_SCRIPT_JAVANESE,               
   HB_SCRIPT_KAITHI,                 
   HB_SCRIPT_LISU,                   
-  HB_SCRIPT_MEITEI_MAYEK,           
+  HB_SCRIPT_MEETEI_MAYEK,           
   HB_SCRIPT_OLD_SOUTH_ARABIAN,      
   HB_SCRIPT_OLD_TURKIC,             
   HB_SCRIPT_SAMARITAN,              
@@ -205,6 +206,13 @@ hb_unicode_funcs_copy (hb_unicode_funcs_t *ufuncs);
 void
 hb_unicode_funcs_make_immutable (hb_unicode_funcs_t *ufuncs);
 
+hb_bool_t
+hb_unicode_funcs_is_immutable (hb_unicode_funcs_t *ufuncs);
+
+
+
+
+
 
 
 
@@ -213,6 +221,8 @@ typedef hb_category_t (*hb_unicode_get_general_category_func_t) (hb_codepoint_t 
 typedef hb_script_t (*hb_unicode_get_script_func_t) (hb_codepoint_t unicode);
 typedef unsigned int (*hb_unicode_get_combining_class_func_t) (hb_codepoint_t unicode);
 typedef unsigned int (*hb_unicode_get_eastasian_width_func_t) (hb_codepoint_t unicode);
+
+
 
 
 void
@@ -234,6 +244,28 @@ hb_unicode_funcs_set_combining_class_func (hb_unicode_funcs_t *ufuncs,
 void
 hb_unicode_funcs_set_eastasian_width_func (hb_unicode_funcs_t *ufuncs,
 					   hb_unicode_get_eastasian_width_func_t eastasian_width_func);
+
+
+
+
+
+
+hb_unicode_get_mirroring_func_t
+hb_unicode_funcs_get_mirroring_func (hb_unicode_funcs_t *ufuncs);
+
+hb_unicode_get_general_category_func_t
+hb_unicode_funcs_get_general_category_func (hb_unicode_funcs_t *ufuncs);
+
+hb_unicode_get_script_func_t
+hb_unicode_funcs_get_script_func (hb_unicode_funcs_t *ufuncs);
+
+hb_unicode_get_combining_class_func_t
+hb_unicode_funcs_get_combining_class_func (hb_unicode_funcs_t *ufuncs);
+
+hb_unicode_get_eastasian_width_func_t
+hb_unicode_funcs_get_eastasian_width_func (hb_unicode_funcs_t *ufuncs);
+
+
 
 
 hb_codepoint_t

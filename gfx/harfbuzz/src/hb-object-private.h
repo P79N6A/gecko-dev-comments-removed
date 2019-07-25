@@ -27,11 +27,12 @@
 
 
 
-#ifndef HB_REFCOUNT_PRIVATE_H
-#define HB_REFCOUNT_PRIVATE_H
+#ifndef HB_OBJECT_PRIVATE_H
+#define HB_OBJECT_PRIVATE_H
 
 #include "hb-private.h"
 
+HB_BEGIN_DECLS
 
 
 
@@ -59,7 +60,7 @@ typedef struct {
 
 
 #ifndef HB_DEBUG_OBJECT
-#define HB_DEBUG_OBJECT HB_DEBUG+0
+#define HB_DEBUG_OBJECT (HB_DEBUG+0)
 #endif
 
 static inline void
@@ -67,11 +68,11 @@ _hb_trace_object (const void *obj,
 		  hb_reference_count_t *ref_count,
 		  const char *function)
 {
-  if (HB_DEBUG_OBJECT)
-    fprintf (stderr, "OBJECT(%p) refcount=%d %s\n",
-	     obj,
-	     HB_REFERENCE_COUNT_GET_VALUE (*ref_count),
-	     function);
+  (void) (HB_DEBUG_OBJECT &&
+	  fprintf (stderr, "OBJECT(%p) refcount=%d %s\n",
+		   obj,
+		   HB_REFERENCE_COUNT_GET_VALUE (*ref_count),
+		   function));
 }
 
 #define TRACE_OBJECT(obj) _hb_trace_object (obj, &obj->ref_count, __FUNCTION__)
@@ -135,5 +136,6 @@ _hb_trace_object (const void *obj,
   } HB_STMT_END
 
 
+HB_END_DECLS
 
 #endif 

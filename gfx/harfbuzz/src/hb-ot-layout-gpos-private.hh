@@ -24,13 +24,20 @@
 
 
 
+
+
 #ifndef HB_OT_LAYOUT_GPOS_PRIVATE_HH
 #define HB_OT_LAYOUT_GPOS_PRIVATE_HH
 
 #include "hb-ot-layout-gsubgpos-private.hh"
 
+HB_BEGIN_DECLS
 
-#define HB_OT_LAYOUT_GPOS_NO_LAST ((unsigned int) -1)
+
+
+#define attach_lookback() var.u16[0] /* number of glyphs to go back to attach this glyph to its base */
+#define cursive_chain() var.i16[1] /* character to which this connects, may be positive or negative */
+
 
 
 
@@ -82,15 +89,15 @@ struct ValueFormat : USHORT
 
 #endif
 
-  inline unsigned int get_len () const
+  inline unsigned int get_len (void) const
   { return _hb_popcount32 ((unsigned int) *this); }
-  inline unsigned int get_size () const
+  inline unsigned int get_size (void) const
   { return get_len () * Value::static_size; }
 
-  void apply_value (hb_ot_layout_context_t       *layout,
-		    const void                   *base,
-		    const Value                  *values,
-		    hb_internal_glyph_position_t &glyph_pos) const
+  void apply_value (hb_ot_layout_context_t *layout,
+		    const void             *base,
+		    const Value            *values,
+		    hb_glyph_position_t    &glyph_pos) const
   {
     unsigned int x_ppem, y_ppem;
     unsigned int format = *this;
@@ -152,7 +159,7 @@ struct ValueFormat : USHORT
 
   public:
 
-  inline bool has_device () const {
+  inline bool has_device (void) const {
     unsigned int format = *this;
     return (format & devices) != 0;
   }
@@ -233,7 +240,7 @@ struct AnchorFormat2
       unsigned int x_ppem = layout->font->x_ppem;
       unsigned int y_ppem = layout->font->y_ppem;
       hb_position_t cx, cy;
-      hb_bool_t ret;
+      hb_bool_t ret = false;
 
       if (x_ppem || y_ppem)
 	ret = hb_font_get_contour_point (layout->font, layout->face, anchorPoint, glyph_id, &cx, &cy);
@@ -399,10 +406,10 @@ struct MarkArray : ArrayOf<MarkRecord>
     mark_anchor.get_anchor (c->layout, c->buffer->info[c->buffer->i].codepoint, &mark_x, &mark_y);
     glyph_anchor.get_anchor (c->layout, c->buffer->info[glyph_pos].codepoint, &base_x, &base_y);
 
-    hb_internal_glyph_position_t &o = c->buffer->pos[c->buffer->i];
-    o.x_offset  = base_x - mark_x;
-    o.y_offset  = base_y - mark_y;
-    o.back      = c->buffer->i - glyph_pos;
+    hb_glyph_position_t &o = c->buffer->pos[c->buffer->i];
+    o.x_offset = base_x - mark_x;
+    o.y_offset = base_y - mark_y;
+    o.attach_lookback() = c->buffer->i - glyph_pos;
 
     c->buffer->i++;
     return true;
@@ -623,7 +630,7 @@ struct PairPosFormat1
       return false;
 
     unsigned int j = c->buffer->i + 1;
-    while (_hb_ot_layout_skip_mark (c->layout->face, &c->buffer->info[j], c->lookup_flag, NULL))
+    while (_hb_ot_layout_skip_mark (c->layout->face, &c->buffer->info[j], c->lookup_props, NULL))
     {
       if (unlikely (j == end))
 	return false;
@@ -685,7 +692,7 @@ struct PairPosFormat2
       return false;
 
     unsigned int j = c->buffer->i + 1;
-    while (_hb_ot_layout_skip_mark (c->layout->face, &c->buffer->info[j], c->lookup_flag, NULL))
+    while (_hb_ot_layout_skip_mark (c->layout->face, &c->buffer->info[j], c->lookup_props, NULL))
     {
       if (unlikely (j == end))
 	return false;
@@ -824,175 +831,74 @@ struct CursivePosFormat1
   inline bool apply (hb_apply_context_t *c) const
   {
     TRACE_APPLY ();
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    struct hb_ot_layout_context_t::info_t::gpos_t *gpi = &c->layout->info.gpos;
-    hb_codepoint_t last_pos = gpi->last;
-    gpi->last = HB_OT_LAYOUT_GPOS_NO_LAST;
 
     
-    if (c->property == HB_OT_LAYOUT_GLYPH_CLASS_MARK)
+    if (c->property & HB_OT_LAYOUT_GLYPH_CLASS_MARK)
       return false;
 
-    unsigned int index = (this+coverage) (c->buffer->info[c->buffer->i].codepoint);
-    if (likely (index == NOT_COVERED))
+    unsigned int end = MIN (c->buffer->len, c->buffer->i + c->context_length);
+    if (unlikely (c->buffer->i + 2 > end))
       return false;
 
-    const EntryExitRecord &record = entryExitRecord[index];
+    const EntryExitRecord &this_record = entryExitRecord[(this+coverage) (c->buffer->info[c->buffer->i].codepoint)];
+    if (!this_record.exitAnchor)
+      return false;
 
-    if (last_pos == HB_OT_LAYOUT_GPOS_NO_LAST || !record.entryAnchor)
-      goto end;
-
-    hb_position_t entry_x, entry_y;
-    (this+record.entryAnchor).get_anchor (c->layout, c->buffer->info[c->buffer->i].codepoint, &entry_x, &entry_y);
-
-    
-
-    if (c->buffer->direction == HB_DIRECTION_RTL)
+    unsigned int j = c->buffer->i + 1;
+    while (_hb_ot_layout_skip_mark (c->layout->face, &c->buffer->info[j], c->lookup_props, NULL))
     {
-      
-      c->buffer->pos[c->buffer->i].x_advance = entry_x - gpi->anchor_x;
+      if (unlikely (j == end))
+	return false;
+      j++;
+    }
+
+    const EntryExitRecord &next_record = entryExitRecord[(this+coverage) (c->buffer->info[j].codepoint)];
+    if (!next_record.entryAnchor)
+      return false;
+
+    unsigned int i = c->buffer->i;
+
+    hb_position_t entry_x, entry_y, exit_x, exit_y;
+    (this+this_record.exitAnchor).get_anchor (c->layout, c->buffer->info[i].codepoint, &exit_x, &exit_y);
+    (this+next_record.entryAnchor).get_anchor (c->layout, c->buffer->info[j].codepoint, &entry_x, &entry_y);
+
+    hb_direction_t direction = c->buffer->props.direction;
+
+    
+
+    if (HB_DIRECTION_IS_BACKWARD (direction))
+    {
+      if (likely (HB_DIRECTION_IS_HORIZONTAL (direction)))
+	c->buffer->pos[j].x_advance = c->buffer->pos[j].x_offset + entry_x - exit_x;
+      else
+	c->buffer->pos[j].y_advance = c->buffer->pos[j].y_offset + entry_y - exit_y;
     }
     else
     {
-      
-      c->buffer->pos[last_pos].x_advance = gpi->anchor_x - entry_x;
+      if (likely (HB_DIRECTION_IS_HORIZONTAL (direction)))
+	c->buffer->pos[i].x_advance = c->buffer->pos[i].x_offset + exit_x - entry_x;
+      else
+	c->buffer->pos[i].y_advance = c->buffer->pos[i].y_offset + exit_y - entry_y;
     }
 
-    if  (c->lookup_flag & LookupFlag::RightToLeft)
+    if  (c->lookup_props & LookupFlag::RightToLeft)
     {
-      c->buffer->pos[last_pos].cursive_chain = last_pos - c->buffer->i;
-      c->buffer->pos[last_pos].y_offset = entry_y - gpi->anchor_y;
+      c->buffer->pos[i].cursive_chain() = j - i;
+      if (likely (HB_DIRECTION_IS_HORIZONTAL (direction)))
+	c->buffer->pos[i].y_offset = entry_y - exit_y;
+      else
+	c->buffer->pos[i].x_offset = entry_x - exit_x;
     }
     else
     {
-      c->buffer->pos[c->buffer->i].cursive_chain = c->buffer->i - last_pos;
-      c->buffer->pos[c->buffer->i].y_offset = gpi->anchor_y - entry_y;
+      c->buffer->pos[j].cursive_chain() = i - j;
+      if (likely (HB_DIRECTION_IS_HORIZONTAL (direction)))
+	c->buffer->pos[j].y_offset = exit_y - entry_y;
+      else
+	c->buffer->pos[j].x_offset = exit_x - entry_x;
     }
 
-  end:
-    if (record.exitAnchor)
-    {
-      gpi->last = c->buffer->i;
-      (this+record.exitAnchor).get_anchor (c->layout, c->buffer->info[c->buffer->i].codepoint, &gpi->anchor_x, &gpi->anchor_y);
-    }
-
-    c->buffer->i++;
+    c->buffer->i = j;
     return true;
   }
 
@@ -1073,8 +979,8 @@ struct MarkBasePosFormat1
     } while (_hb_ot_layout_skip_mark (c->layout->face, &c->buffer->info[j], LookupFlag::IgnoreMarks, &property));
 
     
-    if (false && !(property & HB_OT_LAYOUT_GLYPH_CLASS_BASE_GLYPH))
-      return false;
+    if (!(property & HB_OT_LAYOUT_GLYPH_CLASS_BASE_GLYPH))
+    {}
 
     unsigned int base_index = (this+baseCoverage) (c->buffer->info[j].codepoint);
     if (base_index == NOT_COVERED)
@@ -1175,8 +1081,8 @@ struct MarkLigPosFormat1
     } while (_hb_ot_layout_skip_mark (c->layout->face, &c->buffer->info[j], LookupFlag::IgnoreMarks, &property));
 
     
-    if (false && !(property & HB_OT_LAYOUT_GLYPH_CLASS_LIGATURE))
-      return false;
+    if (!(property & HB_OT_LAYOUT_GLYPH_CLASS_LIGATURE))
+    {}
 
     unsigned int lig_index = (this+ligatureCoverage) (c->buffer->info[j].codepoint);
     if (lig_index == NOT_COVERED)
@@ -1194,9 +1100,9 @@ struct MarkLigPosFormat1
 
 
 
-    if (c->buffer->info[j].lig_id && c->buffer->info[j].lig_id == c->buffer->info[c->buffer->i].lig_id && c->buffer->info[c->buffer->i].component)
+    if (c->buffer->info[j].lig_id() && c->buffer->info[j].lig_id() == c->buffer->info[c->buffer->i].lig_id() && c->buffer->info[c->buffer->i].lig_comp())
     {
-      comp_index = c->buffer->info[c->buffer->i].component - 1;
+      comp_index = c->buffer->info[c->buffer->i].lig_comp() - 1;
       if (comp_index >= comp_count)
 	comp_index = comp_count - 1;
     }
@@ -1291,7 +1197,7 @@ struct MarkMarkPosFormat1
       if (unlikely (!j))
 	return false;
       j--;
-    } while (_hb_ot_layout_skip_mark (c->layout->face, &c->buffer->info[j], c->lookup_flag, &property));
+    } while (_hb_ot_layout_skip_mark (c->layout->face, &c->buffer->info[j], c->lookup_props, &property));
 
     if (!(property & HB_OT_LAYOUT_GLYPH_CLASS_MARK))
       return false;
@@ -1299,8 +1205,8 @@ struct MarkMarkPosFormat1
     
 
 
-    if ((c->buffer->info[j].component != c->buffer->info[c->buffer->i].component) ||
-	(c->buffer->info[j].component && c->buffer->info[j].lig_id != c->buffer->info[c->buffer->i].lig_id))
+    if ((c->buffer->info[j].lig_comp() != c->buffer->info[c->buffer->i].lig_comp()) ||
+	(c->buffer->info[j].lig_comp() && c->buffer->info[j].lig_id() != c->buffer->info[c->buffer->i].lig_id()))
       return false;
 
     unsigned int mark2_index = (this+mark2Coverage) (c->buffer->info[j].codepoint);
@@ -1371,7 +1277,9 @@ struct MarkMarkPos
 };
 
 
+HB_BEGIN_DECLS
 static inline bool position_lookup (hb_apply_context_t *c, unsigned int lookup_index);
+HB_END_DECLS
 
 struct ContextPos : Context
 {
@@ -1508,9 +1416,9 @@ struct PosLookup : Lookup
     c->lookup_mask = lookup_mask;
     c->context_length = context_length;
     c->nesting_level_left = nesting_level_left;
-    c->lookup_flag = get_flag ();
+    c->lookup_props = get_props ();
 
-    if (!_hb_ot_layout_check_glyph_property (c->layout->face, &c->buffer->info[c->buffer->i], c->lookup_flag, &c->property))
+    if (!_hb_ot_layout_check_glyph_property (c->layout->face, &c->buffer->info[c->buffer->i], c->lookup_props, &c->property))
       return false;
 
     for (unsigned int i = 0; i < get_subtable_count (); i++)
@@ -1529,26 +1437,13 @@ struct PosLookup : Lookup
     if (unlikely (!buffer->len))
       return false;
 
-    layout->info.gpos.last = HB_OT_LAYOUT_GPOS_NO_LAST; 
-
     buffer->i = 0;
     while (buffer->i < buffer->len)
     {
-      bool done;
-      if (buffer->info[buffer->i].mask & mask)
-      {
-	  done = apply_once (layout, buffer, mask, NO_CONTEXT, MAX_NESTING_LEVEL);
-	  ret |= done;
-      }
+      if ((buffer->info[buffer->i].mask & mask) &&
+	  apply_once (layout, buffer, mask, NO_CONTEXT, MAX_NESTING_LEVEL))
+	ret = true;
       else
-      {
-          done = false;
-	  
-
-	  layout->info.gpos.last = HB_OT_LAYOUT_GPOS_NO_LAST;
-      }
-
-      if (!done)
 	buffer->i++;
     }
 
@@ -1582,6 +1477,8 @@ struct GPOS : GSUBGPOS
 			       hb_mask_t     mask) const
   { return get_lookup (lookup_index).apply_string (layout, buffer, mask); }
 
+  static inline void position_finish (hb_buffer_t *buffer);
+
   inline bool sanitize (hb_sanitize_context_t *c) {
     TRACE_SANITIZE ();
     if (unlikely (!GSUBGPOS::sanitize (c))) return false;
@@ -1591,6 +1488,63 @@ struct GPOS : GSUBGPOS
   public:
   DEFINE_SIZE_STATIC (10);
 };
+
+void
+GPOS::position_finish (hb_buffer_t *buffer)
+{
+  unsigned int i, j;
+  unsigned int len = hb_buffer_get_length (buffer);
+  hb_glyph_position_t *pos = hb_buffer_get_glyph_positions (buffer);
+  hb_direction_t direction = buffer->props.direction;
+
+  
+
+  if (likely (HB_DIRECTION_IS_HORIZONTAL (direction)))
+  {
+    for (j = 0; j < len; j++) {
+      if (pos[j].cursive_chain() < 0)
+	pos[j].y_offset += pos[j + pos[j].cursive_chain()].y_offset;
+    }
+    for (i = len; i > 0; i--) {
+      j = i - 1;
+      if (pos[j].cursive_chain() > 0)
+	pos[j].y_offset += pos[j + pos[j].cursive_chain()].y_offset;
+    }
+  }
+  else
+  {
+    for (j = 0; j < len; j++) {
+      if (pos[j].cursive_chain() < 0)
+	pos[j].x_offset += pos[j + pos[j].cursive_chain()].x_offset;
+    }
+    for (i = len; i > 0; i--) {
+      j = i - 1;
+      if (pos[j].cursive_chain() > 0)
+	pos[j].x_offset += pos[j + pos[j].cursive_chain()].x_offset;
+    }
+  }
+
+
+  
+  for (i = 0; i < len; i++)
+    if (pos[i].attach_lookback())
+    {
+      unsigned int back = i - pos[i].attach_lookback();
+      pos[i].x_offset += pos[back].x_offset;
+      pos[i].y_offset += pos[back].y_offset;
+
+      if (HB_DIRECTION_IS_BACKWARD (buffer->props.direction))
+	for (j = back + 1; j < i + 1; j++) {
+	  pos[i].x_offset += pos[j].x_advance;
+	  pos[i].y_offset += pos[j].y_advance;
+	}
+      else
+	for (j = back; j < i; j++) {
+	  pos[i].x_offset -= pos[j].x_advance;
+	  pos[i].y_offset -= pos[j].y_advance;
+	}
+    }
+}
 
 
 
@@ -1624,5 +1578,11 @@ static inline bool position_lookup (hb_apply_context_t *c, unsigned int lookup_i
   return l.apply_once (c->layout, c->buffer, c->lookup_mask, c->context_length, c->nesting_level_left - 1);
 }
 
+
+#undef attach_lookback
+#undef cursive_chain
+
+
+HB_END_DECLS
 
 #endif 
