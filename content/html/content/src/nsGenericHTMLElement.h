@@ -695,7 +695,7 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) GetFloatAttr(nsIAtom* aAttr, double aDefault, double* aValue);
+  NS_HIDDEN_(nsresult) GetDoubleAttr(nsIAtom* aAttr, double aDefault, double* aValue);
 
   
 
@@ -705,7 +705,7 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) SetFloatAttr(nsIAtom* aAttr, double aValue);
+  NS_HIDDEN_(nsresult) SetDoubleAttr(nsIAtom* aAttr, double aValue);
 
   
 
@@ -1200,12 +1200,12 @@ protected:
   NS_IMETHODIMP                                                             \
   _class::Get##_method(double* aValue)                                      \
   {                                                                         \
-    return GetFloatAttr(nsGkAtoms::_atom, _default, aValue);                \
+    return GetDoubleAttr(nsGkAtoms::_atom, _default, aValue);               \
   }                                                                         \
   NS_IMETHODIMP                                                             \
   _class::Set##_method(double aValue)                                       \
   {                                                                         \
-    return SetFloatAttr(nsGkAtoms::_atom, aValue);                          \
+    return SetDoubleAttr(nsGkAtoms::_atom, aValue);                         \
   }
 
 
