@@ -2,46 +2,12 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.net;
-
 
 import java.io.IOException;
 import java.util.HashMap;
 
-import android.util.Log;
+import org.mozilla.gecko.sync.Logger;
 
 import ch.boye.httpclientandroidlib.HttpResponse;
 
@@ -81,7 +47,7 @@ public class SyncStorageResponse extends SyncResponse {
     SERVER_ERROR_MESSAGES = errors;
   }
   public static String getServerErrorMessage(String body) {
-    Log.d(LOG_TAG, "Looking up message for body \"" + body + "\"");
+    Logger.debug(LOG_TAG, "Looking up message for body \"" + body + "\"");
     if (SERVER_ERROR_MESSAGES.containsKey(body)) {
       return SERVER_ERROR_MESSAGES.get(body);
     }

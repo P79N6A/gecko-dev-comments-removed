@@ -2,49 +2,18 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.net;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.mozilla.gecko.sync.CryptoRecord;
 import org.mozilla.gecko.sync.ThreadPool;
 
+import ch.boye.httpclientandroidlib.HttpEntity;
 import ch.boye.httpclientandroidlib.entity.StringEntity;
 
 
@@ -88,20 +57,36 @@ public class SyncStorageRecordRequest extends SyncStorageRequest {
     return new SyncStorageRecordResourceDelegate(request);
   }
 
-  
-
-
-
-  protected StringEntity jsonEntity(JSONObject body) throws UnsupportedEncodingException {
-    StringEntity e = new StringEntity(body.toJSONString(), "UTF-8");
+  protected static StringEntity stringEntity(String s) throws UnsupportedEncodingException {
+    StringEntity e = new StringEntity(s, "UTF-8");
     e.setContentType("application/json");
     return e;
   }
 
+  
+
+
+
+  protected static StringEntity jsonEntity(JSONObject body) throws UnsupportedEncodingException {
+    return stringEntity(body.toJSONString());
+  }
+
+  
+
+
+
+  protected static HttpEntity jsonEntity(JSONArray toPOST) throws UnsupportedEncodingException {
+    return stringEntity(toPOST.toJSONString());
+  }
+
+  @SuppressWarnings("unchecked")
   public void post(JSONObject body) {
     
+    
+    final JSONArray toPOST = new JSONArray();
+    toPOST.add(body);
     try {
-      this.resource.post(jsonEntity(body));
+      this.resource.post(jsonEntity(toPOST));
     } catch (UnsupportedEncodingException e) {
       this.delegate.handleRequestError(e);
     }

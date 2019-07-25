@@ -180,7 +180,12 @@ public class Utils {
   }
 
   public static String millisecondsToDecimalSecondsString(long ms) {
-    return new BigDecimal(ms).movePointLeft(3).toString();
+    return millisecondsToDecimalSeconds(ms).toString();
+  }
+
+  
+  public static BigDecimal millisecondsToDecimalSeconds(long ms) {
+    return new BigDecimal(ms).movePointLeft(3);
   }
 
   

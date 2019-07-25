@@ -109,7 +109,11 @@ public class SyncClientsEngineStage implements GlobalSyncStage {
 
     @Override
     public void handleRequestSuccess(SyncStorageResponse response) {
-      BaseResource.consumeEntity(response); 
+
+      
+      
+      session.config.persistServerClientsTimestamp(response.normalizedWeaveTimestamp());
+      BaseResource.consumeEntity(response);
 
       
       
@@ -170,13 +174,9 @@ public class SyncClientsEngineStage implements GlobalSyncStage {
         r = (ClientRecord) factory.createRecord(record.decrypt());
         if (clientsDelegate.isLocalGUID(r.guid)) {
           Logger.info(LOG_TAG, "Local client GUID exists on server and was downloaded");
-          localAccountGUIDDownloaded = true;
-          
-          
-          
-          session.config.persistServerClientRecordTimestamp(r.lastModified);
 
-          
+          localAccountGUIDDownloaded = true;
+          session.config.persistServerClientRecordTimestamp(r.lastModified);
           processCommands(r.commands);
         }
         RepoUtils.logClient(r);
@@ -208,7 +208,8 @@ public class SyncClientsEngineStage implements GlobalSyncStage {
 
     @Override
     public String ifUnmodifiedSince() {
-      Long timestampInMilliseconds = session.config.getPersistedServerClientRecordTimestamp();
+      
+      Long timestampInMilliseconds = session.config.getPersistedServerClientsTimestamp();
 
       
       if (timestampInMilliseconds == 0) {
@@ -225,12 +226,14 @@ public class SyncClientsEngineStage implements GlobalSyncStage {
         commandsProcessedShouldUpload = false;
         uploadAttemptsCount.set(0);
 
-        long timestamp = Utils.decimalSecondsToMilliseconds(response.body());
+        
+        
+        long timestamp = response.normalizedWeaveTimestamp();
         session.config.persistServerClientRecordTimestamp(timestamp);
+        session.config.persistServerClientsTimestamp(timestamp);
         BaseResource.consumeEntity(response);
 
-        Logger.debug(LOG_TAG, "Timestamp from body is: " + timestamp);
-        Logger.debug(LOG_TAG, "Timestamp from header is: " + response.normalizedWeaveTimestamp());
+        Logger.debug(LOG_TAG, "Timestamp is " + timestamp);
       } catch (Exception e) {
         session.abort(e, "Unable to fetch timestamp.");
         return;
@@ -289,7 +292,9 @@ public class SyncClientsEngineStage implements GlobalSyncStage {
   @Override
   public void resetLocal() {
     
-    session.config.persistServerClientRecordTimestamp(0L);
+    session.config.persistServerClientRecordTimestamp(0L);   
+    session.config.persistServerClientsTimestamp(0L);
+
     session.getClientsDelegate().setClientsCount(0);
     try {
       getClientsDatabaseAccessor().wipe();
@@ -391,14 +396,16 @@ public class SyncClientsEngineStage implements GlobalSyncStage {
     }
   }
 
+  
+
+
   protected void uploadClientRecord(CryptoRecord record) {
     Logger.debug(LOG_TAG, "Uploading client record " + record.guid);
     try {
-      URI putURI = session.config.wboURI(COLLECTION_NAME, record.guid);
-
-      SyncStorageRecordRequest request = new SyncStorageRecordRequest(putURI);
+      URI postURI = session.config.collectionURI(COLLECTION_NAME);
+      SyncStorageRecordRequest request = new SyncStorageRecordRequest(postURI);
       request.delegate = clientUploadDelegate;
-      request.put(record);
+      request.post(record);
     } catch (URISyntaxException e) {
       session.abort(e, "Invalid URI.");
     }
