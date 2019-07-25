@@ -172,7 +172,13 @@ nsHttpPipeline::PipelinePosition()
     nsAHttpTransaction *trans = Response(0);
     if (trans)
         return trans->PipelinePosition();
-    return 2;
+
+    
+    if (mRequestQ.Length())
+        return Request(mRequestQ.Length() - 1)->PipelinePosition();
+    
+    
+    return 0;
 }
 
 nsHttpPipeline *
