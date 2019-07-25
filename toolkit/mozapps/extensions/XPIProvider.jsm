@@ -74,6 +74,8 @@ const PREF_XPI_WHITELIST_PERMISSIONS  = "xpinstall.whitelist.add";
 const PREF_XPI_BLACKLIST_PERMISSIONS  = "xpinstall.blacklist.add";
 const PREF_XPI_UNPACK                 = "extensions.alwaysUnpack";
 const PREF_INSTALL_REQUIREBUILTINCERTS = "extensions.install.requireBuiltInCerts";
+const PREF_INSTALL_DISTRO_ADDONS      = "extensions.installDistroAddons";
+const PREF_BRANCH_INSTALLED_ADDON     = "extensions.installedDistroAddon.";
 
 const URI_EXTENSION_UPDATE_DIALOG     = "chrome://mozapps/content/extensions/update.xul";
 
@@ -91,6 +93,7 @@ const FILE_XPI_ADDONS_LIST            = "extensions.ini";
 const KEY_PROFILEDIR                  = "ProfD";
 const KEY_APPDIR                      = "XCurProcD";
 const KEY_TEMPDIR                     = "TmpD";
+const KEY_APP_DISTRIBUTION            = "XREAppDist";
 
 const KEY_APP_PROFILE                 = "app-profile";
 const KEY_APP_GLOBAL                  = "app-global";
@@ -171,30 +174,34 @@ var gIDTest = /^(\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\
 
 
 
-function SafeMoveOperation() {
-  this._movedFiles = [];
+
+function SafeInstallOperation() {
+  this._installedFiles = [];
   this._createdDirs = [];
 }
 
-SafeMoveOperation.prototype = {
-  _movedFiles: null,
+SafeInstallOperation.prototype = {
+  _installedFiles: null,
   _createdDirs: null,
 
-  _moveFile: function(aFile, aTargetDirectory) {
-    let oldFile = aFile.clone();
+  _installFile: function(aFile, aTargetDirectory, aCopy) {
+    let oldFile = aCopy ? null : aFile.clone();
     let newFile = aFile.clone();
     try {
-      newFile.moveTo(aTargetDirectory, null);
+      if (aCopy)
+        newFile.copyTo(aTargetDirectory, null);
+      else
+        newFile.moveTo(aTargetDirectory, null);
     }
     catch (e) {
-      ERROR("Failed to move file " + aFile.path + " to " +
-            aTargetDirectory.path, e);
+      ERROR("Failed to " + (aCopy ? "copy" : "move") + " file " + aFile.path +
+            " to " + aTargetDirectory.path, e);
       throw e;
     }
-    this._movedFiles.push({ oldFile: oldFile, newFile: newFile });
+    this._installedFiles.push({ oldFile: null, newFile: newFile });
   },
 
-  _moveDirectory: function(aDirectory, aTargetDirectory) {
+  _installDirectory: function(aDirectory, aTargetDirectory, aCopy) {
     let newDir = aTargetDirectory.clone();
     newDir.append(aDirectory.leafName);
     try {
@@ -220,13 +227,18 @@ SafeMoveOperation.prototype = {
 
     cacheEntries.forEach(function(aEntry) {
       try {
-        this._moveDirEntry(aEntry, newDir);
+        this._installDirEntry(aEntry, newDir, aCopy);
       }
       catch (e) {
-        ERROR("Failed to move entry " + aEntry.path, e);
+        ERROR("Failed to " + (aCopy ? "copy" : "move") + " entry " +
+              aEntry.path, e);
         throw e;
       }
     }, this);
+
+    
+    if (aCopy)
+      return;
 
     
     
@@ -241,18 +253,19 @@ SafeMoveOperation.prototype = {
 
     
     
-    this._movedFiles.push({ oldFile: aDirectory, newFile: newDir });
+    this._installedFiles.push({ oldFile: aDirectory, newFile: newDir });
   },
 
-  _moveDirEntry: function(aDirEntry, aTargetDirectory) {
+  _installDirEntry: function(aDirEntry, aTargetDirectory, aCopy) {
     try {
       if (aDirEntry.isDirectory())
-        this._moveDirectory(aDirEntry, aTargetDirectory);
+        this._installDirectory(aDirEntry, aTargetDirectory, aCopy);
       else
-        this._moveFile(aDirEntry, aTargetDirectory);
+        this._installFile(aDirEntry, aTargetDirectory, aCopy);
     }
     catch (e) {
-      ERROR("Failure moving " + aDirEntry.path + " to " + aTargetDirectory.path);
+      ERROR("Failure " + (aCopy ? "copying" : "moving") + " " + aDirEntry.path +
+            " to " + aTargetDirectory.path);
       throw e;
     }
   },
@@ -269,7 +282,27 @@ SafeMoveOperation.prototype = {
 
   move: function(aFile, aTargetDirectory) {
     try {
-      this._moveDirEntry(aFile, aTargetDirectory);
+      this._installDirEntry(aFile, aTargetDirectory, false);
+    }
+    catch (e) {
+      this.rollback();
+      throw e;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  copy: function(aFile, aTargetDirectory) {
+    try {
+      this._installDirEntry(aFile, aTargetDirectory, true);
     }
     catch (e) {
       this.rollback();
@@ -283,12 +316,16 @@ SafeMoveOperation.prototype = {
 
 
   rollback: function() {
-    while (this._movedFiles.length > 0) {
-      let move = this._movedFiles.pop();
+    while (this._installedFiles.length > 0) {
+      let move = this._installedFiles.pop();
       if (move.newFile.isDirectory()) {
         let oldDir = move.oldFile.parent.clone();
         oldDir.append(move.oldFile.leafName);
         oldDir.create(Ci.nsILocalFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+      }
+      else if (!move.oldFile) {
+        
+        move.newFile.remove(true);
       }
       else {
         move.newFile.moveTo(move.oldFile.parent, null);
@@ -775,6 +812,13 @@ function loadManifestFromZipFile(aXPIFile) {
   finally {
     zipReader.close();
   }
+}
+
+function loadManifestFromFile(aFile) {
+  if (aFile.isFile())
+    return loadManifestFromZipFile(aFile);
+  else
+    return loadManifestFromDir(aFile);
 }
 
 
@@ -1812,6 +1856,131 @@ var XPIProvider = {
 
 
 
+  installDistributionAddons: function XPI_installDistributionAddons(aManifests) {
+    let distroDir;
+    try {
+      distroDir = FileUtils.getDir(KEY_APP_DISTRIBUTION, [DIR_EXTENSIONS]);
+    }
+    catch (e) {
+      return false;
+    }
+
+    if (!distroDir.exists())
+      return false;
+
+    if (!distroDir.isDirectory())
+      return false;
+
+    let changed = false;
+    let profileLocation = this.installLocationsByName[KEY_APP_PROFILE];
+
+    let entries = distroDir.directoryEntries
+                           .QueryInterface(Ci.nsIDirectoryEnumerator);
+    let entry;
+    while (entry = entries.nextFile) {
+      
+      if (!(entry instanceof Ci.nsILocalFile))
+        continue;
+
+      let id = entry.leafName;
+
+      if (entry.isFile()) {
+        if (id.substring(id.length - 4).toLowerCase() == ".xpi") {
+          id = id.substring(0, id.length - 4);
+        }
+        else {
+          LOG("Ignoring distribution add-on that isn't an XPI: " + entry.path);
+          continue;
+        }
+      }
+      else if (!entry.isDirectory()) {
+        LOG("Ignoring distribution add-on that isn't a file or directory: " +
+            entry.path);
+        continue;
+      }
+
+      if (!gIDTest.test(id)) {
+        LOG("Ignoring distribution add-on whose name is not a valid add-on ID: " +
+            entry.path);
+        continue;
+      }
+
+      let addon;
+      try {
+        addon = loadManifestFromFile(entry);
+      }
+      catch (e) {
+        WARN("File entry " + entry.path + " contains an invalid add-on", e);
+        continue;
+      }
+
+      if (addon.id != id) {
+        WARN("File entry " + entry.path + " contains an add-on with an " +
+             "incorrect ID")
+        continue;
+      }
+
+      let existingEntry = null;
+      try {
+        existingEntry = profileLocation.getLocationForID(id);
+      }
+      catch (e) {
+      }
+
+      if (existingEntry) {
+        let existingAddon;
+        try {
+          existingAddon = loadManifestFromFile(existingEntry);
+
+          if (Services.vc.compare(addon.version, existingAddon.version) <= 0)
+            continue;
+        }
+        catch (e) {
+          
+          WARN("Profile contains an add-on with a bad or missing install " +
+               "manifest at " + existingEntry.path + ", overwriting", e);
+        }
+      }
+      else if (Prefs.getBoolPref(PREF_BRANCH_INSTALLED_ADDON + id, false)) {
+        continue;
+      }
+
+      
+      try {
+        profileLocation.installAddon(id, entry, null, true);
+        LOG("Installed distribution add-on " + id);
+
+        Services.prefs.setBoolPref(PREF_BRANCH_INSTALLED_ADDON + id, true)
+
+        
+        
+        
+        if (!(KEY_APP_PROFILE in aManifests))
+          aManifests[KEY_APP_PROFILE] = {};
+        aManifests[KEY_APP_PROFILE][id] = addon;
+        changed = true;
+      }
+      catch (e) {
+        ERROR("Failed to install distribution add-on " + entry.path, e);
+      }
+    }
+
+    entries.close();
+
+    return changed;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1858,10 +2027,7 @@ var XPIProvider = {
         
         if (!newAddon) {
           let file = aInstallLocation.getLocationForID(aOldAddon.id);
-          if (file.isFile())
-            newAddon = loadManifestFromZipFile(file);
-          else
-            newAddon = loadManifestFromDir(file);
+          newAddon = loadManifestFromFile(file);
           
           newAddon.userDisabled = aOldAddon.userDisabled;
         }
@@ -2074,10 +2240,7 @@ var XPIProvider = {
         
         if (!newAddon) {
           let file = aInstallLocation.getLocationForID(aId);
-          if (file.isFile())
-            newAddon = loadManifestFromZipFile(file);
-          else
-            newAddon = loadManifestFromDir(file);
+          newAddon = loadManifestFromFile(file);
         }
         
         if (newAddon.id != aId)
@@ -2341,6 +2504,11 @@ var XPIProvider = {
 
     
     updateDatabase |= DB_SCHEMA != Prefs.getIntPref(PREF_DB_SCHEMA, 0);
+
+    
+    if (aAppChanged !== false &&
+        Prefs.getBoolPref(PREF_INSTALL_DISTRO_ADDONS, true))
+      updateDatabase = this.installDistributionAddons(manifests) | updateDatabase;
 
     
     
@@ -6853,10 +7021,15 @@ DirectoryInstallLocation.prototype = {
 
 
 
-  installAddon: function DirInstallLocation_installAddon(aId, aSource, aExistingAddonID) {
+
+
+
+  installAddon: function DirInstallLocation_installAddon(aId, aSource,
+                                                         aExistingAddonID,
+                                                         aCopy) {
     let trashDir = this.getTrashDir();
 
-    let transaction = new SafeMoveOperation();
+    let transaction = new SafeInstallOperation();
 
     let self = this;
     function moveOldAddon(aId) {
@@ -6881,10 +7054,15 @@ DirectoryInstallLocation.prototype = {
       if (aExistingAddonID && aExistingAddonID != aId)
         moveOldAddon(aExistingAddonID);
 
-      if (aSource.isFile())
-        Services.obs.notifyObservers(aSource, "flush-cache-entry", null);
+      if (aCopy) {
+        transaction.copy(aSource, this._directory);
+      }
+      else {
+        if (aSource.isFile())
+          Services.obs.notifyObservers(aSource, "flush-cache-entry", null);
 
-      transaction.move(aSource, this._directory);
+        transaction.move(aSource, this._directory);
+      }
     }
     finally {
       
@@ -6946,7 +7124,7 @@ DirectoryInstallLocation.prototype = {
     if (file.leafName != aId)
       Services.obs.notifyObservers(file, "flush-cache-entry", null);
 
-    let transaction = new SafeMoveOperation();
+    let transaction = new SafeInstallOperation();
 
     try {
       transaction.move(file, trashDir);

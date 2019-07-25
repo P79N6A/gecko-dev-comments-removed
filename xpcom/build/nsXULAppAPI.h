@@ -266,6 +266,12 @@ struct nsXREAppData
 
 
 
+#define XRE_APP_DISTRIBUTION_DIR "XREAppDist"
+
+
+
+
+
 
 
 

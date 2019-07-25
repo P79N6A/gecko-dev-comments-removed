@@ -1057,6 +1057,9 @@ Services.prefs.setCharPref("extensions.update.url", "http://127.0.0.1/updateURL"
 Services.prefs.setCharPref("extensions.blocklist.url", "http://127.0.0.1/blocklistURL");
 
 
+Services.prefs.setBoolPref("extensions.installDistroAddons", false);
+
+
 const gTmpD = gProfD.clone();
 gTmpD.append("temp");
 gTmpD.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
