@@ -3678,6 +3678,7 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
 
 
     JS_ASSERT(!a->isDenseArray() && !b->isDenseArray());
+    JS_ASSERT(!a->isArrayBuffer() && !b->isArrayBuffer());
 
     
     const size_t size = a->structSize();

@@ -327,6 +327,11 @@ class ValidateWriter;
 
 
 
+
+
+
+
+
 struct JSObject : js::gc::Cell {
     
 
@@ -964,6 +969,11 @@ struct JSObject : js::gc::Cell {
     JSBool makeDenseArraySlow(JSContext *cx);
 
   public:
+    bool allocateArrayBufferSlots(JSContext *cx, uint32 size);
+    inline uint32 arrayBufferByteLength();
+    inline uint8 * arrayBufferDataOffset();
+
+  public:
     inline js::ArgumentsObject *asArguments();
     inline js::NormalArgumentsObject *asNormalArguments();
     inline js::StrictArgumentsObject *asStrictArguments();
@@ -1405,6 +1415,7 @@ struct JSObject : js::gc::Cell {
     inline bool isProxy() const;
     inline bool isObjectProxy() const;
     inline bool isFunctionProxy() const;
+    inline bool isArrayBuffer() const;
 
     JS_FRIEND_API(bool) isWrapper() const;
     JS_FRIEND_API(JSObject *) unwrap(uintN *flagsp = NULL);
@@ -1508,7 +1519,7 @@ class ValueArray {
     ValueArray(js::Value *v, size_t c) : array(v), length(c) {}
 };
 
-extern js::Class js_ArrayClass, js_SlowArrayClass;
+extern js::Class js_ArrayClass, js_SlowArrayClass, js_ArrayBufferClass;
 
 inline bool
 JSObject::isDenseArray() const
@@ -1526,6 +1537,12 @@ inline bool
 JSObject::isArray() const
 {
     return isDenseArray() || isSlowArray();
+}
+
+inline bool
+JSObject::isArrayBuffer() const
+{
+    return getClass() == &js_ArrayBufferClass;
 }
 
 extern js::Class js_ObjectClass;
