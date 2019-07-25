@@ -1,12 +1,15 @@
 
 
 
-
 const TEST_BASE = "chrome://mochitests/content/browser/browser/devtools/styleeditor/test/";
 const TEST_BASE_HTTP = "http://example.com/browser/browser/devtools/styleeditor/test/";
 const TEST_BASE_HTTPS = "https://example.com/browser/browser/devtools/styleeditor/test/";
 
 let gChromeWindow;               
+
+
+let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
+Services.scriptloader.loadSubScript(testDir + "/helper.js", this);
 
 function cleanup()
 {
