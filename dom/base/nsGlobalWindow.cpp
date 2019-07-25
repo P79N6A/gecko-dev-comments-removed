@@ -2261,10 +2261,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   }
 
   
-  
   nsCOMPtr<nsIScriptContext> kungFuDeathGrip(mContext);
-  nsCOMPtr<nsIDOMDocument> dd(do_QueryInterface(aDocument));
-  mContext->DidSetDocument(dd, newInnerWindow->mJSObject);
 
   
   
