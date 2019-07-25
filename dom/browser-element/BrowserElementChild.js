@@ -70,6 +70,10 @@ BrowserElementChild.prototype = {
     debug("Starting up.");
     sendAsyncMsg("hello");
 
+    
+    docShell.QueryInterface(Ci.nsIDocShellTreeItem).name =
+      sendSyncMsg('get-name')[0];
+
     BrowserElementPromptService.mapWindowToBrowserElementChild(content, this);
 
     docShell.QueryInterface(Ci.nsIWebProgress)
