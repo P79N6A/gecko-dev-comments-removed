@@ -207,10 +207,24 @@ nsPrincipal::GetOrigin(char **aOrigin)
   bool isChrome;
   nsresult rv = origin->SchemeIs("chrome", &isChrome);
   if (NS_SUCCEEDED(rv) && !isChrome) {
-    rv = origin->GetHostPort(hostPort);
+    rv = origin->GetAsciiHost(hostPort);
+    
+    
+    if (hostPort.IsEmpty())
+      rv = NS_ERROR_FAILURE;
+  }
+
+  PRInt32 port;
+  if (NS_SUCCEEDED(rv) && !isChrome) {
+    rv = origin->GetPort(&port);
   }
 
   if (NS_SUCCEEDED(rv) && !isChrome) {
+    if (port != -1) {
+      hostPort.AppendLiteral(":");
+      hostPort.AppendInt(port, 10);
+    }
+
     nsCAutoString scheme;
     rv = origin->GetScheme(scheme);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -220,7 +234,9 @@ nsPrincipal::GetOrigin(char **aOrigin)
     
     
     nsCAutoString spec;
-    rv = origin->GetSpec(spec);
+    
+    
+    rv = origin->GetAsciiSpec(spec);
     NS_ENSURE_SUCCESS(rv, rv);
     *aOrigin = ToNewCString(spec);
   }
