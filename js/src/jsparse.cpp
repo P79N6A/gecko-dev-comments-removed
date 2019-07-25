@@ -1555,18 +1555,11 @@ Parser::functionBody()
 }
 
 
-
-
-
 static JSDefinition *
-MakePlaceholder(AtomDefnAddPtr &p, JSParseNode *pn, JSTreeContext *tc)
+MakePlaceholder(JSParseNode *pn, JSTreeContext *tc)
 {
-    JSAtom *atom = pn->pn_atom;
-    JSDefinition *dn = (JSDefinition *) NameNode::create(atom, tc);
+    JSDefinition *dn = (JSDefinition *) NameNode::create(pn->pn_atom, tc);
     if (!dn)
-        return NULL;
-
-    if (!tc->lexdeps->add(p, atom, dn))
         return NULL;
 
     dn->pn_type = TOK_NAME;
@@ -2787,8 +2780,8 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
 
 
 
-                    outer_dn = MakePlaceholder(p, dn, tc);
-                    if (!outer_dn)
+                    outer_dn = MakePlaceholder(dn, tc);
+                    if (!outer_dn || !tc->lexdeps->add(p, atom, outer_dn))
                         return false;
                 }
             }
@@ -6919,8 +6912,7 @@ CompExprTransplanter::transplant(JSParseNode *pn)
 
 
 
-                    AtomDefnAddPtr p = tc->lexdeps->lookupForAdd(atom);
-                    JSDefinition *dn2 = MakePlaceholder(p, pn, tc);
+                    JSDefinition *dn2 = MakePlaceholder(pn, tc);
                     if (!dn2)
                         return false;
                     dn2->pn_pos = root->pn_pos;
@@ -6939,6 +6931,8 @@ CompExprTransplanter::transplant(JSParseNode *pn)
                     dn2->dn_uses = dn->dn_uses;
                     dn->dn_uses = *pnup;
                     *pnup = NULL;
+                    if (!tc->lexdeps->put(atom, dn2))
+                        return false;
                 } else if (dn->isPlaceholder()) {
                     
 
@@ -8763,8 +8757,8 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
 
 
 
-                    dn = MakePlaceholder(p, pn, tc);
-                    if (!dn)
+                    dn = MakePlaceholder(pn, tc);
+                    if (!dn || !tc->lexdeps->add(p, dn->pn_atom, dn))
                         return NULL;
 
                     
