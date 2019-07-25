@@ -274,6 +274,9 @@ void ExceptionHandler::Initialize(const wstring& dump_path,
   }
 
   
+  app_memory_info_.push_back(AppMemory(0, 0));
+
+  
   
   
   
@@ -1045,13 +1048,20 @@ bool ExceptionHandler::WriteMinidumpWithExceptionForProcess(
                      reinterpret_cast<ULONG64>(info.BaseAddress)
                      + info.RegionSize);
           ULONG size = static_cast<ULONG>(end_of_range - base);
-          app_memory_info_.push_back(AppMemory(base, size));
+
+          AppMemory &elt = app_memory_info_.front();
+          elt.ptr = base;
+          elt.length = size;
         }
       }
 
       MinidumpCallbackContext context;
       context.iter = app_memory_info_.begin();
       context.end = app_memory_info_.end();
+
+      
+      if (context.iter->ptr == 0)
+	context.iter++;
 
       MINIDUMP_CALLBACK_INFORMATION callback;
       callback.CallbackRoutine = MinidumpWriteDumpCallback;
