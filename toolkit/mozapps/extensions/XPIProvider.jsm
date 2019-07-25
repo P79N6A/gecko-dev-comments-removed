@@ -967,6 +967,7 @@ function flushJarCache(aJarFile) {
 
 function flushStartupCache() {
   
+  Cc["@mozilla.org/xul/xul-prototype-cache;1"].getService(Ci.nsISupports);
   Services.obs.notifyObservers(null, "startupcache-invalidate", null);
 }
 
@@ -4946,7 +4947,8 @@ var XPIDatabase = {
       stmt = this.getStatement("getVisibleAddons");
     }
     else {
-      let sql = "SELECT * FROM addon WHERE visible=1 AND type IN (";
+      let sql = "SELECT " + FIELDS_ADDON + " FROM addon WHERE visible=1 AND " +
+                "type IN (";
       for (let i = 1; i <= aTypes.length; i++) {
         sql += "?" + i;
         if (i < aTypes.length)
