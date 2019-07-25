@@ -2517,6 +2517,15 @@ TraceMonitor::getVMAllocatorsReserveSize() const
            tempAlloc->mReserveSize;
 }
 
+size_t
+TraceMonitor::getTraceMonitorSize() const
+{
+    return sizeof(TraceMonitor) +           
+           sizeof(*storage) +               
+           recordAttempts->tableSize() +    
+           loopProfiles->tableSize();       
+}
+
 
 
 
