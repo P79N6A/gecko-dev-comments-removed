@@ -274,8 +274,39 @@ JS_SetFrameReturnValue(JSContext *cx, JSStackFrame *fp, jsval rval);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 extern JS_PUBLIC_API(JSObject *)
 JS_GetFrameCalleeObject(JSContext *cx, JSStackFrame *fp);
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_GetValidFrameCalleeObject(JSContext *cx, JSStackFrame *fp, jsval *vp);
 
 
 
