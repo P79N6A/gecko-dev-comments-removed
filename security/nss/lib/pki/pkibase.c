@@ -35,7 +35,7 @@
 
 
 #ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: pkibase.c,v $ $Revision: 1.33.6.1 $ $Date: 2012/05/17 21:40:54 $";
+static const char CVS_ID[] = "@(#) $RCSfile: pkibase.c,v $ $Revision: 1.33.6.2 $ $Date: 2012/07/27 21:48:13 $";
 #endif 
 
 #ifndef DEV_H
@@ -466,9 +466,12 @@ nssCertificateArray_FindBestCertificate (
 )
 {
     NSSCertificate *bestCert = NULL;
+    nssDecodedCert *bestdc = NULL;
     NSSTime *time, sTime;
-    PRBool haveUsageMatch = PR_FALSE;
+    PRBool bestCertMatches = PR_FALSE;
     PRBool thisCertMatches;
+    PRBool bestCertIsValidAtTime = PR_FALSE;
+    PRBool bestCertIsTrusted = PR_FALSE;
 
     if (timeOpt) {
 	time = timeOpt;
@@ -480,7 +483,7 @@ nssCertificateArray_FindBestCertificate (
 	return (NSSCertificate *)NULL;
     }
     for (; *certs; certs++) {
-	nssDecodedCert *dc, *bestdc;
+	nssDecodedCert *dc;
 	NSSCertificate *c = *certs;
 	dc = nssCertificate_GetDecoding(c);
 	if (!dc) continue;
@@ -490,34 +493,31 @@ nssCertificateArray_FindBestCertificate (
 
 
 	    bestCert = nssCertificate_AddRef(c);
-	    haveUsageMatch = thisCertMatches;
+	    bestCertMatches = thisCertMatches;
+	    bestdc = dc;
 	    continue;
 	} else {
-	    if (haveUsageMatch && !thisCertMatches) {
+	    if (bestCertMatches && !thisCertMatches) {
 		
 
 
 		continue;
-	    } else if (!haveUsageMatch && thisCertMatches) {
+	    } else if (!bestCertMatches && thisCertMatches) {
 		
 		nssCertificate_Destroy(bestCert);
 		bestCert = nssCertificate_AddRef(c);
-		haveUsageMatch = PR_TRUE;
+		bestCertMatches = thisCertMatches;
+		bestdc = dc;
 		continue;
 	    }
 	    
 
 
 	}
-	bestdc = nssCertificate_GetDecoding(bestCert);
-	if (!bestdc) {
-	    nssCertificate_Destroy(bestCert);
-	    bestCert = nssCertificate_AddRef(c);
-	    continue;
-	}
 	
-	if (bestdc->isValidAtTime(bestdc, time)) {
+	if (bestCertIsValidAtTime || bestdc->isValidAtTime(bestdc, time)) {
 	    
+	    bestCertIsValidAtTime = PR_TRUE;
 	    if (!dc->isValidAtTime(dc, time)) {
 		
 		continue;
@@ -528,14 +528,36 @@ nssCertificateArray_FindBestCertificate (
 		
 		nssCertificate_Destroy(bestCert);
 		bestCert = nssCertificate_AddRef(c);
+		bestdc = dc;
+		bestCertIsValidAtTime = PR_TRUE;
+		continue;
 	    }
 	}
 	
 
 
+	if (bestCertIsTrusted || bestdc->isTrustedForUsage(bestdc, usage)) {
+	    bestCertIsTrusted = PR_TRUE;
+	    if (!dc->isTrustedForUsage(dc, usage)) {
+	        continue;
+	    }
+	} else {
+	    
+	    if (dc->isTrustedForUsage(dc, usage)) {
+		
+		nssCertificate_Destroy(bestCert);
+		bestCert = nssCertificate_AddRef(c);
+		bestdc = dc;
+		bestCertIsTrusted = PR_TRUE;
+	        continue;
+	    }
+	}
+	
 	if (!bestdc->isNewerThan(bestdc, dc)) {
 	    nssCertificate_Destroy(bestCert);
 	    bestCert = nssCertificate_AddRef(c);
+	    bestdc = dc;
+	    continue;
 	}
 	
 	
