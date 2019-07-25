@@ -1100,7 +1100,7 @@ nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, PRBool aRepaint)
             
             
             
-            if (mIsTopLevel || mNeedsShow)
+            if (mNeedsMove)
                 NativeResize(mBounds.x, mBounds.y,
                              mBounds.width, mBounds.height, aRepaint);
             else
@@ -1155,6 +1155,7 @@ nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight,
     mBounds.y = aY;
     mBounds.SizeTo(GetSafeWindowSize(nsIntSize(aWidth, aHeight)));
 
+    mNeedsMove = PR_TRUE;
     mPlaced = PR_TRUE;
 
     if (!mCreated)
@@ -1198,7 +1199,6 @@ nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight,
         }
         else {
             mNeedsResize = PR_TRUE;
-            mNeedsMove = PR_TRUE;
         }
     }
 
