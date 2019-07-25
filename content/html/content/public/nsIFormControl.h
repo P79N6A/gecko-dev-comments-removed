@@ -101,8 +101,8 @@ PR_STATIC_ASSERT((PRUint32)eButtonElementTypesMax < (PRUint32)NS_FORM_INPUT_ELEM
 PR_STATIC_ASSERT((PRUint32)eInputElementTypesMax  < 1<<8);
 
 #define NS_IFORMCONTROL_IID   \
-{ 0xd505a47a, 0xc2e1, 0x4730, \
- { 0x86, 0x33, 0x1f, 0xc8, 0x87, 0x27, 0xd0, 0xc1 } }
+{ 0x671ef379, 0x7ac0, 0x414c, \
+ { 0xa2, 0x2b, 0xc1, 0x9e, 0x0b, 0x61, 0x4e, 0x83 } }
 
 
 
@@ -213,6 +213,12 @@ public:
 
   inline PRBool IsSubmittableControl() const;
 
+  
+
+
+
+  inline PRBool AllowDraggableChildren() const;
+
 protected:
 
   
@@ -293,6 +299,16 @@ nsIFormControl::IsSubmittableControl() const
          
          type & NS_FORM_BUTTON_ELEMENT ||
          type & NS_FORM_INPUT_ELEMENT;
+}
+
+PRBool
+nsIFormControl::AllowDraggableChildren() const
+{
+  PRUint32 type = GetType();
+  return type == NS_FORM_OBJECT ||
+         type == NS_FORM_LABEL ||
+         type == NS_FORM_FIELDSET ||
+         type == NS_FORM_OUTPUT;
 }
 
 bool
