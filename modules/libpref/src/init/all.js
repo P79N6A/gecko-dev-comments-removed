@@ -3259,7 +3259,7 @@ pref("geo.enabled", true);
 pref("accelerometer.enabled", true);
 
 
-pref("html5.enable", true);
+pref("html5.parser.enable", true);
 
 pref("html5.offmainthread", true);
 
