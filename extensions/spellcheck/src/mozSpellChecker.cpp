@@ -41,9 +41,7 @@
 #include "nsICategoryManager.h"
 #include "nsISupportsPrimitives.h"
 
-
-
-#define UNREASONABLE_WORD_LENGTH 130
+#define UNREASONABLE_WORD_LENGTH 64
 
 #define DEFAULT_SPELL_CHECKER "@mozilla.org/spellchecker/engine;1"
 
