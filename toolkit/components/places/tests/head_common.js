@@ -50,6 +50,10 @@ const TRANSITION_REDIRECT_PERMANENT = Ci.nsINavHistoryService.TRANSITION_REDIREC
 const TRANSITION_REDIRECT_TEMPORARY = Ci.nsINavHistoryService.TRANSITION_REDIRECT_TEMPORARY;
 const TRANSITION_DOWNLOAD = Ci.nsINavHistoryService.TRANSITION_DOWNLOAD;
 
+
+
+const FAVICON_ERRORPAGE_URL = "chrome://global/skin/icons/warning-16.png";
+
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "Services", function() {
@@ -507,13 +511,34 @@ function frecencyForUrl(aURI)
   );
   stmt.bindUTF8StringParameter(0, url);
   if (!stmt.executeStep())
-    throw "No result for frecency.";
+    throw new Error("No result for frecency.");
   let frecency = stmt.getInt32(0);
   stmt.finalize();
 
   return frecency;
 }
 
+
+
+
+
+
+
+
+function isUrlHidden(aURI)
+{
+  let url = aURI instanceof Ci.nsIURI ? aURI.spec : aURI;
+  let stmt = DBConn().createStatement(
+    "SELECT hidden FROM moz_places WHERE url = ?1"
+  );
+  stmt.bindUTF8StringParameter(0, url);
+  if (!stmt.executeStep())
+    throw new Error("No result for hidden.");
+  let hidden = stmt.getInt32(0);
+  stmt.finalize();
+
+  return !!hidden;
+}
 
 
 
