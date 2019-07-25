@@ -143,6 +143,8 @@ CompositorParent::ResumeComposition()
   static_cast<LayerManagerOGL*>(mLayerManager.get())->gl()->RenewSurface();
 #endif
 
+  Composite();
+
   
   lock.NotifyAll();
 }
