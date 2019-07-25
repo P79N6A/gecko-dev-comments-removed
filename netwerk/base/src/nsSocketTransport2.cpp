@@ -1,42 +1,42 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* vim:set ts=4 sw=4 et cindent: */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2002
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Darin Fisher <darin@netscape.com>
+ *   Malcolm Smith <malsmith@cs.rmit.edu.au>
+ *   Andreas Otte <andreas.otte@debitel.net>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifdef MOZ_LOGGING
 #define FORCE_PR_LOG
@@ -74,12 +74,12 @@
 
 using namespace mozilla;
 
-
+//-----------------------------------------------------------------------------
 
 static NS_DEFINE_CID(kSocketProviderServiceCID, NS_SOCKETPROVIDERSERVICE_CID);
 static NS_DEFINE_CID(kDNSServiceCID, NS_DNSSERVICE_CID);
 
-
+//-----------------------------------------------------------------------------
 
 class nsSocketEvent : public nsRunnable
 {
@@ -106,17 +106,17 @@ private:
     nsCOMPtr<nsISupports> mParam;
 };
 
+//-----------------------------------------------------------------------------
 
-
-
+//#define TEST_CONNECT_ERRORS
 #ifdef TEST_CONNECT_ERRORS
 #include <stdlib.h>
 static PRErrorCode RandomizeConnectError(PRErrorCode code)
 {
-    
-    
-    
-    
+    //
+    // To test out these errors, load http://www.yahoo.com/.  It should load
+    // correctly despite the random occurrence of these errors.
+    //
     int n = rand();
     if (n > RAND_MAX/2) {
         struct {
@@ -124,17 +124,17 @@ static PRErrorCode RandomizeConnectError(PRErrorCode code)
             const char *err_name;
         } 
         errors[] = {
-            
-            
-            
-            
+            //
+            // These errors should be recoverable provided there is another
+            // IP address in mDNSRecord.
+            //
             { PR_CONNECT_REFUSED_ERROR, "PR_CONNECT_REFUSED_ERROR" },
             { PR_CONNECT_TIMEOUT_ERROR, "PR_CONNECT_TIMEOUT_ERROR" },
-            
-            
-            
-            
-            
+            //
+            // This error will cause this socket transport to error out;
+            // however, if the consumer is HTTP, then the HTTP transaction
+            // should be restarted when this error occurs.
+            //
             { PR_CONNECT_RESET_ERROR, "PR_CONNECT_RESET_ERROR" },
         };
         n = n % (sizeof(errors)/sizeof(errors[0]));
@@ -145,7 +145,7 @@ static PRErrorCode RandomizeConnectError(PRErrorCode code)
 }
 #endif
 
-
+//-----------------------------------------------------------------------------
 
 static bool
 IsNSSErrorCode(PRErrorCode code)
@@ -158,9 +158,9 @@ IsNSSErrorCode(PRErrorCode code)
       (code < nsINSSErrorsService::NSS_SSL_ERROR_LIMIT));
 }
 
-
-
-
+// this logic is duplicated from the implementation of
+// nsINSSErrorsService::getXPCOMFromNSSError
+// It might have been better to implement that interface here...
 static nsresult
 GetXPCOMFromNSSError(PRErrorCode code)
 {
@@ -179,15 +179,15 @@ ErrorAccordingToNSPR(PRErrorCode errorCode)
     case PR_CONNECT_RESET_ERROR:
         rv = NS_ERROR_NET_RESET;
         break;
-    case PR_END_OF_FILE_ERROR: 
+    case PR_END_OF_FILE_ERROR: // XXX document this correlation
         rv = NS_ERROR_NET_INTERRUPT;
         break;
     case PR_CONNECT_REFUSED_ERROR:
-    case PR_NETWORK_UNREACHABLE_ERROR: 
-    case PR_HOST_UNREACHABLE_ERROR:    
+    case PR_NETWORK_UNREACHABLE_ERROR: // XXX need new nsresult for this!
+    case PR_HOST_UNREACHABLE_ERROR:    // XXX and this!
     case PR_ADDRESS_NOT_AVAILABLE_ERROR:
-    
-    
+    // Treat EACCES as a soft error since (at least on Linux) connect() returns
+    // EACCES when an IPv6 connection is blocked by a firewall. See bug 270784.
     case PR_ADDRESS_NOT_SUPPORTED_ERROR:
     case PR_NO_ACCESS_RIGHTS_ERROR:
         rv = NS_ERROR_CONNECTION_REFUSED;
@@ -205,9 +205,9 @@ ErrorAccordingToNSPR(PRErrorCode errorCode)
     return rv;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// socket input stream impl 
+//-----------------------------------------------------------------------------
 
 nsSocketInputStream::nsSocketInputStream(nsSocketTransport *trans)
     : mTransport(trans)
@@ -222,10 +222,10 @@ nsSocketInputStream::~nsSocketInputStream()
 {
 }
 
-
-
-
-
+// called on the socket transport thread...
+//
+//   condition : failure code if socket has been closed
+//
 void
 nsSocketInputStream::OnSocketReady(nsresult condition)
 {
@@ -238,12 +238,12 @@ nsSocketInputStream::OnSocketReady(nsresult condition)
     {
         MutexAutoLock lock(mTransport->mLock);
 
-        
-        
+        // update condition, but be careful not to erase an already
+        // existing error condition.
         if (NS_SUCCEEDED(mCondition))
             mCondition = condition;
 
-        
+        // ignore event if only waiting for closure and not closed.
         if (NS_FAILED(mCondition) || !(mCallbackFlags & WAIT_CLOSURE_ONLY)) {
             callback = mCallback;
             mCallback = nsnull;
@@ -299,9 +299,9 @@ nsSocketInputStream::Available(PRUint32 *avail)
             return NS_OK;
     }
 
-    
-    
-    
+    // cannot hold lock while calling NSPR.  (worried about the fact that PSM
+    // synchronously proxies notifications over to the UI thread, which could
+    // mistakenly try to re-enter this code.)
     PRInt32 n = PR_Available(fd);
 
     nsresult rv;
@@ -346,9 +346,9 @@ nsSocketInputStream::Read(char *buf, PRUint32 count, PRUint32 *countRead)
 
     SOCKET_LOG(("  calling PR_Read [count=%u]\n", count));
 
-    
-    
-    
+    // cannot hold lock while calling NSPR.  (worried about the fact that PSM
+    // synchronously proxies notifications over to the UI thread, which could
+    // mistakenly try to re-enter this code.)
     PRInt32 n = PR_Read(fd, buf, count);
 
     SOCKET_LOG(("  PR_Read returned [n=%d]\n", n));
@@ -377,8 +377,8 @@ nsSocketInputStream::Read(char *buf, PRUint32 count, PRUint32 *countRead)
     if (NS_FAILED(rv))
         mTransport->OnInputClosed(rv);
 
-    
-    
+    // only send this notification if we have indeed read some data.
+    // see bug 196827 for an example of why this is important.
     if (n > 0)
         mTransport->SendStatus(nsISocketTransport::STATUS_RECEIVING_FROM);
     return rv;
@@ -388,7 +388,7 @@ NS_IMETHODIMP
 nsSocketInputStream::ReadSegments(nsWriteSegmentFun writer, void *closure,
                                   PRUint32 count, PRUint32 *countRead)
 {
-    
+    // socket stream is unbuffered
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -404,7 +404,7 @@ nsSocketInputStream::CloseWithStatus(nsresult reason)
 {
     SOCKET_LOG(("nsSocketInputStream::CloseWithStatus [this=%x reason=%x]\n", this, reason));
 
-    
+    // may be called from any thread
  
     nsresult rv;
     {
@@ -428,20 +428,20 @@ nsSocketInputStream::AsyncWait(nsIInputStreamCallback *callback,
 {
     SOCKET_LOG(("nsSocketInputStream::AsyncWait [this=%x]\n", this));
 
-    
-    
-    
+    // This variable will be non-null when we want to call the callback
+    // directly from this function, but outside the lock.
+    // (different from callback when target is not null)
     nsCOMPtr<nsIInputStreamCallback> directCallback;
     {
         MutexAutoLock lock(mTransport->mLock);
 
         if (callback && target) {
-            
-            
-            
-            
-            
-            
+            //
+            // build event proxy
+            //
+            // failure to create an event proxy (most likely out of memory)
+            // shouldn't alter the state of the transport.
+            //
             nsCOMPtr<nsIInputStreamCallback> temp;
             nsresult rv = NS_NewInputStreamReadyEvent(getter_AddRefs(temp),
                                                       callback, target);
@@ -464,9 +464,9 @@ nsSocketInputStream::AsyncWait(nsIInputStreamCallback *callback,
     return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// socket output stream impl 
+//-----------------------------------------------------------------------------
 
 nsSocketOutputStream::nsSocketOutputStream(nsSocketTransport *trans)
     : mTransport(trans)
@@ -481,10 +481,10 @@ nsSocketOutputStream::~nsSocketOutputStream()
 {
 }
 
-
-
-
-
+// called on the socket transport thread...
+//
+//   condition : failure code if socket has been closed
+//
 void
 nsSocketOutputStream::OnSocketReady(nsresult condition)
 {
@@ -497,12 +497,12 @@ nsSocketOutputStream::OnSocketReady(nsresult condition)
     {
         MutexAutoLock lock(mTransport->mLock);
 
-        
-        
+        // update condition, but be careful not to erase an already
+        // existing error condition.
         if (NS_SUCCEEDED(mCondition))
             mCondition = condition;
 
-        
+        // ignore event if only waiting for closure and not closed.
         if (NS_FAILED(mCondition) || !(mCallbackFlags & WAIT_CLOSURE_ONLY)) {
             callback = mCallback;
             mCallback = nsnull;
@@ -552,7 +552,8 @@ nsSocketOutputStream::Write(const char *buf, PRUint32 count, PRUint32 *countWrit
 
     *countWritten = 0;
 
-    if (count == 0)
+    // A write of 0 bytes can be used to force the initial SSL handshake.
+    if (count == 0 && mByteCount)
         return NS_OK;
 
     PRFileDesc *fd;
@@ -569,9 +570,9 @@ nsSocketOutputStream::Write(const char *buf, PRUint32 count, PRUint32 *countWrit
 
     SOCKET_LOG(("  calling PR_Write [count=%u]\n", count));
 
-    
-    
-    
+    // cannot hold lock while calling NSPR.  (worried about the fact that PSM
+    // synchronously proxies notifications over to the UI thread, which could
+    // mistakenly try to re-enter this code.)
     PRInt32 n = PR_Write(fd, buf, count);
 
     SOCKET_LOG(("  PR_Write returned [n=%d]\n", n));
@@ -601,8 +602,8 @@ nsSocketOutputStream::Write(const char *buf, PRUint32 count, PRUint32 *countWrit
     if (NS_FAILED(rv))
         mTransport->OnOutputClosed(rv);
 
-    
-    
+    // only send this notification if we have indeed written some data.
+    // see bug 196827 for an example of why this is important.
     if (n > 0)
         mTransport->SendStatus(nsISocketTransport::STATUS_SENDING_TO);
     return rv;
@@ -612,7 +613,7 @@ NS_IMETHODIMP
 nsSocketOutputStream::WriteSegments(nsReadSegmentFun reader, void *closure,
                                     PRUint32 count, PRUint32 *countRead)
 {
-    
+    // socket stream is unbuffered
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -646,7 +647,7 @@ nsSocketOutputStream::CloseWithStatus(nsresult reason)
 {
     SOCKET_LOG(("nsSocketOutputStream::CloseWithStatus [this=%x reason=%x]\n", this, reason));
 
-    
+    // may be called from any thread
  
     nsresult rv;
     {
@@ -674,12 +675,12 @@ nsSocketOutputStream::AsyncWait(nsIOutputStreamCallback *callback,
         MutexAutoLock lock(mTransport->mLock);
 
         if (callback && target) {
-            
-            
-            
-            
-            
-            
+            //
+            // build event proxy
+            //
+            // failure to create an event proxy (most likely out of memory)
+            // shouldn't alter the state of the transport.
+            //
             nsCOMPtr<nsIOutputStreamCallback> temp;
             nsresult rv = NS_NewOutputStreamReadyEvent(getter_AddRefs(temp),
                                                        callback, target);
@@ -695,9 +696,9 @@ nsSocketOutputStream::AsyncWait(nsIOutputStreamCallback *callback,
     return NS_OK;
 }
 
-
-
-
+//-----------------------------------------------------------------------------
+// socket transport impl
+//-----------------------------------------------------------------------------
 
 nsSocketTransport::nsSocketTransport()
     : mTypes(nsnull)
@@ -724,15 +725,15 @@ nsSocketTransport::nsSocketTransport()
 
     NS_ADDREF(gSocketTransportService);
 
-    mTimeouts[TIMEOUT_CONNECT]    = PR_UINT16_MAX; 
-    mTimeouts[TIMEOUT_READ_WRITE] = PR_UINT16_MAX; 
+    mTimeouts[TIMEOUT_CONNECT]    = PR_UINT16_MAX; // no timeout
+    mTimeouts[TIMEOUT_READ_WRITE] = PR_UINT16_MAX; // no timeout
 }
 
 nsSocketTransport::~nsSocketTransport()
 {
     SOCKET_LOG(("destroying nsSocketTransport @%x\n", this));
 
-    
+    // cleanup socket type info
     if (mTypes) {
         PRUint32 i;
         for (i=0; i<mTypeCount; ++i)
@@ -741,7 +742,7 @@ nsSocketTransport::~nsSocketTransport()
     }
  
     nsSocketTransportService *serv = gSocketTransportService;
-    NS_RELEASE(serv); 
+    NS_RELEASE(serv); // nulls argument
 }
 
 nsresult
@@ -755,7 +756,7 @@ nsSocketTransport::Init(const char **types, PRUint32 typeCount,
         NS_ENSURE_ARG(proxyInfo);
     }
 
-    
+    // init socket type info
 
     mPort = port;
     mHost = host;
@@ -764,7 +765,7 @@ nsSocketTransport::Init(const char **types, PRUint32 typeCount,
     if (proxyInfo) {
         mProxyPort = proxyInfo->Port();
         mProxyHost = proxyInfo->Host();
-        
+        // grab proxy type (looking for "socks" for example)
         proxyType = proxyInfo->Type();
         if (proxyType && (strcmp(proxyType, "http") == 0 ||
                           strcmp(proxyType, "direct") == 0 ||
@@ -775,13 +776,13 @@ nsSocketTransport::Init(const char **types, PRUint32 typeCount,
     SOCKET_LOG(("nsSocketTransport::Init [this=%x host=%s:%hu proxy=%s:%hu]\n",
         this, mHost.get(), mPort, mProxyHost.get(), mProxyPort));
 
-    
+    // include proxy type as a socket type if proxy type is not "http"
     mTypeCount = typeCount + (proxyType != nsnull);
     if (!mTypeCount)
         return NS_OK;
 
-    
-    
+    // if we have socket types, then the socket provider service had
+    // better exist!
     nsresult rv;
     nsCOMPtr<nsISocketProviderService> spserv =
         do_GetService(kSocketProviderServiceCID, &rv);
@@ -791,9 +792,9 @@ nsSocketTransport::Init(const char **types, PRUint32 typeCount,
     if (!mTypes)
         return NS_ERROR_OUT_OF_MEMORY;
 
-    
+    // now verify that each socket type has a registered socket provider.
     for (PRUint32 i = 0, type = 0; i < mTypeCount; ++i) {
-        
+        // store socket types
         if (i == 0 && proxyType)
             mTypes[i] = PL_strdup(proxyType);
         else
@@ -810,15 +811,15 @@ nsSocketTransport::Init(const char **types, PRUint32 typeCount,
             return rv;
         }
 
-        
-        
+        // note if socket type corresponds to a transparent proxy
+        // XXX don't hardcode SOCKS here (use proxy info's flags instead).
         if ((strcmp(mTypes[i], "socks") == 0) ||
             (strcmp(mTypes[i], "socks4") == 0)) {
             mProxyTransparent = true;
 
             if (proxyInfo->Flags() & nsIProxyInfo::TRANSPARENT_PROXY_RESOLVES_HOST) {
-                
-                
+                // we want the SOCKS layer to send the hostname
+                // and port to the proxy and let it do the DNS.
                 mProxyTransparentResolvesHost = true;
             }
         }
@@ -853,7 +854,7 @@ nsSocketTransport::InitWithConnectedSocket(PRFileDesc *fd, const PRNetAddr *addr
     mFDref = 1;
     mFDconnected = 1;
 
-    
+    // make sure new socket is non-blocking
     PRSocketOptionData opt;
     opt.option = PR_SockOpt_Nonblocking;
     opt.value.non_blocking = true;
@@ -862,7 +863,7 @@ nsSocketTransport::InitWithConnectedSocket(PRFileDesc *fd, const PRNetAddr *addr
     SOCKET_LOG(("nsSocketTransport::InitWithConnectedSocket [this=%p addr=%s:%hu]\n",
         this, mHost.get(), mPort));
 
-    
+    // jump to InitiateSocket to get ourselves attached to the STS poll list.
     return PostEvent(MSG_RETRY_INIT_SOCKET);
 }
 
@@ -914,19 +915,19 @@ nsSocketTransport::ResolveHost()
 
     if (!mProxyHost.IsEmpty()) {
         if (!mProxyTransparent || mProxyTransparentResolvesHost) {
-            
-            
+            // When not resolving mHost locally, we still want to ensure that
+            // it only contains valid characters.  See bug 304904 for details.
             if (!net_IsValidHostName(mHost))
                 return NS_ERROR_UNKNOWN_HOST;
         }
         if (mProxyTransparentResolvesHost) {
-            
-            
-            
-            
-            
-            
-            
+            // Name resolution is done on the server side.  Just pretend
+            // client resolution is complete, this will get picked up later.
+            // since we don't need to do DNS now, we bypass the resolving
+            // step by initializing mNetAddr to an empty address, but we
+            // must keep the port. The SOCKS IO layer will use the hostname
+            // we send it when it's created, rather than the empty address
+            // we send with the connect call.
             mState = STATE_RESOLVING;
             PR_SetNetAddr(PR_IpAddrAny, PR_AF_INET, SocketPort(), &mNetAddr);
             return PostEvent(MSG_DNS_LOOKUP_COMPLETE, NS_OK, nsnull);
@@ -999,8 +1000,8 @@ nsSocketTransport::BuildSocket(PRFileDesc *&fd, bool &proxyTransparent, bool &us
 
             nsCOMPtr<nsISupports> secinfo;
             if (i == 0) {
-                
-                
+                // if this is the first type, we'll want the 
+                // service to allocate a new socket
                 rv = provider->NewSocket(mNetAddr.raw.family,
                                          host, port, proxyHost, proxyPort,
                                          proxyFlags, &fd,
@@ -1012,22 +1013,22 @@ nsSocketTransport::BuildSocket(PRFileDesc *&fd, bool &proxyTransparent, bool &us
                 }
             }
             else {
-                
-                
-                
+                // the socket has already been allocated, 
+                // so we just want the service to add itself
+                // to the stack (such as pushing an io layer)
                 rv = provider->AddToSocket(mNetAddr.raw.family,
                                            host, port, proxyHost, proxyPort,
                                            proxyFlags, fd,
                                            getter_AddRefs(secinfo));
             }
-            
+            // proxyFlags = 0; not used below this point...
             if (NS_FAILED(rv))
                 break;
 
-            
+            // if the service was ssl or starttls, we want to hold onto the socket info
             bool isSSL = (strcmp(mTypes[i], "ssl") == 0);
             if (isSSL || (strcmp(mTypes[i], "starttls") == 0)) {
-                
+                // remember security info and give notification callbacks to PSM...
                 nsCOMPtr<nsIInterfaceRequestor> callbacks;
                 {
                     MutexAutoLock lock(mLock);
@@ -1035,17 +1036,17 @@ nsSocketTransport::BuildSocket(PRFileDesc *&fd, bool &proxyTransparent, bool &us
                     callbacks = mCallbacks;
                     SOCKET_LOG(("  [secinfo=%x callbacks=%x]\n", mSecInfo.get(), mCallbacks.get()));
                 }
-                
+                // don't call into PSM while holding mLock!!
                 nsCOMPtr<nsISSLSocketControl> secCtrl(do_QueryInterface(secinfo));
                 if (secCtrl)
                     secCtrl->SetNotificationCallbacks(callbacks);
-                
+                // remember if socket type is SSL so we can ProxyStartSSL if need be.
                 usingSSL = isSSL;
             }
             else if ((strcmp(mTypes[i], "socks") == 0) ||
                      (strcmp(mTypes[i], "socks4") == 0)) {
-                
-                
+                // since socks is transparent, any layers above
+                // it do not have to worry about proxy stuff
                 proxyHost = nsnull;
                 proxyPort = -1;
                 proxyTransparent = true;
@@ -1069,18 +1070,18 @@ nsSocketTransport::InitiateSocket()
 
     nsresult rv;
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    //
+    // find out if it is going to be ok to attach another socket to the STS.
+    // if not then we have to wait for the STS to tell us that it is ok.
+    // the notification is asynchronous, which means that when we could be
+    // in a race to call AttachSocket once notified.  for this reason, when
+    // we get notified, we just re-enter this function.  as a result, we are
+    // sure to ask again before calling AttachSocket.  in this way we deal
+    // with the race condition.  though it isn't the most elegant solution,
+    // it is far simpler than trying to build a system that would guarantee
+    // FIFO ordering (which wouldn't even be that valuable IMO).  see bug
+    // 194402 for more info.
+    //
     if (!gSocketTransportService->CanAttachSocket()) {
         nsCOMPtr<nsIRunnable> event =
                 new nsSocketEvent(this, MSG_RETRY_INIT_SOCKET);
@@ -1089,9 +1090,9 @@ nsSocketTransport::InitiateSocket()
         return gSocketTransportService->NotifyWhenCanAttachSocket(event);
     }
 
-    
-    
-    
+    //
+    // if we already have a connected socket, then just attach and return.
+    //
     if (mFD) {
         rv = gSocketTransportService->AttachSocket(mFD, this);
         if (NS_SUCCEEDED(rv))
@@ -1099,9 +1100,9 @@ nsSocketTransport::InitiateSocket()
         return rv;
     }
 
-    
-    
-    
+    //
+    // create new socket fd, push io layers, etc.
+    //
     PRFileDesc *fd;
     bool proxyTransparent;
     bool usingSSL;
@@ -1114,23 +1115,23 @@ nsSocketTransport::InitiateSocket()
 
     PRStatus status;
 
-    
+    // Make the socket non-blocking...
     PRSocketOptionData opt;
     opt.option = PR_SockOpt_Nonblocking;
     opt.value.non_blocking = true;
     status = PR_SetSocketOption(fd, &opt);
     NS_ASSERTION(status == PR_SUCCESS, "unable to make socket non-blocking");
 
-    
-    
-    
+    // disable the nagle algorithm - if we rely on it to coalesce writes into
+    // full packets the final packet of a multi segment POST/PUT or pipeline
+    // sequence is delayed a full rtt
     opt.option = PR_SockOpt_NoDelay;
     opt.value.no_delay = true;
     PR_SetSocketOption(fd, &opt);
 
-    
-    
-    
+    // if the network.tcp.sendbuffer preference is set, use it to size SO_SNDBUF
+    // The Windows default of 8KB is too small and as of vista sp1, autotuning
+    // only applies to receive window
     PRInt32 sndBufferSize;
     gSocketTransportService->GetSendBufferSize(&sndBufferSize);
     if (sndBufferSize > 0) {
@@ -1145,7 +1146,7 @@ nsSocketTransport::InitiateSocket()
         PR_SetSocketOption(fd, &opt);
     }
 
-    
+    // inform socket transport about this newly created socket...
     rv = gSocketTransportService->AttachSocket(fd, this);
     if (NS_FAILED(rv)) {
         PR_Close(fd);
@@ -1153,8 +1154,8 @@ nsSocketTransport::InitiateSocket()
     }
     mAttached = true;
 
-    
-    
+    // assign mFD so that we can properly handle OnSocketDetached before we've
+    // established a connection.
     {
         MutexAutoLock lock(mLock);
         mFD = fd;
@@ -1175,14 +1176,14 @@ nsSocketTransport::InitiateSocket()
     }
 #endif
 
-    
-    
-    
+    // 
+    // Initiate the connect() to the host...  
+    //
     status = PR_Connect(fd, &mNetAddr, NS_SOCKET_CONNECT_TIMEOUT);
     if (status == PR_SUCCESS) {
-        
-        
-        
+        // 
+        // we are connected!
+        //
         OnSocketConnected();
     }
     else {
@@ -1190,52 +1191,52 @@ nsSocketTransport::InitiateSocket()
 #if defined(TEST_CONNECT_ERRORS)
         code = RandomizeConnectError(code);
 #endif
-        
-        
-        
+        //
+        // If the PR_Connect(...) would block, then poll for a connection.
+        //
         if ((PR_WOULD_BLOCK_ERROR == code) || (PR_IN_PROGRESS_ERROR == code))
             mPollFlags = (PR_POLL_EXCEPT | PR_POLL_WRITE);
-        
-        
-        
+        //
+        // If the socket is already connected, then return success...
+        //
         else if (PR_IS_CONNECTED_ERROR == code) {
-            
-            
-            
+            //
+            // we are connected!
+            //
             OnSocketConnected();
 
             if (mSecInfo && !mProxyHost.IsEmpty() && proxyTransparent && usingSSL) {
-                
-                
-                
-                
+                // if the connection phase is finished, and the ssl layer has
+                // been pushed, and we were proxying (transparently; ie. nothing
+                // has to happen in the protocol layer above us), it's time for
+                // the ssl to start doing it's thing.
                 nsCOMPtr<nsISSLSocketControl> secCtrl =
                     do_QueryInterface(mSecInfo);
                 if (secCtrl) {
                     SOCKET_LOG(("  calling ProxyStartSSL()\n"));
                     secCtrl->ProxyStartSSL();
                 }
-                
-                
-                
-                
-                
-                
+                // XXX what if we were forced to poll on the socket for a successful
+                // connection... wouldn't we need to call ProxyStartSSL after a call
+                // to PR_ConnectContinue indicates that we are connected?
+                //
+                // XXX this appears to be what the old socket transport did.  why
+                // isn't this broken?
             }
         }
-        
-        
-        
-        
+        //
+        // A SOCKS request was rejected; get the actual error code from
+        // the OS error
+        //
         else if (PR_UNKNOWN_ERROR == code &&
                  mProxyTransparent &&
                  !mProxyHost.IsEmpty()) {
             code = PR_GetOSError();
             rv = ErrorAccordingToNSPR(code);
         }
-        
-        
-        
+        //
+        // The connection was refused...
+        //
         else {
             rv = ErrorAccordingToNSPR(code);
             if ((rv == NS_ERROR_CONNECTION_REFUSED) && !mProxyHost.IsEmpty())
@@ -1253,16 +1254,16 @@ nsSocketTransport::RecoverFromError()
     SOCKET_LOG(("nsSocketTransport::RecoverFromError [this=%x state=%x cond=%x]\n",
         this, mState, mCondition));
 
-    
+    // can only recover from errors in these states
     if (mState != STATE_RESOLVING && mState != STATE_CONNECTING)
         return false;
 
     nsresult rv;
 
-    
+    // OK to check this outside mLock
     NS_ASSERTION(!mFDconnected, "socket should not be connected");
 
-    
+    // can only recover from these errors
     if (mCondition != NS_ERROR_CONNECTION_REFUSED &&
         mCondition != NS_ERROR_PROXY_CONNECTION_REFUSED &&
         mCondition != NS_ERROR_NET_TIMEOUT &&
@@ -1281,7 +1282,7 @@ nsSocketTransport::RecoverFromError()
         tryAgain = true;
     }
 
-    
+    // try next ip address only if past the resolver stage...
     if (mState == STATE_CONNECTING && mDNSRecord) {
         mDNSRecord->ReportUnusable(SocketPort());
         
@@ -1291,9 +1292,9 @@ nsSocketTransport::RecoverFromError()
             tryAgain = true;
         }
         else if (mConnectionFlags & DISABLE_IPV6) {
-            
-            
-            
+            // Drop state to closed.  This will trigger new round of DNS
+            // resolving bellow.
+            // XXX Here should idealy be set now non-existing flag DISABLE_IPV4
             SOCKET_LOG(("  failed to connect all ipv4 hosts,"
                         " trying lookup/connect again with both ipv4/ipv6\n"));
             mState = STATE_CLOSED;
@@ -1303,8 +1304,8 @@ nsSocketTransport::RecoverFromError()
     }
 
 #if defined(XP_WIN) || defined(MOZ_PLATFORM_MAEMO)
-    
-    
+    // If not trying next address, try to make a connection using dialup. 
+    // Retry if that connection is made.
     if (!tryAgain) {
         bool autodialEnabled;
         gSocketTransportService->GetAutodialEnabled(&autodialEnabled);
@@ -1315,7 +1316,7 @@ nsSocketTransport::RecoverFromError()
     }
 #endif
 
-    
+    // prepare to try again.
     if (tryAgain) {
         PRUint32 msg;
 
@@ -1336,7 +1337,7 @@ nsSocketTransport::RecoverFromError()
     return tryAgain;
 }
 
-
+// called on the socket thread only
 void
 nsSocketTransport::OnMsgInputClosed(nsresult reason)
 {
@@ -1346,11 +1347,11 @@ nsSocketTransport::OnMsgInputClosed(nsresult reason)
     NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
 
     mInputClosed = true;
-    
+    // check if event should affect entire transport
     if (NS_FAILED(reason) && (reason != NS_BASE_STREAM_CLOSED))
-        mCondition = reason;                
+        mCondition = reason;                // XXX except if NS_FAILED(mCondition), right??
     else if (mOutputClosed)
-        mCondition = NS_BASE_STREAM_CLOSED; 
+        mCondition = NS_BASE_STREAM_CLOSED; // XXX except if NS_FAILED(mCondition), right??
     else {
         if (mState == STATE_TRANSFERRING)
             mPollFlags &= ~PR_POLL_READ;
@@ -1358,7 +1359,7 @@ nsSocketTransport::OnMsgInputClosed(nsresult reason)
     }
 }
 
-
+// called on the socket thread only
 void
 nsSocketTransport::OnMsgOutputClosed(nsresult reason)
 {
@@ -1368,11 +1369,11 @@ nsSocketTransport::OnMsgOutputClosed(nsresult reason)
     NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
 
     mOutputClosed = true;
-    
+    // check if event should affect entire transport
     if (NS_FAILED(reason) && (reason != NS_BASE_STREAM_CLOSED))
-        mCondition = reason;                
+        mCondition = reason;                // XXX except if NS_FAILED(mCondition), right??
     else if (mInputClosed)
-        mCondition = NS_BASE_STREAM_CLOSED; 
+        mCondition = NS_BASE_STREAM_CLOSED; // XXX except if NS_FAILED(mCondition), right??
     else {
         if (mState == STATE_TRANSFERRING)
             mPollFlags &= ~PR_POLL_WRITE;
@@ -1389,8 +1390,8 @@ nsSocketTransport::OnSocketConnected()
     mPollTimeout = mTimeouts[TIMEOUT_READ_WRITE];
     mState = STATE_TRANSFERRING;
 
-    
-    
+    // assign mFD (must do this within the transport lock), but take care not
+    // to trample over mFDref if mFD is already set.
     {
         MutexAutoLock lock(mLock);
         NS_ASSERTION(mFD, "no socket");
@@ -1404,7 +1405,7 @@ nsSocketTransport::OnSocketConnected()
 PRFileDesc *
 nsSocketTransport::GetFD_Locked()
 {
-    
+    // mFD is not available to the streams while disconnected.
     if (!mFDconnected)
         return nsnull;
 
@@ -1426,8 +1427,8 @@ nsSocketTransport::ReleaseFD_Locked(PRFileDesc *fd)
     }
 }
 
-
-
+//-----------------------------------------------------------------------------
+// socket event handler impl
 
 void
 nsSocketTransport::OnSocketEvent(PRUint32 type, nsresult status, nsISupports *param)
@@ -1436,11 +1437,11 @@ nsSocketTransport::OnSocketEvent(PRUint32 type, nsresult status, nsISupports *pa
         this, type, status, param));
 
     if (NS_FAILED(mCondition)) {
-        
+        // block event since we're apparently already dead.
         SOCKET_LOG(("  blocking event [condition=%x]\n", mCondition));
-        
-        
-        
+        //
+        // notify input/output streams in case either has a pending notify.
+        //
         mInput.OnSocketReady(mCondition);
         mOutput.OnSocketReady(mCondition);
         return;
@@ -1449,10 +1450,10 @@ nsSocketTransport::OnSocketEvent(PRUint32 type, nsresult status, nsISupports *pa
     switch (type) {
     case MSG_ENSURE_CONNECT:
         SOCKET_LOG(("  MSG_ENSURE_CONNECT\n"));
-        
-        
-        
-        
+        //
+        // ensure that we have created a socket, attached it, and have a
+        // connection.
+        //
         if (mState == STATE_CLOSED)
             mCondition = ResolveHost();
         else
@@ -1460,7 +1461,7 @@ nsSocketTransport::OnSocketEvent(PRUint32 type, nsresult status, nsISupports *pa
         break;
 
     case MSG_DNS_LOOKUP_COMPLETE:
-        if (mDNSRequest)  
+        if (mDNSRequest)  // only send this if we actually resolved anything
             SendStatus(STATUS_RESOLVED);
 
         SOCKET_LOG(("  MSG_DNS_LOOKUP_COMPLETE\n"));
@@ -1469,13 +1470,13 @@ nsSocketTransport::OnSocketEvent(PRUint32 type, nsresult status, nsISupports *pa
             mDNSRecord = static_cast<nsIDNSRecord *>(param);
             mDNSRecord->GetNextAddr(SocketPort(), &mNetAddr);
         }
-        
+        // status contains DNS lookup status
         if (NS_FAILED(status)) {
-            
-            
-            
-            
-            
+            // When using a HTTP proxy, NS_ERROR_UNKNOWN_HOST means the HTTP 
+            // proxy host is not found, so we fixup the error code.
+            // For SOCKS proxies (mProxyTransparent == true), the socket 
+            // transport resolves the real host here, so there's no fixup 
+            // (see bug 226943).
             if ((status == NS_ERROR_UNKNOWN_HOST) && !mProxyTransparent &&
                 !mProxyHost.IsEmpty())
                 mCondition = NS_ERROR_UNKNOWN_PROXY_HOST;
@@ -1520,15 +1521,15 @@ nsSocketTransport::OnSocketEvent(PRUint32 type, nsresult status, nsISupports *pa
     
     if (NS_FAILED(mCondition)) {
         SOCKET_LOG(("  after event [this=%x cond=%x]\n", this, mCondition));
-        if (!mAttached) 
+        if (!mAttached) // need to process this error ourselves...
             OnSocketDetached(nsnull);
     }
     else if (mPollFlags == PR_POLL_EXCEPT)
-        mPollFlags = 0; 
+        mPollFlags = 0; // make idle
 }
 
-
-
+//-----------------------------------------------------------------------------
+// socket handler impl
 
 void
 nsSocketTransport::OnSocketReady(PRFileDesc *fd, PRInt16 outFlags)
@@ -1543,29 +1544,29 @@ nsSocketTransport::OnSocketReady(PRFileDesc *fd, PRInt16 outFlags)
     }
 
     if (mState == STATE_TRANSFERRING) {
-        
+        // if waiting to write and socket is writable or hit an exception.
         if ((mPollFlags & PR_POLL_WRITE) && (outFlags & ~PR_POLL_READ)) {
-            
-            
+            // assume that we won't need to poll any longer (the stream will
+            // request that we poll again if it is still pending).
             mPollFlags &= ~PR_POLL_WRITE;
             mOutput.OnSocketReady(NS_OK);
         }
-        
+        // if waiting to read and socket is readable or hit an exception.
         if ((mPollFlags & PR_POLL_READ) && (outFlags & ~PR_POLL_WRITE)) {
-            
-            
+            // assume that we won't need to poll any longer (the stream will
+            // request that we poll again if it is still pending).
             mPollFlags &= ~PR_POLL_READ;
             mInput.OnSocketReady(NS_OK);
         }
-        
+        // Update poll timeout in case it was changed
         mPollTimeout = mTimeouts[TIMEOUT_READ_WRITE];
     }
     else if (mState == STATE_CONNECTING) {
         PRStatus status = PR_ConnectContinue(fd, outFlags);
         if (status == PR_SUCCESS) {
-            
-            
-            
+            //
+            // we are connected!
+            //
             OnSocketConnected();
         }
         else {
@@ -1573,18 +1574,18 @@ nsSocketTransport::OnSocketReady(PRFileDesc *fd, PRInt16 outFlags)
 #if defined(TEST_CONNECT_ERRORS)
             code = RandomizeConnectError(code);
 #endif
-            
-            
-            
+            //
+            // If the connect is still not ready, then continue polling...
+            //
             if ((PR_WOULD_BLOCK_ERROR == code) || (PR_IN_PROGRESS_ERROR == code)) {
-                
+                // Set up the select flags for connect...
                 mPollFlags = (PR_POLL_EXCEPT | PR_POLL_WRITE);
-                
+                // Update poll timeout in case it was changed
                 mPollTimeout = mTimeouts[TIMEOUT_CONNECT];
             }
-            
-            
-            
+            //
+            // The SOCKS proxy rejected our request. Find out why.
+            //
             else if (PR_UNKNOWN_ERROR == code &&
                      mProxyTransparent &&
                      !mProxyHost.IsEmpty()) {
@@ -1592,9 +1593,9 @@ nsSocketTransport::OnSocketReady(PRFileDesc *fd, PRInt16 outFlags)
                 mCondition = ErrorAccordingToNSPR(code);
             }
             else {
-                
-                
-                
+                //
+                // else, the connection failed...
+                //
                 mCondition = ErrorAccordingToNSPR(code);
                 if ((mCondition == NS_ERROR_CONNECTION_REFUSED) && !mProxyHost.IsEmpty())
                     mCondition = NS_ERROR_PROXY_CONNECTION_REFUSED;
@@ -1608,10 +1609,10 @@ nsSocketTransport::OnSocketReady(PRFileDesc *fd, PRInt16 outFlags)
     }
 
     if (mPollFlags == PR_POLL_EXCEPT)
-        mPollFlags = 0; 
+        mPollFlags = 0; // make idle
 }
 
-
+// called on the socket thread only
 void
 nsSocketTransport::OnSocketDetached(PRFileDesc *fd)
 {
@@ -1620,8 +1621,8 @@ nsSocketTransport::OnSocketDetached(PRFileDesc *fd)
 
     NS_ASSERTION(PR_GetCurrentThread() == gSocketThread, "wrong thread");
 
-    
-    
+    // if we didn't initiate this detach, then be sure to pass an error
+    // condition up to our consumers.  (e.g., STS is shutting down.)
     if (NS_SUCCEEDED(mCondition))
         mCondition = NS_ERROR_ABORT;
 
@@ -1630,50 +1631,50 @@ nsSocketTransport::OnSocketDetached(PRFileDesc *fd)
     else {
         mState = STATE_CLOSED;
 
-        
+        // make sure there isn't any pending DNS request
         if (mDNSRequest) {
             mDNSRequest->Cancel(NS_ERROR_ABORT);
             mDNSRequest = 0;
         }
 
-        
-        
-        
+        //
+        // notify input/output streams
+        //
         mInput.OnSocketReady(mCondition);
         mOutput.OnSocketReady(mCondition);
     }
 
-    
-    
-    
+    // break any potential reference cycle between the security info object
+    // and ourselves by resetting its notification callbacks object.  see
+    // bug 285991 for details.
     nsCOMPtr<nsISSLSocketControl> secCtrl = do_QueryInterface(mSecInfo);
     if (secCtrl)
         secCtrl->SetNotificationCallbacks(nsnull);
 
-    
-    
-    
+    // finally, release our reference to the socket (must do this within
+    // the transport lock) possibly closing the socket. Also release our
+    // listeners to break potential refcount cycles.
 
-    
-    
-    
-    
-    
+    // We should be careful not to release mEventSink and mCallbacks while
+    // we're locked, because releasing it might require acquiring the lock
+    // again, so we just null out mEventSink and mCallbacks while we're
+    // holding the lock, and let the stack based objects' destuctors take
+    // care of destroying it if needed.
     nsCOMPtr<nsIInterfaceRequestor> ourCallbacks;
     nsCOMPtr<nsITransportEventSink> ourEventSink;
     {
         MutexAutoLock lock(mLock);
         if (mFD) {
             ReleaseFD_Locked(mFD);
-            
-            
+            // flag mFD as unusable; this prevents other consumers from 
+            // acquiring a reference to mFD.
             mFDconnected = false;
         }
 
-        
-        
-        
-        
+        // We must release mCallbacks and mEventSink to avoid memory leak
+        // but only when RecoverFromError() above failed. Otherwise we lose
+        // link with UI and security callbacks on next connection attempt 
+        // round. That would lead e.g. to a broken certificate exception page.
         if (NS_FAILED(mCondition)) {
             mCallbacks.swap(ourCallbacks);
             mEventSink.swap(ourEventSink);
@@ -1681,8 +1682,8 @@ nsSocketTransport::OnSocketDetached(PRFileDesc *fd)
     }
 }
 
-
-
+//-----------------------------------------------------------------------------
+// xpcom api
 
 NS_IMPL_THREADSAFE_ISUPPORTS4(nsSocketTransport,
                               nsISocketTransport,
@@ -1709,20 +1710,20 @@ nsSocketTransport::OpenInputStream(PRUint32 flags,
     nsCOMPtr<nsIAsyncInputStream> pipeIn;
 
     if (!(flags & OPEN_UNBUFFERED) || (flags & OPEN_BLOCKING)) {
-        
-        
+        // XXX if the caller wants blocking, then the caller also gets buffered!
+        //bool openBuffered = !(flags & OPEN_UNBUFFERED);
         bool openBlocking =  (flags & OPEN_BLOCKING);
 
         net_ResolveSegmentParams(segsize, segcount);
         nsIMemory *segalloc = net_GetSegmentAlloc(segsize);
 
-        
+        // create a pipe
         nsCOMPtr<nsIAsyncOutputStream> pipeOut;
         rv = NS_NewPipe2(getter_AddRefs(pipeIn), getter_AddRefs(pipeOut),
                          !openBlocking, true, segsize, segcount, segalloc);
         if (NS_FAILED(rv)) return rv;
 
-        
+        // async copy from socket to pipe
         rv = NS_AsyncCopy(&mInput, pipeOut, gSocketTransportService,
                           NS_ASYNCCOPY_VIA_WRITESEGMENTS, segsize);
         if (NS_FAILED(rv)) return rv;
@@ -1732,7 +1733,7 @@ nsSocketTransport::OpenInputStream(PRUint32 flags,
     else
         *result = &mInput;
 
-    
+    // flag input stream as open
     mInputClosed = false;
 
     rv = PostEvent(MSG_ENSURE_CONNECT);
@@ -1756,20 +1757,20 @@ nsSocketTransport::OpenOutputStream(PRUint32 flags,
     nsresult rv;
     nsCOMPtr<nsIAsyncOutputStream> pipeOut;
     if (!(flags & OPEN_UNBUFFERED) || (flags & OPEN_BLOCKING)) {
-        
-        
+        // XXX if the caller wants blocking, then the caller also gets buffered!
+        //bool openBuffered = !(flags & OPEN_UNBUFFERED);
         bool openBlocking =  (flags & OPEN_BLOCKING);
 
         net_ResolveSegmentParams(segsize, segcount);
         nsIMemory *segalloc = net_GetSegmentAlloc(segsize);
 
-        
+        // create a pipe
         nsCOMPtr<nsIAsyncInputStream> pipeIn;
         rv = NS_NewPipe2(getter_AddRefs(pipeIn), getter_AddRefs(pipeOut),
                          true, !openBlocking, segsize, segcount, segalloc);
         if (NS_FAILED(rv)) return rv;
 
-        
+        // async copy from socket to pipe
         rv = NS_AsyncCopy(pipeIn, &mOutput, gSocketTransportService,
                           NS_ASYNCCOPY_VIA_READSEGMENTS, segsize);
         if (NS_FAILED(rv)) return rv;
@@ -1779,7 +1780,7 @@ nsSocketTransport::OpenOutputStream(PRUint32 flags,
     else
         *result = &mOutput;
 
-    
+    // flag output stream as open
     mOutputClosed = false;
 
     rv = PostEvent(MSG_ENSURE_CONNECT);
@@ -1829,7 +1830,7 @@ nsSocketTransport::SetSecurityCallbacks(nsIInterfaceRequestor *callbacks)
         secinfo = mSecInfo;
     }
 
-    
+    // don't call into PSM while holding mLock!!
     nsCOMPtr<nsISSLSocketControl> secCtrl(do_QueryInterface(secinfo));
     if (secCtrl)
         secCtrl->SetNotificationCallbacks(callbacks);
@@ -1870,7 +1871,7 @@ nsSocketTransport::IsAlive(bool *result)
             return NS_OK;
     }
 
-    
+    // XXX do some idle-time based checks??
 
     char c;
     PRInt32 rval = PR_Recv(fd, &c, 1, PR_MSG_PEEK, 0);
@@ -1902,10 +1903,10 @@ nsSocketTransport::GetPort(PRInt32 *port)
 NS_IMETHODIMP
 nsSocketTransport::GetPeerAddr(PRNetAddr *addr)
 {
-    
-    
-    
-    
+    // once we are in the connected state, mNetAddr will not change.
+    // so if we can verify that we are in the connected state, then
+    // we can freely access mNetAddr from any thread without being
+    // inside a critical section.
 
     NS_ENSURE_TRUE(mState == STATE_TRANSFERRING, NS_ERROR_NOT_AVAILABLE);
 
@@ -1916,9 +1917,9 @@ nsSocketTransport::GetPeerAddr(PRNetAddr *addr)
 NS_IMETHODIMP
 nsSocketTransport::GetSelfAddr(PRNetAddr *addr)
 {
-    
-    
-    
+    // we must not call any PR methods on our file descriptor
+    // while holding mLock since those methods might re-enter
+    // socket transport code.
 
     PRFileDesc *fd;
     {
@@ -1952,7 +1953,7 @@ NS_IMETHODIMP
 nsSocketTransport::SetTimeout(PRUint32 type, PRUint32 value)
 {
     NS_ENSURE_ARG_MAX(type, nsISocketTransport::TIMEOUT_READ_WRITE);
-    
+    // truncate overly large timeout values.
     mTimeouts[type] = (PRUint16) NS_MIN(value, PR_UINT16_MAX);
     PostEvent(MSG_TIMEOUT_CHANGED);
     return NS_OK;
@@ -1961,11 +1962,11 @@ nsSocketTransport::SetTimeout(PRUint32 type, PRUint32 value)
 NS_IMETHODIMP
 nsSocketTransport::SetQoSBits(PRUint8 aQoSBits)
 {
-    
-    
-    
-    
-    
+    // Don't do any checking here of bits.  Why?  Because as of RFC-4594
+    // several different Class Selector and Assured Forwarding values
+    // have been defined, but that isn't to say more won't be added later.
+    // In that case, any checking would be an impediment to interoperating
+    // with newer QoS definitions.
 
     mQoSBits = aQoSBits;
     return NS_OK;
@@ -1983,15 +1984,15 @@ nsSocketTransport::OnLookupComplete(nsICancelable *request,
                                     nsIDNSRecord  *rec,
                                     nsresult       status)
 {
-    
+    // flag host lookup complete for the benefit of the ResolveHost method.
     mResolving = false;
 
     nsresult rv = PostEvent(MSG_DNS_LOOKUP_COMPLETE, status, rec);
 
-    
-    
-    
-    
+    // if posting a message fails, then we should assume that the socket
+    // transport has been shutdown.  this should never happen!  if it does
+    // it means that the socket transport service was shutdown before the
+    // DNS service.
     if (NS_FAILED(rv))
         NS_WARNING("unable to post DNS lookup complete message");
 

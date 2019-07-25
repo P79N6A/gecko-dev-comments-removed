@@ -80,6 +80,7 @@ HttpBaseChannel::HttpBaseChannel()
   , mChannelIsForDownload(false)
   , mTracingEnabled(true)
   , mTimingEnabled(false)
+  , mAllowSpdy(true)
   , mSuspendCount(0)
   , mRedirectedCachekeys(nsnull)
 {
@@ -1310,6 +1311,22 @@ HttpBaseChannel::HTTPUpgrade(const nsACString &aProtocolName,
     return NS_OK;
 }
 
+NS_IMETHODIMP
+HttpBaseChannel::GetAllowSpdy(bool *aAllowSpdy)
+{
+  NS_ENSURE_ARG_POINTER(aAllowSpdy);
+
+  *aAllowSpdy = mAllowSpdy;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetAllowSpdy(bool aAllowSpdy)
+{
+  mAllowSpdy = aAllowSpdy;
+  return NS_OK;
+}
+
 
 
 
@@ -1619,6 +1636,8 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
   if (httpInternal) {
     
     httpInternal->SetForceAllowThirdPartyCookie(mForceAllowThirdPartyCookie);
+    
+    httpInternal->SetAllowSpdy(mAllowSpdy);
 
     
     

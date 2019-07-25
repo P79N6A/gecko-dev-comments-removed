@@ -120,7 +120,6 @@ public:
 
     nsIInterfaceRequestor *Callbacks()      { return mCallbacks; } 
     nsIEventTarget        *ConsumerTarget() { return mConsumerTarget; }
-    nsAHttpConnection     *Connection()     { return mConnection; }
 
     
     

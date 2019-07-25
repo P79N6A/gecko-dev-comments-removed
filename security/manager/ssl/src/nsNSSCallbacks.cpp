@@ -53,6 +53,7 @@
 #include "nsProxyRelease.h"
 #include "PSMRunnable.h"
 #include "nsIConsoleService.h"
+#include "nsIHttpChannelInternal.h"
 
 #include "ssl.h"
 #include "ocsp.h"
@@ -132,6 +133,16 @@ nsHTTPDownloadEvent::Run()
     rv = uploadChannel->SetUploadStream(uploadStream, 
                                         mRequestSession->mPostContentType,
                                         -1);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  
+  
+  
+  nsCOMPtr<nsIHttpChannelInternal> internalChannel = do_QueryInterface(chan);
+  if (internalChannel) {
+    rv = internalChannel->SetAllowSpdy(false);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -944,6 +955,21 @@ void PR_CALLBACK HandshakeCallback(PRFileDesc* fd, void* client_data) {
     status->mKeyLength = keyLength;
     status->mSecretKeyLength = encryptBits;
     status->mCipherName.Assign(cipherName);
+
+    
+    
+    
+    SSLNextProtoState state;
+    unsigned char npnbuf[256];
+    unsigned int npnlen;
+    
+    if (SSL_GetNextProto(fd, &state, npnbuf, &npnlen, 256) == SECSuccess &&
+        state == SSL_NEXT_PROTO_NEGOTIATED)
+      infoObject->SetNegotiatedNPN(reinterpret_cast<char *>(npnbuf), npnlen);
+    else
+      infoObject->SetNegotiatedNPN(nsnull, 0);
+
+    infoObject->SetHandshakeCompleted();
   }
 
   PORT_Free(cipherName);

@@ -365,10 +365,81 @@ PSM_SSL_BlacklistDigiNotar(CERTCertificate * serverCert,
   return 0;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+static SECStatus
+BlockServerCertChangeForSpdy(nsNSSSocketInfo *infoObject,
+                             CERTCertificate *serverCert)
+{
+  
+  
+  nsCOMPtr<nsIX509Cert> cert;
+  nsCOMPtr<nsIX509Cert2> cert2;
+
+  nsRefPtr<nsSSLStatus> status = infoObject->SSLStatus();
+  if (!status) {
+    
+    
+    
+    return SECSuccess;
+  }
+  
+  status->GetServerCert(getter_AddRefs(cert));
+  cert2 = do_QueryInterface(cert);
+  if (!cert2) {
+    NS_NOTREACHED("every nsSSLStatus must have a cert"
+                  "that implements nsIX509Cert2");
+    PR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
+    return SECFailure;
+  }
+
+  
+  nsCAutoString negotiatedNPN;
+  nsresult rv = infoObject->GetNegotiatedNPN(negotiatedNPN);
+  NS_ASSERTION(NS_SUCCEEDED(rv),
+               "GetNegotiatedNPN() failed during renegotiation");
+
+  if (NS_SUCCEEDED(rv) && !negotiatedNPN.Equals(NS_LITERAL_CSTRING("spdy/2")))
+    return SECSuccess;
+
+  
+  if (NS_FAILED(rv))
+    PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+           ("BlockServerCertChangeForSpdy failed GetNegotiatedNPN() call."
+            " Assuming spdy.\n"));
+
+  
+  CERTCertificate * c = cert2->GetCert();
+  NS_ASSERTION(c, "very bad and hopefully impossible state");
+  bool sameCert = CERT_CompareCerts(c, serverCert);
+  CERT_DestroyCertificate(c);
+  if (sameCert)
+    return SECSuccess;
+
+  
+  PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
+         ("SPDY Refused to allow new cert during renegotiation\n"));
+  PR_SetError(SSL_ERROR_RENEGOTIATION_NOT_ALLOWED, 0);
+  return SECFailure;
+}
+
 SECStatus
 SSLServerCertVerificationJob::AuthCertificate(
   nsNSSShutDownPreventionLock const & nssShutdownPreventionLock)
 {
+  if (BlockServerCertChangeForSpdy(mSocketInfo, mCert) != SECSuccess)
+    return SECFailure;
+
   if (mCert->serialNumber.data &&
       mCert->issuerName &&
       !strcmp(mCert->issuerName, 

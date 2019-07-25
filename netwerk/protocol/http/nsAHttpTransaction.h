@@ -62,6 +62,7 @@ class nsAHttpTransaction : public nsISupports
 public:
     
     virtual void SetConnection(nsAHttpConnection *) = 0;
+    virtual nsAHttpConnection *Connection() = 0;
 
     
     
@@ -95,10 +96,16 @@ public:
     
     
     virtual nsHttpRequestHead *RequestHead() = 0;
+
+    
+    
+    
+    virtual PRUint32 Http1xTransactionCount() = 0;
 };
 
 #define NS_DECL_NSAHTTPTRANSACTION \
     void SetConnection(nsAHttpConnection *); \
+    nsAHttpConnection *Connection(); \
     void GetSecurityCallbacks(nsIInterfaceRequestor **, \
                               nsIEventTarget **);       \
     void OnTransportStatus(nsITransport* transport, \
@@ -110,7 +117,8 @@ public:
     nsresult WriteSegments(nsAHttpSegmentWriter *, PRUint32, PRUint32 *); \
     void     Close(nsresult reason);                                    \
     void     SetSSLConnectFailed();                                     \
-    nsHttpRequestHead *RequestHead();
+    nsHttpRequestHead *RequestHead();                                   \
+    PRUint32 Http1xTransactionCount();
 
 
 
