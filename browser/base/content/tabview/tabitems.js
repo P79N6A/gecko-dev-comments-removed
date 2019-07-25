@@ -478,29 +478,22 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     
     
     if (!groupClose && gBrowser.tabs.length == 1) {
-      let group;
-      if (this.tab._tabViewTabItem.parent) {
-        group = this.tab._tabViewTabItem.parent;
-      } else {
-        let emptyGroups = GroupItems.groupItems.filter(function (groupItem) {
-          return (!groupItem.getChildren().length);
-        });
-        group = (emptyGroups.length ? emptyGroups[0] : GroupItems.newGroup());
-      }
+      let group = this.tab._tabViewTabItem.parent;
       group.newTab(null, { closedLastTab: true });
     }
+
     
     
     
     gBrowser.removeTab(this.tab);
-    let tabNotClosed = 
-      Array.some(gBrowser.tabs, function(tab) { return tab == this.tab; }, this);
-    if (!tabNotClosed)
+    let tabClosed = !this.tab;
+
+    if (tabClosed)
       this._sendToSubscribers("tabRemoved");
 
     
     
-    return !tabNotClosed;
+    return tabClosed;
   },
 
   
