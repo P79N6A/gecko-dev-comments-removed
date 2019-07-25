@@ -59,6 +59,11 @@ XPCOMUtils.defineLazyGetter(this, "AddonRepository", function() {
   return AddonRepository;
 });
 
+XPCOMUtils.defineLazyGetter(this, "AddonLogger", function() {
+  Cu.import("resource://gre/modules/AddonLogging.jsm");
+  return LogManager.getLogger("FennecExtensions");
+});
+
 var ExtensionsView = {
   _strings: {},
   _list: null,
@@ -447,6 +452,7 @@ var ExtensionsView = {
   uninstall: function ev_uninstall(aItem) {
     let opType;
     if (aItem.getAttribute("type") == "search") {
+      AddonLogger.log("Removing search engine.");
       
       
       aItem._engine.hidden = false;
@@ -454,7 +460,10 @@ var ExtensionsView = {
       
       
     } else {
+      AddonLogger.log("Removing extension.");
+
       if (!aItem.addon) {
+        AddonLogger.log("No addon object, early return.");
         this._list.removeChild(aItem);
         return;
       }
@@ -463,6 +472,7 @@ var ExtensionsView = {
       opType = this._getOpTypeForOperations(aItem.addon.pendingOperations);
 
       if (aItem.addon.pendingOperations & AddonManager.PENDING_UNINSTALL) {
+        AddonLogger.log("Add-on is not restartless. Keeping in list.");
         this.showRestart();
 
         
@@ -472,6 +482,7 @@ var ExtensionsView = {
 
         aItem.setAttribute("opType", opType);
       } else {
+        AddonLogger.log("Add-on is restartless. Removed from list.");
         this._list.removeChild(aItem);
       }
     }
