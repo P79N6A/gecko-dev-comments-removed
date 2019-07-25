@@ -426,7 +426,7 @@ AsyncExecuteStatements::notifyComplete()
   
   
   for (PRUint32 i = 0; i < mStatements.Length(); i++)
-    mStatements[i].finalize(mCallingThread);
+    mStatements[i].finalize();
 
   
   if (mTransactionManager) {
