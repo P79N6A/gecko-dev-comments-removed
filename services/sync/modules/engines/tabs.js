@@ -141,25 +141,13 @@ TabStore.prototype = {
     this._readFromFile();
   },
 
-  get _localClientName() {
-    return Clients.clientName;
-  },
-
   _writeToFile: function TabStore_writeToFile() {
-    let json = {};
-    for (let [id, val] in Iterator(this._remoteClients))
-      json[id] = val.toJson();
-
-    Utils.jsonSave(this._filePath, this, json);
+    Utils.jsonSave(this._filePath, this, this._remoteClients);
   },
 
   _readFromFile: function TabStore_readFromFile() {
     Utils.jsonLoad(this._filePath, this, function(json) {
-      for (let [id, val] in Iterator(json)) {
-	this._remoteClients[id] = new TabSetRecord();
-	this._remoteClients[id].fromJson(val);
-	this._remoteClients[id].id = id;
-      }
+      this._remoteClients = json;
     });
   },
 
@@ -170,103 +158,44 @@ TabStore.prototype = {
     return this._sessionStore;
   },
 
-  get _windowMediator() {
-    let wm = Cc["@mozilla.org/appshell/window-mediator;1"]
-                 .getService(Ci.nsIWindowMediator);
-    this.__defineGetter__("_windowMediator", function() { return wm;});
-    return this._windowMediator;
-  },
-
-  _createLocalClientTabSetRecord: function TabStore__createLocalTabSet() {
-    
-    
-    let record = new TabSetRecord();
-    record.setClientName( this._localClientName );
-
-    if (Cc["@mozilla.org/browser/sessionstore;1"])  {
-      this._addFirefoxTabsToRecord(record);
-    } else {
-      this._addFennecTabsToRecord(record);
-    }
-    return record;
-  },
-
-  _addFirefoxTabsToRecord: function TabStore__addFirefoxTabs(record) {
-    
-    let enumerator = this._windowMediator.getEnumerator("navigator:browser");
-    while (enumerator.hasMoreElements()) {
-      let window = enumerator.getNext();
-      let tabContainer = window.getBrowser().tabContainer;
-
-      
-      for each (let tab in Array.slice(tabContainer.childNodes)) {
-        if (!(tab instanceof Ci.nsIDOMNode))
-          continue;
-
-        let tabState = JSON.parse(this._sessionStore.getTabState(tab));
-	
-	if (tabState.entries.length == 0)
-	  continue;
-
-        
-        let lastUsedTimestamp = tab.lastUsed;
-
-        
-	let currentPage = tabState.entries[tabState.entries.length - 1];
-	
-
-
-
-        
-        let urlHistory = [];
-	
-	for (let i = tabState.entries.length -1; i >= 0; i--) {
-          let entry = tabState.entries[i];
-	  if (entry && entry.url)
-	    urlHistory.push(entry.url);
-	  if (urlHistory.length >= 10)
-	    break;
-	}
-
-        
-        this._log.debug("Wrapping a tab with title " + currentPage.title);
-        this._log.trace("And timestamp " + lastUsedTimestamp);
-        record.addTab(currentPage.title, urlHistory, lastUsedTimestamp);
-      }
-    }
-  },
-
-  _addFennecTabsToRecord: function TabStore__addFennecTabs(record) {
-    let wm = Cc["@mozilla.org/appshell/window-mediator;1"]
-	       .getService(Ci.nsIWindowMediator);
-    let browserWindow = wm.getMostRecentWindow("navigator:browser");
-    for each (let tab in browserWindow.Browser._tabs ) {
-      let title = tab.browser.contentDocument.title;
-      let url = tab.browser.contentWindow.location.toString();
-      let urlHistory = [url];
-
-      
-      
-
-      
-      
-
-      
-      let lastUsedTimestamp = "0";
-
-      this._log.debug("Wrapping a tab with title " + title);
-      this._log.trace("And timestamp " + lastUsedTimestamp);
-      record.addTab(title, urlHistory, lastUsedTimestamp);
-      
-    }
-  },
-
   itemExists: function TabStore_itemExists(id) {
     return id == Clients.clientID;
   },
 
   createRecord: function TabStore_createRecord(id, cryptoMetaURL) {
-    let record = this._createLocalClientTabSetRecord();
+    let record = new TabSetRecord();
+    record.clientName = Clients.clientName;
+
+    
+    let allTabs = [];
+    let wins = Svc.WinMediator.getEnumerator("navigator:browser");
+    while (wins.hasMoreElements()) {
+      
+      let window = wins.getNext();
+      let tabs = window.gBrowser && window.gBrowser.tabContainer.childNodes;
+      tabs = tabs || window.Browser._tabs;
+      Array.forEach(tabs, function(tab) {
+        allTabs.push(tab);
+      });
+    }
+
+    
+    let tabData = allTabs.map(function(tab) {
+      let browser = tab.linkedBrowser || tab.browser;
+      return {
+        title: browser.contentTitle || "",
+        urlHistory: [browser.currentURI.spec],
+        icon: browser.mIconURL || "",
+        lastUsed: tab.lastUsed || 0
+      };
+    }).sort(function(a, b) b.lastUsed - a.lastUsed);
+
+    
+    record.tabs = tabData.slice(0, 25);
+    record.tabs.forEach(function(tab) {
+      this._log.debug("Wrapping tab: " + JSON.stringify(tab));
+    }, this);
+
     record.id = id;
     record.encryption = cryptoMetaURL;
     return record;
@@ -283,8 +212,8 @@ TabStore.prototype = {
   },
 
   create: function TabStore_create(record) {
-    this._log.debug("Adding remote tabs from " + record.getClientName());
-    this._remoteClients[record.id] = record;
+    this._log.debug("Adding remote tabs from " + record.clientName);
+    this._remoteClients[record.id] = record.cleartext;
     this._writeToFile();
     
     
