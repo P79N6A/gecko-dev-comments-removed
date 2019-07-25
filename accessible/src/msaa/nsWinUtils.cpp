@@ -176,7 +176,9 @@ nsWinUtils::HideNativeWindow(HWND aWnd)
 bool
 nsWinUtils::IsWindowEmulationFor(LPCWSTR kModuleHandle)
 {
+  
   return kModuleHandle ? ::GetModuleHandleW(kModuleHandle) :
+    XRE_GetProcessType() == GeckoProcessType_Content ||
     ::GetModuleHandleW(kJAWSModuleHandle) ||
     ::GetModuleHandleW(kWEModuleHandle)  ||
     ::GetModuleHandleW(kDolphinModuleHandle);
