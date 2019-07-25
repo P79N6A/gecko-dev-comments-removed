@@ -5170,6 +5170,7 @@ nsEditor::InitializeSelection(nsIDOMEventTarget* aFocusEventTarget)
 
   
   selCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
+  selCon->SetSelectionFlags(nsISelectionDisplay::DISPLAY_ALL);
   selCon->RepaintSelection(nsISelectionController::SELECTION_NORMAL);
   
   
