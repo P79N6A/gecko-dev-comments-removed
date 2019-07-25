@@ -157,6 +157,13 @@ class ArrayBufferObject : public JSObject
     bool
     allocateSlots(JSContext *cx, uint32_t size, uint8_t *contents = NULL);
 
+    
+
+
+
+    bool
+    uninlineData(JSContext *cx);
+
     inline uint32_t byteLength() const;
 
     inline uint8_t * dataPointer() const;
