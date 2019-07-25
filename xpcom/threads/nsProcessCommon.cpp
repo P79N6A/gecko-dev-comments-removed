@@ -105,7 +105,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS2(nsProcess, nsIProcess,
 
 nsProcess::nsProcess()
     : mThread(nsnull)
-    , mLock(PR_NewLock())
+    , mLock(nsAutoLock::NewLock("nsProcess::mLock"))
     , mShutdown(PR_FALSE)
     , mPid(-1)
     , mObserver(nsnull)
@@ -120,7 +120,7 @@ nsProcess::nsProcess()
 
 nsProcess::~nsProcess()
 {
-    PR_DestroyLock(mLock);
+    nsAutoLock::DestroyLock(mLock);
 }
 
 NS_IMETHODIMP

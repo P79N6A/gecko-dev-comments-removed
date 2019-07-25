@@ -175,7 +175,7 @@ ShortcutResolver::ShortcutResolver()
 ShortcutResolver::~ShortcutResolver()
 {
     if (mLock)
-        PR_DestroyLock(mLock);
+        nsAutoLock::DestroyLock(mLock);
 
     
     if (mPersistFile)
@@ -193,7 +193,7 @@ ShortcutResolver::Init()
 {
     CoInitialize(NULL);  
 
-    mLock = PR_NewLock();
+    mLock = nsAutoLock::NewLock("ShortcutResolver::mLock");
     if (!mLock)
         return NS_ERROR_FAILURE;
 
