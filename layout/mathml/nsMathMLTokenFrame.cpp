@@ -58,6 +58,17 @@ nsMathMLTokenFrame::~nsMathMLTokenFrame()
 {
 }
 
+NS_IMETHODIMP
+nsMathMLTokenFrame::InheritAutomaticData(nsIFrame* aParent)
+{
+  
+  nsMathMLContainerFrame::InheritAutomaticData(aParent);
+
+  ProcessTextData();
+
+  return NS_OK;
+}
+
 eMathMLFrameType
 nsMathMLTokenFrame::GetMathMLFrameType()
 {
@@ -67,15 +78,15 @@ nsMathMLTokenFrame::GetMathMLFrameType()
   }
 
   
-  
-  
   nsAutoString style;
   
   
   mContent->GetAttr(kNameSpaceID_None,
                     nsGkAtoms::_moz_math_fontstyle_, style) ||
-    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::mathvariant_, style) ||
-    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::fontstyle_, style);
+    GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::mathvariant_,
+                 style) ||
+    GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::fontstyle_,
+                 style);
 
   if (style.EqualsLiteral("italic") || style.EqualsLiteral("bold-italic") ||
       style.EqualsLiteral("script") || style.EqualsLiteral("bold-script") ||
@@ -330,8 +341,11 @@ nsMathMLTokenFrame::SetTextStyle()
   }
   else {
     
-    if (!(mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::mathvariant_) ||
-          mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::fontstyle_))) {
+    nsAutoString value;
+    if (!(GetAttribute(mContent, mPresentationData.mstyle,
+                       nsGkAtoms::mathvariant_, value) ||
+          GetAttribute(mContent, mPresentationData.mstyle,
+                       nsGkAtoms::fontstyle_, value))) {
       if (!isSingleCharacter) {
         fontstyle.AssignLiteral("normal");
       }
