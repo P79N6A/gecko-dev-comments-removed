@@ -3542,6 +3542,12 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
 #ifndef XP_MACOSX
     updateEditUIVisibility();
 #endif
+
+    
+    
+    
+    if (!__lookupGetter__("PopupNotifications"))
+      PopupNotifications.iconBox = document.getElementById("notification-popup-box");
   }
 
   PlacesToolbarHelper.customizeDone();
