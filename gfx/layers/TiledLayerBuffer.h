@@ -8,7 +8,11 @@
 #define TILEDLAYERBUFFER_TILE_SIZE 256
 
 
-
+#ifdef MOZ_JAVA_COMPOSITOR
+  
+  
+  #define FORCE_BASICTILEDTHEBESLAYER
+#endif
 
 
 
