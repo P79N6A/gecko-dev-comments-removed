@@ -1982,6 +1982,8 @@ fi
 AC_DEFINE_UNQUOTED(MOZILLA_VERSION,"$MOZILLA_VERSION")
 AC_DEFINE_UNQUOTED(MOZILLA_VERSION_U,$MOZILLA_VERSION)
 
+MOZ_DOING_LTO(lto_is_enabled)
+
 dnl ========================================================
 dnl System overrides of the defaults for target
 dnl ========================================================
@@ -2083,9 +2085,11 @@ case "$target" in
     # builds.
     MOZ_DEBUG_LDFLAGS="$MOZ_DEBUG_LDFLAGS -framework ExceptionHandling"
 
+    if test "x$lto_is_enabled" = "xyes"; then
+        echo "Skipping -dead_strip because lto is enabled."
     dnl DTrace and -dead_strip don't interact well. See bug 403132.
     dnl ===================================================================
-    if test "x$enable_dtrace" = "xyes"; then
+    elif test "x$enable_dtrace" = "xyes"; then
         echo "Skipping -dead_strip because DTrace is enabled. See bug 403132."
     else
         dnl check for the presence of the -dead_strip linker flag
@@ -5052,18 +5056,13 @@ if test -z "$XULRUNNER_STUB_NAME"; then
 fi
 AC_SUBST(XULRUNNER_STUB_NAME)
 
-AC_MSG_CHECKING([for application to build])
 if test -z "$MOZ_BUILD_APP"; then
-  AC_MSG_RESULT([browser])
-  MOZ_BUILD_APP=browser
+  AC_MSG_ERROR([--enable-application=APP was not specified and is required.])
 else
   # We have a valid application only if it has a build.mk file in its top
   # directory.
   if test ! -f "${srcdir}/${MOZ_BUILD_APP}/build.mk" ; then
-    AC_MSG_RESULT([none])
     AC_MSG_ERROR([--enable-application value not recognized (${MOZ_BUILD_APP}/build.mk does not exist).])
-  else
-    AC_MSG_RESULT([$MOZ_BUILD_APP])
   fi
 fi
 
