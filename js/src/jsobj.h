@@ -466,6 +466,8 @@ struct JSObject {
 
     inline void voidDenseOnlyArraySlots();  
 
+    JSBool makeDenseArraySlow(JSContext *cx);
+
     
 
 
@@ -687,6 +689,8 @@ struct JSObject {
         if (map->ops->dropProperty)
             map->ops->dropProperty(cx, this, prop);
     }
+
+    JSCompartment *getCompartment(JSContext *cx);
 
     void swap(JSObject *obj);
 
