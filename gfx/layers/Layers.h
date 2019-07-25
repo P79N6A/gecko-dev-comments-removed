@@ -923,23 +923,23 @@ public:
 
 
 
-  const nsIntRegion& GetInvalidRegion() { return mInvalidRegion; }
+  const nsIntRect& GetInvalidRect() { return mInvalidRect; }
 
   
 
 
-  void SetInvalidRectToVisibleRegion() { mInvalidRegion = GetVisibleRegion(); }
+  void SetInvalidRectToVisibleRegion() { mInvalidRect = GetVisibleRegion().GetBounds(); }
 
   
 
 
-  void AddInvalidRect(const nsIntRect& aRect) { mInvalidRegion.Or(mInvalidRegion, aRect); }
+  void AddInvalidRect(const nsIntRect& aRect) { mInvalidRect = mInvalidRect.Union(aRect); }
 
   
 
 
 
-  void ClearInvalidRect() { mInvalidRegion.SetEmpty(); }
+  void ClearInvalidRect() { mInvalidRect.SetEmpty(); }
 
 
 #ifdef DEBUG
@@ -1006,13 +1006,13 @@ protected:
   float mOpacity;
   nsIntRect mClipRect;
   nsIntRect mTileSourceRect;
+  nsIntRect mInvalidRect;
   PRUint32 mContentFlags;
   bool mUseClipRect;
   bool mUseTileSourceRect;
   bool mIsFixedPosition;
   gfxPoint mAnchor;
   DebugOnly<PRUint32> mDebugColorIndex;
-  nsIntRegion mInvalidRegion;
 };
 
 
