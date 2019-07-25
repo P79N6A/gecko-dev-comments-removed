@@ -85,7 +85,9 @@ struct CompartmentStats
         memset(this, 0, sizeof(*this));
     }
 
-    void   *extra;
+    
+    void   *extra1;
+    void   *extra2;
 
     
     

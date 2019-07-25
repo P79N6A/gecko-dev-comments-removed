@@ -10,6 +10,7 @@
 #include "mozilla/Preferences.h"
 #include "nsNetCID.h"
 #include "nsPrintfCString.h"
+#include "XPCJSMemoryReporter.h"
 
 using namespace mozilla;
 
@@ -101,10 +102,14 @@ AppendWindowURI(nsGlobalWindow *aWindow, nsACString& aStr)
 
 NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(DOMStyleMallocSizeOf, "windows")
 
+
+typedef nsDataHashtable<nsUint64HashKey, nsCString> WindowPaths;
+
 static nsresult
 CollectWindowReports(nsGlobalWindow *aWindow,
                      nsWindowSizes *aWindowTotalSizes,
                      nsTHashtable<nsUint64HashKey> *aGhostWindowIDs,
+                     WindowPaths *aWindowPaths,
                      nsIMemoryMultiReporterCallback *aCb,
                      nsISupports *aClosure)
 {
@@ -139,6 +144,9 @@ CollectWindowReports(nsGlobalWindow *aWindow,
   windowPath += NS_LITERAL_CSTRING("window(");
   AppendWindowURI(aWindow, windowPath);
   windowPath += NS_LITERAL_CSTRING(")");
+
+  
+  aWindowPaths->Put(aWindow->WindowID(), windowPath);
 
 #define REPORT(_pathTail, _amount, _desc)                                     \
   do {                                                                        \
@@ -294,13 +302,22 @@ nsWindowMemoryReporter::CollectReports(nsIMemoryMultiReporterCallback* aCb,
     NS_EFFECTIVETLDSERVICE_CONTRACTID);
   NS_ENSURE_STATE(tldService);
 
+  WindowPaths windowPaths;
+  windowPaths.Init();
+
   
   nsWindowSizes windowTotalSizes(NULL);
   for (PRUint32 i = 0; i < windows.Length(); i++) {
     nsresult rv = CollectWindowReports(windows[i], &windowTotalSizes,
-                                       &ghostWindows, aCb, aClosure);
+                                       &ghostWindows, &windowPaths,
+                                       aCb, aClosure);
     NS_ENSURE_SUCCESS(rv, rv);
   }
+
+  
+  
+  nsresult rv = xpc::JSMemoryMultiReporter::CollectReports(&windowPaths, aCb, aClosure);
+  NS_ENSURE_SUCCESS(rv, rv);
 
 #define REPORT(_path, _amount, _desc)                                         \
   do {                                                                        \
@@ -393,8 +410,8 @@ NS_IMETHODIMP
 nsWindowMemoryReporter::GetExplicitNonHeap(PRInt64* aAmount)
 {
   
-  *aAmount = 0;
-  return NS_OK;
+  
+  return xpc::JSMemoryMultiReporter::GetExplicitNonHeap(aAmount);
 }
 
 PRUint32

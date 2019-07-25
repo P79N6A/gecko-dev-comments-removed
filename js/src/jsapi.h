@@ -3053,6 +3053,13 @@ JS_GetObjectPrototype(JSContext *cx, JSObject *forObj);
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForObject(JSContext *cx, JSObject *obj);
 
+
+
+
+
+extern JS_PUBLIC_API(JSObject *)
+JS_GetGlobalForCompartmentOrNull(JSContext *cx, JSCompartment *c);
+
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForScopeChain(JSContext *cx);
 
