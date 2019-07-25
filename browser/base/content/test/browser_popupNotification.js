@@ -642,6 +642,84 @@ var tests = [
       ok(this.notifyObj.removedCallbackTriggered, "removed callback triggered");
     }
   },
+  
+  { 
+    run: function () {
+      this.notifyObj1 = new basicNotification();
+      this.notifyObj1.id += "_1";
+      this.notifyObj1.anchorID = "default-notification-icon";
+      this.notification1 = showNotification(this.notifyObj1);
+
+      this.notifyObj2 = new basicNotification();
+      this.notifyObj2.id += "_2";
+      this.notifyObj2.anchorID = "geo-notification-icon";
+      this.notification2 = showNotification(this.notifyObj2);
+    },
+    onShown: function (popup) {
+      checkPopup(popup, this.notifyObj2);
+
+      
+      isnot(document.getElementById("default-notification-icon").boxObject.width, 0,
+            "default anchor should be visible");
+      
+      isnot(document.getElementById("geo-notification-icon").boxObject.width, 0,
+            "geo anchor should be visible");
+
+      dismissNotification(popup);
+    },
+    onHidden: [
+      function (popup) {
+      },
+      function (popup) {
+        this.notification1.remove();
+        ok(this.notifyObj1.removedCallbackTriggered, "removed callback triggered");
+
+        this.notification2.remove();
+        ok(this.notifyObj2.removedCallbackTriggered, "removed callback triggered");
+      }
+    ],
+  },
+  
+  { 
+    run: function () {
+      
+      this.notifyObjOld = new basicNotification();
+      this.notifyObjOld.anchorID = "default-notification-icon";
+      this.notificationOld = showNotification(this.notifyObjOld);
+
+      
+      this.oldSelectedTab = gBrowser.selectedTab;
+      gBrowser.selectedTab = gBrowser.addTab("about:blank");
+
+      
+      this.notifyObjNew = new basicNotification();
+      this.notifyObjNew.anchorID = "geo-notification-icon";
+      this.notificationNew = showNotification(this.notifyObjNew);
+    },
+    onShown: function (popup) {
+      checkPopup(popup, this.notifyObjNew);
+
+      
+      is(document.getElementById("default-notification-icon").boxObject.width, 0,
+         "default anchor shouldn't be visible");
+      
+      isnot(document.getElementById("geo-notification-icon").boxObject.width, 0,
+            "geo anchor should be visible");
+
+      dismissNotification(popup);
+    },
+    onHidden: [
+      function (popup) {
+      },
+      function (popup) {
+        this.notificationNew.remove();
+        gBrowser.removeTab(gBrowser.selectedTab);
+
+        gBrowser.selectedTab = this.oldSelectedTab;
+        this.notificationOld.remove();
+      }
+    ],
+  }
 ];
 
 function showNotification(notifyObj) {
