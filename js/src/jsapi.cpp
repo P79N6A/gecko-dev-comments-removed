@@ -4284,7 +4284,7 @@ prop_iter_trace(JSTracer *trc, JSObject *obj)
 
 static Class prop_iter_class = {
     "PropertyIterator",
-    JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS | JSCLASS_HAS_RESERVED_SLOTS(1),
+    JSCLASS_HAS_PRIVATE | JSCLASS_HAS_RESERVED_SLOTS(1),
     JS_PropertyStub,         
     JS_PropertyStub,         
     JS_PropertyStub,         
@@ -6445,23 +6445,10 @@ JS_ClearPendingException(JSContext *cx)
 JS_PUBLIC_API(JSBool)
 JS_ReportPendingException(JSContext *cx)
 {
-    JSBool ok;
-    bool save;
-
     AssertNoGC(cx);
     CHECK_REQUEST(cx);
 
-    
-
-
-
-
-
-    save = cx->generatingError;
-    cx->generatingError = JS_TRUE;
-    ok = js_ReportUncaughtException(cx);
-    cx->generatingError = save;
-    return ok;
+    return js_ReportUncaughtException(cx);
 }
 
 struct JSExceptionState {
