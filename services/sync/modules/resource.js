@@ -301,6 +301,7 @@ function ChannelListener(onComplete, onProgress, logger) {
   this._onComplete = onComplete;
   this._onProgress = onProgress;
   this._log = logger;
+  this.delayAbort();
 }
 ChannelListener.prototype = {
   
@@ -317,9 +318,7 @@ ChannelListener.prototype = {
 
     this._log.trace(channel.requestMethod + " " + channel.URI.spec);
     this._data = '';
-
-    
-    Utils.delay(this.abortRequest, this.ABORT_TIMEOUT, this, "abortTimer");
+    this.delayAbort();
   },
 
   onStopRequest: function Channel_onStopRequest(channel, context, status) {
@@ -343,8 +342,13 @@ ChannelListener.prototype = {
 
     this._data += siStream.read(count);
     this._onProgress();
+    this.delayAbort();
+  },
 
-    
+  
+
+
+  delayAbort: function delayAbort() {
     Utils.delay(this.abortRequest, this.ABORT_TIMEOUT, this, "abortTimer");
   },
 
