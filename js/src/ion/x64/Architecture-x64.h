@@ -182,7 +182,10 @@ class FloatRegisters {
 
     static const uint32 AllocatableMask = AllMask & ~NonAllocatableMask;
 
+    
     static const uint32 JSCallClobberMask = AllocatableMask;
+
+    
     static const uint32 JSCCallMask = 0;
 };
 
