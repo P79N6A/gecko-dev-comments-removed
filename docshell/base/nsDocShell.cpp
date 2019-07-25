@@ -3948,6 +3948,10 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
             
             error.AssignLiteral("unsafeContentType");
             break;
+        case NS_ERROR_CORRUPTED_CONTENT:
+            
+            error.AssignLiteral("corruptedContentError");
+            break;
         }
     }
 
@@ -6128,6 +6132,7 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
     
     if (url && NS_FAILED(aStatus)) {
         if (aStatus == NS_ERROR_FILE_NOT_FOUND ||
+            aStatus == NS_ERROR_CORRUPTED_CONTENT ||
             aStatus == NS_ERROR_INVALID_CONTENT_ENCODING) {
             DisplayLoadError(aStatus, url, nsnull, aChannel);
             return NS_OK;
@@ -8362,11 +8367,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             
             
             if (!aSHEntry) {
-                
-                
-                nsDependentCSubstring curHashName(curHash, 1);
-                nsDependentCSubstring newHashName(newHash, 1);
-                rv = ScrollToAnchor(curHashName, newHashName, aLoadType);
+                rv = ScrollToAnchor(curHash, newHash, aLoadType);
                 NS_ENSURE_SUCCESS(rv, rv);
             }
 
@@ -9168,14 +9169,18 @@ nsDocShell::ScrollToAnchor(nsACString & aCurHash, nsACString & aNewHash,
 
     
     
+    nsDependentCSubstring newHashName(aNewHash, 1);
 
-    if (!aNewHash.IsEmpty()) {
+    
+    
+
+    if (!newHashName.IsEmpty()) {
         
         
         PRBool scroll = aLoadType != LOAD_HISTORY &&
                         aLoadType != LOAD_RELOAD_NORMAL;
 
-        char *str = ToNewCString(aNewHash);
+        char *str = ToNewCString(newHashName);
         if (!str) {
             return NS_ERROR_OUT_OF_MEMORY;
         }
@@ -9217,7 +9222,7 @@ nsDocShell::ScrollToAnchor(nsACString & aCurHash, nsACString & aNewHash,
             nsXPIDLString uStr;
 
             rv = textToSubURI->UnEscapeAndConvert(PromiseFlatCString(aCharset).get(),
-                                                  PromiseFlatCString(aNewHash).get(),
+                                                  PromiseFlatCString(newHashName).get(),
                                                   getter_Copies(uStr));
             NS_ENSURE_SUCCESS(rv, rv);
 
