@@ -60,6 +60,11 @@
 
 
 
+namespace js {
+    namespace ion {
+        class Assembler;
+    }
+}
 
 namespace JSC {
 
@@ -138,7 +143,6 @@ namespace JSC {
             return (FPRegisterID)(d / 2);
         }
     } 
-
     class ARMAssembler {
     public:
         
@@ -283,6 +287,7 @@ namespace JSC {
 
         class JmpSrc {
             friend class ARMAssembler;
+            friend class js::ion::Assembler;
         public:
             JmpSrc()
                 : m_offset(-1)
@@ -300,6 +305,7 @@ namespace JSC {
 
         class JmpDst {
             friend class ARMAssembler;
+            friend class js::ion::Assembler;
         public:
             JmpDst()
                 : m_offset(-1)
@@ -1733,7 +1739,21 @@ namespace JSC {
             
             m_buffer.putInt(static_cast<ARMWord>(cc) | FMSTAT);
         }
-    };
+
+
+        
+        
+        
+        int nextOffset() {
+            return m_buffer.uncheckedSize();
+        }
+        void putInst32(uint32 data) {
+            m_buffer.putInt(data);
+        }
+        uint32 *editSrc(JmpSrc src) {
+            return (uint32*)(((char*)m_buffer.data()) + src.offset());
+        }
+    }; 
 
 } 
 

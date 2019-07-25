@@ -45,6 +45,14 @@
 #include "jstypes.h"
 #include "jsutil.h"
 
+#if defined(JS_CPU_X86) || defined (JS_CPU_X64)
+#  include "ion/shared/IonFrames-x86-shared.h"
+#elif defined (JS_CPU_ARM)
+#  include "ion/arm/IonFrames-arm.h"
+#else
+#  error "unsupported architecture"
+#endif
+
 struct JSFunction;
 struct JSScript;
 
@@ -60,15 +68,6 @@ namespace ion {
 
 
 
-
-
-
-struct IonFrameData
-{
-    void *returnAddress_;
-    uintptr_t sizeDescriptor_;
-    void *calleeToken_;
-};
 
 class IonFramePrefix : protected IonFrameData
 {

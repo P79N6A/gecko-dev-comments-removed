@@ -358,7 +358,7 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
     
     masm.movl(Operand(esp, 4), JSReturnReg_Type);
     masm.movl(Operand(esp, 0), JSReturnReg_Data);
-    masm.addl(Imm32(8), esp);
+    masm.addl(Imm32(sizeof(Value)), esp);
 
     
     masm.testl(eax, eax);

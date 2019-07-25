@@ -53,8 +53,8 @@ static void
 GenerateReturn(MacroAssembler &masm, int returnCode)
 {
     
-    masm.mov(Imm32(returnCode), r0);
-    masm.startDataTransferM(true, sp);
+    masm.ma_mov(Imm32(returnCode), r0);
+    masm.startDataTransferM(IsLoad, sp, IA, WriteBack);
     masm.transferReg(r4);
     masm.transferReg(r5);
     masm.transferReg(r6);
@@ -63,7 +63,7 @@ GenerateReturn(MacroAssembler &masm, int returnCode)
     masm.transferReg(r9);
     masm.transferReg(r10);
     masm.transferReg(r11);
-    masm.transferReg(r12);
+    
     masm.transferReg(pc);
     masm.finishDataTransfer();
 }
@@ -81,259 +81,213 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     MacroAssembler masm(cx);
     Assembler *aasm = &masm;
     
-    masm.startDataTransferM(true, sp, true);
-    masm.transferReg(r4);
-    masm.transferReg(r5);
-    masm.transferReg(r6);
-    masm.transferReg(r7);
-    masm.transferReg(r8);
-    masm.transferReg(r9);
-    masm.transferReg(r10);
-    masm.transferReg(r11);
-    masm.transferReg(r12);
-    masm.transferReg(lr);
+    masm.startDataTransferM(IsStore, sp, DB, WriteBack);
+    masm.transferReg(r3); 
+    masm.transferReg(r4); 
+    masm.transferReg(r5); 
+    masm.transferReg(r6); 
+    masm.transferReg(r7); 
+    masm.transferReg(r8); 
+    masm.transferReg(r9); 
+    masm.transferReg(r10); 
+    masm.transferReg(r11); 
+    
+    masm.transferReg(lr);  
+    
     masm.finishDataTransfer();
+    
+    aasm->as_dtr(IsLoad, 32, Offset, r10, DTRAddr(sp, DtrOffImm(40)));
+    aasm->as_mov(r9, lsl(r1, 3)); 
+    
+    
+    
+    
+    
+    
+    
+    aasm->as_add(r9, r9, Imm8(16-4));
+
 #if 0
     
     
     
     
     
-    aasm->sub_r(sp, sp, imm8(4));
-    aasm->orr_r(sp, sp, imm8(4));
-    
-    aasm->sub_r(r4, sp, lsl(r1, 3));
-    
-    aasm->sub_r(sp,r4, imm8(16));
     
     
-    aasm->mov_r(r5, r1, setCond);
+    aasm->as_sub(sp, sp, Imm8(4));
+    aasm->as_orr(sp, sp, Imm8(4));
+#endif
+    
+    aasm->as_sub(r4, sp, O2RegImmShift(r1, LSL, 3)); 
+    
+    aasm->as_sub(sp, r4, Imm8(16)); 
+    
+    
+    aasm->as_mov(r5, O2Reg(r1), SetCond);
 
-
+    
     
     {
         Label header, footer;
         
-        aasm->branch(footer, Zero);
+        aasm->as_b(&footer, Assembler::Zero);
         
         masm.bind(&header);
-        aasm->sub_r(r5, r5, imm8(1), setCond);
+        aasm->as_sub(r5, r5, Imm8(1), SetCond);
         
         
         
-        aasm->dataTransferN(true, true, 64, r6, r2, imm8(8), postIndex);
-        aasm->dataTransferN(false, true, 64, r6, r4, imm8(8), postIndex);
-        aasm->branch(header, NotZero);
+        aasm->as_extdtr(IsLoad,  64, true, PostIndex, r6, EDtrAddr(r2, EDtrOffImm(8)));
+        aasm->as_extdtr(IsStore, 64, true, PostIndex, r6, EDtrAddr(r4, EDtrOffImm(8)));
+        aasm->as_b(&header, Assembler::NonZero);
         masm.bind(&footer);
     }
-
-
+    masm.startDataTransferM(IsStore, sp, IB, NoWriteBack);
+    masm.transferReg(r9);  
+    masm.transferReg(r10); 
+    masm.transferReg(r11); 
+    masm.finishDataTransfer();
+    
+    aasm->as_dtr(IsStore, 32, Offset, pc, DTRAddr(sp, DtrOffImm(0)));
+    
+    aasm->as_bx(r0);
+    
+    
+    aasm->as_dtr(IsLoad, 32, Offset, r5, DTRAddr(sp, DtrOffImm(0)));
+    
+    aasm->as_add(sp, sp, O2Reg(r5));
+    
+    
+    aasm->as_dtr(IsLoad, 32, PostIndex, r5, DTRAddr(sp, DtrOffImm(4)));
     
     
     
+    ASSERT(JSReturnReg_Type.code() == JSReturnReg_Data.code()+1);
     
-    
-    
-    
-    
-    masm.movl(esp, ecx);
-    masm.subl(eax, ecx);
-    masm.subl(Imm32(12), ecx);
-    
-
-    
-    masm.andl(Imm32(15), ecx);
-    masm.subl(ecx, esp);
-
-    
-
-
-
-    
-    masm.movl(Operand(ebp, 16), ebx);
-
-    
-    masm.addl(ebx, eax);
-
-    
-    {
-        Label header, footer;
-        masm.bind(&header);
-
-        masm.cmpl(eax, ebx);
-        masm.j(Assembler::BelowOrEqual, &footer);
-
-        
-        masm.subl(Imm32(8), eax);
-
-        
-        masm.push(Operand(eax, 4));
-        masm.push(Operand(eax, 0));
-
-        masm.jmp(&header);
-        masm.bind(&footer);
-    }
-
-    
-    masm.push(Operand(ebp, 24));
-
-    
-    
-    masm.movl(Operand(ebp, 12), eax);
-    masm.shll(Imm32(3), eax);
-    masm.addl(eax, ecx);
-    masm.addl(Imm32(4), ecx);
-    masm.push(ecx);
-
-    
-
-
-
-    
-    masm.call(Operand(ebp, 8));
-
-    
-    
-    masm.pop(eax);
-    masm.addl(eax, esp);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    masm.movl(Operand(esp, 32), eax);
-    masm.movl(JSReturnReg_Type, Operand(eax, 4));
-    masm.movl(JSReturnReg_Data, Operand(eax, 0));
-
-    
-
-
+    ASSERT((JSReturnReg_Data.code() & 1) == 0);
+    aasm->as_extdtr(IsStore, 64, true, Offset,
+                    JSReturnReg_Data, EDtrAddr(r5, EDtrOffImm(0)));
     GenerateReturn(masm, JS_TRUE);
-
     Linker linker(masm);
     return linker.newCode(cx);
-#endif
-    return NULL;
 }
 
 IonCode *
 IonCompartment::generateReturnError(JSContext *cx)
 {
     MacroAssembler masm(cx);
-#if 0
-
     
-    
-    masm.pop(eax);
-    masm.addl(eax, esp);
+    masm.ma_pop(r0);
+    masm.ma_add(r0, sp, sp);
 
     GenerateReturn(masm, JS_FALSE);
-#endif
     Linker linker(masm);
     return linker.newCode(cx);
 }
-
 static void
 GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
 {
-#if 0
     
-    masm.reserveStack(Registers::Total * sizeof(void *));
+    
+    
+    masm.startDataTransferM(IsStore, sp, DB, WriteBack);
+    
     for (uint32 i = 0; i < Registers::Total; i++)
-        masm.movl(Register::FromCode(i), Operand(esp, i * sizeof(void *)));
-
+        masm.transferReg(Register::FromCode(i));
+    masm.finishDataTransfer();
     
-    masm.reserveStack(FloatRegisters::Total * sizeof(double));
+    masm.startFloatTransferM(IsStore, sp, true);
     for (uint32 i = 0; i < FloatRegisters::Total; i++)
-        masm.movsd(FloatRegister::FromCode(i), Operand(esp, i * sizeof(double)));
+        masm.transferFloatReg(FloatRegister::FromCode(i));
+    masm.finishFloatTransfer();
 
     
-    masm.push(Imm32(frameClass));
+    
+    
+    
 
     
-    masm.movl(esp, eax);
+    masm.ma_mov(Imm32(frameClass), r4);
+    
+    
+    
+    
+    masm.as_dtr(IsStore, 32, PreIndex, r4, DTRAddr(sp, DtrOffImm(-4)));
+    
+    
+    
+    masm.setupAlignedABICall(1);
 
     
-    masm.setupUnalignedABICall(1, ecx);
-    masm.setABIArg(0, eax);
+    
+    masm.as_mov(r0, O2Reg(sp));
+
+    
+    masm.as_sub(sp, sp, Imm8(4));
+
+    
+    masm.setABIArg(0, r0);
+
+    
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Bailout));
-
     
     uint32 bailoutFrameSize = sizeof(void *) + 
                               sizeof(double) * FloatRegisters::Total +
                               sizeof(void *) * Registers::Total;
-    
+
     if (frameClass == NO_FRAME_SIZE_CLASS_ID) {
         
+        masm.as_dtr(IsLoad, 32, PreIndex,
+                    r4, DTRAddr(sp, DtrOffImm(bailoutFrameSize)));
         
-        
-        
-        
-        masm.addl(Imm32(bailoutFrameSize), esp);
-        masm.pop(ecx);
-        masm.lea(Operand(esp, ecx, TimesOne, sizeof(void *)), esp);
+        masm.as_add(sp, sp, O2Reg(r4));
     } else {
-        
-        
-        
-        
         uint32 frameSize = FrameSizeClass::FromClass(frameClass).frameSize();
-        masm.addl(Imm32(bailoutFrameSize + sizeof(void *) + frameSize), esp);
+        masm.ma_add(Imm32(frameSize), sp);
     }
 
     Label exception;
 
     
-    masm.testl(eax, eax);
-    masm.j(Assembler::NonZero, &exception);
-
+    masm.as_cmp(r0, Imm8(0));
+    masm.as_b(&exception, Assembler::NonZero);
     
     
     
-    masm.movl(esp, eax);
-
+    masm.as_mov(r0, O2Reg(sp));
     
-    masm.subl(Imm32(sizeof(Value)), esp);
-    masm.movl(esp, ecx);
-
+    masm.as_sub(sp, sp, Imm8(sizeof(Value)));
     
-    masm.setupUnalignedABICall(2, edx);
-    masm.setABIArg(0, eax);
-    masm.setABIArg(1, ecx);
+    masm.as_mov(r1, O2Reg(sp));
+    
+    masm.setupAlignedABICall(2);
+    
+    masm.setABIArg(0, r0);
+    masm.setABIArg(1, r1);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
 
     
-    masm.movl(Operand(esp, 4), JSReturnReg_Type);
-    masm.movl(Operand(esp, 0), JSReturnReg_Data);
-    masm.addl(Imm32(8), esp);
+    
+    masm.as_extdtr(IsLoad, 64, true, PostIndex,
+                   JSReturnReg_Data, EDtrAddr(sp, EDtrOffImm(8)));
 
     
-    masm.testl(eax, eax);
-    masm.j(Assembler::Zero, &exception);
-
-    
-    masm.ret();
-
+    masm.as_cmp(r0, Imm8(0));
+    masm.as_b(&exception, Assembler::Zero);
+    masm.as_dtr(IsLoad, 32, PostIndex, pc, DTRAddr(sp, DtrOffImm(4)));
     masm.bind(&exception);
 
     
-    masm.movl(esp, eax);
-    masm.setupUnalignedABICall(1, ecx);
-    masm.setABIArg(0, eax);
+    masm.as_mov(r0, O2Reg(sp));
+    masm.setupAlignedABICall(1);
+    masm.setABIArg(0,r0);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, HandleException));
-
     
-    masm.addl(eax, esp);
-    masm.ret();
-#endif
+    masm.as_add(sp, sp, O2Reg(r0));
+    
+    
+    masm.as_dtr(IsLoad, 32, PostIndex, pc, DTRAddr(sp, DtrOffImm(4)));
 }
 
 IonCode *
@@ -343,7 +297,7 @@ IonCompartment::generateBailoutTable(JSContext *cx, uint32 frameClass)
 
     Label bailout;
     for (size_t i = 0; i < BAILOUT_TABLE_SIZE; i++)
-        masm.call(&bailout);
+        masm.ma_bl(&bailout);
     masm.bind(&bailout);
 
     GenerateBailoutThunk(masm, frameClass);

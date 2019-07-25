@@ -39,23 +39,17 @@
 
 
 
-#ifndef jsion_ionframes_arm_h__
-#define jsion_ionframes_arm_h__
-
 namespace js {
 namespace ion {
 
 
-class IonFrameData
+
+struct IonFrameData
 {
-  protected:
     void *returnAddress_;
     uintptr_t sizeDescriptor_;
     void *calleeToken_;
-    void *padding; 
 };
 
-
-} 
-} 
-#endif 
+}
+}
