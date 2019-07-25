@@ -181,7 +181,7 @@ public class BrowserToolbar {
 
                 
                 int leftMargin = lockLocation[0] - lockLayoutParams.rightMargin;
-                GeckoApp.mSiteIdentityPopup.show(leftMargin);
+                SiteIdentityPopup.getInstance().show(leftMargin);
             }
         });
 
