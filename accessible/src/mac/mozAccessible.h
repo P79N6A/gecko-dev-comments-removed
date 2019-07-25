@@ -46,16 +46,32 @@
 
 @interface mozAccessible : NSObject <mozAccessible>
 {
-  nsAccessibleWrap *mGeckoAccessible;  
-  NSMutableArray   *mChildren;         
+  
+
+
+  nsAccessibleWrap* mGeckoAccessible;
   
   
+
+
+  NSMutableArray* mChildren;
   
   
+
+
+  mozAccessible* mParent;
   
+  
+
+
+
+
+
   BOOL mIsExpired;
   
   
+
+
   PRUint32        mRole;
 }
 
@@ -115,6 +131,9 @@
 - (void)invalidateChildren;
 
 
+- (void)invalidateParent;
+
+
 
 - (void)expire;
 - (BOOL)isExpired;
@@ -124,7 +143,7 @@
 - (void)printHierarchyWithLevel:(unsigned)numSpaces;
 
 - (void)sanityCheckChildren;
-- (void)sanityCheckChildren:(NSArray *)theChildren;
+- (void)sanityCheckChildren:(NSArray*)theChildren;
 #endif
 
 
