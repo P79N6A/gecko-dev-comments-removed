@@ -469,7 +469,7 @@ class Script
     inline jsid getLocalId(unsigned index, Bytecode *code);
     inline jsid getArgumentId(unsigned index);
 
-    inline types::TypeSet *getVariable(JSContext *cx, jsid id);
+    inline types::TypeSet *getVariable(JSContext *cx, jsid id, bool localName = false);
 
     
     inline types::TypeSet *getStackTypes(unsigned index, Bytecode *code);
@@ -478,7 +478,7 @@ class Script
     inline JSValueType knownLocalTypeTag(JSContext *cx, JSScript *script, unsigned local);
 
   private:
-    void addVariable(JSContext *cx, jsid id, types::Variable *&var);
+    void addVariable(JSContext *cx, jsid id, types::Variable *&var, bool localName);
 
 #endif 
 };

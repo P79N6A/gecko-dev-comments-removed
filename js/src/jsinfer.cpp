@@ -1888,18 +1888,24 @@ namespace analyze {
 using namespace types;
 
 void
-Script::addVariable(JSContext *cx, jsid id, types::Variable *&var)
+Script::addVariable(JSContext *cx, jsid id, types::Variable *&var, bool localName)
 {
     JS_ASSERT(!var);
     var = ArenaNew<types::Variable>(pool, &pool, id);
 
     
-    if (fun && id == id_arguments(cx)) {
-        TypeSet *types = &var->types;
-        if (script->compileAndGo)
-            types->addType(cx, (jstype) getTypeNewObject(cx, JSProto_Object));
-        else
-            types->addType(cx, TYPE_UNKNOWN);
+    if (!localName) {
+        
+        if (fun && id == id_arguments(cx)) {
+            if (script->compileAndGo)
+                var->types.addType(cx, (jstype) getTypeNewObject(cx, JSProto_Object));
+            else
+                var->types.addType(cx, TYPE_UNKNOWN);
+        }
+
+        
+        if (fun && id == ATOM_TO_JSID(fun->atom))
+            var->types.addType(cx, (jstype) function());
     }
 
     InferSpew(ISpewOps, "addVariable: #%lu %s T%u",
@@ -1935,21 +1941,27 @@ Script::setFunction(JSContext *cx, JSFunction *fun)
 
 
 
-
-
-
-
-
     if (fun->hasLocalNames())
         localNames = fun->getLocalNameArray(cx, &pool);
 
     
-    if (fun->atom) {
-        TypeSet *var = getVariable(cx, ATOM_TO_JSID(fun->atom));
-        if (script->compileAndGo)
-            var->addType(cx, (jstype) function());
-        else
-            var->addType(cx, TYPE_UNKNOWN);
+
+
+
+
+
+    unsigned nargs = argCount();
+    for (unsigned i = 0; i < nargs; i++) {
+        jsid id = getArgumentId(i);
+        if (!JSID_IS_VOID(id))
+            getVariable(cx, id, true);
+    }
+
+    unsigned nfixed = script->nfixed;
+    for (unsigned i = 0; i < nfixed; i++) {
+        jsid id = getLocalId(i, NULL);
+        if (!JSID_IS_VOID(id))
+            getVariable(cx, id, true);
     }
 }
 
@@ -2028,18 +2040,13 @@ SearchScope(JSContext *cx, Script *script, TypeStack *stack, jsid id)
 
         
         if (id == id_arguments(cx) && script->fun) {
-            TypeSet *types = script->getVariable(cx, id);
-            if (script->getScript()->compileAndGo)
-                types->addType(cx, (jstype) script->getTypeNewObject(cx, JSProto_Object));
-            else
-                types->addType(cx, TYPE_UNKNOWN);
+            script->getVariable(cx, id);
             return script;
         }
 
         
         if (script->fun && id == ATOM_TO_JSID(script->fun->atom)) {
-            TypeSet *types = script->getVariable(cx, id);
-            types->addType(cx, (jstype) script->function());
+            script->getVariable(cx, id);
             return script;
         }
 
