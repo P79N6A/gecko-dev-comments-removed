@@ -209,15 +209,38 @@ JS_DumpBacktrace(JSCallsite *trace);
 
 #else
 
+#ifdef DEBUG
+
+
+
+
+extern JS_PUBLIC_DATA(JSUint32) OOM_maxAllocations; 
+extern JS_PUBLIC_DATA(JSUint32) OOM_counter; 
+#define JS_OOM_POSSIBLY_FAIL() \
+    do \
+    { \
+        if (OOM_counter++ >= OOM_maxAllocations) { \
+            return NULL; \
+        } \
+    } while (0)
+
+#else
+#define JS_OOM_POSSIBLY_FAIL() do {} while(0)
+#endif
+
+
 static JS_INLINE void* js_malloc(size_t bytes) {
+    JS_OOM_POSSIBLY_FAIL();
     return malloc(bytes);
 }
 
 static JS_INLINE void* js_calloc(size_t bytes) {
+    JS_OOM_POSSIBLY_FAIL();
     return calloc(bytes, 1);
 }
 
 static JS_INLINE void* js_realloc(void* p, size_t bytes) {
+    JS_OOM_POSSIBLY_FAIL();
     return realloc(p, bytes);
 }
 
