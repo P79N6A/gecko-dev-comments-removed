@@ -136,8 +136,7 @@ public:
     mLayerBuilder(aLayerBuilder),
     mContainerFrame(aContainerFrame), mContainerLayer(aContainerLayer),
     mParameters(aParameters),
-    mNextFreeRecycledThebesLayer(0), mNextFreeRecycledColorLayer(0),
-    mNextFreeRecycledImageLayer(0), mInvalidateAllThebesContent(false)
+    mNextFreeRecycledThebesLayer(0), mInvalidateAllThebesContent(false)
   {
     nsPresContext* presContext = aContainerFrame->PresContext();
     mAppUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
@@ -375,12 +374,12 @@ protected:
 
 
 
-  already_AddRefed<ColorLayer> CreateOrRecycleColorLayer();
+  already_AddRefed<ColorLayer> CreateOrRecycleColorLayer(ThebesLayer* aThebes);
   
 
 
 
-  already_AddRefed<ImageLayer> CreateOrRecycleImageLayer();
+  already_AddRefed<ImageLayer> CreateOrRecycleImageLayer(ThebesLayer* aThebes);
   
 
 
@@ -472,13 +471,9 @@ protected:
   typedef nsAutoTArray<nsRefPtr<Layer>,1> AutoLayersArray;
   AutoLayersArray                  mNewChildLayers;
   nsTArray<nsRefPtr<ThebesLayer> > mRecycledThebesLayers;
-  nsTArray<nsRefPtr<ColorLayer> >  mRecycledColorLayers;
-  nsTArray<nsRefPtr<ImageLayer> >  mRecycledImageLayers;
   nsDataHashtable<nsPtrHashKey<Layer>, nsRefPtr<ImageLayer> >
     mRecycledMaskImageLayers;
   PRUint32                         mNextFreeRecycledThebesLayer;
-  PRUint32                         mNextFreeRecycledColorLayer;
-  PRUint32                         mNextFreeRecycledImageLayer;
   nscoord                          mAppUnitsPerDevPixel;
   bool                             mInvalidateAllThebesContent;
   bool                             mSnappingEnabled;
@@ -513,6 +508,9 @@ public:
 
 
   gfxPoint mActiveScrolledRootPosition;
+
+  nsRefPtr<ColorLayer> mColorLayer;
+  nsRefPtr<ImageLayer> mImageLayer;
 };
 
 
@@ -936,15 +934,12 @@ InvalidatePostTransformRegion(ThebesLayer* aLayer, const nsIntRegion& aRegion,
 }
 
 already_AddRefed<ColorLayer>
-ContainerState::CreateOrRecycleColorLayer()
+ContainerState::CreateOrRecycleColorLayer(ThebesLayer *aThebes)
 {
-  nsRefPtr<ColorLayer> layer;
-  if (mNextFreeRecycledColorLayer < mRecycledColorLayers.Length()) {
-    
-    layer = mRecycledColorLayers[mNextFreeRecycledColorLayer];
-    ++mNextFreeRecycledColorLayer;
-    
-    
+  ThebesDisplayItemLayerUserData* data = 
+      static_cast<ThebesDisplayItemLayerUserData*>(aThebes->GetUserData(&gThebesDisplayItemLayerUserData));
+  nsRefPtr<ColorLayer> layer = data->mColorLayer;
+  if (layer) {
     layer->SetClipRect(nullptr);
     layer->SetMaskLayer(nullptr);
   } else {
@@ -953,21 +948,22 @@ ContainerState::CreateOrRecycleColorLayer()
     if (!layer)
       return nullptr;
     
+    data->mColorLayer = layer;
     layer->SetUserData(&gColorLayerUserData, nullptr);
+    
+    
+    data->mImageLayer = nullptr;
   }
   return layer.forget();
 }
 
 already_AddRefed<ImageLayer>
-ContainerState::CreateOrRecycleImageLayer()
+ContainerState::CreateOrRecycleImageLayer(ThebesLayer *aThebes)
 {
-  nsRefPtr<ImageLayer> layer;
-  if (mNextFreeRecycledImageLayer < mRecycledImageLayers.Length()) {
-    
-    layer = mRecycledImageLayers[mNextFreeRecycledImageLayer];
-    ++mNextFreeRecycledImageLayer;
-    
-    
+  ThebesDisplayItemLayerUserData* data = 
+      static_cast<ThebesDisplayItemLayerUserData*>(aThebes->GetUserData(&gThebesDisplayItemLayerUserData));
+  nsRefPtr<ImageLayer> layer = data->mImageLayer;
+  if (layer) {
     layer->SetClipRect(nullptr);
     layer->SetMaskLayer(nullptr);
   } else {
@@ -976,7 +972,11 @@ ContainerState::CreateOrRecycleImageLayer()
     if (!layer)
       return nullptr;
     
+    data->mImageLayer = layer;
     layer->SetUserData(&gImageLayerUserData, nullptr);
+
+    
+    data->mColorLayer = nullptr;
   }
   return layer.forget();
 }
@@ -1263,7 +1263,7 @@ ContainerState::PopThebesLayerData()
     NS_ASSERTION(!(data->mIsSolidColorInVisibleRegion && imageContainer),
                  "Can't be a solid color as well as an image!");
     if (imageContainer) {
-      nsRefPtr<ImageLayer> imageLayer = CreateOrRecycleImageLayer();
+      nsRefPtr<ImageLayer> imageLayer = CreateOrRecycleImageLayer(data->mLayer);
       imageLayer->SetContainer(imageContainer);
       data->mImage->ConfigureLayer(imageLayer);
       imageLayer->SetPostScale(mParameters.mXScale,
@@ -1274,7 +1274,7 @@ ContainerState::PopThebesLayerData()
       }
       layer = imageLayer;
     } else {
-      nsRefPtr<ColorLayer> colorLayer = CreateOrRecycleColorLayer();
+      nsRefPtr<ColorLayer> colorLayer = CreateOrRecycleColorLayer(data->mLayer);
       colorLayer->SetIsFixedPosition(data->mLayer->GetIsFixedPosition());
       colorLayer->SetColor(data->mSolidColor);
 
@@ -1995,11 +1995,7 @@ ContainerState::CollectOldLayers()
        layer = layer->GetNextSibling()) {
     NS_ASSERTION(!layer->HasUserData(&gMaskLayerUserData),
                  "Mask layer in layer tree; could not be recycled.");
-    if (layer->HasUserData(&gColorLayerUserData)) {
-      mRecycledColorLayers.AppendElement(static_cast<ColorLayer*>(layer));
-    } else if (layer->HasUserData(&gImageLayerUserData)) {
-      mRecycledImageLayers.AppendElement(static_cast<ImageLayer*>(layer));
-    } else if (layer->HasUserData(&gThebesDisplayItemLayerUserData)) {
+    if (layer->HasUserData(&gThebesDisplayItemLayerUserData)) {
       NS_ASSERTION(layer->AsThebesLayer(), "Wrong layer type");
       mRecycledThebesLayers.AppendElement(static_cast<ThebesLayer*>(layer));
     }
