@@ -49,6 +49,7 @@ var EXPORTED_SYMBOLS = ["InspectorUI"];
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource:///modules/TreePanel.jsm");
 
 const INSPECTOR_INVISIBLE_ELEMENTS = {
   "head": true,
@@ -874,9 +875,8 @@ InspectorUI.prototype = {
 
     this.initTools();
 
-    if (!this.TreePanel && this.treePanelEnabled) {
-      Cu.import("resource:///modules/TreePanel.jsm", this);
-      this.treePanel = new this.TreePanel(this.chromeWin, this);
+    if (this.treePanelEnabled) {
+      this.treePanel = new TreePanel(this.chromeWin, this);
     }
 
     if (Services.prefs.getBoolPref("devtools.styleinspector.enabled") &&
@@ -886,6 +886,9 @@ InspectorUI.prototype = {
 
     this.toolbar.hidden = false;
     this.inspectMenuitem.setAttribute("checked", true);
+
+    
+    this.breadcrumbs = new HTMLBreadcrumbs(this);
 
     this.isDirty = false;
 
@@ -999,6 +1002,11 @@ InspectorUI.prototype = {
       this.highlighter = null;
     }
 
+    if (this.breadcrumbs) {
+      this.breadcrumbs.destroy();
+      this.breadcrumbs = null;
+    }
+
     this.inspectMenuitem.setAttribute("checked", false);
     this.browser = this.win = null; 
     this.winID = null;
@@ -1009,7 +1017,6 @@ InspectorUI.prototype = {
     delete this.treePanel;
     delete this.stylePanel;
     delete this.toolbar;
-    delete this.TreePanel;
     Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.CLOSED, null);
   },
 
@@ -1092,6 +1099,8 @@ InspectorUI.prototype = {
         this.highlighter.highlightNode(this.selection);
       }
     }
+
+    this.breadcrumbs.update();
 
     this.toolsSelect(aScroll);
   },
@@ -1887,6 +1896,456 @@ InspectorProgressListener.prototype = {
     delete this.IUI;
   },
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function HTMLBreadcrumbs(aInspector)
+{
+  this.IUI = aInspector;
+  this.DOMHelpers = new DOMHelpers(this.IUI.win);
+  this._init();
+}
+
+HTMLBreadcrumbs.prototype = {
+  _init: function BC__init()
+  {
+    this.container = this.IUI.chromeDoc.getElementById("inspector-breadcrumbs");
+    this.container.addEventListener("mousedown", this, true);
+
+    
+    this.nodeHierarchy = [];
+
+    
+    this.currentIndex = -1;
+
+    
+    this.menu = this.IUI.chromeDoc.createElement("menupopup");
+    this.menu.id = "inspector-breadcrumbs-menu";
+
+    let popupSet = this.IUI.chromeDoc.getElementById("mainPopupSet");
+    popupSet.appendChild(this.menu);
+
+    this.menu.addEventListener("popuphiding", (function() {
+      while (this.menu.hasChildNodes()) {
+        this.menu.removeChild(this.menu.firstChild);
+      }
+      let button = this.container.querySelector("button[siblings-menu-open]");
+      button.removeAttribute("siblings-menu-open");
+    }).bind(this), false);
+  },
+
+  
+
+
+
+
+
+  prettyPrintNodeAsText: function BC_prettyPrintNodeText(aNode)
+  {
+    let text = aNode.tagName.toLowerCase();
+    if (aNode.id) {
+      text += "#" + aNode.id;
+    }
+    for (let i = 0; i < aNode.classList.length; i++) {
+      text += "." + aNode.classList[i];
+    }
+    return text;
+  },
+
+
+  
+
+
+
+
+
+
+
+
+  prettyPrintNodeAsXUL: function BC_prettyPrintNodeXUL(aNode)
+  {
+    let fragment = this.IUI.chromeDoc.createDocumentFragment();
+
+    let tagLabel = this.IUI.chromeDoc.createElement("label");
+    tagLabel.className = "inspector-breadcrumbs-tag plain";
+
+    let idLabel = this.IUI.chromeDoc.createElement("label");
+    idLabel.className = "inspector-breadcrumbs-id plain";
+
+    let classesLabel = this.IUI.chromeDoc.createElement("label");
+    classesLabel.className = "inspector-breadcrumbs-classes plain";
+
+    tagLabel.textContent = aNode.tagName.toLowerCase();
+    idLabel.textContent = aNode.id ? ("#" + aNode.id) : "";
+
+    let classesText = "";
+    for (let i = 0; i < aNode.classList.length; i++) {
+      classesText += "." + aNode.classList[i];
+    }
+    classesLabel.textContent = classesText;
+
+    fragment.appendChild(tagLabel);
+    fragment.appendChild(idLabel);
+    fragment.appendChild(classesLabel);
+
+    return fragment;
+  },
+
+  
+
+
+
+
+
+  openSiblingMenu: function BC_openSiblingMenu(aButton, aNode)
+  {
+    let title = this.IUI.chromeDoc.createElement("menuitem");
+    title.setAttribute("label",
+      this.IUI.strings.GetStringFromName("breadcrumbs.siblings"));
+    title.setAttribute("disabled", "true");
+
+    let separator = this.IUI.chromeDoc.createElement("menuseparator");
+
+    this.menu.appendChild(title);
+    this.menu.appendChild(separator);
+
+    let fragment = this.IUI.chromeDoc.createDocumentFragment();
+
+    let nodes = aNode.parentNode.childNodes;
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].nodeType == aNode.ELEMENT_NODE) {
+        let item = this.IUI.chromeDoc.createElement("menuitem");
+        let inspector = this.IUI;
+        if (nodes[i] === aNode) {
+          item.setAttribute("disabled", "true");
+          item.setAttribute("checked", "true");
+        }
+
+        item.setAttribute("type", "radio");
+        item.setAttribute("label", this.prettyPrintNodeAsText(nodes[i]));
+
+        item.onmouseup = (function(aNode) {
+          return function() {
+            inspector.select(aNode, true, true);
+          }
+        })(nodes[i]);
+
+        fragment.appendChild(item);
+      }
+    }
+    this.menu.appendChild(fragment);
+    this.menu.openPopup(aButton, "before_start", 0, 0, true, false);
+  },
+
+  
+
+
+
+
+
+  handleEvent: function BC_handleEvent(aEvent)
+  {
+    if (aEvent.type == "mousedown") {
+      
+
+      let timer;
+      let container = this.container;
+      let window = this.IUI.win;
+
+      function openMenu(aEvent) {
+        cancelHold();
+        let target = aEvent.originalTarget;
+        if (target.tagName == "button") {
+          target.onBreadcrumbsHold();
+          target.setAttribute("siblings-menu-open", "true");
+        }
+      }
+
+      function handleClick(aEvent) {
+        cancelHold();
+        let target = aEvent.originalTarget;
+        if (target.tagName == "button") {
+          target.onBreadcrumbsClick();
+        }
+      }
+
+      function cancelHold(aEvent) {
+        window.clearTimeout(timer);
+        container.removeEventListener("mouseout", cancelHold, false);
+        container.removeEventListener("mouseup", handleClick, false);
+      }
+
+      container.addEventListener("mouseout", cancelHold, false);
+      container.addEventListener("mouseup", handleClick, false);
+      timer = window.setTimeout(openMenu, 500, aEvent);
+    }
+  },
+
+  
+
+
+  destroy: function BC_destroy()
+  {
+    this.empty();
+    this.container.removeEventListener("mousedown", this, true);
+    this.menu.parentNode.removeChild(this.menu);
+    this.container = null;
+    this.nodeHierarchy = null;
+  },
+
+  
+
+
+  empty: function BC_empty()
+  {
+    while (this.container.hasChildNodes()) {
+      this.container.removeChild(this.container.firstChild);
+    }
+  },
+
+  
+
+
+  invalidateHierarchy: function BC_invalidateHierarchy()
+  {
+    this.menu.hidePopup();
+    this.nodeHierarchy = [];
+    this.empty();
+  },
+
+  
+
+
+
+
+  setCursor: function BC_setCursor(aIdx)
+  {
+    
+    if (this.currentIndex > -1 && this.currentIndex < this.nodeHierarchy.length) {
+      this.nodeHierarchy[this.currentIndex].button.removeAttribute("checked");
+    }
+    if (aIdx > -1) {
+      this.nodeHierarchy[aIdx].button.setAttribute("checked", "true");
+    }
+    this.currentIndex = aIdx;
+  },
+
+  
+
+
+
+
+
+  indexOf: function BC_indexOf(aNode)
+  {
+    let i = this.nodeHierarchy.length - 1;
+    for (let i = this.nodeHierarchy.length - 1; i >= 0; i--) {
+      if (this.nodeHierarchy[i].node === aNode) {
+        return i;
+      }
+    }
+    return -1;
+  },
+
+  
+
+
+
+
+
+  cutAfter: function BC_cutAfter(aIdx)
+  {
+    while (this.nodeHierarchy.length > (aIdx + 1)) {
+      let toRemove = this.nodeHierarchy.pop();
+      this.container.removeChild(toRemove.button);
+    }
+  },
+
+  
+
+
+
+
+
+  buildButton: function BC_buildButton(aNode)
+  {
+    let button = this.IUI.chromeDoc.createElement("button");
+    let inspector = this.IUI;
+    button.appendChild(this.prettyPrintNodeAsXUL(aNode));
+    button.className = "inspector-breadcrumbs-button";
+
+    button.setAttribute("tooltiptext", this.prettyPrintNodeAsText(aNode));
+
+    button.onBreadcrumbsClick = function onBreadcrumbsClick() {
+      inspector.stopInspecting();
+      inspector.select(aNode, true, true);
+    };
+
+    button.onclick = (function _onBreadcrumbsRightClick(aEvent) {
+      if (aEvent.button == 2) {
+        this.openSiblingMenu(button, aNode);
+      }
+    }).bind(this);
+
+    button.onBreadcrumbsHold = (function _onBreadcrumbsHold() {
+      this.openSiblingMenu(button, aNode);
+    }).bind(this);
+    return button;
+  },
+
+  
+
+
+
+
+  expand: function BC_expand(aNode)
+  {
+      let fragment = this.IUI.chromeDoc.createDocumentFragment();
+      let toAppend = aNode;
+      let lastButtonInserted = null;
+      let originalLength = this.nodeHierarchy.length;
+      let stopNode = null;
+      if (originalLength > 0) {
+        stopNode = this.nodeHierarchy[originalLength - 1].node;
+      }
+      while (toAppend && toAppend.tagName && toAppend != stopNode) {
+        let button = this.buildButton(toAppend);
+        fragment.insertBefore(button, lastButtonInserted);
+        lastButtonInserted = button;
+        this.nodeHierarchy.splice(originalLength, 0, {node: toAppend, button: button});
+        toAppend = this.DOMHelpers.getParentObject(toAppend);
+      }
+      this.container.appendChild(fragment, this.container.firstChild);
+  },
+
+  
+
+
+
+
+
+
+
+
+  getFirstHighlightableChild: function BC_getFirstHighlightableChild(aNode)
+  {
+    let nextChild = this.DOMHelpers.getChildObject(aNode, 0);
+    let fallback = null;
+
+    while (nextChild) {
+      if (this.IUI.highlighter.isNodeHighlightable(nextChild)) {
+        return nextChild;
+      }
+      if (!fallback && nextChild.nodeType == aNode.ELEMENT_NODE) {
+        fallback = nextChild;
+      }
+      nextChild = this.DOMHelpers.getNextSibling(nextChild);
+    }
+    return fallback;
+  },
+
+  
+
+
+
+
+
+  getCommonAncestor: function BC_getCommonAncestor(aNode)
+  {
+    let node = aNode;
+    while (node) {
+      let idx = this.indexOf(node);
+      if (idx > -1) {
+        return idx;
+      } else {
+        node = this.DOMHelpers.getParentObject(node);
+      }
+    }
+    return -1;
+  },
+
+  
+
+
+
+  ensureFirstChild: function BC_ensureFirstChild()
+  {
+    
+    if (this.currentIndex == this.nodeHierarchy.length - 1) {
+      let node = this.nodeHierarchy[this.currentIndex].node;
+      let child = this.getFirstHighlightableChild(node);
+      
+      if (child) {
+        
+        this.expand(child);
+      }
+    }
+  },
+
+  
+
+
+  scroll: function BC_scroll()
+  {
+    
+
+    let scrollbox = this.container;
+    let element = this.nodeHierarchy[this.currentIndex].button;
+    scrollbox.ensureElementIsVisible(element);
+  },
+
+  
+
+
+  update: function BC_update()
+  {
+    this.menu.hidePopup();
+
+    let selection = this.IUI.selection;
+    let idx = this.indexOf(selection);
+
+    
+    if (idx > -1) {
+      
+      this.setCursor(idx);
+    } else {
+      
+      if (this.nodeHierarchy.length > 0) {
+        
+        
+        let parent = this.DOMHelpers.getParentObject(selection);
+        let idx = this.getCommonAncestor(parent);
+        this.cutAfter(idx);
+      }
+      
+      
+      this.expand(selection);
+
+      
+      idx = this.indexOf(selection);
+      this.setCursor(idx);
+    }
+    
+    this.ensureFirstChild();
+
+    
+    this.scroll();
+  }
+}
 
 
 
