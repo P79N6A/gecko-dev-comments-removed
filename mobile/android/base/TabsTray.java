@@ -43,7 +43,9 @@ public class TabsTray extends LinearLayout
 
     private GestureDetector mGestureDetector;
     private TabSwipeGestureListener mListener;
-    private static final int SWIPE_CLOSE_VELOCITY = 1000;
+    
+    private static final int SWIPE_CLOSE_VELOCITY = 5;
+    
     private static final int MAX_ANIMATION_TIME = 250;
     private static enum DragDirection {
         UNKNOWN,
@@ -282,6 +284,9 @@ public class TabsTray extends LinearLayout
                     tabs.closeTab(tab);
                 }
             });
+        } else if (x != 0 && mWaitingForClose) {
+          
+          return;
         }
         pa.start();
     }
@@ -371,9 +376,13 @@ public class TabsTray extends LinearLayout
             if (mView == null || Tabs.getInstance().getCount() == 1)
                 return false;
 
+            
             if (Math.abs(velocityX)/GeckoAppShell.getDpi() > SWIPE_CLOSE_VELOCITY) {
+                
                 float d = (velocityX > 0 ? 1 : -1) * mView.getWidth();
-                animateTo(mView, (int)d, (int)(d/velocityX));
+                
+                
+                animateTo(mView, (int)d, (int)((d + mView.getScrollX())*1000/velocityX));
             }
 
             return false; 
