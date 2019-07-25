@@ -211,10 +211,19 @@ nsProgressFrame::ReflowBarFrame(nsIFrame*                aBarFrame,
   }
 
   
-  width -= reflowState.mComputedMargin.LeftRight() +
-           reflowState.mComputedBorderPadding.LeftRight();
-  width = NS_MAX(width, 0);
-  reflowState.SetComputedWidth(width);
+  
+  
+  
+  
+  
+  
+  if (position != -1 ||
+      aBarFrame->GetStyleDisplay()->mAppearance == NS_THEME_PROGRESSBAR_CHUNK) {
+    width -= reflowState.mComputedMargin.LeftRight() +
+             reflowState.mComputedBorderPadding.LeftRight();
+    width = NS_MAX(width, 0);
+    reflowState.SetComputedWidth(width);
+  }
 
   xoffset += reflowState.mComputedMargin.left;
   yoffset += reflowState.mComputedMargin.top;
