@@ -477,7 +477,7 @@ private:
   
   TimeStamp mLastSampleTime;
   
-  PRInt32 mLastEventTime;
+  int32_t mLastEventTime;
 
   
   

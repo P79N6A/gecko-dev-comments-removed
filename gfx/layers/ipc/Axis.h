@@ -44,13 +44,13 @@ public:
 
 
 
-  void UpdateWithTouchAtDevicePoint(PRInt32 aPos, const TimeDuration& aTimeDelta);
+  void UpdateWithTouchAtDevicePoint(int32_t aPos, const TimeDuration& aTimeDelta);
 
   
 
 
 
-  void StartTouch(PRInt32 aPos);
+  void StartTouch(int32_t aPos);
 
   
 
@@ -126,7 +126,7 @@ public:
 
 
 
-  Overscroll DisplacementWillOverscroll(PRInt32 aDisplacement);
+  Overscroll DisplacementWillOverscroll(int32_t aDisplacement);
 
   
 
@@ -143,7 +143,7 @@ public:
 
 
 
-  Overscroll ScaleWillOverscroll(float aScale, PRInt32 aFocus);
+  Overscroll ScaleWillOverscroll(float aScale, int32_t aFocus);
 
   
 
@@ -176,15 +176,15 @@ public:
   virtual float GetRectOffset(const gfx::Rect& aRect) = 0;
 
 protected:
-  PRInt32 mPos;
-  PRInt32 mStartPos;
+  int32_t mPos;
+  int32_t mStartPos;
   float mVelocity;
   
   
   
   
   
-  PRInt32 mAcceleration;
+  int32_t mAcceleration;
   nsRefPtr<AsyncPanZoomController> mAsyncPanZoomController;
   bool mLockPanning;
 };

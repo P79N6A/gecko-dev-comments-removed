@@ -165,7 +165,7 @@ protected:
 
 
 
-  PRUint64 mTapStartTime;
+  uint64_t mTapStartTime;
 
   
 
