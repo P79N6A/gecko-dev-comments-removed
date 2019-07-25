@@ -461,6 +461,12 @@ public:
   
 
 
+  virtual gfxASurface::gfxImageFormat MaskImageFormat() 
+  { return gfxASurface::ImageFormatA8; }
+
+  
+
+
 
   virtual TemporaryRef<mozilla::gfx::DrawTarget>
     CreateDrawTarget(const mozilla::gfx::IntSize &aSize,
@@ -866,7 +872,12 @@ public:
 
 
   virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface) = 0;
+    
   
+
+
+  void ComputeEffectiveTransformForMaskLayer(const gfx3DMatrix& aTransformToSurface);
+
   
 
 
@@ -1054,6 +1065,7 @@ public:
                    "Residual translation out of range");
       mValidRegion.SetEmpty();
     }
+    ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
   bool UsedForReadback() { return mUsedForReadback; }
@@ -1245,6 +1257,7 @@ public:
     
     gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
     mEffectiveTransform = SnapTransform(idealTransform, gfxRect(0, 0, 0, 0), nsnull);
+    ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
 protected:
@@ -1335,6 +1348,7 @@ public:
         SnapTransform(GetLocalTransform(), gfxRect(0, 0, mBounds.width, mBounds.height),
                       nsnull)*
         SnapTransform(aTransformToSurface, gfxRect(0, 0, 0, 0), nsnull);
+    ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
 
 protected:
