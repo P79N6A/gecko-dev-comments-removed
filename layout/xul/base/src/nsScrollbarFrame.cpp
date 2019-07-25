@@ -102,14 +102,6 @@ nsScrollbarFrame::Reflow(nsPresContext*          aPresContext,
   return NS_OK;
 }
 
- bool
-nsScrollbarFrame::IsContainingBlock() const
-{
-  
-  
-  return PR_TRUE;
-}
-
 nsIAtom*
 nsScrollbarFrame::GetType() const
 {

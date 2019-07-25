@@ -630,22 +630,6 @@ nsBlockFrame::GetChildLists(nsTArray<ChildList>* aLists) const
 }
 
  bool
-nsBlockFrame::IsContainingBlock() const
-{
-  
-  
-  
-  
-  
-  
-  
-  nsIAtom *pseudoType = GetStyleContext()->GetPseudo();
-  return pseudoType != nsCSSAnonBoxes::mozAnonymousBlock &&
-         pseudoType != nsCSSAnonBoxes::mozAnonymousPositionedBlock &&
-         pseudoType != nsCSSAnonBoxes::cellContent;
-}
-
- bool
 nsBlockFrame::IsFloatContainingBlock() const
 {
   return PR_TRUE;

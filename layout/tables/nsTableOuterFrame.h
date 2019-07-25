@@ -98,8 +98,6 @@ public:
   
 
   virtual void DestroyFrom(nsIFrame* aDestructRoot);
-  
-  virtual bool IsContainingBlock() const;
 
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);

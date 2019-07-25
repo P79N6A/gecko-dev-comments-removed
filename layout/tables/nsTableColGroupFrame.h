@@ -144,10 +144,6 @@ public:
 
   
 
-  virtual bool IsContainingBlock() const;
-
-  
-
 
 
 

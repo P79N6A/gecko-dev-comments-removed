@@ -299,31 +299,17 @@ void nsHTMLReflowState::InitCBReflowState()
     return;
   }
 
-  
-  
-  
-  NS_ASSERTION(frame->GetType() != nsGkAtoms::tableFrame ||
-               !frame->GetParent()->IsContainingBlock(),
-               "Outer table should not be containing block");
-
-  if (parentReflowState->frame->IsContainingBlock() ||
-      
-      
-      (NS_FRAME_GET_TYPE(mFrameType) == NS_CSS_FRAME_TYPE_ABSOLUTE)) {
+  if (parentReflowState->frame == frame->GetContainingBlock()) {
     
     
-    
-    if (parentReflowState->parentReflowState &&
-        frame->GetType() == nsGkAtoms::tableFrame) {
-      mCBReflowState = parentReflowState->parentReflowState;
+    if (frame->GetType() == nsGkAtoms::tableFrame) {
+      mCBReflowState = parentReflowState->mCBReflowState;
     } else {
       mCBReflowState = parentReflowState;
     }
-      
-    return;
+  } else {
+    mCBReflowState = parentReflowState->mCBReflowState;
   }
-  
-  mCBReflowState = parentReflowState->mCBReflowState;
 }
 
 
@@ -373,7 +359,7 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
     
     
     mFlags.mVResize = PR_TRUE;
-  } else if (mCBReflowState && !frame->IsContainingBlock()) {
+  } else if (mCBReflowState && !nsLayoutUtils::IsNonWrapperBlock(frame)) {
     
     
     
@@ -415,7 +401,7 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
     
     frame->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
     
-    dependsOnCBHeight |= !frame->IsContainingBlock();
+    dependsOnCBHeight |= !nsLayoutUtils::IsNonWrapperBlock(frame);
   }
 
   
@@ -486,23 +472,6 @@ nsHTMLReflowState::GetContainingBlockContentWidth(const nsHTMLReflowState* aRefl
   if (!rs)
     return 0;
   return rs->mComputedWidth;
-}
-
-
-nsIFrame*
-nsHTMLReflowState::GetContainingBlockFor(const nsIFrame* aFrame)
-{
-  NS_PRECONDITION(aFrame, "Must have frame to work with");
-  nsIFrame* container = aFrame->GetParent();
-  if (aFrame->GetStyleDisplay()->IsAbsolutelyPositioned()) {
-    
-    
-    return container;
-  }
-  while (container && !container->IsContainingBlock()) {
-    container = container->GetParent();
-  }
-  return container;
 }
 
 void
@@ -701,22 +670,12 @@ nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
   }
 }
 
-static nsIFrame*
-GetNearestContainingBlock(nsIFrame *aFrame)
-{
-  nsIFrame *cb = aFrame;
-  do {
-    cb = cb->GetParent();
-  } while (!cb->IsContainingBlock());
-  return cb;
-}
-
 nsIFrame*
 nsHTMLReflowState::GetHypotheticalBoxContainer(nsIFrame* aFrame,
                                                nscoord& aCBLeftEdge,
                                                nscoord& aCBWidth)
 {
-  aFrame = GetNearestContainingBlock(aFrame);
+  aFrame = aFrame->GetContainingBlock();
   NS_ASSERTION(aFrame != frame, "How did that happen?");
 
   
@@ -1190,7 +1149,7 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
   if (leftIsAuto && rightIsAuto) {
     
     
-    if (NS_STYLE_DIRECTION_LTR == GetNearestContainingBlock(placeholderFrame)
+    if (NS_STYLE_DIRECTION_LTR == placeholderFrame->GetContainingBlock()
                                     ->GetStyleVisibility()->mDirection) {
       NS_ASSERTION(hypotheticalBox.mLeftIsExact, "should always have "
                    "exact value on containing block's start side");
@@ -1570,8 +1529,13 @@ nsHTMLReflowState::ComputeContainingBlockRectangle(nsPresContext*          aPres
   
   aContainingBlockWidth = aContainingBlockRS->mComputedWidth;
   aContainingBlockHeight = aContainingBlockRS->mComputedHeight;
+
   
-  if (NS_FRAME_GET_TYPE(mFrameType) == NS_CSS_FRAME_TYPE_ABSOLUTE) {
+  
+  if (NS_FRAME_GET_TYPE(mFrameType) == NS_CSS_FRAME_TYPE_ABSOLUTE ||
+      (frame->GetType() == nsGkAtoms::tableFrame &&
+       frame->GetStyleDisplay()->IsAbsolutelyPositioned() &&
+       (frame->GetParent()->GetStateBits() & NS_FRAME_OUT_OF_FLOW))) {
     
     if (NS_FRAME_GET_TYPE(aContainingBlockRS->mFrameType) == NS_CSS_FRAME_TYPE_INLINE) {
       
@@ -2168,7 +2132,7 @@ nscoord
 nsHTMLReflowState::CalcLineHeight() const
 {
   nscoord blockHeight =
-    frame->IsContainingBlock() ? mComputedHeight :
+    nsLayoutUtils::IsNonWrapperBlock(frame) ? mComputedHeight :
     (mCBReflowState ? mCBReflowState->mComputedHeight : NS_AUTOHEIGHT);
 
   return CalcLineHeight(frame->GetStyleContext(), blockHeight);

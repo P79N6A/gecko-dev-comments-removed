@@ -1787,7 +1787,6 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   
   if ((aFlags & DISPLAY_CHILD_INLINE) &&
       (disp->mDisplay != NS_STYLE_DISPLAY_INLINE ||
-       aChild->IsContainingBlock() ||
        (aChild->IsFrameOfType(eReplaced)))) {
     
     
@@ -4905,16 +4904,43 @@ nsFrame::IsFrameTreeTooDeep(const nsHTMLReflowState& aReflowState,
   return PR_FALSE;
 }
 
- bool nsFrame::IsContainingBlock() const
+bool
+nsIFrame::IsBlockWrapper() const
 {
-  const nsStyleDisplay* display = GetStyleDisplay();
+  nsIAtom *pseudoType = GetStyleContext()->GetPseudo();
+  return (pseudoType == nsCSSAnonBoxes::mozAnonymousBlock ||
+          pseudoType == nsCSSAnonBoxes::mozAnonymousPositionedBlock ||
+          pseudoType == nsCSSAnonBoxes::cellContent);
+}
 
+static nsIFrame*
+GetNearestBlockContainer(nsIFrame* frame)
+{
   
   
-  return display->mDisplay == NS_STYLE_DISPLAY_BLOCK || 
-         display->mDisplay == NS_STYLE_DISPLAY_INLINE_BLOCK || 
-         display->mDisplay == NS_STYLE_DISPLAY_LIST_ITEM ||
-         display->mDisplay == NS_STYLE_DISPLAY_TABLE_CELL;
+  
+  
+  
+  
+  while (frame->IsFrameOfType(nsIFrame::eLineParticipant) ||
+         frame->IsBlockWrapper()) {
+    frame = frame->GetParent();
+    NS_ASSERTION(frame, "How come we got to the root frame without seeing a containing block?");
+  }
+  return frame;
+}
+
+nsIFrame*
+nsIFrame::GetContainingBlock() const
+{
+  
+  
+  
+  if (GetStyleDisplay()->IsAbsolutelyPositioned() &&
+      (GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+    return GetParent(); 
+  }
+  return GetNearestBlockContainer(GetParent());
 }
 
 #ifdef NS_DEBUG

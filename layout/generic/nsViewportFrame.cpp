@@ -290,12 +290,6 @@ ViewportFrame::GetType() const
   return nsGkAtoms::viewportFrame;
 }
 
- bool
-ViewportFrame::IsContainingBlock() const
-{
-  return PR_TRUE;
-}
-
 void
 ViewportFrame::InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aX, nscoord aY, nsIFrame* aForChild,

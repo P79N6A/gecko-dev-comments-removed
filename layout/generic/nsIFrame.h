@@ -1984,7 +1984,15 @@ public:
   
 
 
-  virtual bool IsContainingBlock() const = 0;
+  bool IsBlockWrapper() const;
+
+  
+
+
+
+
+
+  nsIFrame* GetContainingBlock() const;
 
   
 

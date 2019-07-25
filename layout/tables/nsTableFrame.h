@@ -164,8 +164,6 @@ public:
   
   static void RequestSpecialHeightReflow(const nsHTMLReflowState& aReflowState);
 
-  virtual bool IsContainingBlock() const;
-
   static void RePositionViews(nsIFrame* aFrame);
 
   static bool PageBreakAfter(nsIFrame* aSourceFrame,

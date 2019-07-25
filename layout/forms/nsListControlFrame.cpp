@@ -1758,15 +1758,6 @@ nsListControlFrame::GetType() const
   return nsGkAtoms::listControlFrame; 
 }
 
-bool
-nsListControlFrame::IsContainingBlock() const
-{
-  
-  
-  
-  return PR_TRUE;
-}
-
 void
 nsListControlFrame::InvalidateInternal(const nsRect& aDamageRect,
                                        nscoord aX, nscoord aY, nsIFrame* aForChild,

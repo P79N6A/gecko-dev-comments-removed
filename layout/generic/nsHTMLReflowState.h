@@ -408,13 +408,6 @@ public:
   
 
 
-
-
-  static nsIFrame* GetContainingBlockFor(const nsIFrame* aFrame);
-
-  
-
-
   nscoord CalcLineHeight() const;
 
   

@@ -783,6 +783,13 @@ public:
   
 
 
+  static bool IsNonWrapperBlock(nsIFrame* aFrame) {
+    return GetAsBlock(aFrame) && !aFrame->IsBlockWrapper();
+  }
+
+  
+
+
 
   static nsIFrame* GetParentOrPlaceholderFor(nsFrameManager* aFrameManager,
                                              nsIFrame* aFrame);

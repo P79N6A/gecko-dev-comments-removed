@@ -361,12 +361,6 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
   aDesiredSize.ascent += yoff;
 }
 
- bool
-nsHTMLButtonControlFrame::IsContainingBlock() const
-{
-  return PR_TRUE;
-}
-
 PRIntn
 nsHTMLButtonControlFrame::GetSkipSides() const
 {
