@@ -138,13 +138,12 @@ function (engineURL, iconURL)
   try
   {
     
-    if (! /^(https?|ftp):\/\//i.test(engineURL))
+    var isWeb = /^(https?|ftp):\/\//i;
+
+    if (!isWeb.test(engineURL))
       throw "Unsupported search engine URL";
   
-    
-    
-    if (iconURL &&
-        ! /^(https?|ftp):\/\/.+\.(gif|jpg|jpeg|png|ico)$/i.test(iconURL))
+    if (iconURL && !isWeb.test(iconURL))
       throw "Unsupported search icon URL.";
   }
   catch(ex)
