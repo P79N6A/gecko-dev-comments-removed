@@ -7297,9 +7297,11 @@ nsWindow::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
   
   if(mWindowType == eWindowType_plugin) {
     if(NULLREGION == ::CombineRgn(dest, dest, dest, RGN_OR)) {
+      ::ShowWindow(mWnd, SW_HIDE);
       ::EnableWindow(mWnd, FALSE);
     } else {
       ::EnableWindow(mWnd, TRUE);
+      ::ShowWindow(mWnd, SW_SHOW);
     }
   }
   if (!::SetWindowRgn(mWnd, dest, TRUE)) {
