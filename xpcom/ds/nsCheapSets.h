@@ -39,7 +39,6 @@
 #define __nsCheapSets_h__
 
 #include "nsHashSets.h"
-#include <stdint.h>
 
 
 
@@ -176,7 +175,7 @@ private:
   
   void SetInt(PRInt32 aInt)
   {
-    mValOrHash = (void*)(intptr_t)((aInt << 1) | 0x1);
+    mValOrHash = (void*)((aInt << 1) | 0x1);
   }
   
   nsresult InitHash(nsInt32HashSet** aSet);
