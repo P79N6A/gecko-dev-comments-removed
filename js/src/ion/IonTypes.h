@@ -57,6 +57,31 @@ typedef int8_t int8;
 typedef uint32 SnapshotOffset;
 typedef uint32 BailoutId;
 
+static const SnapshotOffset INVALID_SNAPSHOT_OFFSET = uint32(-1);
+
+
+
+enum BailoutKind
+{
+    
+    
+    Bailout_Normal,
+
+    
+    
+    Bailout_ArgumentCheck,
+
+    
+    
+    Bailout_TypeBarrier,
+
+    
+    Bailout_Monitor,
+
+    
+    Bailout_RecompileCheck
+};
+
 } 
 } 
 

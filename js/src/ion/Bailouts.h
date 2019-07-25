@@ -124,29 +124,6 @@ namespace ion {
 
 static const BailoutId INVALID_BAILOUT_ID = BailoutId(-1);
 
-
-
-enum BailoutKind
-{
-    
-    
-    Bailout_Normal,
-
-    
-    
-    Bailout_ArgumentCheck,
-
-    
-    
-    Bailout_TypeBarrier,
-
-    
-    Bailout_Monitor,
-
-    
-    Bailout_RecompileCheck
-};
-
 static const uint32 BAILOUT_KIND_BITS = 3;
 static const uint32 BAILOUT_RESUME_BITS = 1;
 
