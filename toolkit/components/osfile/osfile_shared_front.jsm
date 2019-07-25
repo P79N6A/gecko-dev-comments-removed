@@ -14,6 +14,10 @@ if (typeof Components != "undefined") {
 }
 (function(exports) {
 
+let LOG = exports.OS.Shared.LOG.bind(OS.Shared, "Shared front-end");
+
+const noOptions = {};
+
 
 
 
@@ -35,9 +39,146 @@ AbstractFile.prototype = {
       return this._fd;
     }
     throw OS.File.Error.closed();
+  },
+  
+
+
+
+
+
+
+
+
+
+  readAll: function readAll(bytes) {
+    if (bytes == null) {
+      bytes = this.stat().size;
+    }
+    let buffer = new ArrayBuffer(bytes);
+    let size = this.readTo(buffer, bytes);
+    return {
+      buffer: buffer,
+      bytes: size
+    };
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  readTo: function readTo(buffer, bytes, options) {
+    options = options || noOptions;
+
+    let pointer = AbstractFile.normalizeToPointer(buffer, bytes,
+      options.offset);
+    let pos = 0;
+    while (pos < bytes) {
+      let chunkSize = this.read(pointer, bytes - pos, options);
+      if (chunkSize == 0) {
+        break;
+      }
+      pos += chunkSize;
+      pointer = exports.OS.Shared.offsetBy(pointer, chunkSize);
+    }
+
+    return pos;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  writeFrom: function writeFrom(buffer, bytes, options) {
+    options = options || noOptions;
+
+    let pointer = AbstractFile.normalizeToPointer(buffer, bytes,
+      options.offset);
+
+    let pos = 0;
+    while (pos < bytes) {
+      let chunkSize = this.write(pointer, bytes - pos, options);
+      pos += chunkSize;
+      pointer = exports.OS.Shared.offsetBy(pointer, chunkSize);
+    }
+    return pos;
   }
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+AbstractFile.normalizeToPointer = function normalizeToPointer(candidate, bytes, offset) {
+  if (!candidate) {
+    throw new TypeError("Expecting a C pointer or an ArrayBuffer");
+  }
+  if (offset == null) {
+    offset = 0;
+  }
+  let ptr;
+  if ("isNull" in candidate) {
+    if (candidate.isNull()) {
+      throw new TypeError("Expecting a non-null pointer");
+    }
+    ptr = exports.OS.Shared.Type.uint8_t.out_ptr.cast(candidate);
+  } else if ("byteLength" in candidate) {
+    ptr = exports.OS.Shared.Type.uint8_t.out_ptr.implementation(candidate);
+    if (candidate.byteLength < offset + bytes) {
+      throw new TypeError("Buffer is too short. I need at least " +
+                         (offset + bytes) +
+                         " bytes but I have only " +
+                         buffer.byteLength +
+                          "bytes");
+    }
+  } else {
+    throw new TypeError("Expecting a C pointer or an ArrayBuffer");
+  }
+  if (offset != 0) {
+    ptr = exports.OS.Shared.offsetBy(ptr, offset);
+  }
+  return ptr;
+};
 
 
 
