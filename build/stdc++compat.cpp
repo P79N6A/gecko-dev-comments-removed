@@ -61,7 +61,6 @@ namespace std {
 }
 
 namespace std __attribute__((visibility("default"))) {
-
 #if (__GNUC__ == 4) && (__GNUC_MINOR__ >= 5)
     
     struct _List_node_base
@@ -73,33 +72,59 @@ namespace std __attribute__((visibility("default"))) {
         void transfer(_List_node_base * const __first,
                       _List_node_base * const __last) throw();
 
+
+#if (__GNUC__ == 4) && (__GNUC_MINOR__ >= 6)
+        static void swap(_List_node_base& __x, _List_node_base& __y) throw ();
+    };
+
+    namespace __detail {
+
+    struct _List_node_base
+    {
+#endif
         void _M_hook(_List_node_base * const __position) throw ();
 
         void _M_unhook() throw ();
 
         void _M_transfer(_List_node_base * const __first,
                          _List_node_base * const __last) throw();
+
+#if (__GNUC__ == 4) && (__GNUC_MINOR__ >= 6)
+        static void swap(_List_node_base& __x, _List_node_base& __y) throw ();
+#endif
     };
 
     
     void
     _List_node_base::_M_hook(_List_node_base * const __position) throw ()
     {
-        hook(__position);
+        ((std::_List_node_base *)this)->hook((std::_List_node_base * const) __position);
     }
 
     void
     _List_node_base::_M_unhook() throw ()
     {
-        unhook();
+        ((std::_List_node_base *)this)->unhook();
     }
 
     void
     _List_node_base::_M_transfer(_List_node_base * const __first,
                                  _List_node_base * const __last) throw ()
     {
-        transfer(__first, __last);
+        ((std::_List_node_base *)this)->transfer((std::_List_node_base * const)__first,
+                                                 (std::_List_node_base * const)__last);
     }
+
+#if (__GNUC__ == 4) && (__GNUC_MINOR__ >= 6)
+    void
+    _List_node_base::swap(_List_node_base& __x, _List_node_base& __y) throw ()
+    {
+        std::_List_node_base::swap(*((std::_List_node_base *) &__x),
+                                   *((std::_List_node_base *) &__y));
+    }
+}
+#endif
+
 #endif
 
 #if (__GNUC__ == 4) && (__GNUC_MINOR__ >= 4)
