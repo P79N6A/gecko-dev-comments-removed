@@ -355,6 +355,11 @@ public class AwesomeBar extends GeckoActivity implements GeckoEventListener {
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         
         
+        if (keyCode > KeyEvent.getMaxKeyCode())
+            return true;
+
+        
+        
         if (keyCode == KeyEvent.KEYCODE_BACK ||
             keyCode == KeyEvent.KEYCODE_MENU ||
             keyCode == KeyEvent.KEYCODE_SEARCH ||
