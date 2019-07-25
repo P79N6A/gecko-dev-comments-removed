@@ -215,7 +215,7 @@ ThebesLayerBufferOGL::RenderTo(const nsIntPoint& aOffset,
     
     gfxRect sqr(quadRect.x, quadRect.y, quadRect.width, quadRect.height);
     sqr.Scale(xres, yres);
-    sqr.RoundOut();
+    sqr.Round();
     nsIntRect scaledQuadRect(sqr.pos.x, sqr.pos.y, sqr.size.width, sqr.size.height);
 
     BindAndDrawQuadWithTextureRect(gl(), program, scaledQuadRect,
