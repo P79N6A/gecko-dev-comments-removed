@@ -82,8 +82,6 @@
 # endif
 #endif
 
-#ifndef DEBUG_TRACEMALLOC_PRESARENA
-
 
 static const size_t ARENA_PAGE_SIZE = 4096;
 
@@ -275,6 +273,7 @@ ARENA_POISON_init()
   return PR_SUCCESS;
 }
 
+#ifndef DEBUG_TRACEMALLOC_PRESARENA
 
 
 
@@ -407,8 +406,15 @@ nsPresArena::Size()
 
 
 
+
 struct nsPresArena::State
 {
+
+  State()
+  {
+    PR_CallOnce(&ARENA_POISON_guard, ARENA_POISON_init);
+  }
+
   void* Allocate(PRUint32 , size_t aSize)
   {
     return PR_Malloc(aSize);
