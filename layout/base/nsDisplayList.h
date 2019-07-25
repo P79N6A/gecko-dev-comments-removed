@@ -1608,6 +1608,38 @@ private:
   nsRect    mClip;
 };
 
+
+
+
+
+class nsDisplayZoom : public nsDisplayWrapList {
+public:
+  
+
+
+
+
+
+
+  nsDisplayZoom(nsIFrame* aFrame, nsDisplayList* aList,
+                PRInt32 aAPD, PRInt32 aParentAPD);
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplayZoom();
+#endif
+  
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
+  virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
+                       HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames);
+  virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
+                                   nsRegion* aVisibleRegion,
+                                   nsRegion* aVisibleRegionBeforeMove);
+  NS_DISPLAY_DECL_NAME("Zoom", TYPE_ZOOM)
+
+private:
+  PRInt32 mAPD, mParentAPD;
+};
+
 #ifdef MOZ_SVG
 
 

@@ -385,21 +385,22 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   nsCOMPtr<nsIPresShell> presShell;
 
-  nsIFrame* f = static_cast<nsIFrame*>(subdocView->GetClientData());
+  nsIFrame* subdocRootFrame =
+    static_cast<nsIFrame*>(subdocView->GetClientData());
 
-  if (f) {
-    presShell = f->PresContext()->PresShell();
+  if (subdocRootFrame) {
+    presShell = subdocRootFrame->PresContext()->PresShell();
   } else {
     
     
     
     nsIView* nextView = subdocView->GetNextSibling();
     if (nextView) {
-      f = static_cast<nsIFrame*>(nextView->GetClientData());
+      subdocRootFrame = static_cast<nsIFrame*>(nextView->GetClientData());
     }
-    if (f) {
+    if (subdocRootFrame) {
       subdocView = nextView;
-      presShell = f->PresContext()->PresShell();
+      presShell = subdocRootFrame->PresContext()->PresShell();
     } else {
       
       if (!mFrameLoader)
@@ -416,40 +417,73 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   nsDisplayList childItems;
 
+  PRInt32 parentAPD = PresContext()->AppUnitsPerDevPixel();
+  PRInt32 subdocAPD = presShell->GetPresContext()->AppUnitsPerDevPixel();
+
   nsRect dirty;
-  if (f) {
-    dirty = aDirtyRect - f->GetOffsetTo(this);
-    aBuilder->EnterPresShell(f, dirty);
+  if (subdocRootFrame) {
+    
+    dirty = aDirtyRect + GetOffsetToCrossDoc(subdocRootFrame);
+    
+    dirty = dirty.ConvertAppUnitsRoundOut(parentAPD, subdocAPD);
+
+    aBuilder->EnterPresShell(subdocRootFrame, dirty);
   }
 
   
-  nsRect shellBounds = subdocView->GetBounds() +
-                       mInnerView->GetPosition() +
-                       GetOffsetTo(aBuilder->ReferenceFrame());
+  
+  nsRect subdocBoundsInParentUnits =
+    subdocView->GetBounds().ConvertAppUnitsRoundOut(subdocAPD, parentAPD);
 
-  if (f && NS_SUCCEEDED(rv)) {
-    rv = f->BuildDisplayListForStackingContext(aBuilder, dirty, &childItems);
+  
+  subdocBoundsInParentUnits = subdocBoundsInParentUnits +
+                              mInnerView->GetPosition() +
+                              GetOffsetToCrossDoc(aBuilder->ReferenceFrame());
+
+  if (subdocRootFrame && NS_SUCCEEDED(rv)) {
+    rv = subdocRootFrame->
+           BuildDisplayListForStackingContext(aBuilder, dirty, &childItems);
   }
 
   if (!aBuilder->IsForEventDelivery()) {
     
     
     
+    
+    nsRect bounds;
+    if (subdocRootFrame) {
+      nsPoint offset = mInnerView->GetPosition() +
+                       GetOffsetToCrossDoc(aBuilder->ReferenceFrame());
+      offset = offset.ConvertAppUnits(parentAPD, subdocAPD);
+      bounds = subdocView->GetBounds() + offset;
+    } else {
+      bounds = subdocBoundsInParentUnits;
+    }
+    
+    
+    
     rv = presShell->AddCanvasBackgroundColorItem(
-           *aBuilder, childItems, f ? f : this, shellBounds, NS_RGBA(0,0,0,0),
-           PR_TRUE);
+           *aBuilder, childItems, subdocRootFrame ? subdocRootFrame : this,
+           bounds, NS_RGBA(0,0,0,0), PR_TRUE);
   }
 
   if (NS_SUCCEEDED(rv)) {
+    if (subdocRootFrame && parentAPD != subdocAPD) {
+      nsDisplayZoom* zoomItem =
+        new (aBuilder) nsDisplayZoom(subdocRootFrame, &childItems,
+                                     subdocAPD, parentAPD);
+      childItems.AppendToTop(zoomItem);
+    }
     
     rv = aLists.Content()->AppendNewToTop(
-        new (aBuilder) nsDisplayClip(this, this, &childItems, shellBounds));
+        new (aBuilder) nsDisplayClip(this, this, &childItems,
+                                     subdocBoundsInParentUnits));
   }
   
   childItems.DeleteAll();
 
-  if (f) {
-    aBuilder->LeavePresShell(f, dirty);
+  if (subdocRootFrame) {
+    aBuilder->LeavePresShell(subdocRootFrame, dirty);
   }
 
   return rv;
