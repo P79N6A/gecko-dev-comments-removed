@@ -47,7 +47,11 @@
 namespace nanojit
 {
     static const bool verbose = false;
-#if defined(NANOJIT_ARM)
+#ifdef VMCFG_VTUNE
+    
+    
+    static const int pagesPerAlloc = 128; 
+#elif defined(NANOJIT_ARM)
     
     
     static const int pagesPerAlloc = 1;
