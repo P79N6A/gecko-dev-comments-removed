@@ -408,6 +408,12 @@ class FrameState
 
 
 
+    inline Jump testPrimitive(Assembler::Condition cond, FrameEntry *fe);
+
+    
+
+
+
 
     inline void pinReg(RegisterID reg);
 
