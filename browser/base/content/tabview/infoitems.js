@@ -150,9 +150,6 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         return;
 
       var data = this.getStorageData();
-  
-
-
 
     } catch(e) {
       Utils.log(e);
@@ -240,7 +237,6 @@ window.InfoItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         Items.unsquish();
       });
 
-  
     } catch(e) {
       Utils.log(e);
     }

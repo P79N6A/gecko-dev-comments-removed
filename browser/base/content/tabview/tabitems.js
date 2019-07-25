@@ -350,7 +350,6 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       
       
       if (immediately || (!this._hasBeenDrawn)) {
-  
         $container.css(css);
       } else {
         TabItems.pausePainting();
@@ -361,7 +360,6 @@ window.TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
             TabItems.resumePainting();
           }
         });
-    
       }
 
       if (css.fontSize && !this.inStack()) {

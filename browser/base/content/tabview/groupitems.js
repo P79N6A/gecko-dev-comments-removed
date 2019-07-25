@@ -63,7 +63,7 @@
 
 
 
-window.GroupItem = function GroupItem(listOfEls, options) {
+let GroupItem = function GroupItem(listOfEls, options) {
   try {
   if (typeof options == 'undefined')
     options = {};
@@ -124,7 +124,6 @@ window.GroupItem = function GroupItem(listOfEls, options) {
     .css({zIndex: -100})
     .appendTo("body");
 
-
   
   this.$ntb = iQ("<div>")
     .appendTo($container);
@@ -140,11 +139,6 @@ window.GroupItem = function GroupItem(listOfEls, options) {
   
   this.$resizer = iQ("<div>")
     .addClass('resizer')
-    .css({
-      position: "absolute",
-      width: 16, height: 16,
-      bottom: 0, right: 0,
-    })
     .appendTo($container)
     .hide();
 
@@ -249,8 +243,7 @@ window.GroupItem = function GroupItem(listOfEls, options) {
   }
 
   
-  this.$expander = iQ("<img/>")
-    .attr("src", "chrome://browser/skin/tabview/stack-expander.png")
+  this.$expander = iQ("<div/>")
     .addClass("stackExpander")
     .appendTo($container)
     .hide();
@@ -380,7 +373,11 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   adjustTitleSize: function() {
     Utils.assert(this.bounds, 'bounds needs to have been set');
-    var w = Math.min(this.bounds.width - 35, Math.max(150, this.getTitle().length * 6));
+    let closeButton = iQ('.close', this.container);
+    var w = Math.min(this.bounds.width - closeButton.width() - closeButton.css('right'),
+                     Math.max(150, this.getTitle().length * 6));
+    
+    
     var css = {width: w};
     this.$title.css(css);
     this.$titleShield.css(css);
@@ -394,8 +391,10 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     var titleHeight = this.$titlebar.height();
     box.top += titleHeight;
     box.height -= titleHeight;
-    box.inset(6, 6);
 
+    
+    
+    box.inset(6, 6);
     box.height -= 33; 
 
     return box;
@@ -591,6 +590,8 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         wasAlreadyInThisGroupItem = true;
       }
 
+      
+      
       
       
       function findInsertionPoint(dropPos) {
@@ -892,7 +893,6 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
     var zIndex = this.getZ() + count + 1;
 
-    var Pi = Math.acos(-1);
     var maxRotation = 35; 
     var scale = 0.8;
     var newTabsPad = 10;
@@ -981,17 +981,8 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       };
     }
 
-    
-    
-
-
-
-
     GroupItems.setActiveGroupItem(self);
     return { shouldZoom: true };
-
-    
-
   },
 
   expand: function() {
@@ -1019,13 +1010,17 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     var overlayHeight = Math.min(window.innerHeight - (padding * 2), h*row + padding*(row+1));
 
     var pos = {left: startBounds.left, top: startBounds.top};
-    pos.left -= overlayWidth/3;
-    pos.top  -= overlayHeight/3;
+    pos.left -= overlayWidth / 3;
+    pos.top  -= overlayHeight / 3;
 
-    if (pos.top < 0)  pos.top = 20;
-    if (pos.left < 0) pos.left = 20;
-    if (pos.top+overlayHeight > window.innerHeight) pos.top = window.innerHeight-overlayHeight-20;
-    if (pos.left+overlayWidth > window.innerWidth)  pos.left = window.innerWidth-overlayWidth-20;
+    if (pos.top < 0)
+      pos.top = 20;
+    if (pos.left < 0)
+      pos.left = 20;
+    if (pos.top + overlayHeight > window.innerHeight)
+      pos.top = window.innerHeight - overlayHeight - 20;
+    if (pos.left + overlayWidth > window.innerWidth)
+      pos.left = window.innerWidth - overlayWidth - 20;
 
     $tray
       .animate({
@@ -1044,12 +1039,8 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     });
 
     var $shield = iQ('<div>')
+      .addClass('shield')
       .css({
-        left: 0,
-        top: 0,
-        width: window.innerWidth,
-        height: window.innerHeight,
-        position: 'absolute',
         zIndex: 99997
       })
       .appendTo('body')
@@ -1237,6 +1228,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
                 
                 
                 
+                
                 setTimeout(function() {
                   self._sendToSubscribers("tabAdded", { groupItemId: self.id });
                 }, 1);
@@ -1246,6 +1238,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         });
     }
 
+    
     
     
     
@@ -1273,6 +1266,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     var tabBarTabs = Array.slice(gBrowser.tabs);
     var currentIndex;
 
+    
     
     this._children.forEach(function(tabItem) {
       tabBarTabs.some(function(tab, i) {
@@ -1357,10 +1351,6 @@ window.GroupItems = {
   
   
   init: function() {
-
-
-
-
   },
 
   
@@ -1451,6 +1441,7 @@ window.GroupItems = {
   
   
   groupItemStorageSanity: function(groupItemData) {
+    
     
     var sane = true;
     if (!Utils.isRect(groupItemData.bounds)) {
@@ -1577,6 +1568,7 @@ window.GroupItems = {
     }
   },
 
+  
   
   
   

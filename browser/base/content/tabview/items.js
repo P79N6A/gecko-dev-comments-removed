@@ -949,12 +949,7 @@ window.Items = {
 
     var a;
     for (a = 0; a < count; a++) {
-
-
-
-
-
-        immediately = !animate;
+      immediately = !animate;
 
       if (rects)
         rects.push(new Rect(box));
@@ -967,11 +962,6 @@ window.Items = {
             item.setZ(options.z);
         }
       }
-
-
-
-
-
 
       box.left += box.width + padding;
       column++;

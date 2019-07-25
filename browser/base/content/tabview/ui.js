@@ -344,9 +344,7 @@ var UIManager = {
     gBrowser.contentWindow.focus();
 
     
-
-      gBrowser.tabContainer.adjustTabstrip();
-
+    gBrowser.tabContainer.adjustTabstrip();
 
     gBrowser.updateTitlebar();
 #ifdef XP_MACOSX
