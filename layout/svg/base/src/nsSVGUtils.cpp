@@ -1581,18 +1581,28 @@ nsSVGUtils::GetBBox(nsIFrame *aFrame, PRUint32 aFlags)
   }
   gfxRect bbox;
   nsISVGChildFrame *svg = do_QueryFrame(aFrame);
-  if (svg) {
+  if (svg || aFrame->IsSVGText()) {
     
     
     
     
-    nsSVGTextContainerFrame* metrics = do_QueryFrame(
-      GetFirstNonAAncestorFrame(aFrame));
-    if (metrics) {
-      while (aFrame->GetType() != nsGkAtoms::svgTextFrame) {
-        aFrame = aFrame->GetParent();
+    if (NS_SVGTextCSSFramesEnabled()) {
+      nsIFrame* ancestor = GetFirstNonAAncestorFrame(aFrame);
+      if (ancestor && ancestor->IsSVGText()) {
+        while (ancestor->GetType() != nsGkAtoms::svgTextFrame2) {
+          ancestor = ancestor->GetParent();
+        }
       }
-      svg = do_QueryFrame(aFrame);
+      svg = do_QueryFrame(ancestor);
+    } else {
+      nsSVGTextContainerFrame* metrics = do_QueryFrame(
+        GetFirstNonAAncestorFrame(aFrame));
+      if (metrics) {
+        while (aFrame->GetType() != nsGkAtoms::svgTextFrame) {
+          aFrame = aFrame->GetParent();
+        }
+        svg = do_QueryFrame(aFrame);
+      }
     }
     nsIContent* content = aFrame->GetContent();
     if (content->IsSVG() &&
