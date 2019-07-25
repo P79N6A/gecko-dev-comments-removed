@@ -52,7 +52,6 @@ Cu.import("resource://weave/resource.js");
 Cu.import("resource://weave/clientData.js");
 Cu.import("resource://weave/identity.js");
 Cu.import("resource://weave/stores.js");
-Cu.import("resource://weave/syncCores.js");
 Cu.import("resource://weave/trackers.js");
 Cu.import("resource://weave/async.js");
 
@@ -141,12 +140,6 @@ Engine.prototype = {
     let store = new Store();
     this.__defineGetter__("_store", function() store);
     return store;
-  },
-
-  get _core() {
-    let core = new SyncCore(this._store);
-    this.__defineGetter__("_core", function() core);
-    return core;
   },
 
   get _tracker() {
@@ -296,13 +289,13 @@ SyncEngine.prototype = {
   
   
   
-  _createRecord: function SyncEngine__newCryptoWrapper(id, encrypt) {
+  _createRecord: function SyncEngine__createRecord(id, encrypt) {
     let self = yield;
 
     let record = new CryptoWrapper();
     record.uri = this.engineURL + id;
     record.encryption = this.cryptoMetaURL;
-    record.cleartext = yield this._serializeItem.async(this, self.cb, id);
+    record.cleartext = this._store.wrapItem(id);
 
     if (record.cleartext && record.cleartext.parentid)
         record.parentid = record.cleartext.parentid;
@@ -311,18 +304,6 @@ SyncEngine.prototype = {
       yield record.encrypt(self.cb, ID.get('WeaveCryptoID').password);
 
     self.done(record);
-  },
-
-  
-  
-  _serializeItem: function SyncEngine__serializeItem(id) {
-    let self = yield;
-    self.done({});
-  },
-
-  _getAllIDs: function SyncEngine__getAllIDs() {
-    let self = yield;
-    self.done({});
   },
 
   
@@ -406,19 +387,27 @@ SyncEngine.prototype = {
       this._tracker.clearChangedIDs();
 
       
-      let all = yield this._getAllIDs.async(this, self.cb);
+      let all = this._store.getAllIDs();
       for (let id in all) {
         this._tracker.changedIDs[id] = true;
       }
     }
 
     
+
+    
+    
+    
+    this._store.cacheItemsHint();
+
     
     
     
     for (let id in this._tracker.changedIDs) {
       this.outgoing.push(yield this._createRecord.async(this, self.cb, id, false));
     }
+
+    this._store.clearItemCacheHint();
   },
 
   
