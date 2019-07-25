@@ -1,4 +1,5 @@
 
+
 var g = newGlobal('new-compartment');
 var dbg = Debug(g);
 var hits = 0;
