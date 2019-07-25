@@ -390,7 +390,7 @@ class TableTicker: public Sampler {
 
 private:
   
-  static void doBacktrace(ThreadProfile &aProfile, TickSample* aSample);
+  void doBacktrace(ThreadProfile &aProfile, TickSample* aSample);
 
 private:
   
