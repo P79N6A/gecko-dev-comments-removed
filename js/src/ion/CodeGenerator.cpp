@@ -399,6 +399,9 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     Label end, invoke;
 
     
+    masm.freeStack(unusedStack);
+
+    
     
     
     masm.branchTest32(Assembler::Zero, Address(calleereg, offsetof(JSFunction, flags)),
@@ -409,88 +412,61 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     masm.movePtr(Address(objreg, offsetof(JSScript, ion)), objreg);
 
     
-    Label compiled;
-    
     masm.branchPtr(Assembler::BelowOrEqual, objreg, ImmWord(ION_DISABLED_SCRIPT), &invoke);
-    
-    masm.jump(&compiled);
-    {
-        masm.bind(&invoke);
-
-        typedef bool (*pf)(JSContext *, JSFunction *, uint32, Value *, Value *);
-        static const VMFunction InvokeFunctionInfo = FunctionInfo<pf>(InvokeFunction);
-
-        
-        masm.freeStack(unusedStack);
-
-        pushArg(StackPointer);          
-        pushArg(Imm32(call->nargs()));  
-        pushArg(calleereg);             
-
-        if (!callVM(InvokeFunctionInfo, call))
-            return false;
-
-        
-        masm.reserveStack(unusedStack);
-
-        
-        masm.jump(&end);
-    }
-    masm.bind(&compiled);
 
     
     uint32 stackSize = masm.framePushed() - unusedStack;
     uint32 sizeDescriptor = (stackSize << FRAMETYPE_BITS) | IonFrame_JS;
 
     
-    if (unusedStack)
-        masm.freeStack(unusedStack);
-
-    
     masm.Push(calleereg);
     masm.Push(Imm32(sizeDescriptor));
 
+    Label thunk, rejoin;
+
+    
+    
 #ifdef JS_CPU_ARM
-    masm.checkStackAlignment();
+    masm.ma_ldrh(EDtrAddr(calleereg, EDtrOffImm(offsetof(JSFunction, nargs))),
+                 nargsreg);
+#else
+    masm.load16(Address(calleereg, offsetof(JSFunction, nargs)), nargsreg);
 #endif
+    masm.cmp32(nargsreg, Imm32(call->nargs()));
+    masm.j(Assembler::Above, &thunk);
 
     
     {
-        Label thunk, rejoin;
+        masm.movePtr(Address(objreg, offsetof(IonScript, method_)), objreg);
+        masm.movePtr(Address(objreg, IonCode::OffsetOfCode()), objreg);
+        masm.jump(&rejoin);
+    }
 
+    
+    {
         
         IonCompartment *ion = gen->ionCompartment();
         IonCode *argumentsRectifier = ion->getArgumentsRectifier(gen->cx);
         if (!argumentsRectifier)
             return false;
 
-        
-        
-#ifdef JS_CPU_ARM
-        masm.ma_ldrh(EDtrAddr(calleereg, EDtrOffImm(offsetof(JSFunction, nargs))),
-                     nargsreg);
-#else
-        masm.load16(Address(calleereg, offsetof(JSFunction, nargs)), nargsreg);
-#endif
-        masm.cmp32(nargsreg, Imm32(call->nargs()));
-        masm.j(Assembler::Above, &thunk);
-
-        
-        masm.movePtr(Address(objreg, offsetof(IonScript, method_)), objreg);
-        masm.movePtr(Address(objreg, IonCode::OffsetOfCode()), objreg);
-        masm.jump(&rejoin);
-
-        
         masm.bind(&thunk);
+        JS_ASSERT(ArgumentsRectifierReg != objreg);
         masm.move32(Imm32(call->nargs()), ArgumentsRectifierReg);
         masm.movePtr(ImmWord(argumentsRectifier->raw()), objreg);
-
-        
-        masm.bind(&rejoin);
-        masm.callIon(objreg);
-        if (!createSafepoint(call))
-            return false;
     }
+
+    masm.bind(&rejoin);
+
+#ifdef JS_CPU_ARM
+    masm.checkStackAlignment();
+#endif
+
+    
+    masm.callIon(objreg);
+    if (!createSafepoint(call))
+        return false;
+
 
     
     
@@ -501,6 +477,27 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
         masm.freeStack(restoreDiff);
     else if (restoreDiff < 0)
         masm.reserveStack(-restoreDiff);
+
+    masm.jump(&end);
+
+    
+    {
+        masm.bind(&invoke);
+
+        typedef bool (*pf)(JSContext *, JSFunction *, uint32, Value *, Value *);
+        static const VMFunction InvokeFunctionInfo = FunctionInfo<pf>(InvokeFunction);
+
+        pushArg(StackPointer);          
+        pushArg(Imm32(call->nargs()));  
+        pushArg(calleereg);             
+
+        if (!callVM(InvokeFunctionInfo, call))
+            return false;
+
+        
+        if (unusedStack)
+            masm.subPtr(Imm32(unusedStack), StackPointer);
+    }
 
     masm.bind(&end);
 
