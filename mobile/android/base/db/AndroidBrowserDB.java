@@ -188,23 +188,6 @@ public class AndroidBrowserDB implements BrowserDB.BrowserDBIface {
         Browser.clearHistory(cr);
     }
 
-    public Cursor getAllBookmarks(ContentResolver cr) {
-        Cursor c = cr.query(Browser.BOOKMARKS_URI,
-                            new String[] { URL_COLUMN_ID,
-                                           BookmarkColumns.URL,
-                                           BookmarkColumns.TITLE,
-                                           BookmarkColumns.FAVICON },
-                            
-                            
-                            
-                            
-                            Browser.BookmarkColumns.BOOKMARK + " = 1 AND LENGTH(" + Browser.BookmarkColumns.URL + ") > 0",
-                            null,
-                            Browser.BookmarkColumns.TITLE);
-
-        return new AndroidDBCursor(c);
-    }
-
     public Cursor getMobileBookmarks(ContentResolver cr) {
         Cursor c = cr.query(null, null, null, null, null);
         return new AndroidDBCursor(c);
