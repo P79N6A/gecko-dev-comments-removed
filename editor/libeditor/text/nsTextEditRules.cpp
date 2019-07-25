@@ -637,7 +637,9 @@ nsTextEditRules::WillInsertText(PRInt32          aAction,
   nsresult res = TruncateInsertionIfNeeded(aSelection, inString, outString,
                                            aMaxLength, &truncated);
   NS_ENSURE_SUCCESS(res, res);
-  if (truncated && outString->IsEmpty()) {
+  
+  
+  if (truncated && outString->IsEmpty() && aAction != kInsertTextIME) {
     *aCancel = PR_TRUE;
     return NS_OK;
   }
