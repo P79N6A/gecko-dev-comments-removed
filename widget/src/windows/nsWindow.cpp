@@ -665,7 +665,10 @@ NS_METHOD nsWindow::Destroy()
 
 
 
-  mLayerManager = NULL;
+  if (mLayerManager) {
+    mLayerManager->Destroy();
+  }
+  mLayerManager = nsnull;
 
   
   
