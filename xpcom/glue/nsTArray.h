@@ -300,6 +300,21 @@ class nsTArray : public nsTArray_base {
 
     
     
+    bool operator==(const self_type& other) const {
+      size_type len = Length();
+      if (len != other.Length())
+        return false;
+
+      
+      for (index_type i = 0; i < len; ++i)
+        if (!(operator[](i) == other[i]))
+          return false;
+
+      return true;
+    }
+
+    
+    
     
 
     
