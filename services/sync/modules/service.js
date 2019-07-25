@@ -512,6 +512,7 @@ WeaveSvc.prototype = {
       }
     }
 
+    
     if (needKeys) {
       let pass = yield ID.get('WeaveCryptoID').getPassword(self.cb);
       if (pass) {
