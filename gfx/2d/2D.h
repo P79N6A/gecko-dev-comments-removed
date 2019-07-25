@@ -617,6 +617,8 @@ public:
 
 
 
+
+
   virtual TemporaryRef<SourceSurface> CreateSourceSurfaceFromData(unsigned char *aData,
                                                             const IntSize &aSize,
                                                             int32_t aStride,
@@ -676,7 +678,7 @@ public:
   
 
 
-  virtual void *GetNativeSurface(NativeSurfaceType aType) = 0;
+  virtual void *GetNativeSurface(NativeSurfaceType aType) { return NULL; }
 
 protected:
   Matrix mTransform;

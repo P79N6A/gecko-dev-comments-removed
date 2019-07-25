@@ -1,0 +1,111 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef MOZILLA_GFX_PATH_SKIA_H_
+#define MOZILLA_GFX_PATH_SKIA_H_
+
+#include "2D.h"
+#include "skia/SkPath.h"
+
+namespace mozilla {
+namespace gfx {
+
+class PathSkia;
+
+class PathBuilderSkia : public PathBuilder
+{
+public:
+  PathBuilderSkia(const Matrix& aTransform, const SkPath& aPath, FillRule aFillRule);
+  PathBuilderSkia(FillRule aFillRule);
+
+  virtual void MoveTo(const Point &aPoint);
+  virtual void LineTo(const Point &aPoint);
+  virtual void BezierTo(const Point &aCP1,
+                        const Point &aCP2,
+                        const Point &aCP3);
+  virtual void QuadraticBezierTo(const Point &aCP1,
+                                 const Point &aCP2);
+  virtual void Close();
+  virtual void Arc(const Point &aOrigin, float aRadius, float aStartAngle,
+                   float aEndAngle, bool aAntiClockwise = false);
+  virtual Point CurrentPoint() const;
+  virtual TemporaryRef<Path> Finish();
+
+private:
+  void SetFillRule(FillRule aFillRule);
+
+  SkPath mPath;
+  FillRule mFillRule;
+};
+
+class PathSkia : public Path
+{
+public:
+  PathSkia(SkPath& aPath, FillRule aFillRule)
+    : mFillRule(aFillRule)
+  {
+    mPath.swap(aPath);
+  }
+  
+  virtual BackendType GetBackendType() const { return BACKEND_SKIA; }
+
+  virtual TemporaryRef<PathBuilder> CopyToBuilder(FillRule aFillRule = FILL_WINDING) const;
+  virtual TemporaryRef<PathBuilder> TransformedCopyToBuilder(const Matrix &aTransform,
+                                                             FillRule aFillRule = FILL_WINDING) const;
+
+  virtual bool ContainsPoint(const Point &aPoint, const Matrix &aTransform) const;
+  
+  virtual Rect GetBounds(const Matrix &aTransform = Matrix()) const;
+  
+  virtual Rect GetStrokedBounds(const StrokeOptions &aStrokeOptions,
+                                const Matrix &aTransform = Matrix()) const;
+
+  virtual FillRule GetFillRule() const { return mFillRule; }
+
+  const SkPath& GetPath() const { return mPath; }
+
+private:
+  friend class DrawTargetSkia;
+  
+  SkPath mPath;
+  FillRule mFillRule;
+};
+
+}
+}
+
+#endif 
