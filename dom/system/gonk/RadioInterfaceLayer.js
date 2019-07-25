@@ -452,6 +452,23 @@ RadioInterfaceLayer.prototype = {
     this.radioState.radioState = newState;
     
 
+    this._ensureRadioState();
+  },
+
+  _ensureRadioState: function _ensureRadioState() {
+    debug("Reported radio state is " + this.radioState.radioState +
+          ", desired radio enabled state is " + this._radioEnabled);
+    if (this._radioEnabled == null) {
+      
+      
+      return;
+    }
+    if (this.radioState.radioState == RIL.GECKO_RADIOSTATE_UNKNOWN) {
+      
+      
+      return;
+    }
+
     if (this.radioState.radioState == RIL.GECKO_RADIOSTATE_OFF &&
         this._radioEnabled) {
       this.setRadioEnabled(true);
@@ -678,7 +695,7 @@ RadioInterfaceLayer.prototype = {
     switch (setting.key) {
       case "ril.radio.disabled":
         this._radioEnabled = !setting.value;
-        this.setRadioEnabled(this._radioEnabled);
+        this._ensureRadioState();
         break;
       case "ril.data.enabled":
         
@@ -737,12 +754,17 @@ RadioInterfaceLayer.prototype = {
 
   handle: function handle(aName, aResult) {
     if (aName == "ril.radio.disabled") {
+      debug("'ril.radio.disabled' is " + aResult);
       this._radioEnabled = !aResult;
+      this._ensureRadioState();
     }
   },
 
   handleError: function handleError(aErrorMessage) {
+    debug("There was an error reading the 'ril.radio.disabled' setting., " +
+          "default to radio on.");
     this._radioEnabled = true;
+    this._ensureRadioState();
   },
 
   
