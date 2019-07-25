@@ -42,11 +42,12 @@
 
 #ifdef JS_TRACER
 
-
 #include "nanojit/nanojit.h"
-#include "jswin.h"
-
 #include "jsvalue.h"
+
+#ifdef THIS
+#undef THIS
+#endif
 
 enum JSTNErrType { INFALLIBLE, FAIL_STATUS, FAIL_NULL, FAIL_NEG, FAIL_NEITHER };
 enum { 
@@ -187,8 +188,8 @@ struct ClosureVarInfo;
 #define _JS_CTYPE_THIS              _JS_CTYPE(JSObject *,             _JS_PTR,"T", "", INFALLIBLE)
 #define _JS_CTYPE_THIS_DOUBLE       _JS_CTYPE(jsdouble,               _JS_F64,"D", "", INFALLIBLE)
 #define _JS_CTYPE_THIS_STRING       _JS_CTYPE(JSString *,             _JS_PTR,"S", "", INFALLIBLE)
-#define _JS_CTYPE_CALLEE            _JS_CTYPE(JSObject *,             _JS_PTR,"f", "", INFALLIBLE)
-#define _JS_CTYPE_CALLEE_PROTOTYPE  _JS_CTYPE(JSObject *,             _JS_PTR,"p", "", INFALLIBLE)
+#define _JS_CTYPE_CALLEE            _JS_CTYPE(JSObject *,             _JS_PTR,"f","",  INFALLIBLE)
+#define _JS_CTYPE_CALLEE_PROTOTYPE  _JS_CTYPE(JSObject *,             _JS_PTR,"p","",  INFALLIBLE)
 #define _JS_CTYPE_FUNCTION          _JS_CTYPE(JSFunction *,           _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_PC                _JS_CTYPE(jsbytecode *,           _JS_PTR,"P", "", INFALLIBLE)
 #define _JS_CTYPE_VALUEPTR          _JS_CTYPE(js::Value *,            _JS_PTR, --, --, INFALLIBLE)
@@ -231,8 +232,8 @@ struct ClosureVarInfo;
 #define _JS_CTYPE_CHARPTR           _JS_CTYPE(char *,                 _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_CVIPTR            _JS_CTYPE(const ClosureVarInfo *, _JS_PTR, --, --, INFALLIBLE)
 #define _JS_CTYPE_FRAMEINFO         _JS_CTYPE(FrameInfo *,            _JS_PTR, --, --, INFALLIBLE)
-#define _JS_CTYPE_UINTN             _JS_CTYPE(uintN,                  _JS_PTR, --, --, INFALLIBLE)
- 
+#define _JS_CTYPE_PICTABLE          _JS_CTYPE(PICTable *,             _JS_PTR, --, --, INFALLIBLE)
+
 
 
 
@@ -289,7 +290,7 @@ struct ClosureVarInfo;
 #define _JS_DEFINE_CALLINFO(linkage, name, crtype, cargtypes, argtypes, isPure, storeAccSet)      \
     _JS_TN_LINKAGE(linkage, crtype) FASTCALL name cargtypes;                                      \
     _JS_CI_LINKAGE(linkage) const nanojit::CallInfo _JS_CALLINFO(name) =                          \
-        { (uintptr_t) &name, argtypes, nanojit::ABI_FASTCALL, isPure, storeAccSet _JS_CI_NAME(name) }; \
+        { (intptr_t) &name, argtypes, nanojit::ABI_FASTCALL, isPure, storeAccSet _JS_CI_NAME(name) }; \
     JS_STATIC_ASSERT_IF(isPure, (storeAccSet) == nanojit::ACCSET_NONE);
 #endif
 
@@ -546,7 +547,7 @@ struct ClosureVarInfo;
 #define _JS_DEFINE_CALLINFO_n(n, args)  JS_DEFINE_CALLINFO_##n args
 
 jsdouble FASTCALL
-js_StringToNumber(JSContext* cx, JSString* str, JSBool *ok);
+js_StringToNumber(JSContext* cx, JSString* str);
 
 
 extern JS_FRIEND_API(void)
@@ -574,17 +575,16 @@ js_dmod(jsdouble a, jsdouble b);
 #endif 
 
 
-namespace js {
-JS_DECLARE_CALLINFO(NewDenseEmptyArray)
-JS_DECLARE_CALLINFO(NewDenseAllocatedArray)
-JS_DECLARE_CALLINFO(NewDenseUnallocatedArray)
-}
-JS_DECLARE_CALLINFO(js_NewbornArrayPush_tn)
-JS_DECLARE_CALLINFO(js_EnsureDenseArrayCapacity)
+JS_DECLARE_CALLINFO(js_Array_dense_setelem_hole)
+JS_DECLARE_CALLINFO(js_Array_dense_setelem_uninitialized)
+JS_DECLARE_CALLINFO(js_NewEmptyArray)
+JS_DECLARE_CALLINFO(js_NewPreallocatedArray)
+JS_DECLARE_CALLINFO(js_InitializerArray)
+JS_DECLARE_CALLINFO(js_ArrayCompPush_tn)
 
 
-JS_DECLARE_CALLINFO(js_UnboxNumberAsDouble)
-JS_DECLARE_CALLINFO(js_UnboxNumberAsInt32)
+JS_DECLARE_CALLINFO(js_UnboxDouble)
+JS_DECLARE_CALLINFO(js_UnboxInt32)
 JS_DECLARE_CALLINFO(js_dmod)
 JS_DECLARE_CALLINFO(js_imod)
 JS_DECLARE_CALLINFO(js_DoubleToInt32)
@@ -622,10 +622,10 @@ JS_DECLARE_CALLINFO(js_CloneRegExpObject)
 
 
 JS_DECLARE_CALLINFO(js_String_tn)
-JS_DECLARE_CALLINFO(js_CompareStringsOnTrace)
+JS_DECLARE_CALLINFO(js_CompareStrings)
 JS_DECLARE_CALLINFO(js_ConcatStrings)
-JS_DECLARE_CALLINFO(js_EqualStringsOnTrace)
-JS_DECLARE_CALLINFO(js_FlattenOnTrace)
+JS_DECLARE_CALLINFO(js_EqualStrings)
+JS_DECLARE_CALLINFO(js_Flatten)
 
 
 JS_DECLARE_CALLINFO(js_TypedArray_uint8_clamp_double)

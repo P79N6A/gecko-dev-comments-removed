@@ -1034,7 +1034,7 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
 
 
 
-    TypeObject *protoType = cx->getTypeObject("Error.prototype", false);
+    TypeObject *protoType = cx->getTypeObject("Error.prototype", false, false);
     TypeObject *errorType = cx->getFixedTypeObject(TYPE_OBJECT_NEW_ERROR);
     cx->addTypePrototype(protoType, obj_proto->getTypeObject());
     cx->addTypePrototype(errorType, protoType);
@@ -1070,7 +1070,7 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
 
 
 
-        cx->markTypeBuiltinFunction(cx->getTypeObject(fullName, true));
+        cx->markTypeBuiltinFunction(cx->getTypeObject(fullName, false, true));
 
         
         JSAtom *atom = cx->runtime->atomState.classAtoms[protoKey];

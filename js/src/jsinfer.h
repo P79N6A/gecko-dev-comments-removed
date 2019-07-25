@@ -159,6 +159,34 @@ public:
 
     
     virtual void newType(JSContext *cx, TypeSet *source, jstype type) = 0;
+
+    
+
+
+
+    virtual void arrayNotPacked(JSContext *cx, bool notDense) {}
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+enum ObjectKind {
+    OBJECT_NONE,
+    OBJECT_UNKNOWN,
+    OBJECT_PACKED_ARRAY,
+    OBJECT_DENSE_ARRAY,
+    OBJECT_SCRIPTED_FUNCTION,
+    OBJECT_NATIVE_FUNCTION
 };
 
 
@@ -212,6 +240,7 @@ struct TypeSet
     inline void addType(JSContext *cx, jstype type);
 
     
+    inline void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
     void addSubset(JSContext *cx, JSArenaPool &pool, TypeSet *target);
     void addGetProperty(JSContext *cx, analyze::Bytecode *code, TypeSet *target, jsid id);
     void addSetProperty(JSContext *cx, analyze::Bytecode *code, TypeSet *target, jsid id);
@@ -225,23 +254,25 @@ struct TypeSet
     void addMonitorRead(JSContext *cx, JSArenaPool &pool, analyze::Bytecode *code, TypeSet *target);
 
     
-    void addFreezeTypeTag(JSContext *cx, JSScript *script, bool isConstructing);
-
-    
-
-
-
-
-    inline JSValueType getKnownTypeTag(JSContext *cx, JSScript *script, bool isConstructing);
-
-    
 
 
 
     static inline TypeSet* make(JSContext *cx, JSArenaPool &pool, const char *name);
 
-  private:
-    inline void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
+    
+
+    
+
+
+
+
+    JSValueType getKnownTypeTag(JSContext *cx, JSScript *script, bool isConstructing);
+
+    
+    ObjectKind getKnownObjectKind(JSContext *cx, JSScript *script, bool isConstructing);
+
+    
+    bool hasGetterSetter(JSContext *cx, JSScript *script, bool isConstructing);
 };
 
 
@@ -443,7 +474,13 @@ struct TypeObject
     bool isInitObject;
 
     
-    TypeObject(JSContext *cx, JSArenaPool *pool, jsid id);
+    bool isDenseArray;
+
+    
+    bool isPackedArray;
+
+    
+    TypeObject(JSContext *cx, JSArenaPool *pool, jsid id, bool isArray);
 
     
     bool addPropagate(JSContext *cx, TypeObject *target, bool excludePrototype = true);
@@ -451,12 +488,8 @@ struct TypeObject
     
     TypeFunction* asFunction()
     {
-        if (isFunction) {
-            return (TypeFunction*) this;
-        } else {
-            JS_NOT_REACHED("Object is not a function");
-            return NULL;
-        }
+        JS_ASSERT(isFunction);
+        return (TypeFunction *) this;
     }
 
     JSArenaPool & pool() { return *propertySet.pool; }
@@ -754,7 +787,7 @@ struct TypeCompartment
 
     
     TypeObject *getTypeObject(JSContext *cx, js::analyze::Script *script,
-                              const char *name, bool isFunction);
+                              const char *name, bool isArray, bool isFunction);
 
     
 

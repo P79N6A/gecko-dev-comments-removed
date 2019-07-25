@@ -10674,6 +10674,7 @@ TraceRecorder::getClassPrototype(JSObject* ctor, LIns*& proto_ins)
     
     JS_ASSERT(!pval.isPrimitive());
     JSObject *proto = &pval.toObject();
+    JS_ASSERT(!proto->isDenseArray());
     JS_ASSERT_IF(clasp != &js_ArrayClass, proto->emptyShapes[0]->getClass() == clasp);
 
     proto_ins = w.immpObjGC(proto);
@@ -12773,21 +12774,26 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
         
         CHECK_STATUS_A(makeNumberInt32(idx_ins, &idx_ins));
 
-        if (!js_EnsureDenseArrayCapacity(cx, obj, idx.toInt32()))
+        
+        if (!js_Array_dense_setelem_uninitialized(cx, obj, idx.toInt32()))
             RETURN_STOP_A("couldn't ensure dense array capacity for setelem");
 
         
-        
-        LIns* capacity_ins = w.ldiDenseArrayCapacity(obj_ins);
+
+
+
+
+        LIns* initlen_ins = w.ldiDenseArrayInitializedLength(obj_ins);
+
         
 
 
 
 
         w.pauseAddingCSEValues();
-        if (MaybeBranch mbr = w.jt(w.ltui(idx_ins, capacity_ins))) {
+        if (MaybeBranch mbr = w.jt(w.ltui(idx_ins, initlen_ins))) {
             LIns* args[] = { idx_ins, obj_ins, cx_ins };
-            LIns* res_ins = w.call(&js_EnsureDenseArrayCapacity_ci, args);
+            LIns* res_ins = w.call(&js_Array_dense_setelem_uninitialized_ci, args);
             guard(false, w.eqi0(res_ins), mismatchExit);
             w.label(mbr);
         }
@@ -13625,18 +13631,12 @@ TraceRecorder::denseArrayElement(Value& oval, Value& ival, Value*& vp, LIns*& v_
     CHECK_STATUS(makeNumberInt32(get(&ival), &idx_ins));
 
     
-
-
-
-
-
-
-    LIns* capacity_ins = w.ldiDenseArrayCapacity(obj_ins);
-    jsuint capacity = obj->getDenseArrayCapacity();
-    bool within = (jsuint(idx) < capacity);
+    LIns* initlen_ins = w.ldiDenseArrayInitializedLength(obj_ins);
+    jsuint initlen = obj->getDenseArrayInitializedLength();
+    bool within = (jsuint(idx) < initlen);
     if (!within) {
         
-        guard(true, w.geui(idx_ins, capacity_ins), branchExit);
+        guard(true, w.geui(idx_ins, initlen_ins), branchExit);
 
         CHECK_STATUS(guardPrototypeHasNoIndexedProperties(obj, obj_ins, snapshot(MISMATCH_EXIT)));
 
@@ -13647,7 +13647,7 @@ TraceRecorder::denseArrayElement(Value& oval, Value& ival, Value*& vp, LIns*& v_
     }
 
     
-    guard(true, w.ltui(idx_ins, capacity_ins), branchExit);
+    guard(true, w.ltui(idx_ins, initlen_ins), branchExit);
 
     
     vp = &obj->slots[jsuint(idx)];

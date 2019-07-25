@@ -39,13 +39,8 @@
 
 #include "jsprf.h"
 #include "jstl.h"
-
-#include "jscompartment.h"
-#include "jsiter.h"
 #include "Writer.h"
 #include "nanojit.h"
-
-#include "vm/ArgumentsObject.h"
 
 namespace js {
 namespace tjit {
@@ -63,31 +58,27 @@ public:
     LIns *ins2(LOpcode v, LIns *s0, LIns *s1)
     {
         if (s0 == s1 && v == LIR_eqd) {
-            
-            if (IsPromotedInt32OrUint32(s0)) {
-                
+            if (IsPromote(s0)) {
                 
                 return insImmI(1);
             }
-            if (s0->isop(LIR_addd) || s0->isop(LIR_subd) || s0->isop(LIR_muld)) {
+            if (s0->isop(LIR_muld) || s0->isop(LIR_subd) || s0->isop(LIR_addd)) {
                 LIns *lhs = s0->oprnd1();
                 LIns *rhs = s0->oprnd2();
-                if (IsPromotedInt32OrUint32(lhs) && IsPromotedInt32OrUint32(rhs)) {
-                    
-                    
-                    
+                if (IsPromote(lhs) && IsPromote(rhs)) {
                     
                     return insImmI(1);
                 }
             }
         } else if (isCmpDOpcode(v)) {
-            if (IsPromotedInt32(s0) && IsPromotedInt32(s1)) {
+            if (IsPromoteInt(s0) && IsPromoteInt(s1)) {
+                
                 v = cmpOpcodeD2I(v);
-                return out->ins2(v, DemoteToInt32(out, s0), DemoteToInt32(out, s1));
-            } else if (IsPromotedUint32(s0) && IsPromotedUint32(s1)) {
+                return out->ins2(v, Demote(out, s0), Demote(out, s1));
+            } else if (IsPromoteUint(s0) && IsPromoteUint(s1)) {
                 
                 v = cmpOpcodeD2UI(v);
-                return out->ins2(v, DemoteToUint32(out, s0), DemoteToUint32(out, s1));
+                return out->ins2(v, Demote(out, s0), Demote(out, s1));
             }
         }
         return out->ins2(v, s0, s1);
@@ -95,15 +86,14 @@ public:
 };
 
 void
-Writer::init(LogControl *logc_, Config *njConfig_)
+Writer::init(LogControl *logc_)
 {
-    JS_ASSERT(logc_ && njConfig_);
+    JS_ASSERT(logc_);
     logc = logc_;
-    njConfig = njConfig_;
 
     LirWriter *&lir = InitConst(this->lir);
     CseFilter *&cse = InitConst(this->cse);
-    lir = new (alloc) LirBufWriter(lirbuf, *njConfig);
+    lir = new (alloc) LirBufWriter(lirbuf, AvmCore::config);
 #ifdef DEBUG
     ValidateWriter *validate2;
     lir = validate2 =
@@ -114,10 +104,8 @@ Writer::init(LogControl *logc_, Config *njConfig_)
        lir = new (alloc) VerboseWriter(*alloc, lir, lirbuf->printer, logc);
 #endif
     
-    if (njConfig->cseopt)
-        cse = new (alloc) CseFilter(lir, TM_NUM_USED_ACCS, *alloc);
-        if (!cse->initOOM)
-            lir = cse;      
+    if (avmplus::AvmCore::config.cseopt)
+        lir = cse = new (alloc) CseFilter(lir, TM_NUM_USED_ACCS, *alloc);
     lir = new (alloc) ExprFilter(lir);
     lir = new (alloc) FuncFilter(lir);
 #ifdef DEBUG
@@ -128,7 +116,7 @@ Writer::init(LogControl *logc_, Config *njConfig_)
 }
 
 bool
-IsPromotedInt32(LIns* ins)
+IsPromoteInt(LIns* ins)
 {
     if (ins->isop(LIR_i2d))
         return true;
@@ -140,7 +128,7 @@ IsPromotedInt32(LIns* ins)
 }
 
 bool
-IsPromotedUint32(LIns* ins)
+IsPromoteUint(LIns* ins)
 {
     if (ins->isop(LIR_ui2d))
         return true;
@@ -152,29 +140,23 @@ IsPromotedUint32(LIns* ins)
 }
 
 bool
-IsPromotedInt32OrUint32(LIns* ins)
+IsPromote(LIns* ins)
 {
-    return IsPromotedInt32(ins) || IsPromotedUint32(ins);
+    return IsPromoteInt(ins) || IsPromoteUint(ins);
 }
 
 LIns *
-DemoteToInt32(LirWriter *out, LIns *ins)
+Demote(LirWriter *out, LIns *ins)
 {
-    JS_ASSERT(IsPromotedInt32(ins));
-    if (ins->isop(LIR_i2d))
+    JS_ASSERT(ins->isD());
+    if (ins->isCall())
+        return ins->callArgN(0);
+    if (ins->isop(LIR_i2d) || ins->isop(LIR_ui2d))
         return ins->oprnd1();
     JS_ASSERT(ins->isImmD());
-    return out->insImmI(int32_t(ins->immD()));
-}
-
-LIns *
-DemoteToUint32(LirWriter *out, LIns *ins)
-{
-    JS_ASSERT(IsPromotedUint32(ins));
-    if (ins->isop(LIR_ui2d))
-        return ins->oprnd1();
-    JS_ASSERT(ins->isImmD());
-    return out->insImmI(uint32_t(ins->immD()));
+    double cf = ins->immD();
+    int32_t ci = cf > 0x7fffffff ? uint32_t(cf) : int32_t(cf);
+    return out->insImmI(ci);
 }
 
 }   
@@ -227,7 +209,8 @@ couldBeObjectOrString(LIns *ins)
         ret = couldBeObjectOrString(ins->oprnd2()) &&
               couldBeObjectOrString(ins->oprnd3());
 
-    } else if (ins->isop(LIR_ori) &&
+    } else if (!avmplus::AvmCore::use_cmov() &&
+               ins->isop(LIR_ori) &&
                ins->oprnd1()->isop(LIR_andi) &&
                ins->oprnd2()->isop(LIR_andi))
     {
@@ -252,9 +235,9 @@ couldBeObjectOrString(LIns *ins)
 #endif
     } else if (ins->isop(LIR_addp) &&
                ((ins->oprnd1()->isImmP() &&
-                 (void *)ins->oprnd1()->immP() == JSAtom::unitStaticTable) ||
+                 (void *)ins->oprnd1()->immP() == JSString::unitStringTable) ||
                 (ins->oprnd2()->isImmP() &&
-                 (void *)ins->oprnd2()->immP() == JSAtom::unitStaticTable)))
+                 (void *)ins->oprnd2()->immP() == JSString::unitStringTable)))
     {
         
         
@@ -349,11 +332,6 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
              match(base, LIR_ldp, ACCSET_STATE, offsetof(TracerState, cx));
         break;
 
-      case ACCSET_TM:
-          
-          ok = base->isImmP() && disp == 0;
-          break;
-
       case ACCSET_EOS:
         
         
@@ -376,15 +354,15 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
         
         
         ok = op == LIR_ldp &&
-             dispWithin(FrameRegs) && 
-             match(base, LIR_ldp, ACCSET_SEG, StackSegment::offsetOfRegs());
+             dispWithin(JSFrameRegs) && 
+             match(base, LIR_ldp, ACCSET_CX, offsetof(JSContext, regs));
         break;
 
       case ACCSET_STACKFRAME:
         
         
-        ok = dispWithin(StackFrame) && 
-             match(base, LIR_ldp, ACCSET_FRAMEREGS, FrameRegs::offsetOfFp);
+        ok = dispWithin(JSStackFrame) && 
+             match(base, LIR_ldp, ACCSET_FRAMEREGS, offsetof(JSFrameRegs, fp));
         break;
 
       case ACCSET_RUNTIME:
@@ -426,14 +404,13 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
       case ACCSET_OBJ_PRIVATE:
         
         
-        ok = (op == LIR_ldi || op == LIR_ldp ||
-              op == LIR_sti || op == LIR_stp) &&
+        ok = (op == LIR_ldi || op == LIR_ldp) &&
              disp == offsetof(JSObject, privateData) &&
              couldBeObjectOrString(base);
         break;
 
       case ACCSET_OBJ_CAPACITY:
-        ok = OK_OBJ_FIELD(LIR_ldi, capacity);
+        ok = OK_OBJ_FIELD(LIR_ldi, capacity) || OK_OBJ_FIELD(LIR_ldi, initializedLength);
         break;
 
       case ACCSET_OBJ_SLOTS:
@@ -463,24 +440,17 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
         
         
         
-        
-        ok = (op == LIR_ldi || op == LIR_ldp); 
-             
+        ok = (op == LIR_ldi || op == LIR_ldp) &&
+             dispWithin(TypedArray) &&
+             match(base, LIR_ldp, ACCSET_OBJ_PRIVATE, offsetof(JSObject, privateData));
         break;
 
       case ACCSET_TARRAY_DATA:
         
         
         
-        
-        
-        
-        ok = true;
-        
-        JS_ASSERT(ok);
-        
-                
-                
+        ok = base->isop(LIR_addp) &&
+             match(base->oprnd1(), LIR_ldp, ACCSET_TARRAY, TypedArray::dataOffset());
         break;
 
       case ACCSET_ITER:
@@ -517,9 +487,9 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
         
         ok = op == LIR_ldus2ui &&
              disp == 0 &&
-             (match(base, LIR_ldp, ACCSET_STRING, JSString::offsetOfChars()) ||
+             (match(base, LIR_ldp, ACCSET_STRING, offsetof(JSString, mChars)) ||
               (base->isop(LIR_addp) &&
-               match(base->oprnd1(), LIR_ldp, ACCSET_STRING, JSString::offsetOfChars())));
+               match(base->oprnd1(), LIR_ldp, ACCSET_STRING, offsetof(JSString, mChars))));
         break;
 
       case ACCSET_TYPEMAP:
@@ -551,15 +521,9 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
         
         
         
-        ok = (isConstPrivatePtr(base, ArgumentsObject::DATA_SLOT) ||
+        ok = (isConstPrivatePtr(base, JSObject::JSSLOT_ARGS_DATA) ||
               (base->isop(LIR_addp) &&
-               isConstPrivatePtr(base->oprnd1(), ArgumentsObject::DATA_SLOT)));
-        break;
-
-      case ACCSET_SEG:
-        
-        ok = dispWithin(StackSegment) &&
-             match(base, LIR_ldp, ACCSET_CX, offsetof(JSContext, stack) + ContextStack::offsetOfSeg());
+               isConstPrivatePtr(base->oprnd1(), JSObject::JSSLOT_ARGS_DATA)));
         break;
 
       default:
@@ -578,7 +542,7 @@ void ValidateWriter::checkAccSet(LOpcode op, LIns *base, int32_t disp, AccSet ac
     }
 }
 
-} 
+}
 
 #endif
 

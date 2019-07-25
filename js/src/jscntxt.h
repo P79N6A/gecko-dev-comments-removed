@@ -2361,7 +2361,7 @@ public:
 
     
     inline js::types::TypeObject *
-    getTypeObject(const char *name, bool isFunction);
+    getTypeObject(const char *name, bool isArray, bool isFunction);
 
     
     inline js::types::TypeFunction *
@@ -2417,6 +2417,9 @@ public:
 
     
     inline void aliasTypeProperties(js::types::TypeObject *obj, jsid first, jsid second);
+
+    
+    inline void markTypeArrayNotPacked(js::types::TypeObject *obj, bool notDense);
 
   private:
     
