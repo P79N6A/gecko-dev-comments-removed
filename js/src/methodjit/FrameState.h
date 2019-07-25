@@ -412,13 +412,6 @@ class FrameState
 
 
 
-    inline void emitLoadTypeTag(FrameEntry *fe, RegisterID reg) const;
-    inline void emitLoadTypeTag(Assembler &masm, FrameEntry *fe, RegisterID reg) const;
-
-    
-
-
-
     inline void convertInt32ToDouble(Assembler &masm, FrameEntry *fe,
                                      FPRegisterID fpreg) const;
 
@@ -490,7 +483,7 @@ class FrameState
     void unpinEntry(const ValueRemat &vr);
 
     
-    void syncEntry(Assembler &masm, FrameEntry *fe, const ValueRemat &vr);
+    void ensureValueSynced(Assembler &masm, FrameEntry *fe, const ValueRemat &vr);
 
     struct BinaryAlloc {
         MaybeRegisterID lhsType;
@@ -798,8 +791,17 @@ class FrameState
     void evictReg(RegisterID reg);
     inline FrameEntry *rawPush();
     inline void addToTracker(FrameEntry *fe);
-    inline void syncType(const FrameEntry *fe, Address to, Assembler &masm) const;
-    inline void syncData(const FrameEntry *fe, Address to, Assembler &masm) const;
+
+    
+    inline void ensureFeSynced(const FrameEntry *fe, Assembler &masm) const;
+    inline void ensureTypeSynced(const FrameEntry *fe, Assembler &masm) const;
+    inline void ensureDataSynced(const FrameEntry *fe, Assembler &masm) const;
+
+    
+    inline void syncFe(FrameEntry *fe);
+    inline void syncType(FrameEntry *fe);
+    inline void syncData(FrameEntry *fe);
+
     inline FrameEntry *getLocal(uint32 slot);
     inline void forgetAllRegs(FrameEntry *fe);
     inline void swapInTracker(FrameEntry *lhs, FrameEntry *rhs);

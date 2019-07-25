@@ -1008,8 +1008,8 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *tar
         JaegerSpew(JSpew_Insns, " ---- BEGIN STUB CALL CODE ---- \n");
 
         
-        frame.syncEntry(stubcc.masm, lhs, lvr);
-        frame.syncEntry(stubcc.masm, rhs, rvr);
+        frame.ensureValueSynced(stubcc.masm, lhs, lvr);
+        frame.ensureValueSynced(stubcc.masm, rhs, rvr);
 
         
         stubcc.call(stub, frame.stackDepth() + script->nfixed + 2);
