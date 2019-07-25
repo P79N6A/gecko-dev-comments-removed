@@ -445,6 +445,13 @@ public:
     return mDiscoveredClearance && *mDiscoveredClearance;
   }
 
+  
+  static void ComputeRelativeOffsets(PRUint8 aCBDirection,
+                                     nsIFrame* aFrame,
+                                     nscoord aContainingBlockWidth,
+                                     nscoord aContainingBlockHeight,
+                                     nsMargin& aComputedOffsets);
+
 #ifdef DEBUG
   
   
@@ -498,11 +505,6 @@ protected:
                                nscoord aContainingBlockWidth,
                                nscoord aContainingBlockHeight,
                                nsIAtom* aFrameType);
-
-  void ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
-                              nscoord aContainingBlockWidth,
-                              nscoord aContainingBlockHeight,
-                              nsPresContext* aPresContext);
 
   
   
