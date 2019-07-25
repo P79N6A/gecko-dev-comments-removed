@@ -285,6 +285,11 @@ CastAsPropertyOp(js::Class *clasp)
     return JS_DATA_TO_FUNC_PTR(PropertyOp, clasp);
 }
 
+
+
+
+#define JSPROP_SHADOWABLE       JSPROP_INDEX
+
 struct Shape : public JSObjectMap
 {
     friend struct ::JSObject;
@@ -593,6 +598,17 @@ struct Shape : public JSObjectMap
     }
     bool isAccessorDescriptor() const {
         return (attrs & (JSPROP_SETTER | JSPROP_GETTER)) != 0;
+    }
+
+    
+
+
+
+
+
+    bool shadowable() const {
+        JS_ASSERT_IF(isDataDescriptor(), writable());
+        return hasSlot() || (attrs & JSPROP_SHADOWABLE);
     }
 
     uint32 entryCount() const {

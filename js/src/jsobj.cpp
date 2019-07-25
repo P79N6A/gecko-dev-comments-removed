@@ -4523,7 +4523,7 @@ CallAddPropertyHook(JSContext *cx, Class *clasp, JSObject *obj, const Shape *sha
     if (clasp->addProperty != PropertyStub) {
         Value nominal = *vp;
 
-        if (!CallJSPropertyOp(cx, clasp->addProperty, obj, SHAPE_USERID(shape), vp))
+        if (!CallJSPropertyOp(cx, clasp->addProperty, obj, shape->id, vp))
             return false;
         if (*vp != nominal) {
             if (obj->containsSlot(shape->slot))
@@ -5496,9 +5496,7 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
             
 
 
-
-
-            if (!shape->hasSlot()) {
+            if (!shape->shadowable()) {
                 if (defineHow & JSDNP_CACHE_RESULT) {
 #ifdef JS_TRACER
                     JS_ASSERT_NOT_ON_TRACE(cx);
@@ -5515,20 +5513,32 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
             }
 
             
-            attrs = JSPROP_ENUMERATE;
-
-            
 
 
 
 
 
 
-            if (shape->hasShortID()) {
-                flags = Shape::HAS_SHORTID;
-                shortid = shape->shortid;
+
+
+
+
+
+
+
+
+            if (!shape->hasSlot()) {
+                defineHow &= ~JSDNP_SET_METHOD;
+                if (shape->hasShortID()) {
+                    flags = Shape::HAS_SHORTID;
+                    shortid = shape->shortid;
+                }
+                attrs &= ~JSPROP_SHARED;
                 getter = shape->getter();
                 setter = shape->setter();
+            } else {
+                
+                attrs = JSPROP_ENUMERATE;
             }
 
             
