@@ -1364,6 +1364,9 @@ LoopState::getLoopTestAccess(const SSAValue &v, uint32 *pslot, int32 *pconstant)
 void
 LoopState::analyzeLoopTest()
 {
+    if (cc.debugMode())
+        return;
+
     
     if (lifetime->entry == lifetime->head)
         return;
@@ -1450,6 +1453,9 @@ LoopState::analyzeLoopTest()
 void
 LoopState::analyzeLoopIncrements()
 {
+    if (cc.debugMode())
+        return;
+
     
 
 
@@ -1550,6 +1556,11 @@ LoopState::definiteArrayAccess(const SSAValue &obj, const SSAValue &index)
 void
 LoopState::analyzeLoopBody(unsigned frame)
 {
+    if (cc.debugMode()) {
+        skipAnalysis = true;
+        return;
+    }
+
     JSScript *script = ssa->getFrame(frame).script;
     analyze::ScriptAnalysis *analysis = script->analysis(cx);
     JS_ASSERT(analysis && !analysis->failed() && analysis->ranInference());
