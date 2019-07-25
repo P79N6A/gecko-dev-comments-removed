@@ -452,13 +452,18 @@ public class GeckoAppShell
 
         layerController.setOnTouchListener(new View.OnTouchListener() {
             public boolean onTouch(View view, MotionEvent event) {
+                float origX = event.getX();
+                float origY = event.getY();
                 
-                IntPoint eventPoint = new IntPoint((int)Math.round(event.getX()),
-                                                   (int)Math.round(event.getY()));
+                IntPoint eventPoint = new IntPoint((int)Math.round(origX),
+                                                   (int)Math.round(origY));
                 IntPoint geckoPoint = layerController.convertViewPointToLayerPoint(eventPoint);
                 event.setLocation(geckoPoint.x, geckoPoint.y);
 
                 GeckoAppShell.sendEventToGecko(new GeckoEvent(event));
+
+                
+                event.setLocation(origX, origY);
                 return true;
             }
         });

@@ -83,29 +83,39 @@ public class PanZoomController
     
     private static final int FLING_STATE_SNAPPING = 1;
 
-    private boolean mTouchMoved, mStopped;
     private long mLastTimestamp;
     private Timer mFlingTimer;
     private Axis mX, mY;
+    
     private float mInitialZoomSpan;
     
     private IntPoint mInitialZoomFocus;
-    
-    private boolean mTracking, mZooming;
+
+    private enum PanZoomState {
+        NOTHING,        
+        FLING,          
+        TOUCHING,       
+        PANNING,        
+        PANNING_HOLD,   
+        PINCHING,       
+    }
+
+    private PanZoomState mState;
 
     public PanZoomController(LayerController controller) {
         mController = controller;
         mX = new Axis(); mY = new Axis();
-        mStopped = true;
+        mState = PanZoomState.NOTHING;
 
         populatePositionAndLength();
     }
 
     public boolean onTouchEvent(MotionEvent event) {
-        switch (event.getAction()) {
+        switch (event.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:   return onTouchStart(event);
         case MotionEvent.ACTION_MOVE:   return onTouchMove(event);
         case MotionEvent.ACTION_UP:     return onTouchEnd(event);
+        case MotionEvent.ACTION_CANCEL: return onTouchCancel(event);
         default:                        return false;
         }
     }
@@ -121,7 +131,18 @@ public class PanZoomController
 
 
     public boolean getRedrawHint() {
-        return mStopped && !mTracking && !mZooming;
+        switch (mState) {
+        case NOTHING:
+        case TOUCHING:
+        case PANNING_HOLD:
+            return true;
+        case FLING:
+        case PANNING:
+        case PINCHING:
+            return false;
+        }
+        Log.e(LOG_NAME, "Unhandled case " + mState + " in getRedrawHint");
+        return true;
     }
 
     
@@ -129,52 +150,92 @@ public class PanZoomController
 
 
     private boolean onTouchStart(MotionEvent event) {
-        
-
-        if (event.getPointerCount() > 1 || mZooming) {
-            mZooming = true;
-            mTouchMoved = false;
-            mStopped = true;
+        switch (mState) {
+        case FLING:
+            if (mFlingTimer != null) {
+                mFlingTimer.cancel();
+                mFlingTimer = null;
+            }
+            
+        case NOTHING:
+            mState = PanZoomState.TOUCHING;
+            mX.touchPos = event.getX(0);
+            mY.touchPos = event.getY(0);
+            return false;
+        case TOUCHING:
+        case PANNING:
+        case PANNING_HOLD:
+        case PINCHING:
+            mState = PanZoomState.PINCHING;
             return false;
         }
-
-        mX.touchPos = event.getX(0); mY.touchPos = event.getY(0);
-        mTouchMoved = mStopped = false;
-        mTracking = true;
-        
-        return true;
+        Log.e(LOG_NAME, "Unhandled case " + mState + " in onTouchStart");
+        return false;
     }
 
     private boolean onTouchMove(MotionEvent event) {
-        if (event.getPointerCount() > 1 || mZooming) {
-            mZooming = true;
-            mTouchMoved = false;
-            mStopped = true;
+        switch (mState) {
+        case NOTHING:
+        case FLING:
+            
+            Log.e(LOG_NAME, "Received impossible touch move while in " + mState);
+            return false;
+        case TOUCHING:
+            mLastTimestamp = System.currentTimeMillis();
+            
+        case PANNING_HOLD:
+            mState = PanZoomState.PANNING;
+            
+        case PANNING:
+            track(event, System.currentTimeMillis());
+            return true;
+        case PINCHING:
+            
             return false;
         }
-
-        if (!mTouchMoved)
-            mLastTimestamp = System.currentTimeMillis();
-        mTouchMoved = true;
-
-        
-        track(event, System.currentTimeMillis());
-
-        if (mFlingTimer != null) {
-            mFlingTimer.cancel();
-            mFlingTimer = null;
-        }
-
-        return true;
+        Log.e(LOG_NAME, "Unhandled case " + mState + " in onTouchMove");
+        return false;
     }
 
     private boolean onTouchEnd(MotionEvent event) {
-        if (mZooming)
-            mZooming = false;
+        switch (mState) {
+        case NOTHING:
+        case FLING:
+            
+            Log.e(LOG_NAME, "Received impossible touch end while in " + mState);
+            return false;
+        case TOUCHING:
+            mState = PanZoomState.NOTHING;
+            
+            return false;
+        case PANNING:
+        case PANNING_HOLD:
+            mState = PanZoomState.FLING;
+            fling(System.currentTimeMillis());
+            return true;
+        case PINCHING:
+            int points = event.getPointerCount();
+            if (points == 1) {
+                
+                mState = PanZoomState.NOTHING;
+            } else if (points == 2) {
+                int pointRemovedIndex = event.getActionIndex();
+                int pointRemainingIndex = 1 - pointRemovedIndex; 
+                mState = PanZoomState.TOUCHING;
+                mX.touchPos = event.getX(pointRemainingIndex);
+                mY.touchPos = event.getY(pointRemainingIndex);
+            } else {
+                
+            }
+            return true;
+        }
+        Log.e(LOG_NAME, "Unhandled case " + mState + " in onTouchEnd");
+        return false;
+    }
 
-        mTracking = false;
-        fling(System.currentTimeMillis());
-        return true;
+    private boolean onTouchCancel(MotionEvent event) {
+        mState = PanZoomState.NOTHING;
+        return false;
     }
 
     private void track(MotionEvent event, long timestamp) {
@@ -188,7 +249,8 @@ public class PanZoomController
 
         float absVelocity = (float)Math.sqrt(mX.velocity * mX.velocity +
                                              mY.velocity * mY.velocity);
-        mStopped = absVelocity < STOPPED_THRESHOLD;
+        if (absVelocity < STOPPED_THRESHOLD)
+            mState = PanZoomState.PANNING_HOLD;
 
         mX.applyEdgeResistance(); mX.displace();
         mY.applyEdgeResistance(); mY.displace();
@@ -199,7 +261,7 @@ public class PanZoomController
         long timeStep = timestamp - mLastTimestamp;
         mLastTimestamp = timestamp;
 
-        if (mStopped)
+        if (mState != PanZoomState.FLING)
             mX.velocity = mY.velocity = 0.0f;
 
         mX.displace(); mY.displace();
@@ -273,7 +335,7 @@ public class PanZoomController
         }
 
         private void stop() {
-            mStopped = true;
+            mState = PanZoomState.NOTHING;
             if (mFlingTimer != null) {
                 mFlingTimer.cancel();
                 mFlingTimer = null;
@@ -488,6 +550,7 @@ public class PanZoomController
 
     @Override
     public boolean onScale(ScaleGestureDetector detector) {
+        mState = PanZoomState.PINCHING;
         float newZoom = detector.getCurrentSpan() / mInitialZoomSpan;
 
         IntSize screenSize = mController.getScreenSize();
@@ -498,11 +561,13 @@ public class PanZoomController
         mController.setVisibleRect((int)Math.round(x), (int)Math.round(y),
                                    (int)Math.round(width), (int)Math.round(height));
         mController.notifyLayerClientOfGeometryChange();
+        populatePositionAndLength();
         return true;
     }
 
     @Override
     public boolean onScaleBegin(ScaleGestureDetector detector) {
+        mState = PanZoomState.PINCHING;
         IntRect initialZoomRect = (IntRect)mController.getVisibleRect().clone();
         float initialZoom = mController.getZoomFactor();
 
@@ -514,7 +579,10 @@ public class PanZoomController
 
     @Override
     public void onScaleEnd(ScaleGestureDetector detector) {
-        
+        mState = PanZoomState.PANNING_HOLD;
+        mLastTimestamp = System.currentTimeMillis();
+        mX.touchPos = detector.getFocusX();
+        mY.touchPos = detector.getFocusY();
     }
 
     @Override
