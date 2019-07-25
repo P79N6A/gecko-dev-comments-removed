@@ -51,13 +51,13 @@ Sanitizer.prototype = {
   {
     return this.items[aItemName].canClear;
   },
-  
+
   _prefDomain: "privacy.item.",
   getNameFromPreference: function (aPreferenceName)
   {
     return aPreferenceName.substr(this._prefDomain.length);
   },
-  
+
   
 
 
@@ -79,7 +79,7 @@ Sanitizer.prototype = {
         try {
           item.clear();
         } catch(er) {
-          if (!errors) 
+          if (!errors)
             errors = {};
           errors[itemName] = er;
           dump("Error sanitizing " + itemName + ": " + er + "\n");
@@ -88,7 +88,7 @@ Sanitizer.prototype = {
     }
     return errors;
   },
-  
+
   items: {
     cache: {
       clear: function ()
@@ -103,19 +103,19 @@ Sanitizer.prototype = {
           imageCache.clearCache(false); 
         } catch(er) {}
       },
-      
+
       get canClear()
       {
         return true;
       }
     },
-    
+
     cookies: {
       clear: function ()
       {
         Services.cookies.removeAll();
       },
-      
+
       get canClear()
       {
         return true;
@@ -131,7 +131,7 @@ Sanitizer.prototype = {
           branch.deleteBranch("");
         } catch (e) {dump(e);}
       },
-      
+
       get canClear()
       {
         return true;
@@ -182,21 +182,18 @@ Sanitizer.prototype = {
     history: {
       clear: function ()
       {
-        var globalHistory = Cc["@mozilla.org/browser/global-history;2"].getService(Ci.nsIBrowserHistory);
-        globalHistory.removeAllPages();
-        
         try {
           Services.obs.notifyObservers(null, "browser:purge-session-history", "");
         }
         catch (e) { }
-        
+
         
         try {
           Services.prefs.clearUserPref("general.open_location.last_url");
         }
         catch (e) { }
       },
-      
+
       get canClear()
       {
         
@@ -204,7 +201,7 @@ Sanitizer.prototype = {
         return true;
       }
     },
-    
+
     formdata: {
       clear: function ()
       {
@@ -221,14 +218,14 @@ Sanitizer.prototype = {
         var formHistory = Cc["@mozilla.org/satchel/form-history;1"].getService(Ci.nsIFormHistory2);
         formHistory.removeAllEntries();
       },
-      
+
       get canClear()
       {
         var formHistory = Cc["@mozilla.org/satchel/form-history;1"].getService(Ci.nsIFormHistory2);
         return formHistory.hasEntries;
       }
     },
-    
+
     downloads: {
       clear: function ()
       {
@@ -242,20 +239,20 @@ Sanitizer.prototype = {
         return dlMgr.canCleanUp;
       }
     },
-    
+
     passwords: {
       clear: function ()
       {
         Services.logins.removeAllLogins();
       },
-      
+
       get canClear()
       {
         let count = Services.logins.countLogins("", "", ""); 
         return (count > 0);
       }
     },
-    
+
     sessions: {
       clear: function ()
       {
@@ -267,7 +264,7 @@ Sanitizer.prototype = {
         var authMgr = Cc['@mozilla.org/network/http-auth-manager;1'].getService(Ci.nsIHttpAuthManager);
         authMgr.clearAll();
       },
-      
+
       get canClear()
       {
         return true;
@@ -283,7 +280,7 @@ Sanitizer.prefShutdown        = "sanitizeOnShutdown";
 Sanitizer.prefDidShutdown     = "didShutdownSanitize";
 
 Sanitizer._prefs = null;
-Sanitizer.__defineGetter__("prefs", function() 
+Sanitizer.__defineGetter__("prefs", function()
 {
   return Sanitizer._prefs ? Sanitizer._prefs
     : Sanitizer._prefs = Cc["@mozilla.org/preferences-service;1"]
@@ -298,28 +295,28 @@ Sanitizer.__defineGetter__("prefs", function()
 
 
 
-Sanitizer.sanitize = function() 
+Sanitizer.sanitize = function()
 {
   return new Sanitizer().sanitize();
 };
 
-Sanitizer.onStartup = function() 
+Sanitizer.onStartup = function()
 {
   
   Sanitizer._checkAndSanitize();
 };
 
-Sanitizer.onShutdown = function() 
+Sanitizer.onShutdown = function()
 {
   
   Sanitizer._checkAndSanitize();
 };
 
 
-Sanitizer._checkAndSanitize = function() 
+Sanitizer._checkAndSanitize = function()
 {
   const prefs = Sanitizer.prefs;
-  if (prefs.getBoolPref(Sanitizer.prefShutdown) && 
+  if (prefs.getBoolPref(Sanitizer.prefShutdown) &&
       !prefs.prefHasUserValue(Sanitizer.prefDidShutdown)) {
     
     Sanitizer.sanitize() || 
