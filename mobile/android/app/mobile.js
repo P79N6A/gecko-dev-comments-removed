@@ -363,7 +363,7 @@ pref("places.frecency.unvisitedTypedBonus", 200);
 pref("gfx.color_management.mode", 0);
 #ifdef ANDROID
 
-pref("gfx.displayport.strategy", 0);
+pref("gfx.displayport.strategy", 1);
 #endif
 
 
