@@ -1257,7 +1257,7 @@ private:
 class nsDisplayBackground : public nsDisplayItem {
 public:
   nsDisplayBackground(nsIFrame* aFrame) : nsDisplayItem(aFrame) {
-    mIsThemed = mFrame->IsThemed(&mThemeTransparency);
+    mIsThemed = mFrame->IsThemed();
     MOZ_COUNT_CTOR(nsDisplayBackground);
   }
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -1278,9 +1278,8 @@ public:
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
   NS_DISPLAY_DECL_NAME("Background")
 private:
-  
-  PRPackedBool mIsThemed;
-  nsITheme::Transparency mThemeTransparency;
+    
+    PRPackedBool mIsThemed;
 };
 
 
