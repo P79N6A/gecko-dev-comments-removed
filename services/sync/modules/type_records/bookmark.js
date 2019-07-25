@@ -55,15 +55,15 @@ function PlacesItem(uri) {
   this._PlacesItem_init(uri);
 }
 PlacesItem.prototype = {
-  decrypt: function PlacesItem_decrypt(onComplete, passphrase) {
-    CryptoWrapper.prototype.decrypt.call(this, Utils.bind2(this, function(ret) {
-      
-      if (!this.deleted)
-        this.__proto__ = this.getTypeObject(this.type).prototype;
+  decrypt: function PlacesItem_decrypt(passphrase) {
+    
+    let clear = CryptoWrapper.prototype.decrypt.apply(this, arguments);
 
-      
-      onComplete(ret);
-    }), passphrase);
+    
+    if (!this.deleted)
+      this.__proto__ = this.getTypeObject(this.type).prototype;
+
+    return clear;
   },
 
   getTypeObject: function PlacesItem_getTypeObject(type) {
@@ -108,7 +108,7 @@ Bookmark.prototype = {
 };
 
 Utils.deferGetSet(Bookmark, "cleartext", ["title", "bmkUri", "description",
-  "loadInSidebar", "tags", "keyword"]);
+  "tags", "keyword"]);
 
 function BookmarkMicsum(uri) {
   this._BookmarkMicsum_init(uri);
