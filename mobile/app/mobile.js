@@ -155,9 +155,9 @@ pref("findhelper.autozoom", true);
 
 pref("browser.formfill.enable", true);
 
-#ifdef WINCE
-pref("layout.css.devPixelsPerPx", "1");
-#endif
+
+pref("browser.microsummary.enabled", false);
+pref("browser.microsummary.updateGenerators", false);
 
 
 pref("layout.spellcheckDefault", 1);
