@@ -130,8 +130,9 @@ cairo_dwrite_font_face_create_for_dwrite_fontface(void *dwrite_font, void *dwrit
 
 
 
+
 cairo_public cairo_surface_t *
-cairo_d2d_surface_create_for_hwnd(HWND wnd);
+cairo_d2d_surface_create_for_hwnd(HWND wnd, cairo_content_t content);
 
 
 
