@@ -194,7 +194,6 @@ protected:
                                               nsIAtom* aAttribute,
                                               const nsAString& aValue);
 
-  friend class nsSVGTextPositioningElement;
   
   virtual PRBool IsEventName(nsIAtom* aName);
 

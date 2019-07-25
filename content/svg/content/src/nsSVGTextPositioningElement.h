@@ -41,13 +41,27 @@
 #include "nsIDOMSVGAnimatedLengthList.h"
 #include "nsIDOMSVGAnimatedNumberList.h"
 
-class nsSVGTextPositioningElement : public nsSVGTextContentElement
+class nsSVGElement;
+
+typedef nsSVGTextContentElement nsSVGTextPositioningElementBase;
+
+
+
+
+
+
+class nsSVGTextPositioningElement : public nsSVGTextPositioningElementBase
 {
 public:
   NS_DECL_NSIDOMSVGTEXTPOSITIONINGELEMENT
 
 protected:
-  nsresult Initialise(nsSVGElement *aSVGElement);
+
+  nsSVGTextPositioningElement(nsINodeInfo *aNodeInfo)
+    : nsSVGTextPositioningElementBase(aNodeInfo)
+  {}
+
+  nsresult Init();
 
   
   nsCOMPtr<nsIDOMSVGAnimatedLengthList> mX;
