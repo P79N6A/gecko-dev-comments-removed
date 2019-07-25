@@ -81,7 +81,7 @@
 
 
 nsDragService::nsDragService()
-  : mNativeDragSrc(nsnull), mNativeDragTarget(nsnull), mDataObject(nsnull), mSentLocalDropEvent(false)
+  : mNativeDragTarget(nsnull), mDataObject(nsnull), mSentLocalDropEvent(false)
 {
 }
 
@@ -92,7 +92,6 @@ nsDragService::nsDragService()
 
 nsDragService::~nsDragService()
 {
-  NS_IF_RELEASE(mNativeDragSrc);
   NS_IF_RELEASE(mNativeDragTarget);
   NS_IF_RELEASE(mDataObject);
 }
@@ -274,13 +273,8 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
 {
   
   
-  nsNativeDragSource* nativeDragSource = new nsNativeDragSource(mDataTransfer);
-  if (!nativeDragSource)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_IF_RELEASE(mNativeDragSrc);
-  mNativeDragSrc = (IDropSource *)nativeDragSource;
-  mNativeDragSrc->AddRef();
+  nsRefPtr<nsNativeDragSource> nativeDragSrc =
+    new nsNativeDragSource(mDataTransfer);
 
   
   DWORD winDropRes;
@@ -314,7 +308,7 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   }
 
   
-  HRESULT res = ::DoDragDrop(aDataObj, mNativeDragSrc, effects, &winDropRes);
+  HRESULT res = ::DoDragDrop(aDataObj, nativeDragSrc, effects, &winDropRes);
 
   
   
@@ -338,7 +332,7 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
     }
   }
 
-  mUserCancelled = nativeDragSource->UserCancelled();
+  mUserCancelled = nativeDragSrc->UserCancelled();
 
   
   
