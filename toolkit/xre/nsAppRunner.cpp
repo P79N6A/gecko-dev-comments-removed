@@ -41,11 +41,6 @@
 
 
 
-#ifdef MOZ_IPC
-#include "mozilla/dom/ContentParent.h"
-using mozilla::dom::ContentParent;
-#endif
-
 #if defined(XP_OS2) && defined(MOZ_OS2_HIGH_MEMORY)
 
 #include <os2safe.h>
@@ -766,22 +761,6 @@ nsXULAppInfo::GetProcessType(PRUint32* aResult)
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = XRE_GetProcessType();
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsXULAppInfo::EnsureContentProcess()
-{
-#ifdef MOZ_IPC
-  if (XRE_GetProcessType() != GeckoProcessType_Default)
-    return NS_ERROR_NOT_AVAILABLE;
-
-  ContentParent* c = ContentParent::GetSingleton();
-  if (!c)
-    return NS_ERROR_NOT_AVAILABLE;
-  return NS_OK;
-#else
-  return NS_ERROR_NOT_AVAILABLE;
-#endif
 }
 
 NS_IMETHODIMP
@@ -3588,10 +3567,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
 #ifdef XP_MACOSX
           
           
-          SetupMacApplicationDelegate();
-
-          
-          
           cmdLine = do_CreateInstance("@mozilla.org/toolkit/command-line;1");
           NS_ENSURE_TRUE(cmdLine, 1);
 
@@ -3600,6 +3575,9 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
           rv = cmdLine->Init(gArgc, gArgv,
                              workingDir, nsICommandLine::STATE_INITIAL_LAUNCH);
           NS_ENSURE_SUCCESS(rv, 1);
+          
+          
+          SetupMacApplicationDelegate();
 #endif
 
           MOZ_SPLASHSCREEN_UPDATE(70);
