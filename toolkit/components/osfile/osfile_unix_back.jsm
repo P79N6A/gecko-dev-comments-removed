@@ -146,10 +146,14 @@
        
 
 
-       Types.mode_t = Object.create(
-         Types.intn_t(OS.Constants.libc.OSFILE_SIZEOF_MODE_T),
-         {name: {value: "mode_t"}});
+       Types.mode_t =
+         Types.intn_t(OS.Constants.libc.OSFILE_SIZEOF_MODE_T).withName("mode_t");
 
+       
+
+
+       Types.time_t =
+         Types.intn_t(OS.Constants.libc.OSFILE_SIZEOF_TIME_T).withName("time_t");
 
        Types.DIR =
          new Type("DIR",
@@ -190,6 +194,36 @@
        Types.null_or_dirent_ptr =
          new Type("null_of_dirent",
                   Types.dirent.out_ptr.implementation);
+
+       
+       
+       {
+         let stat = new OS.Shared.HollowStructure("stat",
+           OS.Constants.libc.OSFILE_SIZEOF_STAT);
+         stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_MODE,
+                        "st_mode", Types.mode_t.implementation);
+         stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_UID,
+                          "st_uid", ctypes.int);
+         stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_GID,
+                          "st_gid", ctypes.int);
+
+         
+         
+         
+         
+         
+         stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_ATIME,
+                          "st_atime", Types.time_t.implementation);
+         stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_MTIME,
+                          "st_mtime", Types.time_t.implementation);
+         stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_CTIME,
+                          "st_ctime", Types.time_t.implementation);
+
+         stat.add_field_at(OS.Constants.libc.OSFILE_OFFSETOF_STAT_ST_SIZE,
+                        "st_size", Types.size_t.implementation);
+         Types.stat = stat.getType();
+       }
+
 
        
 
@@ -314,6 +348,22 @@
                      Types.negativeone_or_nothing,
                          Types.fd,
                      Types.off_t);
+
+       if (OS.Constants.libc._DARWIN_FEATURE_64_BIT_INODE) {
+         UnixFile.fstat =
+           declareFFI("fstat$INODE64", ctypes.default_abi,
+                       Types.negativeone_or_nothing,
+                         Types.fd,
+                          Types.stat.out_ptr
+                     );
+       } else {
+         UnixFile.fstat =
+           declareFFI("fstat", ctypes.default_abi,
+                       Types.negativeone_or_nothing,
+                         Types.fd,
+                          Types.stat.out_ptr
+                     );
+       }
 
        UnixFile.lchown =
          declareFFI("lchown", ctypes.default_abi,
@@ -451,11 +501,86 @@
 
        
        
+       if (OS.Constants.libc._DARWIN_FEATURE_64_BIT_INODE) {
+         
+         UnixFile.stat =
+           declareFFI("stat$INODE64", ctypes.default_abi,
+                       Types.negativeone_or_nothing,
+                         Types.string,
+                          Types.stat.out_ptr
+                     );
+         UnixFile.lstat =
+           declareFFI("lstat$INODE64", ctypes.default_abi,
+                       Types.negativeone_or_nothing,
+                         Types.string,
+                          Types.stat.out_ptr
+                     );
+         UnixFile.fstat =
+           declareFFI("fstat$INODE64", ctypes.default_abi,
+                       Types.negativeone_or_nothing,
+                         Types.fd,
+                          Types.stat.out_ptr
+                     );
+       } else if (OS.Constants.libc._STAT_VER != undefined) {
+         const ver = OS.Constants.libc._STAT_VER;
+         
+         let xstat =
+           declareFFI("__xstat", ctypes.default_abi,
+                          Types.negativeone_or_nothing,
+                       Types.int,
+                            Types.string,
+                             Types.stat.out_ptr);
+         let lxstat =
+           declareFFI("__lxstat", ctypes.default_abi,
+                          Types.negativeone_or_nothing,
+                       Types.int,
+                            Types.string,
+                             Types.stat.out_ptr);
+         let fxstat =
+           declareFFI("__fxstat", ctypes.default_abi,
+                          Types.negativeone_or_nothing,
+                       Types.int,
+                              Types.fd,
+                             Types.stat.out_ptr);
+
+         UnixFile.stat = function stat(path, buf) {
+           return xstat(ver, path, buf);
+         };
+         UnixFile.lstat = function stat(path, buf) {
+           return lxstat(ver, path, buf);
+         };
+         UnixFile.fstat = function stat(fd, buf) {
+           return fxstat(ver, fd, buf);
+         };
+       } else {
+         
+         UnixFile.stat =
+           declareFFI("stat", ctypes.default_abi,
+                       Types.negativeone_or_nothing,
+                         Types.string,
+                          Types.stat.out_ptr
+                     );
+         UnixFile.lstat =
+           declareFFI("lstat", ctypes.default_abi,
+                       Types.negativeone_or_nothing,
+                         Types.string,
+                          Types.stat.out_ptr
+                     );
+         UnixFile.fstat =
+           declareFFI("fstat", ctypes.default_abi,
+                       Types.negativeone_or_nothing,
+                           Types.fd,
+                          Types.stat.out_ptr
+                     );
+       }
+
+       
+       
 
        let _pipe =
-         declareFFI("pipe", ctypes.default_abi,
-                     Types.negativeone_or_nothing,
-                        Types.int.out_ptr);
+         libc.declare("pipe", ctypes.default_abi,
+                     ctypes.int,
+                        ctypes.ArrayType(ctypes.int, 2));
 
        
        let _pipebuf = new (ctypes.ArrayType(ctypes.int, 2))();
