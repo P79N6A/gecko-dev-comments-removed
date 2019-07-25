@@ -517,12 +517,7 @@ public:
 
 
     PRBool HasES2Compatibility() const {
-        
-#ifdef XP_MACOSX
-        return mIsGLES2;
-#else
         return mIsGLES2 || IsExtensionSupported(ARB_ES2_compatibility);
-#endif
     }
 
     enum {
