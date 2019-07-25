@@ -81,6 +81,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsCycleCollectionISupports,
 
 class nsCycleCollectionParticipant;
 
+enum CCNodeType { RefCounted, GCMarked, GCUnmarked };
+
 class NS_NO_VTABLE nsCycleCollectionTraversalCallback
 {
 public:
@@ -88,12 +90,11 @@ public:
     
     
     
-    NS_IMETHOD_(void) DescribeRefCountedNode(nsrefcnt refcount,
-                                             size_t objsz,
-                                             const char *objname) = 0;
-    NS_IMETHOD_(void) DescribeGCedNode(PRBool ismarked,
-                                       size_t objsz,
-                                       const char *objname) = 0;
+    
+    NS_IMETHOD_(void) DescribeNode(CCNodeType type,
+                                   nsrefcnt refcount,
+                                   size_t objsz,
+                                   const char *objname) = 0;
     NS_IMETHOD_(void) NoteXPCOMRoot(nsISupports *root) = 0;
     NS_IMETHOD_(void) NoteRoot(PRUint32 langID, void *root,
                                nsCycleCollectionParticipant* helper) = 0;
@@ -111,7 +112,6 @@ public:
     enum {
         
 
-        
         
         
         WANT_DEBUG_INFO = (1<<0),
@@ -307,7 +307,7 @@ public:
 
 
 #define NS_IMPL_CYCLE_COLLECTION_DESCRIBE(_class, _refcnt)                     \
-    cb.DescribeRefCountedNode(_refcnt, sizeof(_class), #_class);
+    cb.DescribeNode(RefCounted, _refcnt, sizeof(_class), #_class);
 
 #define NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(_class)               \
   NS_IMETHODIMP                                                                \
