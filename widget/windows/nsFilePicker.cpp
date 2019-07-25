@@ -893,7 +893,7 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir)
 
   FILEOPENDIALOGOPTIONS fos = 0;
   fos |= FOS_SHAREAWARE | FOS_OVERWRITEPROMPT |
-         FOS_NOREADONLYRETURN | FOS_FORCEFILESYSTEM;
+         FOS_FORCEFILESYSTEM;
 
   
   if (IsPrivacyModeEnabled() || !mAddToRecentDocs) {
@@ -915,6 +915,7 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir)
       break;
 
     case modeSave:
+      fos |= FOS_NOREADONLYRETURN;
       
       
       if (IsDefaultPathLink())
