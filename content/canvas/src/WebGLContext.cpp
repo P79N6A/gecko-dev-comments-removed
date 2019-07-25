@@ -473,14 +473,6 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
             gl = nsnull;
         }
     }
-
-    
-    if (!gl && !(preferEGL || useANGLE)) {
-        gl = gl::GLContextProviderEGL::CreateOffscreen(gfxIntSize(width, height), format);
-        if (gl && !InitAndValidateGL()) {
-            gl = nsnull;
-        }
-    }
 #else
     
     if (!gl && useOpenGL) {
