@@ -78,7 +78,7 @@ test("stop()", function() {
 
 test("stop() - several in queue", function() {
 
-	expect(3);
+	expect(2);
 	stop();
 
 	var $foo = $("#nothiddendiv");
