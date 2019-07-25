@@ -453,12 +453,16 @@ JSContext::markGlobalReallocation(JSObject *obj)
     if (!typeInferenceEnabled() || obj->getType()->unknownProperties())
         return;
 
+    
+
+
+
     js::types::AutoEnterTypeInference enter(this);
     js::types::TypeSet *types = obj->getType()->getProperty(this, JSID_VOID, false);
     if (types) {
         js::types::TypeConstraint *constraint = types->constraintList;
         while (constraint) {
-            constraint->slotsReallocation(this);
+            constraint->newObjectState(this, obj->getType(), true);
             constraint = constraint->next;
         }
     }

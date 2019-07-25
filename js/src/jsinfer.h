@@ -190,14 +190,8 @@ public:
 
 
 
-    virtual void newObjectState(JSContext *cx, TypeObject *object) {}
 
-    
-
-
-
-
-    virtual void slotsReallocation(JSContext *cx) {}
+    virtual void newObjectState(JSContext *cx, TypeObject *object, bool force) {}
 
     
 
