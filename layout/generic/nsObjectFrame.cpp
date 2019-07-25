@@ -2912,7 +2912,13 @@ NS_INTERFACE_MAP_END
 NS_IMETHODIMP
 nsPluginInstanceOwner::SetInstance(nsIPluginInstance *aInstance)
 {
-  NS_ASSERTION(!mInstance || !aInstance, "mInstance should only be set once!");
+  NS_ASSERTION(!mInstance || !aInstance, "mInstance should only be set or unset!");
+
+  
+  
+  
+  if (mInstance && !aInstance)
+    mInstance->InvalidateOwner();
 
   mInstance = aInstance;
 
