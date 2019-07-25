@@ -567,7 +567,11 @@ protected:
 
   PRUint32 mLoadEventType;
 
-  static PRUint64 gLastFocusedAccessiblesState;
+  
+
+
+
+  nsIAtom* mARIAAttrOldValue;
 
   nsTArray<nsRefPtr<nsDocAccessible> > mChildDocuments;
 

@@ -605,7 +605,8 @@ function eventQueue(aEventType)
     
     
     return this.compareEvents(aIdx, aEvent) &&
-      !(aEvent instanceof nsIAccessibleTextChangeEvent);
+      !(aEvent instanceof nsIAccessibleTextChangeEvent) &&
+      !(aEvent instanceof nsIAccessibleStateChangeEvent);
   }
 
   this.checkEvent = function eventQueue_checkEvent(aIdx, aEvent)
@@ -1038,6 +1039,72 @@ function caretMoveChecker(aCaretOffset)
     is(aEvent.QueryInterface(nsIAccessibleCaretMoveEvent).caretOffset,
        aCaretOffset,
        "Wrong caret offset for " + prettyName(aEvent.accessible));
+  }
+}
+
+
+
+
+function stateChangeChecker(aState, aIsExtraState, aIsEnabled,
+                            aTargetOrFunc, aTargetFuncArg)
+{
+  this.__proto__ = new invokerChecker(EVENT_STATE_CHANGE, aTargetOrFunc,
+                                      aTargetFuncArg);
+
+  this.check = function stateChangeChecker_check(aEvent)
+  {
+    var event = null;
+    try {
+      var event = aEvent.QueryInterface(nsIAccessibleStateChangeEvent);
+    } catch (e) {
+      ok(false, "State change event was expected");
+    }
+
+    if (!event)
+      return;
+
+    is(event.state, aState, "Wrong state of the statechange event.");
+    is(event.isExtraState(), aIsExtraState,
+       "Wrong extra state bit of the statechange event.");
+    is(event.isEnabled(), aIsEnabled,
+      "Wrong state of statechange event state");
+
+    var state = aIsEnabled ? (aIsExtraState ? 0 : aState) : 0;
+    var extraState = aIsEnabled ? (aIsExtraState ? aState : 0) : 0;
+    var unxpdState = aIsEnabled ? 0 : (aIsExtraState ? 0 : aState);
+    var unxpdExtraState = aIsEnabled ? 0 : (aIsExtraState ? aState : 0);
+    testStates(event.accessible, state, extraState, unxpdState, unxpdExtraState);
+  }
+}
+
+
+
+
+function expandedStateChecker(aIsEnabled, aTargetOrFunc, aTargetFuncArg)
+{
+  this.__proto__ = new invokerChecker(EVENT_STATE_CHANGE, aTargetOrFunc,
+                                      aTargetFuncArg);
+
+  this.check = function expandedStateChecker_check(aEvent)
+  {
+    var event = null;
+    try {
+      var event = aEvent.QueryInterface(nsIAccessibleStateChangeEvent);
+    } catch (e) {
+      ok(false, "State change event was expected");
+    }
+
+    if (!event)
+      return;
+
+    is(event.state, STATE_EXPANDED, "Wrong state of the statechange event.");
+    is(event.isExtraState(), false,
+       "Wrong extra state bit of the statechange event.");
+    is(event.isEnabled(), aIsEnabled,
+      "Wrong state of statechange event state");
+
+    testStates(event.accessible,
+               (aIsEnabled ? STATE_EXPANDED : STATE_COLLAPSED));
   }
 }
 

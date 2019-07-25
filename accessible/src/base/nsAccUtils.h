@@ -50,7 +50,7 @@
 #include "nsAccessibilityService.h"
 #include "nsCoreUtils.h"
 
-#include "nsIContent.h"
+#include "mozilla/dom/Element.h"
 #include "nsIDocShell.h"
 #include "nsIDOMNode.h"
 #include "nsIPersistentProperties2.h"
@@ -149,6 +149,11 @@ public:
 
 
   static PRBool HasDefinedARIAToken(nsIContent *aContent, nsIAtom *aAtom);
+
+  
+
+
+  static nsIAtom* GetARIAToken(mozilla::dom::Element* aElement, nsIAtom* aAttr);
 
   
 

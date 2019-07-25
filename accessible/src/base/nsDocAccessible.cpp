@@ -84,8 +84,6 @@ using namespace mozilla::a11y;
 
 
 
-PRUint64 nsDocAccessible::gLastFocusedAccessiblesState = 0;
-
 static nsIAtom** kRelationAttrs[] =
 {
   &nsAccessibilityAtoms::aria_labelledby,
@@ -918,6 +916,20 @@ nsDocAccessible::AttributeWillChange(nsIDocument *aDocument,
                                      PRInt32 aNameSpaceID,
                                      nsIAtom* aAttribute, PRInt32 aModType)
 {
+  nsAccessible* accessible = GetAccessible(aElement);
+  if (!accessible) {
+    if (aElement != mContent)
+      return;
+
+    accessible = this;
+  }
+
+  
+  
+  
+  if (aModType != nsIDOMMutationEvent::ADDITION)
+    RemoveDependentIDsFor(accessible, aAttribute);
+
   
   
   
@@ -926,13 +938,11 @@ nsDocAccessible::AttributeWillChange(nsIDocument *aDocument,
   
   
   
-  if (aModType == nsIDOMMutationEvent::MODIFICATION ||
-      aModType == nsIDOMMutationEvent::REMOVAL) {
-    nsAccessible* accessible = GetAccessible(aElement);
-    if (accessible)
-      RemoveDependentIDsFor(accessible, aAttribute);
-    else if (aElement == mContent)
-      RemoveDependentIDsFor(this, aAttribute);
+  
+  if (aAttribute == nsAccessibilityAtoms::aria_checked ||
+      aAttribute == nsAccessibilityAtoms::aria_pressed) {
+    mARIAAttrOldValue = (aModType != nsIDOMMutationEvent::ADDITION) ?
+      nsAccUtils::GetARIAToken(aElement, aAttribute) : nsnull;
   }
 }
 
@@ -976,10 +986,6 @@ nsDocAccessible::AttributeChanged(nsIDocument *aDocument,
       aModType == nsIDOMMutationEvent::ADDITION) {
     AddDependentIDsFor(accessible, aAttribute);
   }
-
-  
-  if (aElement == gLastFocusedNode)
-    gLastFocusedAccessiblesState = accessible->State();
 }
 
 
@@ -1045,8 +1051,8 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
   }
 
   if (aAttribute == nsAccessibilityAtoms::aria_busy) {
-    PRBool isOn = !aContent->AttrValueIs(aNameSpaceID, aAttribute,
-                                         nsAccessibilityAtoms::_true, eCaseMatters);
+    PRBool isOn = aContent->AttrValueIs(aNameSpaceID, aAttribute,
+                                        nsAccessibilityAtoms::_true, eCaseMatters);
     nsRefPtr<AccEvent> event = new AccStateChangeEvent(aContent, states::BUSY, isOn);
     FireDelayedAccessibleEvent(event);
     return;
@@ -1158,24 +1164,18 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
       aAttribute == nsAccessibilityAtoms::aria_pressed) {
     const PRUint32 kState = (aAttribute == nsAccessibilityAtoms::aria_checked) ?
                             states::CHECKED : states::PRESSED;
-    nsRefPtr<AccEvent> event =
-      new AccStateChangeEvent(aContent, kState);
+    nsRefPtr<AccEvent> event = new AccStateChangeEvent(aContent, kState);
     FireDelayedAccessibleEvent(event);
-    if (aContent == gLastFocusedNode) {
-      
-      
-      
-      
-      nsAccessible *accessible = event->GetAccessible();
-      if (accessible) {
-        PRBool wasMixed = (gLastFocusedAccessiblesState & states::MIXED) != 0;
-        PRBool isMixed  =
-          (accessible->State() & states::MIXED) != 0;
-        if (wasMixed != isMixed) {
-          nsRefPtr<AccEvent> event =
-            new AccStateChangeEvent(aContent, states::MIXED, isMixed);
-          FireDelayedAccessibleEvent(event);
-        }
+
+    nsAccessible* accessible = event->GetAccessible();
+    if (accessible) {
+      bool wasMixed = (mARIAAttrOldValue == nsAccessibilityAtoms::mixed);
+      bool isMixed = aContent->AttrValueIs(kNameSpaceID_None, aAttribute,
+                                           nsAccessibilityAtoms::mixed, eCaseMatters);
+      if (isMixed != wasMixed) {
+        nsRefPtr<AccEvent> event =
+          new AccStateChangeEvent(aContent, states::MIXED, isMixed);
+        FireDelayedAccessibleEvent(event);
       }
     }
     return;
