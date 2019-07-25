@@ -692,7 +692,12 @@ var gEditItemOverlay = {
 
     
     var newTitle = this._element("userEnteredName").label;
-    if (this._getItemStaticTitle() != newTitle) {
+    if (!newTitle &&
+        PlacesUtils.bookmarks.getFolderIdForItem(this._itemId) == PlacesUtils.tagsFolderId) {
+      
+      this._initNamePicker();
+    }
+    else if (this._getItemStaticTitle() != newTitle) {
       this._mayUpdateFirstEditField("namePicker");
       if (PlacesUtils.microsummaries.hasMicrosummary(this._itemId)) {
         
@@ -1003,20 +1008,16 @@ var gEditItemOverlay = {
     }
   },
 
-  _getTagsArrayFromTagField: function EIO__getTagsArrayFromTagField() {
-    
-    var tags = this._element("tagsField").value.split(",");
-    for (var i=0; i < tags.length; i++) {
-      
-      tags[i] = tags[i].replace(/^\s+/, "").replace(/\s+$/, "");
+  
 
-      
-      if (tags[i] == "") {
-        tags.splice(i, 1);
-        i--;
-      }
-    }
-    return tags;
+
+
+
+  _getTagsArrayFromTagField: function EIO__getTagsArrayFromTagField() {
+    let tags = this._element("tagsField").value;
+    return tags.trim()
+               .split(/\s*,\s*/) 
+               .filter(function (tag) tag.length > 0); 
   },
 
   newFolder: function EIO_newFolder() {

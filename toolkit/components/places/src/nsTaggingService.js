@@ -140,46 +140,78 @@ TaggingService.prototype = {
   },
 
   
-  tagURI: function TS_tagURI(aURI, aTags) {
-    if (!aURI || !aTags)
+
+
+
+
+
+
+
+
+
+  _convertInputMixedTagsArray: function TS__convertInputMixedTagsArray(aTags)
+  {
+    return aTags.map(function (val)
+    {
+      let tag = { _self: this };
+      if (typeof(val) == "number" && this._tagFolders[val]) {
+        
+        tag.id = val;
+        
+        
+        tag.__defineGetter__("name", function () this._self._tagFolders[this.id]);
+      }
+      else if (typeof(val) == "string" && val.length > 0) {
+        
+        tag.name = val;
+        
+        
+        tag.__defineGetter__("id", function () this._self._getItemIdForTag(this.name));
+      }
+      else {
+        throw Cr.NS_ERROR_INVALID_ARG;
+      }
+      return tag;
+    }, this);
+  },
+
+  
+  tagURI: function TS_tagURI(aURI, aTags)
+  {
+    if (!aURI || !aTags || !Array.isArray(aTags)) {
       throw Cr.NS_ERROR_INVALID_ARG;
+    }
 
+    
+    let tags = this._convertInputMixedTagsArray(aTags);
+
+    let taggingService = this;
     PlacesUtils.bookmarks.runInBatchMode({
-      _self: this,
-      runBatched: function(aUserData) {
-        for (var i = 0; i < aTags.length; i++) {
-          var tag = aTags[i];
-          var tagId = null;
-          if (typeof(tag) == "number") {
+      runBatched: function (aUserData)
+      {
+        tags.forEach(function (tag)
+        {
+          if (tag.id == -1) {
             
-            if (this._self._tagFolders[tag]) {
-              tagId = tag;
-              tag = this._self._tagFolders[tagId];
-            }
-            else
-              throw Cr.NS_ERROR_INVALID_ARG;
-          }
-          else {
-            tagId = this._self._getItemIdForTag(tag);
-            if (tagId == -1)
-              tagId = this._self._createTag(tag);
+            tag.id = this._createTag(tag.name);
           }
 
-          var itemId = this._self._getItemIdForTaggedURI(aURI, tag);
-          if (itemId == -1) {
+          if (this._getItemIdForTaggedURI(aURI, tag.name) == -1) {
+            
+            
             PlacesUtils.bookmarks.insertBookmark(
-              tagId, aURI, PlacesUtils.bookmarks.DEFAULT_INDEX, null
+              tag.id, aURI, PlacesUtils.bookmarks.DEFAULT_INDEX, null
             );
           }
 
           
           
-          var currentTagTitle = PlacesUtils.bookmarks.getItemTitle(tagId);
-          if (currentTagTitle != tag) {
-            PlacesUtils.bookmarks.setItemTitle(tagId, tag);
-            this._self._tagFolders[tagId] = tag;
+          
+          if (PlacesUtils.bookmarks.getItemTitle(tag.id) != tag.name) {
+            
+            PlacesUtils.bookmarks.setItemTitle(tag.id, tag.name);
           }
-        }
+        }, taggingService);
       }
     }, null);
   },
@@ -204,9 +236,11 @@ TaggingService.prototype = {
   },
 
   
-  untagURI: function TS_untagURI(aURI, aTags) {
-    if (!aURI)
+  untagURI: function TS_untagURI(aURI, aTags)
+  {
+    if (!aURI || (aTags && !Array.isArray(aTags))) {
       throw Cr.NS_ERROR_INVALID_ARG;
+    }
 
     if (!aTags) {
       
@@ -214,32 +248,25 @@ TaggingService.prototype = {
       aTags = this.getTagsForURI(aURI);
     }
 
-    PlacesUtils.bookmarks.runInBatchMode({
-      _self: this,
-      runBatched: function(aUserData) {
-        for (var i = 0; i < aTags.length; i++) {
-          var tag = aTags[i];
-          var tagId = null;
-          if (typeof(tag) == "number") {
-            
-            if (this._self._tagFolders[tag]) {
-              tagId = tag;
-              tag = this._self._tagFolders[tagId];
-            }
-            else
-              throw Cr.NS_ERROR_INVALID_ARG;
-          }
-          else
-            tagId = this._self._getItemIdForTag(tag);
+    
+    let tags = this._convertInputMixedTagsArray(aTags);
 
-          if (tagId != -1) {
-            var itemId = this._self._getItemIdForTaggedURI(aURI, tag);
+    let taggingService = this;
+    PlacesUtils.bookmarks.runInBatchMode({
+      runBatched: function (aUserData)
+      {
+        tags.forEach(function (tag)
+        {
+          if (tag.id != -1) {
+            
+            let itemId = this._getItemIdForTaggedURI(aURI, tag.name);
             if (itemId != -1) {
+              
               PlacesUtils.bookmarks.removeItem(itemId);
-              this._self._removeTagIfEmpty(tagId);
+              this._removeTagIfEmpty(tag.id);
             }
           }
-        }
+        }, taggingService);
       }
     }, null);
   },

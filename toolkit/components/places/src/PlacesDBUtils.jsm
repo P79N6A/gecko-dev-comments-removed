@@ -459,6 +459,19 @@ nsPlacesDBUtils.prototype = {
 
     
     
+    
+    let fixEmptyNamedTags = this._dbConn.createStatement(
+      "UPDATE moz_bookmarks SET title = :empty_title " +
+      "WHERE length(title) = 0 AND type = :folder_type " +
+        "AND parent = :tags_folder"
+    );
+    fixEmptyNamedTags.params["empty_title"] = "(notitle)";
+    fixEmptyNamedTags.params["folder_type"] = this._bms.TYPE_FOLDER;
+    fixEmptyNamedTags.params["tags_folder"] = this._bms.tagsFolder;
+    cleanupStatements.push(fixEmptyNamedTags);
+
+    
+    
     let deleteOrphanIcons = this._dbConn.createStatement(
       "DELETE FROM moz_favicons WHERE id IN (" +
         "SELECT id FROM moz_favicons f " +

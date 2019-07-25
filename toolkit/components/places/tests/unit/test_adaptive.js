@@ -152,8 +152,9 @@ function setCountRank(aURI, aCount, aRank, aSearch, aBookmark)
                                          "test_book");
 
     
-    if (aBookmark == "tag")
-      PlacesUtils.tagging.tagURI(aURI, "test_tag");
+    if (aBookmark == "tag") {
+      PlacesUtils.tagging.tagURI(aURI, ["test_tag"]);
+    }
   }
 }
 
