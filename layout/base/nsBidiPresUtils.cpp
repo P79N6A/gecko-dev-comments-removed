@@ -566,8 +566,13 @@ nsBidiPresUtils::Resolve(nsBlockFrame* aBlockFrame)
     fragmentLength -= temp;
 
     if (frame && fragmentLength <= 0) {
-      if (runLength <= 0) {
-        
+      
+      
+      
+      
+      
+      
+      if (runLength <= 0 && !frame->GetNextInFlow()) {
         nsIFrame* child = frame;
         nsIFrame* parent = frame->GetParent();
         
