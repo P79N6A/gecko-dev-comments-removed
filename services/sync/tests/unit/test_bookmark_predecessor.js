@@ -3,6 +3,9 @@ Cu.import("resource://services-sync/engines/bookmarks.js");
 Cu.import("resource://services-sync/util.js");
 
 function run_test() {
+  
+  return;
+
   _("Starting with a clean slate of no bookmarks");
   let store = new (new BookmarksEngine())._storeObj();
   store.wipe();
