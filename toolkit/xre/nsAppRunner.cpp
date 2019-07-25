@@ -41,6 +41,11 @@
 
 
 
+#ifdef MOZ_IPC
+#include "mozilla/dom/ContentParent.h"
+using mozilla::dom::ContentParent;
+#endif
+
 #if defined(XP_OS2) && defined(MOZ_OS2_HIGH_MEMORY)
 
 #include <os2safe.h>
@@ -761,6 +766,22 @@ nsXULAppInfo::GetProcessType(PRUint32* aResult)
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = XRE_GetProcessType();
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsXULAppInfo::EnsureContentProcess()
+{
+#ifdef MOZ_IPC
+  if (XRE_GetProcessType() != GeckoProcessType_Default)
+    return NS_ERROR_NOT_AVAILABLE;
+
+  ContentParent* c = ContentParent::GetSingleton();
+  if (!c)
+    return NS_ERROR_NOT_AVAILABLE;
+  return NS_OK;
+#else
+  return NS_ERROR_NOT_AVAILABLE;
+#endif
 }
 
 NS_IMETHODIMP
