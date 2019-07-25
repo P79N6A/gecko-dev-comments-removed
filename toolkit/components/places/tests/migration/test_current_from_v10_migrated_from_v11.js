@@ -109,7 +109,7 @@ function test_final_state()
   dbFile.append(kDBName);
   let db = Services.storage.openUnsharedDatabase(dbFile);
 
-  do_check_eq(db.schemaVersion, 11);
+  do_check_eq(db.schemaVersion, CURRENT_SCHEMA_VERSION);
 
   db.close();
   run_next_test();

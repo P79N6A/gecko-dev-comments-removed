@@ -163,7 +163,7 @@ using namespace mozilla::places;
 
 
 
-#define DATABASE_SCHEMA_VERSION 11
+#define DATABASE_SCHEMA_VERSION 12
 
 
 #define DATABASE_FILENAME NS_LITERAL_STRING("places.sqlite")
@@ -311,6 +311,49 @@ namespace mozilla {
       }
 
       _sqlFragment.AppendLiteral(" AS tags ");
+    }
+
+    
+
+
+
+
+    nsresult updateSQLiteStatistics(mozIStorageConnection* aDBConn)
+    {
+      nsCOMPtr<mozIStorageAsyncStatement> analyzePlacesStmt;
+      nsresult rv = aDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
+        "ANALYZE moz_places"
+      ), getter_AddRefs(analyzePlacesStmt));
+      NS_ENSURE_SUCCESS(rv, rv);
+      nsCOMPtr<mozIStorageAsyncStatement> analyzeBookmarksStmt;
+      rv = aDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
+        "ANALYZE moz_bookmarks"
+      ), getter_AddRefs(analyzeBookmarksStmt));
+      NS_ENSURE_SUCCESS(rv, rv);
+      nsCOMPtr<mozIStorageAsyncStatement> analyzeVisitsStmt;
+      rv = aDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
+        "ANALYZE moz_historyvisits"
+      ), getter_AddRefs(analyzeVisitsStmt));
+      NS_ENSURE_SUCCESS(rv, rv);
+      nsCOMPtr<mozIStorageAsyncStatement> analyzeInputStmt;
+      rv = aDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
+        "ANALYZE moz_inputhistory"
+      ), getter_AddRefs(analyzeInputStmt));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      mozIStorageBaseStatement *stmts[] = {
+        analyzePlacesStmt,
+        analyzeBookmarksStmt,
+        analyzeVisitsStmt,
+        analyzeInputStmt
+      };
+
+      nsCOMPtr<mozIStoragePendingStatement> ps;
+      rv = aDBConn->ExecuteAsync(stmts, NS_ARRAY_LENGTH(stmts), nsnull,
+                                 getter_AddRefs(ps));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      return NS_OK;
     }
 
   } 
@@ -926,6 +969,9 @@ nsNavHistory::InitDB()
 
   
   rv = UpdateSchemaVersion();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = updateSQLiteStatistics(mDBConn);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = transaction.Commit();
