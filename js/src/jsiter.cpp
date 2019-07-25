@@ -388,12 +388,27 @@ Compare(T *a, T *b, size_t c)
     return true;
 }
 
-static JSObject *
+static inline JSObject *
 NewIteratorObject(JSContext *cx, uintN flags)
 {
-    return !(flags & JSITER_ENUMERATE)
-           ? NewObject(cx, &js_IteratorClass.base, NULL, NULL)
-           : NewObjectWithGivenProto(cx, &js_IteratorClass.base, NULL, NULL);
+    if (flags & JSITER_ENUMERATE) {
+        
+
+
+
+
+
+
+
+        JSObject *obj = js_NewGCObject(cx);
+        if (!obj)
+            return false;
+        obj->map = cx->runtime->emptyEnumeratorScope->hold();
+        obj->init(&js_IteratorClass.base, NULL, NULL, JSVAL_NULL);
+        return obj;
+    }
+
+    return NewBuiltinClassInstance(cx, &js_IteratorClass.base);
 }
 
 static inline void
@@ -912,7 +927,7 @@ JSExtendedClass js_GeneratorClass = {
 JS_REQUIRES_STACK JSObject *
 js_NewGenerator(JSContext *cx)
 {
-    JSObject *obj = NewObject(cx, &js_GeneratorClass.base, NULL, NULL);
+    JSObject *obj = NewBuiltinClassInstance(cx, &js_GeneratorClass.base);
     if (!obj)
         return NULL;
 

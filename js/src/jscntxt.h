@@ -1413,9 +1413,16 @@ struct JSRuntime {
     
     JSAtomState         atomState;
 
+    
+
+
+
     JSEmptyScope          *emptyArgumentsScope;
     JSEmptyScope          *emptyBlockScope;
     JSEmptyScope          *emptyCallScope;
+    JSEmptyScope          *emptyDeclEnvScope;
+    JSEmptyScope          *emptyEnumeratorScope;
+    JSEmptyScope          *emptyWithScope;
 
     
 
