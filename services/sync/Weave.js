@@ -57,8 +57,6 @@ WeaveService.prototype = {
         getService(Ci.nsIObserverService);
       os.addObserver(this, "final-ui-startup", true);
       break;
-   
-
 
     case "final-ui-startup":
       Cu.import("resource://weave/service.js");
