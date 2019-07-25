@@ -114,6 +114,7 @@ var EXPORTED_SYMBOLS = [ "XPCOMUtils" ];
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
+const Cu = Components.utils;
 
 var XPCOMUtils = {
   
@@ -184,6 +185,31 @@ var XPCOMUtils = {
   {
     this.defineLazyGetter(aObject, aName, function XPCU_serviceLambda() {
       return Cc[aContract].getService(Ci[aInterfaceName]);
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  defineLazyModuleGetter: function XPCU_defineLazyModuleGetter(aObject, aName,
+                                                               aResource,
+                                                               aSymbol)
+  {
+    this.defineLazyGetter(aObject, aName, function XPCU_moduleLambda() {
+      var temp = {};
+      Cu.import(aResource, temp);
+      return temp[aSymbol || aName];
     });
   },
 
