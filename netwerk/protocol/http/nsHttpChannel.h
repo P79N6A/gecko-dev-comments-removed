@@ -60,7 +60,6 @@
 #include "nsIProtocolProxyCallback.h"
 #include "nsICancelable.h"
 #include "nsIHttpAuthenticableChannel.h"
-#include "nsITraceableChannel.h"
 #include "nsIHttpChannelAuthProvider.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsICryptoHash.h"
@@ -84,7 +83,6 @@ class nsHttpChannel : public HttpBaseChannel
                     , public nsITransportEventSink
                     , public nsIProtocolProxyCallback
                     , public nsIHttpAuthenticableChannel
-                    , public nsITraceableChannel
                     , public nsIApplicationCacheChannel
                     , public nsIAsyncVerifyRedirectCallback
                     , public nsITimedChannel
@@ -99,7 +97,6 @@ public:
     NS_DECL_NSITRANSPORTEVENTSINK
     NS_DECL_NSIPROTOCOLPROXYCALLBACK
     NS_DECL_NSIPROXIEDCHANNEL
-    NS_DECL_NSITRACEABLECHANNEL
     NS_DECL_NSIAPPLICATIONCACHECONTAINER
     NS_DECL_NSIAPPLICATIONCACHECHANNEL
     NS_DECL_NSIASYNCVERIFYREDIRECTCALLBACK
@@ -341,7 +338,6 @@ private:
     
     
     PRUint32                          mFallbackChannel          : 1;
-    PRUint32                          mTracingEnabled           : 1;
     
     
     

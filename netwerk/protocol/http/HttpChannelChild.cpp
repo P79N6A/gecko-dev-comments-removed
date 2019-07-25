@@ -272,6 +272,7 @@ HttpChannelChild::OnStartRequest(const nsHttpResponseHead& responseHead,
 
   
   gHttpHandler->OnExamineResponse(this);
+  mTracingEnabled = PR_FALSE;
 
   nsresult rv = mListener->OnStartRequest(this, mListenerContext);
   if (NS_FAILED(rv)) {
@@ -1187,17 +1188,6 @@ HttpChannelChild::SetPriority(PRInt32 aPriority)
 
 NS_IMETHODIMP
 HttpChannelChild::GetProxyInfo(nsIProxyInfo **aProxyInfo)
-{
-  DROP_DEAD();
-}
-
-
-
-
-
-NS_IMETHODIMP
-HttpChannelChild::SetNewListener(nsIStreamListener *listener, 
-                                 nsIStreamListener **oldListener)
 {
   DROP_DEAD();
 }

@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef mozilla_net_HttpBaseChannel_h
 #define mozilla_net_HttpBaseChannel_h
 
@@ -59,6 +60,7 @@
 #include "nsISupportsPriority.h"
 #include "nsIApplicationCache.h"
 #include "nsIResumableChannel.h"
+#include "nsITraceableChannel.h"
 #include "mozilla/net/NeckoCommon.h"
 
 namespace mozilla {
@@ -79,11 +81,13 @@ class HttpBaseChannel : public nsHashPropertyBag
                       , public nsIUploadChannel2
                       , public nsISupportsPriority
                       , public nsIResumableChannel
+                      , public nsITraceableChannel
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIUPLOADCHANNEL
   NS_DECL_NSIUPLOADCHANNEL2
+  NS_DECL_NSITRACEABLECHANNEL
 
   HttpBaseChannel();
   virtual ~HttpBaseChannel();
@@ -274,8 +278,9 @@ protected:
   PRUint32                          mChooseApplicationCache     : 1;
   PRUint32                          mLoadedFromApplicationCache : 1;
   PRUint32                          mChannelIsForDownload       : 1;
+  PRUint32                          mTracingEnabled             : 1;
   
-  PRUint32                          mTimingEnabled : 1;
+  PRUint32                          mTimingEnabled              : 1;
 
   nsTArray<nsCString>              *mRedirectedCachekeys;
 };
