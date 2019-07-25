@@ -42,13 +42,21 @@ Cu.import("resource://gre/modules/PluralForm.jsm");
 const TOOLBARSTATE_LOADING  = 1;
 const TOOLBARSTATE_LOADED   = 2;
 
-const kDefaultFavIconURL = "chrome://browser/skin/images/favicon-default-30.png";
-
 [
   [
     "gHistSvc",
     "@mozilla.org/browser/nav-history-service;1",
     [Ci.nsINavHistoryService, Ci.nsIBrowserHistory]
+  ],
+  [
+    "gFaviconService",
+     "@mozilla.org/browser/favicon-service;1",
+     [Ci.nsIFaviconService]
+  ],
+  [
+    "gIOService",
+    "@mozilla.org/network/io-service;1",
+    [Ci.nsIIOService],
   ],
   [
     "gURIFixup",
@@ -75,7 +83,6 @@ var BrowserUI = {
   _edit : null,
   _throbber : null,
   _favicon : null,
-  _faviconLink : null,
   _dialogs: [],
 
   _domWillOpenModalDialog: function(e) {
@@ -133,12 +140,16 @@ var BrowserUI = {
       return;
 
     if (/\bicon\b/i(link.rel)) {
-      this._faviconLink = link.href;
-
+      var ownerDoc = link.ownerDocument;
+      if (!ownerDoc) 
+        return;
+      
+      let tab = Browser.getTabForDocument(ownerDoc);
+      tab.setIcon(link.href);
       
       
-      if (this._favicon.src != "")
-        this._setIcon(this._faviconLink);
+      if ((tab.browser == Browser.selectedBrowser) && !tab.isLoading())
+        this._updateIcon(tab.browser.mIconURL);
     }
     else if (/\bsearch\b/i(link.rel)) {
       var type = link.type && link.type.toLowerCase();
@@ -163,33 +174,8 @@ var BrowserUI = {
     var browser = Browser.selectedBrowser;
     this._titleChanged(browser.contentDocument);
     this._updateButtons(browser);
+    this._updateIcon(browser.mIconURL);
     this.updateStar();
-    this._favicon.src = browser.mIconURL || kDefaultFavIconURL;
-
-    
-    
-    this._faviconLink = this._favicon.src;
-    this.updateIcon();
-  },
-
-  _setIcon : function(aURI) {
-    var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-    try {
-      var faviconURI = ios.newURI(aURI, null, null);
-    }
-    catch (e) {
-      faviconURI = null;
-    }
-
-    var fis = Cc["@mozilla.org/browser/favicon-service;1"].getService(Ci.nsIFaviconService);
-    if (!faviconURI || faviconURI.schemeIs("javascript") || fis.isFailedFavicon(faviconURI))
-      faviconURI = ios.newURI(kDefaultFavIconURL, null, null);
-
-    var browser = getBrowser();
-    browser.mIconURL = faviconURI.spec;
-
-    fis.setAndLoadFaviconForPage(browser.currentURI, faviconURI, true);
-    this._favicon.src = faviconURI.spec;
   },
 
   showToolbar : function showToolbar(aEdit) {
@@ -427,35 +413,32 @@ var BrowserUI = {
 
   update : function(aState) {
     let icons = document.getElementById("urlbar-icons");
+    let browser = Browser.selectedBrowser;
 
     
     
-    let uri = Browser.selectedBrowser.contentDocument.documentURIObject;
+    let uri = browser.contentDocument.documentURIObject;
 
     switch (aState) {
       case TOOLBARSTATE_LOADED:
         if (icons.getAttribute("mode") != "edit")
           icons.setAttribute("mode", "view");
-        
-        if (!this._faviconLink)
-          this._faviconLink = uri.prePath + "/favicon.ico";
-        this._setIcon(this._faviconLink);
-        this.updateIcon();
-        this._faviconLink = null;
+
+        this._updateIcon(browser.mIconURL);
         break;
 
       case TOOLBARSTATE_LOADING:
         if (icons.getAttribute("mode") != "edit")
           icons.setAttribute("mode", "loading");
 
-        this._favicon.src = "";
-        this._faviconLink = null;
-        this.updateIcon();
+        browser.mIconURL = "";
+        this._updateIcon();
         break;
     }
   },
 
-  updateIcon : function() {
+  _updateIcon : function(aIconSrc) {
+    this._favicon.src = aIconSrc || "";
     if (Browser.selectedTab.isLoading()) {
       this._throbber.hidden = false;
       this._throbber.setAttribute("loading", "true");
@@ -682,7 +665,7 @@ var BrowserUI = {
         break;
       
       case "error":
-        this._favicon.src = "chrome://browser/skin/images/default-favicon.png";
+        this._favicon.src = "";
         break;
     }
   },
