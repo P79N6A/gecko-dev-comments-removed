@@ -509,6 +509,8 @@ BasicTextureImage::~BasicTextureImage()
         mGLContext->MakeCurrent();
         mGLContext->fDeleteTextures(1, &mTexture);
     }
+
+    mBackingSurface = nsnull;
 }
 
 gfxContext*
@@ -517,25 +519,31 @@ BasicTextureImage::BeginUpdate(nsIntRegion& aRegion)
     NS_ASSERTION(!mUpdateContext, "BeginUpdate() without EndUpdate()?");
 
     
-    if (!mTextureInited)
+    ImageFormat format =
+        (GetContentType() == gfxASurface::CONTENT_COLOR) ?
+        gfxASurface::ImageFormatRGB24 : gfxASurface::ImageFormatARGB32;
+    if (!mTextureInited || !mBackingSurface ||
+        mBackingSurface->GetSize() != gfxIntSize(mSize.width, mSize.height) ||
+        mBackingSurface->Format() != format) {
+        
         
         
         mUpdateRect = nsIntRect(nsIntPoint(0, 0), mSize);
-    else
+        mTextureInited = PR_FALSE;
+    } else {
         mUpdateRect = aRegion.GetBounds();
+    }
+
     
     
     aRegion = nsIntRegion(mUpdateRect);
-        
+
     nsIntSize rgnSize = mUpdateRect.Size();
     if (!nsIntRect(nsIntPoint(0, 0), mSize).Contains(mUpdateRect)) {
         NS_ERROR("update outside of image");
         return NULL;
     }
 
-    ImageFormat format =
-        (GetContentType() == gfxASurface::CONTENT_COLOR) ?
-        gfxASurface::ImageFormatRGB24 : gfxASurface::ImageFormatARGB32;
     nsRefPtr<gfxASurface> updateSurface =
         CreateUpdateSurface(gfxIntSize(rgnSize.width, rgnSize.height),
                             format);
@@ -572,8 +580,17 @@ BasicTextureImage::EndUpdate()
     mGLContext->fPixelStorei(LOCAL_GL_UNPACK_ROW_LENGTH,
                              uploadImage->Stride() / 4);
 
+    DEBUG_GL_ERROR_CHECK(mGLContext);
+
     if (!mTextureInited)
     {
+        
+        if (mGLContext->IsExtensionSupported(gl::GLContext::APPLE_client_storage)) {
+            mGLContext->fPixelStorei(LOCAL_GL_UNPACK_CLIENT_STORAGE_APPLE,
+                                     LOCAL_GL_TRUE);
+            DEBUG_GL_ERROR_CHECK(mGLContext);
+        }
+
         mGLContext->fTexImage2D(LOCAL_GL_TEXTURE_2D,
                                 0,
                                 LOCAL_GL_RGBA,
@@ -583,7 +600,19 @@ BasicTextureImage::EndUpdate()
                                 LOCAL_GL_RGBA,
                                 LOCAL_GL_UNSIGNED_BYTE,
                                 uploadImage->Data());
+
+        DEBUG_GL_ERROR_CHECK(mGLContext);
+
         mTextureInited = PR_TRUE;
+
+        
+        
+        if (mGLContext->IsExtensionSupported(gl::GLContext::APPLE_client_storage)) {
+            mBackingSurface = uploadImage;
+            mGLContext->fPixelStorei(LOCAL_GL_UNPACK_CLIENT_STORAGE_APPLE,
+                                     LOCAL_GL_FALSE);
+          DEBUG_GL_ERROR_CHECK(mGLContext);
+        }
     } else {
         mGLContext->fTexSubImage2D(LOCAL_GL_TEXTURE_2D,
                                    0,
