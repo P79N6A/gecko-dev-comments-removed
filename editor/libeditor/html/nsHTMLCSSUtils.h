@@ -308,7 +308,8 @@ public:
 
 
 
-  nsresult        GetDefaultViewCSS(nsIDOMNode* aNode, nsIDOMWindow** aWindow);
+  nsresult GetDefaultViewCSS(nsINode* aNode, nsIDOMWindow** aWindow);
+  nsresult GetDefaultViewCSS(nsIDOMNode* aNode, nsIDOMWindow** aWindow);
 
 
 private:
