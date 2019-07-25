@@ -1547,35 +1547,29 @@ nsGlobalWindow::SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal)
 }
 
 void
-nsGlobalWindow::SetInitialPrincipalToSubject(nsIDocShellTreeItem* aItem,
-                                             nsIDOMWindow* aParent)
+nsGlobalWindow::SetInitialPrincipalToSubject()
 {
+  
   nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
-  MOZ_ASSERT(ssm);
-
-  nsresult rv;
-  nsCOMPtr<nsIPrincipal> newWindowPrincipal;
-  rv = ssm->GetSubjectPrincipal(getter_AddRefs(newWindowPrincipal));
-  MOZ_ASSERT(NS_SUCCEEDED(rv));
-
-  if (!newWindowPrincipal && aParent) {
-    nsCOMPtr<nsIScriptObjectPrincipal> sop(do_QueryInterface(aParent));
-    if (sop) {
-      newWindowPrincipal = sop->GetPrincipal();
-    }
+  nsCOMPtr<nsIPrincipal> newWindowPrincipal, systemPrincipal;
+  ssm->GetSubjectPrincipal(getter_AddRefs(newWindowPrincipal));
+  ssm->GetSystemPrincipal(getter_AddRefs(systemPrincipal));
+  if (!newWindowPrincipal) {
+    newWindowPrincipal = systemPrincipal;
   }
 
-  bool isSystem;
-  rv = ssm->IsSystemPrincipal(newWindowPrincipal, &isSystem);
-  if (NS_FAILED(rv) || isSystem) {
-    
+  
+  
+  if (newWindowPrincipal == systemPrincipal) {
     int32_t itemType;
-    rv = aItem->GetItemType(&itemType);
+    nsCOMPtr<nsIDocShellTreeItem> item = do_QueryInterface(GetDocShell());
+    nsresult rv = item->GetItemType(&itemType);
     if (NS_FAILED(rv) || itemType != nsIDocShellTreeItem::typeChrome) {
       newWindowPrincipal = nullptr;
     }
   }
 
+  
   SetOpenerScriptPrincipal(newWindowPrincipal);
 }
 

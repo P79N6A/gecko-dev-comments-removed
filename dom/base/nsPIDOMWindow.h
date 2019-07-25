@@ -24,7 +24,6 @@
 
 class nsIIdleObserver;
 class nsIPrincipal;
-class nsIDocShellTreeItem; 
 
 
 
@@ -287,8 +286,7 @@ public:
   
   
   virtual void SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal) = 0;
-  virtual void SetInitialPrincipalToSubject(nsIDocShellTreeItem* aItem,
-                                            nsIDOMWindow* aParent) = 0;
+  virtual void SetInitialPrincipalToSubject() = 0;
 
   
   virtual nsIPrincipal* GetOpenerScriptPrincipal() = 0;
