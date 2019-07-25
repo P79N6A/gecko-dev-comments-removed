@@ -116,20 +116,25 @@ private:
     typedef js::Vector<Allocation, 2 ,js::SystemAllocPolicy > AllocationList;
 
     
-    jsrefcount m_refCount;
+    unsigned m_refCount;
 
 public:
-      
-      
-      
-      void addRef() { JS_ATOMIC_INCREMENT(&m_refCount); }
-      void release() { 
-	  JS_ASSERT(m_refCount != 0);
-	  if (JS_ATOMIC_DECREMENT(&m_refCount) == 0) 
-	      delete this; 
-      }
-
     
+    
+    
+    void addRef()
+    {
+        JS_ASSERT(m_refCount);
+        ++m_refCount;
+    }
+
+    void release()
+    { 
+        JS_ASSERT(m_refCount != 0);
+        if (--m_refCount == 0)
+            delete this;
+    }
+
     static ExecutablePool* create(size_t n)
     {
         ExecutablePool *pool = new ExecutablePool(n);

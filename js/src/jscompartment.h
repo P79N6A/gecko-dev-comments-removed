@@ -54,6 +54,12 @@
 #pragma warning(disable:4251) /* Silence warning about JS_FRIEND_API and data members. */
 #endif
 
+namespace JSC {
+
+class ExecutableAllocator;
+
+}
+
 namespace js {
 
 
@@ -304,6 +310,8 @@ struct JS_FRIEND_API(JSCompartment) {
 
     JSObject                     *anynameObject;
     JSObject                     *functionNamespaceObject;
+
+    JSC::ExecutableAllocator     *regExpAllocator;
 
     js::NativeIterCache          nativeIterCache;
 

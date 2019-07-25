@@ -122,10 +122,6 @@ template<typename T> class Seq;
 
 }  
 
-namespace JSC {
-    class ExecutableAllocator;
-}
-
 namespace js {
 
 
@@ -1438,8 +1434,6 @@ struct JSRuntime {
 
     JSWrapObjectCallback wrapObjectCallback;
     JSPreWrapCallback    preWrapObjectCallback;
-
-    JSC::ExecutableAllocator *regExpAllocator;
 
     JSRuntime();
     ~JSRuntime();
