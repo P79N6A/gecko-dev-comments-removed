@@ -63,6 +63,7 @@
 
 
 
+
 let GroupItem = function GroupItem(listOfEls, options) {
   try {
   if (typeof options == 'undefined')
@@ -110,6 +111,7 @@ let GroupItem = function GroupItem(listOfEls, options) {
   }
 
   var $container = options.container;
+  let immediately = options.immediately || $container ? true : false;
   if (!$container) {
     $container = iQ('<div>')
       .addClass('groupItem')
@@ -169,7 +171,7 @@ let GroupItem = function GroupItem(listOfEls, options) {
   this.$titleShield = iQ('.title-shield', this.$titlebar);
   this.setTitle(options.title || this.defaultName);
 
-  var titleUnfocus = function() {
+  var titleUnfocus = function(immediately) {
     self.$titleShield.show();
     if (!self.getTitle()) {
       self.$title
@@ -177,13 +179,19 @@ let GroupItem = function GroupItem(listOfEls, options) {
         .val(self.defaultName);
     } else {
       self.$title
-        .css({"background":"none"})
-        .animate({
-          "padding-left": "1px"
-        }, {
-          duration: 200,
-          easing: "tabviewBounce"
-        });
+        .css({"background":"none"});
+      if (immediately) {
+        self.$title.css({
+            "padding-left": "1px"
+          });
+      } else {
+        self.$title.animate({
+            "padding-left": "1px"
+          }, {
+            duration: 200,
+            easing: "tabviewBounce"
+          });
+      }
     }
   };
 
@@ -218,7 +226,7 @@ let GroupItem = function GroupItem(listOfEls, options) {
     })
     .keyup(handleKeyPress);
 
-  titleUnfocus();
+  titleUnfocus(immediately);
 
   if (this.locked.title)
     this.$title.addClass('name-locked');
@@ -268,14 +276,14 @@ let GroupItem = function GroupItem(listOfEls, options) {
   this._addHandlers($container);
 
   if (!this.locked.bounds)
-    this.setResizable(true);
+    this.setResizable(true, immediately);
 
   GroupItems.register(this);
 
   
-  var immediately = $container ? true : false;
   this.setBounds(rectToBe, immediately);
-  this.snap();
+  if (!options.dontPush)
+    this.snap();
   if ($container)
     this.setBounds(rectToBe, immediately);
 
@@ -557,6 +565,7 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  
   add: function(a, dropPos, options) {
     try {
       var item;
@@ -646,21 +655,23 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         item.setParent(this);
 
         if (typeof item.setResizable == 'function')
-          item.setResizable(false);
+          item.setResizable(false, options.immediately);
 
         if (item.tab == gBrowser.selectedTab)
           GroupItems.setActiveGroupItem(this);
       }
 
       if (!options.dontArrange) {
-        this.arrange();
+        this.arrange({animate: !options.immediately});
       }
+
       UI.setReorderTabsOnHide(this);
     } catch(e) {
       Utils.log('GroupItem.add error', e);
     }
   },
 
+  
   
   
   
@@ -699,12 +710,12 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       item.removeSubscriber(this, "close");
 
       if (typeof item.setResizable == 'function')
-        item.setResizable(true);
+        item.setResizable(true, options.immediately);
 
       if (!this._children.length && !this.locked.close && !this.getTitle() && !options.dontClose) {
         this.close();
       } else if (!options.dontArrange) {
-        this.arrange();
+        this.arrange({animate: !options.immediately});
       }
     } catch(e) {
       Utils.log(e);
@@ -782,14 +793,14 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       var bb = this.getContentBounds();
       var count = this._children.length;
       if (!this.shouldStack(count)) {
+        if (!options)
+          options = {};
+          
         var animate;
-        if (!options || typeof options.animate == 'undefined')
+        if (typeof options.animate == 'undefined')
           animate = true;
         else
           animate = options.animate;
-
-        if (typeof options == 'undefined')
-          options = {};
 
         this._children.forEach(function(child) {
             child.removeClass("stacked")
@@ -1151,15 +1162,15 @@ window.GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  setResizable: function(value) {
+  setResizable: function(value, immediately) {
     this.resizeOptions.minWidth = 90;
     this.resizeOptions.minHeight = 90;
 
     if (value) {
-      this.$resizer.fadeIn();
+      immediately ? this.$resizer.show() : this.$resizer.fadeIn();
       this.resizable(true);
     } else {
-      this.$resizer.fadeOut();
+      immediately ? this.$resizer.hide() : this.$resizer.fadeOut();
       this.resizable(false);
     }
   },
@@ -1377,7 +1388,8 @@ window.GroupItems = {
           var groupItem = groupItemData[id];
           if (this.groupItemStorageSanity(groupItem)) {
             var options = {
-              dontPush: true
+              dontPush: true,
+              immediately: true
             };
 
             new GroupItem([], Utils.extend({}, groupItem, options));
@@ -1505,12 +1517,12 @@ window.GroupItems = {
   
   
   
-  newTab: function(tabItem) {
+  newTab: function(tabItem, options) {
     let activeGroupItem = this.getActiveGroupItem();
     let orphanTab = this.getActiveOrphanTab();
 
     if (activeGroupItem) {
-      activeGroupItem.add(tabItem);
+      activeGroupItem.add(tabItem, null, options);
     } else if (orphanTab) {
       let newGroupItemBounds = orphanTab.getBoundsWithTitle();
       newGroupItemBounds.inset(-40,-40);
@@ -1518,7 +1530,7 @@ window.GroupItems = {
       newGroupItem.snap();
       this.setActiveGroupItem(newGroupItem);
     } else {
-      this.positionNewTabAtBottom(tabItem);
+      this.positionNewTabAtBottom(tabItem, options);
     }
   },
 
@@ -1528,7 +1540,9 @@ window.GroupItems = {
   
   
   
-  positionNewTabAtBottom: function(tabItem) {
+  
+  
+  positionNewTabAtBottom: function(tabItem, options) {
     let windowBounds = Items.getSafeWindowBounds();
 
     let itemBounds = new Rect(
@@ -1538,7 +1552,10 @@ window.GroupItems = {
       TabItems.tabHeight
     );
 
-    tabItem.setBounds(itemBounds);
+    if (!options)
+      options = {};
+
+    tabItem.setBounds(itemBounds, options.immediately);
   },
 
   
