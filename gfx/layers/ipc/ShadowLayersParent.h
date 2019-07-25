@@ -86,6 +86,20 @@ private:
   
   
   nsRefPtr<ContainerLayer> mRoot;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  bool mDestroyed;
 };
 
 } 
