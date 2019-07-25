@@ -630,8 +630,6 @@ VerifyContextParent(nsPresContext* aPresContext, nsIFrame* aFrame,
   
   
   
-  
-  
   if (childStyleIfVisited &&
       !((childStyleIfVisited->GetRuleNode() != aContext->GetRuleNode() &&
          childStyleIfVisited->GetParent() == aContext->GetParent()) ||
