@@ -413,6 +413,10 @@ public class AwesomeBar extends Activity implements GeckoEventListener {
         super.onResume();
         if (mText != null && mText.getText() != null)
             updateGoButton(mText.getText().toString());
+
+        
+        
+        BrowserDB.invalidateCachedState();
     }
 
     @Override
