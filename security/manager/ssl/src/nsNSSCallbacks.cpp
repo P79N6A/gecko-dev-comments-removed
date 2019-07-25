@@ -1040,6 +1040,40 @@ static struct nsSerialBinaryBlacklistEntry myUTNBlacklistEntries[] = {
 
 
 
+PRErrorCode
+PSM_SSL_DigiNotarTreatAsRevoked(CERTCertificate * serverCert,
+                                CERTCertList * serverCertChain)
+{
+  
+  
+  
+  
+  PRTime cutoff = 0;
+  PRStatus status = PR_ParseTimeString("01-JUL-2011 00:00", PR_TRUE, &cutoff);
+  if (status != PR_SUCCESS) {
+    NS_ASSERTION(status == PR_SUCCESS, "PR_ParseTimeString failed");
+    
+  } else {
+    PRTime notBefore = 0, notAfter = 0;
+    if (CERT_GetCertTimes(serverCert, &notBefore, &notAfter) == SECSuccess &&
+           notBefore < cutoff) {
+      
+      return 0;
+    }
+  }
+  
+  for (CERTCertListNode *node = CERT_LIST_HEAD(serverCertChain);
+       !CERT_LIST_END(node, serverCertChain);
+       node = CERT_LIST_NEXT(node)) {
+    if (node->cert->issuerName &&
+        strstr(node->cert->issuerName, "CN=DigiNotar")) {
+      return SEC_ERROR_REVOKED_CERTIFICATE;
+    }
+  }
+  
+  return 0;
+}
+
 
 PRErrorCode
 PSM_SSL_BlacklistDigiNotar(CERTCertificate * serverCert,
@@ -1053,28 +1087,30 @@ PSM_SSL_BlacklistDigiNotar(CERTCertificate * serverCert,
     if (!node->cert->issuerName)
       continue;
 
+    
+    
+    if ((!strcmp(node->cert->issuerName,
+                "CN=Staat der Nederlanden Root CA,O=Staat der Nederlanden,C=NL") ||
+         !strcmp(node->cert->issuerName,
+                "CN=Staat der Nederlanden Root CA - G2,O=Staat der Nederlanden,C=NL")) &&
+        SECITEM_ItemsAreEqual(&node->cert->derIssuer,&node->cert->derSubject)
+        ) {
+      
+      return 0;
+    }
+
     if (strstr(node->cert->issuerName, "CN=DigiNotar")) {
       isDigiNotarIssuedCert = PR_TRUE;
-      
-      
-      
-      if (strstr(node->cert->issuerName, "CN=DigiNotar Root CA")) {
-        PRTime cutoff = 0, notBefore = 0, notAfter = 0;
-        PRStatus status = PR_ParseTimeString("01-JUL-2011 00:00", PR_TRUE, &cutoff);
-        NS_ASSERTION(status == PR_SUCCESS, "PR_ParseTimeString failed");
-        if (status != PR_SUCCESS ||
-           CERT_GetCertTimes(serverCert, &notBefore, &notAfter) != SECSuccess ||
-           notBefore >= cutoff) {
-          return SEC_ERROR_REVOKED_CERTIFICATE;
-        }
-      }
     }
   }
 
-  if (isDigiNotarIssuedCert)
-    return SEC_ERROR_UNTRUSTED_ISSUER; 
-  else
-    return 0; 
+  if (isDigiNotarIssuedCert) {
+    
+    PRErrorCode revoked_code = PSM_SSL_DigiNotarTreatAsRevoked(serverCert, serverCertChain);
+    return (revoked_code != 0) ? revoked_code : SEC_ERROR_UNTRUSTED_ISSUER;
+  }
+
+  return 0;
 }
 
 
@@ -1140,18 +1176,27 @@ SECStatus PR_CALLBACK AuthCertificateCallback(void* client_data, PRFileDesc* fd,
     }
 
     CERTCertList *certList = nsnull;
-    if (rv == SECSuccess) {
-      certList = CERT_GetCertChainFromCert(serverCert, PR_Now(), certUsageSSLCA);
-      if (!certList) {
-        rv = SECFailure;
-      } else {
-        PRErrorCode blacklistErrorCode = PSM_SSL_BlacklistDigiNotar(serverCert,
-                                                                    certList);
-        if (blacklistErrorCode != 0) {
-          infoObject->SetCertIssuerBlacklisted();
-          PORT_SetError(blacklistErrorCode);
-          rv = SECFailure;
+    certList = CERT_GetCertChainFromCert(serverCert, PR_Now(), certUsageSSLCA);
+    if (!certList) {
+      rv = SECFailure;
+    } else {
+      PRErrorCode blacklistErrorCode;
+      if (rv == SECSuccess) { 
+        blacklistErrorCode = PSM_SSL_BlacklistDigiNotar(serverCert, certList);
+      } else { 
+        PRErrorCode savedErrorCode = PORT_GetError();
+        
+        blacklistErrorCode = PSM_SSL_DigiNotarTreatAsRevoked(serverCert, certList);
+        if (blacklistErrorCode == 0) {
+          
+          PORT_SetError(savedErrorCode);
         }
+      }
+      
+      if (blacklistErrorCode != 0) {
+        infoObject->SetCertIssuerBlacklisted();
+        PORT_SetError(blacklistErrorCode);
+        rv = SECFailure;
       }
     }
 
