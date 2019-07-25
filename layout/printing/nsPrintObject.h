@@ -89,6 +89,7 @@ public:
   PRPackedBool     mSharedPresShell;
   PRPackedBool     mInvisible;        
   PRPackedBool     mPrintPreview;
+  PRPackedBool     mDidCreateDocShell;
   float            mShrinkRatio;
   float            mZoomRatio;
 
