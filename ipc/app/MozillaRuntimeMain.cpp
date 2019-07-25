@@ -54,7 +54,7 @@
 int
 main(int argc, char* argv[])
 {
-#if defined(MOZ_CRASHREPORTER) && !defined(XP_MACOSX)
+#if defined(MOZ_CRASHREPORTER)
     if (argc < 2)
         return 1;
     const char* const crashReporterArg = argv[--argc];
@@ -70,7 +70,7 @@ main(int argc, char* argv[])
     
     
     if (0 != strcmp("false", crashReporterArg)
-        && !XRE_SetRemoteExceptionHandler(NULL))
+        && !XRE_SetRemoteExceptionHandler())
         return 1;
 #  else
 #    error "OOP crash reporting unsupported on this platform"

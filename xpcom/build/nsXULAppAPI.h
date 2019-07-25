@@ -424,7 +424,6 @@ enum GeckoProcessType {
 
   GeckoProcessType_Plugin,
   GeckoProcessType_Content,
-  GeckoProcessType_Jetpack,
 
   GeckoProcessType_IPDLUnitTest,
 
@@ -436,7 +435,6 @@ static const char* const kGeckoProcessTypeString[] = {
   "default",
   "plugin",
   "tab",
-  "jetpack",
   "ipdlunittest"
 };
 
@@ -452,13 +450,8 @@ XRE_API(GeckoProcessType,
         XRE_StringToChildProcessType, (const char* aProcessTypeString))
 
 #if defined(MOZ_CRASHREPORTER)
-
 XRE_API(PRBool,
-        XRE_TakeMinidumpForChild, (PRUint32 aChildPid, nsILocalFile** aDump))
-
-
-XRE_API(PRBool,
-        XRE_SetRemoteExceptionHandler, (const char* aPipe))
+        XRE_SetRemoteExceptionHandler, (const char* aPipe=0))
 #endif
 
 XRE_API(nsresult,
@@ -508,6 +501,4 @@ XRE_API(bool,
 XRE_API(bool,
         XRE_ShutdownTestShell, ())
 
-XRE_API(void,
-        XRE_InstallX11ErrorHandler, ())
 #endif 
