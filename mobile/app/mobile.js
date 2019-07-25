@@ -376,9 +376,7 @@ pref("privacy.item.geolocation", true);
 pref("privacy.item.siteSettings", true);
 pref("privacy.item.syncAccount", true);
 
-#ifdef MOZ_PLATFORM_MAEMO
 pref("plugins.force.wmode", "opaque");
-#endif
 
 
 pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/geolocation/");
