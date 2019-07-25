@@ -4068,7 +4068,9 @@ exports._empty = [];
 
 exports.setDocument = function(document) {
   doc = document;
-  exports._empty = doc.querySelectorAll('x>:root');
+  if (doc != null) {
+    exports._empty = doc.querySelectorAll('x>:root');
+  }
 };
 
 
@@ -5127,7 +5129,7 @@ var view = require('gcli/ui/view');
 var l10n = require('gcli/l10n');
 
 var canon = require('gcli/canon');
-var Promise = require('gcli/promise').Promise;
+var Q = require('gcli/promise');
 
 var Status = require('gcli/types').Status;
 var Conversion = require('gcli/types').Conversion;
@@ -5190,8 +5192,6 @@ function Assignment(param, paramIndex) {
   this.paramIndex = paramIndex;
 
   this.onAssignmentChange = util.createEvent('Assignment.onAssignmentChange');
-
-  this.setBlank();
 }
 
 
@@ -5273,39 +5273,6 @@ Assignment.prototype.getPredictionAt = function(index) {
 Assignment.prototype.isInName = function() {
   return this.conversion.arg.type === 'NamedArgument' &&
          this.conversion.arg.prefix.slice(-1) !== ' ';
-};
-
-
-
-
-
-
-
-
-
-
-Assignment.prototype.setConversion = function(conversion) {
-  var oldConversion = this.conversion;
-
-  this.conversion = conversion;
-  this.conversion.assign(this);
-
-  if (this.conversion.equals(oldConversion)) {
-    return;
-  }
-
-  this.onAssignmentChange({
-    assignment: this,
-    conversion: this.conversion,
-    oldConversion: oldConversion
-  });
-};
-
-
-
-
-Assignment.prototype.setBlank = function() {
-  this.setConversion(this.param.type.getBlank());
 };
 
 
@@ -5454,8 +5421,6 @@ function CommandAssignment() {
   this.param = new canon.Parameter(commandParamMetadata);
   this.paramIndex = -1;
   this.onAssignmentChange = util.createEvent('CommandAssignment.onAssignmentChange');
-
-  this.setBlank();
 }
 
 CommandAssignment.prototype = Object.create(Assignment.prototype);
@@ -5540,6 +5505,7 @@ function Requisition(environment, doc) {
   
   
   this.commandAssignment = new CommandAssignment();
+  this._setAssignment(this.commandAssignment, null, true);
 
   
   
@@ -5626,6 +5592,7 @@ Requisition.prototype._commandAssignmentChanged = function(ev) {
     for (var i = 0; i < command.params.length; i++) {
       var param = command.params[i];
       var assignment = new Assignment(param, i);
+      this._setAssignment(assignment, null, true);
       assignment.onAssignmentChange.add(this._assignmentChanged, this);
       this._assignments[param.name] = assignment;
     }
@@ -5752,36 +5719,77 @@ Requisition.prototype.getAssignments = function(includeCommand) {
 
 
 
+
 Requisition.prototype.setAssignment = function(assignment, arg) {
-  var originalArgs = assignment.arg.getArgs();
-  var conversion = assignment.param.type.parse(arg);
-  assignment.setConversion(conversion);
+  this._setAssignment(assignment, arg, false);
+};
 
-  var replacementArgs = arg.getArgs();
-  var maxLen = Math.max(originalArgs.length, replacementArgs.length);
-  for (var i = 0; i < maxLen; i++) {
-    
-    
-    if (i >= originalArgs.length || originalArgs[i].type === 'BlankArgument') {
-      this._args.push(replacementArgs[i]);
-      continue;
-    }
 
-    var index = this._args.indexOf(originalArgs[i]);
-    if (index === -1) {
-      console.error('Couldn\'t find ', originalArgs[i], ' in ', this._args);
-      throw new Error('Couldn\'t find ' + originalArgs[i]);
-    }
+
+
+
+
+
+
+
+
+Requisition.prototype._setAssignment = function(assignment, arg, skipArgUpdate) {
+  if (!skipArgUpdate) {
+    var originalArgs = assignment.arg.getArgs();
 
     
-    
-    if (i >= replacementArgs.length) {
-      this._args.splice(index, 1);
-    }
-    else {
-      this._args[index] = replacementArgs[i];
+    var replacementArgs = arg.getArgs();
+    var maxLen = Math.max(originalArgs.length, replacementArgs.length);
+    for (var i = 0; i < maxLen; i++) {
+      
+      
+      if (i >= originalArgs.length || originalArgs[i].type === 'BlankArgument') {
+        this._args.push(replacementArgs[i]);
+        continue;
+      }
+
+      var index = this._args.indexOf(originalArgs[i]);
+      if (index === -1) {
+        console.error('Couldn\'t find ', originalArgs[i], ' in ', this._args);
+        throw new Error('Couldn\'t find ' + originalArgs[i]);
+      }
+
+      
+      
+      if (i >= replacementArgs.length) {
+        this._args.splice(index, 1);
+      }
+      else {
+        this._args[index] = replacementArgs[i];
+      }
     }
   }
+
+  var conversion;
+  if (arg == null) {
+    conversion = assignment.param.type.getBlank();
+  }
+  else if (typeof arg.getStatus === 'function') {
+    conversion = arg;
+  }
+  else {
+    conversion = assignment.param.type.parse(arg);
+  }
+
+  var oldConversion = assignment.conversion;
+
+  assignment.conversion = conversion;
+  assignment.conversion.assign(assignment);
+
+  if (assignment.conversion.equals(oldConversion)) {
+    return;
+  }
+
+  assignment.onAssignmentChange({
+    assignment: assignment,
+    conversion: assignment.conversion,
+    oldConversion: oldConversion
+  });
 };
 
 
@@ -5789,7 +5797,7 @@ Requisition.prototype.setAssignment = function(assignment, arg) {
 
 Requisition.prototype.setBlankArguments = function() {
   this.getAssignments().forEach(function(assignment) {
-    assignment.setBlank();
+    this._setAssignment(assignment, null, true);
   }, this);
 };
 
@@ -6148,8 +6156,8 @@ Requisition.prototype.getAssignmentAt = function(cursor) {
 
 
 Requisition.prototype.exec = function(input) {
-  var command;
-  var args;
+  var command = null;
+  var args = null;
   var hidden = false;
   if (input && input.hidden) {
     hidden = true;
@@ -6200,31 +6208,56 @@ Requisition.prototype.exec = function(input) {
 
   this.commandOutputManager.onOutput({ output: output });
 
+  var onDone = function(data) {
+    output.complete(data);
+  };
+
+  var onError = function(error) {
+    console.error(error);
+    output.error = true;
+    output.complete(error);
+  };
+
   try {
     var context = exports.createExecutionContext(this);
     var reply = command.exec(args, context);
 
-    if (reply != null && typeof reply.then === 'function') {
-      reply.then(
-          function(data) { output.complete(data); },
-          function(error) { output.error = true; output.complete(error); });
-
-      output.promise = reply;
-      
-      
-    }
-    else {
-      output.complete(reply);
-    }
+    this._then(reply, onDone, onError);
   }
   catch (ex) {
-    console.error(ex);
-    output.error = true;
-    output.complete(ex);
+    onError(ex);
   }
 
   this.update('');
   return output;
+};
+
+
+
+
+
+
+
+
+
+Requisition.prototype._then = function(thing, onDone, onError) {
+  var then = null;
+  if (thing != null && typeof thing.then === 'function') {
+    
+    then = thing.then;
+  }
+  else if (thing != null && thing.promise != null &&
+                typeof thing.promise.then === 'function') {
+    
+    then = thing.promise.then;
+  }
+
+  if (then != null) {
+    then(onDone, onError);
+  }
+  else {
+    onDone(thing);
+  }
 };
 
 
@@ -6517,7 +6550,7 @@ Requisition.prototype._split = function(args) {
     
     
     conversion = new Conversion(evalCommand, new ScriptArgument());
-    this.commandAssignment.setConversion(conversion);
+    this._setAssignment(this.commandAssignment, conversion, true);
     return;
   }
 
@@ -6525,8 +6558,8 @@ Requisition.prototype._split = function(args) {
 
   while (argsUsed <= args.length) {
     var arg = (argsUsed === 1) ?
-      args[0] :
-      new MergedArgument(args, 0, argsUsed);
+              args[0] :
+              new MergedArgument(args, 0, argsUsed);
     conversion = this.commandAssignment.param.type.parse(arg);
 
     
@@ -6544,7 +6577,7 @@ Requisition.prototype._split = function(args) {
     argsUsed++;
   }
 
-  this.commandAssignment.setConversion(conversion);
+  this._setAssignment(this.commandAssignment, conversion, true);
 
   for (var i = 0; i < argsUsed; i++) {
     args.shift();
@@ -6590,11 +6623,8 @@ Requisition.prototype._assign = function(args) {
   if (this.assignmentCount === 1) {
     var assignment = this.getAssignment(0);
     if (assignment.param.type instanceof StringType) {
-      var arg = (args.length === 1) ?
-        args[0] :
-        new MergedArgument(args);
-      var conversion = assignment.param.type.parse(arg);
-      assignment.setConversion(conversion);
+      var arg = (args.length === 1) ? args[0] : new MergedArgument(args);
+      this._setAssignment(assignment, arg, true);
       return;
     }
   }
@@ -6639,8 +6669,7 @@ Requisition.prototype._assign = function(args) {
           arrayArg.addArgument(arg);
         }
         else {
-          var conversion = assignment.param.type.parse(arg);
-          assignment.setConversion(conversion);
+          this._setAssignment(assignment, arg, true);
         }
       }
       else {
@@ -6657,7 +6686,7 @@ Requisition.prototype._assign = function(args) {
     
     
     if (!assignment.param.isPositionalAllowed) {
-      assignment.setBlank();
+      this._setAssignment(assignment, null, true);
       return;
     }
 
@@ -6674,7 +6703,7 @@ Requisition.prototype._assign = function(args) {
     }
     else {
       if (args.length === 0) {
-        assignment.setBlank();
+        this._setAssignment(assignment, null, true);
       }
       else {
         var arg = args.splice(0, 1)[0];
@@ -6688,8 +6717,7 @@ Requisition.prototype._assign = function(args) {
           this._unassigned.push(new UnassignedAssignment(this, arg));
         }
         else {
-          var conversion = assignment.param.type.parse(arg);
-          assignment.setConversion(conversion);
+          this._setAssignment(assignment, arg, true);
         }
       }
     }
@@ -6698,8 +6726,7 @@ Requisition.prototype._assign = function(args) {
   
   Object.keys(arrayArgs).forEach(function(name) {
     var assignment = this.getAssignment(name);
-    var conversion = assignment.param.type.parse(arrayArgs[name]);
-    assignment.setConversion(conversion);
+    this._setAssignment(assignment, arrayArgs[name], true);
   }, this);
 
   
@@ -6732,14 +6759,28 @@ function Output(options) {
 
 
 
-Output.prototype.complete = function(data) {
+
+
+
+
+Output.prototype.changed = function(data, ev) {
   this.data = data;
 
+  ev = ev || {};
+  ev.output = this;
+  this.onChange(ev);
+};
+
+
+
+
+
+Output.prototype.complete = function(data, ev) {
   this.end = new Date();
   this.duration = this.end.getTime() - this.start.getTime();
   this.completed = true;
 
-  this.onChange({ output: this });
+  this.changed(data, ev);
 };
 
 
@@ -6830,8 +6871,15 @@ exports.createExecutionContext = function(requisition) {
     document: requisition.document,
     environment: requisition.environment,
     createView: view.createView,
+    defer: function() {
+      return Q.defer();
+    },
+    
+
+
+
     createPromise: function() {
-      return new Promise();
+      return Q.defer();
     }
   };
 };
@@ -6856,8 +6904,13 @@ exports.createExecutionContext = function(requisition) {
 
 define('gcli/promise', ['require', 'exports', 'module' ], function(require, exports, module) {
 
-  Components.utils.import("resource:///modules/devtools/Promise.jsm");
-  exports.Promise = Promise;
+  var imported = {};
+  Components.utils.import("resource://gre/modules/commonjs/promise/core.js",
+                          imported);
+
+  exports.defer = imported.Promise.defer;
+  exports.resolve = imported.Promise.resolve;
+  exports.reject = imported.Promise.reject;
 
 });
 define("text!gcli/ui/intro.html", [], "\n" +
@@ -7237,7 +7290,7 @@ FocusManager.prototype._checkShow = function() {
 
   if (fire) {
     if (this._debug) {
-      console.debug('FocusManager.onVisibilityChange', ev);
+      console.log('FocusManager.onVisibilityChange', ev);
     }
     this.onVisibilityChange(ev);
   }
@@ -7734,6 +7787,9 @@ Field.prototype.element = undefined;
 Field.prototype.destroy = function() {
   delete this.messageElement;
 };
+
+
+
 
 
 
@@ -9393,7 +9449,9 @@ Inputter.prototype.textChanged = function() {
   input.typed = newStr;
   this._processCaretChange(input);
 
-  this.element.value = newStr;
+  if (this.element.value !== newStr) {
+    this.element.value = newStr;
+  }
   this.onInputChange({ inputState: input });
 };
 
@@ -9469,8 +9527,12 @@ Inputter.prototype._processCaretChange = function(input) {
     cursor: { start: start, end: end }
   };
 
-  this.element.selectionStart = start;
-  this.element.selectionEnd = end;
+  if (this.element.selectionStart !== start) {
+    this.element.selectionStart = start;
+  }
+  if (this.element.selectionEnd !== end) {
+    this.element.selectionEnd = end;
+  }
 
   this._checkAssignment(start);
 
@@ -9605,7 +9667,7 @@ Inputter.prototype.onKeyUp = function(ev) {
       
       
       if (this.assignment.getStatus() === Status.VALID) {
-        this.requisition.increment(assignment);
+        this.requisition.increment(this.assignment);
         
         if (this.focusManager) {
           this.focusManager.onInputChange();
@@ -9629,7 +9691,7 @@ Inputter.prototype.onKeyUp = function(ev) {
     else {
       
       if (this.assignment.getStatus() === Status.VALID) {
-        this.requisition.decrement(assignment);
+        this.requisition.decrement(this.assignment);
         
         if (this.focusManager) {
           this.focusManager.onInputChange();
@@ -10314,7 +10376,7 @@ Tooltip.prototype.selectChoice = function(ev) {
 
 
 Tooltip.prototype.fieldChanged = function(ev) {
-  this.assignment.setConversion(ev.conversion);
+  this.requisition.setAssignment(this.assignment, ev.conversion.arg);
 
   var isError = ev.conversion.message != null && ev.conversion.message !== '';
   this.focusManager.setError(isError);
