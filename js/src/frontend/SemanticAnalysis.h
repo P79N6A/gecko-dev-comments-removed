@@ -14,7 +14,7 @@ class StackFrame;
 
 namespace frontend {
 
-class Parser;
+struct Parser;
 
 
 
