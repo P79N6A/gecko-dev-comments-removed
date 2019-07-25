@@ -3178,20 +3178,12 @@ nsJSContext::ClearScope(void *aGlobalObj, PRBool aClearFromProtoChain)
       JS_ClearPendingException(mContext);
     }
 
-    
-    
-    
-    
-    
-    
-    if (obj->isNative()) {
-      js_UnbrandAndClearSlots(mContext, obj);
-    } else {
-      JS_ClearScope(mContext, obj);
-    }
+    if (!JS_ClearScope(mContext, obj))
+      JS_ClearPendingException(mContext);
 
     if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
-      JS_ClearScope(mContext, &obj->getProxyExtra().toObject());
+      if (!JS_ClearScope(mContext, &obj->getProxyExtra().toObject()))
+        JS_ClearPendingException(mContext);
     }
 
     if (window != JSVAL_VOID) {
@@ -3229,7 +3221,8 @@ nsJSContext::ClearScope(void *aGlobalObj, PRBool aClearFromProtoChain)
       
       for (JSObject *o = ::JS_GetPrototype(mContext, obj), *next;
            o && (next = ::JS_GetPrototype(mContext, o)); o = next)
-        ::JS_ClearScope(mContext, o);
+        if (!::JS_ClearScope(mContext, o))
+          JS_ClearPendingException(mContext);
     }
   }
 
