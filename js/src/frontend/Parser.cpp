@@ -1974,6 +1974,15 @@ PopStatement(TreeContext *tc)
                 continue;
             tc->decls.remove(atom);
         }
+
+        
+
+
+
+
+
+
+        obj->lastProp->freezeIfDictionary();
     }
     PopStatementTC(tc);
 }
