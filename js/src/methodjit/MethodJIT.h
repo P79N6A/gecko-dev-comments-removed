@@ -396,7 +396,7 @@ class JaegerCompartment {
 
 
 
-    size_t orphanedNativeCount;
+    Vector<StackFrame *, 8, SystemAllocPolicy> orphanedNativeFrames;
     Vector<JSC::ExecutablePool *, 8, SystemAllocPolicy> orphanedNativePools;
 };
 

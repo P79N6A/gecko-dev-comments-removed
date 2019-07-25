@@ -129,7 +129,9 @@ Recompiler::patchNative(JSContext *cx, JITScript *jit, StackFrame *fp, jsbytecod
 
 
     fp->setRejoin(StubRejoin(rejoin));
-    cx->compartment->jaegerCompartment->orphanedNativeCount++;
+
+    
+    cx->compartment->jaegerCompartment->orphanedNativeFrames.append(fp);
 
     unsigned i;
     ic::CallICInfo *callICs = jit->callICs();

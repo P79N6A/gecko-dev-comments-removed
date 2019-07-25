@@ -525,10 +525,40 @@ stubs::PutActivationObjects(VMFrame &f)
     f.fp()->putActivationObjects();
 }
 
+static void
+RemoveOrphanedNative(JSContext *cx, StackFrame *fp)
+{
+    
+
+
+
+
+
+    JaegerCompartment *jc = cx->compartment->jaegerCompartment;
+    if (jc->orphanedNativeFrames.empty())
+        return;
+    for (unsigned i = 0; i < jc->orphanedNativeFrames.length(); i++) {
+        if (fp == jc->orphanedNativeFrames[i]) {
+            jc->orphanedNativeFrames[i] = jc->orphanedNativeFrames.back();
+            jc->orphanedNativeFrames.popBack();
+            break;
+        }
+    }
+    if (jc->orphanedNativeFrames.empty()) {
+        for (unsigned i = 0; i < jc->orphanedNativePools.length(); i++)
+            jc->orphanedNativePools[i]->release();
+        jc->orphanedNativePools.clear();
+    }
+}
+
 extern "C" void *
 js_InternalThrow(VMFrame &f)
 {
     JSContext *cx = f.cx;
+
+    
+    
+    RemoveOrphanedNative(cx, f.fp());
 
     
     
@@ -1376,13 +1406,7 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
 
 
 
-        JaegerCompartment *jc = cx->compartment->jaegerCompartment;
-        JS_ASSERT(jc->orphanedNativeCount);
-        if (--jc->orphanedNativeCount == 0) {
-            for (unsigned i = 0; i < jc->orphanedNativePools.length(); i++)
-                jc->orphanedNativePools[i]->release();
-            jc->orphanedNativePools.clear();
-        }
+        RemoveOrphanedNative(cx, fp);
         if (rejoin == REJOIN_NATIVE_LOWERED) {
             
 
