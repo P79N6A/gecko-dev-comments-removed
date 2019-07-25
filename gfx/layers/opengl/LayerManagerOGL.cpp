@@ -183,6 +183,7 @@ LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext)
     return PR_FALSE;
 
   mGLContext = aContext;
+  mGLContext->SetFlipped(PR_TRUE);
 
   MakeCurrent();
 
@@ -585,8 +586,6 @@ LayerManagerOGL::Render()
   if (clipRect) {
     nsIntRect r = *clipRect;
     WorldTransformRect(r);
-    if (IsDrawingFlipped())
-      mGLContext->FixWindowCoordinateRect(r, mWidgetSize.height);
     mGLContext->fScissor(r.x, r.y, r.width, r.height);
   } else {
     mGLContext->fScissor(0, 0, width, height);
@@ -722,11 +721,6 @@ void
 LayerManagerOGL::SetupPipeline(int aWidth, int aHeight, WorldTransforPolicy aTransformPolicy)
 {
   
-  
-  
-  
-  
-  
   mGLContext->fViewport(0, 0, aWidth, aHeight);
 
   
@@ -737,31 +731,19 @@ LayerManagerOGL::SetupPipeline(int aWidth, int aHeight, WorldTransforPolicy aTra
   
   
   
-  
-  
-  
-  
-  gfx3DMatrix viewMatrix;
-  if (IsDrawingFlipped()) {
-    
 
-
-    viewMatrix._11 = 2.0f / float(aWidth);
-    viewMatrix._22 = -2.0f / float(aHeight);
-    viewMatrix._41 = -1.0f;
-    viewMatrix._42 = 1.0f;
-  } else {
-    viewMatrix._11 = 2.0f / float(aWidth);
-    viewMatrix._22 = 2.0f / float(aHeight);
-    viewMatrix._41 = -1.0f;
-    viewMatrix._42 = -1.0f;
-  }
+  
+  
+  gfxMatrix viewMatrix; 
+  viewMatrix.Translate(-gfxPoint(1.0, -1.0));
+  viewMatrix.Scale(2.0f / float(aWidth), 2.0f / float(aHeight));
+  viewMatrix.Scale(1.0f, -1.0f);
 
   if (aTransformPolicy == ApplyWorldTransform) {
-    viewMatrix = gfx3DMatrix::From2D(mWorldMatrix) * viewMatrix;
+    viewMatrix = mWorldMatrix * viewMatrix;
   }
 
-  SetLayerProgramProjectionMatrix(viewMatrix);
+  SetLayerProgramProjectionMatrix(gfx3DMatrix::From2D(viewMatrix));
 }
 
 void
@@ -868,7 +850,9 @@ LayerManagerOGL::CopyToTarget()
     }
   }
 
-  mTarget->SetOperator(gfxContext::OPERATOR_OVER);
+  mTarget->SetOperator(gfxContext::OPERATOR_SOURCE);
+  mTarget->Scale(1.0, -1.0);
+  mTarget->Translate(-gfxPoint(0.0, height));
   mTarget->SetSource(imageSurface);
   mTarget->Paint();
 }
@@ -953,6 +937,9 @@ LayerManagerOGL::CreateFBOWithTexture(const nsIntRect& aRect, InitMode aInit,
 
   NS_ASSERTION(mGLContext->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER) ==
                LOCAL_GL_FRAMEBUFFER_COMPLETE, "Error setting up framebuffer.");
+
+  SetupPipeline(aRect.width, aRect.height, DontApplyWorldTransform);
+  mGLContext->fScissor(0, 0, aRect.width, aRect.height);
 
   if (aInit == InitModeClear) {
     mGLContext->fClearColor(0.0, 0.0, 0.0, 0.0);

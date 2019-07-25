@@ -411,12 +411,12 @@ public:
         mIsGLES2(PR_FALSE),
 #endif
         mIsGlobalSharedContext(PR_FALSE),
-        mWindowOriginBottomLeft(PR_FALSE),
         mVendor(-1),
         mDebugMode(0),
         mCreationFormat(aFormat),
         mSharedContext(aSharedContext),
         mOffscreenTexture(0),
+        mFlipped(PR_FALSE),
         mBlitProgram(0),
         mBlitFramebuffer(0),
         mOffscreenFBO(0),
@@ -537,36 +537,6 @@ public:
 
     int Vendor() const {
         return mVendor;
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    PRBool IsWindowOriginBottomLeft() {
-        return mWindowOriginBottomLeft;
-    }
-
-    
-
-
-
-
-    nsIntRect& FixWindowCoordinateRect(nsIntRect& aRect, int aWindowHeight) {
-        if (!mWindowOriginBottomLeft) {
-            aRect.y = aWindowHeight - (aRect.height + aRect.y);
-        }
-        return aRect;
     }
 
     
@@ -872,13 +842,13 @@ public:
                                    const char *extension);
 
     GLint GetMaxTextureSize() { return mMaxTextureSize; }
+    void SetFlipped(PRBool aFlipped) { mFlipped = aFlipped; }
 
 protected:
     PRPackedBool mInitialized;
     PRPackedBool mIsOffscreen;
     PRPackedBool mIsGLES2;
     PRPackedBool mIsGlobalSharedContext;
-    PRPackedBool mWindowOriginBottomLeft;
 
     PRInt32 mVendor;
 
@@ -908,6 +878,7 @@ protected:
     gfxIntSize mOffscreenSize;
     gfxIntSize mOffscreenActualSize;
     GLuint mOffscreenTexture;
+    PRBool mFlipped;
 
     
     GLuint mBlitProgram, mBlitFramebuffer;
@@ -1072,10 +1043,20 @@ public:
 
 protected:
 
+    GLint FixYValue(GLint y, GLint height)
+    {
+        return mFlipped ? ViewportRect().height - (height + y) : y;
+    }
+
     
     void raw_fScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
         BEFORE_GL_CALL;
-        mSymbols.fScissor(x, y, width, height);
+        
+        
+        mSymbols.fScissor(x, 
+                          FixYValue(y, height),
+                          width, 
+                          height);
         AFTER_GL_CALL;
     }
 
@@ -1122,6 +1103,11 @@ protected:
     
     void raw_fViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
         BEFORE_GL_CALL;
+        
+        
+        
+        
+        NS_ASSERTION(!mFlipped || (x == 0 && y == 0), "TODO: Need to flip the viewport rect"); 
         mSymbols.fViewport(x, y, width, height);
         AFTER_GL_CALL;
     }
@@ -1785,13 +1771,17 @@ public:
 
     void fCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border) {
         BEFORE_GL_CALL;
-        mSymbols.fCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
+        mSymbols.fCopyTexImage2D(target, level, internalformat, 
+                                 x, FixYValue(y, height),
+                                 width, height, border);
         AFTER_GL_CALL;
     }
 
     void fCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height) {
         BEFORE_GL_CALL;
-        mSymbols.fCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+        mSymbols.fCopyTexSubImage2D(target, level, xoffset, yoffset, 
+                                    x, FixYValue(y, height),
+                                    width, height);
         AFTER_GL_CALL;
     }
 

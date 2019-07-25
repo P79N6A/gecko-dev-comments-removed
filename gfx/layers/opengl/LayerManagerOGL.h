@@ -382,15 +382,7 @@ public:
 
 
   void SetupPipeline(int aWidth, int aHeight, WorldTransforPolicy aTransformPolicy);
-
   
-
-
-
-  bool IsDrawingFlipped() {
-    return mGLContext->IsDoubleBuffered() && !mTarget; 
-  }
-
   
 
 

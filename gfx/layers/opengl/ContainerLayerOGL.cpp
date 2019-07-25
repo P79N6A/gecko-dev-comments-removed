@@ -201,23 +201,14 @@ ContainerRender(Container* aContainer,
       }
     }
 
-    aContainer->gl()->fScissor(0, 0, visibleRect.width, visibleRect.height);
+    aContainer->gl()->PushViewportRect();
     framebufferRect -= childOffset; 
-    if (!aPreviousFrameBuffer) {
-      aContainer->gl()->FixWindowCoordinateRect(framebufferRect,
-                                                aManager->GetWigetSize().height);
-    }
     aManager->CreateFBOWithTexture(framebufferRect,
                                    mode,
                                    &frameBuffer,
                                    &containerSurface);
     childOffset.x = visibleRect.x;
     childOffset.y = visibleRect.y;
-
-    aContainer->gl()->PushViewportRect();
-    aManager->SetupPipeline(visibleRect.width, visibleRect.height,
-                            LayerManagerOGL::DontApplyWorldTransform);
-
   } else {
     frameBuffer = aPreviousFrameBuffer;
     aContainer->mSupportsComponentAlphaChildren = (aContainer->GetContentFlags() & Layer::CONTENT_OPAQUE) ||
@@ -260,22 +251,7 @@ ContainerRender(Container* aContainer,
 
     if (needsFramebuffer) {
       scissorRect.MoveBy(- visibleRect.TopLeft());
-    }
-
-    if (aManager->IsDrawingFlipped()) {
-      
-
-
-
-
-
-
-
-      aContainer->gl()->FixWindowCoordinateRect(scissorRect,
-                                                aContainer->gl()->ViewportRect().height);
-    }
-    
-    if (clipRect && !needsFramebuffer) {
+    } else if (clipRect) {
       scissorRect.IntersectRect(scissorRect, cachedScissor);
     }
 
@@ -298,7 +274,6 @@ ContainerRender(Container* aContainer,
     aContainer->gl()->MakeCurrent();
   }
 
-  aContainer->gl()->PopScissorRect();
 
   if (needsFramebuffer) {
     
@@ -308,6 +283,7 @@ ContainerRender(Container* aContainer,
     nsIntRect viewport = aContainer->gl()->ViewportRect();
     aManager->SetupPipeline(viewport.width, viewport.height,
                             LayerManagerOGL::ApplyWorldTransform);
+    aContainer->gl()->PopScissorRect();
 
     aContainer->gl()->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, aPreviousFrameBuffer);
     aContainer->gl()->fDeleteFramebuffers(1, &frameBuffer);
@@ -332,10 +308,15 @@ ContainerRender(Container* aContainer,
                       2, f);
     }
 
-    aManager->BindAndDrawQuad(rgb, aManager->IsDrawingFlipped());
+    
+    
+    
+    aManager->BindAndDrawQuad(rgb, true);
 
     
     aContainer->gl()->fDeleteTextures(1, &containerSurface);
+  } else {
+    aContainer->gl()->PopScissorRect();
   }
 }
 
