@@ -6029,8 +6029,6 @@ BEGIN_CASE(JSOP_INITMETHOD)
         jsid id = ATOM_TO_JSID(atom);
 
         
-        if (!CheckRedeclaration(cx, obj, id, JSPROP_INITIALIZER, NULL, NULL))
-            goto error;
 
         uintN defineHow = (op == JSOP_INITMETHOD)
                           ? JSDNP_CACHE_RESULT | JSDNP_SET_METHOD
@@ -6065,11 +6063,6 @@ BEGIN_CASE(JSOP_INITELEM)
     FETCH_ELEMENT_ID(obj, -2, id);
 
     
-
-
-
-    if (!CheckRedeclaration(cx, obj, id, JSPROP_INITIALIZER, NULL, NULL))
-        goto error;
 
     
 
