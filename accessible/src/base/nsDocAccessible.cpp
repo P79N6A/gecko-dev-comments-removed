@@ -1979,7 +1979,13 @@ nsDocAccessible::UpdateTreeInternal(nsAccessible* aContainer,
       }
     } else {
       
-      aContainer->RemoveChild(accessible);
+      
+      
+      
+      nsAccessible* parent = accessible->GetParent();
+      NS_ASSERTION(parent, "No accessible parent?!");
+      parent->RemoveChild(accessible);
+
       UncacheChildrenInSubtree(accessible);
     }
   }
