@@ -2004,6 +2004,23 @@ DefinePropertyOnObject(JSContext *cx, JSObject *obj, const PropDesc &desc,
     JS_ASSERT(!obj->getOps()->defineProperty);
 
     
+
+
+
+
+
+
+
+    if (current && obj2 != obj && obj2->isNative()) {
+        
+        JS_ASSERT(obj2->getClass() == obj->getClass());
+
+        Shape *shape = (Shape *) current;
+        if (shape->isSharedPermanent())
+            current = NULL;
+    }
+
+    
     if (!current) {
         if (!obj->isExtensible())
             return Reject(cx, obj, JSMSG_OBJECT_NOT_EXTENSIBLE, throwError, rval);
