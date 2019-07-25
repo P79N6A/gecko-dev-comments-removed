@@ -140,11 +140,21 @@ ChromeProfileMigrator.prototype = {
 
 
 
-
   _notifyStart : function Chrome_notifyStart(aType)
   {
     Services.obs.notifyObservers(null, "Migration:ItemBeforeMigrate", aType);
     this._pendingCount++;
+  },
+
+  
+
+
+
+
+
+  _notifyError : function Chrome_notifyError(aType)
+  {
+    Services.obs.notifyObservers(null, "Migration:ItemError", aType);
   },
 
   
@@ -224,6 +234,7 @@ ChromeProfileMigrator.prototype = {
       }, null);
     } catch (e) {
       Cu.reportError(e);
+      this._notifyError(MIGRATE_BOOKMARKS);
       this._notifyCompleted(MIGRATE_BOOKMARKS);
     }
   },
@@ -298,6 +309,7 @@ ChromeProfileMigrator.prototype = {
       }, null);
     } catch (e) {
       Cu.reportError(e);
+      this._notifyError(MIGRATE_HISTORY);
       this._notifyCompleted(MIGRATE_HISTORY);
     }
   },
@@ -359,6 +371,7 @@ ChromeProfileMigrator.prototype = {
       stmt.finalize();
     } catch (e) {
       Cu.reportError(e);
+      this._notifyError(MIGRATE_COOKIES);
       this._notifyCompleted(MIGRATE_COOKIES);
     }
   },
