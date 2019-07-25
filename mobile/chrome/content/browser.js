@@ -290,31 +290,36 @@ var Browser = {
 
     
     
-    if (window.arguments && window.arguments[0] &&
-        window.arguments[0] instanceof Ci.nsICommandLine) {
-      try {
-        var cmdLine = window.arguments[0];
+    if (window.arguments && window.arguments[0]) {
+      if (window.arguments[0] instanceof Ci.nsICommandLine) {
+        try {
+          var cmdLine = window.arguments[0];
 
-        
-        if (cmdLine.length == 1) {
           
-          var uri = cmdLine.getArgument(0);
-          if (uri != "" && uri[0] != '-') {
-            whereURI = cmdLine.resolveURI(uri);
+          if (cmdLine.length == 1) {
+            
+            var uri = cmdLine.getArgument(0);
+            if (uri != "" && uri[0] != '-') {
+              whereURI = cmdLine.resolveURI(uri);
+              if (whereURI)
+                whereURI = whereURI.spec;
+            }
+          }
+
+          
+          var uriFlag = cmdLine.handleFlagWithParam("url", false);
+          if (uriFlag) {
+            whereURI = cmdLine.resolveURI(uriFlag);
             if (whereURI)
               whereURI = whereURI.spec;
           }
-        }
-
+        } catch (e) {}
+      }
+      else {
         
-        var uriFlag = cmdLine.handleFlagWithParam("url", false);
-        if (uriFlag) {
-          whereURI = cmdLine.resolveURI(uriFlag);
-          if (whereURI)
-            whereURI = whereURI.spec;
-        }
-      } catch (e) {}
-    }
+        whereURI = window.arguments[0];
+      }
+    } 
 
     this.addTab(whereURI, true);
 
@@ -1151,7 +1156,8 @@ nsBrowserAccess.prototype = {
       let url = aURI ? aURI.spec : "about:blank";
       let newWindow = openDialog("chrome://browser/content/browser.xul", "_blank",
                                  "all,dialog=no", url, null, null, null);
-      browser = newWindow.Browser.selectedBrowser;
+      
+      return null;
     } else if (aWhere == Ci.nsIBrowserDOMWindow.OPEN_NEWTAB) {
       browser = Browser.addTab("about:blank", true, Browser.selectedTab).browser;
     } else { 
@@ -1220,7 +1226,17 @@ const BrowserSearch = {
   get engines() {
     if (this._engines)
       return this._engines;
-    return this._engines = Services.search.getVisibleEngines({ });
+
+    let engines = Services.search.getVisibleEngines({ }).map(
+      function(item, index, array) {
+        return { 
+          label: item.name,
+          default: (item == Services.search.defaultEngine),
+          image: item.iconURI ? item.iconURI.spec : null
+        }
+    });
+
+    return this._engines = engines;
   },
 
   updatePageSearchEngines: function updatePageSearchEngines(aNode) {
@@ -1249,29 +1265,6 @@ const BrowserSearch = {
     return !BrowserSearch.engines.some(function(item) {
       return aEngine.title == item.name;
     });
-  },
-
-  updateSearchButtons: function updateSearchButtons() {
-    let container = document.getElementById("search-buttons");
-    if (this._engines && container.hasChildNodes())
-      return;
-
-    
-    while (container.hasChildNodes())
-      container.removeChild(container.lastChild);
-
-    let engines = this.engines;
-    for (let e = 0; e < engines.length; e++) {
-      let button = document.createElement("radio");
-      let engine = engines[e];
-      button.id = engine.name;
-      button.setAttribute("label", engine.name);
-      button.className = "searchengine";
-      if (engine.iconURI)
-        button.setAttribute("src", engine.iconURI.spec);
-      container.appendChild(button);
-      button.engine = engine;
-    }
   }
 };
 
@@ -1391,6 +1384,9 @@ function IdentityHandler() {
   this._staticStrings[this.IDENTITY_MODE_UNKNOWN] = {
     encryption_label: Elements.browserBundle.getString("identity.unencrypted2")
   };
+
+  
+  document.getElementById("browsers").addEventListener("URLChanged", this, true);
 
   this._cacheElements();
 }
@@ -1612,6 +1608,13 @@ IdentityHandler.prototype = {
   },
 
   toggle: function ih_toggle() {
+    
+    
+    if (Elements.urlbarState.getAttribute("mode") == "edit") {
+      CommandUpdater.doCommand("cmd_opensearch");
+      return;
+    }
+
     if (this._identityPopup.hidden)
       this.show();
     else
@@ -1621,15 +1624,20 @@ IdentityHandler.prototype = {
   
 
 
-  handleIdentityButtonEvent: function(event) {
-    event.stopPropagation();
+  handleIdentityButtonEvent: function(aEvent) {
+    aEvent.stopPropagation();
 
-    if ((event.type == "click" && event.button != 0) ||
-        (event.type == "keypress" && event.charCode != KeyEvent.DOM_VK_SPACE &&
-         event.keyCode != KeyEvent.DOM_VK_RETURN))
+    if ((aEvent.type == "click" && aEvent.button != 0) ||
+        (aEvent.type == "keypress" && aEvent.charCode != KeyEvent.DOM_VK_SPACE &&
+         aEvent.keyCode != KeyEvent.DOM_VK_RETURN))
       return; 
 
     this.toggle();
+  },
+
+  handleEvent: function(aEvent) {
+    if (aEvent.type == "URLChanged" && !this._identityPopup.hidden)
+      this.hide();
   }
 };
 
@@ -1830,7 +1838,6 @@ const gSessionHistoryObserver = {
     }
   }
 };
-
 
 var MemoryObserver = {
   observe: function mo_observe() {
