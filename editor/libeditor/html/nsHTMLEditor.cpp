@@ -274,7 +274,7 @@ nsHTMLEditor::Init(nsIDOMDocument *aDoc, nsIPresShell *aPresShell,
 
     
     nsCOMPtr<nsINode> document = do_QueryInterface(aDoc);
-    document->AddMutationObserver(this);
+    document->AddMutationObserverUnlessExists(this);
 
     
     if (IsMailEditor())
