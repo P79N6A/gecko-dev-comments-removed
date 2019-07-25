@@ -192,21 +192,53 @@ ssl3_GatherCompleteHandshake(sslSocket *ss, int flags)
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
     do {
-	
-	rv = ssl3_GatherData(ss, &ss->gs, flags);
-	if (rv <= 0) {
-	    return rv;
-	}
-	
-	
+        
+
+
+
+        ssl_GetSSL3HandshakeLock(ss);
+        rv = ss->ssl3.hs.restartTarget == NULL ? SECSuccess : SECFailure;
+        ssl_ReleaseSSL3HandshakeLock(ss);
+        if (rv != SECSuccess) {
+            PORT_SetError(PR_WOULD_BLOCK_ERROR);
+            return (int) SECFailure;
+        }
+
+        
 
 
 
 
-	cText.type    = (SSL3ContentType)ss->gs.hdr[0];
-	cText.version = (ss->gs.hdr[1] << 8) | ss->gs.hdr[2];
-	cText.buf     = &ss->gs.inbuf;
-	rv = ssl3_HandleRecord(ss, &cText, &ss->gs.buf);
+        if (ss->ssl3.hs.msgState.buf != NULL) {
+            if (ss->ssl3.hs.msgState.len == 0) {
+                ss->ssl3.hs.msgState.buf = NULL;
+            }
+        }
+
+        if (ss->ssl3.hs.msgState.buf != NULL) {
+            
+
+
+
+
+	    rv = ssl3_HandleRecord(ss, NULL, &ss->gs.buf);
+        } else {
+	    
+	    rv = ssl3_GatherData(ss, &ss->gs, flags);
+	    if (rv <= 0) {
+	        return rv;
+	    }
+
+	    
+
+
+
+
+	    cText.type    = (SSL3ContentType)ss->gs.hdr[0];
+	    cText.version = (ss->gs.hdr[1] << 8) | ss->gs.hdr[2];
+	    cText.buf     = &ss->gs.inbuf;
+	    rv = ssl3_HandleRecord(ss, &cText, &ss->gs.buf);
+        }
 	if (rv < 0) {
 	    return ss->recvdCloseNotify ? 0 : rv;
 	}

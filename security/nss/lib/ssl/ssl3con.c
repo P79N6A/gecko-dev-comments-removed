@@ -5649,69 +5649,17 @@ done:
     return rv;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-SECStatus
-ssl3_RestartHandshakeAfterCertReq(sslSocket *         ss,
-				CERTCertificate *    cert,
-				SECKEYPrivateKey *   key,
-				CERTCertificateList *certChain)
-{
-    SECStatus        rv          = SECSuccess;
-
-    if (MSB(ss->version) == MSB(SSL_LIBRARY_VERSION_3_0)) {
-	
-
-
-	if (ss->handshake != 0) {
-	    ss->handshake               = ssl_GatherRecord1stHandshake;
-	    ss->ssl3.clientCertificate = cert;
-	    ss->ssl3.clientCertChain   = certChain;
-	    if (key == NULL) {
-		(void)SSL3_SendAlert(ss, alert_warning, no_certificate);
-		ss->ssl3.clientPrivateKey = NULL;
-	    } else {
-		ss->ssl3.clientPrivateKey = SECKEY_CopyPrivateKey(key);
-	    }
-	    ssl_GetRecvBufLock(ss);
-	    if (ss->ssl3.hs.msgState.buf != NULL) {
-		rv = ssl3_HandleRecord(ss, NULL, &ss->gs.buf);
-	    }
-	    ssl_ReleaseRecvBufLock(ss);
-	}
-    }
-    return rv;
-}
-
 PRBool
 ssl3_CanFalseStart(sslSocket *ss) {
     PRBool rv;
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+
+    
+
+
+
+
 
     ssl_GetSpecReadLock(ss);
     rv = ss->opt.enableFalseStart &&
@@ -5726,6 +5674,8 @@ ssl3_CanFalseStart(sslSocket *ss) {
     return rv;
 }
 
+static SECStatus ssl3_SendClientSecondRound(sslSocket *ss);
+
 
 
 
@@ -5735,7 +5685,6 @@ ssl3_HandleServerHelloDone(sslSocket *ss)
 {
     SECStatus     rv;
     SSL3WaitState ws          = ss->ssl3.hs.ws;
-    PRBool        send_verify = PR_FALSE;
 
     SSL_TRC(3, ("%d: SSL3[%d]: handle server_hello_done handshake",
 		SSL_GETPID(), ss->fd));
@@ -5751,6 +5700,64 @@ ssl3_HandleServerHelloDone(sslSocket *ss)
 	return SECFailure;
     }
 
+    rv = ssl3_SendClientSecondRound(ss);
+
+    return rv;
+}
+
+
+
+
+
+
+static SECStatus
+ssl3_SendClientSecondRound(sslSocket *ss)
+{
+    SECStatus rv;
+    PRBool sendClientCert;
+
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+
+    sendClientCert = !ss->ssl3.sendEmptyCert &&
+		     ss->ssl3.clientCertChain  != NULL &&
+		     ss->ssl3.clientPrivateKey != NULL;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if (ss->ssl3.hs.restartTarget) {
+        PR_NOT_REACHED("unexpected ss->ssl3.hs.restartTarget");
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        return SECFailure;
+    }
+    if (ss->ssl3.hs.authCertificatePending &&
+        (sendClientCert || ss->ssl3.sendEmptyCert || ss->firstHsDone)) {
+        ss->ssl3.hs.restartTarget = ssl3_SendClientSecondRound;
+        return SECWouldBlock;
+    }
+
     ssl_GetXmitBufLock(ss);		
 
     if (ss->ssl3.sendEmptyCert) {
@@ -5760,10 +5767,7 @@ ssl3_HandleServerHelloDone(sslSocket *ss)
 	if (rv != SECSuccess) {
 	    goto loser;	
     	}
-    } else
-    if (ss->ssl3.clientCertChain  != NULL &&
-	ss->ssl3.clientPrivateKey != NULL) {
-	send_verify = PR_TRUE;
+    } else if (sendClientCert) {
 	rv = ssl3_SendCertificate(ss);
 	if (rv != SECSuccess) {
 	    goto loser;	
@@ -5775,16 +5779,20 @@ ssl3_HandleServerHelloDone(sslSocket *ss)
     	goto loser;	
     }
 
-    if (send_verify) {
+    if (sendClientCert) {
 	rv = ssl3_SendCertificateVerify(ss);
 	if (rv != SECSuccess) {
 	    goto loser;	
         }
     }
+
     rv = ssl3_SendChangeCipherSpecs(ss);
     if (rv != SECSuccess) {
 	goto loser;	
     }
+
+    
+
 
     if (!ss->firstHsDone) {
 	rv = ssl3_SendNextProto(ss);
@@ -7814,8 +7822,6 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 {
     ssl3CertNode *   c;
     ssl3CertNode *   lastCert 	= NULL;
-    ssl3CertNode *   certs 	= NULL;
-    PRArenaPool *    arena 	= NULL;
     PRInt32          remaining  = 0;
     PRInt32          size;
     SECStatus        rv;
@@ -7872,11 +7878,11 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    errCode = PORT_GetError();
 	    goto loser;
 	}
-	goto cert_block;
+	goto server_no_cert;
     }
 
-    ss->ssl3.peerCertArena = arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if ( arena == NULL ) {
+    ss->ssl3.peerCertArena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if (ss->ssl3.peerCertArena == NULL) {
 	goto loser;	
     }
 
@@ -7926,7 +7932,7 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	length -= size;
 	remaining -= size;
 
-	c = PORT_ArenaNew(arena, ssl3CertNode);
+	c = PORT_ArenaNew(ss->ssl3.peerCertArena, ssl3CertNode);
 	if (c == NULL) {
 	    goto loser;	
 	}
@@ -7944,7 +7950,7 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	if (lastCert) {
 	    lastCert->next = c;
 	} else {
-	    certs = c;
+	    ss->ssl3.peerCertChain = c;
 	}
 	lastCert = c;
     }
@@ -7954,6 +7960,8 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 
     SECKEY_UpdateCertPQG(ss->sec.peerCert);
 
+    ss->ssl3.hs.authCertificatePending = PR_FALSE;
+
     
 
 
@@ -7961,24 +7969,26 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 					   PR_TRUE, isServer);
     if (rv) {
 	errCode = PORT_GetError();
-	if (!ss->handleBadCert) {
-	    goto bad_cert;
-	}
-	rv = (SECStatus)(*ss->handleBadCert)(ss->badCertArg, ss->fd);
-	if ( rv ) {
-	    if ( rv == SECWouldBlock ) {
-		
-		SSL_DBG(("%d: SSL3[%d]: go to async cert handler",
-			 SSL_GETPID(), ss->fd));
-		ss->ssl3.peerCertChain = certs;
-		certs               = NULL;
-		ssl3_SetAlwaysBlock(ss);
-		goto cert_block;
+	if (rv != SECWouldBlock) {
+	    if (ss->handleBadCert) {
+		rv = (*ss->handleBadCert)(ss->badCertArg, ss->fd);
 	    }
-	    
+	}
+
+	if (rv == SECWouldBlock) {
+	    if (ss->sec.isServer) {
+		errCode = SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_SERVERS;
+		rv = SECFailure;
+		goto loser;
+	    }
+
+            ss->ssl3.hs.authCertificatePending = PR_TRUE;
+            rv = SECSuccess;
+	}
+        
+        if (rv != SECSuccess) {
 	    goto bad_cert;
 	}
-	
     }
 
     ss->sec.ci.sid->peerCert = CERT_DupCertificate(ss->sec.peerCert);
@@ -8026,14 +8036,7 @@ ssl3_HandleCertificate(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    SECKEY_DestroyPublicKey(pubKey); 
 	    pubKey = NULL;
     	}
-    }
 
-    ss->ssl3.peerCertChain = certs;  certs = NULL;  arena = NULL;
-
-cert_block:
-    if (ss->sec.isServer) {
-	ss->ssl3.hs.ws = wait_client_key;
-    } else {
 	ss->ssl3.hs.ws = wait_cert_request; 
 	if (ss->ssl3.hs.kea_def->is_limited ||
 	    
@@ -8044,11 +8047,17 @@ cert_block:
 	    ss->ssl3.hs.kea_def->exchKeyType == kt_dh) {
 	    ss->ssl3.hs.ws = wait_server_key; 
 	}
+    } else {
+server_no_cert:
+	ss->ssl3.hs.ws = wait_client_key;
     }
 
-    
-
-
+    PORT_Assert(rv == SECSuccess);
+    if (rv != SECSuccess) {
+	errCode = SEC_ERROR_LIBRARY_FAILURE;
+	rv = SECFailure;
+	goto loser;
+    }
     return rv;
 
 ambiguous_err:
@@ -8099,7 +8108,6 @@ alert_loser:
     (void)SSL3_SendAlert(ss, alert_fatal, desc);
 
 loser:
-    ss->ssl3.peerCertChain = certs;  certs = NULL;  arena = NULL;
     ssl3_CleanupPeerCerts(ss);
 
     if (ss->sec.peerCert != NULL) {
@@ -8110,42 +8118,48 @@ loser:
     return SECFailure;
 }
 
+static SECStatus ssl3_FinishHandshake(sslSocket *ss);
 
 
 
-
-
-
-
-
-
-
-
-
-int
-ssl3_RestartHandshakeAfterServerCert(sslSocket *ss)
+SECStatus
+ssl3_RestartHandshakeAfterAuthCertificate(sslSocket *ss)
 {
-    int rv = SECSuccess;
+    SECStatus rv;
 
-    if (MSB(ss->version) != MSB(SSL_LIBRARY_VERSION_3_0)) {
-	SET_ERROR_CODE
-    	return SECFailure;
-    }
-    if (!ss->ssl3.initialized) {
-	SET_ERROR_CODE
-    	return SECFailure;
+    PORT_Assert(ss->opt.noLocks || ssl_Have1stHandshakeLock(ss));
+
+    if (ss->sec.isServer) {
+	PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_SERVERS);
+	return SECFailure;
     }
 
-    if (ss->handshake != NULL) {
-	ss->handshake = ssl_GatherRecord1stHandshake;
-	ss->sec.ci.sid->peerCert = CERT_DupCertificate(ss->sec.peerCert);
+    ssl_GetRecvBufLock(ss);
+    ssl_GetSSL3HandshakeLock(ss);
 
-	ssl_GetRecvBufLock(ss);
-	if (ss->ssl3.hs.msgState.buf != NULL) {
-	    rv = ssl3_HandleRecord(ss, NULL, &ss->gs.buf);
-	}
-	ssl_ReleaseRecvBufLock(ss);
+    if (!ss->ssl3.hs.authCertificatePending) {
+        PORT_SetError(PR_INVALID_STATE_ERROR);
+        rv = SECFailure;
+    } else {
+        ss->ssl3.hs.authCertificatePending = PR_FALSE;
+        if (ss->ssl3.hs.restartTarget != NULL) {
+            sslRestartTarget target = ss->ssl3.hs.restartTarget;
+            ss->ssl3.hs.restartTarget = NULL;
+            rv = target(ss);
+	    
+
+
+
+            if (rv == SECWouldBlock) {
+                rv = SECSuccess;
+            }
+        } else {
+            rv = SECSuccess;
+        }
     }
+
+    ssl_ReleaseSSL3HandshakeLock(ss);
+    ssl_ReleaseRecvBufLock(ss);
 
     return rv;
 }
@@ -8499,9 +8513,6 @@ xmit_loser:
         return rv;
     }
 
-    
-    ss->handshake           = NULL;
-    ss->firstHsDone         = PR_TRUE;
     ss->gs.writeOffset = 0;
     ss->gs.readOffset  = 0;
 
@@ -8551,10 +8562,42 @@ xmit_loser:
 	
 
 
-	if (rv == SECSuccess) {
-	    (*ss->sec.cache)(sid);
-	}
+	ss->ssl3.hs.cacheSID = rv == SECSuccess;
     }
+
+    if (ss->ssl3.hs.authCertificatePending) {
+      if (ss->ssl3.hs.restartTarget) {
+          PR_NOT_REACHED("ssl3_HandleFinished: unexpected restartTarget");
+          PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+          return SECFailure;
+      }
+
+      ss->ssl3.hs.restartTarget = ssl3_FinishHandshake;
+      return SECWouldBlock;
+    }
+    
+    rv = ssl3_FinishHandshake(ss);
+    return rv;
+}
+
+SECStatus
+ssl3_FinishHandshake(sslSocket * ss)
+{
+    SECStatus rv;
+    
+    PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
+    PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( ss->ssl3.hs.restartTarget == NULL );
+
+    
+    ss->handshake           = NULL;
+    ss->firstHsDone         = PR_TRUE;
+
+    if (ss->sec.ci.sid->cached == never_cached &&
+	!ss->opt.noCache && ss->sec.cache && ss->ssl3.hs.cacheSID) {
+	(*ss->sec.cache)(ss->sec.ci.sid);
+    }
+
     ss->ssl3.hs.ws = idle_handshake;
 
     

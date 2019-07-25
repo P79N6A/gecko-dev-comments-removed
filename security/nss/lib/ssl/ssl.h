@@ -340,6 +340,19 @@ SSL_IMPORT CERTCertificate *SSL_PeerCertificate(PRFileDesc *fd);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 typedef SECStatus (PR_CALLBACK *SSLAuthCertificate)(void *arg, PRFileDesc *fd, 
                                                     PRBool checkSig,
                                                     PRBool isServer);
@@ -437,6 +450,15 @@ SSL_IMPORT PRFileDesc *SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd);
 
 
 SSL_IMPORT SECStatus SSL_SetPKCS11PinArg(PRFileDesc *fd, void *a);
+
+
+
+
+
+
+
+
+
 
 
 
@@ -739,6 +761,53 @@ extern PRBool NSSSSL_VersionCheck(const char *importedVersion);
 
 
 extern const char *NSSSSL_GetVersion(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SSL_IMPORT SECStatus SSL_RestartHandshakeAfterAuthCertificate(PRFileDesc *fd);
 
 SEC_END_PROTOS
 

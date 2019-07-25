@@ -1466,73 +1466,53 @@ SSL_CertDBHandleSet(PRFileDesc *fd, CERTCertDBHandle *dbHandle)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int
 SSL_RestartHandshakeAfterCertReq(sslSocket *         ss,
 				CERTCertificate *    cert, 
 				SECKEYPrivateKey *   key,
 				CERTCertificateList *certChain)
 {
-    int              ret;
-
-    ssl_Get1stHandshakeLock(ss);   
-
-    if (ss->version >= SSL_LIBRARY_VERSION_3_0) {
-	ret = ssl3_RestartHandshakeAfterCertReq(ss, cert, key, certChain);
-    } else {
-    	PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_SSL2);
-    	ret = SECFailure;
-    }
-
-    ssl_Release1stHandshakeLock(ss);  
-    return ret;
+    PORT_SetError(PR_NOT_IMPLEMENTED_ERROR);
+    return -1;
 }
 
 
 
 
-
-
-
-
-
-
-
 int
-SSL_RestartHandshakeAfterServerCert(sslSocket *ss)
+SSL_RestartHandshakeAfterServerCert(sslSocket * ss)
 {
-    int rv	= SECSuccess;
+    PORT_SetError(PR_NOT_IMPLEMENTED_ERROR);
+    return -1;
+}
 
-    ssl_Get1stHandshakeLock(ss); 
 
-    if (ss->version >= SSL_LIBRARY_VERSION_3_0) {
-	rv = ssl3_RestartHandshakeAfterServerCert(ss);
+SECStatus
+SSL_RestartHandshakeAfterAuthCertificate(PRFileDesc *fd)
+{
+    SECStatus rv = SECSuccess;
+    sslSocket *ss = ssl_FindSocket(fd);
+
+    if (!ss) {
+	SSL_DBG(("%d: SSL[%d]: bad socket in SSL_RestartHandshakeAfterPeerCert",
+		 SSL_GETPID(), fd));
+	return SECFailure;
+    }
+
+    ssl_Get1stHandshakeLock(ss);
+
+    if (!ss->ssl3.initialized) {
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	rv = SECFailure;
+    } else if (ss->version < SSL_LIBRARY_VERSION_3_0) {
+	PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_SSL2);
+	rv = SECFailure;
     } else {
-    	PORT_SetError(SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_SSL2);
-    	rv = SECFailure;
+	rv = ssl3_RestartHandshakeAfterAuthCertificate(ss);
     }
 
     ssl_Release1stHandshakeLock(ss);
+
     return rv;
 }
 

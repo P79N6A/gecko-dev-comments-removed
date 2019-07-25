@@ -750,6 +750,8 @@ struct TLSExtensionDataStr {
     PRUint32 sniNameArrSize;
 };
 
+typedef SECStatus (*sslRestartTarget)(sslSocket *);
+
 
 
 
@@ -789,6 +791,13 @@ const ssl3CipherSuiteDef *suite_def;
 #ifdef NSS_ENABLE_ECC
     PRUint32              negotiatedECCurves; 
 #endif 
+
+    PRBool                authCertificatePending;
+    
+
+    sslRestartTarget      restartTarget;
+    
+    PRBool                cacheSID; 
 } SSL3HandshakeState;
 
 
@@ -1340,7 +1349,6 @@ extern  SECStatus ssl3_MasterKeyDeriveBypass( ssl3CipherSpec * pwSpec,
 
 
 extern int ssl2_SendErrorMessage(struct sslSocketStr *ss, int error);
-extern int SSL_RestartHandshakeAfterServerCert(struct sslSocketStr *ss);
 extern int SSL_RestartHandshakeAfterCertReq(struct sslSocketStr *ss,
 					    CERTCertificate *cert,
 					    SECKEYPrivateKey *key,
@@ -1350,12 +1358,7 @@ extern void ssl_FreeSocket(struct sslSocketStr *ssl);
 extern SECStatus SSL3_SendAlert(sslSocket *ss, SSL3AlertLevel level,
 				SSL3AlertDescription desc);
 
-extern SECStatus ssl3_RestartHandshakeAfterCertReq(sslSocket *    ss,
-					     CERTCertificate *    cert, 
-					     SECKEYPrivateKey *   key,
-					     CERTCertificateList *certChain);
-
-extern int ssl3_RestartHandshakeAfterServerCert(sslSocket *ss);
+extern SECStatus ssl3_RestartHandshakeAfterAuthCertificate(sslSocket *ss);
 
 
 
