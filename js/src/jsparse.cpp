@@ -89,6 +89,12 @@
 #endif
 
 #include "jsatominlines.h"
+#include "jsregexpinlines.h"
+
+
+#ifdef CONST
+#undef CONST
+#endif
 
 using namespace js;
 
@@ -8267,16 +8273,13 @@ Parser::primaryExpr(TokenKind tt, JSBool afterDot)
 
       case TOK_REGEXP:
       {
-        JSObject *obj;
-
         pn = NullaryNode::create(tc);
         if (!pn)
             return NULL;
 
-        obj = js_NewRegExpObject(context, &tokenStream,
-                                 tokenStream.getTokenbuf().begin(),
-                                 tokenStream.getTokenbuf().length(),
-                                 tokenStream.currentToken().t_reflags);
+        JSObject *obj = RegExp::createObject(context, tokenStream.getTokenbuf().begin(),
+                                             tokenStream.getTokenbuf().length(),
+                                             tokenStream.currentToken().t_reflags);
         if (!obj)
             return NULL;
         if (!tc->compileAndGo()) {
