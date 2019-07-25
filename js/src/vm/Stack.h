@@ -43,6 +43,8 @@
 
 #include "jsfun.h"
 
+struct JSContext;
+
 namespace js {
 
 class StackFrame;
@@ -1082,6 +1084,7 @@ class StackSpace
 
     JSObject &varObjForFrame(const StackFrame *fp);
 
+#ifdef JS_TRACER
     
 
 
@@ -1089,6 +1092,7 @@ class StackSpace
 
 
     inline bool ensureEnoughSpaceToEnterTrace();
+#endif
 
     
 
