@@ -1,0 +1,194 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef GFX_DEVICEMANAGERD3D9_H
+#define GFX_DEVICEMANAGERD3D9_H
+
+#include "gfxTypes.h"
+#include "nsRect.h"
+#include "nsAutoPtr.h"
+#include "d3d9.h"
+#include "nsTArray.h"
+
+namespace mozilla {
+namespace layers {
+
+class DeviceManagerD3D9;
+class ThebesLayerD3D9;
+
+
+
+
+
+class THEBES_API SwapChainD3D9
+{
+  NS_INLINE_DECL_REFCOUNTING(SwapChainD3D9)
+public:
+  ~SwapChainD3D9();
+
+  
+
+
+
+
+
+
+
+
+
+  bool PrepareForRendering();
+
+  
+
+
+
+  void Present(const nsIntRect &aRect);
+
+private:
+  friend class DeviceManagerD3D9;
+
+  SwapChainD3D9(DeviceManagerD3D9 *aDeviceManager);
+  
+  bool Init(HWND hWnd);
+
+  
+
+
+
+  void Reset();
+
+  nsRefPtr<IDirect3DSwapChain9> mSwapChain;
+  nsRefPtr<DeviceManagerD3D9> mDeviceManager;
+  HWND mWnd;
+};
+
+
+
+
+
+
+class THEBES_API DeviceManagerD3D9
+{
+public:
+  DeviceManagerD3D9();
+
+  
+  NS_IMPL_ADDREF(DeviceManagerD3D9)
+  NS_IMPL_RELEASE(DeviceManagerD3D9)
+
+  bool Init();
+
+  
+
+
+  void SetupRenderState();
+
+  
+
+
+  already_AddRefed<SwapChainD3D9> CreateSwapChain(HWND hWnd);
+
+  IDirect3DDevice9 *device() { return mDevice; }
+
+  enum ShaderMode {
+    RGBLAYER,
+    YCBCRLAYER,
+    SOLIDCOLORLAYER
+  };
+
+  void SetShaderMode(ShaderMode aMode);
+
+  
+
+
+
+  nsTArray<ThebesLayerD3D9*> mThebesLayers;
+private:
+  friend class SwapChainD3D9;
+
+  
+
+
+
+
+  bool VerifyReadyForRendering();
+
+  
+  nsTArray<SwapChainD3D9*> mSwapChains;
+
+  
+  nsRefPtr<IDirect3DDevice9> mDevice;
+
+  
+  nsRefPtr<IDirect3D9> mD3D9;
+
+  
+  nsRefPtr<IDirect3DVertexShader9> mLayerVS;
+
+  
+  nsRefPtr<IDirect3DPixelShader9> mRGBPS;
+
+  
+  nsRefPtr<IDirect3DPixelShader9> mYCbCrPS;
+
+  
+  nsRefPtr<IDirect3DPixelShader9> mSolidColorPS;
+
+  
+  nsRefPtr<IDirect3DVertexBuffer9> mVB;
+
+  
+  nsRefPtr<IDirect3DVertexDeclaration9> mVD;
+
+  
+
+
+  HWND mFocusWnd;
+
+  nsAutoRefCnt mRefCnt;
+  NS_DECL_OWNINGTHREAD
+
+  
+
+
+  bool VerifyCaps();
+};
+
+} 
+} 
+
+#endif 

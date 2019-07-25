@@ -46,6 +46,8 @@
 #include "gfxContext.h"
 #include "nsIWidget.h"
 
+#include "DeviceManagerD3D9.h"
+
 namespace mozilla {
 namespace layers {
 
@@ -122,48 +124,26 @@ public:
 
   void SetClippingEnabled(PRBool aEnabled);
 
-  IDirect3DDevice9 *device() const { return mDevice; }
+  void SetShaderMode(DeviceManagerD3D9::ShaderMode aMode)
+    { mDeviceManager->SetShaderMode(aMode); }
 
-  enum ShaderMode {
-    RGBLAYER,
-    YCBCRLAYER,
-    SOLIDCOLORLAYER
-  };
-
-  void SetShaderMode(ShaderMode aMode);
-
-  nsTArray<ThebesLayerD3D9*> mThebesLayers;
+  IDirect3DDevice9 *device() const { return mDeviceManager->device(); }
+  DeviceManagerD3D9 *deviceManager() const { return mDeviceManager; }
 
 private:
   
-  static IDirect3D9 *mD3D9;
+  static DeviceManagerD3D9 *mDeviceManager;
+
+  
+  nsRefPtr<SwapChainD3D9> mSwapChain;
 
   
   nsIWidget *mWidget;
+
   
 
 
   nsRefPtr<gfxContext> mTarget;
-
-  nsRefPtr<IDirect3DDevice9> mDevice;
-
-  
-  nsRefPtr<IDirect3DVertexShader9> mLayerVS;
-
-  
-  nsRefPtr<IDirect3DPixelShader9> mRGBPS;
-
-  
-  nsRefPtr<IDirect3DPixelShader9> mYCbCrPS;
-
-  
-  nsRefPtr<IDirect3DPixelShader9> mSolidColorPS;
-
-  
-  nsRefPtr<IDirect3DVertexBuffer9> mVB;
-
-  
-  nsRefPtr<IDirect3DVertexDeclaration9> mVD;
 
   
   LayerD3D9 *mRootLayer;
@@ -175,32 +155,21 @@ private:
 
 
   nsIntRegion mClippingRegion;
+
   
 
 
   void Render();
+
   
 
 
   void SetupPipeline();
-  
 
-
-
-
-  PRBool SetupBackBuffer();
-  
-
-
-  void SetupRenderState();
   
 
 
   void PaintToTarget();
-  
-
-
-  PRBool VerifyCaps();
 
 };
 
