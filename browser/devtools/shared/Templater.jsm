@@ -343,7 +343,7 @@ Templater.prototype._toNode = function(thing, document) {
 
 
 Templater.prototype._handleAsync = function(thing, siblingNode, inserter) {
-  if (typeof thing.then === 'function') {
+  if (thing != null && typeof thing.then === 'function') {
     
     var tempNode = siblingNode.ownerDocument.createElement('span');
     siblingNode.parentNode.insertBefore(tempNode, siblingNode);
