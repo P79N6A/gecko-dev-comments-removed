@@ -3969,6 +3969,10 @@ var FullScreen = {
       return;
     }
 
+    
+    if (!document.getElementById("sidebar-box").hidden)
+      toggleSidebar();
+
     if (gFindBarInitialized)
       gFindBar.close();
 
