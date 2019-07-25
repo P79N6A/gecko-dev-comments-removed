@@ -200,6 +200,11 @@ StackSpace::mark(JSTracer *trc)
 
 
 
+
+
+
+
+
     Value *end = firstUnused();
     for (CallStackSegment *css = currentSegment; css; css = css->getPreviousInMemory()) {
         if (css->inContext()) {
@@ -209,13 +214,13 @@ StackSpace::mark(JSTracer *trc)
 
             
             JSStackFrame *fp = css->getCurrentFrame();
-            MarkValueRange(trc, fp->slots(), end, "stack");
+            ConservativelyMarkValueRange(trc, fp->slots(), end);
 
             
             JSStackFrame *initialFrame = css->getInitialFrame();
             for (JSStackFrame *f = fp; f != initialFrame; f = f->down) {
                 js_TraceStackFrame(trc, f);
-                MarkValueRange(trc, f->down->slots(), f->argEnd(), "stack");
+                ConservativelyMarkValueRange(trc, f->down->slots(), f->argEnd());
             }
 
             
