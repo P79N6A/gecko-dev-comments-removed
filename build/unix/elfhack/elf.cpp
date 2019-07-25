@@ -1,39 +1,39 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is elfhack.
- *
- * The Initial Developer of the Original Code is
- * Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Mike Hommey <mh@glandium.org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #undef NDEBUG
 #include <cstring>
@@ -150,22 +150,22 @@ Elf::Elf(std::ifstream &file)
         throw std::runtime_error("Error opening file");
 
     file.exceptions(std::ifstream::eofbit | std::ifstream::failbit | std::ifstream::badbit);
-    // Read ELF magic number and identification information
+    
     char e_ident[EI_VERSION];
     file.seekg(0);
     file.read(e_ident, sizeof(e_ident));
     file.seekg(0);
     ehdr = new Elf_Ehdr(file, e_ident[EI_CLASS], e_ident[EI_DATA]);
 
-    // ELFOSABI_LINUX is kept unsupported because I haven't looked whether
-    // STB_GNU_UNIQUE or STT_GNU_IFUNC would need special casing.
+    
+    
     if ((ehdr->e_ident[EI_OSABI] != ELFOSABI_NONE) && (ehdr->e_ident[EI_ABIVERSION] != 0))
         throw std::runtime_error("unsupported ELF ABI");
 
     if (ehdr->e_version != 1)
         throw std::runtime_error("unsupported ELF version");
 
-    // Sanity checks
+    
     if (ehdr->e_shnum == 0)
         throw std::runtime_error("sstripped ELF files aren't supported");
 
@@ -185,13 +185,13 @@ Elf::Elf(std::ifstream &file)
     else if (ehdr->e_phentsize != Elf_Phdr::size(e_ident[EI_CLASS]))
         throw std::runtime_error("unsupported ELF inconsistency: ehdr->e_phentsize != sizeof(phdr)");
 
-    // Read section headers
+    
     Elf_Shdr **shdr = new Elf_Shdr *[ehdr->e_shnum];
     file.seekg(ehdr->e_shoff);
     for (int i = 0; i < ehdr->e_shnum; i++)
         shdr[i] = new Elf_Shdr(file, e_ident[EI_CLASS], e_ident[EI_DATA]);
 
-    // Sanity check in section header for index 0
+    
     if ((shdr[0]->sh_name != 0) || (shdr[0]->sh_type != SHT_NULL) ||
         (shdr[0]->sh_flags != 0) || (shdr[0]->sh_addr != 0) ||
         (shdr[0]->sh_offset != 0) || (shdr[0]->sh_size != 0) ||
@@ -202,11 +202,11 @@ Elf::Elf(std::ifstream &file)
     if ((shdr[ehdr->e_shstrndx]->sh_link != 0) || (shdr[ehdr->e_shstrndx]->sh_info != 0))
         throw std::runtime_error("unsupported ELF content: string table with sh_link != 0 || sh_info != 0");
 
-    // Store these temporarily
+    
     tmp_shdr = shdr;
     tmp_file = &file;
 
-    // Fill sections list
+    
     sections = new ElfSection *[ehdr->e_shnum];
     for (int i = 0; i < ehdr->e_shnum; i++)
         sections[i] = NULL;
@@ -228,7 +228,7 @@ Elf::Elf(std::ifstream &file)
     s.sh_addralign = (e_ident[EI_CLASS] == ELFCLASS32) ? 4 : 8;
     shdr_section = new ElfSection(s, NULL, NULL);
 
-    // Fake section for program headers
+    
     s.sh_offset = ehdr->e_phoff;
     s.sh_addr = ehdr->e_phoff;
     s.sh_entsize = Elf_Phdr::size(e_ident[EI_CLASS]);
@@ -239,7 +239,7 @@ Elf::Elf(std::ifstream &file)
 
     sections[1]->insertAfter(phdr_section, false);
     for (int i = 2; i < ehdr->e_shnum; i++) {
-        // TODO: this should be done in a better way
+        
         if ((shdr_section->getPrevious() == NULL) && (shdr[i]->sh_offset > ehdr->e_shoff)) {
             shdr_section->insertAfter(sections[i - 1], false);
             sections[i]->insertAfter(shdr_section, false);
@@ -257,19 +257,19 @@ Elf::Elf(std::ifstream &file)
 
     eh_shstrndx = (ElfStrtab_Section *)sections[ehdr->e_shstrndx];
 
-    // Skip reading program headers if there aren't any
+    
     if (ehdr->e_phnum == 0)
         return;
 
-    // Read program headers
+    
     file.seekg(ehdr->e_phoff);
     for (int i = 0; i < ehdr->e_phnum; i++) {
         Elf_Phdr phdr(file, e_ident[EI_CLASS], e_ident[EI_DATA]);
         ElfSegment *segment = new ElfSegment(&phdr);
-        // Some segments aren't entirely filled (if at all) by sections
-        // For those, we use fake sections
+        
+        
         if ((phdr.p_type == PT_LOAD) && (phdr.p_offset == 0)) {
-            // Use a fake section for ehdr and phdr
+            
             ehdr->getShdr().sh_addr = phdr.p_vaddr;
             phdr_section->getShdr().sh_addr += phdr.p_vaddr;
             segment->addSection(ehdr);
@@ -280,8 +280,8 @@ Elf::Elf(std::ifstream &file)
         for (int j = 1; j < ehdr->e_shnum; j++)
             if (phdr.contains(sections[j]))
                 segment->addSection(sections[j]);
-        // Make sure that our view of segments corresponds to the original
-        // ELF file.
+        
+        
         assert(segment->getFileSize() == phdr.p_filesz);
         assert(segment->getMemSize() == phdr.p_memsz);
         segments.push_back(segment);
@@ -303,17 +303,17 @@ Elf::~Elf()
     }
 }
 
-// TODO: This shouldn't fail after inserting sections
+
 ElfSection *Elf::getSection(int index)
 {
     if ((index < -1) || (index >= ehdr->e_shnum))
         throw std::runtime_error("Section index out of bounds");
     if (index == -1)
-        index = ehdr->e_shstrndx; // TODO: should be fixed to use the actual current number
-    // Special case: the section at index 0 is void
+        index = ehdr->e_shstrndx; 
+    
     if (index == 0)
         return NULL;
-    // Infinite recursion guard
+    
     if (sections[index] == (ElfSection *)this)
         return NULL;
     if (sections[index] == NULL) {
@@ -373,8 +373,8 @@ ElfDynamic_Section *Elf::getDynSection()
 
 void Elf::write(std::ofstream &file)
 {
-    // fixup section headers sh_name; TODO: that should be done by sections
-    // themselves
+    
+    
     for (ElfSection *section = ehdr; section != NULL; section = section->getNext()) {
         if (section->getIndex() == 0)
             continue;
@@ -383,7 +383,7 @@ void Elf::write(std::ofstream &file)
         section->getShdr().sh_name = eh_shstrndx->getStrIndex(section->getName());
     }
     ehdr->markDirty();
-    // Adjust PT_LOAD segments
+    
     int i = 0;
     for (std::vector<ElfSegment *>::iterator seg = segments.begin(); seg != segments.end(); seg++, i++) {
         if ((*seg)->getType() == PT_LOAD) {
@@ -399,13 +399,13 @@ void Elf::write(std::ofstream &file)
            }
         }
     }
-    // fixup ehdr before writing
+    
     if (ehdr->e_phnum != segments.size()) {
         ehdr->e_phnum = segments.size();
         phdr_section->getShdr().sh_size = segments.size() * Elf_Phdr::size(ehdr->e_ident[EI_CLASS]);
         phdr_section->getNext()->markDirty();
     }
-    // fixup shdr before writing
+    
     if (ehdr->e_shnum != shdr_section->getSize() / shdr_section->getEntSize())
         shdr_section->getShdr().sh_size = ehdr->e_shnum * Elf_Shdr::size(ehdr->e_ident[EI_CLASS]);
     ehdr->e_shoff = shdr_section->getOffset();
@@ -456,15 +456,15 @@ ElfSection::ElfSection(Elf_Shdr &s, std::ifstream *file, Elf *parent)
         name = NULL;
     else {
         ElfStrtab_Section *strtab = (ElfStrtab_Section *) parent->getSection(-1);
-        // Special case (see elfgeneric.cpp): if strtab is NULL, the
-        // section being created is the strtab.
+        
+        
         if (strtab == NULL)
             name = &data[shdr.sh_name];
         else
             name = strtab->getStr(shdr.sh_name);
     }
-    // Only SHT_REL/SHT_RELA sections use sh_info to store a section
-    // number.
+    
+    
     if ((shdr.sh_type == SHT_REL) || (shdr.sh_type == SHT_RELA))
         info.section = shdr.sh_info ? parent->getSection(shdr.sh_info) : NULL;
     else
@@ -476,8 +476,8 @@ unsigned int ElfSection::getAddr()
     if (shdr.sh_addr != (Elf32_Word)-1)
         return shdr.sh_addr;
 
-    // It should be safe to adjust sh_addr for all allocated sections that
-    // are neither SHT_NOBITS nor SHT_PROGBITS
+    
+    
     if ((previous != NULL) && isRelocatable()) {
         unsigned int addr = previous->getAddr();
         if (previous->getType() != SHT_NOBITS)
@@ -503,7 +503,7 @@ unsigned int ElfSection::getOffset()
     if (previous->getType() != SHT_NOBITS)
         offset += previous->getSize();
 
-    // SHF_TLS is used for .tbss which is some kind of special case.
+    
     if (((getType() != SHT_NOBITS) || (getFlags() & SHF_TLS)) && (getFlags() & SHF_ALLOC)) {
         if ((getAddr() & 4095) < (offset & 4095))
             offset = (offset | 4095) + (getAddr() & 4095) + 1;
@@ -513,8 +513,8 @@ unsigned int ElfSection::getOffset()
     if ((getType() != SHT_NOBITS) && (offset & (getAddrAlign() - 1)))
         offset = (offset | (getAddrAlign() - 1)) + 1;
 
-    // Two subsequent sections can't be mapped in the same page in memory
-    // if they aren't in the same 4K block on disk.
+    
+    
     if ((getType() != SHT_NOBITS) && getAddr()) {
         if (((offset >> 12) != (previous->getOffset() >> 12)) &&
             ((getAddr() >> 12) == (previous->getAddr() >> 12)))
@@ -552,11 +552,15 @@ Elf_Shdr &ElfSection::getShdr()
 
 ElfSegment::ElfSegment(Elf_Phdr *phdr)
 : type(phdr->p_type), v_p_diff(phdr->p_paddr - phdr->p_vaddr),
-  flags(phdr->p_flags), align(phdr->p_align) {}
+  flags(phdr->p_flags), align(phdr->p_align), vaddr(phdr->p_vaddr),
+  filesz(phdr->p_filesz), memsz(phdr->p_memsz) {}
 
 void ElfSegment::addSection(ElfSection *section)
 {
-    //TODO: Check overlapping sections
+    
+    assert(!((type == PT_GNU_RELRO) && (section->isRelocatable())));
+
+    
     std::list<ElfSection *>::iterator i;
     for (i = sections.begin(); i != sections.end(); ++i)
         if ((*i)->getAddr() > section->getAddr())
@@ -566,45 +570,51 @@ void ElfSegment::addSection(ElfSection *section)
 
 unsigned int ElfSegment::getFileSize()
 {
+    if (type == PT_GNU_RELRO)
+        return filesz;
+
     if (sections.empty())
         return 0;
-    // Search the last section that is not SHT_NOBITS
+    
     std::list<ElfSection *>::reverse_iterator i;
     for (i = sections.rbegin(); (i != sections.rend()) && ((*i)->getType() == SHT_NOBITS); ++i);
-    // All sections are SHT_NOBITS
+    
     if (i == sections.rend())
         return 0;
 
     unsigned int end = (*i)->getAddr() + (*i)->getSize();
-
-    // GNU_RELRO segment end is page aligned.
-    if (type == PT_GNU_RELRO)
-        end = (end + 4095) & ~4095;
 
     return end - sections.front()->getAddr();
 }
 
 unsigned int ElfSegment::getMemSize()
 {
+    if (type == PT_GNU_RELRO)
+        return memsz;
+
     if (sections.empty())
         return 0;
 
     unsigned int end = sections.back()->getAddr() + sections.back()->getSize();
-
-    // GNU_RELRO segment end is page aligned.
-    if (type == PT_GNU_RELRO)
-        end = (end + 4095) & ~4095;
 
     return end - sections.front()->getAddr();
 }
 
 unsigned int ElfSegment::getOffset()
 {
+    if ((type == PT_GNU_RELRO) && !sections.empty() &&
+        (sections.front()->getAddr() != vaddr))
+        throw std::runtime_error("PT_GNU_RELRO segment doesn't start on a section start");
+
     return sections.empty() ? 0 : sections.front()->getOffset();
 }
 
 unsigned int ElfSegment::getAddr()
 {
+    if ((type == PT_GNU_RELRO) && !sections.empty() &&
+        (sections.front()->getAddr() != vaddr))
+        throw std::runtime_error("PT_GNU_RELRO segment doesn't start on a section start");
+
     return sections.empty() ? 0 : sections.front()->getAddr();
 }
 
@@ -615,13 +625,15 @@ ElfSegment *ElfSegment::splitBefore(ElfSection *section)
     if (i == sections.end())
         return NULL;
 
-    // Probably very wrong.
+    
     Elf_Phdr phdr;
     phdr.p_type = type;
     phdr.p_vaddr = 0;
     phdr.p_paddr = phdr.p_vaddr + v_p_diff;
     phdr.p_flags = flags;
     phdr.p_align = 0x1000;
+    phdr.p_filesz = (unsigned int)-1;
+    phdr.p_memsz = (unsigned int)-1;
     ElfSegment *segment = new ElfSegment(&phdr);
 
     for (rm = i; i != sections.end(); ++i)
@@ -655,14 +667,14 @@ void ElfDynamic_Section::setValueForType(unsigned int tag, ElfValue *val)
             dyns[i].value = val;
             return;
         }
-    // This should never happen, as the last entry is always tagged DT_NULL
+    
     assert(i < shdr.sh_size / shdr.sh_entsize);
-    // If we get here, this means we didn't match for the given tag
+    
     dyns[i].tag = tag;
     dyns[i++].value = val;
 
-    // If we were on the last entry, we need to grow the section.
-    // Most of the time, though, there are a few DT_NULL entries.
+    
+    
     if (i < shdr.sh_size / shdr.sh_entsize)
         return;
 
@@ -670,7 +682,7 @@ void ElfDynamic_Section::setValueForType(unsigned int tag, ElfValue *val)
     value.tag = DT_NULL;
     value.value = NULL;
     dyns.push_back(value);
-    // Resize the section accordingly
+    
     shdr.sh_size += shdr.sh_entsize;
     if (getNext() != NULL)
         getNext()->markDirty();
@@ -682,8 +694,8 @@ ElfDynamic_Section::ElfDynamic_Section(Elf_Shdr &s, std::ifstream *file, Elf *pa
     int pos = file->tellg();
     dyns.resize(s.sh_size / s.sh_entsize);
     file->seekg(shdr.sh_offset);
-    // Here we assume tags refer to only one section (e.g. DT_RELSZ accounts
-    // for .rel.dyn size)
+    
+    
     for (unsigned int i = 0; i < s.sh_size / s.sh_entsize; i++) {
         Elf_Dyn dyn(*file, parent->getClass(), parent->getData());
         dyns[i].tag = dyn.d_tag;
@@ -727,7 +739,7 @@ ElfDynamic_Section::ElfDynamic_Section(Elf_Shdr &s, std::ifstream *file, Elf *pa
             dyns[i].value = NULL;
         }
     }
-    // Another loop to get the section sizes
+    
     for (unsigned int i = 0; i < s.sh_size / s.sh_entsize; i++)
         switch (dyns[i].tag) {
         case DT_PLTRELSZ:
@@ -837,15 +849,15 @@ ElfStrtab_Section::getStr(const char *string)
     if (string == NULL)
         return NULL;
 
-    // If the given string is within the section, return it
+    
     for (std::vector<table_storage>::iterator t = table.begin();
          t != table.end(); t++)
         if ((string >= t->buf) && (string < t->buf + t->used))
             return string;
 
-    // TODO: should scan in the section to find an existing string
+    
 
-    // If not, we need to allocate the string in the section
+    
     size_t len = strlen(string) + 1;
 
     if (table.back().size - table.back().used < len)
