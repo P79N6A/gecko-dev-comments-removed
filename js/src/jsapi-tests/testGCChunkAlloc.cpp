@@ -12,24 +12,36 @@
 
 
 
+
+
 class CustomGCChunkAllocator: public js::GCChunkAllocator {
   public:
-    CustomGCChunkAllocator() : pool(NULL) {}
-    void *pool;
+    CustomGCChunkAllocator() { pool[0] = NULL; pool[1] = NULL; }
+    void *pool[2];
     
   private:
 
     virtual void *doAlloc() {
-        if (!pool)
+        if (!pool[0] && !pool[1])
             return NULL;
-        void *chunk = pool;
-        pool = NULL;
+        void *chunk = NULL;
+        if (pool[0]) {
+            chunk = pool[0];
+            pool[0] = NULL;
+        } else {
+            chunk = pool[1];
+            pool[1] = NULL;
+        }
         return chunk;
     }
         
     virtual void doFree(void *chunk) {
-        JS_ASSERT(!pool);
-        pool = chunk;
+        JS_ASSERT(!pool[0] || !pool[1]);
+        if (!pool[0]) {
+            pool[0] = chunk;
+        } else {
+            pool[1] = chunk;
+        }
     }
 };
 
@@ -69,7 +81,8 @@ BEGIN_TEST(testGCChunkAlloc)
     CHECK(!ok);
     CHECK(!JS_IsExceptionPending(cx));
     CHECK_EQUAL(errorCount, 1);
-    CHECK(!customGCChunkAllocator.pool);
+    CHECK(!customGCChunkAllocator.pool[0]);
+    CHECK(!customGCChunkAllocator.pool[1]);
     JS_GC(cx);
     JS_ToggleOptions(cx, JSOPTION_JIT);
     EVAL("(function() {"
@@ -92,8 +105,10 @@ virtual JSRuntime * createRuntime() {
     if (!rt)
         return NULL;
 
-    customGCChunkAllocator.pool = js::AllocGCChunk();
-    JS_ASSERT(customGCChunkAllocator.pool);
+    customGCChunkAllocator.pool[0] = js::AllocGCChunk();
+    customGCChunkAllocator.pool[1] = js::AllocGCChunk();
+    JS_ASSERT(customGCChunkAllocator.pool[0]);
+    JS_ASSERT(customGCChunkAllocator.pool[1]);
 
     rt->setCustomGCChunkAllocator(&customGCChunkAllocator);
     return rt;
@@ -103,9 +118,12 @@ virtual void destroyRuntime() {
     JS_DestroyRuntime(rt);
 
     
-    JS_ASSERT(customGCChunkAllocator.pool);
-    js::FreeGCChunk(customGCChunkAllocator.pool);
-    customGCChunkAllocator.pool = NULL;
+    JS_ASSERT(customGCChunkAllocator.pool[0]);
+    JS_ASSERT(customGCChunkAllocator.pool[1]);
+    js::FreeGCChunk(customGCChunkAllocator.pool[0]);
+    js::FreeGCChunk(customGCChunkAllocator.pool[1]);
+    customGCChunkAllocator.pool[0] = NULL;
+    customGCChunkAllocator.pool[1] = NULL;
 }
 
 END_TEST(testGCChunkAlloc)

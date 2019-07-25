@@ -818,9 +818,6 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
 
     *jitp = jit;
 
-    
-    cx->runtime->mjitDataSize += dataSize;
-
     return Compile_Okay;
 }
 
