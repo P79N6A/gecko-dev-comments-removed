@@ -491,7 +491,7 @@ ReferenceFinder::addReferrer(jsval referrer_, Path *path)
     char *pathName = path->computeName(context);
     if (!pathName)
         return false;
-    AutoReleasePtr releasePathName(context, pathName);
+    AutoReleasePtr releasePathName(pathName);
 
     
     JS::RootedValue valRoot(context);

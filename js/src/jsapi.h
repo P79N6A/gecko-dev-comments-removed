@@ -5762,7 +5762,7 @@ class JSAutoByteString {
     }
 
     ~JSAutoByteString() {
-        js::UnwantedForeground::free_(mBytes);
+        js_free(mBytes);
     }
 
     
@@ -5779,7 +5779,7 @@ class JSAutoByteString {
     }
 
     void clear() {
-        js::UnwantedForeground::free_(mBytes);
+        js_free(mBytes);
         mBytes = NULL;
     }
 
@@ -6038,17 +6038,17 @@ JS_ReportAllocationOverflow(JSContext *cx);
 struct JSErrorReport {
     const char      *filename;      
     JSPrincipals    *originPrincipals; 
-    unsigned           lineno;         
+    unsigned        lineno;         
     const char      *linebuf;       
     const char      *tokenptr;      
     const jschar    *uclinebuf;     
     const jschar    *uctokenptr;    
-    unsigned           flags;          
-    unsigned           errorNumber;    
+    unsigned        flags;          
+    unsigned        errorNumber;    
     const jschar    *ucmessage;     
     const jschar    **messageArgs;  
     int16_t         exnType;        
-    unsigned           column;         
+    unsigned        column;         
 };
 
 

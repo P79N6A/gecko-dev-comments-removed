@@ -146,11 +146,6 @@ PrintBacktrace()
 #  define JS_OOM_POSSIBLY_FAIL_REPORT(cx) do {} while(0)
 # endif 
 
-
-
-
-
-
 static JS_INLINE void* js_malloc(size_t bytes)
 {
     JS_OOM_POSSIBLY_FAIL();
@@ -422,43 +417,6 @@ JS_END_EXTERN_C
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define JS_NEW_BODY(allocator, t, parms)                                       \
     void *memory = allocator(sizeof(t));                                       \
     return memory ? new(memory) t parms : NULL;
@@ -472,181 +430,103 @@ JS_END_EXTERN_C
 
 
 
-#define JS_DECLARE_NEW_METHODS(ALLOCATOR, QUALIFIERS)\
+#define JS_DECLARE_NEW_METHODS(NEWNAME, ALLOCATOR, QUALIFIERS)\
     template <class T>\
-    QUALIFIERS T *new_() {\
+    QUALIFIERS T *NEWNAME() {\
         JS_NEW_BODY(ALLOCATOR, T, ())\
     }\
 \
     template <class T, class P1>\
-    QUALIFIERS T *new_(P1 p1) {\
+    QUALIFIERS T *NEWNAME(P1 p1) {\
         JS_NEW_BODY(ALLOCATOR, T, (p1))\
     }\
 \
     template <class T, class P1, class P2>\
-    QUALIFIERS T *new_(P1 p1, P2 p2) {\
+    QUALIFIERS T *NEWNAME(P1 p1, P2 p2) {\
         JS_NEW_BODY(ALLOCATOR, T, (p1, p2))\
     }\
 \
     template <class T, class P1, class P2, class P3>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3) {\
+    QUALIFIERS T *NEWNAME(P1 p1, P2 p2, P3 p3) {\
         JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3))\
     }\
 \
     template <class T, class P1, class P2, class P3, class P4>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4) {\
+    QUALIFIERS T *NEWNAME(P1 p1, P2 p2, P3 p3, P4 p4) {\
         JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4))\
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5) {\
+    QUALIFIERS T *NEWNAME(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5) {\
         JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5))\
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5, class P6>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6) {\
+    QUALIFIERS T *NEWNAME(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6) {\
         JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6))\
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7) {\
+    QUALIFIERS T *NEWNAME(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7) {\
         JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7))\
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8) {\
+    QUALIFIERS T *NEWNAME(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8) {\
         JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8))\
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8, P9 p9) {\
+    QUALIFIERS T *NEWNAME(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8, P9 p9) {\
         JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8, p9))\
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9, class P10>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8, P9 p9, P10 p10) {\
+    QUALIFIERS T *NEWNAME(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8, P9 p9, P10 p10) {\
         JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10))\
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9, class P10, class P11>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8, P9 p9, P10 p10, P11 p11) {\
+    QUALIFIERS T *NEWNAME(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8, P9 p9, P10 p10, P11 p11) {\
         JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11))\
     }\
 \
     template <class T, class P1, class P2, class P3, class P4, class P5, class P6, class P7, class P8, class P9, class P10, class P11, class P12>\
-    QUALIFIERS T *new_(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8, P9 p9, P10 p10, P11 p11, P12 p12) {\
+    QUALIFIERS T *NEWNAME(P1 p1, P2 p2, P3 p3, P4 p4, P5 p5, P6 p6, P7 p7, P8 p8, P9 p9, P10 p10, P11 p11, P12 p12) {\
         JS_NEW_BODY(ALLOCATOR, T, (p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12))\
     }\
-    static const int JSMinAlignment = 8;\
-    template <class T>\
-    QUALIFIERS T *array_new(size_t n) {\
-        /* The length is stored just before the vector memory. */\
-        uint64_t numBytes64 = uint64_t(JSMinAlignment) + uint64_t(sizeof(T)) * uint64_t(n);\
-        size_t numBytes = size_t(numBytes64);\
-        if (numBytes64 != numBytes) {\
-            JS_ASSERT(0);   /* we want to know if this happens in debug builds */\
-            return NULL;\
-        }\
-        void *memory = ALLOCATOR(numBytes);\
-        if (!memory)\
-            return NULL;\
-        *(size_t *)memory = n;\
-        memory = (void*)(uintptr_t(memory) + JSMinAlignment);\
-        return new(memory) T[n];\
-    }\
 
+JS_DECLARE_NEW_METHODS(js_new, js_malloc, static JS_ALWAYS_INLINE)
 
-#define JS_DECLARE_DELETE_METHODS(DEALLOCATOR, QUALIFIERS)\
-    template <class T>\
-    QUALIFIERS void delete_(T *p) {\
-        if (p) {\
-            p->~T();\
-            DEALLOCATOR(p);\
-        }\
-    }\
-\
-    template <class T>\
-    QUALIFIERS void array_delete(T *p) {\
-        if (p) {\
-            void* p0 = (void *)(uintptr_t(p) - js::OffTheBooks::JSMinAlignment);\
-            size_t n = *(size_t *)p0;\
-            for (size_t i = 0; i < n; i++)\
-                (p + i)->~T();\
-            DEALLOCATOR(p0);\
-        }\
+template <class T>
+static JS_ALWAYS_INLINE void
+js_delete(T *p)
+{
+    if (p) {
+        p->~T();
+        js_free(p);
     }
-
-
-
-
-
-
-
+}
 
 namespace js {
-
-class OffTheBooks {
-public:
-    JS_DECLARE_NEW_METHODS(::js_malloc, JS_ALWAYS_INLINE static)
-
-    static JS_INLINE void* malloc_(size_t bytes) {
-        return ::js_malloc(bytes);
-    }
-
-    static JS_INLINE void* calloc_(size_t bytes) {
-        return ::js_calloc(bytes);
-    }
-
-    static JS_INLINE void* realloc_(void* p, size_t bytes) {
-        return ::js_realloc(p, bytes);
-    }
-};
-
-
-
-
-
-class Foreground {
-public:
-    
-    static JS_ALWAYS_INLINE void free_(void* p) {
-        ::js_free(p);
-    }
-
-    JS_DECLARE_DELETE_METHODS(::js_free, JS_ALWAYS_INLINE static)
-};
-
-class UnwantedForeground : public Foreground {
-};
 
 template<typename T>
 struct ScopedFreePtrTraits
 {
     typedef T* type;
     static T* empty() { return NULL; }
-    static void release(T* ptr) { Foreground::free_(ptr); }
+    static void release(T* ptr) { js_free(ptr); }
 };
 SCOPED_TEMPLATE(ScopedFreePtr, ScopedFreePtrTraits)
 
 template <typename T>
 struct ScopedDeletePtrTraits : public ScopedFreePtrTraits<T>
 {
-    static void release(T *ptr) { Foreground::delete_(ptr); }
+    static void release(T *ptr) { js_delete(ptr); }
 };
 SCOPED_TEMPLATE(ScopedDeletePtr, ScopedDeletePtrTraits)
 
 } 
-
-
-
-
-
-#define JS_DECLARE_ALLOCATION_FRIENDS_FOR_PRIVATE_CONSTRUCTOR \
-    friend class js::OffTheBooks;\
-    friend class js::Foreground;\
-    friend class js::UnwantedForeground;\
-    friend struct ::JSContext;\
-    friend struct ::JSRuntime
 
 
 

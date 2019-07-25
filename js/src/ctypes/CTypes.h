@@ -20,34 +20,17 @@ namespace ctypes {
 
 
 
-template<class T>
-class OperatorDelete
-{
-public:
-  static void destroy(T* ptr) { UnwantedForeground::delete_(ptr); }
-};
+
 
 template<class T>
-class OperatorArrayDelete
-{
-public:
-  static void destroy(T* ptr) { UnwantedForeground::array_delete(ptr); }
-};
-
-
-
-template<class T, class DeleteTraits = OperatorDelete<T> >
 class AutoPtr {
 private:
-  typedef AutoPtr<T, DeleteTraits> self_type;
+  typedef AutoPtr<T> self_type;
 
 public:
-  
-  typedef AutoPtr<T, OperatorArrayDelete<T> > Array;
-
   AutoPtr() : mPtr(NULL) { }
   explicit AutoPtr(T* ptr) : mPtr(ptr) { }
-  ~AutoPtr() { DeleteTraits::destroy(mPtr); }
+  ~AutoPtr() { js_delete(mPtr); }
 
   T*   operator->()         { return mPtr; }
   bool operator!()          { return mPtr == NULL; }
@@ -64,8 +47,8 @@ public:
 
 private:
   
-  template<class U> AutoPtr(AutoPtr<T, U>&);
-  template<class U> self_type& operator=(AutoPtr<T, U>& rhs);
+  AutoPtr(AutoPtr<T>&);
+  self_type& operator=(AutoPtr<T>& rhs);
 
   T* mPtr;
 };
@@ -311,7 +294,7 @@ struct ClosureInfo
     if (closure)
       ffi_closure_free(closure);
     if (errResult)
-      rt->free_(errResult);
+      js_free(errResult);
   };
 };
 
