@@ -200,6 +200,10 @@ pref("gfx.downloadable_fonts.enabled", true);
 pref("gfx.downloadable_fonts.fallback_delay", 3000);
 pref("gfx.downloadable_fonts.sanitize", true);
 
+#ifdef MOZ_GRAPHITE
+pref("gfx.font_rendering.graphite.enabled", false);
+#endif
+
 
 #ifdef XP_MACOSX
 
@@ -786,13 +790,6 @@ pref("network.http.connection-retry-timeout", 250);
 
 
 pref("network.http.fast-fallback-to-IPv4", true);
-
-
-pref("network.http.spdy.enabled", false);
-pref("network.http.spdy.chunk-size", 4096);
-pref("network.http.spdy.timeout", 180);
-pref("network.http.spdy.coalesce-hostnames", true);
-pref("network.http.spdy.use-alternate-protocol", true);
 
 
 
@@ -1435,12 +1432,6 @@ pref("browser.popups.showPopupBlocker", true);
 
 
 pref("viewmanager.do_doublebuffering", true);
-
-
-pref("config.use_system_prefs", false);
-
-
-pref("config.use_system_prefs.accessibility", false);
 
 
 pref("gestures.enable_single_finger_input", true);
