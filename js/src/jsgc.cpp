@@ -1793,7 +1793,7 @@ TriggerCompartmentGC(JSCompartment *comp)
     }
 #endif
 
-    if (comp == rt->defaultCompartment) {
+    if (rt->gcMode != JSGC_MODE_COMPARTMENT || comp == rt->defaultCompartment) {
         
         TriggerGC(rt);
         return;

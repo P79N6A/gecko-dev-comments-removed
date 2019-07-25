@@ -1752,8 +1752,19 @@ typedef enum JSGCParamKey {
     JSGC_NUMBER = 5,
 
     
-    JSGC_MAX_CODE_CACHE_BYTES = 6
+    JSGC_MAX_CODE_CACHE_BYTES = 6,
+
+    
+    JSGC_MODE = 7
 } JSGCParamKey;
+
+typedef enum JSGCMode {
+    
+    JSGC_MODE_GLOBAL = 0,
+
+    
+    JSGC_MODE_COMPARTMENT = 1
+} JSGCMode;
 
 extern JS_PUBLIC_API(void)
 JS_SetGCParameter(JSRuntime *rt, JSGCParamKey key, uint32 value);

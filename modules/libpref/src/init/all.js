@@ -599,6 +599,7 @@ pref("javascript.options.jitprofiling.chrome",  false);
 pref("javascript.options.mem.high_water_mark", 128);
 pref("javascript.options.mem.max", -1);
 pref("javascript.options.mem.gc_frequency",   300);
+pref("javascript.options.mem.gc_per_compartment", true);
 
 
 pref("advanced.mailftp",                    false);
@@ -735,6 +736,11 @@ pref("network.http.prompt-temp-redirect", true);
 
 
 pref("network.http.qos", 0);
+
+
+
+
+pref("network.http.connection-retry-timeout", 250);
 
 
 
@@ -3218,10 +3224,18 @@ pref("gfx.color_management.mode", 0);
 #endif
 
 
-pref("layers.acceleration.disabled", false);
+#ifdef XP_WIN
+pref("layers.accelerate-all", true);
+#else
+#ifdef XP_MACOSX
+pref("layers.accelerate-all", true);
+#else
+pref("layers.accelerate-all", false);
+#endif
+#endif
 
 
-pref("layers.acceleration.force-enabled", false);
+pref("layers.accelerate-none", false);
 
 #ifdef XP_WIN
 #ifndef WINCE
