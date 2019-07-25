@@ -152,7 +152,7 @@ AccGroupInfo::AccGroupInfo(nsAccessible* aItem, PRUint32 aRole) :
     return;
   }
 
-  nsAccessible* parentPrevSibling = parent->GetSiblingAtOffset(-1);
+  nsAccessible* parentPrevSibling = parent->PrevSibling();
   if (!parentPrevSibling)
     return;
 
@@ -162,7 +162,7 @@ AccGroupInfo::AccGroupInfo(nsAccessible* aItem, PRUint32 aRole) :
     
     
     
-    parentPrevSibling = parentPrevSibling->GetSiblingAtOffset(-1);
+    parentPrevSibling = parentPrevSibling->PrevSibling();
     if (parentPrevSibling)
       parentPrevSiblingRole = parentPrevSibling->Role();
   }

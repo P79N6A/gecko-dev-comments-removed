@@ -235,7 +235,7 @@ protected:
   
   virtual void DispatchClickEvent(nsIContent *aContent, PRUint32 aActionIndex);
   virtual nsAccessible* GetSiblingAtOffset(PRInt32 aOffset,
-                                           nsresult *aError = nsnull);
+                                           nsresult *aError = nsnull) const;
 
   
 
@@ -299,7 +299,7 @@ protected:
 
   
   virtual nsAccessible* GetSiblingAtOffset(PRInt32 aOffset,
-                                           nsresult *aError = nsnull);
+                                           nsresult *aError = nsnull) const;
 };
 
 #endif
