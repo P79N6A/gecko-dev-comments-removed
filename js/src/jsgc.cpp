@@ -4335,11 +4335,13 @@ EndVerifyBarriers(JSContext *cx)
     if (!trc)
         return;
 
+    bool compartmentCreated = false;
+
     
     for (CompartmentsIter c(rt); !c.done(); c.next()) {
-        
         if (!c->needsBarrier_)
-            return;
+            compartmentCreated = true;
+
         c->needsBarrier_ = false;
     }
 
@@ -4360,7 +4362,7 @@ EndVerifyBarriers(JSContext *cx)
 
     AutoGCRooter::traceAll(trc);
 
-    if (IsIncrementalGCSafe(rt)) {
+    if (!compartmentCreated && IsIncrementalGCSafe(rt)) {
         
 
 
