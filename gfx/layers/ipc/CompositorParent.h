@@ -86,7 +86,6 @@ public:
   void ScheduleResumeOnCompositorThread(int width, int height);
 
   virtual void ScheduleComposition();
-  void NotifyShadowTreeTransaction();
   
   
 

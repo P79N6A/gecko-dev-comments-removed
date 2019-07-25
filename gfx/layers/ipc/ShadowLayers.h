@@ -411,8 +411,6 @@ public:
   
   virtual already_AddRefed<ShadowRefLayer> CreateShadowRefLayer() { return nullptr; }
 
-  virtual void NotifyShadowTreeTransaction() {}
-
   
 
 
