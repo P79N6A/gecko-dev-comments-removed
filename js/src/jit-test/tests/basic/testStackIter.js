@@ -34,7 +34,7 @@ function assertStackIs(s1) {
     }
 }
 
-/***********/
+
 
 assertStackIs(["global-code"]);
 (function f() { assertStackIs([f, "global-code"]) })();
@@ -45,10 +45,9 @@ eval("assertStackIs(['eval-code', 'global-code'])");
 this['eval']("assertStackIs(['eval-code', eval, 'global-code'])");
 eval.bind(null, "assertStackIs(['eval-code', eval, 'bound(eval)', 'global-code'])")();
 (function f() { assertStackIs([f, Function.prototype.call, 'global-code']) }).call(null);
-(function f() { assertStackIs([f, Function.prototype.apply, 'global-code']) }).apply(null, {});
 (function f() { (function g(x,y,z) { assertStackIs([g,f,'global-code']); })() })(1);
 
-/***********/
+
 
 var gen = (function g() { assertStackIs([g, gen.next, fun, 'global-code']); yield; })();
 var fun = function f() { gen.next() };
@@ -62,7 +61,7 @@ var gen = (function g(x) { assertStackIs([g, gen.next, 'eval-code', fun, 'global
 var fun = function f() { eval('gen.next()') };
 fun();
 
-/***********/
+
 
 const N = 100;
 
@@ -76,13 +75,13 @@ const N = 100;
     f(x-1);
 })(N);
 
-/***********/
+
 
 "abababab".replace(/b/g, function g() {
     assertStackIs([g, String.prototype.replace, "global-code"]);
 });
 
-/***********/
+
 
 var obj = {
     toString:function toString() {
@@ -108,7 +107,7 @@ var obj = {
     }
 })();
 
-/***********/
+
 
 var obj = { valueOf:function valueOf() {
     assertStackIs([valueOf, Math.sin, Array.prototype.sort, "global-code"]);
@@ -126,24 +125,21 @@ var obj = { valueOf:(function valueOf() {
 }).bind().bind().bind() };
 [obj, obj].sort(Math.sin);
 
-/***********/
+
 
 var proxy = Proxy.createFunction({}, function f() { assertStackIs([f, "global-code"]) });
 proxy();
 new proxy();
 
-/***********/
+
 
 for (var i = 0; i < 10; ++i) {
-    /* No loss for scripts. */
-    (function f() {
-        assertStackIs([f, Function.prototype.apply, 'global-code']);
-    }).apply(null, {});
+    
     (function f() {
         assertStackIs([f, Function.prototype.call, 'global-code']);
     }).call(null);
 
-    /* Loss for natives. */
+    
     (function f() {
         var stack = dumpStack();
         assertEq(stack[0], f);
@@ -155,26 +151,4 @@ for (var i = 0; i < 10; ++i) {
             assertEq(stack[1], Function.prototype.call);
         }
     }).bind().call(null);
-    (function f() {
-        var stack = dumpStack();
-        assertEq(stack[0], f);
-        if (stack.length === 4) {
-            assertEq(stack[1].name, 'f');
-            assertEq(stack[2], Function.prototype.apply);
-        } else {
-            assertEq(stack.length, 3);
-            assertEq(stack[1], Function.prototype.apply);
-        }
-    }).bind().apply(null, {});
-    (function f() {
-        var stack = dumpStack();
-        assertEq(stack[0], f);
-        if (stack.length === 4) {
-            assertEq(stack[1].name, 'f');
-            assertEq(stack[2], Function.prototype.apply);
-        } else {
-            assertEq(stack.length, 3);
-            assertEq(stack[1], Function.prototype.apply);
-        }
-    }).bind().apply(null, [1,2,3,4,5]);
 }
