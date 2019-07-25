@@ -3,7 +3,7 @@
 
 
 
-#if (MOZ_WIDGET_GTK >= 2)
+#if defined(MOZ_WIDGET_GTK2)
 #include "gfxPlatformGtk.h"
 #define gfxToolkitPlatform gfxPlatformGtk
 #elif defined(MOZ_WIDGET_QT)
@@ -97,7 +97,7 @@ gfxFT2FontGroup::gfxFT2FontGroup(const nsAString& families,
         QFont defaultFont;
         QFontInfo fi (defaultFont);
         familyArray.AppendElement(nsDependentString(static_cast<const PRUnichar *>(fi.family().utf16())));
-#elif (MOZ_WIDGET_GTK >= 2)
+#elif defined(MOZ_WIDGET_GTK2)
         FcResult result;
         FcChar8 *family = nsnull;
         FcPattern* pat = FcPatternCreate();

@@ -3,7 +3,7 @@
 
 
 
-#if (MOZ_WIDGET_GTK >= 2)
+#ifdef MOZ_WIDGET_GTK2
 #include <gdk/gdk.h>
 #include <gdk/gdkx.h>
 #define GET_NATIVE_WINDOW(aWidget) GDK_WINDOW_XID((GdkWindow *) aWidget->GetNativeData(NS_NATIVE_WINDOW))
@@ -32,7 +32,7 @@
 
 #include "gfxCrashReporterUtils.h"
 
-#if (MOZ_WIDGET_GTK >= 2)
+#ifdef MOZ_WIDGET_GTK2
 #include "gfxPlatformGtk.h"
 #endif
 
@@ -224,7 +224,7 @@ GLXLibrary::EnsureInitialized()
         GLLibraryLoader::LoadSymbols(mOGLLibrary, symbols_texturefrompixmap, 
                                          (GLLibraryLoader::PlatformLookupFunction)&xGetProcAddress))
     {
-#if (MOZ_WIDGET_GTK >= 2)
+#ifdef MOZ_WIDGET_GTK2
         mUseTextureFromPixmap = gfxPlatformGtk::UseXRender();
 #else
         mUseTextureFromPixmap = true;

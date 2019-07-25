@@ -10,10 +10,6 @@
 #include "nsAutoPtr.h"
 #include "nsRect.h"
 #include <X11/Xlib.h>
-#if MOZ_WIDGET_GTK == 3
-#include "cairo-xlib.h"
-#include "cairo-xlib-xrender.h"
-#endif
 
 class gfxASurface;
 class gfxXlibSurface;
@@ -41,19 +37,10 @@ public:
 
 
 
-
-#if defined(MOZ_WIDGET_GTK2)
     virtual nsresult DrawWithXlib(gfxXlibSurface* surface,
                                   nsIntPoint offset,
                                   nsIntRect* clipRects, PRUint32 numClipRects) = 0;
-#else
-    virtual nsresult DrawWithXlib(cairo_t *cr,
-                                  nsIntPoint offset,
-                                  nsIntRect* clipRects, PRUint32 numClipRects) = 0;
-#endif  
- 
-
- 
+  
     enum {
         
         
@@ -102,13 +89,9 @@ private:
     bool DrawDirect(gfxContext *ctx, nsIntSize bounds,
                       PRUint32 flags, Screen *screen, Visual *visual);
 
-#if defined(MOZ_WIDGET_GTK2)
     bool DrawOntoTempSurface(gfxXlibSurface *tempXlibSurface,
                                nsIntPoint offset);
-#else
-    PRBool DrawOntoTempSurface(cairo_t *cr,
-                               nsIntPoint offset);
-#endif
+
 };
 
 #endif 
