@@ -45,6 +45,7 @@
 #include "nsContentUtils.h"
 #include "nsCRT.h"
 #include "nsNPAPIPlugin.h"
+#include "nsThreadUtils.h"
 
 using base::KillProcess;
 
@@ -840,3 +841,35 @@ PluginModuleParent::AnswerNPN_GetValue_WithBoolReturn(const NPNVariable& aVariab
     *aBoolVal = boolVal ? true : false;
     return true;
 }
+
+#if !defined(MOZ_WIDGET_GTK2)
+bool
+PluginModuleParent::AnswerProcessSomeEvents()
+{
+    NS_RUNTIMEABORT("unreached");
+    return false;
+}
+
+#else
+static const int kMaxChancesToProcessEvents = 20;
+
+bool
+PluginModuleParent::AnswerProcessSomeEvents()
+{
+    PLUGIN_LOG_DEBUG(("Spinning mini nested loop ..."));
+
+    
+    
+    
+    
+    
+    
+    
+    for (int i = 0; i < kMaxChancesToProcessEvents; ++i)
+        NS_ProcessNextEvent(nsnull, PR_FALSE);
+
+    PLUGIN_LOG_DEBUG(("... quitting mini nested loop"));
+
+    return true;
+}
+#endif
