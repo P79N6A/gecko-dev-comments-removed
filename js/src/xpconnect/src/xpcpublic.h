@@ -182,11 +182,6 @@ xpc_UnmarkGrayObject(JSObject *obj)
         xpc_UnmarkGrayObjectRecursive(obj);
 }
 
-
-
-NS_EXPORT_(void)
-xpc_ActivateDebugMode();
-
 class nsIMemoryMultiReporterCallback;
 
 namespace mozilla {

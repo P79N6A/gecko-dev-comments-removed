@@ -663,16 +663,6 @@ class Value
 #endif
     }
 
-#ifndef _MSC_VER
-  
-
-
-
-  private:
-#endif
-
-    jsval_layout data;
-
   private:
     void staticAssertions() {
         JS_STATIC_ASSERT(sizeof(JSValueType) == 1);
@@ -681,6 +671,8 @@ class Value
         JS_STATIC_ASSERT(sizeof(JSWhyMagic) <= 4);
         JS_STATIC_ASSERT(sizeof(Value) == 8);
     }
+
+    jsval_layout data;
 
     friend jsval_layout (::JSVAL_TO_IMPL)(Value);
     friend Value (::IMPL_TO_JSVAL)(jsval_layout l);
