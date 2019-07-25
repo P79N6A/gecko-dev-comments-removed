@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.view.View;
 import android.widget.ListView;
 import android.database.Cursor;
+import android.view.MenuInflater;
 import android.util.Log;
 import android.view.ViewGroup;
 import android.graphics.Bitmap;
@@ -25,6 +26,8 @@ import android.widget.TabHost.TabContentFactory;
 import android.util.Pair;
 import android.widget.ExpandableListView;
 import android.widget.SimpleExpandableListAdapter;
+import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
 
 import java.util.LinkedList;
 import java.util.HashMap;
@@ -32,6 +35,9 @@ import java.util.Map;
 import java.util.List;
 import java.util.Date;
 
+import org.json.JSONArray;
+
+import org.mozilla.gecko.AwesomeBar.ContextMenuSubject;
 import org.mozilla.gecko.db.BrowserContract.Combined;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.BrowserDB.URLColumns;
@@ -104,6 +110,13 @@ public class HistoryTab extends AwesomeBarTab {
     }
 
     public boolean onBackPressed() {
+        
+        
+        
+        ListView view = getListView();
+        if (hideSoftInput(view))
+            return true;
+
         return false;
     }
 
@@ -393,5 +406,46 @@ public class HistoryTab extends AwesomeBarTab {
             listener.onUrlOpen(url);
 
         return true;
+    }
+
+    public ContextMenuSubject getSubject(ContextMenu menu, View view, ContextMenuInfo menuInfo) {
+        ContextMenuSubject subject = null;
+
+        if (!(menuInfo instanceof ExpandableListView.ExpandableListContextMenuInfo)) {
+            Log.e(LOGTAG, "menuInfo is not ExpandableListContextMenuInfo");
+            return subject;
+        }
+
+        ExpandableListView.ExpandableListContextMenuInfo info = (ExpandableListView.ExpandableListContextMenuInfo) menuInfo;
+        int childPosition = ExpandableListView.getPackedPositionChild(info.packedPosition);
+        int groupPosition = ExpandableListView.getPackedPositionGroup(info.packedPosition);
+
+        
+        if (groupPosition < 0 || childPosition < 0)
+            return subject;
+
+        ExpandableListView exList = (ExpandableListView) view;
+
+        
+        @SuppressWarnings("rawtypes")
+        Map map = (Map) exList.getExpandableListAdapter().getChild(groupPosition, childPosition);
+        subject = new AwesomeBar.ContextMenuSubject((Integer) map.get(Combined.HISTORY_ID),
+                                                     (String) map.get(URLColumns.URL),
+                                                     (byte[]) map.get(URLColumns.FAVICON),
+                                                     (String) map.get(URLColumns.TITLE),
+                                                     null);
+
+        MenuInflater inflater = new MenuInflater(mContext);
+        inflater.inflate(R.menu.awesomebar_contextmenu, menu);
+        
+        menu.findItem(R.id.remove_bookmark).setVisible(false);
+        menu.findItem(R.id.edit_bookmark).setVisible(false);
+
+        
+        if (subject.id < 0)
+            menu.findItem(R.id.remove_history).setVisible(false);
+
+        menu.setHeaderTitle(subject.title);
+        return subject;
     }
 }

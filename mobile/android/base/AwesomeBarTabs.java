@@ -61,9 +61,7 @@ public class AwesomeBarTabs extends TabHost {
     private OnUrlOpenListener mUrlOpenListener;
     private View.OnTouchListener mListTouchListener;
     
-    private AllPagesTab mAllPagesTab;
-    public BookmarksTab mBookmarksTab;
-    public HistoryTab mHistoryTab;
+    private AwesomeBarTab mTabs[];
 
     
     
@@ -75,24 +73,30 @@ public class AwesomeBarTabs extends TabHost {
         public void onEditSuggestion(String suggestion);
     }
 
-    
-    
-    public boolean onBackPressed() {
-        
-        
-        
-        if (getCurrentTabTag().equals(mBookmarksTab.getTag()) || getCurrentTabTag().equals(mHistoryTab.getTag())) {
-            View tabView = getCurrentTabView();
-            if (hideSoftInput(tabView))
-                return true;
+    private AwesomeBarTab getCurrentAwesomeBarTab() {
+        String tag = getCurrentTabTag();
+        return getAwesomeBarTabForTag(tag);
+    }
+
+    public AwesomeBarTab getAwesomeBarTabForView(View view) {
+        String tag = (String)view.getTag();
+        return getAwesomeBarTabForTag(tag);
+    }
+
+    public AwesomeBarTab getAwesomeBarTabForTag(String tag) {
+        for (AwesomeBarTab tab : mTabs) {
+            if (tag == tab.getTag()) {
+                return tab;
+            }
         }
+        return null;
+    }
 
-        
-        
-        if (!getCurrentTabTag().equals(mBookmarksTab.getTag()))
-            return false;
-
-        return mBookmarksTab.moveToParentFolder();
+    public boolean onBackPressed() {
+        AwesomeBarTab tab = getCurrentAwesomeBarTab();
+        if (tab == null)
+             return false;
+        return tab.onBackPressed();
     }
 
     public AwesomeBarTabs(Context context, AttributeSet attrs) {
@@ -129,28 +133,27 @@ public class AwesomeBarTabs extends TabHost {
             }
         };
 
-        addAllPagesTab();
-        addBookmarksTab();
-        addHistoryTab();
+        mTabs = new AwesomeBarTab[] {
+            new AllPagesTab(mContext),
+            new BookmarksTab(mContext),
+            new HistoryTab(mContext)
+        };
+
+        for (AwesomeBarTab tab : mTabs) {
+            addAwesomeTab(tab);
+        }
 
         
         filter("");
     }
 
-    private TabSpec addAwesomeTab(String id, int titleId, TabHost.TabContentFactory factory) {
-        TabSpec tab = getTabSpec(id, titleId);
-        tab.setContent(factory);
-        addTab(tab);
-
-        return tab;
-    }
-
-    private TabSpec addAwesomeTab(String id, int titleId, int contentId) {
-        TabSpec tab = getTabSpec(id, titleId);
-        tab.setContent(contentId);
-        addTab(tab);
-
-        return tab;
+    private void addAwesomeTab(AwesomeBarTab tab) {
+        TabSpec tabspec = getTabSpec(tab.getTag(), tab.getTitleStringId());
+        tabspec.setContent(tab.getFactory());
+        addTab(tabspec);
+        tab.setListTouchListener(mListTouchListener);
+ 
+        return;
     }
 
     private TabSpec getTabSpec(String id, int titleId) {
@@ -170,42 +173,6 @@ public class AwesomeBarTabs extends TabHost {
         return tab;
     }
 
-    private void addAllPagesTab() {
-        Log.d(LOGTAG, "Creating All Pages tab");
-
-        mAllPagesTab = new AllPagesTab(mContext);
-        addAwesomeTab(mAllPagesTab.getTag(),
-                      mAllPagesTab.getTitleStringId(),
-                      mAllPagesTab.getFactory());
-        mAllPagesTab.setListTouchListener(mListTouchListener);
-    }
-
-    private void addBookmarksTab() {
-        Log.d(LOGTAG, "Creating Bookmarks tab");
-
-        mBookmarksTab = new BookmarksTab(mContext);
-        addAwesomeTab(mBookmarksTab.getTag(),
-                      mBookmarksTab.getTitleStringId(),
-                      mBookmarksTab.getFactory());
-        mBookmarksTab.setListTouchListener(mListTouchListener);
-
-        
-        
-    }
-
-    private void addHistoryTab() {
-        Log.d(LOGTAG, "Creating History tab");
-
-        mHistoryTab = new HistoryTab(mContext);
-        addAwesomeTab(mHistoryTab.getTag(),
-                      mHistoryTab.getTitleStringId(),
-                      mHistoryTab.getFactory());
-        mHistoryTab.setListTouchListener(mListTouchListener);
-
-        
-        
-    }
-
     private boolean hideSoftInput(View view) {
         InputMethodManager imm =
                 (InputMethodManager) mContext.getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -221,15 +188,27 @@ public class AwesomeBarTabs extends TabHost {
 
     public void setOnUrlOpenListener(OnUrlOpenListener listener) {
         mUrlOpenListener = listener;
-        mAllPagesTab.setUrlListener(listener);
-        mBookmarksTab.setUrlListener(listener);
-        mHistoryTab.setUrlListener(listener);
+        for (AwesomeBarTab tab : mTabs) {
+            tab.setUrlListener(listener);
+        }
     }
 
     public void destroy() {
-        mAllPagesTab.destroy();
-        mBookmarksTab.destroy();
-        mHistoryTab.destroy();
+        for (AwesomeBarTab tab : mTabs) {
+            tab.destroy();
+        }
+    }
+
+    public AllPagesTab getAllPagesTab() {
+        return (AllPagesTab)getAwesomeBarTabForTag("allPages");
+    }
+
+    public BookmarksTab getBookmarksTab() {
+        return (BookmarksTab)getAwesomeBarTabForTag("bookmarks");
+    }
+
+    public HistoryTab getHistoryTab() {
+        return (HistoryTab)getAwesomeBarTabForTag("history");
     }
 
     public void filter(String searchTerm) {
@@ -237,7 +216,8 @@ public class AwesomeBarTabs extends TabHost {
         setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
 
         
-        setCurrentTabByTag(mAllPagesTab.getTag());
+        AllPagesTab allPages = getAllPagesTab();
+        setCurrentTabByTag(allPages.getTag());
 
         
         setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
@@ -247,7 +227,7 @@ public class AwesomeBarTabs extends TabHost {
         getTabWidget().setVisibility(tabsVisibility);
 
         
-        mAllPagesTab.filter(searchTerm);
+        allPages.filter(searchTerm);
     }
 
     
@@ -257,7 +237,7 @@ public class AwesomeBarTabs extends TabHost {
     public void setSuggestions(final ArrayList<String> suggestions) {
         GeckoAppShell.getMainHandler().post(new Runnable() {
             public void run() {
-                mAllPagesTab.setSuggestions(suggestions);
+                getAllPagesTab().setSuggestions(suggestions);
             }
         });
     }
@@ -268,12 +248,12 @@ public class AwesomeBarTabs extends TabHost {
     public void setSearchEngines(final String suggestEngineName, final JSONArray engines) {
         GeckoAppShell.getMainHandler().post(new Runnable() {
             public void run() {
-                mAllPagesTab.setSearchEngines(suggestEngineName, engines);
+                getAllPagesTab().setSearchEngines(suggestEngineName, engines);
             }
         });
     }
 
     public boolean isInReadingList() {
-        return mBookmarksTab.isInReadingList();
+        return getBookmarksTab().isInReadingList();
     }
 }
