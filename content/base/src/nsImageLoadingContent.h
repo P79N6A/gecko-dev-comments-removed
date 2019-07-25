@@ -285,6 +285,8 @@ protected:
   
 
 
+
+
   nsresult TrackImage(imgIRequest* aImage);
   nsresult UntrackImage(imgIRequest* aImage);
 
