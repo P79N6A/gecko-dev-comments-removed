@@ -485,7 +485,6 @@ SyncEngine.prototype = {
 
     
     this._store.cache.clear();
-    Cu.forceGC();
   },
 
   
