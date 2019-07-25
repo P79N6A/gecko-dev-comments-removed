@@ -552,8 +552,9 @@ Debug::trace(JSTracer *trc, JSObject *obj)
         
         
         for (FrameMap::Enum e(dbg->frames); !e.empty(); e.popFront()) {
-            if (e.front().value->getPrivate())
-                MarkObject(trc, *obj, "live Debug.Frame");
+            JSObject *frameobj = e.front().value;
+            JS_ASSERT(frameobj->getPrivate());
+            MarkObject(trc, *frameobj, "live Debug.Frame");
         }
     }
 }
@@ -571,12 +572,6 @@ Debug::sweepCompartment(JSCompartment *compartment)
     const JSCompartment::DebugVector &debuggers = compartment->getDebuggers();
     for (Debug **p = debuggers.begin(); p != debuggers.end(); p++) {
         Debug *dbg = *p;
-
-        
-        for (FrameMap::Enum e(dbg->frames); !e.empty(); e.popFront()) {
-            if (!e.front().value->isMarked())
-                e.removeFront();
-        }
 
         
         for (ObjectMap::Enum e(dbg->objects); !e.empty(); e.popFront()) {
