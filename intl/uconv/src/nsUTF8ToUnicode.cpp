@@ -341,7 +341,7 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
 
 
 
-        res = NS_ERROR_UNEXPECTED;
+        res = NS_ERROR_ILLEGAL_INPUT;
         break;
       }
     } else {
@@ -370,7 +370,7 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
               ((mUcs4 & 0xFFFFF800) == 0xD800) ||
               
               (mUcs4 > 0x10FFFF)) {
-            res = NS_ERROR_UNEXPECTED;
+            res = NS_ERROR_ILLEGAL_INPUT;
             break;
           }
           if (mUcs4 > 0xFFFF) {
@@ -396,7 +396,7 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
 
 
         in--;
-        res = NS_ERROR_UNEXPECTED;
+        res = NS_ERROR_ILLEGAL_INPUT;
         break;
       }
     }
