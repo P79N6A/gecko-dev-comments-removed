@@ -3325,43 +3325,12 @@ let GsmPDUHelper = {
 
 
 
-  readTimestamp: function readTimestamp() {
-    let year   = this.readSwappedNibbleBCD(1) + PDU_TIMESTAMP_YEAR_OFFSET;
-    let month  = this.readSwappedNibbleBCD(1) - 1;
-    let day    = this.readSwappedNibbleBCD(1);
-    let hour   = this.readSwappedNibbleBCD(1);
-    let minute = this.readSwappedNibbleBCD(1);
-    let second = this.readSwappedNibbleBCD(1);
-    let timestamp = Date.UTC(year, month, day, hour, minute, second);
-
-    
-    
-    
-    
-    
-    let tzOctet = this.readHexOctet();
-    let tzOffset = this.octetToBCD(tzOctet & ~0x08) * 15 * 60 * 1000;
-    tzOffset = (tzOctet & 0x08) ? -tzOffset : tzOffset;
-    timestamp -= tzOffset;
-
-    return timestamp;
-  },
-
-  
 
 
 
+  readDataCodingScheme: function readDataCodingScheme(msg) {
+    let dcs = this.readHexOctet();
 
-
-
-
-
-  readUserData: function readUserData(msg, length) {
-    let dcs = msg.dcs;
-    if (DEBUG) {
-      debug("Reading " + length + " bytes of user data.");
-      debug("Coding scheme: " + dcs);
-    }
     
     let encoding = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
     switch (dcs & 0xC0) {
@@ -3394,13 +3363,58 @@ let GsmPDUHelper = {
         break;
     }
 
+    msg.dcs = dcs;
+    msg.encoding = encoding;
+
     if (DEBUG) debug("PDU: message encoding is " + encoding + " bit.");
+  },
+
+  
+
+
+
+
+  readTimestamp: function readTimestamp() {
+    let year   = this.readSwappedNibbleBCD(1) + PDU_TIMESTAMP_YEAR_OFFSET;
+    let month  = this.readSwappedNibbleBCD(1) - 1;
+    let day    = this.readSwappedNibbleBCD(1);
+    let hour   = this.readSwappedNibbleBCD(1);
+    let minute = this.readSwappedNibbleBCD(1);
+    let second = this.readSwappedNibbleBCD(1);
+    let timestamp = Date.UTC(year, month, day, hour, minute, second);
+
+    
+    
+    
+    
+    
+    let tzOctet = this.readHexOctet();
+    let tzOffset = this.octetToBCD(tzOctet & ~0x08) * 15 * 60 * 1000;
+    tzOffset = (tzOctet & 0x08) ? -tzOffset : tzOffset;
+    timestamp -= tzOffset;
+
+    return timestamp;
+  },
+
+  
+
+
+
+
+
+
+
+
+  readUserData: function readUserData(msg, length) {
+    if (DEBUG) {
+      debug("Reading " + length + " bytes of user data.");
+    }
 
     let paddingBits = 0;
     if (msg.udhi) {
       msg.header = this.readUserDataHeader();
 
-      if (encoding == PDU_DCS_MSG_CODING_7BITS_ALPHABET) {
+      if (msg.encoding == PDU_DCS_MSG_CODING_7BITS_ALPHABET) {
         let headerBits = (msg.header.length + 1) * 8;
         let headerSeptets = Math.ceil(headerBits / 7);
 
@@ -3412,7 +3426,7 @@ let GsmPDUHelper = {
     }
 
     msg.body = null;
-    switch (encoding) {
+    switch (msg.encoding) {
       case PDU_DCS_MSG_CODING_7BITS_ALPHABET:
         
         
@@ -3463,6 +3477,7 @@ let GsmPDUHelper = {
     
     
     msg.dcs = 0;
+    msg.encoding = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
 
     
     if (pi & PDU_PI_PROTOCOL_IDENTIFIER) {
@@ -3470,7 +3485,7 @@ let GsmPDUHelper = {
     }
     
     if (pi & PDU_PI_DATA_CODING_SCHEME) {
-      msg.dcs = this.readHexOctet();
+      this.readDataCodingScheme(msg);
     }
     
     if (pi & PDU_PI_USER_DATA_LENGTH) {
@@ -3500,6 +3515,7 @@ let GsmPDUHelper = {
       pid:       null, 
       epid:      null, 
       dcs:       null, 
+      encoding:  null, 
       body:      null, 
       timestamp: null, 
       status:    null, 
@@ -3552,7 +3568,7 @@ let GsmPDUHelper = {
     
     this.readProtocolIndicator(msg);
     
-    msg.dcs = this.readHexOctet();
+    this.readDataCodingScheme(msg);
     
     msg.timestamp = this.readTimestamp();
     
