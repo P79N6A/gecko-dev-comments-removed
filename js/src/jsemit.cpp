@@ -2510,6 +2510,19 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
             JS_ASSERT(op != JSOP_DELNAME);
             if (!(cg->flags & TCF_FUN_HEAVYWEIGHT)) {
                 op = JSOP_CALLEE;

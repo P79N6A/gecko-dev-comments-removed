@@ -3843,9 +3843,20 @@ NoteLValue(JSContext *cx, JSParseNode *pn, JSTreeContext *tc, uintN dflag = PND_
 
     pn->pn_dflags |= dflag;
 
+    
+
+
+
+
+
+
+
+
     JSAtom *lname = pn->pn_atom;
-    if (lname == cx->runtime->atomState.argumentsAtom)
+    if (lname == cx->runtime->atomState.argumentsAtom ||
+        (tc->inFunction() && lname == tc->fun()->atom)) {
         tc->flags |= TCF_FUN_HEAVYWEIGHT;
+    }
 }
 
 #if JS_HAS_DESTRUCTURING
