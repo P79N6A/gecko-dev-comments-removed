@@ -1842,6 +1842,15 @@ public:
 
 
 
+  void InvalidateLayer(const nsRect& aDamageRect, PRUint32 aDisplayItemKey);
+
+  
+
+
+
+
+
+
 
 
 

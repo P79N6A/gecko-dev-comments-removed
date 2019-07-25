@@ -1890,8 +1890,9 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
       || mAppearance != aOther.mAppearance)
     NS_UpdateHint(hint, NS_CombineHint(nsChangeHint_ReflowFrame, nsChangeHint_RepaintFrame));
 
-  if (mOpacity != aOther.mOpacity)
-    NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
+  if (mOpacity != aOther.mOpacity) {
+    NS_UpdateHint(hint, nsChangeHint_UpdateOpacityLayer);
+  }
 
   
 
@@ -1936,7 +1937,8 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
 nsChangeHint nsStyleDisplay::MaxDifference()
 {
   
-  return NS_STYLE_HINT_FRAMECHANGE;
+  return nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
+                      nsChangeHint_UpdateOpacityLayer);
 }
 #endif
 

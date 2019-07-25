@@ -170,7 +170,13 @@ public:
 
 
   static void InvalidateAllLayers(LayerManager* aManager);
+
   
+
+
+
+  static PRBool HasDedicatedLayer(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
+
   
 
 
