@@ -250,9 +250,7 @@ let UI = {
 
   
   
-  get rtl() {
-    return document.documentElement.getAttribute("dir") == "rtl";
-  },
+  rtl: false,
 
   
   
@@ -369,7 +367,9 @@ let UI = {
   _initPageDirection: function UI__initPageDirection() {
     let chromeReg = Cc["@mozilla.org/chrome/chrome-registry;1"].
                     getService(Ci.nsIXULChromeRegistry);
-    document.documentElement.setAttribute("dir", chromeReg.isLocaleRTL("global") ? "rtl" : "ltr");
+    let dir = chromeReg.isLocaleRTL("global");
+    document.documentElement.setAttribute("dir", dir ? "rtl" : "ltr");
+    this.rtl = dir;
   },
 
   
