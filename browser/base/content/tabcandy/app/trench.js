@@ -538,7 +538,7 @@ var Trenches = {
   
   
   unregister: function Trenches_unregister(ids) {
-    if (!iQ.isArray(ids))
+    if (!Utils.isArray(ids))
       ids = [ids];
     var self = this;
     ids.forEach(function(id){

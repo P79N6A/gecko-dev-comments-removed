@@ -39,12 +39,23 @@
 
 
 
+
+
+
+
+
+
+
 (function(){
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 const Cr = Components.results;
+
+
+const toString = Object.prototype.toString;
+const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -421,7 +432,7 @@ window.Subscribable.prototype = {
   addSubscriber: function(refObject, eventName, callback) {
     try {
       Utils.assertThrow("refObject", refObject);
-      Utils.assertThrow("callback must be a function", iQ.isFunction(callback));
+      Utils.assertThrow("callback must be a function", Utils.isFunction(callback));
       Utils.assertThrow("eventName must be a non-empty string",
           eventName && typeof(eventName) == "string");
 
@@ -482,7 +493,7 @@ window.Subscribable.prototype = {
         return;
 
       var self = this;
-      var subsCopy = iQ.merge([], this.subscribers[eventName]);
+      var subsCopy = Utils.merge([], this.subscribers[eventName]);
       subsCopy.forEach(function(object) {
         object.callback(self, eventInfo);
       });
@@ -524,16 +535,12 @@ var Utils = {
   
   trace: function() {
     var text = this.expandArgumentsForLog(arguments);
-    try { 
-      throw new Error("error");
-    } catch (e) {
-      
-      var stack = e.stack.replace(/^.*?\n.*?\n/,'');
-      
-      if (this.trace.caller.name == 'Utils_assert')
-        stack = stack.replace(/^.*?\n/,'');
-      this.log('trace: ' + text + '\n' + stack);
-    }
+    
+    var stack = Error().stack.replace(/^.*?\n.*?\n/,'');
+    
+    if (this.trace.caller.name == 'Utils_assert')
+      stack = stack.replace(/^.*?\n/,'');
+    this.log('trace: ' + text + '\n' + stack);
   },
 
   
@@ -562,12 +569,8 @@ var Utils = {
       else
         text = 'tabcandy assert: ' + label;
 
-      try { 
-        throw new Error("error");
-      } catch (e) {
-        
-        text += e.stack.replace(/^.*?\n.*?\n/,'');
-      }
+      
+      text += Error().stack.replace(/^.*?\n.*?\n/,'');
 
       throw text;
     }
@@ -649,6 +652,20 @@ var Utils = {
   
   
   
+  isFunction: function( obj ) {
+    return toString.call(obj) === "[object Function]";
+  },
+
+  
+  
+  
+  isArray: function( obj ) {
+    return toString.call(obj) === "[object Array]";
+  },
+
+  
+  
+  
   isRect: function(r) {
     return (r
         && this.isNumber(r.left)
@@ -676,17 +693,137 @@ var Utils = {
   
   
   
+  isPlainObject: function( obj ) {
+    
+    
+    
+    if ( !obj || toString.call(obj) !== "[object Object]" || obj.nodeType || obj.setInterval ) {
+      return false;
+    }
+
+    
+    if ( obj.constructor
+      && !hasOwnProperty.call(obj, "constructor")
+      && !hasOwnProperty.call(obj.constructor.prototype, "isPrototypeOf") ) {
+      return false;
+    }
+
+    
+    
+
+    var key;
+    for ( key in obj ) {}
+
+    return key === undefined || hasOwnProperty.call( obj, key );
+  },
+  
+  
+  
+  
+  isEmptyObject: function( obj ) {
+    for ( var name in obj )
+      return false;
+    return true;
+  },
+
+  
+  
+  
   
   copy: function(value) {
     if (value && typeof(value) == 'object') {
-      if (iQ.isArray(value))
-        return iQ.extend([], value);
+      if (this.isArray(value))
+        return this.extend([], value);
+      return this.extend({}, value);
+    }
+    return value;
+  },
+  
+  
+  
+  
+  merge: function( first, second ) {
+    var i = first.length, j = 0;
 
-      return iQ.extend({}, value);
+    if ( typeof second.length === "number" ) {
+      for ( var l = second.length; j < l; j++ ) {
+        first[ i++ ] = second[ j ];
+      }
+    } else {
+      while ( second[j] !== undefined ) {
+        first[ i++ ] = second[ j++ ];
+      }
     }
 
-    return value;
+    first.length = i;
+
+    return first;
+  },
+  
+  
+  
+  
+  extend: function() {
+    
+    var target = arguments[0] || {}, i = 1, length = arguments.length, options, name, src, copy;
+  
+    
+    if ( typeof target === "boolean" ) {
+      this.assert("The first argument of extend cannot be a boolean."
+                   +"Deep copy is not supported.",false);
+      return target;
+    }
+
+    
+    
+    if ( length === 1 ) {
+      this.assert("Extending the iQ prototype using extend is not supported.",false);
+      return target;
+    }
+
+    
+    if ( typeof target !== "object" && !this.isFunction(target) ) {
+      target = {};
+    }
+  
+    for ( ; i < length; i++ ) {
+      
+      if ( (options = arguments[ i ]) != null ) {
+        
+        for ( name in options ) {
+          src = target[ name ];
+          copy = options[ name ];
+  
+          
+          if ( target === copy )
+            continue;
+  
+          if ( copy !== undefined )
+            target[ name ] = copy;
+        }
+      }
+    }
+  
+    
+    return target;
+  },
+  
+  
+  
+  
+  
+  
+  
+  timeout: function(func, delay) {
+    setTimeout(function() {
+      try {
+        func();
+      } catch(e) {
+        Utils.log(e);
+      }
+    }, delay);
   }
+
 };
 
 window.Utils = Utils;

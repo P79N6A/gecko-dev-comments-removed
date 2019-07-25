@@ -167,7 +167,7 @@ function Mirror(tab, manager) {
 
 }
 
-Mirror.prototype = iQ.extend(new Subscribable(), {
+Mirror.prototype = Utils.extend(new Subscribable(), {
   
   
   
@@ -247,7 +247,7 @@ TabMirror.prototype = {
     
     Tabs.onOpen(function() {
       var tab = this;
-      iQ.timeout(function() { 
+      Utils.timeout(function() { 
         self.update(tab);
       }, 1);
     });
@@ -255,7 +255,7 @@ TabMirror.prototype = {
     
     Tabs.onReady(function(evt) {
       var tab = evt.tab;
-      iQ.timeout(function() { 
+      Utils.timeout(function() { 
         self.update(tab);
       }, 1);
     });
@@ -264,7 +264,7 @@ TabMirror.prototype = {
     
     Tabs.onLoad(function(evt) {
       var tab = evt.tab;
-      iQ.timeout(function() { 
+      Utils.timeout(function() { 
         tab.mirror.okayToHideCache = true;
         self.update(tab);
       }, 1);
@@ -273,7 +273,7 @@ TabMirror.prototype = {
     
     Tabs.onClose( function(){
       var tab = this;
-      iQ.timeout(function() { 
+      Utils.timeout(function() { 
         self.unlink(tab);
       }, 1);
     });
@@ -362,7 +362,7 @@ TabMirror.prototype = {
   
   _fireNextHeartbeat: function() {
     var self = this;
-    iQ.timeout(function() {
+    Utils.timeout(function() {
       self._heartbeat();
     }, 100);
   },

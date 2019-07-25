@@ -220,7 +220,7 @@ var UIManager = {
       this._storageSanity(data);
 
       var groupsData = Storage.readGroupsData(gWindow);
-      var firstTime = !groupsData || iQ.isEmptyObject(groupsData);
+      var firstTime = !groupsData || Utils.isEmptyObject(groupsData);
       var groupData = Storage.readGroupData(gWindow);
       Groups.reconstitute(groupsData, groupData);
 
@@ -477,7 +477,7 @@ var UIManager = {
     });
 
     Tabs.onMove(function() {
-      iQ.timeout(function() { 
+      Utils.timeout(function() { 
         var activeGroup = Groups.getActiveGroup();
         if ( activeGroup )
           activeGroup.reorderBasedOnTabOrder();
@@ -515,7 +515,7 @@ var UIManager = {
     this._closedLastVisibleTab = false;
     this._closedSelectedTabInTabCandy = false;
 
-    iQ.timeout(function() { 
+    Utils.timeout(function() { 
       
       if (self._stopZoomPreparation) {
         self._stopZoomPreparation = false;
@@ -1009,7 +1009,7 @@ var UIManager = {
   
   
   _storageSanity: function(data) {
-    if (iQ.isEmptyObject(data))
+    if (Utils.isEmptyObject(data))
       return true;
 
     if (!Utils.isRect(data.pageBounds)) {

@@ -133,7 +133,7 @@ function EventListenerMixIn(options) {
 
 
 
-window.TabsManager = iQ.extend(new Subscribable(), {
+window.TabsManager = Utils.extend(new Subscribable(), {
   
   
   

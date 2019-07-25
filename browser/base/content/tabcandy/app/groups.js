@@ -322,7 +322,7 @@ window.Group = function Group(listOfEls, options) {
 };
 
 
-window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
+window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
@@ -493,7 +493,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       contentCSS.height = rect.height - titleHeight;
     }
 
-    if (iQ.isEmptyObject(css))
+    if (Utils.isEmptyObject(css))
       return;
 
     var offset = new Point(rect.left - this.bounds.left, rect.top - this.bounds.top);
@@ -587,7 +587,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   closeAll: function() {
     var self = this;
     if (this._children.length) {
-      var toClose = iQ.merge([], this._children);
+      var toClose = Utils.merge([], this._children);
       toClose.forEach(function(child) {
         child.removeOnClose(self);
         child.close();
@@ -770,7 +770,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   removeAll: function() {
     var self = this;
-    var toRemove = iQ.merge([], this._children);
+    var toRemove = Utils.merge([], this._children);
     toRemove.forEach(function(child) {
       self.remove(child, {dontArrange: true});
     });
@@ -844,7 +844,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       this.topChild = null;
       var box = new Rect(this.expanded.bounds);
       box.inset(8, 8);
-      Items.arrange(this._children, box, iQ.extend({}, options, {padding: 8, z: 99999}));
+      Items.arrange(this._children, box, Utils.extend({}, options, {padding: 8, z: 99999}));
     } else {
       var bb = this.getContentBounds();
       var count = this._children.length;
@@ -865,7 +865,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
         this.topChild = null;
 
         var arrangeOptions = Utils.copy(options);
-        iQ.extend(arrangeOptions, {
+        Utils.extend(arrangeOptions, {
           pretend: true,
           count: count
         });
@@ -1275,7 +1275,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     
     
     
-    iQ.timeout(function(){
+    Utils.timeout(function(){
       UI.showTabCandy()
     }, 1);
 
@@ -1318,7 +1318,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
                 
                 
                 
-                iQ.timeout(function(){
+                Utils.timeout(function(){
                   UI.tabBar.showOnlyTheseTabs(Groups.getActiveGroup()._children);
                 }, 400);
               }
@@ -1487,7 +1487,7 @@ window.Groups = {
               dontPush: true
             };
 
-            new Group([], iQ.extend({}, group, options));
+            new Group([], Utils.extend({}, group, options));
           }
         }
       }
@@ -1659,7 +1659,7 @@ window.Groups = {
   
   
   removeAll: function() {
-    var toRemove = iQ.merge([], this.groups);
+    var toRemove = Utils.merge([], this.groups);
     toRemove.forEach(function(group) {
       group.removeAll();
     });
