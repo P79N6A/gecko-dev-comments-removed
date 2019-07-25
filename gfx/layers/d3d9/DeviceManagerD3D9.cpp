@@ -449,6 +449,15 @@ DeviceManagerD3D9::CreateSwapChain(HWND hWnd)
 {
   nsRefPtr<SwapChainD3D9> swapChain = new SwapChainD3D9(this);
   
+  
+  
+  
+  
+  
+  if (!VerifyReadyForRendering()) {
+    return nsnull;
+  }
+
   if (!swapChain->Init(hWnd)) {
     return nsnull;
   }
