@@ -1523,15 +1523,6 @@ FullTrustSecMan::DisableCapability(const char *capability)
 
 
 NS_IMETHODIMP
-FullTrustSecMan::SetCanEnableCapability(const nsACString & certificateFingerprint,
-                                        const char *capability,
-                                        PRInt16 canEnable)
-{
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
 FullTrustSecMan::GetObjectPrincipal(JSContext * cx, JSObject * obj,
                                     nsIPrincipal **_retval)
 {

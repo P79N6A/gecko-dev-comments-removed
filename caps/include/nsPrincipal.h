@@ -107,6 +107,9 @@ public:
 #endif 
 
 protected:
+  
+  nsresult SetCanEnableCapability(const char *capability, PRInt16 canEnable);
+
   nsTArray< nsAutoPtr<nsHashtable> > mAnnotations;
   nsHashtable* mCapabilities;
   nsCString mPrefName;
