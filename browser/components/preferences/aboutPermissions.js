@@ -244,10 +244,8 @@ Site.prototype = {
 
 
   get logins() {
-    
-    
-    let httpLogins = Services.logins.findLogins({}, this.httpURI.prePath, "", null);
-    let httpsLogins = Services.logins.findLogins({}, this.httpsURI.prePath, "", null);
+    let httpLogins = Services.logins.findLogins({}, this.httpURI.prePath, "", "");
+    let httpsLogins = Services.logins.findLogins({}, this.httpsURI.prePath, "", "");
     return httpLogins.concat(httpsLogins);
   },
 
