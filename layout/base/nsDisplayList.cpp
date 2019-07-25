@@ -2451,7 +2451,8 @@ gfxPoint3D GetDeltaToMozTransformOrigin(const nsIFrame* aFrame,
 
 static
 gfxPoint3D GetDeltaToMozPerspectiveOrigin(const nsIFrame* aFrame,
-                                          float aAppUnitsPerPixel)
+                                          float aAppUnitsPerPixel,
+                                          const nsRect* aBoundsOverride)
 {
   NS_PRECONDITION(aFrame, "Can't get delta for a null frame!");
   NS_PRECONDITION(aFrame->GetStyleDisplay()->HasTransform(),
@@ -2468,7 +2469,8 @@ gfxPoint3D GetDeltaToMozPerspectiveOrigin(const nsIFrame* aFrame,
   
   nsIFrame* parent = aFrame->GetParentStyleContextFrame();
   const nsStyleDisplay* display = aFrame->GetParent()->GetStyleDisplay();
-  nsRect boundingRect = nsDisplayTransform::GetFrameBoundsForTransform(parent);
+  nsRect boundingRect = (aBoundsOverride ? *aBoundsOverride :
+                         nsDisplayTransform::GetFrameBoundsForTransform(parent));
 
   
   gfxPoint3D result;
@@ -2552,9 +2554,8 @@ nsDisplayTransform::GetResultingTransformMatrix(const nsIFrame* aFrame,
                                                     aFrame->PresContext(),
                                                     dummy, bounds, aAppUnitsPerPixel);
   } else {
-     NS_ASSERTION(aFrame->GetStyleDisplay()->mTransformStyle == NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D ||
-                  aFrame->GetStyleDisplay()->mBackfaceVisibility == NS_STYLE_BACKFACE_VISIBILITY_HIDDEN,
-                  "If we don't have a transform, then we must have another reason to have an nsDisplayTransform created");
+     NS_ASSERTION(aFrame->GetStyleDisplay()->mTransformStyle == NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D,
+                  "If we don't have a transform, then we must be at least attempting to preserve the transforms of our children");
   }
 
   const nsStyleDisplay* parentDisp = nsnull;
@@ -2572,7 +2573,7 @@ nsDisplayTransform::GetResultingTransformMatrix(const nsIFrame* aFrame,
     
 
 
-    gfxPoint3D toPerspectiveOrigin = GetDeltaToMozPerspectiveOrigin(aFrame, aAppUnitsPerPixel);
+    gfxPoint3D toPerspectiveOrigin = GetDeltaToMozPerspectiveOrigin(aFrame, aAppUnitsPerPixel, aBoundsOverride);
     result = result * nsLayoutUtils::ChangeMatrixBasis(toPerspectiveOrigin - toMozOrigin, perspective);
   }
 
@@ -2601,14 +2602,7 @@ nsDisplayTransform::ShouldPrerenderTransformedContent(nsDisplayListBuilder* aBui
     
     
     refSize += nsSize(refSize.width / 8, refSize.height / 8);
-    if (aFrame->GetVisualOverflowRectRelativeToSelf().Size() <= refSize) {
-      
-      nscoord max = aFrame->PresContext()->DevPixelsToAppUnits(4096);
-      nsRect visual = aFrame->GetVisualOverflowRect();
-      if (visual.width <= max && visual.height <= max) {
-        return true;
-      }
-    }
+    return aFrame->GetVisualOverflowRectRelativeToSelf().Size() <= refSize;
   }
   return false;
 }
