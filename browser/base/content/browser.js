@@ -3077,13 +3077,12 @@ function FillInHTMLTooltip(tipElement)
 {
   var retVal = false;
   
-  if (tipElement.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" ||
-      !tipElement.ownerDocument ||
+  if (!tipElement.ownerDocument ||
       (tipElement.ownerDocument.compareDocumentPosition(tipElement) & document.DOCUMENT_POSITION_DISCONNECTED))
     return retVal;
 
   const XLinkNS = "http://www.w3.org/1999/xlink";
-
+  const XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
   var titleText = null;
   var XLinkTitleText = null;
@@ -3105,7 +3104,8 @@ function FillInHTMLTooltip(tipElement)
   }
 
   while (!titleText && !XLinkTitleText && !SVGTitleText && tipElement) {
-    if (tipElement.nodeType == Node.ELEMENT_NODE) {
+    if (tipElement.nodeType == Node.ELEMENT_NODE &&
+        tipElement.namespaceURI != XULNS) {
       titleText = tipElement.getAttribute("title");
       if ((tipElement instanceof HTMLAnchorElement ||
            tipElement instanceof HTMLAreaElement ||
