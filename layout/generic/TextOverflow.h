@@ -41,6 +41,12 @@ class TextOverflow {
   
 
 
+
+  nsDisplayList& GetMarkers() { return mMarkerList; }
+
+  
+
+
   static bool CanHaveTextOverflow(nsDisplayListBuilder* aBuilder,
                                   nsIFrame*             aBlockFrame);
 
@@ -178,13 +184,13 @@ class TextOverflow {
   void CreateMarkers(const nsLineBox* aLine,
                      bool             aCreateLeft,
                      bool             aCreateRight,
-                     const nsRect&    aInsideMarkersArea) const;
+                     const nsRect&    aInsideMarkersArea);
 
   nsRect                 mContentArea;
   nsDisplayListBuilder*  mBuilder;
   nsIFrame*              mBlock;
   nsIScrollableFrame*    mScrollableFrame;
-  nsDisplayList*         mMarkerList;
+  nsDisplayList          mMarkerList;
   bool                   mBlockIsRTL;
   bool                   mCanHaveHorizontalScrollbar;
   bool                   mAdjustForPixelSnapping;
