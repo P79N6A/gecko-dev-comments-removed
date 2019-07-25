@@ -45,8 +45,6 @@ public:
   nsGfxScrollFrameInner(nsContainerFrame* aOuter, bool aIsRoot);
   ~nsGfxScrollFrameInner();
 
-  void Init();
-
   typedef nsIScrollableFrame::ScrollbarStyles ScrollbarStyles;
   ScrollbarStyles GetScrollbarStylesFromFrame() const;
 
@@ -352,9 +350,6 @@ public:
 
   
   
-  NS_IMETHOD Init(nsIContent*      aContent,
-                  nsIFrame*        aParent,
-                  nsIFrame*        aPrevInFlow);
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
 
@@ -587,9 +582,6 @@ public:
 
   
   
-  NS_IMETHOD Init(nsIContent*      aContent,
-                  nsIFrame*        aParent,
-                  nsIFrame*        aPrevInFlow);
   NS_IMETHOD SetInitialChildList(ChildListID     aListID,
                                  nsFrameList&    aChildList);
 
