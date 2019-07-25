@@ -964,13 +964,15 @@ gfxPlatform::GetCMSOutputProfile()
 
             
 
-            PRBool hasSRGBOverride, doSRGBOverride;
-            rv = prefs->PrefHasUserValue(CMForceSRGBPrefName, &hasSRGBOverride);
-            if (NS_SUCCEEDED(rv) && hasSRGBOverride) {
-                rv = prefs->GetBoolPref(CMForceSRGBPrefName, &doSRGBOverride);
-                if (NS_SUCCEEDED(rv) && doSRGBOverride)
-                    gCMSOutputProfile = GetCMSsRGBProfile();
-            }
+
+
+
+
+
+            PRBool doSRGBOverride;
+            rv = prefs->GetBoolPref(CMForceSRGBPrefName, &doSRGBOverride);
+            if (NS_SUCCEEDED(rv) && doSRGBOverride)
+                gCMSOutputProfile = GetCMSsRGBProfile();
 
             if (!gCMSOutputProfile) {
 
