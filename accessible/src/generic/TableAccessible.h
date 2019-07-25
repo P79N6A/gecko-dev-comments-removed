@@ -134,7 +134,7 @@ public:
   
 
 
-  virtual void SelectedCells(nsTArray<Accessible*>* aCells) {}
+  virtual void SelectedCells(nsTArray<Accessible*>* aCells) = 0;
 
   
 
