@@ -41,14 +41,14 @@
 #include <mmreg.h>
 #include <mmsystem.h>
 #include <math.h>
+#include <assert.h>
 
 
-
-
-#define BLOCK_SIZE  16384
 #define BLOCK_COUNT 10
 #define DEFAULT_DEVICE_NAME "Default WAVE Device"
 #define DEFAULT_DEVICE WAVE_MAPPER
+#define BLOCK_DURATION_MS 100
+#define BYTES_PER_SAMPLE 2
 
 #define VERBOSE_OUTPUT 1
 
@@ -118,6 +118,7 @@ struct sa_stream {
   int				      waveCurrentBlock;
 
   int playing;
+  size_t blockSize;
 };
 
 
@@ -148,6 +149,8 @@ int sa_stream_create_pcm(sa_stream_t **s,
   
   
   if (format != SA_PCM_FORMAT_S16_NE) {
+    
+
     return SA_ERROR_NOT_SUPPORTED;
   }
 
@@ -166,7 +169,10 @@ int sa_stream_create_pcm(sa_stream_t **s,
   _s->deviceName = DEFAULT_DEVICE_NAME;
   _s->device = DEFAULT_DEVICE;
   _s->playing = 0;
+  _s->blockSize = BYTES_PER_SAMPLE * ((rate * nchannels * BLOCK_DURATION_MS) / 1000);
+  
 
+  assert((_s->blockSize & 1) != 1);
   *s = _s; 
   return SA_SUCCESS;
 }
@@ -188,6 +194,12 @@ int sa_stream_open(sa_stream_t *s) {
   return status;
 }
 
+int sa_stream_get_min_write(sa_stream_t *s, size_t *samples) {
+  ERROR_IF_NO_INIT(s);
+  *samples = (s->blockSize / BYTES_PER_SAMPLE) / s->channels;
+  return SA_SUCCESS;
+}
+
 
 int sa_stream_write(sa_stream_t *s, const void *data, size_t nbytes) {
   int status = SA_SUCCESS;
@@ -207,10 +219,10 @@ int sa_stream_get_write_size(sa_stream_t *s, size_t *size) {
   ERROR_IF_NO_INIT(s);
 
   EnterCriticalSection(&(s->waveCriticalSection));
-  avail = (s->waveFreeBlockCount-1) * BLOCK_SIZE;
+  avail = (s->waveFreeBlockCount-1) * s->blockSize;
   if (s->waveFreeBlockCount != BLOCK_COUNT) {
     current = &(s->waveBlocks[s->waveCurrentBlock]);
-    avail += BLOCK_SIZE - current->dwUser;
+    avail += s->blockSize - current->dwUser;
   }
   LeaveCriticalSection(&(s->waveCriticalSection));
 
@@ -427,7 +439,7 @@ int openAudio(sa_stream_t *s) {
   WAVEFORMATEX wfx;    
   UINT supported = FALSE;
 		  
-  status = allocateBlocks(BLOCK_SIZE, BLOCK_COUNT, &(s->waveBlocks));  
+  status = allocateBlocks(s->blockSize, BLOCK_COUNT, &(s->waveBlocks));  
 	HANDLE_WAVE_ERROR(status, "allocating audio buffer blocks");
   
   s->waveFreeBlockCount	= BLOCK_COUNT;
@@ -579,14 +591,14 @@ int writeAudio(sa_stream_t *s, LPSTR data, int bytes) {
         HANDLE_WAVE_ERROR(status, "preparing audio headers for writing");
     }
 		  
-    if(bytes < (int)(BLOCK_SIZE - current->dwUser)) {							  	    
+    if(bytes < (int)(s->blockSize - current->dwUser)) {							  	    
 		  memcpy(current->lpData + current->dwUser, data, bytes);
       current->dwUser += bytes;
       break;
     }
 
     
-    remain = BLOCK_SIZE - current->dwUser;
+    remain = s->blockSize - current->dwUser;
   	memcpy(current->lpData + current->dwUser, data, remain);
     current->dwUser += remain;
     bytes -= remain;

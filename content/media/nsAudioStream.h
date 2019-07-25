@@ -116,6 +116,10 @@ public:
   
   virtual PRBool IsPaused() = 0;
 
+  
+  
+  virtual PRInt32 GetMinWriteSamples() = 0;
+
 protected:
   nsCOMPtr<nsIThread> mAudioPlaybackThread;
 };

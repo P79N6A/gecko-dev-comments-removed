@@ -112,6 +112,11 @@ var gPlayTests = [
   
   
   { name:"seek.yuv", type:"video/x-raw-yuv", duration:1.833 },
+  
+  
+  
+  
+  { name:"spacestorm-1000Hz-100ms.ogg", type:"audio/ogg", duration:0.099 },
 
   { name:"bogus.duh", type:"bogus/duh", duration:Number.NaN }
   
