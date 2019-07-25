@@ -257,13 +257,9 @@ function onDebugKeyPress(ev) {
 
   switch (ev.charCode) {
   case f:
-    var result = Browser.sacrificeTab();
-    if (result)
-      dump("Freed a tab\n");
-    else
-      dump("There are no tabs left to free\n");
+    MemoryObserver.observe();
+    dump("Forced a GC\n");
     break;
-
   case r:
     bv.onAfterVisibleMove();
     
@@ -838,8 +834,6 @@ var Browser = {
     if (this._selectedTab.isLoading())
       BrowserUI.lockToolbar();
 
-    tab.ensureBrowserExists();
-
     bv.beginBatchOperation();
 
     bv.setBrowser(tab.browser, tab.browserViewportState);
@@ -917,25 +911,6 @@ var Browser = {
         notification.persistence--;
       else if (Date.now() > notification.timeout)
         notificationBox.removeNotification(notification);
-    }
-  },
-
-  
-  sacrificeTab: function sacrificeTab() {
-    let tabToClear = this._tabs.reduce(function(prevTab, currentTab) {
-      if (currentTab == Browser.selectedTab || !currentTab.browser) {
-        return prevTab;
-      } else {
-        return (prevTab && prevTab.lastSelected <= currentTab.lastSelected) ? prevTab : currentTab;
-      }
-    }, null);
-
-    if (tabToClear) {
-      tabToClear.saveState();
-      tabToClear._destroyBrowser();
-      return true;
-    } else {
-      return false;
     }
   },
 
@@ -2477,10 +2452,9 @@ var FormSubmitObserver = {
 
 var MemoryObserver = {
   observe: function mo_observe() {
-    let memory = Cc["@mozilla.org/xpcom/memory-service;1"].getService(Ci.nsIMemory);
-    do {
-      Browser.windowUtils.garbageCollect();
-    } while (memory.isLowMemory() && Browser.sacrificeTab());
+    window.QueryInterface(Ci.nsIInterfaceRequestor)
+          .getInterface(Ci.nsIDOMWindowUtils).garbageCollect();
+    Components.utils.forceGC();
   }
 };
 
@@ -2995,9 +2969,6 @@ Tab.prototype = {
     }
 
     this._stopResizeAndPaint();
-
-    
-    this.restoreState();
   },
 
   isLoading: function isLoading() {
@@ -3016,14 +2987,6 @@ Tab.prototype = {
     document.getElementById("tabs").removeTab(this._chromeTab);
     this._chromeTab = null;
     this._destroyBrowser();
-  },
-
-  
-  ensureBrowserExists: function ensureBrowserExists() {
-    if (!this._browser) {
-      this._createBrowser();
-      this.browser.contentDocument.location = this._state._url;
-    }
   },
 
   _createBrowser: function _createBrowser(aURI) {
@@ -3077,64 +3040,6 @@ Tab.prototype = {
   },
 
   
-  saveState: function saveState() {
-    let state = { };
-
-    var browser = this._browser;
-    var doc = browser.contentDocument;
-    state._url = doc.location.href;
-    state._scroll = BrowserView.Util.getContentScrollOffset(this.browser);
-    if (doc instanceof HTMLDocument) {
-      var tags = ["input", "textarea", "select"];
-
-      for (var t = 0; t < tags.length; t++) {
-        var elements = doc.getElementsByTagName(tags[t]);
-        for (var e = 0; e < elements.length; e++) {
-          var element = elements[e];
-          var id;
-          if (element.id)
-            id = "#" + element.id;
-          else if (element.name)
-            id = "$" + element.name;
-
-          if (id)
-            state[id] = element.value;
-        }
-      }
-    }
-
-    this._state = state;
-  },
-
-  
-  restoreState: function restoreState() {
-    let state = this._state;
-    if (!state)
-      return;
-
-    let doc = this._browser.contentDocument;
-
-    for (var item in state) {
-      var elem = null;
-      if (item.charAt(0) == "#") {
-        elem = doc.getElementById(item.substring(1));
-      } else if (item.charAt(0) == "$") {
-        var list = doc.getElementsByName(item.substring(1));
-        if (list.length)
-          elem = list[0];
-      }
-
-      if (elem)
-        elem.value = state[item];
-    }
-
-    this.browser.contentWindow.scrollX = state._scroll.x;
-    this.browser.contentWindow.scrollY = state._scroll.y;
-
-    this._state = null;
-  },
-
-  
 
 
 
@@ -3154,7 +3059,7 @@ Tab.prototype = {
   },
 
   toString: function() {
-    return "[Tab " + (this._browser ? this._browser.contentDocument.location.toString() : "(no browser)") + "]";
+    return "[Tab " + (this._browser ? this._browser.contentURI.spec : "(no browser)") + "]";
   }
 };
 
