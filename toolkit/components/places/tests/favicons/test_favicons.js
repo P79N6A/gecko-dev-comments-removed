@@ -5,190 +5,10 @@
 
 
 
-let isWindows = ("@mozilla.org/windows-registry-key;1" in Cc);
-
-
-
-
-
-
-
-
-
-function setAndGetFaviconData(aFilename, aData, aMimeType) {
-  let iconsvc = PlacesUtils.favicons;
-  let iconURI = NetUtil.newURI("http://places.test/" + aFilename);
-  try {
-    iconsvc.setFaviconData(iconURI, aData, aData.length, aMimeType,
-                           Number.MAX_VALUE);
-  } catch (ex) {}
-  let dataURL = iconsvc.getFaviconDataAsDataURL(iconURI);
-  try {
-    iconsvc.setFaviconDataFromDataURL(iconURI, dataURL, Number.MAX_VALUE);
-  } catch (ex) {}
-  let mimeTypeOutparam = {};
-
-  let outData = iconsvc.getFaviconData(iconURI, mimeTypeOutparam);
-
-  return [outData, mimeTypeOutparam.value];
-}
-
-
-
-
-
-
-function readFileOfLength(name, expected) {
-  let file = do_get_file(name);
-  let data = readFileData(file);
-  do_check_eq(data.length, expected);
-  return data;
-}
-
-
-
-
-
-
-function setAndGetFaviconDataFromName(iconName, inMimeType, expectedLength) {
-  let inData = readFileOfLength(iconName, expectedLength);
-  let [outData, outMimeType] = setAndGetFaviconData(iconName, inData, inMimeType);
-  return [inData, outData, outMimeType];
-}
-
-
-
-
-function check_icon_data(iconName, inMimeType, expectedLength) {
-  let [inData, outData, outMimeType] =
-    setAndGetFaviconDataFromName(iconName, inMimeType, expectedLength);
-
-  
-  do_check_eq(inMimeType, outMimeType);
-  do_check_true(compareArrays(inData, outData));
-}
-
-
-
-
-
-
-function check_oversized_icon_data(iconName, inMimeType, expectedLength, skipContent) {
-  let [inData, outData, outMimeType] =
-    setAndGetFaviconDataFromName(iconName, inMimeType, expectedLength);
-
-  
-  let expectedFile = do_get_file("expected-" + iconName + ".png");
-  let expectedData = readFileData(expectedFile);
-
-  
-  do_check_eq("image/png", outMimeType);
-  if (!skipContent) {
-    do_check_true(compareArrays(expectedData, outData));
-  }
-}
-
-function check_page_has_no_favicon(pageURI) {
-  try {
-    PlacesUtils.favicons.getFaviconForPage(pageURI);
-    do_throw("Page has a favicon!");
-  } catch (ex if ex.result == Cr.NS_ERROR_NOT_AVAILABLE) {
-    
-  } catch (ex) {
-    do_throw("Unexpected exception " + ex);
-  }
-}
-
-
-
 
 function run_test() {
   run_next_test();
 }
-
-add_test(function test_storing_a_normal_16x16_icon() {
-  
-  let iconName   = "favicon-normal16.png";
-  let inMimeType = "image/png";
-  check_icon_data(iconName, inMimeType, 286);
-  run_next_test();
-});
-
-add_test(function test_storing_a_normal_32x32_icon() {
-  
-  let iconName   = "favicon-normal32.png";
-  let inMimeType = "image/png";
-  check_icon_data(iconName, inMimeType, 344);
-  run_next_test();
-});
-
-add_test(function test_storing_an_oversize_16x16_icon() {
-  
-  
-  let iconName   = "favicon-big16.ico";
-  let inMimeType = "image/x-icon";
-  check_oversized_icon_data(iconName, inMimeType, 1406);
-  run_next_test();
-});
-
-add_test(function test_storing_an_oversize_4x4_icon() {
-  
-  
-  let iconName   = "favicon-big4.jpg";
-  let inMimeType = "image/jpeg";
-  check_oversized_icon_data(iconName, inMimeType, 4751);
-  run_next_test();
-});
-
-add_test(function test_storing_an_oversize_32x32_icon() {
-  
-  
-  let iconName   = "favicon-big32.jpg";
-  let inMimeType = "image/jpeg";
-
-  
-  
-  check_oversized_icon_data(iconName, inMimeType, 3494, isWindows);
-  run_next_test();
-});
-
-add_test(function test_storing_an_oversize_48x48_icon() {
-  
-  
-  
-  
-  let iconName   = "favicon-big48.ico";
-  let inMimeType = "image/x-icon";
-  check_oversized_icon_data(iconName, inMimeType, 56646);
-  run_next_test();
-});
-
-add_test(function test_storing_an_oversize_64x64_icon() {
-  
-  
-  let iconName   = "favicon-big64.png";
-  let inMimeType = "image/png";
-  check_oversized_icon_data(iconName, inMimeType, 10698);
-  run_next_test();
-});
-
-add_test(function test_scaling_an_oversize_160x3_icon() {
-  
-  
-  let iconName   = "favicon-scale160x3.jpg";
-  let inMimeType = "image/jpeg";
-  check_oversized_icon_data(iconName, inMimeType, 5095);
-  run_next_test();
-});
-
-add_test(function test_scaling_an_oversize_3x160_icon() {
-  
-  
-  let iconName = "favicon-scale3x160.jpg";
-  let inMimeType = "image/jpeg";
-  check_oversized_icon_data(iconName, inMimeType, 5059);
-  run_next_test();
-});
 
 
 
@@ -257,16 +77,14 @@ add_test(function test_set_and_get_favicon_setup() {
 
 add_test(function test_set_and_get_favicon_getFaviconURLForPage() {
   let [icon0] = icons;
-  PlacesUtils.favicons.getFaviconURLForPage(pages[0], {
-      onFaviconDataAvailable: function(aURI, aDataLen, aData, aMimeType) {
-        do_check_true(icon0.uri.equals(aURI));
-        do_check_eq(aDataLen, 0);
-        do_check_eq(aData.length, 0);
-        do_check_eq(aMimeType, "");
-        run_next_test();
-    },
-    QueryInterface: XPCOMUtils.generateQI([Ci.nsIFaviconDataCallback])
-  });
+  PlacesUtils.favicons.getFaviconURLForPage(pages[0],
+    function GFUFP_onFaviconDataAvailable(aURI, aDataLen, aData, aMimeType) {
+      do_check_true(icon0.uri.equals(aURI));
+      do_check_eq(aDataLen, 0);
+      do_check_eq(aData.length, 0);
+      do_check_eq(aMimeType, "");
+      run_next_test();
+    });
 });
 
 add_test(function test_set_and_get_favicon_second_and_third() {
@@ -315,15 +133,13 @@ add_test(function test_set_and_get_favicon_second_and_third() {
 
 add_test(function test_set_and_get_favicon_getFaviconDataForPage() {
   let [icon0] = icons;
-  PlacesUtils.favicons.getFaviconDataForPage(pages[0], {
-      onFaviconDataAvailable: function(aURI, aDataLen, aData, aMimeType) {
-        do_check_true(aURI.equals(icon0.uri));
-        do_check_eq(icon0.mime, icon0.mime);
-        do_check_true(compareArrays(icon0.data, aData));
-        do_check_eq(aDataLen, aData.length);
-        run_next_test();
-      },
-      QueryInterface: XPCOMUtils.generateQI([Ci.nsIFaviconDataCallback])
+  PlacesUtils.favicons.getFaviconDataForPage(pages[0],
+    function(aURI, aDataLen, aData, aMimeType) {
+      do_check_true(aURI.equals(icon0.uri));
+      do_check_eq(icon0.mime, icon0.mime);
+      do_check_true(compareArrays(icon0.data, aData));
+      do_check_eq(aDataLen, aData.length);
+      run_next_test();
     });
 });
 
@@ -419,21 +235,21 @@ add_test(function test_insert_synchronous_mints_guid() {
   let pageURI     = NetUtil.newURI(testURI);
 
   
-  check_page_has_no_favicon(pageURI);
+  checkFaviconMissingForPage(pageURI, function () {
+    
+    insertToolbarBookmark(pageURI, "Test page");
 
-  
-  insertToolbarBookmark(pageURI, "Test page");
+    
+    PlacesUtils.favicons.setFaviconUrlForPage(
+      pageURI, NetUtil.newURI(testIconURI)
+    );
 
-  
-  PlacesUtils.favicons.setFaviconUrlForPage(
-    pageURI, NetUtil.newURI(testIconURI)
-  );
+    
+    do_check_eq(PlacesUtils.favicons.getFaviconForPage(pageURI).spec,
+                testIconURI);
 
-  
-  do_check_eq(PlacesUtils.favicons.getFaviconForPage(pageURI).spec,
-              testIconURI);
-
-  guidForFaviconURI(testIconURI, new SingleGUIDCallback(run_next_test));
+    guidForFaviconURI(testIconURI, new SingleGUIDCallback(run_next_test));
+  });
 });
 
 add_test(function test_insert_asynchronous_mints_guid() {
@@ -445,26 +261,21 @@ add_test(function test_insert_asynchronous_mints_guid() {
   let pageURI = NetUtil.newURI(testURI);
 
   
-  check_page_has_no_favicon(pageURI);
+  checkFaviconMissingForPage(pageURI, function () {
+    
+    insertToolbarBookmark(pageURI, "Other test page");
 
-  
-  insertToolbarBookmark(pageURI, "Other test page");
+    
+    do_log_info("Asynchronously setting page favicon.");
+    PlacesUtils.favicons.setAndFetchFaviconForPage(
+      pageURI, iconURI, false,
+      function AMG_faviconDataCallback(uri, len, data, mimeType) {
+        do_check_true(iconURI.equals(uri));
 
-  
-  let faviconDataCallback = {
-    onFaviconDataAvailable: function (uri, len, data, mimeType) {
-      do_check_true(iconURI.equals(uri));
-
-      
-      guidForFaviconURI(iconURI.spec, new SingleGUIDCallback(run_next_test));
-    }
-  };
-
-  let forceReload = false;
-  do_log_info("Asynchronously setting page favicon.");
-  PlacesUtils.favicons.setAndFetchFaviconForPage(
-    pageURI, iconURI, forceReload, faviconDataCallback
-  );
+        
+        guidForFaviconURI(iconURI.spec, new SingleGUIDCallback(run_next_test));
+      });
+  });
 });
 
 add_test(function test_insert_asynchronous_update_preserves_guid() {
@@ -477,23 +288,19 @@ add_test(function test_insert_asynchronous_update_preserves_guid() {
 
   guidForFaviconURI(iconURI.spec, new SingleGUIDCallback(function (guid) {
     
-    let faviconDataCallback = {
-      onFaviconDataAvailable: function (uri, len, data, mimeType) {
+    do_log_info("Asynchronously re-setting page favicon.");
+    PlacesUtils.favicons.setAndFetchFaviconForPage(
+      pageURI, iconURI, true,
+      function UPG_faviconDataCallback(uri, len, data, mimeType) {
         do_check_true(iconURI.equals(uri));
 
         
-        guidForFaviconURI(iconURI.spec, new SingleGUIDCallback(function (again) {
-          do_check_eq(guid, again);
-          run_next_test();
-        }));
-      }
-    };
-
-    let forceReload = true;
-    do_log_info("Asynchronously re-setting page favicon.");
-    PlacesUtils.favicons.setAndFetchFaviconForPage(
-      pageURI, iconURI, forceReload, faviconDataCallback
-    );
+        guidForFaviconURI(iconURI.spec,
+          new SingleGUIDCallback(function (again) {
+            do_check_eq(guid, again);
+            run_next_test();
+          }));
+      });
   }));
 });
 
