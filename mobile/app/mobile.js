@@ -405,6 +405,8 @@ pref("app.faqURL", "http://www.mozilla.com/%LOCALE%/mobile/faq/");
 
 pref("security.alternate_certificate_error_page", "certerror");
 
+pref("security.warn_viewing_mixed", false); 
+
 
 pref("ui.-moz-dialog", "#efebe7");
 pref("ui.-moz-dialogtext", "#101010");
