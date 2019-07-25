@@ -49,6 +49,8 @@
 #include "AccessCheck.h"
 #include "nsJSUtils.h"
 
+#include "jscntxt.h" 
+
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsXPCWrappedJSClass, nsIXPCWrappedJSClass)
 
 

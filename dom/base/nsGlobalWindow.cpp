@@ -257,6 +257,8 @@
 #include <android/log.h>
 #endif
 
+#include "jscntxt.h" 
+
 #ifdef PR_LOGGING
 static PRLogModuleInfo* gDOMLeakPRLog;
 #endif

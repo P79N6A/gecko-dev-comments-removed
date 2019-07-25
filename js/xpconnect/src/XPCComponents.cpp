@@ -61,6 +61,8 @@
 #include "jsgc.h"
 #include "jsfriendapi.h"
 
+#include "jscntxt.h" 
+
 using namespace mozilla;
 using namespace js;
 
