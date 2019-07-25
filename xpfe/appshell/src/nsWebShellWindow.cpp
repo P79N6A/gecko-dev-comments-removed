@@ -125,7 +125,6 @@ static NS_DEFINE_CID(kWindowCID,           NS_WINDOW_CID);
 nsWebShellWindow::nsWebShellWindow(PRUint32 aChromeFlags)
   : nsXULWindow(aChromeFlags)
   , mSPTimerLock("nsWebShellWindow.mSPTimerLock")
-  , mSizeMode(-1)
 {
 }
 
@@ -386,14 +385,11 @@ nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
         
         
         
-        if (modeEvent->mSizeMode == nsSizeMode_Fullscreen ||
-            eventWindow->mSizeMode == nsSizeMode_Fullscreen) {
+        if (modeEvent->mSizeMode == nsSizeMode_Fullscreen) {
           nsCOMPtr<nsIDOMWindowInternal> ourWindow = do_GetInterface(docShell);
           if (ourWindow)
-            ourWindow->SetFullScreen(modeEvent->mSizeMode == nsSizeMode_Fullscreen);
+            ourWindow->SetFullScreen(PR_TRUE);
         }
-
-        eventWindow->mSizeMode = modeEvent->mSizeMode;
 
         
         
@@ -791,7 +787,7 @@ void nsWebShellWindow::ConstrainToOpenerScreen(PRInt32* aX, PRInt32* aY)
                              getter_AddRefs(screen));
     if (screen) {
       screen->GetAvailRect(&left, &top, &width, &height);
-      if (*aX < left || *aX > left + width) {
+      if (*aX < left || *aY > left + width) {
         *aX = left;
       }
       if (*aY < top || *aY > top + height) {

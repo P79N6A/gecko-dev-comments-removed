@@ -4308,6 +4308,7 @@ DisplaySystemMenu(HWND hWnd, nsSizeMode sizeMode, PRBool isRtl, PRInt32 x, PRInt
     mii.fState = MF_GRAYED;
     switch(sizeMode) {
       case nsSizeMode_Fullscreen:
+        SetMenuItemInfo(hMenu, SC_RESTORE, FALSE, &mii);
         
       case nsSizeMode_Maximized:
         SetMenuItemInfo(hMenu, SC_SIZE, FALSE, &mii);
@@ -4455,35 +4456,6 @@ nsWindow::ProcessMessageForPlugin(const MSG &aMsg,
   if (!eventDispatched)
     aCallDefWndProc = !DispatchPluginEvent(aMsg);
   DispatchPendingEvents();
-  return PR_TRUE;
-}
-
-static void ForceFontUpdate()
-{
-  
-  
-  
-  
-  
-  static const char kPrefName[] = "font.internaluseonly.changed";
-  PRBool fontInternalChange =
-    Preferences::GetBool(kPrefName, PR_FALSE);
-  Preferences::SetBool(kPrefName, !fontInternalChange);
-}
-
-static PRBool CleartypeSettingChanged()
-{
-  static int currentQuality = -1;
-  BYTE quality = cairo_win32_get_system_text_quality();
-
-  if (currentQuality == quality)
-    return PR_FALSE;
-
-  if (currentQuality < 0) {
-    currentQuality = quality;
-    return PR_FALSE;
-  }
-  currentQuality = quality;
   return PR_TRUE;
 }
 
@@ -4649,7 +4621,15 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         fontEnum->UpdateFontList(&didChange);
         
         if (didChange)  {
-          ForceFontUpdate();
+          
+          
+          
+          
+          
+          const char* kPrefName = "font.internaluseonly.changed";
+          PRBool fontInternalChange =
+            Preferences::GetBool(kPrefName, PR_FALSE);
+          Preferences::SetBool(kPrefName, !fontInternalChange);
         }
       } 
     }
@@ -4832,13 +4812,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       break;
 
     case WM_PAINT:
-      if (CleartypeSettingChanged()) {
-        ForceFontUpdate();
-        gfxFontCache *fc = gfxFontCache::GetCache();
-        if (fc) {
-          fc->Flush();
-        }
-      }
       *aRetValue = (int) OnPaint(NULL, 0);
       result = PR_TRUE;
       break;
@@ -5072,17 +5045,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
       }
       break;
 
-    case WM_NCLBUTTONDBLCLK:
-      DispatchMouseEvent(NS_MOUSE_DOUBLECLICK, 0, lParamToClient(lParam),
-                         PR_FALSE, nsMouseEvent::eLeftButton,
-                         MOUSE_INPUT_SOURCE());
-      result = 
-        DispatchMouseEvent(NS_MOUSE_BUTTON_UP, 0, lParamToClient(lParam),
-                           PR_FALSE, nsMouseEvent::eLeftButton,
-                           MOUSE_INPUT_SOURCE());
-      DispatchPendingEvents();
-      break;
-
     case WM_APPCOMMAND:
     {
       PRUint32 appCommand = GET_APPCOMMAND_LPARAM(lParam);
@@ -5264,13 +5226,6 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         DisplaySystemMenu(mWnd, mSizeMode, mIsRTL,
                           MOZ_SYSCONTEXT_X_POS,
                           MOZ_SYSCONTEXT_Y_POS);
-        result = PR_TRUE;
-      }
-      if (filteredWParam == SC_RESTORE &&
-          mSizeMode == nsSizeMode_Fullscreen) {
-        
-        
-        MakeFullScreen(PR_FALSE);
         result = PR_TRUE;
       }
     }
