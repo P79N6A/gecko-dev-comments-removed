@@ -6070,7 +6070,15 @@ nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
                                         getter_AddRefs(referrer));
 
         
-        AddURIVisit(oldURI, referrer, previousURI, previousFlags);
+        PRUint32 responseStatus = 0;
+        nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aOldChannel);
+        if (httpChannel) {
+            (void)httpChannel->GetResponseStatus(&responseStatus);
+        }
+
+        
+        AddURIVisit(oldURI, referrer, previousURI, previousFlags,
+                    responseStatus);
 
         
         
@@ -9266,6 +9274,7 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
     bool equalUri = false;
 
     
+    PRUint32 responseStatus = 0;
     nsCOMPtr<nsIInputStream> inputStream;
     if (aChannel) {
         nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aChannel));
@@ -9283,7 +9292,6 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
 
             
             
-            PRUint32 responseStatus;
             nsresult rv = httpChannel->GetResponseStatus(&responseStatus);
             if (mLSHE && NS_SUCCEEDED(rv) && responseStatus >= 400) {
                 mLSHE->AbandonBFCacheEntry();
@@ -9447,7 +9455,7 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
         
         (void)NS_GetReferrerFromChannel(aChannel, getter_AddRefs(referrer));
 
-        AddURIVisit(aURI, referrer, previousURI, previousFlags);
+        AddURIVisit(aURI, referrer, previousURI, previousFlags, responseStatus);
     }
 
     
@@ -10593,9 +10601,13 @@ void
 nsDocShell::AddURIVisit(nsIURI* aURI,
                         nsIURI* aReferrerURI,
                         nsIURI* aPreviousURI,
-                        PRUint32 aChannelRedirectFlags)
+                        PRUint32 aChannelRedirectFlags,
+                        PRUint32 aResponseStatus)
 {
-    NS_ASSERTION(aURI, "Visited URI is null!");
+    MOZ_ASSERT(aURI, "Visited URI is null!");
+    MOZ_ASSERT(mLoadType != LOAD_ERROR_PAGE &&
+               mLoadType != LOAD_BYPASS_HISTORY,
+               "Do not add error or bypass pages to global history");
 
     
     
@@ -10618,6 +10630,19 @@ nsDocShell::AddURIVisit(nsIURI* aURI,
         else if (aChannelRedirectFlags &
                  nsIChannelEventSink::REDIRECT_PERMANENT) {
             visitURIFlags |= IHistory::REDIRECT_PERMANENT;
+        }
+
+        if (aResponseStatus >= 300 && aResponseStatus < 400) {
+            visitURIFlags |= IHistory::REDIRECT_SOURCE;
+        }
+        
+        
+        
+        
+        else if (aResponseStatus != 408 &&
+                 (aResponseStatus >= 400 && aResponseStatus <= 501 ||
+                  aResponseStatus == 505)) {
+            visitURIFlags |= IHistory::UNRECOVERABLE_ERROR;
         }
 
         (void)history->VisitURI(aURI, aPreviousURI, visitURIFlags);

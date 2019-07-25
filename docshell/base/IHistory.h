@@ -109,7 +109,16 @@ public:
         
 
 
-        REDIRECT_TEMPORARY = 1 << 2
+        REDIRECT_TEMPORARY = 1 << 2,
+        
+
+
+        REDIRECT_SOURCE = 1 << 3,
+        
+
+
+
+        UNRECOVERABLE_ERROR = 1 << 4
     };
 
     
