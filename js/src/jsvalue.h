@@ -1196,7 +1196,7 @@ SetValueRangeToUndefined(Value *beg, Value *end)
 static JS_ALWAYS_INLINE void
 SetValueRangeToUndefined(Value *vec, size_t len)
 {
-    return SetValueRangeToUndefined(vec, vec + len);
+    SetValueRangeToUndefined(vec, vec + len);
 }
 
 static JS_ALWAYS_INLINE void
@@ -1209,7 +1209,30 @@ SetValueRangeToNull(Value *beg, Value *end)
 static JS_ALWAYS_INLINE void
 SetValueRangeToNull(Value *vec, size_t len)
 {
-    return SetValueRangeToNull(vec, vec + len);
+    SetValueRangeToNull(vec, vec + len);
+}
+
+
+
+
+
+
+
+static JS_ALWAYS_INLINE void
+Debug_SetValueRangeToCrashOnTouch(Value *beg, Value *end)
+{
+#ifdef DEBUG
+    for (Value *v = beg; v != end; ++v)
+        v->setObject(*reinterpret_cast<JSObject *>(0x42));
+#endif
+}
+
+static JS_ALWAYS_INLINE void
+Debug_SetValueRangeToCrashOnTouch(Value *vec, size_t len)
+{
+#ifdef DEBUG
+    Debug_SetValueRangeToCrashOnTouch(vec, vec + len);
+#endif
 }
 
 }      

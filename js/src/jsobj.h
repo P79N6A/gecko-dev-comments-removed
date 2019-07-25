@@ -1768,6 +1768,15 @@ extern JSBool
 js_SetNativeAttributes(JSContext *cx, JSObject *obj, js::Shape *shape,
                        uintN attrs);
 
+
+
+
+
+
+
+JS_FRIEND_API(void)
+js_UnbrandAndClearSlots(JSContext *cx, JSObject *obj);
+
 namespace js {
 
 
@@ -1893,7 +1902,6 @@ JS_FRIEND_API(void) js_DumpObject(JSObject *obj);
 JS_FRIEND_API(void) js_DumpValue(const js::Value &val);
 JS_FRIEND_API(void) js_DumpId(jsid id);
 JS_FRIEND_API(void) js_DumpStackFrame(JSContext *cx, JSStackFrame *start = NULL);
-bool IsSaneThisObject(JSObject &obj);
 #endif
 
 extern uintN

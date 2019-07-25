@@ -1084,9 +1084,17 @@ generator_trace(JSTracer *trc, JSObject *obj)
 
     JSStackFrame *fp = gen->floatingFrame();
     JS_ASSERT(gen->liveFrame() == fp);
-    MarkValueRange(trc, gen->floatingStack, fp->formalArgsEnd(), "generator slots");
+
+    
+
+
+
+
+
+
+    MarkStackRangeConservatively(trc, gen->floatingStack, fp->formalArgsEnd());
     js_TraceStackFrame(trc, fp);
-    MarkValueRange(trc, fp->slots(), gen->regs.sp, "generator slots");
+    MarkStackRangeConservatively(trc, fp->slots(), gen->regs.sp);
 }
 
 Class js_GeneratorClass = {
