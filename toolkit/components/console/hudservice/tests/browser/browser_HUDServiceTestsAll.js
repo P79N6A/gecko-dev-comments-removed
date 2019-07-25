@@ -36,6 +36,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -718,13 +719,40 @@ function testErrorOnPageReload() {
       testLogEntry(outputNode, "fooBazBaz",
         { success: successMsg, err: errMsg });
 
-      testEnd();
+      testWebConsoleClose();
     }, false);
 
     button.dispatchEvent(clickEvent);
   }, false);
 
   content.location.href = TEST_ERROR_URI;
+}
+
+
+
+
+
+function testWebConsoleClose() {
+  let display = HUDService.getDisplayByURISpec(content.location.href);
+  let input = display.querySelector(".jsterm-input-node");
+
+  let errorWhileClosing = false;
+  function errorListener(evt) {
+    errorWhileClosing = true;
+  }
+  window.addEventListener("error", errorListener, false);
+
+  
+  input.focus();
+  EventUtils.synthesizeKey("k", { accelKey: true, shiftKey: true });
+
+  
+  
+  executeSoon(function() {
+    window.removeEventListener("error", errorListener, false);
+    is (errorWhileClosing, false, "no error while closing the WebConsole");
+    testEnd();
+  });
 }
 
 function testEnd() {
