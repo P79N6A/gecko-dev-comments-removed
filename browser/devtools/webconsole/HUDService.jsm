@@ -1552,6 +1552,8 @@ HUD_SERVICE.prototype =
       this.disableAnimation(hudId);
     }
 
+    chromeDocument.getElementById("Tools:WebConsole").setAttribute("checked", "true");
+
     
     
     
@@ -1600,6 +1602,8 @@ HUD_SERVICE.prototype =
 
       window.focus();
     }
+
+    chromeDocument.getElementById("Tools:WebConsole").setAttribute("checked", "false");
 
     
     
