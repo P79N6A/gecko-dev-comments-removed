@@ -287,14 +287,11 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
     NS_ASSERTION(!mStreamParser,
                  "Had stream parser but got document.close().");
     mDocumentClosed = true;
-    if (!mBlocked && !mInDocumentWrite) {
+    if (!mBlocked) {
       ParseUntilBlocked();
     }
     return NS_OK;
   }
-
-  
-  
 
   NS_ASSERTION(IsInsertionPointDefined(),
                "Doc.write reached parser with undefined insertion point.");
@@ -302,87 +299,12 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
   NS_ASSERTION(!(mStreamParser && !aKey),
                "Got a null key in a non-script-created parser");
 
-  
   if (aSourceBuffer.IsEmpty()) {
     return NS_OK;
   }
 
-  
-  
-  
   mozilla::AutoRestore<bool> guard(mInDocumentWrite);
   mInDocumentWrite = true;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  nsHtml5OwningUTF16Buffer* prevSearchBuf = nsnull;
-  nsHtml5OwningUTF16Buffer* firstLevelMarker = nsnull;
-
-  if (aKey) {
-    if (mFirstBuffer == mLastBuffer) {
-      nsHtml5OwningUTF16Buffer* keyHolder = new nsHtml5OwningUTF16Buffer(aKey);
-      keyHolder->next = mLastBuffer;
-      mFirstBuffer = keyHolder;
-    } else {
-      prevSearchBuf = mFirstBuffer;
-      for (;;) {
-        if (prevSearchBuf->next == mLastBuffer) {
-          
-          nsHtml5OwningUTF16Buffer* keyHolder =
-            new nsHtml5OwningUTF16Buffer(aKey);
-          keyHolder->next = mFirstBuffer;
-          mFirstBuffer = keyHolder;
-          prevSearchBuf = nsnull;
-          break;
-        }
-        if (prevSearchBuf->next->key == aKey) {
-          
-          break;
-        }
-        prevSearchBuf = prevSearchBuf->next;
-      }
-    }
-    
-    
-  } else {
-    
-    
-    
-    
-    firstLevelMarker = new nsHtml5OwningUTF16Buffer((void*)nsnull);
-    if (mFirstBuffer == mLastBuffer) {
-      firstLevelMarker->next = mLastBuffer;
-      mFirstBuffer = firstLevelMarker;
-    } else {
-      prevSearchBuf = mFirstBuffer;
-      while (prevSearchBuf->next != mLastBuffer) {
-        prevSearchBuf = prevSearchBuf->next;
-      }
-      firstLevelMarker->next = mLastBuffer;
-      prevSearchBuf->next = firstLevelMarker;
-    }
-  }
 
   nsHtml5DependentUTF16Buffer stackBuffer(aSourceBuffer);
 
@@ -433,35 +355,60 @@ nsHtml5Parser::Parse(const nsAString& aSourceBuffer,
     }
   }
 
-  if (heapBuffer) {
-    
-    
-    
-    if (aKey) {
-      NS_ASSERTION(mFirstBuffer != mLastBuffer,
-        "Where's the keyholder?");
+  
+  
+  
+  
+  
+  
+  
+  
+  nsHtml5OwningUTF16Buffer* prevSearchBuf = nsnull;
+  nsHtml5OwningUTF16Buffer* searchBuf = mFirstBuffer;
+
+  
+  if (aKey) {
+    while (searchBuf != mLastBuffer) {
+      if (searchBuf->key == aKey) {
+        
+        
+        
+        if (heapBuffer) {
+          heapBuffer->next = searchBuf;
+          if (prevSearchBuf) {
+            prevSearchBuf->next = heapBuffer;
+          } else {
+            mFirstBuffer = heapBuffer;
+          }
+        }
+        break;
+      }
+      prevSearchBuf = searchBuf;
+      searchBuf = searchBuf->next;
+    }
+    if (searchBuf == mLastBuffer) {
       
-      
-      if (mFirstBuffer->key == aKey) {
-        NS_ASSERTION(!prevSearchBuf,
-          "Non-null prevSearchBuf when mFirstBuffer is the key holder?");
-        heapBuffer->next = mFirstBuffer;
+      nsHtml5OwningUTF16Buffer* keyHolder = new nsHtml5OwningUTF16Buffer(aKey);
+      keyHolder->next = mFirstBuffer;
+      if (heapBuffer) {
+        heapBuffer->next = keyHolder;
         mFirstBuffer = heapBuffer;
       } else {
-        if (!prevSearchBuf) {
-          prevSearchBuf = mFirstBuffer;
-        }
-        
-        
-        while (prevSearchBuf->next->key != aKey) {
-          prevSearchBuf = prevSearchBuf->next;
-        }
-        heapBuffer->next = prevSearchBuf->next;
-        prevSearchBuf->next = heapBuffer;
+        mFirstBuffer = keyHolder;
       }
+    }
+  } else if (heapBuffer) {
+    
+    
+    while (searchBuf != mLastBuffer) {
+      prevSearchBuf = searchBuf;
+      searchBuf = searchBuf->next;
+    }
+    heapBuffer->next = mLastBuffer;
+    if (prevSearchBuf) {
+      prevSearchBuf->next = heapBuffer;
     } else {
-      NS_ASSERTION(firstLevelMarker, "How come we don't have a marker.");
-      firstLevelMarker->Swap(heapBuffer);
+      mFirstBuffer = heapBuffer;
     }
   }
 
@@ -710,12 +657,14 @@ nsHtml5Parser::ParseUntilBlocked()
   NS_PRECONDITION(!mExecutor->IsFragmentMode(),
                   "ParseUntilBlocked called in fragment mode.");
 
-  if (mBlocked || mExecutor->IsComplete() || mExecutor->IsBroken()) {
+  if (mBlocked ||
+      mExecutor->IsComplete() ||
+      mExecutor->IsBroken() ||
+      mInDocumentWrite) {
     return;
   }
+
   NS_ASSERTION(mExecutor->HasStarted(), "Bad life cycle.");
-  NS_ASSERTION(!mInDocumentWrite,
-    "ParseUntilBlocked entered while in doc.write!");
 
   mDocWriteSpeculatorActive = false;
 
