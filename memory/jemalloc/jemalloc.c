@@ -5790,21 +5790,28 @@ RETURN:
 
 
 
+
+
+#if defined(__GNUC__) && !defined(MOZ_MEMORY_DARWIN)
+#define MOZ_MEMORY_ELF
+#endif
+
 #ifdef MOZ_MEMORY_SOLARIS
 #  ifdef __SUNPRO_C
 void *
 memalign(size_t alignment, size_t size);
 #pragma no_inline(memalign)
-#  elif (defined(__GNU_C__))
+#  elif (defined(__GNUC__))
 __attribute__((noinline))
 #  endif
 #else
-#if (defined(__GNUC__))
+#if (defined(MOZ_MEMORY_ELF))
 __attribute__((visibility ("hidden")))
 #endif
 #endif
 
-#if (defined(__GNUC__))
+
+#ifdef MOZ_MEMORY_ELF
 #define MEMALIGN memalign_internal
 #else
 #define MEMALIGN memalign
@@ -5850,7 +5857,7 @@ RETURN:
 	return (ret);
 }
 
-#if (defined(__GNUC__))
+#ifdef MOZ_MEMORY_ELF
 extern __typeof(memalign_internal)
         memalign __attribute__((alias ("memalign_internal"),
 				visibility ("default")));
