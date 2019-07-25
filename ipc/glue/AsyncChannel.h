@@ -161,18 +161,26 @@ protected:
 
     
 
-    bool ProcessGoodbyeMessage();
-
+    void OnNotifyMaybeChannelError();
+    virtual bool ShouldDeferNotifyMaybeError() {
+        return false;
+    }
     void NotifyChannelClosed();
     void NotifyMaybeChannelError();
 
-    void Clear();
+    virtual void Clear();
 
     
 
     void OnChannelOpened();
     void OnSend(Message* aMsg);
     void OnCloseChannel();
+    void PostErrorNotifyTask();
+
+    
+    
+    bool MaybeInterceptSpecialIOMessage(const Message& msg);
+    void ProcessGoodbyeMessage();
 
     Transport* mTransport;
     AsyncListener* mListener;
@@ -183,6 +191,7 @@ protected:
     MessageLoop* mWorkerLoop;   
     bool mChild;                
     CancelableTask* mChannelErrorTask; 
+    IPC::Channel::Listener* mExistingListener; 
 };
 
 

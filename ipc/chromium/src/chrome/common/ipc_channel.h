@@ -72,7 +72,11 @@ class Channel : public Message::Sender {
   void Close();
 
   
+#ifdef CHROMIUM_MOZILLA_BUILD
+  Listener* set_listener(Listener* listener);
+#else
   void set_listener(Listener* listener);
+#endif
 
   
   
