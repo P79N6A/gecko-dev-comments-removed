@@ -67,7 +67,7 @@ short NumberResult::getResultType() {
 void
 NumberResult::stringValue(nsString& aResult)
 {
-    Double::toString(value, aResult);
+    txDouble::toString(value, aResult);
 }
 
 const nsString*
@@ -80,7 +80,7 @@ bool NumberResult::booleanValue() {
   
   
   
-  return (bool)(value != 0.0 && !Double::isNaN(value));
+  return (bool)(value != 0.0 && !txDouble::isNaN(value));
   
 } 
 
