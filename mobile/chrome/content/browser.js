@@ -65,8 +65,8 @@ var Browser = {
   _canvasBrowser : null,
   _tabs : [],
   _selectedTab : null,
-  _windowUtils: window.QueryInterface(Ci.nsIInterfaceRequestor)
-                      .getInterface(Ci.nsIDOMWindowUtils),
+  windowUtils: window.QueryInterface(Ci.nsIInterfaceRequestor)
+                     .getInterface(Ci.nsIDOMWindowUtils),
   _isStartup : true,
 
   startup: function() {
@@ -99,7 +99,7 @@ var Browser = {
 
       
       
-      self._windowUtils.processUpdates();
+      self.windowUtils.processUpdates();
     }
 
     ws.setPanHandler(panHandler);
