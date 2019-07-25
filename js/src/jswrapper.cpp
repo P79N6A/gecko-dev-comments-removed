@@ -1141,7 +1141,7 @@ js::RemapWrapper(JSContext *cx, JSObject *wobj, JSObject *newTarget)
 
 
 
-bool
+JS_FRIEND_API(bool)
 js::RemapAllWrappersForObject(JSContext *cx, JSObject *oldTarget,
                               JSObject *newTarget)
 {
