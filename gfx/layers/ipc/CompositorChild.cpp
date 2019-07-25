@@ -14,6 +14,8 @@ using mozilla::layers::ShadowLayersChild;
 namespace mozilla {
 namespace layers {
 
+ CompositorChild* CompositorChild::sCompositor;
+
 CompositorChild::CompositorChild(LayerManager *aLayerManager)
   : mLayerManager(aLayerManager)
 {
@@ -29,16 +31,42 @@ void
 CompositorChild::Destroy()
 {
   mLayerManager = NULL;
-  size_t numChildren = ManagedPLayersChild().Length();
-  NS_ABORT_IF_FALSE(0 == numChildren || 1 == numChildren,
-                    "compositor must only have 0 or 1 layer forwarder");
-
-  if (numChildren) {
+  while (size_t len = ManagedPLayersChild().Length()) {
     ShadowLayersChild* layers =
-      static_cast<ShadowLayersChild*>(ManagedPLayersChild()[0]);
+      static_cast<ShadowLayersChild*>(ManagedPLayersChild()[len - 1]);
     layers->Destroy();
   }
   SendStop();
+}
+
+ PCompositorChild*
+CompositorChild::Create(Transport* aTransport, ProcessId aOtherProcess)
+{
+  
+  MOZ_ASSERT(!sCompositor);
+
+  nsRefPtr<CompositorChild> child(new CompositorChild(nsnull));
+  ProcessHandle handle;
+  if (!base::OpenProcessHandle(aOtherProcess, &handle)) {
+    
+    NS_RUNTIMEABORT("Couldn't OpenProcessHandle() to parent process.");
+    return nsnull;
+  }
+  if (!child->Open(aTransport, handle, XRE_GetIOMessageLoop(),
+                AsyncChannel::Child)) {
+    NS_RUNTIMEABORT("Couldn't Open() Compositor channel.");
+    return nsnull;
+  }
+  
+  return sCompositor = child.forget().get();
+}
+
+ PCompositorChild*
+CompositorChild::Get()
+{
+  
+  MOZ_ASSERT(XRE_GetProcessType() != GeckoProcessType_Default);
+  return sCompositor;
 }
 
 PLayersChild*
@@ -53,6 +81,21 @@ CompositorChild::DeallocPLayers(PLayersChild* actor)
   delete actor;
   return true;
 }
+
+void
+CompositorChild::ActorDestroy(ActorDestroyReason aWhy)
+{
+  MOZ_ASSERT(sCompositor == this);
+  sCompositor = NULL;
+  
+  
+  
+  
+  MessageLoop::current()->PostTask(
+    FROM_HERE,
+    NewRunnableMethod(this, &CompositorChild::Release));
+}
+
 
 } 
 } 

@@ -106,6 +106,16 @@ public:
 
   static void ShutDown();
 
+  
+  static uint64_t AllocateLayerTreeId();
+
+  
+
+
+
+  static PCompositorParent*
+  Create(Transport* aTransport, ProcessId aOtherProcess);
+
 protected:
   virtual PLayersParent* AllocPLayers(const LayersBackend& aBackendType, const uint64_t& aId, int32_t* aMaxTextureSize);
   virtual bool DeallocPLayers(PLayersParent* aLayers);

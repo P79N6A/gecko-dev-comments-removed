@@ -498,6 +498,19 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL)
     Open(mSubprocess->GetChannel(), mSubprocess->GetChildProcessHandle());
     unused << SendSetID(gContentChildID++);
 
+    
+    
+    
+    
+    
+    
+    
+    
+    if (useOffMainThreadCompositing) {
+        DebugOnly<bool> opened = PCompositor::Open(this);
+        MOZ_ASSERT(opened);
+    }
+
     nsCOMPtr<nsIChromeRegistry> registrySvc = nsChromeRegistry::GetService();
     nsChromeRegistryChrome* chromeRegistry =
         static_cast<nsChromeRegistryChrome*>(registrySvc.get());
@@ -811,6 +824,13 @@ ContentParent::Observe(nsISupports* aSubject,
 #endif
 
     return NS_OK;
+}
+
+PCompositorParent*
+ContentParent::AllocPCompositor(ipc::Transport* aTransport,
+                                base::ProcessId aOtherProcess)
+{
+    return CompositorParent::Create(aTransport, aOtherProcess);
 }
 
 PBrowserParent*

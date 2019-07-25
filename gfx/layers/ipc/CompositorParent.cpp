@@ -4,27 +4,34 @@
 
 
 
-#include "CompositorParent.h"
-#include "RenderTrace.h"
-#include "ShadowLayersParent.h"
-#include "BasicLayers.h"
-#include "LayerManagerOGL.h"
-#include "nsIWidget.h"
-#include "nsGkAtoms.h"
-#include "RenderTrace.h"
-
-#if defined(MOZ_WIDGET_ANDROID)
-#include "AndroidBridge.h"
-#include <android/log.h>
-#endif
-
 #include <map>
 
-using base::Thread;
+#include "base/basictypes.h"
+
+#if defined(MOZ_WIDGET_ANDROID)
+# include <android/log.h>
+# include "AndroidBridge.h"
+#endif
+
+#include "BasicLayers.h"
+#include "CompositorParent.h"
+#include "LayerManagerOGL.h"
+#include "nsGkAtoms.h"
+#include "nsIWidget.h"
+#include "RenderTrace.h"
+#include "ShadowLayersParent.h"
+
+using namespace base;
+using namespace mozilla::ipc;
+using namespace std;
 
 namespace mozilla {
 namespace layers {
 
+
+
+
+static CompositorParent* sCurrentCompositor;
 static Thread* sCompositorThread = nsnull;
 
 
@@ -99,6 +106,8 @@ CompositorParent::CompositorParent(nsIWidget* aWidget,
   
   CompositorLoop()->PostTask(FROM_HERE, NewRunnableFunction(&AddCompositor, 
                                                           this, &mCompositorID));
+
+  sCurrentCompositor = this;
 }
 
 PlatformThreadId
@@ -110,6 +119,10 @@ CompositorParent::CompositorThreadID()
 CompositorParent::~CompositorParent()
 {
   MOZ_COUNT_DTOR(CompositorParent);
+
+  if (this == sCurrentCompositor) {
+    sCurrentCompositor = NULL;
+  }
 }
 
 void
@@ -168,7 +181,7 @@ CompositorParent::PauseComposition()
   NS_ABORT_IF_FALSE(CompositorThreadID() == PlatformThread::CurrentId(),
                     "PauseComposition() can only be called on the compositor thread");
 
-  mozilla::MonitorAutoLock lock(mPauseCompositionMonitor);
+  MonitorAutoLock lock(mPauseCompositionMonitor);
 
   if (!mPaused) {
     mPaused = true;
@@ -188,7 +201,7 @@ CompositorParent::ResumeComposition()
   NS_ABORT_IF_FALSE(CompositorThreadID() == PlatformThread::CurrentId(),
                     "ResumeComposition() can only be called on the compositor thread");
 
-  mozilla::MonitorAutoLock lock(mResumeCompositionMonitor);
+  MonitorAutoLock lock(mResumeCompositionMonitor);
 
   mPaused = false;
 
@@ -228,7 +241,7 @@ CompositorParent::ResumeCompositionAndResize(int width, int height)
 void
 CompositorParent::SchedulePauseOnCompositorThread()
 {
-  mozilla::MonitorAutoLock lock(mPauseCompositionMonitor);
+  MonitorAutoLock lock(mPauseCompositionMonitor);
 
   CancelableTask *pauseTask = NewRunnableMethod(this,
                                                 &CompositorParent::PauseComposition);
@@ -241,7 +254,7 @@ CompositorParent::SchedulePauseOnCompositorThread()
 void
 CompositorParent::ScheduleResumeOnCompositorThread(int width, int height)
 {
-  mozilla::MonitorAutoLock lock(mResumeCompositionMonitor);
+  MonitorAutoLock lock(mResumeCompositionMonitor);
 
   CancelableTask *resumeTask =
     NewRunnableMethod(this, &CompositorParent::ResumeCompositionAndResize, width, height);
@@ -271,10 +284,10 @@ CompositorParent::ScheduleComposition()
   bool initialComposition = mLastCompose.IsNull();
   TimeDuration delta;
   if (!initialComposition)
-    delta = mozilla::TimeStamp::Now() - mLastCompose;
+    delta = TimeStamp::Now() - mLastCompose;
 
 #ifdef COMPOSITOR_PERFORMANCE_WARNING
-  mExpectedComposeTime = mozilla::TimeStamp::Now() + TimeDuration::FromMilliseconds(15);
+  mExpectedComposeTime = TimeStamp::Now() + TimeDuration::FromMilliseconds(15);
 #endif
 
   mCurrentCompositeTask = NewRunnableMethod(this, &CompositorParent::Composite);
@@ -283,7 +296,7 @@ CompositorParent::ScheduleComposition()
   
   if (!initialComposition && delta.ToMilliseconds() < 15) {
 #ifdef COMPOSITOR_PERFORMANCE_WARNING
-    mExpectedComposeTime = mozilla::TimeStamp::Now() + TimeDuration::FromMilliseconds(15 - delta.ToMilliseconds());
+    mExpectedComposeTime = TimeStamp::Now() + TimeDuration::FromMilliseconds(15 - delta.ToMilliseconds());
 #endif
     ScheduleTask(mCurrentCompositeTask, 15 - delta.ToMilliseconds());
   } else {
@@ -328,6 +341,7 @@ private:
       if (Layer* referent = GetIndirectShadowTree(ref->GetReferentId())) {
         if (OP == Resolve) {
           ref->ConnectReferentLayer(referent);
+          TemporarilyCompensateForContentScrollOffset(ref, referent);
         } else {
           ref->DetachReferentLayer(referent);
         }
@@ -337,6 +351,22 @@ private:
          child; child = child->GetNextSibling()) {
       WalkTheTree<OP>(child, aLayer);
     }
+  }
+
+  
+  
+  void TemporarilyCompensateForContentScrollOffset(Layer* aContainer,
+                                                   Layer* aShadowContent)
+  {
+    ContainerLayer* c = aShadowContent->AsContainerLayer();
+    if (!c) {
+      return;
+    }
+    const FrameMetrics& fm = c->GetFrameMetrics();
+    gfx3DMatrix m(aContainer->GetTransform());
+    m.Translate(gfxPoint3D(-fm.mViewportScrollOffset.x,
+                           -fm.mViewportScrollOffset.y, 0));
+    aContainer->AsShadowLayer()->SetShadowTransform(m);
   }
 
   Layer* mRoot;
@@ -352,7 +382,7 @@ CompositorParent::Composite()
                     "Composite can only be called on the compositor thread");
   mCurrentCompositeTask = NULL;
 
-  mLastCompose = mozilla::TimeStamp::Now();
+  mLastCompose = TimeStamp::Now();
 
   if (mPaused || !mLayerManager || !mLayerManager->GetRoot()) {
     return;
@@ -363,14 +393,14 @@ CompositorParent::Composite()
 
   TransformShadowTree();
 
-  mozilla::layers::RenderTraceLayers(aLayer, "0000");
+  RenderTraceLayers(aLayer, "0000");
 
   mLayerManager->EndEmptyTransaction();
 
 #ifdef COMPOSITOR_PERFORMANCE_WARNING
-  if (mExpectedComposeTime + TimeDuration::FromMilliseconds(15) < mozilla::TimeStamp::Now()) {
+  if (mExpectedComposeTime + TimeDuration::FromMilliseconds(15) < TimeStamp::Now()) {
     printf_stderr("Compositor: Composite took %i ms.\n",
-                  15 + (int)(mozilla::TimeStamp::Now() - mExpectedComposeTime).ToMilliseconds());
+                  15 + (int)(TimeStamp::Now() - mExpectedComposeTime).ToMilliseconds());
   }
 #endif
 }
@@ -556,7 +586,7 @@ CompositorParent::SetFirstPaintViewport(const nsIntPoint& aOffset, float aZoom,
                                         const nsIntRect& aPageRect, const gfx::Rect& aCssPageRect)
 {
 #ifdef MOZ_WIDGET_ANDROID
-  mozilla::AndroidBridge::Bridge()->SetFirstPaintViewport(aOffset, aZoom, aPageRect, aCssPageRect);
+  AndroidBridge::Bridge()->SetFirstPaintViewport(aOffset, aZoom, aPageRect, aCssPageRect);
 #endif
 }
 
@@ -564,7 +594,7 @@ void
 CompositorParent::SetPageRect(const gfx::Rect& aCssPageRect)
 {
 #ifdef MOZ_WIDGET_ANDROID
-  mozilla::AndroidBridge::Bridge()->SetPageRect(aCssPageRect);
+  AndroidBridge::Bridge()->SetPageRect(aCssPageRect);
 #endif
 }
 
@@ -574,8 +604,8 @@ CompositorParent::SyncViewportInfo(const nsIntRect& aDisplayPort,
                                    nsIntPoint& aScrollOffset, float& aScaleX, float& aScaleY)
 {
 #ifdef MOZ_WIDGET_ANDROID
-  mozilla::AndroidBridge::Bridge()->SyncViewportInfo(aDisplayPort, aDisplayResolution, aLayersUpdated,
-                                                     aScrollOffset, aScaleX, aScaleY);
+  AndroidBridge::Bridge()->SyncViewportInfo(aDisplayPort, aDisplayResolution, aLayersUpdated,
+                                            aScrollOffset, aScaleX, aScaleY);
 #endif
 }
 
@@ -653,7 +683,7 @@ CompositorParent::DeallocPLayers(PLayersParent* actor)
 }
 
 
-typedef std::map<PRUint64,CompositorParent*> CompositorMap;
+typedef map<PRUint64,CompositorParent*> CompositorMap;
 static CompositorMap* sCompositorMap;
 
 void CompositorParent::CreateCompositorMap()
@@ -698,11 +728,164 @@ CompositorParent* CompositorParent::RemoveCompositor(PRUint64 id)
   return it->second;
 }
 
+typedef map<uint64_t, RefPtr<Layer> > LayerTreeMap;
+static LayerTreeMap sIndirectLayerTrees;
+
+ uint64_t
+CompositorParent::AllocateLayerTreeId()
+{
+  MOZ_ASSERT(CompositorLoop());
+  MOZ_ASSERT(NS_IsMainThread());
+  static uint64_t ids;
+  return ++ids;
+}
+
+
+
+
+
+
+
+
+
+class CrossProcessCompositorParent : public PCompositorParent,
+                                     public ShadowLayersManager
+{
+  friend class CompositorParent;
+
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CrossProcessCompositorParent)
+public:
+  CrossProcessCompositorParent() {}
+  virtual ~CrossProcessCompositorParent() {}
+
+  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+
+  
+  virtual bool RecvWillStop() MOZ_OVERRIDE { return true; }
+  virtual bool RecvStop() MOZ_OVERRIDE { return true; }
+  virtual bool RecvPause() MOZ_OVERRIDE { return true; }
+  virtual bool RecvResume() MOZ_OVERRIDE { return true; }
+
+  virtual PLayersParent* AllocPLayers(const LayersBackend& aBackendType,
+                                      const uint64_t& aId,
+                                      int32_t* aMaxTextureSize) MOZ_OVERRIDE;
+  virtual bool DeallocPLayers(PLayersParent* aLayers) MOZ_OVERRIDE;
+
+  virtual void ShadowLayersUpdated(ShadowLayersParent* aLayerTree,
+                                   bool isFirstPaint) MOZ_OVERRIDE;
+
+private:
+  void DeferredDestroy();
+
+  
+  
+  
+  nsRefPtr<CrossProcessCompositorParent> mSelfRef;
+};
+
+static void
+OpenCompositor(CrossProcessCompositorParent* aCompositor,
+               Transport* aTransport, ProcessHandle aHandle,
+               MessageLoop* aIOLoop)
+{
+  DebugOnly<bool> ok = aCompositor->Open(aTransport, aHandle, aIOLoop);
+  MOZ_ASSERT(ok);
+}
+
+ PCompositorParent*
+CompositorParent::Create(Transport* aTransport, ProcessId aOtherProcess)
+{
+  nsRefPtr<CrossProcessCompositorParent> cpcp =
+    new CrossProcessCompositorParent();
+  ProcessHandle handle;
+  if (!base::OpenProcessHandle(aOtherProcess, &handle)) {
+    
+    return nsnull;
+  }
+  cpcp->mSelfRef = cpcp;
+  CompositorLoop()->PostTask(
+    FROM_HERE,
+    NewRunnableFunction(OpenCompositor, cpcp.get(),
+                        aTransport, handle, XRE_GetIOMessageLoop()));
+  
+  
+  return cpcp.get();
+}
+
+static void
+UpdateIndirectTree(uint64_t aId, Layer* aRoot)
+{
+  sIndirectLayerTrees[aId] = aRoot;
+}
+
+
 static Layer*
 GetIndirectShadowTree(uint64_t aId)
 {
+  LayerTreeMap::const_iterator cit = sIndirectLayerTrees.find(aId);
+  if (sIndirectLayerTrees.end() == cit) {
+    return nsnull;
+  }
+  return cit->second;
+}
+
+static void
+RemoveIndirectTree(uint64_t aId)
+{
+  sIndirectLayerTrees.erase(aId);
+}
+
+void
+CrossProcessCompositorParent::ActorDestroy(ActorDestroyReason aWhy)
+{
+  MessageLoop::current()->PostTask(
+    FROM_HERE,
+    NewRunnableMethod(this, &CrossProcessCompositorParent::DeferredDestroy));
+}
+
+PLayersParent*
+CrossProcessCompositorParent::AllocPLayers(const LayersBackend& aBackendType,
+                                           const uint64_t& aId,
+                                           int32_t* aMaxTextureSize)
+{
+  MOZ_ASSERT(aId != 0);
+
+  nsRefPtr<LayerManager> lm = sCurrentCompositor->GetLayerManager();
+  *aMaxTextureSize = lm->GetMaxTextureSize();
+  return new ShadowLayersParent(lm->AsShadowManager(), this, aId);
+
+   return nsnull;
+ }
+ 
+bool
+CrossProcessCompositorParent::DeallocPLayers(PLayersParent* aLayers)
+{
+  ShadowLayersParent* slp = static_cast<ShadowLayersParent*>(aLayers);
+  RemoveIndirectTree(slp->GetId());
+  delete aLayers;
+  return true;
+}
+
+void
+CrossProcessCompositorParent::ShadowLayersUpdated(ShadowLayersParent* aLayerTree,
+                                                  bool isFirstPaint)
+{
+  uint64_t id = aLayerTree->GetId();
+  MOZ_ASSERT(id != 0);
+  Layer* shadowRoot = aLayerTree->GetRoot();
+  if (shadowRoot) {
+    SetShadowProperties(shadowRoot);
+  }
+  UpdateIndirectTree(id, shadowRoot);
+
+  sCurrentCompositor->ScheduleComposition();
+}
+
+void
+CrossProcessCompositorParent::DeferredDestroy()
+{
+  mSelfRef = NULL;
   
-  return nsnull;
 }
 
 } 

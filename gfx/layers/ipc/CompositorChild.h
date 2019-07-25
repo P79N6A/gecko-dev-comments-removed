@@ -8,6 +8,7 @@
 #define mozilla_layers_CompositorChild_h
 
 #include "mozilla/layers/PCompositorChild.h"
+#include "nsXULAppAPI.h"
 
 namespace mozilla {
 namespace layers {
@@ -24,12 +25,29 @@ public:
 
   void Destroy();
 
+  
+
+
+
+
+  static PCompositorChild*
+  Create(Transport* aTransport, ProcessId aOtherProcess);
+
+  static PCompositorChild* Get();
+
 protected:
   virtual PLayersChild* AllocPLayers(const LayersBackend &aBackend, const uint64_t& aId, int* aMaxTextureSize);
   virtual bool DeallocPLayers(PLayersChild *aChild);
 
+  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+
 private:
   nsRefPtr<LayerManager> mLayerManager;
+
+  
+  
+  
+  static CompositorChild* sCompositor;
 
   DISALLOW_EVIL_CONSTRUCTORS(CompositorChild);
 };
