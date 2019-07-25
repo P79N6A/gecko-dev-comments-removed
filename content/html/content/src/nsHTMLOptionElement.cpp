@@ -183,14 +183,7 @@ NS_IMETHODIMP
 nsHTMLOptionElement::GetSelected(PRBool* aValue)
 {
   NS_ENSURE_ARG_POINTER(aValue);
-  *aValue = PR_FALSE;
-
-  
-  if (!mSelectedChanged) {
-    return GetDefaultSelected(aValue);
-  }
-
-  *aValue = mIsSelected;
+  *aValue = Selected();
   return NS_OK;
 }
 
@@ -255,6 +248,23 @@ nsHTMLOptionElement::GetIndex(PRInt32* aIndex)
   }
 
   return NS_OK;
+}
+
+bool
+nsHTMLOptionElement::Selected() const
+{
+  
+  if (!mSelectedChanged) {
+    return DefaultSelected();
+  }
+
+  return mIsSelected;
+}
+
+bool
+nsHTMLOptionElement::DefaultSelected() const
+{
+  return HasAttr(kNameSpaceID_None, nsGkAtoms::selected);
 }
 
 nsChangeHint
@@ -341,18 +351,10 @@ nsEventStates
 nsHTMLOptionElement::IntrinsicState() const
 {
   nsEventStates state = nsGenericHTMLElement::IntrinsicState();
-  
-  
-  
-  PRBool selected;
-  const_cast<nsHTMLOptionElement*>(this)->GetSelected(&selected);
-  if (selected) {
+  if (Selected()) {
     state |= NS_EVENT_STATE_CHECKED;
   }
-
-  
-  const_cast<nsHTMLOptionElement*>(this)->GetDefaultSelected(&selected);
-  if (selected) {
+  if (DefaultSelected()) {
     state |= NS_EVENT_STATE_DEFAULT;
   }
 
@@ -475,9 +477,7 @@ nsHTMLOptionElement::CopyInnerTo(nsGenericElement* aDest) const
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aDest->GetOwnerDoc()->IsStaticDocument()) {
-    PRBool selected = PR_FALSE;
-    const_cast<nsHTMLOptionElement*>(this)->GetSelected(&selected);
-    static_cast<nsHTMLOptionElement*>(aDest)->SetSelected(selected);
+    static_cast<nsHTMLOptionElement*>(aDest)->SetSelected(Selected());
   }
   return NS_OK;
 }
