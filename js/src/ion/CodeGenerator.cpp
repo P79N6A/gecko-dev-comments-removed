@@ -399,9 +399,6 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     Label end, invoke;
 
     
-    masm.freeStack(unusedStack);
-
-    
     
     
     masm.branchTest32(Assembler::Zero, Address(calleereg, offsetof(JSFunction, flags)),
@@ -413,6 +410,9 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
 
     
     masm.branchPtr(Assembler::BelowOrEqual, objreg, ImmWord(ION_DISABLED_SCRIPT), &invoke);
+
+    
+    masm.freeStack(unusedStack);
 
     
     uint32 stackSize = masm.framePushed() - unusedStack;
@@ -487,6 +487,10 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
         typedef bool (*pf)(JSContext *, JSFunction *, uint32, Value *, Value *);
         static const VMFunction InvokeFunctionInfo = FunctionInfo<pf>(InvokeFunction);
 
+        
+        
+        masm.freeStack(unusedStack);
+
         pushArg(StackPointer);          
         pushArg(Imm32(call->nargs()));  
         pushArg(calleereg);             
@@ -495,8 +499,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
             return false;
 
         
-        if (unusedStack)
-            masm.subPtr(Imm32(unusedStack), StackPointer);
+        masm.reserveStack(unusedStack);
     }
 
     masm.bind(&end);
