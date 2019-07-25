@@ -1070,7 +1070,7 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
 
     
     if (message == WM_MOUSEACTIVATE)
-        self->CallPluginGotFocus();
+      self->CallPluginFocusChange(PR_TRUE);
 
     
     
@@ -1086,6 +1086,9 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
             break;
         }
     }
+
+    if (message == WM_KILLFOCUS)
+      self->CallPluginFocusChange(PR_FALSE);
 
     if (message == WM_USER+1 &&
         (self->mQuirks & PluginInstanceChild::QUIRK_FLASH_THROTTLE_WMUSER_EVENTS)) {

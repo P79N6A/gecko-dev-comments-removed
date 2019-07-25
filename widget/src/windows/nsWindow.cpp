@@ -4906,11 +4906,18 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 #endif
 #ifdef MOZ_IPC
       if (msg == sOOPPPluginFocusEvent) {
-        
-        
-        
-        
-        ::SendMessage(mWnd, WM_MOUSEACTIVATE, 0, 0); 
+        if (wParam == 1) {
+          
+          
+          
+          
+          ::SendMessage(mWnd, WM_MOUSEACTIVATE, 0, 0); 
+        } else {
+          
+          if (sJustGotDeactivate) {
+            DispatchFocusToTopLevelWindow(NS_DEACTIVATE);
+          }
+        }
       }
 #endif
     }
