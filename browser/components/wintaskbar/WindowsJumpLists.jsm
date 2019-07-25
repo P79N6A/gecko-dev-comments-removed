@@ -101,6 +101,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "_ioService",
                                    "@mozilla.org/network/io-service;1",
                                    "nsIIOService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "_winShellService",
+                                   "@mozilla.org/browser/shell-service;1",
+                                   "nsIWindowsShellService");
+
 
 
 
@@ -164,6 +168,11 @@ var WinTaskbarJumpList =
       return;
 
     
+    
+    
+    this._shortcutMaintenance();
+
+    
     this._tasks = tasksCfg;
 
     
@@ -198,6 +207,10 @@ var WinTaskbarJumpList =
     this._shuttingDown = true;
     this.update();
     this._free();
+  },
+
+  _shortcutMaintenance: function WTBJL__maintenace() {
+    _winShellService.shortcutMaintenance();
   },
 
   
