@@ -38,6 +38,7 @@
 
 
 
+
 (function(){
 
 const Cc = Components.classes;
@@ -247,6 +248,46 @@ window.Rect.prototype = {
       height: this.height
     };
   }
+};
+
+
+
+
+
+
+
+window.Range = function(min, max) {
+	this.min = min;
+	this.max = max;
+};
+
+
+window.isRange = function(r) {
+  return (r 
+      && Utils.isNumber(r.min)
+      && Utils.isNumber(r.max));
+};
+
+window.Range.prototype = {  
+  
+  
+  
+  
+  
+  
+  contains: function(value) {
+    return( value >= this.min && value <= this.max );
+  },
+  
+  
+  
+  
+  
+  
+  containsWithin: function(value) {
+    return( value > this.min && value < this.max );
+  },
+  
 };
 
 
