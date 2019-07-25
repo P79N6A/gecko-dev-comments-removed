@@ -393,6 +393,7 @@ protected:
   
   nsresult OpenChannel(nsIStreamListener** aStreamListener);
   nsresult RecreateChannel();
+  
   void SetupChannelHeaders();
   
   void CloseChannel();

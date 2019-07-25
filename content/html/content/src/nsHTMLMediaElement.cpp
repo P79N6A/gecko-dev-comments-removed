@@ -739,6 +739,9 @@ nsresult nsHTMLMediaElement::LoadResource(nsIURI* aURI)
     hc->SetRequestHeader(NS_LITERAL_CSTRING("Range"),
                          NS_LITERAL_CSTRING("bytes=0-"),
                          PR_FALSE);
+
+    
+    SetAcceptHeader(hc);
   }
 
   rv = mChannel->AsyncOpen(listener, nsnull);

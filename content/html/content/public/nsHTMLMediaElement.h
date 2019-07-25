@@ -42,6 +42,7 @@
 #include "nsGenericHTMLElement.h"
 #include "nsMediaDecoder.h"
 #include "nsIChannel.h"
+#include "nsIHttpChannel.h"
 #include "nsThreadUtils.h"
 #include "nsIDOMRange.h"
 #include "nsCycleCollectionParticipant.h"
@@ -306,6 +307,13 @@ public:
   PRBool GetPlayedOrSeeked() const { return mHasPlayedOrSeeked; }
 
   nsresult CopyInnerTo(nsGenericElement* aDest) const;
+
+  
+
+
+
+  virtual nsresult SetAcceptHeader(nsIHttpChannel* aChannel) = 0;
+
 protected:
   class MediaLoadListener;
   class LoadNextSourceEvent;
