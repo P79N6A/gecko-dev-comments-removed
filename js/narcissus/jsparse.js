@@ -87,9 +87,7 @@ Narcissus.parser = (function() {
                 continue;
 
             
-
-
-
+            
             var bound = builder[ns] = {};
             for (var m in unbound) {
                 bound[m] = bindMethod(unbound[m], builder);
