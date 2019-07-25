@@ -164,7 +164,7 @@ BreakpointSite::recompile(JSContext *cx, bool forTrap)
             if (!ac.ref().enter())
                 return false;
         }
-        js::mjit::Recompiler recompiler(cx, script);
+        mjit::Recompiler recompiler(cx, script);
         recompiler.recompile();
     }
 #endif
@@ -756,7 +756,7 @@ Debugger::fireNewScript(JSContext *cx, JSScript *script)
 }
 
 JSTrapStatus
-Debugger::dispatchHook(JSContext *cx, js::Value *vp, Hook which)
+Debugger::dispatchHook(JSContext *cx, Value *vp, Hook which)
 {
     JS_ASSERT(which == OnDebuggerStatement || which == OnExceptionUnwind);
 
@@ -1021,7 +1021,7 @@ Debugger::markKeysInCompartment(JSTracer *tracer)
     for (ObjectMap::Range r = objStorage.all(); !r.empty(); r.popFront()) {
         const HeapPtrObject &key = r.front().key;
         if (key->compartment() == comp && IsAboutToBeFinalized(tracer->context, key))
-            js::gc::MarkObject(tracer, key, "cross-compartment WeakMap key");
+            gc::MarkObject(tracer, key, "cross-compartment WeakMap key");
     }
 
     typedef HashMap<HeapPtrScript, HeapPtrObject, DefaultHasher<HeapPtrScript>, RuntimeAllocPolicy>
@@ -1030,7 +1030,7 @@ Debugger::markKeysInCompartment(JSTracer *tracer)
     for (ScriptMap::Range r = scriptStorage.all(); !r.empty(); r.popFront()) {
         const HeapPtrScript &key = r.front().key;
         if (key->compartment() == comp && IsAboutToBeFinalized(tracer->context, key))
-            js::gc::MarkScript(tracer, key, "cross-compartment WeakMap key");
+            gc::MarkScript(tracer, key, "cross-compartment WeakMap key");
     }
 }
 
@@ -1723,7 +1723,7 @@ Debugger::removeDebuggeeGlobal(JSContext *cx, GlobalObject *global,
 
 
     for (FrameMap::Enum e(frames); !e.empty(); e.popFront()) {
-        js::StackFrame *fp = e.front().key;
+        StackFrame *fp = e.front().key;
         if (fp->scopeChain().getGlobal() == global) {
             e.front().value->setPrivate(NULL);
             e.removeFront();
