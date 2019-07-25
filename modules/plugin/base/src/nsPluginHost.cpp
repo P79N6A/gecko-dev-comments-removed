@@ -2143,8 +2143,10 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile * pluginsDir,
 
     
     if (bAddIt) {
-      
-      *aPluginsChanged = PR_TRUE;
+      if (!seenBefore) {
+        
+        *aPluginsChanged = PR_TRUE;
+      }
 
       
       
