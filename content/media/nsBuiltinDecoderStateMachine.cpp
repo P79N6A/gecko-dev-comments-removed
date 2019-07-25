@@ -97,7 +97,7 @@ static const PRUint32 LOW_VIDEO_FRAMES = 1;
 static const PRUint32 AMPLE_VIDEO_FRAMES = 10;
 
 
-static const int AUDIO_DURATION_MS = 150;
+static const int AUDIO_DURATION_MS = 40;
 
 
 
