@@ -767,7 +767,6 @@ nsDOMWorkerFunctions::CTypesLazyGetter(JSContext* aCx,
          JS_GetPropertyById(aCx, aObj, aId, aVp);
 }
 #endif
-
 JSFunctionSpec gDOMWorkerFunctions[] = {
   { "dump",                nsDOMWorkerFunctions::Dump,                1, 0 },
   { "setTimeout",          nsDOMWorkerFunctions::SetTimeout,          1, 0 },
@@ -775,19 +774,16 @@ JSFunctionSpec gDOMWorkerFunctions[] = {
   { "setInterval",         nsDOMWorkerFunctions::SetInterval,         1, 0 },
   { "clearInterval",       nsDOMWorkerFunctions::KillTimeout,         1, 0 },
   { "importScripts",       nsDOMWorkerFunctions::LoadScripts,         1, 0 },
-  { "XMLHttpRequest",      nsDOMWorkerFunctions::NewXMLHttpRequest,   0, 0 },
-  { "Worker",              nsDOMWorkerFunctions::NewWorker,           1, 0 },
+  { "XMLHttpRequest",      nsDOMWorkerFunctions::NewXMLHttpRequest,   0, JSFUN_CONSTRUCTOR },
+  { "Worker",              nsDOMWorkerFunctions::NewWorker,           1, JSFUN_CONSTRUCTOR },
   { "atob",                nsDOMWorkerFunctions::AtoB,                1, 0 },
   { "btoa",                nsDOMWorkerFunctions::BtoA,                1, 0 },
   { nsnull,                nsnull,                                    0, 0 }
 };
-
 JSFunctionSpec gDOMWorkerChromeFunctions[] = {
-  { "ChromeWorker",        nsDOMWorkerFunctions::NewChromeWorker,     1, 0 },
+  { "ChromeWorker",        nsDOMWorkerFunctions::NewChromeWorker,     1, JSFUN_CONSTRUCTOR },
   { nsnull,                nsnull,                                    0, 0 }
 };
-
-
 enum DOMWorkerStructuredDataType
 {
   
@@ -1481,29 +1477,15 @@ NS_INTERFACE_MAP_END
 
 NS_IMETHODIMP
 nsDOMWorker::PreCreate(nsISupports* aObject,
-                       JSContext* aCx,
+                       JSContext* ,
                        JSObject* ,
-                       JSObject** aParent)
+                       JSObject** )
 {
   nsCOMPtr<nsIWorker> iworker(do_QueryInterface(aObject));
-  NS_ENSURE_TRUE(iworker, NS_ERROR_UNEXPECTED);
-
-  nsCOMPtr<nsIXPConnectWrappedNative> wrappedNative;
-  {
-    MutexAutoLock lock(mLock);
-    wrappedNative = mWrappedNative;
+  if (iworker && static_cast<nsDOMWorker *>(iworker.get())->IsPrivileged()) {
+    return NS_SUCCESS_CHROME_ACCESS_ONLY;
   }
-
-  
-  if (wrappedNative) {
-    JSObject* object;
-    nsresult rv = wrappedNative->GetJSObject(&object);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    *aParent = JS_GetParent(aCx, object);
-  }
-
-  return IsPrivileged() ? NS_SUCCESS_CHROME_ACCESS_ONLY : NS_OK;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
