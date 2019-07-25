@@ -2486,6 +2486,13 @@ nsHttpChannel::CheckCache()
 
     PRUint16 isCachedRedirect = mCachedResponseHead->Status()/100 == 3;
 
+    mCustomConditionalRequest =
+        mRequestHead.PeekHeader(nsHttp::If_Modified_Since) ||
+        mRequestHead.PeekHeader(nsHttp::If_None_Match) ||
+        mRequestHead.PeekHeader(nsHttp::If_Unmodified_Since) ||
+        mRequestHead.PeekHeader(nsHttp::If_Match) ||
+        mRequestHead.PeekHeader(nsHttp::If_Range);
+
     if (method != nsHttp::Head && !isCachedRedirect) {
         
         
@@ -2500,7 +2507,16 @@ nsHttpChannel::CheckCache()
             if (nsInt64(size) != contentLength) {
                 LOG(("Cached data size does not match the Content-Length header "
                      "[content-length=%lld size=%u]\n", PRInt64(contentLength), size));
-                if ((nsInt64(size) < contentLength) && mCachedResponseHead->IsResumable()) {
+
+                PRBool hasContentEncoding =
+                    mCachedResponseHead->PeekHeader(nsHttp::Content_Encoding)
+                    != nsnull;
+                if ((nsInt64(size) < contentLength) &&
+                     size > 0 &&
+                     !hasContentEncoding &&
+                     mCachedResponseHead->IsResumable() &&
+                     !mCustomConditionalRequest &&
+                     !mCachedResponseHead->NoStore()) {
                     
                     rv = SetupByteRangeRequest(size);
                     NS_ENSURE_SUCCESS(rv, rv);
@@ -2513,13 +2529,6 @@ nsHttpChannel::CheckCache()
 
     PRBool doValidation = PR_FALSE;
     PRBool canAddImsHeader = PR_TRUE;
-
-    mCustomConditionalRequest = 
-        mRequestHead.PeekHeader(nsHttp::If_Modified_Since) ||
-        mRequestHead.PeekHeader(nsHttp::If_None_Match) ||
-        mRequestHead.PeekHeader(nsHttp::If_Unmodified_Since) ||
-        mRequestHead.PeekHeader(nsHttp::If_Match) ||
-        mRequestHead.PeekHeader(nsHttp::If_Range);
 
     
     if (mLoadFlags & LOAD_FROM_CACHE) {
