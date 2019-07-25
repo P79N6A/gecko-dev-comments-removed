@@ -113,7 +113,7 @@ nsProxyEventObject::Release(void)
 
     
     
-    delete this;
+    NS_DELETEXPCOM(this);
     return 0;
 }
 

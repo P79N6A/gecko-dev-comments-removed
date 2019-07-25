@@ -65,6 +65,27 @@
 
 
 
+
+
+
+#define NS_NEWXPCOM(_result,_type)                                            \
+  PR_BEGIN_MACRO                                                              \
+    _result = new _type();                                                    \
+  PR_END_MACRO
+
+
+
+
+
+#define NS_DELETEXPCOM(_ptr)                                                  \
+  PR_BEGIN_MACRO                                                              \
+    delete (_ptr);                                                            \
+  PR_END_MACRO
+
+
+
+
+
 #define NS_ADDREF(_ptr) \
   (_ptr)->AddRef()
 
