@@ -143,24 +143,6 @@ public:
 
     return resultMatrix;
   }
-
-  
-
-
-  bool IsRectilinear() {
-    if (FuzzyEqual(_12, 0) && FuzzyEqual(_21, 0)) {
-      return true;
-    } else if (FuzzyEqual(_22, 0) && FuzzyEqual(_11, 0)) {
-      return true;
-    }
-
-    return false;
-  }
-private:
-  static bool FuzzyEqual(Float aV1, Float aV2) {
-    
-    return fabs(aV2 - aV1) < 1e-6;
-  }
 };
 
 }

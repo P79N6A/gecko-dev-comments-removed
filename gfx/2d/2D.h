@@ -149,18 +149,12 @@ struct StrokeOptions {
 
 
 
-
-
-
 struct DrawSurfaceOptions {
-  DrawSurfaceOptions(Filter aFilter = FILTER_LINEAR,
-                     SamplingBounds aSamplingBounds = SAMPLING_UNBOUNDED)
+  DrawSurfaceOptions(Filter aFilter = FILTER_LINEAR)
     : mFilter(aFilter)
-    , mSamplingBounds(aSamplingBounds)
   { }
 
   Filter mFilter : 3;
-  SamplingBounds mSamplingBounds : 1;
 };
 
 
@@ -222,16 +216,12 @@ public:
 
 
 
-
-
   LinearGradientPattern(const Point &aBegin,
                         const Point &aEnd,
-                        GradientStops *aStops,
-                        const Matrix &aMatrix = Matrix())
+                        GradientStops *aStops)
     : mBegin(aBegin)
     , mEnd(aEnd)
     , mStops(aStops)
-    , mMatrix(aMatrix)
   {
   }
 
@@ -240,7 +230,6 @@ public:
   Point mBegin;
   Point mEnd;
   RefPtr<GradientStops> mStops;
-  Matrix mMatrix;
 };
 
 
@@ -257,19 +246,16 @@ public:
 
 
 
-
   RadialGradientPattern(const Point &aCenter1,
                         const Point &aCenter2,
                         Float aRadius1,
                         Float aRadius2,
-                        GradientStops *aStops,
-                        const Matrix &aMatrix = Matrix())
+                        GradientStops *aStops)
     : mCenter1(aCenter1)
     , mCenter2(aCenter2)
     , mRadius1(aRadius1)
     , mRadius2(aRadius2)
     , mStops(aStops)
-    , mMatrix(aMatrix)
   {
   }
 
@@ -280,7 +266,6 @@ public:
   Float mRadius1;
   Float mRadius2;
   RefPtr<GradientStops> mStops;
-  Matrix mMatrix;
 };
 
 
@@ -290,19 +275,9 @@ public:
 class SurfacePattern : public Pattern
 {
 public:
-  
-
-
-
-
-
-
-  SurfacePattern(SourceSurface *aSourceSurface, ExtendMode aExtendMode,
-                 const Matrix &aMatrix = Matrix(), Filter aFilter = FILTER_LINEAR)
+  SurfacePattern(SourceSurface *aSourceSurface, ExtendMode aExtendMode)
     : mSurface(aSourceSurface)
     , mExtendMode(aExtendMode)
-    , mFilter(aFilter)
-    , mMatrix(aMatrix)
   {}
 
   virtual PatternType GetType() const { return PATTERN_SURFACE; }
@@ -310,7 +285,6 @@ public:
   RefPtr<SourceSurface> mSurface;
   ExtendMode mExtendMode;
   Filter mFilter;
-  Matrix mMatrix;
 };
 
 
@@ -337,7 +311,6 @@ public:
 class DataSourceSurface : public SourceSurface
 {
 public:
-  virtual SurfaceType GetType() const { return SURFACE_DATA; }
   
   virtual unsigned char *GetData() = 0;
   
@@ -345,12 +318,6 @@ public:
 
 
   virtual int32_t Stride() = 0;
-
-  
-
-
-
-  virtual void MarkDirty() {}
 
   virtual TemporaryRef<DataSourceSurface> GetDataSurface() { RefPtr<DataSourceSurface> temp = this; return temp.forget(); }
 };
@@ -644,28 +611,7 @@ public:
 
 
 
-
-
-
-
-  virtual void Mask(const Pattern &aSource,
-                    const Pattern &aMask,
-                    const DrawOptions &aOptions = DrawOptions()) = 0;
-
-  
-
-
-
-
   virtual void PushClip(const Path *aPath) = 0;
-
-  
-
-
-
-
-
-  virtual void PushClipRect(const Rect &aRect) = 0;
 
   
 
@@ -679,9 +625,9 @@ public:
 
 
   virtual TemporaryRef<SourceSurface> CreateSourceSurfaceFromData(unsigned char *aData,
-                                                                  const IntSize &aSize,
-                                                                  int32_t aStride,
-                                                                  SurfaceFormat aFormat) const = 0;
+                                                            const IntSize &aSize,
+                                                            int32_t aStride,
+                                                            SurfaceFormat aFormat) const = 0;
 
   
 
@@ -721,12 +667,7 @@ public:
 
 
 
-
-
-  virtual TemporaryRef<GradientStops>
-    CreateGradientStops(GradientStop *aStops,
-                        uint32_t aNumStops,
-                        ExtendMode aExtendMode = EXTEND_CLAMP) const = 0;
+  virtual TemporaryRef<GradientStops> CreateGradientStops(GradientStop *aStops, uint32_t aNumStops) const = 0;
 
   const Matrix &GetTransform() const { return mTransform; }
 
@@ -754,34 +695,12 @@ protected:
 class Factory
 {
 public:
+#ifdef USE_CAIRO
   static TemporaryRef<DrawTarget> CreateDrawTargetForCairoSurface(cairo_surface_t* aSurface);
+#endif
 
-  static TemporaryRef<DrawTarget>
-    CreateDrawTarget(BackendType aBackend, const IntSize &aSize, SurfaceFormat aFormat);
-  
-  static TemporaryRef<DrawTarget>
-    CreateDrawTargetForData(BackendType aBackend, unsigned char* aData, const IntSize &aSize, int32_t aStride, SurfaceFormat aFormat);
-
-  static TemporaryRef<ScaledFont>
-    CreateScaledFontForNativeFont(const NativeFont &aNativeFont, Float aSize);
-
-  
-
-
-
-
-  static TemporaryRef<DataSourceSurface>
-    CreateDataSourceSurface(const IntSize &aSize, SurfaceFormat aFormat);
-  
-  
-
-
-
-
-
-  static TemporaryRef<DataSourceSurface>
-    CreateDataSourceSurfaceFromData(unsigned char *aData, int32_t aStride,
-                                    const IntSize &aSize, SurfaceFormat aFormat);
+  static TemporaryRef<DrawTarget> CreateDrawTarget(BackendType aBackend, const IntSize &aSize, SurfaceFormat aFormat);
+  static TemporaryRef<ScaledFont> CreateScaledFontForNativeFont(const NativeFont &aNativeFont, Float aSize);
 
 #ifdef WIN32
   static TemporaryRef<DrawTarget> CreateDrawTargetForD3D10Texture(ID3D10Texture2D *aTexture, SurfaceFormat aFormat);
