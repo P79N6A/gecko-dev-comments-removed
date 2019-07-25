@@ -449,6 +449,12 @@ var Browser = {
     this.contentScrollboxScroller.scrollTo(0, 0);
     this.pageScrollboxScroller.scrollTo(0, 0);
   },
+  
+  
+  scrollContentToBottom: function scrollContentToBottom() {
+    this.contentScrollboxScroller.scrollTo(0, Number.MAX_VALUE);
+    this.pageScrollboxScroller.scrollTo(0, Number.MAX_VALUE);
+  },
 
   hideSidebars: function scrollSidebarsOffscreen() {
     let container = document.getElementById("browsers");

@@ -64,7 +64,7 @@ const animatedZoom = {
     this.beginTime = Date.now();
 
     
-    if (this.zoomFrom) {
+    if (this.zoomRect) {
       this.zoomFrom = this.zoomRect;
     }
     else {
@@ -96,7 +96,7 @@ const animatedZoom = {
   
   finish: function() {
     window.removeEventListener("MozBeforePaint", this, false);
-    Browser.setVisibleRect(this.zoomTo);
+    Browser.setVisibleRect(this.zoomTo || this.zoomRect);
     this.beginTime = null;
     this.zoomTo = null;
     this.zoomFrom = null;

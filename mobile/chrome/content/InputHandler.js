@@ -1292,22 +1292,22 @@ GestureModule.prototype = {
   },
 
   _pinchStart: function _pinchStart(aEvent) {
-    let bv = Browser._browserView;
     
-    if (this._pinchZoom || (aEvent.target instanceof XULElement) || !bv.allowZoom)
+    if (this._pinchZoom || (aEvent.target instanceof XULElement) || !Browser.selectedTab.allowZoom)
       return;
 
     
     this._owner.grab(this);
 
     
-    document.getElementById("tile-container").customClicker.panBegin();
+    
+    document.getElementById("inputhandler-overlay").customClicker.panBegin();
 
     
-    this._pinchZoom = new AnimatedZoom(bv);
+    this._pinchZoom = animatedZoom;
 
     
-    this._pinchZoomLevel = bv.getZoomLevel();
+    this._pinchZoomLevel = getBrowser().scale;
     this._pinchDelta = 0;
     this._ignoreNextUpdate = true; 
 
@@ -1319,6 +1319,11 @@ GestureModule.prototype = {
     
     [this._pinchStartX, this._pinchStartY] =
         Browser.transformClientToBrowser(aEvent.clientX, aEvent.clientY);
+
+    let scrollX = {}, scrollY = {};
+    getBrowser().getPosition(scrollX, scrollY);
+    this._pinchStartX += scrollX.value;
+    this._pinchStartY += scrollY.value;
   },
 
   _pinchUpdate: function _pinchUpdate(aEvent) {
@@ -1331,12 +1336,17 @@ GestureModule.prototype = {
     
     let delta = Math.max(-this._maxShrink, Math.min(this._maxGrowth, this._pinchDelta));
     this._pinchZoomLevel *= (1 + delta / this._scalingFactor);
-    this._pinchZoomLevel = Browser._browserView.clampZoomLevel(this._pinchZoomLevel);
+    this._pinchZoomLevel = Browser.selectedTab.clampZoomLevel(this._pinchZoomLevel);
     this._pinchDelta = 0;
 
     
     let [pX, pY] =
         Browser.transformClientToBrowser(aEvent.clientX, aEvent.clientY);
+
+    let scrollX = {}, scrollY = {};
+    getBrowser().getPosition(scrollX, scrollY);
+    pX += scrollX.value;
+    pY += scrollY.value;
 
     
     let rect = Browser._getZoomRectForPoint(2 * this._pinchStartX - pX,
