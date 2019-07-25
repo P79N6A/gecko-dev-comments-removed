@@ -65,6 +65,7 @@
 #include "nsITransactionManager.h"
 #include "nsIAbsorbingTransaction.h"
 #include "nsIPresShell.h"
+#include "nsIViewManager.h"
 #include "nsISelection.h"
 #include "nsISelectionPrivate.h"
 #include "nsISelectionController.h"
@@ -240,6 +241,14 @@ nsEditor::Init(nsIDOMDocument *aDoc, nsIPresShell* aPresShell, nsIContent *aRoot
 
   nsCOMPtr<nsINode> document = do_QueryInterface(aDoc);
   document->AddMutationObserver(this);
+
+  
+  
+  
+  
+
+  mViewManager = ps->GetViewManager();
+  if (!mViewManager) {return NS_ERROR_NULL_POINTER;}
 
   mUpdateCount=0;
 
@@ -4169,14 +4178,7 @@ nsresult nsEditor::BeginUpdateViewBatch()
     }
 
     
-    nsCOMPtr<nsIPresShell> ps;
-    GetPresShell(getter_AddRefs(ps));
-    if (ps) {
-      nsCOMPtr<nsIViewManager> viewManager = ps->GetViewManager();
-      if (viewManager) {
-        mBatch.BeginUpdateViewBatch(viewManager);
-      }
-    }
+    mBatch.BeginUpdateViewBatch(mViewManager);
   }
 
   mUpdateCount++;
@@ -4218,10 +4220,7 @@ nsresult nsEditor::EndUpdateViewBatch()
     GetFlags(&flags);
 
     
-    nsCOMPtr<nsIViewManager> viewManager;
-    if (presShell)
-      viewManager = presShell->GetViewManager();
-    if (viewManager)
+    if (mViewManager)
     {
       PRUint32 updateFlag = NS_VMREFRESH_IMMEDIATE;
 
