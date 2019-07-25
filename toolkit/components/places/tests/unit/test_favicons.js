@@ -88,6 +88,17 @@ function check_oversized_icon_data(iconName, inMimeType, expectedLength, skipCon
   }
 }
 
+function check_page_has_no_favicon(pageURI) {
+  try {
+    PlacesUtils.favicons.getFaviconForPage(pageURI);
+    do_throw("Page has a favicon!");
+  } catch (ex if ex.result == Cr.NS_ERROR_NOT_AVAILABLE) {
+    
+  } catch (ex) {
+    do_throw("Unexpected exception " + ex);
+  }
+}
+
 
 
 
@@ -348,3 +359,145 @@ add_test(function test_getFaviconData_on_the_default_favicon() {
   do_check_true(compareArrays(outData, expectedData));
   run_next_test();
 });
+
+
+
+
+
+function guidForFaviconURI(iconURIString, cb) {
+  let query = "SELECT guid FROM moz_favicons WHERE url = :url";
+  let stmt = cb.statement = DBConn().createAsyncStatement(query);
+  stmt.params.url = iconURIString;
+  stmt.executeAsync(cb);
+  stmt.finalize();
+}
+
+
+
+
+
+
+function SingleGUIDCallback(cb) {
+  this.called = 0;
+  this.cb     = cb;
+}
+SingleGUIDCallback.prototype = {
+  _guid: null,
+  handleCompletion: function handleCompletion(reason) {
+    do_log_info("Completed single GUID callback.");
+    do_check_eq(this.called, 1);
+    this.cb(this._guid);
+  },
+  handleError: function handleError(err) {
+    do_throw(err);
+  },
+  handleResult: function handleResult(resultSet) {
+    this.called++;
+    this._guid = resultSet.getNextRow().getResultByName("guid");
+    do_log_info("Retrieved GUID is " + this._guid);
+    do_check_true(!!this._guid);
+    do_check_valid_places_guid(this._guid);
+    do_check_eq(null, resultSet.getNextRow());  
+  }
+};
+
+function insertToolbarBookmark(uri, title) {
+  PlacesUtils.bookmarks.insertBookmark(
+    PlacesUtils.toolbarFolderId,
+    uri,
+    PlacesUtils.bookmarks.DEFAULT_INDEX,
+    title
+  );
+}
+
+add_test(function test_insert_synchronous_mints_guid() {
+  do_log_info("Test that synchronously inserting a favicon results in a " +
+              "record with a new GUID.");
+
+  let testURI     = "http://test.com/sync/";
+  let testIconURI = "http://test.com/favicon.ico";
+  let pageURI     = NetUtil.newURI(testURI);
+
+  
+  check_page_has_no_favicon(pageURI);
+
+  
+  insertToolbarBookmark(pageURI, "Test page");
+
+  
+  PlacesUtils.favicons.setFaviconUrlForPage(
+    pageURI, NetUtil.newURI(testIconURI)
+  );
+
+  
+  do_check_eq(PlacesUtils.favicons.getFaviconForPage(pageURI).spec,
+              testIconURI);
+
+  guidForFaviconURI(testIconURI, new SingleGUIDCallback(run_next_test));
+});
+
+add_test(function test_insert_asynchronous_mints_guid() {
+  do_log_info("Test that asynchronously inserting a favicon results in a " +
+              "record with a new GUID.");
+
+  let testURI = "http://test.com/async/";
+  let iconURI = NetUtil.newURI(do_get_file("favicon-normal32.png"));
+  let pageURI = NetUtil.newURI(testURI);
+
+  
+  check_page_has_no_favicon(pageURI);
+
+  
+  insertToolbarBookmark(pageURI, "Other test page");
+
+  
+  let faviconDataCallback = {
+    onFaviconDataAvailable: function (uri, len, data, mimeType) {
+      do_check_true(iconURI.equals(uri));
+
+      
+      guidForFaviconURI(iconURI.spec, new SingleGUIDCallback(run_next_test));
+    }
+  };
+
+  let forceReload = false;
+  do_log_info("Asynchronously setting page favicon.");
+  PlacesUtils.favicons.setAndFetchFaviconForPage(
+    pageURI, iconURI, forceReload, faviconDataCallback
+  );
+});
+
+add_test(function test_insert_asynchronous_update_preserves_guid() {
+  do_log_info("Test that asynchronously inserting an existing favicon leaves " +
+              "the GUID unchanged.");
+
+  let testURI = "http://test.com/async/";
+  let iconURI = NetUtil.newURI(do_get_file("favicon-normal32.png"));
+  let pageURI = NetUtil.newURI(testURI);
+
+  guidForFaviconURI(iconURI.spec, new SingleGUIDCallback(function (guid) {
+    
+    let faviconDataCallback = {
+      onFaviconDataAvailable: function (uri, len, data, mimeType) {
+        do_check_true(iconURI.equals(uri));
+
+        
+        guidForFaviconURI(iconURI.spec, new SingleGUIDCallback(function (again) {
+          do_check_eq(guid, again);
+          run_next_test();
+        }));
+      }
+    };
+
+    let forceReload = true;
+    do_log_info("Asynchronously re-setting page favicon.");
+    PlacesUtils.favicons.setAndFetchFaviconForPage(
+      pageURI, iconURI, forceReload, faviconDataCallback
+    );
+  }));
+});
+
+
+
+
+
