@@ -209,7 +209,7 @@ DragData.prototype = {
 
   lockAxis: function lockAxis(sX, sY) {
     if (this.alreadyLocked)
-      return lockMouseMove(sX, sY);
+      return this.lockMouseMove(sX, sY);
 
     
     
