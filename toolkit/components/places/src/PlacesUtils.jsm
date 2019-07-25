@@ -40,12 +40,35 @@
 
 
 
-var EXPORTED_SYMBOLS = ["PlacesUtils"];
+const EXPORTED_SYMBOLS = [
+  "PlacesUtils"
+, "PlacesAggregatedTransaction"
+, "PlacesCreateFolderTransaction"
+, "PlacesCreateBookmarkTransaction"
+, "PlacesCreateSeparatorTransaction"
+, "PlacesCreateLivemarkTransaction"
+, "PlacesMoveItemTransaction"
+, "PlacesRemoveItemTransaction"
+, "PlacesEditItemTitleTransaction"
+, "PlacesEditBookmarkURITransaction"
+, "PlacesSetItemAnnotationTransaction"
+, "PlacesSetPageAnnotationTransaction"
+, "PlacesEditBookmarkKeywordTransaction"
+, "PlacesEditBookmarkPostDataTransaction"
+, "PlacesEditLivemarkSiteURITransaction"
+, "PlacesEditLivemarkFeedURITransaction"
+, "PlacesEditBookmarkMicrosummaryTransaction"
+, "PlacesEditItemDateAddedTransaction"
+, "PlacesEditItemLastModifiedTransaction"
+, "PlacesSortFolderByNameTransaction"
+, "PlacesTagURITransaction"
+, "PlacesUntagURITransaction"
+];
 
-var Ci = Components.interfaces;
-var Cc = Components.classes;
-var Cr = Components.results;
-var Cu = Components.utils;
+const Ci = Components.interfaces;
+const Cc = Components.classes;
+const Cr = Components.results;
+const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -59,6 +82,14 @@ XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
   return NetUtil;
 });
 
+
+let gHasAnnotationsObserver = false;
+let gHasShutdownObserver = false;
+
+
+
+
+const MIN_TRANSACTIONS_FOR_BATCH = 5;
 
 
 
@@ -141,11 +172,11 @@ var PlacesUtils = {
   },
 
   getFormattedString: function PU_getFormattedString(key, params) {
-    return this._bundle.formatStringFromName(key, params, params.length);
+    return bundle.formatStringFromName(key, params, params.length);
   },
 
   getString: function PU_getString(key) {
-    return this._bundle.GetStringFromName(key);
+    return bundle.GetStringFromName(key);
   },
 
   
@@ -245,40 +276,112 @@ var PlacesUtils = {
 
   get _readOnly() {
     
-    this.annotations.addObserver(this, false);
-
+    if (!gHasAnnotationsObserver) {
+      this.annotations.addObserver(this, false);
+      gHasAnnotationsObserver = true;
+    }
     
-    Services.obs.addObserver(this, this.TOPIC_SHUTDOWN, false);
-
+    if (!gHasShutdownObserver) {
+      Services.obs.addObserver(this, this.TOPIC_SHUTDOWN, false);
+      gHasShutdownObserver = true;
+    }
     var readOnly = this.annotations.getItemsWithAnnotation(this.READ_ONLY_ANNO);
     this.__defineGetter__("_readOnly", function() readOnly);
     return this._readOnly;
   },
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIAnnotationObserver,
-                                         Ci.nsIObserver]),
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsIAnnotationObserver
+  , Ci.nsIObserver
+  , Ci.nsITransactionListener
+  ]),
 
   
   observe: function PU_observe(aSubject, aTopic, aData) {
     if (aTopic == this.TOPIC_SHUTDOWN) {
-      this.annotations.removeObserver(this);
+      if (gHasAnnotationsObserver)
+        this.annotations.removeObserver(this);
+
+      if (Object.getOwnPropertyDescriptor(this, "transactionManager").value !== undefined) {
+        
+        
+        this.transactionManager.RemoveListener(this);
+        this.transactionManager.clear();
+      }
+
       Services.obs.removeObserver(this, this.TOPIC_SHUTDOWN);
+      gHasShutdownObserver = false;
     }
   },
 
+
   
-  onItemAnnotationSet: function(aItemId, aAnnotationName) {
+  
+
+  onItemAnnotationSet: function PU_onItemAnnotationSet(aItemId, aAnnotationName)
+  {
     if (aAnnotationName == this.READ_ONLY_ANNO &&
         this._readOnly.indexOf(aItemId) == -1)
       this._readOnly.push(aItemId);
   },
-  onItemAnnotationRemoved: function(aItemId, aAnnotationName) {
+
+  onItemAnnotationRemoved:
+  function PU_onItemAnnotationRemoved(aItemId, aAnnotationName)
+  {
     var index = this._readOnly.indexOf(aItemId);
     if (aAnnotationName == this.READ_ONLY_ANNO && index > -1)
       delete this._readOnly[index];
   },
-  onPageAnnotationSet: function(aUri, aAnnotationName) {},
-  onPageAnnotationRemoved: function(aUri, aAnnotationName) {},
+
+  onPageAnnotationSet: function() {},
+  onPageAnnotationRemoved: function() {},
+
+
+  
+  
+
+  didDo: function PU_didDo(aManager, aTransaction, aDoResult)
+  {
+    updateCommandsOnActiveWindow();
+  },
+
+  didUndo: function PU_didUndo(aManager, aTransaction, aUndoResult)
+  {
+    updateCommandsOnActiveWindow();
+  },
+
+  didRedo: function PU_didRedo(aManager, aTransaction, aRedoResult)
+  {
+    updateCommandsOnActiveWindow();
+  },
+
+  didBeginBatch: function PU_didBeginBatch(aManager, aResult)
+  {
+    
+    
+    
+    
+    
+    
+    
+    
+    this.transactionManager.doTransaction({ doTransaction: function() {},
+                                            undoTransaction: function() {},
+                                            redoTransaction: function() {},
+                                            isTransient: false,
+                                            merge: function() { return false; }
+                                          });
+  },
+
+  willDo: function PU_willDo() {},
+  willUndo: function PU_willUndo() {},
+  willRedo: function PU_willRedo() {},
+  willBeginBatch: function PU_willBeginBatch() {},
+  willEndBatch: function PU_willEndBatch() {},
+  didEndBatch: function PU_didEndBatch() {},
+  willMerge: function PU_willMerge() {},
+  didMerge: function PU_didMerge() {},
+
 
   
 
@@ -395,7 +498,7 @@ var PlacesUtils = {
     
     
     
-    if (this.__lookupGetter__("livemarks"))
+    if (Object.getOwnPropertyDescriptor(this, "livemarks").value === undefined)
       return this.annotations.itemHasAnnotation(aItemId, this.LMANNO_FEEDURI);
     
     return this.livemarks.isLivemark(aItemId);
@@ -988,7 +1091,7 @@ var PlacesUtils = {
     
     
     
-    if (this.__lookupGetter__("livemarks")) {
+    if (Object.getOwnPropertyDescriptor(this, "livemarks").value === undefined) {
       var feedSpec = aFeedURI.spec
       var annosvc = this.annotations;
       var livemarks = annosvc.getItemsWithAnnotation(this.LMANNO_FEEDURI);
@@ -1991,9 +2094,1246 @@ XPCOMUtils.defineLazyServiceGetter(PlacesUtils, "microsummaries",
                                    "@mozilla.org/microsummary/service;1",
                                    "nsIMicrosummaryService");
 
-XPCOMUtils.defineLazyGetter(PlacesUtils, "_bundle", function() {
+XPCOMUtils.defineLazyGetter(PlacesUtils, "transactionManager", function() {
+  Services.obs.addObserver(PlacesUtils,
+                           PlacesUtils.TOPIC_SHUTDOWN,
+                           false);
+  
+  if (!gHasShutdownObserver) {
+    Services.obs.addObserver(PlacesUtils, PlacesUtils.TOPIC_SHUTDOWN, false);
+    gHasShutdownObserver = true;
+  }
+
+  let tm = Cc["@mozilla.org/transactionmanager;1"].
+           getService(Ci.nsITransactionManager);
+  tm.AddListener(PlacesUtils);
+  return tm;
+});
+
+XPCOMUtils.defineLazyGetter(this, "bundle", function() {
   const PLACES_STRING_BUNDLE_URI = "chrome://places/locale/places.properties";
   return Cc["@mozilla.org/intl/stringbundle;1"].
          getService(Ci.nsIStringBundleService).
          createBundle(PLACES_STRING_BUNDLE_URI);
 });
+
+XPCOMUtils.defineLazyServiceGetter(this, "focusManager",
+                                   "@mozilla.org/focus-manager;1",
+                                   "nsIFocusManager");
+
+
+
+
+
+
+
+
+function updateCommandsOnActiveWindow()
+{
+  let win = focusManager.activeWindow;
+  if (win && win instanceof Ci.nsIDOMWindowInternal) {
+    
+    win.updateCommands("undo");
+  }
+}
+
+
+
+
+
+
+
+
+function BaseTransaction() {}
+
+BaseTransaction.prototype = {
+  doTransaction: function BTXN_doTransaction() {},
+  redoTransaction: function BTXN_redoTransaction() this.doTransaction(),
+  undoTransaction: function BTXN_undoTransaction() {},
+  merge: function BTXN_merge() false,
+  get isTransient() false,
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsITransaction
+  ]),
+};
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesAggregatedTransaction(aName, aTransactions)
+{
+  this._transactions = aTransactions;
+  this._name = aName;
+  this.container = -1;
+
+  
+  
+  let countTransactions = function(aTransactions, aTxnCount)
+  {
+    for (let i = 0;
+         i < aTransactions.length && aTxnCount < MIN_TRANSACTIONS_FOR_BATCH;
+         ++i, ++aTxnCount) {
+      let txn = aTransactions[i];
+      if (txn && txn.childTransactions && txn.childTransactions.length)
+        aTxnCount = countTransactions(txn.childTransactions, aTxnCount);
+    }
+    return aTxnCount;
+  }
+
+  let txnCount = countTransactions(this._transactions, 0);
+  this._useBatch = txnCount >= MIN_TRANSACTIONS_FOR_BATCH;
+}
+
+PlacesAggregatedTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function ATXN_doTransaction()
+  {
+    this._isUndo = false;
+    if (this._useBatch)
+      PlacesUtils.bookmarks.runInBatchMode(this, null);
+    else
+      this.runBatched(false);
+  },
+
+  undoTransaction: function ATXN_undoTransaction()
+  {
+    this._isUndo = true;
+    if (this._useBatch)
+      PlacesUtils.bookmarks.runInBatchMode(this, null);
+    else
+      this.runBatched(true);
+  },
+
+  runBatched: function ATXN_runBatched()
+  {
+    
+    
+    let transactions = this._transactions.slice(0);
+    if (this._isUndo)
+      transactions.reverse();
+    for (let i = 0; i < transactions.length; ++i) {
+      let txn = transactions[i];
+      if (this.container > -1)
+        txn.container = this.container;
+      if (this._isUndo)
+        txn.undoTransaction();
+      else
+        txn.doTransaction();
+    }
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesCreateFolderTransaction(aName, aContainer, aIndex, aAnnotations,
+                                       aChildItemsTransactions)
+{
+  this._name = aName;
+  this._container = aContainer;
+  this._index = typeof(aIndex) == "number" ? aIndex : -1;
+  this._annotations = aAnnotations;
+  this._id = null;
+  this.childTransactions = aChildItemsTransactions || [];
+}
+
+PlacesCreateFolderTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  
+  get container() this._container,
+  set container(val) this._container = val,
+
+  doTransaction: function CFTXN_doTransaction()
+  {
+    this._id = PlacesUtils.bookmarks.createFolder(this._container, 
+                                                  this._name, this._index);
+    if (this._annotations && this._annotations.length > 0)
+      PlacesUtils.setAnnotationsForItem(this._id, this._annotations);
+
+    if (this.childTransactions.length) {
+      
+      for (let i = 0; i < this.childTransactions.length; ++i) {
+        this.childTransactions[i].container = this._id;
+      }
+
+      let txn = new PlacesAggregatedTransaction("Create folder childTxn",
+                                                this.childTransactions);
+      txn.doTransaction();
+    }
+
+    if (this._GUID)
+      PlacesUtils.bookmarks.setItemGUID(this._id, this._GUID);
+  },
+
+  undoTransaction: function CFTXN_undoTransaction()
+  {
+    if (this.childTransactions.length) {
+      let txn = new PlacesAggregatedTransaction("Create folder childTxn",
+                                                this.childTransactions);
+      txn.undoTransaction();
+    }
+
+    
+    if (PlacesUtils.annotations.itemHasAnnotation(this._id, PlacesUtils.GUID_ANNO))
+      this._GUID = PlacesUtils.bookmarks.getItemGUID(this._id);
+
+    
+    PlacesUtils.bookmarks.removeItem(this._id);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesCreateBookmarkTransaction(aURI, aContainer, aIndex, aTitle,
+                                         aKeyword, aAnnotations,
+                                         aChildTransactions)
+{
+  this._uri = aURI;
+  this._container = aContainer;
+  this._index = typeof(aIndex) == "number" ? aIndex : -1;
+  this._title = aTitle;
+  this._keyword = aKeyword;
+  this._annotations = aAnnotations;
+  this.childTransactions = aChildTransactions || [];
+}
+
+PlacesCreateBookmarkTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  
+  get container() this._container,
+  set container(val) this._container = val,
+
+  doTransaction: function CITXN_doTransaction()
+  {
+    this._id = PlacesUtils.bookmarks.insertBookmark(this.container, this._uri,
+                                                    this._index, this._title);
+    if (this._keyword)
+      PlacesUtils.bookmarks.setKeywordForBookmark(this._id, this._keyword);
+    if (this._annotations && this._annotations.length > 0)
+      PlacesUtils.setAnnotationsForItem(this._id, this._annotations);
+ 
+    if (this.childTransactions.length) {
+      
+      for (let i = 0; i < this.childTransactions.length; ++i) {
+        this.childTransactions[i].id = this._id;
+      }
+      let txn = new PlacesAggregatedTransaction("Create item childTxn",
+                                                this.childTransactions);
+      txn.doTransaction();
+    }
+    if (this._GUID)
+      PlacesUtils.bookmarks.setItemGUID(this._id, this._GUID);
+  },
+
+  undoTransaction: function CITXN_undoTransaction()
+  {
+    if (this.childTransactions.length) {
+      
+      let txn = new PlacesAggregatedTransaction("Create item childTxn",
+                                                this.childTransactions);
+      txn.undoTransaction();
+    }
+
+    
+    if (PlacesUtils.annotations.itemHasAnnotation(this._id, PlacesUtils.GUID_ANNO))
+      this._GUID = PlacesUtils.bookmarks.getItemGUID(this._id);
+
+    
+    PlacesUtils.bookmarks.removeItem(this._id);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesCreateSeparatorTransaction(aContainer, aIndex)
+{
+  this._container = aContainer;
+  this._index = typeof(aIndex) == "number" ? aIndex : -1;
+  this._id = null;
+}
+
+PlacesCreateSeparatorTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  
+  get container() this._container,
+  set container(val) this._container = val,
+
+  doTransaction: function CSTXN_doTransaction()
+  {
+    this._id = PlacesUtils.bookmarks
+                          .insertSeparator(this.container, this._index);
+    if (this._GUID)
+      PlacesUtils.bookmarks.setItemGUID(this._id, this._GUID);
+  },
+
+  undoTransaction: function CSTXN_undoTransaction()
+  {
+    
+    if (PlacesUtils.annotations.itemHasAnnotation(this._id, PlacesUtils.GUID_ANNO))
+      this._GUID = PlacesUtils.bookmarks.getItemGUID(this._id);
+
+    PlacesUtils.bookmarks.removeItem(this._id);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesCreateLivemarkTransaction(aFeedURI, aSiteURI, aName, aContainer,
+                                         aIndex, aAnnotations)
+{
+  this._feedURI = aFeedURI;
+  this._siteURI = aSiteURI;
+  this._name = aName;
+  this._container = aContainer;
+  this._index = typeof(aIndex) == "number" ? aIndex : -1;
+  this._annotations = aAnnotations;
+}
+
+PlacesCreateLivemarkTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  
+  get container() this._container,
+  set container(val) this._container = val,
+
+  doTransaction: function CLTXN_doTransaction()
+  {
+    this._id = PlacesUtils.livemarks.createLivemark(this._container, this._name,
+                                                    this._siteURI, this._feedURI,
+                                                    this._index);
+    if (this._annotations && this._annotations.length > 0)
+      PlacesUtils.setAnnotationsForItem(this._id, this._annotations);
+    if (this._GUID)
+      PlacesUtils.bookmarks.setItemGUID(this._id, this._GUID);
+  },
+
+  undoTransaction: function CLTXN_undoTransaction()
+  {
+    
+    if (PlacesUtils.annotations.itemHasAnnotation(this._id, PlacesUtils.GUID_ANNO))
+      this._GUID = PlacesUtils.bookmarks.getItemGUID(this._id);
+
+    PlacesUtils.bookmarks.removeItem(this._id);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+function PlacesRemoveLivemarkTransaction(aFolderId)
+{
+  this._id = aFolderId;
+  this._title = PlacesUtils.bookmarks.getItemTitle(this._id);
+  this._container = PlacesUtils.bookmarks.getFolderIdForItem(this._id);
+  let annos = PlacesUtils.getAnnotationsForItem(this._id);
+  
+  let annosToExclude = ["livemark/feedURI",
+                        "livemark/siteURI",
+                        "livemark/expiration",
+                        "livemark/loadfailed",
+                        "livemark/loading"];
+  this._annotations = annos.filter(function(aValue, aIndex, aArray) {
+      return annosToExclude.indexOf(aValue.name) == -1;
+    });
+  this._feedURI = PlacesUtils.livemarks.getFeedURI(this._id);
+  this._siteURI = PlacesUtils.livemarks.getSiteURI(this._id);
+  this._dateAdded = PlacesUtils.bookmarks.getItemDateAdded(this._id);
+  this._lastModified = PlacesUtils.bookmarks.getItemLastModified(this._id);
+}
+
+PlacesRemoveLivemarkTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function RLTXN_doTransaction()
+  {
+    this._index = PlacesUtils.bookmarks.getItemIndex(this._id);
+    PlacesUtils.bookmarks.removeItem(this._id);
+  },
+
+  undoTransaction: function RLTXN_undoTransaction()
+  {
+    this._id = PlacesUtils.livemarks.createLivemark(this._container,
+                                                    this._title,
+                                                    this._siteURI,
+                                                    this._feedURI,
+                                                    this._index);
+    PlacesUtils.bookmarks.setItemDateAdded(this._id, this._dateAdded);
+    PlacesUtils.bookmarks.setItemLastModified(this._id, this._lastModified);
+    
+    PlacesUtils.setAnnotationsForItem(this._id, this._annotations);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesMoveItemTransaction(aItemId, aNewContainer, aNewIndex)
+{
+  this._id = aItemId;
+  this._oldContainer = PlacesUtils.bookmarks.getFolderIdForItem(this._id);
+  this._newContainer = aNewContainer;
+  this._newIndex = aNewIndex;
+}
+
+PlacesMoveItemTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function MITXN_doTransaction()
+  {
+    this._oldIndex = PlacesUtils.bookmarks.getItemIndex(this._id);
+    PlacesUtils.bookmarks.moveItem(this._id, this._newContainer, this._newIndex);
+    this._undoIndex = PlacesUtils.bookmarks.getItemIndex(this._id);
+  },
+
+  undoTransaction: function MITXN_undoTransaction()
+  {
+    
+    
+    if (this._newContainer == this._oldContainer &&
+        this._oldIndex > this._undoIndex)
+      PlacesUtils.bookmarks.moveItem(this._id, this._oldContainer, this._oldIndex + 1);
+    else
+      PlacesUtils.bookmarks.moveItem(this._id, this._oldContainer, this._oldIndex);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+function PlacesRemoveItemTransaction(aItemId)
+{
+  if (PlacesUtils.isRootItem(aItemId))
+    throw Cr.NS_ERROR_INVALID_ARG;
+
+  
+  let parent = PlacesUtils.bookmarks.getFolderIdForItem(aItemId);
+  let grandparent = PlacesUtils.bookmarks.getFolderIdForItem(parent);
+  if (grandparent == PlacesUtils.tagsFolderId) {
+    let uri = PlacesUtils.bookmarks.getBookmarkURI(aItemId);
+    return new PlacesUntagURITransaction(uri, [parent]);
+  }
+
+  
+  
+  if (PlacesUtils.itemIsLivemark(aItemId))
+    return new PlacesRemoveLivemarkTransaction(aItemId);
+
+  this._id = aItemId;
+  this._itemType = PlacesUtils.bookmarks.getItemType(this._id);
+  if (this._itemType == Ci.nsINavBookmarksService.TYPE_FOLDER) {
+    this.childTransactions = this._getFolderContentsTransactions();
+    
+    let txn = PlacesUtils.bookmarks.getRemoveFolderTransaction(this._id);
+    this.childTransactions.push(txn);
+  }
+  else if (this._itemType == Ci.nsINavBookmarksService.TYPE_BOOKMARK) {
+    this._uri = PlacesUtils.bookmarks.getBookmarkURI(this._id);
+    this._keyword = PlacesUtils.bookmarks.getKeywordForBookmark(this._id);
+  }
+
+  if (this._itemType != Ci.nsINavBookmarksService.TYPE_SEPARATOR)
+    this._title = PlacesUtils.bookmarks.getItemTitle(this._id);
+
+  this._oldContainer = PlacesUtils.bookmarks.getFolderIdForItem(this._id);
+  this._annotations = PlacesUtils.getAnnotationsForItem(this._id);
+  this._dateAdded = PlacesUtils.bookmarks.getItemDateAdded(this._id);
+  this._lastModified = PlacesUtils.bookmarks.getItemLastModified(this._id);
+}
+
+PlacesRemoveItemTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function RITXN_doTransaction()
+  {
+    this._oldIndex = PlacesUtils.bookmarks.getItemIndex(this._id);
+
+    if (this._itemType == Ci.nsINavBookmarksService.TYPE_FOLDER) {
+      let txn = new PlacesAggregatedTransaction("Remove item childTxn",
+                                                this.childTransactions);
+      txn.doTransaction();
+    }
+    else {
+      PlacesUtils.bookmarks.removeItem(this._id);
+      if (this._uri) {
+        
+        
+        
+        if (PlacesUtils.getMostRecentBookmarkForURI(this._uri) == -1) {
+          this._tags = PlacesUtils.tagging.getTagsForURI(this._uri);
+          PlacesUtils.tagging.untagURI(this._uri, this._tags);
+        }
+      }
+    }
+  },
+
+  undoTransaction: function RITXN_undoTransaction()
+  {
+    if (this._itemType == Ci.nsINavBookmarksService.TYPE_BOOKMARK) {
+      this._id = PlacesUtils.bookmarks.insertBookmark(this._oldContainer,
+                                                      this._uri,
+                                                      this._oldIndex,
+                                                      this._title);
+      if (this._tags && this._tags.length > 0)
+        PlacesUtils.tagging.tagURI(this._uri, this._tags);
+      if (this._keyword)
+        PlacesUtils.bookmarks.setKeywordForBookmark(this._id, this._keyword);
+    }
+    else if (this._itemType == Ci.nsINavBookmarksService.TYPE_FOLDER) {
+      let txn = new PlacesAggregatedTransaction("Remove item childTxn",
+                                                this.childTransactions);
+      txn.undoTransaction();
+    }
+    else 
+      this._id = PlacesUtils.bookmarks.insertSeparator(this._oldContainer, this._oldIndex);
+
+    if (this._annotations.length > 0)
+      PlacesUtils.setAnnotationsForItem(this._id, this._annotations);
+
+    PlacesUtils.bookmarks.setItemDateAdded(this._id, this._dateAdded);
+    PlacesUtils.bookmarks.setItemLastModified(this._id, this._lastModified);
+  },
+
+  
+
+
+
+  _getFolderContentsTransactions:
+  function RITXN__getFolderContentsTransactions()
+  {
+    let transactions = [];
+    let contents =
+      PlacesUtils.getFolderContents(this._id, false, false).root;
+    for (let i = 0; i < contents.childCount; ++i) {
+      let txn = new PlacesRemoveItemTransaction(contents.getChild(i).itemId);
+      transactions.push(txn);
+    }
+    contents.containerOpen = false;
+    
+    return transactions.reverse();
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesEditItemTitleTransaction(id, newTitle)
+{
+  this._id = id;
+  this._newTitle = newTitle;
+  this._oldTitle = "";
+}
+
+PlacesEditItemTitleTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function EITTXN_doTransaction()
+  {
+    this._oldTitle = PlacesUtils.bookmarks.getItemTitle(this._id);
+    PlacesUtils.bookmarks.setItemTitle(this._id, this._newTitle);
+  },
+
+  undoTransaction: function EITTXN_undoTransaction()
+  {
+    PlacesUtils.bookmarks.setItemTitle(this._id, this._oldTitle);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesEditBookmarkURITransaction(aBookmarkId, aNewURI) {
+  this._id = aBookmarkId;
+  this._newURI = aNewURI;
+}
+
+PlacesEditBookmarkURITransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function EBUTXN_doTransaction()
+  {
+    this._oldURI = PlacesUtils.bookmarks.getBookmarkURI(this._id);
+    PlacesUtils.bookmarks.changeBookmarkURI(this._id, this._newURI);
+    
+    this._tags = PlacesUtils.tagging.getTagsForURI(this._oldURI);
+    if (this._tags.length != 0) {
+      
+      if (PlacesUtils.getBookmarksForURI(this._oldURI, {}).length == 0)
+        PlacesUtils.tagging.untagURI(this._oldURI, this._tags);
+      PlacesUtils.tagging.tagURI(this._newURI, this._tags);
+    }
+  },
+
+  undoTransaction: function EBUTXN_undoTransaction()
+  {
+    PlacesUtils.bookmarks.changeBookmarkURI(this._id, this._oldURI);
+    
+    if (this._tags.length != 0) {
+      
+      if (PlacesUtils.getBookmarksForURI(this._newURI, {}).length == 0)
+        PlacesUtils.tagging.untagURI(this._newURI, this._tags);
+      PlacesUtils.tagging.tagURI(this._oldURI, this._tags);
+    }
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesSetItemAnnotationTransaction(aItemId, aAnnotationObject)
+{
+  this.id = aItemId;
+  this._anno = aAnnotationObject;
+  
+  this._oldAnno = { name: this._anno.name,
+                    type: Ci.nsIAnnotationService.TYPE_STRING,
+                    flags: 0,
+                    value: null,
+                    expires: Ci.nsIAnnotationService.EXPIRE_NEVER };
+}
+
+PlacesSetItemAnnotationTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function SIATXN_doTransaction()
+  {
+    
+    
+    if (PlacesUtils.annotations.itemHasAnnotation(this.id, this._anno.name)) {
+      
+      let flags = {}, expires = {}, mimeType = {}, type = {};
+      PlacesUtils.annotations.getItemAnnotationInfo(this.id, this._anno.name,
+                                                    flags, expires, mimeType,
+                                                    type);
+      this._oldAnno.flags = flags.value;
+      this._oldAnno.expires = expires.value;
+      this._oldAnno.mimeType = mimeType.value;
+      this._oldAnno.type = type.value;
+      this._oldAnno.value = PlacesUtils.annotations
+                                       .getItemAnnotation(this.id,
+                                                          this._anno.name);
+    }
+
+    PlacesUtils.setAnnotationsForItem(this.id, [this._anno]);
+  },
+
+  undoTransaction: function SIATXN_undoTransaction()
+  {
+    PlacesUtils.setAnnotationsForItem(this.id, [this._oldAnno]);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesSetPageAnnotationTransaction(aURI, aAnnotationObject)
+{
+  this._uri = aURI;
+  this._anno = aAnnotationObject;
+  
+  this._oldAnno = { name: this._anno.name,
+                    type: Ci.nsIAnnotationService.TYPE_STRING,
+                    flags: 0,
+                    value: null,
+                    expires: Ci.nsIAnnotationService.EXPIRE_NEVER };
+
+  if (PlacesUtils.annotations.pageHasAnnotation(this._uri, this._anno.name)) {
+    
+    let flags = {}, expires = {}, mimeType = {}, type = {};
+    PlacesUtils.annotations.getPageAnnotationInfo(this._uri, this._anno.name,
+                                                  flags, expires, mimeType, type);
+    this._oldAnno.flags = flags.value;
+    this._oldAnno.expires = expires.value;
+    this._oldAnno.mimeType = mimeType.value;
+    this._oldAnno.type = type.value;
+    this._oldAnno.value = PlacesUtils.annotations
+                                     .getPageAnnotation(this._uri, this._anno.name);
+  }
+
+}
+
+PlacesSetPageAnnotationTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function SPATXN_doTransaction()
+  {
+    PlacesUtils.setAnnotationsForURI(this._uri, [this._anno]);
+  },
+
+  undoTransaction: function SPATXN_undoTransaction()
+  {
+    PlacesUtils.setAnnotationsForURI(this._uri, [this._oldAnno]);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesEditBookmarkKeywordTransaction(id, newKeyword) {
+  this.id = id;
+  this._newKeyword = newKeyword;
+  this._oldKeyword = "";
+
+}
+
+PlacesEditBookmarkKeywordTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function EBKTXN_doTransaction()
+  {
+    this._oldKeyword = PlacesUtils.bookmarks.getKeywordForBookmark(this.id);
+    PlacesUtils.bookmarks.setKeywordForBookmark(this.id, this._newKeyword);
+  },
+
+  undoTransaction: function EBKTXN_undoTransaction()
+  {
+    PlacesUtils.bookmarks.setKeywordForBookmark(this.id, this._oldKeyword);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesEditBookmarkPostDataTransaction(aItemId, aPostData)
+{
+  this.id = aItemId;
+  this._newPostData = aPostData;
+  this._oldPostData = null;
+}
+
+PlacesEditBookmarkPostDataTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function EBPDTXN_doTransaction()
+  {
+    this._oldPostData = PlacesUtils.getPostDataForBookmark(this.id);
+    PlacesUtils.setPostDataForBookmark(this.id, this._newPostData);
+  },
+
+  undoTransaction: function EBPDTXN_undoTransaction()
+  {
+    PlacesUtils.setPostDataForBookmark(this.id, this._oldPostData);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesEditLivemarkSiteURITransaction(folderId, uri)
+{
+  this._folderId = folderId;
+  this._newURI = uri;
+  this._oldURI = null;
+}
+
+PlacesEditLivemarkSiteURITransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function ELSUTXN_doTransaction()
+  {
+    this._oldURI = PlacesUtils.livemarks.getSiteURI(this._folderId);
+    PlacesUtils.livemarks.setSiteURI(this._folderId, this._newURI);
+  },
+
+  undoTransaction: function ELSUTXN_undoTransaction()
+  {
+    PlacesUtils.livemarks.setSiteURI(this._folderId, this._oldURI);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesEditLivemarkFeedURITransaction(folderId, uri)
+{
+  this._folderId = folderId;
+  this._newURI = uri;
+  this._oldURI = null;
+}
+
+PlacesEditLivemarkFeedURITransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function ELFUTXN_doTransaction()
+  {
+    this._oldURI = PlacesUtils.livemarks.getFeedURI(this._folderId);
+    PlacesUtils.livemarks.setFeedURI(this._folderId, this._newURI);
+    PlacesUtils.livemarks.reloadLivemarkFolder(this._folderId);
+  },
+
+  undoTransaction: function ELFUTXN_undoTransaction()
+  {
+    PlacesUtils.livemarks.setFeedURI(this._folderId, this._oldURI);
+    PlacesUtils.livemarks.reloadLivemarkFolder(this._folderId);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesEditBookmarkMicrosummaryTransaction(aItemId, newMicrosummary)
+{
+  this.id = aItemId;
+  this._mss = Cc["@mozilla.org/microsummary/service;1"].
+              getService(Ci.nsIMicrosummaryService);
+  this._newMicrosummary = newMicrosummary;
+  this._oldMicrosummary = null;
+}
+
+PlacesEditBookmarkMicrosummaryTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function EBMTXN_doTransaction()
+  {
+    this._oldMicrosummary = this._mss.getMicrosummary(this.id);
+    if (this._newMicrosummary)
+      this._mss.setMicrosummary(this.id, this._newMicrosummary);
+    else
+      this._mss.removeMicrosummary(this.id);
+  },
+
+  undoTransaction: function EBMTXN_undoTransaction()
+  {
+    if (this._oldMicrosummary)
+      this._mss.setMicrosummary(this.id, this._oldMicrosummary);
+    else
+      this._mss.removeMicrosummary(this.id);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesEditItemDateAddedTransaction(id, newDateAdded)
+{
+  this.id = id;
+  this._newDateAdded = newDateAdded;
+  this._oldDateAdded = null;
+}
+
+PlacesEditItemDateAddedTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  
+  get container() this.id,
+  set container(val) this.id = val,
+
+  doTransaction: function EIDATXN_doTransaction()
+  {
+    this._oldDateAdded = PlacesUtils.bookmarks.getItemDateAdded(this.id);
+    PlacesUtils.bookmarks.setItemDateAdded(this.id, this._newDateAdded);
+  },
+
+  undoTransaction: function EIDATXN_undoTransaction()
+  {
+    PlacesUtils.bookmarks.setItemDateAdded(this.id, this._oldDateAdded);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesEditItemLastModifiedTransaction(id, newLastModified)
+{
+  this.id = id;
+  this._newLastModified = newLastModified;
+  this._oldLastModified = null;
+}
+
+PlacesEditItemLastModifiedTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  
+  get container() this.id,
+  set container(val) this.id = val,
+
+  doTransaction:
+  function EILMTXN_doTransaction()
+  {
+    this._oldLastModified = PlacesUtils.bookmarks.getItemLastModified(this.id);
+    PlacesUtils.bookmarks.setItemLastModified(this.id, this._newLastModified);
+  },
+
+  undoTransaction:
+  function EILMTXN_undoTransaction()
+  {
+    PlacesUtils.bookmarks.setItemLastModified(this.id, this._oldLastModified);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+function PlacesSortFolderByNameTransaction(aFolderId)
+{
+  this._folderId = aFolderId;
+  this._oldOrder = null;
+}
+
+PlacesSortFolderByNameTransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function SFBNTXN_doTransaction()
+  {
+    this._oldOrder = [];
+
+    let contents =
+      PlacesUtils.getFolderContents(this._folderId, false, false).root;
+    let count = contents.childCount;
+
+    
+    let newOrder = []; 
+    let preSep = []; 
+    let sortingMethod =
+      function (a, b) {
+        if (PlacesUtils.nodeIsContainer(a) && !PlacesUtils.nodeIsContainer(b))
+          return -1;
+        if (!PlacesUtils.nodeIsContainer(a) && PlacesUtils.nodeIsContainer(b))
+          return 1;
+        return a.title.localeCompare(b.title);
+      };
+
+    for (let i = 0; i < count; ++i) {
+      let item = contents.getChild(i);
+      this._oldOrder[item.itemId] = i;
+      if (PlacesUtils.nodeIsSeparator(item)) {
+        if (preSep.length > 0) {
+          preSep.sort(sortingMethod);
+          newOrder = newOrder.concat(preSep);
+          preSep.splice(0);
+        }
+        newOrder.push(item);
+      }
+      else
+        preSep.push(item);
+    }
+    contents.containerOpen = false;
+
+    if (preSep.length > 0) {
+      preSep.sort(sortingMethod);
+      newOrder = newOrder.concat(preSep);
+    }
+
+    
+    let callback = {
+      runBatched: function() {
+        for (let i = 0; i < newOrder.length; ++i) {
+          PlacesUtils.bookmarks.setItemIndex(newOrder[i].itemId, i);
+        }
+      }
+    };
+    PlacesUtils.bookmarks.runInBatchMode(callback, null);
+  },
+
+  undoTransaction: function SFBNTXN_undoTransaction()
+  {
+    let callback = {
+      _self: this,
+      runBatched: function() {
+        for (item in this._self._oldOrder)
+          PlacesUtils.bookmarks.setItemIndex(item, this._self._oldOrder[item]);
+      }
+    };
+    PlacesUtils.bookmarks.runInBatchMode(callback, null);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesTagURITransaction(aURI, aTags)
+{
+  this._uri = aURI;
+  this._tags = aTags;
+  this._unfiledItemId = -1;
+}
+
+PlacesTagURITransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function TUTXN_doTransaction()
+  {
+    if (PlacesUtils.getMostRecentBookmarkForURI(this._uri) == -1) {
+      
+      this._unfiledItemId =
+        PlacesUtils.bookmarks
+                   .insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                   this._uri,
+                                   PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                   PlacesUtils.history.getPageTitle(this._uri));
+      if (this._GUID)
+        PlacesUtils.bookmarks.setItemGUID(this._unfiledItemId, this._GUID);
+    }
+    PlacesUtils.tagging.tagURI(this._uri, this._tags);
+  },
+
+  undoTransaction: function TUTXN_undoTransaction()
+  {
+    if (this._unfiledItemId != -1) {
+      
+      if (PlacesUtils.annotations.itemHasAnnotation(this._unfiledItemId, PlacesUtils.GUID_ANNO)) {
+        this._GUID = PlacesUtils.bookmarks.getItemGUID(this._unfiledItemId);
+      }
+      PlacesUtils.bookmarks.removeItem(this._unfiledItemId);
+      this._unfiledItemId = -1;
+    }
+    PlacesUtils.tagging.untagURI(this._uri, this._tags);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function PlacesUntagURITransaction(aURI, aTags)
+{
+  this._uri = aURI;
+  if (aTags) {    
+    
+    
+    
+    this._tags = aTags;
+    for (let i = 0; i < aTags.length; ++i) {
+      if (typeof(this._tags[i]) == "number")
+        this._tags[i] = PlacesUtils.bookmarks.getItemTitle(this._tags[i]);
+    }
+  }
+  else {
+    this._tags = PlacesUtils.tagging.getTagsForURI(this._uri);
+  }
+}
+
+PlacesUntagURITransaction.prototype = {
+  __proto__: BaseTransaction.prototype,
+
+  doTransaction: function UTUTXN_doTransaction()
+  {
+    PlacesUtils.tagging.untagURI(this._uri, this._tags);
+  },
+
+  undoTransaction: function UTUTXN_undoTransaction()
+  {
+    PlacesUtils.tagging.tagURI(this._uri, this._tags);
+  }
+};
