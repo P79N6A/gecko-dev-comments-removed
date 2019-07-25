@@ -1387,7 +1387,10 @@ PatchIfFile::Finish(int status)
 #endif
 
 static void
-LaunchCallbackApp(const NS_tchar *workingDir, int argc, NS_tchar **argv)
+LaunchCallbackApp(const NS_tchar *workingDir, 
+                  int argc, 
+                  NS_tchar **argv, 
+                  bool usingService)
 {
   putenv(const_cast<char*>("NO_EM_RESTART="));
   putenv(const_cast<char*>("MOZ_LAUNCHED_CHILD=1"));
@@ -1406,7 +1409,6 @@ LaunchCallbackApp(const NS_tchar *workingDir, int argc, NS_tchar **argv)
 #elif defined(XP_WIN)
   
   
-  LPCWSTR usingService = _wgetenv(L"MOZ_USING_SERVICE");
   if (!usingService) {
     WinLaunchChild(argv[0], argc, argv, NULL);
   }
@@ -1603,7 +1605,8 @@ int NS_main(int argc, NS_tchar **argv)
 
   bool useService = false;
   bool testOnlyFallbackKeyExists = false;
-  LPCWSTR runningAsTest = _wgetenv(L"MOZ_NO_SERVICE_FALLBACK");
+  bool noServiceFallback = _wgetenv(L"MOZ_NO_SERVICE_FALLBACK") != NULL;
+  _wputenv(L"MOZ_NO_SERVICE_FALLBACK=");
 
   
   
@@ -1678,7 +1681,8 @@ int NS_main(int argc, NS_tchar **argv)
   const int callbackIndex = 5;
 
 #if defined(XP_WIN)
-  LPCWSTR usingService = _wgetenv(L"MOZ_USING_SERVICE");
+  bool usingService = _wgetenv(L"MOZ_USING_SERVICE") != NULL;
+  _wputenv(L"MOZ_USING_SERVICE=");
   
   
   
@@ -1718,7 +1722,7 @@ int NS_main(int argc, NS_tchar **argv)
                  NS_T("%s/update_elevated.lock"), argv[1]);
 
     if (updateLockFileHandle == INVALID_HANDLE_VALUE || 
-        (useService && testOnlyFallbackKeyExists && runningAsTest)) {
+        (useService && testOnlyFallbackKeyExists && noServiceFallback)) {
       if (!_waccess(elevatedLockFilePath, F_OK) &&
           NS_tremove(elevatedLockFilePath) != 0) {
         fprintf(stderr, "Update already elevated! Exiting\n");
@@ -1829,7 +1833,8 @@ int NS_main(int argc, NS_tchar **argv)
       
       
       
-      if (!useService && updateLockFileHandle == INVALID_HANDLE_VALUE) {
+      if (!useService && !noServiceFallback && 
+          updateLockFileHandle == INVALID_HANDLE_VALUE) {
         SHELLEXECUTEINFO sinfo;
         memset(&sinfo, 0, sizeof(SHELLEXECUTEINFO));
         sinfo.cbSize       = sizeof(SHELLEXECUTEINFO);
@@ -1853,9 +1858,9 @@ int NS_main(int argc, NS_tchar **argv)
         }
       }
 
-      if (argc > callbackIndex) {
-        LaunchCallbackApp(argv[4], argc - callbackIndex, argv + callbackIndex);
-      }
+      
+      LaunchCallbackApp(argv[4], argc - callbackIndex, 
+                        argv + callbackIndex, usingService);
 
       CloseHandle(elevatedFileHandle);
 
@@ -1920,7 +1925,10 @@ int NS_main(int argc, NS_tchar **argv)
       LogFinish();
       WriteStatusFile(WRITE_ERROR);
       EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, 1);
-      LaunchCallbackApp(argv[4], argc - callbackIndex, argv + callbackIndex);
+      LaunchCallbackApp(argv[4], 
+                        argc - callbackIndex, 
+                        argv + callbackIndex, 
+                        usingService);
       return 1;
     }
 
@@ -1931,7 +1939,10 @@ int NS_main(int argc, NS_tchar **argv)
       LogFinish();
       WriteStatusFile(WRITE_ERROR);
       EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, 1);
-      LaunchCallbackApp(argv[4], argc - callbackIndex, argv + callbackIndex);
+      LaunchCallbackApp(argv[4], 
+                        argc - callbackIndex, 
+                        argv + callbackIndex, 
+                        usingService);
       return 1;
     }
 
@@ -1992,7 +2003,10 @@ int NS_main(int argc, NS_tchar **argv)
       WriteStatusFile(WRITE_ERROR);
       NS_tremove(gCallbackBackupPath);
       EXIT_WHEN_ELEVATED(elevatedLockFilePath, updateLockFileHandle, 1);
-      LaunchCallbackApp(argv[4], argc - callbackIndex, argv + callbackIndex);
+      LaunchCallbackApp(argv[4], 
+                        argc - callbackIndex, 
+                        argv + callbackIndex,
+                        usingService);
       return 1;
     }
   }
@@ -2069,7 +2083,10 @@ int NS_main(int argc, NS_tchar **argv)
       LaunchMacPostProcess(argv[callbackIndex]);
     }
 #endif 
-    LaunchCallbackApp(argv[4], argc - callbackIndex, argv + callbackIndex);
+    LaunchCallbackApp(argv[4], 
+                      argc - callbackIndex, 
+                      argv + callbackIndex, 
+                      usingService);
   }
 
   return 0;
