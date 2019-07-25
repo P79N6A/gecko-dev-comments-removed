@@ -110,8 +110,11 @@ struct JSStackFrame
     uintN               argc;           
     js::Value           *argv;          
     js::Value           rval;           
+
+  private:
     void                *annotation;    
 
+  public:
     
     JSStackFrame        *down;          
 
@@ -129,10 +132,12 @@ struct JSStackFrame
 
     uint32          flags;          
 
+  private:
     
     void            *hookData;      
     JSVersion       callerVersion;  
 
+  public:
     
     jsbytecode *pc(JSContext *cx) const;
 
