@@ -146,8 +146,7 @@ HttpChannelChild::RecvOnStartRequest(const nsHttpResponseHead& responseHead,
     
     
     
-    
-    return false;  
+    return true;  
   }
 
   if (mResponseHead)
@@ -226,7 +225,6 @@ HttpChannelChild::OnDataAvailable(const nsCString& data,
   stringStream->Close();
   if (NS_FAILED(rv)) {
     
-    return false; 
   }
   return true;
 }
