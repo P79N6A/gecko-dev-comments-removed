@@ -554,9 +554,9 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
     case nsIDOMSVGPathSeg::PATHSEG_ARC_ABS:
     case nsIDOMSVGPathSeg::PATHSEG_ARC_REL:
     {
-      float rx = mData[i];
-      float ry = mData[i+1];
-      float angle = mData[i+2];
+      double rx = mData[i];
+      double ry = mData[i+1];
+      double angle = mData[i+2];
       PRBool largeArcFlag = mData[i+3] != 0.0f;
       PRBool sweepFlag = mData[i+4] != 0.0f;
       if (segType == nsIDOMSVGPathSeg::PATHSEG_ARC_ABS) {
@@ -595,46 +595,47 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
 
       
       angle = angle * M_PI/180.0;
-      float x1p = cos(angle) * (segStart.x - segEnd.x) / 2.0
-                + sin(angle) * (segStart.y - segEnd.y) / 2.0;
-      float y1p = -sin(angle) * (segStart.x - segEnd.x) / 2.0
-                 + cos(angle)  *(segStart.y - segEnd.y) / 2.0;
+      double x1p =  cos(angle) * (segStart.x - segEnd.x) / 2.0
+                  + sin(angle) * (segStart.y - segEnd.y) / 2.0;
+      double y1p = -sin(angle) * (segStart.x - segEnd.x) / 2.0
+                  + cos(angle) * (segStart.y - segEnd.y) / 2.0;
 
       
-      float root;
-      float numerator = rx*rx*ry*ry - rx*rx*y1p*y1p - ry*ry*x1p*x1p;
+      double root;
+      double numerator = rx*rx*ry*ry - rx*rx*y1p*y1p - ry*ry*x1p*x1p;
 
-      if (numerator < 0.0) {
+      if (numerator >= 0.0) {
+        root = sqrt(numerator/(rx*rx*y1p*y1p + ry*ry*x1p*x1p));
+        if (largeArcFlag == sweepFlag)
+          root = -root;
+      } else {
         
         
         
         
-        float lamedh = 1.0 - numerator/(rx*rx*ry*ry); 
-        float s = sqrt(lamedh);
+        
+        
+
+        double lamedh = 1.0 - numerator/(rx*rx*ry*ry); 
+        double s = sqrt(lamedh);
         rx *= s;  
         ry *= s;
-        
-        numerator = rx*rx*ry*ry - rx*rx*y1p*y1p - ry*ry*x1p*x1p;
-        NS_ABORT_IF_FALSE(numerator >= 0,
-                          "F.6.6.3 should prevent this. Will sqrt(-num)!");
+        root = 0.0;
       }
-      root = sqrt(numerator/(rx*rx*y1p*y1p + ry*ry*x1p*x1p));
-      if (largeArcFlag == sweepFlag)
-        root = -root;
 
-      float cxp =  root * rx * y1p / ry;  
-      float cyp = -root * ry * x1p / rx;
+      double cxp =  root * rx * y1p / ry;  
+      double cyp = -root * ry * x1p / rx;
 
-      float theta, delta;
-      theta = CalcVectorAngle(1.0, 0.0,  (x1p-cxp)/rx, (y1p-cyp)/ry); 
-      delta  = CalcVectorAngle((x1p-cxp)/rx, (y1p-cyp)/ry,
-                               (-x1p-cxp)/rx, (-y1p-cyp)/ry);         
+      double theta, delta;
+      theta = CalcVectorAngle(1.0, 0.0, (x1p-cxp)/rx, (y1p-cyp)/ry); 
+      delta = CalcVectorAngle((x1p-cxp)/rx, (y1p-cyp)/ry,
+                              (-x1p-cxp)/rx, (-y1p-cyp)/ry);         
       if (!sweepFlag && delta > 0)
         delta -= 2.0 * M_PI;
       else if (sweepFlag && delta < 0)
         delta += 2.0 * M_PI;
 
-      float tx1, ty1, tx2, ty2;
+      double tx1, ty1, tx2, ty2;
       tx1 = -cos(angle)*rx*sin(theta) - sin(angle)*ry*cos(theta);
       ty1 = -sin(angle)*rx*sin(theta) + cos(angle)*ry*cos(theta);
       tx2 = -cos(angle)*rx*sin(theta+delta) - sin(angle)*ry*cos(theta+delta);
