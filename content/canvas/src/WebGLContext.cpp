@@ -138,8 +138,8 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     
     
     
-    if (mGeneration + 1 == 0)
-        return NS_ERROR_FAILURE;
+    if (!(mGeneration+1).valid())
+        return NS_ERROR_FAILURE; 
 
     if (mWidth == width && mHeight == height)
         return NS_OK;
@@ -181,7 +181,7 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     mHeight = height;
 
     
-    mGeneration++;
+    ++mGeneration;
 
     MakeContextCurrent();
 

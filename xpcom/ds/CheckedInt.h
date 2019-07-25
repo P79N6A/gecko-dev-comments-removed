@@ -334,6 +334,12 @@ template<typename T> inline T is_div_valid(T x, T y)
 
 
 
+
+
+
+
+
+
 template<typename T>
 class CheckedInt
 {
@@ -412,6 +418,36 @@ public:
     PRBool operator ==(const CheckedInt& other) const
     {
         return PRBool(mIsValid & other.mIsValid & T(value() == other.value()));
+    }
+
+    
+    CheckedInt& operator++()
+    {
+        *this = *this + 1;
+        return *this;
+    }
+
+    
+    CheckedInt operator++(int)
+    {
+        CheckedInt tmp = *this;
+        *this = *this + 1;
+        return tmp;
+    }
+
+    
+    CheckedInt& operator--()
+    {
+        *this = *this - 1;
+        return *this;
+    }
+
+    
+    CheckedInt operator--(int)
+    {
+        CheckedInt tmp = *this;
+        *this = *this - 1;
+        return tmp;
     }
 
 private:
@@ -518,6 +554,20 @@ inline PRBool operator ==(const U & lhs, const CheckedInt<T> &rhs)
 {
     return cast_to_CheckedInt<T>(lhs) == rhs;
 }
+
+
+
+#define CHECKEDINT_MAKE_TYPEDEF(Type) \
+typedef CheckedInt<PR##Type> Checked##Type;
+
+CHECKEDINT_MAKE_TYPEDEF(Int8)
+CHECKEDINT_MAKE_TYPEDEF(Uint8)
+CHECKEDINT_MAKE_TYPEDEF(Int16)
+CHECKEDINT_MAKE_TYPEDEF(Uint16)
+CHECKEDINT_MAKE_TYPEDEF(Int32)
+CHECKEDINT_MAKE_TYPEDEF(Uint32)
+CHECKEDINT_MAKE_TYPEDEF(Int64)
+CHECKEDINT_MAKE_TYPEDEF(Uint64)
 
 } 
 

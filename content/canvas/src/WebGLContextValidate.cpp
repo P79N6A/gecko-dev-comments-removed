@@ -39,6 +39,8 @@
 
 #include "WebGLContext.h"
 
+#include "CheckedInt.h"
+
 using namespace mozilla;
 
 
@@ -112,12 +114,18 @@ WebGLContext::ValidateBuffers(PRUint32 count)
             continue;
 
         
-        WebGLuint needed = vd.byteOffset +     
-            vd.actualStride() * (count-1) +    
-            vd.componentSize() * vd.size;      
+        CheckedUint32 checked_needed = CheckedUint32(vd.byteOffset) + 
+            CheckedUint32(vd.actualStride()) * (count-1) + 
+            CheckedUint32(vd.componentSize()) * vd.size;   
 
-        if (vd.buf->ByteLength() < needed) {
-            LogMessage("VBO too small for bound attrib index %d: need at least %d bytes, but have only %d", i, needed, vd.buf->ByteLength());
+        if (!checked_needed.valid()) {
+            LogMessage("Integer overflow computing the size of bound vertex attrib buffer at index %d", i);
+            return PR_FALSE;
+        }
+
+        if (vd.buf->ByteLength() < checked_needed.value()) {
+            LogMessage("VBO too small for bound attrib index %d: need at least %d bytes, but have only %d",
+                       i, checked_needed.value(), vd.buf->ByteLength());
             return PR_FALSE;
         }
     }
