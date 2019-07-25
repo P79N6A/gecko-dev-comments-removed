@@ -2671,6 +2671,7 @@ var FormAssistant = {
   
   
   _currentInputElement: null,
+  _uiBusy: false,
 
   init: function() {
     Services.obs.addObserver(this, "FormAssist:AutoComplete", false);
@@ -2775,13 +2776,20 @@ var FormAssistant = {
   },
 
   handleClick: function(aTarget) {
+    
+    
+    if (this._uiBusy)
+        return true;
+
     let target = aTarget;
     while (target) {
       if (this._isSelectElement(target) && !target.disabled) {
+        this._uiBusy = true;
         target.focus();
         let list = this.getListForElement(target);
         this.show(list, target);
         target = null;
+        this._uiBusy = false;
         return true;
       }
       if (target)
@@ -2834,6 +2842,9 @@ var FormAssistant = {
         disabled: aNode.disabled,
         id: aIndex
       }
+      if (result.listitems[aIndex].inGroup)
+        result.listitems[aIndex].disabled = result.listitems[aIndex].disabled || aNode.parentNode.disabled;
+
       result.selected[aIndex] = aNode.selected;
     });
     return result;
