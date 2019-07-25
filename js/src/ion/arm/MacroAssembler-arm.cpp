@@ -2007,6 +2007,19 @@ MacroAssemblerARMCompat::handleException()
     
     
     as_dtr(IsLoad, 32, PostIndex, pc, DTRAddr(sp, DtrOffImm(4)));
-    
+
 }
 
+Assembler::Condition
+MacroAssemblerARMCompat::testStringTruthy(bool truthy, const ValueOperand &value)
+{
+    Register string = value.payloadReg();
+
+    size_t mask = (0xFFFFFFFF << JSString::LENGTH_SHIFT);
+    ma_dtr(IsLoad, string, Imm32(JSString::offsetOfLengthAndFlags()), ScratchRegister);
+    
+    
+    
+    ma_bic(Imm32(~mask), ScratchRegister, SetCond);
+    return truthy ? Assembler::NonZero : Assembler::Zero;
+}

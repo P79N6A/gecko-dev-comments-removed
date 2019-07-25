@@ -1086,22 +1086,6 @@ CodeGeneratorARM::splitTagForTest(const ValueOperand &value)
 {
     return value.typeReg();
 }
-Assembler::Condition
-CodeGeneratorARM::testStringTruthy(bool truthy, const ValueOperand &value)
-{
-    Register string = value.payloadReg();
-    
-    
-    
-    
-    Register tmp = value.typeReg();
-    
-
-    size_t mask = (0xFFFFFFFF << JSString::LENGTH_SHIFT);
-    masm.ma_dtr(IsLoad, string, Imm32(JSString::offsetOfLengthAndFlags()), tmp);
-    masm.ma_tst(tmp, Imm32(mask));
-    return truthy ? Assembler::NonZero : Assembler::Zero;
-}
 
 bool
 CodeGeneratorARM::visitTestDAndBranch(LTestDAndBranch *test)
