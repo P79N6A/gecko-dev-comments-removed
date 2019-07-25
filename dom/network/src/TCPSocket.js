@@ -88,6 +88,15 @@ function TCPSocket() {
   this._host = "";
   this._port = 0;
   this._ssl = false;
+
+  
+  
+  
+  
+  
+  
+  
+  this.useWin = null;
 }
 
 TCPSocket.prototype = {
@@ -272,6 +281,7 @@ TCPSocket.prototype = {
       Ci.nsIInterfaceRequestor
     ).getInterface(Ci.nsIDOMWindowUtils);
 
+    this.useWin = XPCNativeWrapper.unwrap(aWindow);
     this.innerWindowID = util.currentInnerWindowID;
     LOG("window init: " + this.innerWindowID);
   },
@@ -291,6 +301,8 @@ TCPSocket.prototype = {
         this.onerror = null;
         this.onclose = null;
 
+        this.useWin = null;
+
         
         this.close();
       }
@@ -306,6 +318,7 @@ TCPSocket.prototype = {
     }
     let that = new TCPSocket();
 
+    that.useWin = this.useWin;
     that.innerWindowID = this.innerWindowID;
 
     LOG("window init: " + that.innerWindowID);
@@ -497,7 +510,8 @@ TCPSocket.prototype = {
   
   onDataAvailable: function ts_onDataAvailable(request, context, inputStream, offset, count) {
     if (this._binaryType === "arraybuffer") {
-      let ua = new Uint8Array(count);
+      let ua = this.useWin ? new this.useWin.Uint8Array(count)
+                           : new Uint8Array(count);
       ua.set(this._inputStreamBinary.readByteArray(count));
       this.callListener("ondata", ua);
     } else {
