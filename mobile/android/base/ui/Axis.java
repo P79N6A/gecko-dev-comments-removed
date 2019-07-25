@@ -212,6 +212,12 @@ abstract class Axis {
         if (mFlingState != FlingStates.FLINGING) {
             return false;
         }
+        if (mSubscroller.scrolling() && !mSubscroller.lastScrollSucceeded()) {
+            
+            
+            
+            return false;
+        }
 
         float excess = getExcess();
         if (mDisableSnap || FloatUtils.fuzzyEquals(excess, 0.0f)) {
