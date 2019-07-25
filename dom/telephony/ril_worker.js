@@ -1471,11 +1471,11 @@ let GsmPDUHelper = {
   readHexNibble: function readHexNibble() {
     let nibble = Buf.readUint16();
     if (nibble >= 48 && nibble <= 57) {
-      nibble -= 48;
+      nibble -= 48; 
     } else if (nibble >= 65 && nibble <= 70) {
-      nibble -= 55;
+      nibble -= 55; 
     } else if (nibble >= 97 && nibble <= 102) {
-      nibble -= 87;
+      nibble -= 87; 
     } else {
       throw "Found invalid nibble during PDU parsing: " +
             String.fromCharCode(nibble);
@@ -1488,8 +1488,35 @@ let GsmPDUHelper = {
 
 
 
+
+  writeHexNibble: function writeHexNibble(nibble) {
+    nibble &= 0x0f;
+    if (nibble < 10) {
+      nibble += 48; 
+    } else {
+      nibble += 55; 
+    }
+    Buf.writeUint16(nibble);
+  },
+
+  
+
+
+
+
   readHexOctet: function readHexOctet() {
     return (this.readHexNibble() << 4) | this.readHexNibble();
+  },
+
+  
+
+
+
+
+
+  writeHexOctet: function writeHexOctet(octet) {
+    this.writeHexNibble(octet >> 4);
+    this.writeHexNibble(octet);
   },
 
   
@@ -1538,6 +1565,23 @@ let GsmPDUHelper = {
 
 
 
+  writeSwappedNibbleBCD: function writeSwappedNibbleBCD(data) {
+    data = data.toString();
+    if (data.length % 2) {
+      data += "F";
+    }
+    for (let i = 0; i < data.length; i += 2) {
+      Buf.writeUint16(data.charCodeAt(i + 1));
+      Buf.writeUint16(data.charCodeAt(i));
+    }
+  },
+
+  
+
+
+
+
+
 
 
 
@@ -1556,12 +1600,12 @@ let GsmPDUHelper = {
       let septet_mask = (0xff >> (shift + 1));
 
       let septet = ((octet & septet_mask) << shift) | leftOver;
-      ret += alphabet_7bit[septet];
+      ret += PDU_ALPHABET_7BIT_DEFAULT[septet];
       leftOver = (octet & leftOver_mask) >> (7 - shift);
 
       
       if (shift == 6) {
-        ret += alphabet_7bit[leftOver];
+        ret += PDU_ALPHABET_7BIT_DEFAULT[leftOver];
         leftOver = 0;
       }
     }
@@ -1569,6 +1613,36 @@ let GsmPDUHelper = {
       ret = ret.slice(0, length);
     }
     return ret;
+  },
+
+  writeStringAsSeptets: function writeStringAsSeptets(message) {
+    let right = 0;
+    for (let i = 0; i < message.length + 1; i++) {
+      let shift = (i % 8);
+      let septet;
+      if (i < message.length) {
+        septet = PDU_ALPHABET_7BIT_DEFAULT.indexOf(message[i]);
+      } else {
+        septet = 0;
+      }
+      if (septet == -1) {
+        if (DEBUG) debug("Fffff, "  + message[i] + " not in 7 bit alphabet!");
+        septet = 0;
+      }
+      if (shift == 0) {
+        
+        
+        right = septet;
+        continue;
+      }
+
+      let left_mask = 0xff >> (8 - shift);
+      let right_mask = (0xff << shift) & 0xff;
+      let left = (septet & left_mask) << (8 - shift);
+      let octet = left | right;
+      this.writeHexOctet(left | right);
+      right = (septet & right_mask) >> shift;
+    }
   },
 
   
@@ -1589,22 +1663,32 @@ let GsmPDUHelper = {
 
 
 
+  writeUCS2String: function writeUCS2String(message) {
+    
+  },
+
+  
+
+
+
+
+
   readUserData: function readUserData(length, codingScheme) {
     if (DEBUG) {
       debug("Reading " + length + " bytes of user data.");
       debug("Coding scheme: " + codingScheme);
     }
     
-    let encoding = 7;
+    let encoding = PDU_DCS_MSG_CODING_7BITS_ALPHABET;
     switch (codingScheme & 0xC0) {
       case 0x0:
         
         switch (codingScheme & 0x0C) {
           case 0x4:
-            encoding = 8;
+            encoding = PDU_DCS_MSG_CODING_8BITS_ALPHABET;
             break;
           case 0x8:
-            encoding = 16;
+            encoding = PDU_DCS_MSG_CODING_16BITS_ALPHABET;
             break;
         }
         break;
@@ -1612,11 +1696,11 @@ let GsmPDUHelper = {
         
         switch (codingScheme & 0x30) {
           case 0x20:
-            encoding = 16;
+            encoding = PDU_DCS_MSG_CODING_16BITS_ALPHABET;
             break;
           case 0x30:
             if (!codingScheme & 0x04) {
-              encoding = 8;
+              encoding = PDU_DCS_MSG_CODING_8BITS_ALPHABET;
             }
             break;
         }
@@ -1628,7 +1712,7 @@ let GsmPDUHelper = {
 
     if (DEBUG) debug("PDU: message encoding is " + encoding + " bit.");
     switch (encoding) {
-      case 7:
+      case PDU_DCS_MSG_CODING_7BITS_ALPHABET:
         
         
         if (length > PDU_MAX_USER_DATA_7BIT) {
@@ -1636,10 +1720,10 @@ let GsmPDUHelper = {
           return null;
         }
         return this.readSeptetsToString(length);
-      case 8:
+      case PDU_DCS_MSG_CODING_8BITS_ALPHABET:
         
         return null;
-      case 16:
+      case PDU_DCS_MSG_CODING_16BITS_ALPHABET:
         return this.readUCS2String(length);
     }
     return null;
@@ -1756,6 +1840,140 @@ let GsmPDUHelper = {
     }
 
     return msg;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  writeMessage: function writeMessage(address,
+                                      userData,
+                                      dcs,
+                                      userDataLengthInOctets) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    let addressFormat = PDU_TOA_ISDN; 
+    if (address[0] == '+') {
+      addressFormat = PDU_TOA_INTERNATIONAL | PDU_TOA_ISDN; 
+      address = address.substring(1);
+    }
+    
+    let validity = 0;
+
+    let pduOctetLength = 4 + 
+                         Math.ceil(address.length / 2) +
+                         3 + 
+                         userDataLengthInOctets;
+    if (validity) {
+      
+    }
+
+    
+    
+    Buf.writeUint32(pduOctetLength * 2);
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    let firstOctet = PDU_MTI_SMS_SUBMIT;
+
+    
+    if (validity) {
+      
+    }
+    let udhi = ""; 
+    if (udhi) {
+      firstOctet |= PDU_UDHI;
+    }
+    this.writeHexOctet(firstOctet);
+
+    
+    this.writeHexOctet(0x00);
+
+    
+    this.writeHexOctet(address.length);
+    this.writeHexOctet(addressFormat);
+    this.writeSwappedNibbleBCD(address);
+
+    
+    this.writeHexOctet(0x00);
+
+    
+    
+    this.writeHexOctet(dcs);
+
+    
+    if (validity) {
+      this.writeHexOctet(validity);
+    }
+
+    
+    let userDataLength = userData.length;
+    if (dcs == PDU_DCS_MSG_CODING_16BITS_ALPHABET) {
+      userDataLength = userData.length * 2;
+    }
+    this.writeHexOctet(userDataLength);
+    switch (dcs) {
+      case PDU_DCS_MSG_CODING_7BITS_ALPHABET:
+        this.writeStringAsSeptets(userData);
+        break;
+      case PDU_DCS_MSG_CODING_8BITS_ALPHABET:
+        
+        break;
+      case PDU_DCS_MSG_CODING_16BITS_ALPHABET:
+        this.writeUCS2String(userData);
+        break;
+    }
+
+    
+    
+    Buf.writeUint16(0);
+    Buf.writeUint16(0);
   }
 };
 
