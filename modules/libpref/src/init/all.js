@@ -1665,17 +1665,6 @@ pref("dom.ipc.plugins.java.enabled", false);
 
 pref("dom.ipc.plugins.flash.subprocess.crashreporter.enabled", true);
 
-#ifndef ANDROID
-#ifndef XP_MACOSX
-#ifdef XP_UNIX
-
-pref("dom.ipc.plugins.enabled.libvlcplugin.so", false);
-pref("dom.ipc.plugins.enabled.nppdf.so", false);
-pref("dom.ipc.plugins.enabled.602plugin.so", false);
-#endif
-#endif
-#endif
-
 pref("dom.ipc.processCount", 1);
 
 pref("svg.smil.enabled", true);
@@ -3508,6 +3497,9 @@ pref("image.mem.decode_bytes_at_a_time", 4096);
 
 
 pref("image.mem.max_ms_before_yield", 5);
+
+
+pref("image.mem.max_bytes_for_sync_decode", 150000);
 
 
 
