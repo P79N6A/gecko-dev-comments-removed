@@ -128,7 +128,7 @@ public:
   nsXFormsContainerAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
 
   
   

@@ -60,11 +60,10 @@ NS_IMPL_ISUPPORTS_INHERITED1(nsHTMLLinkAccessible, nsHyperTextAccessibleWrap,
 
 
 
-nsresult
-nsHTMLLinkAccessible::GetRoleInternal(PRUint32 *aRole)
+PRUint32
+nsHTMLLinkAccessible::NativeRole()
 {
-  *aRole = nsIAccessibleRole::ROLE_LINK;
-  return NS_OK;
+  return nsIAccessibleRole::ROLE_LINK;
 }
 
 nsresult

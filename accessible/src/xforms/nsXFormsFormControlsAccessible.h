@@ -55,7 +55,7 @@ public:
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
 };
 
 
@@ -68,7 +68,7 @@ public:
   nsXFormsOutputAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
 };
 
 
@@ -88,7 +88,7 @@ public:
   NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
 };
 
 
@@ -108,7 +108,7 @@ public:
   NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
 };
 
 
@@ -126,7 +126,7 @@ public:
   NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
@@ -140,7 +140,7 @@ public:
   nsXFormsInputDateAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
 };
 
 
@@ -156,7 +156,7 @@ public:
   NS_IMETHOD GetValue(nsAString& aValue);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
@@ -177,7 +177,7 @@ public:
   NS_IMETHOD GetCurrentValue(double *aCurrentValue);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
@@ -210,7 +210,7 @@ public:
   NS_IMETHOD GetValue(nsAString& aValue);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
 
 protected:
   
@@ -229,7 +229,7 @@ public:
   nsXFormsSelectFullAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
 
 protected:
   
@@ -253,7 +253,7 @@ public:
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
@@ -274,7 +274,7 @@ public:
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
@@ -291,7 +291,7 @@ public:
                                    nsIWeakReference *aShell);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual PRBool GetAllowsAnonChildAccessibles();
 };
@@ -313,7 +313,7 @@ public:
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
   virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 

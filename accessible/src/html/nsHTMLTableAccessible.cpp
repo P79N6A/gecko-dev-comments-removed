@@ -86,11 +86,10 @@ NS_IMPL_ISUPPORTS_INHERITED1(nsHTMLTableCellAccessible,
 
 
 
-nsresult
-nsHTMLTableCellAccessible::GetRoleInternal(PRUint32 *aResult)
+PRUint32
+nsHTMLTableCellAccessible::NativeRole()
 {
-  *aResult = nsIAccessibleRole::ROLE_CELL;
-  return NS_OK;
+  return nsIAccessibleRole::ROLE_CELL;
 }
 
 nsresult
@@ -372,8 +371,8 @@ nsHTMLTableHeaderCellAccessible::
 
 
 
-nsresult
-nsHTMLTableHeaderCellAccessible::GetRoleInternal(PRUint32 *aRole)
+PRUint32
+nsHTMLTableHeaderCellAccessible::NativeRole()
 {
   
   static nsIContent::AttrValuesArray scopeValues[] =
@@ -384,17 +383,18 @@ nsHTMLTableHeaderCellAccessible::GetRoleInternal(PRUint32 *aRole)
 
   switch (valueIdx) {
     case 0:
-      *aRole = nsIAccessibleRole::ROLE_COLUMNHEADER;
-      return NS_OK;
+      return nsIAccessibleRole::ROLE_COLUMNHEADER;
     case 1:
-      *aRole = nsIAccessibleRole::ROLE_ROWHEADER;
-      return NS_OK;
+      return nsIAccessibleRole::ROLE_ROWHEADER;
   }
 
   
   
   nsIContent *parent = mContent->GetParent();
-  NS_ENSURE_STATE(parent);
+  if (!parent) {
+    NS_ERROR("Deattached content on alive accessible?");
+    return nsIAccessibleRole::ROLE_NOTHING;
+  }
 
   PRInt32 indexInParent = parent->IndexOf(mContent);
 
@@ -402,11 +402,8 @@ nsHTMLTableHeaderCellAccessible::GetRoleInternal(PRUint32 *aRole)
     nsIContent* sibling = parent->GetChildAt(idx);
     if (sibling && sibling->IsElement()) {
       if (nsCoreUtils::IsHTMLTableHeader(sibling))
-        *aRole = nsIAccessibleRole::ROLE_COLUMNHEADER;
-      else
-        *aRole = nsIAccessibleRole::ROLE_ROWHEADER;
-
-      return NS_OK;
+        return nsIAccessibleRole::ROLE_COLUMNHEADER;
+      return nsIAccessibleRole::ROLE_ROWHEADER;
     }
   }
 
@@ -415,19 +412,14 @@ nsHTMLTableHeaderCellAccessible::GetRoleInternal(PRUint32 *aRole)
     nsIContent* sibling = parent->GetChildAt(idx);
     if (sibling && sibling->IsElement()) {
       if (nsCoreUtils::IsHTMLTableHeader(sibling))
-        *aRole = nsIAccessibleRole::ROLE_COLUMNHEADER;
-      else
-        *aRole = nsIAccessibleRole::ROLE_ROWHEADER;
-      
-      return NS_OK;
+        return nsIAccessibleRole::ROLE_COLUMNHEADER;
+      return nsIAccessibleRole::ROLE_ROWHEADER;
     }
   }
 
   
   
-  *aRole = nsIAccessibleRole::ROLE_COLUMNHEADER;
-
-  return NS_OK;
+  return nsIAccessibleRole::ROLE_COLUMNHEADER;
 }
 
 
@@ -470,11 +462,10 @@ nsHTMLTableAccessible::CacheChildren()
   }
 }
 
-nsresult
-nsHTMLTableAccessible::GetRoleInternal(PRUint32 *aResult)
+PRUint32
+nsHTMLTableAccessible::NativeRole()
 {
-  *aResult = nsIAccessibleRole::ROLE_TABLE;
-  return NS_OK;
+  return nsIAccessibleRole::ROLE_TABLE;
 }
 
 nsresult
@@ -1560,9 +1551,8 @@ nsHTMLCaptionAccessible::GetRelationByType(PRUint32 aRelationType,
   return NS_OK;
 }
 
-nsresult
-nsHTMLCaptionAccessible::GetRoleInternal(PRUint32 *aRole)
+PRUint32
+nsHTMLCaptionAccessible::NativeRole()
 {
-  *aRole = nsIAccessibleRole::ROLE_CAPTION;
-  return NS_OK;
+  return nsIAccessibleRole::ROLE_CAPTION;
 }

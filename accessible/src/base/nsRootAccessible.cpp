@@ -142,14 +142,9 @@ nsRootAccessible::GetName(nsAString& aName)
   return document->GetTitle(aName);
 }
 
-
-nsresult
-nsRootAccessible::GetRoleInternal(PRUint32 *aRole) 
-{ 
-  if (!mDocument) {
-    return NS_ERROR_FAILURE;
-  }
-
+PRUint32
+nsRootAccessible::NativeRole()
+{
   
   dom::Element *root = mDocument->GetRootElement();
   if (root) {
@@ -158,13 +153,12 @@ nsRootAccessible::GetRoleInternal(PRUint32 *aRole)
       nsAutoString name;
       rootElement->GetLocalName(name);
       if (name.EqualsLiteral("dialog") || name.EqualsLiteral("wizard")) {
-        *aRole = nsIAccessibleRole::ROLE_DIALOG; 
-        return NS_OK;
+        return nsIAccessibleRole::ROLE_DIALOG; 
       }
     }
   }
 
-  return nsDocAccessibleWrap::GetRoleInternal(aRole);
+  return nsDocAccessibleWrap::NativeRole();
 }
 
 
@@ -395,8 +389,7 @@ nsRootAccessible::FireAccessibleFocusEvent(nsAccessible *aAccessible,
   if (role == nsIAccessibleRole::ROLE_MENUITEM) {
     if (!mCurrentARIAMenubar) {  
       
-      PRUint32 naturalRole = nsAccUtils::RoleInternal(finalFocusAccessible);
-      if (role != naturalRole) { 
+      if (role != finalFocusAccessible->NativeRole()) { 
         nsAccessible *menuBarAccessible =
           nsAccUtils::GetAncestorWithRole(finalFocusAccessible,
                                           nsIAccessibleRole::ROLE_MENUBAR);

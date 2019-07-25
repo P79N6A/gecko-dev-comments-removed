@@ -60,11 +60,10 @@ NS_IMPL_ISUPPORTS_INHERITED0(nsOuterDocAccessible,
 
 
 
-nsresult
-nsOuterDocAccessible::GetRoleInternal(PRUint32 *aRole)
+PRUint32
+nsOuterDocAccessible::NativeRole()
 {
-  *aRole = nsIAccessibleRole::ROLE_INTERNAL_FRAME;
-  return NS_OK;
+  return nsIAccessibleRole::ROLE_INTERNAL_FRAME;
 }
 
 nsresult

@@ -68,11 +68,10 @@ NS_IMPL_ISUPPORTS_INHERITED0(nsHTMLImageMapAccessible, nsHTMLImageAccessible)
 
 
 
-nsresult
-nsHTMLImageMapAccessible::GetRoleInternal(PRUint32 *aRole)
+PRUint32
+nsHTMLImageMapAccessible::NativeRole()
 {
-  *aRole = nsIAccessibleRole::ROLE_IMAGE_MAP;
-  return NS_OK;
+  return nsIAccessibleRole::ROLE_IMAGE_MAP;
 }
 
 

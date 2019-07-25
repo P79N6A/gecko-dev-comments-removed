@@ -300,11 +300,6 @@ public:
   
 
 
-  static PRUint32 RoleInternal(nsIAccessible *aAcc);
-
-  
-
-
   static PRUint32 State(nsIAccessible *aAcc)
   {
     PRUint32 state = 0;

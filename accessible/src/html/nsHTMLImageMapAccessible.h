@@ -58,7 +58,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual PRUint32 NativeRole();
 
   
   virtual PRUint32 AnchorCount();
