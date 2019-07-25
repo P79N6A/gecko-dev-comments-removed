@@ -292,7 +292,7 @@ Script::analyze(JSContext *cx, JSScript *script)
     JS_ASSERT(!code && !locals);
     this->script = script;
 
-    JS_InitArenaPool(&pool, "script_analyze", 256, 8);
+    JS_InitArenaPool(&pool, "script_analyze", 256, 8, NULL);
 
     unsigned length = script->length;
     unsigned nfixed = localCount();
@@ -315,7 +315,7 @@ Script::analyze(JSContext *cx, JSScript *script)
 
 
 
-    if (script->usesEval || cx->compartment->debugMode) {
+    if (script->usesEval || cx->compartment->debugMode()) {
         for (uint32 i = 0; i < nfixed; i++)
             setLocal(i, LOCAL_USE_BEFORE_DEF);
     }
@@ -330,7 +330,7 @@ Script::analyze(JSContext *cx, JSScript *script)
 
 
 
-    if (cx->compartment->debugMode)
+    if (cx->compartment->debugMode())
         usesRval = true;
 
     
@@ -457,13 +457,14 @@ Script::analyze(JSContext *cx, JSScript *script)
           case JSOP_DECNAME:
           case JSOP_NAMEINC:
           case JSOP_NAMEDEC:
+          case JSOP_FORNAME:
             usesScope = true;
             break;
 
           
           case JSOP_GOSUB:
           case JSOP_GOSUBX:
-          case JSOP_IFCANTCALLTOP:
+          case JSOP_IFPRIMTOP:
           case JSOP_FILTER:
           case JSOP_ENDFILTER:
           case JSOP_TABLESWITCHX:
@@ -578,7 +579,8 @@ Script::analyze(JSContext *cx, JSScript *script)
             break;
           }
 
-          case JSOP_SETLOCAL: {
+          case JSOP_SETLOCAL:
+          case JSOP_FORLOCAL: {
             uint32 local = GET_SLOTNO(pc);
 
             

@@ -1,6 +1,5 @@
 
 
-
 var N = HOTLOOP + 4;
 
 var g = newGlobal('new-compartment');

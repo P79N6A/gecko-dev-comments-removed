@@ -1,6 +1,4 @@
 
-
-
 var dbg = new Debug;
 for (var i = 0; i < 4; i++)
     dbg.addDebuggee(newGlobal('new-compartment'));

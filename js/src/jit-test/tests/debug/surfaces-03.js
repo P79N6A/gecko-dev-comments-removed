@@ -1,6 +1,5 @@
 
 
-
 load(libdir + 'asserts.js');
 
 var desc = Object.getOwnPropertyDescriptor(Debug.prototype, "uncaughtExceptionHook");

@@ -87,7 +87,7 @@ JSCompartment::JSCompartment(JSRuntime *rt)
     emptyWithShape(NULL),
     initialRegExpShape(NULL),
     initialStringShape(NULL),
-    debugMode(rt->debugMode),
+    debugModeBits(rt->debugMode * DebugFromC),
     mathCache(NULL)
 {
     JS_INIT_CLIST(&scripts);
@@ -600,4 +600,55 @@ bool
 JSCompartment::isAboutToBeCollected(JSGCInvocationKind gckind)
 {
     return !hold && (arenaListsAreEmpty() || gckind == GC_LAST_CONTEXT);
+}
+
+bool
+JSCompartment::haveScriptsOnStack(JSContext *cx)
+{
+    for (AllFramesIter i(cx); !i.done(); ++i) {
+        JSScript *script = i.fp()->maybeScript();
+        if (script && script->compartment == this)
+            return true;
+    }
+    return false;
+}
+
+bool
+JSCompartment::setDebugModeFromC(JSContext *cx, bool b)
+{
+    bool wasEnabled = debugMode();
+
+    
+    
+    
+    
+    if (b && !wasEnabled && haveScriptsOnStack(cx)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_IDLE);
+        return false;
+    }
+
+    debugModeBits = (debugModeBits & ~uintN(DebugFromC)) | (b * DebugFromC);
+    if (b != wasEnabled)
+        updateForDebugMode(cx);
+    return true;
+}
+
+void
+JSCompartment::updateForDebugMode(JSContext *cx)
+{
+#ifdef JS_METHODJIT
+    bool mode = debugMode();
+
+    
+    
+    for (JSScript *script = (JSScript *) scripts.next;
+         &script->links != &scripts;
+         script = (JSScript *) script->links.next)
+    {
+        if (script->debugMode != mode) {
+            mjit::ReleaseScriptCode(cx, script);
+            script->debugMode = mode;
+        }
+    }
+#endif
 }

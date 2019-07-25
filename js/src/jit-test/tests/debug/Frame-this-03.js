@@ -1,6 +1,5 @@
 
 
-
 function classOf(obj) {
     return Object.prototype.toString.call(obj).match(/^\[object (.*)\]$/)[1];
 }

@@ -1,6 +1,5 @@
 
 
-
 load(libdir + "asserts.js");
 
 var dbg = new Debug;

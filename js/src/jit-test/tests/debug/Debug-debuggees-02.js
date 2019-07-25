@@ -1,5 +1,4 @@
 
-
 var dbg = new Debug;
 var a1 = dbg.getDebuggees();
 var g = newGlobal('new-compartment');

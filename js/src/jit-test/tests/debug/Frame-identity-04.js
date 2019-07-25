@@ -1,7 +1,6 @@
 
 
 
-
 var g = newGlobal('new-compartment');
 g.eval("function f(n) { if (n) f(n - 1); debugger; }");
 var dbg = new Debug(g);

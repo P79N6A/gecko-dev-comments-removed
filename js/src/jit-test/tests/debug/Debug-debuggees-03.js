@@ -1,6 +1,5 @@
 
 
-
 var g1 = newGlobal('new-compartment');
 g1.eval("var g2 = newGlobal('same-compartment')");
 var g2 = g1.g2;

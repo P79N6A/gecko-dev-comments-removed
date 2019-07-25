@@ -101,7 +101,7 @@ typedef struct JSTrap {
 JS_PUBLIC_API(JSBool)
 JS_GetDebugMode(JSContext *cx)
 {
-    return cx->compartment->debugMode;
+    return cx->compartment->debugMode();
 }
 
 JS_PUBLIC_API(JSBool)
@@ -113,7 +113,7 @@ JS_SetDebugMode(JSContext *cx, JSBool debug)
 JS_PUBLIC_API(void)
 JS_SetRuntimeDebugMode(JSRuntime *rt, JSBool debug)
 {
-    rt->debugMode = debug;
+    rt->debugMode = !!debug;
 }
 
 namespace js {
@@ -159,60 +159,7 @@ ScriptDebugEpilogue(JSContext *cx, StackFrame *fp, bool okArg)
 JS_FRIEND_API(JSBool)
 JS_SetDebugModeForCompartment(JSContext *cx, JSCompartment *comp, JSBool debug)
 {
-    if (comp->debugMode == !!debug)
-        return JS_TRUE;
-
-    if (debug) {
-        
-        
-        
-        for (AllFramesIter i(cx); !i.done(); ++i) {
-            JSScript *script = i.fp()->maybeScript();
-            if (script && script->compartment == comp) {
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_IDLE);
-                return false;
-            }
-        }
-    }
-
-    
-    comp->debugMode = !!debug;
-
-    
-    if (debug)
-        JS_ASSERT(comp->getDebuggees().empty());
-    else
-        Debug::detachFromCompartment(comp);
-
-    
-    
-#ifdef JS_METHODJIT
-    JS::AutoEnterScriptCompartment ac;
-
-    for (JSScript *script = (JSScript *)comp->scripts.next;
-         &script->links != &comp->scripts;
-         script = (JSScript *)script->links.next)
-    {
-        if (!script->debugMode == !debug)
-            continue;
-
-        
-
-
-
-
-
-        if (!ac.entered() && !ac.enter(cx, script)) {
-            comp->debugMode = JS_FALSE;
-            return JS_FALSE;
-        }
-
-        mjit::ReleaseScriptCode(cx, script);
-        script->debugMode = !!debug;
-    }
-#endif
-
-    return JS_TRUE;
+    return comp->setDebugModeFromC(cx, !!debug);
 }
 
 JS_FRIEND_API(JSBool)
@@ -225,7 +172,7 @@ js_SetSingleStepMode(JSContext *cx, JSScript *script, JSBool singleStep)
         return JS_TRUE;
 #endif
 
-    JS_ASSERT_IF(singleStep, cx->compartment->debugMode);
+    JS_ASSERT_IF(singleStep, cx->compartment->debugMode());
 
 #ifdef JS_METHODJIT
     

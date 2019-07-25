@@ -1,6 +1,5 @@
 
 
-
 var g = newGlobal('new-compartment');
 var log;
 var arr = [];
