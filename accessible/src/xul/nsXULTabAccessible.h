@@ -71,19 +71,6 @@ public:
 
 
 
-
-class nsXULTabBoxAccessible : public nsAccessibleWrap
-{
-public:
-  nsXULTabBoxAccessible(nsIDOMNode* aNode, nsIWeakReference* aShell);
-
-  
-  virtual nsresult GetRoleInternal(PRUint32 *aRole);
-};
-
-
-
-
 class nsXULTabsAccessible : public nsXULSelectableAccessible
 {
 public:
@@ -97,6 +84,24 @@ public:
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
 };
+
+
+
+
+
+class nsXULTabpanelsAccessible : public nsAccessibleWrap
+{
+public:
+  nsXULTabpanelsAccessible(nsIDOMNode *aNode, nsIWeakReference *aShell);
+
+  
+  virtual nsresult GetRoleInternal(PRUint32 *aRole);
+};
+
+
+
+
+
 
 
 
