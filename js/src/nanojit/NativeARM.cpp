@@ -114,13 +114,14 @@ Assembler::CountLeadingZeroes(uint32_t data)
     
     leading_zeroes = __clz(data);
 
-
-
-
-
-#elif defined(__GNUC__) && !(defined(ANDROID) && __ARM_ARCH__ <= 5)
+#elif defined(__GNUC__) && (NJ_COMPILER_ARM_ARCH >= 5)
     
     __asm (
+#if defined(ANDROID) && (NJ_COMPILER_ARM_ARCH < 7)
+    
+    
+        "   .arch armv7-a\n"
+#endif
         "   clz     %0, %1  \n"
         :   "=r"    (leading_zeroes)
         :   "r"     (data)
