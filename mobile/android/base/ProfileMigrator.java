@@ -180,9 +180,47 @@ public class ProfileMigrator {
     private static final String FAVICON_GUID      = "f_guid";
 
     
+    private static final String BOOKMARK_QUERY_EXTRAS =
+        "SELECT annos.item_id          AS a_item_id, "    +
+        "       attributes.name        AS t_name, "       +
+        "       annos.content          AS a_content "     +
+        "FROM (moz_items_annos AS annos "                 +
+        "      JOIN moz_anno_attributes AS attributes "   +
+        "      ON annos.anno_attribute_id = attributes.id)";
+
+    
+    private static final String ANNO_ITEM_ID   = "a_item_id";
+    private static final String ATTRIBUTE_NAME = "t_name";
+    private static final String ANNO_CONTENT   = "a_content";
+
+    private class AttributePair {
+        final String name;
+        final String content;
+
+        public AttributePair(String aName, String aContent) {
+            name = aName;
+            content = aContent;
+        }
+    }
+
+    
+    private static final String PLACES_ATTRIB_QUERY = "Places/SmartBookmark";
+    private static final String PLACES_ATTRIB_LIVEMARK_FEED = "livemark/feedURI";
+    private static final String PLACES_ATTRIB_LIVEMARK_SITE = "livemark/siteURI";
+
+    
+    
+    
+    
+    
+    
     private static final int PLACES_TYPE_BOOKMARK  = 1;
     private static final int PLACES_TYPE_FOLDER    = 2;
     private static final int PLACES_TYPE_SEPARATOR = 3;
+    
+    
+    private static final int PLACES_TYPE_LIVEMARK  = 4;
+    private static final int PLACES_TYPE_QUERY     = 5;
 
     
 
@@ -991,12 +1029,108 @@ public class ProfileMigrator {
                 parent = mRerootMap.get(parent);
             }
             
-            int newtype = (type == PLACES_TYPE_BOOKMARK ? Bookmarks.TYPE_BOOKMARK :
-                           type == PLACES_TYPE_FOLDER ? Bookmarks.TYPE_FOLDER :
-                           Bookmarks.TYPE_SEPARATOR);
+            final int newtype = (type == PLACES_TYPE_BOOKMARK ? Bookmarks.TYPE_BOOKMARK :
+                                 type == PLACES_TYPE_FOLDER ? Bookmarks.TYPE_FOLDER :
+                                 type == PLACES_TYPE_SEPARATOR ? Bookmarks.TYPE_SEPARATOR :
+                                 type == PLACES_TYPE_LIVEMARK ? Bookmarks.TYPE_LIVEMARK :
+                                 Bookmarks.TYPE_QUERY);
             mDB.updateBookmarkInBatch(mCr, mOperations,
                                       url, title, guid, parent, added,
                                       modified, position, keyword, newtype);
+        }
+
+        protected Map<Long, List<AttributePair>> getBookmarkAttributes(SQLiteBridge db) {
+
+            Map<Long, List<AttributePair>> attributes =
+                new HashMap<Long, List<AttributePair>>();
+            Cursor cursor = null;
+
+            try {
+                cursor = db.rawQuery(BOOKMARK_QUERY_EXTRAS, null);
+
+                final int idCol = cursor.getColumnIndex(ANNO_ITEM_ID);
+                final int nameCol = cursor.getColumnIndex(ATTRIBUTE_NAME);
+                final int contentCol = cursor.getColumnIndex(ANNO_CONTENT);
+
+                cursor.moveToFirst();
+                while (!cursor.isAfterLast()) {
+                    final long id = cursor.getLong(idCol);
+                    final String attName = cursor.getString(nameCol);
+                    final String content = cursor.getString(contentCol);
+
+                    if (PLACES_ATTRIB_QUERY.equals(attName) ||
+                        PLACES_ATTRIB_LIVEMARK_FEED.equals(attName) ||
+                        PLACES_ATTRIB_LIVEMARK_SITE.equals(PLACES_ATTRIB_LIVEMARK_SITE)) {
+                        AttributePair pair = new AttributePair(attName, content);
+
+                        List<AttributePair> list = null;
+                        if (attributes.containsKey(id)) {
+                            list = attributes.get(id);
+                        } else {
+                            list = new ArrayList<AttributePair>();
+                        }
+                        list.add(pair);
+                        attributes.put(id, list);
+                    }
+                    cursor.moveToNext();
+                }
+            } catch (SQLiteBridgeException e) {
+                Log.e(LOGTAG, "Failed to get bookmark attributes: ", e);
+                
+            } finally {
+                if (cursor != null)
+                    cursor.close();
+            }
+
+            return attributes;
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        protected int augmentBookmark(final Map<Long, List<AttributePair>> attributes,
+                                      long id,
+                                      int type,
+                                      StringBuilder urlBuffer) {
+            
+            
+            if (urlBuffer.toString().startsWith("place:")) {
+                type = PLACES_TYPE_QUERY;
+            }
+
+            
+            if (!attributes.containsKey(id)) {
+                return type;
+            }
+
+            final List<AttributePair> list = attributes.get(id);
+            for (AttributePair pair: list) {
+                if (PLACES_ATTRIB_QUERY.equals(pair.name)) {
+                    type = PLACES_TYPE_QUERY;
+                    if (!TextUtils.isEmpty(pair.content)) {
+                        if (urlBuffer.length() > 0) urlBuffer.append("&");
+                        urlBuffer.append("queryId=" + Uri.encode(pair.content));
+                    }
+                } else if (PLACES_ATTRIB_LIVEMARK_FEED.equals(pair.name)) {
+                    type = PLACES_TYPE_LIVEMARK;
+                    if (!TextUtils.isEmpty(pair.content)) {
+                        if (urlBuffer.length() > 0) urlBuffer.append("&");
+                        urlBuffer.append("feedUri=" + Uri.encode(pair.content));
+                   }
+                } else if (PLACES_ATTRIB_LIVEMARK_SITE.equals(pair.name)) {
+                    type = PLACES_TYPE_LIVEMARK;
+                    if (!TextUtils.isEmpty(pair.content)) {
+                        if (urlBuffer.length() > 0) urlBuffer.append("&");
+                        urlBuffer.append("siteUri=" + Uri.encode(pair.content));
+                   }
+                }
+            }
+
+            return type;
         }
 
         protected void migrateBookmarks(SQLiteBridge db) {
@@ -1032,6 +1166,9 @@ public class ProfileMigrator {
                                        bookmarkCount);
 
                 
+                Map<Long, List<AttributePair>> attributes = getBookmarkAttributes(db);
+
+                
                 Set<Long> openFolders = new HashSet<Long>();
                 Set<Long> knownFolders = new HashSet<Long>(mRerootMap.keySet());
 
@@ -1063,15 +1200,6 @@ public class ProfileMigrator {
                         }
 
                         int type = cursor.getInt(typeCol);
-
-                        
-                        if (!(type == PLACES_TYPE_BOOKMARK ||
-                              type == PLACES_TYPE_FOLDER ||
-                              type == PLACES_TYPE_SEPARATOR)) {
-                            cursor.moveToNext();
-                            continue;
-                        }
-
                         long parent = cursor.getLong(parentCol);
 
                         
@@ -1097,6 +1225,20 @@ public class ProfileMigrator {
                         String faviconGuid = null;
                         if (mHasFaviconGUID) {
                             faviconGuid = cursor.getString(faviconGuidCol);
+                        }
+
+                        StringBuilder urlBuffer;
+                        if (url != null) {
+                            urlBuffer = new StringBuilder(url);
+                        } else {
+                            urlBuffer = new StringBuilder();
+                        }
+                        type = augmentBookmark(attributes, id, type, urlBuffer);
+                        
+                        
+                        
+                        if (!TextUtils.isEmpty(urlBuffer)) {
+                            url = urlBuffer.toString();
                         }
 
                         
