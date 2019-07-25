@@ -852,29 +852,24 @@ window.Items = {
   
   
   
-  getPageBounds: function(dontCountNewTabGroup) {
-    var bottom = dontCountNewTabGroup ? 0 : TabItems.tabHeight + Items.defaultGutter;
+  getPageBounds: function() {
     var width = Math.max(100, window.innerWidth);
-    var height = Math.max(100, window.innerHeight - bottom);
+    var height = Math.max(100, window.innerHeight);
     return new Rect(0, 0, width, height);
   },
 
   
   
   
-  getSafeWindowBounds: function(dontCountNewTabGroup) {
+  getSafeWindowBounds: function() {
     
     var gutter = Items.defaultGutter;
-    var newTabGroupBounds = Groups.getBoundsForNewTabGroup();
     
     
     
     var topGutter = 5;
-    if (dontCountNewTabGroup)
-      return new Rect(gutter, topGutter,
+		return new Rect(gutter, topGutter,
         window.innerWidth - 2 * gutter, window.innerHeight - gutter - topGutter);
-    return new Rect(gutter, topGutter,
-      window.innerWidth - 2 * gutter, newTabGroupBounds.top -  gutter - topGutter);
 
   },
 

@@ -431,8 +431,6 @@ Trench.prototype = {
     groups.forEach(function(group) {
       if (group.isDragging) 
         return;
-      if (group.isNewTabsGroup())
-        return;
       if (trench.el == group.container) 
         return;
       var bounds = group.getBounds();

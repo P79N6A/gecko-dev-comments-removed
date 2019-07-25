@@ -114,8 +114,6 @@ window.Group = function Group(listOfEls, options) {
       .addClass('group')
       .css({position: 'absolute'})
       .css(rectToBe);
-
-    if (this.isNewTabsGroup()) $container.addClass("newTabGroup");
   }
 
   this.bounds = $container.bounds();
@@ -131,14 +129,12 @@ window.Group = function Group(listOfEls, options) {
     .appendTo($container);
 
   this.$ntb
-    .addClass(this.isNewTabsGroup() ? 'newTabButtonAlt' : 'newTabButton')
+    .addClass('newTabButton')
     .click(function() {
       self.newTab();
     });
 
   (this.$ntb)[0].title = 'New tab';
-
-  if (this.isNewTabsGroup()) this.$ntb.html("<span>+</span>");
 
   
   this.$resizer = iQ("<div>")
@@ -297,7 +293,8 @@ window.Group = function Group(listOfEls, options) {
   this._inited = true;
   this.save();
   } catch(e) {
-    Utils.log("Error in Group(): " + e);
+    Utils.log("Error in Group()");
+    Utils.log(e.stack);
   }
 };
 
@@ -363,14 +360,6 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  
-  isNewTabsGroup: function() {
-    return (this.locked.bounds && this.locked.title && this.locked.close);
-  },
-
-  
-  
-  
   getTitle: function() {
     var value = (this.$title ? this.$title.val() : '');
     return (value == this.defaultName ? '' : value);
@@ -405,10 +394,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     box.height -= titleHeight;
     box.inset(6, 6);
 
-    if (this.isNewTabsGroup())
-      box.height -= 12; 
-    else
-      box.height -= 33; 
+		box.height -= 33; 
 
     return box;
   },
@@ -498,9 +484,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     this.adjustTitleSize();
 
     this._updateDebugBounds();
-
-    if (!this.isNewTabsGroup())
-      this.setTrenches(rect);
+		this.setTrenches(rect);
 
     this.save();
   },
@@ -648,7 +632,6 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
 
       item.setZ(this.getZ() + 1);
       $el.addClass("tabInGroup");
-      if (this.isNewTabsGroup()) $el.addClass("inNewTabGroup")
 
       if (!wasAlreadyInThisGroup) {
         item.droppable(false);
@@ -711,7 +694,6 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
 
       item.setParent(null);
       item.removeClass("tabInGroup");
-      item.removeClass("inNewTabGroup")
       item.removeClass("stacked");
       item.removeClass("stack-trayed");
       item.setRotation(0);
@@ -794,7 +776,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     var bb = this.getContentBounds();
     var options = {
       pretend: true,
-      count: (this.isNewTabsGroup() ? count + 1 : count)
+      count: count
     };
 
     var rects = Items.arrange(null, bb, options);
@@ -838,9 +820,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
           count: count
         });
 
-        if (this.isNewTabsGroup()) {
-          arrangeOptions.count++;
-        } else if (!count) {
+				if (!count) {
           this.xDensity = 0;
           this.yDensity = 0;
           return;
@@ -874,13 +854,6 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
               child.setZ(options.z);
           }
         });
-
-        if (this.isNewTabsGroup()) {
-          var box = rects[rects.length - 1];
-          box.left -= this.bounds.left;
-          box.top -= this.bounds.top;
-          this.setNewTabButtonBounds(box, !animate);
-        }
 
         this._isStacked = false;
       } else
@@ -944,8 +917,6 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     
     
     var x = (bb.width - w) / 2;
-    if (this.isNewTabsGroup())
-      x -= (w + newTabsPad) / 2;
 
     var y = Math.min(x, (bb.height - h) / 2);
     var box = new Rect(bb.left + x, bb.top + y, w, h);
@@ -969,13 +940,6 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
         child.setRotation(self._randRotate(maxRotation, index));
       }
     });
-
-    if (this.isNewTabsGroup()) {
-      box.left += box.width + newTabsPad;
-      box.left -= this.bounds.left;
-      box.top -= this.bounds.top;
-      this.setNewTabButtonBounds(box, !animate);
-    }
 
     self._isStacked = true;
   },
@@ -1154,8 +1118,7 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
     var self = this;
 
     this.dropOptions.over = function() {
-      if (!this.isNewTabsGroup())
-        iQ(this.container).addClass("acceptsDrop");
+			iQ(this.container).addClass("acceptsDrop");
     };
     this.dropOptions.drop = function(event) {
       iQ(this.container).removeClass("acceptsDrop");
@@ -1189,10 +1152,6 @@ window.Group.prototype = Utils.extend(new Item(), new Subscribable(), {
         var location = new Point(e.clientX, e.clientY);
 
         if (location.distance(self._mouseDown.location) > 1.0)
-          return;
-
-        
-        if (self.isNewTabsGroup())
           return;
 
         
@@ -1475,13 +1434,7 @@ window.Groups = {
         for (var id in groupData) {
           var group = groupData[id];
           if (this.groupStorageSanity(group)) {
-            var isNewTabsGroup = (group.title == 'New Tabs');
             var options = {
-              locked: {
-                close: isNewTabsGroup,
-                title: isNewTabsGroup,
-                bounds: isNewTabsGroup
-              },
               dontPush: true
             };
 
@@ -1489,25 +1442,6 @@ window.Groups = {
           }
         }
       }
-
-      var group = this.getNewTabGroup();
-      if (!group) {
-        var box = this.getBoundsForNewTabGroup();
-        var options = {
-          locked: {
-            close: true,
-            title: true,
-            bounds: true
-          },
-          dontPush: true,
-          bounds: box,
-          title: 'New Tabs'
-        };
-
-        new Group([], options);
-      }
-
-      this.repositionNewTabGroup();
 
       this._inited = true;
       this.save(); 
@@ -1545,42 +1479,6 @@ window.Groups = {
     });
 
     return result;
-  },
-
-  
-  
-  
-  getNewTabGroup: function() {
-    var groupTitle = 'New Tabs';
-    var array = this.groups.filter(function(group) {
-      return group.getTitle() == groupTitle;
-    });
-
-    if (array.length)
-      return array[0];
-
-    return null;
-  },
-
-  
-  
-  
-  getBoundsForNewTabGroup: function() {
-    var pad = 0;
-    var sw = window.innerWidth;
-    var sh = window.innerHeight;
-    var w = sw - (pad * 2);
-    var h = TabItems.tabHeight * 0.9 + pad*2;
-    return new Rect(pad, sh - (h + pad), w, h);
-  },
-
-  
-  
-  
-  repositionNewTabGroup: function() {
-    var box = this.getBoundsForNewTabGroup();
-    var group = this.getNewTabGroup();
-    group.setBounds(box, true);
   },
 
   
@@ -1667,11 +1565,29 @@ window.Groups = {
   
   
   newTab: function(tabItem) {
-    var group = this.getActiveGroup();
-    if (group == null)
-      group = this.getNewTabGroup();
-    if (group) group.add(tabItem);
+    let group = this.getActiveGroup();
+    let orphanTab = this.getActiveOrphanTab();
+
+    if (group) {
+    	group.add(tabItem);
+    } else if ( orphanTab ) {
+			let newGroupBounds = orphanTab.getBoundsWithTitle();
+			newGroupBounds.inset(-40,-40);
+				
+			let newGroup = new Group([orphanTab, tabItem], {bounds: newGroupBounds});
+			newGroup.snap();
+			
+			this.setActiveGroup(newGroup);
+			
+    } else {
+    	Utils.log('creating a new group');
+			new Group([tabItem], {});
+		}
   },
+
+	positionNewTabAtBottom: function(tabItem) {
+		let windowBounds = Items.getSafeWindowBounds();
+	},
 
   
   
@@ -1694,6 +1610,26 @@ window.Groups = {
   setActiveGroup: function(group) {
     this._activeGroup = group;
     this.updateTabBarForActiveGroup();
+		
+    this.getActiveOrphanTab(null);
+  },
+
+  
+  
+  
+  getActiveOrphanTab: function() {
+    return this._activeOrphanTab;
+  },
+
+  
+  
+  
+  
+  
+  
+  
+  setActiveOrphanTab: function(tabItem) {
+    this._activeOrphanTab = tabItem;
   },
 
   
