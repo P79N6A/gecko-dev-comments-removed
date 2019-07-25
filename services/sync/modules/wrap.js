@@ -43,7 +43,6 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://weave/log4moz.js");
-Cu.import("resource://weave/dav.js");
 Cu.import("resource://weave/async.js");
 Cu.import("resource://weave/faultTolerance.js");
 
@@ -110,45 +109,6 @@ let Wrap = {
 
   
   
-  lock: function WeaveSync_lock(method ) {
-    let savedMethod = method;
-    let savedArgs = Array.prototype.slice.call(arguments, 1);
-
-    return function WeaveLockWrapper( ) {
-      let self = yield;
-      let ret;
-      let args = Array.prototype.slice.call(arguments);
-
-      if (!this._loggedIn)
-        throw "Could not acquire lock (not logged in)";
-      if (DAV.locked)
-        throw "Could not acquire lock (lock already held)";
-
-      let locked = yield DAV.lock.async(DAV, self.cb);
-      if (!locked)
-        throw "Could not acquire lock";
-
-      this._os.notifyObservers(null, this._osPrefix + "lock:acquired", "");
-
-      try {
-        args = savedArgs.concat(args);
-        args.unshift(this, savedMethod, self.cb);
-        ret = yield Async.run.apply(Async, args);
-
-      } catch (e) {
-        throw e;
-
-      } finally {
-        yield DAV.unlock.async(DAV, self.cb);
-        this._os.notifyObservers(null, this._osPrefix + "lock:released", "");
-      }
-
-      self.done(ret);
-    };
-  },
-
-  
-  
   localLock: function WeaveSync_localLock(method ) {
     let savedMethod = method;
     let savedArgs = Array.prototype.slice.call(arguments, 1);
@@ -158,9 +118,9 @@ let Wrap = {
       let ret;
       let args = Array.prototype.slice.call(arguments);
 
-      if (DAV.locked)
+      let ret = this.lock();
+      if (!ret)
         throw "Could not acquire lock";
-      DAV.allowLock = false;
 
       this._os.notifyObservers(null,
                                this._osPrefix + "local-lock:acquired", "");
@@ -174,7 +134,7 @@ let Wrap = {
         throw e;
 
       } finally {
-        DAV.allowLock = true;
+        this.unlock();
         this._os.notifyObservers(null,
                                  this._osPrefix + "local-lock:released", "");
       }
