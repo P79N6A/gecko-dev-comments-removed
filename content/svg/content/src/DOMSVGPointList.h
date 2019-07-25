@@ -160,11 +160,7 @@ private:
     : mElement(aElement)
     , mIsAnimValList(aIsAnimValList)
   {
-    
-    
-    
-
-    InternalListWillChangeTo(InternalList());
+    InternalListWillChangeTo(InternalList()); 
   }
 
   ~DOMSVGPointList();
@@ -190,7 +186,6 @@ private:
 
   SVGAnimatedPointList& InternalAList();
 
-  
   
   void EnsureItemAt(PRUint32 aIndex);
 

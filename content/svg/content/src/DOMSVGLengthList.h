@@ -76,17 +76,16 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS(DOMSVGLengthList)
   NS_DECL_NSIDOMSVGLENGTHLIST
 
-  DOMSVGLengthList(DOMSVGAnimatedLengthList *aAList)
+  DOMSVGLengthList(DOMSVGAnimatedLengthList *aAList,
+                   const SVGLengthList &aInternalList)
     : mAList(aAList)
   {
     
     
-
-    mItems.SetLength(InternalList().Length());
-    for (PRUint32 i = 0; i < Length(); ++i) {
-      
-      mItems[i] = nsnull;
-    }
+    
+    
+    
+    InternalListLengthWillChange(aInternalList.Length()); 
   }
 
   ~DOMSVGLengthList() {
@@ -129,6 +128,8 @@ private:
 
   
   PRBool IsAnimValList() const {
+    NS_ABORT_IF_FALSE(this == mAList->mBaseVal || this == mAList->mAnimVal,
+                      "Calling IsAnimValList() too early?!");
     return this == mAList->mAnimVal;
   }
 

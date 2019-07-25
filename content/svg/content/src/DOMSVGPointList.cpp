@@ -88,8 +88,6 @@ DOMSVGPointList::~DOMSVGPointList()
 {
   
   
-  
-  
   void *key = mIsAnimValList ?
     InternalAList().GetAnimValKey() :
     InternalAList().GetBaseValKey();
@@ -270,6 +268,7 @@ DOMSVGPointList::InsertItemBefore(nsIDOMSVGPoint *aNewItem,
   InternalList().InsertItem(aIndex, domItem->ToSVGPoint());
   mItems.InsertElementAt(aIndex, domItem.get());
 
+  
   
   
   domItem->InsertingIntoList(this, aIndex, IsAnimValList());

@@ -88,8 +88,6 @@ DOMSVGPathSegList::~DOMSVGPathSegList()
 {
   
   
-  
-  
   void *key = mIsAnimValList ?
     InternalAList().GetAnimValKey() :
     InternalAList().GetBaseValKey();

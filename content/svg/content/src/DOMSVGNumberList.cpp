@@ -204,26 +204,31 @@ DOMSVGNumberList::InsertItemBefore(nsIDOMSVGNumber *newItem,
   if (!domItem) {
     return NS_ERROR_DOM_SVG_WRONG_TYPE_ERR;
   }
-  index = NS_MIN(index, Length());
-  float value = domItem->ToSVGNumber(); 
   if (domItem->HasOwner()) {
-    domItem = new DOMSVGNumber();
+    domItem = domItem->Clone(); 
   }
-  PRBool ok = !!InternalList().InsertItem(index, value);
-  if (!ok) {
+  index = NS_MIN(index, Length());
+
+  
+  if (!mItems.SetCapacity(mItems.Length() + 1) ||
+      !InternalList().SetCapacity(InternalList().Length() + 1)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
+
+  InternalList().InsertItem(index, domItem->ToSVGNumber());
+  mItems.InsertElementAt(index, domItem.get());
+
+  
+  
+  
   domItem->InsertingIntoList(this, AttrEnum(), index, IsAnimValList());
-  ok = !!mItems.InsertElementAt(index, domItem.get());
-  if (!ok) {
-    InternalList().RemoveItem(index);
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
+
   for (PRUint32 i = index + 1; i < Length(); ++i) {
     if (mItems[i]) {
       mItems[i]->UpdateListIndex(i);
     }
   }
+
   Element()->DidChangeNumberList(AttrEnum(), PR_TRUE);
 #ifdef MOZ_SMIL
   if (mAList->IsAnimating()) {
@@ -251,18 +256,22 @@ DOMSVGNumberList::ReplaceItem(nsIDOMSVGNumber *newItem,
   if (index >= Length()) {
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
   }
-  float length = domItem->ToSVGNumber(); 
   if (domItem->HasOwner()) {
-    domItem = new DOMSVGNumber();
+    domItem = domItem->Clone(); 
   }
+
   if (mItems[index]) {
     
     
     mItems[index]->RemovingFromList();
   }
-  InternalList()[index] = length;
-  domItem->InsertingIntoList(this, AttrEnum(), index, IsAnimValList());
+
+  InternalList()[index] = domItem->ToSVGNumber();
   mItems[index] = domItem;
+
+  
+  
+  domItem->InsertingIntoList(this, AttrEnum(), index, IsAnimValList());
 
   Element()->DidChangeNumberList(AttrEnum(), PR_TRUE);
 #ifdef MOZ_SMIL
@@ -292,16 +301,17 @@ DOMSVGNumberList::RemoveItem(PRUint32 index,
   
   
   mItems[index]->RemovingFromList();
+  NS_ADDREF(*_retval = mItems[index]);
 
   InternalList().RemoveItem(index);
-
-  NS_ADDREF(*_retval = mItems[index]);
   mItems.RemoveElementAt(index);
+
   for (PRUint32 i = index; i < Length(); ++i) {
     if (mItems[i]) {
       mItems[i]->UpdateListIndex(i);
     }
   }
+
   Element()->DidChangeNumberList(AttrEnum(), PR_TRUE);
 #ifdef MOZ_SMIL
   if (mAList->IsAnimating()) {

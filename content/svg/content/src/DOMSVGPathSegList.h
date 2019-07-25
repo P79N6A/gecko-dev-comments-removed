@@ -160,12 +160,7 @@ private:
     : mElement(aElement)
     , mIsAnimValList(aIsAnimValList)
   {
-    
-    
-    
-    
-
-    InternalListWillChangeTo(InternalList());
+    InternalListWillChangeTo(InternalList()); 
   }
 
   ~DOMSVGPathSegList();
