@@ -1904,9 +1904,11 @@ PresShell::Destroy()
   }
 
   nsRefreshDriver* rd = GetPresContext()->RefreshDriver();
+#ifdef MOZ_SMIL
   if (mDocument->HasAnimationController()) {
     mDocument->GetAnimationController()->StopSampling(rd);
   }
+#endif 
 
   
   
