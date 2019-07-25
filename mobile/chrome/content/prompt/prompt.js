@@ -71,6 +71,12 @@ const PromptHelper = {
   },
 
   
+  onLoadPassword: function onLoadPassword(dialog) {
+    let user = document.getElementById('prompt-password-user');
+    if (!user.value)
+      user.focus();
+  },
+
   closePassword: function(confirm) {
     this.closeDialog(confirm, "prompt-password-dialog");
   },
