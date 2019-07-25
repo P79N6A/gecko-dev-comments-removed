@@ -51,8 +51,20 @@
 #include "mozqorientationsensorfilter.h"
 #endif
 
+#ifdef MOZ_ENABLE_QMSYSTEM2
+#include <qmdisplaystate.h>
+using namespace mozilla;
+
+const int DISPLAY_BLANK_TIMEOUT = 10800; 
+const int DISPLAY_DIM_TIMEOUT = 10620; 
+
+#endif
+
 nsScreenQt::nsScreenQt(int aScreen)
     : mScreen(aScreen)
+#ifdef MOZ_ENABLE_QMSYSTEM2
+    , mDisplayState(nsnull)
+#endif
 {
     
     
@@ -61,11 +73,18 @@ nsScreenQt::nsScreenQt(int aScreen)
 
 nsScreenQt::~nsScreenQt()
 {
-    
+#ifdef MOZ_ENABLE_QMSYSTEM2
+    delete mDisplayState;
+    mDisplayState = nsnull;
+#endif
 }
 
 
+#ifdef MOZ_ENABLE_QMSYSTEM2
+NS_IMPL_ISUPPORTS2(nsScreenQt, nsIScreen, nsIScreen_MOZILLA_2_0_BRANCH)
+#else
 NS_IMPL_ISUPPORTS1(nsScreenQt, nsIScreen)
+#endif
 
 NS_IMETHODIMP
 nsScreenQt::GetRect(PRInt32 *outLeft,PRInt32 *outTop,
@@ -115,3 +134,27 @@ nsScreenQt::GetColorDepth(PRInt32 *aColorDepth)
     
     return GetPixelDepth(aColorDepth);
 }
+
+#ifdef MOZ_ENABLE_QMSYSTEM2
+void
+nsScreenQt::ApplyMinimumBrightness(PRUint32 aType)
+{
+    
+    
+    
+    
+    delete mDisplayState;
+    mDisplayState = nsnull;
+
+    if( aType == BRIGHTNESS_FULL) {
+        mDisplayState = new MeeGo::QmDisplayState();
+
+        
+        
+        mDisplayState->setDisplayBlankTimeout( DISPLAY_BLANK_TIMEOUT  );
+        mDisplayState->setDisplayDimTimeout( DISPLAY_DIM_TIMEOUT  );
+        mDisplayState->setDisplayBrightnessValue( mDisplayState->getMaxDisplayBrightnessValue() );
+        mDisplayState->set(MeeGo::QmDisplayState::On);
+     }
+}
+#endif
