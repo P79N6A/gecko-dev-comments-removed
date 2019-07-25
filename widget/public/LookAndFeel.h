@@ -220,8 +220,6 @@ public:
     
     eIntID_MenusCanOverlapOSBar,
     
-    eIntID_ScrollbarsCanOverlapContent,
-    
     eIntID_SkipNavigatingDisabledMenuItem,
     
     
