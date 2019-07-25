@@ -537,7 +537,6 @@ var gAdvancedPane = {
     
     var installed;
     try {
-      Components.utils.reportError("0");
       var wrk = Components.classes["@mozilla.org/windows-registry-key;1"]
                 .createInstance(Components.interfaces.nsIWindowsRegKey);
       wrk.open(wrk.ROOT_KEY_LOCAL_MACHINE,
