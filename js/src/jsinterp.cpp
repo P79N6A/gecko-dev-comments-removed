@@ -1079,10 +1079,9 @@ LooselyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *result
     Value lvalue = lval;
     Value rvalue = rval;
 
-    if (lvalue.isObject() && !DefaultValue(cx, &lvalue.toObject(), JSTYPE_VOID, &lvalue))
+    if (!ToPrimitive(cx, &lvalue))
         return false;
-
-    if (rvalue.isObject() && !DefaultValue(cx, &rvalue.toObject(), JSTYPE_VOID, &rvalue))
+    if (!ToPrimitive(cx, &rvalue))
         return false;
 
     if (lvalue.isString() && rvalue.isString()) {
@@ -1212,6 +1211,7 @@ InvokeConstructor(JSContext *cx, const CallArgs &argsRef)
                 return false;
 
             JS_ASSERT(args.rval().isObject());
+            JS_RUNTIME_METER(cx->runtime, constructs);
             return true;
         }
         if (clasp->construct) {
@@ -1887,15 +1887,6 @@ namespace reprmeter {
     JS_BEGIN_MACRO                                                            \
         Value *vp_ = &regs.sp[n];                                             \
         VALUE_TO_OBJECT(cx, vp_, obj);                                        \
-    JS_END_MACRO
-
-#define DEFAULT_VALUE(cx, n, hint, v)                                         \
-    JS_BEGIN_MACRO                                                            \
-        JS_ASSERT(v.isObject());                                              \
-        JS_ASSERT(v == regs.sp[n]);                                           \
-        if (!DefaultValue(cx, &v.toObject(), hint, &regs.sp[n]))              \
-            goto error;                                                       \
-        v = regs.sp[n];                                                       \
     JS_END_MACRO
 
 
@@ -3427,17 +3418,17 @@ END_CASE(JSOP_CASEX)
 
 #define RELATIONAL_OP(OP)                                                     \
     JS_BEGIN_MACRO                                                            \
-        Value rval = regs.sp[-1];                                             \
-        Value lval = regs.sp[-2];                                             \
+        Value &rval = regs.sp[-1];                                            \
+        Value &lval = regs.sp[-2];                                            \
         bool cond;                                                            \
         /* Optimize for two int-tagged operands (typical loop control). */    \
         if (lval.isInt32() && rval.isInt32()) {                               \
             cond = lval.toInt32() OP rval.toInt32();                          \
         } else {                                                              \
-            if (lval.isObject())                                              \
-                DEFAULT_VALUE(cx, -2, JSTYPE_NUMBER, lval);                   \
-            if (rval.isObject())                                              \
-                DEFAULT_VALUE(cx, -1, JSTYPE_NUMBER, rval);                   \
+            if (!ToPrimitive(cx, JSTYPE_NUMBER, &lval))                       \
+                goto error;                                                   \
+            if (!ToPrimitive(cx, JSTYPE_NUMBER, &rval))                       \
+                goto error;                                                   \
             if (lval.isString() && rval.isString()) {                         \
                 JSString *l = lval.toString(), *r = rval.toString();          \
                 int32 result;                                                 \
@@ -3454,8 +3445,8 @@ END_CASE(JSOP_CASEX)
             }                                                                 \
         }                                                                     \
         TRY_BRANCH_AFTER_COND(cond, 2);                                       \
+        regs.sp[-2].setBoolean(cond);                                         \
         regs.sp--;                                                            \
-        regs.sp[-1].setBoolean(cond);                                         \
     JS_END_MACRO
 
 BEGIN_CASE(JSOP_LT)
@@ -3516,31 +3507,31 @@ END_CASE(JSOP_URSH)
 
 BEGIN_CASE(JSOP_ADD)
 {
-    Value rval = regs.sp[-1];
-    Value lval = regs.sp[-2];
+    Value &rval = regs.sp[-1];
+    Value &lval = regs.sp[-2];
 
     if (lval.isInt32() && rval.isInt32()) {
         int32_t l = lval.toInt32(), r = rval.toInt32();
         int32_t sum = l + r;
-        regs.sp--;
         if (JS_UNLIKELY(bool((l ^ sum) & (r ^ sum) & 0x80000000)))
-            regs.sp[-1].setDouble(double(l) + double(r));
+            regs.sp[-2].setDouble(double(l) + double(r));
         else
-            regs.sp[-1].setInt32(sum);
+            regs.sp[-2].setInt32(sum);
+        regs.sp--;
     } else
 #if JS_HAS_XML_SUPPORT
     if (IsXML(lval) && IsXML(rval)) {
         if (!js_ConcatenateXML(cx, &lval.toObject(), &rval.toObject(), &rval))
             goto error;
+        regs.sp[-2] = rval;
         regs.sp--;
-        regs.sp[-1] = rval;
     } else
 #endif
     {
-        if (lval.isObject())
-            DEFAULT_VALUE(cx, -2, JSTYPE_VOID, lval);
-        if (rval.isObject())
-            DEFAULT_VALUE(cx, -1, JSTYPE_VOID, rval);
+        if (!ToPrimitive(cx, &lval))
+            goto error;
+        if (!ToPrimitive(cx, &rval))
+            goto error;
         bool lIsString, rIsString;
         if ((lIsString = lval.isString()) | (rIsString = rval.isString())) {
             JSString *lstr, *rstr;
@@ -3563,15 +3554,15 @@ BEGIN_CASE(JSOP_ADD)
             JSString *str = js_ConcatStrings(cx, lstr, rstr);
             if (!str)
                 goto error;
+            regs.sp[-2].setString(str);
             regs.sp--;
-            regs.sp[-1].setString(str);
         } else {
             double l, r;
             if (!ValueToNumber(cx, lval, &l) || !ValueToNumber(cx, rval, &r))
                 goto error;
             l += r;
+            regs.sp[-2].setNumber(l);
             regs.sp--;
-            regs.sp[-1].setNumber(l);
         }
     }
 }
@@ -4518,90 +4509,153 @@ BEGIN_CASE(JSOP_ENUMELEM)
 }
 END_CASE(JSOP_ENUMELEM)
 
+{ 
+    JSFunction *newfun;
+    JSObject *callee;
+    MaybeConstruct construct;
+    CallArgs args;
+
+BEGIN_CASE(JSOP_NEW)
+{
+    args = CallArgsFromSp(GET_ARGC(regs.pc), regs.sp);
+    JS_ASSERT(args.base() >= regs.fp()->base());
+
+    if (IsFunctionObject(args.calleev(), &callee)) {
+        newfun = callee->getFunctionPrivate();
+        if (newfun->isInterpretedConstructor()) {
+            if (newfun->script()->isEmpty()) {
+                JSObject *rval = js_CreateThisForFunction(cx, callee);
+                if (!rval)
+                    goto error;
+                args.rval().setObject(*rval);
+                regs.sp = args.spAfterCall();
+                goto end_new;
+            }
+
+            construct = CONSTRUCT;
+            goto inline_call;
+        }
+    }
+
+    if (!InvokeConstructor(cx, args))
+        goto error;
+    regs.sp = args.spAfterCall();
+    CHECK_INTERRUPT_HANDLER();
+    TRACE_0(NativeCallComplete);
+
+  end_new:;
+}
+END_CASE(JSOP_NEW)
+
 BEGIN_CASE(JSOP_EVAL)
 {
-    CallArgs args = CallArgsFromSp(GET_ARGC(regs.pc), regs.sp);
-    if (IsBuiltinEvalForScope(&regs.fp()->scopeChain(), args.calleev())) {
-        if (!DirectEval(cx, args))
-            goto error;
-    } else {
-        if (!Invoke(cx, args))
-            goto error;
-    }
-    CHECK_INTERRUPT_HANDLER();
+    args = CallArgsFromSp(GET_ARGC(regs.pc), regs.sp);
+
+    if (!IsBuiltinEvalForScope(&regs.fp()->scopeChain(), args.calleev()))
+        goto call_using_invoke;
+
+    if (!DirectEval(cx, args))
+        goto error;
+
     regs.sp = args.spAfterCall();
 }
 END_CASE(JSOP_EVAL)
 
-BEGIN_CASE(JSOP_NEW)
 BEGIN_CASE(JSOP_CALL)
-BEGIN_CASE(JSOP_FUNCALL)
 BEGIN_CASE(JSOP_FUNAPPLY)
+BEGIN_CASE(JSOP_FUNCALL)
 {
-    CallArgs args = CallArgsFromSp(GET_ARGC(regs.pc), regs.sp);
-    JS_ASSERT(args.base() >= regs.fp()->base());
 
-    MaybeConstruct construct = *regs.pc == JSOP_NEW ? CONSTRUCT : NO_CONSTRUCT;
+    args = CallArgsFromSp(GET_ARGC(regs.pc), regs.sp);
 
-    JSObject *callee;
-    JSFunction *fun;
-    if (!IsFunctionObject(args.calleev(), &callee, &fun) || !fun->isInterpretedConstructor()) {
-        if (construct) {
-            if (!InvokeConstructor(cx, args))
+    if (IsFunctionObject(args.calleev(), &callee)) {
+        newfun = callee->getFunctionPrivate();
+
+        
+        construct = NO_CONSTRUCT;
+        if (newfun->isInterpreted())
+      inline_call:
+        {
+            JSScript *newscript = newfun->script();
+            if (JS_UNLIKELY(newscript->isEmpty())) {
+                args.rval().setUndefined();
+                regs.sp = args.spAfterCall();
+                goto end_call;
+            }
+
+            
+            if (!cx->stack.pushInlineFrame(cx, regs, args, *callee, newfun,
+                                           newscript, construct, OOMCheck())) {
                 goto error;
-        } else {
-            if (!Invoke(cx, args))
+            }
+
+            
+            script = newscript;
+            pcCounts = script->pcCounters.get(JSRUNMODE_INTERP);
+            argv = regs.fp()->formalArgsEnd() - newfun->nargs;
+            atoms = script->atomMap.vector;
+
+            
+            if (newfun->isHeavyweight() && !CreateFunCallObject(cx, regs.fp()))
                 goto error;
-        }
-        regs.sp = args.spAfterCall();
-        CHECK_INTERRUPT_HANDLER();
-        TRACE_0(NativeCallComplete);
-        len = JSOP_CALL_LENGTH;
-        DO_NEXT_OP(len);
-    }
 
-    script = fun->script();
-    if (!cx->stack.pushInlineFrame(cx, regs, args, *callee, fun, script, construct, OOMCheck()))
-        goto error;
+            RESET_USE_METHODJIT();
+            JS_RUNTIME_METER(rt, inlineCalls);
 
-    
-    pcCounts = script->pcCounters.get(JSRUNMODE_INTERP);
-    argv = regs.fp()->formalArgsEnd() - fun->nargs;
-    atoms = script->atomMap.vector;
+            TRACE_0(EnterFrame);
 
-    
-    if (fun->isHeavyweight() && !CreateFunCallObject(cx, regs.fp()))
-        goto error;
-
-    RESET_USE_METHODJIT();
-    TRACE_0(EnterFrame);
+            CHECK_INTERRUPT_HANDLER();
 
 #ifdef JS_METHODJIT
-    {
-        
-        mjit::CompileRequest request = (interpMode == JSINTERP_NORMAL)
-                                       ? mjit::CompileRequest_Interpreter
-                                       : mjit::CompileRequest_JIT;
-        mjit::CompileStatus status = mjit::CanMethodJIT(cx, script, regs.fp(), request);
-        if (status == mjit::Compile_Error)
-            goto error;
-        if (!TRACE_RECORDER(cx) && !TRACE_PROFILER(cx) && status == mjit::Compile_Okay) {
-            interpReturnOK = mjit::JaegerShot(cx);
-            CHECK_INTERRUPT_HANDLER();
-            goto jit_return;
-        }
-    }
+            
+            mjit::CompileRequest request = (interpMode == JSINTERP_NORMAL)
+                                           ? mjit::CompileRequest_Interpreter
+                                           : mjit::CompileRequest_JIT;
+            mjit::CompileStatus status = mjit::CanMethodJIT(cx, script, regs.fp(), request);
+            if (status == mjit::Compile_Error)
+                goto error;
+            if (!TRACE_RECORDER(cx) && !TRACE_PROFILER(cx) && status == mjit::Compile_Okay) {
+                interpReturnOK = mjit::JaegerShot(cx);
+                CHECK_INTERRUPT_HANDLER();
+                goto jit_return;
+            }
 #endif
 
-    if (!ScriptPrologue(cx, regs.fp()))
-        goto error;
+            if (!ScriptPrologue(cx, regs.fp()))
+                goto error;
 
+            CHECK_INTERRUPT_HANDLER();
+
+            
+            op = (JSOp) *regs.pc;
+            DO_OP();
+        }
+
+        Probes::enterJSFun(cx, newfun, script);
+        JSBool ok = CallJSNative(cx, newfun->u.n.native, args);
+        Probes::exitJSFun(cx, newfun, script);
+        regs.sp = args.spAfterCall();
+        if (!ok)
+            goto error;
+        TRACE_0(NativeCallComplete);
+        goto end_call;
+    }
+
+  call_using_invoke:
+    bool ok;
+    ok = Invoke(cx, args);
+    regs.sp = args.spAfterCall();
     CHECK_INTERRUPT_HANDLER();
+    if (!ok)
+        goto error;
+    JS_RUNTIME_METER(rt, nonInlineCalls);
+    TRACE_0(NativeCallComplete);
 
-    
-    op = (JSOp) *regs.pc;
-    DO_OP();
+  end_call:;
 }
+END_CASE(JSOP_CALL)
+
+} 
 
 BEGIN_CASE(JSOP_SETCALL)
 {

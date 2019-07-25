@@ -971,7 +971,7 @@ Class js_ArrayClass = {
     StrictPropertyStub,   
     EnumerateStub,
     ResolveStub,
-    js_TryValueOf,
+    ConvertStub,
     NULL,
     NULL,           
     NULL,           
@@ -1007,7 +1007,7 @@ Class js_SlowArrayClass = {
     StrictPropertyStub,   
     EnumerateStub,
     ResolveStub,
-    js_TryValueOf
+    ConvertStub
 };
 
 static bool

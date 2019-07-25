@@ -1703,13 +1703,6 @@ XPC_WN_Shared_Proto_Enumerate(JSContext *cx, JSObject *obj)
     return JS_TRUE;
 }
 
-static JSBool
-XPC_WN_Shared_Proto_Convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
-{
-    
-    return JS_TRUE;
-}
-
 static void
 XPC_WN_Shared_Proto_Finalize(JSContext *cx, JSObject *obj)
 {
@@ -1771,7 +1764,7 @@ js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
     js::StrictPropertyStub,         
     XPC_WN_Shared_Proto_Enumerate,  
     XPC_WN_ModsAllowed_Proto_Resolve, 
-    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Proto_Convert), 
+    js::ConvertStub,                
     XPC_WN_Shared_Proto_Finalize,   
 
     
@@ -1798,7 +1791,7 @@ js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
     js::StrictPropertyStub,         
     XPC_WN_Shared_Proto_Enumerate,  
     XPC_WN_ModsAllowed_Proto_Resolve,
-    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Proto_Convert), 
+    js::ConvertStub,                 
     XPC_WN_Shared_Proto_Finalize,    
 
     
@@ -1888,7 +1881,7 @@ js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
     JS_VALUEIFY(js::StrictPropertyOp, XPC_WN_OnlyIWrite_Proto_SetPropertyStub), 
     XPC_WN_Shared_Proto_Enumerate,                                              
     XPC_WN_NoMods_Proto_Resolve,                                                
-    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Proto_Convert),                    
+    js::ConvertStub,                                                            
     XPC_WN_Shared_Proto_Finalize,                                               
 
     
@@ -1915,7 +1908,7 @@ js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
     JS_VALUEIFY(js::StrictPropertyOp, XPC_WN_OnlyIWrite_Proto_SetPropertyStub), 
     XPC_WN_Shared_Proto_Enumerate,                                              
     XPC_WN_NoMods_Proto_Resolve,                                                
-    JS_VALUEIFY(js::ConvertOp, XPC_WN_Shared_Proto_Convert),                    
+    js::ConvertStub,                                                            
     XPC_WN_Shared_Proto_Finalize,                                               
 
     
