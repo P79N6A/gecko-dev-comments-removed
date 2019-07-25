@@ -251,68 +251,76 @@ LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext, bool force)
   NS_ASSERTION(programIndex == NumProgramTypes,
                "not all programs were initialized!");
 
-  
-
-
-
   mGLContext->fGenFramebuffers(1, &mBackBufferFBO);
 
-  GLenum textureTargets[] = {
-    LOCAL_GL_TEXTURE_2D,
-    mGLContext->IsGLES2() ? LOCAL_GL_TEXTURE_RECTANGLE_ARB : 0
-  };
-
-  mFBOTextureTarget = LOCAL_GL_NONE;
-
-  for (PRUint32 i = 0; i < ArrayLength(textureTargets); i++) {
-    GLenum target = textureTargets[i];
-    if (!target)
-        continue;
-
-    mGLContext->fGenTextures(1, &mBackBufferTexture);
-    mGLContext->fBindTexture(target, mBackBufferTexture);
-    mGLContext->fTexParameteri(target,
-                               LOCAL_GL_TEXTURE_MIN_FILTER,
-                               LOCAL_GL_NEAREST);
-    mGLContext->fTexParameteri(target,
-                               LOCAL_GL_TEXTURE_MAG_FILTER,
-                               LOCAL_GL_NEAREST);
-    mGLContext->fTexImage2D(target,
-                            0,
-                            LOCAL_GL_RGBA,
-                            5, 3, 
-                            0,
-                            LOCAL_GL_RGBA,
-                            LOCAL_GL_UNSIGNED_BYTE,
-                            NULL);
+  if (mGLContext->WorkAroundDriverBugs()) {
 
     
-    mGLContext->fBindTexture(target, 0);
 
-    mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, mBackBufferFBO);
-    mGLContext->fFramebufferTexture2D(LOCAL_GL_FRAMEBUFFER,
-                                      LOCAL_GL_COLOR_ATTACHMENT0,
-                                      target,
-                                      mBackBufferTexture,
-                                      0);
 
-    if (mGLContext->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER) ==
-        LOCAL_GL_FRAMEBUFFER_COMPLETE)
-    {
-      mFBOTextureTarget = target;
-      break;
+
+
+    GLenum textureTargets[] = {
+      LOCAL_GL_TEXTURE_2D,
+      mGLContext->IsGLES2() ? LOCAL_GL_TEXTURE_RECTANGLE_ARB : 0
+    };
+
+    mFBOTextureTarget = LOCAL_GL_NONE;
+
+    for (PRUint32 i = 0; i < ArrayLength(textureTargets); i++) {
+      GLenum target = textureTargets[i];
+      if (!target)
+          continue;
+
+      mGLContext->fGenTextures(1, &mBackBufferTexture);
+      mGLContext->fBindTexture(target, mBackBufferTexture);
+      mGLContext->fTexParameteri(target,
+                                LOCAL_GL_TEXTURE_MIN_FILTER,
+                                LOCAL_GL_NEAREST);
+      mGLContext->fTexParameteri(target,
+                                LOCAL_GL_TEXTURE_MAG_FILTER,
+                                LOCAL_GL_NEAREST);
+      mGLContext->fTexImage2D(target,
+                              0,
+                              LOCAL_GL_RGBA,
+                              5, 3, 
+                              0,
+                              LOCAL_GL_RGBA,
+                              LOCAL_GL_UNSIGNED_BYTE,
+                              NULL);
+
+      
+      mGLContext->fBindTexture(target, 0);
+
+      mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, mBackBufferFBO);
+      mGLContext->fFramebufferTexture2D(LOCAL_GL_FRAMEBUFFER,
+                                        LOCAL_GL_COLOR_ATTACHMENT0,
+                                        target,
+                                        mBackBufferTexture,
+                                        0);
+
+      if (mGLContext->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER) ==
+          LOCAL_GL_FRAMEBUFFER_COMPLETE)
+      {
+        mFBOTextureTarget = target;
+        break;
+      }
+
+      
+      
+      mGLContext->fDeleteTextures(1, &mBackBufferTexture);
     }
 
+    if (mFBOTextureTarget == LOCAL_GL_NONE) {
+      
+      return false;
+    }
+  } else {
     
-    
-    mGLContext->fDeleteTextures(1, &mBackBufferTexture);
+    mFBOTextureTarget = LOCAL_GL_TEXTURE_2D;
   }
 
-  if (mFBOTextureTarget == LOCAL_GL_NONE) {
-    
-    return false;
-  }
-
+  
   mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, 0);
 
   if (mFBOTextureTarget == LOCAL_GL_TEXTURE_RECTANGLE_ARB) {
@@ -330,9 +338,6 @@ LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext, bool force)
     mGLContext->fDeleteFramebuffers(1, &mBackBufferFBO);
     mBackBufferFBO = 0;
   }
-
-  
-  mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, 0);
 
   
 
