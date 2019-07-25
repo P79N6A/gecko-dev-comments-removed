@@ -97,13 +97,13 @@ function _handleEvent(aEvent) {
 
 
 let BrowserHelper = {
-  onOpen: function(aBrowser) {
+  onOpen: function NP_BH_onOpen(aBrowser) {
     
     if (aBrowser.ownerDocument.defaultView != _lastFocusedWindow)
       this.decreasePriority(aBrowser);
   },
 
-  onSelect: function(aBrowser) {
+  onSelect: function NP_BH_onSelect(aBrowser) {
     let windowEntry = WindowHelper.getEntry(aBrowser.ownerDocument.defaultView);
     if (windowEntry.lastSelectedBrowser)
       this.decreasePriority(windowEntry.lastSelectedBrowser);
@@ -113,16 +113,16 @@ let BrowserHelper = {
   },
 
   
-  getLoadgroup: function(aBrowser) {
+  getLoadgroup: function NP_BH_getLoadgroup(aBrowser) {
     return aBrowser.webNavigation.QueryInterface(Ci.nsIDocumentLoader)
                    .loadGroup.QueryInterface(Ci.nsISupportsPriority);
   },
 
-  increasePriority: function(aBrowser) {
+  increasePriority: function NP_BH_increasePriority(aBrowser) {
     this.getLoadgroup(aBrowser).adjustPriority(PRIORITY_DELTA);
   },
 
-  decreasePriority: function(aBrowser) {
+  decreasePriority: function NP_BH_decreasePriority(aBrowser) {
     this.getLoadgroup(aBrowser).adjustPriority(PRIORITY_DELTA * -1);
   }
 };
@@ -130,7 +130,7 @@ let BrowserHelper = {
 
 
 let WindowHelper = {
-  addWindow: function(aWindow) {
+  addWindow: function NP_WH_addWindow(aWindow) {
     
     _windows.push({ window: aWindow, lastSelectedBrowser: null });
 
@@ -153,7 +153,7 @@ let WindowHelper = {
     BrowserHelper.onSelect(aWindow.gBrowser.selectedBrowser);
   },
 
-  removeWindow: function(aWindow) {
+  removeWindow: function NP_WH_removeWindow(aWindow) {
     if (aWindow == _lastFocusedWindow)
       _lastFocusedWindow = null;
 
@@ -169,7 +169,7 @@ let WindowHelper = {
     });
   },
 
-  onActivate: function(aWindow, aHasFocus) {
+  onActivate: function NP_WH_onActivate(aWindow, aHasFocus) {
     
     if (aWindow == _lastFocusedWindow)
       return;
@@ -181,7 +181,7 @@ let WindowHelper = {
     this.increasePriority(aWindow);
   },
 
-  handleFocusedWindow: function(aWindow) {
+  handleFocusedWindow: function NP_WH_handleFocusedWindow(aWindow) {
     
     if (_lastFocusedWindow)
       this.decreasePriority(_lastFocusedWindow);
@@ -191,23 +191,23 @@ let WindowHelper = {
   },
 
   
-  increasePriority: function(aWindow) {
+  increasePriority: function NP_WH_increasePriority(aWindow) {
     aWindow.gBrowser.browsers.forEach(function(aBrowser) {
       BrowserHelper.increasePriority(aBrowser);
     });
   },
 
-  decreasePriority: function(aWindow) {
+  decreasePriority: function NP_WH_decreasePriority(aWindow) {
     aWindow.gBrowser.browsers.forEach(function(aBrowser) {
       BrowserHelper.decreasePriority(aBrowser);
     });
   },
 
-  getEntry: function(aWindow) {
+  getEntry: function NP_WH_getEntry(aWindow) {
     return _windows[this.getEntryIndex(aWindow)];
   },
 
-  getEntryIndex: function(aWindow) {
+  getEntryIndex: function NP_WH_getEntryAtIndex(aWindow) {
     
     for (let i = 0; i < _windows.length; i++)
       if (_windows[i].window == aWindow)
