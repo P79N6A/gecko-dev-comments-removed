@@ -53,6 +53,8 @@
 
 #include "gfxCrashReporterUtils.h"
 
+#include "mozilla/Util.h" 
+
 namespace mozilla {
 namespace gl {
 
@@ -1777,7 +1779,7 @@ GLContext::SetBlitFramebufferForDestTexture(GLuint aTexture)
                           0);
 
     if (aTexture) {
-        GLenum status = fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
+        DebugOnly<GLenum> status = fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
 
         
         
