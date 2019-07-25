@@ -2059,6 +2059,11 @@ GCMarker::markDelayedChildren(ArenaHeader *aheader)
         PushArena(this, aheader);
     }
     aheader->allocatedDuringIncremental = 0;
+    
+
+
+
+
 }
 
 bool
@@ -4897,7 +4902,7 @@ StartVerifyPreBarriers(JSRuntime *rt)
     rt->gcMarker.start(rt);
     for (CompartmentsIter c(rt); !c.done(); c.next()) {
         c->setNeedsBarrier(true);
-        c->arenas.prepareForIncrementalGC(rt);
+        c->arenas.purge();
     }
 
     return;
