@@ -204,19 +204,37 @@ let Utils = {
 
   exceptionStr: function Weave_exceptionStr(e) {
     let message = e.message? e.message : e;
-    let location = e.location? " (" + e.location + ")" : "";
+    let location = "";
+
+    if (e.location)
+      
+      location = e.location;
+    else if (e.fileName && e.lineNumber)
+      
+      location = "file '" + e.fileName + "', line " + e.lineNumber;
+
+    if (location)
+      location = " (" + location + ")";
     return message + location;
   },
 
-  stackTrace: function Weave_stackTrace(stackFrame, str) {
-    if (stackFrame.caller)
-      str = Utils.stackTrace(stackFrame.caller, str);
+  stackTrace: function Weave_stackTrace(e) {
+    let output = "";
+    if (e.location) {
+      
+      let frame = e.location;
+      while (frame) {
+        output += frame + "\n";
+        frame = frame.caller;
+      }
+    } else if (e.stack)
+      
+      output += e.stack;
+    else
+      
+      output += "No traceback available.\n";
 
-    if (!str)
-      str = "";
-    str = stackFrame + "\n" + str;
-
-    return str;
+    return output;
   },
 
   checkStatus: function Weave_checkStatus(code, msg, ranges) {
