@@ -861,7 +861,8 @@ class StackFrame
 
 
 
-    inline JSObject &scopeChain() const;
+    inline HandleObject scopeChain() const;
+    inline GlobalObject &global() const;
 
     bool hasCallObj() const {
         bool ret = !!(flags_ & HAS_CALL_OBJ);
@@ -1695,7 +1696,7 @@ class ContextStack
     inline JSScript *currentScriptWithDiagnostics(jsbytecode **pc = NULL) const;
 
     
-    inline JSObject *currentScriptedScopeChain() const;
+    inline HandleObject currentScriptedScopeChain() const;
 
     
 

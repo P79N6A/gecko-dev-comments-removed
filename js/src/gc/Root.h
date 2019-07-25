@@ -116,6 +116,16 @@ class Handle
     }
 
     
+
+
+
+    static Handle fromMarkedLocation(const T *p) {
+        Handle h;
+        h.ptr = p;
+        return h;
+    }
+
+    
     template <typename S> inline Handle(const Root<S> &root);
     template <typename S> inline Handle(const RootedVar<S> &root);
 
@@ -125,6 +135,8 @@ class Handle
     T operator ->() { return value(); }
 
   private:
+    Handle() {}
+
     const T *ptr;
     T value() { return *ptr; }
 
