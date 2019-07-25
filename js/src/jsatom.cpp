@@ -148,6 +148,7 @@ const char *const js_common_atom_names[] = {
     js_ignoreCase_str,          
     js_index_str,               
     js_input_str,               
+    "toISOString",              
     js_iterator_str,            
     js_join_str,                
     js_lastIndex_str,           
