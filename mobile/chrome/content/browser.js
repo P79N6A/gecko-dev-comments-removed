@@ -1216,8 +1216,6 @@ var BrowserEventHandler = {
 
         if (this.panElement)
           this.panning = true;
-        else
-          aEvent.preventDefault();  
         break;
 
       case "mousemove":
