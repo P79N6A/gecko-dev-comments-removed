@@ -201,8 +201,13 @@ WebGLContext::BindBuffer(WebGLenum target, nsIWebGLBuffer *bobj)
 {
     WebGLuint bufname;
     WebGLBuffer* buf;
-    PRBool isNull;
-    if (!GetConcreteObjectAndGLName("bindBuffer", bobj, &buf, &bufname, &isNull))
+    PRBool isNull; 
+    PRBool isDeleted; 
+    if (!GetConcreteObjectAndGLName("bindBuffer", bobj, &buf, &bufname, &isNull, &isDeleted))
+        return NS_OK;
+
+    
+    if (isDeleted)
         return NS_OK;
 
     if (target != LOCAL_GL_ARRAY_BUFFER &&
@@ -237,13 +242,18 @@ NS_IMETHODIMP
 WebGLContext::BindFramebuffer(WebGLenum target, nsIWebGLFramebuffer *fbobj)
 {
     WebGLuint framebuffername;
-    PRBool isNull;
+    PRBool isNull; 
+    PRBool isDeleted; 
     WebGLFramebuffer *wfb;
 
     if (target != LOCAL_GL_FRAMEBUFFER)
         return ErrorInvalidEnum("BindFramebuffer: target must be GL_FRAMEBUFFER");
 
-    if (!GetConcreteObjectAndGLName("bindFramebuffer", fbobj, &wfb, &framebuffername, &isNull))
+    if (!GetConcreteObjectAndGLName("bindFramebuffer", fbobj, &wfb, &framebuffername, &isNull, &isDeleted))
+        return NS_OK;
+
+    
+    if (isDeleted)
         return NS_OK;
 
     MakeContextCurrent();
@@ -264,13 +274,18 @@ NS_IMETHODIMP
 WebGLContext::BindRenderbuffer(WebGLenum target, nsIWebGLRenderbuffer *rbobj)
 {
     WebGLuint renderbuffername;
-    PRBool isNull;
+    PRBool isNull; 
+    PRBool isDeleted; 
     WebGLRenderbuffer *wrb;
 
     if (target != LOCAL_GL_RENDERBUFFER)
         return ErrorInvalidEnumInfo("bindRenderbuffer: target", target);
 
-    if (!GetConcreteObjectAndGLName("bindRenderBuffer", rbobj, &wrb, &renderbuffername, &isNull))
+    if (!GetConcreteObjectAndGLName("bindRenderBuffer", rbobj, &wrb, &renderbuffername, &isNull, &isDeleted))
+        return NS_OK;
+
+    
+    if (isDeleted)
         return NS_OK;
 
     if (!isNull)
@@ -291,7 +306,12 @@ WebGLContext::BindTexture(WebGLenum target, nsIWebGLTexture *tobj)
     WebGLuint texturename;
     WebGLTexture *tex;
     PRBool isNull; 
-    if (!GetConcreteObjectAndGLName("bindTexture", tobj, &tex, &texturename, &isNull))
+    PRBool isDeleted; 
+    if (!GetConcreteObjectAndGLName("bindTexture", tobj, &tex, &texturename, &isNull, &isDeleted))
+        return NS_OK;
+
+    
+    if (isDeleted)
         return NS_OK;
 
     if (target == LOCAL_GL_TEXTURE_2D) {
@@ -1063,6 +1083,9 @@ WebGLContext::DeleteFramebuffer(nsIWebGLFramebuffer *fbobj)
     fbuf->Delete();
     mMapFramebuffers.Remove(fbufname);
 
+    if (mBoundFramebuffer && mBoundFramebuffer->GLName() == fbufname)
+        mBoundFramebuffer = NULL;
+
     return NS_OK;
 }
 
@@ -1093,9 +1116,11 @@ WebGLContext::DeleteRenderbuffer(nsIWebGLRenderbuffer *rbobj)
 
 
     gl->fDeleteRenderbuffers(1, &rbufname);
-
     rbuf->Delete();
     mMapRenderbuffers.Remove(rbufname);
+
+    if (mBoundRenderbuffer && mBoundRenderbuffer->GLName() == rbufname)
+        mBoundRenderbuffer = NULL;
 
     return NS_OK;
 }
@@ -2195,10 +2220,6 @@ WebGLContext::GetFramebufferAttachmentParameter(WebGLenum target, WebGLenum atta
         switch (pname) {
             case LOCAL_GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE:
                 wrval->SetAsInt32(LOCAL_GL_NONE);
-                break;
-
-            case LOCAL_GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME:
-                wrval->SetAsEmpty();
                 break;
 
             default:
