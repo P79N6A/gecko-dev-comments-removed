@@ -2580,6 +2580,17 @@ nsLayoutUtils::GetFirstLinePosition(const nsIFrame* aFrame,
       return PR_FALSE;
     }
 
+    if (fType == nsGkAtoms::fieldSetFrame) {
+      LinePosition kidPosition;
+      nsIFrame* kid = aFrame->GetFirstChild(nsnull);
+      
+      if (GetFirstLinePosition(kid, &kidPosition)) {
+        *aResult = kidPosition + kid->GetPosition().y;
+        return PR_TRUE;
+      }
+      return PR_FALSE;
+    }
+
     
     return PR_FALSE;
   }
