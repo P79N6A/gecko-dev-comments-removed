@@ -125,6 +125,7 @@ private:
 
   nsresult GetEllipseRadii(const nsStyleCorners& aRadius,
                            PRUint8 aFullCorner,
+                           PRBool aIsBorder, 
                            nsIDOMCSSValue** aValue);
 
   nsresult GetOffsetWidthFor(mozilla::css::Side aSide, nsIDOMCSSValue** aValue);
