@@ -341,6 +341,8 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     size_t numSuccessors() const;
     MBasicBlock *getSuccessor(size_t index) const;
 
+    void dumpStack(FILE *fp);
+
   private:
     MIRGraph &graph_;
     CompileInfo &info; 
