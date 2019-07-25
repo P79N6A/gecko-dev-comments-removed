@@ -59,6 +59,50 @@ typedef enum JSTryNoteKind {
     JSTRY_ITER
 } JSTryNoteKind;
 
+namespace js {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class UpvarCookie 
+{
+    uint32 value;
+
+    static const uint32 FREE_VALUE = 0xfffffffful;
+
+  public:
+    
+
+
+
+    static const uint16 FREE_LEVEL = 0x3fff;
+    static const uint16 CALLEE_SLOT = 0xffff;
+    static bool isLevelReserved(uint16 level) { return level >= FREE_LEVEL; }
+
+    bool isFree() const { return value == FREE_VALUE; }
+    uint32 asInteger() const { return value; }
+    
+    uint16 level() const { JS_ASSERT(!isFree()); return value >> 16; }
+    uint16 slot() const { JS_ASSERT(!isFree()); return value; }
+
+    void set(const UpvarCookie &other) { set(other.level(), other.slot()); }
+    void set(uint16 newLevel, uint16 newSlot) { value = (uint32(newLevel) << 16) | newSlot; }
+    void makeFree() { set(0xffff, 0xffff); JS_ASSERT(isFree()); }
+};
+JS_STATIC_ASSERT(sizeof(UpvarCookie) == sizeof(uint32));
+
+}
+
 
 
 
@@ -82,16 +126,9 @@ typedef struct JSObjectArray {
 } JSObjectArray;
 
 typedef struct JSUpvarArray {
-    uint32          *vector;    
+    js::UpvarCookie *vector;    
     uint32          length;     
 } JSUpvarArray;
-
-#define CALLEE_UPVAR_SLOT               0xffff
-#define FREE_STATIC_LEVEL               0x3fff
-#define FREE_UPVAR_COOKIE               0xffffffff
-#define MAKE_UPVAR_COOKIE(skip,slot)    ((skip) << 16 | (slot))
-#define UPVAR_FRAME_SKIP(cookie)        ((uint32)(cookie) >> 16)
-#define UPVAR_FRAME_SLOT(cookie)        ((uint16)(cookie))
 
 #define JS_OBJECT_ARRAY_SIZE(length)                                          \
     (offsetof(JSObjectArray, vector) + sizeof(JSObject *) * (length))

@@ -339,7 +339,7 @@ struct JSParseNode {
 
                 JSDefinition *lexdef;   
             };
-            uint32      cookie;         
+            js::UpvarCookie cookie;     
 
 
             uint32      dflags:12,      
@@ -465,12 +465,12 @@ public:
 
     uintN frameLevel() const {
         JS_ASSERT(pn_arity == PN_FUNC || pn_arity == PN_NAME);
-        return UPVAR_FRAME_SKIP(pn_cookie);
+        return pn_cookie.level();
     }
 
     uintN frameSlot() const {
         JS_ASSERT(pn_arity == PN_FUNC || pn_arity == PN_NAME);
-        return UPVAR_FRAME_SLOT(pn_cookie);
+        return pn_cookie.slot();
     }
 
     inline bool test(uintN flag) const;
@@ -767,7 +767,7 @@ struct JSDefinition : public JSParseNode
 
     bool isFreeVar() const {
         JS_ASSERT(pn_defn);
-        return pn_cookie == FREE_UPVAR_COOKIE || test(PND_GVAR);
+        return pn_cookie.isFree() || test(PND_GVAR);
     }
 
     
