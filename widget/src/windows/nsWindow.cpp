@@ -370,7 +370,6 @@ nsWindow::nsWindow() : nsBaseWidget()
   mWnd                  = nsnull;
   mPaintDC              = nsnull;
   mPrevWndProc          = nsnull;
-  mOldIMC               = nsnull;
   mNativeDragTarget     = nsnull;
   mInDtor               = PR_FALSE;
   mIsVisible            = PR_FALSE;
@@ -6669,7 +6668,7 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
   static PRBool sRedirectedKeyDownEventPreventedDefault = PR_FALSE;
   PRBool noDefault;
   if (aFakeCharMessage || !IsRedirectedKeyDownMessage(aMsg)) {
-    HIMC oldIMC = mOldIMC;
+    nsIMEContext IMEContext(mWnd);
     noDefault =
       DispatchKeyEvent(NS_KEY_DOWN, 0, nsnull, DOMKeyCode, &aMsg, aModKeyState);
     if (aEventDispatched) {
@@ -6685,8 +6684,9 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
     
     
     HWND focusedWnd = ::GetFocus();
-    if (!noDefault && !aFakeCharMessage && oldIMC && !mOldIMC && focusedWnd &&
-        !PluginHasFocus()) {
+    nsIMEContext newIMEContext(mWnd);
+    if (!noDefault && !aFakeCharMessage && focusedWnd && !PluginHasFocus() &&
+        !IMEContext.get() && newIMEContext.get()) {
       RemoveNextCharMessage(focusedWnd);
 
       INPUT keyinput;
@@ -7316,10 +7316,7 @@ void nsWindow::OnDestroy()
   }
 
   
-  if (mOldIMC) {
-    mOldIMC = ::ImmAssociateContext(mWnd, mOldIMC);
-    NS_ASSERTION(!mOldIMC, "Another IMC was associated");
-  }
+  AssociateDefaultIMC(PR_TRUE);
 
   
   MouseTrailer* mtrailer = nsToolkit::gMouseTrailer;
@@ -7958,11 +7955,7 @@ NS_IMETHODIMP nsWindow::SetInputMode(const IMEContext& aContext)
   PRBool enable = (status == nsIWidget::IME_STATUS_ENABLED ||
                    status == nsIWidget::IME_STATUS_PLUGIN);
 
-  if (!enable != !mOldIMC)
-    return NS_OK;
-  mOldIMC = ::ImmAssociateContext(mWnd, enable ? mOldIMC : NULL);
-  NS_ASSERTION(!enable || !mOldIMC, "Another IMC was associated");
-
+  AssociateDefaultIMC(enable);
   return NS_OK;
 }
 
@@ -8024,6 +8017,36 @@ nsWindow::OnIMESelectionChange(void)
   return nsTextStore::OnSelectionChange();
 }
 #endif 
+
+PRBool nsWindow::AssociateDefaultIMC(PRBool aAssociate)
+{
+  nsIMEContext IMEContext(mWnd);
+
+  if (aAssociate) {
+    BOOL ret = ::ImmAssociateContextEx(mWnd, NULL, IACE_DEFAULT);
+    NS_ASSERTION(ret, "ImmAssociateContextEx failed to restore default IMC");
+#ifdef DEBUG
+    nsIMEContext newIMEContext(mWnd);
+    NS_ASSERTION(!IMEContext.get() || newIMEContext.get() == IMEContext.get(),
+                 "Unknown IMC had been associated");
+#endif
+    return ret && !IMEContext.get();
+  }
+
+  if (mOnDestroyCalled) {
+    
+    
+    return PR_FALSE;
+  }
+
+  if (!IMEContext.get()) {
+    return PR_FALSE; 
+  }
+
+  BOOL ret = ::ImmAssociateContextEx(mWnd, NULL, 0);
+  NS_ASSERTION(ret, "ImmAssociateContextEx failed to disassociate the IMC");
+  return ret != FALSE;
+}
 
 #ifdef ACCESSIBILITY
 
