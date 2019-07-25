@@ -500,6 +500,8 @@ bool AdjustWebSocketHost(relayBuffer& buffer, connection_info_t *ci)
   h1 += strlen(HEADER_UPGRADE);
   h1 += strspn(h1, " \t");
   char* h2 = strstr(h1, "WebSocket\r\n");
+  if (!h2) h2 = strstr(h1, "websocket\r\n");
+  if (!h2) h2 = strstr(h1, "Websocket\r\n");
   if (!h2)
     return false;
 

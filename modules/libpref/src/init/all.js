@@ -781,11 +781,6 @@ pref("network.ftp.control.qos", 0);
 
 
 
-
-
-
-
-pref("network.websocket.override-security-block", false);
 pref("network.websocket.enabled", true);
 
 
