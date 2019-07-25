@@ -60,7 +60,6 @@
 #include "nsIComponentManager.h"
 #include "nsHTMLParts.h"
 #include "nsLinebreakConverter.h"
-#include "nsILinkHandler.h"
 #include "nsIHTMLDocument.h"
 #include "nsXPIDLString.h"
 #include "nsReadableUtils.h"
@@ -351,8 +350,6 @@ nsIsIndexFrame::OnSubmit(nsPresContext* aPresContext)
   
 
   
-  nsILinkHandler *handler = aPresContext->GetLinkHandler();
-
   nsAutoString href;
 
   
@@ -431,9 +428,8 @@ nsIsIndexFrame::OnSubmit(nsPresContext* aPresContext)
   if (NS_FAILED(result)) return result;
 
   
-  if (handler) {
-    handler->OnLinkClick(mContent, uri, nsnull);
-  }
+  nsContentUtils::TriggerLink(mContent, aPresContext, uri,
+                              EmptyString(), PR_TRUE, PR_TRUE);
   return result;
 }
 
