@@ -1,6 +1,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 package com.mozilla.watcher;
 
 import java.io.BufferedReader;
@@ -48,11 +81,9 @@ public class WatcherService extends Service
     String sErrorPrefix = "##Installer Error## ";
     String currentDir = "/";
     String sPingTarget = "";
-    long lDelay = 60000;
-    long lPeriod = 300000;
-    int nMaxStrikes = 0; 
-    boolean bStartSUTAgent = true;
-
+    long    lDelay = 60000;
+    long    lPeriod = 300000;
+    int        nMaxStrikes = 3;
     Process    pProc;
     Context myContext = null;
     Timer myTimer = null;
@@ -105,19 +136,13 @@ public class WatcherService extends Service
         String sIniFile = iniFile.getAbsolutePath();
         String sHold = "";
 
-        Log.i("Watcher", String.format("Loading settings from %s", sIniFile));
         this.sPingTarget = GetIniData("watcher", "PingTarget", sIniFile, "www.mozilla.org");
         sHold = GetIniData("watcher", "delay", sIniFile, "60000");
         this.lDelay = Long.parseLong(sHold.trim());
         sHold = GetIniData("watcher", "period", sIniFile,"300000");
         this.lPeriod = Long.parseLong(sHold.trim());
-        sHold = GetIniData("watcher", "strikes", sIniFile,"0");
+        sHold = GetIniData("watcher", "strikes", sIniFile,"3");
         this.nMaxStrikes = Integer.parseInt(sHold.trim());
-        Log.i("Watcher", String.format("Pinging %s after a delay of %s sec, period of %s sec, max number of failed attempts is %s (if max # of failed attempts is 0, then no checking)",
-                                       this.sPingTarget, this.lDelay / 1000.0, this.lPeriod / 1000.0, nMaxStrikes));
-
-        sHold = GetIniData("watcher", "StartSUTAgent", sIniFile, "true");
-        this.bStartSUTAgent = Boolean.parseBoolean(sHold.trim());
 
         sHold = GetIniData("watcher", "stayon", sIniFile,"0");
         int nStayOn = Integer.parseInt(sHold.trim());
@@ -191,15 +216,9 @@ public class WatcherService extends Service
 
     private void handleCommand(Intent intent)
         {
-        
-        
-        
+        String sCmd = intent.getStringExtra("command");
 
-        String sCmd = "start";
-        if (intent != null)
-            {
-            sCmd = intent.getStringExtra("command");
-            }
+
 
         if (sCmd != null)
             {
@@ -476,12 +495,9 @@ public class WatcherService extends Service
         boolean bRet = false;
         ActivityManager aMgr = (ActivityManager) getApplicationContext().getSystemService(Activity.ACTIVITY_SERVICE);
         List <ActivityManager.RunningAppProcessInfo> lProcesses = aMgr.getRunningAppProcesses();
-        int    nProcs = 0;
+        int    nProcs = lProcesses.size();
         int lcv = 0;
         String strProcName = "";
-
-        if (lProcesses != null)
-            nProcs = lProcesses.size();
 
         for (lcv = 0; lcv < nProcs; lcv++)
             {
@@ -503,7 +519,6 @@ public class WatcherService extends Service
         theArgs[0] = "su";
         theArgs[1] = "-c";
         theArgs[2] = "reboot";
-        Log.i("Watcher", "Running reboot!");
 
         try
             {
@@ -539,12 +554,8 @@ public class WatcherService extends Service
         int lcv = 0;
         String strProcName = "";
         int    nPID = 0;
-        int nProcs = 0;
 
-        if (lProcesses != null)
-            nProcs = lProcesses.size();
-
-        for (lcv = 0; lcv < nProcs; lcv++)
+        for (lcv = 0; lcv < lProcesses.size(); lcv++)
             {
             if (lProcesses.get(lcv).processName.contains(sProcName))
                 {
@@ -587,10 +598,7 @@ public class WatcherService extends Service
             {
             sRet = "Successfully killed " + nPID + " " + strProcName + "\n";
             lProcesses = aMgr.getRunningAppProcesses();
-            nProcs = 0;
-            if (lProcesses != null)
-                nProcs = lProcesses.size();
-            for (lcv = 0; lcv < nProcs; lcv++)
+            for (lcv = 0; lcv < lProcesses.size(); lcv++)
                 {
                 if (lProcesses.get(lcv).processName.contains(sProcName))
                     {
@@ -766,11 +774,11 @@ public class WatcherService extends Service
         theArgs[1] = "-c";
         theArgs[2] = "3";
         theArgs[3] = sIPAddr;
-        Log.i("Watcher", "Pinging " + sIPAddr);
 
         try
             {
             pProc = Runtime.getRuntime().exec(theArgs);
+
             InputStream sutOut = pProc.getInputStream();
             InputStream sutErr = pProc.getErrorStream();
 
@@ -843,7 +851,6 @@ public class WatcherService extends Service
             e.printStackTrace();
             }
 
-        Log.i("Watcher", String.format("Ping result was: '%s'", sRet.trim()));
         return (sRet);
         }
 
@@ -907,38 +914,33 @@ public class WatcherService extends Service
                 return;
 
             
-            
-            if (nMaxStrikes > 0)
+            String sRet = SendPing(sPingTarget);
+            if (!sRet.contains("3 received"))
                 {
-                    String sRet = SendPing(sPingTarget);
-                    if (!sRet.contains("3 received"))
-                        {
-                            Log.i("Watcher", String.format("Failed ping attempt (remaining: %s)!",
-                                                           nMaxStrikes - nStrikes));
-                            if (++nStrikes >= nMaxStrikes)
-                                {
-                                    Log.e("Watcher", String.format("Number of failed ping attempts to %s (%s) exceeded maximum (%s), running reboot!", sPingTarget, nStrikes, nMaxStrikes));
-                                    RunReboot(null);
-                                }
-                        }
-                    else
-                        {
-                            nStrikes = 0;
-                        }
+                if (nMaxStrikes > 0)
+                    {
+                    if (++nStrikes >= nMaxStrikes)
+                        RunReboot(null);
+                    }
                 }
+            else
+                {
+                nStrikes = 0;
+                }
+            sRet = null;
 
             String sProgramName = "com.mozilla.SUTAgentAndroid";
+            PackageManager pm = myContext.getPackageManager();
 
 
 
-            if (bStartSUTAgent && !GetProcessInfo(sProgramName))
+            if (!GetProcessInfo(sProgramName))
                 {
                 Intent agentIntent = new Intent();
                 agentIntent.setPackage(sProgramName);
                 agentIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 agentIntent.setAction(Intent.ACTION_MAIN);
                 try {
-                    PackageManager pm = myContext.getPackageManager();
                     PackageInfo pi = pm.getPackageInfo(sProgramName, PackageManager.GET_ACTIVITIES | PackageManager.GET_INTENT_FILTERS);
                     ActivityInfo [] ai = pi.activities;
                     for (int i = 0; i < ai.length; i++)
