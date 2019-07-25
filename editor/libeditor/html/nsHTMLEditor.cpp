@@ -3856,12 +3856,16 @@ void
 nsHTMLEditor::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
                               nsIContent* aChild, PRInt32 )
 {
-  if (!aChild || !aChild->IsElement()) {
+  if (!aChild) {
     return;
   }
 
   if (ShouldReplaceRootElement()) {
     ResetRootElementAndEventTarget();
+  }
+  
+  else if (!mAction) {
+    mRules->DocumentModified();
   }
 }
 
@@ -3872,6 +3876,10 @@ nsHTMLEditor::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
 {
   if (SameCOMIdentity(aChild, mRootElement)) {
     ResetRootElementAndEventTarget();
+  }
+  
+  else if (!mAction) {
+    mRules->DocumentModified();
   }
 }
 

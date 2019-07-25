@@ -9160,3 +9160,28 @@ nsHTMLEditRules::WillRelativeChangeZIndex(nsISelection *aSelection,
   PRInt32 zIndex;
   return absPosHTMLEditor->RelativeChangeElementZIndex(elt, aChange, &zIndex);
 }
+
+NS_IMETHODIMP
+nsHTMLEditRules::DocumentModified()
+{
+  nsContentUtils::AddScriptRunner(NS_NewRunnableMethod(this, &nsHTMLEditRules::DocumentModifiedWorker));
+  return NS_OK;
+}
+
+void
+nsHTMLEditRules::DocumentModifiedWorker()
+{
+  nsCOMPtr<nsISelection> selection;
+  nsresult res = mHTMLEditor->GetSelection(getter_AddRefs(selection));
+  NS_ENSURE_SUCCESS(res, );
+
+  
+  
+  if (mBogusNode) {
+    mEditor->DeleteNode(mBogusNode);
+    mBogusNode = nsnull;
+  }
+
+  
+  CreateBogusNodeIfNeeded(selection);
+}
