@@ -65,6 +65,10 @@ BrowserElementChild.prototype = {
                                  Ci.nsIWebProgress.NOTIFY_SECURITY |
                                  Ci.nsIWebProgress.NOTIFY_STATE_WINDOW);
 
+    docShell.QueryInterface(Ci.nsIWebNavigation)
+            .sessionHistory = Cc["@mozilla.org/browser/shistory;1"]
+                                .createInstance(Ci.nsISHistory);
+
     
     var securityUI = Cc['@mozilla.org/secure_browser_ui;1']
                        .createInstance(Ci.nsISecureBrowserUI);
