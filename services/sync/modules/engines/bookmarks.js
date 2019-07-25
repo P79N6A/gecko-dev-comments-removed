@@ -244,6 +244,9 @@ BookmarksStore.prototype = {
       
       if (record._orphan)
         Utils.anno(itemId, PARENT_ANNO, "T" + parentGUID);
+      
+      else
+        this._attachFollowers(itemId);
 
       
       
@@ -291,6 +294,33 @@ BookmarksStore.prototype = {
       if (itemId == -1 || Svc.Annos.itemHasAnnotation(itemId, PREDECESSOR_ANNO))
         break;
     } while (itemId != stopId);
+  },
+
+  
+
+
+  _attachFollowers: function BStore__attachFollowers(predId) {
+    let predGUID = GUIDForId(predId);
+    let followers = this._findAnnoItems(PREDECESSOR_ANNO, predGUID);
+    if (followers.length > 1)
+      this._log.warn(predId + " has more than one followers: " + followers);
+
+    
+    let parent = Svc.Bookmark.getFolderIdForItem(predId);
+    followers.forEach(function(follow) {
+      this._log.trace("Repositioning " + follow + " behind " + predId);
+      if (Svc.Bookmark.getFolderIdForItem(follow) != parent) {
+        this._log.warn("Follower doesn't have the same parent: " + parent);
+        return;
+      }
+
+      
+      let insertPos = Svc.Bookmark.getItemIndex(predId) + 1;
+      this._moveItemChain(follow, insertPos, predId);
+
+      
+      Svc.Annos.removeItemAnnotation(follow, PREDECESSOR_ANNO);
+    }, this);
   },
 
   create: function BStore_create(record) {
@@ -359,15 +389,10 @@ BookmarksStore.prototype = {
     this._setGUID(newId, record.id);
 
     
-    let parented = [];
-    if (!record._orphan)
-      parented.push(newId);
-
-    
     if (record.type == "folder") {
       let orphans = this._findAnnoItems(PARENT_ANNO, record.id);
       this._log.debug("Reparenting orphans " + orphans + " to " + record.title);
-      orphans.forEach(function(orphan) {
+      orphans.map(function(orphan) {
         
         let insertPos = Svc.Bookmark.DEFAULT_INDEX;
         if (!Svc.Annos.itemHasAnnotation(orphan, PREDECESSOR_ANNO))
@@ -376,34 +401,11 @@ BookmarksStore.prototype = {
         
         Svc.Bookmark.moveItem(orphan, newId, insertPos);
         Svc.Annos.removeItemAnnotation(orphan, PARENT_ANNO);
-        parented.push(orphan);
-      });
+
+        
+        return orphan;
+      }).forEach(this._attachFollowers, this);
     }
-
-    
-    parented.forEach(function(predId) {
-      let predGUID = GUIDForId(predId);
-      let followers = this._findAnnoItems(PREDECESSOR_ANNO, predGUID);
-      if (followers.length > 1)
-        this._log.warn(predId + " has more than one followers: " + followers);
-
-      
-      let parent = Svc.Bookmark.getFolderIdForItem(predId);
-      followers.forEach(function(follow) {
-        this._log.debug("Repositioning " + follow + " behind " + predId);
-        if (Svc.Bookmark.getFolderIdForItem(follow) != parent) {
-          this._log.warn("Follower doesn't have the same parent: " + parent);
-          return;
-        }
-
-        
-        let insertPos = Svc.Bookmark.getItemIndex(predId) + 1;
-        this._moveItemChain(follow, insertPos, predId);
-
-        
-        Svc.Annos.removeItemAnnotation(follow, PREDECESSOR_ANNO);
-      }, this);
-    }, this);
   },
 
   remove: function BStore_remove(record) {
