@@ -38,6 +38,7 @@
 
 
 #ifdef MOZ_IPC
+#include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/ContentChild.h"
 #endif
 #include "nsPermissionManager.h"
@@ -59,7 +60,10 @@
 #include "mozStorageCID.h"
 #include "nsXULAppAPI.h"
 
+static nsPermissionManager *gPermissionManager = nsnull;
+
 #ifdef MOZ_IPC
+using mozilla::dom::ContentParent;
 using mozilla::dom::ContentChild;
 
 static PRBool
@@ -84,15 +88,39 @@ ChildProcess()
 
   return nsnull;
 }
+
+
+
+
+
+
+static ContentParent*
+ParentProcess()
+{
+  if (!IsChildProcess()) {
+    ContentParent* cpc = ContentParent::GetSingleton();
+    if (!cpc)
+      NS_RUNTIMEABORT("Content Process is NULL!");
+    return cpc;
+  }
+
+  return nsnull;
+}
 #endif
 
-#define ENSURE_NOT_CHILD_PROCESS \
+#define ENSURE_NOT_CHILD_PROCESS_(onError) \
   PR_BEGIN_MACRO \
   if (IsChildProcess()) { \
-    NS_ERROR("cannot set permission from content process"); \
-    return NS_ERROR_NOT_AVAILABLE; \
+    NS_ERROR("Cannot perform action in content process!"); \
+    onError \
   } \
   PR_END_MACRO
+
+#define ENSURE_NOT_CHILD_PROCESS \
+  ENSURE_NOT_CHILD_PROCESS_({ return NS_ERROR_NOT_AVAILABLE; })
+
+#define ENSURE_NOT_CHILD_PROCESS_NORET \
+  ENSURE_NOT_CHILD_PROCESS_()
 
 
 
@@ -144,12 +172,46 @@ NS_IMPL_ISUPPORTS3(nsPermissionManager, nsIPermissionManager, nsIObserver, nsISu
 
 nsPermissionManager::nsPermissionManager()
  : mLargestID(0)
+ , mUpdateChildProcess(PR_FALSE)
 {
 }
 
 nsPermissionManager::~nsPermissionManager()
 {
   RemoveAllFromMemory();
+}
+
+
+nsIPermissionManager*
+nsPermissionManager::GetXPCOMSingleton()
+{
+  return GetSingleton();
+}
+
+
+nsIPermissionManager*
+nsPermissionManager::GetSingleton()
+{
+  if (gPermissionManager) {
+    NS_ADDREF(gPermissionManager);
+    return gPermissionManager;
+  }
+
+  
+  
+  
+  
+  
+  
+  gPermissionManager = new nsPermissionManager();
+  if (gPermissionManager) {
+    NS_ADDREF(gPermissionManager);
+    if (NS_FAILED(gPermissionManager->Init())) {
+      NS_RELEASE(gPermissionManager);
+    }
+  }
+
+  return gPermissionManager;
 }
 
 nsresult
@@ -162,9 +224,20 @@ nsPermissionManager::Init()
   }
 
 #ifdef MOZ_IPC
-  
-  if (IsChildProcess())
+  if (IsChildProcess()) {
+    
+    nsTArray<IPC::Permission> perms;
+    ChildProcess()->SendReadPermissions(&perms);
+
+    for (int i = 0; i < perms.Length(); i++) {
+      const IPC::Permission &perm = perms[i];
+      AddInternal(perm.host, perm.type, perm.capability, 0, perm.expireType,
+                  perm.expireTime, eNotify, eNoDBOperation);
+    }
+
+    
     return NS_OK;
+  }
 #endif
 
   
@@ -228,8 +301,8 @@ nsPermissionManager::InitDB(PRBool aRemoveFile)
   PRBool tableExists = PR_FALSE;
   mDBConn->TableExists(NS_LITERAL_CSTRING("moz_hosts"), &tableExists);
   if (!tableExists) {
-      rv = CreateTable();
-      NS_ENSURE_SUCCESS(rv, rv);
+    rv = CreateTable();
+    NS_ENSURE_SUCCESS(rv, rv);
 
   } else {
     
@@ -399,6 +472,18 @@ nsPermissionManager::AddInternal(const nsAFlatCString &aHost,
                                  NotifyOperationType   aNotifyOperation,
                                  DBOperationType       aDBOperation)
 {
+#ifdef MOZ_IPC
+  if (!IsChildProcess()) {
+    
+    if (mUpdateChildProcess) {
+      IPC::Permission permission((aHost),
+                                 (aType),
+                                 aPermission, aExpireType, aExpireTime);
+      ParentProcess()->SendAddPermission(permission);
+    }
+  }
+#endif
+
   if (!gHostArena) {
     gHostArena = new PLArenaPool;
     if (!gHostArena)
@@ -593,13 +678,6 @@ nsPermissionManager::TestExactPermission(nsIURI     *aURI,
                                          const char *aType,
                                          PRUint32   *aPermission)
 {
-#ifdef MOZ_IPC
-  ContentChild* cpc = ChildProcess();
-  if (cpc) {
-    return cpc->SendTestPermission(aURI, nsDependentCString(aType), PR_TRUE,
-      aPermission) ? NS_OK : NS_ERROR_FAILURE;
-  }
-#endif
   return CommonTestPermission(aURI, aType, aPermission, PR_TRUE);
 }
 
@@ -608,13 +686,6 @@ nsPermissionManager::TestPermission(nsIURI     *aURI,
                                     const char *aType,
                                     PRUint32   *aPermission)
 {
-#ifdef MOZ_IPC
-  ContentChild* cpc = ChildProcess();
-  if (cpc) {
-    return cpc->SendTestPermission(aURI, nsDependentCString(aType), PR_FALSE,
-      aPermission) ? NS_OK : NS_ERROR_FAILURE;
-  }
-#endif
   return CommonTestPermission(aURI, aType, aPermission, PR_FALSE);
 }
 
@@ -845,6 +916,10 @@ nsPermissionManager::NotifyObservers(nsIPermission   *aPermission,
 nsresult
 nsPermissionManager::Read()
 {
+#ifdef MOZ_IPC
+  ENSURE_NOT_CHILD_PROCESS;
+#endif
+
   nsresult rv;
 
   
@@ -911,6 +986,10 @@ static const char kMatchTypeHost[] = "host";
 nsresult
 nsPermissionManager::Import()
 {
+#ifdef MOZ_IPC
+  ENSURE_NOT_CHILD_PROCESS;
+#endif
+
   nsresult rv;
 
   nsCOMPtr<nsIFile> permissionsFile;
@@ -1015,6 +1094,10 @@ nsPermissionManager::UpdateDB(OperationType         aOp,
                               PRUint32              aExpireType,
                               PRInt64               aExpireTime)
 {
+#ifdef MOZ_IPC
+  ENSURE_NOT_CHILD_PROCESS_NORET;
+#endif
+
   nsresult rv;
 
   

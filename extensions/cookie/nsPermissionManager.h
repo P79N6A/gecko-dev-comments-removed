@@ -49,6 +49,7 @@
 #include "nsTHashtable.h"
 #include "nsTArray.h"
 #include "nsString.h"
+#include "nsPermission.h"
 
 class nsIPermission;
 class nsIIDNService;
@@ -166,9 +167,9 @@ public:
 
   nsPermissionManager();
   virtual ~nsPermissionManager();
+  static nsIPermissionManager* GetXPCOMSingleton();
+  static nsIPermissionManager* GetSingleton();
   nsresult Init();
-
-private:
 
   
   enum OperationType {
@@ -196,6 +197,8 @@ private:
                        PRInt64  aExpireTime,
                        NotifyOperationType aNotifyOperation,
                        DBOperationType aDBOperation);
+
+private:
 
   PRInt32 GetTypeIndex(const char *aTypeString,
                        PRBool      aAdd);
@@ -247,10 +250,23 @@ private:
 
   
   nsTArray<nsCString>          mTypeArray;
+
+#ifdef MOZ_IPC
+  
+  
+  
+  PRBool                       mUpdateChildProcess;
+
+public:
+  void ChildRequestPermissions()
+  {
+    mUpdateChildProcess = PR_TRUE;
+  }
+#endif
 };
 
 
 #define NS_PERMISSIONMANAGER_CID \
 { 0x4f6b5e00, 0xc36, 0x11d5, { 0xa5, 0x35, 0x0, 0x10, 0xa4, 0x1, 0xeb, 0x10 } }
 
-#endif
+#endif 
