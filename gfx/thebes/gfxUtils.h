@@ -44,6 +44,7 @@
 
 class gfxDrawable;
 class nsIntRegion;
+class nsIntRect;
 
 class THEBES_API gfxUtils {
 public:
@@ -99,6 +100,13 @@ public:
 
 
     static int ImageFormatToDepth(gfxASurface::gfxImageFormat aFormat);
+
+    
+
+
+
+
+    static PRBool GfxRectToIntRect(const gfxRect& aIn, nsIntRect* aOut);
 };
 
 #endif
