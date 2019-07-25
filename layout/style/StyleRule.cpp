@@ -1376,25 +1376,6 @@ StyleRule::RuleMatched()
   }
 }
 
- already_AddRefed<nsIStyleSheet>
-StyleRule::GetStyleSheet() const
-{
-
-  return nsCSSRule::GetStyleSheet();
-}
-
- void
-StyleRule::SetStyleSheet(nsCSSStyleSheet* aSheet)
-{
-  nsCSSRule::SetStyleSheet(aSheet);
-}
-
- void
-StyleRule::SetParentRule(GroupRule* aRule)
-{
-  nsCSSRule::SetParentRule(aRule);
-}
-
  PRInt32
 StyleRule::GetType() const
 {
