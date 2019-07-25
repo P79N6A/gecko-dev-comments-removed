@@ -60,6 +60,18 @@ public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSICONSOLESERVICE
 
+    void SetIsDelivering() {
+        MOZ_ASSERT(NS_IsMainThread());
+        MOZ_ASSERT(!mDeliveringMessage);
+        mDeliveringMessage = true;
+    }
+
+    void SetDoneDelivering() {
+        MOZ_ASSERT(NS_IsMainThread());
+        MOZ_ASSERT(mDeliveringMessage);
+        mDeliveringMessage = false;
+    }
+
 private:
     ~nsConsoleService();
 
@@ -74,6 +86,11 @@ private:
 
     
     bool mFull;
+
+    
+    
+    
+    bool mDeliveringMessage;
 
     
     nsInterfaceHashtable<nsISupportsHashKey, nsIConsoleListener> mListeners;
