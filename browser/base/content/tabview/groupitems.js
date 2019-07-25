@@ -708,17 +708,10 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     let closestTabItem = UI.getClosestTab(closeCenter);
     UI.setActiveTab(closestTabItem);
 
-    
-    if (closestTabItem) {
-      if (closestTabItem.parent) {
-        GroupItems.setActiveGroupItem(closestTabItem.parent);
-      } else {
-        GroupItems.setActiveOrphanTab(closestTabItem);
-      }
-    } else {
+    if (closestTabItem && closestTabItem.parent)
+      GroupItems.setActiveGroupItem(closestTabItem.parent);
+    else
       GroupItems.setActiveGroupItem(null);
-      GroupItems.setActiveOrphanTab(null);
-    }
   },
 
   
@@ -2256,7 +2249,7 @@ let GroupItems = {
       return;
     }
 
-    let orphanTabItem = this.getActiveOrphanTab();
+    let orphanTabItem = UI.getActiveOrphanTab();
     if (!orphanTabItem) {
       let targetGroupItem;
       
@@ -2347,8 +2340,6 @@ let GroupItems = {
     if (groupItem !== null) {
       if (groupItem)
         iQ(groupItem.container).addClass('activeGroupItem');
-      
-      this.setActiveOrphanTab(null);
     }
 
     this._activeGroupItem = groupItem;
@@ -2358,38 +2349,22 @@ let GroupItems = {
   
   
   
-  getActiveOrphanTab: function GroupItems_getActiveOrphanTab() {
-    return this._activeOrphanTab;
-  },
-
-  
-  
-  
-  
-  
-  
-  
-  setActiveOrphanTab: function GroupItems_setActiveOrphanTab(tabItem) {
-    if (tabItem !== null)
-      this.setActiveGroupItem(null);
-    this._activeOrphanTab = tabItem;
-  },
-
-  
-  
-  
   
   _updateTabBar: function GroupItems__updateTabBar() {
     if (!window.UI)
       return; 
-      
-    if (!this._activeGroupItem && !this._activeOrphanTab) {
-      Utils.assert(false, "There must be something to show in the tab bar!");
-      return;
+
+    let activeOrphanTab;
+    if (!this._activeGroupItem) {
+      activeOrphanTab = UI.getActiveOrphanTab();
+      if (!activeOrphanTab) {
+        Utils.assert(false, "There must be something to show in the tab bar!");
+        return;
+      }
     }
 
     let tabItems = this._activeGroupItem == null ?
-      [this._activeOrphanTab] : this._activeGroupItem._children;
+      [activeOrphanTab] : this._activeGroupItem._children;
     gBrowser.showOnlyTheseTabs(tabItems.map(function(item) item.tab));
   },
 
@@ -2400,12 +2375,9 @@ let GroupItems = {
     Utils.assertThrow(tabItem && tabItem.isATabItem, "tabItem must be a TabItem");
 
     let groupItem = tabItem.parent;
-
-    if (groupItem) {
-      this.setActiveGroupItem(groupItem);
+    this.setActiveGroupItem(groupItem);
+    if (groupItem)
       groupItem.setActiveTab(tabItem);
-    } else
-      this.setActiveOrphanTab(tabItem);
 
     this._updateTabBar();
   },
@@ -2429,7 +2401,7 @@ let GroupItems = {
   getNextGroupItemTab: function GroupItems_getNextGroupItemTab(reverse) {
     var groupItems = Utils.copy(GroupItems.groupItems);
     var activeGroupItem = GroupItems.getActiveGroupItem();
-    var activeOrphanTab = GroupItems.getActiveOrphanTab();
+    var activeOrphanTab = UI.getActiveOrphanTab();
     var tabItem = null;
 
     if (reverse)

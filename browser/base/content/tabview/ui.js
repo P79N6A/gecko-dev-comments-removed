@@ -206,7 +206,7 @@ let UI = {
                        TabItems.tabWidth, TabItems.tabHeight);
             newTab._tabViewTabItem.setBounds(box, true);
             newTab._tabViewTabItem.pushAway(true);
-            GroupItems.setActiveOrphanTab(newTab._tabViewTabItem);
+            UI.setActiveTab(newTab._tabViewTabItem);
 
             TabItems.creatingNewOrphanTab = false;
             newTab._tabViewTabItem.zoomIn(true);
@@ -380,7 +380,6 @@ let UI = {
   
   
   
-  
   getActiveTab: function UI_getActiveTab() {
     return this._activeTab;
   },
@@ -413,6 +412,13 @@ let UI = {
 
       this._activeTab.makeActive();
     }
+  },
+
+  
+  
+  
+  getActiveOrphanTab: function UI_getActiveOrphanTab() {
+    return (this._activeTab && !this._activeTab.parent) ? this._activeTab : null;
   },
 
   
@@ -476,7 +482,7 @@ let UI = {
     
     
     let activeGroupItem = null;
-    if (!GroupItems.getActiveOrphanTab()) {
+    if (!UI.getActiveOrphanTab()) {
       activeGroupItem = GroupItems.getActiveGroupItem();
       if (activeGroupItem && activeGroupItem.closeIfEmpty())
         activeGroupItem = null;
@@ -863,22 +869,18 @@ let UI = {
       
       
       
-      if (!GroupItems.getActiveGroupItem() && !GroupItems.getActiveOrphanTab()) {
+      if (!GroupItems.getActiveGroupItem() && !UI.getActiveOrphanTab()) {
         for (let a = 0; a < gBrowser.tabs.length; a++) {
           let theTab = gBrowser.tabs[a]; 
           if (!theTab.pinned) {
             let tabItem = theTab._tabViewTabItem; 
-            if (tabItem.parent) 
-              GroupItems.setActiveGroupItem(tabItem.parent);
-            else 
-              GroupItems.setActiveOrphanTab(tabItem); 
-              
+            GroupItems.setActiveGroupItem(tabItem.parent);
             break;
           }
         }
       }
 
-      if (GroupItems.getActiveGroupItem() || GroupItems.getActiveOrphanTab())
+      if (GroupItems.getActiveGroupItem() || UI.getActiveOrphanTab())
         GroupItems._updateTabBar();
     }
   },
