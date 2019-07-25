@@ -2286,17 +2286,6 @@ public abstract class TreeBuilder<T> implements TokenHandler,
                                 attributes = null; 
                                 break starttagloop;
                             case RT_OR_RP:
-                                
-
-
-
-
-
-
-
-
-
-
                                 eltPos = findLastInScope("ruby");
                                 if (eltPos != NOT_FOUND_ON_STACK) {
                                     generateImpliedEndTags();
@@ -2306,9 +2295,6 @@ public abstract class TreeBuilder<T> implements TokenHandler,
                                         errStartTagSeenWithoutRuby(name);
                                     } else {
                                         errUnclosedChildrenInRuby();
-                                    }
-                                    while (currentPtr > eltPos) {
-                                        pop();
                                     }
                                 }
                                 appendToCurrentNodeAndPushElementMayFoster(
