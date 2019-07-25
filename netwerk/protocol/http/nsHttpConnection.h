@@ -165,6 +165,9 @@ private:
     nsCOMPtr<nsIInputStream>        mSSLProxyConnectStream;
     nsCOMPtr<nsIInputStream>        mRequestStream;
 
+    
+    
+    nsRefPtr<nsAHttpTransaction>    mTransactionReference;
     nsAHttpTransaction             *mTransaction; 
     nsHttpConnectionInfo           *mConnInfo;    
 
@@ -179,6 +182,7 @@ private:
     PRPackedBool                    mSupportsPipelining;
     PRPackedBool                    mIsReused;
     PRPackedBool                    mCompletedSSLConnect;
+    PRPackedBool                    mResetCallbackOnActivation;
 
     PRUint32                        mActivationCount;
 
