@@ -2599,7 +2599,9 @@ Tab.prototype = {
 
     if (!faviconURI || faviconURI.schemeIs("javascript") || gFaviconService.isFailedFavicon(faviconURI)) {
       try {
-        faviconURI = gIOService.newURI(this._browser.currentURI.prePath + "/favicon.ico", null, null);
+        
+        
+        faviconURI = gIOService.newURI(this._browser.contentDocument.documentURIObject.prePath + "/favicon.ico", null, null);
         gFaviconService.setAndLoadFaviconForPage(this._browser.currentURI, faviconURI, true);
       }
       catch (e) {

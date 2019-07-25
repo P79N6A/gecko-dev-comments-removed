@@ -390,10 +390,6 @@ var BrowserUI = {
     let icons = document.getElementById("urlbar-icons");
     let browser = Browser.selectedBrowser;
 
-    
-    
-    let uri = browser.contentDocument.documentURIObject;
-
     switch (aState) {
       case TOOLBARSTATE_LOADED:
         if (icons.getAttribute("mode") != "edit")
