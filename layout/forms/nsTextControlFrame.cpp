@@ -543,6 +543,10 @@ nsTextControlFrame::Reflow(nsPresContext*   aPresContext,
     ReflowTextControlChild(kid, aPresContext, aReflowState, aStatus, aDesiredSize);
     kid = kid->GetNextSibling();
   }
+
+  
+  CheckInvalidateSizeChange(aDesiredSize);
+
   
   FinishAndStoreOverflow(&aDesiredSize);
 
