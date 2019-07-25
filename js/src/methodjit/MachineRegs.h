@@ -79,13 +79,14 @@ struct AnyRegisterID {
     inline const char * name();
 
   private:
-    void pin() {
+    unsigned * pin() {
         
 
 
 
         static unsigned *v;
         v = &reg_;
+        return v;
     }
 };
 

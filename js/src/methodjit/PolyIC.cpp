@@ -1619,8 +1619,19 @@ class ScopeNameCompiler : public PICStubCompiler
             JS_ASSERT(shape->getterOp() == GetCallArg || shape->getterOp() == GetCallVar);
             JSScript *newscript = getprop.obj->getCallObjCalleeFunction()->script();
             uint16 slot = uint16(getprop.shape->shortid);
-            if (!newscript->ensureTypeArray(cx))
+
+            
+
+
+
+
+
+            analyze::ScriptAnalysis *analysis = newscript->analysis(cx);
+            if (analysis && !analysis->ranInference())
+                analysis->analyzeTypes(cx);
+            if (!analysis || analysis->OOM())
                 return false;
+
             if (shape->getterOp() == GetCallArg)
                 types = newscript->argTypes(slot);
             else if (shape->getterOp() == GetCallVar)

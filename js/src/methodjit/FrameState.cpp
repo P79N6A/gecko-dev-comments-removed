@@ -2230,7 +2230,6 @@ FrameState::storeTop(FrameEntry *target)
 
 
     FrameEntry *backing = top;
-    bool copied = false;
     if (top->isCopy()) {
         backing = top->copyOf();
         JS_ASSERT(backing->trackerIndex() < top->trackerIndex());
@@ -2267,10 +2266,8 @@ FrameState::storeTop(FrameEntry *target)
             FrameEntry *fe = tracker[i];
             if (deadEntry(fe))
                 continue;
-            if (fe->isCopy() && fe->copyOf() == backing) {
+            if (fe->isCopy() && fe->copyOf() == backing)
                 fe->setCopyOf(target);
-                copied = true;
-            }
         }
     }
     
