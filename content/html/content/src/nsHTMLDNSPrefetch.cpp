@@ -192,8 +192,7 @@ nsHTMLDNSPrefetch::Prefetch(nsAString &hostname, PRUint16 flags)
     return NS_ERROR_NOT_AVAILABLE;
 
   nsCOMPtr<nsICancelable> tmpOutstanding;
-  return sDNSService->AsyncResolve(NS_ConvertUTF16toUTF8(hostname),
-                                   flags | nsIDNSService::RESOLVE_SPECULATE,
+  return sDNSService->AsyncResolve(NS_ConvertUTF16toUTF8(hostname), flags | nsIDNSService::RESOLVE_SPECULATE,
                                    sDNSListener, nsnull, getter_AddRefs(tmpOutstanding));
 }
 
@@ -214,71 +213,6 @@ nsHTMLDNSPrefetch::PrefetchHigh(nsAString &hostname)
 {
   return Prefetch(hostname, 0);
 }
-
-nsresult
-nsHTMLDNSPrefetch::CancelPrefetch(Link *aElement, PRUint16 flags, nsresult aReason)
-{
-  nsAutoString hostname;
-  nsresult rv = aElement->GetHostname(hostname);
-  if (IsNeckoChild()) {
-    
-    
-    
-    NS_ENSURE_SUCCESS(rv,rv);
-
-    
-    return CancelPrefetch(hostname, flags, aReason);
-  }
-
-  if (!(sInitialized && sPrefetches && sDNSService && sDNSListener))
-    return NS_ERROR_NOT_AVAILABLE;
-
-  
-  bool found = false;
-  rv = sPrefetches->Remove(flags, aElement, &found);
-  NS_ENSURE_SUCCESS(rv, rv);
-  
-  
-  if (!found)
-    rv = CancelPrefetch(hostname, flags, aReason);
-  return rv;
-}
-
-nsresult
-nsHTMLDNSPrefetch::CancelPrefetch(nsAString &hostname, PRUint16 flags, nsresult aReason)
-{
-  
-  if (IsNeckoChild()) {
-    
-    
-    if (!hostname.IsEmpty() &&
-        net_IsValidHostName(NS_ConvertUTF16toUTF8(hostname))) {
-      gNeckoChild->SendCancelHTMLDNSPrefetch(nsAutoString(hostname), flags, aReason);
-    }
-    return NS_OK;
-  }
-
-  if (!(sInitialized && sDNSService && sPrefetches && sDNSListener))
-    return NS_ERROR_NOT_AVAILABLE;
-
-  
-  return sDNSService->CancelAsyncResolve(NS_ConvertUTF16toUTF8(hostname),
-                                         flags | nsIDNSService::RESOLVE_SPECULATE,
-                                         sDNSListener, aReason);
-}
-
-nsresult
-nsHTMLDNSPrefetch::CancelPrefetchLow(Link *aElement, nsresult aReason)
-{
-  return CancelPrefetch(aElement, nsIDNSService::RESOLVE_PRIORITY_LOW, aReason);
-}
-
-nsresult
-nsHTMLDNSPrefetch::CancelPrefetchLow(nsAString &hostname, nsresult aReason)
-{
-  return CancelPrefetch(hostname, nsIDNSService::RESOLVE_PRIORITY_LOW, aReason);
-}
-
 
 
 
@@ -346,42 +280,6 @@ nsHTMLDNSPrefetch::nsDeferrals::Add(PRUint16 flags, Link *aElement)
     mTimer->InitWithFuncCallback(Tick, this, 2000, nsITimer::TYPE_ONE_SHOT);
   }
   
-  return NS_OK;
-}
-
-nsresult
-nsHTMLDNSPrefetch::nsDeferrals::Remove(PRUint16 aFlags, Link *aElement, bool *aFound)
-{
-  
-  NS_ASSERTION(NS_IsMainThread(), "nsDeferrals::Remove must be on main thread");
-
-  
-  
-  
-  
-  bool found = false;
-  PRUint16 curr = mTail;
-  while (curr != mHead) {
-    nsCOMPtr<nsIContent> content = do_QueryReferent(mEntries[curr].mElement);
-    if (content) {
-      nsCOMPtr<Link> link = do_QueryInterface(content);
-      if (link && (link == aElement) && (mEntries[curr].mFlags == aFlags)) {
-        
-        mEntries[curr].mElement = NULL;
-        mEntries[curr].mFlags = 0;
-        found = true;
-        break;
-      }
-    }
-    curr = (curr + 1) & sMaxDeferredMask;
-  }
-  
-  
-  if (found && (mTail != mHead))
-    mTail = (mTail + 1) & sMaxDeferredMask;
-
-  
-  *aFound = found;
   return NS_OK;
 }
 
