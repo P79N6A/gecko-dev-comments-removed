@@ -145,6 +145,8 @@ void nsBuiltinDecoder::Shutdown()
 
   mShuttingDown = PR_TRUE;
 
+  StopTimeUpdate();
+
   
   
   
@@ -387,6 +389,8 @@ void nsBuiltinDecoder::MetadataLoaded(PRUint32 aChannels,
   if (resourceIsLoaded) {
     ResourceLoaded();
   }
+
+  StartTimeUpdate();
 }
 
 void nsBuiltinDecoder::ResourceLoaded()
@@ -773,7 +777,7 @@ void nsBuiltinDecoder::PlaybackPositionChanged()
   Invalidate();
 
   if (mElement && lastTime != mCurrentTime) {
-    mElement->DispatchEvent(NS_LITERAL_STRING("timeupdate"));
+    FireTimeUpdate();
   }
 }
 

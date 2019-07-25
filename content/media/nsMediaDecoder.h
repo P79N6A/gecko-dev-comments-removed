@@ -207,6 +207,10 @@ public:
 
   
   
+  virtual void FireTimeUpdate();
+
+  
+  
   
   
   virtual void NotifySuspendedStatusChanged() = 0;
@@ -286,6 +290,12 @@ protected:
   nsresult StopProgress();
 
   
+  nsresult StartTimeUpdate();
+
+  
+  nsresult StopTimeUpdate();
+
+  
   void PinForSeek();
 
   
@@ -294,6 +304,9 @@ protected:
 protected:
   
   nsCOMPtr<nsITimer> mProgressTimer;
+
+  
+  nsCOMPtr<nsITimer> mTimeUpdateTimer;
 
   
   
@@ -311,10 +324,18 @@ protected:
 
   
   
+  TimeStamp mTimeUpdateTime;
+
+  
+  
   
   
   
   TimeStamp mDataTime;
+
+  
+  
+  float mLastCurrentTime;
 
   
   
