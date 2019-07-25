@@ -77,6 +77,16 @@ struct JS_FRIEND_API(JSCompartment) {
     
     JSCList scripts;
 
+    
+
+
+
+
+
+
+    JSObject            *anynameObject;
+    JSObject            *functionNamespaceObject;
+
     JSCompartment(JSRuntime *cx);
     ~JSCompartment();
 

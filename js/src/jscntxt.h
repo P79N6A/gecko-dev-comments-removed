@@ -1526,16 +1526,6 @@ struct JSRuntime {
     const char          *decimalSeparator;
     const char          *numGrouping;
 
-    
-
-
-
-
-
-
-    JSObject            *anynameObject;
-    JSObject            *functionNamespaceObject;
-
 #ifdef JS_THREADSAFE
     
     volatile int32      interruptCounter;
