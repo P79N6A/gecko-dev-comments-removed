@@ -303,9 +303,6 @@ PrimitiveThisTest(JSFunction *fun, const Value &v)
 extern JS_REQUIRES_STACK bool
 Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags);
 
-extern JS_REQUIRES_STACK JS_FRIEND_API(bool)
-InvokeFriendAPI(JSContext *cx, const InvokeArgsGuard &args, uintN flags);
-
 
 
 

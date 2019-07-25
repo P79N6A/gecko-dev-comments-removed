@@ -1266,8 +1266,8 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
                                 const XPTMethodDescriptor* info,
                                 nsXPTCMiniVariant* nativeParams)
 {
-    jsval* stackbase = nsnull;
     jsval* sp = nsnull;
+    jsval* argv = nsnull;
     uint8 i;
     uint8 argc=0;
     uint8 paramCount=0;
@@ -1283,7 +1283,6 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
     XPCContext* xpcc;
     JSContext* cx;
     JSObject* thisObj;
-    bool invokeCall;
 
     
     
@@ -1303,7 +1302,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
     }
 
     AutoScriptEvaluate scriptEval(cx);
-    js::InvokeArgsGuard args;
+    js::AutoValueVector args(cx);
     ContextPrincipalGuard principalGuard(ccx);
 
     obj = thisObj = wrapper->GetJSObject();
@@ -1359,8 +1358,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
     
 
     
-    invokeCall = !(XPT_MD_IS_SETTER(info->flags) || XPT_MD_IS_GETTER(info->flags));
-    if (invokeCall)
+    if (!(XPT_MD_IS_SETTER(info->flags) || XPT_MD_IS_GETTER(info->flags)))
     {
         
         
@@ -1461,25 +1459,14 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
         }
     }
 
-    
-
-
-
-    JS_ASSERT_IF(!invokeCall, argc < 2);
-    if (!cx->stack().pushInvokeArgsFriendAPI(cx, invokeCall ? argc : 0, args))
+    if (!args.resize(argc))
     {
         retval = NS_ERROR_OUT_OF_MEMORY;
         goto pre_call_clean_up;
     }
 
-    sp = stackbase = Jsvalify(args.getvp());
-
-    
-    if(invokeCall)
-    {
-        *sp++ = fval;
-        *sp++ = OBJECT_TO_JSVAL(thisObj);
-    }
+    argv = args.jsval_begin();
+    sp = argv;
 
     
     if(XPT_MD_IS_GETTER(info->flags) || XPT_MD_IS_SETTER(info->flags))
@@ -1679,17 +1666,27 @@ pre_call_clean_up:
 
     JS_ClearPendingException(cx);
 
-    
-    
+    jsval rval;
     if(XPT_MD_IS_GETTER(info->flags))
-        success = JS_GetProperty(cx, obj, name, stackbase);
+    {
+        success = JS_GetProperty(cx, obj, name, argv);
+        rval = *argv;
+    }
     else if(XPT_MD_IS_SETTER(info->flags))
-        success = JS_SetProperty(cx, obj, name, stackbase);
+    {
+        success = JS_SetProperty(cx, obj, name, argv);
+        rval = *argv;
+    }
     else
     {
         if(!JSVAL_IS_PRIMITIVE(fval))
         {
-            success = js::InvokeFriendAPI(cx, args, 0);
+            uint32 oldOpts = JS_GetOptions(cx);
+            JS_SetOptions(cx, oldOpts | JSOPTION_DONT_REPORT_UNCAUGHT);
+
+            success = JS_CallFunctionValue(cx, thisObj, fval, argc, argv, &rval);
+
+            JS_SetOptions(cx, oldOpts);
         }
         else
         {
@@ -1762,9 +1759,9 @@ pre_call_clean_up:
             pv = (nsXPTCMiniVariant*) nativeParams[i].val.p;
 
         if(param.IsRetval())
-            val = *stackbase;
-        else if(JSVAL_IS_PRIMITIVE(stackbase[i+2]) ||
-                !JS_GetPropertyById(cx, JSVAL_TO_OBJECT(stackbase[i+2]),
+            val = rval;
+        else if(JSVAL_IS_PRIMITIVE(argv[i]) ||
+                !JS_GetPropertyById(cx, JSVAL_TO_OBJECT(argv[i]),
                     mRuntime->GetStringID(XPCJSRuntime::IDX_VALUE),
                     &val))
             break;
@@ -1813,8 +1810,8 @@ pre_call_clean_up:
             pv = (nsXPTCMiniVariant*) nativeParams[i].val.p;
 
             if(param.IsRetval())
-                val = *stackbase;
-            else if(!JS_GetPropertyById(cx, JSVAL_TO_OBJECT(stackbase[i+2]),
+                val = rval;
+            else if(!JS_GetPropertyById(cx, JSVAL_TO_OBJECT(argv[i]),
                         mRuntime->GetStringID(XPCJSRuntime::IDX_VALUE),
                         &val))
                 break;
