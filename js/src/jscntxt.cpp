@@ -1856,13 +1856,6 @@ js_InvokeOperationCallback(JSContext *cx)
 #endif
     JS_UNLOCK_GC(rt);
 
-    
-
-
-
-
-
-
     if (rt->gcIsNeeded) {
         js_GC(cx, GC_NORMAL);
 
@@ -1879,10 +1872,19 @@ js_InvokeOperationCallback(JSContext *cx)
             return false;
         }
     }
+    
 #ifdef JS_THREADSAFE
-    else {
-        JS_YieldRequest(cx);
-    }
+    
+
+
+
+
+
+
+
+
+
+    JS_YieldRequest(cx);
 #endif
 
     JSOperationCallback cb = cx->operationCallback;
