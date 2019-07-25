@@ -13,7 +13,7 @@
 
 
 
-#define COMPOSITOR_PERFORMANCE_WARNING
+
 
 #include "mozilla/layers/PCompositorParent.h"
 #include "mozilla/layers/PLayersParent.h"
