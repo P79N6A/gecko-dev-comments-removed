@@ -1204,8 +1204,7 @@ NetworkPanel.prototype =
 
 
 
-
-function pruneConsoleOutputIfNecessary(aConsoleNode, aCategory)
+function pruneConsoleOutputIfNecessary(aHUDId, aCategory)
 {
   
   let logLimit;
@@ -1216,13 +1215,15 @@ function pruneConsoleOutputIfNecessary(aConsoleNode, aCategory)
     logLimit = DEFAULT_LOG_LIMIT;
   }
 
-  let scrollBox = aConsoleNode.scrollBoxObject.element;
+  let hudRef = HUDService.getHudReferenceById(aHUDId);
+  let outputNode = hudRef.outputNode;
+
+  let scrollBox = outputNode.scrollBoxObject.element;
   let oldScrollHeight = scrollBox.scrollHeight;
-  let scrolledToBottom = ConsoleUtils.isOutputScrolledToBottom(aConsoleNode);
-  let hudRef = HUDService.getHudReferenceForOutputNode(aConsoleNode);
+  let scrolledToBottom = ConsoleUtils.isOutputScrolledToBottom(outputNode);
 
   
-  let messageNodes = aConsoleNode.querySelectorAll(".webconsole-msg-" +
+  let messageNodes = outputNode.querySelectorAll(".webconsole-msg-" +
       CATEGORY_CLASS_FRAGMENTS[aCategory]);
   let removeNodes = messageNodes.length - logLimit;
   for (let i = 0; i < removeNodes; i++) {
@@ -1843,6 +1844,18 @@ HUD_SERVICE.prototype =
 
 
 
+  getHudByWindow: function HS_getHudByWindow(aContentWindow)
+  {
+    let hudId = this.getHudIdByWindow(aContentWindow);
+    return hudId ? this.hudReferences[hudId] : null;
+  },
+
+  
+
+
+
+
+
 
   getHudIdByWindow: function HS_getHudIdByWindow(aContentWindow)
   {
@@ -1856,39 +1869,9 @@ HUD_SERVICE.prototype =
 
 
 
-
-  getHudReferenceForOutputNode: function HS_getHudReferenceForOutputNode(aNode)
-  {
-    let node = aNode;
-    
-    while (!node.id && !node.classList.contains("hud-box")) {
-      if (node.parentNode) {
-        node = node.parentNode;
-      } else {
-        return null;
-      }
-    }
-    return this.getHudReferenceById(node.id);
-  },
-
-  
-
-
-
-
-
   getHudReferenceById: function HS_getHudReferenceById(aId)
   {
     return aId in this.hudReferences ? this.hudReferences[aId] : null;
-  },
-
-  
-
-
-
-  displaysIndex: function HS_displaysIndex()
-  {
-    return Object.keys(this.hudReferences);
   },
 
   
@@ -2587,29 +2570,6 @@ HUD_SERVICE.prototype =
 
     
     
-  },
-
-  
-
-
-
-
-
-  getContentWindowFromHUDId: function HS_getContentWindowFromHUDId(aHUDId)
-  {
-    var hud = this.getHudReferenceById(aHUDId).HUDBox;
-    var nodes = hud.parentNode.childNodes;
-
-    for (var i = 0; i < nodes.length; i++) {
-      var node = nodes[i];
-
-      if (node.localName == "stack" &&
-          node.firstChild &&
-          node.firstChild.contentWindow) {
-        return node.firstChild.contentWindow;
-      }
-    }
-    throw new Error("HS_getContentWindowFromHUD: Cannot get contentWindow");
   },
 
   
@@ -5744,7 +5704,7 @@ ConsoleUtils = {
 
     HUDService.regroupOutput(outputNode);
 
-    if (pruneConsoleOutputIfNecessary(outputNode, aNode.category) == 0) {
+    if (pruneConsoleOutputIfNecessary(aHUDId, aNode.category) == 0) {
       
       
       return;
