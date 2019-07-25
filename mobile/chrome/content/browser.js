@@ -167,6 +167,7 @@ function onKeyPress(e) {
   const m = 109;  
   const r = 114;  
   const t = 116;  
+  const z = 122;  
 
   switch (e.charCode) {
   case r:
@@ -220,6 +221,9 @@ function onKeyPress(e) {
     break;
   case m:
     bv.resumeRendering();
+    break;
+  case z:
+    bv.setZoomLevel(1.0);
     break;
   default:
     break;
