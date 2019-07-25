@@ -1810,7 +1810,7 @@ ChooseScaleAndSetTransform(FrameLayerBuilder* aLayerBuilder,
     
     
     if (fabs(scale.width) < 1e-8 || fabs(scale.height) < 1e-8) {
-      scale.width = scale.height = 1.0;
+      scale = gfxSize(1.0, 1.0);
     }
   } else {
     scale = gfxSize(1.0, 1.0);
