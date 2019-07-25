@@ -175,9 +175,6 @@ let UI = {
       
       Storage.init();
 
-      
-      StoragePolicy.init();
-
       if (Storage.readWindowBusyState(gWindow))
         this.storageBusy();
 
@@ -326,7 +323,7 @@ let UI = {
     TabItems.uninit();
     GroupItems.uninit();
     Storage.uninit();
-    StoragePolicy.uninit();
+    ThumbnailStorage.uninit();
 
     this._removeTabActionHandlers();
     this._currentTab = null;

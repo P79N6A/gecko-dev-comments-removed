@@ -776,22 +776,5 @@ let Utils = {
 
     
     return target;
-  },
-
-  
-  
-  
-  
-  
-  attempt: function () {
-    let args = arguments;
-
-    for (let i = 0; i < args.length; i++) {
-      try {
-        return args[i]();
-      } catch (e) {}
-    }
-
-    return null;
   }
 };
