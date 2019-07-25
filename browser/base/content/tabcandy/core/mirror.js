@@ -378,6 +378,13 @@ window.TabMirror = {
   
   resumePainting: function() {
     this._private.paintingPaused--;
+  },
+
+  
+  
+  
+  isPaintingPaused: function() {
+    return this._private.paintingPause > 0;
   }
 };
 
