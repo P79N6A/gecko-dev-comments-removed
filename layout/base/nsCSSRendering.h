@@ -415,10 +415,18 @@ struct nsCSSRendering {
 
 
 
-  static void PaintDecorationLine(gfxContext* aGfxContext,
+
+
+
+
+
+
+  static void PaintDecorationLine(nsIFrame* aFrame,
+                                  gfxContext* aGfxContext,
                                   const gfxRect& aDirtyRect,
                                   const nscolor aColor,
                                   const gfxPoint& aPt,
+                                  const gfxFloat aXInFrame,
                                   const gfxSize& aLineSize,
                                   const gfxFloat aAscent,
                                   const gfxFloat aOffset,
@@ -475,6 +483,32 @@ protected:
                                                const PRUint8 aDecoration,
                                                const PRUint8 aStyle,
                                                const gfxFloat aDscentLimit);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static gfxRect ExpandPaintingRectForDecorationLine(
+                   nsIFrame* aFrame,
+                   const PRUint8 aStyle,
+                   const gfxRect &aClippedRect,
+                   const gfxFloat aXInFrame,
+                   const gfxFloat aCycleLength);
 };
 
 
