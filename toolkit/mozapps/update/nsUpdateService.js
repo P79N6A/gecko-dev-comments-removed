@@ -1592,8 +1592,17 @@ UpdateService.prototype = {
                    createInstance(Ci.nsIUpdatePrompt);
 
     update.state = status;
-    this._submitTelemetryPing(status);
+    this._sendStatusCodeTelemetryPing(status);
+
     if (status == STATE_SUCCEEDED) {
+      
+      
+      
+      
+      
+      this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_ENABLED,
+                                      "UPDATER_UPDATES_ENABLED");
+
       update.statusText = gUpdateBundle.GetStringFromName("installSuccess");
 
       
@@ -1634,7 +1643,28 @@ UpdateService.prototype = {
 
 
 
-  _submitTelemetryPing: function AUS__submitTelemetryPing(status) {
+
+
+  _sendBoolPrefTelemetryPing: function AUS__boolTelemetryPing(pref, histogram) {
+    try {
+      
+      
+      
+      let val = getPref("getBoolPref", pref, false);
+      Services.telemetry.getHistogramById(histogram).add(+val);
+    } catch(e) {
+      
+      Components.utils.reportError(e);
+    }
+  },
+
+  
+
+
+
+
+
+  _sendStatusCodeTelemetryPing: function AUS__statusTelemetryPing(status) {
     try {
       let parts = status.split(":");
       if ((parts.length == 1 && status != STATE_SUCCEEDED) ||
