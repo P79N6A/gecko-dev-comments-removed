@@ -82,10 +82,13 @@ using namespace mozilla::layout;
 namespace mozilla {
 namespace dom {
 
+TabParent *TabParent::mIMETabParent = nsnull;
+
 NS_IMPL_ISUPPORTS4(TabParent, nsITabParent, nsIAuthPromptProvider, nsISSLStatusProvider, nsISecureBrowserUI)
 
 TabParent::TabParent()
   : mSecurityState(0)
+  , mIMECompositionEnding(PR_FALSE)
 {
 }
 
@@ -319,6 +322,9 @@ TabParent::RecvNotifyIMEFocus(const PRBool& aFocus,
   if (!widget)
     return true;
 
+  mIMETabParent = aFocus ? this : nsnull;
+  mIMESelectionAnchor = 0;
+  mIMESelectionFocus = 0;
   nsresult rv = widget->OnIMEFocusChange(aFocus);
 
   if (aFocus) {
@@ -355,6 +361,8 @@ TabParent::RecvNotifyIMESelection(const PRUint32& aAnchor,
   if (!widget)
     return true;
 
+  mIMESelectionAnchor = aAnchor;
+  mIMESelectionFocus = aFocus;
   widget->OnIMESelectionChange();
   return true;
 }
@@ -367,6 +375,90 @@ TabParent::RecvNotifyIMETextHint(const nsString& aText)
   return true;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+TabParent::HandleQueryContentEvent(nsQueryContentEvent& aEvent)
+{
+  aEvent.mSucceeded = PR_FALSE;
+  aEvent.mWasAsync = PR_FALSE;
+  aEvent.mReply.mFocusedWidget = nsCOMPtr<nsIWidget>(GetWidget()).get();
+
+  switch (aEvent.message)
+  {
+  case NS_QUERY_SELECTED_TEXT:
+    {
+      aEvent.mReply.mOffset = PR_MIN(mIMESelectionAnchor, mIMESelectionFocus);
+      if (mIMESelectionAnchor == mIMESelectionFocus) {
+        aEvent.mReply.mString.Truncate(0);
+      } else {
+        if (mIMESelectionAnchor > mIMECacheText.Length() ||
+            mIMESelectionFocus > mIMECacheText.Length()) {
+          break;
+        }
+        PRUint32 selLen = mIMESelectionAnchor > mIMESelectionFocus ?
+                          mIMESelectionAnchor - mIMESelectionFocus :
+                          mIMESelectionFocus - mIMESelectionAnchor;
+        aEvent.mReply.mString = Substring(mIMECacheText,
+                                          aEvent.mReply.mOffset,
+                                          selLen);
+      }
+      aEvent.mReply.mReversed = mIMESelectionFocus < mIMESelectionAnchor;
+      aEvent.mReply.mHasSelection = PR_TRUE;
+      aEvent.mSucceeded = PR_TRUE;
+    }
+    break;
+  case NS_QUERY_TEXT_CONTENT:
+    {
+      PRUint32 inputOffset = aEvent.mInput.mOffset,
+               inputEnd = inputOffset + aEvent.mInput.mLength;
+
+      if (inputEnd > mIMECacheText.Length()) {
+        inputEnd = mIMECacheText.Length();
+      }
+      if (inputEnd < inputOffset) {
+        break;
+      }
+      aEvent.mReply.mOffset = inputOffset;
+      aEvent.mReply.mString = Substring(mIMECacheText,
+                                        inputOffset,
+                                        inputEnd - inputOffset);
+      aEvent.mSucceeded = PR_TRUE;
+    }
+    break;
+  }
+  return true;
+}
+
+
+
+
+
+
+
+
+bool
+TabParent::SendTextEvent(const nsTextEvent& event)
+{
+  if (mIMECompositionEnding) {
+    mIMECompositionText = event.theText;
+    return true;
+  }
+  return PBrowserParent::SendTextEvent(event);
+}
+
 bool
 TabParent::RecvEndIMEComposition(const PRBool& aCancel,
                                  nsString* aComposition)
@@ -375,11 +467,17 @@ TabParent::RecvEndIMEComposition(const PRBool& aCancel,
   if (!widget)
     return true;
 
+  mIMECompositionEnding = PR_TRUE;
+
   if (aCancel) {
     widget->CancelIMEComposition();
   } else {
     widget->ResetInputState();
   }
+
+  mIMECompositionEnding = PR_FALSE;
+  *aComposition = mIMECompositionText;
+  mIMECompositionText.Truncate(0);  
   return true;
 }
 

@@ -45,9 +45,7 @@
 
 
 #ifdef MOZ_IPC
-#ifdef ANDROID
-#include "mozilla/dom/PBrowserParent.h"
-#endif
+#include "mozilla/dom/TabParent.h"
 #endif
 
 #include "nsCOMPtr.h"
@@ -163,6 +161,10 @@
 
 #ifdef XP_MACOSX
 #import <ApplicationServices/ApplicationServices.h>
+#endif
+
+#ifdef MOZ_IPC
+using namespace mozilla::dom;
 #endif
 
 
@@ -1315,54 +1317,78 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     break;
   case NS_QUERY_SELECTED_TEXT:
     {
+#ifdef MOZ_IPC
+      if (RemoteQueryContentEvent(aEvent))
+        break;
+#endif
       nsContentEventHandler handler(mPresContext);
       handler.OnQuerySelectedText((nsQueryContentEvent*)aEvent);
     }
     break;
   case NS_QUERY_TEXT_CONTENT:
     {
+#ifdef MOZ_IPC
+      if (RemoteQueryContentEvent(aEvent))
+        break;
+#endif
       nsContentEventHandler handler(mPresContext);
       handler.OnQueryTextContent((nsQueryContentEvent*)aEvent);
     }
     break;
   case NS_QUERY_CARET_RECT:
     {
+      
       nsContentEventHandler handler(mPresContext);
       handler.OnQueryCaretRect((nsQueryContentEvent*)aEvent);
     }
     break;
   case NS_QUERY_TEXT_RECT:
     {
+      
       nsContentEventHandler handler(mPresContext);
       handler.OnQueryTextRect((nsQueryContentEvent*)aEvent);
     }
     break;
   case NS_QUERY_EDITOR_RECT:
     {
+      
       nsContentEventHandler handler(mPresContext);
       handler.OnQueryEditorRect((nsQueryContentEvent*)aEvent);
     }
     break;
   case NS_QUERY_CONTENT_STATE:
     {
+      
       nsContentEventHandler handler(mPresContext);
       handler.OnQueryContentState(static_cast<nsQueryContentEvent*>(aEvent));
     }
     break;
   case NS_QUERY_SELECTION_AS_TRANSFERABLE:
     {
+      
       nsContentEventHandler handler(mPresContext);
       handler.OnQuerySelectionAsTransferable(static_cast<nsQueryContentEvent*>(aEvent));
     }
     break;
   case NS_QUERY_CHARACTER_AT_POINT:
     {
+      
       nsContentEventHandler handler(mPresContext);
       handler.OnQueryCharacterAtPoint(static_cast<nsQueryContentEvent*>(aEvent));
     }
     break;
   case NS_SELECTION_SET:
     {
+#ifdef MOZ_IPC
+      nsSelectionEvent *selectionEvent =
+          static_cast<nsSelectionEvent*>(aEvent);
+      if (IsTargetCrossProcess(selectionEvent)) {
+        
+        if (GetCrossProcessTarget()->SendSelectionEvent(*selectionEvent))
+          selectionEvent->mSucceeded = PR_TRUE;
+        break;
+      }
+#endif
       nsContentEventHandler handler(mPresContext);
       handler.OnSelectionEvent((nsSelectionEvent*)aEvent);
     }
@@ -1384,17 +1410,14 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     }
     break;
 #ifdef MOZ_IPC
-#ifdef ANDROID
   case NS_TEXT_TEXT:
     {
       nsTextEvent *textEvent = static_cast<nsTextEvent*>(aEvent);
       if (IsTargetCrossProcess(textEvent)) {
         
-        mozilla::dom::PBrowserParent *remoteBrowser = GetCrossProcessTarget();
-        if (remoteBrowser &&
-            remoteBrowser->SendTextEvent(*textEvent)) {
+        if (GetCrossProcessTarget()->SendTextEvent(*textEvent)) {
           
-          *aStatus = nsEventStatus_eConsumeNoDefault;
+          aEvent->flags |= NS_EVENT_FLAG_STOP_DISPATCH;
         }
       }
     }
@@ -1406,17 +1429,14 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
           static_cast<nsCompositionEvent*>(aEvent);
       if (IsTargetCrossProcess(compositionEvent)) {
         
-        mozilla::dom::PBrowserParent *remoteBrowser = GetCrossProcessTarget();
-        if (remoteBrowser &&
-            remoteBrowser->SendCompositionEvent(*compositionEvent)) {
+        if (GetCrossProcessTarget()->SendCompositionEvent(*compositionEvent)) {
           
-          *aStatus = nsEventStatus_eConsumeNoDefault;
+          aEvent->flags |= NS_EVENT_FLAG_STOP_DISPATCH;
         }
       }
     }
     break;
-#endif
-#endif
+#endif 
   }
   return NS_OK;
 }
@@ -3249,25 +3269,6 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
     }
     break;
 #endif
-
-#ifdef MOZ_IPC
-#ifdef ANDROID
-  case NS_SELECTION_SET:
-    {
-      nsSelectionEvent *selectionEvent =
-          static_cast<nsSelectionEvent*>(aEvent);
-      
-      if (selectionEvent->mSucceeded)
-        break;
-
-      mozilla::dom::PBrowserParent *remoteBrowser = GetCrossProcessTarget();
-      if (remoteBrowser &&
-          remoteBrowser->SendSelectionEvent(*selectionEvent))
-        selectionEvent->mSucceeded = PR_TRUE;
-    }
-    break;
-#endif 
-#endif 
   }
 
   
@@ -3278,19 +3279,30 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
 }
 
 #ifdef MOZ_IPC
-#ifdef ANDROID
-mozilla::dom::PBrowserParent*
+PRBool
+nsEventStateManager::RemoteQueryContentEvent(nsEvent *aEvent)
+{
+  nsQueryContentEvent *queryEvent =
+      static_cast<nsQueryContentEvent*>(aEvent);
+  if (!IsTargetCrossProcess(queryEvent)) {
+    return PR_FALSE;
+  }
+  
+  GetCrossProcessTarget()->HandleQueryContentEvent(*queryEvent);
+  return PR_TRUE;
+}
+
+TabParent*
 nsEventStateManager::GetCrossProcessTarget()
 {
-  return nsnull;
+  return TabParent::GetIMETabParent();
 }
 
 PRBool
 nsEventStateManager::IsTargetCrossProcess(nsGUIEvent *aEvent)
 {
-  return PR_FALSE;
+  return TabParent::GetIMETabParent() != nsnull;
 }
-#endif
 #endif
 
 NS_IMETHODIMP
