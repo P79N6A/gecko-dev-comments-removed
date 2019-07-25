@@ -614,6 +614,11 @@ richpref {
 }
 
 
+#helperapp-target {
+  font-size: 8pt !important;
+}
+
+
 #select-container {
   border: 0.5mm solid #36373b;
   -moz-border-radius: 1.0mm;
