@@ -76,8 +76,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
                               NS_ISCRIPTCONTEXTPRINCIPAL_IID)
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0xb0eca8ac, 0x2a77, 0x4d04, \
-  { 0xaf, 0x71, 0xca, 0x86, 0x98, 0xa4, 0xc3, 0xe7 } }
+{ 0x6a536a37, 0x9773, 0x467e, \
+  { 0x93, 0xb2, 0xdb, 0xe6, 0xe6, 0xec, 0x24, 0xc3 } }
 
 
 
@@ -401,7 +401,7 @@ public:
 
   
   
-  virtual nsresult SetProperty(void *aTarget, const char *aPropName, nsISupports *aVal) = 0;
+  virtual nsresult SetProperty(JSObject* aTarget, const char* aPropName, nsISupports* aVal) = 0;
   
 
 
