@@ -129,6 +129,7 @@ HHOOK gDeferredGetMsgHook = NULL;
 HHOOK gDeferredCallWndProcHook = NULL;
 
 DWORD gUIThreadId = 0;
+int gEventLoopDepth = 0;
 
 LRESULT CALLBACK
 DeferredMessageHook(int nCode,
@@ -501,8 +502,6 @@ UnhookNeuteredWindows()
     RestoreWindowProcedure(gNeuteredWindows->ElementAt(index));
   }
   gNeuteredWindows->Clear();
-  delete gNeuteredWindows;
-  gNeuteredWindows = NULL;
 }
 
 void
@@ -516,11 +515,6 @@ Init()
   NS_ASSERTION(gUIThreadId, "ThreadId should not be 0!");
   NS_ASSERTION(gUIThreadId == GetCurrentThreadId(),
                "Running on different threads!");
-
-  if (!gNeuteredWindows) {
-    gNeuteredWindows = new nsAutoTArray<HWND, 20>();
-  }
-  NS_ASSERTION(gNeuteredWindows, "Out of memory!");
 }
 
 } 
@@ -615,6 +609,12 @@ SyncChannel::WaitForNotify()
   
   Init();
 
+  if (++gEventLoopDepth == 1) {
+    NS_ASSERTION(!gNeuteredWindows, "Should only set this once!");
+    gNeuteredWindows = new nsAutoTArray<HWND, 20>();
+    NS_ASSERTION(gNeuteredWindows, "Out of memory!");
+  }
+
   
   NS_ASSERTION(!SyncChannel::IsPumpingMessages(),
                "Shouldn't be pumping already!");
@@ -690,6 +690,12 @@ SyncChannel::WaitForNotify()
   
   UnhookNeuteredWindows();
 
+  if (--gEventLoopDepth == 0) {
+    NS_ASSERTION(gNeuteredWindows, "Bad pointer!");
+    delete gNeuteredWindows;
+    gNeuteredWindows = NULL;
+  }
+
   
   
   
@@ -734,7 +740,13 @@ RPCChannel::WaitForNotify()
       return true;
     }
   }
-  
+
+  if (++gEventLoopDepth == 1) {
+    NS_ASSERTION(!gNeuteredWindows, "Should only set this once!");
+    gNeuteredWindows = new nsAutoTArray<HWND, 20>();
+    NS_ASSERTION(gNeuteredWindows, "Out of memory!");
+  }
+
   
   NS_ASSERTION(!SyncChannel::IsPumpingMessages(),
                "Shouldn't be pumping already!");
@@ -832,6 +844,12 @@ RPCChannel::WaitForNotify()
   
   
   UnhookNeuteredWindows();
+
+  if (--gEventLoopDepth == 0) {
+    NS_ASSERTION(gNeuteredWindows, "Bad pointer!");
+    delete gNeuteredWindows;
+    gNeuteredWindows = NULL;
+  }
 
   
   
