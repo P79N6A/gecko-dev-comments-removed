@@ -120,14 +120,6 @@ public class RepoUtils {
   }
 
   
-  
-  public static long getAndroidIdFromUri(Uri uri) {
-    String path = uri.getPath();
-    int lastSlash = path.lastIndexOf('/');
-    return Long.parseLong(path.substring(lastSlash + 1));
-  }
-
-  
   public static HistoryRecord historyFromMirrorCursor(Cursor cur) {
 
     String guid = getStringFromCursor(cur, BrowserContract.SyncColumns.GUID);
