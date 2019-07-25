@@ -227,8 +227,14 @@ abstract class Axis {
 
 
     private boolean scrollable() {
-        return getViewportLength() <= getPageLength() - MIN_SCROLLABLE_DISTANCE &&
-               !mScrollingDisabled;
+        
+        
+        if (mSubscroller.scrolling()) {
+            return !mScrollingDisabled;
+        } else {
+            return getViewportLength() <= getPageLength() - MIN_SCROLLABLE_DISTANCE &&
+                   !mScrollingDisabled;
+        }
     }
 
     
@@ -305,8 +311,9 @@ abstract class Axis {
 
     
     void displace() {
-        if (!mSubscroller.scrolling() && !scrollable())
+        if (!scrollable()) {
             return;
+        }
 
         if (mFlingState == FlingStates.PANNING)
             mDisplacement += (mLastTouchPos - mTouchPos) * getEdgeResistance();
