@@ -1098,7 +1098,7 @@ pref("devtools.hud.height", 0);
 
 
 
-pref("devtools.webconsole.position", "above");
+pref("devtools.webconsole.position", "below");
 
 
 pref("devtools.webconsole.filter.network", true);
