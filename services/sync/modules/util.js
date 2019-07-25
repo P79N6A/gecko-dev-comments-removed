@@ -854,6 +854,10 @@ let FakeSvc = {
       });
       return JSON.stringify(state);
     }
+  },
+  
+  "@labs.mozilla.com/Fake/Thing;1": {
+    isFake: true
   }
 };
 
