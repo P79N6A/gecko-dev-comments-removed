@@ -42,7 +42,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 
 
-public class LayerRenderer {
+public class LayerRenderer implements GLSurfaceView.Renderer {
     private static final String LOGTAG = "GeckoLayerRenderer";
     private static final String PROFTAG = "GeckoLayerRendererProf";
 
@@ -196,7 +196,7 @@ public class LayerRenderer {
         }
     }
 
-    void onSurfaceCreated(GL10 gl, EGLConfig config) {
+    public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         checkMonitoringEnabled();
         createDefaultProgram();
         activateDefaultProgram();
@@ -268,6 +268,23 @@ public class LayerRenderer {
         }
     }
 
+    
+
+
+    public void onDrawFrame(GL10 gl) {
+	
+
+
+
+
+
+
+
+
+
+
+    }
+
     private void printCheckerboardStats() {
         Log.d(PROFTAG, "Frames rendered over last 1000ms: " + mCompleteFramesRendered + "/" + mFramesRendered);
         mFramesRendered = 0;
@@ -307,12 +324,20 @@ public class LayerRenderer {
                                  mCoordBuffer);
     }
 
-    void onSurfaceChanged(GL10 gl, final int width, final int height) {
+    public void onSurfaceChanged(GL10 gl, final int width, final int height) {
         GLES20.glViewport(0, 0, width, height);
 
         if (mFrameRateLayer != null) {
             moveFrameRateLayer(width, height);
         }
+
+        
+        
+        mView.post(new Runnable() {
+            public void run() {
+                mView.setViewportSize(new IntSize(width, height));
+            }
+        });
 
         
     }

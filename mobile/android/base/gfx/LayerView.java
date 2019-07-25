@@ -90,6 +90,11 @@ public class LayerView extends SurfaceView implements SurfaceHolder.Callback {
     public LayerController getController() { return mController; }
     public TouchEventHandler getTouchEventHandler() { return mTouchEventHandler; }
 
+    
+    public void setViewportSize(IntSize size) {
+        mController.setViewportSize(new FloatSize(size));
+    }
+
     public GeckoInputConnection setInputConnectionHandler() {
         GeckoInputConnection geckoInputConnection = GeckoInputConnection.create(this);
         mInputConnectionHandler = geckoInputConnection;
