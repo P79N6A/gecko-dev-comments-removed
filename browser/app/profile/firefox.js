@@ -61,7 +61,6 @@ pref("extensions.hotfix.certs.1.sha1Fingerprint", "F1:DB:F9:6A:7B:B8:04:FA:48:3C
 
 
 
-
 pref("extensions.autoDisableScopes", 15);
 
 
