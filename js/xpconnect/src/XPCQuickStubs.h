@@ -234,7 +234,7 @@ inline JSBool
 xpc_qsInt32ToJsval(JSContext *cx, PRInt32 i, jsval *rv)
 {
     *rv = INT_TO_JSVAL(i);
-    return JS_TRUE;
+    return true;
 }
 
 inline JSBool
@@ -244,7 +244,7 @@ xpc_qsUint32ToJsval(JSContext *cx, PRUint32 u, jsval *rv)
         *rv = INT_TO_JSVAL(u);
     else
         *rv = DOUBLE_TO_JSVAL(u);
-    return JS_TRUE;
+    return true;
 }
 
 #ifdef HAVE_LONG_LONG
@@ -370,13 +370,13 @@ protected:
                 
                 (new(mBuf) implementation_type(traits::sEmptyBuffer, PRUint32(0)))->
                     SetIsVoid(behavior != eEmpty);
-                mValid = JS_TRUE;
+                mValid = true;
                 return nsnull;
             }
 
             s = JS_ValueToString(cx, v);
             if (!s) {
-                mValid = JS_FALSE;
+                mValid = false;
                 return nsnull;
             }
             *pval = STRING_TO_JSVAL(s);  
@@ -539,7 +539,7 @@ xpc_qsUnwrapThis(JSContext *cx,
 
     if (NS_FAILED(rv))
         *ppThis = nsnull;
-    return JS_TRUE;
+    return true;
 }
 
 inline nsISupports*
@@ -710,15 +710,15 @@ xpc_qsValueToInt64(JSContext *cx,
     if (JSVAL_IS_INT(v)) {
         int32 intval;
         if (!JS_ValueToECMAInt32(cx, v, &intval))
-            return JS_FALSE;
+            return false;
         *result = static_cast<PRInt64>(intval);
     } else {
         jsdouble doubleval;
         if (!JS_ValueToNumber(cx, v, &doubleval))
-            return JS_FALSE;
+            return false;
         *result = static_cast<PRInt64>(doubleval);
     }
-    return JS_TRUE;
+    return true;
 }
 
 
@@ -746,15 +746,15 @@ xpc_qsValueToUint64(JSContext *cx,
     if (JSVAL_IS_INT(v)) {
         uint32 intval;
         if (!JS_ValueToECMAUint32(cx, v, &intval))
-            return JS_FALSE;
+            return false;
         *result = static_cast<PRUint64>(intval);
     } else {
         jsdouble doubleval;
         if (!JS_ValueToNumber(cx, v, &doubleval))
-            return JS_FALSE;
+            return false;
         *result = xpc_qsDoubleToUint64(doubleval);
     }
-    return JS_TRUE;
+    return true;
 }
 
 #ifdef DEBUG
