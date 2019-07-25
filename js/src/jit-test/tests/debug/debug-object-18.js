@@ -2,8 +2,6 @@
 
 
 
-
-
 var g = newGlobal('new-compartment');
 var dbg = new Debug(g);
 var log;
@@ -22,5 +20,3 @@ dbg.uncaughtExceptionHook = function (exc) {
 log = '';
 g.eval("debugger");
 assertEq(log, 'x!');
-
-reportCompare(0, 0, 'ok');

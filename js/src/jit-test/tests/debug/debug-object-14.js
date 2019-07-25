@@ -2,8 +2,6 @@
 
 
 
-
-
 var g = newGlobal('new-compartment');
 var hits;
 
@@ -35,5 +33,3 @@ addDebug();
 hits = 0;
 g.eval("debugger;");
 assertEq(hits, 1);
-
-reportCompare(0, 0, 'ok');

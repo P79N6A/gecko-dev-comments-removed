@@ -2,8 +2,6 @@
 
 
 
-
-
 var g = newGlobal('new-compartment');
 var hit = false;
 var dbg = new Debug(g);
@@ -21,5 +19,3 @@ assertEq(hit, false);
 dbg.hooks.debuggerHandler = function (stack) { hit = true; };
 g.eval("debugger;");
 assertEq(hit, true);
-
-reportCompare(0, 0, 'ok');

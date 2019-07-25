@@ -1,8 +1,6 @@
 
 
 
-
-
 var g = newGlobal('new-compartment');
 var log = '';
 
@@ -27,5 +25,3 @@ function addDebug(n) {
 addDebug(10);
 g.eval("debugger;");
 assertEq(log, '0, 1, 2, 3, 4, 5, 6, 7, 8, 9, ');
-
-reportCompare(0, 0, 'ok');

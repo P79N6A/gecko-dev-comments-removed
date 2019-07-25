@@ -1,8 +1,6 @@
 
 
 
-
-
 var g = newGlobal('new-compartment');
 var log;
 var arr = [];
@@ -38,5 +36,3 @@ arr[0].hooks = {
 log = '';
 assertEq(g.eval("debugger; 0;"), 1);
 assertEq(log, 'a');
-
-reportCompare(0, 0, 'ok');

@@ -2,8 +2,6 @@
 
 
 
-
-
 var g = newGlobal('new-compartment');
 var log;
 
@@ -24,5 +22,3 @@ for (var i = 0; i < 4; i++) {
 log = '';
 g.eval("debugger; debugger;");
 assertEq(log, '0');
-
-reportCompare(0, 0, 'ok');

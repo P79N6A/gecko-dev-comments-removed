@@ -1,8 +1,6 @@
 
 
 
-
-
 var g = newGlobal('new-compartment');
 var calls = 0;
 
@@ -16,5 +14,3 @@ dbg.hooks = {
 
 assertEq(g.eval("debugger; 7;"), 7);
 assertEq(calls, 1);
-
-reportCompare(0, 0, 'ok');

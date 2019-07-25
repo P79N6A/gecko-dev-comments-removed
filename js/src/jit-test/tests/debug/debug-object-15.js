@@ -1,8 +1,6 @@
 
 
 
-
-
 var log = '';
 
 function addDebug(g, id) {
@@ -24,5 +22,3 @@ for (var i = 0; i < 8; i++)
     top = addDebug(top, i);
 base.eval("debugger;");
 assertEq(log, '0123456776543210');
-
-reportCompare(0, 0, 'ok');

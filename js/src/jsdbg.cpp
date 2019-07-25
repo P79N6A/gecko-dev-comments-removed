@@ -306,10 +306,16 @@ void
 Debug::finalize(JSContext *cx, JSObject *obj)
 {
     Debug *dbg = (Debug *) obj->getPrivate();
-    if (dbg && dbg->debuggeeCompartment) {
-        dbg->debuggeeCompartment->removeDebug(dbg);
-        dbg->debuggeeCompartment = NULL;
-    }
+    if (dbg && dbg->debuggeeCompartment)
+        dbg->detachFrom(dbg->debuggeeCompartment);
+}
+
+void
+Debug::detachFrom(JSCompartment *c)
+{
+    JS_ASSERT(c == debuggeeCompartment);
+    c->removeDebug(this);
+    debuggeeCompartment = NULL;
 }
 
 Class Debug::jsclass = {
@@ -412,6 +418,13 @@ Debug::construct(JSContext *cx, uintN argc, Value *vp)
     }
 
     
+    JSCompartment *debuggeeCompartment = argobj->getProxyPrivate().toObject().compartment();
+    if (!debuggeeCompartment->debugMode) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NEED_DEBUG_MODE);
+        return false;
+    }
+
+    
     Value v;
     jsid prototypeId = ATOM_TO_JSID(cx->runtime->atomState.classPrototypeAtom);
     if (!vp[0].toObject().getProperty(cx, prototypeId, &v))
@@ -426,7 +439,6 @@ Debug::construct(JSContext *cx, uintN argc, Value *vp)
     JSObject *hooks = NewBuiltinClassInstance(cx, &js_ObjectClass);
     if (!hooks)
         return false;
-    JSCompartment *debuggeeCompartment = argobj->getProxyPrivate().toObject().compartment();
     Debug *dbg = cx->new_<Debug>(obj, hooks, debuggeeCompartment);
     if (!dbg)
         return false;

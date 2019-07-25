@@ -26,8 +26,8 @@ BEGIN_TEST(testDebugger_bug519719)
          "function f(g) { for (var i = 0; i < 9; i++) call(g); }\n"
          "f(Math.sin);\n"    
          "f(Math.cos);\n");  
-    CHECK_EQUAL(callCount[0], 20);
-    CHECK_EQUAL(callCount[1], 20);
+    CHECK(callCount[0] == 20);
+    CHECK(callCount[1] == 20);
     return true;
 }
 END_TEST(testDebugger_bug519719)
@@ -104,41 +104,43 @@ BEGIN_TEST(testDebugger_getThisStrict)
 }
 END_TEST(testDebugger_getThisStrict)
 
-bool called = false;
-
-static JSTrapStatus
-ThrowHook(JSContext *cx, JSScript *, jsbytecode *, jsval *rval, void *closure)
+BEGIN_TEST(testDebugger_debugObjectVsDebugMode)
 {
-    called = true;
+    CHECK(JS_DefineDebugObject(cx, global));
+    JSObject *debuggee = JS_NewCompartmentAndGlobalObject(cx, getGlobalClass(), NULL);
+    CHECK(debuggee);
 
-    JSObject *global = JS_GetGlobalForScopeChain(cx);
+    {
+        JSAutoEnterCompartment ae;
+        CHECK(ae.enter(cx, debuggee));
+        CHECK(JS_SetDebugMode(cx, true));
+        CHECK(JS_InitStandardClasses(cx, debuggee));
+    }
 
-    char text[] = "new Error()";
-    jsval _;
-    JS_EvaluateScript(cx, global, text, strlen(text), "", 0, &_);
+    JSObject *debuggeeWrapper = debuggee;
+    CHECK(JS_WrapObject(cx, &debuggeeWrapper));
+    jsval v = OBJECT_TO_JSVAL(debuggeeWrapper);
+    CHECK(JS_SetProperty(cx, global, "debuggee", &v));
 
-    return JSTRAP_CONTINUE;
-}
+    EVAL("var dbg = new Debug(debuggee);\n"
+         "var hits = 0;\n"
+         "dbg.hooks = {debuggerHandler: function () { hits++; }};\n"
+         "debuggee.eval('debugger;');\n"
+         "hits;\n",
+         &v);
+    CHECK_SAME(v, JSVAL_ONE);
 
-BEGIN_TEST(testDebugger_throwHook)
-{
-    uint32 newopts = JS_GetOptions(cx) | JSOPTION_METHODJIT | JSOPTION_METHODJIT_ALWAYS;
-    uint32 oldopts = JS_SetOptions(cx, newopts);
+    {
+        JSAutoEnterCompartment ae;
+        CHECK(ae.enter(cx, debuggee));
+        CHECK(JS_SetDebugMode(cx, false));
+    }
 
-    JSDebugHooks hooks = { 0 };
-    hooks.throwHook = ThrowHook;
-    JSDebugHooks *old = JS_SetContextDebugHooks(cx, &hooks);
-    EXEC("function foo() { throw 3 };\n"
-         "for (var i = 0; i < 10; ++i) { \n"
-         "  var x = <tag></tag>;\n"
-         "  try {\n"
-         "    foo(); \n"
-         "  } catch(e) {}\n"
-         "}\n");
-    CHECK(called);
-
-    JS_SetContextDebugHooks(cx, old);
-    JS_SetOptions(cx, oldopts);
+    EVAL("debuggee.eval('debugger; debugger; debugger;');\n"
+         "hits;\n",
+         &v);
+    CHECK_SAME(v, JSVAL_ONE);
+    
     return true;
 }
-END_TEST(testDebugger_throwHook)
+END_TEST(testDebugger_debugObjectVsDebugMode)

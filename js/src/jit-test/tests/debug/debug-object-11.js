@@ -2,8 +2,6 @@
 
 
 
-
-
 var g = newGlobal('new-compartment');
 var actual = 0;
 var expected = 0;
@@ -20,5 +18,3 @@ f();
 gc(); gc(); gc();
 g.eval("debugger;");
 assertEq(actual, expected);
-
-reportCompare(0, 0, 'ok');

@@ -1,8 +1,6 @@
 
 
 
-
-
 var g = newGlobal('new-compartment');
 var hit = false;
 
@@ -27,5 +25,3 @@ assertEq(hit, false, "debugger statement in debugger compartment eval code shoul
 var g2 = newGlobal('new-compartment');
 g2.eval("debugger;");
 assertEq(hit, false, "debugger statement in unrelated non-debuggee compartment should not hit");
-
-reportCompare(0, 0, 'ok');
