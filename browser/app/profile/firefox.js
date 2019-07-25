@@ -1152,3 +1152,8 @@ pref("full-screen-api.enabled", true);
 
 
 pref("toolkit.startup.max_resumed_crashes", 2);
+
+
+
+
+pref("image.mem.max_decoded_image_kb", 256000);
