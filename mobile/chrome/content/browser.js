@@ -2452,8 +2452,6 @@ function Tab(aURI) {
   this._listener = null;
   this._loading = false;
   this._chromeTab = null;
-  this._resizeAndPaint = Util.bind(this._resizeAndPaint, this);
-
   this.owner = null;
 
   
@@ -2474,37 +2472,6 @@ Tab.prototype = {
 
   get chromeTab() {
     return this._chromeTab;
-  },
-
-  
-
-
-
-  _resizeAndPaint: function _resizeAndPaint() {
-    let bv = Browser._browserView;
-
-    bv.commitBatchOperation();
-
-    
-    bv.beginBatchOperation();
-    this._loadingTimeout = setTimeout(this._resizeAndPaint, 2000);
-  },
-
-  _startResizeAndPaint: function _startResizeAndPaint() {
-    if (this._loadingTimeout)
-      throw "Already have a loading timeout";
-
-    Browser._browserView.beginBatchOperation();
-    this._loadingTimeout = setTimeout(this._resizeAndPaint, 2000);
-  },
-
-  _stopResizeAndPaint: function _stopResizeAndPaint() {
-    if (!this._loadingTimeout)
-      throw "No loading timeout!";
-
-    clearTimeout(this._loadingTimeout);
-    delete this._loadingTimeout;
-    Browser._browserView.commitBatchOperation();
   },
 
   
@@ -2581,18 +2548,14 @@ Tab.prototype = {
 
     this._loading = true;
 
-    if (!this._loadingTimeout) {
-      let bv = Browser._browserView;
+    let bv = Browser._browserView;
 
-      this._startResizeAndPaint();
-      if (this == Browser.selectedTab) {
-        bv.invalidateEntireView();
-        bv.setAggressive(false);
-        
-        
-        bv.ignorePageScroll(true);
-        Browser.scrollBrowserToContent();
-      }
+    if (this == Browser.selectedTab) {
+      bv.setAggressive(false);
+      
+      
+      bv.ignorePageScroll(true);
+      Browser.scrollBrowserToContent();
     }
   },
 
@@ -2605,8 +2568,6 @@ Tab.prototype = {
       bv.ignorePageScroll(false);
       bv.setAggressive(true);
     }
-
-    this._stopResizeAndPaint();
   },
 
   isLoading: function isLoading() {
