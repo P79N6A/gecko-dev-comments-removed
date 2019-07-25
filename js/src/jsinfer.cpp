@@ -3688,7 +3688,6 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
       }
 
       case JSOP_SETELEM:
-      case JSOP_SETHOLE:
         poppedTypes(pc, 1)->addSetElement(cx, script, pc, poppedTypes(pc, 2), poppedTypes(pc, 0));
         poppedTypes(pc, 0)->addSubset(cx, &pushed[0]);
         break;
@@ -6021,6 +6020,13 @@ TypeScript::Sweep(JSContext *cx, JSScript *script)
 #ifdef JS_METHODJIT
     mjit::ReleaseScriptCode(cx, script);
 #endif
+
+    
+
+
+
+
+    script->resetUseCount();
 }
 
 void

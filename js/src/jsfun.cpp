@@ -1266,7 +1266,7 @@ StackFrame::getValidCalleeObject(JSContext *cx, Value *vp)
 
 
 
-            JSObject *newfunobj = CloneFunctionObject(cx, fun, fun->getParent(), true);
+            JSObject *newfunobj = CloneFunctionObject(cx, fun);
             if (!newfunobj)
                 return false;
             newfunobj->setMethodObj(*first_barriered_thisp);

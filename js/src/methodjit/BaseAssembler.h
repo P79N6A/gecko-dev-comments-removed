@@ -126,15 +126,6 @@ class Assembler : public ValueAssembler
     };
 
     
-#if defined(JS_CPU_X86) || defined(JS_CPU_X64)
-    static const RegisterID ClobberInCall = JSC::X86Registers::ecx;
-#elif defined(JS_CPU_ARM)
-    static const RegisterID ClobberInCall = JSC::ARMRegisters::r2;
-#elif defined(JS_CPU_SPARC)
-    static const RegisterID ClobberInCall = JSC::SparcRegisters::l1;
-#endif
-
-    
     Label startLabel;
     Vector<CallPatch, 64, SystemAllocPolicy> callPatches;
     Vector<DoublePatch, 16, SystemAllocPolicy> doublePatches;
@@ -553,14 +544,14 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         }
     }
 
-    void storeArg(uint32 i, Imm32 imm) {
+    void storeArg(uint32 i, ImmPtr imm) {
         JS_ASSERT(callIsAligned);
         RegisterID to;
         if (Registers::regForArg(callConvention, i, &to)) {
             move(imm, to);
             availInCall.takeRegUnchecked(to);
         } else {
-            store32(imm, addressOfArg(i));
+            storePtr(imm, addressOfArg(i));
         }
     }
 
@@ -625,7 +616,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
 
 #undef STUB_CALL_TYPE
 
-    void setupInfallibleVMFrame(int32 frameDepth) {
+    void setupFrameDepth(int32 frameDepth) {
         
         
         if (frameDepth >= 0) {
@@ -633,9 +624,13 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
             
             addPtr(Imm32(sizeof(StackFrame) + frameDepth * sizeof(jsval)),
                    JSFrameReg,
-                   ClobberInCall);
-            storePtr(ClobberInCall, FrameAddress(offsetof(VMFrame, regs.sp)));
+                   Registers::ClobberInCall);
+            storePtr(Registers::ClobberInCall, FrameAddress(offsetof(VMFrame, regs.sp)));
         }
+    }
+
+    void setupInfallibleVMFrame(int32 frameDepth) {
+        setupFrameDepth(frameDepth);
 
         
         
@@ -662,6 +657,19 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
         }
 
         restoreStackBase();
+    }
+
+    void setupFallibleABICall(bool inlining, jsbytecode *pc, int32 frameDepth) {
+        setupFrameDepth(frameDepth);
+
+        
+        storePtr(JSFrameReg, FrameAddress(VMFrame::offsetOfFp));
+        storePtr(ImmPtr(pc), FrameAddress(offsetof(VMFrame, regs.pc)));
+
+        if (inlining) {
+            
+            storePtr(ImmPtr(NULL), FrameAddress(VMFrame::offsetOfInlined));
+        }
     }
 
     void restoreStackBase() {
@@ -867,6 +875,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
                      const js::Shape *shape,
                      RegisterID typeReg, RegisterID dataReg)
     {
+        JS_ASSERT(shape->hasSlot());
         if (shape->isMethod())
             loadValueAsComponents(ObjectValue(shape->methodObject()), typeReg, dataReg);
         else if (obj->isFixedSlot(shape->slot))
