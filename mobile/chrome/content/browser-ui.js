@@ -1041,15 +1041,29 @@ var BrowserUI = {
         
         
         let rel = json.rel.toLowerCase().split(" ");
-        if ((rel.indexOf("icon") != -1) && !browser.appIcon) {
+        if (rel.indexOf("icon") != -1) {
           
           
-          browser.appIcon = json.href;
+          let size = 16;
+          if (json.sizes) {
+            let sizes = json.sizes.toLowerCase().split(" ");
+            sizes.forEach(function(item) {
+              if (item != "any") {
+                let [w, h] = item.split("x");
+                size = Math.max(Math.min(w, h), size);
+              }
+            });
+          }
+          if (size > browser.appIcon.size) {
+            browser.appIcon.href = json.href;
+            browser.appIcon.size = size;
+          }
         }
-        else if (rel.indexOf("apple-touch-icon") != -1) {
+        else if ((rel.indexOf("apple-touch-icon") != -1) && (browser.appIcon.size < 57)) {
           
           
-          browser.appIcon = json.href;
+          browser.appIcon.href = json.href;
+          browser.appIcon.size = 57;
         }
 
         

@@ -479,6 +479,10 @@ let DOMEvents =  {
           rel: target.rel,
           type: target.type
         };
+        
+        
+        if (target.hasAttribute("sizes"))
+          json.sizes = target.getAttribute("sizes");
 
         sendAsyncMessage("DOMLinkAdded", json);
         break;
