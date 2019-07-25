@@ -53,7 +53,58 @@
 
 
 
-function InputHandler() {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function InputHandler(browserViewContainer) {
   
   this._modules = [];
 
@@ -68,71 +119,62 @@ function InputHandler() {
   this._suppressNextClick = true;
 
   
-  window.addEventListener("URLChanged", this, true);
-  window.addEventListener("TabSelect", this, true);
+  this.listenFor(window, "URLChanged");
+  this.listenFor(window, "TabSelect");
 
   
-  window.addEventListener("mouseout", this, true);
+  this.listenFor(window, "mouseout");
 
   
-  window.addEventListener("mousedown", this, true);
-  window.addEventListener("mouseup", this, true);
-  window.addEventListener("mousemove", this, true);
-  window.addEventListener("click", this, true);
-  window.addEventListener("DOMMouseScroll", this, true);
+  this.listenFor(window, "mousedown");
+  this.listenFor(window, "mouseup");
+  this.listenFor(window, "mousemove");
+  this.listenFor(window, "click");
 
   
-  let browserCanvas = document.getElementById("tile-container");
-  browserCanvas.addEventListener("keydown", this, true);
-  browserCanvas.addEventListener("keyup", this, true);
+  this.listenFor(browserViewContainer, "keydown");
+  this.listenFor(browserViewContainer, "keyup");
+  this.listenFor(browserViewContainer, "DOMMouseScroll");
 
-  let useEarlyMouseMoves = gPrefService.getBoolPref("browser.ui.panning.fixup.mousemove");
-
-  this._modules.push(new MouseModule(this));
   
+
+  this.addModule(new MouseModule(this));
+  this.addModule(new ScrollwheelModule(this, Browser._browserView, browserViewContainer));
   
   
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 InputHandler.prototype = {
+  
+
+
+
+  listenFor: function listenFor(target, eventType) {
+    target.addEventListener(eventType, this, true);
+  },
+
+  
+
+
+
+  addModule: function addModule(m) {
+    this._modules.push(m);
+  },
+
+  
+
+
+  startListening: function startListening() {
+    this._ignoreEvents = false;
+  },
+
+  
+
+
+  stopListening: function stopListening() {
+    this._ignoreEvents = true;
+  },
 
   
 
@@ -184,6 +226,10 @@ InputHandler.prototype = {
 
 
 
+
+
+
+
   
   
   
@@ -193,9 +239,10 @@ InputHandler.prototype = {
       this._grabDepth = 1;  
     }
 
-    if (this._grabber == grabber) {
+    if (this._grabber == grabber) {  
       this._grabDepth--;
-      if (this._grabDepth == 0) {
+
+      if (this._grabDepth == 0) {    
         this._grabber = null;
 
         if (restoreEventInfos) {
@@ -204,33 +251,40 @@ InputHandler.prototype = {
 
           for (let i = 0, len = mods.length; i < len; ++i) {
             if (mods[i] == grabber) {
-              grabberIndex = i;
+              grabberIndex = i;      
               break;
             }
           }
 
           for (i = 0, len = restoreEventInfos.length; i < len; ++i)
-            this.passToModules(restoreEventInfos[i], grabberIndex + 1);
+            this._passToModules(restoreEventInfos[i], grabberIndex + 1);
         }
       }
     }
   },
 
+  
+
+
+
+
+
+
+
   suppressNextClick: function suppressNextClick() {
     this._suppressNextClick = true;
   },
+
+  
+
+
 
   allowClicks: function allowClicks() {
     this._suppressNextClick = false;
   },
 
-  startListening: function startListening() {
-    this._ignoreEvents = false;
-  },
+  
 
-  stopListening: function stopListening() {
-    this._ignoreEvents = true;
-  },
 
   handleEvent: function handleEvent(aEvent) {
     if (this._ignoreEvents)
@@ -249,10 +303,14 @@ InputHandler.prototype = {
       return;
     }
 
-    this.passToModules(new InputHandler.EventInfo(aEvent));
+    this._passToModules(new InputHandler.EventInfo(aEvent));
   },
 
-  passToModules: function passToModules(evInfo, skipToIndex) {
+  
+
+
+
+  _passToModules: function _passToModules(evInfo, skipToIndex) {
     if (this._grabber) {
       this._grabber.handleEvent(evInfo);
     } else {
@@ -269,10 +327,64 @@ InputHandler.prototype = {
 };
 
 
+
+
+
 InputHandler.EventInfo = function EventInfo(aEvent, timestamp) {
   this.event = aEvent;
   this.time = timestamp || Date.now();
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function MouseModule(owner) {
@@ -316,11 +428,23 @@ MouseModule.prototype = {
 
 
 
+
   cancelPending: function cancelPending() {
-    this._kinetic.end();
+    if (this._kinetic.isActive())
+      this._kinetic.end();
+
     this._dragData.reset();
     this._targetScrollInterface = null;
   },
+
+  
+
+
+
+
+
+
+
 
   _onMouseDown: function _onMouseDown(evInfo) {
     this._owner.allowClicks();
@@ -352,6 +476,15 @@ MouseModule.prototype = {
     this._recordEvent(evInfo);
   },
 
+  
+
+
+
+
+
+
+
+
   _onMouseUp: function _onMouseUp(evInfo) {
     let dragData = this._dragData;
 
@@ -378,6 +511,9 @@ MouseModule.prototype = {
     this._owner.ungrab(this);
   },
 
+  
+
+
   _onMouseMove: function _onMouseMove(evInfo) {
     let dragData = this._dragData;
 
@@ -388,9 +524,17 @@ MouseModule.prototype = {
     }
   },
 
+  
+
+
+
   _recordEvent: function _recordEvent(evInfo) {
     this._downUpEvents.push(evInfo);
   },
+
+  
+
+
 
   _redispatchDownUpEvents: function _redispatchDownUpEvents() {
     let evQueue = this._downUpEvents;
@@ -407,10 +551,9 @@ MouseModule.prototype = {
     this._owner.startListening();
   },
 
-  _clearDownUpEvents: function _clearDownUpEvents() {
-    this._downUpEvents.splice(0);
-    this._downUpDispatchedIndex = 0;
-  },
+  
+
+
 
   _redispatchChromeMouseEvent: function _redispatchChromeMouseEvent(aEvent) {
     if (!(aEvent instanceof MouseEvent)) {
@@ -423,6 +566,20 @@ MouseModule.prototype = {
                                        aEvent.button, aEvent.detail, 0, true);
   },
 
+  
+
+
+
+
+
+  _clearDownUpEvents: function _clearDownUpEvents() {
+    this._downUpEvents.splice(0);
+    this._downUpDispatchedIndex = 0;
+  },
+
+  
+
+
   _doDragStart: function _doDragStart(sX, sY) {
     let dragData = this._dragData;
 
@@ -431,6 +588,11 @@ MouseModule.prototype = {
 
     this._dragger.dragStart(this._targetScrollInterface);
   },
+
+  
+
+
+
 
   _doDragStop: function _doDragStop(sX, sY, kineticStop) {
     if (!kineticStop) {    
@@ -450,6 +612,9 @@ MouseModule.prototype = {
     }
   },
 
+  
+
+
   _doDragMove: function _doDragMove(sX, sY) {
     let dragData = this._dragData;
     let dX = dragData.sX - sX;
@@ -457,6 +622,12 @@ MouseModule.prototype = {
     this._kinetic.addData(sX, sY);
     return this._dragBy(dX, dY);
   },
+
+  
+
+
+
+
 
   _dragBy: function _dragBy(dX, dY) {
     let dragData = this._dragData;
@@ -483,18 +654,14 @@ MouseModule.prototype = {
     }                              
   },
 
-  
-
-
   _commitAnotherClick: function _commitAnotherClick() {
-    this._doSingleClick();
     
-
-
-
-
-
-
+    if (this._clickTimeout) {   
+      window.clearTimeout(this._clickTimeout);
+      this._doDoubleClick();
+    } else {
+      this._clickTimeout = window.setTimeout(function _clickTimeout(self) { self._doSingleClick(); }, 400, this);
+    }
   },
 
   
@@ -551,7 +718,8 @@ MouseModule.prototype = {
       } else {
         scroller.scrollBy(dx, dy);
         
-        return true;
+
+        return false;
       }
     }
   },
@@ -1093,29 +1261,26 @@ ContentClickingModule.prototype = {
 
 
 
-function ScrollwheelModule(owner, browserCanvas) {
+
+
+function ScrollwheelModule(owner, browserView, browserViewContainer) {
   this._owner = owner;
-  this._browserCanvas = browserCanvas;
+  this._browserView = browserView;
+  this._browserViewContainer = browserViewContainer;
 }
 
 ScrollwheelModule.prototype = {
-  handleEvent: function handleEvent(aEvent) {
-    if (aEvent.target !== this._browserCanvas)
-      return;
-
-    switch (aEvent.type) {
-      
-      case "DOMMouseScroll":
-        this._owner.grab(this);
-        Browser.canvasBrowser.zoom(aEvent.detail);
-        this._owner.ungrab(this);
-        break;
-    }
+  handleEvent: function handleEvent(evInfo) {
+    
+      if (evInfo.event.type == "DOMMouseScroll") {
+        dump('got scrollwheel event on target ' + evInfo.event.target + '\n');
+        this._browserView.zoom(evInfo.event.detail);
+        evInfo.event.stopPropagation();
+        evInfo.event.preventDefault();
+      }
+    
   },
 
   
-
-
-  cancelPending: function cancelPending() {
-  }
+  cancelPending: function cancelPending() {}
 };

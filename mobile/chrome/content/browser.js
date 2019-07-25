@@ -395,7 +395,7 @@ var Browser = {
     window.addEventListener("fullscreen", fullscreenHandler, false);
 
     
-    ih = new InputHandler();
+    ih = new InputHandler(container);
 
     BrowserUI.init();
 
