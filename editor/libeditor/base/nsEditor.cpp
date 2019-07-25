@@ -120,6 +120,7 @@
 #include "mozilla/FunctionTimer.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/Element.h"
+#include "nsContentUtils.h"
 
 #define NS_ERROR_EDITOR_NO_SELECTION NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_EDITOR,1)
 #define NS_ERROR_EDITOR_NO_TEXTNODE  NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_EDITOR,2)
@@ -3494,6 +3495,54 @@ nsEditor::GetRightmostChild(nsIDOMNode *aCurrentNode,
   return resultNode.forget();
 }
 
+nsIContent*
+nsEditor::GetRightmostChild(nsINode *aCurrentNode,
+                            bool     bNoBlockCrossing)
+{
+  NS_ENSURE_TRUE(aCurrentNode, nsnull);
+  nsIContent *cur = aCurrentNode->GetLastChild();
+  if (!cur) {
+    return nsnull;
+  }
+  for (;;) {
+    if (bNoBlockCrossing && IsBlockNode(cur)) {
+      return cur;
+    }
+    nsIContent* next = cur->GetLastChild();
+    if (!next) {
+      return cur;
+    }
+    cur = next;
+  }
+
+  NS_NOTREACHED("What part of for(;;) do you not understand?");
+  return nsnull;
+}
+
+nsIContent*
+nsEditor::GetLeftmostChild(nsINode *aCurrentNode,
+                           bool     bNoBlockCrossing)
+{
+  NS_ENSURE_TRUE(aCurrentNode, nsnull);
+  nsIContent *cur = aCurrentNode->GetFirstChild();
+  if (!cur) {
+    return nsnull;
+  }
+  for (;;) {
+    if (bNoBlockCrossing && IsBlockNode(cur)) {
+      return cur;
+    }
+    nsIContent *next = cur->GetFirstChild();
+    if (!next) {
+      return cur;
+    }
+    cur = next;
+  }
+
+  NS_NOTREACHED("What part of for(;;) do you not understand?");
+  return nsnull;
+}
+
 already_AddRefed<nsIDOMNode>
 nsEditor::GetLeftmostChild(nsIDOMNode *aCurrentNode,
                            bool bNoBlockCrossing)
@@ -3529,6 +3578,16 @@ nsEditor::IsBlockNode(nsIDOMNode *aNode)
 }
 
 bool 
+nsEditor::IsBlockNode(nsINode *aNode)
+{
+  
+  
+  
+  
+  return false;
+}
+
+bool
 nsEditor::CanContainTag(nsIDOMNode* aParent, const nsAString &aChildTag)
 {
   nsCOMPtr<nsIDOMElement> parentElement = do_QueryInterface(aParent);
@@ -3563,38 +3622,41 @@ nsEditor::TagCanContainTag(const nsAString &aParentTag, const nsAString &aChildT
   return true;
 }
 
+bool
+nsEditor::IsRootNode(nsIDOMNode *inNode)
+{
+  NS_ENSURE_TRUE(inNode, false);
+
+  return inNode == GetRoot();
+}
+
 bool 
-nsEditor::IsRootNode(nsIDOMNode *inNode) 
+nsEditor::IsRootNode(nsINode *inNode) 
 {
   NS_ENSURE_TRUE(inNode, false);
 
   nsIDOMElement *rootElement = GetRoot();
 
-  nsCOMPtr<nsIDOMNode> rootNode = do_QueryInterface(rootElement);
+  nsCOMPtr<nsIDOMNode> node = do_QueryInterface(inNode);
 
-  return inNode == rootNode;
+  return node == rootElement;
 }
 
 bool 
 nsEditor::IsDescendantOfBody(nsIDOMNode *inNode) 
 {
-  NS_ENSURE_TRUE(inNode, false);
-  nsIDOMElement *rootElement = GetRoot();
-  NS_ENSURE_TRUE(rootElement, false);
-  nsCOMPtr<nsIDOMNode> root = do_QueryInterface(rootElement);
+  nsCOMPtr<nsINode> node = do_QueryInterface(inNode);
+  return IsDescendantOfBody(node);
+}
 
-  if (inNode == root.get()) return true;
-  
-  nsCOMPtr<nsIDOMNode> parent, node = do_QueryInterface(inNode);
-  
-  do
-  {
-    node->GetParentNode(getter_AddRefs(parent));
-    if (parent == root) return true;
-    node = parent;
-  } while (parent);
-  
-  return false;
+bool
+nsEditor::IsDescendantOfBody(nsINode *inNode)
+{
+  NS_ENSURE_TRUE(inNode, false);
+  nsCOMPtr<nsIContent> root = do_QueryInterface(GetRoot());
+  NS_ENSURE_TRUE(root, false);
+
+  return nsContentUtils::ContentIsDescendantOf(inNode, root);
 }
 
 bool 
@@ -3604,7 +3666,7 @@ nsEditor::IsContainer(nsIDOMNode *aNode)
 }
 
 bool
-nsEditor::IsTextInDirtyFrameVisible(nsIDOMNode *aNode)
+nsEditor::IsTextInDirtyFrameVisible(nsIContent *aNode)
 {
   
   
@@ -3670,33 +3732,41 @@ IsElementVisible(dom::Element* aElement)
 bool 
 nsEditor::IsEditable(nsIDOMNode *aNode)
 {
+  nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
+  return IsEditable(content);
+}
+
+bool
+nsEditor::IsEditable(nsIContent *aNode)
+{
   NS_ENSURE_TRUE(aNode, false);
 
   if (IsMozEditorBogusNode(aNode) || !IsModifiableNode(aNode)) return false;
 
   
   
-  nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
-  if (content)
-  {
-    if (content->IsElement() && !IsElementVisible(content->AsElement())) {
-      
-      
-      
-      return false;
-    }
-    if (!content->IsNodeOfType(nsINode::eTEXT))
-      return true;  
-
-    return IsTextInDirtyFrameVisible(aNode);
+  if (aNode->IsElement() && !IsElementVisible(aNode->AsElement())) {
+    
+    
+    
+    return false;
   }
-  return false;  
+  if (aNode->NodeType() != nsIDOMNode::TEXT_NODE)
+    return true;  
+
+  return IsTextInDirtyFrameVisible(aNode);
 }
 
 bool
 nsEditor::IsMozEditorBogusNode(nsIDOMNode *aNode)
 {
   nsCOMPtr<nsIContent> element = do_QueryInterface(aNode);
+  return IsMozEditorBogusNode(element);
+}
+
+bool
+nsEditor::IsMozEditorBogusNode(nsIContent *element)
+{
   return element &&
          element->AttrValueIs(kNameSpaceID_None, kMOZEditorBogusNodeAttrAtom,
                               kMOZEditorBogusNodeValue, eCaseMatters);
@@ -3870,6 +3940,11 @@ nsEditor::IsTextNode(nsIDOMNode *aNode)
   return (nodeType == nsIDOMNode::TEXT_NODE);
 }
 
+bool
+nsEditor::IsTextNode(nsINode *aNode)
+{
+  return aNode->NodeType() == nsIDOMNode::TEXT_NODE;
+}
 
 
 
@@ -5374,6 +5449,12 @@ nsEditor::DumpNode(nsIDOMNode *aNode, PRInt32 indent)
 
 bool
 nsEditor::IsModifiableNode(nsIDOMNode *aNode)
+{
+  return true;
+}
+
+bool
+nsEditor::IsModifiableNode(nsINode *aNode)
 {
   return true;
 }
