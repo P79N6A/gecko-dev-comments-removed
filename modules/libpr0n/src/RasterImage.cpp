@@ -2501,9 +2501,14 @@ RasterImage::DecodeSomeData(PRUint32 aMaxBytes)
 
 
 
+
+
 PRBool
 RasterImage::IsDecodeFinished()
 {
+  
+  NS_ABORT_IF_FALSE(mDecoder, "Can't call IsDecodeFinished() without decoder!");
+
   
   PRBool decodeFinished = PR_FALSE;
 
@@ -2643,7 +2648,7 @@ imgDecodeWorker::Run()
   
   
   
-  if (!image->IsDecodeFinished() && haveMoreData)
+  if (image->mDecoder && !image->IsDecodeFinished() && haveMoreData)
     return this->Dispatch();
 
   
