@@ -91,7 +91,6 @@
 #include "mozilla/scache/StartupCache.h"
 #include "mozilla/scache/StartupCacheUtils.h"
 #endif
-#include "mozilla/Omnijar.h"
 
 #if defined(MOZ_SHARK) || defined(MOZ_CALLGRIND) || defined(MOZ_VTUNE) || defined(MOZ_TRACEVIS)
 #include "jsdbgapi.h"
@@ -102,6 +101,7 @@
 static const char kJSRuntimeServiceContractID[] = "@mozilla.org/js/xpc/RuntimeService;1";
 static const char kXPConnectServiceContractID[] = "@mozilla.org/js/xpc/XPConnect;1";
 static const char kObserverServiceContractID[] = "@mozilla.org/observer-service;1";
+static const char kCacheKeyPrefix[] = "jsloader:";
 
 
 #if !defined(XP_BEOS) && !defined(XP_OS2)
@@ -351,6 +351,7 @@ ReportOnCaller(JSCLContextHelper &helper,
     return OutputError(cx, format, ap);
 }
 
+#ifdef MOZ_ENABLE_LIBXUL
 static nsresult
 ReadScriptFromStream(JSContext *cx, nsIObjectInputStream *stream,
                      JSScript **script)
@@ -452,6 +453,7 @@ WriteScriptToStream(JSContext *cx, JSScript *script,
     JS_XDRDestroy(xdr);
     return rv;
 }
+#endif 
 
 mozJSComponentLoader::mozJSComponentLoader()
     : mRuntime(nsnull),
@@ -629,28 +631,16 @@ mozJSComponentLoader::LoadModuleFromJAR(nsILocalFile *aJarFile,
 #if !defined(XPCONNECT_STANDALONE)
     nsresult rv;
 
-    nsCAutoString fullSpec;
+    nsCAutoString fileSpec;
+    NS_GetURLSpecFromActualFile(aJarFile, fileSpec);
 
-#ifdef MOZ_OMNIJAR
-    PRBool equal;
-    rv = aJarFile->Equals(mozilla::OmnijarPath(), &equal);
-    if (NS_SUCCEEDED(rv) && equal) {
-        fullSpec = "resource://gre/";
-    } else {
-#endif
-        nsCAutoString fileSpec;
-        NS_GetURLSpecFromActualFile(aJarFile, fileSpec);
-        fullSpec = "jar:";
-        fullSpec += fileSpec;
-        fullSpec += "!/";
-#ifdef MOZ_OMNIJAR
-    }
-#endif
-
-    fullSpec += aComponentPath;
+    nsCAutoString jarSpec("jar:");
+    jarSpec += fileSpec;
+    jarSpec += "!/";
+    jarSpec += aComponentPath;
 
     nsCOMPtr<nsIURI> uri;
-    rv = NS_NewURI(getter_AddRefs(uri), fullSpec);
+    rv = NS_NewURI(getter_AddRefs(uri), jarSpec);
     if (NS_FAILED(rv))
         return NULL;
 
@@ -843,48 +833,6 @@ class JSScriptHolder
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-static nsresult
-PathifyURI(nsIURI *in, nsACString &out)
-{ 
-   out = "jsloader/";
-   nsCAutoString scheme;
-   nsresult rv = in->GetScheme(scheme);
-   NS_ENSURE_SUCCESS(rv, rv);
-   out.Append(scheme);
-   nsCAutoString host;
-   rv = in->GetHost(host);
-   NS_ENSURE_SUCCESS(rv, rv);
-#ifdef MOZ_OMNIJAR
-   if (scheme.Equals("resource") && host.Length() == 0){
-       host = "gre";
-   }
-#endif
-   if (host.Length()) {
-       out.Append("/");
-       out.Append(host);
-   }
-   nsCAutoString path;
-   rv = in->GetPath(path);
-   NS_ENSURE_SUCCESS(rv, rv);
-   out.Append(path);
-   out.Append(".bin");
-   return NS_OK;
-}
-
-
 #ifdef MOZ_ENABLE_LIBXUL
 nsresult
 mozJSComponentLoader::ReadScript(StartupCache* cache, nsIURI *uri,
@@ -893,8 +841,9 @@ mozJSComponentLoader::ReadScript(StartupCache* cache, nsIURI *uri,
     nsresult rv;
     
     nsCAutoString spec;
-    rv = PathifyURI(uri, spec);
+    rv = uri->GetSpec(spec);
     NS_ENSURE_SUCCESS(rv, rv);
+    spec.Insert(kCacheKeyPrefix, 0);
     
     nsAutoArrayPtr<char> buf;   
     PRUint32 len;
@@ -920,8 +869,10 @@ mozJSComponentLoader::WriteScript(StartupCache* cache, JSScript *script,
     nsresult rv;
 
     nsCAutoString spec;
-    rv = PathifyURI(uri, spec);
+    rv = uri->GetSpec(spec);
     NS_ENSURE_SUCCESS(rv, rv);
+
+    spec.Insert(kCacheKeyPrefix, 0);
 
     LOG(("Writing %s to startupcache\n", spec.get()));
     nsCOMPtr<nsIObjectOutputStream> oos;
