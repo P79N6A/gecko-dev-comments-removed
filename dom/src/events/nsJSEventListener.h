@@ -63,6 +63,11 @@ public:
 
   
   virtual void SetHandler(void *aHandler);
+  
+  virtual PRInt64 SizeOf() const
+  {
+    return sizeof(*this);
+  }
 
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsJSEventListener)
 protected:
