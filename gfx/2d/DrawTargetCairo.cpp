@@ -355,10 +355,7 @@ DrawTargetCairo::DrawSurface(SourceSurface *aSurface,
     cairo_push_group(mContext);
       cairo_new_path(mContext);
       cairo_rectangle(mContext, 0, 0, aDest.Width(), aDest.Height());
-      
-      
       cairo_set_source(mContext, pat);
-      
       cairo_fill(mContext);
     cairo_pop_group_to_source(mContext);
   } else {
@@ -449,10 +446,7 @@ DrawTargetCairo::DrawSurfaceWithShadow(SourceSurface *aSurface,
     cairo_push_group(mContext);
       cairo_new_path(mContext);
       cairo_rectangle(mContext, 0, 0, width, height);
-      
-      
       cairo_set_source(mContext, pat);
-      
       cairo_fill(mContext);
     cairo_pop_group_to_source(mContext);
   } else {
