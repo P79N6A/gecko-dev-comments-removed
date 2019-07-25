@@ -31,6 +31,7 @@
 #include "nsCDefaultURIFixup.h"
 #include "nsIWebNavigation.h"
 #include "nsIJSContextStack.h"
+#include "mozilla/BrowserElementParent.h"
 
 #include "nsIDOMDocument.h"
 #include "nsIScriptObjectPrincipal.h"
@@ -836,6 +837,29 @@ nsContentTreeOwner::ProvideWindow(nsIDOMWindow* aParent,
                                static_cast<nsIDocShellTreeOwner*>(this)),
                "Parent from wrong docshell tree?");
 #endif
+
+  
+  
+  
+  nsCOMPtr<nsIDocShell> docshell = do_GetInterface(aParent);
+  bool inBrowserFrame = false;
+  if (docshell) {
+    docshell->GetContainedInBrowserFrame(&inBrowserFrame);
+  }
+
+  if (inBrowserFrame &&
+      !(aChromeFlags & (nsIWebBrowserChrome::CHROME_MODAL |
+                        nsIWebBrowserChrome::CHROME_OPENAS_DIALOG |
+                        nsIWebBrowserChrome::CHROME_OPENAS_CHROME))) {
+    bool openSucceeded =
+      BrowserElementParent::OpenWindowInProcess(aParent, aURI, aName,
+                                                aFeatures, aReturn);
+
+    
+    
+    
+    return openSucceeded ? NS_OK : NS_ERROR_ABORT;
+  }
 
   
   PRInt32 containerPref;

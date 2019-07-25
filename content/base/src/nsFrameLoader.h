@@ -27,6 +27,7 @@ class nsSubDocumentFrame;
 class nsIView;
 class nsIInProcessContentFrameMessageManager;
 class AutoResetInShow;
+class nsITabParent;
 
 namespace mozilla {
 namespace dom {
@@ -255,6 +256,16 @@ public:
   bool ShouldClipSubdocument() { return mClipSubdocument; }
 
   bool ShouldClampScrollPosition() { return mClampScrollPosition; }
+
+  
+
+
+
+
+
+
+
+  void SetRemoteBrowser(nsITabParent* aTabParent);
 
 private:
 

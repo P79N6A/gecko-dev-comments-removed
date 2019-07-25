@@ -93,6 +93,7 @@ TabChild::TabChild(PRUint32 aChromeFlags)
   , mChromeFlags(aChromeFlags)
   , mOuterRect(0, 0, 0, 0)
   , mLastBackgroundColor(NS_RGB(255, 255, 255))
+  , mDidFakeShow(false)
 {
     printf("creating %d!\n", NS_IsMainThread());
 }
@@ -331,6 +332,28 @@ TabChild::ProvideWindow(nsIDOMWindow* aParent, PRUint32 aChromeFlags,
 {
     *aReturn = nsnull;
 
+    
+    
+    
+    nsCOMPtr<nsIDocShell> docshell = do_GetInterface(aParent);
+    bool inBrowserFrame = false;
+    if (docshell) {
+      docshell->GetContainedInBrowserFrame(&inBrowserFrame);
+    }
+
+    if (inBrowserFrame &&
+        !(aChromeFlags & (nsIWebBrowserChrome::CHROME_MODAL |
+                          nsIWebBrowserChrome::CHROME_OPENAS_DIALOG |
+                          nsIWebBrowserChrome::CHROME_OPENAS_CHROME))) {
+
+      
+      
+      
+      return BrowserFrameProvideWindow(aParent, aURI, aName, aFeatures,
+                                       aWindowIsNew, aReturn);
+    }
+
+    
     PBrowserChild* newChild;
     if (!CallCreateWindow(&newChild)) {
         return NS_ERROR_NOT_AVAILABLE;
@@ -341,6 +364,41 @@ TabChild::ProvideWindow(nsIDOMWindow* aParent, PRUint32 aChromeFlags,
         do_GetInterface(static_cast<TabChild*>(newChild)->mWebNav);
     win.forget(aReturn);
     return NS_OK;
+}
+
+nsresult
+TabChild::BrowserFrameProvideWindow(nsIDOMWindow* aOpener,
+                                    nsIURI* aURI,
+                                    const nsAString& aName,
+                                    const nsACString& aFeatures,
+                                    bool* aWindowIsNew,
+                                    nsIDOMWindow** aReturn)
+{
+  *aReturn = nsnull;
+
+  nsRefPtr<TabChild> newChild =
+    static_cast<TabChild*>(Manager()->SendPBrowserConstructor(0));
+
+  nsCAutoString spec;
+  aURI->GetSpec(spec);
+
+  NS_ConvertUTF8toUTF16 url(spec);
+  nsString name(aName);
+  NS_ConvertUTF8toUTF16 features(aFeatures);
+  newChild->SendBrowserFrameOpenWindow(this, url, name,
+                                       features, aWindowIsNew);
+  if (!*aWindowIsNew) {
+    PBrowserChild::Send__delete__(newChild);
+    return NS_ERROR_ABORT;
+  }
+
+  
+  
+  newChild->DoFakeShow();
+
+  nsCOMPtr<nsIDOMWindow> win = do_GetInterface(newChild->mWebNav);
+  win.forget(aReturn);
+  return NS_OK;
 }
 
 static nsInterfaceHashtable<nsPtrHashKey<PContentDialogChild>, nsIDialogParamBlock> gActiveDialogs;
@@ -483,9 +541,20 @@ TabChild::RecvLoadURL(const nsCString& uri)
     return true;
 }
 
+void
+TabChild::DoFakeShow()
+{
+  RecvShow(nsIntSize(0, 0));
+  mDidFakeShow = true;
+}
+
 bool
 TabChild::RecvShow(const nsIntSize& size)
 {
+    if (mDidFakeShow) {
+        return true;
+    }
+
     printf("[TabChild] SHOW (w,h)= (%d, %d)\n", size.width, size.height);
 
     nsCOMPtr<nsIBaseWindow> baseWindow = do_QueryInterface(mWebNav);
