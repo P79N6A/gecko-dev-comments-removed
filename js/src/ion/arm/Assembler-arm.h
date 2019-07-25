@@ -794,6 +794,7 @@ class Operand
     VFPAddr toVFPAddr() {JS_ASSERT(Tag == VDTR); return VFPAddr(data); }
 };
 
+
 class Assembler
 {
   public:
@@ -829,6 +830,7 @@ class Assembler
         LessThanOrEqual = LE,
         Overflow = VS,
         Signed = MI,
+        Unsigned = PL,
         Zero = EQ,
         NonZero = NE,
         Always  = AL,
@@ -843,12 +845,13 @@ class Assembler
     Condition getCondition(uint32 inst) {
         return (Condition) (0xf0000000 & inst);
     }
-  protected:
-
+    
+    
     class BufferOffset;
     BufferOffset nextOffset () {
         return BufferOffset(m_buffer.uncheckedSize());
     }
+  protected:
     BufferOffset labelOffset (Label *l) {
         return BufferOffset(l->bound());
     }
@@ -858,17 +861,18 @@ class Assembler
     }
     
     
+  public:
     class BufferOffset
     {
         int offset;
       public:
         friend BufferOffset nextOffset();
         explicit BufferOffset(int offset_) : offset(offset_) {}
-        int getOffset() { return offset; }
-        BOffImm diffB(BufferOffset other) {
+        int getOffset() const { return offset; }
+        BOffImm diffB(BufferOffset other) const {
             return BOffImm(offset - other.offset-8);
         }
-        BOffImm diffB(Label *other) {
+        BOffImm diffB(Label *other) const {
             JS_ASSERT(other->bound());
             return BOffImm(offset - other->offset()-8);
         }
@@ -877,6 +881,7 @@ class Assembler
         BufferOffset() : offset(INT_MIN) {}
         bool assigned() { return offset != INT_MIN; };
     };
+  protected:
 
     
     
@@ -893,10 +898,19 @@ class Assembler
             kind(kind)
         { }
     };
-
+    
+    
+    class JumpPool;
     js::Vector<DeferredData *, 0, SystemAllocPolicy> data_;
     js::Vector<CodeLabel *, 0, SystemAllocPolicy> codeLabels_;
     js::Vector<RelativePatch, 8, SystemAllocPolicy> jumps_;
+    js::Vector<JumpPool *, 0, SystemAllocPolicy> jumpPools_;
+    class JumpPool : TempObject {
+        BufferOffset start;
+        uint32 size;
+        bool fixup(IonCode *code, uint8 *data);
+    };
+
     CompactBufferWriter jumpRelocations_;
     CompactBufferWriter dataRelocations_;
     CompactBufferWriter relocations_;
@@ -971,6 +985,10 @@ public:
     static void writeInstStatic(uint32 x, uint32 *dest);
 
   public:
+    
+    
+    void as_jumpPool(uint32 size);
+
     void align(int alignment);
     void as_alu(Register dest, Register src1, Operand2 op2,
                 ALUOp op, SetCond_ sc = NoSetCond, Condition c = Always);

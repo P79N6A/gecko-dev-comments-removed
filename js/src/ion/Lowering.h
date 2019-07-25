@@ -102,7 +102,6 @@ class LIRGenerator : public LIRGeneratorSpecific
     
     
     bool visitParameter(MParameter *param);
-    bool visitTableSwitch(MTableSwitch *tableswitch);
     bool visitGoto(MGoto *ins);
     bool visitPrepareCall(MPrepareCall *ins);
     bool visitPassArg(MPassArg *arg);

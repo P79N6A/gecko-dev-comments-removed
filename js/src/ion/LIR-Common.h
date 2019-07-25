@@ -232,36 +232,6 @@ class LCallGeneric : public LInstructionHelper<BOX_PIECES, 1, 2>
 };
 
 
-class LTableSwitch : public LInstructionHelper<0, 1, 2>
-{
-  public:
-    LIR_HEADER(TableSwitch);
-
-    LTableSwitch(const LAllocation &in, const LDefinition &inputCopy,
-                 const LDefinition &jumpTablePointer, MTableSwitch *ins)
-    {
-        setOperand(0, in);
-        setTemp(0, inputCopy);
-        setTemp(1, jumpTablePointer);
-        setMir(ins);
-    }
-
-    MTableSwitch *mir() const {
-        return mir_->toTableSwitch();
-    }
-
-    const LAllocation *index() {
-        return getOperand(0);
-    }
-    const LAllocation *tempInt() {
-        return getTemp(0)->output();
-    }
-    const LAllocation *tempPointer() {
-        return getTemp(1)->output();
-    }
-};
-
-
 class LTestIAndBranch : public LInstructionHelper<0, 1, 0>
 {
     MBasicBlock *ifTrue_;

@@ -54,6 +54,31 @@
 using namespace js;
 using namespace js::ion;
 
+class DeferredJumpTable : public DeferredData
+{
+    LTableSwitch *lswitch;
+    Assembler::BufferOffset off;
+  public:
+    DeferredJumpTable(LTableSwitch *lswitch, Assembler::BufferOffset off_)
+        : lswitch(lswitch), off(off_)
+    { }
+
+    void copy(IonCode *code, uint8 *ignore__) const {
+        void **jumpData = (void **)(((char*)code->raw()) + off.getOffset());
+        int numCases =  lswitch->mir()->numCases();
+        
+        for (uint j = 0; j < numCases; j++) {
+            LBlock *caseblock = lswitch->mir()->getCase(numCases - 1 - j)->lir();
+            Label *caseheader = caseblock->label();
+
+            uint32 offset = caseheader->offset();
+            *jumpData = (void *)(code->raw() + offset);
+            jumpData++;
+        }
+    }
+};
+
+
 
 CodeGeneratorARM::CodeGeneratorARM(MIRGenerator *gen, LIRGraph &graph)
   : CodeGeneratorShared(gen, graph),
@@ -639,33 +664,76 @@ CodeGeneratorARM::visitMoveGroup(LMoveGroup *group)
 bool
 CodeGeneratorARM::visitTableSwitch(LTableSwitch *ins)
 {
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
     MTableSwitch *mir = ins->mir();
     const LAllocation *input = ins->getOperand(0);
+    Label *defaultcase = mir->getDefault()->lir()->label();
+    const LAllocation *temp;
 
-    
-    LDefinition *index = ins->getTemp(0);
+    if (ins->index()->isDouble()) {
+        temp = ins->tempInt();
 
-    
-    if (mir->low() != 0) {
-        masm.ma_sub(ToRegister(input), Imm32(mir->low()), ToRegister(index));
+        
+        
+        emitDoubleToInt32(ToFloatRegister(ins->index()), ToRegister(temp), defaultcase);
+    } else {
+        temp = ins->index();
     }
 
-    
-    LBlock *defaultcase = mir->getDefault()->lir();
     int32 cases = mir->numCases();
-    masm.ma_cmp(Imm32(cases), ToRegister(index));
-    masm.ma_b(defaultcase->label(), Assembler::AboveOrEqual);
+    Register tempReg = ToRegister(temp);
+    
+    if (mir->low() != 0) {
+        masm.ma_sub(tempReg, Imm32(mir->low()), tempReg, SetCond);
+        masm.ma_rsb(tempReg, Imm32(cases - 1), tempReg, SetCond, Assembler::Unsigned);
+    } else {
+        masm.ma_rsb(tempReg, Imm32(cases - 1), tempReg, SetCond);
+    }
+    
+    
+    masm.ma_ldr(DTRAddr(pc, DtrRegImmShift(tempReg, LSL, 2)), pc, Offset, Assembler::Unsigned);
+    masm.ma_b(defaultcase);
+    DeferredJumpTable *d = new DeferredJumpTable(ins, masm.nextOffset());
+    masm.as_jumpPool(cases);
 
+    if (!masm.addDeferredData(d, 0))
+        return false;
+    return true;
+#if 0
     
     
-    CodeLabel *label = new CodeLabel();
     if (!masm.addCodeLabel(label))
         return false;
 
     
     LDefinition *base = ins->getTemp(1);
 
-#if 0
+
     
     
     masm.ma_mov(label->dest(), ToRegister(base));
@@ -691,9 +759,10 @@ CodeGeneratorARM::visitTableSwitch(LTableSwitch *ins)
     }
 
     return true;
-#endif
+
     JS_NOT_REACHED("what the deuce are tables");
     return false;
+#endif
 }
 
 bool
@@ -884,12 +953,13 @@ CodeGeneratorARM::linkAbsoluteLabels()
 {
     JSScript *script = gen->info().script();
     IonCode *method = script->ion->method();
-
+# if 0
     for (size_t i = 0; i < deferredDoubles_.length(); i++) {
         DeferredDouble *d = deferredDoubles_[i];
         const Value &v = script->ion->getConstant(d->index());
         MacroAssembler::Bind(method, d->label(), &v);
     }
+#endif
 }
 
 bool
