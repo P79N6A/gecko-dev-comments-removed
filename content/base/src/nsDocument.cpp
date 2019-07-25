@@ -3790,7 +3790,7 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
     if (!mWillReparent) {
       
       
-      JSObject *obj = GetWrapperPreserveColor();
+      JSObject *obj = GetWrapper();
       if (obj) {
         JSObject *newScope = aScriptGlobalObject->GetGlobalJSObject();
         nsIScriptContext *scx = aScriptGlobalObject->GetContext();
