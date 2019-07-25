@@ -349,6 +349,12 @@ let ContentScroll =  {
         let winCwu = win.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
         winCwu.setDisplayPort(x, y, displayport.width, displayport.height);
 
+        
+        
+        
+        if (json.id == 1 && json.scrollX >= 0 && json.scrollY >= 0)
+          winCwu.redraw();
+
         break;
       }
 
