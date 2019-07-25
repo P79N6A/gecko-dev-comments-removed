@@ -3211,7 +3211,12 @@ mjit::Compiler::emitStubCall(void *ptr, DataLabelPtr *pinline)
 void
 mjit::Compiler::interruptCheckHelper()
 {
-    
+    Jump jump;
+    if (cx->runtime->gcZeal() >= js::gc::ZealVerifierThreshold) {
+        
+        jump = masm.jump();
+    } else {
+        
 
 
 
@@ -3219,20 +3224,21 @@ mjit::Compiler::interruptCheckHelper()
 
 
 #ifdef JS_THREADSAFE
-    void *interrupt = (void*) &cx->runtime->interruptCounter;
+        void *interrupt = (void*) &cx->runtime->interruptCounter;
 #else
-    void *interrupt = (void*) &JS_THREAD_DATA(cx)->interruptFlags;
+        void *interrupt = (void*) &JS_THREAD_DATA(cx)->interruptFlags;
 #endif
 
 #if defined(JS_CPU_X86) || defined(JS_CPU_ARM)
-    Jump jump = masm.branch32(Assembler::NotEqual, AbsoluteAddress(interrupt), Imm32(0));
+        jump = masm.branch32(Assembler::NotEqual, AbsoluteAddress(interrupt), Imm32(0));
 #else
-    
-    RegisterID reg = frame.allocReg();
-    masm.move(ImmPtr(interrupt), reg);
-    Jump jump = masm.branchTest32(Assembler::NonZero, Address(reg, 0));
-    frame.freeReg(reg);
+        
+        RegisterID reg = frame.allocReg();
+        masm.move(ImmPtr(interrupt), reg);
+        jump = masm.branchTest32(Assembler::NonZero, Address(reg, 0));
+        frame.freeReg(reg);
 #endif
+    }
 
     stubcc.linkExitDirect(jump, stubcc.masm.label());
 

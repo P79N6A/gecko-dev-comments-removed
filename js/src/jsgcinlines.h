@@ -167,7 +167,7 @@ GCPoke(JSContext *cx, Value oldval)
 
 #ifdef JS_GC_ZEAL
     
-    if (cx->runtime->gcZeal())
+    if (cx->runtime->gcZeal() >= js::gc::ZealPokeThreshold)
         cx->runtime->gcNextScheduled = 1;
 #endif
 }

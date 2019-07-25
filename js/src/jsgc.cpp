@@ -111,6 +111,14 @@ using namespace js::gc;
 namespace js {
 namespace gc {
 
+#ifdef JS_GC_ZEAL
+static void
+StartVerifyBarriers(JSContext *cx);
+
+static void
+EndVerifyBarriers(JSContext *cx);
+#endif
+
 
 AllocKind slotsToThingKind[] = {
       FINALIZE_OBJECT0,  FINALIZE_OBJECT2,  FINALIZE_OBJECT2,  FINALIZE_OBJECT4,
@@ -2969,6 +2977,17 @@ js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind, gcstats::Re
         return;
     }
 
+#ifdef JS_GC_ZEAL
+    struct AutoVerifyBarriers {
+        JSContext *cx;
+        bool inVerify;
+        AutoVerifyBarriers(JSContext *cx) : cx(cx), inVerify(cx->runtime->gcVerifyData) {
+            if (inVerify) EndVerifyBarriers(cx);
+        }
+        ~AutoVerifyBarriers() { if (inVerify) StartVerifyBarriers(cx); }
+    } av(cx);
+#endif
+
     RecordNativeStackTopForGC(cx);
 
     gcstats::AutoGC agc(rt->gcStats, comp, reason);
@@ -3233,6 +3252,338 @@ RunDebugGC(JSContext *cx)
     }
 #endif
 }
+
+#ifdef JS_GC_ZEAL
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct EdgeValue
+{
+    void *thing;
+    JSGCTraceKind kind;
+    char *label;
+};
+
+struct VerifyNode
+{
+    void *thing;
+    JSGCTraceKind kind;
+    uint32 count;
+    EdgeValue edges[1];
+};
+
+typedef HashMap<void *, VerifyNode *> NodeMap;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct VerifyTracer : JSTracer {
+    
+    uint32 number;
+
+    
+    uint32 count;
+
+    
+    VerifyNode *curnode;
+    VerifyNode *root;
+    char *edgeptr;
+    char *term;
+    NodeMap nodemap;
+
+    
+    GCMarker gcmarker;
+
+    VerifyTracer(JSContext *cx) : nodemap(cx), gcmarker(cx) {}
+};
+
+
+
+
+
+static void
+AccumulateEdge(JSTracer *jstrc, void *thing, JSGCTraceKind kind)
+{
+    VerifyTracer *trc = (VerifyTracer *)jstrc;
+
+    trc->edgeptr += sizeof(EdgeValue);
+    if (trc->edgeptr >= trc->term) {
+        trc->edgeptr = trc->term;
+        return;
+    }
+
+    VerifyNode *node = trc->curnode;
+    uint32 i = node->count;
+
+    node->edges[i].thing = thing;
+    node->edges[i].kind = kind;
+    node->edges[i].label = trc->debugPrinter ? NULL : (char *)trc->debugPrintArg;
+    node->count++;
+}
+
+static VerifyNode *
+MakeNode(VerifyTracer *trc, void *thing, JSGCTraceKind kind)
+{
+    NodeMap::AddPtr p = trc->nodemap.lookupForAdd(thing);
+    if (!p) {
+        VerifyNode *node = (VerifyNode *)trc->edgeptr;
+        trc->edgeptr += sizeof(VerifyNode) - sizeof(EdgeValue);
+        if (trc->edgeptr >= trc->term) {
+            trc->edgeptr = trc->term;
+            return NULL;
+        }
+
+        node->thing = thing;
+        node->count = 0;
+        node->kind = kind;
+        trc->nodemap.add(p, thing, node);
+        return node;
+    }
+    return NULL;
+}
+
+static
+VerifyNode *
+NextNode(VerifyNode *node)
+{
+    if (node->count == 0)
+        return (VerifyNode *)((char *)node + sizeof(VerifyNode) - sizeof(EdgeValue));
+    else
+        return (VerifyNode *)((char *)node + sizeof(VerifyNode) +
+			      sizeof(EdgeValue)*(node->count - 1));
+}
+
+static void
+StartVerifyBarriers(JSContext *cx)
+{
+    JSRuntime *rt = cx->runtime;
+
+    if (rt->gcVerifyData)
+        return;
+
+    LeaveTrace(cx);
+
+    AutoLockGC lock(rt);
+    AutoGCSession gcsession(cx);
+
+#ifdef JS_THREADSAFE
+    rt->gcHelperThread.waitBackgroundSweepOrAllocEnd();
+#endif
+
+    AutoUnlockGC unlock(rt);
+
+    AutoCopyFreeListToArenas copy(rt);
+    RecordNativeStackTopForGC(cx);
+
+    for (GCChunkSet::Range r(rt->gcChunkSet.all()); !r.empty(); r.popFront())
+        r.front()->bitmap.clear();
+
+    
+
+
+
+#ifdef JS_METHODJIT
+    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c) {
+        mjit::ClearAllFrames(*c);
+
+        for (CellIterUnderGC i(*c, FINALIZE_SCRIPT); !i.done(); i.next()) {
+            JSScript *script = i.get<JSScript>();
+            mjit::ReleaseScriptCode(cx, script);
+
+            
+
+
+
+
+            script->resetUseCount();
+        }
+    }
+#endif
+
+    VerifyTracer *trc = new (js_malloc(sizeof(VerifyTracer))) VerifyTracer(cx);
+
+    rt->gcNumber++;
+    trc->number = rt->gcNumber;
+    trc->count = 0;
+
+    JS_TRACER_INIT(trc, cx, AccumulateEdge);
+
+    const size_t size = 64 * 1024 * 1024;
+    trc->root = (VerifyNode *)js_malloc(size);
+    JS_ASSERT(trc->root);
+    trc->edgeptr = (char *)trc->root;
+    trc->term = trc->edgeptr + size;
+
+    trc->nodemap.init();
+
+    
+    trc->curnode = MakeNode(trc, NULL, JSGCTraceKind(0));
+
+    
+    MarkRuntime(trc);
+
+    VerifyNode *node = trc->curnode;
+    if (trc->edgeptr == trc->term)
+        goto oom;
+
+    
+    while ((char *)node < trc->edgeptr) {
+        for (uint32 i = 0; i < node->count; i++) {
+            EdgeValue &e = node->edges[i];
+            VerifyNode *child = MakeNode(trc, e.thing, e.kind);
+            if (child) {
+                trc->curnode = child;
+                JS_TraceChildren(trc, e.thing, e.kind);
+            }
+            if (trc->edgeptr == trc->term)
+                goto oom;
+        }
+
+        node = NextNode(node);
+    }
+
+    rt->gcVerifyData = trc;
+    rt->gcIncrementalTracer = &trc->gcmarker;
+    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c) {
+        (*c)->gcIncrementalTracer = &trc->gcmarker;
+        (*c)->needsBarrier_ = true;
+    }
+
+    return;
+
+oom:
+    js_free(trc->root);
+    trc->~VerifyTracer();
+    js_free(trc);
+}
+
+
+
+
+
+
+
+
+static void
+CheckEdge(JSTracer *jstrc, void *thing, JSGCTraceKind kind)
+{
+    VerifyTracer *trc = (VerifyTracer *)jstrc;
+    VerifyNode *node = trc->curnode;
+
+    for (uint32 i = 0; i < node->count; i++) {
+        if (node->edges[i].thing == thing) {
+            JS_ASSERT(node->edges[i].kind == kind);
+            node->edges[i].thing = NULL;
+            return;
+        }
+    }
+}
+
+static void
+EndVerifyBarriers(JSContext *cx)
+{
+    LeaveTrace(cx);
+
+    JSRuntime *rt = cx->runtime;
+
+    AutoLockGC lock(rt);
+    AutoGCSession gcsession(cx);
+
+#ifdef JS_THREADSAFE
+    rt->gcHelperThread.waitBackgroundSweepOrAllocEnd();
+#endif
+
+    AutoUnlockGC unlock(rt);
+
+    AutoCopyFreeListToArenas copy(rt);
+    RecordNativeStackTopForGC(cx);
+
+    VerifyTracer *trc = (VerifyTracer *)rt->gcVerifyData;
+
+    if (!trc)
+        return;
+
+    JS_ASSERT(trc->number == rt->gcNumber);
+
+    rt->gcIncrementalTracer->markDelayedChildren();
+
+    rt->gcVerifyData = NULL;
+    rt->gcIncrementalTracer = NULL;
+    for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c) {
+        (*c)->gcIncrementalTracer = NULL;
+        (*c)->needsBarrier_ = false;
+    }
+
+    JS_TRACER_INIT(trc, cx, CheckEdge);
+
+    
+    VerifyNode *node = NextNode(trc->root);
+    int count = 0;
+
+    while ((char *)node < trc->edgeptr) {
+        trc->curnode = node;
+        JS_TraceChildren(trc, node->thing, node->kind);
+
+        for (uint32 i = 0; i < node->count; i++) {
+            void *thing = node->edges[i].thing;
+            JS_ASSERT_IF(thing, static_cast<Cell *>(thing)->isMarked());
+        }
+
+        count++;
+        node = NextNode(node);
+    }
+
+    js_free(trc->root);
+    trc->~VerifyTracer();
+    js_free(trc);
+}
+
+void
+VerifyBarriers(JSContext *cx, bool always)
+{
+    if (cx->runtime->gcZeal() < ZealVerifierThreshold)
+        return;
+
+    uint32 freq = cx->runtime->gcZealFrequency;
+
+    JSRuntime *rt = cx->runtime;
+    if (VerifyTracer *trc = (VerifyTracer *)rt->gcVerifyData) {
+        if (++trc->count < freq && !always)
+            return;
+
+        EndVerifyBarriers(cx);
+    }
+    StartVerifyBarriers(cx);
+}
+
+#endif 
 
 } 
 
