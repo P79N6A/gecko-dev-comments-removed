@@ -137,8 +137,9 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
                 
                 
                 
-                mTempSurfaceSize.width = (PRInt32) NS_ceil(mNativeRect.size.width + 1);
-                mTempSurfaceSize.height = (PRInt32) NS_ceil(mNativeRect.size.height + 1);
+                mTempSurfaceSize =
+                    gfxIntSize((PRInt32) NS_ceil(mNativeRect.Width() + 1),
+                               (PRInt32) NS_ceil(mNativeRect.Height() + 1));
             } else {
                 
                 mScale = m.ScaleFactors(PR_TRUE);
@@ -151,8 +152,9 @@ gfxWindowsNativeDrawing::BeginNativeDrawing()
                 mWorldTransform.eDy  = 0.0f;
 
                 
-                mTempSurfaceSize.width = (PRInt32) NS_ceil(mNativeRect.size.width * mScale.width + 1);
-                mTempSurfaceSize.height = (PRInt32) NS_ceil(mNativeRect.size.height * mScale.height + 1);
+                mTempSurfaceSize =
+                    gfxIntSize((PRInt32) NS_ceil(mNativeRect.Width() * mScale.width + 1),
+                               (PRInt32) NS_ceil(mNativeRect.Height() * mScale.height + 1));
             }
         }
     }
@@ -294,9 +296,9 @@ gfxWindowsNativeDrawing::PaintToContext()
                                 gfxASurface::ImageFormatARGB32);
 
         mContext->Save();
-        mContext->Translate(mNativeRect.pos);
+        mContext->Translate(mNativeRect.TopLeft());
         mContext->NewPath();
-        mContext->Rectangle(gfxRect(gfxPoint(0.0, 0.0), mNativeRect.size));
+        mContext->Rectangle(gfxRect(gfxPoint(0.0, 0.0), mNativeRect.Size()));
 
         nsRefPtr<gfxPattern> pat = new gfxPattern(alphaSurface);
 
@@ -334,7 +336,7 @@ gfxWindowsNativeDrawing::TransformToNativeRect(const gfxRect& r,
             roundedRect.MoveBy(mTranslation);
         }
     } else {
-        roundedRect.MoveBy(- mNativeRect.pos);
+        roundedRect.MoveBy(-mNativeRect.TopLeft());
     }
 
     roundedRect.Round();

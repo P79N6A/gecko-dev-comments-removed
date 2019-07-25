@@ -290,8 +290,8 @@ Layer::SnapTransform(const gfx3DMatrix& aTransform,
     }
     
     
-    snappedMatrix.x0 = topLeft.x - aSnapRect.pos.x*snappedMatrix.xx;
-    snappedMatrix.y0 = topLeft.y - aSnapRect.pos.y*snappedMatrix.yy;
+    snappedMatrix.x0 = topLeft.x - aSnapRect.X()*snappedMatrix.xx;
+    snappedMatrix.y0 = topLeft.y - aSnapRect.Y()*snappedMatrix.yy;
     result = gfx3DMatrix::From2D(snappedMatrix);
     if (aResidualTransform && !snappedMatrix.IsSingular()) {
       

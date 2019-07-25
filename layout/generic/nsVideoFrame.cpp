@@ -278,7 +278,7 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   layer->SetContentFlags(Layer::CONTENT_OPAQUE);
   
   gfxMatrix transform;
-  transform.Translate(r.pos);
+  transform.Translate(r.TopLeft());
   transform.Scale(r.Width()/frameSize.width, r.Height()/frameSize.height);
   layer->SetTransform(gfx3DMatrix::From2D(transform));
   layer->SetVisibleRegion(nsIntRect(0, 0, videoSize.width, videoSize.height));

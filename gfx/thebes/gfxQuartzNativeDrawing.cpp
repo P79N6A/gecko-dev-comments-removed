@@ -107,7 +107,7 @@ gfxQuartzNativeDrawing::BeginNativeDrawing()
         
         CGContextSetCompositeOperation(mCGContext, kPrivateCGCompositeSourceOver);
     } else {
-        mQuartzSurface = new gfxQuartzSurface(mNativeRect.size,
+        mQuartzSurface = new gfxQuartzSurface(mNativeRect.Size(),
                                               gfxASurface::ImageFormatARGB32);
         if (mQuartzSurface->CairoStatus())
             return nsnull;
@@ -133,6 +133,6 @@ gfxQuartzNativeDrawing::EndNativeDrawing()
 
         
         mContext->Translate(mNativeRect.TopLeft());
-        mContext->DrawSurface(mQuartzSurface, mNativeRect.size);
+        mContext->DrawSurface(mQuartzSurface, mNativeRect.Size());
     }
 }

@@ -788,7 +788,7 @@ nsNativeThemeGTK::DrawWidgetBackground(nsRenderingContext* aContext,
   }
 
   
-  dirtyRect.MoveBy(-rect.pos);
+  dirtyRect.MoveBy(-rect.TopLeft());
   
   
   dirtyRect.RoundOut();
@@ -837,7 +837,7 @@ nsNativeThemeGTK::DrawWidgetBackground(nsRenderingContext* aContext,
     
     ctx->IdentityMatrix(); 
   }
-  ctx->Translate(rect.pos + gfxPoint(drawingRect.x, drawingRect.y));
+  ctx->Translate(rect.TopLeft() + gfxPoint(drawingRect.x, drawingRect.y));
 
   NS_ASSERTION(!IsWidgetTypeDisabled(mDisabledWidgetTypes, aWidgetType),
                "Trying to render an unsafe widget!");

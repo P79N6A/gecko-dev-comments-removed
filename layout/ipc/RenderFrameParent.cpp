@@ -488,8 +488,8 @@ BuildBackgroundPatternFor(ContainerLayer* aContainer,
   gfxRect localContentVis(t.Transform(contentVis));
   
   localContentVis.RoundIn();
-  nsIntRect localIntContentVis(localContentVis.pos.x, localContentVis.pos.y,
-                               localContentVis.size.width, localContentVis.size.height);
+  nsIntRect localIntContentVis(localContentVis.X(), localContentVis.Y(),
+                               localContentVis.Width(), localContentVis.Height());
 
   
   nscoord auPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
