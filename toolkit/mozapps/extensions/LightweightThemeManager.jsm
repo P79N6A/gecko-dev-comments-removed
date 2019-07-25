@@ -516,8 +516,11 @@ function _setCurrentTheme(aData, aLocal) {
 
   if (aData) {
     let theme = LightweightThemeManager.getUsedTheme(aData.id);
+    
     if (!theme) {
       var wrapper = new AddonWrapper(aData);
+      AddonManagerPrivate.callInstallListeners("onExternalInstall", null,
+                                               wrapper, null, false);
       AddonManagerPrivate.callAddonListeners("onInstalling", wrapper, false);
     }
     let current = LightweightThemeManager.currentTheme;
