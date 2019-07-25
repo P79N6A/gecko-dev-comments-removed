@@ -39,13 +39,13 @@
 
 
 
+
 #ifndef nsHttpChannel_h__
 #define nsHttpChannel_h__
 
 #include "HttpBaseChannel.h"
 
 #include "nsHttpTransaction.h"
-#include "nsHttpAuthCache.h"
 #include "nsInputStreamPump.h"
 #include "nsThreadUtils.h"
 
@@ -61,12 +61,11 @@
 #include "nsIResumableChannel.h"
 #include "nsIProtocolProxyCallback.h"
 #include "nsICancelable.h"
-#include "nsIProxiedChannel.h"
+#include "nsIHttpAuthenticableChannel.h"
 #include "nsITraceableChannel.h"
-#include "nsIAuthPromptCallback.h"
+#include "nsIHttpChannelAuthProvider.h"
 
 class nsAHttpConnection;
-class nsIHttpAuthenticator;
 
 using namespace mozilla::net;
 
@@ -82,10 +81,9 @@ class nsHttpChannel : public HttpBaseChannel
                     , public nsITransportEventSink
                     , public nsIResumableChannel
                     , public nsIProtocolProxyCallback
-                    , public nsIProxiedChannel
+                    , public nsIHttpAuthenticableChannel
                     , public nsITraceableChannel
                     , public nsIApplicationCacheChannel
-                    , public nsIAuthPromptCallback
 {
 public:
     NS_DECL_ISUPPORTS_INHERITED
@@ -101,10 +99,32 @@ public:
     NS_DECL_NSITRACEABLECHANNEL
     NS_DECL_NSIAPPLICATIONCACHECONTAINER
     NS_DECL_NSIAPPLICATIONCACHECHANNEL
-    NS_DECL_NSIAUTHPROMPTCALLBACK
+
+    
+    
+    
+    NS_IMETHOD GetIsSSL(PRBool *aIsSSL);
+    NS_IMETHOD GetProxyMethodIsConnect(PRBool *aProxyMethodIsConnect);
+    NS_IMETHOD GetServerResponseHeader(nsACString & aServerResponseHeader);
+    NS_IMETHOD GetProxyChallenges(nsACString & aChallenges);
+    NS_IMETHOD GetWWWChallenges(nsACString & aChallenges);
+    NS_IMETHOD SetProxyCredentials(const nsACString & aCredentials);
+    NS_IMETHOD SetWWWCredentials(const nsACString & aCredentials);
+    NS_IMETHOD OnAuthAvailable();
+    NS_IMETHOD OnAuthCancelled(PRBool userCancel);
+    
+    
+    
+    NS_IMETHOD GetLoadFlags(nsLoadFlags *aLoadFlags);
+    NS_IMETHOD GetURI(nsIURI **aURI);
+    NS_IMETHOD GetNotificationCallbacks(nsIInterfaceRequestor **aCallbacks);
+    NS_IMETHOD GetLoadGroup(nsILoadGroup **aLoadGroup);
+    NS_IMETHOD GetRequestMethod(nsACString& aMethod);
 
     nsHttpChannel();
     virtual ~nsHttpChannel();
+
+    virtual nsresult Init(nsIURI *aURI, PRUint8 aCaps, nsProxyInfo *aProxyInfo);
 
     
     
@@ -160,7 +180,6 @@ private:
     nsresult ProcessRedirection(PRUint32 httpStatus);
     PRBool   ShouldSSLProxyResponseContinue(PRUint32 httpStatus);
     nsresult ProcessFailedSSLConnect(PRUint32 httpStatus);
-    nsresult ProcessAuthentication(PRUint32 httpStatus);
     nsresult ProcessFallback(PRBool *fallingBack);
     PRBool   ResponseWouldVary();
 
@@ -206,41 +225,8 @@ private:
     nsresult ProcessPartialContent();
     nsresult OnDoneReadingPartialCacheEntry(PRBool *streamDone);
 
-    
-    nsresult PrepareForAuthentication(PRBool proxyAuth);
-    nsresult GenCredsAndSetEntry(nsIHttpAuthenticator *, PRBool proxyAuth, const char *scheme, const char *host, PRInt32 port, const char *dir, const char *realm, const char *challenge, const nsHttpAuthIdentity &ident, nsCOMPtr<nsISupports> &session, char **result);
-    nsresult GetAuthenticator(const char *challenge, nsCString &scheme, nsIHttpAuthenticator **auth); 
-    void     ParseRealm(const char *challenge, nsACString &realm);
-    void     GetIdentityFromURI(PRUint32 authFlags, nsHttpAuthIdentity&);
-    
-
-
-
-
-
-    nsresult GetCredentials(const char *challenges, PRBool proxyAuth, nsAFlatCString &creds);
-    nsresult GetCredentialsForChallenge(const char *challenge, const char *scheme,  PRBool proxyAuth, nsIHttpAuthenticator *auth, nsAFlatCString &creds);
-    nsresult PromptForIdentity(PRUint32 level, PRBool proxyAuth, const char *realm, const char *authType, PRUint32 authFlags, nsHttpAuthIdentity &);
-
-    PRBool   ConfirmAuth(const nsString &bundleKey, PRBool doYesNoPrompt);
-    void     CheckForSuperfluousAuth();
-    void     SetAuthorizationHeader(nsHttpAuthCache *, nsHttpAtom header, const char *scheme, const char *host, PRInt32 port, const char *path, nsHttpAuthIdentity &ident);
-    void     AddAuthorizationHeaders();
-    nsresult GetCurrentPath(nsACString &);
-    
-
-
-
-
-    nsresult GetAuthorizationMembers(PRBool proxyAuth, nsCSubstring& scheme, const char*& host, PRInt32& port, nsCSubstring& path, nsHttpAuthIdentity*& ident, nsISupports**& continuationState);
     nsresult DoAuthRetry(nsAHttpConnection *);
     PRBool   MustValidateBasedOnQueryUrl();
-    
-
-
-
-
-    nsresult ContinueOnAuthAvailable(const nsCSubstring& creds);
 
 private:
     nsCOMPtr<nsISupports>             mSecurityInfo;
@@ -266,25 +252,7 @@ private:
     nsCOMPtr<nsIApplicationCache>     mApplicationCache;
 
     
-    nsISupports                      *mProxyAuthContinuationState;
-    nsCString                         mProxyAuthType;
-    nsISupports                      *mAuthContinuationState;
-    nsCString                         mAuthType;
-    nsHttpAuthIdentity                mIdent;
-    nsHttpAuthIdentity                mProxyIdent;
-
-    
-    
-    
-    nsCOMPtr<nsICancelable>           mAsyncPromptAuthCancelable;
-    
-    
-    
-    nsCString                         mCurrentChallenge;
-    
-    
-    
-    nsCString                         mRemainingChallenges;
+    nsCOMPtr<nsIHttpChannelAuthProvider> mAuthProvider;
 
     
     nsCString                         mEntityID;
@@ -314,12 +282,6 @@ private:
     PRUint32                          mCanceled                 : 1;
     PRUint32                          mTransactionReplaced      : 1;
     PRUint32                          mAuthRetryPending         : 1;
-    
-    
-    PRUint32                          mProxyAuth                : 1;
-    PRUint32                          mTriedProxyAuth           : 1;
-    PRUint32                          mTriedHostAuth            : 1;
-    PRUint32                          mSuppressDefensiveAuth    : 1;
     PRUint32                          mResuming                 : 1;
     PRUint32                          mInitedCacheEntry         : 1;
     PRUint32                          mCacheForOfflineUse       : 1;

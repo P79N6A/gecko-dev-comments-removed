@@ -94,8 +94,6 @@ public:
   HttpChannelChild();
   virtual ~HttpChannelChild();
 
-  nsresult Init(nsIURI *uri);
-
   
   
   

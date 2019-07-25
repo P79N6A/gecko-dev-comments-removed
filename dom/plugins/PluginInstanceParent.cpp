@@ -213,16 +213,6 @@ PluginInstanceParent::DeallocPPluginStream(PPluginStreamParent* stream)
     return true;
 }
 
-#ifdef MOZ_X11
-static Display* GetXDisplay() {
-#  ifdef MOZ_WIDGET_GTK2
-        return GDK_DISPLAY();
-#  elif defined(MOZ_WIDGET_QT)
-        return QX11Info::display();
-#  endif
-}
-#endif
-
 bool
 PluginInstanceParent::AnswerNPN_GetValue_NPNVjavascriptEnabledBool(
                                                        bool* value,
@@ -343,14 +333,16 @@ PluginInstanceParent::AnswerNPN_SetValue_NPPVpluginDrawingModel(
     const int& drawingModel, NPError* result)
 {
 #ifdef XP_MACOSX
-    if (drawingModel == NPDrawingModelCoreAnimation) {
+    if (drawingModel == NPDrawingModelCoreAnimation ||
+        drawingModel == NPDrawingModelInvalidatingCoreAnimation) {
         
         
         
-        mDrawingModel = NPDrawingModelCoreAnimation;
+        mDrawingModel = drawingModel;
         *result = mNPNIface->setvalue(mNPP, NPPVpluginDrawingModel,
                                   (void*)NPDrawingModelCoreGraphics);
-        if (mQuirks & COREANIMATION_REFRESH_TIMER) {
+        if (drawingModel == NPDrawingModelCoreAnimation &&
+            mQuirks & COREANIMATION_REFRESH_TIMER) {
             mParent->AddToRefreshTimer(this);
         }
     } else {
@@ -505,7 +497,8 @@ PluginInstanceParent::NPP_SetWindow(const NPWindow* aWindow)
 
 #if defined(XP_MACOSX)
     if (mShWidth != window.width || mShHeight != window.height) {
-        if (mDrawingModel == NPDrawingModelCoreAnimation) {
+        if (mDrawingModel == NPDrawingModelCoreAnimation || 
+            mDrawingModel == NPDrawingModelInvalidatingCoreAnimation) {
             if (mIOSurface) {
                 delete mIOSurface;
             }
@@ -697,14 +690,14 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
         
         
         
-        XSync(GetXDisplay(), False);
+        XSync(DefaultXDisplay(), False);
 
         return CallPaint(npremoteevent, &handled) ? handled : 0;
 
     case ButtonPress:
         
         
-        Display *dpy = GetXDisplay();
+        Display *dpy = DefaultXDisplay();
 #  ifdef MOZ_WIDGET_GTK2
         
         
@@ -720,7 +713,8 @@ PluginInstanceParent::NPP_HandleEvent(void* event)
 
 #ifdef XP_MACOSX
     if (npevent->type == NPCocoaEventDrawRect) {
-        if (mDrawingModel == NPDrawingModelCoreAnimation) {
+        if (mDrawingModel == NPDrawingModelCoreAnimation ||
+            mDrawingModel == NPDrawingModelInvalidatingCoreAnimation) {
             if (!mIOSurface) {
                 NS_ERROR("No IOSurface allocated.");
                 return false;

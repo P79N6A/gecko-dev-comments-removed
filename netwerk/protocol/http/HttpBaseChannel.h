@@ -103,7 +103,7 @@ public:
   HttpBaseChannel();
   virtual ~HttpBaseChannel();
 
-  nsresult Init(nsIURI *aURI, PRUint8 aCaps, nsProxyInfo *aProxyInfo);
+  virtual nsresult Init(nsIURI *aURI, PRUint8 aCaps, nsProxyInfo *aProxyInfo);
 
   
   NS_IMETHOD GetName(nsACString& aName);

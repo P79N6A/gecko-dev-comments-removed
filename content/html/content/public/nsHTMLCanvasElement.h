@@ -84,6 +84,10 @@ public:
   NS_DECL_NSIDOMHTMLCANVASELEMENT
 
   
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsHTMLCanvasElement,
+                                                     nsGenericHTMLElement)
+
+  
 
 
   nsIFrame *GetPrimaryCanvasFrame();

@@ -1,65 +1,65 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- * Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2006
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
 
-/*
-  This file contains the list of all atoms used by gklayout;
-  see nsGkAtoms for access to the atoms.
-*/
 
-/*
-  This file is designed to be used as inline input to nsGkAtoms.cpp and nsGkAtoms.h
-  *only* through the magic of C preprocessing.
 
-  All entires must be enclosed in the macro GK_ATOM which will have cruel
-  and unusual things done to it
 
-  The first argument to GK_ATOM is the C++ name of the atom
-  The second argument it GK_ATOM is the string value of the atom
-*/
 
-// OUTPUT_CLASS=nsGkAtoms
-// MACRO_NAME=GK_ATOM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef small
 #undef small
 #endif 
 
-//---------------------------------------------------------------------------
-// Generic atoms
-//---------------------------------------------------------------------------
+
+
+
 
 GK_ATOM(_empty, "")
 GK_ATOM(moz, "_moz")
@@ -110,7 +110,9 @@ GK_ATOM(applyImports, "apply-imports")
 GK_ATOM(applyTemplates, "apply-templates")
 GK_ATOM(archive, "archive")
 GK_ATOM(area, "area")
+GK_ATOM(article, "article")
 GK_ATOM(ascending, "ascending")
+GK_ATOM(aside, "aside")
 GK_ATOM(aspectRatio, "aspect-ratio")
 GK_ATOM(assign, "assign")
 GK_ATOM(async, "async")
@@ -379,6 +381,7 @@ GK_ATOM(followingSibling, "following-sibling")
 GK_ATOM(font, "font")
 GK_ATOM(fontWeight, "font-weight")
 GK_ATOM(fontpicker, "fontpicker")
+GK_ATOM(footer, "footer")
 GK_ATOM(_for, "for")
 GK_ATOM(forEach, "for-each")
 GK_ATOM(form, "form")
@@ -412,8 +415,10 @@ GK_ATOM(HARD, "HARD")
 GK_ATOM(hasSameNode, "has-same-node")
 GK_ATOM(hbox, "hbox")
 GK_ATOM(head, "head")
+GK_ATOM(header, "header")
 GK_ATOM(headers, "headers")
 GK_ATOM(height, "height")
+GK_ATOM(hgroup, "hgroup")
 GK_ATOM(hidden, "hidden")
 GK_ATOM(hidechrome, "hidechrome")
 GK_ATOM(highest, "highest")
@@ -567,6 +572,7 @@ GK_ATOM(_namespace, "namespace")
 GK_ATOM(namespaceAlias, "namespace-alias")
 GK_ATOM(namespaceUri, "namespace-uri")
 GK_ATOM(NaN, "NaN")
+GK_ATOM(nav, "nav")
 GK_ATOM(negate, "negate")
 GK_ATOM(never, "never")
 GK_ATOM(_new, "new")
@@ -648,7 +654,7 @@ GK_ATOM(onkeyup, "onkeyup")
 GK_ATOM(onLoad, "onLoad")
 GK_ATOM(onload, "onload")
 GK_ATOM(onpopstate, "onpopstate")
-GK_ATOM(only, "only")               // this one is not an event
+GK_ATOM(only, "only")               
 GK_ATOM(onmousedown, "onmousedown")
 GK_ATOM(onmousemove, "onmousemove")
 GK_ATOM(onmouseout, "onmouseout")
@@ -819,6 +825,7 @@ GK_ATOM(scrollbarbutton, "scrollbarbutton")
 GK_ATOM(scrollbox, "scrollbox")
 GK_ATOM(scrollcorner, "scrollcorner")
 GK_ATOM(scrolling, "scrolling")
+GK_ATOM(section, "section")
 GK_ATOM(select, "select")
 GK_ATOM(selectPopupList, "selectPopupList")
 GK_ATOM(selectable, "selectable")
@@ -845,6 +852,7 @@ GK_ATOM(sort, "sort")
 GK_ATOM(sortActive, "sortActive")
 GK_ATOM(sortDirection, "sortDirection")
 GK_ATOM(sorted, "sorted")
+GK_ATOM(sorthints, "sorthints")
 GK_ATOM(sortLocked, "sortLocked")
 GK_ATOM(sortResource, "sortResource")
 GK_ATOM(sortResource2, "sortResource2")
@@ -906,6 +914,7 @@ GK_ATOM(targets, "targets")
 GK_ATOM(tbody, "tbody")
 GK_ATOM(td, "td")
 GK_ATOM(_template, "template")
+GK_ATOM(text_decoration, "text-decoration")
 GK_ATOM(terminate, "terminate")
 GK_ATOM(test, "test")
 GK_ATOM(text, "text")
@@ -1253,7 +1262,6 @@ GK_ATOM(tableValues, "tableValues")
 GK_ATOM(targetX, "targetX")
 GK_ATOM(targetY, "targetY")
 GK_ATOM(text_anchor, "text-anchor")
-GK_ATOM(text_decoration, "text-decoration")
 GK_ATOM(text_rendering, "text-rendering")
 GK_ATOM(textPath, "textPath")
 GK_ATOM(tref, "tref")
@@ -1300,8 +1308,8 @@ GK_ATOM(XML, "XML")
 #endif
 
 #ifdef MOZ_MATHML
-// internal MathML attributes: different from columnalign_, columnlines_,
-// fontstyle_, rowalign_ and rowlines_
+
+
 GK_ATOM(_moz_math_columnalign_, "_moz-math-columnalign")
 GK_ATOM(_moz_math_columnline_, "_moz-math-columnline")
 GK_ATOM(_moz_math_fontstyle_, "_moz-math-font-style")
@@ -1482,7 +1490,7 @@ GK_ATOM(verythickmathspace_, "verythickmathspace")
 GK_ATOM(verythinmathspace_, "verythinmathspace")
 GK_ATOM(veryverythickmathspace_, "veryverythickmathspace")
 GK_ATOM(veryverythinmathspace_, "veryverythinmathspace")
-GK_ATOM(math, "math") // the only one without an underscore
+GK_ATOM(math, "math") 
 #endif
 
 #if defined(MOZ_SVG) || defined(MOZ_MATHML)
@@ -1502,7 +1510,7 @@ GK_ATOM(seconds, "seconds")
 GK_ATOM(secondsFromDateTime, "seconds-from-dateTime")
 #endif
 
-// Simple gestures support
+
 GK_ATOM(onMozSwipeGesture, "onMozSwipeGesture")
 GK_ATOM(onMozMagnifyGestureStart, "onMozMagnifyGestureStart")
 GK_ATOM(onMozMagnifyGestureUpdate, "onMozMagnifyGestureUpdate")
@@ -1513,14 +1521,14 @@ GK_ATOM(onMozRotateGesture, "onMozRotateGesture")
 GK_ATOM(onMozTapGesture, "onMozTapGesture")
 GK_ATOM(onMozPressTapGesture, "onMozPressTapGesture")
 
-// orientation support
+
 GK_ATOM(onMozOrientation, "onMozOrientation")
 
-//---------------------------------------------------------------------------
-// Special atoms
-//---------------------------------------------------------------------------
 
-// Node types
+
+
+
+
 GK_ATOM(cdataTagName, "#cdata-section")
 GK_ATOM(commentTagName, "#comment")
 GK_ATOM(documentNodeName, "#document")
@@ -1529,8 +1537,8 @@ GK_ATOM(documentTypeNodeName, "#document-type")
 GK_ATOM(processingInstructionTagName, "#processing-instruction")
 GK_ATOM(textTagName, "#text")
 
-// Frame types
-GK_ATOM(bcTableCellFrame, "BCTableCellFrame") // table cell in border collapsing model
+
+GK_ATOM(bcTableCellFrame, "BCTableCellFrame") 
 GK_ATOM(blockFrame, "BlockFrame")
 GK_ATOM(boxFrame, "BoxFrame")
 GK_ATOM(brFrame, "BRFrame")
@@ -1655,29 +1663,29 @@ GK_ATOM(durationchange, "durationchange")
 GK_ATOM(volumechange, "volumechange")
 #endif
 
-// Content property names
-GK_ATOM(transitionsProperty, "TransitionsProperty")        // FrameTransitions*
-GK_ATOM(transitionsOfBeforeProperty, "TransitionsOfBeforeProperty") // FrameTransitions*
-GK_ATOM(transitionsOfAfterProperty, "TransitionsOfAfterProperty") // FrameTransitions*
+
+GK_ATOM(transitionsProperty, "TransitionsProperty")        
+GK_ATOM(transitionsOfBeforeProperty, "TransitionsOfBeforeProperty") 
+GK_ATOM(transitionsOfAfterProperty, "TransitionsOfAfterProperty") 
 GK_ATOM(genConInitializerProperty, "QuoteNodeProperty")
 GK_ATOM(labelMouseDownPtProperty, "LabelMouseDownPtProperty")
 
-// Languages for lang-specific transforms
+
 GK_ATOM(Japanese, "ja")
 GK_ATOM(Chinese, "zh-CN")
 GK_ATOM(Taiwanese, "zh-TW")
 GK_ATOM(HongKongChinese, "zh-HK")
 GK_ATOM(Unicode, "x-unicode")
 
-// Names for editor transactions
+
 GK_ATOM(TypingTxnName, "Typing")
 GK_ATOM(IMETxnName, "IME")
 GK_ATOM(DeleteTxnName, "Deleting")
 
-// IPC stuff
+
 GK_ATOM(Remote, "remote")
 
-// Names for system metrics
+
 GK_ATOM(scrollbar_start_backward, "scrollbar-start-backward")
 GK_ATOM(scrollbar_start_forward, "scrollbar-start-forward")
 GK_ATOM(scrollbar_end_backward, "scrollbar-end-backward")
@@ -1692,7 +1700,7 @@ GK_ATOM(windows_classic, "windows-classic")
 GK_ATOM(touch_enabled, "touch-enabled")
 GK_ATOM(maemo_classic, "maemo-classic")
 
-// And the same again, as media query keywords.
+
 GK_ATOM(_moz_scrollbar_start_backward, "-moz-scrollbar-start-backward")
 GK_ATOM(_moz_scrollbar_start_forward, "-moz-scrollbar-start-forward")
 GK_ATOM(_moz_scrollbar_end_backward, "-moz-scrollbar-end-backward")

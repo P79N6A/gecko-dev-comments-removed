@@ -2339,7 +2339,8 @@ nsDocument::AddToNameTable(Element *aElement, nsIAtom* aName)
   if (!mIsRegularHTML)
     return;
 
-  nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(aName);
+  nsIdentifierMapEntry *entry =
+    mIdentifierMap.GetEntry(nsDependentAtomString(aName));
 
   
 
@@ -2355,7 +2356,8 @@ nsDocument::RemoveFromNameTable(Element *aElement, nsIAtom* aName)
   if (!mIsRegularHTML || mIdentifierMap.Count() == 0)
     return;
 
-  nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(aName);
+  nsIdentifierMapEntry *entry =
+    mIdentifierMap.GetEntry(nsDependentAtomString(aName));
   if (!entry) 
     return;
 
@@ -2365,7 +2367,8 @@ nsDocument::RemoveFromNameTable(Element *aElement, nsIAtom* aName)
 void
 nsDocument::AddToIdTable(Element *aElement, nsIAtom* aId)
 {
-  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(aId);
+  nsIdentifierMapEntry *entry =
+    mIdentifierMap.PutEntry(nsDependentAtomString(aId));
 
   if (entry) { 
     entry->AddIdElement(aElement);
@@ -2382,12 +2385,13 @@ nsDocument::RemoveFromIdTable(Element *aElement, nsIAtom* aId)
     return;
   }
 
-  nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(aId);
+  nsIdentifierMapEntry *entry =
+    mIdentifierMap.GetEntry(nsDependentAtomString(aId));
   if (!entry) 
     return;
 
   if (entry->RemoveIdElement(aElement)) {
-    mIdentifierMap.RemoveEntry(aId);
+    mIdentifierMap.RawRemoveEntry(entry);
   }
 }
 
@@ -3723,38 +3727,27 @@ nsDocument::BeginLoad()
   NS_DOCUMENT_NOTIFY_OBSERVERS(BeginLoad, (this));
 }
 
-PRBool
-nsDocument::CheckGetElementByIdArg(const nsIAtom* aId)
+
+void
+nsDocument::ReportEmptyGetElementByIdArg()
 {
-  if (aId == nsGkAtoms::_empty) {
-    nsContentUtils::ReportToConsole(
-        nsContentUtils::eDOM_PROPERTIES,
-        "EmptyGetElementByIdParam",
-        nsnull, 0,
-        nsnull,
-        EmptyString(), 0, 0,
-        nsIScriptError::warningFlag,
-        "DOM");
-    return PR_FALSE;
-  }
-  return PR_TRUE;
+  nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
+                                  "EmptyGetElementByIdParam",
+                                  nsnull, 0,
+                                  nsnull,
+                                  EmptyString(), 0, 0,
+                                  nsIScriptError::warningFlag,
+                                  "DOM");
 }
 
 Element*
 nsDocument::GetElementById(const nsAString& aElementId)
 {
-  nsCOMPtr<nsIAtom> idAtom(do_GetAtom(aElementId));
-  if (!idAtom) {
-    
-    
+  if (!CheckGetElementByIdArg(aElementId)) {
     return nsnull;
   }
 
-  if (!CheckGetElementByIdArg(idAtom)) {
-    return nsnull;
-  }
-
-  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(idAtom);
+  nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(aElementId);
   return entry ? entry->GetIdElement() : nsnull;
 }
 
@@ -3775,10 +3768,12 @@ Element*
 nsDocument::AddIDTargetObserver(nsIAtom* aID, IDTargetObserver aObserver,
                                 void* aData)
 {
-  if (!CheckGetElementByIdArg(aID))
+  nsDependentAtomString id(aID);
+
+  if (!CheckGetElementByIdArg(id))
     return nsnull;
 
-  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(aID);
+  nsIdentifierMapEntry *entry = mIdentifierMap.PutEntry(id);
   NS_ENSURE_TRUE(entry, nsnull);
 
   entry->AddContentChangeCallback(aObserver, aData);
@@ -3789,10 +3784,12 @@ void
 nsDocument::RemoveIDTargetObserver(nsIAtom* aID,
                                    IDTargetObserver aObserver, void* aData)
 {
-  if (!CheckGetElementByIdArg(aID))
+  nsDependentAtomString id(aID);
+
+  if (!CheckGetElementByIdArg(id))
     return;
 
-  nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(aID);
+  nsIdentifierMapEntry *entry = mIdentifierMap.GetEntry(id);
   if (!entry) {
     return;
   }

@@ -157,10 +157,6 @@
 #include "winbase.h"
 #endif
 
-#if defined(XP_UNIX) && defined(MOZ_WIDGET_GTK2) & defined(MOZ_X11)
-#include <gdk/gdkx.h> 
-#endif
-
 using mozilla::TimeStamp;
 
 
@@ -2610,6 +2606,42 @@ nsPluginHost::IsPluginEnabledForType(const char* aMimeType)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsPluginHost::IsFullPagePluginEnabledForType(const char* aMimeType,
+                                             FullPagePluginEnabledType* aResult)
+{
+  *aResult = NOT_ENABLED;
+
+  nsCOMPtr<nsIPrefBranch> psvc(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (!psvc)
+    return NS_OK;
+  
+  
+  
+  
+  
+  
+  
+  
+  nsXPIDLCString overrideTypes;
+  psvc->GetCharPref("plugin.disable_full_page_plugin_for_types", getter_Copies(overrideTypes));
+  overrideTypes.Insert(',', 0);
+  overrideTypes.Append(',');
+  
+  nsCAutoString commaSeparated(',');
+  commaSeparated.Append(aMimeType);
+  commaSeparated.Append(',');
+  if (overrideTypes.Find(commaSeparated) != kNotFound)
+    return NS_OK;
+
+  nsPluginTag* plugin = FindPluginForType(aMimeType, PR_TRUE);
+  if (!plugin || !plugin->IsEnabled())
+    return NS_OK;
+
+  *aResult = mOverrideInternalTypes ? OVERRIDE_BUILTIN : AVAILABLE;
+  return NS_OK;
+}
+
 
 static int CompareExtensions(const char *aExtensionList, const char *aExtension)
 {
@@ -3354,9 +3386,6 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile * pluginsDir,
       pluginTag->SetHost(this);
       pluginTag->mNext = mPlugins;
       mPlugins = pluginTag;
-
-      if (pluginTag->IsEnabled())
-        pluginTag->RegisterWithCategoryManager(mOverrideInternalTypes);
     }
   }
   

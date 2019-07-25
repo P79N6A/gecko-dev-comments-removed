@@ -353,6 +353,9 @@ public:
     void Set(void *aObject)
     {
         NS_ASSERTION(!mScriptObject.mObject, "Leaking script object.");
+        if (!aObject) {
+          return;
+        }
 
         nsresult rv = nsContentUtils::HoldScriptObject(mScriptObject.mLangID,
                                                        this,
@@ -446,7 +449,10 @@ public:
 
 
 
-#define XUL_ELEMENT_TEMPLATE_GENERATED 1 << NODE_TYPE_SPECIFIC_BITS_OFFSET
+#define XUL_ELEMENT_TEMPLATE_GENERATED (1 << ELEMENT_TYPE_SPECIFIC_BITS_OFFSET)
+
+
+PR_STATIC_ASSERT(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET < 32);
 
 class nsScriptEventHandlerOwnerTearoff;
 
@@ -574,6 +580,13 @@ public:
       mBindingParent = aBindingParent;
     }
 
+    
+
+
+
+
+    virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
+
 protected:
     
     
@@ -623,13 +636,6 @@ protected:
 
 
     nsresult MakeHeavyweight();
-
-    
-
-
-
-
-    virtual nsAttrInfo GetAttrInfo(PRInt32 aNamespaceID, nsIAtom* aName) const;
 
     const nsAttrValue* FindLocalOrProtoAttr(PRInt32 aNameSpaceID,
                                             nsIAtom *aName) const {
