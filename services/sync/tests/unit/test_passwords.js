@@ -39,6 +39,10 @@ function run_test() {
     passwordField: "test_password"
     };
 
+  Utils.makeGUID = function fake_makeGUID() {
+    return "fake-guid";
+  };
+
   Utils.getLoginManager = function fake_getLoginManager() {
     
     return {getAllLogins: function() { return [fakeUser]; }};
