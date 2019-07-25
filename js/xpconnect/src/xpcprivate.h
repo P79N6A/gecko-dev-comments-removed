@@ -4393,8 +4393,8 @@ xpc_GetJSPrivate(JSObject *obj)
 
 nsresult
 xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop,
-                        JSObject *proto, bool preferXray, const nsACString &sandboxName,
-                        nsISupports *identityPtr = nsnull);
+                        JSObject *proto, bool preferXray, const nsACString &sandboxName);
+
 
 
 
