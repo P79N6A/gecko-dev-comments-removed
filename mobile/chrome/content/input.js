@@ -1059,6 +1059,7 @@ GestureModule.prototype = {
     
     this._pinchZoom = AnimatedZoom;
     this._pinchStartRect = AnimatedZoom.getStartRect();
+    this._pinchDelta = 0;
 
     let browser = getBrowser();
     this._pinchStartScale = this._pinchScale = browser.scale;
@@ -1080,14 +1081,18 @@ GestureModule.prototype = {
     if (!this._pinchZoom || !aEvent.delta)
       return;
 
-    
+    let delta = 0;
     let oldScale = this._pinchScale;
-    this._pinchDelta += aEvent.delta;
-    if (this._pinchDelta > -oldScale && this._pinchDelta < oldScale)
-      return;
 
     
-    let delta = Util.clamp(this._pinchDelta, -this._maxShrink, this._maxGrowth);
+    this._pinchDelta += aEvent.delta;
+    if (Math.abs(this._pinchDelta) >= oldScale) {
+      delta = this._pinchDelta;
+      this._pinchDelta = 0;
+    }
+
+    
+    delta = Util.clamp(delta, -this._maxShrink, this._maxGrowth);
 
     let newScale = Browser.selectedTab.clampZoomLevel(oldScale * (1 + delta / this._scalingFactor));
     let startScale = this._pinchStartScale;
@@ -1109,8 +1114,6 @@ GestureModule.prototype = {
     
     this._pinchZoom.updateTo(rect);
     this._pinchScale = newScale;
-
-    this._pinchDelta = 0;
   },
 
   _pinchEnd: function _pinchEnd(aEvent) {
