@@ -201,11 +201,9 @@ public:
 
 
 
-
-  static nsresult GetContextAndScopes(nsIDocument *aOldDocument,
-                                      nsIDocument *aNewDocument,
-                                      JSContext **aCx, JSObject **aOldScope,
-                                      JSObject **aNewScope);
+  static nsresult GetContextAndScope(nsIDocument *aOldDocument,
+                                     nsIDocument *aNewDocument,
+                                     JSContext **aCx, JSObject **aNewScope);
 
   
 
