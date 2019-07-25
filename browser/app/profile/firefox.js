@@ -792,9 +792,9 @@ pref("browser.sessionstore.interval", 15000);
 pref("browser.sessionstore.postdata", 0);
 
 
-pref("browser.sessionstore.privacy_level", 1);
+pref("browser.sessionstore.privacy_level", 0);
 
-pref("browser.sessionstore.privacy_level_deferred", 2);
+pref("browser.sessionstore.privacy_level_deferred", 0);
 
 pref("browser.sessionstore.max_tabs_undo", 10);
 
@@ -803,6 +803,10 @@ pref("browser.sessionstore.max_windows_undo", 3);
 
 
 pref("browser.sessionstore.max_resumed_crashes", 1);
+
+
+
+
 
 pref("browser.sessionstore.max_concurrent_tabs", 3);
 
@@ -945,7 +949,6 @@ pref("dom.ipc.plugins.enabled.i386.flash player.plugin", true);
 pref("dom.ipc.plugins.enabled.i386.javaplugin2_npapi.plugin", true);
 
 pref("dom.ipc.plugins.enabled.x86_64", true);
-pref("dom.ipc.plugins.enabled.x86_64.test.plugin", false);
 #elifdef MOZ_IPC
 pref("dom.ipc.plugins.enabled", true);
 #else
@@ -962,7 +965,7 @@ pref("browser.taskbar.lists.frequent.enabled", true);
 pref("browser.taskbar.lists.recent.enabled", false);
 pref("browser.taskbar.lists.maxListItemCount", 7);
 pref("browser.taskbar.lists.tasks.enabled", true);
-pref("browser.taskbar.lists.refreshInSeconds", 30);
+pref("browser.taskbar.lists.refreshInSeconds", 120);
 #endif
 #endif
 
@@ -1051,3 +1054,5 @@ pref("devtools.inspector.enabled", false);
 
 pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.properties");
 
+
+pref("browser.panorama.animate_zoom", true);
