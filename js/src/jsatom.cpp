@@ -149,6 +149,7 @@ const char *const js_common_atom_names[] = {
     js_index_str,               
     js_input_str,               
     js_iterator_str,            
+    js_join_str,                
     js_lastIndex_str,           
     js_length_str,              
     js_lineNumber_str,          
@@ -243,6 +244,7 @@ const char js_ignoreCase_str[]      = "ignoreCase";
 const char js_index_str[]           = "index";
 const char js_input_str[]           = "input";
 const char js_iterator_str[]        = "__iterator__";
+const char js_join_str[]            = "join";
 const char js_lastIndex_str[]       = "lastIndex";
 const char js_length_str[]          = "length";
 const char js_lineNumber_str[]      = "lineNumber";
