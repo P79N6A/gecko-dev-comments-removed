@@ -347,7 +347,7 @@ var InspectorUI = {
   toggleInspectorUI: function IUI_toggleInspectorUI(aEvent)
   {
     if (this.isTreePanelOpen) {
-      this.closeInspectorUI(true);
+      this.closeInspectorUI();
     } else {
       this.openInspectorUI();
     }
@@ -741,7 +741,9 @@ var InspectorUI = {
 
 
 
-  closeInspectorUI: function IUI_closeInspectorUI(aClearStore)
+
+
+  closeInspectorUI: function IUI_closeInspectorUI(aKeepStore)
   {
     if (this.closing || !this.win || !this.browser) {
       return;
@@ -749,7 +751,7 @@ var InspectorUI = {
 
     this.closing = true;
 
-    if (aClearStore) {
+    if (!aKeepStore) {
       InspectorStore.deleteStore(this.winID);
       this.win.removeEventListener("pagehide", this, true);
     } else {
@@ -1028,7 +1030,7 @@ var InspectorUI = {
       case "TabSelect":
         winID = this.getWindowID(gBrowser.selectedBrowser.contentWindow);
         if (this.isTreePanelOpen && winID != this.winID) {
-          this.closeInspectorUI(false);
+          this.closeInspectorUI(true);
           inspectorClosed = true;
         }
 
