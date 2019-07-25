@@ -365,9 +365,11 @@ HostDB_RemoveEntry(PLDHashTable *table,
 
 
 nsHostResolver::nsHostResolver(PRUint32 maxCacheEntries,
-                               PRUint32 maxCacheLifetime)
+                               PRUint32 maxCacheLifetime,
+                               PRUint32 lifetimeGracePeriod)
     : mMaxCacheEntries(maxCacheEntries)
     , mMaxCacheLifetime(maxCacheLifetime)
+    , mGracePeriod(lifetimeGracePeriod)
     , mLock("nsHostResolver.mLock")
     , mIdleThreadCV(mLock, "nsHostResolver.mIdleThreadCV")
     , mNumIdleThreads(0)
@@ -564,16 +566,24 @@ nsHostResolver::ResolveHost(const char            *host,
             
             else if (!(flags & RES_BYPASS_CACHE) &&
                      he->rec->HasResult() &&
-                     NowInMinutes() <= he->rec->expiration) {
+                     NowInMinutes() <= he->rec->expiration + mGracePeriod) {
+                        
                 LOG(("using cached record\n"));
                 
                 result = he->rec;
+
+                
+                
+                
+                if (((NowInMinutes() > he->rec->expiration) ||
+                     he->rec->negative) && !he->rec->resolving) {
+                    LOG(("Using %s cache entry but starting async renewal",
+                         he->rec->negative ? "negative" :"positive"));
+                    IssueLookup(he->rec);
+                }
+                
                 if (he->rec->negative) {
                     status = NS_ERROR_UNKNOWN_HOST;
-                    if (!he->rec->resolving) 
-                        
-                        
-                        IssueLookup(he->rec);
                 }
             }
             
@@ -611,6 +621,8 @@ nsHostResolver::ResolveHost(const char            *host,
                     rv = IssueLookup(he->rec);
                     if (NS_FAILED(rv))
                         PR_REMOVE_AND_INIT_LINK(callback);
+                    else
+                        LOG(("dns lookup blocking pending getaddrinfo query"));
                 }
                 else if (he->rec->onQueue) {
                     
@@ -930,6 +942,7 @@ nsHostResolver::ThreadFunc(void *arg)
 nsresult
 nsHostResolver::Create(PRUint32         maxCacheEntries,
                        PRUint32         maxCacheLifetime,
+                       PRUint32         lifetimeGracePeriod,
                        nsHostResolver **result)
 {
 #if defined(PR_LOGGING)
@@ -938,7 +951,8 @@ nsHostResolver::Create(PRUint32         maxCacheEntries,
 #endif
 
     nsHostResolver *res = new nsHostResolver(maxCacheEntries,
-                                             maxCacheLifetime);
+                                             maxCacheLifetime,
+                                             lifetimeGracePeriod);
     if (!res)
         return NS_ERROR_OUT_OF_MEMORY;
     NS_ADDREF(res);
