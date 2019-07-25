@@ -49,9 +49,7 @@
 #include "nsIDOMSVGElement.h"
 #include "nsGenericElement.h"
 #include "nsStyledElement.h"
-#include "nsISVGValue.h"
-#include "nsISVGValueObserver.h"
-#include "nsWeakReference.h"
+#include "mozilla/css/StyleRule.h"
 
 #ifdef MOZ_SMIL
 #include "nsISMILAttr.h"
@@ -85,13 +83,12 @@ class SVGAnimatedTransformList;
 
 typedef nsStyledElementNotElementCSSInlineStyle nsSVGElementBase;
 
-class nsSVGElement : public nsSVGElementBase,    
-                     public nsISVGValueObserver  
+class nsSVGElement : public nsSVGElementBase    
 {
 protected:
   nsSVGElement(already_AddRefed<nsINodeInfo> aNodeInfo);
   nsresult Init();
-  virtual ~nsSVGElement();
+  virtual ~nsSVGElement(){}
 
 public:
   typedef mozilla::SVGNumberList SVGNumberList;
@@ -143,15 +140,6 @@ public:
   NS_IMETHOD SetId(const nsAString & aId);
   NS_IMETHOD GetOwnerSVGElement(nsIDOMSVGSVGElement** aOwnerSVGElement);
   NS_IMETHOD GetViewportElement(nsIDOMSVGElement** aViewportElement);
-
-  
-  NS_IMETHOD WillModifySVGObservable(nsISVGValue* observable,
-                                     nsISVGValue::modificationType aModType);
-  NS_IMETHOD DidModifySVGObservable (nsISVGValue* observable,
-                                     nsISVGValue::modificationType aModType);
-
-  
-  
 
   
   
@@ -276,10 +264,6 @@ protected:
   mozilla::css::StyleRule* GetAnimatedContentStyleRule();
 #endif 
 
-  nsISVGValue* GetMappedAttribute(PRInt32 aNamespaceID, nsIAtom* aName);
-  nsresult AddMappedSVGValue(nsIAtom* aName, nsISupports* aValue,
-                             PRInt32 aNamespaceID = kNameSpaceID_None);
-  
   static nsIAtom* GetEventNameForAttr(nsIAtom* aAttr);
 
   struct LengthInfo {
@@ -535,24 +519,7 @@ protected:
   static nsSVGEnumMapping sSVGUnitTypesMap[];
 
 private:
-  struct ObservableModificationData {
-    
-    
-    
-    ObservableModificationData(const nsAttrName* aName, PRUint32 aModType):
-      name(aName), modType(aModType)
-    {}
-    const nsAttrName* name;
-    PRUint8 modType;
-  };
-  ObservableModificationData
-    GetModificationDataForObservable(nsISVGValue* aObservable,
-                                     nsISVGValue::modificationType aModType);
-
   nsRefPtr<mozilla::css::StyleRule> mContentStyleRule;
-  nsAttrAndChildArray mMappedAttributes;
-
-  bool mSuppressNotification;
 };
 
 
