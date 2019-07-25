@@ -1520,17 +1520,17 @@ jsvalToPtrExplicit(JSContext* cx, jsval val, uintptr_t* result)
   return false;
 }
 
-template<class IntegerType>
+template<class IntegerType, class CharType, size_t N, class AP>
 void
-IntegerToString(IntegerType i, jsuint radix, AutoString& result)
+IntegerToString(IntegerType i, jsuint radix, Vector<CharType, N, AP>& result)
 {
   JS_STATIC_ASSERT(numeric_limits<IntegerType>::is_exact);
 
   
   
-  jschar buffer[sizeof(IntegerType) * 8 + 1];
-  jschar* end = buffer + sizeof(buffer) / sizeof(jschar);
-  jschar* cp = end;
+  CharType buffer[sizeof(IntegerType) * 8 + 1];
+  CharType* end = buffer + sizeof(buffer) / sizeof(CharType);
+  CharType* cp = end;
 
   
   
@@ -4636,6 +4636,46 @@ PrepareCIF(JSContext* cx,
   }
 }
 
+void
+FunctionType::BuildSymbolName(JSContext* cx,
+                              JSString* name,
+                              JSObject* typeObj,
+                              AutoCString& result)
+{
+  FunctionInfo* fninfo = GetFunctionInfo(cx, typeObj);
+
+  switch (GetABICode(cx, fninfo->mABI)) {
+  case ABI_DEFAULT:
+    
+    AppendString(result, name);
+    break;
+
+  case ABI_STDCALL: {
+    
+    
+    
+    
+    AppendString(result, "_");
+    AppendString(result, name);
+    AppendString(result, "@");
+
+    
+    size_t size = 0;
+    for (size_t i = 0; i < fninfo->mArgTypes.length(); ++i) {
+      JSObject* argType = fninfo->mArgTypes[i];
+      size += Align(CType::GetSize(cx, argType), sizeof(ffi_arg));
+    }
+
+    IntegerToString(size, 10, result);
+    break;
+  }
+
+  case INVALID_ABI:
+    JS_NOT_REACHED("invalid abi");
+    break;
+  }
+}
+
 static FunctionInfo*
 NewFunctionInfo(JSContext* cx,
                 jsval abiType,
@@ -5653,12 +5693,11 @@ CData::ReadString(JSContext* cx, uintN argc, jsval *vp)
       return JS_FALSE;
 
     jschar* dst =
-      static_cast<jschar*>(JS_malloc(cx, (dstlen + 1) * sizeof(jschar)));
+      static_cast<jschar*>(JS_malloc(cx, dstlen * sizeof(jschar)));
     if (!dst)
       return JS_FALSE;
 
     ASSERT_OK(js_InflateUTF8StringToBuffer(cx, bytes, length, dst, &dstlen));
-    dst[dstlen] = 0;
 
     result = JS_NewUCString(cx, dst, dstlen);
     break;
