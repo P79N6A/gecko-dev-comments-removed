@@ -540,29 +540,21 @@ SyncKeyBundle.prototype = {
 
 
   generateEntry: function generateEntry() {
-    let m = this.keyStr;
-    if (m) {
-      
-      m = Utils.decodeKeyBase32(m);
-      
-      
-      let h = Utils.makeHMACHasher();
-      
-      
-      let u = this.username; 
-      let k1 = Utils.makeHMACKey("" + HMAC_INPUT + u + "\x01");
-      let enc = Utils.sha256HMACBytes(m, k1, h);
-      
-      
-      let k2 = Utils.makeHMACKey(enc + HMAC_INPUT + u + "\x02");
-      let hmac = Utils.sha256HMACBytes(m, k2, h);
-      
-      
-      this._encrypt = btoa(enc);
-      
-      
-      this._hmac = hmac;
-      this._hmacObj = Utils.makeHMACKey(hmac);
-    }
+    let syncKey = this.keyStr;
+    if (!syncKey)
+      return;
+
+    
+    let prk = Utils.decodeKeyBase32(syncKey);
+    let info = HMAC_INPUT + this.username;
+    let okm = Utils.hkdfExpand(prk, info, 32 * 2);
+    let enc = okm.slice(0, 32);
+    let hmac = okm.slice(32, 64);
+
+    
+    this._encrypt = btoa(enc);      
+    
+    this._hmac = hmac;
+    this._hmacObj = Utils.makeHMACKey(hmac);
   }
 };

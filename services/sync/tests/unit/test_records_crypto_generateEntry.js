@@ -12,8 +12,8 @@ function run_test() {
   let bundle = new SyncKeyBundle(PWDMGR_PASSPHRASE_REALM, "st3fan", "q7ynpwq7vsc9m34hankbyi3s3i");
   
   
-  let e = "3fe2d3743fe03d4f460ce2405ec189e68dfd7e42c97d50fab9bda3761263cc87";
-  let h = "bf05f720423d297e8fd55faee7cdeaf32aa15cfb6e56115268c9c326b999795a";
+  let e = "14b8c09fa84e92729ee695160af6e0385f8f6215a25d14906e1747bdaa2de426";
+  let h = "370e3566245d79fe602a3adb5137e42439cd2a571235197e0469d7d541b07875";
   
   
   let realE = Utils.bytesAsHex(atob(bundle.encryptionKey));
