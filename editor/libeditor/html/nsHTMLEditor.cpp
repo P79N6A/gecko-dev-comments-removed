@@ -3270,7 +3270,8 @@ nsHTMLEditor::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
   nsCOMPtr<nsIHTMLEditor> kungFuDeathGrip(this);
 
   if (ShouldReplaceRootElement()) {
-    ResetRootElementAndEventTarget();
+    nsContentUtils::AddScriptRunner(NS_NewRunnableMethod(
+      this, &nsHTMLEditor::ResetRootElementAndEventTarget));
   }
   
   else if (!mAction && (aContainer ? aContainer->IsEditable() : aDocument->IsEditable())) {
@@ -3300,7 +3301,8 @@ nsHTMLEditor::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
   nsCOMPtr<nsIHTMLEditor> kungFuDeathGrip(this);
 
   if (SameCOMIdentity(aChild, mRootElement)) {
-    ResetRootElementAndEventTarget();
+    nsContentUtils::AddScriptRunner(NS_NewRunnableMethod(
+      this, &nsHTMLEditor::ResetRootElementAndEventTarget));
   }
   
   else if (!mAction && (aContainer ? aContainer->IsEditable() : aDocument->IsEditable())) {
