@@ -392,7 +392,8 @@ enum CTypeProtoSlot {
   SLOT_FUNCTIONDATAPROTO = 8,  
   SLOT_INT64PROTO        = 9,  
   SLOT_UINT64PROTO       = 10, 
-  SLOT_CLOSURECX         = 11, 
+  SLOT_OURDATAPROTO      = 11, 
+  SLOT_CLOSURECX         = 12, 
   CTYPEPROTO_SLOTS
 };
 

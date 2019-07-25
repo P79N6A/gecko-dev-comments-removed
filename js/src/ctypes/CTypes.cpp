@@ -693,6 +693,10 @@ InitTypeConstructor(JSContext* cx,
   if (instanceProps && !JS_DefineProperties(cx, dataProto, instanceProps))
     return false;
 
+  
+  if (!JS_SetReservedSlot(cx, typeProto, SLOT_OURDATAPROTO, OBJECT_TO_JSVAL(dataProto)))
+    return false;
+
   if (!JS_FreezeObject(cx, obj) ||
       
       !JS_FreezeObject(cx, typeProto))
@@ -782,6 +786,11 @@ InitTypeClasses(JSContext* cx, JSObject* parent)
   
   JSObject* CDataProto = InitCDataClass(cx, parent, CTypeProto);
   if (!CDataProto)
+    return false;
+
+  
+  if (!JS_SetReservedSlot(cx, CTypeProto, SLOT_OURDATAPROTO,
+                          OBJECT_TO_JSVAL(CDataProto)))
     return false;
 
   
@@ -3067,12 +3076,14 @@ CType::GetProtoFromType(JSContext* cx, JSObject* obj, CTypeProtoSlot slot)
 JSBool
 CType::PrototypeGetter(JSContext* cx, JSObject* obj, jsid idval, jsval* vp)
 {
-  if (!CType::IsCType(cx, obj)) {
-    JS_ReportError(cx, "not a CType");
+  if (!(CType::IsCType(cx, obj) || CType::IsCTypeProto(cx, obj))) {
+    JS_ReportError(cx, "not a CType or CTypeProto");
     return JS_FALSE;
   }
 
-  ASSERT_OK(JS_GetReservedSlot(cx, obj, SLOT_PROTO, vp));
+  unsigned slot = CType::IsCTypeProto(cx, obj) ? (unsigned) SLOT_OURDATAPROTO
+                                               : (unsigned) SLOT_PROTO;
+  ASSERT_OK(JS_GetReservedSlot(cx, obj, slot, vp));
   JS_ASSERT(!JSVAL_IS_PRIMITIVE(*vp) || JSVAL_IS_VOID(*vp));
   return JS_TRUE;
 }
