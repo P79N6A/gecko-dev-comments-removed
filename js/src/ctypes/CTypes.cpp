@@ -1151,7 +1151,7 @@ jsvalToBool(JSContext* cx, jsval val, bool* result)
     return true;
   }
   if (JSVAL_IS_INT(val)) {
-    jsint i = JSVAL_TO_INT(val);
+    int32_t i = JSVAL_TO_INT(val);
     *result = i != 0;
     return i == 0 || i == 1;
   }
@@ -1177,7 +1177,7 @@ jsvalToInteger(JSContext* cx, jsval val, IntegerType* result)
   if (JSVAL_IS_INT(val)) {
     
     
-    jsint i = JSVAL_TO_INT(val);
+    int32_t i = JSVAL_TO_INT(val);
     return ConvertExact(i, result);
   }
   if (JSVAL_IS_DOUBLE(val)) {
@@ -1374,7 +1374,7 @@ jsvalToBigInteger(JSContext* cx,
   if (JSVAL_IS_INT(val)) {
     
     
-    jsint i = JSVAL_TO_INT(val);
+    int32_t i = JSVAL_TO_INT(val);
     return ConvertExact(i, result);
   }
   if (JSVAL_IS_DOUBLE(val)) {
@@ -1436,7 +1436,7 @@ jsidToBigInteger(JSContext* cx,
   if (JSID_IS_INT(val)) {
     
     
-    jsint i = JSID_TO_INT(val);
+    int32_t i = JSID_TO_INT(val);
     return ConvertExact(i, result);
   }
   if (allowString && JSID_IS_STRING(val)) {
@@ -1527,7 +1527,7 @@ jsvalToPtrExplicit(JSContext* cx, jsval val, uintptr_t* result)
   if (JSVAL_IS_INT(val)) {
     
     
-    jsint i = JSVAL_TO_INT(val);
+    int32_t i = JSVAL_TO_INT(val);
     *result = i < 0 ? uintptr_t(intptr_t(i)) : uintptr_t(i);
     return true;
   }
@@ -1650,7 +1650,7 @@ ConvertToJS(JSContext* cx,
   case TYPE_##name: {                                                          \
     type value = *static_cast<type*>(data);                                    \
     if (sizeof(type) < 4)                                                      \
-      *result = INT_TO_JSVAL(jsint(value));                                    \
+      *result = INT_TO_JSVAL(int32_t(value));                                    \
     else if (!JS_NewNumberValue(cx, double(value), result))                    \
       return false;                                                            \
     break;                                                                     \
