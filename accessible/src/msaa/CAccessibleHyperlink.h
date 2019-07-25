@@ -74,6 +74,9 @@ public:
   virtual  HRESULT STDMETHODCALLTYPE get_valid(
        boolean *valid);
 
+  
+  NS_IMETHOD QueryInterface(const nsIID& uuid, void** result) = 0;
+
 };
 
 #endif

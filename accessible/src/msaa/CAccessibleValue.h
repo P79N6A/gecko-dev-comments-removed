@@ -45,8 +45,7 @@
 
 #include "AccessibleValue.h"
 
-class CAccessibleValue: public nsISupports,
-                        public IAccessibleValue
+class CAccessibleValue: public IAccessibleValue
 {
 public:
 
@@ -65,6 +64,9 @@ public:
 
   virtual  HRESULT STDMETHODCALLTYPE get_minimumValue(
        VARIANT *minimumValue);
+
+  
+  NS_IMETHOD QueryInterface(const nsIID& uuid, void** result) = 0;
 
 };
 

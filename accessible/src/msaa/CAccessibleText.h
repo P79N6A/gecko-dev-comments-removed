@@ -46,8 +46,7 @@
 
 #include "AccessibleText.h"
 
-class CAccessibleText: public nsISupports,
-                       public IAccessibleText
+class CAccessibleText: public IAccessibleText
 {
 public:
 
@@ -147,6 +146,9 @@ public:
 
   virtual  HRESULT STDMETHODCALLTYPE get_oldText(
        IA2TextSegment *oldText);
+
+  
+  NS_IMETHOD QueryInterface(const nsIID& uuid, void** result) = 0;
 
 protected:
   virtual nsresult GetModifiedText(PRBool aGetInsertedText, nsAString& aText,
