@@ -2074,14 +2074,17 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   
   double stopScale;
   double stopDelta = lastStop - firstStop;
-  if (stopDelta < 1e-6 || lineLength < 1e-6 ||
-      (aGradient->mShape != NS_STYLE_GRADIENT_SHAPE_LINEAR &&
-       (radiusX < 1e-6 || radiusY < 1e-6))) {
+  PRBool zeroRadius = aGradient->mShape != NS_STYLE_GRADIENT_SHAPE_LINEAR &&
+                      (radiusX < 1e-6 || radiusY < 1e-6);
+  if (stopDelta < 1e-6 || lineLength < 1e-6 || zeroRadius) {
+    
     
     
     
     stopScale = 0.0;
-    radiusX = radiusY = 0.0;
+    if (aGradient->mRepeating || zeroRadius) {
+      radiusX = radiusY = 0.0;
+    }
     lastStop = firstStop;
   } else {
     stopScale = 1.0/stopDelta;
@@ -2115,6 +2118,11 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
     
     double innerRadius = radiusX*firstStop;
     double outerRadius = radiusX*lastStop;
+    if (stopScale == 0.0) {
+      
+      
+      outerRadius = innerRadius + 1;
+    }
     gradientPattern = new gfxPattern(lineStart.x, lineStart.y, innerRadius,
                                      lineStart.x, lineStart.y, outerRadius);
     if (gradientPattern && radiusX != radiusY) {
@@ -2139,8 +2147,7 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
     
     
     
-    if (!aGradient->mRepeating &&
-        aGradient->mShape == NS_STYLE_GRADIENT_SHAPE_LINEAR) {
+    if (!aGradient->mRepeating && !zeroRadius) {
       gradientPattern->AddColorStop(0.0, stops[0].mColor);
     }
     gradientPattern->AddColorStop(0.0, stops[stops.Length() - 1].mColor);
