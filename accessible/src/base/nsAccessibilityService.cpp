@@ -70,6 +70,7 @@
 #include "nsImageFrame.h"
 #include "nsILink.h"
 #include "nsIObserverService.h"
+#include "nsLayoutUtils.h"
 #include "nsNPAPIPluginInstance.h"
 #include "nsISupportsUtils.h"
 #include "nsObjectFrame.h"
@@ -1018,9 +1019,8 @@ nsAccessibilityService::GetOrCreateAccessible(nsINode* aNode,
     
     
     
-    nsAutoString name;
-    content->GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
-    if (!name.IsEmpty()) {
+    if (nsLayoutUtils::GetAllInFlowRectsUnion(weakFrame,
+                                              weakFrame->GetParent()).IsEmpty()) {
       if (aIsSubtreeHidden)
         *aIsSubtreeHidden = true;
 
