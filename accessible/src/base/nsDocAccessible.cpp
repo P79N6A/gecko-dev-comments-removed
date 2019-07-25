@@ -133,8 +133,8 @@ nsDocAccessible::~nsDocAccessible()
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsDocAccessible)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDocAccessible, nsAccessible)
-  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mEventQueue");
-  cb.NoteXPCOMChild(tmp->mEventQueue.get());
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NATIVE_MEMBER(mNotificationController,
+                                                  NotificationController)
 
   PRUint32 i, length = tmp->mChildDocuments.Length();
   for (i = 0; i < length; ++i) {
@@ -146,7 +146,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDocAccessible, nsAccessible)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDocAccessible, nsAccessible)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mEventQueue)
+  tmp->mNotificationController->Shutdown();
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mNotificationController)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSTARRAY(mChildDocuments)
   tmp->mDependentIDsHash.Clear();
   tmp->mNodeToAccessibleMap.Clear();
@@ -622,8 +623,9 @@ nsDocAccessible::Init()
   NS_LOG_ACCDOCCREATE_FOR("document initialize", mDocument, this)
 
   
-  mEventQueue = new nsAccEventQueue(this);
-  if (!mEventQueue)
+  nsCOMPtr<nsIPresShell> shell(GetPresShell());
+  mNotificationController = new NotificationController(this, shell);
+  if (!mNotificationController)
     return PR_FALSE;
 
   AddEventListeners();
@@ -653,9 +655,9 @@ nsDocAccessible::Shutdown()
 
   NS_LOG_ACCDOCDESTROY_FOR("document shutdown", mDocument, this)
 
-  if (mEventQueue) {
-    mEventQueue->Shutdown();
-    mEventQueue = nsnull;
+  if (mNotificationController) {
+    mNotificationController->Shutdown();
+    mNotificationController = nsnull;
   }
 
   RemoveEventListeners();
@@ -1393,116 +1395,35 @@ nsDocAccessible::UnbindFromDocument(nsAccessible* aAccessible)
 }
 
 void
-nsDocAccessible::UpdateTree(nsIContent* aContainerNode,
-                            nsIContent* aStartNode,
-                            nsIContent* aEndNode,
-                            PRBool aIsInsert)
+nsDocAccessible::ContentInserted(nsIContent* aContainerNode,
+                                 nsIContent* aStartChildNode,
+                                 nsIContent* aEndChildNode)
+{
+  
+  if (mNotificationController) {
+    
+    
+    nsAccessible* container = aContainerNode ?
+      GetAccService()->GetCachedAccessibleOrContainer(aContainerNode) :
+      this;
+
+    mNotificationController->ScheduleContentInsertion(container,
+                                                      aStartChildNode,
+                                                      aEndChildNode);
+  }
+}
+
+void
+nsDocAccessible::ContentRemoved(nsIContent* aContainerNode,
+                                nsIContent* aChildNode)
 {
   
   
-  
-  
-  
+  nsAccessible* container = aContainerNode ?
+    GetAccService()->GetCachedAccessibleOrContainer(aContainerNode) :
+    this;
 
-  
-  
-
-  nsCOMPtr<nsIPresShell> presShell = GetPresShell();
-  nsIEventStateManager* esm = presShell->GetPresContext()->EventStateManager();
-  PRBool fireAllEvents = PR_TRUE;
-
-  
-  
-  
-  
-  nsAccessible* container = nsnull;
-  if (aIsInsert) {
-    container = aContainerNode ?
-      GetAccService()->GetAccessibleOrContainer(aContainerNode, mWeakShell) :
-      this;
-
-    
-    if (container == this) {
-      
-      nsIContent* rootContent = nsCoreUtils::GetRoleContent(mDocument);
-      if (rootContent && rootContent != mContent)
-        mContent = rootContent;
-
-      
-      
-      
-    }
-
-    
-    
-    
-    
-    
-    container->InvalidateChildren();
-
-  } else {
-    
-    container = aContainerNode ?
-      GetAccService()->GetCachedAccessibleOrContainer(aContainerNode) :
-      this;
-  }
-
-  EIsFromUserInput fromUserInput = esm->IsHandlingUserInputExternal() ?
-    eFromUserInput : eNoUserInput;
-
-  
-  
-  PRUint32 updateFlags =
-    UpdateTreeInternal(container, aStartNode, aEndNode,
-                       aIsInsert, fireAllEvents, fromUserInput);
-
-  
-  if (updateFlags == eNoAccessible)
-    return;
-
-  
-  
-  if (aIsInsert && !(updateFlags & eAlertAccessible)) {
-    
-    
-    nsAccessible* ancestor = container;
-    while (ancestor) {
-      if (ancestor->ARIARole() == nsIAccessibleRole::ROLE_ALERT) {
-        FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_ALERT,
-                                   ancestor->GetNode(), AccEvent::eRemoveDupes,
-                                   fromUserInput);
-        break;
-      }
-
-      
-      if (ancestor == this)
-        break;
-
-      ancestor = ancestor->GetParent();
-    }
-  }
-
-  
-  
-  
-  if (!fireAllEvents)
-    return;
-
-  
-  if (container->Role() == nsIAccessibleRole::ROLE_ENTRY) {
-    nsRefPtr<AccEvent> valueChangeEvent =
-      new AccEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, container,
-                   fromUserInput, AccEvent::eRemoveDupes);
-    FireDelayedAccessibleEvent(valueChangeEvent);
-  }
-
-  
-  
-  nsRefPtr<AccEvent> reorderEvent =
-    new AccEvent(nsIAccessibleEvent::EVENT_REORDER, container->GetNode(),
-                 fromUserInput, AccEvent::eCoalesceFromSameSubtree);
-  if (reorderEvent)
-    FireDelayedAccessibleEvent(reorderEvent);
+  UpdateTree(container, aChildNode, PR_FALSE);
 }
 
 void
@@ -1521,8 +1442,7 @@ nsDocAccessible::RecreateAccessible(nsINode* aNode)
   if (oldAccessible) {
     parent = oldAccessible->GetParent();
 
-    nsRefPtr<AccEvent> hideEvent = new AccHideEvent(oldAccessible, aNode,
-                                                    eAutoDetect);
+    nsRefPtr<AccEvent> hideEvent = new AccHideEvent(oldAccessible, aNode);
     if (hideEvent)
       FireDelayedAccessibleEvent(hideEvent);
 
@@ -1543,8 +1463,7 @@ nsDocAccessible::RecreateAccessible(nsINode* aNode)
   nsAccessible* newAccessible =
     GetAccService()->GetAccessibleInWeakShell(aNode, mWeakShell);
   if (newAccessible) {
-    nsRefPtr<AccEvent> showEvent = new AccShowEvent(newAccessible, aNode,
-                                                    eAutoDetect);
+    nsRefPtr<AccEvent> showEvent = new AccShowEvent(newAccessible, aNode);
     if (showEvent)
       FireDelayedAccessibleEvent(showEvent);
   }
@@ -1844,12 +1763,11 @@ nsDocAccessible::FireDelayedAccessibleEvent(AccEvent* aEvent)
   NS_ENSURE_ARG(aEvent);
   NS_LOG_ACCDOCLOAD_FIREEVENT(aEvent)
 
-  if (mEventQueue)
-    mEventQueue->Push(aEvent);
+  if (mNotificationController)
+    mNotificationController->QueueEvent(aEvent);
 
   return NS_OK;
 }
-
 
 void
 nsDocAccessible::ProcessPendingEvent(AccEvent* aEvent)
@@ -1901,13 +1819,101 @@ nsDocAccessible::ProcessPendingEvent(AccEvent* aEvent)
   }
 }
 
+void
+nsDocAccessible::ProcessContentInserted(nsAccessible* aContainer,
+                                        const nsTArray<nsCOMPtr<nsIContent> >* aInsertedContent)
+{
+  
+  if (!GetCachedAccessible(aContainer->GetNode()))
+    return;
+
+  if (aContainer == this) {
+    
+    nsIContent* rootContent = nsCoreUtils::GetRoleContent(mDocument);
+    if (rootContent && rootContent != mContent)
+      mContent = rootContent;
+
+    
+    
+    
+  }
+
+  
+  
+  
+  
+  
+  aContainer->InvalidateChildren();
+
+  nsAccessible* directContainer =
+    GetAccService()->GetContainerAccessible(aInsertedContent->ElementAt(0),
+                                            mWeakShell);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  for (PRUint32 idx = 0; idx < aInsertedContent->Length(); idx++)
+    UpdateTree(directContainer, aInsertedContent->ElementAt(idx), PR_TRUE);
+}
+
+void
+nsDocAccessible::UpdateTree(nsAccessible* aContainer, nsIContent* aChildNode,
+                            PRBool aIsInsert)
+{
+  PRUint32 updateFlags =
+    UpdateTreeInternal(aContainer, aChildNode, aChildNode->GetNextSibling(),
+                       aIsInsert);
+
+  
+  if (updateFlags == eNoAccessible)
+    return;
+
+  
+  
+  if (aIsInsert && !(updateFlags & eAlertAccessible)) {
+    
+    
+    nsAccessible* ancestor = aContainer;
+    while (ancestor) {
+      if (ancestor->ARIARole() == nsIAccessibleRole::ROLE_ALERT) {
+        FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_ALERT,
+                                   ancestor->GetNode());
+        break;
+      }
+
+      
+      if (ancestor == this)
+        break;
+
+      ancestor = ancestor->GetParent();
+    }
+  }
+
+  
+  if (aContainer->Role() == nsIAccessibleRole::ROLE_ENTRY) {
+    FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE,
+                               aContainer->GetNode());
+  }
+
+  
+  
+  nsRefPtr<AccEvent> reorderEvent =
+    new AccEvent(nsIAccessibleEvent::EVENT_REORDER, aContainer->GetNode(),
+                 eAutoDetect, AccEvent::eCoalesceFromSameSubtree);
+  if (reorderEvent)
+    FireDelayedAccessibleEvent(reorderEvent);
+}
+
 PRUint32
 nsDocAccessible::UpdateTreeInternal(nsAccessible* aContainer,
                                     nsIContent* aStartNode,
                                     nsIContent* aEndNode,
-                                    PRBool aIsInsert,
-                                    PRBool aFireAllEvents,
-                                    EIsFromUserInput aFromUserInput)
+                                    PRBool aIsInsert)
 {
   PRUint32 updateFlags = eNoAccessible;
   for (nsIContent* node = aStartNode; node != aEndNode;
@@ -1925,8 +1931,7 @@ nsDocAccessible::UpdateTreeInternal(nsAccessible* aContainer,
 
     if (!accessible) {
       updateFlags |= UpdateTreeInternal(aContainer, node->GetFirstChild(),
-                                        nsnull, aIsInsert, aFireAllEvents,
-                                        aFromUserInput);
+                                        nsnull, aIsInsert);
       continue;
     }
 
@@ -1952,29 +1957,27 @@ nsDocAccessible::UpdateTreeInternal(nsAccessible* aContainer,
     }
 
     
-    if (aFireAllEvents) {
-      nsRefPtr<AccEvent> event;
-      if (aIsInsert)
-        event = new AccShowEvent(accessible, node, aFromUserInput);
-      else
-        event = new AccHideEvent(accessible, node, aFromUserInput);
+    nsRefPtr<AccEvent> event;
+    if (aIsInsert)
+      event = new AccShowEvent(accessible, node);
+    else
+      event = new AccHideEvent(accessible, node);
 
-      if (event)
-        FireDelayedAccessibleEvent(event);
-    }
+    if (event)
+      FireDelayedAccessibleEvent(event);
 
     if (aIsInsert) {
       PRUint32 ariaRole = accessible->ARIARole();
       if (ariaRole == nsIAccessibleRole::ROLE_MENUPOPUP) {
         
         FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_START,
-                                   node, AccEvent::eRemoveDupes, aFromUserInput);
+                                   node, AccEvent::eRemoveDupes);
 
       } else if (ariaRole == nsIAccessibleRole::ROLE_ALERT) {
         
         updateFlags = eAlertAccessible;
         FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_ALERT, node,
-                                   AccEvent::eRemoveDupes, aFromUserInput);
+                                   AccEvent::eRemoveDupes);
       }
 
       
@@ -1983,8 +1986,7 @@ nsDocAccessible::UpdateTreeInternal(nsAccessible* aContainer,
       
       if (node == gLastFocusedNode) {
         FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_FOCUS,
-                                   node, AccEvent::eCoalesceFromSameDocument,
-                                   aFromUserInput);
+                                   node, AccEvent::eCoalesceFromSameDocument);
       }
     } else {
       
@@ -2034,4 +2036,3 @@ nsDocAccessible::ShutdownChildrenInSubtree(nsAccessible* aAccessible)
 
   UnbindFromDocument(aAccessible);
 }
-

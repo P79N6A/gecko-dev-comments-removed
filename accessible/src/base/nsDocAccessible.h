@@ -41,8 +41,9 @@
 
 #include "nsIAccessibleDocument.h"
 
-#include "nsHyperTextAccessibleWrap.h"
 #include "nsEventShell.h"
+#include "nsHyperTextAccessibleWrap.h"
+#include "NotificationController.h"
 
 #include "nsClassHashtable.h"
 #include "nsDataHashtable.h"
@@ -194,6 +195,24 @@ public:
 
 
 
+
+  template<class Class, class Arg>
+  inline void HandleNotification(Class* aInstance,
+                                 typename TNotification<Class, Arg>::Callback aMethod,
+                                 Arg* aArg)
+  {
+    if (mNotificationController) {
+      mNotificationController->HandleNotification<Class, Arg>(aInstance,
+                                                              aMethod, aArg);
+    }
+  }
+
+  
+
+
+
+
+
   nsAccessible* GetCachedAccessible(nsINode* aNode);
 
   
@@ -242,14 +261,14 @@ public:
   
 
 
-
-  void ProcessPendingEvent(AccEvent* aEvent);
+  void ContentInserted(nsIContent* aContainerNode,
+                       nsIContent* aStartChildNode,
+                       nsIContent* aEndChildNode);
 
   
 
 
-  void UpdateTree(nsIContent* aContainerNode, nsIContent* aStartChildNode,
-                  nsIContent* aEndChildNode, PRBool aIsInsert);
+  void ContentRemoved(nsIContent* aContainerNode, nsIContent* aChildNode);
 
   
 
@@ -369,6 +388,24 @@ protected:
 
 
 
+  void ProcessPendingEvent(AccEvent* aEvent);
+
+  
+
+
+  void ProcessContentInserted(nsAccessible* aContainer,
+                              const nsTArray<nsCOMPtr<nsIContent> >* aInsertedContent);
+
+  
+
+
+  void UpdateTree(nsAccessible* aContainer, nsIContent* aChildNode,
+                  PRBool aIsInsert);
+
+  
+
+
+
   enum EUpdateTreeFlags {
     eNoAccessible = 0,
     eAccessible = 1,
@@ -378,9 +415,7 @@ protected:
   PRUint32 UpdateTreeInternal(nsAccessible* aContainer,
                               nsIContent* aStartNode,
                               nsIContent* aEndNode,
-                              PRBool aIsInsert,
-                              PRBool aFireEvents,
-                              EIsFromUserInput aFromUserInput);
+                              PRBool aIsInsert);
 
   
 
@@ -416,15 +451,12 @@ protected:
 
 protected:
 
-  nsRefPtr<nsAccEventQueue> mEventQueue;
-
   
 
 
   PRPackedBool mIsLoaded;
 
     static PRUint32 gLastFocusedAccessiblesState;
-    static nsIAtom *gLastFocusedFrameType;
 
   nsTArray<nsRefPtr<nsDocAccessible> > mChildDocuments;
 
@@ -464,6 +496,12 @@ protected:
   nsAccessible* mCacheRoot;
   nsTArray<nsIContent*> mInvalidationList;
   PRBool mIsPostCacheProcessing;
+
+  
+
+
+  nsRefPtr<NotificationController> mNotificationController;
+  friend class NotificationController;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsDocAccessible,

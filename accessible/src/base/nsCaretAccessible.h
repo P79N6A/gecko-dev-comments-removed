@@ -38,9 +38,11 @@
 #ifndef __nsCaretAccessible_h__
 #define __nsCaretAccessible_h__
 
+#include "NotificationController.h"
 #include "nsHyperTextAccessible.h"
 
 #include "nsISelectionListener.h"
+#include "nsISelection2.h"
 
 class nsRootAccessible;
 
@@ -119,15 +121,18 @@ protected:
   
 
 
-  void NormalSelectionChanged(nsDocAccessible* aDocument,
-                              nsISelection* aSelection);
+  void ProcessSelectionChanged(nsISelection* aSelection);
+
+  
+
+
+  void NormalSelectionChanged(nsISelection* aSelection);
 
   
 
 
 
-  void SpellcheckSelectionChanged(nsDocAccessible* aDocument,
-                                  nsISelection* aSelection);
+  void SpellcheckSelectionChanged(nsISelection* aSelection);
 
   
 

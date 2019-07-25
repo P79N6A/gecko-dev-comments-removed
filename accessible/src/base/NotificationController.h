@@ -1,0 +1,310 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifndef NotificationController_h_
+#define NotificationController_h_
+
+#include "AccEvent.h"
+#include "nsCycleCollectionParticipant.h"
+
+class nsAccessible;
+class nsDocAccessible;
+class nsIContent;
+
+
+
+
+#ifdef DEBUG_NOTIFICATIONS
+#define DEBUG_CONTENTMUTATION
+#endif
+
+
+
+
+class Notification
+{
+public:
+  virtual ~Notification() { };
+
+  NS_INLINE_DECL_REFCOUNTING(Notification)
+
+  
+
+
+  virtual void Process() = 0;
+
+protected:
+  Notification() { }
+
+private:
+  Notification(const Notification&);
+  Notification& operator = (const Notification&);
+};
+
+
+
+
+
+
+
+
+
+template<class Class, class Arg>
+class TNotification : public Notification
+{
+public:
+  typedef void (Class::*Callback)(Arg*);
+
+  TNotification(Class* aInstance, Callback aCallback, Arg* aArg) :
+    mInstance(aInstance), mCallback(aCallback), mArg(aArg) { }
+  virtual ~TNotification() { mInstance = nsnull; }
+
+  virtual void Process()
+  {
+    (mInstance->*mCallback)(mArg);
+
+    mInstance = nsnull;
+    mCallback = nsnull;
+    mArg = nsnull;
+  }
+
+private:
+  TNotification(const TNotification&);
+  TNotification& operator = (const TNotification&);
+
+  Class* mInstance;
+  Callback mCallback;
+  nsCOMPtr<Arg> mArg;
+};
+
+
+
+
+class NotificationController : public nsARefreshObserver
+{
+public:
+  NotificationController(nsDocAccessible* aDocument, nsIPresShell* aPresShell);
+  virtual ~NotificationController();
+
+  NS_IMETHOD_(nsrefcnt) AddRef(void);
+  NS_IMETHOD_(nsrefcnt) Release(void);
+
+  NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(NotificationController)
+
+  
+
+
+  void Shutdown();
+
+  
+
+
+  void QueueEvent(AccEvent* aEvent);
+
+  
+
+
+  void ScheduleContentInsertion(nsAccessible* aContainer,
+                                nsIContent* aStartChildNode,
+                                nsIContent* aEndChildNode);
+
+  
+
+
+
+
+
+
+
+  template<class Class, class Arg>
+  inline void HandleNotification(Class* aInstance,
+                                 typename TNotification<Class, Arg>::Callback aMethod,
+                                 Arg* aArg)
+  {
+    if (!IsUpdatePending()) {
+#ifdef DEBUG_NOTIFICATIONS
+      printf("\nsync notification processing\n");
+#endif
+      (aInstance->*aMethod)(aArg);
+      return;
+    }
+
+    nsRefPtr<Notification> notification =
+      new TNotification<Class, Arg>(aInstance, aMethod, aArg);
+    if (notification && mNotifications.AppendElement(notification))
+      ScheduleProcessing();
+  }
+
+protected:
+  nsAutoRefCnt mRefCnt;
+  NS_DECL_OWNINGTHREAD
+
+  
+
+
+
+  void ScheduleProcessing();
+
+  
+
+
+  bool IsUpdatePending();
+
+private:
+  NotificationController(const NotificationController&);
+  NotificationController& operator = (const NotificationController&);
+
+  
+  virtual void WillRefresh(mozilla::TimeStamp aTime);
+
+  
+  
+
+
+  void CoalesceEvents();
+
+  
+
+
+
+
+
+
+
+
+
+  void ApplyToSiblings(PRUint32 aStart, PRUint32 aEnd,
+                       PRUint32 aEventType, nsINode* aNode,
+                       AccEvent::EEventRule aEventRule);
+
+  
+
+
+
+  void CoalesceReorderEventsFromSameTree(AccEvent* aAccEvent,
+                                         AccEvent* aDescendantAccEvent);
+
+  
+
+
+  void CoalesceTextChangeEventsFor(AccHideEvent* aTailEvent,
+                                   AccHideEvent* aThisEvent);
+  void CoalesceTextChangeEventsFor(AccShowEvent* aTailEvent,
+                                   AccShowEvent* aThisEvent);
+
+  
+
+
+
+
+  void CreateTextChangeEventFor(AccMutationEvent* aEvent);
+
+private:
+  
+
+
+
+  enum eObservingState {
+    eNotObservingRefresh,
+    eRefreshObserving,
+    eRefreshProcessingForUpdate
+  };
+  eObservingState mObservingState;
+
+  
+
+
+  nsRefPtr<nsDocAccessible> mDocument;
+
+  
+
+
+  nsIPresShell* mPresShell;
+
+  
+
+
+  class ContentInsertion
+  {
+  public:
+    ContentInsertion(nsDocAccessible* aDocument, nsAccessible* aContainer,
+                     nsIContent* aStartChildNode, nsIContent* aEndChildNode);
+    virtual ~ContentInsertion() { mDocument = nsnull; }
+
+    NS_INLINE_DECL_REFCOUNTING(ContentInsertion)
+    NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(ContentInsertion)
+
+    void Process();
+
+  private:
+    ContentInsertion();
+    ContentInsertion(const ContentInsertion&);
+    ContentInsertion& operator = (const ContentInsertion&);
+
+    
+    
+    
+    nsDocAccessible* mDocument;
+
+    
+    nsRefPtr<nsAccessible> mContainer;
+
+    
+    nsTArray<nsCOMPtr<nsIContent> > mInsertedContent;
+  };
+
+  
+
+
+
+  nsTArray<nsRefPtr<ContentInsertion> > mContentInsertions;
+
+  
+
+
+
+  nsTArray<nsRefPtr<Notification> > mNotifications;
+
+  
+
+
+
+  nsTArray<nsRefPtr<AccEvent> > mEvents;
+};
+
+#endif

@@ -1,0 +1,556 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsEventShell.h"
+
+#include "nsAccUtils.h"
+#include "nsCoreUtils.h"
+#include "nsDocAccessible.h"
+
+#include "NotificationController.h"
+
+#include "nsAccessibilityService.h"
+#include "nsDocAccessible.h"
+
+
+
+
+
+NotificationController::NotificationController(nsDocAccessible* aDocument,
+                                               nsIPresShell* aPresShell) :
+  mObservingState(eNotObservingRefresh), mDocument(aDocument),
+  mPresShell(aPresShell)
+{
+}
+
+NotificationController::~NotificationController()
+{
+  NS_ASSERTION(!mDocument, "Controller wasn't shutdown properly!");
+  if (mDocument)
+    Shutdown();
+}
+
+
+
+
+NS_IMPL_ADDREF(NotificationController)
+NS_IMPL_RELEASE(NotificationController)
+
+NS_IMPL_CYCLE_COLLECTION_CLASS(NotificationController)
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_NATIVE(NotificationController)
+  tmp->Shutdown();
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NATIVE_BEGIN(NotificationController)
+  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mDocument");
+  cb.NoteXPCOMChild(static_cast<nsIAccessible*>(tmp->mDocument.get()));
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSTARRAY_MEMBER(mContentInsertions,
+                                                    ContentInsertion)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSTARRAY_MEMBER(mEvents, AccEvent)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(NotificationController, AddRef)
+NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(NotificationController, Release)
+
+
+
+
+void
+NotificationController::Shutdown()
+{
+  if (mObservingState != eNotObservingRefresh &&
+      mPresShell->RemoveRefreshObserver(this, Flush_Display)) {
+    mObservingState = eNotObservingRefresh;
+  }
+
+  mDocument = nsnull;
+  mPresShell = nsnull;
+  mContentInsertions.Clear();
+  mNotifications.Clear();
+  mEvents.Clear();
+}
+
+void
+NotificationController::QueueEvent(AccEvent* aEvent)
+{
+  if (!mEvents.AppendElement(aEvent))
+    return;
+
+  
+  CoalesceEvents();
+
+  
+  
+  AccMutationEvent* showOrHideEvent = downcast_accEvent(aEvent);
+  if (showOrHideEvent && !showOrHideEvent->mTextChangeEvent)
+    CreateTextChangeEventFor(showOrHideEvent);
+
+  ScheduleProcessing();
+}
+
+void
+NotificationController::ScheduleContentInsertion(nsAccessible* aContainer,
+                                                 nsIContent* aStartChildNode,
+                                                 nsIContent* aEndChildNode)
+{
+  nsRefPtr<ContentInsertion> insertion =
+    new ContentInsertion(mDocument, aContainer, aStartChildNode, aEndChildNode);
+
+  if (insertion && mContentInsertions.AppendElement(insertion))
+    ScheduleProcessing();
+}
+
+
+
+
+void
+NotificationController::ScheduleProcessing()
+{
+  
+  
+  if (mObservingState == eNotObservingRefresh) {
+    if (mPresShell->AddRefreshObserver(this, Flush_Display))
+      mObservingState = eRefreshObserving;
+  }
+}
+
+bool
+NotificationController::IsUpdatePending()
+{
+  nsCOMPtr<nsIPresShell_MOZILLA_2_0_BRANCH2> presShell =
+    do_QueryInterface(mPresShell);
+  return presShell->IsLayoutFlushObserver() ||
+    mObservingState == eRefreshProcessingForUpdate ||
+    mContentInsertions.Length() != 0 || mNotifications.Length() != 0;
+}
+
+
+
+
+void
+NotificationController::WillRefresh(mozilla::TimeStamp aTime)
+{
+  
+  
+  NS_ASSERTION(mDocument,
+               "The document was shut down while refresh observer is attached!");
+  if (!mDocument)
+    return;
+
+  
+  
+  mObservingState = eRefreshProcessingForUpdate;
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  nsTArray<nsRefPtr<ContentInsertion> > contentInsertions;
+  contentInsertions.SwapElements(mContentInsertions);
+
+  PRUint32 insertionCount = contentInsertions.Length();
+  for (PRUint32 idx = 0; idx < insertionCount; idx++) {
+    contentInsertions[idx]->Process();
+    if (!mDocument)
+      return;
+  }
+
+  
+  nsTArray < nsRefPtr<Notification> > notifications;
+  notifications.SwapElements(mNotifications);
+
+  PRUint32 notificationCount = notifications.Length();
+  for (PRUint32 idx = 0; idx < notificationCount; idx++) {
+    notifications[idx]->Process();
+    if (!mDocument)
+      return;
+  }
+
+  
+  
+  mObservingState = eRefreshObserving;
+
+  
+  nsTArray<nsRefPtr<AccEvent> > events;
+  events.SwapElements(mEvents);
+
+  PRUint32 eventCount = events.Length();
+  for (PRUint32 idx = 0; idx < eventCount; idx++) {
+    AccEvent* accEvent = events[idx];
+    if (accEvent->mEventRule != AccEvent::eDoNotEmit) {
+      mDocument->ProcessPendingEvent(accEvent);
+
+      AccMutationEvent* showOrhideEvent = downcast_accEvent(accEvent);
+      if (showOrhideEvent) {
+        if (showOrhideEvent->mTextChangeEvent)
+          mDocument->ProcessPendingEvent(showOrhideEvent->mTextChangeEvent);
+      }
+    }
+    if (!mDocument)
+      return;
+  }
+
+  
+  
+  if (mContentInsertions.Length() == 0 && mNotifications.Length() == 0 &&
+      mEvents.Length() == 0 &&
+      mPresShell->RemoveRefreshObserver(this, Flush_Display)) {
+    mObservingState = eNotObservingRefresh;
+  }
+}
+
+
+
+
+void
+NotificationController::CoalesceEvents()
+{
+  PRUint32 numQueuedEvents = mEvents.Length();
+  PRInt32 tail = numQueuedEvents - 1;
+  AccEvent* tailEvent = mEvents[tail];
+
+  
+  
+  if (!tailEvent->mNode)
+    return;
+
+  switch(tailEvent->mEventRule) {
+    case AccEvent::eCoalesceFromSameSubtree:
+    {
+      for (PRInt32 index = tail - 1; index >= 0; index--) {
+        AccEvent* thisEvent = mEvents[index];
+
+        if (thisEvent->mEventType != tailEvent->mEventType)
+          continue; 
+
+        
+        
+        
+        if (!thisEvent->mNode ||
+            thisEvent->mNode->GetOwnerDoc() != tailEvent->mNode->GetOwnerDoc())
+          continue;
+
+        
+        if (thisEvent->mNode == tailEvent->mNode) {
+          thisEvent->mEventRule = AccEvent::eDoNotEmit;
+          return;
+        }
+
+        
+        
+        
+
+        
+        if (tailEvent->mEventType == nsIAccessibleEvent::EVENT_HIDE) {
+          AccHideEvent* tailHideEvent = downcast_accEvent(tailEvent);
+          AccHideEvent* thisHideEvent = downcast_accEvent(thisEvent);
+          if (thisHideEvent->mParent == tailHideEvent->mParent) {
+            tailEvent->mEventRule = thisEvent->mEventRule;
+
+            
+            if (tailEvent->mEventRule != AccEvent::eDoNotEmit)
+              CoalesceTextChangeEventsFor(tailHideEvent, thisHideEvent);
+
+            return;
+          }
+        } else if (tailEvent->mEventType == nsIAccessibleEvent::EVENT_SHOW) {
+          if (thisEvent->mAccessible->GetParent() ==
+              tailEvent->mAccessible->GetParent()) {
+            tailEvent->mEventRule = thisEvent->mEventRule;
+
+            
+            if (tailEvent->mEventRule != AccEvent::eDoNotEmit) {
+              AccShowEvent* tailShowEvent = downcast_accEvent(tailEvent);
+              AccShowEvent* thisShowEvent = downcast_accEvent(thisEvent);
+              CoalesceTextChangeEventsFor(tailShowEvent, thisShowEvent);
+            }
+
+            return;
+          }
+        }
+
+        
+        if (!thisEvent->mNode->IsInDoc())
+          continue;
+
+        
+        
+        if (thisEvent->mNode->GetNodeParent() ==
+            tailEvent->mNode->GetNodeParent()) {
+          tailEvent->mEventRule = thisEvent->mEventRule;
+          return;
+        }
+
+        
+        
+
+        
+        
+        
+        
+        
+        
+        if (tailEvent->mEventType != nsIAccessibleEvent::EVENT_HIDE &&
+            nsCoreUtils::IsAncestorOf(thisEvent->mNode, tailEvent->mNode)) {
+          tailEvent->mEventRule = AccEvent::eDoNotEmit;
+          return;
+        }
+
+        
+        
+        
+        if (nsCoreUtils::IsAncestorOf(tailEvent->mNode, thisEvent->mNode)) {
+          thisEvent->mEventRule = AccEvent::eDoNotEmit;
+          ApplyToSiblings(0, index, thisEvent->mEventType,
+                          thisEvent->mNode, AccEvent::eDoNotEmit);
+          continue;
+        }
+
+      } 
+
+    } break; 
+
+    case AccEvent::eCoalesceFromSameDocument:
+    {
+      
+      
+      
+      for (PRInt32 index = tail - 1; index >= 0; index--) {
+        AccEvent* thisEvent = mEvents[index];
+        if (thisEvent->mEventType == tailEvent->mEventType &&
+            thisEvent->mEventRule == tailEvent->mEventRule &&
+            thisEvent->GetDocAccessible() == tailEvent->GetDocAccessible()) {
+          thisEvent->mEventRule = AccEvent::eDoNotEmit;
+          return;
+        }
+      }
+    } break; 
+
+    case AccEvent::eRemoveDupes:
+    {
+      
+      
+      for (PRInt32 index = tail - 1; index >= 0; index--) {
+        AccEvent* accEvent = mEvents[index];
+        if (accEvent->mEventType == tailEvent->mEventType &&
+            accEvent->mEventRule == tailEvent->mEventRule &&
+            accEvent->mNode == tailEvent->mNode) {
+          tailEvent->mEventRule = AccEvent::eDoNotEmit;
+          return;
+        }
+      }
+    } break; 
+
+    default:
+      break; 
+  } 
+}
+
+void
+NotificationController::ApplyToSiblings(PRUint32 aStart, PRUint32 aEnd,
+                                        PRUint32 aEventType, nsINode* aNode,
+                                        AccEvent::EEventRule aEventRule)
+{
+  for (PRUint32 index = aStart; index < aEnd; index ++) {
+    AccEvent* accEvent = mEvents[index];
+    if (accEvent->mEventType == aEventType &&
+        accEvent->mEventRule != AccEvent::eDoNotEmit && accEvent->mNode &&
+        accEvent->mNode->GetNodeParent() == aNode->GetNodeParent()) {
+      accEvent->mEventRule = aEventRule;
+    }
+  }
+}
+
+void
+NotificationController::CoalesceTextChangeEventsFor(AccHideEvent* aTailEvent,
+                                                    AccHideEvent* aThisEvent)
+{
+  
+  
+
+  AccTextChangeEvent* textEvent = aThisEvent->mTextChangeEvent;
+  if (!textEvent)
+    return;
+
+  if (aThisEvent->mNextSibling == aTailEvent->mAccessible) {
+    aTailEvent->mAccessible->AppendTextTo(textEvent->mModifiedText,
+                                          0, PR_UINT32_MAX);
+
+  } else if (aThisEvent->mPrevSibling == aTailEvent->mAccessible) {
+    PRUint32 oldLen = textEvent->GetLength();
+    aTailEvent->mAccessible->AppendTextTo(textEvent->mModifiedText,
+                                          0, PR_UINT32_MAX);
+    textEvent->mStart -= textEvent->GetLength() - oldLen;
+  }
+
+  aTailEvent->mTextChangeEvent.swap(aThisEvent->mTextChangeEvent);
+}
+
+void
+NotificationController::CoalesceTextChangeEventsFor(AccShowEvent* aTailEvent,
+                                                    AccShowEvent* aThisEvent)
+{
+  AccTextChangeEvent* textEvent = aThisEvent->mTextChangeEvent;
+  if (!textEvent)
+    return;
+
+  if (aTailEvent->mAccessible->GetIndexInParent() ==
+      aThisEvent->mAccessible->GetIndexInParent() + 1) {
+    
+    
+    aTailEvent->mAccessible->AppendTextTo(textEvent->mModifiedText,
+                                          0, PR_UINT32_MAX);
+
+  } else if (aTailEvent->mAccessible->GetIndexInParent() ==
+             aThisEvent->mAccessible->GetIndexInParent() -1) {
+    
+    
+    nsAutoString startText;
+    aTailEvent->mAccessible->AppendTextTo(startText, 0, PR_UINT32_MAX);
+    textEvent->mModifiedText = startText + textEvent->mModifiedText;
+    textEvent->mStart -= startText.Length();
+  }
+
+  aTailEvent->mTextChangeEvent.swap(aThisEvent->mTextChangeEvent);
+}
+
+void
+NotificationController::CreateTextChangeEventFor(AccMutationEvent* aEvent)
+{
+  nsRefPtr<nsHyperTextAccessible> textAccessible = do_QueryObject(
+    GetAccService()->GetContainerAccessible(aEvent->mNode,
+                                            aEvent->mAccessible->GetWeakShell()));
+  if (!textAccessible)
+    return;
+
+  
+  if (aEvent->mAccessible->Role() == nsIAccessibleRole::ROLE_WHITESPACE) {
+    nsCOMPtr<nsIEditor> editor;
+    textAccessible->GetAssociatedEditor(getter_AddRefs(editor));
+    if (editor) {
+      PRBool isEmpty = PR_FALSE;
+      editor->GetDocumentIsEmpty(&isEmpty);
+      if (isEmpty)
+        return;
+    }
+  }
+
+  PRInt32 offset = textAccessible->GetChildOffset(aEvent->mAccessible);
+
+  nsAutoString text;
+  aEvent->mAccessible->AppendTextTo(text, 0, PR_UINT32_MAX);
+  if (text.IsEmpty())
+    return;
+
+  aEvent->mTextChangeEvent =
+    new AccTextChangeEvent(textAccessible, offset, text, aEvent->IsShow(),
+                           aEvent->mIsFromUserInput ? eFromUserInput : eNoUserInput);
+}
+
+
+
+
+NotificationController::ContentInsertion::
+  ContentInsertion(nsDocAccessible* aDocument, nsAccessible* aContainer,
+                   nsIContent* aStartChildNode, nsIContent* aEndChildNode) :
+  mDocument(aDocument), mContainer(aContainer)
+{
+  nsIContent* node = aStartChildNode;
+  while (node != aEndChildNode) {
+    mInsertedContent.AppendElement(node);
+    node = node->GetNextSibling();
+  }
+}
+
+NS_IMPL_CYCLE_COLLECTION_CLASS(NotificationController::ContentInsertion)
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_NATIVE(NotificationController::ContentInsertion)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mContainer)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NATIVE_BEGIN(NotificationController::ContentInsertion)
+  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mContainer");
+  cb.NoteXPCOMChild(static_cast<nsIAccessible*>(tmp->mContainer.get()));
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(NotificationController::ContentInsertion,
+                                     AddRef)
+NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(NotificationController::ContentInsertion,
+                                       Release)
+
+void
+NotificationController::ContentInsertion::Process()
+{
+#ifdef DEBUG_NOTIFICATIONS
+  nsIContent* firstChildNode = mInsertedContent[0];
+
+  nsCAutoString tag;
+  firstChildNode->Tag()->ToUTF8String(tag);
+
+  nsIAtom* atomid = firstChildNode->GetID();
+  nsCAutoString id;
+  if (atomid)
+    atomid->ToUTF8String(id);
+
+  nsCAutoString ctag;
+  nsCAutoString cid;
+  nsIAtom* catomid = nsnull;
+  if (mContainer->IsContent()) {
+    mContainer->GetContent()->Tag()->ToUTF8String(ctag);
+    catomid = mContainer->GetContent()->GetID();
+    if (catomid)
+      catomid->ToUTF8String(cid);
+  }
+
+  printf("\npending content insertion process: %s@id='%s', container: %s@id='%s', inserted content amount: %d\n\n",
+         tag.get(), id.get(), ctag.get(), cid.get(), mInsertedContent.Length());
+#endif
+
+  mDocument->ProcessContentInserted(mContainer, &mInsertedContent);
+
+  mDocument = nsnull;
+  mContainer = nsnull;
+  mInsertedContent.Clear();
+}
