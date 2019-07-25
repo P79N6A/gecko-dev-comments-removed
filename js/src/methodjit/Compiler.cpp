@@ -493,8 +493,6 @@ mjit::Compiler::generateMethod()
 
           BEGIN_CASE(JSOP_STOP)
             
-            masm.storeValue(Value(UndefinedTag()),
-                            Address(Assembler::FpReg, offsetof(JSStackFrame, rval)));
             emitReturn();
             goto done;
           END_CASE(JSOP_STOP)
