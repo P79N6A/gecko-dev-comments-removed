@@ -199,13 +199,6 @@ class OTSStream {
   unsigned chksum_buffer_offset_;
 };
 
-#ifdef MOZ_OTS_REPORT_ERRORS
-
-
-
-typedef bool (*MessageFunc)(void *user_data, const char *format, ...);
-#endif
-
 
 
 
@@ -216,9 +209,6 @@ typedef bool (*MessageFunc)(void *user_data, const char *format, ...);
 
 
 bool OTS_API Process(OTSStream *output, const uint8_t *input, size_t length,
-#ifdef MOZ_OTS_REPORT_ERRORS
-                     MessageFunc message_func, void *user_data,
-#endif
                      bool preserve_graphite_tables = false);
 
 
