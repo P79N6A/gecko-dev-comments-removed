@@ -1,3 +1,5 @@
+#filter substitution
+
 
 
 
@@ -437,9 +439,7 @@ XPCOMUtils.defineLazyGetter(this, "gCanStageUpdates", function aus_gCanStageUpda
     
     
     
-    updateTestFile = getUpdateDirCreate([]);
-    updateTestFile = updateTestFile.parent;
-    updateTestFile.append(FILE_PERMS_TEST);
+    updateTestFile = getUpdateFile(['..', FILE_PERMS_TEST]);
     LOG("gCanStageUpdates - testing write access " + updateTestFile.path);
     updateTestFile.createUnique(Ci.nsILocalFile.DIRECTORY_TYPE,
                                 FileUtils.PERMS_DIRECTORY);
@@ -827,7 +827,9 @@ function getLocale() {
 
 
 function getUpdateChannel() {
-  var channel = "default";
+  
+  
+  var channel = "@MOZ_UPDATE_CHANNEL@";
   var prefName;
   var prefValue;
 
