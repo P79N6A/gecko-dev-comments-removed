@@ -49,7 +49,7 @@ const kDoubleClickInterval = 400;
 const kMsUntilLock = 50;
 
 
-const kTapRadius = 15;
+const kTapRadius = 25;
 
 
 const kKineticUpdateInterval = 25;
@@ -605,12 +605,7 @@ MouseModule.prototype = {
 
   _doDragStart: function _doDragStart(event) {
     let dragData = this._dragData;
-
-    
-    
-    this._kinetic.addData(event.screenX, event.screenY);
     dragData.setDragStart(event.screenX, event.screenY);
-
     this._dragger.dragStart(event.clientX, event.clientY, event.target, this._targetScrollInterface);
   },
 
@@ -886,41 +881,48 @@ DragData.prototype = {
 
     
     if (this._isPan) {
-      let [prevX, prevY] = this._lockAxis(this.sX, this.sY);
-      this.prevPanX = prevX;
-      this.prevPanY = prevY;
-      this.sX = sX;
-      this.sY = sY;
-    }
-
-    
-    if (!this.locked && Date.now() - this._dragStartTime >= kMsUntilLock) {
-      
-      
-
-      
-      
-      
-      
-      
-
       let absX = Math.abs(this._originX - sX);
       let absY = Math.abs(this._originY - sY);
 
-      if (absX > 2 * absY)
-        this.lockedY = this._originY;
-      else if (absY > 2 * absX)
-        this.lockedX = this._originX;
+      
+      if (this.lockedX && absX > 3 * absY)
+        this.lockedX = null;
+      else if (this.lockedY && absY > 3 * absX)
+        this.lockedY = null;
 
-      this.locked = true;
+      if (!this.locked) {
+        
+        
+
+        
+        
+        
+        
+        
+
+        if (absX > 2.5 * absY)
+          this.lockedY = sY;
+        else if (absY > absX)
+          this.lockedX = sX;
+
+        this.locked = true;
+      }
+
+      
+      
+      let [prevX, prevY] = this._lockAxis(this.sX, this.sY);
+      this.prevPanX = prevX;
+      this.prevPanY = prevY;
     }
+
+    this.sX = sX;
+    this.sY = sY;
   },
 
   setDragStart: function setDragStart(screenX, screenY) {
     this.sX = this._originX = screenX;
     this.sY = this._originY = screenY;
     this.dragging = true;
-    this._dragStartTime = Date.now();
     this.locked = false;
   },
 
