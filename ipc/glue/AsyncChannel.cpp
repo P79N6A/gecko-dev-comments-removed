@@ -38,7 +38,7 @@
 
 
 #include "mozilla/ipc/AsyncChannel.h"
-#include "mozilla/ipc/BrowserProcessSubThread.h"
+#include "mozilla/ipc/GeckoThread.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 
 #include "nsDebug.h"
@@ -54,51 +54,6 @@ struct RunnableMethodTraits<mozilla::ipc::AsyncChannel>
     static void ReleaseCallee(mozilla::ipc::AsyncChannel* obj) { }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-template<>
-struct RunnableMethodTraits<mozilla::ipc::AsyncChannel::Transport>
-{
-    static void RetainCallee(mozilla::ipc::AsyncChannel::Transport* obj) { }
-    static void ReleaseCallee(mozilla::ipc::AsyncChannel::Transport* obj) { }
-};
-
-namespace {
-
-
-class GoodbyeMessage : public IPC::Message
-{
-public:
-    enum { ID = GOODBYE_MESSAGE_TYPE };
-    GoodbyeMessage() :
-        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
-    {
-    }
-    
-    
-    static bool Read(const Message* msg)
-    {
-        return true;
-    }
-    void Log(const std::string& aPrefix,
-             FILE* aOutf) const
-    {
-        fputs("(special `Goodbye' message)", aOutf);
-    }
-};
-
-} 
-
 namespace mozilla {
 namespace ipc {
 
@@ -110,7 +65,6 @@ AsyncChannel::AsyncChannel(AsyncListener* aListener)
     mCvar(mMutex, "mozilla.ipc.AsyncChannel.mCvar"),
     mIOLoop(),
     mWorkerLoop(),
-    mChild(false),
     mChannelErrorTask(NULL)
 {
     MOZ_COUNT_CTOR(AsyncChannel);
@@ -139,7 +93,8 @@ AsyncChannel::Open(Transport* aTransport, MessageLoop* aIOLoop)
     if(!aIOLoop) {
         
         needOpen = false;
-        aIOLoop = XRE_GetIOMessageLoop();
+        aIOLoop = BrowserProcessSubThread
+                  ::GetMessageLoop(BrowserProcessSubThread::IO);
         
         
         mChannelState = ChannelConnected;
@@ -172,24 +127,11 @@ AsyncChannel::Open(Transport* aTransport, MessageLoop* aIOLoop)
 void
 AsyncChannel::Close()
 {
-    AssertWorkerThread();
-
     {
         MutexAutoLock lock(mMutex);
 
-        if (ChannelError == mChannelState ||
-            ChannelTimeout == mChannelState) {
-            
-            
-            
-            
-            
-            if (mListener) {
-                MutexAutoUnlock unlock(mMutex);
-                NotifyMaybeChannelError();
-            }
+        if (ChannelError == mChannelState)
             return;
-        }
 
         if (ChannelConnected != mChannelState)
             
@@ -199,25 +141,23 @@ AsyncChannel::Close()
         AssertWorkerThread();
 
         
-        SendSpecialMessage(new GoodbyeMessage());
+        SendGoodbye();
 
-        SynchronouslyClose();
+        mChannelState = ChannelClosing;
+
+        
+        mIOLoop->PostTask(
+            FROM_HERE, NewRunnableMethod(this, &AsyncChannel::OnCloseChannel));
+
+        while (ChannelClosing == mChannelState)
+            mCvar.Wait();
+
+        
+        
+        mChannelState = ChannelClosed;
     }
 
-    NotifyChannelClosed();
-}
-
-void 
-AsyncChannel::SynchronouslyClose()
-{
-    AssertWorkerThread();
-    mMutex.AssertCurrentThreadOwns();
-
-    mIOLoop->PostTask(
-        FROM_HERE, NewRunnableMethod(this, &AsyncChannel::OnCloseChannel));
-
-    while (ChannelClosed != mChannelState)
-        mCvar.Wait();
+    return NotifyChannelClosed();
 }
 
 bool
@@ -235,7 +175,8 @@ AsyncChannel::Send(Message* msg)
             return false;
         }
 
-        SendThroughTransport(msg);
+        mIOLoop->PostTask(FROM_HERE,
+                          NewRunnableMethod(this, &AsyncChannel::OnSend, msg));
     }
 
     return true;
@@ -248,12 +189,10 @@ AsyncChannel::OnDispatchMessage(const Message& msg)
     NS_ASSERTION(!msg.is_reply(), "can't process replies here");
     NS_ASSERTION(!(msg.is_sync() || msg.is_rpc()), "async dispatch only");
 
-    if (MSG_ROUTING_NONE == msg.routing_id()) {
-        if (!OnSpecialMessage(msg.type(), msg))
-            
-            NS_RUNTIMEABORT("unhandled special message!");
+    if (MaybeInterceptGoodbye(msg))
+        
+        
         return;
-    }
 
     
     
@@ -261,83 +200,82 @@ AsyncChannel::OnDispatchMessage(const Message& msg)
     (void)MaybeHandleError(mListener->OnMessageReceived(msg), "AsyncChannel");
 }
 
-bool
-AsyncChannel::OnSpecialMessage(uint16 id, const Message& msg)
+
+class GoodbyeMessage : public IPC::Message
 {
-    return false;
-}
+public:
+    enum { ID = GOODBYE_MESSAGE_TYPE };
+    GoodbyeMessage() :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+    }
+    
+    
+    static bool Read(const Message* msg)
+    {
+        return true;
+    }
+    void Log(const std::string& aPrefix,
+             FILE* aOutf) const
+    {
+        fputs("(special `Goodbye' message)", aOutf);
+    }
+};
 
 void
-AsyncChannel::SendSpecialMessage(Message* msg) const
-{
-    AssertWorkerThread();
-    SendThroughTransport(msg);
-}
-
-void
-AsyncChannel::SendThroughTransport(Message* msg) const
+AsyncChannel::SendGoodbye()
 {
     AssertWorkerThread();
 
     mIOLoop->PostTask(
         FROM_HERE,
-        NewRunnableMethod(mTransport, &Transport::Send, msg));
+        NewRunnableMethod(this, &AsyncChannel::OnSend, new GoodbyeMessage()));
 }
 
-void
-AsyncChannel::OnNotifyMaybeChannelError()
+bool
+AsyncChannel::MaybeInterceptGoodbye(const Message& msg)
 {
-    AssertWorkerThread();
-    mMutex.AssertNotCurrentThreadOwns();
+    
+    
+    if (MSG_ROUTING_NONE != msg.routing_id())
+        return false;
 
-    
-    
-    
-    
-    {
-        MutexAutoLock lock(mMutex);
-        
-    }
+    if (msg.is_sync() || msg.is_rpc() || GOODBYE_MESSAGE_TYPE != msg.type())
+        NS_RUNTIMEABORT("received unknown MSG_ROUTING_NONE message when expecting `Goodbye'");
 
-    if (ShouldDeferNotifyMaybeError()) {
-        mChannelErrorTask =
-            NewRunnableMethod(this, &AsyncChannel::OnNotifyMaybeChannelError);
-        
-        mWorkerLoop->PostDelayedTask(FROM_HERE, mChannelErrorTask, 10);
-        return;
-    }
+    MutexAutoLock lock(mMutex);
+    
+    
+    mChannelState = ChannelClosing;
 
-    NotifyMaybeChannelError();
+    printf("NOTE: %s process received `Goodbye', closing down\n",
+           mChild ? "child" : "parent");
+
+    return true;
 }
 
 void
 AsyncChannel::NotifyChannelClosed()
 {
-    mMutex.AssertNotCurrentThreadOwns();
-
     if (ChannelClosed != mChannelState)
         NS_RUNTIMEABORT("channel should have been closed!");
 
     
     
     mListener->OnChannelClose();
-
     Clear();
 }
 
 void
 AsyncChannel::NotifyMaybeChannelError()
 {
-    mMutex.AssertNotCurrentThreadOwns();
-
     
     
     if (ChannelClosing == mChannelState) {
         
         
         mChannelState = ChannelClosed;
-        NotifyChannelClosed();
-        return;
+        return NotifyChannelClosed();
     }
 
     
@@ -384,8 +322,6 @@ AsyncChannel::MaybeHandleError(Result code, const char* channelName)
     case MsgPayloadError:
         errorMsg = "Payload error: message could not be deserialized";
         break;
-    case MsgProcessingError:
-        errorMsg = "Processing error: message was deserialized, but the handler returned false (indicating failure)";
     case MsgRouteError:
         errorMsg = "Route error: message sent to unknown actor ID";
         break;
@@ -403,7 +339,7 @@ AsyncChannel::MaybeHandleError(Result code, const char* channelName)
 }
 
 void
-AsyncChannel::ReportConnectionError(const char* channelName) const
+AsyncChannel::ReportConnectionError(const char* channelName)
 {
     const char* errorMsg;
     switch (mChannelState) {
@@ -413,16 +349,12 @@ AsyncChannel::ReportConnectionError(const char* channelName) const
     case ChannelOpening:
         errorMsg = "Opening channel: not yet ready for send/recv";
         break;
-    case ChannelTimeout:
-        errorMsg = "Channel timeout: cannot send/recv";
-    case ChannelClosing:
-        errorMsg = "Channel closing: too late to send/recv, messages will be lost";
     case ChannelError:
         errorMsg = "Channel error: cannot send/recv";
         break;
 
     default:
-        NS_RUNTIMEABORT("unreached");
+        NOTREACHED();
     }
 
     PrintErrorMessage(channelName, errorMsg);
@@ -438,13 +370,10 @@ AsyncChannel::OnMessageReceived(const Message& msg)
     AssertIOThread();
     NS_ASSERTION(mChannelState != ChannelError, "Shouldn't get here!");
 
-    MutexAutoLock lock(mMutex);
-
-    if (!MaybeInterceptSpecialIOMessage(msg))
-        
-        mWorkerLoop->PostTask(
-            FROM_HERE,
-            NewRunnableMethod(this, &AsyncChannel::OnDispatchMessage, msg));
+    
+    mWorkerLoop->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &AsyncChannel::OnDispatchMessage, msg));
 }
 
 void
@@ -472,24 +401,24 @@ AsyncChannel::OnChannelError()
 
     MutexAutoLock lock(mMutex);
 
+    
+    
     if (ChannelClosing != mChannelState)
         mChannelState = ChannelError;
 
-    PostErrorNotifyTask();
+    NS_ASSERTION(!mChannelErrorTask, "OnChannelError called twice?");
+
+    mChannelErrorTask =
+        NewRunnableMethod(this, &AsyncChannel::NotifyMaybeChannelError);
+    mWorkerLoop->PostTask(FROM_HERE, mChannelErrorTask);
 }
 
 void
-AsyncChannel::PostErrorNotifyTask()
+AsyncChannel::OnSend(Message* aMsg)
 {
     AssertIOThread();
-    mMutex.AssertCurrentThreadOwns();
-
-    NS_ASSERTION(!mChannelErrorTask, "OnChannelError called twice?");
-
+    mTransport->Send(aMsg);
     
-    mChannelErrorTask =
-        NewRunnableMethod(this, &AsyncChannel::OnNotifyMaybeChannelError);
-    mWorkerLoop->PostTask(FROM_HERE, mChannelErrorTask);
 }
 
 void
@@ -502,34 +431,6 @@ AsyncChannel::OnCloseChannel()
     MutexAutoLock lock(mMutex);
     mChannelState = ChannelClosed;
     mCvar.Notify();
-}
-
-bool
-AsyncChannel::MaybeInterceptSpecialIOMessage(const Message& msg)
-{
-    AssertIOThread();
-    mMutex.AssertCurrentThreadOwns();
-
-    if (MSG_ROUTING_NONE == msg.routing_id()
-        && GOODBYE_MESSAGE_TYPE == msg.type()) {
-        ProcessGoodbyeMessage();
-        return true;
-    }
-    return false;
-}
-
-void
-AsyncChannel::ProcessGoodbyeMessage()
-{
-    AssertIOThread();
-    mMutex.AssertCurrentThreadOwns();
-
-    
-    
-    mChannelState = ChannelClosing;
-
-    printf("NOTE: %s process received `Goodbye', closing down\n",
-           mChild ? "child" : "parent");
 }
 
 

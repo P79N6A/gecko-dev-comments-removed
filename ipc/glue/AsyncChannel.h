@@ -60,7 +60,6 @@ struct HasResultCodes
         MsgNotKnown,
         MsgNotAllowed,
         MsgPayloadError,
-        MsgProcessingError,
         MsgRouteError,
         MsgValueError,
     };
@@ -76,7 +75,6 @@ protected:
         ChannelClosed,
         ChannelOpening,
         ChannelConnected,
-        ChannelTimeout,
         ChannelClosing,
         ChannelError
     };
@@ -113,7 +111,7 @@ public:
     void Close();
 
     
-    virtual bool Send(Message* msg);
+    bool Send(Message* msg);
 
     
     
@@ -126,35 +124,29 @@ public:
 
 protected:
     
-    void AssertWorkerThread() const
+    void AssertWorkerThread()
     {
         NS_ABORT_IF_FALSE(mWorkerLoop == MessageLoop::current(),
                           "not on worker thread!");
     }
 
-    void AssertIOThread() const
+    void AssertIOThread()
     {
         NS_ABORT_IF_FALSE(mIOLoop == MessageLoop::current(),
                           "not on IO thread!");
     }
 
-    bool Connected() const {
+    bool Connected() {
         mMutex.AssertCurrentThreadOwns();
         return ChannelConnected == mChannelState;
     }
 
     
     void OnDispatchMessage(const Message& aMsg);
-    virtual bool OnSpecialMessage(uint16 id, const Message& msg);
-    void SendSpecialMessage(Message* msg) const;
-
-    
-    void SynchronouslyClose();
-
     bool MaybeHandleError(Result code, const char* channelName);
-    void ReportConnectionError(const char* channelName) const;
+    void ReportConnectionError(const char* channelName);
 
-    void PrintErrorMessage(const char* channelName, const char* msg) const
+    void PrintErrorMessage(const char* channelName, const char* msg)
     {
         fprintf(stderr, "\n###!!! [%s][%s] Error: %s\n\n",
                 mChild ? "Child" : "Parent", channelName, msg);
@@ -162,27 +154,19 @@ protected:
 
     
 
-    void SendThroughTransport(Message* msg) const;
+    void SendGoodbye();
+    bool MaybeInterceptGoodbye(const Message& msg);
 
-    void OnNotifyMaybeChannelError();
-    virtual bool ShouldDeferNotifyMaybeError() const {
-        return false;
-    }
     void NotifyChannelClosed();
     void NotifyMaybeChannelError();
 
-    virtual void Clear();
+    void Clear();
 
     
 
     void OnChannelOpened();
+    void OnSend(Message* aMsg);
     void OnCloseChannel();
-    void PostErrorNotifyTask();
-
-    
-    
-    bool MaybeInterceptSpecialIOMessage(const Message& msg);
-    void ProcessGoodbyeMessage();
 
     Transport* mTransport;
     AsyncListener* mListener;
