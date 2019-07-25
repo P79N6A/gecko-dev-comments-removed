@@ -42,17 +42,13 @@
 #include "nsIObserverService.h"
 #include "nsIThreadPool.h"
 
-#include "mozilla/Mutex.h"
-#include "mozilla/CondVar.h"
 #include "nsComponentManagerUtils.h"
 #include "nsThreadUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsXPCOMCIDInternal.h"
 
-using mozilla::Mutex;
 using mozilla::MutexAutoLock;
 using mozilla::MutexAutoUnlock;
-using mozilla::CondVar;
 
 USING_INDEXEDDB_NAMESPACE
 
@@ -65,30 +61,9 @@ const PRUint32 kIdleThreadTimeoutMs = 30000;
 TransactionThreadPool* gInstance = nsnull;
 bool gShutdown = false;
 
-struct TransactionObjectStoreInfo
-{
-  TransactionObjectStoreInfo() : writing(false), writerWaiting(false) { }
-
-  nsString objectStoreName;
-  bool writing;
-  bool writerWaiting;
-};
-
 } 
 
 BEGIN_INDEXEDDB_NAMESPACE
-
-struct TransactionInfo
-{
-  TransactionInfo()
-  : mode(nsIIDBTransaction::READ_ONLY)
-  { }
-
-  nsRefPtr<IDBTransactionRequest> transaction;
-  nsRefPtr<TransactionQueue> queue;
-  nsTArray<TransactionObjectStoreInfo> objectStoreInfo;
-  PRUint16 mode;
-};
 
 struct QueuedDispatchInfo
 {
@@ -99,27 +74,6 @@ struct QueuedDispatchInfo
   nsRefPtr<IDBTransactionRequest> transaction;
   nsCOMPtr<nsIRunnable> runnable;
   bool finish;
-};
-
-class TransactionQueue : public nsIRunnable
-{
-public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIRUNNABLE
-
-  inline TransactionQueue(IDBTransactionRequest* aTransaction,
-                          nsIRunnable* aRunnable);
-
-  inline void Dispatch(nsIRunnable* aRunnable);
-
-  inline void Finish();
-
-private:
-  Mutex mMutex;
-  CondVar mCondVar;
-  IDBTransactionRequest* mTransaction;
-  nsAutoTArray<nsCOMPtr<nsIRunnable>, 10> mQueue;
-  bool mShouldFinish;
 };
 
 class FinishTransactionRunnable : public nsIRunnable
@@ -242,17 +196,28 @@ TransactionThreadPool::FinishTransaction(IDBTransactionRequest* aTransaction)
 
   const PRUint32 databaseId = aTransaction->mDatabase->Id();
 
-  nsTArray<TransactionInfo>* transactionsInProgress;
-  if (!mTransactionsInProgress.Get(databaseId, &transactionsInProgress)) {
+  DatabaseTransactionInfo* dbTransactionInfo;
+  if (!mTransactionsInProgress.Get(databaseId, &dbTransactionInfo)) {
     NS_ERROR("We don't know anyting about this database?!");
     return;
   }
 
-  PRUint32 count = transactionsInProgress->Length();
+  nsTArray<TransactionInfo>& transactionsInProgress =
+    dbTransactionInfo->transactions;
+
+  PRUint32 count = transactionsInProgress.Length();
+
+#ifdef DEBUG
+  if (aTransaction->mMode == IDBTransactionRequest::FULL_LOCK) {
+    NS_ASSERTION(dbTransactionInfo->locked, "Should be locked!");
+    NS_ASSERTION(count == 1, "More transactions running than should be!");
+  }
+#endif
+
   if (count == 1) {
 #ifdef DEBUG
     {
-      TransactionInfo& info = transactionsInProgress->ElementAt(0);
+      TransactionInfo& info = transactionsInProgress[0];
       NS_ASSERTION(info.transaction == aTransaction, "Transaction mismatch!");
       NS_ASSERTION(info.mode == aTransaction->mMode, "Mode mismatch!");
     }
@@ -261,17 +226,16 @@ TransactionThreadPool::FinishTransaction(IDBTransactionRequest* aTransaction)
   }
   else {
     for (PRUint32 index = 0; index < count; index++) {
-      TransactionInfo& info = transactionsInProgress->ElementAt(index);
+      TransactionInfo& info = transactionsInProgress[index];
       if (info.transaction == aTransaction) {
-        transactionsInProgress->RemoveElementAt(index);
+        transactionsInProgress.RemoveElementAt(index);
         break;
       }
     }
 
-    NS_ASSERTION(transactionsInProgress->Length() == count - 1,
+    NS_ASSERTION(transactionsInProgress.Length() == count - 1,
                  "Didn't find the transaction we were looking for!");
   }
-
 
   
   nsTArray<QueuedDispatchInfo> queuedDispatch;
@@ -299,26 +263,60 @@ TransactionThreadPool::TransactionCanRun(IDBTransactionRequest* aTransaction,
   const PRUint16 mode = aTransaction->mMode;
 
   
-  nsTArray<TransactionInfo>* transactionsInProgress;
-  if (!mTransactionsInProgress.Get(databaseId, &transactionsInProgress)) {
+  DatabaseTransactionInfo* dbTransactionInfo;
+  if (!mTransactionsInProgress.Get(databaseId, &dbTransactionInfo)) {
     
     *aQueue = nsnull;
     return true;
   }
 
+  nsTArray<TransactionInfo>& transactionsInProgress =
+    dbTransactionInfo->transactions;
+
+  PRUint32 transactionCount = transactionsInProgress.Length();
+
+  if (mode == IDBTransactionRequest::FULL_LOCK) {
+    switch (transactionCount) {
+      case 0: {
+        *aQueue = nsnull;
+        return true;
+      }
+
+      case 1: {
+        if (transactionsInProgress[0].transaction == aTransaction) {
+          *aQueue = transactionsInProgress[0].queue;
+          return true;
+        }
+        return false;
+      }
+
+      default: {
+        dbTransactionInfo->lockPending = true;
+        return false;
+      }
+    }
+  }
+
+  bool locked = dbTransactionInfo->locked || dbTransactionInfo->lockPending;
+
+  bool mayRun = true;
+
   
   
-  PRUint32 transactionCount = transactionsInProgress->Length();
   for (PRUint32 transactionIndex = 0;
        transactionIndex < transactionCount;
        transactionIndex++) {
-    TransactionInfo& transactionInfo =
-      transactionsInProgress->ElementAt(transactionIndex);
+    TransactionInfo& transactionInfo = transactionsInProgress[transactionIndex];
 
     if (transactionInfo.transaction == aTransaction) {
       
       *aQueue = transactionInfo.queue;
       return true;
+    }
+
+    if (locked) {
+      
+      continue;
     }
 
     
@@ -339,8 +337,12 @@ TransactionThreadPool::TransactionCanRun(IDBTransactionRequest* aTransaction,
             
             
             objectStoreInfo.writerWaiting = true;
-            return false;
-          }
+
+            
+            
+            
+            mayRun = false;
+          } break;
 
           case nsIIDBTransaction::READ_ONLY: {
             if (objectStoreInfo.writing || objectStoreInfo.writerWaiting) {
@@ -353,8 +355,9 @@ TransactionThreadPool::TransactionCanRun(IDBTransactionRequest* aTransaction,
             NS_NOTYETIMPLEMENTED("Not implemented!");
           } break;
 
-          default:
+          default: {
             NS_NOTREACHED("Should never get here!");
+          }
         }
       }
 
@@ -362,6 +365,18 @@ TransactionThreadPool::TransactionCanRun(IDBTransactionRequest* aTransaction,
     }
 
     
+  }
+
+  if (locked) {
+    
+    
+    return false;
+  }
+
+  if (!mayRun) {
+    
+    
+    return false;
   }
 
   
@@ -401,15 +416,31 @@ TransactionThreadPool::Dispatch(IDBTransactionRequest* aTransaction,
 
   const PRUint32 databaseId = aTransaction->mDatabase->Id();
 
-  
-  nsTArray<TransactionInfo>* transactionInfoArray;
-  nsAutoPtr<nsTArray<TransactionInfo> > autoArray;
-  if (!mTransactionsInProgress.Get(databaseId, &transactionInfoArray)) {
-    autoArray = new nsTArray<TransactionInfo>();
-    transactionInfoArray = autoArray;
+#ifdef DEBUG
+  if (aTransaction->mMode == IDBTransactionRequest::FULL_LOCK) {
+    NS_ASSERTION(!mTransactionsInProgress.Get(databaseId, nsnull),
+                 "Shouldn't have anything in progress!");
+  }
+#endif
+
+  DatabaseTransactionInfo* dbTransactionInfo;
+  nsAutoPtr<DatabaseTransactionInfo> autoDBTransactionInfo;
+
+  if (!mTransactionsInProgress.Get(databaseId, &dbTransactionInfo)) {
+    
+    autoDBTransactionInfo = new DatabaseTransactionInfo();
+    dbTransactionInfo = autoDBTransactionInfo;
   }
 
-  TransactionInfo* transactionInfo = transactionInfoArray->AppendElement();
+  if (aTransaction->mMode == IDBTransactionRequest::FULL_LOCK) {
+    NS_ASSERTION(!dbTransactionInfo->locked, "Already locked?!");
+    dbTransactionInfo->locked = true;
+  }
+
+  nsTArray<TransactionInfo>& transactionInfoArray =
+    dbTransactionInfo->transactions;
+
+  TransactionInfo* transactionInfo = transactionInfoArray.AppendElement();
   NS_ENSURE_TRUE(transactionInfo, NS_ERROR_OUT_OF_MEMORY);
 
   transactionInfo->transaction = aTransaction;
@@ -430,12 +461,12 @@ TransactionThreadPool::Dispatch(IDBTransactionRequest* aTransaction,
     info->writing = transactionInfo->mode == nsIIDBTransaction::READ_WRITE;
   }
 
-  if (autoArray) {
-    if (!mTransactionsInProgress.Put(databaseId, autoArray)) {
+  if (autoDBTransactionInfo) {
+    if (!mTransactionsInProgress.Put(databaseId, autoDBTransactionInfo)) {
       NS_ERROR("Failed to put!");
       return NS_ERROR_FAILURE;
     }
-    autoArray.forget();
+    autoDBTransactionInfo.forget();
   }
 
   return mThreadPool->Dispatch(transactionInfo->queue, NS_DISPATCH_NORMAL);
@@ -456,6 +487,7 @@ TransactionThreadPool::Observe(nsISupports* ,
   return NS_OK;
 }
 
+TransactionThreadPool::
 TransactionQueue::TransactionQueue(IDBTransactionRequest* aTransaction,
                                    nsIRunnable* aRunnable)
 : mMutex("TransactionQueue::mMutex"),
@@ -469,7 +501,7 @@ TransactionQueue::TransactionQueue(IDBTransactionRequest* aTransaction,
 }
 
 void
-TransactionQueue::Dispatch(nsIRunnable* aRunnable)
+TransactionThreadPool::TransactionQueue::Dispatch(nsIRunnable* aRunnable)
 {
   MutexAutoLock lock(mMutex);
 
@@ -484,7 +516,7 @@ TransactionQueue::Dispatch(nsIRunnable* aRunnable)
 }
 
 void
-TransactionQueue::Finish()
+TransactionThreadPool::TransactionQueue::Finish()
 {
   MutexAutoLock lock(mMutex);
 
@@ -495,10 +527,11 @@ TransactionQueue::Finish()
   mCondVar.Notify();
 }
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(TransactionQueue, nsIRunnable)
+NS_IMPL_THREADSAFE_ISUPPORTS1(TransactionThreadPool::TransactionQueue,
+                              nsIRunnable)
 
 NS_IMETHODIMP
-TransactionQueue::Run()
+TransactionThreadPool::TransactionQueue::Run()
 {
   nsAutoTArray<nsCOMPtr<nsIRunnable>, 10> queue;
   bool shouldFinish = false;
