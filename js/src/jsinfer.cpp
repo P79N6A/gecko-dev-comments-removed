@@ -350,7 +350,7 @@ types::TypeFailure(JSContext *cx, const char *fmt, ...)
 
     
     MOZ_Assert(msgbuf, __FILE__, __LINE__);
-    
+
     *((volatile int *)NULL) = 0;  
 }
 
@@ -403,7 +403,7 @@ TypeSet::add(JSContext *cx, TypeConstraint *constraint, bool callExisting)
     if (flags & TYPE_FLAG_UNKNOWN) {
         cx->compartment->types.addPending(cx, constraint, this, Type::UnknownType());
     } else {
-         
+        
         for (TypeFlags flag = 1; flag < TYPE_FLAG_ANYOBJECT; flag <<= 1) {
             if (flags & flag) {
                 Type type = Type::PrimitiveType(TypeFlagPrimitive(flag));
@@ -5431,7 +5431,7 @@ TypeScript::CheckBytecode(JSContext *cx, JSScript *script, jsbytecode *pc, const
 
         if (!types->hasType(type)) {
             
-            fprintf(stderr, "Missing type at #%u:%05u pushed %u: %s\n", 
+            fprintf(stderr, "Missing type at #%u:%05u pushed %u: %s\n",
                     script->id(), unsigned(pc - script->code), i, TypeString(type));
             TypeFailure(cx, "Missing type pushed %u: %s", i, TypeString(type));
         }

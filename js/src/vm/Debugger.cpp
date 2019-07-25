@@ -228,7 +228,7 @@ class Debugger::FrameRange {
         frontDebugger()->frames.remove(entry);
     }
 
-    void popFront() { 
+    void popFront() {
         JS_ASSERT(!empty());
         nextDebugger++;
         findNext();
@@ -566,7 +566,7 @@ Debugger::slowPathOnLeaveFrame(JSContext *cx, bool frameOk)
                 status = JSTRAP_ERROR;
                 break;
             }
-                
+
             Value completion;
             if (!dbg->newCompletionValue(cx, status, value, &completion)) {
                 status = dbg->handleUncaughtException(ac, NULL, false);
@@ -578,7 +578,7 @@ Debugger::slowPathOnLeaveFrame(JSContext *cx, bool frameOk)
             bool hookOk = Invoke(cx, ObjectValue(*frameobj), handler, 1, &completion, &rval);
             Value nextValue;
             JSTrapStatus nextStatus = dbg->parseResumptionValue(ac, hookOk, rval, &nextValue);
-            
+
             
 
 
@@ -636,7 +636,7 @@ Debugger::slowPathOnLeaveFrame(JSContext *cx, bool frameOk)
       case JSTRAP_THROW:
         cx->setPendingException(value);
         return false;
-        
+
       case JSTRAP_ERROR:
         JS_ASSERT(!cx->isExceptionPending());
         return false;
@@ -2209,7 +2209,7 @@ class Debugger::ScriptQuery {
                 js_ReportOutOfMemory(cx);
                 return false;
             }
-        }            
+        }
         return true;
     }
 
@@ -2234,8 +2234,8 @@ class Debugger::ScriptQuery {
             if (!urlCString.encode(cx, url.toString()))
                 return false;
         }
- 
-        return true;        
+
+        return true;
     }
 
     
@@ -2291,8 +2291,8 @@ class Debugger::ScriptQuery {
                 return false;
             }
         }
-        
-        return true;        
+
+        return true;
     }
 };
 

@@ -3816,12 +3816,12 @@ const bool js_isidstart[] = {
  ____, ____, ____, ____, ____, ____, true, ____, ____, ____,
  ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
  ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, true, true, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
- true, ____, ____, ____, ____, true, ____, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
+ ____, ____, ____, ____, ____, true, true, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
+ true, ____, ____, ____, ____, true, ____, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
  true, true, true, ____, ____, ____, ____, ____
 };
 
@@ -3839,14 +3839,14 @@ const bool js_isident[] = {
  ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
  ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
  ____, ____, ____, ____, ____, ____, true, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, true, true, 
+ ____, ____, ____, ____, ____, ____, ____, ____, true, true,
  true, true, true, true, true, true, true, true, ____, ____,
- ____, ____, ____, ____, ____, true, true, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
- true, ____, ____, ____, ____, true, ____, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
- true, true, true, true, true, true, true, true, true, true, 
+ ____, ____, ____, ____, ____, true, true, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
+ true, ____, ____, ____, ____, true, ____, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
+ true, true, true, true, true, true, true, true, true, true,
  true, true, true, ____, ____, ____, ____, ____
 };
 

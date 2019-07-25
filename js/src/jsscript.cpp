@@ -436,7 +436,7 @@ js::XDRScript(XDRState<mode> *xdr, JSScript **scriptp, JSScript *parentScript)
     if (mode == XDR_ENCODE) {
         script = *scriptp;
         JS_ASSERT_IF(parentScript, parentScript->compartment() == script->compartment());
-    
+
         nargs = script->bindings.numArgs();
         nvars = script->bindings.numVars();
         argsVars = (nargs << 16) | nvars;

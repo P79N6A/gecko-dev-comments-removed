@@ -968,7 +968,7 @@ inline void * bsearch_nmap(NativeMapEntry *nmap, size_t nPairs, size_t bcOff)
         if (bcOff < bcOff_mid) {
             hi = mid-1;
             continue;
-        } 
+        }
         if (bcOff > bcOff_mid) {
             lo = mid+1;
             continue;

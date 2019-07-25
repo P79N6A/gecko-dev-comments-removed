@@ -97,7 +97,7 @@ struct UncachedCallResult {
         fun = NULL;
         codeAddr = NULL;
         unjittable = false;
-    }        
+    }
 };
 
 

@@ -574,7 +574,7 @@ js_InternalThrow(VMFrame &f)
             if (js::ScriptDebugEpilogue(cx, f.fp(), false))
                 return cx->jaegerRuntime().forceReturnFromExternC();
         }
-                
+
 
         ScriptEpilogue(f.cx, f.fp(), false);
 

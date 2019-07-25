@@ -162,7 +162,7 @@ SetFunctionKinds(FunctionBox *funbox, bool *isHeavyweight, bool topInFunction, b
 
 
 static bool
-MarkExtensibleScopeDescendants(JSContext *context, FunctionBox *funbox, bool hasExtensibleParent) 
+MarkExtensibleScopeDescendants(JSContext *context, FunctionBox *funbox, bool hasExtensibleParent)
 {
     for (; funbox; funbox = funbox->siblings) {
         

@@ -802,10 +802,10 @@ private:
     CompileStatus compileMathAbsInt(FrameEntry *arg);
     CompileStatus compileMathAbsDouble(FrameEntry *arg);
     CompileStatus compileMathSqrt(FrameEntry *arg);
-    CompileStatus compileMathMinMaxDouble(FrameEntry *arg1, FrameEntry *arg2, 
-                                          Assembler::DoubleCondition cond); 
-    CompileStatus compileMathMinMaxInt(FrameEntry *arg1, FrameEntry *arg2, 
-                                       Assembler::Condition cond);                                       
+    CompileStatus compileMathMinMaxDouble(FrameEntry *arg1, FrameEntry *arg2,
+                                          Assembler::DoubleCondition cond);
+    CompileStatus compileMathMinMaxInt(FrameEntry *arg1, FrameEntry *arg2,
+                                       Assembler::Condition cond);
     CompileStatus compileMathPowSimple(FrameEntry *arg1, FrameEntry *arg2);
     CompileStatus compileArrayPush(FrameEntry *thisv, FrameEntry *arg);
     CompileStatus compileArrayConcat(types::TypeSet *thisTypes, types::TypeSet *argTypes,
@@ -819,7 +819,7 @@ private:
 
     enum GetCharMode { GetChar, GetCharCode };
     CompileStatus compileGetChar(FrameEntry *thisValue, FrameEntry *arg, GetCharMode mode);
-    
+
     CompileStatus compileStringFromCode(FrameEntry *arg);
     CompileStatus compileParseInt(JSValueType argType, uint32_t argc);
 

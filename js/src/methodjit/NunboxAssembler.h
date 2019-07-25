@@ -89,7 +89,7 @@ class NunboxAssembler : public JSC::MacroAssembler
     Address payloadOf(Address address) {
         return Address(address.base, address.offset + PAYLOAD_OFFSET);
     }
-  
+
     BaseIndex payloadOf(BaseIndex address) {
         return BaseIndex(address.base, address.index, address.scale, address.offset + PAYLOAD_OFFSET);
     }

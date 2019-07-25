@@ -293,7 +293,7 @@ class XDRState {
 
     void initScriptPrincipals(JSScript *script) {
         JS_ASSERT(mode == XDR_DECODE);
-        
+
         
         JS_ASSERT_IF(principals, originPrincipals);
         JS_ASSERT(!script->principals);

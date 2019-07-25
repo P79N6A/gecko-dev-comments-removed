@@ -226,7 +226,7 @@ OptionParser::printHelp(const char *progname)
 
     if (!options.empty()) {
         printf("Options:\n");
-                                
+
         
         size_t lhsLen = 0;
         for (Option **it = options.begin(), **end = options.end(); it != end; ++it) {

@@ -655,7 +655,7 @@ js::CloneLeftHandSide(ParseNode *opn, Parser *parser)
 void
 js::DumpParseTree(ParseNode *pn, int indent)
 {
-    if (pn == NULL) 
+    if (pn == NULL)
         fprintf(stderr, "()");
     else
         pn->dump(indent);

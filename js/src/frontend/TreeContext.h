@@ -99,7 +99,7 @@ class ContextFlags {
     
 
     
-    bool            funIsHeavyweight:1; 
+    bool            funIsHeavyweight:1;
 
     
     bool            funIsGenerator:1;
@@ -258,10 +258,10 @@ struct SharedContext {
 
 typedef HashSet<JSAtom *> FuncStmtSet;
 struct Parser;
- 
+
 struct TreeContext {                
     SharedContext   *sc;            
- 
+
     uint32_t        parenDepth;     
 
     uint32_t        yieldCount;     

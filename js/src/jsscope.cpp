@@ -678,7 +678,7 @@ JSObject::putProperty(JSContext *cx, jsid id,
 
     if (!CheckCanChangeAttrs(cx, self, shape, &attrs))
         return NULL;
-    
+
     
 
 
@@ -817,7 +817,7 @@ JSObject::changeProperty(JSContext *cx, Shape *shape, unsigned attrs, unsigned m
 
     if (!CheckCanChangeAttrs(cx, this, shape, &attrs))
         return NULL;
-    
+
     if (shape->attrs == attrs && shape->getter() == getter && shape->setter() == setter)
         return shape;
 

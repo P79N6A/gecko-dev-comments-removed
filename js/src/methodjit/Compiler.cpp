@@ -1304,7 +1304,7 @@ mjit::Compiler::finishThisUp()
     
 
     size_t codeSize = masm.size() +
-#if defined(JS_CPU_MIPS) 
+#if defined(JS_CPU_MIPS)
                       stubcc.size() + sizeof(double) +
 #else
                       stubcc.size() +
@@ -1751,7 +1751,7 @@ mjit::Compiler::finishThisUp()
     stubcc.fixCrossJumps(result, masm.size(), masm.size() + stubcc.size());
 
 #if defined(JS_CPU_MIPS)
-     
+    
     size_t doubleOffset = (((size_t)result + masm.size() + stubcc.size() +
                             sizeof(double) - 1) & (~(sizeof(double) - 1))) -
                           (size_t)result;

@@ -113,7 +113,7 @@ uint64_t readTimestampCounter();
 
 #ifdef __cplusplus
 }
-#endif 
+#endif
 
 
 
@@ -139,7 +139,7 @@ uint64_t readTimestampCounter();
 
 
 
- 
+
 #define _vprof(v,...) \
 do { \
     static void* id = 0; \
@@ -234,13 +234,13 @@ do { \
 #define NUM_EVARS 4
 
 enum {
-    LOCK_IS_FREE = 0, 
+    LOCK_IS_FREE = 0,
     LOCK_IS_TAKEN = 1
 };
 
 extern
 #ifdef __cplusplus
-"C" 
+"C"
 #endif
 long _InterlockedCompareExchange (
    long volatile * Destination,

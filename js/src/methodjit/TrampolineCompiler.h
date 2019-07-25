@@ -62,7 +62,7 @@ public:
 private:
     bool compileTrampoline(Trampolines::TrampolinePtr *where, JSC::ExecutablePool **pool,
                            TrampolineGenerator generator);
-    
+
     
     static bool generateForceReturn(Assembler &masm);
 

@@ -1040,7 +1040,7 @@ FrameState::storeTo(FrameEntry *fe, Address address, bool popped)
             fe->data.setRegister(dreg.reg());
         }
     }
-    
+
     
     if (fe->type.inRegister()) {
         masm.storeValueFromComponents(fe->type.reg(), dreg.reg(), address);
@@ -1360,7 +1360,7 @@ FrameState::sync(Assembler &masm, Uses uses) const
 #if defined JS_PUNBOX64
             if ((!fe->type.synced() && backing->type.inMemory()) ||
                 (!fe->data.synced() && backing->data.inMemory())) {
-    
+
                 RegisterID syncReg = Registers::ValueReg;
 
                 
@@ -2285,7 +2285,7 @@ FrameState::storeTop(FrameEntry *target)
                 fe->setCopyOf(target);
         }
     }
-    
+
     
 
 

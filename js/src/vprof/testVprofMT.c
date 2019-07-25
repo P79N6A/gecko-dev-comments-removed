@@ -99,13 +99,13 @@ HANDLE array[THREADS];
 static int run (void)
 {
     int i;
-    
+
     time_t start_time = time(0);
-    
+
     for (i = 0; i < THREADS; i++) {
         array[i] = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)sub, (LPVOID)i, 0, 0);
     }
-    
+
     for (i = 0; i < THREADS; i++) {
         WaitForSingleObject(array[i], INFINITE);
     }

@@ -130,7 +130,7 @@ struct GetPropLabels : MacroAssemblerTypedefs {
         inlineShapeOffset = offset;
         JS_ASSERT(offset == inlineShapeOffset);
     }
-    
+
     void setStubShapeJumpOffset(int offset) {
         stubShapeJumpOffset = offset;
         JS_ASSERT(offset == stubShapeJumpOffset);

@@ -41,7 +41,7 @@ BEGIN_TEST(testAddPropertyHook)
     obj = JS_NewArrayObject(cx, 0, NULL);
     CHECK(obj);
     arr = OBJECT_TO_JSVAL(obj);
-        
+
     CHECK(JS_DefineProperty(cx, global, "arr", arr,
                             JS_PropertyStub, JS_StrictPropertyStub,
                             JSPROP_ENUMERATE));
@@ -55,7 +55,7 @@ BEGIN_TEST(testAddPropertyHook)
                                JS_PropertyStub, JS_StrictPropertyStub,
                                JSPROP_ENUMERATE));
     }
-    
+
     
     
     EXEC("'use strict';                                     \n"

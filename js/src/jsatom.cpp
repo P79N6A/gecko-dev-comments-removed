@@ -596,7 +596,7 @@ js::XDRAtom(XDRState<mode> *xdr, JSAtom **atomp)
     
 
 
- 
+
     jschar *chars;
     jschar stackChars[256];
     if (nchars <= ArrayLength(stackChars)) {

@@ -384,7 +384,7 @@ js::num_parseInt(JSContext *cx, unsigned argc, Value *vp)
         return true;
     }
 
-    if (args.length() == 1 || 
+    if (args.length() == 1 ||
         (args[1].isInt32() && (args[1].toInt32() == 0 || args[1].toInt32() == 10))) {
         if (args[0].isInt32()) {
             args.rval() = args[0];

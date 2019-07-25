@@ -179,7 +179,7 @@ class HeapReverser : public JSTracer {
     
     bool reverseHeap();
 
-  private:    
+  private:
     
 
 
@@ -214,7 +214,7 @@ class HeapReverser : public JSTracer {
             reverser->parent = newParent;
         }
         ~AutoParent() {
-            reverser->parent = savedParent; 
+            reverser->parent = savedParent;
         }
       private:
         HeapReverser *reverser;
@@ -351,7 +351,7 @@ HeapReverser::getEdgeDescription()
 
 class ReferenceFinder {
   public:
-    ReferenceFinder(JSContext *cx, const HeapReverser &reverser) 
+    ReferenceFinder(JSContext *cx, const HeapReverser &reverser)
       : context(cx), reverser(reverser), result(cx) { }
 
     
@@ -371,7 +371,7 @@ class ReferenceFinder {
     class Path {
       public:
         Path(const HeapReverser::Edge &edge, Path *next) : edge(edge), next(next) { }
-        
+
         
 
 
@@ -436,7 +436,7 @@ ReferenceFinder::visit(void *cell, Path *path)
     
     if (!cell)
         return addReferrer(JSVAL_NULL, path);
-        
+
     HeapReverser::Map::Ptr p = reverser.map.lookup(cell);
     JS_ASSERT(p);
     HeapReverser::Node *node = &p->value;
@@ -473,7 +473,7 @@ ReferenceFinder::Path::computeName(JSContext *cx)
 {
     
     size_t size = 6;
-    for (Path *l = this; l; l = l->next) 
+    for (Path *l = this; l; l = l->next)
         size += strlen(l->edge.name) + (l->next ? 2 : 0);
     size += 1;
 
@@ -577,7 +577,7 @@ FindReferences(JSContext *cx, unsigned argc, jsval *vp)
     JSObject *references = finder.findReferences(RootedVarObject(cx, &target.toObject()));
     if (!references)
         return false;
-    
+
     JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(references));
     return true;
 }

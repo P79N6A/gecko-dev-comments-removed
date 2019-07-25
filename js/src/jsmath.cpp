@@ -456,7 +456,7 @@ powi(double x, int y)
                 
                 
                 
-                
+
                 double result = 1.0 / p;
                 return (result == 0 && MOZ_DOUBLE_IS_INFINITE(p))
                        ? pow(x, static_cast<double>(y))  
