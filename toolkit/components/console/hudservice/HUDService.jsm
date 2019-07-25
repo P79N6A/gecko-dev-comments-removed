@@ -1369,16 +1369,17 @@ HUD_SERVICE.prototype =
 
   deactivateHUDForContext: function HS_deactivateHUDForContext(aContext)
   {
-    var gBrowser = HUDService.currentContext().gBrowser;
-    var window = aContext.linkedBrowser.contentWindow;
-    var browser = gBrowser.getBrowserForDocument(window.top.document);
-    var tabId = gBrowser.getNotificationBox(browser).getAttribute("id");
-    var hudId = "hud_" + tabId;
-    var displayNode = this.getHeadsUpDisplay(hudId);
+    let window = aContext.linkedBrowser.contentWindow;
+    let nBox = aContext.ownerDocument.defaultView.
+      getNotificationBox(window);
+    let hudId = "hud_" + nBox.id;
+    let displayNode = nBox.querySelector("#" + hudId);
 
+    if (hudId in this.displayRegistry && displayNode) {
     this.unregisterActiveContext(hudId);
-    this.unregisterDisplay(hudId);
+      this.unregisterDisplay(displayNode);
     window.focus();
+    }
   },
 
   
