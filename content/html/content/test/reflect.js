@@ -93,3 +93,47 @@ function reflectUnsignedInt(aElement, aAttr, aNonNull, aDefault)
     is(aElement[aAttr], 0, "." + aAttr + " should be equals to 0");
   }
 }
+
+
+
+
+
+
+
+function reflectLimitedEnumerated(aElement, aAttr, aSupportedValues,
+                                  aUnsupportedValues)
+{
+  aSupportedValues.forEach(function (v) {
+    aElement.setAttribute(aAttr, v);
+    is(aElement[aAttr], v);
+    is(aElement.getAttribute(aAttr), v);
+    aElement.removeAttribute(aAttr);
+
+    aElement.setAttribute(aAttr, v.toUpperCase());
+    is(aElement[aAttr], v);
+    is(aElement.getAttribute(aAttr), v.toUpperCase());
+    aElement.removeAttribute(aAttr);
+
+    aElement[aAttr] = v;
+    is(aElement[aAttr], v);
+    is(aElement.getAttribute(aAttr), v);
+    aElement.removeAttribute(aAttr);
+
+    aElement[aAttr] = v.toUpperCase();
+    is(aElement[aAttr], v);
+    is(aElement.getAttribute(aAttr), v.toUpperCase());
+    aElement.removeAttribute(aAttr);
+  });
+  ["cheesecake"].concat(aUnsupportedValues).forEach(function (v) {
+    aElement.setAttribute(aAttr, v);
+    is(aElement[aAttr], "");
+    is(aElement.getAttribute(aAttr), v);
+    aElement.removeAttribute(aAttr);
+
+    aElement[aAttr] = v;
+    is(aElement[aAttr], "");
+    is(aElement.getAttribute(aAttr), v);
+    aElement.removeAttribute(aAttr);
+  });
+}
+

@@ -36,6 +36,7 @@
 
 
 
+
 #include "nscore.h"
 #include "nsGenericHTMLElement.h"
 #include "nsCOMPtr.h"
@@ -444,27 +445,7 @@ static const nsAttrValue::EnumTable kDirTable[] = {
   { 0 }
 };
 
-nsresult
-nsGenericHTMLElement::GetDir(nsAString& aDir)
-{
-  const nsAttrValue* attr = mAttrsAndChildren.GetAttr(nsGkAtoms::dir);
-
-  if (attr && attr->Type() == nsAttrValue::eEnum) {
-    attr->ToString(aDir);
-  }
-  else {
-    aDir.Truncate();
-  }
-
-  return NS_OK;
-}
-
-nsresult
-nsGenericHTMLElement::SetDir(const nsAString& aDir)
-{
-  SetAttr(kNameSpaceID_None, nsGkAtoms::dir, aDir, PR_TRUE);
-  return NS_OK;
-}
+NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(nsGenericHTMLElement, Dir, dir, NULL)
 
 nsresult
 nsGenericHTMLElement::GetClassName(nsAString& aClassName)
@@ -2331,7 +2312,7 @@ nsGenericHTMLElement::GetEnumAttr(nsIAtom* aAttr,
 
   if (attrVal && attrVal->Type() == nsAttrValue::eEnum) {
     attrVal->GetEnumString(aResult, PR_TRUE);
-  } else {
+  } else if (aDefault) {
     AppendASCIItoUTF16(nsDependentCString(aDefault), aResult);
   }
 
