@@ -33,6 +33,23 @@ final class DisplayPortCalculator {
     
 
 
+    private static class NoMarginStrategy implements DisplayPortStrategy {
+        public DisplayPortMetrics calculate(ImmutableViewportMetrics metrics, PointF velocity) {
+            return new DisplayPortMetrics(metrics.viewportRectLeft,
+                    metrics.viewportRectTop,
+                    metrics.viewportRectRight,
+                    metrics.viewportRectBottom,
+                    metrics.zoomFactor);
+        }
+
+        public boolean aboutToCheckerboard(ImmutableViewportMetrics metrics, PointF velocity, DisplayPortMetrics displayPort) {
+            return true;
+        }
+    }
+
+    
+
+
 
 
 
