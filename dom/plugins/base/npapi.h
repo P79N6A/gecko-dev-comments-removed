@@ -366,7 +366,7 @@ typedef enum {
   
   NPPVpluginCancelSrcStream = 20,
 
-  NPPVSupportsAdvancedKeyHandling = 21,
+  NPPVsupportsAdvancedKeyHandling = 21,
 
   NPPVpluginUsesDOMForCursorBool = 22
 
@@ -428,6 +428,8 @@ typedef enum {
 #endif
   , NPNVsupportsCocoaBool = 3001 
   , NPNVsupportsUpdatedCocoaTextInputBool = 3002 
+
+  , NPNVsupportsCompositingCoreAnimationPluginsBool = 74656 
 
 #endif
 #if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
@@ -787,7 +789,7 @@ extern "C" {
 
 
 #if defined(XP_UNIX)
-char* NPP_GetMIMEDescription(void);
+const char* NPP_GetMIMEDescription(void);
 #endif
 
 NPError NP_LOADDS NPP_New(NPMIMEType pluginType, NPP instance,
