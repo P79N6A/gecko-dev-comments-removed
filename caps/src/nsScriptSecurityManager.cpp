@@ -2441,71 +2441,10 @@ NS_IMETHODIMP
 nsScriptSecurityManager::IsCapabilityEnabled(const char *capability,
                                              bool *result)
 {
-    nsresult rv;
-    JSStackFrame *fp = nullptr;
     JSContext *cx = GetCurrentJSContext();
-    fp = cx ? JS_FrameIterator(cx, &fp) : nullptr;
-
-    if (!fp)
-    {
-        
-        
-        nsresult ignored;
-        nsIPrincipal *subjectPrin = doGetSubjectPrincipal(&ignored);
-        *result = (!subjectPrin || subjectPrin == mSystemPrincipal);
+    if (cx && (*result = xpc::IsUniversalXPConnectEnabled(cx)))
         return NS_OK;
-    }
-
-    *result = false;
-    nsIPrincipal* previousPrincipal = nullptr;
-    do
-    {
-        nsIPrincipal* principal = GetFramePrincipal(cx, fp, &rv);
-        if (NS_FAILED(rv))
-            return rv;
-        if (!principal)
-            continue;
-        
-        if(previousPrincipal)
-        {
-            bool isEqual = false;
-            if(NS_FAILED(previousPrincipal->Equals(principal, &isEqual)) || !isEqual)
-                break;
-        }
-        else
-            previousPrincipal = principal;
-
-        
-        
-        int16_t canEnable;
-        rv = principal->CanEnableCapability(capability, &canEnable);
-        if (NS_FAILED(rv)) return rv;
-        if (canEnable != nsIPrincipal::ENABLE_GRANTED &&
-            canEnable != nsIPrincipal::ENABLE_WITH_USER_PERMISSION)
-            return NS_OK;
-
-        
-        void *annotation = JS_GetFrameAnnotation(cx, fp);
-        rv = principal->IsCapabilityEnabled(capability, annotation, result);
-        if (NS_FAILED(rv)) return rv;
-        if (*result)
-            return NS_OK;
-
-        
-        
-        if (JS_IsGlobalFrame(cx, fp))
-            break;
-    } while ((fp = JS_FrameIterator(cx, &fp)) != nullptr);
-
-    if (!previousPrincipal)
-    {
-        
-        
-
-        return SubjectPrincipalIsSystem(result);
-    }
-
-    return NS_OK;
+    return SubjectPrincipalIsSystem(result);
 }
 
 void
