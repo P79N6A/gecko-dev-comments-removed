@@ -56,7 +56,33 @@ class MozRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def translate_path(self, path):
         
         o = urlparse(path)
-        return "%s%s" % ('' if sys.platform == 'win32' else '/', '/'.join([i.strip('/') for i in (DOCROOT, o.path)]))
+
+        sep = '/'
+        if sys.platform == 'win32':
+            sep = ''
+
+        ret = '%s%s' % ( sep, DOCROOT.strip('/') )
+
+        
+        
+        
+        if o.path.find('/en-US/firefox/api/1.5/search/guid:') == 0:
+            ids = urllib.unquote(o.path[len('/en-US/firefox/api/1.5/search/guid:'):])
+
+            if ids.count(',') > 0:
+                raise Exception('Searching for multiple IDs is not supported.')
+
+            base = ids
+            at_loc = ids.find('@')
+            if at_loc > 0:
+                base = ids[0:at_loc]
+
+            ret += '/%s.xml' % base
+
+        else:
+            ret += '/%s' % o.path.strip('/')
+
+        return ret
 
     
     
