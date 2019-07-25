@@ -3375,51 +3375,112 @@ JS_StructuredClone(JSContext *cx, jsval v, jsval *vp,
 
 #ifdef __cplusplus
 
-class JS_PUBLIC_API(JSAutoStructuredCloneBuffer) {
+class JSAutoStructuredCloneBuffer {
+    JSContext *cx_;
     uint64 *data_;
     size_t nbytes_;
     uint32 version_;
 
   public:
     JSAutoStructuredCloneBuffer()
-        : data_(NULL), nbytes_(0), version_(JS_STRUCTURED_CLONE_VERSION) {}
+        : cx_(NULL), data_(NULL), nbytes_(0), version_(JS_STRUCTURED_CLONE_VERSION) {}
 
     ~JSAutoStructuredCloneBuffer() { clear(); }
 
+    JSContext *cx() const { return cx_; }
     uint64 *data() const { return data_; }
     size_t nbytes() const { return nbytes_; }
 
-    void clear();
+    void clear(JSContext *cx=NULL) {
+        if (data_) {
+            if (!cx)
+                cx = cx_;
+            JS_ASSERT(cx);
+            JS_free(cx, data_);
+            cx_ = NULL;
+            data_ = NULL;
+            nbytes_ = 0;
+            version_ = 0;
+        }
+    }
 
     
-    bool copy(const uint64 *data, size_t nbytes, uint32 version=JS_STRUCTURED_CLONE_VERSION);
+
+
+
+    void adopt(JSContext *cx, uint64 *data, size_t nbytes,
+               uint32 version=JS_STRUCTURED_CLONE_VERSION) {
+        clear(cx);
+        cx_ = cx;
+        data_ = data;
+        nbytes_ = nbytes;
+        version_ = version;
+    }
 
     
 
 
 
+    void steal(uint64 **datap, size_t *nbytesp, JSContext **cxp=NULL,
+               uint32 *versionp=NULL) {
+        *datap = data_;
+        *nbytesp = nbytes_;
+        if (cxp)
+            *cxp = cx_;
+        if (versionp)
+            *versionp = version_;
 
-    void adopt(uint64 *data, size_t nbytes, uint32 version=JS_STRUCTURED_CLONE_VERSION);
+        cx_ = NULL;
+        data_ = NULL;
+        nbytes_ = 0;
+        version_ = 0;
+    }
 
-    
-
-
-
-
-    void steal(uint64 **datap, size_t *nbytesp, uint32 *versionp=NULL);
-
-    bool read(JSContext *cx, jsval *vp,
+    bool read(jsval *vp, JSContext *cx=NULL,
               const JSStructuredCloneCallbacks *optionalCallbacks=NULL,
-              void *closure=NULL) const;
+              void *closure=NULL) const {
+        if (!cx)
+            cx = cx_;
+        JS_ASSERT(cx);
+        JS_ASSERT(data_);
+        return !!JS_ReadStructuredClone(cx, data_, nbytes_, version_, vp,
+                                        optionalCallbacks, closure);
+    }
 
     bool write(JSContext *cx, jsval v,
                const JSStructuredCloneCallbacks *optionalCallbacks=NULL,
-               void *closure=NULL);
+               void *closure=NULL) {
+        clear(cx);
+        cx_ = cx;
+        bool ok = !!JS_WriteStructuredClone(cx, v, &data_, &nbytes_,
+                                            optionalCallbacks, closure);
+        if (!ok) {
+            data_ = NULL;
+            nbytes_ = 0;
+            version_ = JS_STRUCTURED_CLONE_VERSION;
+        }
+        return ok;
+    }
 
     
 
 
-    void swap(JSAutoStructuredCloneBuffer &other);
+    void swap(JSAutoStructuredCloneBuffer &other) {
+        JSContext *cx = other.cx_;
+        uint64 *data = other.data_;
+        size_t nbytes = other.nbytes_;
+        uint32 version = other.version_;
+
+        other.cx_ = this->cx_;
+        other.data_ = this->data_;
+        other.nbytes_ = this->nbytes_;
+        other.version_ = this->version_;
+
+        this->cx_ = cx;
+        this->data_ = data;
+        this->nbytes_ = nbytes;
+        this->version_ = version;
+    }
 
   private:
     
