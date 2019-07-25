@@ -1039,11 +1039,6 @@ PlacesToolbar.prototype = {
 
     
     
-    if (this.isRTL)
-      this._rootElt.scrollLeft = this._rootElt.scrollWidth;
-
-    
-    
     if (this._updateChevronTimer)
       this._updateChevronTimer.cancel();
 
