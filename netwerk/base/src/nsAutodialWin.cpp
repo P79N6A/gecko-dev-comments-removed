@@ -79,9 +79,6 @@ nsAutodial::nsAutodial()
     mNumRASConnectionEntries(0),
     mAutodialServiceDialingLocation(-1)
 {
-    mOSVerInfo.dwOSVersionInfoSize = sizeof(mOSVerInfo);
-    GetVersionEx(&mOSVerInfo);
-
     
     
     Init();
@@ -432,22 +429,27 @@ nsresult nsAutodial::GetDefaultEntryName(PRUnichar* entryName, int bufferSize)
     
     
     
-    
 
-    const PRUnichar* key = nsnull;
-    const PRUnichar* val = nsnull;
+    const PRUnichar* key = L"Software\\Microsoft\\RAS Autodial\\Default";
+    const PRUnichar* val = L"DefaultInternet";
 
     HKEY hKey = 0;
     LONG result = 0;
 
     
-    if ((mOSVerInfo.dwMajorVersion == 5) && (mOSVerInfo.dwMinorVersion == 0)) 
-    {
-        key = L"RemoteAccess";
-        val = L"InternetProfile";
+    
+    result = ::RegOpenKeyExW(
+                HKEY_CURRENT_USER, 
+                key, 
+                0, 
+                KEY_READ, 
+                &hKey);
 
+    if (result != ERROR_SUCCESS)
+    {
+        
         result = ::RegOpenKeyExW(
-                    HKEY_CURRENT_USER, 
+                    HKEY_LOCAL_MACHINE, 
                     key, 
                     0, 
                     KEY_READ, 
@@ -456,36 +458,6 @@ nsresult nsAutodial::GetDefaultEntryName(PRUnichar* entryName, int bufferSize)
         if (result != ERROR_SUCCESS)
         {
             return NS_ERROR_FAILURE;
-        }
-    }
-    else  
-    {
-        key = L"Software\\Microsoft\\RAS Autodial\\Default";
-        val = L"DefaultInternet";
-
-        
-        
-        result = ::RegOpenKeyExW(
-                    HKEY_CURRENT_USER, 
-                    key, 
-                    0, 
-                    KEY_READ, 
-                    &hKey);
-
-        if (result != ERROR_SUCCESS)
-        {
-            
-            result = ::RegOpenKeyExW(
-                        HKEY_LOCAL_MACHINE, 
-                        key, 
-                        0, 
-                        KEY_READ, 
-                        &hKey);
-
-            if (result != ERROR_SUCCESS)
-            {
-                return NS_ERROR_FAILURE;
-            }
         }
     }
 

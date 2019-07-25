@@ -65,6 +65,7 @@
 #include "mozilla/Telemetry.h"
 
 #include <usp10.h>
+#include <t2embapi.h>
 
 using namespace mozilla;
 
@@ -102,50 +103,6 @@ BuildKeyNameFromFontName(nsAString &aName)
 
 
 
-
-
-#ifndef __t2embapi__
-
-#define TTLOAD_PRIVATE                  0x00000001
-#define LICENSE_PREVIEWPRINT            0x0004
-#define E_NONE                          0x0000L
-
-typedef unsigned long( WINAPIV *READEMBEDPROC ) ( void*, void*, const unsigned long );
-
-typedef struct
-{
-    unsigned short usStructSize;    
-    unsigned short usRefStrSize;    
-    unsigned short *pusRefStr;      
-}TTLOADINFO;
-
-LONG WINAPI TTLoadEmbeddedFont
-(
-    HANDLE*  phFontReference,           
-                                        
-    ULONG    ulFlags,                   
-    ULONG*   pulPrivStatus,             
-    ULONG    ulPrivs,                   
-    ULONG*   pulStatus,                 
-    READEMBEDPROC lpfnReadFromStream,   
-    LPVOID   lpvReadStream,             
-    LPWSTR   szWinFamilyName,           
-    LPSTR    szMacFamilyName,           
-    TTLOADINFO* pTTLoadInfo             
-);
-
-#endif 
-
-typedef LONG( WINAPI *TTLoadEmbeddedFontProc ) (HANDLE* phFontReference, ULONG ulFlags, ULONG* pulPrivStatus, ULONG ulPrivs, ULONG* pulStatus, 
-                                             READEMBEDPROC lpfnReadFromStream, LPVOID lpvReadStream, LPWSTR szWinFamilyName, 
-                                             LPSTR szMacFamilyName, TTLOADINFO* pTTLoadInfo);
-
-typedef LONG( WINAPI *TTDeleteEmbeddedFontProc ) (HANDLE hFontReference, ULONG ulFlags, ULONG* pulStatus);
-
-
-static TTLoadEmbeddedFontProc TTLoadEmbeddedFontPtr = nsnull;
-static TTDeleteEmbeddedFontProc TTDeleteEmbeddedFontPtr = nsnull;
-
 class WinUserFontData : public gfxUserFontData {
 public:
     WinUserFontData(HANDLE aFontRef, bool aIsEmbedded)
@@ -157,7 +114,7 @@ public:
         if (mIsEmbedded) {
             ULONG pulStatus;
             LONG err;
-            err = TTDeleteEmbeddedFontPtr(mFontRef, 0, &pulStatus);
+            err = TTDeleteEmbeddedFont(mFontRef, 0, &pulStatus);
 #if DEBUG
             if (err != E_NONE) {
                 char buf[256];
@@ -606,8 +563,6 @@ GDIFontFamily::FindStyleVariations()
 gfxGDIFontList::gfxGDIFontList()
 {
     mFontSubstitutes.Init(50);
-
-    InitializeFontEmbeddingProcs();
 }
 
 static void
@@ -794,15 +749,6 @@ gfxGDIFontList::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
     return fe;
 }
 
-void gfxGDIFontList::InitializeFontEmbeddingProcs()
-{
-    HMODULE fontlib = LoadLibraryW(L"t2embed.dll");
-    if (!fontlib)
-        return;
-    TTLoadEmbeddedFontPtr = (TTLoadEmbeddedFontProc) GetProcAddress(fontlib, "TTLoadEmbeddedFont");
-    TTDeleteEmbeddedFontPtr = (TTDeleteEmbeddedFontProc) GetProcAddress(fontlib, "TTDeleteEmbeddedFont");
-}
-
 
 
 class EOTFontStreamReader {
@@ -906,10 +852,6 @@ gfxGDIFontList::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
     };
     FontDataDeleter autoDelete(aFontData);
 
-    
-    if (!TTLoadEmbeddedFontPtr || !TTDeleteEmbeddedFontPtr)
-        return nsnull;
-
     bool hasVertical;
     bool isCFF = gfxFontUtils::IsCffFont(aFontData, hasVertical);
 
@@ -948,11 +890,11 @@ gfxGDIFontList::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
             EOTFontStreamReader eotReader(aFontData, aLength, buffer, eotlen,
                                           &overlayNameData);
 
-            ret = TTLoadEmbeddedFontPtr(&fontRef, TTLOAD_PRIVATE, &privStatus,
-                                       LICENSE_PREVIEWPRINT, &pulStatus,
-                                       EOTFontStreamReader::ReadEOTStream,
-                                       &eotReader,
-                                       (PRUnichar*)(fontName.get()), 0, 0);
+            ret = TTLoadEmbeddedFont(&fontRef, TTLOAD_PRIVATE, &privStatus,
+                                     LICENSE_PREVIEWPRINT, &pulStatus,
+                                     EOTFontStreamReader::ReadEOTStream,
+                                     &eotReader,
+                                     (PRUnichar*)(fontName.get()), 0, 0);
             if (ret != E_NONE) {
                 fontRef = nsnull;
                 char buf[256];

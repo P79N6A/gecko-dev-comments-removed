@@ -353,16 +353,6 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
   }
 #endif
 
-#ifdef XP_WIN
-  OSVERSIONINFO osVerInfo = {0};
-  osVerInfo.dwOSVersionInfoSize = sizeof(osVerInfo);
-  GetVersionEx(&osVerInfo);
-  
-  if (osVerInfo.dwMajorVersion < 5 ||
-      (osVerInfo.dwMajorVersion == 5 && osVerInfo.dwMinorVersion == 0))
-    return false;
-#endif
-
   nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (!prefs) {
     return false;
