@@ -856,7 +856,7 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
     
     
     if (!mPresContext &&
-        (aParentWidget || containerView ||
+        (aParentWidget || containerView || mDocument->IsBeingUsedAsImage() ||
          (mDocument->GetDisplayDocument() &&
           mDocument->GetDisplayDocument()->GetShell()))) {
       

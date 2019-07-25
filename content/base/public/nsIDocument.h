@@ -119,8 +119,8 @@ class Element;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0xbd862a79, 0xc31b, 0x419b, \
-  { 0x92, 0x90, 0xa0, 0x77, 0x08, 0x62, 0xd4, 0xc4 } }
+{ 0xe1779840, 0x1ae4, 0x479d, \
+  { 0x8a, 0xa1, 0x40, 0x4f, 0x6e, 0x20, 0x1a, 0x0a } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -159,6 +159,7 @@ public:
       
       
       mAllowDNSPrefetch(PR_TRUE),
+      mIsBeingUsedAsImage(PR_FALSE),
       mPartID(0)
   {
     mParentPtrBits |= PARENT_BIT_INDOCUMENT;
@@ -1147,6 +1148,14 @@ public:
     return !mParentDocument && !mDisplayDocument;
   }
 
+  PRBool IsBeingUsedAsImage() const {
+    return mIsBeingUsedAsImage;
+  }
+
+  void SetIsBeingUsedAsImage() {
+    mIsBeingUsedAsImage = PR_TRUE;
+  }
+
   
 
 
@@ -1617,6 +1626,9 @@ protected:
 
   
   PRPackedBool mHavePendingPaint;
+
+  
+  PRPackedBool mIsBeingUsedAsImage;
 
   
   
