@@ -323,7 +323,6 @@ private:
     HWND mCachedWinlessPluginHWND;
     HWND mWinlessPopupSurrogateHWND;
     nsIntPoint mPluginSize;
-    nsIntPoint mPluginOffset;
     WNDPROC mWinlessThrottleOldWndProc;
     HWND mWinlessHiddenMsgHWND;
 #endif
@@ -453,6 +452,7 @@ private:
     nsRefPtr<gfxASurface> mBackSurface;
 
     
+    
     nsIntRect mAccumulatedInvalidRect;
 
     
@@ -485,6 +485,7 @@ private:
     
     bool mDoAlphaExtraction;
 
+    
     
     
     nsIntRect mSurfaceDifferenceRect;
