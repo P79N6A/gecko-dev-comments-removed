@@ -346,18 +346,6 @@ var gMainPane = {
     var currentDirPref = document.getElementById("browser.download.dir");
 
     
-    
-    
-    
-    
-    var fileLocator = Components.classes["@mozilla.org/file/directory_service;1"]
-                                .getService(Components.interfaces.nsIProperties);
-    var desk = fileLocator.get("Desk", Components.interfaces.nsILocalFile);
-    var dnldMgr = Components.classes["@mozilla.org/download-manager;1"]
-                            .getService(Components.interfaces.nsIDownloadManager);
-    var supportDownloadLabel = !dnldMgr.defaultDownloadsDirectory.equals(desk);
-
-    
     var ios = Components.classes["@mozilla.org/network/io-service;1"]
                         .getService(Components.interfaces.nsIIOService);
     var fph = ios.getProtocolHandler("file")
@@ -369,7 +357,7 @@ var gMainPane = {
       
       downloadFolder.label = this._getDisplayNameOfFile(currentDirPref.value);
       iconUrlSpec = fph.getURLSpecFromFile(currentDirPref.value);
-    } else if (folderListPref.value == 1 && supportDownloadLabel) {
+    } else if (folderListPref.value == 1) {
       
       
       
