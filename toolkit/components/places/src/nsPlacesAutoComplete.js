@@ -227,6 +227,7 @@ function nsPlacesAutoComplete()
            "AND AUTOCOMPLETE_MATCH(:searchString, h.url, " +
                                   "IFNULL(bookmark, h.title), tags, " +
                                   "h.visit_count, h.typed, parent, " +
+                                  "t.open_count, " +
                                   ":matchBehavior, :searchBehavior) " +
           "{ADDITIONAL_CONDITIONS} ";
   }
@@ -338,6 +339,7 @@ function nsPlacesAutoComplete()
       "AND AUTOCOMPLETE_MATCH(:searchString, c_url, " +
                              "IFNULL(bookmark, c_title), tags, " +
                              "c_visit_count, c_typed, parent, " +
+                             "t.open_count, " +
                              ":matchBehavior, :searchBehavior) " +
       "ORDER BY rank DESC, IFNULL(h_t.frecency, h.frecency) DESC"
     );
@@ -702,9 +704,11 @@ nsPlacesAutoComplete.prototype = {
     this._matchURLToken = safeGetter("match.url", "@");
     this._defaultBehavior = safeGetter("default.behavior", 0);
     
-    
-    this._emptySearchDefaultBehavior = this._defaultBehavior |
-                                       safeGetter("default.behavior.emptyRestriction", 161);
+    this._emptySearchDefaultBehavior =
+      this._defaultBehavior |
+      safeGetter("default.behavior.emptyRestriction",
+                 Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
+                 Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED);
 
     
     if (this._matchBehavior != MATCH_ANYWHERE &&
@@ -952,21 +956,11 @@ nsPlacesAutoComplete.prototype = {
     }
 
     
-    if (!this._enableActions) {
-      this._addToResults(entryId, escapedEntryURL, title, entryFavicon, style);
-      return true;
-    }
-
     
-    if ((this._hasBehavior("openpage") || this._hasBehavior("everything")) &&
-        openPageCount > 0)
-      this._addToResults(entryId, "moz-action:switchtab," + escapedEntryURL, title, entryFavicon, "action");
-
-    
-    
-    if (!this._onlyHasBehavior("openpage"))
-      this._addToResults(entryId, escapedEntryURL, title, entryFavicon, style);
-
+    let [url, style] = this._enableActions && openPageCount > 0 ?
+                       ["moz-action:switchtab," + escapedEntryURL, "action"] :
+                       [escapedEntryURL, style];
+    this._addToResults(entryId, url, title, entryFavicon, style);
     return true;
   },
 
@@ -1023,26 +1017,9 @@ nsPlacesAutoComplete.prototype = {
 
 
 
-
   _hasBehavior: function PAC_hasBehavior(aType)
   {
-    if (aType == "everything")
-      return this._behavior == 0;
     return (this._behavior &
-            Ci.mozIPlacesAutoComplete["BEHAVIOR_" + aType.toUpperCase()]);
-  },
-
-  
-
-
-
-
-
-
-
-  _onlyHasBehavior: function PAC_onlyHasBehavior(aType)
-  {
-    return (this._behavior ==
             Ci.mozIPlacesAutoComplete["BEHAVIOR_" + aType.toUpperCase()]);
   },
 

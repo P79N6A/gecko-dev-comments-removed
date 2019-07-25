@@ -81,6 +81,10 @@ namespace places {
 
 
 
+
+
+
+
 class MatchAutoCompleteFunction : public mozIStorageFunction
 {
 public:
@@ -106,9 +110,10 @@ private:
   static const PRUint32 kArgIndexVisitCount = 4;
   static const PRUint32 kArgIndexTyped = 5;
   static const PRUint32 kArgIndexBookmark = 6;
-  static const PRUint32 kArgIndexMatchBehavior = 7;
-  static const PRUint32 kArgIndexSearchBehavior = 8;
-  static const PRUint32 kArgIndexLength = 9;
+  static const PRUint32 kArgIndexOpenPageCount = 7;
+  static const PRUint32 kArgIndexMatchBehavior = 8;
+  static const PRUint32 kArgIndexSearchBehavior = 9;
+  static const PRUint32 kArgIndexLength = 10;
 
   
 
