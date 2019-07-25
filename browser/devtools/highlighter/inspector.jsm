@@ -160,6 +160,7 @@ Highlighter.prototype = {
 
     this.transitionDisabler = null;
 
+    this.computeZoomFactor();
     this.handleResize();
   },
 
@@ -442,15 +443,9 @@ Highlighter.prototype = {
     }
 
     
-    let zoom =
-      this.win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-      .getInterface(Components.interfaces.nsIDOMWindowUtils)
-      .screenPixelsPerCSSPixel;
-
-    
     let aRectScaled = {};
     for (let prop in aRect) {
-      aRectScaled[prop] = aRect[prop] * zoom;
+      aRectScaled[prop] = aRect[prop] * this.zoom;
     }
 
     if (aRectScaled.left >= 0 && aRectScaled.top >= 0 &&
@@ -545,7 +540,7 @@ Highlighter.prototype = {
       if (rect.top < this.nodeInfo.barHeight) {
         
         if (rect.top + rect.height +
-            this.nodeInfo.barHeight > this.win.innerHeight) {
+            this.nodeInfo.barHeight > winHeight) {
           
           this.nodeInfo.container.style.top = rect.top + "px";
           this.nodeInfo.container.setAttribute("position", "overlap");
@@ -569,8 +564,8 @@ Highlighter.prototype = {
         left = 0;
         this.nodeInfo.container.setAttribute("hide-arrow", "true");
       } else {
-        if (left + barWidth > this.win.innerWidth) {
-          left = this.win.innerWidth - barWidth;
+        if (left + barWidth > winWidth) {
+          left = winWidth - barWidth;
           this.nodeInfo.container.setAttribute("hide-arrow", "true");
         } else {
           this.nodeInfo.container.removeAttribute("hide-arrow");
@@ -654,6 +649,16 @@ Highlighter.prototype = {
   },
 
   
+
+
+  computeZoomFactor: function Highlighter_computeZoomFactor() {
+    this.zoom =
+      this.win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+      .getInterface(Components.interfaces.nsIDOMWindowUtils)
+      .screenPixelsPerCSSPixel;
+  },
+
+  
   
 
   attachInspectListeners: function Highlighter_attachInspectListeners()
@@ -691,6 +696,7 @@ Highlighter.prototype = {
         this.handleMouseMove(aEvent);
         break;
       case "resize":
+        this.computeZoomFactor();
         this.brieflyDisableTransitions();
         this.handleResize(aEvent);
         break;
