@@ -880,6 +880,10 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
     TraversalTracer trc(cb);
 
     JS_TRACER_INIT(&trc, cx, NoteJSChild);
+    
+    
+    
+    
     JS_TraceChildren(&trc, p, traceKind);
 
     if(traceKind != JSTRACE_OBJECT || dontTraverse)

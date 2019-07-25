@@ -144,6 +144,7 @@ class WeakMapBase {
             
             
             
+            JS_ASSERT(!tracer->eagerlyTraceWeakMaps);
             JSRuntime *rt = tracer->context->runtime;
             next = rt->gcWeakMapList;
             rt->gcWeakMapList = this;
@@ -152,7 +153,8 @@ class WeakMapBase {
             
             
             
-            nonMarkingTrace(tracer);
+            if (tracer->eagerlyTraceWeakMaps)
+                nonMarkingTrace(tracer);
         }
     }
 

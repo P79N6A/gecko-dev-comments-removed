@@ -1660,6 +1660,10 @@ JSVAL_TRACE_KIND(jsval v)
 
 
 
+
+
+
+
 typedef void
 (* JSTraceCallback)(JSTracer *trc, void *thing, JSGCTraceKind kind);
 
@@ -1669,6 +1673,7 @@ struct JSTracer {
     JSTraceNamePrinter  debugPrinter;
     const void          *debugPrintArg;
     size_t              debugPrintIndex;
+    JSBool              eagerlyTraceWeakMaps;
 };
 
 
@@ -1768,6 +1773,7 @@ JS_CallTracer(JSTracer *trc, void *thing, JSGCTraceKind kind);
         (trc)->debugPrinter = NULL;                                           \
         (trc)->debugPrintArg = NULL;                                          \
         (trc)->debugPrintIndex = (size_t)-1;                                  \
+        (trc)->eagerlyTraceWeakMaps = JS_TRUE;                                \
     JS_END_MACRO
 
 extern JS_PUBLIC_API(void)
