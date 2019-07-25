@@ -91,6 +91,16 @@ let Notifications = {
     }
 
     
+  },
+
+  
+  
+  replaceTitle: function Notifications_replaceTitle(notification) {
+    for each (let old in this.notifications) {
+      if (old.title == notification.title)
+        this.remove(old);
+    }
+    this.add(notification);
   }
 
 };
