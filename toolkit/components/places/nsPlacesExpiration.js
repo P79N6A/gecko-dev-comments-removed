@@ -194,13 +194,15 @@ const STATUS = {
 
 
 const ACTION = {
-  TIMED: 1 << 0,
-  CLEAR_HISTORY: 1 << 1,
-  SHUTDOWN: 1 << 2,
-  CLEAN_SHUTDOWN: 1 << 3,
-  IDLE: 1 << 4,
-  DEBUG: 1 << 5,
-  TIMED_OVERLIMIT: 1 << 6,
+  TIMED: 1 << 0, 
+  CLEAR_HISTORY: 1 << 1, 
+  SHUTDOWN: 1 << 2, 
+  CLEAN_SHUTDOWN: 1 << 3,  
+                           
+  IDLE: 1 << 4, 
+  DEBUG: 1 << 5, 
+  TIMED_OVERLIMIT: 1 << 6, 
+                           
 };
 
 
@@ -400,7 +402,31 @@ const EXPIRATION_QUERIES = {
     sql: "DELETE FROM expiration_notify",
     actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.SHUTDOWN |
              ACTION.IDLE | ACTION.DEBUG
-  }
+  },
+
+  
+  
+  
+
+  QUERY_ANALYZE_MOZ_PLACES: {
+    sql: "ANALYZE moz_places",
+    actions: ACTION.TIMED_OVERLIMIT | ACTION.CLEAR_HISTORY | ACTION.IDLE |
+             ACTION.DEBUG
+  },
+  QUERY_ANALYZE_MOZ_BOOKMARKS: {
+    sql: "ANALYZE moz_bookmarks",
+    actions: ACTION.IDLE | ACTION.DEBUG
+  },
+  QUERY_ANALYZE_MOZ_HISTORYVISITS: {
+    sql: "ANALYZE moz_historyvisits",
+    actions: ACTION.TIMED_OVERLIMIT | ACTION.CLEAR_HISTORY | ACTION.IDLE |
+             ACTION.DEBUG
+  },
+  QUERY_ANALYZE_MOZ_INPUTHISTORY: {
+    sql: "ANALYZE moz_inputhistory",
+    actions: ACTION.TIMED | ACTION.TIMED_OVERLIMIT | ACTION.CLEAR_HISTORY |
+             ACTION.IDLE | ACTION.DEBUG
+  },
 };
 
 
@@ -733,6 +759,9 @@ nsPlacesExpiration.prototype = {
   },
 
   
+
+
+
 
 
 
