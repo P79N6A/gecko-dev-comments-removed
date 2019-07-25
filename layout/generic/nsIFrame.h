@@ -306,7 +306,10 @@ enum nsSelectionAmount {
   eSelectBeginLine = 4,
   eSelectEndLine   = 5,
   eSelectNoAmount  = 6, 
-  eSelectParagraph = 7  
+  eSelectParagraph = 7,  
+  eSelectWordNoSpace = 8 
+                         
+                         
 };
 
 enum nsDirection {

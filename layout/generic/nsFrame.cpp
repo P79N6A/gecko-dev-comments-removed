@@ -5498,6 +5498,17 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
       
       break;
     }
+    case eSelectWordNoSpace:
+      
+      
+      
+      
+      if (aPos->mDirection == eDirPrevious) {
+        aPos->mWordMovementType = eStartWord;
+      } else {
+        aPos->mWordMovementType = eEndWord;
+      }
+      
     case eSelectWord:
     {
       
