@@ -1197,8 +1197,8 @@ struct GlyphBufferAzure {
 
 
 
-static double
-CalcXScale(gfxContext *aContext)
+double
+gfxFont::CalcXScale(gfxContext *aContext)
 {
     
     gfxSize t = aContext->UserToDevice(gfxSize(1.0, 0.0));

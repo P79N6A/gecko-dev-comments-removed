@@ -1523,6 +1523,15 @@ protected:
     
     
     void SanitizeMetrics(gfxFont::Metrics *aMetrics, bool aIsBadUnderlineFont);
+
+    
+    
+    
+    
+    
+    
+    
+    static double CalcXScale(gfxContext *aContext);
 };
 
 
