@@ -95,12 +95,22 @@ const kQueryTypeKeyword = 0;
 const kQueryTypeFiltered = 1;
 
 
+const kAsyncQueriesWaitTime = 50;
+
+
 
 
 const kTitleTagsSeparator = " \u2013 ";
 
 const kBrowserUrlbarBranch = "browser.urlbar.";
+const kBrowserUrlbarAutofillPref = "browser.urlbar.autoFill";
 
+
+
+
+XPCOMUtils.defineLazyServiceGetter(this, "gTextURIService",
+                                   "@mozilla.org/intl/texttosuburi;1",
+                                   "nsITextToSubURI");
 
 
 
@@ -147,6 +157,67 @@ function initTempTable(aDatabase)
 
 
 
+function fixupSearchText(aURIString)
+{
+  let uri = aURIString;
+
+  if (uri.indexOf("http://") == 0) {
+    uri = uri.slice(7);
+  }
+  else if (uri.indexOf("https://") == 0) {
+    uri = uri.slice(8);
+  }
+  else if (uri.indexOf("ftp://") == 0) {
+    uri = uri.slice(6);
+  }
+
+  if (uri.indexOf("www.") == 0) {
+    uri = uri.slice(4);
+  }
+
+  return gTextURIService.unEscapeURIForUI("UTF-8", uri);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function safePrefGetter(aPrefBranch, aName, aDefault) {
+  let types = {
+    boolean: "Bool",
+    number: "Int",
+    string: "Char"
+  };
+  let type = types[typeof(aDefault)];
+  if (!type) {
+    throw "Unknown type!";
+  }
+  
+  try {
+    return aPrefBranch["get" + type + "Pref"](aName);
+  }
+  catch (e) {
+    return aDefault;
+  }
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -178,8 +249,9 @@ AutoCompleteStatementCallbackWrapper.prototype = {
     
     
     let callback = this._callback;
-    if (!callback.isSearchComplete() && callback.isPendingSearch(this._handle))
+    if (!callback.isSearchComplete() && callback.isPendingSearch(this._handle)) {
       callback.handleCompletion.apply(callback, arguments);
+    }
   },
 
   
@@ -274,10 +346,6 @@ function nsPlacesAutoComplete()
   XPCOMUtils.defineLazyServiceGetter(this, "_bh",
                                      "@mozilla.org/browser/global-history;2",
                                      "nsIBrowserHistory");
-
-  XPCOMUtils.defineLazyServiceGetter(this, "_textURIService",
-                                     "@mozilla.org/intl/texttosuburi;1",
-                                     "nsITextToSubURI");
 
   XPCOMUtils.defineLazyServiceGetter(this, "_bs",
                                      "@mozilla.org/browser/nav-bookmarks-service;1",
@@ -441,63 +509,19 @@ nsPlacesAutoComplete.prototype = {
                                         aPreviousResult, aListener)
   {
     
-    
-    if ("_pendingQuery" in this)
-      this.stopSearch();
+    this.stopSearch();
 
     
     
-
-    
-    
-    this._originalSearchString = aSearchString.trim();
-
-    this._currentSearchString =
-      this._fixupSearchText(this._originalSearchString.toLowerCase());
-
-    var searchParamParts = aSearchParam.split(" ");
-    this._enableActions = searchParamParts.indexOf("enable-actions") != -1;
-
-    this._listener = aListener;
-    let result = Cc["@mozilla.org/autocomplete/simple-result;1"].
-                 createInstance(Ci.nsIAutoCompleteSimpleResult);
-    result.setSearchString(aSearchString);
-    result.setListener(this);
-    this._result = result;
-
-    
-    if (!this._enabled) {
-      this._finishSearch(true);
-      return;
-    }
-
-    
-    if (this._currentSearchString)
-      this._behavior = this._defaultBehavior;
-    else
-      this._behavior = this._emptySearchDefaultBehavior;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    let {query, tokens} =
-      this._getSearch(this._getUnfilteredSearchTokens(this._currentSearchString));
-    let queries = tokens.length ?
-      [this._getBoundKeywordQuery(tokens), this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(tokens), query] :
-      [this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(tokens), query];
-
-    
-    this._telemetryStartTime = Date.now();
-    this._executeQueries(queries);
-
-    
-    this._searchTokens = tokens;
-    this._usedPlaces = {};
+    this._startTimer = Cc["@mozilla.org/timer;1"]
+                       .createInstance(Ci.nsITimer);
+    let timerCallback = (function() {
+      this._doStartSearch(aSearchString, aSearchParam,
+                          aPreviousResult, aListener);
+    }).bind(this);
+    this._startTimer.initWithCallback(timerCallback,
+                                      kAsyncQueriesWaitTime,
+                                      Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
   stopSearch: function PAC_stopSearch()
@@ -505,10 +529,16 @@ nsPlacesAutoComplete.prototype = {
     
     
     
-    if (this._pendingQuery)
+    if (this._pendingQuery) {
       this._stopActiveQuery();
+    }
 
     this._finishSearch(false);
+
+    if (this._startTimer) {
+      this._startTimer.cancel();
+      delete this._startTimer;
+    }
   },
 
   
@@ -516,8 +546,9 @@ nsPlacesAutoComplete.prototype = {
 
   onValueRemoved: function PAC_onValueRemoved(aResult, aURISpec, aRemoveFromDB)
   {
-    if (aRemoveFromDB)
+    if (aRemoveFromDB) {
       this._bh.removePage(this._ioService.newURI(aURISpec, null, null));
+    }
   },
 
   
@@ -575,8 +606,9 @@ nsPlacesAutoComplete.prototype = {
     }
 
     
-    if (haveMatches)
+    if (haveMatches) {
       this._notifyResults(true);
+    }
   },
 
   handleError: function PAC_handleError(aError)
@@ -588,8 +620,9 @@ nsPlacesAutoComplete.prototype = {
   handleCompletion: function PAC_handleCompletion(aReason)
   {
     
-    if (this.isSearchComplete())
+    if (this.isSearchComplete()) {
       return;
+    }
 
     
     
@@ -656,29 +689,66 @@ nsPlacesAutoComplete.prototype = {
   get _databaseInitialized()
     Object.getOwnPropertyDescriptor(this, "_db").value !== undefined,
 
-  
-
-
-
-
-
-
-
-  _fixupSearchText: function PAC_fixupSearchText(aURIString)
+  _doStartSearch: function PAC_doStartSearch(aSearchString, aSearchParam,
+                                             aPreviousResult, aListener)
   {
-    let uri = aURIString;
+    this._startTimer.cancel();
+    delete this._startTimer;
 
-    if (uri.indexOf("http://") == 0)
-      uri = uri.slice(7);
-    else if (uri.indexOf("https://") == 0)
-      uri = uri.slice(8);
-    else if (uri.indexOf("ftp://") == 0)
-      uri = uri.slice(6);
+    
+    
 
-    if (uri.indexOf("www.") == 0)
-      uri = uri.slice(4);
+    
+    
+    this._originalSearchString = aSearchString.trim();
 
-    return this._textURIService.unEscapeURIForUI("UTF-8", uri);
+    this._currentSearchString =
+      fixupSearchText(this._originalSearchString.toLowerCase());
+
+    let searchParamParts = aSearchParam.split(" ");
+    this._enableActions = searchParamParts.indexOf("enable-actions") != -1;
+
+    this._listener = aListener;
+    let result = Cc["@mozilla.org/autocomplete/simple-result;1"].
+                 createInstance(Ci.nsIAutoCompleteSimpleResult);
+    result.setSearchString(aSearchString);
+    result.setListener(this);
+    this._result = result;
+
+    
+    if (!this._enabled) {
+      this._finishSearch(true);
+      return;
+    }
+
+    
+    if (this._currentSearchString) {
+      this._behavior = this._defaultBehavior;
+    }
+    else {
+      this._behavior = this._emptySearchDefaultBehavior;
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    let {query, tokens} =
+      this._getSearch(this._getUnfilteredSearchTokens(this._currentSearchString));
+    let queries = tokens.length ?
+      [this._getBoundKeywordQuery(tokens), this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(tokens), query] :
+      [this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(tokens), query];
+
+    
+    this._telemetryStartTime = Date.now();
+    this._executeQueries(queries);
+
+    
+    this._searchTokens = tokens;
+    this._usedPlaces = {};
   },
 
   
@@ -706,8 +776,9 @@ nsPlacesAutoComplete.prototype = {
   _finishSearch: function PAC_finishSearch(aNotify)
   {
     
-    if (aNotify)
+    if (aNotify) {
       this._notifyResults(false);
+    }
 
     
     delete this._originalSearchString;
@@ -757,10 +828,10 @@ nsPlacesAutoComplete.prototype = {
   {
     let result = this._result;
     let resultCode = result.matchCount ? "RESULT_SUCCESS" : "RESULT_NOMATCH";
-    if (aSearchOngoing)
+    if (aSearchOngoing) {
       resultCode += "_ONGOING";
+    }
     result.setSearchResult(Ci.nsIAutoCompleteResult[resultCode]);
-    result.setDefaultIndex(result.matchCount ? 0 : -1);
     this._listener.onSearchResult(this, result);
     if (this._telemetryStartTime) {
       let elapsed = Date.now() - this._telemetryStartTime;
@@ -787,50 +858,37 @@ nsPlacesAutoComplete.prototype = {
   _loadPrefs: function PAC_loadPrefs(aRegisterObserver)
   {
     let self = this;
-    function safeGetter(aName, aDefault) {
-      let types = {
-        boolean: "Bool",
-        number: "Int",
-        string: "Char"
-      };
-      let type = types[typeof(aDefault)];
-      if (!type)
-        throw "Unknown type!";
 
-      
-      try {
-        return self._prefs["get" + type + "Pref"](aName);
-      }
-      catch (e) {
-        return aDefault;
-      }
-    }
-
-    this._enabled = safeGetter("autocomplete.enabled", true);
-    this._matchBehavior = safeGetter("matchBehavior", MATCH_BOUNDARY_ANYWHERE);
-    this._filterJavaScript = safeGetter("filter.javascript", true);
-    this._maxRichResults = safeGetter("maxRichResults", 25);
-    this._restrictHistoryToken = safeGetter("restrict.history", "^");
-    this._restrictBookmarkToken = safeGetter("restrict.bookmark", "*");
-    this._restrictTypedToken = safeGetter("restrict.typed", "~");
-    this._restrictTagToken = safeGetter("restrict.tag", "+");
-    this._restrictOpenPageToken = safeGetter("restrict.openpage", "%");
-    this._matchTitleToken = safeGetter("match.title", "#");
-    this._matchURLToken = safeGetter("match.url", "@");
-    this._defaultBehavior = safeGetter("default.behavior", 0);
+    this._enabled = safePrefGetter(this._prefs, "autocomplete.enabled", true);
+    this._matchBehavior = safePrefGetter(this._prefs,
+                                         "matchBehavior",
+                                         MATCH_BOUNDARY_ANYWHERE);
+    this._filterJavaScript = safePrefGetter(this._prefs, "filter.javascript", true);
+    this._maxRichResults = safePrefGetter(this._prefs, "maxRichResults", 25);
+    this._restrictHistoryToken = safePrefGetter(this._prefs,
+                                                "restrict.history", "^");
+    this._restrictBookmarkToken = safePrefGetter(this._prefs,
+                                                 "restrict.bookmark", "*");
+    this._restrictTypedToken = safePrefGetter(this._prefs, "restrict.typed", "~");
+    this._restrictTagToken = safePrefGetter(this._prefs, "restrict.tag", "+");
+    this._restrictOpenPageToken = safePrefGetter(this._prefs,
+                                                 "restrict.openpage", "%");
+    this._matchTitleToken = safePrefGetter(this._prefs, "match.title", "#");
+    this._matchURLToken = safePrefGetter(this._prefs, "match.url", "@");
+    this._defaultBehavior = safePrefGetter(this._prefs, "default.behavior", 0);
     
     this._emptySearchDefaultBehavior =
       this._defaultBehavior |
-      safeGetter("default.behavior.emptyRestriction",
-                 Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
-                 Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED);
+      safePrefGetter(this._prefs, "default.behavior.emptyRestriction",
+                     Ci.mozIPlacesAutoComplete.BEHAVIOR_HISTORY |
+                     Ci.mozIPlacesAutoComplete.BEHAVIOR_TYPED);
 
     
     if (this._matchBehavior != MATCH_ANYWHERE &&
         this._matchBehavior != MATCH_BOUNDARY &&
-        this._matchBehavior != MATCH_BEGINNING)
+        this._matchBehavior != MATCH_BEGINNING) {
       this._matchBehavior = MATCH_BOUNDARY_ANYWHERE;
-
+    }
     
     if (aRegisterObserver) {
       let pb = this._prefs.QueryInterface(Ci.nsIPrefBranch2);
@@ -865,8 +923,9 @@ nsPlacesAutoComplete.prototype = {
           this._setBehavior("tag");
           break;
         case this._restrictOpenPageToken:
-          if (!this._enableActions)
+          if (!this._enableActions) {
             continue;
+          }
           this._setBehavior("openpage");
           break;
         case this._matchTitleToken:
@@ -889,8 +948,9 @@ nsPlacesAutoComplete.prototype = {
     
     
     
-    if (!this._filterJavaScript)
+    if (!this._filterJavaScript) {
       this._setBehavior("javascript");
+    }
 
     return {
       query: this._getBoundSearchQuery(this._matchBehavior, aTokens),
@@ -978,9 +1038,9 @@ nsPlacesAutoComplete.prototype = {
     let searchString = this._originalSearchString;
     let queryString = "";
     let queryIndex = searchString.indexOf(" ");
-    if (queryIndex != -1)
+    if (queryIndex != -1) {
       queryString = searchString.substring(queryIndex + 1);
-
+    }
     
     queryString = encodeURIComponent(queryString).replace("%20", "+", "g");
 
@@ -1005,8 +1065,9 @@ nsPlacesAutoComplete.prototype = {
   _getBoundAdaptiveQuery: function PAC_getBoundAdaptiveQuery(aMatchBehavior)
   {
     
-    if (arguments.length == 0)
+    if (arguments.length == 0) {
       aMatchBehavior = this._matchBehavior;
+    }
 
     let query = this._adaptiveQuery;
     let (params = query.params) {
@@ -1062,10 +1123,12 @@ nsPlacesAutoComplete.prototype = {
       
       
       
-      if (!entryTitle)
+      if (!entryTitle) {
         style = "keyword";
-      else
+      }
+      else {
         title = entryTitle;
+      }
     }
 
     
@@ -1080,9 +1143,9 @@ nsPlacesAutoComplete.prototype = {
     }
 
     
-    if (showTags)
+    if (showTags) {
       title += kTitleTagsSeparator + entryTags;
-
+    }
     
     
     
@@ -1090,12 +1153,15 @@ nsPlacesAutoComplete.prototype = {
       
       
       
-      if (showTags)
+      if (showTags) {
         style = "tag";
-      else if (entryBookmarked)
+      }
+      else if (entryBookmarked) {
         style = "bookmark";
-      else
+      }
+      else {
         style = "favicon";
+      }
     }
 
     this._addToResults(entryId, url, title, entryFavicon, action + style);
@@ -1226,8 +1292,313 @@ nsPlacesAutoComplete.prototype = {
     Ci.mozIPlacesAutoComplete,
     Ci.mozIStorageStatementCallback,
     Ci.nsIObserver,
+    Ci.nsISupportsWeakReference,
   ])
 };
 
-let components = [nsPlacesAutoComplete];
+
+
+
+function urlInlineComplete()
+{
+  this._loadPrefs(true);
+  
+  Services.obs.addObserver(this, kTopicShutdown, false);
+}
+
+urlInlineComplete.prototype = {
+
+
+
+
+  __db: null,
+
+  get _db()
+  {
+    if (!this.__db && this._autofill) {
+      this.__db = Cc["@mozilla.org/browser/nav-history-service;1"].
+        getService(Ci.nsPIPlacesDatabase).
+        DBConnection.
+        clone(true);
+    }
+    return this.__db;
+  },
+
+  __syncQuery: null,
+
+  get _syncQuery()
+  {
+    if (!this.__syncQuery) {
+      
+      
+      this.__syncQuery = this._db.createStatement(
+        "SELECT host || '/' "
+        + "FROM moz_hosts "
+        + "WHERE host BETWEEN :search_string AND :search_string || X'FFFF' "
+        + "ORDER BY frecency DESC "
+        + "LIMIT 1"
+      );
+    }
+    return this.__syncQuery;
+  },
+
+  __asyncQuery: null,
+
+  get _asyncQuery()
+  {
+    if (!this.__asyncQuery) {
+      this.__asyncQuery = this._db.createAsyncStatement(
+        "SELECT h.url "
+        + "FROM moz_places h "
+        + "WHERE h.frecency <> 0 "
+        +   "AND AUTOCOMPLETE_MATCH(:searchString, h.url, "
+        +                          "h.title, '', "
+        +                          "h.visit_count, h.typed, 0, 0, "
+        +                          ":matchBehavior, :searchBehavior) "
+        + "ORDER BY h.frecency DESC, h.id DESC "
+        + "LIMIT 1"
+      );
+    }
+    return this.__asyncQuery;
+  },
+
+  
+  
+
+  startSearch: function UIC_startSearch(aSearchString, aSearchParam,
+                                        aPreviousResult, aListener)
+  {
+    
+    if (this._pendingQuery) {
+      this.stopSearch();
+    }
+
+    
+    
+    this._originalSearchString = aSearchString;
+    this._currentSearchString =
+      fixupSearchText(this._originalSearchString.toLowerCase());
+
+    let result = Cc["@mozilla.org/autocomplete/simple-result;1"].
+                 createInstance(Ci.nsIAutoCompleteSimpleResult);
+    result.setSearchString(aSearchString);
+    result.setTypeAheadResult(true);
+
+    this._result = result;
+    this._listener = aListener;
+
+    if (this._currentSearchString.length == 0 || !this._db) {
+      this._finishSearch();
+      return;
+    }
+
+    
+    let query = this._syncQuery;
+    query.params.search_string = this._currentSearchString.toLowerCase();
+
+    
+    let lastSlashIndex = this._currentSearchString.lastIndexOf("/");
+    if (lastSlashIndex == -1) {
+      var hasDomainResult = false;
+      var domain;
+      try {
+        hasDomainResult = query.executeStep();
+        if (hasDomainResult) {
+          domain = query.getString(0);
+        }
+      } finally {
+        query.reset();
+      }
+
+      if (hasDomainResult) {
+        
+        let appendResult = domain.slice(this._currentSearchString.length);
+        result.appendMatch(aSearchString + appendResult, "");
+
+        this._finishSearch();
+        return;
+      }
+    }
+
+    
+    
+    
+
+    
+    
+    
+    if (lastSlashIndex == -1 ||
+        lastSlashIndex == this._currentSearchString.length - 1) {
+      this._finishSearch();
+      return;
+    }
+
+    
+    
+    let query = this._asyncQuery;
+    let (params = query.params) {
+      params.matchBehavior = MATCH_BEGINNING;
+      params.searchBehavior = Ci.mozIPlacesAutoComplete["BEHAVIOR_URL"];
+      params.searchString = this._currentSearchString;
+    }
+
+    
+    let wrapper = new AutoCompleteStatementCallbackWrapper(this, this._db);
+    this._pendingQuery = wrapper.executeAsync([query]);
+  },
+
+  stopSearch: function UIC_stopSearch()
+  {
+    delete this._originalSearchString;
+    delete this._currentSearchString;
+    delete this._result;
+    delete this._listener;
+
+    if (this._pendingQuery) {
+      this._pendingQuery.cancel();
+      delete this._pendingQuery;
+    }
+  },
+
+  
+
+
+
+
+
+
+  _loadPrefs: function UIC_loadPrefs(aRegisterObserver)
+  {
+    this._autofill = safePrefGetter(Services.prefs,
+                                    kBrowserUrlbarAutofillPref,
+                                    true);
+    if (aRegisterObserver) {
+      Services.prefs.addObserver(kBrowserUrlbarAutofillPref, this, true);
+    }
+  },
+
+  
+  
+
+  handleResult: function UIC_handleResult(aResultSet)
+  {
+    let row = aResultSet.getNextRow();
+    let url = fixupSearchText(row.getResultByIndex(0));
+
+    
+    let appendText = url.slice(this._currentSearchString.length);
+    let separatorIndex = appendText.search(/[\/\?\#]/);
+    if (separatorIndex != -1) {
+      if (appendText[separatorIndex] == "/") {
+        separatorIndex++; 
+      }
+      appendText = appendText.slice(0, separatorIndex);
+    }
+
+    
+    this._result.appendMatch(this._originalSearchString + appendText, "");
+
+    
+    
+  },
+
+  handleError: function UIC_handleError(aError)
+  {
+    Components.utils.reportError("URL Inline Complete: An async statement encountered an " +
+                                 "error: " + aError.result + ", '" + aError.message + "'");
+  },
+
+  handleCompletion: function UIC_handleCompletion(aReason)
+  {
+    this._finishSearch();
+  },
+
+  
+  
+
+  observe: function PAC_observe(aSubject, aTopic, aData)
+  {
+    if (aTopic == kTopicShutdown) {
+      Services.obs.removeObserver(this, kTopicShutdown);
+      this._closeDatabase();
+    }
+    else if (aTopic == kPrefChanged) {
+      this._loadPrefs();
+      if (!this._autofill) {
+        this.stopSearch();
+        this._closeDatabase();
+      }
+    }
+  },
+
+  
+
+
+
+
+  _closeDatabase: function UIC_closeDatabase()
+  {
+    
+    let stmts = [
+      "__syncQuery",
+      "__asyncQuery",
+    ];
+    for (let i = 0; i < stmts.length; i++) {
+      
+      
+      if (this[stmts[i]]) {
+        this[stmts[i]].finalize();
+        this[stmts[i]] = null;
+      }
+    }
+    if (this.__db) {
+      this._db.asyncClose();
+      this.__db = null;
+    }
+  },
+
+  
+  
+
+  _finishSearch: function UIC_finishSearch()
+  {
+    
+    let result = this._result;
+
+    if (result.matchCount) {
+      result.setDefaultIndex(0);
+      result.setSearchResult(Ci.nsIAutoCompleteResult["RESULT_SUCCESS"]);
+    } else {
+      result.setDefaultIndex(-1);
+      result.setSearchResult(Ci.nsIAutoCompleteResult["RESULT_NOMATCH"]);
+    }
+
+    this._listener.onSearchResult(this, result);
+    this.stopSearch();
+  },
+
+  isSearchComplete: function UIC_isSearchComplete()
+  {
+    return this._pendingQuery == null;
+  },
+
+  isPendingSearch: function UIC_isPendingSearch(aHandle)
+  {
+    return this._pendingQuery == aHandle;
+  },
+
+  
+  
+
+  classID: Components.ID("c88fae2d-25cf-4338-a1f4-64a320ea7440"),
+
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsIAutoCompleteSearch,
+    Ci.mozIStorageStatementCallback,
+    Ci.nsIObserver,
+    Ci.nsISupportsWeakReference,
+  ])
+};
+
+let components = [nsPlacesAutoComplete, urlInlineComplete];
 const NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
