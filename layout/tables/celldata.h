@@ -46,8 +46,9 @@ class nsCellMap;
 class BCCellData;
 
 
-#define MAX_ROWSPAN 8190 // the cellmap can not handle more
-#define MAX_COLSPAN 1000 // limit as IE and opera do
+#define MAX_ROWSPAN 65534 // the cellmap can not handle more.
+#define MAX_COLSPAN 1000 // limit as IE and opera do.  If this ever changes,
+                         
 
 
 
@@ -278,16 +279,30 @@ public:
 };
 
 
+
+
+
+
+
+
+#define COL_SPAN_SHIFT   22
+
+#define ROW_SPAN_SHIFT   3
+
+
+#define COL_SPAN_OFFSET  (0x3FF << COL_SPAN_SHIFT)
+
+#define ROW_SPAN_OFFSET  (0xFFFF << ROW_SPAN_SHIFT)
+
+
 #define SPAN             0x00000001 // there a row or col span
 #define ROW_SPAN         0x00000002 // there is a row span
 #define ROW_SPAN_0       0x00000004 // the row span is 0
-#define ROW_SPAN_OFFSET  0x0000FFF8 // the row offset to the data containing the original cell
-#define COL_SPAN         0x00010000 // there is a col span
-#define COL_SPAN_0       0x00020000 // the col span is 0
-#define OVERLAP          0x00040000 // there is a row span and col span but no by same cell
-#define COL_SPAN_OFFSET  0xFFF80000 // the col offset to the data containing the original cell
-#define ROW_SPAN_SHIFT   3          // num bits to shift to get right justified row span
-#define COL_SPAN_SHIFT   19         // num bits to shift to get right justified col span
+#define COL_SPAN         (1 << (COL_SPAN_SHIFT - 3)) // there is a col span
+#define COL_SPAN_0       (1 << (COL_SPAN_SHIFT - 2)) // the col span is 0
+#define OVERLAP          (1 << (COL_SPAN_SHIFT - 1)) // there is a row span and
+                                                     
+                                                     
 
 inline nsTableCellFrame* CellData::GetCellFrame() const
 {
