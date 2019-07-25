@@ -68,6 +68,9 @@ AutoMounterSetting::AutoMounterSetting()
   }
 
   
+  
+  
+  
   nsCOMPtr<nsISettingsService> settingsService =
     do_GetService("@mozilla.org/settingsService;1");
   if (!settingsService) {
@@ -77,7 +80,7 @@ AutoMounterSetting::AutoMounterSetting()
   nsCOMPtr<nsISettingsServiceLock> lock;
   settingsService->GetLock(getter_AddRefs(lock));
   nsCOMPtr<nsISettingsServiceCallback> callback = new SettingsServiceCallback();
-  lock->Get(UMS_MODE, callback);
+  lock->Set(UMS_MODE, INT_TO_JSVAL(AUTOMOUNTER_DISABLE), callback);
 }
 
 AutoMounterSetting::~AutoMounterSetting()
