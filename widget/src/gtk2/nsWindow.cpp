@@ -99,7 +99,7 @@
 
 #include "mozilla/Preferences.h"
 #include "nsIPrefService.h"
-#include "nsIPrefBranch.h"
+#include "nsIGConfService.h"
 #include "nsIServiceManager.h"
 #include "nsIStringBundle.h"
 #include "nsGfxCIID.h"
@@ -119,9 +119,10 @@ using namespace mozilla;
 static bool sAccessibilityChecked = false;
 
 bool nsWindow::sAccessibilityEnabled = false;
-static const char sSysPrefService [] = "@mozilla.org/system-preference-service;1";
 static const char sAccEnv [] = "GNOME_ACCESSIBILITY";
+static const char sUseSystemPrefsKey[] = "config.use_system_prefs";
 static const char sAccessibilityKey [] = "config.use_system_prefs.accessibility";
+static const char sGconfAccessibilityKey[] = "/desktop/gnome/interface/accessibility";
 #endif
 
 
@@ -4293,17 +4294,20 @@ nsWindow::Create(nsIWidget        *aParent,
             LOG(("Accessibility Env %s=%s\n", sAccEnv, envValue));
         }
         
-        else {
-            nsCOMPtr<nsIPrefBranch> sysPrefService =
-                do_GetService(sSysPrefService, &rv);
-            if (NS_SUCCEEDED(rv) && sysPrefService) {
+        else if (Preferences::GetBool(sUseSystemPrefsKey, false)) {
+            nsCOMPtr<nsIGConfService> gconf =
+                do_GetService(NS_GCONFSERVICE_CONTRACTID, &rv); 
+            if (NS_SUCCEEDED(rv) && gconf) {
 
                 
                 
-                sysPrefService->GetBoolPref(sAccessibilityKey,
-                                            &sAccessibilityEnabled);
+                gconf->GetBool(NS_LITERAL_CSTRING(sGconfAccessibilityKey),
+                               &sAccessibilityEnabled);
             }
 
+        } else {
+            sAccessibilityEnabled =
+                Preferences::GetBool(sAccessibilityKey, false);
         }
     }
 #endif
