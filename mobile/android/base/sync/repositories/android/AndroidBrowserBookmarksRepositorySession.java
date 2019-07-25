@@ -588,7 +588,7 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     try {
       Uri recordURI = dbHelper.insert(toStore);
       if (recordURI == null) {
-        delegate.onRecordStoreFailed(new RuntimeException("Got null URI inserting folder with guid " + toStore.guid + "."));
+        delegate.onRecordStoreFailed(new RuntimeException("Got null URI inserting folder with guid " + toStore.guid + "."), record.guid);
         return false;
       }
       toStore.androidID = ContentUris.parseId(recordURI);
@@ -596,11 +596,11 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
 
       updateBookkeeping(toStore);
     } catch (Exception e) {
-      delegate.onRecordStoreFailed(e);
+      delegate.onRecordStoreFailed(e, record.guid);
       return false;
     }
     trackRecord(toStore);
-    delegate.onRecordStoreSucceeded(toStore);
+    delegate.onRecordStoreSucceeded(record.guid);
     return true;
   }
 
@@ -623,12 +623,14 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
         
         
         for (Record failed : toStores) {
-          delegate.onRecordStoreFailed(new RuntimeException("Possibly failed to bulkInsert non-folder with guid " + failed.guid + "."));
+          delegate.onRecordStoreFailed(new RuntimeException("Possibly failed to bulkInsert non-folder with guid " + failed.guid + "."), failed.guid);
         }
         return;
       }
     } catch (NullCursorException e) {
-      delegate.onRecordStoreFailed(e); 
+      for (Record failed : toStores) {
+        delegate.onRecordStoreFailed(e, failed.guid);
+      }
       return;
     }
 
@@ -640,7 +642,7 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
         Logger.warn(LOG_TAG, "Got exception updating bookkeeping of non-folder with guid " + succeeded.guid + ".", e);
       }
       trackRecord(succeeded);
-      delegate.onRecordStoreSucceeded(succeeded);
+      delegate.onRecordStoreSucceeded(succeeded.guid);
     }
   }
 

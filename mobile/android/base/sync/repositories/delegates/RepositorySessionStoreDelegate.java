@@ -6,8 +6,6 @@ package org.mozilla.gecko.sync.repositories.delegates;
 
 import java.util.concurrent.ExecutorService;
 
-import org.mozilla.gecko.sync.repositories.domain.Record;
-
 
 
 
@@ -16,11 +14,10 @@ import org.mozilla.gecko.sync.repositories.domain.Record;
 
 
 public interface RepositorySessionStoreDelegate {
-  public void onRecordStoreFailed(Exception ex);
+  public void onRecordStoreFailed(Exception ex, String recordGuid);
 
   
-  
-  public void onRecordStoreSucceeded(Record record);
+  public void onRecordStoreSucceeded(String guid);
   public void onStoreCompleted(long storeEnd);
   public RepositorySessionStoreDelegate deferredStoreDelegate(ExecutorService executor);
 }

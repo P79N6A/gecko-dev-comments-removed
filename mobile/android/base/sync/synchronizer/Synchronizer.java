@@ -27,72 +27,36 @@ import android.util.Log;
 
 
 
-public class Synchronizer {
+public class Synchronizer implements SynchronizerSessionDelegate {
+  public static final String LOG_TAG = "SyncDelSDelegate";
+
   protected String configSyncID; 
 
-  
+  protected SynchronizerDelegate synchronizerDelegate;
 
+  @Override
+  public void onInitialized(SynchronizerSession session) {
+    session.synchronize();
+  }
 
+  @Override
+  public void onSynchronized(SynchronizerSession synchronizerSession) {
+    Log.d(LOG_TAG, "Got onSynchronized.");
+    Log.d(LOG_TAG, "Notifying SynchronizerDelegate.");
+    this.synchronizerDelegate.onSynchronized(synchronizerSession.getSynchronizer());
+  }
 
-  public class SynchronizerDelegateSessionDelegate implements
-      SynchronizerSessionDelegate {
+  @Override
+  public void onSynchronizeSkipped(SynchronizerSession synchronizerSession) {
+    Log.d(LOG_TAG, "Got onSynchronizeSkipped.");
+    Log.d(LOG_TAG, "Notifying SynchronizerDelegate as if on success.");
+    this.synchronizerDelegate.onSynchronized(synchronizerSession.getSynchronizer());
+  }
 
-    private static final String LOG_TAG = "SyncDelSDelegate";
-    private SynchronizerDelegate synchronizerDelegate;
-    private SynchronizerSession  session;
-
-    public SynchronizerDelegateSessionDelegate(SynchronizerDelegate delegate) {
-      this.synchronizerDelegate = delegate;
-    }
-
-    @Override
-    public void onInitialized(SynchronizerSession session) {
-      this.session = session;
-      session.synchronize();
-    }
-
-    @Override
-    public void onSynchronized(SynchronizerSession synchronizerSession) {
-      Log.d(LOG_TAG, "Got onSynchronized.");
-      Log.d(LOG_TAG, "Notifying SynchronizerDelegate.");
-      this.synchronizerDelegate.onSynchronized(synchronizerSession.getSynchronizer());
-    }
-
-    @Override
-    public void onSynchronizeSkipped(SynchronizerSession synchronizerSession) {
-      Log.d(LOG_TAG, "Got onSynchronizeSkipped.");
-      Log.d(LOG_TAG, "Notifying SynchronizerDelegate as if on success.");
-      this.synchronizerDelegate.onSynchronized(synchronizerSession.getSynchronizer());
-    }
-
-    @Override
-    public void onSynchronizeFailed(SynchronizerSession session,
-                                    Exception lastException, String reason) {
-      this.synchronizerDelegate.onSynchronizeFailed(session.getSynchronizer(), lastException, reason);
-    }
-
-    @Override
-    public void onSynchronizeAborted(SynchronizerSession synchronizerSession) {
-      this.synchronizerDelegate.onSynchronizeAborted(session.getSynchronizer());
-    }
-
-    @Override
-    public void onFetchError(Exception e) {
-      session.abort();
-      synchronizerDelegate.onSynchronizeFailed(session.getSynchronizer(), e, "Got fetch error.");
-    }
-
-    @Override
-    public void onStoreError(Exception e) {
-      session.abort();
-      synchronizerDelegate.onSynchronizeFailed(session.getSynchronizer(), e, "Got store error.");
-    }
-
-    @Override
-    public void onSessionError(Exception e) {
-      session.abort();
-      synchronizerDelegate.onSynchronizeFailed(session.getSynchronizer(), e, "Got session error.");
-    }
+  @Override
+  public void onSynchronizeFailed(SynchronizerSession session,
+      Exception lastException, String reason) {
+    this.synchronizerDelegate.onSynchronizeFailed(session.getSynchronizer(), lastException, reason);
   }
 
   public Repository repositoryA;
@@ -103,9 +67,16 @@ public class Synchronizer {
   
 
 
+  public SynchronizerSession getSynchronizerSession() {
+    return new SynchronizerSession(this, this);
+  }
+
+  
+
+
   public void synchronize(Context context, SynchronizerDelegate delegate) {
-    SynchronizerDelegateSessionDelegate sessionDelegate = new SynchronizerDelegateSessionDelegate(delegate);
-    SynchronizerSession session = new SynchronizerSession(this, sessionDelegate);
+    this.synchronizerDelegate = delegate;
+    SynchronizerSession session = getSynchronizerSession();
     session.init(context, bundleA, bundleB);
   }
 
