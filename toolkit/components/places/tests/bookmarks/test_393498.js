@@ -84,7 +84,7 @@ function run_test() {
 
   
   
-  var newDate = Date.now() * 1000 - 1;
+  var newDate = (Date.now() - 10) * 1000;
   bmsvc.setItemDateAdded(bookmarkId, newDate);
   
   do_check_eq(observer._itemChangedProperty, "dateAdded");
@@ -129,7 +129,7 @@ function run_test() {
   
   
   
-  var pastDate = Date.now() * 1000 - 20000;
+  var pastDate = (Date.now() - 10) * 1000;
   bmsvc.setItemLastModified(bookmarkId, pastDate);
   
   var oldLastModified = bmsvc.getItemLastModified(bookmarkId);
