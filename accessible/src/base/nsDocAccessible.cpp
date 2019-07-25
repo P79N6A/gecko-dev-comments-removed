@@ -341,7 +341,7 @@ nsDocAccessible::NativeState()
 
 
 void
-nsDocAccessible::ApplyARIAState(PRUint64* aState)
+nsDocAccessible::ApplyARIAState(PRUint64* aState) const
 {
   
   

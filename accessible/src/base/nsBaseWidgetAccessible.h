@@ -96,7 +96,7 @@ public:
 
   
   virtual void Value(nsString& aValue);
-  virtual PRUint64 NativeState();
+  virtual PRUint64 NativeLinkState() const;
 
   
   virtual PRUint8 ActionCount();

@@ -747,10 +747,18 @@ nsAccessible::NativeState()
       state |= states::HASPOPUP;
 
   
-  if (nsCoreUtils::IsXLink(mContent))
-    state |= states::LINKED;
+  if (!mRoleMapEntry || mRoleMapEntry->roleRule == kUseNativeRole ||
+      mRoleMapEntry->role == roles::LINK)
+    state |= NativeLinkState();
 
   return state;
+}
+
+PRUint64
+nsAccessible::NativeLinkState() const
+{
+  
+  return nsCoreUtils::IsXLink(mContent) ? states::LINKED : 0;
 }
 
   
@@ -1618,7 +1626,7 @@ nsAccessible::State()
 }
 
 void
-nsAccessible::ApplyARIAState(PRUint64* aState)
+nsAccessible::ApplyARIAState(PRUint64* aState) const
 {
   if (!mContent->IsElement())
     return;

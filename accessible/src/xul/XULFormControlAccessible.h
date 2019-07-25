@@ -265,7 +265,7 @@ public:
 
   
   virtual void Value(nsString& aValue);
-  virtual void ApplyARIAState(PRUint64* aState);
+  virtual void ApplyARIAState(PRUint64* aState) const;
   virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();
   virtual bool CanHaveAnonChildren();
