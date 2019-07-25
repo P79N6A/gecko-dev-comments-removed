@@ -569,7 +569,9 @@ private:
     
     
     bool visited = FetchVisitInfo(_place);
-    NS_ASSERTION(!visited, "Not visited after adding a visit!");
+    if (visited) {
+      NS_NOTREACHED("Not visited after adding a visit!");
+    }
 
     return NS_OK;
   }
