@@ -77,63 +77,6 @@ const kStateActive = 0x00000001;
 
 
 
-function InputHandler(container) {
-  
-  this._modules = [];
-
-  new MouseModule();
-  new GestureModule();
-  new ScrollwheelModule(container);
-}
-
-
-InputHandler.prototype = {
-  
-
-
-
-  addModule: function addModule(m) {
-    this._modules.push(m);
-  },
-
-  
-
-
-  handleEvent: function handleEvent(aEvent) {
-    aEvent.time = Date.now();
-    this._passToModules(aEvent);
-  },
-
-  
-
-
-
-  _passToModules: function _passToModules(aEvent, aSkipToIndex) {
-    let mods = this._modules;
-    let i = aSkipToIndex || 0;
-
-    for (let len = mods.length; i < len; ++i) {
-      mods[i].handleEvent(aEvent);
-    }
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
