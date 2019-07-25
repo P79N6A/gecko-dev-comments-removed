@@ -1,0 +1,75 @@
+<!DOCTYPE HTML>
+<html>
+
+
+
+<head>
+  <title>Test for Bug 715308 comment 93</title>
+  <script type="application/javascript" src="/MochiKit/MochiKit.js"></script>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+
+
+
+
+
+
+
+
+
+
+
+<script type="text/javascript;version=1.8">
+"use strict";
+
+SimpleTest.waitForExplicitFinish();
+
+var numCallbacks = 0;
+
+function image_error(name)
+{
+  numCallbacks++;
+  ok(name == 'error-early' || name == 'error-late', "Got onerror for " + name);
+}
+
+function image_load(name)
+{
+  numCallbacks++;
+  ok(name == 'shaver', "Got onload for " + name);
+}
+
+function page_load()
+{
+  ok(numCallbacks == 3, 'Got page load before all onload/onerror callbacks?');
+
+  // Spin the event loop a few times to let image_error run if it's going to,
+  // then finish the test.
+  SimpleTest.executeSoon(function() {
+    SimpleTest.executeSoon(function() {
+      SimpleTest.executeSoon(function() {
+        SimpleTest.finish();
+      });
+    });
+  });
+}
+
+addEventListener('load', page_load);
+
+</script>
+
+<div id="content">
+  <img src='shaver.png' onerror='image_error("shaver")' onload='image_load("shaver")'>
+  <img src='error-early.png' onerror='image_error("error-early")' onload='image_load("error-early")'>
+
+  
+
+
+  <img src='error-late.png' onerror='image_error("error-late")' onload='image_load("error-late")'>
+</div>
+
+</pre>
+</body>
+</html>
+
