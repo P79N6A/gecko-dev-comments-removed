@@ -35,7 +35,6 @@
 
 
 
-
 #ifndef nsHttpNTLMAuth_h__
 #define nsHttpNTLMAuth_h__
 
@@ -49,11 +48,6 @@ public:
 
     nsHttpNTLMAuth() {}
     virtual ~nsHttpNTLMAuth() {}
-
-private:
-    
-    
-    PRBool  mUseNative;
 };
 
 #endif 
