@@ -3040,7 +3040,7 @@ nsXULPrototypeScript::DeserializeOutOfLine(nsIObjectInputStream* aInput,
             if (useXULCache) {
                 PRUint32 newLangID = nsIProgrammingLanguage::UNKNOWN;
                 JSScript* newScriptObject =
-                    static_cast<JSScript*>(cache->GetScript(mSrcURI, &newLangID));
+                    cache->GetScript(mSrcURI, &newLangID);
                 if (newScriptObject) {
                     
                     
