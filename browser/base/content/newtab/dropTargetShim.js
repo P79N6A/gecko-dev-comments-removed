@@ -26,13 +26,26 @@ let gDropTargetShim = {
   init: function DropTargetShim_init() {
     let node = gGrid.node;
 
-    this._dragover = this._dragover.bind(this);
+    
+    node.addEventListener("dragstart", this, true);
+    node.addEventListener("dragend", this, true);
+  },
 
-    
-    node.addEventListener("dragstart", this._start.bind(this), true);
-    
-    
-    node.addEventListener("dragend", this._end.bind(this), true);
+  
+
+
+  handleEvent: function DropTargetShim_handleEvent(aEvent) {
+    switch (aEvent.type) {
+      case "dragstart":
+        this._start(aEvent);
+        break;
+      case "dragover":
+        this._dragover(aEvent);
+        break;
+      case "dragend":
+        this._end(aEvent);
+        break;
+    }
   },
 
   
@@ -40,11 +53,11 @@ let gDropTargetShim = {
 
 
   _start: function DropTargetShim_start(aEvent) {
-    if (aEvent.target.classList.contains("site")) {
+    if (aEvent.target.classList.contains("newtab-link")) {
       gGrid.lock();
 
       
-      document.documentElement.addEventListener("dragover", this._dragover, false);
+      document.documentElement.addEventListener("dragover", this, false);
     }
   },
 
@@ -56,12 +69,7 @@ let gDropTargetShim = {
     
     let target = this._findDropTarget(aEvent);
 
-    if (target == this._lastDropTarget) {
-      
-      
-
-
-    } else {
+    if (target != this._lastDropTarget) {
       if (this._lastDropTarget)
         
         this._dispatchEvent(aEvent, "dragexit", this._lastDropTarget);
@@ -84,7 +92,7 @@ let gDropTargetShim = {
 
 
   _dragover: function DropTargetShim_dragover(aEvent) {
-    let sourceNode = aEvent.dataTransfer.mozSourceNode;
+    let sourceNode = aEvent.dataTransfer.mozSourceNode.parentNode;
     gDrag.drag(sourceNode._newtabSite, aEvent);
 
     this._drag(aEvent);
@@ -117,7 +125,7 @@ let gDropTargetShim = {
     gGrid.unlock();
 
     
-    document.documentElement.removeEventListener("dragover", this._dragover, false);
+    document.documentElement.removeEventListener("dragover", this, false);
   },
 
   

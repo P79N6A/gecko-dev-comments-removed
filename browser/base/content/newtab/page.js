@@ -12,24 +12,23 @@ let gPage = {
   
 
 
-
-
-  init: function Page_init(aToolbarSelector, aGridSelector) {
-    gToolbar.init(aToolbarSelector);
-    this._gridSelector = aGridSelector;
-
+  init: function Page_init() {
     
     gAllPages.register(this);
 
     
-    function unload() { gAllPages.unregister(this); }
-    addEventListener("unload", unload.bind(this), false);
+    addEventListener("unload", this, false);
 
     
-    if (gAllPages.enabled)
+    let button = document.getElementById("newtab-toggle");
+    button.addEventListener("click", this, false);
+
+    
+    let enabled = gAllPages.enabled;
+    if (enabled)
       this._init();
-    else
-      this._updateAttributes(false);
+
+    this._updateAttributes(enabled);
   },
 
   
@@ -48,23 +47,7 @@ let gPage = {
 
 
   update: function Page_update() {
-    this.updateModifiedFlag();
     gGrid.refresh();
-  },
-
-  
-
-
-  updateModifiedFlag: function Page_updateModifiedFlag() {
-    let node = document.getElementById("toolbar-button-reset");
-    let modified = this._isModified();
-
-    if (modified)
-      node.setAttribute("modified", "true");
-    else
-      node.removeAttribute("modified");
-
-    this._updateTabIndices(gAllPages.enabled, modified);
   },
 
   
@@ -79,18 +62,15 @@ let gPage = {
 
     gLinks.populateCache(function () {
       
-      this.updateModifiedFlag();
-
-      
-      gGrid.init(this._gridSelector);
+      gGrid.init();
 
       
       gDropTargetShim.init();
 
 #ifdef XP_MACOSX
       
-      document.addEventListener("dragover", this.onDragOver, false);
-      document.addEventListener("drop", this.onDrop, false);
+      document.addEventListener("dragover", this, false);
+      document.addEventListener("drop", this, false);
 #endif
     }.bind(this));
   },
@@ -100,7 +80,8 @@ let gPage = {
 
 
   _updateAttributes: function Page_updateAttributes(aValue) {
-    let nodes = document.querySelectorAll("#grid, #scrollbox, #toolbar, .toolbar-button");
+    let selector = "#newtab-scrollbox, #newtab-toggle, #newtab-grid";
+    let nodes = document.querySelectorAll(selector);
 
     
     for (let i = 0; i < nodes.length; i++) {
@@ -111,64 +92,32 @@ let gPage = {
         node.setAttribute("page-disabled", "true");
     }
 
-    this._updateTabIndices(aValue, this._isModified());
+    
+    let toggle = document.getElementById("newtab-toggle");
+    toggle.setAttribute("title", newTabString(aValue ? "hide" : "show"));
   },
 
   
 
 
-
-  _isModified: function Page_isModified() {
-    
-    return !gBlockedLinks.isEmpty();
-  },
-
-  
-
-
-
-
-  _updateTabIndices: function Page_updateTabIndices(aEnabled, aModified) {
-    function setFocusable(aNode, aFocusable) {
-      if (aFocusable)
-        aNode.removeAttribute("tabindex");
-      else
-        aNode.setAttribute("tabindex", "-1");
-    }
-
-    
-    let nodes = document.querySelectorAll(".site, #toolbar-button-hide");
-    for (let i = 0; i < nodes.length; i++)
-      setFocusable(nodes[i], aEnabled);
-
-    
-    let btnShow = document.getElementById("toolbar-button-show");
-    setFocusable(btnShow, !aEnabled);
-
-    
-    let btnReset = document.getElementById("toolbar-button-reset");
-    setFocusable(btnReset, aEnabled && aModified);
-  },
-
-  
-
-
-
-
-  onDragOver: function Page_onDragOver(aEvent) {
-    if (gDrag.isValid(aEvent) && gDrag.draggedSite)
-      aEvent.preventDefault();
-  },
-
-  
-
-
-
-
-  onDrop: function Page_onDrop(aEvent) {
-    if (gDrag.isValid(aEvent) && gDrag.draggedSite) {
-      aEvent.preventDefault();
-      aEvent.stopPropagation();
+  handleEvent: function Page_handleEvent(aEvent) {
+    switch (aEvent.type) {
+      case "unload":
+        gAllPages.unregister(this);
+        break;
+      case "click":
+        gAllPages.enabled = !gAllPages.enabled;
+        break;
+      case "dragover":
+        if (gDrag.isValid(aEvent) && gDrag.draggedSite)
+          aEvent.preventDefault();
+        break;
+      case "drop":
+        if (gDrag.isValid(aEvent) && gDrag.draggedSite) {
+          aEvent.preventDefault();
+          aEvent.stopPropagation();
+        }
+        break;
     }
   }
 };

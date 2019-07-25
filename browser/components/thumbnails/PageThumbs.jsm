@@ -18,7 +18,7 @@ const HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
 
 
 
-const THUMBNAIL_WIDTH = 201;
+const THUMBNAIL_WIDTH = 400;
 
 
 
@@ -26,7 +26,7 @@ const THUMBNAIL_WIDTH = 201;
 
 
 
-const THUMBNAIL_HEIGHT = 127;
+const THUMBNAIL_HEIGHT = 225;
 
 
 

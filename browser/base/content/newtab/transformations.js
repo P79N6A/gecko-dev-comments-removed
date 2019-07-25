@@ -14,6 +14,24 @@ let gTransformation = {
 
 
 
+  get _cellBorderWidths() {
+    let cstyle = window.getComputedStyle(gGrid.cells[0].node, null);
+    let widths = {
+      left: parseInt(cstyle.getPropertyValue("border-left-width")),
+      top: parseInt(cstyle.getPropertyValue("border-top-width"))
+    };
+
+    
+    Object.defineProperty(this, "_cellBorderWidths",
+                          {value: widths, enumerable: true});
+
+    return widths;
+  },
+
+  
+
+
+
 
   getNodePosition: function Transformation_getNodePosition(aNode) {
     let {left, top, width, height} = aNode.getBoundingClientRect();
@@ -80,6 +98,14 @@ let gTransformation = {
 
 
   freezeSitePosition: function Transformation_freezeSitePosition(aSite) {
+    if (this._isFrozen(aSite))
+      return;
+
+    let style = aSite.node.style;
+    let comp = getComputedStyle(aSite.node, null);
+    style.width = comp.getPropertyValue("width")
+    style.height = comp.getPropertyValue("height");
+
     aSite.node.setAttribute("frozen", "true");
     this.setSitePosition(aSite, this.getNodePosition(aSite.node));
   },
@@ -89,8 +115,11 @@ let gTransformation = {
 
 
   unfreezeSitePosition: function Transformation_unfreezeSitePosition(aSite) {
+    if (!this._isFrozen(aSite))
+      return;
+
     let style = aSite.node.style;
-    style.left = style.top = "";
+    style.left = style.top = style.width = style.height = "";
     aSite.node.removeAttribute("frozen");
   },
 
@@ -118,7 +147,12 @@ let gTransformation = {
     }
 
     
-    if (currentPosition.equals(targetPosition)) {
+    targetPosition.left += this._cellBorderWidths.left;
+    targetPosition.top += this._cellBorderWidths.top;
+
+    
+    if (currentPosition.left == targetPosition.left &&
+        currentPosition.top == targetPosition.top) {
       finish();
     } else {
       this.setSitePosition(aSite, targetPosition);
@@ -222,5 +256,14 @@ let gTransformation = {
   _moveSite: function Transformation_moveSite(aSite, aIndex, aOptions) {
     this.freezeSitePosition(aSite);
     this.slideSiteTo(aSite, gGrid.cells[aIndex], aOptions);
+  },
+
+  
+
+
+
+
+  _isFrozen: function Transformation_isFrozen(aSite) {
+    return aSite.node.hasAttribute("frozen");
   }
 };

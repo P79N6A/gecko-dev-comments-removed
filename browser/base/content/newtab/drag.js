@@ -37,10 +37,10 @@ let gDrag = {
     this._draggedSite = aSite;
 
     
-    aSite.node.setAttribute("dragged", "true");
-
-    
-    aSite.node.setAttribute("ontop", "true");
+    let selector = ".newtab-site, .newtab-control, .newtab-thumbnail";
+    let nodes = aSite.node.parentNode.querySelectorAll(selector);
+    for (let i = 0; i < nodes.length; i++)
+      nodes[i].setAttribute("dragged", "true");
 
     this._setDragData(aSite, aEvent);
 
@@ -88,13 +88,12 @@ let gDrag = {
 
 
   end: function Drag_end(aSite, aEvent) {
-    aSite.node.removeAttribute("dragged");
+    let nodes = aSite.node.parentNode.querySelectorAll("[dragged]");
+    for (let i = 0; i < nodes.length; i++)
+      nodes[i].removeAttribute("dragged");
 
     
-    gTransformation.slideSiteTo(aSite, aSite.cell, {
-      unfreeze: true,
-      callback: function () aSite.node.removeAttribute("ontop")
-    });
+    gTransformation.slideSiteTo(aSite, aSite.cell, {unfreeze: true});
 
     this._draggedSite = null;
   },
@@ -132,13 +131,13 @@ let gDrag = {
     
     
     let dragElement = document.createElementNS(HTML_NAMESPACE, "div");
-    dragElement.classList.add("drag-element");
-    let body = document.getElementById("body");
-    body.appendChild(dragElement);
+    dragElement.classList.add("newtab-drag");
+    let scrollbox = document.getElementById("newtab-scrollbox");
+    scrollbox.appendChild(dragElement);
     dt.setDragImage(dragElement, 0, 0);
 
     
     
-    setTimeout(function () body.removeChild(dragElement), 0);
+    setTimeout(function () scrollbox.removeChild(dragElement), 0);
   }
 };
