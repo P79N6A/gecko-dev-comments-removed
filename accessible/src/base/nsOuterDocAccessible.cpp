@@ -159,6 +159,15 @@ nsOuterDocAccessible::DoAction(PRUint8 aIndex)
 void
 nsOuterDocAccessible::Shutdown()
 {
+  
+  nsAccessible *childAcc = mChildren.SafeElementAt(0, nsnull);
+  if (childAcc) {
+    nsRefPtr<nsDocAccessible> docAcc(do_QueryObject(childAcc));
+    NS_LOG_ACCDOCDESTROY_FOR("outerdoc document shutdown",
+                             docAcc->GetDOMDocument(), docAcc.get())
+    GetAccService()->ShutdownDocAccessiblesInTree(docAcc->GetDOMDocument());
+  }
+
   nsAccessible::InvalidateChildren();
 
   nsAccessibleWrap::Shutdown();
@@ -170,6 +179,11 @@ nsOuterDocAccessible::Shutdown()
 void
 nsOuterDocAccessible::InvalidateChildren()
 {
+  
+  
+  
+  
+  
   
   
   
