@@ -42,8 +42,8 @@
 
 
 
+#include "jstypes.h"
 #include "jscompat.h"
-#include "jsutil.h"
 #include "jsval.h"
 
 JS_BEGIN_EXTERN_C
@@ -165,8 +165,6 @@ typedef struct JSCrossCompartmentCall JSCrossCompartmentCall;
 typedef class JSWrapper          JSWrapper;
 typedef class JSCrossCompartmentWrapper JSCrossCompartmentWrapper;
 #endif
-
-
 
 
 
@@ -416,9 +414,6 @@ typedef void
 
 
 
-
-
-
 typedef JSBool
 (* JSEqualityOp)(JSContext *cx, JSObject *obj, const jsval *v, JSBool *bp);
 
@@ -442,6 +437,7 @@ typedef JSObject *
 typedef JSBool
 (* JSNative)(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
              jsval *rval);
+
 
 typedef JSBool
 (* JSFastNative)(JSContext *cx, uintN argc, jsval *vp);
