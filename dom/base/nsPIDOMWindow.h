@@ -602,6 +602,12 @@ public:
 
   virtual bool IsPartOfApp() = 0;
 
+  
+
+
+
+  virtual bool IsInAppOrigin() = 0;
+
 protected:
   
   

@@ -62,6 +62,10 @@ function BrowserElementChild() {
 };
 
 BrowserElementChild.prototype = {
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
+                                         Ci.nsISupportsWeakReference]),
+
   _init: function() {
     debug("Starting up.");
     sendAsyncMsg("hello");
@@ -137,6 +141,7 @@ BrowserElementChild.prototype = {
     addMsgListener("unblock-modal-prompt", this._recvStopWaiting);
     addMsgListener("fire-ctx-callback", this._recvFireCtxCallback);
     addMsgListener("owner-visibility-change", this._recvOwnerVisibilityChange);
+    addMsgListener("exit-fullscreen", this._recvExitFullscreen.bind(this));
 
     let els = Cc["@mozilla.org/eventlistenerservice;1"]
                 .getService(Ci.nsIEventListenerService);
@@ -161,6 +166,35 @@ BrowserElementChild.prototype = {
     els.addSystemEventListener(global, 'scroll',
                                this._scrollEventHandler.bind(this),
                                 false);
+
+    Services.obs.addObserver(this,
+                             "fullscreen-origin-change",
+                              true);
+
+    Services.obs.addObserver(this,
+                             'ask-parent-to-exit-fullscreen',
+                              true);
+
+    Services.obs.addObserver(this,
+                             'ask-parent-to-rollback-fullscreen',
+                              true);
+  },
+
+  observe: function(subject, topic, data) {
+    
+    if (subject != content.document)
+      return;
+    switch (topic) {
+      case 'fullscreen-origin-change':
+        sendAsyncMsg('fullscreen-origin-change', data);
+        break;
+      case 'ask-parent-to-exit-fullscreen':
+        sendAsyncMsg('exit-fullscreen');
+        break;
+      case 'ask-parent-to-rollback-fullscreen':
+        sendAsyncMsg('rollback-fullscreen');
+        break;
+    }
   },
 
   _tryGetInnerWindowID: function(win) {
@@ -291,6 +325,13 @@ BrowserElementChild.prototype = {
     debug("recvStopWaiting " + win);
     win.modalReturnValue = returnValue;
     win.modalDepth--;
+  },
+
+  _recvExitFullscreen: function() {
+    var utils = content.document.defaultView
+                       .QueryInterface(Ci.nsIInterfaceRequestor)
+                       .getInterface(Ci.nsIDOMWindowUtils);
+    utils.exitFullscreen();
   },
 
   _titleChangedHandler: function(e) {

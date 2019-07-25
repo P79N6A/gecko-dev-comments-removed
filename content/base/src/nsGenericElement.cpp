@@ -4762,14 +4762,18 @@ static const char*
 GetFullScreenError(nsIDocument* aDoc)
 {
   nsCOMPtr<nsPIDOMWindow> win = aDoc->GetWindow();
-  if (win && win->IsPartOfApp()) {
+  if (win && win->IsInAppOrigin()) {
+    
+    
+    
+    
     return nullptr;
   }
 
   if (!nsContentUtils::IsRequestFullScreenAllowed()) {
     return "FullScreenDeniedNotInputDriven";
   }
-  
+
   if (nsContentUtils::IsSitePermDeny(aDoc->NodePrincipal(), "fullscreen")) {
     return "FullScreenDeniedBlocked";
   }
@@ -4779,6 +4783,8 @@ GetFullScreenError(nsIDocument* aDoc)
 
 nsresult nsGenericElement::MozRequestFullScreen()
 {
+  
+  
   
   
   
@@ -4803,3 +4809,4 @@ nsresult nsGenericElement::MozRequestFullScreen()
 
   return NS_OK;
 }
+

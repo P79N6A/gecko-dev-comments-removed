@@ -92,8 +92,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x8c6a1e62, 0xd5ad, 0x4297, \
-  { 0xb9, 0x41, 0x64, 0x49, 0x22, 0x2e, 0xc4, 0xf0 } }
+{ 0xbd70ee06, 0x2a7d, 0x4258, \
+  { 0x86, 0x4b, 0xbd, 0x28, 0xad, 0x9f, 0xd1, 0x41 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -722,6 +722,27 @@ public:
 
 
   virtual void AsyncRequestFullScreen(Element* aElement) = 0;
+
+  
+
+
+
+
+
+
+  virtual nsresult RemoteFrameFullscreenChanged(nsIDOMElement* aFrameElement,
+                                                const nsAString& aNewOrigin) = 0;
+
+  
+
+
+
+
+
+
+
+
+   virtual nsresult RemoteFrameFullscreenReverted() = 0;
 
   
 

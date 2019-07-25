@@ -937,6 +937,10 @@ public:
   virtual void RestorePreviousFullScreenState();
   virtual bool IsFullScreenDoc();
   virtual void SetApprovedForFullscreen(bool aIsApproved);
+  virtual nsresult RemoteFrameFullscreenChanged(nsIDOMElement* aFrameElement,
+                                                const nsAString& aNewOrigin);
+
+  virtual nsresult RemoteFrameFullscreenReverted();
 
   static void ExitFullScreen();
 
@@ -944,7 +948,15 @@ public:
   
   
   
-  void RequestFullScreen(Element* aElement, bool aWasCallerChrome);
+  
+  
+  
+  
+  
+  
+  void RequestFullScreen(Element* aElement,
+                         bool aWasCallerChrome,
+                         bool aNotifyOnOriginChange);
 
   
   
