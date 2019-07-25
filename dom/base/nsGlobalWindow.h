@@ -103,7 +103,6 @@
 #include "nsIContent.h"
 #include "nsIIDBFactory.h"
 #include "nsFrameMessageManager.h"
-#include "mozilla/TimeStamp.h"
 
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
 #define PREF_BROWSER_STARTUP_HOMEPAGE "browser.startup.homepage"
@@ -182,11 +181,7 @@ struct nsTimeout : PRCList
 
   
   
-  
-  
-  mozilla::TimeStamp mWhen;
-  
-  mozilla::TimeDuration mTimeRemaining;
+  PRTime mWhen;
 
   
   nsCOMPtr<nsIPrincipal> mPrincipal;
@@ -561,7 +556,6 @@ protected:
   static void CloseWindow(nsISupports* aWindow);
   static void ClearWindowScope(nsISupports* aWindow);
 
-  
   
   
   nsresult SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
