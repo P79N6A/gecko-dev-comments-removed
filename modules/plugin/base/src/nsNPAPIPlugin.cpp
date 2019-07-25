@@ -474,7 +474,7 @@ GetNewPluginLibrary(nsPluginTag *aPluginTag)
 
 
 nsresult
-nsNPAPIPlugin::CreatePlugin(nsPluginTag *aPluginTag, nsIPlugin** aResult)
+nsNPAPIPlugin::CreatePlugin(nsPluginTag *aPluginTag, nsNPAPIPlugin** aResult)
 {
   *aResult = nsnull;
 

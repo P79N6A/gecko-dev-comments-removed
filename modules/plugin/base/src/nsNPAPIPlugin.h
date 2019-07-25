@@ -86,7 +86,7 @@ public:
 
   
   
-  static nsresult CreatePlugin(nsPluginTag *aPluginTag, nsIPlugin** aResult);
+  static nsresult CreatePlugin(nsPluginTag *aPluginTag, nsNPAPIPlugin** aResult);
 
   PluginLibrary* GetLibrary();
   
