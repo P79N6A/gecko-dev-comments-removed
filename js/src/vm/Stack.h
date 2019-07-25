@@ -57,6 +57,7 @@ class InvokeArgsGuard;
 class InvokeFrameGuard;
 class FrameGuard;
 class ExecuteFrameGuard;
+class BailoutFrameGuard;
 class DummyFrameGuard;
 class GeneratorFrameGuard;
 
@@ -1495,6 +1496,10 @@ class ContextStack
                           StackFrame *evalInFrame, ExecuteFrameGuard *efg);
 
     
+    StackFrame *pushBailoutFrame(JSContext *cx, JSObject *callee, JSFunction *fun,
+                                   JSScript *script, BailoutFrameGuard *bfg);
+
+    
 
 
 
@@ -1596,6 +1601,9 @@ class InvokeFrameGuard : public FrameGuard
 {};
 
 class ExecuteFrameGuard : public FrameGuard
+{};
+
+class BailoutFrameGuard : public FrameGuard
 {};
 
 class DummyFrameGuard : public FrameGuard

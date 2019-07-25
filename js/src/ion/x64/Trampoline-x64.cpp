@@ -39,12 +39,34 @@
 
 
 
-#include "Assembler-x64.h"
+#include "assembler/assembler/MacroAssembler.h"
 #include "ion/IonCompartment.h"
 #include "ion/IonLinker.h"
+#include "ion/IonFrames.h"
+#include "ion/Bailouts.h"
 
+using namespace js;
 using namespace js::ion;
-using namespace JSC;
+
+static void
+GenerateReturn(MacroAssembler &masm, int returnCode)
+{
+    
+#if defined(_WIN64)
+    masm.pop(rsi);
+    masm.pop(rdi);
+#endif
+    masm.pop(r15);
+    masm.pop(r14);
+    masm.pop(r13);
+    masm.pop(r12);
+    masm.pop(rbx);
+
+    
+    masm.pop(rbp);
+    masm.movl(Imm32(returnCode), rax);
+    masm.ret();
+}
 
 
 
@@ -146,21 +168,118 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.pop(r12); 
     masm.movq(JSReturnReg, Operand(r12, 0));
 
-    
-#if defined(_WIN64)
-    masm.pop(rsi);
-    masm.pop(rdi);
-#endif
-    masm.pop(r15);
-    masm.pop(r14);
-    masm.pop(r13);
-    masm.pop(r12);
-    masm.pop(rbx);
+    GenerateReturn(masm, JS_TRUE);
+
+    Linker linker(masm);
+    return linker.newCode(cx);
+}
+
+IonCode *
+IonCompartment::generateReturnError(JSContext *cx)
+{
+    MacroAssembler masm(cx);
 
     
-    masm.pop(rbp);
-    masm.movq(ImmWord(1), rax);
+    
+    masm.pop(r14);
+    masm.addq(r14, rsp);
+
+    GenerateReturn(masm, JS_FALSE);
+    
+    Linker linker(masm);
+    return linker.newCode(cx);
+}
+
+static void
+GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
+{
+    
+    masm.reserveStack(Registers::Total * sizeof(void *));
+    for (uint32 i = 0; i < Registers::Total; i++)
+        masm.movq(Register::FromCode(i), Operand(rsp, i * sizeof(void *)));
+
+    
+    masm.reserveStack(FloatRegisters::Total * sizeof(double));
+    for (uint32 i = 0; i < FloatRegisters::Total; i++)
+        masm.movsd(FloatRegister::FromCode(i), Operand(rsp, i * sizeof(double)));
+
+    
+    masm.movq(rsp, r8);
+
+    
+    masm.setupUnalignedABICall(1, rax);
+    masm.setABIArg(0, r8);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Bailout));
+
+    
+    uint32 bailoutFrameSize = sizeof(void *) * Registers::Total +
+                              sizeof(double) * FloatRegisters::Total +
+                              sizeof(void *); 
+    masm.addq(Imm32(bailoutFrameSize), rsp);
+
+    
+    masm.pop(rcx);
+    masm.addq(rcx, rsp);
+
+    Label exception;
+
+    
+    masm.testl(rax, rax);
+    masm.j(Assembler::NonZero, &exception);
+
+    
+    
+    
+    masm.movq(rsp, rax);
+
+    
+    masm.subq(Imm32(sizeof(Value)), rsp);
+    masm.movq(rsp, rcx);
+
+    
+    masm.setupUnalignedABICall(2, rdx);
+    masm.setABIArg(0, rax);
+    masm.setABIArg(1, rcx);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
+
+    
+    masm.movq(Operand(rsp, 0), JSReturnReg);
+    masm.addq(Imm32(8), rsp);
+
+    
+    masm.testl(rax, rax);
+    masm.j(Assembler::Zero, &exception);
+
+    
     masm.ret();
+
+    masm.bind(&exception);
+
+
+    
+    masm.movq(rsp, rax);
+    masm.setupUnalignedABICall(1, rcx);
+    masm.setABIArg(0, rax);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, HandleException));
+
+    
+    masm.addq(rax, rsp);
+    masm.ret();
+}
+
+IonCode *
+IonCompartment::generateBailoutTable(JSContext *cx, uint32 frameClass)
+{
+    JS_NOT_REACHED("x64 does not use bailout tables");
+    return NULL;
+}
+
+IonCode *
+IonCompartment::generateBailoutHandler(JSContext *cx)
+{
+    MacroAssembler masm;
+
+    GenerateBailoutThunk(masm, NO_FRAME_SIZE_CLASS_ID);
 
     Linker linker(masm);
     return linker.newCode(cx);

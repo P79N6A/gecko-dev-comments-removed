@@ -49,16 +49,11 @@ namespace js {
 namespace ion {
 
 
-
-
-static const uint32 MAX_BUFFER_SIZE = INT_MAX / 2;
-
-
 struct Imm32
 {
     int32_t value;
 
-    Imm32(int32_t value) : value(value)
+    explicit Imm32(int32_t value) : value(value)
     { }
 };
 

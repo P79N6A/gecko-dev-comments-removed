@@ -38,16 +38,20 @@
 
 
 
+#include "jscntxt.h"
+#include "jscompartment.h"
 #include "CodeGenerator-x86-shared.h"
 #include "CodeGenerator-shared-inl.h"
 #include "ion/IonFrames.h"
 #include "ion/MoveEmitter.h"
+#include "ion/IonCompartment.h"
 
 using namespace js;
 using namespace js::ion;
 
 CodeGeneratorX86Shared::CodeGeneratorX86Shared(MIRGenerator *gen, LIRGraph &graph)
-  : CodeGeneratorShared(gen, graph)
+  : CodeGeneratorShared(gen, graph),
+    deoptLabel_(NULL)
 {
 }
 
@@ -55,10 +59,7 @@ bool
 CodeGeneratorX86Shared::generatePrologue()
 {
     
-    if (frameClass_ != FrameSizeClass::None())
-        masm.reserveStack(frameClass_.frameSize());
-    else
-        masm.reserveStack(frameDepth_);
+    masm.reserveStack(frameSize());
 
     
     
@@ -73,14 +74,17 @@ CodeGeneratorX86Shared::generateEpilogue()
     masm.bind(returnLabel_);
 
     
-    if (frameClass_ != FrameSizeClass::None())
-        masm.freeStack(frameClass_.frameSize());
-    else
-        masm.freeStack(frameDepth_);
+    masm.freeStack(frameSize());
     JS_ASSERT(masm.framePushed() == 0);
 
     masm.ret();
     return true;
+}
+
+bool
+OutOfLineBailout::accept(CodeGeneratorX86Shared *codegen)
+{
+    return codegen->visitOutOfLineBailout(this);
 }
 
 bool
@@ -118,6 +122,78 @@ CodeGeneratorX86Shared::visitTestIAndBranch(LTestIAndBranch *test)
 }
 
 bool
+CodeGeneratorX86Shared::generateOutOfLineCode()
+{
+    if (!CodeGeneratorShared::generateOutOfLineCode())
+        return false;
+
+    if (deoptLabel_) {
+        
+        masm.bind(deoptLabel_);
+        
+        
+        masm.push(Imm32(frameSize()));
+
+        IonCompartment *ion = gen->cx->compartment->ionCompartment();
+        IonCode *handler = ion->getGenericBailoutHandler(gen->cx);
+        if (!handler)
+            return false;
+
+        masm.jmp(handler->raw(), Relocation::CODE);
+    }
+
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::bailoutIf(Assembler::Condition condition, LSnapshot *snapshot)
+{
+    if (!encode(snapshot))
+        return false;
+
+    
+    
+    
+    JS_ASSERT_IF(frameClass_ != FrameSizeClass::None(),
+                 frameClass_.frameSize() == masm.framePushed());
+
+    
+    
+    
+#ifdef JS_CPU_X86
+    if (assignBailoutId(snapshot)) {
+        uint8 *code = deoptTable_->raw() + snapshot->bailoutId() * BAILOUT_TABLE_ENTRY_SIZE;
+        masm.j(condition, code, Relocation::EXTERNAL);
+        return true;
+    }
+#endif
+
+    
+    
+    
+    OutOfLineBailout *ool = new OutOfLineBailout(snapshot, masm.framePushed());
+    if (!addOutOfLineCode(ool))
+        return false;
+
+    masm.j(condition, ool->entry());
+
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::visitOutOfLineBailout(OutOfLineBailout *ool)
+{
+    masm.bind(ool->entry());
+
+    if (!deoptLabel_)
+        deoptLabel_ = new HeapLabel();
+
+    masm.push(Imm32(ool->snapshot()->snapshotOffset()));
+    masm.jmp(deoptLabel_);
+    return true;
+}
+
+bool
 CodeGeneratorX86Shared::visitAddI(LAddI *ins)
 {
     const LAllocation *lhs = ins->getOperand(0);
@@ -127,6 +203,9 @@ CodeGeneratorX86Shared::visitAddI(LAddI *ins)
         masm.addl(Imm32(ToInt32(rhs)), ToOperand(lhs));
     else
         masm.addl(ToOperand(rhs), ToRegister(lhs));
+
+    if (ins->snapshot() && !bailoutIf(Assembler::Overflow, ins->snapshot()))
+        return false;
 
     return true;
 }
@@ -180,10 +259,7 @@ CodeGeneratorX86Shared::toMoveOperand(const LAllocation *a) const
         return MoveOperand(ToRegister(a));
     if (a->isFloatReg())
         return MoveOperand(ToFloatRegister(a));
-    int32 disp = a->isStackSlot()
-                 ? SlotToStackOffset(a->toStackSlot()->slot())
-                 : ArgToStackOffset(a->toArgument()->index());
-    return MoveOperand(StackPointer, disp);
+    return MoveOperand(StackPointer, ToStackOffset(a));
 }
 
 bool
