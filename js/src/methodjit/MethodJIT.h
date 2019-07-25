@@ -139,6 +139,18 @@ struct VMFrame
 extern "C" void JaegerStubVeneer(void);
 #endif
 
+namespace mjit {
+namespace ic {
+# if defined JS_POLYIC
+    struct PICInfo;
+# endif
+# if defined JS_MONOIC
+    struct MICInfo;
+    struct CallICInfo;
+# endif
+}
+}
+
 typedef void (JS_FASTCALL *VoidStub)(VMFrame &);
 typedef void (JS_FASTCALL *VoidVpStub)(VMFrame &, Value *);
 typedef void (JS_FASTCALL *VoidStubUInt32)(VMFrame &, uint32);
@@ -158,28 +170,50 @@ typedef JSString * (JS_FASTCALL *JSStrStubUInt32)(VMFrame &, uint32);
 typedef void (JS_FASTCALL *VoidStubJSObj)(VMFrame &, JSObject *);
 typedef void (JS_FASTCALL *VoidStubPC)(VMFrame &, jsbytecode *);
 typedef JSBool (JS_FASTCALL *BoolStubUInt32)(VMFrame &f, uint32);
-
-#define JS_UNJITTABLE_METHOD (reinterpret_cast<void*>(1))
+#ifdef JS_MONOIC
+typedef void (JS_FASTCALL *VoidStubCallIC)(VMFrame &, js::mjit::ic::CallICInfo *);
+typedef void * (JS_FASTCALL *VoidPtrStubCallIC)(VMFrame &, js::mjit::ic::CallICInfo *);
+typedef void (JS_FASTCALL *VoidStubMIC)(VMFrame &, js::mjit::ic::MICInfo *);
+typedef void * (JS_FASTCALL *VoidPtrStubMIC)(VMFrame &, js::mjit::ic::MICInfo *);
+#endif
+#ifdef JS_POLYIC
+typedef void (JS_FASTCALL *VoidStubPIC)(VMFrame &, js::mjit::ic::PICInfo *);
+#endif
 
 namespace mjit {
 
+struct CallSite;
+
 struct JITScript {
-    JSC::ExecutablePool *execPool;   
-    uint32          inlineLength;    
-    uint32          outOfLineLength; 
+    typedef JSC::MacroAssemblerCodeRef CodeRef;
+    CodeRef         code;       
+
     js::mjit::CallSite *callSites;
     uint32          nCallSites;
 #ifdef JS_MONOIC
-    uint32          nMICs;           
-    uint32          nCallICs;        
+    ic::MICInfo     *mics;      
+    uint32          nMICs;      
+    ic::CallICInfo  *callICs;   
+    uint32          nCallICs;   
 #endif
 #ifdef JS_POLYIC
-    uint32          nPICs;           
+    ic::PICInfo     *pics;      
+    uint32          nPICs;      
 #endif
-    void            *invoke;         
-    void            *arityCheck;     
-    uint32          *escaping;       
-    uint32          nescaping;       
+    void            *invokeEntry;       
+    void            *fastEntry;         
+    void            *arityCheckEntry;   
+
+    bool isValidCode(void *ptr) {
+        char *jitcode = (char *)code.m_code.executableAddress();
+        char *jcheck = (char *)ptr;
+        return jcheck >= jitcode && jcheck < jitcode + code.m_size;
+    }
+
+    void sweepCallICs();
+    void purgeMICs();
+    void purgePICs();
+    void release();
 };
 
 
@@ -198,22 +232,22 @@ enum CompileStatus
 void JS_FASTCALL
 ProfileStubCall(VMFrame &f);
 
-CompileStatus
-TryCompile(JSContext *cx, JSScript *script, JSFunction *fun, JSObject *scopeChain);
+CompileStatus JS_NEVER_INLINE
+TryCompile(JSContext *cx, JSStackFrame *fp);
 
 void
 ReleaseScriptCode(JSContext *cx, JSScript *script);
 
-void
-SweepCallICs(JSContext *cx);
-
 static inline CompileStatus
-CanMethodJIT(JSContext *cx, JSScript *script, JSFunction *fun, JSObject *scopeChain)
+CanMethodJIT(JSContext *cx, JSScript *script, JSStackFrame *fp)
 {
-    if (!cx->methodJitEnabled || script->ncode == JS_UNJITTABLE_METHOD)
+    if (!cx->methodJitEnabled)
         return Compile_Abort;
-    if (script->ncode == NULL)
-        return TryCompile(cx, script, fun, scopeChain);
+    JITScriptStatus status = script->getJITStatus(fp->isConstructing());
+    if (status == JITScript_Invalid)
+        return Compile_Abort;
+    if (status == JITScript_None)
+        return TryCompile(cx, fp);
     return Compile_Okay;
 }
 

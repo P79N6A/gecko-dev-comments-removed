@@ -169,26 +169,49 @@ struct GlobalSlotArray {
 namespace JSC {
     class ExecutablePool;
 }
+
+#define JS_UNJITTABLE_SCRIPT (reinterpret_cast<void*>(1))
+
+enum JITScriptStatus {
+    JITScript_None,
+    JITScript_Invalid,
+    JITScript_Valid
+};
+
 namespace js {
 namespace mjit {
 
 struct JITScript;
 
-namespace ic {
-# if defined JS_POLYIC
-    struct PICInfo;
-# endif
-# if defined JS_MONOIC
-    struct MICInfo;
-    struct CallICInfo;
-# endif
-}
-struct CallSite;
 }
 }
 #endif
 
 struct JSScript {
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static JSScript *NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
+                               uint32 nobjects, uint32 nupvars, uint32 nregexps,
+                               uint32 ntrynotes, uint32 nconsts, uint32 nglobals,
+                               uint32 nClosedArgs, uint32 nClosedVars);
+
+    static JSScript *NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
+
     
     JSCList         links;      
     jsbytecode      *code;      
@@ -216,6 +239,7 @@ struct JSScript {
     bool            strictModeCode:1; 
     bool            compileAndGo:1;   
     bool            usesEval:1;       
+    bool            usesArguments:1;  
     bool            warnedAboutTwoArgumentEval:1; 
 
 
@@ -229,6 +253,8 @@ struct JSScript {
     uint32          lineno;     
     uint16          nslots;     
     uint16          staticLevel;
+    uint16          nClosedArgs; 
+    uint16          nClosedVars; 
     JSPrincipals    *principals;
     union {
         
@@ -253,21 +279,72 @@ struct JSScript {
 #ifdef CHECK_SCRIPT_OWNER
     JSThread        *owner;     
 #endif
+
+    uint32          *closedSlots; 
+
+  public:
 #ifdef JS_METHODJIT
     
     
-    void            *ncode;     
-    void            **nmap;     
-    js::mjit::JITScript *jit;   
-# if defined JS_POLYIC
-    js::mjit::ic::PICInfo *pics; 
-# endif
-# if defined JS_MONOIC
-    js::mjit::ic::MICInfo *mics; 
-    js::mjit::ic::CallICInfo *callICs; 
-# endif
+    
+    
+    void *jitArityCheckNormal;
+    void *jitArityCheckCtor;
 
-    bool isValidJitCode(void *jcode);
+    js::mjit::JITScript *jitNormal;   
+    js::mjit::JITScript *jitCtor;     
+
+    void **nmapNormal;
+    void **nmapCtor;
+
+    bool hasJITCode() {
+        return jitNormal || jitCtor;
+    }
+
+    void setNativeMap(bool constructing, void **map) {
+        if (constructing)
+            nmapCtor = map;
+        else
+            nmapNormal = map;
+    }
+
+    void **maybeNativeMap(bool constructing) {
+        return constructing ? nmapCtor : nmapNormal;
+    }
+
+    void **nativeMap(bool constructing) {
+        void **nmap = maybeNativeMap(constructing);
+        JS_ASSERT(nmap);
+        return nmap;
+    }
+
+    void *maybeNativeCodeForPC(bool constructing, jsbytecode *pc) {
+        void **nmap = maybeNativeMap(constructing);
+        if (!nmap)
+            return NULL;
+        JS_ASSERT(pc >= code && pc < code + length);
+        return nmap[pc - code];
+    }
+
+    void *nativeCodeForPC(bool constructing, jsbytecode *pc) {
+        void **nmap = nativeMap(constructing);
+        JS_ASSERT(pc >= code && pc < code + length);
+        JS_ASSERT(nmap[pc - code]);
+        return nmap[pc - code];
+    }
+
+    js::mjit::JITScript *getJIT(bool constructing) {
+        return constructing ? jitCtor : jitNormal;
+    }
+
+    JITScriptStatus getJITStatus(bool constructing) {
+        void *addr = constructing ? jitArityCheckCtor : jitArityCheckNormal;
+        if (addr == NULL)
+            return JITScript_None;
+        if (addr == JS_UNJITTABLE_SCRIPT)
+            return JITScript_Invalid;
+        return JITScript_Valid;
+    }
 #endif
 
     
@@ -362,16 +439,17 @@ struct JSScript {
         return const_cast<JSScript *>(&emptyScriptConst);
     }
 
-#ifdef JS_METHODJIT
-    
-
-
-    void *pcToNative(jsbytecode *pc) {
-        JS_ASSERT(nmap);
-        JS_ASSERT(nmap[pc - code]);
-        return nmap[pc - code];
+    uint32 getClosedArg(uint32 index) {
+        JS_ASSERT(index < nClosedArgs);
+        return closedSlots[index];
     }
-#endif
+
+    uint32 getClosedVar(uint32 index) {
+        JS_ASSERT(index < nClosedVars);
+        return closedSlots[nClosedArgs + index];
+    }
+
+    void copyClosedSlotsTo(JSScript *other);
 
   private:
     
@@ -447,31 +525,6 @@ js_MarkScriptFilenames(JSRuntime *rt);
 
 extern void
 js_SweepScriptFilenames(JSRuntime *rt);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JSScript *
-js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
-             uint32 nobjects, uint32 nupvars, uint32 nregexps,
-             uint32 ntrynotes, uint32 nconsts, uint32 nglobals);
-
-extern JSScript *
-js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
 
 
 

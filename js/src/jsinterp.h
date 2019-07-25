@@ -52,6 +52,7 @@
 
 struct JSFrameRegs
 {
+    STATIC_SKIP_INFERENCE
     js::Value       *sp;                  
     jsbytecode      *pc;                  
     JSStackFrame    *fp;                  
@@ -90,11 +91,14 @@ enum JSFrameFlags
     JSFRAME_UNDERFLOW_ARGS     =  0x4000, 
 
     
-    JSFRAME_HAS_IMACRO_PC      =  0x8000, 
-    JSFRAME_HAS_CALL_OBJ       = 0x10000, 
-    JSFRAME_HAS_ARGS_OBJ       = 0x20000, 
-    JSFRAME_HAS_HOOK_DATA      = 0x40000, 
-    JSFRAME_HAS_ANNOTATION     = 0x80000  
+    JSFRAME_HAS_IMACRO_PC      =   0x8000, 
+    JSFRAME_HAS_CALL_OBJ       =  0x10000, 
+    JSFRAME_HAS_ARGS_OBJ       =  0x20000, 
+    JSFRAME_HAS_HOOK_DATA      =  0x40000, 
+    JSFRAME_HAS_ANNOTATION     =  0x80000, 
+    JSFRAME_HAS_RVAL           = 0x100000, 
+    JSFRAME_HAS_SCOPECHAIN     = 0x200000, 
+    JSFRAME_HAS_PREVPC         = 0x400000  
 };
 
 
@@ -104,7 +108,7 @@ enum JSFrameFlags
 struct JSStackFrame
 {
   private:
-    uint32              flags_;         
+    mutable uint32      flags_;         
     union {                             
         JSScript        *script;        
         JSFunction      *fun;           
@@ -114,19 +118,16 @@ struct JSStackFrame
         JSObject        *obj;           
         JSScript        *script;        
     } args;
-    JSObject            *scopeChain_;   
+    mutable JSObject    *scopeChain_;   
     JSStackFrame        *prev_;         
-    jsbytecode          *savedpc_;      
+    void                *ncode_;        
 
     
     js::Value           rval_;          
+    jsbytecode          *prevpc_;       
     jsbytecode          *imacropc_;     
     void                *hookData_;     
     void                *annotation_;   
-
-    
-    void                *ncode_;        
-    JSObject            *blockChain_;   
 
 #if JS_BITS_PER_WORD == 32
     void                *padding;
@@ -135,6 +136,8 @@ struct JSStackFrame
     friend class js::StackSpace;
     friend class js::FrameRegsIter;
     friend struct JSContext;
+
+    inline void initPrev(JSContext *cx);
 
   public:
     
@@ -189,13 +192,13 @@ struct JSStackFrame
                               uint32 nactual, uint32 flags);
 
     
-    inline void initCallFrameCallerHalf(JSContext *cx, JSObject &scopeChain,
-                                        uint32 nactual, uint32 flags);
+    inline void initCallFrameCallerHalf(JSContext *cx, uint32 nactual, uint32 flags);
     inline void initCallFrameEarlyPrologue(JSFunction *fun, void *ncode);
     inline void initCallFrameLatePrologue();
 
     
-    inline void initEvalFrame(JSScript *script, JSStackFrame *prev, uint32 flags);
+    inline void initEvalFrame(JSContext *cx, JSScript *script, JSStackFrame *prev,
+                              uint32 flags);
     inline void initGlobalFrame(JSScript *script, JSObject &chain, uint32 flags);
 
     
@@ -222,9 +225,7 @@ struct JSStackFrame
         return prev_;
     }
 
-    void repointGeneratorFrameDown(JSStackFrame *prev) {
-        prev_ = prev;
-    }
+    inline void resetGeneratorPrev(JSContext *cx);
 
     
 
@@ -249,7 +250,16 @@ struct JSStackFrame
 
 
 
-    jsbytecode *pc(JSContext *cx) const;
+    
+
+
+
+    jsbytecode *pc(JSContext *cx, JSStackFrame *next = NULL);
+
+    jsbytecode *prevpc() {
+        JS_ASSERT((prev_ != NULL) && (flags_ & JSFRAME_HAS_PREVPC));
+        return prevpc_;
+    }
 
     JSScript *script() const {
         JS_ASSERT(isScriptFrame());
@@ -319,8 +329,13 @@ struct JSStackFrame
 
 
 
+    
+    bool hasArgs() const {
+        return isFunctionFrame() && !isEvalFrame();
+    }
+
     uintN numFormalArgs() const {
-        JS_ASSERT(isFunctionFrame() && !isEvalFrame());
+        JS_ASSERT(hasArgs());
         return fun()->nargs;
     }
 
@@ -330,12 +345,12 @@ struct JSStackFrame
     }
 
     js::Value *formalArgs() const {
-        JS_ASSERT(isFunctionFrame() && !isEvalFrame());
+        JS_ASSERT(hasArgs());
         return (js::Value *)this - numFormalArgs();
     }
 
     js::Value *formalArgsEnd() const {
-        JS_ASSERT(isFunctionFrame() && !isEvalFrame());
+        JS_ASSERT(hasArgs());
         return (js::Value *)this;
     }
 
@@ -353,6 +368,7 @@ struct JSStackFrame
     template <class Op> inline void forEachCanonicalActualArg(Op op);
     template <class Op> inline void forEachFormalArg(Op op);
 
+    
     bool hasArgsObj() const {
         return !!(flags_ & JSFRAME_HAS_ARGS_OBJ);
     }
@@ -367,7 +383,8 @@ struct JSStackFrame
         return hasArgsObj() ? &argsObj() : NULL;
     }
 
-    void setArgsObj(JSObject &obj);
+    inline void setArgsObj(JSObject &obj);
+    inline void clearArgsObj();
 
     
 
@@ -391,7 +408,7 @@ struct JSStackFrame
     }
 
     JSObject &constructorThis() const {
-        JS_ASSERT(isFunctionFrame() && !isEvalFrame());
+        JS_ASSERT(hasArgs());
         return formalArgs()[-1].toObject();
     }
 
@@ -458,6 +475,11 @@ struct JSStackFrame
 
 
     JSObject &scopeChain() const {
+        JS_ASSERT_IF(!(flags_ & JSFRAME_HAS_SCOPECHAIN), isFunctionFrame());
+        if (!(flags_ & JSFRAME_HAS_SCOPECHAIN)) {
+            scopeChain_ = callee().getParent();
+            flags_ |= JSFRAME_HAS_SCOPECHAIN;
+        }
         return *scopeChain_;
     }
 
@@ -469,25 +491,7 @@ struct JSStackFrame
     inline JSObject *maybeCallObj() const;
     inline void setScopeChainNoCallObj(JSObject &obj);
     inline void setScopeChainAndCallObj(JSObject &obj);
-
-    
-
-    bool hasBlockChain() const {
-        return blockChain_ != NULL;
-    }
-
-    JSObject* blockChain() const {
-        JS_ASSERT(hasBlockChain());
-        return blockChain_;
-    }
-
-    JSObject* maybeBlockChain() const {
-        return blockChain_;
-    }
-
-    void setBlockChain(JSObject *obj) {
-        blockChain_ = obj;
-    }
+    inline void clearCallObj();
 
     
 
@@ -555,25 +559,33 @@ struct JSStackFrame
     
 
     const js::Value& returnValue() {
+        if (!(flags_ & JSFRAME_HAS_RVAL))
+            rval_.setUndefined();
         return rval_;
+    }
+
+    void markReturnValue() {
+        flags_ |= JSFRAME_HAS_RVAL;
     }
 
     void setReturnValue(const js::Value &v) {
         rval_ = v;
+        markReturnValue();
     }
 
     void clearReturnValue() {
         rval_.setUndefined();
-    }
-
-    js::Value* addressReturnValue() {
-        return &rval_;
+        markReturnValue();
     }
 
     
 
     void *nativeReturnAddress() const {
         return ncode_;
+    }
+
+    void setNativeReturnAddress(void *addr) {
+        ncode_ = addr;
     }
 
     void **addressOfNativeReturnAddress() {
@@ -710,15 +722,12 @@ struct JSStackFrame
     }
 
     JSObject **addressOfScopeChain() {
+        JS_ASSERT(flags_ & JSFRAME_HAS_SCOPECHAIN);
         return &scopeChain_;
     }
 
     static size_t offsetOfPrev() {
         return offsetof(JSStackFrame, prev_);
-    }
-
-    static size_t offsetOfSavedpc() {
-        return offsetof(JSStackFrame, savedpc_);
     }
 
     static size_t offsetOfReturnValue() {
@@ -727,10 +736,6 @@ struct JSStackFrame
 
     static ptrdiff_t offsetOfncode() {
         return offsetof(JSStackFrame, ncode_);
-    }
-
-    static size_t offsetOfBlockChain() {
-        return offsetof(JSStackFrame, blockChain_);
     }
 
     static ptrdiff_t offsetOfCallee(JSFunction *fun) {
@@ -764,9 +769,6 @@ struct JSStackFrame
 
 #ifdef DEBUG
     
-    static jsbytecode *const sInvalidpc;
-
-    
     static JSObject *const sInvalidScopeChain;
 #endif
 };
@@ -778,6 +780,12 @@ static const size_t VALUES_PER_STACK_FRAME = sizeof(JSStackFrame) / sizeof(Value
 } 
 
 
+extern JSObject *
+js_GetBlockChain(JSContext *cx, JSStackFrame *fp);
+
+extern JSObject *
+js_GetBlockChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
+
 
 
 
@@ -787,6 +795,9 @@ static const size_t VALUES_PER_STACK_FRAME = sizeof(JSStackFrame) / sizeof(Value
 
 extern JSObject *
 js_GetScopeChain(JSContext *cx, JSStackFrame *fp);
+
+extern JSObject *
+js_GetScopeChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
 
 
 
@@ -945,7 +956,7 @@ extern JS_REQUIRES_STACK JS_NEVER_INLINE bool
 Interpret(JSContext *cx, JSStackFrame *stopFp, uintN inlineCallCount = 0, uintN interpFlags = 0);
 
 extern JS_REQUIRES_STACK bool
-RunScript(JSContext *cx, JSScript *script, JSFunction *fun, JSObject &scopeChain);
+RunScript(JSContext *cx, JSScript *script, JSStackFrame *fp);
 
 #define JSPROP_INITIALIZER 0x100   /* NB: Not a valid property attribute. */
 
@@ -1025,7 +1036,7 @@ GetUpvar(JSContext *cx, uintN level, js::UpvarCookie cookie);
 # define JS_STATIC_INTERPRET
 
 extern JS_REQUIRES_STACK JSBool
-js_EnterWith(JSContext *cx, jsint stackIndex);
+js_EnterWith(JSContext *cx, jsint stackIndex, JSOp op, size_t oplen);
 
 extern JS_REQUIRES_STACK void
 js_LeaveWith(JSContext *cx);
