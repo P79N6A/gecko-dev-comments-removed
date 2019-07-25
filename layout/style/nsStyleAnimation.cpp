@@ -1807,8 +1807,7 @@ BuildStyleRule(nsCSSProperty aProperty,
 
   
   
-  if (!parser ||
-      NS_FAILED(parser.ParseProperty(aProperty, aSpecifiedValue,
+  if (NS_FAILED(parser.ParseProperty(aProperty, aSpecifiedValue,
                                      doc->GetDocumentURI(), baseURI,
                                      aTargetElement->NodePrincipal(),
                                      declaration, &changed, PR_FALSE)) ||

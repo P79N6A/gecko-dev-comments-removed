@@ -83,11 +83,6 @@ private:
 public:
   
   
-  operator bool() const
-  { return !!mImpl; }
-
-  
-  
   
   nsresult SetStyleSheet(nsCSSStyleSheet* aSheet);
 

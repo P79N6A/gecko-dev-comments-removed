@@ -1170,9 +1170,6 @@ MappedAttrParser::MappedAttrParser(css::Loader* aLoader,
     mNodePrincipal(aNodePrincipal), mDecl(nsnull)
 {
   
-  NS_ABORT_IF_FALSE(mParser, "parser failed to initialize?");
-
-  
   
   
   

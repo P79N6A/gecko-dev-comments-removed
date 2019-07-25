@@ -1895,7 +1895,6 @@ NS_IMETHODIMP
 nsCSSKeyframeRule::SetKeyText(const nsAString& aKeyText)
 {
   nsCSSParser parser;
-  NS_ENSURE_TRUE(parser, NS_ERROR_OUT_OF_MEMORY);
 
   nsTArray<float> newSelectors;
   
@@ -2059,7 +2058,6 @@ nsCSSKeyframesRule::InsertRule(const nsAString& aRule)
   
   
   nsCSSParser parser;
-  NS_ENSURE_TRUE(parser, NS_OK);
 
   
   nsRefPtr<nsCSSKeyframeRule> rule =
@@ -2078,7 +2076,6 @@ PRUint32
 nsCSSKeyframesRule::FindRuleIndexForKey(const nsAString& aKey)
 {
   nsCSSParser parser;
-  NS_ENSURE_TRUE(parser, RULE_NOT_FOUND);
 
   nsTArray<float> keys;
   
