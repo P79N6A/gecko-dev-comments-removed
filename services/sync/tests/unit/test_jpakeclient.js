@@ -263,15 +263,17 @@ function test_abort_receiver(next) {
     },
     onAbort: function onAbort(error) {
       
-      do_check_eq(error, undefined);
+      do_check_eq(error, JPAKE_ERROR_USERABORT);
       
       do_check_eq(channels[this.cid].data, undefined);
-      do_check_eq(error_report, undefined);
+      do_check_eq(error_report, JPAKE_ERROR_USERABORT);
+      error_report = undefined;
       next();
     },
     displayPIN: function displayPIN(pin) {
       this.cid = pin.slice(JPAKE_LENGTH_SECRET);
-      Utils.delay(function() { rec.abort(); }, 0, this, "_timer");
+      Utils.delay(function() { rec.abort(); },
+                  0, this, "_timer");
     }
   });
   rec.receiveNoPIN();
@@ -287,7 +289,9 @@ function test_abort_sender(next) {
     },
     onAbort: function onAbort(error) {
       
-      do_check_eq(error, undefined);
+      do_check_eq(error, JPAKE_ERROR_USERABORT);
+      do_check_eq(error_report, JPAKE_ERROR_USERABORT);
+      error_report = undefined;
     },
     onComplete: function onComplete() {
       do_throw("Shouldn't have completed!");
@@ -310,8 +314,8 @@ function test_abort_sender(next) {
       this.cid = pin.slice(JPAKE_LENGTH_SECRET);
       Utils.delay(function() { snd.sendWithPIN(pin, DATA); }, 0,
                   this, "_timer");
-      Utils.delay(function() { snd.abort(); }, POLLINTERVAL,
-                  this, "_abortTimer");
+      Utils.delay(function() { snd.abort(); },
+                  POLLINTERVAL, this, "_abortTimer");
     }
   });
   rec.receiveNoPIN();

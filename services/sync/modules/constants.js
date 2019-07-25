@@ -185,6 +185,7 @@ JPAKE_ERROR_INVALID:                   "jpake.error.invalid",
 JPAKE_ERROR_NODATA:                    "jpake.error.nodata",
 JPAKE_ERROR_KEYMISMATCH:               "jpake.error.keymismatch",
 JPAKE_ERROR_WRONGMESSAGE:              "jpake.error.wrongmessage",
+JPAKE_ERROR_USERABORT:                 "jpake.error.userabort",
 
 
 kSyncMasterPasswordLocked:             "User elected to leave Master Password locked",
