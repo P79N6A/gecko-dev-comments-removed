@@ -152,7 +152,6 @@ public:
 
 
   void Language(nsAString& aLocale);
-  void ScrollTo(PRUint32 aType);
 
 protected:
     nsPresContext* GetPresContext();
