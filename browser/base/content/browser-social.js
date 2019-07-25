@@ -294,6 +294,12 @@ let SocialFlyout = {
 
 let SocialShareButton = {
   
+  
+  
+  promptImages: null,
+  promptMessages: null,
+
+  
   init: function SSB_init() {
     this.updateButtonHiddenState();
     this.updateProfileInfo();
@@ -311,6 +317,61 @@ let SocialShareButton = {
     } else {
       profileRow.hidden = true;
     }
+    
+    
+    
+    this.promptImages = null;
+    this.promptMessages = null;
+    
+    let port = Social.provider._getWorkerPort();
+    if (port) {
+      port.onmessage = function(evt) {
+        if (evt.data.topic == "social.user-recommend-prompt-response") {
+          port.close();
+          this.acceptRecommendInfo(evt.data.data);
+          this.updateButtonHiddenState();
+          this.updateShareState();
+        }
+      }.bind(this);
+      port.postMessage({topic: "social.user-recommend-prompt"});
+    }
+  },
+
+  acceptRecommendInfo: function SSB_acceptRecommendInfo(data) {
+    
+    let promptImages = {};
+    let promptMessages = {};
+    function reportError(reason) {
+      Cu.reportError("Invalid recommend data from provider: " + reason + ": sharing is disabled for this provider");
+      return false;
+    }
+    if (!data ||
+        !data.images || typeof data.images != "object" ||
+        !data.messages || typeof data.messages != "object") {
+      return reportError("data is missing valid 'images' or 'messages' elements");
+    }
+    for (let sub of ["share", "unshare"]) {
+      let url = data.images[sub];
+      if (!url || typeof url != "string" || url.length == 0) {
+        return reportError('images["' + sub + '"] is missing or not a non-empty string');
+      }
+      
+      url = Services.io.newURI(Social.provider.origin, null, null).resolve(url);
+      let uri = Services.io.newURI(url, null, null);
+      if (!uri.schemeIs("http") && !uri.schemeIs("https") && !uri.schemeIs("data")) {
+        return reportError('images["' + sub + '"] does not have a valid scheme');
+      }
+      promptImages[sub] = url;
+    }
+    for (let sub of ["shareTooltip", "unshareTooltip", "sharedLabel", "unsharedLabel"]) {
+      if (typeof data.messages[sub] != "string" || data.messages[sub].length == 0) {
+        return reportError('messages["' + sub + '"] is not a valid string');
+      }
+      promptMessages[sub] = data.messages[sub];
+    }
+    this.promptImages = promptImages;
+    this.promptMessages = promptMessages;
+    return true;
   },
 
   get shareButton() {
@@ -327,7 +388,7 @@ let SocialShareButton = {
   updateButtonHiddenState: function SSB_updateButtonHiddenState() {
     let shareButton = this.shareButton;
     if (shareButton)
-      shareButton.hidden = !Social.uiVisible;
+      shareButton.hidden = !Social.uiVisible || this.promptImages == null;
   },
 
   onClick: function SSB_onClick(aEvent) {
@@ -370,23 +431,33 @@ let SocialShareButton = {
     
     let status = document.getElementById("share-button-status");
     if (status) {
+      
+      
+      
+      
+      
+      
       let statusString = currentPageShared ?
-                           gNavigatorBundle.getString("social.pageShared.label") : "";
+                           this.promptMessages['sharedLabel'] : "";
       status.setAttribute("value", statusString);
     }
 
     
     let shareButton = this.shareButton;
-    if (!shareButton)
+    if (!shareButton || shareButton.hidden)
       return;
 
+    let imageURL;
     if (currentPageShared) {
       shareButton.setAttribute("shared", "true");
-      shareButton.setAttribute("tooltiptext", gNavigatorBundle.getString("social.shareButton.sharedtooltip"));
+      shareButton.setAttribute("tooltiptext", this.promptMessages['unshareTooltip']);
+      imageURL = this.promptImages["unshare"]
     } else {
       shareButton.removeAttribute("shared");
-      shareButton.setAttribute("tooltiptext", gNavigatorBundle.getString("social.shareButton.tooltip"));
+      shareButton.setAttribute("tooltiptext", this.promptMessages['shareTooltip']);
+      imageURL = this.promptImages["share"]
     }
+    shareButton.style.backgroundImage = 'url("' + encodeURI(imageURL) + '")';
   }
 };
 
