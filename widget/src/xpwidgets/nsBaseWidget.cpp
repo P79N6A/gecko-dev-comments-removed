@@ -827,14 +827,10 @@ nsBaseWidget::GetShouldAccelerate()
 
   bool whitelisted = false;
 
+  
+  
   nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
   if (gfxInfo) {
-    
-    
-    
-    
-    gfxInfo->GetData();
-
     PRInt32 status;
     if (NS_SUCCEEDED(gfxInfo->GetFeatureStatus(nsIGfxInfo::FEATURE_OPENGL_LAYERS, &status))) {
       if (status == nsIGfxInfo::FEATURE_NO_INFO) {

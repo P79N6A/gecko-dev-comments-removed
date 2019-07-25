@@ -84,9 +84,6 @@ public:
   
   
   virtual nsresult Init();
-  
-  
-  virtual void GetData() { }
 
 protected:
 
