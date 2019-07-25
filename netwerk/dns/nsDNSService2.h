@@ -2,6 +2,9 @@
 
 
 
+#ifndef nsDNSService2_h__
+#define nsDNSService2_h__
+
 #include "nsPIDNSService.h"
 #include "nsIIDNService.h"
 #include "nsIObserver.h"
@@ -43,3 +46,5 @@ private:
     bool                      mFirstTime;
     nsTHashtable<nsCStringHashKey> mLocalDomains;
 };
+
+#endif 
