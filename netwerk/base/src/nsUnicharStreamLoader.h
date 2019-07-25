@@ -39,12 +39,13 @@
 #ifndef nsUnicharStreamLoader_h__
 #define nsUnicharStreamLoader_h__
 
-#include "nsIUnicharStreamLoader.h"
-#include "nsCOMPtr.h"
 #include "nsIChannel.h"
+#include "nsIUnicharStreamLoader.h"
+#include "nsIUnicodeDecoder.h"
+#include "nsCOMPtr.h"
 #include "nsString.h"
-#include "nsIInputStream.h"
-#include "nsIOutputStream.h"
+
+class nsIInputStream;
 
 class nsUnicharStreamLoader : public nsIUnicharStreamLoader
 {
@@ -54,13 +55,14 @@ public:
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
 
-  nsUnicharStreamLoader() { }
+  nsUnicharStreamLoader() {}
   virtual ~nsUnicharStreamLoader() {}
 
-  static nsresult
-  Create(nsISupports *aOuter, REFNSIID aIID, void **aResult);
+  static nsresult Create(nsISupports *aOuter, REFNSIID aIID, void **aResult);
 
 protected:
+  nsresult DetermineCharset();
+
   
 
 
@@ -68,13 +70,19 @@ protected:
                                    PRUint32, PRUint32, PRUint32 *);
 
   nsCOMPtr<nsIUnicharStreamLoaderObserver> mObserver;
-  nsCOMPtr<nsISupports>                    mContext;  
-  nsCString                                mCharset;
+  nsCOMPtr<nsIUnicodeDecoder>              mDecoder;
+  nsCOMPtr<nsISupports>                    mContext;
   nsCOMPtr<nsIChannel>                     mChannel;
-  nsCOMPtr<nsIInputStream>                 mInputStream;
-  nsCOMPtr<nsIOutputStream>                mOutputStream;
-  PRUint32                                 mSegmentSize;
+  nsCString                                mCharset;
+
   
+  
+  nsCString                                mRawData;
+
+  
+  
+  
+  nsString                                 mBuffer;
 };
 
 #endif 
