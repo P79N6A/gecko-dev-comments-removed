@@ -125,6 +125,10 @@ SCORE_UPDATE_DELAY:                    100,
 
 
 
+IDLE_OBSERVER_BACK_DELAY:              100,
+
+
+
 
 MAX_UPLOAD_RECORDS:                    100,
 MAX_HISTORY_UPLOAD:                    5000,
