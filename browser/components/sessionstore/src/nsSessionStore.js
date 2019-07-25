@@ -2856,6 +2856,8 @@ SessionStoreService.prototype = {
       activeIndex = tabData.entries.length - 1;
 
     
+    
+    
     browser.webNavigation.setCurrentURI(this._getURIFromString("about:blank"));
 
     
