@@ -516,8 +516,6 @@ ArgGetter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
         uintN arg = uintN(JSID_TO_INT(id));
         if (arg < obj->getArgsInitialLength()) {
             JS_ASSERT(!obj->getArgsElement(arg).isMagic(JS_ARGS_HOLE));
-            if (obj->getArgsElement(arg).isMagic(JS_ARGS_HOLE))
-                *(int *) 0xe0 = 0;
             if (JSStackFrame *fp = (JSStackFrame *) obj->getPrivate())
                 *vp = fp->canonicalActualArg(arg);
             else
@@ -2228,20 +2226,6 @@ js_fun_call(JSContext *cx, uintN argc, Value *vp)
     return ok;
 }
 
-struct STATIC_SKIP_INFERENCE CopyNonHoleArgs
-{
-    CopyNonHoleArgs(JSObject *aobj, Value *dst) : aobj(aobj), dst(dst) {}
-    JSObject *aobj;
-    Value *dst;
-    void operator()(uintN argi, Value *src) {
-        if (aobj->getArgsElement(argi).isMagic(JS_ARGS_HOLE))
-            dst->setUndefined();
-        else
-            *dst = *src;
-        ++dst;
-    }
-};
-
 
 JSBool
 js_fun_apply(JSContext *cx, uintN argc, Value *vp)
@@ -2280,23 +2264,8 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
 
     JSObject *aobj = &vp[3].toObject();
     jsuint length;
-    if (aobj->isArray()) {
-        length = aobj->getArrayLength();
-    } else if (aobj->isArguments() && !aobj->isArgsLengthOverridden()) {
-        length = aobj->getArgsInitialLength();
-    } else {
-        Value &lenval = vp[0];
-        if (!aobj->getProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom), &lenval))
-            return false;
-
-        if (lenval.isInt32()) {
-            length = jsuint(lenval.toInt32()); 
-        } else {
-            JS_STATIC_ASSERT(sizeof(jsuint) == sizeof(uint32_t));
-            if (!ValueToECMAUint32(cx, lenval, (uint32_t *)&length))
-                return false;
-        }
-    }
+    if (!js_GetLengthProperty(cx, aobj, &length))
+        return false;
 
     LeaveTrace(cx);
 
@@ -2312,32 +2281,8 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
     args.thisv() = vp[2];
 
     
-    if (aobj && aobj->isArguments() && !aobj->isArgsLengthOverridden()) {
-        
-
-
-
-
-
-        JSStackFrame *fp = (JSStackFrame *) aobj->getPrivate();
-        Value *argv = args.argv();
-        if (fp) {
-            JS_ASSERT(fp->numActualArgs() <= JS_ARGS_LENGTH_MAX);
-            fp->forEachCanonicalActualArg(CopyNonHoleArgs(aobj, argv));
-        } else {
-            for (uintN i = 0; i < n; i++) {
-                argv[i] = aobj->getArgsElement(i);
-                if (argv[i].isMagic(JS_ARGS_HOLE))
-                    argv[i].setUndefined();
-            }
-        }
-    } else {
-        Value *argv = args.argv();
-        for (uintN i = 0; i < n; i++) {
-            if (!aobj->getProperty(cx, INT_TO_JSID(jsint(i)), &argv[i]))
-                return JS_FALSE;
-        }
-    }
+    if (!GetElements(cx, aobj, n, args.argv()))
+        return false;
 
     
     if (!Invoke(cx, args, 0))

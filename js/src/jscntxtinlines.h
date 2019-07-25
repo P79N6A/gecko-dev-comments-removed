@@ -248,7 +248,7 @@ StackSpace::pushInvokeArgs(JSContext *cx, uintN argc, InvokeArgsGuard *ag)
 
     Value *vp = start;
     Value *vpend = vp + nvals;
-    MakeValueRangeGCSafe(vp, vpend);
+    
 
     
     ag->prevInvokeArgEnd = invokeArgEnd;
