@@ -92,9 +92,6 @@ protected:
     hb_face_t         *mHBFace;
 
     
-    hb_language_t      mHBLanguage;
-
-    
     
     
     
@@ -121,9 +118,6 @@ protected:
     
     
     PRBool mUseHintedWidths;
-
-    
-    const nsTArray<hb_feature_t> *mOpenTypeFeatures;
 };
 
 #endif 

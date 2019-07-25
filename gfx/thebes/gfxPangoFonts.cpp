@@ -2255,7 +2255,7 @@ gfxFcFont::GetOrMakeFont(FcPattern *aRequestedPattern, FcPattern *aFontPattern)
                                size, language, 0.0,
                                PR_TRUE, PR_FALSE, PR_FALSE,
                                NS_LITERAL_STRING(""),
-                               NS_LITERAL_STRING("")); 
+                               NS_LITERAL_STRING(""));
 
         
         
