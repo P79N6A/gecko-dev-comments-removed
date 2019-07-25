@@ -2906,7 +2906,7 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
 
   
   nsCOMPtr<nsIDOMHTMLSelectElement> sel(do_QueryInterface(content));
-  PRInt32 size = 1;
+  PRUint32 size = 1;
   if (sel) {
     sel->GetSize(&size); 
     bool multipleSelect = false;
