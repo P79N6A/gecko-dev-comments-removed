@@ -245,8 +245,7 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 
 
 
-            DebugOnly<JSBool> callbackStatus = cxCallback(cx, JSCONTEXT_DESTROY);
-            JS_ASSERT(callbackStatus);
+            JS_ALWAYS_TRUE(cxCallback(cx, JSCONTEXT_DESTROY));
         }
     }
 
@@ -254,13 +253,6 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
     bool last = !rt->hasContexts();
     if (last) {
         JS_ASSERT(!rt->gcRunning);
-
-#ifdef JS_THREADSAFE
-        {
-            AutoLockGC lock(rt);
-            rt->gcHelperThread.waitBackgroundSweepEnd();
-        }
-#endif
 
         
 
@@ -270,11 +262,11 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
             c->types.print(cx, false);
 
         
-        FinishCommonAtoms(cx->runtime);
+        FinishCommonAtoms(rt);
 
         
         for (CompartmentsIter c(rt); !c.done(); c.next())
-            c->clearTraps(cx);
+            c->clearTraps(rt->defaultFreeOp());
         JS_ClearAllWatchPoints(cx);
 
         PrepareForFullGC(rt);
@@ -288,12 +280,6 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
         JS_MaybeGC(cx);
     }
 
-#ifdef JS_THREADSAFE
-    {
-        AutoLockGC lock(rt);
-        rt->gcHelperThread.waitBackgroundSweepEnd();
-    }
-#endif
     Foreground::delete_(cx);
 }
 
@@ -990,9 +976,6 @@ JSContext::JSContext(JSRuntime *rt)
     functionCallback(NULL),
 #endif
     enumerators(NULL),
-#ifdef JS_THREADSAFE
-    gcBackgroundFree(NULL),
-#endif
     activeCompilations(0)
 #ifdef DEBUG
     , stackIterAssertionEnabled(true)

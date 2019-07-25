@@ -84,7 +84,6 @@ enum State {
     NO_INCREMENTAL,
     MARK_ROOTS,
     MARK,
-    SWEEP,
     INVALID
 };
 
@@ -1446,7 +1445,7 @@ class GCHelperThread {
     PRCondVar         *done;
     volatile State    state;
 
-    JSContext         *finalizationContext;
+    bool              sweepFlag;
     bool              shrinkFlag;
 
     Vector<void **, 16, js::SystemAllocPolicy> freeVector;
@@ -1482,7 +1481,7 @@ class GCHelperThread {
         wakeup(NULL),
         done(NULL),
         state(IDLE),
-        finalizationContext(NULL),
+        sweepFlag(false),
         shrinkFlag(false),
         freeCursor(NULL),
         freeCursorEnd(NULL),
@@ -1493,7 +1492,7 @@ class GCHelperThread {
     void finish();
 
     
-    void startBackgroundSweep(JSContext *cx, bool shouldShrink);
+    void startBackgroundSweep(bool shouldShrink);
 
     
     void startBackgroundShrink();
@@ -1994,7 +1993,7 @@ const int ZealFrameVerifierValue = 5;
 
 
 void
-VerifyBarriers(JSContext *cx);
+VerifyBarriers(JSRuntime *rt);
 
 void
 MaybeVerifyBarriers(JSContext *cx, bool always = false);
@@ -2002,7 +2001,7 @@ MaybeVerifyBarriers(JSContext *cx, bool always = false);
 #else
 
 static inline void
-VerifyBarriers(JSContext *cx)
+VerifyBarriers(JSRuntime *rt)
 {
 }
 

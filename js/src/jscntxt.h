@@ -1126,14 +1126,6 @@ struct JSContext : js::ContextFriendFields
         genStack.popBack();
     }
 
-#ifdef JS_THREADSAFE
-    
-
-
-
-    js::GCHelperThread *gcBackgroundFree;
-#endif
-
     inline void* malloc_(size_t bytes) {
         return runtime->malloc_(bytes, this);
     }
@@ -1157,12 +1149,6 @@ struct JSContext : js::ContextFriendFields
     }
 
     inline void free_(void* p) {
-#ifdef JS_THREADSAFE
-        if (gcBackgroundFree) {
-            gcBackgroundFree->freeLater(p);
-            return;
-        }
-#endif
         runtime->free_(p);
     }
 
