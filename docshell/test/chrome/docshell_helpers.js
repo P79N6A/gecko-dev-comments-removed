@@ -323,8 +323,20 @@ function finish() {
 
   
   let opener = window.opener;
+  let SimpleTest = opener.wrappedJSObject.SimpleTest;
+
+  
+  let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].getService(Ci.nsIWindowWatcher);
+  ww.registerNotification(function(subject, topic, data) {
+    if (topic == "domwindowclosed") {
+      ww.unregisterNotification(arguments.callee);
+      SimpleTest.waitForFocus(function() {
+        SimpleTest.finish();
+      }, opener);
+    }
+  });
+
   window.close();
-  opener.wrappedJSObject.SimpleTest.finish();
 }
 
 
