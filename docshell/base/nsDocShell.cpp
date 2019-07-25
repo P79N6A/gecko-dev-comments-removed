@@ -8186,7 +8186,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         
         
         rv = URIInheritsSecurityContext(aURI, &willInherit);
-        if (NS_FAILED(rv) || willInherit || IsAboutBlank(aURI)) {
+        if (NS_FAILED(rv) || willInherit || NS_IsAboutBlank(aURI)) {
             nsCOMPtr<nsIDocShellTreeItem> treeItem = this;
             do {
                 nsCOMPtr<nsIDocShell> itemDocShell =
@@ -9024,7 +9024,7 @@ nsDocShell::DoURILoad(nsIURI * aURI,
     
     
     rv = URIInheritsSecurityContext(aURI, &inherit);
-    if (NS_SUCCEEDED(rv) && (inherit || IsAboutBlank(aURI))) {
+    if (NS_SUCCEEDED(rv) && (inherit || NS_IsAboutBlank(aURI))) {
         channel->SetOwner(aOwner);
     }
 
@@ -9452,7 +9452,7 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
             shAvailable, updateHistory, equalUri));
 
     if (shAvailable && mCurrentURI && !mOSHE && aLoadType != LOAD_ERROR_PAGE) {
-        NS_ASSERTION(IsAboutBlank(mCurrentURI), "no SHEntry for a non-transient viewer?");
+        NS_ASSERTION(NS_IsAboutBlank(mCurrentURI), "no SHEntry for a non-transient viewer?");
     }
 #endif
 
@@ -11273,23 +11273,6 @@ nsDocShell::URIIsLocalFile(nsIURI *aURI)
                                     nsIProtocolHandler::URI_IS_LOCAL_FILE,
                                     &isFile)) &&
            isFile;
-}
-
-
-PRBool
-nsDocShell::IsAboutBlank(nsIURI* aURI)
-{
-    NS_PRECONDITION(aURI, "Must have URI");
-    
-    
-    PRBool isAbout = PR_FALSE;
-    if (NS_FAILED(aURI->SchemeIs("about", &isAbout)) || !isAbout) {
-        return PR_FALSE;
-    }
-    
-    nsCAutoString str;
-    aURI->GetSpec(str);
-    return str.EqualsLiteral("about:blank");
 }
 
 PRBool

@@ -2013,4 +2013,21 @@ net_EnsurePSMInit()
     }
 }
 
+
+
+
+inline bool
+NS_IsAboutBlank(nsIURI *uri)
+{
+    
+    PRBool isAbout = PR_FALSE;
+    if (NS_FAILED(uri->SchemeIs("about", &isAbout)) || !isAbout) {
+        return false;
+    }
+
+    nsCAutoString str;
+    uri->GetSpec(str);
+    return str.EqualsLiteral("about:blank");
+}
+
 #endif 

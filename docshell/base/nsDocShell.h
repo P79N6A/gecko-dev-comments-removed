@@ -657,9 +657,6 @@ protected:
     static PRBool URIIsLocalFile(nsIURI *aURI);
 
     
-    static PRBool IsAboutBlank(nsIURI* aURI);
-
-    
     
     
     PRBool IsOKToLoadURI(nsIURI* aURI);
