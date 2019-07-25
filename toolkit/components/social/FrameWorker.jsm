@@ -146,11 +146,6 @@ FrameWorker.prototype = {
       workerWindow.addEventListener(t, l, c)
     };
 
-    
-    sandbox.bufferToArrayHack = function fw_bufferToArrayHack(a) {
-      return new workerWindow.Uint8Array(a);
-    };
-
     this.sandbox = sandbox;
 
     let worker = this;
