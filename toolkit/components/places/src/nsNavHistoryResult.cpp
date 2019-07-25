@@ -3162,7 +3162,10 @@ nsNavHistoryQueryResultNode::OnItemChanged(PRInt64 aItemId,
     }
   }
   else {
-    NS_WARNING("history observers should not get OnItemChanged, but should get the corresponding history notifications instead");
+    
+    
+    NS_WARN_IF_FALSE(mResult && (mResult->mIsAllBookmarksObserver || mResult->mIsBookmarkFolderObserver),
+                     "history observers should not get OnItemChanged, but should get the corresponding history notifications instead");
   }
 
   return nsNavHistoryResultNode::OnItemChanged(aItemId, aProperty,
